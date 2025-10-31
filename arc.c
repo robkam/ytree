@@ -144,7 +144,8 @@ static int GetStatFromARC(char *arc_line, char *name, struct stat *stat)
   stat->st_atime = 0;
   stat->st_ctime = 0;
 
-  stat->st_mtime = Mktime( &tm_struct );
+  /* Use standard mktime */
+  stat->st_mtime = mktime( &tm_struct );
 
   /* Attributes */
   /*------------*/
@@ -166,5 +167,3 @@ static int GetStatFromARC(char *arc_line, char *name, struct stat *stat)
   
   return( 0 );
 }
-
-

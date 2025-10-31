@@ -146,7 +146,7 @@ static int GetStatFromRAR(char *rar_line, char *name, struct stat *stat)
   if(strlen(t) == 5) {
     t[2] = '\0';
     tm_struct.tm_hour = atoi( &t[0] );
-    tm_struct.tm_min  = atoi( &t[2] );
+    tm_struct.tm_min  = atoi( &t[3] );
   }
 
   tm_struct.tm_sec = 0;
@@ -155,7 +155,8 @@ static int GetStatFromRAR(char *rar_line, char *name, struct stat *stat)
   stat->st_atime = 0;
   stat->st_ctime = 0;
 
-  stat->st_mtime = Mktime( &tm_struct );
+  /* Use standard mktime */
+  stat->st_mtime = mktime( &tm_struct );
 
   t = Strtok_r( NULL, " \t", &old ); if( t == NULL ) return( -1 );
 
@@ -248,7 +249,8 @@ static int GetStatFromNewRAR(char *rar_line, char *name, struct stat *stat)
   stat->st_atime = 0;
   stat->st_ctime = 0;
 
-  stat->st_mtime = Mktime( &tm_struct );
+  /* Use standard mktime */
+  stat->st_mtime = mktime( &tm_struct );
 
 
   /* filename */
@@ -274,6 +276,3 @@ static int GetStatFromNewRAR(char *rar_line, char *name, struct stat *stat)
   
   return( 0 );
 }
-
-
-

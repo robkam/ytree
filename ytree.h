@@ -85,11 +85,13 @@ extern char *getcwd();
 #endif
 
 #ifdef __OpenBSD__
+#define STAT_(a, b) lstat(a, b)
 #define STATFS(a, b, c, d )     statfs( a, b )
 #define LONGLONG		long long
 #define HAS_LONGLONG		1
 #else
 #ifdef __NetBSD__
+#define STAT_(a, b) lstat(a, b)
 #define STATFS(a, b, c, d )     statvfs( a, b )
 #define LONGLONG		long long
 #define HAS_LONGLONG		1
@@ -98,59 +100,76 @@ extern char *getcwd();
 #define putp( str )             tputs( str, 1, putchar )
 #else
 #ifdef __APPLE__
+#define STAT_(a, b) lstat(a, b)
 #define STATFS(a, b, c, d )     statfs( a, b )
 #define LONGLONG		long long
 #define HAS_LONGLONG		1
 #else
 #ifdef __FreeBSD__
+#define STAT_(a, b) lstat(a, b)
 #define STATFS(a, b, c, d )     statfs( a, b )
 #define LONGLONG		long long
 #define HAS_LONGLONG		1
 #else
 #ifdef OSF1
+#define STAT_(a, b) lstat(a, b)
 #define STATFS(a, b, c, d )     statvfs( a, b )
 #define echochar( ch )          { addch( ch ); refresh(); }
 #define LONGLONG		unsigned long
 #else
 #ifdef SVR4
+#define STAT_(a, b) lstat(a, b)
 #define STATFS(a, b, c, d )     statvfs( a, b )
 #define LONGLONG		unsigned long
 #else
 #ifdef SVR3
+#define STAT_(a, b) lstat(a, b)
 #define LONGLONG		unsigned long
 #define STATFS(a, b, c, d )     statfs( a, b, c, d )
 #define LONGLONG		unsigned long
 #else
 #ifdef _IBMR2
+#define STAT_(a, b) lstat(a, b)
 #define STATFS(a, b, c, d )     statfs( a, b )
 #define LONGLONG		long long
 #define HAS_LONGLONG		1
 #else
 #if defined(linux)
+#define STAT_(a, b) lstat(a, b)
 #define STATFS(a, b, c, d )     statfs( a, b )
 #define LONGLONG               long long
 #define HAS_LONGLONG           1
 #else
 #if defined(__GNU__)
+#define STAT_(a, b) lstat(a, b)
 #define STATFS(a, b, c, d )     statfs( a, b )
 #define LONGLONG		long long
 #define HAS_LONGLONG		1
 #else
 #ifdef hpux
+#define STAT_(a, b) lstat(a, b)
 #define STATFS(a, b, c, d )     statfs( a, b )
 #define echochar( ch )          { addch( ch ); refresh(); }
 #define LONGLONG		long long
 #define HAS_LONGLONG		1
 #else
 #ifdef ultrix
+#define STAT_(a, b) lstat(a, b)
 #define STATFS(a, b, c, d )	statfs( a, b )
 #define echochar( ch )          { addch( ch ); refresh(); }
 #define LONGLONG		unsigned long
 #else
 #ifdef __QNX__
+#define STAT_(a, b) lstat(a, b)
 #define STATFS(a, b, c, d )	statfs( a, b )
 #define LONGLONG		unsigned long
 #else
+#if defined(S_IFLNK) && !defined(isc386)
+#define STAT_(a, b) lstat(a, b)
+#else
+#define STAT_(a, b) stat(a, b)
+#define readlink( a, b, c )  (-1)
+#endif
 #define STATFS(a, b, c, d )     statfs( a, b, c, d )
 #define LONGLONG		long long
 #define HAS_LONGLONG		1
@@ -1046,7 +1065,7 @@ extern char *CutPathname(char *dest, char *src, unsigned int max_len);
 extern void   Fnsplit(char *path, char *dir, char *name);
 extern void MakeExtractCommandLine(char *command_line, char *path, char *file, char *cmd);
 extern int MakeDirectory(DirEntry *father_dir_entry);
-extern time_t Mktime(struct tm *tm);
+/* REMOVED: extern time_t Mktime(struct tm *tm); */
 extern int TryInsertArchiveDirEntry(DirEntry *tree, char *dir, struct stat *stat);
 extern int InsertArchiveFileEntry(DirEntry *tree, char *path, struct stat *stat);
 extern void MinimizeArchiveTree(DirEntry *tree);
@@ -1124,4 +1143,3 @@ extern char *CutName(char *dest, char *src, unsigned int max_len);
 extern int  StrCaseCmp(char *s1, char *s2);
 extern int  StrNCaseCmp(char *s1, char *s2, unsigned int n);
 extern char *SubString(char *dest, char *src, int pos, int len);
-

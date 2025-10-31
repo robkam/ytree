@@ -209,11 +209,11 @@ MAIN    = ytree
 OBJS	= arc.o archive.o chgrp.o chmod.o chown.o clock.o color.o copy.o    \
 	  delete.o dirwin.o disp.o edit.o error.o execute.o filespec.o      \
 	  filewin.o freesp.o global.o group.o hex.o history.o init.o input.o keyhtab.o lha.o  \
-	  login.o main.o match.o mkdir.o mktime.o move.o passwd.o pipe.o    \
+	  login.o main.o match.o mkdir.o move.o passwd.o pipe.o    \
 	  print.o profile.o quit.o rar.o readtree.o rename.o rmdir.o rpm.o  \
 	  sort.o stat.o system.o tar.o termcap.o tilde.o usermode.o util.o view.o zip.o zoo.o 7z.o
 
-# xmalloc.o removed from OBJS list
+# mktime.o removed from OBJS list
 
 $(MAIN):	$(OBJS)
 	$(CC) $(LFLAGS) -o $@ $(OBJS) $(LDFLAGS)
@@ -267,7 +267,7 @@ login.o: config.h ytree.h login.c
 main.o: config.h ytree.h main.c
 match.o: config.h ytree.h match.c
 mkdir.o: config.h ytree.h mkdir.c
-mktime.o: config.h ytree.h mktime.c
+# mktime.o: config.h ytree.h mktime.c <-- REMOVED
 move.o: config.h ytree.h move.c
 passwd.o: config.h ytree.h passwd.c
 pipe.o: config.h ytree.h pipe.c
