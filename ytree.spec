@@ -30,7 +30,7 @@ rm -rf $RPM_BUILD_ROOT
 %post
 
 %files
-%doc CHANGES COPYING README THANKS ytree.conf
+%doc CHANGES LICENSE README THANKS ytree.conf
 /usr/share/man/man1/ytree.1.gz
 /usr/bin/ytree
 
