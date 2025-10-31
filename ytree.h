@@ -77,7 +77,7 @@ extern char *getcwd();
 #include <string.h>
 
 #if defined( TERMCAP ) && !defined( __NeXT__ )
-#include <termcap.h>
+/* REMOVED: #include <termcap.h> */
 #endif
 
 #ifdef WITH_UTF8
@@ -85,94 +85,95 @@ extern char *getcwd();
 #endif
 
 #ifdef __OpenBSD__
-#define STAT_(a, b) lstat(a, b)
 #define STATFS(a, b, c, d )     statfs( a, b )
 #define LONGLONG		long long
 #define HAS_LONGLONG		1
+#define STAT_(a, b) lstat(a, b)
 #else
 #ifdef __NetBSD__
-#define STAT_(a, b) lstat(a, b)
 #define STATFS(a, b, c, d )     statvfs( a, b )
 #define LONGLONG		long long
 #define HAS_LONGLONG		1
 #define typeahead( file )
 #define vidattr( attr )
 #define putp( str )             tputs( str, 1, putchar )
+#define STAT_(a, b) lstat(a, b)
 #else
 #ifdef __APPLE__
-#define STAT_(a, b) lstat(a, b)
 #define STATFS(a, b, c, d )     statfs( a, b )
 #define LONGLONG		long long
 #define HAS_LONGLONG		1
+#define STAT_(a, b) lstat(a, b)
 #else
 #ifdef __FreeBSD__
-#define STAT_(a, b) lstat(a, b)
 #define STATFS(a, b, c, d )     statfs( a, b )
 #define LONGLONG		long long
 #define HAS_LONGLONG		1
+#define STAT_(a, b) lstat(a, b)
 #else
 #ifdef OSF1
-#define STAT_(a, b) lstat(a, b)
 #define STATFS(a, b, c, d )     statvfs( a, b )
 #define echochar( ch )          { addch( ch ); refresh(); }
 #define LONGLONG		unsigned long
+#define STAT_(a, b) lstat(a, b)
 #else
 #ifdef SVR4
-#define STAT_(a, b) lstat(a, b)
 #define STATFS(a, b, c, d )     statvfs( a, b )
 #define LONGLONG		unsigned long
+#define STAT_(a, b) lstat(a, b)
 #else
 #ifdef SVR3
-#define STAT_(a, b) lstat(a, b)
 #define LONGLONG		unsigned long
 #define STATFS(a, b, c, d )     statfs( a, b, c, d )
 #define LONGLONG		unsigned long
+#define STAT_(a, b) stat(a, b) /* SVR3 likely doesn't have lstat or S_IFLNK */
 #else
 #ifdef _IBMR2
-#define STAT_(a, b) lstat(a, b)
 #define STATFS(a, b, c, d )     statfs( a, b )
 #define LONGLONG		long long
 #define HAS_LONGLONG		1
+#define STAT_(a, b) lstat(a, b)
 #else
 #if defined(linux)
-#define STAT_(a, b) lstat(a, b)
 #define STATFS(a, b, c, d )     statfs( a, b )
 #define LONGLONG               long long
 #define HAS_LONGLONG           1
+#define STAT_(a, b) lstat(a, b)
 #else
 #if defined(__GNU__)
-#define STAT_(a, b) lstat(a, b)
 #define STATFS(a, b, c, d )     statfs( a, b )
 #define LONGLONG		long long
 #define HAS_LONGLONG		1
+#define STAT_(a, b) lstat(a, b)
 #else
 #ifdef hpux
-#define STAT_(a, b) lstat(a, b)
 #define STATFS(a, b, c, d )     statfs( a, b )
 #define echochar( ch )          { addch( ch ); refresh(); }
 #define LONGLONG		long long
 #define HAS_LONGLONG		1
+#define STAT_(a, b) lstat(a, b)
 #else
 #ifdef ultrix
-#define STAT_(a, b) lstat(a, b)
 #define STATFS(a, b, c, d )	statfs( a, b )
 #define echochar( ch )          { addch( ch ); refresh(); }
 #define LONGLONG		unsigned long
+#define STAT_(a, b) lstat(a, b)
 #else
 #ifdef __QNX__
-#define STAT_(a, b) lstat(a, b)
 #define STATFS(a, b, c, d )	statfs( a, b )
 #define LONGLONG		unsigned long
+#define STAT_(a, b) stat(a, b)
 #else
+/* Fallback for systems not listed, assuming modern POSIX behavior */
+#define STATFS(a, b, c, d )     statfs( a, b, c, d )
+#define LONGLONG		long long
+#define HAS_LONGLONG		1
 #if defined(S_IFLNK) && !defined(isc386)
 #define STAT_(a, b) lstat(a, b)
 #else
 #define STAT_(a, b) stat(a, b)
 #define readlink( a, b, c )  (-1)
 #endif
-#define STATFS(a, b, c, d )     statfs( a, b, c, d )
-#define LONGLONG		long long
-#define HAS_LONGLONG		1
 #endif /* __QNX__ */
 #endif /* ultrix */
 #endif /* hpux */
@@ -266,65 +267,6 @@ extern char *getcwd();
 #endif /* __DJGPP__*/
 
 
-
-
-#ifdef TERMCAP
-
-#define  KEY_BTAB         5000
-#define  KEY_DOWN         5001
-#define  KEY_UP           5002
-#define  KEY_LEFT         5003
-#define  KEY_RIGHT        5004
-#define  KEY_END          5005
-#define  KEY_HOME         5006
-#define  KEY_NPAGE        5007
-#define  KEY_PPAGE        5008
-#define  KEY_DC           5009
-#define  KEY_BACKSPACE    5010
-#define  KEY_EIC          5011
-#define  KEY_IC           5012
-#define  KEY_DL           5013
-
-#define  NO_HIGHLIGHT
-
-#define  A_REVERSE        1 
-#define  A_BLINK          2
-
-#define  BELL             0x07
-
-
-
-/* Diese Funktionen koennen direkt umgesetzt werden */
-/*--------------------------------------------------*/
-
-#undef   cbreak  
-#define  cbreak()                    raw()
-#define  beep()                      putchar( BELL )
-#define  echochar( ch )              { addch( ch ); refresh(); }
-#define  putp( str )                 tputs( str, 1, putchar )
-#define  wnoutrefresh( win )         wrefresh( win )
-
-
-/* ... hier ist ein wenig mehr Arbeit noetig ... */
-/*-----------------------------------------------*/
-
-#define  wgetch( win )               TermcapWgetch( win )
-#define  vidattr( attr )             TermcapVidattr( attr )
-#define  initscr()                   TermcapInitscr()
-#define  endwin()                    TermcapEndwin()
-
-
-/* ... und hier gibt's keine entsprechende Funktion. */
-/*---------------------------------------------------*/
-
-#define  doupdate() 
-#define  wattrset( win, attr ) 
-#define  typeahead( file )
-#define  keypad( win, flag )
-
-#endif /* TERMCAP */
-
-
 #ifndef KEY_BTAB
 #define KEY_BTAB  0x1d
 #endif
@@ -338,13 +280,6 @@ extern char *getcwd();
 #define wgetch( w )    AixWgetch( w )
 #endif
 
-
-#if defined( S_IFLNK ) && !defined( isc386 )
-#define STAT_(a, b) lstat(a, b)
-#else
-#define STAT_(a, b) stat(a, b)
-#define readlink( a, b, c )  (-1)
-#endif /* S_IFLNK */
 
 #ifndef S_ISREG
 #define S_ISREG( mode )   (((mode) & S_IFMT) == S_IFREG)
@@ -1065,15 +1000,14 @@ extern char *CutPathname(char *dest, char *src, unsigned int max_len);
 extern void   Fnsplit(char *path, char *dir, char *name);
 extern void MakeExtractCommandLine(char *command_line, char *path, char *file, char *cmd);
 extern int MakeDirectory(DirEntry *father_dir_entry);
-/* REMOVED: extern time_t Mktime(struct tm *tm); */
 extern int TryInsertArchiveDirEntry(DirEntry *tree, char *dir, struct stat *stat);
 extern int InsertArchiveFileEntry(DirEntry *tree, char *path, struct stat *stat);
 extern void MinimizeArchiveTree(DirEntry *tree);
 extern void HitReturnToContinue(void);
-extern int  TermcapWgetch(WINDOW *win);
-extern void TermcapVidattr(int attr );
-extern void TermcapInitscr(void);
-extern void TermcapEndwin(void);
+/* REMOVED: extern int  TermcapWgetch(WINDOW *win); */
+/* REMOVED: extern void TermcapVidattr(int attr ); */
+/* REMOVED: extern void TermcapInitscr(void); */
+/* REMOVED: extern void TermcapEndwin(void); */
 extern int  BuildFilename( char *in_filename, char *pattern, char *out_filename);
 extern int  ViKey( int ch );
 extern int  GetFileMethod( char *filename );

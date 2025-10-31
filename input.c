@@ -1,6 +1,6 @@
 #include "ytree.h"
 #include "tilde.h"
-/* #include "xmalloc.h" <-- REMOVED */
+/* #include "xmalloc.h" <-- REMOVED in Step 1 */
 
 
 /***************************************************************************
@@ -559,11 +559,9 @@ BOOL KeyPressed()
 {
   BOOL pressed = FALSE;
 
-#if !defined( linux ) || !defined( TERMCAP )
   nodelay( stdscr, TRUE );
   if( wgetch( stdscr ) != ERR ) pressed = TRUE;
   nodelay( stdscr, FALSE );
-#endif /* linux/TERMCAP */
 
   return( pressed );
 }
@@ -574,11 +572,9 @@ BOOL EscapeKeyPressed()
   BOOL pressed = FALSE;
   int  c;
 
-#if !defined( linux ) || !defined( TERMCAP )
   nodelay( stdscr, TRUE );
   if( ( c = wgetch( stdscr ) ) != ERR ) pressed = TRUE;
   nodelay( stdscr, FALSE );
-#endif /* linux/TERMCAP */
 
   return( ( pressed && c == ESC ) ? TRUE : FALSE );
 }
