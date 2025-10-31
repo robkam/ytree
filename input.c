@@ -1,8 +1,6 @@
-
 #include "ytree.h"
 #include "tilde.h"
-#include "xmalloc.h"
-
+/* #include "xmalloc.h" <-- REMOVED */
 
 
 /***************************************************************************
@@ -277,7 +275,7 @@ int InputString(char *s, int y, int x, int cursor_pos, int length, char *term)
     
     if ( c1 != ERR ) {
     
-      if( c1 >= ' ' && c1 < 0xff && c1 != 127 ) {
+      if ( (c1 >= ' ' && c1 <= '~') || (c1 > 0xff) ) {
         if ( len_flag == TRUE) beep();
         else {
           buf[0] = (char)c1;
@@ -478,7 +476,7 @@ int InputString(char *s, int y, int x, int cursor_pos, int length, char *term)
 
   strncpy( s, pp, length - 1);
   s[length]='\0';
-  xfree(pp);
+  free(pp);
   return( c1 );
 }
 
@@ -548,7 +546,6 @@ void HitReturnToContinue(void)
   curs_set(1);
   vidattr( A_REVERSE );
   putp( "[Hit return to continue]" );
-  vidattr( 0 );
   (void) fflush( stdout );
   (void) Getch();
 #endif /* XCURSES */
@@ -644,4 +641,3 @@ int Getch()
 {
   return(WGetch(stdscr));
 }
-

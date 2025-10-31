@@ -211,30 +211,30 @@ OBJS	= arc.o archive.o chgrp.o chmod.o chown.o clock.o color.o copy.o    \
 	  filewin.o freesp.o global.o group.o hex.o history.o init.o input.o keyhtab.o lha.o  \
 	  login.o main.o match.o mkdir.o mktime.o move.o passwd.o pipe.o    \
 	  print.o profile.o quit.o rar.o readtree.o rename.o rmdir.o rpm.o  \
-	  sort.o stat.o system.o tar.o termcap.o tilde.o usermode.o util.o view.o xmalloc.o zip.o zoo.o 7z.o
+	  sort.o stat.o system.o tar.o termcap.o tilde.o usermode.o util.o view.o zip.o zoo.o 7z.o
 
-#
+# xmalloc.o removed from OBJS list
 
 $(MAIN):	$(OBJS)
-		$(CC) $(LFLAGS) -o $@ $(OBJS) $(LDFLAGS)
+	$(CC) $(LFLAGS) -o $@ $(OBJS) $(LDFLAGS)
 
 install:	$(MAIN)
-		if [ ! -e $(BINDIR) ]; then mkdir -p $(BINDIR); fi
-		install $(MAIN) $(BINDIR)
-		gzip -9c ytree.1 > ytree.1.gz
-		if [ ! -e $(MANDIR) ]; then mkdir -p $(MANDIR); fi
-		install -m 0644 ytree.1.gz  $(MANDIR)/
+	if [ ! -e $(BINDIR) ]; then mkdir -p $(BINDIR); fi
+	install $(MAIN) $(BINDIR)
+	gzip -9c ytree.1 > ytree.1.gz
+	if [ ! -e $(MANDIR) ]; then mkdir -p $(MANDIR); fi
+	install -m 0644 ytree.1.gz  $(MANDIR)/
 
 uninstall:	clobber
-		rm -f $(BINDIR)/$(MAIN)
-		rm -f $(MANDIR)/ytree.1.gz
-		rm -f $(MANESDIR)/ytree.1.es.gz
+	rm -f $(BINDIR)/$(MAIN)
+	rm -f $(MANDIR)/ytree.1.gz
+	rm -f $(MANESDIR)/ytree.1.es.gz
 
 clean:
-		rm -f core *.o *~ *.orig *.bak 
+	rm -f core *.o *~ *.orig *.bak 
 		
 clobber:	clean
-		rm -f $(MAIN) ytree.1.es.gz ytree.1.gz
+	rm -f $(MAIN) ytree.1.es.gz ytree.1.gz
 
 
 ##################################################
@@ -260,7 +260,7 @@ group.o: config.h ytree.h group.c
 hex.o: config.h ytree.h hex.c
 history.o: config.h ytree.h history.c
 init.o: config.h ytree.h init.c
-input.o: config.h ytree.h tilde.h xmalloc.h input.c
+input.o: config.h ytree.h tilde.h input.c
 keyhtab.o: config.h ytree.h keyhtab.c
 lha.o: config.h ytree.h lha.c
 login.o: config.h ytree.h login.c
@@ -284,11 +284,10 @@ stat.o: config.h ytree.h stat.c
 system.o: config.h ytree.h system.c
 tar.o: config.h ytree.h tar.c
 termcap.o: config.h ytree.h termcap.c
-tilde.o: config.h xmalloc.h tilde.h tilde.c
+tilde.o: config.h tilde.h tilde.c
 usermode.o: config.h ytree.h usermode.c
 util.o: config.h ytree.h util.c
 view.o: config.h ytree.h view.c
-xmalloc.o: config.h ytree.h xmalloc.h xmalloc.c
 zip.o: config.h ytree.h zip.c
 7z.o: config.h ytree.h 7z.c
 zoo.o: config.h ytree.h zoo.c

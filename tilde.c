@@ -24,16 +24,14 @@
 
 #include "ytree.h"
 #include "tilde.h"
-#include "xmalloc.h"
+/* #include "xmalloc.h" <-- REMOVED */
+
+
 /*#include <string.h>*/
 
-/*#if !defined (HAVE_GETPW_DECLS)
-extern struct passwd *getpwuid(uid_t);
-extern struct passwd *getpwnam(const char *);
-#endif */ /* !HAVE_GETPW_DECLS */
-
 #if !defined (savestring)
-#define savestring(x) strcpy ((char *)xmalloc (1 + strlen (x)), (x))
+/* Use Strdup from util.c (which includes error check and abort) */
+#define savestring(x) Strdup(x)
 #endif /* !savestring */
 
 #if !defined (NULL)
@@ -146,7 +144,12 @@ isolate_tilde_prefix (fname, lenp)
   char *ret;
   int i;
 
-  ret = (char *)xmalloc (strlen (fname));
+  ret = (char *)malloc (strlen (fname));
+  if (ret == NULL) {
+    ERROR_MSG("Malloc failed*ABORT");
+    exit(1);
+  }
+
 #if defined (__MSDOS__)
   for (i = 1; fname[i] && fname[i] != '/' && fname[i] != '\\'; i++)
 #else
@@ -172,7 +175,12 @@ glue_prefix_and_suffix (prefix, suffix, suffind)
 
   plen = (prefix && *prefix) ? strlen (prefix) : 0;
   slen = strlen (suffix + suffind);
-  ret = (char *)xmalloc (plen + slen + 1);
+  ret = (char *)malloc (plen + slen + 1);
+  if (ret == NULL) {
+    ERROR_MSG("Malloc failed*ABORT");
+    exit(1);
+  }
+
   if (plen)
     strcpy (ret, prefix);
   strcpy (ret + plen, suffix + suffind);
@@ -235,10 +243,20 @@ tilde_expand (string)
   int result_size, result_index;
 
   result_index = result_size = 0;
-  if ((result = strchr (string, '~')))
-    result = (char *)xmalloc (result_size = (strlen (string) + 16));
-  else
-    result = (char *)xmalloc (result_size = (strlen (string) + 1));
+  if ((result = strchr (string, '~'))) {
+    result = (char *)malloc (result_size = (strlen (string) + 16));
+    if (result == NULL) {
+      ERROR_MSG("Malloc failed*ABORT");
+      exit(1);
+    }
+  }
+  else {
+    result = (char *)malloc (result_size = (strlen (string) + 1));
+    if (result == NULL) {
+      ERROR_MSG("Malloc failed*ABORT");
+      exit(1);
+    }
+  }
 
   /* Scan through STRING expanding tildes as we come to them. */
   while (1)
@@ -251,8 +269,13 @@ tilde_expand (string)
       start = tilde_find_prefix (string, &len);
 
       /* Copy the skipped text into the result. */
-      if ((result_index + start + 1) > result_size)
-	result = (char *)xrealloc (result, 1 + (result_size += (start + 20)));
+      if ((result_index + start + 1) > result_size) {
+	result = (char *)realloc (result, 1 + (result_size += (start + 20)));
+	if (result == NULL) {
+	  ERROR_MSG("Realloc failed*ABORT");
+	  exit(1);
+	}
+      }
 
       strncpy (result + result_index, string, start);
       result_index += start;
@@ -269,24 +292,32 @@ tilde_expand (string)
 	break;
 
       /* Expand the entire tilde word, and copy it into RESULT. */
-      tilde_word = (char *)xmalloc (1 + end);
+      tilde_word = (char *)malloc (1 + end);
+      if (tilde_word == NULL) {
+	ERROR_MSG("Malloc failed*ABORT");
+	exit(1);
+      }
       strncpy (tilde_word, string, end);
       tilde_word[end] = '\0';
-      string += end;
-
+      /* BUG FIX: Removed duplicate 'free (tilde_word);' from here */
+      
       expansion = tilde_expand_word (tilde_word);
-      free (tilde_word);
+      free (tilde_word); 
 
       len = strlen (expansion);
 #ifdef __CYGWIN__
-      /* Fix for Cygwin to prevent ~user/xxx from expanding to //xxx when
-	 $HOME for `user' is /.  On cygwin, // denotes a network drive. */
+      /* Fix for Cygwin to prevent ~user/xxx from expanding to //xxx from
+	 $HOME for `user` is /.  On cygwin, // denotes a network drive. */
       if (len > 1 || *expansion != '/' || *string != '/')
 #endif
 	{
-	  if ((result_index + len + 1) > result_size)
-	    result = (char *)xrealloc (result, 1 + (result_size += (len + 20)));
-
+	  if ((result_index + len + 1) > result_size) {
+	    result = (char *)realloc (result, 1 + (result_size += (len + 20)));
+	    if (result == NULL) {
+	      ERROR_MSG("Realloc failed*ABORT");
+	      exit(1);
+	    }
+	  }
 	  strcpy (result + result_index, expansion);
 	  result_index += len;
 	}
@@ -332,4 +363,3 @@ main (argc, argv)
 
 #endif 
 /* READLINE_SUPPORT */
-

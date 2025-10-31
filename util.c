@@ -6,7 +6,7 @@
 
 
 #include "ytree.h"
-#include "xmalloc.h"
+/* #include "xmalloc.h" <-- REMOVED */
 
 
 typedef struct
@@ -424,12 +424,16 @@ void PrintMenuOptions(WINDOW *win,int y, int x, char *str, int ncolor, int hcolo
   int color, hi_color, lo_color;
   char *sbuf, buf[2];
   
-  sbuf = (char *)malloc(strlen(str)+1);
+  if ((sbuf = (char *)malloc(strlen(str)+1)) == NULL) {
+    ERROR_MSG( "Malloc failed*ABORT" );
+    exit( 1 );
+  }
   sbuf[0] = '\0';
   buf[1] = '\0';
 
   if(x < 0 || y < 0) {
      /* screen too small */
+    free(sbuf);
     return;
   }
 
@@ -553,7 +557,10 @@ char *CutFilename(char *dest, char *src, unsigned int max_len)
     return( strcpy( dest, src ) );
   else
   {
-    tmp = StrLeft(src, max_len - 3);
+    if ((tmp = StrLeft(src, max_len - 3)) == NULL) {
+      ERROR_MSG("Malloc failed*ABORT");
+      exit(1);
+    }
     sprintf(dest, "%s...", tmp);
     free(tmp);
     return( dest );
@@ -714,13 +721,13 @@ void NormPath( char *in_path, char *out_path )
   int  level;
   char *in_path_dup;
 
-  level = 0;
-  opath = out_path;
-
   if( ( in_path_dup = malloc( strlen( in_path ) + 1 ) ) == NULL ) {
     ERROR_MSG( "Malloc Failed*ABORT" );
     exit( 1 );
   }
+
+  level = 0;
+  opath = out_path;
 
   if( *in_path == FILE_SEPARATOR_CHAR ) {
     s = in_path + 1;
@@ -906,6 +913,9 @@ char *Strdup(const char *s)
     cp = malloc(strlen(s)+1);
     if (cp) {
       strcpy(cp,s);
+    } else {
+      ERROR_MSG("Malloc failed*ABORT");
+      exit(1);
     }
   }
   return(cp);
@@ -923,6 +933,9 @@ char *Strndup(const char *s, int len)
     if (cp) {
       memcpy(cp, s, l);
       cp[l] = '\0';
+    } else {
+      ERROR_MSG("Malloc failed*ABORT");
+      exit(1);
     }
   }
   return(cp);
@@ -1191,10 +1204,14 @@ char *Getcwd(char *buffer, unsigned int size)
 static char *GNU_getcwd()
 {
   unsigned int size = 100;
+  char *buffer;
 
   while (1)
     {
-      char *buffer = (char *) xmalloc (size);
+      if ((buffer = (char *) malloc (size)) == NULL) {
+        ERROR_MSG("Malloc failed*ABORT");
+        exit(1);
+      }
       if (getcwd (buffer, size) == buffer)
         return buffer;
       free (buffer);
@@ -1235,5 +1252,3 @@ char *SubString(char *dest, char *src, int pos, int len)
   dest[len] = '\0';
   return dest;
 }
-
-

@@ -7,7 +7,7 @@
 
 #include "ytree.h"
 #include <errno.h>
-#include "xmalloc.h"
+/* #include "xmalloc.h" <-- REMOVED */
 
 typedef struct MODIF {
     long pos;
@@ -286,8 +286,12 @@ static char *strn2print(char *dest, char *src, int c)
 static void printhexline(WINDOW *win, char *line, char *buf, int r, long offset)
 {
     char *aux;
-    int i;
-    aux = (char *) xmalloc(WCOLS );
+    if ((aux = (char *) malloc(WCOLS)) == NULL) /* Changed xmalloc to malloc */
+    {
+      ERROR_MSG( "Malloc failed*ABORT" );
+      exit( 1 );
+    }
+
     if (r==0)
     {
         wclrtoeol(win);
@@ -298,7 +302,7 @@ static void printhexline(WINDOW *win, char *line, char *buf, int r, long offset)
     } else {
       sprintf(line, "%010d  ", (int)offset);
     }
-    for (i = 1; i <= r; i++ ) 
+    for (int i = 1; i <= r; i++ ) 
     {
         if ((i == (BYTES / 2) ) || (i == BYTES ))
             sprintf(aux, "%02hhX  ", buf[i-1]);
@@ -306,7 +310,7 @@ static void printhexline(WINDOW *win, char *line, char *buf, int r, long offset)
             sprintf(aux, "%02hhX ", buf[i-1]);
         strcat(line, aux);
     }
-    for (i = r+1; i <= BYTES; i++)
+    for (int i = r+1; i <= BYTES; i++)
     {
         buf[i-1]= ' ';
         if ((i == (BYTES / 2) ) || (i == BYTES ))
@@ -317,11 +321,11 @@ static void printhexline(WINDOW *win, char *line, char *buf, int r, long offset)
     }
 /*    strcat(line, " ");*/
     line[strlen(line)] = ' ';
-    for (i=0; i< WCOLS-BYTES; i++)
+    for (int i=0; i< WCOLS-BYTES; i++)
         waddch(win, line[i]| THECOLOR);
-    for( i=0; i< BYTES; i++)
+    for( int i=0; i< BYTES; i++)
         isprint(buf[i]) ? waddch(win, buf[i] | THECOLOR) : waddch(win, ACS_BLOCK | COLOR_PAIR(HIDIR_COLOR));
-    free(aux);
+    free(aux); /* Changed xfree to free */
     return;
 }
 
@@ -334,22 +338,31 @@ static void update_line(WINDOW *win, long line)
     char *line_string;
     char msg[50];
 
-    line_string = (char *) xmalloc(WCOLS);
+    if ((line_string = (char *) malloc(WCOLS)) == NULL) { /* Changed xmalloc to malloc */
+      ERROR_MSG("Malloc failed*ABORT");
+      exit(1);
+    }
     memset(line_string, ' ', WCOLS);
     line_string[0] = '\0';
-    buf = (char *) xmalloc(BYTES);
+    if ((buf = (char *) malloc(BYTES)) == NULL) { /* Changed xmalloc to malloc */
+      free(line_string); /* Ensure cleanup on failure */
+      ERROR_MSG("Malloc failed*ABORT");
+      exit(1);
+    }
     memset(buf, ' ', BYTES);
     if (lseek(fd, (line - 1) * BYTES, SEEK_SET)== -1 )
     {
         sprintf(msg, "File seek failed for line: %ld: %s ", line, strerror(errno));
         ERROR_MSG(msg);
         fflush(stdout);
+        free(line_string); /* Changed xfree to free */
+        free(buf); /* Changed xfree to free */
         return;
     }
     r = read(fd, buf, BYTES);
     printhexline(win, line_string, buf, r, (line - 1) * (BYTES));
-    xfree(line_string);
-    xfree(buf);
+    free(line_string); /* Changed xfree to free */
+    free(buf); /* Changed xfree to free */
 }
 
 static void scroll_down(WINDOW *win)
@@ -393,7 +406,10 @@ static void Change2Edit(char *file_path)
     int i;
     char *str;
 
-    str = (char *)xmalloc(WCOLS);
+    if ((str = (char *)malloc(WCOLS)) == NULL) { /* Changed xmalloc to malloc */
+      ERROR_MSG("Malloc failed*ABORT");
+      exit(1);
+    }
     
     for(i = WLINES + 4; i < LINES; i++)
     {
@@ -411,7 +427,7 @@ static void Change2Edit(char *file_path)
     wclrtoeol(stdscr);
     PrintOptions( stdscr, LINES - 1, 0, "(NEXT)-(RIGHT)/(PREV)-(LEFT) page   (HOME)-(END) of line   (DOWN)-(UP) line");
     wclrtoeol(stdscr);
-    free(str);
+    free(str); /* Changed xfree to free */
     wnoutrefresh(stdscr);
     doupdate();
     return;
@@ -422,7 +438,10 @@ static void Change2View(char *file_path)
     int i;
     char *str;
     
-    str = (char *)xmalloc(WCOLS);
+    if ((str = (char *)malloc(WCOLS)) == NULL) { /* Changed xmalloc to malloc */
+      ERROR_MSG("Malloc failed*ABORT");
+      exit(1);
+    }
     for(i = WLINES + 4; i < LINES; i++)
     {
         wmove(stdscr,i , 0);
@@ -438,7 +457,7 @@ static void Change2View(char *file_path)
     wclrtoeol(stdscr);
     PrintOptions( stdscr, LINES - 1, 0, "(NEXT)-(RIGHT)/(PREV)-(LEFT) page   (HOME)-(END) of line   (DOWN)-(UP) line");
     wclrtoeol(stdscr);
-    free(str);
+    free(str); /* Changed xfree to free */
     wnoutrefresh(stdscr);
     return;
 }
@@ -496,7 +515,10 @@ static void change_char(int ch)
     char pp=0;
     char msg[50];
     
-    cambio = malloc(sizeof(struct MODIF));
+    if ((cambio = malloc(sizeof(struct MODIF))) == NULL) {
+      ERROR_MSG("Malloc failed*ABORT");
+      exit(1);
+    }
     cambio -> pos = ( (cursor_pos_y + current_line - 1) * BYTES) + CURSOR_POSX;
     if (lseek(fd, cambio -> pos, SEEK_SET)== -1 )
     {
@@ -1015,4 +1037,3 @@ int InternalView(char *file_path)
     resize_done = FALSE;
     return 0;
 }
-
