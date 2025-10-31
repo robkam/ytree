@@ -225,6 +225,11 @@ install:	$(MAIN)
 		if [ ! -e $(MANDIR) ]; then mkdir -p $(MANDIR); fi
 		install -m 0644 ytree.1.gz  $(MANDIR)/
 
+uninstall:	clobber
+		rm -f $(BINDIR)/$(MAIN)
+		rm -f $(MANDIR)/ytree.1.gz
+		rm -f $(MANESDIR)/ytree.1.es.gz
+
 clean:
 		rm -f core *.o *~ *.orig *.bak 
 		
