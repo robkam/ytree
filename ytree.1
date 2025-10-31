@@ -1,0 +1,404 @@
+.\" extracted from ytree.doc 26 November 1996 by cmt2doc.pl
+.TH YTREE 1L "21 March 2004" " " "LOCAL COMMANDS"
+.PD .8v
+.SH NAME
+.nf
+ytree \- File Manager \-
+.fi
+
+.SH SYNOPSYS
+
+ytree [\fIarchiv file\fR|\fIdirectory\fR]
+
+.SH DESCRIPTION
+
+If there is no command line argument, the current directory will be used.
+
+Following commands are available:
+
+1.) DIR-Modus:
+.TP
+\fB\-Attribute\fR
+Change directory permissions (like chmod)
+.TP
+\fB\-Delete\fR
+Delete selected directory
+.TP
+\fB\-Filespec\fR
+Set file specification (reg. expression)
+e.g. *.[ch] for all *.c and *.h \- Files
+.TP
+\fB\-Group\fR
+Change directory group ownership
+.TP
+\fB\-Log\fR
+Restart ytree with new
+root directory/archiv file
+.TP
+\fB\-Makedir\fR
+Create new directory
+.TP
+\fB\-Owner\fR
+Change user ownership of selected directory
+.TP
+\fB\-Rename\fR
+Rename selected directory
+.TP
+\fB\-Showall\fR
+Show all files in all directories
+.TP
+\fB\-Tag\fR
+Tag all files in selected directory
+.TP
+\fB\-Untag\fR
+Untag all files in selected directory
+.TP
+\fB\-eXecute\fR
+Execute a shell command
+.TP
+\fB\-^Filemode\fR
+Change viewmodus for files:
+.nf
+.RS
+\fB\- filenames only\fR
+\fB\- name, attributes, links, size,\fR
+\fB  modification time, symb. link\fR
+\fB\- name, attribute, inode, owner, group, symb. link\fR
+\fB\- change status-, access time, symb. link\fR
+.fi
+.RE
+.TP
+\fB\-Return\fR
+Switch to file modus
+.TP
+\fB\-^Quit\fR
+QuitTo: If you exit ytree with ^Q, the last selected directory becomes your
+current working directory. This feature only works if you start ytree
+with this bash-function (copy this to your ~/.bashrc):
+.nf
+.RS
+
+function yt
+{
+  echo cd $PWD >~/.ytree-$$.chdir
+  /usr/bin/ytree $1 $2 $3 $4 $5
+  source ~/.ytree-$$.chdir
+  rm ~/.ytree-$$.chdir
+}
+.fi
+.RE
+.TP
+.PP
+2.) FILE-Modus
+.TP
+\fB\-Attribute\fR
+Change file permissions (like chmod)
+.TP
+\fB\-^Attribute\fR
+Change permissions of all tagged files.
+\fB?\fR stands for: do not change attribute
+.TP
+\fB\-Copy\fR
+Copy file
+.TP
+\fB\-^K Copy\fR
+Copy all tagged files
+.TP
+\fB\-Delete\fR
+Delete selected file
+.TP
+\fB\-^Delete\fR
+Delete all tagged files
+.TP
+\fB\-Edit\fR
+Edit selected file with EDITOR (see ~/.ytree)
+or \- if not defined \- vi
+.TP
+\fB\-Filespec\fR
+Set file specification (reg. expression)
+e.g. *.[ch] for all *.c and *.h \- Files
+.TP
+\fB\-Group\fR
+Change group ownership of selected file
+.TP
+\fB\-^Group\fR
+Change group ownership of all tagged files
+.TP
+\fB\-Hex\fR
+View selected file with HEXDUMP (see ~/.ytree),
+or \- if not defined \- hd / od \-h
+.TP
+\fB\-Log\fR
+Restart ytree with new root directory/archive file
+.TP
+\fB\-Move\fR
+move selected file
+.TP
+\fB\-^N Move\fR
+Move all tagged files
+.TP
+\fB\-Owner\fR
+Change user ownership of selected file
+.TP
+\fB\-^Owner\fR
+Change user ownership of all tagged files
+.TP
+\fB\-Pipe\fR
+Pipe content of file to a command
+.TP
+\fB\-^Pipe\fR
+Pipe content of all tagged files to a command
+.TP
+\fB\-Rename\fR
+Rename selected file
+.TP
+\fB\-^Rename\fR
+Rename all tagged files
+.TP
+\fB\-untag ^Search\fR
+Untag files by using an external program (e.g. grep)
+.TP
+\fB\-Sort\fR
+Sort filelist by
+.nf
+.RS
+\fB\- access time\fR
+\fB\- change time\fR
+\fB\- extension\fR
+\fB\- group\fR
+\fB\- modification time\fR
+\fB\- name\fR
+\fB\- owner\fR
+\fB\- size\fR
+.fi
+.RE
+.TP
+\fB\-Tag\fR
+Tag selected file
+.TP
+\fB\-^Tag\fR
+Tag all currently shown files
+.TP
+\fB\-Untag\fR
+Untag selected file
+.TP
+\fB\-^Untag\fR
+Untag all currently shown files
+.TP
+\fB\-View\fR
+View file with the pager defined in ~/.ytree
+or - if not defined - with pg \-cen
+.TP
+\fB\-eXecute\fR
+Execute a shell command
+.TP
+\fB\-e^Xecute\fR
+Execute shell command for all tagged files.
+The string {} is replaced by the current filename
+.TP
+\fB\-pathcopY\fR
+Copy selected file inclusive path
+.TP
+\fB\-pathcop^Y\fR
+Copy all tagged files inclusive path
+.TP
+\fB\-^Filemode\fR
+Switch view-modus for files:
+.nf
+.RS
+\fB\- filenames only\fR
+\fB\- name, attribute, links, size, modification time,\fR
+\fB  symb. link\fR
+\fB\- name, attribute, inode, owner, group, symb. link\fR
+\fB\- changestatus-, access time, symb. link\fR
+.fi
+.RE
+.TP
+\fB\-^L\fR
+Refresh Screen
+.TP
+\fB\-Space\fR
+Suppress screen-output while working
+.TP
+\fB\-Return\fR
+Switch to expand modus
+.PP
+3.) ARCHIV-DIR-Modus
+.TP
+\fB\-Filespec\fR
+Set file specification (reg. expression)
+e.g. *.[ch] for all *.c and *.h \- Files
+.TP
+\fB\-Log\fR
+Restart ytree with new root directory/archive file
+.TP
+\fB\-Showall\fR
+Show all files in all directories
+.TP
+\fB\-Tag\fR
+Tag all files in selected directory
+.TP
+\fB\-Untag\fR
+Untag all files in selected directory
+.TP
+\fB\-eXecute\fR
+Execute a shell command
+.TP
+\fB\-^Filemode\fR
+Change viewmodus for files:
+.nf
+.RS
+\fB\- filenames only\fR
+\fB\- name, attribute, links, size, modification time\fR
+\fB\- name, attribute, owner, group\fR
+.fi
+.RE
+.TP
+\fB\-^L\fR
+Refresh Screen
+.PP
+4.) ARCHIV-FILE-Modus:
+.TP
+\fB\-Copy\fR
+Copy selected file
+.TP
+\fB\-^K Copy\fR
+Copy all tagged files
+.TP
+\fB\-Filespec\fR
+Set file specification (reg. expression)
+e.g. *.[ch] for all *.c and *.h \- Files
+.TP
+\fB\-Hex\fR
+View selected file with HEXDUMP (see ~/.ytree),
+or \- if not defined \- hd / od \-h
+.TP
+\fB\-Pipe\fR
+Pipe content of all tagged to a command
+.TP
+\fB\-Sort\fR
+Sort file list by
+.nf
+.RS
+\fB\- access time\fR
+\fB\- change time\fR
+\fB\- extension\fR
+\fB\- group\fR
+\fB\- modification time\fR
+\fB\- name\fR
+\fB\- owner\fR
+\fB\- size\fR
+.fi
+.RE
+.TP
+\fB\-Tag\fR
+Tag selected file
+.TP
+\fB\-^Tag\fR
+Tag all files in selected directory
+.TP
+\fB\-Untag\fR
+Untag all files in selected directory
+.TP
+\fB\-View\fR
+View file with the pager defined in ~/.ytree
+or - if not defined - with pg \-cen
+.TP
+\fB\-eXecute\fR
+Execute a shell command
+.TP
+\fB\-^Filemode\fR
+Switch view-modus for files:
+.nf
+.RS
+\fB\- filenames only\fR
+\fB\- name, attribute, links, size\fR
+.fi
+.RE
+.TP
+\fB\-^L\fR
+Refresh Screen
+.TP
+\fB\-Return\fR
+Switch to Expand-Modus
+.PP
+ytree switches to archive-modus automatically either by
+choosing an archive file with the \fILog\fR command or
+by calling ytree from the command line with an archive file
+given as a command line argument.
+
+ytree recognize the filename extensions ".F", ".Z", ".z" and
+".gz" and calls the appropriate uncompressor MELT 
+(default=melt), UNCOMPRESS (default=uncompress) and GNUUNZIP
+(default=gunzip \-c). You may change these settings in ~/.ytree.
+
+ytree supports following archive types and requires:
+.nf
+.RS
+.sp 1
+\fB  TAR-Files: gtar     (tested with GNU-TAR 1.12)\fR
+\fB  ARC-Files: arc      (tested with arc 5.12 02/05/86)\fR
+\fB  LHA-Files: xlharc   (tested with xlharc V1.02 1989)\fR
+\fB  ZIP-Files: unzip    (tested with unzip v5.0 08/92)\fR
+\fB  "   "      zipinfo  (tested with zipinfo v1.0 08/92)\fR
+\fB  ZOO-Files: zoo      (tested with zoo v2.10)\fR
+\fB  RAR-Files: unrar    (tested with unrar v2.01\fR
+\fB  RPM-Files: rpm2cpio (tested with RedHat V6.1)\fR
+\fB  "   "      rpm      (tested with RedHat V6.1)\fR
+.fi
+.RE
+
+Archive files will be recognized by filename extension (e.g zoo, zip).
+TAR-Files may have following extensions:
+.nf 
+.RS
+.sp 1
+\fB  ".F", ".TFR", ".Faa",                            (freeze)\fR
+\fB  ".Z", ".TZ", ".TZR", ".Xaa",                   (compress)\fR
+\fB  ".z", ".gz", ".tzr", ".tz", ".xaa", ".tgz", ".TGZ",\fR
+\fB  ".taz", ".TAZ", ".tpz" und ".TPZ"                  (gzip)\fR
+.fi
+.RE
+
+
+The View command is customizeable in the [VIEWER] section of ~/.ytree:
+
+Example:
+
+.nf 
+\fB [VIEWER]
+\fB .jpg,.gif,.bmp,.tif,.ppm,.xpm=xv
+\fB .1,.2,.3,.4,.5,.6,.7,.8,.n=nroff -man | less
+\fB .ps=ghostview
+\fB .mid,.MID=playmidi -e
+\fB .wav,.WAV=splay
+\fB .au=auplay
+\fB .avi,.mpg,.mov=xanim
+\fB .htm,.html=lynx
+\fB .pdf,.PDF=acroread
+\fB .mp3=mpg123
+.fi
+.PP 
+
+A command-line history is supported: Use cursor up/down.
+Use "F2" on the command-line to select directories.
+
+
+.SH FILES
+
+$HOME/.ytree	ytree configuration file
+
+
+.SH BUGS
+
+To avoid problems with escape sequences on RS/6000 machines
+(telnet/rlogin) please set the environment variable ESCDELAY:
+.nf
+.sp 1
+ESCDELAY=1000
+export ESCDELAY
+.fi
+
+.SH AUTOR
+
+W. Bregulla (werner@frolix.han.de)

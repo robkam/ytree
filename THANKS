@@ -1,0 +1,32 @@
+
+Many thanks to all who helped developing ytree:
+
+	Andrew Cottrell			( DJGPP - port )
+	Andrey Zakhvatov / Peter Brevik ( FreeBSD - port )
+	Axel F. Zinser			( NeXT - port )
+	Carlos Barros			( Color / history&keyF2 / 
+					  viewer configurable /
+					  spanish man-page / 
+					  list all tagged files /
+					  hex viewer/editor / 
+					  readline )
+	C. R. Bryan III			( QuitTo/hexdump )
+	Jens-Uwe Mager			( RS/6000 - port / Configuration )
+	Mark Hessling                   ( QNX - port / PDCurses 
+					  configuration addons )
+	Marcus Brinkmann		( Port to GNU Hurd )
+	Norman Fahlbusch		( test and "marketing" :-) )
+	Roger Knobbe			( secondary key for sort by ext. )
+	S.Addams (SJA)			( OpenBSD - port)
+	Martynas Venckus		( OpenBSD/NetBSD - port )
+	Valere Monseur aka Dobedo	( NetBSD )
+	Scott Wagner			( command/menu configurable )
+	Siegfried Salomon		( SCO OpenServer 5 (5.0.5) )
+	Tina Hoeltig			( man-page / tips ) 
+	Victor Vislobokov		( UTF-8 support )
+
+
+Thank you!
+Werner
+
+
