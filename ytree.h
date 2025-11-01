@@ -267,10 +267,6 @@ extern char *getcwd();
 #endif /* __DJGPP__*/
 
 
-#ifndef KEY_BTAB
-#define KEY_BTAB  0x1d
-#endif
-
 #ifndef KEY_END
 #define KEY_END   KEY_EOL
 #endif
@@ -1004,10 +1000,6 @@ extern int TryInsertArchiveDirEntry(DirEntry *tree, char *dir, struct stat *stat
 extern int InsertArchiveFileEntry(DirEntry *tree, char *path, struct stat *stat);
 extern void MinimizeArchiveTree(DirEntry *tree);
 extern void HitReturnToContinue(void);
-/* REMOVED: extern int  TermcapWgetch(WINDOW *win); */
-/* REMOVED: extern void TermcapVidattr(int attr ); */
-/* REMOVED: extern void TermcapInitscr(void); */
-/* REMOVED: extern void TermcapEndwin(void); */
 extern int  BuildFilename( char *in_filename, char *pattern, char *out_filename);
 extern int  ViKey( int ch );
 extern int  GetFileMethod( char *filename );

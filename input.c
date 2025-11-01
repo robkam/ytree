@@ -240,222 +240,231 @@ int InputString(char *s, int y, int x, int cursor_pos, int length, char *term)
                                /* max. Laenge                         */
                                /* Menge von Terminierungszeichen      */
 {
-  int p;                       /* Aktuelle Position                   */
-  int c1;                      /* Gelesenes Zeichen                   */
-  int i, n;                    /* Laufvariable                        */
+  int p;                       /* Aktuelle Cursor-Position (visual length) */
+  int c1;                      /* Gelesenes Zeichen */
+  int i, n;                    /* Laufvariable */
   char *pp;
   BOOL len_flag = FALSE;
   char path[PATH_LENGTH + 1];
-  char buf[2], sbuf[20], *ls, *rs;
+  char buf[4]; 
+  char *ls, *rs;
   static BOOL insert_flag = TRUE;
 
   if(length < 1)
     return -1;
 
-  buf[1] = '\0';
-  strcpy(sbuf, "");
-
-  /* Feld gefuellt ausgeben */
-  /*------------------------*/
+  /* Setup for input */
   print_time = FALSE;
   curs_set(1);
-  MvAddStr( y, x, s );
   leaveok(stdscr, FALSE);
+  
+  p = cursor_pos;
+  
+  /* Draw string (used for initialization/redraw logic below) */
+  MvAddStr( y, x, s );
   
   for(i=strlen(s); i < length; i++)
     addch( '_' );
 
-  p = cursor_pos;
-  
   MvAddStr( y, x, s );
 
-  nodelay( stdscr, TRUE );
-  do {
-    c1 = wgetch(stdscr);
-    
-    if ( c1 != ERR ) {
-    
-      if ( (c1 >= ' ' && c1 <= '~') || (c1 > 0xff) ) {
-        if ( len_flag == TRUE) beep();
-        else {
-          buf[0] = (char)c1;
-	  strcat(sbuf, buf);
-	}
-      } else {
-        /* Control symbols */
-        switch( c1 )
-        {
-        case 'C' & 0x1f     : c1 = 27; 
-			      break;
-
-        case KEY_LEFT       : if( p > 0 )
-                                p--;
-                              else
-                                beep();
-                              break;
-        case KEY_RIGHT      : if( p < StrVisualLength(s) )
-                                p++;
-                              else
-                                beep();
-                              break;
-	case KEY_UP         : 
-	                      nodelay(stdscr, FALSE);
-			      pp = GetHistory();
-			      nodelay(stdscr, TRUE);
-                             if (pp == NULL) break;
-                             if(*pp)
-                             {
-			       ls = StrLeft(pp, length);
-			       strcpy(s, ls);
-			       free(ls);
-			       p = StrVisualLength(s);
-                               MvAddStr( y, x, s );
-                               for(i=p; i < length; i++)
-                                 addch( '_' );
-                               RefreshWindow( stdscr );
-                               doupdate();
-                             }
-                             break;
-
-        case KEY_HOME       : p = 0;
-                              break;
-        case KEY_END        : p = StrVisualLength( s );
-                              break;
-        case KEY_DC         : n = StrVisualLength(s);
-                              if( p < n )
-                              {
-			        ls = StrLeft(s, p);
-				rs = StrRight(s, n - p - 1);
-				strcpy(s, ls);
-				strcat(s, rs);
-				free(ls);
-				free(rs);
-				MvAddStr( y, x, s );
-                                for(i=StrVisualLength(s); i < n; i++)
-                                  addch( '_' );
-                              }
-                              break;
-	case 0x08           :
-        case 0x7F           :
-        case KEY_BACKSPACE  : if( p > 0 )
-                              {
-                                n = StrVisualLength(s);
-			        ls = StrLeft(s, p - 1);
-				rs = StrRight(s, n - p);
-				strcpy(s, ls);
-				strcat(s, rs);
-				free(ls);
-				free(rs);
-				MvAddStr( y, x, s );
-                                for(i=StrVisualLength(s); i < n; i++)
-                                  addch( '_' );
-                                p--;
-                              }
-                              else
-                                beep();
-                              break;
-        case KEY_DL         : for(i=0; i < StrVisualLength(s) - p; i++) addch( '_' );
-			      ls = StrLeft(s, p);
-			      strcpy(s, ls);
-			      free(ls);
-                              break;
-	case KEY_EIC        :
-        case KEY_IC         : insert_flag ^= TRUE; 
-                              break;
-	case '\t'           : if(( pp = GetMatches(s)) == NULL) {
-			       break;
-			     }
-                             if(*pp)
-                             {
-			       ls = StrLeft(pp, length);
-			       strcpy(s, ls);
-			       free(ls);
-			       p = StrVisualLength(s);
-			       free(pp);
-                               MvAddStr( y, x, s );
-                               for(i=p; i < length; i++) addch( '_' );
-                               RefreshWindow( stdscr );
-                               doupdate();
-                             }
-                             break;
-#ifdef KEY_RESIZE
-
-        case KEY_RESIZE:     resize_request = TRUE;
-                             break;
-#endif
-
-#ifdef KEY_F
-        case KEY_F(2)       : 
-#endif
-        case 'F' & 0x1f     : if(KeyF2Get( statistic.tree,
-                                           statistic.disp_begin_pos,
-                                           statistic.cursor_pos, path)) 
-                              {
-			        /* beep(); */
-				break;
-			      }
-                              if(*path)
-                              {
-			        ls = StrLeft(path, length);
-				strcpy(s, ls);
-				free(ls);
-			        p = StrVisualLength(s);
-                                MvAddStr( y, x, s );
-                                for(i=p; i < length; i++) addch( '_' );
-                                RefreshWindow( stdscr );
-                                doupdate();
-                              }
-                              break;
-
-        default             : if( c1 == LF ) c1 = CR;
-                              break;
-        } /* switch */
-      } /* else control symbols */
-    } else {
-     
-      if (strlen(sbuf) > 0) {
-       if ( insert_flag ) {
-  	    /* append symbol */
-	    if ( p >= StrVisualLength(s)) strcat(s, sbuf);
-	    else {
-	      /* insert symbol at cursor position */
-	      if ( p > 0 ) ls = StrLeft(s, p);
-	      else ls = Strdup("");
-	      rs = StrRight(s, StrVisualLength(s) - p);
-	      strcpy(s, ls);
-	      strcat(s, sbuf);
-	      strcat(s, rs);
-	      free(ls);
-	      free(rs);
-	    }
-          } else {
-            /* owerwrite symbol at cursor position */
-	    if ( p > StrVisualLength(s) - 1) strcat(s, sbuf);
-	    else {
-  	      if (p > 0) ls = StrLeft(s, p);
-	      else ls = Strdup("");
-	      rs = StrRight(s, StrVisualLength(s) - p - 1);
-	      strcpy(s, ls);
-	      strcat(s, sbuf);
-	      strcat(s, rs);
-	      free(ls);
-	      free(rs);
-	    }
-	  }
-
-	strcpy(sbuf, "");
-	p++;
-      }
-
-      if (StrVisualLength(s) >= length) len_flag = TRUE;
-      else len_flag = FALSE;
-
-      MvAddStr( y, x, s );
-      wmove(stdscr, y, x + p);
-    }
-  } while( c1 !=  27 && c1 != CR );
-
+  /* Disable nodelay mode as it causes issues with multi-key sequences */
   nodelay( stdscr, FALSE );
+
+  do {
+    /* Redraw string, fill to max length with '_', and position cursor */
+    MvAddStr( y, x, s );
+    for(i=StrVisualLength(s); i < length; i++)
+      addch( '_' );
+    
+    move( y, x + p);
+    RefreshWindow( stdscr );
+    doupdate();
+
+    c1 = Getch();
+    
+#ifdef VI_KEYS
+    c1 = ViKey(c1);
+#endif
+
+    /* Check for termination characters */
+    if(c1 == ESC || c1 == CR || c1 == LF || strchr(term, c1) != NULL || c1 == -1) {
+        if (c1 == LF) c1 = CR; /* Normalize line feed to carriage return */
+        break;
+    }
+
+    /* Check length constraint */
+    if (StrVisualLength(s) >= length) len_flag = TRUE;
+    else len_flag = FALSE;
+
+    /* Handle control/function keys */
+    switch( c1 )
+    {
+    case KEY_LEFT:
+    case KEY_BTAB:  /* Back-tab (often Shift-Tab), treat as left */
+        if( p > 0 ) p--; else beep(); break;
+        
+    case KEY_RIGHT:
+        if( p < StrVisualLength(s) ) p++; else beep(); break;
+        
+    case KEY_UP:
+        pp = GetHistory();
+        if (pp == NULL) break;
+        if(*pp) {
+            ls = StrLeft(pp, length);
+            strcpy(s, ls);
+            free(ls);
+            p = StrVisualLength(s);
+        }
+        break;
+
+    case KEY_HOME: p = 0; break;
+    case KEY_END: p = StrVisualLength( s ); break;
+        
+    case KEY_DC:    /* Delete key, defined in curses.h */
+    case 0x7F:      /* ASCII DEL character */
+        n = StrVisualLength(s);
+        if( p < n ) {
+            ls = StrLeft(s, p);
+            rs = StrRight(s, n - p - 1);
+            strcpy(s, ls);
+            strcat(s, rs);
+            free(ls);
+            free(rs);
+        } else {
+            beep();
+        }
+        break;
+        
+    /* Consolidate all backspace/Ctrl-H aliases */
+    case KEY_BACKSPACE: 
+    case 0x08: 
+        n = StrVisualLength(s);
+        if( p > 0 ) {
+            ls = StrLeft(s, p - 1);
+            rs = StrRight(s, n - p);
+            strcpy(s, ls);
+            strcat(s, rs);
+            free(ls);
+            free(rs);
+            p--;
+        } else {
+            beep();
+        }
+        break;
+        
+    case KEY_DL: /* Delete to end of line */
+        ls = StrLeft(s, p);
+        strcpy(s, ls);
+        free(ls);
+        break;
+        
+    case KEY_EIC:
+    case KEY_IC: insert_flag ^= TRUE; break;
+        
+    case '\t': 
+        pp = GetMatches(s);
+        if (pp == NULL) break;
+        if(*pp) {
+            ls = StrLeft(pp, length);
+            strcpy(s, ls);
+            free(ls);
+            p = StrVisualLength(s);
+            free(pp);
+        }
+        break;
+        
+    case KEY_RESIZE: resize_request = TRUE; break;
+        
+#ifdef KEY_F
+    case KEY_F(2):
+#endif
+    case 'F' & 0x1f: 
+        if(KeyF2Get( statistic.tree, statistic.disp_begin_pos, statistic.cursor_pos, path)) {
+            break;
+        }
+        if(*path) {
+            ls = StrLeft(path, length);
+            strcpy(s, ls);
+            free(ls);
+            p = StrVisualLength(s);
+        }
+        break;
+
+    /* For Ctrl-char sequences, prefer the curses key definitions if available,
+       or convert directly for explicit checks. Ctrl-C is often ESC (0x1B). */
+    case 'C' & 0x1f: c1 = ESC; break; 
+    
+    default:
+        /* Handle printable/multibyte input */
+        if (c1 >= ' ' || c1 > 0xFF) {
+            if ( len_flag == TRUE) {
+                beep();
+            } else {
+                /* Capture the character (single or start of multibyte) */
+                buf[0] = (char)c1;
+                buf[1] = '\0';
+                
+                /* This is currently brittle for multibyte input. It will be 
+                   fixed in Step 5 (Wide Character Support). For now, trust the 
+                   single byte capture or rely on the system's curses implementation 
+                   to return a single code for the first character in a multibyte sequence. */
+                
+                if ( insert_flag ) {
+                    /* Insert logic */
+                    n = StrVisualLength(s);
+                    if ( p >= n) {
+                        strcat(s, buf);
+                    } else {
+                        if ( p > 0 ) ls = StrLeft(s, p);
+                        else ls = Strdup("");
+                        rs = StrRight(s, n - p);
+                        strcpy(s, ls);
+                        strcat(s, buf);
+                        strcat(s, rs);
+                        free(ls);
+                        free(rs);
+                    }
+                } else {
+                    /* Overwrite logic */
+                    int visual_insert_len = StrVisualLength(buf);
+                    int visual_len_after_cursor = StrVisualLength(s) - p;
+                    
+                    if ( p + visual_insert_len > StrVisualLength(s) ) {
+                        strcat(s, buf);
+                    } else {
+                        int byte_pos_after_insert = VisualPositionToBytePosition(s, p + visual_insert_len);
+                        
+                        if ( p > 0 ) ls = StrLeft(s, p);
+                        else ls = Strdup("");
+
+                        /* Extract remaining part: from after the inserted content to the end */
+                        if (strlen(s) - byte_pos_after_insert > 0)
+                           rs = Strdup(&s[byte_pos_after_insert]);
+                        else 
+                           rs = Strdup("");
+
+                        strcpy(s, ls);
+                        strcat(s, buf);
+                        strcat(s, rs);
+                        
+                        free(ls);
+                        free(rs);
+                    }
+                }
+                p += StrVisualLength(buf);
+            }
+        } else {
+            /* Unhandled non-terminating control sequence */
+            beep();
+        }
+        break;
+    } /* switch */
+
+  } while( 1 );
+
+  /* Final cleanup and history update */
+  nodelay( stdscr, FALSE ); /* Ensure curses state is reset */
 
   p = strlen( s );
   move( y, x + p );
@@ -481,8 +490,7 @@ int InputString(char *s, int y, int x, int cursor_pos, int length, char *term)
 }
 
 
-
-
+/* ... rest of input.c ... */
 
 int InputChoise(char *msg, char *term)
 {
