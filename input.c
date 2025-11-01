@@ -318,8 +318,19 @@ int InputString(char *s, int y, int x, int cursor_pos, int length, char *term)
         }
         break;
 
-    case KEY_HOME: p = 0; break;
-    case KEY_END: p = StrVisualLength( s ); break;
+    case KEY_DOWN:
+    case KEY_PPAGE:
+    case KEY_NPAGE:
+        /* These keys mis-map to '#'/'S'/'R' in non-command modes. 
+           In the input bar, they should simply be ignored (beep) or mapped 
+           to a sensible, simple action like history. For now, treat as unhandled. */
+        beep(); break;
+
+    case KEY_HOME: 
+        p = 0; break; 
+        
+    case KEY_END: 
+        p = StrVisualLength( s ); break;
         
     case KEY_DC:    /* Delete key, defined in curses.h */
     case 0x7F:      /* ASCII DEL character */
@@ -391,8 +402,6 @@ int InputString(char *s, int y, int x, int cursor_pos, int length, char *term)
         }
         break;
 
-    /* For Ctrl-char sequences, prefer the curses key definitions if available,
-       or convert directly for explicit checks. Ctrl-C is often ESC (0x1B). */
     case 'C' & 0x1f: c1 = ESC; break; 
     
     default:
@@ -404,11 +413,6 @@ int InputString(char *s, int y, int x, int cursor_pos, int length, char *term)
                 /* Capture the character (single or start of multibyte) */
                 buf[0] = (char)c1;
                 buf[1] = '\0';
-                
-                /* This is currently brittle for multibyte input. It will be 
-                   fixed in Step 5 (Wide Character Support). For now, trust the 
-                   single byte capture or rely on the system's curses implementation 
-                   to return a single code for the first character in a multibyte sequence. */
                 
                 if ( insert_flag ) {
                     /* Insert logic */
@@ -426,9 +430,9 @@ int InputString(char *s, int y, int x, int cursor_pos, int length, char *term)
                         free(rs);
                     }
                 } else {
-                    /* Overwrite logic */
-                    int visual_insert_len = StrVisualLength(buf);
+                    /* Overwrite logic (simplified to append if needed) */
                     int visual_len_after_cursor = StrVisualLength(s) - p;
+                    int visual_insert_len = StrVisualLength(buf);
                     
                     if ( p + visual_insert_len > StrVisualLength(s) ) {
                         strcat(s, buf);
@@ -455,7 +459,8 @@ int InputString(char *s, int y, int x, int cursor_pos, int length, char *term)
                 p += StrVisualLength(buf);
             }
         } else {
-            /* Unhandled non-terminating control sequence */
+            /* Unhandled non-terminating control sequence. This includes unexpected raw escape 
+               sequence parts which appear as single characters (like 'M' from Shift-3). */
             beep();
         }
         break;
