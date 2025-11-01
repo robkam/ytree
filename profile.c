@@ -205,7 +205,7 @@ int ReadProfile( char *filename )
           /* trim whitespace */
           while(*value && isspace(*value))
             value++;
-	  n = Strtok_r(name, ",", &old);
+	  n = strtok_r(name, ",", &old);
 	  /* maybe comma-separated list, eg.: k,K=x */
 	  while(n) {
             /* Check for existing entry from FILECMD_SECTION */
@@ -225,7 +225,7 @@ int ReadProfile( char *filename )
 	      m->next = new_m;
 	      m = new_m;
 	    }
-	    n = Strtok_r(NULL, ",", &old);
+	    n = strtok_r(NULL, ",", &old);
 	  }
         }
       } else if(section == FILECMD_SECTION ) {
@@ -261,7 +261,7 @@ int ReadProfile( char *filename )
           /* trim whitespace */
           while(*value && isspace(*value))
             value++;
-	  n = Strtok_r(name, ",", &old);
+	  n = strtok_r(name, ",", &old);
 	  /* maybe comma-separated list, eg.: k,K=x */
 	  while(n) {
             /* Check for existing entry from DIRCMD_SECTION */
@@ -281,7 +281,7 @@ int ReadProfile( char *filename )
 	      d->next = new_d;
 	      d = new_d;
 	    }
-	    n = Strtok_r(NULL, ",", &old);
+	    n = strtok_r(NULL, ",", &old);
 	  }
         }
       } else if(section == DIRCMD_SECTION ) {
@@ -316,7 +316,7 @@ int ReadProfile( char *filename )
         if( *name && value ) {
           
 	  *value++ = '\0';
-	  n = Strtok_r(name, ",", &old);
+	  n = strtok_r(name, ",", &old);
 	  /* maybe comma-separated list, eg.: .jpeg,.gif=xv */
 	  while(n) {
 	    if(( new_v = malloc( sizeof(*new_v) ) ) ) {
@@ -335,7 +335,7 @@ int ReadProfile( char *filename )
 	        v = new_v;
 	      }
 	    }
-	    n = Strtok_r(NULL, ",", &old);
+	    n = strtok_r(NULL, ",", &old);
 	  }
         }
       }
@@ -443,6 +443,3 @@ char *GetExtViewer(char *filename)
   }
   return(NULL);
 }
-
-
-  

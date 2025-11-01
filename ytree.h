@@ -1010,7 +1010,7 @@ extern int  GetTapeDeviceName(void);
 extern int  MakePath( DirEntry *tree, char *dir_path, DirEntry **dest_dir_entry );
 extern int  MakeDirEntry( DirEntry *father_dir_entry, char *dir_name );
 extern void NormPath( char *in_path, char *out_path );
-extern char *Strtok_r( char *str, char *delim, char **old );
+/* REMOVED: extern char *Strtok_r( char *str, char *delim, char **old ); */
 extern int  ReadProfile( char *filename );
 extern char *GetProfileValue( char *key );
 extern int  ScanSubTree( DirEntry *dir_entry );

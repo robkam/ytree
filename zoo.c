@@ -76,32 +76,32 @@ static int GetStatFromZOO(char *zoo_line, char *name, struct stat *stat)
 
   stat->st_nlink = 1;
 
-  t = Strtok_r( zoo_line, " \t", &old ); if( t == NULL ) return( -1 );
+  t = strtok_r( zoo_line, " \t", &old ); if( t == NULL ) return( -1 );
 
   /* Dateilaenge */
   /*-------------*/
 
   if( !isdigit( *t ) ) return( -1 );
   stat->st_size = AtoLL( t );
-  t = Strtok_r( NULL, " \t", &old ); if( t == NULL ) return( -1 );
+  t = strtok_r( NULL, " \t", &old ); if( t == NULL ) return( -1 );
 
   /* CF */
   /*----*/
 
   if( !isdigit( *t ) ) return( -1 );
-  t = Strtok_r( NULL, " \t", &old ); if( t == NULL ) return( -1 );
+  t = strtok_r( NULL, " \t", &old ); if( t == NULL ) return( -1 );
 
   /* Size Now */
   /*----------*/
 
   if( !isdigit( *t ) ) return( -1 );
-  t = Strtok_r( NULL, " \t", &old ); if( t == NULL ) return( -1 );
+  t = strtok_r( NULL, " \t", &old ); if( t == NULL ) return( -1 );
 
   /* M-Datum */
   /*---------*/
 
   tm_struct.tm_mday = atoi( t );
-  t = Strtok_r( NULL, " \t:", &old ); if( t == NULL ) return( -1 );
+  t = strtok_r( NULL, " \t:", &old ); if( t == NULL ) return( -1 );
 
   for( i=0; i < 12; i++ )
   {
@@ -110,22 +110,22 @@ static int GetStatFromZOO(char *zoo_line, char *name, struct stat *stat)
   if( i >= 12 ) i = 0;
 
   tm_struct.tm_mon = i;
-  t = Strtok_r( NULL, " \t", &old ); if( t == NULL ) return( -1 );
+  t = strtok_r( NULL, " \t", &old ); if( t == NULL ) return( -1 );
 
   tm_struct.tm_year = atoi( t );
   if(tm_struct.tm_year < 70)
      tm_struct.tm_year += 100;
 
-  t = Strtok_r( NULL, " \t:", &old ); if( t == NULL ) return( -1 );
+  t = strtok_r( NULL, " \t:", &old ); if( t == NULL ) return( -1 );
   
   tm_struct.tm_hour = atoi( t );
-  t = Strtok_r( NULL, " \t:", &old ); if( t == NULL ) return( -1 );
+  t = strtok_r( NULL, " \t:", &old ); if( t == NULL ) return( -1 );
 
   tm_struct.tm_min = atoi( t );
-  t = Strtok_r( NULL, " \t", &old ); if( t == NULL ) return( -1 );
+  t = strtok_r( NULL, " \t", &old ); if( t == NULL ) return( -1 );
   
   tm_struct.tm_sec = atoi( t );
-  t = Strtok_r( NULL, " \t", &old ); if( t == NULL ) return( -1 );
+  t = strtok_r( NULL, " \t", &old ); if( t == NULL ) return( -1 );
   
   tm_struct.tm_isdst = -1;
 
@@ -140,7 +140,7 @@ static int GetStatFromZOO(char *zoo_line, char *name, struct stat *stat)
 
   (void) sscanf( t, "%o", (unsigned int *) &stat->st_mode );
   stat->st_mode |= S_IFREG;
-  t = Strtok_r( NULL, " \t", &old ); if( t == NULL ) return( -1 );
+  t = strtok_r( NULL, " \t", &old ); if( t == NULL ) return( -1 );
 
   /* Owner */
   /*-------*/

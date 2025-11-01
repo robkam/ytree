@@ -76,42 +76,42 @@ static int GetStatFromARC(char *arc_line, char *name, struct stat *stat)
 
   stat->st_nlink = 1;
 
-  t = Strtok_r( arc_line, " \t", &old ); if( t == NULL ) return( -1 );
+  t = strtok_r( arc_line, " \t", &old ); if( t == NULL ) return( -1 );
 
   /* Dateiname */
   /*-----------*/
 
   (void) strcpy( name, t );
-  t = Strtok_r( NULL, " \t", &old ); if( t == NULL ) return( -1 );
+  t = strtok_r( NULL, " \t", &old ); if( t == NULL ) return( -1 );
 
   /* Dateilaenge */
   /*-------------*/
 
   if( !isdigit( *t ) ) return( -1 );
   stat->st_size = AtoLL( t );
-  t = Strtok_r( NULL, " \t", &old ); if( t == NULL ) return( -1 );
+  t = strtok_r( NULL, " \t", &old ); if( t == NULL ) return( -1 );
 
   /* Stowage */
   /*---------*/
 
-  t = Strtok_r( NULL, " \t", &old ); if( t == NULL ) return( -1 );
+  t = strtok_r( NULL, " \t", &old ); if( t == NULL ) return( -1 );
 
   /* SF */
   /*----*/
 
-  t = Strtok_r( NULL, " \t", &old ); if( t == NULL ) return( -1 );
+  t = strtok_r( NULL, " \t", &old ); if( t == NULL ) return( -1 );
 
   /* Size Now */
   /*----------*/
 
   if( !isdigit( *t ) ) return( -1 );
-  t = Strtok_r( NULL, " \t", &old ); if( t == NULL ) return( -1 );
+  t = strtok_r( NULL, " \t", &old ); if( t == NULL ) return( -1 );
 
   /* M-Datum */
   /*---------*/
 
   tm_struct.tm_mday = atoi( t );
-  t = Strtok_r( NULL, " \t", &old ); if( t == NULL ) return( -1 );
+  t = strtok_r( NULL, " \t", &old ); if( t == NULL ) return( -1 );
 
   for( i=0; i < 12; i++ )
   {
@@ -120,22 +120,22 @@ static int GetStatFromARC(char *arc_line, char *name, struct stat *stat)
   if( i >= 12 ) i = 0;
 
   tm_struct.tm_mon = i;
-  t = Strtok_r( NULL, " \t", &old ); if( t == NULL ) return( -1 );
+  t = strtok_r( NULL, " \t", &old ); if( t == NULL ) return( -1 );
 
   tm_struct.tm_year = atoi( t );
   if(tm_struct.tm_year < 70)
     tm_struct.tm_year += 100;
 
-  t = Strtok_r( NULL, " \t:", &old ); if( t == NULL ) return( -1 );
+  t = strtok_r( NULL, " \t:", &old ); if( t == NULL ) return( -1 );
   
   tm_struct.tm_hour = atoi( t );
-  t = Strtok_r( NULL, " \t", &old ); if( t == NULL ) return( -1 );
+  t = strtok_r( NULL, " \t", &old ); if( t == NULL ) return( -1 );
 
   if( t[strlen(t)-1] == 'p' ) tm_struct.tm_hour += 12;
   t[strlen(t)-1] ='\0';
   
   tm_struct.tm_min = atoi( t );
-  t = Strtok_r( NULL, " \t", &old ); if( t == NULL ) return( -1 );
+  t = strtok_r( NULL, " \t", &old ); if( t == NULL ) return( -1 );
   
   tm_struct.tm_sec = 0;
   

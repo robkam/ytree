@@ -100,30 +100,30 @@ static int GetStatFromRAR(char *rar_line, char *name, struct stat *stat)
 
   stat->st_nlink = 1;
 
-  t = Strtok_r( rar_line, " \t", &old ); if( t == NULL ) return( -1 );
+  t = strtok_r( rar_line, " \t", &old ); if( t == NULL ) return( -1 );
 
   /* Dateiname */
   /*-----------*/
 
   (void) strcpy( name, t );
-  t = Strtok_r( NULL, " \t", &old ); if( t == NULL ) return( -1 );
+  t = strtok_r( NULL, " \t", &old ); if( t == NULL ) return( -1 );
 
   /* Dateilaenge */
   /*-------------*/
 
   if( !isdigit( *t ) ) return( -1 );
   stat->st_size = AtoLL( t );
-  t = Strtok_r( NULL, " \t", &old ); if( t == NULL ) return( -1 );
+  t = strtok_r( NULL, " \t", &old ); if( t == NULL ) return( -1 );
 
   /* Packed */
   /*--------*/
 
-  t = Strtok_r( NULL, " \t", &old ); if( t == NULL ) return( -1 );
+  t = strtok_r( NULL, " \t", &old ); if( t == NULL ) return( -1 );
 
   /* Ratio */
   /*-------*/
 
-  t = Strtok_r( NULL, " \t", &old ); if( t == NULL ) return( -1 );
+  t = strtok_r( NULL, " \t", &old ); if( t == NULL ) return( -1 );
 
   /* M-Datum */
   /*---------*/
@@ -138,7 +138,7 @@ static int GetStatFromRAR(char *rar_line, char *name, struct stat *stat)
        tm_struct.tm_year += 100;
   }
 
-  t = Strtok_r( NULL, " \t", &old ); if( t == NULL ) return( -1 );
+  t = strtok_r( NULL, " \t", &old ); if( t == NULL ) return( -1 );
 
   /* M-time */
   /*--------*/
@@ -158,7 +158,7 @@ static int GetStatFromRAR(char *rar_line, char *name, struct stat *stat)
   /* Use standard mktime */
   stat->st_mtime = mktime( &tm_struct );
 
-  t = Strtok_r( NULL, " \t", &old ); if( t == NULL ) return( -1 );
+  t = strtok_r( NULL, " \t", &old ); if( t == NULL ) return( -1 );
 
   /* Attributes */
   /*------------*/
@@ -198,7 +198,7 @@ static int GetStatFromNewRAR(char *rar_line, char *name, struct stat *stat)
   /* attributes */
   /*------------*/
 
-  t = Strtok_r( rar_line, " \t", &old ); if( t == NULL ) return( -1 );
+  t = strtok_r( rar_line, " \t", &old ); if( t == NULL ) return( -1 );
 
   if((strlen(t) == 7) && t[2] != 'A')
     return 0;  /* skip non file entries */
@@ -213,7 +213,7 @@ static int GetStatFromNewRAR(char *rar_line, char *name, struct stat *stat)
   /* size */
   /*------*/
 
-  t = Strtok_r( NULL, " \t", &old ); if( t == NULL ) return( 0 );
+  t = strtok_r( NULL, " \t", &old ); if( t == NULL ) return( 0 );
   if( !isdigit( *t ) ) return( 0 ); /* skip invalid entry */
   stat->st_size = AtoLL( t );
 
@@ -223,7 +223,7 @@ static int GetStatFromNewRAR(char *rar_line, char *name, struct stat *stat)
 
   memset(&tm_struct, 0, sizeof(tm_struct));
 
-  t = Strtok_r( NULL, " \t", &old ); if( t == NULL ) return( 0 );
+  t = strtok_r( NULL, " \t", &old ); if( t == NULL ) return( 0 );
 
   if(strlen(t) == 10) {
     t[4] = t[7] = '\0';    
@@ -238,7 +238,7 @@ static int GetStatFromNewRAR(char *rar_line, char *name, struct stat *stat)
   /* time */
   /*------*/
 
-  t = Strtok_r( NULL, " \t", &old ); if( t == NULL ) return( 0 );
+  t = strtok_r( NULL, " \t", &old ); if( t == NULL ) return( 0 );
 
   if(strlen(t) == 5 && t[2] == ':') {
     t[2] = '\0';    
@@ -256,7 +256,7 @@ static int GetStatFromNewRAR(char *rar_line, char *name, struct stat *stat)
   /* filename */
   /*-----------*/
 
-  t = Strtok_r( NULL, "", &old ); if( t == NULL ) return( 0 );
+  t = strtok_r( NULL, "", &old ); if( t == NULL ) return( 0 );
   while(isspace(*t))
     t++;
   (void) strcpy( name, t );

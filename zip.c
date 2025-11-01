@@ -79,7 +79,7 @@ static int GetStatFromZIP(char *zip_line, char *name, struct stat *stat)
   stat->st_nlink = 1;
   *name = '\0';
 
-  t = Strtok_r( zip_line, " \t", &old ); if( t == NULL ) return( -1 );
+  t = strtok_r( zip_line, " \t", &old ); if( t == NULL ) return( -1 );
 
   /* Attributes */
   /*------------*/
@@ -102,7 +102,7 @@ static int GetStatFromZIP(char *zip_line, char *name, struct stat *stat)
     return 0;  /* skip non file entries */
 
   
-  t = Strtok_r( NULL, " \t", &old ); if( t == NULL ) return( -1 );
+  t = strtok_r( NULL, " \t", &old ); if( t == NULL ) return( -1 );
 
   if(!strcmp(t, "file,"))  /* skip summary line */
     return 0;
@@ -110,40 +110,40 @@ static int GetStatFromZIP(char *zip_line, char *name, struct stat *stat)
   /* Version */
   /*---------*/
   
-  t = Strtok_r( NULL, " \t", &old ); if( t == NULL ) return( -1 );
+  t = strtok_r( NULL, " \t", &old ); if( t == NULL ) return( -1 );
 
   /* BS */
   /*----*/
   
-  t = Strtok_r( NULL, " \t", &old ); if( t == NULL ) return( -1 );
+  t = strtok_r( NULL, " \t", &old ); if( t == NULL ) return( -1 );
 
   /* Dateilaenge */
   /*-------------*/
 
   if( !isdigit( *t ) ) return( -1 );
   stat->st_size = AtoLL( t );
-  t = Strtok_r( NULL, " \t", &old ); if( t == NULL ) return( -1 );
+  t = strtok_r( NULL, " \t", &old ); if( t == NULL ) return( -1 );
 
   /* ?? */
   /*----*/
 
-  t = Strtok_r( NULL, " \t", &old ); if( t == NULL ) return( -1 );
+  t = strtok_r( NULL, " \t", &old ); if( t == NULL ) return( -1 );
 
   /* Compressed-Laenge */
   /*-------------------*/
 
-  t = Strtok_r( NULL, " \t", &old ); if( t == NULL ) return( -1 );
+  t = strtok_r( NULL, " \t", &old ); if( t == NULL ) return( -1 );
 
   /* Methode */
   /*---------*/
 
-  t = Strtok_r( NULL, " \t-", &old ); if( t == NULL ) return( -1 );
+  t = strtok_r( NULL, " \t-", &old ); if( t == NULL ) return( -1 );
 
   /* M-Datum */
   /*---------*/
 
   tm_struct.tm_mday = atoi( t );
-  t = Strtok_r( NULL, " \t-", &old ); if( t == NULL ) return( -1 );
+  t = strtok_r( NULL, " \t-", &old ); if( t == NULL ) return( -1 );
 
   for( i=0; i < 12; i++ )
   {
@@ -152,16 +152,16 @@ static int GetStatFromZIP(char *zip_line, char *name, struct stat *stat)
   if( i >= 12 ) i = 0;
 
   tm_struct.tm_mon = i;
-  t = Strtok_r( NULL, " \t", &old ); if( t == NULL ) return( -1 );
+  t = strtok_r( NULL, " \t", &old ); if( t == NULL ) return( -1 );
 
   tm_struct.tm_year = atoi( t );
   if(tm_struct.tm_year < 70)
     tm_struct.tm_year += 100;
 
-  t = Strtok_r( NULL, " \t:", &old ); if( t == NULL ) return( -1 );
+  t = strtok_r( NULL, " \t:", &old ); if( t == NULL ) return( -1 );
   
   tm_struct.tm_hour = atoi( t );
-  t = Strtok_r( NULL, " \t:", &old ); if( t == NULL ) return( -1 );
+  t = strtok_r( NULL, " \t:", &old ); if( t == NULL ) return( -1 );
 
   tm_struct.tm_min = atoi( t );
   
@@ -191,7 +191,7 @@ static int GetStatFromZIP(char *zip_line, char *name, struct stat *stat)
   /* Dateiname */
   /*-----------*/
 
-  t = Strtok_r( NULL, "", &old ); if( t == NULL ) return( -1 ); /* ...to end of line */
+  t = strtok_r( NULL, "", &old ); if( t == NULL ) return( -1 ); /* ...to end of line */
   (void) strcpy( name, t );
 
   return( 0 );

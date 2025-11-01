@@ -100,7 +100,7 @@ static int GetStatFromTAR(char *tar_line, char *name, struct stat *stat)
   /* attribute */
   /*-----------*/
 
-  t = Strtok_r( tar_line, " \t", &old ); if( t == NULL ) return( -1 );
+  t = strtok_r( tar_line, " \t", &old ); if( t == NULL ) return( -1 );
   if( strlen( t ) != 10 ) return( -1 );
   stat->st_mode = GetModus( t );
 
@@ -108,7 +108,7 @@ static int GetStatFromTAR(char *tar_line, char *name, struct stat *stat)
   /* owner */
   /*-------*/
 
-  t = Strtok_r( NULL, " \t/", &old ); if( t == NULL ) return( -1 );
+  t = strtok_r( NULL, " \t/", &old ); if( t == NULL ) return( -1 );
   id = GetPasswdUid( t );
   if( id == -1 ) id = atoi( t );
   stat->st_uid = (unsigned) id;
@@ -117,7 +117,7 @@ static int GetStatFromTAR(char *tar_line, char *name, struct stat *stat)
   /* group */
   /*-------*/
 
-  t = Strtok_r( NULL, " \t", &old ); if( t == NULL ) return( -1 );  id = GetGroupId( t );
+  t = strtok_r( NULL, " \t", &old ); if( t == NULL ) return( -1 );  id = GetGroupId( t );
   if( id == -1 ) id = atoi( t );
   stat->st_gid = (unsigned) id;
   
@@ -125,14 +125,14 @@ static int GetStatFromTAR(char *tar_line, char *name, struct stat *stat)
   /* file length */
   /*-------------*/
 
-  t = Strtok_r( NULL, " \t", &old ); if( t == NULL ) return( -1 );
+  t = strtok_r( NULL, " \t", &old ); if( t == NULL ) return( -1 );
   if( !isdigit( *t ) ) return( -1 );
   stat->st_size = AtoLL( t );
 
   /* mod. date */
   /*-----------*/
 
-  t = Strtok_r( NULL, " \t", &old ); if( t == NULL ) return( -1 );
+  t = strtok_r( NULL, " \t", &old ); if( t == NULL ) return( -1 );
 
   for( i=0; i < 12; i++ )
   {
@@ -146,25 +146,25 @@ static int GetStatFromTAR(char *tar_line, char *name, struct stat *stat)
     tm_struct.tm_mon  = atoi(&t[5]) - 1;
     tm_struct.tm_mday = atoi(&t[8]);
     
-    t = Strtok_r( NULL, " \t:", &old ); if( t == NULL ) return( -1 );
+    t = strtok_r( NULL, " \t:", &old ); if( t == NULL ) return( -1 );
     tm_struct.tm_hour = atoi( t );
-    t = Strtok_r( NULL, " \t", &old ); if( t == NULL ) return( -1 );
+    t = strtok_r( NULL, " \t", &old ); if( t == NULL ) return( -1 );
     tm_struct.tm_min = atoi( t );
     goto XDATE;
   } 
     
 
   tm_struct.tm_mon = i;
-  t = Strtok_r( NULL, " \t", &old ); if( t == NULL ) return( -1 );
+  t = strtok_r( NULL, " \t", &old ); if( t == NULL ) return( -1 );
 
   tm_struct.tm_mday = atoi( t );
-  t = Strtok_r( NULL, " \t:", &old ); if( t == NULL ) return( -1 );
+  t = strtok_r( NULL, " \t:", &old ); if( t == NULL ) return( -1 );
 
   tm_struct.tm_hour = atoi( t );
-  t = Strtok_r( NULL, " \t", &old ); if( t == NULL ) return( -1 );
+  t = strtok_r( NULL, " \t", &old ); if( t == NULL ) return( -1 );
 
   tm_struct.tm_min = atoi( t );
-  t = Strtok_r( NULL, " \t", &old ); if( t == NULL ) return( -1 );
+  t = strtok_r( NULL, " \t", &old ); if( t == NULL ) return( -1 );
   
   tm_struct.tm_year = atoi( t ) - 1900;
   
@@ -182,7 +182,7 @@ XDATE:
   /* filename */
   /*----------*/
 
-  t = Strtok_r( NULL, "", &old ); if( t == NULL ) return( -1 );
+  t = strtok_r( NULL, "", &old ); if( t == NULL ) return( -1 );
 
   if( S_ISLNK( stat->st_mode ) )
   {

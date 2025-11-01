@@ -92,20 +92,20 @@ static int GetStatFromRPM(char *rpm_line, char *name, struct stat *stat)
 
   stat->st_nlink = 1;
 
-  t = Strtok_r( rpm_line, " \t", &old ); if( t == NULL ) return( -1 );
+  t = strtok_r( rpm_line, " \t", &old ); if( t == NULL ) return( -1 );
 
   /* Dateiname */
   /*-----------*/
 
   (void) strcpy( name, t );
-  t = Strtok_r( NULL, " \t", &old ); if( t == NULL ) return( -1 );
+  t = strtok_r( NULL, " \t", &old ); if( t == NULL ) return( -1 );
 
   /* Dateilaenge */
   /*-------------*/
 
   if( !isdigit( *t ) ) return( -1 );
   stat->st_size = AtoLL( t );
-  t = Strtok_r( NULL, " \t", &old ); if( t == NULL ) return( -1 );
+  t = strtok_r( NULL, " \t", &old ); if( t == NULL ) return( -1 );
 
   /* M-Datum */
   /*---------*/
@@ -114,18 +114,18 @@ static int GetStatFromRPM(char *rpm_line, char *name, struct stat *stat)
   stat->st_ctime = 0;
 
   stat->st_mtime = atoi( t );
-  t = Strtok_r( NULL, " \t", &old ); if( t == NULL ) return( -1 );
+  t = strtok_r( NULL, " \t", &old ); if( t == NULL ) return( -1 );
   
   /* M5 */
   if(strlen(t) > 20) {
-    t = Strtok_r( NULL, " \t/", &old ); if( t == NULL ) return( -1 );
+    t = strtok_r( NULL, " \t/", &old ); if( t == NULL ) return( -1 );
   }
 
   /* Attribute */
   /*-----------*/
 
   stat->st_mode = strtoul(t, NULL, 8);
-  t = Strtok_r( NULL, " \t/", &old ); if( t == NULL ) return( -1 );
+  t = strtok_r( NULL, " \t/", &old ); if( t == NULL ) return( -1 );
 
 
   /* Owner */
@@ -135,7 +135,7 @@ static int GetStatFromRPM(char *rpm_line, char *name, struct stat *stat)
   if( id == -1 ) id = atoi( t );
   stat->st_uid = (unsigned) id;
 
-  t = Strtok_r( NULL, " \t", &old ); if( t == NULL ) return( -1 );
+  t = strtok_r( NULL, " \t", &old ); if( t == NULL ) return( -1 );
 
   /* Group */
   /*-------*/
@@ -156,5 +156,3 @@ static int GetStatFromRPM(char *rpm_line, char *name, struct stat *stat)
 
   return( 0 );
 }
-
-

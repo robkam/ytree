@@ -6,7 +6,6 @@
 
 
 #include "ytree.h"
-/* #include "xmalloc.h" <-- REMOVED */
 
 
 typedef struct
@@ -151,7 +150,7 @@ int GetDirEntry(DirEntry *tree,
     /*----------------------------------*/
 
     de_ptr = tree;
-    token = Strtok_r( &dest_path[n], FILE_SEPARATOR_STRING, &old );
+    token = strtok_r( &dest_path[n], FILE_SEPARATOR_STRING, &old );
     while( token )
     {
       for( sde_ptr = de_ptr->sub_tree; sde_ptr; sde_ptr = sde_ptr->next )
@@ -173,7 +172,7 @@ int GetDirEntry(DirEntry *tree,
 #endif
 	return( -3 );
       }
-      token = Strtok_r( NULL, FILE_SEPARATOR_STRING, &old );
+      token = strtok_r( NULL, FILE_SEPARATOR_STRING, &old );
     }
     *dir_entry = de_ptr;
   }
@@ -744,7 +743,7 @@ void NormPath( char *in_path, char *out_path )
   *d = '\0';
 
   d = opath;
-  s = Strtok_r( in_path_dup, FILE_SEPARATOR_STRING, &old );
+  s = strtok_r( in_path_dup, FILE_SEPARATOR_STRING, &old );
   while( s ) {
     if( strcmp( s, "." ) ) {		/* skip "." */
       if( !strcmp( s, ".." ) ) {	/* optimize ".." */
@@ -770,7 +769,7 @@ void NormPath( char *in_path, char *out_path )
         level++;
       }
     }
-    s = Strtok_r( NULL, FILE_SEPARATOR_STRING, &old );
+    s = strtok_r( NULL, FILE_SEPARATOR_STRING, &old );
   }
   if( level != 0 )
     d--;
@@ -783,31 +782,7 @@ void NormPath( char *in_path, char *out_path )
 
 
 
-/* reentrantes strtok */
-char *Strtok_r( char *str, char *delim, char **old )
-{
-  char *result;
-  int  l, m;
-
-  if( str == NULL ) 
-    str = *old;
-
-  if( str == NULL )
-    return( NULL );
-
-  l = strlen( str );
-  if( ( result = strtok( str, delim ) ) != NULL ) {
-    m = strlen( result );
-    if( (m + 1) >= l)
-      *old = NULL;
-    else 
-      *old = result + m + 1;
-      
-  } else 
-    *old = NULL;
-
-  return( result );
-}
+/* Removed custom Strtok_r implementation */
 
 
 

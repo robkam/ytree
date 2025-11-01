@@ -191,7 +191,7 @@ int MakePath( DirEntry *tree, char *dir_path, DirEntry **dest_dir_entry )
     /*----------------------------------*/
 
     de_ptr = tree;
-    token = Strtok_r( &path[n], FILE_SEPARATOR_STRING, &old );
+    token = strtok_r( &path[n], FILE_SEPARATOR_STRING, &old );
     while( token )
     {
       for( sde_ptr = de_ptr->sub_tree; sde_ptr; sde_ptr = sde_ptr->next )
@@ -220,7 +220,7 @@ int MakePath( DirEntry *tree, char *dir_path, DirEntry **dest_dir_entry )
 	}
 	continue;
       }
-      token = Strtok_r( NULL, FILE_SEPARATOR_STRING, &old );
+      token = strtok_r( NULL, FILE_SEPARATOR_STRING, &old );
     }
     *dest_dir_entry = de_ptr;
     result = 0;
@@ -272,6 +272,3 @@ int MakePath( DirEntry *tree, char *dir_path, DirEntry **dest_dir_entry )
 
   return( result );
 }
-
-
-
