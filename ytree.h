@@ -76,117 +76,35 @@ extern char *getcwd();
 #include <signal.h>
 #include <string.h>
 
-#if defined( TERMCAP ) && !defined( __NeXT__ )
-/* REMOVED: #include <termcap.h> */
-#endif
-
 #ifdef WITH_UTF8
 #include <wchar.h>
 #endif
 
-#ifdef __OpenBSD__
-#define STATFS(a, b, c, d )     statfs( a, b )
+/* --- Consolidated Large File / 64-bit Definitions --- */
+
+/* Assume modern POSIX systems use long long for 64-bit ints */
 #define LONGLONG		long long
 #define HAS_LONGLONG		1
-#define STAT_(a, b) lstat(a, b)
-#else
-#ifdef __NetBSD__
+
+/* Use standard POSIX statvfs/statfs headers and macro */
+#if defined(__sun__) || defined(__hpux) || defined(_AIX) || defined(__sgi) || defined(__linux__) || defined(__GNU__) || defined(__NetBSD__) || defined(__OpenBSD__) || defined(__FreeBSD__) || defined(__APPLE__) || defined(SVR4) || defined(OSF1)
+#include <sys/statvfs.h>
 #define STATFS(a, b, c, d )     statvfs( a, b )
-#define LONGLONG		long long
-#define HAS_LONGLONG		1
-#define typeahead( file )
-#define vidattr( attr )
-#define putp( str )             tputs( str, 1, putchar )
-#define STAT_(a, b) lstat(a, b)
-#else
-#ifdef __APPLE__
-#define STATFS(a, b, c, d )     statfs( a, b )
-#define LONGLONG		long long
-#define HAS_LONGLONG		1
-#define STAT_(a, b) lstat(a, b)
-#else
-#ifdef __FreeBSD__
-#define STATFS(a, b, c, d )     statfs( a, b )
-#define LONGLONG		long long
-#define HAS_LONGLONG		1
-#define STAT_(a, b) lstat(a, b)
-#else
-#ifdef OSF1
-#define STATFS(a, b, c, d )     statvfs( a, b )
-#define echochar( ch )          { addch( ch ); refresh(); }
-#define LONGLONG		unsigned long
-#define STAT_(a, b) lstat(a, b)
-#else
-#ifdef SVR4
-#define STATFS(a, b, c, d )     statvfs( a, b )
-#define LONGLONG		unsigned long
-#define STAT_(a, b) lstat(a, b)
-#else
-#ifdef SVR3
-#define LONGLONG		unsigned long
+#elif defined(SVR3)
+#include <sys/statfs.h>
 #define STATFS(a, b, c, d )     statfs( a, b, c, d )
-#define LONGLONG		unsigned long
-#define STAT_(a, b) stat(a, b) /* SVR3 likely doesn't have lstat or S_IFLNK */
 #else
-#ifdef _IBMR2
-#define STATFS(a, b, c, d )     statfs( a, b )
-#define LONGLONG		long long
-#define HAS_LONGLONG		1
-#define STAT_(a, b) lstat(a, b)
-#else
-#if defined(linux)
-#define STATFS(a, b, c, d )     statfs( a, b )
-#define LONGLONG               long long
-#define HAS_LONGLONG           1
-#define STAT_(a, b) lstat(a, b)
-#else
-#if defined(__GNU__)
-#define STATFS(a, b, c, d )     statfs( a, b )
-#define LONGLONG		long long
-#define HAS_LONGLONG		1
-#define STAT_(a, b) lstat(a, b)
-#else
-#ifdef hpux
-#define STATFS(a, b, c, d )     statfs( a, b )
-#define echochar( ch )          { addch( ch ); refresh(); }
-#define LONGLONG		long long
-#define HAS_LONGLONG		1
-#define STAT_(a, b) lstat(a, b)
-#else
-#ifdef ultrix
-#define STATFS(a, b, c, d )	statfs( a, b )
-#define echochar( ch )          { addch( ch ); refresh(); }
-#define LONGLONG		unsigned long
-#define STAT_(a, b) lstat(a, b)
-#else
-#ifdef __QNX__
-#define STATFS(a, b, c, d )	statfs( a, b )
-#define LONGLONG		unsigned long
-#define STAT_(a, b) stat(a, b)
-#else
-/* Fallback for systems not listed, assuming modern POSIX behavior */
+/* Fallback for systems not explicitly listed */
+#include <sys/statfs.h>
 #define STATFS(a, b, c, d )     statfs( a, b, c, d )
-#define LONGLONG		long long
-#define HAS_LONGLONG		1
-#if defined(S_IFLNK) && !defined(isc386)
-#define STAT_(a, b) lstat(a, b)
-#else
-#define STAT_(a, b) stat(a, b)
-#define readlink( a, b, c )  (-1)
 #endif
-#endif /* __QNX__ */
-#endif /* ultrix */
-#endif /* hpux */
-#endif /* __GNU__ */
-#endif /* linux */
-#endif /* _IBMR2 */
-#endif /* SVR4 */
-#endif /* SVR3 */
-#endif /* OSF1 */
-#endif /* __APPLE__ */
-#endif /* __FreeBSD__ */
-#endif /* __NetBSD__ */
-#endif /* __OpenBSD__ */
+
+/* Prefer lstat() for determining file type (e.g., links), otherwise fallback to stat() */
+#if defined(S_IFLNK) && !defined(__QNX__) && !defined(SVR3)
+#define STAT_(a, b) lstat(a, b)
+#else
+#define STAT_(a, b) stat(a, b)
+#endif
 
 
 /* Some handy macros... */
@@ -449,8 +367,7 @@ extern char *getcwd();
 #define FILE2           GetProfileValue( "FILE2" )
 #define SEARCHCOMMAND   GetProfileValue( "SEARCHCOMMAND" )
 #define HEXEDITOFFSET   GetProfileValue( "HEXEDITOFFSET" )
-#define LISTJUMPSEARCH  GetProfileValue( "LISTJUMPSEARCH" )
- 
+#define LISTJUMPSEARCH  GetProfileValue( "LISTJUMPSEARCH" ) 
 
 #define DEFAULT_TREE       "."
 
