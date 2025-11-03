@@ -168,13 +168,6 @@ LDFLAGS     += -lncurses -ltinfo -lreadline
 #LDFLAGS    = -lcurses 
 
 ###########################
-# SUN (gcc)
-###########################
-#CFLAGS     = $(ADD_CFLAGS)
-#CC	    = gcc -I/usr/5include -L/usr/5lib
-#LDFLAGS    = -lcurses 
-
-###########################
 # SUNOS 5.6 (gcc) Thanks to Fabiano Silos Reis
 ###########################
 #CFLAGS     = $(ADD_CFLAGS) -Dsun56
@@ -206,13 +199,14 @@ LDFLAGS     += -lncurses -ltinfo -lreadline
 
 
 MAIN    = ytree
-OBJS	= arc.o archive.o chgrp.o chmod.o chown.o clock.o color.o copy.o    \
+OBJS	= archive.o archive_reader.o chgrp.o chmod.o chown.o clock.o color.o copy.o    \
 	  delete.o dirwin.o disp.o edit.o error.o execute.o filespec.o      \
-	  filewin.o freesp.o global.o group.o hex.o history.o init.o input.o keyhtab.o lha.o  \
+	  filewin.o freesp.o global.o group.o hex.o history.o init.o input.o keyhtab.o \
 	  login.o main.o match.o mkdir.o move.o passwd.o pipe.o    \
-	  print.o profile.o quit.o rar.o readtree.o rename.o rmdir.o rpm.o  \
-	  sort.o stat.o system.o tar.o tilde.o usermode.o util.o view.o zip.o zoo.o 7z.o
+	  print.o profile.o quit.o readtree.o rename.o rmdir.o  \
+	  sort.o stat.o system.o tilde.o usermode.o util.o view.o 
 
+# Files 7z.o, arc.o, lha.o, rar.o, rpm.o, tar.o, zip.o, zoo.o removed.
 # mktime.o and termcap.o removed from OBJS list
 
 $(MAIN):	$(OBJS)
@@ -239,7 +233,7 @@ clobber:	clean
 
 ##################################################
 
-arc.o: config.h ytree.h arc.c
+archive_reader.o: config.h ytree.h archive_reader.c
 archive.o: config.h ytree.h archive.c
 chgrp.o: config.h ytree.h chgrp.c
 chmod.o: config.h ytree.h chmod.c
@@ -262,7 +256,6 @@ history.o: config.h ytree.h history.c
 init.o: config.h ytree.h init.c
 input.o: config.h ytree.h tilde.h input.c
 keyhtab.o: config.h ytree.h keyhtab.c
-lha.o: config.h ytree.h lha.c
 login.o: config.h ytree.h login.c
 main.o: config.h ytree.h main.c
 match.o: config.h ytree.h match.c
@@ -273,19 +266,13 @@ pipe.o: config.h ytree.h pipe.c
 print.o: ytree.h print.c config.h
 profile.o: config.h ytree.h profile.c
 quit.o: config.h ytree.h quit.c
-rar.o: config.h ytree.h rar.c
 readtree.o: config.h ytree.h readtree.c
 rename.o: config.h ytree.h rename.c
 rmdir.o: config.h ytree.h rmdir.c
-rpm.o: config.h ytree.h rpm.c
 sort.o: config.h ytree.h sort.c
 stat.o: config.h ytree.h stat.c
 system.o: config.h ytree.h system.c
-tar.o: config.h ytree.h tar.c
 tilde.o: config.h tilde.h tilde.c
 usermode.o: config.h ytree.h usermode.c
 util.o: config.h ytree.h util.c
 view.o: config.h ytree.h view.c
-zip.o: config.h ytree.h zip.c
-7z.o: config.h ytree.h 7z.c
-zoo.o: config.h ytree.h zoo.c

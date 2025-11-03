@@ -805,14 +805,21 @@ extern void DisplayGlobalFileParameter(FileEntry *file_entry);
 extern void RefreshWindow(WINDOW *win);
 extern int  ReadTree(DirEntry *dir_entry, char *path, int depth);
 extern void UnReadTree(DirEntry *dir_entry);
-extern int  ReadTreeFromTAR(DirEntry *dir_entry, FILE *f);
-extern int  ReadTreeFromRPM(DirEntry *dir_entry, FILE *f);
-extern int  ReadTreeFromZOO(DirEntry *dir_entry, FILE *f);
-extern int  ReadTreeFromZIP(DirEntry *dir_entry, FILE *f);
-extern int  ReadTreeFrom7z(DirEntry *dir_entry, FILE *f);
-extern int  ReadTreeFromLHA(DirEntry *dir_entry, FILE *f);
-extern int  ReadTreeFromARC(DirEntry *dir_entry, FILE *f);
-extern int  ReadTreeFromRAR(DirEntry *dir_entry, FILE *f);
+
+/* 
+ * Replaced:
+ * extern int ReadTreeFromTAR(DirEntry *dir_entry, FILE *f);
+ * extern int ReadTreeFromRPM(DirEntry *dir_entry, FILE *f);
+ * extern int ReadTreeFromZOO(DirEntry *dir_entry, FILE *f);
+ * extern int ReadTreeFromZIP(DirEntry *dir_entry, FILE *f);
+ * extern int ReadTreeFrom7z(DirEntry *dir_entry, FILE *f);
+ * extern int ReadTreeFromLHA(DirEntry *dir_entry, FILE *f);
+ * extern int ReadTreeFromARC(DirEntry *dir_entry, FILE *f);
+ * extern int ReadTreeFromRAR(DirEntry *dir_entry, FILE *f);
+ */
+extern int ReadTreeFromArchive(DirEntry *dir_entry, FILE *f, int file_mode);
+
+
 extern int  GetDiskParameter(char *path, 
 			     char *volume_name, 
 			     LONGLONG *avail_bytes,

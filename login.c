@@ -526,100 +526,19 @@ int LoginDisk(char *path)
 	return( -1 );
       }
       
-      if( mode == ISO_FILE_MODE )
+      /* Use the single dispatcher function */
+      if (ReadTreeFromArchive(statistic.tree, f, mode))
       {
-	      if( ReadTreeFrom7z( statistic.tree, f ) )  /* same as 7z */
-        {
-	        ERROR_MSG( "ReadTreeFromISO Failed" );
-          (void) fclose( f );
-	        (void) wait( &status );
-          return( -1 );
-        }
+          ERROR_MSG("ReadTreeFromArchive Failed");
+          (void)fclose(f);
+          (void)wait(&status);
+          return(-1);
       }
-      if( mode == SEVENZIP_FILE_MODE )
-      {
-	      if( ReadTreeFrom7z( statistic.tree, f ) )
-        {
-	        ERROR_MSG( "ReadTreeFrom7z Failed" );
-          (void) fclose( f );
-	        (void) wait( &status );
-          return( -1 );
-        }
-      }
-      else if( mode == ZOO_FILE_MODE )
-      {
-	if( ReadTreeFromZOO( statistic.tree, f ) )
-        {
-	  ERROR_MSG( "ReadTreeFromZOO Failed" );
-          (void) fclose( f );
-	  (void) wait( &status );
-          return( -1 );
-	}
-      }
-      else if( mode == RPM_FILE_MODE )
-      {
-	if( ReadTreeFromRPM( statistic.tree, f ) )
-        {
-	  ERROR_MSG( "ReadTreeFromRPM Failed" );
-          (void) fclose( f );
-	  (void) wait( &status );
-          return( -1 );
-	}
-      }
-      else if( mode == LHA_FILE_MODE )
-      {
-	if( ReadTreeFromLHA( statistic.tree, f ) )
-        {
-	  ERROR_MSG( "ReadTreeFromLHA Failed" );
-          (void) fclose( f );
-	  (void) wait( &status );
-          return( -1 );
-	}
-      }
-      else if( mode == ZIP_FILE_MODE )
-      {
-	if( ReadTreeFromZIP( statistic.tree, f ) )
-        {
-	  ERROR_MSG( "ReadTreeFromZIP Failed" );
-          (void) fclose( f );
-	  (void) wait( &status );
-          return( -1 );
-	}
-      }
-      else if( mode == ARC_FILE_MODE )
-      {
-	if( ReadTreeFromARC( statistic.tree, f ) )
-        {
-	  ERROR_MSG( "ReadTreeFromARC Failed" );
-          (void) fclose( f );
-	  (void) wait( &status );
-          return( -1 );
-	}
-      }
-      else if( mode == RAR_FILE_MODE )
-      {
-	if( ReadTreeFromRAR( statistic.tree, f ) )
-        {
-	  ERROR_MSG( "ReadTreeFromRAR Failed" );
-          (void) fclose( f );
-	  (void) wait( &status );
-          return( -1 );
-	}
-      }
-      else
-      {
-        if( ReadTreeFromTAR( statistic.tree, f ) )
-        {
-          ERROR_MSG( "ReadTreeFromTAR Failed" );
-          (void) fclose( f );
-	  (void) wait( &status );
-          return( -1 );
-        }
-      }
+      
       (void) wait( &status );
       if(status)
       {
-        sprintf( message, "ReadTarFile failed*can't execute*%s", command_line );
+        sprintf( message, "ReadTreeFromArchive failed*can't execute*%s", command_line );
         MESSAGE( message );
       }
       (void) fclose( f );
@@ -688,5 +607,3 @@ int GetNewLoginPath(char *path)
  
 return( result );
 }
-
-
