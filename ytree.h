@@ -87,17 +87,21 @@ extern char *getcwd();
 #define HAS_LONGLONG		1
 
 /* Use standard POSIX statvfs/statfs headers and macro */
-#if defined(__sun__) || defined(__hpux) || defined(_AIX) || defined(__sgi) || defined(__linux__) || defined(__GNU__) || defined(__NetBSD__) || defined(__OpenBSD__) || defined(__FreeBSD__) || defined(__APPLE__) || defined(SVR4) || defined(OSF1)
+/* Rely on _FILE_OFFSET_BITS=64 to handle f_bsize/f_frsize in the struct */
+#if !defined(WIN32) && !defined(__DJGPP__) && !defined(QNX)
+#if defined(__sun__) || defined(__hpux) || defined(_AIX) || defined(__sgi) || defined(__linux__) || defined(__GNU__) || defined(__NetBSD__) || defined(__OpenBSD__) || defined(__FreeBSD__) || defined(__APPLE__) || defined(SVR4) || defined(OSF1) || defined(_AIX41) || defined(SVR3) /* Keep SVR3/SVR4 statfs for compatibility reasons only */
 #include <sys/statvfs.h>
-#define STATFS(a, b, c, d )     statvfs( a, b )
-#elif defined(SVR3)
 #include <sys/statfs.h>
-#define STATFS(a, b, c, d )     statfs( a, b, c, d )
+
+/* Use statvfs as default, as it's more comprehensive and available on most modern systems */
+#define STATFS(a, b, c, d )     statvfs( a, b )
 #else
-/* Fallback for systems not explicitly listed */
+/* Fallback to original statfs struct naming for other UNIX-like systems */
 #include <sys/statfs.h>
 #define STATFS(a, b, c, d )     statfs( a, b, c, d )
 #endif
+#endif /* !WIN32 && !__DJGPP__ && !QNX */
+
 
 /* Prefer lstat() for determining file type (e.g., links), otherwise fallback to stat() */
 #if defined(S_IFLNK) && !defined(__QNX__) && !defined(SVR3)
@@ -951,7 +955,7 @@ extern int  MvAddStr(int y, int x, char *str);
 extern int  MvWAddStr(WINDOW *win, int y, int x, char *str);
 extern int  WAddStr(WINDOW *win, char *str);
 extern int  AddStr(char *str);
-extern void ClockHandler(int);
+extern void ClockHandler(int); /* UPDATED FROM: extern void ClockHandler(void); */
 extern int Strrcmp(char *s1, char* s2);
 extern char *Strdup(const char *s);
 extern char *GetExtViewer(char *filename);

@@ -26,7 +26,7 @@ MANESDIR    = $(DESTDIR)/share/man/es/man1
 # LINUX (tested with ncurses 6)
 ###########################
 COLOR       = -DCOLOR_SUPPORT 
-#CLOCK	    = -DCLOCK_SUPPORT # Experimental!
+CLOCK	    = -DCLOCK_SUPPORT # Experimental!  <-- UNCOMMENTED
 READLINE    = -DREADLINE_SUPPORT
 CFLAGS      += -D_GNU_SOURCE $(COLOR) $(CLOCK) $(READLINE) $(ADD_CFLAGS)
 LDFLAGS     += -lncurses -ltinfo -lreadline

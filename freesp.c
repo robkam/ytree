@@ -7,19 +7,12 @@
 
 #include "ytree.h"
 
-/*
- * The complex platform-specific header logic is intentionally removed here.
- * We rely on ytree.h to pull in the necessary POSIX headers 
- * (sys/statvfs.h or sys/statfs.h) via the STATFS macro definition.
- */
-
 #ifdef WIN32
 #include <dos.h>
 #endif
 #ifdef __GNU__
 #include <hurd/hurd_types.h>
 #endif
-
 
 
 /* Volume-Name und freien Plattenplatz ermitteln */
@@ -35,17 +28,11 @@ int GetDiskParameter( char *path,
 #ifdef WIN32
   struct _diskfree_t diskspace;
 #else
-  /* Declare the structure type based on what STATFS macro expands to.
-   * On modern Linux/BSD, STATFS expands to statvfs(), so we use statvfs here.
-   * We still keep the original logic's naming conventions (statfs_struct, etc.) 
-   * to minimize disruption to the subsequent code block.
-   */
-#if defined(__linux__) || defined(__GNU__) || defined(__NetBSD__) || defined(__OpenBSD__) || defined(__FreeBSD__) || defined(__APPLE__) || defined(SVR4) || defined(OSF1)
+  /* Declare the structure type based on what STATFS macro expands to (statvfs or statfs) */
+#if defined(__sun__) || defined(__hpux) || defined(_AIX) || defined(__sgi) || defined(__linux__) || defined(__GNU__) || defined(__NetBSD__) || defined(__OpenBSD__) || defined(__FreeBSD__) || defined(__APPLE__) || defined(SVR4) || defined(OSF1) || defined(_AIX41) /* statvfs systems */
   struct statvfs statfs_struct;
-#elif defined(__DJGPP__)
-  struct statfs statfs_struct;
-#else
-  /* Fallback for other systems (e.g., SVR3/ultrix/QNX remnants) */
+  #define FS_STRUCT_IS_STATVFS
+#elif defined(__DJGPP__) || defined(SVR3) || defined(QNX)
   struct statfs statfs_struct;
 #endif
 #endif
@@ -60,18 +47,15 @@ int GetDiskParameter( char *path,
 #ifdef WIN32
   if( ( result = _getdiskfree( 0, &diskspace ) ) == 0 )
 #else
-#ifdef __DJGPP__
-  if( ( result = statfs( path, &statfs_struct ) ) == 0 )
-#else
 #ifdef QNX
   /* QNX handling re-integrated for now, assuming original QNX support needed it */
    int fd = open(path, O_RDONLY );
    long total_blocks, free_blocks;
   if( ( result = disk_space( fd, &free_blocks, &total_blocks ) ) == 0 )
 #else
+  /* Use the STATFS macro defined in ytree.h which resolves to statvfs or statfs */
   if( ( result = STATFS( path, &statfs_struct, sizeof( statfs_struct ), 0 ) ) == 0 )
 #endif /* QNX */
-#endif /* __DJGPP__ */
 #endif /* WIN32 */
   {
     if( volume_name )
@@ -149,11 +133,14 @@ int GetDiskParameter( char *path,
 #elif defined( QNX )
         fname = "QNX";
 #elif defined( SVR4 ) || defined( OSF1 )
-        /* Requires struct statvfs, field f_fstr */
+        /* statvfs on SVR4/OSF1 has f_fstr, use if available */
+#ifdef FS_STRUCT_IS_STATVFS
         fname = statfs_struct.f_fstr; 
+#else
+        fname = "UNIX"; /* Fallback if not statvfs/f_fstr */
+#endif
 #elif defined(__OpenBSD__) || defined(__NetBSD__) || defined(__FreeBSD__) || defined(__APPLE__)
-        /* These systems use statfs or statvfs but often don't populate a helpful f_fstr, 
-         * sticking to the generic "UNIX" from original code as fallback. */
+        /* These systems use statfs or statvfs but often don't populate a helpful f_fstr */
         fname = "UNIX";
 #else
         fname = "UNIX"; 
@@ -194,24 +181,24 @@ int GetDiskParameter( char *path,
     close(fd);
 #else
     /* Consolidated POSIX logic for disk space */
-    bfree = getuid() ? statfs_struct.f_bavail : statfs_struct.f_bfree;
+    
+    /* Use f_bavail for non-root, f_bfree for root (or if f_bavail not available/less reliable) */
+    #if defined(FS_STRUCT_IS_STATVFS) || defined(_POSIX_SOURCE) /* Standardize on POSIX availability check if possible */
+      bfree = getuid() ? statfs_struct.f_bavail : statfs_struct.f_blocks - statfs_struct.f_bfree;
+    #else
+      bfree = getuid() ? statfs_struct.f_bavail : statfs_struct.f_bfree;
+    #endif
+
     if( bfree < 0L ) bfree = 0L;
 
-    /* Check for f_frsize (statvfs), otherwise use f_bsize (statfs) or BLKSIZ (SVR3) */
-#if defined(__NetBSD__) || defined(__OpenBSD__) || defined(__FreeBSD__) || defined(__APPLE__) || defined(SVR4) || defined(OSF1)
-    /* statvfs structures usually have f_frsize (fragment size) */
-    #if defined(__GNUC__) && (__GNUC__ >= 4)
+    /* Use f_frsize (fragment size) if statvfs is used, otherwise f_bsize (block size) or BLKSIZ (SVR3) */
+    #ifdef FS_STRUCT_IS_STATVFS
       #define FRAG_SIZE statfs_struct.f_frsize
+    #elif defined(SVR3)
+      #define FRAG_SIZE BLKSIZ
     #else
-      /* Assuming f_frsize exists or f_bsize is equivalent in context */
-      #define FRAG_SIZE statfs_struct.f_frsize
+      #define FRAG_SIZE statfs_struct.f_bsize
     #endif
-#elif defined(SVR3)
-    #define FRAG_SIZE BLKSIZ
-#else
-    /* Default to f_bsize (block size), common in statfs */
-    #define FRAG_SIZE statfs_struct.f_bsize
-#endif
 
     *avail_bytes = bfree * FRAG_SIZE;
     this_disk_space   = (LONGLONG)statfs_struct.f_blocks * FRAG_SIZE;
@@ -225,10 +212,7 @@ int GetDiskParameter( char *path,
     }
   }
 #if !(defined(WIN32) || defined(QNX))
-  /* Need to check if there's an open fd from original code for cleanup, 
-     but given the refactoring, relying on the return value of STATFS to imply success/failure. 
-     The original error was declaring an unknown type, not a runtime issue.
-  */
+  /* No need for explicit fd cleanup here as statvfs/statfs do not open files. */
 #endif
   return( result );
 }
