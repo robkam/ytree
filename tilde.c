@@ -24,7 +24,6 @@
 
 #include "ytree.h"
 #include "tilde.h"
-/* #include "xmalloc.h" <-- REMOVED */
 
 
 /*#include <string.h>*/

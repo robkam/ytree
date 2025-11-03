@@ -1,6 +1,5 @@
 #include "ytree.h"
 #include "tilde.h"
-/* #include "xmalloc.h" <-- REMOVED in Step 1 */
 
 
 /***************************************************************************
@@ -263,7 +262,7 @@ int InputString(char *s, int y, int x, int cursor_pos, int length, char *term)
   /* Draw string (used for initialization/redraw logic below) */
   MvAddStr( y, x, s );
   
-  for(i=strlen(s); i < length; i++)
+  for(i=StrVisualLength(s); i < length; i++)
     addch( '_' );
 
   MvAddStr( y, x, s );
