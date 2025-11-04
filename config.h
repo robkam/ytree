@@ -24,7 +24,7 @@
 #define DEFAULT_CAT        "cat"
 #define DEFAULT_EDITOR     "vi"
 #define DEFAULT_MELT       "melt"
-#define DEFAULT_UNCOMPRESS "uncompress"
+#define DEFAULT_UNCOMPRESS "gunzip" /* Changed from original 'uncompress' on Linux */
 #define DEFAULT_GNUUNZIP   "gunzip -c"
 #define DEFAULT_BUNZIP     "bunzip2"
 #define DEFAULT_ZSTDCAT    "zstdcat"
@@ -43,8 +43,8 @@
 #define DEFAULT_ISOLIST     "7z l"
 #define DEFAULT_ISOEXPAND   "7z -so x"
 
-#define DEFAULT_LHALIST    "xlharc v"
-#define DEFAULT_LHAEXPAND  "xlharc p"
+#define DEFAULT_LHALIST    "lharc v"
+#define DEFAULT_LHAEXPAND  "lharc p"
 
 #define DEFAULT_ARCLIST    "arc v"
 #define DEFAULT_ARCEXPAND  "arc p"
@@ -58,87 +58,12 @@
 #define DEFAULT_LISTJUMPSEARCH	"0"
 
 
-/* Attention! You must use GNU TAR, because only GNU TAR is able to
- * extract to stdout!
- */
-
-#define DEFAULT_TARLIST    "gtar tvf -"
-#define DEFAULT_TAREXPAND  "gtar xOPf -"
+/* Attention! Use a TAR known to output to stdout! (GNU/BSD tar) */
+#define DEFAULT_TARLIST    "tar tvf -"
+#define DEFAULT_TAREXPAND  "tar xOPf -"
 #define DEFAULT_RPMLIST    "rpm -q -l --dump -p"
 #define DEFAULT_RPMEXPAND  "builtin"
-#define DEFAULT_HEXDUMP    "hd"
-#define DEFAULT_PAGER      "more"
+#define DEFAULT_HEXDUMP    "hexdump" /* Defaulting to Linux/BSD standard */
+#define DEFAULT_PAGER      "less"    /* Defaulting to modern standard */
 
-#ifdef __DJGPP__
-#undef DEFAULT_PAGER
-#define DEFAULT_PAGER      "view"
-#endif
-
-
-#ifdef sgi
-#undef  DEFAULT_HEXDUMP
-#undef  DEFAULT_PAGER
-#define DEFAULT_HEXDUMP     "od -h"
-#define DEFAULT_PAGER       "pg"
-#endif /* sgi */
-
-#ifdef linux
-#undef  DEFAULT_TARLIST
-#undef  DEFAULT_TAREXPAND
-#undef  DEFAULT_HEXDUMP
-#undef  DEFAULT_PAGER
-#undef  DEFAULT_LHALIST
-#undef  DEFAULT_LHAEXPAND
-#undef  DEFAULT_TAPEDEV
-#undef  DEFAULT_UNCOMPRESS
-#define DEFAULT_TARLIST    "tar tvf -"
-#define DEFAULT_TAREXPAND  "tar xOPf -"
-#define DEFAULT_HEXDUMP    "hexdump"
-#define DEFAULT_PAGER      "less"
-#define DEFAULT_LHALIST    "lharc v"
-#define DEFAULT_LHAEXPAND  "lharc p"
-#define DEFAULT_TAPEDEV    "/dev/rmt0"
-#define DEFAULT_UNCOMPRESS "gunzip"
-#endif /* linux */
-
-#ifdef __GNU__
-#undef  DEFAULT_TARLIST
-#undef  DEFAULT_TAREXPAND
-#undef  DEFAULT_HEXDUMP
-#undef  DEFAULT_PAGER
-#undef  DEFAULT_LHALIST
-#undef  DEFAULT_LHAEXPAND
-#undef  DEFAULT_TAPEDEV
-#undef  DEFAULT_UNCOMPRESS
-#define DEFAULT_TARLIST    "tar tvf -"
-#define DEFAULT_TAREXPAND  "tar xOPf -"
-#define DEFAULT_HEXDUMP    "hexdump"
-#define DEFAULT_PAGER      "less"
-#define DEFAULT_LHALIST    "lharc v"
-#define DEFAULT_LHAEXPAND  "lharc p"
-#define DEFAULT_TAPEDEV    "/dev/rmt0"
-#define DEFAULT_UNCOMPRESS "gunzip"
-#endif /* __GNU__ */
-
-
-#ifdef __NeXT__
-/* fifi's NeXT! */
-# undef DEFAULT_TARLIST
-# undef DEFAULT_TAREXPAND
-# undef DEFAULT_HEXDUMP
-# undef DEFAULT_PAGER
-# define DEFAULT_TARLIST    "gtar tvf -"
-# define DEFAULT_TAREXPAND  "gtar xOPf -"
-# define DEFAULT_HEXDUMP    "hd"
-# define DEFAULT_PAGER      "less"
-#endif /* __NeXT__ */
-
-#if defined(__OpenBSD__) || defined(__NetBSD__) ||  defined( __FreeBSD__) || defined(__NetBSD__)
-#undef DEFAULT_TARLIST
-#undef DEFAULT_TAREXPAND
-#undef DEFAULT_TAPEDEV
-#define DEFAULT_TARLIST    "tar tvf -"
-#define DEFAULT_TAREXPAND  "tar xOPf -"
-#define DEFAULT_TAPEDEV    "/dev/rst0"
-#endif /* __FreeBSD__ */
-
+/* Removed all specific OS #ifdef blocks for SGI, linux, __GNU__, __NeXT__, __OpenBSD__, __FreeBSD__, __NetBSD__, __DJGPP__ */

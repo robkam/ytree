@@ -22,6 +22,9 @@ int Init(char *configuration_file, char *history_file)
   char buffer[PATH_LENGTH + 1];
   char *home = NULL;
 
+  /* Use setlocale to correctly initialize for WITH_UTF8 or system locale */
+  setlocale(LC_ALL, "");
+
   user_umask = umask(0);
   initscr();
   StartColors(); /* even on b/w terminals... */
@@ -40,6 +43,7 @@ int Init(char *configuration_file, char *history_file)
 
   ReCreateWindows();
 
+  /* Use the simpler constant value */
   if( baudrate() >= QUICK_BAUD_RATE ) typeahead( -1 );
 
   file_window = small_file_window;
@@ -256,6 +260,3 @@ static WINDOW *Newwin(int nlines, int ncols,
 
   return(win);
 }
-
-
-

@@ -8,18 +8,20 @@
 #include "ytree.h"
 
 
+/* Forward declaration for internal use */
+extern struct itimerval value, ovalue; 
 
 
 int SystemCall(char *command_line)
 {
   int result;
 
-#ifndef XCURSES
-  endwin();
-#endif
+  endwin(); /* Ensure terminal state is reset before external command */
   result = SilentSystemCall( command_line );
   
   (void) GetAvailBytes( &statistic.disk_space );
+  /* Full screen redraw to fully restore the curses UI */
+  clearok(stdscr, TRUE);
   refresh();
   return( result );
 }
@@ -29,20 +31,25 @@ int QuerySystemCall(char *command_line)
 {
   int result;
 
-#ifndef XCURSES
-  endwin();
-#endif
-  result = SilentSystemCall( command_line );
-  HitReturnToContinue();
-  (void) GetAvailBytes( &statistic.disk_space );
+  endwin(); /* 1. Save state / Exit curses mode */
+  
+  /* 2. Execute command (runs outside curses) */
+  result = SilentSystemCallEx( command_line, FALSE ); 
+  
+  /* The external command has finished. We are still in the raw terminal. */
+
+  HitReturnToContinue(); /* 3. Print message and wait for key in raw terminal */
+  
+  /* 4. Aggressive redraw/refresh to restore the curses UI completely */
+  clearok(stdscr, TRUE);
   refresh();
+  
+  (void) GetAvailBytes( &statistic.disk_space );
 
   return( result );
 }
 
 
-
-extern struct itimerval value, ovalue;
 
 int SilentSystemCall(char *command_line)
 {
@@ -52,44 +59,21 @@ int SilentSystemCall(char *command_line)
 int SilentSystemCallEx(char *command_line, BOOL enable_clock)
 {
   int result;
-#ifdef XCURSES
-  char *xterm=NULL;
-#endif
 
   /* Hier ist die einzige Stelle, in der Kommandos aufgerufen werden! */
 
-#if defined( __NeXT__ )
-  nl();
-#endif /* linux */
+  SuspendClock();
 
-    SuspendClock();
-
-#ifdef XCURSES
-  if( ( xterm = malloc( strlen( command_line ) + 10 ) ) == NULL ) {
-    ERROR_MSG( "Malloc Failed*ABORT" );
-    exit( 1 );
-  }
-  sprintf(xterm, "xterm -e %s &", command_line);
-  result = system( xterm );
-  free(xterm);
-#else
   result = system( command_line );
-#endif
 
-#ifndef XCURSES
-  leaveok(stdscr, TRUE);
-  curs_set(0);
-#if defined( __NeXT__ )
-  cbreak();
-  nonl();
-  noecho();
-  clearok( stdscr, TRUE );
-#endif /* linux */ 
-#endif /* XCURSES */
+  /* Restore terminal settings. If enable_clock is TRUE, InitClock will
+     implicitly call refresh() and restore the curses display later.
+     If enable_clock is FALSE, the caller (QuerySystemCall) is responsible
+     for the display/pause. */
+
   if(enable_clock)
-    InitClock();
+    InitClock(); /* Re-initializes timer AND calls refresh/restores curses mode */
+    
   (void) GetAvailBytes( &statistic.disk_space );
   return( result ); 
 }
-
-

@@ -8,7 +8,6 @@
 #include "ytree.h"
 
 
-
 static char buffer[PATH_LENGTH+1];
 static char path[PATH_LENGTH+1];
 
@@ -20,9 +19,7 @@ int main(int argc, char **argv)
   char *hist;
   char *conf;
 
-#if (!defined(sun) && !defined(__DJGPP__))
-  setlocale(LC_ALL, "");
-#endif
+  /* setlocale is now handled in Init */
 
 
   hist = NULL;
@@ -105,5 +102,3 @@ int main(int argc, char **argv)
     if( HandleDirWindow(statistic.tree) == 'q' ) Quit();
   }
 }
-
-

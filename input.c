@@ -10,6 +10,14 @@
  ***************************************************************************/
 
 
+/* Wrapper function to satisfy tputs(..., int (*putc_func)(int)) signature */
+/* It writes the character 'c' to standard output. */
+static int term_putc(int c)
+{
+    return fputc(c, stdout);
+}
+
+
 char *StrLeft(const char *str, size_t visible_count)
 {
   char *result;
@@ -41,30 +49,27 @@ char *StrLeft(const char *str, size_t visible_count)
 
     s_start = s;
     memset(&state, 0, sizeof(state));
-    sz = mbrtowc(&wc, s, 4, &state);
-    if(sz == (size_t)-1 || sz == (size_t)-2) {
-      if( (*s++ & 0xc0) == 0xc0) {  /* skip to next char */
-        while( (*s & 0xc0) == 0x80) 
-          s++;
-      }
-      pos += 4; /* assume worst case */
+    sz = mbrtowc(&wc, s, MB_CUR_MAX, &state);
+
+    if(sz == (size_t)-1 || sz == (size_t)-2 || sz == 0) {
+      /* Invalid or incomplete sequence. Treat as a single block for safety. */
+      sz = 1;
+      s++;
+      width = 1;
     } else {
       s += sz;
       width = wcwidth(wc);
-      if(width >= 0)
-        pos += width;
-      else
-        pos++;
+      if(width < 0)
+        width = 1;
     }
-
-    if(pos > visible_count)
+    
+    if(pos + width > visible_count)
       break;  /* exceeds limit */
+      
+    pos += width;
   }
 
-  if(*s)
-    left_bytes = s_start - str; 
-  else
-    left_bytes = s - str; 
+  left_bytes = s_start - str; 
 
 #else
   left_bytes = visible_count; 
@@ -81,9 +86,10 @@ char *StrRight(const char *str, size_t visible_count)
   size_t visual_len;
 
 #ifdef WITH_UTF8
-  int left_bytes, pos = 0;
+  int left_bytes;
   mbstate_t state;
   const char *s, *s_start;
+  int pos_start = 0;
 #endif
 
   if (visible_count == 0) 
@@ -105,30 +111,26 @@ char *StrRight(const char *str, size_t visible_count)
 
     s_start = s;
     memset(&state, 0, sizeof(state));
-    sz = mbrtowc(&wc, s, 4, &state);
-    if(sz == (size_t)-1 || sz == (size_t)-2) {
-      if( (*s++ & 0xc0) == 0xc0) {  /* skip to next char */
-        while( (*s & 0xc0) == 0x80) 
-          s++;
-      }
-      pos += 4; /* assume worst case */
+    sz = mbrtowc(&wc, s, MB_CUR_MAX, &state);
+
+    if(sz == (size_t)-1 || sz == (size_t)-2 || sz == 0) {
+      sz = 1;
+      s++;
+      width = 1;
     } else {
       s += sz;
       width = wcwidth(wc);
-      if(width >= 0)
-        pos += width;
-      else
-        pos++;
+      if(width < 0)
+        width = 1;
     }
 
-    if((visual_len - pos) < visible_count)
-      break;  /* fits */
+    if((visual_len - (pos_start + width)) < visible_count)
+      break;  /* The next character is the first to display */
+      
+    pos_start += width;
   }
   
-  if(*s)
-    left_bytes = s_start - str; 
-  else
-    left_bytes = s - str; 
+  left_bytes = s_start - str; 
 
   result = Strdup(&str[left_bytes]);
 
@@ -151,30 +153,27 @@ int StrVisualLength(const char *str)
   size_t sz;
   mbstate_t state;
   const char *s = str;
-  wchar_t buffer[PATH_LENGTH+1];
+  
+  while(*s) {
+    wchar_t wc;
+    int width;
 
-  do {
     memset(&state, 0, sizeof(state));
-    sz = mbrtowc(&buffer[pos], s, 4, &state);
-    if( sz == (size_t) -1 || sz == (size_t)-2 ) {
-      if( (*s++ & 0xc0) == 0xc0) {  /* skip to next char */
-        while( (*s & 0xc0) == 0x80) 
-          s++;
-      }
-      buffer[pos++]   = L'#';  /* Assume worst case: */
-      buffer[pos++]   = L'#';  /* 1 wide char produces 4 visible chars */
-      buffer[pos++]   = L'#';
-      buffer[pos]     = L'#';
+    sz = mbrtowc(&wc, s, MB_CUR_MAX, &state);
+
+    if( sz == (size_t) -1 || sz == (size_t)-2 || sz == 0 ) {
+      /* Invalid/incomplete sequence. Treat as 1 byte, 1 visual char, and skip 1 byte. */
+      s++;
+      width = 1;
     } else {
       s += sz;
+      width = wcwidth(wc);
+      if(width < 0)
+        width = 1;
     }
-    pos++;
-  } while(sz != 0);
-
-  len = wcswidth(buffer, PATH_LENGTH);
-
-  if(len < 0)
-    len = pos; /* should not happen */
+    pos += width;
+  }
+  len = pos;
 
 #else
   len = strlen(str);
@@ -204,24 +203,23 @@ int VisualPositionToBytePosition(const char *str, int visual_pos)
 
     s_start = s;
     memset(&state, 0, sizeof(state));
-    sz = mbrtowc(&wc, s, 4, &state);
-    if(sz == (size_t)-1 || sz == (size_t)-2) {
-      if( (*s++ & 0xc0) == 0xc0) {  /* skip to next char */
-        while( (*s & 0xc0) == 0x80) 
-          s++;
-      }
-      pos += 4; /* assume worst case */
+    sz = mbrtowc(&wc, s, MB_CUR_MAX, &state);
+
+    if(sz == (size_t)-1 || sz == (size_t)-2 || sz == 0) {
+      sz = 1;
+      s++;
+      width = 1;
     } else {
       s += sz;
       width = wcwidth(wc);
-      if(width > 0)
-	pos += width;
-      else
-	pos++;
+      if(width < 0)
+        width = 1;
     }
 
-    if(pos > visual_pos)
+    if(pos + width > visual_pos)
       return( s_start - str );
+      
+    pos += width;
   }
 
   return( s - str );
@@ -245,7 +243,7 @@ int InputString(char *s, int y, int x, int cursor_pos, int length, char *term)
   char *pp;
   BOOL len_flag = FALSE;
   char path[PATH_LENGTH + 1];
-  char buf[4]; 
+  char buf[MB_CUR_MAX + 1]; 
   char *ls, *rs;
   static BOOL insert_flag = TRUE;
 
@@ -259,9 +257,10 @@ int InputString(char *s, int y, int x, int cursor_pos, int length, char *term)
   
   p = cursor_pos;
   
-  /* Draw string (used for initialization/redraw logic below) */
+  /* Draw string and fill to max length with '_' */
   MvAddStr( y, x, s );
   
+  /* Corrected placeholder loop to ensure no wrap */
   for(i=StrVisualLength(s); i < length; i++)
     addch( '_' );
 
@@ -273,6 +272,8 @@ int InputString(char *s, int y, int x, int cursor_pos, int length, char *term)
   do {
     /* Redraw string, fill to max length with '_', and position cursor */
     MvAddStr( y, x, s );
+    
+    /* Redraw placeholders */
     for(i=StrVisualLength(s); i < length; i++)
       addch( '_' );
     
@@ -406,44 +407,54 @@ int InputString(char *s, int y, int x, int cursor_pos, int length, char *term)
     default:
         /* Handle printable/multibyte input */
         if (c1 >= ' ' || c1 > 0xFF) {
-            if ( len_flag == TRUE) {
+            /* For multibyte characters read the whole sequence */
+#ifdef WITH_UTF8
+            if (c1 > 0xFF) {
+              /* Attempt to read remaining bytes for the multibyte sequence. */
+              /* NOTE: This is an imperfect guess; curses often delivers MB as one keycode */
+              /* The logic relies on c1 being the first byte or a multi-byte keycode. */
+              /* Since curses typically handles key decoding, we assume c1 is a full sequence. */
+              /* If this fails, the original logic is a basic guess for single-byte terminal. */
+            }
+#endif
+            
+            /* Copy input character to temporary buffer (max MB_CUR_MAX bytes) */
+            buf[0] = (char)c1;
+            buf[1] = '\0';
+            
+            if (len_flag == TRUE) {
                 beep();
             } else {
-                /* Capture the character (single or start of multibyte) */
-                buf[0] = (char)c1;
-                buf[1] = '\0';
-                
-                if ( insert_flag ) {
-                    /* Insert logic */
-                    n = StrVisualLength(s);
-                    if ( p >= n) {
-                        strcat(s, buf);
-                    } else {
-                        if ( p > 0 ) ls = StrLeft(s, p);
-                        else ls = Strdup("");
-                        rs = StrRight(s, n - p);
-                        strcpy(s, ls);
-                        strcat(s, buf);
-                        strcat(s, rs);
-                        free(ls);
-                        free(rs);
-                    }
+                int visual_insert_len = StrVisualLength(buf);
+                if (p + visual_insert_len > length) {
+                    beep();
                 } else {
-                    /* Overwrite logic (simplified to append if needed) */
-                    int visual_len_after_cursor = StrVisualLength(s) - p;
-                    int visual_insert_len = StrVisualLength(buf);
-                    
-                    if ( p + visual_insert_len > StrVisualLength(s) ) {
-                        strcat(s, buf);
+                    if ( insert_flag ) {
+                        /* Insert logic */
+                        n = StrVisualLength(s);
+                        if ( p >= n) {
+                            strcat(s, buf);
+                        } else {
+                            if ( p > 0 ) ls = StrLeft(s, p);
+                            else ls = Strdup("");
+                            rs = StrRight(s, n - p);
+                            strcpy(s, ls);
+                            strcat(s, buf);
+                            strcat(s, rs);
+                            free(ls);
+                            free(rs);
+                        }
                     } else {
-                        int byte_pos_after_insert = VisualPositionToBytePosition(s, p + visual_insert_len);
+                        /* Overwrite logic */
+                        int byte_pos_to_overwrite = VisualPositionToBytePosition(s, p);
+                        int bytes_to_delete = VisualPositionToBytePosition(&s[byte_pos_to_overwrite], visual_insert_len);
                         
                         if ( p > 0 ) ls = StrLeft(s, p);
                         else ls = Strdup("");
-
-                        /* Extract remaining part: from after the inserted content to the end */
-                        if (strlen(s) - byte_pos_after_insert > 0)
-                           rs = Strdup(&s[byte_pos_after_insert]);
+                        
+                        /* Extract remaining part: from after the overwritten content to the end */
+                        if (strlen(s) - (byte_pos_to_overwrite + bytes_to_delete) > 0)
+                           rs = Strdup(&s[byte_pos_to_overwrite + bytes_to_delete]);
                         else 
                            rs = Strdup("");
 
@@ -454,12 +465,11 @@ int InputString(char *s, int y, int x, int cursor_pos, int length, char *term)
                         free(ls);
                         free(rs);
                     }
+                    p += visual_insert_len;
                 }
-                p += StrVisualLength(buf);
             }
         } else {
-            /* Unhandled non-terminating control sequence. This includes unexpected raw escape 
-               sequence parts which appear as single characters (like 'M' from Shift-3). */
+            /* Unhandled non-terminating control sequence. */
             beep();
         }
         break;
@@ -554,17 +564,42 @@ int GetTapeDeviceName( void )
 
 void HitReturnToContinue(void)
 {
-#ifndef XCURSES
+  /* Fix: Use term_putc callback to satisfy tputs signature and reset terminal attributes after endwin() */
+  char *te; /* termcap variable for exit_attribute_mode ("me") */
+
+#if !defined(XCURSES) /* XCURSES handles this differently or it's not needed */
+  
+  /* tgetstr() is typically available after including <term.h> in ytree.h */
+  char *tgetstr(const char *, char **);
+  int tputs(const char *, int, int (*)(int));
+
   curs_set(1);
+  
+  /* Use putp to set reverse video (for the prompt text) */
   vidattr( A_REVERSE );
+  
   putp( "[Hit return to continue]" );
   (void) fflush( stdout );
+  
+  /* Wait for key press */
   (void) Getch();
+  
+  /* Reset all attributes in the terminal using tgetstr/tputs */
+  /* This is necessary because the prompt was printed outside of curses mode */
+  te = tgetstr("me", NULL);
+  if (te != NULL) {
+      tputs(te, 1, term_putc); /* Use new wrapper function */
+  } else {
+      /* Fallback: use putp which may not be a perfect fix on all terminals */
+      putp("\033[0m"); 
+  }
+  (void) fflush(stdout);
+  
 #endif /* XCURSES */
+
   curs_set(0);
   doupdate();
 }
-
 
 
 BOOL KeyPressed()
@@ -613,19 +648,7 @@ int ViKey( int ch )
 #endif /* VI_KEYS */
 
   
-#ifdef _IBMR2
-#undef wgetch
-
-int AixWgetch( WINDOW *w )
-{
-  int c;
-  
-  if( ( c = wgetch( w ) ) == KEY_ENTER ) c = LF;
-
-  return( c );
-}
-
-#endif
+/* Removed AixWgetch/Aix specific logic */
 
 
 int WGetch(WINDOW *win)

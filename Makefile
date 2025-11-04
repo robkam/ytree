@@ -20,179 +20,24 @@ MANDIR      = $(DESTDIR)/share/man/man1
 MANESDIR    = $(DESTDIR)/share/man/es/man1
 
 
-# Uncomment the lines for your system (default is linux)
-
-###########################
-# LINUX (tested with ncurses 6)
-###########################
+# Default configuration for Linux (WSL/Ubuntu) with ncurses 6
 COLOR       = -DCOLOR_SUPPORT 
 #CLOCK	    = -DCLOCK_SUPPORT # Experimental!
 READLINE    = -DREADLINE_SUPPORT
+# Use -std=c99 or -std=gnu99 for modernization. -D_GNU_SOURCE is kept for glibc extensions.
 CFLAGS      += -D_GNU_SOURCE $(COLOR) $(CLOCK) $(READLINE) $(ADD_CFLAGS)
 LDFLAGS     += -lncurses -ltinfo -lreadline
 
-###########################
-# LINUX with Wide character support (tested with ncurses 6)
-# Requires libncursesw!
-###########################
-#COLOR       = -DCOLOR_SUPPORT 
-##CLOCK	    = -DCLOCK_SUPPORT # Experimental!
-#READLINE    = -DREADLINE_SUPPORT
-#CFLAGS      = -D_GNU_SOURCE -DWITH_UTF8 $(ADD_CFLAGS) $(COLOR) $(CLOCK) $(READLINE)
-#LDFLAGS     = -lncursesw -ltinfo -lreadline
 
-###########################
-# LINUX without libreadline (tested with ncurses 6)
-###########################
-#COLOR       = -DCOLOR_SUPPORT 
-#CLOCK	     = -DCLOCK_SUPPORT # Experimental!
-#CFLAGS      = $(ADD_CFLAGS) $(COLOR) $(CLOCK)
-#LDFLAGS     = -lncurses -ltinfo
+# For systems requiring ncursesw (wide character support) use:
+# COLOR       = -DCOLOR_SUPPORT 
+# READLINE    = -DREADLINE_SUPPORT
+# CFLAGS      = -D_GNU_SOURCE -DWITH_UTF8 $(ADD_CFLAGS) $(COLOR) $(CLOCK) $(READLINE)
+# LDFLAGS     = -lncursesw -ltinfo -lreadline
 
-###########################
-# LINUX (X11 using PDCurses) thanks to  Mark Hessling
-# see http://www.lightlink.com/hessling/
-###########################
-#COLOR       = -DCOLOR_SUPPORT -DXCURSES
-#CLOCK       = -DCLOCK_SUPPORT # Experimental!
-#CFLAGS      = $(ADD_CFLAGS) $(COLOR) $(CLOCK)
-#LDFLAGS     = -lXCurses -L/usr/X11R6/lib -lXaw -lXmu -lXt -lX11 -lSM -lICE -lXext
-
-###########################
-# The Hurd (GNU) (tested with ncurses 5.0)
-###########################
-#COLOR       = -DCOLOR_SUPPORT
-##CLOCK      = -DCLOCK_SUPPORT # Experimental!
-#CFLAGS      = $(ADD_CFLAGS) $(COLOR) $(CLOCK)
-#LDFLAGS     = -lncurses
-
-###########################
-# OpenBSD / NetBSD
-###########################
-#COLOR       = -DCOLOR_SUPPORT 
-##CLOCK	     = -DCLOCK_SUPPORT # Experimental!
-#READLINE    = -DREADLINE_SUPPORT
-#CFLAGS      = $(ADD_CFLAGS) $(COLOR) $(CLOCK)
-#LDFLAGS     = -lcurses -lcompat -ledit
-#MANDIR      = /usr/share/man/man1
-#BINDIR      = /usr/local/bin
-
-
-###########################
-# FreeBSD (Thanks to Peter Brevik)
-###########################
-#CFLAGS      = -DCOLOR_SUPPORT -DNCURSES
-#LDFLAGS     = -lncurses -lcompat
-
-###########################
-# MAC OS X
-###########################
-#CFLAGS      = -DCOLOR_SUPPORT -DNCURSES
-#LDFLAGS     = -lncurses 
-
-###########################
-# DOS/Windows with DJGPP
-###########################
-#CC          = gcc
-#CFLAGS      = $(ADD_CFLAGS) $(COLOR)
-#LDFLAGS     = -lpdcurses -lpanel -lreadline
-
-###########################
-# NeXT (Thanks to fifi)
-###########################
-#CFLAGS     = -DTERMCAP $(ADD_CFLAGS)
-#LDFLAGS    = -lcurses -ltermcap
-
-############################
-# UNIX SVR3 (or SCO3.2v4.2)
-############################
-#CFLAGS     = -DSVR3 $(ADD_CFLAGS)
-#LDFLAGS    = -lcurses -lPW # -lc_s
-
-############################
-# SCO OpenServer "SCO_SV s90909 3.2 5.0.5 i386" (Thanks to BKS)
-############################
-#CFLAGS     = -DSVR3 $(ADD_CFLAGS) $(COLOR) $(CLOCK) -I/usr/local/bks-V3_SCO/ncurses-5.0-elf/include
-#COLOR      = -DCOLOR_SUPPORT
-#LDFLAGS    = -lncurses -L/usr/local/bks-V3_SCO/ncurses-5.0-elf/lib -belf
-
-###########################
-# Interactive
-###########################
-#CFLAGS     = -DSVR3 -Disc386 $(ADD_CFLAGS)
-#LDFLAGS    = -lcurses -lPW
-
-###########################
-# UNIX SVR4
-###########################
-#CFLAGS     = -DSVR4 $(ADD_CFLAGS)
-#LDFLAGS    = -lcurses -lgen
-
-###########################
-# OSF1
-###########################
-#CFLAGS     = -DOSF1 $(ADD_CFLAGS)
-#LDFLAGS    = -lcurses
-
-###########################
-# HPUX
-###########################
-#CFLAGS     = -Dhpux $(ADD_CFLAGS)
-#LDFLAGS    = -lcurses  -lc -lPW
-#CC	    = cc -Ae
-
-###########################
-# HPUX-10.x
-###########################
-#CFLAGS     = -Dhpux $(ADD_CFLAGS)
-#LDFLAGS    = -lcur_colr  -lc -lPW
-#CC	    = cc -Ae
-
-###########################
-# SGI IRIX Rel. 5.2
-###########################
-#CFLAGS     = -Dsgi $(ADD_CFLAGS)
-#LDFLAGS    = -lcurses -lgen
-
-###########################
-# Solaris 2
-###########################
-#CFLAGS     = $(ADD_CFLAGS) -DSVR4
-#LDFLAGS    = -lcurses 
-
-###########################
-# SUN
-###########################
-#CFLAGS     = $(ADD_CFLAGS)
-#CC	    = acc -Xa -strconst -sys5
-#LDFLAGS    = -lcurses 
-
-###########################
-# SUNOS 5.6 (gcc) Thanks to Fabiano Silos Reis
-###########################
-#CFLAGS     = $(ADD_CFLAGS) -Dsun56
-#CC	    = gcc -I/usr/include -L/usr/lib
-#LDFLAGS    = -lcurses 
-
-###########################
-# IBM RS/6000 (Thanks to jum)
-###########################
-#CFLAGS     = $(ADD_CFLAGS)
-#LDFLAGS    = -lcurses -lPW
-
-###########################
-# ULTRIX V4.3
-###########################
-#CFLAGS     = -Dultrix $(ADD_CFLAGS)
-#LDFLAGS    = -lcursesX
-
-###########################
-# QNX (tested with ncurses 4.2)
-###########################
-#COLOR       = -DCOLOR_SUPPORT
-#CLOCK	    = -DCLOCK_SUPPORT # Experimental!
-#CFLAGS      = $(ADD_CFLAGS) $(COLOR) $(CLOCK) -DHAS_REGCOMP
-#LDFLAGS     = -L/home/mhes/lib -lncurses
+# For simpler POSIX/BSD environments:
+# CFLAGS      = $(ADD_CFLAGS) $(COLOR) $(CLOCK)
+# LDFLAGS     = -lcurses
 
 
 ##############################################################################
@@ -206,7 +51,6 @@ OBJS	= archive.o archive_reader.o chgrp.o chmod.o chown.o clock.o color.o copy.o
 	  print.o profile.o quit.o readtree.o rename.o rmdir.o  \
 	  sort.o stat.o system.o tilde.o usermode.o util.o view.o 
 
-# Files 7z.o, arc.o, lha.o, rar.o, rpm.o, tar.o, zip.o, zoo.o removed.
 # mktime.o and termcap.o removed from OBJS list
 
 $(MAIN):	$(OBJS)

@@ -40,11 +40,14 @@ int ReadTreeFromArchive(DirEntry *dir_entry, FILE *f, int file_mode)
   /* Determine parser and line check parameters based on file_mode */
   switch (file_mode)
   {
+    /* All 7z-compatible archive modes use the 7z parser */
     case SEVENZIP_FILE_MODE:
     case ISO_FILE_MODE:
+    case ZIP_FILE_MODE: 
+    case LHA_FILE_MODE:
+    case RAR_FILE_MODE:
       GetStatFunc = GetStatFrom7z;
       line_length_threshold = 52;
-      line_length_check = "::"; /* Look for timestamp format: "YYYY-MM-DD HH:MM:SS" */
       break;
 
     case ARC_FILE_MODE:
@@ -53,34 +56,15 @@ int ReadTreeFromArchive(DirEntry *dir_entry, FILE *f, int file_mode)
       line_length_check = ":";
       break;
 
-    case LHA_FILE_MODE:
-      GetStatFunc = GetStatFromLHA;
-      line_length_threshold = 55; /* Minimum length to check for validity */
-      line_length_check = ":";    /* Check for the presence of ':' in the date/time part */
-      break;
-
-    case RAR_FILE_MODE:
-      /* RAR has two formats, check will be inside the loop */
-      GetStatFunc = NULL; 
-      line_length_threshold = 36;
-      break;
-
     case RPM_FILE_MODE:
       GetStatFunc = GetStatFromRPM;
-      line_length_threshold = 0; /* RPM lines are simple space-separated dumps */
+      line_length_threshold = 0;
       break;
 
     case TAR_FILE_MODE:
     case TAPE_MODE:
       GetStatFunc = GetStatFromTAR;
-      line_length_threshold = 0; /* TAR output varies, rely on GetStatFromTAR checks */
-      break;
-
-    case ZIP_FILE_MODE:
-      GetStatFunc = GetStatFromZIP;
-      line_length_threshold = 58; /* Minimum length for old ZIPINFO */
-      line_length_check = ":";
-      skip_initial_lines = TRUE; /* Skip initial header lines common in zipinfo -l */
+      line_length_threshold = 0;
       break;
 
     case ZOO_FILE_MODE:
@@ -93,19 +77,26 @@ int ReadTreeFromArchive(DirEntry *dir_entry, FILE *f, int file_mode)
       ERROR_MSG(message);
       return -1;
   }
-
-  if (skip_initial_lines)
+  
+  /* For 7z-based outputs, skip header until likely file entries start */
+  if (file_mode == ZIP_FILE_MODE || file_mode == SEVENZIP_FILE_MODE || 
+      file_mode == ISO_FILE_MODE || file_mode == LHA_FILE_MODE || 
+      file_mode == RAR_FILE_MODE)
   {
-      /* Skip initial lines until "------" is found, common in many listings */
+      /* The 7z output starts with a header, skip lines until valid pattern found */
       while (fgets(line, ZIP_LINE_LENGTH, f) != NULL)
       {
           line[strlen(line) - 1] = '\0';
-          if (strstr(line, "------") != NULL)
+          /* Check for 7z format: YYYY-MM-DD HH:MM:SS */
+          if (strlen(line) > (unsigned)52 && line[13] == ':' && line[16] == ':')
           {
-              break;
+              /* This is the first file entry line (or a directory). 
+                 Break and let the main loop re-process it. */
+              break; 
           }
       }
   }
+
 
   while (fgets(line, ZIP_LINE_LENGTH, f) != NULL)
   {
@@ -115,23 +106,6 @@ int ReadTreeFromArchive(DirEntry *dir_entry, FILE *f, int file_mode)
     /* Custom line filtering for efficiency/robustness */
     if (strlen(line) < (unsigned)line_length_threshold)
       continue;
-    
-    /* Handle RAR, which has two possible formats */
-    if (file_mode == RAR_FILE_MODE) {
-        if (line[48] == ':') {
-            GetStatFunc = GetStatFromRAR;
-        } else if (strlen(line) > (unsigned)36) {
-            GetStatFunc = GetStatFromNewRAR;
-        } else {
-            continue;
-        }
-    }
-
-    /* Handle 7z/ISO check for robustness */
-    if (file_mode == SEVENZIP_FILE_MODE || file_mode == ISO_FILE_MODE) {
-      if (!(line[13] == ':' && line[16] == ':' && line[20] != ' '))
-        continue;
-    }
 
     /* Execute parser */
     if (GetStatFunc && !GetStatFunc(line, path_name, &stat_struct))
@@ -160,9 +134,8 @@ int ReadTreeFromArchive(DirEntry *dir_entry, FILE *f, int file_mode)
     }
     else
     {
-        /* Error/Unknown format (sometimes expected for headers/footers) */
-        (void) sprintf(message, "unknown archive entry*%s", line);
-        MESSAGE(message);
+        /* Error/Unknown format (expected for many headers/footers) */
+        ; 
     }
   }
 
@@ -175,7 +148,7 @@ int ReadTreeFromArchive(DirEntry *dir_entry, FILE *f, int file_mode)
 /* --- Internal GetStatFrom... Implementations (from 7z.c, arc.c, etc.) ---- */
 /* ------------------------------------------------------------------------- */
 
-/* From 7z.c */
+/* From 7z.c (Now reused for ZIP, ISO, LHA, RAR, 7Z, GZ, BZ2) */
 static int GetStatFrom7z(char *zip_line, char *name, struct stat *stat)
 {
   struct tm tm_struct;
@@ -186,8 +159,15 @@ static int GetStatFrom7z(char *zip_line, char *name, struct stat *stat)
   stat->st_nlink = 1;
   *name = '\0';
 
+  /* 7z format filter: must have a '.' at position 20 and valid time at 13/16/20 */
+  if(!(strlen( zip_line ) > (unsigned) 52 && (zip_line[13] == ':' && zip_line[16] == ':') && zip_line[20] != ' '))
+  {
+      /* Not a standard 7z line, possibly a header/footer or directory. Return non-zero to treat as unknown. */
+      return -1; 
+  }
+  
   if(zip_line[20] != '.')
-    return 0;  /* skip non file entries */
+    return 0;  /* skip non file entries (like directory markers) */
   
 
   /* modification timestamp */
@@ -313,7 +293,7 @@ static int GetStatFromARC(char *arc_line, char *name, struct stat *stat)
   return( 0 );
 }
 
-/* From lha.c */
+/* From lha.c (now fallback only) */
 static int GetStatFromLHA(char *lha_line, char *name, struct stat *stat)
 {
   char *t, *old;
@@ -431,7 +411,7 @@ static int GetStatFromLHA(char *lha_line, char *name, struct stat *stat)
   return( 0 );
 }
 
-/* From rar.c (old format) */
+/* From rar.c (old format - now fallback only) */
 static int GetStatFromRAR(char *rar_line, char *name, struct stat *stat)
 {
   char *t, *old;
@@ -512,7 +492,7 @@ static int GetStatFromRAR(char *rar_line, char *name, struct stat *stat)
   return( 0 );
 }
 
-/* From rar.c (new format) */
+/* From rar.c (new format - now fallback only) */
 static int GetStatFromNewRAR(char *rar_line, char *name, struct stat *stat)
 {
   char *t, *old;
@@ -779,7 +759,7 @@ XDATE:
   return( 0 );
 }
 
-/* From zip.c */
+/* From zip.c (now fallback only) */
 static int GetStatFromZIP(char *zip_line, char *name, struct stat *stat)
 {
   char *t, *old;

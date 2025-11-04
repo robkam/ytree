@@ -12,69 +12,35 @@
 #include <ctype.h>
 #include <math.h>
 
-#if defined(__OpenBSD__) || defined(__NetBSD__) || defined(__FreeBSD__) || defined(__NetBSD__) || defined(__APPLE__) || defined(SVR4)
-#include <locale.h>
-#endif
+#include <locale.h> /* Required for modern POSIX (Linux/BSD/macOS) */
 
 #ifdef XCURSES
 #include <xcurses.h>
 #define HAVE_CURSES 1
 #endif
 
-#ifdef _IBMR2
-#define NLS
-#endif /* _IBMR2 */
-
-#ifdef ultrix
-#ifndef HAVE_CURSES
-#include <cursesX.h>
-#endif
-#else
-#ifdef __FreeBSD__
-#ifndef HAVE_CURSES
-#include <ncurses.h>
-#endif
-#else
-#ifndef HAVE_CURSES
+#if !defined(HAVE_CURSES)
 #include <curses.h>
+#include <term.h> /* ADDED: For tgetstr, tputs */
 #endif
-#endif /* __FreeBSD__ */
-#endif /* ultrix */
 
 #include <limits.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <time.h>
-#if defined(linux) || defined(__GNU__)
-#include <locale.h>
-#include <sys/wait.h>
-#include <sys/time.h>	/* needed vor RedHed5 (thanks to Robert Spier) */
-#endif
-
-
-#if __STDC__ || defined( _IBMR2 )
-#include <stdlib.h>
-#endif /* __STDC__ || _IBMR2 */
-
-#ifdef __NeXT__
-extern char *getcwd();
-#include <sys/dir.h>
-#define dirent direct
-#else
 #include <unistd.h>
 #include <dirent.h>
-#endif /* __NeXT__ */
-
 #include <errno.h>
 #include <fcntl.h>
 #include <grp.h>
-#ifndef __QNX__
-#include <memory.h>
-#endif
 #include <pwd.h>
 #include <setjmp.h>
 #include <signal.h>
 #include <string.h>
+#include <stdlib.h>
+
+#include <sys/wait.h> /* Standard POSIX for wait() */
+#include <sys/time.h> /* For setitimer (clock.c) */
 
 #ifdef WITH_UTF8
 #include <wchar.h>
@@ -86,25 +52,18 @@ extern char *getcwd();
 #define LONGLONG		long long
 #define HAS_LONGLONG		1
 
-/* Use standard POSIX statvfs/statfs headers and macro */
-/* Rely on _FILE_OFFSET_BITS=64 to handle f_bsize/f_frsize in the struct */
-#if !defined(WIN32) && !defined(__DJGPP__) && !defined(QNX)
-#if defined(__sun__) || defined(__hpux) || defined(_AIX) || defined(__sgi) || defined(__linux__) || defined(__GNU__) || defined(__NetBSD__) || defined(__OpenBSD__) || defined(__FreeBSD__) || defined(__APPLE__) || defined(SVR4) || defined(OSF1) || defined(_AIX41) || defined(SVR3) /* Keep SVR3/SVR4 statfs for compatibility reasons only */
+/* Use standard POSIX statvfs headers and macro (most modern systems) */
+#if !defined(WIN32) && !defined(__DJGPP__)
 #include <sys/statvfs.h>
-#include <sys/statfs.h>
+#include <sys/statfs.h> /* Keep for possible fallback structures */
 
-/* Use statvfs as default, as it's more comprehensive and available on most modern systems */
+/* Use statvfs as default, as it's the modern standard */
 #define STATFS(a, b, c, d )     statvfs( a, b )
-#else
-/* Fallback to original statfs struct naming for other UNIX-like systems */
-#include <sys/statfs.h>
-#define STATFS(a, b, c, d )     statfs( a, b, c, d )
-#endif
-#endif /* !WIN32 && !__DJGPP__ && !QNX */
+#endif /* !WIN32 && !__DJGPP__ */
 
 
 /* Prefer lstat() for determining file type (e.g., links), otherwise fallback to stat() */
-#if defined(S_IFLNK) && !defined(__QNX__) && !defined(SVR3)
+#if defined(S_IFLNK)
 #define STAT_(a, b) lstat(a, b)
 #else
 #define STAT_(a, b) stat(a, b)
@@ -118,7 +77,7 @@ extern char *getcwd();
 
 
 #ifdef WIN32
-
+/* Windows/Cygwin/WSL compatibility layer simplifications */
 #define  S_IREAD         S_IRUSR
 #define  S_IWRITE        S_IWUSR
 #define  S_IEXEC         S_IXUSR
@@ -127,65 +86,20 @@ extern char *getcwd();
 #define  pclose          _pclose
 #define  sys_errlist     _sys_errlist
 
-#endif /* WIN32 */
-
-#ifdef __NeXT__
-
-#define  S_IRUSR        S_IREAD
-#define  S_IWUSR        S_IWRITE
-#define  S_IXUSR        S_IEXEC
-#define  S_IRGRP        (S_IREAD >> 3)
-#define  S_IWGRP        (S_IWRITE >> 3)
-#define  S_IXGRP        (S_IEXEC >> 3)
-#define  S_IROTH        (S_IREAD >> 6)
-#define  S_IWOTH        (S_IWRITE >> 6)
-#define  S_IXOTH        (S_IEXEC >> 6)
-#define  S_IRWXO        (S_IROTH|S_IWOTH|S_IXOTH)
-#define  S_IRWXG        (S_IRGRP|S_IWGRP|S_IXGRP)
-#define  S_IRWXU        (S_IRUSR|S_IWUSR|S_IXUSR)
-
-#endif /* __NeXT__ */
-
-
-#if defined(linux) || defined (__GNU__)
-#define HAVE_RENAME
-#endif /* linux || __GNU__ */
-
-
-
-#ifdef WIN32
-
-/* Diese Funktionen koennen direkt umgesetzt werden */
-/*--------------------------------------------------*/
-
+/* No need for termcap emulation/tricks on modern terminals */
 #define  echochar( ch )              { addch( ch ); refresh(); }
 #define  putp( str )                 puts( str )
-
-
-/* ... hier ist ein wenig mehr Arbeit noetig ... */
-/*-----------------------------------------------*/
-
 #define  vidattr( attr )
-
-
-/* ... und hier gibt's keine entsprechende Funktion. */
-/*---------------------------------------------------*/
-
 #define  typeahead( file )
 
 #endif /* WIN32 */
-
 
 
 #ifdef __DJGPP__
-
-/* DJGPP GNU DOS Compiler                           */
-/*--------------------------------------------------*/
-
+/* DJGPP GNU DOS Compiler compatibility layer simplifications */
 #define  putp( str )                 puts( str )
 #define  vidattr( attr )
 #define  typeahead( file )
-
 #endif /* __DJGPP__*/
 
 
@@ -193,12 +107,8 @@ extern char *getcwd();
 #define KEY_END   KEY_EOL
 #endif
 
-#if defined(_IBMR2) && !defined(_AIX41)
-#define echochar( c )  { addch( c ); refresh(); }
-#define wgetch( w )    AixWgetch( w )
-#endif
 
-
+/* Standard POSIX S_IS* macros. Keep fallbacks minimal. */
 #ifndef S_ISREG
 #define S_ISREG( mode )   (((mode) & S_IFMT) == S_IFREG)
 #endif /* S_ISREG */
@@ -236,6 +146,7 @@ extern char *getcwd();
 #endif /* S_ISSOCK */
 
 
+/* VI_KEYS definitions remain */
 #define VI_KEY_UP    'k'
 #define VI_KEY_DOWN  'j'
 #define VI_KEY_RIGHT 'l'
@@ -250,9 +161,8 @@ extern char *getcwd();
 #define DISPLAY_GROUP_NAME_MAX  12
 
 
-/* Sonderzeichen fuer Liniengrafik */
-/*---------------------------------*/
-
+/* Sonderzeichen fuer Liniengrafik (using standard ncurses ACS_ macros) */
+/* Keep these fallbacks as they are universally simple */
 #ifndef ACS_ULCORNER
 #define ACS_ULCORNER '+'
 #endif
@@ -379,7 +289,6 @@ extern char *getcwd();
 #define ERROR_MSG( msg )   Error( msg, __FILE__, __LINE__ ) 
 #define WARNING( msg )     Warning( msg ) 
 #define MESSAGE( msg )     Message( msg ) 
-#define NOTICE( msg )      Notice( msg ) 
 
 #define TAGGED_SYMBOL       '*'
 #define MAX_MODES            13
@@ -475,7 +384,6 @@ extern char *getcwd();
 			 }
 
 
-
 #define SORT_BY_NAME       1
 #define SORT_BY_MOD_TIME   2
 #define SORT_BY_CHG_TIME   3
@@ -505,7 +413,7 @@ extern char *getcwd();
 #define CHGTIME_VIEWNAME	"sct"
 
 
-#define BLKSIZ             512  /* Blockgroesse fuer SVR3 */
+#define BLKSIZ             512  /* Blockgroesse fuer SVR3 (REMOVED) */
 
 #define CLOCK_INTERVAL	   1
 
@@ -520,9 +428,9 @@ extern char *getcwd();
 #define ESC        27
 #define LOGIN_ESC  '.'
 
-#ifdef  sgi
-#define SGI_CR     0x157    /* Irix 3.2.2 special ? */
-#endif
+/* SGI_CR and QUICK_BAUD_RATE/ttydev removed */
+
+#define QUICK_BAUD_RATE      9600
 
 #define CR                     13
 
@@ -587,17 +495,9 @@ extern char *getcwd();
 #define MODE_5                 4
 
 
-#ifdef __NeXT__
-#include <sys/ttydev.h>
-#define QUICK_BAUD_RATE      B9600
-#else
-#define QUICK_BAUD_RATE      9600
-#endif /* __NeXT__ */
-
 #define ESCAPE               goto FNC_XIT
 
 #define PRINT(ch) (iscntrl(ch) && (((unsigned char)(ch)) < ' ')) ? (ACS_BLOCK) : ((unsigned char)(ch)) 
-/* #define PRINT(ch) (ch) */
 
 #ifdef COLOR_SUPPORT
 extern void StartColors(void);
@@ -786,11 +686,7 @@ extern char      *initial_directory;
 extern char 	 builtin_hexdump_cmd[];
 
 
-#if defined(ultrix)
-extern char *getenv(char *);
-#else
 extern char *getenv(const char *);
-#endif
 
 extern int  ytree(int argc, char *argv[]);
 extern void DisplayMenu(void);
@@ -805,21 +701,7 @@ extern void DisplayGlobalFileParameter(FileEntry *file_entry);
 extern void RefreshWindow(WINDOW *win);
 extern int  ReadTree(DirEntry *dir_entry, char *path, int depth);
 extern void UnReadTree(DirEntry *dir_entry);
-
-/* 
- * Replaced:
- * extern int ReadTreeFromTAR(DirEntry *dir_entry, FILE *f);
- * extern int ReadTreeFromRPM(DirEntry *dir_entry, FILE *f);
- * extern int ReadTreeFromZOO(DirEntry *dir_entry, FILE *f);
- * extern int ReadTreeFromZIP(DirEntry *dir_entry, FILE *f);
- * extern int ReadTreeFrom7z(DirEntry *dir_entry, FILE *f);
- * extern int ReadTreeFromLHA(DirEntry *dir_entry, FILE *f);
- * extern int ReadTreeFromARC(DirEntry *dir_entry, FILE *f);
- * extern int ReadTreeFromRAR(DirEntry *dir_entry, FILE *f);
- */
 extern int ReadTreeFromArchive(DirEntry *dir_entry, FILE *f, int file_mode);
-
-
 extern int  GetDiskParameter(char *path, 
 			     char *volume_name, 
 			     LONGLONG *avail_bytes,
@@ -938,7 +820,6 @@ extern int  GetTapeDeviceName(void);
 extern int  MakePath( DirEntry *tree, char *dir_path, DirEntry **dest_dir_entry );
 extern int  MakeDirEntry( DirEntry *father_dir_entry, char *dir_name );
 extern void NormPath( char *in_path, char *out_path );
-/* REMOVED: extern char *Strtok_r( char *str, char *delim, char **old ); */
 extern int  ReadProfile( char *filename );
 extern char *GetProfileValue( char *key );
 extern int  ScanSubTree( DirEntry *dir_entry );
@@ -962,7 +843,7 @@ extern int  MvAddStr(int y, int x, char *str);
 extern int  MvWAddStr(WINDOW *win, int y, int x, char *str);
 extern int  WAddStr(WINDOW *win, char *str);
 extern int  AddStr(char *str);
-extern void ClockHandler(int); /* UPDATED FROM: extern void ClockHandler(void); */
+extern void ClockHandler(int);
 extern int Strrcmp(char *s1, char* s2);
 extern char *Strdup(const char *s);
 extern char *GetExtViewer(char *filename);

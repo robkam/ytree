@@ -457,7 +457,7 @@ void MakeExtractCommandLine(char *command_line, char *path, char *file, char *cm
   }
   else if( compress_method == LHA_COMPRESS )
   {
-    /* xlharc p FILE ?? */
+    /* LHAEXPAND (now 7z) */
     /*------------------*/
 
     (void) sprintf( command_line, "%s '%s' '%s' %s", 
@@ -469,7 +469,7 @@ void MakeExtractCommandLine(char *command_line, char *path, char *file, char *cm
   }
   else if( compress_method == ZIP_COMPRESS )
   {
-    /* unzip -c FILE ?? */
+    /* ZIPEXPAND (now 7z) */
     /*------------------*/
 
     (void) sprintf( command_line, "%s '%s' '%s' %s", 
@@ -493,7 +493,7 @@ void MakeExtractCommandLine(char *command_line, char *path, char *file, char *cm
   }
   else if( compress_method == ISO_COMPRESS )
   {
-    /* 7z x FILE ?? */
+    /* ISOEXPAND (now 7z) */
     /*--------------*/
 
     (void) sprintf( command_line, "%s '%s' '%s' %s", 
@@ -541,7 +541,7 @@ void MakeExtractCommandLine(char *command_line, char *path, char *file, char *cm
   }
   else if( compress_method == RAR_COMPRESS )
   {
-    /* rar p FILE ?? */
+    /* RAREXPAND (now 7z) */
     /*---------------*/
 
     (void) sprintf( command_line, "%s '%s' '%s' %s", 
@@ -583,10 +583,10 @@ void MakeExtractCommandLine(char *command_line, char *path, char *file, char *cm
   }
   else if( compress_method == COMPRESS_COMPRESS )
   {
-    /* uncompress < TAR_FILE | gtar xOf - FILE ?? */
+    /* UNCOMPRESS < TAR_FILE | gtar xOf - FILE ?? (now 7z) */
     /*--------------------------------------------*/
 
-    (void) sprintf( command_line, "%s < %s | %s '%s' %s",
+    (void) sprintf( command_line, "%s < '%s' | %s '%s' %s",
 		    UNCOMPRESS, 
 		    path,
 		    TAREXPAND,
@@ -596,7 +596,7 @@ void MakeExtractCommandLine(char *command_line, char *path, char *file, char *cm
   }
   else if( compress_method == MULTIPLE_COMPRESS_COMPRESS )
   {
-    /* CAT TAR_FILEs | uncompress | gtar xOf - FILE ?? */
+    /* CAT TAR_FILEs | UNCOMPRESS | gtar xOf - FILE ?? (now 7z) */
     /*-------------------------------------------------*/
 
     (void) strncpy( cat_path, path, l - 2 );
@@ -613,7 +613,7 @@ void MakeExtractCommandLine(char *command_line, char *path, char *file, char *cm
   }
   else if( compress_method == GZIP_COMPRESS )
   {
-    /* gunzip < TAR_FILE | gtar xOf - FILE ?? */
+    /* GNUUNZIP < TAR_FILE | gtar xOf - FILE ?? (now 7z) */
     /*----------------------------------------*/
 
     (void) sprintf( command_line, "%s < '%s' | %s '%s' %s",
@@ -626,7 +626,7 @@ void MakeExtractCommandLine(char *command_line, char *path, char *file, char *cm
   }
   else if( compress_method == MULTIPLE_GZIP_COMPRESS )
   {
-    /* CAT TAR_FILEs | gunzip | gtar xOf - FILE ?? */
+    /* CAT TAR_FILEs | GNUUNZIP | gtar xOf - FILE ?? (now 7z) */
     /*---------------------------------------------*/
 
     (void) strncpy( cat_path, path, l - 2 );
@@ -643,7 +643,7 @@ void MakeExtractCommandLine(char *command_line, char *path, char *file, char *cm
   }
   else if( compress_method == BZIP_COMPRESS )
   {
-    /* bunzip2 < TAR_FILE | gtar xOf - FILE ?? */
+    /* BUNZIP < TAR_FILE | gtar xOf - FILE ?? (now 7z) */
     /*----------------------------------------*/
 
     (void) sprintf( command_line, "%s < '%s' | %s '%s' %s",
@@ -698,4 +698,3 @@ void MakeExtractCommandLine(char *command_line, char *path, char *file, char *cm
 #endif
 
 }
-

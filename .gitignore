@@ -19,6 +19,7 @@ coverage/
 *.gcov
 *.txt
 *.html
+*.url
 *.sh
 .history
 .ytree-hst

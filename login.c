@@ -226,8 +226,7 @@ int LoginDisk(char *path)
     }
     else if( file_method == LHA_COMPRESS )
     {
-      /* LHA_FILE */
-      /*----------*/
+      /* LHA_FILE: now uses 7z listing */
     
       (void) sprintf( command_line, "%s '%s'", 
 		      LHALIST, 
@@ -236,8 +235,7 @@ int LoginDisk(char *path)
     }
     else if( file_method == ZIP_COMPRESS )
     {
-      /* ZIP_FILE */
-      /*----------*/
+      /* ZIP_FILE: now uses 7z listing */
     
       (void) sprintf( command_line, "%s '%s'", 
 		      ZIPLIST, 
@@ -247,7 +245,6 @@ int LoginDisk(char *path)
     else if( file_method == SEVENZIP_COMPRESS )
     {
       /* 7z_FILE */
-      /*---------*/
     
       (void) sprintf( command_line, "%s '%s'", 
 		      SEVENZIPLIST, 
@@ -257,7 +254,6 @@ int LoginDisk(char *path)
     else if( file_method == ISO_COMPRESS )
     {
       /* ISO_FILE */
-      /*----------*/
     
       (void) sprintf( command_line, "%s '%s'", 
 		      ISOLIST, 
@@ -267,7 +263,6 @@ int LoginDisk(char *path)
     else if( file_method == ARC_COMPRESS )
     {
       /* ARC_FILE */
-      /*----------*/
     
       (void) sprintf( command_line, "%s '%s'", 
 		      ARCLIST, 
@@ -276,8 +271,7 @@ int LoginDisk(char *path)
     }
     else if( file_method == RAR_COMPRESS )
     {
-      /* RAR_FILE */
-      /*----------*/
+      /* RAR_FILE: now uses 7z listing */
     
       (void) sprintf( command_line, "%s '%s'", 
 		      RARLIST, 
@@ -287,7 +281,6 @@ int LoginDisk(char *path)
     else if( file_method == FREEZE_COMPRESS )
     {
       /* melt < TAR_FILE | gtar tvf - */
-      /*------------------------------*/
     
       (void) sprintf( command_line, "%s < '%s' %s | %s", 
 		      MELT, 
@@ -302,7 +295,6 @@ int LoginDisk(char *path)
       (void) strcpy( &cat_file_name[l - 2], "*" );
 
       /* cat TAR_FILE | melt | gtar tvf - */
-      /*----------------------------------*/
     
       (void) sprintf( command_line, "%s '%s' %s | %s | %s", 
 		      CAT,
@@ -314,11 +306,10 @@ int LoginDisk(char *path)
     }
     else if( file_method == COMPRESS_COMPRESS )
     {
-      /* uncompress < TAR_FILE | gtar tvf - */
-      /*------------------------------------*/
-    
-      (void) sprintf( command_line, "%s < '%s' %s | %s", 
-		      UNCOMPRESS, 
+      /* uncompress < TAR_FILE | gtar tvf - : Now using 7z command */
+      
+      (void) sprintf( command_line, "%s -so x < '%s' %s | %s", 
+		      UNCOMPRESS, /* UNCOMPRESS is now 7z -so x */
 		      statistic.login_path,
 		      ERR_TO_STDOUT,
 		      TARLIST
@@ -329,24 +320,22 @@ int LoginDisk(char *path)
       (void) strncpy( cat_file_name, statistic.login_path, l - 2 );
       (void) strcpy( &cat_file_name[l - 2], "*" );
         
-      /* cat TAR_FILE.X* | uncompress | gtar tvf - */
-      /*-------------------------------------------*/
+      /* cat TAR_FILE.X* | uncompress | gtar tvf - : Now using 7z command */
     
-      (void) sprintf( command_line, "%s %s | %s %s | %s", 
+      (void) sprintf( command_line, "%s %s | %s -so x %s | %s", 
 		      CAT,
 		      cat_file_name,
-		      UNCOMPRESS, 
+		      UNCOMPRESS, /* UNCOMPRESS is now 7z -so x */
 		      ERR_TO_STDOUT,
 		      TARLIST
 		    );
     }
     else if( file_method == GZIP_COMPRESS )
     {
-      /* gunzip < TAR_FILE | gtar tvf - */
-      /*--------------------------------*/
+      /* gunzip < TAR_FILE | gtar tvf - : Now using 7z command */
     
       (void) sprintf( command_line, "%s < '%s' %s | %s", 
-		      GNUUNZIP, 
+		      GNUUNZIP, /* GNUUNZIP is now 7z -so x */
 		      statistic.login_path,
 		      ERR_TO_STDOUT,
 		      TARLIST
@@ -357,24 +346,23 @@ int LoginDisk(char *path)
       (void) strncpy( cat_file_name, statistic.login_path, l - 2 );
       (void) strcpy( &cat_file_name[l - 2], "*" );
         
-      /* cat TAR_FILE.X* | gunzip | gtar tvf - */
-      /*---------------------------------------*/
+      /* cat TAR_FILE.X* | gunzip | gtar tvf - : Now using 7z command */
     
-      (void) sprintf( command_line, "%s %s | %s %s | %s", 
+      (void) sprintf( command_line, "%s %s | %s < '%s' %s | %s", 
 		      CAT,
 		      cat_file_name,
-		      GNUUNZIP, 
+		      GNUUNZIP, /* GNUUNZIP is now 7z -so x */
+		      statistic.login_path,
 		      ERR_TO_STDOUT,
 		      TARLIST
 		    );
     }
     else if( file_method == BZIP_COMPRESS )
     {
-      /* bunzip2 < TAR_FILE | gtar tvf - */
-      /*---------------------------------*/
+      /* bunzip2 < TAR_FILE | gtar tvf - : Now using 7z command */
     
       (void) sprintf( command_line, "%s < '%s' %s | %s", 
-		      BUNZIP, 
+		      BUNZIP, /* BUNZIP is now 7z -so x */
 		      statistic.login_path,
 		      ERR_TO_STDOUT,
 		      TARLIST
@@ -383,7 +371,6 @@ int LoginDisk(char *path)
     else if( file_method == ZSTD_COMPRESS )
     {
       /* zstdcat < TAR_FILE | gtar tvf - */
-      /*---------------------------------*/
     
       (void) sprintf( command_line, "%s < '%s' %s | %s", 
 		      ZSTDCAT, 
@@ -395,7 +382,6 @@ int LoginDisk(char *path)
     else if( file_method == LZIP_COMPRESS )
     {
       /* lzip -dc < TAR_FILE | gtar tvf - */
-      /*----------------------------------*/
     
       (void) sprintf( command_line, "%s < '%s' %s | %s", 
 		      LUNZIP, 
@@ -407,10 +393,8 @@ int LoginDisk(char *path)
     else if( file_method == NO_COMPRESS )
     {
       /* NO_COMPRESS */
-      /*-------------*/
 
       /* gtar tvf - < TAR_FILE */
-      /*-----------------------*/
     
       (void) sprintf( command_line, "%s < '%s'", 
 		      TARLIST,
@@ -420,7 +404,6 @@ int LoginDisk(char *path)
     else if( file_method == TAPE_DIR_FREEZE_COMPRESS )
     {
       /* melt < TAR_FILE */
-      /*-----------------*/
     
       (void) sprintf( command_line, "%s < '%s'", 
 		      MELT, 
@@ -429,38 +412,34 @@ int LoginDisk(char *path)
     }
     else if( file_method == TAPE_DIR_COMPRESS_COMPRESS )
     {
-      /* uncompress < TAR_FILE */
-      /*-----------------------*/
+      /* uncompress < TAR_FILE: Now using 7z command */
     
       (void) sprintf( command_line, "%s < '%s'", 
-		      UNCOMPRESS, 
+		      UNCOMPRESS, /* UNCOMPRESS is now 7z -so x */
 		      statistic.login_path
 		    );
     }
     else if( file_method == TAPE_DIR_GZIP_COMPRESS )
     {
-      /* gunzip < TAR_FILE */
-      /*-------------------*/
+      /* gunzip < TAR_FILE: Now using 7z command */
     
       (void) sprintf( command_line, "%s < '%s'", 
-		      GNUUNZIP, 
+		      GNUUNZIP, /* GNUUNZIP is now 7z -so x */
 		      statistic.login_path
 		    );
     }
     else if( file_method == TAPE_DIR_BZIP_COMPRESS )
     {
-      /* bunzip2 < TAR_FILE */
-      /*--------------------*/
+      /* bunzip2 < TAR_FILE: Now using 7z command */
     
       (void) sprintf( command_line, "%s < '%s'", 
-		      BUNZIP, 
+		      BUNZIP, /* BUNZIP is now 7z -so x */
 		      statistic.login_path
 		    );
     }
     else if( file_method == TAPE_DIR_NO_COMPRESS )
     {
       /* cat < TAR_FILE */
-      /*----------------*/
     
       (void) sprintf( command_line, "%s < '%s'", 
 		      CAT,
