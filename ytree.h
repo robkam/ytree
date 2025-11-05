@@ -39,6 +39,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <strings.h> /* For strcasecmp, strncasecmp */
+#include <regex.h>
 
 #include <sys/wait.h> /* Standard POSIX for wait() */
 #include <sys/time.h> /* For setitimer (clock.c) */

@@ -9,9 +9,6 @@
 #include <regex.h>
 
 
-/* Standardize on HAS_REGCOMP for POSIX regex */
-#define HAS_REGCOMP
-
 static regex_t	re;
 static BOOL	re_flag = FALSE;
 
