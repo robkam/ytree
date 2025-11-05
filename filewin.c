@@ -283,9 +283,9 @@ static int SortByName(FileEntryList *e1, FileEntryList *e2)
         return( - (strcmp( e1->file->name, e2->file->name ) ) );
   else
      if (order)
-        return( StrCaseCmp( e1->file->name, e2->file->name ) );
+        return( strcasecmp( e1->file->name, e2->file->name ) );
      else
-        return( - (StrCaseCmp( e1->file->name, e2->file->name ) ) );
+        return( - (strcasecmp( e1->file->name, e2->file->name ) ) );
 }
 
 
@@ -299,7 +299,7 @@ static int SortByExtension(FileEntryList *e1, FileEntryList *e2)
   ext1 = GetExtension(e1->file->name);
   ext2 = GetExtension(e2->file->name);
   cmp=strcmp( ext1, ext2 );
-  casecmp=StrCaseCmp( ext1, ext2 );
+  casecmp=strcasecmp( ext1, ext2 );
 
   if (do_case && !cmp)
       return SortByName( e1, e2 );
@@ -314,9 +314,9 @@ static int SortByExtension(FileEntryList *e1, FileEntryList *e2)
         return( - (strcmp( ext1, ext2 ) ) );
   else
      if (order)
-        return( StrCaseCmp( ext1, ext2 ) );
+        return( strcasecmp( ext1, ext2 ) );
      else
-        return( - (StrCaseCmp( ext1, ext2 ) ) );
+        return( - (strcasecmp( ext1, ext2 ) ) );
 }
 
 
@@ -386,9 +386,9 @@ static int SortByOwner(FileEntryList *e1, FileEntryList *e2)
         return( - (strcmp( o1, o2 ) ) );
   else
      if (order)
-        return( StrCaseCmp( o1, o2 ) );
+        return( strcasecmp( o1, o2 ) );
      else
-        return( - (StrCaseCmp( o1, o2 ) ) );
+        return( - (strcasecmp( o1, o2 ) ) );
 }
 
 
@@ -419,9 +419,9 @@ static int SortByGroup(FileEntryList *e1, FileEntryList *e2)
         return( - (strcmp( g1, g2 ) ) );
   else
      if (order)
-        return( StrCaseCmp( g1, g2 ) );
+        return( strcasecmp( g1, g2 ) );
      else
-        return( - (StrCaseCmp( g1, g2 ) ) );
+        return( - (strcasecmp( g1, g2 ) ) );
 }
 
 
@@ -3105,7 +3105,7 @@ static void ListJump( DirEntry * dir_entry, char *str )
     for( i=tmp2; i < file_count; i++ )
     {
         fe_ptr = file_entry_list[i].file;
-	if(!StrNCaseCmp(newStr, fe_ptr->name, n+1))
+	if(!strncasecmp(newStr, fe_ptr->name, n+1))
           break;
     }
 
@@ -3146,6 +3146,4 @@ static void ListJump( DirEntry * dir_entry, char *str )
     doupdate();
     ListJump( dir_entry, (incremental) ? newStr : "" );
     free(newStr);
-} 
-
-
+}

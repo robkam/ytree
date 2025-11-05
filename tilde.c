@@ -28,11 +28,6 @@
 
 /*#include <string.h>*/
 
-#if !defined (savestring)
-/* Use Strdup from util.c (which includes error check and abort) */
-#define savestring(x) Strdup(x)
-#endif /* !savestring */
-
 #if !defined (NULL)
 #  if defined (__STDC__)
 #    define NULL ((void *) 0)
@@ -136,38 +131,41 @@ tilde_find_suffix (string)
    non-null, the index of the end of the prefix into FNAME is returned in
    the location it points to. */
 static char *
-isolate_tilde_prefix (fname, lenp)
-     const char *fname;
-     int *lenp;
+isolate_tilde_prefix (const char *fname, int *lenp)
 {
+  const char *p = fname + 1;
+  const char *end;
+  size_t len;
   char *ret;
-  int i;
-
-  ret = (char *)malloc (strlen (fname));
-  if (ret == NULL) {
-    ERROR_MSG("Malloc failed*ABORT");
-    exit(1);
-  }
 
 #if defined (__MSDOS__)
-  for (i = 1; fname[i] && fname[i] != '/' && fname[i] != '\\'; i++)
+  end = strpbrk(p, "/\\");
 #else
-  for (i = 1; fname[i] && fname[i] != '/'; i++)
+  end = strchr(p, '/');
 #endif
-    ret[i - 1] = fname[i];
-  ret[i - 1] = '\0';
-  if (lenp)
-    *lenp = i;
+
+  if (end == NULL) {
+      len = strlen(p);
+  } else {
+      len = end - p;
+  }
+
+  if (lenp) {
+      *lenp = len + 1; /* Match original return of i */
+  }
+
+  ret = strndup(p, len);
+  if (ret == NULL) {
+    ERROR_MSG("strndup failed*ABORT");
+    exit(1);
+  }
   return ret;
 }
 
 /* Return a string that is PREFIX concatenated with SUFFIX starting at
    SUFFIND. */
 static char *
-glue_prefix_and_suffix (prefix, suffix, suffind)
-     char *prefix;
-     const char *suffix;
-     int suffind;
+glue_prefix_and_suffix (char *prefix, const char *suffix, int suffind)
 {
   char *ret;
   int plen, slen;
@@ -198,7 +196,15 @@ tilde_expand_word (filename)
   struct passwd *user_entry;
 
   if (filename == 0) return ((char *)NULL);
-  if (*filename != '~') return (savestring (filename));
+  if (*filename != '~')
+  {
+      char *ret = strdup(filename);
+      if (ret == NULL) {
+        ERROR_MSG("strdup failed*ABORT");
+        exit(1);
+      }
+      return ret;
+  }
 
   /* A leading `~/' or a bare `~' is *always* translated to the value of
      $HOME or the home directory of the current user, regardless of any
@@ -222,7 +228,11 @@ tilde_expand_word (filename)
   if (user_entry == 0) {
 	free (username);
       /* Return a copy of what we were passed. */
-	dirname = savestring(filename);
+	dirname = strdup(filename);
+    if (dirname == NULL) {
+        ERROR_MSG("strdup failed*ABORT");
+        exit(1);
+    }
     } else {
       free (username);
       dirname = glue_prefix_and_suffix(user_entry->pw_dir, filename, user_len);
@@ -291,14 +301,11 @@ tilde_expand (string)
 	break;
 
       /* Expand the entire tilde word, and copy it into RESULT. */
-      tilde_word = (char *)malloc (1 + end);
+      tilde_word = strndup(string, end);
       if (tilde_word == NULL) {
-	ERROR_MSG("Malloc failed*ABORT");
-	exit(1);
+        ERROR_MSG("strndup failed*ABORT");
+        exit(1);
       }
-      strncpy (tilde_word, string, end);
-      tilde_word[end] = '\0';
-      /* BUG FIX: Removed duplicate 'free (tilde_word);' from here */
       
       expansion = tilde_expand_word (tilde_word);
       free (tilde_word); 

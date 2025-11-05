@@ -75,7 +75,7 @@ int main(int argc, char **argv)
     /* rel. Pfad */
     /*-----------*/
 
-    (void) Getcwd( buffer, sizeof( buffer ) - 2 );
+    (void) getcwd( buffer, sizeof( buffer ) - 2 );
     (void) strcat( buffer, FILE_SEPARATOR_STRING );
     (void) strcat( buffer, p );
     p = buffer;

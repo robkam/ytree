@@ -193,7 +193,7 @@ static int GetStatFrom7z(char *zip_line, char *name, struct stat *stat)
 
 
   /* file length */
-  stat->st_size = AtoLL( SubString(entry, zip_line, 26, 12) );
+  stat->st_size = strtoll( SubString(entry, zip_line, 26, 12), NULL, 10 );
 
   /* simulate owner and group */
   stat->st_uid = (unsigned) getuid();
@@ -227,7 +227,7 @@ static int GetStatFromARC(char *arc_line, char *name, struct stat *stat)
 
   /* Dateilaenge */
   if( !isdigit( *t ) ) return( -1 );
-  stat->st_size = AtoLL( t );
+  stat->st_size = strtoll( t, NULL, 10 );
   t = strtok_r( NULL, " \t", &old ); if( t == NULL ) return( -1 );
 
   /* Stowage */
@@ -351,7 +351,7 @@ static int GetStatFromLHA(char *lha_line, char *name, struct stat *stat)
 
   /* Dateilaenge */
   if( !isdigit( *t ) ) return( -1 );
-  stat->st_size = AtoLL( t );
+  stat->st_size = strtoll( t, NULL, 10 );
   t = strtok_r( NULL, " \t", &old ); if( t == NULL ) return( -1 );
 
   /* Ratio */
@@ -432,7 +432,7 @@ static int GetStatFromRAR(char *rar_line, char *name, struct stat *stat)
 
   /* Dateilaenge */
   if( !isdigit( *t ) ) return( -1 );
-  stat->st_size = AtoLL( t );
+  stat->st_size = strtoll( t, NULL, 10 );
   t = strtok_r( NULL, " \t", &old ); if( t == NULL ) return( -1 );
 
   /* Packed */
@@ -521,7 +521,7 @@ static int GetStatFromNewRAR(char *rar_line, char *name, struct stat *stat)
   /* size */
   t = strtok_r( NULL, " \t", &old ); if( t == NULL ) return( 0 );
   if( !isdigit( *t ) ) return( 0 ); /* skip invalid entry */
-  stat->st_size = AtoLL( t );
+  stat->st_size = strtoll( t, NULL, 10 );
 
 
   /* date */
@@ -592,7 +592,7 @@ static int GetStatFromRPM(char *rpm_line, char *name, struct stat *stat)
 
   /* Dateilaenge */
   if( !isdigit( *t ) ) return( -1 );
-  stat->st_size = AtoLL( t );
+  stat->st_size = strtoll( t, NULL, 10 );
   t = strtok_r( NULL, " \t", &old ); if( t == NULL ) return( -1 );
 
   /* M-Datum */
@@ -673,7 +673,7 @@ static int GetStatFromTAR(char *tar_line, char *name, struct stat *stat)
   /* file length */
   t = strtok_r( NULL, " \t", &old ); if( t == NULL ) return( -1 );
   if( !isdigit( *t ) ) return( -1 );
-  stat->st_size = AtoLL( t );
+  stat->st_size = strtoll( t, NULL, 10 );
 
   /* mod. date */
   t = strtok_r( NULL, " \t", &old ); if( t == NULL ) return( -1 );
@@ -807,7 +807,7 @@ static int GetStatFromZIP(char *zip_line, char *name, struct stat *stat)
 
   /* Dateilaenge */
   if( !isdigit( *t ) ) return( -1 );
-  stat->st_size = AtoLL( t );
+  stat->st_size = strtoll( t, NULL, 10 );
   t = strtok_r( NULL, " \t", &old ); if( t == NULL ) return( -1 );
 
   /* ?? */
@@ -887,7 +887,7 @@ static int GetStatFromZOO(char *zoo_line, char *name, struct stat *stat)
 
   /* Dateilaenge */
   if( !isdigit( *t ) ) return( -1 );
-  stat->st_size = AtoLL( t );
+  stat->st_size = strtoll( t, NULL, 10 );
   t = strtok_r( NULL, " \t", &old ); if( t == NULL ) return( -1 );
 
   /* CF */

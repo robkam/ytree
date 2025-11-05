@@ -110,10 +110,11 @@ void InsHistory( char *NewHst)
       {
          TMP -> next = Hist;
 	 TMP -> prev = NULL;
-	 if(( TMP -> hst = Strdup(NewHst)) == NULL) 
+	 TMP -> hst = strdup(NewHst);
+	 if(TMP->hst == NULL) 
 	 {
-	    free(TMP);
-	    return;
+	    ERROR_MSG("strdup failed*ABORT");
+            exit(1);
 	 }
 
          if (Hist != NULL) 
@@ -446,5 +447,3 @@ char *GetHistory()
   touchwin(stdscr);
   return RetVal;
 }
-
-

@@ -38,6 +38,7 @@
 #include <signal.h>
 #include <string.h>
 #include <stdlib.h>
+#include <strings.h> /* For strcasecmp, strncasecmp */
 
 #include <sys/wait.h> /* Standard POSIX for wait() */
 #include <sys/time.h> /* For setitimer (clock.c) */
@@ -845,7 +846,6 @@ extern int  WAddStr(WINDOW *win, char *str);
 extern int  AddStr(char *str);
 extern void ClockHandler(int);
 extern int Strrcmp(char *s1, char* s2);
-extern char *Strdup(const char *s);
 extern char *GetExtViewer(char *filename);
 extern void InitClock(void);
 extern void SuspendClock(void);
@@ -856,7 +856,6 @@ extern int  BuildUserFileEntry(FileEntry *fe_ptr,
             char *template, int linelen, char *line);
 extern int  GetVisualUserFileEntryLength( int max_visual_filename_len, 
                                           int max_visual_linkname_len, char *template);
-extern LONGLONG AtoLL(char* cptr);
 extern void DisplayTree(WINDOW *win, int start_entry_no, int hilight_no);
 extern void ReCreateWindows(void);
 extern int  WGetch(WINDOW *win);
@@ -866,15 +865,11 @@ extern int  FileUserMode(FileEntryList *file_entry_list, int ch);
 extern char *GetUserFileAction(int chkey, int *pchremap);
 extern char *GetUserDirAction(int chkey, int *pchremap);
 extern BOOL IsUserActionDefined(void);
-extern char *Getcwd(char *buffer, unsigned int len);
 extern int  RefreshDirWindow(void);
 extern char *StrLeft(const char *str, size_t count);
 extern char *StrRight(const char *str, size_t count);
 extern int  StrVisualLength(const char *str);
 extern int  VisualPositionToBytePosition(const char *str, int visual_pos);
 extern int  WAttrAddStr(WINDOW *win, int attr, char *str);
-extern char *Strndup(const char *s, int len);
 extern char *CutName(char *dest, char *src, unsigned int max_len);
-extern int  StrCaseCmp(char *s1, char *s2);
-extern int  StrNCaseCmp(char *s1, char *s2, unsigned int n);
 extern char *SubString(char *dest, char *src, int pos, int len);

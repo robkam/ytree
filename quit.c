@@ -106,7 +106,7 @@ void QuitTo(DirEntry * dir_entry)
 	if(!QuitFileCheck(qfilename)){
 	  	if( (qfile=fopen(qfilename,"w"))!=NULL)
   		{
-  			fprintf(qfile,"cd %s\n",Getcwd(NULL,0));
+  			fprintf(qfile,"cd %s\n",getcwd(NULL,0));
 			fclose(qfile);
 		}
 	}

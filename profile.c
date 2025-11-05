@@ -173,7 +173,7 @@ int ReadProfile( char *filename )
           *value++ = '\0';
           key.name = name;
           if(( p = bsearch(&key, profile, PROFILE_ENTRIES, sizeof(*p), Compare))) {
-	    p->value = Strdup( value );
+	    p->value = strdup( value );
           }
         }
       } else if( section == MENU_SECTION ) {
@@ -194,7 +194,7 @@ int ReadProfile( char *filename )
               while (l++ < COLS - 1)
                 *cptr++ = ' ';
               *cptr = '\0';
-	      p->value = Strdup( value );
+	      p->value = strdup( value );
             }
           }
         } 
@@ -239,7 +239,7 @@ int ReadProfile( char *filename )
           /* Check for existing entry from FILEMAP_SECTION */
           for (new_m = filemenu.next; new_m != NULL; new_m = new_m->next) {
             if (new_m->chkey == ChCode( name )) {
-	      new_m->cmd = Strdup( value );
+	      new_m->cmd = strdup( value );
               if (new_m->chremap == 0)
                 new_m->chremap = -1;   /* Don't beep if user cmd defined */
               break;
@@ -248,7 +248,7 @@ int ReadProfile( char *filename )
 	  if( new_m == NULL && ( new_m = malloc( sizeof(*new_m) ) ) ) {
             new_m->chkey = ChCode( name );
 	    new_m->chremap = new_m->chkey;
-	    new_m->cmd = Strdup( value );
+	    new_m->cmd = strdup( value );
 	    new_m->next = NULL;
 	    m->next = new_m;
 	    m = new_m;
@@ -295,7 +295,7 @@ int ReadProfile( char *filename )
           /* Check for existing entry from DIRMAP_SECTION */
           for(new_d = dirmenu.next; new_d != NULL; new_d = new_d->next) {
             if (new_d->chkey == ChCode( name )) {
-	      new_d->cmd = Strdup( value );
+	      new_d->cmd = strdup( value );
               if (new_d->chremap == 0)
                 new_d->chremap = -1;   /* Don't beep if user cmd defined */
               break;
@@ -304,7 +304,7 @@ int ReadProfile( char *filename )
 	  if ( new_d == NULL && ( new_d = malloc( sizeof(*new_d) ) ) ) {
             new_d->chkey = ChCode( name );
 	    new_d->chremap = new_d->chkey;
-	    new_d->cmd = Strdup( value );
+	    new_d->cmd = strdup( value );
 	    new_d->next = NULL;
 	    d->next = new_d;
 	    d = new_d;
@@ -320,8 +320,8 @@ int ReadProfile( char *filename )
 	  /* maybe comma-separated list, eg.: .jpeg,.gif=xv */
 	  while(n) {
 	    if(( new_v = malloc( sizeof(*new_v) ) ) ) {
-	      new_v->ext = Strdup( n );
-	      new_v->cmd = Strdup( value );
+	      new_v->ext = strdup( n );
+	      new_v->cmd = strdup( value );
 	      new_v->next = NULL;
 	      if(new_v->ext == NULL || new_v->cmd == NULL) {
 	        /* ignore entry */

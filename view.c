@@ -184,9 +184,9 @@ the ytree starting cwd. new code grabbed from execute.c.
 
   if (mode == DISK_MODE)
   {
-    if (Getcwd(cwd, PATH_LENGTH) == NULL)
+    if (getcwd(cwd, PATH_LENGTH) == NULL)
     {
-        WARNING("Getcwd failed*\".\"assumed");
+        WARNING("getcwd failed*\".\"assumed");
         (void) strcpy(cwd, ".");    
     }
     if (chdir(GetPath(dir_entry, path)))

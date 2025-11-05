@@ -31,11 +31,11 @@ char *StrLeft(const char *str, size_t visible_count)
 #endif
 
   if (visible_count == 0) 
-    return(Strdup(""));
+    return(strdup(""));
 
   len = StrVisualLength(str);
   if (visible_count >= len) 
-    return(Strdup(str));
+    return(strdup(str));
   
 #ifdef WITH_UTF8
 
@@ -75,7 +75,11 @@ char *StrLeft(const char *str, size_t visible_count)
   left_bytes = visible_count; 
 #endif
 
-  result = Strndup(str, left_bytes);
+  result = strndup(str, left_bytes);
+  if (result == NULL) {
+      ERROR_MSG("strndup failed*ABORT");
+      exit(1);
+  }
   return(result);
 }
 
@@ -93,11 +97,11 @@ char *StrRight(const char *str, size_t visible_count)
 #endif
 
   if (visible_count == 0) 
-    return(Strdup(""));
+    return(strdup(""));
 
   visual_len = StrVisualLength(str);
   if(visual_len <= visible_count)
-    return(Strdup(str));
+    return(strdup(str));
   
 #ifdef WITH_UTF8
 
@@ -132,12 +136,16 @@ char *StrRight(const char *str, size_t visible_count)
   
   left_bytes = s_start - str; 
 
-  result = Strdup(&str[left_bytes]);
+  result = strdup(&str[left_bytes]);
 
 #else
-  result = Strdup( &str[visual_len - visible_count] );
+  result = strdup( &str[visual_len - visible_count] );
 #endif
 
+  if (result == NULL) {
+      ERROR_MSG("strdup failed*ABORT");
+      exit(1);
+  }
   return(result);
 }
 
@@ -436,7 +444,7 @@ int InputString(char *s, int y, int x, int cursor_pos, int length, char *term)
                             strcat(s, buf);
                         } else {
                             if ( p > 0 ) ls = StrLeft(s, p);
-                            else ls = Strdup("");
+                            else ls = strdup("");
                             rs = StrRight(s, n - p);
                             strcpy(s, ls);
                             strcat(s, buf);
@@ -450,13 +458,13 @@ int InputString(char *s, int y, int x, int cursor_pos, int length, char *term)
                         int bytes_to_delete = VisualPositionToBytePosition(&s[byte_pos_to_overwrite], visual_insert_len);
                         
                         if ( p > 0 ) ls = StrLeft(s, p);
-                        else ls = Strdup("");
+                        else ls = strdup("");
                         
                         /* Extract remaining part: from after the overwritten content to the end */
                         if (strlen(s) - (byte_pos_to_overwrite + bytes_to_delete) > 0)
-                           rs = Strdup(&s[byte_pos_to_overwrite + bytes_to_delete]);
+                           rs = strdup(&s[byte_pos_to_overwrite + bytes_to_delete]);
                         else 
-                           rs = Strdup("");
+                           rs = strdup("");
 
                         strcpy(s, ls);
                         strcat(s, buf);
@@ -494,7 +502,11 @@ int InputString(char *s, int y, int x, int cursor_pos, int length, char *term)
 #ifdef READLINE_SUPPORT
   pp = tilde_expand(s);
 #else
-  pp = Strdup(s);
+  pp = strdup(s);
+  if (pp == NULL) {
+      ERROR_MSG("strdup failed*ABORT");
+      exit(1);
+  }
 #endif
 
   strncpy( s, pp, length - 1);

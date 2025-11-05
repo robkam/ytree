@@ -17,7 +17,6 @@ typedef struct
 
 
 static Extension2Method file_extensions[] = FILE_EXTENSIONS;
-static char *GNU_getcwd(void);
 
 
 char *GetPath(DirEntry *dir_entry, char *buffer)
@@ -102,9 +101,9 @@ int GetDirEntry(DirEntry *tree,
   *to_path   = '\0';
 
    strcpy(to_path, dir_path);
-  if( Getcwd( current_path, sizeof( current_path ) - 2 ) == NULL )
+  if( getcwd( current_path, sizeof( current_path ) - 2 ) == NULL )
   {
-    (void) sprintf( message, "Getcwd failed*%s", strerror(errno) );
+    (void) sprintf( message, "getcwd failed*%s", strerror(errno) );
     ERROR_MSG( message );
     return( -1 );
   }
@@ -128,7 +127,7 @@ int GetDirEntry(DirEntry *tree,
   }
 
   if( *dir_path != FILE_SEPARATOR_CHAR ) {
-    (void) Getcwd( dest_path, sizeof( dest_path ) - 2 );
+    (void) getcwd( dest_path, sizeof( dest_path ) - 2 );
     (void) strcpy( to_path, dest_path );
   } else {
     strcpy(dest_path, dir_path);
@@ -842,81 +841,6 @@ int Strrcmp(char *s1, char* s2)/*compares in reverse order 2 strings*/
 
 
 
-int StrNCaseCmp(char *s1, char *s2, unsigned int n)
-{
-  int c1, c2;
-  unsigned char *us1 = (unsigned char*)s1;
-  unsigned char *us2 = (unsigned char*)s2;
-
-  if(n == 0)
-    return(0);
-
-  do
-  {
-    c1 = toupper(*us1++);
-    c2 = toupper(*us2++);
-  } while((c1 == c2) && (c1 != '\0') && (--n != 0));
-
-  return(c1 - c2);
-}
-
-
-
-int StrCaseCmp(char *s1, char *s2)
-{
-  int c1, c2;
-  unsigned char *us1 = (unsigned char*)s1;
-  unsigned char *us2 = (unsigned char*)s2;
-
-  do
-  {
-    c1 = toupper(*us1++);
-    c2 = toupper(*us2++);
-  } while((c1 == c2) && (c1 != '\0'));
-
-  return(c1 - c2);
-}
-
-
-
-/* NeXT does not define strdup */
-char *Strdup(const char *s)
-{
-  char *cp = NULL;
-
-  if (s) {
-    cp = malloc(strlen(s)+1);
-    if (cp) {
-      strcpy(cp,s);
-    } else {
-      ERROR_MSG("Malloc failed*ABORT");
-      exit(1);
-    }
-  }
-  return(cp);
-}
-
-/* Solaris does not define this */
-char *Strndup(const char *s, int len)
-{
-  char *cp = NULL;
-  int l;
-
-  if (s) {
-    l = MINIMUM(strlen(s), len);
-    cp = malloc(l+1);
-    if (cp) {
-      memcpy(cp, s, l);
-      cp[l] = '\0';
-    } else {
-      ERROR_MSG("Malloc failed*ABORT");
-      exit(1);
-    }
-  }
-  return(cp);
-}
-
-
 char *GetExtension(char *filename)
 {
   char *cptr;
@@ -1124,28 +1048,6 @@ int GetVisualUserFileEntryLength( int max_visual_filename_len, int max_visual_li
 }
   
 
-LONGLONG AtoLL(char *cptr)
-{
-  LONGLONG ll;
-
-#ifdef HAS_LONGLONG
-
-  sscanf(cptr, "%lld", &ll);
-
-#else
-#ifdef __QNX__
-  sscanf(cptr, "%ld", &ll);
-#else
-  sscanf(ll, "%ld", cptr);
-#endif
-#endif
-
-  return(ll);
-}
-
-
-
-
 #ifndef HAVE_STRERROR
 const char *StrError(int errnum)
 {
@@ -1161,40 +1063,6 @@ const char *StrError(int errnum)
 }
 #endif /* HAVE_STRERROR */
 
-
-/*****************************************************************************
- *                              Getcwd                                       *
- *****************************************************************************/
-
-
-char *Getcwd(char *buffer, unsigned int size)
-{
-  if(size == 0)
-    return(GNU_getcwd());
-
-  return(getcwd(buffer, size));
-}
-
-
-static char *GNU_getcwd()
-{
-  unsigned int size = 100;
-  char *buffer;
-
-  while (1)
-    {
-      if ((buffer = (char *) malloc (size)) == NULL) {
-        ERROR_MSG("Malloc failed*ABORT");
-        exit(1);
-      }
-      if (getcwd (buffer, size) == buffer)
-        return buffer;
-      free (buffer);
-      if (errno != ERANGE)
-        return 0;
-      size *= 2;
-    }
-}
 
 /*****************************************************************************
  *                              CutName                                      *

@@ -35,9 +35,9 @@ int Execute(DirEntry *dir_entry, FileEntry *file_entry)
   MvAddStr( LINES - 2, 1, "Command:" );
   if( !GetCommandLine( command_line ) )
   {
-    if( Getcwd( cwd, PATH_LENGTH ) == NULL )
+    if( getcwd( cwd, PATH_LENGTH ) == NULL )
     {
-      WARNING( "Getcwd failed*\".\"assumed" );
+      WARNING( "getcwd failed*\".\"assumed" );
       (void) strcpy( cwd, "." );
     }
 
@@ -162,4 +162,3 @@ int ExecuteCommand(FileEntry *fe_ptr, WalkingPackage *walking_package)
 
   return( result );
 }
-

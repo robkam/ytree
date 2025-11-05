@@ -42,9 +42,9 @@ int Pipe(DirEntry *dir_entry, FileEntry *file_entry)
   {
     move( LINES - 2, 1 ); clrtoeol();
     
-    if( Getcwd( cwd, PATH_LENGTH ) == NULL )
+    if( getcwd( cwd, PATH_LENGTH ) == NULL )
     {
-      WARNING( "Getcwd failed*\".\"assumed" );
+      WARNING( "getcwd failed*\".\"assumed" );
       (void) strcpy( cwd, "." );
     }
 
@@ -156,11 +156,3 @@ int PipeTaggedFiles(FileEntry *fe_ptr, WalkingPackage *walking_package)
 
   return( 0 );
 }
-
-
-
-
-
-
-
-
