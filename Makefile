@@ -49,7 +49,7 @@ OBJS	= archive.o archive_reader.o chgrp.o chmod.o chown.o clock.o color.o copy.o
 	  filewin.o freesp.o global.o group.o hex.o history.o init.o input.o keyhtab.o \
 	  login.o main.o match.o mkdir.o move.o passwd.o pipe.o    \
 	  print.o profile.o quit.o readtree.o rename.o rmdir.o  \
-	  sort.o stat.o system.o tilde.o usermode.o util.o view.o 
+	  sort.o stat.o system.o usermode.o util.o view.o 
 
 # mktime.o and termcap.o removed from OBJS list
 
@@ -98,7 +98,7 @@ group.o: config.h ytree.h group.c
 hex.o: config.h ytree.h hex.c
 history.o: config.h ytree.h history.c
 init.o: config.h ytree.h init.c
-input.o: config.h ytree.h tilde.h input.c
+input.o: config.h ytree.h input.c
 keyhtab.o: config.h ytree.h keyhtab.c
 login.o: config.h ytree.h login.c
 main.o: config.h ytree.h main.c
@@ -116,7 +116,6 @@ rmdir.o: config.h ytree.h rmdir.c
 sort.o: config.h ytree.h sort.c
 stat.o: config.h ytree.h stat.c
 system.o: config.h ytree.h system.c
-tilde.o: config.h tilde.h tilde.c
 usermode.o: config.h ytree.h usermode.c
 util.o: config.h ytree.h util.c
 view.o: config.h ytree.h view.c

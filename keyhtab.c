@@ -9,8 +9,8 @@
 
 
 #ifdef READLINE_SUPPORT
-#include "tilde.h"
 #include <readline/readline.h>
+#include <readline/tilde.h>
 #endif
 
 
@@ -368,4 +368,3 @@ char *GetMatches( char *base)
   touchwin(stdscr);
   return RetVal;
 }
-

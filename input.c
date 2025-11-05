@@ -1,5 +1,7 @@
 #include "ytree.h"
-#include "tilde.h"
+#ifdef READLINE_SUPPORT
+#include <readline/tilde.h>
+#endif
 
 
 /***************************************************************************
