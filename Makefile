@@ -21,12 +21,14 @@ MANESDIR    = $(DESTDIR)/share/man/es/man1
 
 
 # Default configuration for Linux (WSL/Ubuntu) with ncurses 6
+# NOTE: This build now requires libarchive.
+# On Debian/Ubuntu, install with: sudo apt-get install libarchive-dev
 COLOR       = -DCOLOR_SUPPORT 
 #CLOCK	    = -DCLOCK_SUPPORT # Experimental!
 READLINE    = -DREADLINE_SUPPORT
 # Use -std=c99 or -std=gnu99 for modernization. -D_GNU_SOURCE is kept for glibc extensions.
-CFLAGS      += -D_GNU_SOURCE $(COLOR) $(CLOCK) $(READLINE) $(ADD_CFLAGS)
-LDFLAGS     += -lncurses -ltinfo -lreadline
+CFLAGS      += -D_GNU_SOURCE -DHAVE_LIBARCHIVE $(COLOR) $(CLOCK) $(READLINE) $(ADD_CFLAGS)
+LDFLAGS     += -lncurses -ltinfo -lreadline -larchive
 
 
 # For systems requiring ncursesw (wide character support) use:

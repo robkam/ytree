@@ -8,6 +8,55 @@
 #include "ytree.h"
 
 
+#ifdef HAVE_LIBARCHIVE
+/*
+ * Uses libarchive to find a specific entry within an archive and write its
+ * contents to the provided output file descriptor.
+ * Returns 0 on success, -1 on failure.
+ */
+int ExtractArchiveEntry(const char *archive_path, const char *entry_path, int out_fd)
+{
+    struct archive *a;
+    struct archive_entry *entry;
+    int r;
+    const void *buff;
+    size_t size;
+    la_int64_t offset;
+
+    a = archive_read_new();
+    if (a == NULL) {
+        return -1;
+    }
+    archive_read_support_filter_all(a);
+    archive_read_support_format_all(a);
+    
+    r = archive_read_open_filename(a, archive_path, 10240);
+    if (r != ARCHIVE_OK) {
+        archive_read_free(a);
+        return -1;
+    }
+
+    while (archive_read_next_header(a, &entry) == ARCHIVE_OK) {
+        if (strcmp(archive_entry_pathname(entry), entry_path) == 0) {
+            /* Found the entry, now write its data to the fd */
+            while ((r = archive_read_data_block(a, &buff, &size, &offset)) == ARCHIVE_OK) {
+                if (write(out_fd, buff, size) != (ssize_t)size) {
+                    /* Write error */
+                    archive_read_free(a);
+                    return -1;
+                }
+            }
+            archive_read_free(a);
+            return (r == ARCHIVE_EOF) ? 0 : -1; /* Return success only on clean EOF */
+        }
+    }
+
+    /* Entry not found or other error */
+    archive_read_free(a);
+    return -1;
+}
+#endif /* HAVE_LIBARCHIVE */
+
 
 static int GetArchiveDirEntry(DirEntry *tree, char *path, DirEntry **dir_entry);
 
@@ -429,272 +478,4 @@ void MinimizeArchiveTree(DirEntry *tree)
     free( de_ptr );
   }
   return;
-}
-
-
-
-void MakeExtractCommandLine(char *command_line, char *path, char *file, char *cmd)
-{
-  int  l;
-  char cat_path[PATH_LENGTH+1];
-  int  compress_method;
-
-  compress_method = GetFileMethod( path );
-
-  l = strlen( path );
-
-  if( compress_method == ZOO_COMPRESS )
-  {
-    /* zoo xp FILE ?? */
-    /*----------------*/
-
-    (void) sprintf( command_line, "%s '%s' '%s' %s", 
-		    ZOOEXPAND,
-		    path,
-		    file,
-		    cmd
-		  );
-  }
-  else if( compress_method == LHA_COMPRESS )
-  {
-    /* LHAEXPAND (now 7z) */
-    /*------------------*/
-
-    (void) sprintf( command_line, "%s '%s' '%s' %s", 
-		    LHAEXPAND,
-		    path,
-		    file,
-		    cmd
-		  );
-  }
-  else if( compress_method == ZIP_COMPRESS )
-  {
-    /* ZIPEXPAND (now 7z) */
-    /*------------------*/
-
-    (void) sprintf( command_line, "%s '%s' '%s' %s", 
-		    ZIPEXPAND,
-		    path,
-		    file,
-		    cmd
-		  );
-  }
-  else if( compress_method == SEVENZIP_COMPRESS )
-  {
-    /* 7z x FILE ?? */
-    /*--------------*/
-
-    (void) sprintf( command_line, "%s '%s' '%s' %s", 
-		    SEVENZIPEXPAND,
-		    path,
-		    file,
-		    cmd
-		  );
-  }
-  else if( compress_method == ISO_COMPRESS )
-  {
-    /* ISOEXPAND (now 7z) */
-    /*--------------*/
-
-    (void) sprintf( command_line, "%s '%s' '%s' %s", 
-		    ISOEXPAND,
-		    path,
-		    file,
-		    cmd
-		  );
-  }
-  else if( compress_method == ARC_COMPRESS )
-  {
-    /* arc p FILE ?? */
-    /*---------------*/
-
-    (void) sprintf( command_line, "%s '%s' '%s' %s", 
-		    ARCEXPAND,
-		    path,
-		    file,
-		    cmd
-		  );
-  }
-  else if( compress_method == RPM_COMPRESS )
-  {
-    /* TF=/tmp/ytree.$$; mkdir $TF; cd $TF; rpm2cpio RPM_FILE | cpio -id FILE; 
-     * cat $TF/$2; cd /tmp; rm -rf $TF; exit 0
-     */
-    
-
-    if(!strcmp(RPMEXPAND, "builtin")) {
-      (void) sprintf( command_line, 
-    		    "(TF=/tmp/ytree.$$; mkdir $TF; rpm2cpio '%s' | (cd $TF; cpio --no-absolute-filenames -i -d '%s'); cat \"$TF/%s\"; cd /tmp; rm -rf $TF; exit 0) %s",
-		    path,
-		    (*file == FILE_SEPARATOR_CHAR) ? &file[1] : file,
-		    file,
-		    cmd
-		  );
-    } else {
-      (void) sprintf( command_line, "%s '%s' '%s' %s", 
-		    RPMEXPAND,
-		    path,
-		    file,
-		    cmd
-		  );
-    }
-  }
-  else if( compress_method == RAR_COMPRESS )
-  {
-    /* RAREXPAND (now 7z) */
-    /*---------------*/
-
-    (void) sprintf( command_line, "%s '%s' '%s' %s", 
-		    RAREXPAND,
-		    path,
-		    file,
-		    cmd
-		  );
-  }
-  else if( compress_method == FREEZE_COMPRESS )
-  {
-    /* melt < TAR_FILE | gtar xOf - FILE ?? */
-    /*--------------------------------------*/
-
-    (void) sprintf( command_line, "%s < '%s' | %s '%s' %s", 
-		    MELT, 
-		    path,
-		    TAREXPAND,
-		    file,
-		    cmd
-		  );
-  }
-  else if( compress_method == MULTIPLE_FREEZE_COMPRESS )
-  {
-    /* CAT TAR_FILEs | melt | gtar xOf - FILE ?? */
-    /*-------------------------------------------*/
-
-    (void) strncpy( cat_path, path, l - 2 );
-    (void) strcpy( &cat_path[l-2], "*" );
-
-    (void) sprintf( command_line, "%s %s | %s | %s '%s' %s", 
-		    CAT,
-		    cat_path,
-		    MELT, 
-		    TAREXPAND,
-		    file,
-		    cmd
-		  );
-  }
-  else if( compress_method == COMPRESS_COMPRESS )
-  {
-    /* UNCOMPRESS < TAR_FILE | gtar xOf - FILE ?? (now 7z) */
-    /*--------------------------------------------*/
-
-    (void) sprintf( command_line, "%s < '%s' | %s '%s' %s",
-		    UNCOMPRESS, 
-		    path,
-		    TAREXPAND,
-		    file,
-		    cmd
-		  );
-  }
-  else if( compress_method == MULTIPLE_COMPRESS_COMPRESS )
-  {
-    /* CAT TAR_FILEs | UNCOMPRESS | gtar xOf - FILE ?? (now 7z) */
-    /*-------------------------------------------------*/
-
-    (void) strncpy( cat_path, path, l - 2 );
-    (void) strcpy( &cat_path[l-2], "*" );
-
-    (void) sprintf( command_line, "%s %s | %s | %s '%s' %s", 
-		    CAT,
-		    cat_path,
-		    UNCOMPRESS, 
-		    TAREXPAND,
-		    file,
-		    cmd
-		  );
-  }
-  else if( compress_method == GZIP_COMPRESS )
-  {
-    /* GNUUNZIP < TAR_FILE | gtar xOf - FILE ?? (now 7z) */
-    /*----------------------------------------*/
-
-    (void) sprintf( command_line, "%s < '%s' | %s '%s' %s",
-		    GNUUNZIP, 
-		    path,
-		    TAREXPAND,
-		    file,
-		    cmd
-		  );
-  }
-  else if( compress_method == MULTIPLE_GZIP_COMPRESS )
-  {
-    /* CAT TAR_FILEs | GNUUNZIP | gtar xOf - FILE ?? (now 7z) */
-    /*---------------------------------------------*/
-
-    (void) strncpy( cat_path, path, l - 2 );
-    (void) strcpy( &cat_path[l-2], "*" );
-
-    (void) sprintf( command_line, "%s %s | %s | %s '%s' %s", 
-		    CAT,
-		    cat_path,
-		    GNUUNZIP, 
-		    TAREXPAND,
-		    file,
-		    cmd
-		  );
-  }
-  else if( compress_method == BZIP_COMPRESS )
-  {
-    /* BUNZIP < TAR_FILE | gtar xOf - FILE ?? (now 7z) */
-    /*----------------------------------------*/
-
-    (void) sprintf( command_line, "%s < '%s' | %s '%s' %s",
-		    BUNZIP, 
-		    path,
-		    TAREXPAND,
-		    file,
-		    cmd
-		  );
-  }
-  else if( compress_method == ZSTD_COMPRESS )
-  {
-    /* zstdcat < TAR_FILE | gtar xOf - FILE ?? */
-    /*----------------------------------------*/
-
-    (void) sprintf( command_line, "%s < '%s' | %s '%s' %s",
-		    ZSTDCAT, 
-		    path,
-		    TAREXPAND,
-		    file,
-		    cmd
-		  );
-  }
-  else if( compress_method == LZIP_COMPRESS )
-  {
-    /* lzip -cd < TAR_FILE | gtar xOf - FILE ?? */
-    /*----------------------------------------*/
-
-    (void) sprintf( command_line, "%s < '%s' | %s '%s' %s",
-		    LUNZIP, 
-		    path,
-		    TAREXPAND,
-		    file,
-		    cmd
-		  );
-  }
-  else
-  {
-    /* gtar xOf - FILE < TAR_FILE ?? */
-    /*-------------------------------*/
-
-    (void) sprintf( command_line, "%s '%s' < '%s' %s",
-		    TAREXPAND,
-		    file, 
-		    path,
-		    cmd
-		  );
-  }
-
-#ifdef DEBUG
-  fprintf( stderr, "system( \"%s\" )\n", command_line );
-#endif
-
 }

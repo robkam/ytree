@@ -45,15 +45,50 @@ static void DeleteTree(DirEntry *tree)
 int LoginDisk(char *path)
 {
   struct stat stat_struct;
-  char   command_line[COMMAND_LINE_LENGTH + 1];
-  char   cat_file_name[PATH_LENGTH+1];
   int    file_method = 0;
-  int    pid;
-  int    p[2];
   int    depth, l = 0;
-  FILE   *f;
-  int    status;
   int    result = 0;
+
+  if( STAT_( path, &stat_struct ) )
+  {
+    /* Stat failed */
+    /*-------------*/
+
+    (void) sprintf( message, "Can't access*\"%s\"*%s", path, strerror(errno) );
+    MESSAGE( message );
+    return( -1 );
+  }
+
+  /* Pre-flight check for non-directory files to ensure they are valid archives */
+  if( !S_ISDIR(stat_struct.st_mode ) )
+  {
+#ifdef HAVE_LIBARCHIVE
+      struct archive *a_test;
+      int r_test;
+
+      a_test = archive_read_new();
+      if (a_test == NULL) {
+          ERROR_MSG("archive_read_new() failed");
+          return -1;
+      }
+      archive_read_support_filter_all(a_test);
+      archive_read_support_format_all(a_test);
+      r_test = archive_read_open_filename(a_test, path, 10240);
+      archive_read_free(a_test);
+
+      if (r_test != ARCHIVE_OK) {
+          (void) sprintf(message, "Not a recognized archive file*or format not supported*\"%s\"", path);
+          MESSAGE(message);
+          return -1;
+      }
+#else
+      /* Fallback for when libarchive is not available */
+      (void) sprintf(message, "Cannot open file as archive*ytree not compiled with*libarchive support");
+      MESSAGE(message);
+      return -1;
+#endif
+  }
+
 
   if( mode == DISK_MODE || mode == USER_MODE) 
   {
@@ -89,17 +124,6 @@ int LoginDisk(char *path)
       (void) SetFileSpec( statistic.file_spec );
       return( 1 );   /* Return-Wert fuer "alten Baum" */
     }
-  }
-
-
-  if( STAT_( path, &stat_struct ) )
-  {
-    /* Stat failed */
-    /*-------------*/
-
-    (void) sprintf( message, "Can't access*\"%s\"*%s", path, strerror(errno) );
-    MESSAGE( message );
-    return( -1 );
   }
 
 
@@ -197,331 +221,20 @@ int LoginDisk(char *path)
   {
     (void) strcpy( statistic.tree->name, path );
    
-    if( pipe( p ) )
+#ifdef HAVE_LIBARCHIVE
+    Notice("Scanning archive...");
+    if (ReadTreeFromArchive(statistic.tree, statistic.login_path))
     {
-      ERROR_MSG( "pipe failed" );
-      return( -1 );
+        /* Error message will have been displayed by the function */
+        result = -1;
     }
-
-
-    if( file_method == ZOO_COMPRESS )
-    {
-      /* zoo vom ZOO_FILE */
-      /*------------------*/
-    
-      (void) sprintf( command_line, "%s '%s'", 
-                      ZOOLIST, 
-                      statistic.login_path
-                    );
-    }
-    else if( file_method == RPM_COMPRESS )
-    {
-      /* rpm vom RPM_FILE */
-      /*------------------*/
-    
-      (void) sprintf( command_line, "%s '%s'", 
-                      RPMLIST, 
-                      statistic.login_path
-                    );
-    }
-    else if( file_method == LHA_COMPRESS )
-    {
-      /* LHA_FILE: now uses 7z listing */
-    
-      (void) sprintf( command_line, "%s '%s'", 
-		      LHALIST, 
-		      statistic.login_path
-		    );
-    }
-    else if( file_method == ZIP_COMPRESS )
-    {
-      /* ZIP_FILE: now uses 7z listing */
-    
-      (void) sprintf( command_line, "%s '%s'", 
-		      ZIPLIST, 
-		      statistic.login_path
-		    );
-    } 
-    else if( file_method == SEVENZIP_COMPRESS )
-    {
-      /* 7z_FILE */
-    
-      (void) sprintf( command_line, "%s '%s'", 
-		      SEVENZIPLIST, 
-		      statistic.login_path
-		    );
-    } 
-    else if( file_method == ISO_COMPRESS )
-    {
-      /* ISO_FILE */
-    
-      (void) sprintf( command_line, "%s '%s'", 
-		      ISOLIST, 
-		      statistic.login_path
-		    );
-    } 
-    else if( file_method == ARC_COMPRESS )
-    {
-      /* ARC_FILE */
-    
-      (void) sprintf( command_line, "%s '%s'", 
-		      ARCLIST, 
-		      statistic.login_path
-		    );
-    }
-    else if( file_method == RAR_COMPRESS )
-    {
-      /* RAR_FILE: now uses 7z listing */
-    
-      (void) sprintf( command_line, "%s '%s'", 
-		      RARLIST, 
-		      statistic.login_path
-		    );
-    }
-    else if( file_method == FREEZE_COMPRESS )
-    {
-      /* melt < TAR_FILE | gtar tvf - */
-    
-      (void) sprintf( command_line, "%s < '%s' %s | %s", 
-		      MELT, 
-		      statistic.login_path,
-		      ERR_TO_STDOUT,
-		      TARLIST
-		    );
-    }
-    else if( file_method == MULTIPLE_FREEZE_COMPRESS )
-    {
-      (void) strncpy( cat_file_name, statistic.login_path, l - 2 );
-      (void) strcpy( &cat_file_name[l - 2], "*" );
-
-      /* cat TAR_FILE | melt | gtar tvf - */
-    
-      (void) sprintf( command_line, "%s '%s' %s | %s | %s", 
-		      CAT,
-		      cat_file_name,
-		      ERR_TO_STDOUT,
-		      MELT, 
-		      TARLIST
-		    );
-    }
-    else if( file_method == COMPRESS_COMPRESS )
-    {
-      /* uncompress < TAR_FILE | gtar tvf - : Now using 7z command */
-      
-      (void) sprintf( command_line, "%s -so x < '%s' %s | %s", 
-		      UNCOMPRESS, /* UNCOMPRESS is now 7z -so x */
-		      statistic.login_path,
-		      ERR_TO_STDOUT,
-		      TARLIST
-		    );
-    }
-    else if( file_method == MULTIPLE_COMPRESS_COMPRESS )
-    {
-      (void) strncpy( cat_file_name, statistic.login_path, l - 2 );
-      (void) strcpy( &cat_file_name[l - 2], "*" );
-        
-      /* cat TAR_FILE.X* | uncompress | gtar tvf - : Now using 7z command */
-    
-      (void) sprintf( command_line, "%s %s | %s -so x %s | %s", 
-		      CAT,
-		      cat_file_name,
-		      UNCOMPRESS, /* UNCOMPRESS is now 7z -so x */
-		      ERR_TO_STDOUT,
-		      TARLIST
-		    );
-    }
-    else if( file_method == GZIP_COMPRESS )
-    {
-      /* gunzip < TAR_FILE | gtar tvf - : Now using 7z command */
-    
-      (void) sprintf( command_line, "%s < '%s' %s | %s", 
-		      GNUUNZIP, /* GNUUNZIP is now 7z -so x */
-		      statistic.login_path,
-		      ERR_TO_STDOUT,
-		      TARLIST
-		    );
-    }
-    else if( file_method == MULTIPLE_GZIP_COMPRESS )
-    {
-      (void) strncpy( cat_file_name, statistic.login_path, l - 2 );
-      (void) strcpy( &cat_file_name[l - 2], "*" );
-        
-      /* cat TAR_FILE.X* | gunzip | gtar tvf - : Now using 7z command */
-    
-      (void) sprintf( command_line, "%s %s | %s < '%s' %s | %s", 
-		      CAT,
-		      cat_file_name,
-		      GNUUNZIP, /* GNUUNZIP is now 7z -so x */
-		      statistic.login_path,
-		      ERR_TO_STDOUT,
-		      TARLIST
-		    );
-    }
-    else if( file_method == BZIP_COMPRESS )
-    {
-      /* bunzip2 < TAR_FILE | gtar tvf - : Now using 7z command */
-    
-      (void) sprintf( command_line, "%s < '%s' %s | %s", 
-		      BUNZIP, /* BUNZIP is now 7z -so x */
-		      statistic.login_path,
-		      ERR_TO_STDOUT,
-		      TARLIST
-		    );
-    }
-    else if( file_method == ZSTD_COMPRESS )
-    {
-      /* zstdcat < TAR_FILE | gtar tvf - */
-    
-      (void) sprintf( command_line, "%s < '%s' %s | %s", 
-		      ZSTDCAT, 
-		      statistic.login_path,
-		      ERR_TO_STDOUT,
-		      TARLIST
-		    );
-    }
-    else if( file_method == LZIP_COMPRESS )
-    {
-      /* lzip -dc < TAR_FILE | gtar tvf - */
-    
-      (void) sprintf( command_line, "%s < '%s' %s | %s", 
-		      LUNZIP, 
-		      statistic.login_path,
-		      ERR_TO_STDOUT,
-		      TARLIST
-		    );
-    }
-    else if( file_method == NO_COMPRESS )
-    {
-      /* NO_COMPRESS */
-
-      /* gtar tvf - < TAR_FILE */
-    
-      (void) sprintf( command_line, "%s < '%s'", 
-		      TARLIST,
-		      statistic.login_path
-		    );
-    }
-    else if( file_method == TAPE_DIR_FREEZE_COMPRESS )
-    {
-      /* melt < TAR_FILE */
-    
-      (void) sprintf( command_line, "%s < '%s'", 
-		      MELT, 
-		      statistic.login_path
-		    );
-    }
-    else if( file_method == TAPE_DIR_COMPRESS_COMPRESS )
-    {
-      /* uncompress < TAR_FILE: Now using 7z command */
-    
-      (void) sprintf( command_line, "%s < '%s'", 
-		      UNCOMPRESS, /* UNCOMPRESS is now 7z -so x */
-		      statistic.login_path
-		    );
-    }
-    else if( file_method == TAPE_DIR_GZIP_COMPRESS )
-    {
-      /* gunzip < TAR_FILE: Now using 7z command */
-    
-      (void) sprintf( command_line, "%s < '%s'", 
-		      GNUUNZIP, /* GNUUNZIP is now 7z -so x */
-		      statistic.login_path
-		    );
-    }
-    else if( file_method == TAPE_DIR_BZIP_COMPRESS )
-    {
-      /* bunzip2 < TAR_FILE: Now using 7z command */
-    
-      (void) sprintf( command_line, "%s < '%s'", 
-		      BUNZIP, /* BUNZIP is now 7z -so x */
-		      statistic.login_path
-		    );
-    }
-    else if( file_method == TAPE_DIR_NO_COMPRESS )
-    {
-      /* cat < TAR_FILE */
-    
-      (void) sprintf( command_line, "%s < '%s'", 
-		      CAT,
-		      statistic.login_path
-		    );
-    }
-    else
-    {
-      (void) sprintf( message, "unknown file_method %d", file_method );
-      ERROR_MSG( message );
-      *command_line = '\0';
-      close( p[0] );
-      close( p[1] );
-      return( -1 );
-    }
-    
-    (void) strcat( command_line, ERR_TO_NULL );
-
-#ifdef DEBUG
-  fprintf( stderr, "system( \"%s\" )\n", command_line );
+    UnmapNoticeWindow();
+#else
+    /* This fallback can be removed once libarchive is a hard dependency */
+    ERROR_MSG("Archive support not compiled.*Please install libarchive-dev*and recompile ytree.");
+    result = -1;
 #endif
 
-    pid = fork();
-
-    if( pid == -1 )
-    {
-      ERROR_MSG( "can't fork()" );
-      (void) close( p[0] );
-      (void) close( p[1] );
-      return( -1 );
-    }
-    else if( pid == 0 )
-    {
-      /* Sohn */
-      /*------*/
- 
-      (void) close( p[0] );
-      (void) close( 1 );
-      if(dup( p[1] ) == -1)
-      {
-	/* (void) fprintf(stderr, "dup failed\n" ); */
-      }
-      (void) close( p[1] );
-
-      if( result == 0 && SilentSystemCallEx( command_line, FALSE ) )
-      {
-        result = 1;
-	/* (void) fprintf(stderr, "system(%s)*failed\n", command_line ); */
-      }
-      exit( result );
-    }
-    else
-    {
-      /* Vater */
-      /*-------*/
-
-      (void) close( p[1] );
-      status = 0;
-
-      if( ( f = fdopen( p[0], "r" ) ) == NULL )
-      {
-	ERROR_MSG( "fdopen failed" );
-	return( -1 );
-      }
-      
-      /* Use the single dispatcher function */
-      if (ReadTreeFromArchive(statistic.tree, f, mode))
-      {
-          ERROR_MSG("ReadTreeFromArchive Failed");
-          (void)fclose(f);
-          (void)wait(&status);
-          return(-1);
-      }
-      
-      (void) wait( &status );
-      if(status)
-      {
-        sprintf( message, "ReadTreeFromArchive failed*can't execute*%s", command_line );
-        MESSAGE( message );
-      }
-      (void) fclose( f );
-    }
   }
   else
   {
@@ -551,7 +264,7 @@ int LoginDisk(char *path)
   (void) SetFileSpec( statistic.file_spec );
 /*  SetKindOfSort( statistic.kind_of_sort ); */
   
-  return( 0 );
+  return( result );
 }
 
 

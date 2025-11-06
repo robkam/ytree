@@ -931,7 +931,8 @@ void DisplayFileWindow(DirEntry *dir_entry)
 {
   GetMaxYX( file_window, &window_height, &window_width );
   BuildFileEntryList( dir_entry );
-  DisplayFiles( dir_entry, dir_entry->start_file, 
+  DisplayFiles( dir_entry, 
+		dir_entry->start_file, 
                 dir_entry->start_file + dir_entry->cursor_pos, 0);
 }
 
@@ -1319,7 +1320,6 @@ int HandleFileWindow(DirEntry *dir_entry)
   DirEntry  *dest_dir_entry;
   WalkingPackage walking_package;
   int ch;
-  int tmp2;
   int unput_char;
   int list_pos;
   LONGLONG file_size;
@@ -1956,101 +1956,43 @@ int HandleFileWindow(DirEntry *dir_entry)
 			break;
 		      }
 
-		      if( mode == DISK_MODE || mode == USER_MODE )
-		      {
-                        if( (tmp2 = GetDirEntry( statistic.tree,
-				         de_ptr, 
-				         to_dir, 
-				         &dest_dir_entry, 
-				         to_path 
-				       )) == -3)
-                        {
-                        }
-                        else if (tmp2 != 0)
-		        {
-			  /* beep(); */
-			  break;
-		        }
-		        
-		        if( !CopyFile( &statistic,
-				       fe_ptr, 
-				       TRUE, 
-				       to_file, 
-				       dest_dir_entry,
-				       to_path,
-				       path_copy
-				     ) )
-		        {
-			  /* File wurde kopiert */
-			  /*--------------------*/
-                         
-                          DisplayAvailBytes();		       
-		  	
-			  if( dest_dir_entry )
-			  {
-			    /* Ziel befindet sich im SUB-Tree */
-			    /*--------------------------------*/
-			    
-			    if( dir_entry->global_flag ) 
-			      DisplayDiskStatistic();
-			    else              
-			      DisplayDirStatistic( de_ptr );
-		  	
-			    if( dest_dir_entry == de_ptr ) 
-			    {
-			      /* Ziel ist aktuelles Verzeichnis */
-			      /*--------------------------------*/
-  
-			      BuildFileEntryList( dir_entry );
-		          
-			      DisplayFiles( dir_entry, 
-					    dir_entry->start_file, 
-					    dir_entry->start_file + dir_entry->cursor_pos,
-					    start_x
-				          );
-			    }
-			  }
-		        }
-		      }
-		      else
-		      {
-			/* TAR_FILE_MODE */
-			/*---------------*/
-                      
-			dest_dir_entry = NULL;
+              if (mode != DISK_MODE && mode != USER_MODE) {
+                  if (realpath(to_dir, to_path) == NULL) {
+                      if (errno == ENOENT) {
+                          strcpy(to_path, to_dir);
+                      } else {
+                          (void)sprintf(message, "Invalid destination path*\"%s\"*%s", to_dir, strerror(errno));
+                          MESSAGE(message);
+                          break;
+                      }
+                  }
+                  dest_dir_entry = NULL;
+              }
+              else
+              {
+                  if( GetDirEntry( statistic.tree, de_ptr, to_dir, &dest_dir_entry, to_path ) )
+                  {
+                      break;
+                  }
+              }
 
-			if( disk_statistic.tree )
-			{
-			  if( GetDirEntry( disk_statistic.tree,
-				           de_ptr, 
-				           to_dir, 
-				           &dest_dir_entry, 
-				           to_path 
-				         ) )
-		          {
-			    beep();
-			    break;
-		          }
-		        }
-			else
-			{
-			  (void) strcpy( to_path, to_dir );
-			}
-		        if( !CopyFile( &disk_statistic,
-				       fe_ptr, 
-				       TRUE, 
-				       to_file, 
-				       dest_dir_entry,
-				       to_path,
-				       path_copy
-				     ) )
-		        {
-			  /* File wurde kopiert */
-			  /*--------------------*/
-                         
-                          DisplayAvailBytes();		       
-		        }
-		      }
+              if( !CopyFile( &statistic, fe_ptr, TRUE, to_file, dest_dir_entry, to_path, path_copy ) )
+              {
+                  DisplayAvailBytes();		       
+                  if( dest_dir_entry )
+                  {
+                      if( dir_entry->global_flag ) 
+                        DisplayDiskStatistic();
+                      else              
+                        DisplayDirStatistic( de_ptr );
+                    
+                      if( dest_dir_entry == de_ptr ) 
+                      {
+                        BuildFileEntryList( dir_entry );
+                        DisplayFiles( dir_entry, dir_entry->start_file, dir_entry->start_file + dir_entry->cursor_pos, start_x );
+                      }
+                  }
+              }
 		      break;	
 
       case 'Y' & 0x1F :
@@ -2076,18 +2018,22 @@ int HandleFileWindow(DirEntry *dir_entry)
 		        }
 
 
-			if( mode == DISK_MODE || mode == USER_MODE )
-			{
-                          if( GetDirEntry( statistic.tree,
-					   de_ptr, 
-				           to_dir, 
-				           &dest_dir_entry, 
-				           to_path 
-				         ) )
-		          {
-			    beep();
-			    break;
-		          }
+                if (mode != DISK_MODE && mode != USER_MODE) {
+                    if (realpath(to_dir, to_path) == NULL) {
+                         if (errno == ENOENT) {
+                             strcpy(to_path, to_dir);
+                         } else {
+                             (void)sprintf(message, "Invalid destination path*\"%s\"*%s", to_dir, strerror(errno));
+                             MESSAGE(message);
+                             break;
+                         }
+                    }
+                    dest_dir_entry = NULL;
+                } else {
+                    if( GetDirEntry( statistic.tree, de_ptr, to_dir, &dest_dir_entry, to_path ) ) {
+                        break;
+                    }
+                }
 	  	
 			  term = InputChoise( "Confirm overwrite existing files (Y/N) ? ", "YN\033" );
                           if( term == ESC ) 
@@ -2117,60 +2063,6 @@ int HandleFileWindow(DirEntry *dir_entry)
 					dir_entry->start_file + dir_entry->cursor_pos,
 					start_x
 				      );
-		        }
-		        else
-		        {
-			  /* TAR_FILE_MODE */
-			  /*---------------*/
-
-			  dest_dir_entry = NULL;
-
-			  if( disk_statistic.tree )
-			  {
-                            if( GetDirEntry( disk_statistic.tree,
-					     de_ptr, 
-				             to_dir, 
-				             &dest_dir_entry, 
-				             to_path 
-				           ) )
-		            {
-			      beep();
-			      break;
-		            }
-	                  }
-			  else
-			  {
-			    (void) strcpy( to_path, to_dir );
-			  }
-
-			  term = InputChoise( "Confirm overwrite existing files (Y/N) ? ", "YN\033" );
-                          if( term == ESC ) 
-		          {
-			    beep();
-			    break;
-			  }
-  
-			  walking_package.function_data.copy.statistic_ptr  = &disk_statistic;
-			  walking_package.function_data.copy.dest_dir_entry = dest_dir_entry;
-			  walking_package.function_data.copy.to_file        = to_file;
-			  walking_package.function_data.copy.to_path        = to_path;
-			  walking_package.function_data.copy.path_copy      = path_copy;
-			  walking_package.function_data.copy.confirm = (term == 'Y') ? TRUE : FALSE;
-                            
-			  WalkTaggedFiles( dir_entry->start_file, 
-					   dir_entry->cursor_pos, 
-					   CopyTaggedFiles,
-					   &walking_package
-				         );
-			    
-                          DisplayAvailBytes();		       
-			  
-			  DisplayFiles( dir_entry, 
-					dir_entry->start_file, 
-					dir_entry->start_file + dir_entry->cursor_pos,
-					start_x
-				      );
-		        }
 		      }
 		      break;
 
@@ -3146,4 +3038,4 @@ static void ListJump( DirEntry * dir_entry, char *str )
     doupdate();
     ListJump( dir_entry, (incremental) ? newStr : "" );
     free(newStr);
-}
+} 

@@ -38,11 +38,6 @@ int ViewHex(char *file_path)
 
 static int ViewHexFile(char *file_path)
 {
-#if 0
-  char *command_line;
-  int  compress_method;
-#endif
-
   int result = -1;
 
   if( access( file_path, R_OK ) )
@@ -59,72 +54,6 @@ static int ViewHexFile(char *file_path)
   InternalView(file_path);
   result = 0;
 
-#if 0 
-
-  if( ( command_line = (char *)malloc( COMMAND_LINE_LENGTH + 1 ) ) == NULL )
-  {
-    ERROR_MSG( "Malloc failed*ABORT" );
-    exit( 1 );
-  }
-
-
-  compress_method = GetFileMethod( file_path );
-
-
-  if( compress_method == FREEZE_COMPRESS )
-  {
-    (void) sprintf( command_line, 
-		    "%s < '%s' %s | %s | %s", 
-		    MELT, 
-		    file_path, 
-		    ERR_TO_STDOUT,
-		    HEXDUMP, 
-		    PAGER 
-		  );
-  }
-  else if( compress_method == COMPRESS_COMPRESS )
-  {
-    (void) sprintf( command_line, 
-		    "%s < '%s' %s | %s | %s", 
-		    UNCOMPRESS, 
-		    file_path, 
-		    ERR_TO_STDOUT,
-		    HEXDUMP, 
-		    PAGER 
-		  );
-  }
-  else if( compress_method == GZIP_COMPRESS )
-  {
-    (void) sprintf( command_line, 
-		    "%s < '%s' %s | %s | %s", 
-		    GNUUNZIP, 
-		    file_path, 
-		    ERR_TO_STDOUT,
-		    HEXDUMP, 
-		    PAGER 
-		  );
-  }
-  else
-  {
-    (void) sprintf( command_line, 
-		    "%s '%s' | %s", 
-		    HEXDUMP, 
-		    file_path, 
-		    PAGER 
-		  );
-  }
-    
-  
-  if((result = SilentSystemCall( command_line )))
-  {
-    (void) sprintf( message, "can't execute*%s", command_line );
-    MESSAGE( message );
-  }
-
-  free( command_line );
-
-#endif
-
 FNC_XIT:
 
   return( result );
@@ -134,36 +63,38 @@ FNC_XIT:
 
 static int ViewHexArchiveFile(char *file_path)
 {
-  char *command_line;
-  char *archive;
-  char buffer[80];
-  int result = -1;
+    char *archive;
+    char temp_filename[] = "/tmp/ytree_hex_XXXXXX";
+    int fd;
+    int result = -1;
 
-  if( ( command_line = (char *)malloc( COMMAND_LINE_LENGTH + 1 ) ) == NULL )
-  {
-    ERROR_MSG( "Malloc failed*ABORT" );
-    exit( 1 );
-  }
+    /* Create a temporary file to hold the extracted content */
+    fd = mkstemp(temp_filename);
+    if (fd == -1) {
+        ERROR_MSG("Could not create temporary file for hex view");
+        return -1;
+    }
 
-  (void) sprintf( buffer, "| %s | %s", HEXDUMP, PAGER );
+    archive = (mode == TAPE_MODE) ? statistic.tape_name : statistic.login_path;
 
-  archive = (mode == TAPE_MODE) ? statistic.tape_name : statistic.login_path;
+#ifdef HAVE_LIBARCHIVE
+    if (ExtractArchiveEntry(archive, file_path, fd) != 0) {
+        (void)sprintf(message, "Could not extract entry*'%s'*from archive", file_path);
+        MESSAGE(message);
+        close(fd);
+        unlink(temp_filename);
+        return -1;
+    }
+#endif
+    close(fd);
 
-  MakeExtractCommandLine( command_line, 
-			  archive,
-			  file_path, 
-			  buffer
-			);
+    /* Now call InternalView on the temporary file */
+    InternalView(temp_filename);
+    
+    result = 0;
 
-  if((result = SilentSystemCall( command_line )))
-  {
-    (void) sprintf( message, "can't execute*%s", command_line );
-    MESSAGE( message );
-  }
+    /* Clean up the temporary file */
+    unlink(temp_filename);
 
-  free( command_line );
-
-  return( result );
+    return result;
 }
-
-

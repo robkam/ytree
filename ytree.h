@@ -44,6 +44,11 @@
 #include <sys/wait.h> /* Standard POSIX for wait() */
 #include <sys/time.h> /* For setitimer (clock.c) */
 
+#ifdef HAVE_LIBARCHIVE
+#include <archive.h>
+#include <archive_entry.h>
+#endif
+
 #ifdef WITH_UTF8
 #include <wchar.h>
 #endif
@@ -703,7 +708,7 @@ extern void DisplayGlobalFileParameter(FileEntry *file_entry);
 extern void RefreshWindow(WINDOW *win);
 extern int  ReadTree(DirEntry *dir_entry, char *path, int depth);
 extern void UnReadTree(DirEntry *dir_entry);
-extern int ReadTreeFromArchive(DirEntry *dir_entry, FILE *f, int file_mode);
+extern int  ReadTreeFromArchive(DirEntry *dir_entry, const char *filename);
 extern int  GetDiskParameter(char *path, 
 			     char *volume_name, 
 			     LONGLONG *avail_bytes,
@@ -806,7 +811,7 @@ extern char *FormFilename(char *dest, char *src, unsigned int max_len);
 extern char *CutFilename(char *dest, char *src, unsigned int max_len);
 extern char *CutPathname(char *dest, char *src, unsigned int max_len);
 extern void   Fnsplit(char *path, char *dir, char *name);
-extern void MakeExtractCommandLine(char *command_line, char *path, char *file, char *cmd);
+extern int  ExtractArchiveEntry(const char *archive_path, const char *entry_path, int out_fd);
 extern int MakeDirectory(DirEntry *father_dir_entry);
 extern int TryInsertArchiveDirEntry(DirEntry *tree, char *dir, struct stat *stat);
 extern int InsertArchiveFileEntry(DirEntry *tree, char *path, struct stat *stat);

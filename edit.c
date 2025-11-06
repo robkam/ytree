@@ -59,7 +59,7 @@ int Edit(DirEntry * dir_entry, char *file_path)
     --crb3 01oct02: move getcwd operation within the IF DISKMODE stuff.
   */                                                                              
 
-  if (mode == DISK_MODE)
+  if (mode == DISK_MODE || mode == USER_MODE)
   {
     if (getcwd(cwd, PATH_LENGTH) == NULL)
     {

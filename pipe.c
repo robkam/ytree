@@ -17,23 +17,12 @@ int Pipe(DirEntry *dir_entry, FileEntry *file_entry)
 {
   static char input_buffer[PATH_LENGTH + 3] = "| ";
   char file_name_path[PATH_LENGTH+1];
-  char file_name_p_aux[PATH_LENGTH+1];
-  char *command_line;
-  char *archive;
   char cwd[PATH_LENGTH+1];
   char path[PATH_LENGTH+1];
-  int  result;
-
-  result = -1;
-
-  if( ( command_line = (char *)malloc( COMMAND_LINE_LENGTH + 1 ) ) == NULL )
-  {
-    ERROR_MSG( "Malloc failed*ABORT" );
-    exit( 1 );
-  }
-
+  int  result = -1;
+  FILE *pipe_fp;
+  
   (void) GetRealFileNamePath( file_entry, file_name_path );
-  (void) StrCp( file_name_p_aux, file_name_path);
   
   ClearHelp();
 
@@ -47,44 +36,57 @@ int Pipe(DirEntry *dir_entry, FileEntry *file_entry)
       WARNING( "getcwd failed*\".\"assumed" );
       (void) strcpy( cwd, "." );
     }
-
+    
     (void) GetPath( dir_entry, path );
-      
+
+    /* Suspend curses to allow external command to run correctly */
+    endwin();
+    SuspendClock();
+
+    pipe_fp = popen(&input_buffer[2], "w");
+    if (pipe_fp == NULL) {
+        (void)sprintf(message, "Could not execute pipe command*\"%s\"*%s", &input_buffer[2], strerror(errno));
+        InitClock(); /* Restores screen */
+        MESSAGE(message);
+        return -1;
+    }
 
     if( mode == DISK_MODE || mode == USER_MODE )
     {
-      /* Kommandozeile zusammenbasteln */
-      /*-------------------------------*/
-  
-      (void) sprintf( command_line, "%s %s %s", 
-				    CAT, 
-				    file_name_p_aux, 
-				    input_buffer 
-		    );
+        int in_fd;
+        char buffer[4096];
+        ssize_t bytes_read;
+        in_fd = open(file_name_path, O_RDONLY);
+        if (in_fd != -1) {
+            while ((bytes_read = read(in_fd, buffer, sizeof(buffer))) > 0) {
+                if (fwrite(buffer, 1, bytes_read, pipe_fp) < bytes_read) {
+                    /* Handle pipe write error */
+                    break; 
+                }
+            }
+            close(in_fd);
+        }
     }
     else
     {
       /* TAR/ZOO/7z/ISO/ZIP_FILE_MODE */
       /*------------------------------*/
-
-      archive = (mode == TAPE_MODE) ? statistic.tape_name : statistic.login_path;
-
-      MakeExtractCommandLine( command_line,
-			      archive,
-                              file_name_p_aux,
-			      input_buffer
-			    );
-
+#ifdef HAVE_LIBARCHIVE
+        char *archive = (mode == TAPE_MODE) ? statistic.tape_name : statistic.login_path;
+        ExtractArchiveEntry(archive, file_name_path, fileno(pipe_fp));
+#endif
     }
-    refresh();
-    result = QuerySystemCall( command_line );
+    
+    result = pclose(pipe_fp);
+    
+    /* Let user see output, then restore screen */
+    HitReturnToContinue();
+    InitClock();
   }
   else
   {
     move( LINES - 2, 1 ); clrtoeol();
   }
-
-  free( command_line );
 
   return( result );
 }

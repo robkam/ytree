@@ -230,43 +230,54 @@ FNC_XIT:
 
 static int ViewArchiveFile(char *file_path)
 {
-  char *command_line, *aux;
-  char buffer[100];
-  char *archive;
-  int  result = -1;
+    char *command_line;
+    char *archive;
+    char *pager_cmd;
+    FILE *pipe_fp;
+    int result = -1;
 
-  if( ( command_line = malloc( COMMAND_LINE_LENGTH + 1 ) ) == NULL )
-  {
-    ERROR_MSG( "Malloc failed*ABORT" );
-    exit( 1 );
-  }
+    pager_cmd = PAGER;
+    if (pager_cmd == NULL || *pager_cmd == '\0') {
+        pager_cmd = "cat"; /* Failsafe */
+    }
 
-  if (( aux = GetExtViewer(file_path)) != NULL) {
-     if (strstr(aux,"%s") != NULL) {
-    (void) sprintf( buffer, "| %s", PAGER );
-     } else {
-    (void) sprintf( buffer, "| %s", aux ); /* maybe pipe-able */
-     }
-  } else {
-    (void) sprintf( buffer, "| %s", PAGER );
-  }
+    if ((command_line = malloc(strlen(pager_cmd) + 1)) == NULL) {
+        ERROR_MSG("Malloc failed*ABORT");
+        exit(1);
+    }
+    strcpy(command_line, pager_cmd);
 
-  archive = (mode == TAPE_MODE) ? statistic.tape_name : statistic.login_path;
+    /* Use SystemCall to handle screen clearing/restoration */
+    endwin();
+    SuspendClock();
 
-  MakeExtractCommandLine( command_line, 
-              archive,
-              file_path, 
-              buffer
-            );
-  if((result = SystemCall( command_line )))
-  {
-    (void) sprintf( message, "can't execute*%s", command_line );
-    MESSAGE( message );
-  }
+    pipe_fp = popen(command_line, "w");
+    if (pipe_fp == NULL) {
+        (void)sprintf(message, "Could not execute pager*\"%s\"*%s", command_line, strerror(errno));
+        free(command_line);
+        InitClock(); /* Restores screen */
+        MESSAGE(message);
+        return -1;
+    }
+    
+    archive = (mode == TAPE_MODE) ? statistic.tape_name : statistic.login_path;
 
-  free( command_line );
+#ifdef HAVE_LIBARCHIVE
+    ExtractArchiveEntry(archive, file_path, fileno(pipe_fp));
+#endif
 
-  return( result );
+    result = pclose(pipe_fp);
+
+    free(command_line);
+    HitReturnToContinue();
+    InitClock();
+
+    if (result != 0) {
+        (void)sprintf(message, "Pager command failed for file*%s", file_path);
+        WARNING(message);
+    }
+    
+    return result;
 }
 
 

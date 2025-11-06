@@ -42,15 +42,24 @@ int CopyFile(Statistic *statistic_ptr,
 
   (void) GetRealFileNamePath( fe_ptr, from_path );
   (void) GetPath(fe_ptr->dir_entry, from_dir);
-
-  *to_path = '\0';
-  if( strcmp( to_dir_path, FILE_SEPARATOR_STRING ) )
-  {
-    /* not ROOT */
-    /*----------*/
-
-    (void) strcat( to_path, to_dir_path );
+  
+  if (mode != DISK_MODE && mode != USER_MODE) {
+      /* When copying FROM an archive, the destination is always a real path. */
+      /* We bypass GetDirEntry and construct the path directly. */
+      strcpy(to_path, to_dir_path);
+      dest_dir_entry = NULL; /* Destination is not in the virtual tree */
+      path_copy = FALSE; /* Path copy is meaningless from a virtual path */
+  } else {
+      *to_path = '\0';
+      if( strcmp( to_dir_path, FILE_SEPARATOR_STRING ) )
+      {
+        /* not ROOT */
+        /*----------*/
+        (void) strcat( to_path, to_dir_path );
+      }
   }
+
+
   if( path_copy )
   {
     (void) GetPath( fe_ptr->dir_entry, &to_path[strlen(to_path)] );
@@ -90,7 +99,7 @@ int CopyFile(Statistic *statistic_ptr,
         }
         if (MakePath(statistic_ptr->tree, to_path, &dest_dir_entry ) )
         {
-                closedir(tmpdir);
+                if(tmpdir) closedir(tmpdir);
                 (void) sprintf( message, 
                                 "Can't create path*\"%s\"*%s", 
                                 to_path, 
@@ -112,6 +121,7 @@ int CopyFile(Statistic *statistic_ptr,
         return ( result );
      }
   }
+  if (tmpdir) closedir(tmpdir);
   (void) strcat( to_path, to_file );
 
 
@@ -396,41 +406,30 @@ int CopyTaggedFiles(FileEntry *fe_ptr, WalkingPackage *walking_package)
 
 static int CopyArchiveFile(char *to_path, char *from_path)
 {
-  char *command_line;
-  char buffer[PATH_LENGTH + 3];
-  char from_p_aux[PATH_LENGTH + 1];
-  char to_p_aux[PATH_LENGTH + 1];
-  char *archive;
+  int out_fd;
   int result = -1;
+  char *archive_path;
 
-  if( ( command_line = (char *)malloc( COMMAND_LINE_LENGTH + 1 ) ) == NULL )
-  {
-    ERROR_MSG( "Malloc failed*ABORT" );
-    exit( 1 );
+  archive_path = (mode == TAPE_MODE) ? statistic.tape_name : statistic.login_path;
+
+  out_fd = open(to_path, O_WRONLY | O_CREAT | O_TRUNC, 0666);
+  if (out_fd == -1) {
+    (void)sprintf(message, "Can't create destination file*\"%s\"*%s", to_path, strerror(errno));
+    MESSAGE(message);
+    return -1;
+  }
+  
+#ifdef HAVE_LIBARCHIVE
+  result = ExtractArchiveEntry(archive_path, from_path, out_fd);
+#endif
+  
+  close(out_fd);
+
+  if (result != 0) {
+    (void)sprintf(message, "Can't copy file*%s*to file*%s", from_path, to_path);
+    WARNING(message);
+    unlink(to_path); /* Clean up partial file on failure */
   }
 
-  (void) StrCp( to_p_aux, to_path );
-  (void) sprintf( buffer, "> %s", to_p_aux );
-
-  archive = (mode == TAPE_MODE) ? statistic.tape_name : statistic.login_path;
-
-  (void) StrCp( from_p_aux, from_path);
-  MakeExtractCommandLine( command_line,
-			  archive,
-                          from_p_aux,
-			  buffer
-			);
-
-  result = SilentSystemCall( command_line );
-
-  free( command_line );
-
-  if( result )
-  {
-    (void) sprintf( message, "can't copy file*%s*to file*%s", from_p_aux, to_p_aux );
-    WARNING( message );
-  }
-  return( result );
+  return result;
 }
-
-
