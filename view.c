@@ -230,53 +230,74 @@ FNC_XIT:
 
 static int ViewArchiveFile(char *file_path)
 {
-    char *command_line;
+    char temp_filename[] = "/tmp/ytree_view_XXXXXX";
+    int fd;
     char *archive;
-    char *pager_cmd;
-    FILE *pipe_fp;
+    char *command_line = NULL;
+    char *file_p_aux = NULL;
+    char *aux;
     int result = -1;
 
-    pager_cmd = PAGER;
-    if (pager_cmd == NULL || *pager_cmd == '\0') {
-        pager_cmd = "cat"; /* Failsafe */
-    }
-
-    if ((command_line = malloc(strlen(pager_cmd) + 1)) == NULL) {
-        ERROR_MSG("Malloc failed*ABORT");
-        exit(1);
-    }
-    strcpy(command_line, pager_cmd);
-
-    /* Use SystemCall to handle screen clearing/restoration */
-    endwin();
-    SuspendClock();
-
-    pipe_fp = popen(command_line, "w");
-    if (pipe_fp == NULL) {
-        (void)sprintf(message, "Could not execute pager*\"%s\"*%s", command_line, strerror(errno));
-        free(command_line);
-        InitClock(); /* Restores screen */
-        MESSAGE(message);
+    /* 1. Create a temporary file to hold the extracted content */
+    fd = mkstemp(temp_filename);
+    if (fd == -1) {
+        ERROR_MSG("Could not create temporary file for view");
         return -1;
     }
-    
+
+    /* 2. Extract the archive entry to the temporary file */
     archive = (mode == TAPE_MODE) ? statistic.tape_name : statistic.login_path;
-
 #ifdef HAVE_LIBARCHIVE
-    ExtractArchiveEntry(archive, file_path, fileno(pipe_fp));
+    if (ExtractArchiveEntry(archive, file_path, fd) != 0) {
+        (void)sprintf(message, "Could not extract entry*'%s'*from archive", file_path);
+        MESSAGE(message);
+        close(fd);
+        unlink(temp_filename);
+        return -1;
+    }
 #endif
+    close(fd); /* Close the file descriptor, the file now has content */
 
-    result = pclose(pipe_fp);
+    /* 3. Build the view command, same logic as ViewFile, but using temp_filename */
+    if ((command_line = malloc(COMMAND_LINE_LENGTH + 1)) == NULL) {
+        ERROR_MSG("Malloc failed*ABORT");
+        unlink(temp_filename);
+        exit(1);
+    }
+    if ((file_p_aux = malloc(COMMAND_LINE_LENGTH + 1)) == NULL) {
+        ERROR_MSG("Malloc failed*ABORT");
+        free(command_line);
+        unlink(temp_filename);
+        exit(1);
+    }
+    StrCp(file_p_aux, temp_filename);
 
-    free(command_line);
-    HitReturnToContinue();
-    InitClock();
-
-    if (result != 0) {
-        (void)sprintf(message, "Pager command failed for file*%s", file_path);
-        WARNING(message);
+    /* Use the original file_path to check for custom viewers by extension */
+    if ((aux = GetExtViewer(file_path)) != NULL) {
+        if (strstr(aux, "%s") != NULL) {
+            (void)sprintf(command_line, aux, file_p_aux);
+        } else {
+            (void)sprintf(command_line, "%s %s", aux, file_p_aux);
+        }
+    } else {
+        /* No custom viewer, fall back to pager.
+         * The content is already decompressed by libarchive, so we just use PAGER. */
+        (void)sprintf(command_line, "%s %s", PAGER, file_p_aux);
     }
     
+    /* 4. Execute the command */
+    result = SystemCall(command_line);
+
+    if (result != 0) {
+        (void)sprintf(message, "can't execute*%s", command_line);
+        MESSAGE(message);
+    }
+
+    /* 5. Clean up */
+    free(command_line);
+    free(file_p_aux);
+    unlink(temp_filename);
+
     return result;
 }
 
@@ -308,9 +329,9 @@ static void printhexline(WINDOW *win, char *line, char *buf, int r, long offset)
         return;
     }
     if(hexoffset) {
-      sprintf(line, "%010X  ", (int)offset);
+      sprintf(line, "%010lX  ", offset);
     } else {
-      sprintf(line, "%010d  ", (int)offset);
+      sprintf(line, "%010ld  ", offset);
     }
     for (int i = 1; i <= r; i++ ) 
     {
