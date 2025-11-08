@@ -273,29 +273,63 @@ int LoginDisk(char *path)
 
 int GetNewLoginPath(char *path)
 {
-  int result;
-  char *cptr;
-  char aux[PATH_LENGTH * 2 + 1]= "";
-  
-  result = -1;
+    int result;
+    char *cptr;
+    char user_input[PATH_LENGTH * 2 + 1] = "";
+    char current_dir_path[PATH_LENGTH + 1];
 
-  ClearHelp();
+    result = -1;
 
-  MvAddStr( LINES - 2, 1, "NEW LOGIN-PATH:" );
+    ClearHelp();
 
-  strcpy(aux,path);
-  if( mode == LL_FILE_MODE && *path == '<' )
-  {
-    for( cptr = aux; (*cptr = *(cptr + 1)); cptr++ ) 
-      ;
-    if( aux[strlen(aux) - 1] == '>' ) aux[strlen(aux) - 1 ] = '\0';
-  }
+    MvAddStr(LINES - 2, 1, "NEW LOGIN-PATH:");
 
-  if( InputString( aux, LINES - 2, 17, 0, COLS - 18, "\r\033" ) == CR )
-  {
-    NormPath(aux, path);
-    result = 0;
-  }
- 
-return( result );
+    /* Save the current directory context and set it as default for user input */
+    strcpy(current_dir_path, path);
+    strcpy(user_input, path);
+
+    if (mode == LL_FILE_MODE && *path == '<') {
+        for (cptr = user_input; (*cptr = *(cptr + 1)); cptr++);
+        if (user_input[strlen(user_input) - 1] == '>')
+            user_input[strlen(user_input) - 1] = '\0';
+    }
+
+    if (InputString(user_input, LINES - 2, 17, 0, COLS - 18, "\r\033") == CR) {
+        /*
+         * NOTE: The size of temp_path has been increased to prevent potential
+         * buffer overflows identified by the -Wformat-truncation compiler warning.
+         * The new size accounts for the worst-case concatenation of a base path,
+         * a path separator, and the user's input string.
+         */
+        char temp_path[PATH_LENGTH * 3 + 2];
+        char resolved_path[PATH_LENGTH + 1];
+
+        /* InputString expands '~', so check if the result is an absolute path. */
+        if (user_input[0] != FILE_SEPARATOR_CHAR) {
+            /* It's a relative path. Construct the full path to be resolved. */
+            if (strcmp(current_dir_path, FILE_SEPARATOR_STRING) == 0) {
+                snprintf(temp_path, sizeof(temp_path), "/%s", user_input);
+            } else {
+                snprintf(temp_path, sizeof(temp_path), "%s/%s", current_dir_path, user_input);
+            }
+        } else {
+            /* It's an absolute path. */
+            strcpy(temp_path, user_input);
+        }
+
+        /*
+         * Use realpath() to resolve '..' and '.' components. This is robust.
+         * If it fails, it could be because the path does not exist (e.g.,
+         * logging into a non-existent path for an archive). In that case,
+         * fall back to the pure string-based NormPath.
+         */
+        if (realpath(temp_path, resolved_path) != NULL) {
+            strcpy(path, resolved_path);
+        } else {
+            NormPath(temp_path, path);
+        }
+        result = 0;
+    }
+
+    return (result);
 }

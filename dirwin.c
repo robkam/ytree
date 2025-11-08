@@ -1016,7 +1016,11 @@ int HandleDirWindow(DirEntry *start_dir_entry)
       case CR :      HandleSwitchWindow(dir_entry, start_dir_entry, &need_dsp_help, &ch);
 		     break;
       case 'X':
-      case 'x':      (void) Execute( dir_entry, NULL );
+      case 'x':      if (mode != DISK_MODE && mode != USER_MODE) {
+			 beep();
+		     } else {
+			 (void) Execute( dir_entry, NULL );
+		     }
 		     need_dsp_help = TRUE;
 		     DisplayAvailBytes();
 		     break;
@@ -1104,10 +1108,13 @@ int HandleDirWindow(DirEntry *start_dir_entry)
 #ifndef VI_KEYS
       case 'l':
 #endif /* VI_KEYS */
-      case 'L':      if( mode != DISK_MODE && mode != USER_MODE ) 
-		       (void) strcpy( new_login_path, disk_statistic.login_path );
-		     else
+      case 'L':      if( mode != DISK_MODE && mode != USER_MODE ) {
+			 if (getcwd(new_login_path, sizeof(new_login_path)) == NULL) {
+			     strcpy(new_login_path, ".");
+			 }
+		     } else {
 		       (void) GetPath( dir_entry, new_login_path );
+		     }
 		     if( !GetNewLoginPath( new_login_path ) )
 		     {
 		       DisplayMenu();
@@ -1119,36 +1126,6 @@ int HandleDirWindow(DirEntry *start_dir_entry)
       case 'L' & 0x1F:
 		     clearok( stdscr, TRUE );
 		     break;
-
-      case 'P':    /* press 'p' or 'P' to log parent of current root */
-      case 'p':
-
-                MoveHome(&dir_entry);
-          	(void) GetPath(dir_entry, new_login_path);
-
-          	/*  char *p; defined before this current switch */
-          	if((p = strrchr(new_login_path, FILE_SEPARATOR_CHAR)) == NULL)
-              	  break;
-
-          	/*  p is now pointing to rightmost file separator */
-          	/*  in new_login_path, just truncate this path */
-
-          	*p='\0';
-
-          	/*  rightmost slash was first and only character? */
-          	if(!strlen(new_login_path))
-          	{
-              	  new_login_path[0]=FILE_SEPARATOR_CHAR;
-              	  new_login_path[1]='\0';
-          	}
-
-          	/* following needed to ignore old tree in memory */
-          	*disk_statistic.login_path = '\0';
-
-          	(void) LoginDisk(new_login_path);
-          	need_dsp_help = TRUE;
-          	return ch; 
-
       default :      beep();
 		     break;
     } /* switch */

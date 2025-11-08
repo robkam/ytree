@@ -21,24 +21,34 @@ static Extension2Method file_extensions[] = FILE_EXTENSIONS;
 
 char *GetPath(DirEntry *dir_entry, char *buffer)
 {
+  char *components[256];
+  int i, depth = 0;
   DirEntry *de_ptr;
-  char     help_buffer[PATH_LENGTH + 1];
 
   *buffer = '\0';
-
-  for( de_ptr = dir_entry; de_ptr; de_ptr = de_ptr->up_tree )
-  {
-    *help_buffer = '\0';
-    if( de_ptr->up_tree ) (void) strcat( help_buffer, FILE_SEPARATOR_STRING );
-    if( strcmp( de_ptr->name, FILE_SEPARATOR_STRING ) )
-      (void) strcat( help_buffer, de_ptr->name );
-    (void) strcat( help_buffer, buffer );
-    (void) strcpy( buffer, help_buffer );
+  if (dir_entry == NULL) {
+    return buffer;
   }
 
-  /* if( *buffer == '\0' ) (void) strcpy( buffer, FILE_SEPARATOR_STRING ); */
+  /* Collect path components in reverse order (from leaf to root) */
+  for (de_ptr = dir_entry; de_ptr != NULL && depth < 256; de_ptr = de_ptr->up_tree) {
+    components[depth++] = de_ptr->name;
+  }
 
-  return( buffer );
+  if (depth > 0) {
+    /* The last component collected is the root. Start the path with it. */
+    strcpy(buffer, components[depth - 1]);
+
+    /* Append the rest of the components in correct order */
+    for (i = depth - 2; i >= 0; i--) {
+      /* Add separator if the current path is not just the root "/" */
+      if (strcmp(buffer, FILE_SEPARATOR_STRING) != 0) {
+        strcat(buffer, FILE_SEPARATOR_STRING);
+      }
+      strcat(buffer, components[i]);
+    }
+  }
+  return buffer;
 }
 
 

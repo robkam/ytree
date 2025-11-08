@@ -1,15 +1,15 @@
-#include "ytree.h"
-#ifdef READLINE_SUPPORT
-#include <readline/tilde.h>
-#endif
-
-
 /***************************************************************************
  * InputStr                                                                *
  * Liest eine Zeichenkette an Position (y,x) mit der max. Laenge length    *
  * Vorschlagswert fuer die Eingabe ist s selbst                            *
  * Zurueckgegeben wird das Zeichen, mit dem die Eingabe beendet wurde      *
  ***************************************************************************/
+ 
+ 
+#include "ytree.h"
+#ifdef READLINE_SUPPORT
+#include <readline/tilde.h>
+#endif
 
 
 /* Wrapper function to satisfy tputs(..., int (*putc_func)(int)) signature */
@@ -596,7 +596,7 @@ void HitReturnToContinue(void)
   (void) fflush( stdout );
   
   /* Wait for key press */
-  (void) Getch();
+  (void) getchar();
   
   /* Reset all attributes in the terminal using tgetstr/tputs */
   /* This is necessary because the prompt was printed outside of curses mode */

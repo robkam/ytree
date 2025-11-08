@@ -17,8 +17,6 @@ int Pipe(DirEntry *dir_entry, FileEntry *file_entry)
 {
   static char input_buffer[PATH_LENGTH + 3] = "| ";
   char file_name_path[PATH_LENGTH+1];
-  char cwd[PATH_LENGTH+1];
-  char path[PATH_LENGTH+1];
   int  result = -1;
   FILE *pipe_fp;
   
@@ -31,14 +29,6 @@ int Pipe(DirEntry *dir_entry, FileEntry *file_entry)
   {
     move( LINES - 2, 1 ); clrtoeol();
     
-    if( getcwd( cwd, PATH_LENGTH ) == NULL )
-    {
-      WARNING( "getcwd failed*\".\"assumed" );
-      (void) strcpy( cwd, "." );
-    }
-    
-    (void) GetPath( dir_entry, path );
-
     /* Suspend curses to allow external command to run correctly */
     endwin();
     SuspendClock();
@@ -46,7 +36,9 @@ int Pipe(DirEntry *dir_entry, FileEntry *file_entry)
     pipe_fp = popen(&input_buffer[2], "w");
     if (pipe_fp == NULL) {
         (void)sprintf(message, "Could not execute pipe command*\"%s\"*%s", &input_buffer[2], strerror(errno));
-        InitClock(); /* Restores screen */
+        /* Restore screen before showing message */
+        clearok(stdscr, TRUE);
+        refresh();
         MESSAGE(message);
         return -1;
     }
@@ -81,7 +73,8 @@ int Pipe(DirEntry *dir_entry, FileEntry *file_entry)
     
     /* Let user see output, then restore screen */
     HitReturnToContinue();
-    InitClock();
+    clearok(stdscr, TRUE);
+    refresh();
   }
   else
   {
