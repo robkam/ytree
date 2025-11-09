@@ -2551,7 +2551,7 @@ int HandleFileWindow(DirEntry *dir_entry)
 		      }
 		      else if( mode != DISK_MODE && mode != USER_MODE )
 		      {
-			MESSAGE( "I am sorry*^X not supported in Archive-mode" );
+			MESSAGE( "^X not supported in Archive-mode" );
 		      }
 		      else
 		      {
