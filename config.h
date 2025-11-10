@@ -16,6 +16,8 @@
 #define DEFAULT_FILE2         NULL
 
 #define DEFAULT_HEXEDITOFFSET "HEX"
+#define DEFAULT_AUDIBLEERROR  "1"
+#define DEFAULT_CONFIRMQUIT   "0"
 
 
 /* UNIX-Kommandos */

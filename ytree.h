@@ -288,7 +288,9 @@
 #define FILE2           GetProfileValue( "FILE2" )
 #define SEARCHCOMMAND   GetProfileValue( "SEARCHCOMMAND" )
 #define HEXEDITOFFSET   GetProfileValue( "HEXEDITOFFSET" )
-#define LISTJUMPSEARCH  GetProfileValue( "LISTJUMPSEARCH" ) 
+#define LISTJUMPSEARCH  GetProfileValue( "LISTJUMPSEARCH" )
+#define AUDIBLEERROR    GetProfileValue( "AUDIBLEERROR" )
+#define CONFIRMQUIT     GetProfileValue( "CONFIRMQUIT" )
 
 #define DEFAULT_TREE       "."
 
