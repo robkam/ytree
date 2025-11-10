@@ -423,4 +423,3 @@ void RefreshWindow(WINDOW *win)
 {
 	wnoutrefresh(win);
 }
-	
