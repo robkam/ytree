@@ -316,44 +316,10 @@ Refresh Screen
 \fB\-Return\fR
 Switch to Expand-Modus
 .PP
-ytree switches to archive-modus automatically either by
-choosing an archive file with the \fILog\fR command or
-by calling ytree from the command line with an archive file
-given as a command line argument.
-
-ytree recognize the filename extensions ".F", ".Z", ".z" and
-".gz" and calls the appropriate uncompressor MELT 
-(default=melt), UNCOMPRESS (default=uncompress) and GNUUNZIP
-(default=gunzip \-c). You may change these settings in ~/.ytree.
-
-ytree supports following archive types and requires:
-.nf
-.RS
-.sp 1
-\fB  TAR-Files: gtar     (tested with GNU-TAR 1.12)\fR
-\fB  ARC-Files: arc      (tested with arc 5.12 02/05/86)\fR
-\fB  LHA-Files: xlharc   (tested with xlharc V1.02 1989)\fR
-\fB  ZIP-Files: unzip    (tested with unzip v5.0 08/92)\fR
-\fB  "   "      zipinfo  (tested with zipinfo v1.0 08/92)\fR
-\fB  ZOO-Files: zoo      (tested with zoo v2.10)\fR
-\fB  RAR-Files: unrar    (tested with unrar v2.01\fR
-\fB  RPM-Files: rpm2cpio (tested with RedHat V6.1)\fR
-\fB  "   "      rpm      (tested with RedHat V6.1)\fR
-.fi
-.RE
-
-Archive files will be recognized by filename extension (e.g zoo, zip).
-TAR-Files may have following extensions:
-.nf 
-.RS
-.sp 1
-\fB  ".F", ".TFR", ".Faa",                            (freeze)\fR
-\fB  ".Z", ".TZ", ".TZR", ".Xaa",                   (compress)\fR
-\fB  ".z", ".gz", ".tzr", ".tz", ".xaa", ".tgz", ".TGZ",\fR
-\fB  ".taz", ".TAZ", ".tpz" und ".TPZ"                  (gzip)\fR
-.fi
-.RE
-
+ytree switches to archive-modus automatically by choosing an archive file with
+the \fILog\fR command or by calling ytree from the command line with an archive
+file given as a command line argument. It uses the libarchive library to read
+a wide variety of archive and compression formats.
 
 The View command is customizeable in the [VIEWER] section of ~/.ytree:
 

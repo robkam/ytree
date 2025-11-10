@@ -552,30 +552,6 @@ int InputChoise(char *msg, char *term)
 
 
 
-int GetTapeDeviceName( void )
-{
-  int  result;
-  char path[PATH_LENGTH * 2 +1];
-
-  result = -1;
-
-  ClearHelp();
-
-  (void) strcpy( path, statistic.tape_name );
-
-  MvAddStr( LINES - 2, 1, "Tape-Device:" );
-  if( InputString( path, LINES - 2, 14, 0, COLS - 15, "\r\033" ) == CR )
-  {
-    result = 0;
-    (void) strcpy( statistic.tape_name, path );
-  }
-
-  move( LINES - 2, 1 ); clrtoeol();
-
-  return( result );
-}
-
-
 void HitReturnToContinue(void)
 {
   /* Fix: Use term_putc callback to satisfy tputs signature and reset terminal attributes after endwin() */

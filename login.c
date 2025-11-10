@@ -45,8 +45,7 @@ static void DeleteTree(DirEntry *tree)
 int LoginDisk(char *path)
 {
   struct stat stat_struct;
-  int    file_method = 0;
-  int    depth, l = 0;
+  int    depth;
   int    result = 0;
 
   if( STAT_( path, &stat_struct ) )
@@ -146,7 +145,6 @@ int LoginDisk(char *path)
   (void) strcpy( statistic.path, path );
   (void) strcpy( statistic.login_path, path );
   (void) strcpy( statistic.file_spec, DEFAULT_FILE_SPEC );
-  (void) strcpy( statistic.tape_name, DEFAULT_TAPEDEV );
   statistic.kind_of_sort = SORT_BY_NAME + SORT_ASC;
   (void) memcpy( &statistic.tree->stat_struct, &stat_struct, sizeof( stat_struct ) );
   
@@ -157,31 +155,7 @@ int LoginDisk(char *path)
     (void) memset( (char *) &statistic.tree->stat_struct, 0, sizeof( struct stat ) );
     statistic.tree->stat_struct.st_mode = S_IFDIR;
     statistic.disk_total_directories = 1;
-
-    /* No Directory ==> TAR_FILE/RPM/ZOO/ZIP/LHA/ARC_FILE */
-    /*----------------------------------------------------*/
-
-    file_method = GetFileMethod( statistic.login_path );
-    l = strlen( statistic.login_path );
-
-    switch( file_method )
-    {
-      case ZOO_COMPRESS:         mode = ZOO_FILE_MODE; break;
-      case ARC_COMPRESS:         mode = ARC_FILE_MODE; break;
-      case LHA_COMPRESS:         mode = LHA_FILE_MODE; break;
-      case ZIP_COMPRESS:         mode = ZIP_FILE_MODE; break;
-      case SEVENZIP_COMPRESS:    mode = SEVENZIP_FILE_MODE; break;
-      case ISO_COMPRESS:         mode = ISO_FILE_MODE; break;
-      case RPM_COMPRESS:         mode = RPM_FILE_MODE; break;
-      case RAR_COMPRESS:         mode = RAR_FILE_MODE; break;
-      case TAPE_DIR_NO_COMPRESS:
-      case TAPE_DIR_COMPRESS_COMPRESS:
-      case TAPE_DIR_FREEZE_COMPRESS:
-      case TAPE_DIR_GZIP_COMPRESS:
-      case TAPE_DIR_BZIP_COMPRESS:
-                                 mode = TAPE_MODE;     break;
-      default:                   mode = TAR_FILE_MODE; break;
-    }
+    mode = ARCHIVE_MODE;
   }
   else if (IsUserActionDefined())
   {
@@ -205,19 +179,7 @@ int LoginDisk(char *path)
   doupdate();
 
 
-  if( mode == TAPE_MODE )
-  {
-    /* zugehoeriges tape-device ermitteln */
-    /*------------------------------------*/
-
-    if( GetTapeDeviceName() )
-    {
-      return( -1 );
-    }
-  }
-
-
-  if( mode != DISK_MODE && mode != USER_MODE)
+  if( mode == ARCHIVE_MODE)
   {
     (void) strcpy( statistic.tree->name, path );
    
@@ -230,7 +192,6 @@ int LoginDisk(char *path)
     }
     UnmapNoticeWindow();
 #else
-    /* This fallback can be removed once libarchive is a hard dependency */
     ERROR_MSG("Archive support not compiled.*Please install libarchive-dev*and recompile ytree.");
     result = -1;
 #endif

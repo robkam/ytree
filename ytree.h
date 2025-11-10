@@ -256,28 +256,10 @@
 #define GNUUNZIP        GetProfileValue( "GNUUNZIP" )
 #define BUNZIP          GetProfileValue( "BUNZIP" )
 #define MANROFF         GetProfileValue( "MANROFF" )
-#define TARLIST         GetProfileValue( "TARLIST" )
-#define TAREXPAND       GetProfileValue( "TAREXPAND" )
-#define RPMLIST         GetProfileValue( "RPMLIST" )
-#define RPMEXPAND       GetProfileValue( "RPMEXPAND" )
-#define ZOOLIST         GetProfileValue( "ZOOLIST" )
-#define ZOOEXPAND       GetProfileValue( "ZOOEXPAND" )
-#define ZIPLIST         GetProfileValue( "ZIPLIST" )
-#define ZIPEXPAND       GetProfileValue( "ZIPEXPAND" )
-#define SEVENZIPLIST    GetProfileValue( "7zLIST" )
-#define SEVENZIPEXPAND  GetProfileValue( "7zEXPAND" )
-#define ISOLIST         GetProfileValue( "ISOLIST" )
-#define ISOEXPAND       GetProfileValue( "ISOEXPAND" )
 #define ZSTDCAT         GetProfileValue( "ZSTDCAT" )
-#define LHALIST         GetProfileValue( "LHALIST" )
-#define LHAEXPAND       GetProfileValue( "LHAEXPAND" )
-#define ARCLIST         GetProfileValue( "ARCLIST" )
-#define ARCEXPAND       GetProfileValue( "ARCEXPAND" )
 #define LUNZIP          GetProfileValue( "LUNZIP" )
 #define TREEDEPTH       GetProfileValue( "TREEDEPTH" )
 #define USERVIEW        GetProfileValue( "USERVIEW" )
-#define RARLIST         GetProfileValue( "RARLIST" )
-#define RAREXPAND       GetProfileValue( "RAREXPAND" )
 #define FILEMODE        GetProfileValue( "FILEMODE" )
 #define NUMBERSEP       GetProfileValue( "NUMBERSEP" )
 #define NOSMALLWINDOW   GetProfileValue( "NOSMALLWINDOW" )
@@ -300,98 +282,19 @@
 #define MESSAGE( msg )     Message( msg ) 
 
 #define TAGGED_SYMBOL       '*'
-#define MAX_MODES            13
+#define MAX_MODES            4
 #define DISK_MODE            0
-#define LL_FILE_MODE         1
-#define TAR_FILE_MODE        2
-#define ZOO_FILE_MODE        3
-#define ZIP_FILE_MODE        4
-#define SEVENZIP_FILE_MODE   5
-#define ISO_FILE_MODE        6
-#define LHA_FILE_MODE        7
-#define ARC_FILE_MODE        8
-#define RPM_FILE_MODE        9
-#define RAR_FILE_MODE        10
-#define TAPE_MODE            11
-#define USER_MODE            12 
+#define LL_FILE_MODE         1 /* Legacy, may be removed */
+#define ARCHIVE_MODE         2
+#define USER_MODE            3
 
-#define NO_COMPRESS                 0
+/* Obsolete compression method definitions removed */
 #define FREEZE_COMPRESS             1
-#define MULTIPLE_FREEZE_COMPRESS    2
 #define COMPRESS_COMPRESS           3
-#define MULTIPLE_COMPRESS_COMPRESS  4
 #define GZIP_COMPRESS               5
 #define BZIP_COMPRESS               6
-#define MULTIPLE_GZIP_COMPRESS      7
-#define ZOO_COMPRESS                8
-#define LHA_COMPRESS                9
-#define ARC_COMPRESS                10
-#define ZIP_COMPRESS                11
-#define SEVENZIP_COMPRESS           12
-#define ISO_COMPRESS                13
-#define RPM_COMPRESS                14
-#define TAPE_DIR_NO_COMPRESS        15
-#define TAPE_DIR_FREEZE_COMPRESS    16
-#define TAPE_DIR_COMPRESS_COMPRESS  17
-#define TAPE_DIR_GZIP_COMPRESS      18
-#define TAPE_DIR_BZIP_COMPRESS	    19
-#define RAR_COMPRESS                20
 #define LZIP_COMPRESS               21
 #define ZSTD_COMPRESS               22
-
-#define FILE_EXTENSIONS  {                                           \
-			   { ".TAP", TAPE_DIR_NO_COMPRESS },         \
-			   { ".tap", TAPE_DIR_NO_COMPRESS },         \
-			   { ".TAP.F", TAPE_DIR_FREEZE_COMPRESS },   \
-			   { ".tap.F", TAPE_DIR_FREEZE_COMPRESS },   \
-			   { ".TAP.Z", TAPE_DIR_COMPRESS_COMPRESS }, \
-			   { ".tap.Z", TAPE_DIR_COMPRESS_COMPRESS }, \
-			   { ".TAP.z", TAPE_DIR_GZIP_COMPRESS },     \
-			   { ".tap.z", TAPE_DIR_GZIP_COMPRESS },     \
-			   { ".tap.gz", TAPE_DIR_GZIP_COMPRESS },    \
-			   { ".tap.bz2", TAPE_DIR_BZIP_COMPRESS },   \
-			   { ".TAP.BZ2", TAPE_DIR_BZIP_COMPRESS },   \
-			   { ".F",   FREEZE_COMPRESS },              \
-			   { ".TFR", FREEZE_COMPRESS },              \
-			   { ".Faa", MULTIPLE_FREEZE_COMPRESS },     \
-			   { ".Z",   COMPRESS_COMPRESS },            \
-			   { ".TZ",  COMPRESS_COMPRESS },            \
-			   { ".TZR", COMPRESS_COMPRESS },            \
-			   { ".Xaa", MULTIPLE_COMPRESS_COMPRESS },   \
-			   { ".bz2", BZIP_COMPRESS },                \
-			   { ".z",   GZIP_COMPRESS },                \
-			   { ".gz",  GZIP_COMPRESS },                \
-			   { ".tz",  GZIP_COMPRESS },                \
-			   { ".tzr", GZIP_COMPRESS },                \
-			   { ".tgz", GZIP_COMPRESS },                \
-			   { ".TGZ", GZIP_COMPRESS },                \
-			   { ".taz", GZIP_COMPRESS },                \
-			   { ".TAZ", GZIP_COMPRESS },                \
-			   { ".tpz", GZIP_COMPRESS },                \
-			   { ".TPZ", GZIP_COMPRESS },                \
-			   { ".xaa", MULTIPLE_GZIP_COMPRESS },       \
-			   { ".zoo", ZOO_COMPRESS },                 \
-			   { ".ZOO", ZOO_COMPRESS },                 \
-			   { ".lzh", LHA_COMPRESS },                 \
-			   { ".LZH", LHA_COMPRESS },                 \
-			   { ".arc", ARC_COMPRESS },                 \
-			   { ".ARC", ARC_COMPRESS },                 \
-			   { ".rar", RAR_COMPRESS },                 \
-			   { ".RAR", RAR_COMPRESS },                 \
-			   { ".jar", ZIP_COMPRESS },                 \
-			   { ".zip", ZIP_COMPRESS },                 \
-			   { ".ZIP", ZIP_COMPRESS },                 \
-			   { ".JAR", ZIP_COMPRESS },                 \
-			   { ".rpm", RPM_COMPRESS },                 \
-			   { ".RPM", RPM_COMPRESS },                 \
-			   { ".spm", RPM_COMPRESS },                 \
-			   { ".SPM", RPM_COMPRESS },                 \
-			   { ".lz",  LZIP_COMPRESS },                \
-			   { ".7z",  SEVENZIP_COMPRESS },            \
-			   { ".iso", ISO_COMPRESS },                 \
-			   { ".zst", ZSTD_COMPRESS }                 \
-			 }
-
 
 #define SORT_BY_NAME       1
 #define SORT_BY_MOD_TIME   2
@@ -422,8 +325,6 @@
 #define CHGTIME_VIEWNAME	"sct"
 
 
-#define BLKSIZ             512  /* Blockgroesse fuer SVR3 (REMOVED) */
-
 #define CLOCK_INTERVAL	   1
 
 #define FILE_SEPARATOR_CHAR   '/'
@@ -436,8 +337,6 @@
 #define LF         10
 #define ESC        27
 #define LOGIN_ESC  '.'
-
-/* SGI_CR and QUICK_BAUD_RATE/ttydev removed */
 
 #define QUICK_BAUD_RATE      9600
 
@@ -487,14 +386,6 @@
 #define PATH_LENGTH            1024
 #define FILE_SPEC_LENGTH       (12 + 1)
 #define DISK_NAME_LENGTH       (12 + 1)
-#define LL_LINE_LENGTH         512
-#define TAR_LINE_LENGTH        512
-#define RPM_LINE_LENGTH        512
-#define ZOO_LINE_LENGTH        512
-#define ZIP_LINE_LENGTH        512
-#define LHA_LINE_LENGTH        512
-#define ARC_LINE_LENGTH        512
-#define RAR_LINE_LENGTH        512
 #define MESSAGE_LENGTH         (PATH_LENGTH + 80 + 1)
 #define COMMAND_LINE_LENGTH    4096
 #define MODE_1                 0
@@ -592,7 +483,6 @@ typedef struct
   int           kind_of_sort;
   char          login_path[PATH_LENGTH + 1];
   char          path[PATH_LENGTH + 1];
-  char          tape_name[PATH_LENGTH + 1];
   char          file_spec[FILE_SPEC_LENGTH + 1];
   char          disk_name[DISK_NAME_LENGTH + 1];
 } Statistic;
@@ -825,7 +715,6 @@ extern int  GetFileMethod( char *filename );
 extern int  AixWgetch( WINDOW *w );
 extern BOOL KeyPressed(void);
 extern BOOL EscapeKeyPressed(void);
-extern int  GetTapeDeviceName(void);
 extern int  MakePath( DirEntry *tree, char *dir_path, DirEntry **dest_dir_entry );
 extern int  MakeDirEntry( DirEntry *father_dir_entry, char *dir_name );
 extern void NormPath( char *in_path, char *out_path );

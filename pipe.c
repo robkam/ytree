@@ -61,10 +61,10 @@ int Pipe(DirEntry *dir_entry, FileEntry *file_entry)
     }
     else
     {
-      /* TAR/ZOO/7z/ISO/ZIP_FILE_MODE */
-      /*------------------------------*/
+      /* ARCHIVE_MODE */
+      /*--------------*/
 #ifdef HAVE_LIBARCHIVE
-        char *archive = (mode == TAPE_MODE) ? statistic.tape_name : statistic.login_path;
+        char *archive = statistic.login_path;
         ExtractArchiveEntry(archive, file_name_path, fileno(pipe_fp));
 #endif
     }

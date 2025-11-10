@@ -54,10 +54,6 @@ static Filemenu filemenu;
 
 /* must be sorted! */
 static Profile profile[] = { 
-  { "7zEXPAND",       DEFAULT_7zEXPAND,      NULL,     NULL },
-  { "7zLIST",       	DEFAULT_7zLIST,        NULL,     NULL },
-  { "ARCEXPAND",    	DEFAULT_ARCEXPAND,     NULL,     NULL },
-  { "ARCLIST",      	DEFAULT_ARCLIST,       NULL,     NULL },
   { "AUDIBLEERROR", 	DEFAULT_AUDIBLEERROR,  NULL, NULL },
   { "BUNZIP",       	DEFAULT_BUNZIP,        NULL,     NULL },
   { "CAT",          	DEFAULT_CAT,           NULL,     NULL },
@@ -72,10 +68,6 @@ static Profile profile[] = {
   { "HEXDUMP",      	DEFAULT_HEXDUMP,       NULL,     NULL },
   { "HEXEDITOFFSET",	DEFAULT_HEXEDITOFFSET, NULL,     NULL },
   { "INITIALDIR",   	DEFAULT_INITIALDIR,    NULL,     NULL },
-  { "ISOEXPAND",      DEFAULT_ISOEXPAND,     NULL,     NULL },
-  { "ISOLIST",       	DEFAULT_ISOLIST,       NULL,     NULL },
-  { "LHAEXPAND",    	DEFAULT_LHAEXPAND,     NULL,     NULL },
-  { "LHALIST",      	DEFAULT_LHALIST,       NULL,     NULL },
   { "LISTJUMPSEARCH", DEFAULT_LISTJUMPSEARCH,NULL,     NULL },
   { "LUNZIP",         DEFAULT_LUNZIP,        NULL,     NULL },
   { "MANROFF",      	DEFAULT_MANROFF,       NULL,     NULL },
@@ -83,21 +75,10 @@ static Profile profile[] = {
   { "NOSMALLWINDOW",	DEFAULT_NOSMALLWINDOW, NULL,     NULL },
   { "NUMBERSEP",    	DEFAULT_NUMBERSEP,     NULL,     NULL },
   { "PAGER",        	DEFAULT_PAGER,        "PAGER",  NULL },
-  { "RAREXPAND",    	DEFAULT_RAREXPAND,     NULL,     NULL },
-  { "RARLIST",      	DEFAULT_RARLIST,       NULL,     NULL },
-  { "RPMEXPAND",    	DEFAULT_RPMEXPAND,     NULL,     NULL },
-  { "RPMLIST",      	DEFAULT_RPMLIST,       NULL,     NULL },
   { "SEARCHCOMMAND",	DEFAULT_SEARCHCOMMAND, NULL,     NULL },
-  { "TAPEDEV",      	DEFAULT_TAPEDEV,       "TAPE",   NULL },
-  { "TAREXPAND",    	DEFAULT_TAREXPAND,     NULL,     NULL },
-  { "TARLIST",      	DEFAULT_TARLIST,       NULL,     NULL },
   { "TREEDEPTH",    	DEFAULT_TREEDEPTH,     NULL,     NULL },
   { "UNCOMPRESS",   	DEFAULT_UNCOMPRESS,    NULL,     NULL },
   { "USERVIEW",     	"",                    NULL,     NULL },
-  { "ZIPEXPAND",    	DEFAULT_ZIPEXPAND,     NULL,     NULL },
-  { "ZIPLIST",      	DEFAULT_ZIPLIST,       NULL,     NULL },
-  { "ZOOEXPAND",    	DEFAULT_ZOOEXPAND,     NULL,     NULL },
-  { "ZOOLIST",      	DEFAULT_ZOOLIST,       NULL,     NULL },
   { "ZSTDCAT",      	DEFAULT_ZSTDCAT,       NULL,     NULL }
 };
 

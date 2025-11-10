@@ -68,44 +68,8 @@ static char *dir_help[MAX_MODES][2] =
       "DIR       (F)ilespec (L)ogin (S)howall (T)ag (U)ntag (^F) dirmode  (Q)uit                 ",
       "COMMANDS                                                                    "
     },
-    { /* TAR_FILE_MODE */
-      "TAR-DIR   (F)ilespec (L)og (S)howall (T)ag (U)ntag (^F) dirmode  (Q)uit                 ",
-      "COMMANDS                                                                    "
-    },
-    { /* ZOO_FILE_MODE */
-      "ZOO-DIR   (F)ilespec (L)og (S)howall (T)ag (U)ntag (^F) dirmode  (Q)uit                 ",
-      "COMMANDS                                                                    "
-    },
-    { /* ZIP_FILE_MODE */
-      "ZIP-DIR   (F)ilespec (L)og (S)howall (T)ag (U)ntag (^F) dirmode  (Q)uit                 ",
-      "COMMANDS                                                                    "
-    },
-    { /* SEVENZIP_FILE_MODE */
-      "7z-DIR    (F)ilespec (L)og (S)howall (T)ag (U)ntag (^F) dirmode  (Q)uit                 ",
-      "COMMANDS                                                                    "
-    },
-    { /* ISO_FILE_MODE */
-      "ISO-DIR   (F)ilespec (L)og (S)howall (T)ag (U)ntag (^F) dirmode  (Q)uit                 ",
-      "COMMANDS                                                                    "
-    },
-    { /* LHA_FILE_MODE */
-      "LHA-DIR   (F)ilespec (L)og (S)howall (T)ag (U)ntag (^F) dirmode  (Q)uit                 ",
-      "COMMANDS                                                                    "
-    },
-    { /* ARC_FILE_MODE */
-      "ARC-DIR   (F)ilespec (L)og (S)howall (T)ag (U)ntag (^F) dirmode  (Q)uit                 ",
-      "COMMANDS                                                                    "
-    },
-    { /* RPM_FILE_MODE */
-      "RPM-DIR   (F)ilespec (L)og (S)howall (T)ag (U)ntag (^F) dirmode  (Q)uit                 ",
-      "COMMANDS                                                                    "
-    },
-    { /* RAR_FILE_MODE */
-      "RAR-DIR   (F)ilespec (L)og (S)howall (T)ag (U)ntag (^F) dirmode  (Q)uit                 ",
-      "COMMANDS                                                                    "
-    },
-    { /* TAPE_MODE */
-      "TAPE-DIR  (F)ilespec (L)og (S)howall (T)ag (U)ntag (^F) dirmode  (Q)uit                 ",
+    { /* ARCHIVE_MODE */
+      "ARCHIVE   (F)ilespec (L)og (S)howall (T)ag (U)ntag (^F) dirmode  (Q)uit                 ",
       "COMMANDS                                                                    "
     },
     { /* USER_MODE */
@@ -127,44 +91,8 @@ static char *file_help[MAX_MODES][2] =
       "FILE      (F)ilespec (L)ogin (S)ort (T)ag (U)ntag (^F)ilemode      (Q)uit                ",
       "COMMANDS                                                                   "
     },
-    { /* TAR_FILE_MODE */
-      "TAR-FILE  (C)opy (F)ilespec (H)ex (P)ipe (S)ort (T)ag (U)ntag (V)iew pathcop(Y) (Q)uit         ",
-      "COMMANDS  (^F)ilemode                                                        "
-    },
-    { /* ZOO_FILE_MODE */
-      "ZOO-FILE  (C)opy (F)ilespec (H)ex (P)ipe (S)ort (T)ag (U)ntag (V)iew pathcop(Y) (Q)uit         ",
-      "COMMANDS  (^F)ilemode                                                        "
-    },
-    { /* ZIP_FILE_MODE */
-      "ZIP-FILE  (C)opy (F)ilespec (H)ex (P)ipe (S)ort (T)ag (U)ntag (V)iew pathcop(Y) (Q)uit         ",
-      "COMMANDS  (^F)ilemode                                                        "
-    },
-    { /* SEVENZIP_FILE_MODE */
-      "7z-FILE   (C)opy (F)ilespec (H)ex (P)ipe (S)ort (T)ag (U)ntag (V)iew pathcop(Y) (Q)uit         ",
-      "COMMANDS  (^F)ilemode                                                        "
-    },
-    { /* ISO_FILE_MODE */
-      "ISO-FILE  (C)opy (F)ilespec (H)ex (P)ipe (S)ort (T)ag (U)ntag (V)iew pathcop(Y) (Q)uit         ",
-      "COMMANDS  (^F)ilemode                                                        "
-    },
-    { /* LHA_FILE_MODE */
-      "LHA-FILE  (C)opy (F)ilespec (H)ex (P)ipe (S)ort (T)ag (U)ntag (V)iew pathcop(Y) (Q)uit         ",
-      "COMMANDS  (^F)ilemode                                                        "
-    },
-    { /* ARC_FILE_MODE */
-      "ARC-FILE  (C)opy (F)ilespec (H)ex (P)ipe (S)ort (T)ag (U)ntag (V)iew pathcop(Y) (Q)uit         ",
-      "COMMANDS  (^F)ilemode                                                        "
-    },
-    { /* RPM_FILE_MODE */
-      "RPM-FILE  (C)opy (F)ilespec (H)ex (P)ipe (S)ort (T)ag (U)ntag (V)iew pathcop(Y) (Q)uit         ",
-      "COMMANDS  (^F)ilemode                                                        "
-    },
-    { /* RAR_FILE_MODE */
-      "RAR-FILE  (C)opy (F)ilespec (H)ex (P)ipe (S)ort (T)ag (U)ntag (V)iew pathcop(Y) (Q)uit         ",
-      "COMMANDS  (^F)ilemode                                                        "
-    },
-    { /* TAPE_MODE */
-      "TAPE-FILE (C)opy (F)ilespec (H)ex (P)ipe (S)ort (T)ag (U)ntag (V)iew pathcop(Y) (Q)uit         ",
+    { /* ARCHIVE_MODE */
+      "ARCH-FILE (C)opy (F)ilespec (H)ex (P)ipe (S)ort (T)ag (U)ntag (V)iew pathcop(Y) (Q)uit         ",
       "COMMANDS  (^F)ilemode                                                        "
     },
     { /* USER_MODE */

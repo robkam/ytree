@@ -20,15 +20,7 @@ int ViewHex(char *file_path)
   {
     case DISK_MODE :
     case USER_MODE :     return( ViewHexFile( file_path ) );
-    case TAPE_MODE : 
-    case RPM_FILE_MODE : 
-    case TAR_FILE_MODE : 
-    case ZOO_FILE_MODE :
-    case ZIP_FILE_MODE :
-    case SEVENZIP_FILE_MODE :
-    case ISO_FILE_MODE :
-    case LHA_FILE_MODE :
-    case ARC_FILE_MODE : return( ViewHexArchiveFile( file_path ) );
+    case ARCHIVE_MODE :  return( ViewHexArchiveFile( file_path ) );
     default:             beep(); return( -1 );
   }
 }
@@ -75,7 +67,7 @@ static int ViewHexArchiveFile(char *file_path)
         return -1;
     }
 
-    archive = (mode == TAPE_MODE) ? statistic.tape_name : statistic.login_path;
+    archive = statistic.login_path;
 
 #ifdef HAVE_LIBARCHIVE
     if (ExtractArchiveEntry(archive, file_path, fd) != 0) {

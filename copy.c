@@ -410,7 +410,7 @@ static int CopyArchiveFile(char *to_path, char *from_path)
   int result = -1;
   char *archive_path;
 
-  archive_path = (mode == TAPE_MODE) ? statistic.tape_name : statistic.login_path;
+  archive_path = statistic.login_path;
 
   out_fd = open(to_path, O_WRONLY | O_CREAT | O_TRUNC, 0666);
   if (out_fd == -1) {

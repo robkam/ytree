@@ -16,7 +16,16 @@ typedef struct
 
 
 
-static Extension2Method file_extensions[] = FILE_EXTENSIONS;
+static Extension2Method file_extensions[] = {
+    { ".F",   FREEZE_COMPRESS },
+    { ".Z",   COMPRESS_COMPRESS },
+    { ".z",   GZIP_COMPRESS },
+    { ".gz",  GZIP_COMPRESS },
+    { ".tgz", GZIP_COMPRESS },
+    { ".bz2", BZIP_COMPRESS },
+    { ".lz",  LZIP_COMPRESS },
+    { ".zst", ZSTD_COMPRESS }
+};
 
 
 char *GetPath(DirEntry *dir_entry, char *buffer)
@@ -679,7 +688,7 @@ int GetFileMethod( char *filename )
       return( file_extensions[i].method );
   }
 
-  return( NO_COMPRESS );
+  return( 0 ); /* Using 0 for NO_COMPRESS, though constant is removed */
 }
 
 
