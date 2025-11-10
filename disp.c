@@ -65,47 +65,47 @@ static char *dir_help[MAX_MODES][2] =
       dir_help_disk_mode_1
     },
     { /* LL_FILE_MODE */
-      "DIR       (F)ilespec (L)ogin (S)howall (T)ag (U)ntag e(X)ecute   (^F) dirmode  (Q)uit       ",
+      "DIR       (F)ilespec (L)ogin (S)howall (T)ag (U)ntag (^F) dirmode  (Q)uit                 ",
       "COMMANDS                                                                    "
     },
     { /* TAR_FILE_MODE */
-      "TAR-DIR   (F)ilespec (L)og (S)howall (T)ag (U)ntag e(X)ecute   (^F) dirmode  (Q)uit         ",
+      "TAR-DIR   (F)ilespec (L)og (S)howall (T)ag (U)ntag (^F) dirmode  (Q)uit                 ",
       "COMMANDS                                                                    "
     },
     { /* ZOO_FILE_MODE */
-      "ZOO-DIR   (F)ilespec (L)og (S)howall (T)ag (U)ntag e(X)ecute   (^F) dirmode  (Q)uit         ",
+      "ZOO-DIR   (F)ilespec (L)og (S)howall (T)ag (U)ntag (^F) dirmode  (Q)uit                 ",
       "COMMANDS                                                                    "
     },
     { /* ZIP_FILE_MODE */
-      "ZIP-DIR   (F)ilespec (L)og (S)howall (T)ag (U)ntag e(X)ecute   (^F) dirmode  (Q)uit         ",
+      "ZIP-DIR   (F)ilespec (L)og (S)howall (T)ag (U)ntag (^F) dirmode  (Q)uit                 ",
       "COMMANDS                                                                    "
     },
     { /* SEVENZIP_FILE_MODE */
-      "7z-DIR    (F)ilespec (L)og (S)howall (T)ag (U)ntag e(X)ecute   (^F) dirmode  (Q)uit         ",
+      "7z-DIR    (F)ilespec (L)og (S)howall (T)ag (U)ntag (^F) dirmode  (Q)uit                 ",
       "COMMANDS                                                                    "
     },
     { /* ISO_FILE_MODE */
-      "ISO-DIR   (F)ilespec (L)og (S)howall (T)ag (U)ntag e(X)ecute   (^F) dirmode  (Q)uit         ",
+      "ISO-DIR   (F)ilespec (L)og (S)howall (T)ag (U)ntag (^F) dirmode  (Q)uit                 ",
       "COMMANDS                                                                    "
     },
     { /* LHA_FILE_MODE */
-      "LHA-DIR   (F)ilespec (L)og (S)howall (T)ag (U)ntag e(X)ecute   (^F) dirmode  (Q)uit         ",
+      "LHA-DIR   (F)ilespec (L)og (S)howall (T)ag (U)ntag (^F) dirmode  (Q)uit                 ",
       "COMMANDS                                                                    "
     },
     { /* ARC_FILE_MODE */
-      "ARC-DIR   (F)ilespec (L)og (S)howall (T)ag (U)ntag e(X)ecute   (^F) dirmode  (Q)uit         ",
+      "ARC-DIR   (F)ilespec (L)og (S)howall (T)ag (U)ntag (^F) dirmode  (Q)uit                 ",
       "COMMANDS                                                                    "
     },
     { /* RPM_FILE_MODE */
-      "RPM-DIR   (F)ilespec (L)og (S)howall (T)ag (U)ntag e(X)ecute   (^F) dirmode  (Q)uit         ",
+      "RPM-DIR   (F)ilespec (L)og (S)howall (T)ag (U)ntag (^F) dirmode  (Q)uit                 ",
       "COMMANDS                                                                    "
     },
     { /* RAR_FILE_MODE */
-      "RAR-DIR   (F)ilespec (L)og (S)howall (T)ag (U)ntag e(X)ecute   (^F) dirmode  (Q)uit         ",
+      "RAR-DIR   (F)ilespec (L)og (S)howall (T)ag (U)ntag (^F) dirmode  (Q)uit                 ",
       "COMMANDS                                                                    "
     },
     { /* TAPE_MODE */
-      "TAPE-DIR  (F)ilespec (L)og (S)howall (T)ag (U)ntag e(X)ecute   (^F) dirmode  (Q)uit         ",
+      "TAPE-DIR  (F)ilespec (L)og (S)howall (T)ag (U)ntag (^F) dirmode  (Q)uit                 ",
       "COMMANDS                                                                    "
     },
     { /* USER_MODE */
@@ -124,7 +124,7 @@ static char *file_help[MAX_MODES][2] =
       file_help_disk_mode_1
     },
     { /* LL_FILE_MODE */
-      "FILE      (F)ilespec (L)ogin (S)ort (T)ag (U)ntag e(X)ecute (^F)ilemode      (Q)uit        ",
+      "FILE      (F)ilespec (L)ogin (S)ort (T)ag (U)ntag (^F)ilemode      (Q)uit                ",
       "COMMANDS                                                                   "
     },
     { /* TAR_FILE_MODE */
@@ -140,7 +140,7 @@ static char *file_help[MAX_MODES][2] =
       "COMMANDS  (^F)ilemode                                                        "
     },
     { /* SEVENZIP_FILE_MODE */
-      "7z-FILE  (C)opy (F)ilespec (H)ex (P)ipe (S)ort (T)ag (U)ntag (V)iew pathcop(Y) (Q)uit         ",
+      "7z-FILE   (C)opy (F)ilespec (H)ex (P)ipe (S)ort (T)ag (U)ntag (V)iew pathcop(Y) (Q)uit         ",
       "COMMANDS  (^F)ilemode                                                        "
     },
     { /* ISO_FILE_MODE */
