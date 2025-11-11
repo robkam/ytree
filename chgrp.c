@@ -23,7 +23,6 @@ int ChangeFileGroup(FileEntry *fe_ptr)
 
   if( mode != DISK_MODE && mode != USER_MODE )
   {
-    beep();
     return( result );
   }
 
@@ -132,7 +131,6 @@ int ChangeDirGroup(DirEntry *de_ptr)
 
   if( mode != DISK_MODE && mode != USER_MODE )
   {
-    beep();
     return( result );
   }
 
@@ -183,6 +181,3 @@ static int SetDirGroup(DirEntry *de_ptr, int new_group_id)
  
   return( result );
 }
-
-
-

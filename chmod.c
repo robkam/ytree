@@ -24,7 +24,6 @@ int ChangeFileModus(FileEntry *fe_ptr)
   
   if( mode != DISK_MODE && mode != USER_MODE )
   {
-    beep();
     return( result );
   }
 
@@ -55,7 +54,6 @@ int ChangeDirModus(DirEntry *de_ptr)
 
   if( mode != DISK_MODE && mode != USER_MODE )
   {
-    beep();
     return( result );
   }
 
@@ -284,8 +282,3 @@ int GetModus(char *modus)
 {
   return( GetNewModus( 0, modus ) );
 }
-
-
-
-
-

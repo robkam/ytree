@@ -23,7 +23,6 @@ int ChangeFileOwner(FileEntry *fe_ptr)
 
   if( mode != DISK_MODE && mode != USER_MODE )
   {
-    beep();
     return( result );
   }
 
@@ -133,7 +132,6 @@ int ChangeDirOwner(DirEntry *de_ptr)
 
   if( mode != DISK_MODE && mode != USER_MODE )
   {
-    beep();
     return( result );
   }
 
@@ -184,7 +182,3 @@ static int SetDirOwner(DirEntry *de_ptr, int new_owner_id)
  
   return( result );
 }
-
-
-
-

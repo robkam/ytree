@@ -236,7 +236,6 @@ int GetRenameParameter(char *old_name, char *new_name)
 
   if( mode != DISK_MODE && mode != USER_MODE )
   {
-    beep();
     return( -1 );
   }
 
@@ -401,4 +400,3 @@ int RenameTaggedFiles(FileEntry *fe_ptr, WalkingPackage *walking_package)
   }
   return( result );
 }
-

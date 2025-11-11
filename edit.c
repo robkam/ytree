@@ -20,7 +20,6 @@ int Edit(DirEntry * dir_entry, char *file_path)
 
   if( mode != DISK_MODE && mode != USER_MODE )
   {
-    beep();
     return( -1 );
   }
 

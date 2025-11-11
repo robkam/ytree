@@ -62,7 +62,7 @@ int View(DirEntry * dir_entry, char *file_path)
     case DISK_MODE :
     case USER_MODE :     return( ViewFile(dir_entry, file_path ) );
     case ARCHIVE_MODE :  return( ViewArchiveFile( file_path ) );
-    default:             beep(); return( -1 );
+    default:             return( -1 );
   }
 }
 
@@ -572,7 +572,7 @@ static void change_char(int ch)
                     break;
 
                     default:
-                    beep();
+                    if (strtol(AUDIBLEERROR, NULL, 0) != 0) beep();
                     touchwin(VIEW);
                     free(cambio);
                     return;
@@ -633,12 +633,10 @@ static void move_right(WINDOW *win)
                     wmove( win, cursor_pos_y, CURSOR_POS_X);
                 }
             } else {
-                beep();
             }
         }
     } else {
         cursor_pos_x--;
-        beep();
     }
     return;
 }
@@ -791,8 +789,6 @@ static void hex_edit(char *file_path)
                             }
                         }
                     }
-                } else {
-                    beep();
                 }
                 break;
         case KEY_UP: /*ScroollUp();*/
@@ -805,9 +801,7 @@ static void hex_edit(char *file_path)
                     scroll_up(VIEW);
                     wmove( VIEW, cursor_pos_y, CURSOR_POS_X);
                     wnoutrefresh(VIEW);
-                } else {        
-                    beep();
-                }
+                }        
                 break;
         case KEY_LEFT: /* move 1 char left */
                 if ( cursor_pos_x > 0 ) {
@@ -822,8 +816,6 @@ static void hex_edit(char *file_path)
                     scroll_up(VIEW);
                     cursor_pos_x=CANTX(BYTES) - 1;
                     wmove( VIEW, cursor_pos_y, CURSOR_POS_X);
-                } else {
-                    beep();
                 }
                 wnoutrefresh(VIEW);
                 break;
@@ -832,8 +824,6 @@ static void hex_edit(char *file_path)
                     current_line -= WLINES;
                 else if (current_line > 1)
                    current_line = 1;
-                else
-                    beep();
                 update_all_lines(VIEW,WLINES);
                 wmove( VIEW, cursor_pos_y, CURSOR_POS_X);
                 wnoutrefresh(VIEW);
@@ -855,8 +845,6 @@ static void hex_edit(char *file_path)
                         current_line = n;
                         cursor_pos_y = 0;
                         for(cursor_pos_x = 0; (CURSOR_POSX + 1) < (fdstat.st_size % BYTES); cursor_pos_x++);
-                    } else {
-                        beep();
                     }
                 }
                 update_all_lines(VIEW,WLINES);
@@ -867,8 +855,6 @@ static void hex_edit(char *file_path)
                 if (CURSOR_POSX > 0) {
                     cursor_pos_x = 0;
                     wmove( VIEW, cursor_pos_y, CURSOR_POS_X);
-                } else {
-                    beep();
                 }
                 wnoutrefresh(VIEW);
                 break;
@@ -979,8 +965,6 @@ int InternalView(char *file_path)
                     {
                         current_line++;
                         scroll_down(VIEW);
-                    } else {
-                        beep();
                     }
                     break;
             case KEY_UP: /*ScroollUp();*/
@@ -988,8 +972,6 @@ int InternalView(char *file_path)
                     {
                         current_line--;
                         scroll_up(VIEW);
-                    } else {
-                        beep();
                     }
                     break;
             case KEY_LEFT:
@@ -999,8 +981,6 @@ int InternalView(char *file_path)
                     else
                     if (current_line > 1)
                         current_line = 1;
-                    else
-                        beep();
                     update_all_lines(VIEW,WLINES);
                     break;
             case KEY_RIGHT:
@@ -1016,8 +996,6 @@ int InternalView(char *file_path)
                         }
                         if(current_line != n) {
                             current_line = n;
-                        } else {
-                            beep();
                         }
                     }
                     update_all_lines(VIEW,WLINES);
@@ -1027,17 +1005,13 @@ int InternalView(char *file_path)
                     {
                         current_line = 1;
                         update_all_lines(VIEW,WLINES-1);
-                    } else {
-                        beep(); 
-                    }            
+                    }          
                     break;
             case KEY_END: /*ScrollEnd();*/
                 fstat(fd,&fdstat);
                 if (fdstat.st_size >= BYTES * 2) {
                     current_line = (fdstat.st_size - BYTES) / BYTES;
                 }
-                else
-                    beep();
                 update_all_lines(VIEW,WLINES);
                 break;
             case 'L' & 0x1f: 

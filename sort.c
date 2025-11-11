@@ -67,7 +67,7 @@ void GetKindOfSort(void)
                         RefreshWindow( stdscr );
                         doupdate();
                         break;
-                default : beep();
+                default : /* No beep for invalid keys */
                         RefreshWindow( stdscr );
                         doupdate();
                         break;
@@ -75,5 +75,3 @@ void GetKindOfSort(void)
   } while( ! strchr("ACEGMNWS", c));
   SetKindOfSort(s + order);
 }
-
-

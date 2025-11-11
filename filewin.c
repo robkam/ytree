@@ -261,7 +261,7 @@ static void SortFileEntryList(void)
     case SORT_BY_GROUP :     compare = SortByGroup; break;
     case SORT_BY_SIZE :      compare = SortBySize; break;
     case SORT_BY_EXTENSION : compare = SortByExtension; break;
-    default:                 compare = SortByName; beep();
+    default:                 compare = SortByName;
   }
 
   qsort( (char *) file_entry_list, 
@@ -987,7 +987,6 @@ static void fmovedown(int *start_file, int *cursor_pos, int *start_x, DirEntry *
    {
       /* File nicht vorhanden */
       /*----------------------*/
-      beep();
    }
    else 
    {
@@ -1030,7 +1029,6 @@ static void fmoveup(int *start_file, int *cursor_pos, int *start_x, DirEntry *di
    {
       /* File nicht vorhanden */
       /*----------------------*/
-      beep();
    }
    else
    {
@@ -1086,7 +1084,6 @@ static void fmoveright(int *start_file, int *cursor_pos, int *start_x,DirEntry *
    {
       /*letzte Position erreicht */
       /*-------------------------*/
-      beep();
    }
    else 
    {
@@ -1154,7 +1151,6 @@ static void fmoveleft(int *start_file, int *cursor_pos, int *start_x, DirEntry *
      {
          /* erste Position erreicht */
          /*-------------------------*/
-         beep();
      }
      else 
      {
@@ -1210,7 +1206,6 @@ static void fmovenpage(int *start_file, int *cursor_pos, int *start_x, DirEntry 
    {
       /*letzte Position erreicht */
       /*-------------------------*/
-      beep();
    }
    else 
    {
@@ -1267,7 +1262,6 @@ static void fmoveppage(int *start_file, int *cursor_pos, int *start_x, DirEntry 
      {
         /* erste Position erreicht */
         /*-------------------------*/
-        beep();
      }
      else 
      {
@@ -1529,8 +1523,6 @@ int HandleFileWindow(DirEntry *dir_entry)
 		      {
 			/* Letzte Position erreicht */
 			/*--------------------------*/
-			
-			beep();
 		      }
 		      else
 		      {
@@ -1557,8 +1549,6 @@ int HandleFileWindow(DirEntry *dir_entry)
 		      {
 			/* erste Position erreicht */
 			/*-------------------------*/
-
-			beep();
 		      }
 		      else 
 		      {
@@ -1593,7 +1583,6 @@ int HandleFileWindow(DirEntry *dir_entry)
       case 'A' & 0x1F :
 		      if( (mode != DISK_MODE && mode != USER_MODE) || !IsMatchingTaggedFiles() )
 		      {
-			beep();
 		      }
 		      else
 		      {
@@ -1620,10 +1609,6 @@ int HandleFileWindow(DirEntry *dir_entry)
 					start_x
 				      );
 			}  
-			else
-			{
-			  beep();
-			}
 		      }
 		      break;
 
@@ -1646,7 +1631,6 @@ int HandleFileWindow(DirEntry *dir_entry)
       case 'O' & 0x1F :
 		      if(( mode != DISK_MODE && mode != USER_MODE) || !IsMatchingTaggedFiles() )
 		      {
-			beep();
 		      }
 		      else
 		      {
@@ -1688,7 +1672,6 @@ int HandleFileWindow(DirEntry *dir_entry)
       case 'G' & 0x1F :
 		      if(( mode != DISK_MODE && mode != USER_MODE) || !IsMatchingTaggedFiles() )
 		      {
-			beep();
 		      }
 		      else
 		      {
@@ -1952,7 +1935,6 @@ int HandleFileWindow(DirEntry *dir_entry)
 
 		      if( GetCopyParameter( fe_ptr->name, path_copy, to_file, to_dir ) )
                       {
-			beep();
 			break;
 		      }
 
@@ -2005,7 +1987,6 @@ int HandleFileWindow(DirEntry *dir_entry)
 
 		      if( !IsMatchingTaggedFiles() )
 		      {
-			beep();
 		      }
 		      else
 		      {
@@ -2013,7 +1994,6 @@ int HandleFileWindow(DirEntry *dir_entry)
 		        
 			if( GetCopyParameter( NULL, path_copy, to_file, to_dir ) )
                         {
-			  beep();
 			  break;
 		        }
 
@@ -2038,7 +2018,6 @@ int HandleFileWindow(DirEntry *dir_entry)
 			  term = InputChoise( "Confirm overwrite existing files (Y/N) ? ", "YN\033" );
                           if( term == ESC ) 
 		          {
-			    beep();
 			    break;
 			  }
   
@@ -2069,7 +2048,6 @@ int HandleFileWindow(DirEntry *dir_entry)
       case 'M' :
       case 'm' :      if( mode != DISK_MODE && mode != USER_MODE )
                       {
-			beep();
 			break;
 		      }
 
@@ -2080,7 +2058,6 @@ int HandleFileWindow(DirEntry *dir_entry)
 
 		      if( GetMoveParameter( fe_ptr->name, to_file, to_dir ) )
                       {
-			beep();
 			break;
 		      }
 
@@ -2091,7 +2068,6 @@ int HandleFileWindow(DirEntry *dir_entry)
 				       to_path 
 				     ) )
 		      {
-			beep();
 			break;
 		      }
 		      
@@ -2141,7 +2117,6 @@ int HandleFileWindow(DirEntry *dir_entry)
       case 'N' & 0x1F :
 		      if(( mode != DISK_MODE && mode != USER_MODE) || !IsMatchingTaggedFiles() )
 		      {
-			beep();
 		      }
 		      else
 		      {
@@ -2149,7 +2124,6 @@ int HandleFileWindow(DirEntry *dir_entry)
 		        
 			if( GetMoveParameter( NULL, to_file, to_dir ) )
                         {
-			  beep();
 			  break;
 		        }
 
@@ -2161,14 +2135,12 @@ int HandleFileWindow(DirEntry *dir_entry)
 				         to_path 
 				       ) )
 		        {
-			  beep();
 			  break;
 		        }
 		
 			term = InputChoise( "Confirm overwrite existing files (Y/N) ? ", "YN\033" );
                         if( term == ESC ) 
 		        {
-			  beep();
 			  break;
 			}
 
@@ -2202,7 +2174,6 @@ int HandleFileWindow(DirEntry *dir_entry)
       case 'D' :
       case 'd' :      if( mode != DISK_MODE && mode != USER_MODE )
 		      {
-			beep();
 			break;
 		      }
 	              
@@ -2257,7 +2228,6 @@ int HandleFileWindow(DirEntry *dir_entry)
       case 'D' & 0x1F :
 		      if(( mode != DISK_MODE && mode != USER_MODE) || !IsMatchingTaggedFiles() )
 		      {
-			beep();
 		      }
 		      else
 		      {
@@ -2279,7 +2249,6 @@ int HandleFileWindow(DirEntry *dir_entry)
       case 'R':
       case 'r':       if( mode != DISK_MODE && mode != USER_MODE )
 		      {
-			beep();
 			break;
 		      }
 
@@ -2312,7 +2281,6 @@ int HandleFileWindow(DirEntry *dir_entry)
       case 'R' & 0x1F :
 		      if(( mode != DISK_MODE && mode != USER_MODE) || !IsMatchingTaggedFiles() )
 		      {
-			beep();
 		      }
 		      else
 		      {
@@ -2320,7 +2288,6 @@ int HandleFileWindow(DirEntry *dir_entry)
 		        
 			if( GetRenameParameter( NULL, new_name ) )
                         {
-			  beep();
 			  break;
 		        }
 
@@ -2407,7 +2374,6 @@ int HandleFileWindow(DirEntry *dir_entry)
 			}
 		        need_dsp_help = TRUE;
 		     }
-		     else beep();
 		     break;
 
       case LF:
@@ -2439,7 +2405,6 @@ int HandleFileWindow(DirEntry *dir_entry)
 
 		      if( !IsMatchingTaggedFiles() )
 		      {
-			beep();
 		      }
 		      else if( mode != DISK_MODE && mode != USER_MODE )
 		      {
@@ -2451,7 +2416,6 @@ int HandleFileWindow(DirEntry *dir_entry)
 		        
 			if( GetPipeCommand( filepath ) )
                         {
-			  beep();
 			  break;
 		        }
 
@@ -2500,7 +2464,6 @@ int HandleFileWindow(DirEntry *dir_entry)
       case 'S' & 0x1F :
                       if( !IsMatchingTaggedFiles() )
                       {
-                        beep();
                       }
 		      else if( mode != DISK_MODE && mode != USER_MODE )
 		      {
@@ -2547,7 +2510,6 @@ int HandleFileWindow(DirEntry *dir_entry)
       case 'X' & 0x1F:
 		      if( !IsMatchingTaggedFiles() )
 		      {
-			beep();
 		      }
 		      else if( mode != DISK_MODE && mode != USER_MODE )
 		      {
@@ -2636,8 +2598,7 @@ int HandleFileWindow(DirEntry *dir_entry)
         break;
 
      default:
-        beep();
-		      break;
+                      break;
     }
   } while( ch != CR && ch != ESC && ch != LOGIN_ESC );
  
@@ -2965,7 +2926,6 @@ static void ListJump( DirEntry * dir_entry, char *str )
 
     if( !isprint(ic) )
     {
-        beep();
         return;
     }
 
@@ -2985,7 +2945,6 @@ static void ListJump( DirEntry * dir_entry, char *str )
     {
         ClearHelp();
         MvAddStr( LINES - 2, 1, "Last entry!");
-        beep();
         RefreshWindow( stdscr );
         RefreshWindow( file_window );
         doupdate();
@@ -3005,7 +2964,6 @@ static void ListJump( DirEntry * dir_entry, char *str )
     {
         ClearHelp();
         MvAddStr( LINES - 2, 1, "No match!");
-        beep();
         RefreshWindow( stdscr );
         RefreshWindow( file_window );
         doupdate();
@@ -3038,4 +2996,4 @@ static void ListJump( DirEntry * dir_entry, char *str )
     doupdate();
     ListJump( dir_entry, (incremental) ? newStr : "" );
     free(newStr);
-} 
+}

@@ -20,7 +20,6 @@ int DeleteDirectory(DirEntry *dir_entry)
 
   if( mode != DISK_MODE && mode != USER_MODE )
   {
-    beep();
     return( result );
   }
 
@@ -172,4 +171,3 @@ FNC_XIT:
 
   return( result );
 }
-

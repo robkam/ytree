@@ -38,7 +38,7 @@ void Notice(char *msg)
 void Warning(char *msg)
 {
   MapErrorWindow( "W A R N I N G" );
-  (void) PrintMessage( msg, TRUE );
+  (void) PrintMessage( msg, FALSE );
 }
 
 
@@ -186,7 +186,7 @@ static int PrintMessage(char *msg, BOOL do_beep)
   int c;
   
   DisplayMessage( msg );
-  if(do_beep)
+  if(do_beep && (strtol(AUDIBLEERROR, NULL, 0) != 0))
     beep();
   RefreshWindow( error_window );
   doupdate();
@@ -195,7 +195,3 @@ static int PrintMessage(char *msg, BOOL do_beep)
   touchwin( dir_window );
   return( c );
 }
-
-
-
-

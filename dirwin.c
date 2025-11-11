@@ -340,7 +340,6 @@ static void Movedown(int *disp_begin_pos, int *cursor_pos, DirEntry **dir_entry)
    {
       /* Element nicht vorhanden */
       /*-------------------------*/
-      beep();
    }
    else
    {
@@ -395,7 +394,6 @@ static void Moveup(int *disp_begin_pos, int *cursor_pos, DirEntry **dir_entry)
    {
       /* Element nicht vorhanden */
       /*-------------------------*/
-      beep();
    }
    else
    {
@@ -451,7 +449,6 @@ static void Movenpage(int *disp_begin_pos, int *cursor_pos, DirEntry **dir_entry
    {
       /* Letzte Position */
       /*-----------------*/
-      beep();
    }
    else
    {
@@ -512,7 +509,6 @@ static void Moveppage(int *disp_begin_pos, int *cursor_pos, DirEntry **dir_entry
    {
       /* Erste Position */
       /*----------------*/
-      beep();
    }
    else
    {
@@ -577,7 +573,6 @@ static void MoveHome(DirEntry **dir_entry)
     if( statistic.disp_begin_pos == 0 && statistic.cursor_pos == 0 )
     {  /* Position 1 bereits errecht */
        /*----------------------------*/
-       beep();
     }
     else
     {
@@ -598,11 +593,9 @@ static void HandlePlus(DirEntry *dir_entry, DirEntry *de_ptr, char *new_login_pa
 		       DirEntry *start_dir_entry, BOOL *need_dsp_help)
 {
     if (mode != DISK_MODE && mode != USER_MODE) {
-        beep();
         return;
     }
     if( !dir_entry->not_scanned ) {
-        beep();
     } else {
 	for( de_ptr=dir_entry->sub_tree; de_ptr; de_ptr=de_ptr->next) {
 	    GetPath( de_ptr, new_login_path );
@@ -635,11 +628,9 @@ static void HandleUnreadSubTree(DirEntry *dir_entry, DirEntry *de_ptr,
 			 DirEntry *start_dir_entry, BOOL *need_dsp_help)
 {
     if (mode != DISK_MODE && mode != USER_MODE) {
-        beep();
         return;
     }
     if( dir_entry->not_scanned || (dir_entry->sub_tree == NULL) ) {
-	beep();
     } else {
 	for( de_ptr=dir_entry->sub_tree; de_ptr; de_ptr=de_ptr->next) {
 	    UnReadTree( de_ptr );
@@ -754,7 +745,6 @@ static void HandleShowAll(BOOL tagged_only, DirEntry *dir_entry, DirEntry *start
 	}
     } else {
 	dir_entry->login_flag = FALSE;
-	beep();
     }
     *need_dsp_help = TRUE;
     return;
@@ -795,7 +785,6 @@ static void HandleSwitchWindow(DirEntry *dir_entry, DirEntry *start_dir_entry, B
 	*need_dsp_help = TRUE;
     } else {
 	dir_entry->login_flag = FALSE;
-	beep();
     }
     return;
 }
@@ -1017,7 +1006,6 @@ int HandleDirWindow(DirEntry *start_dir_entry)
 		     break;
       case 'X':
       case 'x':      if (mode != DISK_MODE && mode != USER_MODE) {
-			 beep();
 		     } else {
 			 (void) Execute( dir_entry, NULL );
 		     }
@@ -1126,8 +1114,7 @@ int HandleDirWindow(DirEntry *start_dir_entry)
       case 'L' & 0x1F:
 		     clearok( stdscr, TRUE );
 		     break;
-      default :      beep();
-		     break;
+      default :      break;
     } /* switch */
   } while( (ch != 'q') && (ch != 'Q') && (ch != 'l') && (ch != 'L') );
   return( ch );
@@ -1223,7 +1210,6 @@ int KeyF2Get(DirEntry *start_dir_entry,
       case ' ':      break;  /* Quick-Key */
       case KEY_DOWN: if( local_disp_begin_pos + local_cursor_pos + 1 >= total_dirs )
 		     { 
-		       beep(); 
 		     }
 		     else
 		     {
@@ -1248,7 +1234,6 @@ int KeyF2Get(DirEntry *start_dir_entry,
 
       case KEY_UP  : if( local_disp_begin_pos + local_cursor_pos - 1 < 0 )
 		     { 
-		       beep(); 
 		     }
 		     else
 		     {
@@ -1274,7 +1259,6 @@ int KeyF2Get(DirEntry *start_dir_entry,
       case KEY_NPAGE:
 		     if( local_disp_begin_pos + local_cursor_pos >= total_dirs - 1 )
 		     { 
-		       beep(); 
 		     }
 		     else
 		     {
@@ -1313,7 +1297,6 @@ int KeyF2Get(DirEntry *start_dir_entry,
       case KEY_PPAGE:
 		     if( local_disp_begin_pos + local_cursor_pos <= 0 )
 		     { 
-		       beep(); 
 		     }
 		     else
 		     {
@@ -1341,7 +1324,7 @@ int KeyF2Get(DirEntry *start_dir_entry,
                      break;
 
       case KEY_HOME: if( local_disp_begin_pos == 0 && local_cursor_pos == 0 )
-		     { beep(); }
+		     { }
 		     else
 		     {
 		       local_disp_begin_pos = 0;
@@ -1366,8 +1349,7 @@ int KeyF2Get(DirEntry *start_dir_entry,
       case 'Q':
       case 'q':      break;
 
-      default :      beep();
-		     break;
+      default :      break;
     } /* switch */
   } while( (ch != 'q') && (ch != ESC) && (ch != 'Q') && (ch != CR) && (ch != -1) );
 

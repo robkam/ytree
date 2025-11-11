@@ -17,7 +17,6 @@ int MakeDirectory(DirEntry *father_dir_entry)
 
   if( mode != DISK_MODE && mode != USER_MODE )
   {
-    beep();
     return( result );
   }
 
@@ -49,7 +48,6 @@ int MakeDirEntry(DirEntry *father_dir_entry, char *dir_name )
 
   if( mode != DISK_MODE && mode != USER_MODE )
   {
-    beep();
     return( result );
   }
 
