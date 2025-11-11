@@ -57,7 +57,7 @@ Following commands are available:
 :   Untag all files in selected directory
 
 **-eXecute**
-:   Execute a shell command
+:   Execute a shell command. The `{}` placeholder is replaced by the current directory path (`.`).
 
 **-^Filemode**
 :   Change viewmodus for files:
@@ -183,11 +183,11 @@ Following commands are available:
     or - if not defined - with pg -cen
 
 **-eXecute**
-:   Execute a shell command
+:   Execute a shell command. The `{}` placeholder is replaced by the selected filename.
 
 **-e^Xecute**
 :   Execute shell command for all tagged files.
-    The string {} is replaced by the current filename
+    The string {} is replaced by each file's full path.
 
 **-pathcopY**
 :   Copy selected file inclusive path
