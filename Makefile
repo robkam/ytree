@@ -6,6 +6,7 @@
 
 
 CC          ?= cc
+PANDOC      ?= pandoc
 
 #
 # ADD_CFLAGS: Add -DVI_KEYS if you want vi-cursor-keys
@@ -17,7 +18,7 @@ ADD_CFLAGS  = # -DVI_KEYS
 
 BINDIR      = $(DESTDIR)/bin
 MANDIR      = $(DESTDIR)/share/man/man1
-MANESDIR    = $(DESTDIR)/share/man/es/man1
+MANSRC      = ytree.1.md
 
 
 # Default configuration for Linux (WSL/Ubuntu) with ncurses 6
@@ -58,7 +59,10 @@ OBJS	= archive.o archive_reader.o chgrp.o chmod.o chown.o clock.o color.o copy.o
 $(MAIN):	$(OBJS)
 	$(CC) $(LFLAGS) -o $@ $(OBJS) $(LDFLAGS)
 
-install:	$(MAIN)
+ytree.1: $(MANSRC)
+	$(PANDOC) -s -t man $(MANSRC) -o ytree.1
+
+install:	$(MAIN) ytree.1
 	if [ ! -e $(BINDIR) ]; then mkdir -p $(BINDIR); fi
 	install $(MAIN) $(BINDIR)
 	gzip -9c ytree.1 > ytree.1.gz
@@ -68,13 +72,12 @@ install:	$(MAIN)
 uninstall:	clobber
 	rm -f $(BINDIR)/$(MAIN)
 	rm -f $(MANDIR)/ytree.1.gz
-	rm -f $(MANESDIR)/ytree.1.es.gz
 
 clean:
-	rm -f core *.o *~ *.orig *.bak 
+	rm -f core *.o *~ *.orig *.bak ytree.1
 		
 clobber:	clean
-	rm -f $(MAIN) ytree.1.es.gz ytree.1.gz
+	rm -f $(MAIN) ytree.1.gz
 
 
 ##################################################
