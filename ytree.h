@@ -587,189 +587,271 @@ extern char 	 builtin_hexdump_cmd[];
 
 extern char *getenv(const char *);
 
-extern int  ytree(int argc, char *argv[]);
-extern void DisplayMenu(void);
-extern void DisplayDiskStatistic(void);
-extern void DisplayDirStatistic(DirEntry *dir_entry);
-extern void DisplayDirParameter(DirEntry *dir_entry);
-extern void DisplayDirTagged(DirEntry *dir_entry);
-extern void DisplayDiskTagged(void);
-extern void DisplayDiskName(void);
-extern void DisplayFileParameter(FileEntry *file_entry);
-extern void DisplayGlobalFileParameter(FileEntry *file_entry);
-extern void RefreshWindow(WINDOW *win);
-extern int  ReadTree(DirEntry *dir_entry, char *path, int depth);
-extern void UnReadTree(DirEntry *dir_entry);
-extern int  ReadTreeFromArchive(DirEntry *dir_entry, const char *filename);
-extern int  GetDiskParameter(char *path, 
-			     char *volume_name, 
-			     LONGLONG *avail_bytes,
-			     LONGLONG *capacity
-			    );
-extern int  HandleDirWindow(DirEntry *start_dir_entry);
-extern void DisplayFileWindow(DirEntry *dir_entry);
-extern int Init(char *configuration_file, char *history_file);
-extern char *GetPath(DirEntry *dir_entry, char *buffer);
-extern BOOL Match(char *file_name);
-extern int  SetMatchSpec(char *new_spec);
-extern int  SetFileSpec(char *file_spec);
-extern void SetMatchingParam(DirEntry *dir_entry);
-extern void Error(char *msg, char *module, int line);
-extern void Warning(char *msg);
-extern void Notice(char *msg);
-extern void AboutBox(void);
-extern void UnmapNoticeWindow(void);
-extern void SetFileMode(int new_file_mode);
-extern int  HandleFileWindow(DirEntry *dir_entry);
-extern char *GetAttributes(unsigned short modus, char *buffer);
-extern void SwitchToSmallFileWindow(void);
-extern void SwitchToBigFileWindow(void);
-extern int  ReadGroupEntries(void);
-extern char *GetGroupName(unsigned int gid);
-extern char *GetDisplayGroupName(unsigned int gid);
-extern int  GetGroupId(char *name);
-extern int  ReadPasswdEntries(void);
-extern char *GetPasswdName(unsigned int uid);
-extern char *GetDisplayPasswdName(unsigned int uid);
-extern int  GetPasswdUid(char *name);
-extern char *GetFileNamePath(FileEntry *file_entry, char *buffer);
-extern char *GetRealFileNamePath(FileEntry *file_entry, char *buffer);
-extern int  SystemCall(char *command_line);
-extern int  QuerySystemCall(char *command_line);
-extern int  SilentSystemCall(char *command_line);
-extern int  SilentSystemCallEx(char *command_line, BOOL enable_clock);
-extern int  View(DirEntry * dir_entry, char *file_path);
-extern int  ViewHex(char *file_path);
-extern int  InternalView(char *file_path);
-extern int  Edit(DirEntry * dir_entry, char *file_path);
-extern void DisplayAvailBytes(void);
-extern void DisplayFileSpec(void);
-extern void QuitTo(DirEntry * dir_entry);
-extern void Quit(void);
-extern int  ReadFileSpec(void);
-extern int  InputString(char *s, int y, int x, int cursor_pos, int length, char *term);
-extern void RotateFileMode(void);
-extern int  Execute(DirEntry *dir_entry, FileEntry *file_entry);
-extern int  Pipe(DirEntry *dir_entry, FileEntry *file_entry);
-extern int  PipeTaggedFiles(FileEntry *fe_ptr, WalkingPackage *walking_package);
-extern int  GetPipeCommand(char *pipe_command);
-extern void GetKindOfSort(void);
-extern void SetKindOfSort(int new_kind_of_sort);
-extern int  ChangeFileModus(FileEntry *fe_ptr);
-extern int  ChangeDirModus(DirEntry *de_ptr);
-extern int  GetNewFileModus(int y, int x, char *modus, char *term);
-extern int  GetModus(char *modus);
-extern int  SetFileModus(FileEntry *fe_ptr, WalkingPackage *walking_package);
-extern int  CopyTaggedFiles(FileEntry *fe_ptr, WalkingPackage *walking_package);
-extern int  CopyFile(Statistic *statistic_ptr, FileEntry *fe_ptr, unsigned char confirm, char *to_file, DirEntry *dest_dir_entry, char *to_dir_path, BOOL path_copy);
-extern int  MoveTaggedFiles(FileEntry *fe_ptr, WalkingPackage *walking_package);
-extern int  MoveFile(FileEntry *fe_ptr, unsigned char confirm, char *to_file, DirEntry *dest_dir_entry, char *to_dir_path, FileEntry **new_fe_ptr);
-extern int  InputChoise(char *msg, char *term);
-extern void Message(char *msg);
-extern int  GetDirEntry(DirEntry *tree, DirEntry *current_dir_entry, char *dir_path, DirEntry **dir_entry, char *to_path);
-extern int  GetFileEntry(DirEntry *de_ptr, char *file_name, FileEntry **file_entry);
-extern int  GetCopyParameter(char *from_file, BOOL path_copy, char *to_file, char *to_dir);
-extern int  GetMoveParameter(char *from_file, char *to_file, char *to_dir);
-extern int  ChangeFileOwner(FileEntry *fe_ptr);
-extern int  GetNewOwner(int st_uid);
-extern int  SetFileOwner(FileEntry *fe_ptr, WalkingPackage *walking_package);
-extern int  ChangeDirOwner(DirEntry *de_ptr);
-extern int  ChangeFileGroup(FileEntry *fe_ptr);
-extern int  GetNewGroup(int st_gid);
-extern int  SetFileGroup(FileEntry *fe_ptr, WalkingPackage *walking_package);
-extern int  ChangeDirGroup(DirEntry *de_ptr);
-extern int  HandleDirOwnership(DirEntry *de_ptr, BOOL change_owner, BOOL change_group);
-extern int  HandleFileOwnership(FileEntry *fe_ptr, BOOL change_owner, BOOL change_group);
+/* ========================================================================= */
+/*                       FUNCTION PROTOTYPES                                 */
+/* ========================================================================= */
+
+/* main.c */
+extern int ytree(int argc, char *argv[]);
+
+/* archive.c */
+extern int ExtractArchiveEntry(const char *archive_path, const char *entry_path, int out_fd);
+extern int InsertArchiveFileEntry(DirEntry *tree, char *path, struct stat *stat);
+extern int TryInsertArchiveDirEntry(DirEntry *tree, char *dir, struct stat *stat);
+extern void MinimizeArchiveTree(DirEntry *tree);
+
+/* archive_reader.c */
+extern int ReadTreeFromArchive(DirEntry *dir_entry, const char *filename);
+
+/* chgrp.c */
+extern int ChangeDirGroup(DirEntry *de_ptr);
+extern int ChangeFileGroup(FileEntry *fe_ptr);
+extern int GetNewGroup(int st_gid);
+extern int SetFileGroup(FileEntry *fe_ptr, WalkingPackage *walking_package);
+
+/* chmod.c */
+extern int ChangeDirModus(DirEntry *de_ptr);
+extern int ChangeFileModus(FileEntry *fe_ptr);
+extern int GetModus(char *modus);
+extern int GetNewFileModus(int y, int x, char *modus, char *term);
+extern int SetFileModus(FileEntry *fe_ptr, WalkingPackage *walking_package);
+
+/* chown.c */
+extern int ChangeDirOwner(DirEntry *de_ptr);
+extern int ChangeFileOwner(FileEntry *fe_ptr);
+extern int GetNewOwner(int st_uid);
+extern int SetFileOwner(FileEntry *fe_ptr, WalkingPackage *walking_package);
+
+/* clock.c */
+extern void ClockHandler(int);
+extern void InitClock(void);
+extern void SuspendClock(void);
+
+/* color.c */
+#ifdef COLOR_SUPPORT
+extern void StartColors(void);
+extern void WbkgdSet(WINDOW *w, chtype c);
+#else
+#define StartColors()	;
+#define WbkgdSet(a, b)  ;
+#endif
+
+/* copy.c */
+extern int CopyFile(Statistic *statistic_ptr, FileEntry *fe_ptr, unsigned char confirm, char *to_file, DirEntry *dest_dir_entry, char *to_dir_path, BOOL path_copy);
+extern int CopyTaggedFiles(FileEntry *fe_ptr, WalkingPackage *walking_package);
+extern int GetCopyParameter(char *from_file, BOOL path_copy, char *to_file, char *to_dir);
+
+/* delete.c */
+extern int DeleteFile(FileEntry *fe_ptr);
+extern int RemoveFile(FileEntry *fe_ptr);
+
+/* dirwin.c */
+extern void DisplayTree(WINDOW *win, int start_entry_no, int hilight_no);
+extern int HandleDirWindow(DirEntry *start_dir_entry);
+extern int KeyF2Get(DirEntry *start_dir_entry, int disp_begin_pos, int cursor_pos, char *path);
+extern int RefreshDirWindow(void);
+extern int ScanSubTree( DirEntry *dir_entry );
+
+/* disp.c */
+extern void ClearHelp(void);
 extern void DisplayDirHelp(void);
 extern void DisplayFileHelp(void);
-extern void ClearHelp(void);
-extern int  GetAvailBytes(LONGLONG *avail_bytes);
-extern int  DeleteDirectory(DirEntry *dir_entry);
-extern int  ExecuteCommand(FileEntry *fe_ptr, WalkingPackage *walking_package);
-extern int  GetCommandLine(char *command_line);
-extern int  GetSearchCommandLine(char *command_line);
-extern int  DeleteFile(FileEntry *fe_ptr);
-extern int  RemoveFile(FileEntry *fe_ptr);
-extern int  RenameDirectory(DirEntry *de_ptr, char *new_name);
-extern int  RenameFile(FileEntry *fe_ptr, char *new_name, FileEntry **new_fe_ptr);
-extern int  RenameTaggedFiles(FileEntry *fe_ptr, WalkingPackage *walking_package);
-extern int  GetRenameParameter(char *old_name, char *new_name);
-extern char *CTime(time_t f_time, char *buffer);
-extern int  LoginDisk(char *path);
-extern int  GetNewLoginPath(char *path);
-extern void PrintSpecialString(WINDOW *win, int y, int x, char *str, int color);
-extern void Print(WINDOW *, int, int, char *, int);
-extern void PrintOptions(WINDOW *,int, int, char *);
-extern void PrintMenuOptions(WINDOW *,int, int, char *, int, int);
-extern char *FormFilename(char *dest, char *src, unsigned int max_len);
-extern char *CutFilename(char *dest, char *src, unsigned int max_len);
-extern char *CutPathname(char *dest, char *src, unsigned int max_len);
-extern void   Fnsplit(char *path, char *dir, char *name);
-extern int  ExtractArchiveEntry(const char *archive_path, const char *entry_path, int out_fd);
-extern int MakeDirectory(DirEntry *father_dir_entry);
-extern int TryInsertArchiveDirEntry(DirEntry *tree, char *dir, struct stat *stat);
-extern int InsertArchiveFileEntry(DirEntry *tree, char *path, struct stat *stat);
-extern void MinimizeArchiveTree(DirEntry *tree);
-extern void HitReturnToContinue(void);
-extern int  BuildFilename( char *in_filename, char *pattern, char *out_filename);
-extern int  ViKey( int ch );
-extern int  GetFileMethod( char *filename );
-extern int  AixWgetch( WINDOW *w );
-extern BOOL KeyPressed(void);
-extern BOOL EscapeKeyPressed(void);
-extern int  MakePath( DirEntry *tree, char *dir_path, DirEntry **dest_dir_entry );
-extern int  MakeDirEntry( DirEntry *father_dir_entry, char *dir_name );
-extern void NormPath( char *in_path, char *out_path );
-extern int  ReadProfile( char *filename );
-extern char *GetProfileValue( char *key );
-extern int  ScanSubTree( DirEntry *dir_entry );
-extern void GetMaxYX(WINDOW *win, int *height, int *width);
+extern void DisplayMenu(void);
+extern void MapF2Window(void);
+extern void RefreshWindow(WINDOW *win);
+extern void SwitchToBigFileWindow(void);
+extern void SwitchToSmallFileWindow(void);
+extern void UnmapF2Window(void);
 
+/* display_utils.c */
+extern int AddStr(char *str);
+extern int BuildUserFileEntry(FileEntry *fe_ptr, int filename_width, int linkname_width, char *template, int linelen, char *line);
+extern char *CTime(time_t f_time, char *buffer);
+extern char *CutFilename(char *dest, char *src, unsigned int max_len);
+extern char *CutName(char *dest, char *src, unsigned int max_len);
+extern char *CutPathname(char *dest, char *src, unsigned int max_len);
+extern char *FormFilename(char *dest, char *src, unsigned int max_len);
+extern char *GetAttributes(unsigned short modus, char *buffer);
+extern void GetMaxYX(WINDOW *win, int *height, int *width);
+extern int GetVisualUserFileEntryLength( int max_visual_filename_len, int max_visual_linkname_len, char *template);
+extern int MvAddStr(int y, int x, char *str);
+extern int MvWAddStr(WINDOW *win, int y, int x, char *str);
+extern void Print(WINDOW *, int, int, char *, int);
+extern void PrintMenuOptions(WINDOW *,int, int, char *, int, int);
+extern void PrintOptions(WINDOW *,int, int, char *);
+extern void PrintSpecialString(WINDOW *win, int y, int x, char *str, int color);
+extern int WAddStr(WINDOW *win, char *str);
+extern int WAttrAddStr(WINDOW *win, int attr, char *str);
+
+/* edit.c */
+extern int Edit(DirEntry * dir_entry, char *file_path);
+
+/* error.c */
+extern void AboutBox(void);
+extern void Error(char *msg, char *module, int line);
+extern void Message(char *msg);
+extern void Notice(char *msg);
+extern void UnmapNoticeWindow(void);
+extern void Warning(char *msg);
+
+/* execute.c */
+extern int Execute(DirEntry *dir_entry, FileEntry *file_entry);
+extern int ExecuteCommand(FileEntry *fe_ptr, WalkingPackage *walking_package);
+extern int GetCommandLine(char *command_line);
+extern int GetSearchCommandLine(char *command_line);
+
+/* filespec.c */
+extern int ReadFileSpec(void);
+extern int SetFileSpec(char *file_spec);
+extern void SetMatchingParam(DirEntry *dir_entry);
+
+/* filewin.c */
+extern void DisplayFileWindow(DirEntry *dir_entry);
+extern int HandleFileWindow(DirEntry *dir_entry);
+extern void RotateFileMode(void);
+extern void SetFileMode(int new_file_mode);
+
+/* freesp.c */
+extern int GetAvailBytes(LONGLONG *avail_bytes);
+extern int GetDiskParameter(char *path, char *volume_name, LONGLONG *avail_bytes, LONGLONG *capacity);
+
+/* group.c */
+extern char *GetDisplayGroupName(unsigned int gid);
+extern int GetGroupId(char *name);
+extern char *GetGroupName(unsigned int gid);
+extern int ReadGroupEntries(void);
+
+/* hex.c */
+extern int InternalView(char *file_path);
+extern int ViewHex(char *file_path);
+
+/* history.c, keyhtab.c */
 extern char *GetHistory(void);
+extern char *GetMatches(char *);
 extern void InsHistory(char *new_hist);
 extern void ReadHistory(char *filename);
 extern void SaveHistory(char *filename);
-extern char *GetMatches(char *);
-extern int  KeyF2Get(DirEntry *start_dir_entry,
-               int disp_begin_pos,
-               int cursor_pos,
-               char *path);
-extern void Switch2F2Window(void);
-extern void MapF2Window(void);
-extern void UnmapF2Window(void);
-extern void ReadExtFile(char *);
-extern char *GetExtCmd(char *);
-extern int  MvAddStr(int y, int x, char *str);
-extern int  MvWAddStr(WINDOW *win, int y, int x, char *str);
-extern int  WAddStr(WINDOW *win, char *str);
-extern int  AddStr(char *str);
-extern void ClockHandler(int);
-extern int Strrcmp(char *s1, char* s2);
-extern char *GetExtViewer(char *filename);
-extern void InitClock(void);
-extern void SuspendClock(void);
-extern char *GetExtension(char *filename);
-extern void StrCp(char *dest, const char *src);
-extern int  BuildUserFileEntry(FileEntry *fe_ptr, 
-            int filename_width, int linkname_width, 
-            char *template, int linelen, char *line);
-extern int  GetVisualUserFileEntryLength( int max_visual_filename_len, 
-                                          int max_visual_linkname_len, char *template);
-extern void DisplayTree(WINDOW *win, int start_entry_no, int hilight_no);
+
+/* init.c */
+extern int Init(char *configuration_file, char *history_file);
 extern void ReCreateWindows(void);
-extern int  WGetch(WINDOW *win);
-extern int  Getch(void);
-extern int  DirUserMode(DirEntry *dir_entry, int ch);
-extern int  FileUserMode(FileEntryList *file_entry_list, int ch);
-extern char *GetUserFileAction(int chkey, int *pchremap);
-extern char *GetUserDirAction(int chkey, int *pchremap);
-extern BOOL IsUserActionDefined(void);
-extern int  RefreshDirWindow(void);
+
+/* input.c */
+extern int Getch(void);
+extern void HitReturnToContinue(void);
+extern int InputChoise(char *msg, char *term);
+extern int InputString(char *s, int y, int x, int cursor_pos, int length, char *term);
+extern BOOL KeyPressed(void);
+extern BOOL EscapeKeyPressed(void);
 extern char *StrLeft(const char *str, size_t count);
 extern char *StrRight(const char *str, size_t count);
-extern int  StrVisualLength(const char *str);
-extern int  VisualPositionToBytePosition(const char *str, int visual_pos);
-extern int  WAttrAddStr(WINDOW *win, int attr, char *str);
-extern char *CutName(char *dest, char *src, unsigned int max_len);
+extern int StrVisualLength(const char *str);
+extern int ViKey( int ch );
+extern int VisualPositionToBytePosition(const char *str, int visual_pos);
+extern int WGetch(WINDOW *win);
+
+/* login.c */
+extern int GetNewLoginPath(char *path);
+extern int LoginDisk(char *path);
+
+/* match.c */
+extern BOOL Match(char *file_name);
+extern int SetMatchSpec(char *new_spec);
+
+/* mkdir.c */
+extern int MakeDirEntry( DirEntry *father_dir_entry, char *dir_name );
+extern int MakeDirectory(DirEntry *father_dir_entry);
+extern int MakePath( DirEntry *tree, char *dir_path, DirEntry **dest_dir_entry );
+
+/* move.c */
+extern int GetMoveParameter(char *from_file, char *to_file, char *to_dir);
+extern int MoveFile(FileEntry *fe_ptr, unsigned char confirm, char *to_file, DirEntry *dest_dir_entry, char *to_dir_path, FileEntry **new_fe_ptr);
+extern int MoveTaggedFiles(FileEntry *fe_ptr, WalkingPackage *walking_package);
+
+/* owner_utils.c */
+extern int ChangeOwnership(const char *path, uid_t new_uid, gid_t new_gid, struct stat *stat_buf);
+extern int HandleDirOwnership(DirEntry *de_ptr, BOOL change_owner, BOOL change_group);
+extern int HandleFileOwnership(FileEntry *fe_ptr, BOOL change_owner, BOOL change_group);
+
+/* passwd.c */
+extern char *GetDisplayPasswdName(unsigned int uid);
+extern char *GetPasswdName(unsigned int uid);
+extern int GetPasswdUid(char *name);
+extern int ReadPasswdEntries(void);
+
+/* path_utils.c */
+extern char *GetExtension(char *filename);
+extern char *GetFileNamePath(FileEntry *file_entry, char *buffer);
+extern char *GetPath(DirEntry *dir_entry, char *buffer);
+extern char *GetRealFileNamePath(FileEntry *file_entry, char *buffer);
+extern void Fnsplit(char *path, char *dir, char *name);
+extern void NormPath( char *in_path, char *out_path );
+
+/* pipe.c */
+extern int GetPipeCommand(char *pipe_command);
+extern int Pipe(DirEntry *dir_entry, FileEntry *file_entry);
+extern int PipeTaggedFiles(FileEntry *fe_ptr, WalkingPackage *walking_package);
+
+/* profile.c */
+extern char *GetExtViewer(char *filename);
+extern char *GetProfileValue( char *key );
+extern char *GetUserDirAction(int chkey, int *pchremap);
+extern char *GetUserFileAction(int chkey, int *pchremap);
+extern BOOL IsUserActionDefined(void);
+extern int ReadProfile( char *filename );
+
+/* quit.c */
+extern void Quit(void);
+extern void QuitTo(DirEntry * dir_entry);
+
+/* readtree.c */
+extern int ReadTree(DirEntry *dir_entry, char *path, int depth);
+extern void UnReadTree(DirEntry *dir_entry);
+
+/* rename.c */
+extern int GetRenameParameter(char *old_name, char *new_name);
+extern int RenameDirectory(DirEntry *de_ptr, char *new_name);
+extern int RenameFile(FileEntry *fe_ptr, char *new_name, FileEntry **new_fe_ptr);
+extern int RenameTaggedFiles(FileEntry *fe_ptr, WalkingPackage *walking_package);
+
+/* rmdir.c */
+extern int DeleteDirectory(DirEntry *dir_entry);
+
+/* sort.c */
+extern void GetKindOfSort(void);
+extern void SetKindOfSort(int new_kind_of_sort);
+
+/* stat.c */
+extern void DisplayAvailBytes(void);
+extern void DisplayDirParameter(DirEntry *dir_entry);
+extern void DisplayDirStatistic(DirEntry *dir_entry);
+extern void DisplayDirTagged(DirEntry *dir_entry);
+extern void DisplayDiskName(void);
+extern void DisplayDiskStatistic(void);
+extern void DisplayDiskTagged(void);
+extern void DisplayFileParameter(FileEntry *file_entry);
+extern void DisplayFileSpec(void);
+extern void DisplayGlobalFileParameter(FileEntry *file_entry);
+
+/* string_utils.c */
+extern int BuildFilename( char *in_filename, char *pattern, char *out_filename);
+extern void StrCp(char *dest, const char *src);
+extern int Strrcmp(char *s1, char* s2);
 extern char *SubString(char *dest, char *src, int pos, int len);
-extern int  ChangeOwnership(const char *path, uid_t new_uid, gid_t new_gid, struct stat *stat_buf);
+
+/* system.c */
+extern int QuerySystemCall(char *command_line);
+extern int SilentSystemCall(char *command_line);
+extern int SilentSystemCallEx(char *command_line, BOOL enable_clock);
+extern int SystemCall(char *command_line);
+
+/* tree_utils.c */
+extern int GetDirEntry(DirEntry *tree, DirEntry *current_dir_entry, char *dir_path, DirEntry **dir_entry, char *to_path);
+extern int GetFileEntry(DirEntry *de_ptr, char *file_name, FileEntry **file_entry);
+
+/* usermode.c */
+extern int DirUserMode(DirEntry *dir_entry, int ch);
+extern int FileUserMode(FileEntryList *file_entry_list, int ch);
+
+/* view.c */
+extern int View(DirEntry * dir_entry, char *file_path);

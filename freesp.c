@@ -57,8 +57,10 @@ int GetDiskParameter( char *path,
 	  case 0x4d44: fname = "DOS/FAT"; break;
 	  case 0x6969: fname = "NFS"; break;
 	  case 0x9fa0: fname = "PROC"; break;
-	  case 0x53465435: fname = "NTFS"; break; /* common NTFS magic for statfs */
-	  default: fname = "LINUX-FS";
+      case 0x5346544e: /* 'NTFS' magic from ntfs-3g */
+	  case 0x53465435: fname = "NTFS"; break;
+      case 0x72656d6f: fname = "WSLFS/9P"; break; /* For WSL2 mounts */
+	  default: fname = "OTHER-FS";
 	}
 #elif defined(__APPLE__)
 	/* Rely on statvfs f_fstypename */
@@ -79,8 +81,8 @@ int GetDiskParameter( char *path,
       }
       else
       {  
-        /* TAR/ZOO/ZIP-FILE_MODE */
-        /*-----------------------*/
+        /* ARCHIVE_MODE */
+        /*--------------*/
         
         if( ( p = strrchr( statistic.login_path, FILE_SEPARATOR_CHAR ) ) == NULL ) 
           p = statistic.login_path;

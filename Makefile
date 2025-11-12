@@ -47,14 +47,13 @@ LDFLAGS     += -lncurses -ltinfo -lreadline -larchive
 
 
 MAIN    = ytree
-OBJS	= archive.o archive_reader.o chgrp.o chmod.o chown.o clock.o color.o copy.o    \
+OBJS	= display_utils.o owner_utils.o path_utils.o string_utils.o tree_utils.o \
+	  archive.o archive_reader.o chgrp.o chmod.o chown.o clock.o color.o copy.o    \
 	  delete.o dirwin.o disp.o edit.o error.o execute.o filespec.o      \
 	  filewin.o freesp.o global.o group.o hex.o history.o init.o input.o keyhtab.o \
-	  login.o main.o match.o mkdir.o move.o ownership.o passwd.o pipe.o    \
-	  print.o profile.o quit.o readtree.o rename.o rmdir.o  \
-	  sort.o stat.o system.o usermode.o util.o view.o 
-
-# mktime.o and termcap.o removed from OBJS list
+	  login.o main.o match.o mkdir.o move.o passwd.o pipe.o    \
+	  profile.o quit.o readtree.o rename.o rmdir.o sort.o stat.o \
+	  system.o usermode.o view.o 
 
 $(MAIN):	$(OBJS)
 	$(CC) $(LFLAGS) -o $@ $(OBJS) $(LDFLAGS)
@@ -92,6 +91,7 @@ copy.o: config.h ytree.h copy.c
 delete.o: config.h ytree.h delete.c
 dirwin.o: config.h ytree.h dirwin.c
 disp.o: config.h ytree.h patchlev.h disp.c
+display_utils.o: config.h ytree.h display_utils.c
 edit.o: config.h ytree.h edit.c
 error.o: config.h ytree.h error.c patchlev.h
 execute.o: config.h ytree.h execute.c
@@ -110,10 +110,10 @@ main.o: config.h ytree.h main.c
 match.o: config.h ytree.h match.c
 mkdir.o: config.h ytree.h mkdir.c
 move.o: config.h ytree.h move.c
-ownership.o: config.h ytree.h ownership.c
+owner_utils.o: config.h ytree.h owner_utils.c
 passwd.o: config.h ytree.h passwd.c
+path_utils.o: config.h ytree.h path_utils.c
 pipe.o: config.h ytree.h pipe.c
-print.o: ytree.h print.c config.h
 profile.o: config.h ytree.h profile.c
 quit.o: config.h ytree.h quit.c
 readtree.o: config.h ytree.h readtree.c
@@ -121,7 +121,8 @@ rename.o: config.h ytree.h rename.c
 rmdir.o: config.h ytree.h rmdir.c
 sort.o: config.h ytree.h sort.c
 stat.o: config.h ytree.h stat.c
+string_utils.o: config.h ytree.h string_utils.c
 system.o: config.h ytree.h system.c
+tree_utils.o: config.h ytree.h tree_utils.c
 usermode.o: config.h ytree.h usermode.c
-util.o: config.h ytree.h util.c
 view.o: config.h ytree.h view.c

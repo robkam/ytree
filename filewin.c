@@ -2408,7 +2408,7 @@ int HandleFileWindow(DirEntry *dir_entry)
 		      }
 		      else if( mode != DISK_MODE && mode != USER_MODE )
 		      {
-			MESSAGE( "Pipe Tagged (^P) is not available in archive mode" );
+			MESSAGE( "^P is not available in archive mode" );
 		      }
 		      else
 		      {
@@ -2467,7 +2467,7 @@ int HandleFileWindow(DirEntry *dir_entry)
                       }
 		      else if( mode != DISK_MODE && mode != USER_MODE )
 		      {
-			MESSAGE( "Search Untag (^S) is not available in archive mode" );
+			MESSAGE( "^S is not available in archive mode" );
 		      }
 		      else
 		      {
@@ -2513,7 +2513,7 @@ int HandleFileWindow(DirEntry *dir_entry)
 		      }
 		      else if( mode != DISK_MODE && mode != USER_MODE )
 		      {
-			MESSAGE( "Execute Tagged (^X) is not available in archive mode" );
+			MESSAGE( "^X is not available in archive mode" );
 		      }
 		      else
 		      {

@@ -30,6 +30,23 @@ static BOOL inhex=TRUE;
 static BOOL inedit=FALSE;
 static BOOL hexoffset=TRUE;
 
+typedef struct
+{
+  char *extension;
+  int  method;
+} Extension2Method;
+
+static Extension2Method file_extensions[] = {
+    { ".F",   FREEZE_COMPRESS },
+    { ".Z",   COMPRESS_COMPRESS },
+    { ".z",   GZIP_COMPRESS },
+    { ".gz",  GZIP_COMPRESS },
+    { ".tgz", GZIP_COMPRESS },
+    { ".bz2", BZIP_COMPRESS },
+    { ".lz",  LZIP_COMPRESS },
+    { ".zst", ZSTD_COMPRESS }
+};
+
 
 #define CURSOR_CALC_X (10+(((cursor_pos_x/2)<(BYTES/2)) ? 2:3)+(cursor_pos_x)+(cursor_pos_x/2))
 #define CURSOR_POS_X ((inhex)? CURSOR_CALC_X:(WCOLS-BYTES+cursor_pos_x))
@@ -52,7 +69,7 @@ static void SetupViewWindow(char *file_path);
 static unsigned char hexval(unsigned char v);
 static void change_char(int ch);
 static void move_right(WINDOW *win);
-
+static int GetFileMethod( char *filename );
 
 
 int View(DirEntry * dir_entry, char *file_path)
@@ -66,6 +83,25 @@ int View(DirEntry * dir_entry, char *file_path)
   }
 }
 
+
+static int GetFileMethod( char *filename )
+{
+  int i, k, l;
+
+  l = strlen( filename );
+
+  for( i=0; 
+       i < (int)(sizeof( file_extensions ) / sizeof( file_extensions[0] )); 
+       i++ 
+     )
+  {
+    k = strlen( file_extensions[i].extension );
+    if( l >= k && !strcmp( &filename[l-k], file_extensions[i].extension ) )
+      return( file_extensions[i].method );
+  }
+
+  return( 0 ); /* Using 0 for NO_COMPRESS, though constant is removed */
+}
 
 
 static int ViewFile(DirEntry * dir_entry, char *file_path)

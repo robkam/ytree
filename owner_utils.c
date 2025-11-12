@@ -63,3 +63,29 @@ int HandleFileOwnership(FileEntry *fe_ptr, BOOL change_owner, BOOL change_group)
     GetFileNamePath(fe_ptr, path);
     return ChangeFileOrDirOwnership(path, &fe_ptr->stat_struct, change_owner, change_group);
 }
+
+/*
+ * Central helper to change ownership, re-stat the file, and handle errors.
+ * Returns 0 on success, -1 on failure.
+ */
+int ChangeOwnership(const char *path, uid_t new_uid, gid_t new_gid, struct stat *stat_buf)
+{
+    struct stat new_stat;
+
+    if (chown(path, new_uid, new_gid) != 0)
+    {
+        (void)sprintf(message, "Cannot change ownership:*%s", strerror(errno));
+        MESSAGE(message);
+        return -1;
+    }
+
+    if (STAT_(path, &new_stat) != 0)
+    {
+        ERROR_MSG("Re-stat failed after chown");
+        return -1;
+    }
+
+    /* Update the caller's stat buffer */
+    *stat_buf = new_stat;
+    return 0;
+}
