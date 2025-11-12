@@ -67,7 +67,7 @@ char *GetPath(DirEntry *dir_entry, char *buffer)
 char *GetFileNamePath(FileEntry *file_entry, char *buffer)
 {
   (void) GetPath( file_entry->dir_entry, buffer );
-  if( *buffer && strcmp( buffer, FILE_SEPARATOR_STRING ) ) 
+  if( *buffer && strcmp( buffer, FILE_SEPARATOR_STRING ) )
     (void) strcat( buffer, FILE_SEPARATOR_STRING );
   return( strcat( buffer, file_entry->name ) );
 }
@@ -87,9 +87,9 @@ char *GetRealFileNamePath(FileEntry *file_entry, char *buffer)
     if( *sym_name == FILE_SEPARATOR_CHAR )
       return( strcpy( buffer, sym_name ) );
   }
-  
+
   (void) GetPath( file_entry->dir_entry, buffer );
-  if( *buffer && strcmp( buffer, FILE_SEPARATOR_STRING ) ) 
+  if( *buffer && strcmp( buffer, FILE_SEPARATOR_STRING ) )
     (void) strcat( buffer, FILE_SEPARATOR_STRING );
   if( S_ISLNK( file_entry->stat_struct.st_mode ) )
     return( strcat( buffer, &file_entry->name[ strlen( file_entry->name ) + 1 ] ) );
@@ -102,10 +102,10 @@ char *GetRealFileNamePath(FileEntry *file_entry, char *buffer)
 
 
 
-int GetDirEntry(DirEntry *tree, 
-                DirEntry *current_dir_entry, 
-                char *dir_path, 
-                DirEntry **dir_entry, 
+int GetDirEntry(DirEntry *tree,
+                DirEntry *current_dir_entry,
+                char *dir_path,
+                DirEntry **dir_entry,
                 char *to_path
 	       )
 {
@@ -127,7 +127,7 @@ int GetDirEntry(DirEntry *tree,
     return( -1 );
   }
 
-  if( *dir_path != FILE_SEPARATOR_CHAR ) 
+  if( *dir_path != FILE_SEPARATOR_CHAR )
   {
     if( chdir( GetPath( current_dir_entry, help_path ) ) )
     {
@@ -160,7 +160,7 @@ int GetDirEntry(DirEntry *tree,
   }
 
   n = strlen( tree->name );
-  if( !strcmp(tree->name, FILE_SEPARATOR_STRING) || 
+  if( !strcmp(tree->name, FILE_SEPARATOR_STRING) ||
       (!strncmp( tree->name, dest_path, n )     &&
         ( dest_path[n] == FILE_SEPARATOR_CHAR || dest_path[n] == '\0' ) ) )
   {
@@ -242,22 +242,22 @@ char *GetAttributes(unsigned short modus, char *buffer)
 
   if( modus & S_IWUSR ) *buffer++ = 'w';
   else *buffer++ = '-';
-    
+
   if( modus & S_IXUSR ) *buffer++ = 'x';
   else *buffer++ = '-';
-    
+
   if( modus & S_ISUID ) *(buffer - 1) = 's';
-    
+
 
   if( modus & S_IRGRP ) *buffer++ = 'r';
   else *buffer++ = '-';
 
   if( modus & S_IWGRP ) *buffer++ = 'w';
   else *buffer++ = '-';
-    
+
   if( modus & S_IXGRP ) *buffer++ = 'x';
   else *buffer++ = '-';
-    
+
   if( modus & S_ISGID ) *(buffer - 1) = 's';
 
 
@@ -266,10 +266,10 @@ char *GetAttributes(unsigned short modus, char *buffer)
 
   if( modus & S_IWOTH ) *buffer++ = 'w';
   else *buffer++ = '-';
-    
+
   if( modus & S_IXOTH ) *buffer++ = 'x';
   else *buffer++ = '-';
-    
+
   *buffer = '\0';
 
   return( save_buffer );
@@ -298,13 +298,13 @@ char *CTime(time_t f_time, char *buffer)
     /*-------------------------------*/
 
     (void) strncpy( &buffer[7], cptr + 19, 5 );
-    
+
   }
 
   return( buffer );
 }
 
-  
+
 
 
 void PrintSpecialString(WINDOW *win, int y, int x, char *str, int color)
@@ -320,7 +320,7 @@ void PrintSpecialString(WINDOW *win, int y, int x, char *str, int color)
 
   for( ; *str; str++ )
   {
-    if ( (!iscntrl(*str)) || (!isspace(*str)) || (*str==' ') ) 
+    if ( (!iscntrl(*str)) || (!isspace(*str)) || (*str==' ') )
     switch( *str )
     {
       case '1': ch = ACS_ULCORNER; break;
@@ -362,7 +362,7 @@ void Print(WINDOW *win, int y, int x, char *str, int color)
   for( ; *str; str++ )
   {
     ch = PRINT((int) *str);
-   
+
 #ifdef COLOR_SUPPORT
     wattrset( win, COLOR_PAIR(color) | A_BOLD);
 #endif /* COLOR_SUPPORT */
@@ -391,13 +391,13 @@ void PrintOptions(WINDOW *win, int y, int x, char *str)
      lo_color = A_NORMAL;
      hi_color = A_BOLD;
 #endif
-   
+
   color = lo_color;
 
   for( ; *str; str++ )
   {
     ch = (int) *str;
-   
+
     switch( *str ) {
         case '(': color = hi_color;  continue;
 	case ')': color = lo_color;  continue;
@@ -440,7 +440,7 @@ void PrintMenuOptions(WINDOW *win,int y, int x, char *str, int ncolor, int hcolo
   int ch;
   int color, hi_color, lo_color;
   char *sbuf, buf[2];
-  
+
   if ((sbuf = (char *)malloc(strlen(str)+1)) == NULL) {
     ERROR_MSG( "Malloc failed*ABORT" );
     exit( 1 );
@@ -461,14 +461,14 @@ void PrintMenuOptions(WINDOW *win,int y, int x, char *str, int ncolor, int hcolo
      lo_color = A_NORMAL;
      hi_color = A_REVERSE;
 #endif
-   
+
   color = lo_color;
   wmove(win, y, x);
 
   for( ; *str; str++ )
   {
     ch = (int) *str;
-   
+
     switch( ch ) {
         case '(': color = hi_color;
 #ifdef COLOR_SUPPORT
@@ -478,7 +478,7 @@ void PrintMenuOptions(WINDOW *win,int y, int x, char *str, int ncolor, int hcolo
 #endif
 		  strcpy(sbuf, "");
 	          continue;
-		  
+
 	case ')': color = lo_color;
 #ifdef COLOR_SUPPORT
                   WAttrAddStr( win, COLOR_PAIR(color) | A_BOLD, sbuf);
@@ -504,7 +504,7 @@ void PrintMenuOptions(WINDOW *win,int y, int x, char *str, int ncolor, int hcolo
         default : buf[0] = PRINT(*str);
 		  strcat(sbuf, buf);
     }
-  }    
+  }
 
 #ifdef COLOR_SUPPORT
   WAttrAddStr( win, COLOR_PAIR(color) | A_BOLD, sbuf);
@@ -540,7 +540,7 @@ char *FormFilename(char *dest, char *src, unsigned int max_len)
       for(i=0; i < (int) max_len - 4; i++)
         if( src[l - i] == FILE_SEPARATOR_CHAR || src[l - i] == '\\' )
           begin = l - i;
-      
+
       if(begin > 0) {
         strcat(dest, &src[begin] );
         if(strlen(dest) > max_len)
@@ -623,18 +623,18 @@ void Fnsplit(char *path, char *dir, char *name)
     *(dir++) = *(path++);
 
   *dir = '\0';
-  
+
   name_begin = path;
   trunc_name = name;
 
-  for(i=0; i < PATH_LENGTH && *path; i++ ) 
+  for(i=0; i < PATH_LENGTH && *path; i++ )
     *(name++) = *(path++);
 
   *name = '\0';
 
   if( i == PATH_LENGTH && *path )
   {
-    (void) sprintf( message, "filename too long:*%s*truncating to*%s", 
+    (void) sprintf( message, "filename too long:*%s*truncating to*%s",
 		    name_begin, trunc_name
 		  );
     WARNING( message );
@@ -678,9 +678,9 @@ int GetFileMethod( char *filename )
 
   l = strlen( filename );
 
-  for( i=0; 
-       i < (int)(sizeof( file_extensions ) / sizeof( file_extensions[0] )); 
-       i++ 
+  for( i=0;
+       i < (int)(sizeof( file_extensions ) / sizeof( file_extensions[0] ));
+       i++
      )
   {
     k = strlen( file_extensions[i].extension );
@@ -722,7 +722,7 @@ char *getcwd(char *dest, int len)
     *--cp = FILE_SEPARATOR_CHAR;
     (void) closedir(dirp);
   } while(!chdir(".."));
-  
+
   (void) chdir(cp+2);
   (void) strncpy(dest,cp+2,len);
 }
@@ -808,7 +808,7 @@ void NormPath( char *in_path, char *out_path )
 void GetMaxYX(WINDOW *win, int *height, int *width)
 {
   if( win == dir_window )
-  { 
+  {
     *height = MAXIMUM(DIR_WINDOW_HEIGHT, 1);
     *width  = MAXIMUM(DIR_WINDOW_WIDTH, 1);
   }
@@ -848,7 +848,7 @@ int Strrcmp(char *s1, char* s2)/*compares in reverse order 2 strings*/
 
    for (aux = 0; aux <= l2; aux++)
    {
-      if ((l1 - aux) < 0) 
+      if ((l1 - aux) < 0)
 	return(-1);
       if (s1[l1 - aux] > s2[l2 - aux])
          return(1);
@@ -893,8 +893,8 @@ void StrCp(char *dest, const char *src)
 
 
 
-int BuildUserFileEntry(FileEntry *fe_ptr, 
-			int filename_width, int linkname_width, 
+int BuildUserFileEntry(FileEntry *fe_ptr,
+			int filename_width, int linkname_width,
 			char *template, int linelen, char *line)
 {
   char attributes[11];
@@ -922,11 +922,11 @@ int BuildUserFileEntry(FileEntry *fe_ptr,
 
   tag = (fe_ptr->tagged) ? TAGGED_SYMBOL : ' ';
   (void) GetAttributes( fe_ptr->stat_struct.st_mode, attributes);
-		        
+
   (void) CTime( fe_ptr->stat_struct.st_mtime, modify_time );
   (void) CTime( fe_ptr->stat_struct.st_ctime, change_time );
   (void) CTime( fe_ptr->stat_struct.st_atime, access_time );
-  
+
   owner_name_ptr = GetPasswdName(fe_ptr->stat_struct.st_uid);
   group_name_ptr = GetGroupName(fe_ptr->stat_struct.st_gid);
 
@@ -1001,7 +1001,7 @@ int BuildUserFileEntry(FileEntry *fe_ptr,
   line[linelen - 1] = '\0';
   return(0);
 }
-  
+
 
 
 int GetVisualUserFileEntryLength( int max_visual_filename_len, int max_visual_linkname_len, char *template)
@@ -1065,7 +1065,7 @@ int GetVisualUserFileEntryLength( int max_visual_filename_len, int max_visual_li
   }
   return(len);
 }
-  
+
 
 #ifndef HAVE_STRERROR
 const char *StrError(int errnum)
@@ -1113,4 +1113,34 @@ char *SubString(char *dest, char *src, int pos, int len)
   strncpy(dest, &src[pos], len);
   dest[len] = '\0';
   return dest;
+}
+
+/*****************************************************************************
+ *                              ChangeOwnership                              *
+ *****************************************************************************/
+
+/*
+ * Internal helper to change ownership, re-stat the file, and handle errors.
+ * Returns 0 on success, -1 on failure.
+ */
+int ChangeOwnership(const char *path, uid_t new_uid, gid_t new_gid, struct stat *stat_buf)
+{
+    struct stat new_stat;
+
+    if (chown(path, new_uid, new_gid) != 0)
+    {
+        (void)sprintf(message, "Cannot change ownership:*%s", strerror(errno));
+        MESSAGE(message);
+        return -1;
+    }
+
+    if (STAT_(path, &new_stat) != 0)
+    {
+        ERROR_MSG("Re-stat failed after chown");
+        return -1;
+    }
+
+    /* Update the caller's stat buffer */
+    *stat_buf = new_stat;
+    return 0;
 }

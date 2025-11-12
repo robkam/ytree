@@ -7,35 +7,10 @@
 
 #include "ytree.h"
 
-
-
-static int SetDirOwner(DirEntry *de_ptr, int new_owner_id);
-
-
-
 int ChangeFileOwner(FileEntry *fe_ptr)
 {
-  WalkingPackage walking_package;
-  int  owner_id;
-  int  result;
-
-  result = -1;
-
-  if( mode != DISK_MODE && mode != USER_MODE )
-  {
-    return( result );
-  }
-
-  if( ( owner_id = GetNewOwner( fe_ptr->stat_struct.st_uid ) ) >= 0 )
-  {
-    walking_package.function_data.change_owner.new_owner_id = owner_id;
-    result = SetFileOwner( fe_ptr, &walking_package );
-  }
-  return( result );
+    return HandleFileOwnership(fe_ptr, TRUE, FALSE);
 }
-
-
-
 
 int GetNewOwner(int st_uid)
 {
@@ -76,109 +51,19 @@ int GetNewOwner(int st_uid)
   return( owner_id );
 }
 
-
-
-
 int SetFileOwner(FileEntry *fe_ptr, WalkingPackage *walking_package)
 {
-  struct stat stat_struct;
-  char buffer[PATH_LENGTH+1];
-  int  result;
-  int  new_owner_id;
+    char buffer[PATH_LENGTH + 1];
+    uid_t new_uid = (uid_t)walking_package->function_data.change_owner.new_owner_id;
 
-  result = -1;
+    walking_package->new_fe_ptr = fe_ptr; /* Unchanged */
 
-  walking_package->new_fe_ptr = fe_ptr; /* unchanged */
-  
-  new_owner_id = walking_package->function_data.change_owner.new_owner_id;
+    GetFileNamePath(fe_ptr, buffer);
 
-  if( !chown( GetFileNamePath( fe_ptr, buffer ), 
-	      new_owner_id,
-	      fe_ptr->stat_struct.st_gid 
-	    ) )
-  {
-    /* Erfolgreich modifiziert */
-    /*-------------------------*/
-
-    if( STAT_( buffer, &stat_struct ) )
-    {
-      ERROR_MSG( "Stat Failed" );
-    }
-    else
-    {
-      fe_ptr->stat_struct = stat_struct;
-    }
-    result = 0;
-  }
-  else
-  {
-    (void) sprintf( message, "Can't change Owner:*%s", strerror(errno) );
-    MESSAGE( message );
-  }
- 
-  return( result );
+    return ChangeOwnership(buffer, new_uid, fe_ptr->stat_struct.st_gid, &fe_ptr->stat_struct);
 }
-
-
-
-
 
 int ChangeDirOwner(DirEntry *de_ptr)
 {
-  int  owner_id;
-  int  result;
-
-  result = -1;
-
-  if( mode != DISK_MODE && mode != USER_MODE )
-  {
-    return( result );
-  }
-
-  if( ( owner_id = GetNewOwner( de_ptr->stat_struct.st_uid ) ) >= 0 )
-  {
-    result = SetDirOwner( de_ptr, owner_id );
-  }
-  return( result );
-}
-
-
-
-
-
-
-static int SetDirOwner(DirEntry *de_ptr, int new_owner_id)
-{
-  struct stat stat_struct;
-  char buffer[PATH_LENGTH+1];
-  int  result;
-
-  result = -1;
-
-
-  if( !chown( GetPath( de_ptr, buffer ), 
-	      new_owner_id,
-	      de_ptr->stat_struct.st_gid 
-	    ) )
-  {
-    /* Erfolgreich modifiziert */
-    /*-------------------------*/
-
-    if( STAT_( buffer, &stat_struct ) )
-    {
-      ERROR_MSG( "Stat Failed" );
-    }
-    else
-    {
-      de_ptr->stat_struct = stat_struct;
-    }
-    result = 0;
-  }
-  else
-  {
-    (void) sprintf( message, "Can't change Owner:*%s", strerror(errno) );
-    MESSAGE( message );
-  }
- 
-  return( result );
+    return HandleDirOwnership(de_ptr, TRUE, FALSE);
 }

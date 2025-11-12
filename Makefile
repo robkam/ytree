@@ -50,7 +50,7 @@ MAIN    = ytree
 OBJS	= archive.o archive_reader.o chgrp.o chmod.o chown.o clock.o color.o copy.o    \
 	  delete.o dirwin.o disp.o edit.o error.o execute.o filespec.o      \
 	  filewin.o freesp.o global.o group.o hex.o history.o init.o input.o keyhtab.o \
-	  login.o main.o match.o mkdir.o move.o passwd.o pipe.o    \
+	  login.o main.o match.o mkdir.o move.o ownership.o passwd.o pipe.o    \
 	  print.o profile.o quit.o readtree.o rename.o rmdir.o  \
 	  sort.o stat.o system.o usermode.o util.o view.o 
 
@@ -110,6 +110,7 @@ main.o: config.h ytree.h main.c
 match.o: config.h ytree.h match.c
 mkdir.o: config.h ytree.h mkdir.c
 move.o: config.h ytree.h move.c
+ownership.o: config.h ytree.h ownership.c
 passwd.o: config.h ytree.h passwd.c
 pipe.o: config.h ytree.h pipe.c
 print.o: ytree.h print.c config.h

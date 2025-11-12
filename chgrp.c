@@ -8,34 +8,10 @@
 #include "ytree.h"
 
 
-
-static int SetDirGroup(DirEntry *de_ptr, int new_group_id);
-
-
-
 int ChangeFileGroup(FileEntry *fe_ptr)
 {
-  WalkingPackage walking_package;
-  int  group_id;
-  int  result;
-
-  result = -1;
-
-  if( mode != DISK_MODE && mode != USER_MODE )
-  {
-    return( result );
-  }
-
-  if( ( group_id = GetNewGroup( fe_ptr->stat_struct.st_gid ) ) >= 0 )
-  {
-    walking_package.function_data.change_group.new_group_id = group_id;
-    result = SetFileGroup( fe_ptr, &walking_package );
-  }
-  return( result );
+    return HandleFileOwnership(fe_ptr, FALSE, TRUE);
 }
-
-
-
 
 int GetNewGroup(int st_gid)
 {
@@ -76,108 +52,19 @@ int GetNewGroup(int st_gid)
   return( group_id );
 }
 
-
-
-
 int SetFileGroup(FileEntry *fe_ptr, WalkingPackage *walking_package)
 {
-  struct stat stat_struct;
-  char buffer[PATH_LENGTH+1];
-  int  result;
-  int  new_group_id;
+    char buffer[PATH_LENGTH + 1];
+    gid_t new_gid = (gid_t)walking_package->function_data.change_group.new_group_id;
 
-  result = -1;
+    walking_package->new_fe_ptr = fe_ptr; /* Unchanged */
 
-  walking_package->new_fe_ptr = fe_ptr; /* unchanged */
-  
-  new_group_id = walking_package->function_data.change_group.new_group_id;
+    GetFileNamePath(fe_ptr, buffer);
 
-  if( !chown( GetFileNamePath( fe_ptr, buffer ), 
-	      fe_ptr->stat_struct.st_uid ,
-	      new_group_id
-	    ) )
-  {
-    /* Erfolgreich modifiziert */
-    /*-------------------------*/
-
-    if( STAT_( buffer, &stat_struct ) )
-    {
-      ERROR_MSG( "Stat Failed" );
-    }
-    else
-    {
-      fe_ptr->stat_struct = stat_struct;
-    }
-    result = 0;
-  }
-  else
-  {
-    (void) sprintf( message, "Can't change owner:*%s", strerror(errno) );
-    MESSAGE( message );
-  }
- 
-  return( result );
+    return ChangeOwnership(buffer, fe_ptr->stat_struct.st_uid, new_gid, &fe_ptr->stat_struct);
 }
-
-
-
 
 int ChangeDirGroup(DirEntry *de_ptr)
 {
-  int  group_id;
-  int  result;
-
-  result = -1;
-
-  if( mode != DISK_MODE && mode != USER_MODE )
-  {
-    return( result );
-  }
-
-  if( ( group_id = GetNewGroup( de_ptr->stat_struct.st_gid ) ) >= 0 )
-  {
-    result = SetDirGroup( de_ptr, group_id );
-  }
-  return( result );
-}
-
-
-
-
-
-
-static int SetDirGroup(DirEntry *de_ptr, int new_group_id)
-{
-  struct stat stat_struct;
-  char buffer[PATH_LENGTH+1];
-  int  result;
-
-  result = -1;
-
-
-  if( !chown( GetPath( de_ptr, buffer ), 
-	      de_ptr->stat_struct.st_uid ,
-	      new_group_id
-	    ) )
-  {
-    /* Erfolgreich modifiziert */
-    /*-------------------------*/
-
-    if( STAT_( buffer, &stat_struct ) )
-    {
-      Warning( "stat failed" );
-    }
-    else
-    {
-      de_ptr->stat_struct = stat_struct;
-    }
-    result = 0;
-  }
-  else
-  {
-    (void) sprintf( message, "Can't change owner:*%s", strerror(errno) );
-    MESSAGE( message );
-  }
- 
-  return( result );
+    return HandleDirOwnership(de_ptr, FALSE, TRUE);
 }
