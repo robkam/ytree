@@ -1,5 +1,6 @@
 /***************************************************************************
  *
+ * string_utils.c
  * Generic string manipulation functions
  *
  ***************************************************************************/
@@ -16,7 +17,7 @@ int Strrcmp(char *s1, char* s2)/*compares in reverse order 2 strings*/
 
    for (aux = 0; aux <= l2; aux++)
    {
-      if ((l1 - aux) < 0) 
+      if ((l1 - aux) < 0)
 	return(-1);
       if (s1[l1 - aux] > s2[l2 - aux])
          return(1);

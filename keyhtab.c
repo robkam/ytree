@@ -1,5 +1,6 @@
 /***************************************************************************
  *
+ * keyhtab.c
  * Funktionen zum Key-Handling
  *
  ***************************************************************************/
@@ -26,7 +27,7 @@ static int DisplayMatches();
 
 
 
-static void PrintMtchEntry(int entry_no, int y, int color, 
+static void PrintMtchEntry(int entry_no, int y, int color,
                            int start_x, int *hide_left, int *hide_right)
 {
   int     n;
@@ -36,7 +37,7 @@ static void PrintMtchEntry(int entry_no, int y, int color,
   int     window_height;
   int     ef_window_width;
 
-  
+
   GetMaxYX( matches_window, &window_height, &window_width );
   ef_window_width = window_width - 2; /* Effektive Window-Width */
 
@@ -78,20 +79,20 @@ static void PrintMtchEntry(int entry_no, int y, int color,
     }
 
 #ifdef NO_HIGHLIGHT
-    strcat(line_ptr, (color == HIMTCH_COLOR) ? " <" : "  ");
+    strcat(line_ptr, (color == CPAIR_HIHST) ? " <" : "  ");
     WAddStr( matches_window, line_ptr );
 #else
-#ifdef COLOR_SUPPORT 
+#ifdef COLOR_SUPPORT
     WbkgdSet(matches_window, COLOR_PAIR(color)|A_BOLD);
 #else
-    if(color == HIMTCH_COLOR)
+    if(color == CPAIR_HIHST)
       wattrset( matches_window, A_REVERSE );
 #endif /* COLOR_SUPPORT */
     WAddStr( matches_window, line_ptr );
 #ifdef COLOR_SUPPORT
-    WbkgdSet(matches_window, COLOR_PAIR(WINMTCH_COLOR)| A_BOLD);
+    WbkgdSet(matches_window, COLOR_PAIR(CPAIR_WINHST)| A_BOLD);
 #else
-    if(color == HIMTCH_COLOR)
+    if(color == CPAIR_HIHST)
       wattrset( matches_window, 0 );
 #endif /* COLOR_SUPPORT */
 #endif /* NO_HIGHLIGHT */
@@ -114,13 +115,13 @@ static int DisplayMatches()
   {
     if (disp_begin_pos + i >= total_matches ) break;
     if (disp_begin_pos + i != hilight_no )
-        PrintMtchEntry(disp_begin_pos + i, i, MTCH_COLOR, 
+        PrintMtchEntry(disp_begin_pos + i, i, CPAIR_HST,
 	              0, &hide_left, &hide_right);
     else
       p_y = i;
   }
   if(p_y >= 0) {
-    PrintMtchEntry(disp_begin_pos + p_y, p_y, HIMTCH_COLOR,
+    PrintMtchEntry(disp_begin_pos + p_y, p_y, CPAIR_HIHST,
 	          0, &hide_left, &hide_right);
   }
   return 0;
@@ -145,7 +146,7 @@ char *GetMatches( char *base)
 #ifdef READLINE_SUPPORT
   tmpval=tilde_expand(base);
 
-  if ((Mtchs = rl_completion_matches(tmpval, rl_filename_completion_function)) 
+  if ((Mtchs = rl_completion_matches(tmpval, rl_filename_completion_function))
 	== NULL)
     return(NULL);
 #else
@@ -164,11 +165,11 @@ char *GetMatches( char *base)
     free(tmpval);
     return RetVal;
   }
-  
+
   for (total_matches=0; Mtchs[total_matches]; total_matches++);
   if (total_matches == 1)
   return(NULL);
-  
+
   disp_begin_pos = 1;
   cursor_pos     = 0;
   start_x        = 0;
@@ -185,7 +186,7 @@ char *GetMatches( char *base)
       if(start_x) {
         start_x = 0;
 	PrintMtchEntry( disp_begin_pos + cursor_pos,
-		       cursor_pos, HIMTCH_COLOR, 
+		       cursor_pos, CPAIR_HIHST,
 		       start_x, &hide_left, &hide_right);
       }
     }
@@ -199,19 +200,19 @@ char *GetMatches( char *base)
 
       case KEY_RIGHT: start_x++;
 		      PrintMtchEntry( disp_begin_pos + cursor_pos,
-			             cursor_pos, HIMTCH_COLOR,
+			             cursor_pos, CPAIR_HIHST,
 		                     start_x, &hide_left, &hide_right);
-		      if(hide_right < 0) 
+		      if(hide_right < 0)
 		        start_x--;
 		      break;
-      
+
       case KEY_LEFT:  if(start_x > 0)
        		        start_x--;
 		      PrintMtchEntry( disp_begin_pos + cursor_pos,
-			             cursor_pos, HIMTCH_COLOR,
+			             cursor_pos, CPAIR_HIHST,
 		                     start_x, &hide_left, &hide_right);
 		      break;
-      
+
       case '\t':
       case KEY_DOWN: if (disp_begin_pos + cursor_pos+1 >= total_matches)
       		     {
@@ -221,22 +222,22 @@ char *GetMatches( char *base)
 		     { if( cursor_pos + 1 < MATCHES_WINDOW_HEIGHT )
 		       {
 			 PrintMtchEntry( disp_begin_pos + cursor_pos,
-					cursor_pos, MTCH_COLOR,
+					cursor_pos, CPAIR_HST,
 		                        start_x, &hide_left, &hide_right);
 			 cursor_pos++;
 			 PrintMtchEntry( disp_begin_pos + cursor_pos,
-					cursor_pos, HIMTCH_COLOR,
+					cursor_pos, CPAIR_HIHST,
 		                        start_x, &hide_left, &hide_right);
                        }
 		       else
 		       {
-			 PrintMtchEntry( disp_begin_pos + cursor_pos, 
-					cursor_pos, MTCH_COLOR,
+			 PrintMtchEntry( disp_begin_pos + cursor_pos,
+					cursor_pos, CPAIR_HST,
 		                        start_x, &hide_left, &hide_right);
 			 scroll( matches_window );
 			 disp_begin_pos++;
-			 PrintMtchEntry( disp_begin_pos + cursor_pos, 
-					cursor_pos, HIMTCH_COLOR,
+			 PrintMtchEntry( disp_begin_pos + cursor_pos,
+					cursor_pos, CPAIR_HIHST,
 		                        start_x, &hide_left, &hide_right);
                        }
 		     }
@@ -248,24 +249,24 @@ char *GetMatches( char *base)
 		     {
 		       if( cursor_pos - 1 >= 0 )
 		       {
-			 PrintMtchEntry( disp_begin_pos + cursor_pos, 
-					cursor_pos, MTCH_COLOR,
+			 PrintMtchEntry( disp_begin_pos + cursor_pos,
+					cursor_pos, CPAIR_HST,
 		                        start_x, &hide_left, &hide_right);
 			 cursor_pos--;
 			 PrintMtchEntry( disp_begin_pos + cursor_pos,
-					cursor_pos, HIMTCH_COLOR,
+					cursor_pos, CPAIR_HIHST,
 		                        start_x, &hide_left, &hide_right);
                        }
 		       else
 		       {
-			 PrintMtchEntry( disp_begin_pos + cursor_pos, 
-					cursor_pos, MTCH_COLOR,
+			 PrintMtchEntry( disp_begin_pos + cursor_pos,
+					cursor_pos, CPAIR_HST,
 		                        start_x, &hide_left, &hide_right);
 			 wmove( matches_window, 0, 0 );
 			 winsertln( matches_window );
 			 disp_begin_pos--;
-			 PrintMtchEntry( disp_begin_pos + cursor_pos, 
-					cursor_pos, HIMTCH_COLOR,
+			 PrintMtchEntry( disp_begin_pos + cursor_pos,
+					cursor_pos, CPAIR_HIHST,
 		                        start_x, &hide_left, &hide_right);
                        }
 		     }
@@ -277,15 +278,15 @@ char *GetMatches( char *base)
 		     {
 		       if( cursor_pos < MATCHES_WINDOW_HEIGHT - 1 )
 		       {
-			 PrintMtchEntry( disp_begin_pos + cursor_pos, 
-					cursor_pos, MTCH_COLOR,
+			 PrintMtchEntry( disp_begin_pos + cursor_pos,
+					cursor_pos, CPAIR_HST,
 		                        start_x, &hide_left, &hide_right);
 		         if( disp_begin_pos + MATCHES_WINDOW_HEIGHT > total_matches  - 1 )
 			   cursor_pos = total_matches - disp_begin_pos - 1;
 			 else
 			   cursor_pos = MATCHES_WINDOW_HEIGHT - 1;
-			 PrintMtchEntry( disp_begin_pos + cursor_pos, 
-					cursor_pos, HIMTCH_COLOR,
+			 PrintMtchEntry( disp_begin_pos + cursor_pos,
+					cursor_pos, CPAIR_HIHST,
 		                        start_x, &hide_left, &hide_right);
 		       }
 		       else
@@ -302,7 +303,7 @@ char *GetMatches( char *base)
 			   cursor_pos = total_matches - disp_begin_pos - 1;
 			 }
                          DisplayMatches();
-		       } 
+		       }
 		     }
                      break;
       case KEY_PPAGE:
@@ -312,12 +313,12 @@ char *GetMatches( char *base)
 		     {
 		       if( cursor_pos > 0 )
 		       {
-			 PrintMtchEntry( disp_begin_pos + cursor_pos, 
-					cursor_pos, MTCH_COLOR,
+			 PrintMtchEntry( disp_begin_pos + cursor_pos,
+					cursor_pos, CPAIR_HST,
 		                        start_x, &hide_left, &hide_right);
 			 cursor_pos = 0;
-			 PrintMtchEntry( disp_begin_pos + cursor_pos, 
-					cursor_pos, HIMTCH_COLOR,
+			 PrintMtchEntry( disp_begin_pos + cursor_pos,
+					cursor_pos, CPAIR_HIHST,
 		                        start_x, &hide_left, &hide_right);
 		       }
 		       else
@@ -328,7 +329,7 @@ char *GetMatches( char *base)
 			 }
                          cursor_pos = 0;
                          DisplayMatches();
-		       } 
+		       }
 		     }
                      break;
       case KEY_HOME: if( disp_begin_pos == 1 && cursor_pos == 0 )
@@ -340,13 +341,13 @@ char *GetMatches( char *base)
                        DisplayMatches();
 		     }
                      break;
-      case KEY_END : 
+      case KEY_END :
                      disp_begin_pos = MAX(1, total_matches - MATCHES_WINDOW_HEIGHT);
 		     cursor_pos     = total_matches - disp_begin_pos - 1;
                      DisplayMatches();
                      break;
       case LF :
-      case CR : 
+      case CR :
                      TMP=malloc(strlen(Mtchs[ disp_begin_pos + cursor_pos])+1);
 		     if (TMP != NULL){
 		        strcpy(TMP, Mtchs[disp_begin_pos + cursor_pos]);

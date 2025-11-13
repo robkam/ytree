@@ -1,12 +1,16 @@
 /***************************************************************************
  *
+ * ytree.h
  * Header-Datei fuer YTREE
  *
  ***************************************************************************/
 
+#ifndef YTREE_H
+#define YTREE_H
+
 
 #define _LARGEFILE64_SOURCE 1
-#define _FILE_OFFSET_BITS 64                                                                   
+#define _FILE_OFFSET_BITS 64
 
 #include <stdio.h>
 #include <ctype.h>
@@ -182,10 +186,10 @@
 #ifndef ACS_LRCORNER
 #define ACS_LRCORNER '+'
 #endif
-#ifndef ACS_VLINE   
+#ifndef ACS_VLINE
 #define ACS_VLINE    '|'
 #endif
-#ifndef ACS_HLINE   
+#ifndef ACS_HLINE
 #define ACS_HLINE    '-'
 #endif
 #ifndef ACS_RTEE
@@ -208,30 +212,28 @@
 #endif
 
 
-
 /* Color Definitionen */
-
-#define DIR_COLOR        1
-#define FILE_COLOR       2
-#define STATS_COLOR      3
-#define BORDERS_COLOR    4
-#define MENU_COLOR       5
-#define WINDIR_COLOR     6
-#define WINFILE_COLOR    7
-#define WINSTATS_COLOR   8
-#define WINERR_COLOR     9
-#define HIDIR_COLOR     10
-#define HIFILE_COLOR    11
-#define HISTATS_COLOR   12
-#define HIMENUS_COLOR   13
-#define WINHST_COLOR    14
-#define HST_COLOR       15
-#define HIHST_COLOR     16
-#define WINMTCH_COLOR   14
-#define MTCH_COLOR      15
-#define HIMTCH_COLOR    16
-#define GLOBAL_COLOR    17
-#define HIGLOBAL_COLOR  18
+enum UI_COLOR_PAIRS {
+    CPAIR_DIR = 1,
+    CPAIR_HIDIR,
+    CPAIR_WINDIR,
+    CPAIR_FILE,
+    CPAIR_HIFILE,
+    CPAIR_WINFILE,
+    CPAIR_STATS,
+    CPAIR_WINSTATS,
+    CPAIR_BORDERS,
+    CPAIR_HIMENUS,
+    CPAIR_MENU,
+    CPAIR_WINERR,
+    CPAIR_HST,
+    CPAIR_HIHST,
+    CPAIR_WINHST,
+    CPAIR_GLOBAL,
+    CPAIR_HIGLOBAL,
+    NUM_UI_COLOR_PAIRS, /* This will be 19, so pairs are 1-18 */
+    F_COLOR_PAIR_BASE = 32
+};
 
 
 #define PROFILE_FILENAME	".ytree"
@@ -277,9 +279,9 @@
 #define DEFAULT_TREE       "."
 
 
-#define ERROR_MSG( msg )   Error( msg, __FILE__, __LINE__ ) 
-#define WARNING( msg )     Warning( msg ) 
-#define MESSAGE( msg )     Message( msg ) 
+#define ERROR_MSG( msg )   Error( msg, __FILE__, __LINE__ )
+#define WARNING( msg )     Warning( msg )
+#define MESSAGE( msg )     Message( msg )
 
 #define TAGGED_SYMBOL       '*'
 #define MAX_MODES            4
@@ -342,8 +344,8 @@
 
 #define CR                     13
 
-#define DIR_WINDOW_X         1  
-#define DIR_WINDOW_Y         2 
+#define DIR_WINDOW_X         1
+#define DIR_WINDOW_Y         2
 #define DIR_WINDOW_WIDTH     (COLS - 26)
 #define DIR_WINDOW_HEIGHT    ((LINES * 8 / 14)-1)
 
@@ -360,11 +362,11 @@
 #define FILE_WINDOW_2_X      1
 #define FILE_WINDOW_2_Y      2
 #define FILE_WINDOW_2_WIDTH  (COLS - 26)
-#define FILE_WINDOW_2_HEIGHT (LINES - 6) 
+#define FILE_WINDOW_2_HEIGHT (LINES - 6)
 
 #define ERROR_WINDOW_WIDTH   40
 #define ERROR_WINDOW_HEIGHT  10
-#define ERROR_WINDOW_X       ((COLS - ERROR_WINDOW_WIDTH) >> 1)  
+#define ERROR_WINDOW_X       ((COLS - ERROR_WINDOW_WIDTH) >> 1)
 #define ERROR_WINDOW_Y       ((LINES - ERROR_WINDOW_HEIGHT) >> 1)
 
 #define HISTORY_WINDOW_X       1
@@ -397,16 +399,28 @@
 
 #define ESCAPE               goto FNC_XIT
 
-#define PRINT(ch) (iscntrl(ch) && (((unsigned char)(ch)) < ' ')) ? (ACS_BLOCK) : ((unsigned char)(ch)) 
+#define PRINT(ch) (iscntrl(ch) && (((unsigned char)(ch)) < ' ')) ? (ACS_BLOCK) : ((unsigned char)(ch))
 
-#ifdef COLOR_SUPPORT
-extern void StartColors(void);
-extern void WbkgdSet(WINDOW *w, chtype c);
-#else
-#define StartColors()	;
-#define WbkgdSet(a, b)  ;
-#endif /* COLOR_SUPPORT */
+/* ========================================================================= */
+/*                              STRUCTURES                                   */
+/* ========================================================================= */
 
+typedef struct
+{
+    const char *name;
+    int id;
+    int fg;
+    int bg;
+} UIColor;
+
+typedef struct _file_color_rule
+{
+    char *pattern;
+    int fg;
+    int bg;
+    int pair_id;
+    struct _file_color_rule *next;
+} FileColorRule;
 
 
 typedef struct _file_entry
@@ -466,7 +480,7 @@ typedef struct
 } FileEntryList;
 
 
-typedef struct 
+typedef struct
 {
   DirEntry      *tree;
   LONGLONG	disk_space;
@@ -584,6 +598,9 @@ extern BOOL      bypass_small_window;
 extern char      *initial_directory;
 extern char 	 builtin_hexdump_cmd[];
 
+extern UIColor ui_colors[];
+extern int NUM_UI_COLORS;
+extern FileColorRule *file_color_rules_head;
 
 extern char *getenv(const char *);
 
@@ -631,6 +648,10 @@ extern void SuspendClock(void);
 #ifdef COLOR_SUPPORT
 extern void StartColors(void);
 extern void WbkgdSet(WINDOW *w, chtype c);
+extern void ParseColorString(const char *color_str, int *fg, int *bg);
+extern void UpdateUIColor(const char *name, int fg, int bg);
+extern void AddFileColorRule(const char *pattern, int fg, int bg);
+extern int GetFileTypeColor(FileEntry *fe_ptr);
 #else
 #define StartColors()	;
 #define WbkgdSet(a, b)  ;
@@ -652,7 +673,7 @@ extern int KeyF2Get(DirEntry *start_dir_entry, int disp_begin_pos, int cursor_po
 extern int RefreshDirWindow(void);
 extern int ScanSubTree( DirEntry *dir_entry );
 
-/* disp.c */
+/* display.c */
 extern void ClearHelp(void);
 extern void DisplayDirHelp(void);
 extern void DisplayFileHelp(void);
@@ -855,3 +876,5 @@ extern int FileUserMode(FileEntryList *file_entry_list, int ch);
 
 /* view.c */
 extern int View(DirEntry * dir_entry, char *file_path);
+
+#endif /* YTREE_H */

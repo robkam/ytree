@@ -24,7 +24,7 @@ MANSRC      = ytree.1.md
 # Default configuration for Linux (WSL/Ubuntu) with ncurses 6
 # NOTE: This build now requires libarchive.
 # On Debian/Ubuntu, install with: sudo apt-get install libarchive-dev
-COLOR       = -DCOLOR_SUPPORT 
+COLOR       = -DCOLOR_SUPPORT
 #CLOCK	    = -DCLOCK_SUPPORT # Experimental!
 READLINE    = -DREADLINE_SUPPORT
 # Use -std=c99 or -std=gnu99 for modernization. -D_GNU_SOURCE is kept for glibc extensions.
@@ -33,7 +33,7 @@ LDFLAGS     += -lncurses -ltinfo -lreadline -larchive
 
 
 # For systems requiring ncursesw (wide character support) use:
-# COLOR       = -DCOLOR_SUPPORT 
+# COLOR       = -DCOLOR_SUPPORT
 # READLINE    = -DREADLINE_SUPPORT
 # CFLAGS      = -D_GNU_SOURCE -DWITH_UTF8 $(ADD_CFLAGS) $(COLOR) $(CLOCK) $(READLINE)
 # LDFLAGS     = -lncursesw -ltinfo -lreadline
@@ -49,11 +49,11 @@ LDFLAGS     += -lncurses -ltinfo -lreadline -larchive
 MAIN    = ytree
 OBJS	= display_utils.o owner_utils.o path_utils.o string_utils.o tree_utils.o \
 	  archive.o archive_reader.o chgrp.o chmod.o chown.o clock.o color.o copy.o    \
-	  delete.o dirwin.o disp.o edit.o error.o execute.o filespec.o      \
+	  delete.o dirwin.o display.o edit.o error.o execute.o filespec.o      \
 	  filewin.o freesp.o global.o group.o hex.o history.o init.o input.o keyhtab.o \
 	  login.o main.o match.o mkdir.o move.o passwd.o pipe.o    \
 	  profile.o quit.o readtree.o rename.o rmdir.o sort.o stat.o \
-	  system.o usermode.o view.o 
+	  system.o usermode.o view.o
 
 $(MAIN):	$(OBJS)
 	$(CC) $(LFLAGS) -o $@ $(OBJS) $(LDFLAGS)
@@ -74,7 +74,7 @@ uninstall:	clobber
 
 clean:
 	rm -f core *.o *~ *.orig *.bak ytree.1
-		
+
 clobber:	clean
 	rm -f $(MAIN) ytree.1.gz
 
@@ -90,7 +90,7 @@ color.o: config.h ytree.h color.c
 copy.o: config.h ytree.h copy.c
 delete.o: config.h ytree.h delete.c
 dirwin.o: config.h ytree.h dirwin.c
-disp.o: config.h ytree.h patchlev.h disp.c
+display.o: config.h ytree.h patchlev.h display.c
 display_utils.o: config.h ytree.h display_utils.c
 edit.o: config.h ytree.h edit.c
 error.o: config.h ytree.h error.c patchlev.h

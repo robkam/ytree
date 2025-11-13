@@ -1,5 +1,6 @@
 /***************************************************************************
  *
+ * edit.c
  * Edit-Kommando-Bearbeitung
  *
  ***************************************************************************/
@@ -25,10 +26,10 @@ int Edit(DirEntry * dir_entry, char *file_path)
 
   if( access( file_path, R_OK ) )
   {
-    (void) sprintf( message, 
-		    "Edit not possible!*\"%s\"*%s", 
-		    file_path, 
-		    strerror(errno) 
+    (void) sprintf( message,
+		    "Edit not possible!*\"%s\"*%s",
+		    file_path,
+		    strerror(errno)
 		  );
     MESSAGE( message );
     ESCAPE;
@@ -56,7 +57,7 @@ int Edit(DirEntry * dir_entry, char *file_path)
     --crb3 29apr02: perhaps finally eliminate the problem with jstar writing new
     files to the ytree starting cwd. new code grabbed from execute.c.
     --crb3 01oct02: move getcwd operation within the IF DISKMODE stuff.
-  */                                                                              
+  */
 
   if (mode == DISK_MODE || mode == USER_MODE)
   {
@@ -80,9 +81,9 @@ int Edit(DirEntry * dir_entry, char *file_path)
     }
   }else{
     result = SystemCall(command_line);
-  }                                                                         
+  }
   free( command_line );
- 
+
 FNC_XIT:
 
   return( result );

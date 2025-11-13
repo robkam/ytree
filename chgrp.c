@@ -1,5 +1,6 @@
 /***************************************************************************
  *
+ * chgrp.c
  * Change Group
  *
  ***************************************************************************/
@@ -21,7 +22,7 @@ int GetNewGroup(int st_gid)
   int  group_id;
 
   group_id = -1;
-  
+
   id = ( st_gid == -1 ) ? (int) getgid() : st_gid;
 
   group_name_ptr = GetGroupName( id );
@@ -46,9 +47,9 @@ int GetNewGroup(int st_gid)
       MESSAGE( message );
     }
   }
-  
+
   move( LINES - 2, 1 ); clrtoeol();
-  
+
   return( group_id );
 }
 

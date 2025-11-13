@@ -1,5 +1,6 @@
 /***************************************************************************
  *
+ * usermode.c
  * Funktionen zur Handhabung des FILE-Windows
  *
  ***************************************************************************/
@@ -18,7 +19,7 @@ int DirUserMode(DirEntry *dir_entry, int ch)
 
   GetPath( dir_entry, filepath );
   command_line = NULL;
-  
+
   while (( aux = GetUserDirAction(ch, &chremap)) != NULL) {
      if( command_line == NULL &&
           ( command_line = malloc( COMMAND_LINE_LENGTH + 1 ) ) == NULL )
@@ -64,7 +65,7 @@ int FileUserMode(FileEntryList *file_entry_list, int ch)
         ERROR_MSG( "Malloc failed*ABORT" );
         exit( 1 );
      }
-  
+
      if (strstr(aux,"%s") != NULL) {
   	(void) sprintf( command_line, aux, filepath );
      } else {

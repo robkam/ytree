@@ -1,5 +1,6 @@
 /***************************************************************************
  *
+ * mkdir.c
  * Erstellen von Verzeichnissen
  *
  ***************************************************************************/
@@ -30,7 +31,7 @@ int MakeDirectory(DirEntry *father_dir_entry)
   {
     result = MakeDirEntry( father_dir_entry, dir_name );
   }
- 
+
   move( LINES - 2, 1 ); clrtoeol();
 
   return( result );
@@ -66,17 +67,17 @@ int MakeDirEntry(DirEntry *father_dir_entry, char *dir_name )
 		                 S_IXOTH) & ~user_umask
     ) ) )
   {
-    (void) sprintf( message, "Can't create Directory*\"%s\"*%s", 
+    (void) sprintf( message, "Can't create Directory*\"%s\"*%s",
 		    buffer, strerror(errno)
 		  );
     MESSAGE( message );
   }
   else
   {
-    /* Directory erstellt 
-     * ==> einklinken im Baum 
+    /* Directory erstellt
+     * ==> einklinken im Baum
      */
-      
+
     if( ( den_ptr = (DirEntry *) malloc( sizeof( DirEntry ) + strlen( dir_name )  ) ) == NULL )
     {
       ERROR_MSG( "Malloc Failed*ABORT" );
@@ -105,25 +106,25 @@ int MakeDirEntry(DirEntry *father_dir_entry, char *dir_name )
     statistic.disk_total_directories++;
 
     (void) strcpy( den_ptr->name, dir_name );
-     
+
     if( STAT_( buffer, &stat_struct ) )
     {
       ERROR_MSG( "Stat Failed*ABORT" );
       exit( 1 );
     }
 
-    (void) memcpy( &den_ptr->stat_struct, 
+    (void) memcpy( &den_ptr->stat_struct,
 		   &stat_struct,
 		   sizeof( stat_struct )
 		 );
-    
+
 
     /* Sortieren durch direktes Einfuegen */
     /*------------------------------------*/
 
     for( des_ptr = father_dir_entry->sub_tree; des_ptr; des_ptr = des_ptr->next )
     {
-      if( strcmp( des_ptr->name, den_ptr->name ) > 0 ) 
+      if( strcmp( des_ptr->name, den_ptr->name ) > 0 )
       {
 	/* des-Element ist groesser */
 	/*--------------------------*/
@@ -135,7 +136,7 @@ int MakeDirEntry(DirEntry *father_dir_entry, char *dir_name )
 	des_ptr->prev = den_ptr;
 	break;
       }
-	
+
       if( des_ptr->next == NULL )
       {
         /* Ende der Liste erreicht; ==> einfuegen */
@@ -230,22 +231,22 @@ int MakePath( DirEntry *tree, char *dir_path, DirEntry **dest_dir_entry )
 
     (void) strcat( path, FILE_SEPARATOR_STRING );
 
-    for( cptr = strchr( path, FILE_SEPARATOR_CHAR ); 
-         cptr; 
-         cptr = strchr( cptr + 1, FILE_SEPARATOR_CHAR ) 
+    for( cptr = strchr( path, FILE_SEPARATOR_CHAR );
+         cptr;
+         cptr = strchr( cptr + 1, FILE_SEPARATOR_CHAR )
        )
     {
       if( cptr == path ) continue;
       if( cptr[-1] == FILE_SEPARATOR_CHAR ) continue;
       if( cptr[-1] == '.' && (cptr == path+1 || cptr[-2] == FILE_SEPARATOR_CHAR ) ) continue;
-  
+
       *cptr = '\0';
-  
+
 #ifdef DEBUG
     fprintf( stderr, "MakePath: \"%s\"\n", path );
 #endif /* DEBUG */
-  
-  
+
+
       if( mkdir( path, S_IREAD  |
 		       S_IWRITE |
 		       S_IEXEC  |
@@ -258,7 +259,7 @@ int MakePath( DirEntry *tree, char *dir_path, DirEntry **dest_dir_entry )
       {
         /* ging nicht... */
         /*---------------*/
-  
+
         *cptr = FILE_SEPARATOR_CHAR;
         if( errno == EEXIST ) continue; /* OK, weitermachen */
         break;

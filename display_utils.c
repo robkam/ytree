@@ -1,5 +1,6 @@
 /***************************************************************************
  *
+ * display_utils.c
  * Functions for formatting and displaying data in the terminal UI
  *
  ***************************************************************************/
@@ -29,22 +30,22 @@ char *GetAttributes(unsigned short modus, char *buffer)
 
   if( modus & S_IWUSR ) *buffer++ = 'w';
   else *buffer++ = '-';
-    
+
   if( modus & S_IXUSR ) *buffer++ = 'x';
   else *buffer++ = '-';
-    
+
   if( modus & S_ISUID ) *(buffer - 1) = 's';
-    
+
 
   if( modus & S_IRGRP ) *buffer++ = 'r';
   else *buffer++ = '-';
 
   if( modus & S_IWGRP ) *buffer++ = 'w';
   else *buffer++ = '-';
-    
+
   if( modus & S_IXGRP ) *buffer++ = 'x';
   else *buffer++ = '-';
-    
+
   if( modus & S_ISGID ) *(buffer - 1) = 's';
 
 
@@ -53,10 +54,10 @@ char *GetAttributes(unsigned short modus, char *buffer)
 
   if( modus & S_IWOTH ) *buffer++ = 'w';
   else *buffer++ = '-';
-    
+
   if( modus & S_IXOTH ) *buffer++ = 'x';
   else *buffer++ = '-';
-    
+
   *buffer = '\0';
 
   return( save_buffer );
@@ -86,7 +87,7 @@ char *CTime(time_t f_time, char *buffer)
     /*-------------------------------*/
 
     (void) strncpy( &buffer[7], cptr + 19, 5 );
-    
+
   }
 
   return( buffer );
@@ -116,7 +117,7 @@ char *FormFilename(char *dest, char *src, unsigned int max_len)
       for(i=0; i < (int) max_len - 4; i++)
         if( src[l - i] == FILE_SEPARATOR_CHAR || src[l - i] == '\\' )
           begin = l - i;
-      
+
       if(begin > 0) {
         strcat(dest, &src[begin] );
         if(strlen(dest) > max_len)
@@ -199,8 +200,8 @@ char *CutName(char *dest, char *src, unsigned int max_len)
 /*****************************************************************************
  *                           BuildUserFileEntry                              *
  *****************************************************************************/
-int BuildUserFileEntry(FileEntry *fe_ptr, 
-			int filename_width, int linkname_width, 
+int BuildUserFileEntry(FileEntry *fe_ptr,
+			int filename_width, int linkname_width,
 			char *template, int linelen, char *line)
 {
   char attributes[11];
@@ -228,11 +229,11 @@ int BuildUserFileEntry(FileEntry *fe_ptr,
 
   tag = (fe_ptr->tagged) ? TAGGED_SYMBOL : ' ';
   (void) GetAttributes( fe_ptr->stat_struct.st_mode, attributes);
-		        
+
   (void) CTime( fe_ptr->stat_struct.st_mtime, modify_time );
   (void) CTime( fe_ptr->stat_struct.st_ctime, change_time );
   (void) CTime( fe_ptr->stat_struct.st_atime, access_time );
-  
+
   owner_name_ptr = GetPasswdName(fe_ptr->stat_struct.st_uid);
   group_name_ptr = GetGroupName(fe_ptr->stat_struct.st_gid);
 
@@ -307,7 +308,7 @@ int BuildUserFileEntry(FileEntry *fe_ptr,
   line[linelen - 1] = '\0';
   return(0);
 }
-  
+
 
 
 int GetVisualUserFileEntryLength( int max_visual_filename_len, int max_visual_linkname_len, char *template)
@@ -371,14 +372,14 @@ int GetVisualUserFileEntryLength( int max_visual_filename_len, int max_visual_li
   }
   return(len);
 }
-  
+
 /*****************************************************************************
  *                                  GetMaxYX                                 *
  *****************************************************************************/
 void GetMaxYX(WINDOW *win, int *height, int *width)
 {
   if( win == dir_window )
-  { 
+  {
     *height = MAXIMUM(DIR_WINDOW_HEIGHT, 1);
     *width  = MAXIMUM(DIR_WINDOW_WIDTH, 1);
   }
@@ -462,7 +463,7 @@ int AddStr(char *str)
 
 int WAttrAddStr(WINDOW *win, int attr, char *str)
 {
-  int rc; 
+  int rc;
 
   wattrset( win, attr );
   rc = WAddStr(win, str);
@@ -484,7 +485,7 @@ void PrintSpecialString(WINDOW *win, int y, int x, char *str, int color)
 
   for( ; *str; str++ )
   {
-    if ( (!iscntrl(*str)) || (!isspace(*str)) || (*str==' ') ) 
+    if ( (!iscntrl(*str)) || (!isspace(*str)) || (*str==' ') )
     switch( *str )
     {
       case '1': ch = ACS_ULCORNER; break;
@@ -526,7 +527,7 @@ void Print(WINDOW *win, int y, int x, char *str, int color)
   for( ; *str; str++ )
   {
     ch = PRINT((int) *str);
-   
+
 #ifdef COLOR_SUPPORT
     wattrset( win, COLOR_PAIR(color) | A_BOLD);
 #endif /* COLOR_SUPPORT */
@@ -549,19 +550,19 @@ void PrintOptions(WINDOW *win, int y, int x, char *str)
   }
 
 #ifdef COLOR_SUPPORT
-     lo_color = MENU_COLOR;
-     hi_color = HIMENUS_COLOR;
+     lo_color = CPAIR_MENU;
+     hi_color = CPAIR_HIMENUS;
 #else
      lo_color = A_NORMAL;
      hi_color = A_BOLD;
 #endif
-   
+
   color = lo_color;
 
   for( ; *str; str++ )
   {
     ch = (int) *str;
-   
+
     switch( *str ) {
         case '(': color = hi_color;  continue;
 	case ')': color = lo_color;  continue;
@@ -604,7 +605,7 @@ void PrintMenuOptions(WINDOW *win,int y, int x, char *str, int ncolor, int hcolo
   int ch;
   int color, hi_color, lo_color;
   char *sbuf, buf[2];
-  
+
   if ((sbuf = (char *)malloc(strlen(str)+1)) == NULL) {
     ERROR_MSG( "Malloc failed*ABORT" );
     exit( 1 );
@@ -619,20 +620,20 @@ void PrintMenuOptions(WINDOW *win,int y, int x, char *str, int ncolor, int hcolo
   }
 
 #ifdef COLOR_SUPPORT
-     lo_color = MENU_COLOR;
-     hi_color = HIMENUS_COLOR;
+     lo_color = ncolor;
+     hi_color = hcolor;
 #else
      lo_color = A_NORMAL;
      hi_color = A_REVERSE;
 #endif
-   
+
   color = lo_color;
   wmove(win, y, x);
 
   for( ; *str; str++ )
   {
     ch = (int) *str;
-   
+
     switch( ch ) {
         case '(': color = hi_color;
 #ifdef COLOR_SUPPORT
@@ -642,7 +643,7 @@ void PrintMenuOptions(WINDOW *win,int y, int x, char *str, int ncolor, int hcolo
 #endif
 		  strcpy(sbuf, "");
 	          continue;
-		  
+
 	case ')': color = lo_color;
 #ifdef COLOR_SUPPORT
                   WAttrAddStr( win, COLOR_PAIR(color) | A_BOLD, sbuf);
@@ -668,7 +669,7 @@ void PrintMenuOptions(WINDOW *win,int y, int x, char *str, int ncolor, int hcolo
         default : buf[0] = PRINT(*str);
 		  strcat(sbuf, buf);
     }
-  }    
+  }
 
 #ifdef COLOR_SUPPORT
   WAttrAddStr( win, COLOR_PAIR(color) | A_BOLD, sbuf);

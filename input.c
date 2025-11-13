@@ -1,11 +1,12 @@
 /***************************************************************************
+ * input.c
  * InputStr                                                                *
  * Liest eine Zeichenkette an Position (y,x) mit der max. Laenge length    *
  * Vorschlagswert fuer die Eingabe ist s selbst                            *
  * Zurueckgegeben wird das Zeichen, mit dem die Eingabe beendet wurde      *
  ***************************************************************************/
- 
- 
+
+
 #include "ytree.h"
 #ifdef READLINE_SUPPORT
 #include <readline/tilde.h>
@@ -32,13 +33,13 @@ char *StrLeft(const char *str, size_t visible_count)
   int pos = 0;
 #endif
 
-  if (visible_count == 0) 
+  if (visible_count == 0)
     return(strdup(""));
 
   len = StrVisualLength(str);
-  if (visible_count >= len) 
+  if (visible_count >= len)
     return(strdup(str));
-  
+
 #ifdef WITH_UTF8
 
   s_start = s = str;
@@ -64,17 +65,17 @@ char *StrLeft(const char *str, size_t visible_count)
       if(width < 0)
         width = 1;
     }
-    
+
     if(pos + width > visible_count)
       break;  /* exceeds limit */
-      
+
     pos += width;
   }
 
-  left_bytes = s_start - str; 
+  left_bytes = s_start - str;
 
 #else
-  left_bytes = visible_count; 
+  left_bytes = visible_count;
 #endif
 
   result = strndup(str, left_bytes);
@@ -98,13 +99,13 @@ char *StrRight(const char *str, size_t visible_count)
   int pos_start = 0;
 #endif
 
-  if (visible_count == 0) 
+  if (visible_count == 0)
     return(strdup(""));
 
   visual_len = StrVisualLength(str);
   if(visual_len <= visible_count)
     return(strdup(str));
-  
+
 #ifdef WITH_UTF8
 
   s_start = s = str;
@@ -132,11 +133,11 @@ char *StrRight(const char *str, size_t visible_count)
 
     if((visual_len - (pos_start + width)) < visible_count)
       break;  /* The next character is the first to display */
-      
+
     pos_start += width;
   }
-  
-  left_bytes = s_start - str; 
+
+  left_bytes = s_start - str;
 
   result = strdup(&str[left_bytes]);
 
@@ -163,7 +164,7 @@ int StrVisualLength(const char *str)
   size_t sz;
   mbstate_t state;
   const char *s = str;
-  
+
   while(*s) {
     wchar_t wc;
     int width;
@@ -228,12 +229,12 @@ int VisualPositionToBytePosition(const char *str, int visual_pos)
 
     if(pos + width > visual_pos)
       return( s_start - str );
-      
+
     pos += width;
   }
 
   return( s - str );
- 
+
 #else
   return visual_pos;
 #endif
@@ -253,7 +254,7 @@ int InputString(char *s, int y, int x, int cursor_pos, int length, char *term)
   char *pp;
   BOOL len_flag = FALSE;
   char path[PATH_LENGTH + 1];
-  char buf[MB_CUR_MAX + 1]; 
+  char buf[MB_CUR_MAX + 1];
   char *ls, *rs;
   static BOOL insert_flag = TRUE;
 
@@ -264,12 +265,12 @@ int InputString(char *s, int y, int x, int cursor_pos, int length, char *term)
   print_time = FALSE;
   curs_set(1);
   leaveok(stdscr, FALSE);
-  
+
   p = cursor_pos;
-  
+
   /* Draw string and fill to max length with '_' */
   MvAddStr( y, x, s );
-  
+
   /* Corrected placeholder loop to ensure no wrap */
   for(i=StrVisualLength(s); i < length; i++)
     addch( '_' );
@@ -282,17 +283,17 @@ int InputString(char *s, int y, int x, int cursor_pos, int length, char *term)
   do {
     /* Redraw string, fill to max length with '_', and position cursor */
     MvAddStr( y, x, s );
-    
+
     /* Redraw placeholders */
     for(i=StrVisualLength(s); i < length; i++)
       addch( '_' );
-    
+
     move( y, x + p);
     RefreshWindow( stdscr );
     doupdate();
 
     c1 = Getch();
-    
+
 #ifdef VI_KEYS
     c1 = ViKey(c1);
 #endif
@@ -313,10 +314,10 @@ int InputString(char *s, int y, int x, int cursor_pos, int length, char *term)
     case KEY_LEFT:
     case KEY_BTAB:  /* Back-tab (often Shift-Tab), treat as left */
         if( p > 0 ) p--; else beep(); break;
-        
+
     case KEY_RIGHT:
         if( p < StrVisualLength(s) ) p++; else beep(); break;
-        
+
     case KEY_UP:
         pp = GetHistory();
         if (pp == NULL) break;
@@ -331,17 +332,17 @@ int InputString(char *s, int y, int x, int cursor_pos, int length, char *term)
     case KEY_DOWN:
     case KEY_PPAGE:
     case KEY_NPAGE:
-        /* These keys mis-map to '#'/'S'/'R' in non-command modes. 
-           In the input bar, they should simply be ignored (beep) or mapped 
+        /* These keys mis-map to '#'/'S'/'R' in non-command modes.
+           In the input bar, they should simply be ignored (beep) or mapped
            to a sensible, simple action like history. For now, treat as unhandled. */
         beep(); break;
 
-    case KEY_HOME: 
-        p = 0; break; 
-        
-    case KEY_END: 
+    case KEY_HOME:
+        p = 0; break;
+
+    case KEY_END:
         p = StrVisualLength( s ); break;
-        
+
     case KEY_DC:    /* Delete key, defined in curses.h */
     case 0x7F:      /* ASCII DEL character */
         n = StrVisualLength(s);
@@ -356,10 +357,10 @@ int InputString(char *s, int y, int x, int cursor_pos, int length, char *term)
             beep();
         }
         break;
-        
+
     /* Consolidate all backspace/Ctrl-H aliases */
-    case KEY_BACKSPACE: 
-    case 0x08: 
+    case KEY_BACKSPACE:
+    case 0x08:
         n = StrVisualLength(s);
         if( p > 0 ) {
             ls = StrLeft(s, p - 1);
@@ -373,17 +374,17 @@ int InputString(char *s, int y, int x, int cursor_pos, int length, char *term)
             beep();
         }
         break;
-        
+
     case KEY_DL: /* Delete to end of line */
         ls = StrLeft(s, p);
         strcpy(s, ls);
         free(ls);
         break;
-        
+
     case KEY_EIC:
     case KEY_IC: insert_flag ^= TRUE; break;
-        
-    case '\t': 
+
+    case '\t':
         pp = GetMatches(s);
         if (pp == NULL) break;
         if(*pp) {
@@ -394,13 +395,13 @@ int InputString(char *s, int y, int x, int cursor_pos, int length, char *term)
             free(pp);
         }
         break;
-        
+
     case KEY_RESIZE: resize_request = TRUE; break;
-        
+
 #ifdef KEY_F
     case KEY_F(2):
 #endif
-    case 'F' & 0x1f: 
+    case 'F' & 0x1f:
         if(KeyF2Get( statistic.tree, statistic.disp_begin_pos, statistic.cursor_pos, path)) {
             break;
         }
@@ -412,8 +413,8 @@ int InputString(char *s, int y, int x, int cursor_pos, int length, char *term)
         }
         break;
 
-    case 'C' & 0x1f: c1 = ESC; break; 
-    
+    case 'C' & 0x1f: c1 = ESC; break;
+
     default:
         /* Handle printable/multibyte input */
         if (c1 >= ' ' || c1 > 0xFF) {
@@ -427,11 +428,11 @@ int InputString(char *s, int y, int x, int cursor_pos, int length, char *term)
               /* If this fails, the original logic is a basic guess for single-byte terminal. */
             }
 #endif
-            
+
             /* Copy input character to temporary buffer (max MB_CUR_MAX bytes) */
             buf[0] = (char)c1;
             buf[1] = '\0';
-            
+
             if (len_flag == TRUE) {
                 beep();
             } else {
@@ -458,20 +459,20 @@ int InputString(char *s, int y, int x, int cursor_pos, int length, char *term)
                         /* Overwrite logic */
                         int byte_pos_to_overwrite = VisualPositionToBytePosition(s, p);
                         int bytes_to_delete = VisualPositionToBytePosition(&s[byte_pos_to_overwrite], visual_insert_len);
-                        
+
                         if ( p > 0 ) ls = StrLeft(s, p);
                         else ls = strdup("");
-                        
+
                         /* Extract remaining part: from after the overwritten content to the end */
                         if (strlen(s) - (byte_pos_to_overwrite + bytes_to_delete) > 0)
                            rs = strdup(&s[byte_pos_to_overwrite + bytes_to_delete]);
-                        else 
+                        else
                            rs = strdup("");
 
                         strcpy(s, ls);
                         strcat(s, buf);
                         strcat(s, rs);
-                        
+
                         free(ls);
                         free(rs);
                     }
@@ -537,7 +538,7 @@ int InputChoise(char *msg, char *term)
     if(c >= 0)
       if( islower( c ) ) c = toupper( c );
   } while( c != -1 && !strchr( term, c ) );
-  
+
   if(c >= 0)
     echochar( c );
 
@@ -558,22 +559,22 @@ void HitReturnToContinue(void)
   char *te; /* termcap variable for exit_attribute_mode ("me") */
 
 #if !defined(XCURSES) /* XCURSES handles this differently or it's not needed */
-  
+
   /* tgetstr() is typically available after including <term.h> in ytree.h */
   char *tgetstr(const char *, char **);
   int tputs(const char *, int, int (*)(int));
 
   curs_set(1);
-  
+
   /* Use putp to set reverse video (for the prompt text) */
   vidattr( A_REVERSE );
-  
+
   putp( "[Hit return to continue]" );
   (void) fflush( stdout );
-  
+
   /* Wait for key press */
   (void) getchar();
-  
+
   /* Reset all attributes in the terminal using tgetstr/tputs */
   /* This is necessary because the prompt was printed outside of curses mode */
   te = tgetstr("me", NULL);
@@ -581,10 +582,10 @@ void HitReturnToContinue(void)
       tputs(te, 1, term_putc); /* Use new wrapper function */
   } else {
       /* Fallback: use putp which may not be a perfect fix on all terminals */
-      putp("\033[0m"); 
+      putp("\033[0m");
   }
   (void) fflush(stdout);
-  
+
 #endif /* XCURSES */
 
   curs_set(0);
@@ -637,7 +638,7 @@ int ViKey( int ch )
 
 #endif /* VI_KEYS */
 
-  
+
 /* Removed AixWgetch/Aix specific logic */
 
 

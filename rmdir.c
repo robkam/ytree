@@ -1,5 +1,6 @@
 /***************************************************************************
  *
+ * rmdir.c
  * Loeschen von Verzeichnissen
  *
  ***************************************************************************/
@@ -53,24 +54,24 @@ int DeleteDirectory(DirEntry *dir_entry)
 
     if( access( buffer, W_OK ) )
     {
-      (void) sprintf( message, "Can't delete directory*\"%s\"*%s", 
+      (void) sprintf( message, "Can't delete directory*\"%s\"*%s",
 		      buffer, strerror(errno)
 		    );
       MESSAGE( message );
     }
     else if( rmdir( buffer ) )
     {
-      (void) sprintf( message, "Can't delete directory*\"%s\"*%s", 
+      (void) sprintf( message, "Can't delete directory*\"%s\"*%s",
 		      buffer, strerror(errno)
 		    );
       MESSAGE( message );
     }
     else
     {
-      /* Directory geloescht 
+      /* Directory geloescht
        * ==> aus Baum loeschen
        */
-      
+
       statistic.disk_total_directories--;
 
       if( dir_entry->prev ) dir_entry->prev->next = dir_entry->next;
@@ -134,13 +135,13 @@ static int DeleteSingleDirectory( DirEntry *dir_entry )
 
 
   if( access( buffer, W_OK ) ) {
-    (void) sprintf( message, "Can't delete directory*\"%s\"*%s", 
+    (void) sprintf( message, "Can't delete directory*\"%s\"*%s",
 		    buffer, strerror(errno)
 		    );
     MESSAGE( message );
     ESCAPE;
   }
-  
+
   for( fe_ptr = dir_entry->file; fe_ptr; fe_ptr=next_fe_ptr ) {
     next_fe_ptr = fe_ptr->next;
     if( DeleteFile( fe_ptr ) ) {
@@ -149,7 +150,7 @@ static int DeleteSingleDirectory( DirEntry *dir_entry )
   }
 
   if( rmdir( buffer ) ) {
-    (void) sprintf( message, "Can't delete directory*\"%s\"*%s", 
+    (void) sprintf( message, "Can't delete directory*\"%s\"*%s",
 		    buffer, strerror(errno)
 		  );
     MESSAGE( message );
@@ -162,7 +163,7 @@ static int DeleteSingleDirectory( DirEntry *dir_entry )
   if( dir_entry->prev ) dir_entry->prev->next = dir_entry->next;
   else dir_entry->up_tree->sub_tree = dir_entry->next;
   if( dir_entry->next ) dir_entry->next->prev = dir_entry->prev;
-    
+
   free( dir_entry );
 
   result = 0;

@@ -1,5 +1,6 @@
 /***************************************************************************
  *
+ * archive_reader.c
  * functions to read filetree from various archives (TAR, ZIP, ZOO, etc.)
  *
  ***************************************************************************/
@@ -16,7 +17,7 @@
 static void copy_stat_from_entry(struct stat *dest, struct archive_entry *entry)
 {
     const struct stat *st;
-    
+
     memset(dest, 0, sizeof(struct stat));
     st = archive_entry_stat(entry);
 
@@ -38,7 +39,7 @@ static void copy_stat_from_entry(struct stat *dest, struct archive_entry *entry)
     }
 }
 
-/* 
+/*
  * Dispatcher function to read file tree from archive using libarchive.
  * This replaces all old ReadTreeFrom... and GetStatFrom... functions.
  */
@@ -49,7 +50,7 @@ int ReadTreeFromArchive(DirEntry *dir_entry, const char *filename)
     int r;
     char path_buffer[PATH_LENGTH * 2]; /* Buffer for path + symlink target */
     struct stat stat_buf;
-    
+
     *dir_entry->name = '\0';
 
     a = archive_read_new();
@@ -71,13 +72,13 @@ int ReadTreeFromArchive(DirEntry *dir_entry, const char *filename)
 
     while (archive_read_next_header(a, &entry) == ARCHIVE_OK) {
         const char *pathname = archive_entry_pathname(entry);
-        
+
         if (pathname == NULL) {
             continue;
         }
 
         copy_stat_from_entry(&stat_buf, entry);
-        
+
         if (S_ISDIR(stat_buf.st_mode)) {
             (void)strcpy(path_buffer, pathname);
             /* Ensure directory paths end with a separator for TryInsertArchiveDirEntry */
@@ -106,7 +107,7 @@ int ReadTreeFromArchive(DirEntry *dir_entry, const char *filename)
         DisplayDiskStatistic();
         doupdate();
     }
-    
+
     MinimizeArchiveTree(dir_entry);
     archive_read_free(a);
 

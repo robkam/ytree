@@ -1,5 +1,6 @@
 /***************************************************************************
  *
+ * clock.c
  * Clock Module
  *
  ***************************************************************************/
@@ -24,7 +25,7 @@ void InitClock()
   value.it_interval.tv_sec = CLOCK_INTERVAL;
   value.it_value.tv_sec = CLOCK_INTERVAL;
   value.it_interval.tv_usec = 0;
-  
+
   if (setitimer(ITIMER_REAL, &value, &ovalue)!= 0) {
       sprintf(message,"setitimer() failed: %s", strerror(errno));
       ERROR_MSG(message);
@@ -49,17 +50,17 @@ void ClockHandler(int sig)
       time(&HORA);
       hora = localtime(&HORA);
       *strtm = '\0';
-      
+
       sprintf(strtm,"[time %.2d:%.2d:%.2d]",hora->tm_hour,hora->tm_min,hora->tm_sec);
 
 #ifdef COLOR_SUPPORT
-      mvwaddch(time_window, 0, 0, ACS_RTEE| COLOR_PAIR(MENU_COLOR)|A_BOLD);
-      mvwaddch(time_window, 0, 14, ACS_LTEE| COLOR_PAIR(MENU_COLOR)|A_BOLD);
+      mvwaddch(time_window, 0, 0, ACS_RTEE| COLOR_PAIR(CPAIR_MENU)|A_BOLD);
+      mvwaddch(time_window, 0, 14, ACS_LTEE| COLOR_PAIR(CPAIR_MENU)|A_BOLD);
 #else
       mvwaddch(time_window, 0, 0, ACS_RTEE);
       mvwaddch(time_window, 0, 14, ACS_LTEE);
 #endif
-      PrintMenuOptions(time_window,0, 1, strtm, MENU_COLOR, HIMENUS_COLOR);
+      PrintMenuOptions(time_window,0, 1, strtm, CPAIR_MENU, CPAIR_HIMENUS);
    }
    signal(SIGALRM,  ClockHandler );
 #endif
@@ -77,4 +78,3 @@ void SuspendClock(void)
 #endif
   return;
   }
-  

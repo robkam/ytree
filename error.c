@@ -1,5 +1,6 @@
 /***************************************************************************
  *
+ * error.c
  * Ausgabe von Fehlermeldungen
  *
  ***************************************************************************/
@@ -45,15 +46,15 @@ void Warning(char *msg)
 void AboutBox()
 {
   static char version[80];
-  
-  (void) sprintf( version, 
+
+  (void) sprintf( version,
 #ifdef WITH_UTF8
-                  "ytree (UTF8) Version %s %s*(Werner Bregulla)", 
+                  "ytree (UTF8) Version %s %s*(Werner Bregulla)",
 #else
-                  "ytree Version %s %s*(Werner Bregulla)", 
+                  "ytree Version %s %s*(Werner Bregulla)",
 #endif
-                  VERSION, 
-                  VERSIONDATE 
+                  VERSION,
+                  VERSIONDATE
                 );
 
   MapErrorWindow( "ABOUT" );
@@ -66,7 +67,7 @@ void Error(char *msg, char *module, int line)
   char buffer[MESSAGE_LENGTH + 1];
 
   MapErrorWindow( "INTERNAL ERROR" );
-  (void) sprintf( buffer, "%s*In Module \"%s\"*Line %d", 
+  (void) sprintf( buffer, "%s*In Module \"%s\"*Line %d",
 		  msg, module, line
 		);
   (void) PrintMessage( buffer, TRUE );
@@ -81,13 +82,13 @@ static void MapErrorWindow(char *header)
    werase( error_window );
    box( error_window, 0, 0 );
 
-   PrintSpecialString( error_window, 
-		       ERROR_WINDOW_HEIGHT - 3, 
+   PrintSpecialString( error_window,
+		       ERROR_WINDOW_HEIGHT - 3,
 		       0,
 		       "6--------------------------------------7",
-		       WINERR_COLOR
+		       CPAIR_WINERR
 		     );
-   wattrset( error_window, A_REVERSE | A_BLINK ); 
+   wattrset( error_window, A_REVERSE | A_BLINK );
    MvWAddStr( error_window,
 	      ERROR_WINDOW_HEIGHT - 2,
 	      1,
@@ -103,13 +104,13 @@ static void MapNoticeWindow(char *header)
    werase( error_window );
    box( error_window, 0, 0 );
 
-   PrintSpecialString( error_window, 
-		       ERROR_WINDOW_HEIGHT - 3, 
+   PrintSpecialString( error_window,
+		       ERROR_WINDOW_HEIGHT - 3,
 		       0,
 		       "6--------------------------------------7",
-		       WINERR_COLOR
+		       CPAIR_WINERR
 		     );
-   wattrset( error_window, A_REVERSE | A_BLINK ); 
+   wattrset( error_window, A_REVERSE | A_BLINK );
    MvWAddStr( error_window,
 	      ERROR_WINDOW_HEIGHT - 2,
 	      1,
@@ -174,7 +175,7 @@ static void DisplayMessage(char *msg)
     {
       if( j < (int)((sizeof( buffer) - 1)) ) buffer[j++] = msg[i];
     }
-  } 
+  }
   buffer[j] = '\0';
   PrintErrorLine( y, buffer );
 }
@@ -184,7 +185,7 @@ static void DisplayMessage(char *msg)
 static int PrintMessage(char *msg, BOOL do_beep)
 {
   int c;
-  
+
   DisplayMessage( msg );
   if(do_beep && (strtol(AUDIBLEERROR, NULL, 0) != 0))
     beep();

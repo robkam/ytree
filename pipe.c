@@ -1,5 +1,6 @@
 /***************************************************************************
  *
+ * pipe.c
  * Umlenken von Datei-Inhalten zu einem Kommando
  *
  ***************************************************************************/
@@ -19,16 +20,16 @@ int Pipe(DirEntry *dir_entry, FileEntry *file_entry)
   char file_name_path[PATH_LENGTH+1];
   int  result = -1;
   FILE *pipe_fp;
-  
+
   (void) GetRealFileNamePath( file_entry, file_name_path );
-  
+
   ClearHelp();
 
   MvAddStr( LINES - 2, 1, "Pipe-Command:" );
   if( GetPipeCommand( &input_buffer[2] ) == 0 )
   {
     move( LINES - 2, 1 ); clrtoeol();
-    
+
     /* Suspend curses to allow external command to run correctly */
     endwin();
     SuspendClock();
@@ -53,7 +54,7 @@ int Pipe(DirEntry *dir_entry, FileEntry *file_entry)
             while ((bytes_read = read(in_fd, buffer, sizeof(buffer))) > 0) {
                 if (fwrite(buffer, 1, bytes_read, pipe_fp) < bytes_read) {
                     /* Handle pipe write error */
-                    break; 
+                    break;
                 }
             }
             close(in_fd);
@@ -68,9 +69,9 @@ int Pipe(DirEntry *dir_entry, FileEntry *file_entry)
         ExtractArchiveEntry(archive, file_name_path, fileno(pipe_fp));
 #endif
     }
-    
+
     result = pclose(pipe_fp);
-    
+
     /* Let user see output, then restore screen */
     HitReturnToContinue();
     clearok(stdscr, TRUE);
@@ -110,7 +111,7 @@ int GetPipeCommand(char *pipe_command)
 
 
 
-  
+
 int PipeTaggedFiles(FileEntry *fe_ptr, WalkingPackage *walking_package)
 {
   int  i, n;
@@ -123,10 +124,10 @@ int PipeTaggedFiles(FileEntry *fe_ptr, WalkingPackage *walking_package)
   (void) GetRealFileNamePath( fe_ptr, from_path );
   if( ( i = open( from_path, O_RDONLY ) ) == -1 )
   {
-    (void) sprintf( message, 
-		    "Can't open file*\"%s\"*%s", 
-		    from_path, 
-		    strerror(errno) 
+    (void) sprintf( message,
+		    "Can't open file*\"%s\"*%s",
+		    from_path,
+		    strerror(errno)
 		  );
     MESSAGE( message );
     return( -1 );
@@ -134,15 +135,15 @@ int PipeTaggedFiles(FileEntry *fe_ptr, WalkingPackage *walking_package)
 
   while( ( n = read( i, buffer, sizeof( buffer ) ) ) > 0 )
   {
-    if( fwrite( buffer, 
-		n, 
-		1, 
-		walking_package->function_data.pipe_cmd.pipe_file ) != 1 
+    if( fwrite( buffer,
+		n,
+		1,
+		walking_package->function_data.pipe_cmd.pipe_file ) != 1
       )
     {
       (void) sprintf( message, "Write-Error!*%s", strerror(errno) );
       MESSAGE( message );
-      (void) close( i ); 
+      (void) close( i );
       return( -1 );
     }
   }

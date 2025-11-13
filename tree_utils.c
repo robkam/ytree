@@ -1,5 +1,6 @@
 /***************************************************************************
  *
+ * tree_utils.c
  * Functions for searching and navigating the in-memory directory tree
  *
  ***************************************************************************/
@@ -8,10 +9,10 @@
 #include "ytree.h"
 
 
-int GetDirEntry(DirEntry *tree, 
-                DirEntry *current_dir_entry, 
-                char *dir_path, 
-                DirEntry **dir_entry, 
+int GetDirEntry(DirEntry *tree,
+                DirEntry *current_dir_entry,
+                char *dir_path,
+                DirEntry **dir_entry,
                 char *to_path
 	       )
 {
@@ -33,7 +34,7 @@ int GetDirEntry(DirEntry *tree,
     return( -1 );
   }
 
-  if( *dir_path != FILE_SEPARATOR_CHAR ) 
+  if( *dir_path != FILE_SEPARATOR_CHAR )
   {
     if( chdir( GetPath( current_dir_entry, help_path ) ) )
     {
@@ -66,7 +67,7 @@ int GetDirEntry(DirEntry *tree,
   }
 
   n = strlen( tree->name );
-  if( !strcmp(tree->name, FILE_SEPARATOR_STRING) || 
+  if( !strcmp(tree->name, FILE_SEPARATOR_STRING) ||
       (!strncmp( tree->name, dest_path, n )     &&
         ( dest_path[n] == FILE_SEPARATOR_CHAR || dest_path[n] == '\0' ) ) )
   {

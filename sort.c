@@ -1,5 +1,6 @@
 /***************************************************************************
  *
+ * sort.c
  * Umschalten des Sortierkriteriums
  *
  ***************************************************************************/
@@ -15,17 +16,17 @@ void GetKindOfSort(void)
   int c;
   int s;
   int order;
-  
+
   order = SORT_ASC; s=0;
   ClearHelp();
-  PrintOptions( stdscr, LINES - 2, 1, 
+  PrintOptions( stdscr, LINES - 2, 1,
             "Sort by (A)ccTime (C)hgTime (E)xtension (G)roup (M)odTime   (O)rder: [ascending]"
 	  );
   PrintOptions( stdscr, LINES - 1, 2, "       (N)ame o(W)ner (S)ize" );
 
   RefreshWindow( stdscr );
   doupdate();
-  do 
+  do
   {
         c = Getch();
 	if(c == -1 || c == ESC)

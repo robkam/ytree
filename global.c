@@ -1,5 +1,6 @@
 /***************************************************************************
  *
+ * global.c
  * Externe Groessen
  *
  ***************************************************************************/
@@ -21,7 +22,7 @@ WINDOW *time_window;
 
 Statistic statistic;
 Statistic disk_statistic;
-int       mode; 
+int       mode;
 int	  user_umask;
 char      message[MESSAGE_LENGTH + 1];
 BOOL	  print_time;
@@ -29,3 +30,5 @@ BOOL	  resize_request;
 BOOL	  bypass_small_window;
 char      number_seperator;
 char	  *initial_directory;
+
+FileColorRule *file_color_rules_head = NULL;

@@ -1,5 +1,6 @@
 /***************************************************************************
  *
+ * move.c
  * Beschreibung : Bewegen von Dateien
  *
  ***************************************************************************/
@@ -13,10 +14,10 @@
 static int Move(char *to_path, char *from_path);
 
 
-int MoveFile(FileEntry *fe_ptr, 
-	     unsigned char confirm, 
-	     char *to_file, 
-	     DirEntry *dest_dir_entry, 
+int MoveFile(FileEntry *fe_ptr,
+	     unsigned char confirm,
+	     char *to_file,
+	     DirEntry *dest_dir_entry,
 	     char *to_dir_path,
 	     FileEntry **new_fe_ptr
 	    )
@@ -43,7 +44,7 @@ int MoveFile(FileEntry *fe_ptr,
   (void) strcat( to_path, FILE_SEPARATOR_STRING );
   (void) strcat( to_path, to_file );
 
-  
+
   if( !strcmp( to_path, from_path ) )
   {
     MESSAGE( "Can't move file into itself" );
@@ -53,22 +54,22 @@ int MoveFile(FileEntry *fe_ptr,
 
   if( access( from_path, W_OK ) )
   {
-    (void) sprintf( message, 
-		    "Unmoveable file*\"%s\"*%s", 
-		    from_path, 
-		    strerror(errno) 
+    (void) sprintf( message,
+		    "Unmoveable file*\"%s\"*%s",
+		    from_path,
+		    strerror(errno)
 		  );
     MESSAGE( message );
     ESCAPE;
   }
-  
+
 
   if( dest_dir_entry )
   {
     /* Ziel befindet sich im Sub-Tree */
     /*--------------------------------*/
-  
-    (void) GetFileEntry( dest_dir_entry, to_file, &dest_file_entry ); 
+
+    (void) GetFileEntry( dest_dir_entry, to_file, &dest_file_entry );
 
     if( dest_file_entry )
     {
@@ -78,7 +79,7 @@ int MoveFile(FileEntry *fe_ptr,
       if( confirm )
       {
 	term = InputChoise( "file exist; overwrite (Y/N) ? ", "YN\033" );
-    
+
         if( term != 'Y' ) {
 	  result = (term == 'N' ) ? 0 : -1;  /* Abort on escape */
 	  ESCAPE;
@@ -101,26 +102,26 @@ int MoveFile(FileEntry *fe_ptr,
       if( confirm )
       {
 	term = InputChoise( "file exist; overwrite (Y/N) ? ", "YN\033" );
-      
+
         if( term != 'Y' ) {
 	  result = (term == 'N' ) ? 0 : -1;  /* Abort on escape */
 	  ESCAPE;
 	}
       }
-        
+
       if( unlink( to_path ) )
       {
-        (void) sprintf( message, 
-		        "Can't unlink*\"%s\"*%s", 
-		        to_path, 
-		        strerror(errno) 
+        (void) sprintf( message,
+		        "Can't unlink*\"%s\"*%s",
+		        to_path,
+		        strerror(errno)
 		      );
         MESSAGE( message );
         ESCAPE;
       }
     }
   }
-    
+
 
   if( !Move( to_path, from_path ) )
   {
@@ -132,7 +133,7 @@ int MoveFile(FileEntry *fe_ptr,
 
     (void) RemoveFile( fe_ptr );
 
-    
+
     if( dest_dir_entry )
     {
       if( STAT_( to_path, &stat_struct ) )
@@ -140,9 +141,9 @@ int MoveFile(FileEntry *fe_ptr,
         ERROR_MSG( "Stat Failed*ABORT" );
         exit( 1 );
       }
-  
+
       file_size = stat_struct.st_size;
-    
+
       dest_dir_entry->total_bytes += file_size;
       dest_dir_entry->total_files++;
       statistic.disk_total_bytes += file_size;
@@ -155,21 +156,21 @@ int MoveFile(FileEntry *fe_ptr,
       /* File eintragen */
       /*----------------*/
 
-      if( ( fen_ptr = (FileEntry *) malloc( sizeof( FileEntry ) + 
-					    strlen( to_file ) 
+      if( ( fen_ptr = (FileEntry *) malloc( sizeof( FileEntry ) +
+					    strlen( to_file )
 					  ) ) == NULL )
       {
         ERROR_MSG( "Malloc Failed*ABORT" );
         exit( 1 );
       }
-  	
+
       (void) strcpy( fen_ptr->name, to_file );
-        
-      (void) memcpy( &fen_ptr->stat_struct, 
+
+      (void) memcpy( &fen_ptr->stat_struct,
 		     &stat_struct,
 		     sizeof( stat_struct )
 		   );
-  
+
       fen_ptr->dir_entry   = dest_dir_entry;
       fen_ptr->tagged      = FALSE;
       fen_ptr->matching    = Match( fen_ptr->name );
@@ -186,7 +187,7 @@ int MoveFile(FileEntry *fe_ptr,
   }
 
 FNC_XIT:
- 
+
   move( LINES - 3, 1 ); clrtoeol();
   move( LINES - 2, 1 ); clrtoeol();
   move( LINES - 1, 1 ); clrtoeol();
@@ -241,11 +242,11 @@ static int Move(char *to_path, char *from_path)
 
   if( link( from_path, to_path ) )
   {
-    (void) sprintf( message, 
-		    "Can't link \"%s\"*to \"%s\"*%s", 
-		    from_path, 
-		    to_path, 
-		    strerror(errno) 
+    (void) sprintf( message,
+		    "Can't link \"%s\"*to \"%s\"*%s",
+		    from_path,
+		    to_path,
+		    strerror(errno)
 		  );
     MESSAGE( message );
     return( -1 );
@@ -253,10 +254,10 @@ static int Move(char *to_path, char *from_path)
 
   if( unlink( from_path ) )
   {
-    (void) sprintf( message, 
-		    "Can't unlink*\"%s\"*%s", 
-		    from_path, 
-		    strerror(errno) 
+    (void) sprintf( message,
+		    "Can't unlink*\"%s\"*%s",
+		    from_path,
+		    strerror(errno)
 		  );
     MESSAGE( message );
     return( -1 );
@@ -269,18 +270,18 @@ static int Move(char *to_path, char *from_path)
 
 
 
-  
+
 int MoveTaggedFiles(FileEntry *fe_ptr, WalkingPackage *walking_package)
 {
   int  result = -1;
   char new_name[PATH_LENGTH+1];
 
 
-  if( BuildFilename( fe_ptr->name, 
+  if( BuildFilename( fe_ptr->name,
                      walking_package->function_data.mv.to_file,
 		     new_name
 		   ) == 0 )
-  
+
   {
     if( *new_name == '\0' )
     {
@@ -288,7 +289,7 @@ int MoveTaggedFiles(FileEntry *fe_ptr, WalkingPackage *walking_package)
     }
     else
     {
-      result = MoveFile( fe_ptr, 
+      result = MoveFile( fe_ptr,
 		         walking_package->function_data.mv.confirm,
 		         new_name,
 		         walking_package->function_data.mv.dest_dir_entry,
