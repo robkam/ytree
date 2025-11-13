@@ -1,5 +1,6 @@
 /***************************************************************************
  *
+ * path_utils.c
  * Path construction and manipulation functions
  *
  ***************************************************************************/
@@ -44,7 +45,7 @@ char *GetPath(DirEntry *dir_entry, char *buffer)
 char *GetFileNamePath(FileEntry *file_entry, char *buffer)
 {
   (void) GetPath( file_entry->dir_entry, buffer );
-  if( *buffer && strcmp( buffer, FILE_SEPARATOR_STRING ) ) 
+  if( *buffer && strcmp( buffer, FILE_SEPARATOR_STRING ) )
     (void) strcat( buffer, FILE_SEPARATOR_STRING );
   return( strcat( buffer, file_entry->name ) );
 }
@@ -63,9 +64,9 @@ char *GetRealFileNamePath(FileEntry *file_entry, char *buffer)
     if( *sym_name == FILE_SEPARATOR_CHAR )
       return( strcpy( buffer, sym_name ) );
   }
-  
+
   (void) GetPath( file_entry->dir_entry, buffer );
-  if( *buffer && strcmp( buffer, FILE_SEPARATOR_STRING ) ) 
+  if( *buffer && strcmp( buffer, FILE_SEPARATOR_STRING ) )
     (void) strcat( buffer, FILE_SEPARATOR_STRING );
   if( S_ISLNK( file_entry->stat_struct.st_mode ) )
     return( strcat( buffer, &file_entry->name[ strlen( file_entry->name ) + 1 ] ) );
@@ -87,18 +88,18 @@ void Fnsplit(char *path, char *dir, char *name)
     *(dir++) = *(path++);
 
   *dir = '\0';
-  
+
   name_begin = path;
   trunc_name = name;
 
-  for(i=0; i < PATH_LENGTH && *path; i++ ) 
+  for(i=0; i < PATH_LENGTH && *path; i++ )
     *(name++) = *(path++);
 
   *name = '\0';
 
   if( i == PATH_LENGTH && *path )
   {
-    (void) sprintf( message, "filename too long:*%s*truncating to*%s", 
+    (void) sprintf( message, "filename too long:*%s*truncating to*%s",
 		    name_begin, trunc_name
 		  );
     WARNING( message );

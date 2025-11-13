@@ -1,5 +1,6 @@
 /***************************************************************************
  *
+ * owner_utils.c
  * Centralized ownership and group modification functions
  *
  ***************************************************************************/
@@ -45,7 +46,7 @@ int HandleDirOwnership(DirEntry *de_ptr, BOOL change_owner, BOOL change_group)
     {
         return -1;
     }
-    
+
     GetPath(de_ptr, path);
     return ChangeFileOrDirOwnership(path, &de_ptr->stat_struct, change_owner, change_group);
 }
@@ -59,7 +60,7 @@ int HandleFileOwnership(FileEntry *fe_ptr, BOOL change_owner, BOOL change_group)
     {
         return -1;
     }
-    
+
     GetFileNamePath(fe_ptr, path);
     return ChangeFileOrDirOwnership(path, &fe_ptr->stat_struct, change_owner, change_group);
 }

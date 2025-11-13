@@ -1,5 +1,6 @@
 /***************************************************************************
  *
+ * passwd.c
  * Handhabung von User-Nummern / Namen
  *
  ***************************************************************************/
@@ -39,14 +40,14 @@ int ReadPasswdEntries(void)
 
   int i;
   struct passwd *pwd_ptr;
-  
+
 
   for( passwd_count=0; getpwent(); passwd_count++ )
     ;
 
   setpwent();
 
-  if( passwd_array ) 
+  if( passwd_array )
   {
     free( passwd_array );
     passwd_array = NULL;
@@ -58,7 +59,7 @@ int ReadPasswdEntries(void)
   }
   else
   {
-    if( ( passwd_array = (PasswdEntry *) calloc( passwd_count, 
+    if( ( passwd_array = (PasswdEntry *) calloc( passwd_count,
 					         sizeof( PasswdEntry )
 					       ) ) == NULL )
     {

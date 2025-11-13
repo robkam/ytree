@@ -1,5 +1,6 @@
 /***************************************************************************
  *
+ * hex.c
  * View-Hex-Kommando-Bearbeitung
  *
  ***************************************************************************/
@@ -34,10 +35,10 @@ static int ViewHexFile(char *file_path)
 
   if( access( file_path, R_OK ) )
   {
-    (void) sprintf( message, 
-		    "HexView not possible!*\"%s\"*%s", 
-		    file_path, 
-		    strerror(errno) 
+    (void) sprintf( message,
+		    "HexView not possible!*\"%s\"*%s",
+		    file_path,
+		    strerror(errno)
 		  );
     MESSAGE( message );
     ESCAPE;
@@ -82,7 +83,7 @@ static int ViewHexArchiveFile(char *file_path)
 
     /* Now call InternalView on the temporary file */
     InternalView(temp_filename);
-    
+
     result = 0;
 
     /* Clean up the temporary file */

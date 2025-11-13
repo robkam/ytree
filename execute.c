@@ -1,5 +1,6 @@
 /***************************************************************************
  *
+ * execute.c
  * Ausfuehren von System-Kommandos
  *
  ***************************************************************************/
@@ -48,10 +49,10 @@ int Execute(DirEntry *dir_entry, FileEntry *file_entry)
                         /* In directory context, {} means the current dir "." */
                         strcpy(substitution_name, ".");
                     }
-                    
+
                     /* The name may contain spaces, so escape it for the shell. */
                     StrCp(escaped_name, substitution_name);
-                    
+
                     size_t len = strlen(escaped_name);
                     if ((out_ptr - expanded_command) + len < COMMAND_LINE_LENGTH) {
                         strcpy(out_ptr, escaped_name);
@@ -118,7 +119,7 @@ int GetCommandLine(char *command_line)
   return( result );
 }
 
-    
+
 
 int GetSearchCommandLine(char *command_line)
 {
@@ -152,7 +153,7 @@ int GetSearchCommandLine(char *command_line)
   return( result );
 }
 
-    
+
 
 int ExecuteCommand(FileEntry *fe_ptr, WalkingPackage *walking_package)
 {

@@ -1,5 +1,6 @@
 /***************************************************************************
  *
+ * copy.c
  * Kopieren von Dateien / Verzeichnissen
  *
  ***************************************************************************/
@@ -14,11 +15,11 @@ static int CopyArchiveFile(char *to_path, char *from_path);
 
 
 
-int CopyFile(Statistic *statistic_ptr, 
-             FileEntry *fe_ptr, 
-             unsigned char confirm, 
-             char *to_file, 
-             DirEntry *dest_dir_entry, 
+int CopyFile(Statistic *statistic_ptr,
+             FileEntry *fe_ptr,
+             unsigned char confirm,
+             char *to_file,
+             DirEntry *dest_dir_entry,
              char *to_dir_path,       /* absoluter Pfad */
              BOOL path_copy
 	    )
@@ -42,7 +43,7 @@ int CopyFile(Statistic *statistic_ptr,
 
   (void) GetRealFileNamePath( fe_ptr, from_path );
   (void) GetPath(fe_ptr->dir_entry, from_dir);
-  
+
   if (mode != DISK_MODE && mode != USER_MODE) {
       /* When copying FROM an archive, the destination is always a real path. */
       /* We bypass GetDirEntry and construct the path directly. */
@@ -77,10 +78,10 @@ int CopyFile(Statistic *statistic_ptr,
 
     if( MakePath( statistic_ptr->tree, to_path, &dest_dir_entry ) )
     {
-     	 (void) sprintf( message, 
-                         "Can't create path*\"%s\"*%s", 
-                         to_path, 
-                         strerror(errno) 
+     	 (void) sprintf( message,
+                         "Can't create path*\"%s\"*%s",
+                         to_path,
+                         strerror(errno)
                          );
          MESSAGE( message );
          return( result );
@@ -89,7 +90,7 @@ int CopyFile(Statistic *statistic_ptr,
   (void) strcat( to_path, FILE_SEPARATOR_STRING );
   if ((tmpdir = opendir(to_path)) == NULL)
     if (errno == ENOENT) {
-     if ( (term =InputChoise( "Directory does not exist; create (y/N) ? ", "YN\033" ))== 'Y') 
+     if ( (term =InputChoise( "Directory does not exist; create (y/N) ? ", "YN\033" ))== 'Y')
      {
         if(*to_path != FILE_SEPARATOR_CHAR) {
           strcpy(abs_path, from_dir);
@@ -100,10 +101,10 @@ int CopyFile(Statistic *statistic_ptr,
         if (MakePath(statistic_ptr->tree, to_path, &dest_dir_entry ) )
         {
                 if(tmpdir) closedir(tmpdir);
-                (void) sprintf( message, 
-                                "Can't create path*\"%s\"*%s", 
-                                to_path, 
-                                strerror(errno) 
+                (void) sprintf( message,
+                                "Can't create path*\"%s\"*%s",
+                                to_path,
+                                strerror(errno)
                                 );
                 MESSAGE( message );
                 return( result );
@@ -140,9 +141,9 @@ int CopyFile(Statistic *statistic_ptr,
   {
     /* Ziel befindet sich im Sub-Tree */
     /*--------------------------------*/
-  
-    (void) GetFileEntry( dest_dir_entry, to_file, &dest_file_entry ); 
-  
+
+    (void) GetFileEntry( dest_dir_entry, to_file, &dest_file_entry );
+
     if( dest_file_entry )
     {
       /* Datei existiert */
@@ -151,8 +152,8 @@ int CopyFile(Statistic *statistic_ptr,
       if( confirm )
       {
 	term = InputChoise( "file exist; overwrite (Y/N) ? ", "YN\033" );
-    
-        if( term != 'Y' ) 
+
+        if( term != 'Y' )
         {
 	  result = (term == 'N' ) ? 0 : -1;  /* Abort on escape */
           ESCAPE;
@@ -175,8 +176,8 @@ int CopyFile(Statistic *statistic_ptr,
       if( confirm )
       {
 	term = InputChoise( "file exist; overwrite (Y/N) ? ", "YN\033" );
-      
-        if( term != 'Y' ) 
+
+        if( term != 'Y' )
         {
 	  result = (term == 'N' ) ? 0 : -1;  /* Abort on escape */
           ESCAPE;
@@ -184,14 +185,14 @@ int CopyFile(Statistic *statistic_ptr,
       }
     }
   }
-    
+
 
   if( !Copy( to_path, from_path ) )
   {
     /* File wurde kopiert */
     /*--------------------*/
 
-    if( chmod( to_path, fe_ptr->stat_struct.st_mode ) == -1 ) 
+    if( chmod( to_path, fe_ptr->stat_struct.st_mode ) == -1 )
     {
       sprintf( message, "Can't chmod file*\"%s\"*to mode %s*IGNORED",
                to_path, GetAttributes(fe_ptr->stat_struct.st_mode, buffer) );
@@ -205,9 +206,9 @@ int CopyFile(Statistic *statistic_ptr,
         ERROR_MSG( "Stat Failed*ABORT" );
         exit( 1 );
       }
-  
+
       file_size = stat_struct.st_size;
-    
+
       dest_dir_entry->total_bytes += file_size;
       dest_dir_entry->total_files++;
       statistic_ptr->disk_total_bytes += file_size;
@@ -225,14 +226,14 @@ int CopyFile(Statistic *statistic_ptr,
         ERROR_MSG( "Malloc Failed*ABORT" );
         exit( 1 );
       }
-  	
+
       (void) strcpy( fen_ptr->name, to_file );
-        
-      (void) memcpy( &fen_ptr->stat_struct, 
+
+      (void) memcpy( &fen_ptr->stat_struct,
 		     &stat_struct,
 		     sizeof( stat_struct )
 		   );
-  
+
       fen_ptr->dir_entry   = dest_dir_entry;
       fen_ptr->tagged      = FALSE;
       fen_ptr->matching    = Match( fen_ptr->name );
@@ -247,13 +248,13 @@ int CopyFile(Statistic *statistic_ptr,
     result = 0;
   }
 
-  if( refresh_dirwindow) 
+  if( refresh_dirwindow)
   {
   	RefreshDirWindow();
   }
 
 FNC_XIT:
- 
+
   move( LINES - 3, 1 ); clrtoeol();
   move( LINES - 2, 1 ); clrtoeol();
   move( LINES - 1, 1 ); clrtoeol();
@@ -294,8 +295,8 @@ int GetCopyParameter(char *from_file, BOOL path_copy, char *to_file, char *to_di
   MvAddStr( LINES - 2, 1, "AS   ");
 
   if( InputString(to_file, LINES - 2, 6, 0, COLS - 6, "\r\033" ) == CR){
-    MvAddStr( LINES - 1, 1, "TO   " ); 
-    if( InputString( to_dir, LINES - 1, 6, 0, COLS - 6, "\r\033" ) == CR ) 
+    MvAddStr( LINES - 1, 1, "TO   " );
+    if( InputString( to_dir, LINES - 1, 6, 0, COLS - 6, "\r\033" ) == CR )
     return( 0 );
   }
   ClearHelp();
@@ -333,15 +334,15 @@ static int Copy(char *to_path, char *from_path)
     return( -1 );
   }
 
-  if( ( o = open( to_path, 
-		  O_CREAT | O_TRUNC | O_WRONLY, 
+  if( ( o = open( to_path,
+		  O_CREAT | O_TRUNC | O_WRONLY,
                   S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH
       ) ) == -1 )
   {
-    (void) sprintf( message, 
-		    "Can't open file*\"%s\"*%s", 
-		    to_path, 
-		    strerror(errno) 
+    (void) sprintf( message,
+		    "Can't open file*\"%s\"*%s",
+		    to_path,
+		    strerror(errno)
 		  );
     MESSAGE( message );
     (void) close( i );
@@ -369,14 +370,14 @@ static int Copy(char *to_path, char *from_path)
 
 
 
-  
+
 int CopyTaggedFiles(FileEntry *fe_ptr, WalkingPackage *walking_package)
 {
   char new_name[PATH_LENGTH+1];
   int  result = -1;
 
   walking_package->new_fe_ptr = fe_ptr;  /* unchanged */
- 
+
   if( BuildFilename( fe_ptr->name,
 		     walking_package->function_data.copy.to_file,
 		     new_name
@@ -386,9 +387,9 @@ int CopyTaggedFiles(FileEntry *fe_ptr, WalkingPackage *walking_package)
     {
       MESSAGE( "Can't copy file to*empty name" );
     }
-  
+
     result = CopyFile( walking_package->function_data.copy.statistic_ptr,
-		       fe_ptr, 
+		       fe_ptr,
 		       walking_package->function_data.copy.confirm,
 		       new_name,
 		       walking_package->function_data.copy.dest_dir_entry,
@@ -418,11 +419,11 @@ static int CopyArchiveFile(char *to_path, char *from_path)
     MESSAGE(message);
     return -1;
   }
-  
+
 #ifdef HAVE_LIBARCHIVE
   result = ExtractArchiveEntry(archive_path, from_path, out_fd);
 #endif
-  
+
   close(out_fd);
 
   if (result != 0) {

@@ -1,5 +1,6 @@
 /***************************************************************************
  *
+ * group.c
  * Handhabung von Gruppen-Nummern / Namen
  *
  ***************************************************************************/
@@ -40,14 +41,14 @@ int ReadGroupEntries(void)
 
   int i;
   struct group *grp_ptr;
-  
+
 
   for( group_count=0; getgrent(); group_count++ )
     ;
 
   setgrent();
 
-  if( group_array ) 
+  if( group_array )
   {
     free( group_array );
     group_array = NULL;
@@ -59,7 +60,7 @@ int ReadGroupEntries(void)
   }
   else
   {
-    if( ( group_array = (GroupEntry *) calloc( group_count, 
+    if( ( group_array = (GroupEntry *) calloc( group_count,
 					       sizeof( GroupEntry )
 					     ) ) == NULL )
     {
@@ -82,10 +83,10 @@ int ReadGroupEntries(void)
     }
     else
     {
-      if(errno == 0) 
+      if(errno == 0)
       {
 	group_count = i;  /* Not sure why this can happen, but continue... */
-        break; 
+        break;
       }
 
       ERROR_MSG( "Getgrent Failed" );

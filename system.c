@@ -1,5 +1,6 @@
 /***************************************************************************
  *
+ * system.c
  * System Call
  *
  ***************************************************************************/
@@ -9,7 +10,7 @@
 
 
 /* Forward declaration for internal use */
-extern struct itimerval value, ovalue; 
+extern struct itimerval value, ovalue;
 
 
 int SystemCall(char *command_line)
@@ -18,7 +19,7 @@ int SystemCall(char *command_line)
 
   endwin(); /* Ensure terminal state is reset before external command */
   result = SilentSystemCall( command_line );
-  
+
   (void) GetAvailBytes( &statistic.disk_space );
   /* Full screen redraw to fully restore the curses UI */
   clearok(stdscr, TRUE);
@@ -32,18 +33,18 @@ int QuerySystemCall(char *command_line)
   int result;
 
   endwin(); /* 1. Save state / Exit curses mode */
-  
+
   /* 2. Execute command (runs outside curses) */
-  result = SilentSystemCallEx( command_line, FALSE ); 
-  
+  result = SilentSystemCallEx( command_line, FALSE );
+
   /* The external command has finished. We are still in the raw terminal. */
 
   HitReturnToContinue(); /* 3. Print message and wait for key in raw terminal */
-  
+
   /* 4. Aggressive redraw/refresh to restore the curses UI completely */
   clearok(stdscr, TRUE);
   refresh();
-  
+
   (void) GetAvailBytes( &statistic.disk_space );
 
   return( result );
@@ -73,7 +74,7 @@ int SilentSystemCallEx(char *command_line, BOOL enable_clock)
 
   if(enable_clock)
     InitClock(); /* Re-initializes timer AND calls refresh/restores curses mode */
-    
+
   (void) GetAvailBytes( &statistic.disk_space );
-  return( result ); 
+  return( result );
 }

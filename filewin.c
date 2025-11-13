@@ -1,5 +1,6 @@
 /***************************************************************************
  *
+ * filewin.c
  * Funktionen zur Handhabung des FILE-Windows
  *
  ***************************************************************************/
@@ -533,6 +534,7 @@ static void PrintFileEntry(int entry_no, int y, int x, unsigned char hilight, in
   char type_of_file = ' ';
   int  filename_width = 0;
   int  linkname_width = 0;
+  int base_color_pair;
 
 
   ef_window_width = window_width - 2; /* Effektive Window-Width */
@@ -867,6 +869,7 @@ static void PrintFileEntry(int entry_no, int y, int x, unsigned char hilight, in
 
   /* display line */
   /*--------------*/
+  base_color_pair = GetFileTypeColor(fe_ptr);
 
   n = StrVisualLength( line_buffer );
 
@@ -897,29 +900,32 @@ static void PrintFileEntry(int entry_no, int y, int x, unsigned char hilight, in
     line_ptr[line_end_pos] = '\0';
   }
 
-#ifdef NO_HIGHLIGHT
-  line_ptr[1] = (hilight) ? '>' : ' ';
-  mvwaddstr( file_window, y, pos_x + 1, line_ptr );
-#else
+  mvwaddstr(file_window, y, pos_x + 1, "" );
+
 #ifdef COLOR_SUPPORT
-  if( hilight )
-    WbkgdSet(file_window, COLOR_PAIR(HIFILE_COLOR)|A_BOLD);
-  else
-    WbkgdSet(file_window, COLOR_PAIR(FILE_COLOR));
+    wattron(file_window, COLOR_PAIR(base_color_pair));
+    if(fe_ptr && fe_ptr->tagged) {
+        wattron(file_window, A_BOLD);
+    }
+    if (hilight) {
+        wattron(file_window, A_REVERSE);
+    }
 
-  mvwaddstr(file_window, y, pos_x + 1, line_ptr );
-  WbkgdSet(file_window, COLOR_PAIR(FILE_COLOR)|A_BOLD);
+    waddstr(file_window, line_ptr);
 
+    if (hilight) {
+        wattroff(file_window, A_REVERSE);
+    }
+    if(fe_ptr && fe_ptr->tagged) {
+        wattroff(file_window, A_BOLD);
+    }
+    wattroff(file_window, COLOR_PAIR(base_color_pair));
 #else
-#endif /* COLOR_SUPPORT */
-  if( hilight ) wattrset( file_window, A_REVERSE );
-  mvwaddstr( file_window, y, pos_x + 1, line_ptr );
-  if( hilight ) wattrset( file_window, 0 );
-#endif /* NO_HIGHLIGHT */
-
-#ifdef WITH_UTF8
-  if(x_step == 1 && start_x > 0)
-    wclrtoeol(file_window); /* maybe needed if filename contains wide characters */
+    if( hilight ) wattron( file_window, A_REVERSE );
+    if( fe_ptr && fe_ptr->tagged ) wattron( file_window, A_BOLD );
+    waddstr( file_window, line_ptr );
+    if( fe_ptr && fe_ptr->tagged ) wattroff( file_window, A_BOLD );
+    if( hilight ) wattroff( file_window, 0 );
 #endif
 }
 
@@ -943,6 +949,9 @@ static void DisplayFiles(DirEntry *de_ptr, int start_file_no, int hilight_no, in
 {
   int  x, y, p_x, p_y, j;
 
+#ifdef COLOR_SUPPORT
+  WbkgdSet(file_window, COLOR_PAIR(CPAIR_WINFILE));
+#endif
   werase( file_window );
 
   if( file_count == 0 )
@@ -987,40 +996,15 @@ static void fmovedown(int *start_file, int *cursor_pos, int *start_x, DirEntry *
    {
       /* File nicht vorhanden */
       /*----------------------*/
+      return;
    }
-   else
-   {
-      if( *cursor_pos < max_disp_files - 1 )
-      {
-          /* DOWN ohne scroll moeglich */
-          /*---------------------------*/
-          PrintFileEntry( *start_file + *cursor_pos,
-                          *cursor_pos % window_height,
-                          *cursor_pos / window_height,
-                          FALSE,
-                          *start_x
-                          );
-          (*cursor_pos)++;
-          PrintFileEntry( *start_file + *cursor_pos,
-                          *cursor_pos % window_height,
-                          *cursor_pos / window_height,
-                          TRUE ,
-                          *start_x
-                          );
-      }
-      else
-      {
-          /* Scrollen */
-          /*----------*/
-          (*start_file)++;
-          DisplayFiles( dir_entry,
-                        *start_file,
-                        *start_file + *cursor_pos,
-                        *start_x
-                        );
-      }
-   }
-   return;
+
+    if (*cursor_pos < max_disp_files - 1) {
+        (*cursor_pos)++;
+    } else {
+        (*start_file)++;
+    }
+    DisplayFiles(dir_entry, *start_file, *start_file + *cursor_pos, *start_x);
 }
 
 static void fmoveup(int *start_file, int *cursor_pos, int *start_x, DirEntry *dir_entry)
@@ -1029,40 +1013,15 @@ static void fmoveup(int *start_file, int *cursor_pos, int *start_x, DirEntry *di
    {
       /* File nicht vorhanden */
       /*----------------------*/
+      return;
    }
-   else
-   {
-      if( *cursor_pos > 0 )
-      {
-         /* UP ohne scroll moeglich */
-         /*-------------------------*/
-         PrintFileEntry( *start_file + *cursor_pos,
-                         *cursor_pos % window_height,
-                         *cursor_pos / window_height,
-                         FALSE,
-                         *start_x
-                         );
-         (*cursor_pos)--;
-         PrintFileEntry( *start_file + *cursor_pos,
-                         *cursor_pos % window_height,
-                         *cursor_pos / window_height,
-                         TRUE,
-                         *start_x
-                         );
-      }
-      else
-      {
-         /* Scrollen */
-         /*----------*/
-         (*start_file)--;
-         DisplayFiles( dir_entry,
-                       *start_file,
-                       *start_file + *cursor_pos,
-                       *start_x
-                       );
-      }
-   }
-   return;
+
+    if (*cursor_pos > 0) {
+        (*cursor_pos)--;
+    } else {
+        (*start_file)--;
+    }
+    DisplayFiles(dir_entry, *start_file, *start_file + *cursor_pos, *start_x);
 }
 
 static void fmoveright(int *start_file, int *cursor_pos, int *start_x,DirEntry *dir_entry)
@@ -1072,12 +1031,11 @@ static void fmoveright(int *start_file, int *cursor_pos, int *start_x,DirEntry *
       /* Sonderfall: ganzes Filewindow scrollen */
       /*----------------------------------------*/
       (*start_x)++;
-      PrintFileEntry( *start_file + *cursor_pos,
-                      *cursor_pos % window_height,
-                      *cursor_pos / window_height,
-                      TRUE ,
-                      *start_x
-                      );
+      DisplayFiles( dir_entry,
+                    *start_file,
+                    *start_file + *cursor_pos,
+                    *start_x
+                  );
       if( hide_right <= 0 ) (*start_x)--;
    }
    else if( *start_file + *cursor_pos >= (int)file_count - 1 )
@@ -1102,19 +1060,7 @@ static void fmoveright(int *start_file, int *cursor_pos, int *start_x,DirEntry *
       {
           /* RIGHT ohne scroll moeglich */
           /*----------------------------*/
-          PrintFileEntry( *start_file + *cursor_pos,
-                          *cursor_pos % window_height,
-                          *cursor_pos / window_height,
-                          FALSE,
-                          *start_x
-                          );
           *cursor_pos += my_x_step;
-          PrintFileEntry( *start_file + *cursor_pos,
-                          *cursor_pos % window_height,
-                          *cursor_pos / window_height,
-                          TRUE ,
-                          *start_x
-                          );
       }
       else
       {
@@ -1122,12 +1068,12 @@ static void fmoveright(int *start_file, int *cursor_pos, int *start_x,DirEntry *
           /*----------*/
           *start_file += x_step;
           *cursor_pos -= x_step - my_x_step;
-          DisplayFiles( dir_entry,
-                        *start_file,
-                        *start_file + *cursor_pos,
-                        *start_x
-                        );
       }
+      DisplayFiles( dir_entry,
+                    *start_file,
+                    *start_file + *cursor_pos,
+                    *start_x
+                  );
    }
    return;
 }
@@ -1140,12 +1086,11 @@ static void fmoveleft(int *start_file, int *cursor_pos, int *start_x, DirEntry *
          /* Sonderfall: ganzes Filewindow scrollen */
          /*----------------------------------------*/
          if( *start_x > 0 ) (*start_x)--;
-            PrintFileEntry( *start_file + *cursor_pos,
-                            *cursor_pos % window_height,
-                            *cursor_pos / window_height,
-                            TRUE ,
-                            *start_x
-                            );
+         DisplayFiles( dir_entry,
+                       *start_file,
+                       *start_file + *cursor_pos,
+                       *start_x
+                     );
      }
      else if( *start_file + *cursor_pos <= 0 )
      {
@@ -1169,19 +1114,7 @@ static void fmoveleft(int *start_file, int *cursor_pos, int *start_x, DirEntry *
          {
              /* LEFT ohne scroll moeglich */
              /*---------------------------*/
-             PrintFileEntry( *start_file + *cursor_pos,
-                             *cursor_pos % window_height,
-                             *cursor_pos / window_height,
-                             FALSE,
-                             *start_x
-                             );
              *cursor_pos -= my_x_step;
-             PrintFileEntry( *start_file + *cursor_pos,
-                             *cursor_pos % window_height,
-                             *cursor_pos / window_height,
-                             TRUE,
-                             *start_x
-                             );
          }
          else
          {
@@ -1189,12 +1122,12 @@ static void fmoveleft(int *start_file, int *cursor_pos, int *start_x, DirEntry *
              /*----------*/
              if( ( *start_file -= x_step ) < 0 )
                 *start_file = 0;
-             DisplayFiles( dir_entry,
-                           *start_file,
-                           *start_file + *cursor_pos,
-                           *start_x
-                           );
          }
+         DisplayFiles( dir_entry,
+                       *start_file,
+                       *start_file + *cursor_pos,
+                       *start_x
+                       );
      }
      return;
 }
@@ -1206,52 +1139,32 @@ static void fmovenpage(int *start_file, int *cursor_pos, int *start_x, DirEntry 
    {
       /*letzte Position erreicht */
       /*-------------------------*/
+      return;
    }
-   else
-   {
-      if( *cursor_pos < max_disp_files - 1 )
-      {
-        /* Cursor steht noch nicht auf letztem
-         * Eintrag
-         * ==> setzen
-         */
-         PrintFileEntry( *start_file + *cursor_pos,
-                         *cursor_pos % window_height,
-                         *cursor_pos / window_height,
-                         FALSE,
-                         *start_x
-                         );
-         if( *start_file + max_disp_files <= (int)file_count - 1 )
-            *cursor_pos = max_disp_files - 1;
-         else
-            *cursor_pos = file_count - *start_file - 1;
-         PrintFileEntry( *start_file + *cursor_pos,
-                         *cursor_pos % window_height,
-                         *cursor_pos / window_height,
-                         TRUE,
-                         *start_x
-                         );
-      }
-      else
-      {
-        /* Scrollen */
-        /*----------*/
-        if( *start_file + *cursor_pos + max_disp_files < (int)file_count )
-           *start_file += max_disp_files;
-        else
-           *start_file = file_count - max_disp_files;
+
+    if( *cursor_pos < max_disp_files - 1 )
+    {
         if( *start_file + max_disp_files <= (int)file_count - 1 )
-           *cursor_pos = max_disp_files - 1;
+            *cursor_pos = max_disp_files - 1;
         else
-           *cursor_pos = file_count - *start_file - 1;
-        DisplayFiles( dir_entry,
-                      *start_file,
-                      *start_file + *cursor_pos,
-                      *start_x
-                      );
-      }
-   }
-   return;
+            *cursor_pos = file_count - *start_file - 1;
+    }
+    else
+    {
+        if( *start_file + *cursor_pos + max_disp_files < (int)file_count )
+            *start_file += max_disp_files;
+        else
+            *start_file = file_count - max_disp_files;
+        if( *start_file + max_disp_files <= (int)file_count - 1 )
+            *cursor_pos = max_disp_files - 1;
+        else
+            *cursor_pos = file_count - *start_file - 1;
+    }
+    DisplayFiles( dir_entry,
+                  *start_file,
+                  *start_file + *cursor_pos,
+                  *start_x
+                );
 }
 
 
@@ -1262,45 +1175,25 @@ static void fmoveppage(int *start_file, int *cursor_pos, int *start_x, DirEntry 
      {
         /* erste Position erreicht */
         /*-------------------------*/
+        return;
      }
-     else
-     {
-        if( *cursor_pos > 0 )
-        {
-            /* Cursor steht noch nicht auf erstem
-             * Eintrag
-             * ==> setzen
-             */
-             PrintFileEntry( *start_file + *cursor_pos,
-                             *cursor_pos % window_height,
-                             *cursor_pos / window_height,
-                             FALSE,
-                             *start_x
-                             );
-             *cursor_pos = 0;
-             PrintFileEntry( *start_file + *cursor_pos,
-                             *cursor_pos % window_height,
-                             *cursor_pos / window_height,
-                             TRUE,
-                             *start_x
-                             );
-        }
+
+    if( *cursor_pos > 0 )
+    {
+        *cursor_pos = 0;
+    }
+    else
+    {
+        if( *start_file > max_disp_files )
+            *start_file -= max_disp_files;
         else
-        {
-            /* Scrollen */
-            /*----------*/
-            if( *start_file > max_disp_files )
-               *start_file -= max_disp_files;
-            else
-               *start_file = 0;
-            DisplayFiles( dir_entry,
-                          *start_file,
-                          *start_file + *cursor_pos,
-                          *start_x
-                          );
-        }
-     }
-     return;
+            *start_file = 0;
+    }
+    DisplayFiles( dir_entry,
+                  *start_file,
+                  *start_file + *cursor_pos,
+                  *start_x
+                );
 }
 
 
@@ -1475,12 +1368,11 @@ int HandleFileWindow(DirEntry *dir_entry)
       {
 	start_x = 0;
 
-	PrintFileEntry( dir_entry->start_file + dir_entry->cursor_pos,
-	 	        dir_entry->cursor_pos % window_height,
-		        dir_entry->cursor_pos / window_height,
-		        TRUE ,
-		        start_x
-	              );
+	DisplayFiles( dir_entry,
+		      dir_entry->start_file,
+		      dir_entry->start_file + dir_entry->cursor_pos,
+		      start_x
+		    );
      }
    }
 
@@ -1571,12 +1463,11 @@ int HandleFileWindow(DirEntry *dir_entry)
 
 		      if( !ChangeFileModus( fe_ptr ) )
 		      {
-			PrintFileEntry( dir_entry->start_file + dir_entry->cursor_pos,
-				        dir_entry->cursor_pos % window_height,
-				        dir_entry->cursor_pos / window_height,
-				        TRUE,
-					start_x
-			              );
+			DisplayFiles( dir_entry,
+				      dir_entry->start_file,
+				      dir_entry->start_file + dir_entry->cursor_pos,
+				      start_x
+			            );
 		      }
 		      break;
 
@@ -1619,12 +1510,11 @@ int HandleFileWindow(DirEntry *dir_entry)
 
 		      if( !ChangeFileOwner( fe_ptr ) )
 		      {
-			PrintFileEntry( dir_entry->start_file + dir_entry->cursor_pos,
-				        dir_entry->cursor_pos % window_height,
-				        dir_entry->cursor_pos / window_height,
-				        TRUE ,
-					start_x
-			              );
+			DisplayFiles( dir_entry,
+				      dir_entry->start_file,
+				      dir_entry->start_file + dir_entry->cursor_pos,
+				      start_x
+			            );
 		      }
 		      break;
 
@@ -1660,12 +1550,11 @@ int HandleFileWindow(DirEntry *dir_entry)
 
 		      if( !ChangeFileGroup( fe_ptr ) )
 		      {
-			PrintFileEntry( dir_entry->start_file + dir_entry->cursor_pos,
-				        dir_entry->cursor_pos % window_height,
-				        dir_entry->cursor_pos / window_height,
-				        TRUE,
-					start_x
-			              );
+			DisplayFiles( dir_entry,
+				      dir_entry->start_file,
+				      dir_entry->start_file + dir_entry->cursor_pos,
+				      start_x
+			            );
 		      }
 		      break;
 
@@ -1702,13 +1591,6 @@ int HandleFileWindow(DirEntry *dir_entry)
 		      if( !fe_ptr->tagged )
 		      {
                         fe_ptr->tagged = TRUE;
-
-			PrintFileEntry( dir_entry->start_file + dir_entry->cursor_pos,
-				        dir_entry->cursor_pos % window_height,
-				        dir_entry->cursor_pos / window_height,
-				        TRUE,
-					start_x
-			              );
 	       	        de_ptr->tagged_files++;
 		        de_ptr->tagged_bytes += fe_ptr->stat_struct.st_size;
 	       	        statistic.disk_tagged_files++;
@@ -1718,6 +1600,7 @@ int HandleFileWindow(DirEntry *dir_entry)
 			else
 			  DisplayDirTagged( de_ptr );
 		      }
+              DisplayFiles(dir_entry, dir_entry->start_file, dir_entry->start_file + dir_entry->cursor_pos, start_x);
 		      unput_char = KEY_DOWN;
 
                       break;
@@ -1728,13 +1611,6 @@ int HandleFileWindow(DirEntry *dir_entry)
 		      {
 			fe_ptr->tagged = FALSE;
 
-			PrintFileEntry( dir_entry->start_file + dir_entry->cursor_pos,
-				        dir_entry->cursor_pos % window_height,
-				        dir_entry->cursor_pos / window_height,
-				        TRUE,
-					start_x
-			              );
-
 			de_ptr->tagged_files--;
 			de_ptr->tagged_bytes -= fe_ptr->stat_struct.st_size;
 			statistic.disk_tagged_files--;
@@ -1744,7 +1620,7 @@ int HandleFileWindow(DirEntry *dir_entry)
 			else
 			  DisplayDirTagged( de_ptr );
 		      }
-
+              DisplayFiles(dir_entry, dir_entry->start_file, dir_entry->start_file + dir_entry->cursor_pos, start_x);
 		      unput_char = KEY_DOWN;
 
 		      break;
@@ -2646,22 +2522,12 @@ static void WalkTaggedFiles(int start_file,
       {
 	/* Walk ohne scroll moeglich */
 	/*---------------------------*/
-
-  	PrintFileEntry( start_file + cursor_pos,
-			cursor_pos % window_height,
-			cursor_pos / window_height,
-			FALSE,
-		        start_x
-	 	      );
-
+    DisplayFiles( fe_ptr->dir_entry,
+            start_file,
+            i,
+            start_x
+            );
         cursor_pos = i - start_file;
-
-	PrintFileEntry( start_file + cursor_pos,
-		 	cursor_pos % window_height,
-			cursor_pos / window_height,
-			TRUE,
-		        start_x
-		      );
       }
       else
       {

@@ -1,5 +1,6 @@
 /***************************************************************************
  *
+ * profile.c
  * Profile support
  *
  ***************************************************************************/
@@ -17,6 +18,8 @@
 #define FILECMD_SECTION 5
 #define DIRMAP_SECTION 6
 #define DIRCMD_SECTION 7
+#define COLORS_SECTION 8
+#define FILE_COLORS_SECTION 9
 
 
 typedef struct
@@ -53,7 +56,7 @@ static Dirmenu dirmenu;
 static Filemenu filemenu;
 
 /* must be sorted! */
-static Profile profile[] = { 
+static Profile profile[] = {
   { "AUDIBLEERROR", 	DEFAULT_AUDIBLEERROR,  NULL, NULL },
   { "BUNZIP",       	DEFAULT_BUNZIP,        NULL,     NULL },
   { "CAT",          	DEFAULT_CAT,           NULL,     NULL },
@@ -129,9 +132,9 @@ int ReadProfile( char *filename )
         *cptr = '\0';
       if(*name == '[') {
         /* section */
-	if( !strcmp(name, "[GLOBAL]") ) 
+	if( !strcmp(name, "[GLOBAL]") )
 	  section = GLOBAL_SECTION;
-	else if( !strcmp(name, "[VIEWER]") ) 
+	else if( !strcmp(name, "[VIEWER]") )
 	  section = VIEWER_SECTION;
 	else if( !strcmp(name, "[MENU]") )
 	  section = MENU_SECTION;
@@ -143,12 +146,16 @@ int ReadProfile( char *filename )
 	  section = DIRMAP_SECTION;
 	else if( !strcmp(name, "[DIRCMD]") )
 	  section = DIRCMD_SECTION;
+    else if( !strcmp(name, "[COLORS]") )
+      section = COLORS_SECTION;
+    else if( !strcmp(name, "[FILE_COLORS]") )
+      section = FILE_COLORS_SECTION;
 	else
 	  section = NO_SECTION;
-	
+
 	continue;
       }
-	  
+
 
       if( section == GLOBAL_SECTION ) {
         value = strchr( buffer, '=' );
@@ -159,12 +166,32 @@ int ReadProfile( char *filename )
 	    p->value = strdup( value );
           }
         }
+      } else if( section == COLORS_SECTION ) {
+        value = strchr( buffer, '=' );
+        if( *name && value ) {
+          int fg = -1, bg = -1;
+          *value++ = '\0';
+          ParseColorString(value, &fg, &bg);
+          if (fg != -1 && bg != -1) {
+            UpdateUIColor(name, fg, bg);
+          }
+        }
+      } else if( section == FILE_COLORS_SECTION ) {
+        value = strchr( buffer, '=' );
+        if( *name && value ) {
+          int fg = -1, bg = -1;
+          *value++ = '\0';
+          ParseColorString(value, &fg, &bg);
+          if (fg != -1 && bg != -1) {
+            AddFileColorRule(name, fg, bg);
+          }
+        }
       } else if( section == MENU_SECTION ) {
         value = strchr( buffer, '=' );
         if( *name && value ) {
           *value++ = '\0';
-          if (!strcmp(name, "DIR1") || !strcmp(name, "DIR2") || 
-              !strcmp(name, "FILE1") || !strcmp(name, "FILE2") ) { 
+          if (!strcmp(name, "DIR1") || !strcmp(name, "DIR2") ||
+              !strcmp(name, "FILE1") || !strcmp(name, "FILE2") ) {
             key.name = name;
             if(( p = bsearch(&key, profile, PROFILE_ENTRIES, sizeof(*p), Compare))) {
               /* Space pad menu strings to length COLS, ignoring '(' and ')' characters */
@@ -180,7 +207,7 @@ int ReadProfile( char *filename )
 	      p->value = strdup( value );
             }
           }
-        } 
+        }
       } else if(section == FILEMAP_SECTION ) {
         value = strchr( buffer, '=' );
         if( *name && value ) {
@@ -199,7 +226,7 @@ int ReadProfile( char *filename )
                   new_m->chremap = -1;   /* Don't beep if user cmd defined */
                 break;
               }
-            } 
+            }
 	    if( new_m == NULL && ( new_m = malloc( sizeof(*new_m) ) ) ) {
 	      new_m->chkey = ChCode( n );
               new_m->chremap = ChCode( value );
@@ -227,7 +254,7 @@ int ReadProfile( char *filename )
                 new_m->chremap = -1;   /* Don't beep if user cmd defined */
               break;
             }
-          } 
+          }
 	  if( new_m == NULL && ( new_m = malloc( sizeof(*new_m) ) ) ) {
             new_m->chkey = ChCode( name );
 	    new_m->chremap = new_m->chkey;
@@ -255,7 +282,7 @@ int ReadProfile( char *filename )
                   new_d->chremap = -1;   /* Don't beep if user cmd defined */
                 break;
               }
-            } 
+            }
 	    if( new_d == NULL && ( new_d = malloc( sizeof(*new_d) ) ) ) {
 	      new_d->chkey = ChCode( n );
               new_d->chremap = ChCode( value );
@@ -283,7 +310,7 @@ int ReadProfile( char *filename )
                 new_d->chremap = -1;   /* Don't beep if user cmd defined */
               break;
             }
-          } 
+          }
 	  if ( new_d == NULL && ( new_d = malloc( sizeof(*new_d) ) ) ) {
             new_d->chkey = ChCode( name );
 	    new_d->chremap = new_d->chkey;
@@ -297,7 +324,7 @@ int ReadProfile( char *filename )
         value = strchr( buffer, '=' );
 
         if( *name && value ) {
-          
+
 	  *value++ = '\0';
 	  n = strtok_r(name, ",", &old);
 	  /* maybe comma-separated list, eg.: .jpeg,.gif=xv */
@@ -330,7 +357,7 @@ FNC_XIT:
 
   if( f )
     fclose( f );
-  
+
   return( result );
 }
 
@@ -364,7 +391,7 @@ static int ChCode(const char *s)
   else
     return((int)(*s));
 }
-    
+
 static int Compare(const void *s1, const void *s2)
 {
   return( strcmp( ((Profile *)s1)->name, ((Profile *)s2)->name ) );

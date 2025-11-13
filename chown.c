@@ -1,5 +1,6 @@
 /***************************************************************************
  *
+ * chown.c
  * Change Owner
  *
  ***************************************************************************/
@@ -18,7 +19,7 @@ int GetNewOwner(int st_uid)
   char *owner_name_ptr;
   int  owner_id;
   int  id;
-  
+
   owner_id = -1;
 
   id = (st_uid == -1) ? (int) getuid() : st_uid;
@@ -45,9 +46,9 @@ int GetNewOwner(int st_uid)
       MESSAGE( message );
     }
   }
-  
+
   move( LINES - 2, 1 ); clrtoeol();
-  
+
   return( owner_id );
 }
 

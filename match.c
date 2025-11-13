@@ -1,5 +1,6 @@
 /***************************************************************************
  *
+ * match.c
  * Behandlung reg. Ausdruecke fuer Dateinamen
  *
  ***************************************************************************/
@@ -32,7 +33,7 @@ int SetMatchSpec(char *new_spec)
 
   for(; *new_spec; new_spec++)
   {
-    if( meta_flag ) 
+    if( meta_flag )
     {
       *b_ptr++ = *new_spec;
       meta_flag = FALSE;
@@ -57,21 +58,21 @@ int SetMatchSpec(char *new_spec)
   *b_ptr = '\0';
 
 
-  if(re_flag) 
+  if(re_flag)
   {
     regfree(&re);
     re_flag = FALSE;
   }
-  
+
   if( regcomp(&re, buffer, REG_NOSUB | REG_EXTENDED) ) /* Use REG_EXTENDED for consistency */
   {
     result = 1;
   }
-  else 
+  else
   {
     re_flag = TRUE;
   }
-  
+
   free( buffer );
   return( result );
 }
@@ -88,7 +89,7 @@ BOOL Match(char *file_name)
   {
     return( TRUE );
   }
-  else 
+  else
   {
     return( FALSE );
   }
