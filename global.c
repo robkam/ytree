@@ -28,6 +28,7 @@ char      message[MESSAGE_LENGTH + 1];
 BOOL	  print_time;
 BOOL	  resize_request;
 BOOL	  bypass_small_window;
+BOOL      highlight_full_line;
 char      number_seperator;
 char	  *initial_directory;
 

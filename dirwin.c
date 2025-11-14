@@ -238,16 +238,18 @@ static void PrintDirEntry(WINDOW *win,
   wmove(win, y, 0);
   wclrtoeol(win);
 
-  /* Set the base attribute for the entire line (normal or highlighted) */
+  /* Set the base attribute for the line */
 #ifdef COLOR_SUPPORT
   line_attr = COLOR_PAIR(color);
-  if (hilight) {
-      line_attr |= A_REVERSE;
-  }
 #else
-  line_attr = hilight ? A_REVERSE : A_NORMAL;
+  line_attr = A_NORMAL;
 #endif
   wattron(win, line_attr);
+
+  /* If full line highlight is enabled, turn on reverse now. */
+  if (hilight && highlight_full_line) {
+      wattron(win, A_REVERSE);
+  }
 
   /* Part 1: Draw the tree graph characters manually */
   wmove(win, y, 0);
@@ -278,7 +280,16 @@ static void PrintDirEntry(WINDOW *win,
       CutName(temp_name, name_buffer, available_name_width);
       strcpy(name_buffer, temp_name);
   }
+
+  /* If name-only highlight, toggle reverse just for the name. */
+  if (hilight && !highlight_full_line) {
+      wattron(win, A_REVERSE);
+  }
   mvwaddstr(win, y, graph_len, name_buffer);
+  if (hilight && !highlight_full_line) {
+      wattroff(win, A_REVERSE);
+  }
+
 
   /* Part 3: Draw attributes and fill the gap in between */
   if (line_buffer) {
@@ -290,7 +301,10 @@ static void PrintDirEntry(WINDOW *win,
       mvwaddstr(win, y, attr_start_col, line_buffer);
   }
 
-  /* Turn off the line's attribute */
+  /* Turn off attributes */
+  if (hilight && highlight_full_line) {
+      wattroff(win, A_REVERSE);
+  }
   wattroff(win, line_attr);
 
   if (line_buffer)
@@ -684,7 +698,7 @@ static void HandleSwitchWindow(DirEntry *dir_entry, DirEntry *start_dir_entry, B
             RefreshWindow( big_file_window );
 	    BuildDirEntryList( start_dir_entry, &statistic );
             DisplayTree( dir_window, statistic.disp_begin_pos,
-			statistic.disp_begin_pos + statistic.cursor_pos);
+			 statistic.disp_begin_pos + statistic.cursor_pos);
 	    DisplayDiskStatistic();
 	} else {
 	    BuildDirEntryList( statistic.tree, &statistic );

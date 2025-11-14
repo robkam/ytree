@@ -80,6 +80,7 @@ int Init(char *configuration_file, char *history_file)
   SetKindOfSort( SORT_BY_NAME );
   number_seperator = *(NUMBERSEP);
   bypass_small_window = (strtol(NOSMALLWINDOW, NULL, 0 )) ? TRUE : FALSE;
+  highlight_full_line = (strtol(GetProfileValue("HIGHLIGHT_FULL_LINE"), NULL, 0)) ? TRUE : FALSE;
   initial_directory = INITIALDIR;
 
   InitClock();

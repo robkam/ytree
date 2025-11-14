@@ -521,7 +521,7 @@ static void PrintFileEntry(int entry_no, int y, int x, unsigned char hilight, in
   char format[60];
   char justify;
   char *line_ptr;
-  int  n, pos_x = 0;
+  int  n, pos_x;
   FileEntry *fe_ptr;
   static char *line_buffer = NULL;
   static int  old_cols = -1;
@@ -573,362 +573,193 @@ static void PrintFileEntry(int entry_no, int y, int x, unsigned char hilight, in
 
   type_of_file = GetTypeOfFile(fe_ptr->stat_struct);
 
-  switch( file_mode )
+  /* Calculate starting column position (pos_x) based on column index `x` */
+  switch(file_mode)
   {
-    case MODE_1 : if( fe_ptr )
-		  {
-		    (void) GetAttributes( fe_ptr->stat_struct.st_mode,
-		                          attributes
-				        );
-
-		    (void) CTime( fe_ptr->stat_struct.st_mtime, modify_time );
-
-
-
-                    if( S_ISLNK( fe_ptr->stat_struct.st_mode ) )
-		    {
-#ifdef HAS_LONGLONG
-		      (void) sprintf( format, "%%c%%c%%-%ds %%10s %%3d %%11lld %%12s -> %%-%ds",
-				      filename_width,
-				      linkname_width
-				    );
-
-		      (void) sprintf( line_buffer, format,
-				      (fe_ptr->tagged) ? TAGGED_SYMBOL : ' ',
-				      type_of_file,
-				      fe_ptr->name,
-				      attributes,
-				      fe_ptr->stat_struct.st_nlink,
-                                      (LONGLONG) fe_ptr->stat_struct.st_size,
-				      modify_time,
-				      sym_link_name
-				    );
-#else
-		      (void) sprintf( format, "%%c%%c%%-%ds %%10s %%3d %%7d %%12s -> %%-%ds",
-				      filename_width,
-				      linkname_width
-				    );
-
-		      (void) sprintf( line_buffer, format,
-				      (fe_ptr->tagged) ? TAGGED_SYMBOL : ' ',
-				      type_of_file,
-				      fe_ptr->name,
-				      attributes,
-				      fe_ptr->stat_struct.st_nlink,
-                                      fe_ptr->stat_struct.st_size,
-				      modify_time,
-				      sym_link_name
-				    );
-#endif
-                    }
-		    else
-		    {
-#ifdef HAS_LONGLONG
-		      (void) sprintf( format, "%%c%%c%%%c%ds %%10s %%3d %%11lld %%12s",
-                                      justify,
-				      filename_width
-				    );
-
-		      (void) sprintf( line_buffer, format,
-				      (fe_ptr->tagged) ? TAGGED_SYMBOL : ' ',
-				      type_of_file,
-				      fe_ptr->name,
-				      attributes,
-				      fe_ptr->stat_struct.st_nlink,
-                                      (LONGLONG) fe_ptr->stat_struct.st_size,
-				      modify_time
-				    );
-#else
-		      (void) sprintf( format, "%%c%%c%%%c%ds %%10s %%3d %%7d %%12s",
-                                      justify,
-				      filename_width
-				    );
-
-		      (void) sprintf( line_buffer, format,
-				      (fe_ptr->tagged) ? TAGGED_SYMBOL : ' ',
-				      type_of_file,
-				      fe_ptr->name,
-				      attributes,
-				      fe_ptr->stat_struct.st_nlink,
-                                      fe_ptr->stat_struct.st_size,
-				      modify_time
-				    );
-#endif
-                    }
-		  }
-		  else
-		  {
-		    /* Empty Entry */
-		    /*-------------*/
-
-		    (void) sprintf( format, "%%-%ds", max_visual_filename_len + 42 );
-		    (void) sprintf( line_buffer, format, "" );
-		  }
-
-		  if( max_visual_linkname_len )
-		    pos_x = x * (max_visual_filename_len + max_visual_linkname_len + 47);
-		  else
-		    pos_x = x * (max_visual_filename_len + 43);
-		  break;
-
-    case MODE_2 : if( fe_ptr )
-		  {
-		    (void) GetAttributes( fe_ptr->stat_struct.st_mode,
-		                          attributes
-				        );
-
-                    owner_name_ptr = GetDisplayPasswdName(fe_ptr->stat_struct.st_uid);
-                    group_name_ptr = GetDisplayGroupName(fe_ptr->stat_struct.st_gid);
-
-		    if( owner_name_ptr == NULL )
-		    {
-		      (void) sprintf( owner, "%d", (int) fe_ptr->stat_struct.st_uid );
-		      owner_name_ptr = owner;
-		    }
-		    if( group_name_ptr == NULL )
-		    {
-		      (void) sprintf( group, "%d", (int) fe_ptr->stat_struct.st_gid );
-		      group_name_ptr = group;
-		    }
-
-                    if( S_ISLNK( fe_ptr->stat_struct.st_mode ) )
-		    {
-#ifdef HAS_LONGLONG
-                      (void) sprintf( format, "%%c%%c%%%c%ds %%10lld %%-12s %%-12s -> %%-%ds",
-                                      justify,
-			              filename_width,
-			              linkname_width
-				      );
-		      (void) sprintf( line_buffer, format,
-				      (fe_ptr->tagged) ? TAGGED_SYMBOL : ' ',
-				      type_of_file,
-				      fe_ptr->name,
-				      (LONGLONG)fe_ptr->stat_struct.st_ino,
-				      owner_name_ptr,
-				      group_name_ptr,
-				      sym_link_name
-				    );
-#else
-                      (void) sprintf( format, "%%c%%c%%%c%ds  %%8u  %%-12s %%-12s -> %%-%ds",
-                                      justify,
-			              filename_width,
-			              linkname_width
-				      );
-		      (void) sprintf( line_buffer, format,
-				      (fe_ptr->tagged) ? TAGGED_SYMBOL : ' ',
-				      type_of_file,
-				      fe_ptr->name,
-				      (int)fe_ptr->stat_struct.st_ino,
-				      owner_name_ptr,
-				      group_name_ptr,
-				      sym_link_name
-				    );
-#endif
-                    }
-		    else
-		    {
-#ifdef HAS_LONGLONG
-                      (void) sprintf( format, "%%c%%c%%%c%ds %%10lld %%-12s %%-12s",
-                                      justify,
-			              filename_width
-				      );
-		      (void) sprintf( line_buffer, format,
-				      (fe_ptr->tagged) ? TAGGED_SYMBOL : ' ',
-				      type_of_file,
-				      fe_ptr->name,
-				      (LONGLONG)fe_ptr->stat_struct.st_ino,
-				      owner_name_ptr,
-				      group_name_ptr
-				    );
-#else
-                      (void) sprintf( format, "%%c%%c%%%c%ds  %%8u  %%-12s %%-12s",
-                                      justify,
-			              filename_width
-				      );
-		      (void) sprintf( line_buffer, format,
-				      (fe_ptr->tagged) ? TAGGED_SYMBOL : ' ',
-				      type_of_file,
-				      fe_ptr->name,
-				      (int)fe_ptr->stat_struct.st_ino,
-				      owner_name_ptr,
-				      group_name_ptr
-				    );
-#endif
-
-                    }
-	          }
-		  else
-		  {
-		    /* Empty-Entry */
-		    /*-------------*/
-
-		    (void) sprintf( format, "%%-%ds", max_visual_filename_len + 38 );
-		    (void) sprintf( line_buffer, format, "" );
-		  }
-
-		  if( max_visual_linkname_len )
-                    pos_x = x * (max_visual_filename_len + max_visual_linkname_len + 43);
-		  else
-                    pos_x = x * (max_visual_filename_len + 39);
-		  break;
-
-    case MODE_3 : if( fe_ptr )
-		  {
-		    (void) sprintf( format, "%%c%%c%%%c%ds",
-                                    justify,
-                                    filename_width );
-
-		    (void) sprintf( line_buffer, format,
-				    (fe_ptr->tagged) ? TAGGED_SYMBOL : ' ',
-				    type_of_file,
-				    fe_ptr->name
-				  );
-                  }
-		  else
-		  {
-		    /* Empty-Entry */
-		    /*-------------*/
-
-		    (void) sprintf( format, "%%-%ds", max_visual_filename_len + 2 );
-		    (void) sprintf( line_buffer, format, "" );
-		  }
-
-		  pos_x = x * (max_visual_filename_len + 3);
-		  break;
-
-    case MODE_4 : if( fe_ptr )
-		  {
-		    (void) CTime( fe_ptr->stat_struct.st_ctime, change_time );
-		    (void) CTime( fe_ptr->stat_struct.st_atime, access_time );
-
-                    if( S_ISLNK( fe_ptr->stat_struct.st_mode ) )
-		    {
-                      (void) sprintf( format, "%%c%%c%%%c%ds Chg: %%12s  Acc: %%12s -> %%-%ds",
-                                      justify,
-				      filename_width,
-				      linkname_width
-				    );
-		      (void) sprintf( line_buffer, format,
-				      (fe_ptr->tagged) ? TAGGED_SYMBOL : ' ',
-				      type_of_file,
-				      fe_ptr->name,
-				      change_time,
-				      access_time,
-				      sym_link_name
-				  );
-                    }
-		    else
-		    {
-                      (void) sprintf( format, "%%c%%c%%%c%ds Chg: %%12s  Acc: %%12s",
-                                      justify,
-				      filename_width
-				    );
-		      (void) sprintf( line_buffer, format,
-				      (fe_ptr->tagged) ? TAGGED_SYMBOL : ' ',
-				      type_of_file,
-				      fe_ptr->name,
-				      change_time,
-				      access_time
-				  );
-                    }
-		  }
-		  else
-		  {
-		    /* Empty-Entry */
-		    /*-------------*/
-
-		    (void) sprintf( format, "%%-%ds", max_visual_filename_len + 39 );
-		    (void) sprintf( line_buffer, format, "" );
-		  }
-
-
-		  if( max_visual_linkname_len )
-		    pos_x = x * (max_visual_filename_len + max_visual_linkname_len + 44);
-		  else
-		    pos_x = x * (max_visual_filename_len + 40);
-		  break;
-
-    case MODE_5 : if( fe_ptr )
-		  {
- 		    BuildUserFileEntry(fe_ptr,  filename_width, linkname_width,
-		        USERVIEW,
-		        200, line_buffer);
-		  }
-		  else
-		  {
-		    /* Empty-Entry */
-		    /*-------------*/
-
-		    (void) sprintf( format, "%%-%ds", max_visual_userview_len );
-		    (void) sprintf( line_buffer, format, "" );
-		  }
-		  pos_x = x * (max_visual_userview_len + 1);
-		  break;
-
+      case MODE_1:
+          if (max_visual_linkname_len)
+              pos_x = x * (max_visual_filename_len + max_visual_linkname_len + 47);
+          else
+              pos_x = x * (max_visual_filename_len + 43);
+          break;
+      case MODE_2:
+          if( max_visual_linkname_len )
+              pos_x = x * (max_visual_filename_len + max_visual_linkname_len + 43);
+          else
+              pos_x = x * (max_visual_filename_len + 39);
+          break;
+      case MODE_3:
+          pos_x = x * (max_visual_filename_len + 3);
+          break;
+      case MODE_4:
+          if( max_visual_linkname_len )
+              pos_x = x * (max_visual_filename_len + max_visual_linkname_len + 44);
+          else
+              pos_x = x * (max_visual_filename_len + 40);
+          break;
+      case MODE_5:
+          pos_x = x * (max_visual_userview_len + 1);
+          break;
+      default:
+          pos_x = x;
+          break;
   }
 
-  /* display line */
-  /*--------------*/
+  wmove(file_window, y, pos_x);
   base_color_pair = GetFileTypeColor(fe_ptr);
 
-  n = StrVisualLength( line_buffer );
+  if (highlight_full_line) {
+      /* --- RENDER METHOD 1: FULL LINE HIGHLIGHT --- */
+      wattron(file_window, COLOR_PAIR(base_color_pair));
+      if(fe_ptr && fe_ptr->tagged) wattron(file_window, A_BOLD);
+      if (hilight) wattron(file_window, A_REVERSE);
 
-  if( n <= ef_window_width )
-  {
-    /* line fits */
-    /*-----------*/
-
-    hide_left = 0;
-    hide_right = 0;
-    line_ptr = line_buffer;
-  }
-  else
-  {
-    int line_end_pos;
-
-    /* ... does not fit; use start_x */
-    /*-------------------------------*/
-
-    if( n > ( start_x + ef_window_width ) )
-      line_ptr = &line_buffer[VisualPositionToBytePosition(line_buffer, start_x)];
-    else
-      line_ptr = &line_buffer[VisualPositionToBytePosition(line_buffer, n - ef_window_width)];
-
-    hide_left = start_x;
-    line_end_pos = VisualPositionToBytePosition(line_ptr, ef_window_width);
-    hide_right = StrVisualLength(&line_ptr[line_end_pos]);
-    line_ptr[line_end_pos] = '\0';
-  }
-
-  mvwaddstr(file_window, y, pos_x, "" );
-
-#ifdef COLOR_SUPPORT
-    wattron(file_window, COLOR_PAIR(base_color_pair));
-    if(fe_ptr && fe_ptr->tagged) {
-        wattron(file_window, A_BOLD);
-    }
-    if (hilight) {
-        wattron(file_window, A_REVERSE);
-    }
-
-    waddstr(file_window, line_ptr);
-
-    if (hilight) {
-        wattroff(file_window, A_REVERSE);
-    }
-    if(fe_ptr && fe_ptr->tagged) {
-        wattroff(file_window, A_BOLD);
-    }
-    wattroff(file_window, COLOR_PAIR(base_color_pair));
+      /* Build the full line string */
+      switch( file_mode ) {
+          case MODE_1:
+            (void)GetAttributes(fe_ptr->stat_struct.st_mode, attributes);
+            (void)CTime(fe_ptr->stat_struct.st_mtime, modify_time);
+            if(S_ISLNK(fe_ptr->stat_struct.st_mode)) {
+#ifdef HAS_LONGLONG
+              (void)sprintf(format, "%%c%%c%%-%ds %%10s %%3d %%11lld %%12s -> %%-%ds", filename_width, linkname_width);
+              (void)sprintf(line_buffer, format, (fe_ptr->tagged)?TAGGED_SYMBOL:' ', type_of_file, fe_ptr->name, attributes, fe_ptr->stat_struct.st_nlink, (LONGLONG)fe_ptr->stat_struct.st_size, modify_time, sym_link_name);
 #else
-    if( hilight ) wattron( file_window, A_REVERSE );
-    if( fe_ptr && fe_ptr->tagged ) wattron( file_window, A_BOLD );
-    waddstr( file_window, line_ptr );
-    if( fe_ptr && fe_ptr->tagged ) wattroff( file_window, A_BOLD );
-    if( hilight ) wattroff( file_window, 0 );
+              (void)sprintf(format, "%%c%%c%%-%ds %%10s %%3d %%7d %%12s -> %%-%ds", filename_width, linkname_width);
+              (void)sprintf(line_buffer, format, (fe_ptr->tagged)?TAGGED_SYMBOL:' ', type_of_file, fe_ptr->name, attributes, fe_ptr->stat_struct.st_nlink, fe_ptr->stat_struct.st_size, modify_time, sym_link_name);
 #endif
-}
+            } else {
+#ifdef HAS_LONGLONG
+              (void)sprintf(format, "%%c%%c%%%c%ds %%10s %%3d %%11lld %%12s", justify, filename_width);
+              (void)sprintf(line_buffer, format, (fe_ptr->tagged)?TAGGED_SYMBOL:' ', type_of_file, fe_ptr->name, attributes, fe_ptr->stat_struct.st_nlink, (LONGLONG)fe_ptr->stat_struct.st_size, modify_time);
+#else
+              (void)sprintf(format, "%%c%%c%%%c%ds %%10s %%3d %%7d %%12s", justify, filename_width);
+              (void)sprintf(line_buffer, format, (fe_ptr->tagged)?TAGGED_SYMBOL:' ', type_of_file, fe_ptr->name, attributes, fe_ptr->stat_struct.st_nlink, fe_ptr->stat_struct.st_size, modify_time);
+#endif
+            }
+            break;
+          case MODE_2:
+            owner_name_ptr = GetDisplayPasswdName(fe_ptr->stat_struct.st_uid);
+            group_name_ptr = GetDisplayGroupName(fe_ptr->stat_struct.st_gid);
+            if(!owner_name_ptr) { sprintf(owner, "%d", (int)fe_ptr->stat_struct.st_uid); owner_name_ptr = owner; }
+            if(!group_name_ptr) { sprintf(group, "%d", (int)fe_ptr->stat_struct.st_gid); group_name_ptr = group; }
+            if(S_ISLNK(fe_ptr->stat_struct.st_mode)) {
+#ifdef HAS_LONGLONG
+              (void)sprintf(format, "%%c%%c%%%c%ds %%10lld %%-12s %%-12s -> %%-%ds", justify, filename_width, linkname_width);
+              (void)sprintf(line_buffer, format, (fe_ptr->tagged)?TAGGED_SYMBOL:' ', type_of_file, fe_ptr->name, (LONGLONG)fe_ptr->stat_struct.st_ino, owner_name_ptr, group_name_ptr, sym_link_name);
+#else
+              (void)sprintf(format, "%%c%%c%%%c%ds  %%8u  %%-12s %%-12s -> %%-%ds", justify, filename_width, linkname_width);
+              (void)sprintf(line_buffer, format, (fe_ptr->tagged)?TAGGED_SYMBOL:' ', type_of_file, fe_ptr->name, (unsigned int)fe_ptr->stat_struct.st_ino, owner_name_ptr, group_name_ptr, sym_link_name);
+#endif
+            } else {
+#ifdef HAS_LONGLONG
+              (void)sprintf(format, "%%c%%c%%%c%ds %%10lld %%-12s %%-12s", justify, filename_width);
+              (void)sprintf(line_buffer, format, (fe_ptr->tagged)?TAGGED_SYMBOL:' ', type_of_file, fe_ptr->name, (LONGLONG)fe_ptr->stat_struct.st_ino, owner_name_ptr, group_name_ptr);
+#else
+              (void)sprintf(format, "%%c%%c%%%c%ds  %%8u  %%-12s %%-12s", justify, filename_width);
+              (void)sprintf(line_buffer, format, (fe_ptr->tagged)?TAGGED_SYMBOL:' ', type_of_file, fe_ptr->name, (unsigned int)fe_ptr->stat_struct.st_ino, owner_name_ptr, group_name_ptr);
+#endif
+            }
+            break;
+          case MODE_3:
+            (void)sprintf(format, "%%c%%c%%%c%ds", justify, filename_width);
+            (void)sprintf(line_buffer, format, (fe_ptr->tagged)?TAGGED_SYMBOL:' ', type_of_file, fe_ptr->name);
+            break;
+          case MODE_4:
+            (void)CTime(fe_ptr->stat_struct.st_ctime, change_time);
+            (void)CTime(fe_ptr->stat_struct.st_atime, access_time);
+            if(S_ISLNK(fe_ptr->stat_struct.st_mode)) {
+              (void)sprintf(format, "%%c%%c%%%c%ds Chg: %%12s  Acc: %%12s -> %%-%ds", justify, filename_width, linkname_width);
+              (void)sprintf(line_buffer, format, (fe_ptr->tagged)?TAGGED_SYMBOL:' ', type_of_file, fe_ptr->name, change_time, access_time, sym_link_name);
+            } else {
+              (void)sprintf(format, "%%c%%c%%%c%ds Chg: %%12s  Acc: %%12s", justify, filename_width);
+              (void)sprintf(line_buffer, format, (fe_ptr->tagged)?TAGGED_SYMBOL:' ', type_of_file, fe_ptr->name, change_time, access_time);
+            }
+            break;
+          case MODE_5:
+            BuildUserFileEntry(fe_ptr, filename_width, linkname_width, USERVIEW, 200, line_buffer);
+            break;
+      }
 
+      /* Horizontal scrolling logic */
+      n = StrVisualLength( line_buffer );
+      if( n <= ef_window_width ) {
+        line_ptr = line_buffer;
+      } else {
+        int line_end_pos;
+        if( n > ( start_x + ef_window_width ) )
+          line_ptr = &line_buffer[VisualPositionToBytePosition(line_buffer, start_x)];
+        else
+          line_ptr = &line_buffer[VisualPositionToBytePosition(line_buffer, n - ef_window_width)];
+
+        line_end_pos = VisualPositionToBytePosition(line_ptr, ef_window_width);
+        line_ptr[line_end_pos] = '\0';
+      }
+      waddstr(file_window, line_ptr);
+
+      if (hilight) wattroff(file_window, A_REVERSE);
+      if(fe_ptr && fe_ptr->tagged) wattroff(file_window, A_BOLD);
+
+  } else {
+      /* --- RENDER METHOD 2: NAME-ONLY HIGHLIGHT --- */
+      if (start_x > 0) start_x = 0; /* No horizontal scrolling in this mode. */
+      
+      wattron(file_window, COLOR_PAIR(base_color_pair));
+      if (fe_ptr && fe_ptr->tagged) wattron(file_window, A_BOLD);
+
+      /* Print tag and type */
+      wprintw(file_window, "%c%c", (fe_ptr->tagged) ? TAGGED_SYMBOL : ' ', type_of_file);
+
+      /* Highlight only the name */
+      if (hilight) wattron(file_window, A_REVERSE);
+      wprintw(file_window, "%s", fe_ptr->name);
+      if (hilight) wattroff(file_window, A_REVERSE);
+
+      /* Print attributes for modes other than MODE_3 */
+      if (file_mode != MODE_3) {
+          int current_x, current_y, target_x;
+          getyx(file_window, current_y, current_x);
+          target_x = pos_x + 2 + filename_width; /* Padded to align attributes */
+          /* Fill space between name and attributes */
+          for (int i = current_x; i < target_x; i++) waddch(file_window, ' ');
+
+          switch (file_mode) {
+              case MODE_1:
+                  (void)GetAttributes(fe_ptr->stat_struct.st_mode, attributes);
+                  (void)CTime(fe_ptr->stat_struct.st_mtime, modify_time);
+  #ifdef HAS_LONGLONG
+                  wprintw(file_window, " %10s %3d %11lld %12s", attributes, (int)fe_ptr->stat_struct.st_nlink, (LONGLONG)fe_ptr->stat_struct.st_size, modify_time);
+  #else
+                  wprintw(file_window, " %10s %3d %7d %12s", attributes, (int)fe_ptr->stat_struct.st_nlink, (int)fe_ptr->stat_struct.st_size, modify_time);
+  #endif
+                  if (sym_link_name && *sym_link_name) wprintw(file_window, " -> %s", sym_link_name);
+                  break;
+              case MODE_2:
+                  owner_name_ptr = GetDisplayPasswdName(fe_ptr->stat_struct.st_uid);
+                  group_name_ptr = GetDisplayGroupName(fe_ptr->stat_struct.st_gid);
+                  if (!owner_name_ptr) { sprintf(owner, "%d", (int)fe_ptr->stat_struct.st_uid); owner_name_ptr = owner; }
+                  if (!group_name_ptr) { sprintf(group, "%d", (int)fe_ptr->stat_struct.st_gid); group_name_ptr = group; }
+  #ifdef HAS_LONGLONG
+                  wprintw(file_window, " %10lld %-12s %-12s", (LONGLONG)fe_ptr->stat_struct.st_ino, owner_name_ptr, group_name_ptr);
+  #else
+                  wprintw(file_window, "  %8u  %-12s %-12s", (unsigned int)fe_ptr->stat_struct.st_ino, owner_name_ptr, group_name_ptr);
+  #endif
+                  if (sym_link_name && *sym_link_name) wprintw(file_window, " -> %s", sym_link_name);
+                  break;
+              case MODE_4:
+                  (void)CTime(fe_ptr->stat_struct.st_ctime, change_time);
+                  (void)CTime(fe_ptr->stat_struct.st_atime, access_time);
+                  wprintw(file_window, " Chg: %12s  Acc: %12s", change_time, access_time);
+                  if (sym_link_name && *sym_link_name) wprintw(file_window, " -> %s", sym_link_name);
+                  break;
+              case MODE_5:
+                  break;
+          }
+      }
+      
+      if (fe_ptr && fe_ptr->tagged) wattroff(file_window, A_BOLD);
+  }
+  wattroff(file_window, COLOR_PAIR(base_color_pair));
+}
 
 
 
@@ -1399,11 +1230,15 @@ int HandleFileWindow(DirEntry *dir_entry)
       case KEY_UP   : fmoveup(&dir_entry->start_file, &dir_entry->cursor_pos, &start_x, dir_entry);
 		      break;
 
-      case KEY_RIGHT: fmoveright(&dir_entry->start_file, &dir_entry->cursor_pos, &start_x, dir_entry);
-		      break;
+      case KEY_RIGHT:
+          if (!highlight_full_line && x_step == 1) break; /* No horizontal scroll in name-only mode */
+          fmoveright(&dir_entry->start_file, &dir_entry->cursor_pos, &start_x, dir_entry);
+          break;
 
-      case KEY_LEFT : fmoveleft(&dir_entry->start_file, &dir_entry->cursor_pos, &start_x, dir_entry);
-		      break;
+      case KEY_LEFT :
+          if (!highlight_full_line && x_step == 1) break; /* No horizontal scroll in name-only mode */
+          fmoveleft(&dir_entry->start_file, &dir_entry->cursor_pos, &start_x, dir_entry);
+          break;
 
       case KEY_NPAGE: fmovenpage(&dir_entry->start_file, &dir_entry->cursor_pos, &start_x, dir_entry);
 		      break;
