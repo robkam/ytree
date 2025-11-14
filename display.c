@@ -58,7 +58,7 @@ static char *first_line ="1-5";
 
 
 static char dir_help_disk_mode_0[] = "DIR       (A)ttribute (D)elete  (F)ilespec  (G)roup (L)og (M)akedir A(b)out         (Q)uit";
-static char dir_help_disk_mode_1[] = "COMMANDS  (O)wner (R)ename (S)howall (^S)how-tagged (T)ag (U)ntag e(X)ecute   (^F) dirmode";
+static char dir_help_disk_mode_1[] = "COMMANDS  (O)wner (R)ename (S)howall (^S)how-tagged (T)ag (U)ntag e(X)ecute (^L)redraw (^F)dirmode ";
 static char *dir_help[MAX_MODES][2] =
   {
     { /* DISK_MODE */
@@ -66,11 +66,11 @@ static char *dir_help[MAX_MODES][2] =
       dir_help_disk_mode_1
     },
     { /* LL_FILE_MODE */
-      "DIR       (F)ilespec (L)ogin (S)howall (T)ag (U)ntag (^F) dirmode  (Q)uit                 ",
+      "DIR       (F)ilespec (L)ogin (S)howall (T)ag (U)ntag (^L)redraw (^F)dirmode  (Q)uit         ",
       "COMMANDS                                                                    "
     },
     { /* ARCHIVE_MODE */
-      "ARCHIVE   (F)ilespec (L)og (S)howall (T)ag (U)ntag (^F) dirmode  (Q)uit                 ",
+      "ARCHIVE   (F)ilespec (L)og (S)howall (T)ag (U)ntag (^L)redraw (^F)dirmode  (Q)uit         ",
       "COMMANDS                                                                    "
     },
     { /* USER_MODE */
@@ -80,8 +80,8 @@ static char *dir_help[MAX_MODES][2] =
   };
 
 
-static char file_help_disk_mode_0[] = "FILE      (A)ttribute (C)opy (D)elete (E)dit (F)ilespec (G)roup (H)ex (L)ogin (M)ove    (Q)uit ";
-static char file_help_disk_mode_1[] = "COMMANDS  (O)wner (P)ipe (R)ename (S)ort (T)ag (U)ntag (V)iew e(X)ecute pathcop(Y) (^F)ilemode ";
+static char file_help_disk_mode_0[] = "FILE      (A)ttribute (C)opy/(^K) (D)elete (E)dit (F)ilespec (G)roup (H)ex (L)ogin (M)ove/(^N) (Q)uit ";
+static char file_help_disk_mode_1[] = "COMMANDS  (O)wner (P)ipe (R)ename/(^R) (S)ort (T)ag (U)ntag (V)iew e(X)ecute pathcop(Y)/^Y (^L)redraw (^F)filemode ";
 static char *file_help[MAX_MODES][2] =
   {
     { /* DISK_MODE */
@@ -89,12 +89,12 @@ static char *file_help[MAX_MODES][2] =
       file_help_disk_mode_1
     },
     { /* LL_FILE_MODE */
-      "FILE      (F)ilespec (L)ogin (S)ort (T)ag (U)ntag (^F)ilemode      (Q)uit                ",
+      "FILE      (F)ilespec (L)ogin (S)ort (T)ag (U)ntag (^L)redraw (^F)filemode      (Q)uit       ",
       "COMMANDS                                                                   "
     },
     { /* ARCHIVE_MODE */
-      "ARCH-FILE (C)opy (F)ilespec (H)ex (P)ipe (S)ort (T)ag (U)ntag (V)iew pathcop(Y) (Q)uit         ",
-      "COMMANDS  (^F)ilemode                                                        "
+      "ARCH-FILE (C)opy (F)ilespec (H)ex (P)ipe (S)ort (T)ag (U)ntag (V)iew (^L)redraw (Q)uit      ",
+      "COMMANDS  (^F)filemode                                                       "
     },
     { /* USER_MODE */
       file_help_disk_mode_0,	/* Default unless changed by user prefs */

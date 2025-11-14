@@ -975,6 +975,21 @@ int HandleDirWindow(DirEntry *start_dir_entry)
 		     }
 		     need_dsp_help = TRUE;
 		     break;
+      case 'R' & 0x1F: /* Rescan */
+             RescanDir(dir_entry);
+             BuildDirEntryList(start_dir_entry, &statistic);
+             if (statistic.disp_begin_pos + statistic.cursor_pos >= total_dirs) {
+                 statistic.disp_begin_pos = 0;
+                 statistic.cursor_pos = 0;
+             }
+             if (total_dirs > 0) {
+                dir_entry = dir_entry_list[statistic.disp_begin_pos + statistic.cursor_pos].dir_entry;
+             }
+             DisplayTree(dir_window, statistic.disp_begin_pos, statistic.disp_begin_pos + statistic.cursor_pos);
+             DisplayFileWindow(dir_entry);
+             DisplayDiskStatistic();
+             need_dsp_help = TRUE;
+             break;
       case 'G':
       case 'g':      (void) ChangeDirGroup( dir_entry );
                      DisplayTree( dir_window, statistic.disp_begin_pos, statistic.disp_begin_pos + statistic.cursor_pos );
