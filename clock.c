@@ -51,7 +51,7 @@ void ClockHandler(int sig)
       hora = localtime(&HORA);
       *strtm = '\0';
 
-      sprintf(strtm,"[time %.2d:%.2d:%.2d]",hora->tm_hour,hora->tm_min,hora->tm_sec);
+      strftime(strtm, sizeof(strtm), "[%H:%M %d/%m]", hora);
 
 #ifdef COLOR_SUPPORT
       mvwaddch(time_window, 0, 0, ACS_RTEE| COLOR_PAIR(CPAIR_MENU)|A_BOLD);
