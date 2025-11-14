@@ -253,21 +253,9 @@ void SwitchToBigFileWindow(void)
 
 void MapF2Window(void)
 {
-  char *buffer;
-
-  if( ( buffer = (char *)malloc( F2_WINDOW_WIDTH + 1 ) ) == NULL )
-  {
-     ERROR_MSG( "Malloc failed*ABORT" );
-     exit( 1 );
-  }
   werase( f2_window );
   box(f2_window, 0, 0);
-  memset(buffer, '=', F2_WINDOW_WIDTH);
-  buffer[F2_WINDOW_WIDTH] = '\0';
-
-  PrintSpecialString( f2_window, F2_WINDOW_HEIGHT - 1, 0, buffer, CPAIR_HST );
   RefreshWindow( f2_window );
-  free(buffer);
 }
 
 
@@ -295,6 +283,7 @@ void UnmapF2Window(void)
 #endif /* COLOR_SUPPORT */
   }
   touchwin(stdscr);
+  refresh();
 }
 
 

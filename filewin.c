@@ -900,7 +900,7 @@ static void PrintFileEntry(int entry_no, int y, int x, unsigned char hilight, in
     line_ptr[line_end_pos] = '\0';
   }
 
-  mvwaddstr(file_window, y, pos_x + 1, "" );
+  mvwaddstr(file_window, y, pos_x, "" );
 
 #ifdef COLOR_SUPPORT
     wattron(file_window, COLOR_PAIR(base_color_pair));
