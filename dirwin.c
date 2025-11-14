@@ -123,11 +123,9 @@ static void PrintDirEntry(WINDOW *win,
                           int y,
                           unsigned char hilight)
 {
-  unsigned int j, l1, l2;
-  int  n;
-  int  aux=0;
+  unsigned int j;
   int  color, hi_color;
-  char buffer[32*3+PATH_LENGTH+1];
+  char graph_buffer[PATH_LENGTH+1];
   char format[60];
   char *line_buffer = NULL;
   char *dir_name;
@@ -140,7 +138,6 @@ static void PrintDirEntry(WINDOW *win,
   char *owner_name_ptr;
   char *group_name_ptr;
   DirEntry *de_ptr;
-  BOOL suppress_output = FALSE;
 
 
   if(win == f2_window) {
@@ -150,21 +147,23 @@ static void PrintDirEntry(WINDOW *win,
     color     = CPAIR_DIR;
     hi_color  = CPAIR_HIDIR;
   }
-  buffer[0] = '\0';
 
+  /* Build the tree graph string (e.g., "| 6- ") */
+  graph_buffer[0] = '\0';
   for(j=0; j < dir_entry_list[entry_no].level; j++)
   {
     if( dir_entry_list[entry_no].indent & ( 1L << j ) )
-      (void) strcat( buffer, "| " );
+      (void) strcat( graph_buffer, "| " );
     else
-      (void) strcat( buffer, "  " );
+      (void) strcat( graph_buffer, "  " );
   }
   de_ptr = dir_entry_list[entry_no].dir_entry;
   if( de_ptr->next )
-    (void) strcat( buffer, "6-" );
+    (void) strcat( graph_buffer, "6-" );
   else
-    (void) strcat( buffer, "3-" );
+    (void) strcat( graph_buffer, "3-" );
 
+  /* Build the attribute string based on the current directory mode */
   switch( dir_mode )
   {
     case MODE_1 :
@@ -217,7 +216,8 @@ static void PrintDirEntry(WINDOW *win,
                                  owner_name_ptr,
                                  group_name_ptr);
                  break;
-    case MODE_3 : break;
+    case MODE_3 : /* No attributes, line_buffer remains NULL */
+                 break;
     case MODE_4 :
                  (void) CTime( de_ptr->stat_struct.st_ctime, change_time );
                  (void) CTime( de_ptr->stat_struct.st_atime, access_time );
@@ -231,69 +231,76 @@ static void PrintDirEntry(WINDOW *win,
                  break;
   }
 
-  if(window_width == 1)
-    suppress_output = TRUE;
+  /* --- Redesigned Drawing Logic --- */
+
+  int attr_start_col = 38; /* Column where attributes begin */
+  int graph_len = strlen(graph_buffer);
 
   wmove(win, y, 0);
   wclrtoeol(win);
 
-  aux = 0;
-  /* Output optional Attributes */
-  if (!suppress_output) {
-     if(line_buffer) {
-       aux = strlen(line_buffer);
-       if(window_width <= aux) {
-         line_buffer[window_width - 1] = '\0';
-         suppress_output = TRUE;
-       }
-       waddstr(win, line_buffer );
-    }
+  /* Part 1: Draw the tree graph, always at the left */
+  PrintSpecialString( win, y, 0, graph_buffer, color );
+
+  /* Part 2: Prepare and draw the directory name */
+  char name_buffer[PATH_LENGTH + 2];
+  dir_name = de_ptr->name;
+  (void) strcpy( name_buffer, ( *dir_name ) ? dir_name : "." );
+  if( de_ptr->not_scanned ) {
+    (void) strcat( name_buffer, "/" );
   }
 
-  if(!suppress_output) {
-    /* Output Graph */
-    l1 = strlen(buffer);
-    n = window_width - aux;
-    if((int)l1 > n) {
-       buffer[MAXIMUM(n-1, 0)] = '\0';
-       suppress_output = TRUE;
-    }
-    PrintSpecialString( win, y, aux, buffer, color );
+  /* Truncate name if the graph + name would overlap with the attribute column */
+  if (dir_mode != MODE_3 && (graph_len + (int)strlen(name_buffer) >= attr_start_col)) {
+      char temp_name[PATH_LENGTH + 2];
+      int available_name_width = attr_start_col - graph_len - 1;
+      CutName(temp_name, name_buffer, available_name_width);
+      strcpy(name_buffer, temp_name);
   }
 
-  if(!suppress_output) {
-
-    /* Output Dirname */
-
-    dir_name = de_ptr->name;
-    (void) strcpy( buffer, ( *dir_name ) ? dir_name : "." );
-    if( de_ptr->not_scanned ) {
-      (void) strcat( buffer, "/" );
-    }
-
+  /* Position cursor after the graph and draw the name with highlighting */
+  wmove(win, y, graph_len);
 #ifdef COLOR_SUPPORT
     if( hilight )
         wattron(win, COLOR_PAIR(hi_color)|A_BOLD|A_REVERSE);
     else
         wattron(win, COLOR_PAIR(color));
-
-    n = window_width - aux - l1;
-    l2 = strlen(buffer);
-    if((int)l2 > n)
-      buffer[MAXIMUM(n-1, 0)] = '\0';
-
-    waddstr(win, buffer);
-
+#else
+    if( hilight ) wattron( win, A_REVERSE );
+#endif
+  waddstr(win, name_buffer);
+#ifdef COLOR_SUPPORT
     if( hilight )
         wattroff(win, COLOR_PAIR(hi_color)|A_BOLD|A_REVERSE);
     else
         wattroff(win, COLOR_PAIR(color));
-
 #else
-    if( hilight ) wattron( win, A_REVERSE );
-    waddstr(win, buffer);
     if( hilight ) wattroff( win, 0 );
 #endif
+
+  /* Part 3: Draw attributes in their aligned column */
+  if (line_buffer) {
+      /* If highlighted, fill the gap and print attributes with reverse video */
+      if (hilight) {
+          int current_x, current_y;
+          getyx(win, current_y, current_x);
+#ifdef COLOR_SUPPORT
+          wattron(win, COLOR_PAIR(hi_color)|A_REVERSE);
+#else
+          wattron(win, A_REVERSE);
+#endif
+          for (int i = current_x; i < attr_start_col; ++i) {
+              waddch(win, ' ');
+          }
+          mvwaddstr(win, y, attr_start_col, line_buffer);
+#ifdef COLOR_SUPPORT
+          wattroff(win, COLOR_PAIR(hi_color)|A_REVERSE);
+#else
+          wattroff(win, 0);
+#endif
+      } else {
+          mvwaddstr(win, y, attr_start_col, line_buffer);
+      }
   }
 
   if (line_buffer)
