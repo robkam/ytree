@@ -2290,6 +2290,7 @@ int HandleFileWindow(DirEntry *dir_entry)
 		      {
 		        need_dsp_help = TRUE;
 
+                        filepath[0] = '\0'; /* Initialize buffer to prevent garbage prompt */
 			if( GetPipeCommand( filepath ) )
                         {
 			  break;
