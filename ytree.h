@@ -324,7 +324,7 @@ enum UI_COLOR_PAIRS {
 #define GID_VIEWNAME		"gid"
 #define INODE_VIEWNAME		"ino"
 #define ACCTIME_VIEWNAME	"act"
-#define CHGTIME_VIEWNAME	"sct"
+#define SCTIME_VIEWNAME		"sct"
 
 
 #define CLOCK_INTERVAL	   1
@@ -593,8 +593,9 @@ extern int       user_umask;
 extern char      message[];
 extern BOOL	 print_time;
 extern BOOL      resize_request;
-extern char      number_seperator;
 extern BOOL      bypass_small_window;
+extern BOOL      highlight_full_line;
+extern char      number_seperator;
 extern char      *initial_directory;
 extern char 	 builtin_hexdump_cmd[];
 

@@ -286,7 +286,7 @@ int BuildUserFileEntry(FileEntry *fe_ptr,
 #endif
       } else if(!strncmp(sptr, ACCTIME_VIEWNAME, 3)) {
         n = sprintf(dptr, "%12s", access_time);
-      } else if(!strncmp(sptr, CHGTIME_VIEWNAME, 3)) {
+      } else if(!strncmp(sptr, SCTIME_VIEWNAME, 3)) {
         n = sprintf(dptr, "%12s", change_time);
       } else {
 	n = -1;
@@ -351,7 +351,7 @@ int GetVisualUserFileEntryLength( int max_visual_filename_len, int max_visual_li
 #endif
       } else if(!strncmp(sptr, ACCTIME_VIEWNAME, 3)) {
         n = 12;
-      } else if(!strncmp(sptr, CHGTIME_VIEWNAME, 3)) {
+      } else if(!strncmp(sptr, SCTIME_VIEWNAME, 3)) {
         n = 12;
       } else {
 	n = -1;
