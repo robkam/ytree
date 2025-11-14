@@ -236,7 +236,6 @@ static void PrintDirEntry(WINDOW *win,
 
   wmove(win, y, 0);
   wclrtoeol(win);
-  wmove(win, y, 0);
 
   aux = 0;
   /* Output optional Attributes */
@@ -292,7 +291,7 @@ static void PrintDirEntry(WINDOW *win,
 
 #else
     if( hilight ) wattron( win, A_REVERSE );
-    waddstr( win, buffer);
+    waddstr(win, buffer);
     if( hilight ) wattroff( win, 0 );
 #endif
   }
@@ -316,9 +315,17 @@ void DisplayTree(WINDOW *win, int start_entry_no, int hilight_no)
     window_height = height;
   }
 #ifdef COLOR_SUPPORT
-  WbkgdSet(win, COLOR_PAIR(CPAIR_WINDIR));
+  if (win == f2_window) {
+    WbkgdSet(win, COLOR_PAIR(CPAIR_WINHST));
+  } else {
+    WbkgdSet(win, COLOR_PAIR(CPAIR_WINDIR));
+  }
 #endif
   werase(win);
+
+  if (win == f2_window) {
+      box(win, 0, 0);
+  }
 
   for(i=0; i < height; i++)
   {
