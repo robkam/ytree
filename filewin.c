@@ -2438,8 +2438,21 @@ int HandleFileWindow(DirEntry *dir_entry)
 		      break;
 
       case 'L' & 0x1F:
-		      clearok( stdscr, TRUE );
-		      break;
+             if (mode == ARCHIVE_MODE) {
+                clearok(stdscr, TRUE);
+                refresh();
+             } else {
+                 RescanDir(dir_entry);
+                 BuildFileEntryList(dir_entry);
+                 if (dir_entry->start_file + dir_entry->cursor_pos >= file_count) {
+                     dir_entry->start_file = 0;
+                     dir_entry->cursor_pos = 0;
+                 }
+                 DisplayFiles(dir_entry, dir_entry->start_file, dir_entry->start_file + dir_entry->cursor_pos, start_x);
+                 DisplayDirStatistic(dir_entry);
+                 need_dsp_help = TRUE;
+             }
+             break;
 
       case '\033':    break;
 

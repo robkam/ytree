@@ -828,6 +828,7 @@ extern void QuitTo(DirEntry * dir_entry);
 /* readtree.c */
 extern int ReadTree(DirEntry *dir_entry, char *path, int depth);
 extern void UnReadTree(DirEntry *dir_entry);
+extern int RescanDir(DirEntry *dir_entry);
 
 /* rename.c */
 extern int GetRenameParameter(char *old_name, char *new_name);

@@ -59,7 +59,7 @@ Following commands are available:
 **-eXecute**
 :   Execute a shell command. The `{}` placeholder is replaced by the current directory path (`.`).
 
-**-^Filemode**
+**-^Dirmode**
 :   Change viewmodus for files:
 
     -   **filenames only**
@@ -70,6 +70,9 @@ Following commands are available:
 
 **-Return**
 :   Switch to file modus
+
+**-^L (redraw)**
+:   Re-read the contents of the current directory from disk and refresh the view. This is useful after running an external shell command that modifies files.
 
 **-^Quit**
 :   QuitTo: If you exit ytree with ^Q, the last selected directory becomes your
@@ -94,11 +97,9 @@ Following commands are available:
 :   Change permissions of all tagged files.
     **?** stands for: do not change attribute
 
-**-Copy**
-:   Copy file
-
-**-^K Copy**
-:   Copy all tagged files
+**-Copy/(^K)**
+:   (C)opy: Copy the selected file.
+:   (^K) Copy: Copy all tagged files.
 
 **-Delete**
 :   Delete selected file
@@ -127,11 +128,9 @@ Following commands are available:
 **-Log**
 :   Restart ytree with new root directory/archive file
 
-**-Move**
-:   move selected file
-
-**-^N Move**
-:   Move all tagged files
+**-Move/(^N)**
+:   (M)ove: Move the selected file.
+:   (^N) Move: Move all tagged files. The `^N` (Next) shortcut is used because `^M` is the terminal control code for the Enter key.
 
 **-Owner**
 :   Change user ownership of selected file
@@ -140,16 +139,14 @@ Following commands are available:
 :   Change user ownership of all tagged files
 
 **-Pipe**
-:   Pipe content of file to a command
+:   Pipe content of file to a command. This sends the file's *content* to the command's standard input (e.g., `cat file | wc`). It does not use the `{}` placeholder.
 
 **-^Pipe**
-:   Pipe content of all tagged files to a command
+:   Pipe content of all tagged files to a command.
 
-**-Rename**
-:   Rename selected file
-
-**-^Rename**
-:   Rename all tagged files
+**-Rename/(^R)**
+:   (R)ename: Rename the selected file.
+:   (^R)ename: Rename all tagged files.
 
 **-untag ^Search**
 :   Untag files by using an external program (e.g. grep)
@@ -189,11 +186,9 @@ Following commands are available:
 :   Execute shell command for all tagged files.
     The string {} is replaced by each file's full path.
 
-**-pathcopY**
-:   Copy selected file inclusive path
-
-**-pathcop^Y**
-:   Copy all tagged files inclusive path
+**-pathcopY/^Y**
+:   (Y) PathCopy: Copy selected file inclusive path.
+:   (^Y) PathCopy: Copy all tagged files inclusive path.
 
 **-^Filemode**
 :   Switch view-modus for files:
@@ -204,8 +199,8 @@ Following commands are available:
     -   **name, attribute, inode, owner, group, symb. link**
     -   **changestatus-, access time, symb. link**
 
-**-^L**
-:   Refresh Screen
+**-^L (redraw)**
+:   Re-read the contents of the current directory from disk and redraw the screen.
 
 **-Space**
 :   Suppress screen-output while working
@@ -231,15 +226,15 @@ Following commands are available:
 **-Untag**
 :   Untag all files in selected directory
 
-**-^Filemode**
+**-^Dirmode**
 :   Change viewmodus for files:
 
     -   **filenames only**
     -   **name, attribute, links, size, modification time**
     -   **name, attribute, owner, group**
 
-**-^L**
-:   Refresh Screen
+**-^L (redraw)**
+:   Redraw the screen.
 
 ### 4.) ARCHIV-FILE-Modus:
 
@@ -291,8 +286,8 @@ Following commands are available:
     -   **filenames only**
     -   **name, attribute, links, size**
 
-**-^L**
-:   Refresh Screen
+**-^L (redraw)**
+:   Redraw the screen.
 
 **-Return**
 :   Switch to Expand-Modus

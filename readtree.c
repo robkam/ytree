@@ -282,7 +282,7 @@ void UnReadTree(DirEntry *dir_entry)
 }
 
 
-static void UnReadSubTree(DirEntry *dir_entry)
+void UnReadSubTree(DirEntry *dir_entry)
 {
   DirEntry *de_ptr, *next_de_ptr;
   FileEntry *fe_ptr, *next_fe_ptr;
@@ -313,3 +313,45 @@ static void UnReadSubTree(DirEntry *dir_entry)
   }
 }
 
+
+int RescanDir(DirEntry *dir_entry)
+{
+    char path[PATH_LENGTH + 1];
+    FileEntry *fe_ptr, *next_fe_ptr;
+
+    if (!dir_entry || (mode != DISK_MODE && mode != USER_MODE)) {
+        return -1;
+    }
+
+    GetPath(dir_entry, path);
+
+    /* Unlink and free all child directories recursively, updating stats. */
+    if (dir_entry->sub_tree) {
+        UnReadSubTree(dir_entry->sub_tree);
+        dir_entry->sub_tree = NULL;
+    }
+
+    /* Unlink and free all files, updating stats. */
+    for (fe_ptr = dir_entry->file; fe_ptr != NULL; fe_ptr = next_fe_ptr) {
+        next_fe_ptr = fe_ptr->next;
+        /* RemoveFile updates stats and frees the entry */
+        RemoveFile(fe_ptr);
+    }
+    dir_entry->file = NULL;
+
+    /*
+     * The dir_entry itself still exists and is counted. ReadTree will re-init
+     * its contents and re-add its children's stats. It also increments
+     * disk_total_directories for itself, so we must pre-decrement to avoid
+     * double-counting.
+     */
+    statistic.disk_total_directories--;
+    ReadTree(dir_entry, path, 0);
+
+    /* Global matching stats are now incorrect. Reset and recalculate. */
+    statistic.disk_matching_files = 0L;
+    statistic.disk_matching_bytes = 0L;
+    SetMatchingParam(statistic.tree);
+
+    return 0;
+}
