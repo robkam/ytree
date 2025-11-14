@@ -25,7 +25,7 @@ MANSRC      = ytree.1.md
 # NOTE: This build now requires libarchive.
 # On Debian/Ubuntu, install with: sudo apt-get install libarchive-dev
 COLOR       = -DCOLOR_SUPPORT
-#CLOCK	    = -DCLOCK_SUPPORT # Experimental!
+CLOCK	    = -DCLOCK_SUPPORT # Experimental!
 READLINE    = -DREADLINE_SUPPORT
 # Use -std=c99 or -std=gnu99 for modernization. -D_GNU_SOURCE is kept for glibc extensions.
 CFLAGS      += -D_GNU_SOURCE -DHAVE_LIBARCHIVE $(COLOR) $(CLOCK) $(READLINE) $(ADD_CFLAGS)
