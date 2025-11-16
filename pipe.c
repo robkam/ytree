@@ -20,6 +20,8 @@ int Pipe(DirEntry *dir_entry, FileEntry *file_entry)
   char file_name_path[PATH_LENGTH+1];
   int  result = -1;
   FILE *pipe_fp;
+  char cwd[PATH_LENGTH + 1];
+  char path[PATH_LENGTH + 1];
 
   (void) GetRealFileNamePath( file_entry, file_name_path );
 
@@ -29,6 +31,21 @@ int Pipe(DirEntry *dir_entry, FileEntry *file_entry)
   if( GetPipeCommand( &input_buffer[2] ) == 0 )
   {
     move( LINES - 2, 1 ); clrtoeol();
+
+    if (getcwd(cwd, sizeof(cwd)) == NULL) {
+        WARNING("getcwd failed*\".\"assumed");
+        strcpy(cwd, ".");
+    }
+
+    if (chdir(GetPath(dir_entry, path))) {
+        sprintf(message, "Can't change directory to*\"%s\"", path);
+        MESSAGE(message);
+        if (chdir(cwd)) { /* Attempt to chdir back even on failure */
+            sprintf(message, "Can't change directory back to*\"%s\"", cwd);
+            MESSAGE(message);
+        }
+        return -1;
+    }
 
     /* Suspend curses to allow external command to run correctly */
     endwin();
@@ -41,36 +58,41 @@ int Pipe(DirEntry *dir_entry, FileEntry *file_entry)
         clearok(stdscr, TRUE);
         refresh();
         MESSAGE(message);
-        return -1;
-    }
-
-    if( mode == DISK_MODE || mode == USER_MODE )
-    {
-        int in_fd;
-        char buffer[4096];
-        ssize_t bytes_read;
-        in_fd = open(file_name_path, O_RDONLY);
-        if (in_fd != -1) {
-            while ((bytes_read = read(in_fd, buffer, sizeof(buffer))) > 0) {
-                if (fwrite(buffer, 1, bytes_read, pipe_fp) < bytes_read) {
-                    /* Handle pipe write error */
-                    break;
+        result = -1;
+    } else {
+        if( mode == DISK_MODE || mode == USER_MODE )
+        {
+            int in_fd;
+            char buffer[4096];
+            ssize_t bytes_read;
+            in_fd = open(file_name_path, O_RDONLY);
+            if (in_fd != -1) {
+                while ((bytes_read = read(in_fd, buffer, sizeof(buffer))) > 0) {
+                    if (fwrite(buffer, 1, bytes_read, pipe_fp) < bytes_read) {
+                        /* Handle pipe write error */
+                        break;
+                    }
                 }
+                close(in_fd);
             }
-            close(in_fd);
         }
-    }
-    else
-    {
-      /* ARCHIVE_MODE */
-      /*--------------*/
-#ifdef HAVE_LIBARCHIVE
-        char *archive = statistic.login_path;
-        ExtractArchiveEntry(archive, file_name_path, fileno(pipe_fp));
-#endif
+        else
+        {
+          /* ARCHIVE_MODE */
+          /*--------------*/
+    #ifdef HAVE_LIBARCHIVE
+            char *archive = statistic.login_path;
+            ExtractArchiveEntry(archive, file_name_path, fileno(pipe_fp));
+    #endif
+        }
+        result = pclose(pipe_fp);
     }
 
-    result = pclose(pipe_fp);
+    /* Change back to original directory before interacting with user */
+    if (chdir(cwd)) {
+        sprintf(message, "Can't change directory back to*\"%s\"", cwd);
+        /* Can't show a curses MESSAGE here, just try to continue */
+    }
 
     /* Let user see output, then restore screen */
     HitReturnToContinue();

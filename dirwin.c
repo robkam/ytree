@@ -820,6 +820,11 @@ int HandleDirWindow(DirEntry *start_dir_entry)
       ch = (resize_request) ? -1 : Getch();
       if( ch == LF ) ch = CR;
     }
+
+    if (mode == USER_MODE) { /* User commands take precedence */
+        ch = DirUserMode(dir_entry, ch);
+    }
+
 #ifdef VI_KEYS
     ch = ViKey( ch );
 #endif /* VI_KEYS */
@@ -846,9 +851,6 @@ int HandleDirWindow(DirEntry *start_dir_entry)
        resize_request = FALSE;
     }
 
-   if (mode == USER_MODE) { /* DirUserMode returns (possibly remapped) ch, or -1 if it handles ch */
-      ch = DirUserMode(dir_entry, ch);
-   }
 
     switch( ch )
     {
