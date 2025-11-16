@@ -81,7 +81,7 @@ int GetNewFileModus(int y, int x, char *modus, char *term)
 
   ClearHelp();
   curs_set(1);
-  MvAddStr( y, x, "New Filemodus:" );
+  MvAddStr( y, x, "NEW FILEMODUS:" );
 
   x += 16;
 

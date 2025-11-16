@@ -37,15 +37,33 @@ int Pipe(DirEntry *dir_entry, FileEntry *file_entry)
         strcpy(cwd, ".");
     }
 
-    if (chdir(GetPath(dir_entry, path))) {
-        sprintf(message, "Can't change directory to*\"%s\"", path);
-        MESSAGE(message);
-        if (chdir(cwd)) { /* Attempt to chdir back even on failure */
-            sprintf(message, "Can't change directory back to*\"%s\"", cwd);
+    if (mode == DISK_MODE || mode == USER_MODE) {
+        if (chdir(GetPath(dir_entry, path))) {
+            sprintf(message, "Can't change directory to*\"%s\"", path);
             MESSAGE(message);
+            chdir(cwd); /* Attempt to restore CWD */
+            return -1;
         }
-        return -1;
+    } else { /* ARCHIVE_MODE */
+        char archive_dir[PATH_LENGTH + 1];
+        char *last_slash;
+        strcpy(archive_dir, statistic.login_path);
+        last_slash = strrchr(archive_dir, '/');
+        if (last_slash) {
+            if (last_slash == archive_dir) { /* Root directory, e.g., "/archive.zip" */
+                *(last_slash + 1) = '\0';
+            } else {
+                *last_slash = '\0';
+            }
+            if (chdir(archive_dir) != 0) {
+                 sprintf(message, "Can't change directory to*\"%s\"", archive_dir);
+                 MESSAGE(message);
+                 chdir(cwd); /* Attempt to restore CWD */
+                 return -1;
+            }
+        }
     }
+
 
     /* Suspend curses to allow external command to run correctly */
     endwin();
@@ -89,9 +107,10 @@ int Pipe(DirEntry *dir_entry, FileEntry *file_entry)
     }
 
     /* Change back to original directory before interacting with user */
-    if (chdir(cwd)) {
-        sprintf(message, "Can't change directory back to*\"%s\"", cwd);
-        /* Can't show a curses MESSAGE here, just try to continue */
+    if (chdir(cwd) != 0) {
+        /* This is a critical error, but we're outside curses mode. */
+        /* We can't use MESSAGE(). We'll proceed to HitReturnToContinue() */
+        /* which will at least alert the user something is wrong. */
     }
 
     /* Let user see output, then restore screen */

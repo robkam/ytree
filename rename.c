@@ -250,7 +250,7 @@ int GetRenameParameter(char *old_name, char *new_name)
   else
   {
     MvAddStr( LINES - 2, 1, "RENAME TO:" );
-    l = 13;
+    l = 12;
   }
 
   (void) strcpy( new_name, (old_name) ? old_name : "*" );

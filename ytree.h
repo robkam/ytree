@@ -772,7 +772,7 @@ extern int ViKey( int ch );
 extern int VisualPositionToBytePosition(const char *str, int visual_pos);
 extern int WGetch(WINDOW *win);
 
-/* login.c */
+/* log.c */
 extern int GetNewLoginPath(char *path);
 extern int LoginDisk(char *path);
 

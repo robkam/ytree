@@ -57,8 +57,15 @@ static char *last_line = "3-8-----------------------4";
 static char *first_line ="1-5";
 
 
-static char dir_help_disk_mode_0[] = "DIR       (A)ttribute (D)elete  (F)ilespec  (G)roup (L)og (M)akedir A(b)out         (Q)uit";
-static char dir_help_disk_mode_1[] = "COMMANDS  (O)wner (R)ename (S)howall (^S)how-tagged (T)ag (U)ntag e(X)ecute (^L)redraw (^F)dirmode ";
+/*
+ * Help line definitions for different modes.
+ * NOTE: These strings are manually balanced to fit on a standard 80x24
+ * terminal screen. When adding or removing commands, care must be taken
+ * to re-balance the two lines to prevent truncation. Commands are ordered
+ * alphabetically for easier scanning.
+ */
+static char dir_help_disk_mode_0[] = "DIR       (A)ttribute A(b)out (D)elete (F)ilespec (^F)dirmode (G)roup (L)og";
+static char dir_help_disk_mode_1[] = "COMMANDS  (M)akedir (O)wner (Q)uit (R)ename (S)howall/tagged (T)ag (U)ntag e(X)ecute";
 static char *dir_help[MAX_MODES][2] =
   {
     { /* DISK_MODE */
@@ -66,12 +73,12 @@ static char *dir_help[MAX_MODES][2] =
       dir_help_disk_mode_1
     },
     { /* LL_FILE_MODE */
-      "DIR       (F)ilespec (L)ogin (S)howall (T)ag (U)ntag (^L)redraw (^F)dirmode  (Q)uit         ",
-      "COMMANDS                                                                    "
+      "DIR       (F)ilespec (^F)dirmode (L)og (^L)redraw (S)howall (T)ag (U)ntag (Q)uit",
+      "COMMANDS                                                                           "
     },
     { /* ARCHIVE_MODE */
-      "ARCHIVE   (F)ilespec (L)og (S)howall (T)ag (U)ntag (^L)redraw (^F)dirmode  (Q)uit         ",
-      "COMMANDS                                                                    "
+      "ARCHIVE   (F)ilespec (^F)dirmode (L)og (^L)redraw (S)howall (T)ag (U)ntag (Q)uit",
+      "COMMANDS                                                                           "
     },
     { /* USER_MODE */
       dir_help_disk_mode_0,	/* Default unless changed by user prefs */
@@ -80,8 +87,8 @@ static char *dir_help[MAX_MODES][2] =
   };
 
 
-static char file_help_disk_mode_0[] = "FILE      (A)ttribute (C)opy/(^K) (D)elete (E)dit (F)ilespec (G)roup (H)ex (L)ogin (M)ove/(^N) (Q)uit ";
-static char file_help_disk_mode_1[] = "COMMANDS  (O)wner (P)ipe (R)ename/(^R) (S)ort (T)ag (U)ntag (V)iew e(X)ecute pathcop(Y)/^Y (^L)redraw (^F)filemode ";
+static char file_help_disk_mode_0[] = "FILE      (A)ttribute (C)opy/(^K) (D)elete (E)dit (F)ilespec (^F)ilemode (G)roup (H)ex";
+static char file_help_disk_mode_1[] = "COMMANDS  (L)og (M)ove/(^N) (O)wner (P)ipe (Q)uit (R)ename (S)ort (V)iew pathcop(Y)";
 static char *file_help[MAX_MODES][2] =
   {
     { /* DISK_MODE */
@@ -89,12 +96,12 @@ static char *file_help[MAX_MODES][2] =
       file_help_disk_mode_1
     },
     { /* LL_FILE_MODE */
-      "FILE      (F)ilespec (L)ogin (S)ort (T)ag (U)ntag (^L)redraw (^F)filemode      (Q)uit       ",
-      "COMMANDS                                                                   "
+      "FILE      (F)ilespec (^F)ilemode (L)og (^L)redraw (S)ort (T)ag (U)ntag (Q)uit      ",
+      "COMMANDS                                                                                "
     },
     { /* ARCHIVE_MODE */
-      "ARCH-FILE (C)opy (F)ilespec (H)ex (P)ipe (S)ort (T)ag (U)ntag (V)iew (^L)redraw (Q)uit      ",
-      "COMMANDS  (^F)filemode                                                       "
+      "ARCH-FILE (C)opy (F)ilespec (^F)ilemode (H)ex (P)ipe (S)ort (T)ag (U)ntag (V)iew (Q)uit",
+      "COMMANDS                                                                               "
     },
     { /* USER_MODE */
       file_help_disk_mode_0,	/* Default unless changed by user prefs */

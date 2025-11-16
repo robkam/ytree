@@ -213,15 +213,15 @@ int GetMoveParameter(char *from_file, char *to_file, char *to_dir)
     (void) strcpy( to_file, from_file );
   }
 
-  (void) sprintf( buffer, "MOVE %s", from_file );
+  (void) sprintf( buffer, "MOVE: %s", from_file );
 
   ClearHelp();
 
   MvAddStr( LINES - 3, 1, buffer );
-  MvAddStr( LINES - 2, 1, "AS  " );
-  if( InputString( to_file, LINES - 2, 6, 0, COLS - 6, "\r\033" ) == CR ) {
-    MvAddStr( LINES - 1, 1, "TO   " );
-    if( InputString( to_dir, LINES - 1, 6, 0, COLS - 6, "\r\033" ) == CR )
+  MvAddStr( LINES - 2, 1, "AS:   " );
+  if( InputString( to_file, LINES - 2, 7, 0, COLS - 7, "\r\033" ) == CR ) {
+    MvAddStr( LINES - 1, 1, "TO:   " );
+    if( InputString( to_dir, LINES - 1, 7, 0, COLS - 7, "\r\033" ) == CR )
     return( 0 );
   }
   ClearHelp();
@@ -301,4 +301,3 @@ int MoveTaggedFiles(FileEntry *fe_ptr, WalkingPackage *walking_package)
 
   return( result );
 }
-

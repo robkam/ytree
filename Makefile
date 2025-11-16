@@ -51,7 +51,7 @@ OBJS	= display_utils.o owner_utils.o path_utils.o string_utils.o tree_utils.o \
 	  archive.o archive_reader.o chgrp.o chmod.o chown.o clock.o color.o copy.o    \
 	  delete.o dirwin.o display.o edit.o error.o execute.o filespec.o      \
 	  filewin.o freesp.o global.o group.o hex.o history.o init.o input.o keyhtab.o \
-	  login.o main.o match.o mkdir.o move.o passwd.o pipe.o    \
+	  log.o main.o match.o mkdir.o move.o passwd.o pipe.o    \
 	  profile.o quit.o readtree.o rename.o rmdir.o sort.o stats.o \
 	  system.o usermode.o view.o
 
@@ -105,7 +105,7 @@ history.o: config.h ytree.h history.c
 init.o: config.h ytree.h init.c
 input.o: config.h ytree.h input.c
 keyhtab.o: config.h ytree.h keyhtab.c
-login.o: config.h ytree.h login.c
+log.o: config.h ytree.h log.c
 main.o: config.h ytree.h main.c
 match.o: config.h ytree.h match.c
 mkdir.o: config.h ytree.h mkdir.c
