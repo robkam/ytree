@@ -282,20 +282,20 @@ int GetCopyParameter(char *from_file, BOOL path_copy, char *to_file, char *to_di
 
   if( path_copy )
   {
-    (void) sprintf( buffer, "PATHCOPY %s", from_file );
+    (void) sprintf( buffer, "PATHCOPY: %s", from_file );
   }
   else
   {
-    (void) sprintf( buffer, "COPY %s", from_file );
+    (void) sprintf( buffer, "COPY: %s", from_file );
   }
 
   ClearHelp();
 
   MvAddStr( LINES - 3, 1, buffer );
-  MvAddStr( LINES - 2, 1, "AS   ");
+  MvAddStr( LINES - 2, 1, "AS:  " );
 
   if( InputString(to_file, LINES - 2, 6, 0, COLS - 6, "\r\033" ) == CR){
-    MvAddStr( LINES - 1, 1, "TO   " );
+    MvAddStr( LINES - 1, 1, "TO:  " );
     if( InputString( to_dir, LINES - 1, 6, 0, COLS - 6, "\r\033" ) == CR )
     return( 0 );
   }

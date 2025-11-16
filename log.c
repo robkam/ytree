@@ -1,6 +1,6 @@
 /***************************************************************************
  *
- * login.c
+ * log.c
  * Dateibaum lesen
  *
  ***************************************************************************/
@@ -244,7 +244,7 @@ int GetNewLoginPath(char *path)
 
     ClearHelp();
 
-    MvAddStr(LINES - 2, 1, "NEW LOGIN-PATH:");
+    MvAddStr(LINES - 2, 1, "LOG:");
 
     /* Save the current directory context and set it as default for user input */
     strcpy(current_dir_path, path);
@@ -256,7 +256,7 @@ int GetNewLoginPath(char *path)
             user_input[strlen(user_input) - 1] = '\0';
     }
 
-    if (InputString(user_input, LINES - 2, 17, 0, COLS - 18, "\r\033") == CR) {
+    if (InputString(user_input, LINES - 2, 6, 0, COLS - 7, "\r\033") == CR) {
         /*
          * NOTE: The size of temp_path has been increased to prevent potential
          * buffer overflows identified by the -Wformat-truncation compiler warning.

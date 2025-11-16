@@ -87,7 +87,7 @@ int ReadFileSpec(void)
   ClearHelp();
 
   (void) strcpy( buffer, "*" );
-  MvAddStr( LINES - 2, 1, "New filespec:" );
+  MvAddStr( LINES - 2, 1, "NEW FILESPEC:" );
   if( InputString( buffer, LINES - 2, 15, 0, FILE_SPEC_LENGTH, "\r\033" ) == CR )
   {
     if( SetFileSpec( buffer ) )
@@ -103,5 +103,3 @@ int ReadFileSpec(void)
   move( LINES - 2, 1 ); clrtoeol();
   return(result);
 }
-
-

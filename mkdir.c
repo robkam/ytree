@@ -23,7 +23,7 @@ int MakeDirectory(DirEntry *father_dir_entry)
 
   ClearHelp();
 
-  MvAddStr( LINES - 2, 1, "Make Subdirectory: " );
+  MvAddStr( LINES - 2, 1, "MAKE DIRECTORY: " );
 
   *dir_name = '\0';
 

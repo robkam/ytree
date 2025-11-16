@@ -30,7 +30,7 @@ int Execute(DirEntry *dir_entry, FileEntry *file_entry)
         }
     }
 
-    MvAddStr(LINES - 2, 1, "Command:");
+    MvAddStr(LINES - 2, 1, "COMMAND:");
     if (GetCommandLine(command_template) == 0) {
         /* Check if placeholder expansion is needed */
         if (strstr(command_template, "{}") != NULL) {
@@ -107,7 +107,7 @@ int GetCommandLine(char *command_line)
 
   ClearHelp();
 
-  MvAddStr( LINES - 2, 1, "Command: " );
+  MvAddStr( LINES - 2, 1, "COMMAND: " );
   if( InputString( command_line, LINES - 2, 10, 0, COLS - 11, "\r\033" ) == CR )
   {
     move( LINES - 2, 1 ); clrtoeol();
@@ -131,7 +131,7 @@ int GetSearchCommandLine(char *command_line)
 
   ClearHelp();
 
-  MvAddStr( LINES - 2, 1, "Search untag command: " );
+  MvAddStr( LINES - 2, 1, "SEARCH UNTAG COMMAND: " );
   strcpy( command_line, SEARCHCOMMAND );
 
   cptr = strstr( command_line, "{}" );
