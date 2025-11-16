@@ -78,11 +78,13 @@ char *StrLeft(const char *str, size_t visible_count)
   left_bytes = visible_count;
 #endif
 
-  result = strndup(str, left_bytes);
+  result = malloc(left_bytes + 1);
   if (result == NULL) {
-      ERROR_MSG("strndup failed*ABORT");
+      ERROR_MSG("malloc failed*ABORT");
       exit(1);
   }
+  memcpy(result, str, left_bytes);
+  result[left_bytes] = '\0';
   return(result);
 }
 
@@ -337,14 +339,76 @@ int InputString(char *s, int y, int x, int cursor_pos, int length, char *term)
            to a sensible, simple action like history. For now, treat as unhandled. */
         beep(); break;
 
+    case 'A' & 0x1F: /* Ctrl-A, Beginning of Line */
     case KEY_HOME:
         p = 0; break;
 
+    case 'E' & 0x1F: /* Ctrl-E, End of Line */
     case KEY_END:
         p = StrVisualLength( s ); break;
 
-    case KEY_DC:    /* Delete key, defined in curses.h */
-    case 0x7F:      /* ASCII DEL character */
+    case 'K' & 0x1F: /* Ctrl-K, Kill to End of Line */
+    case KEY_DL:     /* Delete to end of line */
+        ls = StrLeft(s, p);
+        strcpy(s, ls);
+        free(ls);
+        break;
+
+    case 'U' & 0x1F: /* Ctrl-U, Kill to Beginning of Line */
+        n = StrVisualLength(s);
+        if (p > 0) {
+            rs = StrRight(s, n - p);
+            strcpy(s, rs);
+            free(rs);
+            p = 0;
+        } else {
+            beep();
+        }
+        break;
+
+    case 'W' & 0x1F: /* Ctrl-W, Kill Word */
+        if (p > 0) {
+            int byte_p = VisualPositionToBytePosition(s, p);
+            int end_of_word = byte_p;
+            int start_of_word;
+
+            /* Skip backwards over any non-alphanumeric characters from cursor */
+            while (end_of_word > 0 && !isalnum((unsigned char)s[end_of_word - 1])) {
+                end_of_word--;
+            }
+
+            /* Find the start of the word (beginning of alphanumeric sequence) */
+            start_of_word = end_of_word;
+            while (start_of_word > 0 && isalnum((unsigned char)s[start_of_word - 1])) {
+                start_of_word--;
+            }
+
+            if (start_of_word >= byte_p) { /* Nothing to delete */
+                beep();
+                break;
+            }
+
+            /* Move the remainder of the string over the deleted part. */
+            memmove(&s[start_of_word], &s[byte_p], strlen(&s[byte_p]) + 1);
+
+            /* Update visual cursor position 'p' */
+            char *temp_prefix = malloc(start_of_word + 1);
+            if (temp_prefix) {
+                memcpy(temp_prefix, s, start_of_word);
+                temp_prefix[start_of_word] = '\0';
+                p = StrVisualLength(temp_prefix);
+                free(temp_prefix);
+            } else {
+                p = 0; /* Fallback */
+            }
+        } else {
+            beep();
+        }
+        break;
+
+    case 'D' & 0x1F: /* Ctrl-D, Delete character */
+    case KEY_DC:     /* Delete key, defined in curses.h */
+    case 0x7F:       /* ASCII DEL character */
         n = StrVisualLength(s);
         if( p < n ) {
             ls = StrLeft(s, p);
@@ -360,7 +424,7 @@ int InputString(char *s, int y, int x, int cursor_pos, int length, char *term)
 
     /* Consolidate all backspace/Ctrl-H aliases */
     case KEY_BACKSPACE:
-    case 0x08:
+    case 0x08:       /* ASCII BS, often sent for Ctrl-H */
         n = StrVisualLength(s);
         if( p > 0 ) {
             ls = StrLeft(s, p - 1);
@@ -373,12 +437,6 @@ int InputString(char *s, int y, int x, int cursor_pos, int length, char *term)
         } else {
             beep();
         }
-        break;
-
-    case KEY_DL: /* Delete to end of line */
-        ls = StrLeft(s, p);
-        strcpy(s, ls);
-        free(ls);
         break;
 
     case KEY_EIC:
