@@ -19,6 +19,18 @@ If there is no command line argument, the current directory will be used.
 
 Following commands are available:
 
+### COMMAND LINE EDITING
+
+All input prompts (such as Log, Execute, Filespec, etc.) support standard shell-style editing shortcuts for improved efficiency:
+
+-   **`^A` / `Home`**: Move cursor to the beginning of the line.
+-   **`^E` / `End`**: Move cursor to the end of the line.
+-   **`^K`**: Delete text from the cursor to the end of the line.
+-   **`^U`**: Delete text from the cursor to the beginning of the line.
+-   **`^W`**: Delete the word to the left of the cursor.
+-   **`^D` / `Del`**: Delete the character under the cursor.
+-   **`^H` / `Backspace`**: Delete the character to the left of the cursor.
+
 ### 1.) DIR-Modus:
 
 **-Attribute**
