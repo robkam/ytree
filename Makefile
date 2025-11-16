@@ -52,7 +52,7 @@ OBJS	= display_utils.o owner_utils.o path_utils.o string_utils.o tree_utils.o \
 	  delete.o dirwin.o display.o edit.o error.o execute.o filespec.o      \
 	  filewin.o freesp.o global.o group.o hex.o history.o init.o input.o keyhtab.o \
 	  login.o main.o match.o mkdir.o move.o passwd.o pipe.o    \
-	  profile.o quit.o readtree.o rename.o rmdir.o sort.o stat.o \
+	  profile.o quit.o readtree.o rename.o rmdir.o sort.o stats.o \
 	  system.o usermode.o view.o
 
 $(MAIN):	$(OBJS)
@@ -120,7 +120,7 @@ readtree.o: config.h ytree.h readtree.c
 rename.o: config.h ytree.h rename.c
 rmdir.o: config.h ytree.h rmdir.c
 sort.o: config.h ytree.h sort.c
-stat.o: config.h ytree.h stat.c
+stats.o: config.h ytree.h stats.c
 string_utils.o: config.h ytree.h string_utils.c
 system.o: config.h ytree.h system.c
 tree_utils.o: config.h ytree.h tree_utils.c
