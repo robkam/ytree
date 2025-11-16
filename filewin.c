@@ -702,7 +702,7 @@ static void PrintFileEntry(int entry_no, int y, int x, unsigned char hilight, in
   } else {
       /* --- RENDER METHOD 2: NAME-ONLY HIGHLIGHT --- */
       if (start_x > 0) start_x = 0; /* No horizontal scrolling in this mode. */
-      
+
       wattron(file_window, COLOR_PAIR(base_color_pair));
       if (fe_ptr && fe_ptr->tagged) wattron(file_window, A_BOLD);
 
@@ -755,7 +755,7 @@ static void PrintFileEntry(int entry_no, int y, int x, unsigned char hilight, in
                   break;
           }
       }
-      
+
       if (fe_ptr && fe_ptr->tagged) wattroff(file_window, A_BOLD);
   }
   wattroff(file_window, COLOR_PAIR(base_color_pair));
@@ -1127,10 +1127,12 @@ int HandleFileWindow(DirEntry *dir_entry)
       if( ch == LF ) ch = CR;
     }
 
+    if (mode == USER_MODE) { /* User commands take precedence */
+       ch = FileUserMode(&(file_entry_list[dir_entry->start_file + dir_entry->cursor_pos]), ch);
+    }
+
 #ifdef VI_KEYS
-
     ch = ViKey( ch );
-
 #endif /* VI_KEYS */
 
    if(resize_request) {
@@ -1207,9 +1209,6 @@ int HandleFileWindow(DirEntry *dir_entry)
      }
    }
 
-   if (mode == USER_MODE) { /* FileUserMode returns (possibly remapped) ch, or -1 if it handles ch */
-      ch = FileUserMode(&(file_entry_list[dir_entry->start_file + dir_entry->cursor_pos]), ch);
-   }
 
    switch( ch )
    {
