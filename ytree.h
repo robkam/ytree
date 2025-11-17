@@ -869,6 +869,7 @@ extern int SilentSystemCallEx(char *command_line, BOOL enable_clock);
 extern int SystemCall(char *command_line);
 
 /* tree_utils.c */
+extern void DeleteTree(DirEntry *tree);
 extern int GetDirEntry(DirEntry *tree, DirEntry *current_dir_entry, char *dir_path, DirEntry **dir_entry, char *to_path);
 extern int GetFileEntry(DirEntry *de_ptr, char *file_name, FileEntry **file_entry);
 

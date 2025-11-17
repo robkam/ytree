@@ -10,32 +10,6 @@
 /* #include <sys/wait.h> */  /* maybe wait.h is available */
 
 
-
-
-static void DeleteTree(DirEntry *tree)
-{
-  DirEntry  *de_ptr, *next_de_ptr;
-  FileEntry *fe_ptr, *next_fe_ptr;
-
-  for( de_ptr=tree; de_ptr; de_ptr=next_de_ptr)
-  {
-    next_de_ptr = de_ptr->next;
-
-    for( fe_ptr=de_ptr->file; fe_ptr; fe_ptr=next_fe_ptr)
-    {
-      next_fe_ptr=fe_ptr->next;
-      free( fe_ptr );
-    }
-
-    if( de_ptr->sub_tree ) DeleteTree( de_ptr->sub_tree );
-
-    free( de_ptr );
-  }
-}
-
-
-
-
 /* Login Disk liefert
  * -1 bei Fehler
  * 0  bei fehlerfreiem lesen eines neuen Baumes

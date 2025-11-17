@@ -242,6 +242,28 @@ int CopyFile(Statistic *statistic_ptr,
       if( dest_dir_entry->file ) dest_dir_entry->file->prev = fen_ptr;
       dest_dir_entry->file = fen_ptr;
     }
+    else if (mode != DISK_MODE && mode != USER_MODE)
+    {
+        /*
+         * A file was copied from an archive to the filesystem. The in-memory
+         * cache of the filesystem (`disk_statistic`) is now stale.
+         * To ensure the new file is visible on the next login, we must
+         * invalidate this cache, forcing a rescan.
+         */
+        if (disk_statistic.tree != NULL) {
+            DeleteTree(disk_statistic.tree);
+            disk_statistic.tree = NULL;
+            disk_statistic.login_path[0] = '\0';
+            /* Reset associated stats to prevent reuse of stale counts */
+            disk_statistic.disk_total_directories = 0;
+            disk_statistic.disk_total_files = 0;
+            disk_statistic.disk_total_bytes = 0;
+            disk_statistic.disk_matching_files = 0;
+            disk_statistic.disk_matching_bytes = 0;
+            disk_statistic.disk_tagged_files = 0;
+            disk_statistic.disk_tagged_bytes = 0;
+        }
+    }
 
     (void) GetAvailBytes( &statistic_ptr->disk_space );
 
