@@ -379,9 +379,9 @@ enum UI_COLOR_PAIRS {
 #define MATCHES_WINDOW_WIDTH   (COLS - 26)
 #define MATCHES_WINDOW_HEIGHT  (LINES - 6)
 
-#define TIME_WINDOW_X        ((COLS > 20) ? (COLS - 20) : 1)
-#define TIME_WINDOW_Y        1
-#define TIME_WINDOW_WIDTH    ((COLS > 15) ? 15 : COLS)
+#define TIME_WINDOW_X        (COLS - 20)
+#define TIME_WINDOW_Y        0
+#define TIME_WINDOW_WIDTH    20
 #define TIME_WINDOW_HEIGHT   1
 
 

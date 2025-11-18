@@ -17,6 +17,7 @@ void DisplayDiskStatistic(void)
 {
   const char *fmt= "[%-17s]";
   char buff[20];
+
   *buff = '\0';
 
   sprintf( buff, fmt, statistic.file_spec);
@@ -31,6 +32,12 @@ void DisplayDiskStatistic(void)
   PrettyPrintNumber( 16, COLS - 17, statistic.disk_tagged_bytes );
   PrintOptions( stdscr, 17, COLS - 24, "[Current Directory    ]");
   DisplayDiskName();
+
+  /* Path display logic is consolidated in DisplayDirStatistic.
+     Removed manual clearing loop here to prevent clock blinking/flicker.
+     DisplayDirStatistic will handle filling the line up to the clock window. */
+  DisplayDirStatistic(statistic.tree);
+
   return;
 }
 
@@ -77,9 +84,16 @@ void DisplayDirStatistic(DirEntry *dir_entry)
   char format[20];
   char buffer[PATH_LENGTH + 1];
   char auxbuff[PATH_LENGTH + 1];
+  int available_width;
 
   *auxbuff = *buffer = '\0';
-  (void) sprintf( format, "%%-%ds", COLS - 10 );
+
+  /* Calculate available width: Start at col 6, end before TIME_WINDOW_X.
+     TIME_WINDOW_X is (COLS - 20). */
+  available_width = TIME_WINDOW_X - 6;
+  if (available_width < 0) available_width = 0;
+
+  (void) sprintf( format, "%%-%ds", available_width );
 
   if (mode == DISK_MODE || mode == USER_MODE) {
     (void) GetPath( dir_entry, statistic.path );
@@ -91,10 +105,11 @@ void DisplayDirStatistic(DirEntry *dir_entry)
     statistic.path[sizeof(statistic.path) - 1] = '\0';
   }
 
-  sprintf(auxbuff, format, FormFilename( buffer, statistic.path, MAXIMUM(COLS - 10, 0)));
-  wmove( stdscr, 0, 6);
-  wclrtoeol( stdscr);
+  sprintf(auxbuff, format, FormFilename( buffer, statistic.path, available_width));
+
+  /* Removed clearing loop to prevent clock blinking */
   Print( stdscr, 0, 6, auxbuff, CPAIR_HIMENUS);
+
   PrintOptions( stdscr, 7,  COLS - 24, "[DIR Statistics    ]" );
   PrettyPrintNumber( 9, COLS - 17, dir_entry->total_files );
   PrettyPrintNumber( 10, COLS - 17, dir_entry->total_bytes );
@@ -138,13 +153,18 @@ void DisplayDirParameter(DirEntry *dir_entry)
   char buffer[PATH_LENGTH + 1];
   char auxbuff[PATH_LENGTH + 1];
   char display_path[PATH_LENGTH + 1];
+  int available_width;
 
   p = strrchr( dir_entry->name, FILE_SEPARATOR_CHAR );
 
   if( p == NULL ) f = dir_entry->name;
   else            f = p + 1;
 
-  (void) sprintf( format, "%%-%ds", COLS - 10 );
+  /* Also fix blinking here by respecting clock window boundaries */
+  available_width = TIME_WINDOW_X - 6;
+  if (available_width < 0) available_width = 0;
+
+  (void) sprintf( format, "%%-%ds", available_width );
 
   if (mode == DISK_MODE || mode == USER_MODE) {
     (void) GetPath( dir_entry, display_path );
@@ -156,9 +176,9 @@ void DisplayDirParameter(DirEntry *dir_entry)
     display_path[sizeof(display_path) - 1] = '\0';
   }
 
-  sprintf(auxbuff, format, FormFilename(buffer,display_path, MAXIMUM(COLS-10,0)));
-  wmove( stdscr, 0, 6);
-  wclrtoeol( stdscr);
+  sprintf(auxbuff, format, FormFilename(buffer,display_path, available_width));
+
+  /* Removed clearing loop */
   Print( stdscr, 0, 6, auxbuff, CPAIR_HIMENUS);
   *auxbuff = '\0';
 
@@ -176,14 +196,20 @@ void DisplayDirParameter(DirEntry *dir_entry)
 
 
 
+
 void DisplayGlobalFileParameter(FileEntry *file_entry)
 {
   char buffer1[PATH_LENGTH+1];
   char buffer2[PATH_LENGTH+3];
   char format[20];
   char display_path[PATH_LENGTH + 1];
+  int available_width;
 
-  (void) sprintf( format, "[%%-%ds]", COLS - 10 );
+  /* Fix blinking here as well */
+  available_width = TIME_WINDOW_X - 6;
+  if (available_width < 0) available_width = 0;
+
+  (void) sprintf( format, "[%%-%ds]", available_width );
 
   if (mode == DISK_MODE || mode == USER_MODE) {
     (void) GetPath( file_entry->dir_entry, display_path );
@@ -192,10 +218,10 @@ void DisplayGlobalFileParameter(FileEntry *file_entry)
       display_path[sizeof(display_path) - 1] = '\0';
   }
 
-  FormFilename( buffer2, display_path, MAXIMUM(COLS - 10, 0) );
+  FormFilename( buffer2, display_path, available_width );
   sprintf(buffer1, format, buffer2);
-  wmove( stdscr, 0, 6);
-  wclrtoeol( stdscr);
+
+  /* Removed clearing loop */
   PrintMenuOptions( stdscr, 0, 6, buffer1, CPAIR_GLOBAL, CPAIR_HIGLOBAL);
 
   /* Current file name still shows just the filename */
