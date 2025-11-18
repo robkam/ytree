@@ -11,6 +11,7 @@
 
 
 static void PrettyPrintNumber(int y, int x, LONGLONG number);
+static void RecalcDir(DirEntry *d);
 
 
 void DisplayDiskStatistic(void)
@@ -34,7 +35,6 @@ void DisplayDiskStatistic(void)
   DisplayDiskName();
 
   /* Path display logic is consolidated in DisplayDirStatistic.
-     Removed manual clearing loop here to prevent clock blinking/flicker.
      DisplayDirStatistic will handle filling the line up to the clock window. */
   DisplayDirStatistic(statistic.tree);
 
@@ -107,7 +107,6 @@ void DisplayDirStatistic(DirEntry *dir_entry)
 
   sprintf(auxbuff, format, FormFilename( buffer, statistic.path, available_width));
 
-  /* Removed clearing loop to prevent clock blinking */
   Print( stdscr, 0, 6, auxbuff, CPAIR_HIMENUS);
 
   PrintOptions( stdscr, 7,  COLS - 24, "[DIR Statistics    ]" );
@@ -178,7 +177,6 @@ void DisplayDirParameter(DirEntry *dir_entry)
 
   sprintf(auxbuff, format, FormFilename(buffer,display_path, available_width));
 
-  /* Removed clearing loop */
   Print( stdscr, 0, 6, auxbuff, CPAIR_HIMENUS);
   *auxbuff = '\0';
 
@@ -221,7 +219,6 @@ void DisplayGlobalFileParameter(FileEntry *file_entry)
   FormFilename( buffer2, display_path, available_width );
   sprintf(buffer1, format, buffer2);
 
-  /* Removed clearing loop */
   PrintMenuOptions( stdscr, 0, 6, buffer1, CPAIR_GLOBAL, CPAIR_HIGLOBAL);
 
   /* Current file name still shows just the filename */
@@ -247,7 +244,7 @@ void DisplayFileParameter(FileEntry *file_entry)
 
 
 
-void PrettyPrintNumber(int y, int x, LONGLONG number)
+static void PrettyPrintNumber(int y, int x, LONGLONG number)
 {
   char buffer[40];
   long terra, giga, mega, kilo, one;
@@ -285,4 +282,81 @@ void PrettyPrintNumber(int y, int x, LONGLONG number)
      PrintMenuOptions( stdscr, y, x, buffer, CPAIR_MENU, CPAIR_HIMENUS);
      }
  return;
+}
+
+
+static void RecalcDir(DirEntry *d) {
+    FileEntry *f;
+    DirEntry *sub;
+
+    /* Reset directory specific stats */
+    d->total_files = 0;
+    d->total_bytes = 0;
+    d->matching_files = 0;
+    d->matching_bytes = 0;
+    d->tagged_files = 0;
+    d->tagged_bytes = 0;
+
+    /* Sum files in this directory */
+    for (f = d->file; f; f = f->next) {
+        /* Skip dot files if hidden */
+        if (hide_dot_files && f->name[0] == '.') continue;
+
+        d->total_files++;
+        d->total_bytes += f->stat_struct.st_size;
+
+        if (f->matching) {
+            d->matching_files++;
+            d->matching_bytes += f->stat_struct.st_size;
+        }
+        if (f->tagged) {
+             d->tagged_files++;
+             d->tagged_bytes += f->stat_struct.st_size;
+        }
+    }
+
+    /* Recursively handle sub-trees if this directory is visible */
+    /* Process children */
+    sub = d->sub_tree;
+    while (sub) {
+        /* Check visibility of sub: skip dot directories if hidden */
+        if ( !(hide_dot_files && sub->name[0] == '.') ) {
+            /* Recurse first to calculate child stats */
+            RecalcDir(sub);
+
+            /* Add this visible child directory to global stats */
+            /* Note: RecalcDir(sub) has already added sub's children to globals
+               but here we ensure 'sub' itself is counted in directory count?
+               ReadTree increments disk_total_directories as it creates them.
+               We are recalculating global totals from scratch. */
+            statistic.disk_total_directories++;
+        }
+        sub = sub->next;
+    }
+
+    /* Add this directory's file stats to global stats (if d itself is visible,
+       checked by caller, except root which is always visible) */
+    statistic.disk_total_files += d->total_files;
+    statistic.disk_total_bytes += d->total_bytes;
+    statistic.disk_matching_files += d->matching_files;
+    statistic.disk_matching_bytes += d->matching_bytes;
+    statistic.disk_tagged_files += d->tagged_files;
+    statistic.disk_tagged_bytes += d->tagged_bytes;
+}
+
+
+void RecalculateSysStats(void) {
+    statistic.disk_total_files = 0;
+    statistic.disk_total_bytes = 0;
+    statistic.disk_matching_files = 0;
+    statistic.disk_matching_bytes = 0;
+    statistic.disk_tagged_files = 0;
+    statistic.disk_tagged_bytes = 0;
+    statistic.disk_total_directories = 0;
+
+    if (statistic.tree) {
+        /* statistic.tree (root) is always visible */
+        statistic.disk_total_directories++; /* Count root */
+        RecalcDir(statistic.tree);
+    }
 }

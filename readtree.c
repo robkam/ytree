@@ -89,6 +89,9 @@ int ReadTree(DirEntry *dir_entry, char *path, int depth)
     if( !strcmp( dirent->d_name, "." ) || !strcmp( dirent->d_name, ".." ) )
       continue;
 
+    /* Removed hide_dot_files check here.
+       We load ALL files/dirs into memory now, and filter only at display time. */
+
     if( EscapeKeyPressed() )
     {
       Quit();  /* Abfrage ob ytree verlassen werden soll */
@@ -314,7 +317,7 @@ void UnReadSubTree(DirEntry *dir_entry)
 }
 
 
-int RescanDir(DirEntry *dir_entry)
+int RescanDir(DirEntry *dir_entry, int depth)
 {
     char path[PATH_LENGTH + 1];
     FileEntry *fe_ptr, *next_fe_ptr;
@@ -346,7 +349,11 @@ int RescanDir(DirEntry *dir_entry)
      * double-counting.
      */
     statistic.disk_total_directories--;
-    ReadTree(dir_entry, path, 0);
+    ReadTree(dir_entry, path, depth);
+
+    /* Since we just reloaded the tree, dot files are present in memory.
+       We must now recalculate stats based on the current visibility setting. */
+    RecalculateSysStats();
 
     /* Global matching stats are now incorrect. Reset and recalculate. */
     statistic.disk_matching_files = 0L;

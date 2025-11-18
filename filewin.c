@@ -203,6 +203,8 @@ static void ReadFileList(BOOL tagged_only, DirEntry *dir_entry)
   {
     if( fe_ptr->matching && (!tagged_only || fe_ptr->tagged) )
     {
+      if (hide_dot_files && fe_ptr->name[0] == '.')
+          continue;
       file_entry_list[file_count++].file = fe_ptr;
       visual_name_len = StrVisualLength( fe_ptr->name );
       name_len = strlen( fe_ptr->name );
@@ -224,6 +226,8 @@ static void ReadGlobalFileList(BOOL tagged_only, DirEntry *dir_entry)
 
   for( de_ptr=dir_entry; de_ptr; de_ptr=de_ptr->next )
   {
+    if (hide_dot_files && de_ptr->name[0] == '.')
+        continue;
     if( de_ptr->sub_tree ) ReadGlobalFileList( tagged_only, de_ptr->sub_tree );
     ReadFileList( tagged_only, de_ptr );
     global_max_visual_filename_len = MAX( global_max_visual_filename_len, max_visual_filename_len );
@@ -1290,6 +1294,39 @@ int HandleFileWindow(DirEntry *dir_entry)
 		      }
 		      break;
 
+      case '`':
+           if (mode == DISK_MODE || mode == USER_MODE) {
+               ToggleDotFiles(); // Updates tree, global stats, cursor in tree
+
+               // Now update file window
+               BuildFileEntryList(dir_entry);
+               // Clamp cursor
+               if (dir_entry->start_file + dir_entry->cursor_pos >= file_count) {
+                   // Simple clamp to end
+                   if (file_count > 0) {
+                       if (file_count > max_disp_files) {
+                           dir_entry->start_file = file_count - max_disp_files;
+                           dir_entry->cursor_pos = max_disp_files - 1;
+                       } else {
+                           dir_entry->start_file = 0;
+                           dir_entry->cursor_pos = file_count - 1;
+                       }
+                   } else {
+                       dir_entry->start_file = 0;
+                       dir_entry->cursor_pos = 0;
+                   }
+               }
+
+               DisplayFiles(dir_entry, dir_entry->start_file, dir_entry->start_file + dir_entry->cursor_pos, start_x);
+               if (dir_entry->global_flag)
+                   DisplayDiskStatistic();
+               else
+                   DisplayDirStatistic(dir_entry);
+
+               need_dsp_help = TRUE;
+           }
+           break;
+
       case 'A' :
       case 'a' :      fe_ptr = file_entry_list[dir_entry->start_file + dir_entry->cursor_pos].file;
 
@@ -2276,7 +2313,7 @@ int HandleFileWindow(DirEntry *dir_entry)
                 clearok(stdscr, TRUE);
                 refresh();
              } else {
-                 RescanDir(dir_entry);
+                 RescanDir(dir_entry, 0);
                  BuildFileEntryList(dir_entry);
                  if (dir_entry->start_file + dir_entry->cursor_pos >= file_count) {
                      dir_entry->start_file = 0;
