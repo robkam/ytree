@@ -45,22 +45,22 @@ void ClockHandler(int sig)
    time_t HORA;
    struct tm *hora;
 
-   if(COLS > 15 && print_time)
+   if(COLS > 50 && print_time)
    {
       time(&HORA);
       hora = localtime(&HORA);
       *strtm = '\0';
 
-      strftime(strtm, sizeof(strtm), "[%H:%M %d/%m]", hora);
+      strftime(strtm, sizeof(strtm), "%d-%m-%Y %H:%M:%S", hora);
 
+      werase(time_window);
 #ifdef COLOR_SUPPORT
-      mvwaddch(time_window, 0, 0, ACS_RTEE| COLOR_PAIR(CPAIR_MENU)|A_BOLD);
-      mvwaddch(time_window, 0, 14, ACS_LTEE| COLOR_PAIR(CPAIR_MENU)|A_BOLD);
-#else
-      mvwaddch(time_window, 0, 0, ACS_RTEE);
-      mvwaddch(time_window, 0, 14, ACS_LTEE);
+      wattrset(time_window, COLOR_PAIR(CPAIR_MENU));
 #endif
-      PrintMenuOptions(time_window,0, 1, strtm, CPAIR_MENU, CPAIR_HIMENUS);
+      mvwaddstr(time_window, 0, 0, strtm);
+#ifdef COLOR_SUPPORT
+      wattrset(time_window, A_NORMAL);
+#endif
    }
    signal(SIGALRM,  ClockHandler );
 #endif

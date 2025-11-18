@@ -187,9 +187,7 @@ void DisplayMenu(void)
 
 
   PrintSpecialString( stdscr, 0, 0, "Path: ", CPAIR_MENU );
-#ifdef COLOR_SUPPORT
-  clrtoeol();
-#endif
+  /* The clrtoeol() call was removed to prevent it from erasing the clock display on redraw. */
 
   werase( dir_window );
   werase( big_file_window );
