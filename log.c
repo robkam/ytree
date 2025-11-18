@@ -191,6 +191,11 @@ int LoginDisk(char *path)
       ERROR_MSG( "ReadTree Failed" );
       return( -1 );
     }
+
+    /* Recalculate stats to respect initial hide_dot_files setting,
+       as ReadTree now loads everything. */
+    RecalculateSysStats();
+
     (void) memcpy( (char *) &disk_statistic,
 		   (char *) &statistic,
 		   sizeof( Statistic )

@@ -275,6 +275,7 @@ enum UI_COLOR_PAIRS {
 #define LISTJUMPSEARCH  GetProfileValue( "LISTJUMPSEARCH" )
 #define AUDIBLEERROR    GetProfileValue( "AUDIBLEERROR" )
 #define CONFIRMQUIT     GetProfileValue( "CONFIRMQUIT" )
+#define HIDEDOTFILES    GetProfileValue( "HIDEDOTFILES" )
 
 #define DEFAULT_TREE       "."
 
@@ -595,6 +596,7 @@ extern BOOL	 print_time;
 extern BOOL      resize_request;
 extern BOOL      bypass_small_window;
 extern BOOL      highlight_full_line;
+extern BOOL      hide_dot_files;
 extern char      number_seperator;
 extern char      *initial_directory;
 extern char 	 builtin_hexdump_cmd[];
@@ -673,6 +675,7 @@ extern int HandleDirWindow(DirEntry *start_dir_entry);
 extern int KeyF2Get(DirEntry *start_dir_entry, int disp_begin_pos, int cursor_pos, char *path);
 extern int RefreshDirWindow(void);
 extern int ScanSubTree( DirEntry *dir_entry );
+extern void ToggleDotFiles(void);
 
 /* display.c */
 extern void ClearHelp(void);
@@ -829,7 +832,7 @@ extern void QuitTo(DirEntry * dir_entry);
 /* readtree.c */
 extern int ReadTree(DirEntry *dir_entry, char *path, int depth);
 extern void UnReadTree(DirEntry *dir_entry);
-extern int RescanDir(DirEntry *dir_entry);
+extern int RescanDir(DirEntry *dir_entry, int depth);
 
 /* rename.c */
 extern int GetRenameParameter(char *old_name, char *new_name);
@@ -844,7 +847,7 @@ extern int DeleteDirectory(DirEntry *dir_entry);
 extern void GetKindOfSort(void);
 extern void SetKindOfSort(int new_kind_of_sort);
 
-/* stat.c */
+/* stats.c */
 extern void DisplayAvailBytes(void);
 extern void DisplayDirParameter(DirEntry *dir_entry);
 extern void DisplayDirStatistic(DirEntry *dir_entry);
@@ -855,6 +858,7 @@ extern void DisplayDiskTagged(void);
 extern void DisplayFileParameter(FileEntry *file_entry);
 extern void DisplayFileSpec(void);
 extern void DisplayGlobalFileParameter(FileEntry *file_entry);
+extern void RecalculateSysStats(void);
 
 /* string_utils.c */
 extern int BuildFilename( char *in_filename, char *pattern, char *out_filename);

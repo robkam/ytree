@@ -64,8 +64,8 @@ static char *first_line ="1-5";
  * to re-balance the two lines to prevent truncation. Commands are ordered
  * alphabetically for easier scanning.
  */
-static char dir_help_disk_mode_0[] = "DIR       (A)ttribute A(b)out (D)elete (F)ilespec (^F)dirmode (G)roup (L)og";
-static char dir_help_disk_mode_1[] = "COMMANDS  (M)akedir (O)wner (Q)uit (R)ename (S)howall/tagged (T)ag (U)ntag e(X)ecute";
+static char dir_help_disk_mode_0[] = "DIR       (A)ttribute A(b)out (D)elete (F)ilespec (G)roup (L)og (M)akedir";
+static char dir_help_disk_mode_1[] = "COMMANDS  (O)wner (Q)uit (R)ename (S)howall (T)ag (U)ntag e(X)ecute (`)dotfiles";
 static char *dir_help[MAX_MODES][2] =
   {
     { /* DISK_MODE */

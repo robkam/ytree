@@ -6,6 +6,7 @@
  ***************************************************************************/
 
 
+#include "config.h"
 #include "ytree.h"
 
 
@@ -70,6 +71,7 @@ static Profile profile[] = {
   { "GNUUNZIP",     	DEFAULT_GNUUNZIP,      NULL,     NULL },
   { "HEXDUMP",      	DEFAULT_HEXDUMP,       NULL,     NULL },
   { "HEXEDITOFFSET",	DEFAULT_HEXEDITOFFSET, NULL,     NULL },
+  { "HIDEDOTFILES",     DEFAULT_HIDEDOTFILES,  NULL,     NULL },
   { "HIGHLIGHT_FULL_LINE", DEFAULT_HIGHLIGHT_FULL_LINE, NULL, NULL },
   { "INITIALDIR",   	DEFAULT_INITIALDIR,    NULL,     NULL },
   { "LISTJUMPSEARCH", DEFAULT_LISTJUMPSEARCH,NULL,     NULL },

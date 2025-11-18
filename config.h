@@ -20,6 +20,7 @@
 #define DEFAULT_AUDIBLEERROR  "1"
 #define DEFAULT_CONFIRMQUIT   "0"
 #define DEFAULT_HIGHLIGHT_FULL_LINE "0"
+#define DEFAULT_HIDEDOTFILES  "1"
 
 
 /* UNIX-Kommandos */

@@ -96,6 +96,14 @@ static void ReadDirList(DirEntry *dir_entry)
 
   for( de_ptr = dir_entry; de_ptr; de_ptr = de_ptr->next )
   {
+    /* Check visibility.
+       Hide files starting with '.' if option is set.
+       EXCEPTION: Never hide the top-level root directory (where up_tree is NULL),
+       even if it is named "." or starts with ".", otherwise the list becomes empty.
+    */
+    if (hide_dot_files && de_ptr->name[0] == '.' && de_ptr->up_tree != NULL)
+        continue;
+
     indent &= ~( 1L << level );
     if( de_ptr->next ) indent |= ( 1L << level );
 
@@ -714,6 +722,61 @@ static void HandleSwitchWindow(DirEntry *dir_entry, DirEntry *start_dir_entry, B
     return;
 }
 
+void ToggleDotFiles(void)
+{
+    DirEntry *target;
+    int i, found_idx = -1;
+
+    /* Use current cursor position to find target */
+    if (total_dirs > 0 && (statistic.disp_begin_pos + statistic.cursor_pos < total_dirs)) {
+        target = dir_entry_list[statistic.disp_begin_pos + statistic.cursor_pos].dir_entry;
+    } else {
+        target = statistic.tree;
+    }
+
+    hide_dot_files = !hide_dot_files;
+    RecalculateSysStats();
+
+    /* Accessing internal static BuildDirEntryList */
+    BuildDirEntryList(statistic.tree, &statistic);
+
+    /* Smart Restore Logic (copy-paste from previous dirwin.c changes, effectively) */
+    DirEntry *search = target;
+    while (search != NULL && found_idx == -1) {
+        for (i = 0; i < total_dirs; i++) {
+            if (dir_entry_list[i].dir_entry == search) {
+                found_idx = i;
+                break;
+            }
+        }
+        if (found_idx == -1) search = search->up_tree;
+    }
+
+    if (found_idx != -1) {
+        int win_height, win_width;
+        GetMaxYX(dir_window, &win_height, &win_width);
+
+        if (found_idx < win_height) {
+            statistic.disp_begin_pos = 0;
+            statistic.cursor_pos = found_idx;
+        } else {
+            statistic.disp_begin_pos = found_idx - (win_height / 2);
+            if (statistic.disp_begin_pos < 0) statistic.disp_begin_pos = 0;
+            statistic.cursor_pos = found_idx - statistic.disp_begin_pos;
+            if (statistic.cursor_pos >= win_height) {
+                statistic.cursor_pos = win_height - 1;
+                statistic.disp_begin_pos = found_idx - statistic.cursor_pos;
+            }
+        }
+    } else {
+        statistic.disp_begin_pos = 0;
+        statistic.cursor_pos = 0;
+    }
+
+    DisplayTree(dir_window, statistic.disp_begin_pos, statistic.disp_begin_pos + statistic.cursor_pos);
+    DisplayDiskStatistic();
+}
+
 
 int HandleDirWindow(DirEntry *start_dir_entry)
 {
@@ -888,6 +951,23 @@ int HandleDirWindow(DirEntry *start_dir_entry)
       case KEY_BTAB: HandleUnreadSubTree(dir_entry, de_ptr, start_dir_entry,
     					 &need_dsp_help);
 	             break;
+      case '`':      if (mode == DISK_MODE || mode == USER_MODE) {
+                        ToggleDotFiles();
+
+                        /* Update current dir pointer as it might have changed if hidden */
+                        if (total_dirs > 0) {
+                           dir_entry = dir_entry_list[statistic.disp_begin_pos + statistic.cursor_pos].dir_entry;
+                        } else {
+                           dir_entry = statistic.tree;
+                        }
+
+                        /* Explicitly update the file window (preview) */
+                        DisplayFileWindow(dir_entry);
+                        RefreshWindow(file_window);
+
+                        need_dsp_help = TRUE;
+                     }
+		     break;
       case 'F':
       case 'f':      if(ReadFileSpec() == 0) {
 		       dir_entry->start_file = 0;
@@ -989,7 +1069,7 @@ int HandleDirWindow(DirEntry *start_dir_entry)
 		     need_dsp_help = TRUE;
 		     break;
       case 'R' & 0x1F: /* Rescan */
-             RescanDir(dir_entry);
+             RescanDir(dir_entry, 0);
              BuildDirEntryList(start_dir_entry, &statistic);
              if (statistic.disp_begin_pos + statistic.cursor_pos >= total_dirs) {
                  statistic.disp_begin_pos = 0;
