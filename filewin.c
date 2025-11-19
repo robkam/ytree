@@ -91,7 +91,7 @@ static int GetVisualFileEntryLength(int mode, int max_visual_filename_len, int m
   switch (file_mode)
   {
     case MODE_1: len =  (max_visual_linkname_len) ? max_visual_linkname_len + 4 : 0; /* linkname + " -> " */
-		 len += max_visual_filename_len + 38; /* filename + format */
+		 len += max_visual_filename_len + 42; /* filename + format (increased by 4 for 16-char date) */
 #ifdef HAS_LONGLONG
                  len += 4;  /* %11lld instead of %7d */
 #endif
@@ -108,7 +108,7 @@ static int GetVisualFileEntryLength(int mode, int max_visual_filename_len, int m
                  break;
 
     case MODE_4: len =  (max_visual_linkname_len) ? max_visual_linkname_len + 4 : 0; /* linkname + " -> " */
-		 len += max_visual_filename_len + 39; /* filename + format */
+		 len += max_visual_filename_len + 47; /* filename + format (increased by 8 for two 16-char dates) */
                  break;
 
     case MODE_5: len = GetVisualUserFileEntryLength(max_visual_filename_len, max_visual_linkname_len, USERVIEW);
@@ -519,9 +519,9 @@ static char GetTypeOfFile(struct stat fst)
 static void PrintFileEntry(int entry_no, int y, int x, unsigned char hilight, int start_x)
 {
   char attributes[11];
-  char modify_time[13];
-  char change_time[13];
-  char access_time[13];
+  char modify_time[20]; /* Increased to 20 */
+  char change_time[20]; /* Increased to 20 */
+  char access_time[20]; /* Increased to 20 */
   char format[60];
   char justify;
   char *line_ptr;
@@ -582,9 +582,9 @@ static void PrintFileEntry(int entry_no, int y, int x, unsigned char hilight, in
   {
       case MODE_1:
           if (max_visual_linkname_len)
-              pos_x = x * (max_visual_filename_len + max_visual_linkname_len + 47);
+              pos_x = x * (max_visual_filename_len + max_visual_linkname_len + 51); /* +47 + 4 = 51 */
           else
-              pos_x = x * (max_visual_filename_len + 43);
+              pos_x = x * (max_visual_filename_len + 47); /* +43 + 4 = 47 */
           break;
       case MODE_2:
           if( max_visual_linkname_len )
@@ -597,9 +597,9 @@ static void PrintFileEntry(int entry_no, int y, int x, unsigned char hilight, in
           break;
       case MODE_4:
           if( max_visual_linkname_len )
-              pos_x = x * (max_visual_filename_len + max_visual_linkname_len + 44);
+              pos_x = x * (max_visual_filename_len + max_visual_linkname_len + 52); /* +44 + 8 = 52 */
           else
-              pos_x = x * (max_visual_filename_len + 40);
+              pos_x = x * (max_visual_filename_len + 48); /* +40 + 8 = 48 */
           break;
       case MODE_5:
           pos_x = x * (max_visual_userview_len + 1);
@@ -625,18 +625,19 @@ static void PrintFileEntry(int entry_no, int y, int x, unsigned char hilight, in
             (void)CTime(fe_ptr->stat_struct.st_mtime, modify_time);
             if(S_ISLNK(fe_ptr->stat_struct.st_mode)) {
 #ifdef HAS_LONGLONG
-              (void)sprintf(format, "%%c%%c%%-%ds %%10s %%3d %%11lld %%12s -> %%-%ds", filename_width, linkname_width);
+              /* Updated %12s to %16s */
+              (void)sprintf(format, "%%c%%c%%-%ds %%10s %%3d %%11lld %%16s -> %%-%ds", filename_width, linkname_width);
               (void)sprintf(line_buffer, format, (fe_ptr->tagged)?TAGGED_SYMBOL:' ', type_of_file, fe_ptr->name, attributes, fe_ptr->stat_struct.st_nlink, (LONGLONG)fe_ptr->stat_struct.st_size, modify_time, sym_link_name);
 #else
-              (void)sprintf(format, "%%c%%c%%-%ds %%10s %%3d %%7d %%12s -> %%-%ds", filename_width, linkname_width);
+              (void)sprintf(format, "%%c%%c%%-%ds %%10s %%3d %%7d %%16s -> %%-%ds", filename_width, linkname_width);
               (void)sprintf(line_buffer, format, (fe_ptr->tagged)?TAGGED_SYMBOL:' ', type_of_file, fe_ptr->name, attributes, fe_ptr->stat_struct.st_nlink, fe_ptr->stat_struct.st_size, modify_time, sym_link_name);
 #endif
             } else {
 #ifdef HAS_LONGLONG
-              (void)sprintf(format, "%%c%%c%%%c%ds %%10s %%3d %%11lld %%12s", justify, filename_width);
+              (void)sprintf(format, "%%c%%c%%%c%ds %%10s %%3d %%11lld %%16s", justify, filename_width);
               (void)sprintf(line_buffer, format, (fe_ptr->tagged)?TAGGED_SYMBOL:' ', type_of_file, fe_ptr->name, attributes, fe_ptr->stat_struct.st_nlink, (LONGLONG)fe_ptr->stat_struct.st_size, modify_time);
 #else
-              (void)sprintf(format, "%%c%%c%%%c%ds %%10s %%3d %%7d %%12s", justify, filename_width);
+              (void)sprintf(format, "%%c%%c%%%c%ds %%10s %%3d %%7d %%16s", justify, filename_width);
               (void)sprintf(line_buffer, format, (fe_ptr->tagged)?TAGGED_SYMBOL:' ', type_of_file, fe_ptr->name, attributes, fe_ptr->stat_struct.st_nlink, fe_ptr->stat_struct.st_size, modify_time);
 #endif
             }
@@ -672,10 +673,11 @@ static void PrintFileEntry(int entry_no, int y, int x, unsigned char hilight, in
             (void)CTime(fe_ptr->stat_struct.st_ctime, change_time);
             (void)CTime(fe_ptr->stat_struct.st_atime, access_time);
             if(S_ISLNK(fe_ptr->stat_struct.st_mode)) {
-              (void)sprintf(format, "%%c%%c%%%c%ds Chg: %%12s  Acc: %%12s -> %%-%ds", justify, filename_width, linkname_width);
+              /* Updated %12s to %16s */
+              (void)sprintf(format, "%%c%%c%%%c%ds Chg: %%16s  Acc: %%16s -> %%-%ds", justify, filename_width, linkname_width);
               (void)sprintf(line_buffer, format, (fe_ptr->tagged)?TAGGED_SYMBOL:' ', type_of_file, fe_ptr->name, change_time, access_time, sym_link_name);
             } else {
-              (void)sprintf(format, "%%c%%c%%%c%ds Chg: %%12s  Acc: %%12s", justify, filename_width);
+              (void)sprintf(format, "%%c%%c%%%c%ds Chg: %%16s  Acc: %%16s", justify, filename_width);
               (void)sprintf(line_buffer, format, (fe_ptr->tagged)?TAGGED_SYMBOL:' ', type_of_file, fe_ptr->name, change_time, access_time);
             }
             break;
@@ -731,9 +733,10 @@ static void PrintFileEntry(int entry_no, int y, int x, unsigned char hilight, in
                   (void)GetAttributes(fe_ptr->stat_struct.st_mode, attributes);
                   (void)CTime(fe_ptr->stat_struct.st_mtime, modify_time);
   #ifdef HAS_LONGLONG
-                  wprintw(file_window, " %10s %3d %11lld %12s", attributes, (int)fe_ptr->stat_struct.st_nlink, (LONGLONG)fe_ptr->stat_struct.st_size, modify_time);
+                  /* Updated %12s to %16s */
+                  wprintw(file_window, " %10s %3d %11lld %16s", attributes, (int)fe_ptr->stat_struct.st_nlink, (LONGLONG)fe_ptr->stat_struct.st_size, modify_time);
   #else
-                  wprintw(file_window, " %10s %3d %7d %12s", attributes, (int)fe_ptr->stat_struct.st_nlink, (int)fe_ptr->stat_struct.st_size, modify_time);
+                  wprintw(file_window, " %10s %3d %7d %16s", attributes, (int)fe_ptr->stat_struct.st_nlink, (int)fe_ptr->stat_struct.st_size, modify_time);
   #endif
                   if (sym_link_name && *sym_link_name) wprintw(file_window, " -> %s", sym_link_name);
                   break;
@@ -752,7 +755,8 @@ static void PrintFileEntry(int entry_no, int y, int x, unsigned char hilight, in
               case MODE_4:
                   (void)CTime(fe_ptr->stat_struct.st_ctime, change_time);
                   (void)CTime(fe_ptr->stat_struct.st_atime, access_time);
-                  wprintw(file_window, " Chg: %12s  Acc: %12s", change_time, access_time);
+                  /* Updated %12s to %16s */
+                  wprintw(file_window, " Chg: %16s  Acc: %16s", change_time, access_time);
                   if (sym_link_name && *sym_link_name) wprintw(file_window, " -> %s", sym_link_name);
                   break;
               case MODE_5:

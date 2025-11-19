@@ -138,9 +138,9 @@ static void PrintDirEntry(WINDOW *win,
   char *line_buffer = NULL;
   char *dir_name;
   char attributes[11];
-  char modify_time[13];
-  char change_time[13];
-  char access_time[13];
+  char modify_time[20]; /* Increased from 13 to 20 for "YYYY-MM-DD HH:MM" */
+  char change_time[20]; /* Increased from 13 to 20 */
+  char access_time[20]; /* Increased from 13 to 20 */
   char owner[OWNER_NAME_MAX + 1];
   char group[GROUP_NAME_MAX + 1];
   char *owner_name_ptr;
@@ -175,13 +175,15 @@ static void PrintDirEntry(WINDOW *win,
     case MODE_1 :
                  (void)GetAttributes(de_ptr->stat_struct.st_mode, attributes);
                  (void)CTime( de_ptr->stat_struct.st_mtime, modify_time );
-                 if ((line_buffer = (char *) malloc(38)) == NULL)
+                 /* Increased buffer size from 38 to 42 to accommodate 16-char date */
+                 if ((line_buffer = (char *) malloc(42)) == NULL)
                  {
                     ERROR_MSG("malloc() Failed*Abort");
                     exit(1);
                  }
 #ifdef HAS_LONGLONG
-                 (void) strcpy( format, "%10s %3d %8lld %12s");
+                 /* Updated %12s to %16s for date */
+                 (void) strcpy( format, "%10s %3d %8lld %16s");
 
 		 (void) sprintf( line_buffer, format, attributes,
                                  (int)de_ptr->stat_struct.st_nlink,
@@ -189,7 +191,7 @@ static void PrintDirEntry(WINDOW *win,
                                  modify_time
                                  );
 #else
-                 (void) strcpy( format, "%10s %3d %8d %12s");
+                 (void) strcpy( format, "%10s %3d %8d %16s");
                  (void) sprintf( line_buffer, format, attributes,
                                  (int)de_ptr->stat_struct.st_nlink,
                                  (int)de_ptr->stat_struct.st_size,
@@ -227,8 +229,10 @@ static void PrintDirEntry(WINDOW *win,
     case MODE_4 :
                  (void) CTime( de_ptr->stat_struct.st_ctime, change_time );
                  (void) CTime( de_ptr->stat_struct.st_atime, access_time );
-                 (void) strcpy( format, "Chg.: %12s  Acc.: %12s");
-                 if ((line_buffer = (char *) malloc(40)) == NULL)
+                 /* Increased buffer size from 40 to 50 to accommodate two 16-char dates */
+                 /* Format: "Chg.: " (6) + 16 + "  Acc.: " (8) + 16 = 46 chars. 50 is safe. */
+                 (void) strcpy( format, "Chg.: %16s  Acc.: %16s");
+                 if ((line_buffer = (char *) malloc(50)) == NULL)
                  {
                     ERROR_MSG("malloc() Failed*Abort");
                     exit(1);

@@ -65,29 +65,19 @@ char *GetAttributes(unsigned short modus, char *buffer)
 
 /*****************************************************************************
  *                                  CTime                                    *
+ * Modernized to use ISO-like format: YYYY-MM-DD HH:MM (16 chars)            *
  *****************************************************************************/
 char *CTime(time_t f_time, char *buffer)
 {
-  char   *cptr;
-  time_t now;
+  struct tm *tm_ptr;
 
-  if( (now = time( NULL )) == -1 )
-  {
-    ERROR_MSG( "time() failed" );
-    exit( 1 );
-  }
+  tm_ptr = localtime(&f_time);
 
-  cptr = ctime( &f_time );
-  (void) strncpy( buffer, cptr+4, 12 );
-  buffer[12] = '\0';
-
-  if( (now - f_time) > 31536000L )
-  {
-    /* Differenz groesser als 1 Jahr */
-    /*-------------------------------*/
-
-    (void) strncpy( &buffer[7], cptr + 19, 5 );
-
+  if (tm_ptr) {
+      /* Format: 2025-11-19 14:30 */
+      strftime(buffer, 17, "%Y-%m-%d %H:%M", tm_ptr);
+  } else {
+      strcpy(buffer, "    ?     ?   ");
   }
 
   return( buffer );
@@ -205,9 +195,9 @@ int BuildUserFileEntry(FileEntry *fe_ptr,
 			char *template, int linelen, char *line)
 {
   char attributes[11];
-  char modify_time[13];
-  char change_time[13];
-  char access_time[13];
+  char modify_time[20];
+  char change_time[20];
+  char access_time[20];
   char format1[60];
   char format2[60];
   int  n;
@@ -271,7 +261,7 @@ int BuildUserFileEntry(FileEntry *fe_ptr,
         n = sprintf(dptr, "%7d", fe_ptr->stat_struct.st_size);
 #endif
       } else if(!strncmp(sptr, MODTIME_VIEWNAME, 3)) {
-        n = sprintf(dptr, "%12s", modify_time);
+        n = sprintf(dptr, "%16s", modify_time);
       } else if(!strncmp(sptr, SYMLINK_VIEWNAME, 3)) {
         n = sprintf(dptr, format2, sym_link_name);
       } else if(!strncmp(sptr, UID_VIEWNAME, 3)) {
@@ -285,9 +275,9 @@ int BuildUserFileEntry(FileEntry *fe_ptr,
         n = sprintf(dptr, "%7ld", (int)fe_ptr->stat_struct.st_ino);
 #endif
       } else if(!strncmp(sptr, ACCTIME_VIEWNAME, 3)) {
-        n = sprintf(dptr, "%12s", access_time);
+        n = sprintf(dptr, "%16s", access_time);
       } else if(!strncmp(sptr, SCTIME_VIEWNAME, 3)) {
-        n = sprintf(dptr, "%12s", change_time);
+        n = sprintf(dptr, "%16s", change_time);
       } else {
 	n = -1;
       }
@@ -336,7 +326,7 @@ int GetVisualUserFileEntryLength( int max_visual_filename_len, int max_visual_li
         n = 7;
 #endif
       } else if(!strncmp(sptr, MODTIME_VIEWNAME, 3)) {
-        n = 12;
+        n = 16; /* Updated to 16 for YYYY-MM-DD HH:MM */
       } else if(!strncmp(sptr, SYMLINK_VIEWNAME, 3)) {
         n = max_visual_linkname_len;
       } else if(!strncmp(sptr, UID_VIEWNAME, 3)) {
@@ -350,9 +340,9 @@ int GetVisualUserFileEntryLength( int max_visual_filename_len, int max_visual_li
         n = 7;
 #endif
       } else if(!strncmp(sptr, ACCTIME_VIEWNAME, 3)) {
-        n = 12;
+        n = 16; /* Updated to 16 */
       } else if(!strncmp(sptr, SCTIME_VIEWNAME, 3)) {
-        n = 12;
+        n = 16; /* Updated to 16 */
       } else {
 	n = -1;
       }

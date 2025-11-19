@@ -73,7 +73,7 @@ void SetMatchingParam(DirEntry *dir_entry)
 /***************************************************************>>
 ReadFileSpec.
 Take in the user-specified new filespec/filter.
-Supports patterns and attributes (e.g., *.c, :x).
+Supports patterns, attributes, and dates.
 <<***************************************************************/
 
 int ReadFileSpec(void)
@@ -87,7 +87,7 @@ int ReadFileSpec(void)
   (void) strcpy( buffer, "*" );
 
   /* Display help and prompt */
-  MvAddStr( LINES - 3, 1, "Patterns: *.ext, name*, -excl*   Attrs: :r(ead) :w(rite) :x(ecut) :l(ink)" );
+  MvAddStr( LINES - 3, 1, "Patterns: *.c,:r,:x,>2023-01-01,=2023-05-12,-*.o" );
   MvAddStr( LINES - 2, 1, "FILTER:" );
 
   /* Use available screen width (COLS - 9) but clamp to buffer size.
