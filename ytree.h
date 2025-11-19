@@ -387,7 +387,7 @@ enum UI_COLOR_PAIRS {
 
 
 #define PATH_LENGTH            1024
-#define FILE_SPEC_LENGTH       (12 + 1)
+#define FILE_SPEC_LENGTH       256
 #define DISK_NAME_LENGTH       (12 + 1)
 #define MESSAGE_LENGTH         (PATH_LENGTH + 80 + 1)
 #define COMMAND_LINE_LENGTH    4096
@@ -847,7 +847,7 @@ extern int DeleteDirectory(DirEntry *dir_entry);
 extern void GetKindOfSort(void);
 extern void SetKindOfSort(int new_kind_of_sort);
 
-/* stats.c */
+/* stat.c */
 extern void DisplayAvailBytes(void);
 extern void DisplayDirParameter(DirEntry *dir_entry);
 extern void DisplayDirStatistic(DirEntry *dir_entry);

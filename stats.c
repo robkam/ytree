@@ -17,11 +17,19 @@ static void RecalcDir(DirEntry *d);
 void DisplayDiskStatistic(void)
 {
   const char *fmt= "[%-17s]";
-  char buff[20];
+  /* Increased buffer size to accommodate FILE_SPEC_LENGTH (256) + formatting chars */
+  char buff[FILE_SPEC_LENGTH + 20];
 
   *buff = '\0';
 
-  sprintf( buff, fmt, statistic.file_spec);
+  /* Use snprintf for safety, though the buffer is now large enough */
+  snprintf( buff, sizeof(buff), fmt, statistic.file_spec);
+
+  /* Truncate visually if it's too long for the UI element?
+     Original code just printed it. PrintMenuOptions handles position.
+     If it's very long it might overwrite adjacent stats.
+     For now, we just fix the buffer overflow. */
+
   PrintMenuOptions( stdscr, 2, COLS - 18, buff, CPAIR_MENU, CPAIR_HIMENUS);
   PrettyPrintNumber( 5,  COLS - 17, statistic.disk_space / (LONGLONG)1024 );
   PrintOptions( stdscr, 7,  COLS - 24, "[DISK Statistics   ]" );

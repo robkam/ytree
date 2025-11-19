@@ -88,7 +88,9 @@ int ReadFileSpec(void)
 
   (void) strcpy( buffer, "*" );
   MvAddStr( LINES - 2, 1, "NEW FILESPEC:" );
-  if( InputString( buffer, LINES - 2, 15, 0, FILE_SPEC_LENGTH, "\r\033" ) == CR )
+  /* Use available screen width (COLS - 16) but clamp to buffer size */
+  /* x position is 15, so available width is COLS - 15 - 1 for border safety */
+  if( InputString( buffer, LINES - 2, 15, 0, MINIMUM(FILE_SPEC_LENGTH, COLS - 16), "\r\033" ) == CR )
   {
     if( SetFileSpec( buffer ) )
     {
