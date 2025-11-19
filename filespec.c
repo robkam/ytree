@@ -43,7 +43,7 @@ void SetMatchingParam(DirEntry *dir_entry)
 
     for( fe_ptr = de_ptr->file; fe_ptr; fe_ptr = fe_ptr->next )
     {
-      if( Match( fe_ptr->name ) )
+      if( Match( fe_ptr ) )
       {
 	matching_files++;
 	matching_bytes += fe_ptr->stat_struct.st_size;
@@ -72,10 +72,8 @@ void SetMatchingParam(DirEntry *dir_entry)
 
 /***************************************************************>>
 ReadFileSpec.
-Take in the user-specified new filespec.
-As modified, it defaults to '*'; the original version offered the
-current value as default, but that's just an up-arrow away.
-Returns 0 on success, -1 on failure (empty string).
+Take in the user-specified new filespec/filter.
+Supports patterns and attributes (e.g., *.c, :x).
 <<***************************************************************/
 
 int ReadFileSpec(void)
@@ -87,14 +85,18 @@ int ReadFileSpec(void)
   ClearHelp();
 
   (void) strcpy( buffer, "*" );
-  MvAddStr( LINES - 2, 1, "NEW FILESPEC:" );
-  /* Use available screen width (COLS - 16) but clamp to buffer size */
-  /* x position is 15, so available width is COLS - 15 - 1 for border safety */
-  if( InputString( buffer, LINES - 2, 15, 0, MINIMUM(FILE_SPEC_LENGTH, COLS - 16), "\r\033" ) == CR )
+
+  /* Display help and prompt */
+  MvAddStr( LINES - 3, 1, "Patterns: *.ext, name*, -excl*   Attrs: :r(ead) :w(rite) :x(ecut) :l(ink)" );
+  MvAddStr( LINES - 2, 1, "FILTER:" );
+
+  /* Use available screen width (COLS - 9) but clamp to buffer size.
+     x position is 8, so available width is COLS - 8 - 1 */
+  if( InputString( buffer, LINES - 2, 8, 0, MINIMUM(FILE_SPEC_LENGTH, COLS - 9), "\r\033" ) == CR )
   {
     if( SetFileSpec( buffer ) )
     {
-      MESSAGE( "Invalid Filespec" );
+      MESSAGE( "Invalid Filter Spec" );
     }
     else
     {
@@ -102,6 +104,7 @@ int ReadFileSpec(void)
       result = 0;
     }
   }
+  move( LINES - 3, 1 ); clrtoeol();
   move( LINES - 2, 1 ); clrtoeol();
   return(result);
 }

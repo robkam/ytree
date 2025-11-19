@@ -1,7 +1,7 @@
 /***************************************************************************
  *
- * match.c
- * Behandlung reg. Ausdruecke fuer Dateinamen
+ * filters.c (formerly match.c)
+ * Behandlung reg. Ausdruecke fuer Dateinamen und Attribute
  *
  ***************************************************************************/
 
@@ -16,6 +16,13 @@ typedef struct _MatchRule {
     BOOL    is_exclude;
     struct _MatchRule *next;
 } MatchRule;
+
+/* Global attribute requirement flags */
+static BOOL req_read = FALSE;
+static BOOL req_write = FALSE;
+static BOOL req_exec = FALSE;
+static BOOL req_link = FALSE;
+static BOOL req_dir = FALSE;
 
 static MatchRule *rules_head = NULL;
 
@@ -98,6 +105,13 @@ int SetMatchSpec(char *new_spec)
 
   FreeMatchRules();
 
+  /* Reset global attribute flags */
+  req_read = FALSE;
+  req_write = FALSE;
+  req_exec = FALSE;
+  req_link = FALSE;
+  req_dir = FALSE;
+
   if (!new_spec || !*new_spec) {
       /* If spec is empty, we match everything (default behavior of Match) */
       return 0;
@@ -120,18 +134,34 @@ int SetMatchSpec(char *new_spec)
           *(end+1) = 0;
       }
 
-      if (*token == '-') {
-          is_exclude = TRUE;
-          token++;
-      }
+      if (*token == ':') {
+          /* Attribute spec */
+          char *c = token + 1;
+          while(*c) {
+              switch(*c) {
+                  case 'r': req_read = TRUE; break;
+                  case 'w': req_write = TRUE; break;
+                  case 'x': req_exec = TRUE; break;
+                  case 'l': req_link = TRUE; break;
+                  case 'd': req_dir = TRUE; break;
+              }
+              c++;
+          }
+      } else {
+          /* Filename pattern */
+          if (*token == '-') {
+              is_exclude = TRUE;
+              token++;
+          }
 
-      if (*token) { /* Skip empty tokens or standalone '-' */
-           if (AddRule(token, is_exclude) != 0) {
-               /* Error compiling regex */
-               free(spec_copy);
-               FreeMatchRules();
-               return 1;
-           }
+          if (*token) { /* Skip empty tokens or standalone '-' */
+               if (AddRule(token, is_exclude) != 0) {
+                   /* Error compiling regex */
+                   free(spec_copy);
+                   FreeMatchRules();
+                   return 1;
+               }
+          }
       }
       token = strtok_r(NULL, ",", &saveptr);
   }
@@ -142,18 +172,27 @@ int SetMatchSpec(char *new_spec)
 
 
 
-BOOL Match(char *file_name)
+BOOL Match(FileEntry *fe)
 {
   MatchRule *curr;
   BOOL has_includes = FALSE;
 
-  /* If no rules are defined, match everything */
+  if (!fe) return FALSE;
+
+  /* 0. Check Attributes (Global AND logic) */
+  if (req_read && !(fe->stat_struct.st_mode & S_IRUSR)) return FALSE;
+  if (req_write && !(fe->stat_struct.st_mode & S_IWUSR)) return FALSE;
+  if (req_exec && !(fe->stat_struct.st_mode & (S_IXUSR|S_IXGRP|S_IXOTH))) return FALSE;
+  if (req_link && !S_ISLNK(fe->stat_struct.st_mode)) return FALSE;
+  if (req_dir && !S_ISDIR(fe->stat_struct.st_mode)) return FALSE;
+
+  /* If no regex rules are defined, match everything (passed attributes) */
   if (!rules_head) return TRUE;
 
   /* 1. Check Excludes - If any match, reject immediately */
   for (curr = rules_head; curr; curr = curr->next) {
       if (curr->is_exclude) {
-          if (regexec(&curr->re, file_name, 0, NULL, 0) == 0) {
+          if (regexec(&curr->re, fe->name, 0, NULL, 0) == 0) {
               return FALSE; /* Excluded */
           }
       } else {
@@ -171,7 +210,7 @@ BOOL Match(char *file_name)
   /* If there are include patterns, file must match at least one */
   for (curr = rules_head; curr; curr = curr->next) {
       if (!curr->is_exclude) {
-          if (regexec(&curr->re, file_name, 0, NULL, 0) == 0) {
+          if (regexec(&curr->re, fe->name, 0, NULL, 0) == 0) {
               return TRUE; /* Included */
           }
       }

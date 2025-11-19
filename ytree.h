@@ -736,6 +736,10 @@ extern int HandleFileWindow(DirEntry *dir_entry);
 extern void RotateFileMode(void);
 extern void SetFileMode(int new_file_mode);
 
+/* filters.c */
+extern BOOL Match(FileEntry *fe);
+extern int SetMatchSpec(char *new_spec);
+
 /* freesp.c */
 extern int GetAvailBytes(LONGLONG *avail_bytes);
 extern int GetDiskParameter(char *path, char *volume_name, LONGLONG *avail_bytes, LONGLONG *capacity);
@@ -778,10 +782,6 @@ extern int WGetch(WINDOW *win);
 /* log.c */
 extern int GetNewLoginPath(char *path);
 extern int LoginDisk(char *path);
-
-/* match.c */
-extern BOOL Match(char *file_name);
-extern int SetMatchSpec(char *new_spec);
 
 /* mkdir.c */
 extern int MakeDirEntry( DirEntry *father_dir_entry, char *dir_name );
