@@ -1,15 +1,15 @@
 /***************************************************************************
  *
- * filters.c (formerly match.c)
- * Behandlung reg. Ausdruecke fuer Dateinamen und Attribute
+ * filters.c
+ * Handling of regular expressions for filenames, attributes, and date filtering
  *
  ***************************************************************************/
-
 
 #include "ytree.h"
 #include <regex.h>
 #include <string.h>
 #include <stdlib.h>
+#include <time.h>
 
 typedef struct _MatchRule {
     regex_t re;
@@ -23,6 +23,17 @@ static BOOL req_write = FALSE;
 static BOOL req_exec = FALSE;
 static BOOL req_link = FALSE;
 static BOOL req_dir = FALSE;
+
+/* Global date requirement flags */
+static BOOL req_date_after = FALSE;
+static time_t date_after_val = 0;
+
+static BOOL req_date_before = FALSE;
+static time_t date_before_val = 0;
+
+static BOOL req_date_equal = FALSE;
+static time_t date_equal_min = 0;
+static time_t date_equal_max = 0;
 
 static MatchRule *rules_head = NULL;
 
@@ -47,8 +58,7 @@ static int AddRule(char *pattern, BOOL is_exclude) {
     char *p = pattern;
 
     /* Allocate buffer for regex string.
-       Estimate: 2 chars per pattern char (escaping) + anchors + null.
-       Safe upper bound. */
+       Estimate: 2 chars per pattern char (escaping) + anchors + null. */
     if ((buffer = (char *)malloc(strlen(pattern) * 2 + 4)) == NULL) {
         return -1;
     }
@@ -97,6 +107,57 @@ static int AddRule(char *pattern, BOOL is_exclude) {
     return 0;
 }
 
+/*
+ * Parse a date string into a range [min, max].
+ * Supported formats:
+ * YYYY-MM-DD              -> Full day range
+ * YYYY-MM-DD HH:MM        -> Minute range (00-59 seconds)
+ * YYYY-MM-DD HH:MM:SS     -> Exact second
+ *
+ * Returns 0 on success, -1 on failure.
+ */
+static int ParseDateRange(char *str, time_t *min, time_t *max) {
+    struct tm tm;
+    char *res;
+
+    /* Initialize tm */
+    memset(&tm, 0, sizeof(struct tm));
+    tm.tm_isdst = -1; /* Let mktime determine DST */
+
+    /* Try Format 1: YYYY-MM-DD HH:MM:SS */
+    res = strptime(str, "%Y-%m-%d %H:%M:%S", &tm);
+    if (res && *res == '\0') {
+        *min = mktime(&tm);
+        *max = *min; /* Exact match */
+        return (*min == -1) ? -1 : 0;
+    }
+
+    /* Try Format 2: YYYY-MM-DD HH:MM */
+    memset(&tm, 0, sizeof(struct tm));
+    tm.tm_isdst = -1;
+    res = strptime(str, "%Y-%m-%d %H:%M", &tm);
+    if (res && *res == '\0') {
+        tm.tm_sec = 0;
+        *min = mktime(&tm);
+        tm.tm_sec = 59;
+        *max = mktime(&tm);
+        return (*min == -1 || *max == -1) ? -1 : 0;
+    }
+
+    /* Try Format 3: YYYY-MM-DD */
+    memset(&tm, 0, sizeof(struct tm));
+    tm.tm_isdst = -1;
+    res = strptime(str, "%Y-%m-%d", &tm);
+    if (res && *res == '\0') {
+        tm.tm_hour = 0; tm.tm_min = 0; tm.tm_sec = 0;
+        *min = mktime(&tm);
+        tm.tm_hour = 23; tm.tm_min = 59; tm.tm_sec = 59;
+        *max = mktime(&tm);
+        return (*min == -1 || *max == -1) ? -1 : 0;
+    }
+
+    return -1; /* Parse failed */
+}
 
 int SetMatchSpec(char *new_spec)
 {
@@ -105,15 +166,18 @@ int SetMatchSpec(char *new_spec)
 
   FreeMatchRules();
 
-  /* Reset global attribute flags */
+  /* Reset global flags */
   req_read = FALSE;
   req_write = FALSE;
   req_exec = FALSE;
   req_link = FALSE;
   req_dir = FALSE;
 
+  req_date_after = FALSE;
+  req_date_before = FALSE;
+  req_date_equal = FALSE;
+
   if (!new_spec || !*new_spec) {
-      /* If spec is empty, we match everything (default behavior of Match) */
       return 0;
   }
 
@@ -124,10 +188,8 @@ int SetMatchSpec(char *new_spec)
   while(token) {
       BOOL is_exclude = FALSE;
 
-      /* Trim leading whitespace */
+      /* Trim whitespace */
       while(isspace((unsigned char)*token)) token++;
-
-      /* Trim trailing whitespace */
       if (*token) {
           char *end = token + strlen(token) - 1;
           while(end > token && isspace((unsigned char)*end)) end--;
@@ -147,6 +209,40 @@ int SetMatchSpec(char *new_spec)
               }
               c++;
           }
+      } else if (*token == '>') {
+          /* Date After */
+          time_t t_min, t_max;
+          if (ParseDateRange(token + 1, &t_min, &t_max) == 0) {
+              req_date_after = TRUE;
+              date_after_val = t_max; /* > matches after the END of the specified range/day */
+          } else {
+              free(spec_copy);
+              FreeMatchRules();
+              return 1;
+          }
+      } else if (*token == '<') {
+          /* Date Before */
+          time_t t_min, t_max;
+          if (ParseDateRange(token + 1, &t_min, &t_max) == 0) {
+              req_date_before = TRUE;
+              date_before_val = t_min; /* < matches before the START of the specified range/day */
+          } else {
+              free(spec_copy);
+              FreeMatchRules();
+              return 1;
+          }
+      } else if (*token == '=') {
+          /* Date Equal (Range) */
+          time_t t_min, t_max;
+          if (ParseDateRange(token + 1, &t_min, &t_max) == 0) {
+              req_date_equal = TRUE;
+              date_equal_min = t_min;
+              date_equal_max = t_max;
+          } else {
+              free(spec_copy);
+              FreeMatchRules();
+              return 1;
+          }
       } else {
           /* Filename pattern */
           if (*token == '-') {
@@ -154,9 +250,8 @@ int SetMatchSpec(char *new_spec)
               token++;
           }
 
-          if (*token) { /* Skip empty tokens or standalone '-' */
+          if (*token) {
                if (AddRule(token, is_exclude) != 0) {
-                   /* Error compiling regex */
                    free(spec_copy);
                    FreeMatchRules();
                    return 1;
@@ -186,10 +281,15 @@ BOOL Match(FileEntry *fe)
   if (req_link && !S_ISLNK(fe->stat_struct.st_mode)) return FALSE;
   if (req_dir && !S_ISDIR(fe->stat_struct.st_mode)) return FALSE;
 
-  /* If no regex rules are defined, match everything (passed attributes) */
+  /* 1. Check Date Constraints */
+  if (req_date_after && fe->stat_struct.st_mtime <= date_after_val) return FALSE;
+  if (req_date_before && fe->stat_struct.st_mtime >= date_before_val) return FALSE;
+  if (req_date_equal && (fe->stat_struct.st_mtime < date_equal_min || fe->stat_struct.st_mtime > date_equal_max)) return FALSE;
+
+  /* If no regex rules are defined, match everything (passed attributes & date) */
   if (!rules_head) return TRUE;
 
-  /* 1. Check Excludes - If any match, reject immediately */
+  /* 2. Check Excludes - If any match, reject immediately */
   for (curr = rules_head; curr; curr = curr->next) {
       if (curr->is_exclude) {
           if (regexec(&curr->re, fe->name, 0, NULL, 0) == 0) {
@@ -200,7 +300,7 @@ BOOL Match(FileEntry *fe)
       }
   }
 
-  /* 2. Check Includes */
+  /* 3. Check Includes */
   if (!has_includes) {
       /* No specific includes defined (e.g. only excludes like -*.o),
          so everything not excluded matches. */
