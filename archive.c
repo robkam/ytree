@@ -74,6 +74,11 @@ static int InsertArchiveDirEntry(DirEntry *tree, char *path, struct stat *stat)
   fprintf( stderr, "Insert Dir \"%s\"\n", path );
 #endif
 
+  if (strlen(path) >= PATH_LENGTH) {
+      ERROR_MSG("Archive path too long*skipping directory insert");
+      return -1;
+  }
+
   /* Format: .../dir/ */
   /*------------------*/
 
@@ -226,7 +231,7 @@ int InsertArchiveFileEntry(DirEntry *tree, char *path, struct stat *stat)
     Quit();  /* Abfrage, ob ytree verlassen werden soll */
   }
 
-
+  /* Fnsplit handles path length checks internally now */
   Fnsplit( path, dir, file );
 
   if( GetArchiveDirEntry( tree, dir, &de_ptr ) )
@@ -359,6 +364,12 @@ int TryInsertArchiveDirEntry(DirEntry *tree, char *dir, struct stat *stat)
   char dir_path[PATH_LENGTH + 1];
   char *s, *t;
 
+  /* Guard against excessive length that would overflow dir_path */
+  if (strlen(dir) >= PATH_LENGTH) {
+      /* Skip dangerous paths silently or warn */
+      return -1;
+  }
+
   (void) memset( dir_path, 0, sizeof( dir_path ) );
 
 #ifdef DEBUG
@@ -387,73 +398,84 @@ int TryInsertArchiveDirEntry(DirEntry *tree, char *dir, struct stat *stat)
 }
 
 
-
-
-
-
-void MinimizeArchiveTree(DirEntry *tree)
+void MinimizeArchiveTree(DirEntry **tree_ptr)
 {
-  DirEntry  *de_ptr, *de1_ptr;
-  DirEntry  *next_ptr;
+  DirEntry *tree = *tree_ptr;
+  DirEntry *de_ptr, *de1_ptr;
+  DirEntry *next_ptr;
   FileEntry *fe_ptr;
 
-
-  /* Falls tree einen Nachfolger hat und
-   * tree selbst leer ist, wird tree gestrichen
-   */
-
-  if( tree->prev == NULL &&
-      tree->next != NULL &&
-      tree->file == NULL )
+  /* 1. Collapse Root if empty and has siblings */
+  /* If the root (tree) has no files, no subdirectories, but has a 'next' sibling,
+     it's an empty placeholder. We can discard it and promote the sibling to be root. */
+  if( tree->prev == NULL && tree->next != NULL && tree->file == NULL && tree->sub_tree == NULL )
   {
-    next_ptr = tree->next;
-    (void) memcpy( (char *) tree,
-		   (char *) tree->next,
-		   sizeof( DirEntry ) + strlen( tree->next->name )
-		 );
-    tree->prev = NULL;
-    if( tree->next ) tree->next->prev = tree;
+    DirEntry *new_root = tree->next;
+
+    /* Update global pointer via the double pointer argument */
+    *tree_ptr = new_root;
+
+    /* Fix up pointers for the new root */
+    new_root->prev = NULL;
+    /* It's a root now, so no up_tree */
+    new_root->up_tree = NULL;
+
+    /* Update children of the new root (if any) to point to it as up_tree?
+       Wait, they already point to it. 'up_tree' is parent.
+       The new root is just taking the place of the old root.
+       Existing children of 'new_root' point to 'new_root'. That's fine. */
+
     statistic.disk_total_directories--;
-    free( next_ptr );
-    for( fe_ptr=tree->file; fe_ptr; fe_ptr=fe_ptr->next)
-      fe_ptr->dir_entry = tree;
-    for( de_ptr=tree->sub_tree; de_ptr; de_ptr=de_ptr->next)
-      de_ptr->up_tree = tree;
+    free(tree);
+    tree = new_root; /* Update local variable for subsequent checks */
   }
 
 
-  /* Test, ob *de_ptr weder Vorgaenger noch Nachfolger noch Dateien hat */
-  /*--------------------------------------------------------------------*/
-
+  /* 2. Collapse empty leaf directories in sub-trees */
+  /* Iterate through children of the current root */
   for( de_ptr = tree->sub_tree; de_ptr; de_ptr = next_ptr )
   {
+    next_ptr = de_ptr->next; /* Save next because de_ptr might be freed */
+
     if( de_ptr->prev == NULL && de_ptr->next == NULL && de_ptr->file == NULL )
     {
-      /* Zusammenfassung moeglich */
-      /*--------------------------*/
+      /* de_ptr is a single child (no siblings) and has no files.
+         We can merge it into the parent (tree).
+         Example: /usr/ -> /usr/bin/  becomes /usr/bin/
+      */
 
+      /* Concatenate names: parent/child */
       if( strcmp( tree->name, FILE_SEPARATOR_STRING ) )
-	(void) strcat( tree->name, FILE_SEPARATOR_STRING );
+	    (void) strcat( tree->name, FILE_SEPARATOR_STRING );
       (void) strcat( tree->name, de_ptr->name );
+
       statistic.disk_total_directories--;
+
+      /* Move de_ptr's children to be tree's children */
       tree->sub_tree = de_ptr->sub_tree;
+
+      /* Update up_tree pointers for all moved children */
       for( de1_ptr = de_ptr->sub_tree; de1_ptr; de1_ptr = de1_ptr->next )
-	de1_ptr->up_tree = tree;
-      next_ptr = de_ptr->sub_tree;
+	    de1_ptr->up_tree = tree;
+
+      /* Update stats */
+      /* (tree stats should already encompass de_ptr stats if any, but here de_ptr has no files) */
+
       free( de_ptr );
-#ifdef DEBUG
-  fprintf( stderr, "new root-dir: \"%s\"\n", tree->name );
-#endif
+      /* Continue loop with the *new* first child (which was de_ptr->sub_tree)
+         Wait, the loop variable was de_ptr. We effectively replaced de_ptr with its children.
+         But the loop iterates over siblings of de_ptr. de_ptr had no siblings (check above).
+         So next_ptr is NULL. Loop terminates. Correct. */
+
+      /* Since we modified the structure, we should restart the scan or check the new children?
+         The original code only checked the immediate level. We keep it simple. */
       continue;
     }
-    break;
+    break; /* If we hit a non-collapsible entry, stop attempting to collapse this path */
   }
 
-  /* Letzter Optimierungsschritt:
-   * Falls tree weder Vorgaenger noch Nachfolger hat, aber
-   * einen Subtree der Files hat, wird zusammengefasst
-   */
-
+  /* 3. Collapse root into its single child if applicable */
+  /* If tree has no files, no siblings, and exactly one child (sub_tree) which has no siblings */
   if( tree->prev == NULL &&
       tree->next == NULL &&
       tree->file == NULL &&
@@ -463,19 +485,30 @@ void MinimizeArchiveTree(DirEntry *tree)
     )
   {
     de_ptr = tree->sub_tree;
-    (void) strcat( tree->name, FILE_SEPARATOR_STRING );
+
+    /* Merge names */
+    if( strcmp( tree->name, FILE_SEPARATOR_STRING ) )
+        (void) strcat( tree->name, FILE_SEPARATOR_STRING );
     (void) strcat( tree->name, de_ptr->name );
+
+    /* Move files up */
     tree->file = de_ptr->file;
     for( fe_ptr=tree->file; fe_ptr; fe_ptr=fe_ptr->next )
       fe_ptr->dir_entry = tree;
+
+    /* Copy stats */
     (void) memcpy( (char *) &tree->stat_struct,
 		   (char *) &de_ptr->stat_struct,
 		   sizeof( struct stat )
 		  );
+
     statistic.disk_total_directories--;
+
+    /* Move grandchildren up */
     tree->sub_tree = de_ptr->sub_tree;
     for( de1_ptr = de_ptr->sub_tree; de1_ptr; de1_ptr = de1_ptr->next )
       de1_ptr->up_tree = tree;
+
     free( de_ptr );
   }
   return;

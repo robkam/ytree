@@ -42,8 +42,11 @@ static void copy_stat_from_entry(struct stat *dest, struct archive_entry *entry)
 /*
  * Dispatcher function to read file tree from archive using libarchive.
  * This replaces all old ReadTreeFrom... and GetStatFrom... functions.
+ *
+ * Now accepts DirEntry **dir_entry_ptr to allow updating the root pointer
+ * if MinimizeArchiveTree swaps it.
  */
-int ReadTreeFromArchive(DirEntry *dir_entry, const char *filename)
+int ReadTreeFromArchive(DirEntry **dir_entry_ptr, const char *filename)
 {
     struct archive *a;
     struct archive_entry *entry;
@@ -51,6 +54,8 @@ int ReadTreeFromArchive(DirEntry *dir_entry, const char *filename)
     char path_buffer[PATH_LENGTH * 2]; /* Buffer for path + symlink target */
     struct stat stat_buf;
     int count = 0;
+    const char *clean_path;
+    DirEntry *dir_entry = *dir_entry_ptr;
 
     *dir_entry->name = '\0';
 
@@ -78,25 +83,44 @@ int ReadTreeFromArchive(DirEntry *dir_entry, const char *filename)
             continue;
         }
 
+        /* Normalize path: strip leading "./" if present to avoid confusion in Fnsplit */
+        if (pathname[0] == '.' && pathname[1] == FILE_SEPARATOR_CHAR) {
+            clean_path = pathname + 2;
+        } else {
+            clean_path = pathname;
+        }
+
+        /* Skip if the path is empty or just "." (root) */
+        if (*clean_path == '\0' || (strcmp(clean_path, ".") == 0)) {
+            continue;
+        }
+
         copy_stat_from_entry(&stat_buf, entry);
 
         if (S_ISDIR(stat_buf.st_mode)) {
-            (void)strcpy(path_buffer, pathname);
+            /* Safer string copy */
+            snprintf(path_buffer, sizeof(path_buffer), "%s", clean_path);
             /* Ensure directory paths end with a separator for TryInsertArchiveDirEntry */
-            if (path_buffer[strlen(path_buffer) - 1] != FILE_SEPARATOR_CHAR) {
-                strcat(path_buffer, FILE_SEPARATOR_STRING);
+            size_t len = strlen(path_buffer);
+            if (len > 0 && path_buffer[len - 1] != FILE_SEPARATOR_CHAR) {
+                if (len < sizeof(path_buffer) - 2) {
+                    strcat(path_buffer, FILE_SEPARATOR_STRING);
+                }
             }
-            if (strcmp(path_buffer, "./") != 0) {
-                 (void)TryInsertArchiveDirEntry(dir_entry, path_buffer, &stat_buf);
-            }
+            (void)TryInsertArchiveDirEntry(dir_entry, path_buffer, &stat_buf);
+
         } else if (S_ISREG(stat_buf.st_mode) || S_ISLNK(stat_buf.st_mode)) {
-            (void)strcpy(path_buffer, pathname);
+            /* Safer string copy */
+            snprintf(path_buffer, sizeof(path_buffer), "%s", clean_path);
 
             if (S_ISLNK(stat_buf.st_mode)) {
                 const char *link_target = archive_entry_symlink(entry);
                 if (link_target) {
                     /* Append symlink target after the null terminator of the path */
-                    strcpy(&path_buffer[strlen(path_buffer) + 1], link_target);
+                    size_t len = strlen(path_buffer);
+                    if (len + 1 + strlen(link_target) < sizeof(path_buffer)) {
+                        strcpy(&path_buffer[len + 1], link_target);
+                    }
                 }
             }
             (void)InsertArchiveFileEntry(dir_entry, path_buffer, &stat_buf);
@@ -120,15 +144,20 @@ int ReadTreeFromArchive(DirEntry *dir_entry, const char *filename)
         }
     }
 
-    MinimizeArchiveTree(dir_entry);
+    /* Pass the double pointer so it can update the root if needed */
+    MinimizeArchiveTree(dir_entry_ptr);
+
     archive_read_free(a);
+
+    /* Important: Recalculate visibility based on current settings immediately after load */
+    RecalculateSysStats();
 
     return 0;
 }
 
 #else
 /* Stub function if ytree is compiled without libarchive support. */
-int ReadTreeFromArchive(DirEntry *dir_entry, const char *filename)
+int ReadTreeFromArchive(DirEntry **dir_entry_ptr, const char *filename)
 {
     ERROR_MSG("Archive support not compiled.*Please install libarchive-dev*and recompile ytree.");
     return -1;

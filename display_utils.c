@@ -91,12 +91,28 @@ char *FormFilename(char *dest, char *src, unsigned int max_len)
   int i;
   int begin;
   unsigned int l;
+  char *src_copy = NULL;
+  char *working_src = src;
 
-  l = strlen(src); /* TODO: UTF-8 */
+  /* If dest and src overlap, we must copy src to avoid corruption during write */
+  if (dest == src) {
+      src_copy = strdup(src);
+      if (!src_copy) {
+          ERROR_MSG("strdup failed*ABORT");
+          exit(1);
+      }
+      working_src = src_copy;
+  }
+
+  l = strlen(working_src); /* TODO: UTF-8 */
   begin = 0;
 
-  if( l <= max_len )
-    return( strcpy( dest, src ) );
+  if( l <= max_len ) {
+    /* Safe copy if pointers differ */
+    if (dest != working_src) {
+        memmove(dest, working_src, l + 1);
+    }
+  }
   else
   {
     (void) strcpy( dest, "/..." );
@@ -105,24 +121,26 @@ char *FormFilename(char *dest, char *src, unsigned int max_len)
       dest[max_len] = '\0';
     } else {
       for(i=0; i < (int) max_len - 4; i++)
-        if( src[l - i] == FILE_SEPARATOR_CHAR || src[l - i] == '\\' )
+        if( working_src[l - i] == FILE_SEPARATOR_CHAR || working_src[l - i] == '\\' )
           begin = l - i;
 
       if(begin > 0) {
-        strcat(dest, &src[begin] );
+        strcat(dest, &working_src[begin] );
         if(strlen(dest) > max_len)
           strcpy( &dest[max_len - 3], "..." );
       } else {
         for(i=0; i < l; i++)
-	  if( src[i] == FILE_SEPARATOR_CHAR || src[i] == '\\' )
+	  if( working_src[i] == FILE_SEPARATOR_CHAR || working_src[i] == '\\' )
 	    begin = i;  /* find last '/' */
-        strcat(dest, &src[begin] );
+        strcat(dest, &working_src[begin] );
         if(strlen(dest) > max_len)
           strcpy( &dest[max_len - 3], "..." );
       }
     }
-    return dest;
   }
+
+  if (src_copy) free(src_copy);
+  return dest;
 }
 
 /*****************************************************************************
@@ -135,14 +153,21 @@ char *CutFilename(char *dest, char *src, unsigned int max_len)
 
   l = StrVisualLength(src);
 
-  if( l <= max_len )
-    return( strcpy( dest, src ) );
+  if( l <= max_len ) {
+    if (dest != src) {
+        /* memmove handles overlap safely if src/dest are offset but in same buffer */
+        memmove(dest, src, strlen(src) + 1);
+    }
+    return dest;
+  }
   else
   {
+    /* StrLeft allocates new memory, so safe even if dest == src */
     if ((tmp = StrLeft(src, max_len - 3)) == NULL) {
       ERROR_MSG("Malloc failed*ABORT");
       exit(1);
     }
+    /* dest is overwritten here, which is fine as we have the data in tmp */
     sprintf(dest, "%s...", tmp);
     free(tmp);
     return( dest );
@@ -158,12 +183,28 @@ char *CutPathname(char *dest, char *src, unsigned int max_len)
 
   l = strlen(src);
 
-  if( l <= max_len )
-    return( strcpy( dest, src ) );
+  if( l <= max_len ) {
+    if (dest != src) {
+        memmove(dest, src, l + 1);
+    }
+    return dest;
+  }
   else
   {
-    (void) strcpy( dest, "..." );
-    (void) strncat( dest, &src[l - max_len + 3], max_len - 3 );
+    /* Format: "...<suffix>" */
+    /* We need the last (max_len - 3) chars from src */
+    const char *suffix_start = src + (l - (max_len - 3));
+    size_t suffix_len = max_len - 3;
+
+    /* Move data to the end of the destination buffer first to prevent overwrite */
+    memmove(dest + 3, suffix_start, suffix_len);
+
+    /* Add prefix */
+    memcpy(dest, "...", 3);
+
+    /* Null terminate */
+    dest[max_len] = '\0';
+
     return( dest );
   }
 }
@@ -177,12 +218,21 @@ char *CutName(char *dest, char *src, unsigned int max_len)
 
   l = strlen(src);
 
-  if( l <= max_len )
-    return( strcpy( dest, src ) );
+  if( l <= max_len ) {
+    if (dest != src) {
+        memmove(dest, src, l + 1);
+    }
+    return dest;
+  }
   else
   {
-    (void) strncpy( dest, src, max_len - 3 );
-    return strcpy( &dest[max_len - 3], "..." );
+    /* Truncate string: keep first (max_len - 3) chars, append "..." */
+    if (dest != src) {
+        memmove(dest, src, max_len - 3);
+    }
+    /* If dest == src, the first chars are already there, we just append the dot */
+    strcpy( &dest[max_len - 3], "..." );
+    return dest; // Actually, strcpy returns destination pointer, but we want `dest`
   }
 }
 

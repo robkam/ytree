@@ -32,7 +32,9 @@ static int  my_x_step;
 static int  hide_left;
 static int  hide_right;
 
-static FileEntryList *file_entry_list;
+static FileEntryList *file_entry_list = NULL;
+static size_t file_entry_list_capacity = 0;
+
 static unsigned      file_count;
 static unsigned      max_visual_userview_len;
 static unsigned      max_visual_filename_len;
@@ -142,49 +144,57 @@ void RotateFileMode(void)
 
 
 static void BuildFileEntryList(DirEntry *dir_entry){
+  size_t alloc_count;
 
   if( file_entry_list ) {
     free( file_entry_list );
     file_entry_list = NULL;
+    file_entry_list_capacity = 0;
   }
 
   if( !dir_entry->global_flag )  {
-    /* ... for !ANSI-Systeme ... */
-    /*---------------------------*/
-    if( dir_entry->matching_files > 0 ) {
+    /* Normal Directory View */
 
-        if( ( file_entry_list = (FileEntryList *)
-	  		      calloc( dir_entry->matching_files,
-				      sizeof( FileEntryList )
-				    )
+    alloc_count = dir_entry->matching_files;
+    if (alloc_count < 16) alloc_count = 16;
+
+    if( ( file_entry_list = (FileEntryList *)
+                  calloc( alloc_count,
+                      sizeof( FileEntryList )
+                    )
                               ) == NULL ) {
         ERROR_MSG( "Calloc Failed*ABORT" );
         exit( 1 );
-        }
     }
+    file_entry_list_capacity = alloc_count;
+
     file_count = 0;
     ReadFileList( dir_entry->tagged_flag, dir_entry );
     SortFileEntryList();
     SetFileMode( file_mode ); /* recalc */
 
     } else {
+    /* Global / ShowAll View */
 
-    if( statistic.disk_matching_files > 0 ) {
+    size_t count_source = (dir_entry->tagged_flag) ? statistic.disk_tagged_files : statistic.disk_matching_files;
+    alloc_count = count_source;
+    if (alloc_count < 16) alloc_count = 16;
 
-        if( ( file_entry_list = (FileEntryList *)
-           calloc( (dir_entry->tagged_flag) ? statistic.disk_tagged_files : statistic.disk_matching_files,
-				      sizeof( FileEntryList )
+    if( ( file_entry_list = (FileEntryList *)
+           calloc( alloc_count,
+                      sizeof( FileEntryList )
               ) ) == NULL )  {
            ERROR_MSG( "Calloc Failed*ABORT" );
            exit( 1 );
-           }
-        }
-        file_count = 0;
-        global_max_visual_filename_len = 0;
-        global_max_visual_linkname_len = 0;
-        ReadGlobalFileList(  dir_entry->tagged_flag, statistic.tree );
-        SortFileEntryList();
-        SetFileMode( file_mode ); /* recalc */
+    }
+    file_entry_list_capacity = alloc_count;
+
+    file_count = 0;
+    global_max_visual_filename_len = 0;
+    global_max_visual_linkname_len = 0;
+    ReadGlobalFileList(  dir_entry->tagged_flag, statistic.tree );
+    SortFileEntryList();
+    SetFileMode( file_mode ); /* recalc */
     }
 }
 
@@ -203,8 +213,26 @@ static void ReadFileList(BOOL tagged_only, DirEntry *dir_entry)
   {
     if( fe_ptr->matching && (!tagged_only || fe_ptr->tagged) )
     {
+      /* Ensure hidden dot files are skipped unless option is disabled.
+         This applies to both FS mode and Archive mode. */
       if (hide_dot_files && fe_ptr->name[0] == '.')
           continue;
+
+      /* Bounds check */
+      if (file_count >= file_entry_list_capacity) {
+          size_t new_capacity = file_entry_list_capacity * 2;
+          if (new_capacity == 0) new_capacity = 128;
+
+          FileEntryList *new_list = (FileEntryList *) realloc(file_entry_list, new_capacity * sizeof(FileEntryList));
+          if (!new_list) {
+              ERROR_MSG("Realloc failed in ReadFileList*ABORT");
+              exit(1);
+          }
+          memset(new_list + file_entry_list_capacity, 0, (new_capacity - file_entry_list_capacity) * sizeof(FileEntryList));
+          file_entry_list = new_list;
+          file_entry_list_capacity = new_capacity;
+      }
+
       file_entry_list[file_count++].file = fe_ptr;
       visual_name_len = StrVisualLength( fe_ptr->name );
       name_len = strlen( fe_ptr->name );
@@ -1298,38 +1326,19 @@ int HandleFileWindow(DirEntry *dir_entry)
 		      }
 		      break;
 
-      case '`':
-           if (mode == DISK_MODE || mode == USER_MODE) {
-               ToggleDotFiles(); // Updates tree, global stats, cursor in tree
+      case '`':      {
+                        ToggleDotFiles();
 
-               // Now update file window
-               BuildFileEntryList(dir_entry);
-               // Clamp cursor
-               if (dir_entry->start_file + dir_entry->cursor_pos >= file_count) {
-                   // Simple clamp to end
-                   if (file_count > 0) {
-                       if (file_count > max_disp_files) {
-                           dir_entry->start_file = file_count - max_disp_files;
-                           dir_entry->cursor_pos = max_disp_files - 1;
-                       } else {
-                           dir_entry->start_file = 0;
-                           dir_entry->cursor_pos = file_count - 1;
-                       }
-                   } else {
-                       dir_entry->start_file = 0;
-                       dir_entry->cursor_pos = 0;
-                   }
-               }
+                        /* Update current dir pointer using the new accessor function */
+                        dir_entry = GetSelectedDirEntry();
 
-               DisplayFiles(dir_entry, dir_entry->start_file, dir_entry->start_file + dir_entry->cursor_pos, start_x);
-               if (dir_entry->global_flag)
-                   DisplayDiskStatistic();
-               else
-                   DisplayDirStatistic(dir_entry);
+                        /* Explicitly update the file window (preview) */
+                        DisplayFileWindow(dir_entry);
+                        RefreshWindow(file_window);
 
-               need_dsp_help = TRUE;
-           }
-           break;
+                        need_dsp_help = TRUE;
+                     }
+		     break;
 
       case 'A' :
       case 'a' :      fe_ptr = file_entry_list[dir_entry->start_file + dir_entry->cursor_pos].file;

@@ -76,7 +76,12 @@ int main(int argc, char **argv)
     /* rel. Pfad */
     /*-----------*/
 
-    (void) getcwd( buffer, sizeof( buffer ) - 2 );
+    if( getcwd( buffer, sizeof( buffer ) - 2 ) == NULL )
+    {
+        endwin();
+        fprintf(stderr, "Error: getcwd failed: %s\n", strerror(errno));
+        exit(1);
+    }
     (void) strcat( buffer, FILE_SEPARATOR_STRING );
     (void) strcat( buffer, p );
     p = buffer;
