@@ -16,19 +16,21 @@ static void RecalcDir(DirEntry *d);
 
 void DisplayDiskStatistic(void)
 {
-  const char *fmt= "[%-17s]";
-  /* Increased buffer size to accommodate FILE_SPEC_LENGTH (256) + formatting chars */
-  char buff[FILE_SPEC_LENGTH + 20];
+  /* Fix buffer overflow and screen wrap:
+     1. Use a static small buffer for the truncated spec.
+     2. Ensure total length [ + spec + ] fits in side panel (18 chars max).
+     3. COLS - 18 is the starting X. Width available is 18 chars.
+     4. [ + 16 chars + ] = 18 chars.
+  */
+  char buff[40];
+  char trunc_spec[20];
 
   *buff = '\0';
 
-  /* Use snprintf for safety, though the buffer is now large enough */
-  snprintf( buff, sizeof(buff), fmt, statistic.file_spec);
+  /* Truncate the file spec to 16 chars to ensure it fits */
+  CutName(trunc_spec, statistic.file_spec, 16);
 
-  /* Truncate visually if it's too long for the UI element?
-     Original code just printed it. PrintMenuOptions handles position.
-     If it's very long it might overwrite adjacent stats.
-     For now, we just fix the buffer overflow. */
+  snprintf( buff, sizeof(buff), "[%-16s]", trunc_spec);
 
   PrintMenuOptions( stdscr, 2, COLS - 18, buff, CPAIR_MENU, CPAIR_HIMENUS);
   PrettyPrintNumber( 5,  COLS - 17, statistic.disk_space / (LONGLONG)1024 );
@@ -62,7 +64,15 @@ void DisplayAvailBytes(void)
 
 void DisplayFilter(void)
 {
-  mvwprintw( stdscr, 2,  COLS - 18, "%-17s", statistic.file_spec );
+  /* Updated to match DisplayDiskStatistic format and safety */
+  char buff[40];
+  char trunc_spec[20];
+
+  CutName(trunc_spec, statistic.file_spec, 16);
+  snprintf( buff, sizeof(buff), "[%-16s]", trunc_spec);
+
+  /* Use PrintMenuOptions to maintain color consistency */
+  PrintMenuOptions( stdscr, 2,  COLS - 18, buff, CPAIR_MENU, CPAIR_HIMENUS );
   RefreshWindow( stdscr );
 }
 

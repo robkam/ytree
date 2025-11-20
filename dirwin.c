@@ -9,7 +9,8 @@
 #include "ytree.h"
 
 
-static DirEntryList *dir_entry_list;
+static DirEntryList *dir_entry_list = NULL;
+static size_t dir_entry_list_capacity = 0;
 static int current_dir_entry;
 static int total_dirs;
 static int window_height, window_width;
@@ -36,41 +37,38 @@ static void BuildDirEntryList(DirEntry *dir_entry, Statistic *stat_source)
   {
     free( dir_entry_list );
     dir_entry_list = NULL;
+    dir_entry_list_capacity = 0;
   }
 
-  /* fuer !ANSI-Systeme.. */
-  /*----------------------*/
+  /* Initialize with the estimated count, but enforce a minimum safety size */
+  size_t alloc_count = stat_source->disk_total_directories;
+  if (alloc_count < 16) alloc_count = 16;
 
-  if( stat_source->disk_total_directories == 0 )
+  if( ( dir_entry_list = ( DirEntryList *)
+                   calloc( alloc_count,
+                   sizeof( DirEntryList )
+                 ) ) == NULL )
   {
-    dir_entry_list = NULL;
-    total_dirs = 0;
+    ERROR_MSG( "Calloc Failed*ABORT" );
+    exit( 1 );
   }
-  else
-  {
-    if( ( dir_entry_list = ( DirEntryList *)
-		             calloc( stat_source->disk_total_directories,
-	        	     sizeof( DirEntryList )
-		           ) ) == NULL )
-    {
-      ERROR_MSG( "Calloc Failed*ABORT" );
-      exit( 1 );
-    }
 
-    current_dir_entry = 0;
+  dir_entry_list_capacity = alloc_count;
+  current_dir_entry = 0;
 
-    ReadDirList( dir_entry );
+  /* Only read if we have a valid tree structure */
+  if (dir_entry) {
+      ReadDirList( dir_entry );
+  }
 
-    total_dirs = current_dir_entry;
+  total_dirs = current_dir_entry;
 
 #ifdef DEBUG
-    if(stat_source->disk_total_directories != total_dirs)
-    {
-        /* This can happen if a directory becomes unreadable between scans */
-        /* It is not a fatal error, so we adjust our count */
-    }
-#endif
+  if(stat_source->disk_total_directories != total_dirs)
+  {
+      /* mismatch detected, but safely handled by realloc in ReadDirList */
   }
+#endif
 }
 
 static void RotateDirMode(void)
@@ -98,11 +96,33 @@ static void ReadDirList(DirEntry *dir_entry)
   {
     /* Check visibility.
        Hide files starting with '.' if option is set.
-       EXCEPTION: Never hide the top-level root directory (where up_tree is NULL),
-       even if it is named "." or starts with ".", otherwise the list becomes empty.
+       EXCEPTION: Never hide the top-level root directory of the current session.
+       Use statistic.tree comparison instead of up_tree check to handle archive
+       structures where root-level items might have NULL parents.
     */
-    if (hide_dot_files && de_ptr->name[0] == '.' && de_ptr->up_tree != NULL)
-        continue;
+    if (hide_dot_files && de_ptr->name[0] == '.') {
+        if (de_ptr != statistic.tree)
+            continue;
+    }
+
+    /* Bounds Checking & Dynamic Reallocation */
+    if (current_dir_entry >= (int)dir_entry_list_capacity) {
+        size_t new_capacity = dir_entry_list_capacity * 2;
+        if (new_capacity == 0) new_capacity = 128; /* Fallback if 0 start */
+
+        DirEntryList *new_list = (DirEntryList *) realloc(dir_entry_list, new_capacity * sizeof(DirEntryList));
+
+        if (new_list == NULL) {
+             ERROR_MSG("Realloc failed in ReadDirList*ABORT");
+             exit(1);
+        }
+
+        /* Zero out the newly allocated portion to maintain calloc-like safety */
+        memset(new_list + dir_entry_list_capacity, 0, (new_capacity - dir_entry_list_capacity) * sizeof(DirEntryList));
+
+        dir_entry_list = new_list;
+        dir_entry_list_capacity = new_capacity;
+    }
 
     indent &= ~( 1L << level );
     if( de_ptr->next ) indent |= ( 1L << level );
@@ -123,7 +143,24 @@ static void ReadDirList(DirEntry *dir_entry)
 }
 
 
+/*
+ * Helper function to return the currently selected directory entry.
+ * Used by filewin.c and other modules that can't access dir_entry_list directly.
+ */
+DirEntry *GetSelectedDirEntry(void)
+{
+  if (dir_entry_list != NULL && total_dirs > 0) {
+    int idx = statistic.disp_begin_pos + statistic.cursor_pos;
 
+    /* Safety bounds check */
+    if (idx < 0) idx = 0;
+    if (idx >= total_dirs) idx = total_dirs - 1;
+
+    return dir_entry_list[idx].dir_entry;
+  }
+  /* Fallback to root if list is empty/invalid */
+  return statistic.tree;
+}
 
 
 static void PrintDirEntry(WINDOW *win,
@@ -730,21 +767,26 @@ void ToggleDotFiles(void)
 {
     DirEntry *target;
     int i, found_idx = -1;
+    int win_height, win_width;
 
-    /* Use current cursor position to find target */
+    /* Suspend clock to prevent signal handler interrupt corrupting UI during rebuild */
+    SuspendClock();
+
+    /* 1. Identify the directory currently under the cursor */
     if (total_dirs > 0 && (statistic.disp_begin_pos + statistic.cursor_pos < total_dirs)) {
         target = dir_entry_list[statistic.disp_begin_pos + statistic.cursor_pos].dir_entry;
     } else {
         target = statistic.tree;
     }
 
+    /* 2. Toggle State and Recalculate Stats */
     hide_dot_files = !hide_dot_files;
     RecalculateSysStats();
 
-    /* Accessing internal static BuildDirEntryList */
+    /* 3. Rebuild the linear list of visible directories */
     BuildDirEntryList(statistic.tree, &statistic);
 
-    /* Smart Restore Logic (copy-paste from previous dirwin.c changes, effectively) */
+    /* 4. Search for the 'target' directory in the new list */
     DirEntry *search = target;
     while (search != NULL && found_idx == -1) {
         for (i = 0; i < total_dirs; i++) {
@@ -753,32 +795,67 @@ void ToggleDotFiles(void)
                 break;
             }
         }
+        /* If the target directory is now hidden, walk up to its parent */
         if (found_idx == -1) search = search->up_tree;
     }
 
-    if (found_idx != -1) {
-        int win_height, win_width;
-        GetMaxYX(dir_window, &win_height, &win_width);
+    /* 5. Smart Restore of Cursor Position */
+    GetMaxYX(dir_window, &win_height, &win_width);
 
-        if (found_idx < win_height) {
-            statistic.disp_begin_pos = 0;
-            statistic.cursor_pos = found_idx;
-        } else {
-            statistic.disp_begin_pos = found_idx - (win_height / 2);
-            if (statistic.disp_begin_pos < 0) statistic.disp_begin_pos = 0;
+    if (found_idx != -1) {
+        /* Check if the found directory is within the current visible page */
+        if (found_idx >= statistic.disp_begin_pos &&
+            found_idx < statistic.disp_begin_pos + win_height) {
+            /* It's still on screen. Just update the cursor, don't scroll/jump. */
             statistic.cursor_pos = found_idx - statistic.disp_begin_pos;
-            if (statistic.cursor_pos >= win_height) {
-                statistic.cursor_pos = win_height - 1;
-                statistic.disp_begin_pos = found_idx - statistic.cursor_pos;
+        } else {
+            /* It moved off page. Re-center or adjust slightly. */
+            if (found_idx < win_height) {
+                statistic.disp_begin_pos = 0;
+                statistic.cursor_pos = found_idx;
+            } else {
+                /* Center the item */
+                statistic.disp_begin_pos = found_idx - (win_height / 2);
+
+                /* Bounds check for display position */
+                if (statistic.disp_begin_pos > total_dirs - win_height) {
+                    statistic.disp_begin_pos = total_dirs - win_height;
+                }
+                if (statistic.disp_begin_pos < 0) statistic.disp_begin_pos = 0;
+
+                statistic.cursor_pos = found_idx - statistic.disp_begin_pos;
             }
         }
     } else {
+        /* Fallback to root if everything went wrong */
         statistic.disp_begin_pos = 0;
         statistic.cursor_pos = 0;
     }
 
+    /* Sanity check cursor limits */
+    if (statistic.cursor_pos >= win_height) statistic.cursor_pos = win_height - 1;
+    if (statistic.disp_begin_pos + statistic.cursor_pos >= total_dirs) {
+        /* Move cursor to last valid item */
+        statistic.cursor_pos = (total_dirs > 0) ? (total_dirs - 1 - statistic.disp_begin_pos) : 0;
+    }
+
+    /* Refresh Directory Tree */
     DisplayTree(dir_window, statistic.disp_begin_pos, statistic.disp_begin_pos + statistic.cursor_pos);
     DisplayDiskStatistic();
+
+    /* Update current dir pointer using the new accessor function
+       because ToggleDotFiles might have changed the list layout */
+    if (total_dirs > 0) {
+        target = dir_entry_list[statistic.disp_begin_pos + statistic.cursor_pos].dir_entry;
+    } else {
+        target = statistic.tree;
+    }
+
+    /* Explicitly update the file window (preview) to match new visibility */
+    DisplayFileWindow(target);
+    RefreshWindow(file_window);
+
+    InitClock(); /* Resume clock and restore signal handling */
 }
 
 
@@ -856,7 +933,7 @@ int HandleDirWindow(DirEntry *start_dir_entry)
   DisplayTree( dir_window, statistic.disp_begin_pos, statistic.disp_begin_pos + statistic.cursor_pos );
   touchwin(dir_window);
 
-  if( dir_entry->login_flag )
+  if ( dir_entry->login_flag )
   {
     if( (dir_entry->global_flag ) || (dir_entry->tagged_flag) )
     {
@@ -955,19 +1032,16 @@ int HandleDirWindow(DirEntry *start_dir_entry)
       case KEY_BTAB: HandleUnreadSubTree(dir_entry, de_ptr, start_dir_entry,
     					 &need_dsp_help);
 	             break;
-      case '`':      if (mode == DISK_MODE || mode == USER_MODE) {
+      case '`':      {
                         ToggleDotFiles();
 
-                        /* Update current dir pointer as it might have changed if hidden */
+                        /* Update current dir pointer using the new accessor function
+                           because ToggleDotFiles might have changed the list layout */
                         if (total_dirs > 0) {
-                           dir_entry = dir_entry_list[statistic.disp_begin_pos + statistic.cursor_pos].dir_entry;
+                            dir_entry = dir_entry_list[statistic.disp_begin_pos + statistic.cursor_pos].dir_entry;
                         } else {
-                           dir_entry = statistic.tree;
+                            dir_entry = statistic.tree;
                         }
-
-                        /* Explicitly update the file window (preview) */
-                        DisplayFileWindow(dir_entry);
-                        RefreshWindow(file_window);
 
                         need_dsp_help = TRUE;
                      }

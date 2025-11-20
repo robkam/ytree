@@ -81,11 +81,20 @@ void Fnsplit(char *path, char *dir, char *name)
   int  i;
   char *name_begin;
   char *trunc_name;
+  int dir_len = 0;
 
   while( *path == ' ' || *path == '\t' ) path++;
 
   while( strchr(path, FILE_SEPARATOR_CHAR ) || strchr(path, '\\') )
-    *(dir++) = *(path++);
+  {
+    if (dir_len < PATH_LENGTH) {
+        *(dir++) = *(path++);
+        dir_len++;
+    } else {
+        /* Skip remaining directory part if buffer is full */
+        path++;
+    }
+  }
 
   *dir = '\0';
 

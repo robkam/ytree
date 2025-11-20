@@ -65,6 +65,15 @@ int LoginDisk(char *path)
   }
 
 
+  /* Save current filter to preserve it across transitions */
+  if (strlen(statistic.file_spec) > 0) {
+      strncpy(saved_filter, statistic.file_spec, FILE_SPEC_LENGTH);
+      saved_filter[FILE_SPEC_LENGTH] = '\0';
+  } else {
+      strcpy(saved_filter, DEFAULT_FILE_SPEC);
+  }
+
+
   if( mode == DISK_MODE || mode == USER_MODE)
   {
     /* Status retten */
@@ -96,19 +105,15 @@ int LoginDisk(char *path)
                      (char *) &disk_statistic,
                      sizeof( Statistic )
                      );
+
+      /* Prefer the active filter (saved_filter) over the cached one if meaningful */
+      if (strlen(saved_filter) > 0 && strcmp(saved_filter, DEFAULT_FILE_SPEC) != 0) {
+          strcpy(statistic.file_spec, saved_filter);
+      }
+
       (void) SetFilter( statistic.file_spec );
       return( 1 );   /* Return-Wert fuer "alten Baum" */
     }
-  }
-
-  /* Save the current filter before wiping statistics.
-   * If it's empty (first run), use the default.
-   */
-  if (strlen(statistic.file_spec) > 0) {
-      strncpy(saved_filter, statistic.file_spec, FILE_SPEC_LENGTH);
-      saved_filter[FILE_SPEC_LENGTH] = '\0';
-  } else {
-      strcpy(saved_filter, DEFAULT_FILE_SPEC);
   }
 
 
@@ -130,7 +135,8 @@ int LoginDisk(char *path)
 
   (void) strcpy( statistic.path, path );
   (void) strcpy( statistic.login_path, path );
-  /* Restore the user's filter */
+
+  /* Restore the user's active filter */
   (void) strcpy( statistic.file_spec, saved_filter );
 
   statistic.kind_of_sort = SORT_BY_NAME + SORT_ASC;
@@ -180,11 +186,14 @@ int LoginDisk(char *path)
 
 #ifdef HAVE_LIBARCHIVE
     if (animation_method == 0) Notice("Scanning archive...");
-    if (ReadTreeFromArchive(statistic.tree, statistic.login_path))
+    /* Pass address of statistic.tree so it can be updated */
+    if (ReadTreeFromArchive(&statistic.tree, statistic.login_path))
     {
         /* Error message will have been displayed by the function */
         result = -1;
     }
+    /* Recalculate handled inside ReadTreeFromArchive now */
+
     if (animation_method == 0) UnmapNoticeWindow();
 #else
     ERROR_MSG("Archive support not compiled.*Please install libarchive-dev*and recompile ytree.");

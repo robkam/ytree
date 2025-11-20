@@ -27,9 +27,24 @@ MANSRC      = ytree.1.md
 COLOR       = -DCOLOR_SUPPORT
 CLOCK	    = -DCLOCK_SUPPORT # Experimental!
 READLINE    = -DREADLINE_SUPPORT
+
 # Use -std=c99 or -std=gnu99 for modernization. -D_GNU_SOURCE is kept for glibc extensions.
 CFLAGS      += -D_GNU_SOURCE -DHAVE_LIBARCHIVE $(COLOR) $(CLOCK) $(READLINE) $(ADD_CFLAGS)
 LDFLAGS     += -lncurses -ltinfo -lreadline -larchive -lm
+
+# ---------------------------------------------------------
+# Build Mode Selection
+# Run 'make DEBUG=1' for development (AddressSanitizer enabled)
+# Run 'make' for release (Optimized, no runtime dependency on ASan)
+# ---------------------------------------------------------
+ifdef DEBUG
+    # Debug Build: Enable ASan, Debug Symbols, disable optimization for readable stack traces
+    CFLAGS  += -fsanitize=address -g -O1 -fno-omit-frame-pointer
+    LDFLAGS += -fsanitize=address
+else
+    # Release Build: Standard Optimization, no debug overhead
+    CFLAGS  += -O2
+endif
 
 
 # For systems requiring ncursesw (wide character support) use:

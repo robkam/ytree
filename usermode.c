@@ -31,10 +31,18 @@ int DirUserMode(DirEntry *dir_entry, int ch)
 
             GetPath(dir_entry, filepath);
 
+            /* Safe string formatting */
             if (strstr(command_str, "%s") != NULL) {
+                /* If user provided %s placeholder, use it */
                 snprintf(command_line, sizeof(command_line), command_str, filepath);
             } else {
-                snprintf(command_line, sizeof(command_line), "%s %s", command_str, filepath);
+                /* Otherwise append filepath to command */
+                /* Use snprintf directly to ensure safety and silence warnings */
+                int written = snprintf(command_line, sizeof(command_line), "%s %s", command_str, filepath);
+                if (written >= (int)sizeof(command_line)) {
+                    WARNING("Command line truncated!*Path too long.");
+                    return -1;
+                }
             }
 
             if (getcwd(cwd, sizeof(cwd)) == NULL) {
@@ -93,10 +101,16 @@ int FileUserMode(FileEntryList *file_entry_list, int ch)
 
             GetRealFileNamePath(file_entry_list->file, filepath);
 
+            /* Safe string formatting */
             if (strstr(command_str, "%s") != NULL) {
                 snprintf(command_line, sizeof(command_line), command_str, filepath);
             } else {
-                snprintf(command_line, sizeof(command_line), "%s %s", command_str, filepath);
+                /* Use snprintf directly to ensure safety and silence warnings */
+                int written = snprintf(command_line, sizeof(command_line), "%s %s", command_str, filepath);
+                if (written >= (int)sizeof(command_line)) {
+                    WARNING("Command line truncated!*Path too long.");
+                    return -1;
+                }
             }
 
             if (getcwd(cwd, sizeof(cwd)) == NULL) {

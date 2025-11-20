@@ -53,7 +53,16 @@ int GetDirEntry(DirEntry *tree,
   }
 
   if( *dir_path != FILE_SEPARATOR_CHAR ) {
-    (void) getcwd( dest_path, sizeof( dest_path ) - 2 );
+    if (getcwd( dest_path, sizeof( dest_path ) - 2 ) == NULL) {
+        (void) sprintf( message, "getcwd failed*%s", strerror(errno) );
+        ERROR_MSG( message );
+        /* Attempt recovery */
+        if (chdir( current_path ) != 0) {
+             ERROR_MSG("Fatal: Could not restore original directory!");
+             exit(1);
+        }
+        return( -1 );
+    }
     (void) strcpy( to_path, dest_path );
   } else {
     strcpy(dest_path, dir_path);

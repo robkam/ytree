@@ -41,7 +41,9 @@ int Pipe(DirEntry *dir_entry, FileEntry *file_entry)
         if (chdir(GetPath(dir_entry, path))) {
             sprintf(message, "Can't change directory to*\"%s\"", path);
             MESSAGE(message);
-            chdir(cwd); /* Attempt to restore CWD */
+            if (chdir(cwd) != 0) { /* Attempt to restore CWD */
+                /* Handle restore failure if needed, though mostly fatal/unrecoverable context */
+            }
             return -1;
         }
     } else { /* ARCHIVE_MODE */
@@ -58,7 +60,8 @@ int Pipe(DirEntry *dir_entry, FileEntry *file_entry)
             if (chdir(archive_dir) != 0) {
                  sprintf(message, "Can't change directory to*\"%s\"", archive_dir);
                  MESSAGE(message);
-                 chdir(cwd); /* Attempt to restore CWD */
+                 if (chdir(cwd) != 0) { /* Attempt to restore CWD */
+                 }
                  return -1;
             }
         }

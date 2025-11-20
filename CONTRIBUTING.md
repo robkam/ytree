@@ -36,17 +36,25 @@ source .venv/bin/activate
 
 ## Building the Project
 
-The typical workflow for compiling your changes is:
+The `Makefile` supports two build modes: Release (default) and Debug.
+
+### Release Build
+For standard testing and usage, perform a release build. This applies optimizations (`-O2`) and produces a binary with no runtime debug dependencies.
 
 ```bash
-# Clean previous build artifacts (optional but recommended)
 make clean
-
-# Compile the ytree executable and generate the man page
 make
 ```
 
-After a successful build, you can run the local executable for manual testing with `./ytree`.
+### Debug Build (AddressSanitizer)
+When developing new features or debugging crashes (especially segmentation faults), you should compile with debug mode enabled. This links against **AddressSanitizer (ASan)** and disables optimizations (`-O1`), providing detailed stack traces on memory errors.
+
+```bash
+make clean
+make DEBUG=1
+```
+
+**Note:** The debug binary is significantly slower and requires the ASan runtime library (usually installed with your compiler) to function. Do not use this for general performance testing or release.
 
 ## Running the Test Suite
 

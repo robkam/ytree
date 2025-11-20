@@ -386,7 +386,8 @@ enum UI_COLOR_PAIRS {
 #define TIME_WINDOW_HEIGHT   1
 
 
-#define PATH_LENGTH            1024
+/* Increased to 4096 to match standard Linux PATH_MAX and fix realpath warnings */
+#define PATH_LENGTH            4096
 #define FILE_SPEC_LENGTH       256
 #define DISK_NAME_LENGTH       (12 + 1)
 #define MESSAGE_LENGTH         (PATH_LENGTH + 80 + 1)
@@ -619,10 +620,10 @@ extern int ytree(int argc, char *argv[]);
 extern int ExtractArchiveEntry(const char *archive_path, const char *entry_path, int out_fd);
 extern int InsertArchiveFileEntry(DirEntry *tree, char *path, struct stat *stat);
 extern int TryInsertArchiveDirEntry(DirEntry *tree, char *dir, struct stat *stat);
-extern void MinimizeArchiveTree(DirEntry *tree);
+extern void MinimizeArchiveTree(DirEntry **tree_ptr);
 
 /* readarchive.c */
-extern int ReadTreeFromArchive(DirEntry *dir_entry, const char *filename);
+extern int ReadTreeFromArchive(DirEntry **dir_entry_ptr, const char *filename);
 
 /* animate.c */
 extern void InitAnimation(void);
@@ -682,6 +683,7 @@ extern int KeyF2Get(DirEntry *start_dir_entry, int disp_begin_pos, int cursor_po
 extern int RefreshDirWindow(void);
 extern int ScanSubTree( DirEntry *dir_entry );
 extern void ToggleDotFiles(void);
+extern DirEntry *GetSelectedDirEntry(void);
 
 /* display.c */
 extern void ClearHelp(void);
