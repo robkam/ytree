@@ -87,7 +87,7 @@ int ReadFileSpec(void)
   (void) strcpy( buffer, "*" );
 
   /* Display help and prompt */
-  MvAddStr( LINES - 3, 1, "Patterns: *.c,*.h,-*.o :r :x > < = 2025-01-01, 10k, 1M, 1G" );
+  MvAddStr( LINES - 3, 1, "Patterns: *.c,*.h,-*.o :r :x :l > < = 2025-01-01, 10k, 1M, 1G" );
   MvAddStr( LINES - 2, 1, "FILTER:" );
 
   /* Use available screen width (COLS - 9) but clamp to buffer size.
