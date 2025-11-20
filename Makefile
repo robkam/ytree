@@ -48,7 +48,7 @@ LDFLAGS     += -lncurses -ltinfo -lreadline -larchive
 
 MAIN    = ytree
 OBJS	= display_utils.o owner_utils.o path_utils.o string_utils.o tree_utils.o \
-	  archive.o archive_reader.o chgrp.o chmod.o chown.o clock.o color.o copy.o    \
+	  archive.o readarchive.o chgrp.o chmod.o chown.o clock.o color.o copy.o    \
 	  delete.o dirwin.o display.o edit.o error.o execute.o filter.o     \
 	  filewin.o freesp.o global.o group.o hex.o history.o init.o input.o keyhtab.o \
 	  log.o main.o mkdir.o move.o passwd.o pipe.o    \
@@ -81,7 +81,7 @@ clobber:	clean
 
 ##################################################
 
-archive_reader.o: config.h ytree.h archive_reader.c
+readarchive.o: config.h ytree.h readarchive.c
 archive.o: config.h ytree.h archive.c
 chgrp.o: config.h ytree.h chgrp.c
 chmod.o: config.h ytree.h chmod.c

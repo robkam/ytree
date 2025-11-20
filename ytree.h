@@ -620,7 +620,7 @@ extern int InsertArchiveFileEntry(DirEntry *tree, char *path, struct stat *stat)
 extern int TryInsertArchiveDirEntry(DirEntry *tree, char *dir, struct stat *stat);
 extern void MinimizeArchiveTree(DirEntry *tree);
 
-/* archive_reader.c */
+/* readarchive.c */
 extern int ReadTreeFromArchive(DirEntry *dir_entry, const char *filename);
 
 /* chgrp.c */
