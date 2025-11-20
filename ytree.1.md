@@ -21,7 +21,7 @@ Following commands are available:
 
 ### COMMAND LINE EDITING
 
-All input prompts (such as Log, Execute, Filespec, etc.) support standard shell-style editing shortcuts for improved efficiency:
+All input prompts (such as Log, Execute, Filter, etc.) support standard shell-style editing shortcuts for improved efficiency:
 
 -   **`^A` / `Home`**: Move cursor to the beginning of the line.
 -   **`^E` / `End`**: Move cursor to the end of the line.
@@ -39,9 +39,8 @@ All input prompts (such as Log, Execute, Filespec, etc.) support standard shell-
 **-Delete**
 :   Delete selected directory
 
-**-Filespec**
-:   Set file specification (reg. expression)
-    e.g. *.[ch] for all *.c and *.h - Files
+**-Filter**
+:   Set file filter. Supports regex patterns (e.g., `*.c`), exclusions (`-*.o`), attributes (`:r`, `:x`), dates (`>2023-01-01`), and sizes (`>1M`).
 
 **-Group**
 :   Change directory group ownership
@@ -86,6 +85,9 @@ All input prompts (such as Log, Execute, Filespec, etc.) support standard shell-
 **-^L (redraw)**
 :   Re-read the contents of the current directory from disk and refresh the view. This is useful after running an external shell command that modifies files.
 
+**-` (backtick)**
+:   Toggle visibility of hidden dot-files and dot-directories.
+
 **-^Quit**
 :   QuitTo: If you exit ytree with ^Q, the last selected directory becomes your
     current working directory. This feature only works if you start ytree
@@ -123,9 +125,8 @@ All input prompts (such as Log, Execute, Filespec, etc.) support standard shell-
 :   Edit selected file with EDITOR (see ~/.ytree)
     or - if not defined - vi
 
-**-Filespec**
-:   Set file specification (reg. expression)
-    e.g. *.[ch] for all *.c and *.h - Files
+**-Filter**
+:   Set file filter. Supports regex patterns (e.g., `*.c`), exclusions (`-*.o`), attributes (`:r`, `:x`), dates (`>2023-01-01`), and sizes (`>1M`).
 
 **-Group**
 :   Change group ownership of selected file
@@ -214,6 +215,9 @@ All input prompts (such as Log, Execute, Filespec, etc.) support standard shell-
 **-^L (redraw)**
 :   Re-read the contents of the current directory from disk and redraw the screen.
 
+**-` (backtick)**
+:   Toggle visibility of hidden dot-files.
+
 **-Space**
 :   Suppress screen-output while working
 
@@ -222,9 +226,8 @@ All input prompts (such as Log, Execute, Filespec, etc.) support standard shell-
 
 ### 3.) ARCHIV-DIR-Modus
 
-**-Filespec**
-:   Set file specification (reg. expression)
-    e.g. *.[ch] for all *.c and *.h - Files
+**-Filter**
+:   Set file filter (patterns, attributes, dates, sizes).
 
 **-Log**
 :   Restart ytree with new root directory/archive file
@@ -256,9 +259,8 @@ All input prompts (such as Log, Execute, Filespec, etc.) support standard shell-
 **-^K Copy**
 :   Copy all tagged files
 
-**-Filespec**
-:   Set file specification (reg. expression)
-    e.g. *.[ch] for all *.c and *.h - Files
+**-Filter**
+:   Set file filter (patterns, attributes, dates, sizes).
 
 **-Hex**
 :   View selected file with HEXDUMP (see ~/.ytree),
