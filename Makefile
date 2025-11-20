@@ -49,7 +49,7 @@ LDFLAGS     += -lncurses -ltinfo -lreadline -larchive
 MAIN    = ytree
 OBJS	= display_utils.o owner_utils.o path_utils.o string_utils.o tree_utils.o \
 	  archive.o archive_reader.o chgrp.o chmod.o chown.o clock.o color.o copy.o    \
-	  delete.o dirwin.o display.o edit.o error.o execute.o filespec.o filters.o     \
+	  delete.o dirwin.o display.o edit.o error.o execute.o filter.o     \
 	  filewin.o freesp.o global.o group.o hex.o history.o init.o input.o keyhtab.o \
 	  log.o main.o mkdir.o move.o passwd.o pipe.o    \
 	  profile.o quit.o readtree.o rename.o rmdir.o sort.o stats.o \
@@ -95,9 +95,8 @@ display_utils.o: config.h ytree.h display_utils.c
 edit.o: config.h ytree.h edit.c
 error.o: config.h ytree.h error.c patchlev.h
 execute.o: config.h ytree.h execute.c
-filespec.o: config.h ytree.h filespec.c
+filter.o: config.h ytree.h filter.c
 filewin.o: config.h ytree.h filewin.c
-filters.o: config.h ytree.h filters.c
 freesp.o: config.h ytree.h freesp.c
 global.o: config.h ytree.h global.c
 group.o: config.h ytree.h group.c

@@ -358,7 +358,7 @@ int RescanDir(DirEntry *dir_entry, int depth)
     /* Global matching stats are now incorrect. Reset and recalculate. */
     statistic.disk_matching_files = 0L;
     statistic.disk_matching_bytes = 0L;
-    SetMatchingParam(statistic.tree);
+    ApplyFilter(statistic.tree);
 
     return 0;
 }
