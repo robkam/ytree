@@ -537,7 +537,7 @@ static void HandlePlus(DirEntry *dir_entry, DirEntry *de_ptr, char *new_login_pa
 	for( de_ptr=dir_entry->sub_tree; de_ptr; de_ptr=de_ptr->next) {
 	    GetPath( de_ptr, new_login_path );
 	    ReadTree( de_ptr, new_login_path, 0 );
-	    SetMatchingParam( de_ptr );
+	    ApplyFilter( de_ptr );
 	}
 	dir_entry->not_scanned = FALSE;
 	BuildDirEntryList( start_dir_entry, &statistic );
@@ -913,7 +913,7 @@ int HandleDirWindow(DirEntry *start_dir_entry)
        DisplayDirParameter( dir_entry );
        need_dsp_help = TRUE;
        DisplayAvailBytes();
-       DisplayFileSpec();
+       DisplayFilter();
        DisplayDiskName();
        resize_request = FALSE;
     }
@@ -973,7 +973,7 @@ int HandleDirWindow(DirEntry *start_dir_entry)
                      }
 		     break;
       case 'F':
-      case 'f':      if(ReadFileSpec() == 0) {
+      case 'f':      if(ReadFilter() == 0) {
 		       dir_entry->start_file = 0;
 		       dir_entry->cursor_pos = -1;
                        DisplayFileWindow( dir_entry );
@@ -1157,7 +1157,7 @@ int ScanSubTree( DirEntry *dir_entry )
     for( de_ptr=dir_entry->sub_tree; de_ptr; de_ptr=de_ptr->next) {
       GetPath( de_ptr, new_login_path );
       ReadTree( de_ptr, new_login_path, 999 );
-      SetMatchingParam( de_ptr );
+      ApplyFilter( de_ptr );
     }
     dir_entry->not_scanned = FALSE;
   } else {

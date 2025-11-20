@@ -1182,7 +1182,7 @@ int HandleFileWindow(DirEntry *dir_entry)
      }
      need_dsp_help = TRUE;
      DisplayAvailBytes();
-     DisplayFileSpec();
+     DisplayFilter();
      DisplayDiskName();
      resize_request = FALSE;
    }
@@ -2082,14 +2082,14 @@ int HandleFileWindow(DirEntry *dir_entry)
 		      break;
 
       case 'F':
-      case 'f':       if(ReadFileSpec() == 0) {
+      case 'f':       if(ReadFilter() == 0) {
 
 		        dir_entry->start_file = 0;
 		        dir_entry->cursor_pos = 0;
 
 		        BuildFileEntryList( dir_entry );
 
-		        DisplayFileSpec();
+		        DisplayFilter();
 		        DisplayFiles( dir_entry,
 				      dir_entry->start_file,
 				      dir_entry->start_file + dir_entry->cursor_pos,

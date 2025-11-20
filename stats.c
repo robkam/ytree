@@ -60,7 +60,7 @@ void DisplayAvailBytes(void)
 
 
 
-void DisplayFileSpec(void)
+void DisplayFilter(void)
 {
   mvwprintw( stdscr, 2,  COLS - 18, "%-17s", statistic.file_spec );
   RefreshWindow( stdscr );

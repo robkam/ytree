@@ -1,7 +1,10 @@
 /***************************************************************************
  *
- * filters.c
- * Handling of regular expressions for filenames, attributes, date, and size filtering
+ * filter.c
+ * Unified filtering subsystem: Handles regex/attribute/date/size matching
+ * and user input/prompting for filters.
+ *
+ * Consolidates logic from legacy filespec.c and filters.c.
  *
  ***************************************************************************/
 
@@ -11,6 +14,8 @@
 #include <stdlib.h>
 #include <time.h>
 #include <ctype.h>
+
+/* --- Internal Structures and Globals --- */
 
 typedef struct _MatchRule {
     regex_t re;
@@ -49,6 +54,8 @@ static off_t size_eq_val = 0;
 static MatchRule *rules_head = NULL;
 
 
+/* --- Internal Helper Functions --- */
+
 static void FreeMatchRules(void) {
     MatchRule *current = rules_head;
     while (current) {
@@ -59,7 +66,6 @@ static void FreeMatchRules(void) {
     }
     rules_head = NULL;
 }
-
 
 static int AddRule(char *pattern, BOOL is_exclude) {
     char *buffer;
@@ -214,7 +220,11 @@ static int ParseSize(char *str, off_t *size) {
     return 0;
 }
 
-int SetMatchSpec(char *new_spec)
+/*
+ * Parses the filter string and sets global requirement flags and rules.
+ * Replaces the old SetMatchSpec.
+ */
+static int ParseFilterSpec(char *new_spec)
 {
   char *spec_copy;
   char *token, *saveptr;
@@ -336,8 +346,112 @@ int SetMatchSpec(char *new_spec)
   return 0;
 }
 
+/* --- Public API Functions --- */
 
+/*
+ * Sets the current filter specification, parses it, and re-applies matching
+ * to the entire file tree.
+ * Renamed from SetFileSpec.
+ */
+int SetFilter(char *filter_spec)
+{
+  if( ParseFilterSpec( filter_spec ) )
+  {
+    return( 1 );
+  }
 
+  statistic.disk_matching_files = 0L;
+  statistic.disk_matching_bytes = 0L;
+
+  ApplyFilter( statistic.tree );
+
+  return( 0 );
+}
+
+/*
+ * Recursively iterates through the directory tree and sets the 'matching'
+ * flag for files that meet the current filter criteria.
+ * Renamed from SetMatchingParam.
+ */
+void ApplyFilter(DirEntry *dir_entry)
+{
+  DirEntry  *de_ptr;
+  FileEntry *fe_ptr;
+  unsigned long  matching_files;
+  LONGLONG matching_bytes;
+
+  for( de_ptr = dir_entry; de_ptr; de_ptr = de_ptr->next )
+  {
+    matching_files = 0L;
+    matching_bytes = 0L;
+
+    for( fe_ptr = de_ptr->file; fe_ptr; fe_ptr = fe_ptr->next )
+    {
+      if( Match( fe_ptr ) )
+      {
+        matching_files++;
+        matching_bytes += fe_ptr->stat_struct.st_size;
+        fe_ptr->matching = TRUE;
+      }
+      else
+      {
+        fe_ptr->matching = FALSE;
+      }
+    }
+
+    de_ptr->matching_files = matching_files;
+    de_ptr->matching_bytes = matching_bytes;
+
+    statistic.disk_matching_files += matching_files;
+    statistic.disk_matching_bytes += matching_bytes;
+
+    if( de_ptr->sub_tree )
+    {
+      ApplyFilter( de_ptr->sub_tree );
+    }
+  }
+}
+
+/*
+ * Prompts the user to enter a new filter string and applies it.
+ * Renamed from ReadFileSpec.
+ */
+int ReadFilter(void)
+{
+  int result = -1;
+
+  char buffer[FILE_SPEC_LENGTH * 2 + 1];
+
+  ClearHelp();
+
+  (void) strcpy( buffer, "*" );
+
+  /* Display help and prompt */
+  MvAddStr( LINES - 3, 1, "Patterns: name* *.ext  *.c,*.h -*.o :d :w :x :l > < = 2025-01-01, 10k, 1M, 1G" );
+  MvAddStr( LINES - 2, 1, "FILTER:" );
+
+  /* Use available screen width (COLS - 9) but clamp to buffer size.
+     x position is 8, so available width is COLS - 8 - 1 */
+  if( InputString( buffer, LINES - 2, 8, 0, MINIMUM(FILE_SPEC_LENGTH, COLS - 9), "\r\033" ) == CR )
+  {
+    if( SetFilter( buffer ) )
+    {
+      MESSAGE( "Invalid Filter Spec" );
+    }
+    else
+    {
+      (void) strcpy( statistic.file_spec, buffer );
+      result = 0;
+    }
+  }
+  move( LINES - 3, 1 ); clrtoeol();
+  move( LINES - 2, 1 ); clrtoeol();
+  return(result);
+}
+
+/*
+ * Checks if a single file entry matches the current active rules.
+ */
 BOOL Match(FileEntry *fe)
 {
   MatchRule *curr;

@@ -725,20 +725,17 @@ extern int ExecuteCommand(FileEntry *fe_ptr, WalkingPackage *walking_package);
 extern int GetCommandLine(char *command_line);
 extern int GetSearchCommandLine(char *command_line);
 
-/* filespec.c */
-extern int ReadFileSpec(void);
-extern int SetFileSpec(char *file_spec);
-extern void SetMatchingParam(DirEntry *dir_entry);
+/* filter.c */
+extern int ReadFilter(void);
+extern int SetFilter(char *filter_spec);
+extern void ApplyFilter(DirEntry *dir_entry);
+extern BOOL Match(FileEntry *fe);
 
 /* filewin.c */
 extern void DisplayFileWindow(DirEntry *dir_entry);
 extern int HandleFileWindow(DirEntry *dir_entry);
 extern void RotateFileMode(void);
 extern void SetFileMode(int new_file_mode);
-
-/* filters.c */
-extern BOOL Match(FileEntry *fe);
-extern int SetMatchSpec(char *new_spec);
 
 /* freesp.c */
 extern int GetAvailBytes(LONGLONG *avail_bytes);
@@ -847,7 +844,7 @@ extern int DeleteDirectory(DirEntry *dir_entry);
 extern void GetKindOfSort(void);
 extern void SetKindOfSort(int new_kind_of_sort);
 
-/* stat.c */
+/* stats.c */
 extern void DisplayAvailBytes(void);
 extern void DisplayDirParameter(DirEntry *dir_entry);
 extern void DisplayDirStatistic(DirEntry *dir_entry);
@@ -856,7 +853,7 @@ extern void DisplayDiskName(void);
 extern void DisplayDiskStatistic(void);
 extern void DisplayDiskTagged(void);
 extern void DisplayFileParameter(FileEntry *file_entry);
-extern void DisplayFileSpec(void);
+extern void DisplayFilter(void);
 extern void DisplayGlobalFileParameter(FileEntry *file_entry);
 extern void RecalculateSysStats(void);
 
