@@ -1,7 +1,7 @@
 /***************************************************************************
  *
  * filters.c
- * Handling of regular expressions for filenames, attributes, and date filtering
+ * Handling of regular expressions for filenames, attributes, date, and size filtering
  *
  ***************************************************************************/
 
@@ -10,6 +10,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <time.h>
+#include <ctype.h>
 
 typedef struct _MatchRule {
     regex_t re;
@@ -34,6 +35,16 @@ static time_t date_before_val = 0;
 static BOOL req_date_equal = FALSE;
 static time_t date_equal_min = 0;
 static time_t date_equal_max = 0;
+
+/* Global size requirement flags */
+static BOOL req_size_gt = FALSE;
+static off_t size_gt_val = 0;
+
+static BOOL req_size_lt = FALSE;
+static off_t size_lt_val = 0;
+
+static BOOL req_size_eq = FALSE;
+static off_t size_eq_val = 0;
 
 static MatchRule *rules_head = NULL;
 
@@ -159,6 +170,50 @@ static int ParseDateRange(char *str, time_t *min, time_t *max) {
     return -1; /* Parse failed */
 }
 
+/*
+ * Parse a size string (e.g., "100", "10k", "1M", "1G").
+ * Case insensitive suffixes.
+ * k=1024, M=1024^2, G=1024^3
+ * Returns 0 on success, -1 on failure.
+ */
+static int ParseSize(char *str, off_t *size) {
+    char *endptr;
+    long long val;
+
+    /* Check for empty string */
+    if (!str || !*str) return -1;
+
+    errno = 0;
+    val = strtoll(str, &endptr, 10);
+
+    if ((errno == ERANGE && (val == LLONG_MAX || val == LLONG_MIN)) || (errno != 0 && val == 0)) {
+        return -1;
+    }
+
+    if (endptr == str) {
+        return -1; /* No digits found */
+    }
+
+    /* Skip whitespace after number */
+    while (isspace((unsigned char)*endptr)) endptr++;
+
+    if (*endptr) {
+        switch (toupper((unsigned char)*endptr)) {
+            case 'K': val *= 1024; break;
+            case 'M': val *= 1024 * 1024; break;
+            case 'G': val *= 1024 * 1024 * 1024; break;
+            default: return -1; /* Invalid suffix */
+        }
+        /* Check for extra garbage after suffix */
+        endptr++;
+        while (isspace((unsigned char)*endptr)) endptr++;
+        if (*endptr) return -1;
+    }
+
+    *size = (off_t)val;
+    return 0;
+}
+
 int SetMatchSpec(char *new_spec)
 {
   char *spec_copy;
@@ -176,6 +231,10 @@ int SetMatchSpec(char *new_spec)
   req_date_after = FALSE;
   req_date_before = FALSE;
   req_date_equal = FALSE;
+
+  req_size_gt = FALSE;
+  req_size_lt = FALSE;
+  req_size_eq = FALSE;
 
   if (!new_spec || !*new_spec) {
       return 0;
@@ -210,34 +269,46 @@ int SetMatchSpec(char *new_spec)
               c++;
           }
       } else if (*token == '>') {
-          /* Date After */
+          /* Greater Than: Try Date first, then Size */
           time_t t_min, t_max;
+          off_t s_val;
           if (ParseDateRange(token + 1, &t_min, &t_max) == 0) {
               req_date_after = TRUE;
-              date_after_val = t_max; /* > matches after the END of the specified range/day */
+              date_after_val = t_max;
+          } else if (ParseSize(token + 1, &s_val) == 0) {
+              req_size_gt = TRUE;
+              size_gt_val = s_val;
           } else {
               free(spec_copy);
               FreeMatchRules();
               return 1;
           }
       } else if (*token == '<') {
-          /* Date Before */
+          /* Less Than: Try Date first, then Size */
           time_t t_min, t_max;
+          off_t s_val;
           if (ParseDateRange(token + 1, &t_min, &t_max) == 0) {
               req_date_before = TRUE;
-              date_before_val = t_min; /* < matches before the START of the specified range/day */
+              date_before_val = t_min;
+          } else if (ParseSize(token + 1, &s_val) == 0) {
+              req_size_lt = TRUE;
+              size_lt_val = s_val;
           } else {
               free(spec_copy);
               FreeMatchRules();
               return 1;
           }
       } else if (*token == '=') {
-          /* Date Equal (Range) */
+          /* Equal: Try Date first, then Size */
           time_t t_min, t_max;
+          off_t s_val;
           if (ParseDateRange(token + 1, &t_min, &t_max) == 0) {
               req_date_equal = TRUE;
               date_equal_min = t_min;
               date_equal_max = t_max;
+          } else if (ParseSize(token + 1, &s_val) == 0) {
+              req_size_eq = TRUE;
+              size_eq_val = s_val;
           } else {
               free(spec_copy);
               FreeMatchRules();
@@ -286,10 +357,16 @@ BOOL Match(FileEntry *fe)
   if (req_date_before && fe->stat_struct.st_mtime >= date_before_val) return FALSE;
   if (req_date_equal && (fe->stat_struct.st_mtime < date_equal_min || fe->stat_struct.st_mtime > date_equal_max)) return FALSE;
 
-  /* If no regex rules are defined, match everything (passed attributes & date) */
+  /* 2. Check Size Constraints */
+  if (req_size_gt && fe->stat_struct.st_size <= size_gt_val) return FALSE;
+  if (req_size_lt && fe->stat_struct.st_size >= size_lt_val) return FALSE;
+  if (req_size_eq && fe->stat_struct.st_size != size_eq_val) return FALSE;
+
+
+  /* If no regex rules are defined, match everything (passed attributes & date & size) */
   if (!rules_head) return TRUE;
 
-  /* 2. Check Excludes - If any match, reject immediately */
+  /* 3. Check Excludes - If any match, reject immediately */
   for (curr = rules_head; curr; curr = curr->next) {
       if (curr->is_exclude) {
           if (regexec(&curr->re, fe->name, 0, NULL, 0) == 0) {
@@ -300,7 +377,7 @@ BOOL Match(FileEntry *fe)
       }
   }
 
-  /* 3. Check Includes */
+  /* 4. Check Includes */
   if (!has_includes) {
       /* No specific includes defined (e.g. only excludes like -*.o),
          so everything not excluded matches. */
