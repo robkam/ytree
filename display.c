@@ -205,17 +205,21 @@ void DisplayMenu(void)
   PrintLine( stdscr, 1, 0, first_line, COLS - 25);
   PrintMenuLine( stdscr, y, 0, last_line );
 
-  l = sizeof(logo) / sizeof(logo[0]);
-  c = strlen( logo[0] );
+  /* Only display static logo if animation is disabled */
+  if (animation_method == 0) {
+      l = sizeof(logo) / sizeof(logo[0]);
+      c = strlen( logo[0] );
 
-  for( y=0; y < l; y++ )
-  {
-    MvWAddStr( dir_window,
-	       y + ((DIR_WINDOW_HEIGHT - l) >> 1),
-	       (DIR_WINDOW_WIDTH - c) >> 1,
-	       logo[y]
-	     );
+      for( y=0; y < l; y++ )
+      {
+        MvWAddStr( dir_window,
+           y + ((DIR_WINDOW_HEIGHT - l) >> 1),
+           (DIR_WINDOW_WIDTH - c) >> 1,
+           logo[y]
+         );
+      }
   }
+
   DisplayVersion();
 
   touchwin( dir_window );

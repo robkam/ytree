@@ -597,6 +597,7 @@ extern BOOL      resize_request;
 extern BOOL      bypass_small_window;
 extern BOOL      highlight_full_line;
 extern BOOL      hide_dot_files;
+extern int       animation_method;
 extern char      number_seperator;
 extern char      *initial_directory;
 extern char 	 builtin_hexdump_cmd[];
@@ -622,6 +623,11 @@ extern void MinimizeArchiveTree(DirEntry *tree);
 
 /* readarchive.c */
 extern int ReadTreeFromArchive(DirEntry *dir_entry, const char *filename);
+
+/* animate.c */
+extern void InitAnimation(void);
+extern void StopAnimation(void);
+extern void DrawAnimationStep(WINDOW *win);
 
 /* chgrp.c */
 extern int ChangeDirGroup(DirEntry *de_ptr);

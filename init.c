@@ -82,6 +82,7 @@ int Init(char *configuration_file, char *history_file)
   bypass_small_window = (strtol(NOSMALLWINDOW, NULL, 0 )) ? TRUE : FALSE;
   highlight_full_line = (strtol(GetProfileValue("HIGHLIGHT_FULL_LINE"), NULL, 0)) ? TRUE : FALSE;
   hide_dot_files = (strtol(HIDEDOTFILES, NULL, 0)) ? TRUE : FALSE;
+  animation_method = strtol(GetProfileValue("ANIMATION"), NULL, 0);
   initial_directory = INITIALDIR;
 
   InitClock();

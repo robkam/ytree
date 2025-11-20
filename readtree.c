@@ -97,9 +97,17 @@ int ReadTree(DirEntry *dir_entry, char *path, int depth)
       Quit();  /* Abfrage ob ytree verlassen werden soll */
     }
 
-    if( ( file_count++ % 100 ) == 0 ) {
-      DisplayDiskStatistic();
-      doupdate();
+    /* Update statistics / animation every 20 files to be smoother */
+    if( ( file_count++ % 20 ) == 0 ) {
+      if (animation_method == 1) {
+          DrawAnimationStep(file_window);
+          doupdate();
+      } else {
+          if ((file_count % 100) == 0) { /* Don't flicker stats too fast */
+              DisplayDiskStatistic();
+              doupdate();
+          }
+      }
     }
 
 

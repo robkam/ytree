@@ -161,9 +161,16 @@ int LoginDisk(char *path)
 			   &statistic.disk_capacity
 			 );
 
-  RefreshWindow( stdscr );
-  RefreshWindow( dir_window );
+
   DisplayMenu();
+
+  if(animation_method == 1) {
+      SwitchToBigFileWindow();
+      InitAnimation();
+  } else {
+      RefreshWindow( stdscr );
+      RefreshWindow( dir_window );
+  }
   doupdate();
 
 
@@ -172,13 +179,13 @@ int LoginDisk(char *path)
     (void) strcpy( statistic.tree->name, path );
 
 #ifdef HAVE_LIBARCHIVE
-    Notice("Scanning archive...");
+    if (animation_method == 0) Notice("Scanning archive...");
     if (ReadTreeFromArchive(statistic.tree, statistic.login_path))
     {
         /* Error message will have been displayed by the function */
         result = -1;
     }
-    UnmapNoticeWindow();
+    if (animation_method == 0) UnmapNoticeWindow();
 #else
     ERROR_MSG("Archive support not compiled.*Please install libarchive-dev*and recompile ytree.");
     result = -1;
@@ -202,6 +209,10 @@ int LoginDisk(char *path)
     if( ReadTree( statistic.tree, path, depth ) )
     {
       ERROR_MSG( "ReadTree Failed" );
+      if(animation_method == 1) {
+          StopAnimation();
+          SwitchToSmallFileWindow();
+      }
       return( -1 );
     }
 
@@ -213,6 +224,11 @@ int LoginDisk(char *path)
 		   (char *) &statistic,
 		   sizeof( Statistic )
 		 );
+  }
+
+  if(animation_method == 1) {
+      StopAnimation();
+      SwitchToSmallFileWindow();
   }
 
   (void) SetFilter( statistic.file_spec );
