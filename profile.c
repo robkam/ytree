@@ -58,6 +58,7 @@ static Filemenu filemenu;
 
 /* must be sorted! */
 static Profile profile[] = {
+  { "ANIMATION",        DEFAULT_ANIMATION,     NULL,     NULL },
   { "AUDIBLEERROR", 	DEFAULT_AUDIBLEERROR,  NULL, NULL },
   { "BUNZIP",       	DEFAULT_BUNZIP,        NULL,     NULL },
   { "CAT",          	DEFAULT_CAT,           NULL,     NULL },

@@ -30,6 +30,7 @@ BOOL	  resize_request;
 BOOL	  bypass_small_window;
 BOOL      highlight_full_line;
 BOOL      hide_dot_files;
+int       animation_method;
 char      number_seperator;
 char	  *initial_directory;
 

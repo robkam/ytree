@@ -50,6 +50,7 @@ int ReadTreeFromArchive(DirEntry *dir_entry, const char *filename)
     int r;
     char path_buffer[PATH_LENGTH * 2]; /* Buffer for path + symlink target */
     struct stat stat_buf;
+    int count = 0;
 
     *dir_entry->name = '\0';
 
@@ -104,8 +105,19 @@ int ReadTreeFromArchive(DirEntry *dir_entry, const char *filename)
         if (KeyPressed()) {
             Quit();
         }
-        DisplayDiskStatistic();
-        doupdate();
+
+        /* Update statistics / animation every 20 files */
+        if( ( count++ % 20 ) == 0 ) {
+            if (animation_method == 1) {
+                DrawAnimationStep(file_window);
+                doupdate();
+            } else {
+                if ((count % 100) == 0) {
+                    DisplayDiskStatistic();
+                    doupdate();
+                }
+            }
+        }
     }
 
     MinimizeArchiveTree(dir_entry);
