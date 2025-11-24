@@ -88,7 +88,7 @@ uninstall:	clobber
 	rm -f $(MANDIR)/ytree.1.gz
 
 clean:
-	rm -f core *.o *~ *.orig *.bak ytree.1
+	rm -f core *.o *.gz *~ *.orig *.bak ytree.1
 
 clobber:	clean
 	rm -f $(MAIN) ytree.1.gz
