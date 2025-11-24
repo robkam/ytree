@@ -1094,6 +1094,7 @@ int HandleFileWindow(DirEntry *dir_entry)
   char new_name[PATH_LENGTH+1];
   char new_login_path[PATH_LENGTH + 1];
   int  dir_window_width, dir_window_height;
+  int  get_dir_ret;
 
 
   unput_char = '\0';
@@ -1712,29 +1713,23 @@ int HandleFileWindow(DirEntry *dir_entry)
               }
               else
               {
-                  if( GetDirEntry( statistic.tree, de_ptr, to_dir, &dest_dir_entry, to_path ) )
-                  {
+                  get_dir_ret = GetDirEntry( statistic.tree, de_ptr, to_dir, &dest_dir_entry, to_path );
+                  if (get_dir_ret == -1) { /* System error */
                       break;
                   }
-              }
-
-              if( !CopyFile( &statistic, fe_ptr, TRUE, to_file, dest_dir_entry, to_path, path_copy ) )
-              {
-                  DisplayAvailBytes();
-                  if( dest_dir_entry )
-                  {
-                      if( dir_entry->global_flag )
-                        DisplayDiskStatistic();
-                      else
-                        DisplayDirStatistic( de_ptr );
-
-                      if( dest_dir_entry == de_ptr )
-                      {
-                        BuildFileEntryList( dir_entry );
-                        DisplayFiles( dir_entry, dir_entry->start_file, dir_entry->start_file + dir_entry->cursor_pos, start_x );
-                      }
+                  if (get_dir_ret == -3) { /* Directory not found, proceed */
+                      dest_dir_entry = NULL;
                   }
               }
+
+              CopyFile( &statistic, fe_ptr, TRUE, to_file, dest_dir_entry, to_path, path_copy );
+
+              /* Force a full refresh of the file window state after copy attempt */
+              DisplayAvailBytes();
+              DisplayFileWindow(dir_entry);
+              keypad(file_window, TRUE);
+              touchwin(file_window);
+              wrefresh(file_window);
 		      break;
 
       case 'Y' & 0x1F :
@@ -1770,8 +1765,12 @@ int HandleFileWindow(DirEntry *dir_entry)
                     }
                     dest_dir_entry = NULL;
                 } else {
-                    if( GetDirEntry( statistic.tree, de_ptr, to_dir, &dest_dir_entry, to_path ) ) {
+                    get_dir_ret = GetDirEntry( statistic.tree, de_ptr, to_dir, &dest_dir_entry, to_path );
+                    if (get_dir_ret == -1) { /* System error */
                         break;
+                    }
+                    if (get_dir_ret == -3) { /* Directory not found, proceed */
+                        dest_dir_entry = NULL;
                     }
                 }
 
@@ -1796,12 +1795,11 @@ int HandleFileWindow(DirEntry *dir_entry)
 
                           DisplayAvailBytes();
 
-
-			  DisplayFiles( dir_entry,
-					dir_entry->start_file,
-					dir_entry->start_file + dir_entry->cursor_pos,
-					start_x
-				      );
+                          /* Force a full refresh of the file window state after copy attempt */
+                          DisplayFileWindow(dir_entry);
+                          keypad(file_window, TRUE);
+                          touchwin(file_window);
+                          wrefresh(file_window);
 		      }
 		      break;
 

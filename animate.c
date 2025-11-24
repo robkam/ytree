@@ -7,7 +7,7 @@
 
 #include "ytree.h"
 
-#define WARP_STARS 100
+#define WARP_STARS 50
 
 typedef struct {
     float x, y, z;
