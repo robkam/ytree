@@ -20,8 +20,8 @@ WINDOW *matches_window;
 WINDOW *f2_window;
 WINDOW *time_window;
 
-Statistic statistic;
-Statistic disk_statistic;
+struct Volume *CurrentVolume = NULL;
+struct Volume *VolumeList = NULL;
 int       mode;
 int	  user_umask;
 char      message[MESSAGE_LENGTH + 1];
