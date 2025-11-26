@@ -57,6 +57,8 @@
 #include <wchar.h>
 #endif
 
+#include "uthash.h" /* Required for volume management */
+
 /* --- Consolidated Large File / 64-bit Definitions --- */
 
 /* Assume modern POSIX systems use long long for 64-bit ints */
@@ -503,6 +505,14 @@ typedef struct
   char          disk_name[DISK_NAME_LENGTH + 1];
 } Statistic;
 
+/* Volume structure to hold per-volume state */
+struct Volume {
+    int id;                 /* Key for hash table */
+    Statistic statistic;    /* Holds tree, path, current dir stats */
+    Statistic disk_statistic; /* Holds filesystem totals */
+    UT_hash_handle hh;      /* For uthash macros */
+};
+
 
 typedef union
 {
@@ -588,8 +598,14 @@ extern WINDOW *matches_window;
 extern WINDOW *f2_window;
 extern WINDOW *time_window;
 
-extern Statistic statistic;
-extern Statistic disk_statistic;
+/* Global volume management */
+extern struct Volume *CurrentVolume;
+extern struct Volume *VolumeList;
+
+/* Compatibility layer for existing code using global 'statistic' and 'disk_statistic' */
+#define statistic (CurrentVolume->statistic)
+#define disk_statistic (CurrentVolume->disk_statistic)
+
 extern int       mode;
 extern int       user_umask;
 extern char      message[];
