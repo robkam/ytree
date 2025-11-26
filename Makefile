@@ -68,7 +68,7 @@ OBJS	= display_utils.o owner_utils.o path_utils.o string_utils.o tree_utils.o \
 	  filewin.o freesp.o global.o group.o hex.o history.o init.o input.o keyhtab.o \
 	  log.o main.o mkdir.o move.o passwd.o pipe.o    \
 	  profile.o quit.o readtree.o rename.o rmdir.o sort.o stats.o \
-	  system.o usermode.o view.o
+	  system.o usermode.o view.o volume.o
 
 $(MAIN):	$(OBJS)
 	$(CC) $(LFLAGS) -o $@ $(OBJS) $(LDFLAGS)
@@ -141,3 +141,4 @@ system.o: config.h ytree.h system.c
 tree_utils.o: config.h ytree.h tree_utils.c
 usermode.o: config.h ytree.h usermode.c
 view.o: config.h ytree.h view.c
+volume.o: config.h ytree.h volume.c
