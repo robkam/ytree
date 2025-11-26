@@ -139,7 +139,7 @@
 #endif /* S_ISBLK */
 
 #ifndef S_ISFIFO
-#define S_ISFIFO( mode )   (((mode) & S_IFMT) == S_IFIFO)
+#define S_ISFIFO( mode )   (((mode) & S_IFMT) == S_IFFIFO)
 #endif /* S_ISFIFO */
 
 #ifndef S_ISLNK
@@ -628,6 +628,9 @@ extern char *getenv(const char *);
 /* ========================================================================= */
 /*                       FUNCTION PROTOTYPES                                 */
 /* ========================================================================= */
+
+/* volume.c */
+extern struct Volume *Volume_Create(void);
 
 /* main.c */
 extern int ytree(int argc, char *argv[]);

@@ -23,15 +23,8 @@ int Init(char *configuration_file, char *history_file)
   char buffer[PATH_LENGTH + 1];
   char *home = NULL;
 
-  /* Allocate and initialize the first volume */
-  CurrentVolume = calloc(1, sizeof(struct Volume));
-  if (CurrentVolume == NULL) {
-    /* Fatal error: cannot proceed without a volume */
-    fprintf(stderr, "Fatal: Could not allocate CurrentVolume. Out of memory.\n");
-    exit(1);
-  }
-  CurrentVolume->id = 0; /* Assign a unique ID, 0 for the initial volume */
-  HASH_ADD_INT(VolumeList, id, CurrentVolume); /* Add to the global volume list */
+  /* Allocate and initialize the first volume using the dedicated module */
+  CurrentVolume = Volume_Create();
 
   /* Use setlocale to correctly initialize for WITH_UTF8 or system locale */
   setlocale(LC_ALL, "");
