@@ -285,7 +285,8 @@ void UnReadTree(DirEntry *dir_entry)
     {
       UnReadSubTree( dir_entry->sub_tree );
     }
-    statistic.disk_total_directories--;
+    if (statistic.disk_total_directories > 0)
+        statistic.disk_total_directories--;
     (void) GetAvailBytes( &statistic.disk_space );
     DisplayDiskStatistic();
     doupdate();
@@ -314,7 +315,8 @@ void UnReadSubTree(DirEntry *dir_entry)
     }
 
     if( !de_ptr->up_tree->not_scanned )
-      statistic.disk_total_directories--;
+      if (statistic.disk_total_directories > 0)
+          statistic.disk_total_directories--;
 
     if( de_ptr->prev ) de_ptr->prev->next = de_ptr->next;
     else de_ptr->up_tree->sub_tree = de_ptr->next;

@@ -809,6 +809,7 @@ extern int WGetch(WINDOW *win);
 extern int GetNewLoginPath(char *path);
 extern int LoginDisk(char *path);
 extern int SelectLoadedVolume(void);
+extern int CycleLoadedVolume(int direction); /* Added for volume cycling */
 
 /* mkdir.c */
 extern int MakeDirEntry( DirEntry *father_dir_entry, char *dir_name );
