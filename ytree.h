@@ -3,7 +3,7 @@
  * ytree.h
  * Header-Datei fuer YTREE
  *
- ***************************************************************************/
+ *******************************************************************/
 
 #ifndef YTREE_H
 #define YTREE_H
@@ -808,6 +808,7 @@ extern int WGetch(WINDOW *win);
 /* log.c */
 extern int GetNewLoginPath(char *path);
 extern int LoginDisk(char *path);
+extern int SelectLoadedVolume(void);
 
 /* mkdir.c */
 extern int MakeDirEntry( DirEntry *father_dir_entry, char *dir_name );
