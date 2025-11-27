@@ -508,8 +508,8 @@ typedef struct
 /* Volume structure to hold per-volume state */
 struct Volume {
     int id;                 /* Key for hash table */
-    Statistic statistic;    /* Holds tree, path, current dir stats */
-    Statistic disk_statistic; /* Holds filesystem totals */
+    Statistic vol_stats;    /* Holds tree, path, current dir stats */
+    Statistic vol_disk_stats; /* Holds filesystem totals */
     UT_hash_handle hh;      /* For uthash macros */
 };
 
@@ -603,8 +603,8 @@ extern struct Volume *CurrentVolume;
 extern struct Volume *VolumeList;
 
 /* Compatibility layer for existing code using global 'statistic' and 'disk_statistic' */
-#define statistic (CurrentVolume->statistic)
-#define disk_statistic (CurrentVolume->disk_statistic)
+#define statistic (CurrentVolume->vol_stats)
+#define disk_statistic (CurrentVolume->vol_disk_stats)
 
 extern int       mode;
 extern int       user_umask;
@@ -631,6 +631,7 @@ extern char *getenv(const char *);
 
 /* volume.c */
 extern struct Volume *Volume_Create(void);
+extern void Volume_Delete(struct Volume *vol);
 
 /* main.c */
 extern int ytree(int argc, char *argv[]);
