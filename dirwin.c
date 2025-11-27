@@ -1190,9 +1190,14 @@ int HandleDirWindow(DirEntry *start_dir_entry)
               if (res == 0) { /* If volume switch was successful */
                   start_dir_entry = statistic.tree; /* CRITICAL: Update local pointer to new volume's tree root */
                   BuildDirEntryList(start_dir_entry, &statistic); /* Rebuild list for the new tree */
-                  statistic.cursor_pos = 0;
-                  statistic.disp_begin_pos = 0;
-                  /* Update local dir_entry pointer to the first entry of the new list */
+                  /* PRESERVE STATE: Remove lines resetting cursor_pos and disp_begin_pos.
+                   * These are now loaded from the Volume struct by LoginDisk. */
+                  /* Safety check for cursor validity after list rebuild */
+                  if (statistic.disp_begin_pos + statistic.cursor_pos >= total_dirs) {
+                      statistic.disp_begin_pos = 0;
+                      statistic.cursor_pos = 0;
+                  }
+                  /* Update local dir_entry pointer to the currently selected entry of the new list */
                   if (total_dirs > 0) {
                       dir_entry = dir_entry_list[statistic.disp_begin_pos + statistic.cursor_pos].dir_entry;
                   } else {
@@ -1215,9 +1220,14 @@ int HandleDirWindow(DirEntry *start_dir_entry)
               if (res == 0) { /* If volume switch was successful */
                   start_dir_entry = statistic.tree; /* CRITICAL: Update local pointer to new volume's tree root */
                   BuildDirEntryList(start_dir_entry, &statistic); /* Rebuild list for the new tree */
-                  statistic.cursor_pos = 0;
-                  statistic.disp_begin_pos = 0;
-                  /* Update local dir_entry pointer to the first entry of the new list */
+                  /* PRESERVE STATE: Remove lines resetting cursor_pos and disp_begin_pos.
+                   * These are now loaded from the Volume struct by LoginDisk. */
+                  /* Safety check for cursor validity after list rebuild */
+                  if (statistic.disp_begin_pos + statistic.cursor_pos >= total_dirs) {
+                      statistic.disp_begin_pos = 0;
+                      statistic.cursor_pos = 0;
+                  }
+                  /* Update local dir_entry pointer to the currently selected entry of the new list */
                   if (total_dirs > 0) {
                       dir_entry = dir_entry_list[statistic.disp_begin_pos + statistic.cursor_pos].dir_entry;
                   } else {
@@ -1240,9 +1250,14 @@ int HandleDirWindow(DirEntry *start_dir_entry)
               if (res == 0) { /* If volume switch was successful */
                   start_dir_entry = statistic.tree; /* CRITICAL: Update local pointer to new volume's tree root */
                   BuildDirEntryList(start_dir_entry, &statistic); /* Rebuild list for the new tree */
-                  statistic.cursor_pos = 0;
-                  statistic.disp_begin_pos = 0;
-                  /* Update local dir_entry pointer to the first entry of the new list */
+                  /* PRESERVE STATE: Remove lines resetting cursor_pos and disp_begin_pos.
+                   * These are now loaded from the Volume struct by LoginDisk. */
+                  /* Safety check for cursor validity after list rebuild */
+                  if (statistic.disp_begin_pos + statistic.cursor_pos >= total_dirs) {
+                      statistic.disp_begin_pos = 0;
+                      statistic.cursor_pos = 0;
+                  }
+                  /* Update local dir_entry pointer to the currently selected entry of the new list */
                   if (total_dirs > 0) {
                       dir_entry = dir_entry_list[statistic.disp_begin_pos + statistic.cursor_pos].dir_entry;
                   } else {

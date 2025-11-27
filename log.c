@@ -26,6 +26,7 @@ int LoginDisk(char *path)
   struct Volume *s, *tmp;
   struct Volume *found_vol = NULL;
   struct Volume *old_vol = NULL;
+  BOOL   is_new_vol_created = FALSE; /* Flag to track if we actually called Volume_Create */
 
   /* 1. Normalize Path */
   /* Use realpath to get the canonical path. If it fails (e.g., path doesn't exist yet,
@@ -77,7 +78,7 @@ int LoginDisk(char *path)
 
   /* Save current filter to preserve it across transitions.
    * 'statistic' here refers to CurrentVolume->vol_stats via macro. */
-  if (strlen(statistic.file_spec) > 0) {
+  if (CurrentVolume != NULL && strlen(statistic.file_spec) > 0) {
       strncpy(saved_filter, statistic.file_spec, FILE_SPEC_LENGTH);
       saved_filter[FILE_SPEC_LENGTH] = '\0';
   } else {
@@ -94,7 +95,7 @@ int LoginDisk(char *path)
   }
 
   if (found_vol != NULL) {
-      /* Case A: Volume Found */
+      /* Case A: Volume Found - Switch to it */
       CurrentVolume = found_vol;
 
       /* Synchronize the global 'mode' variable with the found volume's stored mode. */
@@ -112,46 +113,72 @@ int LoginDisk(char *path)
       DisplayAvailBytes();
       return 0;
   } else {
-      /* Case B: New Volume Needed */
+      /* Case B: New Volume Needed or Reuse Virgin Volume */
 
-      /* Save current volume pointer before switching to a new one.
-       * This allows restoration if the new volume fails to load. */
+      /* Save current volume pointer before potentially switching to a new one. */
       old_vol = CurrentVolume;
 
-      /* Create new volume. Volume_Create exits on OOM, so CurrentVolume should not be NULL here. */
-      CurrentVolume = Volume_Create();
-      /* Defensive check, though Volume_Create should exit on failure. */
-      if (CurrentVolume == NULL) {
-          ERROR_MSG("Failed to create new volume (out of memory)*ABORT");
-          if (old_vol != NULL) {
-              CurrentVolume = old_vol; /* Restore old volume */
-              mode = CurrentVolume->vol_stats.mode; /* Restore global mode */
-              DisplayMenu();
-              DisplayTree(dir_window, statistic.disp_begin_pos, statistic.disp_begin_pos + statistic.cursor_pos);
-              DisplayDiskStatistic();
-              DisplayAvailBytes();
+      /* Check if the current volume (old_vol) is the "virgin" empty volume (login_path is empty). */
+      if (old_vol != NULL && old_vol->vol_stats.login_path[0] == '\0') {
+          /* Reuse the virgin volume. CurrentVolume remains old_vol. */
+          /* No need to call Volume_Create, so is_new_vol_created remains FALSE. */
+          /* If the virgin volume already had a tree (e.g., from a previous failed load),
+           * we should clear it before loading new data. */
+          if (statistic.tree) {
+              DeleteTree(statistic.tree);
+              statistic.tree = NULL;
           }
-          return -1;
+          /* Reset other stats for the virgin volume to a clean state */
+          memset(&statistic, 0, sizeof(Statistic));
+          statistic.kind_of_sort = SORT_BY_NAME + SORT_ASC; /* Re-init default sort */
+          strcpy(statistic.file_spec, DEFAULT_FILE_SPEC);   /* Re-init default filter */
+      } else {
+          /* Create a truly new volume. */
+          CurrentVolume = Volume_Create();
+          is_new_vol_created = TRUE;
+          /* Defensive check, though Volume_Create should exit on failure. */
+          if (CurrentVolume == NULL) {
+              ERROR_MSG("Failed to create new volume (out of memory)*ABORT");
+              /* If we failed to create a new volume, restore old_vol if it existed. */
+              if (old_vol != NULL) {
+                  CurrentVolume = old_vol;
+                  mode = CurrentVolume->vol_stats.mode;
+                  DisplayMenu();
+                  DisplayTree(dir_window, statistic.disp_begin_pos, statistic.cursor_pos);
+                  DisplayDiskStatistic();
+                  DisplayAvailBytes();
+              }
+              return -1;
+          }
       }
 
-      /* CRITICAL: Allocate the root tree node for the new volume.
-       * Allocate extra space for the flexible array member 'name' to hold the full path. */
-      statistic.tree = (DirEntry *)calloc(1, sizeof(DirEntry) + PATH_LENGTH);
-      if (statistic.tree == NULL) {
-          ERROR_MSG("Malloc failed for root DirEntry*ABORT");
-          Volume_Delete(CurrentVolume); /* Delete the newly created but failed volume */
-          if (old_vol != NULL) {
-              CurrentVolume = old_vol; /* Restore old volume */
-              mode = CurrentVolume->vol_stats.mode; /* Restore global mode */
-              DisplayMenu();
-              DisplayTree(dir_window, statistic.disp_begin_pos, statistic.disp_begin_pos + statistic.cursor_pos);
-              DisplayDiskStatistic();
-              DisplayAvailBytes();
+      /* CRITICAL: Allocate the root tree node for the current volume if it doesn't exist.
+       * This handles both newly created volumes and reusing the virgin volume
+       * if its tree was never allocated or was freed due to a previous error. */
+      if (!statistic.tree) {
+          statistic.tree = (DirEntry *)calloc(1, sizeof(DirEntry) + PATH_LENGTH);
+          if (statistic.tree == NULL) {
+              ERROR_MSG("Malloc failed for root DirEntry*ABORT");
+              if (is_new_vol_created) {
+                  Volume_Delete(CurrentVolume); /* Delete the newly created but failed volume */
+              } else {
+                  /* If reusing virgin volume and tree alloc failed, its state is already cleared by memset. */
+                  statistic.tree = NULL; /* Ensure tree pointer is NULL */
+              }
+              /* Restore old_vol if we switched away from it and failed. */
+              if (old_vol != NULL && CurrentVolume != old_vol) {
+                  CurrentVolume = old_vol;
+                  mode = CurrentVolume->vol_stats.mode;
+                  DisplayMenu();
+                  DisplayTree(dir_window, statistic.disp_begin_pos, statistic.cursor_pos);
+                  DisplayDiskStatistic();
+                  DisplayAvailBytes();
+              }
+              return -1;
           }
-          return -1;
       }
 
-      /* Set the path for the new volume */
+      /* Set the path for the new/reused volume */
       strncpy(statistic.login_path, resolved_path, PATH_LENGTH);
       statistic.login_path[PATH_LENGTH] = '\0';
       strncpy(statistic.path, resolved_path, PATH_LENGTH);
@@ -249,23 +276,41 @@ int LoginDisk(char *path)
                      );
       }
 
-      /* Error handling for new volume creation/scan */
+      /* Error handling for new/reused volume creation/scan */
       if (result != 0 || statistic.tree->file == NULL) { /* Check for empty tree as well */
-          Volume_Delete(CurrentVolume);
-          if (old_vol != NULL) {
-              CurrentVolume = old_vol;
-              mode = CurrentVolume->vol_stats.mode; /* Restore global mode */
-              /* Restore display for the old volume */
-              DisplayMenu();
-              DisplayTree(dir_window, statistic.disp_begin_pos, statistic.disp_begin_pos + statistic.cursor_pos);
+          if (is_new_vol_created) {
+              Volume_Delete(CurrentVolume);
+              if (old_vol != NULL) {
+                  CurrentVolume = old_vol;
+                  mode = CurrentVolume->vol_stats.mode; /* Restore global mode */
+                  /* Restore display for the old volume */
+                  DisplayMenu();
+                  DisplayTree(dir_window, statistic.disp_begin_pos, statistic.disp_begin_pos + statistic.cursor_pos);
+                  DisplayDiskStatistic();
+                  DisplayAvailBytes();
+              } else {
+                  /* This case should ideally not be reached if ytree starts with a default volume.
+                   * If it is, it means the initial volume failed to load. */
+                  endwin();
+                  fprintf(stderr, "Critical error: Failed to load initial volume and no previous volume to restore.\n");
+                  exit(1);
+              }
+          } else {
+              /* If !is_new_vol_created (reused virgin volume) and ReadTree failed:
+               * Clear its state but DO NOT delete the volume structure. */
+              if (statistic.tree) {
+                  DeleteTree(statistic.tree);
+                  statistic.tree = NULL;
+              }
+              /* Clear other relevant fields for the virgin volume */
+              memset(&statistic, 0, sizeof(Statistic)); /* Clear all stats */
+              statistic.kind_of_sort = SORT_BY_NAME + SORT_ASC; /* Re-init default sort */
+              strcpy(statistic.file_spec, DEFAULT_FILE_SPEC);   /* Re-init default filter */
+              /* CurrentVolume remains the empty virgin volume. */
+              DisplayMenu(); /* Refresh to show empty state */
+              DisplayTree(dir_window, 0, 0);
               DisplayDiskStatistic();
               DisplayAvailBytes();
-          } else {
-              /* This case should ideally not be reached if ytree starts with a default volume.
-               * If it is, it means the initial volume failed to load. */
-              endwin();
-              fprintf(stderr, "Critical error: Failed to load initial volume and no previous volume to restore.\n");
-              exit(1);
           }
           return -1;
       }
@@ -278,8 +323,8 @@ int LoginDisk(char *path)
       (void) SetFilter( statistic.file_spec );
       /*  SetKindOfSort( statistic.kind_of_sort ); */
 
-      /* Refresh display for the new volume, resetting cursor position. */
-      DisplayTree(dir_window, 0, 0); /* New volume, reset display position */
+      /* Refresh display for the new/reused volume, resetting cursor position. */
+      DisplayTree(dir_window, 0, 0); /* New/reused volume, reset display position */
       DisplayDiskStatistic();
       DisplayAvailBytes();
 
@@ -562,12 +607,8 @@ int CycleLoadedVolume(int direction)
         return -1;
     }
 
-    /* Calculate target index, handling negative modulo */
-    target_index = (current_index + direction);
-    if (target_index < 0) {
-        target_index += num_volumes;
-    }
-    target_index %= num_volumes;
+    /* Calculate target index, handling negative modulo correctly for wrap-around */
+    target_index = (current_index + direction + num_volumes) % num_volumes;
 
     /* Perform the switch if the target is different from the current */
     if (vol_array[target_index] != CurrentVolume) {
