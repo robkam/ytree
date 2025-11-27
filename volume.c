@@ -1,6 +1,6 @@
 #include "ytree.h"
 #include <stdio.h>  /* For fprintf, stderr */
-#include <stdlib.h> /* For calloc, exit */
+#include <stdlib.h> /* For calloc, exit, free */
 
 /* Static counter to generate unique volume IDs */
 static int VolumeSerial = 0;
@@ -34,4 +34,31 @@ struct Volume *Volume_Create(void) {
     HASH_ADD_INT(VolumeList, id, new_vol);
 
     return new_vol;
+}
+
+/*
+ * Volume_Delete
+ *
+ * Safely destroys a Volume: removes it from the global hash table,
+ * frees its associated directory tree, and then frees the Volume structure itself.
+ *
+ * Parameters:
+ *   vol - A pointer to the Volume structure to be deleted.
+ */
+void Volume_Delete(struct Volume *vol) {
+    if (vol == NULL) {
+        return;
+    }
+
+    /* Remove the volume from the global hash table */
+    HASH_DEL(VolumeList, vol);
+
+    /* Free the associated directory tree if it exists */
+    if (vol->vol_stats.tree != NULL) {
+        DeleteTree(vol->vol_stats.tree);
+        vol->vol_stats.tree = NULL; /* Good practice to nullify after freeing */
+    }
+
+    /* Free the Volume structure itself */
+    free(vol);
 }
