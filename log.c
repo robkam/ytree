@@ -96,6 +96,33 @@ int LoginDisk(char *path)
 
   if (found_vol != NULL) {
       /* Case A: Volume Found - Switch to it */
+
+      /* Verify accessibility of the volume's directory before switching. */
+      if (chdir(found_vol->vol_stats.login_path) == -1) {
+          char error_message_buffer[MESSAGE_LENGTH + 1]; /* Use local buffer for sprintf */
+          sprintf(error_message_buffer, "Volume \"%s\" not accessible (Error: %s). Removed.",
+                  found_vol->vol_stats.login_path, strerror(errno));
+          MESSAGE(error_message_buffer);
+
+          /* Critical Safety Check: If the inaccessible volume is the currently active one,
+           * delete it and create a new blank volume to maintain a valid CurrentVolume. */
+          if (found_vol == CurrentVolume) {
+              Volume_Delete(found_vol);
+              CurrentVolume = Volume_Create(); /* Restore a safe blank state */
+              /* Refresh UI to reflect the new, empty state */
+              DisplayMenu();
+              DisplayTree(dir_window, 0, 0); /* Reset display for empty tree */
+              DisplayDiskStatistic();
+              DisplayAvailBytes();
+          } else {
+              /* If we were trying to switch to a different, inaccessible volume,
+               * just delete it. CurrentVolume remains the one we were on. */
+              Volume_Delete(found_vol);
+          }
+          return -1; /* Indicate failure to switch */
+      }
+
+      /* If chdir succeeded, proceed with switching to the found volume. */
       CurrentVolume = found_vol;
 
       /* Synchronize the global 'mode' variable with the found volume's stored mode. */
@@ -576,48 +603,80 @@ int CycleLoadedVolume(int direction)
     int current_index = -1;
     int target_index = -1;
     int i = 0;
-    int result = -1; /* Assume failure or no change */
 
+    int retries = 0;
+    int max_retries;
+
+    // Get initial number of volumes to determine max_retries.
+    // This ensures we don't loop indefinitely if volumes are repeatedly deleted.
     num_volumes = HASH_COUNT(VolumeList);
+    max_retries = num_volumes + 1; // Allow trying all volumes + one wrap-around attempt
 
-    if (num_volumes <= 1) {
-        MESSAGE("Only one volume loaded. No cycling possible.");
-        return -1;
-    }
+    while (retries++ < max_retries) {
+        // Re-evaluate num_volumes and re-snapshot the list in each iteration
+        // because LoginDisk might delete volumes if they are inaccessible.
+        num_volumes = HASH_COUNT(VolumeList);
 
-    vol_array = (struct Volume **)malloc(num_volumes * sizeof(struct Volume *));
-    if (vol_array == NULL) {
-        ERROR_MSG("Failed to allocate memory for volume list during cycle.");
-        return -1;
-    }
-
-    /* Snapshot volumes and find current volume's index */
-    HASH_ITER(hh, VolumeList, s, tmp) {
-        vol_array[i] = s;
-        if (s == CurrentVolume) {
-            current_index = i;
+        if (num_volumes <= 1) {
+            MESSAGE("Only one volume loaded. No cycling possible.");
+            return -1;
         }
-        i++;
+
+        vol_array = (struct Volume **)malloc(num_volumes * sizeof(struct Volume *));
+        if (vol_array == NULL) {
+            ERROR_MSG("Failed to allocate memory for volume list during cycle.");
+            return -1;
+        }
+
+        current_index = -1; // Reset for each snapshot
+        i = 0;
+        HASH_ITER(hh, VolumeList, s, tmp) {
+            vol_array[i] = s;
+            if (s == CurrentVolume) {
+                current_index = i;
+            }
+            i++;
+        }
+
+        if (current_index == -1) {
+            // This indicates CurrentVolume was somehow removed from VolumeList
+            // without being replaced, which is an internal inconsistency.
+            ERROR_MSG("Current volume not found in list during cycle.");
+            free(vol_array);
+            return -1;
+        }
+
+        // Calculate target index, handling negative modulo correctly for wrap-around
+        target_index = (current_index + direction + num_volumes) % num_volumes;
+
+        // If the calculated target is the current volume, and we've already made
+        // at least one attempt (retries > 1), it means we've cycled through
+        // all other available volumes and failed to switch. Break the loop.
+        if (target_index == current_index && retries > 1) {
+            free(vol_array);
+            MESSAGE("No other accessible volumes found.");
+            return -1;
+        }
+
+        // Capture target path before freeing vol_array, as per instruction.
+        struct Volume *target = vol_array[target_index];
+        char target_path[PATH_LENGTH + 1];
+        strncpy(target_path, target->vol_stats.login_path, PATH_LENGTH);
+        target_path[PATH_LENGTH] = '\0';
+
+        free(vol_array); // Free NOW, before calling LoginDisk.
+
+        // Attempt to switch to the target volume.
+        // If LoginDisk returns 0, the switch was successful.
+        // If LoginDisk returns -1, the target volume was inaccessible/deleted,
+        // and the loop will continue to the next retry.
+        if (LoginDisk(target_path) == 0) {
+            return 0; // Success!
+        }
     }
 
-    if (current_index == -1) {
-        /* This should not happen if CurrentVolume is always in VolumeList */
-        ERROR_MSG("Current volume not found in list during cycle.");
-        free(vol_array);
-        return -1;
-    }
-
-    /* Calculate target index, handling negative modulo correctly for wrap-around */
-    target_index = (current_index + direction + num_volumes) % num_volumes;
-
-    /* Perform the switch if the target is different from the current */
-    if (vol_array[target_index] != CurrentVolume) {
-        result = LoginDisk(vol_array[target_index]->vol_stats.login_path);
-    } else {
-        MESSAGE("Already on selected volume.");
-        result = 0; /* No actual switch, but not an error */
-    }
-
-    free(vol_array);
-    return result;
+    // If the loop finishes, it means max_retries were exhausted without successfully
+    // switching to an accessible volume.
+    MESSAGE("Failed to switch to an accessible volume after multiple attempts.");
+    return -1;
 }

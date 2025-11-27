@@ -29,6 +29,8 @@ int Init(char *configuration_file, char *history_file)
   if (getcwd(CurrentVolume->vol_stats.login_path, PATH_LENGTH) == NULL) {
       strcpy(CurrentVolume->vol_stats.login_path, ".");
   }
+  /* Initialize the current volume's path to the login path */
+  strcpy(CurrentVolume->vol_stats.path, CurrentVolume->vol_stats.login_path);
 
   /* Use setlocale to correctly initialize for WITH_UTF8 or system locale */
   setlocale(LC_ALL, "");
