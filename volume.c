@@ -62,3 +62,23 @@ void Volume_Delete(struct Volume *vol) {
     /* Free the Volume structure itself */
     free(vol);
 }
+
+/*
+ * Volume_FreeAll
+ *
+ * Iterates through all loaded volumes in VolumeList, deletes each one,
+ * and then clears the global VolumeList and CurrentVolume pointers.
+ * This is intended for a safe shutdown to prevent memory leaks.
+ */
+void Volume_FreeAll(void) {
+    struct Volume *s, *tmp;
+
+    /* Iterate through the hash table and delete each volume */
+    HASH_ITER(hh, VolumeList, s, tmp) {
+        Volume_Delete(s);
+    }
+
+    /* After all volumes are deleted, ensure global pointers are NULL */
+    CurrentVolume = NULL;
+    VolumeList = NULL;
+}
