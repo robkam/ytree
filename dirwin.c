@@ -714,7 +714,7 @@ static void HandleShowAll(BOOL tagged_only, DirEntry *dir_entry, DirEntry *start
 	} else {
 	    BuildDirEntryList( statistic.tree, &statistic );
             DisplayTree( dir_window, statistic.disp_begin_pos,
-			statistic.disp_begin_pos + statistic.cursor_pos );
+			statistic.disp_begin_pos + statistic.cursor_pos);
 	    *ch = 'L';
 	}
     } else {
@@ -1183,6 +1183,80 @@ int HandleDirWindow(DirEntry *start_dir_entry)
                      need_dsp_help = TRUE;
                      break;
 
+      /* Volume Cycling and Selection */
+      case 'K': /* Shift-K: Select Loaded Volume */
+          {
+              int res = SelectLoadedVolume();
+              if (res == 0) { /* If volume switch was successful */
+                  start_dir_entry = statistic.tree; /* CRITICAL: Update local pointer to new volume's tree root */
+                  BuildDirEntryList(start_dir_entry, &statistic); /* Rebuild list for the new tree */
+                  statistic.cursor_pos = 0;
+                  statistic.disp_begin_pos = 0;
+                  /* Update local dir_entry pointer to the first entry of the new list */
+                  if (total_dirs > 0) {
+                      dir_entry = dir_entry_list[statistic.disp_begin_pos + statistic.cursor_pos].dir_entry;
+                  } else {
+                      dir_entry = statistic.tree; /* Fallback to root if list is empty */
+                  }
+                  DisplayTree(dir_window, statistic.disp_begin_pos, statistic.disp_begin_pos + statistic.cursor_pos);
+                  DisplayFileWindow(dir_entry); /* Refresh file window for the new directory */
+                  RefreshWindow(file_window);
+                  DisplayDiskStatistic();
+                  DisplayAvailBytes();
+                  need_dsp_help = TRUE;
+              }
+          }
+          break;
+
+      case ',': /* Previous Volume */
+      case '<':
+          {
+              int res = CycleLoadedVolume(-1);
+              if (res == 0) { /* If volume switch was successful */
+                  start_dir_entry = statistic.tree; /* CRITICAL: Update local pointer to new volume's tree root */
+                  BuildDirEntryList(start_dir_entry, &statistic); /* Rebuild list for the new tree */
+                  statistic.cursor_pos = 0;
+                  statistic.disp_begin_pos = 0;
+                  /* Update local dir_entry pointer to the first entry of the new list */
+                  if (total_dirs > 0) {
+                      dir_entry = dir_entry_list[statistic.disp_begin_pos + statistic.cursor_pos].dir_entry;
+                  } else {
+                      dir_entry = statistic.tree; /* Fallback to root if list is empty */
+                  }
+                  DisplayTree(dir_window, statistic.disp_begin_pos, statistic.disp_begin_pos + statistic.cursor_pos);
+                  DisplayFileWindow(dir_entry); /* Refresh file window for the new directory */
+                  RefreshWindow(file_window);
+                  DisplayDiskStatistic();
+                  DisplayAvailBytes();
+                  need_dsp_help = TRUE;
+              }
+          }
+          break;
+
+      case '.': /* Next Volume */
+      case '>':
+          {
+              int res = CycleLoadedVolume(1);
+              if (res == 0) { /* If volume switch was successful */
+                  start_dir_entry = statistic.tree; /* CRITICAL: Update local pointer to new volume's tree root */
+                  BuildDirEntryList(start_dir_entry, &statistic); /* Rebuild list for the new tree */
+                  statistic.cursor_pos = 0;
+                  statistic.disp_begin_pos = 0;
+                  /* Update local dir_entry pointer to the first entry of the new list */
+                  if (total_dirs > 0) {
+                      dir_entry = dir_entry_list[statistic.disp_begin_pos + statistic.cursor_pos].dir_entry;
+                  } else {
+                      dir_entry = statistic.tree; /* Fallback to root if list is empty */
+                  }
+                  DisplayTree(dir_window, statistic.disp_begin_pos, statistic.disp_begin_pos + statistic.cursor_pos);
+                  DisplayFileWindow(dir_entry); /* Refresh file window for the new directory */
+                  RefreshWindow(file_window);
+                  DisplayDiskStatistic();
+                  DisplayAvailBytes();
+                  need_dsp_help = TRUE;
+              }
+          }
+          break;
 
       case 'Q' & 0x1F:
                      need_dsp_help = TRUE;

@@ -445,9 +445,14 @@ int SelectLoadedVolume(void)
                 wattron(win, COLOR_PAIR(CPAIR_HIMENUS)); /* Highlight current volume differently */
             }
 
+            const char *path_to_display = vol_array[i]->vol_stats.login_path;
+            if (strlen(path_to_display) == 0) {
+                path_to_display = "<No Path>";
+            }
+
             mvwprintw(win, y_pos, 2, "[%c] %s",
                       (i == selected_index ? '*' : ' '),
-                      vol_array[i]->vol_stats.login_path);
+                      path_to_display);
 
             if (i == current_volume_index && i != selected_index) {
                 wattroff(win, COLOR_PAIR(CPAIR_HIMENUS));
@@ -490,7 +495,6 @@ END_LOOP:
     /* 5. Cleanup */
     curs_set(1); /* Restore cursor */
     delwin(win);
-    free(vol_array);
     touchwin(stdscr);
     refresh();
 
@@ -499,12 +503,80 @@ END_LOOP:
         struct Volume *target_vol = vol_array[selected_index];
         if (target_vol != CurrentVolume) {
             /* LoginDisk will handle setting CurrentVolume and refreshing display */
-            return LoginDisk(target_vol->vol_stats.login_path);
+            int login_result = LoginDisk(target_vol->vol_stats.login_path);
+            free(vol_array); /* Free AFTER LoginDisk returns */
+            return login_result;
         } else {
             MESSAGE("Already on selected volume.");
+            free(vol_array); /* Free even if no actual switch */
             return 0; /* No actual switch, but not an error */
         }
     }
 
+    free(vol_array); /* Free if cancelled (result != 0) */
+    return result;
+}
+
+/*
+ * CycleLoadedVolume
+ * Cycles through the list of currently loaded volumes.
+ * direction: -1 for previous, 1 for next.
+ * Returns 0 on successful switch, -1 if no switch occurred or on error.
+ */
+int CycleLoadedVolume(int direction)
+{
+    struct Volume *s, *tmp;
+    struct Volume **vol_array = NULL;
+    int num_volumes = 0;
+    int current_index = -1;
+    int target_index = -1;
+    int i = 0;
+    int result = -1; /* Assume failure or no change */
+
+    num_volumes = HASH_COUNT(VolumeList);
+
+    if (num_volumes <= 1) {
+        MESSAGE("Only one volume loaded. No cycling possible.");
+        return -1;
+    }
+
+    vol_array = (struct Volume **)malloc(num_volumes * sizeof(struct Volume *));
+    if (vol_array == NULL) {
+        ERROR_MSG("Failed to allocate memory for volume list during cycle.");
+        return -1;
+    }
+
+    /* Snapshot volumes and find current volume's index */
+    HASH_ITER(hh, VolumeList, s, tmp) {
+        vol_array[i] = s;
+        if (s == CurrentVolume) {
+            current_index = i;
+        }
+        i++;
+    }
+
+    if (current_index == -1) {
+        /* This should not happen if CurrentVolume is always in VolumeList */
+        ERROR_MSG("Current volume not found in list during cycle.");
+        free(vol_array);
+        return -1;
+    }
+
+    /* Calculate target index, handling negative modulo */
+    target_index = (current_index + direction);
+    if (target_index < 0) {
+        target_index += num_volumes;
+    }
+    target_index %= num_volumes;
+
+    /* Perform the switch if the target is different from the current */
+    if (vol_array[target_index] != CurrentVolume) {
+        result = LoginDisk(vol_array[target_index]->vol_stats.login_path);
+    } else {
+        MESSAGE("Already on selected volume.");
+        result = 0; /* No actual switch, but not an error */
+    }
+
+    free(vol_array);
     return result;
 }
