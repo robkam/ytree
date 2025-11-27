@@ -79,19 +79,75 @@ void DisplayFilter(void)
 
 void DisplayDiskName(void)
 {
-  char line_buf[40];
+  char line_buf[PATH_LENGTH + 64]; /* Safe size for path + labels */
+  char display_name_buf[PATH_LENGTH + 1]; /* Buffer for truncated name */
+  char vol_part_buf[30]; /* Buffer for "[Vol: X/Y] " */
+  const char *source_name = NULL;
+  int total_volumes = 0;
+  int current_index = 0;
+  struct Volume *s, *tmp;
+  int offset_x = 1; /* Start printing from column 1 */
+  int available_width_for_path;
+  int vol_part_len = 0;
 
-  if (mode == DISK_MODE || mode == USER_MODE) {
-    /* Format for DISK mode: "DISK: [name_padded_to_17]" */
-    snprintf(line_buf, sizeof(line_buf), "DISK: [%-17s]", statistic.disk_name);
-  } else {
-    /* Format for ARCHIVE mode: "ARCHIVE: [name_padded_to_14]" */
-    snprintf(line_buf, sizeof(line_buf), "ARCHIVE: [%-14s]", statistic.disk_name);
+  /* 1. Determine the source name for display */
+  if (mode == ARCHIVE_MODE) {
+    /* In archive mode, display the archive file's path (login_path) */
+    if (statistic.login_path[0] != '\0') {
+        source_name = statistic.login_path;
+    } else if (statistic.tree && statistic.tree->name[0] != '\0') {
+        source_name = statistic.tree->name; /* Fallback to archive name if login_path is empty */
+    } else {
+        source_name = "ARCHIVE"; /* Generic fallback */
+    }
+  } else { /* DISK_MODE or USER_MODE */
+    /* In disk/user mode, display the current directory path */
+    if (statistic.path[0] != '\0') {
+        source_name = statistic.path;
+    } else {
+        source_name = "DISK"; /* Generic fallback */
+    }
   }
 
-  /* Print the fully-formatted string, overwriting the old content */
-  PrintMenuOptions(stdscr, 4, COLS - 24, line_buf, CPAIR_MENU, CPAIR_HIMENUS);
-  RefreshWindow(stdscr);
+  /* 2. Get volume statistics and format volume part */
+  total_volumes = HASH_COUNT(VolumeList);
+  if (total_volumes > 0) { /* Even for 1 volume, display "1/1" for consistency */
+      int i = 1;
+      HASH_ITER(hh, VolumeList, s, tmp) {
+          if (s == CurrentVolume) {
+              current_index = i;
+              break;
+          }
+          i++;
+      }
+      if (current_index == 0) current_index = 1; /* Fallback if not found (shouldn't happen) */
+      snprintf(vol_part_buf, sizeof(vol_part_buf), "[Vol: %d/%d] ", current_index, total_volumes);
+      vol_part_len = strlen(vol_part_buf);
+  } else {
+      /* Should not happen if CurrentVolume is always set, but for safety */
+      strcpy(vol_part_buf, "");
+      vol_part_len = 0;
+  }
+
+  /* 3. Calculate available width for the path and truncate */
+  /* DIR_WINDOW_WIDTH is COLS - 26. We print at offset_x (1).
+     So, total usable width for the entire line_buf is DIR_WINDOW_WIDTH - offset_x.
+     We need space for vol_part_buf, then " [" and "]".
+  */
+  available_width_for_path = (DIR_WINDOW_WIDTH - offset_x) - vol_part_len - 2; /* -2 for the path's own [] */
+  if (available_width_for_path < 0) available_width_for_path = 0;
+
+  CutPathname(display_name_buf, (char*)source_name, available_width_for_path);
+
+  /* 4. Format the final line_buf */
+  snprintf(line_buf, sizeof(line_buf), "%s[%s]", vol_part_buf, display_name_buf);
+  line_buf[sizeof(line_buf) - 1] = '\0'; /* Ensure null termination */
+
+  /* 5. Print to dir_window */
+  wattrset(dir_window, COLOR_PAIR(CPAIR_WINDIR));
+  mvwhline(dir_window, 0, 0, ' ', COLS); /* Clear the top line of dir_window */
+  mvwaddstr(dir_window, 0, offset_x, line_buf);
+  wattroff(dir_window, COLOR_PAIR(CPAIR_WINDIR)); /* Restore attributes */
 }
 
 
