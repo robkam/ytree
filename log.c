@@ -350,3 +350,161 @@ int GetNewLoginPath(char *path)
 
     return (result);
 }
+
+/*
+ * SelectLoadedVolume
+ * Displays a list of currently loaded volumes and allows the user to switch between them.
+ * Returns 0 on successful switch, -1 on cancel.
+ */
+int SelectLoadedVolume(void)
+{
+    struct Volume *s, *tmp;
+    struct Volume **vol_array = NULL;
+    int num_volumes = 0;
+    int max_path_len = 0;
+    int i, ch;
+    int selected_index = 0;
+    int current_volume_index = -1;
+    WINDOW *win = NULL;
+    int win_height, win_width, win_x, win_y;
+    int result = -1; /* Assume cancel by default */
+    char title[] = "Select Volume";
+    char prompt[] = "Use UP/DOWN to select, ENTER to switch, ESC/q to cancel.";
+
+    ClearHelp();
+
+    /* 1. Snapshot Volumes */
+    num_volumes = HASH_COUNT(VolumeList);
+
+    if (num_volumes == 0) {
+        MESSAGE("No volumes currently loaded.");
+        return -1;
+    }
+
+    vol_array = (struct Volume **)malloc(num_volumes * sizeof(struct Volume *));
+    if (vol_array == NULL) {
+        ERROR_MSG("Failed to allocate memory for volume list.");
+        return -1;
+    }
+
+    i = 0;
+    HASH_ITER(hh, VolumeList, s, tmp) {
+        vol_array[i] = s;
+        int len = StrVisualLength(s->vol_stats.login_path);
+        if (len > max_path_len) {
+            max_path_len = len;
+        }
+        if (s == CurrentVolume) {
+            current_volume_index = i;
+            selected_index = i; /* Start selection on current volume */
+        }
+        i++;
+    }
+
+    /* 2. Window Setup */
+    /* Minimum height: title (1) + prompt (1) + border (2) + at least 1 item (1) = 5 */
+    /* Minimum width: title (strlen) + padding (2) = 15 */
+    /* Max path len + " [ ] (current)" + padding */
+    win_width = MAXIMUM(strlen(title) + 4, max_path_len + 15); /* 15 for "[*] " + " (current)" + padding */
+    win_width = MAXIMUM(win_width, StrVisualLength(prompt) + 4); /* Ensure prompt fits */
+    win_width = MINIMUM(win_width, COLS - 4); /* Don't exceed screen width */
+
+    win_height = MINIMUM(LINES - 4, num_volumes + 5); /* 5 for top/bottom border, title, prompt, empty line */
+    win_height = MAXIMUM(win_height, 10); /* Minimum 10 lines */
+
+    win_x = (COLS - win_width) / 2;
+    win_y = (LINES - win_height) / 2;
+
+    win = newwin(win_height, win_width, win_y, win_x);
+    if (win == NULL) {
+        ERROR_MSG("Failed to create window for volume selection.");
+        free(vol_array);
+        return -1;
+    }
+
+    keypad(win, TRUE);
+    WbkgdSet(win, COLOR_PAIR(CPAIR_MENU));
+    curs_set(0); /* Hide cursor */
+
+    /* 3. Input Loop */
+    for (;;) {
+        werase(win);
+        box(win, 0, 0);
+        mvwprintw(win, 1, (win_width - strlen(title)) / 2, "%s", title);
+        mvwprintw(win, win_height - 2, (win_width - StrVisualLength(prompt)) / 2, "%s", prompt);
+
+        for (i = 0; i < num_volumes; i++) {
+            int y_pos = 3 + i; /* Start listing from y=3 */
+            if (y_pos >= win_height - 3) { /* Don't draw over prompt/bottom border */
+                break;
+            }
+
+            if (i == selected_index) {
+                wattron(win, A_REVERSE); /* Highlight selected item */
+            } else if (i == current_volume_index) {
+                wattron(win, COLOR_PAIR(CPAIR_HIMENUS)); /* Highlight current volume differently */
+            }
+
+            mvwprintw(win, y_pos, 2, "[%c] %s",
+                      (i == selected_index ? '*' : ' '),
+                      vol_array[i]->vol_stats.login_path);
+
+            if (i == current_volume_index && i != selected_index) {
+                wattroff(win, COLOR_PAIR(CPAIR_HIMENUS));
+            } else if (i == selected_index) {
+                wattroff(win, A_REVERSE);
+            }
+        }
+        wrefresh(win);
+
+        ch = WGetch(win);
+
+        switch (ch) {
+            case KEY_UP:
+                selected_index--;
+                if (selected_index < 0) {
+                    selected_index = num_volumes - 1;
+                }
+                break;
+            case KEY_DOWN:
+                selected_index++;
+                if (selected_index >= num_volumes) {
+                    selected_index = 0;
+                }
+                break;
+            case LF:
+            case CR:
+                result = 0; /* Success */
+                goto END_LOOP;
+            case ESC:
+            case 'q':
+                result = -1; /* Cancel */
+                goto END_LOOP;
+            default:
+                /* Ignore other keys */
+                break;
+        }
+    }
+
+END_LOOP:
+    /* 5. Cleanup */
+    curs_set(1); /* Restore cursor */
+    delwin(win);
+    free(vol_array);
+    touchwin(stdscr);
+    refresh();
+
+    /* 4. Execution (if not cancelled) */
+    if (result == 0) {
+        struct Volume *target_vol = vol_array[selected_index];
+        if (target_vol != CurrentVolume) {
+            /* LoginDisk will handle setting CurrentVolume and refreshing display */
+            return LoginDisk(target_vol->vol_stats.login_path);
+        } else {
+            MESSAGE("Already on selected volume.");
+            return 0; /* No actual switch, but not an error */
+        }
+    }
+
+    return result;
+}
