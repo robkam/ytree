@@ -134,6 +134,8 @@ static void PerformQuit(DirEntry *dir_entry)
 #ifdef XCURSES
         XCursesExit();
 #endif
+        /* Free all allocated volumes to prevent memory leaks on exit. */
+        Volume_FreeAll();
         exit(0);
     }
     /* If user cancels, the function simply returns. */

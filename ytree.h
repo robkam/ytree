@@ -633,6 +633,7 @@ extern char *getenv(const char *);
 /* volume.c */
 extern struct Volume *Volume_Create(void);
 extern void Volume_Delete(struct Volume *vol);
+extern void Volume_FreeAll(void);
 
 /* main.c */
 extern int ytree(int argc, char *argv[]);
