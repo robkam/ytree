@@ -499,6 +499,7 @@ typedef struct
   int           disp_begin_pos;
   int           cursor_pos;
   int           kind_of_sort;
+  int           mode; /* Added to store the current operation mode (DISK_MODE/ARCHIVE_MODE) */
   char          login_path[PATH_LENGTH + 1];
   char          path[PATH_LENGTH + 1];
   char          file_spec[FILE_SPEC_LENGTH + 1];
