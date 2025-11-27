@@ -304,7 +304,7 @@ int LoginDisk(char *path)
       }
 
       /* Error handling for new/reused volume creation/scan */
-      if (result != 0 || statistic.tree->file == NULL) { /* Check for empty tree as well */
+      if (result != 0) { /* Check for empty tree as well */
           if (is_new_vol_created) {
               Volume_Delete(CurrentVolume);
               if (old_vol != NULL) {
