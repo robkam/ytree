@@ -17,7 +17,7 @@ static int window_height, window_width;
 
 static void ReadDirList(DirEntry *dir_entry);
 static void PrintDirEntry(WINDOW *win, int entry_no, int y, unsigned char hilight);
-static void BuildDirEntryList(DirEntry *dir_entry, Statistic *stat_source);
+void BuildDirEntryList(DirEntry *dir_entry, Statistic *stat_source); /* Removed static */
 static void HandleReadSubTree(DirEntry *dir_entry, DirEntry *start_dir_entry, BOOL *need_dsp_help);
 static void HandleUnreadSubTree(DirEntry *dir_entry, DirEntry *de_ptr, DirEntry *start_dir_entry, BOOL *need_dsp_help);
 static void MoveEnd(DirEntry **dir_entry);
@@ -31,7 +31,7 @@ static void HandleSwitchWindow(DirEntry *dir_entry, DirEntry *start_dir_entry, B
 static int dir_mode;
 
 
-static void BuildDirEntryList(DirEntry *dir_entry, Statistic *stat_source)
+void BuildDirEntryList(DirEntry *dir_entry, Statistic *stat_source) /* Removed static */
 {
   if( dir_entry_list )
   {
