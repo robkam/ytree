@@ -150,7 +150,8 @@ int LoginDisk(char *path)
       /* Restore the filter that was active when LoginDisk was called.
        * This ensures the user's filter preference persists across volume switches. */
       (void) strcpy(statistic.file_spec, saved_filter);
-      (void) SetFilter(statistic.file_spec);
+      (void) SetFilter(statistic.file_spec); /* This calls ApplyFilter internally */
+      RecalculateSysStats();                 /* Sum up stats based on flags */
 
       /* Refresh display for the switched volume, using its stored display state. */
       DisplayMenu(); /* Updates path at top */
@@ -318,9 +319,7 @@ int LoginDisk(char *path)
             result = -1;
         }
 
-        /* Recalculate stats to respect initial hide_dot_files setting,
-           as ReadTree now loads everything. */
-        RecalculateSysStats();
+        /* Removed: RecalculateSysStats() here. It will be called after SetFilter. */
 
         /* Copy current statistic to disk_statistic for the new volume */
         (void) memcpy( (char *) &disk_statistic,
@@ -375,10 +374,10 @@ int LoginDisk(char *path)
           SwitchToSmallFileWindow();
       }
 
-      (void) SetFilter( statistic.file_spec );
-      /*  SetKindOfSort( statistic.kind_of_sort ); */
+      (void) SetFilter( statistic.file_spec ); /* This calls ApplyFilter internally */
+      RecalculateSysStats();                   /* Sum up stats based on flags */
 
-      /* Refresh display for the new/reused volume, resetting cursor position. */
+      /* Refresh display */
       BuildDirEntryList(statistic.tree, &statistic); /* Rebuild list for the newly loaded tree */
       DisplayTree(dir_window, 0, 0); /* New/reused volume, reset display position */
       DisplayDiskStatistic();
