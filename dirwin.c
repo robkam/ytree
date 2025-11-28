@@ -177,7 +177,7 @@ static void PrintDirEntry(WINDOW *win,
   char attributes[11];
   char modify_time[20]; /* Increased from 13 to 20 for "YYYY-MM-DD HH:MM" */
   char change_time[20]; /* Increased from 13 to 20 */
-  char access_time[20]; /* Increased from 13 to 20 */
+  char access_time[20]; /* Increased to 20 */
   char owner[OWNER_NAME_MAX + 1];
   char group[GROUP_NAME_MAX + 1];
   char *owner_name_ptr;
@@ -624,6 +624,9 @@ static void HandleTagDir(DirEntry *dir_entry, BOOL value)
     FileEntry *fe_ptr;
     for(fe_ptr=dir_entry->file; fe_ptr; fe_ptr=fe_ptr->next)
     {
+        /* Skip hidden dotfiles if the option is enabled */
+        if (hide_dot_files && fe_ptr->name[0] == '.') continue;
+
 	if( (fe_ptr->matching) && (fe_ptr->tagged != value ))
 	{
 	    fe_ptr->tagged = value;
@@ -657,6 +660,9 @@ static void HandleTagAllDirs(DirEntry *dir_entry, BOOL value )
     {
 	for(fe_ptr=dir_entry_list[i].dir_entry->file; fe_ptr; fe_ptr=fe_ptr->next)
 	{
+        /* Skip hidden dotfiles if the option is enabled */
+        if (hide_dot_files && fe_ptr->name[0] == '.') continue;
+
 	    if( (fe_ptr->matching) && (fe_ptr->tagged != value) )
 	    {
 	        if (value)
