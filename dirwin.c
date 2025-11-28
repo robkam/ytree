@@ -421,6 +421,7 @@ static void Movedown(int *disp_begin_pos, int *cursor_pos, DirEntry **dir_entry)
     DisplayTree(dir_window, *disp_begin_pos, *disp_begin_pos + *cursor_pos);
     DisplayFileWindow( *dir_entry );
     RefreshWindow( file_window );
+    DisplayDirStatistic(*dir_entry);
 }
 
 
@@ -444,6 +445,7 @@ static void Moveup(int *disp_begin_pos, int *cursor_pos, DirEntry **dir_entry)
     DisplayTree(dir_window, *disp_begin_pos, *disp_begin_pos + *cursor_pos);
     DisplayFileWindow( *dir_entry );
     RefreshWindow( file_window );
+    DisplayDirStatistic(*dir_entry);
 }
 
 
@@ -488,6 +490,7 @@ static void Movenpage(int *disp_begin_pos, int *cursor_pos, DirEntry **dir_entry
       DisplayTree(dir_window,*disp_begin_pos,*disp_begin_pos+*cursor_pos);
       DisplayFileWindow( *dir_entry );
       RefreshWindow( file_window );
+      DisplayDirStatistic(*dir_entry);
    }
    return;
 }
@@ -524,6 +527,7 @@ static void Moveppage(int *disp_begin_pos, int *cursor_pos, DirEntry **dir_entry
       DisplayTree(dir_window,*disp_begin_pos,*disp_begin_pos+*cursor_pos);
       DisplayFileWindow( *dir_entry );
       RefreshWindow( file_window );
+      DisplayDirStatistic(*dir_entry);
    }
    return;
 }
@@ -539,6 +543,7 @@ static void MoveEnd(DirEntry **dir_entry)
     RefreshWindow( file_window );
     DisplayTree( dir_window, statistic.disp_begin_pos,
 		statistic.disp_begin_pos + statistic.cursor_pos);
+    DisplayDirStatistic(*dir_entry);
     return;
 }
 
@@ -559,6 +564,7 @@ static void MoveHome(DirEntry **dir_entry)
        RefreshWindow( file_window );
        DisplayTree( dir_window, statistic.disp_begin_pos,
 		statistic.disp_begin_pos + statistic.cursor_pos);
+       DisplayDirStatistic(*dir_entry);
     }
     return;
 }
@@ -581,6 +587,7 @@ static void HandlePlus(DirEntry *dir_entry, DirEntry *de_ptr, char *new_login_pa
 	DisplayTree( dir_window, statistic.disp_begin_pos,
                  statistic.disp_begin_pos + statistic.cursor_pos );
 	DisplayDiskStatistic();
+    DisplayDirStatistic(dir_entry);
 	DisplayAvailBytes();
 	*need_dsp_help = TRUE;
     }
@@ -594,6 +601,7 @@ static void HandleReadSubTree(DirEntry *dir_entry, DirEntry *start_dir_entry,
     DisplayTree( dir_window, statistic.disp_begin_pos,
 		 statistic.disp_begin_pos + statistic.cursor_pos );
     DisplayDiskStatistic();
+    DisplayDirStatistic(dir_entry);
     DisplayAvailBytes();
     *need_dsp_help = TRUE;
 }
@@ -614,6 +622,8 @@ static void HandleUnreadSubTree(DirEntry *dir_entry, DirEntry *de_ptr,
         DisplayTree( dir_window, statistic.disp_begin_pos,
 		    statistic.disp_begin_pos + statistic.cursor_pos );
         DisplayAvailBytes();
+        DisplayDiskStatistic();
+        DisplayDirStatistic(dir_entry);
         *need_dsp_help = TRUE;
     }
     return;
@@ -649,6 +659,7 @@ static void HandleTagDir(DirEntry *dir_entry, BOOL value)
     DisplayFileWindow( dir_entry );
     RefreshWindow( file_window );
     DisplayDiskStatistic();
+    DisplayDirStatistic(dir_entry);
     return;
 }
 
@@ -687,6 +698,7 @@ static void HandleTagAllDirs(DirEntry *dir_entry, BOOL value )
     DisplayFileWindow( dir_entry );
     RefreshWindow( file_window );
     DisplayDiskStatistic();
+    DisplayDirStatistic(dir_entry);
     return;
 }
 
@@ -709,6 +721,7 @@ static void HandleShowAll(BOOL tagged_only, DirEntry *dir_entry, DirEntry *start
 	if( HandleFileWindow(dir_entry) != LOGIN_ESC )
 	{
 	    DisplayDiskStatistic();
+	    DisplayDirStatistic(dir_entry);
 	    dir_entry->start_file = 0;
 	    dir_entry->cursor_pos = -1;
             DisplayFileWindow( dir_entry );
@@ -755,6 +768,7 @@ static void HandleSwitchWindow(DirEntry *dir_entry, DirEntry *start_dir_entry, B
             DisplayTree( dir_window, statistic.disp_begin_pos,
 			 statistic.disp_begin_pos + statistic.cursor_pos);
 	    DisplayDiskStatistic();
+        DisplayDirStatistic(dir_entry);
 	} else {
 	    BuildDirEntryList( statistic.tree, &statistic );
             DisplayTree( dir_window, statistic.disp_begin_pos,
@@ -860,6 +874,7 @@ void ToggleDotFiles(void)
     /* Explicitly update the file window (preview) to match new visibility */
     DisplayFileWindow(target);
     RefreshWindow(file_window);
+    DisplayDirStatistic(target);
 
     InitClock(); /* Resume clock and restore signal handling */
 }
@@ -929,6 +944,7 @@ int HandleDirWindow(DirEntry *start_dir_entry)
   dir_entry = dir_entry_list[statistic.disp_begin_pos + statistic.cursor_pos].dir_entry;
 
   DisplayDiskStatistic();
+  DisplayDirStatistic(dir_entry);
 
   if(!dir_entry->login_flag) {
     dir_entry->start_file = 0;
@@ -993,6 +1009,7 @@ int HandleDirWindow(DirEntry *start_dir_entry)
 		  );
        DisplayFileWindow(dir_entry);
        DisplayDiskStatistic();
+       DisplayDirStatistic(dir_entry);
        DisplayDirParameter( dir_entry );
        need_dsp_help = TRUE;
        DisplayAvailBytes();
@@ -1059,6 +1076,7 @@ int HandleDirWindow(DirEntry *start_dir_entry)
                        DisplayFileWindow( dir_entry );
                        RefreshWindow( file_window );
 		       DisplayDiskStatistic();
+		       DisplayDirStatistic(dir_entry);
 		     }
 		     need_dsp_help = TRUE;
                      break;
@@ -1083,6 +1101,7 @@ int HandleDirWindow(DirEntry *start_dir_entry)
                                   );
                      /*RefreshWindow( file_window );*/
 		     DisplayDiskStatistic();
+		     DisplayDirStatistic(dir_entry);
 		     need_dsp_help = TRUE;
 		     break;
       case 'S' & 0x1F :
@@ -1102,6 +1121,8 @@ int HandleDirWindow(DirEntry *start_dir_entry)
 		     }
 		     need_dsp_help = TRUE;
 		     DisplayAvailBytes();
+                     DisplayDiskStatistic();
+                     DisplayDirStatistic(dir_entry);
 		     break;
       case 'M':
       case 'm':      if( !MakeDirectory( dir_entry ) )
@@ -1111,6 +1132,8 @@ int HandleDirWindow(DirEntry *start_dir_entry)
 				    statistic.disp_begin_pos + statistic.cursor_pos
 				  );
 		       DisplayAvailBytes();
+                       DisplayDiskStatistic();
+                       DisplayDirStatistic(dir_entry);
 		     }
 		     need_dsp_help = TRUE;
 		     break;
@@ -1133,6 +1156,8 @@ int HandleDirWindow(DirEntry *start_dir_entry)
 				  statistic.disp_begin_pos + statistic.cursor_pos
 				);
 		     DisplayAvailBytes();
+                     DisplayDiskStatistic();
+                     DisplayDirStatistic(dir_entry);
 		     need_dsp_help = TRUE;
 		     break;
       case 'r':
@@ -1148,6 +1173,8 @@ int HandleDirWindow(DirEntry *start_dir_entry)
 			            );
 		         DisplayAvailBytes();
 		         dir_entry = dir_entry_list[statistic.disp_begin_pos + statistic.cursor_pos].dir_entry;
+                         DisplayDiskStatistic();
+                         DisplayDirStatistic(dir_entry);
 		       }
 		     }
 		     need_dsp_help = TRUE;
@@ -1155,7 +1182,7 @@ int HandleDirWindow(DirEntry *start_dir_entry)
       case 'R' & 0x1F: /* Rescan */
              RescanDir(dir_entry, 0);
              BuildDirEntryList(start_dir_entry, &statistic);
-             if (statistic.disp_begin_pos + statistic.cursor_pos >= total_dirs) {
+             if (total_dirs > 0 && (statistic.disp_begin_pos + statistic.cursor_pos >= total_dirs)) {
                  statistic.disp_begin_pos = 0;
                  statistic.cursor_pos = 0;
              }
@@ -1165,21 +1192,28 @@ int HandleDirWindow(DirEntry *start_dir_entry)
              DisplayTree(dir_window, statistic.disp_begin_pos, statistic.disp_begin_pos + statistic.cursor_pos);
              DisplayFileWindow(dir_entry);
              DisplayDiskStatistic();
+             DisplayDirStatistic(dir_entry);
              need_dsp_help = TRUE;
              break;
       case 'G':
       case 'g':      (void) ChangeDirGroup( dir_entry );
                      DisplayTree( dir_window, statistic.disp_begin_pos, statistic.disp_begin_pos + statistic.cursor_pos );
+                     DisplayDiskStatistic();
+                     DisplayDirStatistic(dir_entry);
 		     need_dsp_help = TRUE;
 		     break;
       case 'O':
       case 'o':      (void) ChangeDirOwner( dir_entry );
                      DisplayTree( dir_window, statistic.disp_begin_pos, statistic.disp_begin_pos + statistic.cursor_pos );
+                     DisplayDiskStatistic();
+                     DisplayDirStatistic(dir_entry);
 		     need_dsp_help = TRUE;
 		     break;
       case 'A':
       case 'a':      (void) ChangeDirModus( dir_entry );
                      DisplayTree( dir_window, statistic.disp_begin_pos, statistic.disp_begin_pos + statistic.cursor_pos );
+                     DisplayDiskStatistic();
+                     DisplayDirStatistic(dir_entry);
 		     need_dsp_help = TRUE;
 		     break;
 
@@ -1199,7 +1233,7 @@ int HandleDirWindow(DirEntry *start_dir_entry)
                   /* PRESERVE STATE: Remove lines resetting cursor_pos and disp_begin_pos.
                    * These are now loaded from the Volume struct by LoginDisk. */
                   /* Safety check for cursor validity after list rebuild */
-                  if (statistic.disp_begin_pos + statistic.cursor_pos >= total_dirs) {
+                  if (total_dirs > 0 && (statistic.disp_begin_pos + statistic.cursor_pos >= total_dirs)) {
                       statistic.disp_begin_pos = 0;
                       statistic.cursor_pos = 0;
                   }
@@ -1213,6 +1247,7 @@ int HandleDirWindow(DirEntry *start_dir_entry)
                   DisplayFileWindow(dir_entry); /* Refresh file window for the new directory */
                   RefreshWindow(file_window);
                   DisplayDiskStatistic();
+                  DisplayDirStatistic(dir_entry);
                   DisplayAvailBytes();
                   need_dsp_help = TRUE;
               }
@@ -1229,7 +1264,7 @@ int HandleDirWindow(DirEntry *start_dir_entry)
                   /* PRESERVE STATE: Remove lines resetting cursor_pos and disp_begin_pos.
                    * These are now loaded from the Volume struct by LoginDisk. */
                   /* Safety check for cursor validity after list rebuild */
-                  if (statistic.disp_begin_pos + statistic.cursor_pos >= total_dirs) {
+                  if (total_dirs > 0 && (statistic.disp_begin_pos + statistic.cursor_pos >= total_dirs)) {
                       statistic.disp_begin_pos = 0;
                       statistic.cursor_pos = 0;
                   }
@@ -1243,6 +1278,7 @@ int HandleDirWindow(DirEntry *start_dir_entry)
                   DisplayFileWindow(dir_entry); /* Refresh file window for the new directory */
                   RefreshWindow(file_window);
                   DisplayDiskStatistic();
+                  DisplayDirStatistic(dir_entry);
                   DisplayAvailBytes();
                   need_dsp_help = TRUE;
               }
@@ -1259,7 +1295,7 @@ int HandleDirWindow(DirEntry *start_dir_entry)
                   /* PRESERVE STATE: Remove lines resetting cursor_pos and disp_begin_pos.
                    * These are now loaded from the Volume struct by LoginDisk. */
                   /* Safety check for cursor validity after list rebuild */
-                  if (statistic.disp_begin_pos + statistic.cursor_pos >= total_dirs) {
+                  if (total_dirs > 0 && (statistic.disp_begin_pos + statistic.cursor_pos >= total_dirs)) {
                       statistic.disp_begin_pos = 0;
                       statistic.cursor_pos = 0;
                   }
@@ -1273,6 +1309,7 @@ int HandleDirWindow(DirEntry *start_dir_entry)
                   DisplayFileWindow(dir_entry); /* Refresh file window for the new directory */
                   RefreshWindow(file_window);
                   DisplayDiskStatistic();
+                  DisplayDirStatistic(dir_entry);
                   DisplayAvailBytes();
                   need_dsp_help = TRUE;
               }
@@ -1303,6 +1340,24 @@ int HandleDirWindow(DirEntry *start_dir_entry)
 		       DisplayMenu();
 		       doupdate();
 		       (void) LoginDisk( new_login_path );
+                       // After LoginDisk, statistic.tree and dir_entry might change.
+                       // Re-evaluate dir_entry and update stats.
+                       start_dir_entry = statistic.tree;
+                       BuildDirEntryList(start_dir_entry, &statistic);
+                       if (total_dirs > 0 && (statistic.disp_begin_pos + statistic.cursor_pos >= total_dirs)) {
+                           statistic.disp_begin_pos = 0;
+                           statistic.cursor_pos = 0;
+                       }
+                       if (total_dirs > 0) {
+                           dir_entry = dir_entry_list[statistic.disp_begin_pos + statistic.cursor_pos].dir_entry;
+                       } else {
+                           dir_entry = statistic.tree;
+                       }
+                       DisplayTree(dir_window, statistic.disp_begin_pos, statistic.disp_begin_pos + statistic.cursor_pos);
+                       DisplayFileWindow(dir_entry);
+                       RefreshWindow(file_window);
+                       DisplayDiskStatistic();
+                       DisplayDirStatistic(dir_entry);
 		     }
 		     need_dsp_help = TRUE;
 		     break;
@@ -1602,6 +1657,8 @@ int RefreshDirWindow()
 		   	);
 
 		DisplayAvailBytes();
+		DisplayDiskStatistic();
+		DisplayDirStatistic(dir_entry_list[statistic.disp_begin_pos + statistic.cursor_pos].dir_entry);
 		result = 0;
 	}
 
