@@ -94,7 +94,25 @@ int ReadTree(DirEntry *dir_entry, char *path, int depth)
 
     if( EscapeKeyPressed() )
     {
-      Quit();  /* Abfrage ob ytree verlassen werden soll */
+      /* Abfrage ob ytree verlassen werden soll */
+      int choice = InputChoise("Abort scan (Y/N)?", "YyNn\033"); /* \033 is ESC */
+      if (choice == 'Y' || choice == ESC) {
+          closedir(dir);
+          /* CRITICAL - Attach Partial Results */
+          if( first_file_entry.next ) first_file_entry.next->prev = NULL;
+          if( first_dir_entry.next )  first_dir_entry.next->prev = NULL;
+          dir_entry->file = first_file_entry.next;
+          dir_entry->sub_tree = first_dir_entry.next;
+          return -1;
+      } else {
+          /* Clear the prompt line to indicate resumption */
+          int y, x;
+          getyx(stdscr, y, x); /* Save cursor */
+          move(LINES - 2, 0);  /* Move to prompt line (standard position) */
+          clrtoeol();          /* Clear it */
+          move(y, x);          /* Restore cursor */
+          refresh();
+      }
     }
 
     /* Update statistics / animation every 20 files to be smoother */
@@ -147,7 +165,16 @@ int ReadTree(DirEntry *dir_entry, char *path, int depth)
 		    );
       den_ptr->prev = den_ptr->next = NULL;
 
-      (void) ReadTree( den_ptr, new_path, depth - 1);
+      /* Recursive call with abort check */
+      if (ReadTree( den_ptr, new_path, depth - 1) == -1) {
+          closedir(dir);
+          /* Attach Partial Results */
+          if( first_file_entry.next ) first_file_entry.next->prev = NULL;
+          if( first_dir_entry.next )  first_dir_entry.next->prev = NULL;
+          dir_entry->file = first_file_entry.next;
+          dir_entry->sub_tree = first_dir_entry.next;
+          return -1;
+      }
 
       /* Sortieren durch direktes Einfuegen */
       /*------------------------------------*/
