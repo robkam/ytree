@@ -117,13 +117,18 @@ static int InsertArchiveDirEntry(DirEntry *tree, char *path, struct stat *stat)
     }
   }
 
-  if( ( de_ptr = (DirEntry *) malloc( sizeof( DirEntry ) + strlen( name ) ) ) == NULL )
+  /*
+   * CRITICAL FIX: Allocate PATH_LENGTH + 1 for the DirEntry name buffer.
+   * This prevents heap buffer overflows when `strcat` is used later in
+   * `MinimizeArchiveTree` to concatenate path components.
+   * `calloc` is used to initialize the memory to zero.
+   */
+  if( ( de_ptr = (DirEntry *) calloc( 1, sizeof( DirEntry ) + PATH_LENGTH + 1 ) ) == NULL )
   {
     ERROR_MSG( "Malloc failed*ABORT" );
     exit( 1 );
   }
 
-  (void) memset( (char *) de_ptr, 0, sizeof( DirEntry ) );
   (void) strcpy( de_ptr->name, name );
   (void) memcpy( (char *) &de_ptr->stat_struct, (char *) stat, sizeof( struct stat ) );
 
@@ -261,13 +266,18 @@ int InsertArchiveFileEntry(DirEntry *tree, char *path, struct stat *stat)
   else
     n = 0;
 
-  if( ( fe_ptr = (FileEntry *) malloc( sizeof( FileEntry ) + strlen( file ) + n ) ) == NULL )
+  /*
+   * CRITICAL FIX: Allocate PATH_LENGTH + n + 1 for the FileEntry name buffer.
+   * This provides sufficient space for the filename and potential symlink target,
+   * preventing heap buffer overflows.
+   * `calloc` is used to initialize the memory to zero.
+   */
+  if( ( fe_ptr = (FileEntry *) calloc( 1, sizeof( FileEntry ) + PATH_LENGTH + n + 1 ) ) == NULL )
   {
     ERROR_MSG( "Malloc failed*ABORT" );
     exit( 1 );
   }
 
-  (void) memset( fe_ptr, 0, sizeof( FileEntry ) );
   (void) memcpy( (char *) &fe_ptr->stat_struct, (char *) stat, sizeof( struct stat ) );
   (void) strcpy( fe_ptr->name, file );
 
@@ -445,6 +455,8 @@ void MinimizeArchiveTree(DirEntry **tree_ptr)
       */
 
       /* Concatenate names: parent/child */
+      /* The DirEntry->name buffer is now allocated with PATH_LENGTH + 1,
+       * providing sufficient space for these strcat operations. */
       if( strcmp( tree->name, FILE_SEPARATOR_STRING ) )
 	    (void) strcat( tree->name, FILE_SEPARATOR_STRING );
       (void) strcat( tree->name, de_ptr->name );
@@ -487,6 +499,8 @@ void MinimizeArchiveTree(DirEntry **tree_ptr)
     de_ptr = tree->sub_tree;
 
     /* Merge names */
+    /* The DirEntry->name buffer is now allocated with PATH_LENGTH + 1,
+     * providing sufficient space for these strcat operations. */
     if( strcmp( tree->name, FILE_SEPARATOR_STRING ) )
         (void) strcat( tree->name, FILE_SEPARATOR_STRING );
     (void) strcat( tree->name, de_ptr->name );

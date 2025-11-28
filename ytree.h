@@ -325,9 +325,9 @@ enum UI_COLOR_PAIRS {
 #define SYMLINK_VIEWNAME	"lnm"
 #define UID_VIEWNAME		"uid"
 #define GID_VIEWNAME		"gid"
-#define INODE_VIEWNAME		"ino"
+#define INODE_VIEWNAME	"ino"
 #define ACCTIME_VIEWNAME	"act"
-#define SCTIME_VIEWNAME		"sct"
+#define SCTIME_VIEWNAME	"sct"
 
 
 #define CLOCK_INTERVAL	   1
@@ -706,6 +706,7 @@ extern int RefreshDirWindow(void);
 extern int ScanSubTree( DirEntry *dir_entry );
 extern void ToggleDotFiles(void);
 extern DirEntry *GetSelectedDirEntry(void);
+extern void BuildDirEntryList(DirEntry *dir_entry, Statistic *stat_source); /* ADDED: Expose BuildDirEntryList */
 
 /* display.c */
 extern void ClearHelp(void);

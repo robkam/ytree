@@ -97,32 +97,51 @@ int LoginDisk(char *path)
   if (found_vol != NULL) {
       /* Case A: Volume Found - Switch to it */
 
-      /* Verify accessibility of the volume's directory before switching. */
-      if (chdir(found_vol->vol_stats.login_path) == -1) {
-          char error_message_buffer[MESSAGE_LENGTH + 1]; /* Use local buffer for sprintf */
-          sprintf(error_message_buffer, "Volume \"%s\" not accessible (Error: %s). Removed.",
-                  found_vol->vol_stats.login_path, strerror(errno));
-          MESSAGE(error_message_buffer);
+      /* Verify accessibility of the volume before switching. */
+      BOOL access_ok = FALSE;
+      struct stat st_check;
 
-          /* Critical Safety Check: If the inaccessible volume is the currently active one,
-           * delete it and create a new blank volume to maintain a valid CurrentVolume. */
-          if (found_vol == CurrentVolume) {
-              Volume_Delete(found_vol);
-              CurrentVolume = Volume_Create(); /* Restore a safe blank state */
-              /* Refresh UI to reflect the new, empty state */
-              DisplayMenu();
-              DisplayTree(dir_window, 0, 0); /* Reset display for empty tree */
-              DisplayDiskStatistic();
-              DisplayAvailBytes();
-          } else {
-              /* If we were trying to switch to a different, inaccessible volume,
-               * just delete it. CurrentVolume remains the one we were on. */
-              Volume_Delete(found_vol);
+      if (found_vol->vol_stats.mode == ARCHIVE_MODE) {
+          /* For archives, check if the file still exists */
+          if (stat(found_vol->vol_stats.login_path, &st_check) == 0 && !S_ISDIR(st_check.st_mode)) {
+              access_ok = TRUE;
+              /* Optional: Attempt to chdir to the parent directory for context,
+                 but don't fail if we can't. */
+              char parent_dir[PATH_LENGTH + 1];
+              strcpy(parent_dir, found_vol->vol_stats.login_path);
+              char *slash = strrchr(parent_dir, FILE_SEPARATOR_CHAR);
+              if (slash) {
+                  *slash = '\0';
+                  chdir(parent_dir);
+              }
           }
-          return -1; /* Indicate failure to switch */
+      } else {
+          /* For normal disks, try to enter the directory */
+          if (chdir(found_vol->vol_stats.login_path) == 0) {
+              access_ok = TRUE;
+          }
       }
 
-      /* If chdir succeeded, proceed with switching to the found volume. */
+      if (!access_ok) {
+          char error_message_buffer[MESSAGE_LENGTH + 1];
+          sprintf(error_message_buffer, "Volume \"%s\" not accessible (Error: %s). Removed.",
+                found_vol->vol_stats.login_path, strerror(errno));
+          MESSAGE(error_message_buffer);
+          if (found_vol == CurrentVolume) {
+               Volume_Delete(found_vol);
+               CurrentVolume = Volume_Create();
+               /* ... refresh empty ... */
+               DisplayMenu();
+               DisplayTree(dir_window, 0, 0);
+               DisplayDiskStatistic();
+               DisplayAvailBytes();
+          } else {
+               Volume_Delete(found_vol);
+          }
+          return -1;
+      }
+
+      /* If access_ok, proceed with switching to the found volume. */
       CurrentVolume = found_vol;
 
       /* Synchronize the global 'mode' variable with the found volume's stored mode. */
@@ -135,6 +154,9 @@ int LoginDisk(char *path)
 
       /* Refresh display for the switched volume, using its stored display state. */
       DisplayMenu(); /* Updates path at top */
+      /* CRITICAL FIX: Rebuild the directory entry list for the new volume's tree
+       * before displaying it, to prevent use-after-free issues with stale pointers. */
+      BuildDirEntryList(statistic.tree, &statistic);
       DisplayTree(dir_window, statistic.disp_begin_pos, statistic.disp_begin_pos + statistic.cursor_pos);
       DisplayDiskStatistic();
       DisplayAvailBytes();
@@ -316,6 +338,7 @@ int LoginDisk(char *path)
                   mode = CurrentVolume->vol_stats.mode; /* Restore global mode */
                   /* Restore display for the old volume */
                   DisplayMenu();
+                  BuildDirEntryList(statistic.tree, &statistic); /* Rebuild list for old volume */
                   DisplayTree(dir_window, statistic.disp_begin_pos, statistic.disp_begin_pos + statistic.cursor_pos);
                   DisplayDiskStatistic();
                   DisplayAvailBytes();
@@ -339,6 +362,7 @@ int LoginDisk(char *path)
               strcpy(statistic.file_spec, DEFAULT_FILE_SPEC);   /* Re-init default filter */
               /* CurrentVolume remains the empty virgin volume. */
               DisplayMenu(); /* Refresh to show empty state */
+              BuildDirEntryList(statistic.tree, &statistic); /* Rebuild list for empty tree */
               DisplayTree(dir_window, 0, 0);
               DisplayDiskStatistic();
               DisplayAvailBytes();
@@ -355,6 +379,7 @@ int LoginDisk(char *path)
       /*  SetKindOfSort( statistic.kind_of_sort ); */
 
       /* Refresh display for the new/reused volume, resetting cursor position. */
+      BuildDirEntryList(statistic.tree, &statistic); /* Rebuild list for the newly loaded tree */
       DisplayTree(dir_window, 0, 0); /* New/reused volume, reset display position */
       DisplayDiskStatistic();
       DisplayAvailBytes();
@@ -445,16 +470,37 @@ int SelectLoadedVolume(void)
     int win_height, win_width, win_x, win_y;
     int result = -1; /* Assume cancel by default */
     char title[] = "Select Volume";
-    char prompt[] = "Use UP/DOWN to select, ENTER to switch, ESC/q to cancel.";
+    char prompt[] = "Use UP/DOWN to select, ENTER to switch, ESC/q to cancel. D to delete."; // Updated prompt
+    BOOL changes_made = FALSE; // ADDED: Flag to track if volumes were added/deleted
 
     ClearHelp();
 
-    /* 1. Snapshot Volumes */
+START_MENU: // ADDED: Label to restart menu after volume changes
+    // Free previous allocation if we are restarting the menu
+    if (vol_array != NULL) {
+        free(vol_array);
+        vol_array = NULL;
+    }
+    // If window exists, delete it before creating a new one
+    if (win != NULL) {
+        delwin(win);
+        win = NULL;
+    }
+
+    // Reset num_volumes and max_path_len for fresh snapshot
+    num_volumes = 0;
+    max_path_len = 0;
+    current_volume_index = -1;
+    // selected_index will be re-calculated based on CurrentVolume or default to 0
+
     num_volumes = HASH_COUNT(VolumeList);
 
     if (num_volumes == 0) {
         MESSAGE("No volumes currently loaded.");
-        return -1;
+        // If we deleted the last volume, CurrentVolume should have been reset to a blank one.
+        // In this case, we should return 0 to force a refresh of the main screen.
+        // If we started with 0 volumes, this is an error.
+        return changes_made ? 0 : -1;
     }
 
     vol_array = (struct Volume **)malloc(num_volumes * sizeof(struct Volume *));
@@ -464,6 +510,7 @@ int SelectLoadedVolume(void)
     }
 
     i = 0;
+    int new_selected_index = 0; // Default to first item
     HASH_ITER(hh, VolumeList, s, tmp) {
         vol_array[i] = s;
         int len = StrVisualLength(s->vol_stats.login_path);
@@ -472,10 +519,15 @@ int SelectLoadedVolume(void)
         }
         if (s == CurrentVolume) {
             current_volume_index = i;
-            selected_index = i; /* Start selection on current volume */
+            new_selected_index = i; // Set selected to current volume
         }
         i++;
     }
+    selected_index = new_selected_index; // Update selected_index after array is built
+    // Ensure selected_index is within bounds (should be if CurrentVolume is valid)
+    if (selected_index >= num_volumes) selected_index = num_volumes - 1;
+    if (selected_index < 0) selected_index = 0;
+
 
     /* 2. Window Setup */
     /* Minimum height: title (1) + prompt (1) + border (2) + at least 1 item (1) = 5 */
@@ -491,6 +543,7 @@ int SelectLoadedVolume(void)
     win_x = (COLS - win_width) / 2;
     win_y = (LINES - win_height) / 2;
 
+    // Create new window (old one was deleted if it existed)
     win = newwin(win_height, win_width, win_y, win_x);
     if (win == NULL) {
         ERROR_MSG("Failed to create window for volume selection.");
@@ -561,6 +614,82 @@ int SelectLoadedVolume(void)
             case 'q':
                 result = -1; /* Cancel */
                 goto END_LOOP;
+            case 'D':
+            case 'd':
+            case KEY_DC: // Delete key
+                if (num_volumes <= 1) {
+                    MESSAGE("Cannot release the last volume.");
+                    // No need to redraw, loop will do it.
+                    break; // break from switch, loop continues to redraw
+                }
+
+                if (InputChoise("Release this volume? (Y/N)", "YN\033") == 'Y') {
+                    struct Volume *target_vol = vol_array[selected_index];
+                    int neighbor_idx = -1;
+
+                    if (target_vol == CurrentVolume) {
+                        /* Scenario A: Deleting Current Volume */
+                        /* Find a neighbor to switch to */
+                        if (num_volumes > 1) {
+                            // If selected is 0, try 1. Otherwise, try 0.
+                            neighbor_idx = (selected_index == 0) ? 1 : 0;
+                            struct Volume *neighbor = vol_array[neighbor_idx];
+
+                            /* Verify neighbor accessibility before switching */
+                            // This logic is similar to LoginDisk, but for a neighbor.
+                            BOOL neighbor_access_ok = FALSE;
+                            struct stat neighbor_st_check;
+
+                            if (neighbor->vol_stats.mode == ARCHIVE_MODE) {
+                                if (stat(neighbor->vol_stats.login_path, &neighbor_st_check) == 0 && !S_ISDIR(neighbor_st_check.st_mode)) {
+                                    neighbor_access_ok = TRUE;
+                                    char neighbor_parent_dir[PATH_LENGTH + 1];
+                                    strcpy(neighbor_parent_dir, neighbor->vol_stats.login_path);
+                                    char *slash = strrchr(neighbor_parent_dir, FILE_SEPARATOR_CHAR);
+                                    if (slash) {
+                                        *slash = '\0';
+                                        chdir(neighbor_parent_dir);
+                                    }
+                                }
+                            } else {
+                                if (chdir(neighbor->vol_stats.login_path) == 0) {
+                                    neighbor_access_ok = TRUE;
+                                }
+                            }
+
+                            if (!neighbor_access_ok) {
+                                char error_message_buffer[MESSAGE_LENGTH + 1];
+                                sprintf(error_message_buffer, "Neighbor volume \"%s\" not accessible (Error: %s). Removed.",
+                                        neighbor->vol_stats.login_path, strerror(errno));
+                                MESSAGE(error_message_buffer);
+                                Volume_Delete(neighbor); // Delete the inaccessible neighbor
+                                changes_made = TRUE;
+                                // Need to restart the menu to rebuild the vol_array and window
+                                free(vol_array); vol_array = NULL; // Ensure it's freed before goto
+                                delwin(win); win = NULL; // Ensure window is deleted
+                                touchwin(stdscr); refresh(); // Clear artifacts
+                                goto START_MENU; // Restart menu to rebuild list
+                            }
+
+                            CurrentVolume = neighbor;
+                            mode = CurrentVolume->vol_stats.mode; // Sync global mode
+                        } else {
+                            // This case should be caught by num_volumes <= 1 check, but defensive.
+                            MESSAGE("Cannot release the last volume.");
+                            break; // break from switch, loop continues to redraw
+                        }
+                    }
+                    /* Scenario B: Deleting Background Volume (or target_vol is now CurrentVolume's old self) */
+                    Volume_Delete(target_vol);
+                    changes_made = TRUE;
+
+                    /* Cleanup and restart menu */
+                    free(vol_array); vol_array = NULL; // Ensure it's freed before goto
+                    delwin(win); win = NULL; // Ensure window is deleted
+                    touchwin(stdscr); refresh(); // Clear artifacts
+                    goto START_MENU;
+                }
+                break; // break from switch, loop continues to redraw (if not goto START_MENU)
             default:
                 /* Ignore other keys */
                 break;
@@ -583,14 +712,16 @@ END_LOOP:
             free(vol_array); /* Free AFTER LoginDisk returns */
             return login_result;
         } else {
-            MESSAGE("Already on selected volume.");
+            /* REMOVED: MESSAGE("Already on selected volume."); */
             free(vol_array); /* Free even if no actual switch */
             return 0; /* No actual switch, but not an error */
         }
     }
 
     free(vol_array); /* Free if cancelled (result != 0) */
-    return result;
+    // If changes were made (volumes deleted), return 0 to force main loop to refresh.
+    // Otherwise, return original result (0 for switch, -1 for cancel).
+    return (result == 0 || changes_made) ? 0 : -1;
 }
 
 /*
