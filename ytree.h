@@ -403,7 +403,12 @@ enum UI_COLOR_PAIRS {
 
 #define ESCAPE               goto FNC_XIT
 
+#ifdef WITH_UTF8
+/* In UTF-8 mode, let ncurses handle the bytes. Only filter standard low control codes. */
+#define PRINT(ch) ((unsigned char)(ch) < 32 && (ch) != 0 ? ACS_BLOCK : (ch))
+#else
 #define PRINT(ch) (iscntrl(ch) && (((unsigned char)(ch)) < ' ')) ? (ACS_BLOCK) : ((unsigned char)(ch))
+#endif
 
 /* ========================================================================= */
 /*                              STRUCTURES                                   */
