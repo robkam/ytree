@@ -29,8 +29,8 @@ CLOCK	    = -DCLOCK_SUPPORT # Experimental!
 READLINE    = -DREADLINE_SUPPORT
 
 # Use -std=c99 or -std=gnu99 for modernization. -D_GNU_SOURCE is kept for glibc extensions.
-CFLAGS      += -D_GNU_SOURCE -DHAVE_LIBARCHIVE $(COLOR) $(CLOCK) $(READLINE) $(ADD_CFLAGS)
-LDFLAGS     += -lncurses -ltinfo -lreadline -larchive -lm
+CFLAGS      += -D_GNU_SOURCE -DHAVE_LIBARCHIVE -DWITH_UTF8 $(COLOR) $(CLOCK) $(READLINE) $(ADD_CFLAGS)
+LDFLAGS     += -lncursesw -ltinfo -lreadline -larchive -lm
 
 # ---------------------------------------------------------
 # Build Mode Selection
@@ -49,7 +49,7 @@ endif
 
 # For systems requiring ncursesw (wide character support) use:
 # COLOR       = -DCOLOR_SUPPORT
-# READLINE    = -DREADLINE_SUPPORT
+# READLINE     = -DREADLINE_SUPPORT
 # CFLAGS      = -D_GNU_SOURCE -DWITH_UTF8 $(ADD_CFLAGS) $(COLOR) $(CLOCK) $(READLINE)
 # LDFLAGS     = -lncursesw -ltinfo -lreadline
 
