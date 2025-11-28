@@ -463,19 +463,23 @@ int SelectLoadedVolume(void)
     struct Volume **vol_array = NULL;
     int num_volumes = 0;
     int max_path_len = 0;
-    int i, ch;
+    int i, j, ch; /* Added j for visible line iteration */
     int selected_index = 0;
     int current_volume_index = -1;
     WINDOW *win = NULL;
     int win_height, win_width, win_x, win_y;
     int result = -1; /* Assume cancel by default */
     char title[] = "Select Volume";
-    char prompt[] = "Use UP/DOWN to select, ENTER to switch, ESC/q to cancel. D to delete."; // Updated prompt
-    BOOL changes_made = FALSE; // ADDED: Flag to track if volumes were added/deleted
+    char prompt[] = "Use UP/DOWN to select, ENTER to switch, ESC/q to cancel. D to delete.";
+    BOOL changes_made = FALSE;
+
+    /* Scrolling variables */
+    int scroll_offset = 0;
+    int visible_lines;
 
     ClearHelp();
 
-START_MENU: // ADDED: Label to restart menu after volume changes
+START_MENU:
     // Free previous allocation if we are restarting the menu
     if (vol_array != NULL) {
         free(vol_array);
@@ -491,7 +495,7 @@ START_MENU: // ADDED: Label to restart menu after volume changes
     num_volumes = 0;
     max_path_len = 0;
     current_volume_index = -1;
-    // selected_index will be re-calculated based on CurrentVolume or default to 0
+    scroll_offset = 0; /* Reset scroll offset for new menu display */
 
     num_volumes = HASH_COUNT(VolumeList);
 
@@ -543,6 +547,20 @@ START_MENU: // ADDED: Label to restart menu after volume changes
     win_x = (COLS - win_width) / 2;
     win_y = (LINES - win_height) / 2;
 
+    // Calculate visible lines for items
+    visible_lines = win_height - 5; /* Height minus TopBorder, Title, Spacer, Prompt, BottomBorder */
+    visible_lines = MAXIMUM(1, visible_lines); /* Ensure at least one line is visible */
+
+    // Adjust initial scroll_offset to make current_volume_index visible
+    if (selected_index >= visible_lines) {
+        scroll_offset = selected_index - visible_lines + 1;
+        // Ensure scroll_offset doesn't go past the end of the list
+        scroll_offset = MINIMUM(scroll_offset, num_volumes - visible_lines);
+    }
+    // Ensure scroll_offset is not negative
+    scroll_offset = MAXIMUM(0, scroll_offset);
+
+
     // Create new window (old one was deleted if it existed)
     win = newwin(win_height, win_width, win_y, win_x);
     if (win == NULL) {
@@ -562,30 +580,33 @@ START_MENU: // ADDED: Label to restart menu after volume changes
         mvwprintw(win, 1, (win_width - strlen(title)) / 2, "%s", title);
         mvwprintw(win, win_height - 2, (win_width - StrVisualLength(prompt)) / 2, "%s", prompt);
 
-        for (i = 0; i < num_volumes; i++) {
-            int y_pos = 3 + i; /* Start listing from y=3 */
-            if (y_pos >= win_height - 3) { /* Don't draw over prompt/bottom border */
-                break;
+        /* Drawing loop using scroll_offset and visible_lines */
+        for (j = 0; j < visible_lines; j++) { /* Iterate for visible lines */
+            int actual_idx = scroll_offset + j; /* Calculate actual volume index */
+            if (actual_idx >= num_volumes) {
+                break; /* No more volumes to display */
             }
 
-            if (i == selected_index) {
+            int y_pos = 3 + j; /* Start listing from y=3, relative to visible line j */
+
+            if (actual_idx == selected_index) {
                 wattron(win, A_REVERSE); /* Highlight selected item */
-            } else if (i == current_volume_index) {
+            } else if (actual_idx == current_volume_index) {
                 wattron(win, COLOR_PAIR(CPAIR_HIMENUS)); /* Highlight current volume differently */
             }
 
-            const char *path_to_display = vol_array[i]->vol_stats.login_path;
+            const char *path_to_display = vol_array[actual_idx]->vol_stats.login_path;
             if (strlen(path_to_display) == 0) {
                 path_to_display = "<No Path>";
             }
 
             mvwprintw(win, y_pos, 2, "[%c] %s",
-                      (i == selected_index ? '*' : ' '),
+                      (actual_idx == selected_index ? '*' : ' '),
                       path_to_display);
 
-            if (i == current_volume_index && i != selected_index) {
+            if (actual_idx == current_volume_index && actual_idx != selected_index) {
                 wattroff(win, COLOR_PAIR(CPAIR_HIMENUS));
-            } else if (i == selected_index) {
+            } else if (actual_idx == selected_index) {
                 wattroff(win, A_REVERSE);
             }
         }
@@ -598,12 +619,18 @@ START_MENU: // ADDED: Label to restart menu after volume changes
                 selected_index--;
                 if (selected_index < 0) {
                     selected_index = num_volumes - 1;
+                    scroll_offset = MAXIMUM(0, num_volumes - visible_lines);
+                } else if (selected_index < scroll_offset) {
+                    scroll_offset--;
                 }
                 break;
             case KEY_DOWN:
                 selected_index++;
                 if (selected_index >= num_volumes) {
                     selected_index = 0;
+                    scroll_offset = 0;
+                } else if (selected_index >= scroll_offset + visible_lines) {
+                    scroll_offset++;
                 }
                 break;
             case LF:
