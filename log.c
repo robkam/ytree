@@ -282,14 +282,18 @@ int LoginDisk(char *path)
         statistic.tree->next = statistic.tree->prev = NULL;
 
         depth = strtol(TREEDEPTH, NULL, 0);
-        if( ReadTree( statistic.tree, resolved_path, depth ) ) /* Use resolved_path for ReadTree */
+        int rt_ret = ReadTree(statistic.tree, resolved_path, depth); /* Use resolved_path for ReadTree */
+        if (rt_ret != 0)
         {
-          ERROR_MSG( "ReadTree Failed" );
-          if(animation_method == 1) {
-              StopAnimation();
-              SwitchToSmallFileWindow();
-          }
-          result = -1;
+            if (rt_ret != -1) {
+                /* Only show error if NOT an abort (-1) */
+                ERROR_MSG("ReadTree Failed");
+            }
+            if(animation_method == 1) {
+                StopAnimation();
+                SwitchToSmallFileWindow();
+            }
+            result = -1;
         }
 
         /* Recalculate stats to respect initial hide_dot_files setting,
