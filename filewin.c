@@ -145,6 +145,9 @@ void RotateFileMode(void)
 
 static void BuildFileEntryList(DirEntry *dir_entry){
   size_t alloc_count;
+  long t_files = 0;
+  LONGLONG t_bytes = 0;
+  size_t i; /* Loop counter for recalculating tagged stats */
 
   if( file_entry_list ) {
     free( file_entry_list );
@@ -155,7 +158,7 @@ static void BuildFileEntryList(DirEntry *dir_entry){
   if( !dir_entry->global_flag )  {
     /* Normal Directory View */
 
-    alloc_count = dir_entry->matching_files;
+    alloc_count = dir_entry->matching_files; /* This is the potentially stale value */
     if (alloc_count < 16) alloc_count = 16;
 
     if( ( file_entry_list = (FileEntryList *)
@@ -173,11 +176,24 @@ static void BuildFileEntryList(DirEntry *dir_entry){
     SortFileEntryList();
     SetFileMode( file_mode ); /* recalc */
 
+    /* Recalculate and update statistics based on the actual loaded list */
+    dir_entry->matching_files = file_count;
+    t_files = 0;
+    t_bytes = 0;
+    for (i = 0; i < file_count; i++) {
+        if (file_entry_list[i].file->tagged) {
+            t_files++;
+            t_bytes += file_entry_list[i].file->stat_struct.st_size;
+        }
+    }
+    dir_entry->tagged_files = t_files;
+    dir_entry->tagged_bytes = t_bytes;
+
     } else {
     /* Global / ShowAll View */
 
     size_t count_source = (dir_entry->tagged_flag) ? statistic.disk_tagged_files : statistic.disk_matching_files;
-    alloc_count = count_source;
+    alloc_count = count_source; /* This is also potentially stale */
     if (alloc_count < 16) alloc_count = 16;
 
     if( ( file_entry_list = (FileEntryList *)
@@ -195,6 +211,19 @@ static void BuildFileEntryList(DirEntry *dir_entry){
     ReadGlobalFileList(  dir_entry->tagged_flag, statistic.tree );
     SortFileEntryList();
     SetFileMode( file_mode ); /* recalc */
+
+    /* Recalculate and update statistics based on the actual loaded list */
+    dir_entry->matching_files = file_count;
+    t_files = 0;
+    t_bytes = 0;
+    for (i = 0; i < file_count; i++) {
+        if (file_entry_list[i].file->tagged) {
+            t_files++;
+            t_bytes += file_entry_list[i].file->stat_struct.st_size;
+        }
+    }
+    dir_entry->tagged_files = t_files;
+    dir_entry->tagged_bytes = t_bytes;
     }
 }
 
@@ -1159,6 +1188,12 @@ int HandleFileWindow(DirEntry *dir_entry)
 
       RefreshWindow( dir_window ); /* needed: ncurses-bug ? */
       RefreshWindow( file_window );
+      /* Update statistics display before doupdate */
+      if (dir_entry->global_flag) {
+          DisplayDiskStatistic();
+      } else {
+          DisplayDirStatistic(dir_entry);
+      }
       doupdate();
       ch = (resize_request) ? -1 : Getch();
       if( ch == LF ) ch = CR;
@@ -1480,10 +1515,6 @@ int HandleFileWindow(DirEntry *dir_entry)
 		        de_ptr->tagged_bytes += fe_ptr->stat_struct.st_size;
 	       	        statistic.disk_tagged_files++;
 		        statistic.disk_tagged_bytes += fe_ptr->stat_struct.st_size;
-			if( dir_entry->global_flag )
-			  DisplayDiskTagged();
-			else
-			  DisplayDirTagged( de_ptr );
 		      }
               DisplayFiles(dir_entry, dir_entry->start_file, dir_entry->start_file + dir_entry->cursor_pos, start_x);
 		      unput_char = KEY_DOWN;
@@ -1500,10 +1531,6 @@ int HandleFileWindow(DirEntry *dir_entry)
 			de_ptr->tagged_bytes -= fe_ptr->stat_struct.st_size;
 			statistic.disk_tagged_files--;
 			statistic.disk_tagged_bytes -= fe_ptr->stat_struct.st_size;
-			if( dir_entry->global_flag )
-			  DisplayDiskTagged();
-			else
-			  DisplayDirTagged( de_ptr );
 		      }
               DisplayFiles(dir_entry, dir_entry->start_file, dir_entry->start_file + dir_entry->cursor_pos, start_x);
 		      unput_char = KEY_DOWN;
@@ -1552,11 +1579,6 @@ int HandleFileWindow(DirEntry *dir_entry)
 		        }
 		      }
 
-		      if( dir_entry->global_flag )
-		        DisplayDiskTagged();
-		      else
-		        DisplayDirTagged( dir_entry );
-
 		      DisplayFiles( dir_entry,
 				    dir_entry->start_file,
 				    dir_entry->start_file + dir_entry->cursor_pos,
@@ -1582,11 +1604,6 @@ int HandleFileWindow(DirEntry *dir_entry)
 			  statistic.disk_tagged_bytes -= file_size;
 		        }
 		      }
-
-		      if( dir_entry->global_flag )
-		        DisplayDiskTagged();
-		      else
-		        DisplayDirTagged( dir_entry );
 
 		      DisplayFiles( dir_entry,
 				    dir_entry->start_file,
@@ -1616,11 +1633,6 @@ int HandleFileWindow(DirEntry *dir_entry)
 		        }
 		      }
 
-		      if( dir_entry->global_flag )
-		        DisplayDiskTagged();
-		      else
-		        DisplayDirTagged( dir_entry );
-
 		      DisplayFiles( dir_entry,
 				    dir_entry->start_file,
 				    dir_entry->start_file + dir_entry->cursor_pos,
@@ -1647,11 +1659,6 @@ int HandleFileWindow(DirEntry *dir_entry)
 			  statistic.disk_tagged_bytes -= file_size;
 		        }
 		      }
-
-		      if( dir_entry->global_flag )
-		        DisplayDiskTagged();
-		      else
-		        DisplayDirTagged( dir_entry );
 
 		      DisplayFiles( dir_entry,
 				    dir_entry->start_file,
