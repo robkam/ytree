@@ -347,9 +347,14 @@ enum UI_COLOR_PAIRS {
 
 #define CR                     13
 
+/* Window Dimension Definitions */
+#define STATS_WIDTH          24
+#define STATS_MARGIN         2
+#define MAIN_WIN_WIDTH       (COLS - STATS_WIDTH - STATS_MARGIN)
+
 #define DIR_WINDOW_X         1
 #define DIR_WINDOW_Y         2
-#define DIR_WINDOW_WIDTH     (COLS - 26)
+#define DIR_WINDOW_WIDTH     MAIN_WIN_WIDTH
 #define DIR_WINDOW_HEIGHT    ((LINES * 8 / 14)-1)
 
 #define F2_WINDOW_X          DIR_WINDOW_X
@@ -359,12 +364,12 @@ enum UI_COLOR_PAIRS {
 
 #define FILE_WINDOW_1_X      1
 #define FILE_WINDOW_1_Y      DIR_WINDOW_HEIGHT + 3
-#define FILE_WINDOW_1_WIDTH  (COLS - 26)
+#define FILE_WINDOW_1_WIDTH  MAIN_WIN_WIDTH
 #define FILE_WINDOW_1_HEIGHT (LINES - DIR_WINDOW_HEIGHT - 7 )
 
 #define FILE_WINDOW_2_X      1
 #define FILE_WINDOW_2_Y      2
-#define FILE_WINDOW_2_WIDTH  (COLS - 26)
+#define FILE_WINDOW_2_WIDTH  MAIN_WIN_WIDTH
 #define FILE_WINDOW_2_HEIGHT (LINES - 6)
 
 #define ERROR_WINDOW_WIDTH   40
@@ -374,12 +379,12 @@ enum UI_COLOR_PAIRS {
 
 #define HISTORY_WINDOW_X       1
 #define HISTORY_WINDOW_Y       2
-#define HISTORY_WINDOW_WIDTH   (COLS - 26)
+#define HISTORY_WINDOW_WIDTH   MAIN_WIN_WIDTH
 #define HISTORY_WINDOW_HEIGHT  (LINES - 6)
 
 #define MATCHES_WINDOW_X       1
 #define MATCHES_WINDOW_Y       2
-#define MATCHES_WINDOW_WIDTH   (COLS - 26)
+#define MATCHES_WINDOW_WIDTH   MAIN_WIN_WIDTH
 #define MATCHES_WINDOW_HEIGHT  (LINES - 6)
 
 #define TIME_WINDOW_X        (COLS - 20)
