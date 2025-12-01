@@ -1518,12 +1518,8 @@ int HandleFileWindow(DirEntry *dir_entry)
 		        statistic.disk_tagged_bytes += fe_ptr->stat_struct.st_size;
 		      }
               DisplayFiles(dir_entry, dir_entry->start_file, dir_entry->start_file + dir_entry->cursor_pos, start_x);
-              if (dir_entry->global_flag) {
-                  DisplayDiskStatistic();
-              } else {
-                  DisplayDiskStatistic(); /* Update Global Volume Totals */
-                  DisplayDirStatistic(dir_entry); /* Update Current Dir Totals */
-              }
+              DisplayDiskStatistic(); /* Always update global disk stats */
+              DisplayDirStatistic(dir_entry); /* Always update current list stats (even in Showall) */
 		      unput_char = KEY_DOWN;
 
                       break;
@@ -1540,12 +1536,8 @@ int HandleFileWindow(DirEntry *dir_entry)
 			statistic.disk_tagged_bytes -= fe_ptr->stat_struct.st_size;
 		      }
               DisplayFiles(dir_entry, dir_entry->start_file, dir_entry->start_file + dir_entry->cursor_pos, start_x);
-              if (dir_entry->global_flag) {
-                  DisplayDiskStatistic();
-              } else {
-                  DisplayDiskStatistic(); /* Update Global Volume Totals */
-                  DisplayDirStatistic(dir_entry); /* Update Current Dir Totals */
-              }
+              DisplayDiskStatistic(); /* Always update global disk stats */
+              DisplayDirStatistic(dir_entry); /* Always update current list stats (even in Showall) */
 		      unput_char = KEY_DOWN;
 
 		      break;
@@ -1597,12 +1589,8 @@ int HandleFileWindow(DirEntry *dir_entry)
 				    dir_entry->start_file + dir_entry->cursor_pos,
 				    start_x
 			          );
-              if (dir_entry->global_flag) {
-                  DisplayDiskStatistic();
-              } else {
-                  DisplayDiskStatistic(); /* Update Global Volume Totals */
-                  DisplayDirStatistic(dir_entry); /* Update Current Dir Totals */
-              }
+              DisplayDiskStatistic(); /* Always update global disk stats */
+              DisplayDirStatistic(dir_entry); /* Always update current list stats (even in Showall) */
 		      break;
 
 
@@ -1629,12 +1617,8 @@ int HandleFileWindow(DirEntry *dir_entry)
 				    dir_entry->start_file + dir_entry->cursor_pos,
 				    start_x
 			          );
-              if (dir_entry->global_flag) {
-                  DisplayDiskStatistic();
-              } else {
-                  DisplayDiskStatistic(); /* Update Global Volume Totals */
-                  DisplayDirStatistic(dir_entry); /* Update Current Dir Totals */
-              }
+              DisplayDiskStatistic(); /* Always update global disk stats */
+              DisplayDirStatistic(dir_entry); /* Always update current list stats (even in Showall) */
 		      break;
 
 
@@ -1663,12 +1647,8 @@ int HandleFileWindow(DirEntry *dir_entry)
 				    dir_entry->start_file + dir_entry->cursor_pos,
 				    start_x
 			          );
-              if (dir_entry->global_flag) {
-                  DisplayDiskStatistic();
-              } else {
-                  DisplayDiskStatistic(); /* Update Global Volume Totals */
-                  DisplayDirStatistic(dir_entry); /* Update Current Dir Totals */
-              }
+              DisplayDiskStatistic(); /* Always update global disk stats */
+              DisplayDirStatistic(dir_entry); /* Always update current list stats (even in Showall) */
 		      break;
 
 
@@ -1696,12 +1676,8 @@ int HandleFileWindow(DirEntry *dir_entry)
 				    dir_entry->start_file + dir_entry->cursor_pos,
 				    start_x
 			          );
-              if (dir_entry->global_flag) {
-                  DisplayDiskStatistic();
-              } else {
-                  DisplayDiskStatistic(); /* Update Global Volume Totals */
-                  DisplayDirStatistic(dir_entry); /* Update Current Dir Totals */
-              }
+              DisplayDiskStatistic(); /* Always update global disk stats */
+              DisplayDirStatistic(dir_entry); /* Always update current list stats (even in Showall) */
 		      break;
 
       case 'V' :
@@ -2406,9 +2382,7 @@ int HandleFileWindow(DirEntry *dir_entry)
 
       case '\033':    break;
 
-      /* LOGIN_ESC is defined as '.', which conflicts with case '.' */
-      /* case LOGIN_ESC : */
-      /*		      break; */
+      /* Removed case LOGIN_ESC as it conflicts with case '.' */
 
       case KEY_F(12):
       		      ListJump(dir_entry, "");
