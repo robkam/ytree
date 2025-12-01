@@ -174,6 +174,22 @@ void DisplayMenu(void)
 
 
   PrintSpecialString( stdscr, 0, 0, "Path: ", CPAIR_MENU );
+  /* Print the current path next to the label */
+  char *path_str = (mode == ARCHIVE_MODE) ? statistic.login_path : statistic.path;
+
+  /* Calculate available width: Screen width - "Path: " (6) - Stats Panel - Clock/Margin (20) */
+  int available_width = COLS - STATS_WIDTH - 26;
+  if (available_width < 10) available_width = 10; // Safety minimum
+
+  attron(COLOR_PAIR(CPAIR_MENU) | A_BOLD);
+
+  /* Explicitly clear the area first to prevent ghosting */
+  mvwhline(stdscr, 0, 6, ' ', available_width);
+
+  /* Print path truncated to fit (%.*s) */
+  mvprintw(0, 6, "%.*s", available_width, path_str);
+
+  attroff(COLOR_PAIR(CPAIR_MENU) | A_BOLD);
   /* The clrtoeol() call was removed to prevent it from erasing the clock display on redraw. */
 
   werase( dir_window );
