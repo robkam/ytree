@@ -87,12 +87,12 @@ int Init(char *configuration_file, char *history_file)
 
   SetFileMode( strtol(FILEMODE, NULL, 0) );
   SetKindOfSort( SORT_BY_NAME );
-  char *sep_str = NUMBERSEP;
-  if (sep_str && *sep_str) {
-      number_seperator = *sep_str;
-  } else {
-      number_seperator = ','; /* Default to English style */
-  }
+  /* Use System Locale for number separator */
+  struct lconv *lc = localeconv();
+  if (lc && lc->thousands_sep && *lc->thousands_sep)
+      number_seperator = *lc->thousands_sep;
+  else
+      number_seperator = ','; /* Fallback to English/Comma */
   bypass_small_window = (strtol(NOSMALLWINDOW, NULL, 0 )) ? TRUE : FALSE;
   highlight_full_line = (strtol(GetProfileValue("HIGHLIGHT_FULL_LINE"), NULL, 0)) ? TRUE : FALSE;
   hide_dot_files = (strtol(HIDEDOTFILES, NULL, 0)) ? TRUE : FALSE;

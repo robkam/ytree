@@ -1,7 +1,7 @@
 /***************************************************************************
  *
  * filewin.c
- * Funktionen zur Handhabung des FILE-Windows
+ * Funktionen zur Handhabung des FILE-WINDOWS
  *
  ***************************************************************************/
 
@@ -2172,7 +2172,7 @@ int HandleFileWindow(DirEntry *dir_entry)
 			 dir_entry->login_flag  = TRUE;
 
 		         (void) LoginDisk( new_login_path );
-		         unput_char = LOGIN_ESC;
+		         unput_char = ESC; /* Changed from LOGIN_ESC to ESC */
 			}
 		        need_dsp_help = TRUE;
 		     }
@@ -2363,6 +2363,30 @@ int HandleFileWindow(DirEntry *dir_entry)
                       Quit();
 		      break;
 
+      case 'K': /* SelectLoadedVolume */
+          if (SelectLoadedVolume() == 0) {
+              unput_char = ESC; /* Success: Exit to refresh */
+          } else {
+              ch = 0; /* Failure: Consume key to prevent loop exit */
+          }
+          break;
+      case ',': /* Cycle -1 */
+      case '<':
+          if (CycleLoadedVolume(-1) == 0) {
+              unput_char = ESC;
+          } else {
+              ch = 0;
+          }
+          break;
+      case '.': /* Cycle 1 */
+      case '>':
+          if (CycleLoadedVolume(1) == 0) {
+              unput_char = ESC; /* Success: Exit to refresh */
+          } else {
+              ch = 0; /* Failure: Consume key to prevent loop exit (if ch was '.') */
+          }
+          break;
+
       case 'L' & 0x1F:
              if (mode == ARCHIVE_MODE) {
                 clearok(stdscr, TRUE);
@@ -2382,8 +2406,9 @@ int HandleFileWindow(DirEntry *dir_entry)
 
       case '\033':    break;
 
-      case LOGIN_ESC :
-		      break;
+      /* LOGIN_ESC is defined as '.', which conflicts with case '.' */
+      /* case LOGIN_ESC : */
+      /*		      break; */
 
       case KEY_F(12):
       		      ListJump(dir_entry, "");
@@ -2416,12 +2441,12 @@ int HandleFileWindow(DirEntry *dir_entry)
      default:
                       break;
     }
-  } while( ch != CR && ch != ESC && ch != LOGIN_ESC );
+  } while( ch != CR && ch != ESC ); /* Removed LOGIN_ESC from loop condition */
 
   if( dir_entry->big_window )
     SwitchToSmallFileWindow();
 
-  if(ch != LOGIN_ESC) {
+  if(ch != ESC) { /* Changed from LOGIN_ESC to ESC */
     dir_entry->global_flag = FALSE;
     dir_entry->tagged_flag = FALSE;
     dir_entry->big_window  = FALSE;
@@ -2510,6 +2535,7 @@ static void WalkTaggedFiles(int start_file,
  ExecuteCommand (*fkt) had its retval zeroed as found.
  ^S needs that value, so it was unzeroed. forloop below
  was modified to not care about retval instead?
+
  global flag for stop-on-error? does anybody want it?
 
  --crb3 12mar04

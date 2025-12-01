@@ -747,6 +747,7 @@ extern int GetVisualUserFileEntryLength( int max_visual_filename_len, int max_vi
 extern int MvAddStr(int y, int x, char *str);
 extern int MvWAddStr(WINDOW *win, int y, int x, char *str);
 extern void Print(WINDOW *, int, int, char *, int);
+extern void PrintLine(WINDOW *win, int y, int x, char *line, int len); /* ADDED: PrintLine prototype */
 extern void PrintMenuOptions(WINDOW *,int, int, char *, int, int);
 extern void PrintOptions(WINDOW *,int, int, char *);
 extern void PrintSpecialString(WINDOW *win, int y, int x, char *str, int color);
