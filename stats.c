@@ -427,7 +427,11 @@ void DisplayDirStatistic(DirEntry *de)
 
     if (!de) return;
 
-    DrawSeparator(Y_DSTAT_SEP, "CURRENT DIR");
+    if (de->global_flag) {
+        DrawSeparator(Y_DSTAT_SEP, "SHOW ALL");
+    } else {
+        DrawSeparator(Y_DSTAT_SEP, "CURRENT DIR");
+    }
 
     /* Dir Name */
     CutName(buf, de->name, INNER_W);
