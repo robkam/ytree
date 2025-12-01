@@ -1518,7 +1518,12 @@ int HandleFileWindow(DirEntry *dir_entry)
 		        statistic.disk_tagged_bytes += fe_ptr->stat_struct.st_size;
 		      }
               DisplayFiles(dir_entry, dir_entry->start_file, dir_entry->start_file + dir_entry->cursor_pos, start_x);
-              if (dir_entry->global_flag) { DisplayDiskStatistic(); } else { DisplayDirStatistic(de_ptr); }
+              if (dir_entry->global_flag) {
+                  DisplayDiskStatistic();
+              } else {
+                  DisplayDiskStatistic(); /* Update Global Volume Totals */
+                  DisplayDirStatistic(dir_entry); /* Update Current Dir Totals */
+              }
 		      unput_char = KEY_DOWN;
 
                       break;
@@ -1535,7 +1540,12 @@ int HandleFileWindow(DirEntry *dir_entry)
 			statistic.disk_tagged_bytes -= fe_ptr->stat_struct.st_size;
 		      }
               DisplayFiles(dir_entry, dir_entry->start_file, dir_entry->start_file + dir_entry->cursor_pos, start_x);
-              if (dir_entry->global_flag) { DisplayDiskStatistic(); } else { DisplayDirStatistic(de_ptr); }
+              if (dir_entry->global_flag) {
+                  DisplayDiskStatistic();
+              } else {
+                  DisplayDiskStatistic(); /* Update Global Volume Totals */
+                  DisplayDirStatistic(dir_entry); /* Update Current Dir Totals */
+              }
 		      unput_char = KEY_DOWN;
 
 		      break;
@@ -1587,7 +1597,12 @@ int HandleFileWindow(DirEntry *dir_entry)
 				    dir_entry->start_file + dir_entry->cursor_pos,
 				    start_x
 			          );
-                      if (dir_entry->global_flag) { DisplayDiskStatistic(); } else { DisplayDirStatistic(dir_entry); }
+              if (dir_entry->global_flag) {
+                  DisplayDiskStatistic();
+              } else {
+                  DisplayDiskStatistic(); /* Update Global Volume Totals */
+                  DisplayDirStatistic(dir_entry); /* Update Current Dir Totals */
+              }
 		      break;
 
 
@@ -1614,7 +1629,12 @@ int HandleFileWindow(DirEntry *dir_entry)
 				    dir_entry->start_file + dir_entry->cursor_pos,
 				    start_x
 			          );
-                      if (dir_entry->global_flag) { DisplayDiskStatistic(); } else { DisplayDirStatistic(dir_entry); }
+              if (dir_entry->global_flag) {
+                  DisplayDiskStatistic();
+              } else {
+                  DisplayDiskStatistic(); /* Update Global Volume Totals */
+                  DisplayDirStatistic(dir_entry); /* Update Current Dir Totals */
+              }
 		      break;
 
 
@@ -1643,7 +1663,12 @@ int HandleFileWindow(DirEntry *dir_entry)
 				    dir_entry->start_file + dir_entry->cursor_pos,
 				    start_x
 			          );
-                      if (dir_entry->global_flag) { DisplayDiskStatistic(); } else { DisplayDirStatistic(dir_entry); }
+              if (dir_entry->global_flag) {
+                  DisplayDiskStatistic();
+              } else {
+                  DisplayDiskStatistic(); /* Update Global Volume Totals */
+                  DisplayDirStatistic(dir_entry); /* Update Current Dir Totals */
+              }
 		      break;
 
 
@@ -1671,7 +1696,12 @@ int HandleFileWindow(DirEntry *dir_entry)
 				    dir_entry->start_file + dir_entry->cursor_pos,
 				    start_x
 			          );
-                      if (dir_entry->global_flag) { DisplayDiskStatistic(); } else { DisplayDirStatistic(dir_entry); }
+              if (dir_entry->global_flag) {
+                  DisplayDiskStatistic();
+              } else {
+                  DisplayDiskStatistic(); /* Update Global Volume Totals */
+                  DisplayDirStatistic(dir_entry); /* Update Current Dir Totals */
+              }
 		      break;
 
       case 'V' :
