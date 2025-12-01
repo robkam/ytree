@@ -1188,12 +1188,13 @@ int HandleFileWindow(DirEntry *dir_entry)
 
       RefreshWindow( dir_window ); /* needed: ncurses-bug ? */
       RefreshWindow( file_window );
-      /* Update statistics display before doupdate */
-      if (dir_entry->global_flag) {
-          DisplayDiskStatistic();
-      } else {
-          DisplayDirStatistic(dir_entry);
-      }
+      /* REMOVED: This block caused full stats panel redraws on every keypress.
+       * if (dir_entry->global_flag) {
+       *     DisplayDiskStatistic();
+       * } else {
+       *     DisplayDirStatistic(dir_entry);
+       * }
+       */
       doupdate();
       ch = (resize_request) ? -1 : Getch();
       if( ch == LF ) ch = CR;
@@ -1517,6 +1518,7 @@ int HandleFileWindow(DirEntry *dir_entry)
 		        statistic.disk_tagged_bytes += fe_ptr->stat_struct.st_size;
 		      }
               DisplayFiles(dir_entry, dir_entry->start_file, dir_entry->start_file + dir_entry->cursor_pos, start_x);
+              if (dir_entry->global_flag) { DisplayDiskStatistic(); } else { DisplayDirStatistic(de_ptr); }
 		      unput_char = KEY_DOWN;
 
                       break;
@@ -1533,6 +1535,7 @@ int HandleFileWindow(DirEntry *dir_entry)
 			statistic.disk_tagged_bytes -= fe_ptr->stat_struct.st_size;
 		      }
               DisplayFiles(dir_entry, dir_entry->start_file, dir_entry->start_file + dir_entry->cursor_pos, start_x);
+              if (dir_entry->global_flag) { DisplayDiskStatistic(); } else { DisplayDirStatistic(de_ptr); }
 		      unput_char = KEY_DOWN;
 
 		      break;
@@ -1584,6 +1587,7 @@ int HandleFileWindow(DirEntry *dir_entry)
 				    dir_entry->start_file + dir_entry->cursor_pos,
 				    start_x
 			          );
+                      if (dir_entry->global_flag) { DisplayDiskStatistic(); } else { DisplayDirStatistic(dir_entry); }
 		      break;
 
 
@@ -1610,6 +1614,7 @@ int HandleFileWindow(DirEntry *dir_entry)
 				    dir_entry->start_file + dir_entry->cursor_pos,
 				    start_x
 			          );
+                      if (dir_entry->global_flag) { DisplayDiskStatistic(); } else { DisplayDirStatistic(dir_entry); }
 		      break;
 
 
@@ -1638,6 +1643,7 @@ int HandleFileWindow(DirEntry *dir_entry)
 				    dir_entry->start_file + dir_entry->cursor_pos,
 				    start_x
 			          );
+                      if (dir_entry->global_flag) { DisplayDiskStatistic(); } else { DisplayDirStatistic(dir_entry); }
 		      break;
 
 
@@ -1665,6 +1671,7 @@ int HandleFileWindow(DirEntry *dir_entry)
 				    dir_entry->start_file + dir_entry->cursor_pos,
 				    start_x
 			          );
+                      if (dir_entry->global_flag) { DisplayDiskStatistic(); } else { DisplayDirStatistic(dir_entry); }
 		      break;
 
       case 'V' :
