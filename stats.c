@@ -348,14 +348,7 @@ void DisplayDiskName(void)
     struct Volume *s, *tmp;
     int i = 1;
 
-    /* 1. Clear Legacy Header (0,0) */
-    if (dir_window) {
-        wattrset(dir_window, COLOR_PAIR(CPAIR_WINDIR));
-        mvwhline(dir_window, 0, 0, ' ', COLS - STAT_W - 2);
-        wrefresh(dir_window);
-    }
-
-    /* 2. Determine Volume Index */
+    /* 1. Determine Volume Index */
     if (VolumeList) {
         HASH_ITER(hh, VolumeList, s, tmp) {
             if (s == CurrentVolume) {
@@ -367,11 +360,11 @@ void DisplayDiskName(void)
     }
     if (current_index == 0 && total_volumes > 0) current_index = 1;
 
-    /* 3. Setup Panel */
+    /* 2. Setup Panel */
     SetColor();
     DrawBoxFrame(); /* Draws Top Border with "FILTER" */
 
-    /* 4. Filter Value */
+    /* 3. Filter Value */
     CutName(buf, statistic.file_spec, INNER_W);
     attron(A_BOLD);
     /* Center filter text using padding format to clear ghosts */
@@ -381,7 +374,7 @@ void DisplayDiskName(void)
     }
     attroff(A_BOLD);
 
-    /* 5. Volume Section */
+    /* 4. Volume Section */
     snprintf(buf, sizeof(buf), "VOLUME %d/%d", current_index, total_volumes);
     DrawSeparator(Y_VOL_SEP, buf);
 
