@@ -19,6 +19,7 @@ int main(int argc, char **argv)
   int argi;
   char *hist;
   char *conf;
+  int main_loop_exit_char; // Variable to store the return value of HandleDirWindow
 
   /* setlocale is now handled in Init */
 
@@ -100,11 +101,32 @@ int main(int argc, char **argv)
 #ifdef XCURSES
     XCursesExit();
 #endif
+    // Note: If LoginDisk fails, a volume might have been created and added to VolumeList
+    // but not properly cleaned up. This is an early exit that bypasses Volume_FreeAll()
+    // at the end of main. For this specific task, we are focusing on the normal exit path.
     exit( 1 );
   }
 
+  // Main application loop. It continues until HandleDirWindow signals a quit.
   while( 1 )
   {
-    if( HandleDirWindow(statistic.tree) == 'q' ) Quit();
+    main_loop_exit_char = HandleDirWindow(statistic.tree);
+    if (main_loop_exit_char == 'q' || main_loop_exit_char == 'Q') {
+        // User requested to quit. Break the loop to proceed with cleanup.
+        break;
+    }
+    // If HandleDirWindow returns other characters (e.g., CR, ESC, -1 for resize),
+    // the loop continues. 'l' or 'L' for LoginDisk also causes the loop to continue
+    // after LoginDisk has updated the tree.
+    // Note: Ctrl-Q ('Q' & 0x1F) is handled inside HandleDirWindow by calling QuitTo(),
+    // which performs cleanup and exits directly.
   }
+
+  /*
+   * Explicit cleanup: The main loop has terminated (e.g., user pressed 'q').
+   * All allocated volumes and associated memory are freed before program exit.
+   */
+  Volume_FreeAll(); /* Explicitly free memory */
+  endwin();
+  return 0;
 }
