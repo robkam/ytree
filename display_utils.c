@@ -554,6 +554,38 @@ void PrintSpecialString(WINDOW *win, int y, int x, char *str, int color)
   }
 }
 
+/*****************************************************************************
+ *                                  PrintLine                                *
+ * Generates a line of 'len' characters based on a 2-char pattern:           *
+ * start_char, fill_char. The line will consist of start_char followed by    *
+ * (len-1) fill_char characters.                                             *
+ *****************************************************************************/
+void PrintLine(WINDOW *win, int y, int x, char *line, int len)
+{
+  char *buffer_content;
+  int i;
+
+  if (len < 1) return;
+
+  // Allocate for 'len' characters plus null terminator
+  if ((buffer_content = (char *)malloc(len + 1)) == NULL) {
+     ERROR_MSG( "Malloc failed*ABORT" );
+     exit( 1 );
+  }
+
+  // Set the starting character
+  buffer_content[0] = line[0];
+
+  // Fill the remaining characters with the fill character (line[1])
+  for (i = 1; i < len; i++) {
+    buffer_content[i] = line[1];
+  }
+  buffer_content[len] = '\0'; // Null terminate
+
+  PrintOptions(win, y, x, buffer_content); // Pass the correctly sized buffer
+  free(buffer_content);
+}
+
 
 void Print(WINDOW *win, int y, int x, char *str, int color)
 {

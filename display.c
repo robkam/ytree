@@ -10,33 +10,14 @@
 #include "patchlev.h"
 
 
-static void PrintMenuLine(WINDOW *win, int y, int x, char *line);
-static void PrintLine(WINDOW *win, int y, int x, char *line, int len);
+/* PrintMenuLine is removed as its functionality for drawing the static stats panel
+ * is no longer needed. The stats panel is now fully managed by stats.c. */
+// static void PrintLine(WINDOW *win, int y, int x, char *line, int len); // Removed: PrintLine is now an external function from display_utils.c
 static void DisplayVersion(void);
 
 
-
-static char *mask[] = {
-"5-----------------------2",
-"|FILE:                  |",
-"6-----------------------7",
-"|DISK:                  |",
-"| Avail                 |",
-"6-----------------------7",
-"|DISK Statistics        |",
-"|[Total]                  |",
-"| Files:                |",
-"| Bytes:                |",
-"|[Matching]               |",
-"| Files:                |",
-"| Bytes:                |",
-"|[Tagged]                 |",
-"| Files:                |",
-"| Bytes:                |",
-"|[Current Directory]      |",
-"|                       |",
-"| Bytes:                |"
-};
+/* The 'mask' array is removed as the static statistics panel it defined
+ * is now entirely managed by stats.c. */
 
 
 static char *logo[] = {
@@ -50,11 +31,12 @@ static char *logo[] = {
                         "#####                                     "
 		      };
 
-static char *extended_line = "| |                       |";
+/* 'extended_line' is removed as it was part of the static statistics panel
+ * drawing logic, which is now obsolete. */
 
-
-static char *last_line = "3-8-----------------------4";
-static char *first_line ="1-5";
+static char *first_line = "1-"; /* Top horizontal border line */
+static char *middle_line_separator = "6-"; /* Separator line between directory and file windows */
+static char *last_line = "3-"; /* Bottom horizontal border line */
 
 
 /*
@@ -186,6 +168,9 @@ void DisplayMenu(void)
 {
   int    y;
   int    l, c;
+  /* Define L_BORDER_FOR_DISPLAY as the column index where stats.c's left vertical border begins.
+   * display.c's lines must end one character before this to allow stats.c to draw its full frame. */
+  const int L_BORDER_FOR_DISPLAY = COLS - STATS_WIDTH - 1;
 
 
   PrintSpecialString( stdscr, 0, 0, "Path: ", CPAIR_MENU );
@@ -195,15 +180,23 @@ void DisplayMenu(void)
   werase( big_file_window );
   werase( small_file_window );
 
-  for( y=1; y <= (int)(sizeof(mask) / sizeof(mask[0])); y++){
-    PrintOptions( stdscr, y, 0, "|");
-    PrintOptions( stdscr, y, COLS - 25 , mask[y-1] );
+  /* Draw the left vertical border for the main application window.
+   * The right-hand statistics panel is now drawn entirely by stats.c. */
+  for( y=1; y < LINES - 4; y++ ) { /* From y=1 up to LINES - 5 */
+      PrintOptions( stdscr, y, 0, "|");
   }
-  for( ; y < LINES - 4; y++ )
-    PrintMenuLine( stdscr, y, 0, extended_line );
-  PrintLine( stdscr, DIR_WINDOW_HEIGHT + 2, 0, "6-7", COLS - 25 );
-  PrintLine( stdscr, 1, 0, first_line, COLS - 25);
-  PrintMenuLine( stdscr, y, 0, last_line );
+
+  /* Draw the top horizontal line of the directory window frame. */
+  PrintLine( stdscr, 1, 0, first_line, L_BORDER_FOR_DISPLAY );
+
+  /* Draw the horizontal separator line between the directory and file windows. */
+  PrintLine( stdscr, DIR_WINDOW_HEIGHT + 2, 0, middle_line_separator, L_BORDER_FOR_DISPLAY );
+
+  /* Draw the bottom horizontal border of the main content area. */
+  PrintLine( stdscr, LINES - 4, 0, last_line, L_BORDER_FOR_DISPLAY );
+
+  /* The loops and calls related to drawing the static statistics panel (mask, extended_line, last_line)
+   * have been removed as per the decoupling objective. */
 
   /* Only display static logo if animation is disabled */
   if (animation_method == 0) {
@@ -231,7 +224,9 @@ void DisplayMenu(void)
 void SwitchToSmallFileWindow(void)
 {
   werase( file_window );
-  PrintLine( stdscr, DIR_WINDOW_HEIGHT + 2, 0, "6-7", COLS - 25 );
+  /* Adjust PrintLine call to align with the new L_BORDER_FOR_DISPLAY logic */
+  PrintLine( stdscr, DIR_WINDOW_HEIGHT + 2, 0, middle_line_separator, COLS - STATS_WIDTH - 1 );
+  /* The RTEE junction character at the stats panel border is now handled by stats.c:DrawBoxFrame */
   file_window = small_file_window;
   RefreshWindow( stdscr );
 }
@@ -246,6 +241,7 @@ void SwitchToBigFileWindow(void)
         ACS_VLINE | COLOR_PAIR(CPAIR_MENU)| A_BOLD);
   mvaddch(DIR_WINDOW_Y + DIR_WINDOW_HEIGHT, DIR_WINDOW_X + DIR_WINDOW_WIDTH,
            ACS_VLINE | COLOR_PAIR(CPAIR_MENU)| A_BOLD);
+  /* The VLINE junction character at the stats panel border is now handled by stats.c:DrawBoxFrame */
 
 #else
   mvwaddch( stdscr, DIR_WINDOW_Y + DIR_WINDOW_HEIGHT,
@@ -256,6 +252,7 @@ void SwitchToBigFileWindow(void)
 	   DIR_WINDOW_X + DIR_WINDOW_WIDTH,
 	   ACS_VLINE
 	 );
+  /* The VLINE junction character at the stats panel border is now handled by stats.c:DrawBoxFrame */
 #endif /* COLOR_SUPPORT */
   file_window = big_file_window;
   RefreshWindow( stdscr );
@@ -298,56 +295,9 @@ void UnmapF2Window(void)
 }
 
 
+/* PrintMenuLine function is removed as it is no longer used after decoupling
+ * the static stats panel from display.c. */
 
-static void PrintMenuLine(WINDOW *win, int y, int x, char *line)
-{
-  int  i;
-  int p, l;
-  char *buffer;
-  if (strchr(line,'('))
-     p = 2;
-  else
-     p = 0;
-  l = COLS + 2 + p;
-  if( ( buffer = (char *)malloc( l ) ) == NULL )
-  {
-     ERROR_MSG( "Malloc failed*ABORT" );
-     exit( 1 );
-  }
-  buffer[0] = line[0];
-  if (p == 0)
-     p = COLS - 25;
-  else
-     p = COLS - 27;
-  for(i=1; i < p; i++)
-      buffer[i] = line[1];
-  (void) strncpy( &buffer[i], &line[2], l - i );
-  buffer[l-1] = '\0';
-  PrintOptions( stdscr, y, x , buffer );
-  free( buffer );
-}
-
-
-
-static void PrintLine(WINDOW *win, int y, int x, char *line, int len)
-{
-  int  i;
-  char *buffer;
-
-  if(len > 0) {
-    if( ( buffer = (char *)malloc( len + 2 ) ) == NULL )
-    {
-       ERROR_MSG( "Malloc failed*ABORT" );
-       exit( 1 );
-    }
-    buffer[0] = line[0];
-    for(i=1; i < (len); i++)
-        buffer[i] = line[1];
-    (void) strcpy( &buffer[i], &line[2] );
-    PrintOptions( stdscr, y, x , buffer );
-    free( buffer );
-  }
-}
 
 void RefreshWindow(WINDOW *win)
 {

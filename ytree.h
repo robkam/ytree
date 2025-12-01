@@ -392,6 +392,10 @@ enum UI_COLOR_PAIRS {
 #define TIME_WINDOW_WIDTH    20
 #define TIME_WINDOW_HEIGHT   1
 
+/* Define the Y-coordinate for the middle separator line in the stats panel,
+ * ensuring it aligns with the main window's middle horizontal border. */
+#define STATS_MIDDLE_SEPARATOR_Y (DIR_WINDOW_HEIGHT + 2)
+
 
 /* Increased to 4096 to match standard Linux PATH_MAX and fix realpath warnings */
 #define PATH_LENGTH            4096
