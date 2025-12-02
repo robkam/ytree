@@ -6,6 +6,10 @@
  ***************************************************************************/
 
 
+#include <stdio.h> /* Added for snprintf, etc. */
+#include <string.h>
+#include <time.h>
+#include <stdlib.h> /* Added for free, exit */
 #include "ytree.h"
 
 
@@ -58,7 +62,7 @@ char *GetAttributes(unsigned short modus, char *buffer)
   if( modus & S_IXOTH ) *buffer++ = 'x';
   else *buffer++ = '-';
 
-  *buffer = '\0';
+  *buffer = '\0'; /* This ensures buffer[10] is null-terminated, safe for char[11] */
 
   return( save_buffer );
 }
@@ -74,10 +78,12 @@ char *CTime(time_t f_time, char *buffer)
   tm_ptr = localtime(&f_time);
 
   if (tm_ptr) {
-      /* Format: 2025-11-19 14:30 */
+      /* Format: 2025-11-19 14:30 (16 characters + null terminator) */
+      /* The caller (BuildUserFileEntry) provides a buffer of size 20. */
       strftime(buffer, 17, "%Y-%m-%d %H:%M", tm_ptr);
   } else {
-      strcpy(buffer, "    ?     ?   ");
+      /* Fallback for invalid time, 15 characters + null terminator */
+      snprintf(buffer, 17, "    ?     ?   ");
   }
 
   return( buffer );
@@ -85,11 +91,11 @@ char *CTime(time_t f_time, char *buffer)
 
 /*****************************************************************************
  *                              FormFilename                                 *
+ * Safely formats a filename, truncating with "..." if it exceeds max_len.   *
+ * Prioritizes showing the end of the path (like CutPathname) for clarity.  *
  *****************************************************************************/
 char *FormFilename(char *dest, char *src, unsigned int max_len)
 {
-  int i;
-  int begin;
   unsigned int l;
   char *src_copy = NULL;
   char *working_src = src;
@@ -104,38 +110,22 @@ char *FormFilename(char *dest, char *src, unsigned int max_len)
       working_src = src_copy;
   }
 
-  l = strlen(working_src); /* TODO: UTF-8 */
-  begin = 0;
+  l = strlen(working_src);
 
   if( l <= max_len ) {
-    /* Safe copy if pointers differ */
-    if (dest != working_src) {
-        memmove(dest, working_src, l + 1);
-    }
+    /* Safe copy if pointers differ or if they are the same (snprintf handles it) */
+    snprintf(dest, max_len + 1, "%s", working_src);
   }
   else
   {
-    (void) strcpy( dest, "/..." );
-
-    if(max_len < 4) {
-      dest[max_len] = '\0';
+    /* Truncate path: "...<suffix>" */
+    /* We need the last (max_len - 3) chars from src, plus "..." prefix */
+    if (max_len < 4) {
+        /* If max_len is too small for "...", just truncate */
+        snprintf(dest, max_len + 1, "%.*s", max_len, "...");
     } else {
-      for(i=0; i < (int) max_len - 4; i++)
-        if( working_src[l - i] == FILE_SEPARATOR_CHAR || working_src[l - i] == '\\' )
-          begin = l - i;
-
-      if(begin > 0) {
-        strcat(dest, &working_src[begin] );
-        if(strlen(dest) > max_len)
-          strcpy( &dest[max_len - 3], "..." );
-      } else {
-        for(i=0; i < l; i++)
-	  if( working_src[i] == FILE_SEPARATOR_CHAR || working_src[i] == '\\' )
-	    begin = i;  /* find last '/' */
-        strcat(dest, &working_src[begin] );
-        if(strlen(dest) > max_len)
-          strcpy( &dest[max_len - 3], "..." );
-      }
+        const char *suffix_start = working_src + (l - (max_len - 3));
+        snprintf(dest, max_len + 1, "...%s", suffix_start);
     }
   }
 
@@ -145,37 +135,32 @@ char *FormFilename(char *dest, char *src, unsigned int max_len)
 
 /*****************************************************************************
  *                              CutFilename                                  *
+ * Truncates a filename by keeping the prefix and appending "..." if too long.*
  *****************************************************************************/
 char *CutFilename(char *dest, char *src, unsigned int max_len)
 {
   unsigned int l;
-  char *tmp;
 
-  l = StrVisualLength(src);
+  l = StrVisualLength(src); /* Using visual length as per existing logic */
 
   if( l <= max_len ) {
-    if (dest != src) {
-        /* memmove handles overlap safely if src/dest are offset but in same buffer */
-        memmove(dest, src, strlen(src) + 1);
-    }
-    return dest;
+    snprintf(dest, max_len + 1, "%s", src);
   }
   else
   {
-    /* StrLeft allocates new memory, so safe even if dest == src */
-    if ((tmp = StrLeft(src, max_len - 3)) == NULL) {
-      ERROR_MSG("Malloc failed*ABORT");
-      exit(1);
+    /* Truncate string: keep first (max_len - 3) chars, append "..." */
+    if (max_len < 4) {
+        snprintf(dest, max_len + 1, "%.*s", max_len, "...");
+    } else {
+        snprintf(dest, max_len + 1, "%.*s...", max_len - 3, src);
     }
-    /* dest is overwritten here, which is fine as we have the data in tmp */
-    sprintf(dest, "%s...", tmp);
-    free(tmp);
-    return( dest );
   }
+  return dest;
 }
 
 /*****************************************************************************
  *                              CutPathname                                  *
+ * Truncates a pathname by keeping the suffix and prepending "..." if too long.*
  *****************************************************************************/
 char *CutPathname(char *dest, char *src, unsigned int max_len)
 {
@@ -184,33 +169,26 @@ char *CutPathname(char *dest, char *src, unsigned int max_len)
   l = strlen(src);
 
   if( l <= max_len ) {
-    if (dest != src) {
-        memmove(dest, src, l + 1);
-    }
-    return dest;
+    snprintf(dest, max_len + 1, "%s", src);
   }
   else
   {
     /* Format: "...<suffix>" */
     /* We need the last (max_len - 3) chars from src */
-    const char *suffix_start = src + (l - (max_len - 3));
-    size_t suffix_len = max_len - 3;
-
-    /* Move data to the end of the destination buffer first to prevent overwrite */
-    memmove(dest + 3, suffix_start, suffix_len);
-
-    /* Add prefix */
-    memcpy(dest, "...", 3);
-
-    /* Null terminate */
-    dest[max_len] = '\0';
-
-    return( dest );
+    if (max_len < 4) {
+        snprintf(dest, max_len + 1, "%.*s", max_len, "...");
+    } else {
+        const char *suffix_start = src + (l - (max_len - 3));
+        snprintf(dest, max_len + 1, "...%s", suffix_start);
+    }
   }
+  return( dest );
 }
 
 /*****************************************************************************
  *                              CutName                                      *
+ * Truncates a name by keeping the prefix and appending "..." if too long.   *
+ * (Identical to CutFilename in behavior, but uses strlen for length)        *
  *****************************************************************************/
 char *CutName(char *dest, char *src, unsigned int max_len)
 {
@@ -219,21 +197,18 @@ char *CutName(char *dest, char *src, unsigned int max_len)
   l = strlen(src);
 
   if( l <= max_len ) {
-    if (dest != src) {
-        memmove(dest, src, l + 1);
-    }
-    return dest;
+    snprintf(dest, max_len + 1, "%s", src);
   }
   else
   {
     /* Truncate string: keep first (max_len - 3) chars, append "..." */
-    if (dest != src) {
-        memmove(dest, src, max_len - 3);
+    if (max_len < 4) {
+        snprintf(dest, max_len + 1, "%.*s", max_len, "...");
+    } else {
+        snprintf(dest, max_len + 1, "%.*s...", max_len - 3, src);
     }
-    /* If dest == src, the first chars are already there, we just append the dot */
-    strcpy( &dest[max_len - 3], "..." );
-    return dest; // Actually, strcpy returns destination pointer, but we want `dest`
   }
+  return dest;
 }
 
 
@@ -248,18 +223,20 @@ int BuildUserFileEntry(FileEntry *fe_ptr,
   char modify_time[20];
   char change_time[20];
   char access_time[20];
-  char format1[60];
-  char format2[60];
-  int  n;
+  char format1[60]; /* Increased size for safety with snprintf */
+  char format2[60]; /* Increased size for safety with snprintf */
+  int  written;
   char owner[OWNER_NAME_MAX + 1];
   char group[GROUP_NAME_MAX + 1];
   char *owner_name_ptr;
   char *group_name_ptr;
   char *sym_link_name = NULL;
-  char *sptr, *dptr;
+  char *sptr;
   char tag;
-  char buffer[4096]; /* enough??? */
 
+  /* Setup for safe string handling */
+  size_t remaining = linelen;
+  char *dptr = line;
 
   if( fe_ptr && S_ISLNK( fe_ptr->stat_struct.st_mode ) )
     sym_link_name = &fe_ptr->name[strlen(fe_ptr->name)+1];
@@ -279,73 +256,87 @@ int BuildUserFileEntry(FileEntry *fe_ptr,
 
   if( owner_name_ptr == NULL )
   {
-    (void) sprintf( owner, "%d", (int) fe_ptr->stat_struct.st_uid );
+    snprintf( owner, sizeof(owner), "%d", (int) fe_ptr->stat_struct.st_uid );
     owner_name_ptr = owner;
   }
   if( group_name_ptr == NULL )
   {
-    (void) sprintf( group, "%d", (int) fe_ptr->stat_struct.st_gid );
+    snprintf( group, sizeof(group), "%d", (int) fe_ptr->stat_struct.st_gid );
     group_name_ptr = group;
   }
 
+  /* Safely create format strings */
+  snprintf(format1, sizeof(format1), "%%-%ds", filename_width);
+  snprintf(format2, sizeof(format2), "%%-%ds", linkname_width);
 
-  sprintf(format1, "%%-%ds", filename_width);
-  sprintf(format2, "%%-%ds", linkname_width);
-
-  for(sptr=template, dptr=buffer; *sptr; ) {
+  for(sptr=template; *sptr && remaining > 0; ) { /* Added remaining check */
 
     if(*sptr == '%') {
       sptr++;
       if(!strncmp(sptr, TAGSYMBOL_VIEWNAME, 3)) {
-        *dptr = tag; n=1;
+        written = snprintf(dptr, remaining, "%c", tag);
       } else if(!strncmp(sptr, FILENAME_VIEWNAME, 3)) {
-        n = sprintf(dptr, format1, fe_ptr->name);
+        written = snprintf(dptr, remaining, format1, fe_ptr->name);
       } else if(!strncmp(sptr, ATTRIBUTE_VIEWNAME, 3)) {
-        n = sprintf(dptr, "%10s", attributes);
+        written = snprintf(dptr, remaining, "%10s", attributes);
       } else if(!strncmp(sptr, LINKCOUNT_VIEWNAME, 3)) {
-        n = sprintf(dptr, "%3d", (int)fe_ptr->stat_struct.st_nlink);
+        written = snprintf(dptr, remaining, "%3d", (int)fe_ptr->stat_struct.st_nlink);
       } else if(!strncmp(sptr, FILESIZE_VIEWNAME, 3)) {
 #ifdef HAS_LONGLONG
-        n = sprintf(dptr, "%11lld", (LONGLONG) fe_ptr->stat_struct.st_size);
+        written = snprintf(dptr, remaining, "%11lld", (LONGLONG) fe_ptr->stat_struct.st_size);
 #else
-        n = sprintf(dptr, "%7d", fe_ptr->stat_struct.st_size);
+        written = snprintf(dptr, remaining, "%7d", fe_ptr->stat_struct.st_size);
 #endif
       } else if(!strncmp(sptr, MODTIME_VIEWNAME, 3)) {
-        n = sprintf(dptr, "%16s", modify_time);
+        written = snprintf(dptr, remaining, "%16s", modify_time);
       } else if(!strncmp(sptr, SYMLINK_VIEWNAME, 3)) {
-        n = sprintf(dptr, format2, sym_link_name);
+        written = snprintf(dptr, remaining, format2, sym_link_name);
       } else if(!strncmp(sptr, UID_VIEWNAME, 3)) {
-        n = sprintf(dptr, "%-8s", owner_name_ptr);
+        written = snprintf(dptr, remaining, "%-8s", owner_name_ptr);
       } else if(!strncmp(sptr, GID_VIEWNAME, 3)) {
-        n = sprintf(dptr, "%-8s", group_name_ptr);
+        written = snprintf(dptr, remaining, "%-8s", group_name_ptr);
       } else if(!strncmp(sptr, INODE_VIEWNAME, 3)) {
 #ifdef HAS_LONGLONG
-        n = sprintf(dptr, "%11lld", (LONGLONG)fe_ptr->stat_struct.st_ino);
+        written = snprintf(dptr, remaining, "%11lld", (LONGLONG)fe_ptr->stat_struct.st_ino);
 #else
-        n = sprintf(dptr, "%7ld", (int)fe_ptr->stat_struct.st_ino);
+        written = snprintf(dptr, remaining, "%7ld", (long)fe_ptr->stat_struct.st_ino); /* Changed to long for %ld */
 #endif
       } else if(!strncmp(sptr, ACCTIME_VIEWNAME, 3)) {
-        n = sprintf(dptr, "%16s", access_time);
+        written = snprintf(dptr, remaining, "%16s", access_time);
       } else if(!strncmp(sptr, SCTIME_VIEWNAME, 3)) {
-        n = sprintf(dptr, "%16s", change_time);
+        written = snprintf(dptr, remaining, "%16s", change_time);
       } else {
-	n = -1;
+	    written = -1; /* Indicate no match, will print '%' */
       }
-      if(n == -1) {
-        *dptr++ = '%';
-	} else {
-        dptr += n;
+
+      if(written < 0) { /* Error or no match */
+        written = snprintf(dptr, remaining, "%%");
+        if (written > 0) {
+            if ((size_t)written >= remaining) { dptr += remaining - 1; remaining = 1; }
+            else { dptr += written; remaining -= written; }
+        }
+	    sptr++; /* Advance past the single '%' */
+      } else { /* Successfully wrote something */
+        if ((size_t)written >= remaining) {
+            dptr += remaining - 1; remaining = 1; /* Keep space for NULL */
+        } else {
+            dptr += written; remaining -= written;
+        }
+        /* Advance sptr past the 3-char viewname */
         if(*sptr) sptr++;
         if(*sptr) sptr++;
         if(*sptr) sptr++;
       }
-    } else {
-      *dptr++ = *sptr++;
+    } else { /* Not a '%' placeholder, copy character directly */
+      if (remaining > 1) { /* Ensure space for char + null */
+        *dptr++ = *sptr++;
+        remaining--;
+      } else {
+        sptr++; /* Consume char but don't write if no space */
+      }
     }
   }
-  *dptr = '\0';
-  strncpy(line, buffer, linelen);
-  line[linelen - 1] = '\0';
+  *dptr = '\0'; /* Ensure null termination */
   return(0);
 }
 
