@@ -352,6 +352,12 @@ enum UI_COLOR_PAIRS {
 #define STATS_MARGIN         2
 #define MAIN_WIN_WIDTH       (COLS - STATS_WIDTH - STATS_MARGIN)
 
+/* Standard UI Vertical Layout */
+#define Y_HEADER      0            /* Top header row */
+#define Y_PROMPT      (LINES - 2)  /* Standard line for User Input / Prompts */
+#define Y_STATUS      (LINES - 1)  /* Bottom line for Help/Status hints */
+#define Y_MESSAGE     (LINES - 3)  /* Top of the 3-line Help/Message area */
+
 #define DIR_WINDOW_X         1
 #define DIR_WINDOW_Y         2
 #define DIR_WINDOW_WIDTH     MAIN_WIN_WIDTH

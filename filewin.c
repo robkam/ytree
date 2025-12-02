@@ -1404,7 +1404,7 @@ int HandleFileWindow(DirEntry *dir_entry)
 
 			(void) GetAttributes( mask, modus );
 
-		        if( GetNewFileModus( LINES - 2, 1, modus, "\r\033" ) == CR )
+		        if( GetNewFileModus( Y_PROMPT, 1, modus, "\r\033" ) == CR )
 			{
 			  (void) strcpy( walking_package.function_data.change_modus.new_modus,
 					 modus
@@ -2719,11 +2719,11 @@ static void ListJump( DirEntry * dir_entry, char *str )
     char * jumpmsg = "Press initial of file to jump to... ";
 
     ClearHelp();
-    MvAddStr( LINES - 2, 1, jumpmsg );
+    MvAddStr( Y_PROMPT, 1, jumpmsg );
     PrintOptions
     (
         stdscr,
-        LINES - 2,
+        Y_PROMPT,
         COLS - 14,
         "(Escape) cancel"
     );
@@ -2750,7 +2750,7 @@ static void ListJump( DirEntry * dir_entry, char *str )
     if( tmp2 == file_count - 1 )
     {
         ClearHelp();
-        MvAddStr( LINES - 2, 1, "Last entry!");
+        MvAddStr( Y_PROMPT, 1, "Last entry!");
         RefreshWindow( stdscr );
         RefreshWindow( file_window );
         doupdate();
@@ -2769,7 +2769,7 @@ static void ListJump( DirEntry * dir_entry, char *str )
     if ( i == file_count )
     {
         ClearHelp();
-        MvAddStr( LINES - 2, 1, "No match!");
+        MvAddStr( Y_PROMPT, 1, "No match!");
         RefreshWindow( stdscr );
         RefreshWindow( file_window );
         doupdate();
