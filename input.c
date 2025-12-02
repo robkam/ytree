@@ -577,8 +577,6 @@ int InputString(char *s, int y, int x, int cursor_pos, int length, char *term)
 }
 
 
-/* ... rest of input.c ... */
-
 int InputChoise(char *msg, char *term)
 {
   int  c;
@@ -606,9 +604,6 @@ int InputChoise(char *msg, char *term)
 
   return( c );
 }
-
-
-
 
 
 void HitReturnToContinue(void)
@@ -676,8 +671,6 @@ BOOL EscapeKeyPressed()
 }
 
 
-
-
 #ifdef VI_KEYS
 
 int ViKey( int ch )
@@ -695,6 +688,92 @@ int ViKey( int ch )
 }
 
 #endif /* VI_KEYS */
+
+
+/*
+ * GetKeyAction
+ * Translates a raw input character (potentially pre-processed by ViKey)
+ * into a logical YtreeAction.
+ */
+YtreeAction GetKeyAction(int ch)
+{
+#ifdef VI_KEYS
+    ch = ViKey(ch);
+#endif
+
+    switch (ch) {
+        /* Navigation */
+        case KEY_UP:    return ACTION_MOVE_UP;
+        case KEY_DOWN:  return ACTION_MOVE_DOWN;
+        case KEY_LEFT:  return ACTION_MOVE_LEFT;
+        case KEY_RIGHT: return ACTION_MOVE_RIGHT;
+        case KEY_PPAGE: return ACTION_PAGE_UP;
+        case KEY_NPAGE: return ACTION_PAGE_DOWN;
+        case KEY_HOME:  return ACTION_HOME;
+        case KEY_END:   return ACTION_END;
+
+        /* Global / Common */
+        case CR:
+        case LF:        return ACTION_ENTER;
+        case 'l':
+        case 'L':       return ACTION_LOGIN;
+        case 'q':
+        case 'Q':       return ACTION_QUIT;
+        case 0x11:      return ACTION_QUIT_DIR; /* Ctrl-Q */
+        case 't':       return ACTION_TAG;
+        case 'u':       return ACTION_UNTAG;
+        case 0x14:      return ACTION_TAG_ALL; /* Ctrl-T */
+        case 0x15:      return ACTION_UNTAG_ALL; /* Ctrl-U */
+        case 'f':
+        case 'F':       return ACTION_FILTER;
+        case 0x06:      return ACTION_TOGGLE_MODE; /* Ctrl-F */
+        case 0x0C:      /* Ctrl-L */
+        case 0x12:      return ACTION_REFRESH; /* Ctrl-R */
+        case KEY_RESIZE: return ACTION_RESIZE;
+        case 'K':       return ACTION_VOL_MENU;
+        case ',':
+        case '<':       return ACTION_VOL_PREV;
+        case '.':
+        case '>':       return ACTION_VOL_NEXT;
+
+        /* Ambiguous Commands (Context Dependent) */
+        case 'a':
+        case 'A':       return ACTION_CMD_A;
+        case 'b':
+        case 'B':       return ACTION_CMD_B;
+        case 'c':
+        case 'C':       return ACTION_CMD_C;
+        case 'd':
+        case 'D':       return ACTION_CMD_D;
+        case 'e':
+        case 'E':       return ACTION_CMD_E;
+        case 'g':
+        case 'G':       return ACTION_CMD_G;
+        case 'h':
+        case 'H':       return ACTION_CMD_H;
+        case 'm':
+        case 'M':       return ACTION_CMD_M;
+        case 'o':
+        case 'O':       return ACTION_CMD_O;
+        case 'p':
+        case 'P':       return ACTION_CMD_P;
+        case 'r':
+        case 'R':       return ACTION_CMD_R;
+        case 's':
+        case 'S':       return ACTION_CMD_S;
+        case 'v':
+        case 'V':       return ACTION_CMD_V;
+        case 'x':
+        case 'X':       return ACTION_CMD_X;
+        case 'y':
+        case 'Y':       return ACTION_CMD_Y;
+        case 0x13:      return ACTION_CMD_SEARCH; /* Ctrl-S */
+        case 0x18:      return ACTION_CMD_SHELL; /* Ctrl-X */
+        case '`':       return ACTION_TOGGLE_HIDDEN;
+
+        default:        return ACTION_NONE;
+    }
+}
 
 
 /* Removed AixWgetch/Aix specific logic */

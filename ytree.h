@@ -601,6 +601,56 @@ typedef struct
   FunctionData  function_data;
 } WalkingPackage;
 
+/*
+ * YtreeAction enumeration to abstract keys into logical actions.
+ * Use generic "Command" actions (e.g., ACTION_CMD_M) for keys that
+ * have different meanings in different windows.
+ */
+typedef enum {
+    ACTION_NONE = 0,
+    /* Navigation */
+    ACTION_MOVE_UP, ACTION_MOVE_DOWN,
+    ACTION_MOVE_LEFT, ACTION_MOVE_RIGHT,
+    ACTION_PAGE_UP, ACTION_PAGE_DOWN,
+    ACTION_HOME, ACTION_END,
+    /* Global / Common */
+    ACTION_ENTER,       /* CR, LF */
+    ACTION_LOGIN,       /* L, l */
+    ACTION_QUIT,        /* q, Q */
+    ACTION_QUIT_DIR,    /* ^Q */
+    ACTION_TAG,         /* t */
+    ACTION_UNTAG,       /* u */
+    ACTION_TAG_ALL,     /* ^T */
+    ACTION_UNTAG_ALL,   /* ^U */
+    ACTION_FILTER,      /* f, F */
+    ACTION_TOGGLE_MODE, /* ^F */
+    ACTION_REFRESH,     /* ^L, ^R */
+    ACTION_RESIZE,      /* KEY_RESIZE */
+    ACTION_VOL_MENU,    /* K (Shift-K) */
+    ACTION_VOL_PREV,    /* < , */
+    ACTION_VOL_NEXT,    /* > . */
+    /* Ambiguous Commands (Context Dependent) */
+    ACTION_CMD_A,       /* a, A (Attr/Attr) */
+    ACTION_CMD_B,       /* b, B (About) */
+    ACTION_CMD_C,       /* c, C (Copy) */
+    ACTION_CMD_D,       /* d, D (Delete) */
+    ACTION_CMD_E,       /* e, E (Edit) */
+    ACTION_CMD_G,       /* g, G (Group) */
+    ACTION_CMD_H,       /* h, H (Hex) */
+    ACTION_CMD_M,       /* m, M (Makedir/Move) */
+    ACTION_CMD_O,       /* o, O (Owner) */
+    ACTION_CMD_P,       /* p, P (Pipe) */
+    ACTION_CMD_R,       /* r, R (Rename) */
+    ACTION_CMD_S,       /* s, S (ShowAll/Sort) */
+    ACTION_CMD_V,       /* v, V (View) */
+    ACTION_CMD_X,       /* x, X (Execute) */
+    ACTION_CMD_Y,       /* y, Y (PathCopy) */
+    ACTION_CMD_SEARCH,  /* ^S (ShowAll/Search) */
+    ACTION_CMD_SHELL,   /* ^X */
+    ACTION_TOGGLE_HIDDEN /* ` */
+} YtreeAction;
+
+
 /* strerror() is POSIX, and all modern operating systems provide it.  */
 #define HAVE_STRERROR 1
 
@@ -828,6 +878,7 @@ extern int StrVisualLength(const char *str);
 extern int ViKey( int ch );
 extern int VisualPositionToBytePosition(const char *str, int visual_pos);
 extern int WGetch(WINDOW *win);
+extern YtreeAction GetKeyAction(int ch); /* ADDED: Prototype for GetKeyAction */
 
 /* log.c */
 extern int GetNewLoginPath(char *path);
