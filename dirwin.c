@@ -322,11 +322,24 @@ static void PrintDirEntry(WINDOW *win,
     (void) strcat( name_buffer, "/" );
   }
 
-  /* Truncate name if the graph + name would overlap with the attribute column */
-  if (dir_mode != MODE_3 && (graph_len + (int)strlen(name_buffer) >= attr_start_col)) {
+  /* Calculate maximum allowed name length based on mode and window width */
+  int max_name_len;
+  if (dir_mode == MODE_3) {
+      /* In MODE_3 (name-only), truncate based on full window width */
+      max_name_len = window_width - graph_len - 1;
+  } else {
+      /* In other modes, truncate to prevent overlap with attributes */
+      max_name_len = attr_start_col - graph_len - 1;
+  }
+  /* Safety: Ensure max_name_len is at least 1 to avoid issues with CutName */
+  if (max_name_len < 1) {
+      max_name_len = 1;
+  }
+
+  /* Apply truncation if the name is too long */
+  if ((int)strlen(name_buffer) > max_name_len) {
       char temp_name[PATH_LENGTH + 2];
-      int available_name_width = attr_start_col - graph_len - 1;
-      CutName(temp_name, name_buffer, available_name_width);
+      CutName(temp_name, name_buffer, max_name_len);
       strcpy(name_buffer, temp_name);
   }
 
