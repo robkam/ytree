@@ -435,6 +435,12 @@ static void Movedown(int *disp_begin_pos, int *cursor_pos, DirEntry **dir_entry)
     DisplayFileWindow( *dir_entry );
     RefreshWindow( file_window );
     DisplayDirStatistic(*dir_entry);
+    /* Update header path */
+    {
+        char path[PATH_LENGTH];
+        GetPath(*dir_entry, path);
+        DisplayHeaderPath(path);
+    }
 }
 
 
@@ -459,6 +465,12 @@ static void Moveup(int *disp_begin_pos, int *cursor_pos, DirEntry **dir_entry)
     DisplayFileWindow( *dir_entry );
     RefreshWindow( file_window );
     DisplayDirStatistic(*dir_entry);
+    /* Update header path */
+    {
+        char path[PATH_LENGTH];
+        GetPath(*dir_entry, path);
+        DisplayHeaderPath(path);
+    }
 }
 
 
@@ -504,6 +516,12 @@ static void Movenpage(int *disp_begin_pos, int *cursor_pos, DirEntry **dir_entry
       DisplayFileWindow( *dir_entry );
       RefreshWindow( file_window );
       DisplayDirStatistic(*dir_entry);
+      /* Update header path */
+      {
+          char path[PATH_LENGTH];
+          GetPath(*dir_entry, path);
+          DisplayHeaderPath(path);
+      }
    }
    return;
 }
@@ -541,6 +559,12 @@ static void Moveppage(int *disp_begin_pos, int *cursor_pos, DirEntry **dir_entry
       DisplayFileWindow( *dir_entry );
       RefreshWindow( file_window );
       DisplayDirStatistic(*dir_entry);
+      /* Update header path */
+      {
+          char path[PATH_LENGTH];
+          GetPath(*dir_entry, path);
+          DisplayHeaderPath(path);
+      }
    }
    return;
 }
@@ -557,6 +581,12 @@ static void MoveEnd(DirEntry **dir_entry)
     DisplayTree( dir_window, statistic.disp_begin_pos,
 		statistic.disp_begin_pos + statistic.cursor_pos);
     DisplayDirStatistic(*dir_entry);
+    /* Update header path */
+    {
+        char path[PATH_LENGTH];
+        GetPath(*dir_entry, path);
+        DisplayHeaderPath(path);
+    }
     return;
 }
 
@@ -578,6 +608,12 @@ static void MoveHome(DirEntry **dir_entry)
        DisplayTree( dir_window, statistic.disp_begin_pos,
 		statistic.disp_begin_pos + statistic.cursor_pos);
        DisplayDirStatistic(*dir_entry);
+       /* Update header path */
+       {
+           char path[PATH_LENGTH];
+           GetPath(*dir_entry, path);
+           DisplayHeaderPath(path);
+       }
     }
     return;
 }
@@ -888,6 +924,12 @@ void ToggleDotFiles(void)
     DisplayFileWindow(target);
     RefreshWindow(file_window);
     DisplayDirStatistic(target);
+    /* Update header path */
+    {
+        char path[PATH_LENGTH];
+        GetPath(target, path);
+        DisplayHeaderPath(path);
+    }
 
     InitClock(); /* Resume clock and restore signal handling */
 }
@@ -958,6 +1000,12 @@ int HandleDirWindow(DirEntry *start_dir_entry)
 
   DisplayDiskStatistic();
   DisplayDirStatistic(dir_entry);
+  /* Update header path on initial load */
+  {
+      char path[PATH_LENGTH];
+      GetPath(dir_entry, path);
+      DisplayHeaderPath(path);
+  }
 
   if(!dir_entry->login_flag) {
     dir_entry->start_file = 0;
@@ -1028,6 +1076,12 @@ int HandleDirWindow(DirEntry *start_dir_entry)
        DisplayAvailBytes();
        DisplayFilter();
        DisplayDiskName();
+       /* Update header path after resize */
+       {
+           char path[PATH_LENGTH];
+           GetPath(dir_entry, path);
+           DisplayHeaderPath(path);
+       }
        resize_request = FALSE;
     }
 
@@ -1262,6 +1316,12 @@ int HandleDirWindow(DirEntry *start_dir_entry)
                   DisplayDiskStatistic();
                   DisplayDirStatistic(dir_entry);
                   DisplayAvailBytes();
+                  /* Update header path after volume switch */
+                  {
+                      char path[PATH_LENGTH];
+                      GetPath(dir_entry, path);
+                      DisplayHeaderPath(path);
+                  }
                   need_dsp_help = TRUE;
               }
           }
@@ -1293,6 +1353,12 @@ int HandleDirWindow(DirEntry *start_dir_entry)
                   DisplayDiskStatistic();
                   DisplayDirStatistic(dir_entry);
                   DisplayAvailBytes();
+                  /* Update header path after volume switch */
+                  {
+                      char path[PATH_LENGTH];
+                      GetPath(dir_entry, path);
+                      DisplayHeaderPath(path);
+                  }
                   need_dsp_help = TRUE;
               }
           }
@@ -1324,6 +1390,12 @@ int HandleDirWindow(DirEntry *start_dir_entry)
                   DisplayDiskStatistic();
                   DisplayDirStatistic(dir_entry);
                   DisplayAvailBytes();
+                  /* Update header path after volume switch */
+                  {
+                      char path[PATH_LENGTH];
+                      GetPath(dir_entry, path);
+                      DisplayHeaderPath(path);
+                  }
                   need_dsp_help = TRUE;
               }
           }
@@ -1371,6 +1443,12 @@ int HandleDirWindow(DirEntry *start_dir_entry)
                        RefreshWindow(file_window);
                        DisplayDiskStatistic();
                        DisplayDirStatistic(dir_entry);
+                       /* Update header path after login */
+                       {
+                           char path[PATH_LENGTH];
+                           GetPath(dir_entry, path);
+                           DisplayHeaderPath(path);
+                       }
 		     }
 		     need_dsp_help = TRUE;
 		     break;
@@ -1672,6 +1750,12 @@ int RefreshDirWindow()
 		DisplayAvailBytes();
 		DisplayDiskStatistic();
 		DisplayDirStatistic(dir_entry_list[statistic.disp_begin_pos + statistic.cursor_pos].dir_entry);
+        /* Update header path after refresh */
+        {
+            char path[PATH_LENGTH];
+            GetPath(dir_entry_list[statistic.disp_begin_pos + statistic.cursor_pos].dir_entry, path);
+            DisplayHeaderPath(path);
+        }
 		result = 0;
 	}
 

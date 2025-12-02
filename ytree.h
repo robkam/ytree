@@ -738,6 +738,7 @@ extern void RefreshWindow(WINDOW *win);
 extern void SwitchToBigFileWindow(void);
 extern void SwitchToSmallFileWindow(void);
 extern void UnmapF2Window(void);
+extern void DisplayHeaderPath(char *path); /* ADDED: Prototype for dynamic header path */
 
 /* display_utils.c */
 extern int AddStr(char *str);

@@ -163,6 +163,23 @@ void ClearHelp(void)
 }
 
 
+/*
+ * DisplayHeaderPath
+ * Prints the current path in the top-left header area.
+ * This function is designed to be called whenever the path changes,
+ * ensuring immediate visual feedback.
+ */
+void DisplayHeaderPath(char *path) {
+    int available_width = COLS - STATS_WIDTH - 26; /* COLS - "Path: " (6) - Stats Panel (24) - Clock/Margin (20) */
+    if (available_width < 10) available_width = 10; /* Safety minimum */
+
+    attron(COLOR_PAIR(CPAIR_MENU) | A_BOLD);
+    mvwhline(stdscr, 0, 6, ' ', available_width); /* Clear old path area */
+    mvprintw(0, 6, "%.*s", available_width, path); /* Print new path, truncated if necessary */
+    attroff(COLOR_PAIR(CPAIR_MENU) | A_BOLD);
+    refresh(); /* Ensure it draws immediately */
+}
+
 
 void DisplayMenu(void)
 {
@@ -175,21 +192,7 @@ void DisplayMenu(void)
 
   PrintSpecialString( stdscr, 0, 0, "Path: ", CPAIR_MENU );
   /* Print the current path next to the label */
-  char *path_str = (mode == ARCHIVE_MODE) ? statistic.login_path : statistic.path;
-
-  /* Calculate available width: Screen width - "Path: " (6) - Stats Panel - Clock/Margin (20) */
-  int available_width = COLS - STATS_WIDTH - 26;
-  if (available_width < 10) available_width = 10; // Safety minimum
-
-  attron(COLOR_PAIR(CPAIR_MENU) | A_BOLD);
-
-  /* Explicitly clear the area first to prevent ghosting */
-  mvwhline(stdscr, 0, 6, ' ', available_width);
-
-  /* Print path truncated to fit (%.*s) */
-  mvprintw(0, 6, "%.*s", available_width, path_str);
-
-  attroff(COLOR_PAIR(CPAIR_MENU) | A_BOLD);
+  DisplayHeaderPath((mode == ARCHIVE_MODE) ? statistic.login_path : statistic.path);
   /* The clrtoeol() call was removed to prevent it from erasing the clock display on redraw. */
 
   werase( dir_window );
