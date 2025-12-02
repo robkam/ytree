@@ -170,12 +170,17 @@ void ClearHelp(void)
  * ensuring immediate visual feedback.
  */
 void DisplayHeaderPath(char *path) {
+    char display_buffer[PATH_LENGTH + 1]; /* Declare buffer for truncated path */
     int available_width = COLS - STATS_WIDTH - 26; /* COLS - "Path: " (6) - Stats Panel (24) - Clock/Margin (20) */
     if (available_width < 10) available_width = 10; /* Safety minimum */
 
     attron(COLOR_PAIR(CPAIR_MENU) | A_BOLD);
-    mvwhline(stdscr, 0, 6, ' ', available_width); /* Clear old path area */
-    mvprintw(0, 6, "%.*s", available_width, path); /* Print new path, truncated if necessary */
+    mvwhline(stdscr, 0, 6, ' ', available_width); /* Explicitly clear the old path area */
+
+    /* Use CutPathname for intelligent prefix truncation */
+    CutPathname(display_buffer, path, available_width);
+
+    mvprintw(0, 6, "%s", display_buffer); /* Print the truncated path */
     attroff(COLOR_PAIR(CPAIR_MENU) | A_BOLD);
     refresh(); /* Ensure it draws immediately */
 }
