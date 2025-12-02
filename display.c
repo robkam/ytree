@@ -108,7 +108,7 @@ static void DisplayVersion(void)
 		  PATCHLEVEL,
 		  VERSIONDATE
 		);
-  MvAddStr( LINES - 2, (unsigned) (COLS - strlen( version )) >> 1, version );
+  MvAddStr( Y_PROMPT, (unsigned) (COLS - strlen( version )) >> 1, version );
 }
 
 
@@ -126,7 +126,7 @@ void DisplayDirHelp(void)
       dir_help[mode][1] = cptr;
   }
   for( i=0; i < (int)(sizeof(dir_help[mode]) / sizeof(dir_help[mode][0])); i++) {
-    PrintOptions( stdscr, LINES - 2 + i, 0, dir_help[mode][i] );
+    PrintOptions( stdscr, Y_PROMPT + i, 0, dir_help[mode][i] );
     clrtoeol();
   }
 }
@@ -141,11 +141,11 @@ void DisplayFileHelp(void)
   if (mode == USER_MODE) {
     if (file_help[mode][0] == file_help_disk_mode_0 && (cptr = FILE1) != NULL)
       file_help[mode][0] = cptr;
-    if (file_help[mode][1] == file_help_disk_mode_1 && (cptr = FILE2) != NULL)
+    if (file_help[mode][1] == file_help[mode][1] && (cptr = FILE2) != NULL)
       file_help[mode][1] = cptr;
   }
   for( i=0; i < (int)(sizeof(file_help[mode]) / sizeof(file_help[mode][0])); i++) {
-    PrintOptions( stdscr, LINES - 2 + i, 0, file_help[mode][i] );
+    PrintOptions( stdscr, Y_PROMPT + i, 0, file_help[mode][i] );
     clrtoeol();
   }
 }
@@ -158,7 +158,7 @@ void ClearHelp(void)
 
   for( i=0; i < 3; i++ )
   {
-    wmove( stdscr, LINES - 3 + i, 0 ); clrtoeol();
+    wmove( stdscr, Y_MESSAGE + i, 0 ); clrtoeol();
   }
 }
 
