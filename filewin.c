@@ -3,7 +3,7 @@
  * filewin.c
  * Funktionen zur Handhabung des FILE-WINDOWS
  *
- ***************************************************************************/
+ *******************************************************************/
 
 
 #include "ytree.h"
@@ -901,6 +901,19 @@ static void fmovedown(int *start_file, int *cursor_pos, int *start_x, DirEntry *
         (*start_file)++;
     }
     DisplayFiles(dir_entry, *start_file, *start_file + *cursor_pos, *start_x);
+    /* Update dynamic header path */
+    if (file_count > 0) {
+        char path[PATH_LENGTH];
+        int idx = *start_file + *cursor_pos;
+        if (idx < file_count) {
+            GetFileNamePath(file_entry_list[idx].file, path);
+            DisplayHeaderPath(path);
+        }
+    } else {
+        char path[PATH_LENGTH];
+        GetPath(dir_entry, path);
+        DisplayHeaderPath(path);
+    }
 }
 
 static void fmoveup(int *start_file, int *cursor_pos, int *start_x, DirEntry *dir_entry)
@@ -918,6 +931,19 @@ static void fmoveup(int *start_file, int *cursor_pos, int *start_x, DirEntry *di
         (*start_file)--;
     }
     DisplayFiles(dir_entry, *start_file, *start_file + *cursor_pos, *start_x);
+    /* Update dynamic header path */
+    if (file_count > 0) {
+        char path[PATH_LENGTH];
+        int idx = *start_file + *cursor_pos;
+        if (idx < file_count) {
+            GetFileNamePath(file_entry_list[idx].file, path);
+            DisplayHeaderPath(path);
+        }
+    } else {
+        char path[PATH_LENGTH];
+        GetPath(dir_entry, path);
+        DisplayHeaderPath(path);
+    }
 }
 
 static void fmoveright(int *start_file, int *cursor_pos, int *start_x,DirEntry *dir_entry)
@@ -970,6 +996,19 @@ static void fmoveright(int *start_file, int *cursor_pos, int *start_x,DirEntry *
                     *start_file + *cursor_pos,
                     *start_x
                   );
+   }
+   /* Update dynamic header path */
+   if (file_count > 0) {
+       char path[PATH_LENGTH];
+       int idx = *start_file + *cursor_pos;
+       if (idx < file_count) {
+           GetFileNamePath(file_entry_list[idx].file, path);
+           DisplayHeaderPath(path);
+       }
+   } else {
+       char path[PATH_LENGTH];
+       GetPath(dir_entry, path);
+       DisplayHeaderPath(path);
    }
    return;
 }
@@ -1025,6 +1064,19 @@ static void fmoveleft(int *start_file, int *cursor_pos, int *start_x, DirEntry *
                        *start_x
                        );
      }
+     /* Update dynamic header path */
+     if (file_count > 0) {
+         char path[PATH_LENGTH];
+         int idx = *start_file + *cursor_pos;
+         if (idx < file_count) {
+             GetFileNamePath(file_entry_list[idx].file, path);
+             DisplayHeaderPath(path);
+         }
+     } else {
+         char path[PATH_LENGTH];
+         GetPath(dir_entry, path);
+         DisplayHeaderPath(path);
+     }
      return;
 }
 
@@ -1061,6 +1113,19 @@ static void fmovenpage(int *start_file, int *cursor_pos, int *start_x, DirEntry 
                   *start_file + *cursor_pos,
                   *start_x
                 );
+    /* Update dynamic header path */
+    if (file_count > 0) {
+        char path[PATH_LENGTH];
+        int idx = *start_file + *cursor_pos;
+        if (idx < file_count) {
+            GetFileNamePath(file_entry_list[idx].file, path);
+            DisplayHeaderPath(path);
+        }
+    } else {
+        char path[PATH_LENGTH];
+        GetPath(dir_entry, path);
+        DisplayHeaderPath(path);
+    }
 }
 
 
@@ -1090,6 +1155,19 @@ static void fmoveppage(int *start_file, int *cursor_pos, int *start_x, DirEntry 
                   *start_file + *cursor_pos,
                   *start_x
                 );
+    /* Update dynamic header path */
+    if (file_count > 0) {
+        char path[PATH_LENGTH];
+        int idx = *start_file + *cursor_pos;
+        if (idx < file_count) {
+            GetFileNamePath(file_entry_list[idx].file, path);
+            DisplayHeaderPath(path);
+        }
+    } else {
+        char path[PATH_LENGTH];
+        GetPath(dir_entry, path);
+        DisplayHeaderPath(path);
+    }
 }
 
 
