@@ -613,41 +613,63 @@ typedef enum {
     ACTION_MOVE_LEFT, ACTION_MOVE_RIGHT,
     ACTION_PAGE_UP, ACTION_PAGE_DOWN,
     ACTION_HOME, ACTION_END,
-    /* Global / Common */
+    /* Tree Ops */
+    ACTION_TREE_EXPAND,      /* TAB, * */
+    ACTION_TREE_COLLAPSE,    /* BTAB, - */
+    ACTION_TREE_EXPAND_ALL,  /* + */
+    /* Standard Commands */
     ACTION_ENTER,       /* CR, LF */
+    ACTION_ESCAPE,      /* ESC (27) */
     ACTION_LOGIN,       /* L, l */
     ACTION_QUIT,        /* q, Q */
     ACTION_QUIT_DIR,    /* ^Q */
     ACTION_TAG,         /* t */
     ACTION_UNTAG,       /* u */
-    ACTION_TAG_ALL,     /* ^T */
-    ACTION_UNTAG_ALL,   /* ^U */
+    ACTION_TAG_ALL,     /* ^T, T */
+    ACTION_UNTAG_ALL,   /* ^U, U */
+    ACTION_TAG_REST,    /* ; */
+    ACTION_UNTAG_REST,  /* : */
     ACTION_FILTER,      /* f, F */
     ACTION_TOGGLE_MODE, /* ^F */
-    ACTION_REFRESH,     /* ^L, ^R */
+    ACTION_REFRESH,     /* ^L */
     ACTION_RESIZE,      /* KEY_RESIZE */
+    /* Volume Ops */
     ACTION_VOL_MENU,    /* K (Shift-K) */
     ACTION_VOL_PREV,    /* < , */
     ACTION_VOL_NEXT,    /* > . */
-    /* Ambiguous Commands (Context Dependent) */
-    ACTION_CMD_A,       /* a, A (Attr/Attr) */
-    ACTION_CMD_B,       /* b, B (About) */
-    ACTION_CMD_C,       /* c, C (Copy) */
-    ACTION_CMD_D,       /* d, D (Delete) */
-    ACTION_CMD_E,       /* e, E (Edit) */
-    ACTION_CMD_G,       /* g, G (Group) */
-    ACTION_CMD_H,       /* h, H (Hex) */
-    ACTION_CMD_M,       /* m, M (Makedir/Move) */
-    ACTION_CMD_O,       /* o, O (Owner) */
-    ACTION_CMD_P,       /* p, P (Pipe) */
-    ACTION_CMD_R,       /* r, R (Rename) */
-    ACTION_CMD_S,       /* s, S (ShowAll/Sort) */
-    ACTION_CMD_V,       /* v, V (View) */
-    ACTION_CMD_X,       /* x, X (Execute) */
-    ACTION_CMD_Y,       /* y, Y (PathCopy) */
-    ACTION_CMD_SEARCH,  /* ^S (ShowAll/Search) */
-    ACTION_CMD_SHELL,   /* ^X */
-    ACTION_TOGGLE_HIDDEN /* ` */
+    /* Context Commands (Letters) */
+    ACTION_CMD_A,       /* a, A */
+    ACTION_CMD_B,       /* b, B */
+    ACTION_CMD_C,       /* c, C */
+    ACTION_CMD_D,       /* d, D */
+    ACTION_CMD_E,       /* e, E */
+    ACTION_CMD_G,       /* g, G */
+    ACTION_CMD_H,       /* h, H */
+    ACTION_CMD_M,       /* m, M */
+    ACTION_CMD_O,       /* o, O */
+    ACTION_CMD_P,       /* p, P */
+    ACTION_CMD_R,       /* r, R */
+    ACTION_CMD_S,       /* s, S */
+    ACTION_CMD_V,       /* v, V */
+    ACTION_CMD_X,       /* x, X */
+    ACTION_CMD_Y,       /* y, Y */
+    ACTION_TOGGLE_HIDDEN, /* ` */
+    /* Tagged/Ctrl Variants */
+    ACTION_CMD_TAGGED_A, /* ^A */
+    ACTION_CMD_TAGGED_C, /* ^C */
+    ACTION_CMD_TAGGED_D, /* ^D */
+    ACTION_CMD_TAGGED_G, /* ^G */
+    ACTION_CMD_TAGGED_M, /* ^N (Move Tagged legacy) */
+    ACTION_CMD_TAGGED_O, /* ^O */
+    ACTION_CMD_TAGGED_P, /* ^P */
+    ACTION_CMD_TAGGED_R, /* ^R */
+    ACTION_CMD_TAGGED_S, /* ^S */
+    ACTION_CMD_TAGGED_X, /* ^X */
+    ACTION_CMD_TAGGED_Y, /* ^Y, ^K (Copy legacy?) -> Check mapping */
+    /* Function Keys */
+    ACTION_LIST_JUMP,            /* F12 */
+    ACTION_TOGGLE_TAGGED_MODE,   /* 8, Shift-F4 */
+    ACTION_USER_CMD              /* Reserved for future */
 } YtreeAction;
 
 
