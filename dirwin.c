@@ -943,6 +943,7 @@ int HandleDirWindow(DirEntry *start_dir_entry)
   char new_name[PATH_LENGTH + 1];
   char new_login_path[PATH_LENGTH + 1];
   char *home, *p;
+  YtreeAction action; /* Declare YtreeAction variable */
 
   unput_char = 0;
   de_ptr = NULL;
@@ -1045,17 +1046,14 @@ int HandleDirWindow(DirEntry *start_dir_entry)
     {
       doupdate();
       ch = (resize_request) ? -1 : Getch();
-      if( ch == LF ) ch = CR;
+      /* LF to CR normalization is now handled by GetKeyAction */
     }
 
     if (mode == USER_MODE) { /* User commands take precedence */
         ch = DirUserMode(dir_entry, ch);
     }
 
-#ifdef VI_KEYS
-    ch = ViKey( ch );
-#endif /* VI_KEYS */
-
+    /* ViKey processing is now handled inside GetKeyAction */
 
     if(resize_request) {
        ReCreateWindows();
@@ -1085,44 +1083,43 @@ int HandleDirWindow(DirEntry *start_dir_entry)
        resize_request = FALSE;
     }
 
+    action = GetKeyAction(ch); /* Translate raw input to YtreeAction */
 
-    switch( ch )
+    switch( action )
     {
-
-#ifdef KEY_RESIZE
-      case KEY_RESIZE: resize_request = TRUE;
+      case ACTION_RESIZE: resize_request = TRUE;
       		       break;
-#endif
 
-      case -1:        break;
+      case ACTION_NONE:  /* -1 or unhandled keys */
+                         if (ch == -1) break; /* Ignore -1 (resize_request handled above) */
+                         /* Fall through for other unhandled keys to beep */
+                         beep();
+                         break;
 
-      case ' ':      /*break;   Quick-Key */
-      case KEY_DOWN: Movedown(&statistic.disp_begin_pos, &statistic.cursor_pos, &dir_entry);
+      case ACTION_MOVE_DOWN: Movedown(&statistic.disp_begin_pos, &statistic.cursor_pos, &dir_entry);
                      break;
-      case KEY_UP  : Moveup(&statistic.disp_begin_pos, &statistic.cursor_pos, &dir_entry);
+      case ACTION_MOVE_UP: Moveup(&statistic.disp_begin_pos, &statistic.cursor_pos, &dir_entry);
                      break;
-      case KEY_NPAGE:Movenpage(&statistic.disp_begin_pos, &statistic.cursor_pos, &dir_entry);
+      case ACTION_PAGE_DOWN: Movenpage(&statistic.disp_begin_pos, &statistic.cursor_pos, &dir_entry);
                      break;
-      case KEY_PPAGE:Moveppage(&statistic.disp_begin_pos, &statistic.cursor_pos, &dir_entry);
+      case ACTION_PAGE_UP: Moveppage(&statistic.disp_begin_pos, &statistic.cursor_pos, &dir_entry);
                      break;
-      case KEY_HOME: MoveHome(&dir_entry);
+      case ACTION_HOME: MoveHome(&dir_entry);
                      break;
-      case KEY_END : MoveEnd(&dir_entry);
+      case ACTION_END: MoveEnd(&dir_entry);
     		     break;
-      case KEY_RIGHT:
-      case '+':      HandlePlus(dir_entry, de_ptr, new_login_path,
+      case ACTION_MOVE_RIGHT:
+      case ACTION_TREE_EXPAND_ALL: HandlePlus(dir_entry, de_ptr, new_login_path,
     				start_dir_entry, &need_dsp_help);
 	             break;
-      case '\t':
-      case '*':      HandleReadSubTree(dir_entry, start_dir_entry,
+      case ACTION_TREE_EXPAND: HandleReadSubTree(dir_entry, start_dir_entry,
     					&need_dsp_help);
     		     break;
-      case KEY_LEFT:
-      case '-':
-      case KEY_BTAB: HandleUnreadSubTree(dir_entry, de_ptr, start_dir_entry,
+      case ACTION_MOVE_LEFT:
+      case ACTION_TREE_COLLAPSE: HandleUnreadSubTree(dir_entry, de_ptr, start_dir_entry,
     					 &need_dsp_help);
 	             break;
-      case '`':      {
+      case ACTION_TOGGLE_HIDDEN: {
                         ToggleDotFiles();
 
                         /* Update current dir pointer using the new accessor function
@@ -1136,8 +1133,7 @@ int HandleDirWindow(DirEntry *start_dir_entry)
                         need_dsp_help = TRUE;
                      }
 		     break;
-      case 'F':
-      case 'f':      if(ReadFilter() == 0) {
+      case ACTION_FILTER: if(ReadFilter() == 0) {
 		       dir_entry->start_file = 0;
 		       dir_entry->cursor_pos = -1;
                        DisplayFileWindow( dir_entry );
@@ -1147,20 +1143,18 @@ int HandleDirWindow(DirEntry *start_dir_entry)
 		     }
 		     need_dsp_help = TRUE;
                      break;
-      case 'T' :
-      case 't' :     HandleTagDir(dir_entry, TRUE);
+      case ACTION_TAG: HandleTagDir(dir_entry, TRUE);
     		     break;
 
-      case 'U' :
-      case 'u' :     HandleTagDir(dir_entry, FALSE);
+      case ACTION_UNTAG: HandleTagDir(dir_entry, FALSE);
     		     break;
-      case 'T' & 0x1F :
+      case ACTION_TAG_ALL:
                      HandleTagAllDirs(dir_entry,TRUE);
 		     break;
-      case 'U' & 0x1F :
+      case ACTION_UNTAG_ALL:
     		     HandleTagAllDirs(dir_entry,FALSE);
 		     break;
-      case 'F' & 0x1F :
+      case ACTION_TOGGLE_MODE:
 		     RotateDirMode();
                      /*DisplayFileWindow( dir_entry, 0, -1 );*/
                      DisplayTree( dir_window, statistic.disp_begin_pos,
@@ -1171,18 +1165,16 @@ int HandleDirWindow(DirEntry *start_dir_entry)
 		     DisplayDirStatistic(dir_entry);
 		     need_dsp_help = TRUE;
 		     break;
-      case 'S' & 0x1F :
+      case ACTION_CMD_TAGGED_S:
 		     HandleShowAll(TRUE, dir_entry, start_dir_entry, &need_dsp_help, &ch);
 		     break;
 
-      case 'S':
-      case 's':      HandleShowAll(FALSE, dir_entry, start_dir_entry, &need_dsp_help, &ch);
+      case ACTION_CMD_S:
+		     HandleShowAll(FALSE, dir_entry, start_dir_entry, &need_dsp_help, &ch);
 		     break;
-      case LF :
-      case CR :      HandleSwitchWindow(dir_entry, start_dir_entry, &need_dsp_help, &ch);
+      case ACTION_ENTER: HandleSwitchWindow(dir_entry, start_dir_entry, &need_dsp_help, &ch);
 		     break;
-      case 'X':
-      case 'x':      if (mode != DISK_MODE && mode != USER_MODE) {
+      case ACTION_CMD_X: if (mode != DISK_MODE && mode != USER_MODE) {
 		     } else {
 			 (void) Execute( dir_entry, NULL );
 		     }
@@ -1191,8 +1183,7 @@ int HandleDirWindow(DirEntry *start_dir_entry)
                      DisplayDiskStatistic();
                      DisplayDirStatistic(dir_entry);
 		     break;
-      case 'M':
-      case 'm':      if( !MakeDirectory( dir_entry ) )
+      case ACTION_CMD_M: if( !MakeDirectory( dir_entry ) )
 		     {
 		       BuildDirEntryList( start_dir_entry, &statistic );
                        DisplayTree( dir_window, statistic.disp_begin_pos,
@@ -1204,8 +1195,7 @@ int HandleDirWindow(DirEntry *start_dir_entry)
 		     }
 		     need_dsp_help = TRUE;
 		     break;
-      case 'D':
-      case 'd':      if( !DeleteDirectory( dir_entry ) ) {
+      case ACTION_CMD_D: if( !DeleteDirectory( dir_entry ) ) {
 		       if( statistic.disp_begin_pos + statistic.cursor_pos > 0 )
 		       {
 		         if( statistic.cursor_pos > 0 ) statistic.cursor_pos--;
@@ -1227,8 +1217,7 @@ int HandleDirWindow(DirEntry *start_dir_entry)
                      DisplayDirStatistic(dir_entry);
 		     need_dsp_help = TRUE;
 		     break;
-      case 'r':
-      case 'R':      if( !GetRenameParameter( dir_entry->name, new_name ) )
+      case ACTION_CMD_R: if( !GetRenameParameter( dir_entry->name, new_name ) )
                      {
 		       if( !RenameDirectory( dir_entry, new_name ) )
 		       {
@@ -1246,7 +1235,7 @@ int HandleDirWindow(DirEntry *start_dir_entry)
 		     }
 		     need_dsp_help = TRUE;
 		     break;
-      case 'R' & 0x1F: /* Rescan */
+      case ACTION_REFRESH: /* Rescan */
              RescanDir(dir_entry, 0);
              BuildDirEntryList(start_dir_entry, &statistic);
              if (total_dirs > 0 && (statistic.disp_begin_pos + statistic.cursor_pos >= total_dirs)) {
@@ -1262,36 +1251,32 @@ int HandleDirWindow(DirEntry *start_dir_entry)
              DisplayDirStatistic(dir_entry);
              need_dsp_help = TRUE;
              break;
-      case 'G':
-      case 'g':      (void) ChangeDirGroup( dir_entry );
+      case ACTION_CMD_G: (void) ChangeDirGroup( dir_entry );
                      DisplayTree( dir_window, statistic.disp_begin_pos, statistic.disp_begin_pos + statistic.cursor_pos );
                      DisplayDiskStatistic();
                      DisplayDirStatistic(dir_entry);
 		     need_dsp_help = TRUE;
 		     break;
-      case 'O':
-      case 'o':      (void) ChangeDirOwner( dir_entry );
+      case ACTION_CMD_O: (void) ChangeDirOwner( dir_entry );
                      DisplayTree( dir_window, statistic.disp_begin_pos, statistic.disp_begin_pos + statistic.cursor_pos );
                      DisplayDiskStatistic();
                      DisplayDirStatistic(dir_entry);
 		     need_dsp_help = TRUE;
 		     break;
-      case 'A':
-      case 'a':      (void) ChangeDirModus( dir_entry );
+      case ACTION_CMD_A: (void) ChangeDirModus( dir_entry );
                      DisplayTree( dir_window, statistic.disp_begin_pos, statistic.disp_begin_pos + statistic.cursor_pos );
                      DisplayDiskStatistic();
                      DisplayDirStatistic(dir_entry);
 		     need_dsp_help = TRUE;
 		     break;
 
-      case 'B':
-      case 'b':      /* About Box */
+      case ACTION_CMD_B: /* About Box */
                      AboutBox();
                      need_dsp_help = TRUE;
                      break;
 
       /* Volume Cycling and Selection */
-      case 'K': /* Shift-K: Select Loaded Volume */
+      case ACTION_VOL_MENU: /* Shift-K: Select Loaded Volume */
           {
               int res = SelectLoadedVolume();
               if (res == 0) { /* If volume switch was successful */
@@ -1327,8 +1312,7 @@ int HandleDirWindow(DirEntry *start_dir_entry)
           }
           break;
 
-      case ',': /* Previous Volume */
-      case '<':
+      case ACTION_VOL_PREV: /* Previous Volume */
           {
               int res = CycleLoadedVolume(-1);
               if (res == 0) { /* If volume switch was successful */
@@ -1364,8 +1348,7 @@ int HandleDirWindow(DirEntry *start_dir_entry)
           }
           break;
 
-      case '.': /* Next Volume */
-      case '>':
+      case ACTION_VOL_NEXT: /* Next Volume */
           {
               int res = CycleLoadedVolume(1);
               if (res == 0) { /* If volume switch was successful */
@@ -1401,19 +1384,16 @@ int HandleDirWindow(DirEntry *start_dir_entry)
           }
           break;
 
-      case 'Q' & 0x1F:
+      case ACTION_QUIT_DIR:
                      need_dsp_help = TRUE;
                      QuitTo(dir_entry);
                      break;
 
-      case 'Q':
-      case 'q':      need_dsp_help = TRUE;
+      case ACTION_QUIT:
+                     need_dsp_help = TRUE;
                      break;
 
-#ifndef VI_KEYS
-      case 'l':
-#endif /* VI_KEYS */
-      case 'L':      if( mode != DISK_MODE && mode != USER_MODE ) {
+      case ACTION_LOGIN: if( mode != DISK_MODE && mode != USER_MODE ) {
 			 if (getcwd(new_login_path, sizeof(new_login_path)) == NULL) {
 			     strcpy(new_login_path, ".");
 			 }
@@ -1452,13 +1432,13 @@ int HandleDirWindow(DirEntry *start_dir_entry)
 		     }
 		     need_dsp_help = TRUE;
 		     break;
-      case 'L' & 0x1F:
-		     clearok( stdscr, TRUE );
-		     break;
-      default :      break;
+      /* Ctrl-L is now ACTION_REFRESH, handled above */
+      default :      /* Unhandled action, beep */
+                     beep();
+                     break;
     } /* switch */
-  } while( (ch != 'q') && (ch != 'Q') && (ch != 'l') && (ch != 'L') );
-  return( ch );
+  } while( action != ACTION_QUIT && action != ACTION_ESCAPE && action != ACTION_LOGIN ); /* Loop until explicit quit, escape or login */
+  return( ch ); /* Return the last raw character that caused exit */
 }
 
 
@@ -1498,6 +1478,7 @@ int KeyF2Get(DirEntry *start_dir_entry,
   Statistic *stat_source;
   int local_disp_begin_pos;
   int local_cursor_pos;
+  YtreeAction action; /* Declare YtreeAction variable */
 
   if (mode != DISK_MODE && mode != USER_MODE) {
       /* When in an archive, F2 should show the filesystem tree */
@@ -1536,20 +1517,14 @@ int KeyF2Get(DirEntry *start_dir_entry,
     doupdate();
     ch = Getch();
     GetMaxYX(f2_window, &win_height, &win_width);  /* Maybe changed... */
-    if( ch == LF ) ch = CR;
+    /* LF to CR normalization is now handled by GetKeyAction */
 
+    action = GetKeyAction(ch); /* Translate raw input to YtreeAction */
 
-#ifdef VI_KEYS
-
-    ch = ViKey( ch );
-
-#endif /* VI_KEYS */
-
-    switch( ch )
+    switch( action )
     {
-      case -1:       break;
-      case ' ':      break;  /* Quick-Key */
-      case KEY_DOWN: if( local_disp_begin_pos + local_cursor_pos + 1 >= total_dirs )
+      case ACTION_NONE:       break; /* -1 or unhandled keys, no beep in F2Get */
+      case ACTION_MOVE_DOWN: if( local_disp_begin_pos + local_cursor_pos + 1 >= total_dirs )
 		     {
 		     }
 		     else
@@ -1573,7 +1548,7 @@ int KeyF2Get(DirEntry *start_dir_entry,
 		     }
                      break;
 
-      case KEY_UP  : if( local_disp_begin_pos + local_cursor_pos - 1 < 0 )
+      case ACTION_MOVE_UP: if( local_disp_begin_pos + local_cursor_pos - 1 < 0 )
 		     {
 		     }
 		     else
@@ -1597,7 +1572,7 @@ int KeyF2Get(DirEntry *start_dir_entry,
 		     }
                      break;
 
-      case KEY_NPAGE:
+      case ACTION_PAGE_DOWN:
 		     if( local_disp_begin_pos + local_cursor_pos >= total_dirs - 1 )
 		     {
 		     }
@@ -1635,7 +1610,7 @@ int KeyF2Get(DirEntry *start_dir_entry,
 		     }
                      break;
 
-      case KEY_PPAGE:
+      case ACTION_PAGE_UP:
 		     if( local_disp_begin_pos + local_cursor_pos <= 0 )
 		     {
 		     }
@@ -1664,7 +1639,7 @@ int KeyF2Get(DirEntry *start_dir_entry,
 		     }
                      break;
 
-      case KEY_HOME: if( local_disp_begin_pos == 0 && local_cursor_pos == 0 )
+      case ACTION_HOME: if( local_disp_begin_pos == 0 && local_cursor_pos == 0 )
 		     { }
 		     else
 		     {
@@ -1675,24 +1650,21 @@ int KeyF2Get(DirEntry *start_dir_entry,
 		     }
                      break;
 
-      case KEY_END : local_disp_begin_pos = MAXIMUM(0, total_dirs - win_height);
+      case ACTION_END: local_disp_begin_pos = MAXIMUM(0, total_dirs - win_height);
 		     local_cursor_pos     = total_dirs - local_disp_begin_pos - 1;
                      DisplayTree( f2_window, local_disp_begin_pos,
 				  local_disp_begin_pos + local_cursor_pos);
                      break;
 
-      case LF :
-      case CR :
+      case ACTION_ENTER:
                      GetPath(dir_entry_list[local_cursor_pos + local_disp_begin_pos].dir_entry, path);
 		     result = 0;
 		     break;
-      case ESC:
-      case 'Q':
-      case 'q':      break;
+      case ACTION_QUIT:      break;
 
-      default :      break;
+      default :      beep(); break;
     } /* switch */
-  } while( (ch != 'q') && (ch != ESC) && (ch != 'Q') && (ch != CR) && (ch != -1) );
+  } while( action != ACTION_QUIT && action != ACTION_ENTER );
 
   UnmapF2Window();
 

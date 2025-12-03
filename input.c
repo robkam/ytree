@@ -297,7 +297,7 @@ int InputString(char *s, int y, int x, int cursor_pos, int length, char *term)
     c1 = Getch();
 
 #ifdef VI_KEYS
-    c1 = ViKey(c1);
+    c1 = ViKey(c1); /* ViKey processing is still needed here for input string editing */
 #endif
 
     /* Check for termination characters */
@@ -483,7 +483,6 @@ int InputString(char *s, int y, int x, int cursor_pos, int length, char *term)
               /* NOTE: This is an imperfect guess; curses often delivers MB as one keycode */
               /* The logic relies on c1 being the first byte or a multi-byte keycode. */
               /* Since curses typically handles key decoding, we assume c1 is a full sequence. */
-              /* If this fails, the original logic is a basic guess for single-byte terminal. */
             }
 #endif
 
@@ -712,9 +711,17 @@ YtreeAction GetKeyAction(int ch)
         case KEY_HOME:  return ACTION_HOME;
         case KEY_END:   return ACTION_END;
 
-        /* Global / Common */
+        /* Tree Ops */
+        case '\t':      return ACTION_TREE_EXPAND;      /* TAB */
+        case '*':       return ACTION_TREE_EXPAND;
+        case KEY_BTAB:  return ACTION_TREE_COLLAPSE;    /* Back-tab */
+        case '-':       return ACTION_TREE_COLLAPSE;
+        case '+':       return ACTION_TREE_EXPAND_ALL;
+
+        /* Standard Commands */
         case CR:
         case LF:        return ACTION_ENTER;
+        case ESC:       return ACTION_ESCAPE; /* Explicitly map ESC to ACTION_ESCAPE */
         case 'l':
         case 'L':       return ACTION_LOGIN;
         case 'q':
@@ -722,21 +729,26 @@ YtreeAction GetKeyAction(int ch)
         case 0x11:      return ACTION_QUIT_DIR; /* Ctrl-Q */
         case 't':       return ACTION_TAG;
         case 'u':       return ACTION_UNTAG;
+        case 'T':       return ACTION_TAG_ALL;
         case 0x14:      return ACTION_TAG_ALL; /* Ctrl-T */
+        case 'U':       return ACTION_UNTAG_ALL;
         case 0x15:      return ACTION_UNTAG_ALL; /* Ctrl-U */
+        case ';':       return ACTION_TAG_REST;
+        case ':':       return ACTION_UNTAG_REST;
         case 'f':
         case 'F':       return ACTION_FILTER;
         case 0x06:      return ACTION_TOGGLE_MODE; /* Ctrl-F */
-        case 0x0C:      /* Ctrl-L */
-        case 0x12:      return ACTION_REFRESH; /* Ctrl-R */
+        case 0x0C:      return ACTION_REFRESH; /* Ctrl-L */
         case KEY_RESIZE: return ACTION_RESIZE;
+
+        /* Volume Ops */
         case 'K':       return ACTION_VOL_MENU;
         case ',':
         case '<':       return ACTION_VOL_PREV;
         case '.':
         case '>':       return ACTION_VOL_NEXT;
 
-        /* Ambiguous Commands (Context Dependent) */
+        /* Context Commands (Letters) */
         case 'a':
         case 'A':       return ACTION_CMD_A;
         case 'b':
@@ -767,9 +779,29 @@ YtreeAction GetKeyAction(int ch)
         case 'X':       return ACTION_CMD_X;
         case 'y':
         case 'Y':       return ACTION_CMD_Y;
-        case 0x13:      return ACTION_CMD_SEARCH; /* Ctrl-S */
-        case 0x18:      return ACTION_CMD_SHELL; /* Ctrl-X */
         case '`':       return ACTION_TOGGLE_HIDDEN;
+
+        /* Tagged/Ctrl Variants */
+        case 0x01:      return ACTION_CMD_TAGGED_A; /* Ctrl-A */
+        case 0x03:      return ACTION_CMD_TAGGED_C; /* Ctrl-C */
+        case 0x0B:      return ACTION_CMD_TAGGED_C; /* Ctrl-K (legacy copy) */
+        case 0x04:      return ACTION_CMD_TAGGED_D; /* Ctrl-D */
+        case 0x07:      return ACTION_CMD_TAGGED_G; /* Ctrl-G */
+        case 0x0E:      return ACTION_CMD_TAGGED_M; /* Ctrl-N (Move Tagged legacy) */
+        case 0x0F:      return ACTION_CMD_TAGGED_O; /* Ctrl-O */
+        case 0x10:      return ACTION_CMD_TAGGED_P; /* Ctrl-P */
+        case 0x12:      return ACTION_CMD_TAGGED_R; /* Ctrl-R */
+        case 0x13:      return ACTION_CMD_TAGGED_S; /* Ctrl-S */
+        case 0x18:      return ACTION_CMD_TAGGED_X; /* Ctrl-X */
+        case 0x19:      return ACTION_CMD_TAGGED_Y; /* Ctrl-Y */
+
+        /* Function Keys */
+#ifdef KEY_F
+        case KEY_F(12): return ACTION_LIST_JUMP;
+        case '8':
+        case KEY_F(28): return ACTION_TOGGLE_TAGGED_MODE; /* Shift-F4 */
+        case KEY_F(16): return ACTION_TOGGLE_TAGGED_MODE; /* F4 (often Shift-F4 on some terminals) */
+#endif
 
         default:        return ACTION_NONE;
     }
