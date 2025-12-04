@@ -1100,6 +1100,53 @@ int HandleDirWindow(DirEntry *start_dir_entry)
                      break;
       case ACTION_MOVE_UP: Moveup(&statistic.disp_begin_pos, &statistic.cursor_pos, &dir_entry);
                      break;
+      case ACTION_MOVE_SIBLING_NEXT:
+            if (dir_entry->next != NULL) {
+                /* Find the sibling in the linear list to update cursor index */
+                int k;
+                int found_idx = -1;
+                /* Optimization: Start searching from current position */
+                int start_idx = statistic.disp_begin_pos + statistic.cursor_pos;
+
+                for (k = start_idx + 1; k < total_dirs; k++) {
+                    if (dir_entry_list[k].dir_entry == dir_entry->next) {
+                        found_idx = k;
+                        break;
+                    }
+                }
+
+                if (found_idx != -1) {
+                    /* Move cursor to sibling */
+                    if (found_idx >= statistic.disp_begin_pos &&
+                        found_idx < statistic.disp_begin_pos + window_height) {
+                        statistic.cursor_pos = found_idx - statistic.disp_begin_pos;
+                    } else {
+                        /* Off screen, center it or move to top */
+                        statistic.disp_begin_pos = found_idx;
+                        statistic.cursor_pos = 0;
+                        /* Bounds check */
+                        if (statistic.disp_begin_pos + window_height > total_dirs) {
+                             statistic.disp_begin_pos = MAXIMUM(0, total_dirs - window_height);
+                             statistic.cursor_pos = found_idx - statistic.disp_begin_pos;
+                        }
+                    }
+                    /* Sync */
+                    dir_entry = dir_entry_list[statistic.disp_begin_pos + statistic.cursor_pos].dir_entry;
+
+                    /* Refresh */
+                    DisplayTree(dir_window, statistic.disp_begin_pos, statistic.disp_begin_pos + statistic.cursor_pos);
+                    DisplayFileWindow(dir_entry);
+                    DisplayDiskStatistic();
+                    DisplayDirStatistic(dir_entry);
+                    DisplayAvailBytes();
+
+                    char path[PATH_LENGTH];
+                    GetPath(dir_entry, path);
+                    DisplayHeaderPath(path);
+                }
+            }
+            need_dsp_help = TRUE;
+            break;
       case ACTION_PAGE_DOWN: Movenpage(&statistic.disp_begin_pos, &statistic.cursor_pos, &dir_entry);
                      break;
       case ACTION_PAGE_UP: Moveppage(&statistic.disp_begin_pos, &statistic.cursor_pos, &dir_entry);
