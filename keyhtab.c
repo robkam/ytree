@@ -134,7 +134,7 @@ char *GetMatches( char *base)
   int     start_x;
   char    *RetVal = NULL;
   char    *TMP;
-  char    *tmpval;
+  char    *expanded_base; /* Renamed from tmpval for clarity, holds tilde_expand result */
   int     hide_left, hide_right;
 
 /*  tmpval = rl_filename_completion_function(base, 0);
@@ -144,17 +144,24 @@ char *GetMatches( char *base)
   Mtchs = NULL;
 
 #ifdef READLINE_SUPPORT
-  tmpval=tilde_expand(base);
+  expanded_base = tilde_expand(base); /* This allocates memory */
+  if (expanded_base == NULL) {
+      /* tilde_expand returns NULL on allocation failure, or strdup(base) if no expansion.
+       * If it returns NULL, there's nothing to free. */
+      return(NULL);
+  }
 
-  if ((Mtchs = rl_completion_matches(tmpval, rl_filename_completion_function))
-	== NULL)
+  if ((Mtchs = rl_completion_matches(expanded_base, rl_filename_completion_function))
+	== NULL) {
+    free(expanded_base); /* Fix: Free the allocated string before returning */
     return(NULL);
+  }
 #else
     return(NULL);
 #endif
 
 
-  if (!(strcmp(tmpval,Mtchs[0])==0)){
+  if (!(strcmp(expanded_base,Mtchs[0])==0)){
     TMP=malloc(strlen(Mtchs[0])+1);
     if (TMP != NULL){
       strcpy(TMP, Mtchs[0]);
@@ -162,7 +169,7 @@ char *GetMatches( char *base)
     }else{
       RetVal = NULL;}
     free(Mtchs);
-    free(tmpval);
+    free(expanded_base);
     return RetVal;
   }
 
@@ -365,7 +372,7 @@ char *GetMatches( char *base)
   } while(ch != CR && ch != ESC && ch != -1);
   /* leaveok(stdscr, FALSE); */
   free(Mtchs);
-  free(tmpval);
+  free(expanded_base);
   touchwin(stdscr);
   return RetVal;
 }
