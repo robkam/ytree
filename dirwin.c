@@ -1049,7 +1049,7 @@ int HandleDirWindow(DirEntry *start_dir_entry)
       /* LF to CR normalization is now handled by GetKeyAction */
     }
 
-    if (mode == USER_MODE) { /* User commands take precedence */
+    if (IsUserActionDefined()) { /* User commands take precedence */
         ch = DirUserMode(dir_entry, ch);
     }
 

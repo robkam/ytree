@@ -1279,7 +1279,7 @@ int HandleFileWindow(DirEntry *dir_entry)
       if( ch == LF ) ch = CR;
     }
 
-    if (mode == USER_MODE) { /* User commands take precedence */
+    if (IsUserActionDefined()) { /* User commands take precedence */
        ch = FileUserMode(&(file_entry_list[dir_entry->start_file + dir_entry->cursor_pos]), ch);
     }
 
