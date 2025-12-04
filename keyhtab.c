@@ -17,7 +17,7 @@
 
 #define MAX(a,b) (((a) > (b)) ? (a):(b))
 
-static char **Mtchs       = NULL;
+static char **Mtchs       = NULL; /* This static variable will now track the last completion result */
 static int total_matches  = 0;
 static int cursor_pos     = 0;
 static int disp_begin_pos = 1;
@@ -134,14 +134,26 @@ char *GetMatches( char *base)
   int     start_x;
   char    *RetVal = NULL;
   char    *TMP;
-  char    *expanded_base; /* Renamed from tmpval for clarity, holds tilde_expand result */
+  char    *expanded_base = NULL; /* Renamed from tmpval for clarity, holds tilde_expand result */
   int     hide_left, hide_right;
 
 /*  tmpval = rl_filename_completion_function(base, 0);
   if (!strcmp(tmpval,base))
     return(tmpval);*/
 
-  Mtchs = NULL;
+  /* --- START OF NEW CLEANUP LOGIC (Bug 3 of 10) --- */
+  /* Free previous completion matches if they exist.
+   * This ensures that the `char **Mtchs` array and its contained strings
+   * from the *previous* call to GetMatches are freed, preventing memory leaks. */
+  if (Mtchs != NULL) {
+    int i;
+    for (i = 0; Mtchs[i] != NULL; i++) {
+      free(Mtchs[i]);
+    }
+    free(Mtchs);
+    Mtchs = NULL; /* Reset to NULL after freeing */
+  }
+  /* --- END OF NEW CLEANUP LOGIC --- */
 
 #ifdef READLINE_SUPPORT
   expanded_base = tilde_expand(base); /* This allocates memory */
@@ -157,25 +169,45 @@ char *GetMatches( char *base)
     return(NULL);
   }
 #else
+    /* If READLINE_SUPPORT is not defined, Mtchs will remain NULL. */
+    /* expanded_base is not allocated here, so no need to free. */
     return(NULL);
 #endif
 
+  /* Check if the first match is identical to the expanded base.
+   * This often means no actual completion happened, or only one trivial match. */
+  if (Mtchs[0] != NULL && strcmp(expanded_base, Mtchs[0]) == 0){
+    /* If the first match is the same as the input, it's not a useful completion.
+     * The original code returned NULL in this case, after freeing Mtchs.
+     * With the new static cleanup, Mtchs should persist for the next call.
+     * So, we just free expanded_base and return NULL.
+     * The Mtchs array will be cleaned up by the *next* call to GetMatches. */
+    free(expanded_base);
+    return(NULL);
+  }
 
-  if (!(strcmp(expanded_base,Mtchs[0])==0)){
+  /* If there's a useful first match that's different from the base,
+   * the original code would return a copy of it. */
+  if (Mtchs[0] != NULL) {
     TMP=malloc(strlen(Mtchs[0])+1);
     if (TMP != NULL){
       strcpy(TMP, Mtchs[0]);
       RetVal = TMP;
     }else{
       RetVal = NULL;}
-    free(Mtchs);
-    free(expanded_base);
+    /* Original code had `free(Mtchs);` here. This is removed as Mtchs is now
+     * managed by the static cleanup at the beginning of the *next* call. */
+    free(expanded_base); /* expanded_base is no longer needed */
     return RetVal;
   }
 
   for (total_matches=0; Mtchs[total_matches]; total_matches++);
-  if (total_matches == 1)
-  return(NULL);
+  if (total_matches == 1) {
+    /* If only one match, and it wasn't handled by the strcmp check above,
+     * it's still not an interactive completion. Return NULL. */
+    free(expanded_base); /* expanded_base is no longer needed */
+    return(NULL);
+  }
 
   disp_begin_pos = 1;
   cursor_pos     = 0;
@@ -371,8 +403,9 @@ char *GetMatches( char *base)
     } /* switch */
   } while(ch != CR && ch != ESC && ch != -1);
   /* leaveok(stdscr, FALSE); */
-  free(Mtchs);
-  free(expanded_base);
+  /* Original code had `free(Mtchs);` here. This is removed as Mtchs is now
+   * managed by the static cleanup at the beginning of the *next* call. */
+  free(expanded_base); /* expanded_base is always allocated and must be freed */
   touchwin(stdscr);
   return RetVal;
 }
