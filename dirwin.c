@@ -1116,6 +1116,55 @@ int HandleDirWindow(DirEntry *start_dir_entry)
     					&need_dsp_help);
     		     break;
       case ACTION_MOVE_LEFT:
+          /* Check if directory is expanded (has sub-tree and is scanned) */
+          if (!dir_entry->not_scanned && dir_entry->sub_tree != NULL) {
+              /* It is expanded -> Collapse it */
+              HandleUnreadSubTree(dir_entry, de_ptr, start_dir_entry, &need_dsp_help);
+          } else {
+              /* It is collapsed (or leaf) -> Jump to Parent */
+              if (dir_entry->up_tree != NULL) {
+                   /* Find parent in the list */
+                   int p_idx = -1;
+                   int k;
+                   for(k=0; k < total_dirs; k++) {
+                       if(dir_entry_list[k].dir_entry == dir_entry->up_tree) {
+                           p_idx = k;
+                           break;
+                       }
+                   }
+                   if (p_idx != -1) {
+                       /* Move cursor to parent */
+                       if (p_idx >= statistic.disp_begin_pos &&
+                           p_idx < statistic.disp_begin_pos + window_height) {
+                           /* Parent is on screen */
+                           statistic.cursor_pos = p_idx - statistic.disp_begin_pos;
+                       } else {
+                           /* Parent is off screen - center it or put at top */
+                           statistic.disp_begin_pos = p_idx;
+                           statistic.cursor_pos = 0;
+                           /* Adjust if near end */
+                           if (statistic.disp_begin_pos + window_height > total_dirs) {
+                               statistic.disp_begin_pos = MAXIMUM(0, total_dirs - window_height);
+                               statistic.cursor_pos = p_idx - statistic.disp_begin_pos;
+                           }
+                       }
+                       /* Sync pointers */
+                       dir_entry = dir_entry_list[statistic.disp_begin_pos + statistic.cursor_pos].dir_entry;
+
+                       /* Refresh */
+                       DisplayTree(dir_window, statistic.disp_begin_pos, statistic.disp_begin_pos + statistic.cursor_pos);
+                       DisplayFileWindow(dir_entry);
+                       DisplayDiskStatistic();
+                       DisplayDirStatistic(dir_entry);
+                       DisplayAvailBytes();
+                       /* Update Header Path */
+                       char path[PATH_LENGTH];
+                       GetPath(dir_entry, path);
+                       DisplayHeaderPath(path);
+                   }
+              }
+          }
+          break;
       case ACTION_TREE_COLLAPSE: HandleUnreadSubTree(dir_entry, de_ptr, start_dir_entry,
     					 &need_dsp_help);
 	             break;
