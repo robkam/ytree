@@ -1393,45 +1393,41 @@ int HandleDirWindow(DirEntry *start_dir_entry)
                      need_dsp_help = TRUE;
                      break;
 
-      case ACTION_LOGIN: if( mode != DISK_MODE && mode != USER_MODE ) {
-			 if (getcwd(new_login_path, sizeof(new_login_path)) == NULL) {
-			     strcpy(new_login_path, ".");
-			 }
-		     } else {
-		       (void) GetPath( dir_entry, new_login_path );
-		     }
-		     if( !GetNewLoginPath( new_login_path ) )
-		     {
-		       DisplayMenu();
-		       doupdate();
-		       (void) LoginDisk( new_login_path );
-                       // After LoginDisk, statistic.tree and dir_entry might change.
-                       // Re-evaluate dir_entry and update stats.
-                       start_dir_entry = statistic.tree;
-                       BuildDirEntryList(start_dir_entry, &statistic);
-                       if (total_dirs > 0 && (statistic.disp_begin_pos + statistic.cursor_pos >= total_dirs)) {
-                           statistic.disp_begin_pos = 0;
-                           statistic.cursor_pos = 0;
-                       }
-                       if (total_dirs > 0) {
-                           dir_entry = dir_entry_list[statistic.disp_begin_pos + statistic.cursor_pos].dir_entry;
-                       } else {
-                           dir_entry = statistic.tree;
-                       }
-                       DisplayTree(dir_window, statistic.disp_begin_pos, statistic.disp_begin_pos + statistic.cursor_pos);
-                       DisplayFileWindow(dir_entry);
-                       RefreshWindow(file_window);
-                       DisplayDiskStatistic();
-                       DisplayDirStatistic(dir_entry);
-                       /* Update header path after login */
-                       {
-                           char path[PATH_LENGTH];
-                           GetPath(dir_entry, path);
-                           DisplayHeaderPath(path);
-                       }
-		     }
-		     need_dsp_help = TRUE;
-		     break;
+      case ACTION_LOGIN:
+          if( mode != DISK_MODE && mode != USER_MODE ) {
+              if (getcwd(new_login_path, sizeof(new_login_path)) == NULL) {
+                  strcpy(new_login_path, ".");
+              }
+          } else {
+              (void) GetPath( dir_entry, new_login_path );
+          }
+          if( !GetNewLoginPath( new_login_path ) )
+          {
+              DisplayMenu();
+              doupdate();
+
+              /* Check return value. Only update state if login succeeded (0). */
+              if (LoginDisk(new_login_path) == 0) {
+                  /* LoginDisk has already built the list and refreshed the screen.
+                   * We just need to sync the local loop variables to the new global state. */
+                  start_dir_entry = statistic.tree;
+
+                  /* Ensure cursor is at the top for a new login */
+                  statistic.disp_begin_pos = 0;
+                  statistic.cursor_pos = 0;
+
+                  /* Safety: Update dir_entry to the first item of the new list */
+                  if (total_dirs > 0) {
+                      dir_entry = dir_entry_list[0].dir_entry;
+                  } else {
+                      dir_entry = statistic.tree;
+                  }
+
+                  /* No need to call BuildDirEntryList or DisplayTree here; LoginDisk did it. */
+              }
+              need_dsp_help = TRUE;
+          }
+          break;
       /* Ctrl-L is now ACTION_REFRESH, handled above */
       default :      /* Unhandled action, beep */
                      beep();
