@@ -712,9 +712,9 @@ YtreeAction GetKeyAction(int ch)
         case KEY_END:   return ACTION_END;
 
         /* Tree Ops */
-        case '\t':      return ACTION_TREE_EXPAND;      /* TAB */
-        case '*':       return ACTION_TREE_EXPAND;
-        case KEY_BTAB:  return ACTION_TREE_COLLAPSE;    /* Back-tab */
+        case '\t':      return ACTION_MOVE_SIBLING_NEXT; /* TAB: Jump to next sibling */
+        case '*':       return ACTION_TREE_EXPAND;       /* Asterisk: Expand tree */
+        case KEY_BTAB:  return ACTION_TREE_COLLAPSE;     /* Back-tab */
         case '-':       return ACTION_TREE_COLLAPSE;
         case '+':       return ACTION_TREE_EXPAND_ALL;
 

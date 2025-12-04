@@ -610,6 +610,7 @@ typedef enum {
     ACTION_NONE = 0,
     /* Navigation */
     ACTION_MOVE_UP, ACTION_MOVE_DOWN,
+    ACTION_MOVE_SIBLING_NEXT, /* Added for ZTree-like TAB behavior */
     ACTION_MOVE_LEFT, ACTION_MOVE_RIGHT,
     ACTION_PAGE_UP, ACTION_PAGE_DOWN,
     ACTION_HOME, ACTION_END,
