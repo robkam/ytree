@@ -2406,21 +2406,63 @@ int HandleFileWindow(DirEntry *dir_entry)
           break;
 
       case ACTION_REFRESH:
-             if (mode == ARCHIVE_MODE) {
-                clearok(stdscr, TRUE);
-                refresh();
-             } else {
-                 RescanDir(dir_entry, 0);
-                 BuildFileEntryList(dir_entry);
-                 if (dir_entry->start_file + dir_entry->cursor_pos >= file_count) {
-                     dir_entry->start_file = 0;
-                     dir_entry->cursor_pos = 0;
-                 }
-                 DisplayFiles(dir_entry, dir_entry->start_file, dir_entry->start_file + dir_entry->cursor_pos, start_x);
-                 DisplayDirStatistic(dir_entry);
-                 need_dsp_help = TRUE;
-             }
-             break;
+                {
+                    /* 1. Save current filename */
+                    char *saved_name = NULL;
+                    if (file_count > 0) {
+                        FileEntry *curr = file_entry_list[dir_entry->start_file + dir_entry->cursor_pos].file;
+                        if (curr) saved_name = strdup(curr->name);
+                    }
+
+                    /* 2. Perform Rescan */
+                    if (mode == ARCHIVE_MODE) {
+                         clearok(stdscr, TRUE);
+                         refresh();
+                    } else {
+                         RescanDir(dir_entry, 0);
+                         BuildFileEntryList(dir_entry);
+
+                         /* 3. Restore Cursor Position */
+                         int found_idx = -1;
+                         if (saved_name) {
+                             int k;
+                             for (k = 0; k < file_count; k++) {
+                                 if (strcmp(file_entry_list[k].file->name, saved_name) == 0) {
+                                     found_idx = k;
+                                     break;
+                                 }
+                             }
+                             free(saved_name);
+                         }
+
+                         if (found_idx != -1) {
+                             /* Calculate new start_file and cursor_pos */
+                             if (found_idx >= dir_entry->start_file &&
+                                 found_idx < dir_entry->start_file + max_disp_files) {
+                                 /* Still on screen, just move cursor */
+                                 dir_entry->cursor_pos = found_idx - dir_entry->start_file;
+                             } else {
+                                 /* Off screen, recenter or scroll */
+                                 dir_entry->start_file = found_idx;
+                                 dir_entry->cursor_pos = 0;
+                                 /* Bounds check */
+                                 if (dir_entry->start_file + max_disp_files > file_count) {
+                                      dir_entry->start_file = MAXIMUM(0, file_count - max_disp_files);
+                                      dir_entry->cursor_pos = found_idx - dir_entry->start_file;
+                                 }
+                             }
+                         } else {
+                             /* File gone, reset to top */
+                             dir_entry->start_file = 0;
+                             dir_entry->cursor_pos = 0;
+                         }
+
+                         DisplayFiles(dir_entry, dir_entry->start_file, dir_entry->start_file + dir_entry->cursor_pos, start_x);
+                         DisplayDirStatistic(dir_entry);
+                         need_dsp_help = TRUE;
+                    }
+                }
+                break;
 
       case ACTION_RESIZE: resize_request = TRUE; break;
 
