@@ -1217,6 +1217,21 @@ int HandleFileWindow(DirEntry *dir_entry)
 
   BuildFileEntryList( dir_entry );
 
+  /* Sanitize cursor position immediately after BuildFileEntryList */
+  if (file_count > 0) {
+      if (dir_entry->cursor_pos < 0) dir_entry->cursor_pos = 0;
+      if (dir_entry->start_file < 0) dir_entry->start_file = 0;
+
+      /* Bounds Check: ensure we aren't past the end */
+      if (dir_entry->start_file + dir_entry->cursor_pos >= (int)file_count) {
+          dir_entry->start_file = MAXIMUM(0, (int)file_count - max_disp_files);
+          dir_entry->cursor_pos = (int)file_count - 1 - dir_entry->start_file;
+      }
+  } else {
+      dir_entry->cursor_pos = 0;
+      dir_entry->start_file = 0;
+  }
+
   if( dir_entry->global_flag || dir_entry->big_window || dir_entry->tagged_flag)
   {
     SwitchToBigFileWindow();
@@ -1258,7 +1273,12 @@ int HandleFileWindow(DirEntry *dir_entry)
     }
     else
     {
-      fe_ptr = file_entry_list[dir_entry->start_file + dir_entry->cursor_pos].file;
+      /* Guard fe_ptr access against empty file list */
+      if (file_count > 0) {
+           fe_ptr = file_entry_list[dir_entry->start_file + dir_entry->cursor_pos].file;
+      } else {
+           fe_ptr = NULL;
+      }
 
       if( dir_entry->global_flag )
         DisplayGlobalFileParameter( fe_ptr );
