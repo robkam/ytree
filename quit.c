@@ -21,23 +21,23 @@ command-prompt will be in that chosen dir.
 thus, a Quit exit jumps to the dir it's already in. a QuitTo
 exit jumps to the dir_entry-specified dir.
 
-QuitTo:
+QuitTo (Ctrl-Q) implementation:
 
-- get parent's pid
-- get owning uid's homedir
-- compose shell stub name
-- test:
-  - exists?
-  - regular file?
-  - non-zero length?
-- write dir_entry to it, thus replacing the starting-cwd line
-- chain to Quit
+- Resolves the target directory path (either selected or current).
+- Constructs a PID-unique filename in the user's home directory (e.g., ~/.ytree-PID.chdir).
+- Opens this file for writing, overwriting any existing content.
+- Writes the 'cd "target_path"' command to the file.
+- Closes the file.
+- Proceeds with the standard ytree exit procedure (via Quit()).
+- No strict security checks (symlink/ownership/existence) are performed on the file,
+  as the wrapper script is expected to manage its creation and permissions.
+  Failure to open/write the file is logged as a warning but does not prevent ytree from exiting.
 
-if user elects not to quit, no harm done:
+Quit (q/Q) implementation:
 
-- rewrite that file to starting-cwd if it passes those checks again
-  (avoiding race opening vuln)
-- return to main program loop
+- Prompts for confirmation if configured.
+- Proceeds with the standard ytree exit procedure.
+- Does NOT write any 'cd' file.
 
 a user can have a bunch of ytrees open, but they'll be run one-per-
 shell (i.e. each xterm singletasking) unless the user's ASKING for
@@ -74,22 +74,15 @@ function yt
 
 */
 
-#define MAXPATH	(PATH_LENGTH+1)
-
-static int QuitFileCheck(char *fname);
-static void PerformQuit(DirEntry *dir_entry);
-
-
 /*
  * The core quit logic. It asks for user confirmation and then performs all
- * necessary exit procedures. If dir_entry is not NULL, it also handles the
- * "quit-to" functionality by writing the target directory to a file for
- * the calling shell script.
+ * necessary exit procedures. This function no longer handles "quit-to"
+ * functionality; that is now handled by QuitTo() directly.
  */
-static void PerformQuit(DirEntry *dir_entry)
+static void PerformQuit(void)
 {
     int term;
-    char path[PATH_LENGTH + 1];
+    char path_for_history[PATH_LENGTH + 1];
     char *p;
 
     if (strtol(CONFIRMQUIT, NULL, 0) != 0) {
@@ -98,37 +91,12 @@ static void PerformQuit(DirEntry *dir_entry)
         term = 'Y';
     }
 
-
     if (term == 'Y' || term == 'Q' || term == 'q')
     {
-        /* If dir_entry is provided, this is a "QuitTo" action. */
-        if (dir_entry != NULL) {
-            int parpid;
-            FILE *qfile;
-            char nbuf[MAXPATH], qfilename[MAXPATH];
-            struct passwd *pwp;
-
-            GetPath(dir_entry, nbuf);
-            parpid = getppid();
-            pwp = getpwuid(getuid());
-            if (pwp != NULL && pwp->pw_dir != NULL) {
-                sprintf(qfilename, "%s/.ytree-%d.chdir", pwp->pw_dir, parpid);
-
-                if (QuitFileCheck(qfilename) == 0) {
-                    qfile = fopen(qfilename, "w");
-                    if (qfile != NULL) {
-                        /* Add quotes to handle paths with spaces */
-                        fprintf(qfile, "cd \"%s\"\n", nbuf);
-                        fclose(qfile);
-                    }
-                }
-            }
-        }
-
         /* Common exit procedure for all quit types */
         if ((p = getenv("HOME"))) {
-            sprintf(path, "%s%c%s", p, FILE_SEPARATOR_CHAR, HISTORY_FILENAME);
-            SaveHistory(path);
+            sprintf(path_for_history, "%s%c%s", p, FILE_SEPARATOR_CHAR, HISTORY_FILENAME);
+            SaveHistory(path_for_history);
         }
         endwin();
 #ifdef XCURSES
@@ -143,42 +111,55 @@ static void PerformQuit(DirEntry *dir_entry)
 
 
 /*
- * Public interface for "QuitTo". Invokes the main quit logic
- * with the target directory.
+ * Public interface for "QuitTo". Implements the "quit-to-directory"
+ * functionality by writing the target directory to a file for the
+ * calling shell script, then performs a standard quit.
  */
-void QuitTo(DirEntry *dir_entry)
+void QuitTo(DirEntry *dir)
 {
-    PerformQuit(dir_entry);
-}
+    char path_to_write[PATH_LENGTH + 1];
+    char qfilename[PATH_LENGTH + 1];
+    char *home_dir;
+    FILE *fp;
 
+    /* 2. Resolve Path: */
+    if (dir != NULL) {
+        GetPath(dir, path_to_write);
+    } else {
+        /* If dir is NULL, quit to current directory. */
+        strcpy(path_to_write, statistic.path);
+    }
 
-/*
- * QuitFileCheck.
- * quick safety-check of the shell stub we want to write to.
- * if any of these tests fail, somebody's trying to use us for a
- * security breach.
- */
-static int QuitFileCheck(char *fname)
-{
-    struct stat fstat;
+    /* 3. Construct Filename: */
+    home_dir = getenv("HOME");
+    if (home_dir != NULL) {
+        sprintf(qfilename, "%s/.ytree-%d.chdir", home_dir, (int)getppid());
 
-    if (stat(fname, &fstat) != 0)
-        return (1);
-    if (!S_ISREG(fstat.st_mode))
-        return (1);
-    if (!fstat.st_size)
-        return (2);
-    if (fstat.st_uid != getuid())
-        return (3);
-    return (0);
+        /* 4. Write (Simple): */
+        fp = fopen(qfilename, "w");
+        if (fp != NULL) {
+            /* Add quotes to handle paths with spaces */
+            fprintf(fp, "cd \"%s\"\n", path_to_write);
+            fclose(fp);
+        } else {
+            /* Handle fopen error, but do not prevent quitting. */
+            WARNING("Failed to open .ytree-PID.chdir file for writing.");
+        }
+    } else {
+        /* Handle HOME not found, but do not prevent quitting. */
+        WARNING("HOME environment variable not set. Cannot write .ytree-PID.chdir file.");
+    }
+
+    /* 5. Cleanup & Exit: */
+    Quit();
 }
 
 
 /*
  * Public interface for a normal quit. Invokes the main quit logic
- * without a target directory.
+ * without writing a target directory file.
  */
 void Quit(void)
 {
-    PerformQuit(NULL);
+    PerformQuit();
 }

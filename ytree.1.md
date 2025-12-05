@@ -2,7 +2,7 @@
 title: YTREE
 section: 1
 header: "LOCAL COMMANDS"
-date: "21 March 2004"
+date: "04 December 2025"
 ---
 
 # NAME
@@ -47,7 +47,7 @@ All input prompts (such as Log, Execute, Filter, etc.) support standard shell-st
 
 **-Log**
 :   Restart ytree with new
-    root directory/archiv file
+    root directory/archiv file.
 
 **-Makedir**
 :   Create new directory
@@ -88,17 +88,24 @@ All input prompts (such as Log, Execute, Filter, etc.) support standard shell-st
 **-` (backtick)**
 :   Toggle visibility of hidden dot-files and dot-directories.
 
+**-K (Shift-K)**
+:   **Volume Menu**: Show a list of all currently logged volumes (drives/paths). Select a volume to switch context instantly. Press `Delete` (or `D`) in the menu to release (unlog) a volume.
+
+**-< / > (or , / .)**
+:   **Cycle Volumes**: Switch to the previous or next logged volume instantly.
+
 **-^Quit**
 :   QuitTo: If you exit ytree with ^Q, the last selected directory becomes your
     current working directory. This feature only works if you start ytree
     with this bash-function (copy this to your ~/.bashrc):
-    ```
-    function yt
-    {
-      echo cd $PWD >~/.ytree-$$.chdir
-      /usr/bin/ytree $1 $2 $3 $4 $5
-      source ~/.ytree-$$.chdir
-      rm ~/.ytree-$$.chdir
+    ```bash
+    yt() {
+        ytree "$@"
+        local tmpfile="$HOME/.ytree-$$.chdir"
+        if [ -f "$tmpfile" ]; then
+            source "$tmpfile"
+            rm "$tmpfile"
+        fi
     }
     ```
 
@@ -217,6 +224,12 @@ All input prompts (such as Log, Execute, Filter, etc.) support standard shell-st
 
 **-` (backtick)**
 :   Toggle visibility of hidden dot-files.
+
+**-K (Shift-K)**
+:   **Volume Menu**: Show/Switch/Release loaded volumes (same as Dir Mode).
+
+**-< / > (or , / .)**
+:   **Cycle Volumes**: Switch to previous/next volume.
 
 **-Space**
 :   Suppress screen-output while working

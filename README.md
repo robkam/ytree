@@ -6,13 +6,15 @@ This version is a modern refactor of the original `ytree` by Werner Bregulla, in
 
 ## Features
 
-*   **Classic XTree Interface:** Dual-pane layout with directory tree on the left and file list on the right.
+*   **Classic XTree Interface:** Directory Tree window coupled with a Small File Window for previews, expandable to a full-screen File Window.
+*   **Multi-Volume Support:** Log multiple drives, directories, or archives simultaneously and switch between them instantly.
 *   **Keyboard-Centric:** Efficient navigation and file operations without needing a mouse.
-*   **Archives as Directories:** Seamlessly browse and extract from archives (ZIP, TAR, RAR, 7Z, etc.) as if they were read-only directories, powered by `libarchive`.
+*   **Archives as Directories:** Seamlessly browse and extract from archives (ZIP, TAR, RAR, 7Z, etc.) as if they were read-only directories.
 *   **Advanced Filtering:** Filter files by regex pattern, size, date, and attributes.
-*   **Warp Speed Animation:** Optional "Star Trek" style animation during long directory scans.
 *   **Modern Standards:** Built with C99/POSIX compliance, reducing legacy debt and improving portability.
-*   **Configurable UI:** Customizable colors and file type highlighting.
+*   **Configurable UI:** Customizable colors, file type highlighting, and modernized statistics panel.
+*   **External Viewers:** Associate specific file extensions with external programs (images, PDFs, etc.).
+*   **User Commands:** Bind keys to custom shell commands/scripts for infinite extensibility.
 
 ## Installation
 
@@ -58,15 +60,35 @@ If no argument is provided, it starts in the current directory.
 *   **Enter:** Enter a directory or view a file.
 *   **` (Backtick):** Toggle visibility of hidden dot-files.
 *   **L:** Log (scan) a new directory or archive.
+*   **K (Shift+K):** Open Volume Menu (Switch/Release volumes).
+*   **< / >:** Cycle through loaded volumes.
 *   **T:** Tag a file.
 *   **C:** Copy tagged files.
 *   **M:** Move tagged files.
 *   **D:** Delete tagged files.
 *   **R:** Rename file(s).
 *   **F:** Set Filter (Filespec).
+*   **^Q:** Quit to directory (requires shell wrapper).
 *   **Q:** Quit.
 
 See the manual page (`man ytree`) for a complete list of commands.
+
+## Quit to Directory (^Q)
+
+To allow `ytree` to change your shell's working directory upon exit (using `^Q`), add this function to your `~/.bashrc` or `~/.zshrc`:
+
+```bash
+yt() {
+    ytree "$@"
+    local tmpfile="$HOME/.ytree-$$.chdir"
+    if [ -f "$tmpfile" ]; then
+        source "$tmpfile"
+        rm "$tmpfile"
+    fi
+}
+```
+
+Then use `yt` instead of `ytree` to start the program.
 
 ## Configuration
 
@@ -79,11 +101,11 @@ Key options include:
 
 ## Contributing
 
-Contributions are welcome! Please read `CONTRIBUTING.md` for guidelines on coding standards and the pull request process.
+Contributions are welcome! Please read [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines on coding standards and the pull request process.
 
 ## License
 
-ytree is free software distributed under the GPL. See the `LICENSE` file for details.
+ytree is free software distributed under the GPL. See the [LICENSE](LICENSE) file for details.
 
 ---
 *Original Author: Werner Bregulla*
