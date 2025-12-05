@@ -72,13 +72,10 @@ void Volume_Delete(struct Volume *vol) {
  */
 void Volume_FreeAll(void) {
     struct Volume *s, *tmp;
-
-    /* Iterate through the hash table and delete each volume */
+    /* Safely iterate and delete everything */
     HASH_ITER(hh, VolumeList, s, tmp) {
         Volume_Delete(s);
     }
-
-    /* After all volumes are deleted, ensure global pointers are NULL */
     CurrentVolume = NULL;
     VolumeList = NULL;
 }
