@@ -127,6 +127,7 @@ int main(int argc, char **argv)
    * All allocated volumes and associated memory are freed before program exit.
    */
   Volume_FreeAll(); /* Explicitly free memory */
+  FreeDirEntryList(); /* Free the global dir_entry_list array */
   endwin();
   return 0;
 }

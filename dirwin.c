@@ -18,6 +18,7 @@ static int window_height, window_width;
 static void ReadDirList(DirEntry *dir_entry);
 static void PrintDirEntry(WINDOW *win, int entry_no, int y, unsigned char hilight);
 void BuildDirEntryList(DirEntry *dir_entry, Statistic *stat_source); /* Removed static */
+void FreeDirEntryList(void); /* ADDED: Prototype for FreeDirEntryList */
 static void HandleReadSubTree(DirEntry *dir_entry, DirEntry *start_dir_entry, BOOL *need_dsp_help);
 static void HandleUnreadSubTree(DirEntry *dir_entry, DirEntry *de_ptr, DirEntry *start_dir_entry, BOOL *need_dsp_help);
 static void MoveEnd(DirEntry **dir_entry);
@@ -69,6 +70,22 @@ void BuildDirEntryList(DirEntry *dir_entry, Statistic *stat_source) /* Removed s
       /* mismatch detected, but safely handled by realloc in ReadDirList */
   }
 #endif
+}
+
+/*
+ * Frees the memory allocated for the dir_entry_list array.
+ * This function should be called on program exit to prevent memory leaks.
+ */
+void FreeDirEntryList(void)
+{
+    if (dir_entry_list != NULL)
+    {
+        free(dir_entry_list);
+        dir_entry_list = NULL;
+        dir_entry_list_capacity = 0;
+        current_dir_entry = 0;
+        total_dirs = 0; /* Also reset total_dirs as the list is now empty */
+    }
 }
 
 static void RotateDirMode(void)

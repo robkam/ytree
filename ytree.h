@@ -800,6 +800,7 @@ extern int ScanSubTree( DirEntry *dir_entry );
 extern void ToggleDotFiles(void);
 extern DirEntry *GetSelectedDirEntry(void);
 extern void BuildDirEntryList(DirEntry *dir_entry, Statistic *stat_source); /* ADDED: Expose BuildDirEntryList */
+extern void FreeDirEntryList(void);
 
 /* display.c */
 extern void ClearHelp(void);
