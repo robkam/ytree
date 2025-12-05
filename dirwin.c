@@ -75,10 +75,10 @@ static void RotateDirMode(void)
 {
   switch( dir_mode )
   {
-    case MODE_1: dir_mode = MODE_2 ; break;
-    case MODE_2: dir_mode = MODE_4 ; break;
-    case MODE_3: dir_mode = MODE_1 ; break;
-    case MODE_4: dir_mode = MODE_3 ; break;
+    case MODE_1 : dir_mode = MODE_2 ; break;
+    case MODE_2 : dir_mode = MODE_4 ; break;
+    case MODE_3 : dir_mode = MODE_1 ; break;
+    case MODE_4 : dir_mode = MODE_3 ; break;
   }
   if( (mode != DISK_MODE && mode != USER_MODE ) &&
       dir_mode == MODE_4 ) RotateDirMode();
@@ -649,6 +649,7 @@ static void HandleReadSubTree(DirEntry *dir_entry, DirEntry *start_dir_entry,
     BuildDirEntryList( start_dir_entry, &statistic );
     DisplayTree( dir_window, statistic.disp_begin_pos,
 		 statistic.disp_begin_pos + statistic.cursor_pos );
+    RecalculateSysStats(); /* Fix for Bug 10: Force full recalculation */
     DisplayDiskStatistic();
     DisplayDirStatistic(dir_entry);
     DisplayAvailBytes();
@@ -671,6 +672,7 @@ static void HandleUnreadSubTree(DirEntry *dir_entry, DirEntry *de_ptr,
         DisplayTree( dir_window, statistic.disp_begin_pos,
 		    statistic.disp_begin_pos + statistic.cursor_pos );
         DisplayAvailBytes();
+        RecalculateSysStats(); /* Fix for Bug 10: Force full recalculation */
         DisplayDiskStatistic();
         DisplayDirStatistic(dir_entry);
         *need_dsp_help = TRUE;
