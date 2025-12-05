@@ -138,14 +138,25 @@ static void FormatShortSize(char *buf, size_t size, LONGLONG val) {
     const char *units[] = {"B", "K", "M", "G", "T", "P"};
     int i = 0;
 
-    while (d >= 1024.0 && i < 5) {
+    /* Handle negative values gracefully (though they shouldn't happen) */
+    if (val < 0) {
+        snprintf(buf, size, "Err");
+        return;
+    }
+
+    while (d >= 999.5 && i < 5) { /* threshold slightly < 1000 to avoid "1000K" -> "1.0M" */
         d /= 1024.0;
         i++;
     }
 
     if (i == 0) {
+        /* Bytes: max "999B" (4 chars) */
         snprintf(buf, size, "%lld%s", val, units[i]);
     } else {
+        /* Units: "1.2M", "100G" */
+        /* Use %.1f for < 10, %.0f for >= 10 to save space?
+           Standard: just ensure it fits.
+           "999.9G" is 6 chars. "1000T" is 5 chars. Safe. */
         snprintf(buf, size, "%.1f%s", d, units[i]);
     }
 }
