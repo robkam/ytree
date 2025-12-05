@@ -137,31 +137,27 @@ int GetFileEntry(DirEntry *de_ptr, char *file_name, FileEntry **file_entry)
 }
 
 
-void DeleteTree(DirEntry *tree)
-{
+void DeleteTree(DirEntry *tree) {
     DirEntry *next_dir;
-    FileEntry *current_file, *next_file;
+    FileEntry *f_ptr, *next_f_ptr;
 
     while (tree) {
-        /* 1. Recursively delete sub-directories */
+        /* 1. Recursively delete sub-directories (Depth-First) */
         if (tree->sub_tree) {
             DeleteTree(tree->sub_tree);
-            tree->sub_tree = NULL; /* Nullify after freeing to prevent dangling pointer issues */
+            tree->sub_tree = NULL;
         }
 
         /* 2. Delete files in this directory */
-        current_file = tree->file;
-        while (current_file) {
-            next_file = current_file->next;
-            /* Free the file entry (and any attached paths if flexible array) */
-            free(current_file);
-            current_file = next_file;
+        for (f_ptr = tree->file; f_ptr; f_ptr = next_f_ptr) {
+            next_f_ptr = f_ptr->next;
+            free(f_ptr);
         }
 
         /* 3. Save next sibling before freeing current */
         next_dir = tree->next;
 
-        /* 4. Free the directory entry itself */
+        /* 4. Free the directory entry */
         free(tree);
 
         /* 5. Move to next sibling */
