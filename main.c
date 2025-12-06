@@ -128,6 +128,10 @@ int main(int argc, char **argv)
    */
   Volume_FreeAll(); /* Explicitly free memory */
   FreeDirEntryList(); /* Free the global dir_entry_list array */
+  attrset(0);  /* Reset attributes */
+  clear();     /* Clear internal buffer */
+  refresh();   /* Push clear to screen */
+  curs_set(1); /* Restore visible cursor */
   endwin();
   return 0;
 }

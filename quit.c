@@ -98,12 +98,22 @@ static void PerformQuit(void)
             sprintf(path_for_history, "%s%c%s", p, FILE_SEPARATOR_CHAR, HISTORY_FILENAME);
             SaveHistory(path_for_history);
         }
-        endwin();
+
+        /* Free all allocated volumes to prevent memory leaks on exit. */
+        Volume_FreeAll();
+        /* Free the global directory entry list */
+        FreeDirEntryList();
+
+        /* Ncurses cleanup sequence: clear screen, restore cursor, and reset terminal */
+        attrset(0);  /* Reset attributes */
+        clear();     /* Clear internal buffer */
+        refresh();   /* Push clear to screen */
+        curs_set(1); /* Restore visible cursor */
+        endwin();    /* Restore terminal settings */
+
 #ifdef XCURSES
         XCursesExit();
 #endif
-        /* Free all allocated volumes to prevent memory leaks on exit. */
-        Volume_FreeAll();
         exit(0);
     }
     /* If user cancels, the function simply returns. */
