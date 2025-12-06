@@ -28,6 +28,8 @@ int LoginDisk(char *path)
   struct Volume *old_vol = NULL;
   BOOL   is_new_vol_created = FALSE; /* Flag to track if we actually called Volume_Create */
 
+  SuspendClock(); /* Suspend clock during critical operations to prevent screen corruption */
+
   /* 1. Normalize Path */
   /* Use realpath to get the canonical path. If it fails (e.g., path doesn't exist yet,
    * which can happen for a new archive path), fall back to the provided path directly. */
@@ -42,6 +44,7 @@ int LoginDisk(char *path)
     /* Stat failed */
     (void) sprintf( message, "Can't access*\"%s\"*%s", resolved_path, strerror(errno) );
     MESSAGE( message );
+    InitClock(); /* Resume clock before returning */
     return( -1 );
   }
 
@@ -55,6 +58,7 @@ int LoginDisk(char *path)
       a_test = archive_read_new();
       if (a_test == NULL) {
           ERROR_MSG("archive_read_new() failed");
+          InitClock(); /* Resume clock before returning */
           return -1;
       }
       archive_read_support_filter_all(a_test);
@@ -65,12 +69,14 @@ int LoginDisk(char *path)
       if (r_test != ARCHIVE_OK) {
           (void) sprintf(message, "Not a recognized archive file*or format not supported*\"%s\"", resolved_path);
           MESSAGE(message);
+          InitClock(); /* Resume clock before returning */
           return -1;
       }
 #else
       /* Fallback for when libarchive is not available */
       (void) sprintf(message, "Cannot open file as archive*ytree not compiled with*libarchive support");
       MESSAGE(message);
+      InitClock(); /* Resume clock before returning */
       return -1;
 #endif
   }
@@ -138,6 +144,7 @@ int LoginDisk(char *path)
           } else {
                Volume_Delete(found_vol);
           }
+          InitClock(); /* Resume clock before returning */
           return -1;
       }
 
@@ -161,6 +168,7 @@ int LoginDisk(char *path)
       DisplayTree(dir_window, statistic.disp_begin_pos, statistic.disp_begin_pos + statistic.cursor_pos);
       DisplayDiskStatistic();
       DisplayAvailBytes();
+      InitClock(); /* Resume clock before returning */
       return 0;
   } else {
       /* Case B: New Volume Needed or Reuse Virgin Volume */
@@ -198,6 +206,7 @@ int LoginDisk(char *path)
                   DisplayDiskStatistic();
                   DisplayAvailBytes();
               }
+              InitClock(); /* Resume clock before returning */
               return -1;
           }
       }
@@ -224,6 +233,7 @@ int LoginDisk(char *path)
                   DisplayDiskStatistic();
                   DisplayAvailBytes();
               }
+              InitClock(); /* Resume clock before returning */
               return -1;
           }
       }
@@ -366,6 +376,7 @@ int LoginDisk(char *path)
               DisplayDiskStatistic();
               DisplayAvailBytes();
           }
+          InitClock(); /* Resume clock before returning */
           return -1;
       }
 
@@ -383,6 +394,7 @@ int LoginDisk(char *path)
       DisplayDiskStatistic();
       DisplayAvailBytes();
 
+      InitClock(); /* Resume clock before returning */
       return( result );
   }
 }
