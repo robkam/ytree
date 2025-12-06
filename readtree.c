@@ -34,6 +34,24 @@ int ReadTree(DirEntry *dir_entry, char *path, int depth)
   int		file_count;
 
 
+  /* Safety: If this node already has children/files (e.g. from ScanSubTree),
+   * free them before overwriting to prevent memory leaks.
+   */
+  if (dir_entry->file) {
+      FileEntry *f, *n;
+      for (f = dir_entry->file; f; f = n) {
+          n = f->next;
+          RemoveFile(f); /* Updates stats and frees memory */
+      }
+      dir_entry->file = NULL;
+  }
+  if (dir_entry->sub_tree) {
+      /* Use UnReadSubTree to recursively free children and decrement stats correctly */
+      UnReadSubTree(dir_entry->sub_tree);
+      dir_entry->sub_tree = NULL;
+  }
+
+
   /* dir_entry initialisieren */
   /*--------------------------*/
 
@@ -167,6 +185,8 @@ int ReadTree(DirEntry *dir_entry, char *path, int depth)
 
       /* Recursive call with abort check */
       if (ReadTree( den_ptr, new_path, depth - 1) == -1) {
+          /* Fix: Free the partially built subtree before returning */
+          DeleteTree(den_ptr); /* Free the allocated DirEntry and its children */
           closedir(dir);
           /* Attach Partial Results */
           if( first_file_entry.next ) first_file_entry.next->prev = NULL;
