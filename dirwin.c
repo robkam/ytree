@@ -662,7 +662,9 @@ static void HandlePlus(DirEntry *dir_entry, DirEntry *de_ptr, char *new_login_pa
 static void HandleReadSubTree(DirEntry *dir_entry, DirEntry *start_dir_entry,
 		       BOOL *need_dsp_help)
 {
-    ScanSubTree( dir_entry );
+    if (ScanSubTree(dir_entry) == -1) {
+        /* Aborted. Fall through to refresh what we have. */
+    }
     BuildDirEntryList( start_dir_entry, &statistic );
     DisplayTree( dir_window, statistic.disp_begin_pos,
 		 statistic.disp_begin_pos + statistic.cursor_pos );
@@ -1562,13 +1564,19 @@ int ScanSubTree( DirEntry *dir_entry )
   if( dir_entry->not_scanned ) {
     for( de_ptr=dir_entry->sub_tree; de_ptr; de_ptr=de_ptr->next) {
       GetPath( de_ptr, new_login_path );
-      ReadTree( de_ptr, new_login_path, 999 );
+      if (ReadTree( de_ptr, new_login_path, 999 ) == -1) {
+          /* Abort signal received from ReadTree */
+          return -1;
+      }
       ApplyFilter( de_ptr );
     }
     dir_entry->not_scanned = FALSE;
   } else {
     for( de_ptr=dir_entry->sub_tree; de_ptr; de_ptr=de_ptr->next) {
-      ScanSubTree( de_ptr );
+      if (ScanSubTree( de_ptr ) == -1) {
+          /* Abort signal received from recursive ScanSubTree */
+          return -1;
+      }
     }
   }
   return( 0 );
