@@ -135,6 +135,23 @@ Use this script to query the codebase, debug issues, and refine ideas. It loads 
 
 ---
 
+## Architectural Decisions & Constraints
+This section documents agreed-upon architectural constraints and non-goals. These decisions prevent scope creep and ensure the codebase remains maintainable given its specific goals (TUI file manager).
+### 1. Concurrency Model: Single-Threaded Event Loop
+**Decision:** `ytree` will remain **single-threaded**. We will **NOT** implement multi-threading for background scanning or operations.
+**Rationale:**
+*   **Ncurses Constraints:** The `ncurses` library is not thread-safe. Updating the UI from a background thread requires complex message passing or locking mechanisms that complicate the architecture significantly.
+*   **Global State:** The legacy codebase relies heavily on global state (`statistic`, `dir_entry_list`). Making this thread-safe would require a complete rewrite of the core data structures (Mutexes/Locks everywhere), which is a high-risk, high-cost endeavor ("100% effort").
+*   **The "80/20" Solution:** The user frustration with "frozen" screens is addressed via **Visual Feedback** (Animations/Spinners) and **Graceful Abort** (ESC key) mechanisms. This delivers 80% of the benefit (responsiveness) for 20% of the complexity.
+### 2. UI Toolkit: Hard Ncurses Dependency
+**Decision:** `ytree` is and will remain a curses-based TUI application.
+*   **Non-Goal:** Implementing a "headless" mode or porting to a different UI toolkit (GTK, Qt) is out of scope.
+*   **Non-Goal:** Removing `ncurses` to run on raw serial lines without termcap capabilities is out of scope.
+### 3. Global State vs. Future Split Screen (F8)
+**Context:** Currently, `ytree` uses a "Single Active Volume" model where global macros (like `statistic`) map to the `CurrentVolume`.
+*   **Constraint:** Do not attempt to prematurely refactor these globals into "Window Contexts" until Phase 5 (Split Screen Implementation).
+*   **Future Impact:** When F8 (Split Screen) is implemented, it will require a major architectural refactor to move filtering state and directory pointers out of the global scope and into per-pane structures. Until then, the codebase assumes a single active view to maintain stability.
+---
 ## Submitting Changes
 
 1.  **Fork the repository** on GitHub.
