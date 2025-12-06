@@ -172,7 +172,8 @@ static void DrawBoxFrame(void) {
     attrset(COLOR_PAIR(CPAIR_WINDIR));
 
     /* --- Top Border with embedded " FILTER " --- */
-    mvaddch(Y_TOP, L_BORDER, ACS_ULCORNER);
+    /* The ACS_ULCORNER is replaced by ACS_TTEE at the junction with the main window's top border. */
+    /* mvaddch(Y_TOP, L_BORDER, ACS_ULCORNER); */ /* Removed as per instruction */
 
     /* Calculate embedded title position */
     {
@@ -231,10 +232,6 @@ static void DrawSeparator(int y, const char *title) {
 
     attrset(COLOR_PAIR(CPAIR_WINDIR));
 
-    /* Junctions */
-    mvaddch(y, L_BORDER, ACS_LTEE | A_BOLD | COLOR_PAIR(CPAIR_WINDIR));
-    mvaddch(y, R_BORDER, ACS_RTEE | A_BOLD | COLOR_PAIR(CPAIR_WINDIR));
-
     if (title && text_len > 0) {
         int left_hline_len;
         int right_hline_len;
@@ -273,6 +270,11 @@ static void DrawSeparator(int y, const char *title) {
         /* Full line */
         for (x = L_BORDER + 1; x < R_BORDER; x++) mvaddch(y, x, ACS_HLINE);
     }
+
+    /* Junctions - drawn last to ensure visibility */
+    mvaddch(y, L_BORDER, ACS_LTEE | A_BOLD | COLOR_PAIR(CPAIR_WINDIR));
+    mvaddch(y, R_BORDER, ACS_RTEE | A_BOLD | COLOR_PAIR(CPAIR_WINDIR));
+
     SetColor();
 }
 
@@ -286,11 +288,11 @@ static void PrintStatRow(int y, const char *label, LONGLONG count, LONGLONG byte
     FormatShortSize(size_buf, sizeof(size_buf), bytes);
 
     SetColor();
-    /* Format: "Total: 12,345 12.5M"
-     * Fits in 22 chars: %-6s %8s %6s + 2 spaces = 22.
-     * Uses STAT_X + 1 to stay inside border.
+    /* Format: "Tot: 1,831,129 12.5M"
+     * Math: 4 (Label) + 1 (Space) + 9 (Count) + 1 (Space) + 6 (Size) = 21 chars.
+     * INNER_W is 22. This leaves 1 char padding. Perfect.
      */
-    mvprintw(y, STAT_X + 1, "%-6s %8s %6s", label, count_buf, size_buf);
+    mvprintw(y, STAT_X + 1, "%-4s %9s %6s", label, count_buf, size_buf);
 }
 
 static void DrawAttributes(const char *name, struct stat *s) {
@@ -425,8 +427,8 @@ void DisplayDiskStatistic(void)
 
     DrawSeparator(Y_VSTAT_SEP, "VOLUME STATS");
 
-    PrintStatRow(Y_VSTAT_VAL,     "Total:", statistic.disk_total_files, statistic.disk_total_bytes);
-    PrintStatRow(Y_VSTAT_VAL + 1, "Match:", statistic.disk_matching_files, statistic.disk_matching_bytes);
+    PrintStatRow(Y_VSTAT_VAL,     "Tot:", statistic.disk_total_files, statistic.disk_total_bytes);
+    PrintStatRow(Y_VSTAT_VAL + 1, "Mat:", statistic.disk_matching_files, statistic.disk_matching_bytes);
     PrintStatRow(Y_VSTAT_VAL + 2, "Tag:",   statistic.disk_tagged_files, statistic.disk_tagged_bytes);
 
     refresh();
@@ -450,8 +452,8 @@ void DisplayDirStatistic(DirEntry *de)
     mvprintw(Y_DSTAT_VAL, STAT_X + 1, "%-22s", buf); /* Clear ghosting */
     attroff(A_BOLD);
 
-    PrintStatRow(Y_DSTAT_VAL + 1, "Total:", de->total_files, de->total_bytes);
-    PrintStatRow(Y_DSTAT_VAL + 2, "Match:", de->matching_files, de->matching_bytes);
+    PrintStatRow(Y_DSTAT_VAL + 1, "Tot:", de->total_files, de->total_bytes);
+    PrintStatRow(Y_DSTAT_VAL + 2, "Mat:", de->matching_files, de->matching_bytes);
     PrintStatRow(Y_DSTAT_VAL + 3, "Tag:",   de->tagged_files, de->tagged_bytes);
 
     refresh();
