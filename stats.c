@@ -211,6 +211,16 @@ static void DrawBoxFrame(void) {
         mvaddch(y, L_BORDER, ACS_VLINE);
     }
 
+    /* Force drawing of T-junctions for all fixed sections */
+    {
+        int seps[] = { Y_VOL_SEP, Y_VSTAT_SEP, Y_DSTAT_SEP, Y_ATTR_SEP };
+        int i;
+        for (i = 0; i < 4; i++) {
+            mvaddch(seps[i], L_BORDER, ACS_LTEE | A_BOLD | COLOR_PAIR(CPAIR_WINDIR));
+            mvaddch(seps[i], R_BORDER, ACS_RTEE | A_BOLD | COLOR_PAIR(CPAIR_WINDIR));
+        }
+    }
+
     /* --- Junctions --- */
     mvaddch(Y_TOP, L_BORDER, ACS_TTEE); /* Connects to Path bar in main win */
 
