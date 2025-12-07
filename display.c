@@ -19,7 +19,7 @@ static void DisplayVersion(void);
 /* The 'mask' array is removed as the static statistics panel it defined
  * is now entirely managed by stats.c. */
 
-
+/*
 static char *logo[] = {
                         "                  #                       ",
                         "                ##                        ",
@@ -29,6 +29,18 @@ static char *logo[] = {
                         "   #####    ## #   ##     ##      ##      ",
                         "     ##     ###  ####     ####    ####    ",
                         "#####                                     "
+		      };
+*/
+
+static char *logo[] = {
+                        "                 ▀\\                                ",
+                        "               ▀▀\\                                 ",
+                        "     ▀▀\\ ▀▀\\ ▀▀▀▀▀\\ ▀▀\\▀▀▀\\   ▀▀▀▀\\   ▀▀▀▀\\  ",
+                        "    ▀▀\\ ▀▀\\  ▀▀\\    ▀▀\\ ▀▀\\ ▀▀\\ ▀▀\\ ▀▀\\ ▀▀\\",
+                        "   ▀▀\\ ▀▀\\  ▀▀\\    ▀▀\\ ▀▀\\ ▀▀▀▀▀▀\\ ▀▀▀▀▀▀\\   ",
+                        "   ▀▀▀▀▀\\  ▀▀\\▀\\  ▀▀\\      ▀▀\\     ▀▀\\        ",
+                        "     ▀▀\\   ▀▀▀\\  ▀▀▀▀\\      ▀▀▀▀\\   ▀▀▀▀\\      ",
+                        "▀▀▀▀▀\\                                             "
 		      };
 
 /* 'extended_line' is removed as it was part of the static statistics panel
