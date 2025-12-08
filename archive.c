@@ -87,41 +87,52 @@ static int InsertArchiveDirEntry(DirEntry *tree, char *path, struct stat *stat)
   if( ( p = strrchr( father_path, FILE_SEPARATOR_CHAR ) ) ) *p = '\0';
   else
   {
-    (void) sprintf( message, "path mismatch*missing '%c' in*%s",
-	            FILE_SEPARATOR_CHAR,
-	            path
-	          );
-    ERROR_MSG( message );
-    return( -1 );
+    /* If there is no separator, it's a top level dir.
+       In TryInsertArchiveDirEntry loop or manual calls, we might get here.
+       If path has no slash, father is root.
+    */
+    p = NULL;
+    /* Proceed to check if we are inserting top level or failed split */
   }
 
-  p = strrchr( father_path, FILE_SEPARATOR_CHAR );
+  /* Recalculate p based on string operations above */
+  if (p) {
+      /* We replaced the last slash with \0. Now p points to that \0.
+         Wait, strrchr returns pointer to char.
+         If we did *p = '\0', then strrchr(father_path) again might fail or find prev slash.
+         Logic:
+         Input: "A/B" -> father_path "A", name "B"
+         Input: "A" -> father_path "A" (no slash found initially?)
 
-  if( p == NULL )
-  {
-    df_ptr = tree;
-    if( !strcmp( path, FILE_SEPARATOR_STRING ) )
-      (void) strcpy( name, path );
-    else
-      (void) strcpy( name, father_path );
+         Actually, standard convention here:
+         path="A/B" -> father="A", name="B"
+         path="A" -> father="", name="A" (Root)
+      */
   }
-  else
-  {
-    (void) strcpy( name, ++p );
-    *p = '\0';
-    if( GetArchiveDirEntry( tree, father_path, &df_ptr ) )
-    {
-      (void) sprintf( message, "can't find subdir*%s", father_path );
-      ERROR_MSG( message );
-      return( -1 );
-    }
+
+  /* Reset and do it cleanly */
+  strcpy(father_path, path);
+  p = strrchr(father_path, FILE_SEPARATOR_CHAR);
+
+  if (p) {
+      *p = '\0';
+      strcpy(name, p + 1);
+
+      /* Find father directory */
+      if( GetArchiveDirEntry( tree, father_path, &df_ptr ) )
+      {
+        (void) sprintf( message, "can't find subdir*%s", father_path );
+        ERROR_MSG( message );
+        return( -1 );
+      }
+  } else {
+      /* Top Level Directory */
+      df_ptr = tree;
+      strcpy(name, path);
   }
 
   /*
    * CRITICAL FIX: Allocate PATH_LENGTH + 1 for the DirEntry name buffer.
-   * This prevents heap buffer overflows when `strcat` is used later in
-   * `MinimizeArchiveTree` to concatenate path components.
-   * `calloc` is used to initialize the memory to zero.
    */
   if( ( de_ptr = (DirEntry *) calloc( 1, sizeof( DirEntry ) + PATH_LENGTH + 1 ) ) == NULL )
   {
@@ -136,47 +147,10 @@ static int InsertArchiveDirEntry(DirEntry *tree, char *path, struct stat *stat)
   fprintf( stderr, "new dir: \"%s\"\n", name );
 #endif
 
+  /* Directory einklinken (Link Directory into Tree) */
+  /*-------------------------------------------------*/
 
-
-  /* Directory einklinken */
-  /*----------------------*/
-
-  if( p == NULL )
-  {
-    /* in tree (=df_ptr) einklinken */
-    /*------------------------------*/
-
-    de_ptr->up_tree = df_ptr->up_tree;
-
-    for( ds_ptr = df_ptr; ds_ptr; ds_ptr = ds_ptr->next )
-    {
-      if( strcmp( ds_ptr->name, de_ptr->name ) > 0 )
-      {
-        /* ds-Element ist groesser */
-        /*-------------------------*/
-
-        de_ptr->next = ds_ptr;
-        de_ptr->prev = ds_ptr->prev;
-        if( ds_ptr->prev) ds_ptr->prev->next = de_ptr;
-        ds_ptr->prev = de_ptr;
-	if( de_ptr->up_tree && de_ptr->up_tree->sub_tree == de_ptr->next )
-	  de_ptr->up_tree->sub_tree = de_ptr;
-        break;
-      }
-
-      if( ds_ptr->next == NULL )
-      {
-        /* Ende der Liste erreicht; ==> einfuegen */
-        /*----------------------------------------*/
-
-        de_ptr->prev = ds_ptr;
-        de_ptr->next = ds_ptr->next;
-        ds_ptr->next = de_ptr;
-        break;
-      }
-    }
-  }
-  else if( df_ptr->sub_tree == NULL )
+  if( df_ptr->sub_tree == NULL )
   {
     de_ptr->up_tree = df_ptr;
     df_ptr->sub_tree = de_ptr;
@@ -195,9 +169,8 @@ static int InsertArchiveDirEntry(DirEntry *tree, char *path, struct stat *stat)
         de_ptr->next = ds_ptr;
         de_ptr->prev = ds_ptr->prev;
         if( ds_ptr->prev ) ds_ptr->prev->next = de_ptr;
+        else de_ptr->up_tree->sub_tree = de_ptr; /* Fix head pointer if inserting at start */
         ds_ptr->prev = de_ptr;
-	if( de_ptr->up_tree->sub_tree == de_ptr->next )
-	  de_ptr->up_tree->sub_tree = de_ptr;
         break;
       }
 
@@ -216,9 +189,6 @@ static int InsertArchiveDirEntry(DirEntry *tree, char *path, struct stat *stat)
   statistic.disk_total_directories++;
   return( 0 );
 }
-
-
-
 
 
 int InsertArchiveFileEntry(DirEntry *tree, char *path, struct stat *stat)
@@ -242,7 +212,7 @@ int InsertArchiveFileEntry(DirEntry *tree, char *path, struct stat *stat)
   if( GetArchiveDirEntry( tree, dir, &de_ptr ) )
   {
 #ifdef DEBUG
-    fprintf( stderr, "can't get directory for file*%s*trying recover", path );
+    fprintf( stderr, "can't get directory for file*%s*trying recover\n", path );
 #endif
 
     (void) memset( (char *) &stat_struct, 0, sizeof( struct stat ) );
@@ -266,16 +236,10 @@ int InsertArchiveFileEntry(DirEntry *tree, char *path, struct stat *stat)
   else
     n = 0;
 
-  /*
-   * CRITICAL FIX: Allocate PATH_LENGTH + n + 1 for the FileEntry name buffer.
-   * This provides sufficient space for the filename and potential symlink target,
-   * preventing heap buffer overflows.
-   * `calloc` is used to initialize the memory to zero.
-   */
   if( ( fe_ptr = (FileEntry *) calloc( 1, sizeof( FileEntry ) + PATH_LENGTH + n + 1 ) ) == NULL )
   {
-    ERROR_MSG( "Malloc failed*ABORT" );
-    exit( 1 );
+    ERROR_MSG( "Malloc failed" );
+    return -1;
   }
 
   (void) memcpy( (char *) &fe_ptr->stat_struct, (char *) stat, sizeof( struct stat ) );
@@ -313,98 +277,95 @@ int InsertArchiveFileEntry(DirEntry *tree, char *path, struct stat *stat)
 }
 
 
-
-
-
+/*
+ * GetArchiveDirEntry
+ * Robustly searching for a path within the tree.
+ * tree: The Root directory entry.
+ * path: The path to find (e.g., "A/B" or "A").
+ * dir_entry: Output pointer.
+ */
 static int GetArchiveDirEntry(DirEntry *tree, char *path, DirEntry **dir_entry)
 {
-  int n;
-  DirEntry *de_ptr;
-  BOOL is_root = FALSE;
+    char *path_copy;
+    char *token, *saveptr;
+    DirEntry *current = tree;
+    DirEntry *child;
+    int found;
 
-#ifdef DEBUG
-  fprintf( stderr, "GetArchiveDirEntry: tree=%s, path=%s\n",
-  (tree) ? tree->name : "NULL", path );
-#endif
-
-  if( strchr( path, FILE_SEPARATOR_CHAR ) != NULL )
-  {
-    for( de_ptr = tree; de_ptr; de_ptr = de_ptr->next )
-    {
-      n = strlen( de_ptr->name );
-      if( !strcmp( de_ptr->name, FILE_SEPARATOR_STRING ) ) is_root = TRUE;
-
-      if( n && !strncmp( de_ptr->name, path, n ) &&
-	  (is_root || path[n] == '\0' || path[n] == FILE_SEPARATOR_CHAR ) )
-      {
-	if( ( is_root && path[n] == '\0' ) ||
-	    ( path[n] == FILE_SEPARATOR_CHAR && path[n+1] == '\0' ) )
-	{
-	  /* Pfad abgearbeitet; ==> fertig */
-	  /*-------------------------------*/
-
-	  *dir_entry = de_ptr;
-	  return( 0 );
-	}
-	else
-        {
-	  return( GetArchiveDirEntry( de_ptr->sub_tree,
-				  ( is_root ) ? &path[n] : &path[n+1],
-				  dir_entry
-				) );
-	}
-      }
+    if (!path || *path == '\0' || strcmp(path, ".") == 0) {
+        *dir_entry = tree;
+        return 0;
     }
-  }
-  if( *path == '\0' )
-  {
-    *dir_entry = tree;
-    return( 0 );
-  }
-  return( -1 );
+
+    path_copy = strdup(path);
+    if (!path_copy) return -1;
+
+    token = strtok_r(path_copy, FILE_SEPARATOR_STRING, &saveptr);
+    while (token) {
+        found = 0;
+        /* Search children of 'current' */
+        for (child = current->sub_tree; child; child = child->next) {
+            if (strcmp(child->name, token) == 0) {
+                current = child;
+                found = 1;
+                break;
+            }
+        }
+
+        if (!found) {
+            free(path_copy);
+            return -1;
+        }
+
+        token = strtok_r(NULL, FILE_SEPARATOR_STRING, &saveptr);
+    }
+
+    free(path_copy);
+    *dir_entry = current;
+    return 0;
 }
 
 
-
-
-
+/*
+ * TryInsertArchiveDirEntry
+ * Iteratively ensures every component of the path exists in the tree.
+ */
 int TryInsertArchiveDirEntry(DirEntry *tree, char *dir, struct stat *stat)
 {
-  DirEntry *de_ptr;
-  char dir_path[PATH_LENGTH + 1];
-  char *s, *t;
+    char *path_copy;
+    char *token, *saveptr;
+    char current_path[PATH_LENGTH + 1];
+    DirEntry *dummy;
 
-  /* Guard against excessive length that would overflow dir_path */
-  if (strlen(dir) >= PATH_LENGTH) {
-      /* Skip dangerous paths silently or warn */
-      return -1;
-  }
+    if (!dir || *dir == '\0') return 0;
 
-  (void) memset( dir_path, 0, sizeof( dir_path ) );
+    path_copy = strdup(dir);
+    if (!path_copy) return -1;
 
-#ifdef DEBUG
-  fprintf( stderr, "Try install start \n" );
-#endif
+    current_path[0] = '\0';
 
-  for( s=dir, t=dir_path; *s; s++, t++ )
-  {
-    if( (*t = *s) == FILE_SEPARATOR_CHAR )
-    {
-      if( GetArchiveDirEntry( tree, dir_path, &de_ptr ) == -1 )
-      {
-	/* Evtl. fehlender teil; ==> einfuegen */
-	/*-------------------------------------*/
+    token = strtok_r(path_copy, FILE_SEPARATOR_STRING, &saveptr);
+    while (token) {
+        /* Append token to current_path */
+        if (current_path[0] != '\0') {
+            strcat(current_path, FILE_SEPARATOR_STRING);
+        }
+        strcat(current_path, token);
 
-	if( InsertArchiveDirEntry( tree, dir_path, stat ) ) return( -1 );
-      }
+        /* Check if this partial path exists */
+        if (GetArchiveDirEntry(tree, current_path, &dummy) != 0) {
+            /* Not found, insert it */
+            if (InsertArchiveDirEntry(tree, current_path, stat) != 0) {
+                free(path_copy);
+                return -1;
+            }
+        }
+
+        token = strtok_r(NULL, FILE_SEPARATOR_STRING, &saveptr);
     }
-  }
 
-#ifdef DEBUG
-  fprintf( stderr, "Try install end\n" );
-#endif
-
-  return( 0 );
+    free(path_copy);
+    return 0;
 }
 
 
