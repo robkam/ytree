@@ -468,7 +468,13 @@ void DisplayDirStatistic(DirEntry *de)
 
     PrintStatRow(Y_DSTAT_VAL + 1, "Tot:", de->total_files, de->total_bytes);
     PrintStatRow(Y_DSTAT_VAL + 2, "Mat:", de->matching_files, de->matching_bytes);
-    PrintStatRow(Y_DSTAT_VAL + 3, "Tag:",   de->tagged_files, de->tagged_bytes);
+
+    /* Bug 4 Fix: Display global tagged stats if in "Show All" mode */
+    if (de->global_flag) {
+        PrintStatRow(Y_DSTAT_VAL + 3, "Tag:", statistic.disk_tagged_files, statistic.disk_tagged_bytes);
+    } else {
+        PrintStatRow(Y_DSTAT_VAL + 3, "Tag:", de->tagged_files, de->tagged_bytes);
+    }
 
     refresh();
 }
