@@ -133,6 +133,33 @@ Use this script to query the codebase, debug issues, and refine ideas. It loads 
 *   `/clear`: Clears conversation history to save tokens.
 *   `/quit`: Exits.
 
+### Best Practices for AI Interaction
+To maximize effectiveness and minimize frustration when working with the AI agents, adhere to these rules:
+1.  **Atomic Tasks (Granularity):**
+    *   Do not ask the AI to perform multiple distinct tasks in a single prompt.
+    *   Break complex features down into single, granular units of work (e.g., "Add the function prototype to the header" -> "Implement the function" -> "Update the makefile").
+    *   **Why:** LLMs degrade in quality when context and complexity increase. Small, serial steps ensure higher accuracy.
+2.  **Revert over Repair (The "Clean Slate" Rule):**
+    *   If the AI generates code that fails to compile or introduces a bug, **do not** ask it to "fix the error" immediately. This often leads to "compounded errors," creating a tangled mess of bad patches on top of bad code.
+    *   **Action:** Immediately run `git restore .` to revert to the last known good state. Then, analyze *why* the prompt failed, refine your `task.txt` instructions (make them more specific or provide better context), and run the Builder again.
+3.  **Reframing:**
+    *   If the AI gets stuck repeatedly on a specific problem, do not keep repeating the same instruction.
+    *   **Action:** Reframe the request. Approach the problem from a different angle (e.g., instead of "Fix this loop," try "Rewrite this logic using a state machine approach").
+4.  **Context Hygiene:**
+    *   LLMs have a finite context window. As a chat session grows longer, the model "forgets" earlier instructions or gets confused by outdated code snippets in the history.
+    *   **Local Script:** Use `/clear` to wipe history or `/reload` to refresh file context.
+    *   **Google AI Studio:** Start a **New Chat** for every distinct task. Long threads accumulate "hallucination debt" where the model prioritizes its previous (incorrect) guesses over new facts. If the model starts looping or hallucinating, abandon the thread and start fresh.
+5.  **Human Review:**
+    *   **You are the Lead Architect.** The AI is a junior developer that types very fast.
+    *   **Action:** Never assume the AI's code is correct. **Always diff everything** (`git diff`) before accepting changes. Verify that it compiles and test it to find it behaves as expected.
+### Instrumentation-Based Debugging
+If the AI is struggling to fix a bug or is "guessing" solutions that don't work, use this specific prompt pattern to force a diagnostic approach. This strategy (often called "printf debugging") focuses on gathering runtime evidence before attempting a fix.
+**The Prompt:**
+> "I have a bug: [DESCRIBE SYMPTOM]. Don't fix it yet. Create a task to instrument the relevant code with debug prints so we can trace the root cause."
+**Why this works:**
+1.  **"Don't fix it yet":** This stops the LLM from hallucinating a "solution" based on probability. It forces it to switch from "Solver Mode" to "Debugger Mode."
+2.  **"Instrument":** Tells it to add `fprintf(stderr...)` or logging to specific functions.
+3.  **"Relevant code":** It forces the LLM (the Architect) to look at the file list and logic flow to decide *where* the logs go, relieving you of that responsibility.
 ---
 
 ## Architectural Decisions & Constraints
