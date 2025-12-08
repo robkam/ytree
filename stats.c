@@ -366,6 +366,7 @@ void DisplayDiskName(void)
     char buf[128];
     char path_buf[PATH_LENGTH + 1];
     char size_buf[32];
+    char fs_buf[64]; /* Moved declaration here for wider scope */
     int total_volumes = HASH_COUNT(VolumeList);
     int current_index = 0;
     struct Volume *s, *tmp;
@@ -410,7 +411,6 @@ void DisplayDiskName(void)
     mvprintw(Y_VOL_INFO, STAT_X + 1, "%-22s", buf); /* Pad to clear */
 
     /* FS */
-    char fs_buf[64];
     if (mode == ARCHIVE_MODE) snprintf(fs_buf, sizeof(fs_buf), "FS: ARCHIVE");
     else snprintf(fs_buf, sizeof(fs_buf), "FS: %s", statistic.disk_name);
     /* Truncate to fit */
@@ -418,8 +418,12 @@ void DisplayDiskName(void)
     mvprintw(Y_VOL_INFO + 1, STAT_X + 1, "%-22s", buf);
 
     /* Free */
-    FormatShortSize(size_buf, sizeof(size_buf), statistic.disk_space);
-    snprintf(fs_buf, sizeof(fs_buf), "Free: %s", size_buf);
+    if (mode == ARCHIVE_MODE) {
+        snprintf(fs_buf, sizeof(fs_buf), "Free: -");
+    } else {
+        FormatShortSize(size_buf, sizeof(size_buf), statistic.disk_space);
+        snprintf(fs_buf, sizeof(fs_buf), "Free: %s", size_buf);
+    }
     mvprintw(Y_VOL_INFO + 2, STAT_X + 1, "%-22s", fs_buf);
 }
 
