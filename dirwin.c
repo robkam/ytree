@@ -419,7 +419,7 @@ void DisplayTree(WINDOW *win, int start_entry_no, int hilight_no)
 
   for(i=0; i < height; i++)
   {
-    if( start_entry_no + i >= total_dirs ) break;
+    if ( start_entry_no + i >= total_dirs ) break;
 
     if( start_entry_no + i != hilight_no )
       PrintDirEntry( win, start_entry_no + i, i, FALSE );
@@ -969,6 +969,7 @@ int HandleDirWindow(DirEntry *start_dir_entry)
   char new_login_path[PATH_LENGTH + 1];
   char *home, *p;
   YtreeAction action; /* Declare YtreeAction variable */
+  struct Volume *last_seen_volume = CurrentVolume; /* Track global volume changes */
 
   unput_char = 0;
   de_ptr = NULL;
@@ -1055,7 +1056,42 @@ int HandleDirWindow(DirEntry *start_dir_entry)
   }
   do
   {
-    if( need_dsp_help )
+    /* Detect Global Volume Change (Split Brain Fix) */
+    if (CurrentVolume != last_seen_volume) {
+        last_seen_volume = CurrentVolume;
+        start_dir_entry = statistic.tree;
+
+        /* Force Rebuild of Directory List */
+        BuildDirEntryList(start_dir_entry, &statistic);
+
+        /* Reset Cursor to Top */
+        statistic.disp_begin_pos = 0;
+        statistic.cursor_pos = 0;
+
+        /* Update local dir_entry pointer */
+        if (total_dirs > 0) {
+            dir_entry = dir_entry_list[0].dir_entry;
+        } else {
+            dir_entry = statistic.tree;
+        }
+
+        /* Full Display Refresh */
+        DisplayTree(dir_window, statistic.disp_begin_pos, statistic.disp_begin_pos + statistic.cursor_pos);
+        DisplayFileWindow(dir_entry);
+        RefreshWindow(file_window);
+        DisplayDiskStatistic();
+        DisplayDirStatistic(dir_entry);
+        DisplayAvailBytes();
+
+        /* Update Header Path */
+        {
+            char path[PATH_LENGTH];
+            GetPath(dir_entry, path);
+            DisplayHeaderPath(path);
+        }
+    }
+
+    if ( need_dsp_help )
     {
       need_dsp_help = FALSE;
       DisplayDirHelp();
@@ -1529,22 +1565,38 @@ int HandleDirWindow(DirEntry *start_dir_entry)
 
               /* Check return value. Only update state if login succeeded (0). */
               if (LoginDisk(new_login_path) == 0) {
-                  /* LoginDisk has already built the list and refreshed the screen.
-                   * We just need to sync the local loop variables to the new global state. */
+                  /* LoginDisk has already built the list internally, but for safety against
+                   * state reversion when logging sub-volumes, we force a complete refresh
+                   * of local pointers and the directory list here. */
                   start_dir_entry = statistic.tree;
+
+                  /* Rebuild the list based on the new volume's tree */
+                  BuildDirEntryList(start_dir_entry, &statistic);
 
                   /* Ensure cursor is at the top for a new login */
                   statistic.disp_begin_pos = 0;
                   statistic.cursor_pos = 0;
 
-                  /* Safety: Update dir_entry to the first item of the new list */
+                  /* Safety: Update dir_entry to the first item of the newly built list */
                   if (total_dirs > 0) {
                       dir_entry = dir_entry_list[0].dir_entry;
                   } else {
                       dir_entry = statistic.tree;
                   }
 
-                  /* No need to call BuildDirEntryList or DisplayTree here; LoginDisk did it. */
+                  /* Force Full Display Refresh */
+                  DisplayTree(dir_window, statistic.disp_begin_pos, statistic.disp_begin_pos + statistic.cursor_pos);
+                  DisplayFileWindow(dir_entry);
+                  RefreshWindow(file_window);
+                  DisplayDiskStatistic();
+                  DisplayDirStatistic(dir_entry);
+                  DisplayAvailBytes();
+                  /* Update header path */
+                  {
+                      char path[PATH_LENGTH];
+                      GetPath(dir_entry, path);
+                      DisplayHeaderPath(path);
+                  }
               }
               need_dsp_help = TRUE;
           }

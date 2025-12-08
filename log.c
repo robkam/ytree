@@ -169,6 +169,7 @@ int LoginDisk(char *path)
       DisplayDiskStatistic();
       DisplayAvailBytes();
       InitClock(); /* Resume clock before returning */
+
       return 0;
   } else {
       /* Case B: New Volume Needed or Reuse Virgin Volume */
@@ -395,6 +396,7 @@ int LoginDisk(char *path)
       DisplayAvailBytes();
 
       InitClock(); /* Resume clock before returning */
+
       return( result );
   }
 }
