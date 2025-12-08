@@ -786,6 +786,7 @@ int CycleLoadedVolume(int direction)
     // This ensures we don't loop indefinitely if volumes are repeatedly deleted.
     num_volumes = HASH_COUNT(VolumeList);
     max_retries = num_volumes + 1; // Allow trying all volumes + one wrap-around attempt
+    BOOL changes_made = FALSE;
 
     while (retries++ < max_retries) {
         // Re-evaluate num_volumes and re-snapshot the list in each iteration
@@ -793,8 +794,8 @@ int CycleLoadedVolume(int direction)
         num_volumes = HASH_COUNT(VolumeList);
 
         if (num_volumes <= 1) {
-            MESSAGE("Only one volume loaded. No cycling possible.");
-            return -1;
+            MESSAGE("Only one volume loaded.*No cycling possible.");
+            return (changes_made ? 0 : -1);
         }
 
         vol_array = (struct Volume **)malloc(num_volumes * sizeof(struct Volume *));
@@ -830,7 +831,7 @@ int CycleLoadedVolume(int direction)
         if (target_index == current_index && retries > 1) {
             free(vol_array);
             MESSAGE("No other accessible volumes found.");
-            return -1;
+            return (changes_made ? 0 : -1);
         }
 
         // Capture target path before freeing vol_array, as per instruction.
@@ -847,11 +848,31 @@ int CycleLoadedVolume(int direction)
         // and the loop will continue to the next retry.
         if (LoginDisk(target_path) == 0) {
             return 0; // Success!
+        } else {
+            /* LoginDisk failed, so the volume is bad. Delete it and retry. */
+            /* Note: LoginDisk does not delete volumes in all cases (only if found in cache and access fails).
+               If LoginDisk returned -1, we assume the volume is invalid.
+               However, LoginDisk takes a path string. It might have failed to find the volume in the list?
+               No, we got the path FROM the list.
+               If LoginDisk returns -1, it means it couldn't switch.
+               To prevent infinite looping on a bad volume, we must ensure it's removed.
+               But target pointer is dangerous if LoginDisk *did* delete it.
+               LoginDisk deletes if (found_vol != NULL) && (!access_ok).
+               So if it returned -1, it's likely gone.
+               But if it failed for other reasons (e.g. STAT_ failed at top of function), it might not have found it in the hash yet?
+               Let's re-verify existence before deleting to be safe. */
+
+             struct Volume *check;
+             HASH_FIND_INT(VolumeList, &target->id, check);
+             if (check) {
+                 Volume_Delete(check);
+                 changes_made = TRUE;
+             }
         }
     }
 
     // If the loop finishes, it means max_retries were exhausted without successfully
     // switching to an accessible volume.
     MESSAGE("Failed to switch to an accessible volume after multiple attempts.");
-    return -1;
+    return (changes_made ? 0 : -1);
 }

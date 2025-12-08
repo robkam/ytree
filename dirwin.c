@@ -1064,13 +1064,14 @@ int HandleDirWindow(DirEntry *start_dir_entry)
         /* Force Rebuild of Directory List */
         BuildDirEntryList(start_dir_entry, &statistic);
 
-        /* Reset Cursor to Top */
-        statistic.disp_begin_pos = 0;
-        statistic.cursor_pos = 0;
-
-        /* Update local dir_entry pointer */
+        /* Validate and use restored positions from statistic */
         if (total_dirs > 0) {
-            dir_entry = dir_entry_list[0].dir_entry;
+            if (statistic.disp_begin_pos >= total_dirs) statistic.disp_begin_pos = 0;
+            if (statistic.disp_begin_pos < 0) statistic.disp_begin_pos = 0;
+            if (statistic.cursor_pos >= window_height) statistic.cursor_pos = window_height - 1;
+            if (statistic.disp_begin_pos + statistic.cursor_pos >= total_dirs) statistic.cursor_pos = 0;
+
+            dir_entry = dir_entry_list[statistic.disp_begin_pos + statistic.cursor_pos].dir_entry;
         } else {
             dir_entry = statistic.tree;
         }
@@ -1560,11 +1561,16 @@ int HandleDirWindow(DirEntry *start_dir_entry)
           }
           if( !GetNewLoginPath( new_login_path ) )
           {
+              int ret; /* DEBUG variable */
               DisplayMenu();
               doupdate();
 
+              /* DEBUG LOGGING */
+              ret = LoginDisk(new_login_path);
+              /* Removed debug printf */
+
               /* Check return value. Only update state if login succeeded (0). */
-              if (LoginDisk(new_login_path) == 0) {
+              if (ret == 0) {
                   /* LoginDisk has already built the list internally, but for safety against
                    * state reversion when logging sub-volumes, we force a complete refresh
                    * of local pointers and the directory list here. */
@@ -1583,6 +1589,8 @@ int HandleDirWindow(DirEntry *start_dir_entry)
                   } else {
                       dir_entry = statistic.tree;
                   }
+
+                  /* Removed debug printf */
 
                   /* Force Full Display Refresh */
                   DisplayTree(dir_window, statistic.disp_begin_pos, statistic.disp_begin_pos + statistic.cursor_pos);
