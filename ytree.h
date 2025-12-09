@@ -977,7 +977,7 @@ extern void SetKindOfSort(int new_kind_of_sort);
 /* stats.c */
 extern void DisplayAvailBytes(void);
 extern void DisplayDirParameter(DirEntry *dir_entry);
-extern void DisplayDirStatistic(DirEntry *dir_entry);
+extern void DisplayDirStatistic(DirEntry *dir_entry, const char *title); /* Changed prototype */
 extern void DisplayDirTagged(DirEntry *dir_entry);
 extern void DisplayDiskName(void);
 extern void DisplayDiskStatistic(void);

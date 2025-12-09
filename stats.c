@@ -316,9 +316,10 @@ static void DrawAttributes(const char *name, struct stat *s) {
     DrawSeparator(Y_ATTR_SEP, "ATTRIBUTES");
 
     /* Name */
-    CutName(buf, (char*)name, INNER_W);
+    CutPathname(buf, (char*)name, INNER_W); /* Keep CutPathname for stats box */
     attron(A_BOLD);
-    mvprintw(Y_ATTR_VAL, STAT_X + 1, "%-22s", buf);
+    mvwhline(stdscr, Y_ATTR_VAL, STAT_X + 1, ' ', INNER_W); /* Explicitly clear the line */
+    mvprintw(Y_ATTR_VAL, STAT_X + 1, "%s", buf); /* Print without padding to avoid overflow */
     attroff(A_BOLD);
 
     /* Size */
@@ -366,7 +367,6 @@ void DisplayDiskName(void)
     char buf[128];
     char path_buf[PATH_LENGTH + 1];
     char size_buf[32];
-    char fs_buf[64]; /* Moved declaration here for wider scope */
     int total_volumes = HASH_COUNT(VolumeList);
     int current_index = 0;
     struct Volume *s, *tmp;
@@ -407,10 +407,11 @@ void DisplayDiskName(void)
     else strncpy(path_buf, statistic.path, PATH_LENGTH);
     path_buf[PATH_LENGTH] = '\0';
 
-    CutName(buf, path_buf, INNER_W);
+    CutPathname(buf, path_buf, INNER_W); /* Changed to CutPathname */
     mvprintw(Y_VOL_INFO, STAT_X + 1, "%-22s", buf); /* Pad to clear */
 
     /* FS */
+    char fs_buf[64];
     if (mode == ARCHIVE_MODE) snprintf(fs_buf, sizeof(fs_buf), "FS: ARCHIVE");
     else snprintf(fs_buf, sizeof(fs_buf), "FS: %s", statistic.disk_name);
     /* Truncate to fit */
@@ -448,33 +449,41 @@ void DisplayDiskStatistic(void)
     refresh();
 }
 
-void DisplayDirStatistic(DirEntry *de)
+void DisplayDirStatistic(DirEntry *de, const char *title)
 {
     char buf[128];
 
     if (!de) return;
 
-    if (de->global_flag) {
+    /* Use provided title, or fallback to default logic */
+    if (title) {
+        DrawSeparator(Y_DSTAT_SEP, title);
+    } else if (de->global_flag) {
         DrawSeparator(Y_DSTAT_SEP, "SHOW ALL");
     } else {
         DrawSeparator(Y_DSTAT_SEP, "CURRENT DIR");
     }
 
     /* Dir Name */
-    CutName(buf, de->name, INNER_W);
+    CutPathname(buf, de->name, INNER_W); /* Changed to CutPathname */
     attron(A_BOLD);
     mvprintw(Y_DSTAT_VAL, STAT_X + 1, "%-22s", buf); /* Clear ghosting */
     attroff(A_BOLD);
 
     if (de->global_flag) {
-        /* In "Show All" mode, display global statistics */
+        /* In Show All mode, display global totals */
         PrintStatRow(Y_DSTAT_VAL + 1, "Tot:", statistic.disk_total_files, statistic.disk_total_bytes);
         PrintStatRow(Y_DSTAT_VAL + 2, "Mat:", statistic.disk_matching_files, statistic.disk_matching_bytes);
-        PrintStatRow(Y_DSTAT_VAL + 3, "Tag:", statistic.disk_tagged_files, statistic.disk_tagged_bytes);
     } else {
-        /* Otherwise, display statistics for the current directory */
+        /* In Normal mode, display current directory totals */
         PrintStatRow(Y_DSTAT_VAL + 1, "Tot:", de->total_files, de->total_bytes);
         PrintStatRow(Y_DSTAT_VAL + 2, "Mat:", de->matching_files, de->matching_bytes);
+    }
+
+    /* Tag count always shows global disk total in Show All mode, but we use the disk stats directly if global_flag is set. */
+    if (de->global_flag) {
+        PrintStatRow(Y_DSTAT_VAL + 3, "Tag:", statistic.disk_tagged_files, statistic.disk_tagged_bytes);
+    } else {
         PrintStatRow(Y_DSTAT_VAL + 3, "Tag:", de->tagged_files, de->tagged_bytes);
     }
 
@@ -497,7 +506,7 @@ void DisplayDiskTagged(void) {
 }
 
 void DisplayDirTagged(DirEntry *de) {
-    DisplayDirStatistic(de);
+    DisplayDirStatistic(de, NULL);
 }
 
 void DisplayDirParameter(DirEntry *de) {

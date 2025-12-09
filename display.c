@@ -189,8 +189,8 @@ void DisplayHeaderPath(char *path) {
     attron(COLOR_PAIR(CPAIR_MENU) | A_BOLD);
     mvwhline(stdscr, 0, 6, ' ', available_width); /* Explicitly clear the old path area */
 
-    /* Use CutPathname for intelligent prefix truncation */
-    CutPathname(display_buffer, path, available_width);
+    /* Use CutName for end-truncation (e.g. /home/user/verylong...) in the header */
+    CutName(display_buffer, path, available_width);
 
     mvprintw(0, 6, "%s", display_buffer); /* Print the truncated path */
     attroff(COLOR_PAIR(CPAIR_MENU) | A_BOLD);
