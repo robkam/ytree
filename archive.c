@@ -10,6 +10,30 @@
 
 
 #ifdef HAVE_LIBARCHIVE
+
+/*
+ * Helper to normalize archive internal paths for consistent comparison.
+ * It handles:
+ * - Empty path or "." -> canonical "."
+ * - Leading "./" -> stripped
+ * The result is copied into the provided buffer.
+ */
+static const char *normalize_archive_path_for_comparison(const char *path, char *buffer, size_t buffer_size) {
+    if (!path || *path == '\0') {
+        strncpy(buffer, ".", buffer_size); /* Canonical representation for archive root */
+        buffer[buffer_size - 1] = '\0';
+        return buffer;
+    }
+    /* Skip leading "./" if present */
+    if (strncmp(path, "./", 2) == 0) {
+        path += 2;
+    }
+    strncpy(buffer, path, buffer_size);
+    buffer[buffer_size - 1] = '\0';
+    return buffer;
+}
+
+
 /*
  * Uses libarchive to find a specific entry within an archive and write its
  * contents to the provided output file descriptor.
@@ -23,6 +47,36 @@ int ExtractArchiveEntry(const char *archive_path, const char *entry_path, int ou
     const void *buff;
     size_t size;
     la_int64_t offset;
+
+    const char *effective_entry_path_segment; /* Points into entry_path or a derived segment */
+    char normalized_target_name_buf[PATH_LENGTH + 1];
+    const char *final_target_name;
+
+    /*
+     * 1. Determine the effective target path segment within the archive.
+     *    This strips the archive_path prefix from entry_path if present,
+     *    and skips any leading path separators.
+     */
+    size_t archive_path_len = strlen(archive_path);
+    if (strncmp(entry_path, archive_path, archive_path_len) == 0) {
+        effective_entry_path_segment = entry_path + archive_path_len;
+        /* Skip any leading path separators after the archive path */
+        while (*effective_entry_path_segment == FILE_SEPARATOR_CHAR) {
+            effective_entry_path_segment++;
+        }
+    } else {
+        /* If entry_path does not start with archive_path, it's assumed to be
+         * a direct path within the archive (e.g., "file.txt" or "dir/file.txt"). */
+        effective_entry_path_segment = entry_path;
+    }
+
+    /*
+     * 2. Normalize the effective_entry_path_segment for consistent comparison.
+     *    This handles cases like empty string or "." for the archive root,
+     *    and strips any leading "./" if present (though less likely for target_name).
+     */
+    final_target_name = normalize_archive_path_for_comparison(
+        effective_entry_path_segment, normalized_target_name_buf, sizeof(normalized_target_name_buf));
 
     a = archive_read_new();
     if (a == NULL) {
@@ -38,7 +92,19 @@ int ExtractArchiveEntry(const char *archive_path, const char *entry_path, int ou
     }
 
     while (archive_read_next_header(a, &entry) == ARCHIVE_OK) {
-        if (strcmp(archive_entry_pathname(entry), entry_path) == 0) {
+        const char *pathname_in_archive = archive_entry_pathname(entry);
+        char normalized_archive_path_buf[PATH_LENGTH + 1];
+        const char *clean_path;
+
+        /*
+         * 3. Normalize the path obtained from the archive entry for comparison.
+         *    This primarily strips any leading "./" that some archives might store.
+         */
+        clean_path = normalize_archive_path_for_comparison(
+            pathname_in_archive, normalized_archive_path_buf, sizeof(normalized_archive_path_buf));
+
+        /* Compare the normalized paths to find the desired entry */
+        if (clean_path && strcmp(clean_path, final_target_name) == 0) {
             /* Found the entry, now write its data to the fd */
             while ((r = archive_read_data_block(a, &buff, &size, &offset)) == ARCHIVE_OK) {
                 if (write(out_fd, buff, size) != (ssize_t)size) {
