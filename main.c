@@ -7,10 +7,24 @@
 
 
 #include "ytree.h"
+#include <signal.h> /* Required for signal handling */
+#include <stdlib.h> /* Required for exit() */
 
 
 static char buffer[PATH_LENGTH+1];
 static char path[PATH_LENGTH+1];
+
+/*
+ * EmergencyExit
+ * Signal handler to ensure terminal is restored on unexpected program termination.
+ * This prevents the terminal from being left in a "frozen" graphics mode.
+ */
+static void EmergencyExit(int sig)
+{
+  endwin(); /* Restore terminal to normal mode */
+  fprintf(stderr, "\nINTERNAL ERROR: Signal %d caught. Terminal restored.\n", sig);
+  exit(1); /* Exit with an error status */
+}
 
 
 int main(int argc, char **argv)
@@ -20,6 +34,12 @@ int main(int argc, char **argv)
   char *hist;
   char *conf;
   int main_loop_exit_char; // Variable to store the return value of HandleDirWindow
+
+  /* Register signal handlers for graceful exit on crashes or Ctrl-C.
+   * This ensures endwin() is called to restore the terminal. */
+  signal(SIGSEGV, EmergencyExit); /* Segmentation Fault */
+  signal(SIGABRT, EmergencyExit); /* Abort signal */
+  signal(SIGINT, EmergencyExit);  /* Interrupt (Ctrl-C) for safety */
 
   /* setlocale is now handled in Init */
 
