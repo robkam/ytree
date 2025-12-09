@@ -451,7 +451,7 @@ static void Movedown(int *disp_begin_pos, int *cursor_pos, DirEntry **dir_entry)
     DisplayTree(dir_window, *disp_begin_pos, *disp_begin_pos + *cursor_pos);
     DisplayFileWindow( *dir_entry );
     RefreshWindow( file_window );
-    DisplayDirStatistic(*dir_entry);
+    DisplayDirStatistic(*dir_entry, NULL); /* Updated call */
     /* Update header path */
     {
         char path[PATH_LENGTH];
@@ -481,7 +481,7 @@ static void Moveup(int *disp_begin_pos, int *cursor_pos, DirEntry **dir_entry)
     DisplayTree(dir_window, *disp_begin_pos, *disp_begin_pos + *cursor_pos);
     DisplayFileWindow( *dir_entry );
     RefreshWindow( file_window );
-    DisplayDirStatistic(*dir_entry);
+    DisplayDirStatistic(*dir_entry, NULL); /* Updated call */
     /* Update header path */
     {
         char path[PATH_LENGTH];
@@ -532,7 +532,7 @@ static void Movenpage(int *disp_begin_pos, int *cursor_pos, DirEntry **dir_entry
       DisplayTree(dir_window,*disp_begin_pos,*disp_begin_pos+*cursor_pos);
       DisplayFileWindow( *dir_entry );
       RefreshWindow( file_window );
-      DisplayDirStatistic(*dir_entry);
+      DisplayDirStatistic(*dir_entry, NULL); /* Updated call */
       /* Update header path */
       {
           char path[PATH_LENGTH];
@@ -575,7 +575,7 @@ static void Moveppage(int *disp_begin_pos, int *cursor_pos, DirEntry **dir_entry
       DisplayTree(dir_window,*disp_begin_pos,*disp_begin_pos+*cursor_pos);
       DisplayFileWindow( *dir_entry );
       RefreshWindow( file_window );
-      DisplayDirStatistic(*dir_entry);
+      DisplayDirStatistic(*dir_entry, NULL); /* Updated call */
       /* Update header path */
       {
           char path[PATH_LENGTH];
@@ -597,7 +597,7 @@ static void MoveEnd(DirEntry **dir_entry)
     RefreshWindow( file_window );
     DisplayTree( dir_window, statistic.disp_begin_pos,
 		statistic.disp_begin_pos + statistic.cursor_pos);
-    DisplayDirStatistic(*dir_entry);
+    DisplayDirStatistic(*dir_entry, NULL); /* Updated call */
     /* Update header path */
     {
         char path[PATH_LENGTH];
@@ -624,7 +624,7 @@ static void MoveHome(DirEntry **dir_entry)
        RefreshWindow( file_window );
        DisplayTree( dir_window, statistic.disp_begin_pos,
 		statistic.disp_begin_pos + statistic.cursor_pos);
-       DisplayDirStatistic(*dir_entry);
+       DisplayDirStatistic(*dir_entry, NULL); /* Updated call */
        /* Update header path */
        {
            char path[PATH_LENGTH];
@@ -655,7 +655,7 @@ static void HandlePlus(DirEntry *dir_entry, DirEntry *de_ptr, char *new_login_pa
 	DisplayTree( dir_window, statistic.disp_begin_pos,
                  statistic.disp_begin_pos + statistic.cursor_pos );
 	DisplayDiskStatistic();
-    DisplayDirStatistic(dir_entry);
+    DisplayDirStatistic(dir_entry, NULL); /* Updated call */
 	DisplayAvailBytes();
 	*need_dsp_help = TRUE;
     }
@@ -674,7 +674,7 @@ static void HandleReadSubTree(DirEntry *dir_entry, DirEntry *start_dir_entry,
 		 statistic.disp_begin_pos + statistic.cursor_pos );
     RecalculateSysStats(); /* Fix for Bug 10: Force full recalculation */
     DisplayDiskStatistic();
-    DisplayDirStatistic(dir_entry);
+    DisplayDirStatistic(dir_entry, NULL); /* Updated call */
     DisplayAvailBytes();
     *need_dsp_help = TRUE;
 }
@@ -697,7 +697,7 @@ static void HandleUnreadSubTree(DirEntry *dir_entry, DirEntry *de_ptr,
         DisplayAvailBytes();
         RecalculateSysStats(); /* Fix for Bug 10: Force full recalculation */
         DisplayDiskStatistic();
-        DisplayDirStatistic(dir_entry);
+        DisplayDirStatistic(dir_entry, NULL); /* Updated call */
         *need_dsp_help = TRUE;
     }
     return;
@@ -733,7 +733,7 @@ static void HandleTagDir(DirEntry *dir_entry, BOOL value)
     DisplayFileWindow( dir_entry );
     RefreshWindow( file_window );
     DisplayDiskStatistic();
-    DisplayDirStatistic(dir_entry);
+    DisplayDirStatistic(dir_entry, NULL); /* Updated call */
     return;
 }
 
@@ -772,7 +772,7 @@ static void HandleTagAllDirs(DirEntry *dir_entry, BOOL value )
     DisplayFileWindow( dir_entry );
     RefreshWindow( file_window );
     DisplayDiskStatistic();
-    DisplayDirStatistic(dir_entry);
+    DisplayDirStatistic(dir_entry, NULL); /* Updated call */
     return;
 }
 
@@ -795,7 +795,7 @@ static void HandleShowAll(BOOL tagged_only, DirEntry *dir_entry, DirEntry *start
 	if( HandleFileWindow(dir_entry) != LOGIN_ESC )
 	{
 	    DisplayDiskStatistic();
-	    DisplayDirStatistic(dir_entry);
+	    DisplayDirStatistic(dir_entry, NULL); /* Updated call */
 	    dir_entry->start_file = 0;
 	    dir_entry->cursor_pos = -1;
             DisplayFileWindow( dir_entry );
@@ -842,7 +842,7 @@ static void HandleSwitchWindow(DirEntry *dir_entry, DirEntry *start_dir_entry, B
             DisplayTree( dir_window, statistic.disp_begin_pos,
 			 statistic.disp_begin_pos + statistic.cursor_pos);
 	    DisplayDiskStatistic();
-        DisplayDirStatistic(dir_entry);
+        DisplayDirStatistic(dir_entry, NULL); /* Updated call */
 	} else {
 	    BuildDirEntryList( statistic.tree, &statistic );
             DisplayTree( dir_window, statistic.disp_begin_pos,
@@ -948,7 +948,7 @@ void ToggleDotFiles(void)
     /* Explicitly update the file window (preview) to match new visibility */
     DisplayFileWindow(target);
     RefreshWindow(file_window);
-    DisplayDirStatistic(target);
+    DisplayDirStatistic(target, NULL); /* Updated call */
     /* Update header path */
     {
         char path[PATH_LENGTH];
@@ -1026,7 +1026,7 @@ int HandleDirWindow(DirEntry *start_dir_entry)
   dir_entry = dir_entry_list[statistic.disp_begin_pos + statistic.cursor_pos].dir_entry;
 
   DisplayDiskStatistic();
-  DisplayDirStatistic(dir_entry);
+  DisplayDirStatistic(dir_entry, NULL); /* Updated call */
   /* Update header path on initial load */
   {
       char path[PATH_LENGTH];
@@ -1081,7 +1081,7 @@ int HandleDirWindow(DirEntry *start_dir_entry)
         DisplayFileWindow(dir_entry);
         RefreshWindow(file_window);
         DisplayDiskStatistic();
-        DisplayDirStatistic(dir_entry);
+        DisplayDirStatistic(dir_entry, NULL); /* Updated call */
         DisplayAvailBytes();
 
         /* Update Header Path */
@@ -1130,7 +1130,7 @@ int HandleDirWindow(DirEntry *start_dir_entry)
 		  );
        DisplayFileWindow(dir_entry);
        DisplayDiskStatistic();
-       DisplayDirStatistic(dir_entry);
+       DisplayDirStatistic(dir_entry, NULL); /* Updated call */
        DisplayDirParameter( dir_entry );
        need_dsp_help = TRUE;
        DisplayAvailBytes();
@@ -1199,7 +1199,7 @@ int HandleDirWindow(DirEntry *start_dir_entry)
                     DisplayTree(dir_window, statistic.disp_begin_pos, statistic.disp_begin_pos + statistic.cursor_pos);
                     DisplayFileWindow(dir_entry);
                     DisplayDiskStatistic();
-                    DisplayDirStatistic(dir_entry);
+                    DisplayDirStatistic(dir_entry, NULL); /* Updated call */
                     DisplayAvailBytes();
 
                     char path[PATH_LENGTH];
@@ -1264,7 +1264,7 @@ int HandleDirWindow(DirEntry *start_dir_entry)
                        DisplayTree(dir_window, statistic.disp_begin_pos, statistic.disp_begin_pos + statistic.cursor_pos);
                        DisplayFileWindow(dir_entry);
                        DisplayDiskStatistic();
-                       DisplayDirStatistic(dir_entry);
+                       DisplayDirStatistic(dir_entry, NULL); /* Updated call */
                        DisplayAvailBytes();
                        /* Update Header Path */
                        char path[PATH_LENGTH];
@@ -1297,7 +1297,7 @@ int HandleDirWindow(DirEntry *start_dir_entry)
                        DisplayFileWindow( dir_entry );
                        RefreshWindow( file_window );
 		       DisplayDiskStatistic();
-		       DisplayDirStatistic(dir_entry);
+		       DisplayDirStatistic(dir_entry, NULL); /* Updated call */
 		     }
 		     need_dsp_help = TRUE;
                      break;
@@ -1320,7 +1320,7 @@ int HandleDirWindow(DirEntry *start_dir_entry)
                                   );
                      /*RefreshWindow( file_window );*/
 		     DisplayDiskStatistic();
-		     DisplayDirStatistic(dir_entry);
+		     DisplayDirStatistic(dir_entry, NULL); /* Updated call */
 		     need_dsp_help = TRUE;
 		     break;
       case ACTION_CMD_TAGGED_S:
@@ -1339,7 +1339,7 @@ int HandleDirWindow(DirEntry *start_dir_entry)
 		     need_dsp_help = TRUE;
 		     DisplayAvailBytes();
                      DisplayDiskStatistic();
-                     DisplayDirStatistic(dir_entry);
+                     DisplayDirStatistic(dir_entry, NULL); /* Updated call */
 		     break;
       case ACTION_CMD_M: if( !MakeDirectory( dir_entry ) )
 		     {
@@ -1349,7 +1349,7 @@ int HandleDirWindow(DirEntry *start_dir_entry)
 				  );
 		       DisplayAvailBytes();
                        DisplayDiskStatistic();
-                       DisplayDirStatistic(dir_entry);
+                       DisplayDirStatistic(dir_entry, NULL); /* Updated call */
 		     }
 		     need_dsp_help = TRUE;
 		     break;
@@ -1372,7 +1372,7 @@ int HandleDirWindow(DirEntry *start_dir_entry)
 				);
 		     DisplayAvailBytes();
                      DisplayDiskStatistic();
-                     DisplayDirStatistic(dir_entry);
+                     DisplayDirStatistic(dir_entry, NULL); /* Updated call */
 		     need_dsp_help = TRUE;
 		     break;
       case ACTION_CMD_R: if( !GetRenameParameter( dir_entry->name, new_name ) )
@@ -1388,7 +1388,7 @@ int HandleDirWindow(DirEntry *start_dir_entry)
 		         DisplayAvailBytes();
 		         dir_entry = dir_entry_list[statistic.disp_begin_pos + statistic.cursor_pos].dir_entry;
                          DisplayDiskStatistic();
-                         DisplayDirStatistic(dir_entry);
+                         DisplayDirStatistic(dir_entry, NULL); /* Updated call */
 		       }
 		     }
 		     need_dsp_help = TRUE;
@@ -1406,25 +1406,25 @@ int HandleDirWindow(DirEntry *start_dir_entry)
              DisplayTree(dir_window, statistic.disp_begin_pos, statistic.disp_begin_pos + statistic.cursor_pos);
              DisplayFileWindow(dir_entry);
              DisplayDiskStatistic();
-             DisplayDirStatistic(dir_entry);
+             DisplayDirStatistic(dir_entry, NULL); /* Updated call */
              need_dsp_help = TRUE;
              break;
       case ACTION_CMD_G: (void) ChangeDirGroup( dir_entry );
                      DisplayTree( dir_window, statistic.disp_begin_pos, statistic.disp_begin_pos + statistic.cursor_pos );
                      DisplayDiskStatistic();
-                     DisplayDirStatistic(dir_entry);
+                     DisplayDirStatistic(dir_entry, NULL); /* Updated call */
 		     need_dsp_help = TRUE;
 		     break;
       case ACTION_CMD_O: (void) ChangeDirOwner( dir_entry );
                      DisplayTree( dir_window, statistic.disp_begin_pos, statistic.disp_begin_pos + statistic.cursor_pos );
                      DisplayDiskStatistic();
-                     DisplayDirStatistic(dir_entry);
+                     DisplayDirStatistic(dir_entry, NULL); /* Updated call */
 		     need_dsp_help = TRUE;
 		     break;
       case ACTION_CMD_A: (void) ChangeDirModus( dir_entry );
                      DisplayTree( dir_window, statistic.disp_begin_pos, statistic.disp_begin_pos + statistic.cursor_pos );
                      DisplayDiskStatistic();
-                     DisplayDirStatistic(dir_entry);
+                     DisplayDirStatistic(dir_entry, NULL); /* Updated call */
 		     need_dsp_help = TRUE;
 		     break;
 
@@ -1457,7 +1457,7 @@ int HandleDirWindow(DirEntry *start_dir_entry)
                   DisplayFileWindow(dir_entry); /* Refresh file window for the new directory */
                   RefreshWindow(file_window);
                   DisplayDiskStatistic();
-                  DisplayDirStatistic(dir_entry);
+                  DisplayDirStatistic(dir_entry, NULL); /* Updated call */
                   DisplayAvailBytes();
                   /* Update header path after volume switch */
                   {
@@ -1493,7 +1493,7 @@ int HandleDirWindow(DirEntry *start_dir_entry)
                   DisplayFileWindow(dir_entry); /* Refresh file window for the new directory */
                   RefreshWindow(file_window);
                   DisplayDiskStatistic();
-                  DisplayDirStatistic(dir_entry);
+                  DisplayDirStatistic(dir_entry, NULL); /* Updated call */
                   DisplayAvailBytes();
                   /* Update header path after volume switch */
                   {
@@ -1529,7 +1529,7 @@ int HandleDirWindow(DirEntry *start_dir_entry)
                   DisplayFileWindow(dir_entry); /* Refresh file window for the new directory */
                   RefreshWindow(file_window);
                   DisplayDiskStatistic();
-                  DisplayDirStatistic(dir_entry);
+                  DisplayDirStatistic(dir_entry, NULL); /* Updated call */
                   DisplayAvailBytes();
                   /* Update header path after volume switch */
                   {
@@ -1597,7 +1597,7 @@ int HandleDirWindow(DirEntry *start_dir_entry)
                   DisplayFileWindow(dir_entry);
                   RefreshWindow(file_window);
                   DisplayDiskStatistic();
-                  DisplayDirStatistic(dir_entry);
+                  DisplayDirStatistic(dir_entry, NULL); /* Updated call */
                   DisplayAvailBytes();
                   /* Update header path */
                   {
@@ -1904,7 +1904,7 @@ int RefreshDirWindow()
 
 		DisplayAvailBytes();
 		DisplayDiskStatistic();
-		DisplayDirStatistic(dir_entry_list[statistic.disp_begin_pos + statistic.cursor_pos].dir_entry);
+		DisplayDirStatistic(dir_entry_list[statistic.disp_begin_pos + statistic.cursor_pos].dir_entry, NULL); /* Updated call */
         /* Update header path after refresh */
         {
             char path[PATH_LENGTH];
