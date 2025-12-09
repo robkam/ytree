@@ -57,7 +57,7 @@ int ReadTreeFromArchive(DirEntry **dir_entry_ptr, const char *filename)
     const char *clean_path;
     DirEntry *dir_entry = *dir_entry_ptr;
 
-    *dir_entry->name = '\0';
+    /* Removed: *dir_entry->name = '\0'; to preserve name set by LoginDisk */
 
     a = archive_read_new();
     if (a == NULL) {
