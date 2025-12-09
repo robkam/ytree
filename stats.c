@@ -466,13 +466,15 @@ void DisplayDirStatistic(DirEntry *de)
     mvprintw(Y_DSTAT_VAL, STAT_X + 1, "%-22s", buf); /* Clear ghosting */
     attroff(A_BOLD);
 
-    PrintStatRow(Y_DSTAT_VAL + 1, "Tot:", de->total_files, de->total_bytes);
-    PrintStatRow(Y_DSTAT_VAL + 2, "Mat:", de->matching_files, de->matching_bytes);
-
-    /* Bug 4 Fix: Display global tagged stats if in "Show All" mode */
     if (de->global_flag) {
+        /* In "Show All" mode, display global statistics */
+        PrintStatRow(Y_DSTAT_VAL + 1, "Tot:", statistic.disk_total_files, statistic.disk_total_bytes);
+        PrintStatRow(Y_DSTAT_VAL + 2, "Mat:", statistic.disk_matching_files, statistic.disk_matching_bytes);
         PrintStatRow(Y_DSTAT_VAL + 3, "Tag:", statistic.disk_tagged_files, statistic.disk_tagged_bytes);
     } else {
+        /* Otherwise, display statistics for the current directory */
+        PrintStatRow(Y_DSTAT_VAL + 1, "Tot:", de->total_files, de->total_bytes);
+        PrintStatRow(Y_DSTAT_VAL + 2, "Mat:", de->matching_files, de->matching_bytes);
         PrintStatRow(Y_DSTAT_VAL + 3, "Tag:", de->tagged_files, de->tagged_bytes);
     }
 

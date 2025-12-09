@@ -213,7 +213,8 @@ static void BuildFileEntryList(DirEntry *dir_entry){
     SetFileMode( file_mode ); /* recalc */
 
     /* Recalculate and update statistics based on the actual loaded list */
-    dir_entry->matching_files = file_count;
+    /* These assignments are now handled by stats.c and should not corrupt dir_entry */
+    /* dir_entry->matching_files = file_count; */
     t_files = 0;
     t_bytes = 0;
     for (i = 0; i < file_count; i++) {
@@ -222,8 +223,8 @@ static void BuildFileEntryList(DirEntry *dir_entry){
             t_bytes += file_entry_list[i].file->stat_struct.st_size;
         }
     }
-    dir_entry->tagged_files = t_files;
-    dir_entry->tagged_bytes = t_bytes;
+    /* dir_entry->tagged_files = t_files; */
+    /* dir_entry->tagged_bytes = t_bytes; */
     }
 }
 
@@ -650,7 +651,7 @@ static void PrintFileEntry(int entry_no, int y, int x, unsigned char hilight, in
               pos_x = x * (max_visual_filename_len + 39);
           break;
       case MODE_3:
-          pos_x = x * (max_visual_filename_len + 3);
+          pos_x = x * (max_visual_filename_len + 2); /* filename + format */
           break;
       case MODE_4:
           if( max_visual_linkname_len )
@@ -1237,6 +1238,7 @@ int HandleFileWindow(DirEntry *dir_entry)
     SwitchToBigFileWindow();
     GetMaxYX( file_window, &window_height, &window_width );
     DisplayDiskStatistic();
+    DisplayDirStatistic(dir_entry); /* Added: Update current list stats even in ShowAll mode */
   }
   else
   {
