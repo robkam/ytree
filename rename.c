@@ -26,29 +26,47 @@ int RenameDirectory(DirEntry *de_ptr, char *new_name)
   struct stat stat_struct;
   int         result;
   char        *cptr;
+  int         len;
 
   result = -1;
 
+  /* Get the full path of the directory to be renamed */
   (void) GetPath( de_ptr, from_path );
-  (void) strcpy( to_path, from_path );
 
-  cptr = strrchr( to_path, '/' );
+  /*
+   * Safety Fix: Construct the new path using snprintf instead of modifying
+   * the string in place with strcpy/strcat.
+   */
+
+  /* Find the parent directory by locating the last separator */
+  cptr = strrchr( from_path, FILE_SEPARATOR_CHAR );
 
   if( !cptr )
   {
-    (void) sprintf( message, "Invalid Path!*\"%s\"", to_path );
+    /* Should not happen for absolute paths, but safety first */
+    (void) sprintf( message, "Invalid Path!*\"%s\"", from_path );
     WARNING( message );
     ESCAPE;
   }
 
-  if( cptr == to_path )
+  if( cptr == from_path )
   {
-    MESSAGE( "Can't rename ROOT" );
-    ESCAPE;
+    /* Parent is root '/' */
+    len = snprintf(to_path, sizeof(to_path), "%c%s", FILE_SEPARATOR_CHAR, new_name);
+  }
+  else
+  {
+    /* Calculate length of parent directory string */
+    int parent_len = cptr - from_path;
+    /* Construct new path: parent_dir + separator + new_name */
+    len = snprintf(to_path, sizeof(to_path), "%.*s%c%s",
+                   parent_len, from_path, FILE_SEPARATOR_CHAR, new_name);
   }
 
-  (void) strcpy( cptr + 1, new_name );
-
+  if (len >= (int)sizeof(to_path)) {
+      WARNING( "Path too long! Rename aborted." );
+      ESCAPE;
+  }
 
   if( access( from_path, W_OK ) )
   {
@@ -145,8 +163,10 @@ int RenameFile(FileEntry *fe_ptr, char *new_name, FileEntry **new_fe_ptr )
   FileEntry   *fen_ptr;
   char        from_path[PATH_LENGTH+1];
   char        to_path[PATH_LENGTH+1];
+  char        parent_path[PATH_LENGTH+1];
   struct stat stat_struct;
   int         result;
+  int         len;
 
   result = -1;
 
@@ -155,10 +175,21 @@ int RenameFile(FileEntry *fe_ptr, char *new_name, FileEntry **new_fe_ptr )
   de_ptr = fe_ptr->dir_entry;
 
   (void) GetFileNamePath( fe_ptr, from_path );
-  (void) GetPath( de_ptr, to_path );
-  (void) strcat( to_path, FILE_SEPARATOR_STRING );
-  (void) strcat( to_path, new_name );
 
+  /* Safety Fix: Use snprintf to construct to_path */
+  (void) GetPath( de_ptr, parent_path );
+
+  /* Handle root path case correctly (avoid double slash if parent is "/") */
+  if (strcmp(parent_path, FILE_SEPARATOR_STRING) == 0) {
+      len = snprintf(to_path, sizeof(to_path), "%c%s", FILE_SEPARATOR_CHAR, new_name);
+  } else {
+      len = snprintf(to_path, sizeof(to_path), "%s%c%s", parent_path, FILE_SEPARATOR_CHAR, new_name);
+  }
+
+  if (len >= (int)sizeof(to_path)) {
+      WARNING( "Path too long! Rename aborted." );
+      ESCAPE;
+  }
 
   if( access( from_path, W_OK ) )
   {
@@ -297,8 +328,10 @@ static int RenameDirEntry(char *to_path, char *from_path)
     return( -1 );
   }
 
-  /* Use standard POSIX rename() for directories and files. */
-  /* The old #ifdef HAVE_RENAME and link()/unlink() fallback are removed. */
+  /*
+   * Modernized: Always use rename().
+   * Removed obsolete link()/unlink() fallback which fails on directories.
+   */
   if( rename( from_path, to_path ) )
   {
     (void) sprintf( message,
@@ -323,11 +356,13 @@ static int RenameFileEntry(char *to_path, char *from_path)
   if( !strcmp( to_path, from_path ) )
   {
     MESSAGE( "Can't rename!*New Name == Old Name" );
-    return( 0 ); /* Return 0 as it's a no-op, not an error */
+    return( -1 );
   }
 
-  /* Use standard POSIX rename() for files. */
-  /* The old link()/unlink() fallback is removed. */
+  /*
+   * Modernized: Use rename() instead of link()/unlink().
+   * rename() is atomic and safer.
+   */
   if( rename( from_path, to_path ) )
   {
     (void) sprintf( message,
