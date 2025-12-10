@@ -6,9 +6,11 @@ import glob
 import time
 import atexit
 import datetime
+import argparse
+import fnmatch
+from pathlib import Path
 import google.generativeai as genai
 from google.api_core import exceptions
-from pathlib import Path
 
 # -----------------------------------------------------------------------------
 # CONFIGURATION
@@ -35,26 +37,23 @@ SAFETY_SETTINGS = [
     {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_ONLY_HIGH"},
 ]
 
-SYSTEM_INSTRUCTION = """
+SYSTEM_INSTRUCTION_HEADER = """
 You are a Senior Systems Developer acting as an interactive assistant for the 'ytree' project.
 
-**CONTEXT:**
-You have the full, current source code of the project in your context.
+**YOUR CONTEXT:**
+You have access to the file structure of the project.
+**IMPORTANT:** You do NOT initially have the *contents* of these files. The user must load them for you.
+If you need to read a file to answer a question, ask the user to run: `/load filename`
 
 **YOUR ROLE: THE CONSULTANT**
-1.  **Analyze & Explain:** Discuss the logic, data structures, and flow of the existing code.
-2.  **Diagnose:** Help identifying bugs or architectural weaknesses based on the provided context.
-3.  **Requirements Gathering:** Help the user define what needs to be done before they attempt to implement it.
+1.  **Analyze & Explain:** Discuss the logic, data structures, and flow of the loaded code.
+2.  **Diagnose:** Help identifying bugs or architectural weaknesses.
+3.  **Requirements Gathering:** Help the user define what needs to be done.
 
 **BEHAVIORAL CONSTRAINTS:**
-*   **NO UNSOLICITED CODING:** Do **NOT** generate `task.txt` files, JSON plans, or full source code implementations unless the user explicitly prompts you with a phrase like "Write the instructions to..." or "Draft the plan for...".
-*   **DISCUSSION MODE:** By default, keep your answers conversational and focused on the *why* and *where* of the code, not the *implementation*.
-*   **NO DIFFS:** Do not provide diffs. If asked for code, provide short, illustrative snippets only.
-
-**EXCEPTION - INSTRUCTION MODE:**
-If the user asks you to "Write the instructions to [do something]" or "Create a task.txt":
-1.  Then, and ONLY then, produce a numbered list of requirements suitable for a `task.txt`.
-2.  Focus on *behavior* and *logic requirements* (e.g., "Modify log.c to check for NULL pointers"), not exact lines of C code.
+*   **NO UNSOLICITED CODING:** Do **NOT** generate `task.txt` files or full source code unless explicitly prompted.
+*   **DISCUSSION MODE:** Keep answers conversational and focused on the *why* and *where*.
+*   **NO DIFFS:** Do not provide diffs. Provide short, illustrative snippets only.
 """
 
 # -----------------------------------------------------------------------------
@@ -145,7 +144,7 @@ def generate_chat_response_with_retry(chat_session, user_input, max_retries=5):
             # Handle 429 Quota Exceeded
             try:
                 wait_with_countdown(delay)
-                delay *= 2  # Exponential backoff: 10, 20, 40, 80...
+                delay *= 2  # Exponential backoff
             except KeyboardInterrupt:
                 return None
         except Exception as e:
@@ -159,66 +158,97 @@ def generate_chat_response_with_retry(chat_session, user_input, max_retries=5):
 # FILE SYSTEM TOOLS
 # -----------------------------------------------------------------------------
 
-def get_codebase_context(root_dir="."):
+def get_all_project_files(root_dir="."):
+    """Returns a sorted list of all relevant files in the project."""
     extensions = {'.c', '.h', '.conf', '.sh', '.py', 'Makefile'}
     ignore_dirs = {'.git', '.venv', '.vscode', 'build', '__pycache__', 'obj', 'docs'}
-    ignore_files = {'copy.c.bak', 'ytree.tar', 'chat.log'}
+    ignore_files = {'copy.c.bak', 'ytree.tar', 'chat.log', 'build.log'}
 
-    context_buffer = []
-    file_count = 0
-    total_chars = 0
-
-    print("Scanning project files...")
+    file_list = []
 
     for path in Path(root_dir).rglob("*"):
         if any(part in ignore_dirs for part in path.parts):
             continue
-
         if path.is_file():
             if path.name in ignore_files or path.name.endswith('~') or path.name.startswith('.'):
                 continue
-
             if path.suffix in extensions or path.name in ['Makefile', 'Changes']:
-                try:
-                    with open(path, 'r', encoding='utf-8', errors='replace') as f:
-                        content = f.read()
-                        total_chars += len(content)
+                file_list.append(str(path))
 
-                    entry = f"=== {path} ===\n{content}\n"
-                    context_buffer.append(entry)
-                    file_count += 1
-                except Exception as e:
-                    print(f"Skipping {path}: {e}")
+    return sorted(file_list)
 
-    est_tokens = total_chars / 4
-    print(f"Loaded {file_count} files (~{int(est_tokens)} tokens).")
-    return "\n".join(context_buffer)
+def read_files_content(file_paths):
+    """Reads content of specific files."""
+    buffer = ""
+    count = 0
+    for path_str in file_paths:
+        try:
+            with open(path_str, 'r', encoding='utf-8', errors='replace') as f:
+                content = f.read()
+                buffer += f"=== FILE: {path_str} ===\n{content}\n\n"
+                count += 1
+        except Exception as e:
+            print(f"  [!] Error reading {path_str}: {e}")
+    return buffer, count
 
 # -----------------------------------------------------------------------------
 # CHAT SESSION
 # -----------------------------------------------------------------------------
 
-def start_chat():
+def start_chat(initial_context_filter=None):
     print("\n" + "="*50)
     print(f"YTREE AI ASSISTANT ({MODEL_NAME})")
     print("="*50)
     print(f"Logging to: {CHAT_LOG_FILE}")
 
     get_input = setup_input()
-    codebase_context = get_codebase_context()
+
+    # 1. Get File Structure (Low Token Cost)
+    all_files = get_all_project_files()
+    file_tree_str = "\n".join(all_files)
+
+    # 2. Handle Initial Context Loading (if --context used)
+    initial_content = ""
+    loaded_files_msg = "No files loaded yet."
+
+    if initial_context_filter:
+        to_load = []
+        patterns = initial_context_filter.replace(",", " ").split()
+        for pat in patterns:
+            # Simple substring or exact match logic
+            for f in all_files:
+                if fnmatch.fnmatch(f, pat) or pat in f:
+                    if f not in to_load:
+                        to_load.append(f)
+
+        if to_load:
+            content, count = read_files_content(to_load)
+            initial_content = f"\n\n**INITIALLY LOADED FILES:**\n{content}"
+            loaded_files_msg = f"Loaded {count} files based on argument: {initial_context_filter}"
+            print(f"  [i] {loaded_files_msg}")
+
+    # 3. Construct System Prompt
+    full_system_prompt = f"""{SYSTEM_INSTRUCTION_HEADER}
+
+**PROJECT FILE STRUCTURE:**
+{file_tree_str}
+
+{initial_content}
+"""
 
     model = genai.GenerativeModel(
         model_name=MODEL_NAME,
-        system_instruction=f"{SYSTEM_INSTRUCTION}\n\nCURRENT CODEBASE:\n{codebase_context}"
+        system_instruction=full_system_prompt
     )
 
     chat = model.start_chat(history=[])
 
     print("-" * 50)
     print("Commands:")
-    print("  /reload : Re-scan files and restart.")
-    print("  /clear  : Clear conversation history only.")
-    print("  /quit   : Exit.")
+    print("  /load <pattern> : Load file content (e.g. '/load main.c' or '/load *.h')")
+    print("  /files          : List all available files.")
+    print("  /clear          : Clear conversation history.")
+    print("  /quit           : Exit.")
     print("-" * 50)
 
     reason_map = {
@@ -237,20 +267,49 @@ def start_chat():
             if not user_input:
                 continue
 
+            # --- COMMAND HANDLING ---
+
             if user_input.lower() in ['/quit', '/exit']:
                 print("Goodbye.")
                 break
 
-            if user_input.lower() == '/reload':
-                print("\nReloading codebase context...")
-                return start_chat()
+            if user_input.lower() == '/files':
+                print("\nProject Files:")
+                for f in all_files:
+                    print(f"  {f}")
+                continue
+
+            if user_input.lower().startswith('/load '):
+                pattern = user_input[6:].strip()
+                matches = []
+                for f in all_files:
+                    if pattern in f or fnmatch.fnmatch(os.path.basename(f), pattern):
+                        matches.append(f)
+
+                if not matches:
+                    print(f"  [!] No files matched '{pattern}'")
+                    continue
+
+                content, count = read_files_content(matches)
+                # Send as a "User" message to inject into history
+                # We prefix it so the Model knows it's a system injection
+                injection_msg = f"SYSTEM: The user has loaded the following files:\n{content}"
+
+                print(f"  [i] Loading {count} files into context...")
+                response = generate_chat_response_with_retry(chat, injection_msg)
+                if response:
+                    print(f"  [AI] Acknowledged. {count} files loaded.")
+                continue
 
             if user_input.lower() == '/clear':
-                print("\nClearing conversation history (Context preserved)...")
+                print("\nClearing conversation history...")
                 chat.history.clear()
-                with open(CHAT_LOG_FILE, "a", encoding="utf-8") as f:
-                    f.write(f"\n--- HISTORY CLEARED ---\n")
+                # Re-inject system context if needed, but usually system_instruction persists.
+                # However, loaded files in history are gone.
+                print("  [!] Note: Previously loaded files are cleared from immediate memory.")
                 continue
+
+            # --- NORMAL CHAT ---
 
             log_conversation("USER", user_input)
             print("[AI is thinking...]")
@@ -278,5 +337,12 @@ def start_chat():
         except Exception as e:
             print(f"\nError: {e}")
 
+def main():
+    parser = argparse.ArgumentParser(description="Ytree Chat Assistant")
+    parser.add_argument("--context", help="Comma-separated patterns of files to preload (e.g., 'main.c,*.h')")
+    args = parser.parse_args()
+
+    start_chat(initial_context_filter=args.context)
+
 if __name__ == "__main__":
-    start_chat()
+    main()
