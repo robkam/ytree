@@ -763,16 +763,38 @@ static void PrintFileEntry(int entry_no, int y, int x, unsigned char hilight, in
       /* Print tag and type */
       wprintw(file_window, "%c%c", (fe_ptr->tagged) ? TAGGED_SYMBOL : ' ', type_of_file);
 
+      /* Calculate available width for name and truncate if necessary */
+      int overhead = 0;
+      switch(file_mode) {
+          case MODE_1: overhead = 44; break;
+          case MODE_2: overhead = 40; break;
+          case MODE_4: overhead = 48; break;
+          default: overhead = 0; break;
+      }
+      if (sym_link_name && *sym_link_name) overhead += 4 + linkname_width;
+
+      int max_w = window_width - pos_x - 3 - overhead;
+      if (max_w < 5) max_w = 5;
+
+      char display_name[PATH_LENGTH + 1];
+      if ((int)strlen(fe_ptr->name) > max_w) {
+          CutFilename(display_name, fe_ptr->name, max_w);
+      } else {
+          strcpy(display_name, fe_ptr->name);
+      }
+
       /* Highlight only the name */
       if (hilight) wattron(file_window, A_REVERSE);
-      wprintw(file_window, "%s", fe_ptr->name);
+      wprintw(file_window, "%s", display_name);
       if (hilight) wattroff(file_window, A_REVERSE);
 
       /* Print attributes for modes other than MODE_3 */
       if (file_mode != MODE_3) {
-          int current_x, current_y, target_x;
+          int current_x, current_y;
           getyx(file_window, current_y, current_x);
-          target_x = pos_x + 2 + filename_width; /* Padded to align attributes */
+          /* Adjusted target_x calculation to stay within bounds */
+          int target_x = MINIMUM(pos_x + 2 + filename_width, window_width - overhead);
+
           /* Fill space between name and attributes */
           for (int i = current_x; i < target_x; i++) waddch(file_window, ' ');
 
