@@ -244,24 +244,20 @@ int VisualPositionToBytePosition(const char *str, int visual_pos)
 }
 
 
-int InputString(char *s, int y, int x, int cursor_pos, int length, char *term)
-                               /* Ein- und Ausgabestring              */
-                               /* Position auf Bildschirm             */
-                               /* max. Laenge                         */
-                               /* Menge von Terminierungszeichen      */
+int InputStringEx(char *s, int y, int x, int cursor_pos, int display_width, int max_len, char *term)
 {
-  int p;                       /* Aktuelle Cursor-Position (visual length) */
-  int c1;                      /* Gelesenes Zeichen */
-  int i, n;                    /* Laufvariable */
+  int p;                       /* Current Cursor-Position (visual) */
+  int c1;                      /* Read Char */
+  int i, n;                    /* Loop vars */
   char *pp;
   BOOL len_flag = FALSE;
   char path[PATH_LENGTH + 1];
   char buf[MB_CUR_MAX + 1];
   char *ls, *rs;
   static BOOL insert_flag = TRUE;
+  int scroll_offset = 0;       /* Visual offset */
 
-  if(length < 1)
-    return -1;
+  if(max_len < 1) return -1;
 
   /* Setup for input */
   print_time = FALSE;
@@ -270,27 +266,42 @@ int InputString(char *s, int y, int x, int cursor_pos, int length, char *term)
 
   p = cursor_pos;
 
-  /* Draw string and fill to max length with '_' */
-  MvAddStr( y, x, s );
-
-  /* Corrected placeholder loop to ensure no wrap */
-  for(i=StrVisualLength(s); i < length; i++)
-    addch( '_' );
-
-  MvAddStr( y, x, s );
-
-  /* Disable nodelay mode as it causes issues with multi-key sequences */
   nodelay( stdscr, FALSE );
 
   do {
-    /* Redraw string, fill to max length with '_', and position cursor */
-    MvAddStr( y, x, s );
+    /* Handle Scrolling logic */
+    if (p < scroll_offset) {
+        scroll_offset = p;
+    } else if (p >= scroll_offset + display_width) {
+        scroll_offset = p - display_width + 1;
+    }
 
-    /* Redraw placeholders */
-    for(i=StrVisualLength(s); i < length; i++)
+    /* Redraw string window */
+    move(y, x);
+
+    char *to_free = NULL;
+    int start_byte = VisualPositionToBytePosition(s, scroll_offset);
+    char *temp_alloc = strdup(&s[start_byte]);
+
+    if (temp_alloc) {
+        /* Truncate to display width */
+        to_free = StrLeft(temp_alloc, display_width);
+        free(temp_alloc);
+    }
+
+    int drawn_len = 0;
+    if (to_free) {
+        addstr(to_free);
+        drawn_len = StrVisualLength(to_free);
+    }
+
+    /* Fill remaining with spaces (or underscores as per original logic) */
+    for(i = drawn_len; i < display_width; i++)
       addch( '_' );
 
-    move( y, x + p);
+    if (to_free) free(to_free); /* Always free allocated display string */
+
+    move( y, x + (p - scroll_offset));
     RefreshWindow( stdscr );
     doupdate();
 
@@ -306,8 +317,8 @@ int InputString(char *s, int y, int x, int cursor_pos, int length, char *term)
         break;
     }
 
-    /* Check length constraint */
-    if (StrVisualLength(s) >= length) len_flag = TRUE;
+    /* Check length constraint using max_len */
+    if (StrVisualLength(s) >= max_len) len_flag = TRUE;
     else len_flag = FALSE;
 
     /* Handle control/function keys */
@@ -324,7 +335,7 @@ int InputString(char *s, int y, int x, int cursor_pos, int length, char *term)
         pp = GetHistory();
         if (pp == NULL) break;
         if(*pp) {
-            ls = StrLeft(pp, length);
+            ls = StrLeft(pp, max_len);
             strcpy(s, ls);
             free(ls);
             p = StrVisualLength(s);
@@ -334,9 +345,6 @@ int InputString(char *s, int y, int x, int cursor_pos, int length, char *term)
     case KEY_DOWN:
     case KEY_PPAGE:
     case KEY_NPAGE:
-        /* These keys mis-map to '#'/'S'/'R' in non-command modes.
-           In the input bar, they should simply be ignored (beep) or mapped
-           to a sensible, simple action like history. For now, treat as unhandled. */
         beep(); break;
 
     case 'A' & 0x1F: /* Ctrl-A, Beginning of Line */
@@ -446,7 +454,7 @@ int InputString(char *s, int y, int x, int cursor_pos, int length, char *term)
         pp = GetMatches(s);
         if (pp == NULL) break;
         if(*pp) {
-            ls = StrLeft(pp, length);
+            ls = StrLeft(pp, max_len);
             strcpy(s, ls);
             free(ls);
             p = StrVisualLength(s);
@@ -464,7 +472,7 @@ int InputString(char *s, int y, int x, int cursor_pos, int length, char *term)
             break;
         }
         if(*path) {
-            ls = StrLeft(path, length);
+            ls = StrLeft(path, max_len);
             strcpy(s, ls);
             free(ls);
             p = StrVisualLength(s);
@@ -494,7 +502,7 @@ int InputString(char *s, int y, int x, int cursor_pos, int length, char *term)
                 beep();
             } else {
                 int visual_insert_len = StrVisualLength(buf);
-                if (p + visual_insert_len > length) {
+                if (p + visual_insert_len > max_len) {
                     beep();
                 } else {
                     if ( insert_flag ) {
@@ -549,12 +557,16 @@ int InputString(char *s, int y, int x, int cursor_pos, int length, char *term)
   nodelay( stdscr, FALSE ); /* Ensure curses state is reset */
 
   p = strlen( s );
-  move( y, x + p );
-
-  for(i=0; i < length - p; i++ )
-   addch( ' ' );
-
+  /* Clear any remaining visual artifacts from scrolling on exit */
   move( y, x );
+  for(i=0; i < display_width; i++ ) addch( ' ' );
+
+  /* Redraw final string if it fits, else just clear or leave it?
+     The original code redrew the string. Let's redraw trimmed to display_width. */
+  char *final_show = StrLeft(s, display_width);
+  MvAddStr( y, x, final_show);
+  free(final_show);
+
   leaveok( stdscr, TRUE);
   curs_set(0);
   print_time = TRUE;
@@ -569,10 +581,16 @@ int InputString(char *s, int y, int x, int cursor_pos, int length, char *term)
   }
 #endif
 
-  strncpy( s, pp, length - 1);
-  s[length]='\0';
+  strncpy( s, pp, max_len - 1);
+  s[max_len]='\0';
   free(pp);
   return( c1 );
+}
+
+
+int InputString(char *s, int y, int x, int cursor_pos, int length, char *term)
+{
+    return InputStringEx(s, y, x, cursor_pos, length, length, term);
 }
 
 

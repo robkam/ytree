@@ -169,7 +169,7 @@ To maximize effectiveness and minimize frustration when working with the AI agen
     *   **Google AI Studio:** Start a **New Chat** for every distinct task. Long threads accumulate "hallucination debt" where the model prioritizes its previous (incorrect) guesses over new facts. If the model starts looping or hallucinating, abandon the thread and start fresh.
 5.  **Human Review:**
     *   **You are the Lead Architect.** The AI is a junior developer that types very fast.
-    *   **Action:** Never assume the AI's code is correct. **Always diff everything** (`git diff`) before accepting changes. Verify that it compiles and test it to find it behaves as expected.
+    *   **Action:** Never assume the AI's code is correct. **Always diff everything** (`vimdiff`) before accepting changes. Verify that it compiles and test it to find it behaves as expected.
 ### Instrumentation-Based Debugging
 If the AI is struggling to fix a bug or is "guessing" solutions that don't work, use this specific prompt pattern to force a diagnostic approach. This strategy (often called "printf debugging") focuses on gathering runtime evidence before attempting a fix.
 **The Prompt:**

@@ -118,7 +118,9 @@ int LoginDisk(char *path)
               char *slash = strrchr(parent_dir, FILE_SEPARATOR_CHAR);
               if (slash) {
                   *slash = '\0';
-                  chdir(parent_dir);
+                  if (chdir(parent_dir) != 0) {
+                      /* Suppress warning if chdir fails, access_ok handles the logic */
+                  }
               }
           }
       } else {
@@ -425,7 +427,7 @@ int GetNewLoginPath(char *path)
             user_input[strlen(user_input) - 1] = '\0';
     }
 
-    if (InputString(user_input, Y_PROMPT, 6, 0, COLS - 7, "\r\033") == CR) {
+    if (InputStringEx(user_input, Y_PROMPT, 6, 0, COLS - 7, PATH_LENGTH - 1, "\r\033") == CR) {
         /*
          * NOTE: The size of temp_path has been increased to prevent potential
          * buffer overflows identified by the -Wformat-truncation compiler warning.
@@ -688,7 +690,9 @@ START_MENU:
                                     char *slash = strrchr(neighbor_parent_dir, FILE_SEPARATOR_CHAR);
                                     if (slash) {
                                         *slash = '\0';
-                                        chdir(neighbor_parent_dir);
+                                        if (chdir(neighbor_parent_dir) != 0) {
+                                            /* Suppress */
+                                        }
                                     }
                                 }
                             } else {
@@ -781,12 +785,12 @@ int CycleLoadedVolume(int direction)
 
     int retries = 0;
     int max_retries;
+    BOOL changes_made = FALSE; /* Fix: Declare it here */
 
     // Get initial number of volumes to determine max_retries.
     // This ensures we don't loop indefinitely if volumes are repeatedly deleted.
     num_volumes = HASH_COUNT(VolumeList);
     max_retries = num_volumes + 1; // Allow trying all volumes + one wrap-around attempt
-    BOOL changes_made = FALSE;
 
     while (retries++ < max_retries) {
         // Re-evaluate num_volumes and re-snapshot the list in each iteration
@@ -794,7 +798,7 @@ int CycleLoadedVolume(int direction)
         num_volumes = HASH_COUNT(VolumeList);
 
         if (num_volumes <= 1) {
-            MESSAGE("Only one volume loaded.*No cycling possible.");
+            MESSAGE("Only one volume loaded. No cycling possible.");
             return (changes_made ? 0 : -1);
         }
 
@@ -849,19 +853,6 @@ int CycleLoadedVolume(int direction)
         if (LoginDisk(target_path) == 0) {
             return 0; // Success!
         } else {
-            /* LoginDisk failed, so the volume is bad. Delete it and retry. */
-            /* Note: LoginDisk does not delete volumes in all cases (only if found in cache and access fails).
-               If LoginDisk returned -1, we assume the volume is invalid.
-               However, LoginDisk takes a path string. It might have failed to find the volume in the list?
-               No, we got the path FROM the list.
-               If LoginDisk returns -1, it means it couldn't switch.
-               To prevent infinite looping on a bad volume, we must ensure it's removed.
-               But target pointer is dangerous if LoginDisk *did* delete it.
-               LoginDisk deletes if (found_vol != NULL) && (!access_ok).
-               So if it returned -1, it's likely gone.
-               But if it failed for other reasons (e.g. STAT_ failed at top of function), it might not have found it in the hash yet?
-               Let's re-verify existence before deleting to be safe. */
-
              struct Volume *check;
              HASH_FIND_INT(VolumeList, &target->id, check);
              if (check) {
@@ -871,8 +862,6 @@ int CycleLoadedVolume(int direction)
         }
     }
 
-    // If the loop finishes, it means max_retries were exhausted without successfully
-    // switching to an accessible volume.
     MESSAGE("Failed to switch to an accessible volume after multiple attempts.");
     return (changes_made ? 0 : -1);
 }
