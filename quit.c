@@ -99,8 +99,17 @@ static void PerformQuit(void)
             SaveHistory(path_for_history);
         }
 
+        /* Instrument: Log start of cleanup */
+        fprintf(stderr, "DEBUG: PerformQuit starting\n");
+        fflush(stderr);
+
         /* Free all allocated volumes to prevent memory leaks on exit. */
         Volume_FreeAll();
+
+        /* Instrument: Log end of volume cleanup */
+        fprintf(stderr, "DEBUG: PerformQuit: Volume_FreeAll done\n");
+        fflush(stderr);
+
         /* Free the global directory entry list */
         FreeDirEntryList();
 
