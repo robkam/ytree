@@ -78,14 +78,26 @@ void BuildDirEntryList(DirEntry *dir_entry, Statistic *stat_source) /* Removed s
  */
 void FreeDirEntryList(void)
 {
+    /* Instrument start */
+    fprintf(stderr, "DEBUG: FreeDirEntryList start\n");
+    fflush(stderr);
+
     if (dir_entry_list != NULL)
     {
+        /* Instrument before free */
+        fprintf(stderr, "DEBUG: Freeing dir_entry_list array at %p\n", (void*)dir_entry_list);
+        fflush(stderr);
+
         free(dir_entry_list);
         dir_entry_list = NULL;
         dir_entry_list_capacity = 0;
         current_dir_entry = 0;
         total_dirs = 0; /* Also reset total_dirs as the list is now empty */
     }
+
+    /* Instrument end */
+    fprintf(stderr, "DEBUG: FreeDirEntryList done\n");
+    fflush(stderr);
 }
 
 static void RotateDirMode(void)
