@@ -6,6 +6,7 @@ import json
 import argparse
 import time
 import glob
+import re
 from pathlib import Path
 import google.generativeai as genai
 from google.api_core import exceptions
@@ -52,13 +53,17 @@ The user is a maintainer who describes issues in terms of **Behavior**. They are
 **YOUR JOB:**
 1.  **Translate:** Convert the user's high-level bug report into a precise low-level C execution plan.
 2.  **Library Strategy:**
-    *   **Encouraged:** Use established, portable libraries that are standard on Unix-like systems or already present in the project to avoid reinventing the wheel.
+    *   **Encouraged:** Use established, portable libraries that are standard on Unix-like systems.
     *   **Prohibited:** Do NOT introduce heavy frameworks or OS-specific monitoring APIs unless explicitly requested.
-3.  **Sanity Check:** If the user suggests a specific technical approach that is dangerous or violates best practices, explain *why* it is risky in the `reasoning` field, but suggest a safer alternative that achieves the same result.
-4.  **Context:** Identify all files involved in the logic chain (e.g., if a variable changes in `global.c`, who reads it?).
+3.  **Sanity Check:** If the user suggests a dangerous approach, explain *why* in the `reasoning` field and suggest a safer alternative.
+4.  **Context:** Identify all files involved in the logic chain.
+
+**NOTE ON CONTEXT:**
+The file list provided below may be filtered based on the task description. If you believe a file exists in the project but is not listed (e.g., a standard header), you may still include it in your plan.
 
 **CONSTRAINT:**
-*   **NO CODE IN JSON:** The JSON output must ONLY contain file paths, action types, and context file paths. **DO NOT** include source code snippets or file content in the JSON plan. The Builder will handle the code generation.
+*   **NO CODE IN JSON:** The JSON output must ONLY contain file paths, action types, and context file paths.
+*   **VALID JSON:** Output must be a valid JSON object.
 
 **Output:** A JSON plan containing the files to modify and the reasoning.
 """
@@ -75,14 +80,14 @@ Implement the changes requested by the user and the Architect.
 3.  **Completeness:** You must output the **ENTIRE** file content. Do not strip comments unless they are obsolete.
 
 **--- LIBRARY & PORTABILITY CONSTRAINTS ---**
-*   **Standardization Mandate:** Prefer established, portable libraries available in standard Unix environments over custom re-implementations.
-*   **Strict Portability:** Do NOT use OS-specific headers (like `<sys/inotify.h>`) that would break compilation on BSD or macOS. Use standard POSIX calls (`stat`, `gettimeofday`) instead.
+*   **Standardization Mandate:** Prefer established, portable libraries available in standard Unix environments.
+*   **Strict Portability:** Do NOT use OS-specific headers (like `<sys/inotify.h>`) that would break compilation on BSD or macOS. Use standard POSIX calls (`stat`, `gettimeofday`).
 
 **--- CRITICAL OUTPUT CONSTRAINTS ---**
-*   **GLOBAL TEXT CONSTRAINT:** **STRICTLY PROHIBITED:** Do not use stacked Unicode characters (combining diacritics/Zalgo). This prohibition is absolute and applies to **ALL** output.
-*   **COMPLETE FILES ONLY:** Provide the **ENTIRE, FUNCTIONAL** C source or header file ready for compilation. **DO NOT** provide diffs, snippets, or partial code.
-*   **STANDALONE & CLEAN:** The output must be the final, clean, current version of the file. **DO NOT** include *any* introductory text, concluding summaries, or meta-comments.
-*   **COMMENT HANDLING:** Preserve all relevant existing comments. Update any comments that become inaccurate due to your changes.
+*   **GLOBAL TEXT CONSTRAINT:** **STRICTLY PROHIBITED:** Do not use stacked Unicode characters (combining diacritics/Zalgo).
+*   **COMPLETE FILES ONLY:** Provide the **ENTIRE, FUNCTIONAL** C source or header file. **DO NOT** provide diffs or snippets.
+*   **STANDALONE & CLEAN:** The output must be the final, clean, current version of the file. **DO NOT** include introductory text or meta-comments.
+*   **COMMENT HANDLING:** Preserve all relevant existing comments. Update any comments that become inaccurate.
 *   **NO MARKDOWN:** Do not wrap code in markdown blocks. Output raw code only.
 """
 
@@ -145,6 +150,67 @@ def get_project_files(root_dir="."):
 
     return sorted(list(set(relevant_files)))
 
+def filter_context(task_instruction, all_files):
+    """
+    Smart Context Filter:
+    1. Checks for 'Context:' or 'Scope:' lines in the task to forcefully narrow the list.
+    2. Otherwise, scans task text for filenames mentioned in the project.
+    3. Always includes 'Makefile' if heuristic matching is used.
+    """
+    task_lines = task_instruction.splitlines()
+    manual_scope = []
+
+    # 1. Check for manual explicit scope
+    for line in task_lines:
+        lower_line = line.strip().lower()
+        if lower_line.startswith("context:") or lower_line.startswith("scope:"):
+            # Extract filenames mentioned after the colon
+            parts = line.split(":", 1)[1].replace(",", " ").split()
+            manual_scope.extend([p.strip() for p in parts])
+
+    if manual_scope:
+        # Resolve manual entries to full paths
+        resolved = set()
+        for scope_item in manual_scope:
+            found = False
+            for real_file in all_files:
+                # Loose matching: if user says "main.c", match "src/main.c"
+                if scope_item in real_file:
+                    resolved.add(real_file)
+                    found = True
+            if not found:
+                log_msg(f"  [i] Warning: Manual scope '{scope_item}' not found in project.")
+
+        if resolved:
+            log_msg(f"  [i] Context: Strictly limited to {len(resolved)} files (Manual Override).")
+            return sorted(list(resolved))
+
+    # 2. Heuristic Matching
+    relevant = set()
+    matches_found = False
+
+    # Always check for Makefile if we are doing heuristics
+    for f in all_files:
+        if os.path.basename(f) == "Makefile":
+            relevant.add(f)
+
+    # Scan task for filenames
+    for f in all_files:
+        fname = os.path.basename(f)
+        # Check if filename is mentioned in the task text
+        # (Simple substring check, usually sufficient)
+        if fname in task_instruction:
+            relevant.add(f)
+            matches_found = True
+
+    if matches_found:
+        log_msg(f"  [i] Context: Heuristic detected {len(relevant)} relevant files.")
+        return sorted(list(relevant))
+
+    # 3. Fallback: Return everything if nothing detected
+    log_msg(f"  [i] Context: Sending full project structure ({len(all_files)} files).")
+    return all_files
+
 def read_file(path):
     try:
         with open(path, 'r', encoding='utf-8', errors='replace') as f:
@@ -171,11 +237,13 @@ def run_architect(task_instruction, file_list):
     log_msg("\n--- Phase 1: The Architect ---")
     log_msg(f"Analyzing project structure using {ARCHITECT_MODEL}...")
 
-    files_str = "\n".join(file_list)
+    # OPTIMIZATION: Filter the file list based on task relevance to save tokens
+    filtered_files = filter_context(task_instruction, file_list)
+    files_str = "\n".join(filtered_files)
 
     prompt = f"""{ARCHITECT_PROMPT_HEADER}
 
-    **Current Project File Structure:**
+    **Relevant Project Files (Subset):**
     {files_str}
 
     **User Task Instruction:**
@@ -213,7 +281,12 @@ def run_architect(task_instruction, file_list):
     if not response:
         sys.exit(1)
 
-    return json.loads(response.text)
+    try:
+        return json.loads(response.text)
+    except json.JSONDecodeError as e:
+        log_msg(f"Error parsing Architect JSON: {e}")
+        log_msg(f"Raw output:\n{response.text}")
+        sys.exit(1)
 
 # -----------------------------------------------------------------------------
 # BUILDER PHASE
@@ -317,7 +390,7 @@ def run_builder(plan_item, task_instruction):
     # Clean up Markdown if present
     if full_content.startswith("```"):
         lines = full_content.splitlines()
-        if lines.startswith("```"):
+        if lines and lines[0].startswith("```"):
             lines = lines[1:]
         if lines and lines[-1].startswith("```"):
             lines = lines[:-1]

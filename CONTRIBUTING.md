@@ -72,7 +72,7 @@ The tests will automatically build a test environment, run the local `./ytree` b
 
 ## AI-Assisted Workflow (Google Gemini API)
 
-We use Python automation scripts backed by the Google Gemini API to assist with the workflow.
+We use Python automation scripts backed by the Google Gemini API to assist with the workflow. To prevent API quota exhaustion (429 errors), these tools use **smart context filtering** and **lazy loading**.
 
 ### Setup
 
@@ -88,21 +88,27 @@ For complex architectural changes (e.g., "Implement a new file system watcher"),
 
 ### Part 2: The Builder (`build-ytree.py`)
 
-Use this script to execute changes. It reads a `task.txt` file and rewrites the source code.
+Use this script to execute architectural changes or large refactors. It reads a `task.txt` file and rewrites source code.
 
-*   **Model:** Gemini 2.5 Flash. Gemini 2.5 Pro is smarter, but has too low a quota.
-*   **Role:** Senior C Developer. It handles implementation details, headers, and Makefiles.
-*   **Capabilities:** Uses an infinite continuation loop to write large files without truncation.
+*   **Model:** Gemini 2.5 Flash.
+*   **Role:** Senior C Developer.
+*   **Mechanism:** Smart Filtering. To save tokens, the Builder tries to guess which files are relevant. You can override this manually.
 
 **Usage:**
 
-1.  **Create `task.txt`:** Describe the **Logical Goal** (The "What").
-    *   *Good:* "Implement a directory polling mechanism that checks `st_mtime` every 500ms. Do not use `inotify`."
-    *   *Bad:* "Add `int x` to line 40 of dirwin.c." (Do not micro-manage the builder).
+1.  **Create `task.txt`:** Describe the **Logical Goal**. (The "What").
+    *   **Context Control (Important):** If you know which files need modification, list them explicitly using a `Context:` line. This prevents the tool from sending the entire project structure to the AI, saving quota.
+
+    *Example `task.txt`:*
+    ```text
+    Context: dirwin.c, global.h
+
+    Change the color of directories to RED when they are marked as read-only.
+    Ensure this checks the st_mode bit correctly.
+    ```
 
 2.  **Run the Builder:**
     ```bash
-    # Standard run
     ./build-ytree.py --task task.txt --apply
     ```
 
@@ -113,27 +119,39 @@ Use this script to execute changes. It reads a `task.txt` file and rewrites the 
 
 4.  **Loop:**
     *   If it fails, revert (`git restore .`), refine `task.txt`, and try again.
-    *   If it succeeds, go back to the Chat window and type `/reload` so the Consultant sees the new code.
 
 ### Part 3: The Consultant (`chat-ytree.py`)
 
-Use this script to query the codebase, debug issues, and refine ideas. It loads the entire source tree into context but **cannot write files**.
+Use this script to query the codebase, debug issues, and refine ideas.
 
-*   **Model:** Gemini 2.5 Flash (Fast, Cheap, High Quota).
-*   **Default Role:** Advisor. Good for "Explain this function," "Find where variable X is defined," or "Draft a basic plan."
-*   **Instruction Mode:** To generate a `task.txt` plan locally, start your prompt with **"Give me a task.txt"**. The AI will switch modes and output a structured, numbered list of requirements suitable for copying into `task.txt`.
+*   **Mechanism:** Lazy Loading. By default, the AI only sees the list of filenames (the tree), not the content. You must "load" files into the context when you want the AI to read them.
 
 **Usage:**
 ```bash
+# Standard start (Context is empty)
 ./chat-ytree.py
+
+# Pre-load specific files if you know you need them
+./chat-ytree.py --context "main.c, global.h"
 ```
 
 **Commands:**
-*   `/reload`: Re-reads all files from disk (run this after every Build!).
-*   `/clear`: Clears conversation history to save tokens.
+*   `/load <pattern>`: Reads the content of matching files and sends them to the AI.
+    *   *Example:* `/load dir*.c` loads `dirwin.c` and `dirtree.c`.
+    *   *Example:* `/load log.c` loads just `log.c`.
+*   `/files`: Lists all available files in the project.
+*   `/clear`: Clears conversation history (and wipes loaded file memory).
 *   `/quit`: Exits.
 
+**Workflow Example:**
+1.  Run `./chat-ytree.py`.
+2.  User: "Where is the main loop?"
+3.  AI: "I can't see the code yet. Please load `main.c`."
+4.  User: `/load main.c`
+5.  AI: "I have loaded `main.c`. The main loop is located in function `HandleEvents`..."
+
 ### Best Practices for AI Interaction
+
 To maximize effectiveness and minimize frustration when working with the AI agents, adhere to these rules:
 1.  **Atomic Tasks (Granularity):**
     *   Do not ask the AI to perform multiple distinct tasks in a single prompt.
@@ -163,7 +181,9 @@ If the AI is struggling to fix a bug or is "guessing" solutions that don't work,
 ---
 
 ## Architectural Decisions & Constraints
+
 This section documents agreed-upon architectural constraints and non-goals. These decisions prevent scope creep and ensure the codebase remains maintainable given its specific goals (TUI file manager).
+
 ### 1. Concurrency Model: Single-Threaded Event Loop
 **Decision:** `ytree` will remain **single-threaded**. We will **NOT** implement multi-threading for background scanning or operations.
 **Rationale:**
@@ -174,11 +194,13 @@ This section documents agreed-upon architectural constraints and non-goals. Thes
 **Decision:** `ytree` is and will remain a curses-based TUI application.
 *   **Non-Goal:** Implementing a "headless" mode or porting to a different UI toolkit (GTK, Qt) is out of scope.
 *   **Non-Goal:** Removing `ncurses` to run on raw serial lines without termcap capabilities is out of scope.
+
 ### 3. Global State vs. Future Split Screen (F8)
 **Context:** Currently, `ytree` uses a "Single Active Volume" model where global macros (like `statistic`) map to the `CurrentVolume`.
 *   **Constraint:** Do not attempt to prematurely refactor these globals into "Window Contexts" until Phase 5 (Split Screen Implementation).
 *   **Future Impact:** When F8 (Split Screen) is implemented, it will require a major architectural refactor to move filtering state and directory pointers out of the global scope and into per-pane structures. Until then, the codebase assumes a single active view to maintain stability.
 ---
+
 ## Submitting Changes
 
 1.  **Fork the repository** on GitHub.
@@ -194,15 +216,11 @@ Please adhere to the existing coding style found throughout the project. The cod
 ### Ncurses Rendering Guidelines
 
 When working with the ncurses UI, it is critical to handle window drawing and coloring correctly to avoid visual artifacts and performance issues.
-
 **Cautionary Note on `WbkgdSet()`**
-
 The function `WbkgdSet()` sets the background property for an **entire window**. It should not be used within rendering loops to style individual lines of text. Misusing it in this way will cause the entire window's background to change on each call, leading to flickering, incorrect colors (e.g., black or same-as-text backgrounds), and inefficient rendering. Avoid calling this function repeatedly during a single screen refresh.
-
 **The Correct Approach**
 
 The idiomatic approach for rendering a window is a two-step process that separates the window's background from the text's attributes:
 1.  **Set the Window Background Once:** In the main display function (e.g., `DisplayTree`, `DisplayFiles`), make a single call to `WbkgdSet()` to establish the desired background for the entire window. Immediately follow this with `werase()` to apply this background, creating a clean canvas for drawing.
 2.  **Style Text with Attributes:** In functions that render individual lines (e.g., `PrintDirEntry`), use `wattron()` to enable specific attributes (like a color pair for highlighting or bold text) before drawing the text, and `wattroff()` to disable them afterward. These functions only affect the characters being drawn, not the window's persistent background property.
-
 This separation ensures stable, efficient, and artifact-free rendering.
