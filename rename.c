@@ -297,7 +297,8 @@ static int RenameDirEntry(char *to_path, char *from_path)
     return( -1 );
   }
 
-#ifdef HAVE_RENAME
+  /* Use standard POSIX rename() for directories and files. */
+  /* The old #ifdef HAVE_RENAME and link()/unlink() fallback are removed. */
   if( rename( from_path, to_path ) )
   {
     (void) sprintf( message,
@@ -309,30 +310,6 @@ static int RenameDirEntry(char *to_path, char *from_path)
     MESSAGE( message );
     return( -1 );
   }
-#else
-  if( link( from_path, to_path ) )
-  {
-    (void) sprintf( message,
-		    "Can't link \"%s\"*to \"%s\"*%s",
-		    from_path,
-		    to_path,
-		    strerror(errno)
-		  );
-    MESSAGE( message );
-    return( -1 );
-  }
-
-  if( unlink( from_path ) )
-  {
-    (void) sprintf( message,
-		    "Can't unlink*\"%s\"*%s",
-		    from_path,
-		    strerror(errno)
-		  );
-    MESSAGE( message );
-    return( -1 );
-  }
-#endif
 
   return( 0 );
 }
@@ -346,26 +323,17 @@ static int RenameFileEntry(char *to_path, char *from_path)
   if( !strcmp( to_path, from_path ) )
   {
     MESSAGE( "Can't rename!*New Name == Old Name" );
-    return( -1 );
+    return( 0 ); /* Return 0 as it's a no-op, not an error */
   }
 
-  if( link( from_path, to_path ) )
+  /* Use standard POSIX rename() for files. */
+  /* The old link()/unlink() fallback is removed. */
+  if( rename( from_path, to_path ) )
   {
     (void) sprintf( message,
-		    "Can't link \"%s\"*to \"%s\"*%s",
+		    "Can't rename \"%s\"*to \"%s\"*%s",
 		    from_path,
 		    to_path,
-		    strerror(errno)
-		  );
-    MESSAGE( message );
-    return( -1 );
-  }
-
-  if( unlink( from_path ) )
-  {
-    (void) sprintf( message,
-		    "Can't unlink*\"%s\"*%s",
-		    from_path,
 		    strerror(errno)
 		  );
     MESSAGE( message );
