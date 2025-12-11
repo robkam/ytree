@@ -47,6 +47,8 @@ int ExtractArchiveEntry(const char *archive_path, const char *entry_path, int ou
     const void *buff;
     size_t size;
     la_int64_t offset;
+    const char *target_name;
+    int spin_counter = 0; /* Activity spinner counter */
 
     const char *effective_entry_path_segment; /* Points into entry_path or a derived segment */
     char normalized_target_name_buf[PATH_LENGTH + 1];
@@ -107,6 +109,11 @@ int ExtractArchiveEntry(const char *archive_path, const char *entry_path, int ou
         if (clean_path && strcmp(clean_path, final_target_name) == 0) {
             /* Found the entry, now write its data to the fd */
             while ((r = archive_read_data_block(a, &buff, &size, &offset)) == ARCHIVE_OK) {
+                /* Update Spinner during extraction */
+                if ((++spin_counter % 100) == 0) {
+                    DrawSpinner();
+                    doupdate();
+                }
                 if (write(out_fd, buff, size) != (ssize_t)size) {
                     /* Write error */
                     archive_read_free(a);
@@ -115,6 +122,11 @@ int ExtractArchiveEntry(const char *archive_path, const char *entry_path, int ou
             }
             archive_read_free(a);
             return (r == ARCHIVE_EOF) ? 0 : -1; /* Return success only on clean EOF */
+        }
+        /* Update spinner while searching headers too */
+        if ((++spin_counter % 50) == 0) {
+            DrawSpinner();
+            doupdate();
         }
     }
 

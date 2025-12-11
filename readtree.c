@@ -135,15 +135,18 @@ int ReadTree(DirEntry *dir_entry, char *path, int depth)
 
     /* Update statistics / animation every 20 files to be smoother */
     if( ( file_count++ % 20 ) == 0 ) {
+      /* Draw spinner and update clock regardless of animation method */
+      DrawSpinner();
+      ClockHandler(0);
+
       if (animation_method == 1) {
-          DrawAnimationStep(file_window);
-          doupdate();
+          DrawAnimationStep(dir_window); /* Changed from file_window to dir_window */
       } else {
           if ((file_count % 100) == 0) { /* Don't flicker stats too fast */
               DisplayDiskStatistic();
-              doupdate();
           }
       }
+      doupdate(); /* Always refresh the screen after updates */
     }
 
 

@@ -51,10 +51,6 @@ void DrawAnimationStep(WINDOW *win) {
     getmaxyx(win, scr_h, scr_w);
     werase(win);
 
-    /* Optional: Draw status text */
-    mvwaddstr(win, scr_h - 2, 2, "Scanning directory structure...");
-    mvwaddstr(win, scr_h - 1, 2, "Please wait...");
-
     for(i = 0; i < WARP_STARS; i++) {
         /* Move star closer */
         stars[i].z -= 0.08f;
@@ -86,4 +82,18 @@ void DrawAnimationStep(WINDOW *win) {
         }
     }
     wnoutrefresh(win);
+}
+
+/* New Activity Spinner Implementation */
+void DrawSpinner(void) {
+    static int spin_counter = 0;
+    static char spin_chars[] = "|/-\\";
+
+    if (LINES > 0 && COLS > 0) {
+        /* Draw at bottom right (menu line) */
+        mvaddch(LINES - 2, COLS - 2, spin_chars[spin_counter++ % 4]);
+
+        /* Force immediate update to screen */
+        refresh();
+    }
 }
