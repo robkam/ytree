@@ -333,6 +333,7 @@ static int Copy(char *to_path, char *from_path)
 {
   int         i, o, n;
   char        buffer[2048];
+  int         spin_counter = 0;
 
   if( mode != DISK_MODE && mode != USER_MODE )
   {
@@ -373,6 +374,12 @@ static int Copy(char *to_path, char *from_path)
 
   while( ( n = read( i, buffer, sizeof( buffer ) ) ) > 0 )
   {
+    /* Update activity spinner every 100 chunks */
+    if ((++spin_counter % 100) == 0) {
+        DrawSpinner();
+        doupdate();
+    }
+
     if( write( o, buffer, n ) != n )
     {
       (void) sprintf( message, "Write-Error!*%s", strerror(errno) );

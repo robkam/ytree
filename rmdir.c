@@ -144,6 +144,9 @@ static int DeleteSingleDirectory( DirEntry *dir_entry )
 
   for( fe_ptr = dir_entry->file; fe_ptr; fe_ptr=next_fe_ptr ) {
     next_fe_ptr = fe_ptr->next;
+    /* Spinner to indicate progress during bulk deletion */
+    DrawSpinner();
+    doupdate();
     if( DeleteFile( fe_ptr ) ) {
       ESCAPE;
     }

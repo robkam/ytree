@@ -133,14 +133,16 @@ int ReadTreeFromArchive(DirEntry **dir_entry_ptr, const char *filename)
         /* Update statistics / animation every 20 files */
         if( ( count++ % 20 ) == 0 ) {
             if (animation_method == 1) {
-                DrawAnimationStep(file_window);
-                doupdate();
+                DrawAnimationStep(dir_window); /* Changed from file_window to dir_window */
             } else {
                 if ((count % 100) == 0) {
                     DisplayDiskStatistic();
-                    doupdate();
                 }
             }
+            /* These UI updates should always happen, regardless of animation method */
+            DrawSpinner(); /* Activity spinner */
+            ClockHandler(0); /* Clock update */
+            doupdate(); /* Ensure screen is refreshed after updates */
         }
     }
 

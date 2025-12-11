@@ -744,6 +744,7 @@ extern int ReadTreeFromArchive(DirEntry **dir_entry_ptr, const char *filename);
 extern void InitAnimation(void);
 extern void StopAnimation(void);
 extern void DrawAnimationStep(WINDOW *win);
+extern void DrawSpinner(void); /* ADDED: Prototype for activity spinner */
 
 /* chgrp.c */
 extern int ChangeDirGroup(DirEntry *de_ptr);

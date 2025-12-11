@@ -2748,6 +2748,9 @@ static int DeleteTaggedFiles(int max_disp_files)
 
     if( fe_ptr->tagged && fe_ptr->matching )
     {
+      /* Spinner to indicate progress during bulk deletion */
+      DrawSpinner();
+      doupdate();
       start_file = MAX( 0, i - max_disp_files + 1 );
       cursor_pos = i - start_file;
 
