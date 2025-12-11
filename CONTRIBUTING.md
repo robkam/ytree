@@ -72,7 +72,7 @@ The tests will automatically build a test environment, run the local `./ytree` b
 
 ## AI-Assisted Workflow (Google Gemini API)
 
-We use Python automation scripts backed by the Google Gemini API to assist with the workflow. To prevent API quota exhaustion (429 errors), these tools use **smart context filtering** and **lazy loading**.
+We use Python automation scripts backed by the Google Gemini API to assist with the workflow.
 
 ### Setup
 
@@ -82,9 +82,22 @@ We use Python automation scripts backed by the Google Gemini API to assist with 
     export GEMINI_API_KEY="your_key_here"
     ```
 
-### Part 1: The Consultant (`Google AI Studio Web Interface (Gemini 3.0 Pro)`)
+### Part 1: The Consultant (`Google AI Studio Web Interface`)
 
-For complex architectural changes (e.g., "Implement a new file system watcher"), the local Chat script is too limited. In these cases, use the **Google AI Studio Web Interface (Gemini 3.0 Pro)** to draft your `task.txt` plan, then paste it locally.
+For complex architectural changes (e.g., "Implement a new file system watcher" or "Fix a complex memory corruption"), the local Chat script may lack sufficient context. In these cases, use the **Google AI Studio Web Interface** to analyze the **entire project**.
+
+1.  **Generate Context:** Run the provided script to bundle all relevant source code into a single file.
+    ```bash
+    ./gather_context.py > context.txt
+    ```
+    *(Note: On Mac/Linux, you can pipe directly to clipboard: `./gather_context.py | xclip -sel clip`)*
+
+2.  **Upload:**
+    *   Go to Google AI Studio.
+    *   Create a new prompt.
+    *   Upload or paste the content of `context.txt`.
+
+3.  **Prompt:** Ask your architectural question. Use the response to draft a `task.txt` plan, then switch to Part 2 to execute it locally.
 
 ### Part 2: The Builder (`build-ytree.py`)
 
@@ -120,7 +133,7 @@ Use this script to execute architectural changes or large refactors. It reads a 
 4.  **Loop:**
     *   If it fails, revert (`git restore .`), refine `task.txt`, and try again.
 
-### Part 3: The Consultant (`chat-ytree.py`)
+### Part 3: The Junior Consultant (`chat-ytree.py`)
 
 Use this script to query the codebase, debug issues, and refine ideas.
 
@@ -169,7 +182,7 @@ To maximize effectiveness and minimize frustration when working with the AI agen
     *   **Google AI Studio:** Start a **New Chat** for every distinct task. Long threads accumulate "hallucination debt" where the model prioritizes its previous (incorrect) guesses over new facts. If the model starts looping or hallucinating, abandon the thread and start fresh.
 5.  **Human Review:**
     *   **You are the Lead Architect.** The AI is a junior developer that types very fast.
-    *   **Action:** Never assume the AI's code is correct. **Always diff everything** (`vimdiff`) before accepting changes. Verify that it compiles and test it to find it behaves as expected.
+    *   **Action:** Never assume the AI's code is correct. **Always diff everything** before accepting changes. Verify that it compiles and test it to find it behaves as expected.
 ### Instrumentation-Based Debugging
 If the AI is struggling to fix a bug or is "guessing" solutions that don't work, use this specific prompt pattern to force a diagnostic approach. This strategy (often called "printf debugging") focuses on gathering runtime evidence before attempting a fix.
 **The Prompt:**
