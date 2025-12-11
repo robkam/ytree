@@ -58,10 +58,6 @@ void Volume_Delete(struct Volume *vol) {
         return;
     }
 
-    /* Instrument: Trace deletion start */
-    fprintf(stderr, "DEBUG: Volume_Delete: deleting tree at %p\n", (void*)vol->vol_stats.tree);
-    fflush(stderr);
-
     /* Remove the volume from the global hash table */
     HASH_DEL(VolumeList, vol);
 
@@ -85,15 +81,8 @@ void Volume_Delete(struct Volume *vol) {
 void Volume_FreeAll(void) {
     struct Volume *s, *tmp;
 
-    /* Instrument: Trace start */
-    fprintf(stderr, "DEBUG: Volume_FreeAll start\n");
-    fflush(stderr);
-
     /* Safely iterate and delete everything */
     HASH_ITER(hh, VolumeList, s, tmp) {
-        /* Instrument: Trace item */
-        fprintf(stderr, "DEBUG: Volume_FreeAll deleting vol ID %d at %p\n", s->id, (void*)s);
-        fflush(stderr);
         Volume_Delete(s);
     }
     CurrentVolume = NULL;
