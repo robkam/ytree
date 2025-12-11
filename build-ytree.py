@@ -64,6 +64,7 @@ The file list provided below may be filtered based on the task description. If y
 **CONSTRAINT:**
 *   **NO CODE IN JSON:** The JSON output must ONLY contain file paths, action types, and context file paths.
 *   **VALID JSON:** Output must be a valid JSON object.
+*   **PATHING:** Return paths relative to the project root (e.g., `main.c`, `src/utils.c`). **DO NOT** prepend the project directory name (e.g., do **NOT** output `ytree/main.c`).
 
 **Output:** A JSON plan containing the files to modify and the reasoning.
 """

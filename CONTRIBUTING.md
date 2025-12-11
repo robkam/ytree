@@ -72,7 +72,7 @@ The tests will automatically build a test environment, run the local `./ytree` b
 
 ## AI-Assisted Workflow (Google Gemini API)
 
-We use Python automation scripts backed by the Google Gemini API to assist with the workflow.
+We use Python automation scripts backed by the Google Gemini API to assist with the workflow. These scripts are executed from the **root** of the `ytree` directory, so all file paths are relative to the current directory (e.g., `main.c`, **not** `ytree/main.c`).
 
 ### Setup
 
