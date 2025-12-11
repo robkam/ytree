@@ -99,8 +99,16 @@ static void PerformQuit(void)
             SaveHistory(path_for_history);
         }
 
+        /* Ncurses cleanup sequence: clear screen, restore cursor, and reset terminal */
+        /* Performed BEFORE freeing memory to ensure clean terminal state if crash occurs */
+        attrset(0);  /* Reset attributes */
+        clear();     /* Clear internal buffer */
+        refresh();   /* Push clear to screen */
+        curs_set(1); /* Restore visible cursor */
+        endwin();    /* Restore terminal settings */
+
         /* Instrument: Log start of cleanup */
-        fprintf(stderr, "DEBUG: PerformQuit starting\n");
+        fprintf(stderr, "DEBUG: PerformQuit starting cleanup\n");
         fflush(stderr);
 
         /* Free all allocated volumes to prevent memory leaks on exit. */
@@ -112,13 +120,6 @@ static void PerformQuit(void)
 
         /* Free the global directory entry list */
         FreeDirEntryList();
-
-        /* Ncurses cleanup sequence: clear screen, restore cursor, and reset terminal */
-        attrset(0);  /* Reset attributes */
-        clear();     /* Clear internal buffer */
-        refresh();   /* Push clear to screen */
-        curs_set(1); /* Restore visible cursor */
-        endwin();    /* Restore terminal settings */
 
 #ifdef XCURSES
         XCursesExit();

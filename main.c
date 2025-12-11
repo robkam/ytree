@@ -141,14 +141,17 @@ int main(int argc, char **argv)
 
   /*
    * Explicit cleanup: The main loop has terminated (e.g., user pressed 'q').
-   * All allocated volumes and associated memory are freed before program exit.
+   * Safe Shutdown Order: Restore terminal FIRST, then free memory.
+   * This prevents "Blue Screen" freezes if memory cleanup crashes.
    */
-  Volume_FreeAll(); /* Explicitly free memory */
-  FreeDirEntryList(); /* Free the global dir_entry_list array */
   attrset(0);  /* Reset attributes */
   clear();     /* Clear internal buffer */
   refresh();   /* Push clear to screen */
   curs_set(1); /* Restore visible cursor */
-  endwin();
+  endwin();    /* Restore terminal settings */
+
+  Volume_FreeAll(); /* Explicitly free memory */
+  FreeDirEntryList(); /* Free the global dir_entry_list array */
+
   return 0;
 }
