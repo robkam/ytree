@@ -142,21 +142,13 @@ void DeleteTree(DirEntry *tree) {
     FileEntry *f_ptr, *next_f_ptr;
 
     while (tree) {
-        /* Instrument: Visit node */
-        fprintf(stderr, "DEBUG: DeleteTree: visiting %p (name='%s')\n", (void*)tree, tree->name ? tree->name : "NULL");
-        fflush(stderr);
-
         /* 1. Recursively delete sub-directories (Depth-First) */
         if (tree->sub_tree) {
-            fprintf(stderr, "DEBUG: DeleteTree: recursing sub_tree %p\n", (void*)tree->sub_tree);
-            fflush(stderr);
             DeleteTree(tree->sub_tree);
             tree->sub_tree = NULL;
         }
 
         /* 2. Delete files in this directory */
-        fprintf(stderr, "DEBUG: DeleteTree: deleting files\n");
-        fflush(stderr);
         for (f_ptr = tree->file; f_ptr; f_ptr = next_f_ptr) {
             next_f_ptr = f_ptr->next;
             free(f_ptr);
@@ -166,8 +158,6 @@ void DeleteTree(DirEntry *tree) {
         next_dir = tree->next;
 
         /* 4. Free the directory entry */
-        fprintf(stderr, "DEBUG: DeleteTree: freeing node %p\n", (void*)tree);
-        fflush(stderr);
         free(tree);
 
         /* 5. Move to next sibling */

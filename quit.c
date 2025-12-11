@@ -107,16 +107,8 @@ static void PerformQuit(void)
         curs_set(1); /* Restore visible cursor */
         endwin();    /* Restore terminal settings */
 
-        /* Instrument: Log start of cleanup */
-        fprintf(stderr, "DEBUG: PerformQuit starting cleanup\n");
-        fflush(stderr);
-
         /* Free all allocated volumes to prevent memory leaks on exit. */
         Volume_FreeAll();
-
-        /* Instrument: Log end of volume cleanup */
-        fprintf(stderr, "DEBUG: PerformQuit: Volume_FreeAll done\n");
-        fflush(stderr);
 
         /* Free the global directory entry list */
         FreeDirEntryList();
@@ -124,6 +116,12 @@ static void PerformQuit(void)
 #ifdef XCURSES
         XCursesExit();
 #endif
+        /* Final safety net for terminal state */
+        fprintf(stderr, "DEBUG: PerformQuit calling stty sane\n");
+        fflush(stderr);
+        system("stty sane");
+        fprintf(stderr, "DEBUG: PerformQuit calling exit(0)\n");
+        fflush(stderr);
         exit(0);
     }
     /* If user cancels, the function simply returns. */
