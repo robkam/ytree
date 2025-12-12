@@ -21,14 +21,14 @@ static void DisplayVersion(void);
 
 /* Removed leading spaces for dynamic centering */
 static char *logo[] = {
-"                  #                       ",
-"                ##                        ",
-"     ##  ##   #####  ## ###   ####    ####",
-"    ##  ##    ##     ##  ## ##  ##  ##  ##",
-"   ##  ##    ##     ##  ## ######  ###### ",
-"   #####    ## #   ##     ##      ##      ",
-"     ##     ###  ####     ####    ####    ",
-"#####                                     "
+"                 #                        ",
+"               ##                         ",
+"     ##  ##  #####  ## ###    ####    ####",
+"    ##  ##   ##     ##  ##  ##  ##  ##  ##",
+"   ##  ##   ##     ##  ##  ######  ###### ",
+"   #####   ## #   ##      ##      ##      ",
+"     ##    ###  ####      ####    ####    ",
+"#####                                    "
 		      };
 
 /* 'extended_line' is removed as it was part of the static statistics panel
@@ -241,7 +241,7 @@ void DisplayMenu(void)
 
       /* Print Version Below Logo */
       (void) sprintf( version,
-              "ytree Version %sPL%d %s (Werner Bregulla)",
+              "ytree Version %sPL%d, %s, (Werner Bregulla)",
               VERSION,
               PATCHLEVEL,
               VERSIONDATE
