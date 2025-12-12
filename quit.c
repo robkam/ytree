@@ -1,3 +1,4 @@
+
 /***************************************************************************
  *
  * quit.c
@@ -93,6 +94,10 @@ static void PerformQuit(void)
 
     if (term == 'Y' || term == 'Q' || term == 'q')
     {
+        /* CRITICAL FIX: Stop the clock signal immediately to prevent race conditions.
+         * If SIGALRM fires after endwin() but before exit(), it causes a crash. */
+        SuspendClock();
+
         /* Common exit procedure for all quit types */
         if ((p = getenv("HOME"))) {
             sprintf(path_for_history, "%s%c%s", p, FILE_SEPARATOR_CHAR, HISTORY_FILENAME);
