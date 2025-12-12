@@ -19,28 +19,16 @@ static void DisplayVersion(void);
 /* The 'mask' array is removed as the static statistics panel it defined
  * is now entirely managed by stats.c. */
 
-/*
+/* Removed leading spaces for dynamic centering */
 static char *logo[] = {
-                        "                  #                       ",
-                        "                ##                        ",
-                        "     ##  ##   #####  ## ###   ####    ####",
-                        "    ##  ##    ##     ##  ## ##  ##  ##  ##",
-                        "   ##  ##    ##     ##  ## ######  ###### ",
-                        "   #####    ## #   ##     ##      ##      ",
-                        "     ##     ###  ####     ####    ####    ",
-                        "#####                                     "
-		      };
-*/
-
-static char *logo[] = {
-                        "                 ▀\\                                ",
-                        "               ▀▀\\                                 ",
-                        "     ▀▀\\ ▀▀\\ ▀▀▀▀▀\\ ▀▀\\▀▀▀\\   ▀▀▀▀\\   ▀▀▀▀\\  ",
-                        "    ▀▀\\ ▀▀\\  ▀▀\\    ▀▀\\ ▀▀\\ ▀▀\\ ▀▀\\ ▀▀\\ ▀▀\\",
-                        "   ▀▀\\ ▀▀\\  ▀▀\\    ▀▀\\ ▀▀\\ ▀▀▀▀▀▀\\ ▀▀▀▀▀▀\\   ",
-                        "   ▀▀▀▀▀\\  ▀▀\\▀\\  ▀▀\\     ▀▀\\     ▀▀\\         ",
-                        "     ▀▀\\   ▀▀▀\\ ▀▀▀▀\\     ▀▀▀▀\\   ▀▀▀▀\\        ",
-                        "▀▀▀▀▀\\                                             "
+"                  #                       ",
+"                ##                        ",
+"     ##  ##   #####  ## ###   ####    ####",
+"    ##  ##    ##     ##  ## ##  ##  ##  ##",
+"   ##  ##    ##     ##  ## ######  ###### ",
+"   #####    ## #   ##     ##      ##      ",
+"     ##     ###  ####     ####    ####    ",
+"#####                                     "
 		      };
 
 /* 'extended_line' is removed as it was part of the static statistics panel
@@ -236,20 +224,41 @@ void DisplayMenu(void)
 
   /* Only display static logo if animation is disabled */
   if (animation_method == 0) {
-      l = sizeof(logo) / sizeof(logo[0]);
-      c = strlen( logo[0] );
+      char version[80];
+      int logo_rows = sizeof(logo) / sizeof(logo[0]);
+      int start_y = (DIR_WINDOW_HEIGHT - logo_rows) / 2;
 
-      for( y=0; y < l; y++ )
+      /* Print Logo Centered */
+      for( y=0; y < logo_rows; y++ )
       {
+        c = strlen( logo[y] );
         MvWAddStr( dir_window,
-           y + ((DIR_WINDOW_HEIGHT - l) >> 1),
-           (DIR_WINDOW_WIDTH - c) >> 1,
+           start_y + y,
+           (DIR_WINDOW_WIDTH - c) / 2, /* Dynamic centering */
            logo[y]
          );
       }
+
+      /* Print Version Below Logo */
+      (void) sprintf( version,
+              "ytree Version %sPL%d %s (Werner Bregulla)",
+              VERSION,
+              PATCHLEVEL,
+              VERSIONDATE
+            );
+      c = strlen(version);
+
+      /* Ensure it fits and position it 2 lines below logo */
+      if (start_y + logo_rows + 2 < DIR_WINDOW_HEIGHT) {
+          MvWAddStr( dir_window,
+             start_y + logo_rows + 2,
+             (DIR_WINDOW_WIDTH - c) / 2,
+             version
+           );
+      }
   }
 
-  DisplayVersion();
+  /* DisplayVersion(); REMOVED from footer */
 
   touchwin( dir_window );
   /* refresh(); */
