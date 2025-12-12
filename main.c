@@ -156,9 +156,14 @@ int main(int argc, char **argv)
 
   /*
    * Explicit cleanup: The main loop has terminated (e.g., user pressed 'q').
-   * Safe Shutdown Order: Restore terminal FIRST, then free memory.
-   * This prevents "Blue Screen" freezes if memory cleanup crashes.
+   * Safe Shutdown Order:
+   * 1. Suspend Clock (Stop signals)
+   * 2. Restore terminal
+   * 3. Free memory
+   * This prevents "Blue Screen" freezes if memory cleanup crashes or signals fire during exit.
    */
+  SuspendClock(); /* CRITICAL FIX: Stop SIGALRM before touching curses/memory */
+
   attrset(0);  /* Reset attributes */
   clear();     /* Clear internal buffer */
   refresh();   /* Push clear to screen */
