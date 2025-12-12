@@ -279,6 +279,7 @@ int LoginDisk(char *path)
                              );
 
       DisplayMenu();
+      DisplayDiskStatistic(); /* User requested: Draw the stats panel frame immediately */
 
       if(animation_method == 1) {
           SwitchToBigFileWindow();
