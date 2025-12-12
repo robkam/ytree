@@ -19,16 +19,19 @@ static void DisplayVersion(void);
 /* The 'mask' array is removed as the static statistics panel it defined
  * is now entirely managed by stats.c. */
 
-/* Removed leading spaces for dynamic centering */
+/* Mapped '██' to '#' and '░░' to ':' for ncurses ACS character rendering */
 static char *logo[] = {
-"                 #                        ",
-"               ##                         ",
-"     ##  ##  #####  ## ###    ####    ####",
-"    ##  ##   ##     ##  ##  ##  ##  ##  ##",
-"   ##  ##   ##     ##  ##  ######  ###### ",
-"   #####   ## #   ##      ##      ##      ",
-"     ##    ###  ####      ####    ####    ",
-"#####                                    "
+"             ###                                 ",
+"            :###                                 ",
+" ###  ###  #######    ######   ######    ######  ",
+":### :### :::###     :###::## :###::### :###::###",
+":### :###   :###     ###  ::  #######:  #######: ",
+":### :###   :### ## :###     :###:::   :###:::   ",
+"::#######   ::##### :###     ::######  ::######  ",
+" :::::###    :::::  :::       ::::::    ::::::   ",
+"  ## :###                                        ",
+" :######                                         ",
+" ::::::                                          "
 		      };
 
 /* 'extended_line' is removed as it was part of the static statistics panel
@@ -231,12 +234,21 @@ void DisplayMenu(void)
       /* Print Logo Centered */
       for( y=0; y < logo_rows; y++ )
       {
-        c = strlen( logo[y] );
-        MvWAddStr( dir_window,
-           start_y + y,
-           (DIR_WINDOW_WIDTH - c) / 2, /* Dynamic centering */
-           logo[y]
-         );
+        int start_x = (DIR_WINDOW_WIDTH - strlen(logo[y])) / 2;
+        char *p = logo[y];
+        wmove(dir_window, start_y + y, start_x);
+        while (*p != '\0') {
+            if (*p == '#') {
+                wattron(dir_window, A_REVERSE);
+                waddch(dir_window, ' ');
+                wattroff(dir_window, A_REVERSE);
+            } else if (*p == ':') {
+                waddch(dir_window, ACS_CKBOARD);
+            } else {
+                waddch(dir_window, ' ');
+            }
+            p++;
+        }
       }
 
       /* Print Version Below Logo */
