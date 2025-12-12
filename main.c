@@ -14,25 +14,9 @@
 static char buffer[PATH_LENGTH+1];
 static char path[PATH_LENGTH+1];
 
-/* atexit handler for post-return crash diagnosis */
-static void OnExit(void) {
-  fprintf(stderr, "DEBUG: atexit handler reached\n");
-  fflush(stderr);
-}
-
 static void EmergencyExit(int sig)
 {
-  /* Instrument: Log signal immediately */
-  fprintf(stderr, "DEBUG: EmergencyExit caught signal %d\n", sig);
-  fflush(stderr);
-
   endwin();
-
-  /* Force terminal reset to prevent "Blue Screen" hang */
-  fprintf(stderr, "DEBUG: EmergencyExit calling system(stty sane)\n");
-  fflush(stderr);
-  system("stty sane");
-
   fprintf(stderr, "\nINTERNAL ERROR: Signal %d caught. Terminal restored.\n", sig);
   exit(1);
 }
@@ -49,9 +33,6 @@ int main(int argc, char **argv)
   signal(SIGSEGV, EmergencyExit); /* Segfault */
   signal(SIGABRT, EmergencyExit); /* Abort */
   signal(SIGINT, EmergencyExit);  /* Ctrl-C safety */
-
-  /* Register atexit handler for final exit diagnosis */
-  atexit(OnExit);
 
   /* setlocale is now handled in Init */
 
@@ -173,11 +154,5 @@ int main(int argc, char **argv)
   Volume_FreeAll(); /* Explicitly free memory */
   FreeDirEntryList(); /* Free the global dir_entry_list array */
 
-  /* Final safety net for terminal state */
-  fprintf(stderr, "DEBUG: main reached return 0\n");
-  fflush(stderr);
-  system("stty sane");
-  fprintf(stderr, "DEBUG: stty sane finished\n");
-  fflush(stderr);
   return 0;
 }
