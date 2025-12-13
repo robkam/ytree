@@ -181,7 +181,7 @@ int SetFileModus(FileEntry *fe_ptr, WalkingPackage *walking_package)
   }
   else
   {
-    (void) sprintf( message, "Cant't change modus:*%s", strerror(errno) );
+    (void) snprintf( message, MESSAGE_LENGTH, "Cant't change modus:*%s", strerror(errno) );
     MESSAGE( message );
   }
 
@@ -226,7 +226,7 @@ static int SetDirModus(DirEntry *de_ptr, WalkingPackage *walking_package)
   }
   else
   {
-    (void) sprintf( message, "Cant't change modus:*%s", strerror(errno) );
+    (void) snprintf( message, MESSAGE_LENGTH, "Cant't change modus:*%s", strerror(errno) );
     MESSAGE( message );
   }
 

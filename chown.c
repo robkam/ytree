@@ -27,7 +27,7 @@ int GetNewOwner(int st_uid)
   owner_name_ptr = GetPasswdName( id );
   if( owner_name_ptr == NULL )
   {
-    (void) sprintf( owner, "%d", id );
+    (void) snprintf( owner, sizeof(owner), "%d", id );
   }
   else
   {
@@ -42,7 +42,7 @@ int GetNewOwner(int st_uid)
   {
     if( (owner_id = GetPasswdUid( owner )) == -1 )
     {
-      (void) sprintf( message, "Can't read Owner-ID:*%s", owner );
+      (void) snprintf( message, MESSAGE_LENGTH, "Can't read Owner-ID:*%s", owner );
       MESSAGE( message );
     }
   }

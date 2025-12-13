@@ -78,7 +78,8 @@ int CopyFile(Statistic *statistic_ptr,
 
     if( MakePath( statistic_ptr->tree, to_path, &dest_dir_entry ) )
     {
-     	 (void) sprintf( message,
+     	 (void) snprintf( message,
+                         MESSAGE_LENGTH,
                          "Can't create path*\"%s\"*%s",
                          to_path,
                          strerror(errno)
@@ -101,7 +102,8 @@ int CopyFile(Statistic *statistic_ptr,
         if (MakePath(statistic_ptr->tree, to_path, &dest_dir_entry ) )
         {
                 if(tmpdir) closedir(tmpdir);
-                (void) sprintf( message,
+                (void) snprintf( message,
+                                MESSAGE_LENGTH,
                                 "Can't create path*\"%s\"*%s",
                                 to_path,
                                 strerror(errno)
@@ -194,7 +196,7 @@ int CopyFile(Statistic *statistic_ptr,
 
     if( chmod( to_path, fe_ptr->stat_struct.st_mode ) == -1 )
     {
-      sprintf( message, "Can't chmod file*\"%s\"*to mode %s*IGNORED",
+      snprintf( message, MESSAGE_LENGTH, "Can't chmod file*\"%s\"*to mode %s*IGNORED",
                to_path, GetAttributes(fe_ptr->stat_struct.st_mode, buffer) );
       WARNING( message );
     }
@@ -304,11 +306,11 @@ int GetCopyParameter(char *from_file, BOOL path_copy, char *to_file, char *to_di
 
   if( path_copy )
   {
-    (void) sprintf( buffer, "PATHCOPY: %s", from_file );
+    (void) snprintf( buffer, sizeof(buffer), "PATHCOPY: %s", from_file );
   }
   else
   {
-    (void) sprintf( buffer, "COPY: %s", from_file );
+    (void) snprintf( buffer, sizeof(buffer), "COPY: %s", from_file );
   }
 
   ClearHelp();
@@ -352,7 +354,7 @@ static int Copy(char *to_path, char *from_path)
 
   if( ( i = open( from_path, O_RDONLY ) ) == -1 )
   {
-    (void) sprintf( message, "Can't open file*\"%s\"*%s", from_path, strerror(errno) );
+    (void) snprintf( message, MESSAGE_LENGTH, "Can't open file*\"%s\"*%s", from_path, strerror(errno) );
     MESSAGE( message );
     return( -1 );
   }
@@ -362,7 +364,8 @@ static int Copy(char *to_path, char *from_path)
                   S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH
       ) ) == -1 )
   {
-    (void) sprintf( message,
+    (void) snprintf( message,
+                    MESSAGE_LENGTH,
 		    "Can't open file*\"%s\"*%s",
 		    to_path,
 		    strerror(errno)
@@ -382,7 +385,7 @@ static int Copy(char *to_path, char *from_path)
 
     if( write( o, buffer, n ) != n )
     {
-      (void) sprintf( message, "Write-Error!*%s", strerror(errno) );
+      (void) snprintf( message, MESSAGE_LENGTH, "Write-Error!*%s", strerror(errno) );
       MESSAGE( message );
       (void) close( i ); (void) close( o );
       (void) unlink( to_path );
@@ -444,7 +447,7 @@ static int CopyArchiveFile(char *to_path, char *from_path)
 
   out_fd = open(to_path, O_WRONLY | O_CREAT | O_TRUNC, 0666);
   if (out_fd == -1) {
-    (void)sprintf(message, "Can't create destination file*\"%s\"*%s", to_path, strerror(errno));
+    (void)snprintf(message, MESSAGE_LENGTH, "Can't create destination file*\"%s\"*%s", to_path, strerror(errno));
     MESSAGE(message);
     return -1;
   }
@@ -456,7 +459,7 @@ static int CopyArchiveFile(char *to_path, char *from_path)
   close(out_fd);
 
   if (result != 0) {
-    (void)sprintf(message, "Can't copy file*%s*to file*%s", from_path, to_path);
+    (void)snprintf(message, MESSAGE_LENGTH, "Can't copy file*%s*to file*%s", from_path, to_path);
     WARNING(message);
     unlink(to_path); /* Clean up partial file on failure */
   }
