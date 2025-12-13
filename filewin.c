@@ -1888,7 +1888,7 @@ int HandleFileWindow(DirEntry *dir_entry)
                     }
                 }
 
-			  term = InputChoise( "Confirm overwrite existing files (Y/N) ? ", "YN\033" );
+			  term = InputChoice( "Confirm overwrite existing files (Y/N) ? ", "YN\033" );
                           if( term == ESC )
 		          {
 			    break;
@@ -2009,7 +2009,7 @@ int HandleFileWindow(DirEntry *dir_entry)
 			  break;
 		        }
 
-			term = InputChoise( "Confirm overwrite existing files (Y/N) ? ", "YN\033" );
+			term = InputChoice( "Confirm overwrite existing files (Y/N) ? ", "YN\033" );
                         if( term == ESC )
 		        {
 			  break;
@@ -2047,7 +2047,7 @@ int HandleFileWindow(DirEntry *dir_entry)
 			break;
 		      }
 
-		      term = InputChoise( "Delete this file (Y/N) ? ",
+		      term = InputChoice( "Delete this file (Y/N) ? ",
 					  "YN\033"
 					);
 
@@ -2730,7 +2730,7 @@ static int DeleteTaggedFiles(int max_disp_files)
   int       start_x = 0;
   int       result = 0;
 
-  term = InputChoise( "Confirm delete each file (Y/N) ? ", "YN\033" );
+  term = InputChoice( "Confirm delete each file (Y/N) ? ", "YN\033" );
 
   if( term == ESC ) return( -1 );
 
@@ -2768,7 +2768,7 @@ static int DeleteTaggedFiles(int max_disp_files)
       RefreshWindow( file_window );
       doupdate();
 
-      if( confirm ) term = InputChoise( "Delete this file (Y/N) ? ", "YN\033" );
+      if( confirm ) term = InputChoice( "Delete this file (Y/N) ? ", "YN\033" );
       else term = 'Y';
 
       if( term == ESC )

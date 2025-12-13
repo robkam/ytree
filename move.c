@@ -78,7 +78,7 @@ int MoveFile(FileEntry *fe_ptr,
 
       if( confirm )
       {
-	term = InputChoise( "file exist; overwrite (Y/N) ? ", "YN\033" );
+	term = InputChoice( "file exist; overwrite (Y/N) ? ", "YN\033" );
 
         if( term != 'Y' ) {
 	  result = (term == 'N' ) ? 0 : -1;  /* Abort on escape */
@@ -101,7 +101,7 @@ int MoveFile(FileEntry *fe_ptr,
 
       if( confirm )
       {
-	term = InputChoise( "file exist; overwrite (Y/N) ? ", "YN\033" );
+	term = InputChoice( "file exist; overwrite (Y/N) ? ", "YN\033" );
 
         if( term != 'Y' ) {
 	  result = (term == 'N' ) ? 0 : -1;  /* Abort on escape */

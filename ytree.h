@@ -893,7 +893,7 @@ extern void ReCreateWindows(void);
 /* input.c */
 extern int Getch(void);
 extern void HitReturnToContinue(void);
-extern int InputChoise(char *msg, char *term);
+extern int InputChoice(char *msg, char *term);
 extern int InputString(char *s, int y, int x, int cursor_pos, int length, char *term);
 extern int InputStringEx(char *s, int y, int x, int cursor_pos, int display_width, int max_len, char *term);
 extern BOOL KeyPressed(void);

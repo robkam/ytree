@@ -90,7 +90,7 @@ int CopyFile(Statistic *statistic_ptr,
   (void) strcat( to_path, FILE_SEPARATOR_STRING );
   if ((tmpdir = opendir(to_path)) == NULL)
     if (errno == ENOENT) {
-     if ( (term =InputChoise( "Directory does not exist; create (y/N) ? ", "YN\033" ))== 'Y')
+     if ( (term =InputChoice( "Directory does not exist; create (y/N) ? ", "YN\033" ))== 'Y')
      {
         if(*to_path != FILE_SEPARATOR_CHAR) {
           strcpy(abs_path, from_dir);
@@ -151,7 +151,7 @@ int CopyFile(Statistic *statistic_ptr,
 
       if( confirm )
       {
-	term = InputChoise( "file exist; overwrite (Y/N) ? ", "YN\033" );
+	term = InputChoice( "file exist; overwrite (Y/N) ? ", "YN\033" );
 
         if( term != 'Y' )
         {
@@ -175,7 +175,7 @@ int CopyFile(Statistic *statistic_ptr,
 
       if( confirm )
       {
-	term = InputChoise( "file exist; overwrite (Y/N) ? ", "YN\033" );
+	term = InputChoice( "file exist; overwrite (Y/N) ? ", "YN\033" );
 
         if( term != 'Y' )
         {

@@ -32,7 +32,7 @@ int ReadTree(DirEntry *dir_entry, char *path, int depth)
   FileEntry     *fes_ptr;
   FileEntry     *fen_ptr;
   int		file_count;
-  int       term; /* For InputChoise */
+  int       term; /* For InputChoice */
 
 
   /* Safety: If this node already has children/files (e.g. from ScanSubTree),
@@ -114,7 +114,7 @@ int ReadTree(DirEntry *dir_entry, char *path, int depth)
           /* Ensure screen is updated so user sees where we stopped */
           doupdate();
 
-          term = InputChoise(prompt, "CRS\033"); // \033 is ESC
+          term = InputChoice(prompt, "CRS\033"); // \033 is ESC
 
           if (term == 'R') {
               continue; /* Retry */
@@ -151,7 +151,7 @@ int ReadTree(DirEntry *dir_entry, char *path, int depth)
     if( EscapeKeyPressed() )
     {
       /* Abfrage ob ytree verlassen werden soll */
-      int choice = InputChoise("Abort scan (Y/N)?", "YyNn\033"); /* \033 is ESC */
+      int choice = InputChoice("Abort scan (Y/N)?", "YyNn\033"); /* \033 is ESC */
       if (choice == 'Y' || choice == ESC) {
           closedir(dir);
           /* CRITICAL - Attach Partial Results */
