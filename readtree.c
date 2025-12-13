@@ -32,7 +32,6 @@ int ReadTree(DirEntry *dir_entry, char *path, int depth)
   FileEntry     *fes_ptr;
   FileEntry     *fen_ptr;
   int		file_count;
-  int       term; /* For InputChoice */
 
 
   /* Safety: If this node already has children/files (e.g. from ScanSubTree),
@@ -93,44 +92,11 @@ int ReadTree(DirEntry *dir_entry, char *path, int depth)
   /* Activity Spinner for visual feedback */
   DrawSpinner();
 
-  /* Interactive Open Loop */
-  do {
-      dir = opendir(path);
-
-      if (dir != NULL) {
-          break; /* Success */
-      }
-
-      /* Handle Error */
-      if (errno == EACCES) {
-          /* Access Denied - Ask User */
-          char prompt[PATH_LENGTH + 64];
-          /* Truncate path if too long for prompt */
-          char short_path[64];
-          CutPathname(short_path, path, 50);
-
-          sprintf(prompt, "Access Denied on %s. Cancel, Retry, Skip?", short_path);
-
-          /* Ensure screen is updated so user sees where we stopped */
-          doupdate();
-
-          term = InputChoice(prompt, "CRS\033"); // \033 is ESC
-
-          if (term == 'R') {
-              continue; /* Retry */
-          } else if (term == 'S') {
-              dir_entry->access_denied = TRUE;
-              return 0; /* Skip directory */
-          } else {
-              /* Cancel or ESC */
-              return -1; /* Abort scan */
-          }
-      } else {
-          /* Other error (e.g. ENOENT), skip silently */
-          dir_entry->access_denied = TRUE;
-          return 0; /* originally return 1, but 0 is safer for "empty dir" behavior */
-      }
-  } while (1);
+  /* Silently skip unreadable or missing directories */
+  if ((dir = opendir(path)) == NULL) {
+      dir_entry->access_denied = TRUE;
+      return 0;
+  }
 
 
   first_dir_entry.prev  = NULL;
