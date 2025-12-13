@@ -666,7 +666,7 @@ START_MENU:
                     break; // break from switch, loop continues to redraw
                 }
 
-                if (InputChoise("Release this volume? (Y/N)", "YN\033") == 'Y') {
+                if (InputChoice("Release this volume? (Y/N)", "YN\033") == 'Y') {
                     struct Volume *target_vol = vol_array[selected_index];
                     int neighbor_idx = -1;
 

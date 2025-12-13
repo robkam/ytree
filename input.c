@@ -594,7 +594,7 @@ int InputString(char *s, int y, int x, int cursor_pos, int length, char *term)
 }
 
 
-int InputChoise(char *msg, char *term)
+int InputChoice(char *msg, char *term)
 {
   int  c;
 

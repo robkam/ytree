@@ -32,7 +32,7 @@ int DeleteDirectory(DirEntry *dir_entry)
   }
   else if( dir_entry->file || dir_entry->sub_tree )
   {
-    if( InputChoise( "Directory not empty, PRUNE ? (Y/N) ? ", "YN\033" ) == 'Y' ) {
+    if( InputChoice( "Directory not empty, PRUNE ? (Y/N) ? ", "YN\033" ) == 'Y' ) {
       if( dir_entry->sub_tree ) {
         if( ScanSubTree( dir_entry ) ) {
 	  ESCAPE;
@@ -48,7 +48,7 @@ int DeleteDirectory(DirEntry *dir_entry)
       ESCAPE;
     }
   }
-  else if( InputChoise( "Delete this directory (Y/N) ? ", "YN\033" ) == 'Y' )
+  else if( InputChoice( "Delete this directory (Y/N) ? ", "YN\033" ) == 'Y' )
   {
     (void) GetPath( dir_entry, buffer );
 

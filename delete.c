@@ -39,7 +39,7 @@ int DeleteFile(FileEntry *fe_ptr)
       sprintf( buffer, "overriding mode %04o for \"%s\" (Y/N) ? ",
                fe_ptr->stat_struct.st_mode & 0777, fe_ptr->name);
 
-      term = InputChoise( buffer, "YN\033" );
+      term = InputChoice( buffer, "YN\033" );
 
       if( term != 'Y' )
       {
@@ -121,10 +121,3 @@ int RemoveFile(FileEntry *fe_ptr)
 
   return( 0 );
 }
-
-
-
-
-
-
-

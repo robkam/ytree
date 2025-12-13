@@ -1,4 +1,3 @@
-
 /***************************************************************************
  *
  * quit.c
@@ -87,7 +86,7 @@ static void PerformQuit(void)
     char *p;
 
     if (strtol(CONFIRMQUIT, NULL, 0) != 0) {
-        term = InputChoise("quit ytree (Y/N) ?", "YNQq\r\033");
+        term = InputChoice("quit ytree (Y/N) ?", "YNQq\r\033");
     } else {
         term = 'Y';
     }
