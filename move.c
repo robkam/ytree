@@ -54,7 +54,8 @@ int MoveFile(FileEntry *fe_ptr,
 
   if( access( from_path, W_OK ) )
   {
-    (void) sprintf( message,
+    (void) snprintf( message,
+                     MESSAGE_LENGTH,
 		    "Unmoveable file*\"%s\"*%s",
 		    from_path,
 		    strerror(errno)
@@ -111,7 +112,8 @@ int MoveFile(FileEntry *fe_ptr,
 
       if( unlink( to_path ) )
       {
-        (void) sprintf( message,
+        (void) snprintf( message,
+                         MESSAGE_LENGTH,
 		        "Can't unlink*\"%s\"*%s",
 		        to_path,
 		        strerror(errno)
@@ -213,7 +215,7 @@ int GetMoveParameter(char *from_file, char *to_file, char *to_dir)
     (void) strcpy( to_file, from_file );
   }
 
-  (void) sprintf( buffer, "MOVE: %s", from_file );
+  (void) snprintf( buffer, sizeof(buffer), "MOVE: %s", from_file );
 
   ClearHelp();
 
@@ -242,7 +244,8 @@ static int Move(char *to_path, char *from_path)
 
   if( link( from_path, to_path ) )
   {
-    (void) sprintf( message,
+    (void) snprintf( message,
+                     MESSAGE_LENGTH,
 		    "Can't link \"%s\"*to \"%s\"*%s",
 		    from_path,
 		    to_path,
@@ -254,7 +257,8 @@ static int Move(char *to_path, char *from_path)
 
   if( unlink( from_path ) )
   {
-    (void) sprintf( message,
+    (void) snprintf( message,
+                     MESSAGE_LENGTH,
 		    "Can't unlink*\"%s\"*%s",
 		    from_path,
 		    strerror(errno)

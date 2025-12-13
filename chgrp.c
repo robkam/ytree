@@ -28,7 +28,7 @@ int GetNewGroup(int st_gid)
   group_name_ptr = GetGroupName( id );
   if( group_name_ptr == NULL )
   {
-    (void) sprintf( group, "%d", id );
+    (void) snprintf( group, sizeof(group), "%d", id );
   }
   else
   {
@@ -43,7 +43,7 @@ int GetNewGroup(int st_gid)
   {
     if( (group_id = GetGroupId( group )) == -1 )
     {
-      (void) sprintf( message, "Can't read Group-ID:*\"%s\"", group );
+      (void) snprintf( message, MESSAGE_LENGTH, "Can't read Group-ID:*\"%s\"", group );
       MESSAGE( message );
     }
   }
