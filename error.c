@@ -47,7 +47,7 @@ void AboutBox()
 {
   static char version[80];
 
-  (void) sprintf( version,
+  (void) snprintf( version, sizeof(version),
 #ifdef WITH_UTF8
                   "ytree (UTF8) Version %s %s*(Werner Bregulla)",
 #else
@@ -67,7 +67,7 @@ void Error(char *msg, char *module, int line)
   char buffer[MESSAGE_LENGTH + 1];
 
   MapErrorWindow( "INTERNAL ERROR" );
-  (void) sprintf( buffer, "%s*In Module \"%s\"*Line %d",
+  (void) snprintf( buffer, sizeof(buffer), "%s*In Module \"%s\"*Line %d",
 		  msg, module, line
 		);
   (void) PrintMessage( buffer, TRUE );

@@ -108,7 +108,7 @@ void Fnsplit(char *path, char *dir, char *name)
 
   if( i == PATH_LENGTH && *path )
   {
-    (void) sprintf( message, "filename too long:*%s*truncating to*%s",
+    (void) snprintf( message, MESSAGE_LENGTH, "filename too long:*%s*truncating to*%s",
 		    name_begin, trunc_name
 		  );
     WARNING( message );
