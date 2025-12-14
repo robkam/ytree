@@ -76,14 +76,14 @@ int Execute(DirEntry *dir_entry, FileEntry *file_entry)
 
         if (mode == DISK_MODE || mode == USER_MODE) {
             if (chdir(GetPath(dir_entry, path))) {
-                sprintf(message, "Can't change directory to*\"%s\"", path);
+                snprintf(message, MESSAGE_LENGTH, "Can't change directory to*\"%s\"", path);
                 MESSAGE(message);
             } else {
                 refresh();
                 result = QuerySystemCall(final_command);
             }
             if (chdir(cwd)) {
-                sprintf(message, "Can't change directory to*\"%s\"", cwd);
+                snprintf(message, MESSAGE_LENGTH, "Can't change directory to*\"%s\"", cwd);
                 MESSAGE(message);
             }
         } else {

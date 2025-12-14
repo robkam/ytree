@@ -39,7 +39,7 @@ int Pipe(DirEntry *dir_entry, FileEntry *file_entry)
 
     if (mode == DISK_MODE || mode == USER_MODE) {
         if (chdir(GetPath(dir_entry, path))) {
-            sprintf(message, "Can't change directory to*\"%s\"", path);
+            snprintf(message, MESSAGE_LENGTH, "Can't change directory to*\"%s\"", path);
             MESSAGE(message);
             if (chdir(cwd) != 0) { /* Attempt to restore CWD */
                 /* Handle restore failure if needed, though mostly fatal/unrecoverable context */
@@ -58,7 +58,7 @@ int Pipe(DirEntry *dir_entry, FileEntry *file_entry)
                 *last_slash = '\0';
             }
             if (chdir(archive_dir) != 0) {
-                 sprintf(message, "Can't change directory to*\"%s\"", archive_dir);
+                 snprintf(message, MESSAGE_LENGTH, "Can't change directory to*\"%s\"", archive_dir);
                  MESSAGE(message);
                  if (chdir(cwd) != 0) { /* Attempt to restore CWD */
                  }
@@ -74,7 +74,7 @@ int Pipe(DirEntry *dir_entry, FileEntry *file_entry)
 
     pipe_fp = popen(&input_buffer[2], "w");
     if (pipe_fp == NULL) {
-        (void)sprintf(message, "Could not execute pipe command*\"%s\"*%s", &input_buffer[2], strerror(errno));
+        (void)snprintf(message, MESSAGE_LENGTH, "Could not execute pipe command*\"%s\"*%s", &input_buffer[2], strerror(errno));
         /* Restore screen before showing message */
         clearok(stdscr, TRUE);
         refresh();
@@ -168,7 +168,7 @@ int PipeTaggedFiles(FileEntry *fe_ptr, WalkingPackage *walking_package)
   (void) GetRealFileNamePath( fe_ptr, from_path );
   if( ( i = open( from_path, O_RDONLY ) ) == -1 )
   {
-    (void) sprintf( message,
+    (void) snprintf( message, MESSAGE_LENGTH,
 		    "Can't open file*\"%s\"*%s",
 		    from_path,
 		    strerror(errno)
@@ -185,7 +185,7 @@ int PipeTaggedFiles(FileEntry *fe_ptr, WalkingPackage *walking_package)
 		walking_package->function_data.pipe_cmd.pipe_file ) != 1
       )
     {
-      (void) sprintf( message, "Write-Error!*%s", strerror(errno) );
+      (void) snprintf( message, MESSAGE_LENGTH, "Write-Error!*%s", strerror(errno) );
       MESSAGE( message );
       (void) close( i );
       return( -1 );

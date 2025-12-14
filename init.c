@@ -74,14 +74,14 @@ int Init(char *configuration_file, char *history_file)
     ReadProfile(configuration_file);
   }
   else if( ( home = getenv("HOME") ) ) {
-    sprintf(buffer, "%s%c%s", home, FILE_SEPARATOR_CHAR, PROFILE_FILENAME);
+    snprintf(buffer, sizeof(buffer), "%s%c%s", home, FILE_SEPARATOR_CHAR, PROFILE_FILENAME);
     ReadProfile(buffer);
   }
   if (history_file != NULL) {
     ReadHistory(history_file);
   }
   else if ( home ) {
-    sprintf(buffer, "%s%c%s", home, FILE_SEPARATOR_CHAR, HISTORY_FILENAME);
+    snprintf(buffer, sizeof(buffer), "%s%c%s", home, FILE_SEPARATOR_CHAR, HISTORY_FILENAME);
     ReadHistory(buffer);
   }
 
