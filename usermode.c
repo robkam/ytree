@@ -51,14 +51,14 @@ int DirUserMode(DirEntry *dir_entry, int ch)
             }
 
             if (chdir(GetPath(dir_entry, path))) {
-                sprintf(message, "Can't change directory to*\"%s\"", path);
+                snprintf(message, MESSAGE_LENGTH, "Can't change directory to*\"%s\"", path);
                 MESSAGE(message);
             } else {
                 QuerySystemCall(command_line);
             }
 
             if (chdir(cwd)) {
-                sprintf(message, "Can't change directory to*\"%s\"", cwd);
+                snprintf(message, MESSAGE_LENGTH, "Can't change directory to*\"%s\"", cwd);
                 MESSAGE(message);
             }
         }
@@ -119,14 +119,14 @@ int FileUserMode(FileEntryList *file_entry_list, int ch)
             }
 
             if (chdir(GetPath(dir_entry, path))) {
-                sprintf(message, "Can't change directory to*\"%s\"", path);
+                snprintf(message, MESSAGE_LENGTH, "Can't change directory to*\"%s\"", path);
                 MESSAGE(message);
             } else {
                 QuerySystemCall(command_line);
             }
 
             if (chdir(cwd)) {
-                sprintf(message, "Can't change directory to*\"%s\"", cwd);
+                snprintf(message, MESSAGE_LENGTH, "Can't change directory to*\"%s\"", cwd);
                 MESSAGE(message);
             }
         }

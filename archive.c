@@ -199,7 +199,7 @@ static int InsertArchiveDirEntry(DirEntry *tree, char *path, struct stat *stat)
       /* Find father directory */
       if( GetArchiveDirEntry( tree, father_path, &df_ptr ) )
       {
-        (void) sprintf( message, "can't find subdir*%s", father_path );
+        (void) snprintf( message, MESSAGE_LENGTH, "can't find subdir*%s", father_path );
         ERROR_MSG( message );
         return( -1 );
       }
@@ -303,7 +303,7 @@ int InsertArchiveFileEntry(DirEntry *tree, char *path, struct stat *stat)
     }
     if( GetArchiveDirEntry( tree, dir, &de_ptr ) )
     {
-      (void) sprintf( message, "again: can't get directory for file*%s*giving up", path );
+      (void) snprintf( message, MESSAGE_LENGTH, "again: can't get directory for file*%s*giving up", path );
       ERROR_MSG( message );
       return( -1 );
     }
