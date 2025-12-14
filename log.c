@@ -118,9 +118,7 @@ int LoginDisk(char *path)
               char *slash = strrchr(parent_dir, FILE_SEPARATOR_CHAR);
               if (slash) {
                   *slash = '\0';
-                  if (chdir(parent_dir) != 0) {
-                      /* Suppress warning if chdir fails, access_ok handles the logic */
-                  }
+                  (void)chdir(parent_dir); /* Explicitly ignore result */
               }
           }
       } else {
@@ -799,7 +797,7 @@ int CycleLoadedVolume(int direction)
         num_volumes = HASH_COUNT(VolumeList);
 
         if (num_volumes <= 1) {
-            MESSAGE("Only one volume loaded. No cycling possible.");
+            MESSAGE("Only one volume loaded.*No cycling possible.");
             return (changes_made ? 0 : -1);
         }
 

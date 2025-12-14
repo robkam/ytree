@@ -309,7 +309,7 @@ static void DrawAttributes(const char *name, struct stat *s) {
     char buf[128];
     char num_buf[32];
     char time_buf[20];
-    char temp[128];
+    char temp[256]; /* Increased from 128 to fix truncation warning */
 
     if (!name || !s) return;
 
