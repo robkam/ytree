@@ -96,7 +96,6 @@ static void PerformQuit(void)
         /* CRITICAL FIX: Stop the clock signal immediately to prevent race conditions.
          * If SIGALRM fires after endwin() but before exit(), it causes a crash. */
         SuspendClock();
-
         /* Common exit procedure for all quit types */
         if ((p = getenv("HOME"))) {
             snprintf(path_for_history, sizeof(path_for_history), "%s%c%s", p, FILE_SEPARATOR_CHAR, HISTORY_FILENAME);
@@ -123,7 +122,7 @@ static void PerformQuit(void)
         /* Final safety net for terminal state */
         fprintf(stderr, "DEBUG: PerformQuit calling stty sane\n");
         fflush(stderr);
-        system("stty sane");
+        (void)system("stty sane");
         fprintf(stderr, "DEBUG: PerformQuit calling exit(0)\n");
         fflush(stderr);
         exit(0);

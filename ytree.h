@@ -407,13 +407,19 @@ enum UI_COLOR_PAIRS {
 #define PATH_LENGTH            4096
 #define FILE_SPEC_LENGTH       256
 #define DISK_NAME_LENGTH       (12 + 1)
-#define MESSAGE_LENGTH         (PATH_LENGTH + 80 + 1)
 #define COMMAND_LINE_LENGTH    4096
 #define MODE_1                 0
 #define MODE_2                 1
 #define MODE_3                 2
 #define MODE_4                 3
 #define MODE_5                 4
+
+/*
+ * Message length increased to accommodate worst-case scenarios with two paths
+ * (e.g. "Can't copy <path1> to <path2>") to prevent format-truncation warnings
+ * and buffer overflows. (2 * 4096 + 256 for error text overhead)
+ */
+#define MESSAGE_LENGTH         ((PATH_LENGTH * 2) + 256)
 
 
 #define ESCAPE               goto FNC_XIT
@@ -455,7 +461,7 @@ typedef struct _file_entry
   struct stat        stat_struct;
   BOOL               tagged;
   BOOL               matching;
-  char               name[1];
+  char               name[]; /* C99 Flexible Array Member */
 /*char               symlink_name[]; */ /* Folgt direkt dem Namen, falls */
 					/* Eintrag == symbolischer Link  */
 } FileEntry;
@@ -485,7 +491,7 @@ typedef struct _dir_entry
   BOOL               not_scanned;
   BOOL               big_window;
   BOOL               login_flag;
-  char               name[1];
+  char               name[]; /* C99 Flexible Array Member */
 } DirEntry;
 
 
@@ -744,7 +750,7 @@ extern int ReadTreeFromArchive(DirEntry **dir_entry_ptr, const char *filename);
 extern void InitAnimation(void);
 extern void StopAnimation(void);
 extern void DrawAnimationStep(WINDOW *win);
-extern void DrawSpinner(void); /* ADDED: Prototype for activity spinner */
+extern void DrawSpinner(void); /* ADDED */
 
 /* chgrp.c */
 extern int ChangeDirGroup(DirEntry *de_ptr);
