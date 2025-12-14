@@ -99,7 +99,7 @@ static void PerformQuit(void)
 
         /* Common exit procedure for all quit types */
         if ((p = getenv("HOME"))) {
-            sprintf(path_for_history, "%s%c%s", p, FILE_SEPARATOR_CHAR, HISTORY_FILENAME);
+            snprintf(path_for_history, sizeof(path_for_history), "%s%c%s", p, FILE_SEPARATOR_CHAR, HISTORY_FILENAME);
             SaveHistory(path_for_history);
         }
 
@@ -155,7 +155,7 @@ void QuitTo(DirEntry *dir)
     /* 3. Construct Filename: */
     home_dir = getenv("HOME");
     if (home_dir != NULL) {
-        sprintf(qfilename, "%s/.ytree-%d.chdir", home_dir, (int)getppid());
+        snprintf(qfilename, sizeof(qfilename), "%s/.ytree-%d.chdir", home_dir, (int)getppid());
 
         /* 4. Write (Simple): */
         fp = fopen(qfilename, "w");

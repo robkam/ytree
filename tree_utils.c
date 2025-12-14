@@ -29,7 +29,7 @@ int GetDirEntry(DirEntry *tree,
    strcpy(to_path, dir_path);
   if( getcwd( current_path, sizeof( current_path ) - 2 ) == NULL )
   {
-    (void) sprintf( message, "getcwd failed*%s", strerror(errno) );
+    (void) snprintf( message, MESSAGE_LENGTH, "getcwd failed*%s", strerror(errno) );
     ERROR_MSG( message );
     return( -1 );
   }
@@ -46,7 +46,7 @@ int GetDirEntry(DirEntry *tree,
   if( chdir( dir_path ) )
   {
 #ifdef DEBUG
-    (void) sprintf( message, "Invalid Path!*\"%s\"", dir_path );
+    (void) snprintf( message, MESSAGE_LENGTH, "Invalid Path!*\"%s\"", dir_path );
     MESSAGE( message );
 #endif
     return( -3 );
@@ -54,7 +54,7 @@ int GetDirEntry(DirEntry *tree,
 
   if( *dir_path != FILE_SEPARATOR_CHAR ) {
     if (getcwd( dest_path, sizeof( dest_path ) - 2 ) == NULL) {
-        (void) sprintf( message, "getcwd failed*%s", strerror(errno) );
+        (void) snprintf( message, MESSAGE_LENGTH, "getcwd failed*%s", strerror(errno) );
         ERROR_MSG( message );
         /* Attempt recovery */
         if (chdir( current_path ) != 0) {
@@ -101,7 +101,7 @@ int GetDirEntry(DirEntry *tree,
       if( sde_ptr == NULL )
       {
 #ifdef DEBUG
-	(void) sprintf( message, "Can't find directory; token=%s", token );
+	(void) snprintf( message, MESSAGE_LENGTH, "Can't find directory; token=%s", token );
 	ERROR_MSG( message );
 #endif
 	return( -3 );

@@ -42,7 +42,7 @@ int LoginDisk(char *path)
   if( STAT_( resolved_path, &stat_struct ) )
   {
     /* Stat failed */
-    (void) sprintf( message, "Can't access*\"%s\"*%s", resolved_path, strerror(errno) );
+    (void) snprintf( message, MESSAGE_LENGTH, "Can't access*\"%s\"*%s", resolved_path, strerror(errno) );
     MESSAGE( message );
     InitClock(); /* Resume clock before returning */
     return( -1 );
@@ -67,14 +67,14 @@ int LoginDisk(char *path)
       archive_read_free(a_test);
 
       if (r_test != ARCHIVE_OK) {
-          (void) sprintf(message, "Not a recognized archive file*or format not supported*\"%s\"", resolved_path);
+          (void) snprintf(message, MESSAGE_LENGTH, "Not a recognized archive file*or format not supported*\"%s\"", resolved_path);
           MESSAGE(message);
           InitClock(); /* Resume clock before returning */
           return -1;
       }
 #else
       /* Fallback for when libarchive is not available */
-      (void) sprintf(message, "Cannot open file as archive*ytree not compiled with*libarchive support");
+      (void) snprintf(message, MESSAGE_LENGTH, "Cannot open file as archive*ytree not compiled with*libarchive support");
       MESSAGE(message);
       InitClock(); /* Resume clock before returning */
       return -1;
@@ -132,7 +132,7 @@ int LoginDisk(char *path)
 
       if (!access_ok) {
           char error_message_buffer[MESSAGE_LENGTH + 1];
-          sprintf(error_message_buffer, "Volume \"%s\" not accessible (Error: %s). Removed.",
+          snprintf(error_message_buffer, sizeof(error_message_buffer), "Volume \"%s\" not accessible (Error: %s). Removed.",
                 found_vol->vol_stats.login_path, strerror(errno));
           MESSAGE(error_message_buffer);
           if (found_vol == CurrentVolume) {
@@ -704,7 +704,7 @@ START_MENU:
 
                             if (!neighbor_access_ok) {
                                 char error_message_buffer[MESSAGE_LENGTH + 1];
-                                sprintf(error_message_buffer, "Neighbor volume \"%s\" not accessible (Error: %s). Removed.",
+                                snprintf(error_message_buffer, sizeof(error_message_buffer), "Neighbor volume \"%s\" not accessible (Error: %s). Removed.",
                                         neighbor->vol_stats.login_path, strerror(errno));
                                 MESSAGE(error_message_buffer);
                                 Volume_Delete(neighbor); // Delete the inaccessible neighbor

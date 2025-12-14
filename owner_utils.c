@@ -75,7 +75,7 @@ int ChangeOwnership(const char *path, uid_t new_uid, gid_t new_gid, struct stat 
 
     if (chown(path, new_uid, new_gid) != 0)
     {
-        (void)sprintf(message, "Cannot change ownership:*%s", strerror(errno));
+        (void)snprintf(message, MESSAGE_LENGTH, "Cannot change ownership:*%s", strerror(errno));
         MESSAGE(message);
         return -1;
     }
