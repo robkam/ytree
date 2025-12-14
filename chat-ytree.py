@@ -23,8 +23,8 @@ if not API_KEY:
 
 genai.configure(api_key=API_KEY)
 
-# MODEL NOTE: Gemini 2.5 Flash is adequate for general Q&A, context retrieval,
-# and basic debugging.
+#MODEL_NAME = "models/gemini-3-pro-preview"
+#MODEL_NAME = "models/gemini-2.5-pro"
 MODEL_NAME = "models/gemini-2.5-flash"
 
 CHAT_LOG_FILE = "chat.log"
@@ -160,7 +160,7 @@ def generate_chat_response_with_retry(chat_session, user_input, max_retries=5):
 
 def get_all_project_files(root_dir="."):
     """Returns a sorted list of all relevant files in the project."""
-    extensions = {'.c', '.h', '.conf', '.sh', '.py', 'Makefile'}
+    extensions = {'.c', '.h', '.conf', '.sh', '.py', '.md', 'Makefile'}
     ignore_dirs = {'.git', '.venv', '.vscode', 'build', '__pycache__', 'obj', 'docs'}
     ignore_files = {'copy.c.bak', 'ytree.tar', 'chat.log', 'build.log'}
 
