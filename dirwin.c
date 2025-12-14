@@ -239,14 +239,14 @@ static void PrintDirEntry(WINDOW *win,
                  /* Updated %12s to %16s for date */
                  (void) strcpy( format, "%10s %3d %8lld %16s");
 
-		 (void) sprintf( line_buffer, format, attributes,
+		 (void) snprintf( line_buffer, 42, format, attributes,
                                  (int)de_ptr->stat_struct.st_nlink,
                                  (LONGLONG) de_ptr->stat_struct.st_size,
                                  modify_time
                                  );
 #else
                  (void) strcpy( format, "%10s %3d %8d %16s");
-                 (void) sprintf( line_buffer, format, attributes,
+                 (void) snprintf( line_buffer, 42, format, attributes,
                                  (int)de_ptr->stat_struct.st_nlink,
                                  (int)de_ptr->stat_struct.st_size,
                                  modify_time
@@ -259,12 +259,12 @@ static void PrintDirEntry(WINDOW *win,
                  group_name_ptr = GetDisplayGroupName(de_ptr->stat_struct.st_gid);
                  if( owner_name_ptr == NULL )
                  {
-                    (void)sprintf(owner,"%d",(int)de_ptr->stat_struct.st_uid);
+                    (void)snprintf(owner, sizeof(owner), "%d",(int)de_ptr->stat_struct.st_uid);
                     owner_name_ptr = owner;
                  }
                  if( group_name_ptr == NULL )
                  {
-                     (void) sprintf( group, "%d", (int) de_ptr->stat_struct.st_gid );
+                     (void) snprintf( group, sizeof(group), "%d", (int) de_ptr->stat_struct.st_gid );
                      group_name_ptr = group;
                  }
                  if ((line_buffer = (char *) malloc(40)) == NULL)
@@ -273,7 +273,7 @@ static void PrintDirEntry(WINDOW *win,
                     exit(1);
                  }
                  (void) strcpy( format, "%12u  %-12s %-12s");
-                 (void) sprintf( line_buffer, format,
+                 (void) snprintf( line_buffer, 40, format,
                                  (unsigned int)de_ptr->stat_struct.st_ino,
                                  owner_name_ptr,
                                  group_name_ptr);
@@ -291,7 +291,7 @@ static void PrintDirEntry(WINDOW *win,
                     ERROR_MSG("malloc() Failed*Abort");
                     exit(1);
                  }
-                 (void)sprintf(line_buffer, format, change_time, access_time);
+                 (void)snprintf(line_buffer, 50, format, change_time, access_time);
                  break;
   }
 

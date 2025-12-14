@@ -423,13 +423,13 @@ static int SortByOwner(FileEntryList *e1, FileEntryList *e2)
 
   if( o1 == NULL )
   {
-    (void) sprintf( n1, "%d", (int) e1->file->stat_struct.st_uid );
+    (void) snprintf( n1, sizeof(n1), "%d", (int) e1->file->stat_struct.st_uid );
     o1 = n1;
   }
 
   if( o2 == NULL )
   {
-    (void) sprintf( n2, "%d", (int) e2->file->stat_struct.st_uid );
+    (void) snprintf( n2, sizeof(n2), "%d", (int) e2->file->stat_struct.st_uid );
     o2 = n2;
   }
   if (do_case)
@@ -456,13 +456,13 @@ static int SortByGroup(FileEntryList *e1, FileEntryList *e2)
 
   if( g1 == NULL )
   {
-    (void) sprintf( n1, "%d", (int) e1->file->stat_struct.st_uid );
+    (void) snprintf( n1, sizeof(n1), "%d", (int) e1->file->stat_struct.st_uid );
     g1 = n1;
   }
 
   if( g2 == NULL )
   {
-    (void) sprintf( n2, "%d", (int) e2->file->stat_struct.st_uid );
+    (void) snprintf( n2, sizeof(n2), "%d", (int) e2->file->stat_struct.st_uid );
     g2 = n2;
   }
   if (do_case)
@@ -577,6 +577,7 @@ static void PrintFileEntry(int entry_no, int y, int x, unsigned char hilight, in
   FileEntry *fe_ptr;
   static char *line_buffer = NULL;
   static int  old_cols = -1;
+  static size_t line_buffer_size = 0;
   char owner[OWNER_NAME_MAX + 1];
   char group[GROUP_NAME_MAX + 1];
   char *owner_name_ptr;
@@ -598,7 +599,8 @@ static void PrintFileEntry(int entry_no, int y, int x, unsigned char hilight, in
     old_cols = COLS;
     if( line_buffer ) free( line_buffer );
 
-    if( ( line_buffer = (char *) malloc( COLS + PATH_LENGTH ) ) == NULL )
+    line_buffer_size = COLS + PATH_LENGTH;
+    if( ( line_buffer = (char *) malloc( line_buffer_size ) ) == NULL )
     {
       ERROR_MSG( "Malloc failed*ABORT" );
       exit( 1 );
@@ -674,59 +676,59 @@ static void PrintFileEntry(int entry_no, int y, int x, unsigned char hilight, in
             if(S_ISLNK(fe_ptr->stat_struct.st_mode)) {
 #ifdef HAS_LONGLONG
               /* Updated %12s to %16s */
-              (void)sprintf(format, "%%c%%c%%-%ds %%10s %%3d %%11lld %%16s -> %%-%ds", filename_width, linkname_width);
-              (void)sprintf(line_buffer, format, (fe_ptr->tagged)?TAGGED_SYMBOL:' ', type_of_file, fe_ptr->name, attributes, fe_ptr->stat_struct.st_nlink, (LONGLONG)fe_ptr->stat_struct.st_size, modify_time, sym_link_name);
+              (void)snprintf(format, sizeof(format), "%%c%%c%%-%ds %%10s %%3d %%11lld %%16s -> %%-%ds", filename_width, linkname_width);
+              (void)snprintf(line_buffer, line_buffer_size, format, (fe_ptr->tagged)?TAGGED_SYMBOL:' ', type_of_file, fe_ptr->name, attributes, fe_ptr->stat_struct.st_nlink, (LONGLONG)fe_ptr->stat_struct.st_size, modify_time, sym_link_name);
 #else
-              (void)sprintf(format, "%%c%%c%%-%ds %%10s %%3d %%7d %%16s -> %%-%ds", filename_width, linkname_width);
-              (void)sprintf(line_buffer, format, (fe_ptr->tagged)?TAGGED_SYMBOL:' ', type_of_file, fe_ptr->name, attributes, fe_ptr->stat_struct.st_nlink, fe_ptr->stat_struct.st_size, modify_time, sym_link_name);
+              (void)snprintf(format, sizeof(format), "%%c%%c%%-%ds %%10s %%3d %%7d %%16s -> %%-%ds", filename_width, linkname_width);
+              (void)snprintf(line_buffer, line_buffer_size, format, (fe_ptr->tagged)?TAGGED_SYMBOL:' ', type_of_file, fe_ptr->name, attributes, fe_ptr->stat_struct.st_nlink, fe_ptr->stat_struct.st_size, modify_time, sym_link_name);
 #endif
             } else {
 #ifdef HAS_LONGLONG
-              (void)sprintf(format, "%%c%%c%%%c%ds %%10s %%3d %%11lld %%16s", justify, filename_width);
-              (void)sprintf(line_buffer, format, (fe_ptr->tagged)?TAGGED_SYMBOL:' ', type_of_file, fe_ptr->name, attributes, fe_ptr->stat_struct.st_nlink, (LONGLONG)fe_ptr->stat_struct.st_size, modify_time);
+              (void)snprintf(format, sizeof(format), "%%c%%c%%%c%ds %%10s %%3d %%11lld %%16s", justify, filename_width);
+              (void)snprintf(line_buffer, line_buffer_size, format, (fe_ptr->tagged)?TAGGED_SYMBOL:' ', type_of_file, fe_ptr->name, attributes, fe_ptr->stat_struct.st_nlink, (LONGLONG)fe_ptr->stat_struct.st_size, modify_time);
 #else
-              (void)sprintf(format, "%%c%%c%%%c%ds %%10s %%3d %%7d %%16s", justify, filename_width);
-              (void)sprintf(line_buffer, format, (fe_ptr->tagged)?TAGGED_SYMBOL:' ', type_of_file, fe_ptr->name, attributes, fe_ptr->stat_struct.st_nlink, fe_ptr->stat_struct.st_size, modify_time);
+              (void)snprintf(format, sizeof(format), "%%c%%c%%%c%ds %%10s %%3d %%7d %%16s", justify, filename_width);
+              (void)snprintf(line_buffer, line_buffer_size, format, (fe_ptr->tagged)?TAGGED_SYMBOL:' ', type_of_file, fe_ptr->name, attributes, fe_ptr->stat_struct.st_nlink, fe_ptr->stat_struct.st_size, modify_time);
 #endif
             }
             break;
           case MODE_2:
             owner_name_ptr = GetDisplayPasswdName(fe_ptr->stat_struct.st_uid);
             group_name_ptr = GetDisplayGroupName(fe_ptr->stat_struct.st_gid);
-            if(!owner_name_ptr) { sprintf(owner, "%d", (int)fe_ptr->stat_struct.st_uid); owner_name_ptr = owner; }
-            if(!group_name_ptr) { sprintf(group, "%d", (int)fe_ptr->stat_struct.st_gid); group_name_ptr = group; }
+            if(!owner_name_ptr) { snprintf(owner, sizeof(owner), "%d", (int)fe_ptr->stat_struct.st_uid); owner_name_ptr = owner; }
+            if(!group_name_ptr) { snprintf(group, sizeof(group), "%d", (int)fe_ptr->stat_struct.st_gid); group_name_ptr = group; }
             if(S_ISLNK(fe_ptr->stat_struct.st_mode)) {
 #ifdef HAS_LONGLONG
-              (void)sprintf(format, "%%c%%c%%%c%ds %%10lld %%-12s %%-12s -> %%-%ds", justify, filename_width, linkname_width);
-              (void)sprintf(line_buffer, format, (fe_ptr->tagged)?TAGGED_SYMBOL:' ', type_of_file, fe_ptr->name, (LONGLONG)fe_ptr->stat_struct.st_ino, owner_name_ptr, group_name_ptr, sym_link_name);
+              (void)snprintf(format, sizeof(format), "%%c%%c%%%c%ds %%10lld %%-12s %%-12s -> %%-%ds", justify, filename_width, linkname_width);
+              (void)snprintf(line_buffer, line_buffer_size, format, (fe_ptr->tagged)?TAGGED_SYMBOL:' ', type_of_file, fe_ptr->name, (LONGLONG)fe_ptr->stat_struct.st_ino, owner_name_ptr, group_name_ptr, sym_link_name);
 #else
-              (void)sprintf(format, "%%c%%c%%%c%ds  %%8u  %%-12s %%-12s -> %%-%ds", justify, filename_width, linkname_width);
-              (void)sprintf(line_buffer, format, (fe_ptr->tagged)?TAGGED_SYMBOL:' ', type_of_file, fe_ptr->name, (unsigned int)fe_ptr->stat_struct.st_ino, owner_name_ptr, group_name_ptr, sym_link_name);
+              (void)snprintf(format, sizeof(format), "%%c%%c%%%c%ds  %%8u  %%-12s %%-12s -> %%-%ds", justify, filename_width, linkname_width);
+              (void)snprintf(line_buffer, line_buffer_size, format, (fe_ptr->tagged)?TAGGED_SYMBOL:' ', type_of_file, fe_ptr->name, (unsigned int)fe_ptr->stat_struct.st_ino, owner_name_ptr, group_name_ptr, sym_link_name);
 #endif
             } else {
 #ifdef HAS_LONGLONG
-              (void)sprintf(format, "%%c%%c%%%c%ds %%10lld %%-12s %%-12s", justify, filename_width);
-              (void)sprintf(line_buffer, format, (fe_ptr->tagged)?TAGGED_SYMBOL:' ', type_of_file, fe_ptr->name, (LONGLONG)fe_ptr->stat_struct.st_ino, owner_name_ptr, group_name_ptr);
+              (void)snprintf(format, sizeof(format), "%%c%%c%%%c%ds %%10lld %%-12s %%-12s", justify, filename_width);
+              (void)snprintf(line_buffer, line_buffer_size, format, (fe_ptr->tagged)?TAGGED_SYMBOL:' ', type_of_file, fe_ptr->name, (LONGLONG)fe_ptr->stat_struct.st_ino, owner_name_ptr, group_name_ptr);
 #else
-              (void)sprintf(format, "%%c%%c%%%c%ds  %%8u  %%-12s %%-12s", justify, filename_width);
-              (void)sprintf(line_buffer, format, (fe_ptr->tagged)?TAGGED_SYMBOL:' ', type_of_file, fe_ptr->name, (unsigned int)fe_ptr->stat_struct.st_ino, owner_name_ptr, group_name_ptr);
+              (void)snprintf(format, sizeof(format), "%%c%%c%%%c%ds  %%8u  %%-12s %%-12s", justify, filename_width);
+              (void)snprintf(line_buffer, line_buffer_size, format, (fe_ptr->tagged)?TAGGED_SYMBOL:' ', type_of_file, fe_ptr->name, (unsigned int)fe_ptr->stat_struct.st_ino, owner_name_ptr, group_name_ptr);
 #endif
             }
             break;
           case MODE_3:
-            (void)sprintf(format, "%%c%%c%%%c%ds", justify, filename_width);
-            (void)sprintf(line_buffer, format, (fe_ptr->tagged)?TAGGED_SYMBOL:' ', type_of_file, fe_ptr->name);
+            (void)snprintf(format, sizeof(format), "%%c%%c%%%c%ds", justify, filename_width);
+            (void)snprintf(line_buffer, line_buffer_size, format, (fe_ptr->tagged)?TAGGED_SYMBOL:' ', type_of_file, fe_ptr->name);
             break;
           case MODE_4:
             (void)CTime(fe_ptr->stat_struct.st_ctime, change_time);
             (void)CTime(fe_ptr->stat_struct.st_atime, access_time);
             if(S_ISLNK(fe_ptr->stat_struct.st_mode)) {
               /* Updated %12s to %16s */
-              (void)sprintf(format, "%%c%%c%%%c%ds Chg: %%16s  Acc: %%16s -> %%-%ds", justify, filename_width, linkname_width);
-              (void)sprintf(line_buffer, format, (fe_ptr->tagged)?TAGGED_SYMBOL:' ', type_of_file, fe_ptr->name, change_time, access_time, sym_link_name);
+              (void)snprintf(format, sizeof(format), "%%c%%c%%%c%ds Chg: %%16s  Acc: %%16s -> %%-%ds", justify, filename_width, linkname_width);
+              (void)snprintf(line_buffer, line_buffer_size, format, (fe_ptr->tagged)?TAGGED_SYMBOL:' ', type_of_file, fe_ptr->name, change_time, access_time, sym_link_name);
             } else {
-              (void)sprintf(format, "%%c%%c%%%c%ds Chg: %%16s  Acc: %%16s", justify, filename_width);
-              (void)sprintf(line_buffer, format, (fe_ptr->tagged)?TAGGED_SYMBOL:' ', type_of_file, fe_ptr->name, change_time, access_time);
+              (void)snprintf(format, sizeof(format), "%%c%%c%%%c%ds Chg: %%16s  Acc: %%16s", justify, filename_width);
+              (void)snprintf(line_buffer, line_buffer_size, format, (fe_ptr->tagged)?TAGGED_SYMBOL:' ', type_of_file, fe_ptr->name, change_time, access_time);
             }
             break;
           case MODE_5:
@@ -813,8 +815,8 @@ static void PrintFileEntry(int entry_no, int y, int x, unsigned char hilight, in
               case MODE_2:
                   owner_name_ptr = GetDisplayPasswdName(fe_ptr->stat_struct.st_uid);
                   group_name_ptr = GetDisplayGroupName(fe_ptr->stat_struct.st_gid);
-                  if (!owner_name_ptr) { sprintf(owner, "%d", (int)fe_ptr->stat_struct.st_uid); owner_name_ptr = owner; }
-                  if (!group_name_ptr) { sprintf(group, "%d", (int)fe_ptr->stat_struct.st_gid); group_name_ptr = group; }
+                  if (!owner_name_ptr) { snprintf(owner, sizeof(owner), "%d", (int)fe_ptr->stat_struct.st_uid); owner_name_ptr = owner; }
+                  if (!group_name_ptr) { snprintf(group, sizeof(group), "%d", (int)fe_ptr->stat_struct.st_gid); group_name_ptr = group; }
   #ifdef HAS_LONGLONG
                   wprintw(file_window, " %10lld %-12s %-12s", (LONGLONG)fe_ptr->stat_struct.st_ino, owner_name_ptr, group_name_ptr);
   #else
@@ -1819,7 +1821,7 @@ int HandleFileWindow(DirEntry *dir_entry)
                       if (errno == ENOENT) {
                           strcpy(to_path, to_dir);
                       } else {
-                          (void)sprintf(message, "Invalid destination path*\"%s\"*%s", to_dir, strerror(errno));
+                          (void)snprintf(message, MESSAGE_LENGTH, "Invalid destination path*\"%s\"*%s", to_dir, strerror(errno));
                           MESSAGE(message);
                           break;
                       }
@@ -1872,7 +1874,7 @@ int HandleFileWindow(DirEntry *dir_entry)
                          if (errno == ENOENT) {
                              strcpy(to_path, to_dir);
                          } else {
-                             (void)sprintf(message, "Invalid destination path*\"%s\"*%s", to_dir, strerror(errno));
+                             (void)snprintf(message, MESSAGE_LENGTH, "Invalid destination path*\"%s\"*%s", to_dir, strerror(errno));
                              MESSAGE(message);
                              break;
                          }
@@ -2285,7 +2287,7 @@ int HandleFileWindow(DirEntry *dir_entry)
 			if( ( walking_package.function_data.pipe_cmd.pipe_file =
 			      popen( filepath, "w" ) ) == NULL )
 			{
-			  (void) sprintf( message, "execution of command*%s*failed", filepath );
+			  (void) snprintf( message, MESSAGE_LENGTH, "execution of command*%s*failed", filepath );
 			  MESSAGE( message );
 			  break;
 			}
