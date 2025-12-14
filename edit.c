@@ -26,7 +26,7 @@ int Edit(DirEntry * dir_entry, char *file_path)
 
   if( access( file_path, R_OK ) )
   {
-    (void) sprintf( message,
+    (void) snprintf( message, MESSAGE_LENGTH,
 		    "Edit not possible!*\"%s\"*%s",
 		    file_path,
 		    strerror(errno)
@@ -47,10 +47,12 @@ int Edit(DirEntry * dir_entry, char *file_path)
     ERROR_MSG( "Malloc failed*ABORT" );
     exit( 1 );
   }
-  (void) strcpy( command_line, EDITOR );
-  (void) strcat( command_line, " \"" );
-  (void) strcat( command_line, file_p_aux );
-  (void) strcat( command_line, "\"" );
+  /*
+   * Replaced unsafe strcpy/strcat construction with snprintf
+   * to ensure bounds checking and secure string handling.
+   */
+  (void) snprintf(command_line, COMMAND_LINE_LENGTH, "%s \"%s\"", EDITOR, file_p_aux);
+
   free( file_p_aux);
 
   /*  result = SystemCall(command_line);
@@ -69,14 +71,14 @@ int Edit(DirEntry * dir_entry, char *file_path)
 
     if (chdir(GetPath(dir_entry, path)))
     {
-            (void) sprintf(message, "Can't change directory to*\"%s\"", path);
+            (void) snprintf(message, MESSAGE_LENGTH, "Can't change directory to*\"%s\"", path);
             MESSAGE(message);
     }else{
             result = SystemCall(command_line);
     }
     if(chdir(cwd))
     {
-            (void) sprintf(message, "Can't change directory to*\"%s\"", cwd);
+            (void) snprintf(message, MESSAGE_LENGTH, "Can't change directory to*\"%s\"", cwd);
             MESSAGE(message);
     }
   }else{

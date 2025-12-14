@@ -126,7 +126,7 @@ static int ViewFile(DirEntry * dir_entry, char *file_path)
 
   if( access( file_path, R_OK ) )
   {
-    (void) sprintf( message,
+    (void) snprintf( message, MESSAGE_LENGTH,
             "View not possible!*\"%s\"*%s",
             file_path,
             strerror(errno)
@@ -145,10 +145,10 @@ static int ViewFile(DirEntry * dir_entry, char *file_path)
   {
      if (strstr(aux,"%s") != NULL)
      {
-        (void) sprintf(command_line, aux, file_p_aux);
+        (void) snprintf(command_line, COMMAND_LINE_LENGTH + 1, aux, file_p_aux);
      }
      else {
-        (void) sprintf(command_line, "%s %s", aux, file_p_aux);
+        (void) snprintf(command_line, COMMAND_LINE_LENGTH + 1, "%s %s", aux, file_p_aux);
      }
   }
   else
@@ -156,7 +156,7 @@ static int ViewFile(DirEntry * dir_entry, char *file_path)
     compress_method = GetFileMethod( file_path );
     if( compress_method == FREEZE_COMPRESS )
     {
-      (void) sprintf( command_line,
+      (void) snprintf( command_line, COMMAND_LINE_LENGTH + 1,
               "%s < %s %s | %s",
               MELT,
               file_p_aux,
@@ -164,7 +164,7 @@ static int ViewFile(DirEntry * dir_entry, char *file_path)
               PAGER
             );
     } else if( compress_method == COMPRESS_COMPRESS ) {
-        (void) sprintf( command_line,
+        (void) snprintf( command_line, COMMAND_LINE_LENGTH + 1,
             "%s < %s %s | %s",
             UNCOMPRESS,
             file_p_aux,
@@ -172,7 +172,7 @@ static int ViewFile(DirEntry * dir_entry, char *file_path)
             PAGER
           );
     } else if( compress_method == GZIP_COMPRESS ) {
-        (void) sprintf( command_line,
+        (void) snprintf( command_line, COMMAND_LINE_LENGTH + 1,
                     "%s < %s %s | %s",
             GNUUNZIP,
             file_p_aux,
@@ -180,7 +180,7 @@ static int ViewFile(DirEntry * dir_entry, char *file_path)
             PAGER
           );
     } else if( compress_method == BZIP_COMPRESS ) {
-        (void) sprintf( command_line,
+        (void) snprintf( command_line, COMMAND_LINE_LENGTH + 1,
                     "%s < %s %s | %s",
             BUNZIP,
             file_p_aux,
@@ -188,7 +188,7 @@ static int ViewFile(DirEntry * dir_entry, char *file_path)
             PAGER
           );
     } else if( compress_method == LZIP_COMPRESS ) {
-        (void) sprintf( command_line,
+        (void) snprintf( command_line, COMMAND_LINE_LENGTH + 1,
                     "%s -dc < %s %s | %s",
             LUNZIP,
             file_p_aux,
@@ -196,7 +196,7 @@ static int ViewFile(DirEntry * dir_entry, char *file_path)
             PAGER
           );
     } else {
-        (void) sprintf( command_line,
+        (void) snprintf( command_line, COMMAND_LINE_LENGTH + 1,
             "%s %s",
             PAGER,
             file_p_aux
@@ -219,14 +219,14 @@ the ytree starting cwd. new code grabbed from execute.c.
     }
     if (chdir(GetPath(dir_entry, path)))
     {
-        (void) sprintf(message, "Can't change directory to*\"%s\"", path);
+        (void) snprintf(message, MESSAGE_LENGTH, "Can't change directory to*\"%s\"", path);
         MESSAGE(message);
     } else {
         result = SystemCall(command_line);
     }
     if( chdir(cwd) )
     {
-        (void) sprintf(message, "Can't change directory to*\"%s\"", cwd);
+        (void) snprintf(message, MESSAGE_LENGTH, "Can't change directory to*\"%s\"", cwd);
         MESSAGE(message);
     }
   } else {
@@ -235,7 +235,7 @@ the ytree starting cwd. new code grabbed from execute.c.
 
   if(result)
   {
-    (void) sprintf( message, "can't execute*%s", command_line );
+    (void) snprintf( message, MESSAGE_LENGTH, "can't execute*%s", command_line );
     MESSAGE( message );
   }
 
@@ -277,7 +277,7 @@ static int ViewArchiveFile(char *file_path)
     archive = statistic.login_path;
 #ifdef HAVE_LIBARCHIVE
     if (ExtractArchiveEntry(archive, file_path, fd) != 0) {
-        (void)sprintf(message, "Could not extract entry*'%s'*from archive", file_path);
+        (void)snprintf(message, MESSAGE_LENGTH, "Could not extract entry*'%s'*from archive", file_path);
         MESSAGE(message);
         close(fd);
         unlink(temp_filename);
@@ -303,21 +303,21 @@ static int ViewArchiveFile(char *file_path)
     /* Use the original file_path to check for custom viewers by extension */
     if ((aux = GetExtViewer(file_path)) != NULL) {
         if (strstr(aux, "%s") != NULL) {
-            (void)sprintf(command_line, aux, file_p_aux);
+            (void)snprintf(command_line, COMMAND_LINE_LENGTH + 1, aux, file_p_aux);
         } else {
-            (void)sprintf(command_line, "%s %s", aux, file_p_aux);
+            (void)snprintf(command_line, COMMAND_LINE_LENGTH + 1, "%s %s", aux, file_p_aux);
         }
     } else {
         /* No custom viewer, fall back to pager.
          * The content is already decompressed by libarchive, so we just use PAGER. */
-        (void)sprintf(command_line, "%s %s", PAGER, file_p_aux);
+        (void)snprintf(command_line, COMMAND_LINE_LENGTH + 1, "%s %s", PAGER, file_p_aux);
     }
 
     /* 4. Execute the command */
     result = SystemCall(command_line);
 
     if (result != 0) {
-        (void)sprintf(message, "can't execute*%s", command_line);
+        (void)snprintf(message, MESSAGE_LENGTH, "can't execute*%s", command_line);
         MESSAGE(message);
     }
 
@@ -357,25 +357,25 @@ static void printhexline(WINDOW *win, char *line, char *buf, int r, long offset)
         return;
     }
     if(hexoffset) {
-      sprintf(line, "%010lX  ", offset);
+      snprintf(line, WCOLS, "%010lX  ", offset);
     } else {
-      sprintf(line, "%010ld  ", offset);
+      snprintf(line, WCOLS, "%010ld  ", offset);
     }
     for (int i = 1; i <= r; i++ )
     {
         if ((i == (BYTES / 2) ) || (i == BYTES ))
-            sprintf(aux, "%02hhX  ", buf[i-1]);
+            snprintf(aux, WCOLS, "%02hhX  ", buf[i-1]);
         else
-            sprintf(aux, "%02hhX ", buf[i-1]);
+            snprintf(aux, WCOLS, "%02hhX ", buf[i-1]);
         strcat(line, aux);
     }
     for (int i = r+1; i <= BYTES; i++)
     {
         buf[i-1]= ' ';
         if ((i == (BYTES / 2) ) || (i == BYTES ))
-            sprintf(aux, "    ");
+            snprintf(aux, WCOLS, "    ");
         else
-            sprintf(aux, "   ");
+            snprintf(aux, WCOLS, "   ");
         strcat(line, aux);
     }
 /*    strcat(line, " ");*/
@@ -411,7 +411,7 @@ static void update_line(WINDOW *win, long line)
     memset(buf, ' ', BYTES);
     if (lseek(fd, (line - 1) * BYTES, SEEK_SET)== -1 )
     {
-        sprintf(msg, "File seek failed for line: %ld: %s ", line, strerror(errno));
+        snprintf(msg, sizeof(msg), "File seek failed for line: %ld: %s ", line, strerror(errno));
         ERROR_MSG(msg);
         fflush(stdout);
         free(line_string);
@@ -581,7 +581,7 @@ static void change_char(int ch)
     cambio -> pos = ( (cursor_pos_y + current_line - 1) * BYTES) + CURSOR_POSX;
     if (lseek(fd, cambio -> pos, SEEK_SET)== -1 )
     {
-        sprintf(msg,"File seek failed: %s ", strerror(errno));
+        snprintf(msg, sizeof(msg), "File seek failed: %s ", strerror(errno));
         ERROR_MSG(msg);
         fflush(stdout);
         free(cambio);
@@ -621,7 +621,7 @@ static void change_char(int ch)
 
             if (write(fd, &pp, 1) != 1)
             {
-                sprintf(msg,"Write to file failed: %s ", strerror(errno));
+                snprintf(msg, sizeof(msg), "Write to file failed: %s ", strerror(errno));
                 ERROR_MSG(msg);
                 fflush(stdout);
                 free(cambio);
@@ -631,14 +631,14 @@ static void change_char(int ch)
             cambio -> next = changes;
             changes = cambio;
         } else {
-            sprintf(msg,"File seek failed: %s ", strerror(errno));
+            snprintf(msg, sizeof(msg), "File seek failed: %s ", strerror(errno));
             ERROR_MSG(msg);
             fflush(stdout);
             free(cambio);
             return;
         }
     } else {
-        sprintf(msg,"Read from file failed: %s ", strerror(errno));
+        snprintf(msg, sizeof(msg), "Read from file failed: %s ", strerror(errno));
         ERROR_MSG(msg);
         fflush(stdout);
         free(cambio);
@@ -755,7 +755,7 @@ static void hex_edit(char *file_path)
     fd2 = fd;
     fd=open(file_path,O_RDWR);
     if (fd == -1) {
-        sprintf(msg,"File open failed: %s ", strerror(errno));
+        snprintf(msg, sizeof(msg), "File open failed: %s ", strerror(errno));
         ERROR_MSG(msg);
         touchwin(VIEW);
         fd = fd2;
