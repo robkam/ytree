@@ -1219,6 +1219,7 @@ int HandleFileWindow(DirEntry *dir_entry)
   int  get_dir_ret;
   YtreeAction action = ACTION_NONE; /* Initialize action */
   DirEntry *last_stats_dir = NULL; /* Track context changes */
+  int pclose_ret;
 
 
   unput_char = '\0';
@@ -2282,26 +2283,39 @@ int HandleFileWindow(DirEntry *dir_entry)
 			  break;
 		        }
 
-
+                        /* Exit ncurses mode */
+                        endwin();
+                        SuspendClock();
 
 			if( ( walking_package.function_data.pipe_cmd.pipe_file =
 			      popen( filepath, "w" ) ) == NULL )
 			{
+                          /* Restore ncurses mode if popen fails */
+                          InitClock();
+                          clearok( stdscr, TRUE );
+                          refresh();
 			  (void) snprintf( message, MESSAGE_LENGTH, "execution of command*%s*failed", filepath );
 			  MESSAGE( message );
 			  break;
 			}
 
 
-			WalkTaggedFiles( dir_entry->start_file,
-					 dir_entry->cursor_pos,
-					 PipeTaggedFiles,
+			SilentWalkTaggedFiles( PipeTaggedFiles,
 					 &walking_package
 				       );
 
-		        clearok( stdscr, TRUE );
+                        /* Close pipe and capture return value */
+			pclose_ret = pclose( walking_package.function_data.pipe_cmd.pipe_file ); /* Fixed struct access */
 
-			if( pclose( walking_package.function_data.pipe_cmd.pipe_file ) ) /* Fixed struct access */
+                        /* Wait for user input */
+                        HitReturnToContinue();
+
+                        /* Restore ncurses mode */
+                        InitClock();
+		        clearok( stdscr, TRUE );
+                        refresh(); /* Restore screen */
+
+			if( pclose_ret )
 			{
 			  WARNING( "pclose failed" );
 			}
