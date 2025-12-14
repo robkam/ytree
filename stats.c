@@ -338,8 +338,8 @@ static void DrawAttributes(const char *name, struct stat *s) {
         char *group = GetDisplayGroupName(s->st_gid);
         char owner_buf[32];
         char grp_buf[32];
-        if (!owner) { sprintf(owner_buf, "%d", s->st_uid); owner = owner_buf; }
-        if (!group) { sprintf(grp_buf, "%d", s->st_gid); group = grp_buf; }
+        if (!owner) { snprintf(owner_buf, sizeof(owner_buf), "%d", s->st_uid); owner = owner_buf; }
+        if (!group) { snprintf(grp_buf, sizeof(grp_buf), "%d", s->st_gid); group = grp_buf; }
 
         char full_own[64];
         snprintf(full_own, sizeof(full_own), "%s:%s", owner, group);

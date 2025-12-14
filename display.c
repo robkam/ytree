@@ -105,7 +105,7 @@ static void DisplayVersion(void)
   static char version[80];
 
   ClearHelp();
-  (void) sprintf( version,
+  (void) snprintf( version, sizeof(version),
 		  "ytree Version %sPL%d %s (Werner Bregulla)",
 		  VERSION,
 		  PATCHLEVEL,
@@ -252,7 +252,7 @@ void DisplayMenu(void)
       }
 
       /* Print Version Below Logo */
-      (void) sprintf( version,
+      (void) snprintf( version, sizeof(version),
               "ytree Version %sPL%d, %s, (Werner Bregulla)",
               VERSION,
               PATCHLEVEL,
