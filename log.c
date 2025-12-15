@@ -486,6 +486,8 @@ int SelectLoadedVolume(void)
     char title[] = "Select Volume";
     char prompt[] = "Use UP/DOWN to select, ENTER to switch, ESC/q to cancel. D to delete.";
     BOOL changes_made = FALSE;
+    BOOL restart_menu = FALSE;
+    BOOL menu_active = TRUE;
 
     /* Scrolling variables */
     int scroll_offset = 0;
@@ -493,275 +495,296 @@ int SelectLoadedVolume(void)
 
     ClearHelp();
 
-START_MENU:
-    // Free previous allocation if we are restarting the menu
-    if (vol_array != NULL) {
-        free(vol_array);
-        vol_array = NULL;
-    }
-    // If window exists, delete it before creating a new one
-    if (win != NULL) {
-        delwin(win);
-        win = NULL;
-    }
+    do {
+        restart_menu = FALSE;
+        menu_active = TRUE;
 
-    // Reset num_volumes and max_path_len for fresh snapshot
-    num_volumes = 0;
-    max_path_len = 0;
-    current_volume_index = -1;
-    scroll_offset = 0; /* Reset scroll offset for new menu display */
+        /* Reset num_volumes and max_path_len for fresh snapshot */
+        num_volumes = 0;
+        max_path_len = 0;
+        current_volume_index = -1;
+        scroll_offset = 0; /* Reset scroll offset for new menu display */
 
-    num_volumes = HASH_COUNT(VolumeList);
+        num_volumes = HASH_COUNT(VolumeList);
 
-    if (num_volumes == 0) {
-        MESSAGE("No volumes currently loaded.");
-        // If we deleted the last volume, CurrentVolume should have been reset to a blank one.
-        // In this case, we should return 0 to force a refresh of the main screen.
-        // If we started with 0 volumes, this is an error.
-        return changes_made ? 0 : -1;
-    }
-
-    vol_array = (struct Volume **)malloc(num_volumes * sizeof(struct Volume *));
-    if (vol_array == NULL) {
-        ERROR_MSG("Failed to allocate memory for volume list.");
-        return -1;
-    }
-
-    i = 0;
-    int new_selected_index = 0; // Default to first item
-    HASH_ITER(hh, VolumeList, s, tmp) {
-        vol_array[i] = s;
-        int len = StrVisualLength(s->vol_stats.login_path);
-        if (len > max_path_len) {
-            max_path_len = len;
+        if (num_volumes == 0) {
+            MESSAGE("No volumes currently loaded.");
+            // If we deleted the last volume, CurrentVolume should have been reset to a blank one.
+            // In this case, we should return 0 to force a refresh of the main screen.
+            // If we started with 0 volumes, this is an error.
+            return changes_made ? 0 : -1;
         }
-        if (s == CurrentVolume) {
-            current_volume_index = i;
-            new_selected_index = i; // Set selected to current volume
+
+        vol_array = (struct Volume **)malloc(num_volumes * sizeof(struct Volume *));
+        if (vol_array == NULL) {
+            ERROR_MSG("Failed to allocate memory for volume list.");
+            return -1;
         }
-        i++;
-    }
-    selected_index = new_selected_index; // Update selected_index after array is built
-    // Ensure selected_index is within bounds (should be if CurrentVolume is valid)
-    if (selected_index >= num_volumes) selected_index = num_volumes - 1;
-    if (selected_index < 0) selected_index = 0;
 
-
-    /* 2. Window Setup */
-    /* Minimum height: title (1) + prompt (1) + border (2) + at least 1 item (1) = 5 */
-    /* Minimum width: title (strlen) + padding (2) = 15 */
-    /* Max path len + " [ ] (current)" + padding */
-    win_width = MAXIMUM(strlen(title) + 4, max_path_len + 15); /* 15 for "[*] " + " (current)" + padding */
-    win_width = MAXIMUM(win_width, StrVisualLength(prompt) + 4); /* Ensure prompt fits */
-    win_width = MINIMUM(win_width, COLS - 4); /* Don't exceed screen width */
-
-    win_height = MINIMUM(LINES - 4, num_volumes + 5); /* 5 for top/bottom border, title, prompt, empty line */
-    win_height = MAXIMUM(win_height, 10); /* Minimum 10 lines */
-
-    win_x = (COLS - win_width) / 2;
-    win_y = (LINES - win_height) / 2;
-
-    // Calculate visible lines for items
-    visible_lines = win_height - 5; /* Height minus TopBorder, Title, Spacer, Prompt, BottomBorder */
-    visible_lines = MAXIMUM(1, visible_lines); /* Ensure at least one line is visible */
-
-    // Adjust initial scroll_offset to make current_volume_index visible
-    if (selected_index >= visible_lines) {
-        scroll_offset = selected_index - visible_lines + 1;
-        // Ensure scroll_offset doesn't go past the end of the list
-        scroll_offset = MINIMUM(scroll_offset, num_volumes - visible_lines);
-    }
-    // Ensure scroll_offset is not negative
-    scroll_offset = MAXIMUM(0, scroll_offset);
-
-
-    // Create new window (old one was deleted if it existed)
-    win = newwin(win_height, win_width, win_y, win_x);
-    if (win == NULL) {
-        ERROR_MSG("Failed to create window for volume selection.");
-        free(vol_array);
-        return -1;
-    }
-
-    keypad(win, TRUE);
-    WbkgdSet(win, COLOR_PAIR(CPAIR_MENU));
-    curs_set(0); /* Hide cursor */
-
-    /* 3. Input Loop */
-    for (;;) {
-        werase(win);
-        box(win, 0, 0);
-        mvwprintw(win, 1, (win_width - strlen(title)) / 2, "%s", title);
-        mvwprintw(win, win_height - 2, (win_width - StrVisualLength(prompt)) / 2, "%s", prompt);
-
-        /* Drawing loop using scroll_offset and visible_lines */
-        for (j = 0; j < visible_lines; j++) { /* Iterate for visible lines */
-            int actual_idx = scroll_offset + j; /* Calculate actual volume index */
-            if (actual_idx >= num_volumes) {
-                break; /* No more volumes to display */
+        i = 0;
+        int new_selected_index = 0; // Default to first item
+        HASH_ITER(hh, VolumeList, s, tmp) {
+            vol_array[i] = s;
+            int len = StrVisualLength(s->vol_stats.login_path);
+            if (len > max_path_len) {
+                max_path_len = len;
             }
-
-            int y_pos = 3 + j; /* Start listing from y=3, relative to visible line j */
-
-            if (actual_idx == selected_index) {
-                wattron(win, A_REVERSE); /* Highlight selected item */
-            } else if (actual_idx == current_volume_index) {
-                wattron(win, COLOR_PAIR(CPAIR_HIMENUS)); /* Highlight current volume differently */
+            if (s == CurrentVolume) {
+                current_volume_index = i;
+                new_selected_index = i; // Set selected to current volume
             }
-
-            const char *path_to_display = vol_array[actual_idx]->vol_stats.login_path;
-            if (strlen(path_to_display) == 0) {
-                path_to_display = "<No Path>";
-            }
-
-            mvwprintw(win, y_pos, 2, "[%c] %s",
-                      (actual_idx == selected_index ? '*' : ' '),
-                      path_to_display);
-
-            if (actual_idx == current_volume_index && actual_idx != selected_index) {
-                wattroff(win, COLOR_PAIR(CPAIR_HIMENUS));
-            } else if (actual_idx == selected_index) {
-                wattroff(win, A_REVERSE);
-            }
+            i++;
         }
-        wrefresh(win);
+        selected_index = new_selected_index; // Update selected_index after array is built
+        // Ensure selected_index is within bounds (should be if CurrentVolume is valid)
+        if (selected_index >= num_volumes) selected_index = num_volumes - 1;
+        if (selected_index < 0) selected_index = 0;
 
-        ch = WGetch(win);
 
-        switch (ch) {
-            case KEY_UP:
-                selected_index--;
-                if (selected_index < 0) {
-                    selected_index = num_volumes - 1;
-                    scroll_offset = MAXIMUM(0, num_volumes - visible_lines);
-                } else if (selected_index < scroll_offset) {
-                    scroll_offset--;
-                }
-                break;
-            case KEY_DOWN:
-                selected_index++;
-                if (selected_index >= num_volumes) {
-                    selected_index = 0;
-                    scroll_offset = 0;
-                } else if (selected_index >= scroll_offset + visible_lines) {
-                    scroll_offset++;
-                }
-                break;
-            case LF:
-            case CR:
-                result = 0; /* Success */
-                goto END_LOOP;
-            case ESC:
-            case 'q':
-                result = -1; /* Cancel */
-                goto END_LOOP;
-            case 'D':
-            case 'd':
-            case KEY_DC: // Delete key
-                if (num_volumes <= 1) {
-                    MESSAGE("Cannot release the last volume.");
-                    // No need to redraw, loop will do it.
-                    break; // break from switch, loop continues to redraw
+        /* 2. Window Setup */
+        /* Minimum height: title (1) + prompt (1) + border (2) + at least 1 item (1) = 5 */
+        /* Minimum width: title (strlen) + padding (2) = 15 */
+        /* Max path len + " [ ] (current)" + padding */
+        win_width = MAXIMUM(strlen(title) + 4, max_path_len + 15); /* 15 for "[*] " + " (current)" + padding */
+        win_width = MAXIMUM(win_width, StrVisualLength(prompt) + 4); /* Ensure prompt fits */
+        win_width = MINIMUM(win_width, COLS - 4); /* Don't exceed screen width */
+
+        win_height = MINIMUM(LINES - 4, num_volumes + 5); /* 5 for top/bottom border, title, prompt, empty line */
+        win_height = MAXIMUM(win_height, 10); /* Minimum 10 lines */
+
+        win_x = (COLS - win_width) / 2;
+        win_y = (LINES - win_height) / 2;
+
+        // Calculate visible lines for items
+        visible_lines = win_height - 5; /* Height minus TopBorder, Title, Spacer, Prompt, BottomBorder */
+        visible_lines = MAXIMUM(1, visible_lines); /* Ensure at least one line is visible */
+
+        // Adjust initial scroll_offset to make current_volume_index visible
+        if (selected_index >= visible_lines) {
+            scroll_offset = selected_index - visible_lines + 1;
+            // Ensure scroll_offset doesn't go past the end of the list
+            scroll_offset = MINIMUM(scroll_offset, num_volumes - visible_lines);
+        }
+        // Ensure scroll_offset is not negative
+        scroll_offset = MAXIMUM(0, scroll_offset);
+
+
+        // Create new window
+        win = newwin(win_height, win_width, win_y, win_x);
+        if (win == NULL) {
+            ERROR_MSG("Failed to create window for volume selection.");
+            free(vol_array);
+            return -1;
+        }
+
+        keypad(win, TRUE);
+        WbkgdSet(win, COLOR_PAIR(CPAIR_MENU));
+        curs_set(0); /* Hide cursor */
+
+        /* 3. Input Loop */
+        while (menu_active) {
+            werase(win);
+            box(win, 0, 0);
+            mvwprintw(win, 1, (win_width - strlen(title)) / 2, "%s", title);
+            mvwprintw(win, win_height - 2, (win_width - StrVisualLength(prompt)) / 2, "%s", prompt);
+
+            /* Drawing loop using scroll_offset and visible_lines */
+            for (j = 0; j < visible_lines; j++) { /* Iterate for visible lines */
+                int actual_idx = scroll_offset + j; /* Calculate actual volume index */
+                if (actual_idx >= num_volumes) {
+                    break; /* No more volumes to display */
                 }
 
-                if (InputChoice("Release this volume? (Y/N)", "YN\033") == 'Y') {
-                    struct Volume *target_vol = vol_array[selected_index];
-                    int neighbor_idx = -1;
+                int y_pos = 3 + j; /* Start listing from y=3, relative to visible line j */
 
-                    if (target_vol == CurrentVolume) {
-                        /* Scenario A: Deleting Current Volume */
-                        /* Find a neighbor to switch to */
-                        if (num_volumes > 1) {
-                            // If selected is 0, try 1. Otherwise, try 0.
-                            neighbor_idx = (selected_index == 0) ? 1 : 0;
-                            struct Volume *neighbor = vol_array[neighbor_idx];
+                if (actual_idx == selected_index) {
+                    wattron(win, A_REVERSE); /* Highlight selected item */
+                } else if (actual_idx == current_volume_index) {
+                    wattron(win, COLOR_PAIR(CPAIR_HIMENUS)); /* Highlight current volume differently */
+                }
 
-                            /* Verify neighbor accessibility before switching */
-                            // This logic is similar to LoginDisk, but for a neighbor.
-                            BOOL neighbor_access_ok = FALSE;
-                            struct stat neighbor_st_check;
+                const char *path_to_display = vol_array[actual_idx]->vol_stats.login_path;
+                if (strlen(path_to_display) == 0) {
+                    path_to_display = "<No Path>";
+                }
 
-                            if (neighbor->vol_stats.mode == ARCHIVE_MODE) {
-                                if (stat(neighbor->vol_stats.login_path, &neighbor_st_check) == 0 && !S_ISDIR(neighbor_st_check.st_mode)) {
-                                    neighbor_access_ok = TRUE;
-                                    char neighbor_parent_dir[PATH_LENGTH + 1];
-                                    strcpy(neighbor_parent_dir, neighbor->vol_stats.login_path);
-                                    char *slash = strrchr(neighbor_parent_dir, FILE_SEPARATOR_CHAR);
-                                    if (slash) {
-                                        *slash = '\0';
-                                        if (chdir(neighbor_parent_dir) != 0) {
-                                            /* Suppress */
+                mvwprintw(win, y_pos, 2, "[%c] %s",
+                          (actual_idx == selected_index ? '*' : ' '),
+                          path_to_display);
+
+                if (actual_idx == current_volume_index && actual_idx != selected_index) {
+                    wattroff(win, COLOR_PAIR(CPAIR_HIMENUS));
+                } else if (actual_idx == selected_index) {
+                    wattroff(win, A_REVERSE);
+                }
+            }
+            wrefresh(win);
+
+            ch = WGetch(win);
+
+            switch (ch) {
+                case KEY_UP:
+                    selected_index--;
+                    if (selected_index < 0) {
+                        selected_index = num_volumes - 1;
+                        scroll_offset = MAXIMUM(0, num_volumes - visible_lines);
+                    } else if (selected_index < scroll_offset) {
+                        scroll_offset--;
+                    }
+                    break;
+                case KEY_DOWN:
+                    selected_index++;
+                    if (selected_index >= num_volumes) {
+                        selected_index = 0;
+                        scroll_offset = 0;
+                    } else if (selected_index >= scroll_offset + visible_lines) {
+                        scroll_offset++;
+                    }
+                    break;
+                case LF:
+                case CR:
+                    result = 0; /* Success */
+                    restart_menu = FALSE;
+                    menu_active = FALSE;
+                    break;
+                case ESC:
+                case 'q':
+                    result = -1; /* Cancel */
+                    restart_menu = FALSE;
+                    menu_active = FALSE;
+                    break;
+                case 'D':
+                case 'd':
+                case KEY_DC: // Delete key
+                    if (num_volumes <= 1) {
+                        MESSAGE("Cannot release the last volume.");
+                        // No need to redraw, loop will do it.
+                        break; // break from switch, loop continues to redraw
+                    }
+
+                    if (InputChoice("Release this volume? (Y/N)", "YN\033") == 'Y') {
+                        struct Volume *target_vol = vol_array[selected_index];
+                        int neighbor_idx = -1;
+
+                        if (target_vol == CurrentVolume) {
+                            /* Scenario A: Deleting Current Volume */
+                            /* Find a neighbor to switch to */
+                            if (num_volumes > 1) {
+                                // If selected is 0, try 1. Otherwise, try 0.
+                                neighbor_idx = (selected_index == 0) ? 1 : 0;
+                                struct Volume *neighbor = vol_array[neighbor_idx];
+
+                                /* Verify neighbor accessibility before switching */
+                                // This logic is similar to LoginDisk, but for a neighbor.
+                                BOOL neighbor_access_ok = FALSE;
+                                struct stat neighbor_st_check;
+
+                                if (neighbor->vol_stats.mode == ARCHIVE_MODE) {
+                                    if (stat(neighbor->vol_stats.login_path, &neighbor_st_check) == 0 && !S_ISDIR(neighbor_st_check.st_mode)) {
+                                        neighbor_access_ok = TRUE;
+                                        char neighbor_parent_dir[PATH_LENGTH + 1];
+                                        strcpy(neighbor_parent_dir, neighbor->vol_stats.login_path);
+                                        char *slash = strrchr(neighbor_parent_dir, FILE_SEPARATOR_CHAR);
+                                        if (slash) {
+                                            *slash = '\0';
+                                            if (chdir(neighbor_parent_dir) != 0) {
+                                                /* Suppress */
+                                            }
                                         }
                                     }
+                                } else {
+                                    if (chdir(neighbor->vol_stats.login_path) == 0) {
+                                        neighbor_access_ok = TRUE;
+                                    }
                                 }
+
+                                if (!neighbor_access_ok) {
+                                    char error_message_buffer[MESSAGE_LENGTH + 1];
+                                    snprintf(error_message_buffer, sizeof(error_message_buffer), "Neighbor volume \"%s\" not accessible (Error: %s). Removed.",
+                                            neighbor->vol_stats.login_path, strerror(errno));
+                                    MESSAGE(error_message_buffer);
+                                    Volume_Delete(neighbor); // Delete the inaccessible neighbor
+                                    changes_made = TRUE;
+
+                                    restart_menu = TRUE;
+                                    menu_active = FALSE;
+                                    break;
+                                }
+
+                                CurrentVolume = neighbor;
+                                mode = CurrentVolume->vol_stats.mode; // Sync global mode
                             } else {
-                                if (chdir(neighbor->vol_stats.login_path) == 0) {
-                                    neighbor_access_ok = TRUE;
-                                }
+                                // This case should be caught by num_volumes <= 1 check, but defensive.
+                                MESSAGE("Cannot release the last volume.");
+                                break; // break from switch, loop continues to redraw
                             }
-
-                            if (!neighbor_access_ok) {
-                                char error_message_buffer[MESSAGE_LENGTH + 1];
-                                snprintf(error_message_buffer, sizeof(error_message_buffer), "Neighbor volume \"%s\" not accessible (Error: %s). Removed.",
-                                        neighbor->vol_stats.login_path, strerror(errno));
-                                MESSAGE(error_message_buffer);
-                                Volume_Delete(neighbor); // Delete the inaccessible neighbor
-                                changes_made = TRUE;
-                                // Need to restart the menu to rebuild the vol_array and window
-                                free(vol_array); vol_array = NULL; // Ensure it's freed before goto
-                                delwin(win); win = NULL; // Ensure window is deleted
-                                touchwin(stdscr); refresh(); // Clear artifacts
-                                goto START_MENU; // Restart menu to rebuild list
-                            }
-
-                            CurrentVolume = neighbor;
-                            mode = CurrentVolume->vol_stats.mode; // Sync global mode
-                        } else {
-                            // This case should be caught by num_volumes <= 1 check, but defensive.
-                            MESSAGE("Cannot release the last volume.");
-                            break; // break from switch, loop continues to redraw
                         }
+                        /* Scenario B: Deleting Background Volume (or target_vol is now CurrentVolume's old self) */
+                        Volume_Delete(target_vol);
+                        changes_made = TRUE;
+
+                        /* Cleanup and restart menu */
+                        restart_menu = TRUE;
+                        menu_active = FALSE;
                     }
-                    /* Scenario B: Deleting Background Volume (or target_vol is now CurrentVolume's old self) */
-                    Volume_Delete(target_vol);
-                    changes_made = TRUE;
-
-                    /* Cleanup and restart menu */
-                    free(vol_array); vol_array = NULL; // Ensure it's freed before goto
-                    delwin(win); win = NULL; // Ensure window is deleted
-                    touchwin(stdscr); refresh(); // Clear artifacts
-                    goto START_MENU;
-                }
-                break; // break from switch, loop continues to redraw (if not goto START_MENU)
-            default:
-                /* Ignore other keys */
-                break;
+                    break; // break from switch, loop continues to redraw (if not restart_menu)
+                default:
+                    /* Ignore other keys */
+                    break;
+            }
         }
-    }
 
-END_LOOP:
-    /* 5. Cleanup */
+        /* 5. Cleanup inside loop before potentially restarting */
+        if (vol_array) {
+            free(vol_array);
+            vol_array = NULL;
+        }
+        if (win) {
+            delwin(win);
+            win = NULL;
+        }
+        touchwin(stdscr);
+        refresh();
+
+    } while (restart_menu);
+
+    /* 6. Execution (if not cancelled) */
     curs_set(1); /* Restore cursor */
-    delwin(win);
-    touchwin(stdscr);
-    refresh();
 
-    /* 4. Execution (if not cancelled) */
     if (result == 0) {
-        struct Volume *target_vol = vol_array[selected_index];
-        if (target_vol != CurrentVolume) {
-            /* LoginDisk will handle setting CurrentVolume and refreshing display */
-            int login_result = LoginDisk(target_vol->vol_stats.login_path);
-            free(vol_array); /* Free AFTER LoginDisk returns */
-            return login_result;
-        } else {
-            /* REMOVED: MESSAGE("Already on selected volume."); */
-            free(vol_array); /* Free even if no actual switch */
-            return 0; /* No actual switch, but not an error */
+        /* We need to rebuild vol_array one last time to get the target volume pointer
+           because we freed it inside the loop. However, since we just exited the loop,
+           we don't have the array anymore.
+           BUT: selected_index refers to the index in the *last displayed* list.
+           We need to reconstruct the list to map index to pointer again safely.
+        */
+
+        num_volumes = HASH_COUNT(VolumeList);
+        if (num_volumes > 0) {
+             vol_array = (struct Volume **)malloc(num_volumes * sizeof(struct Volume *));
+             if (vol_array) {
+                 i = 0;
+                 HASH_ITER(hh, VolumeList, s, tmp) {
+                     vol_array[i++] = s;
+                 }
+
+                 /* Ensure index is still valid */
+                 if (selected_index >= num_volumes) selected_index = num_volumes - 1;
+                 if (selected_index < 0) selected_index = 0;
+
+                 struct Volume *target_vol = vol_array[selected_index];
+
+                 if (target_vol != CurrentVolume) {
+                     int login_result = LoginDisk(target_vol->vol_stats.login_path);
+                     free(vol_array);
+                     return login_result;
+                 }
+                 free(vol_array);
+                 return 0; /* Already on selected volume */
+             }
         }
     }
 
-    free(vol_array); /* Free if cancelled (result != 0) */
     // If changes were made (volumes deleted), return 0 to force main loop to refresh.
     // Otherwise, return original result (0 for switch, -1 for cancel).
     return (result == 0 || changes_made) ? 0 : -1;
