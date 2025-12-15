@@ -46,58 +46,7 @@ sudo make uninstall
 
 ## Usage
 
-Start ytree from the command line:
-
-```bash
-ytree [directory] [archive_file]
-```
-
-If no argument is provided, it starts in the current directory.
-
-### Key Bindings (Brief)
-
-*   **Arrows / Vi Keys:** Navigate the tree and file lists.
-*   **Enter:** Enter a directory or view a file.
-*   **` (Backtick):** Toggle visibility of hidden dot-files.
-*   **L:** Log (scan) a new directory or archive.
-*   **K (Shift+K):** Open Volume Menu (Switch/Release volumes).
-*   **< / >:** Cycle through loaded volumes.
-*   **T:** Tag a file.
-*   **C:** Copy tagged files.
-*   **M:** Move tagged files.
-*   **D:** Delete tagged files.
-*   **R:** Rename file(s).
-*   **F:** Set Filter (Filespec).
-*   **^Q:** Quit to directory (requires shell wrapper).
-*   **Q:** Quit.
-
-See the manual page (`man ytree`) for a complete list of commands.
-
-## Quit to Directory (^Q)
-
-To allow `ytree` to change your shell's working directory upon exit (using `^Q`), add this function to your `~/.bashrc` or `~/.zshrc`:
-
-```bash
-yt() {
-    ytree "$@"
-    local tmpfile="$HOME/.ytree-$$.chdir"
-    if [ -f "$tmpfile" ]; then
-        source "$tmpfile"
-        rm "$tmpfile"
-    fi
-}
-```
-
-Then use `yt` instead of `ytree` to start the program.
-
-## Configuration
-
-ytree looks for a configuration file at `~/.ytree`. A default configuration is provided in `ytree.conf`.
-
-Key options include:
-*   **ANIMATION=1**: Enable the warp-speed starfield during scans.
-*   **HIDEDOTFILES=1**: Hide files starting with `.` by default.
-*   **[COLORS]**: Customize the color scheme.
+For detailed usage, configuration, and keybindings, see [USAGE.md](USAGE.md) or run `man ./ytree.1`.
 
 ## Contributing
 
@@ -107,5 +56,28 @@ Contributions are welcome! Please read [CONTRIBUTING.md](CONTRIBUTING.md) for gu
 
 ytree is free software distributed under the GPL. See the [LICENSE](LICENSE) file for details.
 
----
-*Original Author: Werner Bregulla*
+## Contributors
+
+**Original Development**
+Originally developed by [Werner Bregulla](https://www.han.de/~werner/ytree.html). Many thanks to the people who helped during the classic era:
+
+*   **Andrew Cottrell** - DJGPP port
+*   **Andrey Zakhvatov / Peter Brevik** - FreeBSD port
+*   **Axel F. Zinser** - NeXT port
+*   **C. R. Bryan III** - QuitTo, hexdump
+*   **Carlos Barros** - Color, history & keyF2, configurable viewer, Spanish man-page, list all tagged files, hex viewer/editor, readline
+*   **Jens-Uwe Mager** - RS/6000 port, Configuration
+*   **Marcus Brinkmann** - Port to GNU Hurd
+*   **Mark Hessling** - QNX port, PDCurses, configuration addons
+*   **Martynas Venckus** - OpenBSD/NetBSD port
+*   **Norman Fahlbusch** - Testing and "marketing" :-)
+*   **Roger Knobbe** - Secondary key for sort by extension
+*   **S.Addams (SJA)** - OpenBSD port
+*   **Scott Wagner** - Command/menu configurable
+*   **Siegfried Salomon** - SCO OpenServer 5 (5.0.5)
+*   **Tina Hoeltig** - Man-page, tips
+*   **Valere Monseur aka Dobedo** - NetBSD
+*   **Victor Vislobokov** - UTF-8 support
+
+**v3.0 Modernization**
+After decades of dormancy, the project was radically refactored and modernized by [Rob Kam](https://github.com/robkam) using Google AI Studio's **Gemini 3 Pro**.

@@ -70,13 +70,20 @@ OBJS	= display_utils.o owner_utils.o path_utils.o string_utils.o tree_utils.o \
 	  profile.o quit.o readtree.o rename.o rmdir.o sort.o stats.o \
 	  system.o usermode.o view.o volume.o
 
+.PHONY: all clean clobber install uninstall docs
+
+all: $(MAIN) docs
+
 $(MAIN):	$(OBJS)
 	$(CC) $(LFLAGS) -o $@ $(OBJS) $(LDFLAGS)
+
+docs:
+	$(PANDOC) -f markdown-tex_math_dollars -t gfm --metadata title="Ytree Usage" ytree.1.md -o USAGE.md
 
 ytree.1: $(MANSRC)
 	$(PANDOC) -s -t man $(MANSRC) -o ytree.1
 
-install:	$(MAIN) ytree.1
+install: $(MAIN) ytree.1 docs
 	if [ ! -e $(BINDIR) ]; then mkdir -p $(BINDIR); fi
 	install $(MAIN) $(BINDIR)
 	gzip -9c ytree.1 > ytree.1.gz
@@ -88,7 +95,7 @@ uninstall:	clobber
 	rm -f $(MANDIR)/ytree.1.gz
 
 clean:
-	rm -f core *.o *.gz *~ *.orig *.bak ytree.1
+	rm -f core *.o *.gz *~ *.orig *.bak ytree.1 USAGE.md
 
 clobber:	clean
 	rm -f $(MAIN) ytree.1.gz

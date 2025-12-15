@@ -345,6 +345,16 @@ Example:
 A command-line history is supported: Use cursor up/down.
 Use "F2" on the command-line to select directories.
 
+# CONFIGURATION
+
+ytree looks for a configuration file at `~/.ytree`. A default configuration is provided in `ytree.conf`.
+
+Key options include:
+
+*   **ANIMATION=1**: Enable the warp-speed starfield during scans.
+*   **HIDEDOTFILES=1**: Hide files starting with `.` by default.
+*   **[COLORS]**: Customize the color scheme.
+
 # FILES
 
 $HOME/.ytree
