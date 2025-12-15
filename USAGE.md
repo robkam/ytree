@@ -1,8 +1,10 @@
-# ytree - File Manager - Usage
+# NAME
+
+ytree - File Manager -
 
 # SYNOPSYS
 
-`ytree [archive_file|directory]`
+`ytree` \[*archive file*\|*directory*\]
 
 # DESCRIPTION
 
@@ -82,7 +84,7 @@ Re-read the contents of the current directory from disk and refresh the
 view. This is useful after running an external shell command that
 modifies files.
 
-**-**`` \` **(backtick)**  
+**-\` (backtick)**  
 Toggle visibility of hidden dot-files and dot-directories.
 
 **-K (Shift-K)**  
@@ -90,7 +92,7 @@ Toggle visibility of hidden dot-files and dot-directories.
 (drives/paths). Select a volume to switch context instantly. Press
 `Delete` (or `D`) in the menu to release (unlog) a volume.
 
-**-`< >` (or `, .`)**  
+**-\< / \> (or , / .)**  
 **Cycle Volumes**: Switch to the previous or next logged volume
 instantly.
 
@@ -215,10 +217,10 @@ selected filename.
 Execute shell command for all tagged files. The string {} is replaced by
 each file’s full path.
 
-**-PathCopY/^Y**  
-PathCop(Y): Copy selected file inclusive path.
+**-pathcopY/^Y**  
+25) PathCopy: Copy selected file inclusive path.
 
-PathCop(^Y): Copy all tagged files inclusive path.
+(^Y) PathCopy: Copy all tagged files inclusive path.
 
 **-^Filemode**  
 Switch view-modus for files:
@@ -232,13 +234,13 @@ Switch view-modus for files:
 Re-read the contents of the current directory from disk and redraw the
 screen.
 
-**-**`` \` **(backtick)**  
+**-\` (backtick)**  
 Toggle visibility of hidden dot-files.
 
 **-K (Shift-K)**  
 **Volume Menu**: Show/Switch/Release loaded volumes (same as Dir Mode).
 
-**-`< >` (or `, .`)**  
+**-\< / \> (or , / .)**  
 **Cycle Volumes**: Switch to previous/next volume.
 
 **-Space**  
@@ -335,7 +337,7 @@ with an archive file given as a command line argument. It uses the
 libarchive library to read a wide variety of archive and compression
 formats.
 
-The View command is customizeable in the `[VIEWER]` section of ~/.ytree:
+The View command is customizeable in the \[VIEWER\] section of ~/.ytree:
 
 Example:
 
@@ -363,11 +365,11 @@ Key options include:
 
 - **ANIMATION=1**: Enable the warp-speed starfield during scans.
 - **HIDEDOTFILES=1**: Hide files starting with `.` by default.
-- **`[COLORS]`**: Customize the color scheme.
+- **\[COLORS\]**: Customize the color scheme.
 
 # FILES
 
-`$HOME/.ytree`  
+\$HOME/.ytree  
 ytree configuration file
 
 # BUGS
@@ -378,6 +380,15 @@ To avoid problems with escape sequences on RS/6000 machines
     ESCDELAY=1000
     export ESCDELAY
 
-# AUTOR
+### Reporting problems
 
-W. Bregulla (werner@frolix.han.de)
+If you find anything amiss, you can report it using [GitHub
+Issues](https://github.com/robkam/ytree/issues).
+
+It would help us to address the issue if you include the following:
+
+- **OS & Configuration:** (Distro, Terminal type, etc.)
+- **Version:** (ytree version)
+- **Steps to Reproduce:** (What I did)
+- **Expected Behavior:** (What I expected)
+- **Actual Behavior:** (What actually happened)
