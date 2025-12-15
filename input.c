@@ -618,6 +618,7 @@ int InputChoice(char *msg, char *term)
   move( LINES - 2, 1 ); clrtoeol();
   leaveok(stdscr, TRUE);
   curs_set(0);
+  refresh();
 
   return( c );
 }
