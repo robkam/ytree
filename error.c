@@ -49,9 +49,9 @@ void AboutBox()
 
   (void) snprintf( version, sizeof(version),
 #ifdef WITH_UTF8
-                  "ytree (UTF8) Version %s %s*(Werner Bregulla)",
+                  "ytree (UTF8) Version %s %s*",
 #else
-                  "ytree Version %s %s*(Werner Bregulla)",
+                  "ytree Version %s %s*",
 #endif
                   VERSION,
                   VERSIONDATE

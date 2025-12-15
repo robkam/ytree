@@ -106,7 +106,7 @@ static void DisplayVersion(void)
 
   ClearHelp();
   (void) snprintf( version, sizeof(version),
-		  "ytree Version %sPL%d %s (Werner Bregulla)",
+		  "ytree Version %sPL%d %s",
 		  VERSION,
 		  PATCHLEVEL,
 		  VERSIONDATE
@@ -253,7 +253,7 @@ void DisplayMenu(void)
 
       /* Print Version Below Logo */
       (void) snprintf( version, sizeof(version),
-              "ytree Version %sPL%d, %s, (Werner Bregulla)",
+              "ytree Version %sPL%d, %s",
               VERSION,
               PATCHLEVEL,
               VERSIONDATE

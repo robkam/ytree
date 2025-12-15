@@ -369,7 +369,14 @@ To avoid problems with escape sequences on RS/6000 machines
 ESCDELAY=1000
 export ESCDELAY
 ```
+### Reporting problems
 
-# AUTOR
+If you find anything amiss, you can report it using [GitHub Issues](https://github.com/robkam/ytree/issues).
 
-W. Bregulla (werner@frolix.han.de)
+It will help us to address the issue if you include the following:
+
+*   **OS & Configuration:** (Distro, Terminal type, etc.)
+*   **Version:** (ytree version)
+*   **Steps to Reproduce:** (What I did)
+*   **Expected Behavior:** (What I expected)
+*   **Actual Behavior:** (What actually happened)

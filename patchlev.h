@@ -5,6 +5,6 @@
  ***************************************************************************/
 
 
-#define	VERSION		"2.10"
+#define	VERSION		"3.0"
 #define	PATCHLEVEL	0
-#define VERSIONDATE	"12 Feb 2025"
+#define VERSIONDATE	"15 Dec 2025"
