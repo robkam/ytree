@@ -109,7 +109,7 @@ The Architect/Builder executes the plan. In a **separate** AI Studio window (to 
 
 0.  **Paste the Architect/Builder System Prompt** (See [Appendix B](#appendix-b-the-architectbuilder-persona)) into the "System Instructions" field.
 
-1.  **Prepare Files:** Use the file list from Part 1 to identify which files need modification. Use this command to dump them into a clean format for the AI:
+1.  **Prepare Files:** Use the file list from Part 1 to identify which files need modification. Use this command to dump them into a clean format for the AI, e.g.:
     ```bash
     for f in ytree.h log.c quit.c; do echo '```'; echo -e "\n"; cat "$f"; echo -e "\n"; echo '```'; done > files.txt
     ```
