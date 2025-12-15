@@ -89,15 +89,23 @@ int main(int argc, char **argv)
   {
     /* rel. Pfad */
     /*-----------*/
+    char cwd[PATH_LENGTH + 1];
+    int n;
 
-    if( getcwd( buffer, sizeof( buffer ) - 2 ) == NULL )
+    if( getcwd( cwd, sizeof( cwd ) ) == NULL )
     {
         endwin();
         fprintf(stderr, "Error: getcwd failed: %s\n", strerror(errno));
         exit(1);
     }
-    (void) strcat( buffer, FILE_SEPARATOR_STRING );
-    (void) strcat( buffer, p );
+
+    n = snprintf( buffer, sizeof(buffer), "%s%c%s", cwd, FILE_SEPARATOR_CHAR, p );
+
+    if (n < 0 || n >= (int)sizeof(buffer)) {
+        endwin();
+        fprintf(stderr, "Error: Path too long\n");
+        exit(1);
+    }
     p = buffer;
   }
 
