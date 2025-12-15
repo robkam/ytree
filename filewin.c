@@ -2433,6 +2433,7 @@ int HandleFileWindow(DirEntry *dir_entry)
 
       case ACTION_QUIT:       need_dsp_help = TRUE;
                       Quit();
+                      action = ACTION_NONE;
 		      break;
 
       case ACTION_VOL_MENU:
