@@ -9,10 +9,11 @@
 #include "ytree.h"
 #include <signal.h>
 #include <stdlib.h>
+#include <string.h>
+#include <errno.h>
 
 
 static char buffer[PATH_LENGTH+1];
-static char path[PATH_LENGTH+1];
 
 static void EmergencyExit(int sig)
 {
@@ -23,11 +24,12 @@ static void EmergencyExit(int sig)
 
 int main(int argc, char **argv)
 {
-  char *p;
-  int argi;
+  int argi, i;
   char *hist;
   char *conf;
-  int main_loop_exit_char; // Variable to store the return value of HandleDirWindow
+  int main_loop_exit_char;
+  int *path_indexes;
+  int path_count = 0;
 
   /* Register Signal Handlers */
   signal(SIGSEGV, EmergencyExit); /* Segfault */
@@ -36,122 +38,129 @@ int main(int argc, char **argv)
 
   /* setlocale is now handled in Init */
 
-
   hist = NULL;
   conf = NULL;
-  p = DEFAULT_TREE;
+
+  /* Pass 1: Pre-scan Loop - Parse Options (-p, -h) */
   for (argi = 1; argi < argc; argi++)
   {
-    if (*(argv[argi]) != '-')
+    if (argv[argi][0] == '-')
     {
-      p = argv[argi];
-      break;
-    }
-    switch(*(argv[argi]+1)) {
-    case 'p':
-    case 'P':
-      if (*(argv[argi]+2) <= ' ')
-        conf = argv[++argi];
-      else
-        conf = argv[argi]+2;
-      break;
-/*    case 'e':
-    case 'E':
-       Hex dump (builtin)
-      if(argi == argc) {
-        return(BuiltinHexDump(NULL));
+      switch(argv[argi][1]) {
+        case 'p':
+        case 'P':
+          if (argv[argi][2] <= ' ') {
+             if (argi + 1 < argc) conf = argv[++argi];
+             else {
+                 fprintf(stderr, "Option -p requires an argument\n");
+                 exit(1);
+             }
+          } else {
+             conf = argv[argi]+2;
+          }
+          break;
+        case 'h':
+        case 'H':
+          if (argv[argi][2] <= ' ') {
+             if (argi + 1 < argc) hist = argv[++argi];
+             else {
+                 fprintf(stderr, "Option -h requires an argument\n");
+                 exit(1);
+             }
+          } else {
+             hist = argv[argi]+2;
+          }
+          break;
+        default:
+          fprintf(stderr, "Usage: %s [-p profile_file] [-h hist_file] [directory ...]\n", argv[0]);
+          exit(1);
       }
-
-      if (*(argv[argi]+2) <= ' ')
-        hex_file = argv[++argi];
-      else
-        hex_file = argv[argi]+2;
-        return(BuiltinHexDump(hex_file));
-      break;*/
-    case 'h':
-    case 'H':
-      if (*(argv[argi]+2) <= ' ')
-        hist = argv[++argi];
-      else
-        hist = argv[argi]+2;
-      break;
-    default:
-      printf("Usage: %s [-p profile_file] [-h hist_file] [initial_dir]\n",
-          argv[0]);
-      exit(1);
     }
   }
 
   if (Init(conf, hist))
       exit(1);
 
-  if( *p != FILE_SEPARATOR_CHAR )
-  {
-    /* rel. Pfad */
-    /*-----------*/
-    char cwd[PATH_LENGTH + 1];
-    int n;
+  /* Allocate memory for path indexes to support multiple volumes */
+  path_indexes = (int *)malloc(sizeof(int) * argc);
+  if (!path_indexes) {
+      endwin();
+      fprintf(stderr, "Memory allocation failed\n");
+      exit(1);
+  }
 
-    if( getcwd( cwd, sizeof( cwd ) ) == NULL )
+  /* Pass 2: Path Collection Loop */
+  for (argi = 1; argi < argc; argi++)
+  {
+    if (argv[argi][0] == '-')
     {
-        endwin();
-        fprintf(stderr, "Error: getcwd failed: %s\n", strerror(errno));
-        exit(1);
+       /* Skip flags and their values to ensure we only collect positional args */
+       char c = argv[argi][1];
+       if ((c == 'p' || c == 'P' || c == 'h' || c == 'H') && argv[argi][2] <= ' ') {
+          argi++;
+       }
+       continue;
     }
-
-    n = snprintf( buffer, sizeof(buffer), "%s%c%s", cwd, FILE_SEPARATOR_CHAR, p );
-
-    if (n < 0 || n >= (int)sizeof(buffer)) {
-        endwin();
-        fprintf(stderr, "Error: Path too long\n");
-        exit(1);
-    }
-    p = buffer;
+    path_indexes[path_count++] = argi;
   }
 
-  /* Normalize path */
-
-  NormPath( p, path );
-
-  statistic.login_path[0] = '\0';
-  statistic.path[0] = '0';
-
-  if( LoginDisk( path ) == -1 )
+  /* Processing Paths or Default */
+  if (path_count == 0)
   {
-    endwin();
-#ifdef XCURSES
-    XCursesExit();
-#endif
-    // Note: If LoginDisk fails, a volume might have been created and added to VolumeList
-    // but not properly cleaned up. This is an early exit that bypasses Volume_FreeAll()
-    // at the end of main. For this specific task, we are focusing on the normal exit path.
-    exit( 1 );
+      /* Case 0: No paths provided, default to current working directory */
+      if (getcwd(buffer, sizeof(buffer)) == NULL)
+      {
+          endwin();
+          fprintf(stderr, "Error: getcwd failed: %s\n", strerror(errno));
+          free(path_indexes);
+          exit(1);
+      }
+
+      /* Reset stats logic is handled by LoginDisk/Init */
+      if (LoginDisk(buffer) == -1) {
+          endwin();
+          /* If defaulting to CWD fails, it's a fatal error */
+          fprintf(stderr, "Error: Failed to login to current directory\n");
+          free(path_indexes);
+          exit(1);
+      }
+  }
+  else
+  {
+      /* Case > 0: Load paths in REVERSE order.
+       * LoginDisk pushes volumes onto a stack (LIFO).
+       * By loading the last command-line arg first, the first command-line arg
+       * ends up at the top of the stack and becomes the active volume.
+       */
+      for (i = path_count - 1; i >= 0; i--)
+      {
+          /* LoginDisk returns -1 on failure but handles its own error messaging.
+           * We proceed to try loading the other requested volumes. */
+          LoginDisk(argv[path_indexes[i]]);
+      }
   }
 
-  // Main application loop. It continues until HandleDirWindow signals a quit.
+  free(path_indexes);
+
+  /* Ensure we have at least one active volume before entering main loop */
+  if (CurrentVolume == NULL || statistic.tree == NULL) {
+      endwin();
+      fprintf(stderr, "Error: No valid volumes could be loaded.\n");
+      exit(1);
+  }
+
+  /* Main application loop */
   while( 1 )
   {
     main_loop_exit_char = HandleDirWindow(statistic.tree);
     if (main_loop_exit_char == 'q' || main_loop_exit_char == 'Q') {
-        // User requested to quit. Break the loop to proceed with cleanup.
+        /* User requested to quit. Break the loop to proceed with cleanup. */
         break;
     }
-    // If HandleDirWindow returns other characters (e.g., CR, ESC, -1 for resize),
-    // the loop continues. 'l' or 'L' for LoginDisk also causes the loop to continue
-    // after LoginDisk has updated the tree.
-    // Note: Ctrl-Q ('Q' & 0x1F) is handled inside HandleDirWindow by calling QuitTo(),
-    // which performs cleanup and exits directly.
   }
 
-  /*
-   * Explicit cleanup: The main loop has terminated (e.g., user pressed 'q').
-   * Safe Shutdown Order:
-   * 1. Suspend Clock (Stop signals)
-   * 2. Restore terminal
-   * 3. Free memory
-   * This prevents "Blue Screen" freezes if memory cleanup crashes or signals fire during exit.
-   */
-  SuspendClock(); /* CRITICAL FIX: Stop SIGALRM before touching curses/memory */
+  /* Explicit cleanup */
+  SuspendClock(); /* Stop SIGALRM before touching curses/memory */
 
   attrset(0);  /* Reset attributes */
   clear();     /* Clear internal buffer */

@@ -25,12 +25,6 @@ int Init(char *configuration_file, char *history_file)
 
   /* Allocate and initialize the first volume using the dedicated module */
   CurrentVolume = Volume_Create();
-  /* Ensure the initial volume has a valid path, defaulting to "." if getcwd fails */
-  if (getcwd(CurrentVolume->vol_stats.login_path, PATH_LENGTH) == NULL) {
-      strcpy(CurrentVolume->vol_stats.login_path, ".");
-  }
-  /* Initialize the current volume's path to the login path */
-  strcpy(CurrentVolume->vol_stats.path, CurrentVolume->vol_stats.login_path);
 
   /* Use setlocale to correctly initialize for WITH_UTF8 or system locale */
   setlocale(LC_ALL, "");
