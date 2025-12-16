@@ -118,7 +118,7 @@ int LoginDisk(char *path)
               char *slash = strrchr(parent_dir, FILE_SEPARATOR_CHAR);
               if (slash) {
                   *slash = '\0';
-                  (void)chdir(parent_dir); /* Explicitly ignore result */
+                  if (chdir(parent_dir)) { ; } /* Explicitly ignore result */
               }
           }
       } else {

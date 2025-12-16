@@ -616,7 +616,14 @@ static void PrintFileEntry(int entry_no, int y, int x, unsigned char hilight, in
 
 
 #ifdef WITH_UTF8
-  filename_width = max_visual_filename_len + ( strlen(fe_ptr->name) - StrVisualLength(fe_ptr->name) );
+            #if defined(__GNUC__) && __GNUC__ >= 7
+            #pragma GCC diagnostic push
+            #pragma GCC diagnostic ignored "-Wstringop-overread"
+            #endif
+            filename_width = max_visual_filename_len + ( strlen(fe_ptr->name) - StrVisualLength(fe_ptr->name) );
+            #if defined(__GNUC__) && __GNUC__ >= 7
+            #pragma GCC diagnostic pop
+            #endif
   if( fe_ptr && S_ISLNK( fe_ptr->stat_struct.st_mode ) )
     linkname_width = max_visual_linkname_len + ( strlen(sym_link_name) - StrVisualLength(sym_link_name) );
 #else
