@@ -11,21 +11,23 @@ def test_startup_and_quit():
     3. Send 'q' to quit.
     4. Confirm user is asked to confirm (if configured) or exits.
     """
-    
+
     # Path to binary (assuming running from project root)
     binary_path = "./ytree"
-    
+
     if not os.path.exists(binary_path):
         print(f"Error: Binary not found at {binary_path}")
         sys.exit(1)
 
     # Spawn the process with a specific terminal size to ensure consistent rendering
     child = pexpect.spawn(binary_path, dimensions=(24, 80))
-    
+
     # 1. Check for main UI elements
-    # We look for standard column headers found in the Directory or File window
+    # We look for the date (e.g., 2025) in the clock, as standard UI text
+    # like "COMMANDS" is fragmented by per-character attribute codes in the raw stream.
     try:
-        child.expect('Command', timeout=5) # Assuming "Command" is in the menu or help line
+        # Match a year starting with 20 (e.g., 2024, 2025)
+        child.expect(r'20\d{2}', timeout=5)
     except pexpect.TIMEOUT:
         print("Timeout waiting for ytree UI. Screen dump:")
         print(child.before)
