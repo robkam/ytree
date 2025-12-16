@@ -32,5 +32,7 @@ jobs:
         pip install -r scripts/requirements.txt
 
     - name: Run Tests
+      env:
+        TERM: xterm
       # Assuming pytest is configured to find tests in tests/
       run: pytest
