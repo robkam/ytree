@@ -51,7 +51,7 @@ For detailed usage, configuration, and keybindings, see [USAGE.md](doc/USAGE.md)
 
 ## Contributing
 
-Contributions are welcome! Please read [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines on coding standards and the pull request process.
+Contributions are welcome! Please read [CONTRIBUTING.md](doc/CONTRIBUTING.md) for guidelines on coding standards and the pull request process.
 
 ## Reporting problems
 

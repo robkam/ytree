@@ -4,8 +4,16 @@
 
 set -e  # Exit immediately if a command exits with a non-zero status
 
-VENV_DIR=".venv"
+# Determine the project root relative to this script
+# (Assuming script is in <root>/scripts/)
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
+PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
+
+# Keep the virtual environment in the root for easy access
+VENV_DIR="$PROJECT_ROOT/.venv"
 PYTHON_BIN="python3"
+# Requirements file is now alongside this script in scripts/
+REQ_FILE="$SCRIPT_DIR/requirements.txt"
 
 # 1. Check for Python 3
 if ! command -v "$PYTHON_BIN" &> /dev/null; then
@@ -25,6 +33,11 @@ fi
 # 3. Activate and Install Dependencies
 echo "Installing/Updating dependencies..."
 
+if [ ! -f "$REQ_FILE" ]; then
+    echo "Error: $REQ_FILE not found at $REQ_FILE"
+    exit 1
+fi
+
 # We use a subshell to activate the venv just for installation
 (
     source "$VENV_DIR/bin/activate"
@@ -32,11 +45,8 @@ echo "Installing/Updating dependencies..."
     # Upgrade pip first
     pip install --upgrade pip
 
-    # Install required packages
-    # google-generativeai: For build-ytree.py and chat-ytree.py
-    # prompt_toolkit: For enhanced input in chat-ytree.py
-    # pytest, pexpect: For the test suite
-    pip install google-generativeai prompt_toolkit pytest pexpect
+    # Install required packages from requirements.txt
+    pip install -r "$REQ_FILE"
 )
 
 echo ""
@@ -44,10 +54,9 @@ echo "--------------------------------------------------------"
 echo "Setup complete."
 echo ""
 echo "To start developing, activate the environment:"
-echo "  source $VENV_DIR/bin/activate"
+echo "  source .venv/bin/activate"
 echo ""
 echo "Then you can run:"
-echo "  ./chat-ytree.py"
-echo "  ./build-ytree.py --task task.txt"
+echo "  scripts/chat-ytree.py"
 echo "  pytest"
 echo "--------------------------------------------------------"

@@ -1,374 +1,189 @@
 ---
 title: YTREE
 section: 1
-header: "LOCAL COMMANDS"
-date: "04 December 2025"
+header: "User Commands"
+date: "December 2025"
 ---
 
 # NAME
 
-ytree - File Manager -
+ytree - A File Manager for UNIX-like systems
 
-# SYNOPSYS
+# SYNOPSIS
 
-`ytree` [*archive file*|*directory*]
+`ytree` [`-p` *config_file*] [`-h` *history_file*] [*directory*|*archive*]...
 
 # DESCRIPTION
 
-If there is no command line argument, the current directory will be used.
+**ytree** is a file manager for UNIX-like systems (Linux, BSD, etc.). It is inspired by the famous DOS file manager **XTreeGold**, offering a text-based user interface (TUI) that is fast, lightweight, and keyboard-driven.
+
+If no command line arguments are provided, the current directory will be logged.
+
+# OPTIONS
+
+*   **-p** *config_file*: Use *config_file* instead of the default `~/.ytree`.
+*   **-h** *history_file*: Use *history_file* instead of the default `~/.ytree-hst`.
+*   *directory*|*archive*: One or more directories or archive files to log on startup. If multiple paths are provided, they are all loaded as separate volumes. The first path specified becomes the active view.
+
+# CONCEPTS
+
+### The Display
+The screen is divided into three areas: The **Directory Tree** (left), the **File Window** (below), and the **Statistics/Info** pane (right).
+
+### Logging
+Unlike standard `ls`-based managers, ytree "logs" (scans) directory structures into memory. This allows for instant navigation and searching without disk lag. Use the **l** command to log new paths or archives.
+
+# MODES AND NAVIGATION
+
+**ytree** operates in distinct modes. The active mode determines available commands.
+
+**Directory Mode**
+Focus is on the directory hierarchy tree. Navigation keys allow moving between folders. Typing alphanumeric characters triggers a directory mode command (key bindings).
+
+**File Mode**
+Focus is on the file list of the selected directory. Operations here affect specific files. Typing alphanumeric characters triggers a file mode command (key bindings).
+
+**Archive Mode**
+When entering a supported archive (ZIP, TAR, GZ), ytree treats it as a read-only virtual filesystem. Typing alphanumeric characters triggers an archive mode command.
+
+# KEY BINDINGS
+
+**Note:** All keys are case insensitive unless otherwise noted. The symbol `^` denotes the **CTRL** key.
+
+### Global Commands
+These commands work in most modes:
+
+*   **F1**: Help.
+*   **F2**: Refresh / Select Directory (in input fields).
+*   **^L**: **Redraw**. Re-read the contents of the current directory from disk and refresh the view.
+*   **K** (Shift+K): **Volume Menu**. Show a list of all currently logged volumes (drives/paths). Select a volume to switch context instantly. Press `Delete` (or `D`) in the menu to release (unlog) a volume.
+*   **<** / **>** (or **,** / **.**): **Cycle Volumes**. Switch to the previous or next logged volume instantly.
+*   **^Q**: **Quit to Directory**. If you exit ytree with ^Q, the last selected directory becomes your current working directory. *Note: This requires a shell wrapper function.*
+*   **Q**: **Quit**. Exit ytree.
+
+### Directory Mode
+Active when browsing the directory tree window.
+
+*   **A** (Attribute): Change directory permissions (chmod).
+*   **D** (Delete): Delete selected directory.
+*   **F** (Filter): Set file filter. Supports regex patterns (e.g., `*.c`), exclusions (`-*.o`), attributes (`:r`, `:x`), dates (`>2023-01-01`), and sizes (`>1M`).
+*   **G** (Group): Change directory group ownership.
+*   **L** (Log): Log a new directory or archive file.
+*   **M** (Makedir): Create a new directory.
+*   **O** (Owner): Change user ownership of selected directory.
+*   **R** (Rename): Rename selected directory.
+*   **S** (Showall): Show all files in all directories in a global list.
+*   **T** (Tag): Tag all files in the selected directory.
+*   **U** (Untag): Untag all files in the selected directory.
+*   **X** (eXecute): Execute a shell command. The `{}` placeholder is replaced by the current directory path.
+*   **`** (Backtick): Toggle visibility of hidden dot-files and directories.
+*   **^F** (Dir Mode): Cycle directory display modes (Filenames only -> Attributes -> Inode/Owner -> Times).
+*   **Return**: Switch to File Mode (focus the file window).
+
+### File Mode
+Active when the file window is focused.
+
+*   **A** (Attribute): Change file permissions.
+*   **^A**: Change permissions of all tagged files.
+*   **C** (Copy): Copy the selected file.
+*   **^K**: Copy all tagged files.
+*   **D** (Delete): Delete selected file.
+*   **^D**: Delete all tagged files.
+*   **E** (Edit): Edit selected file with `$EDITOR` (default: vi).
+*   **F** (Filter): Set file filter.
+*   **G** (Group): Change group ownership.
+*   **^G**: Change group ownership of all tagged files.
+*   **H** (Hex): View selected file in hex mode.
+*   **L** (Log): Log a new directory or archive file.
+*   **M** (Move): Move the selected file.
+*   **^N**: Move all tagged files.
+*   **O** (Owner): Change user ownership.
+*   **^O**: Change user ownership of all tagged files.
+*   **P** (Pipe): Pipe content of file to a command (stdin).
+*   **^P**: Pipe content of all tagged files to a command.
+*   **R** (Rename): Rename the selected file.
+*   **^R**: Rename all tagged files.
+*   **S** (Sort): Sort filelist (Access time, Change time, Extension, Group, Modification time, Name, Owner, Size).
+*   **^S** (Search/Untag): Untag files that do not match an external program (e.g. grep).
+*   **T** (Tag): Tag selected file.
+*   **^T**: Tag all displayed files.
+*   **U** (Untag): Untag selected file.
+*   **^U**: Untag all displayed files.
+*   **V** (View): View file with the pager defined in `~/.ytree` (default: less).
+*   **X** (eXecute): Execute a shell command. `{}` is replaced by the filename.
+*   **^X**: Execute shell command for all tagged files. `{}` is replaced by the full path.
+*   **Y** (Pathcopy): Copy selected file including path.
+*   **^Y**: Copy all tagged files including path.
+*   **^F** (File Mode): Cycle file display modes.
+*   **Space**: Suppress screen output while working.
+*   **Return**: Switch to Full Screen File Mode / Directory Mode.
 
-Following commands are available:
+### Archive Mode
+When browsing an archive (ZIP, TAR, etc.), ytree behaves similarly to a read-only file system.
 
-### COMMAND LINE EDITING
+*   **Archive-Dir Mode**: Supports Filter, Log, Showall, Tag, Untag, ^Dirmode, ^L.
+*   **Archive-File Mode**: Supports Copy, Filter, Hex, Pipe, Sort, Tag, Untag, View, ^Filemode, ^L.
 
-All input prompts (such as Log, Execute, Filter, etc.) support standard shell-style editing shortcuts for improved efficiency:
+# COMMAND LINE EDITING
 
--   **`^A` / `Home`**: Move cursor to the beginning of the line.
--   **`^E` / `End`**: Move cursor to the end of the line.
--   **`^K`**: Delete text from the cursor to the end of the line.
--   **`^U`**: Delete text from the cursor to the beginning of the line.
--   **`^W`**: Delete the word to the left of the cursor.
--   **`^D` / `Del`**: Delete the character under the cursor.
--   **`^H` / `Backspace`**: Delete the character to the left of the cursor.
+Input prompts support standard shortcuts:
 
-### 1.) DIR-Modus:
-
-**-Attribute**
-:   Change directory permissions (like chmod)
-
-**-Delete**
-:   Delete selected directory
-
-**-Filter**
-:   Set file filter. Supports regex patterns (e.g., `*.c`), exclusions (`-*.o`), attributes (`:r`, `:x`), dates (`>2023-01-01`), and sizes (`>1M`).
-
-**-Group**
-:   Change directory group ownership
-
-**-Log**
-:   Restart ytree with new
-    root directory/archiv file.
-
-**-Makedir**
-:   Create new directory
-
-**-Owner**
-:   Change user ownership of selected directory
-
-**-Rename**
-:   Rename selected directory
-
-**-Showall**
-:   Show all files in all directories
-
-**-Tag**
-:   Tag all files in selected directory
-
-**-Untag**
-:   Untag all files in selected directory
-
-**-eXecute**
-:   Execute a shell command. The `{}` placeholder is replaced by the current directory path (`.`).
-
-**-^Dirmode**
-:   Change viewmodus for files:
-
-    -   **filenames only**
-    -   **name, attributes, links, size,**
-        **modification time, symb. link**
-    -   **name, attribute, inode, owner, group, symb. link**
-    -   **change status-, access time, symb. link**
-
-**-Return**
-:   Switch to file modus
-
-**-^L (redraw)**
-:   Re-read the contents of the current directory from disk and refresh the view. This is useful after running an external shell command that modifies files.
-
-**-` (backtick)**
-:   Toggle visibility of hidden dot-files and dot-directories.
-
-**-K (Shift-K)**
-:   **Volume Menu**: Show a list of all currently logged volumes (drives/paths). Select a volume to switch context instantly. Press `Delete` (or `D`) in the menu to release (unlog) a volume.
-
-**-< / > (or , / .)**
-:   **Cycle Volumes**: Switch to the previous or next logged volume instantly.
-
-**-^Quit**
-:   QuitTo: If you exit ytree with ^Q, the last selected directory becomes your
-    current working directory. This feature only works if you start ytree
-    with this bash-function (copy this to your ~/.bashrc):
-    ```bash
-    yt() {
-        ytree "$@"
-        local tmpfile="$HOME/.ytree-$$.chdir"
-        if [ -f "$tmpfile" ]; then
-            source "$tmpfile"
-            rm "$tmpfile"
-        fi
-    }
-    ```
-
-### 2.) FILE-Modus
-
-**-Attribute**
-:   Change file permissions (like chmod)
-
-**-^Attribute**
-:   Change permissions of all tagged files.
-    **?** stands for: do not change attribute
-
-**-Copy/(^K)**
-:   (C)opy: Copy the selected file.
-:   (^K) Copy: Copy all tagged files.
-
-**-Delete**
-:   Delete selected file
-
-**-^Delete**
-:   Delete all tagged files
-
-**-Edit**
-:   Edit selected file with EDITOR (see ~/.ytree)
-    or - if not defined - vi
-
-**-Filter**
-:   Set file filter. Supports regex patterns (e.g., `*.c`), exclusions (`-*.o`), attributes (`:r`, `:x`), dates (`>2023-01-01`), and sizes (`>1M`).
-
-**-Group**
-:   Change group ownership of selected file
-
-**-^Group**
-:   Change group ownership of all tagged files
-
-**-Hex**
-:   View selected file with HEXDUMP (see ~/.ytree),
-    or - if not defined - hd / od -h
-
-**-Log**
-:   Restart ytree with new root directory/archive file
-
-**-Move/(^N)**
-:   (M)ove: Move the selected file.
-:   (^N) Move: Move all tagged files. The `^N` (Next) shortcut is used because `^M` is the terminal control code for the Enter key.
-
-**-Owner**
-:   Change user ownership of selected file
-
-**-^Owner**
-:   Change user ownership of all tagged files
-
-**-Pipe**
-:   Pipe content of file to a command. This sends the file's *content* to the command's standard input (e.g., `cat file | wc`). It does not use the `{}` placeholder.
-
-**-^Pipe**
-:   Pipe content of all tagged files to a command.
-
-**-Rename/(^R)**
-:   (R)ename: Rename the selected file.
-:   (^R)ename: Rename all tagged files.
-
-**-untag ^Search**
-:   Untag files by using an external program (e.g. grep)
-
-**-Sort**
-:   Sort filelist by
-
-    -   **access time**
-    -   **change time**
-    -   **extension**
-    -   **group**
-    -   **modification time**
-    -   **name**
-    -   **owner**
-    -   **size**
-
-**-Tag**
-:   Tag selected file
-
-**-^Tag**
-:   Tag all currently shown files
-
-**-Untag**
-:   Untag selected file
-
-**-^Untag**
-:   Untag all currently shown files
-
-**-View**
-:   View file with the pager defined in ~/.ytree
-    or - if not defined - with pg -cen
-
-**-eXecute**
-:   Execute a shell command. The `{}` placeholder is replaced by the selected filename.
-
-**-e^Xecute**
-:   Execute shell command for all tagged files.
-    The string {} is replaced by each file's full path.
-
-**-pathcopY/^Y**
-:   (Y) PathCopy: Copy selected file inclusive path.
-:   (^Y) PathCopy: Copy all tagged files inclusive path.
-
-**-^Filemode**
-:   Switch view-modus for files:
-
-    -   **filenames only**
-    -   **name, attribute, links, size, modification time,**
-        **symb. link**
-    -   **name, attribute, inode, owner, group, symb. link**
-    -   **changestatus-, access time, symb. link**
-
-**-^L (redraw)**
-:   Re-read the contents of the current directory from disk and redraw the screen.
-
-**-` (backtick)**
-:   Toggle visibility of hidden dot-files.
-
-**-K (Shift-K)**
-:   **Volume Menu**: Show/Switch/Release loaded volumes (same as Dir Mode).
-
-**-< / > (or , / .)**
-:   **Cycle Volumes**: Switch to previous/next volume.
-
-**-Space**
-:   Suppress screen-output while working
-
-**-Return**
-:   Switch to expand modus
-
-### 3.) ARCHIV-DIR-Modus
-
-**-Filter**
-:   Set file filter (patterns, attributes, dates, sizes).
-
-**-Log**
-:   Restart ytree with new root directory/archive file
-
-**-Showall**
-:   Show all files in all directories
-
-**-Tag**
-:   Tag all files in selected directory
-
-**-Untag**
-:   Untag all files in selected directory
-
-**-^Dirmode**
-:   Change viewmodus for files:
-
-    -   **filenames only**
-    -   **name, attribute, links, size, modification time**
-    -   **name, attribute, owner, group**
-
-**-^L (redraw)**
-:   Redraw the screen.
-
-### 4.) ARCHIV-FILE-Modus:
-
-**-Copy**
-:   Copy selected file
-
-**-^K Copy**
-:   Copy all tagged files
-
-**-Filter**
-:   Set file filter (patterns, attributes, dates, sizes).
-
-**-Hex**
-:   View selected file with HEXDUMP (see ~/.ytree),
-    or - if not defined - hd / od -h
-
-**-Pipe**
-:   Pipe content of all tagged to a command
-
-**-Sort**
-:   Sort file list by
-
-    -   **access time**
-    -   **change time**
-    -   **extension**
-    -   **group**
-    -   **modification time**
-    -   **name**
-    -   **owner**
-    -   **size**
-
-**-Tag**
-:   Tag selected file
-
-**-^Tag**
-:   Tag all files in selected directory
-
-**-Untag**
-:   Untag all files in selected directory
-
-**-View**
-:   View file with the pager defined in ~/.ytree
-    or - if not defined - with pg -cen
-
-**-^Filemode**
-:   Switch view-modus for files:
-
-    -   **filenames only**
-    -   **name, attribute, links, size**
-
-**-^L (redraw)**
-:   Redraw the screen.
-
-**-Return**
-:   Switch to Expand-Modus
-
-ytree switches to archive-modus automatically by choosing an archive file with
-the **Log** command or by calling ytree from the command line with an archive
-file given as a command line argument. It uses the libarchive library to read
-a wide variety of archive and compression formats.
-
-The View command is customizeable in the [VIEWER] section of ~/.ytree:
-
-Example:
-
-```
-[VIEWER]
-.jpg,.gif,.bmp,.tif,.ppm,.xpm=xv
-.1,.2,.3,.4,.5,.6,.7,.8,.n=nroff -man | less
-.ps=ghostview
-.mid,.MID=playmidi -e
-.wav,.WAV=splay
-.au=auplay
-.avi,.mpg,.mov=xanim
-.htm,.html=lynx
-.pdf,.PDF=acroread
-.mp3=mpg123
-```
-
-A command-line history is supported: Use cursor up/down.
-Use "F2" on the command-line to select directories.
+*   **^A / Home**: Start of line.
+*   **^E / End**: End of line.
+*   **^K**: Delete to end of line.
+*   **^U**: Delete to start of line.
+*   **^W**: Delete word left.
+*   **^D / Del**: Delete character.
+*   **^H / Backspace**: Backspace.
 
 # CONFIGURATION
 
-ytree looks for a configuration file at `~/.ytree`. A default configuration is provided in `ytree.conf`.
+ytree looks for a configuration file at `~/.ytree`. A default is provided in `ytree.conf`.
 
-Key options include:
+### Key Options
 
 *   **ANIMATION=1**: Enable the warp-speed starfield during scans.
 *   **HIDEDOTFILES=1**: Hide files starting with `.` by default.
 *   **[COLORS]**: Customize the color scheme.
 
+### External Viewers
+
+The `[VIEWER]` section maps file extensions to external programs.
+
+```ini
+[VIEWER]
+.jpg,.gif,.png=xv
+.1,.md=nroff -man | less
+.pdf=okular
+.mp3=mpg123
+```
+# QUIT TO DIRECTORY
+
+To allow `^Q` to change your shell's working directory, add this function to your `~/.bashrc`:
+
+```bash
+yt() {
+    ytree "$@"
+    local tmpfile="$HOME/.ytree-$$.chdir"
+    if [ -f "$tmpfile" ]; then
+        source "$tmpfile"
+        rm "$tmpfile"
+    fi
+}
+```
+
 # FILES
 
-$HOME/.ytree
-:   ytree configuration file
+*   `~/.ytree`: Configuration file.
+*   `~/.ytree-hst`: Command line history.
 
 # BUGS
 
-To avoid problems with escape sequences on RS/6000 machines
-(telnet/rlogin) please set the environment variable ESCDELAY:
+To avoid problems with escape sequences on RS/6000 machines (telnet/rlogin), set `ESCDELAY`:
+```bash
+export ESCDELAY=1000
+```
 
-```
-ESCDELAY=1000
-export ESCDELAY
-```
 ### Reporting problems
 
 If you find anything amiss, you can report it using [GitHub Issues](https://github.com/robkam/ytree/issues).
@@ -380,3 +195,7 @@ It will help us to address the issue if you include the following:
 *   **Steps to Reproduce:** (What I did)
 *   **Expected Behavior:** (What I expected)
 *   **Actual Behavior:** (What actually happened)
+
+# AUTHORS
+
+Authors and contributors are listed in the [AUTHORS.md](https://github.com/robkam/ytree/blob/main/doc/AUTHORS.md) file in the source distribution.

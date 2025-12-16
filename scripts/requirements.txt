@@ -1,0 +1,4 @@
+pytest
+pexpect
+google-generativeai
+prompt_toolkit
