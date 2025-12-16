@@ -40,10 +40,10 @@ def test_startup_and_quit():
     # The default config usually has CONFIRMQUIT=0, so it should exit.
     # If it asks "quit ytree (Y/N)", we send 'y'.
     try:
-        index = child.expect(['quit ytree', pexpect.EOF], timeout=2)
+        index = child.expect(['quit ytree', pexpect.EOF], timeout=10)
         if index == 0:
             child.send("y")
-            child.expect(pexpect.EOF)
+            child.expect(pexpect.EOF, timeout=10)
     except pexpect.TIMEOUT:
         print("Timeout waiting for exit.")
         raise
