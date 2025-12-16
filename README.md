@@ -1,3 +1,4 @@
+
 # ytree - A File Manager for UNIX
 
 **ytree** is a file manager for UNIX-like systems (Linux, BSD, etc.). It is inspired by the famous DOS file manager **XTreeGold**, offering a text-based user interface (TUI) that is fast, lightweight, and keyboard-driven.
@@ -46,7 +47,7 @@ sudo make uninstall
 
 ## Usage
 
-For detailed usage, configuration, and keybindings, see [USAGE.md](USAGE.md) or run `man ./ytree.1`.
+For detailed usage, configuration, and keybindings, see [USAGE.md](doc/USAGE.md) or run `man ./ytree.1`.
 
 ## Contributing
 
@@ -69,4 +70,4 @@ ytree is free software distributed under the GPL. See the [LICENSE.md](LICENSE.m
 
 ## Contributors
 
-For detailed authorship, see [AUTHORS.md](AUTHORS.md).
+For detailed authorship, see [AUTHORS.md](doc/AUTHORS.md).
