@@ -122,7 +122,7 @@ static void PerformQuit(void)
         /* Final safety net for terminal state */
         fprintf(stderr, "DEBUG: PerformQuit calling stty sane\n");
         fflush(stderr);
-        (void)system("stty sane");
+        if (system("stty sane")) { ; }
         fprintf(stderr, "DEBUG: PerformQuit calling exit(0)\n");
         fflush(stderr);
         exit(0);
