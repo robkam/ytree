@@ -22,4 +22,4 @@ Originally developed by [Werner Bregulla](https://www.han.de/~werner/ytree.html)
 *   **Victor Vislobokov** - UTF-8 support
 
 **v3.0 Modernization**
-After decades of dormancy, the project was radically refactored and modernized by [Rob Kam](https://github.com/robkam) using Google AI Studio's **Gemini 3 Pro**.
+After decades of dormancy, the project was refactored, modernized, and enhanced by [Rob Kam](https://github.com/robkam) using Google AI Studio's **Gemini 3 Pro**.
