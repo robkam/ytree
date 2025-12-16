@@ -7,7 +7,9 @@ desktop.ini
 core
 *.orig
 *.o
+*.d
 *.a
+obj/
 .vscode/
 .idea/
 *.swp
@@ -22,7 +24,7 @@ coverage/
 *.html
 *.url
 *.sh
-!setup_dev.sh
+!scripts/setup_dev.sh
 .history
 .ytree-hst
 .ytree-*.chdir

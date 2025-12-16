@@ -24,7 +24,7 @@ sudo apt-get install build-essential libncurses-dev libtinfo-dev libreadline-dev
 A helper script is provided to create an isolated Python environment for testing and AI tools. From the root of the project, run:
 
 ```bash
-./setup_dev.sh
+scripts/setup_dev.sh
 ```
 
 This script will create a `.venv` directory, activate it, and install the required Python libraries (`pytest`, `pexpect`, `google-generativeai`, `prompt_toolkit`).
@@ -72,7 +72,7 @@ The tests will automatically build a test environment, run the local `./ytree` b
 
 ## AI-Assisted Workflow (Google Gemini API)
 
-We use Python automation scripts backed by the Google Gemini API to assist with the workflow. These scripts are executed from the **root** of the `ytree` directory, so all file paths are relative to the current directory (e.g., `main.c`, **not** `ytree/main.c`).
+We use Python automation scripts backed by the Google Gemini API to assist with the workflow. These scripts are executed from the **root** of the `ytree` directory, so all file paths are relative to the current directory (e.g., `src/main.c`, **not** `ytree/src/main.c`).
 
 ### Setup
 
@@ -90,9 +90,9 @@ The Consultant is your first stop for planning. It analyzes the entire project s
 
 1.  **Generate Context:** Run the provided script to bundle all relevant source code into a single file.
     ```bash
-    ./gather_context.py > context.txt
+    scripts/gather_context.py > context.txt
     ```
-    *(Note: On Mac/Linux, you can pipe directly to clipboard: `./gather_context.py | xclip -sel clip`)*
+    *(Note: On Mac/Linux, you can pipe directly to clipboard: `scripts/gather_context.py | xclip -sel clip`)*
 
 2.  **Upload:**
     *   Go to Google AI Studio.
@@ -109,9 +109,9 @@ The Architect/Builder executes the plan. In a **separate** AI Studio window (to 
 
 0.  **Paste the Architect/Builder System Prompt** (See [Appendix B](#appendix-b-the-architectbuilder-persona)) into the "System Instructions" field.
 
-1.  **Prepare Files:** Use the file list from Part 1 to identify which files need modification. Use this command to dump them into a clean format for the AI, e.g.:
+1.  **Prepare Files:** Use the file list from Part 1 to identify which files need modification. Use this command to dump them into a clean format for the AI:
     ```bash
-    for f in ytree.h log.c quit.c; do echo '```'; echo -e "\n"; cat "$f"; echo -e "\n"; echo '```'; done > files.txt
+    for f in include/ytree.h src/log.c src/quit.c; do echo '```'; echo -e "\n"; cat "$f"; echo -e "\n"; echo '```'; done > files.txt
     ```
 
 2.  **Upload:**
@@ -138,10 +138,10 @@ Use this script for quick questions, syntax checks, or exploring specific files 
 **Usage:**
 ```bash
 # Standard start (Context is empty)
-./chat-ytree.py
+scripts/chat-ytree.py
 
 # Pre-load specific files if you know you need them
-./chat-ytree.py --context "main.c, global.h"
+scripts/chat-ytree.py --context "src/main.c, include/global.h"
 ```
 
 **Commands:**
@@ -316,7 +316,3 @@ You are the **Driver**. You take a task description and source files, and you im
 1.  Read the `task.txt` and the provided source files. If you believe a file exists in the project but is not included, request it.
 2.  Output the full content of each modified file.
 ```
-
-
-
-
