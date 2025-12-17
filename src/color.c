@@ -110,16 +110,13 @@ void AddFileColorRule(const char *pattern, int fg, int bg)
     file_color_rules_head = new_rule;
 }
 
-void StartColors()
+void ReinitColorPairs(void)
 {
     int i;
     FileColorRule *rule;
     int next_pair_id = F_COLOR_PAIR_BASE;
 
-    start_color();
-    if (COLORS < 8 || COLOR_PAIRS < 64) { /* Check for a reasonable number of pairs */
-        return; /* No color support */
-    }
+    if (!color_enabled) return;
 
     /* Initialize UI colors */
     for (i = 0; i < NUM_UI_COLORS; i++) {
@@ -128,17 +125,27 @@ void StartColors()
 
     /* Initialize file type colors */
     for (rule = file_color_rules_head; rule != NULL; rule = rule->next) {
-        if (next_pair_id < COLOR_PAIRS) {
-            rule->pair_id = next_pair_id++;
-            init_pair(rule->pair_id, rule->fg, rule->bg);
-        } else {
-            rule->pair_id = CPAIR_FILE; /* Fallback if we run out of pairs */
+        if (rule->pair_id == 0) {
+            if (next_pair_id < COLOR_PAIRS) {
+                rule->pair_id = next_pair_id++;
+            } else {
+                rule->pair_id = CPAIR_FILE; /* Fallback */
+            }
         }
+        init_pair(rule->pair_id, rule->fg, rule->bg);
+    }
+}
+
+void StartColors()
+{
+    start_color();
+    if (COLORS < 8 || COLOR_PAIRS < 64) { /* Check for a reasonable number of pairs */
+        return; /* No color support */
     }
 
     color_enabled = TRUE;
+    ReinitColorPairs();
 }
-
 
 int GetFileTypeColor(FileEntry *fe_ptr)
 {

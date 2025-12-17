@@ -127,7 +127,7 @@ clean:
 	rm -rf $(OBJ_DIR)
 	rm -f core *.o *.gz *~ *.orig *.bak
 	rm -f $(MANPAGE) $(MANPAGE).gz
-	# Note: We do not remove USAGE.md as it is now documentation source
+	# Note: We do not remove USAGE.md as it is documentation
 
 clobber: clean
 	rm -f $(MAIN)

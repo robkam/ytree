@@ -120,7 +120,16 @@ The Architect/Builder executes the plan manually via the web interface. In a **s
 
 0.  **Paste the Architect/Builder System Prompt** (See [Appendix B](#appendix-b-the-architectbuilder-persona)) into the "System Instructions" field.
 
-1.  **Prepare Files:** Use the file list from Part 1 to identify which files need modification. You can use the interactive `scripts/gather_context.py` again to select just the specific files needed for implementation.
+1.  **Prepare Files:** Use the file list from Part 1 to identify which files need modification. You can use the interactive `scripts/gather_context.py` again to select just the specific files needed for implementation or a shell command e.g.
+    ```bash
+    for f in  include/ytree.h src/color.c  src/init.c; do
+    echo '```'
+    echo -e "\n"
+    cat "$f"
+    echo -e "\n"
+    echo '```'
+    done > context.txt
+    ```
 
 2.  **Upload:**
     *   Start a **New Chat** in Google AI Studio.
@@ -230,8 +239,9 @@ This section documents agreed-upon architectural constraints and non-goals. Thes
 1.  **Fork the repository** on GitHub.
 2.  **Create a new branch** for your feature or bugfix (`git checkout -b feature/my-new-feature`).
 3.  **Make your changes** and commit them with a clear, declarative commit message.
-4.  **Push your branch** to your fork (`git push origin feature/my-new-feature`).
-5.  **Open a Pull Request** against the `main` branch of the upstream ytree repository.
+4.  **Submit small, incremental pull requests** rather than a single large one, to keep reviews straightforward.
+5.  **Push your branch** to your fork (`git push origin feature/my-new-feature`).
+6.  **Open a Pull Request** against the `main` branch of the upstream ytree repository.
 
 ## Coding Style
 
