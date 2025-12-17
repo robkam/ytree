@@ -542,17 +542,24 @@ int SelectLoadedVolume(void)
 
 
         /* 2. Window Setup */
-        /* Minimum height: title (1) + prompt (1) + border (2) + at least 1 item (1) = 5 */
-        /* Minimum width: title (strlen) + padding (2) = 15 */
-        /* Max path len + " [ ] (current)" + padding */
-        win_width = MAXIMUM(strlen(title) + 4, max_path_len + 15); /* 15 for "[*] " + " (current)" + padding */
-        win_width = MAXIMUM(win_width, StrVisualLength(prompt) + 4); /* Ensure prompt fits */
-        win_width = MINIMUM(win_width, COLS - 4); /* Don't exceed screen width */
+        /* Base width calculation */
+        win_width = MAXIMUM(strlen(title) + 4, max_path_len + 12);
+
+        /* Ensure it covers the prompt */
+        win_width = MAXIMUM(win_width, StrVisualLength(prompt) + 4);
+
+        /* Constraint: Fit strictly within the main directory area (left of stats panel) */
+        /* STATS_WIDTH is 24, STATS_MARGIN is 2, so the main area ends at COLS - 26 */
+        win_width = MINIMUM(win_width, COLS - STATS_WIDTH - 2);
 
         win_height = MINIMUM(LINES - 4, num_volumes + 5); /* 5 for top/bottom border, title, prompt, empty line */
         win_height = MAXIMUM(win_height, 10); /* Minimum 10 lines */
 
-        win_x = (COLS - win_width) / 2;
+        /* Center the window relative to the directory area */
+        win_x = ((COLS - STATS_WIDTH) - win_width) / 2;
+        /* Ensure safe X coordinate */
+        if (win_x < 1) win_x = 1;
+
         win_y = (LINES - win_height) / 2;
 
         // Calculate visible lines for items
@@ -621,6 +628,16 @@ int SelectLoadedVolume(void)
             wrefresh(win);
 
             ch = WGetch(win);
+
+            if (resize_request) {
+                resize_request = FALSE;
+                ReCreateWindows();
+                DisplayMenu();
+                DisplayDiskStatistic();
+                restart_menu = TRUE;
+                menu_active = FALSE;
+                break;
+            }
 
             switch (ch) {
                 case KEY_UP:
