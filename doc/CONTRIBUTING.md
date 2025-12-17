@@ -88,35 +88,43 @@ The Consultant is your first stop for planning. It analyzes the entire project s
 
 0.  **Paste the Consultant System Prompt** (See [Appendix A](#appendix-a-the-consultant-persona)) into the "System Instructions" field.
 
-1.  **Generate Context:** Run the provided script to bundle all relevant source code into a single file.
+1.  **Generate Context:** Run the interactive context gatherer.
     ```bash
-    scripts/gather_context.py > context.txt
+    scripts/gather_context.py
     ```
-    *(Note: On Mac/Linux, you can pipe directly to clipboard: `scripts/gather_context.py | xclip -sel clip`)*
+    This opens a TUI where you can select relevant files using `Space` and `Up/Down`. Press `Enter` to generate the output.
+    *   **Output:** The context is saved to `context.txt` in the project root.
+    *   **Clipboard:** The content is also automatically copied to your clipboard (requires `xclip` or `pbcopy`).
+
+    *Non-Interactive Mode:* To select all files automatically:
+    ```bash
+    scripts/gather_context.py --cli
+    ```
+    You can also specify a custom output file:
+    ```bash
+    scripts/gather_context.py --cli --output my_context.txt
+    ```
 
 2.  **Upload:**
     *   Go to Google AI Studio.
     *   Create a new prompt.
-    *   Upload or paste the content of `context.txt`.
+    *   Paste the content (from clipboard or `context.txt`).
 
 3.  **Prompt:** Ask your architectural question. The Consultant will generate a high-level `task.txt` plan.
 
-4.  **Usage:** Use this output to guide Part 2.
+4.  **Usage:** Use this output to guide Part 2 or Part 4.
 
 ### Part 2: The Architect/Builder (`Google AI Studio Web Interface`)
 
-The Architect/Builder executes the plan. In a **separate** AI Studio window (to keep context clean), it takes specific file contents and generates the **HOW** (the actual code).
+The Architect/Builder executes the plan manually via the web interface. In a **separate** AI Studio window (to keep context clean), it takes specific file contents and generates the **HOW** (the actual code).
 
 0.  **Paste the Architect/Builder System Prompt** (See [Appendix B](#appendix-b-the-architectbuilder-persona)) into the "System Instructions" field.
 
-1.  **Prepare Files:** Use the file list from Part 1 to identify which files need modification. Use this command to dump them into a clean format for the AI:
-    ```bash
-    for f in include/ytree.h src/log.c src/quit.c; do echo '```'; echo -e "\n"; cat "$f"; echo -e "\n"; echo '```'; done > files.txt
-    ```
+1.  **Prepare Files:** Use the file list from Part 1 to identify which files need modification. You can use the interactive `scripts/gather_context.py` again to select just the specific files needed for implementation.
 
 2.  **Upload:**
     *   Start a **New Chat** in Google AI Studio.
-    *   Paste the content of the `task.txt` (from Part 1) and your `files.txt`.
+    *   Paste the content of the `task.txt` (from Part 1) and your context files.
 
 3.  **Prompt:** "Execute the task."
 
@@ -149,6 +157,17 @@ scripts/chat-ytree.py --context "src/main.c, include/global.h"
 *   `/files`: Lists all available files.
 *   `/clear`: Clears conversation history.
 *   `/quit`: Exits.
+
+### Part 4: The Automated Architect (`build-ytree.py`)
+
+This script combines the roles of the Architect and Builder into a single automated command line tool. It reads a task file, plans the changes using the API, generates the code, and applies it to your local files directly.
+
+1.  Create a file named `task.txt` describing your goal (e.g., "Refactor global.c to remove unused variables").
+2.  Run the builder:
+    ```bash
+    scripts/build-ytree.py --task task.txt --apply
+    ```
+    (Remove `--apply` to perform a "dry run" planning phase only).
 
 ### Best Practices for AI Interaction
 
@@ -315,4 +334,3 @@ You are the **Driver**. You take a task description and source files, and you im
 
 1.  Read the `task.txt` and the provided source files. If you believe a file exists in the project but is not included, request it.
 2.  Output the full content of each modified file.
-```
