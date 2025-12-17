@@ -81,7 +81,7 @@ DEPS        = $(OBJS:.o=.d)
 # Rules
 # -------------------------------------------------------------------------
 
-.PHONY: all clean clobber install uninstall docs
+.PHONY: all clean clobber install uninstall docs changelog-draft
 
 all: $(MAIN) $(MANPAGE)
 
@@ -121,6 +121,23 @@ install: $(MAIN) $(MANPAGE) docs
 uninstall:
 	rm -f $(BINDEST)/$(MAIN)
 	rm -f $(MANDEST)/$(MANPAGE).gz
+
+# Draft Changelog generator
+# If no tags exist, uses the full history (HEAD).
+changelog-draft:
+	@echo "### Added"
+	@RANGE=$$(git describe --tags --abbrev=0 2>/dev/null); \
+	if [ -z "$$RANGE" ]; then RANGE="HEAD"; else RANGE="$$RANGE..HEAD"; fi; \
+	git log $$RANGE --grep="^feat" --pretty=format:"- %s"
+	@echo "\n\n### Fixed"
+	@RANGE=$$(git describe --tags --abbrev=0 2>/dev/null); \
+	if [ -z "$$RANGE" ]; then RANGE="HEAD"; else RANGE="$$RANGE..HEAD"; fi; \
+	git log $$RANGE --grep="^fix" --pretty=format:"- %s"
+	@echo "\n\n### Other"
+	@RANGE=$$(git describe --tags --abbrev=0 2>/dev/null); \
+	if [ -z "$$RANGE" ]; then RANGE="HEAD"; else RANGE="$$RANGE..HEAD"; fi; \
+	git log $$RANGE --grep="^refactor\|^chore" --pretty=format:"- %s"
+	@echo ""
 
 # Clean build artifacts
 clean:
