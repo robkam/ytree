@@ -271,3 +271,60 @@ int MakePath( DirEntry *tree, char *dir_path, DirEntry **dest_dir_entry )
 
   return( result );
 }
+
+int EnsureDirectoryExists(char *dir_path, DirEntry *tree, BOOL *created)
+{
+  DIR *tmpdir;
+  int term;
+  int result = -1;
+
+  if (created) *created = FALSE;
+
+  /* Try to open the directory */
+  if ((tmpdir = opendir(dir_path)) == NULL)
+  {
+    /* If it doesn't exist, ask the user */
+    if (errno == ENOENT)
+    {
+      if ((term = InputChoice("Directory does not exist; create (y/N) ? ", "YN\033")) == 'Y')
+      {
+        DirEntry *dest_dir_entry;
+        /* User said YES, try to make the path */
+        if (MakePath(tree, dir_path, &dest_dir_entry))
+        {
+          /* MakePath failed */
+          (void) snprintf(message,
+                          MESSAGE_LENGTH,
+                          "Can't create path*\"%s\"*%s",
+                          dir_path,
+                          strerror(errno)
+                          );
+          MESSAGE(message);
+          return -1;
+        }
+        else
+        {
+          /* Created successfully */
+          if (created) *created = TRUE;
+          return 0;
+        }
+      }
+      else
+      {
+        /* User said NO or Escaped */
+        return -1;
+      }
+    }
+    else
+    {
+       /* Some other error opening directory (e.g. permission) */
+       (void) snprintf(message, MESSAGE_LENGTH, "Error opening directory*\"%s\"*%s", dir_path, strerror(errno));
+       MESSAGE(message);
+       return -1;
+    }
+  }
+
+  /* Directory exists */
+  if (tmpdir) closedir(tmpdir);
+  return 0;
+}

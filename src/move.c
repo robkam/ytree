@@ -31,17 +31,44 @@ int MoveFile(FileEntry *fe_ptr,
   struct stat stat_struct;
   int         term;
   int         result;
+  /* New variables for EnsureDirectoryExists */
+  char        abs_path[PATH_LENGTH+1];
+  char        from_dir[PATH_LENGTH+1];
+  BOOL        refresh_dirwindow = FALSE;
 
   result = -1;
   *new_fe_ptr = NULL;
   de_ptr = fe_ptr->dir_entry;
 
-  (void) GetPath( de_ptr, from_path );
+  (void) GetPath( de_ptr, from_dir ); /* Get clean source directory path */
+  (void) strcpy( from_path, from_dir );
   (void) strcat( from_path, FILE_SEPARATOR_STRING );
   (void) strcat( from_path, fe_ptr->name );
 
+  /* Construct base destination path */
   (void) strcpy( to_path, to_dir_path );
   (void) strcat( to_path, FILE_SEPARATOR_STRING );
+
+  /* Handle relative path: make absolute based on source directory */
+  if (*to_path != FILE_SEPARATOR_CHAR) {
+       strcpy(abs_path, from_dir);
+       strcat(abs_path, FILE_SEPARATOR_STRING);
+       strcat(abs_path, to_path);
+       strcpy(to_path, abs_path);
+  }
+
+  /* Ensure the destination directory exists */
+  /* Modified to use CurrentVolume->vol_stats.tree as per instruction */
+  if (EnsureDirectoryExists(to_path, CurrentVolume->vol_stats.tree, &refresh_dirwindow) == -1) {
+      return -1;
+  }
+
+  /* Fix for Segfault: If dest_dir_entry is NULL (e.g. creating new dir),
+   * try to resolve it now that it exists so we can link the file correctly. */
+  if (dest_dir_entry == NULL) {
+      MakePath(CurrentVolume->vol_stats.tree, to_path, &dest_dir_entry);
+  }
+
   (void) strcat( to_path, to_file );
 
 
