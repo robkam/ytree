@@ -10,9 +10,8 @@ ytree - A File Manager for UNIX-like systems
 # DESCRIPTION
 
 **ytree** is a file manager for UNIX-like systems (Linux, BSD, etc.). It
-is inspired by the famous DOS file manager **XTreeGold**, offering a
-text-based user interface (TUI) that is fast, lightweight, and
-keyboard-driven.
+is inspired by the DOS file manager **XTreeGold**, offering a text-based
+user interface (TUI) that is fast, lightweight, and keyboard-driven.
 
 If no command line arguments are provided, the current directory will be
 logged.
@@ -47,15 +46,20 @@ available commands.
 
 **Directory Mode** Focus is on the directory hierarchy tree. Navigation
 keys allow moving between folders. Typing alphanumeric characters
-triggers a directory mode command (key bindings).
+triggers a directory mode command (key bindings). \* **Action:** Press
+**Return** to switch focus to the **File Mode** (file list) for the
+selected directory.
 
 **File Mode** Focus is on the file list of the selected directory.
 Operations here affect specific files. Typing alphanumeric characters
-triggers a file mode command (key bindings).
+triggers a file mode command (key bindings). \* **Action:** Press
+**Return** to toggle the file window to full-screen. Press **Return**
+again to restore the split view or switch back to **Directory Mode**.
 
 **Archive Mode** When entering a supported archive (ZIP, TAR, GZ), ytree
-treats it as a read-only virtual filesystem. Typing alphanumeric
-characters triggers an archive mode command.
+treats it as a read-only virtual filesystem. It behaves similarly to
+Directory/File modes but with a restricted command set. Typing
+alphanumeric characters triggers an archive mode command.
 
 # KEY BINDINGS
 
@@ -154,10 +158,21 @@ Active when the file window is focused.
 When browsing an archive (ZIP, TAR, etc.), ytree behaves similarly to a
 read-only file system.
 
-- **Archive-Dir Mode**: Supports Filter, Log, Showall, Tag, Untag,
-  ^Dirmode, ^L.
-- **Archive-File Mode**: Supports Copy, Filter, Hex, Pipe, Sort, Tag,
-  Untag, View, ^Filemode, ^L.
+**Archive-Dir Mode** \* **F** (Filter): Set file filter. \* **L** (Log):
+Log a new directory or archive. \* **S** (Showall): Show all files in
+the archive. \* **T** (Tag): Tag all files in current virtual directory.
+\* **U** (Untag): Untag all files in current virtual directory. \*
+**^F** (Dir Mode): Cycle display modes. \* **Return**: Switch to
+Archive-File Mode.
+
+**Archive-File Mode** \* **C** (Copy): Copy (Extract) selected file. \*
+**^K** (Copy Tagged): Copy (Extract) all tagged files. \* **F**
+(Filter): Set file filter. \* **H** (Hex): View file in hex mode. \*
+**P** (Pipe): Pipe content to command. \* **S** (Sort): Sort file list.
+\* **T** (Tag): Tag selected file. \* **^T**: Tag all files. \* **U**
+(Untag): Untag selected file. \* **^U**: Untag all files. \* **V**
+(View): View file. \* **^F** (File Mode): Cycle display modes. \*
+**Return**: Switch to Archive-Dir Mode.
 
 # COMMAND LINE EDITING
 

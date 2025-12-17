@@ -39,7 +39,7 @@ static void SetColor(void);
 static void DrawBoxFrame(void);
 static void DrawSeparator(int y, const char *title);
 static void PrintStatRow(int y, const char *label, LONGLONG count, LONGLONG bytes);
-static void DrawAttributes(const char *name, struct stat *s);
+static void DrawAttributes(const char *name, struct stat *s, FileEntry *fe);
 static void RecalcDir(DirEntry *de);
 
 /* ========================================================================= */
@@ -305,7 +305,7 @@ static void PrintStatRow(int y, const char *label, LONGLONG count, LONGLONG byte
     mvprintw(y, STAT_X + 1, "%-4s %9s %6s", label, count_buf, size_buf);
 }
 
-static void DrawAttributes(const char *name, struct stat *s) {
+static void DrawAttributes(const char *name, struct stat *s, FileEntry *fe) {
     char buf[128];
     char num_buf[32];
     char time_buf[20];
@@ -317,10 +317,26 @@ static void DrawAttributes(const char *name, struct stat *s) {
 
     /* Name */
     CutPathname(buf, (char*)name, INNER_W); /* Keep CutPathname for stats box */
-    attron(A_BOLD);
-    mvwhline(stdscr, Y_ATTR_VAL, STAT_X + 1, ' ', INNER_W); /* Explicitly clear the line */
-    mvprintw(Y_ATTR_VAL, STAT_X + 1, "%s", buf); /* Print without padding to avoid overflow */
-    attroff(A_BOLD);
+
+    /* Explicitly clear the line to avoid background artifacts */
+    mvwhline(stdscr, Y_ATTR_VAL, STAT_X + 1, ' ', INNER_W);
+
+    if (fe) {
+#ifdef COLOR_SUPPORT
+        int color = GetFileTypeColor(fe);
+        attron(COLOR_PAIR(color) | A_BOLD);
+        mvprintw(Y_ATTR_VAL, STAT_X + 1, "%s", buf); /* Print without padding */
+        attroff(COLOR_PAIR(color) | A_BOLD);
+#else
+        attron(A_BOLD);
+        mvprintw(Y_ATTR_VAL, STAT_X + 1, "%s", buf);
+        attroff(A_BOLD);
+#endif
+    } else {
+        attron(A_BOLD);
+        mvprintw(Y_ATTR_VAL, STAT_X + 1, "%s", buf); /* Print without padding */
+        attroff(A_BOLD);
+    }
 
     /* Size */
     FormatShortSize(num_buf, sizeof(num_buf), s->st_size);
@@ -408,7 +424,7 @@ void DisplayDiskName(void)
     path_buf[PATH_LENGTH] = '\0';
 
     CutPathname(buf, path_buf, INNER_W); /* Changed to CutPathname */
-    mvprintw(Y_VOL_INFO, STAT_X + 1, "%-22s", buf); /* Pad to clear */
+    mvprintw(Y_VOL_INFO, STAT_X + 1, "%-*s", INNER_W, buf); /* Pad to clear */
 
     /* FS */
     char fs_buf[64];
@@ -416,7 +432,7 @@ void DisplayDiskName(void)
     else snprintf(fs_buf, sizeof(fs_buf), "FS: %s", statistic.disk_name);
     /* Truncate to fit */
     CutName(buf, fs_buf, INNER_W);
-    mvprintw(Y_VOL_INFO + 1, STAT_X + 1, "%-22s", buf);
+    mvprintw(Y_VOL_INFO + 1, STAT_X + 1, "%-*s", INNER_W, buf);
 
     /* Free */
     if (mode == ARCHIVE_MODE) {
@@ -425,7 +441,7 @@ void DisplayDiskName(void)
         FormatShortSize(size_buf, sizeof(size_buf), statistic.disk_space);
         snprintf(fs_buf, sizeof(fs_buf), "Free: %s", size_buf);
     }
-    mvprintw(Y_VOL_INFO + 2, STAT_X + 1, "%-22s", fs_buf);
+    mvprintw(Y_VOL_INFO + 2, STAT_X + 1, "%-*s", INNER_W, fs_buf);
 }
 
 void DisplayAvailBytes(void) {
@@ -467,7 +483,7 @@ void DisplayDirStatistic(DirEntry *de, const char *title)
     /* Dir Name */
     CutPathname(buf, de->name, INNER_W); /* Changed to CutPathname */
     attron(A_BOLD);
-    mvprintw(Y_DSTAT_VAL, STAT_X + 1, "%-22s", buf); /* Clear ghosting */
+    mvprintw(Y_DSTAT_VAL, STAT_X + 1, "%-*s", INNER_W, buf); /* Clear ghosting */
     attroff(A_BOLD);
 
     if (de->global_flag) {
@@ -493,7 +509,7 @@ void DisplayDirStatistic(DirEntry *de, const char *title)
 void DisplayFileParameter(FileEntry *fe)
 {
     if (fe) {
-        DrawAttributes(fe->name, &fe->stat_struct);
+        DrawAttributes(fe->name, &fe->stat_struct, fe);
     }
 }
 
@@ -511,7 +527,7 @@ void DisplayDirTagged(DirEntry *de) {
 
 void DisplayDirParameter(DirEntry *de) {
     if (de) {
-        DrawAttributes(de->name, &de->stat_struct);
+        DrawAttributes(de->name, &de->stat_struct, NULL);
     }
 }
 
