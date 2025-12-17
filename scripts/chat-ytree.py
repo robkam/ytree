@@ -16,6 +16,10 @@ from google.api_core import exceptions
 # CONFIGURATION
 # -----------------------------------------------------------------------------
 
+# Calculate paths relative to the project root
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+PROJECT_ROOT = os.path.dirname(SCRIPT_DIR)
+
 API_KEY = os.environ.get("GEMINI_API_KEY")
 if not API_KEY:
     print("Error: GEMINI_API_KEY environment variable not set.")
@@ -27,7 +31,7 @@ genai.configure(api_key=API_KEY)
 #MODEL_NAME = "models/gemini-2.5-pro"
 MODEL_NAME = "models/gemini-2.5-flash"
 
-CHAT_LOG_FILE = "chat.log"
+CHAT_LOG_FILE = os.path.join(PROJECT_ROOT, "chat.log")
 HISTORY_FILE = os.path.expanduser("~/.ytree_chat_history")
 
 SAFETY_SETTINGS = [
@@ -195,16 +199,17 @@ def read_files_content(file_paths):
 # CHAT SESSION
 # -----------------------------------------------------------------------------
 
-def start_chat(initial_context_filter=None):
+def start_chat(root_dir, initial_context_filter=None):
     print("\n" + "="*50)
     print(f"YTREE AI ASSISTANT ({MODEL_NAME})")
     print("="*50)
+    print(f"Working Directory: {root_dir}")
     print(f"Logging to: {CHAT_LOG_FILE}")
 
     get_input = setup_input()
 
     # 1. Get File Structure (Low Token Cost)
-    all_files = get_all_project_files()
+    all_files = get_all_project_files(root_dir)
     file_tree_str = "\n".join(all_files)
 
     # 2. Handle Initial Context Loading (if --context used)
@@ -342,7 +347,7 @@ def main():
     parser.add_argument("--context", help="Comma-separated patterns of files to preload (e.g., 'main.c,*.h')")
     args = parser.parse_args()
 
-    start_chat(initial_context_filter=args.context)
+    start_chat(PROJECT_ROOT, initial_context_filter=args.context)
 
 if __name__ == "__main__":
     main()

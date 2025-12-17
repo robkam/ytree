@@ -1,39 +1,68 @@
+# OS-specific
 .DS_Store
 ._*
 Thumbs.db
 desktop.ini
+
+# Editors and IDEs
 *~
 *.bak
-core
+*.swp
+*.swo
+.vscode/
+.idea/
 *.orig
+
+# C/C++ Build Artifacts
 *.o
 *.d
 *.a
+*.gch
 obj/
-.vscode/
-.idea/
-*.swp
+build/
+bin/
+compile_commands.json
+
+# C/C++ Debugging and Profiling
+core
 *.log
-*.env
-coverage/
+gmon.out
+valgrind.out
+valgrind-*.log
 *.gcno
 *.gcda
 *.gcov
+coverage/
+
+# Tools (Tags/Cscope)
+tags
+TAGS
+cscope.*
+
+# Project Specific Binaries and Outputs
+ytree
+ytree.1
+ytree.1.gz
+ytree.1.*.gz
+
+# Project Specific History/Config
+.history
+.history/
+.ytree-hst
+.ytree-*.chdir
+
+# Secrets and Local Environment
+*.env
+
+# Python/Scripting
+.venv/
+__pycache__/
+*.pyc
+
+# File Type Rules (Deny all, Allow specific)
 *.txt
 !requirements.txt
 *.html
 *.url
 *.sh
 !scripts/setup_dev.sh
-.history
-.ytree-hst
-.ytree-*.chdir
-.history/
-ytree
-ytree.1
-ytree.1.gz
-ytree.1.*.gz
-.venv/
-__pycache__/
-*.pyc
-/coverage/
