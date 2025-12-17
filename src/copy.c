@@ -35,7 +35,6 @@ int CopyFile(Statistic *statistic_ptr,
   struct stat stat_struct;
   int         term;
   int         result;
-  DIR         *tmpdir = NULL;
   int	      refresh_dirwindow = FALSE;
 
 
@@ -88,43 +87,25 @@ int CopyFile(Statistic *statistic_ptr,
          return( result );
     }
   }
-  (void) strcat( to_path, FILE_SEPARATOR_STRING );
-  if ((tmpdir = opendir(to_path)) == NULL)
-    if (errno == ENOENT) {
-     if ( (term =InputChoice( "Directory does not exist; create (y/N) ? ", "YN\033" ))== 'Y')
-     {
-        if(*to_path != FILE_SEPARATOR_CHAR) {
-          strcpy(abs_path, from_dir);
-	  strcat(abs_path, FILE_SEPARATOR_STRING);
-	  strcat(abs_path, to_path);
-	  strcpy(to_path, abs_path);
-        }
-        if (MakePath(statistic_ptr->tree, to_path, &dest_dir_entry ) )
-        {
-                if(tmpdir) closedir(tmpdir);
-                (void) snprintf( message,
-                                MESSAGE_LENGTH,
-                                "Can't create path*\"%s\"*%s",
-                                to_path,
-                                strerror(errno)
-                                );
-                MESSAGE( message );
-                return( result );
-        }
-	else
-	{
-		refresh_dirwindow = TRUE;
-	}
-     }
-     else
-     {
-        if( tmpdir)
-	  closedir(tmpdir);
 
-        return ( result );
-     }
+  (void) strcat( to_path, FILE_SEPARATOR_STRING );
+
+  /* Pre-emptively fix relative paths to ensure EnsureDirectoryExists handles them correctly */
+  if (*to_path != FILE_SEPARATOR_CHAR) {
+       strcpy(abs_path, from_dir);
+       strcat(abs_path, FILE_SEPARATOR_STRING);
+       strcat(abs_path, to_path);
+       strcpy(to_path, abs_path);
   }
-  if (tmpdir) closedir(tmpdir);
+
+  {
+      BOOL created = FALSE;
+      if (EnsureDirectoryExists(to_path, statistic_ptr->tree, &created) == -1) {
+          return result;
+      }
+      if (created) refresh_dirwindow = TRUE;
+  }
+
   (void) strcat( to_path, to_file );
 
 

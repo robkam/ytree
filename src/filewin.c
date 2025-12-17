@@ -1942,15 +1942,28 @@ int HandleFileWindow(DirEntry *dir_entry)
 			break;
 		      }
 
-                      if( GetDirEntry( statistic.tree,
-				       de_ptr,
-				       to_dir,
-				       &dest_dir_entry,
-				       to_path
-				     ) )
-		      {
-			break;
-		      }
+                      get_dir_ret = GetDirEntry( statistic.tree, de_ptr, to_dir, &dest_dir_entry, to_path );
+                      if (get_dir_ret == -1) {
+                          break;
+                      }
+                      if (get_dir_ret == -3) {
+                          dest_dir_entry = NULL;
+                      }
+
+                      /* Construct absolute path for checking */
+                      {
+                          char abs_check_path[PATH_LENGTH * 2 + 2];
+                          char current_dir[PATH_LENGTH + 1];
+                          BOOL created = FALSE;
+
+                          if (*to_dir == FILE_SEPARATOR_CHAR) {
+                              strcpy(abs_check_path, to_dir);
+                          } else {
+                              GetPath(de_ptr, current_dir);
+                              snprintf(abs_check_path, sizeof(abs_check_path), "%s%c%s", current_dir, FILE_SEPARATOR_CHAR, to_dir);
+                          }
+                          if (EnsureDirectoryExists(abs_check_path, statistic.tree, &created) == -1) break;
+                      }
 
 		      if( !MoveFile( fe_ptr,
 				     TRUE,
@@ -1992,6 +2005,7 @@ int HandleFileWindow(DirEntry *dir_entry)
 				      start_x
 			            );
 			maybe_change_x_step = TRUE;
+            RefreshDirWindow();
 		      }
 		      break;
 
@@ -2009,15 +2023,28 @@ int HandleFileWindow(DirEntry *dir_entry)
 		        }
 
 
-                        if( GetDirEntry( statistic.tree,
-					 de_ptr,
-				         to_dir,
-				         &dest_dir_entry,
-				         to_path
-				       ) )
-		        {
-			  break;
-		        }
+                        get_dir_ret = GetDirEntry( statistic.tree, de_ptr, to_dir, &dest_dir_entry, to_path );
+                        if (get_dir_ret == -1) {
+                            break;
+                        }
+                        if (get_dir_ret == -3) {
+                            dest_dir_entry = NULL;
+                        }
+
+                        /* Construct absolute path for checking */
+                        {
+                            char abs_check_path[PATH_LENGTH * 2 + 2];
+                            char current_dir[PATH_LENGTH + 1];
+                            BOOL created = FALSE;
+
+                            if (*to_dir == FILE_SEPARATOR_CHAR) {
+                                strcpy(abs_check_path, to_dir);
+                            } else {
+                                GetPath(dir_entry, current_dir);
+                                snprintf(abs_check_path, sizeof(abs_check_path), "%s%c%s", current_dir, FILE_SEPARATOR_CHAR, to_dir);
+                            }
+                            if (EnsureDirectoryExists(abs_check_path, statistic.tree, &created) == -1) break;
+                        }
 
 			term = InputChoice( "Confirm overwrite existing files (Y/N) ? ", "YN\033" );
                         if( term == ESC )
@@ -2049,6 +2076,7 @@ int HandleFileWindow(DirEntry *dir_entry)
 				      start_x
 			            );
 			maybe_change_x_step = TRUE;
+            RefreshDirWindow();
 		      }
 		      break;
 

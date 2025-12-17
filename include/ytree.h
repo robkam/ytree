@@ -924,6 +924,7 @@ extern int CycleLoadedVolume(int direction); /* Added for volume cycling */
 extern int MakeDirEntry( DirEntry *father_dir_entry, char *dir_name );
 extern int MakeDirectory(DirEntry *father_dir_entry);
 extern int MakePath( DirEntry *tree, char *dir_path, DirEntry **dest_dir_entry );
+extern int EnsureDirectoryExists(char *dir_path, DirEntry *tree, BOOL *created); /* Added */
 
 /* move.c */
 extern int GetMoveParameter(char *from_file, char *to_file, char *to_dir);
