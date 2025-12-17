@@ -3,6 +3,7 @@
  * stats.c
  * Statistics Module - Modernized Boxed Layout
  * Refactored to share attribute display logic between files and directories.
+ * Responsive layout update.
  *
  ***************************************************************************/
 
@@ -19,20 +20,22 @@
 #define R_BORDER (COLS - 1)
 #define INNER_W  (STAT_W - 2)      /* 22 */
 
-/* Y-Coordinates */
+/* Y-Coordinates (Dynamic) */
 #define Y_TOP        1
-#define Y_FILTER_VAL 2
-#define Y_VOL_SEP    3
-#define Y_VOL_INFO   4  /* Path=4, FS=5, Free=6 */
-#define Y_VSTAT_SEP  7
-#define Y_VSTAT_VAL  8  /* Tot=8, Mat=9, Tag=10 */
-#define Y_DSTAT_SEP  11
-#define Y_DSTAT_VAL  12 /* Name=12, Tot=13, Mat=14, Tag=15 */
-#define Y_ATTR_SEP   16
-#define Y_ATTR_VAL   17 /* Name=17, Size=18, Attr=19, Own=20, Mod=21 */
-#define Y_BOT        (LINES - 4)
+
+static int y_filter_val;
+static int y_vol_sep;
+static int y_vol_info;
+static int y_vstat_sep;
+static int y_vstat_val;
+static int y_dstat_sep;
+static int y_dstat_val;
+static int y_attr_sep;
+static int y_attr_val;
+static int y_bot;
 
 /* Prototypes */
+static void RecalcLayout(void);
 static void FormatNumber(char *buf, size_t size, LONGLONG val);
 static void FormatShortSize(char *buf, size_t size, LONGLONG val);
 static void SetColor(void);
@@ -45,6 +48,35 @@ static void RecalcDir(DirEntry *de);
 /* ========================================================================= */
 /*                           LOGIC FUNCTIONS                                 */
 /* ========================================================================= */
+
+static void RecalcLayout(void) {
+    y_bot = LINES - 4; /* Keep standard bottom margin */
+
+    if (LINES < 26) {
+        /* Compact Mode for small terminals (e.g. 24 lines) */
+        y_filter_val = 2;
+        y_vol_sep    = 0; /* Hidden */
+        y_vol_info   = 3; /* 3, 4, 5 */
+        y_vstat_sep  = 0; /* Hidden */
+        y_vstat_val  = 6; /* 6, 7, 8 */
+        y_dstat_sep  = 0; /* Hidden */
+        y_dstat_val  = 9; /* 9, 10, 11, 12 */
+        y_attr_sep   = 0; /* Hidden */
+        y_attr_val   = 13;/* 13, 14, 15, 16, 17 */
+        /* Total used: 2 to 17. 18 is border. Fits in 20 (LINES=24 -> y_bot=20) */
+    } else {
+        /* Standard Spacious Mode */
+        y_filter_val = 2;
+        y_vol_sep    = 3;
+        y_vol_info   = 4;
+        y_vstat_sep  = 7;
+        y_vstat_val  = 8;
+        y_dstat_sep  = 11;
+        y_dstat_val  = 12;
+        y_attr_sep   = 16;
+        y_attr_val   = 17;
+    }
+}
 
 static void RecalcDir(DirEntry *d) {
     FileEntry *f;
@@ -201,23 +233,25 @@ static void DrawBoxFrame(void) {
 
 
     /* --- Bottom Border --- */
-    mvaddch(Y_BOT, L_BORDER, ACS_LLCORNER);
-    mvwhline(stdscr, Y_BOT, L_BORDER + 1, ACS_HLINE, hline_len);
-    mvaddch(Y_BOT, R_BORDER, ACS_LRCORNER);
+    mvaddch(y_bot, L_BORDER, ACS_LLCORNER);
+    mvwhline(stdscr, y_bot, L_BORDER + 1, ACS_HLINE, hline_len);
+    mvaddch(y_bot, R_BORDER, ACS_LRCORNER);
 
     /* --- Vertical Lines --- */
-    for (y = Y_TOP + 1; y < Y_BOT; y++) {
+    for (y = Y_TOP + 1; y < y_bot; y++) {
         mvaddch(y, R_BORDER, ACS_VLINE);
         mvaddch(y, L_BORDER, ACS_VLINE);
     }
 
     /* Force drawing of T-junctions for all fixed sections */
     {
-        int seps[] = { Y_VOL_SEP, Y_VSTAT_SEP, Y_DSTAT_SEP, Y_ATTR_SEP };
+        int seps[] = { y_vol_sep, y_vstat_sep, y_dstat_sep, y_attr_sep };
         int i;
         for (i = 0; i < 4; i++) {
-            mvaddch(seps[i], L_BORDER, ACS_LTEE | A_BOLD | COLOR_PAIR(CPAIR_WINDIR));
-            mvaddch(seps[i], R_BORDER, ACS_RTEE | A_BOLD | COLOR_PAIR(CPAIR_WINDIR));
+            if (seps[i] > 0) {
+                mvaddch(seps[i], L_BORDER, ACS_LTEE | A_BOLD | COLOR_PAIR(CPAIR_WINDIR));
+                mvaddch(seps[i], R_BORDER, ACS_RTEE | A_BOLD | COLOR_PAIR(CPAIR_WINDIR));
+            }
         }
     }
 
@@ -230,7 +264,7 @@ static void DrawBoxFrame(void) {
     } else {
         mvaddch(STATS_MIDDLE_SEPARATOR_Y, L_BORDER, ACS_RTEE | A_BOLD | COLOR_PAIR(CPAIR_WINDIR));
     }
-    mvaddch(Y_BOT, L_BORDER, ACS_BTEE);
+    mvaddch(y_bot, L_BORDER, ACS_BTEE);
 
     SetColor();
 }
@@ -239,6 +273,8 @@ static void DrawSeparator(int y, const char *title) {
     int x;
     int text_len = title ? strlen(title) : 0;
     int total_inner_width = R_BORDER - L_BORDER - 1;
+
+    if (y <= 0) return;
 
     attrset(COLOR_PAIR(CPAIR_WINDIR));
 
@@ -292,7 +328,7 @@ static void PrintStatRow(int y, const char *label, LONGLONG count, LONGLONG byte
     char count_buf[32];
     char size_buf[32];
 
-    if (y >= Y_BOT) return;
+    if (y >= y_bot) return;
 
     FormatNumber(count_buf, sizeof(count_buf), count);
     FormatShortSize(size_buf, sizeof(size_buf), bytes);
@@ -313,40 +349,40 @@ static void DrawAttributes(const char *name, struct stat *s, FileEntry *fe) {
 
     if (!name || !s) return;
 
-    DrawSeparator(Y_ATTR_SEP, "ATTRIBUTES");
+    DrawSeparator(y_attr_sep, "ATTRIBUTES");
 
     /* Name */
     CutPathname(buf, (char*)name, INNER_W); /* Keep CutPathname for stats box */
 
     /* Explicitly clear the line to avoid background artifacts */
-    mvwhline(stdscr, Y_ATTR_VAL, STAT_X + 1, ' ', INNER_W);
+    mvwhline(stdscr, y_attr_val, STAT_X + 1, ' ', INNER_W);
 
     if (fe) {
 #ifdef COLOR_SUPPORT
         int color = GetFileTypeColor(fe);
         attron(COLOR_PAIR(color) | A_BOLD);
-        mvprintw(Y_ATTR_VAL, STAT_X + 1, "%s", buf); /* Print without padding */
+        mvprintw(y_attr_val, STAT_X + 1, "%s", buf); /* Print without padding */
         attroff(COLOR_PAIR(color) | A_BOLD);
 #else
         attron(A_BOLD);
-        mvprintw(Y_ATTR_VAL, STAT_X + 1, "%s", buf);
+        mvprintw(y_attr_val, STAT_X + 1, "%s", buf);
         attroff(A_BOLD);
 #endif
     } else {
         attron(A_BOLD);
-        mvprintw(Y_ATTR_VAL, STAT_X + 1, "%s", buf); /* Print without padding */
+        mvprintw(y_attr_val, STAT_X + 1, "%s", buf); /* Print without padding */
         attroff(A_BOLD);
     }
 
     /* Size */
     FormatShortSize(num_buf, sizeof(num_buf), s->st_size);
     snprintf(temp, sizeof(temp), "Size: %s", num_buf);
-    mvprintw(Y_ATTR_VAL + 1, STAT_X + 1, "%-22s", temp);
+    mvprintw(y_attr_val + 1, STAT_X + 1, "%-22s", temp);
 
     /* Attr */
     GetAttributes(s->st_mode, buf);
     snprintf(temp, sizeof(temp), "Attr: %s", buf);
-    mvprintw(Y_ATTR_VAL + 2, STAT_X + 1, "%-22s", temp);
+    mvprintw(y_attr_val + 2, STAT_X + 1, "%-22s", temp);
 
     /* Owner */
     {
@@ -360,12 +396,12 @@ static void DrawAttributes(const char *name, struct stat *s, FileEntry *fe) {
         char full_own[64];
         snprintf(full_own, sizeof(full_own), "%s:%s", owner, group);
         CutName(buf, full_own, INNER_W - 6); /* "Own : " is 6 chars */
-        mvprintw(Y_ATTR_VAL + 3, STAT_X + 1, "Own : %-16s", buf);
+        mvprintw(y_attr_val + 3, STAT_X + 1, "Own : %-16s", buf);
     }
 
     /* Mod */
     CTime(s->st_mtime, time_buf);
-    mvprintw(Y_ATTR_VAL + 4, STAT_X + 1, "Mod : %-16s", time_buf);
+    mvprintw(y_attr_val + 4, STAT_X + 1, "Mod : %-16s", time_buf);
 
     refresh();
 }
@@ -387,6 +423,9 @@ void DisplayDiskName(void)
     int current_index = 0;
     struct Volume *s, *tmp;
     int i = 1;
+
+    /* Recalculate layout based on current terminal height */
+    RecalcLayout();
 
     /* 1. Determine Volume Index */
     if (VolumeList) {
@@ -410,13 +449,13 @@ void DisplayDiskName(void)
     /* Center filter text using padding format to clear ghosts */
     {
         int pad = (INNER_W - strlen(buf)) / 2;
-        mvprintw(Y_FILTER_VAL, STAT_X + 1, "%*s%-*s", pad, "", INNER_W - pad, buf);
+        mvprintw(y_filter_val, STAT_X + 1, "%*s%-*s", pad, "", INNER_W - pad, buf);
     }
     attroff(A_BOLD);
 
     /* 4. Volume Section */
     snprintf(buf, sizeof(buf), "VOLUME %d/%d", current_index, total_volumes);
-    DrawSeparator(Y_VOL_SEP, buf);
+    DrawSeparator(y_vol_sep, buf);
 
     /* Path */
     if (mode == ARCHIVE_MODE) strncpy(path_buf, statistic.login_path, PATH_LENGTH);
@@ -424,7 +463,7 @@ void DisplayDiskName(void)
     path_buf[PATH_LENGTH] = '\0';
 
     CutPathname(buf, path_buf, INNER_W); /* Changed to CutPathname */
-    mvprintw(Y_VOL_INFO, STAT_X + 1, "%-*s", INNER_W, buf); /* Pad to clear */
+    mvprintw(y_vol_info, STAT_X + 1, "%-*s", INNER_W, buf); /* Pad to clear */
 
     /* FS */
     char fs_buf[64];
@@ -432,7 +471,7 @@ void DisplayDiskName(void)
     else snprintf(fs_buf, sizeof(fs_buf), "FS: %s", statistic.disk_name);
     /* Truncate to fit */
     CutName(buf, fs_buf, INNER_W);
-    mvprintw(Y_VOL_INFO + 1, STAT_X + 1, "%-*s", INNER_W, buf);
+    mvprintw(y_vol_info + 1, STAT_X + 1, "%-*s", INNER_W, buf);
 
     /* Free */
     if (mode == ARCHIVE_MODE) {
@@ -441,7 +480,7 @@ void DisplayDiskName(void)
         FormatShortSize(size_buf, sizeof(size_buf), statistic.disk_space);
         snprintf(fs_buf, sizeof(fs_buf), "Free: %s", size_buf);
     }
-    mvprintw(Y_VOL_INFO + 2, STAT_X + 1, "%-*s", INNER_W, fs_buf);
+    mvprintw(y_vol_info + 2, STAT_X + 1, "%-*s", INNER_W, fs_buf);
 }
 
 void DisplayAvailBytes(void) {
@@ -456,11 +495,11 @@ void DisplayDiskStatistic(void)
 {
     DisplayDiskName();
 
-    DrawSeparator(Y_VSTAT_SEP, "VOLUME STATS");
+    DrawSeparator(y_vstat_sep, "VOLUME STATS");
 
-    PrintStatRow(Y_VSTAT_VAL,     "Tot:", statistic.disk_total_files, statistic.disk_total_bytes);
-    PrintStatRow(Y_VSTAT_VAL + 1, "Mat:", statistic.disk_matching_files, statistic.disk_matching_bytes);
-    PrintStatRow(Y_VSTAT_VAL + 2, "Tag:",   statistic.disk_tagged_files, statistic.disk_tagged_bytes);
+    PrintStatRow(y_vstat_val,     "Tot:", statistic.disk_total_files, statistic.disk_total_bytes);
+    PrintStatRow(y_vstat_val + 1, "Mat:", statistic.disk_matching_files, statistic.disk_matching_bytes);
+    PrintStatRow(y_vstat_val + 2, "Tag:",   statistic.disk_tagged_files, statistic.disk_tagged_bytes);
 
     refresh();
 }
@@ -473,34 +512,34 @@ void DisplayDirStatistic(DirEntry *de, const char *title)
 
     /* Use provided title, or fallback to default logic */
     if (title) {
-        DrawSeparator(Y_DSTAT_SEP, title);
+        DrawSeparator(y_dstat_sep, title);
     } else if (de->global_flag) {
-        DrawSeparator(Y_DSTAT_SEP, "SHOW ALL");
+        DrawSeparator(y_dstat_sep, "SHOW ALL");
     } else {
-        DrawSeparator(Y_DSTAT_SEP, "CURRENT DIR");
+        DrawSeparator(y_dstat_sep, "CURRENT DIR");
     }
 
     /* Dir Name */
     CutPathname(buf, de->name, INNER_W); /* Changed to CutPathname */
     attron(A_BOLD);
-    mvprintw(Y_DSTAT_VAL, STAT_X + 1, "%-*s", INNER_W, buf); /* Clear ghosting */
+    mvprintw(y_dstat_val, STAT_X + 1, "%-*s", INNER_W, buf); /* Clear ghosting */
     attroff(A_BOLD);
 
     if (de->global_flag) {
         /* In Show All mode, display global totals */
-        PrintStatRow(Y_DSTAT_VAL + 1, "Tot:", statistic.disk_total_files, statistic.disk_total_bytes);
-        PrintStatRow(Y_DSTAT_VAL + 2, "Mat:", statistic.disk_matching_files, statistic.disk_matching_bytes);
+        PrintStatRow(y_dstat_val + 1, "Tot:", statistic.disk_total_files, statistic.disk_total_bytes);
+        PrintStatRow(y_dstat_val + 2, "Mat:", statistic.disk_matching_files, statistic.disk_matching_bytes);
     } else {
         /* In Normal mode, display current directory totals */
-        PrintStatRow(Y_DSTAT_VAL + 1, "Tot:", de->total_files, de->total_bytes);
-        PrintStatRow(Y_DSTAT_VAL + 2, "Mat:", de->matching_files, de->matching_bytes);
+        PrintStatRow(y_dstat_val + 1, "Tot:", de->total_files, de->total_bytes);
+        PrintStatRow(y_dstat_val + 2, "Mat:", de->matching_files, de->matching_bytes);
     }
 
     /* Tag count always shows global disk total in Show All mode, but we use the disk stats directly if global_flag is set. */
     if (de->global_flag) {
-        PrintStatRow(Y_DSTAT_VAL + 3, "Tag:", statistic.disk_tagged_files, statistic.disk_tagged_bytes);
+        PrintStatRow(y_dstat_val + 3, "Tag:", statistic.disk_tagged_files, statistic.disk_tagged_bytes);
     } else {
-        PrintStatRow(Y_DSTAT_VAL + 3, "Tag:", de->tagged_files, de->tagged_bytes);
+        PrintStatRow(y_dstat_val + 3, "Tag:", de->tagged_files, de->tagged_bytes);
     }
 
     refresh();
