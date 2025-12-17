@@ -779,6 +779,7 @@ extern void SuspendClock(void);
 /* color.c */
 #ifdef COLOR_SUPPORT
 extern void StartColors(void);
+extern void ReinitColorPairs(void);
 extern void WbkgdSet(WINDOW *w, chtype c);
 extern void ParseColorString(const char *color_str, int *fg, int *bg);
 extern void UpdateUIColor(const char *name, int fg, int bg);
@@ -786,6 +787,7 @@ extern void AddFileColorRule(const char *pattern, int fg, int bg);
 extern int GetFileTypeColor(FileEntry *fe_ptr);
 #else
 #define StartColors()	;
+#define ReinitColorPairs() ;
 #define WbkgdSet(a, b)  ;
 #endif
 
