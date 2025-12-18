@@ -13,6 +13,11 @@ ytree - A File Manager for UNIX-like systems
 is inspired by the DOS file manager **XTreeGold**, offering a text-based
 user interface (TUI) that is fast, lightweight, and keyboard-driven.
 
+This version is a modern refactor of the original **ytree** by Werner
+Bregulla, incorporating features from XTree and ZTreeWin, using modern C
+standards (C99/POSIX), and integrating robust libraries like
+`libarchive`.
+
 If no command line arguments are provided, the current directory will be
 logged.
 
@@ -257,3 +262,7 @@ It will help us to address the issue if you include the following:
 Authors and contributors are listed in the
 [AUTHORS.md](https://github.com/robkam/ytree/blob/main/doc/AUTHORS.md)
 file in the source distribution.
+
+# SEE ALSO
+
+**ls**(1), **cp**(1), **mv**(1), **rm**(1)

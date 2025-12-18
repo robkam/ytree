@@ -57,6 +57,10 @@ void ParseColorString(const char *color_str, int *fg, int *bg)
     char *dup, *token, *saveptr;
     int i;
     int *target;
+    BOOL found;
+    char *endptr;
+    long val;
+    int color_limit;
 
     if (!color_str || !fg || !bg) return;
 
@@ -65,13 +69,37 @@ void ParseColorString(const char *color_str, int *fg, int *bg)
 
     target = fg;
     token = strtok_r(dup, " ,", &saveptr);
+
+    /* Determine maximum valid color index.
+       Use global COLORS if initialized, otherwise assume 256 for config parsing safety. */
+    color_limit = (COLORS > 0) ? COLORS : 256;
+
     while (token) {
+        found = FALSE;
+
+        /* 1. Try named colors */
         for (i = 0; color_map[i].name; i++) {
             if (strcasecmp(token, color_map[i].name) == 0) {
                 *target = color_map[i].value;
+                found = TRUE;
                 break;
             }
         }
+
+        /* 2. Try numeric colors (0-255) */
+        if (!found) {
+            errno = 0;
+            val = strtol(token, &endptr, 10);
+
+            /* Check if valid number: no error, parsed something, and full string consumed */
+            if (errno == 0 && endptr != token && *endptr == '\0') {
+                /* Check range: -1 (default) to color_limit-1 */
+                if (val >= -1 && val < color_limit) {
+                    *target = (int)val;
+                }
+            }
+        }
+
         target = bg; /* Second token is the background color */
         token = strtok_r(NULL, " ,", &saveptr);
     }
