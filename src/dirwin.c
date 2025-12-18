@@ -28,6 +28,7 @@ static void HandleTagDir(DirEntry *dir_entry, BOOL value);
 static void HandleTagAllDirs(DirEntry *dir_entry, BOOL value );
 static void HandleShowAll(BOOL tagged_only, DirEntry *dir_entry, DirEntry *start_dir_entry, BOOL *need_dsp_help, int *ch);
 static void HandleSwitchWindow(DirEntry *dir_entry, DirEntry *start_dir_entry, BOOL *need_dsp_help, int *ch);
+static void Movedown(int *disp_begin_pos, int *cursor_pos, DirEntry **dir_entry); /* Forward declaration */
 
 static int dir_mode;
 
@@ -1302,9 +1303,11 @@ int HandleDirWindow(DirEntry *start_dir_entry)
 		     need_dsp_help = TRUE;
                      break;
       case ACTION_TAG: HandleTagDir(dir_entry, TRUE);
+             Movedown(&statistic.disp_begin_pos, &statistic.cursor_pos, &dir_entry); /* ADDED */
     		     break;
 
       case ACTION_UNTAG: HandleTagDir(dir_entry, FALSE);
+             Movedown(&statistic.disp_begin_pos, &statistic.cursor_pos, &dir_entry); /* ADDED */
     		     break;
       case ACTION_TAG_ALL:
                      HandleTagAllDirs(dir_entry,TRUE);
@@ -1394,7 +1397,7 @@ int HandleDirWindow(DirEntry *start_dir_entry)
 		     need_dsp_help = TRUE;
 		     break;
       case ACTION_REFRESH: /* Rescan */
-             RescanDir(dir_entry, 0);
+             RescanDir(dir_entry, strtol(TREEDEPTH, NULL, 0)); /* Fixed: Use configured TREEDEPTH */
              BuildDirEntryList(start_dir_entry, &statistic);
              if (total_dirs > 0 && (statistic.disp_begin_pos + statistic.cursor_pos >= total_dirs)) {
                  statistic.disp_begin_pos = 0;

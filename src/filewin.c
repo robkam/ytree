@@ -3,7 +3,7 @@
  * filewin.c
  * Funktionen zur Handhabung des FILE-WINDOWS
  *
- *******************************************************************/
+ ***************************************************************************/
 
 
 #include "ytree.h"
@@ -973,7 +973,7 @@ static void fmoveright(int *start_file, int *cursor_pos, int *start_x,DirEntry *
    if( x_step == 1 )
    {
       /* Sonderfall: ganzes Filewindow scrollen */
-      /*----------------------------------------*/
+      /*------------------------*/
       (*start_x)++;
       DisplayFiles( dir_entry,
                     *start_file,
@@ -2507,7 +2507,8 @@ int HandleFileWindow(DirEntry *dir_entry)
                          clearok(stdscr, TRUE);
                          refresh();
                     } else {
-                         RescanDir(dir_entry, 0);
+                         /* Use configured TREEDEPTH instead of 0 to avoid collapsing the tree */
+                         RescanDir(dir_entry, strtol(TREEDEPTH, NULL, 0));
                          BuildFileEntryList(dir_entry);
 
                          /* 3. Restore Cursor Position */
@@ -2765,10 +2766,6 @@ static BOOL IsMatchingTaggedFiles(void)
 }
 
 
-
-
-
-
 static int DeleteTaggedFiles(int max_disp_files)
 {
   FileEntry *fe_ptr;
@@ -2777,17 +2774,30 @@ static int DeleteTaggedFiles(int max_disp_files)
   int       start_file;
   int       cursor_pos;
   BOOL      deleted;
-  BOOL      confirm;
+  BOOL      confirm_each = FALSE;
   int       term;
   int       start_x = 0;
   int       result = 0;
+  int       tagged_count = 0;
 
-  term = InputChoice( "Confirm delete each file (Y/N) ? ", "YN\033" );
+  /* 1. Count tagged files */
+  for(i=0; i < (int)file_count; i++) {
+      if(file_entry_list[i].file->tagged && file_entry_list[i].file->matching) {
+          tagged_count++;
+      }
+  }
 
-  if( term == ESC ) return( -1 );
+  if (tagged_count == 0) return 0;
 
-  if( term == 'Y' ) confirm = TRUE;
-  else confirm = FALSE;
+  /* 2. Prompt for Intent */
+  (void) snprintf(message, MESSAGE_LENGTH, "Delete %d tagged files (Y/N) ?", tagged_count);
+  term = InputChoice(message, "YN\033");
+  if (term != 'Y') return -1;
+
+  /* 3. Prompt for Mode (Confirm Each?) */
+  term = InputChoice( "Confirm delete for each file (Y/N) ? ", "YN\033" );
+  if (term == ESC) return -1;
+  confirm_each = (term == 'Y') ? TRUE : FALSE;
 
   if( baudrate() >= QUICK_BAUD_RATE ) typeahead( 0 );
 
@@ -2820,8 +2830,10 @@ static int DeleteTaggedFiles(int max_disp_files)
       RefreshWindow( file_window );
       doupdate();
 
-      if( confirm ) term = InputChoice( "Delete this file (Y/N) ? ", "YN\033" );
-      else term = 'Y';
+      term = 'Y';
+      if( confirm_each ) {
+          term = InputChoice( "Delete this file (Y/N) ? ", "YN\033" );
+      }
 
       if( term == ESC )
       {
