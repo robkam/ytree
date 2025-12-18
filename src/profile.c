@@ -122,19 +122,33 @@ int ReadProfile( char *filename )
   }
 
   while( fgets( buffer, sizeof( buffer ), f ) ) {
-    if(*buffer == '#')
-      continue;
-    l = strlen( buffer );
-    if( l > 2 ) {
-      buffer[l-1] = '\0';
-      /* trim whitspace */
-      for( name = buffer; isspace(*name); name++ )
-        ;
-      for(cptr=name; !isspace(*cptr) && *cptr != '='; cptr++ )
-        ;
-      if(*cptr != '=')
+    /* 1. Strip inline comments FIRST */
+    if ((cptr = strchr(buffer, '#'))) {
         *cptr = '\0';
-      if(*name == '[') {
+    }
+
+    /* 2. Strip trailing whitespace (including \n) */
+    l = strlen(buffer);
+    while (l > 0 && isspace((unsigned char)buffer[l-1])) {
+        buffer[--l] = '\0';
+    }
+
+    /* 3. Skip empty lines */
+    if (l == 0) continue;
+
+    /* 4. Trim leading whitespace */
+    for( name = buffer; isspace(*name); name++ )
+      ;
+
+    if (*name == '\0') continue;
+
+    /* Parse Key */
+    for(cptr=name; !isspace(*cptr) && *cptr != '='; cptr++ )
+      ;
+    if(*cptr != '=')
+      *cptr = '\0';
+
+    if(*name == '[') {
         /* section */
 	if( !strcmp(name, "[GLOBAL]") )
 	  section = GLOBAL_SECTION;
@@ -158,7 +172,7 @@ int ReadProfile( char *filename )
 	  section = NO_SECTION;
 
 	continue;
-      }
+    }
 
 
       if( section == GLOBAL_SECTION ) {
@@ -353,7 +367,6 @@ int ReadProfile( char *filename )
 	  }
         }
       }
-    }
   }
   result = 0;
 
