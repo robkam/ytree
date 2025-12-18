@@ -210,6 +210,8 @@ int LoginDisk(char *path)
               InitClock(); /* Resume clock before returning */
               return -1;
           }
+          /* Initialize default sort for the brand new volume */
+          statistic.kind_of_sort = SORT_BY_NAME + SORT_ASC;
       }
 
       /* CRITICAL: Allocate the root tree node for the current volume if it doesn't exist.
@@ -248,7 +250,8 @@ int LoginDisk(char *path)
       /* Restore the user's active filter */
       (void) strcpy( statistic.file_spec, saved_filter );
 
-      statistic.kind_of_sort = SORT_BY_NAME + SORT_ASC;
+      /* Moved: statistic.kind_of_sort initialization is now inside is_new_vol_created or virgin check block */
+
       (void) memcpy( &statistic.tree->stat_struct, &stat_struct, sizeof( stat_struct ) );
 
       if( !S_ISDIR(stat_struct.st_mode ) )
