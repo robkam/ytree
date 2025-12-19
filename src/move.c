@@ -36,6 +36,11 @@ int MoveFile(FileEntry *fe_ptr,
   char        from_dir[PATH_LENGTH+1];
   BOOL        refresh_dirwindow = FALSE;
 
+  /* Context-Aware Variables */
+  struct Volume *target_vol = NULL;
+  DirEntry *target_tree = NULL;
+  Statistic *target_stats_ptr = NULL;
+
   result = -1;
   *new_fe_ptr = NULL;
   de_ptr = fe_ptr->dir_entry;
@@ -57,11 +62,28 @@ int MoveFile(FileEntry *fe_ptr,
        strcpy(to_path, abs_path);
   }
 
+  /* Identify Target Volume */
+  target_vol = Volume_GetByPath(to_path);
+  if (target_vol) {
+      target_tree = target_vol->vol_stats.tree;
+      target_stats_ptr = &target_vol->vol_stats;
+  } else {
+      /* Fallback to current if path matches current tree prefix, else NULL (external) */
+      if (strncmp(statistic.tree->name, to_path, strlen(statistic.tree->name)) == 0) {
+          target_tree = statistic.tree;
+          target_stats_ptr = &statistic;
+      } else {
+          target_tree = NULL;
+          target_stats_ptr = NULL;
+      }
+  }
+
+
   /* Ensure the destination directory exists */
   {
       BOOL created = FALSE;
       /* FIX: Pass &dest_dir_entry to update the pointer */
-      if (EnsureDirectoryExists(to_path, CurrentVolume->vol_stats.tree, &created, &dest_dir_entry) == -1) {
+      if (EnsureDirectoryExists(to_path, target_tree, &created, &dest_dir_entry) == -1) {
           return -1;
       }
       if (created) refresh_dirwindow = TRUE;
@@ -92,15 +114,15 @@ int MoveFile(FileEntry *fe_ptr,
 
   if( dest_dir_entry )
   {
-    /* Ziel befindet sich im Sub-Tree */
-    /*--------------------------------*/
+    /* destination is in sub-tree */
+    /*----------------------------*/
 
     (void) GetFileEntry( dest_dir_entry, to_file, &dest_file_entry );
 
     if( dest_file_entry )
     {
-      /* Datei existiert */
-      /*-----------------*/
+      /* file exists */
+      /*-------------*/
 
       if( confirm )
       {
@@ -117,13 +139,13 @@ int MoveFile(FileEntry *fe_ptr,
   }
   else
   {
-    /* access benutzen */
-    /*-----------------*/
+    /* use access */
+    /*------------*/
 
     if( !access( to_path, F_OK ) )
     {
-      /* Datei existiert */
-      /*-----------------*/
+      /* file exists */
+      /*-------------*/
 
       if( confirm )
       {
@@ -152,11 +174,11 @@ int MoveFile(FileEntry *fe_ptr,
 
   if( !Move( to_path, from_path ) )
   {
-    /* File wurde bewegt */
-    /*-------------------*/
+    /* File moved */
+    /*-----------*/
 
-    /* Original aus Baum austragen */
-    /*-----------------------------*/
+    /* Remove original from tree */
+    /*---------------------------*/
 
     (void) RemoveFile( fe_ptr );
 
@@ -171,11 +193,14 @@ int MoveFile(FileEntry *fe_ptr,
 
       file_size = stat_struct.st_size;
 
-      /* Update Total Stats */
+      /* Update Total Stats for TARGET volume */
       dest_dir_entry->total_bytes += file_size;
       dest_dir_entry->total_files++;
-      statistic.disk_total_bytes += file_size;
-      statistic.disk_total_files++;
+
+      if (target_stats_ptr) {
+          target_stats_ptr->disk_total_bytes += file_size;
+          target_stats_ptr->disk_total_files++;
+      }
 
       /* Create File Entry manually */
       /* FIX: Added +1 to allocation for null terminator */
@@ -198,12 +223,14 @@ int MoveFile(FileEntry *fe_ptr,
       fen_ptr->tagged      = FALSE;
       fen_ptr->matching    = Match( fen_ptr );
 
-      /* Update Matching Stats */
+      /* Update Matching Stats for TARGET volume */
       if (fen_ptr->matching) {
           dest_dir_entry->matching_bytes += file_size;
           dest_dir_entry->matching_files++;
-          statistic.disk_matching_bytes += file_size;
-          statistic.disk_matching_files++;
+          if (target_stats_ptr) {
+              target_stats_ptr->disk_matching_bytes += file_size;
+              target_stats_ptr->disk_matching_files++;
+          }
       }
 
       /* Link into list (Head) */
@@ -223,7 +250,8 @@ int MoveFile(FileEntry *fe_ptr,
   }
 
   if (refresh_dirwindow) {
-      RefreshDirWindow();
+      /* REMOVED: RefreshDirWindow() to prevent UI glitch */
+      /* Instead, rely on normal loop refresh or explicit call if needed */
   }
 
 FNC_XIT:
