@@ -111,8 +111,8 @@ int GetFileEntry(DirEntry *de_ptr, char *file_name, FileEntry **file_entry)
   {
     if( !strcmp( fe_ptr->name, file_name ) )
     {
-      /* Eintrag gefunden */
-      /*------------------*/
+      /* Entry found */
+      /*-------------*/
 
       *file_entry = fe_ptr;
       break;
