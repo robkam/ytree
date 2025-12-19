@@ -228,4 +228,4 @@ Authors and contributors are listed in the [AUTHORS.md](https://github.com/robka
 
 # SEE ALSO
 
-**ls**(1), **cp**(1), **mv**(1), **rm**(1)
+**mc**(1), **glob**(7), **regex**(7)

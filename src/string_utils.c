@@ -47,26 +47,60 @@ int BuildFilename( char *in_filename,
 		   char *out_filename
 		 )
 {
-  char *cptr;
-  int  result = 0;
+  const char *s = in_filename;
+  const char *p = pattern;
+  char *d = out_filename;
 
+  while (*p) {
+    if (*p == '*') {
+        char next_char = *(p + 1);
+        if (next_char == '\0') {
+            /* Optimization: pattern ends with *, copy rest of source */
+            strcpy(d, s);
+            return 0;
+        }
 
-  for( ; *pattern; pattern++ )
-  {
-    if( *pattern == '*' )
-    {
-      cptr = in_filename;
-      for( ; (*out_filename = *cptr); out_filename++, cptr++ );
-    }
-    else
-    {
-      *out_filename++ = *pattern;
+        const char *stop;
+        if (next_char == '.') {
+            /* Special Case: Extension. Find LAST dot. */
+            stop = strrchr(s, '.');
+        } else {
+            /* General Case: Find FIRST occurrence of next delimiter */
+            stop = strchr(s, next_char);
+        }
+
+        if (stop) {
+            size_t len = stop - s;
+            strncpy(d, s, len);
+            d += len;
+            s = stop; /* Advance source to the delimiter */
+        } else {
+            /* Delimiter not found in source, consume remainder */
+            strcpy(d, s);
+            d += strlen(s);
+            s += strlen(s);
+        }
+        p++; /* Consume '*' */
+    } else if (*p == '?') {
+        if (*s) {
+            *d++ = *s++;
+        } else {
+            *d++ = '?'; /* Source exhausted, keep literal placeholder? */
+        }
+        p++;
+    } else {
+        /* Literal character */
+        *d++ = *p;
+        /* If source matches the pattern literal, consume source to stay in sync */
+        if (*s == *p) {
+            s++;
+        }
+        p++;
     }
   }
+  *d = '\0';
 
-  *out_filename = '\0';
-
-  return( result );
+  return( 0 );
 }
 
 
