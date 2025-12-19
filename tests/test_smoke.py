@@ -13,10 +13,19 @@ def test_startup_and_quit():
     """
 
     # Path to binary (assuming running from project root)
-    binary_path = "./ytree"
+    # Check new build location first, then legacy location
+    if os.path.exists("build/ytree"):
+        binary_path = "build/ytree"
+    else:
+        binary_path = "./ytree"
 
     if not os.path.exists(binary_path):
         print(f"Error: Binary not found at {binary_path}")
+        # Print cwd contents to help debug CI
+        print(f"Current dir: {os.getcwd()}")
+        print(f"Contents: {os.listdir('.')}")
+        if os.path.exists('build'):
+            print(f"Build dir contents: {os.listdir('build')}")
         sys.exit(1)
 
     # Spawn the process with a specific terminal size to ensure consistent rendering
