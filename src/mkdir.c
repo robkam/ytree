@@ -29,7 +29,10 @@ int MakeDirectory(DirEntry *father_dir_entry)
 
   if( InputString( dir_name, LINES - 2, 20, 0, COLS - 20 - 1, "\r\033" ) == CR )
   {
-    result = MakeDirEntry( father_dir_entry, dir_name );
+    if (MakeDirEntry( father_dir_entry, dir_name ) != NULL)
+    {
+      result = 0;
+    }
   }
 
   move( LINES - 2, 1 ); clrtoeol();
@@ -40,23 +43,30 @@ int MakeDirectory(DirEntry *father_dir_entry)
 
 
 
-int MakeDirEntry(DirEntry *father_dir_entry, char *dir_name )
+DirEntry *MakeDirEntry(DirEntry *father_dir_entry, char *dir_name )
 {
-  DirEntry *den_ptr, *des_ptr;
+  DirEntry *den_ptr = NULL, *des_ptr;
   char buffer[PATH_LENGTH+1];
   struct stat stat_struct;
-  int result = -1;
 
   if( mode != DISK_MODE && mode != USER_MODE )
   {
-    return( result );
+    return( NULL );
+  }
+
+  /* Pre-check: Does a directory with this name (case-insensitive) already exist in the tree? */
+  for (des_ptr = father_dir_entry->sub_tree; des_ptr; des_ptr = des_ptr->next) {
+      if (strcasecmp(des_ptr->name, dir_name) == 0) {
+          /* Found it! Return the existing node */
+          return des_ptr;
+      }
   }
 
   (void) GetPath( father_dir_entry, buffer );
   (void) strcat( buffer, FILE_SEPARATOR_STRING );
   (void) strcat( buffer, dir_name );
 
-  if( ( result = mkdir( buffer, (S_IREAD  |
+  if( mkdir( buffer, (S_IREAD  |
 		                 S_IWRITE |
 		                 S_IEXEC  |
 		                 S_IRGRP  |
@@ -65,20 +75,32 @@ int MakeDirEntry(DirEntry *father_dir_entry, char *dir_name )
 		                 S_IROTH  |
 		                 S_IWOTH  |
 		                 S_IXOTH) & ~user_umask
-    ) ) )
+    ) )
   {
+    /* Modified Logic: Allow existing directories if they are valid. */
+    if (errno == EEXIST) {
+        if (STAT_(buffer, &stat_struct) == 0 && S_ISDIR(stat_struct.st_mode)) {
+            /* It exists and is a directory. Fall through to creation logic. */
+            goto CREATE_NODE;
+        }
+    }
+
     (void) snprintf( message, MESSAGE_LENGTH, "Can't create Directory*\"%s\"*%s",
 		    buffer, strerror(errno)
 		  );
     MESSAGE( message );
+    return NULL;
   }
   else
   {
+CREATE_NODE:
     /* Directory erstellt
      * ==> einklinken im Baum
      */
 
-    if( ( den_ptr = (DirEntry *) malloc( sizeof( DirEntry ) + strlen( dir_name )  ) ) == NULL )
+    /* FIX: Used calloc to ensure all fields (especially tagged_flag) are zeroed */
+    /* FIX: Added +1 to allocation for null terminator */
+    if( ( den_ptr = (DirEntry *) calloc( 1, sizeof( DirEntry ) + strlen( dir_name ) + 1 ) ) == NULL )
     {
       ERROR_MSG( "Malloc Failed*ABORT" );
       exit( 1 );
@@ -160,11 +182,9 @@ int MakeDirEntry(DirEntry *father_dir_entry, char *dir_name )
     }
 
     (void) GetAvailBytes( &statistic.disk_space );
-
-    result = 0;
   }
 
-  return( result );
+  return( den_ptr );
 }
 
 
@@ -177,25 +197,46 @@ int MakePath( DirEntry *tree, char *dir_path, DirEntry **dest_dir_entry )
   char     *token, *old;
   int      n;
   int      result = -1;
+  char     *search_start;
 
   NormPath( dir_path, path );
   *dest_dir_entry = NULL;
 
   n = strlen( tree->name );
-  if( !strcmp(tree->name, FILE_SEPARATOR_STRING) ||
-      ( !strncmp( tree->name, path, n ) &&
-       ( path[n] == FILE_SEPARATOR_CHAR || path[n] == '\0' ) ) )
-  {
+  /*
+   * Check if path matches tree root.
+   * Special handling for root "/" to ensure "path inside tree" logic works correctly.
+   */
+  if (strcmp(tree->name, FILE_SEPARATOR_STRING) == 0) {
+      /* Tree is "/". Path must start with "/". */
+      if (path[0] == FILE_SEPARATOR_CHAR) {
+          de_ptr = tree;
+          /* Tokenize starting from char 1 to skip leading slash */
+          search_start = &path[1];
+          goto SEARCH_TREE;
+      }
+  } else if ( !strncmp( tree->name, path, n ) &&
+       ( path[n] == FILE_SEPARATOR_CHAR || path[n] == '\0' ) ) {
+      /* Normal case: Path starts with tree root prefix */
+      de_ptr = tree;
+      search_start = &path[n];
+      goto SEARCH_TREE;
+  }
+
+  /* Fallback: Destination not in current memory tree */
+  goto CREATE_EXTERNAL;
+
+SEARCH_TREE:
     /* Pfad befindet sich im (Sub)-Tree */
     /*----------------------------------*/
 
-    de_ptr = tree;
-    token = strtok_r( &path[n], FILE_SEPARATOR_STRING, &old );
+    token = strtok_r( search_start, FILE_SEPARATOR_STRING, &old );
     while( token )
     {
       for( sde_ptr = de_ptr->sub_tree; sde_ptr; sde_ptr = sde_ptr->next )
       {
-        if( !strcmp( sde_ptr->name, token ) )
+        /* FIX: Case-insensitive search for existing directories */
+        if( !strcasecmp( sde_ptr->name, token ) )
 	{
 	  /* Subtree gefunden */
 	  /*------------------*/
@@ -208,24 +249,19 @@ int MakePath( DirEntry *tree, char *dir_path, DirEntry **dest_dir_entry )
       {
 	/* Folgeverzeichnis nicht vorhanden */
 	/*----------------------------------*/
-
-#ifdef DEBUG
-  fprintf( stderr, "MakeDirEntry: \"%s\"\n", token );
-#endif /* DEBUG */
-
-	if( MakeDirEntry( de_ptr, token ) )
+    /* MakeDirEntry returns the new node (or existing one), or NULL on error */
+	if( ( de_ptr = MakeDirEntry( de_ptr, token ) ) == NULL )
 	{
 	  return( result );
 	}
-	continue;
       }
       token = strtok_r( NULL, FILE_SEPARATOR_STRING, &old );
     }
     *dest_dir_entry = de_ptr;
     result = 0;
-  }
-  else
-  {
+    return result;
+
+CREATE_EXTERNAL:
     /* Zielverzeichnis ist nicht im Subtree */
     /*--------------------------------------*/
 
@@ -241,11 +277,6 @@ int MakePath( DirEntry *tree, char *dir_path, DirEntry **dest_dir_entry )
       if( cptr[-1] == '.' && (cptr == path+1 || cptr[-2] == FILE_SEPARATOR_CHAR ) ) continue;
 
       *cptr = '\0';
-
-#ifdef DEBUG
-    fprintf( stderr, "MakePath: \"%s\"\n", path );
-#endif /* DEBUG */
-
 
       if( mkdir( path, S_IREAD  |
 		       S_IWRITE |
@@ -267,20 +298,19 @@ int MakePath( DirEntry *tree, char *dir_path, DirEntry **dest_dir_entry )
       *cptr = FILE_SEPARATOR_CHAR;
     }
     result = 0;
-  }
 
   return( result );
 }
 
-int EnsureDirectoryExists(char *dir_path, DirEntry *tree, BOOL *created)
+int EnsureDirectoryExists(char *dir_path, DirEntry *tree, BOOL *created, DirEntry **result_ptr)
 {
   DIR *tmpdir;
   int term;
-  int result = -1;
 
   if (created) *created = FALSE;
+  if (result_ptr) *result_ptr = NULL;
 
-  /* Try to open the directory */
+  /* Check if directory exists on disk */
   if ((tmpdir = opendir(dir_path)) == NULL)
   {
     /* If it doesn't exist, ask the user */
@@ -288,26 +318,8 @@ int EnsureDirectoryExists(char *dir_path, DirEntry *tree, BOOL *created)
     {
       if ((term = InputChoice("Directory does not exist; create (y/N) ? ", "YN\033")) == 'Y')
       {
-        DirEntry *dest_dir_entry;
-        /* User said YES, try to make the path */
-        if (MakePath(tree, dir_path, &dest_dir_entry))
-        {
-          /* MakePath failed */
-          (void) snprintf(message,
-                          MESSAGE_LENGTH,
-                          "Can't create path*\"%s\"*%s",
-                          dir_path,
-                          strerror(errno)
-                          );
-          MESSAGE(message);
-          return -1;
-        }
-        else
-        {
-          /* Created successfully */
-          if (created) *created = TRUE;
-          return 0;
-        }
+         /* Proceed to create */
+         if (created) *created = TRUE;
       }
       else
       {
@@ -323,8 +335,17 @@ int EnsureDirectoryExists(char *dir_path, DirEntry *tree, BOOL *created)
        return -1;
     }
   }
+  else
+  {
+     /* Exists on disk */
+     closedir(tmpdir);
+  }
 
-  /* Directory exists */
-  if (tmpdir) closedir(tmpdir);
-  return 0;
+  /*
+   * Directory exists (or user wants to create it).
+   * Call MakePath to resolve the DirEntry pointer.
+   * MakePath will create the node in memory if it's missing (even if dir exists on disk),
+   * thanks to the update in MakeDirEntry.
+   */
+  return MakePath(tree, dir_path, result_ptr);
 }

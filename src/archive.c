@@ -147,11 +147,6 @@ static int InsertArchiveDirEntry(DirEntry *tree, char *path, struct stat *stat)
   char *p;
   char name[PATH_LENGTH + 1];
 
-
-#ifdef DEBUG
-  fprintf( stderr, "Insert Dir \"%s\"\n", path );
-#endif
-
   if (strlen(path) >= PATH_LENGTH) {
       ERROR_MSG("Archive path too long*skipping directory insert");
       return -1;
@@ -210,9 +205,9 @@ static int InsertArchiveDirEntry(DirEntry *tree, char *path, struct stat *stat)
   }
 
   /*
-   * CRITICAL FIX: Allocate PATH_LENGTH + 1 for the DirEntry name buffer.
+   * FIX: Allocate exact size for name + null terminator.
    */
-  if( ( de_ptr = (DirEntry *) calloc( 1, sizeof( DirEntry ) + PATH_LENGTH + 1 ) ) == NULL )
+  if( ( de_ptr = (DirEntry *) calloc( 1, sizeof( DirEntry ) + strlen(name) + 1 ) ) == NULL )
   {
     ERROR_MSG( "Malloc failed*ABORT" );
     exit( 1 );
@@ -220,10 +215,6 @@ static int InsertArchiveDirEntry(DirEntry *tree, char *path, struct stat *stat)
 
   (void) strcpy( de_ptr->name, name );
   (void) memcpy( (char *) &de_ptr->stat_struct, (char *) stat, sizeof( struct stat ) );
-
-#ifdef DEBUG
-  fprintf( stderr, "new dir: \"%s\"\n", name );
-#endif
 
   /* Directory einklinken (Link Directory into Tree) */
   /*-------------------------------------------------*/
@@ -314,7 +305,8 @@ int InsertArchiveFileEntry(DirEntry *tree, char *path, struct stat *stat)
   else
     n = 0;
 
-  if( ( fe_ptr = (FileEntry *) calloc( 1, sizeof( FileEntry ) + PATH_LENGTH + n + 1 ) ) == NULL )
+  /* FIX: Allocate exact size for name + null + link data */
+  if( ( fe_ptr = (FileEntry *) calloc( 1, sizeof( FileEntry ) + strlen(file) + 1 + n + 1 ) ) == NULL )
   {
     ERROR_MSG( "Malloc failed" );
     return -1;

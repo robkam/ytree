@@ -100,7 +100,12 @@ int CopyFile(Statistic *statistic_ptr,
 
   {
       BOOL created = FALSE;
-      if (EnsureDirectoryExists(to_path, statistic_ptr->tree, &created) == -1) {
+      /*
+       * Pass &dest_dir_entry to EnsureDirectoryExists.
+       * This ensures that if the directory is created OR just found,
+       * we get the valid pointer back to update the in-memory tree.
+       */
+      if (EnsureDirectoryExists(to_path, statistic_ptr->tree, &created, &dest_dir_entry) == -1) {
           return result;
       }
       if (created) refresh_dirwindow = TRUE;
@@ -108,10 +113,6 @@ int CopyFile(Statistic *statistic_ptr,
 
   (void) strcat( to_path, to_file );
 
-
-#ifdef DEBUG
-  fprintf( stderr, "Copy: \"%s\" --> \"%s\"\n", from_path, to_path );
-#endif /* DEBUG */
 
   if( !strcmp( to_path, from_path ) )
   {
@@ -192,19 +193,15 @@ int CopyFile(Statistic *statistic_ptr,
 
       file_size = stat_struct.st_size;
 
+      /* Update Total Stats */
       dest_dir_entry->total_bytes += file_size;
       dest_dir_entry->total_files++;
       statistic_ptr->disk_total_bytes += file_size;
       statistic_ptr->disk_total_files++;
-      dest_dir_entry->matching_bytes += file_size;
-      dest_dir_entry->matching_files++;
-      statistic_ptr->disk_matching_bytes += file_size;
-      statistic_ptr->disk_matching_files++;
 
-      /* File eintragen */
-      /*----------------*/
-
-      if( ( fen_ptr = (FileEntry *) malloc( sizeof( FileEntry ) + strlen( to_file ) ) ) == NULL )
+      /* Create File Entry manually */
+      /* FIX: Added +1 to allocation for null terminator */
+      if( ( fen_ptr = (FileEntry *) malloc( sizeof( FileEntry ) + strlen( to_file ) + 1 ) ) == NULL )
       {
         ERROR_MSG( "Malloc Failed*ABORT" );
         exit( 1 );
@@ -220,24 +217,31 @@ int CopyFile(Statistic *statistic_ptr,
       fen_ptr->dir_entry   = dest_dir_entry;
       fen_ptr->tagged      = FALSE;
       fen_ptr->matching    = Match( fen_ptr );
+
+      /* Update Matching Stats */
+      if (fen_ptr->matching) {
+          dest_dir_entry->matching_bytes += file_size;
+          dest_dir_entry->matching_files++;
+          statistic_ptr->disk_matching_bytes += file_size;
+          statistic_ptr->disk_matching_files++;
+      }
+
+      /* Link into list (Head) */
       fen_ptr->next        = dest_dir_entry->file;
       fen_ptr->prev        = NULL;
       if( dest_dir_entry->file ) dest_dir_entry->file->prev = fen_ptr;
       dest_dir_entry->file = fen_ptr;
+
+      /* Force refresh if we modified the tree structure or contents */
+      refresh_dirwindow = TRUE;
     }
     else if (mode != DISK_MODE && mode != USER_MODE)
     {
-        /*
-         * A file was copied from an archive to the filesystem. The in-memory
-         * cache of the filesystem (`disk_statistic`) is now stale.
-         * To ensure the new file is visible on the next login, we must
-         * invalidate this cache, forcing a rescan.
-         */
+        /* Archive mode handling remains unchanged */
         if (disk_statistic.tree != NULL) {
             DeleteTree(disk_statistic.tree);
             disk_statistic.tree = NULL;
             disk_statistic.login_path[0] = '\0';
-            /* Reset associated stats to prevent reuse of stale counts */
             disk_statistic.disk_total_directories = 0;
             disk_statistic.disk_total_files = 0;
             disk_statistic.disk_total_bytes = 0;
@@ -322,10 +326,6 @@ static int Copy(char *to_path, char *from_path)
   {
     return( CopyArchiveFile( to_path, from_path ) );
   }
-
-#ifdef DEBUG
-  fprintf( stderr, "Copy: \"%s\" --> \"%s\"\n", from_path, to_path );
-#endif /* DEBUG */
 
   if( !strcmp( to_path, from_path ) )
   {

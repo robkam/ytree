@@ -172,8 +172,9 @@ int ReadTree(DirEntry *dir_entry, char *path, int depth)
       /* Directory-Entry */
       /*-----------------*/
 
+      /* FIX: Added +1 to allocation for null terminator */
       if( ( den_ptr = (DirEntry *)
-		       calloc( 1, sizeof( DirEntry ) + strlen( dirent->d_name ) )
+		       calloc( 1, sizeof( DirEntry ) + strlen( dirent->d_name ) + 1 )
    	   ) == NULL )
       {
         ERROR_MSG( "Malloc Failed*ABORT" );
@@ -257,9 +258,10 @@ int ReadTree(DirEntry *dir_entry, char *path, int depth)
 	}
 	link_path[n] = '\0';
 
+    /* FIX: Added +1 to allocation for name's null terminator (n already includes it for link) */
         if( ( fen_ptr = (FileEntry *)
 		        calloc( 1, sizeof( FileEntry ) +
-			strlen( dirent->d_name )    +
+			strlen( dirent->d_name ) + 1 +
 			n + 1 )
 	    ) == NULL )
         {
@@ -273,8 +275,9 @@ int ReadTree(DirEntry *dir_entry, char *path, int depth)
       }
       else
       {
+        /* FIX: Added +1 to allocation for null terminator */
         if( ( fen_ptr = (FileEntry *)
-		        calloc( 1, sizeof( FileEntry ) + strlen( dirent->d_name ) )
+		        calloc( 1, sizeof( FileEntry ) + strlen( dirent->d_name ) + 1 )
 	    ) == NULL )
         {
           ERROR_MSG( "Malloc Failed*ABORT" );

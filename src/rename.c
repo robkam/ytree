@@ -94,8 +94,9 @@ int RenameDirectory(DirEntry *de_ptr, char *new_name)
       exit( 1 );
     }
 
+    /* FIX: Added +1 to allocation for null terminator */
     if( ( den_ptr = (DirEntry *) malloc( sizeof( DirEntry ) +
-					 strlen( new_name )
+					 strlen( new_name ) + 1
 				       ) ) == NULL )
     {
       ERROR_MSG( "Malloc Failed*ABORT" );
@@ -218,7 +219,8 @@ int RenameFile(FileEntry *fe_ptr, char *new_name, FileEntry **new_fe_ptr )
     }
 
 
-    if( ( fen_ptr = (FileEntry *) malloc( sizeof( FileEntry ) + strlen( new_name )  ) ) == NULL )
+    /* FIX: Added +1 to allocation for null terminator */
+    if( ( fen_ptr = (FileEntry *) malloc( sizeof( FileEntry ) + strlen( new_name ) + 1 ) ) == NULL )
     {
       ERROR_MSG( "Malloc Failed*ABORT" );
       exit( 1 );
