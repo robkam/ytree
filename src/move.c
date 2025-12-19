@@ -58,15 +58,13 @@ int MoveFile(FileEntry *fe_ptr,
   }
 
   /* Ensure the destination directory exists */
-  /* Modified to use CurrentVolume->vol_stats.tree as per instruction */
-  if (EnsureDirectoryExists(to_path, CurrentVolume->vol_stats.tree, &refresh_dirwindow) == -1) {
-      return -1;
-  }
-
-  /* Fix for Segfault: If dest_dir_entry is NULL (e.g. creating new dir),
-   * try to resolve it now that it exists so we can link the file correctly. */
-  if (dest_dir_entry == NULL) {
-      MakePath(CurrentVolume->vol_stats.tree, to_path, &dest_dir_entry);
+  {
+      BOOL created = FALSE;
+      /* FIX: Pass &dest_dir_entry to update the pointer */
+      if (EnsureDirectoryExists(to_path, CurrentVolume->vol_stats.tree, &created, &dest_dir_entry) == -1) {
+          return -1;
+      }
+      if (created) refresh_dirwindow = TRUE;
   }
 
   (void) strcat( to_path, to_file );
@@ -173,20 +171,16 @@ int MoveFile(FileEntry *fe_ptr,
 
       file_size = stat_struct.st_size;
 
+      /* Update Total Stats */
       dest_dir_entry->total_bytes += file_size;
       dest_dir_entry->total_files++;
       statistic.disk_total_bytes += file_size;
       statistic.disk_total_files++;
-      dest_dir_entry->matching_bytes += file_size;
-      dest_dir_entry->matching_files++;
-      statistic.disk_matching_bytes += file_size;
-      statistic.disk_matching_files++;
 
-      /* File eintragen */
-      /*----------------*/
-
+      /* Create File Entry manually */
+      /* FIX: Added +1 to allocation for null terminator */
       if( ( fen_ptr = (FileEntry *) malloc( sizeof( FileEntry ) +
-					    strlen( to_file )
+					    strlen( to_file ) + 1
 					  ) ) == NULL )
       {
         ERROR_MSG( "Malloc Failed*ABORT" );
@@ -203,16 +197,33 @@ int MoveFile(FileEntry *fe_ptr,
       fen_ptr->dir_entry   = dest_dir_entry;
       fen_ptr->tagged      = FALSE;
       fen_ptr->matching    = Match( fen_ptr );
+
+      /* Update Matching Stats */
+      if (fen_ptr->matching) {
+          dest_dir_entry->matching_bytes += file_size;
+          dest_dir_entry->matching_files++;
+          statistic.disk_matching_bytes += file_size;
+          statistic.disk_matching_files++;
+      }
+
+      /* Link into list (Head) */
       fen_ptr->next        = dest_dir_entry->file;
       fen_ptr->prev        = NULL;
       if( dest_dir_entry->file ) dest_dir_entry->file->prev = fen_ptr;
       dest_dir_entry->file = fen_ptr;
       *new_fe_ptr          = fen_ptr;
+
+      /* Force refresh if we modified the tree structure or contents */
+      refresh_dirwindow = TRUE;
     }
 
     (void) GetAvailBytes( &statistic.disk_space );
 
     result = 0;
+  }
+
+  if (refresh_dirwindow) {
+      RefreshDirWindow();
   }
 
 FNC_XIT:
