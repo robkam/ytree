@@ -17,8 +17,8 @@ int GetDirEntry(DirEntry *tree,
 	       )
 {
   char dest_path[PATH_LENGTH+1];
-  char current_path[PATH_LENGTH+1];
-  char help_path[PATH_LENGTH+1];
+  char resolved_path[PATH_LENGTH+1];
+  char current_path_str[PATH_LENGTH+1];
   char *token, *old;
   DirEntry *de_ptr, *sde_ptr;
   int n;
@@ -26,73 +26,60 @@ int GetDirEntry(DirEntry *tree,
   *dir_entry = NULL;
   *to_path   = '\0';
 
-   strcpy(to_path, dir_path);
-  if( getcwd( current_path, sizeof( current_path ) - 2 ) == NULL )
-  {
-    (void) snprintf( message, MESSAGE_LENGTH, "getcwd failed*%s", strerror(errno) );
-    ERROR_MSG( message );
-    return( -1 );
-  }
-
-  if( *dir_path != FILE_SEPARATOR_CHAR )
-  {
-    if( chdir( GetPath( current_dir_entry, help_path ) ) )
-    {
-      ERROR_MSG( "Chdir Failed" );
-      return( -1 );
-    }
-  }
-
-  if( chdir( dir_path ) )
-  {
-#ifdef DEBUG
-    (void) snprintf( message, MESSAGE_LENGTH, "Invalid Path!*\"%s\"", dir_path );
-    MESSAGE( message );
-#endif
-    return( -3 );
-  }
-
-  if( *dir_path != FILE_SEPARATOR_CHAR ) {
-    if (getcwd( dest_path, sizeof( dest_path ) - 2 ) == NULL) {
-        (void) snprintf( message, MESSAGE_LENGTH, "getcwd failed*%s", strerror(errno) );
-        ERROR_MSG( message );
-        /* Attempt recovery */
-        if (chdir( current_path ) != 0) {
-             ERROR_MSG("Fatal: Could not restore original directory!");
-             exit(1);
-        }
-        return( -1 );
-    }
-    (void) strcpy( to_path, dest_path );
+  /* Construct destination path based on input */
+  if (*dir_path == FILE_SEPARATOR_CHAR) {
+      /* Absolute path */
+      strncpy(dest_path, dir_path, PATH_LENGTH);
   } else {
-    strcpy(dest_path, dir_path);
+      /* Relative path: combine current directory + input */
+      GetPath(current_dir_entry, current_path_str);
+      snprintf(dest_path, sizeof(dest_path), "%s%c%s", current_path_str, FILE_SEPARATOR_CHAR, dir_path);
+  }
+  dest_path[PATH_LENGTH] = '\0';
+
+  /* Resolve to absolute path using realpath */
+  if (realpath(dest_path, resolved_path) == NULL) {
+      /* Resolution failed */
+      if (errno == ENOENT) {
+          /* Path does not exist - this is valid for creating new directories.
+           * We return -3 to indicate "not found in tree, but path syntax is valid"
+           * and copy the intended absolute path to to_path. */
+
+           /* Fallback normalization for non-existent paths to handle .. and . */
+           /* Since realpath failed, we can't trust it. We rely on the constructed dest_path. */
+           /* For robustness, we might want a manual normalization here, but for creation,
+              using the constructed path is usually sufficient if it's new. */
+           strcpy(to_path, dest_path);
+           return -3;
+      } else {
+          /* Other error (permission, etc.) */
+          (void) snprintf(message, MESSAGE_LENGTH, "Path resolution failed*\"%s\"*%s", dest_path, strerror(errno));
+          ERROR_MSG(message);
+          return -1;
+      }
   }
 
+  /* Success: Path exists on disk */
+  strcpy(to_path, resolved_path);
 
-  if( chdir( current_path ) )
-  {
-    ERROR_MSG( "Chdir failed; Can't resume" );
-    return( -1 );
-  }
-
+  /* Now try to find this path in the in-memory tree */
   n = strlen( tree->name );
   if( !strcmp(tree->name, FILE_SEPARATOR_STRING) ||
-      (!strncmp( tree->name, dest_path, n )     &&
-        ( dest_path[n] == FILE_SEPARATOR_CHAR || dest_path[n] == '\0' ) ) )
+      (!strncmp( tree->name, resolved_path, n )     &&
+        ( resolved_path[n] == FILE_SEPARATOR_CHAR || resolved_path[n] == '\0' ) ) )
   {
-    /* Pfad befindet sich im (Sub)-Tree */
-    /*----------------------------------*/
+    /* Path starts with the tree root, so it might be in the tree */
 
     de_ptr = tree;
-    token = strtok_r( &dest_path[n], FILE_SEPARATOR_STRING, &old );
+    token = strtok_r( &resolved_path[n], FILE_SEPARATOR_STRING, &old );
     while( token )
     {
       for( sde_ptr = de_ptr->sub_tree; sde_ptr; sde_ptr = sde_ptr->next )
       {
         if( !strcmp( sde_ptr->name, token ) )
 	{
-	  /* Subtree gefunden */
-	  /*------------------*/
+	  /* Subtree found */
+	  /*--------------*/
 
 	  de_ptr = sde_ptr;
 	  break;
@@ -100,10 +87,8 @@ int GetDirEntry(DirEntry *tree,
       }
       if( sde_ptr == NULL )
       {
-#ifdef DEBUG
-	(void) snprintf( message, MESSAGE_LENGTH, "Can't find directory; token=%s", token );
-	ERROR_MSG( message );
-#endif
+	/* Subdirectory not found in memory tree */
+	/* This implies the directory exists on disk (realpath succeeded) but not in memory. */
 	return( -3 );
       }
       token = strtok_r( NULL, FILE_SEPARATOR_STRING, &old );

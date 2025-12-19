@@ -1,7 +1,7 @@
 /***************************************************************************
  *
  * filewin.c
- * Funktionen zur Handhabung des FILE-WINDOWS
+ * Functions for handling the file window
  *
  ***************************************************************************/
 
@@ -235,9 +235,8 @@ static void ReadFileList(BOOL tagged_only, DirEntry *dir_entry)
     {
       /* Ensure hidden dot files are skipped unless option is disabled.
          This applies to both FS mode and Archive mode. */
-      if (hide_dot_files && fe_ptr->name[0] == '.') {
+      if (hide_dot_files && fe_ptr->name[0] == '.')
           continue;
-      }
 
       /* Bounds check */
       if (file_count >= file_entry_list_capacity) {
@@ -1222,6 +1221,8 @@ int HandleFileWindow(DirEntry *dir_entry)
   BOOL need_dsp_help;
   BOOL maybe_change_x_step;
   char new_name[PATH_LENGTH+1];
+  char expanded_new_name[PATH_LENGTH+1]; /* Added for rename expansion */
+  char expanded_to_file[PATH_LENGTH+1];  /* Added for copy/move expansion */
   char new_login_path[PATH_LENGTH + 1];
   int  dir_window_width, dir_window_height;
   int  get_dir_ret;
@@ -1848,7 +1849,10 @@ int HandleFileWindow(DirEntry *dir_entry)
                   }
               }
 
-              CopyFile( &statistic, fe_ptr, TRUE, to_file, dest_dir_entry, to_path, path_copy );
+              /* EXPAND WILDCARDS FOR SINGLE FILE COPY */
+              BuildFilename(fe_ptr->name, to_file, expanded_to_file);
+
+              CopyFile( &statistic, fe_ptr, TRUE, expanded_to_file, dest_dir_entry, to_path, path_copy );
 
               /* Force a full refresh of the file window state after copy attempt */
               DisplayAvailBytes();
@@ -1967,9 +1971,12 @@ int HandleFileWindow(DirEntry *dir_entry)
                           if (EnsureDirectoryExists(abs_check_path, statistic.tree, &created, &dest_dir_entry) == -1) break;
                       }
 
+                      /* EXPAND WILDCARDS FOR SINGLE FILE MOVE */
+                      BuildFilename(fe_ptr->name, to_file, expanded_to_file);
+
 		      if( !MoveFile( fe_ptr,
 				     TRUE,
-				     to_file,
+				     expanded_to_file,
 				     dest_dir_entry,
 				     to_path,
 				     &new_fe_ptr
@@ -2167,7 +2174,10 @@ int HandleFileWindow(DirEntry *dir_entry)
 
 		      if( !GetRenameParameter( fe_ptr->name, new_name ) )
 		      {
-			if( !RenameFile( fe_ptr, new_name, &new_fe_ptr ) )
+            /* EXPAND WILDCARDS FOR SINGLE FILE RENAME */
+            BuildFilename(fe_ptr->name, new_name, expanded_new_name);
+
+			if( !RenameFile( fe_ptr, expanded_new_name, &new_fe_ptr ) )
 		        {
 			  /* Rename OK */
 			  /*-----------*/

@@ -1,7 +1,7 @@
 /***************************************************************************
  *
  * ytree.h
- * Header-Datei fuer YTREE
+ * Header file for Ytree
  *
  *******************************************************************/
 
@@ -795,6 +795,7 @@ extern int GetFileTypeColor(FileEntry *fe_ptr);
 extern int CopyFile(Statistic *statistic_ptr, FileEntry *fe_ptr, unsigned char confirm, char *to_file, DirEntry *dest_dir_entry, char *to_dir_path, BOOL path_copy);
 extern int CopyTaggedFiles(FileEntry *fe_ptr, WalkingPackage *walking_package);
 extern int GetCopyParameter(char *from_file, BOOL path_copy, char *to_file, char *to_dir);
+extern int CopyFileContent(char *to_path, char *from_path); /* Added */
 
 /* delete.c */
 extern int DeleteFile(FileEntry *fe_ptr);
@@ -921,7 +922,7 @@ extern int SelectLoadedVolume(void);
 extern int CycleLoadedVolume(int direction); /* Added for volume cycling */
 
 /* mkdir.c */
-extern DirEntry *MakeDirEntry( DirEntry *father_dir_entry, char *dir_name );
+extern int MakeDirEntry( DirEntry *father_dir_entry, char *dir_name );
 extern int MakeDirectory(DirEntry *father_dir_entry);
 extern int MakePath( DirEntry *tree, char *dir_path, DirEntry **dest_dir_entry );
 extern int EnsureDirectoryExists(char *dir_path, DirEntry *tree, BOOL *created, DirEntry **result_ptr); /* Updated prototype */

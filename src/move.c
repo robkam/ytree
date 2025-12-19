@@ -1,7 +1,7 @@
 /***************************************************************************
  *
  * move.c
- * Beschreibung : Bewegen von Dateien
+ * Move files
  *
  ***************************************************************************/
 
@@ -261,8 +261,12 @@ int GetMoveParameter(char *from_file, char *to_file, char *to_dir)
   MvAddStr( LINES - 2, 1, "AS:   " );
   if( InputString( to_file, LINES - 2, 7, 0, COLS - 7, "\r\033" ) == CR ) {
     MvAddStr( LINES - 1, 1, "TO:   " );
-    if( InputString( to_dir, LINES - 1, 7, 0, COLS - 7, "\r\033" ) == CR )
-    return( 0 );
+    if( InputString( to_dir, LINES - 1, 7, 0, COLS - 7, "\r\033" ) == CR ) {
+        if (to_dir[0] == '\0') {
+            strcpy(to_dir, ".");
+        }
+        return( 0 );
+    }
   }
   ClearHelp();
   return( -1 );
@@ -280,32 +284,37 @@ static int Move(char *to_path, char *from_path)
     return( -1 );
   }
 
-  if( link( from_path, to_path ) )
+  /* Try atomic rename first */
+  if( rename( from_path, to_path ) == 0 )
   {
-    (void) snprintf( message,
-                     MESSAGE_LENGTH,
-		    "Can't link \"%s\"*to \"%s\"*%s",
-		    from_path,
-		    to_path,
-		    strerror(errno)
-		  );
-    MESSAGE( message );
-    return( -1 );
+      return 0;
   }
 
-  if( unlink( from_path ) )
-  {
-    (void) snprintf( message,
-                     MESSAGE_LENGTH,
-		    "Can't unlink*\"%s\"*%s",
-		    from_path,
-		    strerror(errno)
-		  );
-    MESSAGE( message );
-    return( -1 );
+  /* Handle Cross-Device link error by copying and deleting */
+  if (errno == EXDEV) {
+      if (CopyFileContent(to_path, from_path) == 0) {
+          if (unlink(from_path) == 0) {
+              return 0;
+          } else {
+              (void) snprintf( message, MESSAGE_LENGTH, "Move failed during unlink*\"%s\"*%s", from_path, strerror(errno) );
+              MESSAGE( message );
+              return -1;
+          }
+      } else {
+          /* Copy failed, error message already shown by CopyFileContent */
+          return -1;
+      }
   }
 
-  return( 0 );
+  /* Fallback for other errors (e.g. permission denied) */
+  (void) snprintf( message, MESSAGE_LENGTH,
+          "Can't move (rename) \"%s\"*to \"%s\"*%s",
+          from_path,
+          to_path,
+          strerror(errno)
+        );
+  MESSAGE( message );
+  return( -1 );
 }
 
 
