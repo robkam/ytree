@@ -43,9 +43,9 @@ READLINE    = -DREADLINE_SUPPORT
 
 # Compiler Warnings (Scrupulous Mode)
 # -Wall -Wextra: Enable most warnings
-# -Werror=conflicting-types: Fail immediately if header/source prototypes mismatch
 # -Wno-unused-parameter: Reduce noise from legacy callback signatures
-WARNINGS    = -Wall -Wextra -Werror=conflicting-types -Wno-unused-parameter
+# Note: -Werror=conflicting-types removed for compatibility with older compilers
+WARNINGS    = -Wall -Wextra -Wno-unused-parameter
 
 # Standard Flags
 # -I$(INC_DIR): Look for headers in the include/ directory
