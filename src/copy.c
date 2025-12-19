@@ -1,7 +1,7 @@
 /***************************************************************************
  *
  * copy.c
- * Copy files / directories
+ * Copy files and directories
  *
  ***************************************************************************/
 
@@ -19,7 +19,7 @@ int CopyFile(Statistic *statistic_ptr,
              unsigned char confirm,
              char *to_file,
              DirEntry *dest_dir_entry,
-             char *to_dir_path,       /* absoluter Pfad */
+             char *to_dir_path,       /* absolute path */
              BOOL path_copy
 	    )
 {
@@ -35,6 +35,11 @@ int CopyFile(Statistic *statistic_ptr,
   int         term;
   int         result;
   int	      refresh_dirwindow = FALSE;
+
+  /* Context-Aware Variables */
+  struct Volume *target_vol = NULL;
+  DirEntry *target_tree = NULL;
+  Statistic *target_stats = NULL;
 
 
   result = -1;
@@ -58,6 +63,27 @@ int CopyFile(Statistic *statistic_ptr,
       }
   }
 
+  /* Identify Target Volume for Context-Aware Operations */
+  /* If path_copy is on, the final path is appended, so check to_dir_path base. */
+  /* Actually, to_path currently holds the base destination. */
+  target_vol = Volume_GetByPath(to_path);
+  if (target_vol) {
+      target_tree = target_vol->vol_stats.tree;
+      target_stats = &target_vol->vol_stats;
+  } else {
+      /* Fallback to current if not found in list (e.g. single volume mode or external path) */
+      /* BUT: if it's an external path (not in any volume), target_tree should be NULL to avoid */
+      /* MakePath scanning the wrong tree. */
+      /* MakePath uses tree->name prefix check. If statistic_ptr->tree matches, use it. */
+      if (strncmp(statistic_ptr->tree->name, to_path, strlen(statistic_ptr->tree->name)) == 0) {
+          target_tree = statistic_ptr->tree;
+          target_stats = statistic_ptr;
+      } else {
+          target_tree = NULL; /* External path */
+          target_stats = NULL;
+      }
+  }
+
 
   if( path_copy )
   {
@@ -74,7 +100,13 @@ int CopyFile(Statistic *statistic_ptr,
 	 strcpy(to_path, abs_path);
     }
 
-    if( MakePath( statistic_ptr->tree, to_path, &dest_dir_entry ) )
+    /* Re-evaluate target volume with full path if path_copy changed it? */
+    /* Usually base is enough, but to be safe: */
+    target_vol = Volume_GetByPath(to_path);
+    if (target_vol) target_tree = target_vol->vol_stats.tree;
+
+    /* Use target_tree instead of statistic_ptr->tree */
+    if( MakePath( target_tree ? target_tree : statistic_ptr->tree, to_path, &dest_dir_entry ) )
     {
      	 (void) snprintf( message,
                          MESSAGE_LENGTH,
@@ -101,10 +133,10 @@ int CopyFile(Statistic *statistic_ptr,
       BOOL created = FALSE;
       /*
        * Pass &dest_dir_entry to EnsureDirectoryExists.
-       * This ensures that if the directory is created OR just found,
-       * we get the valid pointer back to update the in-memory tree.
+       * Use target_tree to find the node in the correct volume.
+       * If target_tree is NULL (external path), dest_dir_entry will remain NULL (correct).
        */
-      if (EnsureDirectoryExists(to_path, statistic_ptr->tree, &created, &dest_dir_entry) == -1) {
+      if (EnsureDirectoryExists(to_path, target_tree, &created, &dest_dir_entry) == -1) {
           return result;
       }
       if (created) refresh_dirwindow = TRUE;
@@ -122,15 +154,15 @@ int CopyFile(Statistic *statistic_ptr,
 
   if( dest_dir_entry )
   {
-    /* Ziel befindet sich im Sub-Tree */
-    /*--------------------------------*/
+    /* destination is in sub-tree */
+    /*----------------------------*/
 
     (void) GetFileEntry( dest_dir_entry, to_file, &dest_file_entry );
 
     if( dest_file_entry )
     {
-      /* Datei existiert */
-      /*-----------------*/
+      /* file exists */
+      /*-------------*/
 
       if( confirm )
       {
@@ -148,13 +180,13 @@ int CopyFile(Statistic *statistic_ptr,
   }
   else
   {
-    /* access benutzen */
-    /*-----------------*/
+    /* use access */
+    /*------------*/
 
     if( !access( to_path, F_OK ) )
     {
-      /* Datei existiert */
-      /*-----------------*/
+      /* file exists */
+      /*-------------*/
 
       if( confirm )
       {
@@ -172,8 +204,8 @@ int CopyFile(Statistic *statistic_ptr,
 
   if( !CopyFileContent( to_path, from_path ) )
   {
-    /* File wurde kopiert */
-    /*--------------------*/
+    /* File copied */
+    /*-------------*/
 
     if( chmod( to_path, fe_ptr->stat_struct.st_mode ) == -1 )
     {
@@ -192,11 +224,17 @@ int CopyFile(Statistic *statistic_ptr,
 
       file_size = stat_struct.st_size;
 
-      /* Update Total Stats */
+      /* Update Total Stats using target_stats if available */
       dest_dir_entry->total_bytes += file_size;
       dest_dir_entry->total_files++;
-      statistic_ptr->disk_total_bytes += file_size;
-      statistic_ptr->disk_total_files++;
+
+      if (target_stats) {
+          target_stats->disk_total_bytes += file_size;
+          target_stats->disk_total_files++;
+      } else {
+          statistic_ptr->disk_total_bytes += file_size;
+          statistic_ptr->disk_total_files++;
+      }
 
       /* Create File Entry manually */
       /* FIX: Added +1 to allocation for null terminator */
@@ -221,8 +259,13 @@ int CopyFile(Statistic *statistic_ptr,
       if (fen_ptr->matching) {
           dest_dir_entry->matching_bytes += file_size;
           dest_dir_entry->matching_files++;
-          statistic_ptr->disk_matching_bytes += file_size;
-          statistic_ptr->disk_matching_files++;
+          if (target_stats) {
+              target_stats->disk_matching_bytes += file_size;
+              target_stats->disk_matching_files++;
+          } else {
+              statistic_ptr->disk_matching_bytes += file_size;
+              statistic_ptr->disk_matching_files++;
+          }
       }
 
       /* Link into list (Head) */
@@ -258,7 +301,10 @@ int CopyFile(Statistic *statistic_ptr,
 
   if( refresh_dirwindow)
   {
-  	RefreshDirWindow();
+      /* Only refresh if we modified the CURRENT volume */
+      if (target_tree == statistic_ptr->tree) {
+  	      RefreshDirWindow();
+      }
   }
 
 FNC_XIT:

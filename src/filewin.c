@@ -2014,7 +2014,7 @@ int HandleFileWindow(DirEntry *dir_entry)
 				      start_x
 			            );
 			maybe_change_x_step = TRUE;
-            RefreshDirWindow();
+            /* REMOVED: RefreshDirWindow(); Fixed UI Glitch */
 		      }
 		      break;
 
@@ -2086,7 +2086,7 @@ int HandleFileWindow(DirEntry *dir_entry)
 				      start_x
 			            );
 			maybe_change_x_step = TRUE;
-            RefreshDirWindow();
+            /* REMOVED: RefreshDirWindow(); Fixed UI Glitch */
 		      }
 		      break;
 
@@ -2676,7 +2676,14 @@ static void WalkTaggedFiles(int start_file,
       RefreshWindow( file_window );
       doupdate();
       result = fkt( fe_ptr, walking_package );
-      if( walking_package->new_fe_ptr != fe_ptr )
+
+      /* Handle case where file was removed/moved away */
+      if( walking_package->new_fe_ptr == NULL ) {
+          RemoveFileEntry(i);
+          i--; /* Adjust index since we removed current element */
+          maybe_change_x = TRUE;
+      }
+      else if( walking_package->new_fe_ptr != fe_ptr )
       {
         file_entry_list[i].file = walking_package->new_fe_ptr;
 	ChangeFileEntry();

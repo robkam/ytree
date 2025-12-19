@@ -88,3 +88,41 @@ void Volume_FreeAll(void) {
     CurrentVolume = NULL;
     VolumeList = NULL;
 }
+
+/*
+ * Volume_GetByPath
+ *
+ * Finds the volume that contains the given path.
+ * Returns the volume with the longest matching login_path prefix.
+ * This handles cases where volumes are nested or distinct.
+ */
+struct Volume *Volume_GetByPath(const char *path) {
+    struct Volume *s, *tmp;
+    struct Volume *best_match = NULL;
+    size_t best_len = 0;
+    size_t len;
+
+    if (!path) return NULL;
+
+    HASH_ITER(hh, VolumeList, s, tmp) {
+        /* Check if this volume is valid (has a path) */
+        if (s->vol_stats.login_path[0] == '\0') continue;
+
+        /* Check if 'path' starts with this volume's login path */
+        if (strncmp(path, s->vol_stats.login_path, strlen(s->vol_stats.login_path)) == 0) {
+            len = strlen(s->vol_stats.login_path);
+
+            /* Ensure it's a true path prefix match (e.g. "/usr" matches "/usr/bin" but not "/usrlocal") */
+            /* Logic: prefix must be full path (equal) OR followed by separator in 'path' */
+            /* Exception: Root "/" matches everything */
+
+            if (path[len] == '\0' || path[len] == FILE_SEPARATOR_CHAR || len == 1) { /* len=1 handles root "/" case */
+                if (len > best_len) {
+                    best_len = len;
+                    best_match = s;
+                }
+            }
+        }
+    }
+    return best_match;
+}
