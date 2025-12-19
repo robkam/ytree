@@ -235,8 +235,9 @@ static void ReadFileList(BOOL tagged_only, DirEntry *dir_entry)
     {
       /* Ensure hidden dot files are skipped unless option is disabled.
          This applies to both FS mode and Archive mode. */
-      if (hide_dot_files && fe_ptr->name[0] == '.')
+      if (hide_dot_files && fe_ptr->name[0] == '.') {
           continue;
+      }
 
       /* Bounds check */
       if (file_count >= file_entry_list_capacity) {
@@ -1962,7 +1963,8 @@ int HandleFileWindow(DirEntry *dir_entry)
                               GetPath(de_ptr, current_dir);
                               snprintf(abs_check_path, sizeof(abs_check_path), "%s%c%s", current_dir, FILE_SEPARATOR_CHAR, to_dir);
                           }
-                          if (EnsureDirectoryExists(abs_check_path, statistic.tree, &created) == -1) break;
+                          /* FIX: Pass &dest_dir_entry */
+                          if (EnsureDirectoryExists(abs_check_path, statistic.tree, &created, &dest_dir_entry) == -1) break;
                       }
 
 		      if( !MoveFile( fe_ptr,
@@ -2043,7 +2045,8 @@ int HandleFileWindow(DirEntry *dir_entry)
                                 GetPath(dir_entry, current_dir);
                                 snprintf(abs_check_path, sizeof(abs_check_path), "%s%c%s", current_dir, FILE_SEPARATOR_CHAR, to_dir);
                             }
-                            if (EnsureDirectoryExists(abs_check_path, statistic.tree, &created) == -1) break;
+                            /* FIX: Pass &dest_dir_entry */
+                            if (EnsureDirectoryExists(abs_check_path, statistic.tree, &created, &dest_dir_entry) == -1) break;
                         }
 
 			term = InputChoice( "Confirm overwrite existing files (Y/N) ? ", "YN\033" );
@@ -2191,7 +2194,7 @@ int HandleFileWindow(DirEntry *dir_entry)
 		      }
 		      else
 		      {
-		        need_dsp_help = TRUE;
+			need_dsp_help = TRUE;
 
 			if( GetRenameParameter( NULL, new_name ) )
                         {
@@ -2507,8 +2510,7 @@ int HandleFileWindow(DirEntry *dir_entry)
                          clearok(stdscr, TRUE);
                          refresh();
                     } else {
-                         /* Use configured TREEDEPTH instead of 0 to avoid collapsing the tree */
-                         RescanDir(dir_entry, strtol(TREEDEPTH, NULL, 0));
+                         RescanDir(dir_entry, 0);
                          BuildFileEntryList(dir_entry);
 
                          /* 3. Restore Cursor Position */
