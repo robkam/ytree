@@ -265,4 +265,4 @@ file in the source distribution.
 
 # SEE ALSO
 
-**ls**(1), **cp**(1), **mv**(1), **rm**(1)
+**mc**(1), **glob**(7), **regex**(7)

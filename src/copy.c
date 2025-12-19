@@ -1,7 +1,7 @@
 /***************************************************************************
  *
  * copy.c
- * Kopieren von Dateien / Verzeichnissen
+ * Copy files / directories
  *
  ***************************************************************************/
 
@@ -10,7 +10,6 @@
 
 
 
-static int Copy(char *to_path, char *from_path);
 static int CopyArchiveFile(char *to_path, char *from_path);
 
 
@@ -171,7 +170,7 @@ int CopyFile(Statistic *statistic_ptr,
   }
 
 
-  if( !Copy( to_path, from_path ) )
+  if( !CopyFileContent( to_path, from_path ) )
   {
     /* File wurde kopiert */
     /*--------------------*/
@@ -305,8 +304,12 @@ int GetCopyParameter(char *from_file, BOOL path_copy, char *to_file, char *to_di
 
   if( InputString(to_file, LINES - 2, 6, 0, COLS - 6, "\r\033" ) == CR){
     MvAddStr( LINES - 1, 1, "TO:  " );
-    if( InputString( to_dir, LINES - 1, 6, 0, COLS - 6, "\r\033" ) == CR )
-    return( 0 );
+    if( InputString( to_dir, LINES - 1, 6, 0, COLS - 6, "\r\033" ) == CR ) {
+        if (to_dir[0] == '\0') {
+            strcpy(to_dir, ".");
+        }
+        return( 0 );
+    }
   }
   ClearHelp();
   return( -1 );
@@ -316,7 +319,7 @@ int GetCopyParameter(char *from_file, BOOL path_copy, char *to_file, char *to_di
 
 
 
-static int Copy(char *to_path, char *from_path)
+int CopyFileContent(char *to_path, char *from_path)
 {
   int         i, o, n;
   char        buffer[2048];

@@ -11,6 +11,7 @@ SRC_DIR     = src
 INC_DIR     = include
 OBJ_DIR     = obj
 DOC_DIR     = doc
+BUILD_DIR   = build
 BIN_DIR     = .
 
 # -------------------------------------------------------------------------
@@ -67,8 +68,9 @@ endif
 # Files
 # -------------------------------------------------------------------------
 MAIN        = ytree
+MAIN_BIN    = $(BUILD_DIR)/$(MAIN)
 MANSRC      = $(DOC_DIR)/ytree.1.md
-MANPAGE     = ytree.1
+MANPAGE     = $(BUILD_DIR)/ytree.1
 
 # Automatically find all .c files in src/
 SRCS        = $(wildcard $(SRC_DIR)/*.c)
@@ -83,10 +85,10 @@ DEPS        = $(OBJS:.o=.d)
 
 .PHONY: all clean clobber install uninstall docs changelog-draft
 
-all: $(MAIN) $(MANPAGE)
+all: $(MAIN_BIN) $(MANPAGE)
 
 # Link the executable
-$(MAIN): $(OBJS)
+$(MAIN_BIN): $(OBJS) | $(BUILD_DIR)
 	$(CC) $(CFLAGS) -o $@ $(OBJS) $(LDFLAGS)
 
 # Compile source files into object files
@@ -98,6 +100,10 @@ $(OBJ_DIR)/%.o: $(SRC_DIR)/%.c | $(OBJ_DIR)
 $(OBJ_DIR):
 	mkdir -p $(OBJ_DIR)
 
+# Create the build directory
+$(BUILD_DIR):
+	mkdir -p $(BUILD_DIR)
+
 # Generate USAGE.md from the man page source
 docs:
 	$(PANDOC) -f markdown-tex_math_dollars -t gfm \
@@ -105,13 +111,13 @@ docs:
 		$(MANSRC) -o $(DOC_DIR)/USAGE.md
 
 # Generate the roff man page
-$(MANPAGE): $(MANSRC)
+$(MANPAGE): $(MANSRC) | $(BUILD_DIR)
 	$(PANDOC) -s -t man $(MANSRC) -o $@
 
 # Install binary and man page
-install: $(MAIN) $(MANPAGE) docs
+install: $(MAIN_BIN) $(MANPAGE) docs
 	if [ ! -e $(BINDEST) ]; then mkdir -p $(BINDEST); fi
-	install $(MAIN) $(BINDEST)
+	install $(MAIN_BIN) $(BINDEST)/$(MAIN)
 	if [ ! -e $(MANDEST) ]; then mkdir -p $(MANDEST); fi
 	gzip -9c $(MANPAGE) > $(MANPAGE).gz
 	install -m 0644 $(MANPAGE).gz $(MANDEST)/
@@ -141,13 +147,11 @@ changelog-draft:
 
 # Clean build artifacts
 clean:
-	rm -rf $(OBJ_DIR)
-	rm -f core *.o *.gz *~ *.orig *.bak
-	rm -f $(MANPAGE) $(MANPAGE).gz
-	# Note: We do not remove USAGE.md as it is documentation
+	rm -rf $(OBJ_DIR) $(BUILD_DIR)
+	rm -f core *~ *.orig *.bak
 
 clobber: clean
-	rm -f $(MAIN)
+	rm -f $(MAIN) # Just in case legacy binary exists
 
 # Include automatically generated dependencies
 -include $(DEPS)
