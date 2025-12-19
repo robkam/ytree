@@ -922,7 +922,7 @@ extern int SelectLoadedVolume(void);
 extern int CycleLoadedVolume(int direction); /* Added for volume cycling */
 
 /* mkdir.c */
-extern int MakeDirEntry( DirEntry *father_dir_entry, char *dir_name );
+extern DirEntry *MakeDirEntry( DirEntry *father_dir_entry, char *dir_name ); /* Return DirEntry* */
 extern int MakeDirectory(DirEntry *father_dir_entry);
 extern int MakePath( DirEntry *tree, char *dir_path, DirEntry **dest_dir_entry );
 extern int EnsureDirectoryExists(char *dir_path, DirEntry *tree, BOOL *created, DirEntry **result_ptr); /* Updated prototype */
