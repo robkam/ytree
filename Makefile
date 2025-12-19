@@ -41,12 +41,18 @@ COLOR       = -DCOLOR_SUPPORT
 CLOCK       = -DCLOCK_SUPPORT
 READLINE    = -DREADLINE_SUPPORT
 
+# Compiler Warnings (Scrupulous Mode)
+# -Wall -Wextra: Enable most warnings
+# -Werror=conflicting-types: Fail immediately if header/source prototypes mismatch
+# -Wno-unused-parameter: Reduce noise from legacy callback signatures
+WARNINGS    = -Wall -Wextra -Werror=conflicting-types -Wno-unused-parameter
+
 # Standard Flags
 # -I$(INC_DIR): Look for headers in the include/ directory
 # -MMD -MP:     Auto-generate dependency files (.d) to track header changes
 CFLAGS      += -D_GNU_SOURCE -DHAVE_LIBARCHIVE -DWITH_UTF8 \
                $(COLOR) $(CLOCK) $(READLINE) $(ADD_CFLAGS) \
-               -I$(INC_DIR) -MMD -MP
+               -I$(INC_DIR) -MMD -MP $(WARNINGS)
 
 LDFLAGS     += -lncursesw -ltinfo -lreadline -larchive -lm
 
