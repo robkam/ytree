@@ -280,14 +280,14 @@ static void DrawSeparator(int y, const char *title) {
 
     if (title && text_len > 0) {
         int left_hline_len;
-        int right_hline_len;
+        /* int right_hline_len; // Removed: Unused */
         int title_content_start_x;
         int pad = 2; /* 1 space each side */
 
         if (total_inner_width >= text_len + pad) {
             int rem = total_inner_width - (text_len + pad);
             left_hline_len = rem / 2;
-            right_hline_len = rem - left_hline_len;
+            /* right_hline_len = rem - left_hline_len; */
             title_content_start_x = L_BORDER + 1 + left_hline_len;
 
             /* Left Line */

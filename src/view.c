@@ -1,7 +1,7 @@
 /***************************************************************************
  *
  * view.c
- * View-Kommando-Bearbeitung
+ * View command processing
  *
  ***************************************************************************/
 
@@ -928,6 +928,7 @@ static void hex_edit(char *file_path)
                     QUIT=TRUE;
                     break;
                 }
+                /* fallthrough */
         default:
                 change_char(ch);
                 wmove(VIEW, cursor_pos_y, 0);

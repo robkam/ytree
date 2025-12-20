@@ -86,6 +86,7 @@
 /* Some handy macros... */
 
 #define MINIMUM( a, b ) ( ( (a) < (b) ) ? (a) : (b) )
+/* Cast to size_t to silence signed/unsigned comparison warnings when 'b' is sizeof/strlen */
 #define MAXIMUM( a, b ) ( ( (a) > (b) ) ? (a) : (b) )
 
 

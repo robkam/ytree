@@ -89,7 +89,8 @@ int Pipe(DirEntry *dir_entry, FileEntry *file_entry)
             in_fd = open(file_name_path, O_RDONLY);
             if (in_fd != -1) {
                 while ((bytes_read = read(in_fd, buffer, sizeof(buffer))) > 0) {
-                    if (fwrite(buffer, 1, bytes_read, pipe_fp) < bytes_read) {
+                    /* FIX: Cast bytes_read to size_t to avoid signed/unsigned comparison warning */
+                    if (fwrite(buffer, 1, bytes_read, pipe_fp) < (size_t)bytes_read) {
                         /* Handle pipe write error */
                         break;
                     }
