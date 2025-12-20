@@ -1,7 +1,7 @@
 /***************************************************************************
  *
  * pipe.c
- * Umlenken von Datei-Inhalten zu einem Kommando
+ * Redirecting file contents to a command
  *
  ***************************************************************************/
 
