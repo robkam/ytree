@@ -36,7 +36,7 @@ INCLUDE_EXTS = {'.c', '.h', '.md', '.conf', '.py', '.sh'}
 INCLUDE_FILES = {'Makefile'}
 
 # Default patterns to uncheck in the UI (User can toggle them back)
-DEFAULT_EXCLUDES = {'LICENSE.md', 'why_ytree.md', 'USAGE.log', 'chat.log', 'build.log', 'context.txt'}
+DEFAULT_EXCLUDES = {'LICENSE.md', 'why_ytree.md', 'USAGE.md', 'AUTHORS.md', 'CHANGES.md', 'chat.log', 'build.log', 'context.txt'}
 
 # -----------------------------------------------------------------------------
 # LOGIC

@@ -1,7 +1,7 @@
 /***************************************************************************
  *
  * archive.c
- * Allg. Funktionen zum Bearbeiten von Archiven
+ * General functions for archive processing
  *
  ***************************************************************************/
 
@@ -47,7 +47,6 @@ int ExtractArchiveEntry(const char *archive_path, const char *entry_path, int ou
     const void *buff;
     size_t size;
     la_int64_t offset;
-    const char *target_name;
     int spin_counter = 0; /* Activity spinner counter */
 
     const char *effective_entry_path_segment; /* Points into entry_path or a derived segment */

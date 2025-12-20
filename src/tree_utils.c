@@ -16,9 +16,10 @@ int GetDirEntry(DirEntry *tree,
                 char *to_path
 	       )
 {
-  char dest_path[PATH_LENGTH+1];
-  char resolved_path[PATH_LENGTH+1];
-  char current_path_str[PATH_LENGTH+1];
+  /* Increased buffer size to silence snprintf truncation warnings */
+  char dest_path[PATH_LENGTH * 2 + 2];
+  char resolved_path[PATH_LENGTH + 1];
+  char current_path_str[PATH_LENGTH + 1];
   char *token, *old;
   DirEntry *de_ptr, *sde_ptr;
   int n;
@@ -29,13 +30,13 @@ int GetDirEntry(DirEntry *tree,
   /* Construct destination path based on input */
   if (*dir_path == FILE_SEPARATOR_CHAR) {
       /* Absolute path */
-      strncpy(dest_path, dir_path, PATH_LENGTH);
+      strncpy(dest_path, dir_path, sizeof(dest_path) - 1);
+      dest_path[sizeof(dest_path) - 1] = '\0';
   } else {
       /* Relative path: combine current directory + input */
       GetPath(current_dir_entry, current_path_str);
       snprintf(dest_path, sizeof(dest_path), "%s%c%s", current_path_str, FILE_SEPARATOR_CHAR, dir_path);
   }
-  dest_path[PATH_LENGTH] = '\0';
 
   /* Resolve to absolute path using realpath */
   if (realpath(dest_path, resolved_path) == NULL) {
@@ -45,11 +46,9 @@ int GetDirEntry(DirEntry *tree,
            * We return -3 to indicate "not found in tree, but path syntax is valid"
            * and copy the intended absolute path to to_path. */
 
-           /* Fallback normalization for non-existent paths to handle .. and . */
-           /* Since realpath failed, we can't trust it. We rely on the constructed dest_path. */
-           /* For robustness, we might want a manual normalization here, but for creation,
-              using the constructed path is usually sufficient if it's new. */
-           strcpy(to_path, dest_path);
+           /* Use constructed path as fallback since realpath failed */
+           strncpy(to_path, dest_path, PATH_LENGTH);
+           to_path[PATH_LENGTH] = '\0';
            return -3;
       } else {
           /* Other error (permission, etc.) */
@@ -60,7 +59,8 @@ int GetDirEntry(DirEntry *tree,
   }
 
   /* Success: Path exists on disk */
-  strcpy(to_path, resolved_path);
+  strncpy(to_path, resolved_path, PATH_LENGTH);
+  to_path[PATH_LENGTH] = '\0';
 
   /* Now try to find this path in the in-memory tree */
   n = strlen( tree->name );

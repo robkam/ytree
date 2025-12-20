@@ -1,7 +1,7 @@
 /***************************************************************************
  *
  * display.c
- * Menue-Geruest anzeigen
+ * Functions for handling the display
  *
  ***************************************************************************/
 
@@ -12,8 +12,8 @@
 
 /* PrintMenuLine is removed as its functionality for drawing the static stats panel
  * is no longer needed. The stats panel is now fully managed by stats.c. */
-// static void PrintLine(WINDOW *win, int y, int x, char *line, int len); // Removed: PrintLine is now an external function from display_utils.c
-static void DisplayVersion(void);
+/* static void PrintLine(WINDOW *win, int y, int x, char *line, int len); // Removed: PrintLine is now an external function from display_utils.c */
+/* static void DisplayVersion(void); // Removed: Unused function */
 
 
 /* The 'mask' array is removed as the static statistics panel it defined
@@ -97,26 +97,6 @@ static char *file_help[MAX_MODES][2] =
   };
 
 
-
-
-
-static void DisplayVersion(void)
-{
-  static char version[80];
-
-  ClearHelp();
-  (void) snprintf( version, sizeof(version),
-		  "ytree Version %sPL%d %s",
-		  VERSION,
-		  PATCHLEVEL,
-		  VERSIONDATE
-		);
-  MvAddStr( Y_PROMPT, (unsigned) (COLS - strlen( version )) >> 1, version );
-}
-
-
-
-
 void DisplayDirHelp(void)
 {
   int i;
@@ -192,7 +172,8 @@ void DisplayHeaderPath(char *path) {
 void DisplayMenu(void)
 {
   int    y;
-  int    l, c;
+  /* int    l, c; // Removed: Unused l */
+  int    c;
   /* Define L_BORDER_FOR_DISPLAY as the column index where stats.c's left vertical border begins.
    * display.c's lines must end one character before this to allow stats.c to draw its full frame. */
   const int L_BORDER_FOR_DISPLAY = COLS - STATS_WIDTH - 1;
