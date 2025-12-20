@@ -1,7 +1,7 @@
 /***************************************************************************
  *
  * dirwin.c
- * Funktionen zur Handhabung des DIR-Windows
+ * Functions for handling the directory window
  *
  ***************************************************************************/
 
@@ -373,8 +373,8 @@ static void PrintDirEntry(WINDOW *win,
 
   /* Part 3: Draw attributes and fill the gap in between */
   if (line_buffer) {
-      int current_x, current_y;
-      getyx(win, current_y, current_x);
+      int current_x;
+      getyx(win, y, current_x); /* Use y (parameter) as dummy output */
       for (int i = current_x; i < attr_start_col; ++i) {
           waddch(win, ' ');
       }
@@ -968,7 +968,7 @@ int HandleDirWindow(DirEntry *start_dir_entry)
   BOOL need_dsp_help;
   char new_name[PATH_LENGTH + 1];
   char new_login_path[PATH_LENGTH + 1];
-  char *home, *p;
+  char *home;
   YtreeAction action; /* Declare YtreeAction variable */
   struct Volume *last_seen_volume = CurrentVolume; /* Track global volume changes */
 

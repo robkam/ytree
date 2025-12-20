@@ -1,7 +1,7 @@
 /***************************************************************************
  *
  * log.c
- * Dateibaum lesen
+ * Read file tree
  *
  ***************************************************************************/
 
@@ -546,7 +546,8 @@ int SelectLoadedVolume(void)
 
         /* 2. Window Setup */
         /* Base width calculation */
-        win_width = MAXIMUM(strlen(title) + 4, max_path_len + 12);
+        /* FIX: Cast strlen result to int for MAXIMUM macro to avoid signed/unsigned warning */
+        win_width = MAXIMUM((int)(strlen(title) + 4), max_path_len + 12);
 
         /* Ensure it covers the prompt */
         win_width = MAXIMUM(win_width, StrVisualLength(prompt) + 4);

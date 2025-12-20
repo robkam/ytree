@@ -29,7 +29,7 @@ static int  window_width;
 static int  max_disp_files;
 static int  x_step;
 static int  my_x_step;
-static int  hide_left;
+/* static int  hide_left; */ /* Removed: Unused */
 static int  hide_right;
 
 static FileEntryList *file_entry_list = NULL;
@@ -502,10 +502,12 @@ static void RemoveFileEntry(int entry_no)
     fe_ptr = file_entry_list[i].file;
     visual_name_len = StrVisualLength( fe_ptr->name );
     name_len = strlen( fe_ptr->name );
+    /* FIX: Cast StrVisualLength to int for MAX macro */
     max_visual_filename_len = MAX( (int)max_visual_filename_len, visual_name_len );
     if( S_ISLNK( fe_ptr->stat_struct.st_mode ) )
     {
-      max_visual_linkname_len = MAX( max_visual_filename_len, StrVisualLength( &fe_ptr->name[name_len+1] ) );
+      /* FIX: Cast StrVisualLength to int for MAX macro */
+      max_visual_linkname_len = MAX( max_visual_filename_len, (int)StrVisualLength( &fe_ptr->name[name_len+1] ) );
     }
   }
 
@@ -533,10 +535,12 @@ static void ChangeFileEntry(void)
     {
       visual_name_len = StrVisualLength( fe_ptr->name );
       name_len = strlen( fe_ptr->name );
+      /* FIX: Cast StrVisualLength to int for MAX macro */
       max_visual_filename_len = MAX( (int)max_visual_filename_len, visual_name_len );
       if( S_ISLNK( fe_ptr->stat_struct.st_mode ) )
       {
-        max_visual_linkname_len = MAX( max_visual_filename_len, StrVisualLength( &fe_ptr->name[name_len+1] ) );
+        /* FIX: Cast StrVisualLength to int for MAX macro */
+        max_visual_linkname_len = MAX( max_visual_filename_len, (int)StrVisualLength( &fe_ptr->name[name_len+1] ) );
       }
     }
   }
@@ -799,8 +803,12 @@ static void PrintFileEntry(int entry_no, int y, int x, unsigned char hilight, in
 
       /* Print attributes for modes other than MODE_3 */
       if (file_mode != MODE_3) {
-          int current_x, current_y;
-          getyx(file_window, current_y, current_x);
+          /* int current_x, current_y; // Removed: Unused */
+          int current_x;
+          int dummy_y;
+          getyx(file_window, dummy_y, current_x);
+          (void)dummy_y;
+
           /* Adjusted target_x calculation to stay within bounds */
           int target_x = MINIMUM(pos_x + 2 + filename_width, window_width - overhead);
 
@@ -886,7 +894,7 @@ static void DisplayFiles(DirEntry *de_ptr, int start_file_no, int hilight_no, in
   {
     for( y=0; y < window_height; y++ )
     {
-      if( j < (int)file_count )
+      if( (unsigned)j < file_count )
       {
 	if( j == hilight_no )
 	{
@@ -910,7 +918,7 @@ static void DisplayFiles(DirEntry *de_ptr, int start_file_no, int hilight_no, in
 
 static void fmovedown(int *start_file, int *cursor_pos, int *start_x, DirEntry *dir_entry)
 {
-   if( *start_file + *cursor_pos + 1 >= (int)file_count )
+   if( (unsigned int)(*start_file + *cursor_pos + 1) >= file_count )
    {
       /* File nicht vorhanden */
       /*----------------------*/
@@ -927,7 +935,7 @@ static void fmovedown(int *start_file, int *cursor_pos, int *start_x, DirEntry *
     if (file_count > 0) {
         char path[PATH_LENGTH];
         int idx = *start_file + *cursor_pos;
-        if (idx < file_count) {
+        if ((unsigned)idx < file_count) {
             GetFileNamePath(file_entry_list[idx].file, path);
             DisplayHeaderPath(path);
         }
@@ -957,7 +965,7 @@ static void fmoveup(int *start_file, int *cursor_pos, int *start_x, DirEntry *di
     if (file_count > 0) {
         char path[PATH_LENGTH];
         int idx = *start_file + *cursor_pos;
-        if (idx < file_count) {
+        if ((unsigned)idx < file_count) {
             GetFileNamePath(file_entry_list[idx].file, path);
             DisplayHeaderPath(path);
         }
@@ -982,19 +990,19 @@ static void fmoveright(int *start_file, int *cursor_pos, int *start_x,DirEntry *
                   );
       if( hide_right <= 0 ) (*start_x)--;
    }
-   else if( *start_file + *cursor_pos >= (int)file_count - 1 )
+   else if( (unsigned int)(*start_file + *cursor_pos) >= file_count - 1 )
    {
       /*letzte Position erreicht */
       /*-------------------------*/
    }
    else
    {
-      if( *start_file + *cursor_pos + x_step >= (int)file_count )
+      if( (unsigned int)(*start_file + *cursor_pos + x_step) >= file_count )
       {
           /* voller Step nicht moeglich;
            * auf letzten Eintrag positionieren
            */
-           my_x_step = file_count - *start_file - *cursor_pos - 1;
+           my_x_step = (int)file_count - *start_file - *cursor_pos - 1;
       }
       else
       {
@@ -1023,7 +1031,7 @@ static void fmoveright(int *start_file, int *cursor_pos, int *start_x,DirEntry *
    if (file_count > 0) {
        char path[PATH_LENGTH];
        int idx = *start_file + *cursor_pos;
-       if (idx < file_count) {
+       if ((unsigned)idx < file_count) {
            GetFileNamePath(file_entry_list[idx].file, path);
            DisplayHeaderPath(path);
        }
@@ -1090,7 +1098,7 @@ static void fmoveleft(int *start_file, int *cursor_pos, int *start_x, DirEntry *
      if (file_count > 0) {
          char path[PATH_LENGTH];
          int idx = *start_file + *cursor_pos;
-         if (idx < file_count) {
+         if ((unsigned)idx < file_count) {
              GetFileNamePath(file_entry_list[idx].file, path);
              DisplayHeaderPath(path);
          }
@@ -1105,7 +1113,7 @@ static void fmoveleft(int *start_file, int *cursor_pos, int *start_x, DirEntry *
 
 static void fmovenpage(int *start_file, int *cursor_pos, int *start_x, DirEntry *dir_entry)
 {
-   if( *start_file + *cursor_pos >= (int)file_count - 1 )
+   if( (unsigned int)(*start_file + *cursor_pos) >= file_count - 1 )
    {
       /*letzte Position erreicht */
       /*-------------------------*/
@@ -1114,21 +1122,21 @@ static void fmovenpage(int *start_file, int *cursor_pos, int *start_x, DirEntry 
 
     if( *cursor_pos < max_disp_files - 1 )
     {
-        if( *start_file + max_disp_files <= (int)file_count - 1 )
+        if( (unsigned int)(*start_file + max_disp_files) <= file_count - 1 )
             *cursor_pos = max_disp_files - 1;
         else
-            *cursor_pos = file_count - *start_file - 1;
+            *cursor_pos = (int)file_count - *start_file - 1;
     }
     else
     {
-        if( *start_file + *cursor_pos + max_disp_files < (int)file_count )
+        if( (unsigned int)(*start_file + *cursor_pos + max_disp_files) < file_count )
             *start_file += max_disp_files;
         else
-            *start_file = file_count - max_disp_files;
-        if( *start_file + max_disp_files <= (int)file_count - 1 )
+            *start_file = (int)file_count - max_disp_files;
+        if( (unsigned int)(*start_file + max_disp_files) <= file_count - 1 )
             *cursor_pos = max_disp_files - 1;
         else
-            *cursor_pos = file_count - *start_file - 1;
+            *cursor_pos = (int)file_count - *start_file - 1;
     }
     DisplayFiles( dir_entry,
                   *start_file,
@@ -1139,7 +1147,7 @@ static void fmovenpage(int *start_file, int *cursor_pos, int *start_x, DirEntry 
     if (file_count > 0) {
         char path[PATH_LENGTH];
         int idx = *start_file + *cursor_pos;
-        if (idx < file_count) {
+        if ((unsigned)idx < file_count) {
             GetFileNamePath(file_entry_list[idx].file, path);
             DisplayHeaderPath(path);
         }
@@ -1181,7 +1189,7 @@ static void fmoveppage(int *start_file, int *cursor_pos, int *start_x, DirEntry 
     if (file_count > 0) {
         char path[PATH_LENGTH];
         int idx = *start_file + *cursor_pos;
-        if (idx < file_count) {
+        if ((unsigned)idx < file_count) {
             GetFileNamePath(file_entry_list[idx].file, path);
             DisplayHeaderPath(path);
         }
@@ -1249,7 +1257,7 @@ int HandleFileWindow(DirEntry *dir_entry)
       if (dir_entry->start_file < 0) dir_entry->start_file = 0;
 
       /* Bounds Check: ensure we aren't past the end */
-      if (dir_entry->start_file + dir_entry->cursor_pos >= (int)file_count) {
+      if ((unsigned int)(dir_entry->start_file + dir_entry->cursor_pos) >= file_count) {
           dir_entry->start_file = MAXIMUM(0, (int)file_count - max_disp_files);
           dir_entry->cursor_pos = (int)file_count - 1 - dir_entry->start_file;
       }
@@ -1436,7 +1444,7 @@ int HandleFileWindow(DirEntry *dir_entry)
       case ACTION_PAGE_UP: fmoveppage(&dir_entry->start_file, &dir_entry->cursor_pos, &start_x, dir_entry);
 		      break;
 
-      case ACTION_END  : if( dir_entry->start_file + dir_entry->cursor_pos + 1 >= (int)file_count )
+      case ACTION_END  : if( (unsigned int)(dir_entry->start_file + dir_entry->cursor_pos + 1) >= file_count )
 		      {
 			/* Letzte Position erreicht */
 			/*--------------------------*/
@@ -1446,12 +1454,12 @@ int HandleFileWindow(DirEntry *dir_entry)
 			if( (int)file_count < max_disp_files )
 		        {
 			  dir_entry->start_file = 0;
-			  dir_entry->cursor_pos = file_count - 1;
+			  dir_entry->cursor_pos = (int)file_count - 1;
 		        }
 		        else
 	                {
-                          dir_entry->start_file = file_count - max_disp_files;
-			  dir_entry->cursor_pos = file_count - dir_entry->start_file - 1;
+                          dir_entry->start_file = (int)file_count - max_disp_files;
+			  dir_entry->cursor_pos = (int)file_count - dir_entry->start_file - 1;
 		        }
 
 			DisplayFiles( dir_entry,
@@ -2548,8 +2556,8 @@ int HandleFileWindow(DirEntry *dir_entry)
                                  dir_entry->cursor_pos = 0;
                                  /* Bounds check */
                                  if (dir_entry->start_file + max_disp_files > file_count) {
-                                      dir_entry->start_file = MAXIMUM(0, file_count - max_disp_files);
-                                      dir_entry->cursor_pos = found_idx - dir_entry->start_file;
+                                      dir_entry->start_file = MAXIMUM(0, (int)file_count - max_disp_files);
+                                      dir_entry->cursor_pos = (int)file_count - 1 - dir_entry->start_file;
                                  }
                              }
                          } else {
@@ -2952,7 +2960,7 @@ static void ListJump( DirEntry * dir_entry, char *str )
     /* index of current entry in list */
     tmp2 = (incremental && n == 0) ? 0 : dir_entry->start_file + dir_entry->cursor_pos;
 
-    if( tmp2 == file_count - 1 )
+    if( tmp2 == (int)file_count - 1 )
     {
         ClearHelp();
         MvAddStr( Y_PROMPT, 1, "Last entry!");
@@ -2964,14 +2972,14 @@ static void ListJump( DirEntry * dir_entry, char *str )
         return;
     }
 
-    for( i=tmp2; i < file_count; i++ )
+    for( i=tmp2; i < (int)file_count; i++ )
     {
         fe_ptr = file_entry_list[i].file;
 	if(!strncasecmp(newStr, fe_ptr->name, n+1))
           break;
     }
 
-    if ( i == file_count )
+    if ( i == (int)file_count )
     {
         ClearHelp();
         MvAddStr( Y_PROMPT, 1, "No match!");

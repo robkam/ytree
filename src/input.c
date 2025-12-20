@@ -1,9 +1,9 @@
 /***************************************************************************
  * input.c
  * InputStr                                                                *
- * Liest eine Zeichenkette an Position (y,x) mit der max. Laenge length    *
- * Vorschlagswert fuer die Eingabe ist s selbst                            *
- * Zurueckgegeben wird das Zeichen, mit dem die Eingabe beendet wurde      *
+ * Reads a string at position (y,x) with max length                        *
+ * Default value for input is s itself                                     *
+ * Returns the character that terminated the input                         *
  ***************************************************************************/
 
 
@@ -30,7 +30,7 @@ char *StrLeft(const char *str, size_t visible_count)
 #ifdef WITH_UTF8
   mbstate_t state;
   const char *s, *s_start;;
-  int pos = 0;
+  size_t pos = 0; /* Changed from int to size_t to match visible_count */
 #endif
 
   if (visible_count == 0)
@@ -66,7 +66,7 @@ char *StrLeft(const char *str, size_t visible_count)
         width = 1;
     }
 
-    if(pos + width > visible_count)
+    if(pos + (size_t)width > visible_count)
       break;  /* exceeds limit */
 
     pos += width;
