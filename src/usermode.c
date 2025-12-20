@@ -1,7 +1,7 @@
 /***************************************************************************
  *
  * usermode.c
- * Funktionen zur Handhabung des FILE-Windows
+ * Functions for handling the file window
  *
  ***************************************************************************/
 

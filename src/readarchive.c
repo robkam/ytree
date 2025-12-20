@@ -1,7 +1,7 @@
 /***************************************************************************
  *
  * readarchive.c
- * functions to read filetree from various archives (TAR, ZIP, ZOO, etc.)
+ * Functions to read filetree from various archives (TAR, ZIP, ZOO, etc.)
  *
  ***************************************************************************/
 

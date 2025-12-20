@@ -4,7 +4,7 @@
  * Unified filtering subsystem: Handles regex/attribute/date/size matching
  * and user input/prompting for filters.
  *
- * Consolidates logic from legacy filespec.c and filters.c.
+ * Consolidates logic from legacy filespec.c and filters.c
  *
  ***************************************************************************/
 

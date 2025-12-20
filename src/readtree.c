@@ -1,7 +1,7 @@
 /***************************************************************************
  *
  * readtree.c
- * Funktionen zum Lesen des Dateibaumes
+ * Functions for reading the directory tree
  *
  ***************************************************************************/
 
