@@ -244,7 +244,7 @@ int VisualPositionToBytePosition(const char *str, int visual_pos)
 }
 
 
-int InputStringEx(char *s, int y, int x, int cursor_pos, int display_width, int max_len, char *term)
+int InputStringEx(char *s, int y, int x, int cursor_pos, int display_width, int max_len, char *term, int history_type)
 {
   int p;                       /* Current Cursor-Position (visual) */
   int c1;                      /* Read Char */
@@ -332,7 +332,7 @@ int InputStringEx(char *s, int y, int x, int cursor_pos, int display_width, int 
         if( p < StrVisualLength(s) ) p++; else beep(); break;
 
     case KEY_UP:
-        pp = GetHistory();
+        pp = GetHistory(history_type);
         if (pp == NULL) break;
         if(*pp) {
             ls = StrLeft(pp, max_len);
@@ -570,7 +570,7 @@ int InputStringEx(char *s, int y, int x, int cursor_pos, int display_width, int 
   leaveok( stdscr, TRUE);
   curs_set(0);
   print_time = TRUE;
-  InsHistory( s );
+  InsHistory( s, history_type );
 #ifdef READLINE_SUPPORT
   pp = tilde_expand(s);
 #else
@@ -588,9 +588,9 @@ int InputStringEx(char *s, int y, int x, int cursor_pos, int display_width, int 
 }
 
 
-int InputString(char *s, int y, int x, int cursor_pos, int length, char *term)
+int InputString(char *s, int y, int x, int cursor_pos, int length, char *term, int history_type)
 {
-    return InputStringEx(s, y, x, cursor_pos, length, length, term);
+    return InputStringEx(s, y, x, cursor_pos, length, length, term, history_type);
 }
 
 

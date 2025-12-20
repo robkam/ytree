@@ -291,7 +291,7 @@ int GetRenameParameter(char *old_name, char *new_name)
   (void) strcpy( new_name, (old_name) ? old_name : "*" );
 
 
-  if( InputString(new_name, LINES - 2, l, 0, COLS - l - 1, "\r\033" ) != CR)
+  if( InputString(new_name, LINES - 2, l, 0, COLS - l - 1, "\r\033", HST_FILE ) != CR)
     return( -1 );
 
   if(!strlen(new_name))

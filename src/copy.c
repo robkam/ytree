@@ -348,9 +348,9 @@ int GetCopyParameter(char *from_file, BOOL path_copy, char *to_file, char *to_di
   MvAddStr( LINES - 3, 1, buffer );
   MvAddStr( LINES - 2, 1, "AS:  " );
 
-  if( InputString(to_file, LINES - 2, 6, 0, COLS - 6, "\r\033" ) == CR){
+  if( InputString(to_file, LINES - 2, 6, 0, COLS - 6, "\r\033", HST_FILE ) == CR){
     MvAddStr( LINES - 1, 1, "TO:  " );
-    if( InputString( to_dir, LINES - 1, 6, 0, COLS - 6, "\r\033" ) == CR ) {
+    if( InputString( to_dir, LINES - 1, 6, 0, COLS - 6, "\r\033", HST_PATH ) == CR ) {
         if (to_dir[0] == '\0') {
             strcpy(to_dir, ".");
         }

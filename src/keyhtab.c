@@ -83,14 +83,14 @@ static void PrintMtchEntry(int entry_no, int y, int color,
     WAddStr( matches_window, line_ptr );
 #else
 #ifdef COLOR_SUPPORT
-    WbkgdSet(matches_window, COLOR_PAIR(color)|A_BOLD);
+    WbkgdSet(matches_window, COLOR_PAIR(color));
 #else
     if(color == CPAIR_HIHST)
       wattrset( matches_window, A_REVERSE );
 #endif /* COLOR_SUPPORT */
     WAddStr( matches_window, line_ptr );
 #ifdef COLOR_SUPPORT
-    WbkgdSet(matches_window, COLOR_PAIR(CPAIR_WINHST)| A_BOLD);
+    WbkgdSet(matches_window, COLOR_PAIR(CPAIR_WINHST));
 #else
     if(color == CPAIR_HIHST)
       wattrset( matches_window, 0 );

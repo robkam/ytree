@@ -38,7 +38,7 @@ int GetNewOwner(int st_uid)
 
   MvAddStr( LINES - 2, 1, "NEW OWNER:" );
 
-  if( InputString( owner, LINES - 2, 12, 0, OWNER_NAME_MAX, "\r\033" ) == CR )
+  if( InputString( owner, LINES - 2, 12, 0, OWNER_NAME_MAX, "\r\033", HST_ID ) == CR )
   {
     if( (owner_id = GetPasswdUid( owner )) == -1 )
     {
