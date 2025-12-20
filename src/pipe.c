@@ -143,7 +143,7 @@ int GetPipeCommand(char *pipe_command)
   ClearHelp();
 
   MvAddStr( LINES - 2, 1, "Pipe-Command: " );
-  if( InputString( pipe_command, LINES - 2, 15, 0, COLS - 16, "\r\033" ) == CR )
+  if( InputString( pipe_command, LINES - 2, 15, 0, COLS - 16, "\r\033", HST_PIPE ) == CR )
   {
     result = 0;
   }
