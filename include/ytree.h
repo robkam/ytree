@@ -432,6 +432,19 @@ enum UI_COLOR_PAIRS {
 #define PRINT(ch) (iscntrl(ch) && (((unsigned char)(ch)) < ' ')) ? (ACS_BLOCK) : ((unsigned char)(ch))
 #endif
 
+/* History Types */
+enum HistoryType {
+    HST_GENERAL = 0,
+    HST_LOGIN,
+    HST_EXEC,
+    HST_PIPE,
+    HST_FILTER,
+    HST_SEARCH,
+    HST_FILE,
+    HST_PATH,
+    HST_ID
+};
+
 /* ************************************************************************* */
 /*                              STRUCTURES                                   */
 /* ************************************************************************* */
@@ -891,9 +904,9 @@ extern int InternalView(char *file_path);
 extern int ViewHex(char *file_path);
 
 /* history.c, keyhtab.c */
-extern char *GetHistory(void);
+extern char *GetHistory(int type);
 extern char *GetMatches(char *);
-extern void InsHistory(char *new_hist);
+extern void InsHistory(char *new_hist, int type);
 extern void ReadHistory(char *filename);
 extern void SaveHistory(char *filename);
 
@@ -905,8 +918,8 @@ extern void ReCreateWindows(void);
 extern int Getch(void);
 extern void HitReturnToContinue(void);
 extern int InputChoice(char *msg, char *term);
-extern int InputString(char *s, int y, int x, int cursor_pos, int length, char *term);
-extern int InputStringEx(char *s, int y, int x, int cursor_pos, int display_width, int max_len, char *term);
+extern int InputString(char *s, int y, int x, int cursor_pos, int length, char *term, int history_type);
+extern int InputStringEx(char *s, int y, int x, int cursor_pos, int display_width, int max_len, char *term, int history_type);
 extern BOOL KeyPressed(void);
 extern BOOL EscapeKeyPressed(void);
 extern char *StrLeft(const char *str, size_t count);

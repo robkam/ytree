@@ -433,7 +433,7 @@ int ReadFilter(void)
 
   /* Use available screen width (COLS - 9) but clamp to buffer size.
      x position is 8, so available width is COLS - 8 - 1 */
-  if( InputString( buffer, LINES - 2, 8, 0, MINIMUM(FILE_SPEC_LENGTH, COLS - 9), "\r\033" ) == CR )
+  if( InputString( buffer, LINES - 2, 8, 0, MINIMUM(FILE_SPEC_LENGTH, COLS - 9), "\r\033", HST_FILTER ) == CR )
   {
     if( SetFilter( buffer ) )
     {
