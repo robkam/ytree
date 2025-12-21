@@ -469,7 +469,6 @@ int InputStringEx(char *s, int y, int x, int cursor_pos, int display_width, int 
 #endif
     case 'F' & 0x1f:
         if (history_type != HST_LOGIN && history_type != HST_PATH) {
-            beep();
             break;
         }
 
