@@ -132,7 +132,7 @@ install: $(MAIN_BIN) $(MANPAGE) docs
 # Uninstall
 uninstall:
 	rm -f $(BINDEST)/$(MAIN)
-	rm -f $(MANDEST)/$(MANPAGE).gz
+	rm -f $(MANDEST)/ytree.1.gz
 
 # Draft Changelog generator
 # If no tags exist, uses the full history (HEAD).
