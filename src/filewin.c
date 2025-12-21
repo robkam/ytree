@@ -2311,6 +2311,7 @@ int HandleFileWindow(DirEntry *dir_entry)
 				    dir_entry->start_file + dir_entry->cursor_pos,
 				    start_x
 			          );
+                      action = ACTION_NONE; /* Prevent loop termination to stay in file window */
 		      break;
 
       case ACTION_CMD_P :      fe_ptr = file_entry_list[dir_entry->start_file + dir_entry->cursor_pos].file;

@@ -159,31 +159,34 @@ void ReadHistory(char *Filename)
 void SaveHistory(char *Filename)
 {
   FILE *HstFile;
-  int j;
-  History *hst, *last_hst;
+  int i, count;
+  History *hst;
+  History **hst_array;
 
-  hst = last_hst = NULL;
+  if (!Hist) return;
 
-  /* Note: MAX_HST_FILE_LINES is now larger. We save the first N items of the GLOBAL list.
-     This means history for rarely used contexts might drop off if global usage is high.
-     For a simple implementation as requested, this is acceptable.
-  */
+  if ((HstFile = fopen(Filename, "w")) == NULL) return;
 
-  if((hst = Hist)) {
-    if( (HstFile = fopen( Filename, "w" ) ) != NULL) {
-      for(j = 0 ; hst && j < MAX_HST_FILE_LINES; j++ ) {
-        last_hst = hst;
-        hst = hst->next;
-      }
-
-      /* write in reverse order (Oldest -> Newest) so ReadHistory restores Newest -> Oldest */
-      for(hst=last_hst; hst; hst=hst->prev) {
-         fprintf(HstFile, "%d:%d:%s\n", hst->type, hst->pinned, hst->hst);
-      }
-      fclose( HstFile );
-    }
+  hst_array = (History **) malloc(MAX_HST_FILE_LINES * sizeof(History *));
+  if (!hst_array) {
+      fclose(HstFile);
+      ERROR_MSG("Malloc failed in SaveHistory");
+      return;
   }
-  return;
+
+  /* Collect pointers by traversing forward (Newest -> Oldest) */
+  count = 0;
+  for (hst = Hist; hst && count < MAX_HST_FILE_LINES; hst = hst->next) {
+      hst_array[count++] = hst;
+  }
+
+  /* Write backwards (Oldest -> Newest) so ReadHistory restores correct order */
+  for (i = count - 1; i >= 0; i--) {
+      fprintf(HstFile, "%d:%d:%s\n", hst_array[i]->type, hst_array[i]->pinned, hst_array[i]->hst);
+  }
+
+  free(hst_array);
+  fclose(HstFile);
 }
 
 
@@ -204,6 +207,7 @@ void InsHistory( char *NewHst, int type)
          if (TMP2 != TMP)
          {
             TMP2 -> next = TMP -> next;
+            if (TMP->next) TMP->next->prev = TMP2; /* Fix broken double link */
             TMP -> next = Hist;
             Hist = TMP;
             if (Hist->next) Hist->next->prev = Hist; /* Fix prev pointer of old head */
