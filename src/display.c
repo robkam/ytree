@@ -52,7 +52,7 @@ static char *last_line = "3-"; /* Bottom horizontal border line */
  * Updated: (F)ilespec -> (F)ilter, spacing adjustments.
  */
 static char dir_help_disk_mode_0[] = "DIR       (A)ttribute A(b)out (D)elete (F)ilter   (G)roup (L)og (M)akedir";
-static char dir_help_disk_mode_1[] = "COMMANDS  (O)wner (Q)uit (R)ename (S)howall (T)ag (U)ntag e(X)ecute (`)dotfiles";
+static char dir_help_disk_mode_1[] = "COMMANDS (O)wner (P)ipe (Q)uit (R)ename (S)how (T)ag (U)ntag e(X)ec (`)dotfiles";
 static char *dir_help[MAX_MODES][2] =
   {
     { /* DISK_MODE */

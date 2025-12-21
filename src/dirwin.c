@@ -1436,6 +1436,11 @@ int HandleDirWindow(DirEntry *start_dir_entry)
                      need_dsp_help = TRUE;
                      break;
 
+      case ACTION_CMD_P: /* Pipe Directory */
+                     PipeDirectory(dir_entry);
+                     need_dsp_help = TRUE;
+                     break;
+
       /* Volume Cycling and Selection */
       case ACTION_VOL_MENU: /* Shift-K: Select Loaded Volume */
           {
@@ -1845,15 +1850,18 @@ int KeyF2Get(DirEntry *start_dir_entry,
 		     result = 0;
 		     break;
       case ACTION_QUIT:      break;
+      case ACTION_ESCAPE:    break;
 
       default :      beep(); break;
     } /* switch */
-  } while( action != ACTION_QUIT && action != ACTION_ENTER );
+  } while( action != ACTION_QUIT && action != ACTION_ENTER && action != ACTION_ESCAPE );
 
   UnmapF2Window();
 
   /* Restore the original directory list for the main window */
   BuildDirEntryList(start_dir_entry, &statistic);
+
+  if (action == ACTION_ESCAPE || action == ACTION_QUIT) return -1;
 
   return( result );
 }

@@ -76,7 +76,8 @@ symbol `^` denotes the **CTRL** key.
 These commands work in most modes:
 
 - **F1**: Help.
-- **F2**: Refresh / Select Directory (in input fields).
+- **F2**: Select Directory (Log/Copy/Move).
+- **F5**: Refresh (same as **^L**).
 - **^L**: **Redraw**. Re-read the contents of the current directory from
   disk and refresh the view.
 - **K** (Shift+K): **Volume Menu**. Show a list of all currently logged
@@ -190,6 +191,7 @@ Input prompts support standard shortcuts:
 - **^W**: Delete word left.
 - **^D / Del**: Delete character.
 - **^H / Backspace**: Backspace.
+- **Up Arrow**: History (with `P` to Pin, `D` to Delete).
 
 # CONFIGURATION
 

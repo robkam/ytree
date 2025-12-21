@@ -27,7 +27,7 @@ int MakeDirectory(DirEntry *father_dir_entry)
 
   *dir_name = '\0';
 
-  if( InputString( dir_name, LINES - 2, 20, 0, COLS - 20 - 1, "\r\033", HST_PATH ) == CR )
+  if( InputString( dir_name, LINES - 2, 20, 0, COLS - 20 - 1, "\r\033", HST_FILE ) == CR )
   {
     if (MakeDirEntry( father_dir_entry, dir_name ) != NULL)
     {
