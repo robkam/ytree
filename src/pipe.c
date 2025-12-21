@@ -1,7 +1,7 @@
 /***************************************************************************
  *
  * pipe.c
- * Redirecting file contents to a command
+ * Redirecting file and directory contents to a command
  *
  ***************************************************************************/
 
@@ -130,7 +130,82 @@ int Pipe(DirEntry *dir_entry, FileEntry *file_entry)
   return( result );
 }
 
+int PipeDirectory(DirEntry *dir_entry)
+{
+  static char input_buffer[PATH_LENGTH + 3] = "| ";
+  char cwd[PATH_LENGTH + 1];
+  char path[PATH_LENGTH + 1];
+  FILE *pipe_fp;
+  FileEntry *fe;
+  int result = -1;
 
+  if (getcwd(cwd, sizeof(cwd)) == NULL) {
+    WARNING("getcwd failed*\".\"assumed");
+    strcpy(cwd, ".");
+  }
+
+  (void) GetPath( dir_entry, path );
+
+  ClearHelp();
+  MvAddStr( LINES - 2, 1, "Pipe-Command:" );
+
+  if( GetPipeCommand( &input_buffer[2] ) == 0 )
+  {
+    move( LINES - 2, 1 ); clrtoeol();
+
+    if( mode == DISK_MODE || mode == USER_MODE )
+    {
+      if( chdir( path ) )
+      {
+        (void) snprintf( message, MESSAGE_LENGTH, "Can't change directory to*\"%s\"", path );
+        MESSAGE( message );
+        return( -1 );
+      }
+    }
+
+    endwin();
+    SuspendClock();
+
+    if( ( pipe_fp = popen( &input_buffer[2], "w" ) ) == NULL )
+    {
+      (void) snprintf( message, MESSAGE_LENGTH, "Could not execute pipe command*\"%s\"*%s",
+                       &input_buffer[2], strerror(errno) );
+      InitClock();
+      clearok( stdscr, TRUE );
+      refresh();
+      MESSAGE( message );
+      if( chdir( cwd ) ) {}
+      return( -1 );
+    }
+
+    for( fe = dir_entry->file; fe; fe = fe->next )
+    {
+      if( fe->matching )
+      {
+        if( !hide_dot_files || fe->name[0] != '.' )
+        {
+          fprintf( pipe_fp, "%s\n", fe->name );
+        }
+      }
+    }
+
+    pclose( pipe_fp );
+    result = 0;
+
+    if( chdir( cwd ) ) {}
+
+    HitReturnToContinue();
+    InitClock();
+    clearok( stdscr, TRUE );
+    refresh();
+  }
+  else
+  {
+    move( LINES - 2, 1 ); clrtoeol();
+  }
+
+  return( result );
+}
 
 
 

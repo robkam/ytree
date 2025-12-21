@@ -969,6 +969,7 @@ extern void NormPath( char *in_path, char *out_path );
 /* pipe.c */
 extern int GetPipeCommand(char *pipe_command);
 extern int Pipe(DirEntry *dir_entry, FileEntry *file_entry);
+extern int PipeDirectory(DirEntry *dir_entry); /* ADDED */
 extern int PipeTaggedFiles(FileEntry *fe_ptr, WalkingPackage *walking_package);
 
 /* profile.c */

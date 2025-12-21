@@ -468,14 +468,18 @@ int InputStringEx(char *s, int y, int x, int cursor_pos, int display_width, int 
     case KEY_F(2):
 #endif
     case 'F' & 0x1f:
-        if(KeyF2Get( statistic.tree, statistic.disp_begin_pos, statistic.cursor_pos, path)) {
+        if (history_type != HST_LOGIN && history_type != HST_PATH) {
+            beep();
             break;
         }
-        if(*path) {
-            ls = StrLeft(path, max_len);
-            strcpy(s, ls);
-            free(ls);
-            p = StrVisualLength(s);
+
+        if(KeyF2Get( statistic.tree, statistic.disp_begin_pos, statistic.cursor_pos, path) == 0) {
+            if(*path) {
+                ls = StrLeft(path, max_len);
+                strcpy(s, ls);
+                free(ls);
+                p = StrVisualLength(s);
+            }
         }
         break;
 
