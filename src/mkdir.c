@@ -94,8 +94,8 @@ DirEntry *MakeDirEntry(DirEntry *father_dir_entry, char *dir_name )
   else
   {
 CREATE_NODE:
-    /* Directory erstellt
-     * ==> einklinken im Baum
+    /* Directory created
+     * ==> link into tree
      */
 
     /* FIX: Used calloc to ensure all fields (especially tagged_flag) are zeroed */
@@ -141,14 +141,14 @@ CREATE_NODE:
 		 );
 
 
-    /* Sortieren durch direktes Einfuegen */
+    /* Sort by direct insertion */
     /*------------------------------------*/
 
     for( des_ptr = father_dir_entry->sub_tree; des_ptr; des_ptr = des_ptr->next )
     {
       if( strcmp( des_ptr->name, den_ptr->name ) > 0 )
       {
-	/* des-Element ist groesser */
+	/* des-element is larger */
 	/*--------------------------*/
 
 	den_ptr->next = des_ptr;
@@ -161,7 +161,7 @@ CREATE_NODE:
 
       if( des_ptr->next == NULL )
       {
-        /* Ende der Liste erreicht; ==> einfuegen */
+        /* End of list reached; ==> insert */
         /*----------------------------------------*/
 
         den_ptr->prev = des_ptr;
@@ -173,7 +173,7 @@ CREATE_NODE:
 
     if( father_dir_entry->sub_tree == NULL )
     {
-      /* Erstes Element */
+      /* First element */
       /*----------------*/
 
       father_dir_entry->sub_tree = den_ptr;
@@ -227,7 +227,7 @@ int MakePath( DirEntry *tree, char *dir_path, DirEntry **dest_dir_entry )
   goto CREATE_EXTERNAL;
 
 SEARCH_TREE:
-    /* Pfad befindet sich im (Sub)-Tree */
+    /* Path is in the (Sub)-Tree */
     /*----------------------------------*/
 
     token = strtok_r( search_start, FILE_SEPARATOR_STRING, &old );
@@ -238,7 +238,7 @@ SEARCH_TREE:
         /* FIX: Case-insensitive search for existing directories */
         if( !strcasecmp( sde_ptr->name, token ) )
 	{
-	  /* Subtree gefunden */
+	  /* Subtree found */
 	  /*------------------*/
 
 	  de_ptr = sde_ptr;
@@ -247,7 +247,7 @@ SEARCH_TREE:
       }
       if( sde_ptr == NULL )
       {
-	/* Folgeverzeichnis nicht vorhanden */
+	/* Subsequent directory does not exist */
 	/*----------------------------------*/
     /* MakeDirEntry returns the new node (or existing one), or NULL on error */
 	if( ( de_ptr = MakeDirEntry( de_ptr, token ) ) == NULL )
@@ -262,7 +262,7 @@ SEARCH_TREE:
     return result;
 
 CREATE_EXTERNAL:
-    /* Zielverzeichnis ist nicht im Subtree */
+    /* Destination directory is not in subtree */
     /*--------------------------------------*/
 
     (void) strcat( path, FILE_SEPARATOR_STRING );
@@ -288,7 +288,7 @@ CREATE_EXTERNAL:
 		       S_IWOTH  |
 		       S_IXOTH ) )
       {
-        /* ging nicht... */
+        /* did not work... */
         /*---------------*/
 
         *cptr = FILE_SEPARATOR_CHAR;

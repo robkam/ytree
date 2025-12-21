@@ -436,7 +436,7 @@ static void Movedown(int *disp_begin_pos, int *cursor_pos, DirEntry **dir_entry)
 {
    if( *disp_begin_pos + *cursor_pos + 1 >= total_dirs )
    {
-      /* Element nicht vorhanden */
+      /* Element not present */
       /*-------------------------*/
       return;
    }
@@ -466,7 +466,7 @@ static void Moveup(int *disp_begin_pos, int *cursor_pos, DirEntry **dir_entry)
 {
    if( *disp_begin_pos + *cursor_pos - 1 < 0 )
    {
-      /* Element nicht vorhanden */
+      /* Element not present */
       /*-------------------------*/
       return;
    }
@@ -496,16 +496,14 @@ static void Movenpage(int *disp_begin_pos, int *cursor_pos, DirEntry **dir_entry
 {
    if( *disp_begin_pos + *cursor_pos >= total_dirs - 1 )
    {
-      /* Letzte Position */
+      /* Last position */
       /*-----------------*/
    }
    else
    {
       if( *cursor_pos < window_height - 1 )
       {
-          /* Cursor steht nicht auf letztem Eintrag
-           * der Seite
-           */
+          /* Cursor is not on last entry of the page */
            if( *disp_begin_pos + window_height > total_dirs  - 1 )
               *cursor_pos = total_dirs - *disp_begin_pos - 1;
            else
@@ -513,7 +511,7 @@ static void Movenpage(int *disp_begin_pos, int *cursor_pos, DirEntry **dir_entry
       }
       else
       {
-          /* Scrollen */
+          /* Scrolling */
           /*----------*/
           if( *disp_begin_pos + *cursor_pos + window_height < total_dirs )
           {
@@ -548,21 +546,19 @@ static void Moveppage(int *disp_begin_pos, int *cursor_pos, DirEntry **dir_entry
 {
    if( *disp_begin_pos + *cursor_pos <= 0 )
    {
-      /* Erste Position */
+      /* First position */
       /*----------------*/
    }
    else
    {
       if( *cursor_pos > 0 )
       {
-          /* Cursor steht nicht auf erstem Eintrag
-           * der Seite
-           */
+          /* Cursor is not on first entry of the page */
            *cursor_pos = 0;
       }
       else
       {
-         /* Scrollen */
+         /* Scrolling */
          /*----------*/
          if( (*disp_begin_pos -= window_height) < 0 )
          {
@@ -611,7 +607,7 @@ static void MoveEnd(DirEntry **dir_entry)
 static void MoveHome(DirEntry **dir_entry)
 {
     if( statistic.disp_begin_pos == 0 && statistic.cursor_pos == 0 )
-    {  /* Position 1 bereits errecht */
+    {  /* Position 1 already reached */
        /*----------------------------*/
     }
     else
@@ -977,7 +973,7 @@ int HandleDirWindow(DirEntry *start_dir_entry)
 
   GetMaxYX(dir_window, &window_height, &window_width);
 
-  /* Merker loeschen */
+  /* Clear flags */
   /*-----------------*/
 
   dir_mode = MODE_3;
@@ -1363,7 +1359,7 @@ int HandleDirWindow(DirEntry *start_dir_entry)
 		         else statistic.disp_begin_pos--;
 		       }
       		     }
-		     /* Unabhaengig vom Erfolg aktualisieren */
+		     /* Update regardless of success */
 		     BuildDirEntryList( start_dir_entry, &statistic );
 		     dir_entry = dir_entry_list[statistic.disp_begin_pos + statistic.cursor_pos].dir_entry;
 		     dir_entry->start_file = 0;
