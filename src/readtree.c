@@ -14,8 +14,8 @@ static void UnReadSubTree(DirEntry *dir_entry);
 
 
 
-/* Dateibaum lesen: path = "Root"-Pfad
- * dir_entry wird von der Funktion gefuellt
+/* Read file tree: path = "root" path
+ * dir_entry is filled by the function
  */
 
 
@@ -52,7 +52,7 @@ int ReadTree(DirEntry *dir_entry, char *path, int depth)
   }
 
 
-  /* dir_entry initialisieren */
+  /* Initialize dir_entry */
   /*--------------------------*/
 
   dir_entry->file           = NULL;
@@ -116,7 +116,7 @@ int ReadTree(DirEntry *dir_entry, char *path, int depth)
 
     if( EscapeKeyPressed() )
     {
-      /* Abfrage ob ytree verlassen werden soll */
+      /* Ask whether to abort scan */
       int choice = InputChoice("Abort scan (Y/N)?", "YyNn\033"); /* \033 is ESC */
       if (choice == 'Y' || choice == ESC) {
           closedir(dir);
@@ -169,7 +169,7 @@ int ReadTree(DirEntry *dir_entry, char *path, int depth)
 
     if( S_ISDIR( stat_struct.st_mode ) )
     {
-      /* Directory-Entry */
+      /* Directory Entry */
       /*-----------------*/
 
       /* FIX: Added +1 to allocation for null terminator */
@@ -204,14 +204,14 @@ int ReadTree(DirEntry *dir_entry, char *path, int depth)
           return -1;
       }
 
-      /* Sortieren durch direktes Einfuegen */
+      /* Sort by direct insertion */
       /*------------------------------------*/
 
       for( des_ptr = &first_dir_entry; des_ptr; des_ptr = des_ptr->next )
       {
         if( strcmp( des_ptr->name, den_ptr->name ) > 0 )
         {
-	  /* des-Element ist groesser */
+	  /* des-element is larger */
 	  /*--------------------------*/
 
 	  den_ptr->next = des_ptr;
@@ -223,7 +223,7 @@ int ReadTree(DirEntry *dir_entry, char *path, int depth)
 
 	if( des_ptr->next == NULL )
 	{
-	  /* Ende der Liste erreicht; ==> einfuegen */
+	  /* End of list reached; ==> insert */
 	  /*----------------------------------------*/
 
           den_ptr->prev = des_ptr;
@@ -235,20 +235,20 @@ int ReadTree(DirEntry *dir_entry, char *path, int depth)
     }
     else
     {
-      /* File-Entry */
+      /* File Entry */
       /*------------*/
 
       int n;
       char link_path[PATH_LENGTH + 1];
 
-      /* Test, ob Eintrag Symbolischer Link ist */
+      /* Check if entry is symbolic link */
       /*----------------------------------------*/
 
       n = 0; *link_path = '\0';
 
       if( S_ISLNK( stat_struct.st_mode ) )
       {
-	/* Ja, symbolischer Name wird an "echten" Namen angehaengt */
+	/* Yes, append symbolic name to "real" name */
 	/*---------------------------------------------------------*/
 
 	if( ( n = readlink( new_path, link_path, sizeof( link_path ) ) ) == -1 )

@@ -10,9 +10,9 @@
 /* #include <sys/wait.h> */  /* maybe wait.h is available */
 
 
-/* Login Disk liefert
- * -1 bei Fehler
- * 0  bei fehlerfreiem lesen eines neuen Baumes oder bei Benutzung eines Baumes im Speicher
+/* Login Disk returns
+ * -1 on error
+ * 0  on successfully reading a new tree or when using a tree in memory
  */
 
 
