@@ -31,7 +31,7 @@ int DeleteFile(FileEntry *fe_ptr)
     {
       if( access( filepath, F_OK ) )
       {
-        /* Datei existiert nicht ==> fertig */
+        /* File does not exist ==> done */
 
         goto UNLINK_DONE;
       }
@@ -67,7 +67,7 @@ int DeleteFile(FileEntry *fe_ptr)
 
 UNLINK_DONE:
 
-  /* File austragen */
+  /* Remove file record */
   /*----------------*/
 
   result = RemoveFile( fe_ptr );
@@ -109,7 +109,7 @@ int RemoveFile(FileEntry *fe_ptr)
     statistic.disk_tagged_files--;
   }
 
-  /* File austragen */
+  /* Remove file record */
   /*----------------*/
 
   if( fe_ptr->next ) fe_ptr->next->prev = fe_ptr->prev;

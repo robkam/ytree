@@ -24,7 +24,7 @@
 #define DEFAULT_ANIMATION     "0"
 
 
-/* UNIX-Kommandos */
+/* UNIX Commands */
 /*----------------*/
 
 #define DEFAULT_CAT        "cat"

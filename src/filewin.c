@@ -594,7 +594,7 @@ static void PrintFileEntry(int entry_no, int y, int x, unsigned char hilight, in
   int base_color_pair;
 
 
-  ef_window_width = window_width - 2; /* Effektive Window-Width */
+  ef_window_width = window_width - 2; /* Effective Window Width */
 
   (reverse_sort) ? (justify='+') : (justify='-');
 
@@ -920,7 +920,7 @@ static void fmovedown(int *start_file, int *cursor_pos, int *start_x, DirEntry *
 {
    if( (unsigned int)(*start_file + *cursor_pos + 1) >= file_count )
    {
-      /* File nicht vorhanden */
+      /* File not present */
       /*----------------------*/
       return;
    }
@@ -950,7 +950,7 @@ static void fmoveup(int *start_file, int *cursor_pos, int *start_x, DirEntry *di
 {
    if( *start_file + *cursor_pos < 1 )
    {
-      /* File nicht vorhanden */
+      /* File not present */
       /*----------------------*/
       return;
    }
@@ -980,7 +980,7 @@ static void fmoveright(int *start_file, int *cursor_pos, int *start_x,DirEntry *
 {
    if( x_step == 1 )
    {
-      /* Sonderfall: ganzes Filewindow scrollen */
+      /* Special case: scroll entire file window */
       /*------------------------*/
       (*start_x)++;
       DisplayFiles( dir_entry,
@@ -992,15 +992,15 @@ static void fmoveright(int *start_file, int *cursor_pos, int *start_x,DirEntry *
    }
    else if( (unsigned int)(*start_file + *cursor_pos) >= file_count - 1 )
    {
-      /*letzte Position erreicht */
+      /* last position reached */
       /*-------------------------*/
    }
    else
    {
       if( (unsigned int)(*start_file + *cursor_pos + x_step) >= file_count )
       {
-          /* voller Step nicht moeglich;
-           * auf letzten Eintrag positionieren
+          /* full step not possible;
+           * position on last entry
            */
            my_x_step = (int)file_count - *start_file - *cursor_pos - 1;
       }
@@ -1010,13 +1010,13 @@ static void fmoveright(int *start_file, int *cursor_pos, int *start_x,DirEntry *
       }
       if( *cursor_pos + my_x_step < max_disp_files )
       {
-          /* RIGHT ohne scroll moeglich */
+          /* RIGHT possible without scrolling */
           /*----------------------------*/
           *cursor_pos += my_x_step;
       }
       else
       {
-          /* Scrollen */
+          /* Scrolling */
           /*----------*/
           *start_file += x_step;
           *cursor_pos -= x_step - my_x_step;
@@ -1048,7 +1048,7 @@ static void fmoveleft(int *start_file, int *cursor_pos, int *start_x, DirEntry *
 {
      if( x_step == 1 )
      {
-         /* Sonderfall: ganzes Filewindow scrollen */
+         /* Special case: scroll entire file window */
          /*----------------------------------------*/
          if( *start_x > 0 ) (*start_x)--;
          DisplayFiles( dir_entry,
@@ -1059,15 +1059,15 @@ static void fmoveleft(int *start_file, int *cursor_pos, int *start_x, DirEntry *
      }
      else if( *start_file + *cursor_pos <= 0 )
      {
-         /* erste Position erreicht */
+         /* first position reached */
          /*-------------------------*/
      }
      else
      {
          if( *start_file + *cursor_pos - x_step < 0 )
          {
-             /* voller Step nicht moeglich;
-              * auf ersten Eintrag positionieren
+             /* full step not possible;
+              * position on first entry
               */
               my_x_step = *start_file + *cursor_pos;
          }
@@ -1077,13 +1077,13 @@ static void fmoveleft(int *start_file, int *cursor_pos, int *start_x, DirEntry *
          }
          if( *cursor_pos - my_x_step >= 0 )
          {
-             /* LEFT ohne scroll moeglich */
+             /* LEFT possible without scrolling */
              /*---------------------------*/
              *cursor_pos -= my_x_step;
          }
          else
          {
-             /* Scrollen */
+             /* Scrolling */
              /*----------*/
              if( ( *start_file -= x_step ) < 0 )
                 *start_file = 0;
@@ -1115,7 +1115,7 @@ static void fmovenpage(int *start_file, int *cursor_pos, int *start_x, DirEntry 
 {
    if( (unsigned int)(*start_file + *cursor_pos) >= file_count - 1 )
    {
-      /*letzte Position erreicht */
+      /* last position reached */
       /*-------------------------*/
       return;
    }
@@ -1164,7 +1164,7 @@ static void fmoveppage(int *start_file, int *cursor_pos, int *start_x, DirEntry 
 {
      if( *start_file + *cursor_pos <= 0 )
      {
-        /* erste Position erreicht */
+        /* first position reached */
         /*-------------------------*/
         return;
      }
@@ -1243,7 +1243,7 @@ int HandleFileWindow(DirEntry *dir_entry)
   fe_ptr = NULL;
 
 
-  /* Cursor-Positionsmerker zuruecksetzen */
+  /* Reset cursor position flags */
   /*--------------------------------------*/
 
   need_dsp_help = TRUE;
@@ -1394,14 +1394,14 @@ int HandleFileWindow(DirEntry *dir_entry)
 
    if( x_step == 1 && ( action == ACTION_MOVE_RIGHT || action == ACTION_MOVE_LEFT ) )
    {
-      /* start_x nicht zuruecksetzen */
+      /* do not reset start_x */
       /*-----------------------------*/
 
       ; /* do nothing */
    }
    else
    {
-      /* bei 0 beginnen */
+      /* start at 0 */
       /*----------------*/
 
       if( start_x )
@@ -1446,7 +1446,7 @@ int HandleFileWindow(DirEntry *dir_entry)
 
       case ACTION_END  : if( (unsigned int)(dir_entry->start_file + dir_entry->cursor_pos + 1) >= file_count )
 		      {
-			/* Letzte Position erreicht */
+			/* last position reached */
 			/*--------------------------*/
 		      }
 		      else
@@ -1472,7 +1472,7 @@ int HandleFileWindow(DirEntry *dir_entry)
 
       case ACTION_HOME : if( dir_entry->start_file + dir_entry->cursor_pos <= 0 )
 		      {
-			/* erste Position erreicht */
+			/* first position reached */
 			/*-------------------------*/
 		      }
 		      else
@@ -1673,7 +1673,7 @@ int HandleFileWindow(DirEntry *dir_entry)
 
 		      if( dir_entry->cursor_pos >= max_disp_files )
 		      {
-			/* Cursor muss neu positioniert werden */
+			/* Cursor must be repositioned */
 			/*-------------------------------------*/
 
                         dir_entry->cursor_pos = max_disp_files - 1;
@@ -1990,7 +1990,7 @@ int HandleFileWindow(DirEntry *dir_entry)
 				     &new_fe_ptr
 				   ) )
 		      {
-			/* File wurde bewegt */
+			/* File was moved */
 			/*-------------------*/
 
                         DisplayAvailBytes();
@@ -2116,7 +2116,7 @@ int HandleFileWindow(DirEntry *dir_entry)
 
 		      if( !DeleteFile( fe_ptr ) )
 		      {
-		        /* File wurde geloescht */
+		        /* File was deleted */
 			/*----------------------*/
 
 			if( dir_entry->global_flag )
@@ -2652,7 +2652,7 @@ static void WalkTaggedFiles(int start_file,
       if( maybe_change_x == FALSE &&
 	  i >= start_file && i < start_file + max_disp_files )
       {
-	/* Walk ohne scroll moeglich */
+	/* Walk possible without scrolling */
 	/*---------------------------*/
     DisplayFiles( fe_ptr->dir_entry,
             start_file,
@@ -2663,7 +2663,7 @@ static void WalkTaggedFiles(int start_file,
       }
       else
       {
-	/* Scroll noetig */
+	/* Scrolling necessary */
 	/*---------------*/
 
 	start_file = MAX( 0, i - max_disp_files + 1 );
@@ -2874,7 +2874,7 @@ static int DeleteTaggedFiles(int max_disp_files)
       {
         if( ( result = DeleteFile( fe_ptr ) ) == 0 )
         {
-	  /* File wurde geloescht */
+	  /* File was deleted */
 	  /*----------------------*/
 
 	  deleted = TRUE;

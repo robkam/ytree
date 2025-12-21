@@ -84,7 +84,7 @@ int RenameDirectory(DirEntry *de_ptr, char *new_name)
 
   if( !RenameDirEntry( to_path, from_path ) )
   {
-    /* Rename erfolgreich */
+    /* Rename successful */
     /*--------------------*/
 
 
@@ -112,7 +112,7 @@ int RenameDirectory(DirEntry *de_ptr, char *new_name)
 		   sizeof( stat_struct )
 		 );
 
-    /* Struktur einklinken */
+    /* Link structure */
     /*---------------------*/
 
     if( den_ptr->prev ) den_ptr->prev->next = den_ptr;
@@ -136,12 +136,12 @@ int RenameDirectory(DirEntry *de_ptr, char *new_name)
     for( ude_ptr=den_ptr->up_tree; ude_ptr; ude_ptr = ude_ptr->next )
       if( ude_ptr->sub_tree == de_ptr ) ude_ptr->sub_tree = den_ptr;
 
-    /* Alte Struktur freigeben */
+    /* Free old structure */
     /*-------------------------*/
 
     free( de_ptr );
 
-    /* Achtung: de_ptr ist ab jetzt ungueltig !!! */
+    /* Warning: de_ptr is invalid from now on !!! */
     /*--------------------------------------------*/
 
     result = 0;
@@ -209,7 +209,7 @@ int RenameFile(FileEntry *fe_ptr, char *new_name, FileEntry **new_fe_ptr )
 
   if( !RenameFileEntry( to_path, from_path ) )
   {
-    /* Rename erfolgreich */
+    /* Rename successful */
     /*--------------------*/
 
     if( STAT_( to_path, &stat_struct ) )
@@ -235,19 +235,19 @@ int RenameFile(FileEntry *fe_ptr, char *new_name, FileEntry **new_fe_ptr )
 		   sizeof( stat_struct )
 		 );
 
-    /* Struktur einklinken */
+    /* Link structure */
     /*---------------------*/
 
     if( fen_ptr->prev ) fen_ptr->prev->next = fen_ptr;
     if( fen_ptr->next ) fen_ptr->next->prev = fen_ptr;
     if( fen_ptr->dir_entry->file == fe_ptr ) fen_ptr->dir_entry->file = fen_ptr;
 
-    /* Alte Struktur freigeben */
+    /* Free old structure */
     /*-------------------------*/
 
     free( fe_ptr );
 
-    /* Achtung: fe_ptr ist ab jetzt ungueltig !!! */
+    /* Warning: fe_ptr is invalid from now on !!! */
     /*--------------------------------------------*/
 
     result = 0;
