@@ -66,6 +66,7 @@ These commands work in most modes:
 *   **<** / **>** (or **,** / **.**): **Cycle Volumes**. Switch to the previous or next logged volume instantly.
 *   **^Q**: **Quit to Directory**. If you exit ytree with ^Q, the last selected directory becomes your current working directory. *Note: This requires a shell wrapper function.*
 *   **Q**: **Quit**. Exit ytree.
+*   **Up Arrow**: History (with `P` to Pin, `D` to Delete).
 
 ### Directory Mode
 Active when browsing the directory tree window.
@@ -163,6 +164,7 @@ Input prompts support standard shortcuts:
 *   **^D / Del**: Delete character.
 *   **^H / Backspace**: Backspace.
 *   **Up Arrow**: History (with `P` to Pin, `D` to Delete).
+*   **F2**: Select Directory (Log/Copy/Move).
 
 # CONFIGURATION
 

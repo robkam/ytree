@@ -89,6 +89,7 @@ These commands work in most modes:
   selected directory becomes your current working directory. *Note: This
   requires a shell wrapper function.*
 - **Q**: **Quit**. Exit ytree.
+- **Up Arrow**: History (with `P` to Pin, `D` to Delete).
 
 ### Directory Mode
 
@@ -192,6 +193,7 @@ Input prompts support standard shortcuts:
 - **^D / Del**: Delete character.
 - **^H / Backspace**: Backspace.
 - **Up Arrow**: History (with `P` to Pin, `D` to Delete).
+- **F2**: Select Directory (Log/Copy/Move).
 
 # CONFIGURATION
 
