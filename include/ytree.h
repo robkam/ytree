@@ -903,7 +903,7 @@ extern int ReadGroupEntries(void);
 extern int InternalView(char *file_path);
 extern int ViewHex(char *file_path);
 
-/* history.c, keyhtab.c */
+/* history.c, tabcompl.c */
 extern char *GetHistory(int type);
 extern char *GetMatches(char *);
 extern void InsHistory(char *new_hist, int type);
