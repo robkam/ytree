@@ -6,9 +6,9 @@
  ***************************************************************************/
 
 /* Default (max) TreeDepth on startup */
-#define DEFAULT_TREEDEPTH     "1"
+#define DEFAULT_TREEDEPTH     "2"
 #define DEFAULT_FILEMODE      "2"
-#define DEFAULT_NOSMALLWINDOW "0"
+#define DEFAULT_NOSMALLWINDOW "1"
 #define DEFAULT_NUMBERSEP     "."
 #define DEFAULT_INITIALDIR    NULL
 #define DEFAULT_DIR1          NULL
@@ -17,7 +17,7 @@
 #define DEFAULT_FILE2         NULL
 
 #define DEFAULT_HEXEDITOFFSET "HEX"
-#define DEFAULT_AUDIBLEERROR  "1"
+#define DEFAULT_AUDIBLEERROR  "0"
 #define DEFAULT_CONFIRMQUIT   "0"
 #define DEFAULT_HIGHLIGHT_FULL_LINE "0"
 #define DEFAULT_HIDEDOTFILES  "1"
