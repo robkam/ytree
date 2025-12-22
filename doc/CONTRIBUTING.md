@@ -120,16 +120,19 @@ The Architect/Builder executes the plan manually via the web interface. In a **s
 
 0.  **Paste the Architect/Builder System Prompt** (See [Appendix B](#appendix-b-the-architectbuilder-persona)) into the "System Instructions" field.
 
-1.  **Prepare Files:** Use the file list from Part 1 to identify which files need modification. You can use the interactive `scripts/gather_context.py` again to select just the specific files needed for implementation or a shell command e.g.
-    ```bash
-    for f in  include/ytree.h src/color.c  src/init.c; do
-    echo '```'
-    echo -e "\n"
-    cat "$f"
-    echo -e "\n"
-    echo '```'
-    done > context.txt
-    ```
+1.  **Prepare Files:** Use the file list from Part 1 to identify which files need modification. You can:
+    *   **Interactive:** Run `scripts/gather_context.py` again to select the specific files.
+    *   **Shell Command:**
+        ```bash
+        for f in include/ytree.h src/color.c src/init.c; do
+            echo '```'; echo; cat "$f"; echo; echo '```'
+        done > context.txt
+        ```
+    *   **Ytree:** Tag the files, press `^X` (Execute Tagged), and enter:
+        ```bash
+        (echo '```'; echo; cat {}; echo; echo '```') >> context.txt
+        ```
+        *(Note: Ensure `context.txt` is empty before running this, as `>>` appends.)*
 
 2.  **Upload:**
     *   Start a **New Chat** in Google AI Studio.

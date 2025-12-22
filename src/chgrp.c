@@ -37,7 +37,7 @@ int GetNewGroup(int st_gid)
 
   ClearHelp();
 
-  MvAddStr( LINES - 2, 1, "NEW GROUP:" );
+  MvAddStr( LINES - 2, 1, "GROUP:" );
 
   if( InputString( group, LINES - 2, 12, 0, GROUP_NAME_MAX, "\r\033", HST_ID ) == CR )
   {
