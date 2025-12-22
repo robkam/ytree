@@ -8,6 +8,9 @@
 
 #include "ytree.h"
 
+#ifndef HST_CHANGE_MODUS
+#define HST_CHANGE_MODUS 10
+#endif
 
 #define MAX( a, b ) ( ( (a) > (b) ) ? (a) : (b) )
 
@@ -1529,7 +1532,10 @@ int HandleFileWindow(DirEntry *dir_entry)
 
 			(void) GetAttributes( mask, modus );
 
-		        if( GetNewFileModus( Y_PROMPT, 1, modus, "\r\033" ) == CR )
+            ClearHelp();
+            MvAddStr( Y_PROMPT, 1, "ATTRIBUTES:" );
+
+		    if( InputString( modus, Y_PROMPT, 12, 0, 10, "\r\033", HST_CHANGE_MODUS ) == CR )
 			{
 			  (void) strcpy( walking_package.function_data.change_modus.new_modus,
 					 modus
@@ -1546,6 +1552,7 @@ int HandleFileWindow(DirEntry *dir_entry)
 					start_x
 				      );
 			}
+            move( Y_PROMPT, 1 ); clrtoeol();
 		      }
 		      break;
 

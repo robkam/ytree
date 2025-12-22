@@ -36,7 +36,7 @@ int GetNewOwner(int st_uid)
 
   ClearHelp();
 
-  MvAddStr( LINES - 2, 1, "NEW OWNER:" );
+  MvAddStr( LINES - 2, 1, "OWNER:" );
 
   if( InputString( owner, LINES - 2, 12, 0, OWNER_NAME_MAX, "\r\033", HST_ID ) == CR )
   {
