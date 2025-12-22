@@ -326,10 +326,10 @@ int InputStringEx(char *s, int y, int x, int cursor_pos, int display_width, int 
     {
     case KEY_LEFT:
     case KEY_BTAB:  /* Back-tab (often Shift-Tab), treat as left */
-        if( p > 0 ) p--; else beep(); break;
+        if( p > 0 ) p--; break;
 
     case KEY_RIGHT:
-        if( p < StrVisualLength(s) ) p++; else beep(); break;
+        if( p < StrVisualLength(s) ) p++; break;
 
     case KEY_UP:
         pp = GetHistory(history_type);
@@ -369,8 +369,6 @@ int InputStringEx(char *s, int y, int x, int cursor_pos, int display_width, int 
             strcpy(s, rs);
             free(rs);
             p = 0;
-        } else {
-            beep();
         }
         break;
 
@@ -392,7 +390,6 @@ int InputStringEx(char *s, int y, int x, int cursor_pos, int display_width, int 
             }
 
             if (start_of_word >= byte_p) { /* Nothing to delete */
-                beep();
                 break;
             }
 
@@ -409,8 +406,6 @@ int InputStringEx(char *s, int y, int x, int cursor_pos, int display_width, int 
             } else {
                 p = 0; /* Fallback */
             }
-        } else {
-            beep();
         }
         break;
 
@@ -442,8 +437,6 @@ int InputStringEx(char *s, int y, int x, int cursor_pos, int display_width, int 
             free(ls);
             free(rs);
             p--;
-        } else {
-            beep();
         }
         break;
 

@@ -1,14 +1,16 @@
 /***************************************************************************
  *
  * chmod.c
- * Change Mode
+ * Change File Modes
  *
  ***************************************************************************/
 
 
 #include "ytree.h"
 
-
+#ifndef HST_CHANGE_MODUS
+#define HST_CHANGE_MODUS 10
+#endif
 
 static int SetDirModus(DirEntry *de_ptr, WalkingPackage *walking_package);
 static int GetNewModus(int old_modus, char *new_modus );
@@ -17,7 +19,7 @@ static int GetNewModus(int old_modus, char *new_modus );
 
 int ChangeFileModus(FileEntry *fe_ptr)
 {
-  char modus[11];
+  char modus[12];
   WalkingPackage walking_package;
   int  result;
 
@@ -30,7 +32,10 @@ int ChangeFileModus(FileEntry *fe_ptr)
 
   (void) GetAttributes( fe_ptr->stat_struct.st_mode, modus );
 
-  if( GetNewFileModus( LINES - 2, 1, modus, "\r\033" ) == CR )
+  ClearHelp();
+  MvAddStr( LINES - 2, 1, "ATTRIBUTES:" );
+
+  if( InputString( modus, LINES - 2, 12, 0, 10, "\r\033", HST_CHANGE_MODUS ) == CR )
   {
     (void) strcpy( walking_package.function_data.change_modus.new_modus, modus );
     result = SetFileModus( fe_ptr, &walking_package );
@@ -47,7 +52,7 @@ int ChangeFileModus(FileEntry *fe_ptr)
 
 int ChangeDirModus(DirEntry *de_ptr)
 {
-  char modus[11];
+  char modus[12];
   WalkingPackage walking_package;
   int  result;
 
@@ -60,7 +65,10 @@ int ChangeDirModus(DirEntry *de_ptr)
 
   (void) GetAttributes( de_ptr->stat_struct.st_mode, modus );
 
-  if( GetNewFileModus( LINES - 2, 1, modus, "\r\033" ) == CR )
+  ClearHelp();
+  MvAddStr( LINES - 2, 1, "ATTRIBUTES:" );
+
+  if( InputString( modus, LINES - 2, 12, 0, 10, "\r\033", HST_CHANGE_MODUS ) == CR )
   {
     (void) strcpy( walking_package.function_data.change_modus.new_modus, modus );
     result = SetDirModus( de_ptr, &walking_package );
@@ -69,77 +77,6 @@ int ChangeDirModus(DirEntry *de_ptr)
   move( LINES - 2, 1 ); clrtoeol();
 
   return( result );
-}
-
-
-
-
-int GetNewFileModus(int y, int x, char *modus, char *term)
-{
-  int c, p;
-  static char rwx[] = "rwx";
-
-  ClearHelp();
-  curs_set(1);
-  MvAddStr( y, x, "NEW FILEMODUS:" );
-
-  x += 16;
-
-  p = 0;
-  MvAddStr(y, x, modus );
-  leaveok(stdscr, FALSE);
-  do
-  {
-    move( y, x + p );
-    RefreshWindow( stdscr );
-    doupdate();
-
-    c = Getch();
-
-#ifdef VI_KEYS
-    c = ViKey( c );
-#endif /* VI_KEYS */
-
-    if( c == LF ) c = CR;
-
-    if( p > 0 && ( c == '?' || c == '-' || c == rwx[(p-1) % 3] ) )
-    {
-      /* gueltige Eingabe */
-      /*------------------*/
-
-      modus[p] = (char) c;
-      addch( c );
-      if( p < 9 ) p++;
-    }
-    else if( c == 's' && ( p == 3 || p == 6 ) )
-    {
-      /* Set-ID */
-      /*--------*/
-
-      if( modus[p] != 'x' && modus[p] != 's' )
-      {
-	MESSAGE( "Execute-Permission required*for set-ID" );
-      }
-      else
-      {
-        modus[p] = (char) c;
-        addch( c );
-        if( p < 9 ) p++;
-      }
-    }
-    else
-    {
-      if( c == ' ' && p < 9 ) p++;
-      else if( c == KEY_LEFT && p > 0 ) p--;
-      else if( c == KEY_RIGHT && p < 9 ) p++;
-      else if( strrchr( term, c ) == NULL ) beep();
-    }
-  } while( c != -1 && strrchr( term, c ) == NULL );
-  leaveok(stdscr, TRUE);
-  move( y, x ); clrtoeol();
-  curs_set(0);
-
-  return( c );
 }
 
 
@@ -165,7 +102,7 @@ int SetFileModus(FileEntry *fe_ptr, WalkingPackage *walking_package)
 
   if( !chmod( GetFileNamePath( fe_ptr, buffer ), new_modus ) )
   {
-    /* Erfolgreich modifiziert */
+    /* Successful modification */
     /*-------------------------*/
 
     if( STAT_( buffer, &stat_struct ) )
@@ -210,7 +147,7 @@ static int SetDirModus(DirEntry *de_ptr, WalkingPackage *walking_package)
 
   if( !chmod( GetPath( de_ptr, buffer ), new_modus ) )
   {
-    /* Erfolgreich modifiziert */
+    /* Successful modification */
     /*-------------------------*/
 
     if( STAT_( buffer, &stat_struct ) )
