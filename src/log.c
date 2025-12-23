@@ -615,13 +615,20 @@ int SelectLoadedVolume(void)
                 }
 
                 const char *path_to_display = vol_array[actual_idx]->vol_stats.login_path;
+                char display_buf[PATH_LENGTH + 1];
+
                 if (strlen(path_to_display) == 0) {
                     path_to_display = "<No Path>";
                 }
 
+                /* Cut pathname if too long for the window */
+                /* FIX: Subtract 8 for padding to avoid overwriting right border (e.g. "[ ] " + path + border) */
+                int max_w = win_width - 8;
+                CutPathname(display_buf, path_to_display, max_w);
+
                 mvwprintw(win, y_pos, 2, "[%c] %s",
                           (actual_idx == selected_index ? '*' : ' '),
-                          path_to_display);
+                          display_buf);
 
                 if (actual_idx == current_volume_index && actual_idx != selected_index) {
                     wattroff(win, COLOR_PAIR(CPAIR_HIMENUS));

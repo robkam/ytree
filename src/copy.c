@@ -48,11 +48,59 @@ int CopyFile(Statistic *statistic_ptr,
   (void) GetPath(fe_ptr->dir_entry, from_dir);
 
   if (mode != DISK_MODE && mode != USER_MODE) {
-      /* When copying FROM an archive, the destination is always a real path. */
-      /* We bypass GetDirEntry and construct the path directly. */
-      strcpy(to_path, to_dir_path);
-      dest_dir_entry = NULL; /* Destination is not in the virtual tree */
-      path_copy = FALSE; /* Path copy is meaningless from a virtual path */
+      /* Archive Mode */
+      if (path_copy) {
+          char root_path[PATH_LENGTH+1];
+          char *rel_path;
+          char full_dest_path[PATH_LENGTH+1];
+          BOOL created = FALSE;
+
+          GetPath(statistic.tree, root_path);
+
+          /* Calculate relative path by stripping archive root from file's virtual directory */
+          if (strncmp(from_dir, root_path, strlen(root_path)) == 0) {
+              rel_path = from_dir + strlen(root_path);
+              /* If root path didn't end in separator but is a prefix, assume separator follows */
+              if (*rel_path == FILE_SEPARATOR_CHAR) rel_path++;
+          } else {
+              /* Fallback if paths don't align as expected */
+              rel_path = from_dir;
+          }
+
+          /* Construct full destination path for the directory */
+          strcpy(full_dest_path, to_dir_path);
+          if (full_dest_path[strlen(full_dest_path)-1] != FILE_SEPARATOR_CHAR) {
+              strcat(full_dest_path, FILE_SEPARATOR_STRING);
+          }
+          strcat(full_dest_path, rel_path);
+
+          /* Identify Target Context for directory creation */
+          target_vol = Volume_GetByPath(full_dest_path);
+          if (target_vol) {
+              target_tree = target_vol->vol_stats.tree;
+              target_stats = &target_vol->vol_stats;
+          } else {
+              target_tree = NULL;
+              target_stats = NULL;
+          }
+
+          /* Create the directory structure on the filesystem */
+          /* We pass &dest_dir_entry to capture the in-memory node if available */
+          if (EnsureDirectoryExists(full_dest_path, target_tree, &created, &dest_dir_entry) == -1) {
+               return result;
+          }
+          if (created) refresh_dirwindow = TRUE;
+
+          /* Update to_path to point to the newly created directory */
+          strcpy(to_path, full_dest_path);
+
+          /* Disable standard path_copy logic since we handled it manually */
+          path_copy = FALSE;
+      } else {
+          strcpy(to_path, to_dir_path);
+          /* dest_dir_entry = NULL; removed to allow resolution */
+          path_copy = FALSE;
+      }
   } else {
       *to_path = '\0';
       if( strcmp( to_dir_path, FILE_SEPARATOR_STRING ) )
@@ -64,17 +112,16 @@ int CopyFile(Statistic *statistic_ptr,
   }
 
   /* Identify Target Volume for Context-Aware Operations */
-  /* If path_copy is on, the final path is appended, so check to_dir_path base. */
-  /* Actually, to_path currently holds the base destination. */
+  /* If path_copy is on, the final path is appended later, so check to_dir_path base. */
+  /* However, if we came from Archive mode path_copy, to_path is already the full dest dir. */
+  /* We re-evaluate target_vol here to ensure consistency for the file copy part. */
+
   target_vol = Volume_GetByPath(to_path);
   if (target_vol) {
       target_tree = target_vol->vol_stats.tree;
       target_stats = &target_vol->vol_stats;
   } else {
-      /* Fallback to current if not found in list (e.g. single volume mode or external path) */
-      /* BUT: if it's an external path (not in any volume), target_tree should be NULL to avoid */
-      /* MakePath scanning the wrong tree. */
-      /* MakePath uses tree->name prefix check. If statistic_ptr->tree matches, use it. */
+      /* Fallback logic */
       if (strncmp(statistic_ptr->tree->name, to_path, strlen(statistic_ptr->tree->name)) == 0) {
           target_tree = statistic_ptr->tree;
           target_stats = statistic_ptr;

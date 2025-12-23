@@ -8,9 +8,7 @@
 
 #include "ytree.h"
 
-#ifndef HST_CHANGE_MODUS
-#define HST_CHANGE_MODUS 10
-#endif
+
 
 static int SetDirModus(DirEntry *de_ptr, WalkingPackage *walking_package);
 static int GetNewModus(int old_modus, char *new_modus );
