@@ -345,7 +345,7 @@ int InputStringEx(char *s, int y, int x, int cursor_pos, int display_width, int 
     case KEY_DOWN:
     case KEY_PPAGE:
     case KEY_NPAGE:
-        beep(); break;
+        break;
 
     case 'A' & 0x1F: /* Ctrl-A, Beginning of Line */
     case KEY_HOME:
@@ -420,8 +420,6 @@ int InputStringEx(char *s, int y, int x, int cursor_pos, int display_width, int 
             strcat(s, rs);
             free(ls);
             free(rs);
-        } else {
-            beep();
         }
         break;
 
@@ -495,11 +493,11 @@ int InputStringEx(char *s, int y, int x, int cursor_pos, int display_width, int 
             buf[1] = '\0';
 
             if (len_flag == TRUE) {
-                beep();
+                /* Beep removed */
             } else {
                 int visual_insert_len = StrVisualLength(buf);
                 if (p + visual_insert_len > max_len) {
-                    beep();
+                    /* Beep removed */
                 } else {
                     if ( insert_flag ) {
                         /* Insert logic */
@@ -542,7 +540,7 @@ int InputStringEx(char *s, int y, int x, int cursor_pos, int display_width, int 
             }
         } else {
             /* Unhandled non-terminating control sequence. */
-            beep();
+            /* Beep removed */
         }
         break;
     } /* switch */
