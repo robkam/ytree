@@ -8,9 +8,6 @@
 
 #include "ytree.h"
 
-#ifndef HST_CHANGE_MODUS
-#define HST_CHANGE_MODUS 10
-#endif
 
 #define MAX( a, b ) ( ( (a) > (b) ) ? (a) : (b) )
 
@@ -1239,6 +1236,7 @@ int HandleFileWindow(DirEntry *dir_entry)
   int  get_dir_ret;
   YtreeAction action = ACTION_NONE; /* Initialize action */
   DirEntry *last_stats_dir = NULL; /* Track context changes */
+  struct Volume *start_volume = CurrentVolume; /* Track volume context for crash prevention */
   int pclose_ret;
 
 
@@ -1291,6 +1289,13 @@ int HandleFileWindow(DirEntry *dir_entry)
 
   do
   {
+    /* CRITICAL FIX: Detect if volume was switched/deleted inside menu actions.
+     * If so, abort immediately to prevent use-after-free of dir_entry. */
+    if (CurrentVolume != start_volume) {
+        /* Force exit from file window loop */
+        return ESC;
+    }
+
     if( maybe_change_x_step )
     {
       maybe_change_x_step = FALSE;
@@ -1532,10 +1537,11 @@ int HandleFileWindow(DirEntry *dir_entry)
 
 			(void) GetAttributes( mask, modus );
 
+            /* Updated to use InputString instead of GetNewFileModus */
             ClearHelp();
             MvAddStr( Y_PROMPT, 1, "ATTRIBUTES:" );
 
-		    if( InputString( modus, Y_PROMPT, 12, 0, 10, "\r\033", HST_CHANGE_MODUS ) == CR )
+            if( InputString( modus, Y_PROMPT, 12, 0, 10, "\r\033", HST_CHANGE_MODUS ) == CR )
 			{
 			  (void) strcpy( walking_package.function_data.change_modus.new_modus,
 					 modus
@@ -1552,7 +1558,7 @@ int HandleFileWindow(DirEntry *dir_entry)
 					start_x
 				      );
 			}
-            move( Y_PROMPT, 1 ); clrtoeol();
+            move( LINES - 2, 1 ); clrtoeol(); /* Cleanup prompt line */
 		      }
 		      break;
 

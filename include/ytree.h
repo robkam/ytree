@@ -442,7 +442,8 @@ enum HistoryType {
     HST_SEARCH,
     HST_FILE,
     HST_PATH,
-    HST_ID
+    HST_ID,
+    HST_CHANGE_MODUS
 };
 
 /* ************************************************************************* */

@@ -1666,16 +1666,26 @@ int KeyF2Get(DirEntry *start_dir_entry,
   YtreeAction action; /* Declare YtreeAction variable */
 
   if (mode != DISK_MODE && mode != USER_MODE) {
-      /* When in an archive, F2 should show the filesystem tree */
-      if (disk_statistic.login_path[0] == '\0') {
-          MESSAGE("No filesystem context available.*Log into a directory first.");
+      /* Search for a volume that is in DISK_MODE */
+      struct Volume *v, *tmp;
+      struct Volume *disk_vol = NULL;
+
+      HASH_ITER(hh, VolumeList, v, tmp) {
+          if (v->vol_stats.mode == DISK_MODE) {
+              disk_vol = v;
+              break;
+          }
+      }
+
+      if (!disk_vol) {
+          MESSAGE("No filesystem volume active");
           return -1;
       }
-      tree_source = disk_statistic.tree;
-      stat_source = &disk_statistic;
-      /* Use the saved filesystem cursor positions, not the archive's */
-      local_disp_begin_pos = disk_statistic.disp_begin_pos;
-      local_cursor_pos = disk_statistic.cursor_pos;
+
+      tree_source = disk_vol->vol_stats.tree;
+      stat_source = &disk_vol->vol_stats;
+      local_disp_begin_pos = disk_vol->vol_stats.disp_begin_pos;
+      local_cursor_pos = disk_vol->vol_stats.cursor_pos;
   } else {
       tree_source = start_dir_entry;
       stat_source = &statistic;
