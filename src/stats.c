@@ -516,7 +516,11 @@ void DisplayDirStatistic(DirEntry *de, const char *title)
     } else if (de->global_flag) {
         DrawSeparator(y_dstat_sep, "SHOW ALL");
     } else {
-        DrawSeparator(y_dstat_sep, "CURRENT DIR");
+        if (mode == ARCHIVE_MODE) {
+             DrawSeparator(y_dstat_sep, "ARCHIVE");
+        } else {
+             DrawSeparator(y_dstat_sep, "CURRENT DIR");
+        }
     }
 
     /* Dir Name */

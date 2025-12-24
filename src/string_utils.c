@@ -88,6 +88,18 @@ int BuildFilename( char *in_filename,
             *d++ = '?'; /* Source exhausted, keep literal placeholder? */
         }
         p++;
+    } else if (*p == '.') {
+        /* Literal dot: synchronize with the extension separator in source */
+        char *last_dot = strrchr(in_filename, '.');
+        if (last_dot) {
+            s = last_dot;
+        }
+        *d++ = *p;
+        /* If source is now at the dot, consume it to stay in sync */
+        if (*s == *p) {
+            s++;
+        }
+        p++;
     } else {
         /* Literal character */
         *d++ = *p;
