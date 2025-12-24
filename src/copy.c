@@ -44,8 +44,12 @@ int CopyFile(Statistic *statistic_ptr,
 
   result = -1;
 
+  /* Initialize buffers to avoid printing garbage in debug logs */
+  to_path[0] = '\0';
+
   (void) GetRealFileNamePath( fe_ptr, from_path );
   (void) GetPath(fe_ptr->dir_entry, from_dir);
+
 
   if (mode != DISK_MODE && mode != USER_MODE) {
       /* Archive Mode */

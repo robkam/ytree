@@ -53,6 +53,7 @@ int ExtractArchiveEntry(const char *archive_path, const char *entry_path, int ou
     char normalized_target_name_buf[PATH_LENGTH + 1];
     const char *final_target_name;
 
+
     /*
      * 1. Determine the effective target path segment within the archive.
      *    This strips the archive_path prefix from entry_path if present,
@@ -97,6 +98,7 @@ int ExtractArchiveEntry(const char *archive_path, const char *entry_path, int ou
         char normalized_archive_path_buf[PATH_LENGTH + 1];
         const char *clean_path;
 
+
         /*
          * 3. Normalize the path obtained from the archive entry for comparison.
          *    This primarily strips any leading "./" that some archives might store.
@@ -128,6 +130,7 @@ int ExtractArchiveEntry(const char *archive_path, const char *entry_path, int ou
             doupdate();
         }
     }
+
 
     /* Entry not found or other error */
     archive_read_free(a);
