@@ -959,6 +959,7 @@ void ToggleDotFiles(void)
 
 int HandleDirWindow(DirEntry *start_dir_entry)
 {
+  struct Volume *start_volume = CurrentVolume;
   DirEntry  *dir_entry, *de_ptr;
   int i, ch, unput_char;
   BOOL need_dsp_help;
@@ -1053,6 +1054,8 @@ int HandleDirWindow(DirEntry *start_dir_entry)
   }
   do
   {
+    if (CurrentVolume != start_volume) return ESC;
+
     /* Detect Global Volume Change (Split Brain Fix) */
     if (CurrentVolume != last_seen_volume) {
         last_seen_volume = CurrentVolume;

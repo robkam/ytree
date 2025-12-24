@@ -199,6 +199,8 @@ int MakePath( DirEntry *tree, char *dir_path, DirEntry **dest_dir_entry )
   int      result = -1;
   char     *search_start;
 
+  if (tree == NULL) goto CREATE_EXTERNAL;
+
   NormPath( dir_path, path );
   *dest_dir_entry = NULL;
 
