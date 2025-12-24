@@ -58,6 +58,7 @@ void Volume_Delete(struct Volume *vol) {
         return;
     }
 
+
     /* Remove the volume from the global hash table */
     HASH_DEL(VolumeList, vol);
 
