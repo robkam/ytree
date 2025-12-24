@@ -60,11 +60,11 @@ static char *dir_help[MAX_MODES][2] =
       dir_help_disk_mode_1
     },
     { /* LL_FILE_MODE */
-      "DIR       (F)ilter   (^F)dirmode (L)og (^L)redraw (S)howall (T)ag (U)ntag (Q)uit",
+      "DIR       (F)ilter (^F)dirmode (L)og (^L)redraw (S)howall (T)ag (U)ntag (Q)uit",
       "COMMANDS                                                                           "
     },
     { /* ARCHIVE_MODE */
-      "ARCHIVE   (F)ilter   (^F)dirmode (L)og (^L)redraw (S)howall (T)ag (U)ntag (Q)uit",
+      "ARCHIVE   (F)ilter (^F)dirmode (L)og (^L)redraw (S)howall (T)ag (U)ntag (Q)uit",
       "COMMANDS                                                                           "
     },
     { /* USER_MODE */
@@ -74,7 +74,7 @@ static char *dir_help[MAX_MODES][2] =
   };
 
 
-static char file_help_disk_mode_0[] = "FILE      (A)ttribute (C)opy/(^K) (D)elete (E)dit (F)ilter   (^F)ilemode (G)roup (H)ex";
+static char file_help_disk_mode_0[] = "FILE      (A)ttribute (C)opy/(^K) (D)elete (E)dit (F)ilter (^F)ilemode (G)roup (H)ex";
 static char file_help_disk_mode_1[] = "COMMANDS  (L)og (M)ove/(^N) (O)wner (P)ipe (Q)uit (R)ename (S)ort (V)iew pathcop(Y)";
 static char *file_help[MAX_MODES][2] =
   {
@@ -83,11 +83,11 @@ static char *file_help[MAX_MODES][2] =
       file_help_disk_mode_1
     },
     { /* LL_FILE_MODE */
-      "FILE      (F)ilter   (^F)ilemode (L)og (^L)redraw (S)ort (T)ag (U)ntag (Q)uit      ",
+      "FILE      (F)ilter (^F)ilemode (L)og (^L)redraw (S)ort (T)ag (U)ntag (Q)uit      ",
       "COMMANDS                                                                                "
     },
     { /* ARCHIVE_MODE */
-      "ARCH-FILE (C)opy (F)ilter   (^F)ilemode (H)ex (P)ipe (S)ort (T)ag (U)ntag (V)iew (Q)uit",
+      "ARCH-FILE (C)opy (F)ilter (^F)ilemode (H)ex (P)ipe (S)ort (T)ag (U)ntag (V)iew pathcop(Y)",
       "COMMANDS                                                                               "
     },
     { /* USER_MODE */
