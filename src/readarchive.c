@@ -37,6 +37,29 @@ static void copy_stat_from_entry(struct stat *dest, struct archive_entry *entry)
         dest->st_mtime = archive_entry_mtime(entry);
         dest->st_nlink = archive_entry_nlink(entry);
     }
+
+    /*
+     * Strictly enforce file type bits to prevent files masquerading as directories.
+     * Some archives might have ambiguous mode bits.
+     */
+    switch (archive_entry_filetype(entry)) {
+        case AE_IFREG:
+            dest->st_mode &= ~S_IFDIR;
+            dest->st_mode |= S_IFREG;
+            break;
+        case AE_IFDIR:
+            dest->st_mode &= ~S_IFREG;
+            dest->st_mode |= S_IFDIR;
+            break;
+        case AE_IFLNK:
+            dest->st_mode &= ~S_IFDIR;
+            dest->st_mode &= ~S_IFREG;
+            dest->st_mode |= S_IFLNK;
+            break;
+        default:
+            /* Keep existing mode for links, sockets, etc. */
+            break;
+    }
 }
 
 /*

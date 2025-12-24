@@ -254,7 +254,7 @@ void DisplayMenu(void)
   /* DisplayVersion(); REMOVED from footer */
 
   touchwin( dir_window );
-  /* refresh(); */
+  refresh();
 }
 
 

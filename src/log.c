@@ -387,8 +387,8 @@ int LoginDisk(char *path)
 
       if(animation_method == 1) {
           StopAnimation();
-          SwitchToSmallFileWindow();
       }
+      SwitchToSmallFileWindow(); /* Force split view mode even if animation was unused */
 
       (void) SetFilter( statistic.file_spec ); /* This calls ApplyFilter internally */
       RecalculateSysStats();                   /* Sum up stats based on flags */
