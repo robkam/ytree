@@ -169,7 +169,6 @@ int main(int argc, char **argv)
   endwin();    /* Restore terminal settings */
 
   Volume_FreeAll(); /* Explicitly free memory */
-  FreeDirEntryList(); /* Free the global dir_entry_list array */
 
   return 0;
 }

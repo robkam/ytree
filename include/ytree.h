@@ -552,6 +552,12 @@ struct Volume {
     int id;                 /* Key for hash table */
     Statistic vol_stats;    /* Holds tree, path, current dir stats */
     Statistic vol_disk_stats; /* Holds filesystem totals */
+
+    /* Encapsulated Directory State Cache */
+    DirEntryList *dir_entry_list;
+    size_t dir_entry_list_capacity;
+    int total_dirs;
+
     UT_hash_handle hh;      /* For uthash macros */
 };
 
@@ -818,15 +824,16 @@ extern int DeleteFile(FileEntry *fe_ptr);
 extern int RemoveFile(FileEntry *fe_ptr);
 
 /* dirwin.c */
-extern void DisplayTree(WINDOW *win, int start_entry_no, int hilight_no);
+extern void DisplayTree(struct Volume *vol, WINDOW *win, int start_entry_no, int hilight_no);
 extern int HandleDirWindow(DirEntry *start_dir_entry);
 extern int KeyF2Get(DirEntry *start_dir_entry, int disp_begin_pos, int cursor_pos, char *path);
 extern int RefreshDirWindow(void);
 extern int ScanSubTree( DirEntry *dir_entry );
 extern void ToggleDotFiles(void);
-extern DirEntry *GetSelectedDirEntry(void);
-extern void BuildDirEntryList(DirEntry *dir_entry, Statistic *stat_source); /* ADDED: Expose BuildDirEntryList */
-extern void FreeDirEntryList(void);
+extern DirEntry *GetSelectedDirEntry(struct Volume *vol);
+extern void BuildDirEntryList(struct Volume *vol); /* UPDATED: Takes Volume context */
+extern void FreeDirEntryList(void); /* Retained for compat, or wraps FreeVolumeCache */
+extern void FreeVolumeCache(struct Volume *vol); /* ADDED: Explicit cache cleaner */
 
 /* display.c */
 extern void ClearHelp(void);
