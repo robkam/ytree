@@ -48,37 +48,11 @@ int ExtractArchiveEntry(const char *archive_path, const char *entry_path, int ou
     size_t size;
     la_int64_t offset;
     int spin_counter = 0; /* Activity spinner counter */
+    size_t entry_len;
+    int found = 0;
 
-    const char *effective_entry_path_segment; /* Points into entry_path or a derived segment */
-    char normalized_target_name_buf[PATH_LENGTH + 1];
-    const char *final_target_name;
-
-
-    /*
-     * 1. Determine the effective target path segment within the archive.
-     *    This strips the archive_path prefix from entry_path if present,
-     *    and skips any leading path separators.
-     */
-    size_t archive_path_len = strlen(archive_path);
-    if (strncmp(entry_path, archive_path, archive_path_len) == 0) {
-        effective_entry_path_segment = entry_path + archive_path_len;
-        /* Skip any leading path separators after the archive path */
-        while (*effective_entry_path_segment == FILE_SEPARATOR_CHAR) {
-            effective_entry_path_segment++;
-        }
-    } else {
-        /* If entry_path does not start with archive_path, it's assumed to be
-         * a direct path within the archive (e.g., "file.txt" or "dir/file.txt"). */
-        effective_entry_path_segment = entry_path;
-    }
-
-    /*
-     * 2. Normalize the effective_entry_path_segment for consistent comparison.
-     *    This handles cases like empty string or "." for the archive root,
-     *    and strips any leading "./" if present (though less likely for target_name).
-     */
-    final_target_name = normalize_archive_path_for_comparison(
-        effective_entry_path_segment, normalized_target_name_buf, sizeof(normalized_target_name_buf));
+    if (!entry_path) return -1;
+    entry_len = strlen(entry_path);
 
     a = archive_read_new();
     if (a == NULL) {
@@ -94,36 +68,51 @@ int ExtractArchiveEntry(const char *archive_path, const char *entry_path, int ou
     }
 
     while (archive_read_next_header(a, &entry) == ARCHIVE_OK) {
-        const char *pathname_in_archive = archive_entry_pathname(entry);
-        char normalized_archive_path_buf[PATH_LENGTH + 1];
-        const char *clean_path;
+        const char *clean_path = archive_entry_pathname(entry);
 
+        /* Normalize internal path: skip leading ./ or / */
+        if (clean_path[0] == '.' && clean_path[1] == FILE_SEPARATOR_CHAR) {
+            clean_path += 2;
+        }
+        while (*clean_path == FILE_SEPARATOR_CHAR) {
+            clean_path++;
+        }
 
         /*
-         * 3. Normalize the path obtained from the archive entry for comparison.
-         *    This primarily strips any leading "./" that some archives might store.
+         * Robust Suffix Matching Strategy
+         * We do not rely on calculating the prefix length, as this is prone to
+         * mismatches with symlinks, mounts, or relative paths.
+         * Instead, checking if the requested 'entry_path' ENDS with the archive's 'clean_path'
+         * guarantees a match, provided the boundary is a separator.
          */
-        clean_path = normalize_archive_path_for_comparison(
-            pathname_in_archive, normalized_archive_path_buf, sizeof(normalized_archive_path_buf));
+        size_t clean_len = strlen(clean_path);
 
-        /* Compare the normalized paths to find the desired entry */
-        if (clean_path && strcmp(clean_path, final_target_name) == 0) {
-            /* Found the entry, now write its data to the fd */
-            while ((r = archive_read_data_block(a, &buff, &size, &offset)) == ARCHIVE_OK) {
-                /* Update Spinner during extraction */
-                if ((++spin_counter % 100) == 0) {
-                    DrawSpinner();
-                    doupdate();
-                }
-                if (write(out_fd, buff, size) != (ssize_t)size) {
-                    /* Write error */
-                    archive_read_free(a);
-                    return -1;
+        if (entry_len >= clean_len) {
+            const char *suffix = entry_path + (entry_len - clean_len);
+
+            if (strcmp(suffix, clean_path) == 0) {
+                /* The suffix matches. Now verify boundary to prevent partial name matches. */
+                /* e.g., "my_file.txt" matching "file.txt" should fail. */
+                /* It must be the start of string OR preceded by a separator. */
+                if (suffix == entry_path || *(suffix - 1) == FILE_SEPARATOR_CHAR) {
+                     /* MATCH FOUND! */
+                     found = 1;
+                     while ((r = archive_read_data_block(a, &buff, &size, &offset)) == ARCHIVE_OK) {
+                        if ((++spin_counter % 100) == 0) {
+                            DrawSpinner();
+                            doupdate();
+                        }
+                        if (write(out_fd, buff, size) != (ssize_t)size) {
+                            found = 0; /* Write error */
+                            break;
+                        }
+                     }
+                     if (r != ARCHIVE_EOF && r != ARCHIVE_OK) found = 0; /* Read error */
+                     break; /* Stop searching */
                 }
             }
-            archive_read_free(a);
-            return (r == ARCHIVE_EOF) ? 0 : -1; /* Return success only on clean EOF */
         }
+
         /* Update spinner while searching headers too */
         if ((++spin_counter % 50) == 0) {
             DrawSpinner();
@@ -131,10 +120,8 @@ int ExtractArchiveEntry(const char *archive_path, const char *entry_path, int ou
         }
     }
 
-
-    /* Entry not found or other error */
     archive_read_free(a);
-    return -1;
+    return (found) ? 0 : -1;
 }
 #endif /* HAVE_LIBARCHIVE */
 
