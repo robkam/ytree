@@ -193,11 +193,16 @@ int MakePath( DirEntry *tree, char *dir_path, DirEntry **dest_dir_entry )
 {
   DirEntry *de_ptr, *sde_ptr;
   char     path[PATH_LENGTH+1];
-  char     *cptr;
   char     *token, *old;
   int      n;
   int      result = -1;
   char     *search_start;
+
+  /* Variables for external mkdir -p logic */
+  char     tmp[PATH_LENGTH + 1];
+  char     *p;
+  size_t   len;
+
 
   if (tree == NULL) goto CREATE_EXTERNAL;
 
@@ -264,40 +269,28 @@ SEARCH_TREE:
     return result;
 
 CREATE_EXTERNAL:
-    /* Destination directory is not in subtree */
-    /*--------------------------------------*/
+    /* Robust mkdir -p implementation */
+    snprintf(tmp, sizeof(tmp), "%s", dir_path);
+    len = strlen(tmp);
+    if (len > 0 && tmp[len - 1] == FILE_SEPARATOR_CHAR) tmp[len - 1] = 0;
 
-    (void) strcat( path, FILE_SEPARATOR_STRING );
+    /* Handle root: start after the first slash if absolute path */
+    p = tmp;
+    if (*p == FILE_SEPARATOR_CHAR) p++;
 
-    for( cptr = strchr( path, FILE_SEPARATOR_CHAR );
-         cptr;
-         cptr = strchr( cptr + 1, FILE_SEPARATOR_CHAR )
-       )
-    {
-      if( cptr == path ) continue;
-      if( cptr[-1] == FILE_SEPARATOR_CHAR ) continue;
-      if( cptr[-1] == '.' && (cptr == path+1 || cptr[-2] == FILE_SEPARATOR_CHAR ) ) continue;
-
-      *cptr = '\0';
-
-      if( mkdir( path, S_IREAD  |
-		       S_IWRITE |
-		       S_IEXEC  |
-		       S_IRGRP  |
-		       S_IWGRP  |
-		       S_IXGRP  |
-		       S_IROTH  |
-		       S_IWOTH  |
-		       S_IXOTH ) )
-      {
-        /* did not work... */
-        /*---------------*/
-
-        *cptr = FILE_SEPARATOR_CHAR;
-        if( errno == EEXIST ) continue; /* OK, weitermachen */
-        break;
-      }
-      *cptr = FILE_SEPARATOR_CHAR;
+    for (; *p; p++) {
+        if (*p == FILE_SEPARATOR_CHAR) {
+            *p = 0;
+            if (mkdir(tmp, 0755) != 0 && errno != EEXIST) {
+                 /* Error handling: ignore intermediate failures if final works */
+            }
+            *p = FILE_SEPARATOR_CHAR;
+        }
+    }
+    if (mkdir(tmp, 0755) != 0 && errno != EEXIST) {
+         (void) snprintf(message, MESSAGE_LENGTH, "Can't create directory*\"%s\"*%s", tmp, strerror(errno));
+         MESSAGE(message);
+         return -1;
     }
     result = 0;
 

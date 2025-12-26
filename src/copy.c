@@ -44,12 +44,8 @@ int CopyFile(Statistic *statistic_ptr,
 
   result = -1;
 
-  /* Initialize buffers to avoid printing garbage in debug logs */
-  to_path[0] = '\0';
-
   (void) GetRealFileNamePath( fe_ptr, from_path );
   (void) GetPath(fe_ptr->dir_entry, from_dir);
-
 
   if (mode != DISK_MODE && mode != USER_MODE) {
       /* Archive Mode */
@@ -156,17 +152,10 @@ int CopyFile(Statistic *statistic_ptr,
     target_vol = Volume_GetByPath(to_path);
     if (target_vol) target_tree = target_vol->vol_stats.tree;
 
-    /* Use target_tree instead of statistic_ptr->tree */
-    if( MakePath( target_tree ? target_tree : statistic_ptr->tree, to_path, &dest_dir_entry ) )
-    {
-     	 (void) snprintf( message,
-                         MESSAGE_LENGTH,
-                         "Can't create path*\"%s\"*%s",
-                         to_path,
-                         strerror(errno)
-                         );
-         MESSAGE( message );
-         return( result );
+    /* Use EnsureDirectoryExists instead of direct MakePath to prompt the user */
+    /* Pass NULL for created flag as we handle refresh_dirwindow later if dest_dir_entry is updated */
+    if (EnsureDirectoryExists(to_path, target_tree ? target_tree : statistic_ptr->tree, NULL, &dest_dir_entry) == -1) {
+         return result;
     }
   }
 

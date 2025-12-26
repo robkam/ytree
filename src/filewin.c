@@ -1236,7 +1236,7 @@ int HandleFileWindow(DirEntry *dir_entry)
   int  get_dir_ret;
   YtreeAction action = ACTION_NONE; /* Initialize action */
   DirEntry *last_stats_dir = NULL; /* Track context changes */
-  struct Volume *start_volume = CurrentVolume; /* Track volume context for crash prevention */
+  struct Volume *start_vol = CurrentVolume; /* Safety Check Variable */
   int pclose_ret;
 
 
@@ -1289,12 +1289,8 @@ int HandleFileWindow(DirEntry *dir_entry)
 
   do
   {
-    /* CRITICAL FIX: Detect if volume was switched/deleted inside menu actions.
-     * If so, abort immediately to prevent use-after-free of dir_entry. */
-    if (CurrentVolume != start_volume) {
-        /* Force exit from file window loop */
-        return ESC;
-    }
+    /* Critical Safety: If volume was deleted (e.g. via K menu), abort immediately */
+    if (CurrentVolume != start_vol) return ESC;
 
     if( maybe_change_x_step )
     {
@@ -1343,8 +1339,12 @@ int HandleFileWindow(DirEntry *dir_entry)
       if( ch == LF ) ch = CR;
     }
 
+    /* Re-check safety after blocking Getch */
+    if (CurrentVolume != start_vol) return ESC;
+
     if (IsUserActionDefined()) { /* User commands take precedence */
        ch = FileUserMode(&(file_entry_list[dir_entry->start_file + dir_entry->cursor_pos]), ch);
+       if (CurrentVolume != start_vol) return ESC;
     }
 
    if(resize_request) {
@@ -2512,6 +2512,7 @@ int HandleFileWindow(DirEntry *dir_entry)
           } else {
               ch = 0;
           }
+          if (CurrentVolume != start_vol) return ESC;
           break;
       case ACTION_VOL_PREV:
           if (CycleLoadedVolume(-1) == 0) {
@@ -2519,6 +2520,7 @@ int HandleFileWindow(DirEntry *dir_entry)
           } else {
               ch = 0;
           }
+          if (CurrentVolume != start_vol) return ESC;
           break;
       case ACTION_VOL_NEXT:
           if (CycleLoadedVolume(1) == 0) {
@@ -2526,6 +2528,7 @@ int HandleFileWindow(DirEntry *dir_entry)
           } else {
               ch = 0;
           }
+          if (CurrentVolume != start_vol) return ESC;
           break;
 
       case ACTION_REFRESH:
@@ -2620,7 +2623,7 @@ int HandleFileWindow(DirEntry *dir_entry)
 
      default:
                       break;
-    }
+    } /* switch */
   } while( action != ACTION_ENTER && action != ACTION_ESCAPE && action != ACTION_QUIT );
 
   if( dir_entry->big_window )

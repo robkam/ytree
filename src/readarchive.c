@@ -39,25 +39,22 @@ static void copy_stat_from_entry(struct stat *dest, struct archive_entry *entry)
     }
 
     /*
-     * Strictly enforce file type bits to prevent files masquerading as directories.
-     * Some archives might have ambiguous mode bits.
+     * Strictly enforce file type bits based on libarchive's explicit filetype.
+     * This prevents regular files from being misidentified as directories if
+     * the archive header's mode bits are ambiguous or non-standard.
      */
     switch (archive_entry_filetype(entry)) {
         case AE_IFREG:
-            dest->st_mode &= ~S_IFDIR;
-            dest->st_mode |= S_IFREG;
+            dest->st_mode = (dest->st_mode & ~S_IFMT) | S_IFREG;
             break;
         case AE_IFDIR:
-            dest->st_mode &= ~S_IFREG;
-            dest->st_mode |= S_IFDIR;
+            dest->st_mode = (dest->st_mode & ~S_IFMT) | S_IFDIR;
             break;
         case AE_IFLNK:
-            dest->st_mode &= ~S_IFDIR;
-            dest->st_mode &= ~S_IFREG;
-            dest->st_mode |= S_IFLNK;
+            dest->st_mode = (dest->st_mode & ~S_IFMT) | S_IFLNK;
             break;
         default:
-            /* Keep existing mode for links, sockets, etc. */
+            /* Keep existing mode for sockets, block devices, etc. */
             break;
     }
 }
