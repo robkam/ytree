@@ -32,10 +32,6 @@ static int  my_x_step;
 /* static int  hide_left; */ /* Removed: Unused */
 static int  hide_right;
 
-static FileEntryList *file_entry_list = NULL;
-static size_t file_entry_list_capacity = 0;
-
-static unsigned      file_count;
 static unsigned      max_visual_userview_len;
 static unsigned      max_visual_filename_len;
 static unsigned      max_visual_linkname_len;
@@ -149,10 +145,12 @@ static void BuildFileEntryList(DirEntry *dir_entry){
   LONGLONG t_bytes = 0;
   size_t i; /* Loop counter for recalculating tagged stats */
 
-  if( file_entry_list ) {
-    free( file_entry_list );
-    file_entry_list = NULL;
-    file_entry_list_capacity = 0;
+  if (!CurrentVolume) return; /* Safety check */
+
+  if( CurrentVolume->file_entry_list ) {
+    free( CurrentVolume->file_entry_list );
+    CurrentVolume->file_entry_list = NULL;
+    CurrentVolume->file_entry_list_capacity = 0;
   }
 
   if( !dir_entry->global_flag )  {
@@ -161,7 +159,7 @@ static void BuildFileEntryList(DirEntry *dir_entry){
     alloc_count = dir_entry->matching_files; /* This is the potentially stale value */
     if (alloc_count < 16) alloc_count = 16;
 
-    if( ( file_entry_list = (FileEntryList *)
+    if( ( CurrentVolume->file_entry_list = (FileEntryList *)
                   calloc( alloc_count,
                       sizeof( FileEntryList )
                     )
@@ -169,21 +167,21 @@ static void BuildFileEntryList(DirEntry *dir_entry){
         ERROR_MSG( "Calloc Failed*ABORT" );
         exit( 1 );
     }
-    file_entry_list_capacity = alloc_count;
+    CurrentVolume->file_entry_list_capacity = alloc_count;
 
-    file_count = 0;
+    CurrentVolume->file_count = 0;
     ReadFileList( dir_entry->tagged_flag, dir_entry );
     SortFileEntryList();
     SetFileMode( file_mode ); /* recalc */
 
     /* Recalculate and update statistics based on the actual loaded list */
-    dir_entry->matching_files = file_count;
+    dir_entry->matching_files = CurrentVolume->file_count;
     t_files = 0;
     t_bytes = 0;
-    for (i = 0; i < file_count; i++) {
-        if (file_entry_list[i].file->tagged) {
+    for (i = 0; i < CurrentVolume->file_count; i++) {
+        if (CurrentVolume->file_entry_list[i].file->tagged) {
             t_files++;
-            t_bytes += file_entry_list[i].file->stat_struct.st_size;
+            t_bytes += CurrentVolume->file_entry_list[i].file->stat_struct.st_size;
         }
     }
     dir_entry->tagged_files = t_files;
@@ -196,16 +194,16 @@ static void BuildFileEntryList(DirEntry *dir_entry){
     alloc_count = count_source; /* This is also potentially stale */
     if (alloc_count < 16) alloc_count = 16;
 
-    if( ( file_entry_list = (FileEntryList *)
+    if( ( CurrentVolume->file_entry_list = (FileEntryList *)
            calloc( alloc_count,
                       sizeof( FileEntryList )
               ) ) == NULL )  {
            ERROR_MSG( "Calloc Failed*ABORT" );
            exit( 1 );
     }
-    file_entry_list_capacity = alloc_count;
+    CurrentVolume->file_entry_list_capacity = alloc_count;
 
-    file_count = 0;
+    CurrentVolume->file_count = 0;
     global_max_visual_filename_len = 0;
     global_max_visual_linkname_len = 0;
     ReadGlobalFileList(  dir_entry->tagged_flag, statistic.tree );
@@ -239,21 +237,21 @@ static void ReadFileList(BOOL tagged_only, DirEntry *dir_entry)
           continue;
 
       /* Bounds check */
-      if (file_count >= file_entry_list_capacity) {
-          size_t new_capacity = file_entry_list_capacity * 2;
+      if (CurrentVolume->file_count >= CurrentVolume->file_entry_list_capacity) {
+          size_t new_capacity = CurrentVolume->file_entry_list_capacity * 2;
           if (new_capacity == 0) new_capacity = 128;
 
-          FileEntryList *new_list = (FileEntryList *) realloc(file_entry_list, new_capacity * sizeof(FileEntryList));
+          FileEntryList *new_list = (FileEntryList *) realloc(CurrentVolume->file_entry_list, new_capacity * sizeof(FileEntryList));
           if (!new_list) {
               ERROR_MSG("Realloc failed in ReadFileList*ABORT");
               exit(1);
           }
-          memset(new_list + file_entry_list_capacity, 0, (new_capacity - file_entry_list_capacity) * sizeof(FileEntryList));
-          file_entry_list = new_list;
-          file_entry_list_capacity = new_capacity;
+          memset(new_list + CurrentVolume->file_entry_list_capacity, 0, (new_capacity - CurrentVolume->file_entry_list_capacity) * sizeof(FileEntryList));
+          CurrentVolume->file_entry_list = new_list;
+          CurrentVolume->file_entry_list_capacity = new_capacity;
       }
 
-      file_entry_list[file_count++].file = fe_ptr;
+      CurrentVolume->file_entry_list[CurrentVolume->file_count++].file = fe_ptr;
       visual_name_len = StrVisualLength( fe_ptr->name );
       name_len = strlen( fe_ptr->name );
       if( S_ISLNK( fe_ptr->stat_struct.st_mode ) )
@@ -317,9 +315,9 @@ static void SortFileEntryList(void)
     default:                 compare = SortByName;
   }
 
-  qsort( (char *) file_entry_list,
-	 file_count,
-	 sizeof( file_entry_list[0] ),
+  qsort( (char *) CurrentVolume->file_entry_list,
+	 CurrentVolume->file_count,
+	 sizeof( CurrentVolume->file_entry_list[0] ),
 	 (int (*)(const void *, const void *)) compare
 	);
 }
@@ -494,12 +492,12 @@ static void RemoveFileEntry(int entry_no)
 
   max_visual_filename_len = 0;
   max_visual_linkname_len = 0;
-  n = file_count - 1;
+  n = CurrentVolume->file_count - 1;
 
   for( i=0; i < n; i++ )
   {
-    if( i >= entry_no ) file_entry_list[i] = file_entry_list[i+1];
-    fe_ptr = file_entry_list[i].file;
+    if( i >= entry_no ) CurrentVolume->file_entry_list[i] = CurrentVolume->file_entry_list[i+1];
+    fe_ptr = CurrentVolume->file_entry_list[i].file;
     visual_name_len = StrVisualLength( fe_ptr->name );
     name_len = strlen( fe_ptr->name );
     /* FIX: Cast StrVisualLength to int for MAX macro */
@@ -513,7 +511,7 @@ static void RemoveFileEntry(int entry_no)
 
   SetFileMode( file_mode ); /* recalc */
 
-  file_count--; /* no realloc */
+  CurrentVolume->file_count--; /* no realloc */
 }
 
 
@@ -526,11 +524,11 @@ static void ChangeFileEntry(void)
 
   max_visual_filename_len = 0;
   max_visual_linkname_len = 0;
-  n = file_count - 1;
+  n = CurrentVolume->file_count - 1;
 
   for( i=0; i < n; i++ )
   {
-    fe_ptr = file_entry_list[i].file;
+    fe_ptr = CurrentVolume->file_entry_list[i].file;
     if( fe_ptr )
     {
       visual_name_len = StrVisualLength( fe_ptr->name );
@@ -611,7 +609,7 @@ static void PrintFileEntry(int entry_no, int y, int x, unsigned char hilight, in
     }
   }
 
-  fe_ptr = file_entry_list[entry_no].file;
+  fe_ptr = CurrentVolume->file_entry_list[entry_no].file;
 
   if( fe_ptr && S_ISLNK( fe_ptr->stat_struct.st_mode ) )
     sym_link_name = &fe_ptr->name[strlen(fe_ptr->name)+1];
@@ -880,7 +878,7 @@ static void DisplayFiles(DirEntry *de_ptr, int start_file_no, int hilight_no, in
 #endif
   werase( file_window );
 
-  if( file_count == 0 )
+  if( CurrentVolume->file_count == 0 )
   {
     mvwaddstr( file_window,
 	       0,
@@ -894,7 +892,7 @@ static void DisplayFiles(DirEntry *de_ptr, int start_file_no, int hilight_no, in
   {
     for( y=0; y < window_height; y++ )
     {
-      if( (unsigned)j < file_count )
+      if( (unsigned)j < CurrentVolume->file_count )
       {
 	if( j == hilight_no )
 	{
@@ -918,7 +916,7 @@ static void DisplayFiles(DirEntry *de_ptr, int start_file_no, int hilight_no, in
 
 static void fmovedown(int *start_file, int *cursor_pos, int *start_x, DirEntry *dir_entry)
 {
-   if( (unsigned int)(*start_file + *cursor_pos + 1) >= file_count )
+   if( (unsigned int)(*start_file + *cursor_pos + 1) >= CurrentVolume->file_count )
    {
       /* File not present */
       /*----------------------*/
@@ -932,11 +930,11 @@ static void fmovedown(int *start_file, int *cursor_pos, int *start_x, DirEntry *
     }
     DisplayFiles(dir_entry, *start_file, *start_file + *cursor_pos, *start_x);
     /* Update dynamic header path */
-    if (file_count > 0) {
+    if (CurrentVolume->file_count > 0) {
         char path[PATH_LENGTH];
         int idx = *start_file + *cursor_pos;
-        if ((unsigned)idx < file_count) {
-            GetFileNamePath(file_entry_list[idx].file, path);
+        if ((unsigned)idx < CurrentVolume->file_count) {
+            GetFileNamePath(CurrentVolume->file_entry_list[idx].file, path);
             DisplayHeaderPath(path);
         }
     } else {
@@ -962,11 +960,11 @@ static void fmoveup(int *start_file, int *cursor_pos, int *start_x, DirEntry *di
     }
     DisplayFiles(dir_entry, *start_file, *start_file + *cursor_pos, *start_x);
     /* Update dynamic header path */
-    if (file_count > 0) {
+    if (CurrentVolume->file_count > 0) {
         char path[PATH_LENGTH];
         int idx = *start_file + *cursor_pos;
-        if ((unsigned)idx < file_count) {
-            GetFileNamePath(file_entry_list[idx].file, path);
+        if ((unsigned)idx < CurrentVolume->file_count) {
+            GetFileNamePath(CurrentVolume->file_entry_list[idx].file, path);
             DisplayHeaderPath(path);
         }
     } else {
@@ -990,19 +988,19 @@ static void fmoveright(int *start_file, int *cursor_pos, int *start_x,DirEntry *
                   );
       if( hide_right <= 0 ) (*start_x)--;
    }
-   else if( (unsigned int)(*start_file + *cursor_pos) >= file_count - 1 )
+   else if( (unsigned int)(*start_file + *cursor_pos) >= CurrentVolume->file_count - 1 )
    {
       /* last position reached */
       /*-------------------------*/
    }
    else
    {
-      if( (unsigned int)(*start_file + *cursor_pos + x_step) >= file_count )
+      if( (unsigned int)(*start_file + *cursor_pos + x_step) >= CurrentVolume->file_count )
       {
           /* full step not possible;
            * position on last entry
            */
-           my_x_step = (int)file_count - *start_file - *cursor_pos - 1;
+           my_x_step = (int)CurrentVolume->file_count - *start_file - *cursor_pos - 1;
       }
       else
       {
@@ -1028,11 +1026,11 @@ static void fmoveright(int *start_file, int *cursor_pos, int *start_x,DirEntry *
                   );
    }
    /* Update dynamic header path */
-   if (file_count > 0) {
+   if (CurrentVolume->file_count > 0) {
        char path[PATH_LENGTH];
        int idx = *start_file + *cursor_pos;
-       if ((unsigned)idx < file_count) {
-           GetFileNamePath(file_entry_list[idx].file, path);
+       if ((unsigned)idx < CurrentVolume->file_count) {
+           GetFileNamePath(CurrentVolume->file_entry_list[idx].file, path);
            DisplayHeaderPath(path);
        }
    } else {
@@ -1095,11 +1093,11 @@ static void fmoveleft(int *start_file, int *cursor_pos, int *start_x, DirEntry *
                        );
      }
      /* Update dynamic header path */
-     if (file_count > 0) {
+     if (CurrentVolume->file_count > 0) {
          char path[PATH_LENGTH];
          int idx = *start_file + *cursor_pos;
-         if ((unsigned)idx < file_count) {
-             GetFileNamePath(file_entry_list[idx].file, path);
+         if ((unsigned)idx < CurrentVolume->file_count) {
+             GetFileNamePath(CurrentVolume->file_entry_list[idx].file, path);
              DisplayHeaderPath(path);
          }
      } else {
@@ -1113,7 +1111,7 @@ static void fmoveleft(int *start_file, int *cursor_pos, int *start_x, DirEntry *
 
 static void fmovenpage(int *start_file, int *cursor_pos, int *start_x, DirEntry *dir_entry)
 {
-   if( (unsigned int)(*start_file + *cursor_pos) >= file_count - 1 )
+   if( (unsigned int)(*start_file + *cursor_pos) >= CurrentVolume->file_count - 1 )
    {
       /* last position reached */
       /*-------------------------*/
@@ -1122,21 +1120,21 @@ static void fmovenpage(int *start_file, int *cursor_pos, int *start_x, DirEntry 
 
     if( *cursor_pos < max_disp_files - 1 )
     {
-        if( (unsigned int)(*start_file + max_disp_files) <= file_count - 1 )
+        if( (unsigned int)(*start_file + max_disp_files) <= CurrentVolume->file_count - 1 )
             *cursor_pos = max_disp_files - 1;
         else
-            *cursor_pos = (int)file_count - *start_file - 1;
+            *cursor_pos = (int)CurrentVolume->file_count - *start_file - 1;
     }
     else
     {
-        if( (unsigned int)(*start_file + *cursor_pos + max_disp_files) < file_count )
+        if( (unsigned int)(*start_file + *cursor_pos + max_disp_files) < CurrentVolume->file_count )
             *start_file += max_disp_files;
         else
-            *start_file = (int)file_count - max_disp_files;
-        if( (unsigned int)(*start_file + max_disp_files) <= file_count - 1 )
+            *start_file = (int)CurrentVolume->file_count - max_disp_files;
+        if( (unsigned int)(*start_file + max_disp_files) <= CurrentVolume->file_count - 1 )
             *cursor_pos = max_disp_files - 1;
         else
-            *cursor_pos = (int)file_count - *start_file - 1;
+            *cursor_pos = (int)CurrentVolume->file_count - *start_file - 1;
     }
     DisplayFiles( dir_entry,
                   *start_file,
@@ -1144,11 +1142,11 @@ static void fmovenpage(int *start_file, int *cursor_pos, int *start_x, DirEntry 
                   *start_x
                 );
     /* Update dynamic header path */
-    if (file_count > 0) {
+    if (CurrentVolume->file_count > 0) {
         char path[PATH_LENGTH];
         int idx = *start_file + *cursor_pos;
-        if ((unsigned)idx < file_count) {
-            GetFileNamePath(file_entry_list[idx].file, path);
+        if ((unsigned)idx < CurrentVolume->file_count) {
+            GetFileNamePath(CurrentVolume->file_entry_list[idx].file, path);
             DisplayHeaderPath(path);
         }
     } else {
@@ -1186,11 +1184,11 @@ static void fmoveppage(int *start_file, int *cursor_pos, int *start_x, DirEntry 
                   *start_x
                 );
     /* Update dynamic header path */
-    if (file_count > 0) {
+    if (CurrentVolume->file_count > 0) {
         char path[PATH_LENGTH];
         int idx = *start_file + *cursor_pos;
-        if ((unsigned)idx < file_count) {
-            GetFileNamePath(file_entry_list[idx].file, path);
+        if ((unsigned)idx < CurrentVolume->file_count) {
+            GetFileNamePath(CurrentVolume->file_entry_list[idx].file, path);
             DisplayHeaderPath(path);
         }
     } else {
@@ -1253,14 +1251,14 @@ int HandleFileWindow(DirEntry *dir_entry)
   BuildFileEntryList( dir_entry );
 
   /* Sanitize cursor position immediately after BuildFileEntryList */
-  if (file_count > 0) {
+  if (CurrentVolume->file_count > 0) {
       if (dir_entry->cursor_pos < 0) dir_entry->cursor_pos = 0;
       if (dir_entry->start_file < 0) dir_entry->start_file = 0;
 
       /* Bounds Check: ensure we aren't past the end */
-      if ((unsigned int)(dir_entry->start_file + dir_entry->cursor_pos) >= file_count) {
-          dir_entry->start_file = MAXIMUM(0, (int)file_count - max_disp_files);
-          dir_entry->cursor_pos = (int)file_count - 1 - dir_entry->start_file;
+      if ((unsigned int)(dir_entry->start_file + dir_entry->cursor_pos) >= CurrentVolume->file_count) {
+          dir_entry->start_file = MAXIMUM(0, (int)CurrentVolume->file_count - max_disp_files);
+          dir_entry->cursor_pos = (int)CurrentVolume->file_count - 1 - dir_entry->start_file;
       }
   } else {
       dir_entry->cursor_pos = 0;
@@ -1314,8 +1312,8 @@ int HandleFileWindow(DirEntry *dir_entry)
     else
     {
       /* Guard fe_ptr access against empty file list */
-      if (file_count > 0) {
-           fe_ptr = file_entry_list[dir_entry->start_file + dir_entry->cursor_pos].file;
+      if (CurrentVolume->file_count > 0) {
+           fe_ptr = CurrentVolume->file_entry_list[dir_entry->start_file + dir_entry->cursor_pos].file;
 
            /* Dynamic Stats Update: Check if context changed */
            if (fe_ptr && fe_ptr->dir_entry != last_stats_dir) {
@@ -1343,7 +1341,7 @@ int HandleFileWindow(DirEntry *dir_entry)
     if (CurrentVolume != start_vol) return ESC;
 
     if (IsUserActionDefined()) { /* User commands take precedence */
-       ch = FileUserMode(&(file_entry_list[dir_entry->start_file + dir_entry->cursor_pos]), ch);
+       ch = FileUserMode(&(CurrentVolume->file_entry_list[dir_entry->start_file + dir_entry->cursor_pos]), ch);
        if (CurrentVolume != start_vol) return ESC;
     }
 
@@ -1452,22 +1450,22 @@ int HandleFileWindow(DirEntry *dir_entry)
       case ACTION_PAGE_UP: fmoveppage(&dir_entry->start_file, &dir_entry->cursor_pos, &start_x, dir_entry);
 		      break;
 
-      case ACTION_END  : if( (unsigned int)(dir_entry->start_file + dir_entry->cursor_pos + 1) >= file_count )
+      case ACTION_END  : if( (unsigned int)(dir_entry->start_file + dir_entry->cursor_pos + 1) >= CurrentVolume->file_count )
 		      {
 			/* last position reached */
 			/*--------------------------*/
 		      }
 		      else
 		      {
-			if( (int)file_count < max_disp_files )
+			if( (int)CurrentVolume->file_count < max_disp_files )
 		        {
 			  dir_entry->start_file = 0;
-			  dir_entry->cursor_pos = (int)file_count - 1;
+			  dir_entry->cursor_pos = (int)CurrentVolume->file_count - 1;
 		        }
 		        else
 	                {
-                          dir_entry->start_file = (int)file_count - max_disp_files;
-			  dir_entry->cursor_pos = (int)file_count - dir_entry->start_file - 1;
+                          dir_entry->start_file = (int)CurrentVolume->file_count - max_disp_files;
+			  dir_entry->cursor_pos = (int)CurrentVolume->file_count - dir_entry->start_file - 1;
 		        }
 
 			DisplayFiles( dir_entry,
@@ -1511,7 +1509,7 @@ int HandleFileWindow(DirEntry *dir_entry)
                      }
 		     break;
 
-      case ACTION_CMD_A :      fe_ptr = file_entry_list[dir_entry->start_file + dir_entry->cursor_pos].file;
+      case ACTION_CMD_A :      fe_ptr = CurrentVolume->file_entry_list[dir_entry->start_file + dir_entry->cursor_pos].file;
 
 	              need_dsp_help = TRUE;
 
@@ -1562,7 +1560,7 @@ int HandleFileWindow(DirEntry *dir_entry)
 		      }
 		      break;
 
-      case ACTION_CMD_O :      fe_ptr = file_entry_list[dir_entry->start_file + dir_entry->cursor_pos].file;
+      case ACTION_CMD_O :      fe_ptr = CurrentVolume->file_entry_list[dir_entry->start_file + dir_entry->cursor_pos].file;
 
 		      need_dsp_help = TRUE;
 
@@ -1601,7 +1599,7 @@ int HandleFileWindow(DirEntry *dir_entry)
 		      }
 		      break;
 
-      case ACTION_CMD_G :      fe_ptr = file_entry_list[dir_entry->start_file + dir_entry->cursor_pos].file;
+      case ACTION_CMD_G :      fe_ptr = CurrentVolume->file_entry_list[dir_entry->start_file + dir_entry->cursor_pos].file;
 
 		      need_dsp_help = TRUE;
 
@@ -1641,7 +1639,7 @@ int HandleFileWindow(DirEntry *dir_entry)
 		      }
 		      break;
 
-      case ACTION_TAG :      fe_ptr = file_entry_list[dir_entry->start_file + dir_entry->cursor_pos].file;
+      case ACTION_TAG :      fe_ptr = CurrentVolume->file_entry_list[dir_entry->start_file + dir_entry->cursor_pos].file;
 		      de_ptr = fe_ptr->dir_entry;
 
 		      if( !fe_ptr->tagged )
@@ -1658,7 +1656,7 @@ int HandleFileWindow(DirEntry *dir_entry)
 		      unput_char = KEY_DOWN;
 
                       break;
-      case ACTION_UNTAG :      fe_ptr = file_entry_list[dir_entry->start_file + dir_entry->cursor_pos].file;
+      case ACTION_UNTAG :      fe_ptr = CurrentVolume->file_entry_list[dir_entry->start_file + dir_entry->cursor_pos].file;
 		      de_ptr = fe_ptr->dir_entry;
                       if( fe_ptr->tagged )
 		      {
@@ -1701,9 +1699,9 @@ int HandleFileWindow(DirEntry *dir_entry)
 		      break;
 
       case ACTION_TAG_ALL :
-                      for(i=0; i < (int)file_count; i++)
+                      for(i=0; i < (int)CurrentVolume->file_count; i++)
                       {
-			fe_ptr = file_entry_list[i].file;
+			fe_ptr = CurrentVolume->file_entry_list[i].file;
 			de_ptr = fe_ptr->dir_entry;
 
 			if( !fe_ptr->tagged )
@@ -1729,9 +1727,9 @@ int HandleFileWindow(DirEntry *dir_entry)
 
 
       case ACTION_UNTAG_ALL :
-                      for(i=0; i < (int)file_count; i++)
+                      for(i=0; i < (int)CurrentVolume->file_count; i++)
                       {
-			fe_ptr = file_entry_list[i].file;
+			fe_ptr = CurrentVolume->file_entry_list[i].file;
 			de_ptr = fe_ptr->dir_entry;
 
 			if( fe_ptr->tagged )
@@ -1758,9 +1756,9 @@ int HandleFileWindow(DirEntry *dir_entry)
 
 
       case ACTION_TAG_REST :
-                      for(i=dir_entry->start_file + dir_entry->cursor_pos; i < (int)file_count; i++)
+                      for(i=dir_entry->start_file + dir_entry->cursor_pos; i < (int)CurrentVolume->file_count; i++)
                       {
-			fe_ptr = file_entry_list[i].file;
+			fe_ptr = CurrentVolume->file_entry_list[i].file;
 			de_ptr = fe_ptr->dir_entry;
 
 			if( !fe_ptr->tagged )
@@ -1786,9 +1784,9 @@ int HandleFileWindow(DirEntry *dir_entry)
 
 
       case ACTION_UNTAG_REST :
-                      for(i=dir_entry->start_file + dir_entry->cursor_pos; i < (int)file_count; i++)
+                      for(i=dir_entry->start_file + dir_entry->cursor_pos; i < (int)CurrentVolume->file_count; i++)
                       {
-			fe_ptr = file_entry_list[i].file;
+			fe_ptr = CurrentVolume->file_entry_list[i].file;
 			de_ptr = fe_ptr->dir_entry;
 
 			if( fe_ptr->tagged )
@@ -1812,21 +1810,21 @@ int HandleFileWindow(DirEntry *dir_entry)
               DisplayDirStatistic(dir_entry, NULL); /* Always update current list stats (even in Showall) */
 		      break;
 
-      case ACTION_CMD_V :      fe_ptr = file_entry_list[dir_entry->start_file + dir_entry->cursor_pos].file;
+      case ACTION_CMD_V :      fe_ptr = CurrentVolume->file_entry_list[dir_entry->start_file + dir_entry->cursor_pos].file;
 		      de_ptr = fe_ptr->dir_entry;
 		      (void) GetRealFileNamePath( fe_ptr, filepath );
 		      (void) View( dir_entry, filepath );
 		      need_dsp_help = TRUE;
 		      break;
 
-      case ACTION_CMD_H :      fe_ptr = file_entry_list[dir_entry->start_file + dir_entry->cursor_pos].file;
+      case ACTION_CMD_H :      fe_ptr = CurrentVolume->file_entry_list[dir_entry->start_file + dir_entry->cursor_pos].file;
 		      de_ptr = fe_ptr->dir_entry;
 		      (void) GetRealFileNamePath( fe_ptr, filepath );
 		      (void) ViewHex( filepath );
 		      need_dsp_help = TRUE;
 		      break;
 
-      case ACTION_CMD_E :      fe_ptr = file_entry_list[dir_entry->start_file + dir_entry->cursor_pos].file;
+      case ACTION_CMD_E :      fe_ptr = CurrentVolume->file_entry_list[dir_entry->start_file + dir_entry->cursor_pos].file;
 		      de_ptr = fe_ptr->dir_entry;
 		      (void) GetFileNamePath( fe_ptr, filepath );
 		      (void) Edit( de_ptr, filepath );
@@ -1834,7 +1832,7 @@ int HandleFileWindow(DirEntry *dir_entry)
 
       case ACTION_CMD_Y :
       case ACTION_CMD_C :
-		      fe_ptr = file_entry_list[dir_entry->start_file + dir_entry->cursor_pos].file;
+		      fe_ptr = CurrentVolume->file_entry_list[dir_entry->start_file + dir_entry->cursor_pos].file;
 		      de_ptr = fe_ptr->dir_entry;
 
 		      path_copy = FALSE;
@@ -1958,7 +1956,7 @@ int HandleFileWindow(DirEntry *dir_entry)
 			break;
 		      }
 
-		      fe_ptr = file_entry_list[dir_entry->start_file + dir_entry->cursor_pos].file;
+		      fe_ptr = CurrentVolume->file_entry_list[dir_entry->start_file + dir_entry->cursor_pos].file;
 		      de_ptr = fe_ptr->dir_entry;
 
 		      need_dsp_help = TRUE;
@@ -2015,9 +2013,9 @@ int HandleFileWindow(DirEntry *dir_entry)
 
 			BuildFileEntryList( dir_entry );
 
-			if( file_count == 0 ) unput_char = ESC;
+			if( CurrentVolume->file_count == 0 ) unput_char = ESC;
 
-			if( dir_entry->start_file + dir_entry->cursor_pos >= (int)file_count )
+			if( dir_entry->start_file + dir_entry->cursor_pos >= (int)CurrentVolume->file_count )
 			{
 			  if( --dir_entry->cursor_pos < 0 )
 			  {
@@ -2096,7 +2094,7 @@ int HandleFileWindow(DirEntry *dir_entry)
 
 			BuildFileEntryList( dir_entry );
 
-			if( file_count == 0 ) unput_char = ESC;
+			if( CurrentVolume->file_count == 0 ) unput_char = ESC;
 
 			dir_entry->start_file = 0;
 			dir_entry->cursor_pos = 0;
@@ -2124,7 +2122,7 @@ int HandleFileWindow(DirEntry *dir_entry)
 
 		      if( term != 'Y' ) break;
 
-		      fe_ptr = file_entry_list[dir_entry->start_file + dir_entry->cursor_pos].file;
+		      fe_ptr = CurrentVolume->file_entry_list[dir_entry->start_file + dir_entry->cursor_pos].file;
 		      de_ptr = fe_ptr->dir_entry;
 
 		      if( !DeleteFile( fe_ptr ) )
@@ -2141,9 +2139,9 @@ int HandleFileWindow(DirEntry *dir_entry)
 
                         RemoveFileEntry( dir_entry->start_file + dir_entry->cursor_pos );
 
-			if( file_count == 0 ) unput_char = ESC;
+			if( CurrentVolume->file_count == 0 ) unput_char = ESC;
 
-			if( dir_entry->start_file + dir_entry->cursor_pos >= (int)file_count )
+			if( dir_entry->start_file + dir_entry->cursor_pos >= (int)CurrentVolume->file_count )
 			{
 			  if( --dir_entry->cursor_pos < 0 )
 			  {
@@ -2172,7 +2170,7 @@ int HandleFileWindow(DirEntry *dir_entry)
 		      {
 		        need_dsp_help = TRUE;
 			(void) DeleteTaggedFiles( max_disp_files );
-			if( file_count == 0 ) unput_char = ESC;
+			if( CurrentVolume->file_count == 0 ) unput_char = ESC;
 			dir_entry->start_file = 0;
 			dir_entry->cursor_pos = 0;
                         DisplayAvailBytes();
@@ -2190,7 +2188,7 @@ int HandleFileWindow(DirEntry *dir_entry)
 			break;
 		      }
 
-		      fe_ptr = file_entry_list[dir_entry->start_file + dir_entry->cursor_pos].file;
+		      fe_ptr = CurrentVolume->file_entry_list[dir_entry->start_file + dir_entry->cursor_pos].file;
 		      de_ptr = fe_ptr->dir_entry;
 
 		      if( !GetRenameParameter( fe_ptr->name, new_name ) )
@@ -2243,7 +2241,7 @@ int HandleFileWindow(DirEntry *dir_entry)
 
 			BuildFileEntryList( dir_entry );
 
-			if( file_count == 0 ) unput_char = ESC;
+			if( CurrentVolume->file_count == 0 ) unput_char = ESC;
 
 			DisplayFiles( dir_entry,
 				      dir_entry->start_file,
@@ -2289,13 +2287,13 @@ int HandleFileWindow(DirEntry *dir_entry)
 		        else
 		          DisplayDirStatistic( dir_entry, NULL ); /* Updated call */
 
-                        if( file_count == 0 ) unput_char = ESC;
+                        if( CurrentVolume->file_count == 0 ) unput_char = ESC;
 		        maybe_change_x_step = TRUE;
 	              }
 		      need_dsp_help = TRUE;
 		      break;
 
-      case ACTION_LOGIN :      fe_ptr = file_entry_list[dir_entry->start_file + dir_entry->cursor_pos].file;
+      case ACTION_LOGIN :      fe_ptr = CurrentVolume->file_entry_list[dir_entry->start_file + dir_entry->cursor_pos].file;
 		     if( mode == DISK_MODE || mode == USER_MODE )
 		     {
 		       (void) GetFileNamePath( fe_ptr, new_login_path );
@@ -2327,7 +2325,7 @@ int HandleFileWindow(DirEntry *dir_entry)
                       action = ACTION_NONE; /* Prevent loop termination to stay in file window */
 		      break;
 
-      case ACTION_CMD_P :      fe_ptr = file_entry_list[dir_entry->start_file + dir_entry->cursor_pos].file;
+      case ACTION_CMD_P :      fe_ptr = CurrentVolume->file_entry_list[dir_entry->start_file + dir_entry->cursor_pos].file;
 		      de_ptr = fe_ptr->dir_entry;
 		      (void) Pipe( de_ptr, fe_ptr );
 		      need_dsp_help = TRUE;
@@ -2401,7 +2399,7 @@ int HandleFileWindow(DirEntry *dir_entry)
 		      }
 		      break;
 
-      case ACTION_CMD_X :      fe_ptr = file_entry_list[dir_entry->start_file + dir_entry->cursor_pos].file;
+      case ACTION_CMD_X :      fe_ptr = CurrentVolume->file_entry_list[dir_entry->start_file + dir_entry->cursor_pos].file;
 		      de_ptr = fe_ptr->dir_entry;
 		      (void) Execute( de_ptr, fe_ptr );
 		      need_dsp_help = TRUE;
@@ -2495,7 +2493,7 @@ int HandleFileWindow(DirEntry *dir_entry)
 
       case ACTION_QUIT_DIR:
                       need_dsp_help = TRUE;
-                      fe_ptr = file_entry_list[dir_entry->start_file
+                      fe_ptr = CurrentVolume->file_entry_list[dir_entry->start_file
                                 + dir_entry->cursor_pos].file;
                       de_ptr = fe_ptr->dir_entry;
                       QuitTo(de_ptr);
@@ -2535,8 +2533,8 @@ int HandleFileWindow(DirEntry *dir_entry)
                 {
                     /* 1. Save current filename */
                     char *saved_name = NULL;
-                    if (file_count > 0) {
-                        FileEntry *curr = file_entry_list[dir_entry->start_file + dir_entry->cursor_pos].file;
+                    if (CurrentVolume->file_count > 0) {
+                        FileEntry *curr = CurrentVolume->file_entry_list[dir_entry->start_file + dir_entry->cursor_pos].file;
                         if (curr) saved_name = strdup(curr->name);
                     }
 
@@ -2552,8 +2550,8 @@ int HandleFileWindow(DirEntry *dir_entry)
                          int found_idx = -1;
                          if (saved_name) {
                              int k;
-                             for (k = 0; k < file_count; k++) {
-                                 if (strcmp(file_entry_list[k].file->name, saved_name) == 0) {
+                             for (k = 0; k < (int)CurrentVolume->file_count; k++) {
+                                 if (strcmp(CurrentVolume->file_entry_list[k].file->name, saved_name) == 0) {
                                      found_idx = k;
                                      break;
                                  }
@@ -2572,9 +2570,9 @@ int HandleFileWindow(DirEntry *dir_entry)
                                  dir_entry->start_file = found_idx;
                                  dir_entry->cursor_pos = 0;
                                  /* Bounds check */
-                                 if (dir_entry->start_file + max_disp_files > file_count) {
-                                      dir_entry->start_file = MAXIMUM(0, (int)file_count - max_disp_files);
-                                      dir_entry->cursor_pos = (int)file_count - 1 - dir_entry->start_file;
+                                 if (dir_entry->start_file + max_disp_files > (int)CurrentVolume->file_count) {
+                                      dir_entry->start_file = MAXIMUM(0, (int)CurrentVolume->file_count - max_disp_files);
+                                      dir_entry->cursor_pos = (int)CurrentVolume->file_count - 1 - dir_entry->start_file;
                                  }
                              }
                          } else {
@@ -2659,9 +2657,9 @@ static void WalkTaggedFiles(int start_file,
 
   max_disp_files = window_height * max_column;
 
-  for( i=0; i < (int)file_count && result == 0; i++ )
+  for( i=0; i < (int)CurrentVolume->file_count && result == 0; i++ )
   {
-    fe_ptr = file_entry_list[i].file;
+    fe_ptr = CurrentVolume->file_entry_list[i].file;
 
     if( fe_ptr->tagged && fe_ptr->matching )
     {
@@ -2710,7 +2708,7 @@ static void WalkTaggedFiles(int start_file,
       }
       else if( walking_package->new_fe_ptr != fe_ptr )
       {
-        file_entry_list[i].file = walking_package->new_fe_ptr;
+        CurrentVolume->file_entry_list[i].file = walking_package->new_fe_ptr;
 	ChangeFileEntry();
         max_disp_files = window_height * max_column;
 	maybe_change_x = TRUE;
@@ -2739,9 +2737,9 @@ static void SilentWalkTaggedFiles( int (*fkt) (FileEntry *, WalkingPackage *),
   int       i;
 
 
-  for( i=0; i < (int)file_count; i++ )
+  for( i=0; i < (int)CurrentVolume->file_count; i++ )
   {
-    fe_ptr = file_entry_list[i].file;
+    fe_ptr = CurrentVolume->file_entry_list[i].file;
 
     if( fe_ptr->tagged && fe_ptr->matching )
     {
@@ -2775,9 +2773,9 @@ static void SilentTagWalkTaggedFiles( int (*fkt) (FileEntry *, WalkingPackage *)
   int       result = 0;
 
 
-  for( i=0; i < (int)file_count; i++ )
+  for( i=0; i < (int)CurrentVolume->file_count; i++ )
   {
-    fe_ptr = file_entry_list[i].file;
+    fe_ptr = CurrentVolume->file_entry_list[i].file;
 
     if( fe_ptr->tagged && fe_ptr->matching )
     {
@@ -2798,9 +2796,9 @@ static BOOL IsMatchingTaggedFiles(void)
   FileEntry *fe_ptr;
   int i;
 
-  for( i=0; i < (int)file_count; i++)
+  for( i=0; i < (int)CurrentVolume->file_count; i++)
   {
-    fe_ptr = file_entry_list[i].file;
+    fe_ptr = CurrentVolume->file_entry_list[i].file;
 
     if( fe_ptr->matching && fe_ptr->tagged )
       return( TRUE );
@@ -2825,8 +2823,8 @@ static int DeleteTaggedFiles(int max_disp_files)
   int       tagged_count = 0;
 
   /* 1. Count tagged files */
-  for(i=0; i < (int)file_count; i++) {
-      if(file_entry_list[i].file->tagged && file_entry_list[i].file->matching) {
+  for(i=0; i < (int)CurrentVolume->file_count; i++) {
+      if(CurrentVolume->file_entry_list[i].file->tagged && CurrentVolume->file_entry_list[i].file->matching) {
           tagged_count++;
       }
   }
@@ -2845,11 +2843,11 @@ static int DeleteTaggedFiles(int max_disp_files)
 
   if( baudrate() >= QUICK_BAUD_RATE ) typeahead( 0 );
 
-  for( i=0; i < (int)file_count && result == 0; )
+  for( i=0; i < (int)CurrentVolume->file_count && result == 0; )
   {
     deleted = FALSE;
 
-    fe_ptr = file_entry_list[i].file;
+    fe_ptr = CurrentVolume->file_entry_list[i].file;
     de_ptr = fe_ptr->dir_entry;
 
     if( fe_ptr->tagged && fe_ptr->matching )
@@ -2923,7 +2921,7 @@ static void RereadWindowSize(DirEntry *dir_entry)
   max_disp_files = window_height * max_column;
 
 
-  if( dir_entry->start_file + dir_entry->cursor_pos < (int)file_count )
+  if( dir_entry->start_file + dir_entry->cursor_pos < (int)CurrentVolume->file_count )
   {
      while( dir_entry->cursor_pos >= max_disp_files )
      {
@@ -2977,7 +2975,7 @@ static void ListJump( DirEntry * dir_entry, char *str )
     /* index of current entry in list */
     tmp2 = (incremental && n == 0) ? 0 : dir_entry->start_file + dir_entry->cursor_pos;
 
-    if( tmp2 == (int)file_count - 1 )
+    if( tmp2 == (int)CurrentVolume->file_count - 1 )
     {
         ClearHelp();
         MvAddStr( Y_PROMPT, 1, "Last entry!");
@@ -2989,14 +2987,14 @@ static void ListJump( DirEntry * dir_entry, char *str )
         return;
     }
 
-    for( i=tmp2; i < (int)file_count; i++ )
+    for( i=tmp2; i < (int)CurrentVolume->file_count; i++ )
     {
-        fe_ptr = file_entry_list[i].file;
+        fe_ptr = CurrentVolume->file_entry_list[i].file;
 	if(!strncasecmp(newStr, fe_ptr->name, n+1))
           break;
     }
 
-    if ( i == (int)file_count )
+    if ( i == (int)CurrentVolume->file_count )
     {
         ClearHelp();
         MvAddStr( Y_PROMPT, 1, "No match!");
