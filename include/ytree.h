@@ -558,6 +558,11 @@ struct Volume {
     size_t dir_entry_list_capacity;
     int total_dirs;
 
+    /* Encapsulated File State Cache */
+    FileEntryList *file_entry_list;
+    size_t file_entry_list_capacity;
+    unsigned int file_count;
+
     UT_hash_handle hh;      /* For uthash macros */
 };
 
