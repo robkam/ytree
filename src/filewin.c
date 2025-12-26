@@ -1377,7 +1377,7 @@ int HandleFileWindow(DirEntry *dir_entry)
        /* small window active */
 
        SwitchToSmallFileWindow();
-       DisplayTree( dir_window, statistic.disp_begin_pos,
+       DisplayTree( CurrentVolume, dir_window, statistic.disp_begin_pos,
 		  statistic.disp_begin_pos + statistic.cursor_pos
 		);
        DisplayFileWindow(dir_entry);
@@ -1501,7 +1501,7 @@ int HandleFileWindow(DirEntry *dir_entry)
                         ToggleDotFiles();
 
                         /* Update current dir pointer using the new accessor function */
-                        dir_entry = GetSelectedDirEntry();
+                        dir_entry = GetSelectedDirEntry(CurrentVolume);
 
                         /* Explicitly update the file window (preview) */
                         DisplayFileWindow(dir_entry);

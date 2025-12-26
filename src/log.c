@@ -138,7 +138,7 @@ int LoginDisk(char *path)
                CurrentVolume = Volume_Create();
                /* ... refresh empty ... */
                DisplayMenu();
-               DisplayTree(dir_window, 0, 0);
+               DisplayTree(CurrentVolume, dir_window, 0, 0);
                DisplayDiskStatistic();
                DisplayAvailBytes();
           } else {
@@ -164,8 +164,8 @@ int LoginDisk(char *path)
        DisplayMenu(); /* Updates path at top */
        /* CRITICAL FIX: Rebuild the directory entry list for the new volume's tree
         * before displaying it, to prevent use-after-free issues with stale pointers. */
-       BuildDirEntryList(statistic.tree, &statistic);
-       DisplayTree(dir_window, statistic.disp_begin_pos, statistic.disp_begin_pos + statistic.cursor_pos);
+       BuildDirEntryList(CurrentVolume);
+       DisplayTree(CurrentVolume, dir_window, statistic.disp_begin_pos, statistic.disp_begin_pos + statistic.cursor_pos);
        DisplayDiskStatistic();
        DisplayAvailBytes();
        InitClock(); /* Resume clock before returning */
@@ -191,6 +191,7 @@ int LoginDisk(char *path)
           memset(&statistic, 0, sizeof(Statistic));
           statistic.kind_of_sort = SORT_BY_NAME + SORT_ASC; /* Re-init default sort */
           strcpy(statistic.file_spec, DEFAULT_FILE_SPEC);   /* Re-init default filter */
+          FreeVolumeCache(old_vol); /* Clear any old cache */
       } else {
           /* Create a truly new volume. */
           CurrentVolume = Volume_Create();
@@ -203,7 +204,7 @@ int LoginDisk(char *path)
                   CurrentVolume = old_vol;
                   mode = CurrentVolume->vol_stats.mode;
                   DisplayMenu();
-                  DisplayTree(dir_window, statistic.disp_begin_pos, statistic.cursor_pos);
+                  DisplayTree(CurrentVolume, dir_window, statistic.disp_begin_pos, statistic.cursor_pos);
                   DisplayDiskStatistic();
                   DisplayAvailBytes();
               }
@@ -232,7 +233,7 @@ int LoginDisk(char *path)
                   CurrentVolume = old_vol;
                   mode = CurrentVolume->vol_stats.mode;
                   DisplayMenu();
-                  DisplayTree(dir_window, statistic.disp_begin_pos, statistic.cursor_pos);
+                  DisplayTree(CurrentVolume, dir_window, statistic.disp_begin_pos, statistic.cursor_pos);
                   DisplayDiskStatistic();
                   DisplayAvailBytes();
               }
@@ -352,8 +353,8 @@ int LoginDisk(char *path)
                    mode = CurrentVolume->vol_stats.mode; /* Restore global mode */
                    /* Restore display for the old volume */
                    DisplayMenu();
-                   BuildDirEntryList(statistic.tree, &statistic); /* Rebuild list for old volume */
-                   DisplayTree(dir_window, statistic.disp_begin_pos, statistic.disp_begin_pos + statistic.cursor_pos);
+                   BuildDirEntryList(CurrentVolume); /* Rebuild list for old volume */
+                   DisplayTree(CurrentVolume, dir_window, statistic.disp_begin_pos, statistic.disp_begin_pos + statistic.cursor_pos);
                    DisplayDiskStatistic();
                    DisplayAvailBytes();
                } else {
@@ -374,10 +375,11 @@ int LoginDisk(char *path)
                memset(&statistic, 0, sizeof(Statistic)); /* Clear all stats */
                statistic.kind_of_sort = SORT_BY_NAME + SORT_ASC; /* Re-init default sort */
                strcpy(statistic.file_spec, DEFAULT_FILE_SPEC);   /* Re-init default filter */
+               FreeVolumeCache(CurrentVolume); /* Clear cache for reuse */
                /* CurrentVolume remains the empty virgin volume. */
                DisplayMenu(); /* Refresh to show empty state */
-               BuildDirEntryList(statistic.tree, &statistic); /* Rebuild list for empty tree */
-               DisplayTree(dir_window, 0, 0);
+               BuildDirEntryList(CurrentVolume); /* Rebuild list for empty tree */
+               DisplayTree(CurrentVolume, dir_window, 0, 0);
                DisplayDiskStatistic();
                DisplayAvailBytes();
            }
@@ -394,8 +396,8 @@ int LoginDisk(char *path)
       RecalculateSysStats();                   /* Sum up stats based on flags */
 
       /* Refresh display */
-      BuildDirEntryList(statistic.tree, &statistic); /* Rebuild list for the newly loaded tree */
-      DisplayTree(dir_window, 0, 0); /* New/reused volume, reset display position */
+      BuildDirEntryList(CurrentVolume); /* Rebuild list for the newly loaded tree */
+      DisplayTree(CurrentVolume, dir_window, 0, 0); /* New/reused volume, reset display position */
       DisplayDiskStatistic();
       DisplayAvailBytes();
 
@@ -756,7 +758,7 @@ int SelectLoadedVolume(void)
                         menu_active = FALSE;
 
                         /* Rebuild global list if we just switched or modified CurrentVolume indirectly */
-                        BuildDirEntryList(CurrentVolume->vol_stats.tree, &CurrentVolume->vol_stats);
+                        BuildDirEntryList(CurrentVolume);
                     }
                     break; // break from switch, loop continues to redraw (if not restart_menu)
                 default:
@@ -812,7 +814,7 @@ int SelectLoadedVolume(void)
                  }
                  free(vol_array);
                  /* If we are already on the selected volume, just ensure list is synced */
-                 BuildDirEntryList(CurrentVolume->vol_stats.tree, &CurrentVolume->vol_stats);
+                 BuildDirEntryList(CurrentVolume);
                  return 0; /* Already on selected volume */
              }
         }
@@ -822,7 +824,7 @@ int SelectLoadedVolume(void)
     // Otherwise, return original result (0 for switch, -1 for cancel).
     if (changes_made) {
         /* Ensure main loop has a valid list if we deleted something but didn't switch via LoginDisk */
-        BuildDirEntryList(CurrentVolume->vol_stats.tree, &CurrentVolume->vol_stats);
+        BuildDirEntryList(CurrentVolume);
         return 0;
     }
 
@@ -925,7 +927,7 @@ int CycleLoadedVolume(int direction)
             ReCreateWindows();
             ClockHandler(0); /* Redraw clock immediately */
             DisplayMenu();
-            DisplayTree(dir_window, statistic.disp_begin_pos, statistic.disp_begin_pos + statistic.cursor_pos);
+            DisplayTree(CurrentVolume, dir_window, statistic.disp_begin_pos, statistic.disp_begin_pos + statistic.cursor_pos);
             DisplayDiskStatistic();
             if(animation_method == 0) SwitchToSmallFileWindow();
             return 0; // Success!
