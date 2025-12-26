@@ -9,44 +9,42 @@
 #include "ytree.h"
 
 
-static DirEntryList *dir_entry_list = NULL;
-static size_t dir_entry_list_capacity = 0;
 static int current_dir_entry;
-static int total_dirs;
 static int window_height, window_width;
 
-static void ReadDirList(DirEntry *dir_entry);
-static void PrintDirEntry(WINDOW *win, int entry_no, int y, unsigned char hilight);
-void BuildDirEntryList(DirEntry *dir_entry, Statistic *stat_source); /* Removed static */
-void FreeDirEntryList(void); /* ADDED: Prototype for FreeDirEntryList */
-static void HandleReadSubTree(DirEntry *dir_entry, DirEntry *start_dir_entry, BOOL *need_dsp_help);
-static void HandleUnreadSubTree(DirEntry *dir_entry, DirEntry *de_ptr, DirEntry *start_dir_entry, BOOL *need_dsp_help);
+static void ReadDirList(DirEntry *dir_entry, struct Volume *vol);
+static void PrintDirEntry(struct Volume *vol, WINDOW *win, int entry_no, int y, unsigned char hilight);
+void BuildDirEntryList(struct Volume *vol);
+void FreeDirEntryList(void);
+void FreeVolumeCache(struct Volume *vol);
+static void HandleReadSubTree(DirEntry *dir_entry, BOOL *need_dsp_help);
+static void HandleUnreadSubTree(DirEntry *dir_entry, DirEntry *de_ptr, BOOL *need_dsp_help);
 static void MoveEnd(DirEntry **dir_entry);
 static void MoveHome(DirEntry **dir_entry);
-static void HandlePlus(DirEntry *dir_entry, DirEntry *de_ptr, char *new_login_path, DirEntry *start_dir_entry, BOOL *need_dsp_help);
+static void HandlePlus(DirEntry *dir_entry, DirEntry *de_ptr, char *new_login_path, BOOL *need_dsp_help);
 static void HandleTagDir(DirEntry *dir_entry, BOOL value);
-static void HandleTagAllDirs(DirEntry *dir_entry, BOOL value );
-static void HandleShowAll(BOOL tagged_only, DirEntry *dir_entry, DirEntry *start_dir_entry, BOOL *need_dsp_help, int *ch);
-static void HandleSwitchWindow(DirEntry *dir_entry, DirEntry *start_dir_entry, BOOL *need_dsp_help, int *ch);
+static void HandleTagAllDirs(struct Volume *vol, DirEntry *dir_entry, BOOL value );
+static void HandleShowAll(BOOL tagged_only, DirEntry *dir_entry, BOOL *need_dsp_help, int *ch);
+static void HandleSwitchWindow(DirEntry *dir_entry, BOOL *need_dsp_help, int *ch);
 static void Movedown(int *disp_begin_pos, int *cursor_pos, DirEntry **dir_entry); /* Forward declaration */
 
 static int dir_mode;
 
 
-void BuildDirEntryList(DirEntry *dir_entry, Statistic *stat_source) /* Removed static */
+void BuildDirEntryList(struct Volume *vol)
 {
-  if( dir_entry_list )
+  if( vol->dir_entry_list )
   {
-    free( dir_entry_list );
-    dir_entry_list = NULL;
-    dir_entry_list_capacity = 0;
+    free( vol->dir_entry_list );
+    vol->dir_entry_list = NULL;
+    vol->dir_entry_list_capacity = 0;
   }
 
   /* Initialize with the estimated count, but enforce a minimum safety size */
-  size_t alloc_count = stat_source->disk_total_directories;
+  size_t alloc_count = vol->vol_stats.disk_total_directories;
   if (alloc_count < 16) alloc_count = 16;
 
-  if( ( dir_entry_list = ( DirEntryList *)
+  if( ( vol->dir_entry_list = ( DirEntryList *)
                    calloc( alloc_count,
                    sizeof( DirEntryList )
                  ) ) == NULL )
@@ -55,18 +53,18 @@ void BuildDirEntryList(DirEntry *dir_entry, Statistic *stat_source) /* Removed s
     exit( 1 );
   }
 
-  dir_entry_list_capacity = alloc_count;
+  vol->dir_entry_list_capacity = alloc_count;
   current_dir_entry = 0;
 
   /* Only read if we have a valid tree structure */
-  if (dir_entry) {
-      ReadDirList( dir_entry );
+  if (vol->vol_stats.tree) {
+      ReadDirList( vol->vol_stats.tree, vol );
   }
 
-  total_dirs = current_dir_entry;
+  vol->total_dirs = current_dir_entry;
 
 #ifdef DEBUG
-  if(stat_source->disk_total_directories != total_dirs)
+  if(vol->vol_stats.disk_total_directories != vol->total_dirs)
   {
       /* mismatch detected, but safely handled by realloc in ReadDirList */
   }
@@ -74,18 +72,28 @@ void BuildDirEntryList(DirEntry *dir_entry, Statistic *stat_source) /* Removed s
 }
 
 /*
- * Frees the memory allocated for the dir_entry_list array.
- * This function should be called on program exit to prevent memory leaks.
+ * Frees the memory allocated for the dir_entry_list array of a volume.
+ */
+void FreeVolumeCache(struct Volume *vol)
+{
+    if (vol && vol->dir_entry_list != NULL)
+    {
+        free(vol->dir_entry_list);
+        vol->dir_entry_list = NULL;
+        vol->dir_entry_list_capacity = 0;
+        vol->total_dirs = 0;
+    }
+}
+
+/*
+ * Frees the memory allocated for the current volume's dir_entry_list.
+ * Retained for compatibility.
  */
 void FreeDirEntryList(void)
 {
-    if (dir_entry_list != NULL)
+    if (CurrentVolume)
     {
-        free(dir_entry_list);
-        dir_entry_list = NULL;
-        dir_entry_list_capacity = 0;
-        current_dir_entry = 0;
-        total_dirs = 0; /* Also reset total_dirs as the list is now empty */
+        FreeVolumeCache(CurrentVolume);
     }
 }
 
@@ -104,7 +112,7 @@ static void RotateDirMode(void)
 
 
 
-static void ReadDirList(DirEntry *dir_entry)
+static void ReadDirList(DirEntry *dir_entry, struct Volume *vol)
 {
   DirEntry    *de_ptr;
   static int  level = 0;
@@ -115,20 +123,18 @@ static void ReadDirList(DirEntry *dir_entry)
     /* Check visibility.
        Hide files starting with '.' if option is set.
        EXCEPTION: Never hide the top-level root directory of the current session.
-       Use statistic.tree comparison instead of up_tree check to handle archive
-       structures where root-level items might have NULL parents.
     */
     if (hide_dot_files && de_ptr->name[0] == '.') {
-        if (de_ptr != statistic.tree)
+        if (de_ptr != vol->vol_stats.tree)
             continue;
     }
 
     /* Bounds Checking & Dynamic Reallocation */
-    if (current_dir_entry >= (int)dir_entry_list_capacity) {
-        size_t new_capacity = dir_entry_list_capacity * 2;
+    if (current_dir_entry >= (int)vol->dir_entry_list_capacity) {
+        size_t new_capacity = vol->dir_entry_list_capacity * 2;
         if (new_capacity == 0) new_capacity = 128; /* Fallback if 0 start */
 
-        DirEntryList *new_list = (DirEntryList *) realloc(dir_entry_list, new_capacity * sizeof(DirEntryList));
+        DirEntryList *new_list = (DirEntryList *) realloc(vol->dir_entry_list, new_capacity * sizeof(DirEntryList));
 
         if (new_list == NULL) {
              ERROR_MSG("Realloc failed in ReadDirList*ABORT");
@@ -136,25 +142,25 @@ static void ReadDirList(DirEntry *dir_entry)
         }
 
         /* Zero out the newly allocated portion to maintain calloc-like safety */
-        memset(new_list + dir_entry_list_capacity, 0, (new_capacity - dir_entry_list_capacity) * sizeof(DirEntryList));
+        memset(new_list + vol->dir_entry_list_capacity, 0, (new_capacity - vol->dir_entry_list_capacity) * sizeof(DirEntryList));
 
-        dir_entry_list = new_list;
-        dir_entry_list_capacity = new_capacity;
+        vol->dir_entry_list = new_list;
+        vol->dir_entry_list_capacity = new_capacity;
     }
 
     indent &= ~( 1L << level );
     if( de_ptr->next ) indent |= ( 1L << level );
 
-    dir_entry_list[current_dir_entry].dir_entry = de_ptr;
-    dir_entry_list[current_dir_entry].level = (unsigned short) level;
-    dir_entry_list[current_dir_entry].indent = indent;
+    vol->dir_entry_list[current_dir_entry].dir_entry = de_ptr;
+    vol->dir_entry_list[current_dir_entry].level = (unsigned short) level;
+    vol->dir_entry_list[current_dir_entry].indent = indent;
 
     current_dir_entry++;
 
     if( !de_ptr->not_scanned && de_ptr->sub_tree )
     {
       level++;
-      ReadDirList( de_ptr->sub_tree );
+      ReadDirList( de_ptr->sub_tree, vol );
       level--;
     }
   }
@@ -163,25 +169,26 @@ static void ReadDirList(DirEntry *dir_entry)
 
 /*
  * Helper function to return the currently selected directory entry.
- * Used by filewin.c and other modules that can't access dir_entry_list directly.
+ * Now takes a Volume context.
  */
-DirEntry *GetSelectedDirEntry(void)
+DirEntry *GetSelectedDirEntry(struct Volume *vol)
 {
-  if (dir_entry_list != NULL && total_dirs > 0) {
-    int idx = statistic.disp_begin_pos + statistic.cursor_pos;
+  if (vol->dir_entry_list != NULL && vol->total_dirs > 0) {
+    int idx = vol->vol_stats.disp_begin_pos + vol->vol_stats.cursor_pos;
 
     /* Safety bounds check */
     if (idx < 0) idx = 0;
-    if (idx >= total_dirs) idx = total_dirs - 1;
+    if (idx >= vol->total_dirs) idx = vol->total_dirs - 1;
 
-    return dir_entry_list[idx].dir_entry;
+    return vol->dir_entry_list[idx].dir_entry;
   }
   /* Fallback to root if list is empty/invalid */
-  return statistic.tree;
+  return vol->vol_stats.tree;
 }
 
 
-static void PrintDirEntry(WINDOW *win,
+static void PrintDirEntry(struct Volume *vol,
+                          WINDOW *win,
                           int entry_no,
                           int y,
                           unsigned char hilight)
@@ -211,14 +218,14 @@ static void PrintDirEntry(WINDOW *win,
 
   /* Build the tree graph string (e.g., "| 6- ") */
   graph_buffer[0] = '\0';
-  for(j=0; j < dir_entry_list[entry_no].level; j++)
+  for(j=0; j < vol->dir_entry_list[entry_no].level; j++)
   {
-    if( dir_entry_list[entry_no].indent & ( 1L << j ) )
+    if( vol->dir_entry_list[entry_no].indent & ( 1L << j ) )
       (void) strcat( graph_buffer, "| " );
     else
       (void) strcat( graph_buffer, "  " );
   }
-  de_ptr = dir_entry_list[entry_no].dir_entry;
+  de_ptr = vol->dir_entry_list[entry_no].dir_entry;
   if( de_ptr->next )
     (void) strcat( graph_buffer, "6-" );
   else
@@ -394,7 +401,7 @@ static void PrintDirEntry(WINDOW *win,
 
 
 
-void DisplayTree(WINDOW *win, int start_entry_no, int hilight_no)
+void DisplayTree(struct Volume *vol, WINDOW *win, int start_entry_no, int hilight_no)
 {
   int i, y;
   int width, height;
@@ -420,21 +427,21 @@ void DisplayTree(WINDOW *win, int start_entry_no, int hilight_no)
 
   for(i=0; i < height; i++)
   {
-    if ( start_entry_no + i >= total_dirs ) break;
+    if ( start_entry_no + i >= vol->total_dirs ) break;
 
     if( start_entry_no + i != hilight_no )
-      PrintDirEntry( win, start_entry_no + i, i, FALSE );
+      PrintDirEntry( vol, win, start_entry_no + i, i, FALSE );
     else
       y = i;
   }
 
-  if( y >= 0 ) PrintDirEntry( win, start_entry_no + y, y, TRUE );
+  if( y >= 0 ) PrintDirEntry( vol, win, start_entry_no + y, y, TRUE );
 
 }
 
 static void Movedown(int *disp_begin_pos, int *cursor_pos, DirEntry **dir_entry)
 {
-   if( *disp_begin_pos + *cursor_pos + 1 >= total_dirs )
+   if( *disp_begin_pos + *cursor_pos + 1 >= CurrentVolume->total_dirs )
    {
       /* Element not present */
       /*-------------------------*/
@@ -446,10 +453,10 @@ static void Movedown(int *disp_begin_pos, int *cursor_pos, DirEntry **dir_entry)
     } else {
         (*disp_begin_pos)++;
     }
-    *dir_entry = dir_entry_list[*disp_begin_pos + *cursor_pos].dir_entry;
+    *dir_entry = CurrentVolume->dir_entry_list[*disp_begin_pos + *cursor_pos].dir_entry;
     (*dir_entry)->start_file = 0;
     (*dir_entry)->cursor_pos = -1;
-    DisplayTree(dir_window, *disp_begin_pos, *disp_begin_pos + *cursor_pos);
+    DisplayTree(CurrentVolume, dir_window, *disp_begin_pos, *disp_begin_pos + *cursor_pos);
     DisplayFileWindow( *dir_entry );
     RefreshWindow( file_window );
     DisplayDirStatistic(*dir_entry, NULL); /* Updated call */
@@ -476,10 +483,10 @@ static void Moveup(int *disp_begin_pos, int *cursor_pos, DirEntry **dir_entry)
     } else {
         (*disp_begin_pos)--;
     }
-    *dir_entry = dir_entry_list[*disp_begin_pos + *cursor_pos].dir_entry;
+    *dir_entry = CurrentVolume->dir_entry_list[*disp_begin_pos + *cursor_pos].dir_entry;
     (*dir_entry)->start_file = 0;
     (*dir_entry)->cursor_pos = -1;
-    DisplayTree(dir_window, *disp_begin_pos, *disp_begin_pos + *cursor_pos);
+    DisplayTree(CurrentVolume, dir_window, *disp_begin_pos, *disp_begin_pos + *cursor_pos);
     DisplayFileWindow( *dir_entry );
     RefreshWindow( file_window );
     DisplayDirStatistic(*dir_entry, NULL); /* Updated call */
@@ -494,7 +501,7 @@ static void Moveup(int *disp_begin_pos, int *cursor_pos, DirEntry **dir_entry)
 
 static void Movenpage(int *disp_begin_pos, int *cursor_pos, DirEntry **dir_entry)
 {
-   if( *disp_begin_pos + *cursor_pos >= total_dirs - 1 )
+   if( *disp_begin_pos + *cursor_pos >= CurrentVolume->total_dirs - 1 )
    {
       /* Last position */
       /*-----------------*/
@@ -504,8 +511,8 @@ static void Movenpage(int *disp_begin_pos, int *cursor_pos, DirEntry **dir_entry
       if( *cursor_pos < window_height - 1 )
       {
           /* Cursor is not on last entry of the page */
-           if( *disp_begin_pos + window_height > total_dirs  - 1 )
-              *cursor_pos = total_dirs - *disp_begin_pos - 1;
+           if( *disp_begin_pos + window_height > CurrentVolume->total_dirs  - 1 )
+              *cursor_pos = CurrentVolume->total_dirs - *disp_begin_pos - 1;
            else
               *cursor_pos = window_height - 1;
       }
@@ -513,22 +520,22 @@ static void Movenpage(int *disp_begin_pos, int *cursor_pos, DirEntry **dir_entry
       {
           /* Scrolling */
           /*----------*/
-          if( *disp_begin_pos + *cursor_pos + window_height < total_dirs )
+          if( *disp_begin_pos + *cursor_pos + window_height < CurrentVolume->total_dirs )
           {
               *disp_begin_pos += window_height;
               *cursor_pos = window_height - 1;
           }
           else
           {
-              *disp_begin_pos = total_dirs - window_height;
+              *disp_begin_pos = CurrentVolume->total_dirs - window_height;
               if( *disp_begin_pos < 0 ) *disp_begin_pos = 0;
-              *cursor_pos = total_dirs - *disp_begin_pos - 1;
+              *cursor_pos = CurrentVolume->total_dirs - *disp_begin_pos - 1;
           }
       }
-      *dir_entry = dir_entry_list[*disp_begin_pos + *cursor_pos].dir_entry;
+      *dir_entry = CurrentVolume->dir_entry_list[*disp_begin_pos + *cursor_pos].dir_entry;
       (*dir_entry)->start_file = 0;
       (*dir_entry)->cursor_pos = -1;
-      DisplayTree(dir_window,*disp_begin_pos,*disp_begin_pos+*cursor_pos);
+      DisplayTree(CurrentVolume, dir_window,*disp_begin_pos,*disp_begin_pos+*cursor_pos);
       DisplayFileWindow( *dir_entry );
       RefreshWindow( file_window );
       DisplayDirStatistic(*dir_entry, NULL); /* Updated call */
@@ -566,10 +573,10 @@ static void Moveppage(int *disp_begin_pos, int *cursor_pos, DirEntry **dir_entry
          }
          *cursor_pos = 0;
       }
-      *dir_entry = dir_entry_list[*disp_begin_pos + *cursor_pos].dir_entry;
+      *dir_entry = CurrentVolume->dir_entry_list[*disp_begin_pos + *cursor_pos].dir_entry;
       (*dir_entry)->start_file = 0;
       (*dir_entry)->cursor_pos = -1;
-      DisplayTree(dir_window,*disp_begin_pos,*disp_begin_pos+*cursor_pos);
+      DisplayTree(CurrentVolume, dir_window,*disp_begin_pos,*disp_begin_pos+*cursor_pos);
       DisplayFileWindow( *dir_entry );
       RefreshWindow( file_window );
       DisplayDirStatistic(*dir_entry, NULL); /* Updated call */
@@ -585,14 +592,14 @@ static void Moveppage(int *disp_begin_pos, int *cursor_pos, DirEntry **dir_entry
 
 static void MoveEnd(DirEntry **dir_entry)
 {
-    statistic.disp_begin_pos = MAXIMUM(0, total_dirs - window_height);
-    statistic.cursor_pos     = total_dirs - statistic.disp_begin_pos - 1;
-    *dir_entry = dir_entry_list[statistic.disp_begin_pos + statistic.cursor_pos].dir_entry;
+    statistic.disp_begin_pos = MAXIMUM(0, CurrentVolume->total_dirs - window_height);
+    statistic.cursor_pos     = CurrentVolume->total_dirs - statistic.disp_begin_pos - 1;
+    *dir_entry = CurrentVolume->dir_entry_list[statistic.disp_begin_pos + statistic.cursor_pos].dir_entry;
     (*dir_entry)->start_file = 0;
     (*dir_entry)->cursor_pos = -1;
     DisplayFileWindow( *dir_entry );
     RefreshWindow( file_window );
-    DisplayTree( dir_window, statistic.disp_begin_pos,
+    DisplayTree( CurrentVolume, dir_window, statistic.disp_begin_pos,
 		statistic.disp_begin_pos + statistic.cursor_pos);
     DisplayDirStatistic(*dir_entry, NULL); /* Updated call */
     /* Update header path */
@@ -614,12 +621,12 @@ static void MoveHome(DirEntry **dir_entry)
     {
        statistic.disp_begin_pos = 0;
        statistic.cursor_pos     = 0;
-       *dir_entry = dir_entry_list[statistic.disp_begin_pos + statistic.cursor_pos].dir_entry;
+       *dir_entry = CurrentVolume->dir_entry_list[statistic.disp_begin_pos + statistic.cursor_pos].dir_entry;
        (*dir_entry)->start_file = 0;
        (*dir_entry)->cursor_pos = -1;
        DisplayFileWindow( *dir_entry );
        RefreshWindow( file_window );
-       DisplayTree( dir_window, statistic.disp_begin_pos,
+       DisplayTree( CurrentVolume, dir_window, statistic.disp_begin_pos,
 		statistic.disp_begin_pos + statistic.cursor_pos);
        DisplayDirStatistic(*dir_entry, NULL); /* Updated call */
        /* Update header path */
@@ -632,8 +639,7 @@ static void MoveHome(DirEntry **dir_entry)
     return;
 }
 
-static void HandlePlus(DirEntry *dir_entry, DirEntry *de_ptr, char *new_login_path,
-		       DirEntry *start_dir_entry, BOOL *need_dsp_help)
+static void HandlePlus(DirEntry *dir_entry, DirEntry *de_ptr, char *new_login_path, BOOL *need_dsp_help)
 {
     if (mode != DISK_MODE && mode != USER_MODE) {
         return;
@@ -648,8 +654,8 @@ static void HandlePlus(DirEntry *dir_entry, DirEntry *de_ptr, char *new_login_pa
 	}
         InitClock();    /* Resume clock after scanning */
 	dir_entry->not_scanned = FALSE;
-	BuildDirEntryList( start_dir_entry, &statistic );
-	DisplayTree( dir_window, statistic.disp_begin_pos,
+	BuildDirEntryList( CurrentVolume );
+	DisplayTree( CurrentVolume, dir_window, statistic.disp_begin_pos,
                  statistic.disp_begin_pos + statistic.cursor_pos );
 	DisplayDiskStatistic();
     DisplayDirStatistic(dir_entry, NULL); /* Updated call */
@@ -658,16 +664,15 @@ static void HandlePlus(DirEntry *dir_entry, DirEntry *de_ptr, char *new_login_pa
     }
 }
 
-static void HandleReadSubTree(DirEntry *dir_entry, DirEntry *start_dir_entry,
-		       BOOL *need_dsp_help)
+static void HandleReadSubTree(DirEntry *dir_entry, BOOL *need_dsp_help)
 {
     SuspendClock(); /* Suspend clock before scanning */
     if (ScanSubTree(dir_entry) == -1) {
         /* Aborted. Fall through to refresh what we have. */
     }
     InitClock();    /* Resume clock after scanning */
-    BuildDirEntryList( start_dir_entry, &statistic );
-    DisplayTree( dir_window, statistic.disp_begin_pos,
+    BuildDirEntryList( CurrentVolume );
+    DisplayTree( CurrentVolume, dir_window, statistic.disp_begin_pos,
 		 statistic.disp_begin_pos + statistic.cursor_pos );
     RecalculateSysStats(); /* Fix for Bug 10: Force full recalculation */
     DisplayDiskStatistic();
@@ -676,8 +681,7 @@ static void HandleReadSubTree(DirEntry *dir_entry, DirEntry *start_dir_entry,
     *need_dsp_help = TRUE;
 }
 
-static void HandleUnreadSubTree(DirEntry *dir_entry, DirEntry *de_ptr,
-			 DirEntry *start_dir_entry, BOOL *need_dsp_help)
+static void HandleUnreadSubTree(DirEntry *dir_entry, DirEntry *de_ptr, BOOL *need_dsp_help)
 {
     if (mode != DISK_MODE && mode != USER_MODE) {
         return;
@@ -688,8 +692,8 @@ static void HandleUnreadSubTree(DirEntry *dir_entry, DirEntry *de_ptr,
 	    UnReadTree( de_ptr );
 	}
 	dir_entry->not_scanned = TRUE;
-	BuildDirEntryList( start_dir_entry, &statistic );
-        DisplayTree( dir_window, statistic.disp_begin_pos,
+	BuildDirEntryList( CurrentVolume );
+        DisplayTree( CurrentVolume, dir_window, statistic.disp_begin_pos,
 		    statistic.disp_begin_pos + statistic.cursor_pos );
         DisplayAvailBytes();
         RecalculateSysStats(); /* Fix for Bug 10: Force full recalculation */
@@ -734,13 +738,13 @@ static void HandleTagDir(DirEntry *dir_entry, BOOL value)
     return;
 }
 
-static void HandleTagAllDirs(DirEntry *dir_entry, BOOL value )
+static void HandleTagAllDirs(struct Volume *vol, DirEntry *dir_entry, BOOL value )
 {
     FileEntry *fe_ptr;
     long i;
-    for(i=0; i < total_dirs; i++)
+    for(i=0; i < vol->total_dirs; i++)
     {
-	for(fe_ptr=dir_entry_list[i].dir_entry->file; fe_ptr; fe_ptr=fe_ptr->next)
+	for(fe_ptr=vol->dir_entry_list[i].dir_entry->file; fe_ptr; fe_ptr=fe_ptr->next)
 	{
         /* Skip hidden dotfiles if the option is enabled */
         if (hide_dot_files && fe_ptr->name[0] == '.') continue;
@@ -775,7 +779,7 @@ static void HandleTagAllDirs(DirEntry *dir_entry, BOOL value )
 
 
 
-static void HandleShowAll(BOOL tagged_only, DirEntry *dir_entry, DirEntry *start_dir_entry, BOOL *need_dsp_help, int *ch)
+static void HandleShowAll(BOOL tagged_only, DirEntry *dir_entry, BOOL *need_dsp_help, int *ch)
 {
     if( (tagged_only) ? statistic.disk_tagged_files : statistic.disk_matching_files )
     {
@@ -798,12 +802,12 @@ static void HandleShowAll(BOOL tagged_only, DirEntry *dir_entry, DirEntry *start
             DisplayFileWindow( dir_entry );
             RefreshWindow( small_file_window );
             RefreshWindow( big_file_window );
-	    BuildDirEntryList( start_dir_entry, &statistic );
-            DisplayTree( dir_window, statistic.disp_begin_pos,
+	    BuildDirEntryList( CurrentVolume );
+            DisplayTree( CurrentVolume, dir_window, statistic.disp_begin_pos,
 			 statistic.disp_begin_pos + statistic.cursor_pos);
 	} else {
-	    BuildDirEntryList( statistic.tree, &statistic );
-            DisplayTree( dir_window, statistic.disp_begin_pos,
+	    BuildDirEntryList( CurrentVolume );
+            DisplayTree( CurrentVolume, dir_window, statistic.disp_begin_pos,
 			statistic.disp_begin_pos + statistic.cursor_pos);
 	    *ch = 'L';
 	}
@@ -814,7 +818,7 @@ static void HandleShowAll(BOOL tagged_only, DirEntry *dir_entry, DirEntry *start
     return;
 }
 
-static void HandleSwitchWindow(DirEntry *dir_entry, DirEntry *start_dir_entry, BOOL *need_dsp_help, int *ch)
+static void HandleSwitchWindow(DirEntry *dir_entry, BOOL *need_dsp_help, int *ch)
 {
     /* Critical Safety: Check for volume changes upon return from File Window */
     struct Volume *start_vol = CurrentVolume;
@@ -841,14 +845,14 @@ static void HandleSwitchWindow(DirEntry *dir_entry, DirEntry *start_dir_entry, B
 	    DisplayFileWindow( dir_entry );
             RefreshWindow( small_file_window );
             RefreshWindow( big_file_window );
-	    BuildDirEntryList( start_dir_entry, &statistic );
-            DisplayTree( dir_window, statistic.disp_begin_pos,
+	    BuildDirEntryList( CurrentVolume );
+            DisplayTree( CurrentVolume, dir_window, statistic.disp_begin_pos,
 			 statistic.disp_begin_pos + statistic.cursor_pos);
 	    DisplayDiskStatistic();
         DisplayDirStatistic(dir_entry, NULL); /* Updated call */
 	} else {
-	    BuildDirEntryList( statistic.tree, &statistic );
-            DisplayTree( dir_window, statistic.disp_begin_pos,
+	    BuildDirEntryList( CurrentVolume );
+            DisplayTree( CurrentVolume, dir_window, statistic.disp_begin_pos,
 			statistic.disp_begin_pos + statistic.cursor_pos);
 	    *ch = 'L';
 	}
@@ -870,8 +874,8 @@ void ToggleDotFiles(void)
     SuspendClock();
 
     /* 1. Identify the directory currently under the cursor */
-    if (total_dirs > 0 && (statistic.disp_begin_pos + statistic.cursor_pos < total_dirs)) {
-        target = dir_entry_list[statistic.disp_begin_pos + statistic.cursor_pos].dir_entry;
+    if (CurrentVolume->total_dirs > 0 && (statistic.disp_begin_pos + statistic.cursor_pos < CurrentVolume->total_dirs)) {
+        target = CurrentVolume->dir_entry_list[statistic.disp_begin_pos + statistic.cursor_pos].dir_entry;
     } else {
         target = statistic.tree;
     }
@@ -881,13 +885,13 @@ void ToggleDotFiles(void)
     RecalculateSysStats();
 
     /* 3. Rebuild the linear list of visible directories */
-    BuildDirEntryList(statistic.tree, &statistic);
+    BuildDirEntryList(CurrentVolume);
 
     /* 4. Search for the 'target' directory in the new list */
     DirEntry *search = target;
     while (search != NULL && found_idx == -1) {
-        for (i = 0; i < total_dirs; i++) {
-            if (dir_entry_list[i].dir_entry == search) {
+        for (i = 0; i < CurrentVolume->total_dirs; i++) {
+            if (CurrentVolume->dir_entry_list[i].dir_entry == search) {
                 found_idx = i;
                 break;
             }
@@ -915,8 +919,8 @@ void ToggleDotFiles(void)
                 statistic.disp_begin_pos = found_idx - (win_height / 2);
 
                 /* Bounds check for display position */
-                if (statistic.disp_begin_pos > total_dirs - win_height) {
-                    statistic.disp_begin_pos = total_dirs - win_height;
+                if (statistic.disp_begin_pos > CurrentVolume->total_dirs - win_height) {
+                    statistic.disp_begin_pos = CurrentVolume->total_dirs - win_height;
                 }
                 if (statistic.disp_begin_pos < 0) statistic.disp_begin_pos = 0;
 
@@ -931,19 +935,19 @@ void ToggleDotFiles(void)
 
     /* Sanity check cursor limits */
     if (statistic.cursor_pos >= win_height) statistic.cursor_pos = win_height - 1;
-    if (statistic.disp_begin_pos + statistic.cursor_pos >= total_dirs) {
+    if (statistic.disp_begin_pos + statistic.cursor_pos >= CurrentVolume->total_dirs) {
         /* Move cursor to last valid item */
-        statistic.cursor_pos = (total_dirs > 0) ? (total_dirs - 1 - statistic.disp_begin_pos) : 0;
+        statistic.cursor_pos = (CurrentVolume->total_dirs > 0) ? (CurrentVolume->total_dirs - 1 - statistic.disp_begin_pos) : 0;
     }
 
     /* Refresh Directory Tree */
-    DisplayTree(dir_window, statistic.disp_begin_pos, statistic.disp_begin_pos + statistic.cursor_pos);
+    DisplayTree(CurrentVolume, dir_window, statistic.disp_begin_pos, statistic.disp_begin_pos + statistic.cursor_pos);
     DisplayDiskStatistic();
 
     /* Update current dir pointer using the new accessor function
        because ToggleDotFiles might have changed the list layout */
-    if (total_dirs > 0) {
-        target = dir_entry_list[statistic.disp_begin_pos + statistic.cursor_pos].dir_entry;
+    if (CurrentVolume->total_dirs > 0) {
+        target = CurrentVolume->dir_entry_list[statistic.disp_begin_pos + statistic.cursor_pos].dir_entry;
     } else {
         target = statistic.tree;
     }
@@ -986,7 +990,7 @@ int HandleDirWindow(DirEntry *start_dir_entry)
 
   need_dsp_help = TRUE;
 
-  BuildDirEntryList( start_dir_entry, &statistic );
+  BuildDirEntryList( CurrentVolume );
   if ( initial_directory != NULL )
   {
     if ( !strcmp( initial_directory, "." ) )   /* Entry just a single "." */
@@ -1009,12 +1013,12 @@ int HandleDirWindow(DirEntry *start_dir_entry)
       else {            /* Entry of form "beta" or "/full/path/alpha/beta" */
         strcpy(new_login_path, initial_directory);
       }
-      for ( i = 0; i < total_dirs; i++ )
+      for ( i = 0; i < CurrentVolume->total_dirs; i++ )
       {
         if ( *new_login_path == FILE_SEPARATOR_CHAR )
-          GetPath( dir_entry_list[i].dir_entry, new_name );
+          GetPath( CurrentVolume->dir_entry_list[i].dir_entry, new_name );
         else
-          strcpy( new_name, dir_entry_list[i].dir_entry->name );
+          strcpy( new_name, CurrentVolume->dir_entry_list[i].dir_entry->name );
         if ( !strcmp( new_login_path, new_name ) )
         {
           statistic.disp_begin_pos = i;
@@ -1026,7 +1030,7 @@ int HandleDirWindow(DirEntry *start_dir_entry)
     }
     initial_directory = NULL;
   }
-  dir_entry = dir_entry_list[statistic.disp_begin_pos + statistic.cursor_pos].dir_entry;
+  dir_entry = CurrentVolume->dir_entry_list[statistic.disp_begin_pos + statistic.cursor_pos].dir_entry;
 
   DisplayDiskStatistic();
   DisplayDirStatistic(dir_entry, NULL); /* Updated call */
@@ -1043,7 +1047,7 @@ int HandleDirWindow(DirEntry *start_dir_entry)
   }
   DisplayFileWindow( dir_entry );
   RefreshWindow( file_window );
-  DisplayTree( dir_window, statistic.disp_begin_pos, statistic.disp_begin_pos + statistic.cursor_pos );
+  DisplayTree( CurrentVolume, dir_window, statistic.disp_begin_pos, statistic.disp_begin_pos + statistic.cursor_pos );
   touchwin(dir_window);
 
   if ( dir_entry->login_flag )
@@ -1095,7 +1099,7 @@ int HandleDirWindow(DirEntry *start_dir_entry)
          statistic.cursor_pos--;
 	 statistic.disp_begin_pos++;
        }
-       DisplayTree( dir_window, statistic.disp_begin_pos,
+       DisplayTree( CurrentVolume, dir_window, statistic.disp_begin_pos,
 		    statistic.disp_begin_pos + statistic.cursor_pos
 		  );
        DisplayFileWindow(dir_entry);
@@ -1140,8 +1144,8 @@ int HandleDirWindow(DirEntry *start_dir_entry)
                 /* Optimization: Start searching from current position */
                 int start_idx = statistic.disp_begin_pos + statistic.cursor_pos;
 
-                for (k = start_idx + 1; k < total_dirs; k++) {
-                    if (dir_entry_list[k].dir_entry == dir_entry->next) {
+                for (k = start_idx + 1; k < CurrentVolume->total_dirs; k++) {
+                    if (CurrentVolume->dir_entry_list[k].dir_entry == dir_entry->next) {
                         found_idx = k;
                         break;
                     }
@@ -1157,16 +1161,16 @@ int HandleDirWindow(DirEntry *start_dir_entry)
                         statistic.disp_begin_pos = found_idx;
                         statistic.cursor_pos = 0;
                         /* Bounds check */
-                        if (statistic.disp_begin_pos + window_height > total_dirs) {
-                             statistic.disp_begin_pos = MAXIMUM(0, total_dirs - window_height);
+                        if (statistic.disp_begin_pos + window_height > CurrentVolume->total_dirs) {
+                             statistic.disp_begin_pos = MAXIMUM(0, CurrentVolume->total_dirs - window_height);
                              statistic.cursor_pos = found_idx - statistic.disp_begin_pos;
                         }
                     }
                     /* Sync */
-                    dir_entry = dir_entry_list[statistic.disp_begin_pos + statistic.cursor_pos].dir_entry;
+                    dir_entry = CurrentVolume->dir_entry_list[statistic.disp_begin_pos + statistic.cursor_pos].dir_entry;
 
                     /* Refresh */
-                    DisplayTree(dir_window, statistic.disp_begin_pos, statistic.disp_begin_pos + statistic.cursor_pos);
+                    DisplayTree(CurrentVolume, dir_window, statistic.disp_begin_pos, statistic.disp_begin_pos + statistic.cursor_pos);
                     DisplayFileWindow(dir_entry);
                     DisplayDiskStatistic();
                     DisplayDirStatistic(dir_entry, NULL); /* Updated call */
@@ -1189,24 +1193,24 @@ int HandleDirWindow(DirEntry *start_dir_entry)
     		     break;
       case ACTION_MOVE_RIGHT:
       case ACTION_TREE_EXPAND_ALL: HandlePlus(dir_entry, de_ptr, new_login_path,
-    				start_dir_entry, &need_dsp_help);
+    				&need_dsp_help);
 	             break;
-      case ACTION_TREE_EXPAND: HandleReadSubTree(dir_entry, start_dir_entry,
+      case ACTION_TREE_EXPAND: HandleReadSubTree(dir_entry,
     					&need_dsp_help);
     		     break;
       case ACTION_MOVE_LEFT:
           /* Check if directory is expanded (has sub-tree and is scanned) */
           if (!dir_entry->not_scanned && dir_entry->sub_tree != NULL) {
               /* It is expanded -> Collapse it */
-              HandleUnreadSubTree(dir_entry, de_ptr, start_dir_entry, &need_dsp_help);
+              HandleUnreadSubTree(dir_entry, de_ptr, &need_dsp_help);
           } else {
               /* It is collapsed (or leaf) -> Jump to Parent */
               if (dir_entry->up_tree != NULL) {
                    /* Find parent in the list */
                    int p_idx = -1;
                    int k;
-                   for(k=0; k < total_dirs; k++) {
-                       if(dir_entry_list[k].dir_entry == dir_entry->up_tree) {
+                   for(k=0; k < CurrentVolume->total_dirs; k++) {
+                       if(CurrentVolume->dir_entry_list[k].dir_entry == dir_entry->up_tree) {
                            p_idx = k;
                            break;
                        }
@@ -1222,16 +1226,16 @@ int HandleDirWindow(DirEntry *start_dir_entry)
                            statistic.disp_begin_pos = p_idx;
                            statistic.cursor_pos = 0;
                            /* Adjust if near end */
-                           if (statistic.disp_begin_pos + window_height > total_dirs) {
-                               statistic.disp_begin_pos = MAXIMUM(0, total_dirs - window_height);
+                           if (statistic.disp_begin_pos + window_height > CurrentVolume->total_dirs) {
+                               statistic.disp_begin_pos = MAXIMUM(0, CurrentVolume->total_dirs - window_height);
                                statistic.cursor_pos = p_idx - statistic.disp_begin_pos;
                            }
                        }
                        /* Sync pointers */
-                       dir_entry = dir_entry_list[statistic.disp_begin_pos + statistic.cursor_pos].dir_entry;
+                       dir_entry = CurrentVolume->dir_entry_list[statistic.disp_begin_pos + statistic.cursor_pos].dir_entry;
 
                        /* Refresh */
-                       DisplayTree(dir_window, statistic.disp_begin_pos, statistic.disp_begin_pos + statistic.cursor_pos);
+                       DisplayTree(CurrentVolume, dir_window, statistic.disp_begin_pos, statistic.disp_begin_pos + statistic.cursor_pos);
                        DisplayFileWindow(dir_entry);
                        DisplayDiskStatistic();
                        DisplayDirStatistic(dir_entry, NULL); /* Updated call */
@@ -1244,7 +1248,7 @@ int HandleDirWindow(DirEntry *start_dir_entry)
               }
           }
           break;
-      case ACTION_TREE_COLLAPSE: HandleUnreadSubTree(dir_entry, de_ptr, start_dir_entry,
+      case ACTION_TREE_COLLAPSE: HandleUnreadSubTree(dir_entry, de_ptr,
     					 &need_dsp_help);
 	             break;
       case ACTION_TOGGLE_HIDDEN: {
@@ -1252,8 +1256,8 @@ int HandleDirWindow(DirEntry *start_dir_entry)
 
                         /* Update current dir pointer using the new accessor function
                            because ToggleDotFiles might have changed the list layout */
-                        if (total_dirs > 0) {
-                            dir_entry = dir_entry_list[statistic.disp_begin_pos + statistic.cursor_pos].dir_entry;
+                        if (CurrentVolume->total_dirs > 0) {
+                            dir_entry = CurrentVolume->dir_entry_list[statistic.disp_begin_pos + statistic.cursor_pos].dir_entry;
                         } else {
                             dir_entry = statistic.tree;
                         }
@@ -1279,15 +1283,15 @@ int HandleDirWindow(DirEntry *start_dir_entry)
              Movedown(&statistic.disp_begin_pos, &statistic.cursor_pos, &dir_entry); /* ADDED */
     		     break;
       case ACTION_TAG_ALL:
-                     HandleTagAllDirs(dir_entry,TRUE);
+                     HandleTagAllDirs(CurrentVolume, dir_entry,TRUE);
 		     break;
       case ACTION_UNTAG_ALL:
-    		     HandleTagAllDirs(dir_entry,FALSE);
+    		     HandleTagAllDirs(CurrentVolume, dir_entry,FALSE);
 		     break;
       case ACTION_TOGGLE_MODE:
 		     RotateDirMode();
                      /*DisplayFileWindow( dir_entry, 0, -1 );*/
-                     DisplayTree( dir_window, statistic.disp_begin_pos,
+                     DisplayTree( CurrentVolume, dir_window, statistic.disp_begin_pos,
                                   statistic.disp_begin_pos + statistic.cursor_pos
                                   );
                      /*RefreshWindow( file_window );*/
@@ -1296,13 +1300,13 @@ int HandleDirWindow(DirEntry *start_dir_entry)
 		     need_dsp_help = TRUE;
 		     break;
       case ACTION_CMD_TAGGED_S:
-		     HandleShowAll(TRUE, dir_entry, start_dir_entry, &need_dsp_help, &ch);
+		     HandleShowAll(TRUE, dir_entry, &need_dsp_help, &ch);
 		     break;
 
       case ACTION_CMD_S:
-		     HandleShowAll(FALSE, dir_entry, start_dir_entry, &need_dsp_help, &ch);
+		     HandleShowAll(FALSE, dir_entry, &need_dsp_help, &ch);
 		     break;
-      case ACTION_ENTER: HandleSwitchWindow(dir_entry, start_dir_entry, &need_dsp_help, &ch);
+      case ACTION_ENTER: HandleSwitchWindow(dir_entry, &need_dsp_help, &ch);
 		     break;
       case ACTION_CMD_X: if (mode != DISK_MODE && mode != USER_MODE) {
 		     } else {
@@ -1315,8 +1319,8 @@ int HandleDirWindow(DirEntry *start_dir_entry)
 		     break;
       case ACTION_CMD_M: if( !MakeDirectory( dir_entry ) )
 		     {
-		       BuildDirEntryList( start_dir_entry, &statistic );
-                       DisplayTree( dir_window, statistic.disp_begin_pos,
+		       BuildDirEntryList( CurrentVolume );
+                       DisplayTree( CurrentVolume, dir_window, statistic.disp_begin_pos,
 				    statistic.disp_begin_pos + statistic.cursor_pos
 				  );
 		       DisplayAvailBytes();
@@ -1333,13 +1337,13 @@ int HandleDirWindow(DirEntry *start_dir_entry)
 		       }
       		     }
 		     /* Update regardless of success */
-		     BuildDirEntryList( start_dir_entry, &statistic );
-		     dir_entry = dir_entry_list[statistic.disp_begin_pos + statistic.cursor_pos].dir_entry;
+		     BuildDirEntryList( CurrentVolume );
+		     dir_entry = CurrentVolume->dir_entry_list[statistic.disp_begin_pos + statistic.cursor_pos].dir_entry;
 		     dir_entry->start_file = 0;
 		     dir_entry->cursor_pos = -1;
                      DisplayFileWindow( dir_entry );
                      RefreshWindow( file_window );
-		     DisplayTree( dir_window, statistic.disp_begin_pos,
+		     DisplayTree( CurrentVolume, dir_window, statistic.disp_begin_pos,
 				  statistic.disp_begin_pos + statistic.cursor_pos
 				);
 		     DisplayAvailBytes();
@@ -1353,12 +1357,12 @@ int HandleDirWindow(DirEntry *start_dir_entry)
 		       {
 		         /* Rename OK */
 		         /*-----------*/
-		         BuildDirEntryList( start_dir_entry, &statistic );
-                         DisplayTree( dir_window, statistic.disp_begin_pos,
+		         BuildDirEntryList( CurrentVolume );
+                         DisplayTree( CurrentVolume, dir_window, statistic.disp_begin_pos,
 		                      statistic.disp_begin_pos + statistic.cursor_pos
 			            );
 		         DisplayAvailBytes();
-		         dir_entry = dir_entry_list[statistic.disp_begin_pos + statistic.cursor_pos].dir_entry;
+		         dir_entry = CurrentVolume->dir_entry_list[statistic.disp_begin_pos + statistic.cursor_pos].dir_entry;
                          DisplayDiskStatistic();
                          DisplayDirStatistic(dir_entry, NULL); /* Updated call */
 		       }
@@ -1370,34 +1374,34 @@ int HandleDirWindow(DirEntry *start_dir_entry)
              werase(file_window);
              refresh(); /* Force clear */
              RescanDir(dir_entry, strtol(TREEDEPTH, NULL, 0)); /* Fixed: Use configured TREEDEPTH */
-             BuildDirEntryList(start_dir_entry, &statistic);
-             if (total_dirs > 0 && (statistic.disp_begin_pos + statistic.cursor_pos >= total_dirs)) {
+             BuildDirEntryList(CurrentVolume);
+             if (CurrentVolume->total_dirs > 0 && (statistic.disp_begin_pos + statistic.cursor_pos >= CurrentVolume->total_dirs)) {
                  statistic.disp_begin_pos = 0;
                  statistic.cursor_pos = 0;
              }
-             if (total_dirs > 0) {
-                dir_entry = dir_entry_list[statistic.disp_begin_pos + statistic.cursor_pos].dir_entry;
+             if (CurrentVolume->total_dirs > 0) {
+                dir_entry = CurrentVolume->dir_entry_list[statistic.disp_begin_pos + statistic.cursor_pos].dir_entry;
              }
-             DisplayTree(dir_window, statistic.disp_begin_pos, statistic.disp_begin_pos + statistic.cursor_pos);
+             DisplayTree(CurrentVolume, dir_window, statistic.disp_begin_pos, statistic.disp_begin_pos + statistic.cursor_pos);
              DisplayFileWindow(dir_entry);
              DisplayDiskStatistic();
              DisplayDirStatistic(dir_entry, NULL); /* Updated call */
              need_dsp_help = TRUE;
              break;
       case ACTION_CMD_G: (void) ChangeDirGroup( dir_entry );
-                     DisplayTree( dir_window, statistic.disp_begin_pos, statistic.disp_begin_pos + statistic.cursor_pos );
+                     DisplayTree( CurrentVolume, dir_window, statistic.disp_begin_pos, statistic.disp_begin_pos + statistic.cursor_pos );
                      DisplayDiskStatistic();
                      DisplayDirStatistic(dir_entry, NULL); /* Updated call */
 		     need_dsp_help = TRUE;
 		     break;
       case ACTION_CMD_O: (void) ChangeDirOwner( dir_entry );
-                     DisplayTree( dir_window, statistic.disp_begin_pos, statistic.disp_begin_pos + statistic.cursor_pos );
+                     DisplayTree( CurrentVolume, dir_window, statistic.disp_begin_pos, statistic.disp_begin_pos + statistic.cursor_pos );
                      DisplayDiskStatistic();
                      DisplayDirStatistic(dir_entry, NULL); /* Updated call */
 		     need_dsp_help = TRUE;
 		     break;
       case ACTION_CMD_A: (void) ChangeDirModus( dir_entry );
-                     DisplayTree( dir_window, statistic.disp_begin_pos, statistic.disp_begin_pos + statistic.cursor_pos );
+                     DisplayTree( CurrentVolume, dir_window, statistic.disp_begin_pos, statistic.disp_begin_pos + statistic.cursor_pos );
                      DisplayDiskStatistic();
                      DisplayDirStatistic(dir_entry, NULL); /* Updated call */
 		     need_dsp_help = TRUE;
@@ -1418,22 +1422,20 @@ int HandleDirWindow(DirEntry *start_dir_entry)
           {
               int res = SelectLoadedVolume();
               if (res == 0) { /* If volume switch was successful */
-                  start_dir_entry = statistic.tree; /* CRITICAL: Update local pointer to new volume's tree root */
-                  BuildDirEntryList(start_dir_entry, &statistic); /* Rebuild list for the new tree */
                   /* PRESERVE STATE: Remove lines resetting cursor_pos and disp_begin_pos.
                    * These are now loaded from the Volume struct by LoginDisk. */
                   /* Safety check for cursor validity after list rebuild */
-                  if (total_dirs > 0 && (statistic.disp_begin_pos + statistic.cursor_pos >= total_dirs)) {
+                  if (CurrentVolume->total_dirs > 0 && (statistic.disp_begin_pos + statistic.cursor_pos >= CurrentVolume->total_dirs)) {
                       statistic.disp_begin_pos = 0;
                       statistic.cursor_pos = 0;
                   }
                   /* Update local dir_entry pointer to the currently selected entry of the new list */
-                  if (total_dirs > 0) {
-                      dir_entry = dir_entry_list[statistic.disp_begin_pos + statistic.cursor_pos].dir_entry;
+                  if (CurrentVolume->total_dirs > 0) {
+                      dir_entry = CurrentVolume->dir_entry_list[statistic.disp_begin_pos + statistic.cursor_pos].dir_entry;
                   } else {
                       dir_entry = statistic.tree; /* Fallback to root if list is empty */
                   }
-                  DisplayTree(dir_window, statistic.disp_begin_pos, statistic.disp_begin_pos + statistic.cursor_pos);
+                  DisplayTree(CurrentVolume, dir_window, statistic.disp_begin_pos, statistic.disp_begin_pos + statistic.cursor_pos);
                   DisplayFileWindow(dir_entry); /* Refresh file window for the new directory */
                   RefreshWindow(file_window);
                   DisplayDiskStatistic();
@@ -1454,22 +1456,20 @@ int HandleDirWindow(DirEntry *start_dir_entry)
           {
               int res = CycleLoadedVolume(-1);
               if (res == 0) { /* If volume switch was successful */
-                  start_dir_entry = statistic.tree; /* CRITICAL: Update local pointer to new volume's tree root */
-                  BuildDirEntryList(start_dir_entry, &statistic); /* Rebuild list for the new tree */
                   /* PRESERVE STATE: Remove lines resetting cursor_pos and disp_begin_pos.
                    * These are now loaded from the Volume struct by LoginDisk. */
                   /* Safety check for cursor validity after list rebuild */
-                  if (total_dirs > 0 && (statistic.disp_begin_pos + statistic.cursor_pos >= total_dirs)) {
+                  if (CurrentVolume->total_dirs > 0 && (statistic.disp_begin_pos + statistic.cursor_pos >= CurrentVolume->total_dirs)) {
                       statistic.disp_begin_pos = 0;
                       statistic.cursor_pos = 0;
                   }
                   /* Update local dir_entry pointer to the currently selected entry of the new list */
-                  if (total_dirs > 0) {
-                      dir_entry = dir_entry_list[statistic.disp_begin_pos + statistic.cursor_pos].dir_entry;
+                  if (CurrentVolume->total_dirs > 0) {
+                      dir_entry = CurrentVolume->dir_entry_list[statistic.disp_begin_pos + statistic.cursor_pos].dir_entry;
                   } else {
                       dir_entry = statistic.tree; /* Fallback to root if list is empty */
                   }
-                  DisplayTree(dir_window, statistic.disp_begin_pos, statistic.disp_begin_pos + statistic.cursor_pos);
+                  DisplayTree(CurrentVolume, dir_window, statistic.disp_begin_pos, statistic.disp_begin_pos + statistic.cursor_pos);
                   DisplayFileWindow(dir_entry); /* Refresh file window for the new directory */
                   RefreshWindow(file_window);
                   DisplayDiskStatistic();
@@ -1490,22 +1490,20 @@ int HandleDirWindow(DirEntry *start_dir_entry)
           {
               int res = CycleLoadedVolume(1);
               if (res == 0) { /* If volume switch was successful */
-                  start_dir_entry = statistic.tree; /* CRITICAL: Update local pointer to new volume's tree root */
-                  BuildDirEntryList(start_dir_entry, &statistic); /* Rebuild list for the new tree */
                   /* PRESERVE STATE: Remove lines resetting cursor_pos and disp_begin_pos.
                    * These are now loaded from the Volume struct by LoginDisk. */
                   /* Safety check for cursor validity after list rebuild */
-                  if (total_dirs > 0 && (statistic.disp_begin_pos + statistic.cursor_pos >= total_dirs)) {
+                  if (CurrentVolume->total_dirs > 0 && (statistic.disp_begin_pos + statistic.cursor_pos >= CurrentVolume->total_dirs)) {
                       statistic.disp_begin_pos = 0;
                       statistic.cursor_pos = 0;
                   }
                   /* Update local dir_entry pointer to the currently selected entry of the new list */
-                  if (total_dirs > 0) {
-                      dir_entry = dir_entry_list[statistic.disp_begin_pos + statistic.cursor_pos].dir_entry;
+                  if (CurrentVolume->total_dirs > 0) {
+                      dir_entry = CurrentVolume->dir_entry_list[statistic.disp_begin_pos + statistic.cursor_pos].dir_entry;
                   } else {
                       dir_entry = statistic.tree; /* Fallback to root if list is empty */
                   }
-                  DisplayTree(dir_window, statistic.disp_begin_pos, statistic.disp_begin_pos + statistic.cursor_pos);
+                  DisplayTree(CurrentVolume, dir_window, statistic.disp_begin_pos, statistic.disp_begin_pos + statistic.cursor_pos);
                   DisplayFileWindow(dir_entry); /* Refresh file window for the new directory */
                   RefreshWindow(file_window);
                   DisplayDiskStatistic();
@@ -1551,27 +1549,19 @@ int HandleDirWindow(DirEntry *start_dir_entry)
 
               /* Check return value. Only update state if login succeeded (0). */
               if (ret == 0) {
-                  /* LoginDisk has already built the list internally, but for safety against
-                   * state reversion when logging sub-volumes, we force a complete refresh
-                   * of local pointers and the directory list here. */
-                  start_dir_entry = statistic.tree;
-
-                  /* Rebuild the list based on the new volume's tree */
-                  BuildDirEntryList(start_dir_entry, &statistic);
-
                   /* Ensure cursor is at the top for a new login */
                   statistic.disp_begin_pos = 0;
                   statistic.cursor_pos = 0;
 
                   /* Safety: Update dir_entry to the first item of the newly built list */
-                  if (total_dirs > 0) {
-                      dir_entry = dir_entry_list[0].dir_entry;
+                  if (CurrentVolume->total_dirs > 0) {
+                      dir_entry = CurrentVolume->dir_entry_list[0].dir_entry;
                   } else {
                       dir_entry = statistic.tree;
                   }
 
                   /* Force Full Display Refresh */
-                  DisplayTree(dir_window, statistic.disp_begin_pos, statistic.disp_begin_pos + statistic.cursor_pos);
+                  DisplayTree(CurrentVolume, dir_window, statistic.disp_begin_pos, statistic.disp_begin_pos + statistic.cursor_pos);
                   DisplayFileWindow(dir_entry);
                   RefreshWindow(file_window);
                   DisplayDiskStatistic();
@@ -1635,8 +1625,7 @@ int KeyF2Get(DirEntry *start_dir_entry,
   int ch;
   int result = -1;
   int win_width, win_height;
-  DirEntry *tree_source;
-  Statistic *stat_source;
+  struct Volume *target_vol;
   int local_disp_begin_pos;
   int local_cursor_pos;
   YtreeAction action; /* Declare YtreeAction variable */
@@ -1658,30 +1647,28 @@ int KeyF2Get(DirEntry *start_dir_entry,
           return -1;
       }
 
-      tree_source = disk_vol->vol_stats.tree;
-      stat_source = &disk_vol->vol_stats;
+      target_vol = disk_vol;
       local_disp_begin_pos = disk_vol->vol_stats.disp_begin_pos;
       local_cursor_pos = disk_vol->vol_stats.cursor_pos;
   } else {
-      tree_source = start_dir_entry;
-      stat_source = &statistic;
+      target_vol = CurrentVolume;
       local_disp_begin_pos = disp_begin_pos;
       local_cursor_pos = cursor_pos;
   }
 
-  BuildDirEntryList(tree_source, stat_source);
+  BuildDirEntryList(target_vol);
 
   /* Safety bounds check */
   if (local_disp_begin_pos < 0) local_disp_begin_pos = 0;
   if (local_cursor_pos < 0) local_cursor_pos = 0;
-  if (total_dirs > 0 && (local_disp_begin_pos + local_cursor_pos >= total_dirs)) {
+  if (target_vol->total_dirs > 0 && (local_disp_begin_pos + local_cursor_pos >= target_vol->total_dirs)) {
       local_disp_begin_pos = 0;
       local_cursor_pos = 0;
   }
 
   GetMaxYX(f2_window, &win_height, &win_width);
   MapF2Window();
-  DisplayTree( f2_window, local_disp_begin_pos, local_disp_begin_pos + local_cursor_pos );
+  DisplayTree(target_vol, f2_window, local_disp_begin_pos, local_disp_begin_pos + local_cursor_pos );
   do
   {
     RefreshWindow( f2_window );
@@ -1695,25 +1682,25 @@ int KeyF2Get(DirEntry *start_dir_entry,
     switch( action )
     {
       case ACTION_NONE:       break; /* -1 or unhandled keys, no beep in F2Get */
-      case ACTION_MOVE_DOWN: if( local_disp_begin_pos + local_cursor_pos + 1 >= total_dirs )
+      case ACTION_MOVE_DOWN: if( local_disp_begin_pos + local_cursor_pos + 1 >= target_vol->total_dirs )
 		     {
 		     }
 		     else
 		     {
 		       if( local_cursor_pos + 1 < win_height )
 		       {
-			 PrintDirEntry( f2_window,
+			 PrintDirEntry( target_vol, f2_window,
 			                local_disp_begin_pos + local_cursor_pos,
 					local_cursor_pos, FALSE);
 			 local_cursor_pos++;
 
-			 PrintDirEntry( f2_window, local_disp_begin_pos + local_cursor_pos,
+			 PrintDirEntry( target_vol, f2_window, local_disp_begin_pos + local_cursor_pos,
 					local_cursor_pos, TRUE);
                        }
 		       else
 		       {
 			 local_disp_begin_pos++;
-                         DisplayTree( f2_window, local_disp_begin_pos,
+                         DisplayTree( target_vol, f2_window, local_disp_begin_pos,
 				      local_disp_begin_pos + local_cursor_pos);
                        }
 		     }
@@ -1726,56 +1713,56 @@ int KeyF2Get(DirEntry *start_dir_entry,
 		     {
 		       if( local_cursor_pos - 1 >= 0 )
 		       {
-			 PrintDirEntry( f2_window,
+			 PrintDirEntry( target_vol, f2_window,
 			                local_disp_begin_pos + local_cursor_pos,
 					local_cursor_pos, FALSE );
 			 local_cursor_pos--;
-			 PrintDirEntry( f2_window,
+			 PrintDirEntry( target_vol, f2_window,
 			                local_disp_begin_pos + local_cursor_pos,
 					local_cursor_pos, TRUE );
                        }
 		       else
 		       {
 			 local_disp_begin_pos--;
-                         DisplayTree( f2_window, local_disp_begin_pos,
+                         DisplayTree( target_vol, f2_window, local_disp_begin_pos,
 				      local_disp_begin_pos + local_cursor_pos);
                        }
 		     }
                      break;
 
       case ACTION_PAGE_DOWN:
-		     if( local_disp_begin_pos + local_cursor_pos >= total_dirs - 1 )
+		     if( local_disp_begin_pos + local_cursor_pos >= target_vol->total_dirs - 1 )
 		     {
 		     }
 		     else
 		     {
 		       if( local_cursor_pos < win_height - 1 )
 		       {
-			 PrintDirEntry( f2_window,
+			 PrintDirEntry( target_vol, f2_window,
 			                local_disp_begin_pos + local_cursor_pos,
 					local_cursor_pos, FALSE );
-		         if( local_disp_begin_pos + win_height > total_dirs  - 1 )
-			   local_cursor_pos = total_dirs - local_disp_begin_pos - 1;
+		         if( local_disp_begin_pos + win_height > target_vol->total_dirs  - 1 )
+			   local_cursor_pos = target_vol->total_dirs - local_disp_begin_pos - 1;
 			 else
 			   local_cursor_pos = win_height - 1;
-			 PrintDirEntry( f2_window,
+			 PrintDirEntry( target_vol, f2_window,
 			                local_disp_begin_pos + local_cursor_pos,
 					local_cursor_pos, TRUE );
 		       }
 		       else
 		       {
-			 if( local_disp_begin_pos + local_cursor_pos + win_height < total_dirs )
+			 if( local_disp_begin_pos + local_cursor_pos + win_height < target_vol->total_dirs )
 			 {
 			   local_disp_begin_pos += win_height;
 			   local_cursor_pos = win_height - 1;
 			 }
 			 else
 			 {
-			   local_disp_begin_pos = total_dirs - win_height;
+			   local_disp_begin_pos = target_vol->total_dirs - win_height;
 			   if( local_disp_begin_pos < 0 ) local_disp_begin_pos = 0;
-			   local_cursor_pos = total_dirs - local_disp_begin_pos - 1;
+			   local_cursor_pos = target_vol->total_dirs - local_disp_begin_pos - 1;
 			 }
-                         DisplayTree( f2_window, local_disp_begin_pos,
+                         DisplayTree( target_vol, f2_window, local_disp_begin_pos,
 				      local_disp_begin_pos + local_cursor_pos);
 		       }
 		     }
@@ -1789,11 +1776,11 @@ int KeyF2Get(DirEntry *start_dir_entry,
 		     {
 		       if( local_cursor_pos > 0 )
 		       {
-			 PrintDirEntry( f2_window,
+			 PrintDirEntry( target_vol, f2_window,
 			                local_disp_begin_pos + local_cursor_pos,
 					local_cursor_pos, FALSE );
 			 local_cursor_pos = 0;
-			 PrintDirEntry( f2_window,
+			 PrintDirEntry( target_vol, f2_window,
 			                local_disp_begin_pos + local_cursor_pos,
 					local_cursor_pos, TRUE );
 		       }
@@ -1804,7 +1791,7 @@ int KeyF2Get(DirEntry *start_dir_entry,
 			   local_disp_begin_pos = 0;
 			 }
                          local_cursor_pos = 0;
-                         DisplayTree( f2_window, local_disp_begin_pos,
+                         DisplayTree( target_vol, f2_window, local_disp_begin_pos,
 				      local_disp_begin_pos + local_cursor_pos);
 		       }
 		     }
@@ -1816,19 +1803,19 @@ int KeyF2Get(DirEntry *start_dir_entry,
 		     {
 		       local_disp_begin_pos = 0;
 		       local_cursor_pos     = 0;
-                       DisplayTree( f2_window, local_disp_begin_pos,
+                       DisplayTree( target_vol, f2_window, local_disp_begin_pos,
 				    local_disp_begin_pos + local_cursor_pos);
 		     }
                      break;
 
-      case ACTION_END: local_disp_begin_pos = MAXIMUM(0, total_dirs - win_height);
-		     local_cursor_pos     = total_dirs - local_disp_begin_pos - 1;
-                     DisplayTree( f2_window, local_disp_begin_pos,
+      case ACTION_END: local_disp_begin_pos = MAXIMUM(0, target_vol->total_dirs - win_height);
+		     local_cursor_pos     = target_vol->total_dirs - local_disp_begin_pos - 1;
+                     DisplayTree( target_vol, f2_window, local_disp_begin_pos,
 				  local_disp_begin_pos + local_cursor_pos);
                      break;
 
       case ACTION_ENTER:
-                     GetPath(dir_entry_list[local_cursor_pos + local_disp_begin_pos].dir_entry, path);
+                     GetPath(target_vol->dir_entry_list[local_cursor_pos + local_disp_begin_pos].dir_entry, path);
 		     result = 0;
 		     break;
       case ACTION_QUIT:      break;
@@ -1840,8 +1827,15 @@ int KeyF2Get(DirEntry *start_dir_entry,
 
   UnmapF2Window();
 
-  /* Restore the original directory list for the main window */
-  BuildDirEntryList(start_dir_entry, &statistic);
+  /* Restore the original directory list for the main window if we switched volume context */
+  /* Actually, BuildDirEntryList now writes to vol structure, so other volume caches are preserved.
+     We only need to ensure the CurrentVolume is consistent for the main window logic, which is untouched here. */
+  if (target_vol != CurrentVolume) {
+     /* If we messed with another volume's list, that's fine, it's encapsulated. */
+  } else {
+     /* We modified current volume's list. Ensure it's valid. */
+     BuildDirEntryList(CurrentVolume);
+  }
 
   if (action == ACTION_ESCAPE || action == ACTION_QUIT) return -1;
 
@@ -1857,12 +1851,12 @@ int RefreshDirWindow()
 	int result = -1;
 	int window_width, window_height;
 
-	de_ptr = dir_entry_list[statistic.disp_begin_pos + statistic.cursor_pos].dir_entry;
-	BuildDirEntryList( dir_entry_list[0].dir_entry, &statistic );
+	de_ptr = CurrentVolume->dir_entry_list[statistic.disp_begin_pos + statistic.cursor_pos].dir_entry;
+	BuildDirEntryList( CurrentVolume );
 
 	/* Search old entry */
-	for(n=-1, i=0;i < total_dirs; i++) {
-		if(dir_entry_list[i].dir_entry == de_ptr) {
+	for(n=-1, i=0;i < CurrentVolume->total_dirs; i++) {
+		if(CurrentVolume->dir_entry_list[i].dir_entry == de_ptr) {
 			n = i;
 			break;
 		}
@@ -1889,17 +1883,17 @@ int RefreshDirWindow()
 		  statistic.cursor_pos--;
 		  statistic.disp_begin_pos++;
 	        }
-		DisplayTree( dir_window, statistic.disp_begin_pos,
+		DisplayTree( CurrentVolume, dir_window, statistic.disp_begin_pos,
 		     	statistic.disp_begin_pos + statistic.cursor_pos
 		   	);
 
 		DisplayAvailBytes();
 		DisplayDiskStatistic();
-		DisplayDirStatistic(dir_entry_list[statistic.disp_begin_pos + statistic.cursor_pos].dir_entry, NULL); /* Updated call */
+		DisplayDirStatistic(CurrentVolume->dir_entry_list[statistic.disp_begin_pos + statistic.cursor_pos].dir_entry, NULL); /* Updated call */
         /* Update header path after refresh */
         {
             char path[PATH_LENGTH];
-            GetPath(dir_entry_list[statistic.disp_begin_pos + statistic.cursor_pos].dir_entry, path);
+            GetPath(CurrentVolume->dir_entry_list[statistic.disp_begin_pos + statistic.cursor_pos].dir_entry, path);
             DisplayHeaderPath(path);
         }
 		result = 0;
