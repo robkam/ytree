@@ -40,6 +40,7 @@ int MoveFile(FileEntry *fe_ptr,
   struct Volume *target_vol = NULL;
   DirEntry *target_tree = NULL;
   Statistic *target_stats_ptr = NULL;
+  Statistic *s = &CurrentVolume->vol_stats;
 
   result = -1;
   *new_fe_ptr = NULL;
@@ -69,9 +70,9 @@ int MoveFile(FileEntry *fe_ptr,
       target_stats_ptr = &target_vol->vol_stats;
   } else {
       /* Fallback to current if path matches current tree prefix, else NULL (external) */
-      if (strncmp(statistic.tree->name, to_path, strlen(statistic.tree->name)) == 0) {
-          target_tree = statistic.tree;
-          target_stats_ptr = &statistic;
+      if (strncmp(s->tree->name, to_path, strlen(s->tree->name)) == 0) {
+          target_tree = s->tree;
+          target_stats_ptr = s;
       } else {
           target_tree = NULL;
           target_stats_ptr = NULL;
@@ -134,7 +135,7 @@ int MoveFile(FileEntry *fe_ptr,
 	}
       }
 
-      (void) DeleteFile( dest_file_entry );
+      (void) DeleteFile( dest_file_entry, target_stats_ptr ? target_stats_ptr : s );
     }
   }
   else
@@ -180,7 +181,7 @@ int MoveFile(FileEntry *fe_ptr,
     /* Remove original from tree */
     /*---------------------------*/
 
-    (void) RemoveFile( fe_ptr );
+    (void) RemoveFile( fe_ptr, s );
 
 
     if( dest_dir_entry )
@@ -244,7 +245,7 @@ int MoveFile(FileEntry *fe_ptr,
       refresh_dirwindow = TRUE;
     }
 
-    (void) GetAvailBytes( &statistic.disk_space );
+    (void) GetAvailBytes( &s->disk_space, s );
 
     result = 0;
   }
@@ -306,6 +307,11 @@ int GetMoveParameter(char *from_file, char *to_file, char *to_dir)
 
 static int Move(char *to_path, char *from_path)
 {
+  /* Statistic *s = &CurrentVolume->vol_stats; */ /* Not needed here unless CopyFileContent needs it */
+  /* CopyFileContent does take a Statistic *s now. We need access to it. */
+  /* Since Move is static and called from MoveFile, we should pass it or use global CurrentVolume */
+  Statistic *s = &CurrentVolume->vol_stats;
+
   if( !strcmp( to_path, from_path ) )
   {
     MESSAGE( "Can't move file into itself" );
@@ -320,7 +326,7 @@ static int Move(char *to_path, char *from_path)
 
   /* Handle Cross-Device link error by copying and deleting */
   if (errno == EXDEV) {
-      if (CopyFileContent(to_path, from_path) == 0) {
+      if (CopyFileContent(to_path, from_path, s) == 0) {
           if (unlink(from_path) == 0) {
               return 0;
           } else {

@@ -13,14 +13,14 @@
 extern struct itimerval value, ovalue;
 
 
-int SystemCall(char *command_line)
+int SystemCall(char *command_line, Statistic *s)
 {
   int result;
 
   endwin(); /* Ensure terminal state is reset before external command */
-  result = SilentSystemCall( command_line );
+  result = SilentSystemCall( command_line, s );
 
-  (void) GetAvailBytes( &statistic.disk_space );
+  (void) GetAvailBytes( &s->disk_space, s );
   /* Full screen redraw to fully restore the curses UI */
   clearok(stdscr, TRUE);
   refresh();
@@ -28,14 +28,14 @@ int SystemCall(char *command_line)
 }
 
 
-int QuerySystemCall(char *command_line)
+int QuerySystemCall(char *command_line, Statistic *s)
 {
   int result;
 
   endwin(); /* 1. Save state / Exit curses mode */
 
   /* 2. Execute command (runs outside curses) */
-  result = SilentSystemCallEx( command_line, FALSE );
+  result = SilentSystemCallEx( command_line, FALSE, s );
 
   /* The external command has finished. We are still in the raw terminal. */
 
@@ -45,19 +45,19 @@ int QuerySystemCall(char *command_line)
   clearok(stdscr, TRUE);
   refresh();
 
-  (void) GetAvailBytes( &statistic.disk_space );
+  (void) GetAvailBytes( &s->disk_space, s );
 
   return( result );
 }
 
 
 
-int SilentSystemCall(char *command_line)
+int SilentSystemCall(char *command_line, Statistic *s)
 {
-  return(SilentSystemCallEx(command_line, TRUE));
+  return(SilentSystemCallEx(command_line, TRUE, s));
 }
 
-int SilentSystemCallEx(char *command_line, BOOL enable_clock)
+int SilentSystemCallEx(char *command_line, BOOL enable_clock, Statistic *s)
 {
   int result;
 
@@ -75,6 +75,6 @@ int SilentSystemCallEx(char *command_line, BOOL enable_clock)
   if(enable_clock)
     InitClock(); /* Re-initializes timer AND calls refresh/restores curses mode */
 
-  (void) GetAvailBytes( &statistic.disk_space );
+  (void) GetAvailBytes( &s->disk_space, s );
   return( result );
 }

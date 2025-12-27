@@ -14,7 +14,7 @@ extern int rmdir(const char *);
 
 
 
-int DeleteFile(FileEntry *fe_ptr)
+int DeleteFile(FileEntry *fe_ptr, Statistic *s)
 {
   char     filepath[PATH_LENGTH+1];
   char	   buffer[PATH_LENGTH+1];
@@ -70,8 +70,8 @@ UNLINK_DONE:
   /* Remove file record */
   /*----------------*/
 
-  result = RemoveFile( fe_ptr );
-  (void) GetAvailBytes( &statistic.disk_space );
+  result = RemoveFile( fe_ptr, s );
+  (void) GetAvailBytes( &s->disk_space, s );
 
 FNC_XIT:
 
@@ -82,7 +82,7 @@ FNC_XIT:
 
 
 
-int RemoveFile(FileEntry *fe_ptr)
+int RemoveFile(FileEntry *fe_ptr, Statistic *s)
 {
   DirEntry *de_ptr;
   LONGLONG file_size;
@@ -93,20 +93,20 @@ int RemoveFile(FileEntry *fe_ptr)
 
   de_ptr->total_bytes -= file_size;
   de_ptr->total_files--;
-  statistic.disk_total_bytes -= file_size;
-  statistic.disk_total_files--;
+  s->disk_total_bytes -= file_size;
+  s->disk_total_files--;
   if( fe_ptr->matching ) {
     de_ptr->matching_bytes -= file_size;
     de_ptr->matching_files--;
-    statistic.disk_matching_bytes -= file_size;
-    statistic.disk_matching_files--;
+    s->disk_matching_bytes -= file_size;
+    s->disk_matching_files--;
   }
   if( fe_ptr->tagged )
   {
     de_ptr->tagged_bytes -= file_size;
     de_ptr->tagged_files--;
-    statistic.disk_tagged_bytes -= file_size;
-    statistic.disk_tagged_files--;
+    s->disk_tagged_bytes -= file_size;
+    s->disk_tagged_files--;
   }
 
   /* Remove file record */

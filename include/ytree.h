@@ -729,7 +729,6 @@ extern struct Volume *CurrentVolume;
 extern struct Volume *VolumeList;
 
 /* Compatibility layer for existing code using global 'statistic' and 'disk_statistic' */
-#define statistic (CurrentVolume->vol_stats)
 #define disk_statistic (CurrentVolume->vol_disk_stats)
 
 extern int       mode;
@@ -766,12 +765,12 @@ extern int ytree(int argc, char *argv[]);
 
 /* archive.c */
 extern int ExtractArchiveEntry(const char *archive_path, const char *entry_path, int out_fd);
-extern int InsertArchiveFileEntry(DirEntry *tree, char *path, struct stat *stat);
-extern int TryInsertArchiveDirEntry(DirEntry *tree, char *dir, struct stat *stat);
-extern void MinimizeArchiveTree(DirEntry **tree_ptr);
+extern int InsertArchiveFileEntry(DirEntry *tree, char *path, struct stat *stat, Statistic *s);
+extern int TryInsertArchiveDirEntry(DirEntry *tree, char *dir, struct stat *stat, Statistic *s);
+extern void MinimizeArchiveTree(DirEntry **tree_ptr, Statistic *s);
 
 /* readarchive.c */
-extern int ReadTreeFromArchive(DirEntry **dir_entry_ptr, const char *filename);
+extern int ReadTreeFromArchive(DirEntry **dir_entry_ptr, const char *filename, Statistic *s);
 
 /* animate.c */
 extern void InitAnimation(void);
@@ -822,18 +821,18 @@ extern int GetFileTypeColor(FileEntry *fe_ptr);
 extern int CopyFile(Statistic *statistic_ptr, FileEntry *fe_ptr, unsigned char confirm, char *to_file, DirEntry *dest_dir_entry, char *to_dir_path, BOOL path_copy);
 extern int CopyTaggedFiles(FileEntry *fe_ptr, WalkingPackage *walking_package);
 extern int GetCopyParameter(char *from_file, BOOL path_copy, char *to_file, char *to_dir);
-extern int CopyFileContent(char *to_path, char *from_path); /* Added */
+extern int CopyFileContent(char *to_path, char *from_path, Statistic *s); /* Added */
 
 /* delete.c */
-extern int DeleteFile(FileEntry *fe_ptr);
-extern int RemoveFile(FileEntry *fe_ptr);
+extern int DeleteFile(FileEntry *fe_ptr, Statistic *s);
+extern int RemoveFile(FileEntry *fe_ptr, Statistic *s);
 
 /* dirwin.c */
 extern void DisplayTree(struct Volume *vol, WINDOW *win, int start_entry_no, int hilight_no);
 extern int HandleDirWindow(DirEntry *start_dir_entry);
 extern int KeyF2Get(DirEntry *start_dir_entry, int disp_begin_pos, int cursor_pos, char *path);
 extern int RefreshDirWindow(void);
-extern int ScanSubTree( DirEntry *dir_entry );
+extern int ScanSubTree( DirEntry *dir_entry, Statistic *s );
 extern void ToggleDotFiles(void);
 extern DirEntry *GetSelectedDirEntry(struct Volume *vol);
 extern void BuildDirEntryList(struct Volume *vol); /* UPDATED: Takes Volume context */
@@ -892,8 +891,8 @@ extern int GetSearchCommandLine(char *command_line);
 
 /* filter.c */
 extern int ReadFilter(void);
-extern int SetFilter(char *filter_spec);
-extern void ApplyFilter(DirEntry *dir_entry);
+extern int SetFilter(char *filter_spec, Statistic *s);
+extern void ApplyFilter(DirEntry *dir_entry, Statistic *s);
 extern BOOL Match(FileEntry *fe);
 
 /* filewin.c */
@@ -903,8 +902,8 @@ extern void RotateFileMode(void);
 extern void SetFileMode(int new_file_mode);
 
 /* freesp.c */
-extern int GetAvailBytes(LONGLONG *avail_bytes);
-extern int GetDiskParameter(char *path, char *volume_name, LONGLONG *avail_bytes, LONGLONG *capacity);
+extern int GetAvailBytes(LONGLONG *avail_bytes, Statistic *s);
+extern int GetDiskParameter(char *path, char *volume_name, LONGLONG *avail_bytes, LONGLONG *capacity, Statistic *s);
 
 /* group.c */
 extern char *GetDisplayGroupName(unsigned int gid);
@@ -998,9 +997,9 @@ extern void Quit(void);
 extern void QuitTo(DirEntry * dir_entry);
 
 /* readtree.c */
-extern int ReadTree(DirEntry *dir_entry, char *path, int depth);
-extern void UnReadTree(DirEntry *dir_entry);
-extern int RescanDir(DirEntry *dir_entry, int depth);
+extern int ReadTree(DirEntry *dir_entry, char *path, int depth, Statistic *s);
+extern void UnReadTree(DirEntry *dir_entry, Statistic *s);
+extern int RescanDir(DirEntry *dir_entry, int depth, Statistic *s);
 
 /* rename.c */
 extern int GetRenameParameter(char *old_name, char *new_name);
@@ -1013,20 +1012,20 @@ extern int DeleteDirectory(DirEntry *dir_entry);
 
 /* sort.c */
 extern void GetKindOfSort(void);
-extern void SetKindOfSort(int new_kind_of_sort);
+extern void SetKindOfSort(int new_kind_of_sort, Statistic *s);
 
 /* stats.c */
-extern void DisplayAvailBytes(void);
+extern void DisplayAvailBytes(Statistic *s);
 extern void DisplayDirParameter(DirEntry *dir_entry);
-extern void DisplayDirStatistic(DirEntry *dir_entry, const char *title); /* Changed prototype */
-extern void DisplayDirTagged(DirEntry *dir_entry);
-extern void DisplayDiskName(void);
-extern void DisplayDiskStatistic(void);
-extern void DisplayDiskTagged(void);
+extern void DisplayDirStatistic(DirEntry *dir_entry, const char *title, Statistic *s); /* Changed prototype */
+extern void DisplayDirTagged(DirEntry *dir_entry, Statistic *s);
+extern void DisplayDiskName(Statistic *s);
+extern void DisplayDiskStatistic(Statistic *s);
+extern void DisplayDiskTagged(Statistic *s);
 extern void DisplayFileParameter(FileEntry *file_entry);
-extern void DisplayFilter(void);
+extern void DisplayFilter(Statistic *s);
 extern void DisplayGlobalFileParameter(FileEntry *file_entry);
-extern void RecalculateSysStats(void);
+extern void RecalculateSysStats(Statistic *s);
 
 /* string_utils.c */
 extern int BuildFilename( char *in_filename, char *pattern, char *out_filename);
@@ -1035,10 +1034,10 @@ extern int Strrcmp(char *s1, char* s2);
 extern char *SubString(char *dest, char *src, int pos, int len);
 
 /* system.c */
-extern int QuerySystemCall(char *command_line);
-extern int SilentSystemCall(char *command_line);
-extern int SilentSystemCallEx(char *command_line, BOOL enable_clock);
-extern int SystemCall(char *command_line);
+extern int QuerySystemCall(char *command_line, Statistic *s);
+extern int SilentSystemCall(char *command_line, Statistic *s);
+extern int SilentSystemCallEx(char *command_line, BOOL enable_clock, Statistic *s);
+extern int SystemCall(char *command_line, Statistic *s);
 
 /* tree_utils.c */
 extern void DeleteTree(DirEntry *tree);

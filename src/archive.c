@@ -129,7 +129,7 @@ int ExtractArchiveEntry(const char *archive_path, const char *entry_path, int ou
 static int GetArchiveDirEntry(DirEntry *tree, char *path, DirEntry **dir_entry);
 
 
-static int InsertArchiveDirEntry(DirEntry *tree, char *path, struct stat *stat)
+static int InsertArchiveDirEntry(DirEntry *tree, char *path, struct stat *stat, Statistic *s)
 {
   DirEntry *df_ptr, *de_ptr, *ds_ptr;
   char father_path[PATH_LENGTH + 1];
@@ -244,12 +244,12 @@ static int InsertArchiveDirEntry(DirEntry *tree, char *path, struct stat *stat)
       }
     }
   }
-  statistic.disk_total_directories++;
+  s->disk_total_directories++;
   return( 0 );
 }
 
 
-int InsertArchiveFileEntry(DirEntry *tree, char *path, struct stat *stat)
+int InsertArchiveFileEntry(DirEntry *tree, char *path, struct stat *stat, Statistic *s)
 {
   char dir[PATH_LENGTH + 1];
   char file[PATH_LENGTH + 1];
@@ -276,7 +276,7 @@ int InsertArchiveFileEntry(DirEntry *tree, char *path, struct stat *stat)
     (void) memset( (char *) &stat_struct, 0, sizeof( struct stat ) );
     stat_struct.st_mode = S_IFDIR;
 
-    if( TryInsertArchiveDirEntry( tree, dir, &stat_struct ) )
+    if( TryInsertArchiveDirEntry( tree, dir, &stat_struct, s ) )
     {
       ERROR_MSG( "inserting directory failed" );
       return( -1 );
@@ -314,8 +314,8 @@ int InsertArchiveFileEntry(DirEntry *tree, char *path, struct stat *stat)
   fe_ptr->dir_entry = de_ptr;
   de_ptr->total_files++;
   de_ptr->total_bytes += stat->st_size;
-  statistic.disk_total_files++;
-  statistic.disk_total_bytes += stat->st_size;
+  s->disk_total_files++;
+  s->disk_total_bytes += stat->st_size;
 
   /* Einklinken */
   /*------------*/
@@ -389,7 +389,7 @@ static int GetArchiveDirEntry(DirEntry *tree, char *path, DirEntry **dir_entry)
  * TryInsertArchiveDirEntry
  * Iteratively ensures every component of the path exists in the tree.
  */
-int TryInsertArchiveDirEntry(DirEntry *tree, char *dir, struct stat *stat)
+int TryInsertArchiveDirEntry(DirEntry *tree, char *dir, struct stat *stat, Statistic *s)
 {
     char *path_copy;
     char *token, *saveptr;
@@ -414,7 +414,7 @@ int TryInsertArchiveDirEntry(DirEntry *tree, char *dir, struct stat *stat)
         /* Check if this partial path exists */
         if (GetArchiveDirEntry(tree, current_path, &dummy) != 0) {
             /* Not found, insert it */
-            if (InsertArchiveDirEntry(tree, current_path, stat) != 0) {
+            if (InsertArchiveDirEntry(tree, current_path, stat, s) != 0) {
                 free(path_copy);
                 return -1;
             }
@@ -428,7 +428,7 @@ int TryInsertArchiveDirEntry(DirEntry *tree, char *dir, struct stat *stat)
 }
 
 
-void MinimizeArchiveTree(DirEntry **tree_ptr)
+void MinimizeArchiveTree(DirEntry **tree_ptr, Statistic *s)
 {
   DirEntry *tree = *tree_ptr;
   DirEntry *de_ptr, *de1_ptr;
@@ -455,7 +455,7 @@ void MinimizeArchiveTree(DirEntry **tree_ptr)
        The new root is just taking the place of the old root.
        Existing children of 'new_root' point to 'new_root'. That's fine. */
 
-    statistic.disk_total_directories--;
+    s->disk_total_directories--;
     free(tree);
     tree = new_root; /* Update local variable for subsequent checks */
   }
@@ -481,7 +481,7 @@ void MinimizeArchiveTree(DirEntry **tree_ptr)
 	    (void) strcat( tree->name, FILE_SEPARATOR_STRING );
       (void) strcat( tree->name, de_ptr->name );
 
-      statistic.disk_total_directories--;
+      s->disk_total_directories--;
 
       /* Move de_ptr's children to be tree's children */
       tree->sub_tree = de_ptr->sub_tree;
@@ -536,7 +536,7 @@ void MinimizeArchiveTree(DirEntry **tree_ptr)
 		   sizeof( struct stat )
 		  );
 
-    statistic.disk_total_directories--;
+    s->disk_total_directories--;
 
     /* Move grandchildren up */
     tree->sub_tree = de_ptr->sub_tree;

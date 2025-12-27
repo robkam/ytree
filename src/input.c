@@ -326,10 +326,12 @@ int InputStringEx(char *s, int y, int x, int cursor_pos, int display_width, int 
     {
     case KEY_LEFT:
     case KEY_BTAB:  /* Back-tab (often Shift-Tab), treat as left */
-        if( p > 0 ) p--; break;
+        if( p > 0 ) p--;
+        break;
 
     case KEY_RIGHT:
-        if( p < StrVisualLength(s) ) p++; break;
+        if( p < StrVisualLength(s) ) p++;
+        break;
 
     case KEY_UP:
         pp = GetHistory(history_type);
@@ -463,7 +465,7 @@ int InputStringEx(char *s, int y, int x, int cursor_pos, int display_width, int 
             break;
         }
 
-        if(KeyF2Get( statistic.tree, statistic.disp_begin_pos, statistic.cursor_pos, path) == 0) {
+        if(KeyF2Get( CurrentVolume->vol_stats.tree, CurrentVolume->vol_stats.disp_begin_pos, CurrentVolume->vol_stats.cursor_pos, path) == 0) {
             if(*path) {
                 ls = StrLeft(path, max_len);
                 strcpy(s, ls);

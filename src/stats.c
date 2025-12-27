@@ -43,7 +43,7 @@ static void DrawBoxFrame(void);
 static void DrawSeparator(int y, const char *title);
 static void PrintStatRow(int y, const char *label, LONGLONG count, LONGLONG bytes);
 static void DrawAttributes(const char *name, struct stat *s, FileEntry *fe);
-static void RecalcDir(DirEntry *de);
+static void RecalcDir(DirEntry *de, Statistic *s);
 
 /* ************************************************************************* */
 /*                           LOGIC FUNCTIONS                                 */
@@ -78,7 +78,7 @@ static void RecalcLayout(void) {
     }
 }
 
-static void RecalcDir(DirEntry *d) {
+static void RecalcDir(DirEntry *d, Statistic *s) {
     FileEntry *f;
     DirEntry *sub;
 
@@ -108,32 +108,32 @@ static void RecalcDir(DirEntry *d) {
     sub = d->sub_tree;
     while (sub) {
         if ( !(hide_dot_files && sub->name[0] == '.') ) {
-            RecalcDir(sub);
-            statistic.disk_total_directories++;
+            RecalcDir(sub, s);
+            s->disk_total_directories++;
         }
         sub = sub->next;
     }
 
-    statistic.disk_total_files += d->total_files;
-    statistic.disk_total_bytes += d->total_bytes;
-    statistic.disk_matching_files += d->matching_files;
-    statistic.disk_matching_bytes += d->matching_bytes;
-    statistic.disk_tagged_files += d->tagged_files;
-    statistic.disk_tagged_bytes += d->tagged_bytes;
+    s->disk_total_files += d->total_files;
+    s->disk_total_bytes += d->total_bytes;
+    s->disk_matching_files += d->matching_files;
+    s->disk_matching_bytes += d->matching_bytes;
+    s->disk_tagged_files += d->tagged_files;
+    s->disk_tagged_bytes += d->tagged_bytes;
 }
 
-void RecalculateSysStats(void) {
-    statistic.disk_total_files = 0;
-    statistic.disk_total_bytes = 0;
-    statistic.disk_matching_files = 0;
-    statistic.disk_matching_bytes = 0;
-    statistic.disk_tagged_files = 0;
-    statistic.disk_tagged_bytes = 0;
-    statistic.disk_total_directories = 0;
+void RecalculateSysStats(Statistic *s) {
+    s->disk_total_files = 0;
+    s->disk_total_bytes = 0;
+    s->disk_matching_files = 0;
+    s->disk_matching_bytes = 0;
+    s->disk_tagged_files = 0;
+    s->disk_tagged_bytes = 0;
+    s->disk_total_directories = 0;
 
-    if (statistic.tree) {
-        statistic.disk_total_directories++;
-        RecalcDir(statistic.tree);
+    if (s->tree) {
+        s->disk_total_directories++;
+        RecalcDir(s->tree, s);
     }
 }
 
@@ -410,18 +410,18 @@ static void DrawAttributes(const char *name, struct stat *s, FileEntry *fe) {
 /*                           DISPLAY FUNCTIONS                                 */
 /* ************************************************************************* */
 
-void DisplayFullStatsPanel(void) {
-    DisplayDiskStatistic();
+void DisplayFullStatsPanel(Statistic *s) {
+    DisplayDiskStatistic(s);
 }
 
-void DisplayDiskName(void)
+void DisplayDiskName(Statistic *s)
 {
     char buf[128];
     char path_buf[PATH_LENGTH + 1];
     char size_buf[32];
     int total_volumes = HASH_COUNT(VolumeList);
     int current_index = 0;
-    struct Volume *s, *tmp;
+    struct Volume *vol_iter, *tmp;
     int i = 1;
 
     /* Recalculate layout based on current terminal height */
@@ -429,8 +429,8 @@ void DisplayDiskName(void)
 
     /* 1. Determine Volume Index */
     if (VolumeList) {
-        HASH_ITER(hh, VolumeList, s, tmp) {
-            if (s == CurrentVolume) {
+        HASH_ITER(hh, VolumeList, vol_iter, tmp) {
+            if (&vol_iter->vol_stats == s) {
                 current_index = i;
                 break;
             }
@@ -444,7 +444,7 @@ void DisplayDiskName(void)
     DrawBoxFrame(); /* Draws Top Border with "FILTER" */
 
     /* 3. Filter Value */
-    CutName(buf, statistic.file_spec, INNER_W);
+    CutName(buf, s->file_spec, INNER_W);
     attron(A_BOLD);
     /* Center filter text using padding format to clear ghosts */
     {
@@ -458,8 +458,8 @@ void DisplayDiskName(void)
     DrawSeparator(y_vol_sep, buf);
 
     /* Path */
-    if (mode == ARCHIVE_MODE) strncpy(path_buf, statistic.login_path, PATH_LENGTH);
-    else strncpy(path_buf, statistic.path, PATH_LENGTH);
+    if (mode == ARCHIVE_MODE) strncpy(path_buf, s->login_path, PATH_LENGTH);
+    else strncpy(path_buf, s->path, PATH_LENGTH);
     path_buf[PATH_LENGTH] = '\0';
 
     CutPathname(buf, path_buf, INNER_W); /* Changed to CutPathname */
@@ -468,7 +468,7 @@ void DisplayDiskName(void)
     /* FS */
     char fs_buf[64];
     if (mode == ARCHIVE_MODE) snprintf(fs_buf, sizeof(fs_buf), "FS: ARCHIVE");
-    else snprintf(fs_buf, sizeof(fs_buf), "FS: %s", statistic.disk_name);
+    else snprintf(fs_buf, sizeof(fs_buf), "FS: %s", s->disk_name);
     /* Truncate to fit */
     CutName(buf, fs_buf, INNER_W);
     mvprintw(y_vol_info + 1, STAT_X + 1, "%-*s", INNER_W, buf);
@@ -477,34 +477,34 @@ void DisplayDiskName(void)
     if (mode == ARCHIVE_MODE) {
         snprintf(fs_buf, sizeof(fs_buf), "Free: -");
     } else {
-        FormatShortSize(size_buf, sizeof(size_buf), statistic.disk_space);
+        FormatShortSize(size_buf, sizeof(size_buf), s->disk_space);
         snprintf(fs_buf, sizeof(fs_buf), "Free: %s", size_buf);
     }
     mvprintw(y_vol_info + 2, STAT_X + 1, "%-*s", INNER_W, fs_buf);
 }
 
-void DisplayAvailBytes(void) {
-    DisplayDiskStatistic();
+void DisplayAvailBytes(Statistic *s) {
+    DisplayDiskStatistic(s);
 }
 
-void DisplayFilter(void) {
-    DisplayDiskStatistic();
+void DisplayFilter(Statistic *s) {
+    DisplayDiskStatistic(s);
 }
 
-void DisplayDiskStatistic(void)
+void DisplayDiskStatistic(Statistic *s)
 {
-    DisplayDiskName();
+    DisplayDiskName(s);
 
     DrawSeparator(y_vstat_sep, "VOLUME STATS");
 
-    PrintStatRow(y_vstat_val,     "Tot:", statistic.disk_total_files, statistic.disk_total_bytes);
-    PrintStatRow(y_vstat_val + 1, "Mat:", statistic.disk_matching_files, statistic.disk_matching_bytes);
-    PrintStatRow(y_vstat_val + 2, "Tag:",   statistic.disk_tagged_files, statistic.disk_tagged_bytes);
+    PrintStatRow(y_vstat_val,     "Tot:", s->disk_total_files, s->disk_total_bytes);
+    PrintStatRow(y_vstat_val + 1, "Mat:", s->disk_matching_files, s->disk_matching_bytes);
+    PrintStatRow(y_vstat_val + 2, "Tag:", s->disk_tagged_files, s->disk_tagged_bytes);
 
     refresh();
 }
 
-void DisplayDirStatistic(DirEntry *de, const char *title)
+void DisplayDirStatistic(DirEntry *de, const char *title, Statistic *s)
 {
     char buf[128];
 
@@ -531,8 +531,8 @@ void DisplayDirStatistic(DirEntry *de, const char *title)
 
     if (de->global_flag) {
         /* In Show All mode, display global totals */
-        PrintStatRow(y_dstat_val + 1, "Tot:", statistic.disk_total_files, statistic.disk_total_bytes);
-        PrintStatRow(y_dstat_val + 2, "Mat:", statistic.disk_matching_files, statistic.disk_matching_bytes);
+        PrintStatRow(y_dstat_val + 1, "Tot:", s->disk_total_files, s->disk_total_bytes);
+        PrintStatRow(y_dstat_val + 2, "Mat:", s->disk_matching_files, s->disk_matching_bytes);
     } else {
         /* In Normal mode, display current directory totals */
         PrintStatRow(y_dstat_val + 1, "Tot:", de->total_files, de->total_bytes);
@@ -541,7 +541,7 @@ void DisplayDirStatistic(DirEntry *de, const char *title)
 
     /* Tag count always shows global disk total in Show All mode, but we use the disk stats directly if global_flag is set. */
     if (de->global_flag) {
-        PrintStatRow(y_dstat_val + 3, "Tag:", statistic.disk_tagged_files, statistic.disk_tagged_bytes);
+        PrintStatRow(y_dstat_val + 3, "Tag:", s->disk_tagged_files, s->disk_tagged_bytes);
     } else {
         PrintStatRow(y_dstat_val + 3, "Tag:", de->tagged_files, de->tagged_bytes);
     }
@@ -560,12 +560,12 @@ void DisplayFileParameter(FileEntry *fe)
 /*                           COMPATIBILITY WRAPPERS                          */
 /* ************************************************************************* */
 
-void DisplayDiskTagged(void) {
-    DisplayDiskStatistic();
+void DisplayDiskTagged(Statistic *s) {
+    DisplayDiskStatistic(s);
 }
 
-void DisplayDirTagged(DirEntry *de) {
-    DisplayDirStatistic(de, NULL);
+void DisplayDirTagged(DirEntry *de, Statistic *s) {
+    DisplayDirStatistic(de, NULL, s);
 }
 
 void DisplayDirParameter(DirEntry *de) {

@@ -49,7 +49,7 @@ int Pipe(DirEntry *dir_entry, FileEntry *file_entry)
     } else { /* ARCHIVE_MODE */
         char archive_dir[PATH_LENGTH + 1];
         char *last_slash;
-        strcpy(archive_dir, statistic.login_path);
+        strcpy(archive_dir, CurrentVolume->vol_stats.login_path);
         last_slash = strrchr(archive_dir, '/');
         if (last_slash) {
             if (last_slash == archive_dir) { /* Root directory, e.g., "/archive.zip" */
@@ -103,7 +103,7 @@ int Pipe(DirEntry *dir_entry, FileEntry *file_entry)
           /* ARCHIVE_MODE */
           /*--------------*/
     #ifdef HAVE_LIBARCHIVE
-            char *archive = statistic.login_path;
+            char *archive = CurrentVolume->vol_stats.login_path;
             ExtractArchiveEntry(archive, file_name_path, fileno(pipe_fp));
     #endif
         }
@@ -116,6 +116,9 @@ int Pipe(DirEntry *dir_entry, FileEntry *file_entry)
         /* We can't use MESSAGE(). We'll proceed to HitReturnToContinue() */
         /* which will at least alert the user something is wrong. */
     }
+
+    /* Update stats as the command might have modified the disk */
+    (void) GetAvailBytes( &CurrentVolume->vol_stats.disk_space, &CurrentVolume->vol_stats );
 
     /* Let user see output, then restore screen */
     HitReturnToContinue();

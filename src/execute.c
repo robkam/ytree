@@ -80,7 +80,7 @@ int Execute(DirEntry *dir_entry, FileEntry *file_entry)
                 MESSAGE(message);
             } else {
                 refresh();
-                result = QuerySystemCall(final_command);
+                result = QuerySystemCall(final_command, &CurrentVolume->vol_stats);
             }
             if (chdir(cwd)) {
                 snprintf(message, MESSAGE_LENGTH, "Can't change directory to*\"%s\"", cwd);
@@ -89,7 +89,7 @@ int Execute(DirEntry *dir_entry, FileEntry *file_entry)
         } else {
             /* Execute is disabled in archive mode, but handle defensively */
             refresh();
-            result = QuerySystemCall(final_command);
+            result = QuerySystemCall(final_command, &CurrentVolume->vol_stats);
         }
     }
 
@@ -182,7 +182,7 @@ int ExecuteCommand(FileEntry *fe_ptr, WalkingPackage *walking_package)
   }
   *cptr = '\0';
 
-  result = SilentSystemCallEx( command_line, FALSE );
+  result = SilentSystemCallEx( command_line, FALSE, &CurrentVolume->vol_stats );
 
   /* Ignore Result */
   /*---------------*/

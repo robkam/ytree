@@ -82,7 +82,7 @@ int Init(char *configuration_file, char *history_file)
   ReinitColorPairs();
 
   SetFileMode( strtol(FILEMODE, NULL, 0) );
-  SetKindOfSort( SORT_BY_NAME );
+  SetKindOfSort( SORT_BY_NAME, &CurrentVolume->vol_stats );
   /* Use System Locale for number separator */
   struct lconv *lc = localeconv();
   if (lc && lc->thousands_sep && *lc->thousands_sep)

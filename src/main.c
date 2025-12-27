@@ -143,7 +143,7 @@ int main(int argc, char **argv)
   free(path_indexes);
 
   /* Ensure we have at least one active volume before entering main loop */
-  if (CurrentVolume == NULL || statistic.tree == NULL) {
+  if (CurrentVolume == NULL || CurrentVolume->vol_stats.tree == NULL) {
       endwin();
       fprintf(stderr, "Error: No valid volumes could be loaded.\n");
       exit(1);
@@ -152,7 +152,7 @@ int main(int argc, char **argv)
   /* Main application loop */
   while( 1 )
   {
-    main_loop_exit_char = HandleDirWindow(statistic.tree);
+    main_loop_exit_char = HandleDirWindow(CurrentVolume->vol_stats.tree);
     if (main_loop_exit_char == 'q' || main_loop_exit_char == 'Q') {
         /* User requested to quit. Break the loop to proceed with cleanup. */
         break;

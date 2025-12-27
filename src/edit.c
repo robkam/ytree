@@ -74,7 +74,7 @@ int Edit(DirEntry * dir_entry, char *file_path)
             (void) snprintf(message, MESSAGE_LENGTH, "Can't change directory to*\"%s\"", path);
             MESSAGE(message);
     }else{
-            result = SystemCall(command_line);
+            result = SystemCall(command_line, &CurrentVolume->vol_stats);
     }
     if(chdir(cwd))
     {
@@ -82,7 +82,7 @@ int Edit(DirEntry * dir_entry, char *file_path)
             MESSAGE(message);
     }
   }else{
-    result = SystemCall(command_line);
+    result = SystemCall(command_line, &CurrentVolume->vol_stats);
   }
   free( command_line );
 
