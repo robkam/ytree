@@ -25,9 +25,9 @@ int DirUserMode(DirEntry *dir_entry, int ch)
             command_was_run = 1;
 
             char command_line[COMMAND_LINE_LENGTH + 1];
-            char cwd[PATH_LENGTH + 1];
             char path[PATH_LENGTH + 1];
             char filepath[PATH_LENGTH + 1];
+            int start_dir_fd;
 
             GetPath(dir_entry, filepath);
 
@@ -45,9 +45,13 @@ int DirUserMode(DirEntry *dir_entry, int ch)
                 }
             }
 
-            if (getcwd(cwd, sizeof(cwd)) == NULL) {
-                WARNING("getcwd failed*\".\"assumed");
-                strcpy(cwd, ".");
+            /* Robustly save current working directory using a file descriptor */
+            start_dir_fd = open(".", O_RDONLY);
+            if (start_dir_fd == -1) {
+                snprintf(message, MESSAGE_LENGTH, "Error saving current directory context*%s", strerror(errno));
+                MESSAGE(message);
+                /* Continue loop processing? Usually we consume key here. */
+                return -1;
             }
 
             if (chdir(GetPath(dir_entry, path))) {
@@ -55,12 +59,14 @@ int DirUserMode(DirEntry *dir_entry, int ch)
                 MESSAGE(message);
             } else {
                 QuerySystemCall(command_line, &CurrentVolume->vol_stats);
-            }
 
-            if (chdir(cwd)) {
-                snprintf(message, MESSAGE_LENGTH, "Can't change directory to*\"%s\"", cwd);
-                MESSAGE(message);
+                /* Restore original directory */
+                if (fchdir(start_dir_fd) == -1) {
+                    snprintf(message, MESSAGE_LENGTH, "Error restoring directory*%s", strerror(errno));
+                    MESSAGE(message);
+                }
             }
+            close(start_dir_fd);
         }
 
         /* Check if the chain ends */
@@ -94,9 +100,9 @@ int FileUserMode(FileEntryList *file_entry_list, int ch)
             command_was_run = 1;
 
             char command_line[COMMAND_LINE_LENGTH + 1];
-            char cwd[PATH_LENGTH + 1];
             char path[PATH_LENGTH + 1];
             char filepath[PATH_LENGTH + 1];
+            int start_dir_fd;
             DirEntry *dir_entry = file_entry_list->file->dir_entry;
 
             GetRealFileNamePath(file_entry_list->file, filepath);
@@ -113,9 +119,12 @@ int FileUserMode(FileEntryList *file_entry_list, int ch)
                 }
             }
 
-            if (getcwd(cwd, sizeof(cwd)) == NULL) {
-                WARNING("getcwd failed*\".\"assumed");
-                strcpy(cwd, ".");
+            /* Robustly save current working directory using a file descriptor */
+            start_dir_fd = open(".", O_RDONLY);
+            if (start_dir_fd == -1) {
+                snprintf(message, MESSAGE_LENGTH, "Error saving current directory context*%s", strerror(errno));
+                MESSAGE(message);
+                return -1;
             }
 
             if (chdir(GetPath(dir_entry, path))) {
@@ -123,12 +132,14 @@ int FileUserMode(FileEntryList *file_entry_list, int ch)
                 MESSAGE(message);
             } else {
                 QuerySystemCall(command_line, &CurrentVolume->vol_stats);
-            }
 
-            if (chdir(cwd)) {
-                snprintf(message, MESSAGE_LENGTH, "Can't change directory to*\"%s\"", cwd);
-                MESSAGE(message);
+                /* Restore original directory */
+                if (fchdir(start_dir_fd) == -1) {
+                    snprintf(message, MESSAGE_LENGTH, "Error restoring directory*%s", strerror(errno));
+                    MESSAGE(message);
+                }
             }
+            close(start_dir_fd);
         }
 
         /* Check if the chain ends */

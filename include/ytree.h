@@ -1050,5 +1050,6 @@ extern int FileUserMode(FileEntryList *file_entry_list, int ch);
 
 /* view.c */
 extern int View(DirEntry * dir_entry, char *file_path);
+extern int InternalView(char *file_path); /* Ensure this is present and exported */
 
 #endif /* YTREE_H */
