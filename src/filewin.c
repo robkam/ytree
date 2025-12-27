@@ -39,7 +39,7 @@ static unsigned      global_max_visual_filename_len;
 static unsigned      global_max_visual_linkname_len;
 
 static void ReadFileList(BOOL tagged_only, DirEntry *dir_entry);
-static void SortFileEntryList(void);
+static void SortFileEntryList(Statistic *s);
 static int  SortByName(FileEntryList *e1, FileEntryList *e2);
 static int  SortByChgTime(FileEntryList *e1, FileEntryList *e2);
 static int  SortByAccTime(FileEntryList *e1, FileEntryList *e2);
@@ -54,7 +54,7 @@ static void WalkTaggedFiles(int start_file, int cursor_pos, int (*fkt) (FileEntr
 static BOOL IsMatchingTaggedFiles(void);
 static void RemoveFileEntry(int entry_no);
 static void ChangeFileEntry(void);
-static int  DeleteTaggedFiles(int max_dispfiles);
+static int  DeleteTaggedFiles(int max_dispfiles, Statistic *s);
 static void SilentWalkTaggedFiles( int (*fkt) (FileEntry *, WalkingPackage *),
 			           WalkingPackage *walking_package
 			          );
@@ -139,7 +139,7 @@ void RotateFileMode(void)
 
 
 
-static void BuildFileEntryList(DirEntry *dir_entry){
+static void BuildFileEntryList(DirEntry *dir_entry, Statistic *s){
   size_t alloc_count;
   long t_files = 0;
   LONGLONG t_bytes = 0;
@@ -171,7 +171,7 @@ static void BuildFileEntryList(DirEntry *dir_entry){
 
     CurrentVolume->file_count = 0;
     ReadFileList( dir_entry->tagged_flag, dir_entry );
-    SortFileEntryList();
+    SortFileEntryList(s);
     SetFileMode( file_mode ); /* recalc */
 
     /* Recalculate and update statistics based on the actual loaded list */
@@ -190,7 +190,7 @@ static void BuildFileEntryList(DirEntry *dir_entry){
     } else {
     /* Global / ShowAll View */
 
-    size_t count_source = (dir_entry->tagged_flag) ? statistic.disk_tagged_files : statistic.disk_matching_files;
+    size_t count_source = (dir_entry->tagged_flag) ? s->disk_tagged_files : s->disk_matching_files;
     alloc_count = count_source; /* This is also potentially stale */
     if (alloc_count < 16) alloc_count = 16;
 
@@ -206,8 +206,8 @@ static void BuildFileEntryList(DirEntry *dir_entry){
     CurrentVolume->file_count = 0;
     global_max_visual_filename_len = 0;
     global_max_visual_linkname_len = 0;
-    ReadGlobalFileList(  dir_entry->tagged_flag, statistic.tree );
-    SortFileEntryList();
+    ReadGlobalFileList(  dir_entry->tagged_flag, s->tree );
+    SortFileEntryList(s);
     SetFileMode( file_mode ); /* recalc */
 
     /* Recalculate and update statistics based on the actual loaded list */
@@ -286,13 +286,13 @@ static void ReadGlobalFileList(BOOL tagged_only, DirEntry *dir_entry)
 
 
 
-static void SortFileEntryList(void)
+static void SortFileEntryList(Statistic *s)
 {
   int aux;
   int (*compare)(FileEntryList *, FileEntryList *);
 
   reverse_sort = FALSE;
-  if ((aux = statistic.kind_of_sort) > SORT_DSC)
+  if ((aux = s->kind_of_sort) > SORT_DSC)
   {
      order = FALSE;
      aux -= SORT_DSC;
@@ -477,13 +477,6 @@ static int SortByGroup(FileEntryList *e1, FileEntryList *e2)
 
 
 
-void SetKindOfSort(int new_kind_of_sort)
-{
-  statistic.kind_of_sort = new_kind_of_sort;
-}
-
-
-
 static void RemoveFileEntry(int entry_no)
 {
   int i, n;
@@ -501,11 +494,11 @@ static void RemoveFileEntry(int entry_no)
     visual_name_len = StrVisualLength( fe_ptr->name );
     name_len = strlen( fe_ptr->name );
     /* FIX: Cast StrVisualLength to int for MAX macro */
-    max_visual_filename_len = MAX( (int)max_visual_filename_len, visual_name_len );
+    max_visual_filename_len = MAX( (int)max_visual_filename_len, (int)visual_name_len );
     if( S_ISLNK( fe_ptr->stat_struct.st_mode ) )
     {
       /* FIX: Cast StrVisualLength to int for MAX macro */
-      max_visual_linkname_len = MAX( max_visual_filename_len, (int)StrVisualLength( &fe_ptr->name[name_len+1] ) );
+      max_visual_linkname_len = MAX( (int)max_visual_filename_len, (int)StrVisualLength( &fe_ptr->name[name_len+1] ) );
     }
   }
 
@@ -534,11 +527,11 @@ static void ChangeFileEntry(void)
       visual_name_len = StrVisualLength( fe_ptr->name );
       name_len = strlen( fe_ptr->name );
       /* FIX: Cast StrVisualLength to int for MAX macro */
-      max_visual_filename_len = MAX( (int)max_visual_filename_len, visual_name_len );
+      max_visual_filename_len = MAX( (int)max_visual_filename_len, (int)visual_name_len );
       if( S_ISLNK( fe_ptr->stat_struct.st_mode ) )
       {
         /* FIX: Cast StrVisualLength to int for MAX macro */
-        max_visual_linkname_len = MAX( max_visual_filename_len, (int)StrVisualLength( &fe_ptr->name[name_len+1] ) );
+        max_visual_linkname_len = MAX( (int)max_visual_linkname_len, (int)StrVisualLength( &fe_ptr->name[name_len+1] ) );
       }
     }
   }
@@ -860,7 +853,7 @@ static void PrintFileEntry(int entry_no, int y, int x, unsigned char hilight, in
 void DisplayFileWindow(DirEntry *dir_entry)
 {
   GetMaxYX( file_window, &window_height, &window_width );
-  BuildFileEntryList( dir_entry );
+  BuildFileEntryList( dir_entry, &CurrentVolume->vol_stats );
   DisplayFiles( dir_entry,
 		dir_entry->start_file,
                 dir_entry->start_file + dir_entry->cursor_pos, 0);
@@ -1235,6 +1228,7 @@ int HandleFileWindow(DirEntry *dir_entry)
   YtreeAction action = ACTION_NONE; /* Initialize action */
   DirEntry *last_stats_dir = NULL; /* Track context changes */
   struct Volume *start_vol = CurrentVolume; /* Safety Check Variable */
+  Statistic *s = &CurrentVolume->vol_stats;
   int pclose_ret;
 
 
@@ -1248,7 +1242,7 @@ int HandleFileWindow(DirEntry *dir_entry)
   need_dsp_help = TRUE;
   maybe_change_x_step = TRUE;
 
-  BuildFileEntryList( dir_entry );
+  BuildFileEntryList( dir_entry, s );
 
   /* Sanitize cursor position immediately after BuildFileEntryList */
   if (CurrentVolume->file_count > 0) {
@@ -1269,14 +1263,14 @@ int HandleFileWindow(DirEntry *dir_entry)
   {
     SwitchToBigFileWindow();
     GetMaxYX( file_window, &window_height, &window_width );
-    DisplayDiskStatistic();
+    DisplayDiskStatistic(s);
     /* Force initial display of directory statistics with appropriate title */
-    DisplayDirStatistic(dir_entry, (dir_entry->global_flag) ? "SHOW ALL" : NULL);
+    DisplayDirStatistic(dir_entry, (dir_entry->global_flag) ? "SHOW ALL" : NULL, s);
   }
   else
   {
     GetMaxYX( file_window, &window_height, &window_width );
-    DisplayDirStatistic( dir_entry, NULL ); /* Updated call */
+    DisplayDirStatistic( dir_entry, NULL, s ); /* Updated call */
   }
 
   DisplayFiles( dir_entry,
@@ -1319,7 +1313,7 @@ int HandleFileWindow(DirEntry *dir_entry)
            if (fe_ptr && fe_ptr->dir_entry != last_stats_dir) {
                last_stats_dir = fe_ptr->dir_entry;
                /* Pass "SHOW ALL" if global flag is set, otherwise NULL for default */
-               DisplayDirStatistic(last_stats_dir, (dir_entry->global_flag) ? "SHOW ALL" : NULL);
+               DisplayDirStatistic(last_stats_dir, (dir_entry->global_flag) ? "SHOW ALL" : NULL, s);
            }
       } else {
            fe_ptr = NULL;
@@ -1351,9 +1345,9 @@ int HandleFileWindow(DirEntry *dir_entry)
      DisplayMenu();
 
      GetMaxYX(dir_window, &dir_window_height, &dir_window_width);
-     while(statistic.cursor_pos >= dir_window_height) {
-       statistic.cursor_pos--;
-       statistic.disp_begin_pos++;
+     while(s->cursor_pos >= dir_window_height) {
+       s->cursor_pos--;
+       s->disp_begin_pos++;
      }
      if(dir_entry->global_flag || dir_entry->big_window || dir_entry->tagged_flag) {
 
@@ -1363,11 +1357,11 @@ int HandleFileWindow(DirEntry *dir_entry)
        DisplayFileWindow(dir_entry);
 
        if(dir_entry->global_flag) {
-	 DisplayDiskStatistic();
+	 DisplayDiskStatistic(s);
 	 DisplayGlobalFileParameter(fe_ptr);
        } else {
 	 DisplayFileWindow(dir_entry);
-	 DisplayDirStatistic(dir_entry, NULL); /* Updated call */
+	 DisplayDirStatistic(dir_entry, NULL, s);
 	 DisplayFileParameter(fe_ptr);
        }
      } else {
@@ -1375,17 +1369,17 @@ int HandleFileWindow(DirEntry *dir_entry)
        /* small window active */
 
        SwitchToSmallFileWindow();
-       DisplayTree( CurrentVolume, dir_window, statistic.disp_begin_pos,
-		  statistic.disp_begin_pos + statistic.cursor_pos
+       DisplayTree( CurrentVolume, dir_window, s->disp_begin_pos,
+		  s->disp_begin_pos + s->cursor_pos
 		);
        DisplayFileWindow(dir_entry);
-       DisplayDirStatistic(dir_entry, NULL); /* Updated call */
+       DisplayDirStatistic(dir_entry, NULL, s);
        DisplayFileParameter(fe_ptr);
      }
      need_dsp_help = TRUE;
-     DisplayAvailBytes();
-     DisplayFilter();
-     DisplayDiskName();
+     DisplayAvailBytes(s);
+     DisplayFilter(s);
+     DisplayDiskName(s);
      resize_request = FALSE;
    }
 
@@ -1647,12 +1641,12 @@ int HandleFileWindow(DirEntry *dir_entry)
                         fe_ptr->tagged = TRUE;
 	       	        de_ptr->tagged_files++;
 		        de_ptr->tagged_bytes += fe_ptr->stat_struct.st_size;
-	       	        statistic.disk_tagged_files++;
-		        statistic.disk_tagged_bytes += fe_ptr->stat_struct.st_size;
+	       	        s->disk_tagged_files++;
+		        s->disk_tagged_bytes += fe_ptr->stat_struct.st_size;
 		      }
               DisplayFiles(dir_entry, dir_entry->start_file, dir_entry->start_file + dir_entry->cursor_pos, start_x);
-              DisplayDiskStatistic(); /* Always update global disk stats */
-              DisplayDirStatistic(dir_entry, NULL); /* Always update current list stats (even in Showall) */
+              DisplayDiskStatistic(s); /* Always update global disk stats */
+              DisplayDirStatistic(dir_entry, NULL, s); /* Always update current list stats (even in Showall) */
 		      unput_char = KEY_DOWN;
 
                       break;
@@ -1664,12 +1658,12 @@ int HandleFileWindow(DirEntry *dir_entry)
 
 			de_ptr->tagged_files--;
 			de_ptr->tagged_bytes -= fe_ptr->stat_struct.st_size;
-			statistic.disk_tagged_files--;
-			statistic.disk_tagged_bytes -= fe_ptr->stat_struct.st_size;
+			s->disk_tagged_files--;
+			s->disk_tagged_bytes -= fe_ptr->stat_struct.st_size;
 		      }
               DisplayFiles(dir_entry, dir_entry->start_file, dir_entry->start_file + dir_entry->cursor_pos, start_x);
-              DisplayDiskStatistic(); /* Always update global disk stats */
-              DisplayDirStatistic(dir_entry, NULL); /* Always update current list stats (even in Showall) */
+              DisplayDiskStatistic(s); /* Always update global disk stats */
+              DisplayDirStatistic(dir_entry, NULL, s); /* Always update current list stats (even in Showall) */
 		      unput_char = KEY_DOWN;
 
 		      break;
@@ -1711,8 +1705,8 @@ int HandleFileWindow(DirEntry *dir_entry)
 			  fe_ptr->tagged = TRUE;
 			  de_ptr->tagged_files++;
 			  de_ptr->tagged_bytes += file_size;
-			  statistic.disk_tagged_files++;
-			  statistic.disk_tagged_bytes += file_size;
+			  s->disk_tagged_files++;
+			  s->disk_tagged_bytes += file_size;
 		        }
 		      }
 
@@ -1721,8 +1715,8 @@ int HandleFileWindow(DirEntry *dir_entry)
 				    dir_entry->start_file + dir_entry->cursor_pos,
 				    start_x
 			          );
-              DisplayDiskStatistic(); /* Always update global disk stats */
-              DisplayDirStatistic(dir_entry, NULL); /* Always update current list stats (even in Showall) */
+              DisplayDiskStatistic(s); /* Always update global disk stats */
+              DisplayDirStatistic(dir_entry, NULL, s); /* Always update current list stats (even in Showall) */
 		      break;
 
 
@@ -1739,8 +1733,8 @@ int HandleFileWindow(DirEntry *dir_entry)
 			  fe_ptr->tagged = FALSE;
 			  de_ptr->tagged_files--;
 			  de_ptr->tagged_bytes -= file_size;
-			  statistic.disk_tagged_files--;
-			  statistic.disk_tagged_bytes -= file_size;
+			  s->disk_tagged_files--;
+			  s->disk_tagged_bytes -= file_size;
 		        }
 		      }
 
@@ -1749,8 +1743,8 @@ int HandleFileWindow(DirEntry *dir_entry)
 				    dir_entry->start_file + dir_entry->cursor_pos,
 				    start_x
 			          );
-              DisplayDiskStatistic(); /* Always update global disk stats */
-              DisplayDirStatistic(dir_entry, NULL); /* Always update current list stats (even in Showall) */
+              DisplayDiskStatistic(s); /* Always update global disk stats */
+              DisplayDirStatistic(dir_entry, NULL, s); /* Always update current list stats (even in Showall) */
 		      break;
 
 
@@ -1768,8 +1762,8 @@ int HandleFileWindow(DirEntry *dir_entry)
 			  fe_ptr->tagged = TRUE;
 			  de_ptr->tagged_files++;
 			  de_ptr->tagged_bytes += file_size;
-			  statistic.disk_tagged_files++;
-			  statistic.disk_tagged_bytes += file_size;
+			  s->disk_tagged_files++;
+			  s->disk_tagged_bytes += file_size;
 		        }
 		      }
 
@@ -1778,8 +1772,8 @@ int HandleFileWindow(DirEntry *dir_entry)
 				    dir_entry->start_file + dir_entry->cursor_pos,
 				    start_x
 			          );
-              DisplayDiskStatistic(); /* Always update global disk stats */
-              DisplayDirStatistic(dir_entry, NULL); /* Always update current list stats (even in Showall) */
+              DisplayDiskStatistic(s); /* Always update global disk stats */
+              DisplayDirStatistic(dir_entry, NULL, s); /* Always update current list stats (even in Showall) */
 		      break;
 
 
@@ -1796,8 +1790,8 @@ int HandleFileWindow(DirEntry *dir_entry)
 			  fe_ptr->tagged = FALSE;
 			  de_ptr->tagged_files--;
 			  de_ptr->tagged_bytes -= file_size;
-			  statistic.disk_tagged_files--;
-			  statistic.disk_tagged_bytes -= file_size;
+			  s->disk_tagged_files--;
+			  s->disk_tagged_bytes -= file_size;
 		        }
 		      }
 
@@ -1806,8 +1800,8 @@ int HandleFileWindow(DirEntry *dir_entry)
 				    dir_entry->start_file + dir_entry->cursor_pos,
 				    start_x
 			          );
-              DisplayDiskStatistic(); /* Always update global disk stats */
-              DisplayDirStatistic(dir_entry, NULL); /* Always update current list stats (even in Showall) */
+              DisplayDiskStatistic(s); /* Always update global disk stats */
+              DisplayDirStatistic(dir_entry, NULL, s); /* Always update current list stats (even in Showall) */
 		      break;
 
       case ACTION_CMD_V :      fe_ptr = CurrentVolume->file_entry_list[dir_entry->start_file + dir_entry->cursor_pos].file;
@@ -1859,7 +1853,7 @@ int HandleFileWindow(DirEntry *dir_entry)
               }
               else
               {
-                  get_dir_ret = GetDirEntry( statistic.tree, de_ptr, to_dir, &dest_dir_entry, to_path );
+                  get_dir_ret = GetDirEntry( s->tree, de_ptr, to_dir, &dest_dir_entry, to_path );
                   if (get_dir_ret == -1) { /* System error */
                       break;
                   }
@@ -1871,10 +1865,10 @@ int HandleFileWindow(DirEntry *dir_entry)
               /* EXPAND WILDCARDS FOR SINGLE FILE COPY */
               BuildFilename(fe_ptr->name, to_file, expanded_to_file);
 
-              CopyFile( &statistic, fe_ptr, TRUE, expanded_to_file, dest_dir_entry, to_path, path_copy );
+              CopyFile( s, fe_ptr, TRUE, expanded_to_file, dest_dir_entry, to_path, path_copy );
 
               /* Force a full refresh of the file window state after copy attempt */
-              DisplayAvailBytes();
+              DisplayAvailBytes(s);
               DisplayFileWindow(dir_entry);
               keypad(file_window, TRUE);
               touchwin(file_window);
@@ -1913,7 +1907,7 @@ int HandleFileWindow(DirEntry *dir_entry)
                     }
                     dest_dir_entry = NULL;
                 } else {
-                    get_dir_ret = GetDirEntry( statistic.tree, de_ptr, to_dir, &dest_dir_entry, to_path );
+                    get_dir_ret = GetDirEntry( s->tree, de_ptr, to_dir, &dest_dir_entry, to_path );
                     if (get_dir_ret == -1) { /* System error */
                         break;
                     }
@@ -1928,7 +1922,7 @@ int HandleFileWindow(DirEntry *dir_entry)
 			    break;
 			  }
 
-			  walking_package.function_data.copy.statistic_ptr  = &statistic;
+			  walking_package.function_data.copy.statistic_ptr  = s;
 			  walking_package.function_data.copy.dest_dir_entry = dest_dir_entry;
 			  walking_package.function_data.copy.to_file        = to_file;
 			  walking_package.function_data.copy.to_path        = to_path; /* Fixed struct access */
@@ -1941,7 +1935,7 @@ int HandleFileWindow(DirEntry *dir_entry)
 					   &walking_package
 				         );
 
-                          DisplayAvailBytes();
+                          DisplayAvailBytes(s);
 
                           /* Force a full refresh of the file window state after copy attempt */
                           DisplayFileWindow(dir_entry);
@@ -1966,7 +1960,7 @@ int HandleFileWindow(DirEntry *dir_entry)
 			break;
 		      }
 
-                      get_dir_ret = GetDirEntry( statistic.tree, de_ptr, to_dir, &dest_dir_entry, to_path );
+                      get_dir_ret = GetDirEntry( s->tree, de_ptr, to_dir, &dest_dir_entry, to_path );
                       if (get_dir_ret == -1) {
                           break;
                       }
@@ -1987,7 +1981,7 @@ int HandleFileWindow(DirEntry *dir_entry)
                               snprintf(abs_check_path, sizeof(abs_check_path), "%s%c%s", current_dir, FILE_SEPARATOR_CHAR, to_dir);
                           }
                           /* FIX: Pass &dest_dir_entry */
-                          if (EnsureDirectoryExists(abs_check_path, statistic.tree, &created, &dest_dir_entry) == -1) break;
+                          if (EnsureDirectoryExists(abs_check_path, s->tree, &created, &dest_dir_entry) == -1) break;
                       }
 
                       /* EXPAND WILDCARDS FOR SINGLE FILE MOVE */
@@ -2004,14 +1998,14 @@ int HandleFileWindow(DirEntry *dir_entry)
 			/* File was moved */
 			/*-------------------*/
 
-                        DisplayAvailBytes();
+                        DisplayAvailBytes(s);
 
 			if( dir_entry->global_flag )
-			  DisplayDiskStatistic();
+			  DisplayDiskStatistic(s);
 			else
-			  DisplayDirStatistic( de_ptr, NULL ); /* Updated call */
+			  DisplayDirStatistic( de_ptr, NULL, s ); /* Updated call */
 
-			BuildFileEntryList( dir_entry );
+			BuildFileEntryList( dir_entry, s );
 
 			if( CurrentVolume->file_count == 0 ) unput_char = ESC;
 
@@ -2051,7 +2045,7 @@ int HandleFileWindow(DirEntry *dir_entry)
 		        }
 
 
-                        get_dir_ret = GetDirEntry( statistic.tree, de_ptr, to_dir, &dest_dir_entry, to_path );
+                        get_dir_ret = GetDirEntry( s->tree, de_ptr, to_dir, &dest_dir_entry, to_path );
                         if (get_dir_ret == -1) {
                             break;
                         }
@@ -2072,7 +2066,7 @@ int HandleFileWindow(DirEntry *dir_entry)
                                 snprintf(abs_check_path, sizeof(abs_check_path), "%s%c%s", current_dir, FILE_SEPARATOR_CHAR, to_dir);
                             }
                             /* FIX: Pass &dest_dir_entry */
-                            if (EnsureDirectoryExists(abs_check_path, statistic.tree, &created, &dest_dir_entry) == -1) break;
+                            if (EnsureDirectoryExists(abs_check_path, s->tree, &created, &dest_dir_entry) == -1) break;
                         }
 
 			term = InputChoice( "Confirm overwrite existing files (Y/N) ? ", "YN\033" );
@@ -2092,7 +2086,7 @@ int HandleFileWindow(DirEntry *dir_entry)
 					 &walking_package
 				       );
 
-			BuildFileEntryList( dir_entry );
+			BuildFileEntryList( dir_entry, s );
 
 			if( CurrentVolume->file_count == 0 ) unput_char = ESC;
 
@@ -2125,17 +2119,17 @@ int HandleFileWindow(DirEntry *dir_entry)
 		      fe_ptr = CurrentVolume->file_entry_list[dir_entry->start_file + dir_entry->cursor_pos].file;
 		      de_ptr = fe_ptr->dir_entry;
 
-		      if( !DeleteFile( fe_ptr ) )
+		      if( !DeleteFile( fe_ptr, s ) )
 		      {
 		        /* File was deleted */
 			/*----------------------*/
 
 			if( dir_entry->global_flag )
-			  DisplayDiskStatistic();
+			  DisplayDiskStatistic(s);
 			else
-			  DisplayDirStatistic( de_ptr, NULL ); /* Updated call */
+			  DisplayDirStatistic( de_ptr, NULL, s ); /* Updated call */
 
-			DisplayAvailBytes();
+			DisplayAvailBytes(s);
 
                         RemoveFileEntry( dir_entry->start_file + dir_entry->cursor_pos );
 
@@ -2169,11 +2163,11 @@ int HandleFileWindow(DirEntry *dir_entry)
 		      else
 		      {
 		        need_dsp_help = TRUE;
-			(void) DeleteTaggedFiles( max_disp_files );
+			(void) DeleteTaggedFiles( max_disp_files, s );
 			if( CurrentVolume->file_count == 0 ) unput_char = ESC;
 			dir_entry->start_file = 0;
 			dir_entry->cursor_pos = 0;
-                        DisplayAvailBytes();
+                        DisplayAvailBytes(s);
 			DisplayFiles( dir_entry,
 				      dir_entry->start_file,
 				      dir_entry->start_file + dir_entry->cursor_pos,
@@ -2204,7 +2198,7 @@ int HandleFileWindow(DirEntry *dir_entry)
 			  /* Maybe structure has changed... */
 			  /*--------------------------------*/
 
-			  BuildFileEntryList( de_ptr );
+			  BuildFileEntryList( de_ptr, s );
 
 			  DisplayFiles( de_ptr,
 				        dir_entry->start_file,
@@ -2239,7 +2233,7 @@ int HandleFileWindow(DirEntry *dir_entry)
 					 &walking_package
 				       );
 
-			BuildFileEntryList( dir_entry );
+			BuildFileEntryList( dir_entry, s );
 
 			if( CurrentVolume->file_count == 0 ) unput_char = ESC;
 
@@ -2258,7 +2252,7 @@ int HandleFileWindow(DirEntry *dir_entry)
 		      dir_entry->start_file = 0;
 		      dir_entry->cursor_pos = 0;
 
-		      SortFileEntryList();
+		      SortFileEntryList(s);
 
 		      DisplayFiles( dir_entry,
 				    dir_entry->start_file,
@@ -2273,9 +2267,9 @@ int HandleFileWindow(DirEntry *dir_entry)
 		        dir_entry->start_file = 0;
 		        dir_entry->cursor_pos = 0;
 
-		        BuildFileEntryList( dir_entry );
+		        BuildFileEntryList( dir_entry, s );
 
-		        DisplayFilter();
+		        DisplayFilter(s);
 		        DisplayFiles( dir_entry,
 				      dir_entry->start_file,
 				      dir_entry->start_file + dir_entry->cursor_pos,
@@ -2283,9 +2277,9 @@ int HandleFileWindow(DirEntry *dir_entry)
 			            );
 
 		        if( dir_entry->global_flag )
-		          DisplayDiskStatistic();
+		          DisplayDiskStatistic(s);
 		        else
-		          DisplayDirStatistic( dir_entry, NULL ); /* Updated call */
+		          DisplayDirStatistic( dir_entry, NULL, s ); /* Updated call */
 
                         if( CurrentVolume->file_count == 0 ) unput_char = ESC;
 		        maybe_change_x_step = TRUE;
@@ -2388,8 +2382,8 @@ int HandleFileWindow(DirEntry *dir_entry)
 			  WARNING( "pclose failed" );
 			}
 
-                        (void) GetAvailBytes( &statistic.disk_space );
-                        DisplayAvailBytes();
+                        (void) GetAvailBytes( &s->disk_space, s );
+                        DisplayAvailBytes(s);
 
 			DisplayFiles( dir_entry,
 				      dir_entry->start_file,
@@ -2543,8 +2537,8 @@ int HandleFileWindow(DirEntry *dir_entry)
                          clearok(stdscr, TRUE);
                          refresh();
                     } else {
-                         RescanDir(dir_entry, 0);
-                         BuildFileEntryList(dir_entry);
+                         RescanDir(dir_entry, 0, s);
+                         BuildFileEntryList(dir_entry, s);
 
                          /* 3. Restore Cursor Position */
                          int found_idx = -1;
@@ -2582,7 +2576,7 @@ int HandleFileWindow(DirEntry *dir_entry)
                          }
 
                          DisplayFiles(dir_entry, dir_entry->start_file, dir_entry->start_file + dir_entry->cursor_pos, start_x);
-                         DisplayDirStatistic(dir_entry, NULL); /* Updated call */
+                         DisplayDirStatistic(dir_entry, NULL, s); /* Updated call */
                          need_dsp_help = TRUE;
                     }
                 }
@@ -2605,7 +2599,7 @@ int HandleFileWindow(DirEntry *dir_entry)
         else
           dir_entry->tagged_flag = FALSE;
 
-        BuildFileEntryList ( dir_entry );
+        BuildFileEntryList ( dir_entry, s );
 
         dir_entry->start_file = 0;
         dir_entry->cursor_pos = 0;
@@ -2808,7 +2802,7 @@ static BOOL IsMatchingTaggedFiles(void)
 }
 
 
-static int DeleteTaggedFiles(int max_disp_files)
+static int DeleteTaggedFiles(int max_disp_files, Statistic *s)
 {
   FileEntry *fe_ptr;
   DirEntry  *de_ptr;
@@ -2886,7 +2880,7 @@ static int DeleteTaggedFiles(int max_disp_files)
 
       if( term == 'Y' )
       {
-        if( ( result = DeleteFile( fe_ptr ) ) == 0 )
+        if( ( result = DeleteFile( fe_ptr, s ) ) == 0 )
         {
 	  /* File was deleted */
 	  /*----------------------*/
@@ -2894,11 +2888,11 @@ static int DeleteTaggedFiles(int max_disp_files)
 	  deleted = TRUE;
 
   	  if( de_ptr->global_flag )
-	    DisplayDiskStatistic();
+	    DisplayDiskStatistic(s);
 	  else
-	    DisplayDirStatistic( de_ptr, NULL ); /* Updated call */
+	    DisplayDirStatistic( de_ptr, NULL, s ); /* Updated call */
 
-	  DisplayAvailBytes();
+	  DisplayAvailBytes(s);
 
           RemoveFileEntry( start_file + cursor_pos );
         }

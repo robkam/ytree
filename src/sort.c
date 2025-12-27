@@ -74,5 +74,10 @@ void GetKindOfSort(void)
                         break;
         }
   } while( ! strchr("ACEGMNWS", c));
-  SetKindOfSort(s + order);
+  SetKindOfSort(s + order, &CurrentVolume->vol_stats);
+}
+
+void SetKindOfSort(int new_kind_of_sort, Statistic *s)
+{
+  s->kind_of_sort = new_kind_of_sort;
 }

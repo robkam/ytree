@@ -148,7 +148,7 @@ void QuitTo(DirEntry *dir)
         GetPath(dir, path_to_write);
     } else {
         /* If dir is NULL, quit to current directory. */
-        strcpy(path_to_write, statistic.path);
+        strcpy(path_to_write, CurrentVolume->vol_stats.path);
     }
 
     /* 3. Construct Filename: */

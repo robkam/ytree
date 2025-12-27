@@ -19,7 +19,7 @@
 /* The 'mask' array is removed as the static statistics panel it defined
  * is now entirely managed by stats.c. */
 
-/* Mapped '██' to '#' and '░░' to ':' for ncurses ACS character rendering */
+/* Mapped 'A_REVERSE' to '#' and 'ACS_CKBOARD' to ':' for ncurses ACS character rendering */
 static char *logo[] = {
 "             ###                                 ",
 "            :###                                 ",
@@ -181,7 +181,9 @@ void DisplayMenu(void)
 
   PrintSpecialString( stdscr, 0, 0, "Path: ", CPAIR_MENU );
   /* Print the current path next to the label */
-  DisplayHeaderPath((mode == ARCHIVE_MODE) ? statistic.login_path : statistic.path);
+  if (CurrentVolume) {
+      DisplayHeaderPath((mode == ARCHIVE_MODE) ? CurrentVolume->vol_stats.login_path : CurrentVolume->vol_stats.path);
+  }
   /* The clrtoeol() call was removed to prevent it from erasing the clock display on redraw. */
 
   werase( dir_window );

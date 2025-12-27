@@ -54,7 +54,7 @@ int DirUserMode(DirEntry *dir_entry, int ch)
                 snprintf(message, MESSAGE_LENGTH, "Can't change directory to*\"%s\"", path);
                 MESSAGE(message);
             } else {
-                QuerySystemCall(command_line);
+                QuerySystemCall(command_line, &CurrentVolume->vol_stats);
             }
 
             if (chdir(cwd)) {
@@ -122,7 +122,7 @@ int FileUserMode(FileEntryList *file_entry_list, int ch)
                 snprintf(message, MESSAGE_LENGTH, "Can't change directory to*\"%s\"", path);
                 MESSAGE(message);
             } else {
-                QuerySystemCall(command_line);
+                QuerySystemCall(command_line, &CurrentVolume->vol_stats);
             }
 
             if (chdir(cwd)) {

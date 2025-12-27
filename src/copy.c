@@ -10,7 +10,7 @@
 
 
 
-static int CopyArchiveFile(char *to_path, char *from_path);
+static int CopyArchiveFile(char *to_path, char *from_path, Statistic *s);
 
 
 
@@ -47,7 +47,7 @@ int CopyFile(Statistic *statistic_ptr,
   (void) GetRealFileNamePath( fe_ptr, from_path );
   (void) GetPath(fe_ptr->dir_entry, from_dir);
 
-  if (mode != DISK_MODE && mode != USER_MODE) {
+  if (statistic_ptr->mode != DISK_MODE && statistic_ptr->mode != USER_MODE) {
       /* Archive Mode */
       if (path_copy) {
           char root_path[PATH_LENGTH+1];
@@ -55,7 +55,7 @@ int CopyFile(Statistic *statistic_ptr,
           char full_dest_path[PATH_LENGTH+1];
           BOOL created = FALSE;
 
-          GetPath(statistic.tree, root_path);
+          GetPath(statistic_ptr->tree, root_path);
 
           /* Calculate relative path by stripping archive root from file's virtual directory */
           if (strncmp(from_dir, root_path, strlen(root_path)) == 0) {
@@ -150,7 +150,10 @@ int CopyFile(Statistic *statistic_ptr,
     /* Re-evaluate target volume with full path if path_copy changed it? */
     /* Usually base is enough, but to be safe: */
     target_vol = Volume_GetByPath(to_path);
-    if (target_vol) target_tree = target_vol->vol_stats.tree;
+    if (target_vol) {
+        target_tree = target_vol->vol_stats.tree;
+        target_stats = &target_vol->vol_stats;
+    }
 
     /* Use EnsureDirectoryExists instead of direct MakePath to prompt the user */
     /* Pass NULL for created flag as we handle refresh_dirwindow later if dest_dir_entry is updated */
@@ -215,7 +218,14 @@ int CopyFile(Statistic *statistic_ptr,
         }
       }
 
-      (void) DeleteFile( dest_file_entry );
+      /* Delete the existing file in the destination.
+         We must pass the correct stats pointer for the volume containing dest_file_entry.
+         Since dest_file_entry is in dest_dir_entry, and we found dest_dir_entry in target_tree,
+         target_stats should be valid. If for some reason target_stats is NULL (shouldn't be if dest_dir_entry is valid),
+         we assume it's external and stats updating might be risky or we fallback to current.
+         Given dest_dir_entry exists, target_stats MUST be valid.
+      */
+      (void) DeleteFile( dest_file_entry, target_stats ? target_stats : statistic_ptr );
     }
   }
   else
@@ -242,7 +252,7 @@ int CopyFile(Statistic *statistic_ptr,
   }
 
 
-  if( !CopyFileContent( to_path, from_path ) )
+  if( !CopyFileContent( to_path, from_path, statistic_ptr ) )
   {
     /* File copied */
     /*-------------*/
@@ -272,6 +282,7 @@ int CopyFile(Statistic *statistic_ptr,
           target_stats->disk_total_bytes += file_size;
           target_stats->disk_total_files++;
       } else {
+          /* Should not happen if dest_dir_entry is set, but fallback safely */
           statistic_ptr->disk_total_bytes += file_size;
           statistic_ptr->disk_total_files++;
       }
@@ -317,9 +328,16 @@ int CopyFile(Statistic *statistic_ptr,
       /* Force refresh if we modified the tree structure or contents */
       refresh_dirwindow = TRUE;
     }
-    else if (mode != DISK_MODE && mode != USER_MODE)
+    else if (statistic_ptr->mode != DISK_MODE && statistic_ptr->mode != USER_MODE)
     {
-        /* Archive mode handling remains unchanged */
+        /* Archive mode handling remains unchanged, but use statistic_ptr to check context?
+           Actually, the legacy code cleared 'disk_statistic'. 'disk_statistic' is mapped to CurrentVolume->vol_disk_stats.
+           But here we are inside CopyFile which might act on 'statistic_ptr'.
+           If we are in archive mode, we probably extracted something.
+           The logic below clears the tree of 'disk_statistic'.
+           This seems specific to some archive operation cleanup.
+           Let's assume 'disk_statistic' (CurrentVolume) is correct here.
+        */
         if (disk_statistic.tree != NULL) {
             DeleteTree(disk_statistic.tree);
             disk_statistic.tree = NULL;
@@ -334,7 +352,11 @@ int CopyFile(Statistic *statistic_ptr,
         }
     }
 
-    (void) GetAvailBytes( &statistic_ptr->disk_space );
+    if (target_stats) {
+        (void) GetAvailBytes( &target_stats->disk_space, target_stats );
+    } else {
+        (void) GetAvailBytes( &statistic_ptr->disk_space, statistic_ptr );
+    }
 
     result = 0;
   }
@@ -405,15 +427,15 @@ int GetCopyParameter(char *from_file, BOOL path_copy, char *to_file, char *to_di
 
 
 
-int CopyFileContent(char *to_path, char *from_path)
+int CopyFileContent(char *to_path, char *from_path, Statistic *s)
 {
   int         i, o, n;
   char        buffer[2048];
   int         spin_counter = 0;
 
-  if( mode != DISK_MODE && mode != USER_MODE )
+  if( s->mode != DISK_MODE && s->mode != USER_MODE )
   {
-    return( CopyArchiveFile( to_path, from_path ) );
+    return( CopyArchiveFile( to_path, from_path, s ) );
   }
 
   if( !strcmp( to_path, from_path ) )
@@ -507,13 +529,13 @@ int CopyTaggedFiles(FileEntry *fe_ptr, WalkingPackage *walking_package)
 
 
 
-static int CopyArchiveFile(char *to_path, char *from_path)
+static int CopyArchiveFile(char *to_path, char *from_path, Statistic *s)
 {
   int out_fd;
   int result = -1;
   char *archive_path;
 
-  archive_path = statistic.login_path;
+  archive_path = s->login_path;
 
   out_fd = open(to_path, O_WRONLY | O_CREAT | O_TRUNC, 0666);
   if (out_fd == -1) {

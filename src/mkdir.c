@@ -125,7 +125,7 @@ CREATE_NODE:
     den_ptr->up_tree = father_dir_entry;
     den_ptr->not_scanned    = FALSE;
 
-    statistic.disk_total_directories++;
+    CurrentVolume->vol_stats.disk_total_directories++;
 
     (void) strcpy( den_ptr->name, dir_name );
 
@@ -181,7 +181,7 @@ CREATE_NODE:
       den_ptr->next = NULL;
     }
 
-    (void) GetAvailBytes( &statistic.disk_space );
+    (void) GetAvailBytes( &CurrentVolume->vol_stats.disk_space, &CurrentVolume->vol_stats );
   }
 
   return( den_ptr );

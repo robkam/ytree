@@ -16,7 +16,8 @@
 int GetDiskParameter( char *path,
 		      char *volume_name,
 		      LONGLONG *avail_bytes,
-		      LONGLONG *total_disk_space
+		      LONGLONG *total_disk_space,
+		      Statistic *s
 		    )
 {
 
@@ -47,7 +48,7 @@ int GetDiskParameter( char *path,
       /* Name ermitteln */
       /*----------------*/
 
-      if( mode == DISK_MODE || mode == USER_MODE )
+      if( s->mode == DISK_MODE || s->mode == USER_MODE )
       {
 
 #if defined(__linux__)
@@ -85,12 +86,12 @@ int GetDiskParameter( char *path,
         /* ARCHIVE_MODE */
         /*--------------*/
 
-        if( ( p = strrchr( statistic.login_path, FILE_SEPARATOR_CHAR ) ) == NULL )
-          p = statistic.login_path;
+        if( ( p = strrchr( s->login_path, FILE_SEPARATOR_CHAR ) ) == NULL )
+          p = s->login_path;
         else p++;
 
-        (void) strncpy( volume_name, p, sizeof( statistic.disk_name ) );
-        volume_name[sizeof( statistic.disk_name )] = '\0';
+        (void) strncpy( volume_name, p, sizeof( s->disk_name ) );
+        volume_name[sizeof( s->disk_name )] = '\0';
       }
     } /* volume_name */
 
@@ -126,12 +127,13 @@ int GetDiskParameter( char *path,
 
 
 
-int GetAvailBytes(LONGLONG *avail_bytes)
+int GetAvailBytes(LONGLONG *avail_bytes, Statistic *s)
 {
-  return( GetDiskParameter( statistic.tree->name,
+  return( GetDiskParameter( s->tree->name,
 			    NULL,
 			    avail_bytes,
-			    NULL
+			    NULL,
+			    s
 			  )
         );
 }

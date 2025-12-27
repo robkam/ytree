@@ -66,7 +66,7 @@ static void copy_stat_from_entry(struct stat *dest, struct archive_entry *entry)
  * Now accepts DirEntry **dir_entry_ptr to allow updating the root pointer
  * if MinimizeArchiveTree swaps it.
  */
-int ReadTreeFromArchive(DirEntry **dir_entry_ptr, const char *filename)
+int ReadTreeFromArchive(DirEntry **dir_entry_ptr, const char *filename, Statistic *s)
 {
     struct archive *a;
     struct archive_entry *entry;
@@ -127,7 +127,7 @@ int ReadTreeFromArchive(DirEntry **dir_entry_ptr, const char *filename)
                     strcat(path_buffer, FILE_SEPARATOR_STRING);
                 }
             }
-            (void)TryInsertArchiveDirEntry(dir_entry, path_buffer, &stat_buf);
+            (void)TryInsertArchiveDirEntry(dir_entry, path_buffer, &stat_buf, s);
 
         } else if (S_ISREG(stat_buf.st_mode) || S_ISLNK(stat_buf.st_mode)) {
             /* Safer string copy */
@@ -143,7 +143,7 @@ int ReadTreeFromArchive(DirEntry **dir_entry_ptr, const char *filename)
                     }
                 }
             }
-            (void)InsertArchiveFileEntry(dir_entry, path_buffer, &stat_buf);
+            (void)InsertArchiveFileEntry(dir_entry, path_buffer, &stat_buf, s);
         }
 
         if (KeyPressed()) {
@@ -156,7 +156,7 @@ int ReadTreeFromArchive(DirEntry **dir_entry_ptr, const char *filename)
                 DrawAnimationStep(dir_window); /* Changed from file_window to dir_window */
             } else {
                 if ((count % 100) == 0) {
-                    DisplayDiskStatistic();
+                    DisplayDiskStatistic(s);
                 }
             }
             /* These UI updates should always happen, regardless of animation method */
@@ -167,19 +167,19 @@ int ReadTreeFromArchive(DirEntry **dir_entry_ptr, const char *filename)
     }
 
     /* Pass the double pointer so it can update the root if needed */
-    MinimizeArchiveTree(dir_entry_ptr);
+    MinimizeArchiveTree(dir_entry_ptr, s);
 
     archive_read_free(a);
 
     /* Important: Recalculate visibility based on current settings immediately after load */
-    RecalculateSysStats();
+    RecalculateSysStats(s);
 
     return 0;
 }
 
 #else
 /* Stub function if ytree is compiled without libarchive support. */
-int ReadTreeFromArchive(DirEntry **dir_entry_ptr, const char *filename)
+int ReadTreeFromArchive(DirEntry **dir_entry_ptr, const char *filename, Statistic *s)
 {
     ERROR_MSG("Archive support not compiled.*Please install libarchive-dev*and recompile ytree.");
     return -1;

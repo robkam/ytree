@@ -222,7 +222,7 @@ the ytree starting cwd. new code grabbed from execute.c.
         (void) snprintf(message, MESSAGE_LENGTH, "Can't change directory to*\"%s\"", path);
         MESSAGE(message);
     } else {
-        result = SystemCall(command_line);
+        result = SystemCall(command_line, &CurrentVolume->vol_stats);
     }
     if( chdir(cwd) )
     {
@@ -230,7 +230,7 @@ the ytree starting cwd. new code grabbed from execute.c.
         MESSAGE(message);
     }
   } else {
-    result = SystemCall(command_line);
+    result = SystemCall(command_line, &CurrentVolume->vol_stats);
   }
 
   if(result)
@@ -274,7 +274,7 @@ static int ViewArchiveFile(char *file_path)
     }
 
     /* 2. Extract the archive entry to the temporary file */
-    archive = statistic.login_path;
+    archive = CurrentVolume->vol_stats.login_path;
 #ifdef HAVE_LIBARCHIVE
     if (ExtractArchiveEntry(archive, file_path, fd) != 0) {
         (void)snprintf(message, MESSAGE_LENGTH, "Could not extract entry*'%s'*from archive", file_path);
@@ -314,7 +314,7 @@ static int ViewArchiveFile(char *file_path)
     }
 
     /* 4. Execute the command */
-    result = SystemCall(command_line);
+    result = SystemCall(command_line, &CurrentVolume->vol_stats);
 
     if (result != 0) {
         (void)snprintf(message, MESSAGE_LENGTH, "can't execute*%s", command_line);

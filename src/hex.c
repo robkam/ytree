@@ -68,7 +68,7 @@ static int ViewHexArchiveFile(char *file_path)
         return -1;
     }
 
-    archive = statistic.login_path;
+    archive = CurrentVolume->vol_stats.login_path;
 
 #ifdef HAVE_LIBARCHIVE
     if (ExtractArchiveEntry(archive, file_path, fd) != 0) {
