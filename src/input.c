@@ -253,7 +253,7 @@ int InputStringEx(char *s, int y, int x, int cursor_pos, int display_width, int 
   BOOL len_flag = FALSE;
   char path[PATH_LENGTH + 1];
   char buf[MB_CUR_MAX + 1];
-  char *ls, *rs;
+  char *ls;
   static BOOL insert_flag = TRUE;
   int scroll_offset = 0;       /* Visual offset */
 
@@ -317,7 +317,7 @@ int InputStringEx(char *s, int y, int x, int cursor_pos, int display_width, int 
         break;
     }
 
-    /* Check length constraint using max_len */
+    /* Check visual length constraint for UI feedback */
     if (StrVisualLength(s) >= max_len) len_flag = TRUE;
     else len_flag = FALSE;
 
@@ -338,9 +338,12 @@ int InputStringEx(char *s, int y, int x, int cursor_pos, int display_width, int 
         if (pp == NULL) break;
         if(*pp) {
             ls = StrLeft(pp, max_len);
-            strcpy(s, ls);
+            /* Safety check before copy */
+            if (strlen(ls) < (size_t)max_len) {
+                strcpy(s, ls);
+                p = StrVisualLength(s);
+            }
             free(ls);
-            p = StrVisualLength(s);
         }
         break;
 
@@ -359,17 +362,16 @@ int InputStringEx(char *s, int y, int x, int cursor_pos, int display_width, int 
 
     case 'K' & 0x1F: /* Ctrl-K, Kill to End of Line */
     case KEY_DL:     /* Delete to end of line */
-        ls = StrLeft(s, p);
-        strcpy(s, ls);
-        free(ls);
+        {
+            int byte_pos = VisualPositionToBytePosition(s, p);
+            s[byte_pos] = '\0';
+        }
         break;
 
     case 'U' & 0x1F: /* Ctrl-U, Kill to Beginning of Line */
-        n = StrVisualLength(s);
         if (p > 0) {
-            rs = StrRight(s, n - p);
-            strcpy(s, rs);
-            free(rs);
+            int byte_pos = VisualPositionToBytePosition(s, p);
+            memmove(s, s + byte_pos, strlen(s) - byte_pos + 1);
             p = 0;
         }
         break;
@@ -391,22 +393,14 @@ int InputStringEx(char *s, int y, int x, int cursor_pos, int display_width, int 
                 start_of_word--;
             }
 
-            if (start_of_word >= byte_p) { /* Nothing to delete */
-                break;
-            }
+            if (start_of_word < byte_p) {
+                memmove(&s[start_of_word], &s[byte_p], strlen(&s[byte_p]) + 1);
 
-            /* Move the remainder of the string over the deleted part. */
-            memmove(&s[start_of_word], &s[byte_p], strlen(&s[byte_p]) + 1);
-
-            /* Update visual cursor position 'p' */
-            char *temp_prefix = malloc(start_of_word + 1);
-            if (temp_prefix) {
-                memcpy(temp_prefix, s, start_of_word);
-                temp_prefix[start_of_word] = '\0';
-                p = StrVisualLength(temp_prefix);
-                free(temp_prefix);
-            } else {
-                p = 0; /* Fallback */
+                /* Recalculate p based on new string content up to start_of_word */
+                char c = s[start_of_word];
+                s[start_of_word] = '\0';
+                p = StrVisualLength(s);
+                s[start_of_word] = c;
             }
         }
         break;
@@ -416,26 +410,19 @@ int InputStringEx(char *s, int y, int x, int cursor_pos, int display_width, int 
     case 0x7F:       /* ASCII DEL character */
         n = StrVisualLength(s);
         if( p < n ) {
-            ls = StrLeft(s, p);
-            rs = StrRight(s, n - p - 1);
-            strcpy(s, ls);
-            strcat(s, rs);
-            free(ls);
-            free(rs);
+            int curr_byte = VisualPositionToBytePosition(s, p);
+            int next_byte = VisualPositionToBytePosition(s, p + 1);
+            memmove(s + curr_byte, s + next_byte, strlen(s) - next_byte + 1);
         }
         break;
 
     /* Consolidate all backspace/Ctrl-H aliases */
     case KEY_BACKSPACE:
     case 0x08:       /* ASCII BS, often sent for Ctrl-H */
-        n = StrVisualLength(s);
         if( p > 0 ) {
-            ls = StrLeft(s, p - 1);
-            rs = StrRight(s, n - p);
-            strcpy(s, ls);
-            strcat(s, rs);
-            free(ls);
-            free(rs);
+            int curr_byte = VisualPositionToBytePosition(s, p);
+            int prev_byte = VisualPositionToBytePosition(s, p - 1);
+            memmove(s + prev_byte, s + curr_byte, strlen(s) - curr_byte + 1);
             p--;
         }
         break;
@@ -448,9 +435,11 @@ int InputStringEx(char *s, int y, int x, int cursor_pos, int display_width, int 
         if (pp == NULL) break;
         if(*pp) {
             ls = StrLeft(pp, max_len);
-            strcpy(s, ls);
+            if (strlen(ls) < (size_t)max_len) {
+                strcpy(s, ls);
+                p = StrVisualLength(s);
+            }
             free(ls);
-            p = StrVisualLength(s);
             free(pp);
         }
         break;
@@ -465,12 +454,15 @@ int InputStringEx(char *s, int y, int x, int cursor_pos, int display_width, int 
             break;
         }
 
+        /* Updated with global CurrentVolume usage */
         if(KeyF2Get( CurrentVolume->vol_stats.tree, CurrentVolume->vol_stats.disp_begin_pos, CurrentVolume->vol_stats.cursor_pos, path) == 0) {
             if(*path) {
                 ls = StrLeft(path, max_len);
-                strcpy(s, ls);
+                if (strlen(ls) < (size_t)max_len) {
+                    strcpy(s, ls);
+                    p = StrVisualLength(s);
+                }
                 free(ls);
-                p = StrVisualLength(s);
             }
         }
         break;
@@ -480,69 +472,49 @@ int InputStringEx(char *s, int y, int x, int cursor_pos, int display_width, int 
     default:
         /* Handle printable/multibyte input */
         if (c1 >= ' ' || c1 > 0xFF) {
-            /* For multibyte characters read the whole sequence */
-#ifdef WITH_UTF8
-            if (c1 > 0xFF) {
-              /* Attempt to read remaining bytes for the multibyte sequence. */
-              /* NOTE: This is an imperfect guess; curses often delivers MB as one keycode */
-              /* The logic relies on c1 being the first byte or a multi-byte keycode. */
-              /* Since curses typically handles key decoding, we assume c1 is a full sequence. */
-            }
-#endif
+            int ins_len = 0;
 
-            /* Copy input character to temporary buffer (max MB_CUR_MAX bytes) */
-            buf[0] = (char)c1;
-            buf[1] = '\0';
-
-            if (len_flag == TRUE) {
-                /* Beep removed */
+            if (c1 < 0x100) {
+                buf[0] = (char)c1;
+                buf[1] = '\0';
+                ins_len = 1;
             } else {
-                int visual_insert_len = StrVisualLength(buf);
-                if (p + visual_insert_len > max_len) {
-                    /* Beep removed */
+                /* Ignore unknown codes */
+                break;
+            }
+
+            /* Calculate Buffer Constraints - max_len is treated as byte buffer limit */
+            if (strlen(s) + ins_len >= (size_t)max_len) {
+                beep();
+                break;
+            }
+
+            int byte_pos = VisualPositionToBytePosition(s, p);
+
+            if ( insert_flag ) {
+                memmove(s + byte_pos + ins_len, s + byte_pos, strlen(s) - byte_pos + 1);
+                memcpy(s + byte_pos, buf, ins_len);
+            } else {
+                /* Overwrite logic */
+                int next_byte_pos = VisualPositionToBytePosition(s, p + 1);
+                int char_len = next_byte_pos - byte_pos;
+
+                if (char_len != ins_len) {
+                     if (ins_len < char_len) {
+                         /* New char is shorter than old one - shift left */
+                         memcpy(s + byte_pos, buf, ins_len);
+                         memmove(s + byte_pos + ins_len, s + next_byte_pos, strlen(s) - next_byte_pos + 1);
+                     } else {
+                         /* New char is longer than old one - shift right */
+                         memmove(s + byte_pos + ins_len, s + next_byte_pos, strlen(s) - next_byte_pos + 1);
+                         memcpy(s + byte_pos, buf, ins_len);
+                     }
                 } else {
-                    if ( insert_flag ) {
-                        /* Insert logic */
-                        n = StrVisualLength(s);
-                        if ( p >= n) {
-                            strcat(s, buf);
-                        } else {
-                            if ( p > 0 ) ls = StrLeft(s, p);
-                            else ls = strdup("");
-                            rs = StrRight(s, n - p);
-                            strcpy(s, ls);
-                            strcat(s, buf);
-                            strcat(s, rs);
-                            free(ls);
-                            free(rs);
-                        }
-                    } else {
-                        /* Overwrite logic */
-                        int byte_pos_to_overwrite = VisualPositionToBytePosition(s, p);
-                        int bytes_to_delete = VisualPositionToBytePosition(&s[byte_pos_to_overwrite], visual_insert_len);
-
-                        if ( p > 0 ) ls = StrLeft(s, p);
-                        else ls = strdup("");
-
-                        /* Extract remaining part: from after the overwritten content to the end */
-                        if (strlen(s) - (byte_pos_to_overwrite + bytes_to_delete) > 0)
-                           rs = strdup(&s[byte_pos_to_overwrite + bytes_to_delete]);
-                        else
-                           rs = strdup("");
-
-                        strcpy(s, ls);
-                        strcat(s, buf);
-                        strcat(s, rs);
-
-                        free(ls);
-                        free(rs);
-                    }
-                    p += visual_insert_len;
+                    /* Same length - direct overwrite */
+                    memcpy(s + byte_pos, buf, ins_len);
                 }
             }
-        } else {
-            /* Unhandled non-terminating control sequence. */
-            /* Beep removed */
+            p += StrVisualLength(buf);
         }
         break;
     } /* switch */
@@ -552,13 +524,11 @@ int InputStringEx(char *s, int y, int x, int cursor_pos, int display_width, int 
   /* Final cleanup and history update */
   nodelay( stdscr, FALSE ); /* Ensure curses state is reset */
 
-  p = strlen( s );
   /* Clear any remaining visual artifacts from scrolling on exit */
   move( y, x );
   for(i=0; i < display_width; i++ ) addch( ' ' );
 
-  /* Redraw final string if it fits, else just clear or leave it?
-     The original code redrew the string. Let's redraw trimmed to display_width. */
+  /* Redraw final string trimmed to display_width */
   char *final_show = StrLeft(s, display_width);
   MvAddStr( y, x, final_show);
   free(final_show);
@@ -578,7 +548,8 @@ int InputStringEx(char *s, int y, int x, int cursor_pos, int display_width, int 
 #endif
 
   strncpy( s, pp, max_len - 1);
-  s[max_len]='\0';
+  s[max_len-1] = '\0'; /* Ensure null termination within bounds */
+
   free(pp);
   return( c1 );
 }
