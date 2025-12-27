@@ -17,9 +17,9 @@ int Execute(DirEntry *dir_entry, FileEntry *file_entry)
     static char command_template[COMMAND_LINE_LENGTH + 1];
     char expanded_command[COMMAND_LINE_LENGTH + 1];
     char *final_command;
-    char cwd[PATH_LENGTH + 1];
     char path[PATH_LENGTH + 1];
     int result = -1;
+    int start_dir_fd;
 
     /* Clear the template before use, except for the executable file case */
     command_template[0] = '\0';
@@ -69,9 +69,12 @@ int Execute(DirEntry *dir_entry, FileEntry *file_entry)
             final_command = command_template;
         }
 
-        if (getcwd(cwd, PATH_LENGTH) == NULL) {
-            WARNING("getcwd failed*\".\"assumed");
-            strcpy(cwd, ".");
+        /* Robustly save current working directory using a file descriptor */
+        start_dir_fd = open(".", O_RDONLY);
+        if (start_dir_fd == -1) {
+            snprintf(message, MESSAGE_LENGTH, "Error saving current directory context*%s", strerror(errno));
+            MESSAGE(message);
+            return -1;
         }
 
         if (mode == DISK_MODE || mode == USER_MODE) {
@@ -81,16 +84,20 @@ int Execute(DirEntry *dir_entry, FileEntry *file_entry)
             } else {
                 refresh();
                 result = QuerySystemCall(final_command, &CurrentVolume->vol_stats);
-            }
-            if (chdir(cwd)) {
-                snprintf(message, MESSAGE_LENGTH, "Can't change directory to*\"%s\"", cwd);
-                MESSAGE(message);
+
+                /* Restore original directory */
+                if (fchdir(start_dir_fd) == -1) {
+                    snprintf(message, MESSAGE_LENGTH, "Error restoring directory*%s", strerror(errno));
+                    MESSAGE(message);
+                }
             }
         } else {
             /* Execute is disabled in archive mode, but handle defensively */
             refresh();
             result = QuerySystemCall(final_command, &CurrentVolume->vol_stats);
         }
+
+        close(start_dir_fd);
     }
 
     return result;
