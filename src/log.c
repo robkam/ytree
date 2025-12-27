@@ -23,10 +23,11 @@ int LoginDisk(char *path)
   int    result = 0;
   char   saved_filter[FILE_SPEC_LENGTH + 1];
   char   resolved_path[PATH_LENGTH + 1];
-  struct Volume *s, *tmp;
+  struct Volume *s_vol, *tmp;
   struct Volume *found_vol = NULL;
   struct Volume *old_vol = NULL;
   BOOL   is_new_vol_created = FALSE; /* Flag to track if we actually called Volume_Create */
+  Statistic *s;
 
   SuspendClock(); /* Suspend clock during critical operations to prevent screen corruption */
 
@@ -83,9 +84,9 @@ int LoginDisk(char *path)
 
 
   /* Save current filter to preserve it across transitions.
-   * 'statistic' here refers to CurrentVolume->vol_stats via macro. */
-  if (CurrentVolume != NULL && strlen(statistic.file_spec) > 0) {
-      strncpy(saved_filter, statistic.file_spec, FILE_SPEC_LENGTH);
+   * 'statistic' here refers to CurrentVolume->vol_stats via macro if not removed, but we should use CurrentVolume directly */
+  if (CurrentVolume != NULL && strlen(CurrentVolume->vol_stats.file_spec) > 0) {
+      strncpy(saved_filter, CurrentVolume->vol_stats.file_spec, FILE_SPEC_LENGTH);
       saved_filter[FILE_SPEC_LENGTH] = '\0';
   } else {
       strcpy(saved_filter, DEFAULT_FILE_SPEC);
@@ -93,9 +94,9 @@ int LoginDisk(char *path)
 
 
   /* 2. Search Existing Volume */
-  HASH_ITER(hh, VolumeList, s, tmp) {
-      if (strcmp(s->vol_stats.login_path, resolved_path) == 0) {
-          found_vol = s;
+  HASH_ITER(hh, VolumeList, s_vol, tmp) {
+      if (strcmp(s_vol->vol_stats.login_path, resolved_path) == 0) {
+          found_vol = s_vol;
           break;
       }
   }
@@ -136,11 +137,12 @@ int LoginDisk(char *path)
           if (found_vol == CurrentVolume) {
                Volume_Delete(found_vol);
                CurrentVolume = Volume_Create();
+               s = &CurrentVolume->vol_stats;
                /* ... refresh empty ... */
                DisplayMenu();
                DisplayTree(CurrentVolume, dir_window, 0, 0);
-               DisplayDiskStatistic();
-               DisplayAvailBytes();
+               DisplayDiskStatistic(s);
+               DisplayAvailBytes(s);
           } else {
                Volume_Delete(found_vol);
            }
@@ -150,24 +152,25 @@ int LoginDisk(char *path)
 
        /* If access_ok, proceed with switching to the found volume. */
        CurrentVolume = found_vol;
+       s = &CurrentVolume->vol_stats;
 
        /* Synchronize the global 'mode' variable with the found volume's stored mode. */
        mode = CurrentVolume->vol_stats.mode;
 
        /* Restore the filter that was active when LoginDisk was called.
         * This ensures the user's filter preference persists across volume switches. */
-       (void) strcpy(statistic.file_spec, saved_filter);
-       (void) SetFilter(statistic.file_spec); /* This calls ApplyFilter internally */
-       RecalculateSysStats();                 /* Sum up stats based on flags */
+       (void) strcpy(s->file_spec, saved_filter);
+       (void) SetFilter(s->file_spec, s); /* This calls ApplyFilter internally */
+       RecalculateSysStats(s);            /* Sum up stats based on flags */
 
        /* Refresh display for the switched volume, using its stored display state. */
        DisplayMenu(); /* Updates path at top */
        /* CRITICAL FIX: Rebuild the directory entry list for the new volume's tree
         * before displaying it, to prevent use-after-free issues with stale pointers. */
        BuildDirEntryList(CurrentVolume);
-       DisplayTree(CurrentVolume, dir_window, statistic.disp_begin_pos, statistic.disp_begin_pos + statistic.cursor_pos);
-       DisplayDiskStatistic();
-       DisplayAvailBytes();
+       DisplayTree(CurrentVolume, dir_window, s->disp_begin_pos, s->disp_begin_pos + s->cursor_pos);
+       DisplayDiskStatistic(s);
+       DisplayAvailBytes(s);
        InitClock(); /* Resume clock before returning */
 
        return 0;
@@ -183,14 +186,14 @@ int LoginDisk(char *path)
           /* No need to call Volume_Create, so is_new_vol_created remains FALSE. */
           /* If the virgin volume already had a tree (e.g., from a previous failed load),
            * we should clear it before loading new data. */
-          if (statistic.tree) {
-              DeleteTree(statistic.tree);
-              statistic.tree = NULL;
+          if (old_vol->vol_stats.tree) {
+              DeleteTree(old_vol->vol_stats.tree);
+              old_vol->vol_stats.tree = NULL;
           }
           /* Reset other stats for the virgin volume to a clean state */
-          memset(&statistic, 0, sizeof(Statistic));
-          statistic.kind_of_sort = SORT_BY_NAME + SORT_ASC; /* Re-init default sort */
-          strcpy(statistic.file_spec, DEFAULT_FILE_SPEC);   /* Re-init default filter */
+          memset(&old_vol->vol_stats, 0, sizeof(Statistic));
+          old_vol->vol_stats.kind_of_sort = SORT_BY_NAME + SORT_ASC; /* Re-init default sort */
+          strcpy(old_vol->vol_stats.file_spec, DEFAULT_FILE_SPEC);   /* Re-init default filter */
           FreeVolumeCache(old_vol); /* Clear any old cache */
       } else {
           /* Create a truly new volume. */
@@ -203,39 +206,43 @@ int LoginDisk(char *path)
               if (old_vol != NULL) {
                   CurrentVolume = old_vol;
                   mode = CurrentVolume->vol_stats.mode;
+                  s = &CurrentVolume->vol_stats;
                   DisplayMenu();
-                  DisplayTree(CurrentVolume, dir_window, statistic.disp_begin_pos, statistic.cursor_pos);
-                  DisplayDiskStatistic();
-                  DisplayAvailBytes();
+                  DisplayTree(CurrentVolume, dir_window, s->disp_begin_pos, s->cursor_pos);
+                  DisplayDiskStatistic(s);
+                  DisplayAvailBytes(s);
               }
               InitClock(); /* Resume clock before returning */
               return -1;
           }
           /* Initialize default sort for the brand new volume */
-          statistic.kind_of_sort = SORT_BY_NAME + SORT_ASC;
+          CurrentVolume->vol_stats.kind_of_sort = SORT_BY_NAME + SORT_ASC;
       }
+
+      s = &CurrentVolume->vol_stats;
 
       /* CRITICAL: Allocate the root tree node for the current volume if it doesn't exist.
        * This handles both newly created volumes and reusing the virgin volume
        * if its tree was never allocated or was freed due to a previous error. */
-      if (!statistic.tree) {
-          statistic.tree = (DirEntry *)calloc(1, sizeof(DirEntry) + PATH_LENGTH);
-          if (statistic.tree == NULL) {
+      if (!s->tree) {
+          s->tree = (DirEntry *)calloc(1, sizeof(DirEntry) + PATH_LENGTH);
+          if (s->tree == NULL) {
               ERROR_MSG("Malloc failed for root DirEntry*ABORT");
               if (is_new_vol_created) {
                   Volume_Delete(CurrentVolume); /* Delete the newly created but failed volume */
               } else {
                   /* If reusing virgin volume and tree alloc failed, its state is already cleared by memset. */
-                  statistic.tree = NULL; /* Ensure tree pointer is NULL */
+                  s->tree = NULL; /* Ensure tree pointer is NULL */
               }
               /* Restore old_vol if we switched away from it and failed. */
               if (old_vol != NULL && CurrentVolume != old_vol) {
                   CurrentVolume = old_vol;
                   mode = CurrentVolume->vol_stats.mode;
+                  s = &CurrentVolume->vol_stats;
                   DisplayMenu();
-                  DisplayTree(CurrentVolume, dir_window, statistic.disp_begin_pos, statistic.cursor_pos);
-                  DisplayDiskStatistic();
-                  DisplayAvailBytes();
+                  DisplayTree(CurrentVolume, dir_window, s->disp_begin_pos, s->cursor_pos);
+                  DisplayDiskStatistic(s);
+                  DisplayAvailBytes(s);
               }
               InitClock(); /* Resume clock before returning */
               return -1;
@@ -243,24 +250,24 @@ int LoginDisk(char *path)
       }
 
       /* Set the path for the new/reused volume */
-      strncpy(statistic.login_path, resolved_path, PATH_LENGTH);
-      statistic.login_path[PATH_LENGTH] = '\0';
-      strncpy(statistic.path, resolved_path, PATH_LENGTH);
-      statistic.path[PATH_LENGTH] = '\0';
+      strncpy(s->login_path, resolved_path, PATH_LENGTH);
+      s->login_path[PATH_LENGTH] = '\0';
+      strncpy(s->path, resolved_path, PATH_LENGTH);
+      s->path[PATH_LENGTH] = '\0';
 
       /* Restore the user's active filter */
-      (void) strcpy( statistic.file_spec, saved_filter );
+      (void) strcpy( s->file_spec, saved_filter );
 
       /* Moved: statistic.kind_of_sort initialization is now inside is_new_vol_created or virgin check block */
 
-      (void) memcpy( &statistic.tree->stat_struct, &stat_struct, sizeof( stat_struct ) );
+      (void) memcpy( &s->tree->stat_struct, &stat_struct, sizeof( stat_struct ) );
 
       if( !S_ISDIR(stat_struct.st_mode ) )
       {
         /* "root" node is always a directory */
-        (void) memset( (char *) &statistic.tree->stat_struct, 0, sizeof( struct stat ) );
-        statistic.tree->stat_struct.st_mode = S_IFDIR;
-        statistic.disk_total_directories = 1;
+        (void) memset( (char *) &s->tree->stat_struct, 0, sizeof( struct stat ) );
+        s->tree->stat_struct.st_mode = S_IFDIR;
+        s->disk_total_directories = 1;
         mode = ARCHIVE_MODE; /* Set global mode for the new volume */
       }
       else if (IsUserActionDefined())
@@ -271,17 +278,18 @@ int LoginDisk(char *path)
       {
         mode = DISK_MODE; /* Set global mode for the new volume */
       }
-      statistic.mode = mode; /* Store the determined mode in the new volume's stats */
+      s->mode = mode; /* Store the determined mode in the new volume's stats */
 
 
       (void) GetDiskParameter( resolved_path, /* Use resolved_path for disk parameter */
-                               statistic.disk_name,
-                               &statistic.disk_space,
-                               &statistic.disk_capacity
+                               s->disk_name,
+                               &s->disk_space,
+                               &s->disk_capacity,
+                               s
                               );
 
       DisplayMenu();
-      DisplayDiskStatistic(); /* User requested: Draw the stats panel frame immediately */
+      DisplayDiskStatistic(s); /* User requested: Draw the stats panel frame immediately */
 
       if(animation_method == 1) {
           SwitchToBigFileWindow();
@@ -294,12 +302,12 @@ int LoginDisk(char *path)
 
       if( mode == ARCHIVE_MODE)
       {
-        (void) strcpy( statistic.tree->name, resolved_path ); /* Use resolved_path for archive name */
+        (void) strcpy( s->tree->name, resolved_path ); /* Use resolved_path for archive name */
 
 #ifdef HAVE_LIBARCHIVE
         if (animation_method == 0) Notice("Scanning archive...");
         /* Pass address of statistic.tree so it can be updated */
-        if (ReadTreeFromArchive(&statistic.tree, statistic.login_path))
+        if (ReadTreeFromArchive(&s->tree, s->login_path, s))
         {
             /* Error message will have been displayed by the function */
             result = -1;
@@ -317,11 +325,11 @@ int LoginDisk(char *path)
       {
         /* For a new volume, the old volume's tree is preserved in old_vol.
          * No need to delete any tree here. */
-        (void) strcpy( statistic.tree->name, resolved_path ); /* Use resolved_path for root dir name */
-        statistic.tree->next = statistic.tree->prev = NULL;
+        (void) strcpy( s->tree->name, resolved_path ); /* Use resolved_path for root dir name */
+        s->tree->next = s->tree->prev = NULL;
 
         depth = strtol(TREEDEPTH, NULL, 0);
-        int rt_ret = ReadTree(statistic.tree, resolved_path, depth); /* Use resolved_path for ReadTree */
+        int rt_ret = ReadTree(s->tree, resolved_path, depth, s); /* Use resolved_path for ReadTree */
         if (rt_ret != 0)
         {
             if (rt_ret != -1) {
@@ -339,7 +347,7 @@ int LoginDisk(char *path)
 
         /* Copy current statistic to disk_statistic for the new volume */
         (void) memcpy( (char *) &disk_statistic,
-                       (char *) &statistic,
+                       (char *) s,
                        sizeof( Statistic )
                       );
        }
@@ -351,12 +359,13 @@ int LoginDisk(char *path)
                if (old_vol != NULL) {
                    CurrentVolume = old_vol;
                    mode = CurrentVolume->vol_stats.mode; /* Restore global mode */
+                   s = &CurrentVolume->vol_stats;
                    /* Restore display for the old volume */
                    DisplayMenu();
                    BuildDirEntryList(CurrentVolume); /* Rebuild list for old volume */
-                   DisplayTree(CurrentVolume, dir_window, statistic.disp_begin_pos, statistic.disp_begin_pos + statistic.cursor_pos);
-                   DisplayDiskStatistic();
-                   DisplayAvailBytes();
+                   DisplayTree(CurrentVolume, dir_window, s->disp_begin_pos, s->disp_begin_pos + s->cursor_pos);
+                   DisplayDiskStatistic(s);
+                   DisplayAvailBytes(s);
                } else {
                    /* This case should ideally not be reached if ytree starts with a default volume.
                     * If it is, it means the initial volume failed to load. */
@@ -367,21 +376,21 @@ int LoginDisk(char *path)
            } else {
                /* If !is_new_vol_created (reused virgin volume) and ReadTree failed:
                 * Clear its state but DO NOT delete the volume structure. */
-               if (statistic.tree) {
-                   DeleteTree(statistic.tree);
-                   statistic.tree = NULL;
+               if (s->tree) {
+                   DeleteTree(s->tree);
+                   s->tree = NULL;
                }
                /* Clear other relevant fields for the virgin volume */
-               memset(&statistic, 0, sizeof(Statistic)); /* Clear all stats */
-               statistic.kind_of_sort = SORT_BY_NAME + SORT_ASC; /* Re-init default sort */
-               strcpy(statistic.file_spec, DEFAULT_FILE_SPEC);   /* Re-init default filter */
+               memset(s, 0, sizeof(Statistic)); /* Clear all stats */
+               s->kind_of_sort = SORT_BY_NAME + SORT_ASC; /* Re-init default sort */
+               strcpy(s->file_spec, DEFAULT_FILE_SPEC);   /* Re-init default filter */
                FreeVolumeCache(CurrentVolume); /* Clear cache for reuse */
                /* CurrentVolume remains the empty virgin volume. */
                DisplayMenu(); /* Refresh to show empty state */
                BuildDirEntryList(CurrentVolume); /* Rebuild list for empty tree */
                DisplayTree(CurrentVolume, dir_window, 0, 0);
-               DisplayDiskStatistic();
-               DisplayAvailBytes();
+               DisplayDiskStatistic(s);
+               DisplayAvailBytes(s);
            }
            InitClock(); /* Resume clock before returning */
            return -1;
@@ -392,14 +401,14 @@ int LoginDisk(char *path)
       }
       SwitchToSmallFileWindow(); /* Force split view mode even if animation was unused */
 
-      (void) SetFilter( statistic.file_spec ); /* This calls ApplyFilter internally */
-      RecalculateSysStats();                   /* Sum up stats based on flags */
+      (void) SetFilter( s->file_spec, s ); /* This calls ApplyFilter internally */
+      RecalculateSysStats(s);              /* Sum up stats based on flags */
 
       /* Refresh display */
       BuildDirEntryList(CurrentVolume); /* Rebuild list for the newly loaded tree */
       DisplayTree(CurrentVolume, dir_window, 0, 0); /* New/reused volume, reset display position */
-      DisplayDiskStatistic();
-      DisplayAvailBytes();
+      DisplayDiskStatistic(s);
+      DisplayAvailBytes(s);
 
       InitClock(); /* Resume clock before returning */
 
@@ -646,7 +655,7 @@ int SelectLoadedVolume(void)
                 resize_request = FALSE;
                 ReCreateWindows();
                 DisplayMenu();
-                DisplayDiskStatistic();
+                DisplayDiskStatistic(&CurrentVolume->vol_stats);
                 restart_menu = TRUE;
                 menu_active = FALSE;
                 break;
@@ -923,12 +932,12 @@ int CycleLoadedVolume(int direction)
         // and the loop will continue to the next retry.
         if (LoginDisk(target_path) == 0) {
             /* Force UI reset to standard split view on cycle */
-            RecursiveClearBigWindow(statistic.tree); /* Reset big window state recursively */
+            RecursiveClearBigWindow(CurrentVolume->vol_stats.tree); /* Reset big window state recursively */
             ReCreateWindows();
             ClockHandler(0); /* Redraw clock immediately */
             DisplayMenu();
-            DisplayTree(CurrentVolume, dir_window, statistic.disp_begin_pos, statistic.disp_begin_pos + statistic.cursor_pos);
-            DisplayDiskStatistic();
+            DisplayTree(CurrentVolume, dir_window, CurrentVolume->vol_stats.disp_begin_pos, CurrentVolume->vol_stats.disp_begin_pos + CurrentVolume->vol_stats.cursor_pos);
+            DisplayDiskStatistic(&CurrentVolume->vol_stats);
             if(animation_method == 0) SwitchToSmallFileWindow();
             return 0; // Success!
         } else {

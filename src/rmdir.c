@@ -26,7 +26,7 @@ int DeleteDirectory(DirEntry *dir_entry)
 
   ClearHelp();
 
-  if( dir_entry == statistic.tree )
+  if( dir_entry == CurrentVolume->vol_stats.tree )
   {
     MESSAGE( "Can't delete ROOT" );
   }
@@ -34,7 +34,7 @@ int DeleteDirectory(DirEntry *dir_entry)
   {
     if( InputChoice( "Directory not empty, PRUNE ? (Y/N) ? ", "YN\033" ) == 'Y' ) {
       if( dir_entry->sub_tree ) {
-        if( ScanSubTree( dir_entry ) ) {
+        if( ScanSubTree( dir_entry, &CurrentVolume->vol_stats ) ) {
 	  ESCAPE;
 	}
         if( DeleteSubTree( dir_entry->sub_tree ) ) {
@@ -72,7 +72,7 @@ int DeleteDirectory(DirEntry *dir_entry)
        * ==> aus Baum loeschen
        */
 
-      statistic.disk_total_directories--;
+      CurrentVolume->vol_stats.disk_total_directories--;
 
       if( dir_entry->prev ) dir_entry->prev->next = dir_entry->next;
       else dir_entry->up_tree->sub_tree = dir_entry->next;
@@ -81,7 +81,7 @@ int DeleteDirectory(DirEntry *dir_entry)
 
       free( dir_entry );
 
-      (void) GetAvailBytes( &statistic.disk_space );
+      (void) GetAvailBytes( &CurrentVolume->vol_stats.disk_space, &CurrentVolume->vol_stats );
 
       result = 0;
     }
@@ -147,7 +147,7 @@ static int DeleteSingleDirectory( DirEntry *dir_entry )
     /* Spinner to indicate progress during bulk deletion */
     DrawSpinner();
     doupdate();
-    if( DeleteFile( fe_ptr ) ) {
+    if( DeleteFile( fe_ptr, &CurrentVolume->vol_stats ) ) {
       ESCAPE;
     }
   }
@@ -161,7 +161,7 @@ static int DeleteSingleDirectory( DirEntry *dir_entry )
   }
 
   if( !dir_entry->up_tree->not_scanned )
-    statistic.disk_total_directories--;
+    CurrentVolume->vol_stats.disk_total_directories--;
 
   if( dir_entry->prev ) dir_entry->prev->next = dir_entry->next;
   else dir_entry->up_tree->sub_tree = dir_entry->next;

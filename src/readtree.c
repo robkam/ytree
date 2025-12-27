@@ -10,7 +10,7 @@
 
 
 
-static void UnReadSubTree(DirEntry *dir_entry);
+static void UnReadSubTree(DirEntry *dir_entry, Statistic *s);
 
 
 
@@ -19,7 +19,7 @@ static void UnReadSubTree(DirEntry *dir_entry);
  */
 
 
-int ReadTree(DirEntry *dir_entry, char *path, int depth)
+int ReadTree(DirEntry *dir_entry, char *path, int depth, Statistic *s)
 {
   DIR           *dir;
   struct stat   stat_struct;
@@ -41,13 +41,13 @@ int ReadTree(DirEntry *dir_entry, char *path, int depth)
       FileEntry *f, *n;
       for (f = dir_entry->file; f; f = n) {
           n = f->next;
-          RemoveFile(f); /* Updates stats and frees memory */
+          RemoveFile(f, s); /* Updates stats and frees memory */
       }
       dir_entry->file = NULL;
   }
   if (dir_entry->sub_tree) {
       /* Use UnReadSubTree to recursively free children and decrement stats correctly */
-      UnReadSubTree(dir_entry->sub_tree);
+      UnReadSubTree(dir_entry->sub_tree, s);
       dir_entry->sub_tree = NULL;
   }
 
@@ -87,7 +87,7 @@ int ReadTree(DirEntry *dir_entry, char *path, int depth)
     }
   }
 
-  statistic.disk_total_directories++;
+  s->disk_total_directories++;
 
   /* Activity Spinner for visual feedback */
   DrawSpinner();
@@ -147,7 +147,7 @@ int ReadTree(DirEntry *dir_entry, char *path, int depth)
           doupdate();
       } else {
           if ((file_count % 100) == 0) { /* Don't flicker stats too fast */
-              DisplayDiskStatistic();
+              DisplayDiskStatistic(s);
               doupdate();
           }
       }
@@ -192,7 +192,7 @@ int ReadTree(DirEntry *dir_entry, char *path, int depth)
       den_ptr->prev = den_ptr->next = NULL;
 
       /* Recursive call with abort check */
-      if (ReadTree( den_ptr, new_path, depth - 1) == -1) {
+      if (ReadTree( den_ptr, new_path, depth - 1, s) == -1) {
           /* Fix: Free the partially built subtree before returning */
           DeleteTree(den_ptr); /* Free the allocated DirEntry and its children */
           closedir(dir);
@@ -302,8 +302,8 @@ int ReadTree(DirEntry *dir_entry, char *path, int depth)
       fes_ptr            = fen_ptr;
       dir_entry->total_files++;
       dir_entry->total_bytes += stat_struct.st_size;
-      statistic.disk_total_files++;
-      statistic.disk_total_bytes += stat_struct.st_size;
+      s->disk_total_files++;
+      s->disk_total_bytes += stat_struct.st_size;
     }
   }
 
@@ -315,7 +315,7 @@ int ReadTree(DirEntry *dir_entry, char *path, int depth)
   dir_entry->file = first_file_entry.next;
   dir_entry->sub_tree = first_dir_entry.next;
 
-  DisplayDiskStatistic();
+  DisplayDiskStatistic(s);
   doupdate();
 
   return( 0 );
@@ -323,11 +323,11 @@ int ReadTree(DirEntry *dir_entry, char *path, int depth)
 
 
 
-void UnReadTree(DirEntry *dir_entry)
+void UnReadTree(DirEntry *dir_entry, Statistic *s)
 {
   FileEntry *fe_ptr, *next_fe_ptr;
 
-  if( dir_entry == statistic.tree )
+  if( dir_entry == s->tree )
   {
     MESSAGE( "Can't delete ROOT" );
   }
@@ -336,22 +336,22 @@ void UnReadTree(DirEntry *dir_entry)
     for( fe_ptr=dir_entry->file; fe_ptr; fe_ptr=next_fe_ptr )
     {
       next_fe_ptr = fe_ptr->next;
-      RemoveFile( fe_ptr );
+      RemoveFile( fe_ptr, s );
     }
     if( dir_entry->sub_tree )
     {
-      UnReadSubTree( dir_entry->sub_tree );
+      UnReadSubTree( dir_entry->sub_tree, s );
     }
-    if (statistic.disk_total_directories > 0)
-        statistic.disk_total_directories--;
-    (void) GetAvailBytes( &statistic.disk_space );
-    DisplayDiskStatistic();
+    if (s->disk_total_directories > 0)
+        s->disk_total_directories--;
+    (void) GetAvailBytes( &s->disk_space, s );
+    DisplayDiskStatistic(s);
     doupdate();
   }
 }
 
 
-void UnReadSubTree(DirEntry *dir_entry)
+static void UnReadSubTree(DirEntry *dir_entry, Statistic *s)
 {
   DirEntry *de_ptr, *next_de_ptr;
   FileEntry *fe_ptr, *next_fe_ptr;
@@ -363,17 +363,17 @@ void UnReadSubTree(DirEntry *dir_entry)
     for( fe_ptr=de_ptr->file; fe_ptr; fe_ptr=next_fe_ptr )
     {
       next_fe_ptr = fe_ptr->next;
-      RemoveFile( fe_ptr );
+      RemoveFile( fe_ptr, s );
     }
 
     if( de_ptr->sub_tree )
     {
-      UnReadSubTree( de_ptr->sub_tree );
+      UnReadSubTree( de_ptr->sub_tree, s );
     }
 
     if( !de_ptr->up_tree->not_scanned )
-      if (statistic.disk_total_directories > 0)
-          statistic.disk_total_directories--;
+      if (s->disk_total_directories > 0)
+          s->disk_total_directories--;
 
     if( de_ptr->prev ) de_ptr->prev->next = de_ptr->next;
     else de_ptr->up_tree->sub_tree = de_ptr->next;
@@ -384,12 +384,12 @@ void UnReadSubTree(DirEntry *dir_entry)
 }
 
 
-int RescanDir(DirEntry *dir_entry, int depth)
+int RescanDir(DirEntry *dir_entry, int depth, Statistic *s)
 {
     char path[PATH_LENGTH + 1];
     FileEntry *fe_ptr, *next_fe_ptr;
 
-    if (!dir_entry || (mode != DISK_MODE && mode != USER_MODE)) {
+    if (!dir_entry || (s->mode != DISK_MODE && s->mode != USER_MODE)) {
         return -1;
     }
 
@@ -397,7 +397,7 @@ int RescanDir(DirEntry *dir_entry, int depth)
 
     /* Unlink and free all child directories recursively, updating stats. */
     if (dir_entry->sub_tree) {
-        UnReadSubTree(dir_entry->sub_tree);
+        UnReadSubTree(dir_entry->sub_tree, s);
         dir_entry->sub_tree = NULL;
     }
 
@@ -405,7 +405,7 @@ int RescanDir(DirEntry *dir_entry, int depth)
     for (fe_ptr = dir_entry->file; fe_ptr != NULL; fe_ptr = next_fe_ptr) {
         next_fe_ptr = fe_ptr->next;
         /* RemoveFile updates stats and frees the entry */
-        RemoveFile(fe_ptr);
+        RemoveFile(fe_ptr, s);
     }
     dir_entry->file = NULL;
 
@@ -415,17 +415,17 @@ int RescanDir(DirEntry *dir_entry, int depth)
      * disk_total_directories for itself, so we must pre-decrement to avoid
      * double-counting.
      */
-    statistic.disk_total_directories--;
-    ReadTree(dir_entry, path, depth);
+    s->disk_total_directories--;
+    ReadTree(dir_entry, path, depth, s);
 
     /* Since we just reloaded the tree, dot files are present in memory.
        We must now recalculate stats based on the current visibility setting. */
-    RecalculateSysStats();
+    RecalculateSysStats(s);
 
     /* Global matching stats are now incorrect. Reset and recalculate. */
-    statistic.disk_matching_files = 0L;
-    statistic.disk_matching_bytes = 0L;
-    ApplyFilter(statistic.tree);
+    s->disk_matching_files = 0L;
+    s->disk_matching_bytes = 0L;
+    ApplyFilter(s->tree, s);
 
     return 0;
 }

@@ -381,7 +381,7 @@ static int DisplayHistory()
 
 char *GetHistory(int type)
 {
-  int     ch, tmp;
+  int     ch;
   int     start_x;
   char    *RetVal = NULL;
   History *TMP;

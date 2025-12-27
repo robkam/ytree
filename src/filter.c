@@ -354,17 +354,17 @@ static int ParseFilterSpec(char *new_spec)
  * to the entire file tree.
  * Renamed from SetFileSpec.
  */
-int SetFilter(char *filter_spec)
+int SetFilter(char *filter_spec, Statistic *s)
 {
   if( ParseFilterSpec( filter_spec ) )
   {
     return( 1 );
   }
 
-  statistic.disk_matching_files = 0L;
-  statistic.disk_matching_bytes = 0L;
+  s->disk_matching_files = 0L;
+  s->disk_matching_bytes = 0L;
 
-  ApplyFilter( statistic.tree );
+  ApplyFilter( s->tree, s );
 
   return( 0 );
 }
@@ -374,7 +374,7 @@ int SetFilter(char *filter_spec)
  * flag for files that meet the current filter criteria.
  * Renamed from SetMatchingParam.
  */
-void ApplyFilter(DirEntry *dir_entry)
+void ApplyFilter(DirEntry *dir_entry, Statistic *s)
 {
   DirEntry  *de_ptr;
   FileEntry *fe_ptr;
@@ -403,12 +403,12 @@ void ApplyFilter(DirEntry *dir_entry)
     de_ptr->matching_files = matching_files;
     de_ptr->matching_bytes = matching_bytes;
 
-    statistic.disk_matching_files += matching_files;
-    statistic.disk_matching_bytes += matching_bytes;
+    s->disk_matching_files += matching_files;
+    s->disk_matching_bytes += matching_bytes;
 
     if( de_ptr->sub_tree )
     {
-      ApplyFilter( de_ptr->sub_tree );
+      ApplyFilter( de_ptr->sub_tree, s );
     }
   }
 }
@@ -435,13 +435,13 @@ int ReadFilter(void)
      x position is 8, so available width is COLS - 8 - 1 */
   if( InputString( buffer, LINES - 2, 8, 0, MINIMUM(FILE_SPEC_LENGTH, COLS - 9), "\r\033", HST_FILTER ) == CR )
   {
-    if( SetFilter( buffer ) )
+    if( SetFilter( buffer, &CurrentVolume->vol_stats ) )
     {
       MESSAGE( "Invalid Filter Spec" );
     }
     else
     {
-      (void) strcpy( statistic.file_spec, buffer );
+      (void) strcpy( CurrentVolume->vol_stats.file_spec, buffer );
       result = 0;
     }
   }
