@@ -20,8 +20,8 @@ int Pipe(DirEntry *dir_entry, FileEntry *file_entry)
   char file_name_path[PATH_LENGTH+1];
   int  result = -1;
   FILE *pipe_fp;
-  char cwd[PATH_LENGTH + 1];
   char path[PATH_LENGTH + 1];
+  int start_dir_fd;
 
   (void) GetRealFileNamePath( file_entry, file_name_path );
 
@@ -32,18 +32,19 @@ int Pipe(DirEntry *dir_entry, FileEntry *file_entry)
   {
     move( LINES - 2, 1 ); clrtoeol();
 
-    if (getcwd(cwd, sizeof(cwd)) == NULL) {
-        WARNING("getcwd failed*\".\"assumed");
-        strcpy(cwd, ".");
+    /* Robustly save current working directory using a file descriptor */
+    start_dir_fd = open(".", O_RDONLY);
+    if (start_dir_fd == -1) {
+        snprintf(message, MESSAGE_LENGTH, "Error saving current directory context*%s", strerror(errno));
+        MESSAGE(message);
+        return -1;
     }
 
     if (mode == DISK_MODE || mode == USER_MODE) {
         if (chdir(GetPath(dir_entry, path))) {
             snprintf(message, MESSAGE_LENGTH, "Can't change directory to*\"%s\"", path);
             MESSAGE(message);
-            if (chdir(cwd) != 0) { /* Attempt to restore CWD */
-                /* Handle restore failure if needed, though mostly fatal/unrecoverable context */
-            }
+            close(start_dir_fd);
             return -1;
         }
     } else { /* ARCHIVE_MODE */
@@ -60,8 +61,7 @@ int Pipe(DirEntry *dir_entry, FileEntry *file_entry)
             if (chdir(archive_dir) != 0) {
                  snprintf(message, MESSAGE_LENGTH, "Can't change directory to*\"%s\"", archive_dir);
                  MESSAGE(message);
-                 if (chdir(cwd) != 0) { /* Attempt to restore CWD */
-                 }
+                 close(start_dir_fd);
                  return -1;
             }
         }
@@ -75,11 +75,20 @@ int Pipe(DirEntry *dir_entry, FileEntry *file_entry)
     pipe_fp = popen(&input_buffer[2], "w");
     if (pipe_fp == NULL) {
         (void)snprintf(message, MESSAGE_LENGTH, "Could not execute pipe command*\"%s\"*%s", &input_buffer[2], strerror(errno));
+
+        /* Restore CWD before returning */
+        if (fchdir(start_dir_fd) == -1) {
+             /* Failed to restore, but we are aborting anyway. */
+        }
+        close(start_dir_fd);
+
         /* Restore screen before showing message */
+        InitClock(); /* Re-enables curses */
         clearok(stdscr, TRUE);
         refresh();
         MESSAGE(message);
         result = -1;
+        return result;
     } else {
         if( mode == DISK_MODE || mode == USER_MODE )
         {
@@ -111,17 +120,17 @@ int Pipe(DirEntry *dir_entry, FileEntry *file_entry)
     }
 
     /* Change back to original directory before interacting with user */
-    if (chdir(cwd) != 0) {
-        /* This is a critical error, but we're outside curses mode. */
-        /* We can't use MESSAGE(). We'll proceed to HitReturnToContinue() */
-        /* which will at least alert the user something is wrong. */
+    if (fchdir(start_dir_fd) == -1) {
+        fprintf(stderr, "Error restoring directory: %s\n", strerror(errno));
     }
+    close(start_dir_fd);
 
     /* Update stats as the command might have modified the disk */
     (void) GetAvailBytes( &CurrentVolume->vol_stats.disk_space, &CurrentVolume->vol_stats );
 
     /* Let user see output, then restore screen */
     HitReturnToContinue();
+    InitClock(); /* Restores curses mode */
     clearok(stdscr, TRUE);
     refresh();
   }
@@ -136,16 +145,11 @@ int Pipe(DirEntry *dir_entry, FileEntry *file_entry)
 int PipeDirectory(DirEntry *dir_entry)
 {
   static char input_buffer[PATH_LENGTH + 3] = "| ";
-  char cwd[PATH_LENGTH + 1];
   char path[PATH_LENGTH + 1];
   FILE *pipe_fp;
   FileEntry *fe;
   int result = -1;
-
-  if (getcwd(cwd, sizeof(cwd)) == NULL) {
-    WARNING("getcwd failed*\".\"assumed");
-    strcpy(cwd, ".");
-  }
+  int start_dir_fd;
 
   (void) GetPath( dir_entry, path );
 
@@ -156,12 +160,21 @@ int PipeDirectory(DirEntry *dir_entry)
   {
     move( LINES - 2, 1 ); clrtoeol();
 
+    /* Robustly save current working directory using a file descriptor */
+    start_dir_fd = open(".", O_RDONLY);
+    if (start_dir_fd == -1) {
+        snprintf(message, MESSAGE_LENGTH, "Error saving current directory context*%s", strerror(errno));
+        MESSAGE(message);
+        return -1;
+    }
+
     if( mode == DISK_MODE || mode == USER_MODE )
     {
       if( chdir( path ) )
       {
         (void) snprintf( message, MESSAGE_LENGTH, "Can't change directory to*\"%s\"", path );
         MESSAGE( message );
+        close(start_dir_fd);
         return( -1 );
       }
     }
@@ -173,11 +186,15 @@ int PipeDirectory(DirEntry *dir_entry)
     {
       (void) snprintf( message, MESSAGE_LENGTH, "Could not execute pipe command*\"%s\"*%s",
                        &input_buffer[2], strerror(errno) );
+
+      /* Restore CWD */
+      if (fchdir(start_dir_fd) == -1) { }
+      close(start_dir_fd);
+
       InitClock();
       clearok( stdscr, TRUE );
       refresh();
       MESSAGE( message );
-      if( chdir( cwd ) ) {}
       return( -1 );
     }
 
@@ -195,7 +212,11 @@ int PipeDirectory(DirEntry *dir_entry)
     pclose( pipe_fp );
     result = 0;
 
-    if( chdir( cwd ) ) {}
+    /* Restore CWD */
+    if (fchdir(start_dir_fd) == -1) {
+        fprintf(stderr, "Error restoring directory: %s\n", strerror(errno));
+    }
+    close(start_dir_fd);
 
     HitReturnToContinue();
     InitClock();
