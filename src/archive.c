@@ -133,7 +133,6 @@ static int InsertArchiveDirEntry(DirEntry *tree, char *path, struct stat *stat, 
 {
   DirEntry *df_ptr, *de_ptr, *ds_ptr;
   char father_path[PATH_LENGTH + 1];
-  char *p;
   char name[PATH_LENGTH + 1];
 
   if (strlen(path) >= PATH_LENGTH) {
@@ -141,56 +140,16 @@ static int InsertArchiveDirEntry(DirEntry *tree, char *path, struct stat *stat, 
       return -1;
   }
 
-  /* Format: .../dir/ */
-  /*------------------*/
+  /* Split path into directory and filename */
+  Fnsplit(path, father_path, name);
 
-  (void) strcpy( father_path, path );
-
-  if( ( p = strrchr( father_path, FILE_SEPARATOR_CHAR ) ) ) *p = '\0';
-  else
+  /* Find father directory */
+  /* If father_path is empty (root), GetArchiveDirEntry returns tree */
+  if( GetArchiveDirEntry( tree, father_path, &df_ptr ) )
   {
-    /* If there is no separator, it's a top level dir.
-       In TryInsertArchiveDirEntry loop or manual calls, we might get here.
-       If path has no slash, father is root.
-    */
-    p = NULL;
-    /* Proceed to check if we are inserting top level or failed split */
-  }
-
-  /* Recalculate p based on string operations above */
-  if (p) {
-      /* We replaced the last slash with \0. Now p points to that \0.
-         Wait, strrchr returns pointer to char.
-         If we did *p = '\0', then strrchr(father_path) again might fail or find prev slash.
-         Logic:
-         Input: "A/B" -> father_path "A", name "B"
-         Input: "A" -> father_path "A" (no slash found initially?)
-
-         Actually, standard convention here:
-         path="A/B" -> father="A", name="B"
-         path="A" -> father="", name="A" (Root)
-      */
-  }
-
-  /* Reset and do it cleanly */
-  strcpy(father_path, path);
-  p = strrchr(father_path, FILE_SEPARATOR_CHAR);
-
-  if (p) {
-      *p = '\0';
-      strcpy(name, p + 1);
-
-      /* Find father directory */
-      if( GetArchiveDirEntry( tree, father_path, &df_ptr ) )
-      {
-        (void) snprintf( message, MESSAGE_LENGTH, "can't find subdir*%s", father_path );
-        ERROR_MSG( message );
-        return( -1 );
-      }
-  } else {
-      /* Top Level Directory */
-      df_ptr = tree;
-      strcpy(name, path);
+    (void) snprintf( message, MESSAGE_LENGTH, "can't find subdir*%s", father_path );
+    ERROR_MSG( message );
+    return( -1 );
   }
 
   /*
