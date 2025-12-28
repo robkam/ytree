@@ -349,9 +349,47 @@ enum UI_COLOR_PAIRS {
 #define CR                     13
 
 /* Window Dimension Definitions */
-#define STATS_WIDTH          24
-#define STATS_MARGIN         2
-#define MAIN_WIN_WIDTH       (COLS - STATS_WIDTH - STATS_MARGIN)
+
+typedef struct {
+    int dir_win_y;
+    int dir_win_x;
+    int dir_win_height;
+    int dir_win_width;
+
+    int small_file_win_y;
+    int small_file_win_x;
+    int small_file_win_height;
+    int small_file_win_width;
+
+    int big_file_win_y;
+    int big_file_win_x;
+    int big_file_win_height;
+    int big_file_win_width;
+
+    int stats_width;
+    int main_win_width;
+} YtreeLayout;
+
+extern YtreeLayout layout;
+extern void Layout_Recalculate(void);
+
+/* Removed dynamic macros to use struct fields */
+/* #define STATS_WIDTH          24 */
+/* #define STATS_MARGIN         2 */
+/* #define MAIN_WIN_WIDTH       (COLS - STATS_WIDTH - STATS_MARGIN) */
+/* #define DIR_WINDOW_X         1 */
+/* #define DIR_WINDOW_Y         2 */
+/* #define DIR_WINDOW_WIDTH     MAIN_WIN_WIDTH */
+/* #define DIR_WINDOW_HEIGHT    ((LINES * 8 / 14)-1) */
+/* #define FILE_WINDOW_1_X      1 */
+/* #define FILE_WINDOW_1_Y      DIR_WINDOW_HEIGHT + 3 */
+/* #define FILE_WINDOW_1_WIDTH  MAIN_WIN_WIDTH */
+/* #define FILE_WINDOW_1_HEIGHT (LINES - DIR_WINDOW_HEIGHT - 7 ) */
+/* #define FILE_WINDOW_2_X      1 */
+/* #define FILE_WINDOW_2_Y      2 */
+/* #define FILE_WINDOW_2_WIDTH  MAIN_WIN_WIDTH */
+/* #define FILE_WINDOW_2_HEIGHT (LINES - 6) */
+/* #define STATS_MIDDLE_SEPARATOR_Y (DIR_WINDOW_HEIGHT + 2) */
 
 /* Standard UI Vertical Layout */
 #define Y_HEADER      0            /* Top header row */
@@ -359,25 +397,11 @@ enum UI_COLOR_PAIRS {
 #define Y_STATUS      (LINES - 1)  /* Bottom line for Help/Status hints */
 #define Y_MESSAGE     (LINES - 3)  /* Top of the 3-line Help/Message area */
 
-#define DIR_WINDOW_X         1
-#define DIR_WINDOW_Y         2
-#define DIR_WINDOW_WIDTH     MAIN_WIN_WIDTH
-#define DIR_WINDOW_HEIGHT    ((LINES * 8 / 14)-1)
-
-#define F2_WINDOW_X          DIR_WINDOW_X
-#define F2_WINDOW_Y          DIR_WINDOW_Y
-#define F2_WINDOW_WIDTH      DIR_WINDOW_WIDTH
-#define F2_WINDOW_HEIGHT     (DIR_WINDOW_HEIGHT + 1)
-
-#define FILE_WINDOW_1_X      1
-#define FILE_WINDOW_1_Y      DIR_WINDOW_HEIGHT + 3
-#define FILE_WINDOW_1_WIDTH  MAIN_WIN_WIDTH
-#define FILE_WINDOW_1_HEIGHT (LINES - DIR_WINDOW_HEIGHT - 7 )
-
-#define FILE_WINDOW_2_X      1
-#define FILE_WINDOW_2_Y      2
-#define FILE_WINDOW_2_WIDTH  MAIN_WIN_WIDTH
-#define FILE_WINDOW_2_HEIGHT (LINES - 6)
+/* Dependent Macros Updated to use Layout Struct */
+#define F2_WINDOW_X          layout.dir_win_x
+#define F2_WINDOW_Y          layout.dir_win_y
+#define F2_WINDOW_WIDTH      layout.dir_win_width
+#define F2_WINDOW_HEIGHT     (layout.dir_win_height + 1)
 
 #define ERROR_WINDOW_WIDTH   40
 #define ERROR_WINDOW_HEIGHT  10
@@ -386,22 +410,18 @@ enum UI_COLOR_PAIRS {
 
 #define HISTORY_WINDOW_X       1
 #define HISTORY_WINDOW_Y       2
-#define HISTORY_WINDOW_WIDTH   MAIN_WIN_WIDTH
+#define HISTORY_WINDOW_WIDTH   layout.main_win_width
 #define HISTORY_WINDOW_HEIGHT  (LINES - 6)
 
 #define MATCHES_WINDOW_X       1
 #define MATCHES_WINDOW_Y       2
-#define MATCHES_WINDOW_WIDTH   MAIN_WIN_WIDTH
+#define MATCHES_WINDOW_WIDTH   layout.main_win_width
 #define MATCHES_WINDOW_HEIGHT  (LINES - 6)
 
 #define TIME_WINDOW_X        (COLS - 20)
 #define TIME_WINDOW_Y        0
 #define TIME_WINDOW_WIDTH    20
 #define TIME_WINDOW_HEIGHT   1
-
-/* Define the Y-coordinate for the middle separator line in the stats panel,
- * ensuring it aligns with the main window's middle horizontal border. */
-#define STATS_MIDDLE_SEPARATOR_Y (DIR_WINDOW_HEIGHT + 2)
 
 
 /* Increased to 4096 to match standard Linux PATH_MAX and fix realpath warnings */
@@ -855,9 +875,9 @@ extern void DisplayHeaderPath(char *path); /* ADDED: Prototype for dynamic heade
 extern int AddStr(char *str);
 extern int BuildUserFileEntry(FileEntry *fe_ptr, int filename_width, int linkname_width, char *template, int linelen, char *line);
 extern char *CTime(time_t f_time, char *buffer);
-extern char *CutFilename(char *dest, char *src, unsigned int max_len);
-extern char *CutName(char *dest, char *src, unsigned int max_len);
-extern char *CutPathname(char *dest, char *src, unsigned int max_len);
+extern char *CutFilename(char *dest, const char *src, unsigned int max_len);
+extern char *CutName(char *dest, const char *src, unsigned int max_len);
+extern char *CutPathname(char *dest, const char *src, unsigned int max_len);
 extern char *FormFilename(char *dest, char *src, unsigned int max_len);
 extern char *GetAttributes(unsigned short modus, char *buffer);
 extern void GetMaxYX(WINDOW *win, int *height, int *width);
@@ -977,6 +997,9 @@ extern char *GetPath(DirEntry *dir_entry, char *buffer);
 extern char *GetRealFileNamePath(FileEntry *file_entry, char *buffer);
 extern void Fnsplit(char *path, char *dir, char *name);
 extern void NormPath( char *in_path, char *out_path );
+extern char *CutFilename(char *dest, const char *src, unsigned int max_len);
+extern char *CutName(char *dest, const char *src, unsigned int max_len);
+extern char *CutPathname(char *dest, const char *src, unsigned int max_len);
 
 /* pipe.c */
 extern int GetPipeCommand(char *pipe_command);

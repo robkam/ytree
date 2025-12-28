@@ -1,7 +1,10 @@
 /***************************************************************************
  *
  * init.c
- * Initializations
+ * Application Initialization and Layout Management
+ *
+ * Handles ncurses startup, configuration loading (profile/history),
+ * and dynamic window geometry calculation.
  *
  ***************************************************************************/
 
@@ -18,6 +21,49 @@ static WINDOW *Newwin(int nlines, int ncols,
 char *XCursesProgramName = "ytree";
 #endif
 
+void Layout_Recalculate(void)
+{
+    /*
+     * Calculate available vertical space for windows.
+     * Top Border is at row 1. Windows start at row 2.
+     * Bottom Border is at row LINES-4. Windows end at row LINES-5.
+     * Available height = (LINES - 4) - 2 = LINES - 6.
+     */
+    int available_height = LINES - 6;
+    if (available_height < 1) available_height = 1;
+
+    layout.stats_width = 24;
+    int stats_margin = 2;
+    layout.main_win_width = COLS - layout.stats_width - stats_margin;
+
+    layout.dir_win_x = 1;
+    layout.dir_win_y = 2;
+    layout.dir_win_width = layout.main_win_width;
+
+    /* Approx 60% of available height */
+    layout.dir_win_height = (available_height * 6) / 10;
+    if (layout.dir_win_height < 1) layout.dir_win_height = 1;
+
+    /* Calculate Separator Y (virtual) to position small file window */
+    int separator_y = layout.dir_win_y + layout.dir_win_height;
+
+    layout.small_file_win_x = 1;
+    layout.small_file_win_y = separator_y + 1;
+    layout.small_file_win_width = layout.main_win_width;
+
+    /* Remaining height for file window (Available - DirHeight - Separator(1)) */
+    layout.small_file_win_height = available_height - layout.dir_win_height - 1;
+    if (layout.small_file_win_height < 1) layout.small_file_win_height = 1;
+
+    layout.big_file_win_x = 1;
+    layout.big_file_win_y = 2;
+    layout.big_file_win_width = layout.main_win_width;
+    layout.big_file_win_height = available_height; /* Uses full available height */
+
+    fprintf(stderr, "DEBUG: Layout_Recalculate: dir_h=%d, small_h=%d, big_h=%d, LINES=%d\n",
+            layout.dir_win_height, layout.small_file_win_height, layout.big_file_win_height, LINES);
+}
+
 int Init(char *configuration_file, char *history_file)
 {
   char buffer[PATH_LENGTH + 1];
@@ -31,6 +77,7 @@ int Init(char *configuration_file, char *history_file)
 
   user_umask = umask(0);
   initscr();
+  Layout_Recalculate();
   StartColors(); /* even on b/w terminals... */
 
   cbreak();
@@ -106,6 +153,10 @@ void ReCreateWindows()
 {
   BOOL is_small;
 
+  fprintf(stderr, "DEBUG: ReCreateWindows called\n");
+
+  Layout_Recalculate();
+
   is_small = (file_window == small_file_window) ? TRUE : FALSE;
 
 
@@ -113,10 +164,10 @@ void ReCreateWindows()
     delwin(dir_window);
 
   dir_window = Subwin( stdscr,
-		       DIR_WINDOW_HEIGHT,
-		       DIR_WINDOW_WIDTH,
-		       DIR_WINDOW_Y,
-		       DIR_WINDOW_X
+		       layout.dir_win_height,
+		       layout.dir_win_width,
+		       layout.dir_win_y,
+		       layout.dir_win_x
 		      );
 
   keypad( dir_window, TRUE );
@@ -129,10 +180,10 @@ void ReCreateWindows()
     delwin(small_file_window);
 
   small_file_window = Subwin( stdscr,
-			      FILE_WINDOW_1_HEIGHT,
-			      FILE_WINDOW_1_WIDTH,
-			      FILE_WINDOW_1_Y,
-		              FILE_WINDOW_1_X
+			      layout.small_file_win_height,
+			      layout.small_file_win_width,
+			      layout.small_file_win_y,
+		              layout.small_file_win_x
 		           );
 
   if(!small_file_window)
@@ -148,10 +199,10 @@ void ReCreateWindows()
     delwin(big_file_window);
 
   big_file_window = Subwin( stdscr,
-			    FILE_WINDOW_2_HEIGHT,
-			    FILE_WINDOW_2_WIDTH,
-			    FILE_WINDOW_2_Y,
-		            FILE_WINDOW_2_X
+			    layout.big_file_win_height,
+			    layout.big_file_win_width,
+			    layout.big_file_win_y,
+		            layout.big_file_win_x
 		          );
 
   keypad( big_file_window, TRUE );

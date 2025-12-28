@@ -24,8 +24,6 @@ static BOOL do_case = FALSE;
 static int  file_mode;
 static int  max_column;
 
-static int  window_height;
-static int  window_width;
 static int  max_disp_files;
 static int  x_step;
 static int  my_x_step;
@@ -70,11 +68,12 @@ static int  GetVisualFileEntryLength(int mode, int max_visual_filename_len, int 
 
 void SetFileMode(int new_file_mode)
 {
+  int height, width;
 
-  GetMaxYX( file_window, &window_height, &window_width );
+  GetMaxYX( file_window, &height, &width );
   file_mode = new_file_mode;
 
-  max_column = window_width /
+  max_column = width /
 	       (GetVisualFileEntryLength( file_mode, max_visual_filename_len, max_visual_linkname_len) + 1);
 
   if( max_column == 0 )
@@ -257,9 +256,9 @@ static void ReadFileList(BOOL tagged_only, DirEntry *dir_entry)
       if( S_ISLNK( fe_ptr->stat_struct.st_mode ) )
       {
 	visual_linkname_len = StrVisualLength( &fe_ptr->name[name_len+1] );
-	max_visual_linkname_len = MAX( max_visual_linkname_len, visual_linkname_len );
+	max_visual_linkname_len = MAX( (int)max_visual_linkname_len, (int)visual_linkname_len );
       }
-      max_visual_filename_len = MAX( max_visual_filename_len, visual_name_len );
+      max_visual_filename_len = MAX( (int)max_visual_filename_len, (int)visual_name_len );
     }
   }
 }
@@ -276,8 +275,8 @@ static void ReadGlobalFileList(BOOL tagged_only, DirEntry *dir_entry)
         continue;
     if( de_ptr->sub_tree ) ReadGlobalFileList( tagged_only, de_ptr->sub_tree );
     ReadFileList( tagged_only, de_ptr );
-    global_max_visual_filename_len = MAX( global_max_visual_filename_len, max_visual_filename_len );
-    global_max_visual_linkname_len = MAX( global_max_visual_linkname_len, max_visual_linkname_len );
+    global_max_visual_filename_len = MAX( (int)global_max_visual_filename_len, (int)max_visual_filename_len );
+    global_max_visual_linkname_len = MAX( (int)global_max_visual_linkname_len, (int)max_visual_linkname_len );
   }
   max_visual_filename_len = global_max_visual_filename_len;
   max_visual_linkname_len = global_max_visual_linkname_len;
@@ -477,6 +476,10 @@ static int SortByGroup(FileEntryList *e1, FileEntryList *e2)
 
 
 
+/* Removed SetKindOfSort definition - implemented in sort.c */
+
+
+
 static void RemoveFileEntry(int entry_no)
 {
   int i, n;
@@ -583,9 +586,11 @@ static void PrintFileEntry(int entry_no, int y, int x, unsigned char hilight, in
   int  filename_width = 0;
   int  linkname_width = 0;
   int base_color_pair;
+  int height, width;
 
+  GetMaxYX(file_window, &height, &width);
 
-  ef_window_width = window_width - 2; /* Effective Window Width */
+  ef_window_width = width - 2; /* Effective Window Width */
 
   (reverse_sort) ? (justify='+') : (justify='-');
 
@@ -777,7 +782,7 @@ static void PrintFileEntry(int entry_no, int y, int x, unsigned char hilight, in
       }
       if (sym_link_name && *sym_link_name) overhead += 4 + linkname_width;
 
-      int max_w = window_width - pos_x - 3 - overhead;
+      int max_w = width - pos_x - 3 - overhead;
       if (max_w < 5) max_w = 5;
 
       char display_name[PATH_LENGTH + 1];
@@ -801,7 +806,7 @@ static void PrintFileEntry(int entry_no, int y, int x, unsigned char hilight, in
           (void)dummy_y;
 
           /* Adjusted target_x calculation to stay within bounds */
-          int target_x = MINIMUM(pos_x + 2 + filename_width, window_width - overhead);
+          int target_x = MINIMUM(pos_x + 2 + filename_width, width - overhead);
 
           /* Fill space between name and attributes */
           for (int i = current_x; i < target_x; i++) waddch(file_window, ' ');
@@ -852,7 +857,8 @@ static void PrintFileEntry(int entry_no, int y, int x, unsigned char hilight, in
 
 void DisplayFileWindow(DirEntry *dir_entry)
 {
-  GetMaxYX( file_window, &window_height, &window_width );
+  int height, width;
+  GetMaxYX( file_window, &height, &width );
   BuildFileEntryList( dir_entry, &CurrentVolume->vol_stats );
   DisplayFiles( dir_entry,
 		dir_entry->start_file,
@@ -865,6 +871,9 @@ void DisplayFileWindow(DirEntry *dir_entry)
 static void DisplayFiles(DirEntry *de_ptr, int start_file_no, int hilight_no, int start_x)
 {
   int  x, y, p_x, p_y, j;
+  int height, width;
+
+  GetMaxYX(file_window, &height, &width);
 
 #ifdef COLOR_SUPPORT
   WbkgdSet(file_window, COLOR_PAIR(CPAIR_WINFILE));
@@ -883,7 +892,7 @@ static void DisplayFiles(DirEntry *de_ptr, int start_file_no, int hilight_no, in
   j = start_file_no; p_x = -1; p_y = 0;
   for( x=0; x < max_column; x++)
   {
-    for( y=0; y < window_height; y++ )
+    for( y=0; y < height; y++ )
     {
       if( (unsigned)j < CurrentVolume->file_count )
       {
@@ -904,6 +913,7 @@ static void DisplayFiles(DirEntry *de_ptr, int start_file_no, int hilight_no, in
   if( p_x >= 0 )
     PrintFileEntry( hilight_no, p_y, p_x, TRUE, start_x);
 
+  wnoutrefresh(file_window); /* ADDED: Stage update for the screen */
 }
 
 
@@ -1230,7 +1240,7 @@ int HandleFileWindow(DirEntry *dir_entry)
   struct Volume *start_vol = CurrentVolume; /* Safety Check Variable */
   Statistic *s = &CurrentVolume->vol_stats;
   int pclose_ret;
-
+  int height, width;
 
   unput_char = '\0';
   fe_ptr = NULL;
@@ -1262,14 +1272,14 @@ int HandleFileWindow(DirEntry *dir_entry)
   if( dir_entry->global_flag || dir_entry->big_window || dir_entry->tagged_flag)
   {
     SwitchToBigFileWindow();
-    GetMaxYX( file_window, &window_height, &window_width );
+    GetMaxYX( file_window, &height, &width );
     DisplayDiskStatistic(s);
     /* Force initial display of directory statistics with appropriate title */
     DisplayDirStatistic(dir_entry, (dir_entry->global_flag) ? "SHOW ALL" : NULL, s);
   }
   else
   {
-    GetMaxYX( file_window, &window_height, &window_width );
+    GetMaxYX( file_window, &height, &width );
     DisplayDirStatistic( dir_entry, NULL, s ); /* Updated call */
   }
 
@@ -1288,8 +1298,9 @@ int HandleFileWindow(DirEntry *dir_entry)
     {
       maybe_change_x_step = FALSE;
 
-      x_step =  (max_column > 1) ? window_height : 1;
-      max_disp_files = window_height * max_column;
+      GetMaxYX( file_window, &height, &width );
+      x_step =  (max_column > 1) ? height : 1;
+      max_disp_files = height * max_column;
     }
 
     if( need_dsp_help )
@@ -1672,9 +1683,9 @@ int HandleFileWindow(DirEntry *dir_entry)
 		      list_pos = dir_entry->start_file + dir_entry->cursor_pos;
 
 		      RotateFileMode();
-
-                      x_step =  (max_column > 1) ? window_height : 1;
-                      max_disp_files = window_height * max_column;
+              GetMaxYX( file_window, &height, &width );
+              x_step =  (max_column > 1) ? height : 1;
+              max_disp_files = height * max_column;
 
 		      if( dir_entry->cursor_pos >= max_disp_files )
 		      {
@@ -2306,10 +2317,10 @@ int HandleFileWindow(DirEntry *dir_entry)
 		      dir_entry->big_window = TRUE;
 		      ch = '\0'; /* Reset ch to avoid re-triggering action */
 		      SwitchToBigFileWindow();
-                      GetMaxYX( file_window, &window_height, &window_width );
+                      GetMaxYX( file_window, &height, &width );
 
-		      x_step =  (max_column > 1) ? window_height : 1;
-                      max_disp_files = window_height * max_column;
+		      x_step =  (max_column > 1) ? height : 1;
+                      max_disp_files = height * max_column;
 
 		      DisplayFiles( dir_entry,
 				    dir_entry->start_file,
@@ -2616,7 +2627,7 @@ int HandleFileWindow(DirEntry *dir_entry)
      default:
                       break;
     } /* switch */
-  } while( action != ACTION_ENTER && action != ACTION_ESCAPE && action != ACTION_QUIT );
+  } while( action != ACTION_QUIT && action != ACTION_ENTER && action != ACTION_ESCAPE && action != ACTION_QUIT );
 
   if( dir_entry->big_window )
     SwitchToSmallFileWindow();
@@ -2644,12 +2655,13 @@ static void WalkTaggedFiles(int start_file,
   int       start_x = 0;
   int       result = 0;
   BOOL      maybe_change_x = FALSE;
+  int       height, width;
 
   if( baudrate() >= QUICK_BAUD_RATE ) typeahead( 0 );
 
-/*  GetMaxYX( file_window, &window_height, &window_width );*/
+  GetMaxYX( file_window, &height, &width );
 
-  max_disp_files = window_height * max_column;
+  max_disp_files = height * max_column;
 
   for( i=0; i < (int)CurrentVolume->file_count && result == 0; i++ )
   {
@@ -2704,7 +2716,7 @@ static void WalkTaggedFiles(int start_file,
       {
         CurrentVolume->file_entry_list[i].file = walking_package->new_fe_ptr;
 	ChangeFileEntry();
-        max_disp_files = window_height * max_column;
+        max_disp_files = height * max_column;
 	maybe_change_x = TRUE;
       }
     }
@@ -2910,9 +2922,12 @@ static int DeleteTaggedFiles(int max_disp_files, Statistic *s)
 
 static void RereadWindowSize(DirEntry *dir_entry)
 {
+  int height, width;
   SetFileMode(file_mode);
-  x_step =  (max_column > 1) ? window_height : 1;
-  max_disp_files = window_height * max_column;
+
+  GetMaxYX(file_window, &height, &width);
+  x_step =  (max_column > 1) ? height : 1;
+  max_disp_files = height * max_column;
 
 
   if( dir_entry->start_file + dir_entry->cursor_pos < (int)CurrentVolume->file_count )

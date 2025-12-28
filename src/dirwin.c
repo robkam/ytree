@@ -10,7 +10,6 @@
 
 
 static int current_dir_entry;
-static int window_height, window_width;
 
 static void ReadDirList(DirEntry *dir_entry, struct Volume *vol);
 static void PrintDirEntry(struct Volume *vol, WINDOW *win, int entry_no, int y, unsigned char hilight);
@@ -354,7 +353,7 @@ static void PrintDirEntry(struct Volume *vol,
   int max_name_len;
   if (dir_mode == MODE_3) {
       /* In MODE_3 (name-only), truncate based on full window width */
-      max_name_len = window_width - graph_len - 1;
+      max_name_len = layout.dir_win_width - graph_len - 1;
   } else {
       /* In other modes, truncate to prevent overlap with attributes */
       max_name_len = attr_start_col - graph_len - 1;
@@ -410,11 +409,8 @@ void DisplayTree(struct Volume *vol, WINDOW *win, int start_entry_no, int hiligh
   int width, height;
 
   y = -1;
-  GetMaxYX(win, &height, &width);
-  if(win == dir_window) {
-    window_width  = width;
-    window_height = height;
-  }
+  getmaxyx(win, height, width);
+
 #ifdef COLOR_SUPPORT
   if (win == f2_window) {
     WbkgdSet(win, COLOR_PAIR(CPAIR_WINHST));
@@ -451,7 +447,7 @@ static void Movedown(int *disp_begin_pos, int *cursor_pos, DirEntry **dir_entry,
       return;
    }
 
-    if (*cursor_pos + 1 < window_height) {
+    if (*cursor_pos + 1 < layout.dir_win_height) {
         (*cursor_pos)++;
     } else {
         (*disp_begin_pos)++;
@@ -511,26 +507,26 @@ static void Movenpage(int *disp_begin_pos, int *cursor_pos, DirEntry **dir_entry
    }
    else
    {
-      if( *cursor_pos < window_height - 1 )
+      if( *cursor_pos < layout.dir_win_height - 1 )
       {
           /* Cursor is not on last entry of the page */
-           if( *disp_begin_pos + window_height > CurrentVolume->total_dirs  - 1 )
+           if( *disp_begin_pos + layout.dir_win_height > CurrentVolume->total_dirs  - 1 )
               *cursor_pos = CurrentVolume->total_dirs - *disp_begin_pos - 1;
            else
-              *cursor_pos = window_height - 1;
+              *cursor_pos = layout.dir_win_height - 1;
       }
       else
       {
           /* Scrolling */
           /*----------*/
-          if( *disp_begin_pos + *cursor_pos + window_height < CurrentVolume->total_dirs )
+          if( *disp_begin_pos + *cursor_pos + layout.dir_win_height < CurrentVolume->total_dirs )
           {
-              *disp_begin_pos += window_height;
-              *cursor_pos = window_height - 1;
+              *disp_begin_pos += layout.dir_win_height;
+              *cursor_pos = layout.dir_win_height - 1;
           }
           else
           {
-              *disp_begin_pos = CurrentVolume->total_dirs - window_height;
+              *disp_begin_pos = CurrentVolume->total_dirs - layout.dir_win_height;
               if( *disp_begin_pos < 0 ) *disp_begin_pos = 0;
               *cursor_pos = CurrentVolume->total_dirs - *disp_begin_pos - 1;
           }
@@ -570,7 +566,7 @@ static void Moveppage(int *disp_begin_pos, int *cursor_pos, DirEntry **dir_entry
       {
          /* Scrolling */
          /*----------*/
-         if( (*disp_begin_pos -= window_height) < 0 )
+         if( (*disp_begin_pos -= layout.dir_win_height) < 0 )
          {
              *disp_begin_pos = 0;
          }
@@ -595,7 +591,7 @@ static void Moveppage(int *disp_begin_pos, int *cursor_pos, DirEntry **dir_entry
 
 static void MoveEnd(DirEntry **dir_entry, Statistic *s)
 {
-    s->disp_begin_pos = MAXIMUM(0, CurrentVolume->total_dirs - window_height);
+    s->disp_begin_pos = MAXIMUM(0, CurrentVolume->total_dirs - layout.dir_win_height);
     s->cursor_pos     = CurrentVolume->total_dirs - s->disp_begin_pos - 1;
     *dir_entry = CurrentVolume->dir_entry_list[s->disp_begin_pos + s->cursor_pos].dir_entry;
     (*dir_entry)->start_file = 0;
@@ -905,26 +901,26 @@ void ToggleDotFiles(void)
     }
 
     /* 5. Smart Restore of Cursor Position */
-    GetMaxYX(dir_window, &win_height, &win_width);
+    getmaxyx(dir_window, win_height, win_width);
 
     if (found_idx != -1) {
         /* Check if the found directory is within the current visible page */
         if (found_idx >= s->disp_begin_pos &&
-            found_idx < s->disp_begin_pos + win_height) {
+            found_idx < s->disp_begin_pos + layout.dir_win_height) {
             /* It's still on screen. Just update the cursor, don't scroll/jump. */
             s->cursor_pos = found_idx - s->disp_begin_pos;
         } else {
             /* It moved off page. Re-center or adjust slightly. */
-            if (found_idx < win_height) {
+            if (found_idx < layout.dir_win_height) {
                 s->disp_begin_pos = 0;
                 s->cursor_pos = found_idx;
             } else {
                 /* Center the item */
-                s->disp_begin_pos = found_idx - (win_height / 2);
+                s->disp_begin_pos = found_idx - (layout.dir_win_height / 2);
 
                 /* Bounds check for display position */
-                if (s->disp_begin_pos > CurrentVolume->total_dirs - win_height) {
-                    s->disp_begin_pos = CurrentVolume->total_dirs - win_height;
+                if (s->disp_begin_pos > CurrentVolume->total_dirs - layout.dir_win_height) {
+                    s->disp_begin_pos = CurrentVolume->total_dirs - layout.dir_win_height;
                 }
                 if (s->disp_begin_pos < 0) s->disp_begin_pos = 0;
 
@@ -938,7 +934,7 @@ void ToggleDotFiles(void)
     }
 
     /* Sanity check cursor limits */
-    if (s->cursor_pos >= win_height) s->cursor_pos = win_height - 1;
+    if (s->cursor_pos >= layout.dir_win_height) s->cursor_pos = layout.dir_win_height - 1;
     if (s->disp_begin_pos + s->cursor_pos >= CurrentVolume->total_dirs) {
         /* Move cursor to last valid item */
         s->cursor_pos = (CurrentVolume->total_dirs > 0) ? (CurrentVolume->total_dirs - 1 - s->disp_begin_pos) : 0;
@@ -982,11 +978,12 @@ int HandleDirWindow(DirEntry *start_dir_entry)
   YtreeAction action; /* Declare YtreeAction variable */
   struct Volume *start_vol = CurrentVolume; /* Track global volume changes */
   Statistic *s = &CurrentVolume->vol_stats;
+  int height, width;
 
   unput_char = 0;
   de_ptr = NULL;
 
-  GetMaxYX(dir_window, &window_height, &window_width);
+  getmaxyx(dir_window, height, width);
 
   /* Clear flags */
   /*-----------------*/
@@ -1097,10 +1094,11 @@ int HandleDirWindow(DirEntry *start_dir_entry)
     /* ViKey processing is now handled inside GetKeyAction */
 
     if(resize_request) {
+       fprintf(stderr, "DEBUG: HandleDirWindow resize triggered\n");
        ReCreateWindows();
        DisplayMenu();
-       GetMaxYX(dir_window, &window_height, &window_width);
-       while(s->cursor_pos >= window_height) {
+       getmaxyx(dir_window, height, width);
+       while(s->cursor_pos >= height) {
          s->cursor_pos--;
 	 s->disp_begin_pos++;
        }
@@ -1121,6 +1119,7 @@ int HandleDirWindow(DirEntry *start_dir_entry)
            GetPath(dir_entry, path);
            DisplayHeaderPath(path);
        }
+       doupdate(); /* FORCE UPDATE */
        resize_request = FALSE;
     }
 
@@ -1159,15 +1158,15 @@ int HandleDirWindow(DirEntry *start_dir_entry)
                 if (found_idx != -1) {
                     /* Move cursor to sibling */
                     if (found_idx >= s->disp_begin_pos &&
-                        found_idx < s->disp_begin_pos + window_height) {
+                        found_idx < s->disp_begin_pos + height) {
                         s->cursor_pos = found_idx - s->disp_begin_pos;
                     } else {
                         /* Off screen, center it or move to top */
                         s->disp_begin_pos = found_idx;
                         s->cursor_pos = 0;
                         /* Bounds check */
-                        if (s->disp_begin_pos + window_height > CurrentVolume->total_dirs) {
-                             s->disp_begin_pos = MAXIMUM(0, CurrentVolume->total_dirs - window_height);
+                        if (s->disp_begin_pos + height > CurrentVolume->total_dirs) {
+                             s->disp_begin_pos = MAXIMUM(0, CurrentVolume->total_dirs - height);
                              s->cursor_pos = found_idx - s->disp_begin_pos;
                         }
                     }
@@ -1223,7 +1222,7 @@ int HandleDirWindow(DirEntry *start_dir_entry)
                    if (p_idx != -1) {
                        /* Move cursor to parent */
                        if (p_idx >= s->disp_begin_pos &&
-                           p_idx < s->disp_begin_pos + window_height) {
+                           p_idx < s->disp_begin_pos + height) {
                            /* Parent is on screen */
                            s->cursor_pos = p_idx - s->disp_begin_pos;
                        } else {
@@ -1231,8 +1230,8 @@ int HandleDirWindow(DirEntry *start_dir_entry)
                            s->disp_begin_pos = p_idx;
                            s->cursor_pos = 0;
                            /* Adjust if near end */
-                           if (s->disp_begin_pos + window_height > CurrentVolume->total_dirs) {
-                               s->disp_begin_pos = MAXIMUM(0, CurrentVolume->total_dirs - window_height);
+                           if (s->disp_begin_pos + height > CurrentVolume->total_dirs) {
+                               s->disp_begin_pos = MAXIMUM(0, CurrentVolume->total_dirs - height);
                                s->cursor_pos = p_idx - s->disp_begin_pos;
                            }
                        }
@@ -1587,7 +1586,7 @@ int HandleDirWindow(DirEntry *start_dir_entry)
                      beep();
                      break;
     } /* switch */
-  } while( action != ACTION_QUIT && action != ACTION_ESCAPE && action != ACTION_LOGIN ); /* Loop until explicit quit, escape or login */
+  } while( action != ACTION_QUIT && action != ACTION_ENTER && action != ACTION_ESCAPE && action != ACTION_LOGIN ); /* Loop until explicit quit, escape or login */
   return( ch ); /* Return the last raw character that caused exit */
 }
 
@@ -1884,7 +1883,7 @@ int RefreshDirWindow()
 			}
 		}
 
-       		GetMaxYX(dir_window, &window_height, &window_width);
+       		getmaxyx(dir_window, window_height, window_width);
 	        while(s->cursor_pos >= window_height) {
 		  s->cursor_pos--;
 		  s->disp_begin_pos++;

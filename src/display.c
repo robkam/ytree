@@ -154,7 +154,7 @@ void ClearHelp(void)
  */
 void DisplayHeaderPath(char *path) {
     char display_buffer[PATH_LENGTH + 1]; /* Declare buffer for truncated path */
-    int available_width = COLS - STATS_WIDTH - 26; /* COLS - "Path: " (6) - Stats Panel (24) - Clock/Margin (20) */
+    int available_width = COLS - layout.stats_width - 26; /* COLS - "Path: " (6) - Stats Panel (24) - Clock/Margin (20) */
     if (available_width < 10) available_width = 10; /* Safety minimum */
 
     attron(COLOR_PAIR(CPAIR_MENU) | A_BOLD);
@@ -176,7 +176,7 @@ void DisplayMenu(void)
   int    c;
   /* Define L_BORDER_FOR_DISPLAY as the column index where stats.c's left vertical border begins.
    * display.c's lines must end one character before this to allow stats.c to draw its full frame. */
-  const int L_BORDER_FOR_DISPLAY = COLS - STATS_WIDTH - 1;
+  const int L_BORDER_FOR_DISPLAY = COLS - layout.stats_width - 1;
 
 
   PrintSpecialString( stdscr, 0, 0, "Path: ", CPAIR_MENU );
@@ -200,7 +200,8 @@ void DisplayMenu(void)
   PrintLine( stdscr, 1, 0, first_line, L_BORDER_FOR_DISPLAY );
 
   /* Draw the horizontal separator line between the directory and file windows. */
-  PrintLine( stdscr, DIR_WINDOW_HEIGHT + 2, 0, middle_line_separator, L_BORDER_FOR_DISPLAY );
+  /* Use layout.dir_win_y + layout.dir_win_height to calculate the exact separator position */
+  PrintLine( stdscr, layout.dir_win_y + layout.dir_win_height, 0, middle_line_separator, L_BORDER_FOR_DISPLAY );
 
   /* Draw the bottom horizontal border of the main content area. */
   PrintLine( stdscr, LINES - 4, 0, last_line, L_BORDER_FOR_DISPLAY );
@@ -212,12 +213,12 @@ void DisplayMenu(void)
   if (animation_method == 0) {
       char version[80];
       int logo_rows = sizeof(logo) / sizeof(logo[0]);
-      int start_y = (DIR_WINDOW_HEIGHT - logo_rows) / 2;
+      int start_y = (layout.dir_win_height - logo_rows) / 2;
 
       /* Print Logo Centered */
       for( y=0; y < logo_rows; y++ )
       {
-        int start_x = (DIR_WINDOW_WIDTH - strlen(logo[y])) / 2;
+        int start_x = (layout.dir_win_width - strlen(logo[y])) / 2;
         char *p = logo[y];
         wmove(dir_window, start_y + y, start_x);
         while (*p != '\0') {
@@ -244,10 +245,10 @@ void DisplayMenu(void)
       c = strlen(version);
 
       /* Ensure it fits and position it 2 lines below logo */
-      if (start_y + logo_rows + 2 < DIR_WINDOW_HEIGHT) {
+      if (start_y + logo_rows + 2 < layout.dir_win_height) {
           MvWAddStr( dir_window,
              start_y + logo_rows + 2,
-             (DIR_WINDOW_WIDTH - c) / 2,
+             (layout.dir_win_width - c) / 2,
              version
            );
       }
@@ -263,9 +264,12 @@ void DisplayMenu(void)
 
 void SwitchToSmallFileWindow(void)
 {
+  /* Separator Y calculation: dir_win_y + dir_win_height */
+  int separator_y = layout.dir_win_y + layout.dir_win_height;
+
   werase( file_window );
   /* Adjust PrintLine call to align with the new L_BORDER_FOR_DISPLAY logic */
-  PrintLine( stdscr, DIR_WINDOW_HEIGHT + 2, 0, middle_line_separator, COLS - STATS_WIDTH - 1 );
+  PrintLine( stdscr, separator_y, 0, middle_line_separator, COLS - layout.stats_width - 1 );
   /* The RTEE junction character at the stats panel border is now handled by stats.c:DrawBoxFrame */
   file_window = small_file_window;
   RefreshWindow( stdscr );
@@ -274,22 +278,25 @@ void SwitchToSmallFileWindow(void)
 
 void SwitchToBigFileWindow(void)
 {
+  /* Separator Y calculation: dir_win_y + dir_win_height */
+  int separator_y = layout.dir_win_y + layout.dir_win_height;
+
   werase( file_window );
   RefreshWindow( file_window );
 #ifdef COLOR_SUPPORT
-  mvaddch(DIR_WINDOW_Y + DIR_WINDOW_HEIGHT, DIR_WINDOW_X - 1,
+  mvaddch(separator_y, layout.dir_win_x - 1,
         ACS_VLINE | COLOR_PAIR(CPAIR_MENU)| A_BOLD);
-  mvaddch(DIR_WINDOW_Y + DIR_WINDOW_HEIGHT, DIR_WINDOW_X + DIR_WINDOW_WIDTH,
+  mvaddch(separator_y, layout.dir_win_x + layout.dir_win_width,
            ACS_VLINE | COLOR_PAIR(CPAIR_MENU)| A_BOLD);
   /* The VLINE junction character at the stats panel border is now handled by stats.c:DrawBoxFrame */
 
 #else
-  mvwaddch( stdscr, DIR_WINDOW_Y + DIR_WINDOW_HEIGHT,
-	   DIR_WINDOW_X - 1,
+  mvwaddch( stdscr, separator_y,
+	   layout.dir_win_x - 1,
 	   ACS_VLINE
 	 );
-  mvwaddch( stdscr, DIR_WINDOW_Y + DIR_WINDOW_HEIGHT,
-	   DIR_WINDOW_X + DIR_WINDOW_WIDTH,
+  mvwaddch( stdscr, separator_y,
+	   layout.dir_win_x + layout.dir_win_width,
 	   ACS_VLINE
 	 );
   /* The VLINE junction character at the stats panel border is now handled by stats.c:DrawBoxFrame */
@@ -309,23 +316,26 @@ void MapF2Window(void)
 
 void UnmapF2Window(void)
 {
+  /* Separator Y calculation: dir_win_y + dir_win_height */
+  int separator_y = layout.dir_win_y + layout.dir_win_height;
+
   werase( f2_window );
   if(file_window == big_file_window)
   {
 #ifdef COLOR_SUPPORT
-  mvaddch(DIR_WINDOW_Y + DIR_WINDOW_HEIGHT, DIR_WINDOW_X - 1,
+  mvaddch(separator_y, layout.dir_win_x - 1,
           ACS_VLINE | COLOR_PAIR(CPAIR_MENU)| A_BOLD);
-  mvaddch(DIR_WINDOW_Y + DIR_WINDOW_HEIGHT, DIR_WINDOW_X + DIR_WINDOW_WIDTH,
+  mvaddch(separator_y, layout.dir_win_x + layout.dir_win_width,
           ACS_VLINE | COLOR_PAIR(CPAIR_MENU)| A_BOLD);
 
 #else
-    mvwaddch( stdscr, DIR_WINDOW_Y + DIR_WINDOW_HEIGHT,
-	     DIR_WINDOW_X - 1,
+    mvwaddch( stdscr, separator_y,
+	     layout.dir_win_x - 1,
 	     ACS_VLINE
 	   );
 
-    mvwaddch( stdscr, DIR_WINDOW_Y + DIR_WINDOW_HEIGHT,
-	     DIR_WINDOW_X + DIR_WINDOW_WIDTH,
+    mvwaddch( stdscr, separator_y,
+	     layout.dir_win_x + layout.dir_win_width,
 	     ACS_VLINE
 	   );
 #endif /* COLOR_SUPPORT */
