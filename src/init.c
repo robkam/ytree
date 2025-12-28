@@ -59,9 +59,6 @@ void Layout_Recalculate(void)
     layout.big_file_win_y = 2;
     layout.big_file_win_width = layout.main_win_width;
     layout.big_file_win_height = available_height; /* Uses full available height */
-
-    fprintf(stderr, "DEBUG: Layout_Recalculate: dir_h=%d, small_h=%d, big_h=%d, LINES=%d\n",
-            layout.dir_win_height, layout.small_file_win_height, layout.big_file_win_height, LINES);
 }
 
 int Init(char *configuration_file, char *history_file)
@@ -152,8 +149,6 @@ int Init(char *configuration_file, char *history_file)
 void ReCreateWindows()
 {
   BOOL is_small;
-
-  fprintf(stderr, "DEBUG: ReCreateWindows called\n");
 
   Layout_Recalculate();
 
