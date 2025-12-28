@@ -70,7 +70,7 @@ void SetFileMode(int new_file_mode)
 {
   int height, width;
 
-  GetMaxYX( file_window, &height, &width );
+  getmaxyx( file_window, height, width );
   file_mode = new_file_mode;
 
   max_column = width /
@@ -588,7 +588,7 @@ static void PrintFileEntry(int entry_no, int y, int x, unsigned char hilight, in
   int base_color_pair;
   int height, width;
 
-  GetMaxYX(file_window, &height, &width);
+  getmaxyx(file_window, height, width);
 
   ef_window_width = width - 2; /* Effective Window Width */
 
@@ -873,7 +873,7 @@ static void DisplayFiles(DirEntry *de_ptr, int start_file_no, int hilight_no, in
   int  x, y, p_x, p_y, j;
   int height, width;
 
-  GetMaxYX(file_window, &height, &width);
+  getmaxyx(file_window, height, width);
 
 #ifdef COLOR_SUPPORT
   WbkgdSet(file_window, COLOR_PAIR(CPAIR_WINFILE));
@@ -1272,14 +1272,14 @@ int HandleFileWindow(DirEntry *dir_entry)
   if( dir_entry->global_flag || dir_entry->big_window || dir_entry->tagged_flag)
   {
     SwitchToBigFileWindow();
-    GetMaxYX( file_window, &height, &width );
+    getmaxyx( file_window, height, width );
     DisplayDiskStatistic(s);
     /* Force initial display of directory statistics with appropriate title */
     DisplayDirStatistic(dir_entry, (dir_entry->global_flag) ? "SHOW ALL" : NULL, s);
   }
   else
   {
-    GetMaxYX( file_window, &height, &width );
+    getmaxyx( file_window, height, width );
     DisplayDirStatistic( dir_entry, NULL, s ); /* Updated call */
   }
 
@@ -1298,7 +1298,7 @@ int HandleFileWindow(DirEntry *dir_entry)
     {
       maybe_change_x_step = FALSE;
 
-      GetMaxYX( file_window, &height, &width );
+      getmaxyx( file_window, height, width );
       x_step =  (max_column > 1) ? height : 1;
       max_disp_files = height * max_column;
     }
@@ -1355,7 +1355,7 @@ int HandleFileWindow(DirEntry *dir_entry)
      RereadWindowSize(dir_entry);
      DisplayMenu();
 
-     GetMaxYX(dir_window, &dir_window_height, &dir_window_width);
+     getmaxyx(dir_window, dir_window_height, dir_window_width);
      while(s->cursor_pos >= dir_window_height) {
        s->cursor_pos--;
        s->disp_begin_pos++;
@@ -1683,7 +1683,7 @@ int HandleFileWindow(DirEntry *dir_entry)
 		      list_pos = dir_entry->start_file + dir_entry->cursor_pos;
 
 		      RotateFileMode();
-              GetMaxYX( file_window, &height, &width );
+              getmaxyx( file_window, height, width );
               x_step =  (max_column > 1) ? height : 1;
               max_disp_files = height * max_column;
 

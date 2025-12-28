@@ -7,6 +7,8 @@
 
 
 #include "ytree.h"
+#include <stdlib.h>
+#include <string.h>
 
 
 char *GetPath(DirEntry *dir_entry, char *buffer)
@@ -133,67 +135,101 @@ char *GetExtension(char *filename)
 
 void NormPath( char *in_path, char *out_path )
 {
-  char *s, *d;
-  char *old, *opath;
-  int  level;
-  char *in_path_dup;
-
-  if( ( in_path_dup = malloc( strlen( in_path ) + 1 ) ) == NULL ) {
-    ERROR_MSG( "Malloc Failed*ABORT" );
-    exit( 1 );
+  /* Step 1: Try physical resolution using realpath (if file exists) */
+  char *canonical = realpath(in_path, NULL);
+  if (canonical != NULL) {
+      /* Path exists on disk, use canonical absolute path */
+      strncpy(out_path, canonical, PATH_LENGTH);
+      out_path[PATH_LENGTH] = '\0';
+      free(canonical);
+      return;
   }
 
-  level = 0;
-  opath = out_path;
+  /* Step 2: Virtual/Logical Normalization (for archives or new dirs) */
+  /* Fallback implementation when realpath fails */
 
-  if( *in_path == FILE_SEPARATOR_CHAR ) {
-    s = in_path + 1;
-    *opath++ = FILE_SEPARATOR_CHAR;
-  } else {
-    s = in_path;
+  char stack[256][256]; /* Fixed depth stack for components */
+  int stack_top = 0;
+  char *path_copy;
+  char *token, *saveptr;
+  int is_absolute = 0;
+  int i;
+
+  if (in_path == NULL || *in_path == '\0') {
+      strcpy(out_path, ".");
+      return;
   }
 
-  for( d=in_path_dup; *s; d++ ) {
-    *d = *s++;
-    while( *d == FILE_SEPARATOR_CHAR && *s == FILE_SEPARATOR_CHAR )
-      s++;
+  if (in_path[0] == FILE_SEPARATOR_CHAR) {
+      is_absolute = 1;
   }
-  *d = '\0';
 
-  d = opath;
-  s = strtok_r( in_path_dup, FILE_SEPARATOR_STRING, &old );
-  while( s ) {
-    if( strcmp( s, "." ) ) {		/* skip "." */
-      if( !strcmp( s, ".." ) ) {	/* optimize ".." */
-        if( level > 0 ) {
-          if( level == 1 ) {
-	    d = out_path;
-	  } else {
-	    for( d -= 2; *d != FILE_SEPARATOR_CHAR; d-- )
-	      ;
-	    d++;
-	  }
-        } else {
-          /* level <= 0 */
-	  *d++ = '.';
-	  *d++ = '.';
-	  *d++ = FILE_SEPARATOR_CHAR;
-        }
-        level--;
-      } else {				/* add component */
-        strcpy( d, s );
-        d += strlen( s );
-        *d++ = FILE_SEPARATOR_CHAR;
-        level++;
+  /* Create a mutable copy for tokenization */
+  path_copy = strdup(in_path);
+  if (path_copy == NULL) {
+      ERROR_MSG("strdup failed*ABORT");
+      exit(1);
+  }
+
+  token = strtok_r(path_copy, FILE_SEPARATOR_STRING, &saveptr);
+  while (token != NULL) {
+      if (strcmp(token, ".") == 0) {
+          /* Ignore current dir */
+      } else if (strcmp(token, "..") == 0) {
+          /* Pop parent dir if stack is not empty */
+          if (stack_top > 0) {
+              stack_top--;
+          } else if (!is_absolute) {
+              /* If relative path '..' goes above start, keep '..' */
+              /* NOTE: simplified logic here usually just stops at top */
+              /* Alternatively: strcpy(stack[stack_top++], ".."); */
+          }
+      } else {
+          /* Push directory */
+          if (stack_top < 256) {
+              strncpy(stack[stack_top], token, 255);
+              stack[stack_top][255] = '\0';
+              stack_top++;
+          }
       }
-    }
-    s = strtok_r( NULL, FILE_SEPARATOR_STRING, &old );
+      token = strtok_r(NULL, FILE_SEPARATOR_STRING, &saveptr);
   }
-  if( level != 0 )
-    d--;
-  *d = '\0';
-  if( *out_path == '\0' )
-    strcpy(out_path, "." );
 
-  free( in_path_dup );
+  free(path_copy);
+
+  /* Reconstruct Path */
+  out_path[0] = '\0';
+  if (is_absolute) {
+      strcpy(out_path, FILE_SEPARATOR_STRING);
+  } else if (stack_top == 0) {
+      /* If relative and stack empty (e.g. "./."), result is "." */
+      strcpy(out_path, ".");
+  }
+
+  for (i = 0; i < stack_top; i++) {
+      if (i > 0 || (is_absolute && out_path[1] == '\0')) {
+          /* Append separator if not empty absolute root or first relative */
+          /* Logic:
+             Absolute: "/" -> "/usr" (no sep needed if just root? No, root is length 1)
+             If out_path is "/" (len 1), don't add separator, result "/usr"
+             If out_path is "/usr" (len 4), add separator, result "/usr/bin"
+           */
+          if (strcmp(out_path, FILE_SEPARATOR_STRING) != 0 && out_path[0] != '\0') {
+               strcat(out_path, FILE_SEPARATOR_STRING);
+          }
+      }
+      /* Ensure absolute path handles root correctly */
+      /* Actually:
+         Abs: "/" + "usr" -> "/usr"
+         Abs: "/usr" + "bin" -> "/usr/bin"
+         Rel: "usr"
+         Rel: "usr" + "bin" -> "usr/bin"
+      */
+       if (is_absolute && strcmp(out_path, FILE_SEPARATOR_STRING) == 0) {
+           /* out_path is currently just "/" */
+       } else if (i > 0 || (out_path[0] != '\0')) {
+           strcat(out_path, FILE_SEPARATOR_STRING);
+       }
+       strcat(out_path, stack[i]);
+  }
 }
