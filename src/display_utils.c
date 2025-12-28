@@ -137,7 +137,7 @@ char *FormFilename(char *dest, char *src, unsigned int max_len)
  *                              CutFilename                                  *
  * Truncates a filename by keeping the prefix and appending "..." if too long.*
  *****************************************************************************/
-char *CutFilename(char *dest, char *src, unsigned int max_len)
+char *CutFilename(char *dest, const char *src, unsigned int max_len)
 {
   unsigned int l;
 
@@ -162,7 +162,7 @@ char *CutFilename(char *dest, char *src, unsigned int max_len)
  *                              CutPathname                                  *
  * Truncates a pathname by keeping the suffix and prepending "..." if too long.*
  *****************************************************************************/
-char *CutPathname(char *dest, char *src, unsigned int max_len)
+char *CutPathname(char *dest, const char *src, unsigned int max_len)
 {
   unsigned int l;
 
@@ -190,7 +190,7 @@ char *CutPathname(char *dest, char *src, unsigned int max_len)
  * Truncates a name by keeping the prefix and appending "..." if too long.   *
  * (Identical to CutFilename in behavior, but uses strlen for length)        *
  *****************************************************************************/
-char *CutName(char *dest, char *src, unsigned int max_len)
+char *CutName(char *dest, const char *src, unsigned int max_len)
 {
   unsigned int l;
 
@@ -411,28 +411,28 @@ void GetMaxYX(WINDOW *win, int *height, int *width)
 {
   if( win == dir_window )
   {
-    *height = MAXIMUM(DIR_WINDOW_HEIGHT, 1);
-    *width  = MAXIMUM(DIR_WINDOW_WIDTH, 1);
+    *height = MAXIMUM(layout.dir_win_height, 1);
+    *width  = MAXIMUM(layout.dir_win_width, 1);
   }
   else if( win == small_file_window )
   {
-    *height = MAXIMUM(FILE_WINDOW_1_HEIGHT, 1);
-    *width  = MAXIMUM(FILE_WINDOW_1_WIDTH, 1);
+    *height = MAXIMUM(layout.small_file_win_height, 1);
+    *width  = MAXIMUM(layout.small_file_win_width, 1);
   }
   else if( win == big_file_window )
   {
-    *height = MAXIMUM(FILE_WINDOW_2_HEIGHT, 1);
-    *width  = MAXIMUM(FILE_WINDOW_2_WIDTH, 1);
+    *height = MAXIMUM(layout.big_file_win_height, 1);
+    *width  = MAXIMUM(layout.big_file_win_width, 1);
   }
   else if( win == f2_window )
   {
-    *height = MAXIMUM(F2_WINDOW_HEIGHT - 1, 1); /* fake for separator line */
-    *width  = MAXIMUM(F2_WINDOW_WIDTH, 1);
+    *height = MAXIMUM(layout.dir_win_height, 1); /* Height matches dir window */
+    *width  = MAXIMUM(layout.dir_win_width, 1);
   }
   else if( win == history_window )
   {
     *height = MAXIMUM(HISTORY_WINDOW_HEIGHT, 1);
-    *width  = MAXIMUM(HISTORY_WINDOW_WIDTH, 1);
+    *width  = MAXIMUM(layout.main_win_width, 1);
   }
   else
   {
