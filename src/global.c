@@ -35,3 +35,5 @@ char      number_seperator;
 char	  *initial_directory;
 
 FileColorRule *file_color_rules_head = NULL;
+
+YtreeLayout layout;

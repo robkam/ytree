@@ -14,11 +14,11 @@
 #include <curses.h>
 
 /* Geometry Definitions */
-#define STAT_W   STATS_WIDTH       /* 24 */
+#define STAT_W   (layout.stats_width)
 #define STAT_X   (COLS - STAT_W)
 #define L_BORDER (STAT_X - 1)
 #define R_BORDER (COLS - 1)
-#define INNER_W  (STAT_W - 2)      /* 22 */
+#define INNER_W  (STAT_W - 2)
 
 /* Y-Coordinates (Dynamic) */
 #define Y_TOP        1
@@ -199,7 +199,8 @@ static void SetColor(void) {
 
 static void DrawBoxFrame(void) {
     int y;
-    int hline_len = R_BORDER - L_BORDER - 1; /* Inner width for lines */
+    /* int hline_len = R_BORDER - L_BORDER - 1; */ /* Inner width for lines - Unused var removed */
+    int sep_y = layout.dir_win_y + layout.dir_win_height;
 
     attrset(COLOR_PAIR(CPAIR_WINDIR));
 
@@ -210,6 +211,7 @@ static void DrawBoxFrame(void) {
     /* Calculate embedded title position */
     {
         const char *title = " FILTER ";
+        int hline_len = R_BORDER - L_BORDER - 1;
         int t_len = strlen(title);
         int left_len = (hline_len - t_len) / 2;
         int right_len = hline_len - t_len - left_len;
@@ -234,7 +236,7 @@ static void DrawBoxFrame(void) {
 
     /* --- Bottom Border --- */
     mvaddch(y_bot, L_BORDER, ACS_LLCORNER);
-    mvwhline(stdscr, y_bot, L_BORDER + 1, ACS_HLINE, hline_len);
+    mvwhline(stdscr, y_bot, L_BORDER + 1, ACS_HLINE, R_BORDER - L_BORDER - 1);
     mvaddch(y_bot, R_BORDER, ACS_LRCORNER);
 
     /* --- Vertical Lines --- */
@@ -260,9 +262,9 @@ static void DrawBoxFrame(void) {
 
     /* Handle File Window artifact */
     if (file_window == big_file_window) {
-        mvaddch(STATS_MIDDLE_SEPARATOR_Y, L_BORDER, ACS_VLINE | A_BOLD | COLOR_PAIR(CPAIR_WINDIR));
+        mvaddch(sep_y, L_BORDER, ACS_VLINE | A_BOLD | COLOR_PAIR(CPAIR_WINDIR));
     } else {
-        mvaddch(STATS_MIDDLE_SEPARATOR_Y, L_BORDER, ACS_RTEE | A_BOLD | COLOR_PAIR(CPAIR_WINDIR));
+        mvaddch(sep_y, L_BORDER, ACS_RTEE | A_BOLD | COLOR_PAIR(CPAIR_WINDIR));
     }
     mvaddch(y_bot, L_BORDER, ACS_BTEE);
 

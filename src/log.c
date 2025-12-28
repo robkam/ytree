@@ -564,14 +564,14 @@ int SelectLoadedVolume(void)
         win_width = MAXIMUM(win_width, StrVisualLength(prompt) + 4);
 
         /* Constraint: Fit strictly within the main directory area (left of stats panel) */
-        /* STATS_WIDTH is 24, STATS_MARGIN is 2, so the main area ends at COLS - 26 */
-        win_width = MINIMUM(win_width, COLS - STATS_WIDTH - 2);
+        /* layout.stats_width is 24, STATS_MARGIN is 2, so the main area ends at COLS - 26 */
+        win_width = MINIMUM(win_width, COLS - layout.stats_width - 2);
 
         win_height = MINIMUM(LINES - 4, num_volumes + 5); /* 5 for top/bottom border, title, prompt, empty line */
         win_height = MAXIMUM(win_height, 10); /* Minimum 10 lines */
 
         /* Center the window relative to the directory area */
-        win_x = ((COLS - STATS_WIDTH) - win_width) / 2;
+        win_x = ((COLS - layout.stats_width) - win_width) / 2;
         /* Ensure safe X coordinate */
         if (win_x < 1) win_x = 1;
 
