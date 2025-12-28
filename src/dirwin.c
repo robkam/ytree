@@ -1094,7 +1094,6 @@ int HandleDirWindow(DirEntry *start_dir_entry)
     /* ViKey processing is now handled inside GetKeyAction */
 
     if(resize_request) {
-       fprintf(stderr, "DEBUG: HandleDirWindow resize triggered\n");
        ReCreateWindows();
        DisplayMenu();
        getmaxyx(dir_window, height, width);
@@ -1426,19 +1425,31 @@ int HandleDirWindow(DirEntry *start_dir_entry)
           {
               int res = SelectLoadedVolume();
               if (res == 0) { /* If volume switch was successful */
-                  /* PRESERVE STATE: Remove lines resetting cursor_pos and disp_begin_pos.
-                   * These are now loaded from the Volume struct by LoginDisk. */
-                  /* Safety check for cursor validity after list rebuild */
-                  if (CurrentVolume->total_dirs > 0 && (s->disp_begin_pos + s->cursor_pos >= CurrentVolume->total_dirs)) {
-                      s->disp_begin_pos = 0;
-                      s->cursor_pos = 0;
-                  }
-                  /* Update local dir_entry pointer to the currently selected entry of the new list */
+                  s = &CurrentVolume->vol_stats; /* Update stats pointer for new volume */
+
+                  /* Safety check / Clamping */
                   if (CurrentVolume->total_dirs > 0) {
+                      /* If saved position is beyond current end, clamp to last item */
+                      if (s->disp_begin_pos + s->cursor_pos >= CurrentVolume->total_dirs) {
+                           /* Clamp to last valid index */
+                           int last_idx = CurrentVolume->total_dirs - 1;
+                           /* Determine new disp_begin_pos and cursor_pos */
+                           /* Try to keep cursor at bottom of screen if possible */
+                           if (last_idx >= layout.dir_win_height) {
+                               s->disp_begin_pos = last_idx - (layout.dir_win_height - 1);
+                               s->cursor_pos = layout.dir_win_height - 1;
+                           } else {
+                               s->disp_begin_pos = 0;
+                               s->cursor_pos = last_idx;
+                           }
+                      }
+                      /* Now safe to assign dir_entry */
                       dir_entry = CurrentVolume->dir_entry_list[s->disp_begin_pos + s->cursor_pos].dir_entry;
                   } else {
-                      dir_entry = s->tree; /* Fallback to root if list is empty */
+                      dir_entry = s->tree;
                   }
+
+                  DisplayMenu(); /* Force redraw of frame/separator */
                   DisplayTree(CurrentVolume, dir_window, s->disp_begin_pos, s->disp_begin_pos + s->cursor_pos);
                   DisplayFileWindow(dir_entry); /* Refresh file window for the new directory */
                   RefreshWindow(file_window);
@@ -1460,19 +1471,31 @@ int HandleDirWindow(DirEntry *start_dir_entry)
           {
               int res = CycleLoadedVolume(-1);
               if (res == 0) { /* If volume switch was successful */
-                  /* PRESERVE STATE: Remove lines resetting cursor_pos and disp_begin_pos.
-                   * These are now loaded from the Volume struct by LoginDisk. */
-                  /* Safety check for cursor validity after list rebuild */
-                  if (CurrentVolume->total_dirs > 0 && (s->disp_begin_pos + s->cursor_pos >= CurrentVolume->total_dirs)) {
-                      s->disp_begin_pos = 0;
-                      s->cursor_pos = 0;
-                  }
-                  /* Update local dir_entry pointer to the currently selected entry of the new list */
+                  s = &CurrentVolume->vol_stats; /* Update stats pointer for new volume */
+
+                  /* Safety check / Clamping */
                   if (CurrentVolume->total_dirs > 0) {
+                      /* If saved position is beyond current end, clamp to last item */
+                      if (s->disp_begin_pos + s->cursor_pos >= CurrentVolume->total_dirs) {
+                           /* Clamp to last valid index */
+                           int last_idx = CurrentVolume->total_dirs - 1;
+                           /* Determine new disp_begin_pos and cursor_pos */
+                           /* Try to keep cursor at bottom of screen if possible */
+                           if (last_idx >= layout.dir_win_height) {
+                               s->disp_begin_pos = last_idx - (layout.dir_win_height - 1);
+                               s->cursor_pos = layout.dir_win_height - 1;
+                           } else {
+                               s->disp_begin_pos = 0;
+                               s->cursor_pos = last_idx;
+                           }
+                      }
+                      /* Now safe to assign dir_entry */
                       dir_entry = CurrentVolume->dir_entry_list[s->disp_begin_pos + s->cursor_pos].dir_entry;
                   } else {
-                      dir_entry = s->tree; /* Fallback to root if list is empty */
+                      dir_entry = s->tree;
                   }
+
+                  DisplayMenu(); /* Force redraw of frame/separator */
                   DisplayTree(CurrentVolume, dir_window, s->disp_begin_pos, s->disp_begin_pos + s->cursor_pos);
                   DisplayFileWindow(dir_entry); /* Refresh file window for the new directory */
                   RefreshWindow(file_window);
@@ -1494,19 +1517,31 @@ int HandleDirWindow(DirEntry *start_dir_entry)
           {
               int res = CycleLoadedVolume(1);
               if (res == 0) { /* If volume switch was successful */
-                  /* PRESERVE STATE: Remove lines resetting cursor_pos and disp_begin_pos.
-                   * These are now loaded from the Volume struct by LoginDisk. */
-                  /* Safety check for cursor validity after list rebuild */
-                  if (CurrentVolume->total_dirs > 0 && (s->disp_begin_pos + s->cursor_pos >= CurrentVolume->total_dirs)) {
-                      s->disp_begin_pos = 0;
-                      s->cursor_pos = 0;
-                  }
-                  /* Update local dir_entry pointer to the currently selected entry of the new list */
+                  s = &CurrentVolume->vol_stats; /* Update stats pointer for new volume */
+
+                  /* Safety check / Clamping */
                   if (CurrentVolume->total_dirs > 0) {
+                      /* If saved position is beyond current end, clamp to last item */
+                      if (s->disp_begin_pos + s->cursor_pos >= CurrentVolume->total_dirs) {
+                           /* Clamp to last valid index */
+                           int last_idx = CurrentVolume->total_dirs - 1;
+                           /* Determine new disp_begin_pos and cursor_pos */
+                           /* Try to keep cursor at bottom of screen if possible */
+                           if (last_idx >= layout.dir_win_height) {
+                               s->disp_begin_pos = last_idx - (layout.dir_win_height - 1);
+                               s->cursor_pos = layout.dir_win_height - 1;
+                           } else {
+                               s->disp_begin_pos = 0;
+                               s->cursor_pos = last_idx;
+                           }
+                      }
+                      /* Now safe to assign dir_entry */
                       dir_entry = CurrentVolume->dir_entry_list[s->disp_begin_pos + s->cursor_pos].dir_entry;
                   } else {
-                      dir_entry = s->tree; /* Fallback to root if list is empty */
+                      dir_entry = s->tree;
                   }
+
+                  DisplayMenu(); /* Force redraw of frame/separator */
                   DisplayTree(CurrentVolume, dir_window, s->disp_begin_pos, s->disp_begin_pos + s->cursor_pos);
                   DisplayFileWindow(dir_entry); /* Refresh file window for the new directory */
                   RefreshWindow(file_window);
@@ -1553,16 +1588,32 @@ int HandleDirWindow(DirEntry *start_dir_entry)
 
               /* Check return value. Only update state if login succeeded (0). */
               if (ret == 0) {
-                  /* Ensure cursor is at the top for a new login */
-                  s->disp_begin_pos = 0;
-                  s->cursor_pos = 0;
+                  s = &CurrentVolume->vol_stats; /* Update stats pointer for new volume */
 
-                  /* Safety: Update dir_entry to the first item of the newly built list */
+                  /* For a NEW login, we typically want to start at the top unless logic suggests otherwise.
+                   * LoginDisk logic in log.c attempts to restore position if volume existed.
+                   * Here we respect what LoginDisk/CurrentVolume has set, but clamp for safety. */
+
+                  /* Safety check / Clamping */
                   if (CurrentVolume->total_dirs > 0) {
-                      dir_entry = CurrentVolume->dir_entry_list[0].dir_entry;
+                      /* If saved position is beyond current end, clamp to last item */
+                      if (s->disp_begin_pos + s->cursor_pos >= CurrentVolume->total_dirs) {
+                           int last_idx = CurrentVolume->total_dirs - 1;
+                           if (last_idx >= layout.dir_win_height) {
+                               s->disp_begin_pos = last_idx - (layout.dir_win_height - 1);
+                               s->cursor_pos = layout.dir_win_height - 1;
+                           } else {
+                               s->disp_begin_pos = 0;
+                               s->cursor_pos = last_idx;
+                           }
+                      }
+                      /* Now safe to assign dir_entry */
+                      dir_entry = CurrentVolume->dir_entry_list[s->disp_begin_pos + s->cursor_pos].dir_entry;
                   } else {
                       dir_entry = s->tree;
                   }
+
+                  DisplayMenu(); /* Redraw menu/frame */
 
                   /* Force Full Display Refresh */
                   DisplayTree(CurrentVolume, dir_window, s->disp_begin_pos, s->disp_begin_pos + s->cursor_pos);
