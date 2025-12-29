@@ -785,6 +785,7 @@ extern int ytree(int argc, char *argv[]);
 
 /* archive.c */
 extern int ExtractArchiveEntry(const char *archive_path, const char *entry_path, int out_fd);
+extern int ExtractArchiveNode(const char *archive_path, const char *entry_path, const char *dest_path);
 extern int InsertArchiveFileEntry(DirEntry *tree, char *path, struct stat *stat, Statistic *s);
 extern int TryInsertArchiveDirEntry(DirEntry *tree, char *dir, struct stat *stat, Statistic *s);
 extern void MinimizeArchiveTree(DirEntry **tree_ptr, Statistic *s);
