@@ -297,7 +297,7 @@ CREATE_EXTERNAL:
   return( result );
 }
 
-int EnsureDirectoryExists(char *dir_path, DirEntry *tree, BOOL *created, DirEntry **result_ptr)
+int EnsureDirectoryExists(char *dir_path, DirEntry *tree, BOOL *created, DirEntry **result_ptr, int *auto_create)
 {
   DIR *tmpdir;
   int term;
@@ -311,7 +311,18 @@ int EnsureDirectoryExists(char *dir_path, DirEntry *tree, BOOL *created, DirEntr
     /* If it doesn't exist, ask the user */
     if (errno == ENOENT)
     {
-      if ((term = InputChoice("Directory does not exist; create (y/N) ? ", "YN\033")) == 'Y')
+      if (auto_create && *auto_create) {
+          term = 'Y';
+      } else {
+          term = InputChoice("Directory does not exist; create (Y/N/A) ? ", "YNA\033");
+      }
+
+      if (term == 'A') {
+          if (auto_create) *auto_create = 1;
+          term = 'Y';
+      }
+
+      if (term == 'Y')
       {
          /* Proceed to create */
          if (created) *created = TRUE;
