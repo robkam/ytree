@@ -21,7 +21,8 @@ int CopyFile(Statistic *statistic_ptr,
              DirEntry *dest_dir_entry,
              char *to_dir_path,       /* absolute path */
              BOOL path_copy,
-             int *dir_create_mode
+             int *dir_create_mode,
+             int *overwrite_mode
 	    )
 {
   LONGLONG    file_size;
@@ -36,7 +37,7 @@ int CopyFile(Statistic *statistic_ptr,
   int         term;
   int         result;
   int	      refresh_dirwindow = FALSE;
-  int         override_mode = 0; /* Local override for deletion */
+  int         force = 1; /* For passing to DeleteFile when overwriting */
 
   /* Context-Aware Variables */
   struct Volume *target_vol = NULL;
@@ -59,9 +60,6 @@ int CopyFile(Statistic *statistic_ptr,
 
           GetPath(statistic_ptr->tree, root_path);
 
-          /* Debug logging for PathCopy in Archive Mode */
-          fprintf(stderr, "DEBUG: CopyFile ArchMode: from_dir='%s' root='%s'\n", from_dir, root_path);
-
           /* Calculate relative path by stripping archive root from file's virtual directory */
           if (strncmp(from_dir, root_path, strlen(root_path)) == 0) {
               rel_path = from_dir + strlen(root_path);
@@ -78,8 +76,6 @@ int CopyFile(Statistic *statistic_ptr,
               strcat(full_dest_path, FILE_SEPARATOR_STRING);
           }
           strcat(full_dest_path, rel_path);
-
-          fprintf(stderr, "DEBUG: CopyFile ArchMode: rel_path='%s' to_dir='%s' full='%s'\n", rel_path, to_dir_path, full_dest_path);
 
           /* Identify Target Context for directory creation */
           target_vol = Volume_GetByPath(full_dest_path);
@@ -216,17 +212,26 @@ int CopyFile(Statistic *statistic_ptr,
 
       if( confirm )
       {
-	term = InputChoice( "file exist; overwrite (Y/N) ? ", "YN\033" );
+        if (overwrite_mode && *overwrite_mode == 1) {
+            term = 'Y';
+        } else {
+	        term = InputChoice( "file exist; overwrite (Y/N/A) ? ", "YNA\033" );
+        }
+
+        if (term == 'A') {
+            if (overwrite_mode) *overwrite_mode = 1;
+            term = 'Y';
+        }
 
         if( term != 'Y' )
         {
-	  result = (term == 'N' ) ? 0 : -1;  /* Abort on escape */
+	      result = (term == 'N' ) ? 0 : -1;  /* Abort on escape */
           ESCAPE;
         }
       }
 
       /* Delete the existing file in the destination. */
-      (void) DeleteFile( dest_file_entry, &override_mode, target_stats ? target_stats : statistic_ptr );
+      (void) DeleteFile( dest_file_entry, (overwrite_mode && *overwrite_mode == 1) ? &force : NULL, target_stats ? target_stats : statistic_ptr );
     }
   }
   else
@@ -241,13 +246,34 @@ int CopyFile(Statistic *statistic_ptr,
 
       if( confirm )
       {
-	term = InputChoice( "file exist; overwrite (Y/N) ? ", "YN\033" );
+        if (overwrite_mode && *overwrite_mode == 1) {
+            term = 'Y';
+        } else {
+	        term = InputChoice( "file exist; overwrite (Y/N/A) ? ", "YNA\033" );
+        }
+
+        if (term == 'A') {
+            if (overwrite_mode) *overwrite_mode = 1;
+            term = 'Y';
+        }
 
         if( term != 'Y' )
         {
-	  result = (term == 'N' ) ? 0 : -1;  /* Abort on escape */
+	      result = (term == 'N' ) ? 0 : -1;  /* Abort on escape */
           ESCAPE;
         }
+      }
+
+      if( unlink( to_path ) )
+      {
+        (void) snprintf( message,
+                         MESSAGE_LENGTH,
+		        "Can't unlink*\"%s\"*%s",
+		        to_path,
+		        strerror(errno)
+		      );
+        MESSAGE( message );
+        ESCAPE;
       }
     }
   }
@@ -530,7 +556,8 @@ int CopyTaggedFiles(FileEntry *fe_ptr, WalkingPackage *walking_package)
 		       walking_package->function_data.copy.dest_dir_entry,
 		       walking_package->function_data.copy.to_path,
 		       walking_package->function_data.copy.path_copy,
-		       &walking_package->function_data.copy.dir_create_mode
+		       &walking_package->function_data.copy.dir_create_mode,
+               &walking_package->function_data.copy.overwrite_mode
 		     );
   }
 
