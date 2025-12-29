@@ -44,7 +44,7 @@ int CopyFile(Statistic *statistic_ptr,
 
   result = -1;
 
-  (void) GetRealFileNamePath( fe_ptr, from_path );
+  (void) GetFileNamePath( fe_ptr, from_path );
   (void) GetPath(fe_ptr->dir_entry, from_dir);
 
   if (statistic_ptr->mode != DISK_MODE && statistic_ptr->mode != USER_MODE) {
@@ -257,11 +257,14 @@ int CopyFile(Statistic *statistic_ptr,
     /* File copied */
     /*-------------*/
 
-    if( chmod( to_path, fe_ptr->stat_struct.st_mode ) == -1 )
-    {
-      snprintf( message, MESSAGE_LENGTH, "Can't chmod file*\"%s\"*to mode %s*IGNORED",
-               to_path, GetAttributes(fe_ptr->stat_struct.st_mode, buffer) );
-      WARNING( message );
+    /* Suppress chmod for symbolic links as it targets the link destination */
+    if (!S_ISLNK(fe_ptr->stat_struct.st_mode)) {
+        if( chmod( to_path, fe_ptr->stat_struct.st_mode ) == -1 )
+        {
+          snprintf( message, MESSAGE_LENGTH, "Can't chmod file*\"%s\"*to mode %s*IGNORED",
+                   to_path, GetAttributes(fe_ptr->stat_struct.st_mode, buffer) );
+          WARNING( message );
+        }
     }
 
     if( dest_dir_entry )
@@ -531,24 +534,14 @@ int CopyTaggedFiles(FileEntry *fe_ptr, WalkingPackage *walking_package)
 
 static int CopyArchiveFile(char *to_path, char *from_path, Statistic *s)
 {
-  int out_fd;
   int result = -1;
   char *archive_path;
 
   archive_path = s->login_path;
 
-  out_fd = open(to_path, O_WRONLY | O_CREAT | O_TRUNC, 0666);
-  if (out_fd == -1) {
-    (void)snprintf(message, MESSAGE_LENGTH, "Can't create destination file*\"%s\"*%s", to_path, strerror(errno));
-    MESSAGE(message);
-    return -1;
-  }
-
 #ifdef HAVE_LIBARCHIVE
-  result = ExtractArchiveEntry(archive_path, from_path, out_fd);
+  result = ExtractArchiveNode(archive_path, from_path, to_path);
 #endif
-
-  close(out_fd);
 
   if (result != 0) {
     (void)snprintf(message, MESSAGE_LENGTH, "Can't copy file*%s*to file*%s", from_path, to_path);
