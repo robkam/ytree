@@ -11,18 +11,18 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v5
 
     - name: Install System Dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y libncurses-dev libtinfo-dev libreadline-dev libarchive-dev pandoc
+        sudo apt-get install -y libncurses-dev libtinfo-dev libreadline-dev libarchive-dev libarchive-tools pandoc
 
     - name: Compile (Release)
       run: make
 
     - name: Set up Python 3
-      uses: actions/setup-python@v6
+      uses: actions/setup-python@v5
       with:
         python-version: "3.x"
 
