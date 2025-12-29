@@ -123,6 +123,120 @@ int ExtractArchiveEntry(const char *archive_path, const char *entry_path, int ou
     archive_read_free(a);
     return (found) ? 0 : -1;
 }
+
+int ExtractArchiveNode(const char *archive_path, const char *entry_path, const char *dest_path)
+{
+    struct archive *a;
+    struct archive_entry *entry;
+    int r;
+    const void *buff;
+    size_t size;
+    la_int64_t offset;
+    int spin_counter = 0;
+    size_t entry_len;
+    int found = 0;
+    int fd;
+
+    if (!entry_path || !dest_path) return -1;
+    entry_len = strlen(entry_path);
+
+    a = archive_read_new();
+    if (a == NULL) {
+        return -1;
+    }
+    archive_read_support_filter_all(a);
+    archive_read_support_format_all(a);
+
+    r = archive_read_open_filename(a, archive_path, 10240);
+    if (r != ARCHIVE_OK) {
+        archive_read_free(a);
+        return -1;
+    }
+
+    while (archive_read_next_header(a, &entry) == ARCHIVE_OK) {
+        const char *clean_path = archive_entry_pathname(entry);
+
+        /* Normalize internal path: skip leading ./ or / */
+        if (clean_path[0] == '.' && clean_path[1] == FILE_SEPARATOR_CHAR) {
+            clean_path += 2;
+        }
+        while (*clean_path == FILE_SEPARATOR_CHAR) {
+            clean_path++;
+        }
+
+        size_t clean_len = strlen(clean_path);
+
+        if (entry_len >= clean_len) {
+            const char *suffix = entry_path + (entry_len - clean_len);
+
+            if (strcmp(suffix, clean_path) == 0) {
+                if (suffix == entry_path || *(suffix - 1) == FILE_SEPARATOR_CHAR) {
+                     /* MATCH FOUND! */
+                     found = 1;
+                     mode_t type = archive_entry_filetype(entry);
+
+                     if (type == AE_IFLNK) {
+                         const char *target = archive_entry_symlink(entry);
+                         if (target) {
+                             if (symlink(target, dest_path) != 0) {
+                                 if (errno == EEXIST) {
+                                     unlink(dest_path);
+                                     if (symlink(target, dest_path) != 0) found = 0;
+                                 } else {
+                                     found = 0;
+                                 }
+                             }
+                         } else {
+                             found = 0;
+                         }
+                     } else if (type == AE_IFREG) {
+                         fd = open(dest_path, O_CREAT | O_WRONLY | O_TRUNC, 0644);
+                         if (fd == -1) {
+                             found = 0;
+                         } else {
+                             while ((r = archive_read_data_block(a, &buff, &size, &offset)) == ARCHIVE_OK) {
+                                if ((++spin_counter % 100) == 0) {
+                                    DrawSpinner();
+                                    doupdate();
+                                }
+                                if (write(fd, buff, size) != (ssize_t)size) {
+                                    found = 0; /* Write error */
+                                    break;
+                                }
+                             }
+                             close(fd);
+                             if (r != ARCHIVE_EOF && r != ARCHIVE_OK && found) found = 0;
+                         }
+                     } else {
+                         /* Unsupported file type */
+                         found = 0;
+                     }
+                     break; /* Stop searching */
+                }
+            }
+        }
+
+        /* Update spinner while searching headers too */
+        if ((++spin_counter % 50) == 0) {
+            DrawSpinner();
+            doupdate();
+        }
+    }
+
+    archive_read_free(a);
+    return (found) ? 0 : -1;
+}
+
+#else
+/* Dummy implementations if libarchive is not available */
+int ExtractArchiveEntry(const char *archive_path, const char *entry_path, int out_fd)
+{
+    return -1;
+}
+int ExtractArchiveNode(const char *archive_path, const char *entry_path, const char *dest_path)
+{
+    return -1;
+}
 #endif /* HAVE_LIBARCHIVE */
 
 
