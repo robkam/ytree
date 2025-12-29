@@ -98,6 +98,9 @@ static int AddRule(char *pattern, BOOL is_exclude) {
         } else if (*p == '*') {
             *b_ptr++ = '.';
             *b_ptr++ = '*';
+        } else if (strchr("^$+|(){}", *p)) {
+            *b_ptr++ = '\\';
+            *b_ptr++ = *p;
         } else {
             *b_ptr++ = *p;
         }
