@@ -1876,7 +1876,10 @@ int HandleFileWindow(DirEntry *dir_entry)
               /* EXPAND WILDCARDS FOR SINGLE FILE COPY */
               BuildFilename(fe_ptr->name, to_file, expanded_to_file);
 
-              CopyFile( s, fe_ptr, TRUE, expanded_to_file, dest_dir_entry, to_path, path_copy );
+              {
+                  int dir_create_mode = 0; /* Local mode for single file op */
+                  CopyFile( s, fe_ptr, TRUE, expanded_to_file, dest_dir_entry, to_path, path_copy, &dir_create_mode );
+              }
 
               /* Force a full refresh of the file window state after copy attempt */
               DisplayAvailBytes(s);
@@ -1939,6 +1942,7 @@ int HandleFileWindow(DirEntry *dir_entry)
 			  walking_package.function_data.copy.to_path        = to_path; /* Fixed struct access */
 			  walking_package.function_data.copy.path_copy      = path_copy; /* Fixed struct access */
 			  walking_package.function_data.copy.confirm = (term == 'Y') ? TRUE : FALSE; /* Fixed struct access */
+              walking_package.function_data.copy.dir_create_mode = 0; /* Reset auto-create mode */
 
 			  WalkTaggedFiles( dir_entry->start_file,
 					   dir_entry->cursor_pos,
@@ -1984,6 +1988,7 @@ int HandleFileWindow(DirEntry *dir_entry)
                           char abs_check_path[PATH_LENGTH * 2 + 2];
                           char current_dir[PATH_LENGTH + 1];
                           BOOL created = FALSE;
+                          int dir_create_mode = 0; /* Local mode for single file op */
 
                           if (*to_dir == FILE_SEPARATOR_CHAR) {
                               strcpy(abs_check_path, to_dir);
@@ -1992,7 +1997,7 @@ int HandleFileWindow(DirEntry *dir_entry)
                               snprintf(abs_check_path, sizeof(abs_check_path), "%s%c%s", current_dir, FILE_SEPARATOR_CHAR, to_dir);
                           }
                           /* FIX: Pass &dest_dir_entry */
-                          if (EnsureDirectoryExists(abs_check_path, s->tree, &created, &dest_dir_entry) == -1) break;
+                          if (EnsureDirectoryExists(abs_check_path, s->tree, &created, &dest_dir_entry, &dir_create_mode) == -1) break;
                       }
 
                       /* EXPAND WILDCARDS FOR SINGLE FILE MOVE */
@@ -2003,7 +2008,8 @@ int HandleFileWindow(DirEntry *dir_entry)
 				     expanded_to_file,
 				     dest_dir_entry,
 				     to_path,
-				     &new_fe_ptr
+				     &new_fe_ptr,
+                     NULL /* Single move, no persistent mode */
 				   ) )
 		      {
 			/* File was moved */
@@ -2069,6 +2075,7 @@ int HandleFileWindow(DirEntry *dir_entry)
                             char abs_check_path[PATH_LENGTH * 2 + 2];
                             char current_dir[PATH_LENGTH + 1];
                             BOOL created = FALSE;
+                            int dir_create_mode = 0;
 
                             if (*to_dir == FILE_SEPARATOR_CHAR) {
                                 strcpy(abs_check_path, to_dir);
@@ -2077,7 +2084,7 @@ int HandleFileWindow(DirEntry *dir_entry)
                                 snprintf(abs_check_path, sizeof(abs_check_path), "%s%c%s", current_dir, FILE_SEPARATOR_CHAR, to_dir);
                             }
                             /* FIX: Pass &dest_dir_entry */
-                            if (EnsureDirectoryExists(abs_check_path, s->tree, &created, &dest_dir_entry) == -1) break;
+                            if (EnsureDirectoryExists(abs_check_path, s->tree, &created, &dest_dir_entry, &dir_create_mode) == -1) break;
                         }
 
 			term = InputChoice( "Confirm overwrite existing files (Y/N) ? ", "YN\033" );
@@ -2090,6 +2097,7 @@ int HandleFileWindow(DirEntry *dir_entry)
 			walking_package.function_data.mv.to_file = to_file;
 			walking_package.function_data.mv.to_path = to_path;
 			walking_package.function_data.mv.confirm = (term == 'Y') ? TRUE : FALSE;
+            walking_package.function_data.mv.dir_create_mode = 0; /* Reset auto-create mode */
 
 			WalkTaggedFiles( dir_entry->start_file,
 					 dir_entry->cursor_pos,
@@ -2130,7 +2138,7 @@ int HandleFileWindow(DirEntry *dir_entry)
 		      fe_ptr = CurrentVolume->file_entry_list[dir_entry->start_file + dir_entry->cursor_pos].file;
 		      de_ptr = fe_ptr->dir_entry;
 
-		      if( !DeleteFile( fe_ptr, s ) )
+		      if( !DeleteFile( fe_ptr, NULL, s ) )
 		      {
 		        /* File was deleted */
 			/*----------------------*/
@@ -2827,6 +2835,7 @@ static int DeleteTaggedFiles(int max_disp_files, Statistic *s)
   int       start_x = 0;
   int       result = 0;
   int       tagged_count = 0;
+  int       override_mode = 0; /* Auto-override mode for read-only files */
 
   /* 1. Count tagged files */
   for(i=0; i < (int)CurrentVolume->file_count; i++) {
@@ -2892,7 +2901,8 @@ static int DeleteTaggedFiles(int max_disp_files, Statistic *s)
 
       if( term == 'Y' )
       {
-        if( ( result = DeleteFile( fe_ptr, s ) ) == 0 )
+        /* Pass the override mode pointer to suppress read-only prompts if 'A' was selected previously */
+        if( ( result = DeleteFile( fe_ptr, &override_mode, s ) ) == 0 )
         {
 	  /* File was deleted */
 	  /*----------------------*/

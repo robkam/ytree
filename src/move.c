@@ -19,7 +19,8 @@ int MoveFile(FileEntry *fe_ptr,
 	     char *to_file,
 	     DirEntry *dest_dir_entry,
 	     char *to_dir_path,
-	     FileEntry **new_fe_ptr
+	     FileEntry **new_fe_ptr,
+	     int *dir_create_mode
 	    )
 {
   DirEntry    *de_ptr;
@@ -35,6 +36,7 @@ int MoveFile(FileEntry *fe_ptr,
   char        abs_path[PATH_LENGTH+1];
   char        from_dir[PATH_LENGTH+1];
   BOOL        refresh_dirwindow = FALSE;
+  int         override_mode = 0; /* Local override for deletion */
 
   /* Context-Aware Variables */
   struct Volume *target_vol = NULL;
@@ -84,7 +86,7 @@ int MoveFile(FileEntry *fe_ptr,
   {
       BOOL created = FALSE;
       /* FIX: Pass &dest_dir_entry to update the pointer */
-      if (EnsureDirectoryExists(to_path, target_tree, &created, &dest_dir_entry) == -1) {
+      if (EnsureDirectoryExists(to_path, target_tree, &created, &dest_dir_entry, dir_create_mode) == -1) {
           return -1;
       }
       if (created) refresh_dirwindow = TRUE;
@@ -135,7 +137,7 @@ int MoveFile(FileEntry *fe_ptr,
 	}
       }
 
-      (void) DeleteFile( dest_file_entry, target_stats_ptr ? target_stats_ptr : s );
+      (void) DeleteFile( dest_file_entry, &override_mode, target_stats_ptr ? target_stats_ptr : s );
     }
   }
   else
@@ -379,7 +381,8 @@ int MoveTaggedFiles(FileEntry *fe_ptr, WalkingPackage *walking_package)
 		         new_name,
 		         walking_package->function_data.mv.dest_dir_entry,
 		         walking_package->function_data.mv.to_path,
-		         &walking_package->new_fe_ptr
+		         &walking_package->new_fe_ptr,
+		         &walking_package->function_data.mv.dir_create_mode
 		       );
     }
   }

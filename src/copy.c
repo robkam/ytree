@@ -20,7 +20,8 @@ int CopyFile(Statistic *statistic_ptr,
              char *to_file,
              DirEntry *dest_dir_entry,
              char *to_dir_path,       /* absolute path */
-             BOOL path_copy
+             BOOL path_copy,
+             int *dir_create_mode
 	    )
 {
   LONGLONG    file_size;
@@ -35,6 +36,7 @@ int CopyFile(Statistic *statistic_ptr,
   int         term;
   int         result;
   int	      refresh_dirwindow = FALSE;
+  int         override_mode = 0; /* Local override for deletion */
 
   /* Context-Aware Variables */
   struct Volume *target_vol = NULL;
@@ -57,6 +59,9 @@ int CopyFile(Statistic *statistic_ptr,
 
           GetPath(statistic_ptr->tree, root_path);
 
+          /* Debug logging for PathCopy in Archive Mode */
+          fprintf(stderr, "DEBUG: CopyFile ArchMode: from_dir='%s' root='%s'\n", from_dir, root_path);
+
           /* Calculate relative path by stripping archive root from file's virtual directory */
           if (strncmp(from_dir, root_path, strlen(root_path)) == 0) {
               rel_path = from_dir + strlen(root_path);
@@ -74,6 +79,8 @@ int CopyFile(Statistic *statistic_ptr,
           }
           strcat(full_dest_path, rel_path);
 
+          fprintf(stderr, "DEBUG: CopyFile ArchMode: rel_path='%s' to_dir='%s' full='%s'\n", rel_path, to_dir_path, full_dest_path);
+
           /* Identify Target Context for directory creation */
           target_vol = Volume_GetByPath(full_dest_path);
           if (target_vol) {
@@ -86,7 +93,7 @@ int CopyFile(Statistic *statistic_ptr,
 
           /* Create the directory structure on the filesystem */
           /* We pass &dest_dir_entry to capture the in-memory node if available */
-          if (EnsureDirectoryExists(full_dest_path, target_tree, &created, &dest_dir_entry) == -1) {
+          if (EnsureDirectoryExists(full_dest_path, target_tree, &created, &dest_dir_entry, dir_create_mode) == -1) {
                return result;
           }
           if (created) refresh_dirwindow = TRUE;
@@ -157,7 +164,7 @@ int CopyFile(Statistic *statistic_ptr,
 
     /* Use EnsureDirectoryExists instead of direct MakePath to prompt the user */
     /* Pass NULL for created flag as we handle refresh_dirwindow later if dest_dir_entry is updated */
-    if (EnsureDirectoryExists(to_path, target_tree ? target_tree : statistic_ptr->tree, NULL, &dest_dir_entry) == -1) {
+    if (EnsureDirectoryExists(to_path, target_tree ? target_tree : statistic_ptr->tree, NULL, &dest_dir_entry, dir_create_mode) == -1) {
          return result;
     }
   }
@@ -179,7 +186,7 @@ int CopyFile(Statistic *statistic_ptr,
        * Use target_tree to find the node in the correct volume.
        * If target_tree is NULL (external path), dest_dir_entry will remain NULL (correct).
        */
-      if (EnsureDirectoryExists(to_path, target_tree, &created, &dest_dir_entry) == -1) {
+      if (EnsureDirectoryExists(to_path, target_tree, &created, &dest_dir_entry, dir_create_mode) == -1) {
           return result;
       }
       if (created) refresh_dirwindow = TRUE;
@@ -218,14 +225,8 @@ int CopyFile(Statistic *statistic_ptr,
         }
       }
 
-      /* Delete the existing file in the destination.
-         We must pass the correct stats pointer for the volume containing dest_file_entry.
-         Since dest_file_entry is in dest_dir_entry, and we found dest_dir_entry in target_tree,
-         target_stats should be valid. If for some reason target_stats is NULL (shouldn't be if dest_dir_entry is valid),
-         we assume it's external and stats updating might be risky or we fallback to current.
-         Given dest_dir_entry exists, target_stats MUST be valid.
-      */
-      (void) DeleteFile( dest_file_entry, target_stats ? target_stats : statistic_ptr );
+      /* Delete the existing file in the destination. */
+      (void) DeleteFile( dest_file_entry, &override_mode, target_stats ? target_stats : statistic_ptr );
     }
   }
   else
@@ -476,6 +477,13 @@ int CopyFileContent(char *to_path, char *from_path, Statistic *s)
     if ((++spin_counter % 100) == 0) {
         DrawSpinner();
         doupdate();
+        if (EscapeKeyPressed()) {
+            MESSAGE("Operation Interrupted");
+            close(i);
+            close(o);
+            unlink(to_path);
+            return -1;
+        }
     }
 
     if( write( o, buffer, n ) != n )
@@ -521,7 +529,8 @@ int CopyTaggedFiles(FileEntry *fe_ptr, WalkingPackage *walking_package)
 		       new_name,
 		       walking_package->function_data.copy.dest_dir_entry,
 		       walking_package->function_data.copy.to_path,
-		       walking_package->function_data.copy.path_copy
+		       walking_package->function_data.copy.path_copy,
+		       &walking_package->function_data.copy.dir_create_mode
 		     );
   }
 
