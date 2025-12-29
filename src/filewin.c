@@ -1878,7 +1878,8 @@ int HandleFileWindow(DirEntry *dir_entry)
 
               {
                   int dir_create_mode = 0; /* Local mode for single file op */
-                  CopyFile( s, fe_ptr, TRUE, expanded_to_file, dest_dir_entry, to_path, path_copy, &dir_create_mode );
+                  int overwrite_mode = 0; /* Local mode for single file op */
+                  CopyFile( s, fe_ptr, TRUE, expanded_to_file, dest_dir_entry, to_path, path_copy, &dir_create_mode, &overwrite_mode );
               }
 
               /* Force a full refresh of the file window state after copy attempt */
@@ -1943,6 +1944,7 @@ int HandleFileWindow(DirEntry *dir_entry)
 			  walking_package.function_data.copy.path_copy      = path_copy; /* Fixed struct access */
 			  walking_package.function_data.copy.confirm = (term == 'Y') ? TRUE : FALSE; /* Fixed struct access */
               walking_package.function_data.copy.dir_create_mode = 0; /* Reset auto-create mode */
+              walking_package.function_data.copy.overwrite_mode = 0; /* Reset overwrite mode */
 
 			  WalkTaggedFiles( dir_entry->start_file,
 					   dir_entry->cursor_pos,
@@ -2003,13 +2005,17 @@ int HandleFileWindow(DirEntry *dir_entry)
                       /* EXPAND WILDCARDS FOR SINGLE FILE MOVE */
                       BuildFilename(fe_ptr->name, to_file, expanded_to_file);
 
+                      {
+                          int dir_create_mode = 0;
+                          int overwrite_mode = 0;
 		      if( !MoveFile( fe_ptr,
 				     TRUE,
 				     expanded_to_file,
 				     dest_dir_entry,
 				     to_path,
 				     &new_fe_ptr,
-                     NULL /* Single move, no persistent mode */
+                     &dir_create_mode,
+                     &overwrite_mode
 				   ) )
 		      {
 			/* File was moved */
@@ -2046,6 +2052,7 @@ int HandleFileWindow(DirEntry *dir_entry)
 			maybe_change_x_step = TRUE;
             /* REMOVED: RefreshDirWindow(); Fixed UI Glitch */
 		      }
+              }
 		      break;
 
       case ACTION_CMD_TAGGED_M :
@@ -2098,6 +2105,7 @@ int HandleFileWindow(DirEntry *dir_entry)
 			walking_package.function_data.mv.to_path = to_path;
 			walking_package.function_data.mv.confirm = (term == 'Y') ? TRUE : FALSE;
             walking_package.function_data.mv.dir_create_mode = 0; /* Reset auto-create mode */
+            walking_package.function_data.mv.overwrite_mode = 0; /* Reset overwrite mode */
 
 			WalkTaggedFiles( dir_entry->start_file,
 					 dir_entry->cursor_pos,
@@ -2138,7 +2146,9 @@ int HandleFileWindow(DirEntry *dir_entry)
 		      fe_ptr = CurrentVolume->file_entry_list[dir_entry->start_file + dir_entry->cursor_pos].file;
 		      de_ptr = fe_ptr->dir_entry;
 
-		      if( !DeleteFile( fe_ptr, NULL, s ) )
+              {
+                  int mode = 0;
+		      if( !DeleteFile( fe_ptr, &mode, s ) )
 		      {
 		        /* File was deleted */
 			/*----------------------*/
@@ -2173,6 +2183,7 @@ int HandleFileWindow(DirEntry *dir_entry)
 			            );
 			maybe_change_x_step = TRUE;
 		      }
+              }
                       break;
 
       case ACTION_CMD_TAGGED_D :

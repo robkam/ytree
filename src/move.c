@@ -20,7 +20,8 @@ int MoveFile(FileEntry *fe_ptr,
 	     DirEntry *dest_dir_entry,
 	     char *to_dir_path,
 	     FileEntry **new_fe_ptr,
-	     int *dir_create_mode
+	     int *dir_create_mode,
+         int *overwrite_mode
 	    )
 {
   DirEntry    *de_ptr;
@@ -36,7 +37,7 @@ int MoveFile(FileEntry *fe_ptr,
   char        abs_path[PATH_LENGTH+1];
   char        from_dir[PATH_LENGTH+1];
   BOOL        refresh_dirwindow = FALSE;
-  int         override_mode = 0; /* Local override for deletion */
+  int         force = 1; /* Force delete for overwrite */
 
   /* Context-Aware Variables */
   struct Volume *target_vol = NULL;
@@ -129,15 +130,24 @@ int MoveFile(FileEntry *fe_ptr,
 
       if( confirm )
       {
-	term = InputChoice( "file exist; overwrite (Y/N) ? ", "YN\033" );
+        if (overwrite_mode && *overwrite_mode == 1) {
+            term = 'Y';
+        } else {
+	        term = InputChoice( "file exist; overwrite (Y/N/A) ? ", "YNA\033" );
+        }
+
+        if (term == 'A') {
+            if (overwrite_mode) *overwrite_mode = 1;
+            term = 'Y';
+        }
 
         if( term != 'Y' ) {
-	  result = (term == 'N' ) ? 0 : -1;  /* Abort on escape */
-	  ESCAPE;
-	}
+	      result = (term == 'N' ) ? 0 : -1;  /* Abort on escape */
+	      ESCAPE;
+	    }
       }
 
-      (void) DeleteFile( dest_file_entry, &override_mode, target_stats_ptr ? target_stats_ptr : s );
+      (void) DeleteFile( dest_file_entry, (overwrite_mode && *overwrite_mode == 1) ? &force : NULL, target_stats_ptr ? target_stats_ptr : s );
     }
   }
   else
@@ -152,12 +162,21 @@ int MoveFile(FileEntry *fe_ptr,
 
       if( confirm )
       {
-	term = InputChoice( "file exist; overwrite (Y/N) ? ", "YN\033" );
+        if (overwrite_mode && *overwrite_mode == 1) {
+            term = 'Y';
+        } else {
+	        term = InputChoice( "file exist; overwrite (Y/N/A) ? ", "YNA\033" );
+        }
+
+        if (term == 'A') {
+            if (overwrite_mode) *overwrite_mode = 1;
+            term = 'Y';
+        }
 
         if( term != 'Y' ) {
-	  result = (term == 'N' ) ? 0 : -1;  /* Abort on escape */
-	  ESCAPE;
-	}
+	      result = (term == 'N' ) ? 0 : -1;  /* Abort on escape */
+	      ESCAPE;
+	    }
       }
 
       if( unlink( to_path ) )
@@ -382,7 +401,8 @@ int MoveTaggedFiles(FileEntry *fe_ptr, WalkingPackage *walking_package)
 		         walking_package->function_data.mv.dest_dir_entry,
 		         walking_package->function_data.mv.to_path,
 		         &walking_package->new_fe_ptr,
-		         &walking_package->function_data.mv.dir_create_mode
+		         &walking_package->function_data.mv.dir_create_mode,
+                 &walking_package->function_data.mv.overwrite_mode
 		       );
     }
   }

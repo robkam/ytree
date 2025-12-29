@@ -618,6 +618,7 @@ typedef union
     BOOL      path_copy;
     BOOL      confirm;
     int       dir_create_mode;
+    int       overwrite_mode;
   } copy;
 
   struct
@@ -633,6 +634,7 @@ typedef union
     char      *to_path;
     BOOL      confirm;
     int       dir_create_mode;
+    int       overwrite_mode;
   } mv;
 
   struct
@@ -841,7 +843,7 @@ extern int GetFileTypeColor(FileEntry *fe_ptr);
 #endif
 
 /* copy.c */
-extern int CopyFile(Statistic *statistic_ptr, FileEntry *fe_ptr, unsigned char confirm, char *to_file, DirEntry *dest_dir_entry, char *to_dir_path, BOOL path_copy, int *dir_create_mode);
+extern int CopyFile(Statistic *statistic_ptr, FileEntry *fe_ptr, unsigned char confirm, char *to_file, DirEntry *dest_dir_entry, char *to_dir_path, BOOL path_copy, int *dir_create_mode, int *overwrite_mode);
 extern int CopyTaggedFiles(FileEntry *fe_ptr, WalkingPackage *walking_package);
 extern int GetCopyParameter(char *from_file, BOOL path_copy, char *to_file, char *to_dir);
 extern int CopyFileContent(char *to_path, char *from_path, Statistic *s); /* Added */
@@ -979,7 +981,7 @@ extern int EnsureDirectoryExists(char *dir_path, DirEntry *tree, BOOL *created, 
 
 /* move.c */
 extern int GetMoveParameter(char *from_file, char *to_file, char *to_dir);
-extern int MoveFile(FileEntry *fe_ptr, unsigned char confirm, char *to_file, DirEntry *dest_dir_entry, char *to_dir_path, FileEntry **new_fe_ptr, int *dir_create_mode);
+extern int MoveFile(FileEntry *fe_ptr, unsigned char confirm, char *to_file, DirEntry *dest_dir_entry, char *to_dir_path, FileEntry **new_fe_ptr, int *dir_create_mode, int *overwrite_mode);
 extern int MoveTaggedFiles(FileEntry *fe_ptr, WalkingPackage *walking_package);
 
 /* owner_utils.c */
