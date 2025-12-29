@@ -14,7 +14,7 @@ extern int rmdir(const char *);
 
 
 
-int DeleteFile(FileEntry *fe_ptr, Statistic *s)
+int DeleteFile(FileEntry *fe_ptr, int *auto_override, Statistic *s)
 {
   char     filepath[PATH_LENGTH+1];
   char	   buffer[PATH_LENGTH+1];
@@ -36,10 +36,19 @@ int DeleteFile(FileEntry *fe_ptr, Statistic *s)
         goto UNLINK_DONE;
       }
 
-      (void) snprintf( buffer, sizeof(buffer), "overriding mode %04o for \"%s\" (Y/N) ? ",
-               fe_ptr->stat_struct.st_mode & 0777, fe_ptr->name);
+      if (auto_override && *auto_override == 1) {
+          term = 'Y';
+      } else {
+          (void) snprintf( buffer, sizeof(buffer), "overriding mode %04o for \"%s\" (Y/N/A) ? ",
+                   fe_ptr->stat_struct.st_mode & 0777, fe_ptr->name);
 
-      term = InputChoice( buffer, "YN\033" );
+          term = InputChoice( buffer, "YNA\033" );
+      }
+
+      if (term == 'A') {
+          if (auto_override) *auto_override = 1;
+          term = 'Y';
+      }
 
       if( term != 'Y' )
       {
