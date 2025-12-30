@@ -729,6 +729,12 @@ typedef enum {
     ACTION_USER_CMD              /* Reserved for future */
 } YtreeAction;
 
+/* State Restoration Structure */
+typedef struct _PathList {
+    char *path;
+    struct _PathList *next;
+} PathList;
+
 
 /* strerror() is POSIX, and all modern operating systems provide it.  */
 #define HAVE_STRERROR 1
@@ -1071,6 +1077,9 @@ extern int SystemCall(char *command_line, Statistic *s);
 extern void DeleteTree(DirEntry *tree);
 extern int GetDirEntry(DirEntry *tree, DirEntry *current_dir_entry, char *dir_path, DirEntry **dir_entry, char *to_path);
 extern int GetFileEntry(DirEntry *de_ptr, char *file_name, FileEntry **file_entry);
+extern void SaveTreeState(DirEntry *root, PathList **expanded, PathList **tagged);
+extern void RestoreTreeState(DirEntry *root, PathList *expanded, PathList *tagged, Statistic *s);
+extern void FreePathList(PathList *list);
 
 /* usermode.c */
 extern int DirUserMode(DirEntry *dir_entry, int ch);

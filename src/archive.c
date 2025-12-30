@@ -70,13 +70,6 @@ int ExtractArchiveEntry(const char *archive_path, const char *entry_path, int ou
     while (archive_read_next_header(a, &entry) == ARCHIVE_OK) {
         const char *clean_path = archive_entry_pathname(entry);
 
-        /* Check interruption */
-        if (EscapeKeyPressed()) {
-             MESSAGE("Operation Interrupted");
-             found = 0;
-             break;
-        }
-
         /* Normalize internal path: skip leading ./ or / */
         if (clean_path[0] == '.' && clean_path[1] == FILE_SEPARATOR_CHAR) {
             clean_path += 2;
@@ -110,8 +103,8 @@ int ExtractArchiveEntry(const char *archive_path, const char *entry_path, int ou
                             doupdate();
                             if (EscapeKeyPressed()) {
                                 MESSAGE("Operation Interrupted");
-                                found = 0; /* Fail */
-                                goto CLEANUP;
+                                found = 0;
+                                break;
                             }
                         }
                         if (write(out_fd, buff, size) != (ssize_t)size) {
@@ -119,7 +112,7 @@ int ExtractArchiveEntry(const char *archive_path, const char *entry_path, int ou
                             break;
                         }
                      }
-                     if (r != ARCHIVE_EOF && r != ARCHIVE_OK) found = 0; /* Read error */
+                     if (r != ARCHIVE_EOF && r != ARCHIVE_OK && found) found = 0; /* Read error or interrupt */
                      break; /* Stop searching */
                 }
             }
@@ -129,19 +122,18 @@ int ExtractArchiveEntry(const char *archive_path, const char *entry_path, int ou
         if ((++spin_counter % 50) == 0) {
             DrawSpinner();
             doupdate();
+            if (EscapeKeyPressed()) {
+                MESSAGE("Operation Interrupted");
+                found = 0;
+                break;
+            }
         }
     }
 
-CLEANUP:
     archive_read_free(a);
     return (found) ? 0 : -1;
 }
 
-/*
- * ExtractArchiveNode
- * Creates a file system node (Regular File or Symlink) from an archive entry.
- * Used for Copy/Extract operations to preserve file type.
- */
 int ExtractArchiveNode(const char *archive_path, const char *entry_path, const char *dest_path)
 {
     struct archive *a;
@@ -153,33 +145,49 @@ int ExtractArchiveNode(const char *archive_path, const char *entry_path, const c
     int spin_counter = 0;
     size_t entry_len;
     int found = 0;
-    int out_fd = -1;
+    int fd;
+    int mismatch_count = 0;
 
     if (!entry_path || !dest_path) return -1;
     entry_len = strlen(entry_path);
 
-    a = archive_read_new();
-    if (a == NULL) return -1;
+    /* fprintf(stderr, "DEBUG: ExtractArchiveNode: Archive='%s' Entry='%s' Dest='%s'\n", archive_path, entry_path, dest_path); */
 
+    a = archive_read_new();
+    if (a == NULL) {
+        return -1;
+    }
     archive_read_support_filter_all(a);
     archive_read_support_format_all(a);
 
-    if (archive_read_open_filename(a, archive_path, 10240) != ARCHIVE_OK) {
+    r = archive_read_open_filename(a, archive_path, 10240);
+    if (r != ARCHIVE_OK) {
+        /* fprintf(stderr, "DEBUG: archive_read_open_filename failed: %s\n", archive_error_string(a)); */
         archive_read_free(a);
         return -1;
     }
 
     while (archive_read_next_header(a, &entry) == ARCHIVE_OK) {
-        const char *clean_path = archive_entry_pathname(entry);
-
-        if (EscapeKeyPressed()) {
-             MESSAGE("Operation Interrupted");
-             break;
+        /* Update spinner and check ESC */
+        if ((++spin_counter % 50) == 0) {
+            DrawSpinner();
+            doupdate();
+            if (EscapeKeyPressed()) {
+                MESSAGE("Operation Interrupted");
+                archive_read_free(a);
+                return -1;
+            }
         }
 
-        /* Normalize internal path */
-        if (clean_path[0] == '.' && clean_path[1] == FILE_SEPARATOR_CHAR) clean_path += 2;
-        while (*clean_path == FILE_SEPARATOR_CHAR) clean_path++;
+        const char *clean_path = archive_entry_pathname(entry);
+
+        /* Normalize internal path: skip leading ./ or / */
+        if (clean_path[0] == '.' && clean_path[1] == FILE_SEPARATOR_CHAR) {
+            clean_path += 2;
+        }
+        while (*clean_path == FILE_SEPARATOR_CHAR) {
+            clean_path++;
+        }
 
         size_t clean_len = strlen(clean_path);
 
@@ -188,11 +196,11 @@ int ExtractArchiveNode(const char *archive_path, const char *entry_path, const c
 
             if (strcmp(suffix, clean_path) == 0) {
                 if (suffix == entry_path || *(suffix - 1) == FILE_SEPARATOR_CHAR) {
-                     /* MATCH FOUND */
+                     /* MATCH FOUND! */
                      found = 1;
+                     mode_t type = archive_entry_filetype(entry);
 
-                     if (archive_entry_filetype(entry) == AE_IFLNK) {
-                         /* Symbolic Link */
+                     if (type == AE_IFLNK) {
                          const char *target = archive_entry_symlink(entry);
                          if (target) {
                              if (symlink(target, dest_path) != 0) {
@@ -203,57 +211,67 @@ int ExtractArchiveNode(const char *archive_path, const char *entry_path, const c
                                      found = 0;
                                  }
                              }
-                         }
-                     } else if (archive_entry_filetype(entry) == AE_IFREG) {
-                         /* Regular File */
-                         out_fd = open(dest_path, O_CREAT | O_WRONLY | O_TRUNC, 0644);
-                         if (out_fd == -1) {
+                         } else {
                              found = 0;
-                             break;
                          }
-
-                         while ((r = archive_read_data_block(a, &buff, &size, &offset)) == ARCHIVE_OK) {
-                            if ((++spin_counter % 100) == 0) {
-                                DrawSpinner();
-                                doupdate();
-                                if (EscapeKeyPressed()) {
-                                    MESSAGE("Operation Interrupted");
-                                    found = 0;
-                                    close(out_fd);
-                                    unlink(dest_path);
-                                    goto CLEANUP_NODE;
+                     } else if (type == AE_IFREG) {
+                         fd = open(dest_path, O_CREAT | O_WRONLY | O_TRUNC, 0644);
+                         if (fd == -1) {
+                             found = 0;
+                         } else {
+                             while ((r = archive_read_data_block(a, &buff, &size, &offset)) == ARCHIVE_OK) {
+                                if ((++spin_counter % 100) == 0) {
+                                    DrawSpinner();
+                                    doupdate();
+                                    if (EscapeKeyPressed()) {
+                                        MESSAGE("Operation Interrupted");
+                                        found = 0;
+                                        break;
+                                    }
                                 }
-                            }
-                            if (write(out_fd, buff, size) != (ssize_t)size) {
-                                found = 0;
-                                break;
-                            }
-                         }
-                         close(out_fd);
-                         if (r != ARCHIVE_EOF && r != ARCHIVE_OK) {
-                             found = 0;
-                             unlink(dest_path);
+                                if (write(fd, buff, size) != (ssize_t)size) {
+                                    found = 0; /* Write error */
+                                    break;
+                                }
+                             }
+                             close(fd);
+                             if (r != ARCHIVE_EOF && r != ARCHIVE_OK && found) {
+                                 found = 0;
+                                 /* Cleanup partial file on error/interrupt */
+                                 unlink(dest_path);
+                             } else if (found == 0) {
+                                 unlink(dest_path);
+                             }
                          }
                      } else {
-                         /* Unsupported type (FIFO, Block, etc.) - Ignore or log? */
-                         /* For now, treat as success but don't create node */
+                         /* Unsupported file type */
+                         found = 0;
                      }
                      break; /* Stop searching */
                 }
             }
         }
-
-        if ((++spin_counter % 50) == 0) {
-            DrawSpinner();
-            doupdate();
-        }
+        /* Logging mismatches removed */
     }
 
-CLEANUP_NODE:
     archive_read_free(a);
+
+    if (!found) {
+        fprintf(stderr, "Extract failed: %s\n", entry_path);
+    }
     return (found) ? 0 : -1;
 }
 
+#else
+/* Dummy implementations if libarchive is not available */
+int ExtractArchiveEntry(const char *archive_path, const char *entry_path, int out_fd)
+{
+    return -1;
+}
+int ExtractArchiveNode(const char *archive_path, const char *entry_path, const char *dest_path)
+{
+    return -1;
+}
 #endif /* HAVE_LIBARCHIVE */
 
 
