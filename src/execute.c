@@ -165,34 +165,53 @@ int GetSearchCommandLine(char *command_line)
 int ExecuteCommand(FileEntry *fe_ptr, WalkingPackage *walking_package)
 {
   char command_line[COMMAND_LINE_LENGTH + 1];
-  int i, result;
-  char c;
-  char *cptr;
+  char raw_path[PATH_LENGTH + 1];
+  char quoted_path[PATH_LENGTH * 2 + 1];
+  const char *template_ptr;
+  int i, dest_idx;
+  size_t path_len;
 
-  command_line[0] = '\0';
-  cptr = command_line;
+  walking_package->new_fe_ptr = fe_ptr;
 
-  walking_package->new_fe_ptr = fe_ptr;  /* unchanged */
+  /* 1. Get the raw filename/path */
+  (void) GetFileNamePath( fe_ptr, raw_path );
 
-  for( i=0; (c = walking_package->function_data.execute.command[i]); i++ )
+  /* 2. Quote/Escape the path using StrCp (handles spaces/special chars) */
+  StrCp( quoted_path, raw_path );
+  path_len = strlen( quoted_path );
+
+  /* 3. Build the final command string */
+  template_ptr = walking_package->function_data.execute.command;
+  dest_idx = 0;
+
+  for( i = 0; template_ptr[i] != '\0' && dest_idx < COMMAND_LINE_LENGTH; )
   {
-    if( c == '{' && walking_package->function_data.execute.command[i+1] == '}' )
+    /* Check for %s substitution */
+    if( template_ptr[i] == '%' && template_ptr[i+1] == 's' )
     {
-      (void) GetFileNamePath( fe_ptr, cptr );
-      cptr = &command_line[ strlen( command_line ) ];
-      i++;
+      if( dest_idx + path_len < COMMAND_LINE_LENGTH )
+      {
+        strcpy( &command_line[dest_idx], quoted_path );
+        dest_idx += path_len;
+      }
+      i += 2; /* Skip %s */
+    }
+    /* Check for {} substitution (Legacy support) */
+    else if( template_ptr[i] == '{' && template_ptr[i+1] == '}' )
+    {
+      if( dest_idx + path_len < COMMAND_LINE_LENGTH )
+      {
+        strcpy( &command_line[dest_idx], quoted_path );
+        dest_idx += path_len;
+      }
+      i += 2; /* Skip {} */
     }
     else
     {
-      *cptr++ = c;
+      command_line[dest_idx++] = template_ptr[i++];
     }
   }
-  *cptr = '\0';
+  command_line[dest_idx] = '\0';
 
-  result = SilentSystemCallEx( command_line, FALSE, &CurrentVolume->vol_stats );
-
-  /* Ignore Result */
-  /*---------------*/
-
-  return( result );
+  return SilentSystemCallEx( command_line, FALSE, &CurrentVolume->vol_stats );
 }
