@@ -1255,48 +1255,114 @@ int HandleDirWindow(DirEntry *start_dir_entry)
       case ACTION_MOVE_UP: Moveup(&s->disp_begin_pos, &s->cursor_pos, &dir_entry, s);
                      break;
       case ACTION_MOVE_SIBLING_NEXT:
-            if (dir_entry->next != NULL) {
-                /* Find the sibling in the linear list to update cursor index */
-                int k;
-                int found_idx = -1;
-                /* Optimization: Start searching from current position */
-                int start_idx = s->disp_begin_pos + s->cursor_pos;
-
-                for (k = start_idx + 1; k < CurrentVolume->total_dirs; k++) {
-                    if (CurrentVolume->dir_entry_list[k].dir_entry == dir_entry->next) {
-                        found_idx = k;
-                        break;
-                    }
+            {
+                DirEntry *target = dir_entry->next;
+                if (target == NULL) {
+                     /* Wrap to first sibling */
+                     if (dir_entry->up_tree != NULL) {
+                         target = dir_entry->up_tree->sub_tree;
+                     }
                 }
 
-                if (found_idx != -1) {
-                    /* Move cursor to sibling */
-                    if (found_idx >= s->disp_begin_pos &&
-                        found_idx < s->disp_begin_pos + height) {
-                        s->cursor_pos = found_idx - s->disp_begin_pos;
-                    } else {
-                        /* Off screen, center it or move to top */
-                        s->disp_begin_pos = found_idx;
-                        s->cursor_pos = 0;
-                        /* Bounds check */
-                        if (s->disp_begin_pos + height > CurrentVolume->total_dirs) {
-                             s->disp_begin_pos = MAXIMUM(0, CurrentVolume->total_dirs - height);
-                             s->cursor_pos = found_idx - s->disp_begin_pos;
+                if (target != NULL && target != dir_entry) {
+                    /* Find the sibling in the linear list to update cursor index */
+                    int k;
+                    int found_idx = -1;
+
+                    for (k = 0; k < CurrentVolume->total_dirs; k++) {
+                        if (CurrentVolume->dir_entry_list[k].dir_entry == target) {
+                            found_idx = k;
+                            break;
                         }
                     }
-                    /* Sync */
-                    dir_entry = CurrentVolume->dir_entry_list[s->disp_begin_pos + s->cursor_pos].dir_entry;
 
-                    /* Refresh */
-                    DisplayTree(CurrentVolume, dir_window, s->disp_begin_pos, s->disp_begin_pos + s->cursor_pos);
-                    DisplayFileWindow(dir_entry);
-                    DisplayDiskStatistic(s);
-                    DisplayDirStatistic(dir_entry, NULL, s);
-                    DisplayAvailBytes(s);
+                    if (found_idx != -1) {
+                        /* Move cursor to sibling */
+                        if (found_idx >= s->disp_begin_pos &&
+                            found_idx < s->disp_begin_pos + height) {
+                            s->cursor_pos = found_idx - s->disp_begin_pos;
+                        } else {
+                            /* Off screen, center it or move to top */
+                            s->disp_begin_pos = found_idx;
+                            s->cursor_pos = 0;
+                            /* Bounds check */
+                            if (s->disp_begin_pos + height > CurrentVolume->total_dirs) {
+                                 s->disp_begin_pos = MAXIMUM(0, CurrentVolume->total_dirs - height);
+                                 s->cursor_pos = found_idx - s->disp_begin_pos;
+                            }
+                        }
+                        /* Sync */
+                        dir_entry = CurrentVolume->dir_entry_list[s->disp_begin_pos + s->cursor_pos].dir_entry;
 
-                    char path[PATH_LENGTH];
-                    GetPath(dir_entry, path);
-                    DisplayHeaderPath(path);
+                        /* Refresh */
+                        DisplayTree(CurrentVolume, dir_window, s->disp_begin_pos, s->disp_begin_pos + s->cursor_pos);
+                        DisplayFileWindow(dir_entry);
+                        DisplayDiskStatistic(s);
+                        DisplayDirStatistic(dir_entry, NULL, s);
+                        DisplayAvailBytes(s);
+
+                        char path[PATH_LENGTH];
+                        GetPath(dir_entry, path);
+                        DisplayHeaderPath(path);
+                    }
+                }
+            }
+            need_dsp_help = TRUE;
+            break;
+      case ACTION_MOVE_SIBLING_PREV:
+            {
+                DirEntry *target = dir_entry->prev;
+                if (target == NULL) {
+                     /* Wrap to last sibling */
+                     if (dir_entry->up_tree != NULL) {
+                         target = dir_entry->up_tree->sub_tree;
+                         while (target && target->next != NULL) {
+                             target = target->next;
+                         }
+                     }
+                }
+
+                if (target != NULL && target != dir_entry) {
+                    /* Find the sibling in the linear list to update cursor index */
+                    int k;
+                    int found_idx = -1;
+
+                    for (k = 0; k < CurrentVolume->total_dirs; k++) {
+                        if (CurrentVolume->dir_entry_list[k].dir_entry == target) {
+                            found_idx = k;
+                            break;
+                        }
+                    }
+
+                    if (found_idx != -1) {
+                        /* Move cursor to sibling */
+                        if (found_idx >= s->disp_begin_pos &&
+                            found_idx < s->disp_begin_pos + height) {
+                            s->cursor_pos = found_idx - s->disp_begin_pos;
+                        } else {
+                            /* Off screen, center it or move to top */
+                            s->disp_begin_pos = found_idx;
+                            s->cursor_pos = 0;
+                            /* Bounds check */
+                            if (s->disp_begin_pos + height > CurrentVolume->total_dirs) {
+                                 s->disp_begin_pos = MAXIMUM(0, CurrentVolume->total_dirs - height);
+                                 s->cursor_pos = found_idx - s->disp_begin_pos;
+                            }
+                        }
+                        /* Sync */
+                        dir_entry = CurrentVolume->dir_entry_list[s->disp_begin_pos + s->cursor_pos].dir_entry;
+
+                        /* Refresh */
+                        DisplayTree(CurrentVolume, dir_window, s->disp_begin_pos, s->disp_begin_pos + s->cursor_pos);
+                        DisplayFileWindow(dir_entry);
+                        DisplayDiskStatistic(s);
+                        DisplayDirStatistic(dir_entry, NULL, s);
+                        DisplayAvailBytes(s);
+
+                        char path[PATH_LENGTH];
+                        GetPath(dir_entry, path);
+                        DisplayHeaderPath(path);
+                    }
                 }
             }
             need_dsp_help = TRUE;
