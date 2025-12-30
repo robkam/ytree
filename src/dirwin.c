@@ -966,6 +966,121 @@ void ToggleDotFiles(void)
     InitClock(); /* Resume clock and restore signal handling */
 }
 
+/*
+ * RefreshTreeSafe
+ * Performs a non-destructive refresh of the directory tree.
+ * Saves expansion state and tags, rescans from disk, restores state, and refreshes the UI.
+ * Can be called from both Directory Window and File Window.
+ */
+void RefreshTreeSafe(DirEntry *entry)
+{
+    Statistic *s = &CurrentVolume->vol_stats;
+    /* Determine root for refresh logic: if user is in a sub-dir, refresh context matters */
+    /* However, RestoreTreeState and RescanDir logic works best when anchored. */
+    /* The legacy ACTION_REFRESH logic worked on 'dir_entry' which is the current cursor position. */
+    /* RescanDir takes 'entry'. */
+
+    werase(dir_window);
+    werase(file_window);
+    refresh(); /* Force clear */
+
+    if (mode != ARCHIVE_MODE) {
+        PathList *expanded = NULL;
+        PathList *tagged = NULL;
+        char saved_path[PATH_LENGTH + 1];
+        int win_height;
+        int dummy_width;
+
+        GetMaxYX(dir_window, &win_height, &dummy_width);
+
+        /* 1. Save State */
+        /* Save path of the *currently selected* directory to restore cursor later */
+        /* 'entry' passed in is usually the currently selected directory */
+        GetPath(entry, saved_path);
+        /* Save state relative to the current cursor position or root? */
+        /* Ideally save state from root to preserve everything. */
+        SaveTreeState(s->tree, &expanded, &tagged);
+
+        /* 2. Destructive Rescan */
+        /* Scan from the current entry downwards? Or Root? */
+        /* If we only rescan 'entry', we might miss changes above if we moved? */
+        /* Legacy logic rescanned 'dir_entry' (current cursor). */
+        /* Let's stick to rescanning 'entry' to update local view, or root if needed? */
+        /* Actually, if we rescan 'entry', we only risk collapsing *its* children. */
+        /* If we want a full refresh, we should perhaps rescan root? */
+        /* But 'entry' allows targeted refresh. Let's keep 'entry'. */
+        /* BUT, SaveTreeState saved paths relative to root. RestoreTreeState starts at 'root'. */
+        /* This suggests we should use 'entry' as root for Restore if we rescan 'entry'. */
+        /* HOWEVER, `SaveTreeState(s->tree)` saves GLOBAL state. */
+        /* If we only rescan `entry`, we preserve other branches automatically (not touched). */
+        /* So `RestoreTreeState(s->tree)` is safe because it will just re-traverse unchanged nodes. */
+        RescanDir(entry, strtol(TREEDEPTH, NULL, 0), s);
+
+        /* 3. Restore State */
+        RestoreTreeState(s->tree, expanded, tagged, s);
+        FreePathList(expanded);
+        FreePathList(tagged);
+
+        /* 4. Restore Selection */
+        BuildDirEntryList(CurrentVolume);
+
+        /* Try to find the directory we were on */
+        int found_idx = -1;
+        int i;
+        char temp_path[PATH_LENGTH + 1];
+        for (i = 0; i < CurrentVolume->total_dirs; i++) {
+            GetPath(CurrentVolume->dir_entry_list[i].dir_entry, temp_path);
+            if (strcmp(temp_path, saved_path) == 0) {
+                found_idx = i;
+                break;
+            }
+        }
+
+        if (found_idx != -1) {
+            /* Restore cursor */
+            if (found_idx >= s->disp_begin_pos &&
+                found_idx < s->disp_begin_pos + win_height) {
+                s->cursor_pos = found_idx - s->disp_begin_pos;
+            } else {
+                /* Move to ensure visibility */
+                s->disp_begin_pos = found_idx;
+                s->cursor_pos = 0;
+                if (s->disp_begin_pos + win_height > CurrentVolume->total_dirs) {
+                     s->disp_begin_pos = MAXIMUM(0, CurrentVolume->total_dirs - win_height);
+                     s->cursor_pos = found_idx - s->disp_begin_pos;
+                }
+            }
+            /* Update entry pointer if it changed address (it shouldn't if found, but good practice) */
+            entry = CurrentVolume->dir_entry_list[s->disp_begin_pos + s->cursor_pos].dir_entry;
+        } else {
+            /* Fallback to start if dir moved/deleted */
+            if (CurrentVolume->total_dirs > 0 && (s->disp_begin_pos + s->cursor_pos >= CurrentVolume->total_dirs)) {
+                s->disp_begin_pos = 0;
+                s->cursor_pos = 0;
+                entry = CurrentVolume->dir_entry_list[0].dir_entry;
+            }
+        }
+    } else {
+        /* Archive Mode - Standard Rescan */
+        RescanDir(entry, strtol(TREEDEPTH, NULL, 0), s);
+        BuildDirEntryList(CurrentVolume);
+        /* Basic bounds check */
+        if (CurrentVolume->total_dirs > 0 && (s->disp_begin_pos + s->cursor_pos >= CurrentVolume->total_dirs)) {
+            s->disp_begin_pos = 0;
+            s->cursor_pos = 0;
+            entry = CurrentVolume->dir_entry_list[0].dir_entry;
+        }
+    }
+
+    /* Force update of free bytes info during refresh */
+    (void) GetAvailBytes( &s->disk_space, s );
+
+    DisplayTree(CurrentVolume, dir_window, s->disp_begin_pos, s->disp_begin_pos + s->cursor_pos);
+    DisplayFileWindow(entry);
+    DisplayDiskStatistic(s);
+    DisplayDirStatistic(entry, NULL, s);
+}
+
 
 int HandleDirWindow(DirEntry *start_dir_entry)
 {
@@ -1314,6 +1429,7 @@ int HandleDirWindow(DirEntry *start_dir_entry)
       case ACTION_CMD_X: if (mode != DISK_MODE && mode != USER_MODE) {
 		     } else {
 			 (void) Execute( dir_entry, NULL );
+             RefreshTreeSafe(dir_entry); /* Auto-Refresh after command */
 		     }
 		     need_dsp_help = TRUE;
 		     DisplayAvailBytes(s);
@@ -1373,82 +1489,7 @@ int HandleDirWindow(DirEntry *start_dir_entry)
 		     need_dsp_help = TRUE;
 		     break;
       case ACTION_REFRESH: /* Rescan */
-             werase(dir_window);
-             werase(file_window);
-             refresh(); /* Force clear */
-
-             /* NEW LOGIC: Non-Destructive Refresh */
-             if (mode != ARCHIVE_MODE) {
-                 PathList *expanded = NULL;
-                 PathList *tagged = NULL;
-                 char saved_path[PATH_LENGTH + 1];
-
-                 /* 1. Save State */
-                 GetPath(dir_entry, saved_path);
-                 SaveTreeState(dir_entry, &expanded, &tagged);
-
-                 /* 2. Destructive Rescan */
-                 RescanDir(dir_entry, strtol(TREEDEPTH, NULL, 0), s);
-
-                 /* 3. Restore State */
-                 RestoreTreeState(dir_entry, expanded, tagged, s);
-                 FreePathList(expanded);
-                 FreePathList(tagged);
-
-                 /* 4. Restore Selection */
-                 BuildDirEntryList(CurrentVolume);
-
-                 /* Try to find the directory we were on */
-                 int found_idx = -1;
-                 int i;
-                 char temp_path[PATH_LENGTH + 1];
-                 for (i = 0; i < CurrentVolume->total_dirs; i++) {
-                     GetPath(CurrentVolume->dir_entry_list[i].dir_entry, temp_path);
-                     if (strcmp(temp_path, saved_path) == 0) {
-                         found_idx = i;
-                         break;
-                     }
-                 }
-
-                 if (found_idx != -1) {
-                     /* Restore cursor */
-                     if (found_idx >= s->disp_begin_pos &&
-                         found_idx < s->disp_begin_pos + height) {
-                         s->cursor_pos = found_idx - s->disp_begin_pos;
-                     } else {
-                         /* Move to ensure visibility */
-                         s->disp_begin_pos = found_idx;
-                         s->cursor_pos = 0;
-                         if (s->disp_begin_pos + height > CurrentVolume->total_dirs) {
-                              s->disp_begin_pos = MAXIMUM(0, CurrentVolume->total_dirs - height);
-                              s->cursor_pos = found_idx - s->disp_begin_pos;
-                         }
-                     }
-                     dir_entry = CurrentVolume->dir_entry_list[s->disp_begin_pos + s->cursor_pos].dir_entry;
-                 } else {
-                     /* Fallback to start if dir moved/deleted */
-                     if (CurrentVolume->total_dirs > 0 && (s->disp_begin_pos + s->cursor_pos >= CurrentVolume->total_dirs)) {
-                         s->disp_begin_pos = 0;
-                         s->cursor_pos = 0;
-                         dir_entry = CurrentVolume->dir_entry_list[0].dir_entry;
-                     }
-                 }
-             } else {
-                 /* Archive Mode - Standard Rescan */
-                 RescanDir(dir_entry, strtol(TREEDEPTH, NULL, 0), s);
-                 BuildDirEntryList(CurrentVolume);
-                 /* Basic bounds check */
-                 if (CurrentVolume->total_dirs > 0 && (s->disp_begin_pos + s->cursor_pos >= CurrentVolume->total_dirs)) {
-                     s->disp_begin_pos = 0;
-                     s->cursor_pos = 0;
-                     dir_entry = CurrentVolume->dir_entry_list[0].dir_entry;
-                 }
-             }
-
-             DisplayTree(CurrentVolume, dir_window, s->disp_begin_pos, s->disp_begin_pos + s->cursor_pos);
-             DisplayFileWindow(dir_entry);
-             DisplayDiskStatistic(s);
-             DisplayDirStatistic(dir_entry, NULL, s);
+             RefreshTreeSafe(dir_entry);
              need_dsp_help = TRUE;
              break;
       case ACTION_CMD_G: (void) ChangeDirGroup( dir_entry );

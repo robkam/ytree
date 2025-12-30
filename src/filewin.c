@@ -1201,7 +1201,67 @@ static void fmoveppage(int *start_file, int *cursor_pos, int *start_x, DirEntry 
     }
 }
 
+/* Local helper to refresh file window, maintaining file cursor */
+static void RefreshFileView(DirEntry *dir_entry) {
+    char *saved_name = NULL;
+    Statistic *s = &CurrentVolume->vol_stats;
+    int found_idx = -1;
+    int start_x = 0;
 
+    /* 1. Save current filename */
+    if (CurrentVolume->file_count > 0) {
+        FileEntry *curr = CurrentVolume->file_entry_list[dir_entry->start_file + dir_entry->cursor_pos].file;
+        if (curr) saved_name = strdup(curr->name);
+    }
+
+    /* 2. Perform Safe Tree Refresh (Save/Rescan/Restore) */
+    RefreshTreeSafe(dir_entry);
+
+    /* 3. Rebuild File List from the refreshed tree */
+    BuildFileEntryList(dir_entry, s);
+
+    /* 4. Restore Cursor Position */
+    if (saved_name) {
+        int k;
+        for (k = 0; k < (int)CurrentVolume->file_count; k++) {
+            if (strcmp(CurrentVolume->file_entry_list[k].file->name, saved_name) == 0) {
+                found_idx = k;
+                break;
+            }
+        }
+        free(saved_name);
+    }
+
+    if (found_idx != -1) {
+        /* Calculate new start_file and cursor_pos */
+        if (found_idx >= dir_entry->start_file &&
+            found_idx < dir_entry->start_file + max_disp_files) {
+            /* Still on screen, just move cursor */
+            dir_entry->cursor_pos = found_idx - dir_entry->start_file;
+        } else {
+            /* Off screen, recenter or scroll */
+            dir_entry->start_file = found_idx;
+            dir_entry->cursor_pos = 0;
+            /* Bounds check */
+            if (dir_entry->start_file + max_disp_files > (int)CurrentVolume->file_count) {
+                 dir_entry->start_file = MAXIMUM(0, (int)CurrentVolume->file_count - max_disp_files);
+                 dir_entry->cursor_pos = (int)CurrentVolume->file_count - 1 - dir_entry->start_file;
+            }
+        }
+    } else {
+        /* File gone, reset to top */
+        dir_entry->start_file = 0;
+        dir_entry->cursor_pos = 0;
+    }
+
+    /* 5. Update Display */
+    if( dir_entry->global_flag )
+        DisplayDiskStatistic(s);
+    else
+        DisplayDirStatistic( dir_entry, NULL, s );
+
+    DisplayFiles(dir_entry, dir_entry->start_file, dir_entry->start_file + dir_entry->cursor_pos, start_x);
+}
 
 
 int HandleFileWindow(DirEntry *dir_entry)
@@ -1990,7 +2050,7 @@ int HandleFileWindow(DirEntry *dir_entry)
                           char abs_check_path[PATH_LENGTH * 2 + 2];
                           char current_dir[PATH_LENGTH + 1];
                           BOOL created = FALSE;
-                          int dir_create_mode = 0; /* Local mode for single file op */
+                          int dir_create_mode = 0;
 
                           if (*to_dir == FILE_SEPARATOR_CHAR) {
                               strcpy(abs_check_path, to_dir);
@@ -2426,6 +2486,7 @@ int HandleFileWindow(DirEntry *dir_entry)
       case ACTION_CMD_X :      fe_ptr = CurrentVolume->file_entry_list[dir_entry->start_file + dir_entry->cursor_pos].file;
 		      de_ptr = fe_ptr->dir_entry;
 		      (void) Execute( de_ptr, fe_ptr );
+              RefreshFileView(dir_entry); /* Auto-Refresh after command */
 		      need_dsp_help = TRUE;
 		      break;
 
@@ -2505,11 +2566,7 @@ int HandleFileWindow(DirEntry *dir_entry)
 					       );
 			  HitReturnToContinue();
 
-			  DisplayFiles( dir_entry,
-					dir_entry->start_file,
-					dir_entry->start_file + dir_entry->cursor_pos,
-					start_x
-				      );
+              RefreshFileView(dir_entry); /* Auto-Refresh after tagged command */
 			}
 			free( command_line );
 		      }
@@ -2555,60 +2612,8 @@ int HandleFileWindow(DirEntry *dir_entry)
 
       case ACTION_REFRESH:
                 {
-                    /* 1. Save current filename */
-                    char *saved_name = NULL;
-                    if (CurrentVolume->file_count > 0) {
-                        FileEntry *curr = CurrentVolume->file_entry_list[dir_entry->start_file + dir_entry->cursor_pos].file;
-                        if (curr) saved_name = strdup(curr->name);
-                    }
-
-                    /* 2. Perform Rescan */
-                    if (mode == ARCHIVE_MODE) {
-                         clearok(stdscr, TRUE);
-                         refresh();
-                    } else {
-                         RescanDir(dir_entry, 0, s);
-                         BuildFileEntryList(dir_entry, s);
-
-                         /* 3. Restore Cursor Position */
-                         int found_idx = -1;
-                         if (saved_name) {
-                             int k;
-                             for (k = 0; k < (int)CurrentVolume->file_count; k++) {
-                                 if (strcmp(CurrentVolume->file_entry_list[k].file->name, saved_name) == 0) {
-                                     found_idx = k;
-                                     break;
-                                 }
-                             }
-                             free(saved_name);
-                         }
-
-                         if (found_idx != -1) {
-                             /* Calculate new start_file and cursor_pos */
-                             if (found_idx >= dir_entry->start_file &&
-                                 found_idx < dir_entry->start_file + max_disp_files) {
-                                 /* Still on screen, just move cursor */
-                                 dir_entry->cursor_pos = found_idx - dir_entry->start_file;
-                             } else {
-                                 /* Off screen, recenter or scroll */
-                                 dir_entry->start_file = found_idx;
-                                 dir_entry->cursor_pos = 0;
-                                 /* Bounds check */
-                                 if (dir_entry->start_file + max_disp_files > (int)CurrentVolume->file_count) {
-                                      dir_entry->start_file = MAXIMUM(0, (int)CurrentVolume->file_count - max_disp_files);
-                                      dir_entry->cursor_pos = (int)CurrentVolume->file_count - 1 - dir_entry->start_file;
-                                 }
-                             }
-                         } else {
-                             /* File gone, reset to top */
-                             dir_entry->start_file = 0;
-                             dir_entry->cursor_pos = 0;
-                         }
-
-                         DisplayFiles(dir_entry, dir_entry->start_file, dir_entry->start_file + dir_entry->cursor_pos, start_x);
-                         DisplayDirStatistic(dir_entry, NULL, s); /* Updated call */
-                         need_dsp_help = TRUE;
-                    }
+                    RefreshFileView(dir_entry);
+                    need_dsp_help = TRUE;
                 }
                 break;
 
@@ -3062,3 +3067,4 @@ static void ListJump( DirEntry * dir_entry, char *str )
     ListJump( dir_entry, (incremental) ? newStr : "" );
     free(newStr);
 }
+

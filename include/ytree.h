@@ -869,6 +869,7 @@ extern DirEntry *GetSelectedDirEntry(struct Volume *vol);
 extern void BuildDirEntryList(struct Volume *vol); /* UPDATED: Takes Volume context */
 extern void FreeDirEntryList(void); /* Retained for compat, or wraps FreeVolumeCache */
 extern void FreeVolumeCache(struct Volume *vol); /* ADDED: Explicit cache cleaner */
+extern void RefreshTreeSafe(DirEntry *entry); /* ADDED: Safe Non-destructive Refresh */
 
 /* display.c */
 extern void ClearHelp(void);
