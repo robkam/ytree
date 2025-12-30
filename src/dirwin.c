@@ -1376,15 +1376,75 @@ int HandleDirWindow(DirEntry *start_dir_entry)
              werase(dir_window);
              werase(file_window);
              refresh(); /* Force clear */
-             RescanDir(dir_entry, strtol(TREEDEPTH, NULL, 0), s); /* Fixed: Use configured TREEDEPTH */
-             BuildDirEntryList(CurrentVolume);
-             if (CurrentVolume->total_dirs > 0 && (s->disp_begin_pos + s->cursor_pos >= CurrentVolume->total_dirs)) {
-                 s->disp_begin_pos = 0;
-                 s->cursor_pos = 0;
+
+             /* NEW LOGIC: Non-Destructive Refresh */
+             if (mode != ARCHIVE_MODE) {
+                 PathList *expanded = NULL;
+                 PathList *tagged = NULL;
+                 char saved_path[PATH_LENGTH + 1];
+
+                 /* 1. Save State */
+                 GetPath(dir_entry, saved_path);
+                 SaveTreeState(dir_entry, &expanded, &tagged);
+
+                 /* 2. Destructive Rescan */
+                 RescanDir(dir_entry, strtol(TREEDEPTH, NULL, 0), s);
+
+                 /* 3. Restore State */
+                 RestoreTreeState(dir_entry, expanded, tagged, s);
+                 FreePathList(expanded);
+                 FreePathList(tagged);
+
+                 /* 4. Restore Selection */
+                 BuildDirEntryList(CurrentVolume);
+
+                 /* Try to find the directory we were on */
+                 int found_idx = -1;
+                 int i;
+                 char temp_path[PATH_LENGTH + 1];
+                 for (i = 0; i < CurrentVolume->total_dirs; i++) {
+                     GetPath(CurrentVolume->dir_entry_list[i].dir_entry, temp_path);
+                     if (strcmp(temp_path, saved_path) == 0) {
+                         found_idx = i;
+                         break;
+                     }
+                 }
+
+                 if (found_idx != -1) {
+                     /* Restore cursor */
+                     if (found_idx >= s->disp_begin_pos &&
+                         found_idx < s->disp_begin_pos + height) {
+                         s->cursor_pos = found_idx - s->disp_begin_pos;
+                     } else {
+                         /* Move to ensure visibility */
+                         s->disp_begin_pos = found_idx;
+                         s->cursor_pos = 0;
+                         if (s->disp_begin_pos + height > CurrentVolume->total_dirs) {
+                              s->disp_begin_pos = MAXIMUM(0, CurrentVolume->total_dirs - height);
+                              s->cursor_pos = found_idx - s->disp_begin_pos;
+                         }
+                     }
+                     dir_entry = CurrentVolume->dir_entry_list[s->disp_begin_pos + s->cursor_pos].dir_entry;
+                 } else {
+                     /* Fallback to start if dir moved/deleted */
+                     if (CurrentVolume->total_dirs > 0 && (s->disp_begin_pos + s->cursor_pos >= CurrentVolume->total_dirs)) {
+                         s->disp_begin_pos = 0;
+                         s->cursor_pos = 0;
+                         dir_entry = CurrentVolume->dir_entry_list[0].dir_entry;
+                     }
+                 }
+             } else {
+                 /* Archive Mode - Standard Rescan */
+                 RescanDir(dir_entry, strtol(TREEDEPTH, NULL, 0), s);
+                 BuildDirEntryList(CurrentVolume);
+                 /* Basic bounds check */
+                 if (CurrentVolume->total_dirs > 0 && (s->disp_begin_pos + s->cursor_pos >= CurrentVolume->total_dirs)) {
+                     s->disp_begin_pos = 0;
+                     s->cursor_pos = 0;
+                     dir_entry = CurrentVolume->dir_entry_list[0].dir_entry;
+                 }
              }
-             if (CurrentVolume->total_dirs > 0) {
-                dir_entry = CurrentVolume->dir_entry_list[s->disp_begin_pos + s->cursor_pos].dir_entry;
-             }
+
              DisplayTree(CurrentVolume, dir_window, s->disp_begin_pos, s->disp_begin_pos + s->cursor_pos);
              DisplayFileWindow(dir_entry);
              DisplayDiskStatistic(s);
