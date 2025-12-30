@@ -157,9 +157,9 @@ int LoginDisk(char *path)
        /* Synchronize the global 'mode' variable with the found volume's stored mode. */
        mode = CurrentVolume->vol_stats.mode;
 
-       /* Restore the filter that was active when LoginDisk was called.
-        * This ensures the user's filter preference persists across volume switches. */
-       (void) strcpy(s->file_spec, saved_filter);
+       /* FIX: Do NOT overwrite an existing volume's filter settings.
+          This prevents filter leakage between volumes.
+          We re-apply the filter stored in the volume's stats to ensure display consistency. */
        (void) SetFilter(s->file_spec, s); /* This calls ApplyFilter internally */
        RecalculateSysStats(s);            /* Sum up stats based on flags */
 
@@ -255,7 +255,8 @@ int LoginDisk(char *path)
       strncpy(s->path, resolved_path, PATH_LENGTH);
       s->path[PATH_LENGTH] = '\0';
 
-      /* Restore the user's active filter */
+      /* Restore the user's active filter from the previous volume ONLY for new volumes.
+         This acts as a "default" filter inheritance for convenience. */
       (void) strcpy( s->file_spec, saved_filter );
 
       /* Moved: statistic.kind_of_sort initialization is now inside is_new_vol_created or virgin check block */

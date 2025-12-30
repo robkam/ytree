@@ -1931,7 +1931,7 @@ int HandleFileWindow(DirEntry *dir_entry)
                     }
                 }
 
-			  term = InputChoice( "Confirm overwrite existing files (Y/N) ? ", "YN\033" );
+			  term = InputChoice( "Ask for confirmation for each overwrite (Y/N) ? ", "YN\033" );
                           if( term == ESC )
 		          {
 			    break;
@@ -1944,7 +1944,7 @@ int HandleFileWindow(DirEntry *dir_entry)
 			  walking_package.function_data.copy.path_copy      = path_copy; /* Fixed struct access */
 			  walking_package.function_data.copy.confirm = (term == 'Y') ? TRUE : FALSE; /* Fixed struct access */
               walking_package.function_data.copy.dir_create_mode = 0; /* Reset auto-create mode */
-              walking_package.function_data.copy.overwrite_mode = 0; /* Reset overwrite mode */
+              walking_package.function_data.copy.overwrite_mode = (term == 'N') ? 1 : 0; /* Reset overwrite mode */
 
 			  WalkTaggedFiles( dir_entry->start_file,
 					   dir_entry->cursor_pos,
@@ -2094,7 +2094,7 @@ int HandleFileWindow(DirEntry *dir_entry)
                             if (EnsureDirectoryExists(abs_check_path, s->tree, &created, &dest_dir_entry, &dir_create_mode) == -1) break;
                         }
 
-			term = InputChoice( "Confirm overwrite existing files (Y/N) ? ", "YN\033" );
+			term = InputChoice( "Ask for confirmation for each overwrite (Y/N) ? ", "YN\033" );
                         if( term == ESC )
 		        {
 			  break;
@@ -2105,7 +2105,7 @@ int HandleFileWindow(DirEntry *dir_entry)
 			walking_package.function_data.mv.to_path = to_path;
 			walking_package.function_data.mv.confirm = (term == 'Y') ? TRUE : FALSE;
             walking_package.function_data.mv.dir_create_mode = 0; /* Reset auto-create mode */
-            walking_package.function_data.mv.overwrite_mode = 0; /* Reset overwrite mode */
+            walking_package.function_data.mv.overwrite_mode = (term == 'N') ? 1 : 0; /* Reset overwrite mode */
 
 			WalkTaggedFiles( dir_entry->start_file,
 					 dir_entry->cursor_pos,
@@ -2863,9 +2863,10 @@ static int DeleteTaggedFiles(int max_disp_files, Statistic *s)
   if (term != 'Y') return -1;
 
   /* 3. Prompt for Mode (Confirm Each?) */
-  term = InputChoice( "Confirm delete for each file (Y/N) ? ", "YN\033" );
+  term = InputChoice( "Ask for confirmation for each file (Y/N) ? ", "YN\033" );
   if (term == ESC) return -1;
   confirm_each = (term == 'Y') ? TRUE : FALSE;
+  if (!confirm_each) override_mode = 1;
 
   if( baudrate() >= QUICK_BAUD_RATE ) typeahead( 0 );
 

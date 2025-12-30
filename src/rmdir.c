@@ -129,7 +129,7 @@ static int DeleteSingleDirectory( DirEntry *dir_entry )
   int result = -1;
   char buffer[PATH_LENGTH+1];
   FileEntry *fe_ptr, *next_fe_ptr;
-  int override_mode = 1; /* Force delete for prune operations */
+  int force = 1;
 
 
   (void) GetPath( dir_entry, buffer );
@@ -148,8 +148,7 @@ static int DeleteSingleDirectory( DirEntry *dir_entry )
     /* Spinner to indicate progress during bulk deletion */
     DrawSpinner();
     doupdate();
-    /* Pass override_mode=1 to force delete without prompting */
-    if( DeleteFile( fe_ptr, &override_mode, &CurrentVolume->vol_stats ) ) {
+    if( DeleteFile( fe_ptr, &force, &CurrentVolume->vol_stats ) ) {
       ESCAPE;
     }
   }
