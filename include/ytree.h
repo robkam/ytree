@@ -920,7 +920,7 @@ extern void Warning(char *msg);
 extern int Execute(DirEntry *dir_entry, FileEntry *file_entry);
 extern int ExecuteCommand(FileEntry *fe_ptr, WalkingPackage *walking_package);
 extern int GetCommandLine(char *command_line);
-extern int GetSearchCommandLine(char *command_line);
+extern int GetSearchCommandLine(char *command_line, const char *prompt); /* Updated Prototype */
 
 /* filter.c */
 extern int ReadFilter(void);
