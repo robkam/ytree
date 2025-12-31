@@ -128,7 +128,7 @@ int GetCommandLine(char *command_line)
 
 
 
-int GetSearchCommandLine(char *command_line)
+int GetSearchCommandLine(char *command_line, const char *prompt)
 {
   int  result;
   int  pos;
@@ -138,7 +138,8 @@ int GetSearchCommandLine(char *command_line)
 
   ClearHelp();
 
-  MvAddStr( LINES - 2, 1, "SEARCH UNTAG COMMAND: " );
+  /* Use the provided prompt string dynamically */
+  MvAddStr( LINES - 2, 1, (char *)prompt );
   strcpy( command_line, SEARCHCOMMAND );
 
   cptr = strstr( command_line, "{}" );
@@ -149,7 +150,11 @@ int GetSearchCommandLine(char *command_line)
   } else {
     pos = 0;
   }
-  if( InputString( command_line, LINES - 2, 23, pos, COLS - 24, "\r\033", HST_SEARCH ) == CR )
+
+  /* Calculate dynamic input start position based on prompt length */
+  int input_x = 1 + strlen(prompt);
+
+  if( InputString( command_line, LINES - 2, input_x, pos, COLS - input_x - 1, "\r\033", HST_SEARCH ) == CR )
   {
     move( LINES - 2, 1 ); clrtoeol();
     result = 0;

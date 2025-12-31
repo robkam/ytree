@@ -5,18 +5,13 @@
  *
  ***************************************************************************/
 
-
 #include "ytree.h"
 
-
 #define MAX( a, b ) ( ( (a) > (b) ) ? (a) : (b) )
-
 
 #if !defined(__NeXT__) && !defined(ultrix)
 extern void qsort(void *, size_t, size_t, int (*) (const void *, const void *));
 #endif /* __NeXT__ ultrix */
-
-
 
 static BOOL reverse_sort;
 static BOOL order;
@@ -36,6 +31,7 @@ static unsigned      max_visual_linkname_len;
 static unsigned      global_max_visual_filename_len;
 static unsigned      global_max_visual_linkname_len;
 
+/* --- Forward Declarations --- */
 static void ReadFileList(BOOL tagged_only, DirEntry *dir_entry);
 static void SortFileEntryList(Statistic *s);
 static int  SortByName(FileEntryList *e1, FileEntryList *e2);
@@ -47,24 +43,28 @@ static int  SortByOwner(FileEntryList *e1, FileEntryList *e2);
 static int  SortByGroup(FileEntryList *e1, FileEntryList *e2);
 static int  SortByExtension(FileEntryList *e1, FileEntryList *e2);
 static void DisplayFiles(DirEntry *de_ptr, int start_file_no, int hilight_no, int start_x);
+static void PrintFileEntry(int entry_no, int y, int x, unsigned char hilight, int start_x);
 static void ReadGlobalFileList(BOOL tagged_only, DirEntry *dir_entry);
 static void WalkTaggedFiles(int start_file, int cursor_pos, int (*fkt) (FileEntry *, WalkingPackage *), WalkingPackage *walking_package);
 static BOOL IsMatchingTaggedFiles(void);
 static void RemoveFileEntry(int entry_no);
 static void ChangeFileEntry(void);
 static int  DeleteTaggedFiles(int max_dispfiles, Statistic *s);
-static void SilentWalkTaggedFiles( int (*fkt) (FileEntry *, WalkingPackage *),
-			           WalkingPackage *walking_package
-			          );
-static void SilentTagWalkTaggedFiles( int (*fkt) (FileEntry *, WalkingPackage *),
-			           WalkingPackage *walking_package
-			          );
+static void SilentWalkTaggedFiles( int (*fkt) (FileEntry *, WalkingPackage *), WalkingPackage *walking_package);
+static void SilentTagWalkTaggedFiles( int (*fkt) (FileEntry *, WalkingPackage *), WalkingPackage *walking_package);
 static void RereadWindowSize(DirEntry *dir_entry);
 static void ListJump( DirEntry * dir_entry, char *str );
 static char GetTypeOfFile(struct stat fst);
 static int  GetVisualFileEntryLength(int mode, int max_visual_filename_len, int max_visual_linkname_len);
-
-
+static void HandleInvertTags(DirEntry *dir_entry, Statistic *s);
+static void RefreshFileView(DirEntry *dir_entry);
+static int  SilentSearchWalk(FileEntry *fe_ptr, WalkingPackage *wp);
+static void fmovedown(int *start_file, int *cursor_pos, int *start_x, DirEntry *dir_entry);
+static void fmoveup(int *start_file, int *cursor_pos, int *start_x, DirEntry *dir_entry);
+static void fmoveright(int *start_file, int *cursor_pos, int *start_x, DirEntry *dir_entry);
+static void fmoveleft(int *start_file, int *cursor_pos, int *start_x, DirEntry *dir_entry);
+static void fmovenpage(int *start_file, int *cursor_pos, int *start_x, DirEntry *dir_entry);
+static void fmoveppage(int *start_file, int *cursor_pos, int *start_x, DirEntry *dir_entry);
 
 void SetFileMode(int new_file_mode)
 {
@@ -117,8 +117,6 @@ static int GetVisualFileEntryLength(int mode, int max_visual_filename_len, int m
 }
 
 
-
-
 void RotateFileMode(void)
 {
   switch( file_mode )
@@ -135,7 +133,6 @@ void RotateFileMode(void)
     RotateFileMode();
   }
 }
-
 
 
 static void BuildFileEntryList(DirEntry *dir_entry, Statistic *s){
@@ -853,8 +850,6 @@ static void PrintFileEntry(int entry_no, int y, int x, unsigned char hilight, in
 }
 
 
-
-
 void DisplayFileWindow(DirEntry *dir_entry)
 {
   int height, width;
@@ -864,8 +859,6 @@ void DisplayFileWindow(DirEntry *dir_entry)
 		dir_entry->start_file,
                 dir_entry->start_file + dir_entry->cursor_pos, 0);
 }
-
-
 
 
 static void DisplayFiles(DirEntry *de_ptr, int start_file_no, int hilight_no, int start_x)
@@ -1261,6 +1254,108 @@ static void RefreshFileView(DirEntry *dir_entry) {
         DisplayDirStatistic( dir_entry, NULL, s );
 
     DisplayFiles(dir_entry, dir_entry->start_file, dir_entry->start_file + dir_entry->cursor_pos, start_x);
+}
+
+static void HandleInvertTags(DirEntry *dir_entry, Statistic *s)
+{
+    int i;
+    FileEntry *fe_ptr;
+    DirEntry *de_ptr;
+
+    /* Iterate through the currently visible list of files */
+    for (i = 0; i < (int)CurrentVolume->file_count; i++)
+    {
+        fe_ptr = CurrentVolume->file_entry_list[i].file;
+        de_ptr = fe_ptr->dir_entry;
+
+        /* Only invert matching files */
+        if (fe_ptr->matching)
+        {
+            if (fe_ptr->tagged)
+            {
+                fe_ptr->tagged = FALSE;
+                de_ptr->tagged_files--;
+                de_ptr->tagged_bytes -= fe_ptr->stat_struct.st_size;
+                s->disk_tagged_files--;
+                s->disk_tagged_bytes -= fe_ptr->stat_struct.st_size;
+            }
+            else
+            {
+                fe_ptr->tagged = TRUE;
+                de_ptr->tagged_files++;
+                de_ptr->tagged_bytes += fe_ptr->stat_struct.st_size;
+                s->disk_tagged_files++;
+                s->disk_tagged_bytes += fe_ptr->stat_struct.st_size;
+            }
+        }
+    }
+
+    /* Refresh UI */
+    DisplayFiles(dir_entry,
+                 dir_entry->start_file,
+                 dir_entry->start_file + dir_entry->cursor_pos,
+                 0 /* start_x */
+                );
+    DisplayDiskStatistic(s);
+    if( dir_entry->global_flag )
+        DisplayDiskStatistic(s); /* Global view */
+    else
+        DisplayDirStatistic(dir_entry, NULL, s);
+}
+
+/* Helper for Smart Search: Tags matches (Result == 0) */
+/* Kept for completeness although not used in Strict Filter mode */
+static int SilentSearchWalk(FileEntry *fe_ptr, WalkingPackage *wp)
+{
+    char command_line[COMMAND_LINE_LENGTH + 1];
+    char raw_path[PATH_LENGTH + 1];
+    char quoted_path[PATH_LENGTH * 2 + 1];
+    const char *template_ptr;
+    int i, dest_idx;
+    size_t path_len;
+    int ret;
+
+    /* Build command like ExecuteCommand, but minimal */
+    (void) GetFileNamePath( fe_ptr, raw_path );
+    StrCp( quoted_path, raw_path );
+    path_len = strlen( quoted_path );
+
+    template_ptr = wp->function_data.execute.command;
+    dest_idx = 0;
+
+    for( i = 0; template_ptr[i] != '\0' && dest_idx < COMMAND_LINE_LENGTH; )
+    {
+        if( template_ptr[i] == '%' && template_ptr[i+1] == 's' ) {
+            if( dest_idx + path_len < COMMAND_LINE_LENGTH ) {
+                strcpy( &command_line[dest_idx], quoted_path );
+                dest_idx += path_len;
+            }
+            i += 2;
+        } else if( template_ptr[i] == '{' && template_ptr[i+1] == '}' ) {
+            if( dest_idx + path_len < COMMAND_LINE_LENGTH ) {
+                strcpy( &command_line[dest_idx], quoted_path );
+                dest_idx += path_len;
+            }
+            i += 2;
+        } else {
+            command_line[dest_idx++] = template_ptr[i++];
+        }
+    }
+    command_line[dest_idx] = '\0';
+
+    ret = SilentSystemCallEx(command_line, FALSE, &CurrentVolume->vol_stats);
+
+    /* If command returns 0 (Success), TAG the file */
+    if (ret == 0) {
+        if (!fe_ptr->tagged) {
+            fe_ptr->tagged = TRUE;
+            fe_ptr->dir_entry->tagged_files++;
+            fe_ptr->dir_entry->tagged_bytes += fe_ptr->stat_struct.st_size;
+            CurrentVolume->vol_stats.disk_tagged_files++;
+            CurrentVolume->vol_stats.disk_tagged_bytes += fe_ptr->stat_struct.st_size;
+        }
+    }
+    return 0; /* Continue walking */
 }
 
 
@@ -2491,8 +2586,11 @@ int HandleFileWindow(DirEntry *dir_entry)
 		      break;
 
       case ACTION_CMD_TAGGED_S :
+                      /* STRICT FILTER MODE: Only allow if tags exist */
                       if( !IsMatchingTaggedFiles() )
                       {
+                        /* If no tags, this command does nothing (or shows error) */
+                        MESSAGE( "No tagged files" );
                       }
 		      else if( mode != DISK_MODE && mode != USER_MODE )
 		      {
@@ -2510,28 +2608,36 @@ int HandleFileWindow(DirEntry *dir_entry)
 
 			need_dsp_help = TRUE;
 			*command_line = '\0';
-		        if( !GetSearchCommandLine( command_line ) )
-			{
-			  refresh();
-			  endwin();
-			  SuspendClock();
 
-			  walking_package.function_data.execute.command = command_line;
-                          SilentTagWalkTaggedFiles( ExecuteCommand,
+            /* Filter Mode */
+		        if( !GetSearchCommandLine( command_line, "SEARCH TAGGED: " ) )
+			    {
+			      refresh();
+			      endwin();
+			      SuspendClock();
+
+			      walking_package.function_data.execute.command = command_line;
+                              /* Use modified SilentTagWalk (Untag on Fail) */
+                              SilentTagWalkTaggedFiles( ExecuteCommand,
 					            &walking_package
 					          );
-			  RefreshWindow( file_window );
+			      RefreshWindow( file_window );
+			      HitReturnToContinue();
+			      InitClock();
+			    }
 
-			  HitReturnToContinue();
+            /* Refresh Display */
+            DisplayFiles( dir_entry,
+                  dir_entry->start_file,
+                  dir_entry->start_file + dir_entry->cursor_pos,
+                  start_x
+                );
+            DisplayDiskStatistic(s);
+            if( dir_entry->global_flag )
+                DisplayDiskStatistic(s);
+            else
+                DisplayDirStatistic(dir_entry, NULL, s);
 
-			  InitClock();
-
-			  DisplayFiles( dir_entry,
-					dir_entry->start_file,
-					dir_entry->start_file + dir_entry->cursor_pos,
-					start_x
-				      );
-			}
 			free( command_line );
 		      }
 		      break;
@@ -2648,6 +2754,11 @@ int HandleFileWindow(DirEntry *dir_entry)
         maybe_change_x_step = TRUE;
         break;
 
+    case ACTION_TREE_EXPAND: /* Mapped to '*' for Invert Tags in File Window */
+        HandleInvertTags(dir_entry, s);
+        need_dsp_help = TRUE;
+        break;
+
      default:
                       break;
     } /* switch */
@@ -2681,9 +2792,9 @@ static void WalkTaggedFiles(int start_file,
   BOOL      maybe_change_x = FALSE;
   int       height, width;
 
-  if( baudrate() >= QUICK_BAUD_RATE ) typeahead( 0 );
+  if (baudrate() >= QUICK_BAUD_RATE) typeahead(0);
 
-  GetMaxYX( file_window, &height, &width );
+  GetMaxYX(file_window, &height, &width);
 
   max_disp_files = height * max_column;
 
@@ -2811,8 +2922,13 @@ static void SilentTagWalkTaggedFiles( int (*fkt) (FileEntry *, WalkingPackage *)
     {
       result = fkt( fe_ptr, walking_package );
 
-      if( result == 0 ) {
+      if( result != 0 ) {
       	fe_ptr->tagged = FALSE;
+        /* Update Stats */
+        fe_ptr->dir_entry->tagged_files--;
+        fe_ptr->dir_entry->tagged_bytes -= fe_ptr->stat_struct.st_size;
+        CurrentVolume->vol_stats.disk_tagged_files--;
+        CurrentVolume->vol_stats.disk_tagged_bytes -= fe_ptr->stat_struct.st_size;
       }
     }
   }
@@ -3067,4 +3183,3 @@ static void ListJump( DirEntry * dir_entry, char *str )
     ListJump( dir_entry, (incremental) ? newStr : "" );
     free(newStr);
 }
-
