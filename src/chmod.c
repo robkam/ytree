@@ -12,7 +12,7 @@
 
 static int SetDirModus(DirEntry *de_ptr, WalkingPackage *walking_package);
 static int GetNewModus(int old_modus, char *new_modus );
-
+static int InputModeString(char *modus, int y, int x);
 
 
 int ChangeFileModus(FileEntry *fe_ptr)
@@ -20,6 +20,7 @@ int ChangeFileModus(FileEntry *fe_ptr)
   char modus[12];
   WalkingPackage walking_package;
   int  result;
+  int  x;
 
   result = -1;
 
@@ -31,9 +32,10 @@ int ChangeFileModus(FileEntry *fe_ptr)
   (void) GetAttributes( fe_ptr->stat_struct.st_mode, modus );
 
   ClearHelp();
-  MvAddStr( LINES - 2, 1, "ATTRIBUTES:" );
+  MvAddStr( LINES - 2, 1, "MODE:" );
+  x = 1 + strlen("MODE:") + UI_INPUT_PADDING;
 
-  if( InputString( modus, LINES - 2, 12, 0, 10, "\r\033", HST_CHANGE_MODUS ) == CR )
+  if( InputModeString( modus, LINES - 2, x ) == CR )
   {
     (void) strcpy( walking_package.function_data.change_modus.new_modus, modus );
     result = SetFileModus( fe_ptr, &walking_package );
@@ -53,6 +55,7 @@ int ChangeDirModus(DirEntry *de_ptr)
   char modus[12];
   WalkingPackage walking_package;
   int  result;
+  int  x;
 
   result = -1;
 
@@ -64,9 +67,10 @@ int ChangeDirModus(DirEntry *de_ptr)
   (void) GetAttributes( de_ptr->stat_struct.st_mode, modus );
 
   ClearHelp();
-  MvAddStr( LINES - 2, 1, "ATTRIBUTES:" );
+  MvAddStr( LINES - 2, 1, "MODE:" );
+  x = 1 + strlen("MODE:") + UI_INPUT_PADDING;
 
-  if( InputString( modus, LINES - 2, 12, 0, 10, "\r\033", HST_CHANGE_MODUS ) == CR )
+  if( InputModeString( modus, LINES - 2, x ) == CR )
   {
     (void) strcpy( walking_package.function_data.change_modus.new_modus, modus );
     result = SetDirModus( de_ptr, &walking_package );
@@ -78,6 +82,51 @@ int ChangeDirModus(DirEntry *de_ptr)
 }
 
 
+static int InputModeString(char *modus, int y, int x)
+{
+    int cursor_pos = 1; /* Skip file type char at index 0 */
+    int ch;
+
+    curs_set(0); /* Hide hardware cursor, we manage highlighting manually */
+
+    while (1) {
+        /* Draw current mode string */
+        wmove(stdscr, y, x);
+        int i;
+        for (i = 0; i < 10; i++) {
+            if (i == cursor_pos) wattron(stdscr, A_REVERSE);
+            waddch(stdscr, modus[i]);
+            if (i == cursor_pos) wattroff(stdscr, A_REVERSE);
+        }
+        wrefresh(stdscr);
+
+        ch = Getch();
+
+        if (ch == ESC) return ESC;
+        if (ch == '\n' || ch == '\r') return CR;
+
+        switch (ch) {
+            case KEY_LEFT:
+                if (cursor_pos > 1) cursor_pos--;
+                break;
+            case KEY_RIGHT:
+                if (cursor_pos < 9) cursor_pos++;
+                break;
+            case KEY_HOME:
+                cursor_pos = 1;
+                break;
+            case KEY_END:
+                cursor_pos = 9;
+                break;
+            default:
+                if (strchr("rwx-sStT", ch)) {
+                    modus[cursor_pos] = ch;
+                    if (cursor_pos < 9) cursor_pos++;
+                }
+                break;
+        }
+    }
+}
 
 
 int SetFileModus(FileEntry *fe_ptr, WalkingPackage *walking_package)
