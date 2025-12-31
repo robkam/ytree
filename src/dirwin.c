@@ -1383,12 +1383,81 @@ int HandleDirWindow(DirEntry *start_dir_entry)
     					&need_dsp_help, s);
     		     break;
       case ACTION_MOVE_LEFT:
-          /* Check if directory is expanded (has sub-tree and is scanned) */
+          /* 1. Transparent Archive Exit Logic (At Root) */
+          if (dir_entry->up_tree == NULL && mode == ARCHIVE_MODE) {
+              struct Volume *old_vol = CurrentVolume;
+              char archive_path[PATH_LENGTH + 1];
+              char parent_dir[PATH_LENGTH + 1];
+              char dummy_name[PATH_LENGTH + 1];
+
+              /* Calculate Parent Directory of the Archive File */
+              strcpy(archive_path, s->login_path);
+              Fnsplit(archive_path, parent_dir, dummy_name);
+
+              /* Force Login/Switch to the Parent Directory */
+              /* This handles both "New Volume" and "Switch to Existing" logic automatically */
+              if (LoginDisk(parent_dir) == 0) {
+                  /* Successfully switched context. */
+
+                  /* Delete the archive wrapper we just left to clean up memory/list */
+                  Volume_Delete(old_vol);
+
+                  /* Update pointers for the new context */
+                  s = &CurrentVolume->vol_stats;
+                  start_vol = CurrentVolume; /* Update loop safety variable */
+
+                  /* Attempt to highlight the archive file we just left */
+                  if (CurrentVolume->total_dirs > 0) {
+                       /* Usually root, or restored position */
+                       dir_entry = CurrentVolume->dir_entry_list[s->disp_begin_pos + s->cursor_pos].dir_entry;
+
+                       /* Find the archive file in the file list */
+                       FileEntry *fe;
+                       int f_idx = 0;
+                       for (fe = dir_entry->file; fe; fe = fe->next) {
+                           if (strcmp(fe->name, dummy_name) == 0) {
+                               dir_entry->start_file = f_idx;
+                               dir_entry->cursor_pos = 0;
+                               break;
+                           }
+                           f_idx++;
+                       }
+                  } else {
+                       dir_entry = s->tree;
+                  }
+
+                  /* Refresh Full UI */
+                  DisplayMenu();
+                  DisplayTree(CurrentVolume, dir_window, s->disp_begin_pos, s->disp_begin_pos + s->cursor_pos);
+                  DisplayFileWindow(dir_entry);
+                  DisplayDiskStatistic(s);
+                  DisplayDirStatistic(dir_entry, NULL, s);
+                  DisplayAvailBytes(s);
+
+                  {
+                      char path[PATH_LENGTH];
+                      GetPath(dir_entry, path);
+                      DisplayHeaderPath(path);
+                  }
+                  need_dsp_help = TRUE;
+                  break; /* Exit case done */
+              }
+          }
+
+          /* 2. Standard Tree Navigation Logic */
           if (!dir_entry->not_scanned && dir_entry->sub_tree != NULL) {
-              /* It is expanded -> Collapse it */
-              HandleUnreadSubTree(dir_entry, de_ptr, &need_dsp_help, s);
+              /* It is expanded */
+              if (mode == ARCHIVE_MODE) {
+                   /* In Archive Mode, we cannot collapse (UnRead) without data loss.
+                      So we skip collapse and fall through to Jump to Parent. */
+                   goto JUMP_TO_PARENT;
+              } else {
+                   /* In FS Mode, collapse it. */
+                   HandleUnreadSubTree(dir_entry, de_ptr, &need_dsp_help, s);
+              }
           } else {
               /* It is collapsed (or leaf) -> Jump to Parent */
+              JUMP_TO_PARENT:
               if (dir_entry->up_tree != NULL) {
                    /* Find parent in the list */
                    int p_idx = -1;
