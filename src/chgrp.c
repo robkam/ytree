@@ -20,6 +20,7 @@ int GetNewGroup(int st_gid)
   char *group_name_ptr;
   int  id;
   int  group_id;
+  int  x;
 
   group_id = -1;
 
@@ -38,8 +39,9 @@ int GetNewGroup(int st_gid)
   ClearHelp();
 
   MvAddStr( LINES - 2, 1, "GROUP:" );
+  x = 1 + strlen("GROUP:") + UI_INPUT_PADDING;
 
-  if( InputString( group, LINES - 2, 12, 0, GROUP_NAME_MAX, "\r\033", HST_ID ) == CR )
+  if( InputString( group, LINES - 2, x, 0, GROUP_NAME_MAX, "\r\033", HST_ID ) == CR )
   {
     if( (group_id = GetGroupId( group )) == -1 )
     {

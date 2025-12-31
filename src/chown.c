@@ -19,6 +19,7 @@ int GetNewOwner(int st_uid)
   char *owner_name_ptr;
   int  owner_id;
   int  id;
+  int  x;
 
   owner_id = -1;
 
@@ -37,8 +38,9 @@ int GetNewOwner(int st_uid)
   ClearHelp();
 
   MvAddStr( LINES - 2, 1, "OWNER:" );
+  x = 1 + strlen("OWNER:") + UI_INPUT_PADDING;
 
-  if( InputString( owner, LINES - 2, 12, 0, OWNER_NAME_MAX, "\r\033", HST_ID ) == CR )
+  if( InputString( owner, LINES - 2, x, 0, OWNER_NAME_MAX, "\r\033", HST_ID ) == CR )
   {
     if( (owner_id = GetPasswdUid( owner )) == -1 )
     {

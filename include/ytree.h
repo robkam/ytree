@@ -89,6 +89,9 @@
 /* Cast to size_t to silence signed/unsigned comparison warnings when 'b' is sizeof/strlen */
 #define MAXIMUM( a, b ) ( ( (a) > (b) ) ? (a) : (b) )
 
+/* Standard Input Padding for Prompts */
+#define UI_INPUT_PADDING 2
+
 
 #ifdef WIN32
 /* Windows/Cygwin/WSL compatibility layer simplifications */
@@ -1079,9 +1082,6 @@ extern int SystemCall(char *command_line, Statistic *s);
 extern void DeleteTree(DirEntry *tree);
 extern int GetDirEntry(DirEntry *tree, DirEntry *current_dir_entry, char *dir_path, DirEntry **dir_entry, char *to_path);
 extern int GetFileEntry(DirEntry *de_ptr, char *file_name, FileEntry **file_entry);
-extern void SaveTreeState(DirEntry *root, PathList **expanded, PathList **tagged);
-extern void RestoreTreeState(DirEntry *root, PathList *expanded, PathList *tagged, Statistic *s);
-extern void FreePathList(PathList *list);
 
 /* usermode.c */
 extern int DirUserMode(DirEntry *dir_entry, int ch);
