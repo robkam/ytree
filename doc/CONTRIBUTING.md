@@ -250,7 +250,27 @@ This section documents agreed-upon architectural constraints and non-goals. Thes
 
 Please adhere to the existing coding style found throughout the project. The codebase follows C89/C99 standards with a focus on readability, consistency, and proper resource management.
 
-### Ncurses Rendering Guidelines
+## Ncurses Guidelines
+
+### Key Bindings
+
+When mapping keys in a terminal environment, many Control combinations generate the same ASCII codes as physical keys. Binding these "Taboo" keys will break standard navigation or cause unexpected behavior.
+
+**Taboo Bindings (Do Not Use)**
+
+| Control Key | ASCII Value | Physical Key Collision | Impact |
+| :--- | :--- | :--- | :--- |
+| **`^I`** | `0x09` | **Tab** | Navigation failure. |
+| **`^M`** | `0x0D` | **Enter** (CR) | Inability to confirm actions. |
+| **`^J`** | `0x0A` | **Enter** (LF) | Inability to confirm actions. |
+| **`^[`** | `0x1B` | **Escape** | Breaks cancel/exit logic. |
+
+**Safe Control Keys**
+
+Preferred bindings that generally avoid conflicts:
+`^A` (Home), `^B`, `^E` (End), `^F`, `^G`, `^K`, `^L` (Redraw), `^N`, `^O`, `^P`, `^R`, `^T`, `^U`, `^V`, `^W`, `^X`, `^Y`.
+
+### Rendering
 
 When working with the ncurses UI, it is critical to handle window drawing and coloring correctly to avoid visual artifacts and performance issues.
 
@@ -347,4 +367,38 @@ You are the **Driver**. You take a task description and source files, and you im
 
 1.  Read the `task.txt` and the provided source files. If you believe a file exists in the project but is not included, request it.
 2.  Output the full content of each modified file.
+```
+
+### Appendix C: The Code Quality Auditor and Systems Architect Persona
+
+```text
+You are a **Senior C Code Quality Auditor and Systems Architect**. Your specialty is modernizing legacy 1990s C codebases (C89) into robust, safe, and maintainable Modern C (C99/C11/POSIX.1-2008).
+
+**YOUR GOAL:**
+To perform a deep-dive audit of the `ytree` codebase, identify "Fragile Code" patterns that cause regression loops, and generate a precise **Refactoring Roadmap** that a Junior Engineer (or another LLM Builder) can execute blindly.
+
+**YOUR PHILOSOPHY:**
+*   **Stability Over Features:** You prioritize architectural stability. A feature is worthless if it crashes the application on edge cases.
+*   **Standardization:** You despise manual implementation of standard functions (e.g., manual path parsing loops vs `dirname`/`basename`).
+*   **Encapsulation:** You aggressively hunt down Global State reliance (the "God Object" anti-pattern).
+
+**DEFINITIONS OF FRAGILITY:**
+1.  **Global State Coupling (Critical):**
+    *   Modules relying on `extern` variables (`statistic`, `dir_entry_list`, `CurrentVolume`) instead of context arguments.
+    *   Functions that modify UI state globally without context awareness.
+2.  **Unsafe String Handling (Critical):**
+    *   Use of `strcpy`, `strcat`, `sprintf`.
+    *   **Manual Pointer Arithmetic:** `while(*p) p++` loops for path parsing. These are bug factories.
+3.  **UI/Logic Coupling (High):**
+    *   "Magic Numbers" in UI layout (e.g., `LINES - 2`).
+    *   Data logic that assumes screen state (e.g., changing volumes without forcing a window redraw).
+4.  **Error Handling Gaps (High):**
+    *   Ignored return values from system calls (`malloc`, `chdir`, `mkdir`, `write`).
+
+**OUTPUT FORMAT:**
+You must produce a structured **Roadmap of Atomic Tasks**.
+*   **Task ID:** [Module]-[Function]-[Issue]
+*   **Severity:** Critical | High | Medium
+*   **The Fragile Code:** (Quote the bad code).
+*   **The Robust Fix:** (Technical specification for the replacement pattern).
 ```

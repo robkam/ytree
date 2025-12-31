@@ -111,7 +111,7 @@ Active when the file window is focused.
 *   **R** (Rename): Rename the selected file.
 *   **^R**: Rename all tagged files.
 *   **S** (Sort): Sort filelist (Access time, Change time, Extension, Group, Modification time, Name, Owner, Size).
-*   **^S** (Search/Untag): Untag files that do not match an external program (e.g. grep).
+*   **^S** (Search): Execute grep on tagged files. Untags files that do not match the command.
 *   **T** (Tag): Tag selected file.
 *   **^T**: Tag all displayed files.
 *   **U** (Untag): Untag selected file.
@@ -124,6 +124,7 @@ Active when the file window is focused.
 *   **^F** (File Mode): Cycle file display modes.
 *   **Space**: Suppress screen output while working.
 *   **Return**: Switch to Full Screen File Mode / Directory Mode.
+*   **\*** (Asterisk): **Invert Tags**. Toggle the tag state of all currently visible files.
 
 ### Archive Mode
 When browsing an archive (ZIP, TAR, etc.), ytree behaves similarly to a read-only file system.
@@ -136,6 +137,7 @@ When browsing an archive (ZIP, TAR, etc.), ytree behaves similarly to a read-onl
 *   **U** (Untag): Untag all files in current virtual directory.
 *   **^F** (Dir Mode): Cycle display modes.
 *   **Return**: Switch to Archive-File Mode.
+*   **Left Arrow**: At the archive root, this closes the archive and returns to the parent directory.
 
 **Archive-File Mode**
 *   **C** (Copy): Copy (Extract) selected file.
@@ -151,6 +153,7 @@ When browsing an archive (ZIP, TAR, etc.), ytree behaves similarly to a read-onl
 *   **V** (View): View file.
 *   **^F** (File Mode): Cycle display modes.
 *   **Return**: Switch to Archive-Dir Mode.
+*   **\*** (Asterisk): Invert tag selection.
 
 # COMMAND LINE EDITING
 
@@ -232,4 +235,4 @@ Authors and contributors are listed in the [AUTHORS.md](https://github.com/robka
 
 # SEE ALSO
 
-**mc**(1), **glob**(7), **regex**(7)
+**mc**(1), **glob**(7), **regex**(7), **grep**(1)
