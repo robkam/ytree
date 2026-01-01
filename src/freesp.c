@@ -48,7 +48,8 @@ int GetDiskParameter( char *path,
       /* Name ermitteln */
       /*----------------*/
 
-      if( s->mode == DISK_MODE || s->mode == USER_MODE )
+      /* Renamed usage: s->mode -> s->login_mode */
+      if( s->login_mode == DISK_MODE || s->login_mode == USER_MODE )
       {
 
 #if defined(__linux__)

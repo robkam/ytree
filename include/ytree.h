@@ -563,7 +563,7 @@ typedef struct
   int           disp_begin_pos;
   int           cursor_pos;
   int           kind_of_sort;
-  int           mode; /* Added to store the current operation mode (DISK_MODE/ARCHIVE_MODE) */
+  int           login_mode; /* Renamed from mode to login_mode */
   char          login_path[PATH_LENGTH + 1];
   char          path[PATH_LENGTH + 1];
   char          file_spec[FILE_SPEC_LENGTH + 1];
@@ -742,7 +742,7 @@ typedef struct _PathList {
 
 /* View Context Structure for Split Screen Support
  *
- * This structure unifies the main application window pointers and state.
+ * This structure unifies the main application window pointers.
  *
  * Window Roles:
  * - dir_window:        The top window displaying the Directory Tree.
@@ -757,11 +757,7 @@ typedef struct {
   WINDOW *small_file_window;
   WINDOW *big_file_window;
   WINDOW *file_window;
-
-  /* Core State Variables Refactored */
-  struct Volume *current_volume;
-  int mode;
-  BOOL hide_dot_files;
+  int view_mode; /* Operation mode (DISK_MODE, ARCHIVE_MODE, etc.) */
 } ViewContext;
 
 extern ViewContext *GlobalView;
@@ -773,10 +769,7 @@ extern ViewContext *GlobalView;
 #define small_file_window (GlobalView->small_file_window)
 #define big_file_window (GlobalView->big_file_window)
 #define file_window (GlobalView->file_window)
-
-#define CurrentVolume (GlobalView->current_volume)
-#define mode (GlobalView->mode)
-#define hide_dot_files (GlobalView->hide_dot_files)
+#define mode (GlobalView->view_mode)
 
 
 /* strerror() is POSIX, and all modern operating systems provide it.  */
@@ -795,18 +788,20 @@ extern WINDOW *f2_window;
 extern WINDOW *time_window;
 
 /* Global volume management */
+extern struct Volume *CurrentVolume;
 extern struct Volume *VolumeList;
 
 /* Compatibility layer for existing code using global 'statistic' and 'disk_statistic' */
 #define disk_statistic (CurrentVolume->vol_disk_stats)
 
+/* extern int mode; */ /* REMOVED: Now macro mapping to GlobalView->view_mode */
 extern int       user_umask;
 extern char      message[];
 extern BOOL	 print_time;
 extern BOOL      resize_request;
 extern BOOL      bypass_small_window;
 extern BOOL      highlight_full_line;
-/* extern BOOL      hide_dot_files; // Removed, now macro */
+extern BOOL      hide_dot_files;
 extern int       animation_method;
 extern char      number_seperator;
 extern char      *initial_directory;

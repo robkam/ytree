@@ -21,19 +21,6 @@ static WINDOW *Newwin(int nlines, int ncols,
 char *XCursesProgramName = "ytree";
 #endif
 
-/*
- * TEST NOTE: Window Layout Verification
- * ------------------------------------
- * The GlobalView structure (allocated in Init) now holds all main view windows.
- * - dir_window: Top pane (directory tree).
- * - small_file_window: Bottom pane (file list).
- * - big_file_window: Full screen overlay for file list.
- *
- * Resizing or mode switching should update these via Layout_Recalculate()
- * and ReCreateWindows(). Verify that 'file_window' correctly points to
- * either 'small' or 'big' window depending on the view mode (toggled by key).
- */
-
 void Layout_Recalculate(void)
 {
     /*
@@ -79,16 +66,18 @@ int Init(char *configuration_file, char *history_file)
   char buffer[PATH_LENGTH + 1];
   char *home = NULL;
 
-  /* Allocate Global ViewContext for window management FIRST */
-  /* This must happen before Volume_Create() because CurrentVolume is now a macro */
+  /* Allocate and initialize the first volume using the dedicated module */
+  CurrentVolume = Volume_Create();
+
+  /* Allocate Global ViewContext for window management */
   GlobalView = (ViewContext *)calloc(1, sizeof(ViewContext));
   if (!GlobalView) {
       fprintf(stderr, "Fatal Error: Memory allocation failed for GlobalView.\n");
       exit(1);
   }
 
-  /* Allocate and initialize the first volume using the dedicated module */
-  CurrentVolume = Volume_Create();
+  /* Initialize global mode default */
+  GlobalView->view_mode = DISK_MODE;
 
   /* Use setlocale to correctly initialize for WITH_UTF8 or system locale */
   setlocale(LC_ALL, "");
@@ -314,6 +303,30 @@ static WINDOW *Subwin(WINDOW *orig, int nlines, int ncols,
   if(y+h > LINES) y = LINES - h;
 
   win = subwin(orig, h, w, y, x);
+
+  return(win);
+}
+
+
+
+static WINDOW *Newwin(int nlines, int ncols,
+                      int begin_y, int begin_x)
+{
+  int x, y, h, w;
+  WINDOW *win;
+
+  if(nlines > LINES)   nlines = LINES;
+  if(ncols > COLS)     ncols = COLS;
+
+  h = MAXIMUM(nlines, 1);
+  w = MAXIMUM(ncols, 1);
+  x = MAXIMUM(begin_x, 0);
+  y = MAXIMUM(begin_y, 0);
+
+  if(x+w > COLS)  x = COLS - w;
+  if(y+h > LINES) y = LINES - h;
+
+  win = newwin(h, w, y, x);
 
   return(win);
 }

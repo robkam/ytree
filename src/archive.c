@@ -146,7 +146,6 @@ int ExtractArchiveNode(const char *archive_path, const char *entry_path, const c
     size_t entry_len;
     int found = 0;
     int fd;
-    int mismatch_count = 0;
 
     if (!entry_path || !dest_path) return -1;
     entry_len = strlen(entry_path);

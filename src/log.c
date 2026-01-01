@@ -108,7 +108,8 @@ int LoginDisk(char *path)
       BOOL access_ok = FALSE;
       struct stat st_check;
 
-      if (found_vol->vol_stats.mode == ARCHIVE_MODE) {
+      /* Renamed usage: found_vol->vol_stats.mode -> found_vol->vol_stats.login_mode */
+      if (found_vol->vol_stats.login_mode == ARCHIVE_MODE) {
           /* For archives, check if the file still exists */
           if (stat(found_vol->vol_stats.login_path, &st_check) == 0 && !S_ISDIR(st_check.st_mode)) {
               access_ok = TRUE;
@@ -155,7 +156,8 @@ int LoginDisk(char *path)
        s = &CurrentVolume->vol_stats;
 
        /* Synchronize the global 'mode' variable with the found volume's stored mode. */
-       mode = CurrentVolume->vol_stats.mode;
+       /* Renamed usage: CurrentVolume->vol_stats.mode -> CurrentVolume->vol_stats.login_mode */
+       mode = CurrentVolume->vol_stats.login_mode;
 
        /* FIX: Do NOT overwrite an existing volume's filter settings.
           This prevents filter leakage between volumes.
@@ -205,7 +207,8 @@ int LoginDisk(char *path)
               /* If we failed to create a new volume, restore old_vol if it existed. */
               if (old_vol != NULL) {
                   CurrentVolume = old_vol;
-                  mode = CurrentVolume->vol_stats.mode;
+                  /* Renamed usage: CurrentVolume->vol_stats.mode -> CurrentVolume->vol_stats.login_mode */
+                  mode = CurrentVolume->vol_stats.login_mode;
                   s = &CurrentVolume->vol_stats;
                   DisplayMenu();
                   DisplayTree(CurrentVolume, dir_window, s->disp_begin_pos, s->cursor_pos);
@@ -237,7 +240,8 @@ int LoginDisk(char *path)
               /* Restore old_vol if we switched away from it and failed. */
               if (old_vol != NULL && CurrentVolume != old_vol) {
                   CurrentVolume = old_vol;
-                  mode = CurrentVolume->vol_stats.mode;
+                  /* Renamed usage: CurrentVolume->vol_stats.mode -> CurrentVolume->vol_stats.login_mode */
+                  mode = CurrentVolume->vol_stats.login_mode;
                   s = &CurrentVolume->vol_stats;
                   DisplayMenu();
                   DisplayTree(CurrentVolume, dir_window, s->disp_begin_pos, s->cursor_pos);
@@ -279,7 +283,8 @@ int LoginDisk(char *path)
       {
         mode = DISK_MODE; /* Set global mode for the new volume */
       }
-      s->mode = mode; /* Store the determined mode in the new volume's stats */
+      /* Renamed usage: s->mode -> s->login_mode */
+      s->login_mode = mode; /* Store the determined mode in the new volume's stats */
 
 
       (void) GetDiskParameter( resolved_path, /* Use resolved_path for disk parameter */
@@ -359,7 +364,8 @@ int LoginDisk(char *path)
                Volume_Delete(CurrentVolume);
                if (old_vol != NULL) {
                    CurrentVolume = old_vol;
-                   mode = CurrentVolume->vol_stats.mode; /* Restore global mode */
+                   /* Renamed usage: CurrentVolume->vol_stats.mode -> CurrentVolume->vol_stats.login_mode */
+                   mode = CurrentVolume->vol_stats.login_mode; /* Restore global mode */
                    s = &CurrentVolume->vol_stats;
                    /* Restore display for the old volume */
                    DisplayMenu();
@@ -719,7 +725,8 @@ int SelectLoadedVolume(void)
                                 BOOL neighbor_access_ok = FALSE;
                                 struct stat neighbor_st_check;
 
-                                if (neighbor->vol_stats.mode == ARCHIVE_MODE) {
+                                /* Renamed usage: neighbor->vol_stats.mode -> neighbor->vol_stats.login_mode */
+                                if (neighbor->vol_stats.login_mode == ARCHIVE_MODE) {
                                     if (stat(neighbor->vol_stats.login_path, &neighbor_st_check) == 0 && !S_ISDIR(neighbor_st_check.st_mode)) {
                                         neighbor_access_ok = TRUE;
                                         char neighbor_parent_dir[PATH_LENGTH + 1];
@@ -752,7 +759,8 @@ int SelectLoadedVolume(void)
                                 }
 
                                 CurrentVolume = neighbor;
-                                mode = CurrentVolume->vol_stats.mode; // Sync global mode
+                                /* Renamed usage: CurrentVolume->vol_stats.mode -> CurrentVolume->vol_stats.login_mode */
+                                mode = CurrentVolume->vol_stats.login_mode; // Sync global mode
                             } else {
                                 // This case should be caught by num_volumes <= 1 check, but defensive.
                                 MESSAGE("Cannot release the last volume.");

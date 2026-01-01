@@ -55,7 +55,7 @@ static void SilentTagWalkTaggedFiles( int (*fkt) (FileEntry *, WalkingPackage *)
 static void RereadWindowSize(DirEntry *dir_entry);
 static void ListJump( DirEntry * dir_entry, char *str );
 static char GetTypeOfFile(struct stat fst);
-static int  GetVisualFileEntryLength(int mode, int max_visual_filename_len, int max_visual_linkname_len);
+static int  GetVisualFileEntryLength(int p_mode, int max_visual_filename_len, int max_visual_linkname_len);
 static void HandleInvertTags(DirEntry *dir_entry, Statistic *s);
 static void RefreshFileView(DirEntry *dir_entry);
 static int  SilentSearchWalk(FileEntry *fe_ptr, WalkingPackage *wp);
@@ -81,11 +81,11 @@ void SetFileMode(int new_file_mode)
 }
 
 
-static int GetVisualFileEntryLength(int mode, int max_visual_filename_len, int max_visual_linkname_len)
+static int GetVisualFileEntryLength(int p_mode, int max_visual_filename_len, int max_visual_linkname_len)
 {
   int len = 0;
 
-  switch (file_mode)
+  switch (p_mode)
   {
     case MODE_1: len =  (max_visual_linkname_len) ? max_visual_linkname_len + 4 : 0; /* linkname + " -> " */
 		 len += max_visual_filename_len + 42; /* filename + format (increased by 4 for 16-char date) */
@@ -2302,8 +2302,8 @@ int HandleFileWindow(DirEntry *dir_entry)
 		      de_ptr = fe_ptr->dir_entry;
 
               {
-                  int mode = 0;
-		      if( !DeleteFile( fe_ptr, &mode, s ) )
+                  int override_mode = 0;
+		      if( !DeleteFile( fe_ptr, &override_mode, s ) )
 		      {
 		        /* File was deleted */
 			/*----------------------*/

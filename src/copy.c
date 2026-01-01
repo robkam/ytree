@@ -50,7 +50,8 @@ int CopyFile(Statistic *statistic_ptr,
   (void) GetFileNamePath( fe_ptr, from_path );
   (void) GetPath(fe_ptr->dir_entry, from_dir);
 
-  if (statistic_ptr->mode != DISK_MODE && statistic_ptr->mode != USER_MODE) {
+  /* Renamed usage: statistic_ptr->mode -> statistic_ptr->login_mode */
+  if (statistic_ptr->login_mode != DISK_MODE && statistic_ptr->login_mode != USER_MODE) {
       /* Archive Mode */
       if (path_copy) {
           char root_path[PATH_LENGTH+1];
@@ -358,7 +359,7 @@ int CopyFile(Statistic *statistic_ptr,
       /* Force refresh if we modified the tree structure or contents */
       refresh_dirwindow = TRUE;
     }
-    else if (statistic_ptr->mode != DISK_MODE && statistic_ptr->mode != USER_MODE)
+    else if (statistic_ptr->login_mode != DISK_MODE && statistic_ptr->login_mode != USER_MODE)
     {
         /* Archive mode handling remains unchanged, but use statistic_ptr to check context?
            Actually, the legacy code cleared 'disk_statistic'. 'disk_statistic' is mapped to CurrentVolume->vol_disk_stats.
@@ -463,7 +464,8 @@ int CopyFileContent(char *to_path, char *from_path, Statistic *s)
   char        buffer[2048];
   int         spin_counter = 0;
 
-  if( s->mode != DISK_MODE && s->mode != USER_MODE )
+  /* Renamed usage: s->mode -> s->login_mode */
+  if( s->login_mode != DISK_MODE && s->login_mode != USER_MODE )
   {
     return( CopyArchiveFile( to_path, from_path, s ) );
   }
