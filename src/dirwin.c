@@ -640,7 +640,8 @@ static void MoveHome(DirEntry **dir_entry, Statistic *s)
 
 static void HandlePlus(DirEntry *dir_entry, DirEntry *de_ptr, char *new_login_path, BOOL *need_dsp_help, Statistic *s)
 {
-    if (s->mode != DISK_MODE && s->mode != USER_MODE) {
+    /* Renamed usage: s->mode -> s->login_mode */
+    if (s->login_mode != DISK_MODE && s->login_mode != USER_MODE) {
         return;
     }
     if( !dir_entry->not_scanned ) {
@@ -682,7 +683,8 @@ static void HandleReadSubTree(DirEntry *dir_entry, BOOL *need_dsp_help, Statisti
 
 static void HandleUnreadSubTree(DirEntry *dir_entry, DirEntry *de_ptr, BOOL *need_dsp_help, Statistic *s)
 {
-    if (s->mode != DISK_MODE && s->mode != USER_MODE) {
+    /* Renamed usage: s->mode -> s->login_mode */
+    if (s->login_mode != DISK_MODE && s->login_mode != USER_MODE) {
         return;
     }
     if( dir_entry->not_scanned || (dir_entry->sub_tree == NULL) ) {
@@ -1927,7 +1929,8 @@ int KeyF2Get(DirEntry *start_dir_entry,
       struct Volume *disk_vol = NULL;
 
       HASH_ITER(hh, VolumeList, v, tmp) {
-          if (v->vol_stats.mode == DISK_MODE) {
+          /* Renamed usage: v->vol_stats.mode -> v->vol_stats.login_mode */
+          if (v->vol_stats.login_mode == DISK_MODE) {
               disk_vol = v;
               break;
           }

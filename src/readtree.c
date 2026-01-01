@@ -389,7 +389,8 @@ int RescanDir(DirEntry *dir_entry, int depth, Statistic *s)
     char path[PATH_LENGTH + 1];
     FileEntry *fe_ptr, *next_fe_ptr;
 
-    if (!dir_entry || (s->mode != DISK_MODE && s->mode != USER_MODE)) {
+    /* Renamed usage: s->mode -> s->login_mode */
+    if (!dir_entry || (s->login_mode != DISK_MODE && s->login_mode != USER_MODE)) {
         return -1;
     }
 
