@@ -61,7 +61,7 @@ These commands work in most modes:
 *   **F1**: Help.
 *   **F2**: Select Directory (Log/Copy/Move).
 *   **F5**: Refresh (same as **^L**).
-*   **^L**: **Redraw**. Re-read the contents of the current directory from disk and refresh the view.
+*   **^L**: **Reload**. Re-read the contents of the current directory from disk and refresh the view.
 *   **K** (Shift+K): **Volume Menu**. Show a list of all currently logged volumes (drives/paths). Select a volume to switch context instantly. Press `Delete` (or `D`) in the menu to release (unlog) a volume.
 *   **<** / **>** (or **,** / **.**): **Cycle Volumes**. Switch to the previous or next logged volume instantly.
 *   **^Q**: **Quit to Directory**. If you exit ytree with ^Q, the last selected directory becomes your current working directory. *Note: This requires a shell wrapper function.*
