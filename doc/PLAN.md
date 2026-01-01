@@ -537,6 +537,12 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
     *   Reassemble the command string (prefix + completed token) before returning.
 *   - [ ] **Status:** Not Started.
 
+### **Step 4.43: Implement Fixed-Width Column Mode (Filename Truncation)**
+*   **Goal:** Modify the File Window logic to enforce a maximum column width (e.g., 32 characters) even if longer filenames exist. Filenames exceeding this width will be visually truncated (e.g., `00- Introductio~.pdf`) to ensure multiple columns are displayed.
+*   **Integration:** Add this as a new mode in the `^F` (File Mode) rotation, or add a configuration toggle (`COMPACT_COLUMNS=1`).
+*   **Rationale:** Currently, a single long filename forces the File Window into a inefficient single-column layout. This feature maximizes information density.
+*   - [ ] **Status:** Not Started.
+
 ---
 
 ## **Phase 5: Major Architectural Refactoring**
@@ -545,7 +551,7 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 ### **Step 5.1: Encapsulate Global UI & Configuration State**
 *   **Goal:** Refactor `global.c` to move remaining global variables (e.g., `dir_window`, `file_window`, `sort_order`, `mode`) into a unified `ViewContext` or `Panel` structure. Update function signatures throughout the application to accept a `Context*` pointer instead of relying on global state.
 *   **Rationale:** This is the absolute prerequisite for **Step 5.2 (F8 Split Screen)**. Currently, the application architecture assumes a single active view. To display and interact with two independent directory trees side-by-side (e.g., copying from Left to Right), the state must be instance-specific, not global.
-*   - [/] **Status:** In Progress.
+*   - [x] **Status:** Completed. Global pointers encapsulated in ViewContext. Compatibility maintained via macros.
 
 #### **Step 5.1.1: Encapsulate Directory State**
 *   **Goal:** Fix "Stale Cache" crashes by moving `dir_entry_list`, `dir_entry_list_capacity`, and `total_dirs` from static globals in `src/dirwin.c` into the `Volume` structure.

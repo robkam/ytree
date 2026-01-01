@@ -60,11 +60,11 @@ static char *dir_help[MAX_MODES][2] =
       dir_help_disk_mode_1
     },
     { /* LL_FILE_MODE */
-      "DIR       (F)ilter (^F)dirmode (L)og (^L)redraw (S)howall (T)ag (U)ntag (Q)uit",
+      "DIR       (F)ilter (^F)dirmode (L)og re(^L)oad (S)howall (T)ag (U)ntag (Q)uit",
       "COMMANDS                                                                           "
     },
     { /* ARCHIVE_MODE */
-      "ARCHIVE   (F)ilter (^F)dirmode (L)og (^L)redraw (S)howall (T)ag (U)ntag (Q)uit",
+      "ARCHIVE   (F)ilter (^F)dirmode (L)og re(^L)oad (S)howall (T)ag (U)ntag (Q)uit",
       "COMMANDS                                                                           "
     },
     { /* USER_MODE */
