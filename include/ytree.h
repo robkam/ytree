@@ -740,6 +740,45 @@ typedef struct _PathList {
 } PathList;
 
 
+/* View Context Structure for Split Screen Support
+ *
+ * This structure unifies the main application window pointers and state.
+ *
+ * Window Roles:
+ * - dir_window:        The top window displaying the Directory Tree.
+ * - small_file_window: The bottom window displaying the File List (Split View).
+ * - big_file_window:   A full-height window displaying the File List (Zoom View).
+ *                      This window physically overlaps both dir_window and small_file_window.
+ * - file_window:       A dynamic pointer that points to either small_file_window or
+ *                      big_file_window depending on the current view mode.
+ */
+typedef struct {
+  WINDOW *dir_window;
+  WINDOW *small_file_window;
+  WINDOW *big_file_window;
+  WINDOW *file_window;
+
+  /* Core State Variables Refactored */
+  struct Volume *current_volume;
+  int mode;
+  BOOL hide_dot_files;
+} ViewContext;
+
+extern ViewContext *GlobalView;
+
+/* Compatibility Macros */
+/* These map the legacy global variable names to the new GlobalView structure members,
+   allowing existing code to compile without modification. */
+#define dir_window (GlobalView->dir_window)
+#define small_file_window (GlobalView->small_file_window)
+#define big_file_window (GlobalView->big_file_window)
+#define file_window (GlobalView->file_window)
+
+#define CurrentVolume (GlobalView->current_volume)
+#define mode (GlobalView->mode)
+#define hide_dot_files (GlobalView->hide_dot_files)
+
+
 /* strerror() is POSIX, and all modern operating systems provide it.  */
 #define HAVE_STRERROR 1
 
@@ -748,10 +787,7 @@ extern const char *StrError(int);
 #endif /* HAVE_STRERROR */
 
 
-extern WINDOW *dir_window;
-extern WINDOW *small_file_window;
-extern WINDOW *big_file_window;
-extern WINDOW *file_window;
+/* Window Externs - The main view windows are now in ViewContext */
 extern WINDOW *error_window;
 extern WINDOW *history_window;
 extern WINDOW *matches_window;
@@ -759,20 +795,18 @@ extern WINDOW *f2_window;
 extern WINDOW *time_window;
 
 /* Global volume management */
-extern struct Volume *CurrentVolume;
 extern struct Volume *VolumeList;
 
 /* Compatibility layer for existing code using global 'statistic' and 'disk_statistic' */
 #define disk_statistic (CurrentVolume->vol_disk_stats)
 
-extern int       mode;
 extern int       user_umask;
 extern char      message[];
 extern BOOL	 print_time;
 extern BOOL      resize_request;
 extern BOOL      bypass_small_window;
 extern BOOL      highlight_full_line;
-extern BOOL      hide_dot_files;
+/* extern BOOL      hide_dot_files; // Removed, now macro */
 extern int       animation_method;
 extern char      number_seperator;
 extern char      *initial_directory;
