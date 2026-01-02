@@ -132,6 +132,10 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 *   **Description:** Refactor the core file matching logic to ensure that all active filters (Regex Patterns + Attributes + Date + Size) are cumulative (AND logic).
 *   - [x] **Status:** Completed. (Implemented via unified `Match()` function in `filters.c`).
 
+#### **Step 4.8.7: Implement Directory Filtering**
+*   **Description:** Extend the Filter logic to support directory patterns (identified by a trailing slash, e.g., `-obj/` or `build/`). Update the Directory Tree generation logic (`ReadDirList`) to apply these filters, completely hiding matching directories and their contents from the view.
+*   - [ ] **Status:** Not Started.
+
 ### **Step 4.9: Implement Multi-Volume Architecture & Global State Management**
 *   **Goal:** Transition Ytree from a single-instance root application to a **Session-Volume** file manager capable of holding multiple directory trees (drives/paths) in memory simultaneously.
 *   **Rationale:** To bridge the gap between Ytree and XTree/ZTree by enabling essential features: logging multiple disks, instant context switching between them, and performing operations on tags across different file systems. This requires replacing global static variables with dynamic data structures managed by efficient hash tables.

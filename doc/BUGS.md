@@ -42,4 +42,4 @@ Use this section to document bugs that have proven difficult to fix. Recording a
 
 *   **Archive "Collapse":** Directories inside archives cannot be collapsed (`-`) because they are virtual; collapsing currently requires a destructive re-scan which is inefficient for archives. (Addressed in Roadmap Step 5.4).
 *   **Archive Login Layout Glitch:** Occasionally, logging an archive results in the "Small File Window" rendering incorrectly within or overlapping the Directory Window area. (Intermittent/Not reliably reproducible).
-
+*   **Keybinding Mismatch (`*`):** The `*` key is intended to trigger `ACTION_TREE_EXPAND` (expand the current directory level). However, behavior is inconsistent, sometimes triggering file tagging instead, particularly when focus is ambiguous.
