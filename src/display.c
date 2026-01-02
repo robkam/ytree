@@ -19,21 +19,6 @@
 /* The 'mask' array is removed as the static statistics panel it defined
  * is now entirely managed by stats.c. */
 
-/* Mapped 'A_REVERSE' to '#' and 'ACS_CKBOARD' to ':' for ncurses ACS character rendering */
-static char *logo[] = {
-"             ###                                 ",
-"            :###                                 ",
-" ###  ###  #######    ######   ######    ######  ",
-":### :### :::###     :###::## :###::### :###::###",
-":### :###   :###     ###  ::  #######:  #######: ",
-":### :###   :### ## :###     :###:::   :###:::   ",
-"::#######   ::##### :###     ::######  ::######  ",
-" :::::###    :::::  :::       ::::::    ::::::   ",
-"  ## :###                                        ",
-" :######                                         ",
-" ::::::                                          "
-		      };
-
 /* 'extended_line' is removed as it was part of the static statistics panel
  * drawing logic, which is now obsolete. */
 
@@ -196,6 +181,12 @@ void DisplayMenu(void)
       PrintOptions( stdscr, y, 0, "|");
   }
 
+  if (layout.stats_width == 0) {
+      for( y=1; y < LINES - 4; y++ ) {
+          mvaddch(y, COLS - 1, ACS_VLINE);
+      }
+  }
+
   /* Draw the top horizontal line of the directory window frame. */
   PrintLine( stdscr, 1, 0, first_line, L_BORDER_FOR_DISPLAY );
 
@@ -206,53 +197,27 @@ void DisplayMenu(void)
   /* Draw the bottom horizontal border of the main content area. */
   PrintLine( stdscr, LINES - 4, 0, last_line, L_BORDER_FOR_DISPLAY );
 
+  if (layout.stats_width == 0) {
+      int right_x = COLS - 1;
+      int bottom_y = LINES - 4;
+      int sep_y = layout.dir_win_y + layout.dir_win_height;
+
+      /* Draw Right Vertical Line (Content Area) */
+      /* Start at y=2 (below top border) to bottom_y-1 */
+      for( y=2; y < bottom_y; y++ ) {
+          mvaddch(y, right_x, ACS_VLINE);
+      }
+
+      /* Explicitly Draw Corners and Junctions */
+      mvaddch(1, right_x, ACS_URCORNER);
+      mvaddch(bottom_y, right_x, ACS_LRCORNER);
+      mvaddch(sep_y, right_x, ACS_RTEE);
+  }
+
   /* The loops and calls related to drawing the static statistics panel (mask, extended_line, last_line)
    * have been removed as per the decoupling objective. */
 
-  /* Only display static logo if animation is disabled */
-  if (animation_method == 0) {
-      char version[80];
-      int logo_rows = sizeof(logo) / sizeof(logo[0]);
-      int start_y = (layout.dir_win_height - logo_rows) / 2;
-
-      /* Print Logo Centered */
-      for( y=0; y < logo_rows; y++ )
-      {
-        int start_x = (layout.dir_win_width - strlen(logo[y])) / 2;
-        char *p = logo[y];
-        wmove(dir_window, start_y + y, start_x);
-        while (*p != '\0') {
-            if (*p == '#') {
-                wattron(dir_window, A_REVERSE);
-                waddch(dir_window, ' ');
-                wattroff(dir_window, A_REVERSE);
-            } else if (*p == ':') {
-                waddch(dir_window, ACS_CKBOARD);
-            } else {
-                waddch(dir_window, ' ');
-            }
-            p++;
-        }
-      }
-
-      /* Print Version Below Logo */
-      (void) snprintf( version, sizeof(version),
-              "ytree Version %sPL%d, %s",
-              VERSION,
-              PATCHLEVEL,
-              VERSIONDATE
-            );
-      c = strlen(version);
-
-      /* Ensure it fits and position it 2 lines below logo */
-      if (start_y + logo_rows + 2 < layout.dir_win_height) {
-          MvWAddStr( dir_window,
-             start_y + logo_rows + 2,
-             (layout.dir_win_width - c) / 2,
-             version
-           );
-      }
-  }
+  /* Only display static logo if animation is disabled - REMOVED */
 
   /* DisplayVersion(); REMOVED from footer */
 
@@ -271,6 +236,11 @@ void SwitchToSmallFileWindow(void)
   /* Adjust PrintLine call to align with the new L_BORDER_FOR_DISPLAY logic */
   PrintLine( stdscr, separator_y, 0, middle_line_separator, COLS - layout.stats_width - 1 );
   /* The RTEE junction character at the stats panel border is now handled by stats.c:DrawBoxFrame */
+
+  if (layout.stats_width == 0) {
+      mvaddch(separator_y, COLS - 1, ACS_RTEE);
+  }
+
   file_window = small_file_window;
   RefreshWindow( stdscr );
 }
