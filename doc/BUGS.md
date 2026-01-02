@@ -42,4 +42,4 @@ Use this section to document bugs that have proven difficult to fix. Recording a
 
 *   **Archive "Collapse":** Directories inside archives cannot be collapsed (`-`) because they are virtual; collapsing currently requires a destructive re-scan which is inefficient for archives. (Addressed in Roadmap Step 5.4).
 *   **Archive Login Layout Glitch:** Occasionally, logging an archive results in the "Small File Window" rendering incorrectly within or overlapping the Directory Window area. (Intermittent/Not reliably reproducible).
-*   **Rendering Artifacts during Scan:** When loading a large filesystem, the "Scanning" animation or the Statistics panel border connectors (T-junctions) appear on the wrong lines or leave visual artifacts (orphaned junctions) from the previous screen state. (Relevant code: `src/stats.c`, `src/animate.c`).
+
