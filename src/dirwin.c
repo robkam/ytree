@@ -1226,9 +1226,7 @@ int HandleDirWindow(DirEntry *start_dir_entry)
        DisplayDirStatistic(dir_entry, NULL, s);
        DisplayDirParameter( dir_entry );
        need_dsp_help = TRUE;
-       DisplayAvailBytes(s);
-       DisplayFilter(s);
-       DisplayDiskName(s);
+       /* Removed redundant calls to fix missing T-junctions */
        /* Update header path after resize */
        {
            char path[PATH_LENGTH];

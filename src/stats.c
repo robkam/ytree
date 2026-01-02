@@ -245,18 +245,6 @@ static void DrawBoxFrame(void) {
         mvaddch(y, L_BORDER, ACS_VLINE);
     }
 
-    /* Force drawing of T-junctions for all fixed sections */
-    {
-        int seps[] = { y_vol_sep, y_vstat_sep, y_dstat_sep, y_attr_sep };
-        int i;
-        for (i = 0; i < 4; i++) {
-            if (seps[i] > 0) {
-                mvaddch(seps[i], L_BORDER, ACS_LTEE | A_BOLD | COLOR_PAIR(CPAIR_WINDIR));
-                mvaddch(seps[i], R_BORDER, ACS_RTEE | A_BOLD | COLOR_PAIR(CPAIR_WINDIR));
-            }
-        }
-    }
-
     /* --- Junctions --- */
     mvaddch(Y_TOP, L_BORDER, ACS_TTEE); /* Connects to Path bar in main win */
 
@@ -559,6 +547,7 @@ void DisplayDirStatistic(DirEntry *de, const char *title, Statistic *s)
 
 void DisplayFileParameter(FileEntry *fe)
 {
+    if (layout.stats_width == 0) return;
     if (fe) {
         DrawAttributes(fe->name, &fe->stat_struct, fe);
     }
@@ -569,19 +558,23 @@ void DisplayFileParameter(FileEntry *fe)
 /* ************************************************************************* */
 
 void DisplayDiskTagged(Statistic *s) {
+    if (layout.stats_width == 0) return;
     DisplayDiskStatistic(s);
 }
 
 void DisplayDirTagged(DirEntry *de, Statistic *s) {
+    if (layout.stats_width == 0) return;
     DisplayDirStatistic(de, NULL, s);
 }
 
 void DisplayDirParameter(DirEntry *de) {
+    if (layout.stats_width == 0) return;
     if (de) {
         DrawAttributes(de->name, &de->stat_struct, NULL);
     }
 }
 
 void DisplayGlobalFileParameter(FileEntry *fe) {
+    if (layout.stats_width == 0) return;
     DisplayFileParameter(fe);
 }

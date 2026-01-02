@@ -1527,6 +1527,7 @@ int HandleFileWindow(DirEntry *dir_entry)
 	 DisplayGlobalFileParameter(fe_ptr);
        } else {
 	 DisplayFileWindow(dir_entry);
+	 DisplayDiskStatistic(s); /* Added */
 	 DisplayDirStatistic(dir_entry, NULL, s);
 	 DisplayFileParameter(fe_ptr);
        }
@@ -1538,14 +1539,13 @@ int HandleFileWindow(DirEntry *dir_entry)
        DisplayTree( CurrentVolume, dir_window, s->disp_begin_pos,
 		  s->disp_begin_pos + s->cursor_pos
 		);
+       DisplayDiskStatistic(s); /* Added per instructions */
        DisplayFileWindow(dir_entry);
        DisplayDirStatistic(dir_entry, NULL, s);
        DisplayFileParameter(fe_ptr);
      }
      need_dsp_help = TRUE;
-     DisplayAvailBytes(s);
-     DisplayFilter(s);
-     DisplayDiskName(s);
+     /* Removed redundant calls to fix missing T-junctions */
      resize_request = FALSE;
    }
 
@@ -2862,7 +2862,7 @@ static void WalkTaggedFiles(int start_file,
     }
   }
 
-  if( baudrate() >= QUICK_BAUD_RATE ) typeahead( -1 );
+  if (baudrate() >= QUICK_BAUD_RATE ) typeahead( -1 );
 }
 
 /*
