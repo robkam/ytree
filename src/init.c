@@ -32,7 +32,11 @@ void Layout_Recalculate(void)
     int available_height = LINES - 6;
     if (available_height < 1) available_height = 1;
 
-    layout.stats_width = 24;
+    if (GlobalView && GlobalView->show_stats) {
+        layout.stats_width = 24;
+    } else {
+        layout.stats_width = 0;
+    }
     int stats_margin = 2;
     layout.main_win_width = COLS - layout.stats_width - stats_margin;
 
@@ -75,6 +79,7 @@ int Init(char *configuration_file, char *history_file)
       fprintf(stderr, "Fatal Error: Memory allocation failed for GlobalView.\n");
       exit(1);
   }
+  GlobalView->show_stats = TRUE;
 
   /* Initialize global mode default */
   GlobalView->view_mode = DISK_MODE;

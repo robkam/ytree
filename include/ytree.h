@@ -730,6 +730,7 @@ typedef enum {
     /* Function Keys */
     ACTION_LIST_JUMP,            /* F12 */
     ACTION_TOGGLE_TAGGED_MODE,   /* 8, Shift-F4 */
+    ACTION_TOGGLE_STATS,         /* ADDED */
     ACTION_USER_CMD              /* Reserved for future */
 } YtreeAction;
 
@@ -758,6 +759,7 @@ typedef struct {
   WINDOW *big_file_window;
   WINDOW *file_window;
   int view_mode; /* Operation mode (DISK_MODE, ARCHIVE_MODE, etc.) */
+  BOOL show_stats; /* ADDED */
 } ViewContext;
 
 extern ViewContext *GlobalView;

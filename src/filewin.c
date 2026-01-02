@@ -2725,6 +2725,11 @@ int HandleFileWindow(DirEntry *dir_entry)
 
       case ACTION_RESIZE: resize_request = TRUE; break;
 
+      case ACTION_TOGGLE_STATS: /* ADDED */
+               GlobalView->show_stats = !GlobalView->show_stats;
+               resize_request = TRUE;
+               break;
+
       case ACTION_ESCAPE:    break; /* Handled by loop condition */
 
       case ACTION_LIST_JUMP:
