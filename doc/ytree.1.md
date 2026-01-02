@@ -61,6 +61,7 @@ These commands work in most modes:
 *   **F1**: Help.
 *   **F2**: Select Directory (Log/Copy/Move).
 *   **F5**: Refresh (same as **^L**).
+*   **F6**: Toggle Statistics Panel (Wide Mode).
 *   **^L**: **Reload**. Re-read the contents of the current directory from disk and refresh the view.
 *   **K** (Shift+K): **Volume Menu**. Show a list of all currently logged volumes (drives/paths). Select a volume to switch context instantly. Press `Delete` (or `D`) in the menu to release (unlog) a volume.
 *   **<** / **>** (or **,** / **.**): **Cycle Volumes**. Switch to the previous or next logged volume instantly.
