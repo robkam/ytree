@@ -426,6 +426,8 @@ void DisplayDiskName(Statistic *s)
     struct Volume *vol_iter, *tmp;
     int i = 1;
 
+    if (layout.stats_width == 0) return;
+
     /* Recalculate layout based on current terminal height */
     RecalcLayout();
 
@@ -495,6 +497,8 @@ void DisplayFilter(Statistic *s) {
 
 void DisplayDiskStatistic(Statistic *s)
 {
+    if (layout.stats_width == 0) return;
+
     DisplayDiskName(s);
 
     DrawSeparator(y_vstat_sep, "VOLUME STATS");
@@ -509,6 +513,8 @@ void DisplayDiskStatistic(Statistic *s)
 void DisplayDirStatistic(DirEntry *de, const char *title, Statistic *s)
 {
     char buf[128];
+
+    if (layout.stats_width == 0) return;
 
     if (!de) return;
 

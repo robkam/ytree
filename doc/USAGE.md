@@ -78,7 +78,7 @@ These commands work in most modes:
 - **F1**: Help.
 - **F2**: Select Directory (Log/Copy/Move).
 - **F5**: Refresh (same as **^L**).
-- **^L**: **Redraw**. Re-read the contents of the current directory from
+- **^L**: **Reload**. Re-read the contents of the current directory from
   disk and refresh the view.
 - **K** (Shift+K): **Volume Menu**. Show a list of all currently logged
   volumes (drives/paths). Select a volume to switch context instantly.

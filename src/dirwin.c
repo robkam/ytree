@@ -1246,6 +1246,11 @@ int HandleDirWindow(DirEntry *start_dir_entry)
       case ACTION_RESIZE: resize_request = TRUE;
       		       break;
 
+      case ACTION_TOGGLE_STATS:
+               GlobalView->show_stats = !GlobalView->show_stats;
+               resize_request = TRUE;
+               break;
+
       case ACTION_NONE:  /* -1 or unhandled keys */
                          if (ch == -1) break; /* Ignore -1 (resize_request handled above) */
                          /* Fall through for other unhandled keys to beep */
