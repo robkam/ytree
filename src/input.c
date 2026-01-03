@@ -704,7 +704,7 @@ YtreeAction GetKeyAction(int ch)
 
         /* Tree Ops */
         case '\t':      return ACTION_MOVE_SIBLING_NEXT; /* TAB: Jump to next sibling */
-        case '*':       return ACTION_TREE_EXPAND;       /* Asterisk: Expand tree */
+        case '*':       return ACTION_ASTERISK;          /* Asterisk: Expand All / Invert Tags */
         case KEY_BTAB:  return ACTION_MOVE_SIBLING_PREV; /* Back-tab: Jump to prev sibling */
         case '-':       return ACTION_TREE_COLLAPSE;
         case '+':       return ACTION_TREE_EXPAND_ALL;

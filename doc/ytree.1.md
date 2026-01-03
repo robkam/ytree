@@ -92,6 +92,7 @@ Active when browsing the directory tree window.
 *   **`** (Backtick): Toggle visibility of hidden dot-files and directories.
 *   **^F** (Dir Mode): Cycle directory display modes (Filenames only -> Attributes -> Inode/Owner -> Times).
 *   **Return**: Switch to File Mode (focus the file window).
+*   **\*** (Asterisk): Expand the current directory and all its subdirectories.
 
 ### File Mode
 Active when the file window is focused.

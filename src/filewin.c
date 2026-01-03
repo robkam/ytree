@@ -2766,7 +2766,7 @@ int HandleFileWindow(DirEntry *dir_entry)
         maybe_change_x_step = TRUE;
         break;
 
-    case ACTION_TREE_EXPAND: /* Mapped to '*' for Invert Tags in File Window */
+    case ACTION_ASTERISK: /* Mapped to '*' for Invert Tags in File Window */
         HandleInvertTags(dir_entry, s);
         need_dsp_help = TRUE;
         break;
