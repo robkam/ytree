@@ -1008,6 +1008,7 @@ extern int ViKey( int ch );
 extern int VisualPositionToBytePosition(const char *str, int visual_pos);
 extern int WGetch(WINDOW *win);
 extern YtreeAction GetKeyAction(int ch); /* ADDED: Prototype for GetKeyAction */
+extern int GetEventOrKey(void); /* ADDED: Prototype for Event Loop integration */
 
 /* log.c */
 extern int GetNewLoginPath(char *path);
@@ -1121,5 +1122,7 @@ extern int FileUserMode(FileEntryList *file_entry_list, int ch);
 /* view.c */
 extern int View(DirEntry * dir_entry, char *file_path);
 extern int InternalView(char *file_path); /* Ensure this is present and exported */
+
+#include "watcher.h"
 
 #endif /* YTREE_H */

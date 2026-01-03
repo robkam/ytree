@@ -44,6 +44,18 @@ Unlike standard `ls`-based managers, ytree “logs” (scans) directory
 structures into memory. This allows for instant navigation and searching
 without disk lag. Use the **l** command to log new paths or archives.
 
+### Auto-Refresh
+
+ytree monitors the **currently selected directory** for changes
+(created/deleted/modified files) and updates the file list
+automatically.
+
+**Note:** This monitoring is **active only for the current directory**.
+Changes occurring in parent or sibling directories while they are not
+selected will not be detected automatically. Use **^L** (Reload) or
+**F5** to refresh the view when navigating back to previously modified
+areas.
+
 # MODES AND NAVIGATION
 
 **ytree** operates in distinct modes. The active mode determines
@@ -78,6 +90,7 @@ These commands work in most modes:
 - **F1**: Help.
 - **F2**: Select Directory (Log/Copy/Move).
 - **F5**: Refresh (same as **^L**).
+- **F6**: Toggle Statistics Panel (Wide Mode).
 - **^L**: **Reload**. Re-read the contents of the current directory from
   disk and refresh the view.
 - **K** (Shift+K): **Volume Menu**. Show a list of all currently logged

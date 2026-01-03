@@ -8,6 +8,11 @@
 
 
 #include "ytree.h"
+#include "watcher.h"
+#include <sys/select.h>
+#include <unistd.h>
+#include <errno.h>
+
 #ifdef READLINE_SUPPORT
 #include <readline/tilde.h>
 #endif
@@ -819,4 +824,68 @@ int WGetch(WINDOW *win)
 int Getch()
 {
   return(WGetch(stdscr));
+}
+
+int GetEventOrKey(void)
+{
+    int ch;
+    int w_fd = Watcher_GetFD();
+    fd_set fds;
+    int max_fd;
+    int result;
+
+    /* 1. Check for pending resize or buffered input first */
+    if (resize_request) return KEY_RESIZE;
+
+    /* 2. Check ncurses internal buffer (non-blocking) */
+    nodelay(stdscr, TRUE);
+    ch = WGetch(stdscr);
+    nodelay(stdscr, FALSE);
+    if (ch != ERR) return ch;
+    /* Check again in case WGetch set the flag but returned ERR */
+    if (resize_request) return KEY_RESIZE;
+
+    while (1) {
+        FD_ZERO(&fds);
+        FD_SET(STDIN_FILENO, &fds);
+        max_fd = STDIN_FILENO;
+
+        if (w_fd >= 0) {
+            FD_SET(w_fd, &fds);
+            if (w_fd > max_fd) max_fd = w_fd;
+        }
+
+        /* 3. Wait for input or event */
+        result = select(max_fd + 1, &fds, NULL, NULL, NULL);
+
+        if (result == -1) {
+            if (errno == EINTR) {
+                /* Signal received (likely SIGWINCH).
+                   Check for KEY_RESIZE in ncurses buffer. */
+                nodelay(stdscr, TRUE);
+                ch = WGetch(stdscr);
+                nodelay(stdscr, FALSE);
+                if (ch != ERR) return ch;
+                if (resize_request) return KEY_RESIZE; /* FIX: Check flag */
+
+                /* If just a signal and no key, retry select */
+                continue;
+            }
+            return -1; /* Error */
+        }
+
+        /* 4. Handle File System Events */
+        if (w_fd >= 0 && FD_ISSET(w_fd, &fds)) {
+            if (Watcher_ProcessEvents()) {
+                return KEY_F(5); /* Trigger Refresh */
+            }
+            /* If event was filtered (e.g. ignored), continue waiting */
+        }
+
+        /* 5. Handle Keyboard Input */
+        if (FD_ISSET(STDIN_FILENO, &fds)) {
+            /* STDIN ready, perform blocking read */
+            return WGetch(stdscr);
+        }
+    }
 }

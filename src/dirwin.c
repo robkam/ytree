@@ -7,6 +7,7 @@
 
 
 #include "ytree.h"
+#include "watcher.h"
 
 
 static int current_dir_entry;
@@ -1096,6 +1097,7 @@ int HandleDirWindow(DirEntry *start_dir_entry)
   struct Volume *start_vol = CurrentVolume; /* Track global volume changes */
   Statistic *s = &CurrentVolume->vol_stats;
   int height, width;
+  char watcher_path[PATH_LENGTH + 1];
 
   unput_char = 0;
   de_ptr = NULL;
@@ -1192,6 +1194,12 @@ int HandleDirWindow(DirEntry *start_dir_entry)
     }
     DisplayDirParameter( dir_entry );
     RefreshWindow( dir_window );
+
+    if (s->login_mode == DISK_MODE || s->login_mode == USER_MODE) {
+        GetPath(dir_entry, watcher_path);
+        Watcher_SetDir(watcher_path);
+    }
+
     if( unput_char )
     {
       ch = unput_char;
@@ -1200,7 +1208,7 @@ int HandleDirWindow(DirEntry *start_dir_entry)
     else
     {
       doupdate();
-      ch = (resize_request) ? -1 : Getch();
+      ch = (resize_request) ? -1 : GetEventOrKey();
       /* LF to CR normalization is now handled by GetKeyAction */
     }
 
