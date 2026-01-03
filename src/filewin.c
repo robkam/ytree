@@ -6,6 +6,7 @@
  ***************************************************************************/
 
 #include "ytree.h"
+#include "watcher.h"
 
 #define MAX( a, b ) ( ( (a) > (b) ) ? (a) : (b) )
 
@@ -1396,6 +1397,7 @@ int HandleFileWindow(DirEntry *dir_entry)
   Statistic *s = &CurrentVolume->vol_stats;
   int pclose_ret;
   int height, width;
+  char watcher_path[PATH_LENGTH + 1];
 
   unput_char = '\0';
   fe_ptr = NULL;
@@ -1443,6 +1445,11 @@ int HandleFileWindow(DirEntry *dir_entry)
 		dir_entry->start_file + dir_entry->cursor_pos,
 		start_x
 	      );
+
+  if (s->login_mode == DISK_MODE || s->login_mode == USER_MODE) {
+      GetPath(dir_entry, watcher_path);
+      Watcher_SetDir(watcher_path);
+  }
 
   do
   {
@@ -1493,7 +1500,7 @@ int HandleFileWindow(DirEntry *dir_entry)
       RefreshWindow( dir_window ); /* needed: ncurses-bug ? */
       RefreshWindow( file_window );
       doupdate();
-      ch = (resize_request) ? -1 : Getch();
+      ch = (resize_request) ? -1 : GetEventOrKey();
       if( ch == LF ) ch = CR;
     }
 

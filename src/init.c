@@ -10,6 +10,7 @@
 
 
 #include "ytree.h"
+#include "watcher.h"
 
 
 static WINDOW *Subwin(WINDOW *orig, int nlines, int ncols,
@@ -155,6 +156,7 @@ int Init(char *configuration_file, char *history_file)
   initial_directory = INITIALDIR;
 
   InitClock();
+  Watcher_Init();
 
   return( 0 );
 }
