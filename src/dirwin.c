@@ -454,6 +454,13 @@ static void Movedown(int *disp_begin_pos, int *cursor_pos, DirEntry **dir_entry,
         (*disp_begin_pos)++;
     }
     *dir_entry = CurrentVolume->dir_entry_list[*disp_begin_pos + *cursor_pos].dir_entry;
+
+    if (GlobalView->refresh_mode & REFRESH_ON_NAV) {
+        *dir_entry = RefreshTreeSafe(*dir_entry);
+        /* Re-sync *dir_entry to global stats which RefreshTreeSafe might have adjusted */
+        *dir_entry = CurrentVolume->dir_entry_list[*disp_begin_pos + *cursor_pos].dir_entry;
+    }
+
     (*dir_entry)->start_file = 0;
     (*dir_entry)->cursor_pos = -1;
     DisplayTree(CurrentVolume, dir_window, *disp_begin_pos, *disp_begin_pos + *cursor_pos);
@@ -484,6 +491,13 @@ static void Moveup(int *disp_begin_pos, int *cursor_pos, DirEntry **dir_entry, S
         (*disp_begin_pos)--;
     }
     *dir_entry = CurrentVolume->dir_entry_list[*disp_begin_pos + *cursor_pos].dir_entry;
+
+    if (GlobalView->refresh_mode & REFRESH_ON_NAV) {
+        *dir_entry = RefreshTreeSafe(*dir_entry);
+        /* Re-sync *dir_entry to global stats which RefreshTreeSafe might have adjusted */
+        *dir_entry = CurrentVolume->dir_entry_list[*disp_begin_pos + *cursor_pos].dir_entry;
+    }
+
     (*dir_entry)->start_file = 0;
     (*dir_entry)->cursor_pos = -1;
     DisplayTree(CurrentVolume, dir_window, *disp_begin_pos, *disp_begin_pos + *cursor_pos);
@@ -533,6 +547,13 @@ static void Movenpage(int *disp_begin_pos, int *cursor_pos, DirEntry **dir_entry
           }
       }
       *dir_entry = CurrentVolume->dir_entry_list[*disp_begin_pos + *cursor_pos].dir_entry;
+
+      if (GlobalView->refresh_mode & REFRESH_ON_NAV) {
+          *dir_entry = RefreshTreeSafe(*dir_entry);
+          /* Re-sync *dir_entry to global stats which RefreshTreeSafe might have adjusted */
+          *dir_entry = CurrentVolume->dir_entry_list[*disp_begin_pos + *cursor_pos].dir_entry;
+      }
+
       (*dir_entry)->start_file = 0;
       (*dir_entry)->cursor_pos = -1;
       DisplayTree(CurrentVolume, dir_window,*disp_begin_pos,*disp_begin_pos+*cursor_pos);
@@ -574,6 +595,13 @@ static void Moveppage(int *disp_begin_pos, int *cursor_pos, DirEntry **dir_entry
          *cursor_pos = 0;
       }
       *dir_entry = CurrentVolume->dir_entry_list[*disp_begin_pos + *cursor_pos].dir_entry;
+
+      if (GlobalView->refresh_mode & REFRESH_ON_NAV) {
+          *dir_entry = RefreshTreeSafe(*dir_entry);
+          /* Re-sync *dir_entry to global stats which RefreshTreeSafe might have adjusted */
+          *dir_entry = CurrentVolume->dir_entry_list[*disp_begin_pos + *cursor_pos].dir_entry;
+      }
+
       (*dir_entry)->start_file = 0;
       (*dir_entry)->cursor_pos = -1;
       DisplayTree(CurrentVolume, dir_window,*disp_begin_pos,*disp_begin_pos+*cursor_pos);
@@ -595,6 +623,13 @@ static void MoveEnd(DirEntry **dir_entry, Statistic *s)
     s->disp_begin_pos = MAXIMUM(0, CurrentVolume->total_dirs - layout.dir_win_height);
     s->cursor_pos     = CurrentVolume->total_dirs - s->disp_begin_pos - 1;
     *dir_entry = CurrentVolume->dir_entry_list[s->disp_begin_pos + s->cursor_pos].dir_entry;
+
+    if (GlobalView->refresh_mode & REFRESH_ON_NAV) {
+        *dir_entry = RefreshTreeSafe(*dir_entry);
+        /* Re-sync *dir_entry to global stats which RefreshTreeSafe might have adjusted */
+        *dir_entry = CurrentVolume->dir_entry_list[s->disp_begin_pos + s->cursor_pos].dir_entry;
+    }
+
     (*dir_entry)->start_file = 0;
     (*dir_entry)->cursor_pos = -1;
     DisplayFileWindow( *dir_entry );
@@ -622,6 +657,13 @@ static void MoveHome(DirEntry **dir_entry, Statistic *s)
        s->disp_begin_pos = 0;
        s->cursor_pos     = 0;
        *dir_entry = CurrentVolume->dir_entry_list[s->disp_begin_pos + s->cursor_pos].dir_entry;
+
+       if (GlobalView->refresh_mode & REFRESH_ON_NAV) {
+           *dir_entry = RefreshTreeSafe(*dir_entry);
+           /* Re-sync *dir_entry to global stats which RefreshTreeSafe might have adjusted */
+           *dir_entry = CurrentVolume->dir_entry_list[s->disp_begin_pos + s->cursor_pos].dir_entry;
+       }
+
        (*dir_entry)->start_file = 0;
        (*dir_entry)->cursor_pos = -1;
        DisplayFileWindow( *dir_entry );
@@ -848,8 +890,12 @@ static void HandleSwitchWindow(DirEntry *dir_entry, BOOL *need_dsp_help, int *ch
             RefreshWindow( small_file_window );
             RefreshWindow( big_file_window );
 	    BuildDirEntryList( CurrentVolume );
+
+            touchwin(dir_window);
             DisplayTree( CurrentVolume, dir_window, s->disp_begin_pos,
 			 s->disp_begin_pos + s->cursor_pos);
+            RefreshWindow(dir_window);
+
 	    DisplayDiskStatistic(s);
         DisplayDirStatistic(dir_entry, NULL, s);
 	} else {
@@ -975,7 +1021,7 @@ void ToggleDotFiles(void)
  * Saves expansion state and tags, rescans from disk, restores state, and refreshes the UI.
  * Can be called from both Directory Window and File Window.
  */
-void RefreshTreeSafe(DirEntry *entry)
+DirEntry *RefreshTreeSafe(DirEntry *entry)
 {
     Statistic *s = &CurrentVolume->vol_stats;
     /* Determine root for refresh logic: if user is in a sub-dir, refresh context matters */
@@ -986,6 +1032,12 @@ void RefreshTreeSafe(DirEntry *entry)
     werase(dir_window);
     werase(file_window);
     refresh(); /* Force clear */
+
+    /* Capture flags here to preserve state across destructive rescan */
+    BOOL saved_big_window = entry->big_window;
+    BOOL saved_login_flag = entry->login_flag;
+    BOOL saved_global_flag = entry->global_flag;
+    BOOL saved_tagged_flag = entry->tagged_flag;
 
     if (mode != ARCHIVE_MODE) {
         PathList *expanded = NULL;
@@ -1018,6 +1070,12 @@ void RefreshTreeSafe(DirEntry *entry)
         /* If we only rescan `entry`, we preserve other branches automatically (not touched). */
         /* So `RestoreTreeState(s->tree)` is safe because it will just re-traverse unchanged nodes. */
         RescanDir(entry, strtol(TREEDEPTH, NULL, 0), s);
+
+        /* 2a. Restore critical flags destroyed by ReadTree */
+        entry->big_window = saved_big_window;
+        entry->login_flag = saved_login_flag;
+        entry->global_flag = saved_global_flag;
+        entry->tagged_flag = saved_tagged_flag;
 
         /* 3. Restore State */
         RestoreTreeState(s->tree, expanded, tagged, s);
@@ -1066,6 +1124,12 @@ void RefreshTreeSafe(DirEntry *entry)
     } else {
         /* Archive Mode - Standard Rescan */
         RescanDir(entry, strtol(TREEDEPTH, NULL, 0), s);
+        /* Restore flags for Archive mode too, as RescanDir/ReadTree clears them */
+        entry->big_window = saved_big_window;
+        entry->login_flag = saved_login_flag;
+        entry->global_flag = saved_global_flag;
+        entry->tagged_flag = saved_tagged_flag;
+
         BuildDirEntryList(CurrentVolume);
         /* Basic bounds check */
         if (CurrentVolume->total_dirs > 0 && (s->disp_begin_pos + s->cursor_pos >= CurrentVolume->total_dirs)) {
@@ -1082,6 +1146,8 @@ void RefreshTreeSafe(DirEntry *entry)
     DisplayFileWindow(entry);
     DisplayDiskStatistic(s);
     DisplayDirStatistic(entry, NULL, s);
+
+    return entry;
 }
 
 
@@ -1196,8 +1262,10 @@ int HandleDirWindow(DirEntry *start_dir_entry)
     RefreshWindow( dir_window );
 
     if (s->login_mode == DISK_MODE || s->login_mode == USER_MODE) {
-        GetPath(dir_entry, watcher_path);
-        Watcher_SetDir(watcher_path);
+        if (GlobalView->refresh_mode & REFRESH_WATCHER) {
+            GetPath(dir_entry, watcher_path);
+            Watcher_SetDir(watcher_path);
+        }
     }
 
     if( unput_char )
@@ -1307,6 +1375,11 @@ int HandleDirWindow(DirEntry *start_dir_entry)
                         /* Sync */
                         dir_entry = CurrentVolume->dir_entry_list[s->disp_begin_pos + s->cursor_pos].dir_entry;
 
+                        if (GlobalView->refresh_mode & REFRESH_ON_NAV) {
+                            dir_entry = RefreshTreeSafe(dir_entry);
+                            break; /* Skip manual refresh logic below */
+                        }
+
                         /* Refresh */
                         DisplayTree(CurrentVolume, dir_window, s->disp_begin_pos, s->disp_begin_pos + s->cursor_pos);
                         DisplayFileWindow(dir_entry);
@@ -1364,6 +1437,11 @@ int HandleDirWindow(DirEntry *start_dir_entry)
                         }
                         /* Sync */
                         dir_entry = CurrentVolume->dir_entry_list[s->disp_begin_pos + s->cursor_pos].dir_entry;
+
+                        if (GlobalView->refresh_mode & REFRESH_ON_NAV) {
+                            dir_entry = RefreshTreeSafe(dir_entry);
+                            break; /* Skip manual refresh logic below */
+                        }
 
                         /* Refresh */
                         DisplayTree(CurrentVolume, dir_window, s->disp_begin_pos, s->disp_begin_pos + s->cursor_pos);
@@ -1575,12 +1653,18 @@ int HandleDirWindow(DirEntry *start_dir_entry)
       case ACTION_CMD_S:
 		     HandleShowAll(FALSE, dir_entry, &need_dsp_help, &ch, s);
 		     break;
-      case ACTION_ENTER: HandleSwitchWindow(dir_entry, &need_dsp_help, &ch, s);
+      case ACTION_ENTER:
+             if (GlobalView->refresh_mode & REFRESH_ON_ENTER) {
+                 dir_entry = RefreshTreeSafe(dir_entry);
+                 /* Sync pointer from list in case address changed */
+                 dir_entry = CurrentVolume->dir_entry_list[s->disp_begin_pos + s->cursor_pos].dir_entry;
+             }
+             HandleSwitchWindow(dir_entry, &need_dsp_help, &ch, s);
 		     break;
       case ACTION_CMD_X: if (mode != DISK_MODE && mode != USER_MODE) {
 		     } else {
 			 (void) Execute( dir_entry, NULL );
-             RefreshTreeSafe(dir_entry); /* Auto-Refresh after command */
+             dir_entry = RefreshTreeSafe(dir_entry); /* Auto-Refresh after command */
 		     }
 		     need_dsp_help = TRUE;
 		     DisplayAvailBytes(s);
@@ -1640,7 +1724,7 @@ int HandleDirWindow(DirEntry *start_dir_entry)
 		     need_dsp_help = TRUE;
 		     break;
       case ACTION_REFRESH: /* Rescan */
-             RefreshTreeSafe(dir_entry);
+             dir_entry = RefreshTreeSafe(dir_entry);
              need_dsp_help = TRUE;
              break;
       case ACTION_CMD_G: (void) ChangeDirGroup( dir_entry );

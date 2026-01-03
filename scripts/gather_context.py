@@ -27,7 +27,7 @@ from prompt_toolkit.styles import Style
 # -----------------------------------------------------------------------------
 
 # Directories to ignore completely
-IGNORE_DIRS = {'.git', '.venv', 'obj', 'build', '__pycache__', '.vscode', 'scripts'}
+IGNORE_DIRS = {'.git', '.venv', 'obj', 'build', '__pycache__', '.vscode', 'scripts', '.pytest_cache'}
 
 # Allowed extensions
 INCLUDE_EXTS = {'.c', '.h', '.md', '.conf', '.py', '.sh'}

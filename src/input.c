@@ -648,16 +648,22 @@ BOOL KeyPressed()
 }
 
 
-BOOL EscapeKeyPressed()
+BOOL EscapeKeyPressed(void)
 {
+  int c;
   BOOL pressed = FALSE;
-  int  c;
 
   nodelay( stdscr, TRUE );
-  if( ( c = wgetch( stdscr ) ) != ERR ) pressed = TRUE;
+  if( ( c = wgetch( stdscr ) ) != ERR ) {
+      if (c == ESC) {
+          pressed = TRUE;
+      } else {
+          ungetch(c); /* Push back non-ESC characters */
+      }
+  }
   nodelay( stdscr, FALSE );
 
-  return( ( pressed && c == ESC ) ? TRUE : FALSE );
+  return( pressed );
 }
 
 
@@ -876,7 +882,7 @@ int GetEventOrKey(void)
         }
 
         /* 4. Handle File System Events */
-        if (w_fd >= 0 && FD_ISSET(w_fd, &fds)) {
+        if ((GlobalView->refresh_mode & REFRESH_WATCHER) && w_fd >= 0 && FD_ISSET(w_fd, &fds)) {
             if (Watcher_ProcessEvents()) {
                 return KEY_F(5); /* Trigger Refresh */
             }

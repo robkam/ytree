@@ -60,6 +60,7 @@ int DeleteFile(FileEntry *fe_ptr, int *auto_override, Statistic *s)
         MESSAGE( message );
         ESCAPE;
       }
+      flushinp();
     }
   }
 

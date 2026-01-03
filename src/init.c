@@ -82,6 +82,7 @@ int Init(char *configuration_file, char *history_file)
   }
   GlobalView->show_stats = TRUE;
   GlobalView->fixed_col_width = 0; /* ADDED */
+  GlobalView->refresh_mode = strtol(AUTO_REFRESH, NULL, 0); /* ADDED */
 
   /* Initialize global mode default */
   GlobalView->view_mode = DISK_MODE;
@@ -157,7 +158,7 @@ int Init(char *configuration_file, char *history_file)
   initial_directory = INITIALDIR;
 
   InitClock();
-  Watcher_Init();
+  if (GlobalView->refresh_mode & REFRESH_WATCHER) Watcher_Init();
 
   return( 0 );
 }

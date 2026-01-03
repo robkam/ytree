@@ -184,6 +184,11 @@ ytree looks for a configuration file at `~/.ytree`. A default is provided in `yt
 ### Key Options
 
 *   **ANIMATION=1**: Enable the warp-speed starfield during scans.
+*   **AUTO_REFRESH=3**: Control automatic refresh behavior (Bitmask). Add values to combine modes.
+    *   **1**: Enable File System Watcher (Inotify).
+    *   **2**: Refresh on Directory Navigation (Cursor move).
+    *   **4**: Refresh when entering the File Window.
+    *   *Default*: `3` (1 + 2) enables both Watcher and Navigation Refresh.
 *   **HIDEDOTFILES=1**: Hide files starting with `.` by default.
 *   **[COLORS]**: Customize the color scheme.
 

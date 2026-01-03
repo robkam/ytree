@@ -60,6 +60,7 @@ static Filemenu filemenu;
 static Profile profile[] = {
   { "ANIMATION",        DEFAULT_ANIMATION,     NULL,     NULL },
   { "AUDIBLEERROR", 	DEFAULT_AUDIBLEERROR,  NULL, NULL },
+  { "AUTO_REFRESH",     DEFAULT_AUTO_REFRESH,  NULL,     NULL }, /* ADDED */
   { "BUNZIP",       	DEFAULT_BUNZIP,        NULL,     NULL },
   { "CAT",          	DEFAULT_CAT,           NULL,     NULL },
   { "CONFIRMQUIT",   	DEFAULT_CONFIRMQUIT, NULL,     NULL },
