@@ -1662,10 +1662,10 @@ int HandleDirWindow(DirEntry *start_dir_entry)
 		     need_dsp_help = TRUE;
 		     break;
 
-      case ACTION_CMD_B: /* About Box */
-                     AboutBox();
-                     need_dsp_help = TRUE;
-                     break;
+      case ACTION_TOGGLE_COMPACT:
+             GlobalView->fixed_col_width = (GlobalView->fixed_col_width == 0) ? 32 : 0;
+             resize_request = TRUE;
+             break;
 
       case ACTION_CMD_P: /* Pipe Directory */
                      PipeDirectory(dir_entry);

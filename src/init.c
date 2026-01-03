@@ -81,6 +81,7 @@ int Init(char *configuration_file, char *history_file)
       exit(1);
   }
   GlobalView->show_stats = TRUE;
+  GlobalView->fixed_col_width = 0; /* ADDED */
 
   /* Initialize global mode default */
   GlobalView->view_mode = DISK_MODE;

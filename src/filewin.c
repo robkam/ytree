@@ -84,6 +84,8 @@ void SetFileMode(int new_file_mode)
 
 static int GetVisualFileEntryLength(int p_mode, int max_visual_filename_len, int max_visual_linkname_len)
 {
+  if (GlobalView->fixed_col_width > 0) return GlobalView->fixed_col_width;
+
   int len = 0;
 
   switch (p_mode)
@@ -588,6 +590,43 @@ static void PrintFileEntry(int entry_no, int y, int x, unsigned char hilight, in
 
   getmaxyx(file_window, height, width);
 
+  fe_ptr = CurrentVolume->file_entry_list[entry_no].file;
+
+  if (GlobalView->fixed_col_width > 0) {
+      pos_x = x * (GlobalView->fixed_col_width + 1);
+      wmove(file_window, y, pos_x);
+
+      /* Prepare Display Name */
+      char display_name[PATH_LENGTH + 1];
+      /* Reserve 2 chars for Tag and Type */
+      CutFilename(display_name, fe_ptr->name, GlobalView->fixed_col_width - 2);
+
+      /* Set Attributes */
+      int color = GetFileTypeColor(fe_ptr);
+      wattron(file_window, COLOR_PAIR(color));
+      if (fe_ptr->tagged) wattron(file_window, A_BOLD);
+      if (hilight) wattron(file_window, A_REVERSE);
+
+      /* Draw */
+      wprintw(file_window, "%c%c%s",
+          (fe_ptr->tagged) ? TAGGED_SYMBOL : ' ',
+          GetTypeOfFile(fe_ptr->stat_struct),
+          display_name);
+
+      /* Pad remaining width */
+      int printed_len = 2 + StrVisualLength(display_name);
+      int k;
+      for(k = printed_len; k < GlobalView->fixed_col_width; k++) {
+          waddch(file_window, ' ');
+      }
+
+      /* Cleanup */
+      if (hilight) wattroff(file_window, A_REVERSE);
+      if (fe_ptr->tagged) wattroff(file_window, A_BOLD);
+      wattroff(file_window, COLOR_PAIR(color));
+      return;
+  }
+
   ef_window_width = width - 2; /* Effective Window Width */
 
   (reverse_sort) ? (justify='+') : (justify='-');
@@ -604,8 +643,6 @@ static void PrintFileEntry(int entry_no, int y, int x, unsigned char hilight, in
       exit( 1 );
     }
   }
-
-  fe_ptr = CurrentVolume->file_entry_list[entry_no].file;
 
   if( fe_ptr && S_ISLNK( fe_ptr->stat_struct.st_mode ) )
     sym_link_name = &fe_ptr->name[strlen(fe_ptr->name)+1];
@@ -2734,6 +2771,11 @@ int HandleFileWindow(DirEntry *dir_entry)
 
       case ACTION_TOGGLE_STATS: /* ADDED */
                GlobalView->show_stats = !GlobalView->show_stats;
+               resize_request = TRUE;
+               break;
+
+      case ACTION_TOGGLE_COMPACT: /* ADDED */
+               GlobalView->fixed_col_width = (GlobalView->fixed_col_width == 0) ? 32 : 0;
                resize_request = TRUE;
                break;
 
