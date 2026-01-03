@@ -54,7 +54,10 @@ automatically.
 Changes occurring in parent or sibling directories while they are not
 selected will not be detected automatically. Use **^L** (Reload) or
 **F5** to refresh the view when navigating back to previously modified
-areas.
+areas. Additionally, auto-refresh relies on kernel notifications. It may
+not function on network shares (NFS, SMB) or non-native mounts (e.g.,
+WSL Windows drives) where the operating system does not propagate change
+events.
 
 # MODES AND NAVIGATION
 

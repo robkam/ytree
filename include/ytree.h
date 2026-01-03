@@ -731,6 +731,7 @@ typedef enum {
     ACTION_LIST_JUMP,            /* F12 */
     ACTION_TOGGLE_TAGGED_MODE,   /* 8, Shift-F4 */
     ACTION_TOGGLE_STATS,         /* ADDED */
+    ACTION_ASTERISK,             /* * (Expand All / Invert Tags) */
     ACTION_USER_CMD              /* Reserved for future */
 } YtreeAction;
 

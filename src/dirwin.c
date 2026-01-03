@@ -1392,6 +1392,9 @@ int HandleDirWindow(DirEntry *start_dir_entry)
       case ACTION_TREE_EXPAND_ALL: HandlePlus(dir_entry, de_ptr, new_login_path,
     				&need_dsp_help, s);
 	             break;
+      case ACTION_ASTERISK:
+      	             HandleReadSubTree(dir_entry, &need_dsp_help, s);
+                     break;
       case ACTION_TREE_EXPAND: HandleReadSubTree(dir_entry,
     					&need_dsp_help, s);
     		     break;
