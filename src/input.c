@@ -747,7 +747,8 @@ YtreeAction GetKeyAction(int ch)
         case 'c':
         case 'C':       return ACTION_CMD_C;
         case 'd':
-        case 'D':       return ACTION_CMD_D;
+        case 'D':
+        case KEY_DC:    return ACTION_CMD_D;
         case 'e':
         case 'E':       return ACTION_CMD_E;
         case 'g':
