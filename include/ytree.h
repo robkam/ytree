@@ -715,6 +715,7 @@ typedef enum {
     ACTION_CMD_X,       /* x, X */
     ACTION_CMD_Y,       /* y, Y */
     ACTION_TOGGLE_HIDDEN, /* ` */
+    ACTION_TOGGLE_COMPACT, /* b, B - Brief Mode */
     /* Tagged/Ctrl Variants */
     ACTION_CMD_TAGGED_A, /* ^A */
     ACTION_CMD_TAGGED_C, /* ^C */
@@ -761,6 +762,7 @@ typedef struct {
   WINDOW *file_window;
   int view_mode; /* Operation mode (DISK_MODE, ARCHIVE_MODE, etc.) */
   BOOL show_stats; /* ADDED */
+  int fixed_col_width; /* ADDED */
 } ViewContext;
 
 extern ViewContext *GlobalView;

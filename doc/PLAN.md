@@ -392,7 +392,7 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 
 ### **Step 4.15: Implement Proactive Directory Creation**
 *   **Goal:** When performing operations (Copy, Move, PathCopy) on files, if the destination directory does not exist, prompt the user to create it.
-*   - [ ] **Status:** Not Started.
+*   - [x] **Status:** Completed.
 
 ### **Step 4.16: Implement Directory Graft (Copy/Move) and Release**
 *   **Goal:** Implement directory manipulation commands in the Directory Window.
@@ -553,7 +553,7 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 *   **Goal:** Modify the File Window logic to enforce a maximum column width (e.g., 32 characters) even if longer filenames exist. Filenames exceeding this width will be visually truncated (e.g., `00- Introductio~.pdf`) to ensure multiple columns are displayed.
 *   **Integration:** Add this as a new mode in the `^F` (File Mode) rotation, or add a configuration toggle (`COMPACT_COLUMNS=1`).
 *   **Rationale:** Currently, a single long filename forces the File Window into a inefficient single-column layout. This feature maximizes information density.
-*   - [ ] **Status:** Not Started.
+*   - [x] **Status:** Completed.
 
 ---
 

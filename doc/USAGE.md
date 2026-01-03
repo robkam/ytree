@@ -131,6 +131,8 @@ Active when browsing the directory tree window.
 - **^F** (Dir Mode): Cycle directory display modes (Filenames only -\>
   Attributes -\> Inode/Owner -\> Times).
 - **Return**: Switch to File Mode (focus the file window).
+- **\*** (Asterisk): Expand the current directory and all its
+  subdirectories.
 
 ### File Mode
 

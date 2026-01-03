@@ -743,7 +743,7 @@ YtreeAction GetKeyAction(int ch)
         case 'a':
         case 'A':       return ACTION_CMD_A;
         case 'b':
-        case 'B':       return ACTION_CMD_B;
+        case 'B':       return ACTION_TOGGLE_COMPACT; /* Brief Mode */
         case 'c':
         case 'C':       return ACTION_CMD_C;
         case 'd':
