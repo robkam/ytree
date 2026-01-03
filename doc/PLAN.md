@@ -388,13 +388,18 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
     *   **2:** Refresh on Directory Navigation (Cursor Move).
     *   **4:** Refresh on entering File Window.
 *   **Rationale:** Provides flexibility. Users on fast local disks might want `7` (All), while users on slow networks (where navigation refresh is laggy) might want `5` (Watcher + File Window) or just `4` if Inotify is unsupported.
-*   - [ ] **Status:** Not Started.
+*   - [x] **Status:** Completed.
 
 ### **Step 4.15: Implement Proactive Directory Creation**
 *   **Goal:** When performing operations (Copy, Move, PathCopy) on files, if the destination directory does not exist, prompt the user to create it.
 *   - [x] **Status:** Completed.
 
-### **Step 4.16: Implement Directory Graft (Copy/Move) and Release**
+### **Step 4.16: Consolidate Attribute Commands**
+*   **Goal:** Group the `A` (Attribute/Mode), `O` (Owner), and `G` (Group) commands under a single `A` menu.
+*   **Rationale:** De-clutter the top-level keymap. Changing ownership/groups is an infrequent administrative task compared to navigation. This frees up the `G` and `O` keys for more common actions (e.g., Global/Go or Sort/Order).
+*   - [ ] **Status:** Not Started.
+
+### **Step 4.17: Implement Directory Graft (Copy/Move) and Release**
 *   **Goal:** Implement directory manipulation commands in the Directory Window.
     *   **Release:** Unload a directory branch from memory (without deleting files) to clean up the view.
     *   **Graft (Move):** Move an entire directory branch to a new parent.
@@ -402,91 +407,91 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 *   **Rationale:** Essential directory management features present in XTree but missing in ytree.
 *   - [ ] **Status:** Not Started.
 
-### **Step 4.17: Implement F2 Filesystem Navigation, also from Archives**
+### **Step 4.18: Implement F2 Filesystem Navigation, also from Archives**
 *   **Goal:** When copying or moving files, allow the F2 key to open a navigation pane for the filesystem, also from inside an archive.
 *   **Rationale:** Fixes a major usability issue, allowing users to easily select a destination directory on the filesystem when copying or moving files.
 *   - [ ] **Status:** Not Started.
 
-### **Step 4.18: Add Activity Spinner**
+### **Step 4.19: Add Activity Spinner**
 *   **Goal:** Display an animated spinner (e.g., `|`, `/`, `-`, `\`) in the menu bar area during long-running operations like directory scanning.
 *   **Rationale:** Provides essential visual feedback to the user that the application is busy and has not frozen.
 *   - [x] **Status:** Completed.
 
-### **Step 4.19: Enhance History with Contextual Categories and Favorites**
+### **Step 4.20: Enhance History with Contextual Categories and Favorites**
 *   **Goal:** Separate command history into distinct categories (e.g., Filespec, Login, Execute) so that history recall is context-sensitive. When the user recalls history, only entries relevant to the current prompt (e.g., only paths for the Login prompt) will be shown. Additionally, implement a mechanism to mark history items as "favorites" to ensure they persist across sessions and are easily accessible.
 *   **Rationale:** Makes the history feature significantly more organized and intuitive by filtering out irrelevant entries based on the current context. The implementation must also be robust against data loss, ensuring history from previous sessions is reliably loaded.
 *   - [ ] **Status:** Not Started.
 
-### **Step 4.20: Implement Transparent Archive Navigation**
+### **Step 4.21: Implement Transparent Archive Navigation**
 *   **Goal:** Implement "Transparent Exit" for archives by making `Left Arrow` at the root of a volume close it and return to the previous volume. This creates the illusion that the Archive was just a subdirectory, allowing users to "back out" of an archive seamlessly.
 *   **Rationale:** This is a major UX improvement that aligns `ytree` with the intuitive navigation model of Midnight Commander.
 *   **Mechanism:** In `HandleDirWindow` (`src/dirwin.c`), modify `ACTION_MOVE_LEFT`. If the user is at the Root of the volume, check if it's an Archive (or secondary volume). If so, treat the Left Arrow as a "Close Volume" command (similar to `ACTION_VOL_PREV` but destructive for the archive instance) to return to the parent context.
 *   - [x] **Status:** Completed.
 
-### **Step 4.21: Implement F7 File Preview Panel**
+### **Step 4.22: Implement F7 File Preview Panel**
 *   **Goal:** Implement a file preview mode activated by F7. This mode will collapse the statistics panel and use the expanded main window area to display the contents of the selected file without launching an external pager.
 *   **Rationale:** Provides a fast, integrated way to inspect file contents, a classic and highly valued feature of Norton/XTree-style file managers.
 *   - [ ] **Status:** Not Started.
 
-### **Step 4.22: Refine In-App Help Text**
+### **Step 4.23: Refine In-App Help Text**
 *   **Goal:** Review all user prompts and help lines to be clear and provide context for special syntax (e.g., `{}`). The menu should be decluttered by only showing a `^` shortcut if its action differs from the base key (e.g., `(C)opy/(^K)` is good, but `pathcop(Y)/^Y` is redundant and should just be `pathcop(Y)`).
 *   **Rationale:** Fulfills the "No Hidden Features" principle and improves UI clarity by removing redundant information.
 *   - [ ] **Status:** Not Started.
 
-### **Step 4.23: Enhance Clock Display**
+### **Step 4.24: Enhance Clock Display**
 *   **Goal:** Modify the optional clock display to show both the date and time.
 *   **Rationale:** A simple UI improvement providing more context to the user.
 *   - [x] **Status:** Completed.
 
-### **Step 4.24: Implement Integrated Help System** MAYBE NOT/INSTEAD MAKE YTREE MORE INTUITIVE?
+### **Step 4.25: Implement Integrated Help System** MAYBE NOT/INSTEAD MAKE YTREE MORE INTUITIVE?
 *   **Goal:** Create a pop-up, scrollable help window (activated by F1) that displays context-sensitive command information.
 *   **Rationale:** Replaces the limited static help lines with a comprehensive and user-friendly help system, making the application easier to learn and use without consulting external documentation.
 *   - [ ] **Status:** Not Started.
 
-### **Step 4.25: Implement Mouse Support**
+### **Step 4.26: Implement Mouse Support**
 *   **Goal:** Add mouse support for core navigation and selection actions within the terminal (e.g., click to select, double-click to enter, wheel scrolling).
 *   **Rationale:** A key feature of classic file managers like ZTreeWin and modern ones like Midnight Commander, mouse support dramatically improves speed and ease of use for users in capable terminal environments.
 *   - [ ] **Status:** Not Started.
 
-### **Step 4.26: Add Configurable Bypass for External Viewers**
+### **Step 4.27: Add Configurable Bypass for External Viewers**
 *   **Goal:** Add a configuration option (e.g., in a future F3 settings panel) to globally disable external viewers, forcing the use of the internal viewer.
 *   **Rationale:** Provides flexibility for cases where the user wants to quickly inspect the raw bytes of a file (e.g., a PDF) without launching a heavy external application.
 *   - [ ] **Status:** Not Started.
 
-### **Step 4.27: Implement Lightweight Directory Refresh**
+### **Step 4.28: Implement Lightweight Directory Refresh**
 *   **Goal:** Implement a lightweight directory refresh mechanism to ensure the UI reflects filesystem changes made by `ytree`'s own operations (like Copy, Move, Extract) without a full rescan.
 *   **Rationale:** When a file is created or modified in a directory, the view of that directory should update automatically. This is distinct from a manual full `^L` rescan and makes the program feel more responsive.
 *   - [x] **Status:** Completed.
 
-### **Step 4.28: Implement Advanced Log Options**
+### **Step 4.29: Implement Advanced Log Options**
 *   **Goal:** Enhance the `Log` command to present options for controlling the scan depth and scope, similar to ZTree/XTree (e.g., "Log drive", "Log tree", "Log directory").
 *   **Rationale:** Provides essential control over performance when working with very large filesystems, allowing the user to perform a shallow scan when a deep recursive scan is not needed.
 *   - [ ] **Status:** Not Started.
 
-### **Step 4.29: Implement In-App Configuration Editor (F3)**
+### **Step 4.30: Implement In-App Configuration Editor (F3)**
 *   **Goal:** Implement a settings panel (activated by a key like `F3`) that allows the user to view and change configuration options from `~/.ytree` (e.g., `CONFIRMQUIT`, colors) and save the changes.
 *   **Rationale:** Provides a user-friendly way to configure `ytree` without manually editing the configuration file, improving accessibility.
 *   - [ ] **Status:** Not Started.
 
-### **Step 4.30: Implement "Tags-Only" View Mode**
+### **Step 4.31: Implement "Tags-Only" View Mode**
 *   **Goal:** Implement a toggle (`*` or `8`) to display only the tagged files in the current File Window.
 *   **Rationale:** A core ZTreeWin feature that allows users to verify, refine, and operate on a specific subset of files without the visual clutter of non-tagged files.
 *   - [ ] **Status:** Not Started.
 
-### **Step 4.31: Archive Write Support:**
+### **Step 4.32: Archive Write Support:**
 *   Implement archive creation and modification using `libarchive`'s write APIs. The Auto-Refresh logic for archives will need to be different from file systems: instead of watching the files inside, it should watch the archive file itself (the container). If the container's timestamp changes, then ytree should reload the virtual view.
 *   - [ ] **Status:** Not Started.
 *   **Includes:** Implementing `^S` (Execute Command) inside archives. Requires extracting every file to a temporary location to run the command (e.g., `grep`) on it.
 
-### **Step 4.32: Nested Archive Traversal**
+### **Step 4.33: Nested Archive Traversal**
 *   Allow transparently entering an archive that is itself inside another archive.
 *   - [ ] **Status:** Not Started.
 
-### **Step 4.33: Applications menu**
+### **Step 4.34: Applications menu**
 *   Implement a customizable Application Menu.
 *   - [ ] **Status:** Not Started.
 
-### **Step 4.34: Standardize Input Prompt Padding**
+### **Step 4.35: Standardize Input Prompt Padding**
 *   **Goal:** Standardize the visual spacing between input labels (e.g., "GROUP:", "OWNER:", "ATTRIBUTES:") and the cursor entry point across the application.
 *   **Rationale:** Currently, input fields rely on hardcoded starting columns (e.g., 12), resulting in inconsistent visual padding depending on the label length. Dynamic calculation based on label length ensures a polished, professional UI consistency.
 *   **Mechanism:**
@@ -494,33 +499,33 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
     *   Refactor `GetNewGroup` (`chgrp.c`), `GetNewOwner` (`chown.c`), and `Change...Modus` (`chmod.c`) to calculate the input start position dynamically: `1 + strlen(label) + UI_INPUT_PADDING`.
 *   - [x] **Status:** Completed.
 
-### **Step 4.35: Standardize Incremental Search (List Jump)**
+### **Step 4.36: Standardize Incremental Search (List Jump)**
 *   **Goal:** Implement robust, non-recursive incremental search activated by the `/` key in both Directory and File windows.
 *   **Rationale:** Currently, search is bound to `F12` and uses a dangerous recursive implementation. Mapping it to `/` aligns `ytree` with standard Unix tools (vi, less) and allows users to navigate quickly without triggering command hotkeys (like 'd' for delete).
 *   **Mechanism:** Refactor `ListJump` to use an iterative loop. Bind `/` in `input.c`. Support backspace handling and "search-as-you-type" highlighting.
 *   - [ ] **Status:** Not Started.
 
-### **Step 4.36: Implement Bottom F-Key Menu Bar**
+### **Step 4.37: Implement Bottom F-Key Menu Bar**
 *   **Goal:** Shift the existing two-line command footer up by one line and reserve the bottom-most row for a clickable, function-key reference bar (F1 Help, F3 Options, F5 Redraw, F7 View, F8 Split).
 *   **Rationale:** Aligns with the standard "Norton Commander" layout familiar to power users. It provides immediate visual cues for function keys, which are often less intuitive than mnemonic letter commands.
 *   - [ ] **Status:** Not Started.
 
-### **Step 4.37: Implement "Touch" (Make File) Command**
+### **Step 4.38: Implement "Touch" (Make File) Command**
 *   **Goal:** Add a command (e.g., `^M` or mapped to a specific key) to create a new, empty file in the current directory, similar to `M` (Make Directory).
 *   **Rationale:** Currently, creating a file requires shelling out (`X`) and typing `touch filename`. A native command streamlines the workflow for developers creating placeholders or config files.
 *   - [ ] **Status:** Not Started.
 
-### **Step 4.38: Enhance Archive Navigation (Tree Logic)**
+### **Step 4.39: Enhance Archive Navigation (Tree Logic)**
 *   **Goal:** Enable standard Tree Window navigation keys (specifically `Left Arrow` to collapse/parent and `Right Arrow` to expand) while browsing inside an archive.
 *   **Rationale:** Navigation inside archives currently feels "flat" or inconsistent compared to the physical filesystem. Unifying these behaviors reduces cognitive load.
 *   - [ ] **Status:** Not Started.
 
-### **Step 4.39: Implement Auto-Execute on Command Termination**
+### **Step 4.40: Implement Auto-Execute on Command Termination**
 *   **Goal:** Allow users to execute shell commands (`X` or `P`) immediately by ending the input string with a specific terminator (e.g., `\n` or `;`), without needing to press Enter explicitly.
 *   **Rationale:** Accelerates command entry for power users who want to "fire and forget" commands rapidly.
 *   - [ ] **Status:** Not Started.
 
-### **Step 4.40: Implement Responsive Adaptive Footer**
+### **Step 4.41: Implement Responsive Adaptive Footer**
 *   **Goal:** Make the two-line command footer dynamic based on terminal width.
     *   **Compact (< 80 cols):** Show only critical navigation and file operation keys (Copy, Move, Delete, Quit).
     *   **Standard (80-120 cols):** Show the standard set (current behavior).
@@ -529,14 +534,9 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 *   **Mechanism:** Define command groups (Priority 1, 2, 3). In `DisplayDirHelp` / `DisplayFileHelp`, construct the string dynamically based on `COLS`.
 *   - [ ] **Status:** Not Started.
 
-### **Step 4.41: Make "Terminal Classic" the default UI Color and Classic ytree color scheme the example**
+### **Step 4.42: Make "Terminal Classic" the default UI Color and Classic ytree color scheme the example**
 *   **Goal:** Update the default color scheme to adhere to the standard "Terminal Classic" aesthetic (typically white/grey text on black background), while providing the traditional "Blue/Yellow" ytree scheme as an easily selectable example or option.
 *   **Rationale:** Modern terminal users expect applications to respect their terminal's color palette by default. The classic high-contrast blue scheme can be jarring.
-*   - [ ] **Status:** Not Started.
-
-### **Step 4.42: Consolidate Attribute Commands**
-*   **Goal:** Group the `A` (Attribute/Mode), `O` (Owner), and `G` (Group) commands under a single `A` menu.
-*   **Rationale:** De-clutter the top-level keymap. Changing ownership/groups is an infrequent administrative task compared to navigation. This frees up the `G` and `O` keys for more common actions (e.g., Global/Go or Sort/Order).
 *   - [ ] **Status:** Not Started.
 
 ### **Step 4.43: Refactor Tab Completion for Command Arguments**
@@ -649,12 +649,24 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 *   - [ ] **Status:** Not Started.
 
 ### **Step 6.7: Implement Plugin / VFS Architecture**
-*   **Goal:** Enable browsing of remote systems (FTP/SFTP), structured data (XML, JSON, MediaWiki dumps), or specialized databases (GEDCOM) as if they were local directory trees.
+*   **Goal:** Enable browsing of remote systems (FTP/SFTP), structured data (XML, JSON, MediaWiki dumps), or relational databases (SQLite, MySQL) as if they were local directory trees.
 *   **Rationale:** Extends `ytree`'s utility beyond the local filesystem, turning it into a universal browser.
 *   **Mechanism:** Implement a generic Plugin API (`ytree_plugin.h`) that allows external Shared Objects (`.so`) to register themselves.
     *   **Interface:** Plugins provide function pointers for `open`, `read_dir`, `stat`, and `execute_custom`.
     *   **Loading:** `dlopen()` scans a plugin directory on startup.
+    *   **Cycle Detection:** Critical for SQL/Graph data. The VFS layer must track visited node IDs in the current path to detect and handle circular references (loops) to prevent infinite recursion/stack overflow.
     *   **Integration:** When a user enters a supported file, `ytree` hands control to the plugin's VFS logic.
+*   - [ ] **Status:** Not Started.
+
+### Step 6.8: Implement Recursive Directory Watching
+*   **Goal:** Extend the file system watcher to monitor all *currently expanded* directories, allowing changes in visible sibling or child directories to appear immediately without manual refresh.
+*   **Rationale:** Current `inotify` logic only watches the directory under the cursor. If a user modifies a subdirectory visible in the tree but not currently selected, the UI becomes stale.
+*   **Mechanism:**
+    *   Refactor `watcher.c` to maintain a **Hash Table** (using `uthash`) mapping Kernel Watch Descriptors (`wd`) to `DirEntry` pointers.
+    *   Hook into `ReadTree` (Expansion): Automatically add a watch when a directory is read into memory.
+    *   Hook into `UnReadTree`/`DeleteTree` (Collapse): Automatically remove the watch when a directory is freed.
+    *   **Safety:** Handle `ENOSPC` (System Watch Limit) gracefully by falling back to "Active-Dir Only" mode if the user expands too many directories.
+    *   **Archive Note:** This recursive logic applies to physical filesystems. For Archives, the Auto-Refresh logic (see Step 4.31) watches the *Container File's* timestamp to trigger a virtual tree reload; it does not set recursive watches inside the archive itself.
 *   - [ ] **Status:** Not Started.
 
 ---

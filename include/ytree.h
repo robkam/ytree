@@ -282,6 +282,7 @@ enum UI_COLOR_PAIRS {
 #define AUDIBLEERROR    GetProfileValue( "AUDIBLEERROR" )
 #define CONFIRMQUIT     GetProfileValue( "CONFIRMQUIT" )
 #define HIDEDOTFILES    GetProfileValue( "HIDEDOTFILES" )
+#define AUTO_REFRESH    GetProfileValue("AUTO_REFRESH")
 
 #define DEFAULT_TREE       "."
 
@@ -350,6 +351,11 @@ enum UI_COLOR_PAIRS {
 #define QUICK_BAUD_RATE      9600
 
 #define CR                     13
+
+/* Auto-Refresh Configuration Modes */
+#define REFRESH_WATCHER  1
+#define REFRESH_ON_NAV   2
+#define REFRESH_ON_ENTER 4
 
 /* Window Dimension Definitions */
 
@@ -763,6 +769,7 @@ typedef struct {
   int view_mode; /* Operation mode (DISK_MODE, ARCHIVE_MODE, etc.) */
   BOOL show_stats; /* ADDED */
   int fixed_col_width; /* ADDED */
+  int refresh_mode; /* ADDED: Auto-refresh configuration */
 } ViewContext;
 
 extern ViewContext *GlobalView;
@@ -907,7 +914,7 @@ extern DirEntry *GetSelectedDirEntry(struct Volume *vol);
 extern void BuildDirEntryList(struct Volume *vol); /* UPDATED: Takes Volume context */
 extern void FreeDirEntryList(void); /* Retained for compat, or wraps FreeVolumeCache */
 extern void FreeVolumeCache(struct Volume *vol); /* ADDED: Explicit cache cleaner */
-extern void RefreshTreeSafe(DirEntry *entry); /* ADDED: Safe Non-destructive Refresh */
+extern DirEntry *RefreshTreeSafe(DirEntry *entry); /* ADDED: Safe Non-destructive Refresh */
 
 /* display.c */
 extern void ClearHelp(void);

@@ -94,6 +94,7 @@ These commands work in most modes:
 - **F2**: Select Directory (Log/Copy/Move).
 - **F5**: Refresh (same as **^L**).
 - **F6**: Toggle Statistics Panel (Wide Mode).
+- **B**: Toggle Brief (Compact) filename view in the File Window.
 - **^L**: **Reload**. Re-read the contents of the current directory from
   disk and refresh the view.
 - **K** (Shift+K): **Volume Menu**. Show a list of all currently logged
@@ -225,6 +226,12 @@ provided in `ytree.conf`.
 ### Key Options
 
 - **ANIMATION=1**: Enable the warp-speed starfield during scans.
+- **AUTO_REFRESH=3**: Control automatic refresh behavior (Bitmask). Add
+  values to combine modes.
+  - **1**: Enable File System Watcher (Inotify).
+  - **2**: Refresh on Directory Navigation (Cursor move).
+  - **4**: Refresh when entering the File Window.
+  - *Default*: `3` (1 + 2) enables both Watcher and Navigation Refresh.
 - **HIDEDOTFILES=1**: Hide files starting with `.` by default.
 - **\[COLORS\]**: Customize the color scheme.
 

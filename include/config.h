@@ -22,6 +22,7 @@
 #define DEFAULT_HIGHLIGHT_FULL_LINE "0"
 #define DEFAULT_HIDEDOTFILES  "1"
 #define DEFAULT_ANIMATION     "0"
+#define DEFAULT_AUTO_REFRESH  "1" /* ADDED */
 
 
 /* UNIX Commands */

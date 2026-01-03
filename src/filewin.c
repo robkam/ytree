@@ -58,7 +58,7 @@ static void ListJump( DirEntry * dir_entry, char *str );
 static char GetTypeOfFile(struct stat fst);
 static int  GetVisualFileEntryLength(int p_mode, int max_visual_filename_len, int max_visual_linkname_len);
 static void HandleInvertTags(DirEntry *dir_entry, Statistic *s);
-static void RefreshFileView(DirEntry *dir_entry);
+static DirEntry *RefreshFileView(DirEntry *dir_entry);
 static int  SilentSearchWalk(FileEntry *fe_ptr, WalkingPackage *wp);
 static void fmovedown(int *start_file, int *cursor_pos, int *start_x, DirEntry *dir_entry);
 static void fmoveup(int *start_file, int *cursor_pos, int *start_x, DirEntry *dir_entry);
@@ -643,6 +643,8 @@ static void PrintFileEntry(int entry_no, int y, int x, unsigned char hilight, in
       exit( 1 );
     }
   }
+
+  /* fe_ptr assigned above */
 
   if( fe_ptr && S_ISLNK( fe_ptr->stat_struct.st_mode ) )
     sym_link_name = &fe_ptr->name[strlen(fe_ptr->name)+1];
@@ -1233,7 +1235,7 @@ static void fmoveppage(int *start_file, int *cursor_pos, int *start_x, DirEntry 
 }
 
 /* Local helper to refresh file window, maintaining file cursor */
-static void RefreshFileView(DirEntry *dir_entry) {
+static DirEntry *RefreshFileView(DirEntry *dir_entry) {
     char *saved_name = NULL;
     Statistic *s = &CurrentVolume->vol_stats;
     int found_idx = -1;
@@ -1241,12 +1243,16 @@ static void RefreshFileView(DirEntry *dir_entry) {
 
     /* 1. Save current filename */
     if (CurrentVolume->file_count > 0) {
-        FileEntry *curr = CurrentVolume->file_entry_list[dir_entry->start_file + dir_entry->cursor_pos].file;
-        if (curr) saved_name = strdup(curr->name);
+        /* Check bounds before access */
+        if (dir_entry->start_file + dir_entry->cursor_pos < (int)CurrentVolume->file_count) {
+            FileEntry *curr = CurrentVolume->file_entry_list[dir_entry->start_file + dir_entry->cursor_pos].file;
+            if (curr) saved_name = strdup(curr->name);
+        }
     }
 
     /* 2. Perform Safe Tree Refresh (Save/Rescan/Restore) */
-    RefreshTreeSafe(dir_entry);
+    /* Update the local pointer with the valid address returned by RefreshTreeSafe */
+    dir_entry = RefreshTreeSafe(dir_entry);
 
     /* 3. Rebuild File List from the refreshed tree */
     BuildFileEntryList(dir_entry, s);
@@ -1292,6 +1298,8 @@ static void RefreshFileView(DirEntry *dir_entry) {
         DisplayDirStatistic( dir_entry, NULL, s );
 
     DisplayFiles(dir_entry, dir_entry->start_file, dir_entry->start_file + dir_entry->cursor_pos, start_x);
+
+    return dir_entry;
 }
 
 static void HandleInvertTags(DirEntry *dir_entry, Statistic *s)
@@ -2625,7 +2633,7 @@ int HandleFileWindow(DirEntry *dir_entry)
       case ACTION_CMD_X :      fe_ptr = CurrentVolume->file_entry_list[dir_entry->start_file + dir_entry->cursor_pos].file;
 		      de_ptr = fe_ptr->dir_entry;
 		      (void) Execute( de_ptr, fe_ptr );
-              RefreshFileView(dir_entry); /* Auto-Refresh after command */
+              dir_entry = RefreshFileView(dir_entry); /* Auto-Refresh after command */
 		      need_dsp_help = TRUE;
 		      break;
 
@@ -2716,7 +2724,7 @@ int HandleFileWindow(DirEntry *dir_entry)
 					       );
 			  HitReturnToContinue();
 
-              RefreshFileView(dir_entry); /* Auto-Refresh after tagged command */
+              dir_entry = RefreshFileView(dir_entry); /* Auto-Refresh after tagged command */
 			}
 			free( command_line );
 		      }
@@ -2762,7 +2770,7 @@ int HandleFileWindow(DirEntry *dir_entry)
 
       case ACTION_REFRESH:
                 {
-                    RefreshFileView(dir_entry);
+                    dir_entry = RefreshFileView(dir_entry);
                     need_dsp_help = TRUE;
                 }
                 break;
