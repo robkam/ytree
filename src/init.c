@@ -74,6 +74,16 @@ int Init(char *configuration_file, char *history_file)
   /* Allocate and initialize the first volume using the dedicated module */
   CurrentVolume = Volume_Create();
 
+  /* Initialize Panels */
+  LeftPanel = (YtreePanel *)calloc(1, sizeof(YtreePanel));
+  RightPanel = (YtreePanel *)calloc(1, sizeof(YtreePanel));
+  if (!LeftPanel || !RightPanel) {
+      fprintf(stderr, "Fatal Error: Memory allocation failed for Panels.\n");
+      exit(1);
+  }
+  IsSplitScreen = FALSE;
+  ActivePanel = LeftPanel;
+  ActivePanel->vol = CurrentVolume;
   /* Allocate Global ViewContext for window management */
   GlobalView = (ViewContext *)calloc(1, sizeof(ViewContext));
   if (!GlobalView) {

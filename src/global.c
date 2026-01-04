@@ -20,6 +20,11 @@ WINDOW *time_window;
 struct Volume *CurrentVolume = NULL;
 struct Volume *VolumeList = NULL;
 
+YtreePanel *LeftPanel = NULL;
+YtreePanel *RightPanel = NULL;
+YtreePanel *ActivePanel = NULL;
+BOOL IsSplitScreen = FALSE;
+
 int	  user_umask;
 char      message[MESSAGE_LENGTH + 1];
 BOOL	  print_time;
