@@ -774,6 +774,20 @@ typedef struct {
 
 extern ViewContext *GlobalView;
 
+/* Panel Structure for Split-Screen Management */
+typedef struct {
+    WINDOW *dir_window;
+    WINDOW *small_file_window;
+    WINDOW *big_file_window;
+    struct Volume *vol;
+    int cursor_pos;
+    int disp_begin_pos;
+    int start_file;
+} YtreePanel;
+extern YtreePanel *LeftPanel;
+extern YtreePanel *RightPanel;
+extern YtreePanel *ActivePanel;
+extern BOOL IsSplitScreen;
 /* Compatibility Macros */
 /* These map the legacy global variable names to the new GlobalView structure members,
    allowing existing code to compile without modification. */
