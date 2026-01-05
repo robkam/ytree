@@ -33,37 +33,100 @@ void Layout_Recalculate(void)
     int available_height = LINES - 6;
     if (available_height < 1) available_height = 1;
 
-    if (GlobalView && GlobalView->show_stats) {
-        layout.stats_width = 24;
-    } else {
+    /*
+     * Stats Panel Logic:
+     * If SplitScreen is active, force stats off to save space.
+     * Otherwise respect user preference.
+     */
+    if (IsSplitScreen) {
         layout.stats_width = 0;
+    } else {
+        if (GlobalView && GlobalView->show_stats) {
+            layout.stats_width = 24;
+        } else {
+            layout.stats_width = 0;
+        }
     }
-    int stats_margin = 2;
+
+    int stats_margin = (layout.stats_width > 0) ? 2 : 0;
     layout.main_win_width = COLS - layout.stats_width - stats_margin;
 
+    /* Left Panel Geometry (Always active) */
+    int panel_width;
+    if (IsSplitScreen) {
+        panel_width = layout.main_win_width / 2;
+    } else {
+        panel_width = layout.main_win_width;
+    }
+
+    /* Common Heights */
+    int dir_h = (available_height * 6) / 10;
+    if (dir_h < 1) dir_h = 1;
+    int small_file_h = available_height - dir_h - 1;
+    if (small_file_h < 1) small_file_h = 1;
+
+    /* Update Global Layout struct (used by display.c etc) */
     layout.dir_win_x = 1;
     layout.dir_win_y = 2;
-    layout.dir_win_width = layout.main_win_width;
-
-    /* Approx 60% of available height */
-    layout.dir_win_height = (available_height * 6) / 10;
-    if (layout.dir_win_height < 1) layout.dir_win_height = 1;
-
-    /* Calculate Separator Y (virtual) to position small file window */
-    int separator_y = layout.dir_win_y + layout.dir_win_height;
+    layout.dir_win_width = panel_width;
+    layout.dir_win_height = dir_h;
 
     layout.small_file_win_x = 1;
-    layout.small_file_win_y = separator_y + 1;
-    layout.small_file_win_width = layout.main_win_width;
-
-    /* Remaining height for file window (Available - DirHeight - Separator(1)) */
-    layout.small_file_win_height = available_height - layout.dir_win_height - 1;
-    if (layout.small_file_win_height < 1) layout.small_file_win_height = 1;
+    layout.small_file_win_y = layout.dir_win_y + dir_h + 1;
+    layout.small_file_win_width = panel_width;
+    layout.small_file_win_height = small_file_h;
 
     layout.big_file_win_x = 1;
     layout.big_file_win_y = 2;
-    layout.big_file_win_width = layout.main_win_width;
-    layout.big_file_win_height = available_height; /* Uses full available height */
+    layout.big_file_win_width = panel_width;
+    layout.big_file_win_height = available_height;
+
+    /* Update LeftPanel Geometry */
+    if (LeftPanel) {
+        LeftPanel->dir_x = 1;
+        LeftPanel->dir_y = 2;
+        LeftPanel->dir_w = panel_width;
+        LeftPanel->dir_h = dir_h;
+
+        LeftPanel->small_file_x = 1;
+        LeftPanel->small_file_y = LeftPanel->dir_y + dir_h + 1;
+        LeftPanel->small_file_w = panel_width;
+        LeftPanel->small_file_h = small_file_h;
+
+        LeftPanel->big_file_x = 1;
+        LeftPanel->big_file_y = 2;
+        LeftPanel->big_file_w = panel_width;
+        LeftPanel->big_file_h = available_height;
+    }
+
+    /* Update RightPanel Geometry */
+    if (RightPanel && IsSplitScreen) {
+        /* Right panel starts after left panel + separator?
+           Actually, ncurses coordinates.
+           Left ends at 1 + panel_width.
+           Right starts at 1 + panel_width.
+           Wait, simple math: x=1 is col 1.
+           If width is 40. x=1..40.
+           Right starts at 41?
+           Let's say x_right = 1 + panel_width.
+        */
+        int right_x = 1 + panel_width;
+
+        RightPanel->dir_x = right_x;
+        RightPanel->dir_y = 2;
+        RightPanel->dir_w = layout.main_win_width - panel_width; /* Give remainder to right */
+        RightPanel->dir_h = dir_h;
+
+        RightPanel->small_file_x = right_x;
+        RightPanel->small_file_y = RightPanel->dir_y + dir_h + 1;
+        RightPanel->small_file_w = RightPanel->dir_w;
+        RightPanel->small_file_h = small_file_h;
+
+        RightPanel->big_file_x = right_x;
+        RightPanel->big_file_y = 2;
+        RightPanel->big_file_w = RightPanel->dir_w;
+        RightPanel->big_file_h = available_height;
+    }
 }
 
 int Init(char *configuration_file, char *history_file)
@@ -71,25 +134,31 @@ int Init(char *configuration_file, char *history_file)
   char buffer[PATH_LENGTH + 1];
   char *home = NULL;
 
-  /* Allocate and initialize the first volume using the dedicated module */
-  CurrentVolume = Volume_Create();
-
-  /* Initialize Panels */
-  LeftPanel = (YtreePanel *)calloc(1, sizeof(YtreePanel));
-  RightPanel = (YtreePanel *)calloc(1, sizeof(YtreePanel));
-  if (!LeftPanel || !RightPanel) {
-      fprintf(stderr, "Fatal Error: Memory allocation failed for Panels.\n");
-      exit(1);
-  }
-  IsSplitScreen = FALSE;
-  ActivePanel = LeftPanel;
-  ActivePanel->vol = CurrentVolume;
   /* Allocate Global ViewContext for window management */
   GlobalView = (ViewContext *)calloc(1, sizeof(ViewContext));
   if (!GlobalView) {
       fprintf(stderr, "Fatal Error: Memory allocation failed for GlobalView.\n");
       exit(1);
   }
+
+  /* Allocate Panels */
+  LeftPanel = (YtreePanel *)calloc(1, sizeof(YtreePanel));
+  RightPanel = (YtreePanel *)calloc(1, sizeof(YtreePanel));
+  if (!LeftPanel || !RightPanel) {
+      fprintf(stderr, "Fatal Error: Memory allocation failed for Panels.\n");
+      exit(1);
+  }
+
+  /* Initialize Panel Defaults */
+  IsSplitScreen = FALSE;
+  ActivePanel = LeftPanel;
+
+  /* Allocate and initialize the first volume using the dedicated module */
+  CurrentVolume = Volume_Create();
+  /* Assign initial volume to ActivePanel */
+  ActivePanel->vol = CurrentVolume;
+
+
   GlobalView->show_stats = TRUE;
   GlobalView->fixed_col_width = 0; /* ADDED */
   GlobalView->refresh_mode = strtol(AUTO_REFRESH, NULL, 0); /* ADDED */
@@ -177,63 +246,73 @@ int Init(char *configuration_file, char *history_file)
 
 void ReCreateWindows()
 {
-  BOOL is_small;
+  BOOL is_small = TRUE;
 
   Layout_Recalculate();
 
-  is_small = (file_window == small_file_window) ? TRUE : FALSE;
+  if (ActivePanel && ActivePanel->pan_file_window && ActivePanel->pan_big_file_window) {
+      if (ActivePanel->pan_file_window == ActivePanel->pan_big_file_window) is_small = FALSE;
+  }
 
+  /* 1. Destroy Existing Windows for LeftPanel */
+  if (LeftPanel->pan_dir_window) { delwin(LeftPanel->pan_dir_window); LeftPanel->pan_dir_window = NULL; }
+  if (LeftPanel->pan_small_file_window) { delwin(LeftPanel->pan_small_file_window); LeftPanel->pan_small_file_window = NULL; }
+  if (LeftPanel->pan_big_file_window) { delwin(LeftPanel->pan_big_file_window); LeftPanel->pan_big_file_window = NULL; }
 
-  if(dir_window)
-    delwin(dir_window);
+  /* 2. Destroy Existing Windows for RightPanel */
+  if (RightPanel->pan_dir_window) { delwin(RightPanel->pan_dir_window); RightPanel->pan_dir_window = NULL; }
+  if (RightPanel->pan_small_file_window) { delwin(RightPanel->pan_small_file_window); RightPanel->pan_small_file_window = NULL; }
+  if (RightPanel->pan_big_file_window) { delwin(RightPanel->pan_big_file_window); RightPanel->pan_big_file_window = NULL; }
 
-  dir_window = Subwin( stdscr,
-		       layout.dir_win_height,
-		       layout.dir_win_width,
-		       layout.dir_win_y,
-		       layout.dir_win_x
-		      );
+  /* 3. Create Windows for LeftPanel */
+  LeftPanel->pan_dir_window = Subwin(stdscr, LeftPanel->dir_h, LeftPanel->dir_w, LeftPanel->dir_y, LeftPanel->dir_x);
+  keypad(LeftPanel->pan_dir_window, TRUE);
+  scrollok(LeftPanel->pan_dir_window, TRUE);
+  clearok(LeftPanel->pan_dir_window, TRUE);
+  leaveok(LeftPanel->pan_dir_window, TRUE);
+  WbkgdSet(LeftPanel->pan_dir_window, COLOR_PAIR(CPAIR_WINDIR));
 
-  keypad( dir_window, TRUE );
-  scrollok( dir_window, TRUE );
-  clearok( dir_window, TRUE);
-  leaveok(dir_window, TRUE);
-  WbkgdSet( dir_window, COLOR_PAIR(CPAIR_WINDIR) );
+  LeftPanel->pan_small_file_window = Subwin(stdscr, LeftPanel->small_file_h, LeftPanel->small_file_w, LeftPanel->small_file_y, LeftPanel->small_file_x);
+  keypad(LeftPanel->pan_small_file_window, TRUE);
+  clearok(LeftPanel->pan_small_file_window, TRUE);
+  leaveok(LeftPanel->pan_small_file_window, TRUE);
+  WbkgdSet(LeftPanel->pan_small_file_window, COLOR_PAIR(CPAIR_WINFILE));
 
-  if(small_file_window)
-    delwin(small_file_window);
+  LeftPanel->pan_big_file_window = Subwin(stdscr, LeftPanel->big_file_h, LeftPanel->big_file_w, LeftPanel->big_file_y, LeftPanel->big_file_x);
+  keypad(LeftPanel->pan_big_file_window, TRUE);
+  clearok(LeftPanel->pan_big_file_window, TRUE);
+  leaveok(LeftPanel->pan_big_file_window, TRUE);
+  WbkgdSet(LeftPanel->pan_big_file_window, COLOR_PAIR(CPAIR_WINFILE));
 
-  small_file_window = Subwin( stdscr,
-			      layout.small_file_win_height,
-			      layout.small_file_win_width,
-			      layout.small_file_win_y,
-		              layout.small_file_win_x
-		           );
+  /* Determine current file window for LeftPanel */
+  LeftPanel->pan_file_window = (is_small) ? LeftPanel->pan_small_file_window : LeftPanel->pan_big_file_window;
 
-  if(!small_file_window)
-    beep();
+  /* 4. Create Windows for RightPanel (Only if Split Screen) */
+  if (IsSplitScreen) {
+      RightPanel->pan_dir_window = Subwin(stdscr, RightPanel->dir_h, RightPanel->dir_w, RightPanel->dir_y, RightPanel->dir_x);
+      keypad(RightPanel->pan_dir_window, TRUE);
+      scrollok(RightPanel->pan_dir_window, TRUE);
+      clearok(RightPanel->pan_dir_window, TRUE);
+      leaveok(RightPanel->pan_dir_window, TRUE);
+      WbkgdSet(RightPanel->pan_dir_window, COLOR_PAIR(CPAIR_WINDIR));
 
-  keypad( small_file_window, TRUE );
-  clearok(small_file_window, TRUE);
-  leaveok(small_file_window, TRUE);
+      RightPanel->pan_small_file_window = Subwin(stdscr, RightPanel->small_file_h, RightPanel->small_file_w, RightPanel->small_file_y, RightPanel->small_file_x);
+      keypad(RightPanel->pan_small_file_window, TRUE);
+      clearok(RightPanel->pan_small_file_window, TRUE);
+      leaveok(RightPanel->pan_small_file_window, TRUE);
+      WbkgdSet(RightPanel->pan_small_file_window, COLOR_PAIR(CPAIR_WINFILE));
 
-  WbkgdSet(small_file_window, COLOR_PAIR(CPAIR_WINFILE));
+      RightPanel->pan_big_file_window = Subwin(stdscr, RightPanel->big_file_h, RightPanel->big_file_w, RightPanel->big_file_y, RightPanel->big_file_x);
+      keypad(RightPanel->pan_big_file_window, TRUE);
+      clearok(RightPanel->pan_big_file_window, TRUE);
+      leaveok(RightPanel->pan_big_file_window, TRUE);
+      WbkgdSet(RightPanel->pan_big_file_window, COLOR_PAIR(CPAIR_WINFILE));
 
-  if(big_file_window)
-    delwin(big_file_window);
+      /* Default RightPanel to small file window initially */
+      RightPanel->pan_file_window = RightPanel->pan_small_file_window;
+  }
 
-  big_file_window = Subwin( stdscr,
-			    layout.big_file_win_height,
-			    layout.big_file_win_width,
-			    layout.big_file_win_y,
-		            layout.big_file_win_x
-		          );
-
-  keypad( big_file_window, TRUE );
-  clearok(big_file_window, TRUE);
-  leaveok(big_file_window, TRUE);
-  WbkgdSet(big_file_window, COLOR_PAIR(CPAIR_WINFILE));
-
+  /* 5. Utility Windows */
   if(error_window)
     delwin(error_window);
 
@@ -298,7 +377,13 @@ void ReCreateWindows()
   leaveok( f2_window, TRUE );
   WbkgdSet( f2_window, COLOR_PAIR(CPAIR_WINHST) );
 
-  file_window = (is_small) ? small_file_window : big_file_window;
+  /* 6. Update Global Mappings */
+  if (ActivePanel) {
+      GlobalView->ctx_dir_window = ActivePanel->pan_dir_window;
+      GlobalView->ctx_small_file_window = ActivePanel->pan_small_file_window;
+      GlobalView->ctx_big_file_window = ActivePanel->pan_big_file_window;
+      GlobalView->ctx_file_window = ActivePanel->pan_file_window;
+  }
 
   clear();
 }

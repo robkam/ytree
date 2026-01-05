@@ -382,24 +382,6 @@ typedef struct {
 extern YtreeLayout layout;
 extern void Layout_Recalculate(void);
 
-/* Removed dynamic macros to use struct fields */
-/* #define STATS_WIDTH          24 */
-/* #define STATS_MARGIN         2 */
-/* #define MAIN_WIN_WIDTH       (COLS - STATS_WIDTH - STATS_MARGIN) */
-/* #define DIR_WINDOW_X         1 */
-/* #define DIR_WINDOW_Y         2 */
-/* #define DIR_WINDOW_WIDTH     MAIN_WIN_WIDTH */
-/* #define DIR_WINDOW_HEIGHT    ((LINES * 8 / 14)-1) */
-/* #define FILE_WINDOW_1_X      1 */
-/* #define FILE_WINDOW_1_Y      DIR_WINDOW_HEIGHT + 3 */
-/* #define FILE_WINDOW_1_WIDTH  MAIN_WIN_WIDTH */
-/* #define FILE_WINDOW_1_HEIGHT (LINES - DIR_WINDOW_HEIGHT - 7 ) */
-/* #define FILE_WINDOW_2_X      1 */
-/* #define FILE_WINDOW_2_Y      2 */
-/* #define FILE_WINDOW_2_WIDTH  MAIN_WIN_WIDTH */
-/* #define FILE_WINDOW_2_HEIGHT (LINES - 6) */
-/* #define STATS_MIDDLE_SEPARATOR_Y (DIR_WINDOW_HEIGHT + 2) */
-
 /* Standard UI Vertical Layout */
 #define Y_HEADER      0            /* Top header row */
 #define Y_PROMPT      (LINES - 2)  /* Standard line for User Input / Prompts */
@@ -754,18 +736,17 @@ typedef struct _PathList {
  * This structure unifies the main application window pointers.
  *
  * Window Roles:
- * - dir_window:        The top window displaying the Directory Tree.
- * - small_file_window: The bottom window displaying the File List (Split View).
- * - big_file_window:   A full-height window displaying the File List (Zoom View).
- *                      This window physically overlaps both dir_window and small_file_window.
- * - file_window:       A dynamic pointer that points to either small_file_window or
- *                      big_file_window depending on the current view mode.
+ * - ctx_dir_window:        The top window displaying the Directory Tree.
+ * - ctx_small_file_window: The bottom window displaying the File List (Split View).
+ * - ctx_big_file_window:   A full-height window displaying the File List (Zoom View).
+ * - ctx_file_window:       A dynamic pointer that points to either small_file_window or
+ *                          big_file_window depending on the current view mode.
  */
 typedef struct {
-  WINDOW *dir_window;
-  WINDOW *small_file_window;
-  WINDOW *big_file_window;
-  WINDOW *file_window;
+  WINDOW *ctx_dir_window;
+  WINDOW *ctx_small_file_window;
+  WINDOW *ctx_big_file_window;
+  WINDOW *ctx_file_window;
   int view_mode; /* Operation mode (DISK_MODE, ARCHIVE_MODE, etc.) */
   BOOL show_stats; /* ADDED */
   int fixed_col_width; /* ADDED */
@@ -774,28 +755,38 @@ typedef struct {
 
 extern ViewContext *GlobalView;
 
-/* Panel Structure for Split-Screen Management */
+/* Compatibility Macros */
+/* These map the legacy global variable names to the new GlobalView structure members,
+   allowing existing code to compile without modification. */
+#define dir_window (GlobalView->ctx_dir_window)
+#define small_file_window (GlobalView->ctx_small_file_window)
+#define big_file_window (GlobalView->ctx_big_file_window)
+#define file_window (GlobalView->ctx_file_window)
+#define mode (GlobalView->view_mode)
+
+/* Panel Structure for Split Screen
+ * Holds the state of a single panel (Left or Right).
+ */
 typedef struct {
-    WINDOW *dir_window;
-    WINDOW *small_file_window;
-    WINDOW *big_file_window;
-    struct Volume *vol;
-    int cursor_pos;
-    int disp_begin_pos;
-    int start_file;
+    /* Window Pointers - distinct from ViewContext to avoid collision */
+    WINDOW *pan_dir_window;
+    WINDOW *pan_small_file_window;
+    WINDOW *pan_big_file_window;
+    WINDOW *pan_file_window;
+
+    struct Volume *vol; /* Volume assigned to this panel */
+
+    /* Geometry Cache */
+    int dir_x, dir_y, dir_w, dir_h;
+    int small_file_x, small_file_y, small_file_w, small_file_h;
+    int big_file_x, big_file_y, big_file_w, big_file_h;
+
 } YtreePanel;
+
 extern YtreePanel *LeftPanel;
 extern YtreePanel *RightPanel;
 extern YtreePanel *ActivePanel;
 extern BOOL IsSplitScreen;
-/* Compatibility Macros */
-/* These map the legacy global variable names to the new GlobalView structure members,
-   allowing existing code to compile without modification. */
-#define dir_window (GlobalView->dir_window)
-#define small_file_window (GlobalView->small_file_window)
-#define big_file_window (GlobalView->big_file_window)
-#define file_window (GlobalView->file_window)
-#define mode (GlobalView->view_mode)
 
 
 /* strerror() is POSIX, and all modern operating systems provide it.  */
