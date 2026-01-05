@@ -20,6 +20,7 @@ WINDOW *time_window;
 struct Volume *CurrentVolume = NULL;
 struct Volume *VolumeList = NULL;
 
+/* Split Screen Globals */
 YtreePanel *LeftPanel = NULL;
 YtreePanel *RightPanel = NULL;
 YtreePanel *ActivePanel = NULL;
