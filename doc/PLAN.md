@@ -443,7 +443,7 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 *   **Rationale:** A simple UI improvement providing more context to the user.
 *   - [x] **Status:** Completed.
 
-### **Step 4.25: Implement Integrated Help System** MAYBE NOT/INSTEAD MAKE YTREE MORE INTUITIVE?
+### **Step 4.25: Implement Integrated Help System**
 *   **Goal:** Create a pop-up, scrollable help window (activated by F1) that displays context-sensitive command information.
 *   **Rationale:** Replaces the limited static help lines with a comprehensive and user-friendly help system, making the application easier to learn and use without consulting external documentation.
 *   - [ ] **Status:** Not Started.
@@ -595,7 +595,36 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 *   **Rationale:** This is an essential feature for any advanced file manager and a prerequisite for many efficient file management workflows. This requires a significant refactoring of global state into pane-specific contexts.
 *   - [ ] **Status:** Not Started.
 
-#### **Step 5.3: Enhanced Archive Format Detection (UDF/ISO Bridge Fix)**
+### Step 5.3: Decomposition of Monolithic Modules (Use the Auditor Persona to generate the TASK.TXT content here)
+*   **Goal:** Break down massive, multi-purpose source files into smaller, single-responsibility modules. Primary targets are `dirwin.c`, `filewin.c`, `view.c`, `input.c`, and `log.c`.
+*   **Rationale:** These files currently mix Data Management, UI Rendering, and Input Event Handling. This violates separation of concerns and leads to significant code duplication (DRY violations).
+*   **Mechanism:**
+    *   **Abstract Navigation:** Extract common cursor movement and list scrolling logic from `dirwin.c` and `filewin.c` into a shared `ui_nav.c`.
+    *   **Separate Rendering:** Move `ncurses` drawing code into dedicated `render_dir.c` and `render_file.c` modules.
+    *   **Separate Control:** Isolate input loops and command dispatching into `ctrl_dir.c` and `ctrl_file.c`.
+    *   **Decompose Viewer:** Split `view.c` into `viewer_hex.c` (internal buffer handling) and `viewer_ext.c` (external process management).
+    *   **Split Log:** Separate `log.c` into `log_core.c` (Login/Scanning logic) and `ui_vol_menu.c` (Volume selection UI).
+*   - [ ] **Status:** Not Started.
+
+### Step 5.4: Source Tree Restructuring & Header Decomposition (Use the Auditor Persona to generate the TASK.TXT content here)
+*   **Goal:** Organize the project layout by moving source files into logical subdirectories and splitting the monolithic `ytree.h` header, while maintaining a flat include path.
+*   **Rationale:** A flat `src/` directory makes navigation difficult. `ytree.h` has become a "God Header" (~800 lines), triggering full rebuilds for minor changes.
+*   **Mechanism:**
+    *   **Source Reorganization:** Move files into semantic folders:
+        *   `src/core/`: App lifecycle (`main.c`, `init.c`, `global.c`, `volume.c`, `log_core.c`).
+        *   `src/ui/`: Rendering and Windowing (`render_*.c`, `ui_*.c`, `display.c`, `input.c`, `color.c`).
+        *   `src/fs/`: Filesystem interaction (`readtree.c`, `archive.c`, `watcher.c`).
+        *   `src/cmd/`: User command logic (`copy.c`, `delete.c`, `execute.c`, `viewer_ext.c`).
+        *   `src/util/`: Helpers (`string_utils.c`, `path_utils.c`, `history.c`).
+    *   **Header Split:** Break `ytree.h` into focused headers:
+        *   `ytree_defs.h`: Structs and Constants (Volume, DirEntry, Panel).
+        *   `ytree_ui.h`: Windowing and Input prototypes.
+        *   `ytree_fs.h`: Filesystem and Archive prototypes.
+        *   `ytree.h`: Master include for backward compatibility.
+    *   **Build System:** Update `Makefile` to detect sources recursively.
+*   - [ ] **Status:** Not Started.
+
+#### **Step 5.5: Enhanced Archive Format Detection (UDF/ISO Bridge Fix)**
 *   **Description:** Address the issue where `libarchive` defaults to the empty ISO9660 partition on "UDF Bridge" media (e.g., Windows installation ISOs), resulting in a "No Files!" directory view.
 *   **Mechanism:** Modify `src/readarchive.c` to implement a **Heuristic Retry Strategy**:
     1.  Perform the standard scan using `archive_read_support_format_all`.
@@ -606,7 +635,7 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 *   **Rationale:** Ensures users can access data on modern installation media without manual mounting or external tools.
 *   - [ ] **Status:** Not Started.
 
-#### **Step 5.4: Implement Non-Destructive Tree Storage (Virtual Collapse)**.
+#### **Step 5.6: Implement Non-Destructive Tree Storage (Virtual Collapse)**.
 *   **Description:** This addresses the "Archive Collapse" issue. Currently, `ytree` "collapses" a folder by deleting its children from memory. Since archives cannot be easily re-scanned (unlike directories), we cannot "collapse" them without losing data. The fix is to change the data structure so "Collapsing" just hides nodes visually without freeing memory. This is also a prerequisite for efficient Archive Modification (Write support).
 
 ---
@@ -624,7 +653,7 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 *   **Rationale:** Drastically improves navigation efficiency for common workflows, a staple feature of powerful file managers.
 *   - [ ] **Status:** Not Started.
 
-### **Step 6.3: Implement File Comparison Integration (JFC)**
+### **Step 6.3: Implement File Comparison Integration**
 *   **Goal:** Integrate external diff tools (e.g., `diff`, `vimdiff`, `meld`) to compare the current file with a tagged file or the file in the adjacent split pane (`J`).
 *   **Rationale:** Provides critical functionality for developers and system administrators to identify changes between file versions directly from the file manager.
 *   - [ ] **Status:** Not Started.
