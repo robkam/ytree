@@ -33,7 +33,7 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 ## **Phase 2: Foundational C-Standard Modernization**
 *This phase fixed critical bugs, established C99/POSIX standards compliance for core utilities, and removed reliance on custom, error-prone functions.*
 
-### **Step 2.1: Standardize String & Number Utilities**
+### **Step 2.1: Standardize String & Number Utilities** (Use the Auditor Persona here)
 *   **Goal:** Replace non-standard utility functions (`Strdup`, `AtoLL`, `StrCaseCmp`, etc.) with their C99/POSIX equivalents (`strdup`, `strtoll`, `strcasecmp`, etc.). This addressed the `~` lockup bug and cleaned up `util.c`.
 *   - [x] **Status:** Completed.
 
@@ -283,7 +283,7 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 *   - [x] **Status:** Completed.
 
 #### **Step 4.10.4: Refine Stats Panel (Boxed Layout & Human Readable)**
-*   **Goal:** Improve the stats panel by using a "Boxed" layout with headers embedded in separator lines (``) and using Human Readable size formatting (e.g., `12.5M`) to fit more data on single lines.
+*   **Goal:** Improve the stats panel by using a "Boxed" layout with headers embedded in separator lines and using Human Readable size formatting (e.g., `12.5M`) to fit more data on single lines.
 *   **Action:** Updated `stats.c` to implement the `DrawBoxFrame` and `FormatShortSize` logic. Fixed display bugs where Directory Attributes were hidden.
 *   - [x] **Status:** Completed.
 
@@ -304,7 +304,7 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 *   **Rationale:** Maximizes horizontal screen real estate for deep directory hierarchies or long filenames. This dynamic layout capability is a prerequisite for correctly implementing the F7 (File Preview) and F8 (Split Screen) modes.
 *   - [x] **Status:** Completed.
 
-### **Step 4.12: Technical Debt Remediation ("De-Brittling")**
+### **Step 4.12: Technical Debt Remediation ("De-Brittling")** (Use the Auditor Persona here)
 *   **Goal:** Systematically identify and refactor fragile code patterns that hinder maintenance and scalability.
 *   **Rationale:** As features are added, legacy patterns (magic numbers, unsafe buffers, hardcoded keys) create regression risks. This phase hardens the codebase before introducing complex event-driven features like Inotify or Mouse support.
 *   - [x] **Status:** Completed.
@@ -560,7 +560,7 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 ## **Phase 5: Major Architectural Refactoring**
 *This phase implements core architectural changes required for advanced features.*
 
-### **Step 5.1: Encapsulate Global UI & Configuration State**
+### **Step 5.1: Encapsulate Global UI & Configuration State** (Use the Auditor Persona here)
 *   **Goal:** Refactor `global.c` to move remaining global variables (e.g., `dir_window`, `file_window`, `sort_order`, `mode`) into a unified `ViewContext` or `Panel` structure. Update function signatures throughout the application to accept a `Context*` pointer instead of relying on global state.
 *   **Rationale:** This is the absolute prerequisite for **Step 5.2 (F8 Split Screen)**. Currently, the application architecture assumes a single active view. To display and interact with two independent directory trees side-by-side (e.g., copying from Left to Right), the state must be instance-specific, not global.
 *   - [x] **Status:** Completed. Global pointers encapsulated in ViewContext. Compatibility maintained via macros.
@@ -595,7 +595,7 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 *   **Rationale:** This is an essential feature for any advanced file manager and a prerequisite for many efficient file management workflows. This requires a significant refactoring of global state into pane-specific contexts.
 *   - [ ] **Status:** Not Started.
 
-### Step 5.3: Decomposition of Monolithic Modules (Use the Auditor Persona to generate the TASK.TXT content here)
+### **Step 5.3: Decomposition of Monolithic Modules** (Use the Auditor Persona here)
 *   **Goal:** Break down massive, multi-purpose source files into smaller, single-responsibility modules. Primary targets are `dirwin.c`, `filewin.c`, `view.c`, `input.c`, and `log.c`.
 *   **Rationale:** These files currently mix Data Management, UI Rendering, and Input Event Handling. This violates separation of concerns and leads to significant code duplication (DRY violations).
 *   **Mechanism:**
@@ -606,7 +606,7 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
     *   **Split Log:** Separate `log.c` into `log_core.c` (Login/Scanning logic) and `ui_vol_menu.c` (Volume selection UI).
 *   - [ ] **Status:** Not Started.
 
-### Step 5.4: Source Tree Restructuring & Header Decomposition (Use the Auditor Persona to generate the TASK.TXT content here)
+### **Step 5.4: Source Tree Restructuring & Header Decomposition** (Use the Auditor Persona here)
 *   **Goal:** Organize the project layout by moving source files into logical subdirectories and splitting the monolithic `ytree.h` header, while maintaining a flat include path.
 *   **Rationale:** A flat `src/` directory makes navigation difficult. `ytree.h` has become a "God Header" (~800 lines), triggering full rebuilds for minor changes.
 *   **Mechanism:**
@@ -687,7 +687,7 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
     *   **Integration:** When a user enters a supported file, `ytree` hands control to the plugin's VFS logic.
 *   - [ ] **Status:** Not Started.
 
-### Step 6.8: Implement Recursive Directory Watching
+### **Step 6.8: Implement Recursive Directory Watching** (Use the Auditor Persona here)
 *   **Goal:** Extend the file system watcher to monitor all *currently expanded* directories, allowing changes in visible sibling or child directories to appear immediately without manual refresh.
 *   **Rationale:** Current `inotify` logic only watches the directory under the cursor. If a user modifies a subdirectory visible in the tree but not currently selected, the UI becomes stale.
 *   **Mechanism:**
@@ -707,7 +707,7 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 *   **Description:** Abstract all hardcoded key commands (e.g., 'm', '^N') into a configurable keymap loaded from `~/.ytree`. The core application logic will respond to command identifiers (e.g., `CMD_MOVE`), not raw characters. This will allow users to customize their workflow and resolve keybinding conflicts.
 *   - [ ] **Status:** Not Started.
 
-### **Step 7.2: Standardize Localization Strategy**
+### **Step 7.2: Standardize Localization Strategy** (Use the Auditor Persona here)
 *   **Goal:** Audit the codebase for hardcoded German strings or personal author remarks and convert them to English. Ensure all UI text is wrapped in macros suitable for future `gettext` translation.
 *   **Rationale:** Prepares the project for a global audience and ensures consistency in the default locale.
 *   - [ ] **Status:** Not Started.
@@ -740,7 +740,7 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 *   **Rationale:** Provides a more robust and complete build system for end-users and packagers.
 *   - [ ] **Status:** Partially Completed (uninstall exists but can be improved).
 
-### **Step 8.5: Implement Code Formatting, Static Analysis, and Hygiene**
+### **Step 8.5: Implement Code Formatting, Static Analysis, and Hygiene** (Use the Auditor Persona here)
 *   **Goal:** Add `make format` and `make analyze` targets to the Makefile. `format` will use `clang-format` to enforce a consistent style. `analyze` will run a static analyzer (like `cppcheck` or Clang's analyzer) to find potential bugs. Include a "lint" target to identify unused functions and variables.
 *   **Rationale:** Automates code quality enforcement. Performing a manual "Cruft Audit" to remove debug comments, unused macros, and outdated documentation ensures the codebase remains clean and professional for release.
 *   - [ ] **Status:** Not Started.
@@ -765,17 +765,17 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 *   **Rationale:** Provides a consistent benchmark to measure memory usage and identify existing leaks before optimization begins.
 *   - [ ] **Status:** Not Started.
 
-### **Step 9.2: Memory Leak Remediation**
+### **Step 9.2: Memory Leak Remediation** (Use the Auditor Persona here)
 *   **Goal:** Systematically analyze Valgrind reports and fix all "Definitely Lost" and "Indirectly Lost" memory errors.
 *   **Rationale:** Prevents memory bloat over time, which is critical for a file manager that may be left open for days.
 *   - [ ] **Status:** Not Started.
 
-### **Step 9.3: Fix Uninitialized Memory Access**
+### **Step 9.3: Fix Uninitialized Memory Access** (Use the Auditor Persona here)
 *   **Goal:** Identify and fix "Conditional jump or move depends on uninitialized value(s)" errors.
 *   **Rationale:** These are often the cause of sporadic, unreproducible crashes and erratic behavior.
 *   - [ ] **Status:** Not Started.
 
-### **Step 9.4: Resource Leak Cleanup (File Descriptors)**
+### **Step 9.4: Resource Leak Cleanup (File Descriptors)** (Use the Auditor Persona here)
 *   **Goal:** Ensure all file descriptors (`open`, `opendir`, `popen`) are properly closed, especially in error paths and during volume switching.
 *   **Rationale:** Prevents "Too many open files" errors during heavy usage.
 *   - [ ] **Status:** Not Started.

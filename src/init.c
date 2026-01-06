@@ -54,7 +54,8 @@ void Layout_Recalculate(void)
     /* Left Panel Geometry (Always active) */
     int panel_width;
     if (IsSplitScreen) {
-        panel_width = layout.main_win_width / 2;
+        /* Reserve space for separator (the -1) */
+        panel_width = (layout.main_win_width - 1) / 2;
     } else {
         panel_width = layout.main_win_width;
     }
@@ -101,20 +102,12 @@ void Layout_Recalculate(void)
 
     /* Update RightPanel Geometry */
     if (RightPanel && IsSplitScreen) {
-        /* Right panel starts after left panel + separator?
-           Actually, ncurses coordinates.
-           Left ends at 1 + panel_width.
-           Right starts at 1 + panel_width.
-           Wait, simple math: x=1 is col 1.
-           If width is 40. x=1..40.
-           Right starts at 41?
-           Let's say x_right = 1 + panel_width.
-        */
-        int right_x = 1 + panel_width;
+        /* Right panel starts after left panel + separator */
+        int right_x = layout.dir_win_x + panel_width + 1;
 
         RightPanel->dir_x = right_x;
         RightPanel->dir_y = 2;
-        RightPanel->dir_w = layout.main_win_width - panel_width; /* Give remainder to right */
+        RightPanel->dir_w = layout.main_win_width - panel_width - 1; /* Remainder */
         RightPanel->dir_h = dir_h;
 
         RightPanel->small_file_x = right_x;
