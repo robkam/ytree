@@ -721,6 +721,7 @@ typedef enum {
     ACTION_TOGGLE_TAGGED_MODE,   /* 8, Shift-F4 */
     ACTION_TOGGLE_STATS,         /* ADDED */
     ACTION_ASTERISK,             /* * (Expand All / Invert Tags) */
+    ACTION_SPLIT_SCREEN,         /* F8 Split Screen */
     ACTION_USER_CMD              /* Reserved for future */
 } YtreeAction;
 
@@ -780,6 +781,11 @@ typedef struct {
     int dir_x, dir_y, dir_w, dir_h;
     int small_file_x, small_file_y, small_file_w, small_file_h;
     int big_file_x, big_file_y, big_file_w, big_file_h;
+
+    /* View State */
+    int cursor_pos;
+    int disp_begin_pos;
+    int start_file;
 
 } YtreePanel;
 

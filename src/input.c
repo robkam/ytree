@@ -796,6 +796,7 @@ YtreeAction GetKeyAction(int ch)
         /* Function Keys */
 #ifdef KEY_F
         case KEY_F(12): return ACTION_LIST_JUMP;
+        case KEY_F(8):  return ACTION_SPLIT_SCREEN; /* ADDED */
         case KEY_F(6):  return ACTION_TOGGLE_STATS;
         case KEY_F(5):  return ACTION_REFRESH; /* ADDED */
         case '8':
