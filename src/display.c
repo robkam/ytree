@@ -197,6 +197,31 @@ void DisplayMenu(void)
   /* Draw the bottom horizontal border of the main content area. */
   PrintLine( stdscr, LINES - 4, 0, last_line, L_BORDER_FOR_DISPLAY );
 
+  /* Split Screen Visual Separator */
+  if (IsSplitScreen && LeftPanel) {
+      int split_x = LeftPanel->dir_x + LeftPanel->dir_w;
+      int top_y = 1;
+      int bottom_y = LINES - 4;
+      int sep_y = layout.dir_win_y + layout.dir_win_height;
+
+#ifdef COLOR_SUPPORT
+      attron(COLOR_PAIR(CPAIR_MENU) | A_BOLD);
+#endif
+      /* Draw Vertical Separator Line */
+      for (y = top_y + 1; y < bottom_y; y++) {
+          mvaddch(y, split_x, ACS_VLINE);
+      }
+
+      /* Draw Correct Junctions */
+      mvaddch(top_y, split_x, ACS_TTEE);        /* Top T-Junction */
+      mvaddch(sep_y, split_x, ACS_PLUS);        /* Middle Cross */
+      mvaddch(bottom_y, split_x, ACS_BTEE);     /* Bottom T-Junction */
+
+#ifdef COLOR_SUPPORT
+      attroff(COLOR_PAIR(CPAIR_MENU) | A_BOLD);
+#endif
+  }
+
   if (layout.stats_width == 0) {
       int right_x = COLS - 1;
       int bottom_y = LINES - 4;
@@ -239,6 +264,18 @@ void SwitchToSmallFileWindow(void)
 
   if (layout.stats_width == 0) {
       mvaddch(separator_y, COLS - 1, ACS_RTEE);
+  }
+
+  /* Restore Split Screen Junction if visible */
+  if (IsSplitScreen && LeftPanel) {
+      int split_x = LeftPanel->dir_x + LeftPanel->dir_w;
+#ifdef COLOR_SUPPORT
+      attron(COLOR_PAIR(CPAIR_MENU) | A_BOLD);
+#endif
+      mvaddch(separator_y, split_x, ACS_PLUS);
+#ifdef COLOR_SUPPORT
+      attroff(COLOR_PAIR(CPAIR_MENU) | A_BOLD);
+#endif
   }
 
   file_window = small_file_window;
