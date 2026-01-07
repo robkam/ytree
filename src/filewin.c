@@ -1640,6 +1640,28 @@ int HandleFileWindow(DirEntry *dir_entry)
 
       case ACTION_NONE:         break;
 
+      case ACTION_SPLIT_SCREEN:
+             IsSplitScreen = !IsSplitScreen;
+             if( IsSplitScreen ) {
+                 if( !LeftPanel ) {
+                     if( ( LeftPanel = (YtreePanel *)calloc( 1, sizeof(YtreePanel) ) ) == NULL ) {
+                         ERROR_MSG( "Calloc Failed*ABORT" );
+                         exit( 1 );
+                     }
+                 }
+                 if( !RightPanel ) {
+                     if( ( RightPanel = (YtreePanel *)calloc( 1, sizeof(YtreePanel) ) ) == NULL ) {
+                         ERROR_MSG( "Calloc Failed*ABORT" );
+                         exit( 1 );
+                     }
+                 }
+                 RightPanel->vol = CurrentVolume;
+                 LeftPanel->vol  = CurrentVolume;
+                 if( !ActivePanel ) ActivePanel = LeftPanel;
+             }
+             resize_request = TRUE;
+             break;
+
       case ACTION_MOVE_DOWN :  fmovedown(&dir_entry->start_file, &dir_entry->cursor_pos, &start_x, dir_entry);
 		      break;
 
