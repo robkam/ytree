@@ -984,7 +984,7 @@ extern void ApplyFilter(DirEntry *dir_entry, Statistic *s);
 extern BOOL Match(FileEntry *fe);
 
 /* filewin.c */
-extern void DisplayFileWindow(DirEntry *dir_entry);
+extern void DisplayFileWindow(DirEntry *dir_entry, WINDOW *win);
 extern int HandleFileWindow(DirEntry *dir_entry);
 extern void RotateFileMode(void);
 extern void SetFileMode(int new_file_mode);
