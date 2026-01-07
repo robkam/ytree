@@ -409,36 +409,15 @@ int GetVisualUserFileEntryLength( int max_visual_filename_len, int max_visual_li
  *****************************************************************************/
 void GetMaxYX(WINDOW *win, int *height, int *width)
 {
-  if( win == dir_window )
-  {
-    *height = MAXIMUM(layout.dir_win_height, 1);
-    *width  = MAXIMUM(layout.dir_win_width, 1);
+  if (win == NULL) {
+      ERROR_MSG("GetMaxYX called with NULL*ABORT");
+      exit(1);
   }
-  else if( win == small_file_window )
-  {
-    *height = MAXIMUM(layout.small_file_win_height, 1);
-    *width  = MAXIMUM(layout.small_file_win_width, 1);
-  }
-  else if( win == big_file_window )
-  {
-    *height = MAXIMUM(layout.big_file_win_height, 1);
-    *width  = MAXIMUM(layout.big_file_win_width, 1);
-  }
-  else if( win == f2_window )
-  {
-    *height = MAXIMUM(layout.dir_win_height, 1); /* Height matches dir window */
-    *width  = MAXIMUM(layout.dir_win_width, 1);
-  }
-  else if( win == history_window )
-  {
-    *height = MAXIMUM(HISTORY_WINDOW_HEIGHT, 1);
-    *width  = MAXIMUM(layout.main_win_width, 1);
-  }
-  else
-  {
-    ERROR_MSG( "Unknown Window-ID*ABORT" );
-    exit( 1 );
-  }
+
+  getmaxyx(win, *height, *width);
+
+  *height = MAXIMUM(*height, 1);
+  *width  = MAXIMUM(*width, 1);
 }
 
 /***************************************************************************
