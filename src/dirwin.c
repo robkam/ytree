@@ -464,7 +464,7 @@ static void Movedown(int *disp_begin_pos, int *cursor_pos, DirEntry **dir_entry,
     (*dir_entry)->start_file = 0;
     (*dir_entry)->cursor_pos = -1;
     DisplayTree(CurrentVolume, dir_window, *disp_begin_pos, *disp_begin_pos + *cursor_pos);
-    DisplayFileWindow( *dir_entry );
+    DisplayFileWindow( *dir_entry, file_window );
     RefreshWindow( file_window );
     DisplayDirStatistic(*dir_entry, NULL, s);
     /* Update header path */
@@ -501,7 +501,7 @@ static void Moveup(int *disp_begin_pos, int *cursor_pos, DirEntry **dir_entry, S
     (*dir_entry)->start_file = 0;
     (*dir_entry)->cursor_pos = -1;
     DisplayTree(CurrentVolume, dir_window, *disp_begin_pos, *disp_begin_pos + *cursor_pos);
-    DisplayFileWindow( *dir_entry );
+    DisplayFileWindow( *dir_entry, file_window );
     RefreshWindow( file_window );
     DisplayDirStatistic(*dir_entry, NULL, s);
     /* Update header path */
@@ -557,7 +557,7 @@ static void Movenpage(int *disp_begin_pos, int *cursor_pos, DirEntry **dir_entry
       (*dir_entry)->start_file = 0;
       (*dir_entry)->cursor_pos = -1;
       DisplayTree(CurrentVolume, dir_window,*disp_begin_pos,*disp_begin_pos+*cursor_pos);
-      DisplayFileWindow( *dir_entry );
+      DisplayFileWindow( *dir_entry, file_window );
       RefreshWindow( file_window );
       DisplayDirStatistic(*dir_entry, NULL, s);
       /* Update header path */
@@ -605,7 +605,7 @@ static void Moveppage(int *disp_begin_pos, int *cursor_pos, DirEntry **dir_entry
       (*dir_entry)->start_file = 0;
       (*dir_entry)->cursor_pos = -1;
       DisplayTree(CurrentVolume, dir_window,*disp_begin_pos,*disp_begin_pos+*cursor_pos);
-      DisplayFileWindow( *dir_entry );
+      DisplayFileWindow( *dir_entry, file_window );
       RefreshWindow( file_window );
       DisplayDirStatistic(*dir_entry, NULL, s);
       /* Update header path */
@@ -632,7 +632,7 @@ static void MoveEnd(DirEntry **dir_entry, Statistic *s)
 
     (*dir_entry)->start_file = 0;
     (*dir_entry)->cursor_pos = -1;
-    DisplayFileWindow( *dir_entry );
+    DisplayFileWindow( *dir_entry, file_window );
     RefreshWindow( file_window );
     DisplayTree( CurrentVolume, dir_window, s->disp_begin_pos,
 		s->disp_begin_pos + s->cursor_pos);
@@ -666,7 +666,7 @@ static void MoveHome(DirEntry **dir_entry, Statistic *s)
 
        (*dir_entry)->start_file = 0;
        (*dir_entry)->cursor_pos = -1;
-       DisplayFileWindow( *dir_entry );
+       DisplayFileWindow( *dir_entry, file_window );
        RefreshWindow( file_window );
        DisplayTree( CurrentVolume, dir_window, s->disp_begin_pos,
 		s->disp_begin_pos + s->cursor_pos);
@@ -775,7 +775,7 @@ static void HandleTagDir(DirEntry *dir_entry, BOOL value, Statistic *s)
     }
     dir_entry->start_file = 0;
     dir_entry->cursor_pos = -1;
-    DisplayFileWindow( dir_entry );
+    DisplayFileWindow( dir_entry, file_window );
     RefreshWindow( file_window );
     DisplayDiskStatistic(s);
     DisplayDirStatistic(dir_entry, NULL, s);
@@ -814,7 +814,7 @@ static void HandleTagAllDirs(struct Volume *vol, DirEntry *dir_entry, BOOL value
     }
     dir_entry->start_file = 0;
     dir_entry->cursor_pos = -1;
-    DisplayFileWindow( dir_entry );
+    DisplayFileWindow( dir_entry, file_window );
     RefreshWindow( file_window );
     DisplayDiskStatistic(s);
     DisplayDirStatistic(dir_entry, NULL, s);
@@ -843,7 +843,7 @@ static void HandleShowAll(BOOL tagged_only, DirEntry *dir_entry, BOOL *need_dsp_
 	    DisplayDirStatistic(dir_entry, NULL, s);
 	    dir_entry->start_file = 0;
 	    dir_entry->cursor_pos = -1;
-            DisplayFileWindow( dir_entry );
+            DisplayFileWindow( dir_entry, file_window );
             RefreshWindow( small_file_window );
             RefreshWindow( big_file_window );
 	    BuildDirEntryList( CurrentVolume );
@@ -886,7 +886,7 @@ static void HandleSwitchWindow(DirEntry *dir_entry, BOOL *need_dsp_help, int *ch
 
 	    dir_entry->start_file = 0;
 	    dir_entry->cursor_pos = -1;
-	    DisplayFileWindow( dir_entry );
+	    DisplayFileWindow( dir_entry, file_window );
             RefreshWindow( small_file_window );
             RefreshWindow( big_file_window );
 	    BuildDirEntryList( CurrentVolume );
@@ -1002,7 +1002,7 @@ void ToggleDotFiles(void)
     }
 
     /* Explicitly update the file window (preview) to match new visibility */
-    DisplayFileWindow(target);
+    DisplayFileWindow(target, file_window);
     RefreshWindow(file_window);
     DisplayDirStatistic(target, NULL, s);
     /* Update header path */
@@ -1143,7 +1143,7 @@ DirEntry *RefreshTreeSafe(DirEntry *entry)
     (void) GetAvailBytes( &s->disk_space, s );
 
     DisplayTree(CurrentVolume, dir_window, s->disp_begin_pos, s->disp_begin_pos + s->cursor_pos);
-    DisplayFileWindow(entry);
+    DisplayFileWindow(entry, file_window);
     DisplayDiskStatistic(s);
     DisplayDirStatistic(entry, NULL, s);
 
@@ -1232,7 +1232,7 @@ int HandleDirWindow(DirEntry *start_dir_entry)
     dir_entry->start_file = 0;
     dir_entry->cursor_pos = -1;
   }
-  DisplayFileWindow( dir_entry );
+  DisplayFileWindow( dir_entry, file_window );
   RefreshWindow( file_window );
   DisplayTree( CurrentVolume, dir_window, s->disp_begin_pos, s->disp_begin_pos + s->cursor_pos );
   touchwin(dir_window);
@@ -1297,7 +1297,7 @@ int HandleDirWindow(DirEntry *start_dir_entry)
        DisplayTree( CurrentVolume, dir_window, s->disp_begin_pos,
 		    s->disp_begin_pos + s->cursor_pos
 		  );
-       DisplayFileWindow(dir_entry);
+       DisplayFileWindow(dir_entry, file_window);
        DisplayDiskStatistic(s);
        DisplayDirStatistic(dir_entry, NULL, s);
        DisplayDirParameter( dir_entry );
@@ -1404,7 +1404,7 @@ int HandleDirWindow(DirEntry *start_dir_entry)
 
                         /* Refresh */
                         DisplayTree(CurrentVolume, dir_window, s->disp_begin_pos, s->disp_begin_pos + s->cursor_pos);
-                        DisplayFileWindow(dir_entry);
+                        DisplayFileWindow(dir_entry, file_window);
                         DisplayDiskStatistic(s);
                         DisplayDirStatistic(dir_entry, NULL, s);
                         DisplayAvailBytes(s);
@@ -1467,7 +1467,7 @@ int HandleDirWindow(DirEntry *start_dir_entry)
 
                         /* Refresh */
                         DisplayTree(CurrentVolume, dir_window, s->disp_begin_pos, s->disp_begin_pos + s->cursor_pos);
-                        DisplayFileWindow(dir_entry);
+                        DisplayFileWindow(dir_entry, file_window);
                         DisplayDiskStatistic(s);
                         DisplayDirStatistic(dir_entry, NULL, s);
                         DisplayAvailBytes(s);
@@ -1545,7 +1545,7 @@ int HandleDirWindow(DirEntry *start_dir_entry)
                   /* Refresh Full UI */
                   DisplayMenu();
                   DisplayTree(CurrentVolume, dir_window, s->disp_begin_pos, s->disp_begin_pos + s->cursor_pos);
-                  DisplayFileWindow(dir_entry);
+                  DisplayFileWindow(dir_entry, file_window);
                   DisplayDiskStatistic(s);
                   DisplayDirStatistic(dir_entry, NULL, s);
                   DisplayAvailBytes(s);
@@ -1605,7 +1605,7 @@ int HandleDirWindow(DirEntry *start_dir_entry)
 
                        /* Refresh */
                        DisplayTree(CurrentVolume, dir_window, s->disp_begin_pos, s->disp_begin_pos + s->cursor_pos);
-                       DisplayFileWindow(dir_entry);
+                       DisplayFileWindow(dir_entry, file_window);
                        DisplayDiskStatistic(s);
                        DisplayDirStatistic(dir_entry, NULL, s);
                        DisplayAvailBytes(s);
@@ -1637,7 +1637,7 @@ int HandleDirWindow(DirEntry *start_dir_entry)
       case ACTION_FILTER: if(ReadFilter() == 0) {
 		       dir_entry->start_file = 0;
 		       dir_entry->cursor_pos = -1;
-                       DisplayFileWindow( dir_entry );
+                       DisplayFileWindow( dir_entry, file_window );
                        RefreshWindow( file_window );
 		       DisplayDiskStatistic(s);
 		       DisplayDirStatistic(dir_entry, NULL, s);
@@ -1717,7 +1717,7 @@ int HandleDirWindow(DirEntry *start_dir_entry)
 		     dir_entry = CurrentVolume->dir_entry_list[s->disp_begin_pos + s->cursor_pos].dir_entry;
 		     dir_entry->start_file = 0;
 		     dir_entry->cursor_pos = -1;
-                     DisplayFileWindow( dir_entry );
+                     DisplayFileWindow( dir_entry, file_window );
                      RefreshWindow( file_window );
 		     DisplayTree( CurrentVolume, dir_window, s->disp_begin_pos,
 				  s->disp_begin_pos + s->cursor_pos
@@ -1809,7 +1809,7 @@ int HandleDirWindow(DirEntry *start_dir_entry)
 
                   DisplayMenu(); /* Force redraw of frame/separator */
                   DisplayTree(CurrentVolume, dir_window, s->disp_begin_pos, s->disp_begin_pos + s->cursor_pos);
-                  DisplayFileWindow(dir_entry); /* Refresh file window for the new directory */
+                  DisplayFileWindow(dir_entry, file_window); /* Refresh file window for the new directory */
                   RefreshWindow(file_window);
                   DisplayDiskStatistic(s);
                   DisplayDirStatistic(dir_entry, NULL, s);
@@ -1855,7 +1855,7 @@ int HandleDirWindow(DirEntry *start_dir_entry)
 
                   DisplayMenu(); /* Force redraw of frame/separator */
                   DisplayTree(CurrentVolume, dir_window, s->disp_begin_pos, s->disp_begin_pos + s->cursor_pos);
-                  DisplayFileWindow(dir_entry); /* Refresh file window for the new directory */
+                  DisplayFileWindow(dir_entry, file_window); /* Refresh file window for the new directory */
                   RefreshWindow(file_window);
                   DisplayDiskStatistic(s);
                   DisplayDirStatistic(dir_entry, NULL, s);
@@ -1901,7 +1901,7 @@ int HandleDirWindow(DirEntry *start_dir_entry)
 
                   DisplayMenu(); /* Force redraw of frame/separator */
                   DisplayTree(CurrentVolume, dir_window, s->disp_begin_pos, s->disp_begin_pos + s->cursor_pos);
-                  DisplayFileWindow(dir_entry); /* Refresh file window for the new directory */
+                  DisplayFileWindow(dir_entry, file_window); /* Refresh file window for the new directory */
                   RefreshWindow(file_window);
                   DisplayDiskStatistic(s);
                   DisplayDirStatistic(dir_entry, NULL, s);
@@ -1975,7 +1975,7 @@ int HandleDirWindow(DirEntry *start_dir_entry)
 
                   /* Force Full Display Refresh */
                   DisplayTree(CurrentVolume, dir_window, s->disp_begin_pos, s->disp_begin_pos + s->cursor_pos);
-                  DisplayFileWindow(dir_entry);
+                  DisplayFileWindow(dir_entry, file_window);
                   RefreshWindow(file_window);
                   DisplayDiskStatistic(s);
                   DisplayDirStatistic(dir_entry, NULL, s);

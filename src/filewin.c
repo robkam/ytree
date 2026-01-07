@@ -43,8 +43,8 @@ static int  SortBySize(FileEntryList *e1, FileEntryList *e2);
 static int  SortByOwner(FileEntryList *e1, FileEntryList *e2);
 static int  SortByGroup(FileEntryList *e1, FileEntryList *e2);
 static int  SortByExtension(FileEntryList *e1, FileEntryList *e2);
-static void DisplayFiles(DirEntry *de_ptr, int start_file_no, int hilight_no, int start_x);
-static void PrintFileEntry(int entry_no, int y, int x, unsigned char hilight, int start_x);
+static void DisplayFiles(DirEntry *de_ptr, int start_file_no, int hilight_no, int start_x, WINDOW *win);
+static void PrintFileEntry(int entry_no, int y, int x, unsigned char hilight, int start_x, WINDOW *win);
 static void ReadGlobalFileList(BOOL tagged_only, DirEntry *dir_entry);
 static void WalkTaggedFiles(int start_file, int cursor_pos, int (*fkt) (FileEntry *, WalkingPackage *), WalkingPackage *walking_package);
 static BOOL IsMatchingTaggedFiles(void);
@@ -562,7 +562,7 @@ static char GetTypeOfFile(struct stat fst)
 }
 
 
-static void PrintFileEntry(int entry_no, int y, int x, unsigned char hilight, int start_x)
+static void PrintFileEntry(int entry_no, int y, int x, unsigned char hilight, int start_x, WINDOW *win)
 {
   char attributes[11];
   char modify_time[20]; /* Increased to 20 */
@@ -588,13 +588,13 @@ static void PrintFileEntry(int entry_no, int y, int x, unsigned char hilight, in
   int base_color_pair;
   int height, width;
 
-  getmaxyx(file_window, height, width);
+  getmaxyx(win, height, width);
 
   fe_ptr = CurrentVolume->file_entry_list[entry_no].file;
 
   if (GlobalView->fixed_col_width > 0) {
       pos_x = x * (GlobalView->fixed_col_width + 1);
-      wmove(file_window, y, pos_x);
+      wmove(win, y, pos_x);
 
       /* Prepare Display Name */
       char display_name[PATH_LENGTH + 1];
@@ -603,12 +603,12 @@ static void PrintFileEntry(int entry_no, int y, int x, unsigned char hilight, in
 
       /* Set Attributes */
       int color = GetFileTypeColor(fe_ptr);
-      wattron(file_window, COLOR_PAIR(color));
-      if (fe_ptr->tagged) wattron(file_window, A_BOLD);
-      if (hilight) wattron(file_window, A_REVERSE);
+      wattron(win, COLOR_PAIR(color));
+      if (fe_ptr->tagged) wattron(win, A_BOLD);
+      if (hilight) wattron(win, A_REVERSE);
 
       /* Draw */
-      wprintw(file_window, "%c%c%s",
+      wprintw(win, "%c%c%s",
           (fe_ptr->tagged) ? TAGGED_SYMBOL : ' ',
           GetTypeOfFile(fe_ptr->stat_struct),
           display_name);
@@ -617,13 +617,13 @@ static void PrintFileEntry(int entry_no, int y, int x, unsigned char hilight, in
       int printed_len = 2 + StrVisualLength(display_name);
       int k;
       for(k = printed_len; k < GlobalView->fixed_col_width; k++) {
-          waddch(file_window, ' ');
+          waddch(win, ' ');
       }
 
       /* Cleanup */
-      if (hilight) wattroff(file_window, A_REVERSE);
-      if (fe_ptr->tagged) wattroff(file_window, A_BOLD);
-      wattroff(file_window, COLOR_PAIR(color));
+      if (hilight) wattroff(win, A_REVERSE);
+      if (fe_ptr->tagged) wattroff(win, A_BOLD);
+      wattroff(win, COLOR_PAIR(color));
       return;
   }
 
@@ -703,14 +703,14 @@ static void PrintFileEntry(int entry_no, int y, int x, unsigned char hilight, in
           break;
   }
 
-  wmove(file_window, y, pos_x);
+  wmove(win, y, pos_x);
   base_color_pair = GetFileTypeColor(fe_ptr);
 
   if (highlight_full_line) {
       /* --- RENDER METHOD 1: FULL LINE HIGHLIGHT --- */
-      wattron(file_window, COLOR_PAIR(base_color_pair));
-      if(fe_ptr && fe_ptr->tagged) wattron(file_window, A_BOLD);
-      if (hilight) wattron(file_window, A_REVERSE);
+      wattron(win, COLOR_PAIR(base_color_pair));
+      if(fe_ptr && fe_ptr->tagged) wattron(win, A_BOLD);
+      if (hilight) wattron(win, A_REVERSE);
 
       /* Build the full line string */
       switch( file_mode ) {
@@ -794,20 +794,20 @@ static void PrintFileEntry(int entry_no, int y, int x, unsigned char hilight, in
         line_end_pos = VisualPositionToBytePosition(line_ptr, ef_window_width);
         line_ptr[line_end_pos] = '\0';
       }
-      waddstr(file_window, line_ptr);
+      waddstr(win, line_ptr);
 
-      if (hilight) wattroff(file_window, A_REVERSE);
-      if(fe_ptr && fe_ptr->tagged) wattroff(file_window, A_BOLD);
+      if (hilight) wattroff(win, A_REVERSE);
+      if(fe_ptr && fe_ptr->tagged) wattroff(win, A_BOLD);
 
   } else {
       /* --- RENDER METHOD 2: NAME-ONLY HIGHLIGHT --- */
       if (start_x > 0) start_x = 0; /* No horizontal scrolling in this mode. */
 
-      wattron(file_window, COLOR_PAIR(base_color_pair));
-      if (fe_ptr && fe_ptr->tagged) wattron(file_window, A_BOLD);
+      wattron(win, COLOR_PAIR(base_color_pair));
+      if (fe_ptr && fe_ptr->tagged) wattron(win, A_BOLD);
 
       /* Print tag and type */
-      wprintw(file_window, "%c%c", (fe_ptr->tagged) ? TAGGED_SYMBOL : ' ', type_of_file);
+      wprintw(win, "%c%c", (fe_ptr->tagged) ? TAGGED_SYMBOL : ' ', type_of_file);
 
       /* Calculate available width for name and truncate if necessary */
       int overhead = 0;
@@ -830,23 +830,23 @@ static void PrintFileEntry(int entry_no, int y, int x, unsigned char hilight, in
       }
 
       /* Highlight only the name */
-      if (hilight) wattron(file_window, A_REVERSE);
-      wprintw(file_window, "%s", display_name);
-      if (hilight) wattroff(file_window, A_REVERSE);
+      if (hilight) wattron(win, A_REVERSE);
+      wprintw(win, "%s", display_name);
+      if (hilight) wattroff(win, A_REVERSE);
 
       /* Print attributes for modes other than MODE_3 */
       if (file_mode != MODE_3) {
           /* int current_x, current_y; // Removed: Unused */
           int current_x;
           int dummy_y;
-          getyx(file_window, dummy_y, current_x);
+          getyx(win, dummy_y, current_x);
           (void)dummy_y;
 
           /* Adjusted target_x calculation to stay within bounds */
           int target_x = MINIMUM(pos_x + 2 + filename_width, width - overhead);
 
           /* Fill space between name and attributes */
-          for (int i = current_x; i < target_x; i++) waddch(file_window, ' ');
+          for (int i = current_x; i < target_x; i++) waddch(win, ' ');
 
           switch (file_mode) {
               case MODE_1:
@@ -854,11 +854,11 @@ static void PrintFileEntry(int entry_no, int y, int x, unsigned char hilight, in
                   (void)CTime(fe_ptr->stat_struct.st_mtime, modify_time);
   #ifdef HAS_LONGLONG
                   /* Updated %12s to %16s */
-                  wprintw(file_window, " %10s %3d %11lld %16s", attributes, (int)fe_ptr->stat_struct.st_nlink, (LONGLONG)fe_ptr->stat_struct.st_size, modify_time);
+                  wprintw(win, " %10s %3d %11lld %16s", attributes, (int)fe_ptr->stat_struct.st_nlink, (LONGLONG)fe_ptr->stat_struct.st_size, modify_time);
   #else
-                  wprintw(file_window, " %10s %3d %7d %16s", attributes, (int)fe_ptr->stat_struct.st_nlink, (int)fe_ptr->stat_struct.st_size, modify_time);
+                  wprintw(win, " %10s %3d %7d %16s", attributes, (int)fe_ptr->stat_struct.st_nlink, (int)fe_ptr->stat_struct.st_size, modify_time);
   #endif
-                  if (sym_link_name && *sym_link_name) wprintw(file_window, " -> %s", sym_link_name);
+                  if (sym_link_name && *sym_link_name) wprintw(win, " -> %s", sym_link_name);
                   break;
               case MODE_2:
                   owner_name_ptr = GetDisplayPasswdName(fe_ptr->stat_struct.st_uid);
@@ -866,56 +866,56 @@ static void PrintFileEntry(int entry_no, int y, int x, unsigned char hilight, in
                   if (!owner_name_ptr) { snprintf(owner, sizeof(owner), "%d", (int)fe_ptr->stat_struct.st_uid); owner_name_ptr = owner; }
                   if (!group_name_ptr) { snprintf(group, sizeof(group), "%d", (int)fe_ptr->stat_struct.st_gid); group_name_ptr = group; }
   #ifdef HAS_LONGLONG
-                  wprintw(file_window, " %10lld %-12s %-12s", (LONGLONG)fe_ptr->stat_struct.st_ino, owner_name_ptr, group_name_ptr);
+                  wprintw(win, " %10lld %-12s %-12s", (LONGLONG)fe_ptr->stat_struct.st_ino, owner_name_ptr, group_name_ptr);
   #else
-                  wprintw(file_window, "  %8u  %-12s %-12s", (unsigned int)fe_ptr->stat_struct.st_ino, owner_name_ptr, group_name_ptr);
+                  wprintw(win, "  %8u  %-12s %-12s", (unsigned int)fe_ptr->stat_struct.st_ino, owner_name_ptr, group_name_ptr);
   #endif
-                  if (sym_link_name && *sym_link_name) wprintw(file_window, " -> %s", sym_link_name);
+                  if (sym_link_name && *sym_link_name) wprintw(win, " -> %s", sym_link_name);
                   break;
               case MODE_4:
                   (void)CTime(fe_ptr->stat_struct.st_ctime, change_time);
                   (void)CTime(fe_ptr->stat_struct.st_atime, access_time);
                   /* Updated %12s to %16s */
-                  wprintw(file_window, " Chg: %16s  Acc: %16s", change_time, access_time);
-                  if (sym_link_name && *sym_link_name) wprintw(file_window, " -> %s", sym_link_name);
+                  wprintw(win, " Chg: %16s  Acc: %16s", change_time, access_time);
+                  if (sym_link_name && *sym_link_name) wprintw(win, " -> %s", sym_link_name);
                   break;
               case MODE_5:
                   break;
           }
       }
 
-      if (fe_ptr && fe_ptr->tagged) wattroff(file_window, A_BOLD);
+      if (fe_ptr && fe_ptr->tagged) wattroff(win, A_BOLD);
   }
-  wattroff(file_window, COLOR_PAIR(base_color_pair));
+  wattroff(win, COLOR_PAIR(base_color_pair));
 }
 
 
-void DisplayFileWindow(DirEntry *dir_entry)
+void DisplayFileWindow(DirEntry *dir_entry, WINDOW *win)
 {
   int height, width;
-  GetMaxYX( file_window, &height, &width );
+  GetMaxYX( win, &height, &width );
   BuildFileEntryList( dir_entry, &CurrentVolume->vol_stats );
   DisplayFiles( dir_entry,
 		dir_entry->start_file,
-                dir_entry->start_file + dir_entry->cursor_pos, 0);
+                dir_entry->start_file + dir_entry->cursor_pos, 0, win);
 }
 
 
-static void DisplayFiles(DirEntry *de_ptr, int start_file_no, int hilight_no, int start_x)
+static void DisplayFiles(DirEntry *de_ptr, int start_file_no, int hilight_no, int start_x, WINDOW *win)
 {
   int  x, y, p_x, p_y, j;
   int height, width;
 
-  getmaxyx(file_window, height, width);
+  getmaxyx(win, height, width);
 
 #ifdef COLOR_SUPPORT
-  WbkgdSet(file_window, COLOR_PAIR(CPAIR_WINFILE));
+  WbkgdSet(win, COLOR_PAIR(CPAIR_WINFILE));
 #endif
-  werase( file_window );
+  werase( win );
 
   if( CurrentVolume->file_count == 0 )
   {
-    mvwaddstr( file_window,
+    mvwaddstr( win,
 	       0,
 	       3,
 	       (de_ptr->access_denied) ? "Permission Denied!" : "No Files!"
@@ -936,7 +936,7 @@ static void DisplayFiles(DirEntry *de_ptr, int start_file_no, int hilight_no, in
 	}
 	else
 	{
-	  PrintFileEntry( j, y, x, FALSE, start_x);
+	  PrintFileEntry( j, y, x, FALSE, start_x, win);
 	}
       }
       j++;
@@ -944,9 +944,9 @@ static void DisplayFiles(DirEntry *de_ptr, int start_file_no, int hilight_no, in
   }
 
   if( p_x >= 0 )
-    PrintFileEntry( hilight_no, p_y, p_x, TRUE, start_x);
+    PrintFileEntry( hilight_no, p_y, p_x, TRUE, start_x, win);
 
-  wnoutrefresh(file_window); /* ADDED: Stage update for the screen */
+  wnoutrefresh(win); /* ADDED: Stage update for the screen */
 }
 
 
@@ -964,7 +964,7 @@ static void fmovedown(int *start_file, int *cursor_pos, int *start_x, DirEntry *
     } else {
         (*start_file)++;
     }
-    DisplayFiles(dir_entry, *start_file, *start_file + *cursor_pos, *start_x);
+    DisplayFiles(dir_entry, *start_file, *start_file + *cursor_pos, *start_x, file_window);
     /* Update dynamic header path */
     if (CurrentVolume->file_count > 0) {
         char path[PATH_LENGTH];
@@ -994,7 +994,7 @@ static void fmoveup(int *start_file, int *cursor_pos, int *start_x, DirEntry *di
     } else {
         (*start_file)--;
     }
-    DisplayFiles(dir_entry, *start_file, *start_file + *cursor_pos, *start_x);
+    DisplayFiles(dir_entry, *start_file, *start_file + *cursor_pos, *start_x, file_window);
     /* Update dynamic header path */
     if (CurrentVolume->file_count > 0) {
         char path[PATH_LENGTH];
@@ -1020,7 +1020,8 @@ static void fmoveright(int *start_file, int *cursor_pos, int *start_x,DirEntry *
       DisplayFiles( dir_entry,
                     *start_file,
                     *start_file + *cursor_pos,
-                    *start_x
+                    *start_x,
+                    file_window
                   );
       if( hide_right <= 0 ) (*start_x)--;
    }
@@ -1058,7 +1059,8 @@ static void fmoveright(int *start_file, int *cursor_pos, int *start_x,DirEntry *
       DisplayFiles( dir_entry,
                     *start_file,
                     *start_file + *cursor_pos,
-                    *start_x
+                    *start_x,
+                    file_window
                   );
    }
    /* Update dynamic header path */
@@ -1088,7 +1090,8 @@ static void fmoveleft(int *start_file, int *cursor_pos, int *start_x, DirEntry *
          DisplayFiles( dir_entry,
                        *start_file,
                        *start_file + *cursor_pos,
-                       *start_x
+                       *start_x,
+                       file_window
                      );
      }
      else if( *start_file + *cursor_pos <= 0 )
@@ -1125,7 +1128,8 @@ static void fmoveleft(int *start_file, int *cursor_pos, int *start_x, DirEntry *
          DisplayFiles( dir_entry,
                        *start_file,
                        *start_file + *cursor_pos,
-                       *start_x
+                       *start_x,
+                       file_window
                        );
      }
      /* Update dynamic header path */
@@ -1175,7 +1179,8 @@ static void fmovenpage(int *start_file, int *cursor_pos, int *start_x, DirEntry 
     DisplayFiles( dir_entry,
                   *start_file,
                   *start_file + *cursor_pos,
-                  *start_x
+                  *start_x,
+                  file_window
                 );
     /* Update dynamic header path */
     if (CurrentVolume->file_count > 0) {
@@ -1217,7 +1222,8 @@ static void fmoveppage(int *start_file, int *cursor_pos, int *start_x, DirEntry 
     DisplayFiles( dir_entry,
                   *start_file,
                   *start_file + *cursor_pos,
-                  *start_x
+                  *start_x,
+                  file_window
                 );
     /* Update dynamic header path */
     if (CurrentVolume->file_count > 0) {
@@ -1297,7 +1303,7 @@ static DirEntry *RefreshFileView(DirEntry *dir_entry) {
     else
         DisplayDirStatistic( dir_entry, NULL, s );
 
-    DisplayFiles(dir_entry, dir_entry->start_file, dir_entry->start_file + dir_entry->cursor_pos, start_x);
+    DisplayFiles(dir_entry, dir_entry->start_file, dir_entry->start_file + dir_entry->cursor_pos, start_x, file_window);
 
     return dir_entry;
 }
@@ -1340,7 +1346,8 @@ static void HandleInvertTags(DirEntry *dir_entry, Statistic *s)
     DisplayFiles(dir_entry,
                  dir_entry->start_file,
                  dir_entry->start_file + dir_entry->cursor_pos,
-                 0 /* start_x */
+                 0 /* start_x */,
+                 file_window
                 );
     DisplayDiskStatistic(s);
     if( dir_entry->global_flag )
@@ -1488,7 +1495,8 @@ int HandleFileWindow(DirEntry *dir_entry)
   DisplayFiles( dir_entry,
 		dir_entry->start_file,
 		dir_entry->start_file + dir_entry->cursor_pos,
-		start_x
+		start_x,
+                file_window
 	      );
 
   if (s->login_mode == DISK_MODE || s->login_mode == USER_MODE) {
@@ -1572,13 +1580,13 @@ int HandleFileWindow(DirEntry *dir_entry)
        /* big window active */
 
        SwitchToBigFileWindow();
-       DisplayFileWindow(dir_entry);
+       DisplayFileWindow(dir_entry, file_window);
 
        if(dir_entry->global_flag) {
 	 DisplayDiskStatistic(s);
 	 DisplayGlobalFileParameter(fe_ptr);
        } else {
-	 DisplayFileWindow(dir_entry);
+	 DisplayFileWindow(dir_entry, file_window);
 	 DisplayDiskStatistic(s); /* Added */
 	 DisplayDirStatistic(dir_entry, NULL, s);
 	 DisplayFileParameter(fe_ptr);
@@ -1592,7 +1600,7 @@ int HandleFileWindow(DirEntry *dir_entry)
 		  s->disp_begin_pos + s->cursor_pos
 		);
        DisplayDiskStatistic(s); /* Added per instructions */
-       DisplayFileWindow(dir_entry);
+       DisplayFileWindow(dir_entry, file_window);
        DisplayDirStatistic(dir_entry, NULL, s);
        DisplayFileParameter(fe_ptr);
      }
@@ -1629,7 +1637,8 @@ int HandleFileWindow(DirEntry *dir_entry)
 	DisplayFiles( dir_entry,
 		      dir_entry->start_file,
 		      dir_entry->start_file + dir_entry->cursor_pos,
-		      start_x
+		      start_x,
+                      file_window
 		    );
      }
    }
@@ -1705,7 +1714,8 @@ int HandleFileWindow(DirEntry *dir_entry)
 			DisplayFiles( dir_entry,
 				      dir_entry->start_file,
 				      dir_entry->start_file + dir_entry->cursor_pos,
-				      start_x
+				      start_x,
+                                      file_window
 				    );
 		      }
 		      break;
@@ -1723,7 +1733,8 @@ int HandleFileWindow(DirEntry *dir_entry)
 			DisplayFiles( dir_entry,
 				      dir_entry->start_file,
 				      dir_entry->start_file + dir_entry->cursor_pos,
-				      start_x
+				      start_x,
+                                      file_window
 				    );
 
 		      }
@@ -1736,7 +1747,7 @@ int HandleFileWindow(DirEntry *dir_entry)
                         dir_entry = GetSelectedDirEntry(CurrentVolume);
 
                         /* Explicitly update the file window (preview) */
-                        DisplayFileWindow(dir_entry);
+                        DisplayFileWindow(dir_entry, file_window);
                         RefreshWindow(file_window);
 
                         need_dsp_help = TRUE;
@@ -1752,7 +1763,8 @@ int HandleFileWindow(DirEntry *dir_entry)
 			DisplayFiles( dir_entry,
 				      dir_entry->start_file,
 				      dir_entry->start_file + dir_entry->cursor_pos,
-				      start_x
+				      start_x,
+                                      file_window
 			            );
 		      }
 		      break;
@@ -1787,7 +1799,8 @@ int HandleFileWindow(DirEntry *dir_entry)
 			  DisplayFiles( dir_entry,
 					dir_entry->start_file,
 					dir_entry->start_file + dir_entry->cursor_pos,
-					start_x
+					start_x,
+                                        file_window
 				      );
 			}
             move( LINES - 2, 1 ); clrtoeol(); /* Cleanup prompt line */
@@ -1803,7 +1816,8 @@ int HandleFileWindow(DirEntry *dir_entry)
 			DisplayFiles( dir_entry,
 				      dir_entry->start_file,
 				      dir_entry->start_file + dir_entry->cursor_pos,
-				      start_x
+				      start_x,
+                                      file_window
 			            );
 		      }
 		      break;
@@ -1827,7 +1841,8 @@ int HandleFileWindow(DirEntry *dir_entry)
 			  DisplayFiles( dir_entry,
 					dir_entry->start_file,
 					dir_entry->start_file + dir_entry->cursor_pos,
-					start_x
+					start_x,
+                                        file_window
 				      );
 			}
 		      }
@@ -1842,7 +1857,8 @@ int HandleFileWindow(DirEntry *dir_entry)
 			DisplayFiles( dir_entry,
 				      dir_entry->start_file,
 				      dir_entry->start_file + dir_entry->cursor_pos,
-				      start_x
+				      start_x,
+                                      file_window
 			            );
 		      }
 		      break;
@@ -1867,7 +1883,8 @@ int HandleFileWindow(DirEntry *dir_entry)
 			  DisplayFiles( dir_entry,
 					dir_entry->start_file,
 					dir_entry->start_file + dir_entry->cursor_pos,
-					start_x
+					start_x,
+                                        file_window
 				      );
 			}
 		      }
@@ -1884,7 +1901,7 @@ int HandleFileWindow(DirEntry *dir_entry)
 	       	        s->disk_tagged_files++;
 		        s->disk_tagged_bytes += fe_ptr->stat_struct.st_size;
 		      }
-              DisplayFiles(dir_entry, dir_entry->start_file, dir_entry->start_file + dir_entry->cursor_pos, start_x);
+              DisplayFiles(dir_entry, dir_entry->start_file, dir_entry->start_file + dir_entry->cursor_pos, start_x, file_window);
               DisplayDiskStatistic(s); /* Always update global disk stats */
               DisplayDirStatistic(dir_entry, NULL, s); /* Always update current list stats (even in Showall) */
 		      unput_char = KEY_DOWN;
@@ -1901,7 +1918,7 @@ int HandleFileWindow(DirEntry *dir_entry)
 			s->disk_tagged_files--;
 			s->disk_tagged_bytes -= fe_ptr->stat_struct.st_size;
 		      }
-              DisplayFiles(dir_entry, dir_entry->start_file, dir_entry->start_file + dir_entry->cursor_pos, start_x);
+              DisplayFiles(dir_entry, dir_entry->start_file, dir_entry->start_file + dir_entry->cursor_pos, start_x, file_window);
               DisplayDiskStatistic(s); /* Always update global disk stats */
               DisplayDirStatistic(dir_entry, NULL, s); /* Always update current list stats (even in Showall) */
 		      unput_char = KEY_DOWN;
@@ -1928,7 +1945,8 @@ int HandleFileWindow(DirEntry *dir_entry)
 		      DisplayFiles( dir_entry,
 				    dir_entry->start_file,
 				    dir_entry->start_file + dir_entry->cursor_pos,
-				    start_x
+				    start_x,
+                                    file_window
 			          );
 		      break;
 
@@ -1953,7 +1971,8 @@ int HandleFileWindow(DirEntry *dir_entry)
 		      DisplayFiles( dir_entry,
 				    dir_entry->start_file,
 				    dir_entry->start_file + dir_entry->cursor_pos,
-				    start_x
+				    start_x,
+                                    file_window
 			          );
               DisplayDiskStatistic(s); /* Always update global disk stats */
               DisplayDirStatistic(dir_entry, NULL, s); /* Always update current list stats (even in Showall) */
@@ -1981,7 +2000,8 @@ int HandleFileWindow(DirEntry *dir_entry)
 		      DisplayFiles( dir_entry,
 				    dir_entry->start_file,
 				    dir_entry->start_file + dir_entry->cursor_pos,
-				    start_x
+				    start_x,
+                                    file_window
 			          );
               DisplayDiskStatistic(s); /* Always update global disk stats */
               DisplayDirStatistic(dir_entry, NULL, s); /* Always update current list stats (even in Showall) */
@@ -2010,7 +2030,8 @@ int HandleFileWindow(DirEntry *dir_entry)
 		      DisplayFiles( dir_entry,
 				    dir_entry->start_file,
 				    dir_entry->start_file + dir_entry->cursor_pos,
-				    start_x
+				    start_x,
+                                    file_window
 			          );
               DisplayDiskStatistic(s); /* Always update global disk stats */
               DisplayDirStatistic(dir_entry, NULL, s); /* Always update current list stats (even in Showall) */
@@ -2038,7 +2059,8 @@ int HandleFileWindow(DirEntry *dir_entry)
 		      DisplayFiles( dir_entry,
 				    dir_entry->start_file,
 				    dir_entry->start_file + dir_entry->cursor_pos,
-				    start_x
+				    start_x,
+                                    file_window
 			          );
               DisplayDiskStatistic(s); /* Always update global disk stats */
               DisplayDirStatistic(dir_entry, NULL, s); /* Always update current list stats (even in Showall) */
@@ -2113,7 +2135,7 @@ int HandleFileWindow(DirEntry *dir_entry)
 
               /* Force a full refresh of the file window state after copy attempt */
               DisplayAvailBytes(s);
-              DisplayFileWindow(dir_entry);
+              DisplayFileWindow(dir_entry, file_window);
               keypad(file_window, TRUE);
               touchwin(file_window);
               wrefresh(file_window);
@@ -2184,7 +2206,7 @@ int HandleFileWindow(DirEntry *dir_entry)
                           DisplayAvailBytes(s);
 
                           /* Force a full refresh of the file window state after copy attempt */
-                          DisplayFileWindow(dir_entry);
+                          DisplayFileWindow(dir_entry, file_window);
                           keypad(file_window, TRUE);
                           touchwin(file_window);
                           wrefresh(file_window);
@@ -2276,7 +2298,8 @@ int HandleFileWindow(DirEntry *dir_entry)
 			DisplayFiles( dir_entry,
 				      dir_entry->start_file,
 				      dir_entry->start_file + dir_entry->cursor_pos,
-				      start_x
+				      start_x,
+                                      file_window
 			            );
 			maybe_change_x_step = TRUE;
             /* REMOVED: RefreshDirWindow(); Fixed UI Glitch */
@@ -2352,7 +2375,8 @@ int HandleFileWindow(DirEntry *dir_entry)
 			DisplayFiles( dir_entry,
 				      dir_entry->start_file,
 				      dir_entry->start_file + dir_entry->cursor_pos,
-				      start_x
+				      start_x,
+                                      file_window
 			            );
 			maybe_change_x_step = TRUE;
             /* REMOVED: RefreshDirWindow(); Fixed UI Glitch */
@@ -2408,7 +2432,8 @@ int HandleFileWindow(DirEntry *dir_entry)
 			DisplayFiles( dir_entry,
 				      dir_entry->start_file,
 				      dir_entry->start_file + dir_entry->cursor_pos,
-				      start_x
+				      start_x,
+                                      file_window
 			            );
 			maybe_change_x_step = TRUE;
 		      }
@@ -2430,7 +2455,8 @@ int HandleFileWindow(DirEntry *dir_entry)
 			DisplayFiles( dir_entry,
 				      dir_entry->start_file,
 				      dir_entry->start_file + dir_entry->cursor_pos,
-				      start_x
+				      start_x,
+                                      file_window
 			            );
 			maybe_change_x_step = TRUE;
 		      }
@@ -2462,7 +2488,8 @@ int HandleFileWindow(DirEntry *dir_entry)
 			  DisplayFiles( de_ptr,
 				        dir_entry->start_file,
 				        dir_entry->start_file + dir_entry->cursor_pos,
-				        start_x
+				        start_x,
+                                        file_window
 			              );
 			  maybe_change_x_step = TRUE;
                         }
@@ -2499,7 +2526,8 @@ int HandleFileWindow(DirEntry *dir_entry)
 			DisplayFiles( dir_entry,
 				      dir_entry->start_file,
 				      dir_entry->start_file + dir_entry->cursor_pos,
-				      start_x
+				      start_x,
+                                      file_window
 			            );
 
 			maybe_change_x_step = TRUE;
@@ -2516,7 +2544,8 @@ int HandleFileWindow(DirEntry *dir_entry)
 		      DisplayFiles( dir_entry,
 				    dir_entry->start_file,
 				    dir_entry->start_file + dir_entry->cursor_pos,
-				    start_x
+				    start_x,
+                                    file_window
 			          );
 		      need_dsp_help = TRUE;
 		      break;
@@ -2532,7 +2561,8 @@ int HandleFileWindow(DirEntry *dir_entry)
 		        DisplayFiles( dir_entry,
 				      dir_entry->start_file,
 				      dir_entry->start_file + dir_entry->cursor_pos,
-				      start_x
+				      start_x,
+                                      file_window
 			            );
 
 		        if( dir_entry->global_flag )
@@ -2573,7 +2603,8 @@ int HandleFileWindow(DirEntry *dir_entry)
 		      DisplayFiles( dir_entry,
 				    dir_entry->start_file,
 				    dir_entry->start_file + dir_entry->cursor_pos,
-				    start_x
+				    start_x,
+                                    file_window
 			          );
                       action = ACTION_NONE; /* Prevent loop termination to stay in file window */
 		      break;
@@ -2647,7 +2678,8 @@ int HandleFileWindow(DirEntry *dir_entry)
 			DisplayFiles( dir_entry,
 				      dir_entry->start_file,
 				      dir_entry->start_file + dir_entry->cursor_pos,
-				      start_x
+				      start_x,
+                                      file_window
 			            );
 		      }
 		      break;
@@ -2704,7 +2736,8 @@ int HandleFileWindow(DirEntry *dir_entry)
             DisplayFiles( dir_entry,
                   dir_entry->start_file,
                   dir_entry->start_file + dir_entry->cursor_pos,
-                  start_x
+                  start_x,
+                  file_window
                 );
             DisplayDiskStatistic(s);
             if( dir_entry->global_flag )
@@ -2833,7 +2866,8 @@ int HandleFileWindow(DirEntry *dir_entry)
             dir_entry,
             dir_entry->start_file,
             dir_entry->start_file + dir_entry->cursor_pos,
-            start_x
+            start_x,
+            file_window
         );
         maybe_change_x_step = TRUE;
         break;
@@ -2896,7 +2930,8 @@ static void WalkTaggedFiles(int start_file,
     DisplayFiles( fe_ptr->dir_entry,
             start_file,
             i,
-            start_x
+            start_x,
+            file_window
             );
         cursor_pos = i - start_file;
       }
@@ -2911,7 +2946,8 @@ static void WalkTaggedFiles(int start_file,
         DisplayFiles( fe_ptr->dir_entry,
 		      start_file,
 		      start_file + cursor_pos,
-		      start_x
+		      start_x,
+                      file_window
 	            );
 	maybe_change_x = FALSE;
       }
@@ -3093,7 +3129,8 @@ static int DeleteTaggedFiles(int max_disp_files, Statistic *s)
       DisplayFiles( de_ptr,
 		    start_file,
 		    start_file + cursor_pos,
-		    start_x
+		    start_x,
+                    file_window
 	          );
 
       if( fe_ptr->dir_entry->global_flag )
@@ -3250,7 +3287,8 @@ static void ListJump( DirEntry * dir_entry, char *str )
       	DisplayFiles( dir_entry,
             	dir_entry->start_file,
             	dir_entry->start_file + dir_entry->cursor_pos,
-            	start_x
+            	start_x,
+                file_window
           	);
     }
     for ( j=tmp2; j < i; j++ )
