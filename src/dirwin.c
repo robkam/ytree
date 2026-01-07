@@ -1325,6 +1325,28 @@ int HandleDirWindow(DirEntry *start_dir_entry)
                resize_request = TRUE;
                break;
 
+      case ACTION_SPLIT_SCREEN:
+             IsSplitScreen = !IsSplitScreen;
+             if( IsSplitScreen ) {
+                 if( !LeftPanel ) {
+                     if( ( LeftPanel = (YtreePanel *)calloc( 1, sizeof(YtreePanel) ) ) == NULL ) {
+                         ERROR_MSG( "Calloc Failed*ABORT" );
+                         exit( 1 );
+                     }
+                 }
+                 if( !RightPanel ) {
+                     if( ( RightPanel = (YtreePanel *)calloc( 1, sizeof(YtreePanel) ) ) == NULL ) {
+                         ERROR_MSG( "Calloc Failed*ABORT" );
+                         exit( 1 );
+                     }
+                 }
+                 RightPanel->vol = CurrentVolume;
+                 LeftPanel->vol  = CurrentVolume;
+                 if( !ActivePanel ) ActivePanel = LeftPanel;
+             }
+             resize_request = TRUE;
+             break;
+
       case ACTION_NONE:  /* -1 or unhandled keys */
                          if (ch == -1) break; /* Ignore -1 (resize_request handled above) */
                          /* Fall through for other unhandled keys to beep */
