@@ -162,6 +162,7 @@ void DisplayMenu(void)
   /* Define L_BORDER_FOR_DISPLAY as the column index where stats.c's left vertical border begins.
    * display.c's lines must end one character before this to allow stats.c to draw its full frame. */
   const int L_BORDER_FOR_DISPLAY = COLS - layout.stats_width - 1;
+  int sep_y = layout.dir_win_y + layout.dir_win_height;
 
 
   PrintSpecialString( stdscr, 0, 0, "Path: ", CPAIR_MENU );
@@ -190,19 +191,21 @@ void DisplayMenu(void)
   /* Draw the top horizontal line of the directory window frame. */
   PrintLine( stdscr, 1, 0, first_line, L_BORDER_FOR_DISPLAY );
 
-  /* Draw the horizontal separator line between the directory and file windows. */
-  /* Use layout.dir_win_y + layout.dir_win_height to calculate the exact separator position */
-  PrintLine( stdscr, layout.dir_win_y + layout.dir_win_height, 0, middle_line_separator, L_BORDER_FOR_DISPLAY );
-
   /* Draw the bottom horizontal border of the main content area. */
   PrintLine( stdscr, LINES - 4, 0, last_line, L_BORDER_FOR_DISPLAY );
 
-  /* Split Screen Visual Separator */
-  if (IsSplitScreen && LeftPanel) {
+  /* Split Screen Visual Separator & Horizontal Dividers */
+  if (!IsSplitScreen) {
+      if (file_window == small_file_window) {
+          PrintLine( stdscr, sep_y, 0, middle_line_separator, L_BORDER_FOR_DISPLAY );
+      }
+  } else if (LeftPanel && RightPanel) {
       int split_x = LeftPanel->dir_x + LeftPanel->dir_w;
       int top_y = 1;
       int bottom_y = LINES - 4;
-      int sep_y = layout.dir_win_y + layout.dir_win_height;
+
+      BOOL draw_left = (file_window == small_file_window);
+      BOOL draw_right = TRUE;
 
 #ifdef COLOR_SUPPORT
       attron(COLOR_PAIR(CPAIR_MENU) | A_BOLD);
@@ -214,8 +217,31 @@ void DisplayMenu(void)
 
       /* Draw Correct Junctions */
       mvaddch(top_y, split_x, ACS_TTEE);        /* Top T-Junction */
-      mvaddch(sep_y, split_x, ACS_PLUS);        /* Middle Cross */
       mvaddch(bottom_y, split_x, ACS_BTEE);     /* Bottom T-Junction */
+
+      /* Draw Horizontal Lines */
+      if (draw_left) {
+          mvwhline(stdscr, sep_y, 1, ACS_HLINE, split_x - 1);
+          mvaddch(sep_y, 0, ACS_LTEE);
+      }
+      if (draw_right) {
+          int right_len = L_BORDER_FOR_DISPLAY - split_x - 1;
+          if (right_len > 0) {
+              mvwhline(stdscr, sep_y, split_x + 1, ACS_HLINE, right_len);
+              if (layout.stats_width == 0) {
+                  mvaddch(sep_y, L_BORDER_FOR_DISPLAY, ACS_RTEE);
+              }
+          }
+      }
+
+      /* Draw Center Junction */
+      int junction;
+      if (draw_left && draw_right) junction = ACS_PLUS;
+      else if (draw_left) junction = ACS_RTEE;
+      else if (draw_right) junction = ACS_LTEE;
+      else junction = ACS_VLINE;
+
+      mvaddch(sep_y, split_x, junction);
 
 #ifdef COLOR_SUPPORT
       attroff(COLOR_PAIR(CPAIR_MENU) | A_BOLD);
