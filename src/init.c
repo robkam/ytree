@@ -49,7 +49,7 @@ void Layout_Recalculate(void)
     }
 
     int stats_margin = (layout.stats_width > 0) ? 2 : 0;
-    layout.main_win_width = COLS - layout.stats_width - stats_margin;
+    layout.main_win_width = (layout.stats_width > 0) ? (COLS - layout.stats_width - 2) : (COLS - 2);
 
     /* Left Panel Geometry (Always active) */
     int panel_width;
