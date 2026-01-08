@@ -722,6 +722,7 @@ typedef enum {
     ACTION_TOGGLE_STATS,         /* ADDED */
     ACTION_ASTERISK,             /* * (Expand All / Invert Tags) */
     ACTION_SPLIT_SCREEN,         /* F8 Split Screen */
+    ACTION_SWITCH_PANEL,         /* TAB in Split Mode */
     ACTION_USER_CMD              /* Reserved for future */
 } YtreeAction;
 
