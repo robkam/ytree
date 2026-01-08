@@ -938,6 +938,7 @@ extern void SwitchToBigFileWindow(void);
 extern void SwitchToSmallFileWindow(void);
 extern void UnmapF2Window(void);
 extern void DisplayHeaderPath(char *path); /* ADDED: Prototype for dynamic header path */
+extern void RenderInactivePanel(YtreePanel *panel); /* ADDED: Moved from dirwin.c */
 
 /* display_utils.c */
 extern int AddStr(char *str);

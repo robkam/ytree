@@ -360,3 +360,52 @@ void RefreshWindow(WINDOW *win)
 {
 	wnoutrefresh(win);
 }
+
+void RenderInactivePanel(YtreePanel *panel)
+{
+    /* Modified check as per instructions */
+    if (!panel || !panel->pan_dir_window || !panel->pan_small_file_window) return;
+
+    if (!panel->vol) return;
+
+    /* Save global context */
+    struct Volume *saved_vol = CurrentVolume;
+    CurrentVolume = panel->vol;
+
+    /* Ensure directory list is valid */
+    if (CurrentVolume->dir_entry_list == NULL) {
+        BuildDirEntryList(CurrentVolume);
+    }
+
+    /* Clamp cursor */
+    int total = CurrentVolume->total_dirs;
+    int begin = CurrentVolume->vol_stats.disp_begin_pos;
+    int cursor = CurrentVolume->vol_stats.cursor_pos;
+
+    if (total > 0 && (begin + cursor >= total)) {
+        /* Fix invalid position if any */
+        begin = 0; cursor = 0;
+    }
+
+    /* Draw Tree */
+    /* Use the window pointers from the panel */
+    if (panel->pan_dir_window) {
+        DisplayTree(CurrentVolume, panel->pan_dir_window, begin, begin + cursor);
+        wnoutrefresh(panel->pan_dir_window);
+    }
+
+    /* Draw File List */
+    if (panel->pan_file_window && total > 0) {
+        int idx = begin + cursor;
+        if (idx >= 0 && idx < total) {
+            DirEntry *de = CurrentVolume->dir_entry_list[idx].dir_entry;
+            if (de) {
+                DisplayFileWindow(de, panel->pan_file_window);
+                wnoutrefresh(panel->pan_file_window);
+            }
+        }
+    }
+
+    /* Restore global context */
+    CurrentVolume = saved_vol;
+}
