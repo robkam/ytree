@@ -1552,6 +1552,12 @@ int HandleFileWindow(DirEntry *dir_entry)
 
       RefreshWindow( dir_window ); /* needed: ncurses-bug ? */
       RefreshWindow( file_window );
+
+      if (IsSplitScreen) {
+          YtreePanel *inactive = (ActivePanel == LeftPanel) ? RightPanel : LeftPanel;
+          RenderInactivePanel(inactive);
+      }
+
       doupdate();
       ch = (resize_request) ? -1 : GetEventOrKey();
       if( ch == LF ) ch = CR;
