@@ -141,7 +141,7 @@ int LoginDisk(char *path)
                s = &CurrentVolume->vol_stats;
                /* ... refresh empty ... */
                DisplayMenu();
-               DisplayTree(CurrentVolume, dir_window, 0, 0);
+               DisplayTree(CurrentVolume, dir_window, 0, 0, TRUE);
                DisplayDiskStatistic(s);
                DisplayAvailBytes(s);
           } else {
@@ -170,7 +170,7 @@ int LoginDisk(char *path)
        /* CRITICAL FIX: Rebuild the directory entry list for the new volume's tree
         * before displaying it, to prevent use-after-free issues with stale pointers. */
        BuildDirEntryList(CurrentVolume);
-       DisplayTree(CurrentVolume, dir_window, s->disp_begin_pos, s->disp_begin_pos + s->cursor_pos);
+       DisplayTree(CurrentVolume, dir_window, s->disp_begin_pos, s->disp_begin_pos + s->cursor_pos, TRUE);
        DisplayDiskStatistic(s);
        DisplayAvailBytes(s);
        InitClock(); /* Resume clock before returning */
@@ -211,7 +211,7 @@ int LoginDisk(char *path)
                   mode = CurrentVolume->vol_stats.login_mode;
                   s = &CurrentVolume->vol_stats;
                   DisplayMenu();
-                  DisplayTree(CurrentVolume, dir_window, s->disp_begin_pos, s->cursor_pos);
+                  DisplayTree(CurrentVolume, dir_window, s->disp_begin_pos, s->cursor_pos, TRUE);
                   DisplayDiskStatistic(s);
                   DisplayAvailBytes(s);
               }
@@ -244,7 +244,7 @@ int LoginDisk(char *path)
                   mode = CurrentVolume->vol_stats.login_mode;
                   s = &CurrentVolume->vol_stats;
                   DisplayMenu();
-                  DisplayTree(CurrentVolume, dir_window, s->disp_begin_pos, s->cursor_pos);
+                  DisplayTree(CurrentVolume, dir_window, s->disp_begin_pos, s->cursor_pos, TRUE);
                   DisplayDiskStatistic(s);
                   DisplayAvailBytes(s);
               }
@@ -370,7 +370,7 @@ int LoginDisk(char *path)
                    /* Restore display for the old volume */
                    DisplayMenu();
                    BuildDirEntryList(CurrentVolume); /* Rebuild list for old volume */
-                   DisplayTree(CurrentVolume, dir_window, s->disp_begin_pos, s->disp_begin_pos + s->cursor_pos);
+                   DisplayTree(CurrentVolume, dir_window, s->disp_begin_pos, s->disp_begin_pos + s->cursor_pos, TRUE);
                    DisplayDiskStatistic(s);
                    DisplayAvailBytes(s);
                } else {
@@ -395,7 +395,7 @@ int LoginDisk(char *path)
                /* CurrentVolume remains the empty virgin volume. */
                DisplayMenu(); /* Refresh to show empty state */
                BuildDirEntryList(CurrentVolume); /* Rebuild list for empty tree */
-               DisplayTree(CurrentVolume, dir_window, 0, 0);
+               DisplayTree(CurrentVolume, dir_window, 0, 0, TRUE);
                DisplayDiskStatistic(s);
                DisplayAvailBytes(s);
            }
@@ -413,7 +413,7 @@ int LoginDisk(char *path)
 
       /* Refresh display */
       BuildDirEntryList(CurrentVolume); /* Rebuild list for the newly loaded tree */
-      DisplayTree(CurrentVolume, dir_window, 0, 0); /* New/reused volume, reset display position */
+      DisplayTree(CurrentVolume, dir_window, 0, 0, TRUE); /* New/reused volume, reset display position */
       DisplayDiskStatistic(s);
       DisplayAvailBytes(s);
 
@@ -945,7 +945,7 @@ int CycleLoadedVolume(int direction)
             ReCreateWindows();
             ClockHandler(0); /* Redraw clock immediately */
             DisplayMenu();
-            DisplayTree(CurrentVolume, dir_window, CurrentVolume->vol_stats.disp_begin_pos, CurrentVolume->vol_stats.disp_begin_pos + CurrentVolume->vol_stats.cursor_pos);
+            DisplayTree(CurrentVolume, dir_window, CurrentVolume->vol_stats.disp_begin_pos, CurrentVolume->vol_stats.disp_begin_pos + CurrentVolume->vol_stats.cursor_pos, TRUE);
             DisplayDiskStatistic(&CurrentVolume->vol_stats);
             if(animation_method == 0) SwitchToSmallFileWindow();
             return 0; // Success!

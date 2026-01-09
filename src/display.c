@@ -405,8 +405,9 @@ void RenderInactivePanel(YtreePanel *panel)
 
     /* Clamp cursor */
     int total = CurrentVolume->total_dirs;
-    int begin = CurrentVolume->vol_stats.disp_begin_pos;
-    int cursor = CurrentVolume->vol_stats.cursor_pos;
+    /* Use Panel state, not Volume state */
+    int begin = panel->disp_begin_pos;
+    int cursor = panel->cursor_pos;
 
     if (total > 0 && (begin + cursor >= total)) {
         /* Fix invalid position if any */
@@ -416,7 +417,7 @@ void RenderInactivePanel(YtreePanel *panel)
     /* Draw Tree */
     /* Use the window pointers from the panel */
     if (panel->pan_dir_window) {
-        DisplayTree(CurrentVolume, panel->pan_dir_window, begin, begin + cursor);
+        DisplayTree(CurrentVolume, panel->pan_dir_window, begin, begin + cursor, FALSE);
         wnoutrefresh(panel->pan_dir_window);
     }
 

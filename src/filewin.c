@@ -1603,7 +1603,7 @@ int HandleFileWindow(DirEntry *dir_entry)
 
        SwitchToSmallFileWindow();
        DisplayTree( CurrentVolume, dir_window, s->disp_begin_pos,
-		  s->disp_begin_pos + s->cursor_pos
+		  s->disp_begin_pos + s->cursor_pos, TRUE
 		);
        DisplayDiskStatistic(s); /* Added per instructions */
        DisplayFileWindow(dir_entry, file_window);
@@ -1656,26 +1656,43 @@ int HandleFileWindow(DirEntry *dir_entry)
       case ACTION_NONE:         break;
 
       case ACTION_SPLIT_SCREEN:
-             IsSplitScreen = !IsSplitScreen;
-             if( IsSplitScreen ) {
-                 if( !LeftPanel ) {
-                     if( ( LeftPanel = (YtreePanel *)calloc( 1, sizeof(YtreePanel) ) ) == NULL ) {
-                         ERROR_MSG( "Calloc Failed*ABORT" );
-                         exit( 1 );
-                     }
-                 }
-                 if( !RightPanel ) {
-                     if( ( RightPanel = (YtreePanel *)calloc( 1, sizeof(YtreePanel) ) ) == NULL ) {
-                         ERROR_MSG( "Calloc Failed*ABORT" );
-                         exit( 1 );
-                     }
-                 }
-                 RightPanel->vol = CurrentVolume;
-                 LeftPanel->vol  = CurrentVolume;
-                 if( !ActivePanel ) ActivePanel = LeftPanel;
+             if (IsSplitScreen && ActivePanel == RightPanel) {
+                /* Preserve Right Panel state into Left Panel before unsplitting */
+                LeftPanel->vol = RightPanel->vol;
+                LeftPanel->cursor_pos = RightPanel->cursor_pos;
+                LeftPanel->disp_begin_pos = RightPanel->disp_begin_pos;
+                /* Sync Global Volume */
+                CurrentVolume = LeftPanel->vol;
              }
-             resize_request = TRUE;
-             break;
+
+             IsSplitScreen = !IsSplitScreen;
+             ReCreateWindows(); /* Force layout update immediately */
+
+             if (IsSplitScreen) {
+                 /* Explicitly copy state here because we won't hit the dirwin logic */
+                 YtreePanel *source = ActivePanel;
+                 YtreePanel *target = (ActivePanel == LeftPanel) ? RightPanel : LeftPanel;
+
+                 target->vol = source->vol;
+                 target->cursor_pos = source->cursor_pos;
+                 target->disp_begin_pos = source->disp_begin_pos;
+                 target->pan_file_window = target->pan_small_file_window;
+             }
+
+             return ESC; /* Return to DirWindow to redraw */
+
+      case ACTION_SWITCH_PANEL:
+             if (!IsSplitScreen) break;
+             /* Switch Panel */
+             if (ActivePanel == LeftPanel) {
+                 ActivePanel = RightPanel;
+             } else {
+                 ActivePanel = LeftPanel;
+             }
+             /* Update Volume Context */
+             CurrentVolume = ActivePanel->vol;
+
+             return ESC; /* Exit loop to re-enter with new context */
 
       case ACTION_MOVE_DOWN :  fmovedown(&dir_entry->start_file, &dir_entry->cursor_pos, &start_x, dir_entry);
 		      break;
