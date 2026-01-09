@@ -120,11 +120,7 @@ static void PerformQuit(void)
         XCursesExit();
 #endif
         /* Final safety net for terminal state */
-        fprintf(stderr, "DEBUG: PerformQuit calling stty sane\n");
-        fflush(stderr);
         if (system("stty sane")) { ; }
-        fprintf(stderr, "DEBUG: PerformQuit calling exit(0)\n");
-        fflush(stderr);
         exit(0);
     }
     /* If user cancels, the function simply returns. */

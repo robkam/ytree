@@ -241,23 +241,24 @@ void ReCreateWindows()
 {
   BOOL is_small = TRUE;
 
+  /* 1. Recalculate Layout based on current SplitScreen state */
   Layout_Recalculate();
 
+  /* Determine if we are in 'small' (split vertical) or 'big' (zoom) file view mode */
   if (ActivePanel && ActivePanel->pan_file_window && ActivePanel->pan_big_file_window) {
       if (ActivePanel->pan_file_window == ActivePanel->pan_big_file_window) is_small = FALSE;
   }
 
-  /* 1. Destroy Existing Windows for LeftPanel */
+  /* 2. Cleanup: Destroy ALL existing panel windows */
   if (LeftPanel->pan_dir_window) { delwin(LeftPanel->pan_dir_window); LeftPanel->pan_dir_window = NULL; }
   if (LeftPanel->pan_small_file_window) { delwin(LeftPanel->pan_small_file_window); LeftPanel->pan_small_file_window = NULL; }
   if (LeftPanel->pan_big_file_window) { delwin(LeftPanel->pan_big_file_window); LeftPanel->pan_big_file_window = NULL; }
 
-  /* 2. Destroy Existing Windows for RightPanel */
   if (RightPanel->pan_dir_window) { delwin(RightPanel->pan_dir_window); RightPanel->pan_dir_window = NULL; }
   if (RightPanel->pan_small_file_window) { delwin(RightPanel->pan_small_file_window); RightPanel->pan_small_file_window = NULL; }
   if (RightPanel->pan_big_file_window) { delwin(RightPanel->pan_big_file_window); RightPanel->pan_big_file_window = NULL; }
 
-  /* 3. Create Windows for LeftPanel */
+  /* 3. Create Left Panel Windows (Always Created) */
   LeftPanel->pan_dir_window = Subwin(stdscr, LeftPanel->dir_h, LeftPanel->dir_w, LeftPanel->dir_y, LeftPanel->dir_x);
   keypad(LeftPanel->pan_dir_window, TRUE);
   scrollok(LeftPanel->pan_dir_window, TRUE);
@@ -280,7 +281,7 @@ void ReCreateWindows()
   /* Determine current file window for LeftPanel */
   LeftPanel->pan_file_window = (is_small) ? LeftPanel->pan_small_file_window : LeftPanel->pan_big_file_window;
 
-  /* 4. Create Windows for RightPanel (Only if Split Screen) */
+  /* 4. Create Right Panel Windows (Only if Split Screen) */
   if (IsSplitScreen) {
       RightPanel->pan_dir_window = Subwin(stdscr, RightPanel->dir_h, RightPanel->dir_w, RightPanel->dir_y, RightPanel->dir_x);
       keypad(RightPanel->pan_dir_window, TRUE);
@@ -301,11 +302,42 @@ void ReCreateWindows()
       leaveok(RightPanel->pan_big_file_window, TRUE);
       WbkgdSet(RightPanel->pan_big_file_window, COLOR_PAIR(CPAIR_WINFILE));
 
-      /* Default RightPanel to small file window initially */
-      RightPanel->pan_file_window = RightPanel->pan_small_file_window;
+      /* Default RightPanel to small file window initially or match state */
+      RightPanel->pan_file_window = (is_small) ? RightPanel->pan_small_file_window : RightPanel->pan_big_file_window;
   }
 
-  /* 5. Utility Windows */
+  /* 5. Sync ActivePanel Pointers */
+  if (ActivePanel == NULL) ActivePanel = LeftPanel;
+
+  if (ActivePanel == LeftPanel) {
+      ActivePanel->pan_dir_window = LeftPanel->pan_dir_window;
+      ActivePanel->pan_small_file_window = LeftPanel->pan_small_file_window;
+      ActivePanel->pan_big_file_window = LeftPanel->pan_big_file_window;
+      ActivePanel->pan_file_window = LeftPanel->pan_file_window;
+  } else if (ActivePanel == RightPanel && IsSplitScreen) {
+      ActivePanel->pan_dir_window = RightPanel->pan_dir_window;
+      ActivePanel->pan_small_file_window = RightPanel->pan_small_file_window;
+      ActivePanel->pan_big_file_window = RightPanel->pan_big_file_window;
+      ActivePanel->pan_file_window = RightPanel->pan_file_window;
+  } else {
+      /* Fallback if something went wrong (e.g. RightPanel active but SplitScreen disabled) */
+      ActivePanel = LeftPanel;
+      ActivePanel->pan_dir_window = LeftPanel->pan_dir_window;
+      ActivePanel->pan_small_file_window = LeftPanel->pan_small_file_window;
+      ActivePanel->pan_big_file_window = LeftPanel->pan_big_file_window;
+      ActivePanel->pan_file_window = LeftPanel->pan_file_window;
+  }
+
+  /* 6. Sync Global View Context */
+  GlobalView->ctx_dir_window = ActivePanel->pan_dir_window;
+  GlobalView->ctx_small_file_window = ActivePanel->pan_small_file_window;
+  GlobalView->ctx_big_file_window = ActivePanel->pan_big_file_window;
+  GlobalView->ctx_file_window = ActivePanel->pan_file_window;
+
+  /* 7. Update Legacy Global file_window */
+  file_window = GlobalView->ctx_file_window;
+
+  /* 8. Utility Windows */
   if(error_window)
     delwin(error_window);
 
@@ -370,15 +402,12 @@ void ReCreateWindows()
   leaveok( f2_window, TRUE );
   WbkgdSet( f2_window, COLOR_PAIR(CPAIR_WINHST) );
 
-  /* 6. Update Global Mappings */
-  if (ActivePanel) {
-      GlobalView->ctx_dir_window = ActivePanel->pan_dir_window;
-      GlobalView->ctx_small_file_window = ActivePanel->pan_small_file_window;
-      GlobalView->ctx_big_file_window = ActivePanel->pan_big_file_window;
-      GlobalView->ctx_file_window = ActivePanel->pan_file_window;
-  }
-
   clear();
+
+  fprintf(stderr, "DEBUG: ReCreateWindows Done. Split=%d\n", IsSplitScreen);
+  fprintf(stderr, "DEBUG: Left Win=%p Right Win=%p\n", (void*)LeftPanel->pan_dir_window, (void*)RightPanel->pan_dir_window);
+  fprintf(stderr, "DEBUG: ActivePanel=%p (%s)\n", (void*)ActivePanel, (ActivePanel==LeftPanel)?"LEFT":"RIGHT");
+  fprintf(stderr, "DEBUG: Global dir_window=%p\n", (void*)dir_window);
 }
 
 

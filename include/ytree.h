@@ -916,7 +916,7 @@ extern int DeleteFile(FileEntry *fe_ptr, int *auto_override, Statistic *s);
 extern int RemoveFile(FileEntry *fe_ptr, Statistic *s);
 
 /* dirwin.c */
-extern void DisplayTree(struct Volume *vol, WINDOW *win, int start_entry_no, int hilight_no);
+extern void DisplayTree(struct Volume *vol, WINDOW *win, int start_entry_no, int hilight_no, BOOL is_active);
 extern int HandleDirWindow(DirEntry *start_dir_entry);
 extern int KeyF2Get(DirEntry *start_dir_entry, int disp_begin_pos, int cursor_pos, char *path);
 extern int RefreshDirWindow(void);
