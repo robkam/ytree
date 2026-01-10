@@ -427,7 +427,26 @@ void RenderInactivePanel(YtreePanel *panel)
         if (idx >= 0 && idx < total) {
             DirEntry *de = CurrentVolume->dir_entry_list[idx].dir_entry;
             if (de) {
-                DisplayFileWindow(de, panel->pan_file_window);
+                BOOL safe_to_render = FALSE;
+
+                if (panel->vol != saved_vol) {
+                    /* Different volume: Safe to rebuild list */
+                    DisplayFileWindow(de, panel->pan_file_window);
+                    safe_to_render = TRUE;
+                } else {
+                    /* Same volume: Check if list is already built for this dir */
+                    /* We peek at the first entry to confirm ownership */
+                    if (CurrentVolume->file_entry_list && CurrentVolume->file_count > 0) {
+                        if (CurrentVolume->file_entry_list[0].file->dir_entry == de) {
+                            /* Match! Render existing list without rebuilding */
+                            DisplayFiles(de, de->start_file, de->start_file + de->cursor_pos, 0, panel->pan_file_window);
+                            safe_to_render = TRUE;
+                        }
+                    }
+                }
+
+                /* If !safe_to_render, we do nothing, leaving the window as is (stale but visible) */
+
                 wnoutrefresh(panel->pan_file_window);
             }
         }

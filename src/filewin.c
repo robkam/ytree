@@ -43,7 +43,7 @@ static int  SortBySize(FileEntryList *e1, FileEntryList *e2);
 static int  SortByOwner(FileEntryList *e1, FileEntryList *e2);
 static int  SortByGroup(FileEntryList *e1, FileEntryList *e2);
 static int  SortByExtension(FileEntryList *e1, FileEntryList *e2);
-static void DisplayFiles(DirEntry *de_ptr, int start_file_no, int hilight_no, int start_x, WINDOW *win);
+/* DisplayFiles is now external */
 static void PrintFileEntry(int entry_no, int y, int x, unsigned char hilight, int start_x, WINDOW *win);
 static void ReadGlobalFileList(BOOL tagged_only, DirEntry *dir_entry);
 static void WalkTaggedFiles(int start_file, int cursor_pos, int (*fkt) (FileEntry *, WalkingPackage *), WalkingPackage *walking_package);
@@ -901,7 +901,7 @@ void DisplayFileWindow(DirEntry *dir_entry, WINDOW *win)
 }
 
 
-static void DisplayFiles(DirEntry *de_ptr, int start_file_no, int hilight_no, int start_x, WINDOW *win)
+void DisplayFiles(DirEntry *de_ptr, int start_file_no, int hilight_no, int start_x, WINDOW *win)
 {
   int  x, y, p_x, p_y, j;
   int height, width;
@@ -1656,15 +1656,6 @@ int HandleFileWindow(DirEntry *dir_entry)
       case ACTION_NONE:         break;
 
       case ACTION_SPLIT_SCREEN:
-             if (IsSplitScreen && ActivePanel == RightPanel) {
-                /* Preserve Right Panel state into Left Panel before unsplitting */
-                LeftPanel->vol = RightPanel->vol;
-                LeftPanel->cursor_pos = RightPanel->cursor_pos;
-                LeftPanel->disp_begin_pos = RightPanel->disp_begin_pos;
-                /* Sync Global Volume */
-                CurrentVolume = LeftPanel->vol;
-             }
-
              IsSplitScreen = !IsSplitScreen;
              ReCreateWindows(); /* Force layout update immediately */
 

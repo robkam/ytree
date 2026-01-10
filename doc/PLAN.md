@@ -593,7 +593,7 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 ### **Step 5.2: Implement F8 Split-Screen Mode**
 *   **Goal:** Refactor the application's state management to support two independent file panels. This includes collapsing the stats panel and allowing the user to `Tab` between the two panes for copy/move operations. This will also enable advanced logging features similar to ZTree/XTree (e.g., `Alt-L` to log a tree in the other pane).
 *   **Rationale:** This is an essential feature for any advanced file manager and a prerequisite for many efficient file management workflows. This requires a significant refactoring of global state into pane-specific contexts.
-*   - [ ] **Status:** Not Started.
+*   - [x] **Status:** Completed.
 
 ### **Step 5.3: Decomposition of Monolithic Modules** (Use the Auditor Persona here)
 *   **Goal:** Break down massive, multi-purpose source files into smaller, single-responsibility modules. Primary targets are `dirwin.c`, `filewin.c`, `view.c`, `input.c`, and `log.c`.
