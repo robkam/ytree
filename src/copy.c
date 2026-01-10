@@ -442,6 +442,17 @@ int GetCopyParameter(char *from_file, BOOL path_copy, char *to_file, char *to_di
   MvAddStr( LINES - 2, 1, "AS:  " );
 
   if( InputString(to_file, LINES - 2, 6, 0, COLS - 6, "\r\033", HST_FILE ) == CR){
+    if (IsSplitScreen && ActivePanel) {
+        YtreePanel *target = (ActivePanel == LeftPanel) ? RightPanel : LeftPanel;
+        if (target && target->vol && target->vol->total_dirs > 0) {
+            int idx = target->disp_begin_pos + target->cursor_pos;
+            /* Safety bounds check */
+            if (idx < 0) idx = 0;
+            if (idx >= target->vol->total_dirs) idx = target->vol->total_dirs - 1;
+
+            GetPath(target->vol->dir_entry_list[idx].dir_entry, to_dir);
+        }
+    }
     MvAddStr( LINES - 1, 1, "TO:  " );
     if( InputString( to_dir, LINES - 1, 6, 0, COLS - 6, "\r\033", HST_PATH ) == CR ) {
         if (to_dir[0] == '\0') {

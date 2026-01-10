@@ -56,6 +56,11 @@ Focus is on the file list of the selected directory. Operations here affect spec
 **Archive Mode**
 When entering a supported archive (ZIP, TAR, GZ), ytree treats it as a read-only virtual filesystem. It behaves similarly to Directory/File modes but with a restricted command set. Typing alphanumeric characters triggers an archive mode command.
 
+**Split Screen Mode**
+Activated by **F8**. The screen is divided vertically into two independent file manager panels.
+*   **Switch Focus:** Press **TAB** to switch active control between the Left and Right panels.
+*   **Targeting:** Operations like **Copy** and **Move** automatically default to the path of the inactive (passive) panel as the destination.
+
 # KEY BINDINGS
 
 **Note:** All keys are case insensitive unless otherwise noted. The symbol `^` denotes the **CTRL** key.
@@ -67,6 +72,7 @@ These commands work in most modes:
 *   **F2**: Select Directory (Log/Copy/Move).
 *   **F5**: Refresh (same as **^L**).
 *   **F6**: Toggle Statistics Panel (Wide Mode).
+*   **F8**: Toggle Split Screen Mode.
 *   **B**: Toggle Brief (Compact) filename view in the File Window.
 *   **^L**: **Reload**. Re-read the contents of the current directory from disk and refresh the view.
 *   **K** (Shift+K): **Volume Menu**. Show a list of all currently logged volumes (drives/paths). Select a volume to switch context instantly. Press `Delete` (or `D`) in the menu to release (unlog) a volume.

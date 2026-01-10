@@ -232,6 +232,7 @@ static void PrintDirEntry(struct Volume *vol,
     else
       (void) strcat( graph_buffer, "  " );
   }
+
   de_ptr = vol->dir_entry_list[entry_no].dir_entry;
   if( de_ptr->next )
     (void) strcat( graph_buffer, "6-" );
@@ -1443,18 +1444,6 @@ int HandleDirWindow(DirEntry *start_dir_entry)
                 LeftPanel->disp_begin_pos = RightPanel->disp_begin_pos;
                 /* Sync Global Volume */
                 CurrentVolume = LeftPanel->vol;
-                s = &CurrentVolume->vol_stats;
-                /* Update dir_entry for the loop to continue correctly */
-                if (LeftPanel->vol->total_dirs > 0) {
-                     /* Clamp if necessary */
-                     if (LeftPanel->disp_begin_pos + LeftPanel->cursor_pos >= LeftPanel->vol->total_dirs) {
-                         LeftPanel->cursor_pos = 0;
-                         LeftPanel->disp_begin_pos = 0;
-                     }
-                     dir_entry = LeftPanel->vol->dir_entry_list[LeftPanel->disp_begin_pos + LeftPanel->cursor_pos].dir_entry;
-                } else {
-                     dir_entry = s->tree;
-                }
              }
 
              IsSplitScreen = !IsSplitScreen;

@@ -990,6 +990,7 @@ extern void DisplayFileWindow(DirEntry *dir_entry, WINDOW *win);
 extern int HandleFileWindow(DirEntry *dir_entry);
 extern void RotateFileMode(void);
 extern void SetFileMode(int new_file_mode);
+extern void DisplayFiles(DirEntry *de_ptr, int start_file_no, int hilight_no, int start_x, WINDOW *win); /* filewin.c */
 
 /* freesp.c */
 extern int GetAvailBytes(LONGLONG *avail_bytes, Statistic *s);
