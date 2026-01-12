@@ -89,7 +89,7 @@ DEPS        = $(OBJS:.o=.d)
 # Rules
 # -------------------------------------------------------------------------
 
-.PHONY: all clean clobber install uninstall docs changelog-draft
+.PHONY: all clean clobber install uninstall docs changelog-draft test test-v
 
 all: $(MAIN_BIN) $(MANPAGE)
 
@@ -161,3 +161,10 @@ clobber: clean
 
 # Include automatically generated dependencies
 -include $(DEPS)
+
+# Test Targets
+test: $(MAIN_BIN)
+	pytest
+
+test-v: $(MAIN_BIN)
+	pytest -v -s
