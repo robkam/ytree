@@ -1082,6 +1082,7 @@ extern int PipeTaggedFiles(FileEntry *fe_ptr, WalkingPackage *walking_package);
 /* profile.c */
 extern char *GetExtViewer(char *filename);
 extern char *GetProfileValue( char *key );
+extern void SetProfileValue(char *name, char *value);
 extern char *GetUserDirAction(int chkey, int *pchremap);
 extern char *GetUserFileAction(int chkey, int *pchremap);
 extern BOOL IsUserActionDefined(void);

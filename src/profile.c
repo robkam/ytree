@@ -380,6 +380,21 @@ FNC_XIT:
 }
 
 
+void SetProfileValue( char *name, char *value )
+{
+  Profile *p, key;
+
+  key.name = name;
+
+  p = bsearch(&key, profile, PROFILE_ENTRIES, sizeof(*p), Compare);
+
+  if( p ) {
+    if( p->value )
+      free( p->value );
+    p->value = strdup( value );
+  }
+}
+
 
 char *GetProfileValue( char *name )
 {
