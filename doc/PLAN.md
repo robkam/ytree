@@ -716,6 +716,11 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 *   **Description:** Move all user-facing strings (menus, prompts, error messages) out of the C code and into a separate, loadable resource file. This is a prerequisite for translation. The application will load the appropriate language file at startup.
 *   - [ ] **Status:** Not Started.
 
+### **Step 7.4: Implement Command Line Depth Override**
+*   **Goal:** Add a `-d <depth>` (or `--depth`) command line argument to override the `TREEDEPTH` configuration setting at startup.
+*   **Rationale:** Allows users and scripts to force a deep scan immediately upon launch without requiring interactive key presses (`*`), significantly improving automation capabilities and workflow speed for deep directory structures.
+*   - [ ] **Status:** Not Started.
+
 ---
 
 ## **Phase 8: Build System, Documentation, and CI**
@@ -728,29 +733,40 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 ### **Step 8.2: Integrate Test Suite into Build Process**
 *   **Goal:** Add a `test` target to the `Makefile` to simplify running the automated test suite.
 *   **Rationale:** Formalizes the testing process and makes it trivial for any contributor to validate their changes by simply running `make test`.
+*   - [x] **Status:** Completed.
+
+### Step 8.3: Expand and Integrate Test Suite
+*   **Goal:** Add a `test` target to the `Makefile` and expand the regression suite from "Core Ops" to "Comprehensive Coverage".
+*   **Rationale:** Formalizes the testing process and ensures reliability before release.
+*   **Scope:**
+    *   **Archive Formats:** Verify read/extract for ZIP, TAR.GZ, TAR.BZ2.
+    *   **Split Screen:** Verify file operations between Left and Right panels.
+    *   **Tagging:** Verify Invert Tags, Tag All, and Tag Filtering.
+    *   **Sorting:** Verify sort orders (Name, Size, Date) actually change the list order.
+    *   **Edge Cases:** Empty directories, read-only files, root directory operations.
 *   - [ ] **Status:** Not Started.
 
-### **Step 8.3: Implement CI with GitHub Actions**
+### **Step 8.4: Implement CI with GitHub Actions**
 *   **Goal:** Set up a basic Continuous Integration workflow to automatically build the project and run the test suite on every push and pull request.
 *   **Rationale:** Enforces code quality and prevents regressions by ensuring that all changes are automatically validated.
 *   - [ ] **Status:** Not Started.
 
-### **Step 8.4: Enhance Build System**
+### **Step 8.5: Enhance Build System**
 *   **Goal:** Improve Makefile targets for installation and add a proper `uninstall` target to clean up all installed files. Modernize versioning by moving version info from `patchlev.h` into the `Makefile`.
 *   **Rationale:** Provides a more robust and complete build system for end-users and packagers.
 *   - [ ] **Status:** Partially Completed (uninstall exists but can be improved).
 
-### **Step 8.5: Implement Code Formatting, Static Analysis, and Hygiene** (Use the Auditor Persona here)
+### **Step 8.6: Implement Code Formatting, Static Analysis, and Hygiene** (Use the Auditor Persona here)
 *   **Goal:** Add `make format` and `make analyze` targets to the Makefile. `format` will use `clang-format` to enforce a consistent style. `analyze` will run a static analyzer (like `cppcheck` or Clang's analyzer) to find potential bugs. Include a "lint" target to identify unused functions and variables.
 *   **Rationale:** Automates code quality enforcement. Performing a manual "Cruft Audit" to remove debug comments, unused macros, and outdated documentation ensures the codebase remains clean and professional for release.
 *   - [ ] **Status:** Not Started.
 
-### **Step 8.6: Finalize Documentation**
+### **Step 8.7: Finalize Documentation**
 *   **Goal:** Update the `CHANGELOG`, `README.md`, and `CONTRIBUTING.md` files to reflect all new features and changes before a release.
 *   **Rationale:** Ensures users and developers have accurate, up-to-date information about the project.
 *   - [ ] **Status:** Not Started.
 
-### **Step 8.7: Initialize Distributed Issue Tracking (git-bug)**
+### **Step 8.8: Initialize Distributed Issue Tracking (git-bug)**
 *   **Goal:** Configure `git-bug` to act as a bridge between the local repository and GitHub Issues. Migrate the contents of `BUGS.md` and `TODO.txt` into this system prior to public release.
 *   **Rationale:** Allows the developer to maintain a simple local text-based workflow during heavy development, while ensuring that all tracking data can be synchronized to the public web interface when the project goes live.
 *   - [ ] **Status:** Not Started.

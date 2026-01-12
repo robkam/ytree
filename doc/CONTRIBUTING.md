@@ -58,17 +58,41 @@ make DEBUG=1
 
 ## Running the Test Suite
 
-The test suite uses `pytest` and `pexpect` to simulate user interaction.
+The test suite uses `pytest` and `pexpect` to simulate user interaction. It automatically builds a test environment, runs the local `./ytree` binary against it, verifies outcomes, and cleans up.
 
-To run the full suite, first ensure your Python virtual environment is activated, then run `pytest` from the project root:
-
+**Prerequisite:** Ensure your Python virtual environment is activated:
 ```bash
-pytest
+source .venv/bin/activate
 ```
 
-The tests will automatically build a test environment, run the local `./ytree` binary against it, verify outcomes, and clean up.
+### 1. The Standard Way: `make test`
+This is the preferred method for general regression checks and CI.
+*   **Automatic Rebuilds:** It ensures the binary is up-to-date by automatically recompiling the C code if necessary before running tests.
+*   **Simplicity:** It provides a "One Button" experience without needing to remember pytest flags.
 
-**Important:** If you are adding a new feature or fixing a bug, please add a corresponding test case to `tests/test_main.py` that covers your changes.
+```bash
+# Standard run (quiet, shows progress dots)
+make test
+
+# Verbose run (shows individual test names and stdout)
+make test-v
+```
+
+### 2. The Advanced Way: Direct CLI (`pytest`)
+Use the `pytest` command directly when actively debugging, developing new features, or iterating rapidly on specific test cases.
+
+```bash
+# Run only tests matching a keyword (e.g., "archive")
+pytest -k archive
+
+# Run a specific test file
+pytest tests/test_core.py
+
+# Run and stop on the first failure (useful for debugging loops)
+pytest -x
+```
+
+**Adding Tests:** If you are adding a new feature or fixing a bug, please add a corresponding test case to the appropriate file in the `tests/` directory (e.g., `tests/test_core.py` for file operations or `tests/test_volume.py` for multi-volume logic).
 
 ## AI-Assisted Workflow (Google Gemini API)
 
@@ -401,4 +425,35 @@ You must produce a structured **Roadmap of Atomic Tasks**.
 *   **Severity:** Critical | High | Medium
 *   **The Fragile Code:** (Quote the bad code).
 *   **The Robust Fix:** (Technical specification for the replacement pattern).
+```
+
+### Appendix D: The Test Engineer (SDET) Persona
+
+You should use this prompt when you are asking the AI to write the Python test scripts (`tests/ytree_control.py`, `tests/test_core.py`, etc.). It forces the AI to prioritize portability (no hardcoded paths) and abstraction (no hardcoded keys).
+
+```text
+You are a Senior Software Development Engineer in Test (SDET) specializing in TUI (Text User Interface) automation.
+
+**YOUR STACK:**
+*   **Language:** Python 3
+*   **Framework:** `pytest` (standard fixtures, parameterization)
+*   **Driver:** `pexpect` (terminal emulation, regex matching)
+*   **Target:** `ytree` (a C-based file manager)
+
+**YOUR PHILOSOPHY:**
+1.  **Abstraction over Hardcoding:** Never hardcode keystrokes (e.g., sending 'c') inside a test function. Always use the `Keys` class (e.g., `Keys.COPY`). This ensures that if keybindings change in the C source, we only update one Python definition file.
+2.  **Universal Portability:** Never use absolute paths like `/home/user` or `/mnt/p`. Always use the `sandbox` fixture to generate temporary directories (`/tmp/pytest-of-user/...`). The tests must run on Linux, WSL, and macOS without modification.
+3.  **Tripartite Verification:** A test is not complete until you verify:
+    *   **UI Layer:** Did the expected prompt appear? (e.g., "Create directory?")
+    *   **System Layer:** Did the file actually move/copy on the disk?
+    *   **Data Layer:** Is the content of the copied file identical to the source?
+4.  **Synchronization:** TUI testing is timing-sensitive. Always wait for the UI to settle (e.g., wait for the clock regex or a prompt) before sending the next command.
+
+**YOUR JOB:**
+Generate the requested Python test files (`tests/*.py`).
+
+**OUTPUT FORMAT:**
+*   **COMPLETE FILES ONLY:** Output the entire, runnable Python file.
+*   **NO MARKDOWN:** Do not wrap code in markdown blocks.
+*   **COMMENTS:** Comment your code generously, explaining *why* a specific regex or wait is used.
 ```
