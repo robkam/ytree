@@ -719,7 +719,7 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 ### **Step 7.4: Implement Command Line Depth Override**
 *   **Goal:** Add a `-d <depth>` (or `--depth`) command line argument to override the `TREEDEPTH` configuration setting at startup.
 *   **Rationale:** Allows users and scripts to force a deep scan immediately upon launch without requiring interactive key presses (`*`), significantly improving automation capabilities and workflow speed for deep directory structures.
-*   - [ ] **Status:** Not Started.
+*   - [x] **Status:** Completed.
 
 ---
 

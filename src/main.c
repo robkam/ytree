@@ -42,6 +42,7 @@ int main(int argc, char **argv)
   conf = NULL;
 
   /* Pass 1: Pre-scan Loop - Parse Options (-p, -h) */
+  /* Note: -d is validated here to prevent usage error, but processed after Init */
   for (argi = 1; argi < argc; argi++)
   {
     if (argv[argi][0] == '-')
@@ -71,8 +72,19 @@ int main(int argc, char **argv)
              hist = argv[argi]+2;
           }
           break;
+        case 'd':
+        case 'D':
+          /* Skip -d here, processed after Init */
+          if (argv[argi][2] <= ' ') {
+             if (argi + 1 < argc) argi++;
+             else {
+                 fprintf(stderr, "Option -d requires an argument\n");
+                 exit(1);
+             }
+          }
+          break;
         default:
-          fprintf(stderr, "Usage: %s [-p profile_file] [-h hist_file] [directory ...]\n", argv[0]);
+          fprintf(stderr, "Usage: %s [-p profile_file] [-h hist_file] [-d depth] [directory ...]\n", argv[0]);
           exit(1);
       }
     }
@@ -80,6 +92,47 @@ int main(int argc, char **argv)
 
   if (Init(conf, hist))
       exit(1);
+
+  /* Pass 1.5: Post-Init Option Parsing (-d) */
+  /* Process overrides that must happen after Init */
+  for (argi = 1; argi < argc; argi++)
+  {
+    if (argv[argi][0] == '-')
+    {
+      switch(argv[argi][1]) {
+        case 'p':
+        case 'P':
+        case 'h':
+        case 'H':
+          /* Skip already processed options */
+          if (argv[argi][2] <= ' ') argi++;
+          break;
+        case 'd':
+        case 'D':
+          {
+             char *d_arg = NULL;
+             if (argv[argi][2] <= ' ') {
+                 if (argi + 1 < argc) {
+                     d_arg = argv[++argi];
+                 }
+             } else {
+                 d_arg = argv[argi]+2;
+             }
+
+             if (d_arg) {
+                 if (strcasecmp(d_arg, "all") == 0 || strcasecmp(d_arg, "max") == 0) {
+                     SetProfileValue("TREEDEPTH", "100");
+                 } else if (strcasecmp(d_arg, "min") == 0 || strcasecmp(d_arg, "root") == 0) {
+                     SetProfileValue("TREEDEPTH", "0");
+                 } else {
+                     SetProfileValue("TREEDEPTH", d_arg);
+                 }
+             }
+          }
+          break;
+      }
+    }
+  }
 
   /* Allocate memory for path indexes to support multiple volumes */
   path_indexes = (int *)malloc(sizeof(int) * argc);
@@ -96,7 +149,7 @@ int main(int argc, char **argv)
     {
        /* Skip flags and their values to ensure we only collect positional args */
        char c = argv[argi][1];
-       if ((c == 'p' || c == 'P' || c == 'h' || c == 'H') && argv[argi][2] <= ' ') {
+       if ((c == 'p' || c == 'P' || c == 'h' || c == 'H' || c == 'd' || c == 'D') && argv[argi][2] <= ' ') {
           argi++;
        }
        continue;
