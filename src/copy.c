@@ -359,29 +359,6 @@ int CopyFile(Statistic *statistic_ptr,
       /* Force refresh if we modified the tree structure or contents */
       refresh_dirwindow = TRUE;
     }
-    else if (statistic_ptr->login_mode != DISK_MODE && statistic_ptr->login_mode != USER_MODE)
-    {
-        /* Archive mode handling remains unchanged, but use statistic_ptr to check context?
-           Actually, the legacy code cleared 'disk_statistic'. 'disk_statistic' is mapped to CurrentVolume->vol_disk_stats.
-           But here we are inside CopyFile which might act on 'statistic_ptr'.
-           If we are in archive mode, we probably extracted something.
-           The logic below clears the tree of 'disk_statistic'.
-           This seems specific to some archive operation cleanup.
-           Let's assume 'disk_statistic' (CurrentVolume) is correct here.
-        */
-        if (disk_statistic.tree != NULL) {
-            DeleteTree(disk_statistic.tree);
-            disk_statistic.tree = NULL;
-            disk_statistic.login_path[0] = '\0';
-            disk_statistic.disk_total_directories = 0;
-            disk_statistic.disk_total_files = 0;
-            disk_statistic.disk_total_bytes = 0;
-            disk_statistic.disk_matching_files = 0;
-            disk_statistic.disk_matching_bytes = 0;
-            disk_statistic.disk_tagged_files = 0;
-            disk_statistic.disk_tagged_bytes = 0;
-        }
-    }
 
     if (target_stats) {
         (void) GetAvailBytes( &target_stats->disk_space, target_stats );

@@ -2153,6 +2153,7 @@ int HandleFileWindow(DirEntry *dir_entry)
               keypad(file_window, TRUE);
               touchwin(file_window);
               wrefresh(file_window);
+		      need_dsp_help = TRUE;
 		      break;
 
       case ACTION_CMD_TAGGED_Y :
@@ -2225,6 +2226,7 @@ int HandleFileWindow(DirEntry *dir_entry)
                           touchwin(file_window);
                           wrefresh(file_window);
 		      }
+		      need_dsp_help = TRUE;
 		      break;
 
       case ACTION_CMD_M :      if( mode != DISK_MODE && mode != USER_MODE )
@@ -2319,6 +2321,7 @@ int HandleFileWindow(DirEntry *dir_entry)
             /* REMOVED: RefreshDirWindow(); Fixed UI Glitch */
 		      }
               }
+		      need_dsp_help = TRUE;
 		      break;
 
       case ACTION_CMD_TAGGED_M :

@@ -407,9 +407,12 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 *   **Rationale:** Essential directory management features present in XTree but missing in ytree.
 *   - [ ] **Status:** Not Started.
 
-### **Step 4.18: Implement F2 Filesystem Navigation, also from Archives**
-*   **Goal:** When copying or moving files, allow the F2 key to open a navigation pane for the filesystem, also from inside an archive.
-*   **Rationale:** Fixes a major usability issue, allowing users to easily select a destination directory on the filesystem when copying or moving files.
+### **Step 4.18: Implement F2 Filesystem Navigation**
+*   **Goal:** Enhance the F2 Directory Selection window to support volume management.
+    *   Enable logging new drives/paths via `(L)og`.
+    *   Enable quick switching between loaded volumes via `(<)` / `(>)` cycling.
+    *   Display available commands `[ (L)og (< >) Cycle ]` on the bottom border of the F2 window to prevent footer corruption.
+*   **Rationale:** Fixes a major usability issue, allowing users to easily select a destination directory on the filesystem (even from inside an archive) when copying or moving files.
 *   - [ ] **Status:** Not Started.
 
 ### **Step 4.19: Add Activity Spinner**
