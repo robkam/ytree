@@ -193,14 +193,16 @@ void SaveTreeState(DirEntry *root, PathList **expanded, PathList **tagged) {
     ScanAndSaveState(root, expanded, tagged);
 }
 
-void FreePathList(PathList *list) {
-    PathList *curr = list;
-    while (curr) {
-        PathList *next = curr->next;
-        if (curr->path) free(curr->path);
-        free(curr);
-        curr = next;
-    }
+void FreePathList(PathList *list)
+{
+  PathList *next;
+  while( list )
+  {
+    next = list->next;
+    if( list->path ) free( list->path );
+    free( list );
+    list = next;
+  }
 }
 
 /*

@@ -1317,7 +1317,25 @@ int HandleDirWindow(DirEntry *start_dir_entry)
     }
     initial_directory = NULL;
   }
-  dir_entry = ActivePanel->vol->dir_entry_list[ActivePanel->disp_begin_pos + ActivePanel->cursor_pos].dir_entry;
+
+  {
+      int safe_idx = ActivePanel->disp_begin_pos + ActivePanel->cursor_pos;
+      if (ActivePanel->vol->total_dirs <= 0) {
+           ActivePanel->disp_begin_pos = 0;
+           ActivePanel->cursor_pos = 0;
+           safe_idx = 0;
+      } else if (safe_idx < 0 || safe_idx >= ActivePanel->vol->total_dirs) {
+           ActivePanel->disp_begin_pos = 0;
+           ActivePanel->cursor_pos = 0;
+           safe_idx = 0;
+      }
+
+      if (ActivePanel->vol->dir_entry_list) {
+          dir_entry = ActivePanel->vol->dir_entry_list[safe_idx].dir_entry;
+      } else {
+          dir_entry = ActivePanel->vol->vol_stats.tree;
+      }
+  }
 
   DisplayDiskStatistic(s);
   DisplayDirStatistic(dir_entry, NULL, s);
@@ -2149,6 +2167,19 @@ int HandleDirWindow(DirEntry *start_dir_entry)
                      beep();
                      break;
     } /* switch */
+
+    /* Refresh dir_entry pointer in case tree was rescanned/reallocated during action */
+    if (ActivePanel && ActivePanel->vol && ActivePanel->vol->dir_entry_list) {
+        int safe_idx = ActivePanel->disp_begin_pos + ActivePanel->cursor_pos;
+        if (safe_idx < 0) safe_idx = 0;
+        if (safe_idx >= ActivePanel->vol->total_dirs) safe_idx = ActivePanel->vol->total_dirs - 1;
+        if (safe_idx >= 0) {
+             dir_entry = ActivePanel->vol->dir_entry_list[safe_idx].dir_entry;
+        } else {
+             dir_entry = ActivePanel->vol->vol_stats.tree;
+        }
+    }
+
   } while( action != ACTION_QUIT && action != ACTION_ENTER && action != ACTION_ESCAPE && action != ACTION_LOGIN ); /* Loop until explicit quit, escape or login */
 
   /* Sync state back to Volume on exit */
@@ -2194,6 +2225,7 @@ int KeyF2Get(DirEntry *start_dir_entry,
 	     int cursor_pos,
              char *path)
 {
+  struct Volume *original_vol = CurrentVolume;
   int ch;
   int result = -1;
   int win_width, win_height;
@@ -2201,6 +2233,7 @@ int KeyF2Get(DirEntry *start_dir_entry,
   int local_disp_begin_pos;
   int local_cursor_pos;
   YtreeAction action; /* Declare YtreeAction variable */
+  char new_login_path[PATH_LENGTH + 1];
 
   if (mode != DISK_MODE && mode != USER_MODE) {
       /* Search for a volume that is in DISK_MODE */
@@ -2215,21 +2248,26 @@ int KeyF2Get(DirEntry *start_dir_entry,
           }
       }
 
-      if (!disk_vol) {
-          MESSAGE("No filesystem volume active");
-          return -1;
+      if (disk_vol) {
+          target_vol = disk_vol;
+          local_disp_begin_pos = disk_vol->vol_stats.disp_begin_pos;
+          local_cursor_pos = disk_vol->vol_stats.cursor_pos;
+      } else {
+          /* Fallback to CurrentVolume */
+          target_vol = CurrentVolume;
+          local_disp_begin_pos = disp_begin_pos;
+          local_cursor_pos = cursor_pos;
       }
-
-      target_vol = disk_vol;
-      local_disp_begin_pos = disk_vol->vol_stats.disp_begin_pos;
-      local_cursor_pos = disk_vol->vol_stats.cursor_pos;
   } else {
       target_vol = CurrentVolume;
       local_disp_begin_pos = disp_begin_pos;
       local_cursor_pos = cursor_pos;
   }
 
-  BuildDirEntryList(target_vol);
+  /* Only rebuild if list is missing. Rebuilding invalidates pointers held by callers! */
+  if (target_vol->dir_entry_list == NULL) {
+      BuildDirEntryList(target_vol);
+  }
 
   /* Safety bounds check */
   if (local_disp_begin_pos < 0) local_disp_begin_pos = 0;
@@ -2244,6 +2282,11 @@ int KeyF2Get(DirEntry *start_dir_entry,
   DisplayTree(target_vol, f2_window, local_disp_begin_pos, local_disp_begin_pos + local_cursor_pos, TRUE );
   do
   {
+    /* Footer Drawing */
+    wattron(f2_window, A_BOLD);
+    mvwaddstr(f2_window, win_height - 1, 2, "[ (L)og (< >) Cycle ]");
+    wattroff(f2_window, A_BOLD);
+
     RefreshWindow( f2_window );
     doupdate();
     ch = Getch();
@@ -2255,7 +2298,8 @@ int KeyF2Get(DirEntry *start_dir_entry,
     switch( action )
     {
       case ACTION_NONE:       break; /* -1 or unhandled keys, no beep in F2Get */
-      case ACTION_MOVE_DOWN: if( local_disp_begin_pos + local_cursor_pos + 1 >= target_vol->total_dirs )
+      case ACTION_MOVE_DOWN:
+             if( local_disp_begin_pos + local_cursor_pos + 1 >= target_vol->total_dirs )
 		     {
 		     }
 		     else
@@ -2391,12 +2435,117 @@ int KeyF2Get(DirEntry *start_dir_entry,
                      GetPath(target_vol->dir_entry_list[local_cursor_pos + local_disp_begin_pos].dir_entry, path);
 		     result = 0;
 		     break;
+
+      case ACTION_VOL_PREV:
+          if (CycleLoadedVolume(-1) == 0) {
+              target_vol = CurrentVolume;
+              local_disp_begin_pos = target_vol->vol_stats.disp_begin_pos;
+              local_cursor_pos = target_vol->vol_stats.cursor_pos;
+              BuildDirEntryList(target_vol);
+              if (target_vol->total_dirs > 0 && (local_disp_begin_pos + local_cursor_pos >= target_vol->total_dirs)) {
+                  local_disp_begin_pos = 0;
+                  local_cursor_pos = 0;
+              }
+              DisplayTree(target_vol, f2_window, local_disp_begin_pos, local_disp_begin_pos + local_cursor_pos, TRUE);
+          }
+          break;
+
+      case ACTION_VOL_NEXT:
+          if (CycleLoadedVolume(1) == 0) {
+              target_vol = CurrentVolume;
+              local_disp_begin_pos = target_vol->vol_stats.disp_begin_pos;
+              local_cursor_pos = target_vol->vol_stats.cursor_pos;
+              BuildDirEntryList(target_vol);
+              if (target_vol->total_dirs > 0 && (local_disp_begin_pos + local_cursor_pos >= target_vol->total_dirs)) {
+                  local_disp_begin_pos = 0;
+                  local_cursor_pos = 0;
+              }
+              DisplayTree(target_vol, f2_window, local_disp_begin_pos, local_disp_begin_pos + local_cursor_pos, TRUE);
+          }
+          break;
+
+      case ACTION_LOGIN:
+          if (target_vol && target_vol->vol_stats.login_mode == DISK_MODE) {
+               /* Try to use the path of the currently selected directory in F2 window */
+               if (target_vol->total_dirs > 0) {
+                   GetPath(target_vol->dir_entry_list[local_disp_begin_pos + local_cursor_pos].dir_entry, new_login_path);
+               } else {
+                   if (getcwd(new_login_path, sizeof(new_login_path)) == NULL) strcpy(new_login_path, ".");
+               }
+          } else {
+               if (getcwd(new_login_path, sizeof(new_login_path)) == NULL) strcpy(new_login_path, ".");
+          }
+
+          if (!GetNewLoginPath(new_login_path)) {
+              if (LoginDisk(new_login_path) == 0) {
+                  ClearHelp(); /* ADDED */
+                  target_vol = CurrentVolume;
+                  local_disp_begin_pos = target_vol->vol_stats.disp_begin_pos;
+                  local_cursor_pos = target_vol->vol_stats.cursor_pos;
+
+                  BuildDirEntryList(target_vol);
+
+                  if (target_vol->total_dirs > 0 && (local_disp_begin_pos + local_cursor_pos >= target_vol->total_dirs)) {
+                      local_disp_begin_pos = 0;
+                      local_cursor_pos = 0;
+                  }
+
+                  MapF2Window();
+
+                  DisplayTree(target_vol, f2_window, local_disp_begin_pos, local_disp_begin_pos + local_cursor_pos, TRUE);
+
+                  action = ACTION_NONE;
+              }
+          }
+          break;
+
       case ACTION_QUIT:      break;
       case ACTION_ESCAPE:    break;
 
       default :      beep(); break;
     } /* switch */
-  } while( action != ACTION_QUIT && action != ACTION_ENTER && action != ACTION_ESCAPE );
+  } while( action != ACTION_QUIT && action != ACTION_ENTER && action != ACTION_ESCAPE && action != ACTION_LOGIN );
+
+  /* Added restoration block */
+  if (CurrentVolume != original_vol) {
+      /* 1. Restore Global Volume Context */
+      CurrentVolume = original_vol;
+      mode = CurrentVolume->vol_stats.login_mode;
+
+      /* 2. Restore Panel Sync */
+      if (ActivePanel) ActivePanel->vol = CurrentVolume;
+
+      /* 3. Restore UI Layout */
+      DisplayMenu(); /* Restores Frame and Header */
+
+      /* Check which view mode we were in before F2 */
+      if (file_window == big_file_window) {
+          /* Restore Big Window Mode */
+          SwitchToBigFileWindow();
+          /* In Big Mode, we don't draw the tree. We draw global stats if global. */
+          if (CurrentVolume->vol_stats.tree->global_flag) {
+               DisplayDiskStatistic(&CurrentVolume->vol_stats);
+          } else {
+               /* If regular big window, shows Dir Stats */
+               DisplayDirStatistic(GetSelectedDirEntry(CurrentVolume), NULL, &CurrentVolume->vol_stats);
+          }
+      } else {
+          /* Restore Standard Split Mode */
+          SwitchToSmallFileWindow();
+          DisplayTree(CurrentVolume, dir_window,
+                      CurrentVolume->vol_stats.disp_begin_pos,
+                      CurrentVolume->vol_stats.disp_begin_pos + CurrentVolume->vol_stats.cursor_pos,
+                      TRUE);
+          DisplayDiskStatistic(&CurrentVolume->vol_stats);
+          DisplayDirStatistic(GetSelectedDirEntry(CurrentVolume), NULL, &CurrentVolume->vol_stats);
+      }
+
+      /* 4. Refresh File Content & Footer Background */
+      DisplayFileWindow(GetSelectedDirEntry(CurrentVolume), file_window);
+      RefreshWindow(file_window);
+
+      DisplayAvailBytes(&CurrentVolume->vol_stats);
+  }
 
   UnmapF2Window();
 

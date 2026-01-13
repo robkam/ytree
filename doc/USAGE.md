@@ -4,7 +4,7 @@ ytree - A File Manager for UNIX-like systems
 
 # SYNOPSIS
 
-`ytree` \[`-p` *config_file*\] \[`-h` *history_file*\]
+`ytree` \[`-p` *config_file*\] \[`-h` *history_file*\] \[`-d` *depth*\]
 \[*directory*\|*archive*\]…
 
 # DESCRIPTION
@@ -27,6 +27,9 @@ logged.
   `~/.ytree`.
 - **-h** *history_file*: Use *history_file* instead of the default
   `~/.ytree-hst`.
+- **-d** *depth*: Override the default scan depth (TREEDEPTH). Supports
+  numeric values or keywords: **min**/**root** (0), **max**/**all**
+  (100).
 - *directory*\|*archive*: One or more directories or archive files to
   log on startup. If multiple paths are provided, they are all loaded as
   separate volumes. The first path specified becomes the active view.

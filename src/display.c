@@ -373,6 +373,10 @@ void UnmapF2Window(void)
 	   );
 #endif /* COLOR_SUPPORT */
   }
+  else
+  {
+      PrintLine(stdscr, separator_y, 0, middle_line_separator, COLS - layout.stats_width - 1);
+  }
   touchwin(stdscr);
   refresh();
 }
