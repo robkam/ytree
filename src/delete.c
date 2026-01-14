@@ -23,13 +23,15 @@ int DeleteFile(FileEntry *fe_ptr, int *auto_override, Statistic *s)
 
   result = -1;
 
+  (void) GetFileNamePath( fe_ptr, filepath );
+
   /* Handle Archive Mode Deletion Hook */
 #ifdef HAVE_LIBARCHIVE
   if (s->login_mode == ARCHIVE_MODE) {
       /* In archive mode, permissions are virtual. We skip access checks and unlink.
        * We rely on the Rewrite Engine to handle the deletion.
        */
-       if (Archive_DeleteFile(fe_ptr, s) == 0) {
+       if (Archive_DeleteFile(s->login_path, filepath) == 0) {
            /* Success. The archive container has been rewritten.
             * The watcher/auto-refresh mechanism will trigger a reload of the tree.
             * We do NOT remove the memory record manually here to avoid race conditions
@@ -41,8 +43,6 @@ int DeleteFile(FileEntry *fe_ptr, int *auto_override, Statistic *s)
        }
   }
 #endif
-
-  (void) GetFileNamePath( fe_ptr, filepath );
 
   if( !S_ISLNK( fe_ptr->stat_struct.st_mode ) )
   {
