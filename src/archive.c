@@ -28,6 +28,11 @@ static const char *normalize_archive_path_for_comparison(const char *path, char 
     if (strncmp(path, "./", 2) == 0) {
         path += 2;
     }
+    /* Skip leading "/" if present */
+    while (*path == FILE_SEPARATOR_CHAR) {
+        path++;
+    }
+
     strncpy(buffer, path, buffer_size);
     buffer[buffer_size - 1] = '\0';
     return buffer;
@@ -463,6 +468,44 @@ cleanup_loop:
     }
 }
 
+/* Callback for deleting a file */
+static int cb_delete_file(struct archive *r, struct archive *w, struct archive_entry *entry, void *user_data) {
+    char *target_path = (char *)user_data;
+    const char *entry_path = archive_entry_pathname(entry);
+    char norm_entry[PATH_LENGTH];
+    char norm_target[PATH_LENGTH];
+
+    normalize_archive_path_for_comparison(entry_path, norm_entry, sizeof(norm_entry));
+    normalize_archive_path_for_comparison(target_path, norm_target, sizeof(norm_target));
+
+    if (strcmp(norm_entry, norm_target) == 0) {
+        return AR_SKIP;
+    }
+    return AR_KEEP;
+}
+
+int Archive_DeleteFile(FileEntry *fe_ptr, Statistic *s) {
+    char internal_path[PATH_LENGTH];
+    char dir_path[PATH_LENGTH];
+
+    if (!fe_ptr || !s) return -1;
+
+    /* Construct internal path */
+    /* Get path of the parent directory of the file relative to tree root */
+    GetPath(fe_ptr->dir_entry, dir_path);
+
+    /* Combine dir and filename */
+    /* normalize_archive_path_for_comparison handles ./ strip, so we just build it standardly */
+
+    if (strcmp(dir_path, ".") == 0 || strcmp(dir_path, "") == 0 || strcmp(dir_path, FILE_SEPARATOR_STRING) == 0) {
+        snprintf(internal_path, sizeof(internal_path), "%s", fe_ptr->name);
+    } else {
+        snprintf(internal_path, sizeof(internal_path), "%s%c%s", dir_path, FILE_SEPARATOR_CHAR, fe_ptr->name);
+    }
+
+    return Archive_Rewrite(s->login_path, cb_delete_file, internal_path);
+}
+
 #else
 /* Dummy implementations if libarchive is not available */
 int ExtractArchiveEntry(const char *archive_path, const char *entry_path, int out_fd)
@@ -474,6 +517,10 @@ int ExtractArchiveNode(const char *archive_path, const char *entry_path, const c
     return -1;
 }
 int Archive_Rewrite(char *archive_path, void *cb, void *user_data)
+{
+    return -1;
+}
+int Archive_DeleteFile(FileEntry *fe_ptr, Statistic *s)
 {
     return -1;
 }
