@@ -637,12 +637,33 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 *   **Context Files:** `src/dirwin.c`
 *   - [ ] **Status:** Not Started.
 
-### **Step 4.32: Archive Write Support:**
-*   Implement archive creation and modification using `libarchive`'s write APIs. The Auto-Refresh logic for archives will need to be different from file systems: instead of watching the files inside, it should watch the archive file itself (the container). If the container's timestamp changes, then ytree should reload the virtual view.
-*   **Files to Modify:** `src/archive.c`, `src/readarchive.c`
-*   **Context Files:** `include/ytree.h`
+### **Step 4.32: Archive Write Support (Atomic Breakdown)**
+*   **Goal:** Enable modification of archives (ZIP, TAR, ISO, etc.) directly within ytree. Since `libarchive` does not support random-access modification, this requires a "Stream Rewrite" engine: open original, open temp destination, stream entries from old to new (skipping deleted ones, injecting new ones), close, and swap. The Auto-Refresh logic for archives will need to watch the archive file itself (the container) to trigger reloads.
+
+#### **Step 4.32.1: Implement Archive Rewrite Infrastructure**
+*   **Description:** Implement the core `Archive_Rewrite(char *archive_path, RewriteCallback cb, void *user_data)` function. This generic engine will handle the `Read Old -> Write New` loop, temporary file creation, atomicity, and error recovery.
+*   **Files to Modify:** `src/archive.c`, `include/ytree.h`
 *   - [ ] **Status:** Not Started.
-*   **Includes:** Implementing `^S` (Execute Command) inside archives. Requires extracting every file to a temporary location to run the command (e.g., `grep`) on it.
+
+#### **Step 4.32.2: Implement Archive Deletion**
+*   **Description:** Hook the `D` (Delete) command when in Archive Mode to use the Rewrite Engine. The callback will simply skip the entries marked for deletion during the copy stream.
+*   **Files to Modify:** `src/delete.c`, `src/archive.c`
+*   - [ ] **Status:** Not Started.
+
+#### **Step 4.32.3: Implement Archive Addition (Copy-In) & Mkdir**
+*   **Description:** Hook `C` (Copy) and `M` (Makedir) to inject new headers and data blocks into the Rewrite stream.
+*   **Files to Modify:** `src/copy.c`, `src/mkdir.c`, `src/archive.c`
+*   - [ ] **Status:** Not Started.
+
+#### **Step 4.32.4: Implement Archive Rename**
+*   **Description:** Hook `R` (Rename) to modify the `pathname` field of headers on the fly during the Rewrite stream.
+*   **Files to Modify:** `src/rename.c`, `src/archive.c`
+*   - [ ] **Status:** Not Started.
+
+#### **Step 4.32.5: Implement Archive Execution & Search (`^S`/`X`)**
+*   **Description:** Implement `Execute` and `Grep` for archives by extracting files to a temporary directory (`/tmp/ytree_...`), running the command, and cleaning up. Unlike rewrite operations, this is a read-only extraction task.
+*   **Files to Modify:** `src/execute.c`, `src/filewin.c`
+*   - [ ] **Status:** Not Started.
 
 ### **Step 4.33: Nested Archive Traversal**
 *   Allow transparently entering an archive that is itself inside another archive.
