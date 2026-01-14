@@ -274,6 +274,9 @@ static int configure_writer(struct archive *in, struct archive *out) {
     int format = archive_format(in);
     int filter = archive_filter_code(in, 0);
 
+    /* Debugging Output */
+    fprintf(stderr, "configure_writer: Detected Format=0x%x, Filter=%d\n", format, filter);
+
     /* Set Filter */
     switch (filter) {
         case ARCHIVE_FILTER_NONE: archive_write_add_filter_none(out); break;
@@ -283,28 +286,48 @@ static int configure_writer(struct archive *in, struct archive *out) {
         case ARCHIVE_FILTER_LZIP: archive_write_add_filter_lzip(out); break;
         case ARCHIVE_FILTER_LZMA: archive_write_add_filter_lzma(out); break;
         case ARCHIVE_FILTER_XZ: archive_write_add_filter_xz(out); break;
-        /* ZSTD is standard in newer libarchive, use ifdef or assume generic support */
 #ifdef ARCHIVE_FILTER_ZSTD
         case ARCHIVE_FILTER_ZSTD: archive_write_add_filter_zstd(out); break;
 #endif
-        default: return -1; /* Unknown/Unsupported filter for writing */
+#ifdef ARCHIVE_FILTER_LZ4
+        case ARCHIVE_FILTER_LZ4: archive_write_add_filter_lz4(out); break;
+#endif
+        case ARCHIVE_FILTER_PROGRAM:
+             /* Programs (like external gzip) are harder to replicate implicitly.
+              * We might need archive_write_add_filter_program(out, cmd) but we don't know the cmd.
+              * Fail gracefully.
+              */
+             fprintf(stderr, "configure_writer: External program filter not supported for rewrite.\n");
+             return -1;
+        default:
+            fprintf(stderr, "configure_writer: Unknown filter code: %d\n", filter);
+            return -1; /* Unknown/Unsupported filter for writing */
     }
 
     /* Set Format */
-    format &= ARCHIVE_FORMAT_BASE_MASK;
-    if (format == ARCHIVE_FORMAT_TAR) {
-        archive_write_set_format_pax_restricted(out);
-    } else if (format == ARCHIVE_FORMAT_ZIP) {
-        archive_write_set_format_zip(out);
-    } else if (format == ARCHIVE_FORMAT_CPIO) {
-        archive_write_set_format_cpio(out);
-    } else if (format == ARCHIVE_FORMAT_7ZIP) {
-        archive_write_set_format_7zip(out);
-    } else if (format == ARCHIVE_FORMAT_ISO9660) {
-        archive_write_set_format_iso9660(out);
-    } else if (format == ARCHIVE_FORMAT_AR) {
-        archive_write_set_format_ar_bsd(out);
+    /* Use mask to handle variants like TAR_GNUTAR, TAR_PAX_INTERCHANGE, ZIP_TRADITIONAL */
+    int format_base = format & ARCHIVE_FORMAT_BASE_MASK;
+
+    if (format_base == ARCHIVE_FORMAT_TAR) {
+        if (archive_write_set_format_pax_restricted(out) != ARCHIVE_OK) {
+             fprintf(stderr, "configure_writer: Failed to set TAR format\n");
+             return -1;
+        }
+    } else if (format_base == ARCHIVE_FORMAT_ZIP) {
+        if (archive_write_set_format_zip(out) != ARCHIVE_OK) {
+             fprintf(stderr, "configure_writer: Failed to set ZIP format\n");
+             return -1;
+        }
+    } else if (format_base == ARCHIVE_FORMAT_CPIO) {
+        if (archive_write_set_format_cpio(out) != ARCHIVE_OK) return -1;
+    } else if (format_base == ARCHIVE_FORMAT_7ZIP) {
+        if (archive_write_set_format_7zip(out) != ARCHIVE_OK) return -1;
+    } else if (format_base == ARCHIVE_FORMAT_ISO9660) {
+        if (archive_write_set_format_iso9660(out) != ARCHIVE_OK) return -1;
+    } else if (format_base == ARCHIVE_FORMAT_AR) {
+        if (archive_write_set_format_ar_bsd(out) != ARCHIVE_OK) return -1;
     } else {
+        fprintf(stderr, "configure_writer: Unknown format code: 0x%x\n", format);
         return -1; /* Unknown format */
     }
 
@@ -336,6 +359,7 @@ int Archive_Rewrite(char *archive_path, RewriteCallback cb, void *user_data)
     int fd_tmp = -1;
     int success = 0;
     int spin_counter = 0;
+    int writer_initialized = 0;
 
     if (!archive_path || !cb) return -1;
 
@@ -352,8 +376,6 @@ int Archive_Rewrite(char *archive_path, RewriteCallback cb, void *user_data)
         ERROR_MSG("Could not create temporary archive file");
         return -1;
     }
-    /* mkstemp opens read/write; close it so libarchive can open it properly or use fd */
-    /* libarchive can write to fd. Let's use that. */
 
     a_in = archive_read_new();
     archive_read_support_filter_all(a_in);
@@ -369,27 +391,26 @@ int Archive_Rewrite(char *archive_path, RewriteCallback cb, void *user_data)
 
     a_out = archive_write_new();
 
-    /* Configure writer based on reader settings */
-    if (configure_writer(a_in, a_out) != 0) {
-        ERROR_MSG("Unsupported archive format for writing");
-        archive_read_free(a_in);
-        archive_write_free(a_out);
-        close(fd_tmp);
-        unlink(tmp_path);
-        return -1;
-    }
-
-    if (archive_write_open_fd(a_out, fd_tmp) != ARCHIVE_OK) {
-        ERROR_MSG("Could not open output archive");
-        archive_read_free(a_in);
-        archive_write_free(a_out);
-        close(fd_tmp);
-        unlink(tmp_path);
-        return -1;
-    }
+    /* NOTE: We do NOT configure writer or open output FD yet.
+     * We must wait until the first header is read so libarchive can detect the format. */
 
     /* Process Entries */
     while ((r = archive_read_next_header(a_in, &entry)) == ARCHIVE_OK) {
+
+        /* Lazy Initialization of Writer */
+        if (!writer_initialized) {
+            if (configure_writer(a_in, a_out) != 0) {
+                ERROR_MSG("Unsupported archive format for writing");
+                success = 0;
+                break;
+            }
+            if (archive_write_open_fd(a_out, fd_tmp) != ARCHIVE_OK) {
+                ERROR_MSG("Could not open output archive stream");
+                success = 0;
+                break;
+            }
+            writer_initialized = 1;
+        }
 
         if ((++spin_counter % 50) == 0) {
             DrawSpinner();
@@ -443,13 +464,17 @@ cleanup_loop:
 
     /* Close archives */
     archive_read_free(a_in);
-    archive_write_close(a_out); /* Flush data */
-    archive_write_free(a_out);
-    close(fd_tmp); /* fd was used by archive_write, might be closed by it?
-                      archive_write_open_fd documentation: client is responsible for closing fd
-                      unless using archive_write_open_filename */
+    if (writer_initialized) {
+        archive_write_close(a_out); /* Flush data */
+        archive_write_free(a_out);
+    } else {
+        /* If loop never ran or failed before init, just free struct */
+        archive_write_free(a_out);
+    }
+    close(fd_tmp);
 
-    if (success) {
+    /* Atomic Rename logic */
+    if (success && writer_initialized) {
         /* Restore permissions */
         if (chmod(tmp_path, st.st_mode) != 0) {
             /* Warning only */
@@ -463,47 +488,78 @@ cleanup_loop:
         }
         return 0;
     } else {
+        /* If we succeeded but writer wasn't initialized, it means input was empty.
+         * We cannot rewrite an empty archive reliably without knowing desired format.
+         * Treat as success (no-op) or failure? Returning 0 (no-op) is safer.
+         */
         unlink(tmp_path);
+        if (success && !writer_initialized) return 0;
         return -1;
     }
 }
 
 /* Callback for deleting a file */
 static int cb_delete_file(struct archive *r, struct archive *w, struct archive_entry *entry, void *user_data) {
-    char *target_path = (char *)user_data;
-    const char *entry_path = archive_entry_pathname(entry);
-    char norm_entry[PATH_LENGTH];
-    char norm_target[PATH_LENGTH];
+    char *target_path = (char *)user_data; /* This is the internal path we want to delete */
+    const char *current_entry_path = archive_entry_pathname(entry);
+    size_t target_len, current_len;
 
-    normalize_archive_path_for_comparison(entry_path, norm_entry, sizeof(norm_entry));
-    normalize_archive_path_for_comparison(target_path, norm_target, sizeof(norm_target));
+    (void)r; (void)w; /* Unused */
 
-    if (strcmp(norm_entry, norm_target) == 0) {
-        return AR_SKIP;
+    /* Normalization: skip leading ./ or / */
+    if (current_entry_path[0] == '.' && current_entry_path[1] == FILE_SEPARATOR_CHAR) {
+        current_entry_path += 2;
     }
+    while (*current_entry_path == FILE_SEPARATOR_CHAR) {
+        current_entry_path++;
+    }
+
+    target_len = strlen(target_path);
+    current_len = strlen(current_entry_path);
+
+    /* Suffix check: Does target_path end with current_entry_path?
+     * Note: user_data (target_path) is usually derived from a full path, but here we assume
+     * it's already stripped relative to the archive root or is sufficient for suffix matching.
+     * ExtractArchiveEntry logic: checks if 'target' ends with 'clean_path'.
+     */
+    if (target_len >= current_len) {
+        const char *suffix = target_path + (target_len - current_len);
+        if (strcmp(suffix, current_entry_path) == 0) {
+            /* Check boundary */
+            if (suffix == target_path || *(suffix - 1) == FILE_SEPARATOR_CHAR) {
+                return AR_SKIP;
+            }
+        }
+    }
+
     return AR_KEEP;
 }
 
-int Archive_DeleteFile(FileEntry *fe_ptr, Statistic *s) {
+int Archive_DeleteFile(char *archive_path, char *file_path) {
     char internal_path[PATH_LENGTH];
-    char dir_path[PATH_LENGTH];
+    size_t arch_len = strlen(archive_path);
+    size_t file_len = strlen(file_path);
 
-    if (!fe_ptr || !s) return -1;
+    if (!archive_path || !file_path) return -1;
 
-    /* Construct internal path */
-    /* Get path of the parent directory of the file relative to tree root */
-    GetPath(fe_ptr->dir_entry, dir_path);
-
-    /* Combine dir and filename */
-    /* normalize_archive_path_for_comparison handles ./ strip, so we just build it standardly */
-
-    if (strcmp(dir_path, ".") == 0 || strcmp(dir_path, "") == 0 || strcmp(dir_path, FILE_SEPARATOR_STRING) == 0) {
-        snprintf(internal_path, sizeof(internal_path), "%s", fe_ptr->name);
+    /*
+     * file_path typically contains the full path including the archive path prefix
+     * if it came from GetFileNamePath. We should strip the archive path prefix
+     * to get the internal path for matching.
+     */
+    if (file_len > arch_len && strncmp(file_path, archive_path, arch_len) == 0) {
+        char *ptr = file_path + arch_len;
+        /* Skip separator if present */
+        while (*ptr == FILE_SEPARATOR_CHAR) ptr++;
+        strncpy(internal_path, ptr, sizeof(internal_path));
+        internal_path[sizeof(internal_path)-1] = '\0';
     } else {
-        snprintf(internal_path, sizeof(internal_path), "%s%c%s", dir_path, FILE_SEPARATOR_CHAR, fe_ptr->name);
+        /* Fallback: use full path if prefix doesn't match */
+        strncpy(internal_path, file_path, sizeof(internal_path));
+        internal_path[sizeof(internal_path)-1] = '\0';
     }
 
-    return Archive_Rewrite(s->login_path, cb_delete_file, internal_path);
+    return Archive_Rewrite(archive_path, cb_delete_file, internal_path);
 }
 
 #else
@@ -520,7 +576,7 @@ int Archive_Rewrite(char *archive_path, void *cb, void *user_data)
 {
     return -1;
 }
-int Archive_DeleteFile(FileEntry *fe_ptr, Statistic *s)
+int Archive_DeleteFile(char *archive_path, char *file_path)
 {
     return -1;
 }

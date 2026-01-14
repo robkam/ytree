@@ -72,7 +72,7 @@ static char *file_help[MAX_MODES][2] =
       "COMMANDS                                                                                "
     },
     { /* ARCHIVE_MODE */
-      "ARCH-FILE (C)opy (F)ilter (^F)ilemode (H)ex (P)ipe (S)ort (T)ag (U)ntag (V)iew pathcop(Y)",
+      "ARCH-FILE (C)opy (D)elete (F)ilter (^F)mode (H)ex (P)ipe (S)ort (T)ag (U)ntag (V)iew pathcop(Y)",
       "COMMANDS                                                                               "
     },
     { /* USER_MODE */
