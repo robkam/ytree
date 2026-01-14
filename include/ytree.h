@@ -51,6 +51,28 @@
 #ifdef HAVE_LIBARCHIVE
 #include <archive.h>
 #include <archive_entry.h>
+
+/* Return values for RewriteCallback */
+#define AR_KEEP   0
+#define AR_SKIP   1
+#define AR_ABORT -1
+
+/*
+ * RewriteCallback
+ * Called for each entry in the source archive.
+ * r: Source archive (reader)
+ * w: Destination archive (writer)
+ * entry: The current entry header read from 'r'
+ * user_data: Context passed to Archive_Rewrite
+ *
+ * Return:
+ *   AR_KEEP:  Copy this entry (header + data) to 'w'.
+ *             (Callback may modify 'entry' before returning KEEP to rename/chmod).
+ *   AR_SKIP:  Do not write this entry to 'w'. (Delete).
+ *   AR_ABORT: Stop processing immediately and fail.
+ */
+typedef int (*RewriteCallback)(struct archive *r, struct archive *w, struct archive_entry *entry, void *user_data);
+
 #endif
 
 #ifdef WITH_UTF8
@@ -856,6 +878,9 @@ extern int ExtractArchiveNode(const char *archive_path, const char *entry_path, 
 extern int InsertArchiveFileEntry(DirEntry *tree, char *path, struct stat *stat, Statistic *s);
 extern int TryInsertArchiveDirEntry(DirEntry *tree, char *dir, struct stat *stat, Statistic *s);
 extern void MinimizeArchiveTree(DirEntry **tree_ptr, Statistic *s);
+#ifdef HAVE_LIBARCHIVE
+extern int Archive_Rewrite(char *archive_path, RewriteCallback cb, void *user_data);
+#endif
 
 /* readarchive.c */
 extern int ReadTreeFromArchive(DirEntry **dir_entry_ptr, const char *filename, Statistic *s);

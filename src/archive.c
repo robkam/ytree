@@ -261,6 +261,208 @@ int ExtractArchiveNode(const char *archive_path, const char *entry_path, const c
     return (found) ? 0 : -1;
 }
 
+
+/*
+ * Helper to setup writer based on reader
+ */
+static int configure_writer(struct archive *in, struct archive *out) {
+    int format = archive_format(in);
+    int filter = archive_filter_code(in, 0);
+
+    /* Set Filter */
+    switch (filter) {
+        case ARCHIVE_FILTER_NONE: archive_write_add_filter_none(out); break;
+        case ARCHIVE_FILTER_GZIP: archive_write_add_filter_gzip(out); break;
+        case ARCHIVE_FILTER_BZIP2: archive_write_add_filter_bzip2(out); break;
+        case ARCHIVE_FILTER_COMPRESS: archive_write_add_filter_compress(out); break;
+        case ARCHIVE_FILTER_LZIP: archive_write_add_filter_lzip(out); break;
+        case ARCHIVE_FILTER_LZMA: archive_write_add_filter_lzma(out); break;
+        case ARCHIVE_FILTER_XZ: archive_write_add_filter_xz(out); break;
+        /* ZSTD is standard in newer libarchive, use ifdef or assume generic support */
+#ifdef ARCHIVE_FILTER_ZSTD
+        case ARCHIVE_FILTER_ZSTD: archive_write_add_filter_zstd(out); break;
+#endif
+        default: return -1; /* Unknown/Unsupported filter for writing */
+    }
+
+    /* Set Format */
+    format &= ARCHIVE_FORMAT_BASE_MASK;
+    if (format == ARCHIVE_FORMAT_TAR) {
+        archive_write_set_format_pax_restricted(out);
+    } else if (format == ARCHIVE_FORMAT_ZIP) {
+        archive_write_set_format_zip(out);
+    } else if (format == ARCHIVE_FORMAT_CPIO) {
+        archive_write_set_format_cpio(out);
+    } else if (format == ARCHIVE_FORMAT_7ZIP) {
+        archive_write_set_format_7zip(out);
+    } else if (format == ARCHIVE_FORMAT_ISO9660) {
+        archive_write_set_format_iso9660(out);
+    } else if (format == ARCHIVE_FORMAT_AR) {
+        archive_write_set_format_ar_bsd(out);
+    } else {
+        return -1; /* Unknown format */
+    }
+
+    return 0;
+}
+
+/*
+ * Archive_Rewrite
+ * Generic engine for rewriting archives (modifying/deleting entries).
+ * Handles the Read Old -> Write New to Temp -> Rename Atomically loop.
+ *
+ * archive_path: Path to the existing archive.
+ * cb: Callback function invoked for every entry.
+ * user_data: User context passed to callback.
+ *
+ * Returns 0 on success, -1 on failure.
+ */
+int Archive_Rewrite(char *archive_path, RewriteCallback cb, void *user_data)
+{
+    struct archive *a_in = NULL;
+    struct archive *a_out = NULL;
+    struct archive_entry *entry;
+    struct stat st;
+    char tmp_path[PATH_LENGTH];
+    int r, res;
+    const void *buff;
+    size_t size;
+    la_int64_t offset;
+    int fd_tmp = -1;
+    int success = 0;
+    int spin_counter = 0;
+
+    if (!archive_path || !cb) return -1;
+
+    /* Get permissions of original archive */
+    if (stat(archive_path, &st) != 0) {
+        ERROR_MSG("Could not stat original archive");
+        return -1;
+    }
+
+    /* Create temporary file in same directory to ensure atomic rename */
+    snprintf(tmp_path, sizeof(tmp_path), "%s.tmpXXXXXX", archive_path);
+    fd_tmp = mkstemp(tmp_path);
+    if (fd_tmp == -1) {
+        ERROR_MSG("Could not create temporary archive file");
+        return -1;
+    }
+    /* mkstemp opens read/write; close it so libarchive can open it properly or use fd */
+    /* libarchive can write to fd. Let's use that. */
+
+    a_in = archive_read_new();
+    archive_read_support_filter_all(a_in);
+    archive_read_support_format_all(a_in);
+
+    if (archive_read_open_filename(a_in, archive_path, 10240) != ARCHIVE_OK) {
+        ERROR_MSG("Could not open input archive");
+        archive_read_free(a_in);
+        close(fd_tmp);
+        unlink(tmp_path);
+        return -1;
+    }
+
+    a_out = archive_write_new();
+
+    /* Configure writer based on reader settings */
+    if (configure_writer(a_in, a_out) != 0) {
+        ERROR_MSG("Unsupported archive format for writing");
+        archive_read_free(a_in);
+        archive_write_free(a_out);
+        close(fd_tmp);
+        unlink(tmp_path);
+        return -1;
+    }
+
+    if (archive_write_open_fd(a_out, fd_tmp) != ARCHIVE_OK) {
+        ERROR_MSG("Could not open output archive");
+        archive_read_free(a_in);
+        archive_write_free(a_out);
+        close(fd_tmp);
+        unlink(tmp_path);
+        return -1;
+    }
+
+    /* Process Entries */
+    while ((r = archive_read_next_header(a_in, &entry)) == ARCHIVE_OK) {
+
+        if ((++spin_counter % 50) == 0) {
+            DrawSpinner();
+            doupdate();
+            if (EscapeKeyPressed()) {
+                res = AR_ABORT;
+            } else {
+                res = cb(a_in, a_out, entry, user_data);
+            }
+        } else {
+            res = cb(a_in, a_out, entry, user_data);
+        }
+
+        if (res == AR_ABORT) {
+            success = 0;
+            break;
+        }
+
+        if (res == AR_SKIP) {
+            continue; /* Skip writing this entry */
+        }
+
+        /* AR_KEEP: Write header and data */
+        if (archive_write_header(a_out, entry) != ARCHIVE_OK) {
+            ERROR_MSG("Error writing archive header");
+            success = 0;
+            break;
+        }
+
+        /* Copy data blocks */
+        while ((r = archive_read_data_block(a_in, &buff, &size, &offset)) == ARCHIVE_OK) {
+            if (archive_write_data_block(a_out, buff, size, offset) != ARCHIVE_OK) {
+                 ERROR_MSG("Error writing archive data");
+                 success = 0;
+                 goto cleanup_loop;
+            }
+        }
+        if (r != ARCHIVE_EOF) {
+            ERROR_MSG("Error reading archive data");
+            success = 0;
+            goto cleanup_loop;
+        }
+        success = 1; /* Tentative success after this entry */
+    }
+
+cleanup_loop:
+    if (r != ARCHIVE_EOF && r != ARCHIVE_OK) {
+        /* Error occurred in main loop logic unless handled above */
+        success = 0;
+    }
+
+    /* Close archives */
+    archive_read_free(a_in);
+    archive_write_close(a_out); /* Flush data */
+    archive_write_free(a_out);
+    close(fd_tmp); /* fd was used by archive_write, might be closed by it?
+                      archive_write_open_fd documentation: client is responsible for closing fd
+                      unless using archive_write_open_filename */
+
+    if (success) {
+        /* Restore permissions */
+        if (chmod(tmp_path, st.st_mode) != 0) {
+            /* Warning only */
+        }
+
+        /* Atomic Replace */
+        if (rename(tmp_path, archive_path) != 0) {
+            ERROR_MSG("Failed to replace original archive");
+            unlink(tmp_path);
+            return -1;
+        }
+        return 0;
+    } else {
+        unlink(tmp_path);
+        return -1;
+    }
+}
+
 #else
 /* Dummy implementations if libarchive is not available */
 int ExtractArchiveEntry(const char *archive_path, const char *entry_path, int out_fd)
@@ -268,6 +470,10 @@ int ExtractArchiveEntry(const char *archive_path, const char *entry_path, int ou
     return -1;
 }
 int ExtractArchiveNode(const char *archive_path, const char *entry_path, const char *dest_path)
+{
+    return -1;
+}
+int Archive_Rewrite(char *archive_path, void *cb, void *user_data)
 {
     return -1;
 }
