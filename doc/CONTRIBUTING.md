@@ -58,7 +58,7 @@ make DEBUG=1
 
 ## Running the Test Suite
 
-The test suite uses `pytest` and `pexpect` to simulate user interaction. It automatically builds a test environment, runs the local `./ytree` binary against it, verifies outcomes, and cleans up.
+The test suite uses `pytest` and `pexpect` to simulate user interaction. It relies on a robust controller (`tests/ytree_control.py`) to manage the ncurses application in a headless environment.
 
 **Prerequisite:** Ensure your Python virtual environment is activated:
 ```bash
@@ -92,11 +92,15 @@ pytest tests/test_core.py
 pytest -x
 ```
 
-**Adding Tests:** If you are adding a new feature or fixing a bug, please add a corresponding test case to the appropriate file in the `tests/` directory (e.g., `tests/test_core.py` for file operations or `tests/test_volume.py` for multi-volume logic).
+**Test Infrastructure:**
+*   `tests/test_core.py`: Main regression tests for core features (Copy, Move, Rename).
+*   `tests/ytree_control.py`: The PTY controller that drives `ytree`, handling input clearing and timeouts.
+*   `tests/ytree_keys.py`: Centralized definitions for key commands.
+*   `tests/conftest.py`: Pytest fixtures for setup and teardown.
 
 ## AI-Assisted Workflow (Google Gemini API)
 
-We use Python automation scripts backed by the Google Gemini API to assist with the workflow. These scripts are executed from the **root** of the `ytree` directory, so all file paths are relative to the current directory (e.g., `src/main.c`, **not** `ytree/src/main.c`).
+We use Python automation scripts backed by the Google Gemini API to assist with the workflow. These scripts are executed from the **root** of the `ytree` directory.
 
 ### Setup
 
@@ -108,39 +112,29 @@ We use Python automation scripts backed by the Google Gemini API to assist with 
 
 ### Part 1: The Consultant (`Google AI Studio Web Interface`)
 
-The Consultant is your first stop for planning. It analyzes the entire project structure to determine **WHAT** needs to be done.
+The Consultant is your first stop for planning. It analyzes the specific files involved in a task to determine **WHAT** needs to be done.
 
 0.  **Paste the Consultant System Prompt** (See [Appendix A](#appendix-a-the-consultant-persona)) into the "System Instructions" field.
 
-1.  **Generate Context:** Run the interactive context gatherer.
+1.  **Select Context:** Run the interactive context gatherer. **Crucial:** Only select the files relevant to your current task. Do not dump the entire project unless necessary.
     ```bash
     scripts/gather_context.py
     ```
-    This opens a TUI where you can select relevant files using `Space` and `Up/Down`. Press `Enter` to generate the output.
+    This opens a TUI where you can toggle file selection using `Space`. Press `Enter` to generate the output.
+    *   **Tip:** Use the file list in `PLAN.md` as a guide for what to select.
     *   **Output:** The context is saved to `context.txt` in the project root.
-    *   **Clipboard:** The content is also automatically copied to your clipboard (requires `xclip` or `pbcopy`).
-
-    *Non-Interactive Mode:* To select all files automatically:
-    ```bash
-    scripts/gather_context.py --cli
-    ```
-    You can also specify a custom output file:
-    ```bash
-    scripts/gather_context.py --cli --output my_context.txt
-    ```
+    *   **Output:** The content is copied to your clipboard.
 
 2.  **Upload:**
     *   Go to Google AI Studio.
     *   Create a new prompt.
     *   Paste the content (from clipboard or `context.txt`).
 
-3.  **Prompt:** Ask your architectural question. The Consultant will generate a high-level `task.txt` plan.
-
-4.  **Usage:** Use this output to guide Part 2 or Part 4.
+3.  **Prompt:** Ask your architectural question or provide the bug report. The Consultant will generate a high-level `task.txt` plan.
 
 ### Part 2: The Architect/Builder (`Google AI Studio Web Interface`)
 
-The Architect/Builder executes the plan manually via the web interface. In a **separate** AI Studio window (to keep context clean), it takes specific file contents and generates the **HOW** (the actual code).
+The Architect/Builder executes the plan. In a **separate** AI Studio window (to keep context clean), it takes specific file contents and generates the **HOW** (the actual code).
 
 0.  **Paste the Architect/Builder System Prompt** (See [Appendix B](#appendix-b-the-architectbuilder-persona)) into the "System Instructions" field.
 
@@ -158,8 +152,10 @@ The Architect/Builder executes the plan manually via the web interface. In a **s
         ```
         *(Note: Ensure `context.txt` is empty before running this, as `>>` appends.)*
 
+
+
 2.  **Upload:**
-    *   Start a **New Chat** in Google AI Studio.
+    *   Start a **New Chat**.
     *   Paste the content of the `task.txt` (from Part 1) and your context files.
 
 3.  **Prompt:** "Execute the task."
@@ -169,15 +165,15 @@ The Architect/Builder executes the plan manually via the web interface. In a **s
     *   Compile and Test:
         ```bash
         make clean && make DEBUG=1
+        make test
         ```
-    *   Run manual tests.
     *   If it fails, **Revert** (`git restore .`) and refine the prompt.
 
 ### Part 3: The Junior Consultant (`chat-ytree.py`)
 
 Use this script for quick questions, syntax checks, or exploring specific files locally without needing the full web interface.
 
-*   **Mechanism:** Lazy Loading. By default, the AI only sees the list of filenames (the tree), not the content. You must "load" files into the context when you want the AI to read them.
+*   **Mechanism:** Lazy Loading. By default, the AI only sees the list of filenames. You must "load" files into the context when you want the AI to read them.
 
 **Usage:**
 ```bash
@@ -198,7 +194,7 @@ scripts/chat-ytree.py --context "src/main.c, include/global.h"
 
 This script combines the roles of the Architect and Builder into a single automated command line tool. It reads a task file, plans the changes using the API, generates the code, and applies it to your local files directly.
 
-1.  Create a file named `task.txt` describing your goal (e.g., "Refactor global.c to remove unused variables").
+1.  Create a file named `task.txt` describing your goal.
 2.  Run the builder:
     ```bash
     scripts/build-ytree.py --task task.txt --apply
@@ -249,13 +245,13 @@ This section documents agreed-upon architectural constraints and non-goals. Thes
 ### 1. Concurrency Model: Single-Threaded Event Loop
 **Decision:** `ytree` will remain **single-threaded**. We will **NOT** implement multi-threading for background scanning or operations.
 **Rationale:**
-*   **Ncurses Constraints:** The `ncurses` library is not thread-safe. Updating the UI from a background thread requires complex message passing or locking mechanisms that complicate the architecture significantly.
-*   **Global State:** The legacy codebase relies heavily on global state (`statistic`, `dir_entry_list`). Making this thread-safe would require a complete rewrite of the core data structures (Mutexes/Locks everywhere), which is a high-risk, high-cost endeavor ("100% effort").
-*   **The "80/20" Solution:** The user frustration with "frozen" screens is addressed via **Visual Feedback** (Animations/Spinners) and **Graceful Abort** (ESC key) mechanisms. This delivers 80% of the benefit (responsiveness) for 20% of the complexity.
+*   **Ncurses Constraints:** The `ncurses` library is not thread-safe.
+*   **Global State:** The legacy codebase relies heavily on global state (`statistic`, `dir_entry_list`). Making this thread-safe would require a complete rewrite.
+*   **The "80/20" Solution:** Use **Visual Feedback** (Animations/Spinners) and **Graceful Abort** (ESC key).
 ### 2. UI Toolkit: Hard Ncurses Dependency
 **Decision:** `ytree` is and will remain a curses-based TUI application.
-*   **Non-Goal:** Implementing a "headless" mode or porting to a different UI toolkit (GTK, Qt) is out of scope.
-*   **Non-Goal:** Removing `ncurses` to run on raw serial lines without termcap capabilities is out of scope.
+*   **Non-Goal:** Implementing a "headless" mode or porting to a different UI toolkit (GTK, Qt).
+*   **Non-Goal:** Removing `ncurses` to run on raw serial lines without termcap capabilities.
 ### 3. Global State vs. Future Split Screen (F8)
 **Context:** Currently, `ytree` uses a "Single Active Volume" model where global macros (like `statistic`) map to the `CurrentVolume`.
 *   **Constraint:** Do not attempt to prematurely refactor these globals into "Window Contexts" until Phase 5 (Split Screen Implementation).
@@ -336,6 +332,7 @@ The user is a maintainer who describes issues in terms of **Behavior**. They are
 
 **CONSTRAINT:**
 *   **PATHING:** Return paths relative to the project root (e.g., `main.c`, `src/utils.c`). **DO NOT** prepend the project directory name (e.g., do **NOT** output `ytree/main.c`).
+*   **NO HALLUCINATIONS:** If you need to analyze a file that is not currently in the context, **STOP and ask the user to provide it**. Do not assume its contents.
 
 **THE OUTPUT FORMAT:**
 > **ANALYSIS:**
@@ -365,6 +362,7 @@ You are the **Driver**. You take a task description and source files, and you im
 *   **STANDALONE & CLEAN:** The output must be the final, clean, current version of the file. **DO NOT** include *any* introductory text, concluding summaries, or meta-comments about the changes within the response body.
 *   **NO MARKDOWN:** Do not wrap code in markdown blocks. Output raw code only.
 *   **GLOBAL TEXT CONSTRAINT:** **STRICTLY PROHIBITED:** Do not use stacked Unicode characters (combining diacritics/Zalgo). This prohibition is absolute and applies to **ALL** output: C source code, UI strings, comments, commit messages, and development documentation.
+*   **NO HALLUCINATIONS:** If a file required for the task (header or source) is not provided in the prompt, **STOP and request it**. Do not guess the content.
 
 **Coding Standards & Technical Specifications**
 *   **Code Quality:** Use valid C89/C99. Handle pointers safely. Check `errno`.
@@ -456,4 +454,3 @@ Generate the requested Python test files (`tests/*.py`).
 *   **COMPLETE FILES ONLY:** Output the entire, runnable Python file.
 *   **NO MARKDOWN:** Do not wrap code in markdown blocks.
 *   **COMMENTS:** Comment your code generously, explaining *why* a specific regex or wait is used.
-```
