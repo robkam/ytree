@@ -49,7 +49,7 @@ static char *dir_help[MAX_MODES][2] =
       "COMMANDS                                                                           "
     },
     { /* ARCHIVE_MODE */
-      "ARCHIVE   (F)ilter (^F)dirmode (L)og re(^L)oad (S)howall (T)ag (U)ntag (Q)uit",
+      "ARCHIVE   (C)opy (F)ilter (^F)dirmode (L)og (M)akedir (S)howall (T)ag (U)ntag (Q)uit",
       "COMMANDS                                                                           "
     },
     { /* USER_MODE */
@@ -72,7 +72,7 @@ static char *file_help[MAX_MODES][2] =
       "COMMANDS                                                                                "
     },
     { /* ARCHIVE_MODE */
-      "ARCH-FILE (C)opy (D)elete (F)ilter (^F)mode (H)ex (P)ipe (S)ort (T)ag (U)ntag (V)iew pathcop(Y)",
+      "ARCH-FILE (C)opy (D)elete (F)ilter (^F)mode (H)ex (M)akedir (S)ort (T)ag (V)iew    ",
       "COMMANDS                                                                               "
     },
     { /* USER_MODE */

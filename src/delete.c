@@ -31,12 +31,11 @@ int DeleteFile(FileEntry *fe_ptr, int *auto_override, Statistic *s)
       /* In archive mode, permissions are virtual. We skip access checks and unlink.
        * We rely on the Rewrite Engine to handle the deletion.
        */
-       if (Archive_DeleteFile(s->login_path, filepath) == 0) {
+       if (Archive_DeleteEntry(s->login_path, filepath) == 0) {
            /* Success. The archive container has been rewritten.
-            * The watcher/auto-refresh mechanism will trigger a reload of the tree.
-            * We do NOT remove the memory record manually here to avoid race conditions
-            * or double-free issues when the reload happens.
+            * Explicitly refresh the tree to update UI.
             */
+           RefreshTreeSafe(s->tree);
            return 0;
        } else {
            return -1;

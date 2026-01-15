@@ -16,7 +16,7 @@ int MakeDirectory(DirEntry *father_dir_entry)
   char dir_name[PATH_LENGTH * 2 +1];
   int result = -1;
 
-  if( mode != DISK_MODE && mode != USER_MODE )
+  if( mode != DISK_MODE && mode != USER_MODE && mode != ARCHIVE_MODE )
   {
     return( result );
   }
@@ -49,7 +49,7 @@ DirEntry *MakeDirEntry(DirEntry *father_dir_entry, char *dir_name )
   char buffer[PATH_LENGTH+1];
   struct stat stat_struct;
 
-  if( mode != DISK_MODE && mode != USER_MODE )
+  if( mode != DISK_MODE && mode != USER_MODE && mode != ARCHIVE_MODE )
   {
     return( NULL );
   }
@@ -65,6 +65,51 @@ DirEntry *MakeDirEntry(DirEntry *father_dir_entry, char *dir_name )
   (void) GetPath( father_dir_entry, buffer );
   (void) strcat( buffer, FILE_SEPARATOR_STRING );
   (void) strcat( buffer, dir_name );
+
+  /* ARCHIVE MODE HANDLER */
+#ifdef HAVE_LIBARCHIVE
+  if (mode == ARCHIVE_MODE) {
+      char root_path[PATH_LENGTH+1];
+      char relative_path[PATH_LENGTH+1];
+      char parent_path[PATH_LENGTH+1];
+
+      /* Get full path of parent directory in tree */
+      GetPath(father_dir_entry, parent_path);
+      /* Get path of the archive file itself */
+      strcpy(root_path, CurrentVolume->vol_stats.login_path);
+
+      /* Calculate internal parent path by stripping archive root */
+      if (strcmp(parent_path, root_path) == 0) {
+          /* Parent is root of archive */
+          relative_path[0] = '\0';
+      } else if (strncmp(parent_path, root_path, strlen(root_path)) == 0) {
+          /* Parent is subdir */
+          char *ptr = parent_path + strlen(root_path);
+          if (*ptr == FILE_SEPARATOR_CHAR) ptr++;
+          strcpy(relative_path, ptr);
+      } else {
+          /* Fallback (should not happen if logic correct) */
+          strcpy(relative_path, parent_path);
+      }
+
+      /* Append new directory name */
+      if (relative_path[0] != '\0' && relative_path[strlen(relative_path)-1] != FILE_SEPARATOR_CHAR) {
+          strcat(relative_path, FILE_SEPARATOR_STRING);
+      }
+      strcat(relative_path, dir_name);
+
+      /* Add entry */
+      if (Archive_AddFile(CurrentVolume->vol_stats.login_path, NULL, relative_path, TRUE) == 0) {
+          /* Success: Return a dummy non-NULL to indicate success.
+             The auto-refresh will reload the tree.
+          */
+          RefreshTreeSafe(father_dir_entry);
+          return father_dir_entry;
+      } else {
+          return NULL;
+      }
+  }
+#endif
 
   if( mkdir( buffer, (S_IREAD  |
 		                 S_IWRITE |
