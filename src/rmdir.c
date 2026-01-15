@@ -19,7 +19,8 @@ int DeleteDirectory(DirEntry *dir_entry)
   char buffer[PATH_LENGTH+1];
   int result = -1;
 
-  if( mode != DISK_MODE && mode != USER_MODE )
+  /* Added check for ARCHIVE_MODE */
+  if( mode != DISK_MODE && mode != USER_MODE && mode != ARCHIVE_MODE )
   {
     return( result );
   }
@@ -30,6 +31,23 @@ int DeleteDirectory(DirEntry *dir_entry)
   {
     MESSAGE( "Can't delete ROOT" );
   }
+#ifdef HAVE_LIBARCHIVE
+  else if (CurrentVolume->vol_stats.login_mode == ARCHIVE_MODE)
+  {
+      if (dir_entry->file || dir_entry->sub_tree) {
+          MESSAGE("Directory not empty");
+      } else if( InputChoice( "Delete this directory (Y/N) ? ", "YN\033" ) == 'Y' ) {
+          char internal_path[PATH_LENGTH + 1];
+          GetPath(dir_entry, buffer);
+
+          if (Archive_DeleteEntry(CurrentVolume->vol_stats.login_path, buffer) == 0) {
+              /* Success - Update UI */
+              RefreshTreeSafe(CurrentVolume->vol_stats.tree);
+              result = 0;
+          }
+      }
+  }
+#endif
   else if( dir_entry->file || dir_entry->sub_tree )
   {
     if( InputChoice( "Directory not empty, PRUNE ? (Y/N) ? ", "YN\033" ) == 'Y' ) {

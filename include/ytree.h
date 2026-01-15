@@ -880,7 +880,8 @@ extern int TryInsertArchiveDirEntry(DirEntry *tree, char *dir, struct stat *stat
 extern void MinimizeArchiveTree(DirEntry **tree_ptr, Statistic *s);
 #ifdef HAVE_LIBARCHIVE
 extern int Archive_Rewrite(char *archive_path, RewriteCallback cb, void *user_data);
-extern int Archive_DeleteFile(char *archive_path, char *file_path);
+extern int Archive_DeleteEntry(char *archive_path, char *file_path);
+extern int Archive_AddFile(char *archive_path, char *src_path, char *dest_name, BOOL is_dir);
 #endif
 
 /* readarchive.c */

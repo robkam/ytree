@@ -52,7 +52,7 @@ int CopyFile(Statistic *statistic_ptr,
 
   /* Renamed usage: statistic_ptr->mode -> statistic_ptr->login_mode */
   if (statistic_ptr->login_mode != DISK_MODE && statistic_ptr->login_mode != USER_MODE) {
-      /* Archive Mode */
+      /* Archive Mode Source */
       if (path_copy) {
           char root_path[PATH_LENGTH+1];
           char *rel_path;
@@ -73,7 +73,8 @@ int CopyFile(Statistic *statistic_ptr,
 
           /* Construct full destination path for the directory */
           strcpy(full_dest_path, to_dir_path);
-          if (full_dest_path[strlen(full_dest_path)-1] != FILE_SEPARATOR_CHAR) {
+          size_t full_dest_len = strlen(full_dest_path);
+          if (full_dest_len > 0 && full_dest_path[full_dest_len-1] != FILE_SEPARATOR_CHAR) {
               strcat(full_dest_path, FILE_SEPARATOR_STRING);
           }
           strcat(full_dest_path, rel_path);
@@ -88,18 +89,26 @@ int CopyFile(Statistic *statistic_ptr,
               target_stats = NULL;
           }
 
-          /* Create the directory structure on the filesystem */
-          /* We pass &dest_dir_entry to capture the in-memory node if available */
-          if (EnsureDirectoryExists(full_dest_path, target_tree, &created, &dest_dir_entry, dir_create_mode) == -1) {
-               return result;
+          /* Check if target is also an archive - skip FS creation if so */
+          if (target_stats && target_stats->login_mode == ARCHIVE_MODE) {
+              /* We handle recursive dir creation inside Archive Destination Handler */
+              strcpy(to_path, full_dest_path);
+              path_copy = FALSE; /* Handled manually */
+          } else {
+              /* Standard FS creation */
+              /* Create the directory structure on the filesystem */
+              /* We pass &dest_dir_entry to capture the in-memory node if available */
+              if (EnsureDirectoryExists(full_dest_path, target_tree, &created, &dest_dir_entry, dir_create_mode) == -1) {
+                   return result;
+              }
+              if (created) refresh_dirwindow = TRUE;
+
+              /* Update to_path to point to the newly created directory */
+              strcpy(to_path, full_dest_path);
+
+              /* Disable standard path_copy logic since we handled it manually */
+              path_copy = FALSE;
           }
-          if (created) refresh_dirwindow = TRUE;
-
-          /* Update to_path to point to the newly created directory */
-          strcpy(to_path, full_dest_path);
-
-          /* Disable standard path_copy logic since we handled it manually */
-          path_copy = FALSE;
       } else {
           strcpy(to_path, to_dir_path);
           /* dest_dir_entry = NULL; removed to allow resolution */
@@ -159,10 +168,15 @@ int CopyFile(Statistic *statistic_ptr,
         target_stats = &target_vol->vol_stats;
     }
 
-    /* Use EnsureDirectoryExists instead of direct MakePath to prompt the user */
-    /* Pass NULL for created flag as we handle refresh_dirwindow later if dest_dir_entry is updated */
-    if (EnsureDirectoryExists(to_path, target_tree ? target_tree : statistic_ptr->tree, NULL, &dest_dir_entry, dir_create_mode) == -1) {
-         return result;
+    /* Skip EnsureDirectoryExists for Archive Targets */
+    if (target_stats && target_stats->login_mode == ARCHIVE_MODE) {
+        /* No-op here, structure created during add */
+    } else {
+        /* Use EnsureDirectoryExists instead of direct MakePath to prompt the user */
+        /* Pass NULL for created flag as we handle refresh_dirwindow later if dest_dir_entry is updated */
+        if (EnsureDirectoryExists(to_path, target_tree ? target_tree : statistic_ptr->tree, NULL, &dest_dir_entry, dir_create_mode) == -1) {
+             return result;
+        }
     }
   }
 
@@ -176,6 +190,52 @@ int CopyFile(Statistic *statistic_ptr,
        strcpy(to_path, abs_path);
   }
 
+  /* ARCHIVE DESTINATION HANDLER */
+#ifdef HAVE_LIBARCHIVE
+  if (target_stats && target_stats->login_mode == ARCHIVE_MODE) {
+      /* We are copying/adding a file INTO an archive */
+      char relative_path[PATH_LENGTH + 1];
+      char root_path[PATH_LENGTH + 1];
+
+      GetPath(target_stats->tree, root_path);
+
+      /* Build path relative to archive root */
+      if (strncmp(to_path, root_path, strlen(root_path)) == 0) {
+          char *ptr = to_path + strlen(root_path);
+          if (*ptr == FILE_SEPARATOR_CHAR) ptr++;
+          strcpy(relative_path, ptr);
+      } else {
+          /* Fallback */
+          strcpy(relative_path, to_path);
+      }
+
+      /* Ensure trailing slash is removed before appending file if present */
+      size_t rel_len = strlen(relative_path);
+      if (rel_len > 0 && relative_path[rel_len-1] == FILE_SEPARATOR_CHAR) {
+          relative_path[rel_len-1] = '\0';
+      }
+
+      /* If path_copy is active, we might need to create intermediate directories in the archive */
+      /* This is implicit in Archive_AddFile usually, but explicit entries help visibility */
+
+      if (relative_path[0] != '\0') {
+          strcat(relative_path, FILE_SEPARATOR_STRING);
+      }
+      strcat(relative_path, to_file);
+
+      if (Archive_AddFile(target_stats->login_path, from_path, relative_path, FALSE) == 0) {
+          /* Success */
+          /* Signal caller to refresh view as auto-refresh will pick it up */
+          /* We return 0 so user doesn't get error message */
+          RefreshTreeSafe(target_stats->tree);
+          return 0;
+      } else {
+          /* Failure */
+          return -1;
+      }
+  }
+#endif
+
   {
       BOOL created = FALSE;
       /*
@@ -183,6 +243,10 @@ int CopyFile(Statistic *statistic_ptr,
        * Use target_tree to find the node in the correct volume.
        * If target_tree is NULL (external path), dest_dir_entry will remain NULL (correct).
        */
+
+      /* Skip validation if destination is archive file (not directory) */
+      /* This is handled by target_stats check above for Archive Destination */
+
       if (EnsureDirectoryExists(to_path, target_tree, &created, &dest_dir_entry, dir_create_mode) == -1) {
           return result;
       }

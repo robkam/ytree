@@ -110,6 +110,11 @@ int ReadTreeFromArchive(DirEntry **dir_entry_ptr, const char *filename, Statisti
             clean_path = pathname;
         }
 
+        /* Strip leading separator if present to ensure internal path relative to root */
+        while (*clean_path == FILE_SEPARATOR_CHAR) {
+            clean_path++;
+        }
+
         /* Skip if the path is empty or just "." (root) */
         if (*clean_path == '\0' || (strcmp(clean_path, ".") == 0)) {
             continue;

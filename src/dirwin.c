@@ -1850,6 +1850,10 @@ int HandleDirWindow(DirEntry *start_dir_entry)
                  dir_entry = ActivePanel->vol->dir_entry_list[ActivePanel->disp_begin_pos + ActivePanel->cursor_pos].dir_entry;
              }
              HandleSwitchWindow(dir_entry, &need_dsp_help, &ch, ActivePanel);
+             /* Critical Safety: Check if volume changed after returning from File Window */
+             if (CurrentVolume != start_vol) return ESC;
+             /* Refresh local pointer */
+             dir_entry = ActivePanel->vol->dir_entry_list[ActivePanel->disp_begin_pos + ActivePanel->cursor_pos].dir_entry;
 		     break;
       case ACTION_CMD_X: if (mode != DISK_MODE && mode != USER_MODE) {
 		     } else {
@@ -1955,11 +1959,15 @@ int HandleDirWindow(DirEntry *start_dir_entry)
 
               int res = SelectLoadedVolume();
               if (res == 0) { /* If volume switch was successful */
-                  /* Update loop variables for new volume */
-                  s = &CurrentVolume->vol_stats;
+                  /* Explicitly sync ActivePanel state to CurrentVolume stats */
                   ActivePanel->vol = CurrentVolume;
                   ActivePanel->cursor_pos = CurrentVolume->vol_stats.cursor_pos;
                   ActivePanel->disp_begin_pos = CurrentVolume->vol_stats.disp_begin_pos;
+
+                  if (CurrentVolume != start_vol) return ESC; /* Abort to main loop to handle clean re-entry */
+
+                  /* Update loop variables for new volume */
+                  s = &CurrentVolume->vol_stats;
 
                   /* Safety check / Clamping */
                   if (ActivePanel->vol->total_dirs > 0) {
@@ -2008,10 +2016,14 @@ int HandleDirWindow(DirEntry *start_dir_entry)
 
               int res = CycleLoadedVolume(-1);
               if (res == 0) { /* If volume switch was successful */
-                  s = &CurrentVolume->vol_stats;
+                  /* Explicitly sync ActivePanel state to CurrentVolume stats */
                   ActivePanel->vol = CurrentVolume;
                   ActivePanel->cursor_pos = CurrentVolume->vol_stats.cursor_pos;
                   ActivePanel->disp_begin_pos = CurrentVolume->vol_stats.disp_begin_pos;
+
+                  if (CurrentVolume != start_vol) return ESC;
+
+                  s = &CurrentVolume->vol_stats;
 
                   /* Safety check / Clamping */
                   if (ActivePanel->vol->total_dirs > 0) {
@@ -2055,10 +2067,14 @@ int HandleDirWindow(DirEntry *start_dir_entry)
 
               int res = CycleLoadedVolume(1);
               if (res == 0) { /* If volume switch was successful */
-                  s = &CurrentVolume->vol_stats;
+                  /* Explicitly sync ActivePanel state to CurrentVolume stats */
                   ActivePanel->vol = CurrentVolume;
                   ActivePanel->cursor_pos = CurrentVolume->vol_stats.cursor_pos;
                   ActivePanel->disp_begin_pos = CurrentVolume->vol_stats.disp_begin_pos;
+
+                  if (CurrentVolume != start_vol) return ESC;
+
+                  s = &CurrentVolume->vol_stats;
 
                   if (ActivePanel->vol->total_dirs > 0) {
                       if (ActivePanel->disp_begin_pos + ActivePanel->cursor_pos >= ActivePanel->vol->total_dirs) {
@@ -2122,8 +2138,15 @@ int HandleDirWindow(DirEntry *start_dir_entry)
 
               /* Check return value. Only update state if login succeeded (0). */
               if (ret == 0) {
-                  s = &CurrentVolume->vol_stats; /* Update stats pointer for new volume */
+                  /* Explicitly sync ActivePanel state to CurrentVolume stats */
                   ActivePanel->vol = CurrentVolume;
+                  ActivePanel->cursor_pos = CurrentVolume->vol_stats.cursor_pos;
+                  ActivePanel->disp_begin_pos = CurrentVolume->vol_stats.disp_begin_pos;
+
+                  /* Safety Check: If volume was changed, return to main loop to handle new context */
+                  if (CurrentVolume != start_vol) return ESC;
+
+                  s = &CurrentVolume->vol_stats; /* Update stats pointer for new volume */
 
                   /* Safety check / Clamping */
                   if (ActivePanel->vol->total_dirs > 0) {
