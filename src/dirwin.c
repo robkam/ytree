@@ -1959,15 +1959,13 @@ int HandleDirWindow(DirEntry *start_dir_entry)
 
               int res = SelectLoadedVolume();
               if (res == 0) { /* If volume switch was successful */
-                  /* Explicitly sync ActivePanel state to CurrentVolume stats */
-                  ActivePanel->vol = CurrentVolume;
-                  ActivePanel->cursor_pos = CurrentVolume->vol_stats.cursor_pos;
-                  ActivePanel->disp_begin_pos = CurrentVolume->vol_stats.disp_begin_pos;
-
                   if (CurrentVolume != start_vol) return ESC; /* Abort to main loop to handle clean re-entry */
 
                   /* Update loop variables for new volume */
                   s = &CurrentVolume->vol_stats;
+                  ActivePanel->vol = CurrentVolume;
+                  ActivePanel->cursor_pos = CurrentVolume->vol_stats.cursor_pos;
+                  ActivePanel->disp_begin_pos = CurrentVolume->vol_stats.disp_begin_pos;
 
                   /* Safety check / Clamping */
                   if (ActivePanel->vol->total_dirs > 0) {
@@ -2016,14 +2014,12 @@ int HandleDirWindow(DirEntry *start_dir_entry)
 
               int res = CycleLoadedVolume(-1);
               if (res == 0) { /* If volume switch was successful */
-                  /* Explicitly sync ActivePanel state to CurrentVolume stats */
-                  ActivePanel->vol = CurrentVolume;
-                  ActivePanel->cursor_pos = CurrentVolume->vol_stats.cursor_pos;
-                  ActivePanel->disp_begin_pos = CurrentVolume->vol_stats.disp_begin_pos;
-
                   if (CurrentVolume != start_vol) return ESC;
 
                   s = &CurrentVolume->vol_stats;
+                  ActivePanel->vol = CurrentVolume;
+                  ActivePanel->cursor_pos = CurrentVolume->vol_stats.cursor_pos;
+                  ActivePanel->disp_begin_pos = CurrentVolume->vol_stats.disp_begin_pos;
 
                   /* Safety check / Clamping */
                   if (ActivePanel->vol->total_dirs > 0) {
@@ -2067,14 +2063,12 @@ int HandleDirWindow(DirEntry *start_dir_entry)
 
               int res = CycleLoadedVolume(1);
               if (res == 0) { /* If volume switch was successful */
-                  /* Explicitly sync ActivePanel state to CurrentVolume stats */
-                  ActivePanel->vol = CurrentVolume;
-                  ActivePanel->cursor_pos = CurrentVolume->vol_stats.cursor_pos;
-                  ActivePanel->disp_begin_pos = CurrentVolume->vol_stats.disp_begin_pos;
-
                   if (CurrentVolume != start_vol) return ESC;
 
                   s = &CurrentVolume->vol_stats;
+                  ActivePanel->vol = CurrentVolume;
+                  ActivePanel->cursor_pos = CurrentVolume->vol_stats.cursor_pos;
+                  ActivePanel->disp_begin_pos = CurrentVolume->vol_stats.disp_begin_pos;
 
                   if (ActivePanel->vol->total_dirs > 0) {
                       if (ActivePanel->disp_begin_pos + ActivePanel->cursor_pos >= ActivePanel->vol->total_dirs) {
@@ -2138,15 +2132,11 @@ int HandleDirWindow(DirEntry *start_dir_entry)
 
               /* Check return value. Only update state if login succeeded (0). */
               if (ret == 0) {
-                  /* Explicitly sync ActivePanel state to CurrentVolume stats */
-                  ActivePanel->vol = CurrentVolume;
-                  ActivePanel->cursor_pos = CurrentVolume->vol_stats.cursor_pos;
-                  ActivePanel->disp_begin_pos = CurrentVolume->vol_stats.disp_begin_pos;
-
                   /* Safety Check: If volume was changed, return to main loop to handle new context */
                   if (CurrentVolume != start_vol) return ESC;
 
                   s = &CurrentVolume->vol_stats; /* Update stats pointer for new volume */
+                  ActivePanel->vol = CurrentVolume;
 
                   /* Safety check / Clamping */
                   if (ActivePanel->vol->total_dirs > 0) {

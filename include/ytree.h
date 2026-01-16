@@ -882,6 +882,7 @@ extern void MinimizeArchiveTree(DirEntry **tree_ptr, Statistic *s);
 extern int Archive_Rewrite(char *archive_path, RewriteCallback cb, void *user_data);
 extern int Archive_DeleteEntry(char *archive_path, char *file_path);
 extern int Archive_AddFile(char *archive_path, char *src_path, char *dest_name, BOOL is_dir);
+extern int Archive_RenameEntry(char *archive_path, char *old_path, char *new_name);
 #endif
 
 /* readarchive.c */
