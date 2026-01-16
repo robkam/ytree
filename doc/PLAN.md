@@ -630,11 +630,14 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 *   **Context Files:** `include/config.h`
 *   - [ ] **Status:** Not Started.
 
-### **Step 4.31: Implement "Tags-Only" View Mode**
-*   **Goal:** Implement a toggle (`*` or `8`) to display only the tagged files in the current File Window.
-*   **Rationale:** A core ZTreeWin feature that allows users to verify, refine, and operate on a specific subset of files without the visual clutter of non-tagged files.
-*   **Files to Modify:** `src/filewin.c`
-*   **Context Files:** `src/dirwin.c`
+### **Step 4.31: Implement View Tagged Files (`^V`)**
+*   **Goal:** Allow sequential viewing of all tagged files.
+*   **Features:**
+    *   Iterate through tagged list.
+    *   Internal Viewer integration: Add commands to jump to Next (`n`/`Space`) / Previous (`p`) tagged file directly from the viewer.
+    *   Untag (`u`): Allow untagging the current file while viewing.
+    *   Search integration: If `^S` was used, highlight the search term in the viewer.
+*   **Files:** `src/view.c`, `src/filewin.c`, `src/input.c`.
 *   - [ ] **Status:** Not Started.
 
 ### **Step 4.32: Archive Write Support (Atomic Breakdown)**
@@ -663,6 +666,11 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 #### **Step 4.32.5: Implement Archive Execution & Search (`^S`/`X`)**
 *   **Description:** Implement `Execute` and `Grep` for archives by extracting files to a temporary directory (`/tmp/ytree_...`), running the command, and cleaning up. Unlike rewrite operations, this is a read-only extraction task.
 *   **Files to Modify:** `src/execute.c`, `src/filewin.c`
+*   - [ ] **Status:** Not Started.
+
+#### **Step 4.32.6: Implement View Tagged (`^V`)**
+*   **Description:** Implement sequential viewing of tagged files. If a search filter is active (`^S` or Filter), pass the search term to the viewer (pager) to highlight matches. Support navigation (`Space`/`n` for next file) within the viewer context or via a wrapper loop.
+*   **Files to Modify:** `src/view.c`, `src/filewin.c`, `include/ytree.h`.
 *   - [ ] **Status:** Not Started.
 
 ### **Step 4.33: Nested Archive Traversal**
@@ -760,6 +768,13 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 *   **Files to Modify:** `src/filewin.c`, `src/display.c`
 *   **Context Files:** `include/ytree.h`
 *   - [x] **Status:** Completed.
+
+### **Step 4.45: Implement "Tags-Only" View Mode**
+*   **Goal:** Implement a toggle (`*` or `8`) to display only the tagged files in the current File Window.
+*   **Rationale:** A core ZTreeWin feature that allows users to verify, refine, and operate on a specific subset of files without the visual clutter of non-tagged files.
+*   **Files to Modify:** `src/filewin.c`
+*   **Context Files:** `src/dirwin.c`
+*   - [ ] **Status:** Not Started.
 
 ---
 

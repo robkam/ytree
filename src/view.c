@@ -959,6 +959,7 @@ int InternalView(char *file_path)
 {
     int ch;
     BOOL QUIT=FALSE;
+    int result = VIEW_EXIT;
 
     hexoffset = (!strcmp(HEXEDITOFFSET, "HEX")) ? TRUE : FALSE;
 
@@ -997,7 +998,12 @@ int InternalView(char *file_path)
 
             case ESC:
             case 'q':
-            case 'Q': QUIT=TRUE;
+            case 'Q': QUIT=TRUE; result = VIEW_EXIT;
+                break;
+            case ' ':
+            case 'n': QUIT=TRUE; result = VIEW_NEXT;
+                break;
+            case 'p': QUIT=TRUE; result = VIEW_PREV;
                 break;
             case 'e':
             case 'E': Change2Edit(file_path);
@@ -1077,5 +1083,109 @@ int InternalView(char *file_path)
     close(fd);
     resize_request = resize_done;
     resize_done = FALSE;
+    return result;
+}
+
+/*
+ * ViewTaggedFiles
+ * View marked files sequentially.
+ */
+int ViewTaggedFiles(DirEntry *dir_entry, FileEntry *start_fe)
+{
+    FileEntry *fe = start_fe;
+    int res;
+    char path[PATH_LENGTH + 1];
+
+    if (!fe) return -1;
+
+    /* Loop indefinitely until explicit exit or end of list */
+    while (fe) {
+        if (fe->tagged && fe->matching) {
+            /* Get path based on mode */
+            if (mode == ARCHIVE_MODE) {
+                /* For archives, just pass name, ViewArchiveFile reconstructs extraction */
+                /* Actually ViewArchiveFile takes internal path */
+                /* For simplicity, we assume View handles path construction internally if needed */
+                /* But View() calls ViewArchiveFile(path). */
+                /* Let's pass the relative path inside archive? */
+                /* ViewArchiveFile expects internal path. */
+                /* GetFileNamePath returns full virtual path if in archive mode? No. */
+                /* Let's construct internal path properly. */
+                /* Wait, View() switches on mode. */
+                /* If ARCHIVE_MODE, View() calls ViewArchiveFile(path). */
+                /* In ViewFile, it checks access(). */
+                /* In ViewArchiveFile, it calls ExtractArchiveEntry. */
+                /* ExtractArchiveEntry expects internal path. */
+
+                /* So we need to build the internal path for View. */
+                /* CopyFile logic had to do this manually. */
+
+                /* But wait, in HandleFileWindow, ACTION_CMD_V uses GetRealFileNamePath. */
+                /* GetRealFileNamePath handles conversion? */
+                /* GetRealFileNamePath returns "archive.zip:/internal/path"? No. */
+
+                /* Let's reuse GetRealFileNamePath behavior if possible, or manual build. */
+                /* GetFileNamePath returns absolute path. */
+
+                /* For Archive Mode, we need relative path. */
+                /* Let's use the same logic as CopyFile source. */
+                char root_path[PATH_LENGTH+1];
+                char relative_path[PATH_LENGTH+1];
+                char full_internal_path[PATH_LENGTH+1];
+
+                GetPath(CurrentVolume->vol_stats.tree, root_path);
+                char dir_path[PATH_LENGTH+1];
+                GetPath(fe->dir_entry, dir_path);
+
+                if (strncmp(dir_path, root_path, strlen(root_path)) == 0) {
+                    char *ptr = dir_path + strlen(root_path);
+                    if (*ptr == FILE_SEPARATOR_CHAR) ptr++;
+                    strcpy(relative_path, ptr);
+                } else {
+                    strcpy(relative_path, dir_path);
+                }
+
+                strcpy(full_internal_path, relative_path);
+                if (full_internal_path[0] != '\0' && full_internal_path[strlen(full_internal_path)-1] != FILE_SEPARATOR_CHAR) {
+                    strcat(full_internal_path, FILE_SEPARATOR_STRING);
+                }
+                strcat(full_internal_path, fe->name);
+
+                res = View(dir_entry, full_internal_path);
+            } else {
+                /* Disk Mode */
+                GetFileNamePath(fe, path);
+                res = View(dir_entry, path);
+            }
+
+            if (res == VIEW_EXIT) break;
+            if (res == VIEW_NEXT) {
+                /* Find next tagged */
+                do {
+                    fe = fe->next;
+                } while (fe && (!fe->tagged || !fe->matching));
+
+                if (!fe) {
+                    /* Wrap around or stop? Stop at end. */
+                    break;
+                }
+            } else if (res == VIEW_PREV) {
+                /* Find prev tagged */
+                do {
+                    fe = fe->prev;
+                } while (fe && (!fe->tagged || !fe->matching));
+
+                if (!fe) {
+                    /* Stop at start */
+                    break;
+                }
+            } else {
+                /* Error or unknown, stop */
+                break;
+            }
+        } else {
+            fe = fe->next;
+        }
+    }
     return 0;
 }

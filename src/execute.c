@@ -11,6 +11,104 @@
 
 extern int chdir(const char *);
 
+#ifdef HAVE_LIBARCHIVE
+static int ExecuteArchiveFile(DirEntry *dir_entry, FileEntry *file_entry, char *cmd_template) {
+    char temp_path[PATH_LENGTH];
+    char command_line[COMMAND_LINE_LENGTH];
+    char quoted_temp[PATH_LENGTH * 2 + 1];
+    char internal_path[PATH_LENGTH];
+    char dir_path[PATH_LENGTH];
+    int fd_tmp;
+    int result = -1;
+    char *in_ptr, *out_ptr;
+
+    /* 1. Create Temporary File */
+    strcpy(temp_path, "/tmp/ytree_XXXXXX");
+    fd_tmp = mkstemp(temp_path);
+    if (fd_tmp == -1) {
+        ERROR_MSG("Could not create temporary file for execution");
+        return -1;
+    }
+
+    /* 2. Extract File Content */
+    if (file_entry) {
+        GetPath(file_entry->dir_entry, dir_path);
+
+        /* Rebuild the path relative to the archive root (login_path) */
+        char root_path[PATH_LENGTH+1];
+        char relative_path[PATH_LENGTH+1];
+
+        GetPath(CurrentVolume->vol_stats.tree, root_path);
+
+        if (strncmp(dir_path, root_path, strlen(root_path)) == 0) {
+            char *ptr = dir_path + strlen(root_path);
+            if (*ptr == FILE_SEPARATOR_CHAR) ptr++;
+            strcpy(relative_path, ptr);
+        } else {
+            strcpy(relative_path, dir_path);
+        }
+
+        if (relative_path[0] != '\0' && relative_path[strlen(relative_path)-1] != FILE_SEPARATOR_CHAR) {
+            strcat(relative_path, FILE_SEPARATOR_STRING);
+        }
+        strcat(relative_path, file_entry->name);
+
+        strcpy(internal_path, relative_path);
+
+        if (ExtractArchiveEntry(CurrentVolume->vol_stats.login_path, internal_path, fd_tmp) != 0) {
+            ERROR_MSG("Failed to extract file for execution");
+            close(fd_tmp);
+            unlink(temp_path);
+            return -1;
+        }
+    } else {
+        close(fd_tmp);
+        unlink(temp_path);
+        return -1;
+    }
+    close(fd_tmp);
+
+    /* 3. Substitute {} with temp path */
+    StrCp(quoted_temp, temp_path); /* Escape spaces */
+
+    in_ptr = cmd_template;
+    out_ptr = command_line;
+
+    while (*in_ptr) {
+        if (*in_ptr == '{' && *(in_ptr + 1) == '}') {
+            size_t len = strlen(quoted_temp);
+            if ((out_ptr - command_line) + len < COMMAND_LINE_LENGTH) {
+                strcpy(out_ptr, quoted_temp);
+                out_ptr += len;
+            }
+            in_ptr += 2;
+        } else {
+            *out_ptr++ = *in_ptr++;
+        }
+    }
+    *out_ptr = '\0';
+
+    /* 4. Execute */
+    /* Use SilentSystemCall to avoid per-file pause for Tagged operations (^S/^X) */
+    /* QuerySystemCall handles single-file execution pause if needed */
+    /* But for ExecuteArchiveFile, we are usually in a loop context if called from ExecuteCommand */
+    /* Wait, Execute (single file) also calls this. */
+
+    /* We can distinguish context: ExecuteCommand vs Execute */
+    /* But this helper is static. */
+    /* Actually, for ^S (Search), we WANT the return code (0 = match). */
+    /* SilentSystemCall returns the system() code. */
+
+    refresh();
+    result = SilentSystemCall(command_line, &CurrentVolume->vol_stats);
+
+    /* 5. Cleanup */
+    unlink(temp_path);
+
+    return result;
+}
+#endif
+
 
 int Execute(DirEntry *dir_entry, FileEntry *file_entry)
 {
@@ -32,6 +130,18 @@ int Execute(DirEntry *dir_entry, FileEntry *file_entry)
 
     MvAddStr(LINES - 2, 1, "COMMAND:");
     if (GetCommandLine(command_template) == 0) {
+        /* ARCHIVE MODE HANDLER */
+#ifdef HAVE_LIBARCHIVE
+        if (mode == ARCHIVE_MODE) {
+            result = ExecuteArchiveFile(dir_entry, file_entry, command_template);
+            /* Single file execute usually expects a pause to see output */
+            /* SilentSystemCall (used in ExecuteArchiveFile) doesn't pause. */
+            /* We should pause here manually if needed. */
+            HitReturnToContinue();
+            return result;
+        }
+#endif
+
         /* Check if placeholder expansion is needed */
         if (strstr(command_template, "{}") != NULL) {
             char *in_ptr = command_template;
@@ -177,6 +287,22 @@ int ExecuteCommand(FileEntry *fe_ptr, WalkingPackage *walking_package)
   size_t path_len;
 
   walking_package->new_fe_ptr = fe_ptr;
+
+#ifdef HAVE_LIBARCHIVE
+  /* Archive Mode Tagged Execution */
+  if (mode == ARCHIVE_MODE) {
+      /* Reconstruct the template to pass to single-file handler */
+      /* Since ExecuteArchiveFile handles expansion internally, we can pass the template directly? */
+      /* No, ExecuteArchiveFile expands {}. ExecuteCommand expands %s AND {}. */
+      /* We need to use ExecuteArchiveFile logic but adapted for this loop */
+
+      /* Simplified: Use ExecuteArchiveFile one by one. */
+      /* However, walking_package already has the command template. */
+      /* ExecuteArchiveFile expects template with {} */
+
+      return ExecuteArchiveFile(fe_ptr->dir_entry, fe_ptr, walking_package->function_data.execute.command);
+  }
+#endif
 
   /* 1. Get the raw filename/path */
   (void) GetFileNamePath( fe_ptr, raw_path );
