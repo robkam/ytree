@@ -2479,7 +2479,7 @@ int HandleFileWindow(DirEntry *dir_entry)
 		      }
 		      break;
 
-      case ACTION_CMD_R :      if( mode != DISK_MODE && mode != USER_MODE )
+      case ACTION_CMD_R :      if( mode != DISK_MODE && mode != USER_MODE && mode != ARCHIVE_MODE )
 		      {
 			break;
 		      }
@@ -2515,7 +2515,7 @@ int HandleFileWindow(DirEntry *dir_entry)
 		      break;
 
       case ACTION_CMD_TAGGED_R :
-		      if(( mode != DISK_MODE && mode != USER_MODE) || !IsMatchingTaggedFiles() )
+		      if(( mode != DISK_MODE && mode != USER_MODE && mode != ARCHIVE_MODE) || !IsMatchingTaggedFiles() )
 		      {
 		      }
 		      else

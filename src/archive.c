@@ -13,6 +13,12 @@
 
 #define COPY_BUF_SIZE 16384
 
+/* Struct for Rename Callback */
+typedef struct {
+    const char *old_path;
+    const char *new_name;
+} RenameContext;
+
 /*
  * Helper to normalize archive internal paths for consistent comparison.
  * It handles:
@@ -709,6 +715,126 @@ int Archive_AddFile(char *archive_path, char *src_path, char *dest_name, BOOL is
     return finalize_rewrite(archive_path, tmp_path, &st, success);
 }
 
+
+/* Callback for Renaming */
+static int cb_rename(struct archive *r, struct archive *w, struct archive_entry *entry, void *user_data) {
+    RenameContext *ctx = (RenameContext *)user_data;
+    const char *current = archive_entry_pathname(entry);
+    size_t old_len, curr_len;
+    (void)r; (void)w;
+
+    /* Normalize current path */
+    if (current[0] == '.' && current[1] == FILE_SEPARATOR_CHAR) current += 2;
+    while (*current == FILE_SEPARATOR_CHAR) current++;
+
+    old_len = strlen(ctx->old_path);
+    curr_len = strlen(current);
+
+    /* Check if current entry matches or is inside the directory being renamed */
+    if (strncmp(current, ctx->old_path, old_len) == 0) {
+        /* Exact match or subdirectory */
+        if (curr_len == old_len || current[old_len] == FILE_SEPARATOR_CHAR) {
+
+            struct archive_entry *cloned = clone_entry_for_write(entry);
+            char new_path[PATH_LENGTH];
+
+            /* Construct new path */
+            /* Parent Dir + New Name + Suffix */
+
+            /* Find parent directory of old_path */
+            char parent_dir[PATH_LENGTH];
+            const char *last_slash = strrchr(ctx->old_path, FILE_SEPARATOR_CHAR);
+            int parent_len = 0;
+
+            if (last_slash) {
+                parent_len = last_slash - ctx->old_path;
+                strncpy(parent_dir, ctx->old_path, parent_len);
+                parent_dir[parent_len] = '\0';
+            } else {
+                parent_dir[0] = '\0';
+            }
+
+            /* Suffix is the part of current path after old_path */
+            const char *suffix = current + old_len;
+
+            if (parent_len > 0) {
+                snprintf(new_path, sizeof(new_path), "%s%c%s%s", parent_dir, FILE_SEPARATOR_CHAR, ctx->new_name, suffix);
+            } else {
+                snprintf(new_path, sizeof(new_path), "%s%s", ctx->new_name, suffix);
+            }
+
+            archive_entry_set_pathname(cloned, new_path);
+
+            /* Write the modified entry */
+            if (archive_write_header(w, cloned) != ARCHIVE_OK) {
+                archive_entry_free(cloned);
+                return AR_ABORT;
+            }
+            archive_entry_free(cloned);
+
+            if (archive_entry_size(entry) > 0) {
+                 if (copy_data_stream(r, w) != ARCHIVE_OK) return AR_ABORT;
+            }
+
+            return AR_SKIP; /* Skip original entry since we wrote the modified one */
+        }
+    }
+    return AR_KEEP;
+}
+
+int Archive_RenameEntry(char *archive_path, char *old_path, char *new_name)
+{
+    char internal_old_path[PATH_LENGTH];
+    size_t arch_len = strlen(archive_path);
+    size_t old_len = strlen(old_path);
+    RenameContext ctx;
+
+    if (!archive_path || !old_path || !new_name) return -1;
+
+    /* Strip archive prefix to get internal path */
+    if (old_len > arch_len && strncmp(old_path, archive_path, arch_len) == 0) {
+        char *ptr = old_path + arch_len;
+        while (*ptr == FILE_SEPARATOR_CHAR) ptr++;
+        strncpy(internal_old_path, ptr, sizeof(internal_old_path));
+        internal_old_path[sizeof(internal_old_path)-1] = '\0';
+    } else {
+        /* Fallback */
+        strncpy(internal_old_path, old_path, sizeof(internal_old_path));
+        internal_old_path[sizeof(internal_old_path)-1] = '\0';
+    }
+
+    ctx.old_path = internal_old_path;
+    ctx.new_name = new_name;
+
+    return Archive_Rewrite(archive_path, cb_rename, &ctx);
+}
+
+#else
+/* Dummy implementations if libarchive is not available */
+int ExtractArchiveEntry(const char *archive_path, const char *entry_path, int out_fd)
+{
+    return -1;
+}
+int ExtractArchiveNode(const char *archive_path, const char *entry_path, const char *dest_path)
+{
+    return -1;
+}
+int Archive_Rewrite(char *archive_path, void *cb, void *user_data)
+{
+    return -1;
+}
+int Archive_DeleteFile(char *archive_path, char *file_path)
+{
+    return -1;
+}
+int Archive_AddFile(char *archive_path, char *src_path, char *dest_name, BOOL is_dir)
+{
+    return -1;
+}
+int Archive_RenameEntry(char *archive_path, char *old_path, char *new_name)
+{
+    return -1;
+}
 #endif /* HAVE_LIBARCHIVE */
 
 
@@ -725,31 +851,63 @@ static int InsertArchiveDirEntry(DirEntry *tree, char *path, struct stat *stat, 
       ERROR_MSG("Archive path too long*skipping directory insert");
       return -1;
   }
-  Fnsplit(path, father_path, name);
-  if( GetArchiveDirEntry( tree, father_path, &df_ptr ) ) return( -1 );
 
-  if( ( de_ptr = (DirEntry *) calloc( 1, sizeof( DirEntry ) + strlen(name) + 1 ) ) == NULL ) {
+  /* Split path into directory and filename */
+  Fnsplit(path, father_path, name);
+
+  /* Find father directory */
+  /* If father_path is empty (root), GetArchiveDirEntry returns tree */
+  if( GetArchiveDirEntry( tree, father_path, &df_ptr ) )
+  {
+    (void) snprintf( message, MESSAGE_LENGTH, "can't find subdir*%s", father_path );
+    ERROR_MSG( message );
+    return( -1 );
+  }
+
+  /*
+   * FIX: Allocate exact size for name + null terminator.
+   */
+  if( ( de_ptr = (DirEntry *) calloc( 1, sizeof( DirEntry ) + strlen(name) + 1 ) ) == NULL )
+  {
     ERROR_MSG( "Malloc failed*ABORT" );
     exit( 1 );
   }
-  strcpy( de_ptr->name, name );
-  memcpy( (char *) &de_ptr->stat_struct, (char *) stat, sizeof( struct stat ) );
 
-  if( df_ptr->sub_tree == NULL ) {
+  (void) strcpy( de_ptr->name, name );
+  (void) memcpy( (char *) &de_ptr->stat_struct, (char *) stat, sizeof( struct stat ) );
+
+  /* Directory einklinken (Link Directory into Tree) */
+  /*-------------------------------------------------*/
+
+  if( df_ptr->sub_tree == NULL )
+  {
     de_ptr->up_tree = df_ptr;
     df_ptr->sub_tree = de_ptr;
-  } else {
+  }
+  else
+  {
     de_ptr->up_tree = df_ptr;
-    for( ds_ptr = df_ptr->sub_tree; ds_ptr; ds_ptr = ds_ptr->next ) {
-      if( strcmp( ds_ptr->name, de_ptr->name ) > 0 ) {
+
+    for( ds_ptr = df_ptr->sub_tree; ds_ptr; ds_ptr = ds_ptr->next )
+    {
+      if( strcmp( ds_ptr->name, de_ptr->name ) > 0 )
+      {
+        /* ds-Element ist groesser */
+        /*-------------------------*/
+
         de_ptr->next = ds_ptr;
         de_ptr->prev = ds_ptr->prev;
         if( ds_ptr->prev ) ds_ptr->prev->next = de_ptr;
-        else de_ptr->up_tree->sub_tree = de_ptr;
+        else de_ptr->up_tree->sub_tree = de_ptr; /* Fix head pointer if inserting at start */
         ds_ptr->prev = de_ptr;
         break;
       }
-      if( ds_ptr->next == NULL ) {
+
+      if( ds_ptr->next == NULL )
+      {
+        /* Ende der Liste erreicht; ==> einfuegen */
+        /*----------------------------------------*/
+
         de_ptr->prev = ds_ptr;
         de_ptr->next = ds_ptr->next;
         ds_ptr->next = de_ptr;
@@ -761,6 +919,7 @@ static int InsertArchiveDirEntry(DirEntry *tree, char *path, struct stat *stat, 
   return( 0 );
 }
 
+
 int InsertArchiveFileEntry(DirEntry *tree, char *path, struct stat *stat, Statistic *s)
 {
   char dir[PATH_LENGTH + 1];
@@ -770,30 +929,57 @@ int InsertArchiveFileEntry(DirEntry *tree, char *path, struct stat *stat, Statis
   struct stat stat_struct;
   int  n;
 
-  if( KeyPressed() ) Quit();
 
-  Fnsplit( path, dir, file );
-
-  if( GetArchiveDirEntry( tree, dir, &de_ptr ) ) {
-    memset( (char *) &stat_struct, 0, sizeof( struct stat ) );
-    stat_struct.st_mode = S_IFDIR;
-    if( TryInsertArchiveDirEntry( tree, dir, &stat_struct, s ) ) return( -1 );
-    if( GetArchiveDirEntry( tree, dir, &de_ptr ) ) return( -1 );
+  if( KeyPressed() )
+  {
+    Quit();  /* Abfrage, ob ytree verlassen werden soll */
   }
 
-  if( S_ISLNK( stat->st_mode ) ) n = strlen( &path[ strlen( path ) + 1 ] ) + 1;
-  else n = 0;
+  /* Fnsplit handles path length checks internally now */
+  Fnsplit( path, dir, file );
 
-  if( ( fe_ptr = (FileEntry *) calloc( 1, sizeof( FileEntry ) + strlen(file) + 1 + n + 1 ) ) == NULL ) {
+  if( GetArchiveDirEntry( tree, dir, &de_ptr ) )
+  {
+#ifdef DEBUG
+    fprintf( stderr, "can't get directory for file*%s*trying recover\n", path );
+#endif
+
+    (void) memset( (char *) &stat_struct, 0, sizeof( struct stat ) );
+    stat_struct.st_mode = S_IFDIR;
+
+    if( TryInsertArchiveDirEntry( tree, dir, &stat_struct, s ) )
+    {
+      ERROR_MSG( "inserting directory failed" );
+      return( -1 );
+    }
+    if( GetArchiveDirEntry( tree, dir, &de_ptr ) )
+    {
+      (void) snprintf( message, MESSAGE_LENGTH, "again: can't get directory for file*%s*giving up", path );
+      ERROR_MSG( message );
+      return( -1 );
+    }
+  }
+
+  if( S_ISLNK( stat->st_mode ) )
+    n = strlen( &path[ strlen( path ) + 1 ] ) + 1;
+  else
+    n = 0;
+
+  /* FIX: Allocate exact size for name + null + link data */
+  if( ( fe_ptr = (FileEntry *) calloc( 1, sizeof( FileEntry ) + strlen(file) + 1 + n + 1 ) ) == NULL )
+  {
     ERROR_MSG( "Malloc failed" );
     return -1;
   }
 
-  memcpy( (char *) &fe_ptr->stat_struct, (char *) stat, sizeof( struct stat ) );
-  strcpy( fe_ptr->name, file );
+  (void) memcpy( (char *) &fe_ptr->stat_struct, (char *) stat, sizeof( struct stat ) );
+  (void) strcpy( fe_ptr->name, file );
 
-  if( S_ISLNK( stat->st_mode ) ) {
-    strcpy( &fe_ptr->name[ strlen( fe_ptr->name ) + 1 ], &path[ strlen( path ) + 1 ] );
+  if( S_ISLNK( stat->st_mode ) )
+  {
+    (void) strcpy( &fe_ptr->name[ strlen( fe_ptr->name ) + 1 ],
+		   &path[ strlen( path ) + 1 ]
+		 );
   }
 
   fe_ptr->dir_entry = de_ptr;
@@ -802,19 +988,36 @@ int InsertArchiveFileEntry(DirEntry *tree, char *path, struct stat *stat, Statis
   s->disk_total_files++;
   s->disk_total_bytes += stat->st_size;
 
-  if( de_ptr->file == NULL ) {
+  /* Einklinken */
+  /*------------*/
+
+  if( de_ptr->file == NULL )
+  {
     de_ptr->file = fe_ptr;
-  } else {
-    for( fs_ptr = de_ptr->file; fs_ptr->next; fs_ptr = fs_ptr->next );
+  }
+  else
+  {
+    for( fs_ptr = de_ptr->file; fs_ptr->next; fs_ptr = fs_ptr->next )
+      ;
+
     fe_ptr->prev = fs_ptr;
     fs_ptr->next = fe_ptr;
   }
   return( 0 );
 }
 
+
+/*
+ * GetArchiveDirEntry
+ * Robustly searching for a path within the tree.
+ * tree: The Root directory entry.
+ * path: The path to find (e.g., "A/B" or "A").
+ * dir_entry: Output pointer.
+ */
 static int GetArchiveDirEntry(DirEntry *tree, char *path, DirEntry **dir_entry)
 {
-    char *path_copy, *token, *saveptr;
+    char *path_copy;
+    char *token, *saveptr;
     DirEntry *current = tree;
     DirEntry *child;
     int found;
@@ -823,12 +1026,14 @@ static int GetArchiveDirEntry(DirEntry *tree, char *path, DirEntry **dir_entry)
         *dir_entry = tree;
         return 0;
     }
+
     path_copy = strdup(path);
     if (!path_copy) return -1;
 
     token = strtok_r(path_copy, FILE_SEPARATOR_STRING, &saveptr);
     while (token) {
         found = 0;
+        /* Search children of 'current' */
         for (child = current->sub_tree; child; child = child->next) {
             if (strcmp(child->name, token) == 0) {
                 current = child;
@@ -836,90 +1041,180 @@ static int GetArchiveDirEntry(DirEntry *tree, char *path, DirEntry **dir_entry)
                 break;
             }
         }
+
         if (!found) {
             free(path_copy);
             return -1;
         }
+
         token = strtok_r(NULL, FILE_SEPARATOR_STRING, &saveptr);
     }
+
     free(path_copy);
     *dir_entry = current;
     return 0;
 }
 
+
+/*
+ * TryInsertArchiveDirEntry
+ * Iteratively ensures every component of the path exists in the tree.
+ */
 int TryInsertArchiveDirEntry(DirEntry *tree, char *dir, struct stat *stat, Statistic *s)
 {
-    char *path_copy, *token, *saveptr;
+    char *path_copy;
+    char *token, *saveptr;
     char current_path[PATH_LENGTH + 1];
     DirEntry *dummy;
 
     if (!dir || *dir == '\0') return 0;
+
     path_copy = strdup(dir);
     if (!path_copy) return -1;
+
     current_path[0] = '\0';
 
     token = strtok_r(path_copy, FILE_SEPARATOR_STRING, &saveptr);
     while (token) {
-        if (current_path[0] != '\0') strcat(current_path, FILE_SEPARATOR_STRING);
+        /* Append token to current_path */
+        if (current_path[0] != '\0') {
+            strcat(current_path, FILE_SEPARATOR_STRING);
+        }
         strcat(current_path, token);
+
+        /* Check if this partial path exists */
         if (GetArchiveDirEntry(tree, current_path, &dummy) != 0) {
+            /* Not found, insert it */
             if (InsertArchiveDirEntry(tree, current_path, stat, s) != 0) {
                 free(path_copy);
                 return -1;
             }
         }
+
         token = strtok_r(NULL, FILE_SEPARATOR_STRING, &saveptr);
     }
+
     free(path_copy);
     return 0;
 }
 
+
 void MinimizeArchiveTree(DirEntry **tree_ptr, Statistic *s)
 {
   DirEntry *tree = *tree_ptr;
-  DirEntry *de_ptr, *de1_ptr, *next_ptr;
+  DirEntry *de_ptr, *de1_ptr;
+  DirEntry *next_ptr;
   FileEntry *fe_ptr;
 
-  if( tree->prev == NULL && tree->next != NULL && tree->file == NULL && tree->sub_tree == NULL ) {
+  /* 1. Collapse Root if empty and has siblings */
+  /* If the root (tree) has no files, no subdirectories, but has a 'next' sibling,
+     it's an empty placeholder. We can discard it and promote the sibling to be root. */
+  if( tree->prev == NULL && tree->next != NULL && tree->file == NULL && tree->sub_tree == NULL )
+  {
     DirEntry *new_root = tree->next;
+
+    /* Update global pointer via the double pointer argument */
     *tree_ptr = new_root;
+
+    /* Fix up pointers for the new root */
     new_root->prev = NULL;
+    /* It's a root now, so no up_tree */
     new_root->up_tree = NULL;
+
+    /* Update children of the new root (if any) to point to it as up_tree?
+       Wait, they already point to it. 'up_tree' is parent.
+       The new root is just taking the place of the old root.
+       Existing children of 'new_root' point to 'new_root'. That's fine. */
+
     s->disk_total_directories--;
     free(tree);
-    tree = new_root;
+    tree = new_root; /* Update local variable for subsequent checks */
   }
 
-  for( de_ptr = tree->sub_tree; de_ptr; de_ptr = next_ptr ) {
-    next_ptr = de_ptr->next;
-    if( de_ptr->prev == NULL && de_ptr->next == NULL && de_ptr->file == NULL ) {
+
+  /* 2. Collapse empty leaf directories in sub-trees */
+  /* Iterate through children of the current root */
+  for( de_ptr = tree->sub_tree; de_ptr; de_ptr = next_ptr )
+  {
+    next_ptr = de_ptr->next; /* Save next because de_ptr might be freed */
+
+    if( de_ptr->prev == NULL && de_ptr->next == NULL && de_ptr->file == NULL )
+    {
+      /* de_ptr is a single child (no siblings) and has no files.
+         We can merge it into the parent (tree).
+         Example: /usr/ -> /usr/bin/  becomes /usr/bin/
+      */
+
+      /* Concatenate names: parent/child */
+      /* The DirEntry->name buffer is now allocated with PATH_LENGTH + 1,
+       * providing sufficient space for these strcat operations. */
       if( strcmp( tree->name, FILE_SEPARATOR_STRING ) )
-	    strcat( tree->name, FILE_SEPARATOR_STRING );
-      strcat( tree->name, de_ptr->name );
+	    (void) strcat( tree->name, FILE_SEPARATOR_STRING );
+      (void) strcat( tree->name, de_ptr->name );
+
       s->disk_total_directories--;
+
+      /* Move de_ptr's children to be tree's children */
       tree->sub_tree = de_ptr->sub_tree;
+
+      /* Update up_tree pointers for all moved children */
       for( de1_ptr = de_ptr->sub_tree; de1_ptr; de1_ptr = de1_ptr->next )
 	    de1_ptr->up_tree = tree;
+
+      /* Update stats */
+      /* (tree stats should already encompass de_ptr stats if any, but here de_ptr has no files) */
+
       free( de_ptr );
+      /* Continue loop with the *new* first child (which was de_ptr->sub_tree)
+         Wait, the loop variable was de_ptr. We effectively replaced de_ptr with its children.
+         But the loop iterates over siblings of de_ptr. de_ptr had no siblings (check above).
+         So next_ptr is NULL. Loop terminates. Correct. */
+
+      /* Since we modified the structure, we should restart the scan or check the new children?
+         The original code only checked the immediate level. We keep it simple. */
       continue;
     }
-    break;
+    break; /* If we hit a non-collapsible entry, stop attempting to collapse this path */
   }
 
-  if( tree->prev == NULL && tree->next == NULL && tree->file == NULL &&
-      tree->sub_tree && tree->sub_tree->prev == NULL && tree->sub_tree->next == NULL ) {
+  /* 3. Collapse root into its single child if applicable */
+  /* If tree has no files, no siblings, and exactly one child (sub_tree) which has no siblings */
+  if( tree->prev == NULL &&
+      tree->next == NULL &&
+      tree->file == NULL &&
+      tree->sub_tree     &&
+      tree->sub_tree->prev == NULL &&
+      tree->sub_tree->next == NULL
+    )
+  {
     de_ptr = tree->sub_tree;
+
+    /* Merge names */
+    /* The DirEntry->name buffer is now allocated with PATH_LENGTH + 1,
+     * providing sufficient space for these strcat operations. */
     if( strcmp( tree->name, FILE_SEPARATOR_STRING ) )
-        strcat( tree->name, FILE_SEPARATOR_STRING );
-    strcat( tree->name, de_ptr->name );
+        (void) strcat( tree->name, FILE_SEPARATOR_STRING );
+    (void) strcat( tree->name, de_ptr->name );
+
+    /* Move files up */
     tree->file = de_ptr->file;
     for( fe_ptr=tree->file; fe_ptr; fe_ptr=fe_ptr->next )
       fe_ptr->dir_entry = tree;
-    memcpy( (char *) &tree->stat_struct, (char *) &de_ptr->stat_struct, sizeof( struct stat ) );
+
+    /* Copy stats */
+    (void) memcpy( (char *) &tree->stat_struct,
+		   (char *) &de_ptr->stat_struct,
+		   sizeof( struct stat )
+		  );
+
     s->disk_total_directories--;
+
+    /* Move grandchildren up */
     tree->sub_tree = de_ptr->sub_tree;
     for( de1_ptr = de_ptr->sub_tree; de1_ptr; de1_ptr = de1_ptr->next )
       de1_ptr->up_tree = tree;
+
     free( de_ptr );
   }
+  return;
 }

@@ -33,6 +33,17 @@ int RenameDirectory(DirEntry *de_ptr, char *new_name)
   /* Get the full path of the directory to be renamed */
   (void) GetPath( de_ptr, from_path );
 
+  /* ARCHIVE MODE HANDLER */
+#ifdef HAVE_LIBARCHIVE
+  if (mode == ARCHIVE_MODE) {
+      if (Archive_RenameEntry(CurrentVolume->vol_stats.login_path, from_path, new_name) == 0) {
+           RefreshTreeSafe(CurrentVolume->vol_stats.tree);
+           return 0;
+      }
+      return -1;
+  }
+#endif
+
   /*
    * Safety Fix: Construct the new path using snprintf instead of modifying
    * the string in place with strcpy/strcat.
@@ -178,6 +189,17 @@ int RenameFile(FileEntry *fe_ptr, char *new_name, FileEntry **new_fe_ptr )
 
   (void) GetFileNamePath( fe_ptr, from_path );
 
+  /* ARCHIVE MODE HANDLER */
+#ifdef HAVE_LIBARCHIVE
+  if (mode == ARCHIVE_MODE) {
+      if (Archive_RenameEntry(CurrentVolume->vol_stats.login_path, from_path, new_name) == 0) {
+           RefreshTreeSafe(CurrentVolume->vol_stats.tree);
+           return 0;
+      }
+      return -1;
+  }
+#endif
+
   /* Safety Fix: Use snprintf to construct to_path */
   (void) GetPath( de_ptr, parent_path );
 
@@ -270,7 +292,8 @@ int GetRenameParameter(char *old_name, char *new_name)
 {
   int l;
 
-  if( mode != DISK_MODE && mode != USER_MODE )
+  /* MODIFIED: Also allow ARCHIVE_MODE */
+  if( mode != DISK_MODE && mode != USER_MODE && mode != ARCHIVE_MODE )
   {
     return( -1 );
   }
