@@ -646,46 +646,46 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 #### **Step 4.32.1: Implement Archive Rewrite Infrastructure**
 *   **Description:** Implement the core `Archive_Rewrite(char *archive_path, RewriteCallback cb, void *user_data)` function. This generic engine will handle the `Read Old -> Write New` loop, temporary file creation, atomicity, and error recovery.
 *   **Files to Modify:** `src/archive.c`, `include/ytree.h`
-*   - [ ] **Status:** Not Started.
+*   - [x] **Status:** Completed.
 
 #### **Step 4.32.2: Implement Archive Deletion**
 *   **Description:** Hook the `D` (Delete) command when in Archive Mode to use the Rewrite Engine. The callback will simply skip the entries marked for deletion during the copy stream.
 *   **Files to Modify:** `src/delete.c`, `src/archive.c`
-*   - [ ] **Status:** Not Started.
+*   - [x] **Status:** Completed.
 
 #### **Step 4.32.3: Implement Archive Addition (Copy-In) & Mkdir**
 *   **Description:** Hook `C` (Copy) and `M` (Makedir) to inject new headers and data blocks into the Rewrite stream.
 *   **Files to Modify:** `src/copy.c`, `src/mkdir.c`, `src/archive.c`
-*   - [ ] **Status:** Not Started.
+*   - [x] **Status:** Completed.
 
 #### **Step 4.32.4: Implement Archive Rename**
 *   **Description:** Hook `R` (Rename) to modify the `pathname` field of headers on the fly during the Rewrite stream.
 *   **Files to Modify:** `src/rename.c`, `src/archive.c`
-*   - [ ] **Status:** Not Started.
+*   - [x] **Status:** Completed.
 
 #### **Step 4.32.5: Implement Archive Execution & Search (`^S`/`X`)**
 *   **Description:** Implement `Execute` and `Grep` for archives by extracting files to a temporary directory (`/tmp/ytree_...`), running the command, and cleaning up. Unlike rewrite operations, this is a read-only extraction task.
 *   **Files to Modify:** `src/execute.c`, `src/filewin.c`
-*   - [ ] **Status:** Not Started.
+*   - [x] **Status:** Completed.
 
-#### **Step 4.32.6: Implement View Tagged (`^V`)**
-*   **Description:** Implement sequential viewing of tagged files. If a search filter is active (`^S` or Filter), pass the search term to the viewer (pager) to highlight matches. Support navigation (`Space`/`n` for next file) within the viewer context or via a wrapper loop.
+#### **Step 4.33: Implement View Tagged (`^V`)**
+*   **Description:** Implement sequential viewing of tagged files in **both physical filesystems and archives**. If a search filter is active (`^S` or Filter), pass the search term to the viewer (pager) to highlight matches. Support navigation (`Space`/`n` for next file) within the viewer context or via a wrapper loop.
 *   **Files to Modify:** `src/view.c`, `src/filewin.c`, `include/ytree.h`.
 *   - [ ] **Status:** Not Started.
 
-### **Step 4.33: Nested Archive Traversal**
+### **Step 4.34: Nested Archive Traversal**
 *   Allow transparently entering an archive that is itself inside another archive.
 *   **Files to Modify:** `src/readarchive.c`, `src/log.c`
 *   **Context Files:** `src/archive.c`
 *   - [ ] **Status:** Not Started.
 
-### **Step 4.34: Applications menu**
+### **Step 4.35: Applications menu**
 *   Implement a customizable Application Menu.
 *   **Files to Modify:** `src/usermode.c`, `src/profile.c`
 *   **Context Files:** None.
 *   - [ ] **Status:** Not Started.
 
-### **Step 4.35: Standardize Input Prompt Padding**
+### **Step 4.36: Standardize Input Prompt Padding**
 *   **Goal:** Standardize the visual spacing between input labels (e.g., "GROUP:", "OWNER:", "ATTRIBUTES:") and the cursor entry point across the application.
 *   **Rationale:** Currently, input fields rely on hardcoded starting columns (e.g., 12), resulting in inconsistent visual padding depending on the label length. Dynamic calculation based on label length ensures a polished, professional UI consistency.
 *   **Mechanism:**
@@ -695,7 +695,7 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 *   **Context Files:** `src/input.c`
 *   - [x] **Status:** Completed.
 
-### **Step 4.36: Standardize Incremental Search (List Jump)**
+### **Step 4.37: Standardize Incremental Search (List Jump)**
 *   **Goal:** Implement robust, non-recursive incremental search activated by the `/` key in both Directory and File windows.
 *   **Rationale:** Currently, search is bound to `F12` and uses a dangerous recursive implementation. Mapping it to `/` aligns `ytree` with standard Unix tools (vi, less) and allows users to navigate quickly without triggering command hotkeys (like 'd' for delete).
 *   **Mechanism:** Refactor `ListJump` to use an iterative loop. Bind `/` in `input.c`. Support backspace handling and "search-as-you-type" highlighting.
@@ -703,35 +703,35 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 *   **Context Files:** None.
 *   - [ ] **Status:** Not Started.
 
-### **Step 4.37: Implement Bottom F-Key Menu Bar**
+### **Step 4.38: Implement Bottom F-Key Menu Bar**
 *   **Goal:** Shift the existing two-line command footer up by one line and reserve the bottom-most row for a clickable, function-key reference bar (F1 Help, F3 Options, F5 Redraw, F7 View, F8 Split).
 *   **Rationale:** Aligns with the standard "Norton Commander" layout familiar to power users. It provides immediate visual cues for function keys, which are often less intuitive than mnemonic letter commands.
 *   **Files to Modify:** `src/display.c`
 *   **Context Files:** `include/ytree.h`
 *   - [ ] **Status:** Not Started.
 
-### **Step 4.38: Implement "Touch" (Make File) Command**
+### **Step 4.39: Implement "Touch" (Make File) Command**
 *   **Goal:** Add a command (e.g., `^M` or mapped to a specific key) to create a new, empty file in the current directory, similar to `M` (Make Directory).
 *   **Rationale:** Currently, creating a file requires shelling out (`X`) and typing `touch filename`. A native command streamlines the workflow for developers creating placeholders or config files.
 *   **Files to Modify:** `src/mkdir.c`, `src/input.c`
 *   **Context Files:** None.
 *   - [ ] **Status:** Not Started.
 
-### **Step 4.39: Enhance Archive Navigation (Tree Logic)**
+### **Step 4.40: Enhance Archive Navigation (Tree Logic)**
 *   **Goal:** Enable standard Tree Window navigation keys (specifically `Left Arrow` to collapse/parent and `Right Arrow` to expand) while browsing inside an archive.
 *   **Rationale:** Navigation inside archives currently feels "flat" or inconsistent compared to the physical filesystem. Unifying these behaviors reduces cognitive load.
 *   **Files to Modify:** `src/dirwin.c`
 *   **Context Files:** `src/archive.c`
 *   - [ ] **Status:** Not Started.
 
-### **Step 4.40: Implement Auto-Execute on Command Termination**
+### **Step 4.41: Implement Auto-Execute on Command Termination**
 *   **Goal:** Allow users to execute shell commands (`X` or `P`) immediately by ending the input string with a specific terminator (e.g., `\n` or `;`), without needing to press Enter explicitly.
 *   **Rationale:** Accelerates command entry for power users who want to "fire and forget" commands rapidly.
 *   **Files to Modify:** `src/input.c`
 *   **Context Files:** None.
 *   - [ ] **Status:** Not Started.
 
-### **Step 4.41: Implement Responsive Adaptive Footer**
+### **Step 4.42: Implement Responsive Adaptive Footer**
 *   **Goal:** Make the two-line command footer dynamic based on terminal width.
     *   **Compact (< 80 cols):** Show only critical navigation and file operation keys (Copy, Move, Delete, Quit).
     *   **Standard (80-120 cols):** Show the standard set (current behavior).
@@ -742,14 +742,14 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 *   **Context Files:** None.
 *   - [ ] **Status:** Not Started.
 
-### **Step 4.42: Make "Terminal Classic" the default UI Color and Classic ytree color scheme the example**
+### **Step 4.43: Make "Terminal Classic" the default UI Color and Classic ytree color scheme the example**
 *   **Goal:** Update the default color scheme to adhere to the standard "Terminal Classic" aesthetic (typically white/grey text on black background), while providing the traditional "Blue/Yellow" ytree scheme as an easily selectable example or option.
 *   **Rationale:** Modern terminal users expect applications to respect their terminal's color palette by default. The classic high-contrast blue scheme can be jarring.
 *   **Files to Modify:** `etc/ytree.conf`, `src/color.c`
 *   **Context Files:** None.
 *   - [ ] **Status:** Not Started.
 
-### **Step 4.43: Refactor Tab Completion for Command Arguments**
+### **Step 4.44: Refactor Tab Completion for Command Arguments**
 *   **Goal:** Update the tab completion logic in `src/tabcompl.c` to handle command-line arguments correctly and resolve ambiguous matches using Longest Common Prefix (LCP).
 *   **Rationale:** Currently, the completion engine treats the entire input line as a single path. This causes failures when trying to complete arguments for commands (e.g., `x ls /us<TAB>` fails because it looks for a file named "ls /us"). It also fails to partial-complete when multiple matches exist (e.g., `/s` matching both `/sys` and `/srv`).
 *   **Mechanism:**
@@ -761,7 +761,7 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 *   **Context Files:** None.
 *   - [ ] **Status:** Not Started.
 
-### **Step 4.44: Implement Fixed-Width Column Mode (Filename Truncation)**
+### **Step 4.45: Implement Fixed-Width Column Mode (Filename Truncation)**
 *   **Goal:** Modify the File Window logic to enforce a maximum column width (e.g., 32 characters) even if longer filenames exist. Filenames exceeding this width will be visually truncated (e.g., `00- Introductio~.pdf`) to ensure multiple columns are displayed.
 *   **Integration:** Add this as a new mode in the `^F` (File Mode) rotation, or add a configuration toggle (`COMPACT_COLUMNS=1`).
 *   **Rationale:** Currently, a single long filename forces the File Window into a inefficient single-column layout. This feature maximizes information density.
@@ -769,7 +769,7 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 *   **Context Files:** `include/ytree.h`
 *   - [x] **Status:** Completed.
 
-### **Step 4.45: Implement "Tags-Only" View Mode**
+### **Step 4.46: Implement "Tags-Only" View Mode**
 *   **Goal:** Implement a toggle (`*` or `8`) to display only the tagged files in the current File Window.
 *   **Rationale:** A core ZTreeWin feature that allows users to verify, refine, and operate on a specific subset of files without the visual clutter of non-tagged files.
 *   **Files to Modify:** `src/filewin.c`
