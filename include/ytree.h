@@ -379,6 +379,11 @@ enum UI_COLOR_PAIRS {
 #define REFRESH_ON_NAV   2
 #define REFRESH_ON_ENTER 4
 
+/* View Return Codes */
+#define VIEW_EXIT 0
+#define VIEW_NEXT 1
+#define VIEW_PREV 2
+
 /* Window Dimension Definitions */
 
 typedef struct {
@@ -1019,6 +1024,7 @@ extern int HandleFileWindow(DirEntry *dir_entry);
 extern void RotateFileMode(void);
 extern void SetFileMode(int new_file_mode);
 extern void DisplayFiles(DirEntry *de_ptr, int start_file_no, int hilight_no, int start_x, WINDOW *win); /* filewin.c */
+extern int ViewTaggedFiles(DirEntry *dir_entry, FileEntry *start_fe);
 
 /* freesp.c */
 extern int GetAvailBytes(LONGLONG *avail_bytes, Statistic *s);

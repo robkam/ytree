@@ -2650,7 +2650,7 @@ int HandleFileWindow(DirEntry *dir_entry)
 			if( GetPipeCommand( filepath ) )
                         {
 			  break;
-		        }
+			}
 
                         /* Exit ncurses mode */
                         endwin();
@@ -2715,7 +2715,7 @@ int HandleFileWindow(DirEntry *dir_entry)
                         /* If no tags, this command does nothing (or shows error) */
                         MESSAGE( "No tagged files" );
                       }
-		      else if( mode != DISK_MODE && mode != USER_MODE )
+		      else if( mode != DISK_MODE && mode != USER_MODE && mode != ARCHIVE_MODE )
 		      {
 			MESSAGE( "^S is not available in archive mode" );
 		      }
@@ -2729,24 +2729,28 @@ int HandleFileWindow(DirEntry *dir_entry)
 			  exit( 1 );
 			}
 
+            /* Allocate new buffer for silent command */
+            char *silent_cmd = (char *)malloc(COLS + 20);
+            if (!silent_cmd) {
+                ERROR_MSG( "Malloc failed*ABORT" );
+                exit( 1 );
+            }
+
 			need_dsp_help = TRUE;
 			*command_line = '\0';
 
             /* Filter Mode */
 		        if( !GetSearchCommandLine( command_line, "SEARCH TAGGED: " ) )
 			    {
-			      refresh();
-			      endwin();
-			      SuspendClock();
+                  /* Construct Silent Command */
+                  sprintf(silent_cmd, "%s > /dev/null 2>&1", command_line);
 
-			      walking_package.function_data.execute.command = command_line;
+			      walking_package.function_data.execute.command = silent_cmd;
                               /* Use modified SilentTagWalk (Untag on Fail) */
                               SilentTagWalkTaggedFiles( ExecuteCommand,
 					            &walking_package
 					          );
-			      RefreshWindow( file_window );
-			      HitReturnToContinue();
-			      InitClock();
+			      /* No HitReturnToContinue - purely silent */
 			    }
 
             /* Refresh Display */
@@ -2763,6 +2767,7 @@ int HandleFileWindow(DirEntry *dir_entry)
                 DisplayDirStatistic(dir_entry, NULL, s);
 
 			free( command_line );
+            free( silent_cmd );
 		      }
 		      break;
 
@@ -2770,7 +2775,7 @@ int HandleFileWindow(DirEntry *dir_entry)
 		      if( !IsMatchingTaggedFiles() )
 		      {
 		      }
-		      else if( mode != DISK_MODE && mode != USER_MODE )
+		      else if( mode != DISK_MODE && mode != USER_MODE && mode != ARCHIVE_MODE )
 		      {
 			MESSAGE( "^X is not available in archive mode" );
 		      }
