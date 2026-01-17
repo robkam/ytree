@@ -170,11 +170,13 @@ The user is a maintainer who describes issues in terms of **Behavior**. They are
 > **ANALYSIS:**
 > (Brief explanation of the logic required).
 >
-> **TASK.TXT CONTENT:**
+> **TASK [Number] - [Title]**
+> (Replace [Number] and [Title] with the specific Roadmap Step ID and Name, e.g., "TASK 4.33 - View Tagged").
 > *   **Goal:** (One clear sentence describing the work)
 > *   **Files to Modify:** (List specific files to read/write)
 > *   **Context Files:** (List files needed for headers/definitions)
 > *   **Instructions:** (High-level logic steps).
+
 ```
 
 ### Appendix B: The Architect/Builder Persona

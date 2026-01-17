@@ -776,6 +776,12 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 *   **Context Files:** `src/dirwin.c`
 *   - [ ] **Status:** Not Started.
 
+### **Step 4.47: Command Line File Filter (`-f`)**
+*   **Goal:** Allow users to specify an initial file filter (filespec) via command line argument, e.g., `ytree -f "*.c,*.h"`.
+*   **Rationale:** Improves startup efficiency for focused tasks and enables better shell aliases (e.g., `alias cview='ytree -f "*.c"'`).
+*   **Files to Modify:** `src/main.c`, `src/init.c`.
+*   - [x] **Status:** Completed.
+
 ---
 
 ## **Phase 5: Major Architectural Refactoring**

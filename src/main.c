@@ -27,6 +27,7 @@ int main(int argc, char **argv)
   int argi, i;
   char *hist;
   char *conf;
+  char *filter_arg = NULL; /* Added for -f option */
   int main_loop_exit_char;
   int *path_indexes;
   int path_count = 0;
@@ -42,7 +43,7 @@ int main(int argc, char **argv)
   conf = NULL;
 
   /* Pass 1: Pre-scan Loop - Parse Options (-p, -h) */
-  /* Note: -d is validated here to prevent usage error, but processed after Init */
+  /* Note: -d and -f are validated here to prevent usage error, but processed after Init */
   for (argi = 1; argi < argc; argi++)
   {
     if (argv[argi][0] == '-')
@@ -83,8 +84,19 @@ int main(int argc, char **argv)
              }
           }
           break;
+        case 'f':
+        case 'F':
+          /* Skip -f here, processed after Init */
+          if (argv[argi][2] <= ' ') {
+             if (argi + 1 < argc) argi++;
+             else {
+                 fprintf(stderr, "Option -f requires an argument\n");
+                 exit(1);
+             }
+          }
+          break;
         default:
-          fprintf(stderr, "Usage: %s [-p profile_file] [-h hist_file] [-d depth] [directory ...]\n", argv[0]);
+          fprintf(stderr, "Usage: %s [-p profile_file] [-h hist_file] [-d depth] [-f filter] [directory ...]\n", argv[0]);
           exit(1);
       }
     }
@@ -93,7 +105,7 @@ int main(int argc, char **argv)
   if (Init(conf, hist))
       exit(1);
 
-  /* Pass 1.5: Post-Init Option Parsing (-d) */
+  /* Pass 1.5: Post-Init Option Parsing (-d, -f) */
   /* Process overrides that must happen after Init */
   for (argi = 1; argi < argc; argi++)
   {
@@ -130,6 +142,18 @@ int main(int argc, char **argv)
              }
           }
           break;
+        case 'f':
+        case 'F':
+          {
+             if (argv[argi][2] <= ' ') {
+                 if (argi + 1 < argc) {
+                     filter_arg = argv[++argi];
+                 }
+             } else {
+                 filter_arg = argv[argi]+2;
+             }
+          }
+          break;
       }
     }
   }
@@ -149,7 +173,7 @@ int main(int argc, char **argv)
     {
        /* Skip flags and their values to ensure we only collect positional args */
        char c = argv[argi][1];
-       if ((c == 'p' || c == 'P' || c == 'h' || c == 'H' || c == 'd' || c == 'D') && argv[argi][2] <= ' ') {
+       if ((c == 'p' || c == 'P' || c == 'h' || c == 'H' || c == 'd' || c == 'D' || c == 'f' || c == 'F') && argv[argi][2] <= ' ') {
           argi++;
        }
        continue;
@@ -200,6 +224,16 @@ int main(int argc, char **argv)
       endwin();
       fprintf(stderr, "Error: No valid volumes could be loaded.\n");
       exit(1);
+  }
+
+  /* Apply command line filter if provided */
+  if (filter_arg) {
+      /* Safe copy with truncation */
+      strncpy(CurrentVolume->vol_stats.file_spec, filter_arg, FILE_SPEC_LENGTH);
+      CurrentVolume->vol_stats.file_spec[FILE_SPEC_LENGTH] = '\0';
+
+      SetFilter(CurrentVolume->vol_stats.file_spec, &CurrentVolume->vol_stats);
+      RecalculateSysStats(&CurrentVolume->vol_stats);
   }
 
   /* Main application loop */
