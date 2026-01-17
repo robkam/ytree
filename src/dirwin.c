@@ -1160,7 +1160,7 @@ DirEntry *RefreshTreeSafe(DirEntry *entry)
         entry->tagged_flag = saved_tagged_flag;
 
         /* 3. Restore State */
-        RestoreTreeState(s->tree, expanded, tagged, s);
+        RestoreTreeState(s->tree, &expanded, tagged, s);
         FreePathList(expanded);
         FreePathList(tagged);
 

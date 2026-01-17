@@ -295,7 +295,7 @@ static DirEntry *FindOrLoadDir(DirEntry *tree, const char *path, Statistic *s) {
     return current;
 }
 
-void RestoreTreeState(DirEntry *root, PathList *expanded, PathList *tagged, Statistic *s) {
+void RestoreTreeState(DirEntry *root, PathList **expanded, PathList *tagged, Statistic *s) {
     PathList *curr;
     DirEntry *de;
     FileEntry *fe;
@@ -305,9 +305,9 @@ void RestoreTreeState(DirEntry *root, PathList *expanded, PathList *tagged, Stat
     /* 1. Restore Expanded Directories */
     /* IMPORTANT: Process Top-Down to ensure parents are scanned before children. */
     /* Reverse the list (which was built Bottom-Up by recursion) */
-    ReversePathList(&expanded);
+    ReversePathList(expanded);
 
-    for (curr = expanded; curr; curr = curr->next) {
+    for (curr = *expanded; curr; curr = curr->next) {
         /*
          * Find the directory node using safe traversal.
          * If nodes are missing (because RescanDir wiped them), FindOrLoadDir will reload them.
