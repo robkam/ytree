@@ -1690,6 +1690,9 @@ int HandleDirWindow(DirEntry *start_dir_entry)
                   start_vol = CurrentVolume; /* Update loop safety variable */
                   ActivePanel->vol = CurrentVolume; /* Update Panel volume */
 
+                  /* Reset Search Term to prevent bleeding */
+                  GlobalSearchTerm[0] = '\0';
+
                   /* Attempt to highlight the archive file we just left */
                   if (CurrentVolume->total_dirs > 0) {
                        /* Usually root, or restored position */
@@ -1709,6 +1712,18 @@ int HandleDirWindow(DirEntry *start_dir_entry)
                   } else {
                        dir_entry = s->tree;
                   }
+
+                  /* Reset global view mode explicitly */
+                  GlobalView->view_mode = DISK_MODE;
+                  mode = DISK_MODE; /* Force legacy macro to update too */
+
+                  /* Force layout reset to small window split view */
+                  SwitchToSmallFileWindow();
+
+                  /* Force full screen clear to fix UI artifacts (separator line) */
+                  werase(file_window); /* Erase file window specifically */
+                  clearok(stdscr, TRUE);
+                  refresh();
 
                   /* Refresh Full UI */
                   DisplayMenu();

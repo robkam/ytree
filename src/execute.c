@@ -238,80 +238,28 @@ int GetCommandLine(char *command_line)
 
 
 
-int GetSearchCommandLine(char *command_line, const char *prompt)
+int GetSearchCommandLine(char *command_line, char *raw_pattern)
 {
   int  result;
-  char *cptr;
-  char *cmd_ptr;
   char input_buf[256];
-  char search_template[256];
 
   result = -1;
 
   ClearHelp();
 
-  /* Use the provided prompt string dynamically */
-  MvAddStr( LINES - 2, 1, (char *)prompt );
+  MvAddStr( LINES - 2, 1, "SEARCH TAGGED: " );
 
-  /* Copy template to local buffer */
-  strncpy(search_template, SEARCHCOMMAND, sizeof(search_template)-1);
-  search_template[sizeof(search_template)-1] = '\0';
-
-  /* Default input buffer to empty or previous search term if we wanted history here */
-  /* For now, start empty to let user type new pattern */
   input_buf[0] = '\0';
 
-  /* Calculate dynamic input start position based on prompt length */
-  int input_x = 1 + strlen(prompt);
-
-  if( InputString( input_buf, LINES - 2, input_x, 0, COLS - input_x - 1, "\r\033", HST_SEARCH ) == CR )
+  if( InputString( input_buf, LINES - 2, 16, 0, COLS - 17, "\r\033", HST_SEARCH ) == CR )
   {
-    /* Construct the full grep command: e.g. "grep -i 'pattern' {}" */
-    /* We need to insert input_buf into SEARCHCOMMAND at the position of {} ? */
-    /* Or does InputString edit the grep command directly? */
-    /* The original logic edited the command line directly. */
-    /* New Logic: user types "pattern". We construct "grep pattern {}". */
-
-    /* Find {} in template */
-    cptr = strstr( search_template, "{}" );
-    if (cptr) {
-        *cptr = '\0'; /* Terminate before {} */
-        /* Build: prefix + input + suffix */
-        /* But wait, SEARCHCOMMAND is usually just "grep -i {}" or similar */
-        /* Actually, simple concatenation might be safer if we assume {} is at end */
-        /* Let's be robust: */
-
-        snprintf(command_line, COMMAND_LINE_LENGTH, "%s%s%s", search_template, input_buf, cptr+2);
-
-        /* If the template was "grep {}", command_line is "grep pattern" (missing {})? */
-        /* If cptr points to {}, we replaced it. */
-        /* We need to KEEP the {} for ExecuteCommand to substitute the filename later! */
-        /* So we construct: "grep pattern {}" */
-
-        /* Wait, SEARCHCOMMAND from profile might be "grep -l" */
-        /* If it doesn't have {}, we append " {}" */
-
-        /* Let's assume standard behavior: */
-        /* User types pattern. We want `grep pattern file`. */
-        /* The command template needs to end up as `grep pattern {}` */
-
-        /* If SEARCHCOMMAND is "grep", we make "grep pattern {}" */
-        /* If SEARCHCOMMAND is "grep {}", we make "grep pattern {}" ?? No. */
-
-        /* Let's ignore SEARCHCOMMAND template for the *input* phase and just use "grep" base? */
-        /* The user prompt says "SEARCH TAGGED: ". */
-        /* Let's construct a standard grep command. */
-
-        snprintf(command_line, COMMAND_LINE_LENGTH, "grep -i \"%s\" {}", input_buf);
-
-        /* Save ONLY the pattern to GlobalSearchTerm for ViewTaggedFiles */
-        strncpy(GlobalSearchTerm, input_buf, sizeof(GlobalSearchTerm)-1);
-        GlobalSearchTerm[sizeof(GlobalSearchTerm)-1] = '\0';
-    } else {
-        /* Fallback if template is weird */
-        snprintf(command_line, COMMAND_LINE_LENGTH, "grep -i \"%s\" {}", input_buf);
-        strncpy(GlobalSearchTerm, input_buf, sizeof(GlobalSearchTerm)-1);
+    if( raw_pattern ) {
+        strncpy(raw_pattern, input_buf, 255);
+        raw_pattern[255] = '\0';
     }
+
+    /* Construct command line: grep -i "pattern" {} */
+    snprintf(command_line, COMMAND_LINE_LENGTH, "grep -i \"%s\" {}", input_buf);
 
     move( LINES - 2, 1 ); clrtoeol();
     result = 0;

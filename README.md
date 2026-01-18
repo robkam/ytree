@@ -62,10 +62,10 @@ If you find anything amiss, you can report it using [GitHub Issues](https://gith
 
 It will help us to address the issue if you include the following:
 *   **OS & Configuration:** (Distro, Terminal type, etc.)
-*   **Version:** (ytree version)
-*   **Steps to Reproduce:** (What I did)
-*   **Expected Behavior:** (What I expected)
-*   **Actual Behavior:** (What actually happened)
+*   **Ytree version:**
+*   **Steps to Reproduce:**
+*   **Expected Behavior:**
+*   **Actual Behavior:**
 
 ## License
 
