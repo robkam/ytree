@@ -19,6 +19,7 @@ WINDOW *time_window;
 
 struct Volume *CurrentVolume = NULL;
 struct Volume *VolumeList = NULL;
+char GlobalSearchTerm[256] = "";
 
 /* Split Screen Globals */
 YtreePanel *LeftPanel = NULL;

@@ -2087,6 +2087,17 @@ int HandleFileWindow(DirEntry *dir_entry)
 		      need_dsp_help = TRUE;
 		      break;
 
+      case ACTION_CMD_TAGGED_V:
+              if ((mode != DISK_MODE && mode != USER_MODE) || !IsMatchingTaggedFiles())
+              {
+              }
+              else
+              {
+                  ViewTaggedFiles(dir_entry);
+                  need_dsp_help = TRUE;
+              }
+              break;
+
       case ACTION_CMD_H :      fe_ptr = CurrentVolume->file_entry_list[dir_entry->start_file + dir_entry->cursor_pos].file;
 		      de_ptr = fe_ptr->dir_entry;
 		      (void) GetRealFileNamePath( fe_ptr, filepath );

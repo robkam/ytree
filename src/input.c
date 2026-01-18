@@ -542,6 +542,12 @@ int InputStringEx(char *s, int y, int x, int cursor_pos, int display_width, int 
   curs_set(0);
   print_time = TRUE;
   InsHistory( s, history_type );
+
+  if (history_type == HST_SEARCH) {
+     strncpy(GlobalSearchTerm, s, sizeof(GlobalSearchTerm) - 1);
+     GlobalSearchTerm[sizeof(GlobalSearchTerm) - 1] = '\0';
+  }
+
 #ifdef READLINE_SUPPORT
   pp = tilde_expand(s);
 #else
@@ -790,6 +796,7 @@ YtreeAction GetKeyAction(int ch)
         case 0x10:      return ACTION_CMD_TAGGED_P; /* Ctrl-P */
         case 0x12:      return ACTION_CMD_TAGGED_R; /* Ctrl-R */
         case 0x13:      return ACTION_CMD_TAGGED_S; /* Ctrl-S */
+        case 0x16:      return ACTION_CMD_TAGGED_V; /* Ctrl-V */
         case 0x18:      return ACTION_CMD_TAGGED_X; /* Ctrl-X */
         case 0x19:      return ACTION_CMD_TAGGED_Y; /* Ctrl-Y */
 
