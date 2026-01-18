@@ -256,4 +256,4 @@ Authors and contributors are listed in the [AUTHORS.md](https://github.com/robka
 
 # SEE ALSO
 
-**mc**(1), **glob**(7), **regex**(7), **grep**(1)
+**glob**(7), **grep**(1), **less**(1), **regex**(7), **vi**(1)

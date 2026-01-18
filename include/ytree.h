@@ -741,6 +741,7 @@ typedef enum {
     ACTION_CMD_TAGGED_P, /* ^P */
     ACTION_CMD_TAGGED_R, /* ^R */
     ACTION_CMD_TAGGED_S, /* ^S */
+    ACTION_CMD_TAGGED_V, /* ^V */
     ACTION_CMD_TAGGED_X, /* ^X */
     ACTION_CMD_TAGGED_Y, /* ^Y, ^K (Copy legacy?) -> Check mapping */
     /* Function Keys */
@@ -841,6 +842,7 @@ extern WINDOW *time_window;
 /* Global volume management */
 extern struct Volume *CurrentVolume;
 extern struct Volume *VolumeList;
+extern char GlobalSearchTerm[256];
 
 /* Compatibility layer for existing code using global 'statistic' and 'disk_statistic' */
 #define disk_statistic (CurrentVolume->vol_disk_stats)
@@ -1024,7 +1026,7 @@ extern int HandleFileWindow(DirEntry *dir_entry);
 extern void RotateFileMode(void);
 extern void SetFileMode(int new_file_mode);
 extern void DisplayFiles(DirEntry *de_ptr, int start_file_no, int hilight_no, int start_x, WINDOW *win); /* filewin.c */
-extern int ViewTaggedFiles(DirEntry *dir_entry, FileEntry *start_fe);
+extern int ViewTaggedFiles(DirEntry *dir_entry);
 
 /* freesp.c */
 extern int GetAvailBytes(LONGLONG *avail_bytes, Statistic *s);

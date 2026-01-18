@@ -23,13 +23,17 @@ logged.
 
 # OPTIONS
 
-- **-p** *config_file*: Use *config_file* instead of the default
-  `~/.ytree`.
-- **-h** *history_file*: Use *history_file* instead of the default
-  `~/.ytree-hst`.
 - **-d** *depth*: Override the default scan depth (TREEDEPTH). Supports
   numeric values or keywords: **min**/**root** (0), **max**/**all**
   (100).
+- **-f** *filter*: Specify an initial file filter (filespec) on startup.
+  Supports patterns (e.g., `*.c`), exclusions (`-*.o`), and combinations
+  (e.g., `*.c,*.h`). Use quotes to prevent shell expansion (e.g.,
+  `ytree -f "*.c"`).
+- **-h** *history_file*: Use *history_file* instead of the default
+  `~/.ytree-hst`.
+- **-p** *config_file*: Use *config_file* instead of the default
+  `~/.ytree`.
 - *directory*\|*archive*: One or more directories or archive files to
   log on startup. If multiple paths are provided, they are all loaded as
   separate volumes. The first path specified becomes the active view.

@@ -72,6 +72,7 @@ static void change_char(int ch);
 static void move_right(WINDOW *win);
 static int GetFileMethod( char *filename );
 static void DoResize(char *file_path);
+static void shell_quote(char *dest, const char *src);
 
 
 int View(DirEntry * dir_entry, char *file_path)
@@ -1086,106 +1087,166 @@ int InternalView(char *file_path)
     return result;
 }
 
+
+/* Helper to quote paths for shell */
+static void shell_quote(char *dest, const char *src) {
+    *dest++ = '\'';
+    while (*src) {
+        if (*src == '\'') {
+            *dest++ = '\'';
+            *dest++ = '\\';
+            *dest++ = '\'';
+            *dest++ = '\'';
+        } else {
+            *dest++ = *src;
+        }
+        src++;
+    }
+    *dest++ = '\'';
+    *dest = '\0';
+}
+
 /*
  * ViewTaggedFiles
- * View marked files sequentially.
+ * View marked files using a batch command for external PAGER.
  */
-int ViewTaggedFiles(DirEntry *dir_entry, FileEntry *start_fe)
+int ViewTaggedFiles(DirEntry *dir_entry)
 {
-    FileEntry *fe = start_fe;
-    int res;
+    FileEntry *fe;
+    char *command_line;
     char path[PATH_LENGTH + 1];
+    char quoted_path[PATH_LENGTH * 2 + 1];
+    int start_dir_fd = -1;
+    char *temp_files[100]; /* Simple limit for now */
+    int temp_count = 0;
+    int i;
+    int max_cmd_len = COMMAND_LINE_LENGTH;
+    int current_len = 0;
 
-    if (!fe) return -1;
+    /* Use configured PAGER or default */
+    const char *viewer = PAGER;
+    if (!viewer || !*viewer) viewer = "less";
 
-    /* Loop indefinitely until explicit exit or end of list */
-    while (fe) {
+    if ((command_line = (char *)malloc(max_cmd_len + 1)) == NULL) {
+        ERROR_MSG("Malloc failed*ABORT");
+        return -1;
+    }
+
+    strcpy(command_line, viewer);
+
+    /* If search term is active, append it (assuming less syntax -p) */
+    if (GlobalSearchTerm[0] != '\0') {
+        char search_arg[300];
+        snprintf(search_arg, sizeof(search_arg), " -p '%s'", GlobalSearchTerm);
+        strcat(command_line, search_arg);
+    }
+
+    current_len = strlen(command_line);
+
+    for (i = 0; i < (int)CurrentVolume->file_count; i++) {
+        fe = CurrentVolume->file_entry_list[i].file;
+
         if (fe->tagged && fe->matching) {
-            /* Get path based on mode */
-            if (mode == ARCHIVE_MODE) {
-                /* For archives, just pass name, ViewArchiveFile reconstructs extraction */
-                /* Actually ViewArchiveFile takes internal path */
-                /* For simplicity, we assume View handles path construction internally if needed */
-                /* But View() calls ViewArchiveFile(path). */
-                /* Let's pass the relative path inside archive? */
-                /* ViewArchiveFile expects internal path. */
-                /* GetFileNamePath returns full virtual path if in archive mode? No. */
-                /* Let's construct internal path properly. */
-                /* Wait, View() switches on mode. */
-                /* If ARCHIVE_MODE, View() calls ViewArchiveFile(path). */
-                /* In ViewFile, it checks access(). */
-                /* In ViewArchiveFile, it calls ExtractArchiveEntry. */
-                /* ExtractArchiveEntry expects internal path. */
-
-                /* So we need to build the internal path for View. */
-                /* CopyFile logic had to do this manually. */
-
-                /* But wait, in HandleFileWindow, ACTION_CMD_V uses GetRealFileNamePath. */
-                /* GetRealFileNamePath handles conversion? */
-                /* GetRealFileNamePath returns "archive.zip:/internal/path"? No. */
-
-                /* Let's reuse GetRealFileNamePath behavior if possible, or manual build. */
-                /* GetFileNamePath returns absolute path. */
-
-                /* For Archive Mode, we need relative path. */
-                /* Let's use the same logic as CopyFile source. */
-                char root_path[PATH_LENGTH+1];
-                char relative_path[PATH_LENGTH+1];
-                char full_internal_path[PATH_LENGTH+1];
-
-                GetPath(CurrentVolume->vol_stats.tree, root_path);
-                char dir_path[PATH_LENGTH+1];
-                GetPath(fe->dir_entry, dir_path);
-
-                if (strncmp(dir_path, root_path, strlen(root_path)) == 0) {
-                    char *ptr = dir_path + strlen(root_path);
-                    if (*ptr == FILE_SEPARATOR_CHAR) ptr++;
-                    strcpy(relative_path, ptr);
-                } else {
-                    strcpy(relative_path, dir_path);
-                }
-
-                strcpy(full_internal_path, relative_path);
-                if (full_internal_path[0] != '\0' && full_internal_path[strlen(full_internal_path)-1] != FILE_SEPARATOR_CHAR) {
-                    strcat(full_internal_path, FILE_SEPARATOR_STRING);
-                }
-                strcat(full_internal_path, fe->name);
-
-                res = View(dir_entry, full_internal_path);
-            } else {
-                /* Disk Mode */
+            if (mode == DISK_MODE) {
                 GetFileNamePath(fe, path);
-                res = View(dir_entry, path);
-            }
+                shell_quote(quoted_path, path);
 
-            if (res == VIEW_EXIT) break;
-            if (res == VIEW_NEXT) {
-                /* Find next tagged */
-                do {
-                    fe = fe->next;
-                } while (fe && (!fe->tagged || !fe->matching));
-
-                if (!fe) {
-                    /* Wrap around or stop? Stop at end. */
+                /* Check length */
+                if (current_len + strlen(quoted_path) + 1 >= max_cmd_len) {
+                    WARNING("Too many tagged files. Truncated list.");
                     break;
                 }
-            } else if (res == VIEW_PREV) {
-                /* Find prev tagged */
-                do {
-                    fe = fe->prev;
-                } while (fe && (!fe->tagged || !fe->matching));
+                strcat(command_line, " ");
+                strcat(command_line, quoted_path);
+                current_len += strlen(quoted_path) + 1;
 
-                if (!fe) {
-                    /* Stop at start */
-                    break;
+            } else if (mode == ARCHIVE_MODE) {
+#ifdef HAVE_LIBARCHIVE
+                if (temp_count >= 100) {
+                     WARNING("Archive view limit (100) reached.");
+                     break;
                 }
-            } else {
-                /* Error or unknown, stop */
-                break;
+                char t_filename[] = "/tmp/ytree_batch_XXXXXX";
+                int t_fd = mkstemp(t_filename);
+                if (t_fd != -1) {
+                    /* Extract */
+                     char *archive = CurrentVolume->vol_stats.login_path;
+                     /* Need internal path */
+                     /* For simplicity, assume fe->name is relative to current displayed dir? */
+                     /* GetRealFileNamePath doesn't work easily here. */
+                     /* Reconstruct logic from ViewArchiveFile? */
+                     /* Let's construct internal path manually. */
+                     char root_path[PATH_LENGTH+1];
+                     char relative_path[PATH_LENGTH+1];
+                     char internal_path[PATH_LENGTH+1];
+                     char dir_path[PATH_LENGTH+1];
+
+                     GetPath(CurrentVolume->vol_stats.tree, root_path);
+                     GetPath(fe->dir_entry, dir_path);
+
+                     if (strncmp(dir_path, root_path, strlen(root_path)) == 0) {
+                        char *ptr = dir_path + strlen(root_path);
+                        if (*ptr == FILE_SEPARATOR_CHAR) ptr++;
+                        strcpy(relative_path, ptr);
+                     } else {
+                        strcpy(relative_path, dir_path);
+                     }
+
+                     strcpy(internal_path, relative_path);
+                     if (internal_path[0] != '\0' && internal_path[strlen(internal_path)-1] != FILE_SEPARATOR_CHAR) {
+                        strcat(internal_path, FILE_SEPARATOR_STRING);
+                     }
+                     strcat(internal_path, fe->name);
+
+                     if (ExtractArchiveEntry(archive, internal_path, t_fd) == 0) {
+                         temp_files[temp_count++] = strdup(t_filename);
+                         shell_quote(quoted_path, t_filename);
+
+                         if (current_len + strlen(quoted_path) + 1 >= max_cmd_len) {
+                             close(t_fd);
+                             unlink(t_filename);
+                             free(temp_files[--temp_count]);
+                             WARNING("Command line too long.");
+                             break;
+                         }
+
+                         strcat(command_line, " ");
+                         strcat(command_line, quoted_path);
+                         current_len += strlen(quoted_path) + 1;
+                     } else {
+                         unlink(t_filename);
+                     }
+                     close(t_fd);
+                }
+#else
+                (void)temp_count; /* Suppress unused warning */
+#endif
             }
-        } else {
-            fe = fe->next;
         }
     }
+
+    /* Execute Batch Command */
+    if (mode == DISK_MODE) {
+        /* Save CWD */
+        char cwd[PATH_LENGTH+1];
+        start_dir_fd = open(".", O_RDONLY);
+        if (chdir(GetPath(dir_entry, cwd)) == 0) {
+             SystemCall(command_line, &CurrentVolume->vol_stats);
+             if (start_dir_fd != -1) fchdir(start_dir_fd);
+        }
+        if (start_dir_fd != -1) close(start_dir_fd);
+    } else {
+        SystemCall(command_line, &CurrentVolume->vol_stats);
+    }
+
+    /* Cleanup Temps */
+    for (i = 0; i < temp_count; i++) {
+        if (temp_files[i]) {
+            unlink(temp_files[i]);
+            free(temp_files[i]);
+        }
+    }
+
+    free(command_line);
     return 0;
 }
