@@ -2088,8 +2088,9 @@ int HandleFileWindow(DirEntry *dir_entry)
 		      break;
 
       case ACTION_CMD_TAGGED_V:
-              if ((mode != DISK_MODE && mode != USER_MODE) || !IsMatchingTaggedFiles())
+              if (!IsMatchingTaggedFiles())
               {
+                  /* STRICT FILTER MODE: No tags = no action */
               }
               else
               {
@@ -2751,7 +2752,7 @@ int HandleFileWindow(DirEntry *dir_entry)
 			*command_line = '\0';
 
             /* Filter Mode */
-		        if( !GetSearchCommandLine( command_line, "SEARCH TAGGED: " ) )
+		        if( !GetSearchCommandLine( command_line, GlobalSearchTerm ) )
 			    {
                   /* Construct Silent Command */
                   sprintf(silent_cmd, "%s > /dev/null 2>&1", command_line);

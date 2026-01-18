@@ -155,6 +155,9 @@ int LoginDisk(char *path)
        CurrentVolume = found_vol;
        s = &CurrentVolume->vol_stats;
 
+       /* Reset global search term to prevent context bleeding */
+       GlobalSearchTerm[0] = '\0';
+
        /* Synchronize the global 'mode' variable with the found volume's stored mode. */
        /* Renamed usage: CurrentVolume->vol_stats.mode -> CurrentVolume->vol_stats.login_mode */
        mode = CurrentVolume->vol_stats.login_mode;
@@ -258,6 +261,9 @@ int LoginDisk(char *path)
       s->login_path[PATH_LENGTH] = '\0';
       strncpy(s->path, resolved_path, PATH_LENGTH);
       s->path[PATH_LENGTH] = '\0';
+
+      /* Reset global search term to prevent context bleeding */
+      GlobalSearchTerm[0] = '\0';
 
       /* Restore the user's active filter from the previous volume ONLY for new volumes.
          This acts as a "default" filter inheritance for convenience. */

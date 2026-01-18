@@ -668,10 +668,24 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 *   **Files to Modify:** `src/execute.c`, `src/filewin.c`
 *   - [x] **Status:** Completed.
 
-#### **Step 4.33: Implement View Tagged (`^V`)**
-*   **Description:** Implement sequential viewing of tagged files in **both physical filesystems and archives**. If a search filter is active (`^S` or Filter), pass the search term to the viewer (pager) to highlight matches. Support navigation (`Space`/`n` for next file) within the viewer context or via a wrapper loop.
-*   **Files to Modify:** `src/view.c`, `src/filewin.c`, `include/ytree.h`.
+#### **Step 4.32.6: Implement Archive Move (`M`) Support**
+*   **Description:** Implement `M` (Move) for archives. Intra-archive moves use the Rewrite Engine to rename paths. Cross-volume moves use Copy-Extract + Delete.
+*   **Files to Modify:** `src/move.c`, `src/archive.c`.
 *   - [ ] **Status:** Not Started.
+
+### **Step 4.33: Implement View Tagged Files (`^V`)**
+*   **Goal:** Allow sequential viewing of all tagged files with search term highlighting.
+*   **Description:** Uses the system pager (`less`) to view multiple files. Integrates with `^S` (Search) to pass the search pattern (e.g., `less -p "term"`) for automatic highlighting.
+
+#### **Step 4.33.1: Disk Mode View Tagged**
+*   **Implementation:** Constructs a batch command line `less file1 file2 ...`. Enables standard pager navigation (`:n` Next, `:p` Previous).
+*   **Files to Modify:** `src/view.c`, `src/filewin.c`, `src/execute.c`.
+*   - [x] **Status:** Completed.
+
+#### **Step 4.33.2: Archive Mode View Tagged**
+*   **Implementation:** Extracts all tagged files from the archive to a temporary directory (`/tmp/ytree_view_XYZ/`). Passes these temporary paths to `less`. Cleans up the temporary directory upon exit. Handles large file counts by batching or warning if command line limit exceeded.
+*   **Files to Modify:** `src/view.c`, `src/archive.c`.
+*   - [x] **Status:** Completed.
 
 ### **Step 4.34: Nested Archive Traversal**
 *   Allow transparently entering an archive that is itself inside another archive.
@@ -781,6 +795,14 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 *   **Rationale:** Improves startup efficiency for focused tasks and enables better shell aliases (e.g., `alias cview='ytree -f "*.c"'`).
 *   **Files to Modify:** `src/main.c`, `src/init.c`.
 *   - [x] **Status:** Completed.
+
+### **Step 4.48: Implement Archive Creation (Pack)**
+*   **Goal:** Enable creating new archives implicitly via Copy (`C`/`^K`) and Move (`M`/`^N`).
+*   **Description:** If the destination path does not exist and ends with a supported archive extension (e.g., `.zip`, `.tar.gz`, `.tar`), prompt the user to create a new archive.
+    *   **Copy:** Create archive and add files.
+    *   **Move:** Create archive, add files, and delete originals (effectively "Archiving" them).
+*   **Files to Modify:** `src/copy.c`, `src/move.c`, `src/archive.c`.
+*   - [ ] **Status:** Not Started.
 
 ---
 

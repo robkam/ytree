@@ -133,6 +133,7 @@ Active when the file window is focused.
 *   **U** (Untag): Untag selected file.
 *   **^U**: Untag all displayed files.
 *   **V** (View): View file with the pager defined in `~/.ytree` (default: less).
+*   **^V**: **View Tagged**. View all tagged files sequentially.
 *   **X** (eXecute): Execute a shell command. `{}` is replaced by the filename.
 *   **^X**: Execute shell command for all tagged files. `{}` is replaced by the full path.
 *   **Y** (Pathcopy): Copy selected file including path.
@@ -162,11 +163,13 @@ When browsing an archive (ZIP, TAR, etc.), ytree behaves similarly to a read-onl
 *   **H** (Hex): View file in hex mode.
 *   **P** (Pipe): Pipe content to command.
 *   **S** (Sort): Sort file list.
+*   **^S** (Search): Search tagged files for a string. Untags files that do not match.
 *   **T** (Tag): Tag selected file.
 *   **^T**: Tag all files.
 *   **U** (Untag): Untag selected file.
 *   **^U**: Untag all files.
 *   **V** (View): View file.
+*   **^V**: **View Tagged**. View all tagged files sequentially.
 *   **^F** (File Mode): Cycle display modes.
 *   **Return**: Switch to Archive-Dir Mode.
 *   **\*** (Asterisk): Invert tag selection.

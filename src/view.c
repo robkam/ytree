@@ -8,6 +8,11 @@
 
 #include "ytree.h"
 #include <errno.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <unistd.h>
+#include <dirent.h>
+#include <libgen.h>
 
 typedef struct MODIF {
     long pos;
@@ -73,6 +78,8 @@ static void move_right(WINDOW *win);
 static int GetFileMethod( char *filename );
 static void DoResize(char *file_path);
 static void shell_quote(char *dest, const char *src);
+static int recursive_mkdir(char *path);
+static int recursive_rmdir(const char *path);
 
 
 int View(DirEntry * dir_entry, char *file_path)
@@ -1106,6 +1113,44 @@ static void shell_quote(char *dest, const char *src) {
     *dest = '\0';
 }
 
+static int recursive_mkdir(char *path) {
+    char *p = path;
+    if (*p == '/') p++;
+    while (*p) {
+        if (*p == '/') {
+            *p = '\0';
+            if (mkdir(path, 0700) != 0 && errno != EEXIST) return -1;
+            *p = '/';
+        }
+        p++;
+    }
+    if (mkdir(path, 0700) != 0 && errno != EEXIST) return -1;
+    return 0;
+}
+
+static int recursive_rmdir(const char *path) {
+    DIR *d = opendir(path);
+    struct dirent *entry;
+    char fullpath[PATH_LENGTH];
+
+    if (!d) return -1;
+
+    while ((entry = readdir(d))) {
+        if (!strcmp(entry->d_name, ".") || !strcmp(entry->d_name, "..")) continue;
+        snprintf(fullpath, sizeof(fullpath), "%s/%s", path, entry->d_name);
+        struct stat st;
+        if (stat(fullpath, &st) == 0) {
+            if (S_ISDIR(st.st_mode)) {
+                recursive_rmdir(fullpath);
+            } else {
+                unlink(fullpath);
+            }
+        }
+    }
+    closedir(d);
+    return rmdir(path);
+}
+
 /*
  * ViewTaggedFiles
  * View marked files using a batch command for external PAGER.
@@ -1122,6 +1167,12 @@ int ViewTaggedFiles(DirEntry *dir_entry)
     int i;
     int max_cmd_len = COMMAND_LINE_LENGTH;
     int current_len = 0;
+    char temp_dir_template[PATH_LENGTH];
+    char *temp_dir = NULL;
+    Statistic *s = &CurrentVolume->vol_stats;
+
+    /* DEBUG: Entry */
+    fprintf(stderr, "DEBUG: ViewTaggedFiles START. Mode=%d (ARCHIVE=%d)\n", s->login_mode, ARCHIVE_MODE);
 
     /* Use configured PAGER or default */
     const char *viewer = PAGER;
@@ -1137,17 +1188,31 @@ int ViewTaggedFiles(DirEntry *dir_entry)
     /* If search term is active, append it (assuming less syntax -p) */
     if (GlobalSearchTerm[0] != '\0') {
         char search_arg[300];
-        snprintf(search_arg, sizeof(search_arg), " -p '%s'", GlobalSearchTerm);
+        /* Fix quoting for search term */
+        snprintf(search_arg, sizeof(search_arg), " -p \"%s\"", GlobalSearchTerm);
         strcat(command_line, search_arg);
     }
 
     current_len = strlen(command_line);
 
+    if (s->login_mode == ARCHIVE_MODE) {
+        strcpy(temp_dir_template, "/tmp/ytree_view_XXXXXX");
+        temp_dir = mkdtemp(temp_dir_template);
+        if (!temp_dir) {
+            ERROR_MSG("Could not create temp dir for viewing");
+            free(command_line);
+            return -1;
+        }
+    } else {
+        /* Initialize array elements to NULL for non-archive mode to stay safe */
+        for(i=0; i<100; i++) temp_files[i] = NULL;
+    }
+
     for (i = 0; i < (int)CurrentVolume->file_count; i++) {
         fe = CurrentVolume->file_entry_list[i].file;
 
         if (fe->tagged && fe->matching) {
-            if (mode == DISK_MODE) {
+            if (s->login_mode == DISK_MODE || s->login_mode == USER_MODE) {
                 GetFileNamePath(fe, path);
                 shell_quote(quoted_path, path);
 
@@ -1160,63 +1225,91 @@ int ViewTaggedFiles(DirEntry *dir_entry)
                 strcat(command_line, quoted_path);
                 current_len += strlen(quoted_path) + 1;
 
-            } else if (mode == ARCHIVE_MODE) {
+            } else if (s->login_mode == ARCHIVE_MODE) {
 #ifdef HAVE_LIBARCHIVE
                 if (temp_count >= 100) {
                      WARNING("Archive view limit (100) reached.");
                      break;
                 }
-                char t_filename[] = "/tmp/ytree_batch_XXXXXX";
-                int t_fd = mkstemp(t_filename);
-                if (t_fd != -1) {
-                    /* Extract */
-                     char *archive = CurrentVolume->vol_stats.login_path;
-                     /* Need internal path */
-                     /* For simplicity, assume fe->name is relative to current displayed dir? */
-                     /* GetRealFileNamePath doesn't work easily here. */
-                     /* Reconstruct logic from ViewArchiveFile? */
-                     /* Let's construct internal path manually. */
-                     char root_path[PATH_LENGTH+1];
-                     char relative_path[PATH_LENGTH+1];
-                     char internal_path[PATH_LENGTH+1];
-                     char dir_path[PATH_LENGTH+1];
 
-                     GetPath(CurrentVolume->vol_stats.tree, root_path);
-                     GetPath(fe->dir_entry, dir_path);
+                /* Create unique filename in temp dir to avoid collisions */
+                char t_filename[PATH_LENGTH];
+                char t_dirname[PATH_LENGTH];
 
-                     if (strncmp(dir_path, root_path, strlen(root_path)) == 0) {
-                        char *ptr = dir_path + strlen(root_path);
-                        if (*ptr == FILE_SEPARATOR_CHAR) ptr++;
-                        strcpy(relative_path, ptr);
-                     } else {
-                        strcpy(relative_path, dir_path);
+                /* Extract relative path structure */
+                char root_path[PATH_LENGTH+1];
+                char relative_path[PATH_LENGTH+1];
+                char internal_path[PATH_LENGTH+1];
+                char full_path[PATH_LENGTH+1];
+
+                GetPath(CurrentVolume->vol_stats.tree, root_path);
+                GetFileNamePath(fe, full_path);
+
+                /* DEBUG: Path Calculation */
+                fprintf(stderr, "DEBUG: Archive Extraction:\n  Root: %s\n  Full: %s\n", root_path, full_path);
+
+                /* Logic to strip archive root path from full_path */
+                size_t root_len = strlen(root_path);
+                if (strncmp(full_path, root_path, root_len) == 0) {
+                   char *ptr = full_path + root_len;
+                   /* Check for separator or boundary */
+                   if (*ptr == FILE_SEPARATOR_CHAR) {
+                       ptr++;
+                       strcpy(relative_path, ptr);
+                   } else if (*ptr == '\0') {
+                       /* Matched root exactly? Archive logic handles files in root. */
+                       relative_path[0] = '\0'; /* Should not happen for file entry? */
+                   } else {
+                       /* Substring match, not path match (e.g. /root.zip vs /root.zip.bak) */
+                       strcpy(relative_path, full_path);
+                   }
+                } else {
+                   /* Fallback */
+                   strcpy(relative_path, full_path);
+                }
+
+                /* If relative_path is empty, use filename (root of archive) */
+                if (strlen(relative_path) == 0) {
+                    strcpy(relative_path, fe->name);
+                }
+
+                if (strlen(relative_path) > 0) {
+                    snprintf(t_dirname, sizeof(t_dirname), "%s/%s", temp_dir, relative_path);
+                    /* Strip filename from t_dirname */
+                    char *dir_only = strdup(t_dirname);
+                    if (dir_only) {
+                        dirname(dir_only);
+                        recursive_mkdir(dir_only);
+                        free(dir_only);
+                    }
+                    snprintf(t_filename, sizeof(t_filename), "%s/%s", temp_dir, relative_path);
+                } else {
+                    snprintf(t_filename, sizeof(t_filename), "%s/%s", temp_dir, fe->name);
+                }
+
+                strcpy(internal_path, relative_path);
+
+                fprintf(stderr, "  Rel : %s\n  Int : %s\n  Dest: %s\n", relative_path, internal_path, t_filename);
+
+                int ext_res = ExtractArchiveNode(s->login_path, internal_path, t_filename);
+                fprintf(stderr, "  Result: %d\n", ext_res);
+
+                if (ext_res == 0) {
+                     shell_quote(quoted_path, t_filename);
+
+                     if (current_len + strlen(quoted_path) + 1 >= max_cmd_len) {
+                         WARNING("Command line too long.");
+                         break;
                      }
 
-                     strcpy(internal_path, relative_path);
-                     if (internal_path[0] != '\0' && internal_path[strlen(internal_path)-1] != FILE_SEPARATOR_CHAR) {
-                        strcat(internal_path, FILE_SEPARATOR_STRING);
-                     }
-                     strcat(internal_path, fe->name);
-
-                     if (ExtractArchiveEntry(archive, internal_path, t_fd) == 0) {
-                         temp_files[temp_count++] = strdup(t_filename);
-                         shell_quote(quoted_path, t_filename);
-
-                         if (current_len + strlen(quoted_path) + 1 >= max_cmd_len) {
-                             close(t_fd);
-                             unlink(t_filename);
-                             free(temp_files[--temp_count]);
-                             WARNING("Command line too long.");
-                             break;
-                         }
-
-                         strcat(command_line, " ");
-                         strcat(command_line, quoted_path);
-                         current_len += strlen(quoted_path) + 1;
-                     } else {
-                         unlink(t_filename);
-                     }
-                     close(t_fd);
+                     strcat(command_line, " ");
+                     strcat(command_line, quoted_path);
+                     current_len += strlen(quoted_path) + 1;
+                     temp_count++;
+                } else {
+                    /* Explicit warning on failure */
+                    (void)snprintf(message, MESSAGE_LENGTH, "Failed to extract*\"%s\"", internal_path);
+                    WARNING(message);
                 }
 #else
                 (void)temp_count; /* Suppress unused warning */
@@ -1225,8 +1318,10 @@ int ViewTaggedFiles(DirEntry *dir_entry)
         }
     }
 
+    fprintf(stderr, "DEBUG: Final Command: %s\n", command_line);
+
     /* Execute Batch Command */
-    if (mode == DISK_MODE) {
+    if (s->login_mode == DISK_MODE) {
         /* Save CWD */
         char cwd[PATH_LENGTH+1];
         start_dir_fd = open(".", O_RDONLY);
@@ -1236,15 +1331,17 @@ int ViewTaggedFiles(DirEntry *dir_entry)
         }
         if (start_dir_fd != -1) close(start_dir_fd);
     } else {
-        SystemCall(command_line, &CurrentVolume->vol_stats);
+        /* Archive mode executes in current dir but points to absolute temp paths */
+        if (temp_count > 0) {
+            SystemCall(command_line, &CurrentVolume->vol_stats);
+        } else if (s->login_mode == ARCHIVE_MODE) {
+            MESSAGE("No files extracted.");
+        }
     }
 
     /* Cleanup Temps */
-    for (i = 0; i < temp_count; i++) {
-        if (temp_files[i]) {
-            unlink(temp_files[i]);
-            free(temp_files[i]);
-        }
+    if (s->login_mode == ARCHIVE_MODE && temp_dir) {
+        recursive_rmdir(temp_dir);
     }
 
     free(command_line);
