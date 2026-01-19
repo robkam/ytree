@@ -402,6 +402,11 @@ typedef struct {
     int big_file_win_height;
     int big_file_win_width;
 
+    int preview_win_y;
+    int preview_win_x;
+    int preview_win_height;
+    int preview_win_width;
+
     int stats_width;
     int main_win_width;
 } YtreeLayout;
@@ -751,6 +756,13 @@ typedef enum {
     ACTION_ASTERISK,             /* * (Expand All / Invert Tags) */
     ACTION_SPLIT_SCREEN,         /* F8 Split Screen */
     ACTION_SWITCH_PANEL,         /* TAB in Split Mode */
+    ACTION_VIEW_PREVIEW,         /* F7 Preview Mode */
+    ACTION_PREVIEW_SCROLL_UP,    /* ^P, Shift-Up in Preview Mode */
+    ACTION_PREVIEW_SCROLL_DOWN,  /* ^N, Shift-Down in Preview Mode */
+    ACTION_PREVIEW_HOME,         /* Shift-Home */
+    ACTION_PREVIEW_END,          /* Shift-End */
+    ACTION_PREVIEW_PAGE_UP,      /* Shift-PgUp */
+    ACTION_PREVIEW_PAGE_DOWN,    /* Shift-PgDn */
     ACTION_USER_CMD              /* Reserved for future */
 } YtreeAction;
 
@@ -771,14 +783,17 @@ typedef struct _PathList {
  * - ctx_big_file_window:   A full-height window displaying the File List (Zoom View).
  * - ctx_file_window:       A dynamic pointer that points to either small_file_window or
  *                          big_file_window depending on the current view mode.
+ * - ctx_preview_window:    The right-side window displaying file content in Preview Mode.
  */
 typedef struct {
   WINDOW *ctx_dir_window;
   WINDOW *ctx_small_file_window;
   WINDOW *ctx_big_file_window;
   WINDOW *ctx_file_window;
+  WINDOW *ctx_preview_window; /* ADDED: Preview Window */
   int view_mode; /* Operation mode (DISK_MODE, ARCHIVE_MODE, etc.) */
   BOOL show_stats; /* ADDED */
+  BOOL preview_mode; /* ADDED: Preview Mode Active Flag */
   int fixed_col_width; /* ADDED */
   int refresh_mode; /* ADDED: Auto-refresh configuration */
 } ViewContext;
@@ -792,6 +807,7 @@ extern ViewContext *GlobalView;
 #define small_file_window (GlobalView->ctx_small_file_window)
 #define big_file_window (GlobalView->ctx_big_file_window)
 #define file_window (GlobalView->ctx_file_window)
+#define preview_window (GlobalView->ctx_preview_window)
 #define mode (GlobalView->view_mode)
 
 /* Panel Structure for Split Screen
@@ -975,6 +991,8 @@ extern void SwitchToSmallFileWindow(void);
 extern void UnmapF2Window(void);
 extern void DisplayHeaderPath(char *path); /* ADDED: Prototype for dynamic header path */
 extern void RenderInactivePanel(YtreePanel *panel); /* ADDED: Moved from dirwin.c */
+extern void RefreshGlobalView(DirEntry *dir_entry); /* ADDED: Centralized Redraw */
+extern void DisplayPreviewHelp(void); /* ADDED: Preview Help Footer */
 
 /* display_utils.c */
 extern int AddStr(char *str);
@@ -1186,6 +1204,8 @@ extern int FileUserMode(FileEntryList *file_entry_list, int ch);
 /* view.c */
 extern int View(DirEntry * dir_entry, char *file_path);
 extern int InternalView(char *file_path); /* Ensure this is present and exported */
+extern void RenderFilePreview(WINDOW *win, char *filename, long *line_offset_ptr, int col_offset);
+extern void RenderArchivePreview(WINDOW *win, char *archive_path, char *internal_path, long *line_offset_ptr);
 
 #include "watcher.h"
 

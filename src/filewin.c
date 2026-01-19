@@ -32,6 +32,9 @@ static unsigned      max_visual_linkname_len;
 static unsigned      global_max_visual_filename_len;
 static unsigned      global_max_visual_linkname_len;
 
+static long preview_line_offset = 0;
+static int saved_fixed_width = 0;
+
 /* --- Forward Declarations --- */
 static void ReadFileList(BOOL tagged_only, DirEntry *dir_entry);
 static void SortFileEntryList(Statistic *s);
@@ -66,6 +69,7 @@ static void fmoveright(int *start_file, int *cursor_pos, int *start_x, DirEntry 
 static void fmoveleft(int *start_file, int *cursor_pos, int *start_x, DirEntry *dir_entry);
 static void fmovenpage(int *start_file, int *cursor_pos, int *start_x, DirEntry *dir_entry);
 static void fmoveppage(int *start_file, int *cursor_pos, int *start_x, DirEntry *dir_entry);
+static void UpdatePreview(DirEntry *dir_entry);
 
 void SetFileMode(int new_file_mode)
 {
@@ -1411,6 +1415,33 @@ static int SilentSearchWalk(FileEntry *fe_ptr, WalkingPackage *wp)
     return 0; /* Continue walking */
 }
 
+static void UpdatePreview(DirEntry *dir_entry)
+{
+    FileEntry *fe_ptr;
+    char path[PATH_LENGTH + 1];
+
+    if (!GlobalView->preview_mode || !preview_window) return;
+
+    if (CurrentVolume->file_count == 0) {
+        wclear(preview_window);
+        wnoutrefresh(preview_window);
+        return;
+    }
+
+    /* Check bounds */
+    if (dir_entry->start_file + dir_entry->cursor_pos >= (int)CurrentVolume->file_count) return;
+
+    fe_ptr = CurrentVolume->file_entry_list[dir_entry->start_file + dir_entry->cursor_pos].file;
+    if (!fe_ptr) return;
+
+    if (mode == ARCHIVE_MODE) {
+        GetFileNamePath(fe_ptr, path);
+        RenderArchivePreview(preview_window, CurrentVolume->vol_stats.login_path, path, &preview_line_offset);
+    } else {
+        GetRealFileNamePath(fe_ptr, path);
+        RenderFilePreview(preview_window, path, &preview_line_offset, 0);
+    }
+}
 
 int HandleFileWindow(DirEntry *dir_entry)
 {
@@ -1478,26 +1509,32 @@ int HandleFileWindow(DirEntry *dir_entry)
       dir_entry->start_file = 0;
   }
 
-  if( dir_entry->global_flag || dir_entry->big_window || dir_entry->tagged_flag)
-  {
-    SwitchToBigFileWindow();
-    getmaxyx( file_window, height, width );
-    DisplayDiskStatistic(s);
-    /* Force initial display of directory statistics with appropriate title */
-    DisplayDirStatistic(dir_entry, (dir_entry->global_flag) ? "SHOW ALL" : NULL, s);
-  }
-  else
-  {
-    getmaxyx( file_window, height, width );
-    DisplayDirStatistic( dir_entry, NULL, s ); /* Updated call */
-  }
+  /* Initial Display using Centralized Function if applicable */
+  if (GlobalView->preview_mode) {
+      RefreshGlobalView(dir_entry);
+      UpdatePreview(dir_entry);
+  } else {
+      /* Standard Logic for Big/Small Window */
+      if( dir_entry->global_flag || dir_entry->big_window || dir_entry->tagged_flag)
+      {
+        SwitchToBigFileWindow();
+        getmaxyx( file_window, height, width );
+        DisplayDiskStatistic(s);
+        DisplayDirStatistic(dir_entry, (dir_entry->global_flag) ? "SHOW ALL" : NULL, s);
+      }
+      else
+      {
+        getmaxyx( file_window, height, width );
+        DisplayDirStatistic( dir_entry, NULL, s );
+      }
 
-  DisplayFiles( dir_entry,
-		dir_entry->start_file,
-		dir_entry->start_file + dir_entry->cursor_pos,
-		start_x,
-                file_window
-	      );
+      DisplayFiles( dir_entry,
+            dir_entry->start_file,
+            dir_entry->start_file + dir_entry->cursor_pos,
+            start_x,
+            file_window
+          );
+  }
 
   if (s->login_mode == DISK_MODE || s->login_mode == USER_MODE) {
       GetPath(dir_entry, watcher_path);
@@ -1518,10 +1555,12 @@ int HandleFileWindow(DirEntry *dir_entry)
       max_disp_files = height * max_column;
     }
 
-    if( need_dsp_help )
-    {
-      need_dsp_help = FALSE;
-      DisplayFileHelp();
+    if (need_dsp_help) {
+        need_dsp_help = FALSE;
+        if (GlobalView->preview_mode)
+            DisplayPreviewHelp();
+        else
+            DisplayFileHelp();
     }
 
     if( unput_char )
@@ -1550,7 +1589,7 @@ int HandleFileWindow(DirEntry *dir_entry)
       else
         DisplayFileParameter( fe_ptr );
 
-      RefreshWindow( dir_window ); /* needed: ncurses-bug ? */
+      if (!GlobalView->preview_mode) RefreshWindow( dir_window ); /* needed: ncurses-bug ? */
       RefreshWindow( file_window );
 
       if (IsSplitScreen) {
@@ -1572,46 +1611,11 @@ int HandleFileWindow(DirEntry *dir_entry)
     }
 
    if(resize_request) {
-     ReCreateWindows();
+     /* Simplified Resize using Centralized Function */
      RereadWindowSize(dir_entry);
-     DisplayMenu();
-
-     getmaxyx(dir_window, dir_window_height, dir_window_width);
-     while(s->cursor_pos >= dir_window_height) {
-       s->cursor_pos--;
-       s->disp_begin_pos++;
-     }
-     if(dir_entry->global_flag || dir_entry->big_window || dir_entry->tagged_flag) {
-
-       /* big window active */
-
-       SwitchToBigFileWindow();
-       DisplayFileWindow(dir_entry, file_window);
-
-       if(dir_entry->global_flag) {
-	 DisplayDiskStatistic(s);
-	 DisplayGlobalFileParameter(fe_ptr);
-       } else {
-	 DisplayFileWindow(dir_entry, file_window);
-	 DisplayDiskStatistic(s); /* Added */
-	 DisplayDirStatistic(dir_entry, NULL, s);
-	 DisplayFileParameter(fe_ptr);
-       }
-     } else {
-
-       /* small window active */
-
-       SwitchToSmallFileWindow();
-       DisplayTree( CurrentVolume, dir_window, s->disp_begin_pos,
-		  s->disp_begin_pos + s->cursor_pos, TRUE
-		);
-       DisplayDiskStatistic(s); /* Added per instructions */
-       DisplayFileWindow(dir_entry, file_window);
-       DisplayDirStatistic(dir_entry, NULL, s);
-       DisplayFileParameter(fe_ptr);
-     }
+     RefreshGlobalView(dir_entry);
+     if (GlobalView->preview_mode) UpdatePreview(dir_entry);
      need_dsp_help = TRUE;
-     /* Removed redundant calls to fix missing T-junctions */
      resize_request = FALSE;
    }
 
@@ -1655,6 +1659,90 @@ int HandleFileWindow(DirEntry *dir_entry)
 
       case ACTION_NONE:         break;
 
+      case ACTION_VIEW_PREVIEW:
+            GlobalView->preview_mode = !GlobalView->preview_mode;
+
+            if (GlobalView->preview_mode) {
+                /* Turning ON */
+                /* 1. Save current width setting */
+                saved_fixed_width = GlobalView->fixed_col_width;
+
+                /* 2. Update Window Layout immediately to get new dims */
+                ReCreateWindows();
+
+                /* 3. Force Compact Mode based on new width (width - 2 for borders/padding) */
+                /* Accessing layout.big_file_win_width from init.c logic */
+                GlobalView->fixed_col_width = layout.big_file_win_width - 2;
+
+                /* 4. Update scrolling metrics (max_column, etc) based on new width/mode */
+                RereadWindowSize(dir_entry);
+            } else {
+                /* Turning OFF */
+                /* 1. Restore width setting */
+                GlobalView->fixed_col_width = saved_fixed_width;
+
+                /* 2. Update Layout */
+                ReCreateWindows();
+
+                /* 3. Update metrics */
+                RereadWindowSize(dir_entry);
+            }
+
+            /* 5. Draw Everything (Borders, Tree, Stats, List, Preview) */
+            RefreshGlobalView(dir_entry);
+
+            if (GlobalView->preview_mode) {
+                UpdatePreview(dir_entry);
+            }
+
+            need_dsp_help = TRUE;
+             break;
+
+      case ACTION_PREVIEW_SCROLL_DOWN:
+             if (GlobalView->preview_mode) {
+                 preview_line_offset++;
+                 UpdatePreview(dir_entry);
+             }
+             break;
+
+      case ACTION_PREVIEW_SCROLL_UP:
+             if (GlobalView->preview_mode) {
+                 if (preview_line_offset > 0) preview_line_offset--;
+                 UpdatePreview(dir_entry);
+             }
+             break;
+
+      case ACTION_PREVIEW_HOME:
+             if (GlobalView->preview_mode) {
+                 preview_line_offset = 0;
+                 UpdatePreview(dir_entry);
+             }
+             break;
+      case ACTION_PREVIEW_END:
+             if (GlobalView->preview_mode) {
+                 /* Set to a large value, renderer handles EOF */
+                 preview_line_offset = 2000000000L;
+                 UpdatePreview(dir_entry);
+             }
+             break;
+      case ACTION_PREVIEW_PAGE_UP:
+             if (GlobalView->preview_mode) {
+                 int h, w;
+                 getmaxyx(preview_window, h, w);
+                 preview_line_offset -= (h - 1);
+                 if (preview_line_offset < 0) preview_line_offset = 0;
+                 UpdatePreview(dir_entry);
+             }
+             break;
+      case ACTION_PREVIEW_PAGE_DOWN:
+             if (GlobalView->preview_mode) {
+                 int h, w;
+                 getmaxyx(preview_window, h, w);
+                 preview_line_offset += (h - 1);
+                 UpdatePreview(dir_entry);
+             }
+             break;
+
       case ACTION_SPLIT_SCREEN:
              IsSplitScreen = !IsSplitScreen;
              ReCreateWindows(); /* Force layout update immediately */
@@ -1686,25 +1774,31 @@ int HandleFileWindow(DirEntry *dir_entry)
              return ESC; /* Exit loop to re-enter with new context */
 
       case ACTION_MOVE_DOWN :  fmovedown(&dir_entry->start_file, &dir_entry->cursor_pos, &start_x, dir_entry);
+              if (GlobalView->preview_mode) { preview_line_offset = 0; UpdatePreview(dir_entry); }
 		      break;
 
       case ACTION_MOVE_UP   : fmoveup(&dir_entry->start_file, &dir_entry->cursor_pos, &start_x, dir_entry);
+              if (GlobalView->preview_mode) { preview_line_offset = 0; UpdatePreview(dir_entry); }
 		      break;
 
       case ACTION_MOVE_RIGHT:
           if (!highlight_full_line && x_step == 1) break; /* No horizontal scroll in name-only mode */
           fmoveright(&dir_entry->start_file, &dir_entry->cursor_pos, &start_x, dir_entry);
+          if (GlobalView->preview_mode) { preview_line_offset = 0; UpdatePreview(dir_entry); }
           break;
 
       case ACTION_MOVE_LEFT :
           if (!highlight_full_line && x_step == 1) break; /* No horizontal scroll in name-only mode */
           fmoveleft(&dir_entry->start_file, &dir_entry->cursor_pos, &start_x, dir_entry);
+          if (GlobalView->preview_mode) { preview_line_offset = 0; UpdatePreview(dir_entry); }
           break;
 
       case ACTION_PAGE_DOWN: fmovenpage(&dir_entry->start_file, &dir_entry->cursor_pos, &start_x, dir_entry);
+              if (GlobalView->preview_mode) { preview_line_offset = 0; UpdatePreview(dir_entry); }
 		      break;
 
       case ACTION_PAGE_UP: fmoveppage(&dir_entry->start_file, &dir_entry->cursor_pos, &start_x, dir_entry);
+              if (GlobalView->preview_mode) { preview_line_offset = 0; UpdatePreview(dir_entry); }
 		      break;
 
       case ACTION_END  : if( (unsigned int)(dir_entry->start_file + dir_entry->cursor_pos + 1) >= CurrentVolume->file_count )
@@ -1731,6 +1825,7 @@ int HandleFileWindow(DirEntry *dir_entry)
 				      start_x,
                                       file_window
 				    );
+            if (GlobalView->preview_mode) { preview_line_offset = 0; UpdatePreview(dir_entry); }
 		      }
 		      break;
 
@@ -1750,6 +1845,7 @@ int HandleFileWindow(DirEntry *dir_entry)
 				      start_x,
                                       file_window
 				    );
+            if (GlobalView->preview_mode) { preview_line_offset = 0; UpdatePreview(dir_entry); }
 
 		      }
 		      break;
@@ -1763,6 +1859,7 @@ int HandleFileWindow(DirEntry *dir_entry)
                         /* Explicitly update the file window (preview) */
                         DisplayFileWindow(dir_entry, file_window);
                         RefreshWindow(file_window);
+                        if (GlobalView->preview_mode) { preview_line_offset = 0; UpdatePreview(dir_entry); }
 
                         need_dsp_help = TRUE;
                      }
@@ -1940,6 +2037,7 @@ int HandleFileWindow(DirEntry *dir_entry)
 		      break;
 
       case ACTION_TOGGLE_MODE :
+              if (GlobalView->preview_mode) { beep(); break; }
 		      list_pos = dir_entry->start_file + dir_entry->cursor_pos;
 
 		      RotateFileMode();
@@ -2620,22 +2718,24 @@ int HandleFileWindow(DirEntry *dir_entry)
 		     }
 		     break;
 
-      case ACTION_ENTER :        if( dir_entry->big_window ) break;
-		      dir_entry->big_window = TRUE;
-		      ch = '\0'; /* Reset ch to avoid re-triggering action */
-		      SwitchToBigFileWindow();
-                      GetMaxYX( file_window, &height, &width );
+      case ACTION_ENTER :
+             if (GlobalView->preview_mode) {
+                 action = ACTION_NONE;
+                 break;
+             }
+             /* Toggle Big Window */
+             if( dir_entry->big_window ) break; /* Exit loop */
 
-		      x_step =  (max_column > 1) ? height : 1;
-                      max_disp_files = height * max_column;
+             dir_entry->big_window = TRUE;
+             ch = '\0';
 
-		      DisplayFiles( dir_entry,
-				    dir_entry->start_file,
-				    dir_entry->start_file + dir_entry->cursor_pos,
-				    start_x,
-                                    file_window
-			          );
-                      action = ACTION_NONE; /* Prevent loop termination to stay in file window */
+             /* Use Global Refresh for clean transition */
+             RefreshGlobalView(dir_entry);
+
+             /* Update scrolling metrics for new size */
+             RereadWindowSize(dir_entry);
+
+             action = ACTION_NONE; /* Prevent loop termination to stay in file window */
 		      break;
 
       case ACTION_CMD_P :      fe_ptr = CurrentVolume->file_entry_list[dir_entry->start_file + dir_entry->cursor_pos].file;
@@ -2916,8 +3016,10 @@ int HandleFileWindow(DirEntry *dir_entry)
     } /* switch */
   } while( action != ACTION_QUIT && action != ACTION_ENTER && action != ACTION_ESCAPE && action != ACTION_QUIT );
 
-  if( dir_entry->big_window )
+  if( dir_entry->big_window ) {
     SwitchToSmallFileWindow();
+    /* We don't need full refresh here because HandleDirWindow will catch the return */
+  }
 
   if(action != ACTION_ESCAPE) {
     dir_entry->global_flag = FALSE;

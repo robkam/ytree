@@ -34,6 +34,72 @@ void Layout_Recalculate(void)
     if (available_height < 1) available_height = 1;
 
     /*
+     * Preview Mode Logic:
+     * If Preview Mode is active, we override the standard layout.
+     * Left Panel: Narrow File List (approx 20% width).
+     * Right Panel: Preview Window (Remaining width).
+     * Stats and Directory Tree are hidden.
+     */
+    if (GlobalView && GlobalView->preview_mode) {
+        layout.stats_width = 0;
+        layout.dir_win_height = 0; /* Hidden */
+
+        /* Calculate File List Width (20% of COLS, min 16 chars) */
+        int file_list_width = COLS * 0.20;
+        if (file_list_width < 16) file_list_width = 16;
+        /* Ensure it doesn't take up the whole screen */
+        if (file_list_width > COLS - 4) file_list_width = COLS - 4;
+
+        layout.main_win_width = COLS - 2; /* Full width for history etc */
+
+        /* Left Panel (File List) Geometry - Uses Big File Window slots */
+        layout.big_file_win_x = 1;
+        layout.big_file_win_y = 2;
+        layout.big_file_win_width = file_list_width;
+        layout.big_file_win_height = available_height;
+
+        /* Unused windows in this mode, set to minimal valid values */
+        layout.dir_win_x = 1;
+        layout.dir_win_y = 2;
+        layout.dir_win_width = file_list_width;
+        layout.dir_win_height = 0; /* Will be clamped to 1 by Subwin */
+
+        layout.small_file_win_x = 1;
+        layout.small_file_win_y = 2;
+        layout.small_file_win_width = file_list_width;
+        layout.small_file_win_height = 0;
+
+        /* Preview Window Geometry */
+        layout.preview_win_x = file_list_width + 2;
+        layout.preview_win_y = 2;
+        layout.preview_win_width = COLS - file_list_width - 3;
+        layout.preview_win_height = available_height;
+
+        if (layout.preview_win_width < 1) layout.preview_win_width = 1;
+
+        /* Update LeftPanel Geometry */
+        if (LeftPanel) {
+            LeftPanel->dir_x = layout.dir_win_x;
+            LeftPanel->dir_y = layout.dir_win_y;
+            LeftPanel->dir_w = layout.dir_win_width;
+            LeftPanel->dir_h = layout.dir_win_height;
+
+            LeftPanel->small_file_x = layout.small_file_win_x;
+            LeftPanel->small_file_y = layout.small_file_win_y;
+            LeftPanel->small_file_w = layout.small_file_win_width;
+            LeftPanel->small_file_h = layout.small_file_win_height;
+
+            LeftPanel->big_file_x = layout.big_file_win_x;
+            LeftPanel->big_file_y = layout.big_file_win_y;
+            LeftPanel->big_file_w = layout.big_file_win_width;
+            LeftPanel->big_file_h = available_height;
+        }
+
+        /* RightPanel is not used for file listing in Preview Mode */
+        return;
+    }
+
+    /*
      * Stats Panel Logic:
      * If SplitScreen is active, force stats off to save space.
      * Otherwise respect user preference.
@@ -155,6 +221,8 @@ int Init(char *configuration_file, char *history_file)
   GlobalView->show_stats = TRUE;
   GlobalView->fixed_col_width = 0; /* ADDED */
   GlobalView->refresh_mode = strtol(AUTO_REFRESH, NULL, 0); /* ADDED */
+  GlobalView->preview_mode = FALSE; /* Initialize Preview Mode */
+  GlobalView->ctx_preview_window = NULL;
 
   /* Initialize global mode default */
   GlobalView->view_mode = DISK_MODE;
@@ -249,6 +317,11 @@ void ReCreateWindows()
       if (ActivePanel->pan_file_window == ActivePanel->pan_big_file_window) is_small = FALSE;
   }
 
+  /* Force 'big' (zoom) mode if Preview Mode is active, as we only show the file list */
+  if (GlobalView->preview_mode) {
+      is_small = FALSE;
+  }
+
   /* 2. Cleanup: Destroy ALL existing panel windows */
   if (LeftPanel->pan_dir_window) { delwin(LeftPanel->pan_dir_window); LeftPanel->pan_dir_window = NULL; }
   if (LeftPanel->pan_small_file_window) { delwin(LeftPanel->pan_small_file_window); LeftPanel->pan_small_file_window = NULL; }
@@ -257,6 +330,12 @@ void ReCreateWindows()
   if (RightPanel->pan_dir_window) { delwin(RightPanel->pan_dir_window); RightPanel->pan_dir_window = NULL; }
   if (RightPanel->pan_small_file_window) { delwin(RightPanel->pan_small_file_window); RightPanel->pan_small_file_window = NULL; }
   if (RightPanel->pan_big_file_window) { delwin(RightPanel->pan_big_file_window); RightPanel->pan_big_file_window = NULL; }
+
+  /* Cleanup Preview Window */
+  if (GlobalView->ctx_preview_window) {
+      delwin(GlobalView->ctx_preview_window);
+      GlobalView->ctx_preview_window = NULL;
+  }
 
   /* 3. Create Left Panel Windows (Always Created) */
   LeftPanel->pan_dir_window = Subwin(stdscr, LeftPanel->dir_h, LeftPanel->dir_w, LeftPanel->dir_y, LeftPanel->dir_x);
@@ -281,8 +360,8 @@ void ReCreateWindows()
   /* Determine current file window for LeftPanel */
   LeftPanel->pan_file_window = (is_small) ? LeftPanel->pan_small_file_window : LeftPanel->pan_big_file_window;
 
-  /* 4. Create Right Panel Windows (Only if Split Screen) */
-  if (IsSplitScreen) {
+  /* 4. Create Right Panel Windows (Only if Split Screen and NOT Preview Mode) */
+  if (IsSplitScreen && !GlobalView->preview_mode) {
       RightPanel->pan_dir_window = Subwin(stdscr, RightPanel->dir_h, RightPanel->dir_w, RightPanel->dir_y, RightPanel->dir_x);
       keypad(RightPanel->pan_dir_window, TRUE);
       scrollok(RightPanel->pan_dir_window, TRUE);
@@ -306,7 +385,23 @@ void ReCreateWindows()
       RightPanel->pan_file_window = (is_small) ? RightPanel->pan_small_file_window : RightPanel->pan_big_file_window;
   }
 
-  /* 5. Sync ActivePanel Pointers */
+  /* 5. Create Preview Window (If Preview Mode) */
+  if (GlobalView->preview_mode) {
+      GlobalView->ctx_preview_window = Newwin(
+          layout.preview_win_height,
+          layout.preview_win_width,
+          layout.preview_win_y,
+          layout.preview_win_x
+      );
+      if (GlobalView->ctx_preview_window) {
+          keypad(GlobalView->ctx_preview_window, TRUE);
+          clearok(GlobalView->ctx_preview_window, TRUE);
+          leaveok(GlobalView->ctx_preview_window, TRUE);
+          WbkgdSet(GlobalView->ctx_preview_window, COLOR_PAIR(CPAIR_WINFILE));
+      }
+  }
+
+  /* 6. Sync ActivePanel Pointers */
   if (ActivePanel == NULL) ActivePanel = LeftPanel;
 
   if (ActivePanel == LeftPanel) {
@@ -314,13 +409,13 @@ void ReCreateWindows()
       ActivePanel->pan_small_file_window = LeftPanel->pan_small_file_window;
       ActivePanel->pan_big_file_window = LeftPanel->pan_big_file_window;
       ActivePanel->pan_file_window = LeftPanel->pan_file_window;
-  } else if (ActivePanel == RightPanel && IsSplitScreen) {
+  } else if (ActivePanel == RightPanel && IsSplitScreen && !GlobalView->preview_mode) {
       ActivePanel->pan_dir_window = RightPanel->pan_dir_window;
       ActivePanel->pan_small_file_window = RightPanel->pan_small_file_window;
       ActivePanel->pan_big_file_window = RightPanel->pan_big_file_window;
       ActivePanel->pan_file_window = RightPanel->pan_file_window;
   } else {
-      /* Fallback if something went wrong (e.g. RightPanel active but SplitScreen disabled) */
+      /* Fallback if something went wrong (e.g. RightPanel active but SplitScreen disabled or Preview Mode active) */
       ActivePanel = LeftPanel;
       ActivePanel->pan_dir_window = LeftPanel->pan_dir_window;
       ActivePanel->pan_small_file_window = LeftPanel->pan_small_file_window;
@@ -328,16 +423,16 @@ void ReCreateWindows()
       ActivePanel->pan_file_window = LeftPanel->pan_file_window;
   }
 
-  /* 6. Sync Global View Context */
+  /* 7. Sync Global View Context */
   GlobalView->ctx_dir_window = ActivePanel->pan_dir_window;
   GlobalView->ctx_small_file_window = ActivePanel->pan_small_file_window;
   GlobalView->ctx_big_file_window = ActivePanel->pan_big_file_window;
   GlobalView->ctx_file_window = ActivePanel->pan_file_window;
 
-  /* 7. Update Legacy Global file_window */
+  /* 8. Update Legacy Global file_window */
   file_window = GlobalView->ctx_file_window;
 
-  /* 8. Utility Windows */
+  /* 9. Utility Windows */
   if(error_window)
     delwin(error_window);
 
@@ -404,8 +499,8 @@ void ReCreateWindows()
 
   clear();
 
-  fprintf(stderr, "DEBUG: ReCreateWindows Done. Split=%d\n", IsSplitScreen);
-  fprintf(stderr, "DEBUG: Left Win=%p Right Win=%p\n", (void*)LeftPanel->pan_dir_window, (void*)RightPanel->pan_dir_window);
+  fprintf(stderr, "DEBUG: ReCreateWindows Done. Split=%d Preview=%d\n", IsSplitScreen, GlobalView->preview_mode);
+  fprintf(stderr, "DEBUG: Left Win=%p Right Win=%p Preview Win=%p\n", (void*)LeftPanel->pan_dir_window, (void*)RightPanel->pan_dir_window, (void*)GlobalView->ctx_preview_window);
   fprintf(stderr, "DEBUG: ActivePanel=%p (%s)\n", (void*)ActivePanel, (ActivePanel==LeftPanel)?"LEFT":"RIGHT");
   fprintf(stderr, "DEBUG: Global dir_window=%p\n", (void*)dir_window);
 }

@@ -791,9 +791,13 @@ YtreeAction GetKeyAction(int ch)
         case 0x0B:      return ACTION_CMD_TAGGED_C; /* Ctrl-K (legacy copy) */
         case 0x04:      return ACTION_CMD_TAGGED_D; /* Ctrl-D */
         case 0x07:      return ACTION_CMD_TAGGED_G; /* Ctrl-G */
-        case 0x0E:      return ACTION_CMD_TAGGED_M; /* Ctrl-N (Move Tagged legacy) */
+        case 0x0E:      /* Ctrl-N */
+                        if (GlobalView && GlobalView->preview_mode) return ACTION_PREVIEW_SCROLL_DOWN;
+                        return ACTION_CMD_TAGGED_M; /* Move Tagged legacy */
         case 0x0F:      return ACTION_CMD_TAGGED_O; /* Ctrl-O */
-        case 0x10:      return ACTION_CMD_TAGGED_P; /* Ctrl-P */
+        case 0x10:      /* Ctrl-P */
+                        if (GlobalView && GlobalView->preview_mode) return ACTION_PREVIEW_SCROLL_UP;
+                        return ACTION_CMD_TAGGED_P;
         case 0x12:      return ACTION_CMD_TAGGED_R; /* Ctrl-R */
         case 0x13:      return ACTION_CMD_TAGGED_S; /* Ctrl-S */
         case 0x16:      return ACTION_CMD_TAGGED_V; /* Ctrl-V */
@@ -804,11 +808,31 @@ YtreeAction GetKeyAction(int ch)
 #ifdef KEY_F
         case KEY_F(12): return ACTION_LIST_JUMP;
         case KEY_F(8):  return ACTION_SPLIT_SCREEN; /* ADDED */
+        case KEY_F(7):  return ACTION_VIEW_PREVIEW; /* ADDED */
         case KEY_F(6):  return ACTION_TOGGLE_STATS;
         case KEY_F(5):  return ACTION_REFRESH; /* ADDED */
         case '8':
         case KEY_F(28): return ACTION_TOGGLE_TAGGED_MODE; /* Shift-F4 */
         case KEY_F(16): return ACTION_TOGGLE_TAGGED_MODE; /* F4 (often Shift-F4 on some terminals) */
+#endif
+
+#ifdef KEY_SF
+        case KEY_SF:    return ACTION_PREVIEW_SCROLL_DOWN;
+#endif
+#ifdef KEY_SR
+        case KEY_SR:    return ACTION_PREVIEW_SCROLL_UP;
+#endif
+#ifdef KEY_SHOME
+        case KEY_SHOME: return ACTION_PREVIEW_HOME;
+#endif
+#ifdef KEY_SEND
+        case KEY_SEND:  return ACTION_PREVIEW_END;
+#endif
+#ifdef KEY_SPREVIOUS
+        case KEY_SPREVIOUS: return ACTION_PREVIEW_PAGE_UP;
+#endif
+#ifdef KEY_SNEXT
+        case KEY_SNEXT: return ACTION_PREVIEW_PAGE_DOWN;
 #endif
 
         default:        return ACTION_NONE;
