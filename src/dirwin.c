@@ -1268,6 +1268,20 @@ int HandleDirWindow(DirEntry *start_dir_entry)
       GlobalView->ctx_file_window = ActivePanel->pan_file_window;
   }
 
+  /* Safety Reset for Preview Mode */
+  if (GlobalView->preview_mode) {
+      GlobalView->preview_mode = FALSE;
+      ReCreateWindows();
+      DisplayMenu();
+      /* Update context again after ReCreateWindows */
+      if (ActivePanel) {
+          GlobalView->ctx_dir_window = ActivePanel->pan_dir_window;
+          GlobalView->ctx_small_file_window = ActivePanel->pan_small_file_window;
+          GlobalView->ctx_big_file_window = ActivePanel->pan_big_file_window;
+          GlobalView->ctx_file_window = ActivePanel->pan_file_window;
+      }
+  }
+
   getmaxyx(dir_window, height, width);
 
   /* Clear flags */
@@ -1410,35 +1424,9 @@ int HandleDirWindow(DirEntry *start_dir_entry)
     /* ViKey processing is now handled inside GetKeyAction */
 
     if(resize_request) {
-       ReCreateWindows();
-       /* Update Global View Context to match Active Panel - ReCreateWindows might have updated global or panel windows */
-       GlobalView->ctx_dir_window = ActivePanel->pan_dir_window;
-       GlobalView->ctx_small_file_window = ActivePanel->pan_small_file_window;
-       GlobalView->ctx_big_file_window = ActivePanel->pan_big_file_window;
-       GlobalView->ctx_file_window = ActivePanel->pan_file_window;
-
-       DisplayMenu();
-       getmaxyx(dir_window, height, width);
-       while(ActivePanel->cursor_pos >= height) {
-         ActivePanel->cursor_pos--;
-	     ActivePanel->disp_begin_pos++;
-       }
-       DisplayTree( ActivePanel->vol, dir_window, ActivePanel->disp_begin_pos,
-		    ActivePanel->disp_begin_pos + ActivePanel->cursor_pos, TRUE
-		  );
-       DisplayFileWindow(dir_entry, file_window);
-       DisplayDiskStatistic(s);
-       DisplayDirStatistic(dir_entry, NULL, s);
-       DisplayDirParameter( dir_entry );
+       /* SIMPLIFIED RESIZE: Just call Global Refresh */
+       RefreshGlobalView(dir_entry);
        need_dsp_help = TRUE;
-       /* Removed redundant calls to fix missing T-junctions */
-       /* Update header path after resize */
-       {
-           char path[PATH_LENGTH];
-           GetPath(dir_entry, path);
-           DisplayHeaderPath(path);
-       }
-       doupdate(); /* FORCE UPDATE */
        resize_request = FALSE;
     }
 
@@ -1453,6 +1441,32 @@ int HandleDirWindow(DirEntry *start_dir_entry)
                GlobalView->show_stats = !GlobalView->show_stats;
                resize_request = TRUE;
                break;
+
+      case ACTION_VIEW_PREVIEW:
+             GlobalView->preview_mode = TRUE;
+
+             /* Enter File Window loop via HandleSwitchWindow logic */
+             /* We use HandleSwitchWindow to encapsulate the setup for HandleFileWindow */
+             HandleSwitchWindow(dir_entry, &need_dsp_help, &ch, ActivePanel);
+
+             /* Critical Safety: Check if volume changed */
+             if (CurrentVolume != start_vol) return ESC;
+
+             /* Post-Return Cleanup */
+             GlobalView->preview_mode = FALSE; /* Ensure off */
+
+             /* CENTRALIZED REFRESH: Restore full layout (Tree, Stats, Separators) */
+             RefreshGlobalView(dir_entry);
+
+             need_dsp_help = TRUE;
+
+             /* Refresh local pointer */
+             if (ActivePanel->vol->total_dirs > 0) {
+                 dir_entry = ActivePanel->vol->dir_entry_list[ActivePanel->disp_begin_pos + ActivePanel->cursor_pos].dir_entry;
+             } else {
+                 dir_entry = s->tree;
+             }
+             break;
 
       case ACTION_SPLIT_SCREEN:
              if (IsSplitScreen && ActivePanel == RightPanel) {
@@ -1867,6 +1881,10 @@ int HandleDirWindow(DirEntry *start_dir_entry)
              HandleSwitchWindow(dir_entry, &need_dsp_help, &ch, ActivePanel);
              /* Critical Safety: Check if volume changed after returning from File Window */
              if (CurrentVolume != start_vol) return ESC;
+
+             /* CENTRALIZED REFRESH: Restore clean layout after return */
+             RefreshGlobalView(dir_entry);
+
              /* Refresh local pointer */
              dir_entry = ActivePanel->vol->dir_entry_list[ActivePanel->disp_begin_pos + ActivePanel->cursor_pos].dir_entry;
 		     break;

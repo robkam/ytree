@@ -3,7 +3,7 @@ title: YTREE
 section: 1
 header: "User Commands"
 footer: "ytree 3.0.0"
-date: "December 2025"
+date: "January 2026"
 ---
 
 # NAME
@@ -63,6 +63,11 @@ Activated by **F8**. The screen is divided vertically into two independent file 
 *   **Switch Focus:** Press **TAB** to switch active control between the Left and Right panels.
 *   **Targeting:** Operations like **Copy** and **Move** automatically default to the path of the inactive (passive) panel as the destination.
 
+**File Preview Mode**
+Activated by **F7**. The screen layout changes to show the file list on the left (or active panel) and the file contents on the right.
+*   **Navigate File List:** Use **Up/Down**, **Page Up/Down**, **Home/End** to move the selection in the file list. The preview pane updates immediately.
+*   **Scroll Preview:** Use **Shift+Up/Down** (or **^P** / **^N**) to scroll the content of the preview window line by line. Use **Shift+Page Up/Down** to scroll by pages. **Shift+Home/End** jumps to the beginning or end of the file.
+
 # KEY BINDINGS
 
 **Note:** All keys are case insensitive unless otherwise noted. The symbol `^` denotes the **CTRL** key.
@@ -74,7 +79,9 @@ These commands work in most modes:
 *   **F2**: Select Directory (Log/Copy/Move).
 *   **F5**: Refresh (same as **^L**).
 *   **F6**: Toggle Statistics Panel (Wide Mode).
+*   **F7**: Toggle File Preview Panel.
 *   **F8**: Toggle Split Screen Mode.
+*   **F12**: **List Jump**. Jump to a file by typing the start of its name.
 *   **B**: Toggle Brief (Compact) filename view in the File Window.
 *   **^L**: **Reload**. Re-read the contents of the current directory from disk and refresh the view.
 *   **K** (Shift+K): **Volume Menu**. Show a list of all currently logged volumes (drives/paths). Select a volume to switch context instantly. Press `Delete` (or `D`) in the menu to release (unlog) a volume.
@@ -139,9 +146,8 @@ Active when the file window is focused.
 *   **Y** (Pathcopy): Copy selected file including path.
 *   **^Y**: Copy all tagged files including path.
 *   **^F** (File Mode): Cycle file display modes.
-*   **Space**: Suppress screen output while working.
 *   **Return**: Switch to Full Screen File Mode / Directory Mode.
-*   **\*** (Asterisk): **Invert Tags**. Toggle the tag state of all currently visible files.
+*   **\*** (Asterisk) / **Shift-8**: **Invert Tags**. Toggle the tag state of all currently visible files.
 
 ### Archive Mode
 When browsing an archive (ZIP, TAR, etc.), ytree behaves similarly to a read-only file system.
@@ -248,14 +254,14 @@ If you find anything amiss, you can report it using [GitHub Issues](https://gith
 It will help us to address the issue if you include the following:
 
 *   **OS & Configuration:** (Distro, Terminal type, etc.)
-*   **Version:** (ytree version)
-*   **Steps to Reproduce:** (What I did)
-*   **Expected Behavior:** (What I expected)
-*   **Actual Behavior:** (What actually happened)
+*   **Ytree Version:**
+*   **Steps to Reproduce:**
+*   **Expected Behavior:**
+*   **Actual Behavior:**
 
 # AUTHORS
 
-Authors and contributors are listed in the [AUTHORS.md](https://github.com/robkam/ytree/blob/main/doc/AUTHORS.md) file in the source distribution.
+Authors and contributors are listed in the [AUTHORS.md](AUTHORS.md) file.
 
 # SEE ALSO
 

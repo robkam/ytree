@@ -1347,3 +1347,267 @@ int ViewTaggedFiles(DirEntry *dir_entry)
     free(command_line);
     return 0;
 }
+
+/* Preview Renderer Implementation */
+
+void RenderFilePreview(WINDOW *win, char *filename, long *line_offset_ptr, int col_offset)
+{
+    int fd;
+    char buf[1024];
+    ssize_t nread;
+    BOOL is_hex = FALSE;
+    int i;
+    int max_y, max_x;
+    long line_offset = *line_offset_ptr;
+
+    if (!win || !filename) return;
+
+    getmaxyx(win, max_y, max_x);
+    werase(win);
+
+    fd = open(filename, O_RDONLY);
+    if (fd == -1) {
+        mvwprintw(win, 0, 0, "Error opening file:");
+        mvwprintw(win, 1, 0, "%.*s", max_x, strerror(errno));
+        wnoutrefresh(win);
+        return;
+    }
+
+    /* Detect Type: Check first 1KB for null bytes */
+    nread = read(fd, buf, sizeof(buf));
+    if (nread > 0) {
+        for (i = 0; i < nread; i++) {
+            if (buf[i] == '\0') {
+                is_hex = TRUE;
+                break;
+            }
+        }
+    }
+
+    /* Reset file position */
+    lseek(fd, 0, SEEK_SET);
+
+    if (is_hex) {
+        /* Check Bounds for Hex Mode */
+        struct stat st;
+        if (fstat(fd, &st) != -1) {
+            /* If size is 0, line_offset must be 0. If size > 0, calculate pages. */
+            long max_offset = (st.st_size > 0) ? (st.st_size / 16) : 0;
+
+            /* If requested offset is beyond EOF (or start of last partial page), clamp it. */
+            /* Actually, let's allow scrolling to the very last partial line. */
+            if (line_offset > max_offset) {
+                line_offset = max_offset;
+                *line_offset_ptr = line_offset;
+            }
+        }
+
+        /* Hex Mode */
+        unsigned char hexbuf[16];
+        long current_offset = line_offset * 16;
+        int row = 0;
+
+        if (lseek(fd, current_offset, SEEK_SET) == -1) {
+             mvwprintw(win, 0, 0, "Seek error");
+             close(fd);
+             wnoutrefresh(win);
+             return;
+        }
+
+        while (row < max_y) {
+            nread = read(fd, hexbuf, 16);
+            if (nread <= 0) break;
+
+            char hex_part[64] = "";
+            char asc_part[17] = "";
+
+            /* Build Hex and ASCII Parts */
+            for (i = 0; i < 16; i++) {
+                if (i < nread) {
+                    char tmp[4];
+                    snprintf(tmp, sizeof(tmp), "%02X ", hexbuf[i]);
+                    strcat(hex_part, tmp);
+                    if (isprint(hexbuf[i])) asc_part[i] = hexbuf[i];
+                    else asc_part[i] = '.';
+                } else {
+                    strcat(hex_part, "   ");
+                    asc_part[i] = ' ';
+                }
+            }
+            asc_part[16] = '\0';
+
+            /* Format: Offset (8) + 2 spaces + Hex (48) + 1 space + ASCII (16) */
+            mvwprintw(win, row, 0, "%08lX  %s %s", current_offset, hex_part, asc_part);
+
+            current_offset += 16;
+            row++;
+        }
+
+    } else {
+        /* Text Mode */
+        FILE *fp = fdopen(fd, "r");
+        if (!fp) {
+             close(fd);
+             return;
+        }
+
+        /* Bounds Check Logic for Text Mode */
+        if (line_offset > 0) {
+            char skip_buf[4096];
+            long skipped = 0;
+
+            /* Fast-forward to validate line_offset */
+            while (skipped < line_offset) {
+                if (!fgets(skip_buf, sizeof(skip_buf), fp)) {
+                    /* EOF reached before target offset. 'skipped' is total lines. */
+                    /* Clamp to valid start position (end - window_height) */
+                    long new_start = MAXIMUM(0, skipped - max_y + 1);
+
+                    /* Update pointers */
+                    *line_offset_ptr = new_start;
+                    line_offset = new_start;
+
+                    /* Restart file stream for drawing */
+                    rewind(fp);
+                    skipped = 0; /* Reset skip counter for drawing loop */
+                    break;
+                }
+
+                size_t len = strlen(skip_buf);
+                if (len == 0) break;
+
+                if (skip_buf[len-1] == '\n') {
+                    skipped++;
+                } else {
+                    /* Line too long (partial read), consume rest */
+                    int c;
+                    while ((c = fgetc(fp)) != '\n' && c != EOF);
+                    skipped++;
+                }
+            }
+
+            /* If loop completed naturally, file pointer is at correct position. */
+            /* If clamped/rewound, loop broke and we are at start, ready to skip to new offset. */
+        }
+
+        char line_buf[4096];
+        long skipped = 0;
+
+        /* Skip lines (either original or corrected offset) */
+        /* Only need to skip if we rewound or started from 0 */
+        if (ftell(fp) == 0 && line_offset > 0) {
+             while (skipped < line_offset) {
+                if (!fgets(line_buf, sizeof(line_buf), fp)) break;
+                size_t len = strlen(line_buf);
+                if (len == 0) break;
+                if (line_buf[len-1] == '\n') {
+                    skipped++;
+                } else {
+                    int c;
+                    while ((c = fgetc(fp)) != '\n' && c != EOF);
+                    skipped++;
+                }
+            }
+        }
+
+        /* Render */
+        int row = 0;
+        while (row < max_y && fgets(line_buf, sizeof(line_buf), fp)) {
+            /* Remove newline */
+            size_t len = strlen(line_buf);
+            if (len > 0 && line_buf[len-1] == '\n') line_buf[len-1] = '\0';
+
+            /* Handle col_offset */
+            char *disp_ptr = line_buf;
+            if ((int)strlen(line_buf) > col_offset) {
+                disp_ptr += col_offset;
+            } else {
+                disp_ptr = "";
+            }
+
+            wmove(win, row, 0);
+            int remaining_width = max_x;
+
+            if (GlobalSearchTerm[0] != '\0') {
+                char *ptr = disp_ptr;
+                char *match;
+
+                /* Simple highlighting logic */
+                while (remaining_width > 0 && *ptr) {
+                    match = strstr(ptr, GlobalSearchTerm);
+                    if (match) {
+                        /* Print text before match */
+                        int pre_len = match - ptr;
+                        if (pre_len > remaining_width) pre_len = remaining_width;
+
+                        if (pre_len > 0) {
+                            waddnstr(win, ptr, pre_len);
+                            remaining_width -= pre_len;
+                            ptr += pre_len;
+                        }
+
+                        if (remaining_width <= 0) break;
+
+                        /* Print Match */
+                        int match_len = strlen(GlobalSearchTerm);
+                        if (match_len > remaining_width) match_len = remaining_width;
+
+                        wattron(win, A_REVERSE);
+                        waddnstr(win, GlobalSearchTerm, match_len);
+                        wattroff(win, A_REVERSE);
+
+                        remaining_width -= match_len;
+                        ptr += match_len;
+                    } else {
+                        /* No more matches, print rest */
+                        waddnstr(win, ptr, remaining_width);
+                        break;
+                    }
+                }
+            } else {
+                waddnstr(win, disp_ptr, remaining_width);
+            }
+
+            row++;
+        }
+        fclose(fp); /* Closes fd */
+        wnoutrefresh(win);
+        return;
+    }
+
+    close(fd);
+    wnoutrefresh(win);
+}
+
+static char last_preview_archive[PATH_LENGTH] = "";
+static char last_preview_internal[PATH_LENGTH] = "";
+
+void RenderArchivePreview(WINDOW *win, char *archive_path, char *internal_path, long *line_offset_ptr)
+{
+    char cache_file[] = "/tmp/ytree_preview.cache";
+
+    if (strcmp(archive_path, last_preview_archive) != 0 ||
+        strcmp(internal_path, last_preview_internal) != 0) {
+
+        /* New file requested, extract it */
+        unlink(cache_file);
+
+        /* Assuming ExtractArchiveNode is available via ytree.h */
+        if (ExtractArchiveNode(archive_path, internal_path, cache_file) == 0) {
+            /* Update Cache Keys */
+            strncpy(last_preview_archive, archive_path, PATH_LENGTH-1);
+            last_preview_archive[PATH_LENGTH-1] = '\0';
+            strncpy(last_preview_internal, internal_path, PATH_LENGTH-1);
+            last_preview_internal[PATH_LENGTH-1] = '\0';
+        } else {
+            wclear(win);
+            mvwprintw(win, 0, 0, "Preview extraction failed.");
+            wnoutrefresh(win);
+            /* Invalidate cache */
+            last_preview_archive[0] = '\0';
+            return;
+        }
+    }
+
+    RenderFilePreview(win, cache_file, line_offset_ptr, 0);
+}

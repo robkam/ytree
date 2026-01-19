@@ -95,6 +95,15 @@ Right panels. \* **Targeting:** Operations like **Copy** and **Move**
 automatically default to the path of the inactive (passive) panel as the
 destination.
 
+**File Preview Mode** Activated by **F7**. The screen layout changes to
+show the file list on the left (or active panel) and the file contents
+on the right. \* **Navigate File List:** Use **Up/Down**, **Page
+Up/Down**, **Home/End** to move the selection in the file list. The
+preview pane updates immediately. \* **Scroll Preview:** Use
+**Shift+Up/Down** (or **^P** / **^N**) to scroll the content of the
+preview window line by line. Use **Shift+Page Up/Down** to scroll by
+pages. **Shift+Home/End** jumps to the beginning or end of the file.
+
 # KEY BINDINGS
 
 **Note:** All keys are case insensitive unless otherwise noted. The
@@ -108,7 +117,10 @@ These commands work in most modes:
 - **F2**: Select Directory (Log/Copy/Move).
 - **F5**: Refresh (same as **^L**).
 - **F6**: Toggle Statistics Panel (Wide Mode).
+- **F7**: Toggle File Preview Panel.
 - **F8**: Toggle Split Screen Mode.
+- **F12**: **List Jump**. Jump to a file by typing the start of its
+  name.
 - **B**: Toggle Brief (Compact) filename view in the File Window.
 - **^L**: **Reload**. Re-read the contents of the current directory from
   disk and refresh the view.
@@ -184,6 +196,7 @@ Active when the file window is focused.
 - **^U**: Untag all displayed files.
 - **V** (View): View file with the pager defined in `~/.ytree` (default:
   less).
+- **^V**: **View Tagged**. View all tagged files sequentially.
 - **X** (eXecute): Execute a shell command. `{}` is replaced by the
   filename.
 - **^X**: Execute shell command for all tagged files. `{}` is replaced
@@ -191,10 +204,9 @@ Active when the file window is focused.
 - **Y** (Pathcopy): Copy selected file including path.
 - **^Y**: Copy all tagged files including path.
 - **^F** (File Mode): Cycle file display modes.
-- **Space**: Suppress screen output while working.
 - **Return**: Switch to Full Screen File Mode / Directory Mode.
-- **\*** (Asterisk): **Invert Tags**. Toggle the tag state of all
-  currently visible files.
+- **\*** (Asterisk) / **Shift-8**: **Invert Tags**. Toggle the tag state
+  of all currently visible files.
 
 ### Archive Mode
 
@@ -213,11 +225,13 @@ the archive and returns to the parent directory.
 **^K** (Copy Tagged): Copy (Extract) all tagged files. \* **F**
 (Filter): Set file filter. \* **H** (Hex): View file in hex mode. \*
 **P** (Pipe): Pipe content to command. \* **S** (Sort): Sort file list.
-\* **T** (Tag): Tag selected file. \* **^T**: Tag all files. \* **U**
-(Untag): Untag selected file. \* **^U**: Untag all files. \* **V**
-(View): View file. \* **^F** (File Mode): Cycle display modes. \*
-**Return**: Switch to Archive-Dir Mode. \* **\*** (Asterisk): Invert tag
-selection.
+\* **^S** (Search): Search tagged files for a string. Untags files that
+do not match. \* **T** (Tag): Tag selected file. \* **^T**: Tag all
+files. \* **U** (Untag): Untag selected file. \* **^U**: Untag all
+files. \* **V** (View): View file. \* **^V**: **View Tagged**. View all
+tagged files sequentially. \* **^F** (File Mode): Cycle display modes.
+\* **Return**: Switch to Archive-Dir Mode. \* **\*** (Asterisk): Invert
+tag selection.
 
 # COMMAND LINE EDITING
 
@@ -300,16 +314,15 @@ Issues](https://github.com/robkam/ytree/issues).
 It will help us to address the issue if you include the following:
 
 - **OS & Configuration:** (Distro, Terminal type, etc.)
-- **Version:** (ytree version)
-- **Steps to Reproduce:** (What I did)
-- **Expected Behavior:** (What I expected)
-- **Actual Behavior:** (What actually happened)
+- **Ytree Version:**
+- **Steps to Reproduce:**
+- **Expected Behavior:**
+- **Actual Behavior:**
 
 # AUTHORS
 
-Authors and contributors are listed in the
-[AUTHORS.md](https://github.com/robkam/ytree/blob/main/doc/AUTHORS.md)
-file in the source distribution.
+Authors and contributors are listed in the [AUTHORS.md](AUTHORS.md)
+file.
 
 # SEE ALSO
 

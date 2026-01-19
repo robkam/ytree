@@ -118,7 +118,54 @@ void DisplayFileHelp(void)
   }
 }
 
+static void PrintHelpString(WINDOW *win, int y, int x, const char *str)
+{
+    int ch;
+    int color, hi_color, lo_color;
 
+    if (x < 0 || y < 0) return;
+
+#ifdef COLOR_SUPPORT
+    lo_color = CPAIR_MENU;
+    hi_color = CPAIR_HIMENUS;
+#else
+    lo_color = A_NORMAL;
+    hi_color = A_BOLD;
+#endif
+
+    color = lo_color;
+    wmove(win, y, x);
+
+    for (; *str; str++) {
+        ch = (int)*str;
+        switch (*str) {
+            case '(': color = hi_color; continue;
+            case ')': color = lo_color; continue;
+            default: break; /* Print normally */
+        }
+
+#ifdef COLOR_SUPPORT
+        wattrset(win, COLOR_PAIR(color) | A_BOLD);
+#else
+        wattrset(win, color);
+#endif
+        waddch(win, ch);
+    }
+    wattrset(win, 0);
+}
+
+void DisplayPreviewHelp(void)
+{
+   /*
+   * Help Footer for Preview Mode (F7)
+   */
+    PrintHelpString(stdscr, Y_PROMPT, 0,
+        "PREVIEW   (Up/Down) Select File  (PgUp/PgDn) Scroll Page  (Home/End) Jump");
+    clrtoeol();
+    PrintHelpString(stdscr, Y_PROMPT + 1, 0,
+      "COMMANDS  (Shift) Navigate Preview  (F7) Exit Preview" );
+    clrtoeol();
+}
 
 void ClearHelp(void)
 {
@@ -175,6 +222,7 @@ void DisplayMenu(void)
   werase( dir_window );
   werase( big_file_window );
   werase( small_file_window );
+  if (preview_window) werase(preview_window);
 
   /* Draw the left vertical border for the main application window.
    * The right-hand statistics panel is now drawn entirely by stats.c. */
@@ -194,8 +242,28 @@ void DisplayMenu(void)
   /* Draw the bottom horizontal border of the main content area. */
   PrintLine( stdscr, LINES - 4, 0, last_line, L_BORDER_FOR_DISPLAY );
 
+  /* PREVIEW MODE SEPARATOR */
+  if (GlobalView->preview_mode) {
+      int sep_x = layout.preview_win_x - 1;
+      int top_y = 1;
+      int bottom_y = LINES - 4;
+
+#ifdef COLOR_SUPPORT
+      attron(COLOR_PAIR(CPAIR_MENU) | A_BOLD);
+#endif
+      /* Draw Vertical Line */
+      for (y = top_y + 1; y < bottom_y; y++) {
+          mvaddch(y, sep_x, ACS_VLINE);
+      }
+      /* Draw Junctions */
+      mvaddch(top_y, sep_x, ACS_TTEE);
+      mvaddch(bottom_y, sep_x, ACS_BTEE);
+#ifdef COLOR_SUPPORT
+      attroff(COLOR_PAIR(CPAIR_MENU) | A_BOLD);
+#endif
+  }
   /* Split Screen Visual Separator & Horizontal Dividers */
-  if (!IsSplitScreen) {
+  else if (!IsSplitScreen) {
       if (file_window == small_file_window) {
           PrintLine( stdscr, sep_y, 0, middle_line_separator, L_BORDER_FOR_DISPLAY );
       }
@@ -262,7 +330,9 @@ void DisplayMenu(void)
       /* Explicitly Draw Corners and Junctions */
       mvaddch(1, right_x, ACS_URCORNER);
       mvaddch(bottom_y, right_x, ACS_LRCORNER);
-      mvaddch(sep_y, right_x, ACS_RTEE);
+      if (!GlobalView->preview_mode) {
+          mvaddch(sep_y, right_x, ACS_RTEE);
+      }
   }
 
   /* The loops and calls related to drawing the static statistics panel (mask, extended_line, last_line)
@@ -305,6 +375,10 @@ void SwitchToSmallFileWindow(void)
   }
 
   file_window = small_file_window;
+  GlobalView->ctx_file_window = file_window;
+  if (ActivePanel) {
+      ActivePanel->pan_file_window = ActivePanel->pan_small_file_window;
+  }
   RefreshWindow( stdscr );
 }
 
@@ -335,6 +409,10 @@ void SwitchToBigFileWindow(void)
   /* The VLINE junction character at the stats panel border is now handled by stats.c:DrawBoxFrame */
 #endif /* COLOR_SUPPORT */
   file_window = big_file_window;
+  GlobalView->ctx_file_window = file_window;
+  if (ActivePanel) {
+      ActivePanel->pan_file_window = ActivePanel->pan_big_file_window;
+  }
   RefreshWindow( stdscr );
 }
 
@@ -458,4 +536,81 @@ void RenderInactivePanel(YtreePanel *panel)
 
     /* Restore global context */
     CurrentVolume = saved_vol;
+}
+
+/*
+ * CENTRALIZED REDRAW FUNCTION
+ * Handles the complexities of Split/Big/Preview modes in one place.
+ * Use this to ensure all borders, stats, and content are consistent.
+ */
+void RefreshGlobalView(DirEntry *dir_entry)
+{
+    Statistic *s = &CurrentVolume->vol_stats;
+
+    /* 1. Re-evaluate Layout (Geometry) */
+    ReCreateWindows();
+
+    /* 2. Draw Borders and Static Frames */
+    DisplayMenu();
+
+    /* 3. Draw Stats Panel (Restores Right Borders) */
+    /* Only draw full stats if NOT in preview mode (unless we want to squeeze them in later) */
+    if (!GlobalView->preview_mode) {
+        DisplayDiskStatistic(s); /* Draws Frame Top/Mid */
+        /* If global mode, stats might be special */
+        if (dir_entry->global_flag) {
+             /* In ShowAll, we might not have a specific dir context for stats,
+                but we need to draw the bottom separator */
+             /* DisplayDirStatistic handles "SHOW ALL" title if needed */
+        }
+        DisplayDirStatistic(dir_entry, (dir_entry->global_flag) ? "SHOW ALL" : NULL, s);
+        DisplayAvailBytes(s);
+    }
+
+    /* 4. Draw Content based on Mode */
+    if (GlobalView->preview_mode) {
+        /* PREVIEW MODE: File List (Big/Narrow) + Preview Pane */
+        SwitchToBigFileWindow(); /* Updates 'file_window' pointer */
+
+        /* Draw File List */
+        /* Use 0 for start_x (no horiz scroll in narrow mode typically, or handled by DisplayFiles logic) */
+        DisplayFiles(dir_entry, dir_entry->start_file, dir_entry->start_file + dir_entry->cursor_pos, 0, file_window);
+
+        /* Content update (UpdatePreview) needs to be called by the caller (HandleFileWindow)
+           because it relies on static variables (offsets) local to filewin.c,
+           or we need to export it. For now, we set the stage. */
+
+    } else if (dir_entry->big_window || dir_entry->global_flag || dir_entry->tagged_flag) {
+        /* BIG WINDOW MODE (Zoom or ShowAll) */
+        SwitchToBigFileWindow();
+        DisplayFiles(dir_entry, dir_entry->start_file, dir_entry->start_file + dir_entry->cursor_pos, 0, file_window);
+
+    } else {
+        /* STANDARD SPLIT MODE */
+        SwitchToSmallFileWindow();
+
+        /* Draw Directory Tree */
+        /* We must use ActivePanel's window to be safe */
+        if (ActivePanel && ActivePanel->pan_dir_window) {
+            DisplayTree(ActivePanel->vol, ActivePanel->pan_dir_window,
+                        ActivePanel->disp_begin_pos,
+                        ActivePanel->disp_begin_pos + ActivePanel->cursor_pos, TRUE);
+        }
+
+        /* Draw File List */
+        DisplayFiles(dir_entry, dir_entry->start_file, dir_entry->start_file + dir_entry->cursor_pos, 0, file_window);
+    }
+
+    /* 5. Update Footer Help */
+    if (GlobalView->preview_mode) {
+        DisplayPreviewHelp();
+    } else if (file_window == stdscr || /* checking focus context is hard here, rely on caller flags usually */
+               GlobalView->ctx_file_window == file_window) { // Heuristic
+        /* This part is tricky because 'mode' tells us DISK/USER, but not which window is focused.
+           We'll leave specific help text to the input loops, but clear the area. */
+        ClearHelp(); /* Safety clear */
+    }
+
+    /* 6. Commit Changes */
+    doupdate();
 }
