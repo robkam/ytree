@@ -9,6 +9,7 @@
 #define YTREE_H
 
 #include "ytree_defs.h"
+#include "ytree_fs.h"
 
 /* Some handy macros... */
 
@@ -253,22 +254,6 @@ extern struct Volume *Volume_GetByPath(const char *path);
 /* main.c */
 extern int ytree(int argc, char *argv[]);
 
-/* archive.c */
-extern int ExtractArchiveEntry(const char *archive_path, const char *entry_path, int out_fd);
-extern int ExtractArchiveNode(const char *archive_path, const char *entry_path, const char *dest_path);
-extern int InsertArchiveFileEntry(DirEntry *tree, char *path, struct stat *stat, Statistic *s);
-extern int TryInsertArchiveDirEntry(DirEntry *tree, char *dir, struct stat *stat, Statistic *s);
-extern void MinimizeArchiveTree(DirEntry **tree_ptr, Statistic *s);
-#ifdef HAVE_LIBARCHIVE
-extern int Archive_Rewrite(char *archive_path, RewriteCallback cb, void *user_data);
-extern int Archive_DeleteEntry(char *archive_path, char *file_path);
-extern int Archive_AddFile(char *archive_path, char *src_path, char *dest_name, BOOL is_dir);
-extern int Archive_RenameEntry(char *archive_path, char *old_path, char *new_name);
-#endif
-
-/* readarchive.c */
-extern int ReadTreeFromArchive(DirEntry **dir_entry_ptr, const char *filename, Statistic *s);
-
 /* animate.c */
 extern void InitAnimation(void);
 extern void StopAnimation(void);
@@ -404,10 +389,6 @@ extern void SetFileMode(int new_file_mode);
 extern void DisplayFiles(DirEntry *de_ptr, int start_file_no, int hilight_no, int start_x, WINDOW *win);
 extern int ViewTaggedFiles(DirEntry *dir_entry);
 
-/* freesp.c */
-extern int GetAvailBytes(LONGLONG *avail_bytes, Statistic *s);
-extern int GetDiskParameter(char *path, char *volume_name, LONGLONG *avail_bytes, LONGLONG *capacity, Statistic *s);
-
 /* group.c */
 extern char *GetDisplayGroupName(unsigned int gid);
 extern int GetGroupId(char *name);
@@ -463,11 +444,6 @@ extern int GetMoveParameter(char *from_file, char *to_file, char *to_dir);
 extern int MoveFile(FileEntry *fe_ptr, unsigned char confirm, char *to_file, DirEntry *dest_dir_entry, char *to_dir_path, FileEntry **new_fe_ptr, int *dir_create_mode, int *overwrite_mode);
 extern int MoveTaggedFiles(FileEntry *fe_ptr, WalkingPackage *walking_package);
 
-/* owner_utils.c */
-extern int ChangeOwnership(const char *path, uid_t new_uid, gid_t new_gid, struct stat *stat_buf);
-extern int HandleDirOwnership(DirEntry *de_ptr, BOOL change_owner, BOOL change_group);
-extern int HandleFileOwnership(FileEntry *fe_ptr, BOOL change_owner, BOOL change_group);
-
 /* passwd.c */
 extern char *GetDisplayPasswdName(unsigned int uid);
 extern char *GetPasswdName(unsigned int uid);
@@ -500,11 +476,6 @@ extern int ReadProfile( char *filename );
 /* quit.c */
 extern void Quit(void);
 extern void QuitTo(DirEntry * dir_entry);
-
-/* readtree.c */
-extern int ReadTree(DirEntry *dir_entry, char *path, int depth, Statistic *s);
-extern void UnReadTree(DirEntry *dir_entry, Statistic *s);
-extern int RescanDir(DirEntry *dir_entry, int depth, Statistic *s);
 
 /* rename.c */
 extern int GetRenameParameter(char *old_name, char *new_name);
@@ -543,14 +514,6 @@ extern int QuerySystemCall(char *command_line, Statistic *s);
 extern int SilentSystemCall(char *command_line, Statistic *s);
 extern int SilentSystemCallEx(char *command_line, BOOL enable_clock, Statistic *s);
 extern int SystemCall(char *command_line, Statistic *s);
-
-/* tree_utils.c */
-extern void DeleteTree(DirEntry *tree);
-extern int GetDirEntry(DirEntry *tree, DirEntry *current_dir_entry, char *dir_path, DirEntry **dir_entry, char *to_path);
-extern int GetFileEntry(DirEntry *de_ptr, char *file_name, FileEntry **file_entry);
-extern void SaveTreeState(DirEntry *root, PathList **expanded, PathList **tagged);
-extern void RestoreTreeState(DirEntry *root, PathList **expanded, PathList *tagged, Statistic *s);
-extern void FreePathList(PathList *list);
 
 /* usermode.c */
 extern int DirUserMode(DirEntry *dir_entry, int ch);
