@@ -25,6 +25,7 @@ compile_commands.json
 
 # C/C++ Debugging and Profiling
 core
+!src/core/
 *.log
 gmon.out
 valgrind.out

@@ -883,7 +883,7 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 *   **Files to Modify:** None (Directory creation only).
 *   **Context Files:** None.
 *   **Action:** Execute `mkdir -p src/core src/ui src/fs src/cmd src/util`.
-*   - [ ] **Status:** Not Started.
+*   - [x] **Status:** Completed.
 
 #### **Step 5.5.2: Update Makefile for Recursion**
 *   **Goal:** Update the build system to automatically detect and compile source files in subdirectories (`src/**/*.c`).
@@ -891,7 +891,7 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 *   **Files to Modify:** `Makefile`
 *   **Context Files:** None.
 *   **Action:** Modify `SRC` definition to use `wildcard` for subdirectories (e.g., `SRC = $(wildcard src/*.c src/*/*.c)`).
-*   - [ ] **Status:** Not Started.
+*   - [x] **Status:** Completed.
 
 #### **Step 5.5.3: Move Utility Modules**
 *   **Goal:** Move safe, leaf-node utility files to `src/util/`.
@@ -899,7 +899,7 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 *   **Files to Modify:** Filesystem (Move operation).
 *   **Context Files:** None.
 *   **Action:** Move `src/string_utils.c`, `src/path_utils.c`, `src/history.c`, `src/tabcompl.c` to `src/util/`.
-*   - [ ] **Status:** Not Started.
+*   - [x] **Status:** Completed.
 
 #### **Step 5.5.4: Move Core Modules**
 *   **Goal:** Move application lifecycle and global state files to `src/core/`.
@@ -907,7 +907,7 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 *   **Files to Modify:** Filesystem (Move operation).
 *   **Context Files:** None.
 *   **Action:** Move `src/main.c`, `src/init.c`, `src/global.c`, `src/volume.c`, `src/quit.c` to `src/core/`.
-*   - [ ] **Status:** Not Started.
+*   - [x] **Status:** Completed.
 
 #### **Step 5.5.5: Move Filesystem Modules**
 *   **Goal:** Move low-level filesystem interaction logic to `src/fs/`.
@@ -915,7 +915,7 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 *   **Files to Modify:** Filesystem (Move operation).
 *   **Context Files:** None.
 *   **Action:** Move `src/readtree.c`, `src/readarchive.c`, `src/archive.c`, `src/watcher.c`, `src/freesp.c` to `src/fs/`.
-*   - [ ] **Status:** Not Started.
+*   - [x] **Status:** Completed.
 
 #### **Step 5.5.6: Move Command Modules**
 *   **Goal:** Move user command implementations to `src/cmd/`.
@@ -923,7 +923,7 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 *   **Files to Modify:** Filesystem (Move operation).
 *   **Context Files:** None.
 *   **Action:** Move `src/copy.c`, `src/move.c`, `src/delete.c`, `src/rename.c`, `src/mkdir.c`, `src/execute.c`, `src/pipe.c`, `src/system.c`, `src/chgrp.c`, `src/chmod.c`, `src/chown.c`, `src/group.c`, `src/passwd.c`, `src/usermode.c`, `src/sort.c`, `src/filter.c`, `src/log.c`, `src/profile.c` to `src/cmd/`.
-*   - [ ] **Status:** Not Started.
+*   - [x] **Status:** Completed.
 
 #### **Step 5.5.7: Move UI Modules**
 *   **Goal:** Move the remaining UI-heavy files to `src/ui/`.
@@ -931,7 +931,7 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 *   **Files to Modify:** Filesystem (Move operation).
 *   **Context Files:** None.
 *   **Action:** Move `src/dirwin.c`, `src/filewin.c`, `src/display.c`, `src/display_utils.c`, `src/view.c`, `src/input.c`, `src/color.c`, `src/edit.c`, `src/stats.c`, `src/animate.c`, `src/hex.c` to `src/ui/`.
-*   - [ ] **Status:** Not Started.
+*   - [x] **Status:** Completed.
 
 #### **Step 5.6.1: Create ytree_defs.h**
 *   **Goal:** Extract base type definitions (`BOOL`, structs) into a standalone header `include/ytree_defs.h` and include it in `ytree.h`.
