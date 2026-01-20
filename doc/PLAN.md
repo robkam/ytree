@@ -898,7 +898,7 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 *   **Files to Modify:** `src/ui/ui_nav.c` (New), `src/ui/dirwin.c`, `src/ui/filewin.c`, `include/ytree_ui.h`
 *   **Context Files:** `src/ui/dirwin.c`
 *   **Action:** Move `Movedown`, `Moveup`, `Movenpage` logic (generic parts) from `dirwin.c` to `ui_nav.c`, creating generic signatures.
-*   - [ ] **Status:** In Progress.
+*   - [x] **Status:** Completed.
 
 #### **Step 5.7.2: Extract render_dir.c**
 *   **Goal:** Move directory rendering functions from `dirwin.c` and `stats.c` to `src/ui/render_dir.c`.
