@@ -32,7 +32,6 @@ extern int GetFileTypeColor(FileEntry *fe_ptr);
 #endif
 
 /* dirwin.c */
-extern void DisplayTree(struct Volume *vol, WINDOW *win, int start_entry_no, int hilight_no, BOOL is_active);
 extern int HandleDirWindow(DirEntry *start_dir_entry);
 extern int KeyF2Get(DirEntry *start_dir_entry, int disp_begin_pos, int cursor_pos, char *path);
 extern int RefreshDirWindow(void);
@@ -42,6 +41,13 @@ extern void BuildDirEntryList(struct Volume *vol);
 extern void FreeDirEntryList(void);
 extern void FreeVolumeCache(struct Volume *vol);
 extern DirEntry *RefreshTreeSafe(DirEntry *entry);
+
+/* render_dir.c */
+extern void DisplayTree(struct Volume *vol, WINDOW *win, int start_entry_no, int hilight_no, BOOL is_active);
+extern void PrintDirEntry(struct Volume *vol, WINDOW *win, int entry_no, int y, unsigned char hilight, BOOL is_active);
+extern void SetDirMode(int mode);
+extern int GetDirMode(void);
+extern void RotateDirMode(void);
 
 /* display.c */
 extern void ClearHelp(void);
