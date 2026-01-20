@@ -4,6 +4,7 @@
  * User Interface (Ncurses) rendering and input handling
  *
  ***************************************************************************/
+
 #ifndef YTREE_UI_H
 #define YTREE_UI_H
 
@@ -129,6 +130,14 @@ extern void DisplayFileParameter(FileEntry *file_entry);
 extern void DisplayFilter(Statistic *s);
 extern void DisplayGlobalFileParameter(FileEntry *file_entry);
 extern void RecalculateSysStats(Statistic *s);
+
+/* ui_nav.c */
+extern void Nav_MoveDown(int *cursor, int *offset, int total_items, int page_height, int step);
+extern void Nav_MoveUp(int *cursor, int *offset);
+extern void Nav_PageDown(int *cursor, int *offset, int total_items, int page_height);
+extern void Nav_PageUp(int *cursor, int *offset, int page_height);
+extern void Nav_Home(int *cursor, int *offset);
+extern void Nav_End(int *cursor, int *offset, int total_items, int page_height);
 
 /* view.c */
 extern int View(DirEntry * dir_entry, char *file_path);
