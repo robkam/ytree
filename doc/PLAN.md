@@ -506,7 +506,7 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 *   **Goal:** Add a configuration option (`AUTO_REFRESH`) to control when directories are re-scanned, implemented as a bitmask to allow combinations.
     *   **1:** Enable Watcher (Inotify/Kernel Events). [Default]
     *   **2:** Refresh on Directory Navigation (Cursor Move).
-    *   **4:** Refresh on entering File Window.
+    *   **4:** Refresh when entering File Window.
 *   **Rationale:** Provides flexibility. Users on fast local disks might want `7` (All), while users on slow networks (where navigation refresh is laggy) might want `5` (Watcher + File Window) or just `4` if Inotify is unsupported.
 *   **Files to Modify:** `include/config.h`, `src/init.c`
 *   **Context Files:** `src/input.c`, `src/dirwin.c`
@@ -877,101 +877,28 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 *   **Context Files:** `include/ytree.h`
 *   - [ ] **Status:** Not Started.
 
-#### **Step 5.5.1: Create Directory Structure**
-*   **Goal:** Establish the new semantic folder hierarchy in the source tree without moving files yet.
-*   **Rationale:** Preparing the destination structure first ensures that subsequent file moves and build system updates happen in a controlled environment.
-*   **Files to Modify:** None (Directory creation only).
-*   **Context Files:** None.
-*   **Action:** Execute `mkdir -p src/core src/ui src/fs src/cmd src/util`.
+### **Step 5.5: Physical Source Reorganization**
+*   **Goal:** Reorganize the source tree into semantic subdirectories (`src/core`, `src/ui`, `src/fs`, `src/cmd`, `src/util`) to improve project structure.
+*   **Rationale:** Decouples modules physically, making the architecture explicit and easier to navigate.
+*   **Files to Modify:** All source files (moved), `Makefile`.
 *   - [x] **Status:** Completed.
 
-#### **Step 5.5.2: Update Makefile for Recursion**
-*   **Goal:** Update the build system to automatically detect and compile source files in subdirectories (`src/**/*.c`).
-*   **Rationale:** This ensures the project remains compilable immediately after files are moved in subsequent steps, preventing a broken build state.
-*   **Files to Modify:** `Makefile`
-*   **Context Files:** None.
-*   **Action:** Modify `SRC` definition to use `wildcard` for subdirectories (e.g., `SRC = $(wildcard src/*.c src/*/*.c)`).
+### **Step 5.6: Header Decomposition**
+*   **Goal:** Break the monolithic `ytree.h` into modular headers (`ytree_defs.h`, `ytree_fs.h`, `ytree_cmd.h`, `ytree_ui.h`).
+*   **Rationale:** Reduces compilation dependency chains and enforces architectural boundaries between layers (Model vs View vs Controller).
+*   **Files to Modify:** `include/ytree.h` and new headers.
 *   - [x] **Status:** Completed.
 
-#### **Step 5.5.3: Move Utility Modules**
-*   **Goal:** Move safe, leaf-node utility files to `src/util/`.
-*   **Rationale:** Starting with files that have few dependencies minimizes the risk of circular include errors during the initial reorganization.
-*   **Files to Modify:** Filesystem (Move operation).
-*   **Context Files:** None.
-*   **Action:** Move `src/string_utils.c`, `src/path_utils.c`, `src/history.c`, `src/tabcompl.c` to `src/util/`.
-*   - [x] **Status:** Completed.
-
-#### **Step 5.5.4: Move Core Modules**
-*   **Goal:** Move application lifecycle and global state files to `src/core/`.
-*   **Rationale:** Grouping the "brain" of the application separates initialization logic from specific features.
-*   **Files to Modify:** Filesystem (Move operation).
-*   **Context Files:** None.
-*   **Action:** Move `src/main.c`, `src/init.c`, `src/global.c`, `src/volume.c`, `src/quit.c` to `src/core/`.
-*   - [x] **Status:** Completed.
-
-#### **Step 5.5.5: Move Filesystem Modules**
-*   **Goal:** Move low-level filesystem interaction logic to `src/fs/`.
-*   **Rationale:** Isolating FS logic prepares for the separation of Model (FS) from View (UI) in later steps.
-*   **Files to Modify:** Filesystem (Move operation).
-*   **Context Files:** None.
-*   **Action:** Move `src/readtree.c`, `src/readarchive.c`, `src/archive.c`, `src/watcher.c`, `src/freesp.c` to `src/fs/`.
-*   - [x] **Status:** Completed.
-
-#### **Step 5.5.6: Move Command Modules**
-*   **Goal:** Move user command implementations to `src/cmd/`.
-*   **Rationale:** Grouping distinct user actions (Copy, Move, Delete) simplifies the input handling logic by keeping the implementations separate.
-*   **Files to Modify:** Filesystem (Move operation).
-*   **Context Files:** None.
-*   **Action:** Move `src/copy.c`, `src/move.c`, `src/delete.c`, `src/rename.c`, `src/mkdir.c`, `src/execute.c`, `src/pipe.c`, `src/system.c`, `src/chgrp.c`, `src/chmod.c`, `src/chown.c`, `src/group.c`, `src/passwd.c`, `src/usermode.c`, `src/sort.c`, `src/filter.c`, `src/log.c`, `src/profile.c` to `src/cmd/`.
-*   - [x] **Status:** Completed.
-
-#### **Step 5.5.7: Move UI Modules**
-*   **Goal:** Move the remaining UI-heavy files to `src/ui/`.
-*   **Rationale:** Completes the physical reorganization by grouping all rendering and input handling code.
-*   **Files to Modify:** Filesystem (Move operation).
-*   **Context Files:** None.
-*   **Action:** Move `src/dirwin.c`, `src/filewin.c`, `src/display.c`, `src/display_utils.c`, `src/view.c`, `src/input.c`, `src/color.c`, `src/edit.c`, `src/stats.c`, `src/animate.c`, `src/hex.c` to `src/ui/`.
-*   - [x] **Status:** Completed.
-
-#### **Step 5.6.1: Create ytree_defs.h**
-*   **Goal:** Extract base type definitions (`BOOL`, structs) into a standalone header `include/ytree_defs.h` and include it in `ytree.h`.
-*   **Rationale:** Breaking the dependency cycle starts here. Low-level types must be accessible without including the entire application state.
-*   **Files to Modify:** `include/ytree_defs.h` (New), `include/ytree.h`
-*   **Context Files:** `include/ytree.h`
-*   **Action:** Move `BOOL`, `LONGLONG`, `DirEntry`, `FileEntry`, `Volume`, `Statistic` structs from `ytree.h` to `ytree_defs.h`. Add `#include "ytree_defs.h"` to `ytree.h`.
-*   - [ ] **Status:** Not Started.
-
-#### **Step 5.6.2: Create ytree_fs.h**
-*   **Goal:** Move filesystem function prototypes to `include/ytree_fs.h` and include it in `ytree.h`.
-*   **Rationale:** Separating Model (FS) API from UI API allows modules to depend only on the data layer.
-*   **Files to Modify:** `include/ytree_fs.h` (New), `include/ytree.h`
-*   **Context Files:** `include/ytree.h`
-*   **Action:** Move prototypes for `ReadTree`, `ScanSubTree`, `ExtractArchive...`, `GetAvailBytes` from `ytree.h` to `ytree_fs.h`. Add `#include "ytree_fs.h"` to `ytree.h`.
-*   - [ ] **Status:** Not Started.
-
-#### **Step 5.6.3: Create ytree_cmd.h**
-*   **Goal:** Move command function prototypes to `include/ytree_cmd.h` and include it in `ytree.h`.
-*   **Rationale:** Further modularizes the header, separating actions from the core system.
-*   **Files to Modify:** `include/ytree_cmd.h` (New), `include/ytree.h`
-*   **Context Files:** `include/ytree.h`
-*   **Action:** Move prototypes for `CopyFile`, `MoveFile`, `DeleteFile`, `Execute` etc. from `ytree.h` to `ytree_cmd.h`. Add `#include "ytree_cmd.h"` to `ytree.h`.
-*   - [ ] **Status:** Not Started.
-
-#### **Step 5.6.4: Create ytree_ui.h**
-*   **Goal:** Move UI/Windowing function prototypes to `include/ytree_ui.h` and include it in `ytree.h`.
-*   **Rationale:** Completes the header decomposition. `ytree.h` becomes a master header for legacy compatibility, while new code can include specific headers.
-*   **Files to Modify:** `include/ytree_ui.h` (New), `include/ytree.h`
-*   **Context Files:** `include/ytree.h`
-*   **Action:** Move prototypes for `HandleDirWindow`, `HandleFileWindow`, `Display...`, `RefreshGlobalView` from `ytree.h` to `ytree_ui.h`. Add `#include "ytree_ui.h"` to `ytree.h`.
-*   - [ ] **Status:** Not Started.
+### **Step 5.7: Component Extraction**
+*This phase separates Logic from UI Controller.*
 
 #### **Step 5.7.1: Extract ui_nav.c (Navigation Logic)**
 *   **Goal:** Extract common scrolling logic (Up, Down, PageUp, PageDown) from `dirwin.c` into a reusable module `src/ui/ui_nav.c`.
 *   **Rationale:** Removes duplication between directory and file window navigation, enforcing the "Don't Repeat Yourself" (DRY) principle.
-*   **Files to Modify:** `src/ui/ui_nav.c` (New), `src/ui/dirwin.c`, `include/ytree_ui.h`
+*   **Files to Modify:** `src/ui/ui_nav.c` (New), `src/ui/dirwin.c`, `src/ui/filewin.c`, `include/ytree_ui.h`
 *   **Context Files:** `src/ui/dirwin.c`
 *   **Action:** Move `Movedown`, `Moveup`, `Movenpage` logic (generic parts) from `dirwin.c` to `ui_nav.c`, creating generic signatures.
-*   - [ ] **Status:** Not Started.
+*   - [ ] **Status:** In Progress.
 
 #### **Step 5.7.2: Extract render_dir.c**
 *   **Goal:** Move directory rendering functions from `dirwin.c` and `stats.c` to `src/ui/render_dir.c`.
