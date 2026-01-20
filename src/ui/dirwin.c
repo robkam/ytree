@@ -1,6 +1,6 @@
 /***************************************************************************
  *
- * dirwin.c
+ * src/ui/dirwin.c
  * Functions for handling the directory window
  *
  ***************************************************************************/
@@ -453,18 +453,7 @@ static void Movedown(DirEntry **dir_entry, YtreePanel *p)
    Statistic *s = &p->vol->vol_stats;
    WINDOW *win = p->pan_dir_window;
 
-   if( p->disp_begin_pos + p->cursor_pos + 1 >= p->vol->total_dirs )
-   {
-      /* Element not present */
-      /*-------------------------*/
-      return;
-   }
-
-    if (p->cursor_pos + 1 < layout.dir_win_height) {
-        (p->cursor_pos)++;
-    } else {
-        (p->disp_begin_pos)++;
-    }
+   Nav_MoveDown(&p->cursor_pos, &p->disp_begin_pos, p->vol->total_dirs, layout.dir_win_height, 1);
 
     *dir_entry = p->vol->dir_entry_list[p->disp_begin_pos + p->cursor_pos].dir_entry;
 
@@ -494,18 +483,8 @@ static void Moveup(DirEntry **dir_entry, YtreePanel *p)
    Statistic *s = &p->vol->vol_stats;
    WINDOW *win = p->pan_dir_window;
 
-   if( p->disp_begin_pos + p->cursor_pos - 1 < 0 )
-   {
-      /* Element not present */
-      /*-------------------------*/
-      return;
-   }
+   Nav_MoveUp(&p->cursor_pos, &p->disp_begin_pos);
 
-    if (p->cursor_pos - 1 >= 0) {
-        (p->cursor_pos)--;
-    } else {
-        (p->disp_begin_pos)--;
-    }
     *dir_entry = p->vol->dir_entry_list[p->disp_begin_pos + p->cursor_pos].dir_entry;
 
     if (GlobalView->refresh_mode & REFRESH_ON_NAV) {
@@ -534,37 +513,8 @@ static void Movenpage(DirEntry **dir_entry, YtreePanel *p)
    Statistic *s = &p->vol->vol_stats;
    WINDOW *win = p->pan_dir_window;
 
-   if( p->disp_begin_pos + p->cursor_pos >= p->vol->total_dirs - 1 )
-   {
-      /* Last position */
-      /*-----------------*/
-   }
-   else
-   {
-      if( p->cursor_pos < layout.dir_win_height - 1 )
-      {
-          /* Cursor is not on last entry of the page */
-           if( p->disp_begin_pos + layout.dir_win_height > p->vol->total_dirs  - 1 )
-              p->cursor_pos = p->vol->total_dirs - p->disp_begin_pos - 1;
-           else
-              p->cursor_pos = layout.dir_win_height - 1;
-      }
-      else
-      {
-          /* Scrolling */
-          /*----------*/
-          if( p->disp_begin_pos + p->cursor_pos + layout.dir_win_height < p->vol->total_dirs )
-          {
-              p->disp_begin_pos += layout.dir_win_height;
-              p->cursor_pos = layout.dir_win_height - 1;
-          }
-          else
-          {
-              p->disp_begin_pos = p->vol->total_dirs - layout.dir_win_height;
-              if( p->disp_begin_pos < 0 ) p->disp_begin_pos = 0;
-              p->cursor_pos = p->vol->total_dirs - p->disp_begin_pos - 1;
-          }
-      }
+   Nav_PageDown(&p->cursor_pos, &p->disp_begin_pos, p->vol->total_dirs, layout.dir_win_height);
+
       *dir_entry = p->vol->dir_entry_list[p->disp_begin_pos + p->cursor_pos].dir_entry;
 
       if (GlobalView->refresh_mode & REFRESH_ON_NAV) {
@@ -585,8 +535,6 @@ static void Movenpage(DirEntry **dir_entry, YtreePanel *p)
           GetPath(*dir_entry, path);
           DisplayHeaderPath(path);
       }
-   }
-   return;
 }
 
 static void Moveppage(DirEntry **dir_entry, YtreePanel *p)
@@ -594,28 +542,8 @@ static void Moveppage(DirEntry **dir_entry, YtreePanel *p)
    Statistic *s = &p->vol->vol_stats;
    WINDOW *win = p->pan_dir_window;
 
-   if( p->disp_begin_pos + p->cursor_pos <= 0 )
-   {
-      /* First position */
-      /*----------------*/
-   }
-   else
-   {
-      if( p->cursor_pos > 0 )
-      {
-          /* Cursor is not on first entry of the page */
-           p->cursor_pos = 0;
-      }
-      else
-      {
-         /* Scrolling */
-         /*----------*/
-         if( (p->disp_begin_pos -= layout.dir_win_height) < 0 )
-         {
-             p->disp_begin_pos = 0;
-         }
-         p->cursor_pos = 0;
-      }
+   Nav_PageUp(&p->cursor_pos, &p->disp_begin_pos, layout.dir_win_height);
+
       *dir_entry = p->vol->dir_entry_list[p->disp_begin_pos + p->cursor_pos].dir_entry;
 
       if (GlobalView->refresh_mode & REFRESH_ON_NAV) {
@@ -636,8 +564,6 @@ static void Moveppage(DirEntry **dir_entry, YtreePanel *p)
           GetPath(*dir_entry, path);
           DisplayHeaderPath(path);
       }
-   }
-   return;
 }
 
 static void MoveEnd(DirEntry **dir_entry, YtreePanel *p)
@@ -645,8 +571,8 @@ static void MoveEnd(DirEntry **dir_entry, YtreePanel *p)
     Statistic *s = &p->vol->vol_stats;
     WINDOW *win = p->pan_dir_window;
 
-    p->disp_begin_pos = MAXIMUM(0, p->vol->total_dirs - layout.dir_win_height);
-    p->cursor_pos     = p->vol->total_dirs - p->disp_begin_pos - 1;
+    Nav_End(&p->cursor_pos, &p->disp_begin_pos, p->vol->total_dirs, layout.dir_win_height);
+
     *dir_entry = p->vol->dir_entry_list[p->disp_begin_pos + p->cursor_pos].dir_entry;
 
     if (GlobalView->refresh_mode & REFRESH_ON_NAV) {
@@ -676,14 +602,8 @@ static void MoveHome(DirEntry **dir_entry, YtreePanel *p)
     Statistic *s = &p->vol->vol_stats;
     WINDOW *win = p->pan_dir_window;
 
-    if( p->disp_begin_pos == 0 && p->cursor_pos == 0 )
-    {  /* Position 1 already reached */
-       /*----------------------------*/
-    }
-    else
-    {
-       p->disp_begin_pos = 0;
-       p->cursor_pos     = 0;
+       Nav_Home(&p->cursor_pos, &p->disp_begin_pos);
+
        *dir_entry = p->vol->dir_entry_list[p->disp_begin_pos + p->cursor_pos].dir_entry;
 
        if (GlobalView->refresh_mode & REFRESH_ON_NAV) {
@@ -705,7 +625,6 @@ static void MoveHome(DirEntry **dir_entry, YtreePanel *p)
            GetPath(*dir_entry, path);
            DisplayHeaderPath(path);
        }
-    }
     return;
 }
 
@@ -2226,7 +2145,7 @@ int HandleDirWindow(DirEntry *start_dir_entry)
         }
     }
 
-  } while( action != ACTION_QUIT && action != ACTION_ENTER && action != ACTION_ESCAPE && action != ACTION_LOGIN ); /* Loop until explicit quit, escape or login */
+  } while( action != ACTION_QUIT && action != ACTION_ENTER && action != ACTION_ESCAPE && action != ACTION_LOGIN );
 
   /* Sync state back to Volume on exit */
   CurrentVolume->vol_stats.cursor_pos = ActivePanel->cursor_pos;
