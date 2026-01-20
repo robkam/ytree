@@ -1,6 +1,6 @@
 /***************************************************************************
  *
- * filewin.c
+ * src/ui/filewin.c
  * Functions for handling the file window
  *
  ***************************************************************************/
@@ -956,18 +956,8 @@ void DisplayFiles(DirEntry *de_ptr, int start_file_no, int hilight_no, int start
 
 static void fmovedown(int *start_file, int *cursor_pos, int *start_x, DirEntry *dir_entry)
 {
-   if( (unsigned int)(*start_file + *cursor_pos + 1) >= CurrentVolume->file_count )
-   {
-      /* File not present */
-      /*----------------------*/
-      return;
-   }
+   Nav_MoveDown(cursor_pos, start_file, (int)CurrentVolume->file_count, max_disp_files, 1);
 
-    if (*cursor_pos < max_disp_files - 1) {
-        (*cursor_pos)++;
-    } else {
-        (*start_file)++;
-    }
     DisplayFiles(dir_entry, *start_file, *start_file + *cursor_pos, *start_x, file_window);
     /* Update dynamic header path */
     if (CurrentVolume->file_count > 0) {
@@ -986,18 +976,8 @@ static void fmovedown(int *start_file, int *cursor_pos, int *start_x, DirEntry *
 
 static void fmoveup(int *start_file, int *cursor_pos, int *start_x, DirEntry *dir_entry)
 {
-   if( *start_file + *cursor_pos < 1 )
-   {
-      /* File not present */
-      /*----------------------*/
-      return;
-   }
+   Nav_MoveUp(cursor_pos, start_file);
 
-    if (*cursor_pos > 0) {
-        (*cursor_pos)--;
-    } else {
-        (*start_file)--;
-    }
     DisplayFiles(dir_entry, *start_file, *start_file + *cursor_pos, *start_x, file_window);
     /* Update dynamic header path */
     if (CurrentVolume->file_count > 0) {
@@ -1155,31 +1135,8 @@ static void fmoveleft(int *start_file, int *cursor_pos, int *start_x, DirEntry *
 
 static void fmovenpage(int *start_file, int *cursor_pos, int *start_x, DirEntry *dir_entry)
 {
-   if( (unsigned int)(*start_file + *cursor_pos) >= CurrentVolume->file_count - 1 )
-   {
-      /* last position reached */
-      /*-------------------------*/
-      return;
-   }
+   Nav_PageDown(cursor_pos, start_file, (int)CurrentVolume->file_count, max_disp_files);
 
-    if( *cursor_pos < max_disp_files - 1 )
-    {
-        if( (unsigned int)(*start_file + max_disp_files) <= CurrentVolume->file_count - 1 )
-            *cursor_pos = max_disp_files - 1;
-        else
-            *cursor_pos = (int)CurrentVolume->file_count - *start_file - 1;
-    }
-    else
-    {
-        if( (unsigned int)(*start_file + *cursor_pos + max_disp_files) < CurrentVolume->file_count )
-            *start_file += max_disp_files;
-        else
-            *start_file = (int)CurrentVolume->file_count - max_disp_files;
-        if( (unsigned int)(*start_file + max_disp_files) <= CurrentVolume->file_count - 1 )
-            *cursor_pos = max_disp_files - 1;
-        else
-            *cursor_pos = (int)CurrentVolume->file_count - *start_file - 1;
-    }
     DisplayFiles( dir_entry,
                   *start_file,
                   *start_file + *cursor_pos,
@@ -1205,24 +1162,8 @@ static void fmovenpage(int *start_file, int *cursor_pos, int *start_x, DirEntry 
 
 static void fmoveppage(int *start_file, int *cursor_pos, int *start_x, DirEntry *dir_entry)
 {
-     if( *start_file + *cursor_pos <= 0 )
-     {
-        /* first position reached */
-        /*-------------------------*/
-        return;
-     }
+     Nav_PageUp(cursor_pos, start_file, max_disp_files);
 
-    if( *cursor_pos > 0 )
-    {
-        *cursor_pos = 0;
-    }
-    else
-    {
-        if( *start_file > max_disp_files )
-            *start_file -= max_disp_files;
-        else
-            *start_file = 0;
-    }
     DisplayFiles( dir_entry,
                   *start_file,
                   *start_file + *cursor_pos,
@@ -1801,23 +1742,7 @@ int HandleFileWindow(DirEntry *dir_entry)
               if (GlobalView->preview_mode) { preview_line_offset = 0; UpdatePreview(dir_entry); }
 		      break;
 
-      case ACTION_END  : if( (unsigned int)(dir_entry->start_file + dir_entry->cursor_pos + 1) >= CurrentVolume->file_count )
-		      {
-			/* last position reached */
-			/*--------------------------*/
-		      }
-		      else
-		      {
-			if( (int)CurrentVolume->file_count < max_disp_files )
-		        {
-			  dir_entry->start_file = 0;
-			  dir_entry->cursor_pos = (int)CurrentVolume->file_count - 1;
-		        }
-		        else
-	                {
-                          dir_entry->start_file = (int)CurrentVolume->file_count - max_disp_files;
-			  dir_entry->cursor_pos = (int)CurrentVolume->file_count - dir_entry->start_file - 1;
-		        }
+      case ACTION_END  : Nav_End(&dir_entry->cursor_pos, &dir_entry->start_file, (int)CurrentVolume->file_count, max_disp_files);
 
 			DisplayFiles( dir_entry,
 				      dir_entry->start_file,
@@ -1826,18 +1751,9 @@ int HandleFileWindow(DirEntry *dir_entry)
                                       file_window
 				    );
             if (GlobalView->preview_mode) { preview_line_offset = 0; UpdatePreview(dir_entry); }
-		      }
 		      break;
 
-      case ACTION_HOME : if( dir_entry->start_file + dir_entry->cursor_pos <= 0 )
-		      {
-			/* first position reached */
-			/*-------------------------*/
-		      }
-		      else
-		      {
-                        dir_entry->start_file = 0;
-			dir_entry->cursor_pos = 0;
+      case ACTION_HOME : Nav_Home(&dir_entry->cursor_pos, &dir_entry->start_file);
 
 			DisplayFiles( dir_entry,
 				      dir_entry->start_file,
@@ -1846,8 +1762,6 @@ int HandleFileWindow(DirEntry *dir_entry)
                                       file_window
 				    );
             if (GlobalView->preview_mode) { preview_line_offset = 0; UpdatePreview(dir_entry); }
-
-		      }
 		      break;
 
       case ACTION_TOGGLE_HIDDEN:      {
