@@ -8,274 +8,17 @@
 #ifndef YTREE_H
 #define YTREE_H
 
-
-#define _LARGEFILE64_SOURCE 1
-#define _FILE_OFFSET_BITS 64
-
-#include <stdio.h>
-#include <ctype.h>
-#include <math.h>
-
-#include <locale.h> /* Required for modern POSIX (Linux/BSD/macOS) */
-
-#ifdef XCURSES
-#include <xcurses.h>
-#define HAVE_CURSES 1
-#endif
-
-#if !defined(HAVE_CURSES)
-#include <curses.h>
-#include <term.h> /* ADDED: For tgetstr, tputs */
-#endif
-
-#include <limits.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <time.h>
-#include <unistd.h>
-#include <dirent.h>
-#include <errno.h>
-#include <fcntl.h>
-#include <grp.h>
-#include <pwd.h>
-#include <setjmp.h>
-#include <signal.h>
-#include <string.h>
-#include <stdlib.h>
-#include <strings.h> /* For strcasecmp, strncasecmp */
-#include <regex.h>
-
-#include <sys/wait.h> /* Standard POSIX for wait() */
-#include <sys/time.h> /* For setitimer (clock.c) */
-
-#ifdef HAVE_LIBARCHIVE
-#include <archive.h>
-#include <archive_entry.h>
-
-/* Return values for RewriteCallback */
-#define AR_KEEP   0
-#define AR_SKIP   1
-#define AR_ABORT -1
-
-/*
- * RewriteCallback
- * Called for each entry in the source archive.
- * r: Source archive (reader)
- * w: Destination archive (writer)
- * entry: The current entry header read from 'r'
- * user_data: Context passed to Archive_Rewrite
- *
- * Return:
- *   AR_KEEP:  Copy this entry (header + data) to 'w'.
- *             (Callback may modify 'entry' before returning KEEP to rename/chmod).
- *   AR_SKIP:  Do not write this entry to 'w'. (Delete).
- *   AR_ABORT: Stop processing immediately and fail.
- */
-typedef int (*RewriteCallback)(struct archive *r, struct archive *w, struct archive_entry *entry, void *user_data);
-
-#endif
-
-#ifdef WITH_UTF8
-#include <wchar.h>
-#endif
-
-#include "uthash.h" /* Required for volume management */
-
-/* --- Consolidated Large File / 64-bit Definitions --- */
-
-/* Assume modern POSIX systems use long long for 64-bit ints */
-#define LONGLONG		long long
-#define HAS_LONGLONG		1
-
-/* Use standard POSIX statvfs headers and macro (most modern systems) */
-#if !defined(WIN32) && !defined(__DJGPP__)
-#include <sys/statvfs.h>
-#include <sys/statfs.h> /* Keep for possible fallback structures */
-
-/* Use statvfs as default, as it's the modern standard */
-#define STATFS(a, b, c, d )     statvfs( a, b )
-#endif /* !WIN32 && !__DJGPP__ */
-
-
-/* Prefer lstat() for determining file type (e.g., links), otherwise fallback to stat() */
-#if defined(S_IFLNK)
-#define STAT_(a, b) lstat(a, b)
-#else
-#define STAT_(a, b) stat(a, b)
-#endif
-
+#include "ytree_defs.h"
 
 /* Some handy macros... */
 
-#define MINIMUM( a, b ) ( ( (a) < (b) ) ? (a) : (b) )
 /* Cast to size_t to silence signed/unsigned comparison warnings when 'b' is sizeof/strlen */
-#define MAXIMUM( a, b ) ( ( (a) > (b) ) ? (a) : (b) )
-
-/* Standard Input Padding for Prompts */
-#define UI_INPUT_PADDING 2
-
-
-#ifdef WIN32
-/* Windows/Cygwin/WSL compatibility layer simplifications */
-#define  S_IREAD         S_IRUSR
-#define  S_IWRITE        S_IWUSR
-#define  S_IEXEC         S_IXUSR
-
-#define  popen           _popen
-#define  pclose          _pclose
-#define  sys_errlist     _sys_errlist
-
-/* No need for termcap emulation/tricks on modern terminals */
-#define  echochar( ch )              { addch( ch ); refresh(); }
-#define  putp( str )                 puts( str )
-#define  vidattr( attr )
-#define  typeahead( file )
-
-#endif /* WIN32 */
-
-
-#ifdef __DJGPP__
-/* DJGPP GNU DOS Compiler compatibility layer simplifications */
-#define  putp( str )                 puts( str )
-#define  vidattr( attr )
-#define  typeahead( file )
-#endif /* __DJGPP__*/
-
-
-#ifndef KEY_END
-#define KEY_END   KEY_EOL
-#endif
-
-
-/* Standard POSIX S_IS* macros. Keep fallbacks minimal. */
-#ifndef S_ISREG
-#define S_ISREG( mode )   (((mode) & S_IFMT) == S_IFREG)
-#endif /* S_ISREG */
-
-#ifndef S_ISDIR
-#define S_ISDIR( mode )   (((mode) & S_IFMT) == S_IFDIR)
-#endif /* S_ISDIR */
-
-#ifndef S_ISCHR
-#define S_ISCHR( mode )   (((mode) & S_IFMT) == S_IFCHR)
-#endif /* S_ISCHR */
-
-#ifndef S_ISBLK
-#define S_ISBLK( mode )   (((mode) & S_IFMT) == S_IFBLK)
-#endif /* S_ISBLK */
-
-#ifndef S_ISFIFO
-#define S_ISFIFO( mode )   (((mode) & S_IFMT) == S_IFFIFO)
-#endif /* S_ISFIFO */
-
-#ifndef S_ISLNK
-#ifdef  S_IFLNK
-#define S_ISLNK( mode )   (((mode) & S_IFMT) == S_IFLNK)
-#else
-#define S_ISLNK( mode )   FALSE
-#endif /* S_IFLNK */
-#endif /* S_ISLNK */
-
-#ifndef S_ISSOCK
-#ifdef  S_IFSOCK
-#define S_ISSOCK( mode )   (((mode) & S_IFMT) == S_IFSOCK)
-#else
-#define S_ISSOCK( mode )   FALSE
-#endif /* S_IFSOCK */
-#endif /* S_ISSOCK */
-
-
-/* VI_KEYS definitions remain */
-#define VI_KEY_UP    'k'
-#define VI_KEY_DOWN  'j'
-#define VI_KEY_RIGHT 'l'
-#define VI_KEY_LEFT  'h'
-#define VI_KEY_NPAGE ( 'D' & 0x1F )
-#define VI_KEY_PPAGE ( 'U' & 0x1F )
-
-
-#define OWNER_NAME_MAX  64
-#define GROUP_NAME_MAX  64
-#define DISPLAY_OWNER_NAME_MAX  12
-#define DISPLAY_GROUP_NAME_MAX  12
-
-
-/* Sonderzeichen fuer Liniengrafik (using standard ncurses ACS_ macros) */
-/* Keep these fallbacks as they are universally simple */
-#ifndef ACS_ULCORNER
-#define ACS_ULCORNER '+'
-#endif
-#ifndef ACS_URCORNER
-#define ACS_URCORNER '+'
-#endif
-#ifndef ACS_LLCORNER
-#define ACS_LLCORNER '+'
-#endif
-#ifndef ACS_LRCORNER
-#define ACS_LRCORNER '+'
-#endif
-#ifndef ACS_VLINE
-#define ACS_VLINE    '|'
-#endif
-#ifndef ACS_HLINE
-#define ACS_HLINE    '-'
-#endif
-#ifndef ACS_RTEE
-#define ACS_RTEE    '+'
-#endif
-#ifndef ACS_LTEE
-#define ACS_LTEE    '+'
-#endif
-#ifndef ACS_BTEE
-#define ACS_BTEE    '+'
-#endif
-#ifndef ACS_TTEE
-#define ACS_TTEE    '+'
-#endif
-#ifndef ACS_BLOCK
-#define ACS_BLOCK   '?'
-#endif
-#ifndef ACS_LARROW
-#define ACS_LARROW  '<'
-#endif
-
-
-/* Color Definitionen */
-enum UI_COLOR_PAIRS {
-    CPAIR_DIR = 1,
-    CPAIR_HIDIR,
-    CPAIR_WINDIR,
-    CPAIR_FILE,
-    CPAIR_HIFILE,
-    CPAIR_WINFILE,
-    CPAIR_STATS,
-    CPAIR_WINSTATS,
-    CPAIR_BORDERS,
-    CPAIR_HIMENUS,
-    CPAIR_MENU,
-    CPAIR_WINERR,
-    CPAIR_HST,
-    CPAIR_HIHST,
-    CPAIR_WINHST,
-    CPAIR_GLOBAL,
-    CPAIR_HIGLOBAL,
-    NUM_UI_COLOR_PAIRS, /* This will be 19, so pairs are 1-18 */
-    F_COLOR_PAIR_BASE = 32
-};
-
-
-#define PROFILE_FILENAME	".ytree"
-#define HISTORY_FILENAME	".ytree-hst"
-
-
-/* User-Defines */
-/*--------------*/
+/* MINIMUM/MAXIMUM Moved to ytree_defs.h */
 
 #include "config.h"
 
-
-/* Auswahl der benutzten UNIX-Kommandos */
-/*--------------------------------------*/
+/* User-Defines */
+/*--------------*/
 
 #define CAT             GetProfileValue( "CAT" )
 #define HEXDUMP         GetProfileValue( "HEXDUMP" )
@@ -307,7 +50,6 @@ enum UI_COLOR_PAIRS {
 #define AUTO_REFRESH    GetProfileValue("AUTO_REFRESH")
 
 #define DEFAULT_TREE       "."
-
 
 #define ERROR_MSG( msg )   Error( msg, __FILE__, __LINE__ )
 #define WARNING( msg )     Warning( msg )
@@ -365,14 +107,6 @@ enum UI_COLOR_PAIRS {
 #define ERR_TO_NULL           " 2> /dev/null"
 #define ERR_TO_STDOUT         " 2>&1 "
 
-#define BOOL       unsigned char
-#define LF         10
-#define ESC        27
-#define LOGIN_ESC  '.'
-
-#define QUICK_BAUD_RATE      9600
-
-#define CR                     13
 
 /* Auto-Refresh Configuration Modes */
 #define REFRESH_WATCHER  1
@@ -383,33 +117,6 @@ enum UI_COLOR_PAIRS {
 #define VIEW_EXIT 0
 #define VIEW_NEXT 1
 #define VIEW_PREV 2
-
-/* Window Dimension Definitions */
-
-typedef struct {
-    int dir_win_y;
-    int dir_win_x;
-    int dir_win_height;
-    int dir_win_width;
-
-    int small_file_win_y;
-    int small_file_win_x;
-    int small_file_win_height;
-    int small_file_win_width;
-
-    int big_file_win_y;
-    int big_file_win_x;
-    int big_file_win_height;
-    int big_file_win_width;
-
-    int preview_win_y;
-    int preview_win_x;
-    int preview_win_height;
-    int preview_win_width;
-
-    int stats_width;
-    int main_win_width;
-} YtreeLayout;
 
 extern YtreeLayout layout;
 extern void Layout_Recalculate(void);
@@ -446,12 +153,6 @@ extern void Layout_Recalculate(void);
 #define TIME_WINDOW_WIDTH    20
 #define TIME_WINDOW_HEIGHT   1
 
-
-/* Increased to 4096 to match standard Linux PATH_MAX and fix realpath warnings */
-#define PATH_LENGTH            4096
-#define FILE_SPEC_LENGTH       256
-#define DISK_NAME_LENGTH       (12 + 1)
-#define COMMAND_LINE_LENGTH    4096
 #define MODE_1                 0
 #define MODE_2                 1
 #define MODE_3                 2
@@ -475,334 +176,17 @@ extern void Layout_Recalculate(void);
 #define PRINT(ch) (iscntrl(ch) && (((unsigned char)(ch)) < ' ')) ? (ACS_BLOCK) : ((unsigned char)(ch))
 #endif
 
-/* History Types */
-enum HistoryType {
-    HST_GENERAL = 0,
-    HST_LOGIN,
-    HST_EXEC,
-    HST_PIPE,
-    HST_FILTER,
-    HST_SEARCH,
-    HST_FILE,
-    HST_PATH,
-    HST_ID,
-    HST_CHANGE_MODUS
-};
+#define PROFILE_FILENAME	".ytree"
+#define HISTORY_FILENAME	".ytree-hst"
+
 
 /* ************************************************************************* */
-/*                              STRUCTURES                                   */
+/*                       EXTERNS                                             */
 /* ************************************************************************* */
-
-typedef struct
-{
-    const char *name;
-    int id;
-    int fg;
-    int bg;
-} UIColor;
-
-typedef struct _file_color_rule
-{
-    char *pattern;
-    int fg;
-    int bg;
-    int pair_id;
-    struct _file_color_rule *next;
-} FileColorRule;
-
-
-typedef struct _file_entry
-{
-  struct _file_entry *next;
-  struct _file_entry *prev;
-  struct _dir_entry  *dir_entry;
-  struct stat        stat_struct;
-  BOOL               tagged;
-  BOOL               matching;
-  char               name[]; /* C99 Flexible Array Member */
-/*char               symlink_name[]; */ /* Folgt direkt dem Namen, falls */
-					/* Eintrag == symbolischer Link  */
-} FileEntry;
-
-
-
-typedef struct _dir_entry
-{
-  struct _file_entry *file;
-  struct _dir_entry  *next;
-  struct _dir_entry  *prev;
-  struct _dir_entry  *sub_tree;
-  struct _dir_entry  *up_tree;
-  LONGLONG           total_bytes;
-  LONGLONG           matching_bytes;
-  LONGLONG           tagged_bytes;
-  unsigned int       total_files;
-  unsigned int       matching_files;
-  unsigned int       tagged_files;
-  int                cursor_pos;
-  int                start_file;
-  struct   stat      stat_struct;
-  BOOL               access_denied;
-  BOOL               global_flag;
-  BOOL               tagged_flag;
-  BOOL               only_tagged;
-  BOOL               not_scanned;
-  BOOL               big_window;
-  BOOL               login_flag;
-  char               name[]; /* C99 Flexible Array Member */
-} DirEntry;
-
-
-
-typedef struct
-{
-  unsigned long      indent;
-  DirEntry           *dir_entry;
-  unsigned short     level;
-} DirEntryList;
-
-
-typedef struct
-{
-  FileEntry          *file;
-} FileEntryList;
-
-
-typedef struct
-{
-  DirEntry      *tree;
-  LONGLONG	disk_space;
-  LONGLONG	disk_capacity;
-  LONGLONG	disk_total_files;
-  LONGLONG	disk_total_bytes;
-  LONGLONG	disk_matching_files;
-  LONGLONG	disk_matching_bytes;
-  LONGLONG	disk_tagged_files;
-  LONGLONG 	disk_tagged_bytes;
-  unsigned int  disk_total_directories;
-  int           disp_begin_pos;
-  int           cursor_pos;
-  int           kind_of_sort;
-  int           login_mode; /* Renamed from mode to login_mode */
-  char          login_path[PATH_LENGTH + 1];
-  char          path[PATH_LENGTH + 1];
-  char          file_spec[FILE_SPEC_LENGTH + 1];
-  char          disk_name[DISK_NAME_LENGTH + 1];
-} Statistic;
-
-/* Volume structure to hold per-volume state */
-struct Volume {
-    int id;                 /* Key for hash table */
-    Statistic vol_stats;    /* Holds tree, path, current dir stats */
-    Statistic vol_disk_stats; /* Holds filesystem totals */
-
-    /* Encapsulated Directory State Cache */
-    DirEntryList *dir_entry_list;
-    size_t dir_entry_list_capacity;
-    int total_dirs;
-
-    /* Encapsulated File State Cache */
-    FileEntryList *file_entry_list;
-    size_t file_entry_list_capacity;
-    unsigned int file_count;
-
-    UT_hash_handle hh;      /* For uthash macros */
-};
-
-
-typedef union
-{
-  struct
-  {
-    char      new_modus[11];
-  } change_modus;
-
-  struct
-  {
-    unsigned  new_owner_id;
-  } change_owner;
-
-  struct
-  {
-    unsigned  new_group_id;
-  } change_group;
-
-  struct
-  {
-    char      *command;
-  } execute;
-
-  struct
-  {
-    Statistic *statistic_ptr;
-    DirEntry  *dest_dir_entry;
-    char      *to_file;
-    char      *to_path;
-    BOOL      path_copy;
-    BOOL      confirm;
-    int       dir_create_mode;
-    int       overwrite_mode;
-  } copy;
-
-  struct
-  {
-    char      *new_name;
-    BOOL      confirm;
-  } rename;
-
-  struct
-  {
-    DirEntry  *dest_dir_entry;
-    char      *to_file;
-    char      *to_path;
-    BOOL      confirm;
-    int       dir_create_mode;
-    int       overwrite_mode;
-  } mv;
-
-  struct
-  {
-    FILE      *pipe_file;
-  } pipe_cmd;
-
-  struct
-  {
-   FILE       *zipfile;
-   int        method;
-   } compress_cmd;
-
-} FunctionData;
-
-
-typedef struct
-{
-  FileEntry     *new_fe_ptr;
-  FunctionData  function_data;
-} WalkingPackage;
-
-/*
- * YtreeAction enumeration to abstract keys into logical actions.
- * Use generic "Command" actions (e.g., ACTION_CMD_M) for keys that
- * have different meanings in different windows.
- */
-typedef enum {
-    ACTION_NONE = 0,
-    /* Navigation */
-    ACTION_MOVE_UP, ACTION_MOVE_DOWN,
-    ACTION_MOVE_SIBLING_NEXT, /* Added for ZTree-like TAB behavior */
-    ACTION_MOVE_SIBLING_PREV, /* Added for Shift-Tab */
-    ACTION_MOVE_LEFT, ACTION_MOVE_RIGHT,
-    ACTION_PAGE_UP, ACTION_PAGE_DOWN,
-    ACTION_HOME, ACTION_END,
-    /* Tree Ops */
-    ACTION_TREE_EXPAND,      /* TAB, * */
-    ACTION_TREE_COLLAPSE,    /* BTAB, - */
-    ACTION_TREE_EXPAND_ALL,  /* + */
-    /* Standard Commands */
-    ACTION_ENTER,       /* CR, LF */
-    ACTION_ESCAPE,      /* ESC (27) */
-    ACTION_LOGIN,       /* L, l */
-    ACTION_QUIT,        /* q, Q */
-    ACTION_QUIT_DIR,    /* ^Q */
-    ACTION_TAG,         /* t */
-    ACTION_UNTAG,       /* u */
-    ACTION_TAG_ALL,     /* ^T, T */
-    ACTION_UNTAG_ALL,   /* ^U, U */
-    ACTION_TAG_REST,    /* ; */
-    ACTION_UNTAG_REST,  /* : */
-    ACTION_FILTER,      /* f, F */
-    ACTION_TOGGLE_MODE, /* ^F */
-    ACTION_REFRESH,     /* ^L */
-    ACTION_RESIZE,      /* KEY_RESIZE */
-    /* Volume Ops */
-    ACTION_VOL_MENU,    /* K (Shift-K) */
-    ACTION_VOL_PREV,    /* < , */
-    ACTION_VOL_NEXT,    /* > . */
-    /* Context Commands (Letters) */
-    ACTION_CMD_A,       /* a, A */
-    ACTION_CMD_B,       /* b, B */
-    ACTION_CMD_C,       /* c, C */
-    ACTION_CMD_D,       /* d, D */
-    ACTION_CMD_E,       /* e, E */
-    ACTION_CMD_G,       /* g, G */
-    ACTION_CMD_H,       /* h, H */
-    ACTION_CMD_M,       /* m, M */
-    ACTION_CMD_O,       /* o, O */
-    ACTION_CMD_P,       /* p, P */
-    ACTION_CMD_R,       /* r, R */
-    ACTION_CMD_S,       /* s, S */
-    ACTION_CMD_V,       /* v, V */
-    ACTION_CMD_X,       /* x, X */
-    ACTION_CMD_Y,       /* y, Y */
-    ACTION_TOGGLE_HIDDEN, /* ` */
-    ACTION_TOGGLE_COMPACT, /* b, B - Brief Mode */
-    /* Tagged/Ctrl Variants */
-    ACTION_CMD_TAGGED_A, /* ^A */
-    ACTION_CMD_TAGGED_C, /* ^C */
-    ACTION_CMD_TAGGED_D, /* ^D */
-    ACTION_CMD_TAGGED_G, /* ^G */
-    ACTION_CMD_TAGGED_M, /* ^N (Move Tagged legacy) */
-    ACTION_CMD_TAGGED_O, /* ^O */
-    ACTION_CMD_TAGGED_P, /* ^P */
-    ACTION_CMD_TAGGED_R, /* ^R */
-    ACTION_CMD_TAGGED_S, /* ^S */
-    ACTION_CMD_TAGGED_V, /* ^V */
-    ACTION_CMD_TAGGED_X, /* ^X */
-    ACTION_CMD_TAGGED_Y, /* ^Y, ^K (Copy legacy?) -> Check mapping */
-    /* Function Keys */
-    ACTION_LIST_JUMP,            /* F12 */
-    ACTION_TOGGLE_TAGGED_MODE,   /* 8, Shift-F4 */
-    ACTION_TOGGLE_STATS,         /* ADDED */
-    ACTION_ASTERISK,             /* * (Expand All / Invert Tags) */
-    ACTION_SPLIT_SCREEN,         /* F8 Split Screen */
-    ACTION_SWITCH_PANEL,         /* TAB in Split Mode */
-    ACTION_VIEW_PREVIEW,         /* F7 Preview Mode */
-    ACTION_PREVIEW_SCROLL_UP,    /* ^P, Shift-Up in Preview Mode */
-    ACTION_PREVIEW_SCROLL_DOWN,  /* ^N, Shift-Down in Preview Mode */
-    ACTION_PREVIEW_HOME,         /* Shift-Home */
-    ACTION_PREVIEW_END,          /* Shift-End */
-    ACTION_PREVIEW_PAGE_UP,      /* Shift-PgUp */
-    ACTION_PREVIEW_PAGE_DOWN,    /* Shift-PgDn */
-    ACTION_USER_CMD              /* Reserved for future */
-} YtreeAction;
-
-/* State Restoration Structure */
-typedef struct _PathList {
-    char *path;
-    struct _PathList *next;
-} PathList;
-
-
-/* View Context Structure for Split Screen Support
- *
- * This structure unifies the main application window pointers.
- *
- * Window Roles:
- * - ctx_dir_window:        The top window displaying the Directory Tree.
- * - ctx_small_file_window: The bottom window displaying the File List (Split View).
- * - ctx_big_file_window:   A full-height window displaying the File List (Zoom View).
- * - ctx_file_window:       A dynamic pointer that points to either small_file_window or
- *                          big_file_window depending on the current view mode.
- * - ctx_preview_window:    The right-side window displaying file content in Preview Mode.
- */
-typedef struct {
-  WINDOW *ctx_dir_window;
-  WINDOW *ctx_small_file_window;
-  WINDOW *ctx_big_file_window;
-  WINDOW *ctx_file_window;
-  WINDOW *ctx_preview_window; /* ADDED: Preview Window */
-  int view_mode; /* Operation mode (DISK_MODE, ARCHIVE_MODE, etc.) */
-  BOOL show_stats; /* ADDED */
-  BOOL preview_mode; /* ADDED: Preview Mode Active Flag */
-  int fixed_col_width; /* ADDED */
-  int refresh_mode; /* ADDED: Auto-refresh configuration */
-} ViewContext;
 
 extern ViewContext *GlobalView;
 
 /* Compatibility Macros */
-/* These map the legacy global variable names to the new GlobalView structure members,
-   allowing existing code to compile without modification. */
 #define dir_window (GlobalView->ctx_dir_window)
 #define small_file_window (GlobalView->ctx_small_file_window)
 #define big_file_window (GlobalView->ctx_big_file_window)
@@ -810,35 +194,10 @@ extern ViewContext *GlobalView;
 #define preview_window (GlobalView->ctx_preview_window)
 #define mode (GlobalView->view_mode)
 
-/* Panel Structure for Split Screen
- * Holds the state of a single panel (Left or Right).
- */
-typedef struct {
-    /* Window Pointers - distinct from ViewContext to avoid collision */
-    WINDOW *pan_dir_window;
-    WINDOW *pan_small_file_window;
-    WINDOW *pan_big_file_window;
-    WINDOW *pan_file_window;
-
-    struct Volume *vol; /* Volume assigned to this panel */
-
-    /* Geometry Cache */
-    int dir_x, dir_y, dir_w, dir_h;
-    int small_file_x, small_file_y, small_file_w, small_file_h;
-    int big_file_x, big_file_y, big_file_w, big_file_h;
-
-    /* View State */
-    int cursor_pos;
-    int disp_begin_pos;
-    int start_file;
-
-} YtreePanel;
-
 extern YtreePanel *LeftPanel;
 extern YtreePanel *RightPanel;
 extern YtreePanel *ActivePanel;
 extern BOOL IsSplitScreen;
-
 
 /* strerror() is POSIX, and all modern operating systems provide it.  */
 #define HAVE_STRERROR 1
@@ -863,7 +222,6 @@ extern char GlobalSearchTerm[256];
 /* Compatibility layer for existing code using global 'statistic' and 'disk_statistic' */
 #define disk_statistic (CurrentVolume->vol_disk_stats)
 
-/* extern int mode; */ /* REMOVED: Now macro mapping to GlobalView->view_mode */
 extern int       user_umask;
 extern char      message[];
 extern BOOL	 print_time;
@@ -890,7 +248,7 @@ extern char *getenv(const char *);
 extern struct Volume *Volume_Create(void);
 extern void Volume_Delete(struct Volume *vol);
 extern void Volume_FreeAll(void);
-extern struct Volume *Volume_GetByPath(const char *path); /* Added */
+extern struct Volume *Volume_GetByPath(const char *path);
 
 /* main.c */
 extern int ytree(int argc, char *argv[]);
@@ -915,7 +273,7 @@ extern int ReadTreeFromArchive(DirEntry **dir_entry_ptr, const char *filename, S
 extern void InitAnimation(void);
 extern void StopAnimation(void);
 extern void DrawAnimationStep(WINDOW *win);
-extern void DrawSpinner(void); /* ADDED */
+extern void DrawSpinner(void);
 
 /* chgrp.c */
 extern int ChangeDirGroup(DirEntry *de_ptr);
@@ -960,7 +318,7 @@ extern int GetFileTypeColor(FileEntry *fe_ptr);
 extern int CopyFile(Statistic *statistic_ptr, FileEntry *fe_ptr, unsigned char confirm, char *to_file, DirEntry *dest_dir_entry, char *to_dir_path, BOOL path_copy, int *dir_create_mode, int *overwrite_mode);
 extern int CopyTaggedFiles(FileEntry *fe_ptr, WalkingPackage *walking_package);
 extern int GetCopyParameter(char *from_file, BOOL path_copy, char *to_file, char *to_dir);
-extern int CopyFileContent(char *to_path, char *from_path, Statistic *s); /* Added */
+extern int CopyFileContent(char *to_path, char *from_path, Statistic *s);
 
 /* delete.c */
 extern int DeleteFile(FileEntry *fe_ptr, int *auto_override, Statistic *s);
@@ -974,10 +332,10 @@ extern int RefreshDirWindow(void);
 extern int ScanSubTree( DirEntry *dir_entry, Statistic *s );
 extern void ToggleDotFiles(void);
 extern DirEntry *GetSelectedDirEntry(struct Volume *vol);
-extern void BuildDirEntryList(struct Volume *vol); /* UPDATED: Takes Volume context */
-extern void FreeDirEntryList(void); /* Retained for compat, or wraps FreeVolumeCache */
-extern void FreeVolumeCache(struct Volume *vol); /* ADDED: Explicit cache cleaner */
-extern DirEntry *RefreshTreeSafe(DirEntry *entry); /* ADDED: Safe Non-destructive Refresh */
+extern void BuildDirEntryList(struct Volume *vol);
+extern void FreeDirEntryList(void);
+extern void FreeVolumeCache(struct Volume *vol);
+extern DirEntry *RefreshTreeSafe(DirEntry *entry);
 
 /* display.c */
 extern void ClearHelp(void);
@@ -989,10 +347,10 @@ extern void RefreshWindow(WINDOW *win);
 extern void SwitchToBigFileWindow(void);
 extern void SwitchToSmallFileWindow(void);
 extern void UnmapF2Window(void);
-extern void DisplayHeaderPath(char *path); /* ADDED: Prototype for dynamic header path */
-extern void RenderInactivePanel(YtreePanel *panel); /* ADDED: Moved from dirwin.c */
-extern void RefreshGlobalView(DirEntry *dir_entry); /* ADDED: Centralized Redraw */
-extern void DisplayPreviewHelp(void); /* ADDED: Preview Help Footer */
+extern void DisplayHeaderPath(char *path);
+extern void RenderInactivePanel(YtreePanel *panel);
+extern void RefreshGlobalView(DirEntry *dir_entry);
+extern void DisplayPreviewHelp(void);
 
 /* display_utils.c */
 extern int AddStr(char *str);
@@ -1008,7 +366,7 @@ extern int GetVisualUserFileEntryLength( int max_visual_filename_len, int max_vi
 extern int MvAddStr(int y, int x, char *str);
 extern int MvWAddStr(WINDOW *win, int y, int x, char *str);
 extern void Print(WINDOW *, int, int, char *, int);
-extern void PrintLine(WINDOW *win, int y, int x, char *line, int len); /* ADDED: PrintLine prototype */
+extern void PrintLine(WINDOW *win, int y, int x, char *line, int len);
 extern void PrintMenuOptions(WINDOW *,int, int, char *, int, int);
 extern void PrintOptions(WINDOW *,int, int, char *);
 extern void PrintSpecialString(WINDOW *win, int y, int x, char *str, int color);
@@ -1030,7 +388,7 @@ extern void Warning(char *msg);
 extern int Execute(DirEntry *dir_entry, FileEntry *file_entry);
 extern int ExecuteCommand(FileEntry *fe_ptr, WalkingPackage *walking_package);
 extern int GetCommandLine(char *command_line);
-extern int GetSearchCommandLine(char *command_line, char *raw_pattern); /* Updated Prototype */
+extern int GetSearchCommandLine(char *command_line, char *raw_pattern);
 
 /* filter.c */
 extern int ReadFilter(void);
@@ -1043,7 +401,7 @@ extern void DisplayFileWindow(DirEntry *dir_entry, WINDOW *win);
 extern int HandleFileWindow(DirEntry *dir_entry);
 extern void RotateFileMode(void);
 extern void SetFileMode(int new_file_mode);
-extern void DisplayFiles(DirEntry *de_ptr, int start_file_no, int hilight_no, int start_x, WINDOW *win); /* filewin.c */
+extern void DisplayFiles(DirEntry *de_ptr, int start_file_no, int hilight_no, int start_x, WINDOW *win);
 extern int ViewTaggedFiles(DirEntry *dir_entry);
 
 /* freesp.c */
@@ -1085,20 +443,20 @@ extern int StrVisualLength(const char *str);
 extern int ViKey( int ch );
 extern int VisualPositionToBytePosition(const char *str, int visual_pos);
 extern int WGetch(WINDOW *win);
-extern YtreeAction GetKeyAction(int ch); /* ADDED: Prototype for GetKeyAction */
-extern int GetEventOrKey(void); /* ADDED: Prototype for Event Loop integration */
+extern YtreeAction GetKeyAction(int ch);
+extern int GetEventOrKey(void);
 
 /* log.c */
 extern int GetNewLoginPath(char *path);
 extern int LoginDisk(char *path);
 extern int SelectLoadedVolume(void);
-extern int CycleLoadedVolume(int direction); /* Added for volume cycling */
+extern int CycleLoadedVolume(int direction);
 
 /* mkdir.c */
-extern DirEntry *MakeDirEntry( DirEntry *father_dir_entry, char *dir_name ); /* Return DirEntry* */
+extern DirEntry *MakeDirEntry( DirEntry *father_dir_entry, char *dir_name );
 extern int MakeDirectory(DirEntry *father_dir_entry);
 extern int MakePath( DirEntry *tree, char *dir_path, DirEntry **dest_dir_entry );
-extern int EnsureDirectoryExists(char *dir_path, DirEntry *tree, BOOL *created, DirEntry **result_ptr, int *auto_create); /* Updated prototype */
+extern int EnsureDirectoryExists(char *dir_path, DirEntry *tree, BOOL *created, DirEntry **result_ptr, int *auto_create);
 
 /* move.c */
 extern int GetMoveParameter(char *from_file, char *to_file, char *to_dir);
@@ -1123,14 +481,11 @@ extern char *GetPath(DirEntry *dir_entry, char *buffer);
 extern char *GetRealFileNamePath(FileEntry *file_entry, char *buffer);
 extern void Fnsplit(char *path, char *dir, char *name);
 extern void NormPath( char *in_path, char *out_path );
-extern char *CutFilename(char *dest, const char *src, unsigned int max_len);
-extern char *CutName(char *dest, const char *src, unsigned int max_len);
-extern char *CutPathname(char *dest, const char *src, unsigned int max_len);
 
 /* pipe.c */
 extern int GetPipeCommand(char *pipe_command);
 extern int Pipe(DirEntry *dir_entry, FileEntry *file_entry);
-extern int PipeDirectory(DirEntry *dir_entry); /* ADDED */
+extern int PipeDirectory(DirEntry *dir_entry);
 extern int PipeTaggedFiles(FileEntry *fe_ptr, WalkingPackage *walking_package);
 
 /* profile.c */
@@ -1167,7 +522,7 @@ extern void SetKindOfSort(int new_kind_of_sort, Statistic *s);
 /* stats.c */
 extern void DisplayAvailBytes(Statistic *s);
 extern void DisplayDirParameter(DirEntry *dir_entry);
-extern void DisplayDirStatistic(DirEntry *dir_entry, const char *title, Statistic *s); /* Changed prototype */
+extern void DisplayDirStatistic(DirEntry *dir_entry, const char *title, Statistic *s);
 extern void DisplayDirTagged(DirEntry *dir_entry, Statistic *s);
 extern void DisplayDiskName(Statistic *s);
 extern void DisplayDiskStatistic(Statistic *s);
@@ -1203,7 +558,6 @@ extern int FileUserMode(FileEntryList *file_entry_list, int ch);
 
 /* view.c */
 extern int View(DirEntry * dir_entry, char *file_path);
-extern int InternalView(char *file_path); /* Ensure this is present and exported */
 extern void RenderFilePreview(WINDOW *win, char *filename, long *line_offset_ptr, int col_offset);
 extern void RenderArchivePreview(WINDOW *win, char *archive_path, char *internal_path, long *line_offset_ptr);
 
