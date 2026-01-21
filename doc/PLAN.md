@@ -993,17 +993,58 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 *   **Context Files:** `src/log.c`
 *   - [ ] **Status:** Not Started.
 
-### **Step 6.7: Implement Plugin / VFS Architecture**
-*   **Goal:** Enable browsing of remote systems (FTP/SFTP), structured data (XML, JSON, MediaWiki dumps), or relational databases (SQLite, MySQL) as if they were local directory trees.
-*   **Rationale:** Extends `ytree`'s utility beyond the local filesystem, turning it into a universal browser.
-*   **Mechanism:** Implement a generic Plugin API (`ytree_plugin.h`) that allows external Shared Objects (`.so`) to register themselves.
-    *   **Interface:** Plugins provide function pointers for `open`, `read_dir`, `stat`, and `execute_custom`.
-    *   **Loading:** `dlopen()` scans a plugin directory on startup.
-    *   **Cycle Detection:** Critical for SQL/Graph data. The VFS layer must track visited node IDs in the current path to detect and handle circular references (loops) to prevent infinite recursion/stack overflow.
-    *   **Integration:** When a user enters a supported file, `ytree` hands control to the plugin's VFS logic.
-*   **Files to Modify:** `src/plugin.c` (New), `src/readtree.c`, `Makefile`
-*   **Context Files:** `include/ytree.h`
-*   - [ ] **Status:** Not Started.
+### **Step 6.7: Implement VFS Abstraction Layer**
+*   **Goal:** Replace hardcoded filesystem logic with a driver-based architecture. This allows `ytree` to treat any data source (Local FS, Archive, SSH, SQL) uniformly as a `Volume`.
+*   **Context:** Currently, `log.c` decides between "Disk" and "Archive". We will change this so `log.c` asks a Registry: "Who can handle this path?"
+
+#### **Step 6.7.1: Define VFS Interface & Volume Integration**
+*   **Goal:** Define the `VFS_Driver` contract (struct of function pointers) and update the `Volume` struct to hold a pointer to its active driver.
+*   **Mechanism:**
+    *   Create `include/ytree_vfs.h`.
+    *   Define function pointers: `scan`, `stat`, `lstat`, `extract`, `get_path` (for internal addressing).
+    *   Update `include/ytree_defs.h` to add `const VFS_Driver *driver` and `void *driver_data` to `struct Volume`.
+*   **Files:** `include/ytree_vfs.h`, `include/ytree_defs.h`.
+
+#### **Step 6.7.2: Implement VFS Registry**
+*   **Goal:** Create the core logic to register drivers and probe paths.
+*   **Mechanism:**
+    *   Create `src/fs/vfs.c`.
+    *   Implement `VFS_Init()` (registers built-in drivers).
+    *   Implement `VFS_Probe(path)` which iterates drivers asking "Can you handle this?" and returns the best match.
+*   **Files:** `src/fs/vfs.c`, `include/ytree_vfs.h`.
+
+#### **Step 6.7.3: Implement "Local" VFS Driver**
+*   **Goal:** Wrap the existing POSIX `opendir`/`readdir` logic into a `VFS_Driver`.
+*   **Mechanism:**
+    *   Create `src/fs/drv_local.c`.
+    *   Move logic from `src/fs/readtree.c` into the driver's `.scan` method.
+    *   Ensure it populates `DirEntry` structures exactly as before.
+*   **Files:** `src/fs/drv_local.c`, `src/fs/readtree.c` (cleanup).
+
+#### **Step 6.7.4: Implement "Archive" VFS Driver**
+*   **Goal:** Wrap the existing `libarchive` logic into a `VFS_Driver`.
+*   **Mechanism:**
+    *   Create `src/fs/drv_archive.c`.
+    *   Move logic from `src/fs/readarchive.c` and `src/fs/archive.c` into the driver.
+    *   Implement `.extract` to handle the temporary file creation for viewing/copying.
+*   **Files:** `src/fs/drv_archive.c`, `src/fs/readarchive.c` (delete).
+
+#### **Step 6.7.5: Switch `LoginDisk` to VFS**
+*   **Goal:** Update the main entry point to use the new system.
+*   **Mechanism:**
+    *   Refactor `src/cmd/log.c`.
+    *   Replace the `stat`/`S_ISDIR` check with `VFS_Probe(path)`.
+    *   Call `vol->driver->scan()` instead of calling `ReadTree` or `ReadTreeFromArchive` directly.
+*   **Files:** `src/cmd/log.c`.
+
+#### **Step 6.7.6: Refactor Consumers (Polymorphism)**
+*   **Goal:** Remove `if (mode == ARCHIVE)` from the rest of the codebase.
+*   **Mechanism:**
+    *   Update `view.c`, `copy.c`, `execute.c`.
+    *   Replace specific calls with `vol->driver->extract(...)` or `vol->driver->stat(...)`.
+*   **Files:** `src/cmd/*.c`.
+
+---
 
 ### **Step 6.8: Implement Recursive Directory Watching** (Use the Auditor Persona here)
 *   **Goal:** Extend the file system watcher to monitor all *currently expanded* directories, allowing changes in visible sibling or child directories to appear immediately without manual refresh.
