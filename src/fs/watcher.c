@@ -1,6 +1,6 @@
 /***************************************************************************
  *
- * watcher.c
+ * src/fs/watcher.c
  * File System Watcher interface wrapping inotify (Linux)
  * for automatic directory refresh functionality.
  *

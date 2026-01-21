@@ -1,5 +1,5 @@
 /***************************************************************************
- * input.c
+ * src/ui/input.c
  * InputStr                                                                *
  * Reads a string at position (y,x) with max length                        *
  * Default value for input is s itself                                     *

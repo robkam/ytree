@@ -1,6 +1,6 @@
 /***************************************************************************
  *
- * readarchive.c
+ * src/fs/readarchive.c
  * Functions to read filetree from various archives (TAR, ZIP, ZOO, etc.)
  *
  ***************************************************************************/

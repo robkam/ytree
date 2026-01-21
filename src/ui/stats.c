@@ -1,6 +1,6 @@
 /***************************************************************************
  *
- * stats.c
+ * src/ui/stats.c
  * Statistics Module - Modernized Boxed Layout
  * Refactored to share attribute display logic between files and directories.
  * Responsive layout update.
