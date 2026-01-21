@@ -932,6 +932,16 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 *   **Action:** Rename file. Verify it calls functions in `render_file.c` and `ui_nav.c` instead of defining them locally.
 *   - [x] **Status:** Completed.
 
+#### **Step 5.8: Extract Volume Menu UI**
+*   **Goal:** Separate UI logic from volume management logic in `log.c`.
+*   **Action:** Move `SelectLoadedVolume` to `src/ui/vol_menu.c`.
+*   - [x] **Status:** Completed.
+
+#### **Step 5.9: Refactor View Module**
+*   **Goal:** Split the monolithic `view.c` into semantic modules: internal hex viewer, preview renderer, and external view command.
+*   **Action:** Created `src/cmd/view.c` (External), `src/ui/view_internal.c` (Hex/Text Editor), `src/ui/view_preview.c` (F7 Panel). Moved `src/ui/hex.c` to `src/cmd/hex.c`.
+*   - [x] **Status:** Completed.
+
 ---
 
 ## **Phase 6: Advanced Features**

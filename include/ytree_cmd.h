@@ -56,6 +56,9 @@ extern int GetGroupId(char *name);
 extern char *GetGroupName(unsigned int gid);
 extern int ReadGroupEntries(void);
 
+/* hex.c */
+extern int ViewHex(char *file_path);
+
 /* log.c */
 extern int GetNewLoginPath(char *path);
 extern int LoginDisk(char *path);
@@ -112,5 +115,9 @@ extern int SystemCall(char *command_line, Statistic *s);
 /* usermode.c */
 extern int DirUserMode(DirEntry *dir_entry, int ch);
 extern int FileUserMode(FileEntryList *file_entry_list, int ch);
+
+/* view.c */
+extern int View(DirEntry * dir_entry, char *file_path);
+extern int ViewTaggedFiles(DirEntry *dir_entry);
 
 #endif /* YTREE_CMD_H */

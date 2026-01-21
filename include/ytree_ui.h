@@ -99,7 +99,6 @@ extern void Warning(char *msg);
 /* filewin.c */
 extern void DisplayFileWindow(DirEntry *dir_entry, WINDOW *win);
 extern int HandleFileWindow(DirEntry *dir_entry);
-extern int ViewTaggedFiles(DirEntry *dir_entry);
 
 /* render_file.c */
 extern void SetFileMode(int new_file_mode);
@@ -111,8 +110,7 @@ extern void SetRenderSortOrder(BOOL reverse);
 extern void DisplayFiles(DirEntry *de_ptr, int start_file_no, int hilight_no, int start_x, WINDOW *win);
 extern void PrintFileEntry(int entry_no, int y, int x, unsigned char hilight, int start_x, WINDOW *win);
 
-/* hex.c */
-extern int ViewHex(char *file_path);
+/* hex.c has moved to cmd/hex.c and prototypes to ytree_cmd.h */
 
 /* input.c */
 extern int Getch(void);
@@ -155,9 +153,10 @@ extern void Nav_End(int *cursor, int *offset, int total_items, int page_height);
 /* vol_menu.c */
 extern int SelectLoadedVolume(void);
 
-/* view.c */
-extern int View(DirEntry * dir_entry, char *file_path);
+/* view_internal.c */
 extern int InternalView(char *file_path);
+
+/* view_preview.c */
 extern void RenderFilePreview(WINDOW *win, char *filename, long *line_offset_ptr, int col_offset);
 extern void RenderArchivePreview(WINDOW *win, char *archive_path, char *internal_path, long *line_offset_ptr);
 
