@@ -1,6 +1,6 @@
 /***************************************************************************
  *
- * display_utils.c
+ * src/ui/display_utils.c
  * Functions for formatting and displaying data in the terminal UI
  *
  ***************************************************************************/

@@ -1,6 +1,6 @@
 /***************************************************************************
  *
- * init.c
+ * src/core/init.c
  * Application Initialization and Layout Management
  *
  * Handles ncurses startup, configuration loading (profile/history),

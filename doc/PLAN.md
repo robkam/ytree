@@ -1191,6 +1191,19 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 
 ---
 
+## **Phase 10: Public Release Preparation**
+*This phase ensures the project is presentable for a public "Developer Preview," emphasizing the architectural achievements over raw feature completeness.*
+
+### **Step 10.0: Release Artifacts**
+*   **Goal:** Standardize versioning, document the new architecture, and set user expectations.
+*   **Action:**
+    *   Set version to `3.0.0-alpha`.
+    *   Create `ARCHITECTURE.md` to document the refactoring (MVC, VFS, No God Objects).
+    *   Update `README.md` with status banners and project motivation.
+*   - [x] **Status:** Completed.
+
+---
+
 ## **Future Enhancements / Wishlist**
 *A collection of high-complexity or lower-priority features to be considered after the primary roadmap is complete.*
 

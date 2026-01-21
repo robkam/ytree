@@ -1,6 +1,6 @@
 /***************************************************************************
  *
- * filter.c
+ * src/cmd/filter.c
  * Unified filtering subsystem: Handles regex/attribute/date/size matching
  * and user input/prompting for filters.
  *
