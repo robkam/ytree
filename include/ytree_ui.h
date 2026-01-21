@@ -152,6 +152,9 @@ extern void Nav_PageUp(int *cursor, int *offset, int page_height);
 extern void Nav_Home(int *cursor, int *offset);
 extern void Nav_End(int *cursor, int *offset, int total_items, int page_height);
 
+/* vol_menu.c */
+extern int SelectLoadedVolume(void);
+
 /* view.c */
 extern int View(DirEntry * dir_entry, char *file_path);
 extern int InternalView(char *file_path);

@@ -59,7 +59,6 @@ extern int ReadGroupEntries(void);
 /* log.c */
 extern int GetNewLoginPath(char *path);
 extern int LoginDisk(char *path);
-extern int SelectLoadedVolume(void);
 extern int CycleLoadedVolume(int direction);
 
 /* mkdir.c */
