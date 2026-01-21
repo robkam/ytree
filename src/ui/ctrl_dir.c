@@ -1,9 +1,9 @@
 /***************************************************************************
-*
-* src/ui/dirwin.c
-* Functions for handling the directory window
-*
-***************************************************************************/
+ *
+ * src/ui/ctrl_dir.c
+ * Directory Window Controller (Input & Event Handling)
+ *
+ ***************************************************************************/
 
 
 #include "ytree.h"

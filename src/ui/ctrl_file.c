@@ -1,7 +1,7 @@
 /***************************************************************************
  *
- * src/ui/filewin.c
- * Functions for handling the file window
+ * src/ui/ctrl_file.c
+ * File Window Controller (Input & Event Handling)
  *
  ***************************************************************************/
 
