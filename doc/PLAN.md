@@ -906,7 +906,7 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 *   **Files to Modify:** `src/ui/render_dir.c` (New), `src/ui/dirwin.c`, `src/ui/stats.c`, `include/ytree_ui.h`
 *   **Context Files:** `src/ui/dirwin.c`
 *   **Action:** Move `PrintDirEntry`, `DisplayTree` from `dirwin.c` and `DisplayDirStatistic` from `stats.c` to `render_dir.c`.
-*   - [ ] **Status:** Not Started.
+*   - [x] **Status:** Completed.
 
 #### **Step 5.7.3: Extract render_file.c**
 *   **Goal:** Move file list rendering functions from `filewin.c` to `src/ui/render_file.c`.
@@ -914,7 +914,7 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 *   **Files to Modify:** `src/ui/render_file.c` (New), `src/ui/filewin.c`, `include/ytree_ui.h`
 *   **Context Files:** `src/ui/filewin.c`
 *   **Action:** Move `PrintFileEntry`, `DisplayFiles` from `filewin.c` to `render_file.c`.
-*   - [ ] **Status:** Not Started.
+*   - [x] **Status:** Completed.
 
 #### **Step 5.7.4: Rename and Purify ctrl_dir.c**
 *   **Goal:** Rename `dirwin.c` to `src/ui/ctrl_dir.c` and clean it up to contain *only* the input loop and event dispatching.

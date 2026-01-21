@@ -45,7 +45,7 @@ extern DirEntry *RefreshTreeSafe(DirEntry *entry);
 /* render_dir.c */
 extern void DisplayTree(struct Volume *vol, WINDOW *win, int start_entry_no, int hilight_no, BOOL is_active);
 extern void PrintDirEntry(struct Volume *vol, WINDOW *win, int entry_no, int y, unsigned char hilight, BOOL is_active);
-extern void SetDirMode(int mode);
+extern void SetDirMode(int new_mode);
 extern int GetDirMode(void);
 extern void RotateDirMode(void);
 
@@ -99,10 +99,17 @@ extern void Warning(char *msg);
 /* filewin.c */
 extern void DisplayFileWindow(DirEntry *dir_entry, WINDOW *win);
 extern int HandleFileWindow(DirEntry *dir_entry);
-extern void RotateFileMode(void);
-extern void SetFileMode(int new_file_mode);
-extern void DisplayFiles(DirEntry *de_ptr, int start_file_no, int hilight_no, int start_x, WINDOW *win);
 extern int ViewTaggedFiles(DirEntry *dir_entry);
+
+/* render_file.c */
+extern void SetFileMode(int new_file_mode);
+extern int GetFileMode(void);
+extern void RotateFileMode(void);
+extern int GetMaxColumn(void);
+extern void SetFileRenderingMetrics(unsigned max_filename, unsigned max_linkname, unsigned max_userview);
+extern void SetRenderSortOrder(BOOL reverse);
+extern void DisplayFiles(DirEntry *de_ptr, int start_file_no, int hilight_no, int start_x, WINDOW *win);
+extern void PrintFileEntry(int entry_no, int y, int x, unsigned char hilight, int start_x, WINDOW *win);
 
 /* hex.c */
 extern int ViewHex(char *file_path);
