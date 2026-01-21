@@ -922,7 +922,7 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 *   **Files to Modify:** `src/ui/dirwin.c` (Rename to `ctrl_dir.c`), `Makefile`
 *   **Context Files:** `src/ui/dirwin.c`
 *   **Action:** Rename file. Verify it calls functions in `render_dir.c` and `ui_nav.c` instead of defining them locally.
-*   - [ ] **Status:** Not Started.
+*   - [x] **Status:** Completed.
 
 #### **Step 5.7.5: Rename and Purify ctrl_file.c**
 *   **Goal:** Rename `filewin.c` to `src/ui/ctrl_file.c` and clean it up to contain *only* the input loop and event dispatching.
@@ -930,7 +930,7 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 *   **Files to Modify:** `src/ui/filewin.c` (Rename to `ctrl_file.c`), `Makefile`
 *   **Context Files:** `src/ui/filewin.c`
 *   **Action:** Rename file. Verify it calls functions in `render_file.c` and `ui_nav.c` instead of defining them locally.
-*   - [ ] **Status:** Not Started.
+*   - [x] **Status:** Completed.
 
 ---
 
