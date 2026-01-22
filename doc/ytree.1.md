@@ -143,7 +143,7 @@ Active when the file window is focused.
 *   **^V**: **View Tagged**. View all tagged files sequentially.
 *   **X** (eXecute): Execute a shell command. `{}` is replaced by the filename.
 *   **^X**: Execute shell command for all tagged files. `{}` is replaced by the full path.
-*   **Y** (Pathcopy): Copy selected file including path.
+*   **Y**: (Pathcopy): Copy selected file, replicating its directory structure relative to the current volume root.
 *   **^Y**: Copy all tagged files including path.
 *   **^F** (File Mode): Cycle file display modes.
 *   **Return**: Switch to Full Screen File Mode / Directory Mode.
