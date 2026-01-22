@@ -31,6 +31,13 @@ class YtreeController:
         Selects a file using Show All + Filter.
         Remains in the Show All window so file commands work immediately.
         """
+        # 0. Expand tree to ensure deep files are visible
+        # Note: If tree is already expanded, this might toggle it, but for fresh start it's safe.
+        # Ideally, we should check state, but unconditional expand (*) works for 'init' state usually.
+        time.sleep(0.5)
+        self.child.send(Keys.EXPAND_ALL)
+        self.wait_for_refresh()
+
         # 1. Flatten tree to find nested files
         time.sleep(0.5)
         self.child.send(Keys.SHOWALL)

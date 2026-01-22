@@ -7,7 +7,7 @@
 
 
 #include "ytree.h"
-
+#include <stdio.h>
 
 
 static int CopyArchiveFile(char *to_path, char *from_path, Statistic *s);
@@ -147,7 +147,34 @@ int CopyFile(Statistic *statistic_ptr,
 
   if( path_copy )
   {
-    (void) GetPath( fe_ptr->dir_entry, &to_path[strlen(to_path)] );
+    /* Calculate path relative to the active volume root (statistic_ptr->tree) */
+    char root_path[PATH_LENGTH + 1];
+    char src_path[PATH_LENGTH + 1];
+    char *rel_path;
+    size_t len;
+
+    GetPath(statistic_ptr->tree, root_path);
+    GetPath(fe_ptr->dir_entry, src_path);
+
+    /* Check if source is inside the active volume root */
+    if (strncmp(src_path, root_path, strlen(root_path)) == 0) {
+        rel_path = src_path + strlen(root_path);
+        /* Skip leading separator in relative path */
+        if (*rel_path == FILE_SEPARATOR_CHAR) rel_path++;
+    } else {
+        /* Fallback: use absolute source path if outside root (legacy behavior preserved) */
+        rel_path = src_path;
+        /* Ensure we don't create double root like /dest//root/path unless intended */
+        if (*rel_path == FILE_SEPARATOR_CHAR) rel_path++;
+    }
+
+    /* Append separator to destination if missing */
+    len = strlen(to_path);
+    if (len > 0 && to_path[len-1] != FILE_SEPARATOR_CHAR) {
+        strcat(to_path, FILE_SEPARATOR_STRING);
+    }
+
+    strcat(to_path, rel_path);
 
     /* Create destination folder (if neccessary) */
     /*-------------------------------------------*/
@@ -458,6 +485,10 @@ int GetCopyParameter(char *from_file, BOOL path_copy, char *to_file, char *to_di
 {
   char buffer[PATH_LENGTH + 1];
 
+  /* Instrumentation for debugging PathCopy stalls */
+  fprintf(stderr, "DEBUG: GetCopyParameter entered. from: %s, path_copy: %d\n",
+          from_file ? from_file : "NULL", path_copy);
+
   if( from_file == NULL )
   {
     from_file = "TAGGED FILES";
@@ -477,6 +508,9 @@ int GetCopyParameter(char *from_file, BOOL path_copy, char *to_file, char *to_di
     (void) snprintf( buffer, sizeof(buffer), "COPY: %s", from_file );
   }
 
+  /* Log the prompt buffer */
+  fprintf(stderr, "DEBUG: constructed buffer: %s\n", buffer);
+
   ClearHelp();
 
   MvAddStr( LINES - 3, 1, buffer );
@@ -495,6 +529,10 @@ int GetCopyParameter(char *from_file, BOOL path_copy, char *to_file, char *to_di
         }
     }
     MvAddStr( LINES - 1, 1, "TO:  " );
+
+    /* Log before InputString call for target dir */
+    fprintf(stderr, "DEBUG: calling InputString for TO directory\n");
+
     if( InputString( to_dir, LINES - 1, 6, 0, COLS - 6, "\r\033", HST_PATH ) == CR ) {
         if (to_dir[0] == '\0') {
             strcpy(to_dir, ".");

@@ -31,6 +31,7 @@ class Keys:
     TAG = "t"
     UNTAG = "u"
     LOG = "l"
+    EXPAND_ALL = "*"
 
     # Global
     QUIT = "q"
