@@ -11,7 +11,9 @@
 
 extern int chdir(const char *);
 
-
+static void RedrawPipePrompt(void) {
+    MvAddStr( LINES - 2, 1, "Pipe-Command: " );
+}
 
 
 int Pipe(DirEntry *dir_entry, FileEntry *file_entry)
@@ -242,7 +244,7 @@ int GetPipeCommand(char *pipe_command)
   ClearHelp();
 
   MvAddStr( LINES - 2, 1, "Pipe-Command: " );
-  if( InputString( pipe_command, LINES - 2, 15, 0, COLS - 16, "\r\033", HST_PIPE ) == CR )
+  if( InputStringEx( pipe_command, LINES - 2, 15, 0, COLS - 16, PATH_LENGTH, "\r\033", HST_PIPE, RedrawPipePrompt ) == CR )
   {
     result = 0;
   }

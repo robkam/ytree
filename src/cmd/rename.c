@@ -9,10 +9,16 @@
 #include "ytree.h"
 
 
-
-
 static int RenameDirEntry(char *to_path, char *from_path);
 static int RenameFileEntry(char *to_path, char *from_path);
+
+/* Buffer for redraw callback */
+static char rename_prompt_buffer[100];
+
+static void RedrawRenamePrompt(void)
+{
+    MvAddStr( LINES - 2, 1, rename_prompt_buffer );
+}
 
 
 int RenameDirectory(DirEntry *de_ptr, char *new_name)
@@ -302,19 +308,22 @@ int GetRenameParameter(char *old_name, char *new_name)
 
   if( old_name == NULL )
   {
-    MvAddStr( LINES - 2, 1, "RENAME TAGGED FILES TO:" );
+    strncpy(rename_prompt_buffer, "RENAME TAGGED FILES TO:", sizeof(rename_prompt_buffer)-1);
     l = 25;
   }
   else
   {
-    MvAddStr( LINES - 2, 1, "RENAME TO:" );
+    strncpy(rename_prompt_buffer, "RENAME TO:", sizeof(rename_prompt_buffer)-1);
     l = 12;
   }
+  rename_prompt_buffer[sizeof(rename_prompt_buffer)-1] = '\0';
+
+  MvAddStr( LINES - 2, 1, rename_prompt_buffer );
 
   (void) strcpy( new_name, (old_name) ? old_name : "*" );
 
 
-  if( InputString(new_name, LINES - 2, l, 0, COLS - l - 1, "\r\033", HST_FILE ) != CR)
+  if( InputStringEx(new_name, LINES - 2, l, 0, COLS - l - 1, PATH_LENGTH, "\r\033", HST_FILE, RedrawRenamePrompt ) != CR)
     return( -1 );
 
   if(!strlen(new_name))

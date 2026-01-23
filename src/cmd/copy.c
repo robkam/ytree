@@ -12,6 +12,23 @@
 
 static int CopyArchiveFile(char *to_path, char *from_path, Statistic *s);
 
+/* Buffers for Prompt Redraw Callback */
+static char copy_prompt_header[PATH_LENGTH + 50];
+static char copy_prompt_as[PATH_LENGTH + 1];
+
+/* Callback to redraw prompt after F2 refresh during Step 1 */
+static void RedrawCopyPrompt1(void) {
+    MvAddStr( LINES - 3, 1, copy_prompt_header );
+    MvAddStr( LINES - 2, 1, "AS:  " );
+}
+
+/* Callback to redraw prompt after F2 refresh during Step 2 */
+static void RedrawCopyPrompt2(void) {
+    MvAddStr( LINES - 3, 1, copy_prompt_header );
+    MvAddStr( LINES - 2, 1, "AS:  " );
+    MvAddStr( LINES - 2, 6, copy_prompt_as );
+    MvAddStr( LINES - 1, 1, "TO:  " );
+}
 
 
 int CopyFile(Statistic *statistic_ptr,
@@ -483,8 +500,6 @@ FNC_XIT:
 
 int GetCopyParameter(char *from_file, BOOL path_copy, char *to_file, char *to_dir)
 {
-  char buffer[PATH_LENGTH + 1];
-
   /* Instrumentation for debugging PathCopy stalls */
   fprintf(stderr, "DEBUG: GetCopyParameter entered. from: %s, path_copy: %d\n",
           from_file ? from_file : "NULL", path_copy);
@@ -501,22 +516,27 @@ int GetCopyParameter(char *from_file, BOOL path_copy, char *to_file, char *to_di
 
   if( path_copy )
   {
-    (void) snprintf( buffer, sizeof(buffer), "PATHCOPY: %s", from_file );
+    (void) snprintf( copy_prompt_header, sizeof(copy_prompt_header), "PATHCOPY: %s", from_file );
   }
   else
   {
-    (void) snprintf( buffer, sizeof(buffer), "COPY: %s", from_file );
+    (void) snprintf( copy_prompt_header, sizeof(copy_prompt_header), "COPY: %s", from_file );
   }
 
   /* Log the prompt buffer */
-  fprintf(stderr, "DEBUG: constructed buffer: %s\n", buffer);
+  fprintf(stderr, "DEBUG: constructed buffer: %s\n", copy_prompt_header);
 
   ClearHelp();
 
-  MvAddStr( LINES - 3, 1, buffer );
+  MvAddStr( LINES - 3, 1, copy_prompt_header );
   MvAddStr( LINES - 2, 1, "AS:  " );
 
-  if( InputString(to_file, LINES - 2, 6, 0, COLS - 6, "\r\033", HST_FILE ) == CR){
+  if( InputStringEx(to_file, LINES - 2, 6, 0, COLS - 6, PATH_LENGTH, "\r\033", HST_FILE, RedrawCopyPrompt1 ) == CR){
+
+    /* Save first input for the second step's redraw */
+    strncpy(copy_prompt_as, to_file, PATH_LENGTH);
+    copy_prompt_as[PATH_LENGTH] = '\0';
+
     if (IsSplitScreen && ActivePanel) {
         YtreePanel *target = (ActivePanel == LeftPanel) ? RightPanel : LeftPanel;
         if (target && target->vol && target->vol->total_dirs > 0) {
@@ -533,7 +553,7 @@ int GetCopyParameter(char *from_file, BOOL path_copy, char *to_file, char *to_di
     /* Log before InputString call for target dir */
     fprintf(stderr, "DEBUG: calling InputString for TO directory\n");
 
-    if( InputString( to_dir, LINES - 1, 6, 0, COLS - 6, "\r\033", HST_PATH ) == CR ) {
+    if( InputStringEx( to_dir, LINES - 1, 6, 0, COLS - 6, PATH_LENGTH, "\r\033", HST_PATH, RedrawCopyPrompt2 ) == CR ) {
         if (to_dir[0] == '\0') {
             strcpy(to_dir, ".");
         }

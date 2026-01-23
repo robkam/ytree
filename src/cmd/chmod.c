@@ -86,6 +86,7 @@ static int InputModeString(char *modus, int y, int x)
 {
     int cursor_pos = 1; /* Skip file type char at index 0 */
     int ch;
+    char path[PATH_LENGTH];
 
     curs_set(0); /* Hide hardware cursor, we manage highlighting manually */
 
@@ -101,6 +102,18 @@ static int InputModeString(char *modus, int y, int x)
         wrefresh(stdscr);
 
         ch = Getch();
+
+        /* F2 Handling for Volume Switching */
+        if (ch == KEY_F(2)) {
+             if (KeyF2Get(CurrentVolume->vol_stats.tree,
+                          CurrentVolume->vol_stats.disp_begin_pos,
+                          CurrentVolume->vol_stats.cursor_pos, path) == 0) {
+                 /* Ignore path result as chmod uses specific characters */
+             }
+             /* Always redraw prompt */
+             MvAddStr( LINES - 2, 1, "MODE:" );
+             continue;
+        }
 
         if (ch == ESC) return ESC;
         if (ch == '\n' || ch == '\r') return CR;

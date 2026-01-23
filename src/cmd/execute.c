@@ -11,6 +11,14 @@
 
 extern int chdir(const char *);
 
+static void RedrawExecPrompt(void) {
+    MvAddStr( LINES - 2, 1, "COMMAND: " );
+}
+
+static void RedrawSearchPrompt(void) {
+    MvAddStr( LINES - 2, 1, "SEARCH TAGGED: " );
+}
+
 #ifdef HAVE_LIBARCHIVE
 static int ExecuteArchiveFile(DirEntry *dir_entry, FileEntry *file_entry, char *cmd_template) {
     char temp_path[PATH_LENGTH];
@@ -89,16 +97,6 @@ static int ExecuteArchiveFile(DirEntry *dir_entry, FileEntry *file_entry, char *
     *out_ptr = '\0';
 
     /* 4. Execute */
-    /* Use SilentSystemCall to avoid per-file pause for Tagged operations (^S/^X) */
-    /* QuerySystemCall handles single-file execution pause if needed */
-    /* But for ExecuteArchiveFile, we are usually in a loop context if called from ExecuteCommand */
-    /* Wait, Execute (single file) also calls this. */
-
-    /* We can distinguish context: ExecuteCommand vs Execute */
-    /* But this helper is static. */
-    /* Actually, for ^S (Search), we WANT the return code (0 = match). */
-    /* SilentSystemCall returns the system() code. */
-
     refresh();
     result = SilentSystemCall(command_line, &CurrentVolume->vol_stats);
 
@@ -128,7 +126,8 @@ int Execute(DirEntry *dir_entry, FileEntry *file_entry)
         }
     }
 
-    MvAddStr(LINES - 2, 1, "COMMAND:");
+    /* MvAddStr handled inside GetCommandLine via callback now, but for safety with legacy calls: */
+    /* No, GetCommandLine is called here, it draws prompt. */
     if (GetCommandLine(command_template) == 0) {
         /* ARCHIVE MODE HANDLER */
 #ifdef HAVE_LIBARCHIVE
@@ -225,7 +224,7 @@ int GetCommandLine(char *command_line)
   ClearHelp();
 
   MvAddStr( LINES - 2, 1, "COMMAND: " );
-  if( InputString( command_line, LINES - 2, 10, 0, COLS - 11, "\r\033", HST_EXEC ) == CR )
+  if( InputStringEx( command_line, LINES - 2, 10, 0, COLS - 11, COMMAND_LINE_LENGTH, "\r\033", HST_EXEC, RedrawExecPrompt ) == CR )
   {
     move( LINES - 2, 1 ); clrtoeol();
     result = 0;
@@ -251,7 +250,7 @@ int GetSearchCommandLine(char *command_line, char *raw_pattern)
 
   input_buf[0] = '\0';
 
-  if( InputString( input_buf, LINES - 2, 16, 0, COLS - 17, "\r\033", HST_SEARCH ) == CR )
+  if( InputStringEx( input_buf, LINES - 2, 16, 0, COLS - 17, 256, "\r\033", HST_SEARCH, RedrawSearchPrompt ) == CR )
   {
     if( raw_pattern ) {
         strncpy(raw_pattern, input_buf, 255);
@@ -287,14 +286,6 @@ int ExecuteCommand(FileEntry *fe_ptr, WalkingPackage *walking_package)
   /* Archive Mode Tagged Execution */
   if (mode == ARCHIVE_MODE) {
       /* Reconstruct the template to pass to single-file handler */
-      /* Since ExecuteArchiveFile handles expansion internally, we can pass the template directly? */
-      /* No, ExecuteArchiveFile expands {}. ExecuteCommand expands %s AND {}. */
-      /* We need to use ExecuteArchiveFile logic but adapted for this loop */
-
-      /* Simplified: Use ExecuteArchiveFile one by one. */
-      /* However, walking_package already has the command template. */
-      /* ExecuteArchiveFile expects template with {} */
-
       return ExecuteArchiveFile(fe_ptr->dir_entry, fe_ptr, walking_package->function_data.execute.command);
   }
 #endif

@@ -893,26 +893,30 @@ Statistic *s = &CurrentVolume->vol_stats;
 int height, width;
 char watcher_path[PATH_LENGTH + 1];
 
+/* ADDED INSTRUCTION */
+ReCreateWindows();
+DisplayMenu();
+
 unput_char = 0;
 de_ptr = NULL;
 
 /* Safety fallback if Init() has not set up panels */
 if (ActivePanel == NULL) ActivePanel = LeftPanel;
 
-/* Sync Panel state from Volume only if Panel is uninitialized (pos 0) and NOT in split screen */
-if (!IsSplitScreen && ActivePanel && ActivePanel->cursor_pos == 0 && ActivePanel->disp_begin_pos == 0) {
-ActivePanel->cursor_pos = CurrentVolume->vol_stats.cursor_pos;
-ActivePanel->disp_begin_pos = CurrentVolume->vol_stats.disp_begin_pos;
-}
-
 if (ActivePanel) {
-ActivePanel->vol = CurrentVolume; /* Ensure volume match */
-/* Update Global View Context to match Active Panel */
-/* This ensures macros like dir_window resolve to the correct ncurses window */
-GlobalView->ctx_dir_window = ActivePanel->pan_dir_window;
-GlobalView->ctx_small_file_window = ActivePanel->pan_small_file_window;
-GlobalView->ctx_big_file_window = ActivePanel->pan_big_file_window;
-GlobalView->ctx_file_window = ActivePanel->pan_file_window;
+    /* Always sync ActivePanel to the CurrentVolume state on entry.
+     * This handles volume switching (Exit -> Main Loop -> Re-Entry).
+     */
+    ActivePanel->vol = CurrentVolume;
+    ActivePanel->cursor_pos = CurrentVolume->vol_stats.cursor_pos;
+    ActivePanel->disp_begin_pos = CurrentVolume->vol_stats.disp_begin_pos;
+
+    /* Update Global View Context to match Active Panel */
+    /* This ensures macros like dir_window resolve to the correct ncurses window */
+    GlobalView->ctx_dir_window = ActivePanel->pan_dir_window;
+    GlobalView->ctx_small_file_window = ActivePanel->pan_small_file_window;
+    GlobalView->ctx_big_file_window = ActivePanel->pan_big_file_window;
+    GlobalView->ctx_file_window = ActivePanel->pan_file_window;
 }
 
 /* Safety Reset for Preview Mode */
@@ -1558,7 +1562,7 @@ DisplayDirStatistic(dir_entry, NULL, s);
 need_dsp_help = TRUE;
 break;
 case ACTION_CMD_D: if( !DeleteDirectory( dir_entry ) ) {
-if( ActivePanel->disp_begin_pos + ActivePanel->cursor_pos > 0 )
+if (ActivePanel->disp_begin_pos + ActivePanel->cursor_pos > 0)
 {
 if( ActivePanel->cursor_pos > 0 ) ActivePanel->cursor_pos--;
 else ActivePanel->disp_begin_pos--;
@@ -1918,7 +1922,7 @@ int disp_begin_pos,
 int cursor_pos,
 char *path)
 {
-struct Volume *original_vol = CurrentVolume;
+struct Volume *original_vol; /* Declare first */
 int ch;
 int result = -1;
 int win_width, win_height;
@@ -1927,6 +1931,17 @@ int local_disp_begin_pos;
 int local_cursor_pos;
 YtreeAction action; /* Declare YtreeAction variable */
 char new_login_path[PATH_LENGTH + 1];
+
+/* 1. Sync ActivePanel state to CurrentVolume to ensure original_vol has valid data */
+if (ActivePanel && ActivePanel->vol == CurrentVolume) {
+    CurrentVolume->vol_stats.disp_begin_pos = ActivePanel->disp_begin_pos;
+    CurrentVolume->vol_stats.cursor_pos = ActivePanel->cursor_pos;
+
+    /* Update local variables to match */
+    disp_begin_pos = ActivePanel->disp_begin_pos;
+    cursor_pos = ActivePanel->cursor_pos;
+}
+original_vol = CurrentVolume;
 
 if (mode != DISK_MODE && mode != USER_MODE) {
 /* Search for a volume that is in DISK_MODE */
@@ -2205,8 +2220,12 @@ if (CurrentVolume != original_vol) {
 CurrentVolume = original_vol;
 mode = CurrentVolume->vol_stats.login_mode;
 
-/* 2. Restore Panel Sync */
-if (ActivePanel) ActivePanel->vol = CurrentVolume;
+/* 2. Restore ActivePanel state from the restored volume */
+if (ActivePanel) {
+    ActivePanel->vol = CurrentVolume;
+    ActivePanel->cursor_pos = CurrentVolume->vol_stats.cursor_pos;
+    ActivePanel->disp_begin_pos = CurrentVolume->vol_stats.disp_begin_pos;
+}
 
 /* 3. Restore UI Layout */
 DisplayMenu(); /* Restores Frame and Header */
@@ -2238,6 +2257,13 @@ DisplayFileWindow(GetSelectedDirEntry(CurrentVolume), file_window);
 RefreshWindow(file_window);
 
 DisplayAvailBytes(&CurrentVolume->vol_stats);
+}
+
+/* Added: If volume didn't change (e.g. F2 cancelled), force panel refresh to sync any state changes */
+if (CurrentVolume == original_vol && ActivePanel) {
+    ActivePanel->vol = CurrentVolume;
+    ActivePanel->cursor_pos = CurrentVolume->vol_stats.cursor_pos;
+    ActivePanel->disp_begin_pos = CurrentVolume->vol_stats.disp_begin_pos;
 }
 
 UnmapF2Window();

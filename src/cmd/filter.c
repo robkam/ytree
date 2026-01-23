@@ -416,6 +416,11 @@ void ApplyFilter(DirEntry *dir_entry, Statistic *s)
   }
 }
 
+static void RedrawFilterPrompt(void) {
+    MvAddStr( LINES - 3, 1, "Patterns: name* *.ext  *.c,*.h -*.o :d :w :x :l > < = 2025-01-01, 10k, 1M, 1G" );
+    MvAddStr( LINES - 2, 1, "FILTER:" );
+}
+
 /*
  * Prompts the user to enter a new filter string and applies it.
  * Renamed from ReadFileSpec.
@@ -436,7 +441,7 @@ int ReadFilter(void)
 
   /* Use available screen width (COLS - 9) but clamp to buffer size.
      x position is 8, so available width is COLS - 8 - 1 */
-  if( InputString( buffer, LINES - 2, 8, 0, MINIMUM(FILE_SPEC_LENGTH, COLS - 9), "\r\033", HST_FILTER ) == CR )
+  if( InputStringEx( buffer, LINES - 2, 8, 0, MINIMUM(FILE_SPEC_LENGTH, COLS - 9), FILE_SPEC_LENGTH, "\r\033", HST_FILTER, RedrawFilterPrompt ) == CR )
   {
     if( SetFilter( buffer, &CurrentVolume->vol_stats ) )
     {
