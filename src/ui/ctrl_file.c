@@ -2388,7 +2388,8 @@ int HandleFileWindow(DirEntry *dir_entry)
 
       case ACTION_VOL_MENU:
           if (SelectLoadedVolume() == 0) {
-              unput_char = ESC;
+              unput_char = '\0'; /* Ensure we return clean ESC, no pending input */
+              return ESC;
           } else {
               ch = 0;
           }
@@ -2396,7 +2397,8 @@ int HandleFileWindow(DirEntry *dir_entry)
           break;
       case ACTION_VOL_PREV:
           if (CycleLoadedVolume(-1) == 0) {
-              unput_char = ESC;
+              unput_char = '\0'; /* Ensure we return clean ESC, no pending input */
+              return ESC;
           } else {
               ch = 0;
           }
@@ -2404,7 +2406,8 @@ int HandleFileWindow(DirEntry *dir_entry)
           break;
       case ACTION_VOL_NEXT:
           if (CycleLoadedVolume(1) == 0) {
-              unput_char = ESC;
+              unput_char = '\0'; /* Ensure we return clean ESC, no pending input */
+              return ESC;
           } else {
               ch = 0;
           }

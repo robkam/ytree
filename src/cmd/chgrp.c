@@ -14,6 +14,10 @@ int ChangeFileGroup(FileEntry *fe_ptr)
     return HandleFileOwnership(fe_ptr, FALSE, TRUE);
 }
 
+static void RedrawGroupPrompt(void) {
+    MvAddStr( LINES - 2, 1, "GROUP:" );
+}
+
 int GetNewGroup(int st_gid)
 {
   char group[GROUP_NAME_MAX * 2 +1];
@@ -41,7 +45,7 @@ int GetNewGroup(int st_gid)
   MvAddStr( LINES - 2, 1, "GROUP:" );
   x = 1 + strlen("GROUP:") + UI_INPUT_PADDING;
 
-  if( InputString( group, LINES - 2, x, 0, GROUP_NAME_MAX, "\r\033", HST_ID ) == CR )
+  if( InputStringEx( group, LINES - 2, x, 0, GROUP_NAME_MAX, GROUP_NAME_MAX, "\r\033", HST_ID, RedrawGroupPrompt ) == CR )
   {
     if( (group_id = GetGroupId( group )) == -1 )
     {

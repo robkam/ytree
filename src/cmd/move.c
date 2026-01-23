@@ -9,6 +9,23 @@
 #include "ytree.h"
 
 
+/* Buffers for Prompt Redraw Callback */
+static char move_prompt_header[PATH_LENGTH + 50];
+static char move_prompt_as[PATH_LENGTH + 1];
+
+/* Callback to redraw prompt after F2 refresh during Step 1 */
+static void RedrawMovePrompt1(void) {
+    MvAddStr( LINES - 3, 1, move_prompt_header );
+    MvAddStr( LINES - 2, 1, "AS:   " );
+}
+
+/* Callback to redraw prompt after F2 refresh during Step 2 */
+static void RedrawMovePrompt2(void) {
+    MvAddStr( LINES - 3, 1, move_prompt_header );
+    MvAddStr( LINES - 2, 1, "AS:   " );
+    MvAddStr( LINES - 2, 7, move_prompt_as );
+    MvAddStr( LINES - 1, 1, "TO:   " );
+}
 
 
 static int Move(char *to_path, char *from_path);
@@ -291,8 +308,6 @@ FNC_XIT:
 
 int GetMoveParameter(char *from_file, char *to_file, char *to_dir)
 {
-  char buffer[PATH_LENGTH * 2 +1];
-
   if( from_file == NULL )
   {
     from_file = "TAGGED FILES";
@@ -303,13 +318,18 @@ int GetMoveParameter(char *from_file, char *to_file, char *to_dir)
     (void) strcpy( to_file, from_file );
   }
 
-  (void) snprintf( buffer, sizeof(buffer), "MOVE: %s", from_file );
+  (void) snprintf( move_prompt_header, sizeof(move_prompt_header), "MOVE: %s", from_file );
 
   ClearHelp();
 
-  MvAddStr( LINES - 3, 1, buffer );
+  MvAddStr( LINES - 3, 1, move_prompt_header );
   MvAddStr( LINES - 2, 1, "AS:   " );
-  if( InputString( to_file, LINES - 2, 7, 0, COLS - 7, "\r\033", HST_FILE ) == CR ) {
+
+  if( InputStringEx( to_file, LINES - 2, 7, 0, COLS - 7, PATH_LENGTH, "\r\033", HST_FILE, RedrawMovePrompt1 ) == CR ) {
+
+    strncpy(move_prompt_as, to_file, PATH_LENGTH);
+    move_prompt_as[PATH_LENGTH] = '\0';
+
     if (IsSplitScreen && ActivePanel) {
         YtreePanel *target = (ActivePanel == LeftPanel) ? RightPanel : LeftPanel;
         if (target && target->vol && target->vol->total_dirs > 0) {
@@ -322,7 +342,7 @@ int GetMoveParameter(char *from_file, char *to_file, char *to_dir)
         }
     }
     MvAddStr( LINES - 1, 1, "TO:   " );
-    if( InputString( to_dir, LINES - 1, 7, 0, COLS - 7, "\r\033", HST_PATH ) == CR ) {
+    if( InputStringEx( to_dir, LINES - 1, 7, 0, COLS - 7, PATH_LENGTH, "\r\033", HST_PATH, RedrawMovePrompt2 ) == CR ) {
         if (to_dir[0] == '\0') {
             strcpy(to_dir, ".");
         }

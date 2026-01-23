@@ -249,7 +249,7 @@ int VisualPositionToBytePosition(const char *str, int visual_pos)
 }
 
 
-int InputStringEx(char *s, int y, int x, int cursor_pos, int display_width, int max_len, char *term, int history_type)
+int InputStringEx(char *s, int y, int x, int cursor_pos, int display_width, int max_len, char *term, int history_type, void (*refresh_func)(void))
 {
   int p;                       /* Current Cursor-Position (visual) */
   int c1;                      /* Read Char */
@@ -449,7 +449,10 @@ int InputStringEx(char *s, int y, int x, int cursor_pos, int display_width, int 
         }
         break;
 
-    case KEY_RESIZE: resize_request = TRUE; break;
+    case KEY_RESIZE:
+        resize_request = TRUE;
+        if (refresh_func) refresh_func();
+        break;
 
 #ifdef KEY_F
     case KEY_F(2):
@@ -470,6 +473,8 @@ int InputStringEx(char *s, int y, int x, int cursor_pos, int display_width, int 
                 free(ls);
             }
         }
+        /* Restore any prompts wiped by F2 screen redraws */
+        if (refresh_func) refresh_func();
         break;
 
     case 'C' & 0x1f: c1 = ESC; break;
@@ -563,12 +568,6 @@ int InputStringEx(char *s, int y, int x, int cursor_pos, int display_width, int 
 
   free(pp);
   return( c1 );
-}
-
-
-int InputString(char *s, int y, int x, int cursor_pos, int length, char *term, int history_type)
-{
-    return InputStringEx(s, y, x, cursor_pos, length, length, term, history_type);
 }
 
 

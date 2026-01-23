@@ -116,8 +116,11 @@ extern void PrintFileEntry(int entry_no, int y, int x, unsigned char hilight, in
 extern int Getch(void);
 extern void HitReturnToContinue(void);
 extern int InputChoice(char *msg, char *term);
-extern int InputString(char *s, int y, int x, int cursor_pos, int length, char *term, int history_type);
-extern int InputStringEx(char *s, int y, int x, int cursor_pos, int display_width, int max_len, char *term, int history_type);
+
+/* Replaced function prototype with macro for backward compatibility handling the new callback argument */
+#define InputString(s,y,x,cp,len,term,hst) InputStringEx(s,y,x,cp,len,len,term,hst,NULL)
+
+extern int InputStringEx(char *s, int y, int x, int cursor_pos, int display_width, int max_len, char *term, int history_type, void (*refresh_func)(void));
 extern BOOL KeyPressed(void);
 extern BOOL EscapeKeyPressed(void);
 extern char *StrLeft(const char *str, size_t count);
