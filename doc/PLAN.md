@@ -1158,31 +1158,58 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 
 ---
 
-## **Phase 9: Valgrind Audit & Optimization**
+## **Phase 9: Architectural Hardening & UI Unification**
+*This phase addresses the "UI Fragmentation" technical debt identified during the v3.0 Alpha development. It eliminates ad-hoc screen drawing, centralizes input handling, and audits the codebase for global state leakage.*
+
+### **Step 9.1: Deep-Dive Architectural Audit**
+*   **Goal:** Perform a comprehensive audit of the codebase to identify "Fragile Code" patterns, specifically identifying Global State usage, unsafe string handling, and logic fragmentation.
+*   **Output:** A prioritized refactoring list.
+*   **Status:** Not Started.
+
+### **Step 9.2: Refactor Input Subsystem (Prompt Manager)**
+*   **Goal:** Replace the fragile `InputStringEx` + Callback mechanism with a robust **Prompt Manager**.
+*   **Mechanism:** Create a `UI_Prompt` context that handles drawing the *entire* prompt area (Help text + Input Field) automatically. This removes drawing logic from `cmd/*.c` modules.
+*   **Target:** `src/ui/input.c`, `src/cmd/copy.c`, `src/cmd/move.c`.
+*   **Status:** Not Started.
+
+### **Step 9.3: Standardize Menu/Popup System**
+*   **Goal:** Replace ad-hoc window creation in `vol_menu.c` and `history.c` with a centralized **Menu Manager**.
+*   **Mechanism:** Implement `UI_Menu(items, title, callback)` that handles window sizing, scrolling, and borders consistently, respecting the global layout engine.
+*   **Target:** `src/ui/vol_menu.c`, `src/util/history.c`.
+*   **Status:** Not Started.
+
+### **Step 9.4: Centralize Window Management**
+*   **Goal:** Ensure all secondary windows (F2, Error, Help) use the `ViewContext` layout engine rather than hardcoded geometry.
+*   **Target:** `src/ui/display.c`, `src/core/init.c`.
+*   **Status:** Not Started.
+
+---
+
+## **Phase 10: Valgrind Audit & Optimization**
 *This phase focuses on deep stability, memory safety, and performance profiling to ensure `ytree` is robust enough for long-running sessions.*
 
-### **Step 9.1: Establish Valgrind Baseline**
+### **Step 10.1: Establish Valgrind Baseline**
 *   **Goal:** Create a reproducible test case (scripted via the Python test suite) that exercises core features (Log, Copy, Move, Refresh, Exit) while running under Valgrind Memcheck.
 *   **Rationale:** Provides a consistent benchmark to measure memory usage and identify existing leaks before optimization begins.
 *   **Files to Modify:** `tests/valgrind_test.py` (New)
 *   **Context Files:** None.
 *   - [ ] **Status:** Not Started.
 
-### **Step 9.2: Memory Leak Remediation** (Use the Auditor Persona here)
+### **Step 10.2: Memory Leak Remediation** (Use the Auditor Persona here)
 *   **Goal:** Systematically analyze Valgrind reports and fix all "Definitely Lost" and "Indirectly Lost" memory errors.
 *   **Rationale:** Prevents memory bloat over time, which is critical for a file manager that may be left open for days.
 *   **Files to Modify:** `src/**/*.c`
 *   **Context Files:** None.
 *   - [ ] **Status:** Not Started.
 
-### **Step 9.3: Fix Uninitialized Memory Access** (Use the Auditor Persona here)
+### **Step 10.3: Fix Uninitialized Memory Access** (Use the Auditor Persona here)
 *   **Goal:** Identify and fix "Conditional jump or move depends on uninitialized value(s)" errors.
 *   **Rationale:** These are often the cause of sporadic, unreproducible crashes and erratic behavior.
 *   **Files to Modify:** `src/**/*.c`
 *   **Context Files:** None.
 *   - [ ] **Status:** Not Started.
 
-### **Step 9.4: Resource Leak Cleanup (File Descriptors)** (Use the Auditor Persona here)
+### **Step 10.4: Resource Leak Cleanup (File Descriptors)** (Use the Auditor Persona here)
 *   **Goal:** Ensure all file descriptors (`open`, `opendir`, `popen`) are properly closed, especially in error paths and during volume switching.
 *   **Rationale:** Prevents "Too many open files" errors during heavy usage.
 *   **Files to Modify:** `src/cmd/log.c`, `src/cmd/pipe.c`, `src/fs/archive.c`
@@ -1191,10 +1218,10 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 
 ---
 
-## **Phase 10: Public Release Preparation**
+## **Phase 11: Public Release Preparation**
 *This phase ensures the project is presentable for a public "Developer Preview," emphasizing the architectural achievements over raw feature completeness.*
 
-### **Step 10.0: Release Artifacts**
+### **Step 11.0: Release Artifacts**
 *   **Goal:** Standardize versioning, document the new architecture, and set user expectations.
 *   **Action:**
     *   Set version to `3.0.0-alpha`.
