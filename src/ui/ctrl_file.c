@@ -2387,6 +2387,10 @@ int HandleFileWindow(DirEntry *dir_entry)
 		      break;
 
       case ACTION_VOL_MENU:
+          /* Save Directory Tree State before switching */
+          ActivePanel->vol->vol_stats.cursor_pos = ActivePanel->cursor_pos;
+          ActivePanel->vol->vol_stats.disp_begin_pos = ActivePanel->disp_begin_pos;
+
           if (SelectLoadedVolume() == 0) {
               unput_char = '\0'; /* Ensure we return clean ESC, no pending input */
               return ESC;
@@ -2396,6 +2400,10 @@ int HandleFileWindow(DirEntry *dir_entry)
           if (CurrentVolume != start_vol) return ESC;
           break;
       case ACTION_VOL_PREV:
+          /* Save Directory Tree State before switching */
+          ActivePanel->vol->vol_stats.cursor_pos = ActivePanel->cursor_pos;
+          ActivePanel->vol->vol_stats.disp_begin_pos = ActivePanel->disp_begin_pos;
+
           if (CycleLoadedVolume(-1) == 0) {
               unput_char = '\0'; /* Ensure we return clean ESC, no pending input */
               return ESC;
@@ -2405,6 +2413,10 @@ int HandleFileWindow(DirEntry *dir_entry)
           if (CurrentVolume != start_vol) return ESC;
           break;
       case ACTION_VOL_NEXT:
+          /* Save Directory Tree State before switching */
+          ActivePanel->vol->vol_stats.cursor_pos = ActivePanel->cursor_pos;
+          ActivePanel->vol->vol_stats.disp_begin_pos = ActivePanel->disp_begin_pos;
+
           if (CycleLoadedVolume(1) == 0) {
               unput_char = '\0'; /* Ensure we return clean ESC, no pending input */
               return ESC;

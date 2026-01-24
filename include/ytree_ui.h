@@ -117,10 +117,13 @@ extern int Getch(void);
 extern void HitReturnToContinue(void);
 extern int InputChoice(char *msg, char *term);
 
-/* Replaced function prototype with macro for backward compatibility handling the new callback argument */
-#define InputString(s,y,x,cp,len,term,hst) InputStringEx(s,y,x,cp,len,len,term,hst,NULL)
+/* prompt.c */
+extern int UI_ReadString(const char *prompt, char *buffer, int max_len, int history_type);
 
-extern int InputStringEx(char *s, int y, int x, int cursor_pos, int display_width, int max_len, char *term, int history_type, void (*refresh_func)(void));
+/* Legacy Macro for compatibility - Ignores y, x, and callback args for now */
+#define InputString(s,y,x,cp,len,term,hst) UI_ReadString("Input:", s, len, hst)
+#define InputStringEx(s,y,x,cp,dw,len,term,hst,cb) UI_ReadString("Input:", s, len, hst)
+
 extern BOOL KeyPressed(void);
 extern BOOL EscapeKeyPressed(void);
 extern char *StrLeft(const char *str, size_t count);

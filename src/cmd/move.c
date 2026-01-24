@@ -9,22 +9,18 @@
 #include "ytree.h"
 
 
-/* Buffers for Prompt Redraw Callback */
+/* Buffers for Prompt Redraw Callback - Deprecated by UI_ReadString, keeping for safety if needed */
 static char move_prompt_header[PATH_LENGTH + 50];
 static char move_prompt_as[PATH_LENGTH + 1];
 
 /* Callback to redraw prompt after F2 refresh during Step 1 */
 static void RedrawMovePrompt1(void) {
-    MvAddStr( LINES - 3, 1, move_prompt_header );
-    MvAddStr( LINES - 2, 1, "AS:   " );
+    /* No-op with UI_ReadString */
 }
 
 /* Callback to redraw prompt after F2 refresh during Step 2 */
 static void RedrawMovePrompt2(void) {
-    MvAddStr( LINES - 3, 1, move_prompt_header );
-    MvAddStr( LINES - 2, 1, "AS:   " );
-    MvAddStr( LINES - 2, 7, move_prompt_as );
-    MvAddStr( LINES - 1, 1, "TO:   " );
+    /* No-op with UI_ReadString */
 }
 
 
@@ -322,10 +318,9 @@ int GetMoveParameter(char *from_file, char *to_file, char *to_dir)
 
   ClearHelp();
 
-  MvAddStr( LINES - 3, 1, move_prompt_header );
-  MvAddStr( LINES - 2, 1, "AS:   " );
+  /* MvAddStr removed - handled by UI_ReadString */
 
-  if( InputStringEx( to_file, LINES - 2, 7, 0, COLS - 7, PATH_LENGTH, "\r\033", HST_FILE, RedrawMovePrompt1 ) == CR ) {
+  if( UI_ReadString(move_prompt_header, to_file, PATH_LENGTH, HST_FILE) == CR ) {
 
     strncpy(move_prompt_as, to_file, PATH_LENGTH);
     move_prompt_as[PATH_LENGTH] = '\0';
@@ -341,8 +336,8 @@ int GetMoveParameter(char *from_file, char *to_file, char *to_dir)
             GetPath(target->vol->dir_entry_list[idx].dir_entry, to_dir);
         }
     }
-    MvAddStr( LINES - 1, 1, "TO:   " );
-    if( InputStringEx( to_dir, LINES - 1, 7, 0, COLS - 7, PATH_LENGTH, "\r\033", HST_PATH, RedrawMovePrompt2 ) == CR ) {
+
+    if( UI_ReadString("To Directory:", to_dir, PATH_LENGTH, HST_PATH) == CR ) {
         if (to_dir[0] == '\0') {
             strcpy(to_dir, ".");
         }

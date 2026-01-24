@@ -1164,24 +1164,24 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 ### **Step 9.1: Deep-Dive Architectural Audit**
 *   **Goal:** Perform a comprehensive audit of the codebase to identify "Fragile Code" patterns, specifically identifying Global State usage, unsafe string handling, and logic fragmentation.
 *   **Output:** A prioritized refactoring list.
-*   **Status:** Not Started.
+*   - [x] **Status:** Completed.
 
 ### **Step 9.2: Refactor Input Subsystem (Prompt Manager)**
 *   **Goal:** Replace the fragile `InputStringEx` + Callback mechanism with a robust **Prompt Manager**.
 *   **Mechanism:** Create a `UI_Prompt` context that handles drawing the *entire* prompt area (Help text + Input Field) automatically. This removes drawing logic from `cmd/*.c` modules.
 *   **Target:** `src/ui/input.c`, `src/cmd/copy.c`, `src/cmd/move.c`.
-*   **Status:** Not Started.
+*   - [ ] **Status:** Not Started.
 
 ### **Step 9.3: Standardize Menu/Popup System**
 *   **Goal:** Replace ad-hoc window creation in `vol_menu.c` and `history.c` with a centralized **Menu Manager**.
 *   **Mechanism:** Implement `UI_Menu(items, title, callback)` that handles window sizing, scrolling, and borders consistently, respecting the global layout engine.
 *   **Target:** `src/ui/vol_menu.c`, `src/util/history.c`.
-*   **Status:** Not Started.
+*   - [ ] **Status:** Not Started.
 
 ### **Step 9.4: Centralize Window Management**
 *   **Goal:** Ensure all secondary windows (F2, Error, Help) use the `ViewContext` layout engine rather than hardcoded geometry.
 *   **Target:** `src/ui/display.c`, `src/core/init.c`.
-*   **Status:** Not Started.
+*   - [ ] **Status:** Not Started.
 
 ---
 
