@@ -1002,23 +1002,14 @@ dir_entry = ActivePanel->vol->vol_stats.tree;
 }
 }
 
-DisplayDiskStatistic(s);
-DisplayDirStatistic(dir_entry, NULL, s);
-/* Update header path on initial load */
-{
-char path[PATH_LENGTH];
-GetPath(dir_entry, path);
-DisplayHeaderPath(path);
+/* REPLACEMENT START: Unified Rendering Call */
+if(!dir_entry->login_flag) {
+    dir_entry->start_file = 0;
+    dir_entry->cursor_pos = -1;
 }
 
-if(!dir_entry->login_flag) {
-dir_entry->start_file = 0;
-dir_entry->cursor_pos = -1;
-}
-DisplayFileWindow( dir_entry, file_window );
-RefreshWindow( file_window );
-DisplayTree( ActivePanel->vol, dir_window, ActivePanel->disp_begin_pos, ActivePanel->disp_begin_pos + ActivePanel->cursor_pos, TRUE );
-touchwin(dir_window);
+RefreshGlobalView(dir_entry);
+/* REPLACEMENT END */
 
 if ( dir_entry->login_flag )
 {

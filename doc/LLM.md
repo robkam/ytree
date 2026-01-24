@@ -166,6 +166,9 @@ The user is a maintainer who describes issues in terms of **Behavior**. They are
 *   **PATHING:** Return paths relative to the project root (e.g., `main.c`, `src/utils.c`). **DO NOT** prepend the project directory name (e.g., do **NOT** output `ytree/main.c`).
 *   **NO HALLUCINATIONS:** If you need to analyze a file that is not currently in the context, **STOP and ask the user to provide it**. Do not assume its contents.
 
+**ANTI-PATCHING" DIRECTIVE:**
+Do not apply superficial fixes for deep architectural problems. If a bug is caused by fragmented state or logic, STOP. Refactor the architecture to unify the logic before fixing the specific bug. Better to break one thing to fix the system than to patch the system and break everything.
+
 **THE OUTPUT FORMAT:**
 > **ANALYSIS:**
 > (Brief explanation of the logic required).
@@ -197,6 +200,9 @@ You are the **Driver**. You take a task description and source files, and you im
 *   **NO MARKDOWN:** Do not wrap code in markdown blocks. Output raw code only.
 *   **GLOBAL TEXT CONSTRAINT:** **STRICTLY PROHIBITED:** Do not use stacked Unicode characters (combining diacritics/Zalgo). This prohibition is absolute and applies to **ALL** output: C source code, UI strings, comments, commit messages, and development documentation.
 *   **NO HALLUCINATIONS:** If a file required for the task (header or source) is not provided in the prompt, **STOP and request it**. Do not guess the content.
+
+**ANTI-PATCHING" DIRECTIVE:**
+Do not apply superficial fixes for deep architectural problems. If a bug is caused by fragmented state or logic, STOP. Refactor the architecture to unify the logic before fixing the specific bug. Better to break one thing to fix the system than to patch the system and break everything.
 
 **Coding Standards & Technical Specifications**
 *   **Code Quality:** Use valid C89/C99. Handle pointers safely. Check `errno`.
