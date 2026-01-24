@@ -9,6 +9,7 @@
  ***************************************************************************/
 
 #include "ytree.h"
+#include <ctype.h> /* For isalnum */
 
 #define PROMPT_WIN_WIDTH 60
 #define PROMPT_WIN_HEIGHT 5
@@ -63,8 +64,6 @@ int UI_ReadString(const char *prompt, char *buffer, int max_len, int history_typ
     keypad(win, TRUE);
     WbkgdSet(win, COLOR_PAIR(CPAIR_MENU));
 
-    curs_set(1); /* Show cursor */
-
     while (1) {
         werase(win);
         box(win, 0, 0);
@@ -100,6 +99,7 @@ int UI_ReadString(const char *prompt, char *buffer, int max_len, int history_typ
 
         wrefresh(win);
 
+        curs_set(1); /* Ensure cursor is visible */
         ch = WGetch(win);
 
 #ifdef VI_KEYS
@@ -131,20 +131,66 @@ int UI_ReadString(const char *prompt, char *buffer, int max_len, int history_typ
             case KEY_BTAB:
                 if (p > 0) p--;
                 break;
+
             case KEY_RIGHT:
                 if (p < StrVisualLength(buffer)) p++;
                 break;
+
+            case 'A' & 0x1F: /* Ctrl-A */
             case KEY_HOME:
-            case 'A' & 0x1F:
                 p = 0;
                 break;
+
+            case 'E' & 0x1F: /* Ctrl-E */
             case KEY_END:
-            case 'E' & 0x1F:
                 p = StrVisualLength(buffer);
                 break;
+
+            case 'K' & 0x1F: /* Ctrl-K: Delete to end */
+                {
+                    int byte_pos = VisualPositionToBytePosition(buffer, p);
+                    buffer[byte_pos] = '\0';
+                }
+                break;
+
+            case 'U' & 0x1F: /* Ctrl-U: Delete to start */
+                if (p > 0) {
+                    int byte_pos = VisualPositionToBytePosition(buffer, p);
+                    memmove(buffer, buffer + byte_pos, strlen(buffer) - byte_pos + 1);
+                    p = 0;
+                }
+                break;
+
+            case 'W' & 0x1F: /* Ctrl-W: Delete word left */
+                if (p > 0) {
+                    int byte_p = VisualPositionToBytePosition(buffer, p);
+                    int end_of_word = byte_p;
+                    int start_of_word;
+
+                    /* Skip backwards over any non-alphanumeric characters */
+                    while (end_of_word > 0 && !isalnum((unsigned char)buffer[end_of_word - 1])) {
+                        end_of_word--;
+                    }
+                    /* Find the start of the word */
+                    start_of_word = end_of_word;
+                    while (start_of_word > 0 && isalnum((unsigned char)buffer[start_of_word - 1])) {
+                        start_of_word--;
+                    }
+
+                    if (start_of_word < byte_p) {
+                        memmove(buffer + start_of_word, buffer + byte_p, strlen(buffer + byte_p) + 1);
+                        /* Recalculate p based on new string prefix */
+                        char c = buffer[start_of_word];
+                        buffer[start_of_word] = '\0';
+                        p = StrVisualLength(buffer);
+                        buffer[start_of_word] = c;
+                    }
+                }
+                break;
+
+            case 'H' & 0x1F: /* Ctrl-H, Backspace, 0x08 */
             case KEY_BACKSPACE:
-            case 127:
-            case '\b':
+            case 127:        /* ASCII DEL sometimes maps to Backspace */
                 if (p > 0) {
                     int curr_byte = VisualPositionToBytePosition(buffer, p);
                     int prev_byte = VisualPositionToBytePosition(buffer, p - 1);
@@ -152,14 +198,16 @@ int UI_ReadString(const char *prompt, char *buffer, int max_len, int history_typ
                     p--;
                 }
                 break;
-            case KEY_DC:
-            case 'D' & 0x1F:
+
+            case 'D' & 0x1F: /* Ctrl-D */
+            case KEY_DC:     /* Delete Key */
                 if (p < StrVisualLength(buffer)) {
                     int curr_byte = VisualPositionToBytePosition(buffer, p);
                     int next_byte = VisualPositionToBytePosition(buffer, p + 1);
                     memmove(buffer + curr_byte, buffer + next_byte, strlen(buffer) - next_byte + 1);
                 }
                 break;
+
             case KEY_IC:
                 insert_flag = !insert_flag;
                 break;
