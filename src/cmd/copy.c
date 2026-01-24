@@ -12,22 +12,18 @@
 
 static int CopyArchiveFile(char *to_path, char *from_path, Statistic *s);
 
-/* Buffers for Prompt Redraw Callback */
+/* Buffers for Prompt Redraw Callback - Deprecated by UI_ReadString, keeping for safety if needed */
 static char copy_prompt_header[PATH_LENGTH + 50];
 static char copy_prompt_as[PATH_LENGTH + 1];
 
 /* Callback to redraw prompt after F2 refresh during Step 1 */
 static void RedrawCopyPrompt1(void) {
-    MvAddStr( LINES - 3, 1, copy_prompt_header );
-    MvAddStr( LINES - 2, 1, "AS:  " );
+    /* No-op with UI_ReadString */
 }
 
 /* Callback to redraw prompt after F2 refresh during Step 2 */
 static void RedrawCopyPrompt2(void) {
-    MvAddStr( LINES - 3, 1, copy_prompt_header );
-    MvAddStr( LINES - 2, 1, "AS:  " );
-    MvAddStr( LINES - 2, 6, copy_prompt_as );
-    MvAddStr( LINES - 1, 1, "TO:  " );
+   /* No-op with UI_ReadString */
 }
 
 
@@ -528,12 +524,11 @@ int GetCopyParameter(char *from_file, BOOL path_copy, char *to_file, char *to_di
 
   ClearHelp();
 
-  MvAddStr( LINES - 3, 1, copy_prompt_header );
-  MvAddStr( LINES - 2, 1, "AS:  " );
+  /* MvAddStr removed - handled by UI_ReadString */
 
-  if( InputStringEx(to_file, LINES - 2, 6, 0, COLS - 6, PATH_LENGTH, "\r\033", HST_FILE, RedrawCopyPrompt1 ) == CR){
+  if( UI_ReadString(copy_prompt_header, to_file, PATH_LENGTH, HST_FILE) == CR){
 
-    /* Save first input for the second step's redraw */
+    /* Save first input for the second step's redraw - handled by UI_ReadString */
     strncpy(copy_prompt_as, to_file, PATH_LENGTH);
     copy_prompt_as[PATH_LENGTH] = '\0';
 
@@ -548,12 +543,11 @@ int GetCopyParameter(char *from_file, BOOL path_copy, char *to_file, char *to_di
             GetPath(target->vol->dir_entry_list[idx].dir_entry, to_dir);
         }
     }
-    MvAddStr( LINES - 1, 1, "TO:  " );
 
     /* Log before InputString call for target dir */
     fprintf(stderr, "DEBUG: calling InputString for TO directory\n");
 
-    if( InputStringEx( to_dir, LINES - 1, 6, 0, COLS - 6, PATH_LENGTH, "\r\033", HST_PATH, RedrawCopyPrompt2 ) == CR ) {
+    if( UI_ReadString("To Directory:", to_dir, PATH_LENGTH, HST_PATH) == CR ) {
         if (to_dir[0] == '\0') {
             strcpy(to_dir, ".");
         }
