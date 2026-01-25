@@ -20,8 +20,9 @@ def test_simple_copy(controller, sandbox):
     yt.input_text("copy.txt")
 
     # 4. Input Destination
-    yt.child.expect("TO")
-    yt.input_text("")
+    # Updated to match src/cmd/copy.c: "To Directory:"
+    yt.child.expect("To Directory")
+    yt.input_text("") # Accept current directory
 
     # 5. Verify
     assert (sandbox / "source" / "copy.txt").exists()
@@ -38,6 +39,8 @@ def test_rename(controller, sandbox):
     # 2. Rename
     time.sleep(0.5)
     yt.child.send(Keys.RENAME)
+    # Updated to match src/cmd/rename.c: "RENAME TO:"
+    # Using partial match "RENAME" for robustness as per task instructions
     yt.child.expect("RENAME")
 
     # 3. Input New Name
@@ -65,7 +68,8 @@ def test_move(controller, sandbox):
     yt.input_text("moved.txt")
 
     # 4. Input Destination
-    yt.child.expect("TO")
+    # Updated to match src/cmd/move.c: "To Directory:"
+    yt.child.expect("To Directory")
     yt.input_text("../dest")
 
     # 5. Verify
@@ -124,15 +128,15 @@ def test_path_copy(controller, sandbox):
     yt.child.send(Keys.PATHCOPY)
 
     # 3. Verify Prompt 1 (Filename)
-    # Expect "AS: " prompting for new filename (defaults to current name)
-    yt.child.expect("AS:")
+    # Expect "PATHCOPY: " or "AS:"
+    yt.child.expect("PATHCOPY")
 
     # Accept default filename
     yt.child.send(Keys.ENTER)
 
     # 4. Verify Prompt 2 (Destination Dir)
-    # Expect "TO: " prompting for destination directory
-    yt.child.expect("TO:")
+    # Updated to match src/cmd/copy.c: "To Directory:"
+    yt.child.expect("To Directory")
 
     # 5. Input Destination (ABSOLUTE PATH)
     dest_path = sandbox / "dest"

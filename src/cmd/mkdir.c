@@ -9,11 +9,6 @@
 #include "ytree.h"
 
 
-static void RedrawMkdirPrompt(void) {
-    MvAddStr( LINES - 2, 1, "MAKE DIRECTORY: " );
-}
-
-
 int MakeDirectory(DirEntry *father_dir_entry)
 {
   char dir_name[PATH_LENGTH * 2 +1];
@@ -26,11 +21,9 @@ int MakeDirectory(DirEntry *father_dir_entry)
 
   ClearHelp();
 
-  MvAddStr( LINES - 2, 1, "MAKE DIRECTORY: " );
-
   *dir_name = '\0';
 
-  if( InputStringEx( dir_name, LINES - 2, 20, 0, COLS - 20 - 1, PATH_LENGTH, "\r\033", HST_FILE, RedrawMkdirPrompt ) == CR )
+  if( UI_ReadString( "MAKE DIRECTORY:", dir_name, PATH_LENGTH, HST_FILE ) == CR )
   {
     if (MakeDirEntry( father_dir_entry, dir_name ) != NULL)
     {

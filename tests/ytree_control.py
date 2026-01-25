@@ -54,8 +54,10 @@ class YtreeController:
         self.child.expect(filename)
 
     def input_text(self, text):
-        """Clears line with Ctrl-K and types text."""
-        self.child.send("\x0b") # Ctrl-K
+        """Clears line with Ctrl-U and types text."""
+        # Use Ctrl-U (\x15) instead of Ctrl-K (\x0b) because UI_ReadString
+        # starts with the cursor at the end of the line.
+        self.child.send("\x15")
         time.sleep(0.1)
         self.child.send(text + Keys.ENTER)
         time.sleep(0.2)
@@ -66,20 +68,30 @@ class YtreeController:
 
     def quit(self):
         """Aggressive quit."""
-        self.child.send(Keys.QUIT)
-        time.sleep(0.5)
+        try:
+            if not self.child.isalive():
+                return
 
-        if not self.child.isalive():
-            return
+            self.child.send(Keys.QUIT)
+            time.sleep(0.5)
 
-        self.child.send(Keys.CONFIRM_YES)
-        time.sleep(0.5)
+            if not self.child.isalive():
+                return
 
-        if self.child.isalive():
+            self.child.send(Keys.CONFIRM_YES)
+            time.sleep(0.5)
+
+            if self.child.isalive():
+                try:
+                    os.kill(self.child.pid, signal.SIGKILL)
+                    os.waitpid(self.child.pid, 0)
+                except OSError:
+                    pass
+        except Exception:
+            # Ignore errors during teardown (e.g. process already dead, PtyProcessError)
+            pass
+        finally:
             try:
-                os.kill(self.child.pid, signal.SIGKILL)
-                os.waitpid(self.child.pid, 0)
-            except OSError:
-                pass
-            finally:
                 self.child.close(force=True)
+            except Exception:
+                pass

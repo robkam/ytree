@@ -12,14 +12,6 @@
 static int RenameDirEntry(char *to_path, char *from_path);
 static int RenameFileEntry(char *to_path, char *from_path);
 
-/* Buffer for redraw callback */
-static char rename_prompt_buffer[100];
-
-static void RedrawRenamePrompt(void)
-{
-    MvAddStr( LINES - 2, 1, rename_prompt_buffer );
-}
-
 
 int RenameDirectory(DirEntry *de_ptr, char *new_name)
 {
@@ -296,7 +288,7 @@ FNC_XIT:
 
 int GetRenameParameter(char *old_name, char *new_name)
 {
-  int l;
+  const char *prompt;
 
   /* MODIFIED: Also allow ARCHIVE_MODE */
   if( mode != DISK_MODE && mode != USER_MODE && mode != ARCHIVE_MODE )
@@ -308,22 +300,17 @@ int GetRenameParameter(char *old_name, char *new_name)
 
   if( old_name == NULL )
   {
-    strncpy(rename_prompt_buffer, "RENAME TAGGED FILES TO:", sizeof(rename_prompt_buffer)-1);
-    l = 25;
+    prompt = "RENAME TAGGED FILES TO:";
   }
   else
   {
-    strncpy(rename_prompt_buffer, "RENAME TO:", sizeof(rename_prompt_buffer)-1);
-    l = 12;
+    prompt = "RENAME TO:";
   }
-  rename_prompt_buffer[sizeof(rename_prompt_buffer)-1] = '\0';
-
-  MvAddStr( LINES - 2, 1, rename_prompt_buffer );
 
   (void) strcpy( new_name, (old_name) ? old_name : "*" );
 
 
-  if( InputStringEx(new_name, LINES - 2, l, 0, COLS - l - 1, PATH_LENGTH, "\r\033", HST_FILE, RedrawRenamePrompt ) != CR)
+  if( UI_ReadString(prompt, new_name, PATH_LENGTH, HST_FILE) != CR )
     return( -1 );
 
   if(!strlen(new_name))

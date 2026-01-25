@@ -11,13 +11,6 @@
 
 extern int chdir(const char *);
 
-static void RedrawExecPrompt(void) {
-    MvAddStr( LINES - 2, 1, "COMMAND: " );
-}
-
-static void RedrawSearchPrompt(void) {
-    MvAddStr( LINES - 2, 1, "SEARCH TAGGED: " );
-}
 
 #ifdef HAVE_LIBARCHIVE
 static int ExecuteArchiveFile(DirEntry *dir_entry, FileEntry *file_entry, char *cmd_template) {
@@ -126,8 +119,6 @@ int Execute(DirEntry *dir_entry, FileEntry *file_entry)
         }
     }
 
-    /* MvAddStr handled inside GetCommandLine via callback now, but for safety with legacy calls: */
-    /* No, GetCommandLine is called here, it draws prompt. */
     if (GetCommandLine(command_template) == 0) {
         /* ARCHIVE MODE HANDLER */
 #ifdef HAVE_LIBARCHIVE
@@ -223,8 +214,7 @@ int GetCommandLine(char *command_line)
 
   ClearHelp();
 
-  MvAddStr( LINES - 2, 1, "COMMAND: " );
-  if( InputStringEx( command_line, LINES - 2, 10, 0, COLS - 11, COMMAND_LINE_LENGTH, "\r\033", HST_EXEC, RedrawExecPrompt ) == CR )
+  if( UI_ReadString( "COMMAND:", command_line, COMMAND_LINE_LENGTH, HST_EXEC ) == CR )
   {
     move( LINES - 2, 1 ); clrtoeol();
     result = 0;
@@ -246,11 +236,9 @@ int GetSearchCommandLine(char *command_line, char *raw_pattern)
 
   ClearHelp();
 
-  MvAddStr( LINES - 2, 1, "SEARCH TAGGED: " );
-
   input_buf[0] = '\0';
 
-  if( InputStringEx( input_buf, LINES - 2, 16, 0, COLS - 17, 256, "\r\033", HST_SEARCH, RedrawSearchPrompt ) == CR )
+  if( UI_ReadString( "SEARCH TAGGED:", input_buf, 256, HST_SEARCH ) == CR )
   {
     if( raw_pattern ) {
         strncpy(raw_pattern, input_buf, 255);
