@@ -8,6 +8,8 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 ## **Guiding Principles**
 
 *   **Code Quality (DRY):** All development should adhere to the "Don't Repeat Yourself" principle. Code should be modular, reusable, and free of redundancy.
+*   **Architectural Integrity (Anti-Patching):** Do not apply superficial fixes for deep architectural problems. If a bug is caused by fragmented state or logic, **STOP**. Refactor the architecture to unify the logic before fixing the specific bug. It is better to break one thing to fix the system than to patch the system and break everything.
+*   **Single Responsibility (SRP):** Enforce strict modularity. Each file (module) must serve exactly one purpose. Maintain a hard separation between the **UI** (View), **File System** (Model), and **Commands** (Controller) to ensure the codebase remains testable and maintainable.
 *   **Linux-First Design:** Prioritize a user experience tailored for Linux power users, emphasizing shell integration, standard POSIX conventions, and scriptability.
 *   **Be Better Than Midnight Commander:** Feature parity with `mc` is a baseline goal. The ultimate objective is to provide a superior, more powerful, and more intuitive user experience.
 *   **No Hidden Features:** All functionality, especially syntax like the `{}` placeholder, should be clearly explained in context within the UI (e.g., in the help lines or prompts).
@@ -715,7 +717,7 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 *   **Mechanism:** Refactor `ListJump` to use an iterative loop. Bind `/` in `input.c`. Support backspace handling and "search-as-you-type" highlighting.
 *   **Files to Modify:** `src/ui/ctrl_file.c`, `src/ui/ctrl_dir.c`, `src/ui/input.c`
 *   **Context Files:** None.
-*   - [ ] **Status:** Not Started.
+*   - [x] **Status:** Completed.
 
 ### **Step 4.38: Implement Bottom F-Key Menu Bar**
 *   **Goal:** Shift the existing two-line command footer up by one line and reserve the bottom-most row for a clickable, function-key reference bar (F1 Help, F3 Options, F5 Redraw, F7 View, F8 Split).
@@ -1135,10 +1137,13 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 *   **Context Files:** `include/patchlev.h`
 *   - [ ] **Status:** Partially Completed (uninstall exists but can be improved).
 
-### **Step 8.6: Implement Code Formatting, Static Analysis, and Hygiene** (Use the Auditor Persona here)
-*   **Goal:** Add `make format` and `make analyze` targets to the Makefile. `format` will use `clang-format` to enforce a consistent style. `analyze` will run a static analyzer (like `cppcheck` or Clang's analyzer) to find potential bugs. Include a "lint" target to identify unused functions and variables.
-*   **Rationale:** Automates code quality enforcement. Performing a manual "Cruft Audit" to remove debug comments, unused macros, and outdated documentation ensures the codebase remains clean and professional for release.
-*   **Files to Modify:** `Makefile`
+### **Step 8.6: Implement De-linting, Static Analysis, and Code Hygiene** (Use the Auditor Persona here)
+*   **Goal:** Add `make format`, `make lint`, and `make analyze` targets to the Makefile.
+    *   **Format:** Use `clang-format` to enforce a consistent coding style.
+    *   **Lint/Analyze:** Use static analysis tools (e.g., `cppcheck`, `clang-tidy`, `flawfinder`) to identify potential bugs and non-standard code.
+    *   **Action:** Perform a comprehensive **de-linting** pass to resolve existing warnings, remove dead code (unused variables/functions), and strip obsolete debug comments/cruft.
+*   **Rationale:** Automates code quality enforcement. A clean, lint-free codebase minimizes technical debt and ensures the project is professional and maintainable for public release.
+*   **Files to Modify:** `Makefile`, `src/**/*.c`
 *   **Context Files:** None.
 *   - [ ] **Status:** Not Started.
 
