@@ -381,6 +381,7 @@ YtreeAction GetKeyAction(int ch)
         case KEY_BTAB:  return ACTION_MOVE_SIBLING_PREV;
         case '-':       return ACTION_TREE_COLLAPSE;
         case '+':       return ACTION_TREE_EXPAND_ALL;
+        case '/':       return ACTION_LIST_JUMP;
 
         case CR:
         case LF:        return ACTION_ENTER;

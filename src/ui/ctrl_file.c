@@ -2815,98 +2815,134 @@ static void RereadWindowSize(DirEntry *dir_entry)
 
 static void ListJump( DirEntry * dir_entry, char *str )
 {
-   int incremental = (!strcmp(LISTJUMPSEARCH, "1")) ? 1 : 0; /* from ~/.ytree */
+    char search_buf[256];
+    int buf_len = 0;
+    int ch;
+    int original_start_file = dir_entry->start_file;
+    int original_cursor_pos = dir_entry->cursor_pos;
+    int i;
+    int found_idx;
+    int start_x = 0;
 
-    /*  in file_window press initial char of file to jump to it */
+    (void) str; /* Unused */
 
-    char *newStr = NULL;
-    FileEntry * fe_ptr = NULL;
-    int i=0, j=0, n=0, start_x=0, ic=0, tmp2=0;
-    char * jumpmsg = "Press initial of file to jump to... ";
+    memset(search_buf, 0, sizeof(search_buf));
 
     ClearHelp();
-    MvAddStr( Y_PROMPT, 1, jumpmsg );
-    PrintOptions
-    (
-        stdscr,
-        Y_PROMPT,
-        COLS - 14,
-        "(Escape) cancel"
-    );
+    MvAddStr(Y_PROMPT, 1, "Search: ");
+    RefreshWindow(stdscr);
 
-    ic = tolower(Getch());
-
-    if( !isprint(ic) )
+    while(1)
     {
-        return;
-    }
+        /* Update prompt */
+        move( Y_PROMPT, 9 );
+        addstr( search_buf );
+        clrtoeol();
+        refresh();
 
-    n = strlen(str);
-    if((newStr = (char *)malloc(n+2)) == NULL) {
-      ERROR_MSG( "Malloc failed*ABORT" );
-      exit( 1 );
-    }
-    strcpy(newStr, str);
-    newStr[n] = ic;
-    newStr[n+1] = '\0';
+        ch = Getch();
 
-    /* index of current entry in list */
-    tmp2 = (incremental && n == 0) ? 0 : dir_entry->start_file + dir_entry->cursor_pos;
+        /* Handle Resize or Error */
+        if (ch == -1) break;
 
-    if( tmp2 == (int)CurrentVolume->file_count - 1 )
-    {
-        ClearHelp();
-        MvAddStr( Y_PROMPT, 1, "Last entry!");
-        RefreshWindow( stdscr );
-        RefreshWindow( file_window );
-        doupdate();
-        sleep(1);
-        free(newStr);
-        return;
-    }
+        if (ch == ESC)
+        {
+            /* Cancel: Restore */
+            dir_entry->start_file = original_start_file;
+            dir_entry->cursor_pos = original_cursor_pos;
+            DisplayFiles(dir_entry, dir_entry->start_file, dir_entry->start_file + dir_entry->cursor_pos, start_x, file_window);
+            break;
+        }
 
-    for( i=tmp2; i < (int)CurrentVolume->file_count; i++ )
-    {
-        fe_ptr = CurrentVolume->file_entry_list[i].file;
-	if(!strncasecmp(newStr, fe_ptr->name, n+1))
-          break;
-    }
+        if (ch == CR || ch == LF)
+        {
+            /* Confirm: Keep new position */
+            break;
+        }
 
-    if ( i == (int)CurrentVolume->file_count )
-    {
-        ClearHelp();
-        MvAddStr( Y_PROMPT, 1, "No match!");
-        RefreshWindow( stdscr );
-        RefreshWindow( file_window );
-        doupdate();
-        sleep(1);
-        free(newStr);
-        return;
-    }
+        if (ch == KEY_BACKSPACE || ch == 127 || ch == '\b' || ch == KEY_DC)
+        {
+            if (buf_len > 0)
+            {
+                buf_len--;
+                search_buf[buf_len] = '\0';
 
-    /* position cursor on entry wanted and found */
-    if( incremental && n == 0 ) {
-      	/* first search start on top */
-      	dir_entry->start_file = 0;
-      	dir_entry->cursor_pos = 0;
-      	DisplayFiles( dir_entry,
-            	dir_entry->start_file,
-            	dir_entry->start_file + dir_entry->cursor_pos,
-            	start_x,
-                file_window
-          	);
+                /* Re-search or Restore */
+                if (buf_len == 0)
+                {
+                    dir_entry->start_file = original_start_file;
+                    dir_entry->cursor_pos = original_cursor_pos;
+                }
+                else
+                {
+                    /* Search again from top for the shorter string */
+                     found_idx = -1;
+                    for( i=0; i < (int)CurrentVolume->file_count; i++ )
+                    {
+                        FileEntry *fe = CurrentVolume->file_entry_list[i].file;
+                        if( strncasecmp( fe->name, search_buf, buf_len ) == 0 )
+                        {
+                            found_idx = i;
+                            break;
+                        }
+                    }
+
+                    if (found_idx != -1)
+                    {
+                        if( found_idx >= dir_entry->start_file && found_idx < dir_entry->start_file + max_disp_files )
+                        {
+                            dir_entry->cursor_pos = found_idx - dir_entry->start_file;
+                        }
+                        else
+                        {
+                            dir_entry->start_file = found_idx;
+                            dir_entry->cursor_pos = 0;
+                        }
+                    }
+                }
+                DisplayFiles( dir_entry, dir_entry->start_file, dir_entry->start_file + dir_entry->cursor_pos, start_x, file_window );
+                RefreshWindow( file_window );
+            }
+        }
+        else if (isprint(ch))
+        {
+            if (buf_len < (int)sizeof(search_buf) - 1)
+            {
+                search_buf[buf_len] = ch;
+                search_buf[buf_len+1] = '\0';
+
+                found_idx = -1;
+                for( i=0; i < (int)CurrentVolume->file_count; i++ )
+                {
+                    FileEntry *fe = CurrentVolume->file_entry_list[i].file;
+                    if( strncasecmp( fe->name, search_buf, buf_len+1 ) == 0 )
+                    {
+                        found_idx = i;
+                        break;
+                    }
+                }
+
+                if (found_idx != -1)
+                {
+                    buf_len++; /* Accept char */
+                    if( found_idx >= dir_entry->start_file && found_idx < dir_entry->start_file + max_disp_files )
+                    {
+                        dir_entry->cursor_pos = found_idx - dir_entry->start_file;
+                    }
+                    else
+                    {
+                        dir_entry->start_file = found_idx;
+                        dir_entry->cursor_pos = 0;
+                    }
+                    DisplayFiles( dir_entry, dir_entry->start_file, dir_entry->start_file + dir_entry->cursor_pos, start_x, file_window );
+                    RefreshWindow( file_window );
+                }
+                else
+                {
+                    /* No match: Accept char to show user what they typed, but do not move cursor */
+                    buf_len++;
+                }
+            }
+        }
     }
-    for ( j=tmp2; j < i; j++ )
-        fmovedown
-        (
-            &dir_entry->start_file,
-            &dir_entry->cursor_pos,
-            &start_x,
-            dir_entry
-        );
-    RefreshWindow( stdscr );
-    RefreshWindow( file_window );
-    doupdate();
-    ListJump( dir_entry, (incremental) ? newStr : "" );
-    free(newStr);
 }
