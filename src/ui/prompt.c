@@ -10,6 +10,7 @@
 
 #include "ytree.h"
 #include <ctype.h> /* For isalnum */
+#include <stdlib.h> /* For getenv */
 
 #define PROMPT_WIN_WIDTH 60
 #define PROMPT_WIN_HEIGHT 5
@@ -111,6 +112,21 @@ int UI_ReadString(const char *prompt, char *buffer, int max_len, int history_typ
         }
         if (ch == '\n' || ch == '\r') {
             ch = CR; /* Standardize return */
+
+            /* Handle Tilde Expansion on Enter */
+            if (buffer[0] == '~') {
+                char *home = getenv("HOME");
+                if (home) {
+                    char expanded[PATH_LENGTH + 1];
+                    /* Expand only if just "~" or "~/..." */
+                    if (buffer[1] == '/' || buffer[1] == '\0') {
+                        snprintf(expanded, sizeof(expanded), "%s%s", home, buffer + 1);
+                        strncpy(buffer, expanded, max_len - 1);
+                        buffer[max_len - 1] = '\0';
+                        /* p will be invalid relative to visual pos, but we are exiting loop */
+                    }
+                }
+            }
             break;
         }
 
@@ -188,7 +204,7 @@ int UI_ReadString(const char *prompt, char *buffer, int max_len, int history_typ
                 }
                 break;
 
-            case 'H' & 0x1F: /* Ctrl-H, Backspace, 0x08 */
+            case 'H' & 0x1F: /* Ctrl-H (0x08) */
             case KEY_BACKSPACE:
             case 127:        /* ASCII DEL sometimes maps to Backspace */
                 if (p > 0) {

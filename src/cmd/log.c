@@ -453,7 +453,8 @@ int GetNewLoginPath(char *path)
             user_input[strlen(user_input) - 1] = '\0';
     }
 
-    if (InputStringEx(user_input, Y_PROMPT, 6, 0, COLS - 7, PATH_LENGTH - 1, "\r\033", HST_LOGIN, NULL) == CR) {
+    /* Updated to use UI_ReadString with a specific label */
+    if (UI_ReadString("Log Path:", user_input, PATH_LENGTH - 1, HST_LOGIN) == CR) {
         /*
          * NOTE: The size of temp_path has been increased to prevent potential
          * buffer overflows identified by the -Wformat-truncation compiler warning.

@@ -1170,7 +1170,7 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 *   **Goal:** Replace the fragile `InputStringEx` + Callback mechanism with a robust **Prompt Manager**.
 *   **Mechanism:** Create a `UI_Prompt` context that handles drawing the *entire* prompt area (Help text + Input Field) automatically. This removes drawing logic from `cmd/*.c` modules.
 *   **Target:** `src/ui/input.c`, `src/cmd/copy.c`, `src/cmd/move.c`.
-*   - [ ] **Status:** Not Started.
+*   - [x] **Status:** Completed.
 
 ### **Step 9.3: Standardize Menu/Popup System**
 *   **Goal:** Replace ad-hoc window creation in `vol_menu.c` and `history.c` with a centralized **Menu Manager**.
