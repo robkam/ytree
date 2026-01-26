@@ -9,6 +9,29 @@
 #include "ytree.h"
 /* #include <sys/wait.h> */  /* maybe wait.h is available */
 
+/* Helper function to handle scan progress updates */
+static void Login_Progress(void *data)
+{
+    Statistic *s = (Statistic *)data;
+
+    DrawSpinner();
+    ClockHandler(0);
+
+    if (animation_method == 1) {
+        /* If animating, redraw the animation step.
+           In the decoupled model, we assume the relevant window is active or we default to file_window
+           which is typically used for the animation effect during scan. */
+        DrawAnimationStep(file_window);
+        doupdate();
+    } else {
+        /* Update statistics panel periodically */
+        if (s) {
+            DisplayDiskStatistic(s);
+            doupdate();
+        }
+    }
+}
+
 
 /* Login Disk returns
  * -1 on error
@@ -318,8 +341,8 @@ int LoginDisk(char *path)
 
 #ifdef HAVE_LIBARCHIVE
         if (animation_method == 0) Notice("Scanning archive...");
-        /* Pass address of statistic.tree so it can be updated */
-        if (ReadTreeFromArchive(&s->tree, s->login_path, s))
+        /* Pass address of statistic.tree so it can be updated, and the progress callback */
+        if (ReadTreeFromArchive(&s->tree, s->login_path, s, Login_Progress, s))
         {
             /* Error message will have been displayed by the function */
             result = -1;
@@ -341,7 +364,8 @@ int LoginDisk(char *path)
         s->tree->next = s->tree->prev = NULL;
 
         depth = strtol(TREEDEPTH, NULL, 0);
-        int rt_ret = ReadTree(s->tree, resolved_path, depth, s); /* Use resolved_path for ReadTree */
+        /* Pass progress callback and stats as context */
+        int rt_ret = ReadTree(s->tree, resolved_path, depth, s, Login_Progress, s); /* Use resolved_path for ReadTree */
         if (rt_ret != 0)
         {
             if (rt_ret != -1) {

@@ -268,7 +268,8 @@ static DirEntry *FindOrLoadDir(DirEntry *tree, const char *path, Statistic *s) {
             /* Child not in memory. Try to load children of current node from disk. */
             GetPath(current, full_path_buf);
             /* depth=0 loads immediate children */
-            if (ReadTree(current, full_path_buf, 0, s) == 0) {
+            /* Pass NULL for callback and callback data (no UI feedback needed here) */
+            if (ReadTree(current, full_path_buf, 0, s, NULL, NULL) == 0) {
                 /* Apply filter to newly loaded files */
                 ApplyFilter(current, s);
 
@@ -319,7 +320,8 @@ void RestoreTreeState(DirEntry *root, PathList **expanded, PathList *tagged, Sta
             /* If it has no sub_tree, it might need scanning (unless it's truly empty). */
             /* ReadTree checks depth. We force a read to ensure persistence of empty folders or leaf nodes status. */
             if (de->sub_tree == NULL) {
-                ReadTree(de, curr->path, 0, s);
+                /* Pass NULL for callback and callback data (no UI feedback needed here) */
+                ReadTree(de, curr->path, 0, s, NULL, NULL);
                 ApplyFilter(de, s);
             }
         }

@@ -32,11 +32,11 @@ Even if you use separate tabs for the Consultant and Builder, they share the **s
     *   Do not dump the entire project (`src/*`) to start a session.
     *   Instead, upload **All Header Files (`include/*.h`)** + **`src/core/main.c`** + **The Target File(s)**.
     *   **Why:** Headers and Main provide the structural framework (the armature) of the application. The AI can infer the "Big Picture" from this structure without needing the full "flesh" of every implementation file.
-    *   **Tip:** Use the file list in [PLAN.md](PLAN.md) as a guide for what to select.
 
 3.  **The "Fresh Sheet" Rule (For the Builder):**
     *   **Action:** Always start a **New Chat** for the Builder phase. Paste *only* the `task.txt` and the specific files listed.
     *   **Result:** Extremely low token usage per request.
+    *   **Tip:** Use the file list in [PLAN.md](PLAN.md) as a guide for what to select.
 
 ---
 

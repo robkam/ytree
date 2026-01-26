@@ -66,7 +66,7 @@ static void copy_stat_from_entry(struct stat *dest, struct archive_entry *entry)
  * Now accepts DirEntry **dir_entry_ptr to allow updating the root pointer
  * if MinimizeArchiveTree swaps it.
  */
-int ReadTreeFromArchive(DirEntry **dir_entry_ptr, const char *filename, Statistic *s)
+int ReadTreeFromArchive(DirEntry **dir_entry_ptr, const char *filename, Statistic *s, ScanProgressCallback cb, void *cb_data)
 {
     struct archive *a;
     struct archive_entry *entry;
@@ -157,17 +157,7 @@ int ReadTreeFromArchive(DirEntry **dir_entry_ptr, const char *filename, Statisti
 
         /* Update statistics / animation every 20 files */
         if( ( count++ % 20 ) == 0 ) {
-            if (animation_method == 1) {
-                DrawAnimationStep(dir_window); /* Changed from file_window to dir_window */
-            } else {
-                if ((count % 100) == 0) {
-                    DisplayDiskStatistic(s);
-                }
-            }
-            /* These UI updates should always happen, regardless of animation method */
-            DrawSpinner(); /* Activity spinner */
-            ClockHandler(0); /* Clock update */
-            doupdate(); /* Ensure screen is refreshed after updates */
+            if (cb) cb(cb_data);
         }
     }
 
@@ -184,7 +174,7 @@ int ReadTreeFromArchive(DirEntry **dir_entry_ptr, const char *filename, Statisti
 
 #else
 /* Stub function if ytree is compiled without libarchive support. */
-int ReadTreeFromArchive(DirEntry **dir_entry_ptr, const char *filename, Statistic *s)
+int ReadTreeFromArchive(DirEntry **dir_entry_ptr, const char *filename, Statistic *s, ScanProgressCallback cb, void *cb_data)
 {
     ERROR_MSG("Archive support not compiled.*Please install libarchive-dev*and recompile ytree.");
     return -1;

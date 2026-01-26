@@ -19,7 +19,7 @@ static void UnReadSubTree(DirEntry *dir_entry, Statistic *s);
  */
 
 
-int ReadTree(DirEntry *dir_entry, char *path, int depth, Statistic *s)
+int ReadTree(DirEntry *dir_entry, char *path, int depth, Statistic *s, ScanProgressCallback cb, void *cb_data)
 {
   DIR           *dir;
   struct stat   stat_struct;
@@ -89,8 +89,8 @@ int ReadTree(DirEntry *dir_entry, char *path, int depth, Statistic *s)
 
   s->disk_total_directories++;
 
-  /* Activity Spinner for visual feedback */
-  DrawSpinner();
+  /* Report progress via callback */
+  if (cb) cb(cb_data);
 
   /* Silently skip unreadable or missing directories */
   if ((dir = opendir(path)) == NULL) {
@@ -139,18 +139,8 @@ int ReadTree(DirEntry *dir_entry, char *path, int depth, Statistic *s)
 
     /* Update statistics / animation every 20 files to be smoother */
     if( ( file_count++ % 20 ) == 0 ) {
-      /* Update Spinner regardless of animation mode */
-      DrawSpinner();
-
-      if (animation_method == 1) {
-          DrawAnimationStep(file_window);
-          doupdate();
-      } else {
-          if ((file_count % 100) == 0) { /* Don't flicker stats too fast */
-              DisplayDiskStatistic(s);
-              doupdate();
-          }
-      }
+      /* Replaced explicit UI calls with callback */
+      if (cb) cb(cb_data);
     }
 
 
@@ -191,8 +181,8 @@ int ReadTree(DirEntry *dir_entry, char *path, int depth, Statistic *s)
 		    );
       den_ptr->prev = den_ptr->next = NULL;
 
-      /* Recursive call with abort check */
-      if (ReadTree( den_ptr, new_path, depth - 1, s) == -1) {
+      /* Recursive call with abort check, passing callback data */
+      if (ReadTree( den_ptr, new_path, depth - 1, s, cb, cb_data) == -1) {
           /* Fix: Free the partially built subtree before returning */
           DeleteTree(den_ptr); /* Free the allocated DirEntry and its children */
           closedir(dir);
@@ -315,8 +305,8 @@ int ReadTree(DirEntry *dir_entry, char *path, int depth, Statistic *s)
   dir_entry->file = first_file_entry.next;
   dir_entry->sub_tree = first_dir_entry.next;
 
-  DisplayDiskStatistic(s);
-  doupdate();
+  /* Final UI update via callback */
+  if (cb) cb(cb_data);
 
   return( 0 );
 }
@@ -384,7 +374,7 @@ static void UnReadSubTree(DirEntry *dir_entry, Statistic *s)
 }
 
 
-int RescanDir(DirEntry *dir_entry, int depth, Statistic *s)
+int RescanDir(DirEntry *dir_entry, int depth, Statistic *s, ScanProgressCallback cb, void *cb_data)
 {
     char path[PATH_LENGTH + 1];
     FileEntry *fe_ptr, *next_fe_ptr;
@@ -417,7 +407,9 @@ int RescanDir(DirEntry *dir_entry, int depth, Statistic *s)
      * double-counting.
      */
     s->disk_total_directories--;
-    ReadTree(dir_entry, path, depth, s);
+
+    /* Call ReadTree with the passed callback context */
+    ReadTree(dir_entry, path, depth, s, cb, cb_data);
 
     /* Since we just reloaded the tree, dot files are present in memory.
        We must now recalculate stats based on the current visibility setting. */
