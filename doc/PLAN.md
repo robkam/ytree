@@ -1174,13 +1174,13 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 *   **Goal:** Remove UI calls (`DrawSpinner`, `doupdate`) from low-level filesystem logic.
 *   **Mechanism:** Refactor `ReadTree` to accept a `ProgressCallback` function pointer. Move the UI update logic into a callback provided by the Controller layer.
 *   **Files to Modify:** `src/fs/readtree.c`, `src/fs/readarchive.c`, `src/cmd/log.c`.
-*   - [ ] **Status:** Not Started.
+*   - [x] **Status:** Completed.
 
 #### **Step 9.1.2: Extract Sorting Logic (Model vs Controller)**
 *   **Goal:** Move `qsort` and comparison logic out of the UI Controller (`ctrl_file.c`) and into the Core/Model layer.
 *   **Mechanism:** Create `src/core/sort.c`. Implement `Volume_Sort(Volume *vol, int method)`.
 *   **Files to Modify:** `src/ui/ctrl_file.c`, `src/core/sort.c` (New).
-*   - [ ] **Status:** Not Started.
+*   - [x] **Status:** Completed.
 
 #### **Step 9.1.3: Refactor LoginDisk (Split I/O and UI)**
 *   **Goal:** Split the monolithic `LoginDisk` function into a pure logic function (`Volume_Load`) and a UI wrapper (`Cmd_LoginDisk`).
