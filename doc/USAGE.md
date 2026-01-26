@@ -119,8 +119,9 @@ These commands work in most modes:
 - **F6**: Toggle Statistics Panel (Wide Mode).
 - **F7**: Toggle File Preview Panel.
 - **F8**: Toggle Split Screen Mode.
-- **F12**: **List Jump**. Jump to a file by typing the start of its
-  name.
+- **/** (or **F12**): **Incremental Search** (List Jump). Start typing
+  to jump to the first matching filename in the current list. The
+  selection updates immediately as you type.
 - **B**: Toggle Brief (Compact) filename view in the File Window.
 - **^L**: **Reload**. Re-read the contents of the current directory from
   disk and refresh the view.
