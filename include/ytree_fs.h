@@ -9,6 +9,9 @@
 
 #include "ytree_defs.h"
 
+/* Define the progress callback type */
+typedef void (*ScanProgressCallback)(void *user_data);
+
 /* archive.c */
 extern int ExtractArchiveEntry(const char *archive_path, const char *entry_path, int out_fd);
 extern int ExtractArchiveNode(const char *archive_path, const char *entry_path, const char *dest_path);
@@ -23,7 +26,7 @@ extern int Archive_RenameEntry(char *archive_path, char *old_path, char *new_nam
 #endif
 
 /* readarchive.c */
-extern int ReadTreeFromArchive(DirEntry **dir_entry_ptr, const char *filename, Statistic *s);
+extern int ReadTreeFromArchive(DirEntry **dir_entry_ptr, const char *filename, Statistic *s, ScanProgressCallback cb, void *cb_data);
 
 /* freesp.c */
 extern int GetAvailBytes(LONGLONG *avail_bytes, Statistic *s);
@@ -35,9 +38,9 @@ extern int HandleDirOwnership(DirEntry *de_ptr, BOOL change_owner, BOOL change_g
 extern int HandleFileOwnership(FileEntry *fe_ptr, BOOL change_owner, BOOL change_group);
 
 /* readtree.c */
-extern int ReadTree(DirEntry *dir_entry, char *path, int depth, Statistic *s);
+extern int ReadTree(DirEntry *dir_entry, char *path, int depth, Statistic *s, ScanProgressCallback cb, void *cb_data);
 extern void UnReadTree(DirEntry *dir_entry, Statistic *s);
-extern int RescanDir(DirEntry *dir_entry, int depth, Statistic *s);
+extern int RescanDir(DirEntry *dir_entry, int depth, Statistic *s, ScanProgressCallback cb, void *cb_data);
 
 /* tree_utils.c */
 extern void DeleteTree(DirEntry *tree);

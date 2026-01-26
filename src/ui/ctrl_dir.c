@@ -33,6 +33,12 @@ static void Moveup(DirEntry **dir_entry, YtreePanel *p);
 static void Movenpage(DirEntry **dir_entry, YtreePanel *p);
 static void Moveppage(DirEntry **dir_entry, YtreePanel *p);
 
+/* Progress callback for directory operations */
+static void Dir_Progress(void *data)
+{
+    (void)data; /* Suppress unused parameter warning */
+    DrawSpinner();
+}
 
 void BuildDirEntryList(struct Volume *vol)
 {
@@ -370,7 +376,7 @@ if( !dir_entry->not_scanned ) {
 SuspendClock(); /* Suspend clock before scanning */
 for( de_ptr=dir_entry->sub_tree; de_ptr; de_ptr=de_ptr->next) {
 GetPath( de_ptr, new_login_path );
-ReadTree( de_ptr, new_login_path, 0, s );
+ReadTree( de_ptr, new_login_path, 0, s, Dir_Progress, NULL );
 ApplyFilter( de_ptr, s );
 }
 InitClock();    /* Resume clock after scanning */
@@ -637,7 +643,7 @@ void ToggleDotFiles(void)
 {
 DirEntry *target;
 int i, found_idx = -1;
-int win_height, win_width;
+int win_height;
 Statistic *s = &CurrentVolume->vol_stats;
 YtreePanel *p = ActivePanel;
 WINDOW *win = dir_window;
@@ -684,7 +690,7 @@ if (found_idx == -1) search = search->up_tree;
 }
 
 /* 5. Smart Restore of Cursor Position */
-getmaxyx(win, win_height, win_width);
+win_height = getmaxy(win);
 
 if (found_idx != -1) {
 /* Check if the found directory is within the current visible page */
@@ -798,7 +804,7 @@ GetPath(entry, saved_path);
 SaveTreeState(s->tree, &expanded, &tagged);
 
 /* 2. Destructive Rescan */
-RescanDir(entry, strtol(TREEDEPTH, NULL, 0), s);
+RescanDir(entry, strtol(TREEDEPTH, NULL, 0), s, Dir_Progress, NULL);
 
 /* 2a. Restore critical flags destroyed by ReadTree */
 entry->big_window = saved_big_window;
@@ -852,7 +858,7 @@ entry = CurrentVolume->dir_entry_list[0].dir_entry;
 }
 } else {
 /* Archive Mode - Standard Rescan */
-RescanDir(entry, strtol(TREEDEPTH, NULL, 0), s);
+RescanDir(entry, strtol(TREEDEPTH, NULL, 0), s, Dir_Progress, NULL);
 /* Restore flags for Archive mode too, as RescanDir/ReadTree clears them */
 entry->big_window = saved_big_window;
 entry->login_flag = saved_login_flag;
@@ -890,7 +896,7 @@ char *home;
 YtreeAction action; /* Declare YtreeAction variable */
 struct Volume *start_vol = CurrentVolume; /* Track global volume changes */
 Statistic *s = &CurrentVolume->vol_stats;
-int height, width;
+int height;
 char watcher_path[PATH_LENGTH + 1];
 
 /* ADDED INSTRUCTION */
@@ -933,7 +939,7 @@ GlobalView->ctx_file_window = ActivePanel->pan_file_window;
 }
 }
 
-getmaxyx(dir_window, height, width);
+height = getmaxy(dir_window);
 
 /* Clear flags */
 /*-----------------*/
@@ -1887,7 +1893,7 @@ char new_login_path[PATH_LENGTH + 1];
 if( dir_entry->not_scanned ) {
 for( de_ptr=dir_entry->sub_tree; de_ptr; de_ptr=de_ptr->next) {
 GetPath( de_ptr, new_login_path );
-if (ReadTree( de_ptr, new_login_path, 999, s ) == -1) {
+if (ReadTree( de_ptr, new_login_path, 999, s, Dir_Progress, NULL ) == -1) {
 /* Abort signal received from ReadTree */
 return -1;
 }
@@ -2281,7 +2287,7 @@ int RefreshDirWindow(void)
 DirEntry *de_ptr;
 int i, n;
 int result = -1;
-int window_width, window_height;
+int window_height;
 Statistic *s = &CurrentVolume->vol_stats;
 YtreePanel *p = ActivePanel;
 WINDOW *win = dir_window;
@@ -2322,7 +2328,7 @@ if((n - *disp_begin_pos_ptr) >= 0) {
 }
 }
 
-getmaxyx(win, window_height, window_width);
+window_height = getmaxy(win);
 while(*cursor_pos_ptr >= window_height) {
 (*cursor_pos_ptr)--;
 (*disp_begin_pos_ptr)++;
