@@ -3,8 +3,8 @@
  * src/ui/prompt.c
  * Prompt & Input Manager
  *
- * Implements a managed window for user input, replacing the legacy
- * direct-to-screen InputStringEx.
+ * Implements a managed window for user input, rendering in the footer area
+ * (bottom 3 lines) to match XTree style.
  *
  ***************************************************************************/
 
@@ -12,8 +12,7 @@
 #include <ctype.h> /* For isalnum */
 #include <stdlib.h> /* For getenv */
 
-#define PROMPT_WIN_WIDTH 60
-#define PROMPT_WIN_HEIGHT 5
+#define PROMPT_WIN_HEIGHT 3
 
 /* Helper to get visible length of string */
 /* Using extern from input.c logic (now moved here or duplicated) */
@@ -26,10 +25,11 @@ extern int ViKey( int ch );
 
 /*
  * UI_ReadString
- * Creates a centered window, displays a prompt, and reads user input into buffer.
+ * Creates a window at the bottom of the screen, displays a prompt,
+ * and reads user input into buffer.
  *
- * prompt: The message to display.
- * buffer: The buffer to store input (must be initialized with default value).
+ * prompt: The message to display (Row 0).
+ * buffer: The buffer to store input (Row 1).
  * max_len: Maximum length of the string in the buffer.
  * history_type: ID for history management (HST_...).
  *
@@ -39,18 +39,19 @@ int UI_ReadString(const char *prompt, char *buffer, int max_len, int history_typ
 {
     WINDOW *win;
     int win_y, win_x;
-    int input_y = 2; /* Line inside window for input */
-    int input_x = 2; /* Column inside window for input */
+    int input_y = 1; /* Row 1 */
+    int input_x = 1; /* Left margin */
     int input_width;
     int ch;
     int p = 0; /* Visual cursor position */
     int scroll_offset = 0;
     static BOOL insert_flag = TRUE;
+    const char *hints;
 
-    /* Calculate window position */
-    win_y = (LINES - PROMPT_WIN_HEIGHT) / 2;
-    win_x = (COLS - PROMPT_WIN_WIDTH) / 2;
-    input_width = PROMPT_WIN_WIDTH - 4; /* Padding */
+    /* Calculate window position: Bottom 3 lines */
+    win_y = LINES - PROMPT_WIN_HEIGHT;
+    win_x = 0;
+    input_width = COLS - 2; /* 1 char padding left/right */
 
     /* Ensure buffer is valid */
     if (buffer == NULL) return ESC;
@@ -58,21 +59,32 @@ int UI_ReadString(const char *prompt, char *buffer, int max_len, int history_typ
     /* Initial cursor position at end of string */
     p = StrVisualLength(buffer);
 
+    /* Determine Key Hints */
+    if (history_type == HST_LOGIN || history_type == HST_PATH) {
+        hints = "[F2] Browse  [Up] History  [Enter] OK  [Esc] Cancel";
+    } else {
+        hints = "[Up] History  [Enter] OK  [Esc] Cancel";
+    }
+
     /* Setup Window */
-    win = newwin(PROMPT_WIN_HEIGHT, PROMPT_WIN_WIDTH, win_y, win_x);
+    win = newwin(PROMPT_WIN_HEIGHT, COLS, win_y, win_x);
     if (win == NULL) return ESC;
 
     keypad(win, TRUE);
     WbkgdSet(win, COLOR_PAIR(CPAIR_MENU));
+    curs_set(1); /* Show cursor */
 
     while (1) {
         werase(win);
-        box(win, 0, 0);
+        /* box(win, 0, 0); */ /* No box, simpler footer style */
 
-        /* Draw Prompt */
-        mvwprintw(win, 1, 2, "%s", prompt);
+        /* Row 0: Prompt */
+        mvwprintw(win, 0, 1, "%s", prompt);
 
-        /* Draw Input Field */
+        /* Row 2: Hints */
+        mvwprintw(win, 2, 1, "%s", hints);
+
+        /* Row 1: Input Field */
         /* Handle Scrolling */
         if (p < scroll_offset) {
             scroll_offset = p;
@@ -86,7 +98,7 @@ int UI_ReadString(const char *prompt, char *buffer, int max_len, int history_typ
 
         mvwaddstr(win, input_y, input_x, display_str);
 
-        /* Fill remaining space with underlines to indicate field */
+        /* Fill remaining space with underscores to indicate field */
         int len_drawn = StrVisualLength(display_str);
         int i;
         for (i = len_drawn; i < input_width; i++) {
@@ -132,11 +144,15 @@ int UI_ReadString(const char *prompt, char *buffer, int max_len, int history_typ
 
         if (resize_request) {
             resize_request = FALSE;
-            /* Recalculate center */
-            win_y = (LINES - PROMPT_WIN_HEIGHT) / 2;
-            win_x = (COLS - PROMPT_WIN_WIDTH) / 2;
-            mvwin(win, win_y, win_x);
-            /* Refresh background */
+
+            /* Recreate window geometry */
+            win_y = LINES - PROMPT_WIN_HEIGHT;
+            input_width = COLS - 2;
+
+            wresize(win, PROMPT_WIN_HEIGHT, COLS);
+            mvwin(win, win_y, 0);
+
+            /* Refresh background to clear artifacts */
             RefreshGlobalView(GetSelectedDirEntry(CurrentVolume));
             touchwin(win);
             continue;
@@ -204,7 +220,7 @@ int UI_ReadString(const char *prompt, char *buffer, int max_len, int history_typ
                 }
                 break;
 
-            case 'H' & 0x1F: /* Ctrl-H (0x08) */
+            case 'H' & 0x1F: /* Ctrl-H */
             case KEY_BACKSPACE:
             case 127:        /* ASCII DEL sometimes maps to Backspace */
                 if (p > 0) {

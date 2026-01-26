@@ -1174,7 +1174,7 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 ### **Step 9.2: Refactor Input Subsystem (Prompt Manager)**
 *   **Goal:** Replace the fragile `InputStringEx` + Callback mechanism with a robust **Prompt Manager**.
 *   **Mechanism:** Create a `UI_Prompt` context that handles drawing the *entire* prompt area (Help text + Input Field) automatically. This removes drawing logic from `cmd/*.c` modules.
-*   **Target:** `src/ui/input.c`, `src/cmd/copy.c`, `src/cmd/move.c`.
+*   **Target:** `src/ui/input.c`, `src/cmd/copy.c`, `src/cmd/move.c`, `src/ui/prompt.c`.
 *   - [x] **Status:** Completed.
 
 ### **Step 9.3: Standardize Menu/Popup System**
