@@ -8,18 +8,49 @@ For general build instructions, coding standards, and architectural constraints,
 
 We primarily use the **Google AI Studio Web Interface** for high-level reasoning and code generation. We use a local helper script (`scripts/gather_context.py`) to copy code into the web interface.
 
+### 0. Managing "Fuel" (Rate Limits & Context)
+
+To avoid "Rate Limit Exceeded" errors and maximize the AI's reasoning capacity, you must actively manage the size of the conversation history (the "Context Window").
+
+**The Concept: "The Backpack"**
+Every time you send a prompt, the AI re-reads **everything** currently in the chat history (System Prompts + Context Files + Previous Q&A). This is the "Backpack."
+*   **Heavy Backpack:** 50,000+ tokens. Burns through your "Tokens Per Minute" (TPM) limit instantly.
+*   **Light Backpack:** <5,000 tokens. Allows for rapid iteration without hitting limits.
+
+**The Warning: "Two Tabs, One Tank"**
+Even if you use separate tabs for the Consultant and Builder, they share the **same** Google Account quota.
+*   **Implication:** Do not send heavy prompts in both tabs simultaneously. They draw from the same limited resource.
+*   **Strategy:** Allow a natural pause (30-60s) between generating a plan in one tab and requesting code in the other.
+
+**Strategies for Success:**
+
+1.  **The "Fresh Start" Protocol (Critical):**
+    *   **Rule:** Start a **fresh** Consultant/Builder pair for **every single roadmap task**.
+    *   **Why:** Once a task is completed, the codebase has changed. The old Consultant chat now contains obsolete file content ("Context Drift"). Starting fresh guarantees the AI plans based on the current reality.
+
+2.  **The "Armature" (Context Strategy):**
+    *   Do not dump the entire project (`src/*`) to start a session.
+    *   Instead, upload **All Header Files (`include/*.h`)** + **`src/core/main.c`** + **The Target File(s)**.
+    *   **Why:** Headers and Main provide the structural framework (the armature) of the application. The AI can infer the "Big Picture" from this structure without needing the full "flesh" of every implementation file.
+    *   **Tip:** Use the file list in [PLAN.md](PLAN.md) as a guide for what to select.
+
+3.  **The "Fresh Sheet" Rule (For the Builder):**
+    *   **Action:** Always start a **New Chat** for the Builder phase. Paste *only* the `task.txt` and the specific files listed.
+    *   **Result:** Extremely low token usage per request.
+
+---
+
 ### Phase 1: The Consultant (Planning)
 
 The Consultant is your first stop. It analyzes the specific files involved in a task to determine **WHAT** needs to be done.
 
 0.  **Paste the System Prompt:** Copy the text from **[Appendix A: The Consultant Persona](#appendix-a-the-consultant-persona)** into the "System Instructions" field in AI Studio.
 
-1.  **Select Context:** Run the interactive context gatherer locally. **Crucial:** Only select the files relevant to your current task. Do not dump the entire project unless necessary.
+1.  **Select Context:** Run the interactive context gatherer locally.
     ```bash
     scripts/gather_context.py
     ```
-    This opens a TUI where you can toggle file selection using `Space`. Press `Enter` to generate the output.
-    *   **Tip:** Use the file list in `PLAN.md` as a guide for what to select.
+    *   **Strategy:** Use the **Armature** approach. Select all `include/*.h` files, `src/core/main.c` and the specific `.c` file(s) you are investigating.
     *   **Output:** The content is automatically copied to your clipboard.
 
 2.  **Upload:**
