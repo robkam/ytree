@@ -1166,24 +1166,101 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 ## **Phase 9: Architectural Hardening & UI Unification**
 *This phase addresses the "UI Fragmentation" technical debt identified during the v3.0 Alpha development. It eliminates ad-hoc screen drawing, centralizes input handling, and audits the codebase for global state leakage.*
 
-### **Step 9.1: Deep-Dive Architectural Audit**
-*   **Goal:** Perform a comprehensive audit of the codebase to identify "Fragile Code" patterns, specifically identifying Global State usage, unsafe string handling, and logic fragmentation.
-*   **Output:** A prioritized refactoring list.
-*   - [x] **Status:** Completed.
+### **Step 9.1: Deep-Dive Architectural Remediation**
+*   **Goal:** Execute the specific refactoring tasks identified in the code quality audit to eliminate fragile patterns, enforcing strict separation of Logic (Model) and UI (View).
+*   **Status:** In Progress.
 
-### **Step 9.2: Refactor Input Subsystem (Prompt Manager)**
+#### **Step 9.1.1: Decouple Filesystem Scanners (readtree.c)**
+*   **Goal:** Remove UI calls (`DrawSpinner`, `doupdate`) from low-level filesystem logic.
+*   **Mechanism:** Refactor `ReadTree` to accept a `ProgressCallback` function pointer. Move the UI update logic into a callback provided by the Controller layer.
+*   **Files to Modify:** `src/fs/readtree.c`, `src/fs/readarchive.c`, `src/cmd/log.c`.
+*   - [ ] **Status:** Not Started.
+
+#### **Step 9.1.2: Extract Sorting Logic (Model vs Controller)**
+*   **Goal:** Move `qsort` and comparison logic out of the UI Controller (`ctrl_file.c`) and into the Core/Model layer.
+*   **Mechanism:** Create `src/core/sort.c`. Implement `Volume_Sort(Volume *vol, int method)`.
+*   **Files to Modify:** `src/ui/ctrl_file.c`, `src/core/sort.c` (New).
+*   - [ ] **Status:** Not Started.
+
+#### **Step 9.1.3: Refactor LoginDisk (Split I/O and UI)**
+*   **Goal:** Split the monolithic `LoginDisk` function into a pure logic function (`Volume_Load`) and a UI wrapper (`Cmd_LoginDisk`).
+*   **Mechanism:** `Volume_Load` performs I/O and memory allocation only. `Cmd_LoginDisk` handles prompts, screen clearing, and error display.
+*   **Files to Modify:** `src/cmd/log.c`, `src/core/volume.c`.
+*   - [ ] **Status:** Not Started.
+
+#### **Step 9.1.4: UI Geometry Standardization (Magic Numbers)**
+*   **Goal:** Eliminate hardcoded screen offsets (e.g., `LINES - 4`) used for footer/prompt positioning.
+*   **Mechanism:** Extend `YtreeLayout` struct to include footer/prompt geometry. Calculate these once in `Layout_Recalculate`. Replace magic numbers with `layout.footer_y`, etc.
+*   **Files to Modify:** `src/ui/display.c`, `src/ui/stats.c`, `src/ui/prompt.c`, `src/ui/vol_menu.c`.
+*   - [ ] **Status:** Not Started.
+
+#### **Step 9.1.5: Standardization of Path Parsing**
+*   **Goal:** Replace manual pointer-arithmetic path parsing loops with standard functions.
+*   **Mechanism:** Refactor `Fnsplit` and similar helpers to use POSIX `dirname()` and `basename()`.
+*   **Files to Modify:** `src/util/path_utils.c`.
+*   - [ ] **Status:** Not Started.
+
+#### **Step 9.1.6: Encapsulate Command Context**
+*   **Goal:** Prevent commands from implicitly operating on the global `CurrentVolume`.
+*   **Mechanism:** Refactor `Execute`, `Delete`, and `UserMode` functions to accept a `Volume*` or `Statistic*` context argument. Update callers in `ctrl_dir.c`/`ctrl_file.c` to pass `ActivePanel->vol`.
+*   **Files to Modify:** `src/cmd/execute.c`, `src/cmd/delete.c`, `src/cmd/usermode.c`.
+*   - [ ] **Status:** Not Started.
+
+#### **Step 9.1.7: Secure String Construction**
+*   **Goal:** Eliminate unsafe manual string substitution loops.
+*   **Mechanism:** Create `String_Replace()` utility using `snprintf` for bounds-checked substitution of `{}` placeholders.
+*   **Files to Modify:** `src/cmd/execute.c`, `src/util/string_utils.c`.
+*   - [ ] **Status:** Not Started.
+
+#### **Step 9.1.8: Global Error Buffer Elimination**
+*   **Goal:** Remove the non-reentrant global `message` buffer.
+*   **Mechanism:** Refactor error macros to use variadic functions (`UI_Message(fmt, ...)`) with local stack buffers.
+*   **Files to Modify:** `src/core/global.c`, `src/ui/error.c`, `include/ytree.h`.
+*   - [ ] **Status:** Not Started.
+
+#### **Step 9.1.9: Modernize User/Group Database Handling**
+*   **Goal:** Remove legacy caching of `/etc/passwd` which wastes memory and fails on networked systems.
+*   **Mechanism:** Replace `ReadPasswdEntries` cache with direct calls to `getpwuid`/`getgrgid`.
+*   **Files to Modify:** `src/cmd/passwd.c`, `src/cmd/group.c`.
+*   - [ ] **Status:** Not Started.
+
+#### **Step 9.1.10: Centralize Memory Management (DRY)**
+*   **Goal:** Eliminate repetitive `malloc` error checking code scattered across the project.
+*   **Mechanism:** Implement `xmalloc`, `xcalloc`, and `xstrdup` in `src/util/memory.c`. These wrappers exit safely on allocation failure. Refactor codebase to use them.
+*   **Files to Modify:** `src/util/memory.c` (New), `include/ytree.h`, all source files.
+*   - [ ] **Status:** Not Started.
+
+#### **Step 9.1.11: Standardize Internal Viewer Geometry**
+*   **Goal:** Decouple the internal Hex/Text viewer from global `LINES`/`COLS` to allow future split-screen integration.
+*   **Mechanism:** Update `view_internal.c` to respect the global `YtreeLayout` or accept specific bounds.
+*   **Files to Modify:** `src/ui/view_internal.c`.
+*   - [ ] **Status:** Not Started.
+
+#### **Step 9.1.12: Enforce Signal Safety (Anti-Crash)**
+*   **Goal:** Eliminate "Random" crashes caused by unsafe signal handling (SIGALRM/SIGSEGV).
+*   **Mechanism:**
+    1.  **Clock:** Remove `SIGALRM` based clock. Move clock updates to the `GetEventOrKey` input loop using `timeout()`.
+    2.  **Shutdown:** Remove `endwin()` from signal handlers. Use `sig_atomic_t` flags to trigger graceful shutdown in the main loop.
+*   **Files to Modify:** `src/core/clock.c`, `src/core/main.c`, `src/ui/input.c`.
+*   - [ ] **Status:** Not Started.
+
+### **Step 9.2: SRP & SoC Enforcement (Audit Execution)**
+*   **Goal:** Execute the critical refactorings identified in the Architectural Audit to enforce Single Responsibility and Separation of Concerns.
+*   **Rationale:** Decoupling Model (FS), View (UI), and Controller (Input) is prerequisite for stability and testing.
+
+### **Step 9.3: Refactor Input Subsystem (Prompt Manager)**
 *   **Goal:** Replace the fragile `InputStringEx` + Callback mechanism with a robust **Prompt Manager**.
 *   **Mechanism:** Create a `UI_Prompt` context that handles drawing the *entire* prompt area (Help text + Input Field) automatically. This removes drawing logic from `cmd/*.c` modules.
 *   **Target:** `src/ui/input.c`, `src/cmd/copy.c`, `src/cmd/move.c`, `src/ui/prompt.c`.
 *   - [x] **Status:** Completed.
 
-### **Step 9.3: Standardize Menu/Popup System**
+### **Step 9.4: Standardize Menu/Popup System**
 *   **Goal:** Replace ad-hoc window creation in `vol_menu.c` and `history.c` with a centralized **Menu Manager**.
 *   **Mechanism:** Implement `UI_Menu(items, title, callback)` that handles window sizing, scrolling, and borders consistently, respecting the global layout engine.
 *   **Target:** `src/ui/vol_menu.c`, `src/util/history.c`.
 *   - [ ] **Status:** Not Started.
 
-### **Step 9.4: Centralize Window Management**
+### **Step 9.5: Centralize Window Management**
 *   **Goal:** Ensure all secondary windows (F2, Error, Help) use the `ViewContext` layout engine rather than hardcoded geometry.
 *   **Target:** `src/ui/display.c`, `src/core/init.c`.
 *   - [ ] **Status:** Not Started.
