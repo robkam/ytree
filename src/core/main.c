@@ -193,8 +193,8 @@ int main(int argc, char **argv)
           exit(1);
       }
 
-      /* Reset stats logic is handled by LoginDisk/Init */
-      if (LoginDisk(buffer) == -1) {
+      /* Use LogDisk (wrapper around Volume_Load) to load the initial path */
+      if (LogDisk(buffer) == -1) {
           endwin();
           /* If defaulting to CWD fails, it's a fatal error */
           fprintf(stderr, "Error: Failed to login to current directory\n");
@@ -205,15 +205,15 @@ int main(int argc, char **argv)
   else
   {
       /* Case > 0: Load paths in REVERSE order.
-       * LoginDisk pushes volumes onto a stack (LIFO).
+       * LogDisk pushes volumes onto a stack (LIFO concept due to CurrentVolume switch).
        * By loading the last command-line arg first, the first command-line arg
-       * ends up at the top of the stack and becomes the active volume.
+       * ends up as the active volume.
        */
       for (i = path_count - 1; i >= 0; i--)
       {
-          /* LoginDisk returns -1 on failure but handles its own error messaging.
+          /* LogDisk returns -1 on failure but handles its own error messaging via UI.
            * We proceed to try loading the other requested volumes. */
-          LoginDisk(argv[path_indexes[i]]);
+          LogDisk(argv[path_indexes[i]]);
       }
   }
 

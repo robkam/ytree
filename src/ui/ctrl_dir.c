@@ -1341,7 +1341,7 @@ Fnsplit(archive_path, parent_dir, dummy_name);
 
 /* Force Login/Switch to the Parent Directory */
 /* This handles both "New Volume" and "Switch to Existing" logic automatically */
-if (LoginDisk(parent_dir) == 0) {
+if ( LogDisk(parent_dir) == 0) {
 /* Successfully switched context. */
 
 /* Delete the archive wrapper we just left to clean up memory/list */
@@ -1809,7 +1809,7 @@ int ret; /* DEBUG variable */
 DisplayMenu();
 doupdate();
 
-ret = LoginDisk(new_login_path);
+ret =  LogDisk(new_login_path);
 
 /* Check return value. Only update state if login succeeded (0). */
 if (ret == 0) {
@@ -2182,7 +2182,7 @@ if (getcwd(new_login_path, sizeof(new_login_path)) == NULL) strcpy(new_login_pat
 }
 
 if (!GetNewLoginPath(new_login_path)) {
-if (LoginDisk(new_login_path) == 0) {
+if ( LogDisk(new_login_path) == 0) {
 ClearHelp(); /* ADDED */
 target_vol = CurrentVolume;
 local_disp_begin_pos = target_vol->vol_stats.disp_begin_pos;

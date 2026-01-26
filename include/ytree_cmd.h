@@ -61,7 +61,7 @@ extern int ViewHex(char *file_path);
 
 /* log.c */
 extern int GetNewLoginPath(char *path);
-extern int LoginDisk(char *path);
+extern int LogDisk(char *path);
 extern int CycleLoadedVolume(int direction);
 
 /* mkdir.c */

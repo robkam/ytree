@@ -1956,7 +1956,7 @@ int HandleFileWindow(DirEntry *dir_entry)
 		       {
 			 dir_entry->login_flag  = TRUE;
 
-		         (void) LoginDisk( new_login_path );
+		         (void)  LogDisk( new_login_path );
 		         unput_char = ESC;
 			}
 		        need_dsp_help = TRUE;

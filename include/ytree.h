@@ -252,6 +252,7 @@ extern struct Volume *Volume_Create(void);
 extern void Volume_Delete(struct Volume *vol);
 extern void Volume_FreeAll(void);
 extern struct Volume *Volume_GetByPath(const char *path);
+extern struct Volume *Volume_Load(const char *path, struct Volume *reuse_vol, ScanProgressCallback cb);
 
 /* main.c */
 extern int ytree(int argc, char *argv[]);
