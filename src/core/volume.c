@@ -135,3 +135,163 @@ struct Volume *Volume_GetByPath(const char *path) {
     }
     return best_match;
 }
+
+/*
+ * Volume_Load
+ *
+ * Core logic to load a volume from a path.
+ * Separates I/O and validation from UI interaction.
+ *
+ * Parameters:
+ *   path      - The file system path to load.
+ *   reuse_vol - Pointer to an existing volume to reuse (e.g., the empty virgin volume).
+ *               If NULL, a new volume is created.
+ *   cb        - Callback function for scanning progress.
+ *
+ * Returns:
+ *   Pointer to the successfully loaded Volume, or NULL on failure.
+ *   In case of failure, an error message is written to the global 'message' buffer.
+ */
+struct Volume *Volume_Load(const char *path, struct Volume *reuse_vol, ScanProgressCallback cb) {
+    char resolved_path[PATH_LENGTH + 1];
+    struct stat stat_struct;
+    struct Volume *vol = NULL;
+    Statistic *s;
+    int depth;
+    int res;
+
+    /* 1. Path Resolution */
+    if (realpath(path, resolved_path) == NULL) {
+        strncpy(resolved_path, path, PATH_LENGTH);
+        resolved_path[PATH_LENGTH] = '\0';
+    }
+
+    /* 2. Validation */
+    if (STAT_(resolved_path, &stat_struct)) {
+        (void)snprintf(message, MESSAGE_LENGTH, "Can't access*\"%s\"*%s", resolved_path, strerror(errno));
+        return NULL;
+    }
+
+    /* 3. Archive Check */
+    if (!S_ISDIR(stat_struct.st_mode)) {
+#ifdef HAVE_LIBARCHIVE
+        struct archive *a_test;
+        int r_test;
+
+        a_test = archive_read_new();
+        if (a_test == NULL) {
+             (void)snprintf(message, MESSAGE_LENGTH, "archive_read_new() failed");
+             return NULL;
+        }
+        archive_read_support_filter_all(a_test);
+        archive_read_support_format_all(a_test);
+        r_test = archive_read_open_filename(a_test, resolved_path, 10240);
+        archive_read_free(a_test);
+
+        if (r_test != ARCHIVE_OK) {
+             (void)snprintf(message, MESSAGE_LENGTH, "Not a recognized archive file*or format not supported*\"%s\"", resolved_path);
+             return NULL;
+        }
+#else
+        (void)snprintf(message, MESSAGE_LENGTH, "Cannot open file as archive*ytree not compiled with*libarchive support");
+        return NULL;
+#endif
+    }
+
+    /* 4. Allocation */
+    if (reuse_vol) {
+        vol = reuse_vol;
+        if (vol->vol_stats.tree) {
+            DeleteTree(vol->vol_stats.tree);
+            vol->vol_stats.tree = NULL;
+        }
+        memset(&vol->vol_stats, 0, sizeof(Statistic));
+        FreeVolumeCache(vol);
+    } else {
+        vol = Volume_Create();
+        if (!vol) return NULL; /* Volume_Create exits on failure, but safety check */
+    }
+
+    s = &vol->vol_stats;
+
+    /* 5. Setup */
+    s->kind_of_sort = SORT_BY_NAME + SORT_ASC;
+    strcpy(s->file_spec, DEFAULT_FILE_SPEC);
+
+    if (!s->tree) {
+        s->tree = (DirEntry *)calloc(1, sizeof(DirEntry) + PATH_LENGTH);
+        if (!s->tree) {
+            (void)snprintf(message, MESSAGE_LENGTH, "Malloc failed for root DirEntry");
+            if (!reuse_vol) Volume_Delete(vol);
+            else {
+                /* For reused volume, ensure clean state */
+                memset(s, 0, sizeof(Statistic));
+                s->kind_of_sort = SORT_BY_NAME + SORT_ASC;
+                strcpy(s->file_spec, DEFAULT_FILE_SPEC);
+            }
+            return NULL;
+        }
+    }
+
+    strncpy(s->login_path, resolved_path, PATH_LENGTH);
+    s->login_path[PATH_LENGTH] = '\0';
+    strncpy(s->path, resolved_path, PATH_LENGTH);
+    s->path[PATH_LENGTH] = '\0';
+
+    memcpy(&s->tree->stat_struct, &stat_struct, sizeof(stat_struct));
+
+    /* 6. Mode Detection */
+    if (!S_ISDIR(stat_struct.st_mode)) {
+        /* "root" node is always a directory structure for Ytree, even for archives */
+        memset(&s->tree->stat_struct, 0, sizeof(struct stat));
+        s->tree->stat_struct.st_mode = S_IFDIR;
+        s->disk_total_directories = 1;
+        s->login_mode = ARCHIVE_MODE;
+    } else if (IsUserActionDefined()) {
+        s->login_mode = USER_MODE;
+    } else {
+        s->login_mode = DISK_MODE;
+    }
+
+    GetDiskParameter(resolved_path, s->disk_name, &s->disk_space, &s->disk_capacity, s);
+    strcpy(s->tree->name, resolved_path);
+
+    /* 7. Scanning */
+    if (s->login_mode == ARCHIVE_MODE) {
+#ifdef HAVE_LIBARCHIVE
+         if (ReadTreeFromArchive(&s->tree, s->login_path, s, cb, s)) {
+             /* Error message is set by ReadTreeFromArchive or we can set a generic one */
+             /* Note: ReadTreeFromArchive typically prints to 'message' on error */
+             if (!reuse_vol) Volume_Delete(vol);
+             else {
+                 DeleteTree(s->tree);
+                 s->tree = NULL;
+                 memset(s, 0, sizeof(Statistic));
+                 s->kind_of_sort = SORT_BY_NAME + SORT_ASC;
+                 strcpy(s->file_spec, DEFAULT_FILE_SPEC);
+             }
+             return NULL;
+         }
+#endif
+    } else {
+        s->tree->next = s->tree->prev = NULL;
+        depth = strtol(TREEDEPTH, NULL, 0);
+        res = ReadTree(s->tree, resolved_path, depth, s, cb, s);
+        if (res != 0) {
+             if (res != -1) (void)snprintf(message, MESSAGE_LENGTH, "ReadTree Failed");
+             if (!reuse_vol) Volume_Delete(vol);
+             else {
+                 DeleteTree(s->tree);
+                 s->tree = NULL;
+                 memset(s, 0, sizeof(Statistic));
+                 s->kind_of_sort = SORT_BY_NAME + SORT_ASC;
+                 strcpy(s->file_spec, DEFAULT_FILE_SPEC);
+             }
+             return NULL;
+        }
+        /* Copy stats to disk_stats for later reference */
+        memcpy(&vol->vol_disk_stats, s, sizeof(Statistic));
+    }
+
+    return vol;
+}

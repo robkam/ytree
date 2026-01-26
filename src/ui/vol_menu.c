@@ -241,7 +241,7 @@ int SelectLoadedVolume(void)
                                 struct Volume *neighbor = vol_array[neighbor_idx];
 
                                 /* Verify neighbor accessibility before switching */
-                                // This logic is similar to LoginDisk, but for a neighbor.
+                                // This logic is similar to  LogDisk, but for a neighbor.
                                 BOOL neighbor_access_ok = FALSE;
                                 struct stat neighbor_st_check;
 
@@ -346,7 +346,7 @@ int SelectLoadedVolume(void)
                  struct Volume *target_vol = vol_array[selected_index];
 
                  if (target_vol != CurrentVolume) {
-                     int login_result = LoginDisk(target_vol->vol_stats.login_path);
+                     int login_result =  LogDisk(target_vol->vol_stats.login_path);
                      free(vol_array);
                      return login_result;
                  }
@@ -361,7 +361,7 @@ int SelectLoadedVolume(void)
     // If changes were made (volumes deleted), return 0 to force main loop to refresh.
     // Otherwise, return original result (0 for switch, -1 for cancel).
     if (changes_made) {
-        /* Ensure main loop has a valid list if we deleted something but didn't switch via LoginDisk */
+        /* Ensure main loop has a valid list if we deleted something but didn't switch via  LogDisk */
         BuildDirEntryList(CurrentVolume);
         return 0;
     }

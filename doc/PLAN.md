@@ -1182,11 +1182,11 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 *   **Files to Modify:** `src/ui/ctrl_file.c`, `src/core/sort.c` (New).
 *   - [x] **Status:** Completed.
 
-#### **Step 9.1.3: Refactor LoginDisk (Split I/O and UI)**
-*   **Goal:** Split the monolithic `LoginDisk` function into a pure logic function (`Volume_Load`) and a UI wrapper (`Cmd_LoginDisk`).
-*   **Mechanism:** `Volume_Load` performs I/O and memory allocation only. `Cmd_LoginDisk` handles prompts, screen clearing, and error display.
-*   **Files to Modify:** `src/cmd/log.c`, `src/core/volume.c`.
-*   - [ ] **Status:** Not Started.
+#### **Step 9.1.3: Refactor LogDisk (Split I/O and UI)**
+*   **Goal:** Split the monolithic `LoginDisk` function into a pure logic function (`Volume_Load`) and a UI wrapper (`LogDisk`), and rename the command to fix the "Login" misnomer.
+*   **Mechanism:** `Volume_Load` (core/volume.c) performs I/O, archive detection, and memory allocation only. `LogDisk` (cmd/log.c) handles user prompts, existing volume lookup, screen clearing, and error display.
+*   **Files to Modify:** `src/cmd/log.c`, `src/core/volume.c` and `src/fs/readarchive.c`, `src/ui/ctrl_dir.c`, `src/ui/ctrl_file.c`, `src/ui/vol_menu.c` for renaming.
+*   - [x] **Status:** Completed.
 
 #### **Step 9.1.4: UI Geometry Standardization (Magic Numbers)**
 *   **Goal:** Eliminate hardcoded screen offsets (e.g., `LINES - 4`) used for footer/prompt positioning.
