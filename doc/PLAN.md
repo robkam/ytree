@@ -1163,8 +1163,8 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 
 ---
 
-## **Phase 9: Architectural Hardening & UI Unification**
-*This phase addresses the "UI Fragmentation" technical debt identified during the v3.0 Alpha development. It eliminates ad-hoc screen drawing, centralizes input handling, and audits the codebase for global state leakage.*
+## **Phase 9: Systems Architecture Remediation & Core Hardening**
+*This phase represents the primary technical debt payoff for the v3.0 modernization. It transitions `ytree` from a monolithic legacy C89 codebase into a layered, modular architecture. It systematically decouples Business Logic from Presentation (Model-View Separation), enforces strict Memory Safety, eliminates unsafe Signal Handling patterns, and standardizes low-level System I/O mechanisms.*
 
 ### **Step 9.1: Deep-Dive Architectural Remediation**
 *   **Goal:** Execute the specific refactoring tasks identified in the code quality audit to eliminate fragile patterns, enforcing strict separation of Logic (Model) and UI (View).
