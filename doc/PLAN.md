@@ -1222,7 +1222,7 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 *   **Goal:** Remove legacy caching of `/etc/passwd` which wastes memory and fails on networked systems.
 *   **Mechanism:** Replace `ReadPasswdEntries` cache with direct calls to `getpwuid`/`getgrgid`.
 *   **Files to Modify:** `src/cmd/passwd.c`, `src/cmd/group.c`.
-*   - [ ] **Status:** Not Started.
+*   - [x] **Status:** Completed.
 
 #### **Step 9.1.10: Centralize Memory Management (DRY)**
 *   **Goal:** Eliminate repetitive `malloc` error checking code scattered across the project.
