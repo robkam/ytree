@@ -39,8 +39,8 @@ extern int DeleteFile(FileEntry *fe_ptr, int *auto_override, Statistic *s);
 extern int RemoveFile(FileEntry *fe_ptr, Statistic *s);
 
 /* execute.c */
-extern int Execute(DirEntry *dir_entry, FileEntry *file_entry);
-extern int ExecuteCommand(FileEntry *fe_ptr, WalkingPackage *walking_package);
+extern int Execute(DirEntry *dir_entry, FileEntry *file_entry, Statistic *s);
+extern int ExecuteCommand(FileEntry *fe_ptr, WalkingPackage *walking_package, Statistic *s);
 extern int GetCommandLine(char *command_line);
 extern int GetSearchCommandLine(char *command_line, char *raw_pattern);
 
@@ -113,8 +113,8 @@ extern int SilentSystemCallEx(char *command_line, BOOL enable_clock, Statistic *
 extern int SystemCall(char *command_line, Statistic *s);
 
 /* usermode.c */
-extern int DirUserMode(DirEntry *dir_entry, int ch);
-extern int FileUserMode(FileEntryList *file_entry_list, int ch);
+extern int DirUserMode(DirEntry *dir_entry, int ch, Statistic *s);
+extern int FileUserMode(FileEntryList *file_entry_list, int ch, Statistic *s);
 
 /* view.c */
 extern int View(DirEntry * dir_entry, char *file_path);

@@ -1204,7 +1204,7 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 *   **Goal:** Prevent commands from implicitly operating on the global `CurrentVolume`.
 *   **Mechanism:** Refactor `Execute`, `Delete`, and `UserMode` functions to accept a `Volume*` or `Statistic*` context argument. Update callers in `ctrl_dir.c`/`ctrl_file.c` to pass `ActivePanel->vol`.
 *   **Files to Modify:** `src/cmd/execute.c`, `src/cmd/delete.c`, `src/cmd/usermode.c`.
-*   - [ ] **Status:** Not Started.
+*   - [x] **Status:** Completed.
 
 #### **Step 9.1.7: Secure String Construction**
 *   **Goal:** Eliminate unsafe manual string substitution loops.

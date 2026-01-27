@@ -1066,7 +1066,7 @@ ch = (resize_request) ? -1 : GetEventOrKey();
 }
 
 if (IsUserActionDefined()) { /* User commands take precedence */
-ch = DirUserMode(dir_entry, ch);
+ch = DirUserMode(dir_entry, ch, &ActivePanel->vol->vol_stats);
 }
 
 /* ViKey processing is now handled inside GetKeyAction */
@@ -1538,7 +1538,7 @@ dir_entry = ActivePanel->vol->dir_entry_list[ActivePanel->disp_begin_pos + Activ
 break;
 case ACTION_CMD_X: if (mode != DISK_MODE && mode != USER_MODE) {
 } else {
-(void) Execute( dir_entry, NULL );
+(void) Execute( dir_entry, NULL, &ActivePanel->vol->vol_stats );
 dir_entry = RefreshTreeSafe(dir_entry); /* Auto-Refresh after command */
 }
 need_dsp_help = TRUE;

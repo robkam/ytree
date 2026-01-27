@@ -11,7 +11,7 @@
 
 #define MAX( a, b ) ( ( (a) > (b) ) ? (a) : (b) )
 
-int DirUserMode(DirEntry *dir_entry, int ch)
+int DirUserMode(DirEntry *dir_entry, int ch, Statistic *s)
 {
     int chremap;
     char *command_str;
@@ -60,7 +60,7 @@ int DirUserMode(DirEntry *dir_entry, int ch)
                 snprintf(message, MESSAGE_LENGTH, "Can't change directory to*\"%s\"", path);
                 MESSAGE(message);
             } else {
-                QuerySystemCall(command_line, &CurrentVolume->vol_stats);
+                QuerySystemCall(command_line, s);
 
                 /* Restore original directory */
                 if (fchdir(start_dir_fd) == -1) {
@@ -88,7 +88,7 @@ int DirUserMode(DirEntry *dir_entry, int ch)
     return chremap;
 }
 
-int FileUserMode(FileEntryList *file_entry_list, int ch)
+int FileUserMode(FileEntryList *file_entry_list, int ch, Statistic *s)
 {
     int chremap;
     char *command_str;
@@ -135,7 +135,7 @@ int FileUserMode(FileEntryList *file_entry_list, int ch)
                 snprintf(message, MESSAGE_LENGTH, "Can't change directory to*\"%s\"", path);
                 MESSAGE(message);
             } else {
-                QuerySystemCall(command_line, &CurrentVolume->vol_stats);
+                QuerySystemCall(command_line, s);
 
                 /* Restore original directory */
                 if (fchdir(start_dir_fd) == -1) {

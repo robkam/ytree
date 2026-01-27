@@ -39,8 +39,8 @@ static BOOL IsMatchingTaggedFiles(void);
 static void RemoveFileEntry(int entry_no);
 static void ChangeFileEntry(void);
 static int  DeleteTaggedFiles(int max_dispfiles, Statistic *s);
-static void SilentWalkTaggedFiles( int (*fkt) (FileEntry *, WalkingPackage *), WalkingPackage *walking_package);
-static void SilentTagWalkTaggedFiles( int (*fkt) (FileEntry *, WalkingPackage *), WalkingPackage *walking_package);
+static void SilentWalkTaggedFiles( int (*fkt) (FileEntry *, WalkingPackage *, Statistic *), WalkingPackage *walking_package);
+static void SilentTagWalkTaggedFiles( int (*fkt) (FileEntry *, WalkingPackage *, Statistic *), WalkingPackage *walking_package);
 static void RereadWindowSize(DirEntry *dir_entry);
 static void ListJump( DirEntry * dir_entry, char *str );
 static void HandleInvertTags(DirEntry *dir_entry, Statistic *s);
@@ -878,7 +878,7 @@ int HandleFileWindow(DirEntry *dir_entry)
     if (CurrentVolume != start_vol) return ESC;
 
     if (IsUserActionDefined()) { /* User commands take precedence */
-       ch = FileUserMode(&(CurrentVolume->file_entry_list[dir_entry->start_file + dir_entry->cursor_pos]), ch);
+       ch = FileUserMode(&(CurrentVolume->file_entry_list[dir_entry->start_file + dir_entry->cursor_pos]), ch, &ActivePanel->vol->vol_stats);
        if (CurrentVolume != start_vol) return ESC;
     }
 
@@ -2060,7 +2060,7 @@ int HandleFileWindow(DirEntry *dir_entry)
 
       case ACTION_CMD_X :      fe_ptr = CurrentVolume->file_entry_list[dir_entry->start_file + dir_entry->cursor_pos].file;
 		      de_ptr = fe_ptr->dir_entry;
-		      (void) Execute( de_ptr, fe_ptr );
+		      (void) Execute( de_ptr, fe_ptr, &ActivePanel->vol->vol_stats );
               dir_entry = RefreshFileView(dir_entry); /* Auto-Refresh after command */
 		      need_dsp_help = TRUE;
 		      break;
@@ -2386,7 +2386,7 @@ static void WalkTaggedFiles(int start_file,
  --crb3 12mar04
 */
 
-static void SilentWalkTaggedFiles( int (*fkt) (FileEntry *, WalkingPackage *),
+static void SilentWalkTaggedFiles( int (*fkt) (FileEntry *, WalkingPackage *, Statistic *),
 			           WalkingPackage *walking_package
 			          )
 {
@@ -2400,7 +2400,7 @@ static void SilentWalkTaggedFiles( int (*fkt) (FileEntry *, WalkingPackage *),
 
     if( fe_ptr->tagged && fe_ptr->matching )
     {
-      (void)fkt( fe_ptr, walking_package );
+      (void)fkt( fe_ptr, walking_package, &CurrentVolume->vol_stats );
     }
   }
 }
@@ -2421,7 +2421,7 @@ ExecuteCommand must have its retval unzeroed.
 
 */
 
-static void SilentTagWalkTaggedFiles( int (*fkt) (FileEntry *, WalkingPackage *),
+static void SilentTagWalkTaggedFiles( int (*fkt) (FileEntry *, WalkingPackage *, Statistic *),
 			           WalkingPackage *walking_package
 			          )
 {
@@ -2436,7 +2436,7 @@ static void SilentTagWalkTaggedFiles( int (*fkt) (FileEntry *, WalkingPackage *)
 
     if( fe_ptr->tagged && fe_ptr->matching )
     {
-      result = fkt( fe_ptr, walking_package );
+      result = fkt( fe_ptr, walking_package, &CurrentVolume->vol_stats );
 
       if( result != 0 ) {
       	fe_ptr->tagged = FALSE;
