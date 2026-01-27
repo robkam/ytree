@@ -168,7 +168,7 @@ struct Volume *Volume_Load(const char *path, struct Volume *reuse_vol, ScanProgr
 
     /* 2. Validation */
     if (STAT_(resolved_path, &stat_struct)) {
-        (void)snprintf(message, MESSAGE_LENGTH, "Can't access*\"%s\"*%s", resolved_path, strerror(errno));
+        MESSAGE("Can't access*\"%s\"*%s", resolved_path, strerror(errno));
         return NULL;
     }
 
@@ -180,7 +180,7 @@ struct Volume *Volume_Load(const char *path, struct Volume *reuse_vol, ScanProgr
 
         a_test = archive_read_new();
         if (a_test == NULL) {
-             (void)snprintf(message, MESSAGE_LENGTH, "archive_read_new() failed");
+             MESSAGE("archive_read_new() failed");
              return NULL;
         }
         archive_read_support_filter_all(a_test);
@@ -189,11 +189,11 @@ struct Volume *Volume_Load(const char *path, struct Volume *reuse_vol, ScanProgr
         archive_read_free(a_test);
 
         if (r_test != ARCHIVE_OK) {
-             (void)snprintf(message, MESSAGE_LENGTH, "Not a recognized archive file*or format not supported*\"%s\"", resolved_path);
+             MESSAGE("Not a recognized archive file*or format not supported*\"%s\"", resolved_path);
              return NULL;
         }
 #else
-        (void)snprintf(message, MESSAGE_LENGTH, "Cannot open file as archive*ytree not compiled with*libarchive support");
+        MESSAGE("Cannot open file as archive*ytree not compiled with*libarchive support");
         return NULL;
 #endif
     }
@@ -221,7 +221,7 @@ struct Volume *Volume_Load(const char *path, struct Volume *reuse_vol, ScanProgr
     if (!s->tree) {
         s->tree = (DirEntry *)calloc(1, sizeof(DirEntry) + PATH_LENGTH);
         if (!s->tree) {
-            (void)snprintf(message, MESSAGE_LENGTH, "Malloc failed for root DirEntry");
+            MESSAGE("Malloc failed for root DirEntry");
             if (!reuse_vol) Volume_Delete(vol);
             else {
                 /* For reused volume, ensure clean state */
@@ -278,7 +278,7 @@ struct Volume *Volume_Load(const char *path, struct Volume *reuse_vol, ScanProgr
         depth = strtol(TREEDEPTH, NULL, 0);
         res = ReadTree(s->tree, resolved_path, depth, s, cb, s);
         if (res != 0) {
-             if (res != -1) (void)snprintf(message, MESSAGE_LENGTH, "ReadTree Failed");
+             if (res != -1) MESSAGE("ReadTree Failed");
              if (!reuse_vol) Volume_Delete(vol);
              else {
                  DeleteTree(s->tree);

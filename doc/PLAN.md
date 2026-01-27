@@ -1216,7 +1216,7 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 *   **Goal:** Remove the non-reentrant global `message` buffer.
 *   **Mechanism:** Refactor error macros to use variadic functions (`UI_Message(fmt, ...)`) with local stack buffers.
 *   **Files to Modify:** `src/core/global.c`, `src/ui/error.c`, `include/ytree.h`.
-*   - [ ] **Status:** Not Started.
+*   - [x] **Status:** Completed.
 
 #### **Step 9.1.9: Modernize User/Group Database Handling**
 *   **Goal:** Remove legacy caching of `/etc/passwd` which wastes memory and fails on networked systems.

@@ -45,7 +45,6 @@ static void RereadWindowSize(DirEntry *dir_entry);
 static void ListJump( DirEntry * dir_entry, char *str );
 static void HandleInvertTags(DirEntry *dir_entry, Statistic *s);
 static DirEntry *RefreshFileView(DirEntry *dir_entry);
-static int  SilentSearchWalk(FileEntry *fe_ptr, WalkingPackage *wp);
 static void fmovedown(int *start_file, int *cursor_pos, int *start_x, DirEntry *dir_entry);
 static void fmoveup(int *start_file, int *cursor_pos, int *start_x, DirEntry *dir_entry);
 static void fmoveright(int *start_file, int *cursor_pos, int *start_x, DirEntry *dir_entry);
@@ -276,8 +275,8 @@ static void ChangeFileEntry(void)
 
 void DisplayFileWindow(DirEntry *dir_entry, WINDOW *win)
 {
-  int height, width;
-  GetMaxYX( win, &height, &width );
+  int height;
+  height = getmaxy(win);
   BuildFileEntryList( dir_entry, &CurrentVolume->vol_stats );
   DisplayFiles( dir_entry,
 		dir_entry->start_file,
@@ -632,61 +631,6 @@ static void HandleInvertTags(DirEntry *dir_entry, Statistic *s)
         DisplayDirStatistic(dir_entry, NULL, s);
 }
 
-/* Helper for Smart Search: Tags matches (Result == 0) */
-/* Kept for completeness although not used in Strict Filter mode */
-static int SilentSearchWalk(FileEntry *fe_ptr, WalkingPackage *wp)
-{
-    char command_line[COMMAND_LINE_LENGTH + 1];
-    char raw_path[PATH_LENGTH + 1];
-    char quoted_path[PATH_LENGTH * 2 + 1];
-    const char *template_ptr;
-    int i, dest_idx;
-    size_t path_len;
-    int ret;
-
-    /* Build command like ExecuteCommand, but minimal */
-    (void) GetFileNamePath( fe_ptr, raw_path );
-    StrCp( quoted_path, raw_path );
-    path_len = strlen( quoted_path );
-
-    template_ptr = wp->function_data.execute.command;
-    dest_idx = 0;
-
-    for( i = 0; template_ptr[i] != '\0' && dest_idx < COMMAND_LINE_LENGTH; )
-    {
-        if( template_ptr[i] == '%' && template_ptr[i+1] == 's' ) {
-            if( dest_idx + path_len < COMMAND_LINE_LENGTH ) {
-                strcpy( &command_line[dest_idx], quoted_path );
-                dest_idx += path_len;
-            }
-            i += 2;
-        } else if( template_ptr[i] == '{' && template_ptr[i+1] == '}' ) {
-            if( dest_idx + path_len < COMMAND_LINE_LENGTH ) {
-                strcpy( &command_line[dest_idx], quoted_path );
-                dest_idx += path_len;
-            }
-            i += 2;
-        } else {
-            command_line[dest_idx++] = template_ptr[i++];
-        }
-    }
-    command_line[dest_idx] = '\0';
-
-    ret = SilentSystemCallEx(command_line, FALSE, &CurrentVolume->vol_stats);
-
-    /* If command returns 0 (Success), TAG the file */
-    if (ret == 0) {
-        if (!fe_ptr->tagged) {
-            fe_ptr->tagged = TRUE;
-            fe_ptr->dir_entry->tagged_files++;
-            fe_ptr->dir_entry->tagged_bytes += fe_ptr->stat_struct.st_size;
-            CurrentVolume->vol_stats.disk_tagged_files++;
-            CurrentVolume->vol_stats.disk_tagged_bytes += fe_ptr->stat_struct.st_size;
-        }
-    }
-    return 0; /* Continue walking */
-}
-
 static void UpdatePreview(DirEntry *dir_entry)
 {
     FileEntry *fe_ptr;
@@ -744,7 +688,6 @@ int HandleFileWindow(DirEntry *dir_entry)
   char expanded_new_name[PATH_LENGTH+1]; /* Added for rename expansion */
   char expanded_to_file[PATH_LENGTH+1];  /* Added for copy/move expansion */
   char new_login_path[PATH_LENGTH + 1];
-  int  dir_window_width, dir_window_height;
   int  get_dir_ret;
   YtreeAction action = ACTION_NONE; /* Initialize action */
   DirEntry *last_stats_dir = NULL; /* Track context changes */
@@ -1475,8 +1418,7 @@ int HandleFileWindow(DirEntry *dir_entry)
                       if (errno == ENOENT) {
                           strcpy(to_path, to_dir);
                       } else {
-                          (void)snprintf(message, MESSAGE_LENGTH, "Invalid destination path*\"%s\"*%s", to_dir, strerror(errno));
-                          MESSAGE(message);
+                          MESSAGE("Invalid destination path*\"%s\"*%s", to_dir, strerror(errno));
                           break;
                       }
                   }
@@ -1536,8 +1478,7 @@ int HandleFileWindow(DirEntry *dir_entry)
                          if (errno == ENOENT) {
                              strcpy(to_path, to_dir);
                          } else {
-                             (void)snprintf(message, MESSAGE_LENGTH, "Invalid destination path*\"%s\"*%s", to_dir, strerror(errno));
-                             MESSAGE(message);
+                             MESSAGE("Invalid destination path*\"%s\"*%s", to_dir, strerror(errno));
                              break;
                          }
                     }
@@ -2020,8 +1961,7 @@ int HandleFileWindow(DirEntry *dir_entry)
                           InitClock();
                           clearok( stdscr, TRUE );
                           refresh();
-			  (void) snprintf( message, MESSAGE_LENGTH, "execution of command*%s*failed", filepath );
-			  MESSAGE( message );
+			  MESSAGE( "execution of command*%s*failed", filepath );
 			  break;
 			}
 
@@ -2484,6 +2424,7 @@ static int DeleteTaggedFiles(int max_disp_files, Statistic *s)
   int       result = 0;
   int       tagged_count = 0;
   int       override_mode = 0; /* Auto-override mode for read-only files */
+  char      prompt_buffer[MESSAGE_LENGTH];
 
   /* 1. Count tagged files */
   for(i=0; i < (int)CurrentVolume->file_count; i++) {
@@ -2495,8 +2436,8 @@ static int DeleteTaggedFiles(int max_disp_files, Statistic *s)
   if (tagged_count == 0) return 0;
 
   /* 2. Prompt for Intent */
-  (void) snprintf(message, MESSAGE_LENGTH, "Delete %d tagged files (Y/N) ?", tagged_count);
-  term = InputChoice(message, "YN\033");
+  (void) snprintf(prompt_buffer, sizeof(prompt_buffer), "Delete %d tagged files (Y/N) ?", tagged_count);
+  term = InputChoice(prompt_buffer, "YN\033");
   if (term != 'Y') return -1;
 
   /* 3. Prompt for Mode (Confirm Each?) */

@@ -859,8 +859,7 @@ static int InsertArchiveDirEntry(DirEntry *tree, char *path, struct stat *stat, 
   /* If father_path is empty (root), GetArchiveDirEntry returns tree */
   if( GetArchiveDirEntry( tree, father_path, &df_ptr ) )
   {
-    (void) snprintf( message, MESSAGE_LENGTH, "can't find subdir*%s", father_path );
-    ERROR_MSG( message );
+    ERROR_MSG( "can't find subdir*%s", father_path );
     return( -1 );
   }
 
@@ -954,8 +953,7 @@ int InsertArchiveFileEntry(DirEntry *tree, char *path, struct stat *stat, Statis
     }
     if( GetArchiveDirEntry( tree, dir, &de_ptr ) )
     {
-      (void) snprintf( message, MESSAGE_LENGTH, "again: can't get directory for file*%s*giving up", path );
-      ERROR_MSG( message );
+      ERROR_MSG( "again: can't get directory for file*%s*giving up", path );
       return( -1 );
     }
   }

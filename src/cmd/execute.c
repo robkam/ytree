@@ -138,8 +138,7 @@ int Execute(DirEntry *dir_entry, FileEntry *file_entry, Statistic *s)
             StrCp(escaped_name, substitution_name);
 
             if (String_Replace(expanded_command, sizeof(expanded_command), command_template, "{}", escaped_name) != 0) {
-                snprintf(message, MESSAGE_LENGTH, "Command line too long");
-                MESSAGE(message);
+                MESSAGE("Command line too long");
                 return -1;
             }
             final_command = expanded_command;
@@ -150,23 +149,20 @@ int Execute(DirEntry *dir_entry, FileEntry *file_entry, Statistic *s)
         /* Robustly save current working directory using a file descriptor */
         start_dir_fd = open(".", O_RDONLY);
         if (start_dir_fd == -1) {
-            snprintf(message, MESSAGE_LENGTH, "Error saving current directory context*%s", strerror(errno));
-            MESSAGE(message);
+            MESSAGE("Error saving current directory context*%s", strerror(errno));
             return -1;
         }
 
         if (mode == DISK_MODE || mode == USER_MODE) {
             if (chdir(GetPath(dir_entry, path))) {
-                snprintf(message, MESSAGE_LENGTH, "Can't change directory to*\"%s\"", path);
-                MESSAGE(message);
+                MESSAGE("Can't change directory to*\"%s\"", path);
             } else {
                 refresh();
                 result = QuerySystemCall(final_command, s);
 
                 /* Restore original directory */
                 if (fchdir(start_dir_fd) == -1) {
-                    snprintf(message, MESSAGE_LENGTH, "Error restoring directory*%s", strerror(errno));
-                    MESSAGE(message);
+                    MESSAGE("Error restoring directory*%s", strerror(errno));
                 }
             }
         } else {

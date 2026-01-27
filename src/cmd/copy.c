@@ -12,20 +12,6 @@
 
 static int CopyArchiveFile(char *to_path, char *from_path, Statistic *s);
 
-/* Buffers for Prompt Redraw Callback - Deprecated by UI_ReadString, keeping for safety if needed */
-static char copy_prompt_header[PATH_LENGTH + 50];
-static char copy_prompt_as[PATH_LENGTH + 1];
-
-/* Callback to redraw prompt after F2 refresh during Step 1 */
-static void RedrawCopyPrompt1(void) {
-    /* No-op with UI_ReadString */
-}
-
-/* Callback to redraw prompt after F2 refresh during Step 2 */
-static void RedrawCopyPrompt2(void) {
-   /* No-op with UI_ReadString */
-}
-
 
 int CopyFile(Statistic *statistic_ptr,
              FileEntry *fe_ptr,
@@ -371,13 +357,7 @@ int CopyFile(Statistic *statistic_ptr,
 
       if( unlink( to_path ) )
       {
-        (void) snprintf( message,
-                         MESSAGE_LENGTH,
-		        "Can't unlink*\"%s\"*%s",
-		        to_path,
-		        strerror(errno)
-		      );
-        MESSAGE( message );
+        MESSAGE( "Can't unlink*\"%s\"*%s", to_path, strerror(errno) );
         ESCAPE;
       }
     }
@@ -393,9 +373,8 @@ int CopyFile(Statistic *statistic_ptr,
     if (!S_ISLNK(fe_ptr->stat_struct.st_mode)) {
         if( chmod( to_path, fe_ptr->stat_struct.st_mode ) == -1 )
         {
-          snprintf( message, MESSAGE_LENGTH, "Can't chmod file*\"%s\"*to mode %s*IGNORED",
+          WARNING( "Can't chmod file*\"%s\"*to mode %s*IGNORED",
                    to_path, GetAttributes(fe_ptr->stat_struct.st_mode, buffer) );
-          WARNING( message );
         }
     }
 
@@ -496,6 +475,9 @@ FNC_XIT:
 
 int GetCopyParameter(char *from_file, BOOL path_copy, char *to_file, char *to_dir)
 {
+  char prompt_header[PATH_LENGTH + 50];
+  char prompt_as[PATH_LENGTH + 1];
+
   /* Instrumentation for debugging PathCopy stalls */
   fprintf(stderr, "DEBUG: GetCopyParameter entered. from: %s, path_copy: %d\n",
           from_file ? from_file : "NULL", path_copy);
@@ -512,25 +494,25 @@ int GetCopyParameter(char *from_file, BOOL path_copy, char *to_file, char *to_di
 
   if( path_copy )
   {
-    (void) snprintf( copy_prompt_header, sizeof(copy_prompt_header), "PATHCOPY: %s", from_file );
+    (void) snprintf( prompt_header, sizeof(prompt_header), "PATHCOPY: %s", from_file );
   }
   else
   {
-    (void) snprintf( copy_prompt_header, sizeof(copy_prompt_header), "COPY: %s", from_file );
+    (void) snprintf( prompt_header, sizeof(prompt_header), "COPY: %s", from_file );
   }
 
   /* Log the prompt buffer */
-  fprintf(stderr, "DEBUG: constructed buffer: %s\n", copy_prompt_header);
+  fprintf(stderr, "DEBUG: constructed buffer: %s\n", prompt_header);
 
   ClearHelp();
 
   /* MvAddStr removed - handled by UI_ReadString */
 
-  if( UI_ReadString(copy_prompt_header, to_file, PATH_LENGTH, HST_FILE) == CR){
+  if( UI_ReadString(prompt_header, to_file, PATH_LENGTH, HST_FILE) == CR){
 
     /* Save first input for the second step's redraw - handled by UI_ReadString */
-    strncpy(copy_prompt_as, to_file, PATH_LENGTH);
-    copy_prompt_as[PATH_LENGTH] = '\0';
+    strncpy(prompt_as, to_file, PATH_LENGTH);
+    prompt_as[PATH_LENGTH] = '\0';
 
     if (IsSplitScreen && ActivePanel) {
         YtreePanel *target = (ActivePanel == LeftPanel) ? RightPanel : LeftPanel;
@@ -582,8 +564,7 @@ int CopyFileContent(char *to_path, char *from_path, Statistic *s)
 
   if( ( i = open( from_path, O_RDONLY ) ) == -1 )
   {
-    (void) snprintf( message, MESSAGE_LENGTH, "Can't open file*\"%s\"*%s", from_path, strerror(errno) );
-    MESSAGE( message );
+    MESSAGE( "Can't open file*\"%s\"*%s", from_path, strerror(errno) );
     return( -1 );
   }
 
@@ -592,13 +573,7 @@ int CopyFileContent(char *to_path, char *from_path, Statistic *s)
                   S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH
       ) ) == -1 )
   {
-    (void) snprintf( message,
-                    MESSAGE_LENGTH,
-		    "Can't open file*\"%s\"*%s",
-		    to_path,
-		    strerror(errno)
-		  );
-    MESSAGE( message );
+    MESSAGE( "Can't open file*\"%s\"*%s", to_path, strerror(errno) );
     (void) close( i );
     return( -1 );
   }
@@ -620,8 +595,7 @@ int CopyFileContent(char *to_path, char *from_path, Statistic *s)
 
     if( write( o, buffer, n ) != n )
     {
-      (void) snprintf( message, MESSAGE_LENGTH, "Write-Error!*%s", strerror(errno) );
-      MESSAGE( message );
+      MESSAGE( "Write-Error!*%s", strerror(errno) );
       (void) close( i ); (void) close( o );
       (void) unlink( to_path );
       return( -1 );
@@ -686,8 +660,7 @@ static int CopyArchiveFile(char *to_path, char *from_path, Statistic *s)
 #endif
 
   if (result != 0) {
-    (void)snprintf(message, MESSAGE_LENGTH, "Can't copy file*%s*to file*%s", from_path, to_path);
-    WARNING(message);
+    WARNING("Can't copy file*%s*to file*%s", from_path, to_path);
     unlink(to_path); /* Clean up partial file on failure */
   }
 

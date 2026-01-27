@@ -72,17 +72,15 @@ int DeleteDirectory(DirEntry *dir_entry)
 
     if( access( buffer, W_OK ) )
     {
-      (void) snprintf( message, MESSAGE_LENGTH, "Can't delete directory*\"%s\"*%s",
+      MESSAGE( "Can't delete directory*\"%s\"*%s",
 		      buffer, strerror(errno)
 		    );
-      MESSAGE( message );
     }
     else if( rmdir( buffer ) )
     {
-      (void) snprintf( message, MESSAGE_LENGTH, "Can't delete directory*\"%s\"*%s",
+      MESSAGE( "Can't delete directory*\"%s\"*%s",
 		      buffer, strerror(errno)
 		    );
-      MESSAGE( message );
     }
     else
     {
@@ -154,10 +152,9 @@ static int DeleteSingleDirectory( DirEntry *dir_entry )
 
 
   if( access( buffer, W_OK ) ) {
-    (void) snprintf( message, MESSAGE_LENGTH, "Can't delete directory*\"%s\"*%s",
+    MESSAGE( "Can't delete directory*\"%s\"*%s",
 		    buffer, strerror(errno)
 		    );
-    MESSAGE( message );
     ESCAPE;
   }
 
@@ -172,10 +169,9 @@ static int DeleteSingleDirectory( DirEntry *dir_entry )
   }
 
   if( rmdir( buffer ) ) {
-    (void) snprintf( message, MESSAGE_LENGTH, "Can't delete directory*\"%s\"*%s",
+    MESSAGE( "Can't delete directory*\"%s\"*%s",
 		    buffer, strerror(errno)
 		  );
-    MESSAGE( message );
     ESCAPE;
   }
 

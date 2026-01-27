@@ -118,13 +118,10 @@ int MoveFile(FileEntry *fe_ptr,
 
   if( access( from_path, W_OK ) )
   {
-    (void) snprintf( message,
-                     MESSAGE_LENGTH,
-		    "Unmoveable file*\"%s\"*%s",
+    MESSAGE( "Unmoveable file*\"%s\"*%s",
 		    from_path,
 		    strerror(errno)
 		  );
-    MESSAGE( message );
     ESCAPE;
   }
 
@@ -194,13 +191,10 @@ int MoveFile(FileEntry *fe_ptr,
 
       if( unlink( to_path ) )
       {
-        (void) snprintf( message,
-                         MESSAGE_LENGTH,
-		        "Can't unlink*\"%s\"*%s",
+        MESSAGE( "Can't unlink*\"%s\"*%s",
 		        to_path,
 		        strerror(errno)
 		      );
-        MESSAGE( message );
         ESCAPE;
       }
     }
@@ -377,8 +371,7 @@ static int Move(char *to_path, char *from_path)
           if (unlink(from_path) == 0) {
               return 0;
           } else {
-              (void) snprintf( message, MESSAGE_LENGTH, "Move failed during unlink*\"%s\"*%s", from_path, strerror(errno) );
-              MESSAGE( message );
+              MESSAGE( "Move failed during unlink*\"%s\"*%s", from_path, strerror(errno) );
               return -1;
           }
       } else {
@@ -388,13 +381,11 @@ static int Move(char *to_path, char *from_path)
   }
 
   /* Fallback for other errors (e.g. permission denied) */
-  (void) snprintf( message, MESSAGE_LENGTH,
-          "Can't move (rename) \"%s\"*to \"%s\"*%s",
+  MESSAGE( "Can't move (rename) \"%s\"*to \"%s\"*%s",
           from_path,
           to_path,
           strerror(errno)
         );
-  MESSAGE( message );
   return( -1 );
 }
 

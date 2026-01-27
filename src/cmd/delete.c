@@ -70,12 +70,10 @@ int DeleteFile(FileEntry *fe_ptr, int *auto_override, Statistic *s)
 
       if( term != 'Y' )
       {
-        (void) snprintf( message, MESSAGE_LENGTH,
-		        "Can't delete file*\"%s\"*%s",
+        MESSAGE( "Can't delete file*\"%s\"*%s",
 		        filepath,
 		        strerror(errno)
    		      );
-        MESSAGE( message );
         ESCAPE;
       }
       flushinp();
@@ -84,12 +82,10 @@ int DeleteFile(FileEntry *fe_ptr, int *auto_override, Statistic *s)
 
   if( unlink( filepath ) )
   {
-    (void) snprintf( message, MESSAGE_LENGTH,
-		    "Can't delete file*\"%s\"*%s",
+    MESSAGE( "Can't delete file*\"%s\"*%s",
 		    filepath,
 		    strerror(errno)
 		  );
-    MESSAGE( message );
     ESCAPE;
   }
 

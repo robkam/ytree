@@ -20,26 +20,47 @@ static int  PrintMessage(char *msg, BOOL do_beep);
 
 
 
-void Message(char *msg)
+void UI_Message(const char *fmt, ...)
 {
+  char buffer[MESSAGE_LENGTH + 1];
+  va_list ap;
+
+  va_start(ap, fmt);
+  (void) vsnprintf(buffer, sizeof(buffer), fmt, ap);
+  va_end(ap);
+
   MapErrorWindow( "E R R O R" );
-  (void) PrintMessage( msg, TRUE );
+  (void) PrintMessage( buffer, TRUE );
 }
 
 
-void Notice(char *msg)
+void UI_Notice(const char *fmt, ...)
 {
+  char buffer[MESSAGE_LENGTH + 1];
+  va_list ap;
+
+  va_start(ap, fmt);
+  (void) vsnprintf(buffer, sizeof(buffer), fmt, ap);
+  va_end(ap);
+
   MapNoticeWindow( "N O T I C E" );
-  DisplayMessage( msg );
+  DisplayMessage( buffer );
   RefreshWindow( error_window );
   refresh();
 }
 
 
-void Warning(char *msg)
+void UI_Warning(const char *fmt, ...)
 {
+  char buffer[MESSAGE_LENGTH + 1];
+  va_list ap;
+
+  va_start(ap, fmt);
+  (void) vsnprintf(buffer, sizeof(buffer), fmt, ap);
+  va_end(ap);
+
   MapErrorWindow( "W A R N I N G" );
-  (void) PrintMessage( msg, FALSE );
+  (void) PrintMessage( buffer, FALSE );
 }
 
 
@@ -62,15 +83,21 @@ void AboutBox()
 }
 
 
-void Error(char *msg, char *module, int line)
+void UI_Error(const char *module, int line, const char *fmt, ...)
 {
-  char buffer[MESSAGE_LENGTH + 1];
+  char msg_buffer[MESSAGE_LENGTH + 1];
+  char final_buffer[MESSAGE_LENGTH + 1];
+  va_list ap;
+
+  va_start(ap, fmt);
+  (void) vsnprintf(msg_buffer, sizeof(msg_buffer), fmt, ap);
+  va_end(ap);
 
   MapErrorWindow( "INTERNAL ERROR" );
-  (void) snprintf( buffer, sizeof(buffer), "%s*In Module \"%s\"*Line %d",
-		  msg, module, line
+  (void) snprintf( final_buffer, sizeof(final_buffer), "%s*In Module \"%s\"*Line %d",
+		  msg_buffer, module, line
 		);
-  (void) PrintMessage( buffer, TRUE );
+  (void) PrintMessage( final_buffer, TRUE );
 }
 
 

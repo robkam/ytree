@@ -8,6 +8,7 @@
 #ifndef YTREE_H
 #define YTREE_H
 
+#include <stdarg.h>
 #include "ytree_defs.h"
 #include "ytree_fs.h"
 #include "ytree_cmd.h"
@@ -54,9 +55,10 @@
 
 #define DEFAULT_TREE       "."
 
-#define ERROR_MSG( msg )   Error( msg, __FILE__, __LINE__ )
-#define WARNING( msg )     Warning( msg )
-#define MESSAGE( msg )     Message( msg )
+#define ERROR_MSG(...)     UI_Error(__FILE__, __LINE__, __VA_ARGS__)
+#define WARNING(...)       UI_Warning(__VA_ARGS__)
+#define MESSAGE(...)       UI_Message(__VA_ARGS__)
+#define NOTICE(...)        UI_Notice(__VA_ARGS__)
 
 #define TAGGED_SYMBOL       '*'
 #define MAX_MODES            4
@@ -226,7 +228,6 @@ extern char GlobalSearchTerm[256];
 #define disk_statistic (CurrentVolume->vol_disk_stats)
 
 extern int       user_umask;
-extern char      message[];
 extern BOOL	 print_time;
 extern BOOL      resize_request;
 extern BOOL      bypass_small_window;
@@ -296,6 +297,14 @@ extern int BuildFilename( char *in_filename, char *pattern, char *out_filename);
 extern void StrCp(char *dest, const char *src);
 extern int Strrcmp(char *s1, char* s2);
 extern char *SubString(char *dest, char *src, int pos, int len);
+
+/* error.c */
+extern void UI_Error(const char *file, int line, const char *fmt, ...);
+extern void UI_Message(const char *fmt, ...);
+extern void UI_Warning(const char *fmt, ...);
+extern void UI_Notice(const char *fmt, ...);
+extern void AboutBox(void);
+extern void UnmapNoticeWindow(void);
 
 #include "watcher.h"
 

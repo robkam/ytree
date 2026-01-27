@@ -28,7 +28,6 @@ YtreePanel *ActivePanel = NULL;
 BOOL IsSplitScreen = FALSE;
 
 int	  user_umask;
-char      message[MESSAGE_LENGTH + 1];
 BOOL	  print_time;
 BOOL	  resize_request;
 BOOL	  bypass_small_window;

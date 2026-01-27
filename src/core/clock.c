@@ -19,16 +19,14 @@ void InitClock()
   print_time = TRUE;
 
   if (getitimer(ITIMER_REAL, &value)!= 0) {
-      snprintf(message, MESSAGE_LENGTH, "getitimer() failed: %s", strerror(errno));
-      ERROR_MSG(message);
+      ERROR_MSG("getitimer() failed: %s", strerror(errno));
   }
   value.it_interval.tv_sec = CLOCK_INTERVAL;
   value.it_value.tv_sec = CLOCK_INTERVAL;
   value.it_interval.tv_usec = 0;
 
   if (setitimer(ITIMER_REAL, &value, &ovalue)!= 0) {
-      snprintf(message, MESSAGE_LENGTH, "setitimer() failed: %s", strerror(errno));
-      ERROR_MSG(message);
+      ERROR_MSG("setitimer() failed: %s", strerror(errno));
   }
   ClockHandler(0);
 #endif
