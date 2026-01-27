@@ -1,3 +1,10 @@
+/***************************************************************************
+ *
+ * sort.h
+ * Public interface for the core file list sorting module.
+ *
+ ***************************************************************************/
+
 #ifndef CORE_SORT_H
 #define CORE_SORT_H
 

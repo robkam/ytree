@@ -24,6 +24,13 @@ char *XCursesProgramName = "ytree";
 
 void Layout_Recalculate(void)
 {
+    /* Centralize UI vertical geometry */
+    layout.header_y = 0;
+    layout.message_y = LINES - 3;
+    layout.prompt_y = LINES - 2;
+    layout.status_y = LINES - 1;
+    layout.bottom_border_y = LINES - 4;
+
     /*
      * Calculate available vertical space for windows.
      * Top Border is at row 1. Windows start at row 2.

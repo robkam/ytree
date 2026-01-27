@@ -125,10 +125,10 @@ extern YtreeLayout layout;
 extern void Layout_Recalculate(void);
 
 /* Standard UI Vertical Layout */
-#define Y_HEADER      0            /* Top header row */
-#define Y_PROMPT      (LINES - 2)  /* Standard line for User Input / Prompts */
-#define Y_STATUS      (LINES - 1)  /* Bottom line for Help/Status hints */
-#define Y_MESSAGE     (LINES - 3)  /* Top of the 3-line Help/Message area */
+#define Y_HEADER      layout.header_y
+#define Y_PROMPT      layout.prompt_y
+#define Y_STATUS      layout.status_y
+#define Y_MESSAGE     layout.message_y
 
 /* Dependent Macros Updated to use Layout Struct */
 #define F2_WINDOW_X          layout.dir_win_x

@@ -226,12 +226,12 @@ void DisplayMenu(void)
 
   /* Draw the left vertical border for the main application window.
    * The right-hand statistics panel is now drawn entirely by stats.c. */
-  for( y=1; y < LINES - 4; y++ ) { /* From y=1 up to LINES - 5 */
+  for( y=1; y < layout.bottom_border_y; y++ ) { /* From y=1 up to LINES - 5 */
       PrintOptions( stdscr, y, 0, "|");
   }
 
   if (layout.stats_width == 0) {
-      for( y=1; y < LINES - 4; y++ ) {
+      for( y=1; y < layout.bottom_border_y; y++ ) {
           mvaddch(y, COLS - 1, ACS_VLINE);
       }
   }
@@ -240,13 +240,13 @@ void DisplayMenu(void)
   PrintLine( stdscr, 1, 0, first_line, L_BORDER_FOR_DISPLAY );
 
   /* Draw the bottom horizontal border of the main content area. */
-  PrintLine( stdscr, LINES - 4, 0, last_line, L_BORDER_FOR_DISPLAY );
+  PrintLine( stdscr, layout.bottom_border_y, 0, last_line, L_BORDER_FOR_DISPLAY );
 
   /* PREVIEW MODE SEPARATOR */
   if (GlobalView->preview_mode) {
       int sep_x = layout.preview_win_x - 1;
       int top_y = 1;
-      int bottom_y = LINES - 4;
+      int bottom_y = layout.bottom_border_y;
 
 #ifdef COLOR_SUPPORT
       attron(COLOR_PAIR(CPAIR_MENU) | A_BOLD);
@@ -270,7 +270,7 @@ void DisplayMenu(void)
   } else if (LeftPanel && RightPanel) {
       int split_x = LeftPanel->dir_x + LeftPanel->dir_w;
       int top_y = 1;
-      int bottom_y = LINES - 4;
+      int bottom_y = layout.bottom_border_y;
 
       BOOL draw_left = (file_window == small_file_window);
       BOOL draw_right = TRUE;
@@ -318,7 +318,7 @@ void DisplayMenu(void)
 
   if (layout.stats_width == 0) {
       int right_x = COLS - 1;
-      int bottom_y = LINES - 4;
+      int bottom_y = layout.bottom_border_y;
       int sep_y = layout.dir_win_y + layout.dir_win_height;
 
       /* Draw Right Vertical Line (Content Area) */

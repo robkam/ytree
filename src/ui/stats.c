@@ -50,7 +50,7 @@ static void RecalcDir(DirEntry *de, Statistic *s);
 /* ************************************************************************* */
 
 static void RecalcLayout(void) {
-    y_bot = LINES - 4; /* Keep standard bottom margin */
+    y_bot = layout.bottom_border_y;
 
     if (LINES < 26) {
         /* Compact Mode for small terminals (e.g. 24 lines) */
