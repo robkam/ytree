@@ -85,7 +85,7 @@ extern int ReadPasswdEntries(void);
 extern int GetPipeCommand(char *pipe_command);
 extern int Pipe(DirEntry *dir_entry, FileEntry *file_entry);
 extern int PipeDirectory(DirEntry *dir_entry);
-extern int PipeTaggedFiles(FileEntry *fe_ptr, WalkingPackage *walking_package);
+extern int PipeTaggedFiles(FileEntry *fe_ptr, WalkingPackage *walking_package, Statistic *s);
 
 /* profile.c */
 extern char *GetExtViewer(char *filename);

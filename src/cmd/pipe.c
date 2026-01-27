@@ -11,10 +11,6 @@
 
 extern int chdir(const char *);
 
-static void RedrawPipePrompt(void) {
-    MvAddStr( LINES - 2, 1, "Pipe-Command: " );
-}
-
 
 int Pipe(DirEntry *dir_entry, FileEntry *file_entry)
 {
@@ -37,15 +33,13 @@ int Pipe(DirEntry *dir_entry, FileEntry *file_entry)
     /* Robustly save current working directory using a file descriptor */
     start_dir_fd = open(".", O_RDONLY);
     if (start_dir_fd == -1) {
-        snprintf(message, MESSAGE_LENGTH, "Error saving current directory context*%s", strerror(errno));
-        MESSAGE(message);
+        MESSAGE("Error saving current directory context*%s", strerror(errno));
         return -1;
     }
 
     if (mode == DISK_MODE || mode == USER_MODE) {
         if (chdir(GetPath(dir_entry, path))) {
-            snprintf(message, MESSAGE_LENGTH, "Can't change directory to*\"%s\"", path);
-            MESSAGE(message);
+            MESSAGE("Can't change directory to*\"%s\"", path);
             close(start_dir_fd);
             return -1;
         }
@@ -61,8 +55,7 @@ int Pipe(DirEntry *dir_entry, FileEntry *file_entry)
                 *last_slash = '\0';
             }
             if (chdir(archive_dir) != 0) {
-                 snprintf(message, MESSAGE_LENGTH, "Can't change directory to*\"%s\"", archive_dir);
-                 MESSAGE(message);
+                 MESSAGE("Can't change directory to*\"%s\"", archive_dir);
                  close(start_dir_fd);
                  return -1;
             }
@@ -76,7 +69,7 @@ int Pipe(DirEntry *dir_entry, FileEntry *file_entry)
 
     pipe_fp = popen(&input_buffer[2], "w");
     if (pipe_fp == NULL) {
-        (void)snprintf(message, MESSAGE_LENGTH, "Could not execute pipe command*\"%s\"*%s", &input_buffer[2], strerror(errno));
+        MESSAGE("Could not execute pipe command*\"%s\"*%s", &input_buffer[2], strerror(errno));
 
         /* Restore CWD before returning */
         if (fchdir(start_dir_fd) == -1) {
@@ -88,7 +81,6 @@ int Pipe(DirEntry *dir_entry, FileEntry *file_entry)
         InitClock(); /* Re-enables curses */
         clearok(stdscr, TRUE);
         refresh();
-        MESSAGE(message);
         result = -1;
         return result;
     } else {
@@ -165,8 +157,7 @@ int PipeDirectory(DirEntry *dir_entry)
     /* Robustly save current working directory using a file descriptor */
     start_dir_fd = open(".", O_RDONLY);
     if (start_dir_fd == -1) {
-        snprintf(message, MESSAGE_LENGTH, "Error saving current directory context*%s", strerror(errno));
-        MESSAGE(message);
+        MESSAGE("Error saving current directory context*%s", strerror(errno));
         return -1;
     }
 
@@ -174,8 +165,7 @@ int PipeDirectory(DirEntry *dir_entry)
     {
       if( chdir( path ) )
       {
-        (void) snprintf( message, MESSAGE_LENGTH, "Can't change directory to*\"%s\"", path );
-        MESSAGE( message );
+        MESSAGE( "Can't change directory to*\"%s\"", path );
         close(start_dir_fd);
         return( -1 );
       }
@@ -186,8 +176,7 @@ int PipeDirectory(DirEntry *dir_entry)
 
     if( ( pipe_fp = popen( &input_buffer[2], "w" ) ) == NULL )
     {
-      (void) snprintf( message, MESSAGE_LENGTH, "Could not execute pipe command*\"%s\"*%s",
-                       &input_buffer[2], strerror(errno) );
+      MESSAGE( "Could not execute pipe command*\"%s\"*%s", &input_buffer[2], strerror(errno) );
 
       /* Restore CWD */
       if (fchdir(start_dir_fd) == -1) { }
@@ -196,7 +185,6 @@ int PipeDirectory(DirEntry *dir_entry)
       InitClock();
       clearok( stdscr, TRUE );
       refresh();
-      MESSAGE( message );
       return( -1 );
     }
 
@@ -244,7 +232,7 @@ int GetPipeCommand(char *pipe_command)
   ClearHelp();
 
   MvAddStr( LINES - 2, 1, "Pipe-Command: " );
-  if( InputStringEx( pipe_command, LINES - 2, 15, 0, COLS - 16, PATH_LENGTH, "\r\033", HST_PIPE, RedrawPipePrompt ) == CR )
+  if( InputStringEx( pipe_command, LINES - 2, 15, 0, COLS - 16, PATH_LENGTH, "\r\033", HST_PIPE, NULL ) == CR )
   {
     result = 0;
   }
@@ -258,24 +246,23 @@ int GetPipeCommand(char *pipe_command)
 
 
 
-int PipeTaggedFiles(FileEntry *fe_ptr, WalkingPackage *walking_package)
+int PipeTaggedFiles(FileEntry *fe_ptr, WalkingPackage *walking_package, Statistic *s)
 {
   int  i, n;
   char from_path[PATH_LENGTH+1];
   char buffer[2048];
 
+  (void) s; /* Unused */
 
   walking_package->new_fe_ptr = fe_ptr;  /* unchanged */
 
   (void) GetRealFileNamePath( fe_ptr, from_path );
   if( ( i = open( from_path, O_RDONLY ) ) == -1 )
   {
-    (void) snprintf( message, MESSAGE_LENGTH,
-		    "Can't open file*\"%s\"*%s",
+    MESSAGE( "Can't open file*\"%s\"*%s",
 		    from_path,
 		    strerror(errno)
 		  );
-    MESSAGE( message );
     return( -1 );
   }
 
@@ -287,8 +274,7 @@ int PipeTaggedFiles(FileEntry *fe_ptr, WalkingPackage *walking_package)
 		walking_package->function_data.pipe_cmd.pipe_file ) != 1
       )
     {
-      (void) snprintf( message, MESSAGE_LENGTH, "Write-Error!*%s", strerror(errno) );
-      MESSAGE( message );
+      MESSAGE( "Write-Error!*%s", strerror(errno) );
       (void) close( i );
       return( -1 );
     }

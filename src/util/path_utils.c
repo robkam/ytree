@@ -137,10 +137,9 @@ void Fnsplit(char *path, char *dir, char *name)
     strncpy(name, bname, PATH_LENGTH - 1);
     name[PATH_LENGTH - 1] = '\0';
 
-    (void) snprintf( message, MESSAGE_LENGTH, "filename too long:*%s*truncating to*%s",
+    WARNING( "filename too long:*%s*truncating to*%s",
                      processed_path, name
                    );
-    WARNING( message );
   } else {
     strcpy(name, bname);
   }

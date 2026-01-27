@@ -13,17 +13,12 @@ int ChangeFileOwner(FileEntry *fe_ptr)
     return HandleFileOwnership(fe_ptr, TRUE, FALSE);
 }
 
-static void RedrawOwnerPrompt(void) {
-    MvAddStr( LINES - 2, 1, "OWNER:" );
-}
-
 int GetNewOwner(int st_uid)
 {
   char owner[OWNER_NAME_MAX * 2 +1];
   char *owner_name_ptr;
   int  owner_id;
   int  id;
-  int  x;
 
   owner_id = -1;
 
@@ -42,14 +37,12 @@ int GetNewOwner(int st_uid)
   ClearHelp();
 
   MvAddStr( LINES - 2, 1, "OWNER:" );
-  x = 1 + strlen("OWNER:") + UI_INPUT_PADDING;
 
-  if( InputStringEx( owner, LINES - 2, x, 0, OWNER_NAME_MAX, OWNER_NAME_MAX, "\r\033", HST_ID, RedrawOwnerPrompt ) == CR )
+  if( InputStringEx( owner, LINES - 2, 1 + strlen("OWNER:") + UI_INPUT_PADDING, 0, OWNER_NAME_MAX, OWNER_NAME_MAX, "\r\033", HST_ID, NULL ) == CR )
   {
     if( (owner_id = GetPasswdUid( owner )) == -1 )
     {
-      (void) snprintf( message, MESSAGE_LENGTH, "Can't read Owner-ID:*%s", owner );
-      MESSAGE( message );
+      MESSAGE( "Can't read Owner-ID:*%s", owner );
     }
   }
 

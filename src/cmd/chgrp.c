@@ -49,8 +49,7 @@ int GetNewGroup(int st_gid)
   {
     if( (group_id = GetGroupId( group )) == -1 )
     {
-      (void) snprintf( message, MESSAGE_LENGTH, "Can't read Group-ID:*\"%s\"", group );
-      MESSAGE( message );
+      MESSAGE( "Can't read Group-ID:*\"%s\"", group );
     }
   }
 

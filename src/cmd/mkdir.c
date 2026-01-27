@@ -126,10 +126,9 @@ DirEntry *MakeDirEntry(DirEntry *father_dir_entry, char *dir_name )
         }
     }
 
-    (void) snprintf( message, MESSAGE_LENGTH, "Can't create Directory*\"%s\"*%s",
+    MESSAGE( "Can't create Directory*\"%s\"*%s",
 		    buffer, strerror(errno)
 		  );
-    MESSAGE( message );
     return NULL;
   }
   else
@@ -329,8 +328,7 @@ CREATE_EXTERNAL:
         }
     }
     if (mkdir(tmp, 0755) != 0 && errno != EEXIST) {
-         (void) snprintf(message, MESSAGE_LENGTH, "Can't create directory*\"%s\"*%s", tmp, strerror(errno));
-         MESSAGE(message);
+         MESSAGE("Can't create directory*\"%s\"*%s", tmp, strerror(errno));
          return -1;
     }
     result = 0;
@@ -377,8 +375,7 @@ int EnsureDirectoryExists(char *dir_path, DirEntry *tree, BOOL *created, DirEntr
     else
     {
        /* Some other error opening directory (e.g. permission) */
-       (void) snprintf(message, MESSAGE_LENGTH, "Error opening directory*\"%s\"*%s", dir_path, strerror(errno));
-       MESSAGE(message);
+       MESSAGE("Error opening directory*\"%s\"*%s", dir_path, strerror(errno));
        return -1;
     }
   }

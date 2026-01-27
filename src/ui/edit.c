@@ -26,12 +26,10 @@ int Edit(DirEntry * dir_entry, char *file_path)
 
   if( access( file_path, R_OK ) )
   {
-    (void) snprintf( message, MESSAGE_LENGTH,
-		    "Edit not possible!*\"%s\"*%s",
+    MESSAGE( "Edit not possible!*\"%s\"*%s",
 		    file_path,
 		    strerror(errno)
 		  );
-    MESSAGE( message );
     ESCAPE;
   }
 
@@ -66,23 +64,20 @@ int Edit(DirEntry * dir_entry, char *file_path)
     /* Robustly save current working directory using a file descriptor */
     start_dir_fd = open(".", O_RDONLY);
     if (start_dir_fd == -1) {
-        snprintf(message, MESSAGE_LENGTH, "Error saving current directory context*%s", strerror(errno));
-        MESSAGE(message);
+        MESSAGE("Error saving current directory context*%s", strerror(errno));
         free(command_line);
         return -1;
     }
 
     if (chdir(GetPath(dir_entry, path)))
     {
-            (void) snprintf(message, MESSAGE_LENGTH, "Can't change directory to*\"%s\"", path);
-            MESSAGE(message);
+            MESSAGE("Can't change directory to*\"%s\"", path);
     }else{
             result = SystemCall(command_line, &CurrentVolume->vol_stats);
 
             /* Restore original directory */
             if (fchdir(start_dir_fd) == -1) {
-                snprintf(message, MESSAGE_LENGTH, "Error restoring directory*%s", strerror(errno));
-                MESSAGE(message);
+                MESSAGE("Error restoring directory*%s", strerror(errno));
             }
     }
     close(start_dir_fd);

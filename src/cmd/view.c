@@ -90,12 +90,10 @@ static int ViewFile(DirEntry * dir_entry, char *file_path)
 
   if( access( file_path, R_OK ) )
   {
-    (void) snprintf( message, MESSAGE_LENGTH,
-            "View not possible!*\"%s\"*%s",
+    MESSAGE( "View not possible!*\"%s\"*%s",
             file_path,
             strerror(errno)
           );
-    MESSAGE( message );
     ESCAPE;
   }
 
@@ -179,8 +177,7 @@ the ytree starting cwd. new code grabbed from execute.c.
     /* Robustly save current working directory using a file descriptor */
     start_dir_fd = open(".", O_RDONLY);
     if (start_dir_fd == -1) {
-        snprintf(message, MESSAGE_LENGTH, "Error saving current directory context*%s", strerror(errno));
-        MESSAGE(message);
+        MESSAGE("Error saving current directory context*%s", strerror(errno));
         if(file_p_aux) free(file_p_aux);
         if(command_line) free(command_line);
         return -1;
@@ -188,15 +185,13 @@ the ytree starting cwd. new code grabbed from execute.c.
 
     if (chdir(GetPath(dir_entry, path)))
     {
-        (void) snprintf(message, MESSAGE_LENGTH, "Can't change directory to*\"%s\"", path);
-        MESSAGE(message);
+        MESSAGE("Can't change directory to*\"%s\"", path);
     } else {
         result = SystemCall(command_line, &CurrentVolume->vol_stats);
 
         /* Restore original directory */
         if (fchdir(start_dir_fd) == -1) {
-            (void) snprintf(message, MESSAGE_LENGTH, "Error restoring directory*%s", strerror(errno));
-            MESSAGE(message);
+            MESSAGE("Error restoring directory*%s", strerror(errno));
         }
     }
     close(start_dir_fd);
@@ -206,8 +201,7 @@ the ytree starting cwd. new code grabbed from execute.c.
 
   if(result)
   {
-    (void) snprintf( message, MESSAGE_LENGTH, "can't execute*%s", command_line );
-    MESSAGE( message );
+    MESSAGE( "can't execute*%s", command_line );
   }
 
   if( notice_mapped )
@@ -248,8 +242,7 @@ static int ViewArchiveFile(char *file_path)
     archive = CurrentVolume->vol_stats.login_path;
 #ifdef HAVE_LIBARCHIVE
     if (ExtractArchiveEntry(archive, file_path, fd) != 0) {
-        (void)snprintf(message, MESSAGE_LENGTH, "Could not extract entry*'%s'*from archive", file_path);
-        MESSAGE(message);
+        MESSAGE("Could not extract entry*'%s'*from archive", file_path);
         close(fd);
         unlink(temp_filename);
         return -1;
@@ -288,8 +281,7 @@ static int ViewArchiveFile(char *file_path)
     result = SystemCall(command_line, &CurrentVolume->vol_stats);
 
     if (result != 0) {
-        (void)snprintf(message, MESSAGE_LENGTH, "can't execute*%s", command_line);
-        MESSAGE(message);
+        MESSAGE("can't execute*%s", command_line);
     }
 
     /* 5. Clean up */
@@ -514,8 +506,7 @@ int ViewTaggedFiles(DirEntry *dir_entry)
                      temp_count++;
                 } else {
                     /* Explicit warning on failure */
-                    (void)snprintf(message, MESSAGE_LENGTH, "Failed to extract*\"%s\"", internal_path);
-                    WARNING(message);
+                    WARNING("Failed to extract*\"%s\"", internal_path);
                 }
 #else
                 (void)temp_count; /* Suppress unused warning */

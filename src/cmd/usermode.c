@@ -50,22 +50,19 @@ int DirUserMode(DirEntry *dir_entry, int ch, Statistic *s)
             /* Robustly save current working directory using a file descriptor */
             start_dir_fd = open(".", O_RDONLY);
             if (start_dir_fd == -1) {
-                snprintf(message, MESSAGE_LENGTH, "Error saving current directory context*%s", strerror(errno));
-                MESSAGE(message);
+                MESSAGE("Error saving current directory context*%s", strerror(errno));
                 /* Continue loop processing? Usually we consume key here. */
                 return -1;
             }
 
             if (chdir(GetPath(dir_entry, path))) {
-                snprintf(message, MESSAGE_LENGTH, "Can't change directory to*\"%s\"", path);
-                MESSAGE(message);
+                MESSAGE("Can't change directory to*\"%s\"", path);
             } else {
                 QuerySystemCall(command_line, s);
 
                 /* Restore original directory */
                 if (fchdir(start_dir_fd) == -1) {
-                    snprintf(message, MESSAGE_LENGTH, "Error restoring directory*%s", strerror(errno));
-                    MESSAGE(message);
+                    MESSAGE("Error restoring directory*%s", strerror(errno));
                 }
             }
             close(start_dir_fd);
@@ -126,21 +123,18 @@ int FileUserMode(FileEntryList *file_entry_list, int ch, Statistic *s)
             /* Robustly save current working directory using a file descriptor */
             start_dir_fd = open(".", O_RDONLY);
             if (start_dir_fd == -1) {
-                snprintf(message, MESSAGE_LENGTH, "Error saving current directory context*%s", strerror(errno));
-                MESSAGE(message);
+                MESSAGE("Error saving current directory context*%s", strerror(errno));
                 return -1;
             }
 
             if (chdir(GetPath(dir_entry, path))) {
-                snprintf(message, MESSAGE_LENGTH, "Can't change directory to*\"%s\"", path);
-                MESSAGE(message);
+                MESSAGE("Can't change directory to*\"%s\"", path);
             } else {
                 QuerySystemCall(command_line, s);
 
                 /* Restore original directory */
                 if (fchdir(start_dir_fd) == -1) {
-                    snprintf(message, MESSAGE_LENGTH, "Error restoring directory*%s", strerror(errno));
-                    MESSAGE(message);
+                    MESSAGE("Error restoring directory*%s", strerror(errno));
                 }
             }
             close(start_dir_fd);

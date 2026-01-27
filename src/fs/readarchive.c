@@ -90,8 +90,7 @@ int ReadTreeFromArchive(DirEntry **dir_entry_ptr, const char *filename, Statisti
 
     r = archive_read_open_filename(a, filename, 10240);
     if (r != ARCHIVE_OK) {
-        (void)snprintf(message, MESSAGE_LENGTH, "Could not open archive*'%s'*%s", filename, archive_error_string(a));
-        ERROR_MSG(message);
+        ERROR_MSG("Could not open archive*'%s'*%s", filename, archive_error_string(a));
         archive_read_free(a);
         return -1;
     }

@@ -53,8 +53,7 @@ int RenameDirectory(DirEntry *de_ptr, char *new_name)
   if( !cptr )
   {
     /* Should not happen for absolute paths, but safety first */
-    (void) snprintf( message, MESSAGE_LENGTH, "Invalid Path!*\"%s\"", from_path );
-    WARNING( message );
+    WARNING( "Invalid Path!*\"%s\"", from_path );
     ESCAPE;
   }
 
@@ -79,13 +78,10 @@ int RenameDirectory(DirEntry *de_ptr, char *new_name)
 
   if( access( from_path, W_OK ) )
   {
-    (void) snprintf( message,
-                     MESSAGE_LENGTH,
-		    "Rename not possible!*\"%s\"*%s",
+    MESSAGE( "Rename not possible!*\"%s\"*%s",
 		    from_path,
 		    strerror(errno)
 		  );
-    MESSAGE( message );
     ESCAPE;
   }
 
@@ -215,13 +211,10 @@ int RenameFile(FileEntry *fe_ptr, char *new_name, FileEntry **new_fe_ptr )
 
   if( access( from_path, W_OK ) )
   {
-    (void) snprintf( message,
-                     MESSAGE_LENGTH,
-		    "Rename not possible!*\"%s\"*%s",
+    MESSAGE( "Rename not possible!*\"%s\"*%s",
 		    from_path,
 		    strerror(errno)
 		  );
-    MESSAGE( message );
     ESCAPE;
   }
 
@@ -357,14 +350,11 @@ static int RenameDirEntry(char *to_path, char *from_path)
    */
   if( rename( from_path, to_path ) )
   {
-    (void) snprintf( message,
-                     MESSAGE_LENGTH,
-		    "Can't rename \"%s\"*to \"%s\"*%s",
+    MESSAGE( "Can't rename \"%s\"*to \"%s\"*%s",
 		    from_path,
 		    to_path,
 		    strerror(errno)
 		  );
-    MESSAGE( message );
     return( -1 );
   }
 
@@ -389,14 +379,11 @@ static int RenameFileEntry(char *to_path, char *from_path)
    */
   if( rename( from_path, to_path ) )
   {
-    (void) snprintf( message,
-                     MESSAGE_LENGTH,
-		    "Can't rename \"%s\"*to \"%s\"*%s",
+    MESSAGE( "Can't rename \"%s\"*to \"%s\"*%s",
 		    from_path,
 		    to_path,
 		    strerror(errno)
 		  );
-    MESSAGE( message );
     return( -1 );
   }
 

@@ -35,12 +35,10 @@ static int ViewHexFile(char *file_path)
 
   if( access( file_path, R_OK ) )
   {
-    (void) snprintf( message, MESSAGE_LENGTH,
-		    "HexView not possible!*\"%s\"*%s",
+    MESSAGE( "HexView not possible!*\"%s\"*%s",
 		    file_path,
 		    strerror(errno)
 		  );
-    MESSAGE( message );
     ESCAPE;
   }
 
@@ -72,8 +70,7 @@ static int ViewHexArchiveFile(char *file_path)
 
 #ifdef HAVE_LIBARCHIVE
     if (ExtractArchiveEntry(archive, file_path, fd) != 0) {
-        (void)snprintf(message, MESSAGE_LENGTH, "Could not extract entry*'%s'*from archive", file_path);
-        MESSAGE(message);
+        MESSAGE("Could not extract entry*'%s'*from archive", file_path);
         close(fd);
         unlink(temp_filename);
         return -1;

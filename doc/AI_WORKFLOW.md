@@ -8,35 +8,35 @@ For general build instructions, coding standards, and architectural constraints,
 
 We primarily use the **Google AI Studio Web Interface** for high-level reasoning and code generation. We use a local helper script (`scripts/gather_context.py`) to copy code into the web interface.
 
-### 0. Managing "Fuel" (Rate Limits & Context)
+### Managing Rate Limits & Context
 
 To avoid "Rate Limit Exceeded" errors and maximize the AI's reasoning capacity, you must actively manage the size of the conversation history (the "Context Window").
 
-**The Concept: "The Backpack"**
-Every time you send a prompt, the AI re-reads **everything** currently in the chat history (System Prompts + Context Files + Previous Q&A). This is the "Backpack."
-*   **Heavy Backpack:** 50,000+ tokens. Burns through your "Tokens Per Minute" (TPM) limit instantly.
-*   **Light Backpack:** <5,000 tokens. Allows for rapid iteration without hitting limits.
+**The Concept: Context Payload**
+Every time you send a prompt, the AI processes **everything** currently in the chat history (System Prompts + Context Files + Previous Q&A). This is the "Context Payload."
+*   **High Payload:** 50,000+ tokens. This consumes your "Tokens Per Minute" (TPM) limit rapidly.
+*   **Optimized Payload:** <5,000 tokens. This allows for rapid iteration without triggering rate limit errors.
 
-**The Warning: "Two Tabs, One Tank"**
-Even if you use separate tabs for the Consultant and Builder, they share the **same** Google Account quota.
-*   **Implication:** Do not send heavy prompts in both tabs simultaneously. They draw from the same limited resource.
-*   **Strategy:** Allow a natural pause (30-60s) between generating a plan in one tab and requesting code in the other.
+**The Warning: Shared API Quota**
+Even if you use separate browser tabs for the Consultant and Builder, they draw from the **same** Google Account quota.
+*   **Implication:** Do not send complex prompts in multiple tabs simultaneously. They compete for the same global resource limit.
+*   **Strategy:** Allow a processing pause (30-60s) between generating a plan in one tab and requesting code in the other.
 
 **Strategies for Success:**
 
-1.  **The "Fresh Start" Protocol (Critical):**
-    *   **Rule:** Start a **fresh** Consultant/Builder pair for **every single roadmap task**.
-    *   **Why:** Once a task is completed, the codebase has changed. The old Consultant chat now contains obsolete file content ("Context Drift"). Starting fresh guarantees the AI plans based on the current reality.
+1.  **Protocol: Per-Task Session Reset (Critical)**
+    *   **Rule:** Start a **fresh** Consultant/Builder session for **every single roadmap task**.
+    *   **Why:** Once a task is completed, the codebase state has changed. Retaining old chat history causes "Context Drift," where the AI references obsolete code. A fresh session guarantees the AI plans based on the current system state.
 
-2.  **The "Armature" (Context Strategy):**
-    *   Do not dump the entire project (`src/*`) to start a session.
+2.  **Context Strategy: Structural Context Loading**
+    *   Do not upload the entire source tree (`src/*`) to initialize a session.
     *   Instead, upload **All Header Files (`include/*.h`)** + **`src/core/main.c`** + **The Target File(s)**.
-    *   **Why:** Headers and Main provide the structural framework (the armature) of the application. The AI can infer the "Big Picture" from this structure without needing the full "flesh" of every implementation file.
+    *   **Why:** Headers and Main provide the application's definitions and entry flow (the structure). The AI can infer the system architecture from these files without processing the implementation details of unrelated files.
 
-3.  **The "Fresh Sheet" Rule (For the Builder):**
-    *   **Action:** Always start a **New Chat** for the Builder phase. Paste *only* the `task.txt` and the specific files listed.
-    *   **Result:** Extremely low token usage per request.
-    *   **Tip:** Use the file list in [PLAN.md](PLAN.md) as a guide for what to select.
+3.  **Builder Rule: Isolated Code Generation**
+    *   **Action:** Always start a **New Chat** for the code implementation phase. Provide *only* the `task.txt` and the specific files listed in the plan.
+    *   **Result:** Maintains minimal token usage per request.
+    *   **Tip:** Use the file list provided in the Consultant's plan as the strict manifest for what to upload.
 
 ---
 

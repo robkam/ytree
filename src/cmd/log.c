@@ -126,9 +126,8 @@ int LogDisk(char *path)
            return 0;
        } else {
            /* Volume exists but is inaccessible */
-           (void) snprintf(message, MESSAGE_LENGTH, "Volume \"%s\" not accessible (Error: %s). Removed.",
+           MESSAGE("Volume \"%s\" not accessible (Error: %s). Removed.",
                 found_vol->vol_stats.login_path, strerror(errno));
-           MESSAGE(message);
 
            if (found_vol == CurrentVolume) {
                /* If the current volume is bad, we must delete it. */
@@ -166,19 +165,18 @@ int LogDisk(char *path)
   }
   doupdate();
 
-  if (animation_method == 0) Notice("Scanning...");
+  if (animation_method == 0) NOTICE("Scanning...");
 
   /* Call Logic Core */
   loaded_vol = Volume_Load(resolved_path, reuse_vol, Login_Progress);
 
-  if (animation_method == 0) UnmapNoticeWindow();
   if (animation_method == 1) StopAnimation();
   SwitchToSmallFileWindow();
 
   /* Handle Result */
   if (loaded_vol == NULL) {
       /* Failure */
-      MESSAGE(message); /* message is populated by Volume_Load */
+      /* Note: Volume_Load displays its own error message now. */
 
       /* Restore state */
       if (reuse_vol) {
