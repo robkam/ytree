@@ -10,6 +10,7 @@
 
 
 extern int chdir(const char *);
+extern int String_Replace(char *dest, size_t dest_size, const char *src, const char *token, const char *replacement);
 
 
 #ifdef HAVE_LIBARCHIVE
@@ -23,8 +24,6 @@ static int ExecuteArchiveFile(DirEntry *dir_entry, FileEntry *file_entry, char *
     char relative_path[PATH_LENGTH+1];
     int fd_tmp;
     int result = -1;
-    char *in_ptr, *out_ptr;
-    size_t len;
 
     /* 1. Create Temporary File */
     strcpy(temp_path, "/tmp/ytree_XXXXXX");
@@ -69,25 +68,14 @@ static int ExecuteArchiveFile(DirEntry *dir_entry, FileEntry *file_entry, char *
     }
     close(fd_tmp);
 
-    /* 3. Substitute {} with temp path */
+    /* 3. Substitute {} with temp path using String_Replace */
     StrCp(quoted_temp, temp_path); /* Escape spaces */
 
-    in_ptr = cmd_template;
-    out_ptr = command_line;
-
-    while (*in_ptr) {
-        if (*in_ptr == '{' && *(in_ptr + 1) == '}') {
-            len = strlen(quoted_temp);
-            if ((out_ptr - command_line) + len < COMMAND_LINE_LENGTH) {
-                strcpy(out_ptr, quoted_temp);
-                out_ptr += len;
-            }
-            in_ptr += 2;
-        } else {
-            *out_ptr++ = *in_ptr++;
-        }
+    if (String_Replace(command_line, sizeof(command_line), cmd_template, "{}", quoted_temp) != 0) {
+        ERROR_MSG("Command line too long");
+        unlink(temp_path);
+        return -1;
     }
-    *out_ptr = '\0';
 
     /* 4. Execute */
     refresh();
@@ -134,37 +122,26 @@ int Execute(DirEntry *dir_entry, FileEntry *file_entry, Statistic *s)
 
         /* Check if placeholder expansion is needed */
         if (strstr(command_template, "{}") != NULL) {
-            char *in_ptr = command_template;
-            char *out_ptr = expanded_command;
+            char substitution_name[PATH_LENGTH + 1];
+            char escaped_name[PATH_LENGTH * 2 + 1];
 
-            while (*in_ptr) {
-                if (*in_ptr == '{' && *(in_ptr + 1) == '}') {
-                    char substitution_name[PATH_LENGTH + 1];
-                    char escaped_name[PATH_LENGTH * 2 + 1];
-                    size_t len;
-
-                    if (file_entry) {
-                        /* In file context, {} is the filename, as we chdir first. */
-                        strcpy(substitution_name, file_entry->name);
-                    } else {
-                        /* In directory context, {} means the current dir "." */
-                        strcpy(substitution_name, ".");
-                    }
-
-                    /* The name may contain spaces, so escape it for the shell. */
-                    StrCp(escaped_name, substitution_name);
-
-                    len = strlen(escaped_name);
-                    if ((out_ptr - expanded_command) + len < COMMAND_LINE_LENGTH) {
-                        strcpy(out_ptr, escaped_name);
-                        out_ptr += len;
-                    }
-                    in_ptr += 2; /* Skip "{}" */
-                } else {
-                    *out_ptr++ = *in_ptr++;
-                }
+            if (file_entry) {
+                /* In file context, {} is the filename, as we chdir first. */
+                strncpy(substitution_name, file_entry->name, PATH_LENGTH);
+            } else {
+                /* In directory context, {} means the current dir "." */
+                strcpy(substitution_name, ".");
             }
-            *out_ptr = '\0';
+            substitution_name[PATH_LENGTH] = '\0';
+
+            /* The name may contain spaces, so escape it for the shell. */
+            StrCp(escaped_name, substitution_name);
+
+            if (String_Replace(expanded_command, sizeof(expanded_command), command_template, "{}", escaped_name) != 0) {
+                snprintf(message, MESSAGE_LENGTH, "Command line too long");
+                MESSAGE(message);
+                return -1;
+            }
             final_command = expanded_command;
         } else {
             final_command = command_template;
@@ -263,11 +240,10 @@ int GetSearchCommandLine(char *command_line, char *raw_pattern)
 int ExecuteCommand(FileEntry *fe_ptr, WalkingPackage *walking_package, Statistic *s)
 {
   char command_line[COMMAND_LINE_LENGTH + 1];
+  char temp_command_line[COMMAND_LINE_LENGTH + 1];
   char raw_path[PATH_LENGTH + 1];
   char quoted_path[PATH_LENGTH * 2 + 1];
   const char *template_ptr;
-  int i, dest_idx;
-  size_t path_len;
 
   walking_package->new_fe_ptr = fe_ptr;
 
@@ -284,40 +260,32 @@ int ExecuteCommand(FileEntry *fe_ptr, WalkingPackage *walking_package, Statistic
 
   /* 2. Quote/Escape the path using StrCp (handles spaces/special chars) */
   StrCp( quoted_path, raw_path );
-  path_len = strlen( quoted_path );
 
   /* 3. Build the final command string */
   template_ptr = walking_package->function_data.execute.command;
-  dest_idx = 0;
 
-  for( i = 0; template_ptr[i] != '\0' && dest_idx < COMMAND_LINE_LENGTH; )
-  {
-    /* Check for %s substitution */
-    if( template_ptr[i] == '%' && template_ptr[i+1] == 's' )
-    {
-      if( dest_idx + path_len < COMMAND_LINE_LENGTH )
-      {
-        strcpy( &command_line[dest_idx], quoted_path );
-        dest_idx += path_len;
+  /* Step 3a: Check for {} in template and replace if present */
+  if (strstr(template_ptr, "{}")) {
+      if (String_Replace(temp_command_line, sizeof(temp_command_line), template_ptr, "{}", quoted_path) != 0) {
+          ERROR_MSG("Command too long");
+          return -1;
       }
-      i += 2; /* Skip %s */
-    }
-    /* Check for {} substitution (Legacy support) */
-    else if( template_ptr[i] == '{' && template_ptr[i+1] == '}' )
-    {
-      if( dest_idx + path_len < COMMAND_LINE_LENGTH )
-      {
-        strcpy( &command_line[dest_idx], quoted_path );
-        dest_idx += path_len;
-      }
-      i += 2; /* Skip {} */
-    }
-    else
-    {
-      command_line[dest_idx++] = template_ptr[i++];
-    }
+  } else {
+      strncpy(temp_command_line, template_ptr, COMMAND_LINE_LENGTH);
+      temp_command_line[COMMAND_LINE_LENGTH] = '\0';
   }
-  command_line[dest_idx] = '\0';
+
+  /* Step 3b: Check for %s in ORIGINAL template and replace in temp buffer if present */
+  if (strstr(template_ptr, "%s")) {
+      /* Use the result of Step 3a (temp_command_line) as source */
+      if (String_Replace(command_line, sizeof(command_line), temp_command_line, "%s", quoted_path) != 0) {
+          ERROR_MSG("Command too long");
+          return -1;
+      }
+  } else {
+      strncpy(command_line, temp_command_line, COMMAND_LINE_LENGTH);
+      command_line[COMMAND_LINE_LENGTH] = '\0';
+  }
 
   return SilentSystemCallEx( command_line, FALSE, s );
 }

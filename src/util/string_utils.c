@@ -7,6 +7,7 @@
 
 
 #include "ytree.h"
+#include <string.h>
 
 
 int Strrcmp(char *s1, char* s2)/*compares in reverse order 2 strings*/
@@ -121,4 +122,54 @@ char *SubString(char *dest, char *src, int pos, int len)
   strncpy(dest, &src[pos], len);
   dest[len] = '\0';
   return dest;
+}
+
+
+int String_Replace(char *dest, size_t dest_size, const char *src, const char *token, const char *replacement)
+{
+  const char *in_ptr = src;
+  char *out_ptr = dest;
+  size_t current_len = 0;
+  size_t token_len;
+  size_t repl_len;
+  const char *next_token;
+
+  if (!dest || !src || !token || !replacement || dest_size == 0) return -1;
+
+  token_len = strlen(token);
+  repl_len = strlen(replacement);
+
+  while ((next_token = strstr(in_ptr, token)) != NULL)
+  {
+    size_t segment_len = next_token - in_ptr;
+
+    /* Check bounds: current + segment + replacement + null terminator */
+    if (current_len + segment_len + repl_len + 1 > dest_size)
+    {
+      /* Prevent overflow, ensure null termination of what fits so far */
+      if (current_len < dest_size) dest[current_len] = '\0';
+      return -1;
+    }
+
+    memcpy(out_ptr, in_ptr, segment_len);
+    out_ptr += segment_len;
+    current_len += segment_len;
+
+    memcpy(out_ptr, replacement, repl_len);
+    out_ptr += repl_len;
+    current_len += repl_len;
+
+    in_ptr = next_token + token_len;
+  }
+
+  /* Copy remainder */
+  size_t remainder_len = strlen(in_ptr);
+  if (current_len + remainder_len + 1 > dest_size)
+  {
+    if (current_len < dest_size) dest[current_len] = '\0';
+    return -1;
+  }
+
+  strcpy(out_ptr, in_ptr);
+  return 0;
 }
