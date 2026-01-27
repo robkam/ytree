@@ -1192,13 +1192,13 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 *   **Goal:** Eliminate hardcoded screen offsets (e.g., `LINES - 4`) used for footer/prompt positioning.
 *   **Mechanism:** Extend `YtreeLayout` struct to include footer/prompt geometry. Calculate these once in `Layout_Recalculate`. Replace magic numbers with `layout.footer_y`, etc.
 *   **Files to Modify:** `src/ui/display.c`, `src/ui/stats.c`, `src/ui/prompt.c`, `src/ui/vol_menu.c`.
-*   - [ ] **Status:** Not Started.
+*   - [x] **Status:** Completed.
 
 #### **Step 9.1.5: Standardization of Path Parsing**
 *   **Goal:** Replace manual pointer-arithmetic path parsing loops with standard functions.
 *   **Mechanism:** Refactor `Fnsplit` and similar helpers to use POSIX `dirname()` and `basename()`.
 *   **Files to Modify:** `src/util/path_utils.c`.
-*   - [ ] **Status:** Not Started.
+*   - [x] **Status:** Completed.
 
 #### **Step 9.1.6: Encapsulate Command Context**
 *   **Goal:** Prevent commands from implicitly operating on the global `CurrentVolume`.

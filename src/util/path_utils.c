@@ -9,6 +9,7 @@
 #include "ytree.h"
 #include <stdlib.h>
 #include <string.h>
+#include <libgen.h>
 
 
 char *GetPath(DirEntry *dir_entry, char *buffer)
@@ -80,41 +81,73 @@ char *GetRealFileNamePath(FileEntry *file_entry, char *buffer)
 /* Aufsplitten des Dateinamens in die einzelnen Komponenten */
 void Fnsplit(char *path, char *dir, char *name)
 {
-  int  i;
-  char *name_begin;
-  char *trunc_name;
-  int dir_len = 0;
+  char *path_copy_dir;
+  char *path_copy_base;
+  char *dname;
+  char *bname;
+  char *processed_path;
+  int has_sep = 0;
+  size_t len;
 
+  /* Skip Whitespace */
   while( *path == ' ' || *path == '\t' ) path++;
+  processed_path = path;
 
-  while( strchr(path, FILE_SEPARATOR_CHAR ) || strchr(path, '\\') )
-  {
-    if (dir_len < PATH_LENGTH) {
-        *(dir++) = *(path++);
-        dir_len++;
-    } else {
-        /* Skip remaining directory part if buffer is full */
-        path++;
+  /* Check for standard separator to distinguish file in current dir */
+  if (strchr(processed_path, FILE_SEPARATOR_CHAR)) {
+    has_sep = 1;
+  }
+
+  /* Preparation: create copies for dirname/basename */
+  path_copy_dir = strdup(processed_path);
+  path_copy_base = strdup(processed_path);
+
+  if (!path_copy_dir || !path_copy_base) {
+    if (path_copy_dir) free(path_copy_dir);
+    if (path_copy_base) free(path_copy_base);
+    ERROR_MSG("strdup failed in Fnsplit*ABORT");
+    exit(1);
+  }
+
+  /* Execution */
+  dname = dirname(path_copy_dir);
+  bname = basename(path_copy_base);
+
+  /* Directory Output (dir) */
+  /* If original path had no separators (and dirname returned .): Write empty string */
+  if (!has_sep && strcmp(dname, ".") == 0) {
+    *dir = '\0';
+  } else {
+    strncpy(dir, dname, PATH_LENGTH - 1);
+    dir[PATH_LENGTH - 1] = '\0';
+
+    /* Trailing Slash: If result is not root, append separator */
+    if (strcmp(dir, FILE_SEPARATOR_STRING) != 0) {
+      len = strlen(dir);
+      if (len < PATH_LENGTH - 1) {
+        dir[len] = FILE_SEPARATOR_CHAR;
+        dir[len + 1] = '\0';
+      }
     }
   }
 
-  *dir = '\0';
+  /* Filename Output (name) */
+  len = strlen(bname);
+  if (len >= PATH_LENGTH) {
+    strncpy(name, bname, PATH_LENGTH - 1);
+    name[PATH_LENGTH - 1] = '\0';
 
-  name_begin = path;
-  trunc_name = name;
-
-  for(i=0; i < PATH_LENGTH && *path; i++ )
-    *(name++) = *(path++);
-
-  *name = '\0';
-
-  if( i == PATH_LENGTH && *path )
-  {
     (void) snprintf( message, MESSAGE_LENGTH, "filename too long:*%s*truncating to*%s",
-		    name_begin, trunc_name
-		  );
+                     processed_path, name
+                   );
     WARNING( message );
+  } else {
+    strcpy(name, bname);
   }
+
+  /* Cleanup */
+  free(path_copy_dir);
+  free(path_copy_base);
 }
 
 
