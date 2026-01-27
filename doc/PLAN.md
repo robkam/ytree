@@ -1208,9 +1208,9 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 
 #### **Step 9.1.7: Secure String Construction**
 *   **Goal:** Eliminate unsafe manual string substitution loops.
-*   **Mechanism:** Create `String_Replace()` utility using `snprintf` for bounds-checked substitution of `{}` placeholders.
+*   **Mechanism:** Create `String_Replace()` utility using bounds-checked logic.
 *   **Files to Modify:** `src/cmd/execute.c`, `src/util/string_utils.c`.
-*   - [ ] **Status:** Not Started.
+*   - [x] **Status:** Completed.
 
 #### **Step 9.1.8: Global Error Buffer Elimination**
 *   **Goal:** Remove the non-reentrant global `message` buffer.
