@@ -27,9 +27,9 @@ if not API_KEY:
 
 genai.configure(api_key=API_KEY)
 
-#MODEL_NAME = "models/gemini-3-pro-preview"
+MODEL_NAME = "models/gemini-3-pro-preview"
 #MODEL_NAME = "models/gemini-2.5-pro"
-MODEL_NAME = "models/gemini-2.5-flash"
+#MODEL_NAME = "models/gemini-2.5-flash"
 
 CHAT_LOG_FILE = os.path.join(PROJECT_ROOT, "chat.log")
 HISTORY_FILE = os.path.expanduser("~/.ytree_chat_history")

@@ -28,7 +28,8 @@ if not API_KEY:
 genai.configure(api_key=API_KEY)
 
 # Architect: Gemini 2.5 Flash is chosen for speed and low latency in high-level planning.
-ARCHITECT_MODEL = "models/gemini-2.5-flash"
+#ARCHITECT_MODEL = "models/gemini-2.5-flash"
+ARCHITECT_MODEL = "models/gemini-3-pro-preview"
 
 # Builder: Using Gemini 2.5 Flash avoids the restrictive rate limits of Pro models while
 # maintaining sufficient reasoning capability for C code generation.
