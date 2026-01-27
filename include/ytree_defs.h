@@ -492,6 +492,12 @@ typedef struct {
 
     int stats_width;
     int main_win_width;
+
+    int header_y;
+    int message_y;
+    int prompt_y;
+    int status_y;
+    int bottom_border_y;
 } YtreeLayout;
 
 typedef struct {

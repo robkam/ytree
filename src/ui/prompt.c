@@ -49,7 +49,7 @@ int UI_ReadString(const char *prompt, char *buffer, int max_len, int history_typ
     const char *hints;
 
     /* Calculate window position: Bottom 3 lines */
-    win_y = LINES - PROMPT_WIN_HEIGHT;
+    win_y = layout.message_y;
     win_x = 0;
     input_width = COLS - 2; /* 1 char padding left/right */
 
@@ -146,7 +146,7 @@ int UI_ReadString(const char *prompt, char *buffer, int max_len, int history_typ
             resize_request = FALSE;
 
             /* Recreate window geometry */
-            win_y = LINES - PROMPT_WIN_HEIGHT;
+            win_y = layout.message_y;
             input_width = COLS - 2;
 
             wresize(win, PROMPT_WIN_HEIGHT, COLS);
