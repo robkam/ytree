@@ -3,7 +3,7 @@
 Thank you for your interest in contributing to ytree! This document provides guidelines for setting up your development environment, running tests, and submitting your changes.
 
 **Note for AI-Assisted Development:**
-For the AI-assisted development workflow, script usage, and System Persona prompts, please see **[LLM.md](LLM.md)**.
+For the AI-assisted development workflow, script usage, and System Persona prompts, please see **[AI_WORKFLOW.md](AI_WORKFLOW.md)**.
 
 ## Development Setup
 

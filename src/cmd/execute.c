@@ -13,15 +13,18 @@ extern int chdir(const char *);
 
 
 #ifdef HAVE_LIBARCHIVE
-static int ExecuteArchiveFile(DirEntry *dir_entry, FileEntry *file_entry, char *cmd_template) {
+static int ExecuteArchiveFile(DirEntry *dir_entry, FileEntry *file_entry, char *cmd_template, Statistic *s) {
     char temp_path[PATH_LENGTH];
     char command_line[COMMAND_LINE_LENGTH];
     char quoted_temp[PATH_LENGTH * 2 + 1];
     char internal_path[PATH_LENGTH];
     char dir_path[PATH_LENGTH];
+    char root_path[PATH_LENGTH+1];
+    char relative_path[PATH_LENGTH+1];
     int fd_tmp;
     int result = -1;
     char *in_ptr, *out_ptr;
+    size_t len;
 
     /* 1. Create Temporary File */
     strcpy(temp_path, "/tmp/ytree_XXXXXX");
@@ -36,10 +39,7 @@ static int ExecuteArchiveFile(DirEntry *dir_entry, FileEntry *file_entry, char *
         GetPath(file_entry->dir_entry, dir_path);
 
         /* Rebuild the path relative to the archive root (login_path) */
-        char root_path[PATH_LENGTH+1];
-        char relative_path[PATH_LENGTH+1];
-
-        GetPath(CurrentVolume->vol_stats.tree, root_path);
+        GetPath(s->tree, root_path);
 
         if (strncmp(dir_path, root_path, strlen(root_path)) == 0) {
             char *ptr = dir_path + strlen(root_path);
@@ -56,7 +56,7 @@ static int ExecuteArchiveFile(DirEntry *dir_entry, FileEntry *file_entry, char *
 
         strcpy(internal_path, relative_path);
 
-        if (ExtractArchiveEntry(CurrentVolume->vol_stats.login_path, internal_path, fd_tmp) != 0) {
+        if (ExtractArchiveEntry(s->login_path, internal_path, fd_tmp) != 0) {
             ERROR_MSG("Failed to extract file for execution");
             close(fd_tmp);
             unlink(temp_path);
@@ -77,7 +77,7 @@ static int ExecuteArchiveFile(DirEntry *dir_entry, FileEntry *file_entry, char *
 
     while (*in_ptr) {
         if (*in_ptr == '{' && *(in_ptr + 1) == '}') {
-            size_t len = strlen(quoted_temp);
+            len = strlen(quoted_temp);
             if ((out_ptr - command_line) + len < COMMAND_LINE_LENGTH) {
                 strcpy(out_ptr, quoted_temp);
                 out_ptr += len;
@@ -91,7 +91,7 @@ static int ExecuteArchiveFile(DirEntry *dir_entry, FileEntry *file_entry, char *
 
     /* 4. Execute */
     refresh();
-    result = SilentSystemCall(command_line, &CurrentVolume->vol_stats);
+    result = SilentSystemCall(command_line, s);
 
     /* 5. Cleanup */
     unlink(temp_path);
@@ -101,7 +101,7 @@ static int ExecuteArchiveFile(DirEntry *dir_entry, FileEntry *file_entry, char *
 #endif
 
 
-int Execute(DirEntry *dir_entry, FileEntry *file_entry)
+int Execute(DirEntry *dir_entry, FileEntry *file_entry, Statistic *s)
 {
     static char command_template[COMMAND_LINE_LENGTH + 1];
     char expanded_command[COMMAND_LINE_LENGTH + 1];
@@ -123,7 +123,7 @@ int Execute(DirEntry *dir_entry, FileEntry *file_entry)
         /* ARCHIVE MODE HANDLER */
 #ifdef HAVE_LIBARCHIVE
         if (mode == ARCHIVE_MODE) {
-            result = ExecuteArchiveFile(dir_entry, file_entry, command_template);
+            result = ExecuteArchiveFile(dir_entry, file_entry, command_template, s);
             /* Single file execute usually expects a pause to see output */
             /* SilentSystemCall (used in ExecuteArchiveFile) doesn't pause. */
             /* We should pause here manually if needed. */
@@ -141,6 +141,7 @@ int Execute(DirEntry *dir_entry, FileEntry *file_entry)
                 if (*in_ptr == '{' && *(in_ptr + 1) == '}') {
                     char substitution_name[PATH_LENGTH + 1];
                     char escaped_name[PATH_LENGTH * 2 + 1];
+                    size_t len;
 
                     if (file_entry) {
                         /* In file context, {} is the filename, as we chdir first. */
@@ -153,7 +154,7 @@ int Execute(DirEntry *dir_entry, FileEntry *file_entry)
                     /* The name may contain spaces, so escape it for the shell. */
                     StrCp(escaped_name, substitution_name);
 
-                    size_t len = strlen(escaped_name);
+                    len = strlen(escaped_name);
                     if ((out_ptr - expanded_command) + len < COMMAND_LINE_LENGTH) {
                         strcpy(out_ptr, escaped_name);
                         out_ptr += len;
@@ -183,7 +184,7 @@ int Execute(DirEntry *dir_entry, FileEntry *file_entry)
                 MESSAGE(message);
             } else {
                 refresh();
-                result = QuerySystemCall(final_command, &CurrentVolume->vol_stats);
+                result = QuerySystemCall(final_command, s);
 
                 /* Restore original directory */
                 if (fchdir(start_dir_fd) == -1) {
@@ -194,7 +195,7 @@ int Execute(DirEntry *dir_entry, FileEntry *file_entry)
         } else {
             /* Execute is disabled in archive mode, but handle defensively */
             refresh();
-            result = QuerySystemCall(final_command, &CurrentVolume->vol_stats);
+            result = QuerySystemCall(final_command, s);
         }
 
         close(start_dir_fd);
@@ -259,7 +260,7 @@ int GetSearchCommandLine(char *command_line, char *raw_pattern)
 
 
 
-int ExecuteCommand(FileEntry *fe_ptr, WalkingPackage *walking_package)
+int ExecuteCommand(FileEntry *fe_ptr, WalkingPackage *walking_package, Statistic *s)
 {
   char command_line[COMMAND_LINE_LENGTH + 1];
   char raw_path[PATH_LENGTH + 1];
@@ -274,7 +275,7 @@ int ExecuteCommand(FileEntry *fe_ptr, WalkingPackage *walking_package)
   /* Archive Mode Tagged Execution */
   if (mode == ARCHIVE_MODE) {
       /* Reconstruct the template to pass to single-file handler */
-      return ExecuteArchiveFile(fe_ptr->dir_entry, fe_ptr, walking_package->function_data.execute.command);
+      return ExecuteArchiveFile(fe_ptr->dir_entry, fe_ptr, walking_package->function_data.execute.command, s);
   }
 #endif
 
@@ -318,5 +319,5 @@ int ExecuteCommand(FileEntry *fe_ptr, WalkingPackage *walking_package)
   }
   command_line[dest_idx] = '\0';
 
-  return SilentSystemCallEx( command_line, FALSE, &CurrentVolume->vol_stats );
+  return SilentSystemCallEx( command_line, FALSE, s );
 }

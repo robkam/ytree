@@ -102,10 +102,10 @@ To maximize effectiveness and minimize frustration when working with the AI agen
     *   If the AI gets stuck repeatedly on a specific problem, do not keep repeating the same instruction.
     *   **Action:** Reframe the request. Approach the problem from a different angle (e.g., instead of "Fix this loop," try "Rewrite this logic using a state machine approach").
 
-4.  **Context Hygiene:**
-    *   LLMs have a finite context window. As a chat session grows longer, the model "forgets" earlier instructions or gets confused by outdated code snippets in the history.
-    *   **Local Script:** Use `/clear` to wipe history or `/reload` to refresh file context.
-    *   **Google AI Studio:** Start a **New Chat** for every distinct task. Long threads accumulate "hallucination debt" where the model prioritizes its previous (incorrect) guesses over new facts. If the model starts looping or hallucinating, abandon the thread and start fresh.
+4.  **Context Hygiene (The Disposable Mindset):**
+    *   **Treat Chats as Disposable:** A chat session is a temporary scratchpad, not a permanent record. Once a task is committed to git, the chat history is a liability (it contains outdated code).
+    *   **New vs. Delete:** Deleting all previous prompts in a chat is functionally identical to starting a new chat. Use whichever method is faster in your UI. The goal is to ensure the "Backpack" is empty before starting a new task.
+    *   **Hallucination Debt:** Long threads accumulate "hallucination debt" where the model prioritizes its previous (incorrect) guesses over new facts. If the model starts looping or hallucinating, abandon the thread immediately.
 
 5.  **Human Review:**
     *   **You are the Lead Architect.**
