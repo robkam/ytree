@@ -132,13 +132,8 @@ int GetFileEntry(DirEntry *de_ptr, char *file_name, FileEntry **file_entry)
 
 /* Helper to add a path to a list */
 static void AddPathToList(PathList **list, const char *path) {
-    PathList *node = (PathList *)malloc(sizeof(PathList));
-    if (!node) return;
-    node->path = strdup(path);
-    if (!node->path) {
-        free(node);
-        return;
-    }
+    PathList *node = (PathList *)xmalloc(sizeof(PathList));
+    node->path = xstrdup(path);
     node->next = *list;
     *list = node;
 }
@@ -249,8 +244,7 @@ static DirEntry *FindOrLoadDir(DirEntry *tree, const char *path, Statistic *s) {
 
     if (*rel_path == '\0') return tree;
 
-    path_copy = strdup(rel_path);
-    if (!path_copy) return NULL;
+    path_copy = xstrdup(rel_path);
 
     token = strtok_r(path_copy, FILE_SEPARATOR_STRING, &saveptr);
     while (token) {

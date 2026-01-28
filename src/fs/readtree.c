@@ -162,13 +162,7 @@ int ReadTree(DirEntry *dir_entry, char *path, int depth, Statistic *s, ScanProgr
       /*-----------------*/
 
       /* FIX: Added +1 to allocation for null terminator */
-      if( ( den_ptr = (DirEntry *)
-		       calloc( 1, sizeof( DirEntry ) + strlen( dirent->d_name ) + 1 )
-   	   ) == NULL )
-      {
-        ERROR_MSG( "Malloc Failed*ABORT" );
-        exit( 1 );
-      }
+      den_ptr = (DirEntry *) xcalloc( 1, sizeof( DirEntry ) + strlen( dirent->d_name ) + 1 );
 
       den_ptr->up_tree = dir_entry;
 
@@ -247,16 +241,10 @@ int ReadTree(DirEntry *dir_entry, char *path, int depth, Statistic *s, ScanProgr
 	}
 	link_path[n] = '\0';
 
-    /* FIX: Added +1 to allocation for name's null terminator (n already includes it for link) */
-        if( ( fen_ptr = (FileEntry *)
-		        calloc( 1, sizeof( FileEntry ) +
+        /* FIX: Added +1 to allocation for name's null terminator (n already includes it for link) */
+        fen_ptr = (FileEntry *) xcalloc( 1, sizeof( FileEntry ) +
 			strlen( dirent->d_name ) + 1 +
-			n + 1 )
-	    ) == NULL )
-        {
-          ERROR_MSG( "Malloc Failed*ABORT" );
-          exit( 1 );
-        }
+			n + 1 );
 
         (void) strcpy( fen_ptr->name, dirent->d_name );
         (void) strcpy( &fen_ptr->name[strlen(fen_ptr->name) + 1],
@@ -265,13 +253,7 @@ int ReadTree(DirEntry *dir_entry, char *path, int depth, Statistic *s, ScanProgr
       else
       {
         /* FIX: Added +1 to allocation for null terminator */
-        if( ( fen_ptr = (FileEntry *)
-		        calloc( 1, sizeof( FileEntry ) + strlen( dirent->d_name ) + 1 )
-	    ) == NULL )
-        {
-          ERROR_MSG( "Malloc Failed*ABORT" );
-          exit( 1 );
-        }
+        fen_ptr = (FileEntry *) xcalloc( 1, sizeof( FileEntry ) + strlen( dirent->d_name ) + 1 );
 
         (void) strcpy( fen_ptr->name, dirent->d_name );
       }

@@ -53,14 +53,7 @@ vol->dir_entry_list_capacity = 0;
 size_t alloc_count = vol->vol_stats.disk_total_directories;
 if (alloc_count < 16) alloc_count = 16;
 
-if( ( vol->dir_entry_list = ( DirEntryList *)
-calloc( alloc_count,
-sizeof( DirEntryList )
-) ) == NULL )
-{
-ERROR_MSG( "Calloc Failed*ABORT" );
-exit( 1 );
-}
+vol->dir_entry_list = (DirEntryList *) xcalloc(alloc_count, sizeof(DirEntryList));
 
 vol->dir_entry_list_capacity = alloc_count;
 current_dir_entry = 0;
@@ -129,12 +122,7 @@ if (current_dir_entry >= (int)vol->dir_entry_list_capacity) {
 size_t new_capacity = vol->dir_entry_list_capacity * 2;
 if (new_capacity == 0) new_capacity = 128; /* Fallback if 0 start */
 
-DirEntryList *new_list = (DirEntryList *) realloc(vol->dir_entry_list, new_capacity * sizeof(DirEntryList));
-
-if (new_list == NULL) {
-ERROR_MSG("Realloc failed in ReadDirList*ABORT");
-exit(1);
-}
+DirEntryList *new_list = (DirEntryList *) xrealloc(vol->dir_entry_list, new_capacity * sizeof(DirEntryList));
 
 /* Zero out the newly allocated portion to maintain calloc-like safety */
 memset(new_list + vol->dir_entry_list_capacity, 0, (new_capacity - vol->dir_entry_list_capacity) * sizeof(DirEntryList));
@@ -756,11 +744,11 @@ InitClock(); /* Resume clock and restore signal handling */
 }
 
 /*
-* RefreshTreeSafe
-* Performs a non-destructive refresh of the directory tree.
-* Saves expansion state and tags, rescans from disk, restores state, and refreshes the UI.
-* Can be called from both Directory Window and File Window.
-*/
+ * RefreshTreeSafe
+ * Performs a non-destructive refresh of the directory tree.
+ * Saves expansion state and tags, rescans from disk, restores state, and refreshes the UI.
+ * Can be called from both Directory Window and File Window.
+ */
 DirEntry *RefreshTreeSafe(DirEntry *entry)
 {
 Statistic *s = &CurrentVolume->vol_stats;

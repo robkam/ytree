@@ -403,11 +403,7 @@ int CopyFile(Statistic *statistic_ptr,
 
       /* Create File Entry manually */
       /* FIX: Added +1 to allocation for null terminator */
-      if( ( fen_ptr = (FileEntry *) malloc( sizeof( FileEntry ) + strlen( to_file ) + 1 ) ) == NULL )
-      {
-        ERROR_MSG( "Malloc Failed*ABORT" );
-        exit( 1 );
-      }
+      fen_ptr = (FileEntry *) xmalloc( sizeof( FileEntry ) + strlen( to_file ) + 1 );
 
       (void) strcpy( fen_ptr->name, to_file );
 

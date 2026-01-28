@@ -81,11 +81,7 @@ static int ViewFile(DirEntry * dir_entry, char *file_path)
 
   command_line = file_p_aux = NULL;
 
-  if( ( file_p_aux = (char *) malloc( COMMAND_LINE_LENGTH + 1 ) ) == NULL )
-  {
-    ERROR_MSG( "Malloc failed*ABORT" );
-    exit( 1 );
-  }
+  file_p_aux = (char *) xmalloc( COMMAND_LINE_LENGTH + 1 );
   StrCp(file_p_aux, file_path);
 
   if( access( file_path, R_OK ) )
@@ -97,11 +93,7 @@ static int ViewFile(DirEntry * dir_entry, char *file_path)
     ESCAPE;
   }
 
-  if( ( command_line = malloc( COMMAND_LINE_LENGTH + 1 ) ) == NULL )
-  {
-    ERROR_MSG( "Malloc failed*ABORT" );
-    exit( 1 );
-  }
+  command_line = xmalloc( COMMAND_LINE_LENGTH + 1 );
 
   if (( aux = GetExtViewer(file_path))!= NULL)
   {
@@ -251,17 +243,8 @@ static int ViewArchiveFile(char *file_path)
     close(fd); /* Close the file descriptor, the file now has content */
 
     /* 3. Build the view command, same logic as ViewFile, but using temp_filename */
-    if ((command_line = malloc(COMMAND_LINE_LENGTH + 1)) == NULL) {
-        ERROR_MSG("Malloc failed*ABORT");
-        unlink(temp_filename);
-        exit(1);
-    }
-    if ((file_p_aux = malloc(COMMAND_LINE_LENGTH + 1)) == NULL) {
-        ERROR_MSG("Malloc failed*ABORT");
-        free(command_line);
-        unlink(temp_filename);
-        exit(1);
-    }
+    command_line = xmalloc(COMMAND_LINE_LENGTH + 1);
+    file_p_aux = xmalloc(COMMAND_LINE_LENGTH + 1);
     StrCp(file_p_aux, temp_filename);
 
     /* Use the original file_path to check for custom viewers by extension */
@@ -376,10 +359,7 @@ int ViewTaggedFiles(DirEntry *dir_entry)
     const char *viewer = PAGER;
     if (!viewer || !*viewer) viewer = "less";
 
-    if ((command_line = (char *)malloc(max_cmd_len + 1)) == NULL) {
-        ERROR_MSG("Malloc failed*ABORT");
-        return -1;
-    }
+    command_line = (char *)xmalloc(max_cmd_len + 1);
 
     strcpy(command_line, viewer);
 
@@ -474,12 +454,10 @@ int ViewTaggedFiles(DirEntry *dir_entry)
                 if (strlen(relative_path) > 0) {
                     snprintf(t_dirname, sizeof(t_dirname), "%s/%s", temp_dir, relative_path);
                     /* Strip filename from t_dirname */
-                    char *dir_only = strdup(t_dirname);
-                    if (dir_only) {
-                        dirname(dir_only);
-                        recursive_mkdir(dir_only);
-                        free(dir_only);
-                    }
+                    char *dir_only = xstrdup(t_dirname);
+                    dirname(dir_only);
+                    recursive_mkdir(dir_only);
+                    free(dir_only);
                     snprintf(t_filename, sizeof(t_filename), "%s/%s", temp_dir, relative_path);
                 } else {
                     snprintf(t_filename, sizeof(t_filename), "%s/%s", temp_dir, fe->name);
