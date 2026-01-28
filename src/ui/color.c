@@ -64,8 +64,7 @@ void ParseColorString(const char *color_str, int *fg, int *bg)
 
     if (!color_str || !fg || !bg) return;
 
-    dup = strdup(color_str);
-    if (!dup) return;
+    dup = xstrdup(color_str);
 
     target = fg;
     token = strtok_r(dup, " ,", &saveptr);
@@ -120,17 +119,8 @@ void UpdateUIColor(const char *name, int fg, int bg)
 
 void AddFileColorRule(const char *pattern, int fg, int bg)
 {
-    FileColorRule *new_rule = malloc(sizeof(FileColorRule));
-    if (!new_rule) {
-        ERROR_MSG("malloc failed in AddFileColorRule");
-        return;
-    }
-    new_rule->pattern = strdup(pattern);
-    if (!new_rule->pattern) {
-        ERROR_MSG("strdup failed in AddFileColorRule");
-        free(new_rule);
-        return;
-    }
+    FileColorRule *new_rule = xmalloc(sizeof(FileColorRule));
+    new_rule->pattern = xstrdup(pattern);
     new_rule->fg = fg;
     new_rule->bg = bg;
     new_rule->pair_id = 0;

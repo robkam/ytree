@@ -77,9 +77,7 @@ static int AddRule(char *pattern, BOOL is_exclude) {
 
     /* Allocate buffer for regex string.
        Estimate: 2 chars per pattern char (escaping) + anchors + null. */
-    if ((buffer = (char *)malloc(strlen(pattern) * 2 + 4)) == NULL) {
-        return -1;
-    }
+    buffer = (char *)xmalloc(strlen(pattern) * 2 + 4);
 
     b_ptr = buffer;
     *b_ptr++ = '^';
@@ -109,10 +107,7 @@ static int AddRule(char *pattern, BOOL is_exclude) {
     *b_ptr++ = '$';
     *b_ptr = '\0';
 
-    if ((new_rule = (MatchRule *)malloc(sizeof(MatchRule))) == NULL) {
-        free(buffer);
-        return -1;
-    }
+    new_rule = (MatchRule *)xmalloc(sizeof(MatchRule));
 
     if (regcomp(&new_rule->re, buffer, REG_NOSUB | REG_EXTENDED | REG_ICASE)) {
         free(new_rule);
@@ -254,8 +249,7 @@ static int ParseFilterSpec(char *new_spec)
       return 0;
   }
 
-  spec_copy = strdup(new_spec);
-  if (!spec_copy) return -1;
+  spec_copy = xstrdup(new_spec);
 
   token = strtok_r(spec_copy, ",", &saveptr);
   while(token) {

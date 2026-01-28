@@ -57,11 +57,7 @@ static void DoResize(char *file_path);
 static void printhexline(WINDOW *win, char *line, char *buf, int r, long offset)
 {
     char *aux;
-    if ((aux = (char *) malloc(WCOLS)) == NULL)
-    {
-      ERROR_MSG( "Malloc failed*ABORT" );
-      exit( 1 );
-    }
+    aux = (char *) xmalloc(WCOLS);
 
     if (r==0)
     {
@@ -109,17 +105,10 @@ static void update_line(WINDOW *win, long line)
     char *line_string;
     char msg[50];
 
-    if ((line_string = (char *) malloc(WCOLS)) == NULL) {
-      ERROR_MSG("Malloc failed*ABORT");
-      exit(1);
-    }
+    line_string = (char *) xmalloc(WCOLS);
     memset(line_string, ' ', WCOLS);
     line_string[0] = '\0';
-    if ((buf = (char *) malloc(BYTES)) == NULL) {
-      free(line_string);
-      ERROR_MSG("Malloc failed*ABORT");
-      exit(1);
-    }
+    buf = (char *) xmalloc(BYTES);
     memset(buf, ' ', BYTES);
     if (lseek(fd, (line - 1) * BYTES, SEEK_SET)== -1 )
     {
@@ -177,10 +166,7 @@ static void Change2Edit(char *file_path)
     int i;
     char *str;
 
-    if ((str = (char *)malloc(WCOLS)) == NULL) {
-      ERROR_MSG("Malloc failed*ABORT");
-      exit(1);
-    }
+    str = (char *) xmalloc(WCOLS);
 
     for(i = WLINES + 4; i < LINES; i++)
     {
@@ -209,10 +195,7 @@ static void Change2View(char *file_path)
     int i;
     char *str;
 
-    if ((str = (char *)malloc(WCOLS)) == NULL) {
-      ERROR_MSG("Malloc failed*ABORT");
-      exit(1);
-    }
+    str = (char *) xmalloc(WCOLS);
     for(i = WLINES + 4; i < LINES; i++)
     {
         wmove(stdscr,i , 0);
@@ -286,7 +269,8 @@ static void change_char(int ch)
     char pp=0;
     char msg[50];
 
-    if ((cambio = malloc(sizeof(struct MODIF))) == NULL) {
+    cambio = malloc(sizeof(struct MODIF));
+    if (cambio == NULL) {
       ERROR_MSG("Malloc failed*ABORT");
       exit(1);
     }

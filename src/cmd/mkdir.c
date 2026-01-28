@@ -138,13 +138,8 @@ CREATE_NODE:
      * ==> link into tree
      */
 
-    /* FIX: Used calloc to ensure all fields (especially tagged_flag) are zeroed */
     /* FIX: Added +1 to allocation for null terminator */
-    if( ( den_ptr = (DirEntry *) calloc( 1, sizeof( DirEntry ) + strlen( dir_name ) + 1 ) ) == NULL )
-    {
-      ERROR_MSG( "Malloc Failed*ABORT" );
-      exit( 1 );
-    }
+    den_ptr = (DirEntry *) xcalloc( 1, sizeof( DirEntry ) + strlen( dir_name ) + 1 );
 
     den_ptr->file      = NULL;
     den_ptr->next      = NULL;

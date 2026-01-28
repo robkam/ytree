@@ -214,7 +214,7 @@ int GetSearchCommandLine(char *command_line, char *raw_pattern)
 
   if( UI_ReadString( "SEARCH TAGGED:", input_buf, 256, HST_SEARCH ) == CR )
   {
-    if( raw_pattern ) {
+    if (raw_pattern ) {
         strncpy(raw_pattern, input_buf, 255);
         raw_pattern[255] = '\0';
     }

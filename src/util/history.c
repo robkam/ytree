@@ -65,11 +65,7 @@ static void BuildViewList(int type) {
 
     if (view_count == 0) return;
 
-    ViewList = (History **)malloc(view_count * sizeof(History *));
-    if (!ViewList) {
-        ERROR_MSG("Malloc failed for history view*ABORT");
-        exit(1);
-    }
+    ViewList = (History **)xmalloc(view_count * sizeof(History *));
 
     /* Populate ViewList: Pinned first (preserving relative order from Hist), then Unpinned */
     i = 0;
@@ -167,12 +163,7 @@ void SaveHistory(char *Filename)
 
   if ((HstFile = fopen(Filename, "w")) == NULL) return;
 
-  hst_array = (History **) malloc(MAX_HST_FILE_LINES * sizeof(History *));
-  if (!hst_array) {
-      fclose(HstFile);
-      ERROR_MSG("Malloc failed in SaveHistory");
-      return;
-  }
+  hst_array = (History **) xmalloc(MAX_HST_FILE_LINES * sizeof(History *));
 
   /* Collect pointers by traversing forward (Newest -> Oldest) */
   count = 0;
@@ -221,25 +212,17 @@ void InsHistory( char *NewHst, int type)
 
    if (flag == 0)
    {
-      if ((TMP=(History *) malloc(sizeof(struct _history))) != NULL)
-      {
-         TMP -> next = Hist;
-	 TMP -> prev = NULL;
-	 TMP -> hst = strdup(NewHst);
-     TMP -> type = type;
-     TMP -> pinned = 0;
+      TMP=(History *) xmalloc(sizeof(struct _history));
+      TMP -> next = Hist;
+	  TMP -> prev = NULL;
+	  TMP -> hst = xstrdup(NewHst);
+      TMP -> type = type;
+      TMP -> pinned = 0;
 
-	 if(TMP->hst == NULL)
-	 {
-	    ERROR_MSG("strdup failed*ABORT");
-            exit(1);
-	 }
-
-         if (Hist != NULL)
+      if (Hist != NULL)
 	     Hist -> prev = TMP;
-         Hist = TMP;
+      Hist = TMP;
          /* total_hist updated via BuildViewList during GetHistory, or irrelevant for globals here */
-      }
    }
    return;
 }

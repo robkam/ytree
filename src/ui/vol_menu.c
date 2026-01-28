@@ -56,11 +56,7 @@ int SelectLoadedVolume(void)
             return changes_made ? 0 : -1;
         }
 
-        vol_array = (struct Volume **)malloc(num_volumes * sizeof(struct Volume *));
-        if (vol_array == NULL) {
-            ERROR_MSG("Failed to allocate memory for volume list.");
-            return -1;
-        }
+        vol_array = (struct Volume **)xmalloc(num_volumes * sizeof(struct Volume *));
 
         i = 0;
         int new_selected_index = 0; // Default to first item
@@ -332,29 +328,27 @@ int SelectLoadedVolume(void)
 
         num_volumes = HASH_COUNT(VolumeList);
         if (num_volumes > 0) {
-             vol_array = (struct Volume **)malloc(num_volumes * sizeof(struct Volume *));
-             if (vol_array) {
-                 i = 0;
-                 HASH_ITER(hh, VolumeList, s, tmp) {
-                     vol_array[i++] = s;
-                 }
-
-                 /* Ensure index is still valid */
-                 if (selected_index >= num_volumes) selected_index = num_volumes - 1;
-                 if (selected_index < 0) selected_index = 0;
-
-                 struct Volume *target_vol = vol_array[selected_index];
-
-                 if (target_vol != CurrentVolume) {
-                     int login_result =  LogDisk(target_vol->vol_stats.login_path);
-                     free(vol_array);
-                     return login_result;
-                 }
-                 free(vol_array);
-                 /* If we are already on the selected volume, just ensure list is synced */
-                 BuildDirEntryList(CurrentVolume);
-                 return 0; /* Already on selected volume */
+             vol_array = (struct Volume **)xmalloc(num_volumes * sizeof(struct Volume *));
+             i = 0;
+             HASH_ITER(hh, VolumeList, s, tmp) {
+                 vol_array[i++] = s;
              }
+
+             /* Ensure index is still valid */
+             if (selected_index >= num_volumes) selected_index = num_volumes - 1;
+             if (selected_index < 0) selected_index = 0;
+
+             struct Volume *target_vol = vol_array[selected_index];
+
+             if (target_vol != CurrentVolume) {
+                 int login_result =  LogDisk(target_vol->vol_stats.login_path);
+                 free(vol_array);
+                 return login_result;
+             }
+             free(vol_array);
+             /* If we are already on the selected volume, just ensure list is synced */
+             BuildDirEntryList(CurrentVolume);
+             return 0; /* Already on selected volume */
         }
     }
 

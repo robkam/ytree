@@ -102,11 +102,7 @@ char *FormFilename(char *dest, char *src, unsigned int max_len)
 
   /* If dest and src overlap, we must copy src to avoid corruption during write */
   if (dest == src) {
-      src_copy = strdup(src);
-      if (!src_copy) {
-          ERROR_MSG("strdup failed*ABORT");
-          exit(1);
-      }
+      src_copy = xstrdup(src);
       working_src = src_copy;
   }
 
@@ -538,10 +534,7 @@ void PrintLine(WINDOW *win, int y, int x, char *line, int len)
   if (len < 1) return;
 
   // Allocate for 'len' characters plus null terminator
-  if ((buffer_content = (char *)malloc(len + 1)) == NULL) {
-     ERROR_MSG( "Malloc failed*ABORT" );
-     exit( 1 );
-  }
+  buffer_content = (char *)xmalloc(len + 1);
 
   // Set the starting character
   buffer_content[0] = line[0];
@@ -648,10 +641,7 @@ void PrintMenuOptions(WINDOW *win,int y, int x, char *str, int ncolor, int hcolo
   int color, hi_color, lo_color;
   char *sbuf, buf[2];
 
-  if ((sbuf = (char *)malloc(strlen(str)+1)) == NULL) {
-    ERROR_MSG( "Malloc failed*ABORT" );
-    exit( 1 );
-  }
+  sbuf = (char *)xmalloc(strlen(str)+1);
   sbuf[0] = '\0';
   buf[1] = '\0';
 

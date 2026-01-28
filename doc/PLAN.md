@@ -1228,7 +1228,7 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 *   **Goal:** Eliminate repetitive `malloc` error checking code scattered across the project.
 *   **Mechanism:** Implement `xmalloc`, `xcalloc`, and `xstrdup` in `src/util/memory.c`. These wrappers exit safely on allocation failure. Refactor codebase to use them.
 *   **Files to Modify:** `src/util/memory.c` (New), `include/ytree.h`, all source files.
-*   - [ ] **Status:** Not Started.
+*   - [x] **Status:** Completed.
 
 #### **Step 9.1.11: Standardize Internal Viewer Geometry**
 *   **Goal:** Decouple the internal Hex/Text viewer from global `LINES`/`COLS` to allow future split-screen integration.

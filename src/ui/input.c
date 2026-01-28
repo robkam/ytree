@@ -39,11 +39,11 @@ char *StrLeft(const char *str, size_t visible_count)
 #endif
 
   if (visible_count == 0)
-    return(strdup(""));
+    return(xstrdup(""));
 
   len = StrVisualLength(str);
   if (visible_count >= len)
-    return(strdup(str));
+    return(xstrdup(str));
 
 #ifdef WITH_UTF8
 
@@ -82,11 +82,7 @@ char *StrLeft(const char *str, size_t visible_count)
   left_bytes = visible_count;
 #endif
 
-  result = malloc(left_bytes + 1);
-  if (result == NULL) {
-      ERROR_MSG("malloc failed*ABORT");
-      exit(1);
-  }
+  result = xmalloc(left_bytes + 1);
   memcpy(result, str, left_bytes);
   result[left_bytes] = '\0';
   return(result);
@@ -106,11 +102,11 @@ char *StrRight(const char *str, size_t visible_count)
 #endif
 
   if (visible_count == 0)
-    return(strdup(""));
+    return(xstrdup(""));
 
   visual_len = StrVisualLength(str);
   if(visual_len <= visible_count)
-    return(strdup(str));
+    return(xstrdup(str));
 
 #ifdef WITH_UTF8
 
@@ -145,16 +141,12 @@ char *StrRight(const char *str, size_t visible_count)
 
   left_bytes = s_start - str;
 
-  result = strdup(&str[left_bytes]);
+  result = xstrdup(&str[left_bytes]);
 
 #else
-  result = strdup( &str[visual_len - visible_count] );
+  result = xstrdup( &str[visual_len - visible_count] );
 #endif
 
-  if (result == NULL) {
-      ERROR_MSG("strdup failed*ABORT");
-      exit(1);
-  }
   return(result);
 }
 

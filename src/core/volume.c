@@ -27,12 +27,7 @@ struct Volume *Volume_Create(void) {
     struct Volume *new_vol = NULL;
 
     /* Allocate memory for a new Volume and initialize it to zero */
-    new_vol = (struct Volume *)calloc(1, sizeof(struct Volume));
-    if (new_vol == NULL) {
-        /* Critical error: memory allocation failed */
-        fprintf(stderr, "Error: Failed to allocate memory for new Volume.\n");
-        exit(1);
-    }
+    new_vol = (struct Volume *)xcalloc(1, sizeof(struct Volume));
 
     /* Assign a unique ID and increment the serial counter */
     new_vol->id = VolumeSerial++;
@@ -219,18 +214,7 @@ struct Volume *Volume_Load(const char *path, struct Volume *reuse_vol, ScanProgr
     strcpy(s->file_spec, DEFAULT_FILE_SPEC);
 
     if (!s->tree) {
-        s->tree = (DirEntry *)calloc(1, sizeof(DirEntry) + PATH_LENGTH);
-        if (!s->tree) {
-            MESSAGE("Malloc failed for root DirEntry");
-            if (!reuse_vol) Volume_Delete(vol);
-            else {
-                /* For reused volume, ensure clean state */
-                memset(s, 0, sizeof(Statistic));
-                s->kind_of_sort = SORT_BY_NAME + SORT_ASC;
-                strcpy(s->file_spec, DEFAULT_FILE_SPEC);
-            }
-            return NULL;
-        }
+        s->tree = (DirEntry *)xcalloc(1, sizeof(DirEntry) + PATH_LENGTH);
     }
 
     strncpy(s->login_path, resolved_path, PATH_LENGTH);

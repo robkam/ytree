@@ -306,6 +306,12 @@ extern void UI_Notice(const char *fmt, ...);
 extern void AboutBox(void);
 extern void UnmapNoticeWindow(void);
 
+/* memory.c */
+extern void *xmalloc(size_t size);
+extern void *xcalloc(size_t nmemb, size_t size);
+extern void *xrealloc(void *ptr, size_t size);
+extern char *xstrdup(const char *s);
+
 #include "watcher.h"
 
 #endif /* YTREE_H */

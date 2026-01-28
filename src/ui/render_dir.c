@@ -85,11 +85,8 @@ void PrintDirEntry(struct Volume *vol,
                  (void)GetAttributes(de_ptr->stat_struct.st_mode, attributes);
                  (void)CTime( de_ptr->stat_struct.st_mtime, modify_time );
                  /* Increased buffer size from 38 to 42 to accommodate 16-char date */
-                 if ((line_buffer = (char *) malloc(42)) == NULL)
-                 {
-                    ERROR_MSG("malloc() Failed*Abort");
-                    exit(1);
-                 }
+                 line_buffer = (char *) xmalloc(42);
+
 #ifdef HAS_LONGLONG
                  /* Updated %12s to %16s for date */
                  (void) strcpy( format, "%10s %3d %8lld %16s");
@@ -122,11 +119,8 @@ void PrintDirEntry(struct Volume *vol,
                      (void) snprintf( group, sizeof(group), "%d", (int) de_ptr->stat_struct.st_gid );
                      group_name_ptr = group;
                  }
-                 if ((line_buffer = (char *) malloc(40)) == NULL)
-                 {
-                    ERROR_MSG("malloc() Failed*Abort");
-                    exit(1);
-                 }
+                 line_buffer = (char *) xmalloc(40);
+
                  (void) strcpy( format, "%12u  %-12s %-12s");
                  (void) snprintf( line_buffer, 40, format,
                                  (unsigned int)de_ptr->stat_struct.st_ino,
@@ -141,11 +135,8 @@ void PrintDirEntry(struct Volume *vol,
                  /* Increased buffer size from 40 to 50 to accommodate two 16-char dates */
                  /* Format: "Chg.: " (6) + 16 + "  Acc.: " (8) + 16 = 46 chars. 50 is safe. */
                  (void) strcpy( format, "Chg.: %16s  Acc.: %16s");
-                 if ((line_buffer = (char *) malloc(50)) == NULL)
-                 {
-                    ERROR_MSG("malloc() Failed*Abort");
-                    exit(1);
-                 }
+                 line_buffer = (char *) xmalloc(50);
+
                  (void)snprintf(line_buffer, 50, format, change_time, access_time);
                  break;
   }

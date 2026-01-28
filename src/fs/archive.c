@@ -21,10 +21,6 @@ typedef struct {
 
 /*
  * Helper to normalize archive internal paths for consistent comparison.
- * It handles:
- * - Empty path or "." -> canonical "."
- * - Leading "./" -> stripped
- * The result is copied into the provided buffer.
  */
 static const char *normalize_archive_path_for_comparison(const char *path, char *buffer, size_t buffer_size) {
     if (!path || *path == '\0') {
@@ -93,10 +89,6 @@ int ExtractArchiveEntry(const char *archive_path, const char *entry_path, int ou
 
         /*
          * Robust Suffix Matching Strategy
-         * We do not rely on calculating the prefix length, as this is prone to
-         * mismatches with symlinks, mounts, or relative paths.
-         * Instead, checking if the requested 'entry_path' ENDS with the archive's 'clean_path'
-         * guarantees a match, provided the boundary is a separator.
          */
         size_t clean_len = strlen(clean_path);
 
@@ -105,8 +97,6 @@ int ExtractArchiveEntry(const char *archive_path, const char *entry_path, int ou
 
             if (strcmp(suffix, clean_path) == 0) {
                 /* The suffix matches. Now verify boundary to prevent partial name matches. */
-                /* e.g., "my_file.txt" matching "file.txt" should fail. */
-                /* It must be the start of string OR preceded by a separator. */
                 if (suffix == entry_path || *(suffix - 1) == FILE_SEPARATOR_CHAR) {
                      /* MATCH FOUND! */
                      found = 1;
@@ -163,8 +153,6 @@ int ExtractArchiveNode(const char *archive_path, const char *entry_path, const c
     if (!entry_path || !dest_path) return -1;
     entry_len = strlen(entry_path);
 
-    /* fprintf(stderr, "DEBUG: ExtractArchiveNode: Archive='%s' Entry='%s' Dest='%s'\n", archive_path, entry_path, dest_path); */
-
     a = archive_read_new();
     if (a == NULL) {
         return -1;
@@ -174,7 +162,6 @@ int ExtractArchiveNode(const char *archive_path, const char *entry_path, const c
 
     r = archive_read_open_filename(a, archive_path, 10240);
     if (r != ARCHIVE_OK) {
-        /* fprintf(stderr, "DEBUG: archive_read_open_filename failed: %s\n", archive_error_string(a)); */
         archive_read_free(a);
         return -1;
     }
@@ -263,7 +250,6 @@ int ExtractArchiveNode(const char *archive_path, const char *entry_path, const c
                 }
             }
         }
-        /* Logging mismatches removed */
     }
 
     archive_read_free(a);
@@ -282,9 +268,6 @@ static int configure_writer(struct archive *in, struct archive *out) {
     int format = archive_format(in);
     int filter = archive_filter_code(in, 0);
     int r;
-
-    /* Instrumentation */
-    fprintf(stderr, "configure_writer: Detected Format=0x%x, Filter=%d\n", format, filter);
 
     /* Set Filter */
     switch (filter) {
@@ -327,10 +310,7 @@ static int configure_writer(struct archive *in, struct archive *out) {
             return -1;
     }
 
-    if (r < ARCHIVE_OK) {
-        fprintf(stderr, "configure_writer: Failed to add filter (code %d): %s\n", filter, archive_error_string(out));
-        return -1;
-    }
+    if (r < ARCHIVE_OK) return -1;
 
     /* Set Format */
     format &= ARCHIVE_FORMAT_BASE_MASK;
@@ -347,36 +327,28 @@ static int configure_writer(struct archive *in, struct archive *out) {
     } else if (format == ARCHIVE_FORMAT_AR) {
         r = archive_write_set_format_ar_bsd(out);
     } else {
-        fprintf(stderr, "configure_writer: Unknown format code: 0x%x\n", format);
         return -1; /* Unknown format */
     }
 
-    if (r < ARCHIVE_OK) {
-        fprintf(stderr, "configure_writer: Failed to set format (code 0x%x): %s\n", format, archive_error_string(out));
-        return -1;
-    }
+    if (r < ARCHIVE_OK) return -1;
 
     return 0;
 }
 
 /*
  * Create a clean copy of an entry for writing.
- * This strips format-specific metadata that might confuse the writer
- * (e.g. encrypted flags, compressed size hints).
  */
 static struct archive_entry *clone_entry_for_write(struct archive_entry *in_entry)
 {
     struct archive_entry *out_entry = archive_entry_new();
     if (!out_entry) return NULL;
 
-    /* Basic Metadata */
     archive_entry_set_pathname(out_entry, archive_entry_pathname(in_entry));
     archive_entry_set_size(out_entry, archive_entry_size(in_entry));
     archive_entry_set_mtime(out_entry, archive_entry_mtime(in_entry), archive_entry_mtime_nsec(in_entry));
     archive_entry_set_filetype(out_entry, archive_entry_filetype(in_entry));
     archive_entry_set_perm(out_entry, archive_entry_perm(in_entry));
 
-    /* User/Group */
     archive_entry_set_uid(out_entry, archive_entry_uid(in_entry));
     archive_entry_set_gid(out_entry, archive_entry_gid(in_entry));
     if (archive_entry_uname(in_entry))
@@ -384,30 +356,23 @@ static struct archive_entry *clone_entry_for_write(struct archive_entry *in_entr
     if (archive_entry_gname(in_entry))
         archive_entry_set_gname(out_entry, archive_entry_gname(in_entry));
 
-    /* Links */
     if (archive_entry_hardlink(in_entry))
         archive_entry_set_hardlink(out_entry, archive_entry_hardlink(in_entry));
     if (archive_entry_symlink(in_entry))
         archive_entry_set_symlink(out_entry, archive_entry_symlink(in_entry));
 
-    /* Explicitly clear ACLs/Xattrs to avoid format incompatibilities */
     archive_entry_acl_clear(out_entry);
     archive_entry_xattr_clear(out_entry);
 
     return out_entry;
 }
 
-/*
- * Copy data using a stream buffer (Read -> Write)
- * Ignores offsets to ensure safe format conversion (ZIP -> ZIP).
- */
 static int copy_data_stream(struct archive *in, struct archive *out) {
     char *buf;
     ssize_t len;
     int ret = ARCHIVE_OK;
 
-    buf = malloc(COPY_BUF_SIZE);
-    if (!buf) return ARCHIVE_FATAL;
+    buf = xmalloc(COPY_BUF_SIZE);
 
     while (1) {
         len = archive_read_data(in, buf, COPY_BUF_SIZE);
@@ -553,7 +518,6 @@ int Archive_Rewrite(char *archive_path, RewriteCallback cb, void *user_data)
     success = process_rewrite_loop(a_in, a_out, cb, user_data, &fd_tmp);
 
     archive_read_free(a_in);
-    /* Always close/free writer to prevent leaks of zlib state */
     archive_write_close(a_out);
     archive_write_free(a_out);
     close(fd_tmp);
@@ -591,19 +555,12 @@ int Archive_DeleteEntry(char *archive_path, char *file_path) {
 
     if (!archive_path || !file_path) return -1;
 
-    /*
-     * file_path typically contains the full path including the archive path prefix
-     * if it came from GetFileNamePath. We should strip the archive path prefix
-     * to get the internal path for matching.
-     */
     if (file_len > arch_len && strncmp(file_path, archive_path, arch_len) == 0) {
         char *ptr = file_path + arch_len;
-        /* Skip separator if present */
         while (*ptr == FILE_SEPARATOR_CHAR) ptr++;
         strncpy(internal_path, ptr, sizeof(internal_path));
         internal_path[sizeof(internal_path)-1] = '\0';
     } else {
-        /* Fallback: use full path if prefix doesn't match */
         strncpy(internal_path, file_path, sizeof(internal_path));
         internal_path[sizeof(internal_path)-1] = '\0';
     }
@@ -617,9 +574,7 @@ static int cb_add_skip(struct archive *r, struct archive *w, struct archive_entr
     const char *curr = archive_entry_pathname(entry);
     (void)r; (void)w;
 
-    /* Skip if matches destination name (overwrite) */
     if (strcmp(curr, dest_name) == 0) return AR_SKIP;
-    /* Normalization check */
     const char *norm = curr;
     if (norm[0] == '.' && norm[1] == '/') norm += 2;
     if (strcmp(norm, dest_name) == 0) return AR_SKIP;
@@ -639,23 +594,10 @@ int Archive_AddFile(char *archive_path, char *src_path, char *dest_name, BOOL is
         return -1;
     }
 
-    /* 1. Copy existing entries */
     success = process_rewrite_loop(a_in, a_out, cb_add_skip, dest_name, &fd_tmp);
 
-    /* 2. Add New Entry (if loop succeeded or archive was empty but valid) */
-    /* If input archive was empty, process_rewrite_loop returns 0 because
-       writer wasn't initialized. We must init writer here manually. */
-
     if (success == 0) {
-        /* If a_in was empty, we need to initialize writer now.
-           However, we don't know the format/filter from a_in because it had no headers.
-           We can try to default to something safe (e.g. ZIP/None) or fail.
-           Given we are modifying an existing archive, we expect headers.
-           BUT: What if the archive is just empty? `libarchive` usually can't tell format without header/magic.
-           If `archive_read_open` succeeded, it matched something.
-           Lets assume if loop failed it was due to error, unless we want to support empty archives aggressively.
-           For now, stick with "success == 1" requirement.
-        */
+        /* Usually due to abort, but could be empty archive. See previous notes. */
     }
 
     if (success) {
@@ -683,18 +625,16 @@ int Archive_AddFile(char *archive_path, char *src_path, char *dest_name, BOOL is
                 if (archive_write_header(a_out, new_e) == ARCHIVE_OK) {
                     src_fd = open(src_path, O_RDONLY);
                     if (src_fd >= 0) {
-                        char *buf = malloc(COPY_BUF_SIZE);
-                        if (buf) {
-                            ssize_t len;
-                            while ((len = read(src_fd, buf, COPY_BUF_SIZE)) > 0) {
-                                if (archive_write_data(a_out, buf, len) < 0) {
-                                    ERROR_MSG("Error writing new entry data");
-                                    success = 0;
-                                    break;
-                                }
+                        char *buf = xmalloc(COPY_BUF_SIZE);
+                        ssize_t len;
+                        while ((len = read(src_fd, buf, COPY_BUF_SIZE)) > 0) {
+                            if (archive_write_data(a_out, buf, len) < 0) {
+                                ERROR_MSG("Error writing new entry data");
+                                success = 0;
+                                break;
                             }
-                            free(buf);
                         }
+                        free(buf);
                         close(src_fd);
                     }
                 } else {
@@ -723,25 +663,17 @@ static int cb_rename(struct archive *r, struct archive *w, struct archive_entry 
     size_t old_len, curr_len;
     (void)r; (void)w;
 
-    /* Normalize current path */
     if (current[0] == '.' && current[1] == FILE_SEPARATOR_CHAR) current += 2;
     while (*current == FILE_SEPARATOR_CHAR) current++;
 
     old_len = strlen(ctx->old_path);
     curr_len = strlen(current);
 
-    /* Check if current entry matches or is inside the directory being renamed */
     if (strncmp(current, ctx->old_path, old_len) == 0) {
-        /* Exact match or subdirectory */
         if (curr_len == old_len || current[old_len] == FILE_SEPARATOR_CHAR) {
 
             struct archive_entry *cloned = clone_entry_for_write(entry);
             char new_path[PATH_LENGTH];
-
-            /* Construct new path */
-            /* Parent Dir + New Name + Suffix */
-
-            /* Find parent directory of old_path */
             char parent_dir[PATH_LENGTH];
             const char *last_slash = strrchr(ctx->old_path, FILE_SEPARATOR_CHAR);
             int parent_len = 0;
@@ -754,7 +686,6 @@ static int cb_rename(struct archive *r, struct archive *w, struct archive_entry 
                 parent_dir[0] = '\0';
             }
 
-            /* Suffix is the part of current path after old_path */
             const char *suffix = current + old_len;
 
             if (parent_len > 0) {
@@ -765,7 +696,6 @@ static int cb_rename(struct archive *r, struct archive *w, struct archive_entry 
 
             archive_entry_set_pathname(cloned, new_path);
 
-            /* Write the modified entry */
             if (archive_write_header(w, cloned) != ARCHIVE_OK) {
                 archive_entry_free(cloned);
                 return AR_ABORT;
@@ -776,7 +706,7 @@ static int cb_rename(struct archive *r, struct archive *w, struct archive_entry 
                  if (copy_data_stream(r, w) != ARCHIVE_OK) return AR_ABORT;
             }
 
-            return AR_SKIP; /* Skip original entry since we wrote the modified one */
+            return AR_SKIP;
         }
     }
     return AR_KEEP;
@@ -791,14 +721,12 @@ int Archive_RenameEntry(char *archive_path, char *old_path, char *new_name)
 
     if (!archive_path || !old_path || !new_name) return -1;
 
-    /* Strip archive prefix to get internal path */
     if (old_len > arch_len && strncmp(old_path, archive_path, arch_len) == 0) {
         char *ptr = old_path + arch_len;
         while (*ptr == FILE_SEPARATOR_CHAR) ptr++;
         strncpy(internal_old_path, ptr, sizeof(internal_old_path));
         internal_old_path[sizeof(internal_old_path)-1] = '\0';
     } else {
-        /* Fallback */
         strncpy(internal_old_path, old_path, sizeof(internal_old_path));
         internal_old_path[sizeof(internal_old_path)-1] = '\0';
     }
@@ -852,31 +780,19 @@ static int InsertArchiveDirEntry(DirEntry *tree, char *path, struct stat *stat, 
       return -1;
   }
 
-  /* Split path into directory and filename */
   Fnsplit(path, father_path, name);
 
-  /* Find father directory */
-  /* If father_path is empty (root), GetArchiveDirEntry returns tree */
   if( GetArchiveDirEntry( tree, father_path, &df_ptr ) )
   {
     ERROR_MSG( "can't find subdir*%s", father_path );
     return( -1 );
   }
 
-  /*
-   * FIX: Allocate exact size for name + null terminator.
-   */
-  if( ( de_ptr = (DirEntry *) calloc( 1, sizeof( DirEntry ) + strlen(name) + 1 ) ) == NULL )
-  {
-    ERROR_MSG( "Malloc failed*ABORT" );
-    exit( 1 );
-  }
+  /* FIX: Allocate exact size for name + null terminator */
+  de_ptr = (DirEntry *) xcalloc( 1, sizeof( DirEntry ) + strlen(name) + 1 );
 
   (void) strcpy( de_ptr->name, name );
   (void) memcpy( (char *) &de_ptr->stat_struct, (char *) stat, sizeof( struct stat ) );
-
-  /* Directory einklinken (Link Directory into Tree) */
-  /*-------------------------------------------------*/
 
   if( df_ptr->sub_tree == NULL )
   {
@@ -891,22 +807,16 @@ static int InsertArchiveDirEntry(DirEntry *tree, char *path, struct stat *stat, 
     {
       if( strcmp( ds_ptr->name, de_ptr->name ) > 0 )
       {
-        /* ds-Element ist groesser */
-        /*-------------------------*/
-
         de_ptr->next = ds_ptr;
         de_ptr->prev = ds_ptr->prev;
         if( ds_ptr->prev ) ds_ptr->prev->next = de_ptr;
-        else de_ptr->up_tree->sub_tree = de_ptr; /* Fix head pointer if inserting at start */
+        else de_ptr->up_tree->sub_tree = de_ptr;
         ds_ptr->prev = de_ptr;
         break;
       }
 
       if( ds_ptr->next == NULL )
       {
-        /* Ende der Liste erreicht; ==> einfuegen */
-        /*----------------------------------------*/
-
         de_ptr->prev = ds_ptr;
         de_ptr->next = ds_ptr->next;
         ds_ptr->next = de_ptr;
@@ -931,10 +841,9 @@ int InsertArchiveFileEntry(DirEntry *tree, char *path, struct stat *stat, Statis
 
   if( KeyPressed() )
   {
-    Quit();  /* Abfrage, ob ytree verlassen werden soll */
+    Quit();
   }
 
-  /* Fnsplit handles path length checks internally now */
   Fnsplit( path, dir, file );
 
   if( GetArchiveDirEntry( tree, dir, &de_ptr ) )
@@ -964,11 +873,7 @@ int InsertArchiveFileEntry(DirEntry *tree, char *path, struct stat *stat, Statis
     n = 0;
 
   /* FIX: Allocate exact size for name + null + link data */
-  if( ( fe_ptr = (FileEntry *) calloc( 1, sizeof( FileEntry ) + strlen(file) + 1 + n + 1 ) ) == NULL )
-  {
-    ERROR_MSG( "Malloc failed" );
-    return -1;
-  }
+  fe_ptr = (FileEntry *) xcalloc( 1, sizeof( FileEntry ) + strlen(file) + 1 + n + 1 );
 
   (void) memcpy( (char *) &fe_ptr->stat_struct, (char *) stat, sizeof( struct stat ) );
   (void) strcpy( fe_ptr->name, file );
@@ -986,9 +891,6 @@ int InsertArchiveFileEntry(DirEntry *tree, char *path, struct stat *stat, Statis
   s->disk_total_files++;
   s->disk_total_bytes += stat->st_size;
 
-  /* Einklinken */
-  /*------------*/
-
   if( de_ptr->file == NULL )
   {
     de_ptr->file = fe_ptr;
@@ -1005,13 +907,6 @@ int InsertArchiveFileEntry(DirEntry *tree, char *path, struct stat *stat, Statis
 }
 
 
-/*
- * GetArchiveDirEntry
- * Robustly searching for a path within the tree.
- * tree: The Root directory entry.
- * path: The path to find (e.g., "A/B" or "A").
- * dir_entry: Output pointer.
- */
 static int GetArchiveDirEntry(DirEntry *tree, char *path, DirEntry **dir_entry)
 {
     char *path_copy;
@@ -1025,8 +920,7 @@ static int GetArchiveDirEntry(DirEntry *tree, char *path, DirEntry **dir_entry)
         return 0;
     }
 
-    path_copy = strdup(path);
-    if (!path_copy) return -1;
+    path_copy = xstrdup(path);
 
     token = strtok_r(path_copy, FILE_SEPARATOR_STRING, &saveptr);
     while (token) {
@@ -1054,10 +948,6 @@ static int GetArchiveDirEntry(DirEntry *tree, char *path, DirEntry **dir_entry)
 }
 
 
-/*
- * TryInsertArchiveDirEntry
- * Iteratively ensures every component of the path exists in the tree.
- */
 int TryInsertArchiveDirEntry(DirEntry *tree, char *dir, struct stat *stat, Statistic *s)
 {
     char *path_copy;
@@ -1067,8 +957,7 @@ int TryInsertArchiveDirEntry(DirEntry *tree, char *dir, struct stat *stat, Stati
 
     if (!dir || *dir == '\0') return 0;
 
-    path_copy = strdup(dir);
-    if (!path_copy) return -1;
+    path_copy = xstrdup(dir);
 
     current_path[0] = '\0';
 
@@ -1105,78 +994,43 @@ void MinimizeArchiveTree(DirEntry **tree_ptr, Statistic *s)
   FileEntry *fe_ptr;
 
   /* 1. Collapse Root if empty and has siblings */
-  /* If the root (tree) has no files, no subdirectories, but has a 'next' sibling,
-     it's an empty placeholder. We can discard it and promote the sibling to be root. */
   if( tree->prev == NULL && tree->next != NULL && tree->file == NULL && tree->sub_tree == NULL )
   {
     DirEntry *new_root = tree->next;
-
-    /* Update global pointer via the double pointer argument */
     *tree_ptr = new_root;
-
-    /* Fix up pointers for the new root */
     new_root->prev = NULL;
-    /* It's a root now, so no up_tree */
     new_root->up_tree = NULL;
-
-    /* Update children of the new root (if any) to point to it as up_tree?
-       Wait, they already point to it. 'up_tree' is parent.
-       The new root is just taking the place of the old root.
-       Existing children of 'new_root' point to 'new_root'. That's fine. */
-
     s->disk_total_directories--;
     free(tree);
-    tree = new_root; /* Update local variable for subsequent checks */
+    tree = new_root;
   }
 
 
   /* 2. Collapse empty leaf directories in sub-trees */
-  /* Iterate through children of the current root */
   for( de_ptr = tree->sub_tree; de_ptr; de_ptr = next_ptr )
   {
-    next_ptr = de_ptr->next; /* Save next because de_ptr might be freed */
+    next_ptr = de_ptr->next;
 
     if( de_ptr->prev == NULL && de_ptr->next == NULL && de_ptr->file == NULL )
     {
-      /* de_ptr is a single child (no siblings) and has no files.
-         We can merge it into the parent (tree).
-         Example: /usr/ -> /usr/bin/  becomes /usr/bin/
-      */
-
-      /* Concatenate names: parent/child */
-      /* The DirEntry->name buffer is now allocated with PATH_LENGTH + 1,
-       * providing sufficient space for these strcat operations. */
       if( strcmp( tree->name, FILE_SEPARATOR_STRING ) )
 	    (void) strcat( tree->name, FILE_SEPARATOR_STRING );
       (void) strcat( tree->name, de_ptr->name );
 
       s->disk_total_directories--;
 
-      /* Move de_ptr's children to be tree's children */
       tree->sub_tree = de_ptr->sub_tree;
 
-      /* Update up_tree pointers for all moved children */
       for( de1_ptr = de_ptr->sub_tree; de1_ptr; de1_ptr = de1_ptr->next )
 	    de1_ptr->up_tree = tree;
 
-      /* Update stats */
-      /* (tree stats should already encompass de_ptr stats if any, but here de_ptr has no files) */
-
       free( de_ptr );
-      /* Continue loop with the *new* first child (which was de_ptr->sub_tree)
-         Wait, the loop variable was de_ptr. We effectively replaced de_ptr with its children.
-         But the loop iterates over siblings of de_ptr. de_ptr had no siblings (check above).
-         So next_ptr is NULL. Loop terminates. Correct. */
-
-      /* Since we modified the structure, we should restart the scan or check the new children?
-         The original code only checked the immediate level. We keep it simple. */
       continue;
     }
-    break; /* If we hit a non-collapsible entry, stop attempting to collapse this path */
+    break;
   }
 
   /* 3. Collapse root into its single child if applicable */
-  /* If tree has no files, no siblings, and exactly one child (sub_tree) which has no siblings */
   if( tree->prev == NULL &&
       tree->next == NULL &&
       tree->file == NULL &&
@@ -1187,19 +1041,14 @@ void MinimizeArchiveTree(DirEntry **tree_ptr, Statistic *s)
   {
     de_ptr = tree->sub_tree;
 
-    /* Merge names */
-    /* The DirEntry->name buffer is now allocated with PATH_LENGTH + 1,
-     * providing sufficient space for these strcat operations. */
     if( strcmp( tree->name, FILE_SEPARATOR_STRING ) )
         (void) strcat( tree->name, FILE_SEPARATOR_STRING );
     (void) strcat( tree->name, de_ptr->name );
 
-    /* Move files up */
     tree->file = de_ptr->file;
     for( fe_ptr=tree->file; fe_ptr; fe_ptr=fe_ptr->next )
       fe_ptr->dir_entry = tree;
 
-    /* Copy stats */
     (void) memcpy( (char *) &tree->stat_struct,
 		   (char *) &de_ptr->stat_struct,
 		   sizeof( struct stat )
@@ -1207,7 +1056,6 @@ void MinimizeArchiveTree(DirEntry **tree_ptr, Statistic *s)
 
     s->disk_total_directories--;
 
-    /* Move grandchildren up */
     tree->sub_tree = de_ptr->sub_tree;
     for( de1_ptr = de_ptr->sub_tree; de1_ptr; de1_ptr = de1_ptr->next )
       de1_ptr->up_tree = tree;

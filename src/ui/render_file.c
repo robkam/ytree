@@ -206,11 +206,7 @@ void PrintFileEntry(int entry_no, int y, int x, unsigned char hilight, int start
     if( line_buffer ) free( line_buffer );
 
     line_buffer_size = COLS + PATH_LENGTH;
-    if( ( line_buffer = (char *) malloc( line_buffer_size ) ) == NULL )
-    {
-      ERROR_MSG( "Malloc failed*ABORT" );
-      exit( 1 );
-    }
+    line_buffer = (char *) xmalloc( line_buffer_size );
   }
 
   if( fe_ptr && S_ISLNK( fe_ptr->stat_struct.st_mode ) )

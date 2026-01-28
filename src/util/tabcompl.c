@@ -189,12 +189,9 @@ char *GetMatches( char *base)
   /* If there's a useful first match that's different from the base,
    * the original code would return a copy of it. */
   if (Mtchs[0] != NULL) {
-    TMP=malloc(strlen(Mtchs[0])+1);
-    if (TMP != NULL){
-      strcpy(TMP, Mtchs[0]);
-      RetVal = TMP;
-    }else{
-      RetVal = NULL;}
+    TMP=xmalloc(strlen(Mtchs[0])+1);
+    strcpy(TMP, Mtchs[0]);
+    RetVal = TMP;
     /* Original code had `free(Mtchs);` here. This is removed as Mtchs is now
      * managed by the static cleanup at the beginning of the *next* call. */
     free(expanded_base); /* expanded_base is no longer needed */
@@ -387,12 +384,9 @@ char *GetMatches( char *base)
                      break;
       case LF :
       case CR :
-                     TMP=malloc(strlen(Mtchs[ disp_begin_pos + cursor_pos])+1);
-		     if (TMP != NULL){
-		        strcpy(TMP, Mtchs[disp_begin_pos + cursor_pos]);
-                        RetVal = TMP;
-		     }else
-                        RetVal = NULL;
+                     TMP=xmalloc(strlen(Mtchs[ disp_begin_pos + cursor_pos])+1);
+		     strcpy(TMP, Mtchs[disp_begin_pos + cursor_pos]);
+                     RetVal = TMP;
 		     break;
 
       case ESC:      RetVal = NULL;
