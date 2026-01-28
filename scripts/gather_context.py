@@ -8,6 +8,7 @@ Features:
 - Saves output to 'context.txt' in project root.
 - Copies output to clipboard automatically (if supported).
 - Generates a file tree + file contents.
+- Focus Mode: Automatically selects headers + main.c + specific targets.
 """
 
 import os
@@ -36,7 +37,7 @@ INCLUDE_EXTS = {'.c', '.h', '.md', '.conf', '.py', '.sh'}
 INCLUDE_FILES = {'Makefile'}
 
 # Default patterns to uncheck in the UI (User can toggle them back)
-DEFAULT_EXCLUDES = {'LICENSE.md', 'why_ytree.md', 'USAGE.md', 'AUTHORS.md', 'CHANGES.md', 'chat.log', 'build.log', 'context.txt'}
+DEFAULT_EXCLUDES = {'LICENSE.md', 'why_ytree.md', 'USAGE.md', 'AUTHORS.md', 'CHANGES.md', 'chat.log', 'build.log', 'context.txt', 'BUGS.md'}
 
 # -----------------------------------------------------------------------------
 # LOGIC
@@ -111,44 +112,46 @@ def copy_to_clipboard(text):
 # OUTPUT GENERATION
 # -----------------------------------------------------------------------------
 
-def generate_output(root_dir, selected_files):
+def generate_output(root_dir, selected_files, include_structure=True):
     """Generates the final formatted string."""
     output = []
 
     # 1. Project Structure Tree
-    output.append("# PROJECT STRUCTURE\n")
+    if include_structure:
+        output.append("# PROJECT STRUCTURE\n")
 
-    for root, dirs, files in os.walk(root_dir):
-        dirs[:] = [d for d in dirs if d not in IGNORE_DIRS]
+        for root, dirs, files in os.walk(root_dir):
+            dirs[:] = [d for d in dirs if d not in IGNORE_DIRS]
 
-        rel_path = os.path.relpath(root, root_dir)
-        if rel_path == ".":
-            level = 0
-        else:
-            level = rel_path.count(os.sep) + 1
+            rel_path = os.path.relpath(root, root_dir)
+            if rel_path == ".":
+                level = 0
+            else:
+                level = rel_path.count(os.sep) + 1
 
-        indent = ' ' * 4 * level
-        output.append(f"{indent}{os.path.basename(root)}/")
+            indent = ' ' * 4 * level
+            output.append(f"{indent}{os.path.basename(root)}/")
 
-        subindent = ' ' * 4 * (level + 1)
-        for f in sorted(files):
-            if is_text_file(f):
-                f_rel = os.path.join(rel_path, f)
-                if rel_path == ".": f_rel = f
+            subindent = ' ' * 4 * (level + 1)
+            for f in sorted(files):
+                if is_text_file(f):
+                    f_rel = os.path.join(rel_path, f)
+                    if rel_path == ".": f_rel = f
 
-                # Mark if it's included in the dump
-                marker = ""
-                if f_rel not in selected_files:
-                    marker = " (Excluded)"
-                output.append(f"{subindent}{f}{marker}")
+                    # Mark if it's included in the dump
+                    marker = ""
+                    if f_rel not in selected_files:
+                        marker = " (Excluded)"
+                    output.append(f"{subindent}{f}{marker}")
 
-    output.append("\n" + "="*50 + "\n")
+        output.append("\n" + "="*50 + "\n")
+
     output.append("# FILE CONTENTS\n")
 
     file_count = 0
     total_chars = 0
 
-    for rel_path in selected_files:
+    for rel_path in sorted(list(selected_files)):
         full_path = os.path.join(root_dir, rel_path)
         try:
             with open(full_path, 'r', encoding='utf-8', errors='replace') as f:
@@ -296,6 +299,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--cli", action="store_true", help="Run in non-interactive mode (dump all)")
     parser.add_argument("--exclude", nargs='*', help="Patterns to exclude in CLI mode")
+    parser.add_argument("--focus", nargs='*', help="Specific patterns to focus on. Enables Structural Context Loading (implies --cli)")
+    parser.add_argument("--only", nargs='*', help="Strictly select only these file patterns, with no automatic includes.")
     parser.add_argument("--output", help="Output file (default: context.txt)", default="context.txt")
     args = parser.parse_args()
 
@@ -304,18 +309,64 @@ if __name__ == "__main__":
     project_root = os.path.dirname(script_dir)
 
     # Resolve output file path
-    # If it's just a filename, put it in project root. If path, verify logic?
-    # Let's keep it simple: always relative to PROJECT_ROOT if not absolute.
     if os.path.isabs(args.output):
         output_file = args.output
     else:
         output_file = os.path.join(project_root, args.output)
 
     files = get_project_files(project_root)
-    selected = set(files) # Default to all
 
-    if args.cli:
-        # CLI Mode
+    # Selection Logic
+    if args.only is not None:
+        # Only Mode: Strict selection
+        selected = set()
+
+        # Process patterns similar to focus mode
+        full_string = ' '.join(args.only)
+        clean_string = full_string.replace(',', ' ').replace('`', ' ')
+        processed_patterns = clean_string.split()
+
+        for pattern in processed_patterns:
+            for f in files:
+                if fnmatch.fnmatch(f, pattern):
+                    selected.add(f)
+
+        print(f"[ONLY] Selected {len(selected)} specific files.", file=sys.stderr)
+
+    elif args.focus is not None:
+        # Focus Mode (Implies CLI)
+        selected = set()
+
+        # 1. Base Set: Structure (.h and main.c)
+        base_count = 0
+        for f in files:
+            # Include all headers and files named main.c (in any subdirectory)
+            if f.endswith('.h') or os.path.basename(f) == 'main.c':
+                selected.add(f)
+                base_count += 1
+
+        # 2. User Set: Focus Patterns
+        match_count = 0
+        processed_patterns = []
+        if args.focus:
+            # Flatten list of args, replace delimiters with spaces, then split into clean patterns
+            full_string = ' '.join(args.focus)
+            clean_string = full_string.replace(',', ' ').replace('`', ' ')
+            processed_patterns = clean_string.split()
+
+        for pattern in processed_patterns:
+            for f in files:
+                # Check match against relative path or basename for convenience
+                if fnmatch.fnmatch(f, pattern) or ('/' not in pattern and fnmatch.fnmatch(os.path.basename(f), pattern)):
+                    if f not in selected:
+                        selected.add(f)
+                        match_count += 1
+
+        print(f"[FOCUS] Loaded Structure ({base_count} files) + Matched {match_count} user files.", file=sys.stderr)
+
+    elif args.cli:
+        # Standard CLI Mode
+        selected = set(files)
         if args.exclude:
             for f in list(selected):
                 for pat in args.exclude:
@@ -330,9 +381,12 @@ if __name__ == "__main__":
             sys.exit(0)
         selected = selector.selected
 
+    # The --only flag is for surgical context, which doesn't need the project tree.
+    show_structure = args.only is None
+
     # Generate
     print(f"Generating context for {len(selected)} files...", file=sys.stderr)
-    content, count, chars = generate_output(project_root, selected)
+    content, count, chars = generate_output(project_root, selected, include_structure=show_structure)
 
     # Write to File
     try:
@@ -341,7 +395,6 @@ if __name__ == "__main__":
         print(f"[SUCCESS] Context saved to: {output_file}", file=sys.stderr)
     except Exception as e:
         print(f"[ERROR] Failed to write context file: {e}", file=sys.stderr)
-        # Fallback to stdout? No, let's keep it clean.
 
     # Try Clipboard (Convenience)
     if copy_to_clipboard(content):

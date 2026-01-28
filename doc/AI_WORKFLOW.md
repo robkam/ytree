@@ -28,15 +28,22 @@ Even if you use separate browser tabs for the Consultant and Builder, they draw 
     *   **Rule:** Start a **fresh** Consultant/Builder session for **every single roadmap task**.
     *   **Why:** Once a task is completed, the codebase state has changed. Retaining old chat history causes "Context Drift," where the AI references obsolete code. A fresh session guarantees the AI plans based on the current system state.
 
-2.  **Context Strategy: Structural Context Loading**
+2.  **Context Strategy: Consultant vs. Builder**
     *   Do not upload the entire source tree (`src/*`) to initialize a session.
-    *   Instead, upload **All Header Files (`include/*.h`)** + **`src/core/main.c`** + **The Target File(s)**.
-    *   **Why:** Headers and Main provide the application's definitions and entry flow (the structure). The AI can infer the system architecture from these files without processing the implementation details of unrelated files.
+    *   **Consultant (`--focus`):** For planning, the AI needs **structural context**. The `--focus` flag provides this by loading all headers (`*.h`), `main.c`, and your specific target files. This gives the AI the "big picture" of the architecture.
+        ```bash
+        # Consultant: Gets headers, main.c, AND your files
+        scripts/gather_context.py --focus src/some_file.c
+        ```
+    *   **Builder (`--only`):** For implementation, the AI needs **surgical context**. The `--only` flag provides this by loading *only* the specific files you list. This keeps the context small and precise, focusing the AI on the exact implementation task.
+        ```bash
+        # Builder: Gets ONLY the files you list
+        scripts/gather_context.py --only src/some_file.c include/some_header.h
+        ```
 
 3.  **Builder Rule: Isolated Code Generation**
-    *   **Action:** Always start a **New Chat** for the code implementation phase. Provide *only* the `task.txt` and the specific files listed in the plan.
+    *   **Action:** Always start a **New Chat** for the code implementation phase. Provide *only* the `task.txt` and the specific files listed in the plan (using `--only`).
     *   **Result:** Maintains minimal token usage per request.
-    *   **Tip:** Use the file list provided in the Consultant's plan as the strict manifest for what to upload.
 
 ---
 
@@ -46,12 +53,13 @@ The Consultant is your first stop. It analyzes the specific files involved in a 
 
 0.  **Paste the System Prompt:** Copy the text from **[Appendix A: The Consultant Persona](#appendix-a-the-consultant-persona)** into the "System Instructions" field in AI Studio.
 
-1.  **Select Context:** Run the interactive context gatherer locally.
+1.  **Select Context:** Run the context gatherer using `--focus` to get a broad, structural view.
     ```bash
-    scripts/gather_context.py
+    scripts/gather_context.py --focus <files_to_analyze>
     ```
-    *   **Strategy:** Use the **Armature** approach. Select all `include/*.h` files, `src/core/main.c` and the specific `.c` file(s) you are investigating.
-    *   **Output:** The content is automatically copied to your clipboard.
+    *   **Strategy:** The `--focus` flag automatically includes all headers and `main.c`, giving the AI the architectural context it needs to create a robust plan.
+    *   **Example:** `scripts/gather_context.py --focus src/view.c src/files.c`
+    *   **Output:** The context is automatically copied to your clipboard.
 
 2.  **Upload:**
     *   Go to Google AI Studio.
@@ -66,11 +74,13 @@ The Architect/Builder executes the plan. In a **separate** AI Studio window (to 
 
 0.  **Paste the System Prompt:** Copy the text from **[Appendix B: The Architect/Builder Persona](#appendix-b-the-architectbuilder-persona)** into the "System Instructions" field.
 
-1.  **Prepare Files:** Use the file list generated in Phase 1 (the `task.txt`) to identify exactly which files need modification. Run `scripts/gather_context.py` again to select *only* these specific files.
+1.  **Prepare Files:** Use the file list from the Consultant's plan (`task.txt`) to identify exactly which files to modify. Run `gather_context.py` using the `--only` flag for a precise context payload.
+    *   **Strategy:** The `--only` flag creates **surgical context**. It includes *only* the files you list. This is ideal for the Builder, who only needs to see the files they are directly editing, minimizing token usage and preventing confusion.
+    *   **Example:** `scripts/gather_context.py --only include/ytree.h src/cmd/copy.c`
 
 2.  **Upload:**
     *   Start a **New Chat**.
-    *   Paste the content of the `task.txt` (from Phase 1) and your specific context files.
+    *   Paste the content of the `task.txt` (from Phase 1) and your specific context files (from the `--only` command).
 
 3.  **Prompt:** "Execute the task."
 

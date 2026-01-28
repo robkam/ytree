@@ -11,15 +11,24 @@
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
+#include <unistd.h>
 
+volatile sig_atomic_t ytree_shutdown_flag = 0;
 
 static char buffer[PATH_LENGTH+1];
 
+static void SigIntHandler(int sig)
+{
+  (void)sig;
+  ytree_shutdown_flag = 1;
+}
+
 static void EmergencyExit(int sig)
 {
-  endwin();
-  fprintf(stderr, "\nINTERNAL ERROR: Signal %d caught. Terminal restored.\n", sig);
-  exit(1);
+  const char *msg = "Internal Error: Signal Caught. Exiting.\n";
+  /* endwin() removed as it is unsafe in signal handler */
+  write(STDERR_FILENO, msg, strlen(msg));
+  _exit(1);
 }
 
 int main(int argc, char **argv)
@@ -35,7 +44,7 @@ int main(int argc, char **argv)
   /* Register Signal Handlers */
   signal(SIGSEGV, EmergencyExit); /* Segfault */
   signal(SIGABRT, EmergencyExit); /* Abort */
-  signal(SIGINT, EmergencyExit);  /* Ctrl-C safety */
+  signal(SIGINT, SigIntHandler);  /* Ctrl-C safety */
 
   /* setlocale is now handled in Init */
 
@@ -244,10 +253,14 @@ int main(int argc, char **argv)
         /* User requested to quit. Break the loop to proceed with cleanup. */
         break;
     }
+    /* Also break if shutdown flag was set by SIGINT handler but not caught inside HandleDirWindow yet */
+    if (ytree_shutdown_flag) {
+        break;
+    }
   }
 
   /* Explicit cleanup */
-  SuspendClock(); /* Stop SIGALRM before touching curses/memory */
+  SuspendClock(); /* Stop SIGALRM (now no-op but kept for API consistency) before touching curses/memory */
 
   attrset(0);  /* Reset attributes */
   clear();     /* Clear internal buffer */
