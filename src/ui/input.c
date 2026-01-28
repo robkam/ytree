@@ -17,6 +17,10 @@
 #include <readline/tilde.h>
 #endif
 
+/* External declarations for Signal Safety enforcement */
+extern volatile sig_atomic_t ytree_shutdown_flag;
+extern void ClockHandler(int);
+
 
 /* Wrapper function to satisfy tputs(..., int (*putc_func)(int)) signature */
 /* It writes the character 'c' to standard output. */
@@ -518,9 +522,14 @@ int GetEventOrKey(void)
     fd_set fds;
     int max_fd;
     int result;
+    struct timeval tv;
 
     if (resize_request) return KEY_RESIZE;
 
+    /* Before the select loop, check the shutdown flag */
+    if (ytree_shutdown_flag) return 'q';
+
+    /* Check if input is already available to avoid select delay */
     nodelay(stdscr, TRUE);
     ch = WGetch(stdscr);
     nodelay(stdscr, FALSE);
@@ -538,10 +547,22 @@ int GetEventOrKey(void)
             if (w_fd > max_fd) max_fd = w_fd;
         }
 
-        result = select(max_fd + 1, &fds, NULL, NULL, NULL);
+        /* Setup timeout for 500ms for clock update */
+        tv.tv_sec = 0;
+        tv.tv_usec = 500000;
+
+        result = select(max_fd + 1, &fds, NULL, NULL, &tv);
+
+        if (result == 0) {
+            /* Timeout: Update Clock */
+            ClockHandler(0);
+            continue;
+        }
 
         if (result == -1) {
             if (errno == EINTR) {
+                if (ytree_shutdown_flag) return 'q';
+
                 nodelay(stdscr, TRUE);
                 ch = WGetch(stdscr);
                 nodelay(stdscr, FALSE);
@@ -560,6 +581,7 @@ int GetEventOrKey(void)
         }
 
         if (FD_ISSET(STDIN_FILENO, &fds)) {
+            /* Input available, perform WGetch */
             return WGetch(stdscr);
         }
     }

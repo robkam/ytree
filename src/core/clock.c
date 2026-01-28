@@ -14,29 +14,18 @@ void InitClock()
 {
 
 #ifdef CLOCK_SUPPORT
-
-  struct itimerval value, ovalue;
+  /*
+   * Signal-based timer eliminated for safety.
+   * Clock updates are now handled in the main event loop (input.c).
+   */
   print_time = TRUE;
-
-  if (getitimer(ITIMER_REAL, &value)!= 0) {
-      ERROR_MSG("getitimer() failed: %s", strerror(errno));
-  }
-  value.it_interval.tv_sec = CLOCK_INTERVAL;
-  value.it_value.tv_sec = CLOCK_INTERVAL;
-  value.it_interval.tv_usec = 0;
-
-  if (setitimer(ITIMER_REAL, &value, &ovalue)!= 0) {
-      ERROR_MSG("setitimer() failed: %s", strerror(errno));
-  }
-  ClockHandler(0);
 #endif
 }
 
 
-
-
 void ClockHandler(int sig)
 {
+   (void)sig; /* Unused now */
 #ifdef CLOCK_SUPPORT
 
    char strtm[23];
@@ -59,20 +48,16 @@ void ClockHandler(int sig)
 #ifdef COLOR_SUPPORT
       wattrset(time_window, A_NORMAL);
 #endif
+      wrefresh(time_window);
    }
-   signal(SIGALRM,  ClockHandler );
+   /* Recursive signal call removed */
 #endif
 }
 
 void SuspendClock(void)
 {
 #ifdef CLOCK_SUPPORT
-  struct itimerval value, ovalue;
-  value.it_interval.tv_sec = 0;
-  value.it_value.tv_sec = 0;
-  value.it_interval.tv_usec = 0;
-  setitimer(ITIMER_REAL, &value, &ovalue);
-  signal(SIGALRM, SIG_IGN);
+  /* No hardware timer to pause anymore */
 #endif
   return;
-  }
+}

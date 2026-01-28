@@ -1247,7 +1247,7 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
     1.  **Clock:** Remove `SIGALRM` based clock. Move clock updates to the `GetEventOrKey` input loop using `timeout()`.
     2.  **Shutdown:** Remove `endwin()` from signal handlers. Use `sig_atomic_t` flags to trigger graceful shutdown in the main loop.
 *   **Files to Modify:** `src/core/clock.c`, `src/core/main.c`, `src/ui/input.c`.
-*   - [ ] **Status:** Not Started.
+*   - [x] **Status:** Completed.
 
 ### **Step 9.2: SRP & SoC Enforcement (Audit Execution)**
 *   **Goal:** Execute the critical refactorings identified in the Architectural Audit to enforce Single Responsibility and Separation of Concerns.
@@ -1305,10 +1305,85 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 
 ---
 
-## **Phase 11: Public Release Preparation**
+## **Phase 11: Architectural Integrity (SRP/SoC Audit)**
+*This phase addresses specific "Fragile Code" patterns identified during the deep-dive audit. The goal is to strictly enforce the Single Responsibility Principle (SRP) and Separation of Concerns (SoC) to prevent regression loops and enable safe future expansion.*
+
+### **Step 11.1: Purify Filesystem Layer (Archive UI Leakage)**
+*   **Task ID:** [FS]-[Archive]-[SoC]
+*   **Severity:** **Critical**
+*   **The Fragile Code:** `src/fs/archive.c` currently calls `DrawSpinner()` and `MESSAGE("Operation Interrupted")` directly inside extraction loops (`ExtractArchiveEntry`, `ExtractArchiveNode`, `process_rewrite_loop`).
+*   **The Issue:** The Filesystem Model (FS) is directly coupled to the View (ncurses). This makes the code impossible to test without a UI and breaks the layered architecture.
+*   **The Robust Fix:**
+    1.  Update function signatures to accept a `ScanProgressCallback` (and user data), similar to `readtree.c`.
+    2.  Move the `DrawSpinner()` and `EscapeKeyPressed()` logic into a callback function provided by the Controller (`ctrl_file.c` / `ctrl_dir.c`).
+    3.  The callback should return a status code (`CONTINUE` / `ABORT`) so the FS layer knows when to stop, without calling UI functions itself.
+*   **Files to Modify:** `src/fs/archive.c`, `include/ytree_fs.h`, `src/cmd/view.c`, `src/cmd/copy.c`.
+
+### **Step 11.2: Decouple Logic from UI in Core Commands**
+*   **Task ID:** [CMD]-[Copy/Move]-[SoC]
+*   **Severity:** **High**
+*   **The Fragile Code:** `CopyFile` (`src/cmd/copy.c`) and `MoveFile` (`src/cmd/move.c`) call `InputChoice(...)` internally to ask for overwrite confirmation.
+*   **The Issue:** "Business Logic" functions are holding the thread hostage for UI input. This prevents scripting, batch operations, or alternative interfaces.
+*   **The Robust Fix:**
+    1.  Refactor `CopyFile` and `MoveFile` to accept a `ConfirmationCallback` function pointer (or a comprehensive flags bitmask like `OPS_INTERACTIVE | OPS_FORCE`).
+    2.  If the destination exists, the logic invokes the callback: `cb(CTX_OVERWRITE, filename)`.
+    3.  The callback handles the `InputChoice` UI and returns `YES`, `NO`, or `ALL`.
+*   **Files to Modify:** `src/cmd/copy.c`, `src/cmd/move.c`, `include/ytree_cmd.h`.
+
+### **Step 11.3: Parameterize Rendering (Global State Removal)**
+*   **Task ID:** [UI]-[Render]-[GlobalState]
+*   **Severity:** **Critical**
+*   **The Fragile Code:** `DisplayFiles` (`src/ui/render_file.c`) and `DisplayTree` (`src/ui/render_dir.c`) hardcode accesses to `CurrentVolume`.
+*   **The Issue:** This prevents rendering a background volume (e.g., in the inactive panel of Split Screen) without performing a dangerous/hacky global variable swap (`CurrentVolume = panel->vol`).
+*   **The Robust Fix:**
+    1.  Update `DisplayFiles` signature to `DisplayFiles(struct Volume *vol, DirEntry *de, ...)` and use the passed `vol` pointer.
+    2.  Update `DisplayTree` signature to `DisplayTree(struct Volume *vol, ...)` and use the passed `vol`.
+    3.  Remove the `CurrentVolume` swap hack from `RenderInactivePanel` in `src/ui/display.c`.
+*   **Files to Modify:** `src/ui/render_file.c`, `src/ui/render_dir.c`, `src/ui/display.c`, `include/ytree_ui.h`.
+
+### **Step 11.4: Standardize Path Construction (Safety)**
+*   **Task ID:** [Util]-[Path]-[UnsafeString]
+*   **Severity:** **High**
+*   **The Fragile Code:** Various commands (`copy.c`, `move.c`) use ad-hoc `strcpy`/`strcat` sequences to build paths:
+    ```c
+    strcpy(path, dir);
+    if (*path != '/') strcat(path, "/");
+    strcat(path, file);
+    ```
+*   **The Issue:** This pattern is error-prone (buffer overflows, double slashes, missing slashes) and repetitive (DRY violation).
+*   **The Robust Fix:**
+    1.  Implement `Path_Join(char *dest, size_t size, const char *dir, const char *file)` in `src/util/path_utils.c`.
+    2.  This function must handle separator insertion/deduplication and `snprintf` bounds checking centrally.
+    3.  Refactor all command modules to use this helper.
+*   **Files to Modify:** `src/util/path_utils.c`, `src/cmd/copy.c`, `src/cmd/move.c`, `src/cmd/rename.c`, `src/cmd/mkdir.c`.
+
+### **Step 11.5: Encapsulate Internal Viewer Geometry**
+*   **Task ID:** [UI]-[View]-[Encapsulation]
+*   **Severity:** **Medium**
+*   **The Fragile Code:** `src/ui/view_internal.c` creates windows (`VIEW`, `BORDER`) based on global `layout` coordinates but manages its own resize logic (`DoResize`) that competes with the main layout engine.
+*   **The Issue:** The internal viewer acts as a separate application mode rather than a component. It forces `Getch` loops that are disconnected from the main event loop.
+*   **The Robust Fix:**
+    1.  Refactor `InternalView` to accept a `WINDOW *parent` or `YtreeGeometry` struct.
+    2.  Ensure it respects the bounds passed by the caller, allowing it to eventually run inside a Split Screen pane (future proofing).
+*   **Files to Modify:** `src/ui/view_internal.c`.
+
+### **Step 11.6: Strict Header Hygiene**
+*   **Task ID:** [Core]-[Build]-[Coupling]
+*   **Severity:** **Low (Maintenance)**
+*   **The Fragile Code:** `ytree.h` includes every other header. Every `.c` file sees every prototype.
+*   **The Issue:** Changing a struct in `fs` triggers a recompile of `ui`.
+*   **The Robust Fix:**
+    1.  Remove `#include "ytree_*.h"` from `ytree.h`.
+    2.  Update `.c` files to include only the specific headers they need (e.g., `ctrl_dir.c` needs `ytree_ui.h` and `ytree_fs.h`).
+    *Note: This is a large task; prioritize after functional hardening.*
+*   **Files to Modify:** `include/ytree.h` and all `src/**/*.c`.
+
+---
+
+## **Phase 12: Public Release Preparation**
 *This phase ensures the project is presentable for a public "Developer Preview," emphasizing the architectural achievements over raw feature completeness.*
 
-### **Step 11.0: Release Artifacts**
+### **Step 12.0: Release Artifacts**
 *   **Goal:** Standardize versioning, document the new architecture, and set user expectations.
 *   **Action:**
     *   Set version to `3.0.0-alpha`.
