@@ -806,6 +806,11 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 *   **Files to Modify:** `src/cmd/copy.c`, `src/cmd/move.c`, `src/fs/archive.c`.
 *   - [ ] **Status:** Not Started.
 
+### **Step 4.49: Standardize Internal Viewer Layout**
+*   **Goal:** Ensure the internal viewer's layout geometry matches the main application (borders, headers, and footer).
+*   **Files to Modify:** `src/ui/view_internal.c`
+*   - [ ] **Status:** Not Started.
+
 ---
 
 ## **Phase 5: Major Architectural Refactoring**
@@ -1234,7 +1239,7 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 *   **Goal:** Decouple the internal Hex/Text viewer from global `LINES`/`COLS` to allow future split-screen integration.
 *   **Mechanism:** Update `view_internal.c` to respect the global `YtreeLayout` or accept specific bounds.
 *   **Files to Modify:** `src/ui/view_internal.c`.
-*   - [ ] **Status:** Not Started.
+*   - [x] **Status:** Completed.
 
 #### **Step 9.1.12: Enforce Signal Safety (Anti-Crash)**
 *   **Goal:** Eliminate "Random" crashes caused by unsafe signal handling (SIGALRM/SIGSEGV).

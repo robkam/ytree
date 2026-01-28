@@ -168,7 +168,7 @@ static void Change2Edit(char *file_path)
 
     str = (char *) xmalloc(WCOLS);
 
-    for(i = WLINES + 4; i < LINES; i++)
+    for(i = layout.message_y; i <= layout.status_y; i++)
     {
         wmove(stdscr,i , 0);
         wclrtoeol(stdscr);
@@ -176,13 +176,13 @@ static void Change2Edit(char *file_path)
 
     doupdate();
 
-    Print( stdscr, 0, 0, "File: ", CPAIR_MENU );
-    Print( stdscr, 0, 6, CutPathname(str,file_path,WCOLS-5), CPAIR_HIMENUS );
-    PrintOptions( stdscr, LINES - 3, 0, "(Edit file in hexadecimal mode)");
+    Print( stdscr, layout.header_y, 0, "File: ", CPAIR_MENU );
+    Print( stdscr, layout.header_y, 6, CutPathname(str,file_path,WCOLS-5), CPAIR_HIMENUS );
+    PrintOptions( stdscr, layout.message_y, 0, "(Edit file in hexadecimal mode)");
     wclrtoeol(stdscr);
-    PrintOptions( stdscr, LINES - 2, 0, "(Q)uit   (^L) redraw  (<TAB>) change edit mode");
+    PrintOptions( stdscr, layout.prompt_y, 0, "(Q)uit   (^L) redraw  (<TAB>) change edit mode");
     wclrtoeol(stdscr);
-    PrintOptions( stdscr, LINES - 1, 0, "(NEXT)-(RIGHT)/(PREV)-(LEFT) page   (HOME)-(END) of line   (DOWN)-(UP) line");
+    PrintOptions( stdscr, layout.status_y, 0, "(NEXT)-(RIGHT)/(PREV)-(LEFT) page   (HOME)-(END) of line   (DOWN)-(UP) line");
     wclrtoeol(stdscr);
     free(str);
     wnoutrefresh(stdscr);
@@ -196,20 +196,20 @@ static void Change2View(char *file_path)
     char *str;
 
     str = (char *) xmalloc(WCOLS);
-    for(i = WLINES + 4; i < LINES; i++)
+    for(i = layout.message_y; i <= layout.status_y; i++)
     {
         wmove(stdscr,i , 0);
         wclrtoeol(stdscr);
     }
     doupdate();
 
-    Print( stdscr, 0, 0, "File: ", CPAIR_MENU );
-    Print( stdscr, 0, 6, CutPathname(str,file_path,WCOLS-5), CPAIR_HIMENUS );
-    PrintOptions( stdscr, LINES - 3, 0, "View file in hexadecimal mode");
+    Print( stdscr, layout.header_y, 0, "File: ", CPAIR_MENU );
+    Print( stdscr, layout.header_y, 6, CutPathname(str,file_path,WCOLS-5), CPAIR_HIMENUS );
+    PrintOptions( stdscr, layout.message_y, 0, "View file in hexadecimal mode");
     wclrtoeol(stdscr);
-    PrintOptions( stdscr, LINES - 2, 0, "(Q)uit   (^L) redraw  (E)dit hex");
+    PrintOptions( stdscr, layout.prompt_y, 0, "(Q)uit   (^L) redraw  (E)dit hex");
     wclrtoeol(stdscr);
-    PrintOptions( stdscr, LINES - 1, 0, "(NEXT)-(RIGHT)/(PREV)-(LEFT) page   (HOME)-(END) of line   (DOWN)-(UP) line");
+    PrintOptions( stdscr, layout.status_y, 0, "(NEXT)-(RIGHT)/(PREV)-(LEFT) page   (HOME)-(END) of line   (DOWN)-(UP) line");
     wclrtoeol(stdscr);
     free(str);
     wnoutrefresh(stdscr);
@@ -219,18 +219,26 @@ static void Change2View(char *file_path)
 static void SetupViewWindow(char *file_path)
 {
     int i;
+    int start_y = layout.dir_win_y;
+    int start_x = layout.dir_win_x;
+    int available_height = layout.message_y - start_y;
+    int width = layout.main_win_width;
 
-    int myCOLS  = (COLS > 18) ? COLS : 19; /* to display (at least) address, frame and one byte */
-    int myLINES = (LINES > 6) ? LINES : 7; /* to display (at least) footer, border and one line */
+    /* Ensure minimal dimensions */
+    if (available_height < 3) available_height = 3;
+    if (width < 20) width = 20;
 
-    WLINES=myLINES - 6;
-    WCOLS=myCOLS - 2;
+    WLINES = available_height - 2;
+    WCOLS = width - 2;
+
     if (BORDER)
         delwin(BORDER);
-    BORDER=newwin(WLINES + 2, WCOLS + 2, 1, 0);
+    BORDER=newwin(available_height, width, start_y, start_x);
+
     if (VIEW)
         delwin(VIEW);
-    VIEW=newwin(WLINES, WCOLS, 2, 1);
+    VIEW=newwin(WLINES, WCOLS, start_y + 1, start_x + 1);
+
     keypad(VIEW,TRUE);
     scrollok(VIEW,FALSE);
     clearok(VIEW,TRUE);
