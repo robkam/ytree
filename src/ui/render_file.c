@@ -129,7 +129,7 @@ static char GetTypeOfFile(struct stat fst)
 		return '?';
 }
 
-void PrintFileEntry(int entry_no, int y, int x, unsigned char hilight, int start_x, WINDOW *win)
+void PrintFileEntry(struct Volume *vol, int entry_no, int y, int x, unsigned char hilight, int start_x, WINDOW *win)
 {
   char attributes[11];
   char modify_time[20];
@@ -155,11 +155,11 @@ void PrintFileEntry(int entry_no, int y, int x, unsigned char hilight, int start
   int base_color_pair;
   int height, width;
 
-  if (!CurrentVolume || !CurrentVolume->file_entry_list) return;
+  if (!vol || !vol->file_entry_list) return;
 
   getmaxyx(win, height, width);
 
-  fe_ptr = CurrentVolume->file_entry_list[entry_no].file;
+  fe_ptr = vol->file_entry_list[entry_no].file;
 
   if (GlobalView->fixed_col_width > 0) {
       pos_x = x * (GlobalView->fixed_col_width + 1);
@@ -452,12 +452,12 @@ void PrintFileEntry(int entry_no, int y, int x, unsigned char hilight, int start
   wattroff(win, COLOR_PAIR(base_color_pair));
 }
 
-void DisplayFiles(DirEntry *de_ptr, int start_file_no, int hilight_no, int start_x, WINDOW *win)
+void DisplayFiles(struct Volume *vol, DirEntry *de_ptr, int start_file_no, int hilight_no, int start_x, WINDOW *win)
 {
   int  x, y, p_x, p_y, j;
   int height, width;
 
-  if (!CurrentVolume || !CurrentVolume->file_entry_list) return;
+  if (!vol || !vol->file_entry_list) return;
 
   getmaxyx(win, height, width);
 
@@ -466,7 +466,7 @@ void DisplayFiles(DirEntry *de_ptr, int start_file_no, int hilight_no, int start
 #endif
   werase( win );
 
-  if( CurrentVolume->file_count == 0 )
+  if( vol->file_count == 0 )
   {
     mvwaddstr( win,
 	       0,
@@ -480,7 +480,7 @@ void DisplayFiles(DirEntry *de_ptr, int start_file_no, int hilight_no, int start
   {
     for( y=0; y < height; y++ )
     {
-      if( (unsigned)j < CurrentVolume->file_count )
+      if( (unsigned)j < vol->file_count )
       {
 	if( j == hilight_no )
 	{
@@ -489,7 +489,7 @@ void DisplayFiles(DirEntry *de_ptr, int start_file_no, int hilight_no, int start
 	}
 	else
 	{
-	  PrintFileEntry( j, y, x, FALSE, start_x, win);
+	  PrintFileEntry( vol, j, y, x, FALSE, start_x, win);
 	}
       }
       j++;
@@ -497,7 +497,7 @@ void DisplayFiles(DirEntry *de_ptr, int start_file_no, int hilight_no, int start
   }
 
   if( p_x >= 0 )
-    PrintFileEntry( hilight_no, p_y, p_x, TRUE, start_x, win);
+    PrintFileEntry( vol, hilight_no, p_y, p_x, TRUE, start_x, win);
 
   wnoutrefresh(win); /* Stage update for the screen */
 }
