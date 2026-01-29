@@ -1318,6 +1318,7 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
     2.  Move the `DrawSpinner()` and `EscapeKeyPressed()` logic into a callback function provided by the Controller (`ctrl_file.c` / `ctrl_dir.c`).
     3.  The callback should return a status code (`CONTINUE` / `ABORT`) so the FS layer knows when to stop, without calling UI functions itself.
 *   **Files to Modify:** `src/fs/archive.c`, `include/ytree_fs.h`, `src/cmd/view.c`, `src/cmd/copy.c`.
+*   - [x] **Status:** Completed.
 
 ### **Step 11.2: Decouple Logic from UI in Core Commands**
 *   **Task ID:** [CMD]-[Copy/Move]-[SoC]

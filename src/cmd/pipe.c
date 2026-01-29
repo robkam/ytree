@@ -107,7 +107,8 @@ int Pipe(DirEntry *dir_entry, FileEntry *file_entry)
           /*--------------*/
     #ifdef HAVE_LIBARCHIVE
             char *archive = CurrentVolume->vol_stats.login_path;
-            ExtractArchiveEntry(archive, file_name_path, fileno(pipe_fp));
+            /* Pass NULL callback because endwin() is active; no UI updates possible */
+            ExtractArchiveEntry(archive, file_name_path, fileno(pipe_fp), NULL, NULL);
     #endif
         }
         result = pclose(pipe_fp);
