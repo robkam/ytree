@@ -1341,6 +1341,7 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
     2.  Update `DisplayTree` signature to `DisplayTree(struct Volume *vol, ...)` and use the passed `vol`.
     3.  Remove the `CurrentVolume` swap hack from `RenderInactivePanel` in `src/ui/display.c`.
 *   **Files to Modify:** `src/ui/render_file.c`, `src/ui/render_dir.c`, `src/ui/display.c`, `include/ytree_ui.h`.
+*   - [x] **Status:** Completed.
 
 ### **Step 11.4: Standardize Path Construction (Safety)**
 *   **Task ID:** [Util]-[Path]-[UnsafeString]

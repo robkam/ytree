@@ -107,8 +107,8 @@ extern void RotateFileMode(void);
 extern int GetMaxColumn(void);
 extern void SetFileRenderingMetrics(unsigned max_filename, unsigned max_linkname, unsigned max_userview);
 extern void SetRenderSortOrder(BOOL reverse);
-extern void DisplayFiles(DirEntry *de_ptr, int start_file_no, int hilight_no, int start_x, WINDOW *win);
-extern void PrintFileEntry(int entry_no, int y, int x, unsigned char hilight, int start_x, WINDOW *win);
+extern void DisplayFiles(struct Volume *vol, DirEntry *de_ptr, int start_file_no, int hilight_no, int start_x, WINDOW *win);
+extern void PrintFileEntry(struct Volume *vol, int entry_no, int y, int x, unsigned char hilight, int start_x, WINDOW *win);
 
 /* hex.c has moved to cmd/hex.c and prototypes to ytree_cmd.h */
 

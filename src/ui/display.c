@@ -476,17 +476,13 @@ void RenderInactivePanel(YtreePanel *panel)
 
     if (!panel->vol) return;
 
-    /* Save global context */
-    struct Volume *saved_vol = CurrentVolume;
-    CurrentVolume = panel->vol;
-
     /* Ensure directory list is valid */
-    if (CurrentVolume->dir_entry_list == NULL) {
-        BuildDirEntryList(CurrentVolume);
+    if (panel->vol->dir_entry_list == NULL) {
+        BuildDirEntryList(panel->vol);
     }
 
     /* Clamp cursor */
-    int total = CurrentVolume->total_dirs;
+    int total = panel->vol->total_dirs;
     /* Use Panel state, not Volume state */
     int begin = panel->disp_begin_pos;
     int cursor = panel->cursor_pos;
@@ -499,7 +495,7 @@ void RenderInactivePanel(YtreePanel *panel)
     /* Draw Tree */
     /* Use the window pointers from the panel */
     if (panel->pan_dir_window) {
-        DisplayTree(CurrentVolume, panel->pan_dir_window, begin, begin + cursor, FALSE);
+        DisplayTree(panel->vol, panel->pan_dir_window, begin, begin + cursor, FALSE);
         wnoutrefresh(panel->pan_dir_window);
     }
 
@@ -507,21 +503,21 @@ void RenderInactivePanel(YtreePanel *panel)
     if (panel->pan_file_window && total > 0) {
         int idx = begin + cursor;
         if (idx >= 0 && idx < total) {
-            DirEntry *de = CurrentVolume->dir_entry_list[idx].dir_entry;
+            DirEntry *de = panel->vol->dir_entry_list[idx].dir_entry;
             if (de) {
                 BOOL safe_to_render = FALSE;
 
-                if (panel->vol != saved_vol) {
+                if (panel->vol != CurrentVolume) {
                     /* Different volume: Safe to rebuild list */
                     DisplayFileWindow(de, panel->pan_file_window);
                     safe_to_render = TRUE;
                 } else {
                     /* Same volume: Check if list is already built for this dir */
                     /* We peek at the first entry to confirm ownership */
-                    if (CurrentVolume->file_entry_list && CurrentVolume->file_count > 0) {
-                        if (CurrentVolume->file_entry_list[0].file->dir_entry == de) {
+                    if (panel->vol->file_entry_list && panel->vol->file_count > 0) {
+                        if (panel->vol->file_entry_list[0].file->dir_entry == de) {
                             /* Match! Render existing list without rebuilding */
-                            DisplayFiles(de, de->start_file, de->start_file + de->cursor_pos, 0, panel->pan_file_window);
+                            DisplayFiles(panel->vol, de, de->start_file, de->start_file + de->cursor_pos, 0, panel->pan_file_window);
                             safe_to_render = TRUE;
                         }
                     }
@@ -533,9 +529,6 @@ void RenderInactivePanel(YtreePanel *panel)
             }
         }
     }
-
-    /* Restore global context */
-    CurrentVolume = saved_vol;
 }
 
 /*
@@ -574,7 +567,7 @@ void RefreshGlobalView(DirEntry *dir_entry)
 
         /* Draw File List */
         /* Use 0 for start_x (no horiz scroll in narrow mode typically, or handled by DisplayFiles logic) */
-        DisplayFiles(dir_entry, dir_entry->start_file, dir_entry->start_file + dir_entry->cursor_pos, 0, file_window);
+        DisplayFiles(CurrentVolume, dir_entry, dir_entry->start_file, dir_entry->start_file + dir_entry->cursor_pos, 0, file_window);
 
         /* Content update (UpdatePreview) needs to be called by the caller (HandleFileWindow)
            because it relies on static variables (offsets) local to filewin.c,
@@ -583,7 +576,7 @@ void RefreshGlobalView(DirEntry *dir_entry)
     } else if (dir_entry->big_window || dir_entry->global_flag || dir_entry->tagged_flag) {
         /* BIG WINDOW MODE (Zoom or ShowAll) */
         SwitchToBigFileWindow();
-        DisplayFiles(dir_entry, dir_entry->start_file, dir_entry->start_file + dir_entry->cursor_pos, 0, file_window);
+        DisplayFiles(CurrentVolume, dir_entry, dir_entry->start_file, dir_entry->start_file + dir_entry->cursor_pos, 0, file_window);
 
     } else {
         /* STANDARD SPLIT MODE */
@@ -598,7 +591,7 @@ void RefreshGlobalView(DirEntry *dir_entry)
         }
 
         /* Draw File List */
-        DisplayFiles(dir_entry, dir_entry->start_file, dir_entry->start_file + dir_entry->cursor_pos, 0, file_window);
+        DisplayFiles(CurrentVolume, dir_entry, dir_entry->start_file, dir_entry->start_file + dir_entry->cursor_pos, 0, file_window);
     }
 
     /* 5. Update Footer Help */
