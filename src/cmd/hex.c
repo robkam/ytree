@@ -51,6 +51,19 @@ FNC_XIT:
 }
 
 
+static int HexProgressCallback(int status, const char *msg, void *user_data)
+{
+    (void)msg;
+    (void)user_data;
+
+    if (status == ARCHIVE_STATUS_PROGRESS) {
+        DrawSpinner();
+        if (EscapeKeyPressed()) {
+            return ARCHIVE_CB_ABORT;
+        }
+    }
+    return ARCHIVE_CB_CONTINUE;
+}
 
 static int ViewHexArchiveFile(char *file_path)
 {
@@ -69,7 +82,7 @@ static int ViewHexArchiveFile(char *file_path)
     archive = CurrentVolume->vol_stats.login_path;
 
 #ifdef HAVE_LIBARCHIVE
-    if (ExtractArchiveEntry(archive, file_path, fd) != 0) {
+    if (ExtractArchiveEntry(archive, file_path, fd, HexProgressCallback, NULL) != 0) {
         MESSAGE("Could not extract entry*'%s'*from archive", file_path);
         close(fd);
         unlink(temp_filename);

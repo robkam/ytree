@@ -14,6 +14,23 @@ static int DeleteSubTree(DirEntry *dir_entry);
 static int DeleteSingleDirectory(DirEntry *dir_entry);
 
 
+static int RmdirProgressCallback(int status, const char *msg, void *user_data)
+{
+    (void)msg;
+    (void)user_data;
+
+    if (status == ARCHIVE_STATUS_PROGRESS) {
+        DrawSpinner();
+        if (EscapeKeyPressed()) {
+            return ARCHIVE_CB_ABORT;
+        }
+    }
+    /* We could handle ARCHIVE_STATUS_ERROR here if we wanted custom message handling,
+     * but the caller usually handles the final result. */
+    return ARCHIVE_CB_CONTINUE;
+}
+
+
 int DeleteDirectory(DirEntry *dir_entry)
 {
   char buffer[PATH_LENGTH+1];
@@ -37,10 +54,9 @@ int DeleteDirectory(DirEntry *dir_entry)
       if (dir_entry->file || dir_entry->sub_tree) {
           MESSAGE("Directory not empty");
       } else if( InputChoice( "Delete this directory (Y/N) ? ", "YN\033" ) == 'Y' ) {
-          char internal_path[PATH_LENGTH + 1];
           GetPath(dir_entry, buffer);
 
-          if (Archive_DeleteEntry(CurrentVolume->vol_stats.login_path, buffer) == 0) {
+          if (Archive_DeleteEntry(CurrentVolume->vol_stats.login_path, buffer, RmdirProgressCallback, NULL) == 0) {
               /* Success - Update UI */
               RefreshTreeSafe(CurrentVolume->vol_stats.tree);
               result = 0;

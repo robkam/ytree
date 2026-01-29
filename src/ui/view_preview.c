@@ -242,6 +242,20 @@ void RenderFilePreview(WINDOW *win, char *filename, long *line_offset_ptr, int c
     wnoutrefresh(win);
 }
 
+static int PreviewProgressCallback(int status, const char *msg, void *user_data)
+{
+    (void)msg;
+    (void)user_data;
+
+    if (status == ARCHIVE_STATUS_PROGRESS) {
+        DrawSpinner();
+        if (EscapeKeyPressed()) {
+            return ARCHIVE_CB_ABORT;
+        }
+    }
+    return ARCHIVE_CB_CONTINUE;
+}
+
 void RenderArchivePreview(WINDOW *win, char *archive_path, char *internal_path, long *line_offset_ptr)
 {
     char cache_file[] = "/tmp/ytree_preview.cache";
@@ -253,7 +267,7 @@ void RenderArchivePreview(WINDOW *win, char *archive_path, char *internal_path, 
         unlink(cache_file);
 
         /* Assuming ExtractArchiveNode is available via ytree.h */
-        if (ExtractArchiveNode(archive_path, internal_path, cache_file) == 0) {
+        if (ExtractArchiveNode(archive_path, internal_path, cache_file, PreviewProgressCallback, NULL) == 0) {
             /* Update Cache Keys */
             strncpy(last_preview_archive, archive_path, PATH_LENGTH-1);
             last_preview_archive[PATH_LENGTH-1] = '\0';
