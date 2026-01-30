@@ -97,7 +97,7 @@ void Layout_Recalculate(void)
             LeftPanel->small_file_h = layout.small_file_win_height;
 
             LeftPanel->big_file_x = layout.big_file_win_x;
-            LeftPanel->big_file_y = layout.big_file_win_y;
+            LeftPanel->big_file_y = layout.big_file_win_y; /* FIXED */
             LeftPanel->big_file_w = layout.big_file_win_width;
             LeftPanel->big_file_h = available_height;
         }
@@ -121,7 +121,7 @@ void Layout_Recalculate(void)
         }
     }
 
-    int stats_margin = (layout.stats_width > 0) ? 2 : 0;
+    /* Removed unused stats_margin calculation */
     layout.main_win_width = (layout.stats_width > 0) ? (COLS - layout.stats_width - 2) : (COLS - 2);
 
     /* Left Panel Geometry (Always active) */
@@ -218,6 +218,14 @@ int Init(char *configuration_file, char *history_file)
   /* Initialize Panel Defaults */
   IsSplitScreen = FALSE;
   ActivePanel = LeftPanel;
+  /* Explicitly initialize panel file lists to zero */
+  LeftPanel->file_entry_list = NULL;
+  LeftPanel->file_entry_list_capacity = 0;
+  LeftPanel->file_count = 0;
+
+  RightPanel->file_entry_list = NULL;
+  RightPanel->file_entry_list_capacity = 0;
+  RightPanel->file_count = 0;
 
   /* Allocate and initialize the first volume using the dedicated module */
   CurrentVolume = Volume_Create();
@@ -314,19 +322,24 @@ int Init(char *configuration_file, char *history_file)
 
 void ReCreateWindows()
 {
-  BOOL is_small = TRUE;
+  BOOL left_is_big = FALSE;
+  BOOL right_is_big = FALSE;
 
   /* 1. Recalculate Layout based on current SplitScreen state */
   Layout_Recalculate();
 
-  /* Determine if we are in 'small' (split vertical) or 'big' (zoom) file view mode */
-  if (ActivePanel && ActivePanel->pan_file_window && ActivePanel->pan_big_file_window) {
-      if (ActivePanel->pan_file_window == ActivePanel->pan_big_file_window) is_small = FALSE;
+  /* Capture INDEPENDENT Panel Mode State */
+  /* If panels exist, check if they are currently zoomed */
+  if (LeftPanel && LeftPanel->pan_file_window) {
+      if (LeftPanel->pan_file_window == LeftPanel->pan_big_file_window) left_is_big = TRUE;
+  }
+  if (RightPanel && RightPanel->pan_file_window) {
+      if (RightPanel->pan_file_window == RightPanel->pan_big_file_window) right_is_big = TRUE;
   }
 
-  /* Force 'big' (zoom) mode if Preview Mode is active, as we only show the file list */
+  /* Force 'big' (zoom) mode for LeftPanel if Preview Mode is active */
   if (GlobalView->preview_mode) {
-      is_small = FALSE;
+      left_is_big = TRUE;
   }
 
   /* 2. Cleanup: Destroy ALL existing panel windows */
@@ -364,8 +377,8 @@ void ReCreateWindows()
   leaveok(LeftPanel->pan_big_file_window, TRUE);
   WbkgdSet(LeftPanel->pan_big_file_window, COLOR_PAIR(CPAIR_WINFILE));
 
-  /* Determine current file window for LeftPanel */
-  LeftPanel->pan_file_window = (is_small) ? LeftPanel->pan_small_file_window : LeftPanel->pan_big_file_window;
+  /* Determine current file window for LeftPanel based on its OWN state */
+  LeftPanel->pan_file_window = (left_is_big) ? LeftPanel->pan_big_file_window : LeftPanel->pan_small_file_window;
 
   /* 4. Create Right Panel Windows (Only if Split Screen and NOT Preview Mode) */
   if (IsSplitScreen && !GlobalView->preview_mode) {
@@ -388,8 +401,8 @@ void ReCreateWindows()
       leaveok(RightPanel->pan_big_file_window, TRUE);
       WbkgdSet(RightPanel->pan_big_file_window, COLOR_PAIR(CPAIR_WINFILE));
 
-      /* Default RightPanel to small file window initially or match state */
-      RightPanel->pan_file_window = (is_small) ? RightPanel->pan_small_file_window : RightPanel->pan_big_file_window;
+      /* Determine current file window for RightPanel based on its OWN state */
+      RightPanel->pan_file_window = (right_is_big) ? RightPanel->pan_big_file_window : RightPanel->pan_small_file_window;
   }
 
   /* 5. Create Preview Window (If Preview Mode) */

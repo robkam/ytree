@@ -45,9 +45,9 @@ int GetMaxColumn(void)
 
 void SetFileMode(int new_file_mode)
 {
-  int height, width;
+  int width;
 
-  getmaxyx( file_window, height, width );
+  width = getmaxx(file_window);
   file_mode = new_file_mode;
 
   max_column = width /
@@ -129,7 +129,7 @@ static char GetTypeOfFile(struct stat fst)
 		return '?';
 }
 
-void PrintFileEntry(struct Volume *vol, int entry_no, int y, int x, unsigned char hilight, int start_x, WINDOW *win)
+void PrintFileEntry(YtreePanel *panel, int entry_no, int y, int x, unsigned char hilight, int start_x, WINDOW *win)
 {
   char attributes[11];
   char modify_time[20];
@@ -153,13 +153,13 @@ void PrintFileEntry(struct Volume *vol, int entry_no, int y, int x, unsigned cha
   int  filename_width = 0;
   int  linkname_width = 0;
   int base_color_pair;
-  int height, width;
+  int width;
 
-  if (!vol || !vol->file_entry_list) return;
+  if (!panel || !panel->file_entry_list) return;
 
-  getmaxyx(win, height, width);
+  width = getmaxx(win);
 
-  fe_ptr = vol->file_entry_list[entry_no].file;
+  fe_ptr = panel->file_entry_list[entry_no].file;
 
   if (GlobalView->fixed_col_width > 0) {
       pos_x = x * (GlobalView->fixed_col_width + 1);
@@ -452,21 +452,21 @@ void PrintFileEntry(struct Volume *vol, int entry_no, int y, int x, unsigned cha
   wattroff(win, COLOR_PAIR(base_color_pair));
 }
 
-void DisplayFiles(struct Volume *vol, DirEntry *de_ptr, int start_file_no, int hilight_no, int start_x, WINDOW *win)
+void DisplayFiles(YtreePanel *panel, DirEntry *de_ptr, int start_file_no, int hilight_no, int start_x, WINDOW *win)
 {
   int  x, y, p_x, p_y, j;
-  int height, width;
+  int height;
 
-  if (!vol || !vol->file_entry_list) return;
+  if (!panel || !panel->file_entry_list) return;
 
-  getmaxyx(win, height, width);
+  height = getmaxy(win);
 
 #ifdef COLOR_SUPPORT
   WbkgdSet(win, COLOR_PAIR(CPAIR_WINFILE));
 #endif
   werase( win );
 
-  if( vol->file_count == 0 )
+  if( panel->file_count == 0 )
   {
     mvwaddstr( win,
 	       0,
@@ -480,7 +480,7 @@ void DisplayFiles(struct Volume *vol, DirEntry *de_ptr, int start_file_no, int h
   {
     for( y=0; y < height; y++ )
     {
-      if( (unsigned)j < vol->file_count )
+      if( (unsigned)j < panel->file_count )
       {
 	if( j == hilight_no )
 	{
@@ -489,7 +489,7 @@ void DisplayFiles(struct Volume *vol, DirEntry *de_ptr, int start_file_no, int h
 	}
 	else
 	{
-	  PrintFileEntry( vol, j, y, x, FALSE, start_x, win);
+	  PrintFileEntry( panel, j, y, x, FALSE, start_x, win);
 	}
       }
       j++;
@@ -497,7 +497,7 @@ void DisplayFiles(struct Volume *vol, DirEntry *de_ptr, int start_file_no, int h
   }
 
   if( p_x >= 0 )
-    PrintFileEntry( vol, hilight_no, p_y, p_x, TRUE, start_x, win);
+    PrintFileEntry( panel, hilight_no, p_y, p_x, TRUE, start_x, win);
 
   wnoutrefresh(win); /* Stage update for the screen */
 }

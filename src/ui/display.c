@@ -204,8 +204,7 @@ void DisplayHeaderPath(char *path) {
 void DisplayMenu(void)
 {
   int    y;
-  /* int    l, c; // Removed: Unused l */
-  int    c;
+  /* int    l, c; // Removed: Unused l and c */
   /* Define L_BORDER_FOR_DISPLAY as the column index where stats.c's left vertical border begins.
    * display.c's lines must end one character before this to allow stats.c to draw its full frame. */
   const int L_BORDER_FOR_DISPLAY = COLS - layout.stats_width - 1;
@@ -509,15 +508,15 @@ void RenderInactivePanel(YtreePanel *panel)
 
                 if (panel->vol != CurrentVolume) {
                     /* Different volume: Safe to rebuild list */
-                    DisplayFileWindow(de, panel->pan_file_window);
+                    DisplayFileWindow(panel, de);
                     safe_to_render = TRUE;
                 } else {
                     /* Same volume: Check if list is already built for this dir */
                     /* We peek at the first entry to confirm ownership */
-                    if (panel->vol->file_entry_list && panel->vol->file_count > 0) {
-                        if (panel->vol->file_entry_list[0].file->dir_entry == de) {
+                    if (panel->file_entry_list && panel->file_count > 0) {
+                        if (panel->file_entry_list[0].file->dir_entry == de) {
                             /* Match! Render existing list without rebuilding */
-                            DisplayFiles(panel->vol, de, de->start_file, de->start_file + de->cursor_pos, 0, panel->pan_file_window);
+                            DisplayFiles(panel, de, de->start_file, de->start_file + de->cursor_pos, 0, panel->pan_file_window);
                             safe_to_render = TRUE;
                         }
                     }
@@ -567,7 +566,7 @@ void RefreshGlobalView(DirEntry *dir_entry)
 
         /* Draw File List */
         /* Use 0 for start_x (no horiz scroll in narrow mode typically, or handled by DisplayFiles logic) */
-        DisplayFiles(CurrentVolume, dir_entry, dir_entry->start_file, dir_entry->start_file + dir_entry->cursor_pos, 0, file_window);
+        DisplayFiles(ActivePanel, dir_entry, dir_entry->start_file, dir_entry->start_file + dir_entry->cursor_pos, 0, file_window);
 
         /* Content update (UpdatePreview) needs to be called by the caller (HandleFileWindow)
            because it relies on static variables (offsets) local to filewin.c,
@@ -576,7 +575,7 @@ void RefreshGlobalView(DirEntry *dir_entry)
     } else if (dir_entry->big_window || dir_entry->global_flag || dir_entry->tagged_flag) {
         /* BIG WINDOW MODE (Zoom or ShowAll) */
         SwitchToBigFileWindow();
-        DisplayFiles(CurrentVolume, dir_entry, dir_entry->start_file, dir_entry->start_file + dir_entry->cursor_pos, 0, file_window);
+        DisplayFiles(ActivePanel, dir_entry, dir_entry->start_file, dir_entry->start_file + dir_entry->cursor_pos, 0, file_window);
 
     } else {
         /* STANDARD SPLIT MODE */
@@ -591,7 +590,7 @@ void RefreshGlobalView(DirEntry *dir_entry)
         }
 
         /* Draw File List */
-        DisplayFiles(CurrentVolume, dir_entry, dir_entry->start_file, dir_entry->start_file + dir_entry->cursor_pos, 0, file_window);
+        DisplayFiles(ActivePanel, dir_entry, dir_entry->start_file, dir_entry->start_file + dir_entry->cursor_pos, 0, file_window);
     }
 
     /* 5. Update Footer Help */
