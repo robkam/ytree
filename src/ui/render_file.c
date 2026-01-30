@@ -399,7 +399,6 @@ void PrintFileEntry(YtreePanel *panel, int entry_no, int y, int x, unsigned char
 
       /* Print attributes for modes other than MODE_3 */
       if (file_mode != MODE_3) {
-          /* int current_x, current_y; // Removed: Unused */
           int current_x;
           int dummy_y;
           getyx(win, dummy_y, current_x);
@@ -499,5 +498,5 @@ void DisplayFiles(YtreePanel *panel, DirEntry *de_ptr, int start_file_no, int hi
   if( p_x >= 0 )
     PrintFileEntry( panel, hilight_no, p_y, p_x, TRUE, start_x, win);
 
-  wnoutrefresh(win); /* Stage update for the screen */
+  wnoutrefresh(win);
 }
