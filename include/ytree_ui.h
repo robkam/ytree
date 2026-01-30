@@ -116,6 +116,7 @@ extern void PrintFileEntry(struct Volume *vol, int entry_no, int y, int x, unsig
 extern int Getch(void);
 extern void HitReturnToContinue(void);
 extern int InputChoice(char *msg, char *term);
+extern int UI_AskConflict(const char *src_path, const char *dst_path, int *mode_flags);
 
 /* prompt.c */
 extern int UI_ReadString(const char *prompt, char *buffer, int max_len, int history_type);

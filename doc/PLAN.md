@@ -858,6 +858,11 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 *   **Context Files:** `include/ytree.h`
 *   - [x] **Status:** Completed.
 
+#### **Step 5.1.6: Decouple File List Cache (Fix Split-Brain)**
+*   **Goal:** Move `file_entry_list`, `file_entry_list_capacity`, and `file_count` from the `Volume` structure (Model) to the `YtreePanel` structure (View). Update all rendering and navigation logic to use the Panel's cache.
+*   **Rationale:** Essential for F8 Split Screen. Ensures that if both panels view the same Volume (e.g., Root vs Subdir), they maintain independent file lists and visual states, preventing "blank window" bugs and cursor jumping.
+*   **Files to Modify:** `include/ytree_defs.h`, `src/core/init.c`, `src/ui/ctrl_file.c`, `src/ui/render_file.c`, `src/ui/ctrl_dir.c`, `src/ui/display.c`.
+
 ### **Step 5.2: Implement F8 Split-Screen Mode**
 *   **Goal:** Refactor the application's state management to support two independent file panels. This includes collapsing the stats panel and allowing the user to `Tab` between the two panes for copy/move operations. This will also enable advanced logging features similar to ZTree/XTree (e.g., `Alt-L` to log a tree in the other pane).
 *   **Rationale:** This is an essential feature for any advanced file manager and a prerequisite for many efficient file management workflows. This requires a significant refactoring of global state into pane-specific contexts.
