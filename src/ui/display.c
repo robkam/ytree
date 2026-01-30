@@ -471,14 +471,7 @@ void RefreshWindow(WINDOW *win)
 void RenderInactivePanel(YtreePanel *panel)
 {
     /* Modified check as per instructions */
-    if (!panel || !panel->pan_dir_window || !panel->pan_small_file_window) return;
-
-    if (!panel->vol) return;
-
-    /* Ensure directory list is valid */
-    if (panel->vol->dir_entry_list == NULL) {
-        BuildDirEntryList(panel->vol);
-    }
+    if (!panel || !panel->vol || !panel->pan_dir_window) return;
 
     /* Clamp cursor */
     int total = panel->vol->total_dirs;
@@ -503,26 +496,19 @@ void RenderInactivePanel(YtreePanel *panel)
         int idx = begin + cursor;
         if (idx >= 0 && idx < total) {
             DirEntry *de = panel->vol->dir_entry_list[idx].dir_entry;
-            if (de) {
-                BOOL safe_to_render = FALSE;
-
-                if (panel->vol != CurrentVolume) {
-                    /* Different volume: Safe to rebuild list */
-                    DisplayFileWindow(panel, de);
-                    safe_to_render = TRUE;
-                } else {
-                    /* Same volume: Check if list is already built for this dir */
-                    /* We peek at the first entry to confirm ownership */
-                    if (panel->file_entry_list && panel->file_count > 0) {
-                        if (panel->file_entry_list[0].file->dir_entry == de) {
-                            /* Match! Render existing list without rebuilding */
-                            DisplayFiles(panel, de, de->start_file, de->start_file + de->cursor_pos, 0, panel->pan_file_window);
-                            safe_to_render = TRUE;
-                        }
-                    }
-                }
-
-                /* If !safe_to_render, we do nothing, leaving the window as is (stale but visible) */
+            /* Ensure we have a valid entry and matching list to display */
+            if (de && panel->file_entry_list) {
+                /* Optimization: Render existing list without rebuilding using DisplayFiles directly.
+                 * This avoids rescanning the directory on the inactive panel.
+                 * We use start_x = 0 because the window (pan_file_window) is already positioned.
+                 * We use -1 for hilight_no to avoid highlighting files in the inactive panel.
+                 */
+                DisplayFiles(panel,
+                             de,
+                             panel->start_file,
+                             -1, /* No highlight in inactive panel */
+                             0,  /* start_x inside the window */
+                             panel->pan_file_window);
 
                 wnoutrefresh(panel->pan_file_window);
             }
@@ -566,7 +552,7 @@ void RefreshGlobalView(DirEntry *dir_entry)
 
         /* Draw File List */
         /* Use 0 for start_x (no horiz scroll in narrow mode typically, or handled by DisplayFiles logic) */
-        DisplayFiles(ActivePanel, dir_entry, dir_entry->start_file, dir_entry->start_file + dir_entry->cursor_pos, 0, file_window);
+        DisplayFileWindow(ActivePanel, dir_entry);
 
         /* Content update (UpdatePreview) needs to be called by the caller (HandleFileWindow)
            because it relies on static variables (offsets) local to filewin.c,
@@ -575,7 +561,7 @@ void RefreshGlobalView(DirEntry *dir_entry)
     } else if (dir_entry->big_window || dir_entry->global_flag || dir_entry->tagged_flag) {
         /* BIG WINDOW MODE (Zoom or ShowAll) */
         SwitchToBigFileWindow();
-        DisplayFiles(ActivePanel, dir_entry, dir_entry->start_file, dir_entry->start_file + dir_entry->cursor_pos, 0, file_window);
+        DisplayFileWindow(ActivePanel, dir_entry);
 
     } else {
         /* STANDARD SPLIT MODE */
@@ -590,7 +576,7 @@ void RefreshGlobalView(DirEntry *dir_entry)
         }
 
         /* Draw File List */
-        DisplayFiles(ActivePanel, dir_entry, dir_entry->start_file, dir_entry->start_file + dir_entry->cursor_pos, 0, file_window);
+        DisplayFileWindow(ActivePanel, dir_entry);
     }
 
     /* 5. Update Footer Help */

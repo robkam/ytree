@@ -851,17 +851,18 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 *   **Context Files:** `src/ui/display.c`
 *   - [x] **Status:** Completed.
 
-#### **Step 5.1.5: Fix Panel State Independence (F8 Sync Fix)**
-*   **Goal:** Prevent F8 Split Screen panels from overwriting each other's cursor position when viewing the same volume.
-*   **Mechanism:** Refactor `HandleDirWindow` to only synchronize the `ActivePanel` cursor from the Global Volume if a Volume Context Switch actually occurred. If the volume remains the same, the Panel must preserve its own independent scroll state.
+#### **Step 5.1.5: Fix Volume State Logic**
+*   **Goal:** Prevent cursor reset and UI corruption when switching volumes.
+*   **Mechanism:** Refactor `HandleDirWindow` navigation logic to clamp cursor position instead of resetting it, and force a full UI refresh on volume switch.
 *   **Files to Modify:** `src/ui/ctrl_dir.c`
-*   **Context Files:** `include/ytree.h`
+*   **Context Files:** `src/cmd/log.c`
 *   - [x] **Status:** Completed.
 
 #### **Step 5.1.6: Decouple File List Cache (Fix Split-Brain)**
 *   **Goal:** Move `file_entry_list`, `file_entry_list_capacity`, and `file_count` from the `Volume` structure (Model) to the `YtreePanel` structure (View). Update all rendering and navigation logic to use the Panel's cache.
 *   **Rationale:** Essential for F8 Split Screen. Ensures that if both panels view the same Volume (e.g., Root vs Subdir), they maintain independent file lists and visual states, preventing "blank window" bugs and cursor jumping.
 *   **Files to Modify:** `include/ytree_defs.h`, `src/core/init.c`, `src/ui/ctrl_file.c`, `src/ui/render_file.c`, `src/ui/ctrl_dir.c`, `src/ui/display.c`.
+*   - [x] **Status:** Completed.
 
 ### **Step 5.2: Implement F8 Split-Screen Mode**
 *   **Goal:** Refactor the application's state management to support two independent file panels. This includes collapsing the stats panel and allowing the user to `Tab` between the two panes for copy/move operations. This will also enable advanced logging features similar to ZTree/XTree (e.g., `Alt-L` to log a tree in the other pane).
@@ -1335,7 +1336,7 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
     2.  If the destination exists, the logic invokes the callback: `cb(CTX_OVERWRITE, filename)`.
     3.  The callback handles the `InputChoice` UI and returns `YES`, `NO`, or `ALL`.
 *   **Files to Modify:** `src/cmd/copy.c`, `src/cmd/move.c`, `include/ytree_cmd.h`.
-
+*   - [ ] **Status:** Not Started.
 
 ### **Step 11.3: Parameterize Rendering (Global State Removal)**
 *   **Task ID:** [UI]-[Render]-[GlobalState]
@@ -1347,7 +1348,7 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
     2.  Update `DisplayTree` signature to `DisplayTree(struct Volume *vol, ...)` and use the passed `vol`.
     3.  Remove the `CurrentVolume` swap hack from `RenderInactivePanel` in `src/ui/display.c`.
 *   **Files to Modify:** `src/ui/render_file.c`, `src/ui/render_dir.c`, `src/ui/display.c`, `include/ytree_ui.h`.
-*   - [x] **Status:** Completed.
+*   - [x] **Status:** Completed/Superseded. (Achieved during Step 5.1.8).
 
 ### **Step 11.4: Standardize Path Construction (Safety)**
 *   **Task ID:** [Util]-[Path]-[UnsafeString]
