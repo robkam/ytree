@@ -9,6 +9,7 @@ Features:
 - Copies output to clipboard automatically (if supported).
 - Generates a file tree + file contents.
 - Focus Mode: Automatically selects headers + main.c + specific targets.
+-	Only Mode: Strictly selects specific targets (no automatic headers or structure).
 """
 
 import os
@@ -323,7 +324,7 @@ if __name__ == "__main__":
 
         # Process patterns similar to focus mode
         full_string = ' '.join(args.only)
-        clean_string = full_string.replace(',', ' ').replace('`', ' ')
+        clean_string = full_string.replace(',', ' ').replace('`', ' ').replace("'", " ")
         processed_patterns = clean_string.split()
 
         for pattern in processed_patterns:
@@ -351,7 +352,7 @@ if __name__ == "__main__":
         if args.focus:
             # Flatten list of args, replace delimiters with spaces, then split into clean patterns
             full_string = ' '.join(args.focus)
-            clean_string = full_string.replace(',', ' ').replace('`', ' ')
+            clean_string = full_string.replace(',', ' ').replace('`', ' ').replace("'", " ")
             processed_patterns = clean_string.split()
 
         for pattern in processed_patterns:

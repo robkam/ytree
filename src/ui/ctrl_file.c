@@ -8,6 +8,7 @@
 #include "ytree.h"
 #include "watcher.h"
 #include "sort.h"
+#include "ytree_ui.h"
 
 #define MAX( a, b ) ( ( (a) > (b) ) ? (a) : (b) )
 
@@ -52,34 +53,6 @@ static void fmoveleft(int *start_file, int *cursor_pos, int *start_x, DirEntry *
 static void fmovenpage(int *start_file, int *cursor_pos, int *start_x, DirEntry *dir_entry);
 static void fmoveppage(int *start_file, int *cursor_pos, int *start_x, DirEntry *dir_entry);
 static void UpdatePreview(DirEntry *dir_entry);
-
-/* Conflict Callback for UI */
-static int UI_AskConflict(const char *src_path, const char *dst_path, int *mode_flags) {
-    int term;
-    (void)src_path;
-    (void)dst_path;
-
-    if (mode_flags && *mode_flags == 1) {
-        return CONFLICT_OVERWRITE;
-    }
-
-    term = InputChoice( "file exist; overwrite (Y/N/A) ? ", "YNA\033" );
-
-    if (term == 'A') {
-        if (mode_flags) *mode_flags = 1;
-        return CONFLICT_OVERWRITE;
-    }
-
-    if (term == 'Y') {
-        return CONFLICT_OVERWRITE;
-    }
-
-    if (term == 'N') {
-        return CONFLICT_SKIP;
-    }
-
-    return CONFLICT_ABORT; /* Escape or other */
-}
 
 
 static void BuildFileEntryList(DirEntry *dir_entry, Statistic *s){
@@ -2705,4 +2678,3 @@ static void ListJump( DirEntry * dir_entry, char *str )
         }
     }
 }
-

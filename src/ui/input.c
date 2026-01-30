@@ -9,6 +9,7 @@
 
 #include "ytree.h"
 #include "watcher.h"
+#include "ytree_cmd.h"
 #include <sys/select.h>
 #include <unistd.h>
 #include <errno.h>
@@ -585,4 +586,27 @@ int GetEventOrKey(void)
             return WGetch(stdscr);
         }
     }
+}
+
+int UI_AskConflict(const char *src_path, const char *dst_path, int *mode_flags)
+{
+    char msg[1024];
+    int c;
+
+    (void)src_path;
+
+    snprintf(msg, sizeof(msg), "Overwrite %.300s? (Y)es/(N)o/(A)ll/(Q)uit", dst_path);
+
+    /* Allow Y, N, A, Q, and ESC (27) */
+    c = InputChoice(msg, "YNAQ\033");
+
+    if (c == 'Y') return CONFLICT_OVERWRITE;
+    if (c == 'N') return CONFLICT_SKIP;
+    if (c == 'A') {
+        if (mode_flags) *mode_flags = 1;
+        return CONFLICT_ALL;
+    }
+    if (c == 'Q' || c == 27) return CONFLICT_ABORT;
+
+    return CONFLICT_ABORT;
 }
