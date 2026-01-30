@@ -55,18 +55,37 @@ static void fmoveppage(int *start_file, int *cursor_pos, int *start_x, DirEntry 
 static void UpdatePreview(DirEntry *dir_entry);
 
 
-static void BuildFileEntryList(DirEntry *dir_entry, Statistic *s){
+void BuildFileEntryList(YtreePanel *panel) {
   size_t alloc_count;
   long t_files = 0;
   LONGLONG t_bytes = 0;
   size_t i; /* Loop counter for recalculating tagged stats */
+  DirEntry *dir_entry;
+  Statistic *s;
+  int idx;
 
-  if (!CurrentVolume || !ActivePanel) return; /* Safety check */
+  if (!panel || !panel->vol) return; /* Safety check */
 
-  if( ActivePanel->file_entry_list ) {
-    free( ActivePanel->file_entry_list );
-    ActivePanel->file_entry_list = NULL;
-    ActivePanel->file_entry_list_capacity = 0;
+  s = &panel->vol->vol_stats;
+
+  /* Derive current directory from panel state */
+  if (panel->vol->dir_entry_list && panel->vol->total_dirs > 0) {
+      idx = panel->disp_begin_pos + panel->cursor_pos;
+      /* Clamp */
+      if (idx < 0) idx = 0;
+      if (idx >= panel->vol->total_dirs) idx = panel->vol->total_dirs - 1;
+
+      dir_entry = panel->vol->dir_entry_list[idx].dir_entry;
+  } else {
+      dir_entry = s->tree;
+  }
+
+  if (!dir_entry) return;
+
+  if( panel->file_entry_list ) {
+    free( panel->file_entry_list );
+    panel->file_entry_list = NULL;
+    panel->file_entry_list_capacity = 0;
   }
 
   if( !dir_entry->global_flag )  {
@@ -75,7 +94,7 @@ static void BuildFileEntryList(DirEntry *dir_entry, Statistic *s){
     alloc_count = dir_entry->matching_files; /* This is the potentially stale value */
     if (alloc_count < 16) alloc_count = 16;
 
-    if( ( ActivePanel->file_entry_list = (FileEntryList *)
+    if( ( panel->file_entry_list = (FileEntryList *)
                   calloc( alloc_count,
                       sizeof( FileEntryList )
                     )
@@ -83,24 +102,24 @@ static void BuildFileEntryList(DirEntry *dir_entry, Statistic *s){
         ERROR_MSG( "Calloc Failed*ABORT" );
         exit( 1 );
     }
-    ActivePanel->file_entry_list_capacity = alloc_count;
+    panel->file_entry_list_capacity = alloc_count;
 
-    ActivePanel->file_count = 0;
+    panel->file_count = 0;
     ReadFileList( dir_entry->tagged_flag, dir_entry );
-    Panel_Sort(ActivePanel, s->kind_of_sort);
+    Panel_Sort(panel, s->kind_of_sort);
 
     /* Push metrics to renderer and recalc layout */
     SetFileRenderingMetrics(max_visual_filename_len, max_visual_linkname_len, max_visual_userview_len);
     SetFileMode( GetFileMode() );
 
     /* Recalculate and update statistics based on the actual loaded list */
-    dir_entry->matching_files = ActivePanel->file_count;
+    dir_entry->matching_files = panel->file_count;
     t_files = 0;
     t_bytes = 0;
-    for (i = 0; i < ActivePanel->file_count; i++) {
-        if (ActivePanel->file_entry_list[i].file->tagged) {
+    for (i = 0; i < panel->file_count; i++) {
+        if (panel->file_entry_list[i].file->tagged) {
             t_files++;
-            t_bytes += ActivePanel->file_entry_list[i].file->stat_struct.st_size;
+            t_bytes += panel->file_entry_list[i].file->stat_struct.st_size;
         }
     }
     dir_entry->tagged_files = t_files;
@@ -113,20 +132,20 @@ static void BuildFileEntryList(DirEntry *dir_entry, Statistic *s){
     alloc_count = count_source; /* This is also potentially stale */
     if (alloc_count < 16) alloc_count = 16;
 
-    if( ( ActivePanel->file_entry_list = (FileEntryList *)
+    if( ( panel->file_entry_list = (FileEntryList *)
            calloc( alloc_count,
                       sizeof( FileEntryList )
               ) ) == NULL )  {
            ERROR_MSG( "Calloc Failed*ABORT" );
            exit( 1 );
     }
-    ActivePanel->file_entry_list_capacity = alloc_count;
+    panel->file_entry_list_capacity = alloc_count;
 
-    ActivePanel->file_count = 0;
+    panel->file_count = 0;
     global_max_visual_filename_len = 0;
     global_max_visual_linkname_len = 0;
     ReadGlobalFileList(  dir_entry->tagged_flag, s->tree );
-    Panel_Sort(ActivePanel, s->kind_of_sort);
+    Panel_Sort(panel, s->kind_of_sort);
 
     /* Push metrics to renderer and recalc layout */
     SetFileRenderingMetrics(max_visual_filename_len, max_visual_linkname_len, max_visual_userview_len);
@@ -274,14 +293,17 @@ static void ChangeFileEntry(void)
   SetFileMode( GetFileMode() );
 }
 
-void DisplayFileWindow(DirEntry *dir_entry, WINDOW *win)
+void DisplayFileWindow(YtreePanel *panel, DirEntry *dir_entry)
 {
   int height;
-  height = getmaxy(win);
-  BuildFileEntryList( dir_entry, &CurrentVolume->vol_stats );
-  DisplayFiles(ActivePanel, dir_entry,
+
+  if (!panel || !panel->pan_file_window) return;
+
+  height = getmaxy(panel->pan_file_window);
+  BuildFileEntryList(panel);
+  DisplayFiles(panel, dir_entry,
 		dir_entry->start_file,
-                dir_entry->start_file + dir_entry->cursor_pos, 0, win);
+                dir_entry->start_file + dir_entry->cursor_pos, 0, panel->pan_file_window);
 }
 
 
@@ -537,7 +559,7 @@ static DirEntry *RefreshFileView(DirEntry *dir_entry) {
     dir_entry = RefreshTreeSafe(dir_entry);
 
     /* 3. Rebuild File List from the refreshed tree */
-    BuildFileEntryList(dir_entry, s);
+    BuildFileEntryList(ActivePanel);
 
     /* 4. Restore Cursor Position */
     if (saved_name) {
@@ -708,7 +730,7 @@ int HandleFileWindow(DirEntry *dir_entry)
   need_dsp_help = TRUE;
   maybe_change_x_step = TRUE;
 
-  BuildFileEntryList( dir_entry, s );
+  BuildFileEntryList( ActivePanel );
 
   /* Sanitize cursor position immediately after BuildFileEntryList */
   if (ActivePanel->file_count > 0) {
@@ -1046,7 +1068,7 @@ int HandleFileWindow(DirEntry *dir_entry)
                         dir_entry = GetSelectedDirEntry(CurrentVolume);
 
                         /* Explicitly update the file window (preview) */
-                        DisplayFileWindow(dir_entry, file_window);
+                        DisplayFileWindow(ActivePanel, dir_entry);
                         RefreshWindow(file_window);
                         if (GlobalView->preview_mode) { preview_line_offset = 0; UpdatePreview(dir_entry); }
 
@@ -1447,7 +1469,7 @@ int HandleFileWindow(DirEntry *dir_entry)
 
               /* Force a full refresh of the file window state after copy attempt */
               DisplayAvailBytes(s);
-              DisplayFileWindow(dir_entry, file_window);
+              DisplayFileWindow(ActivePanel, dir_entry);
               keypad(file_window, TRUE);
               touchwin(file_window);
               wrefresh(file_window);
@@ -1518,7 +1540,7 @@ int HandleFileWindow(DirEntry *dir_entry)
                           DisplayAvailBytes(s);
 
                           /* Force a full refresh of the file window state after copy attempt */
-                          DisplayFileWindow(dir_entry, file_window);
+                          DisplayFileWindow(ActivePanel, dir_entry);
                           keypad(file_window, TRUE);
                           touchwin(file_window);
                           wrefresh(file_window);
@@ -1592,7 +1614,7 @@ int HandleFileWindow(DirEntry *dir_entry)
 			else
 			  DisplayDirStatistic( de_ptr, NULL, s ); /* Updated call */
 
-			BuildFileEntryList( dir_entry, s );
+			BuildFileEntryList( ActivePanel );
 
 			if( ActivePanel->file_count == 0 ) unput_char = ESC;
 
@@ -1679,7 +1701,7 @@ int HandleFileWindow(DirEntry *dir_entry)
 					 &walking_package
 				       );
 
-			BuildFileEntryList( dir_entry, s );
+			BuildFileEntryList( ActivePanel );
 
 			if( ActivePanel->file_count == 0 ) unput_char = ESC;
 
@@ -1797,7 +1819,7 @@ int HandleFileWindow(DirEntry *dir_entry)
 			  /* Maybe structure has changed... */
 			  /*--------------------------------*/
 
-			  BuildFileEntryList( de_ptr, s );
+			  BuildFileEntryList( ActivePanel );
 
 			  DisplayFiles(ActivePanel, de_ptr,
 				        dir_entry->start_file,
@@ -1833,7 +1855,7 @@ int HandleFileWindow(DirEntry *dir_entry)
 					 &walking_package
 				       );
 
-			BuildFileEntryList( dir_entry, s );
+			BuildFileEntryList( ActivePanel );
 
 			if( ActivePanel->file_count == 0 ) unput_char = ESC;
 
@@ -1869,7 +1891,7 @@ int HandleFileWindow(DirEntry *dir_entry)
 		        dir_entry->start_file = 0;
 		        dir_entry->cursor_pos = 0;
 
-		        BuildFileEntryList( dir_entry, s );
+		        BuildFileEntryList( ActivePanel );
 
 		        DisplayFilter(s);
 		        DisplayFiles(ActivePanel, dir_entry,
@@ -2192,7 +2214,7 @@ int HandleFileWindow(DirEntry *dir_entry)
         else
           dir_entry->tagged_flag = FALSE;
 
-        BuildFileEntryList ( dir_entry, s );
+        BuildFileEntryList ( ActivePanel );
 
         dir_entry->start_file = 0;
         dir_entry->cursor_pos = 0;

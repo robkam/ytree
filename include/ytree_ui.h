@@ -97,7 +97,8 @@ extern void UnmapNoticeWindow(void);
 extern void Warning(char *msg);
 
 /* filewin.c */
-extern void DisplayFileWindow(DirEntry *dir_entry, WINDOW *win);
+extern void BuildFileEntryList(YtreePanel *panel);
+extern void DisplayFileWindow(YtreePanel *panel, DirEntry *dir_entry);
 extern int HandleFileWindow(DirEntry *dir_entry);
 
 /* render_file.c */
