@@ -10,6 +10,6 @@
 
 #include "ytree_defs.h"
 
-void Volume_Sort(struct Volume *vol, int method);
+void Panel_Sort(YtreePanel *panel, int method);
 
 #endif /* CORE_SORT_H */

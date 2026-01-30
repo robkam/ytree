@@ -410,15 +410,12 @@ struct Volume {
     DirEntryList *dir_entry_list;
     size_t dir_entry_list_capacity;
     int total_dirs;
-    FileEntryList *file_entry_list;
-    size_t file_entry_list_capacity;
-    unsigned int file_count;
     UT_hash_handle hh;
 };
 
 typedef union
 {
-  struct { char      new_modus[11]; } change_modus;
+  struct { char      new_modus; } change_modus;
   struct { unsigned  new_owner_id; } change_owner;
   struct { unsigned  new_group_id; } change_group;
   struct { char      *command; } execute;
@@ -508,6 +505,9 @@ typedef struct {
     WINDOW *pan_big_file_window;
     WINDOW *pan_file_window;
     struct Volume *vol;
+    FileEntryList *file_entry_list;
+    size_t file_entry_list_capacity;
+    unsigned int file_count;
     int dir_x, dir_y, dir_w, dir_h;
     int small_file_x, small_file_y, small_file_w, small_file_h;
     int big_file_x, big_file_y, big_file_w, big_file_h;

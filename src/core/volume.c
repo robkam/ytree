@@ -57,10 +57,6 @@ void Volume_Delete(struct Volume *vol) {
         free(vol->dir_entry_list);
         vol->dir_entry_list = NULL;
     }
-    if (vol->file_entry_list) {
-        free(vol->file_entry_list);
-        vol->file_entry_list = NULL;
-    }
 
     /* Remove the volume from the global hash table */
     HASH_DEL(VolumeList, vol);

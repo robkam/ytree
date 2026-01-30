@@ -23,12 +23,12 @@ static int SortByOwner(FileEntryList *e1, FileEntryList *e2);
 static int SortByGroup(FileEntryList *e1, FileEntryList *e2);
 static int SortByExtension(FileEntryList *e1, FileEntryList *e2);
 
-void Volume_Sort(struct Volume *vol, int method)
+void Panel_Sort(YtreePanel *panel, int method)
 {
   int aux;
   int (*compare)(FileEntryList *, FileEntryList *);
 
-  if (!vol || !vol->file_entry_list || vol->file_count == 0)
+  if (!panel || !panel->file_entry_list || panel->file_count == 0)
     return;
 
   g_sort_ascending = (method < SORT_DSC);
@@ -57,9 +57,9 @@ void Volume_Sort(struct Volume *vol, int method)
     default:                 compare = SortByName;
   }
 
-  qsort( (char *) vol->file_entry_list,
-	 vol->file_count,
-	 sizeof( vol->file_entry_list[0] ),
+  qsort( (char *) panel->file_entry_list,
+	 panel->file_count,
+	 sizeof( panel->file_entry_list[0] ),
 	 (int (*)(const void *, const void *)) compare
 	);
 }
