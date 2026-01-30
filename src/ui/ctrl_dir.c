@@ -589,34 +589,16 @@ static void HandleSwitchWindow(DirEntry *dir_entry, BOOL *need_dsp_help, int *ch
                 return;
             }
 
-            /* If we are here, p is still active. Update window pointer. */
-            win = p->pan_dir_window;
+            /* REPLACEMENT: Use Centralized Refresh */
+            RefreshGlobalView(dir_entry);
 
-            /* If split state changed but p is still active (e.g. Left Panel unsplit), redraw borders */
-            DisplayMenu();
-
-            dir_entry->start_file = 0;
-            dir_entry->cursor_pos = -1;
-            DisplayFileWindow( p, dir_entry );
-            RefreshWindow( small_file_window );
-            RefreshWindow( big_file_window );
-            BuildDirEntryList( p->vol );
-
-            touchwin(win);
-            DisplayTree( p->vol, win, p->disp_begin_pos,
-                         p->disp_begin_pos + p->cursor_pos, TRUE);
-            RefreshWindow(win);
-
-            DisplayDiskStatistic(s);
-            DisplayDirStatistic(dir_entry, NULL, s);
         } else {
+            /* ... existing LOGIN_ESC handling ... */
             BuildDirEntryList( p->vol );
 
-            /* FIX: Update win */
-            win = p->pan_dir_window;
+            /* Ensure visual consistency here too */
+            RefreshGlobalView(dir_entry);
 
-            DisplayTree( p->vol, win, p->disp_begin_pos,
-                         p->disp_begin_pos + p->cursor_pos, TRUE);
             *ch = 'L';
         }
         DisplayAvailBytes(s);
@@ -1538,12 +1520,7 @@ int HandleDirWindow(DirEntry *start_dir_entry)
             case ACTION_CMD_M: if( !MakeDirectory( dir_entry ) )
                 {
                     BuildDirEntryList( ActivePanel->vol );
-                    DisplayTree( ActivePanel->vol, dir_window, ActivePanel->disp_begin_pos,
-                                 ActivePanel->disp_begin_pos + ActivePanel->cursor_pos, TRUE
-                    );
-                    DisplayAvailBytes(s);
-                    DisplayDiskStatistic(s);
-                    DisplayDirStatistic(dir_entry, NULL, s);
+                    RefreshGlobalView(dir_entry);
                 }
                 need_dsp_help = TRUE;
                 break;
@@ -1559,30 +1536,19 @@ int HandleDirWindow(DirEntry *start_dir_entry)
                 dir_entry = ActivePanel->vol->dir_entry_list[ActivePanel->disp_begin_pos + ActivePanel->cursor_pos].dir_entry;
                 dir_entry->start_file = 0;
                 dir_entry->cursor_pos = -1;
-                DisplayFileWindow( ActivePanel, dir_entry );
-                RefreshWindow( file_window );
-                DisplayTree( ActivePanel->vol, dir_window, ActivePanel->disp_begin_pos,
-                             ActivePanel->disp_begin_pos + ActivePanel->cursor_pos, TRUE
-                );
-                DisplayAvailBytes(s);
-                DisplayDiskStatistic(s);
-                DisplayDirStatistic(dir_entry, NULL, s);
+
+                RefreshGlobalView(dir_entry);
                 need_dsp_help = TRUE;
                 break;
+
             case ACTION_CMD_R: if( !GetRenameParameter( dir_entry->name, new_name ) )
                 {
                     if( !RenameDirectory( dir_entry, new_name ) )
                     {
                         /* Rename OK */
-                        /*-----------*/
                         BuildDirEntryList( ActivePanel->vol );
-                        DisplayTree( ActivePanel->vol, dir_window, ActivePanel->disp_begin_pos,
-                                     ActivePanel->disp_begin_pos + ActivePanel->cursor_pos, TRUE
-                        );
-                        DisplayAvailBytes(s);
                         dir_entry = ActivePanel->vol->dir_entry_list[ActivePanel->disp_begin_pos + ActivePanel->cursor_pos].dir_entry;
-                        DisplayDiskStatistic(s);
-                        DisplayDirStatistic(dir_entry, NULL, s);
+                        RefreshGlobalView(dir_entry);
                     }
                 }
                 need_dsp_help = TRUE;

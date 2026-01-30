@@ -329,7 +329,7 @@ if (cb) {
 }
 
 /* Delete the existing file in the destination. */
-(void) DeleteFile( dest_file_entry, (overwrite_mode && *overwrite_mode == 1) ? &force : NULL, target_stats ? target_stats : statistic_ptr );
+(void) DeleteFile( dest_file_entry, (overwrite_mode && (*overwrite_mode == 1 || *overwrite_mode == 2)) ? &force : NULL, target_stats ? target_stats : statistic_ptr );
 }
 }
 else

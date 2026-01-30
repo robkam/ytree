@@ -271,8 +271,10 @@ void DisplayMenu(void)
       int top_y = 1;
       int bottom_y = layout.bottom_border_y;
 
-      BOOL draw_left = (file_window == small_file_window);
-      BOOL draw_right = TRUE;
+      /* Determine if horizontal separators are needed for Left/Right panels */
+      /* We check the Panel structs directly, not global 'file_window' */
+      BOOL draw_left = (LeftPanel->pan_file_window == LeftPanel->pan_small_file_window);
+      BOOL draw_right = (RightPanel->pan_file_window == RightPanel->pan_small_file_window);
 
 #ifdef COLOR_SUPPORT
       attron(COLOR_PAIR(CPAIR_MENU) | A_BOLD);
@@ -282,11 +284,7 @@ void DisplayMenu(void)
           mvaddch(y, split_x, ACS_VLINE);
       }
 
-      /* Draw Correct Junctions */
-      mvaddch(top_y, split_x, ACS_TTEE);        /* Top T-Junction */
-      mvaddch(bottom_y, split_x, ACS_BTEE);     /* Bottom T-Junction */
-
-      /* Draw Horizontal Lines */
+      /* Draw Horizontal Lines first (so junctions overwrite them if needed) */
       if (draw_left) {
           mvwhline(stdscr, sep_y, 1, ACS_HLINE, split_x - 1);
           mvaddch(sep_y, 0, ACS_LTEE);
@@ -301,7 +299,11 @@ void DisplayMenu(void)
           }
       }
 
-      /* Draw Center Junction */
+      /* Draw Top/Bottom Junctions */
+      mvaddch(top_y, split_x, ACS_TTEE);        /* Top T-Junction */
+      mvaddch(bottom_y, split_x, ACS_BTEE);     /* Bottom T-Junction */
+
+      /* Draw Center Junction Logic */
       int junction;
       if (draw_left && draw_right) junction = ACS_PLUS;
       else if (draw_left) junction = ACS_RTEE;

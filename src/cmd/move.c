@@ -150,7 +150,7 @@ if (cb) {
     }
 }
 
-(void) DeleteFile( dest_file_entry, (overwrite_mode && *overwrite_mode == 1) ? &force : NULL, target_stats_ptr ? target_stats_ptr : s );
+(void) DeleteFile( dest_file_entry, (overwrite_mode && (*overwrite_mode == 1 || *overwrite_mode == 2)) ? &force : NULL, target_stats_ptr ? target_stats_ptr : s );
 }
 }
 else
