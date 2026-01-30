@@ -851,11 +851,11 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 *   **Context Files:** `src/ui/display.c`
 *   - [x] **Status:** Completed.
 
-#### **Step 5.1.5: Fix Volume State Logic**
-*   **Goal:** Prevent cursor reset and UI corruption when switching volumes.
-*   **Mechanism:** Refactor `HandleDirWindow` navigation logic to clamp cursor position instead of resetting it, and force a full UI refresh on volume switch.
+#### **Step 5.1.5: Fix Panel State Independence (F8 Sync Fix)**
+*   **Goal:** Prevent F8 Split Screen panels from overwriting each other's cursor position when viewing the same volume.
+*   **Mechanism:** Refactor `HandleDirWindow` to only synchronize the `ActivePanel` cursor from the Global Volume if a Volume Context Switch actually occurred. If the volume remains the same, the Panel must preserve its own independent scroll state.
 *   **Files to Modify:** `src/ui/ctrl_dir.c`
-*   **Context Files:** `src/cmd/log.c`
+*   **Context Files:** `include/ytree.h`
 *   - [x] **Status:** Completed.
 
 ### **Step 5.2: Implement F8 Split-Screen Mode**

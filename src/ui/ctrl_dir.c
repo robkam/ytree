@@ -898,12 +898,13 @@ de_ptr = NULL;
 if (ActivePanel == NULL) ActivePanel = LeftPanel;
 
 if (ActivePanel) {
-    /* Always sync ActivePanel to the CurrentVolume state on entry.
-     * This handles volume switching (Exit -> Main Loop -> Re-Entry).
-     */
+    if (ActivePanel->vol != CurrentVolume) {
+        ActivePanel->vol = CurrentVolume;
+        ActivePanel->cursor_pos = CurrentVolume->vol_stats.cursor_pos;
+        ActivePanel->disp_begin_pos = CurrentVolume->vol_stats.disp_begin_pos;
+    }
+    /* Ensure pointer is always fresh, but don't overwrite pos if vol is same */
     ActivePanel->vol = CurrentVolume;
-    ActivePanel->cursor_pos = CurrentVolume->vol_stats.cursor_pos;
-    ActivePanel->disp_begin_pos = CurrentVolume->vol_stats.disp_begin_pos;
 
     /* Update Global View Context to match Active Panel */
     /* This ensures macros like dir_window resolve to the correct ncurses window */
