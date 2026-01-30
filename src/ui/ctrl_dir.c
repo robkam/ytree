@@ -188,7 +188,7 @@ if (GlobalView->refresh_mode & REFRESH_ON_NAV) {
 (*dir_entry)->start_file = 0;
 (*dir_entry)->cursor_pos = -1;
 DisplayTree(p->vol, win, p->disp_begin_pos, p->disp_begin_pos + p->cursor_pos, TRUE);
-DisplayFileWindow( *dir_entry, p->pan_file_window );
+DisplayFileWindow( p, *dir_entry );
 RefreshWindow( p->pan_file_window );
 DisplayDirStatistic(*dir_entry, NULL, s);
 /* Update header path */
@@ -218,7 +218,7 @@ if (GlobalView->refresh_mode & REFRESH_ON_NAV) {
 (*dir_entry)->start_file = 0;
 (*dir_entry)->cursor_pos = -1;
 DisplayTree(p->vol, win, p->disp_begin_pos, p->disp_begin_pos + p->cursor_pos, TRUE);
-DisplayFileWindow( *dir_entry, p->pan_file_window );
+DisplayFileWindow( p, *dir_entry );
 RefreshWindow( p->pan_file_window );
 DisplayDirStatistic(*dir_entry, NULL, s);
 /* Update header path */
@@ -248,7 +248,7 @@ if (GlobalView->refresh_mode & REFRESH_ON_NAV) {
 (*dir_entry)->start_file = 0;
 (*dir_entry)->cursor_pos = -1;
 DisplayTree(p->vol, win, p->disp_begin_pos, p->disp_begin_pos + p->cursor_pos, TRUE);
-DisplayFileWindow( *dir_entry, p->pan_file_window );
+DisplayFileWindow( p, *dir_entry );
 RefreshWindow( p->pan_file_window );
 DisplayDirStatistic(*dir_entry, NULL, s);
 /* Update header path */
@@ -277,7 +277,7 @@ if (GlobalView->refresh_mode & REFRESH_ON_NAV) {
 (*dir_entry)->start_file = 0;
 (*dir_entry)->cursor_pos = -1;
 DisplayTree(p->vol, win, p->disp_begin_pos, p->disp_begin_pos + p->cursor_pos, TRUE);
-DisplayFileWindow( *dir_entry, p->pan_file_window );
+DisplayFileWindow( p, *dir_entry );
 RefreshWindow( p->pan_file_window );
 DisplayDirStatistic(*dir_entry, NULL, s);
 /* Update header path */
@@ -305,7 +305,7 @@ if (GlobalView->refresh_mode & REFRESH_ON_NAV) {
 
 (*dir_entry)->start_file = 0;
 (*dir_entry)->cursor_pos = -1;
-DisplayFileWindow( *dir_entry, p->pan_file_window );
+DisplayFileWindow( p, *dir_entry );
 RefreshWindow( p->pan_file_window );
 DisplayTree( p->vol, win, p->disp_begin_pos,
 p->disp_begin_pos + p->cursor_pos, TRUE);
@@ -336,7 +336,7 @@ if (GlobalView->refresh_mode & REFRESH_ON_NAV) {
 
 (*dir_entry)->start_file = 0;
 (*dir_entry)->cursor_pos = -1;
-DisplayFileWindow( *dir_entry, p->pan_file_window );
+DisplayFileWindow( p, *dir_entry );
 RefreshWindow( p->pan_file_window );
 DisplayTree( p->vol, win, p->disp_begin_pos,
 p->disp_begin_pos + p->cursor_pos, TRUE);
@@ -456,7 +456,7 @@ s->disk_tagged_bytes -= fe_ptr->stat_struct.st_size;
 }
 dir_entry->start_file = 0;
 dir_entry->cursor_pos = -1;
-DisplayFileWindow( dir_entry, p->pan_file_window );
+DisplayFileWindow( p, dir_entry );
 RefreshWindow( p->pan_file_window );
 DisplayDiskStatistic(s);
 DisplayDirStatistic(dir_entry, NULL, s);
@@ -496,7 +496,7 @@ s->disk_tagged_bytes -= fe_ptr->stat_struct.st_size;
 }
 dir_entry->start_file = 0;
 dir_entry->cursor_pos = -1;
-DisplayFileWindow( dir_entry, p->pan_file_window );
+DisplayFileWindow( p, dir_entry );
 RefreshWindow( p->pan_file_window );
 DisplayDiskStatistic(s);
 DisplayDirStatistic(dir_entry, NULL, s);
@@ -528,7 +528,7 @@ DisplayDiskStatistic(s);
 DisplayDirStatistic(dir_entry, NULL, s);
 dir_entry->start_file = 0;
 dir_entry->cursor_pos = -1;
-DisplayFileWindow( dir_entry, p->pan_file_window );
+DisplayFileWindow( p, dir_entry );
 RefreshWindow( small_file_window );
 RefreshWindow( big_file_window );
 BuildDirEntryList( p->vol );
@@ -597,7 +597,7 @@ DisplayMenu();
 
 dir_entry->start_file = 0;
 dir_entry->cursor_pos = -1;
-DisplayFileWindow( dir_entry, p->pan_file_window );
+DisplayFileWindow( p, dir_entry );
 RefreshWindow( small_file_window );
 RefreshWindow( big_file_window );
 BuildDirEntryList( p->vol );
@@ -730,7 +730,7 @@ target = s->tree;
 }
 
 /* Explicitly update the file window (preview) to match new visibility */
-DisplayFileWindow(target, file_window);
+DisplayFileWindow(p, target);
 RefreshWindow(file_window);
 DisplayDirStatistic(target, NULL, s);
 /* Update header path */
@@ -866,7 +866,7 @@ entry = CurrentVolume->dir_entry_list[0].dir_entry;
 (void) GetAvailBytes( &s->disk_space, s );
 
 DisplayTree(CurrentVolume, win, *disp_begin_pos_ptr, *disp_begin_pos_ptr + *cursor_pos_ptr, TRUE);
-DisplayFileWindow(entry, file_window);
+DisplayFileWindow(p, entry);
 DisplayDiskStatistic(s);
 DisplayDirStatistic(entry, NULL, s);
 
@@ -1222,7 +1222,7 @@ break; /* Skip manual refresh logic below */
 
 /* Refresh */
 DisplayTree(ActivePanel->vol, dir_window, ActivePanel->disp_begin_pos, ActivePanel->disp_begin_pos + ActivePanel->cursor_pos, TRUE);
-DisplayFileWindow(dir_entry, file_window);
+DisplayFileWindow(ActivePanel, dir_entry);
 DisplayDiskStatistic(s);
 DisplayDirStatistic(dir_entry, NULL, s);
 DisplayAvailBytes(s);
@@ -1285,7 +1285,7 @@ break; /* Skip manual refresh logic below */
 
 /* Refresh */
 DisplayTree(ActivePanel->vol, dir_window, ActivePanel->disp_begin_pos, ActivePanel->disp_begin_pos + ActivePanel->cursor_pos, TRUE);
-DisplayFileWindow(dir_entry, file_window);
+DisplayFileWindow(ActivePanel, dir_entry);
 DisplayDiskStatistic(s);
 DisplayDirStatistic(dir_entry, NULL, s);
 DisplayAvailBytes(s);
@@ -1379,7 +1379,7 @@ refresh();
 /* Refresh Full UI */
 DisplayMenu();
 DisplayTree(CurrentVolume, dir_window, ActivePanel->disp_begin_pos, ActivePanel->disp_begin_pos + ActivePanel->cursor_pos, TRUE);
-DisplayFileWindow(dir_entry, file_window);
+DisplayFileWindow(ActivePanel, dir_entry);
 DisplayDiskStatistic(s);
 DisplayDirStatistic(dir_entry, NULL, s);
 DisplayAvailBytes(s);
@@ -1439,7 +1439,7 @@ dir_entry = ActivePanel->vol->dir_entry_list[ActivePanel->disp_begin_pos + Activ
 
 /* Refresh */
 DisplayTree(ActivePanel->vol, dir_window, ActivePanel->disp_begin_pos, ActivePanel->disp_begin_pos + ActivePanel->cursor_pos, TRUE);
-DisplayFileWindow(dir_entry, file_window);
+DisplayFileWindow(ActivePanel, dir_entry);
 DisplayDiskStatistic(s);
 DisplayDirStatistic(dir_entry, NULL, s);
 DisplayAvailBytes(s);
@@ -1471,7 +1471,7 @@ break;
 case ACTION_FILTER: if(ReadFilter() == 0) {
 dir_entry->start_file = 0;
 dir_entry->cursor_pos = -1;
-DisplayFileWindow( dir_entry, file_window );
+DisplayFileWindow( ActivePanel, dir_entry );
 RefreshWindow( file_window );
 DisplayDiskStatistic(s);
 DisplayDirStatistic(dir_entry, NULL, s);
@@ -1559,7 +1559,7 @@ BuildDirEntryList( ActivePanel->vol );
 dir_entry = ActivePanel->vol->dir_entry_list[ActivePanel->disp_begin_pos + ActivePanel->cursor_pos].dir_entry;
 dir_entry->start_file = 0;
 dir_entry->cursor_pos = -1;
-DisplayFileWindow( dir_entry, file_window );
+DisplayFileWindow( ActivePanel, dir_entry );
 RefreshWindow( file_window );
 DisplayTree( ActivePanel->vol, dir_window, ActivePanel->disp_begin_pos,
 ActivePanel->disp_begin_pos + ActivePanel->cursor_pos, TRUE
@@ -1660,7 +1660,7 @@ dir_entry = s->tree;
 
 DisplayMenu(); /* Force redraw of frame/separator */
 DisplayTree(ActivePanel->vol, dir_window, ActivePanel->disp_begin_pos, ActivePanel->disp_begin_pos + ActivePanel->cursor_pos, TRUE);
-DisplayFileWindow(dir_entry, file_window); /* Refresh file window for the new directory */
+DisplayFileWindow(ActivePanel, dir_entry); /* Refresh file window for the new directory */
 RefreshWindow(file_window);
 DisplayDiskStatistic(s);
 DisplayDirStatistic(dir_entry, NULL, s);
@@ -1710,7 +1710,7 @@ dir_entry = s->tree;
 
 DisplayMenu();
 DisplayTree(ActivePanel->vol, dir_window, ActivePanel->disp_begin_pos, ActivePanel->disp_begin_pos + ActivePanel->cursor_pos, TRUE);
-DisplayFileWindow(dir_entry, file_window);
+DisplayFileWindow(ActivePanel, dir_entry);
 RefreshWindow(file_window);
 DisplayDiskStatistic(s);
 DisplayDirStatistic(dir_entry, NULL, s);
@@ -1758,7 +1758,7 @@ dir_entry = s->tree;
 
 DisplayMenu();
 DisplayTree(ActivePanel->vol, dir_window, ActivePanel->disp_begin_pos, ActivePanel->disp_begin_pos + ActivePanel->cursor_pos, TRUE);
-DisplayFileWindow(dir_entry, file_window);
+DisplayFileWindow(ActivePanel, dir_entry);
 RefreshWindow(file_window);
 DisplayDiskStatistic(s);
 DisplayDirStatistic(dir_entry, NULL, s);
@@ -1830,7 +1830,7 @@ DisplayMenu(); /* Redraw menu/frame */
 
 /* Force Full Display Refresh */
 DisplayTree(ActivePanel->vol, dir_window, ActivePanel->disp_begin_pos, ActivePanel->disp_begin_pos + ActivePanel->cursor_pos, TRUE);
-DisplayFileWindow(dir_entry, file_window);
+DisplayFileWindow(ActivePanel, dir_entry);
 RefreshWindow(file_window);
 DisplayDiskStatistic(s);
 DisplayDirStatistic(dir_entry, NULL, s);
@@ -2239,7 +2239,7 @@ DisplayDirStatistic(GetSelectedDirEntry(CurrentVolume), NULL, &CurrentVolume->vo
 }
 
 /* 4. Refresh File Content & Footer Background */
-DisplayFileWindow(GetSelectedDirEntry(CurrentVolume), file_window);
+DisplayFileWindow(ActivePanel, GetSelectedDirEntry(CurrentVolume));
 RefreshWindow(file_window);
 
 DisplayAvailBytes(&CurrentVolume->vol_stats);
