@@ -9,6 +9,15 @@
 
 #include "ytree_defs.h"
 
+/* Conflict Resolution Codes */
+#define CONFLICT_SKIP       0
+#define CONFLICT_OVERWRITE  1
+#define CONFLICT_ALL        2
+#define CONFLICT_ABORT     -1
+
+/* Callback Type Definition */
+typedef int (*ConflictCallback)(const char *src_path, const char *dst_path, int *mode_flags);
+
 /* chgrp.c */
 extern int ChangeDirGroup(DirEntry *de_ptr);
 extern int ChangeFileGroup(FileEntry *fe_ptr);
@@ -29,7 +38,7 @@ extern int GetNewOwner(int st_uid);
 extern int SetFileOwner(FileEntry *fe_ptr, WalkingPackage *walking_package);
 
 /* copy.c */
-extern int CopyFile(Statistic *statistic_ptr, FileEntry *fe_ptr, unsigned char confirm, char *to_file, DirEntry *dest_dir_entry, char *to_dir_path, BOOL path_copy, int *dir_create_mode, int *overwrite_mode);
+extern int CopyFile(Statistic *statistic_ptr, FileEntry *fe_ptr, char *to_file, DirEntry *dest_dir_entry, char *to_dir_path, BOOL path_copy, int *dir_create_mode, int *overwrite_mode, ConflictCallback cb);
 extern int CopyTaggedFiles(FileEntry *fe_ptr, WalkingPackage *walking_package);
 extern int GetCopyParameter(char *from_file, BOOL path_copy, char *to_file, char *to_dir);
 extern int CopyFileContent(char *to_path, char *from_path, Statistic *s);
@@ -72,7 +81,7 @@ extern int EnsureDirectoryExists(char *dir_path, DirEntry *tree, BOOL *created, 
 
 /* move.c */
 extern int GetMoveParameter(char *from_file, char *to_file, char *to_dir);
-extern int MoveFile(FileEntry *fe_ptr, unsigned char confirm, char *to_file, DirEntry *dest_dir_entry, char *to_dir_path, FileEntry **new_fe_ptr, int *dir_create_mode, int *overwrite_mode);
+extern int MoveFile(FileEntry *fe_ptr, char *to_file, DirEntry *dest_dir_entry, char *to_dir_path, FileEntry **new_fe_ptr, int *dir_create_mode, int *overwrite_mode, ConflictCallback cb);
 extern int MoveTaggedFiles(FileEntry *fe_ptr, WalkingPackage *walking_package);
 
 /* passwd.c */

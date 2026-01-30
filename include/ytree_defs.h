@@ -431,6 +431,7 @@ typedef union
     BOOL      confirm;
     int       dir_create_mode;
     int       overwrite_mode;
+    void      *conflict_cb; /* ConflictCallback from ytree_cmd.h */
   } copy;
   struct { char      *new_name; BOOL      confirm; } rename;
   struct {
@@ -440,6 +441,7 @@ typedef union
     BOOL      confirm;
     int       dir_create_mode;
     int       overwrite_mode;
+    void      *conflict_cb; /* ConflictCallback from ytree_cmd.h */
   } mv;
   struct { FILE      *pipe_file; } pipe_cmd;
   struct { FILE       *zipfile; int        method; } compress_cmd;

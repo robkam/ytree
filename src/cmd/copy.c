@@ -30,13 +30,13 @@ static int CopyArchiveFile(char *to_path, char *from_path, Statistic *s);
 
 int CopyFile(Statistic *statistic_ptr,
 FileEntry *fe_ptr,
-unsigned char confirm,
 char *to_file,
 DirEntry *dest_dir_entry,
 char *to_dir_path,       /* absolute path */
 BOOL path_copy,
 int *dir_create_mode,
-int *overwrite_mode
+int *overwrite_mode,
+ConflictCallback cb
 )
 {
 LONGLONG    file_size;
@@ -48,10 +48,10 @@ char        buffer[20];
 FileEntry   *dest_file_entry;
 FileEntry   *fen_ptr;
 struct stat stat_struct;
-int         term;
 int         result;
 int	      refresh_dirwindow = FALSE;
 int         force = 1; /* For passing to DeleteFile when overwriting */
+int         conflict_res;
 
 /* Context-Aware Variables */
 struct Volume *target_vol = NULL;
@@ -315,25 +315,17 @@ if( dest_file_entry )
 {
 /* file exists */
 /*-------------*/
-
-if( confirm )
-{
-if (overwrite_mode && *overwrite_mode == 1) {
-term = 'Y';
-} else {
-term = InputChoice( "file exist; overwrite (Y/N/A) ? ", "YNA\033" );
-}
-
-if (term == 'A') {
-if (overwrite_mode) *overwrite_mode = 1;
-term = 'Y';
-}
-
-if( term != 'Y' )
-{
-result = (term == 'N' ) ? 0 : -1;  /* Abort on escape */
-ESCAPE;
-}
+if (cb) {
+    conflict_res = cb(from_path, to_path, overwrite_mode);
+    if (conflict_res == CONFLICT_ABORT) {
+        result = -1;
+        ESCAPE;
+    }
+    if (conflict_res == CONFLICT_SKIP) {
+        result = 0; /* Treated as success but skipped */
+        ESCAPE;
+    }
+    /* CONFLICT_OVERWRITE or CONFLICT_ALL proceeds */
 }
 
 /* Delete the existing file in the destination. */
@@ -349,25 +341,17 @@ if( !access( to_path, F_OK ) )
 {
 /* file exists */
 /*-------------*/
-
-if( confirm )
-{
-if (overwrite_mode && *overwrite_mode == 1) {
-term = 'Y';
-} else {
-term = InputChoice( "file exist; overwrite (Y/N/A) ? ", "YNA\033" );
-}
-
-if (term == 'A') {
-if (overwrite_mode) *overwrite_mode = 1;
-term = 'Y';
-}
-
-if( term != 'Y' )
-{
-result = (term == 'N' ) ? 0 : -1;  /* Abort on escape */
-ESCAPE;
-}
+if (cb) {
+    conflict_res = cb(from_path, to_path, overwrite_mode);
+    if (conflict_res == CONFLICT_ABORT) {
+        result = -1;
+        ESCAPE;
+    }
+    if (conflict_res == CONFLICT_SKIP) {
+        result = 0; /* Treated as success but skipped */
+        ESCAPE;
+    }
+    /* CONFLICT_OVERWRITE or CONFLICT_ALL proceeds */
 }
 
 if( unlink( to_path ) )
@@ -640,13 +624,13 @@ MESSAGE( "Can't copy file to*empty name" );
 
 result = CopyFile( walking_package->function_data.copy.statistic_ptr,
 fe_ptr,
-walking_package->function_data.copy.confirm,
 new_name,
 walking_package->function_data.copy.dest_dir_entry,
 walking_package->function_data.copy.to_path,
 walking_package->function_data.copy.path_copy,
 &walking_package->function_data.copy.dir_create_mode,
-&walking_package->function_data.copy.overwrite_mode
+&walking_package->function_data.copy.overwrite_mode,
+(ConflictCallback)walking_package->function_data.copy.conflict_cb
 );
 }
 

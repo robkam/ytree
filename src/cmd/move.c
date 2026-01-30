@@ -28,13 +28,13 @@ static int Move(char *to_path, char *from_path);
 
 
 int MoveFile(FileEntry *fe_ptr,
-unsigned char confirm,
 char *to_file,
 DirEntry *dest_dir_entry,
 char *to_dir_path,
 FileEntry **new_fe_ptr,
 int *dir_create_mode,
-int *overwrite_mode
+int *overwrite_mode,
+ConflictCallback cb
 )
 {
 DirEntry    *de_ptr;
@@ -51,6 +51,7 @@ char        abs_path[PATH_LENGTH+1];
 char        from_dir[PATH_LENGTH+1];
 BOOL        refresh_dirwindow = FALSE;
 int         force = 1; /* Force delete for overwrite */
+int         conflict_res;
 
 /* Context-Aware Variables */
 struct Volume *target_vol = NULL;
@@ -137,24 +138,16 @@ if( dest_file_entry )
 {
 /* file exists */
 /*-------------*/
-
-if( confirm )
-{
-if (overwrite_mode && *overwrite_mode == 1) {
-term = 'Y';
-} else {
-term = InputChoice( "file exist; overwrite (Y/N/A) ? ", "YNA\033" );
-}
-
-if (term == 'A') {
-if (overwrite_mode) *overwrite_mode = 1;
-term = 'Y';
-}
-
-if( term != 'Y' ) {
-result = (term == 'N' ) ? 0 : -1;  /* Abort on escape */
-ESCAPE;
-}
+if (cb) {
+    conflict_res = cb(from_path, to_path, overwrite_mode);
+    if (conflict_res == CONFLICT_ABORT) {
+        result = -1;
+        ESCAPE;
+    }
+    if (conflict_res == CONFLICT_SKIP) {
+        result = 0; /* Success code, but skipped */
+        ESCAPE;
+    }
 }
 
 (void) DeleteFile( dest_file_entry, (overwrite_mode && *overwrite_mode == 1) ? &force : NULL, target_stats_ptr ? target_stats_ptr : s );
@@ -169,24 +162,16 @@ if( !access( to_path, F_OK ) )
 {
 /* file exists */
 /*-------------*/
-
-if( confirm )
-{
-if (overwrite_mode && *overwrite_mode == 1) {
-term = 'Y';
-} else {
-term = InputChoice( "file exist; overwrite (Y/N/A) ? ", "YNA\033" );
-}
-
-if (term == 'A') {
-if (overwrite_mode) *overwrite_mode = 1;
-term = 'Y';
-}
-
-if( term != 'Y' ) {
-result = (term == 'N' ) ? 0 : -1;  /* Abort on escape */
-ESCAPE;
-}
+if (cb) {
+    conflict_res = cb(from_path, to_path, overwrite_mode);
+    if (conflict_res == CONFLICT_ABORT) {
+        result = -1;
+        ESCAPE;
+    }
+    if (conflict_res == CONFLICT_SKIP) {
+        result = 0; /* Success code, but skipped */
+        ESCAPE;
+    }
 }
 
 if( unlink( to_path ) )
@@ -409,13 +394,13 @@ MESSAGE( "Can't move file to*empty name" );
 else
 {
 result = MoveFile( fe_ptr,
-walking_package->function_data.mv.confirm,
 new_name,
 walking_package->function_data.mv.dest_dir_entry,
 walking_package->function_data.mv.to_path,
 &walking_package->new_fe_ptr,
 &walking_package->function_data.mv.dir_create_mode,
-&walking_package->function_data.mv.overwrite_mode
+&walking_package->function_data.mv.overwrite_mode,
+(ConflictCallback)walking_package->function_data.mv.conflict_cb
 );
 }
 }
