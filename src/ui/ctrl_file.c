@@ -53,6 +53,34 @@ static void fmovenpage(int *start_file, int *cursor_pos, int *start_x, DirEntry 
 static void fmoveppage(int *start_file, int *cursor_pos, int *start_x, DirEntry *dir_entry);
 static void UpdatePreview(DirEntry *dir_entry);
 
+/* Conflict Callback for UI */
+static int UI_AskConflict(const char *src_path, const char *dst_path, int *mode_flags) {
+    int term;
+    (void)src_path;
+    (void)dst_path;
+
+    if (mode_flags && *mode_flags == 1) {
+        return CONFLICT_OVERWRITE;
+    }
+
+    term = InputChoice( "file exist; overwrite (Y/N/A) ? ", "YNA\033" );
+
+    if (term == 'A') {
+        if (mode_flags) *mode_flags = 1;
+        return CONFLICT_OVERWRITE;
+    }
+
+    if (term == 'Y') {
+        return CONFLICT_OVERWRITE;
+    }
+
+    if (term == 'N') {
+        return CONFLICT_SKIP;
+    }
+
+    return CONFLICT_ABORT; /* Escape or other */
+}
+
 
 static void BuildFileEntryList(DirEntry *dir_entry, Statistic *s){
   size_t alloc_count;
@@ -1441,7 +1469,7 @@ int HandleFileWindow(DirEntry *dir_entry)
               {
                   int dir_create_mode = 0; /* Local mode for single file op */
                   int overwrite_mode = 0; /* Local mode for single file op */
-                  CopyFile( s, fe_ptr, TRUE, expanded_to_file, dest_dir_entry, to_path, path_copy, &dir_create_mode, &overwrite_mode );
+                  CopyFile( s, fe_ptr, expanded_to_file, dest_dir_entry, to_path, path_copy, &dir_create_mode, &overwrite_mode, UI_AskConflict );
               }
 
               /* Force a full refresh of the file window state after copy attempt */
@@ -1504,7 +1532,7 @@ int HandleFileWindow(DirEntry *dir_entry)
 			  walking_package.function_data.copy.to_file        = to_file;
 			  walking_package.function_data.copy.to_path        = to_path; /* Fixed struct access */
 			  walking_package.function_data.copy.path_copy      = path_copy; /* Fixed struct access */
-			  walking_package.function_data.copy.confirm = (term == 'Y') ? TRUE : FALSE; /* Fixed struct access */
+              walking_package.function_data.copy.conflict_cb    = (void*)UI_AskConflict;
               walking_package.function_data.copy.dir_create_mode = 0; /* Reset auto-create mode */
               walking_package.function_data.copy.overwrite_mode = (term == 'N') ? 1 : 0; /* Reset overwrite mode */
 
@@ -1572,13 +1600,13 @@ int HandleFileWindow(DirEntry *dir_entry)
                           int dir_create_mode = 0;
                           int overwrite_mode = 0;
 		      if( !MoveFile( fe_ptr,
-				     TRUE,
 				     expanded_to_file,
 				     dest_dir_entry,
 				     to_path,
 				     &new_fe_ptr,
                      &dir_create_mode,
-                     &overwrite_mode
+                     &overwrite_mode,
+                     UI_AskConflict
 				   ) )
 		      {
 			/* File was moved */
@@ -1668,7 +1696,7 @@ int HandleFileWindow(DirEntry *dir_entry)
 			walking_package.function_data.mv.dest_dir_entry = dest_dir_entry;
 			walking_package.function_data.mv.to_file = to_file;
 			walking_package.function_data.mv.to_path = to_path;
-			walking_package.function_data.mv.confirm = (term == 'Y') ? TRUE : FALSE;
+            walking_package.function_data.mv.conflict_cb = (void*)UI_AskConflict;
             walking_package.function_data.mv.dir_create_mode = 0; /* Reset auto-create mode */
             walking_package.function_data.mv.overwrite_mode = (term == 'N') ? 1 : 0; /* Reset overwrite mode */
 
@@ -2677,3 +2705,4 @@ static void ListJump( DirEntry * dir_entry, char *str )
         }
     }
 }
+

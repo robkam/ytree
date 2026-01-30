@@ -1331,6 +1331,7 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
     3.  The callback handles the `InputChoice` UI and returns `YES`, `NO`, or `ALL`.
 *   **Files to Modify:** `src/cmd/copy.c`, `src/cmd/move.c`, `include/ytree_cmd.h`.
 
+
 ### **Step 11.3: Parameterize Rendering (Global State Removal)**
 *   **Task ID:** [UI]-[Render]-[GlobalState]
 *   **Severity:** **Critical**
