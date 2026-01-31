@@ -3,6 +3,9 @@
 ## **Overview**
 This document outlines the strategic roadmap for modernizing `ytree`, a curses-based file manager. The goal is to refactor legacy C code to modern standards (C99/POSIX), remove obsolete dependencies, and implement advanced power-user features inspired by XTreeGold and ZTreeWin, while maintaining the lightweight, keyboard-centric philosophy.
 
+*   **Auditor Persona**: Use this when you are planning or analyzing. You paste the "Senior C Code Quality Auditor" prompt, feed it a file, and ask "What is wrong with this?".
+*   **Architect Mode**: Use this when you are coding/executing with the "Lead Systems Consultant". It tells the agent: "Do not patch. Refactor safely."
+
 ---
 
 ## **Guiding Principles**
@@ -864,14 +867,32 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 *   **Files to Modify:** `include/ytree_defs.h`, `src/core/init.c`, `src/ui/ctrl_file.c`, `src/ui/render_file.c`, `src/ui/ctrl_dir.c`, `src/ui/display.c`.
 *   - [x] **Status:** Completed.
 
-### **Step 5.2: Implement F8 Split-Screen Mode**
-*   **Goal:** Refactor the application's state management to support two independent file panels. This includes collapsing the stats panel and allowing the user to `Tab` between the two panes for copy/move operations. This will also enable advanced logging features similar to ZTree/XTree (e.g., `Alt-L` to log a tree in the other pane).
-*   **Rationale:** This is an essential feature for any advanced file manager and a prerequisite for many efficient file management workflows. This requires a significant refactoring of global state into pane-specific contexts.
-*   **Files to Modify:** `src/core/init.c`, `src/ui/ctrl_dir.c`, `src/ui/ctrl_file.c`, `src/ui/input.c`
-*   **Context Files:** `include/ytree.h`
-*   - [x] **Status:** Completed.
+### **Step 5.2: Implement F8 Split-Screen Architecture**
+*   **Goal:** Transition the application from a single-view model to a dual-pane "Orthodox" layout. This involves encapsulating UI state (cursor position, volume context, selection) into independent `YtreePanel` structures (Left/Right) and implementing an `ActivePanel` pointer to manage focus.
+*   **Key Implementations:**
+    *   **Independent State:** Each panel maintains its own Volume context, allowing users to view different parts of the filesystem (or different archives) simultaneously.
+    *   **Panel Swapping:** `Tab` switches the `ActivePanel` context, updating the global input loop target.
+    *   **Centralized Rendering:** Implemented `RefreshGlobalView` to orchestrate the complex drawing order of the Active Panel, Inactive Panel, Headers, and Borders to prevent synchronization artifacts.
+    *   **Context-Aware Operations:** File operations (Copy/Move) now automatically target the directory loaded in the inactive panel.
+*   **Files to Modify:** `src/core/init.c`, `src/ui/ctrl_dir.c`, `src/ui/ctrl_file.c`, `src/ui/display.c`
+*   **Context Files:** `include/ytree.h`, `include/ytree_defs.h`
+*   - [x] **Status:** Completed. (Initial Implementation)
 
-#### **Step 5.3: Enhanced Archive Format Detection (UDF/ISO Bridge Fix)**
+### **Step 5.3: Split-Screen Remediation (Global State Elimination)** (Use Architect Mode)
+*   **Goal:** Refactor the F8 implementation to remove implicit dependencies on `CurrentVolume` and global window pointers. The implementation in 5.2 proved that visual splitting works, but logic state is leaking between panels.
+*   **Rationale:** "Anti-Patching" Directive. The current split-screen relies on global variable swapping which causes desynchronization bugs.
+*   **Files to Modify:** `src/ui/render_dir.c`, `src/ui/ctrl_dir.c`, `include/ytree_ui.h`
+*   - [ ] **Status:** Not Started.
+
+#### **Step 5.3.1: Abolish Global Window Macros** (Use Architect Mode)
+*   **Goal:** Remove `#define dir_window` from `ytree.h` and force all rendering functions to accept `WINDOW*` arguments.
+*   - [ ] **Status:** Not Started.
+
+#### **Step 5.3.2: Bind Volume to Panel (Input Loop)** (Use Architect Mode)
+*   **Goal:** Refactor `HandleDirWindow` to use `ActivePanel->vol` exclusively, removing `CurrentVolume` usage from the event loop.
+*   - [ ] **Status:** Not Started.
+
+#### **Step 5.4: Enhanced Archive Format Detection (UDF/ISO Bridge Fix)**
 *   **Description:** Address the issue where `libarchive` defaults to the empty ISO9660 partition on "UDF Bridge" media (e.g., Windows installation ISOs), resulting in a "No Files!" directory view.
 *   **Mechanism:** Modify `src/fs/readarchive.c` to implement a **Heuristic Retry Strategy**:
     1.  Perform the standard scan using `archive_read_support_format_all`.
@@ -884,28 +905,28 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 *   **Context Files:** None.
 *   - [ ] **Status:** Not Started.
 
-#### **Step 5.4: Implement Non-Destructive Tree Storage (Virtual Collapse)**.
+#### **Step 5.5: Implement Non-Destructive Tree Storage (Virtual Collapse)**.
 *   **Description:** This addresses the "Archive Collapse" issue. Currently, `ytree` "collapses" a folder by deleting its children from memory. Since archives cannot be easily re-scanned (unlike directories), we cannot "collapse" them without losing data. The fix is to change the data structure so "Collapsing" just hides nodes visually without freeing memory. This is also a prerequisite for efficient Archive Modification (Write support).
 *   **Files to Modify:** `src/fs/tree_utils.c`, `src/ui/ctrl_dir.c`, `src/fs/readtree.c`
 *   **Context Files:** `include/ytree.h`
 *   - [ ] **Status:** Not Started.
 
-### **Step 5.5: Physical Source Reorganization**
+### **Step 5.6: Physical Source Reorganization**
 *   **Goal:** Reorganize the source tree into semantic subdirectories (`src/core`, `src/ui`, `src/fs`, `src/cmd`, `src/util`) to improve project structure.
 *   **Rationale:** Decouples modules physically, making the architecture explicit and easier to navigate.
 *   **Files to Modify:** All source files (moved), `Makefile`.
 *   - [x] **Status:** Completed.
 
-### **Step 5.6: Header Decomposition**
+### **Step 5.7: Header Decomposition**
 *   **Goal:** Break the monolithic `ytree.h` into modular headers (`ytree_defs.h`, `ytree_fs.h`, `ytree_cmd.h`, `ytree_ui.h`).
 *   **Rationale:** Reduces compilation dependency chains and enforces architectural boundaries between layers (Model vs View vs Controller).
 *   **Files to Modify:** `include/ytree.h` and new headers.
 *   - [x] **Status:** Completed.
 
-### **Step 5.7: Component Extraction**
+### **Step 5.8: Component Extraction**
 *This phase separates Logic from UI Controller.*
 
-#### **Step 5.7.1: Extract ui_nav.c (Navigation Logic)**
+#### **Step 5.8.1: Extract ui_nav.c (Navigation Logic)**
 *   **Goal:** Extract common scrolling logic (Up, Down, PageUp, PageDown) from `dirwin.c` into a reusable module `src/ui/ui_nav.c`.
 *   **Rationale:** Removes duplication between directory and file window navigation, enforcing the "Don't Repeat Yourself" (DRY) principle.
 *   **Files to Modify:** `src/ui/ui_nav.c` (New), `src/ui/ctrl_dir.c`, `src/ui/ctrl_file.c`, `include/ytree_ui.h`
@@ -913,7 +934,7 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 *   **Action:** Move `Movedown`, `Moveup`, `Movenpage` logic (generic parts) from `dirwin.c` to `ui_nav.c`, creating generic signatures.
 *   - [x] **Status:** Completed.
 
-#### **Step 5.7.2: Extract render_dir.c**
+#### **Step 5.8.2: Extract render_dir.c**
 *   **Goal:** Move directory rendering functions from `dirwin.c` and `stats.c` to `src/ui/render_dir.c`.
 *   **Rationale:** Separates the "View" (rendering) from the "Controller" (input loop) in the directory context.
 *   **Files to Modify:** `src/ui/render_dir.c` (New), `src/ui/ctrl_dir.c`, `src/ui/stats.c`, `include/ytree_ui.h`
@@ -921,7 +942,7 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 *   **Action:** Move `PrintDirEntry`, `DisplayTree` from `dirwin.c` and `DisplayDirStatistic` from `stats.c` to `render_dir.c`.
 *   - [x] **Status:** Completed.
 
-#### **Step 5.7.3: Extract render_file.c**
+#### **Step 5.8.3: Extract render_file.c**
 *   **Goal:** Move file list rendering functions from `filewin.c` to `src/ui/render_file.c`.
 *   **Rationale:** Separates the "View" (rendering) from the "Controller" (input loop) in the file list context.
 *   **Files to Modify:** `src/ui/render_file.c` (New), `src/ui/ctrl_file.c`, `include/ytree_ui.h`
@@ -929,7 +950,7 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 *   **Action:** Move `PrintFileEntry`, `DisplayFiles` from `filewin.c` to `render_file.c`.
 *   - [x] **Status:** Completed.
 
-#### **Step 5.7.4: Rename and Purify ctrl_dir.c**
+#### **Step 5.8.4: Rename and Purify ctrl_dir.c**
 *   **Goal:** Rename `dirwin.c` to `src/ui/ctrl_dir.c` and clean it up to contain *only* the input loop and event dispatching.
 *   **Rationale:** Formalizes the Controller role. This file now orchestrates the application but contains no low-level logic or drawing code.
 *   **Files to Modify:** `src/ui/ctrl_dir.c`, `Makefile`
@@ -937,7 +958,7 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 *   **Action:** Rename file. Verify it calls functions in `render_dir.c` and `ui_nav.c` instead of defining them locally.
 *   - [x] **Status:** Completed.
 
-#### **Step 5.7.5: Rename and Purify ctrl_file.c**
+#### **Step 5.8.5: Rename and Purify ctrl_file.c**
 *   **Goal:** Rename `filewin.c` to `src/ui/ctrl_file.c` and clean it up to contain *only* the input loop and event dispatching.
 *   **Rationale:** Formalizes the Controller role for the file window.
 *   **Files to Modify:** `src/ui/ctrl_file.c`, `Makefile`
@@ -945,12 +966,12 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 *   **Action:** Rename file. Verify it calls functions in `render_file.c` and `ui_nav.c` instead of defining them locally.
 *   - [x] **Status:** Completed.
 
-#### **Step 5.8: Extract Volume Menu UI**
+#### **Step 5.9: Extract Volume Menu UI**
 *   **Goal:** Separate UI logic from volume management logic in `log.c`.
 *   **Action:** Move `SelectLoadedVolume` to `src/ui/vol_menu.c`.
 *   - [x] **Status:** Completed.
 
-#### **Step 5.9: Refactor View Module**
+#### **Step 5.10: Refactor View Module**
 *   **Goal:** Split the monolithic `view.c` into semantic modules: internal hex viewer, preview renderer, and external view command.
 *   **Action:** Created `src/cmd/view.c` (External), `src/ui/view_internal.c` (Hex/Text Editor), `src/ui/view_preview.c` (F7 Panel). Moved `src/ui/hex.c` to `src/cmd/hex.c`.
 *   - [x] **Status:** Completed.
@@ -1006,11 +1027,11 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 *   **Context Files:** `src/cmd/log.c`
 *   - [ ] **Status:** Not Started.
 
-### **Step 6.7: Implement VFS Abstraction Layer**
+### **Step 6.7: Implement VFS Abstraction Layer** (Use Architect Mode)
 *   **Goal:** Replace hardcoded filesystem logic with a driver-based architecture. This allows `ytree` to treat any data source (Local FS, Archive, SSH, SQL) uniformly as a `Volume`.
 *   **Context:** Currently, `log.c` decides between "Disk" and "Archive". We will change this so `log.c` asks a Registry: "Who can handle this path?"
 
-#### **Step 6.7.1: Define VFS Interface & Volume Integration**
+#### **Step 6.7.1: Define VFS Interface & Volume Integration** (Use Architect Mode)
 *   **Goal:** Define the `VFS_Driver` contract (struct of function pointers) and update the `Volume` struct to hold a pointer to its active driver.
 *   **Mechanism:**
     *   Create `include/ytree_vfs.h`.
@@ -1018,7 +1039,7 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
     *   Update `include/ytree_defs.h` to add `const VFS_Driver *driver` and `void *driver_data` to `struct Volume`.
 *   **Files:** `include/ytree_vfs.h`, `include/ytree_defs.h`.
 
-#### **Step 6.7.2: Implement VFS Registry**
+#### **Step 6.7.2: Implement VFS Registry** (Use Architect Mode)
 *   **Goal:** Create the core logic to register drivers and probe paths.
 *   **Mechanism:**
     *   Create `src/fs/vfs.c`.
@@ -1026,7 +1047,7 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
     *   Implement `VFS_Probe(path)` which iterates drivers asking "Can you handle this?" and returns the best match.
 *   **Files:** `src/fs/vfs.c`, `include/ytree_vfs.h`.
 
-#### **Step 6.7.3: Implement "Local" VFS Driver**
+#### **Step 6.7.3: Implement "Local" VFS Driver** (Use Architect Mode)
 *   **Goal:** Wrap the existing POSIX `opendir`/`readdir` logic into a `VFS_Driver`.
 *   **Mechanism:**
     *   Create `src/fs/drv_local.c`.
@@ -1034,7 +1055,7 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
     *   Ensure it populates `DirEntry` structures exactly as before.
 *   **Files:** `src/fs/drv_local.c`, `src/fs/readtree.c` (cleanup).
 
-#### **Step 6.7.4: Implement "Archive" VFS Driver**
+#### **Step 6.7.4: Implement "Archive" VFS Driver** (Use Architect Mode)
 *   **Goal:** Wrap the existing `libarchive` logic into a `VFS_Driver`.
 *   **Mechanism:**
     *   Create `src/fs/drv_archive.c`.
@@ -1042,7 +1063,7 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
     *   Implement `.extract` to handle the temporary file creation for viewing/copying.
 *   **Files:** `src/fs/drv_archive.c`, `src/fs/readarchive.c` (delete).
 
-#### **Step 6.7.5: Switch `LoginDisk` to VFS**
+#### **Step 6.7.5: Switch `LoginDisk` to VFS** (Use Architect Mode)
 *   **Goal:** Update the main entry point to use the new system.
 *   **Mechanism:**
     *   Refactor `src/cmd/log.c`.
@@ -1050,7 +1071,7 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
     *   Call `vol->driver->scan()` instead of calling `ReadTree` or `ReadTreeFromArchive` directly.
 *   **Files:** `src/cmd/log.c`.
 
-#### **Step 6.7.6: Refactor Consumers (Polymorphism)**
+#### **Step 6.7.6: Refactor Consumers (Polymorphism)** (Use Architect Mode)
 *   **Goal:** Remove `if (mode == ARCHIVE)` from the rest of the codebase.
 *   **Mechanism:**
     *   Update `view.c`, `copy.c`, `execute.c`.
@@ -1177,77 +1198,77 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 ## **Phase 9: Systems Architecture Remediation & Core Hardening**
 *This phase represents the primary technical debt payoff for the v3.0 modernization. It transitions `ytree` from a monolithic legacy C89 codebase into a layered, modular architecture. It systematically decouples Business Logic from Presentation (Model-View Separation), enforces strict Memory Safety, eliminates unsafe Signal Handling patterns, and standardizes low-level System I/O mechanisms.*
 
-### **Step 9.1: Deep-Dive Architectural Remediation**
+### **Step 9.1: Deep-Dive Architectural Remediation** (Use Architect Mode)
 *   **Goal:** Execute the specific refactoring tasks identified in the code quality audit to eliminate fragile patterns, enforcing strict separation of Logic (Model) and UI (View).
 *   **Status:** In Progress.
 
-#### **Step 9.1.1: Decouple Filesystem Scanners (readtree.c)**
+#### **Step 9.1.1: Decouple Filesystem Scanners (readtree.c)** (Use Architect Mode)
 *   **Goal:** Remove UI calls (`DrawSpinner`, `doupdate`) from low-level filesystem logic.
 *   **Mechanism:** Refactor `ReadTree` to accept a `ProgressCallback` function pointer. Move the UI update logic into a callback provided by the Controller layer.
 *   **Files to Modify:** `src/fs/readtree.c`, `src/fs/readarchive.c`, `src/cmd/log.c`.
 *   - [x] **Status:** Completed.
 
-#### **Step 9.1.2: Extract Sorting Logic (Model vs Controller)**
+#### **Step 9.1.2: Extract Sorting Logic (Model vs Controller)** (Use Architect Mode)
 *   **Goal:** Move `qsort` and comparison logic out of the UI Controller (`ctrl_file.c`) and into the Core/Model layer.
 *   **Mechanism:** Create `src/core/sort.c`. Implement `Volume_Sort(Volume *vol, int method)`.
 *   **Files to Modify:** `src/ui/ctrl_file.c`, `src/core/sort.c` (New).
 *   - [x] **Status:** Completed.
 
-#### **Step 9.1.3: Refactor LogDisk (Split I/O and UI)**
+#### **Step 9.1.3: Refactor LogDisk (Split I/O and UI)** (Use Architect Mode)
 *   **Goal:** Split the monolithic `LoginDisk` function into a pure logic function (`Volume_Load`) and a UI wrapper (`LogDisk`), and rename the command to fix the "Login" misnomer.
 *   **Mechanism:** `Volume_Load` (core/volume.c) performs I/O, archive detection, and memory allocation only. `LogDisk` (cmd/log.c) handles user prompts, existing volume lookup, screen clearing, and error display.
 *   **Files to Modify:** `src/cmd/log.c`, `src/core/volume.c` and `src/fs/readarchive.c`, `src/ui/ctrl_dir.c`, `src/ui/ctrl_file.c`, `src/ui/vol_menu.c` for renaming.
 *   - [x] **Status:** Completed.
 
-#### **Step 9.1.4: UI Geometry Standardization (Magic Numbers)**
+#### **Step 9.1.4: UI Geometry Standardization (Magic Numbers)** (Use Architect Mode)
 *   **Goal:** Eliminate hardcoded screen offsets (e.g., `LINES - 4`) used for footer/prompt positioning.
 *   **Mechanism:** Extend `YtreeLayout` struct to include footer/prompt geometry. Calculate these once in `Layout_Recalculate`. Replace magic numbers with `layout.footer_y`, etc.
 *   **Files to Modify:** `src/ui/display.c`, `src/ui/stats.c`, `src/ui/prompt.c`, `src/ui/vol_menu.c`.
 *   - [x] **Status:** Completed.
 
-#### **Step 9.1.5: Standardization of Path Parsing**
+#### **Step 9.1.5: Standardization of Path Parsing** (Use Architect Mode)
 *   **Goal:** Replace manual pointer-arithmetic path parsing loops with standard functions.
 *   **Mechanism:** Refactor `Fnsplit` and similar helpers to use POSIX `dirname()` and `basename()`.
 *   **Files to Modify:** `src/util/path_utils.c`.
 *   - [x] **Status:** Completed.
 
-#### **Step 9.1.6: Encapsulate Command Context**
+#### **Step 9.1.6: Encapsulate Command Context** (Use Architect Mode)
 *   **Goal:** Prevent commands from implicitly operating on the global `CurrentVolume`.
 *   **Mechanism:** Refactor `Execute`, `Delete`, and `UserMode` functions to accept a `Volume*` or `Statistic*` context argument. Update callers in `ctrl_dir.c`/`ctrl_file.c` to pass `ActivePanel->vol`.
 *   **Files to Modify:** `src/cmd/execute.c`, `src/cmd/delete.c`, `src/cmd/usermode.c`.
 *   - [x] **Status:** Completed.
 
-#### **Step 9.1.7: Secure String Construction**
+#### **Step 9.1.7: Secure String Construction** (Use Architect Mode)
 *   **Goal:** Eliminate unsafe manual string substitution loops.
 *   **Mechanism:** Create `String_Replace()` utility using bounds-checked logic.
 *   **Files to Modify:** `src/cmd/execute.c`, `src/util/string_utils.c`.
 *   - [x] **Status:** Completed.
 
-#### **Step 9.1.8: Global Error Buffer Elimination**
+#### **Step 9.1.8: Global Error Buffer Elimination** (Use Architect Mode)
 *   **Goal:** Remove the non-reentrant global `message` buffer.
 *   **Mechanism:** Refactor error macros to use variadic functions (`UI_Message(fmt, ...)`) with local stack buffers.
 *   **Files to Modify:** `src/core/global.c`, `src/ui/error.c`, `include/ytree.h`.
 *   - [x] **Status:** Completed.
 
-#### **Step 9.1.9: Modernize User/Group Database Handling**
+#### **Step 9.1.9: Modernize User/Group Database Handling** (Use Architect Mode)
 *   **Goal:** Remove legacy caching of `/etc/passwd` which wastes memory and fails on networked systems.
 *   **Mechanism:** Replace `ReadPasswdEntries` cache with direct calls to `getpwuid`/`getgrgid`.
 *   **Files to Modify:** `src/cmd/passwd.c`, `src/cmd/group.c`.
 *   - [x] **Status:** Completed.
 
-#### **Step 9.1.10: Centralize Memory Management (DRY)**
+#### **Step 9.1.10: Centralize Memory Management (DRY)** (Use Architect Mode)
 *   **Goal:** Eliminate repetitive `malloc` error checking code scattered across the project.
 *   **Mechanism:** Implement `xmalloc`, `xcalloc`, and `xstrdup` in `src/util/memory.c`. These wrappers exit safely on allocation failure. Refactor codebase to use them.
 *   **Files to Modify:** `src/util/memory.c` (New), `include/ytree.h`, all source files.
 *   - [x] **Status:** Completed.
 
-#### **Step 9.1.11: Standardize Internal Viewer Geometry**
+#### **Step 9.1.11: Standardize Internal Viewer Geometry** (Use Architect Mode)
 *   **Goal:** Decouple the internal Hex/Text viewer from global `LINES`/`COLS` to allow future split-screen integration.
 *   **Mechanism:** Update `view_internal.c` to respect the global `YtreeLayout` or accept specific bounds.
 *   **Files to Modify:** `src/ui/view_internal.c`.
 *   - [x] **Status:** Completed.
 
-#### **Step 9.1.12: Enforce Signal Safety (Anti-Crash)**
+#### **Step 9.1.12: Enforce Signal Safety (Anti-Crash)** (Use Architect Mode)
 *   **Goal:** Eliminate "Random" crashes caused by unsafe signal handling (SIGALRM/SIGSEGV).
 *   **Mechanism:**
     1.  **Clock:** Remove `SIGALRM` based clock. Move clock updates to the `GetEventOrKey` input loop using `timeout()`.
@@ -1288,14 +1309,14 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 *   **Context Files:** None.
 *   - [ ] **Status:** Not Started.
 
-### **Step 10.2: Memory Leak Remediation** (Use the Auditor Persona here)
+### **Step 10.2: Memory Leak Remediation** (Use Architect Mode)
 *   **Goal:** Systematically analyze Valgrind reports and fix all "Definitely Lost" and "Indirectly Lost" memory errors.
 *   **Rationale:** Prevents memory bloat over time, which is critical for a file manager that may be left open for days.
 *   **Files to Modify:** `src/**/*.c`
 *   **Context Files:** None.
 *   - [ ] **Status:** Not Started.
 
-### **Step 10.3: Fix Uninitialized Memory Access** (Use the Auditor Persona here)
+### **Step 10.3: Fix Uninitialized Memory Access** (Use Architect Mode)
 *   **Goal:** Identify and fix "Conditional jump or move depends on uninitialized value(s)" errors.
 *   **Rationale:** These are often the cause of sporadic, unreproducible crashes and erratic behavior.
 *   **Files to Modify:** `src/**/*.c`
@@ -1314,7 +1335,7 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 ## **Phase 11: Architectural Integrity (SRP/SoC Audit)**
 *This phase addresses specific "Fragile Code" patterns identified during the deep-dive audit. The goal is to strictly enforce the Single Responsibility Principle (SRP) and Separation of Concerns (SoC) to prevent regression loops and enable safe future expansion.*
 
-### **Step 11.1: Purify Filesystem Layer (Archive UI Leakage)**
+### **Step 11.1: Purify Filesystem Layer (Archive UI Leakage)** (Use Architect Mode)
 *   **Task ID:** [FS]-[Archive]-[SoC]
 *   **Severity:** **Critical**
 *   **The Fragile Code:** `src/fs/archive.c` currently calls `DrawSpinner()` and `MESSAGE("Operation Interrupted")` directly inside extraction loops (`ExtractArchiveEntry`, `ExtractArchiveNode`, `process_rewrite_loop`).
@@ -1326,7 +1347,7 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 *   **Files to Modify:** `src/fs/archive.c`, `include/ytree_fs.h`, `src/cmd/view.c`, `src/cmd/copy.c`.
 *   - [x] **Status:** Completed.
 
-### **Step 11.2: Decouple Logic from UI in Core Commands**
+### **Step 11.2: Decouple Logic from UI in Core Commands** (Use Architect Mode)
 *   **Task ID:** [CMD]-[Copy/Move]-[SoC]
 *   **Severity:** **High**
 *   **The Fragile Code:** `CopyFile` (`src/cmd/copy.c`) and `MoveFile` (`src/cmd/move.c`) call `InputChoice(...)` internally to ask for overwrite confirmation.
@@ -1338,7 +1359,7 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 *   **Files to Modify:** `src/cmd/copy.c`, `src/cmd/move.c`, `include/ytree_cmd.h`.
 *   - [ ] **Status:** Not Started.
 
-### **Step 11.3: Parameterize Rendering (Global State Removal)**
+### **Step 11.3: Parameterize Rendering (Global State Removal)** (Use Architect Mode)
 *   **Task ID:** [UI]-[Render]-[GlobalState]
 *   **Severity:** **Critical**
 *   **The Fragile Code:** `DisplayFiles` (`src/ui/render_file.c`) and `DisplayTree` (`src/ui/render_dir.c`) hardcode accesses to `CurrentVolume`.
@@ -1350,7 +1371,7 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 *   **Files to Modify:** `src/ui/render_file.c`, `src/ui/render_dir.c`, `src/ui/display.c`, `include/ytree_ui.h`.
 *   - [x] **Status:** Completed/Superseded. (Achieved during Step 5.1.8).
 
-### **Step 11.4: Standardize Path Construction (Safety)**
+### **Step 11.4: Standardize Path Construction (Safety)** (Use Architect Mode)
 *   **Task ID:** [Util]-[Path]-[UnsafeString]
 *   **Severity:** **High**
 *   **The Fragile Code:** Various commands (`copy.c`, `move.c`) use ad-hoc `strcpy`/`strcat` sequences to build paths:
@@ -1366,7 +1387,7 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
     3.  Refactor all command modules to use this helper.
 *   **Files to Modify:** `src/util/path_utils.c`, `src/cmd/copy.c`, `src/cmd/move.c`, `src/cmd/rename.c`, `src/cmd/mkdir.c`.
 
-### **Step 11.5: Encapsulate Internal Viewer Geometry**
+### **Step 11.5: Encapsulate Internal Viewer Geometry** (Use Architect Mode)
 *   **Task ID:** [UI]-[View]-[Encapsulation]
 *   **Severity:** **Medium**
 *   **The Fragile Code:** `src/ui/view_internal.c` creates windows (`VIEW`, `BORDER`) based on global `layout` coordinates but manages its own resize logic (`DoResize`) that competes with the main layout engine.
@@ -1376,7 +1397,7 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
     2.  Ensure it respects the bounds passed by the caller, allowing it to eventually run inside a Split Screen pane (future proofing).
 *   **Files to Modify:** `src/ui/view_internal.c`.
 
-### **Step 11.6: Strict Header Hygiene**
+### **Step 11.6: Strict Header Hygiene** (Use Architect Mode)
 *   **Task ID:** [Core]-[Build]-[Coupling]
 *   **Severity:** **Low (Maintenance)**
 *   **The Fragile Code:** `ytree.h` includes every other header. Every `.c` file sees every prototype.

@@ -207,8 +207,15 @@ The user is a maintainer who describes issues in terms of **Behavior**. They are
 *   **PATHING:** Return paths relative to the project root (e.g., `main.c`, `src/utils.c`). **DO NOT** prepend the project directory name (e.g., do **NOT** output `ytree/main.c`).
 *   **NO HALLUCINATIONS:** If you need to analyze a file that is not currently in the context, **STOP and ask the user to provide it**. Do not assume its contents.
 
-**ANTI-PATCHING" DIRECTIVE:**
+**"ANTI-PATCHING" DIRECTIVE:**
 Do not apply superficial fixes for deep architectural problems. If a bug is caused by fragmented state or logic, STOP. Refactor the architecture to unify the logic before fixing the specific bug. Better to break one thing to fix the system than to patch the system and break everything.
+
+**ARCHITECTURAL OVERRIDE MODE:**
+When I ask you to address **Phase 5 (Split Screen)**, **Phase 6.7 (VFS)**, or **Phase 9/11 (Refactoring)**, you must switch to **Audit Mode**:
+1.  **Trust Nothing:** Do not assume a function works just because it compiles.
+2.  **Trace Global State:** Aggressively hunt for global variables (like `CurrentVolume`) being accessed inside specific panel logic.
+3.  **Enforce Encapsulation:** If a function takes `void`, but operates on specific data, flag it as a bug. It should take `Context *ctx`.
+4.  **Reject Patches:** If I ask for a quick fix for a sync bug, refuse and propose a structural refactor instead.
 
 **THE OUTPUT FORMAT:**
 > **ANALYSIS:**

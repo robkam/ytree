@@ -534,43 +534,36 @@ void RefreshGlobalView(DirEntry *dir_entry)
     DisplayMenu();
 
     /* 3. Draw Stats Panel (Restores Right Borders) */
-    /* Only draw full stats if NOT in preview mode (unless we want to squeeze them in later) */
     if (!GlobalView->preview_mode) {
-        DisplayDiskStatistic(s); /* Draws Frame Top/Mid */
+        DisplayDiskStatistic(s);
         /* If global mode, stats might be special */
-        if (dir_entry->global_flag) {
-             /* In ShowAll, we might not have a specific dir context for stats,
-                but we need to draw the bottom separator */
-             /* DisplayDirStatistic handles "SHOW ALL" title if needed */
-        }
         DisplayDirStatistic(dir_entry, (dir_entry->global_flag) ? "SHOW ALL" : NULL, s);
         DisplayAvailBytes(s);
     }
 
-    /* 4. Draw Content based on Mode */
+    /* 4. Update Header Path (Critical Fix for Stale Paths) */
+    {
+        char path[PATH_LENGTH];
+        GetPath(dir_entry, path);
+        DisplayHeaderPath(path);
+    }
+
+    /* 5. Draw Content based on Mode */
     if (GlobalView->preview_mode) {
-        /* PREVIEW MODE: File List (Big/Narrow) + Preview Pane */
-        SwitchToBigFileWindow(); /* Updates 'file_window' pointer */
-
-        /* Draw File List */
-        /* Use 0 for start_x (no horiz scroll in narrow mode typically, or handled by DisplayFiles logic) */
-        DisplayFileWindow(ActivePanel, dir_entry);
-
-        /* Content update (UpdatePreview) needs to be called by the caller (HandleFileWindow)
-           because it relies on static variables (offsets) local to filewin.c,
-           or we need to export it. For now, we set the stage. */
-
-    } else if (dir_entry->big_window || dir_entry->global_flag || dir_entry->tagged_flag) {
-        /* BIG WINDOW MODE (Zoom or ShowAll) */
+        /* PREVIEW MODE */
         SwitchToBigFileWindow();
         DisplayFileWindow(ActivePanel, dir_entry);
-
+        /* Note: UpdatePreview must be called by caller or we need a callback */
+    } else if (dir_entry->big_window || dir_entry->global_flag || dir_entry->tagged_flag) {
+        /* BIG WINDOW MODE */
+        SwitchToBigFileWindow();
+        DisplayFileWindow(ActivePanel, dir_entry);
     } else {
         /* STANDARD SPLIT MODE */
         SwitchToSmallFileWindow();
 
         /* Draw Directory Tree */
-        /* We must use ActivePanel's window to be safe */
+        /* This answers your question: We explicitly draw the tree here if we are in standard mode */
         if (ActivePanel && ActivePanel->pan_dir_window) {
             DisplayTree(ActivePanel->vol, ActivePanel->pan_dir_window,
                         ActivePanel->disp_begin_pos,
@@ -581,16 +574,23 @@ void RefreshGlobalView(DirEntry *dir_entry)
         DisplayFileWindow(ActivePanel, dir_entry);
     }
 
-    /* 5. Update Footer Help */
-    if (GlobalView->preview_mode) {
-        DisplayPreviewHelp();
-    } else if (file_window == stdscr || /* checking focus context is hard here, rely on caller flags usually */
-               GlobalView->ctx_file_window == file_window) { // Heuristic
-        /* This part is tricky because 'mode' tells us DISK/USER, but not which window is focused.
-           We'll leave specific help text to the input loops, but clear the area. */
-        ClearHelp(); /* Safety clear */
+    /* 6. Render Inactive Panel (Critical Fix for Split Screen Blanking) */
+    if (IsSplitScreen && ActivePanel) {
+        YtreePanel *inactive = (ActivePanel == LeftPanel) ? RightPanel : LeftPanel;
+        RenderInactivePanel(inactive);
     }
 
-    /* 6. Commit Changes */
+    /* 7. Update Footer Help */
+    if (GlobalView->preview_mode) {
+        DisplayPreviewHelp();
+    } else {
+        /* In file mode context */
+        if (file_window == stdscr || GlobalView->ctx_file_window == file_window) {
+             /* Basic clear, specific help drawn by input loop */
+             ClearHelp();
+        }
+    }
+
+    /* 8. Commit Changes */
     doupdate();
 }

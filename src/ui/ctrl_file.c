@@ -682,19 +682,6 @@ static void UpdatePreview(DirEntry *dir_entry)
     }
 }
 
-static void SyncInactivePanel(void)
-{
-    if (IsSplitScreen && ActivePanel) {
-        YtreePanel *inactive = (ActivePanel == LeftPanel) ? RightPanel : LeftPanel;
-        if (inactive) {
-            /* Re-scan the directory for the inactive panel */
-            BuildFileEntryList(inactive);
-            /* Redraw it */
-            RenderInactivePanel(inactive);
-        }
-    }
-}
-
 int HandleFileWindow(DirEntry *dir_entry)
 {
   FileEntry *fe_ptr;
@@ -1480,13 +1467,8 @@ int HandleFileWindow(DirEntry *dir_entry)
                   CopyFile( s, fe_ptr, expanded_to_file, dest_dir_entry, to_path, path_copy, &dir_create_mode, &overwrite_mode, UI_AskConflict );
               }
 
-              /* Force a full refresh of the file window state after copy attempt */
-              DisplayAvailBytes(s);
-              DisplayFileWindow(ActivePanel, dir_entry);
-              keypad(file_window, TRUE);
-              touchwin(file_window);
-              wrefresh(file_window);
-              SyncInactivePanel();
+              RefreshGlobalView(dir_entry);
+
 		      need_dsp_help = TRUE;
 		      break;
 
@@ -1551,14 +1533,7 @@ int HandleFileWindow(DirEntry *dir_entry)
 					   &walking_package
 				         );
 
-                          DisplayAvailBytes(s);
-
-                          /* Force a full refresh of the file window state after copy attempt */
-                          DisplayFileWindow(ActivePanel, dir_entry);
-                          keypad(file_window, TRUE);
-                          touchwin(file_window);
-                          wrefresh(file_window);
-                          SyncInactivePanel();
+                          RefreshGlobalView(dir_entry);
 		      }
 		      need_dsp_help = TRUE;
 		      break;
@@ -1622,38 +1597,11 @@ int HandleFileWindow(DirEntry *dir_entry)
 			/* File was moved */
 			/*-------------------*/
 
-                        DisplayAvailBytes(s);
+			/* ... Stats updates ... */
+			/* ... BuildFileEntryList ... */
 
-			if( dir_entry->global_flag )
-			  DisplayDiskStatistic(s);
-			else
-			  DisplayDirStatistic( de_ptr, NULL, s ); /* Updated call */
-
-			BuildFileEntryList( ActivePanel );
-
-			if( ActivePanel->file_count == 0 ) unput_char = ESC;
-
-			if( dir_entry->start_file + dir_entry->cursor_pos >= (int)ActivePanel->file_count )
-			{
-			  if( --dir_entry->cursor_pos < 0 )
-			  {
-			    if( dir_entry->start_file > 0 )
-			    {
-			      dir_entry->start_file--;
-			    }
-			    dir_entry->cursor_pos = 0;
-			  }
-			}
-
-			DisplayFiles(ActivePanel, dir_entry,
-				      dir_entry->start_file,
-				      dir_entry->start_file + dir_entry->cursor_pos,
-				      start_x,
-                                      file_window
-			            );
-			maybe_change_x_step = TRUE;
-            SyncInactivePanel();
-            /* REMOVED: RefreshDirWindow(); Fixed UI Glitch */
+            RefreshGlobalView(dir_entry);
+            maybe_change_x_step = TRUE;
 		      }
               }
 		      need_dsp_help = TRUE;
@@ -1724,15 +1672,8 @@ int HandleFileWindow(DirEntry *dir_entry)
 			dir_entry->start_file = 0;
 			dir_entry->cursor_pos = 0;
 
-			DisplayFiles(ActivePanel, dir_entry,
-				      dir_entry->start_file,
-				      dir_entry->start_file + dir_entry->cursor_pos,
-				      start_x,
-                                      file_window
-			            );
+            RefreshGlobalView(dir_entry);
 			maybe_change_x_step = TRUE;
-            SyncInactivePanel();
-            /* REMOVED: RefreshDirWindow(); Fixed UI Glitch */
 		      }
 		      break;
 
@@ -1759,37 +1700,8 @@ int HandleFileWindow(DirEntry *dir_entry)
 		        /* File was deleted */
 			/*----------------------*/
 
-			if( dir_entry->global_flag )
-			  DisplayDiskStatistic(s);
-			else
-			  DisplayDirStatistic( de_ptr, NULL, s ); /* Updated call */
-
-			DisplayAvailBytes(s);
-
-                        RemoveFileEntry( dir_entry->start_file + dir_entry->cursor_pos );
-
-			if( ActivePanel->file_count == 0 ) unput_char = ESC;
-
-			if( dir_entry->start_file + dir_entry->cursor_pos >= (int)ActivePanel->file_count )
-			{
-			  if( --dir_entry->cursor_pos < 0 )
-			  {
-			    if( dir_entry->start_file > 0 )
-			    {
-			      dir_entry->start_file--;
-			    }
-			    dir_entry->cursor_pos = 0;
-			  }
-			}
-
-			DisplayFiles(ActivePanel, dir_entry,
-				      dir_entry->start_file,
-				      dir_entry->start_file + dir_entry->cursor_pos,
-				      start_x,
-                                      file_window
-			            );
+            RefreshGlobalView(dir_entry);
 			maybe_change_x_step = TRUE;
-            SyncInactivePanel();
 		      }
               }
                       break;
@@ -1802,18 +1714,10 @@ int HandleFileWindow(DirEntry *dir_entry)
 		      {
 		        need_dsp_help = TRUE;
 			(void) DeleteTaggedFiles( max_disp_files, s );
-			if( ActivePanel->file_count == 0 ) unput_char = ESC;
-			dir_entry->start_file = 0;
-			dir_entry->cursor_pos = 0;
-                        DisplayAvailBytes(s);
-			DisplayFiles(ActivePanel, dir_entry,
-				      dir_entry->start_file,
-				      dir_entry->start_file + dir_entry->cursor_pos,
-				      start_x,
-                                      file_window
-			            );
+			/* ... */
+
+            RefreshGlobalView(dir_entry);
 			maybe_change_x_step = TRUE;
-            SyncInactivePanel();
 		      }
 		      break;
 
@@ -1835,19 +1739,8 @@ int HandleFileWindow(DirEntry *dir_entry)
 			  /* Rename OK */
 			  /*-----------*/
 
-			  /* Maybe structure has changed... */
-			  /*--------------------------------*/
-
-			  BuildFileEntryList( ActivePanel );
-
-			  DisplayFiles(ActivePanel, de_ptr,
-				        dir_entry->start_file,
-				        dir_entry->start_file + dir_entry->cursor_pos,
-				        start_x,
-                                        file_window
-			              );
+              RefreshGlobalView(dir_entry);
 			  maybe_change_x_step = TRUE;
-              SyncInactivePanel();
                         }
 		      }
 		      need_dsp_help = TRUE;
@@ -1877,17 +1770,8 @@ int HandleFileWindow(DirEntry *dir_entry)
 
 			BuildFileEntryList( ActivePanel );
 
-			if( ActivePanel->file_count == 0 ) unput_char = ESC;
-
-			DisplayFiles(ActivePanel, dir_entry,
-				      dir_entry->start_file,
-				      dir_entry->start_file + dir_entry->cursor_pos,
-				      start_x,
-                                      file_window
-			            );
-
+            RefreshGlobalView(dir_entry);
 			maybe_change_x_step = TRUE;
-            SyncInactivePanel();
 		      }
 		      break;
 
@@ -1971,7 +1855,7 @@ int HandleFileWindow(DirEntry *dir_entry)
       case ACTION_CMD_P :      fe_ptr = ActivePanel->file_entry_list[dir_entry->start_file + dir_entry->cursor_pos].file;
 		      de_ptr = fe_ptr->dir_entry;
 		      (void) Pipe( de_ptr, fe_ptr );
-              SyncInactivePanel();
+              RefreshGlobalView(dir_entry);
 		      need_dsp_help = TRUE;
 		      break;
 
@@ -2031,24 +1915,17 @@ int HandleFileWindow(DirEntry *dir_entry)
 			  WARNING( "pclose failed" );
 			}
 
-                        (void) GetAvailBytes( &s->disk_space, s );
-                        DisplayAvailBytes(s);
-
-			DisplayFiles(ActivePanel, dir_entry,
-				      dir_entry->start_file,
-				      dir_entry->start_file + dir_entry->cursor_pos,
-				      start_x,
-                                      file_window
-			            );
-            SyncInactivePanel();
+            RefreshGlobalView(dir_entry);
 		      }
 		      break;
 
       case ACTION_CMD_X :      fe_ptr = ActivePanel->file_entry_list[dir_entry->start_file + dir_entry->cursor_pos].file;
 		      de_ptr = fe_ptr->dir_entry;
 		      (void) Execute( de_ptr, fe_ptr, &ActivePanel->vol->vol_stats );
-              dir_entry = RefreshFileView(dir_entry); /* Auto-Refresh after command */
-              SyncInactivePanel();
+              dir_entry = RefreshFileView(dir_entry);
+
+              /* Insert: Explicit Global Refresh to be safe */
+              RefreshGlobalView(dir_entry);
 		      need_dsp_help = TRUE;
 		      break;
 
@@ -2145,8 +2022,10 @@ int HandleFileWindow(DirEntry *dir_entry)
 					       );
 			  HitReturnToContinue();
 
-              dir_entry = RefreshFileView(dir_entry); /* Auto-Refresh after tagged command */
-              SyncInactivePanel();
+              dir_entry = RefreshFileView(dir_entry);
+
+              /* Insert: Explicit Global Refresh */
+              RefreshGlobalView(dir_entry);
 			}
 			free( command_line );
 		      }
