@@ -603,7 +603,7 @@ int UI_AskConflict(const char *src_path, const char *dst_path, int *mode_flags)
     if (c == 'Y') return CONFLICT_OVERWRITE;
     if (c == 'N') return CONFLICT_SKIP;
     if (c == 'A') {
-        if (mode_flags) *mode_flags = 1;
+        if (mode_flags) *mode_flags = 2; /* Set to 2 for ALL, distinguishing from 1 (Yes/Force) */
         return CONFLICT_ALL;
     }
     if (c == 'Q' || c == 27) return CONFLICT_ABORT;
