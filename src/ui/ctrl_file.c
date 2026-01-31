@@ -682,6 +682,19 @@ static void UpdatePreview(DirEntry *dir_entry)
     }
 }
 
+static void SyncInactivePanel(void)
+{
+    if (IsSplitScreen && ActivePanel) {
+        YtreePanel *inactive = (ActivePanel == LeftPanel) ? RightPanel : LeftPanel;
+        if (inactive) {
+            /* Re-scan the directory for the inactive panel */
+            BuildFileEntryList(inactive);
+            /* Redraw it */
+            RenderInactivePanel(inactive);
+        }
+    }
+}
+
 int HandleFileWindow(DirEntry *dir_entry)
 {
   FileEntry *fe_ptr;
@@ -1473,6 +1486,7 @@ int HandleFileWindow(DirEntry *dir_entry)
               keypad(file_window, TRUE);
               touchwin(file_window);
               wrefresh(file_window);
+              SyncInactivePanel();
 		      need_dsp_help = TRUE;
 		      break;
 
@@ -1544,6 +1558,7 @@ int HandleFileWindow(DirEntry *dir_entry)
                           keypad(file_window, TRUE);
                           touchwin(file_window);
                           wrefresh(file_window);
+                          SyncInactivePanel();
 		      }
 		      need_dsp_help = TRUE;
 		      break;
@@ -1637,6 +1652,7 @@ int HandleFileWindow(DirEntry *dir_entry)
                                       file_window
 			            );
 			maybe_change_x_step = TRUE;
+            SyncInactivePanel();
             /* REMOVED: RefreshDirWindow(); Fixed UI Glitch */
 		      }
               }
@@ -1715,6 +1731,7 @@ int HandleFileWindow(DirEntry *dir_entry)
                                       file_window
 			            );
 			maybe_change_x_step = TRUE;
+            SyncInactivePanel();
             /* REMOVED: RefreshDirWindow(); Fixed UI Glitch */
 		      }
 		      break;
@@ -1772,6 +1789,7 @@ int HandleFileWindow(DirEntry *dir_entry)
                                       file_window
 			            );
 			maybe_change_x_step = TRUE;
+            SyncInactivePanel();
 		      }
               }
                       break;
@@ -1795,6 +1813,7 @@ int HandleFileWindow(DirEntry *dir_entry)
                                       file_window
 			            );
 			maybe_change_x_step = TRUE;
+            SyncInactivePanel();
 		      }
 		      break;
 
@@ -1828,6 +1847,7 @@ int HandleFileWindow(DirEntry *dir_entry)
                                         file_window
 			              );
 			  maybe_change_x_step = TRUE;
+              SyncInactivePanel();
                         }
 		      }
 		      need_dsp_help = TRUE;
@@ -1867,6 +1887,7 @@ int HandleFileWindow(DirEntry *dir_entry)
 			            );
 
 			maybe_change_x_step = TRUE;
+            SyncInactivePanel();
 		      }
 		      break;
 
@@ -1950,6 +1971,7 @@ int HandleFileWindow(DirEntry *dir_entry)
       case ACTION_CMD_P :      fe_ptr = ActivePanel->file_entry_list[dir_entry->start_file + dir_entry->cursor_pos].file;
 		      de_ptr = fe_ptr->dir_entry;
 		      (void) Pipe( de_ptr, fe_ptr );
+              SyncInactivePanel();
 		      need_dsp_help = TRUE;
 		      break;
 
@@ -2018,6 +2040,7 @@ int HandleFileWindow(DirEntry *dir_entry)
 				      start_x,
                                       file_window
 			            );
+            SyncInactivePanel();
 		      }
 		      break;
 
@@ -2025,6 +2048,7 @@ int HandleFileWindow(DirEntry *dir_entry)
 		      de_ptr = fe_ptr->dir_entry;
 		      (void) Execute( de_ptr, fe_ptr, &ActivePanel->vol->vol_stats );
               dir_entry = RefreshFileView(dir_entry); /* Auto-Refresh after command */
+              SyncInactivePanel();
 		      need_dsp_help = TRUE;
 		      break;
 
@@ -2122,6 +2146,7 @@ int HandleFileWindow(DirEntry *dir_entry)
 			  HitReturnToContinue();
 
               dir_entry = RefreshFileView(dir_entry); /* Auto-Refresh after tagged command */
+              SyncInactivePanel();
 			}
 			free( command_line );
 		      }
