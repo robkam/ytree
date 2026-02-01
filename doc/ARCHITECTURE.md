@@ -51,4 +51,4 @@ UI references are encapsulated in `ViewContext` structures rather than hardcoded
 
 ## Future Roadmap
 
-While the architecture is stable, this is a work in progress. See `PLAN.md` for the roadmap.
+While the architecture is stable, this is a work in progress. See `[ROADMAP.md](ROADMAP.md)` for the roadmap.
