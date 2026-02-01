@@ -322,6 +322,7 @@ static void fmovedown(int *start_file, int *cursor_pos, int *start_x, DirEntry *
         GetPath(dir_entry, path);
         DisplayHeaderPath(path);
     }
+    ActivePanel->start_file = *start_file;
 }
 
 static void fmoveup(int *start_file, int *cursor_pos, int *start_x, DirEntry *dir_entry)
@@ -342,6 +343,7 @@ static void fmoveup(int *start_file, int *cursor_pos, int *start_x, DirEntry *di
         GetPath(dir_entry, path);
         DisplayHeaderPath(path);
     }
+    ActivePanel->start_file = *start_file;
 }
 
 static void fmoveright(int *start_file, int *cursor_pos, int *start_x,DirEntry *dir_entry)
@@ -479,6 +481,7 @@ static void fmoveleft(int *start_file, int *cursor_pos, int *start_x, DirEntry *
          GetPath(dir_entry, path);
          DisplayHeaderPath(path);
      }
+     ActivePanel->start_file = *start_file;
      return;
 }
 
@@ -506,6 +509,7 @@ static void fmovenpage(int *start_file, int *cursor_pos, int *start_x, DirEntry 
         GetPath(dir_entry, path);
         DisplayHeaderPath(path);
     }
+    ActivePanel->start_file = *start_file;
 }
 
 
@@ -533,6 +537,7 @@ static void fmoveppage(int *start_file, int *cursor_pos, int *start_x, DirEntry 
         GetPath(dir_entry, path);
         DisplayHeaderPath(path);
     }
+    ActivePanel->start_file = *start_file;
 }
 
 /* Local helper to refresh file window, maintaining file cursor */
@@ -599,6 +604,8 @@ static DirEntry *RefreshFileView(DirEntry *dir_entry) {
         DisplayDirStatistic( dir_entry, NULL, s );
 
     DisplayFiles(ActivePanel, dir_entry, dir_entry->start_file, dir_entry->start_file + dir_entry->cursor_pos, start_x, file_window);
+
+    ActivePanel->start_file = dir_entry->start_file;
 
     return dir_entry;
 }
@@ -742,6 +749,7 @@ int HandleFileWindow(DirEntry *dir_entry)
       dir_entry->cursor_pos = 0;
       dir_entry->start_file = 0;
   }
+  ActivePanel->start_file = dir_entry->start_file;
 
   /* Initial Display using Centralized Function if applicable */
   if (GlobalView->preview_mode) {
@@ -1037,6 +1045,7 @@ int HandleFileWindow(DirEntry *dir_entry)
                                       file_window
 				    );
             if (GlobalView->preview_mode) { preview_line_offset = 0; UpdatePreview(dir_entry); }
+            ActivePanel->start_file = dir_entry->start_file;
 		      break;
 
       case ACTION_HOME : Nav_Home(&dir_entry->cursor_pos, &dir_entry->start_file);
@@ -1048,6 +1057,7 @@ int HandleFileWindow(DirEntry *dir_entry)
                                       file_window
 				    );
             if (GlobalView->preview_mode) { preview_line_offset = 0; UpdatePreview(dir_entry); }
+            ActivePanel->start_file = dir_entry->start_file;
 		      break;
 
       case ACTION_TOGGLE_HIDDEN:      {

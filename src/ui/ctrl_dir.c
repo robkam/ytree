@@ -1306,7 +1306,13 @@ int HandleDirWindow(DirEntry *start_dir_entry)
                         /* Successfully switched context. */
 
                         /* Delete the archive wrapper we just left to clean up memory/list */
-                        Volume_Delete(old_vol);
+                        /* Fix Archive Double-Free Check */
+                        BOOL vol_in_use = FALSE;
+                        if (IsSplitScreen) {
+                            YtreePanel *other = (ActivePanel == LeftPanel) ? RightPanel : LeftPanel;
+                            if (other->vol == old_vol) vol_in_use = TRUE;
+                        }
+                        if (!vol_in_use) Volume_Delete(old_vol);
 
                         /* Update pointers for the new context */
                         s = &CurrentVolume->vol_stats; /* UPDATE S */
@@ -1487,7 +1493,12 @@ int HandleDirWindow(DirEntry *start_dir_entry)
                     /* Sync pointer from list in case address changed */
                     dir_entry = ActivePanel->vol->dir_entry_list[ActivePanel->disp_begin_pos + ActivePanel->cursor_pos].dir_entry;
                 }
-                HandleSwitchWindow(dir_entry, &need_dsp_help, &ch, ActivePanel);
+                /* Fix Context Safety on Return */
+                {
+                    YtreePanel *saved_panel = ActivePanel; 
+                    HandleSwitchWindow(dir_entry, &need_dsp_help, &ch, ActivePanel);
+                    if (ActivePanel != saved_panel) return ESC;
+                }
                 /* Critical Safety: Check if volume changed after returning from File Window */
                 if (CurrentVolume != start_vol) return ESC;
 
@@ -1988,6 +1999,7 @@ int KeyF2Get(DirEntry *start_dir_entry,
                                        local_disp_begin_pos + local_cursor_pos,
                                        local_cursor_pos, TRUE, TRUE );
                     }
+
                     else
                     {
                         local_disp_begin_pos--;
