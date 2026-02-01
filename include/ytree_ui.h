@@ -34,13 +34,13 @@ extern int GetFileTypeColor(FileEntry *fe_ptr);
 /* dirwin.c */
 extern int HandleDirWindow(DirEntry *start_dir_entry);
 extern int KeyF2Get(DirEntry *start_dir_entry, int disp_begin_pos, int cursor_pos, char *path);
-extern int RefreshDirWindow(void);
-extern void ToggleDotFiles(void);
+extern int RefreshDirWindow(YtreePanel *panel);
+extern void ToggleDotFiles(YtreePanel *panel);
 extern DirEntry *GetSelectedDirEntry(struct Volume *vol);
 extern void BuildDirEntryList(struct Volume *vol);
 extern void FreeDirEntryList(void);
 extern void FreeVolumeCache(struct Volume *vol);
-extern DirEntry *RefreshTreeSafe(DirEntry *entry);
+extern DirEntry *RefreshTreeSafe(YtreePanel *panel, DirEntry *entry);
 
 /* render_dir.c */
 extern void DisplayTree(struct Volume *vol, WINDOW *win, int start_entry_no, int hilight_no, BOOL is_active);

@@ -8,6 +8,17 @@
 
 #include "ytree.h"
 
+/* Helper to resolve Panel from Stats context */
+static YtreePanel *GetPanelForStats(Statistic *s) {
+    if (!s) return NULL;
+    if (ActivePanel && &ActivePanel->vol->vol_stats == s) return ActivePanel;
+    if (IsSplitScreen) {
+        if (LeftPanel && &LeftPanel->vol->vol_stats == s) return LeftPanel;
+        if (RightPanel && &RightPanel->vol->vol_stats == s) return RightPanel;
+    }
+    return NULL;
+}
+
 
 /* Buffers for Prompt Redraw Callback - Deprecated by UI_ReadString, keeping for safety if needed */
 static char move_prompt_header[PATH_LENGTH + 50];
@@ -260,8 +271,8 @@ result = 0;
 }
 
 if (refresh_dirwindow) {
-/* REMOVED: RefreshDirWindow() to prevent UI glitch */
-/* Instead, rely on normal loop refresh or explicit call if needed */
+    YtreePanel *p = GetPanelForStats(s);
+    if (p) RefreshDirWindow(p);
 }
 
 FNC_XIT:

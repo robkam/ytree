@@ -415,7 +415,7 @@ struct Volume {
 
 typedef union
 {
-  struct { char      new_modus; } change_modus;
+  struct { char      new_modus[12]; } change_modus;
   struct { unsigned  new_owner_id; } change_owner;
   struct { unsigned  new_group_id; } change_group;
   struct { char      *command; } execute;

@@ -211,7 +211,7 @@ The user is a maintainer who describes issues in terms of **Behavior**. They are
 Do not apply superficial fixes for deep architectural problems. If a bug is caused by fragmented state or logic, STOP. Refactor the architecture to unify the logic before fixing the specific bug. Better to break one thing to fix the system than to patch the system and break everything.
 
 **ARCHITECTURAL OVERRIDE MODE:**
-When I ask you to address **Phase 5 (Split Screen)**, **Phase 6.7 (VFS)**, or **Phase 9/11 (Refactoring)**, you must switch to **Audit Mode**:
+When I ask you to address Split-Screen Remediation, Implement VFS Abstraction Layer, Deep-Dive Architectural Remediation, Valgrind / Memory Leak Remediation and Architectural Integrity (SRP/SoC Audit), you must switch to **Architect Mode**:
 1.  **Trust Nothing:** Do not assume a function works just because it compiles.
 2.  **Trace Global State:** Aggressively hunt for global variables (like `CurrentVolume`) being accessed inside specific panel logic.
 3.  **Enforce Encapsulation:** If a function takes `void`, but operates on specific data, flag it as a bug. It should take `Context *ctx`.

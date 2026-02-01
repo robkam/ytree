@@ -9,6 +9,17 @@
 #include "ytree.h"
 #include <stdio.h>
 
+/* Helper to resolve Panel from Stats context */
+static YtreePanel *GetPanelForStats(Statistic *s) {
+    if (!s) return NULL;
+    if (ActivePanel && &ActivePanel->vol->vol_stats == s) return ActivePanel;
+    if (IsSplitScreen) {
+        if (LeftPanel && &LeftPanel->vol->vol_stats == s) return LeftPanel;
+        if (RightPanel && &RightPanel->vol->vol_stats == s) return RightPanel;
+    }
+    return NULL;
+}
+
 /* Helper for Archive Callback */
 static int ArchiveUICallback(int status, const char *msg, void *user_data) {
 (void)user_data;
@@ -268,7 +279,10 @@ if (Archive_AddFile(target_stats->login_path, from_path, relative_path, FALSE, A
 /* Success */
 /* Signal caller to refresh view as auto-refresh will pick it up */
 /* We return 0 so user doesn't get error message */
-RefreshTreeSafe(target_stats->tree);
+YtreePanel *p = GetPanelForStats(target_stats);
+if (p) RefreshTreeSafe(p, target_stats->tree);
+/* Removed conflicting RescanDir call here if it was used as fallback, but logic dictates RefreshTreeSafe handles it */
+
 return 0;
 } else {
 /* Failure */
@@ -451,7 +465,8 @@ if( refresh_dirwindow)
 {
 /* Only refresh if we modified the CURRENT volume */
 if (target_tree == statistic_ptr->tree) {
-RefreshDirWindow();
+    YtreePanel *p = GetPanelForStats(statistic_ptr);
+    if (p) RefreshDirWindow(p);
 }
 }
 
