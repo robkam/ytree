@@ -227,6 +227,13 @@ int Init(char *configuration_file, char *history_file)
   RightPanel->file_entry_list_capacity = 0;
   RightPanel->file_count = 0;
 
+  /* Initialize Panel Defaults for Rendering */
+  LeftPanel->file_mode = MODE_1;
+  LeftPanel->max_column = 1;
+
+  RightPanel->file_mode = MODE_1;
+  RightPanel->max_column = 1;
+
   /* Allocate and initialize the first volume using the dedicated module */
   CurrentVolume = Volume_Create();
   /* Assign initial volume to ActivePanel */

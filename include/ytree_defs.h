@@ -514,6 +514,8 @@ typedef struct {
     int cursor_pos;
     int disp_begin_pos;
     int start_file;
+    int file_mode;
+    int max_column;
 } YtreePanel;
 
 #endif /* YTREE_DEFS_H */
