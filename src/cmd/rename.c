@@ -8,6 +8,17 @@
 
 #include "ytree.h"
 
+/* Helper to resolve Panel from Volume */
+static YtreePanel *GetPanelForVol(struct Volume *vol) {
+    if (!vol) return NULL;
+    if (ActivePanel && ActivePanel->vol == vol) return ActivePanel;
+    if (IsSplitScreen) {
+        if (LeftPanel && LeftPanel->vol == vol) return LeftPanel;
+        if (RightPanel && RightPanel->vol == vol) return RightPanel;
+    }
+    return NULL;
+}
+
 /* Helper for Archive Callback */
 static int ArchiveUICallback(int status, const char *msg, void *user_data) {
 (void)user_data;
@@ -51,7 +62,8 @@ result = -1;
 #ifdef HAVE_LIBARCHIVE
 if (mode == ARCHIVE_MODE) {
 if (Archive_RenameEntry(CurrentVolume->vol_stats.login_path, from_path, new_name, ArchiveUICallback, NULL) == 0) {
-RefreshTreeSafe(CurrentVolume->vol_stats.tree);
+YtreePanel *p = GetPanelForVol(CurrentVolume);
+if (p) RefreshTreeSafe(p, CurrentVolume->vol_stats.tree);
 return 0;
 }
 return -1;
@@ -197,7 +209,8 @@ de_ptr = fe_ptr->dir_entry;
 #ifdef HAVE_LIBARCHIVE
 if (mode == ARCHIVE_MODE) {
 if (Archive_RenameEntry(CurrentVolume->vol_stats.login_path, from_path, new_name, ArchiveUICallback, NULL) == 0) {
-RefreshTreeSafe(CurrentVolume->vol_stats.tree);
+YtreePanel *p = GetPanelForVol(CurrentVolume);
+if (p) RefreshTreeSafe(p, CurrentVolume->vol_stats.tree);
 return 0;
 }
 return -1;

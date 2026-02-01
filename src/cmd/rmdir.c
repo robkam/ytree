@@ -8,6 +8,16 @@
 
 #include "ytree.h"
 
+/* Helper to resolve Panel from Volume */
+static YtreePanel *GetPanelForVol(struct Volume *vol) {
+    if (!vol) return NULL;
+    if (ActivePanel && ActivePanel->vol == vol) return ActivePanel;
+    if (IsSplitScreen) {
+        if (LeftPanel && LeftPanel->vol == vol) return LeftPanel;
+        if (RightPanel && RightPanel->vol == vol) return RightPanel;
+    }
+    return NULL;
+}
 
 
 static int DeleteSubTree(DirEntry *dir_entry);
@@ -58,7 +68,8 @@ int DeleteDirectory(DirEntry *dir_entry)
 
           if (Archive_DeleteEntry(CurrentVolume->vol_stats.login_path, buffer, RmdirProgressCallback, NULL) == 0) {
               /* Success - Update UI */
-              RefreshTreeSafe(CurrentVolume->vol_stats.tree);
+              YtreePanel *p = GetPanelForVol(CurrentVolume);
+              if (p) RefreshTreeSafe(p, CurrentVolume->vol_stats.tree);
               result = 0;
           }
       }

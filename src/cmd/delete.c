@@ -12,6 +12,18 @@
 extern int unlink(const char *);
 extern int rmdir(const char *);
 
+
+/* Helper to resolve Panel from Stats context */
+static YtreePanel *GetPanelForStats(Statistic *s) {
+    if (!s) return NULL;
+    if (ActivePanel && &ActivePanel->vol->vol_stats == s) return ActivePanel;
+    if (IsSplitScreen) {
+        if (LeftPanel && &LeftPanel->vol->vol_stats == s) return LeftPanel;
+        if (RightPanel && &RightPanel->vol->vol_stats == s) return RightPanel;
+    }
+    return NULL;
+}
+
 /* Helper for Archive Callback */
 static int ArchiveUICallback(int status, const char *msg, void *user_data) {
 (void)user_data;
@@ -49,7 +61,10 @@ if (Archive_DeleteEntry(s->login_path, filepath, ArchiveUICallback, NULL) == 0) 
 /* Success. The archive container has been rewritten.
 * Explicitly refresh the tree to update UI.
 */
-RefreshTreeSafe(s->tree);
+YtreePanel *p = GetPanelForStats(s);
+if (p) RefreshTreeSafe(p, s->tree);
+else RescanDir(s->tree, strtol(TREEDEPTH, NULL, 0), s, NULL, NULL);
+
 return 0;
 } else {
 return -1;

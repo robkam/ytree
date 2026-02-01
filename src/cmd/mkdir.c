@@ -8,6 +8,19 @@
 
 #include "ytree.h"
 
+
+/* Helper to resolve Panel from Volume */
+static YtreePanel *GetPanelForVol(struct Volume *vol) {
+    if (!vol) return NULL;
+    if (ActivePanel && ActivePanel->vol == vol) return ActivePanel;
+    if (IsSplitScreen) {
+        if (LeftPanel && LeftPanel->vol == vol) return LeftPanel;
+        if (RightPanel && RightPanel->vol == vol) return RightPanel;
+    }
+    return NULL;
+}
+
+
 /* Helper for Archive Callback */
 static int ArchiveUICallback(int status, const char *msg, void *user_data) {
 (void)user_data;
@@ -114,7 +127,10 @@ if (Archive_AddFile(CurrentVolume->vol_stats.login_path, NULL, relative_path, TR
 /* Success: Return a dummy non-NULL to indicate success.
 The auto-refresh will reload the tree.
 */
-RefreshTreeSafe(father_dir_entry);
+YtreePanel *p = GetPanelForVol(CurrentVolume);
+if (p) RefreshTreeSafe(p, father_dir_entry);
+else RescanDir(father_dir_entry, strtol(TREEDEPTH, NULL, 0), &CurrentVolume->vol_stats, NULL, NULL);
+
 return father_dir_entry;
 } else {
 return NULL;

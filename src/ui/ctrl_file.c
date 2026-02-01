@@ -295,11 +295,8 @@ static void ChangeFileEntry(void)
 
 void DisplayFileWindow(YtreePanel *panel, DirEntry *dir_entry)
 {
-  int height;
-
   if (!panel || !panel->pan_file_window) return;
 
-  height = getmaxy(panel->pan_file_window);
   BuildFileEntryList(panel);
   DisplayFiles(panel, dir_entry,
 		dir_entry->start_file,
@@ -541,7 +538,7 @@ static void fmoveppage(int *start_file, int *cursor_pos, int *start_x, DirEntry 
 /* Local helper to refresh file window, maintaining file cursor */
 static DirEntry *RefreshFileView(DirEntry *dir_entry) {
     char *saved_name = NULL;
-    Statistic *s = &CurrentVolume->vol_stats;
+    Statistic *s = &ActivePanel->vol->vol_stats;
     int found_idx = -1;
     int start_x = 0;
 
@@ -556,7 +553,7 @@ static DirEntry *RefreshFileView(DirEntry *dir_entry) {
 
     /* 2. Perform Safe Tree Refresh (Save/Rescan/Restore) */
     /* Update the local pointer with the valid address returned by RefreshTreeSafe */
-    dir_entry = RefreshTreeSafe(dir_entry);
+    dir_entry = RefreshTreeSafe(ActivePanel, dir_entry);
 
     /* 3. Rebuild File List from the refreshed tree */
     BuildFileEntryList(ActivePanel);
@@ -675,7 +672,7 @@ static void UpdatePreview(DirEntry *dir_entry)
 
     if (mode == ARCHIVE_MODE) {
         GetFileNamePath(fe_ptr, path);
-        RenderArchivePreview(preview_window, CurrentVolume->vol_stats.login_path, path, &preview_line_offset);
+        RenderArchivePreview(preview_window, ActivePanel->vol->vol_stats.login_path, path, &preview_line_offset);
     } else {
         GetRealFileNamePath(fe_ptr, path);
         RenderFilePreview(preview_window, path, &preview_line_offset, 0);
@@ -715,9 +712,8 @@ int HandleFileWindow(DirEntry *dir_entry)
   YtreeAction action = ACTION_NONE; /* Initialize action */
   DirEntry *last_stats_dir = NULL; /* Track context changes */
   struct Volume *start_vol = CurrentVolume; /* Safety Check Variable */
-  Statistic *s = &CurrentVolume->vol_stats;
+  Statistic *s = &ActivePanel->vol->vol_stats;
   int pclose_ret;
-  int height, width;
   char watcher_path[PATH_LENGTH + 1];
 
   unput_char = '\0';
@@ -756,13 +752,11 @@ int HandleFileWindow(DirEntry *dir_entry)
       if( dir_entry->global_flag || dir_entry->big_window || dir_entry->tagged_flag)
       {
         SwitchToBigFileWindow();
-        getmaxyx( file_window, height, width );
         DisplayDiskStatistic(s);
         DisplayDirStatistic(dir_entry, (dir_entry->global_flag) ? "SHOW ALL" : NULL, s);
       }
       else
       {
-        getmaxyx( file_window, height, width );
         DisplayDirStatistic( dir_entry, NULL, s );
       }
 
@@ -788,9 +782,8 @@ int HandleFileWindow(DirEntry *dir_entry)
     {
       maybe_change_x_step = FALSE;
 
-      getmaxyx( file_window, height, width );
-      x_step =  (GetMaxColumn() > 1) ? height : 1;
-      max_disp_files = height * GetMaxColumn();
+      x_step =  (GetMaxColumn() > 1) ? getmaxy(file_window) : 1;
+      max_disp_files = getmaxy(file_window) * GetMaxColumn();
     }
 
     if (need_dsp_help) {
@@ -965,18 +958,14 @@ int HandleFileWindow(DirEntry *dir_entry)
              break;
       case ACTION_PREVIEW_PAGE_UP:
              if (GlobalView->preview_mode) {
-                 int h, w;
-                 getmaxyx(preview_window, h, w);
-                 preview_line_offset -= (h - 1);
+                 preview_line_offset -= (getmaxy(preview_window) - 1);
                  if (preview_line_offset < 0) preview_line_offset = 0;
                  UpdatePreview(dir_entry);
              }
              break;
       case ACTION_PREVIEW_PAGE_DOWN:
              if (GlobalView->preview_mode) {
-                 int h, w;
-                 getmaxyx(preview_window, h, w);
-                 preview_line_offset += (h - 1);
+                 preview_line_offset += (getmaxy(preview_window) - 1);
                  UpdatePreview(dir_entry);
              }
              break;
@@ -1062,7 +1051,7 @@ int HandleFileWindow(DirEntry *dir_entry)
 		      break;
 
       case ACTION_TOGGLE_HIDDEN:      {
-                        ToggleDotFiles();
+                        ToggleDotFiles(ActivePanel);
 
                         /* Update current dir pointer using the new accessor function */
                         dir_entry = GetSelectedDirEntry(CurrentVolume);
@@ -1252,9 +1241,8 @@ int HandleFileWindow(DirEntry *dir_entry)
 		      list_pos = dir_entry->start_file + dir_entry->cursor_pos;
 
 		      RotateFileMode();
-              getmaxyx( file_window, height, width );
-              x_step =  (GetMaxColumn() > 1) ? height : 1;
-              max_disp_files = height * GetMaxColumn();
+              x_step =  (GetMaxColumn() > 1) ? getmaxy(file_window) : 1;
+              max_disp_files = getmaxy(file_window) * GetMaxColumn();
 
 		      if( dir_entry->cursor_pos >= max_disp_files )
 		      {
@@ -2266,7 +2254,7 @@ static void SilentWalkTaggedFiles( int (*fkt) (FileEntry *, WalkingPackage *, St
 
     if( fe_ptr->tagged && fe_ptr->matching )
     {
-      (void)fkt( fe_ptr, walking_package, &CurrentVolume->vol_stats );
+      (void)fkt( fe_ptr, walking_package, &ActivePanel->vol->vol_stats );
     }
   }
 }
@@ -2302,15 +2290,15 @@ static void SilentTagWalkTaggedFiles( int (*fkt) (FileEntry *, WalkingPackage *,
 
     if( fe_ptr->tagged && fe_ptr->matching )
     {
-      result = fkt( fe_ptr, walking_package, &CurrentVolume->vol_stats );
+      result = fkt( fe_ptr, walking_package, &ActivePanel->vol->vol_stats );
 
       if( result != 0 ) {
       	fe_ptr->tagged = FALSE;
         /* Update Stats */
         fe_ptr->dir_entry->tagged_files--;
         fe_ptr->dir_entry->tagged_bytes -= fe_ptr->stat_struct.st_size;
-        CurrentVolume->vol_stats.disk_tagged_files--;
-        CurrentVolume->vol_stats.disk_tagged_bytes -= fe_ptr->stat_struct.st_size;
+        ActivePanel->vol->vol_stats.disk_tagged_files--;
+        ActivePanel->vol->vol_stats.disk_tagged_bytes -= fe_ptr->stat_struct.st_size;
       }
     }
   }
