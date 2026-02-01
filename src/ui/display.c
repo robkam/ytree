@@ -530,6 +530,14 @@ void RefreshGlobalView(DirEntry *dir_entry)
     /* 1. Re-evaluate Layout (Geometry) */
     ReCreateWindows();
 
+    /* Update Global View Context to match Active Panel immediately after recreation */
+    if (ActivePanel) {
+        GlobalView->ctx_dir_window = ActivePanel->pan_dir_window;
+        GlobalView->ctx_small_file_window = ActivePanel->pan_small_file_window;
+        GlobalView->ctx_big_file_window = ActivePanel->pan_big_file_window;
+        GlobalView->ctx_file_window = ActivePanel->pan_file_window;
+    }
+
     /* 2. Draw Borders and Static Frames */
     DisplayMenu();
 
