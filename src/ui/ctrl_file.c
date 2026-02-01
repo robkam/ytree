@@ -2174,7 +2174,7 @@ static void WalkTaggedFiles(int start_file,
 
   GetMaxYX(file_window, &height, &width);
 
-  max_disp_files = height * GetMaxColumn();
+  max_disp_files = height * GetPanelMaxColumn(ActivePanel);
 
   for( i=0; i < (int)ActivePanel->file_count && result == 0; i++ )
   {
@@ -2231,7 +2231,7 @@ static void WalkTaggedFiles(int start_file,
       {
         ActivePanel->file_entry_list[i].file = walking_package->new_fe_ptr;
 	ChangeFileEntry();
-        max_disp_files = height * GetMaxColumn();
+        max_disp_files = height * GetPanelMaxColumn(ActivePanel);
 	maybe_change_x = TRUE;
       }
     }
@@ -2448,11 +2448,11 @@ static int DeleteTaggedFiles(int max_disp_files, Statistic *s)
 static void RereadWindowSize(DirEntry *dir_entry)
 {
   int height, width;
-  SetFileMode(GetFileMode());
+  SetPanelFileMode(ActivePanel, GetPanelFileMode(ActivePanel));
 
   GetMaxYX(file_window, &height, &width);
-  x_step =  (GetMaxColumn() > 1) ? height : 1;
-  max_disp_files = height * GetMaxColumn();
+  x_step =  (GetPanelMaxColumn(ActivePanel) > 1) ? height : 1;
+  max_disp_files = height * GetPanelMaxColumn(ActivePanel);
 
 
   if( dir_entry->start_file + dir_entry->cursor_pos < (int)ActivePanel->file_count )
