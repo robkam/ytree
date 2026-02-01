@@ -1,10 +1,13 @@
 # **Modernization Plan for ytree**
 
+## **Persona & Mode Definitions**
+- **Consultant (@consultant)**: Default planning agent.
+- **Builder (@builder)**: Default implementation agent.
+- **Architect Mode**: Triggered by specific task titles (e.g., "Use Architect Mode"). This forces the agent into a "Zero-Trust" refactoring mindset where global state is prohibited and encapsulation is mandatory.
+- **Auditor (@auditor)**: Used for initial "Fragile Code" discovery before planning.
+
 ## **Overview**
 This document outlines the strategic roadmap for modernizing `ytree`, a curses-based file manager. The goal is to refactor legacy C code to modern standards (C99/POSIX), remove obsolete dependencies, and implement advanced power-user features inspired by XTreeGold and ZTreeWin, while maintaining the lightweight, keyboard-centric philosophy.
-
-*   **Auditor Persona**: Use this when you are planning or analyzing. You paste the "Senior C Code Quality Auditor" prompt, feed it a file, and ask "What is wrong with this?".
-*   **Architect Mode**: Use this when you are coding/executing with the "Lead Systems Consultant". It tells the agent: "Do not patch. Refactor safely."
 
 ---
 
