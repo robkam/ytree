@@ -110,7 +110,7 @@ void BuildFileEntryList(YtreePanel *panel) {
 
     /* Push metrics to renderer and recalc layout */
     SetFileRenderingMetrics(max_visual_filename_len, max_visual_linkname_len, max_visual_userview_len);
-    SetFileMode( GetFileMode() );
+    SetPanelFileMode( panel, GetPanelFileMode(panel) );
 
     /* Recalculate and update statistics based on the actual loaded list */
     dir_entry->matching_files = panel->file_count;
@@ -149,7 +149,7 @@ void BuildFileEntryList(YtreePanel *panel) {
 
     /* Push metrics to renderer and recalc layout */
     SetFileRenderingMetrics(max_visual_filename_len, max_visual_linkname_len, max_visual_userview_len);
-    SetFileMode( GetFileMode() );
+    SetPanelFileMode( panel, GetPanelFileMode(panel) );
 
     /* Recalculate and update statistics based on the actual loaded list */
     /* Note: Previously, this block overwrote dir_entry->matching_files/tagged_files.
@@ -255,7 +255,7 @@ static void RemoveFileEntry(int entry_no)
   }
 
   SetFileRenderingMetrics(max_visual_filename_len, max_visual_linkname_len, max_visual_userview_len);
-  SetFileMode( GetFileMode() );
+  SetPanelFileMode( ActivePanel, GetPanelFileMode(ActivePanel) );
 
   ActivePanel->file_count--; /* no realloc */
 }
@@ -290,7 +290,7 @@ static void ChangeFileEntry(void)
   }
 
   SetFileRenderingMetrics(max_visual_filename_len, max_visual_linkname_len, max_visual_userview_len);
-  SetFileMode( GetFileMode() );
+  SetPanelFileMode( ActivePanel, GetPanelFileMode(ActivePanel) );
 }
 
 void DisplayFileWindow(YtreePanel *panel, DirEntry *dir_entry)
@@ -790,8 +790,8 @@ int HandleFileWindow(DirEntry *dir_entry)
     {
       maybe_change_x_step = FALSE;
 
-      x_step =  (GetMaxColumn() > 1) ? getmaxy(file_window) : 1;
-      max_disp_files = getmaxy(file_window) * GetMaxColumn();
+      x_step =  (GetPanelMaxColumn(ActivePanel) > 1) ? getmaxy(file_window) : 1;
+      max_disp_files = getmaxy(file_window) * GetPanelMaxColumn(ActivePanel);
     }
 
     if (need_dsp_help) {
@@ -861,7 +861,7 @@ int HandleFileWindow(DirEntry *dir_entry)
    action = GetKeyAction(ch);
 
    /* Special remapping for MODE_1: TAB/BTAB act as UP/DOWN */
-   if( GetFileMode() == MODE_1 )
+   if( GetPanelFileMode(ActivePanel) == MODE_1 )
    {
       if( action == ACTION_TREE_EXPAND ) action = ACTION_MOVE_DOWN;
       else if( action == ACTION_TREE_COLLAPSE ) action = ACTION_MOVE_UP;
@@ -1064,7 +1064,7 @@ int HandleFileWindow(DirEntry *dir_entry)
                         ToggleDotFiles(ActivePanel);
 
                         /* Update current dir pointer using the new accessor function */
-                        dir_entry = GetSelectedDirEntry(CurrentVolume);
+                        dir_entry = GetPanelDirEntry(ActivePanel);
 
                         /* Explicitly update the file window (preview) */
                         DisplayFileWindow(ActivePanel, dir_entry);
@@ -1250,9 +1250,9 @@ int HandleFileWindow(DirEntry *dir_entry)
               if (GlobalView->preview_mode) { beep(); break; }
 		      list_pos = dir_entry->start_file + dir_entry->cursor_pos;
 
-		      RotateFileMode();
-              x_step =  (GetMaxColumn() > 1) ? getmaxy(file_window) : 1;
-              max_disp_files = getmaxy(file_window) * GetMaxColumn();
+		      RotatePanelFileMode(ActivePanel);
+              x_step =  (GetPanelMaxColumn(ActivePanel) > 1) ? getmaxy(file_window) : 1;
+              max_disp_files = getmaxy(file_window) * GetPanelMaxColumn(ActivePanel);
 
 		      if( dir_entry->cursor_pos >= max_disp_files )
 		      {

@@ -9,8 +9,6 @@
 
 #define MAX( a, b ) ( ( (a) > (b) ) ? (a) : (b) )
 
-static int file_mode = MODE_1;
-static int max_column = 1;
 static unsigned rf_max_visual_filename_len = 0;
 static unsigned rf_max_visual_linkname_len = 0;
 static unsigned rf_max_visual_userview_len = 0;
@@ -33,44 +31,59 @@ void SetRenderSortOrder(BOOL reverse)
     rf_reverse_sort = reverse;
 }
 
-int GetFileMode(void)
+int GetPanelFileMode(YtreePanel *p)
 {
-    return file_mode;
+    if (!p) return MODE_1;
+    return p->file_mode;
 }
 
-int GetMaxColumn(void)
+int GetPanelMaxColumn(YtreePanel *p)
 {
-    return max_column;
+    if (!p) return 1;
+    return p->max_column;
 }
 
-void SetFileMode(int new_file_mode)
+void SetPanelFileMode(YtreePanel *p, int new_file_mode)
 {
   int width;
 
-  width = getmaxx(file_window);
-  file_mode = new_file_mode;
+  if (!p) return;
 
-  max_column = width /
-	       (GetVisualFileEntryLength( file_mode, rf_max_visual_filename_len, rf_max_visual_linkname_len) + 1);
+  p->file_mode = new_file_mode;
 
-  if( max_column == 0 )
-    max_column = 1;
+  /* Use the existing window if available, otherwise calculate from layout or defer */
+  if (p->pan_file_window) {
+      width = getmaxx(p->pan_file_window);
+  } else {
+      /* Fallback if window not created yet (e.g. init), use layout hint or default */
+      if (p == LeftPanel) width = layout.dir_win_width; /* approximation */
+      else width = COLS - layout.dir_win_width; 
+      if (width < 10) width = 80; /* Safe default */
+  }
+
+  p->max_column = width /
+	       (GetVisualFileEntryLength( p->file_mode, rf_max_visual_filename_len, rf_max_visual_linkname_len) + 1);
+
+  if( p->max_column == 0 )
+    p->max_column = 1;
 }
 
-void RotateFileMode(void)
+void RotatePanelFileMode(YtreePanel *p)
 {
-  switch( file_mode )
+  if (!p) return;
+
+  switch( p->file_mode )
   {
-    case MODE_1: SetFileMode( MODE_3 ); break;
-    case MODE_2: SetFileMode( MODE_5 ); break;
-    case MODE_3: SetFileMode( MODE_4 ); break;
-    case MODE_4: SetFileMode( MODE_2 ); break;
-    case MODE_5: SetFileMode( MODE_1 ); break;
+    case MODE_1: SetPanelFileMode( p, MODE_3 ); break;
+    case MODE_2: SetPanelFileMode( p, MODE_5 ); break;
+    case MODE_3: SetPanelFileMode( p, MODE_4 ); break;
+    case MODE_4: SetPanelFileMode( p, MODE_2 ); break;
+    case MODE_5: SetPanelFileMode( p, MODE_1 ); break;
   }
-  if( (mode != DISK_MODE && mode != USER_MODE) && file_mode == MODE_4 ) {
-    RotateFileMode();
-  } else if(file_mode == MODE_5 && !strcmp(USERVIEW, "")) {
-    RotateFileMode();
+  if( (mode != DISK_MODE && mode != USER_MODE) && p->file_mode == MODE_4 ) {
+    RotatePanelFileMode(p);
+  } else if(p->file_mode == MODE_5 && !strcmp(USERVIEW, "")) {
+    RotatePanelFileMode(p);
   }
 }
 
@@ -235,7 +248,7 @@ void PrintFileEntry(YtreePanel *panel, int entry_no, int y, int x, unsigned char
   type_of_file = GetTypeOfFile(fe_ptr->stat_struct);
 
   /* Calculate starting column position (pos_x) based on column index `x` */
-  switch(file_mode)
+  switch(panel->file_mode)
   {
       case MODE_1:
           if (rf_max_visual_linkname_len)
@@ -276,7 +289,7 @@ void PrintFileEntry(YtreePanel *panel, int entry_no, int y, int x, unsigned char
       if (hilight) wattron(win, A_REVERSE);
 
       /* Build the full line string */
-      switch( file_mode ) {
+      switch( panel->file_mode ) {
           case MODE_1:
             (void)GetAttributes(fe_ptr->stat_struct.st_mode, attributes);
             (void)CTime(fe_ptr->stat_struct.st_mtime, modify_time);
@@ -374,7 +387,7 @@ void PrintFileEntry(YtreePanel *panel, int entry_no, int y, int x, unsigned char
 
       /* Calculate available width for name and truncate if necessary */
       int overhead = 0;
-      switch(file_mode) {
+      switch(panel->file_mode) {
           case MODE_1: overhead = 44; break;
           case MODE_2: overhead = 40; break;
           case MODE_4: overhead = 48; break;
@@ -398,7 +411,7 @@ void PrintFileEntry(YtreePanel *panel, int entry_no, int y, int x, unsigned char
       if (hilight) wattroff(win, A_REVERSE);
 
       /* Print attributes for modes other than MODE_3 */
-      if (file_mode != MODE_3) {
+      if (panel->file_mode != MODE_3) {
           int current_x;
           int dummy_y;
           getyx(win, dummy_y, current_x);
@@ -410,7 +423,7 @@ void PrintFileEntry(YtreePanel *panel, int entry_no, int y, int x, unsigned char
           /* Fill space between name and attributes */
           for (int i = current_x; i < target_x; i++) waddch(win, ' ');
 
-          switch (file_mode) {
+          switch (panel->file_mode) {
               case MODE_1:
                   (void)GetAttributes(fe_ptr->stat_struct.st_mode, attributes);
                   (void)CTime(fe_ptr->stat_struct.st_mtime, modify_time);
@@ -475,7 +488,7 @@ void DisplayFiles(YtreePanel *panel, DirEntry *de_ptr, int start_file_no, int hi
   }
 
   j = start_file_no; p_x = -1; p_y = 0;
-  for( x=0; x < max_column; x++)
+  for( x=0; x < panel->max_column; x++)
   {
     for( y=0; y < height; y++ )
     {

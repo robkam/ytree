@@ -37,6 +37,7 @@ extern int KeyF2Get(DirEntry *start_dir_entry, int disp_begin_pos, int cursor_po
 extern int RefreshDirWindow(YtreePanel *panel);
 extern void ToggleDotFiles(YtreePanel *panel);
 extern DirEntry *GetSelectedDirEntry(struct Volume *vol);
+extern DirEntry *GetPanelDirEntry(YtreePanel *p);
 extern void BuildDirEntryList(struct Volume *vol);
 extern void FreeDirEntryList(void);
 extern void FreeVolumeCache(struct Volume *vol);
@@ -102,10 +103,10 @@ extern void DisplayFileWindow(YtreePanel *panel, DirEntry *dir_entry);
 extern int HandleFileWindow(DirEntry *dir_entry);
 
 /* render_file.c */
-extern void SetFileMode(int new_file_mode);
-extern int GetFileMode(void);
-extern void RotateFileMode(void);
-extern int GetMaxColumn(void);
+extern void SetPanelFileMode(YtreePanel *p, int new_file_mode);
+extern int GetPanelFileMode(YtreePanel *p);
+extern void RotatePanelFileMode(YtreePanel *p);
+extern int GetPanelMaxColumn(YtreePanel *p);
 extern void SetFileRenderingMetrics(unsigned max_filename, unsigned max_linkname, unsigned max_userview);
 extern void SetRenderSortOrder(BOOL reverse);
 extern void DisplayFiles(YtreePanel *panel, DirEntry *de_ptr, int start_file_no, int hilight_no, int start_x, WINDOW *win);

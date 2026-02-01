@@ -151,6 +151,26 @@ static void ReadDirList(DirEntry *dir_entry, struct Volume *vol)
 
 
 /*
+* Helper function to return the currently selected directory entry from a specific panel.
+* Uses the panel's ViewContext (cursor_pos, disp_begin_pos) instead of shared Volume stats.
+*/
+DirEntry *GetPanelDirEntry(YtreePanel *p)
+{
+    if (p->vol->dir_entry_list != NULL && p->vol->total_dirs > 0) {
+        /* Use Panel state directly to avoid leakage via shared Volume stats */
+        int idx = p->disp_begin_pos + p->cursor_pos;
+
+        /* Safety bounds check */
+        if (idx < 0) idx = 0;
+        if (idx >= p->vol->total_dirs) idx = p->vol->total_dirs - 1;
+
+        return p->vol->dir_entry_list[idx].dir_entry;
+    }
+    /* Fallback to root if list is empty/invalid */
+    return p->vol->vol_stats.tree;
+}
+
+/*
 * Helper function to return the currently selected directory entry.
 * Now takes a Volume context.
 */
@@ -187,7 +207,7 @@ static void Movedown(DirEntry **dir_entry, YtreePanel *p)
 
     (*dir_entry)->start_file = 0;
     (*dir_entry)->cursor_pos = -1;
-    DisplayTree(p->vol, win, p->disp_begin_pos, p->disp_begin_pos + p->cursor_pos, TRUE);
+    DisplayTree(p->vol, p->pan_dir_window, p->disp_begin_pos, p->disp_begin_pos + p->cursor_pos, TRUE);
     DisplayFileWindow( p, *dir_entry );
     RefreshWindow( p->pan_file_window );
     DisplayDirStatistic(*dir_entry, NULL, s);
@@ -217,7 +237,7 @@ static void Moveup(DirEntry **dir_entry, YtreePanel *p)
 
     (*dir_entry)->start_file = 0;
     (*dir_entry)->cursor_pos = -1;
-    DisplayTree(p->vol, win, p->disp_begin_pos, p->disp_begin_pos + p->cursor_pos, TRUE);
+    DisplayTree(p->vol, p->pan_dir_window, p->disp_begin_pos, p->disp_begin_pos + p->cursor_pos, TRUE);
     DisplayFileWindow( p, *dir_entry );
     RefreshWindow( p->pan_file_window );
     DisplayDirStatistic(*dir_entry, NULL, s);
@@ -247,7 +267,7 @@ static void Movenpage(DirEntry **dir_entry, YtreePanel *p)
 
     (*dir_entry)->start_file = 0;
     (*dir_entry)->cursor_pos = -1;
-    DisplayTree(p->vol, win, p->disp_begin_pos, p->disp_begin_pos + p->cursor_pos, TRUE);
+    DisplayTree(p->vol, p->pan_dir_window, p->disp_begin_pos, p->disp_begin_pos + p->cursor_pos, TRUE);
     DisplayFileWindow( p, *dir_entry );
     RefreshWindow( p->pan_file_window );
     DisplayDirStatistic(*dir_entry, NULL, s);
@@ -276,7 +296,7 @@ static void Moveppage(DirEntry **dir_entry, YtreePanel *p)
 
     (*dir_entry)->start_file = 0;
     (*dir_entry)->cursor_pos = -1;
-    DisplayTree(p->vol, win, p->disp_begin_pos, p->disp_begin_pos + p->cursor_pos, TRUE);
+    DisplayTree(p->vol, p->pan_dir_window, p->disp_begin_pos, p->disp_begin_pos + p->cursor_pos, TRUE);
     DisplayFileWindow( p, *dir_entry );
     RefreshWindow( p->pan_file_window );
     DisplayDirStatistic(*dir_entry, NULL, s);
@@ -307,7 +327,8 @@ static void MoveEnd(DirEntry **dir_entry, YtreePanel *p)
     (*dir_entry)->cursor_pos = -1;
     DisplayFileWindow( p, *dir_entry );
     RefreshWindow( p->pan_file_window );
-    DisplayTree( p->vol, win, p->disp_begin_pos,
+    RefreshWindow( p->pan_file_window );
+    DisplayTree( p->vol, p->pan_dir_window, p->disp_begin_pos,
                  p->disp_begin_pos + p->cursor_pos, TRUE);
     DisplayDirStatistic(*dir_entry, NULL, s);
     /* Update header path */
@@ -338,7 +359,8 @@ static void MoveHome(DirEntry **dir_entry, YtreePanel *p)
     (*dir_entry)->cursor_pos = -1;
     DisplayFileWindow( p, *dir_entry );
     RefreshWindow( p->pan_file_window );
-    DisplayTree( p->vol, win, p->disp_begin_pos,
+    RefreshWindow( p->pan_file_window );
+    DisplayTree( p->vol, p->pan_dir_window, p->disp_begin_pos,
                  p->disp_begin_pos + p->cursor_pos, TRUE);
     DisplayDirStatistic(*dir_entry, NULL, s);
     /* Update header path */
@@ -370,7 +392,8 @@ static void HandlePlus(DirEntry *dir_entry, DirEntry *de_ptr, char *new_login_pa
         InitClock();    /* Resume clock after scanning */
         dir_entry->not_scanned = FALSE;
         BuildDirEntryList( p->vol );
-        DisplayTree( p->vol, win, p->disp_begin_pos,
+        BuildDirEntryList( p->vol );
+        DisplayTree( p->vol, p->pan_dir_window, p->disp_begin_pos,
                      p->disp_begin_pos + p->cursor_pos, TRUE );
         DisplayDiskStatistic(s);
         DisplayDirStatistic(dir_entry, NULL, s);
@@ -390,7 +413,8 @@ static void HandleReadSubTree(DirEntry *dir_entry, BOOL *need_dsp_help, YtreePan
     }
     InitClock();    /* Resume clock after scanning */
     BuildDirEntryList( p->vol );
-    DisplayTree( p->vol, win, p->disp_begin_pos,
+    BuildDirEntryList( p->vol );
+    DisplayTree( p->vol, p->pan_dir_window, p->disp_begin_pos,
                  p->disp_begin_pos + p->cursor_pos, TRUE );
     RecalculateSysStats(s); /* Fix for Bug 10: Force full recalculation */
     DisplayDiskStatistic(s);
@@ -415,7 +439,8 @@ static void HandleUnreadSubTree(DirEntry *dir_entry, DirEntry *de_ptr, BOOL *nee
         }
         dir_entry->not_scanned = TRUE;
         BuildDirEntryList( p->vol );
-        DisplayTree( p->vol, win, p->disp_begin_pos,
+        BuildDirEntryList( p->vol );
+        DisplayTree( p->vol, p->pan_dir_window, p->disp_begin_pos,
                      p->disp_begin_pos + p->cursor_pos, TRUE );
         DisplayAvailBytes(s);
         RecalculateSysStats(s); /* Fix for Bug 10: Force full recalculation */
@@ -620,7 +645,8 @@ void ToggleDotFiles(YtreePanel *p)
     if (!p || !p->vol) return;
 
     s = &p->vol->vol_stats;
-    win = p->pan_dir_window;
+    s = &p->vol->vol_stats;
+    /* Removed stale 'win' caching */
 
     /* Suspend clock to prevent signal handler interrupt corrupting UI during rebuild */
     SuspendClock();
@@ -653,7 +679,7 @@ void ToggleDotFiles(YtreePanel *p)
     }
 
     /* 5. Smart Restore of Cursor Position */
-    win_height = getmaxy(win);
+    win_height = getmaxy(p->pan_dir_window);
 
     if (found_idx != -1) {
         /* Check if the found directory is within the current visible page */
@@ -693,7 +719,7 @@ void ToggleDotFiles(YtreePanel *p)
     }
 
     /* Refresh Directory Tree */
-    DisplayTree(p->vol, win, p->disp_begin_pos, p->disp_begin_pos + p->cursor_pos, TRUE);
+    DisplayTree(p->vol, p->pan_dir_window, p->disp_begin_pos, p->disp_begin_pos + p->cursor_pos, TRUE);
     DisplayDiskStatistic(s);
 
     /* Update current dir pointer using the new accessor function
@@ -732,9 +758,10 @@ DirEntry *RefreshTreeSafe(YtreePanel *p, DirEntry *entry)
     if (!p || !p->vol) return entry;
 
     s = &p->vol->vol_stats;
-    win = p->pan_dir_window;
+    s = &p->vol->vol_stats;
+    /* Removed stale 'win' caching */
 
-    werase(win);
+    werase(p->pan_dir_window);
     werase(file_window);
     refresh(); /* Force clear */
 
@@ -751,7 +778,7 @@ DirEntry *RefreshTreeSafe(YtreePanel *p, DirEntry *entry)
         int win_height;
         int dummy_width;
 
-        GetMaxYX(win, &win_height, &dummy_width);
+        GetMaxYX(p->pan_dir_window, &win_height, &dummy_width);
 
         /* 1. Save State */
         /* Save path of the *currently selected* directory to restore cursor later */
@@ -835,7 +862,7 @@ DirEntry *RefreshTreeSafe(YtreePanel *p, DirEntry *entry)
     /* Force update of free bytes info during refresh */
     (void) GetAvailBytes( &s->disk_space, s );
 
-    DisplayTree(p->vol, win, p->disp_begin_pos, p->disp_begin_pos + p->cursor_pos, TRUE);
+    DisplayTree(p->vol, p->pan_dir_window, p->disp_begin_pos, p->disp_begin_pos + p->cursor_pos, TRUE);
     DisplayFileWindow(p, entry);
     DisplayDiskStatistic(s);
     DisplayDirStatistic(entry, NULL, s);

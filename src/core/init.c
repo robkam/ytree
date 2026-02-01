@@ -305,7 +305,13 @@ int Init(char *configuration_file, char *history_file)
 
   ReinitColorPairs();
 
-  SetFileMode( strtol(FILEMODE, NULL, 0) );
+  ReinitColorPairs();
+  
+  /* Initial Mode Setup for both panels */
+  int initial_mode = strtol(FILEMODE, NULL, 0);
+  SetPanelFileMode(LeftPanel, initial_mode);
+  SetPanelFileMode(RightPanel, initial_mode);
+
   SetKindOfSort( SORT_BY_NAME, &CurrentVolume->vol_stats );
   /* Use System Locale for number separator */
   struct lconv *lc = localeconv();
