@@ -1545,6 +1545,24 @@ int HandleDirWindow(DirEntry *start_dir_entry)
                 DisplayDiskStatistic(s);
                 DisplayDirStatistic(dir_entry, NULL, s);
                 break;
+            case ACTION_CMD_MKFILE:
+                if( mode != DISK_MODE ) break;
+                if( !MakeFile( dir_entry ) )
+                {
+                    /* Determine where the new file should be.
+                       Ideally MakeFile returns the new file entry, but currently it returns int.
+                       BuildFileEntryList will update the list.
+                       RefreshGlobalView will redraw.
+                    */
+                    if (ActivePanel && ActivePanel->pan_file_window) {
+                        /* Force file window refresh */
+                        DisplayFileWindow(ActivePanel, dir_entry);
+                    }
+                    RefreshGlobalView(dir_entry);
+                }
+                need_dsp_help = TRUE;
+                break;
+
             case ACTION_CMD_M: if( !MakeDirectory( dir_entry ) )
                 {
                     BuildDirEntryList( ActivePanel->vol );

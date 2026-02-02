@@ -79,6 +79,9 @@ extern int MakeDirectory(DirEntry *father_dir_entry);
 extern int MakePath( DirEntry *tree, char *dir_path, DirEntry **dest_dir_entry );
 extern int EnsureDirectoryExists(char *dir_path, DirEntry *tree, BOOL *created, DirEntry **result_ptr, int *auto_create);
 
+/* mkfile.c */
+extern int MakeFile(DirEntry *dir_entry);
+
 /* move.c */
 extern int GetMoveParameter(char *from_file, char *to_file, char *to_dir);
 extern int MoveFile(FileEntry *fe_ptr, char *to_file, DirEntry *dest_dir_entry, char *to_dir_path, FileEntry **new_fe_ptr, int *dir_create_mode, int *overwrite_mode, ConflictCallback cb);
