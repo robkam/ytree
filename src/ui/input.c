@@ -425,6 +425,8 @@ YtreeAction GetKeyAction(int ch)
         case 'H':       return ACTION_CMD_H;
         case 'm':
         case 'M':       return ACTION_CMD_M;
+        case 'n':
+        case 'N':       return ACTION_CMD_MKFILE;
         case 'o':
         case 'O':       return ACTION_CMD_O;
         case 'p':

@@ -1536,6 +1536,17 @@ int HandleFileWindow(DirEntry *dir_entry)
 		      need_dsp_help = TRUE;
 		      break;
 
+      case ACTION_CMD_MKFILE:
+                      if( mode != DISK_MODE ) break;
+                      if( !MakeFile( dir_entry ) )
+                      {
+                        /* If successful, refresh the view */
+                        BuildFileEntryList( ActivePanel );
+                        RefreshGlobalView(dir_entry);
+                      }
+                      need_dsp_help = TRUE;
+                      break;
+
       case ACTION_CMD_M :      if( mode != DISK_MODE && mode != USER_MODE )
                       {
 			break;
