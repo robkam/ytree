@@ -66,4 +66,4 @@ __pycache__/
 *.html
 *.url
 *.sh
-!scripts/setup_dev.sh
+!scripts/
