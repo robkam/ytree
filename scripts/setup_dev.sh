@@ -101,6 +101,17 @@ fi
 
 echo ""
 echo "--------------------------------------------------------"
+# 4. Git Auto-Fetch Setup (Optional)
+if command -v systemctl &> /dev/null && [ -f "$SCRIPT_DIR/setup_git_autofetch.sh" ]; then
+    echo ""
+    read -p "Do you want to enable automatic background git fetch (every 5 mins)? [y/N] " response
+    if [[ "$response" =~ ^([yY][eE][sS]|[yY])$ ]]; then
+        bash "$SCRIPT_DIR/setup_git_autofetch.sh"
+    else
+        echo "Skipping auto-fetch setup."
+    fi
+fi
+
 echo "Setup complete."
 echo ""
 echo "To start developing, activate the environment:"
