@@ -8,31 +8,13 @@
 
 #include "ytree.h"
 
-/* Helper to resolve Panel from Stats context */
-static YtreePanel *GetPanelForStats(Statistic *s) {
-    if (!s) return NULL;
-    if (ActivePanel && &ActivePanel->vol->vol_stats == s) return ActivePanel;
-    if (IsSplitScreen) {
-        if (LeftPanel && &LeftPanel->vol->vol_stats == s) return LeftPanel;
-        if (RightPanel && &RightPanel->vol->vol_stats == s) return RightPanel;
-    }
-    return NULL;
-}
-
-
-/* Buffers for Prompt Redraw Callback - Deprecated by UI_ReadString, keeping for safety if needed */
+/* Buffers for Prompt Redraw Callback - Deprecated by UI_ReadString, keeping for safety */
 static char move_prompt_header[PATH_LENGTH + 50];
 static char move_prompt_as[PATH_LENGTH + 1];
 
-/* Callback to redraw prompt after F2 refresh during Step 1 */
-static void RedrawMovePrompt1(void) {
-/* No-op with UI_ReadString */
-}
 
-/* Callback to redraw prompt after F2 refresh during Step 2 */
-static void RedrawMovePrompt2(void) {
-/* No-op with UI_ReadString */
-}
+/* Helper to resolve Panel from Stats context */
+
 
 
 static int Move(char *to_path, char *from_path);
@@ -55,7 +37,6 @@ char        to_path[PATH_LENGTH+1];
 FileEntry   *dest_file_entry;
 FileEntry   *fen_ptr;
 struct stat stat_struct;
-int         term;
 int         result;
 /* New variables for EnsureDirectoryExists */
 char        abs_path[PATH_LENGTH+1];
@@ -271,8 +252,20 @@ result = 0;
 }
 
 if (refresh_dirwindow) {
-    YtreePanel *p = GetPanelForStats(s);
-    if (p) RefreshDirWindow(p);
+    /* Refresh panels showing the SOURCE volume */
+    if (ActivePanel && ActivePanel->vol && &ActivePanel->vol->vol_stats == s) RefreshDirWindow(ActivePanel);
+    if (IsSplitScreen) {
+        YtreePanel *inactive = (ActivePanel == LeftPanel) ? RightPanel : LeftPanel;
+        if (inactive && inactive->vol && &inactive->vol->vol_stats == s) RefreshDirWindow(inactive);
+    }
+    /* Refresh panels showing the TARGET volume (if different) */
+    if (target_stats_ptr && target_stats_ptr != s) {
+        if (ActivePanel && ActivePanel->vol && &ActivePanel->vol->vol_stats == target_stats_ptr) RefreshDirWindow(ActivePanel);
+        if (IsSplitScreen) {
+            YtreePanel *inactive = (ActivePanel == LeftPanel) ? RightPanel : LeftPanel;
+            if (inactive && inactive->vol && &inactive->vol->vol_stats == target_stats_ptr) RefreshDirWindow(inactive);
+        }
+    }
 }
 
 FNC_XIT:
