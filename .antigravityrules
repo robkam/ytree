@@ -31,3 +31,6 @@ You must strictly adhere to the specific logic defined in the project's `.agent/
 - **TUI:** ncurses/ncursesw.
 - **Git:** Use Conventional Commits (e.g., `fix(ui):`, `feat(fs):`, `refactor(core):`).
 - **Prohibition:** Strictly forbidden to use stacked Unicode characters (combining diacritics/Zalgo).
+
+**INTERACTION PROTOCOL**
+1. **Design Approval**: Always propose a high-level design and wait for explicit approval before creating an implementation plan or writing any code. Make sure to present options where applicable.
