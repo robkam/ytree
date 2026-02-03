@@ -16,6 +16,9 @@ You must strictly adhere to the specific logic defined in the project's `.agent/
 - Use **@auditor** for discovering technical debt and fragility.
 - Use **@tester** for behavioral TUI verification using `pexpect`.
 
+**INTERACTION PROTOCOL**
+1. **Design Approval**: Always propose a high-level design and wait for explicit approval before creating an implementation plan or writing any code. Make sure to present options where applicable.
+
 **ARCHITECTURAL RIGOR**
 1.  **Zero-Trust Refactoring:** When a task involves Global State, VFS, or Split-Screen logic, adopt a "Zero-Trust" mindset. Do not allow global variables to leak across panel boundaries. Enforce encapsulation using `Context *ctx` structures.
 2.  **String Safety:** Prohibit unsafe string operations (`strcpy`, `sprintf`). Enforce the use of bounds-checked alternatives.
@@ -31,6 +34,3 @@ You must strictly adhere to the specific logic defined in the project's `.agent/
 - **TUI:** ncurses/ncursesw.
 - **Git:** Use Conventional Commits (e.g., `fix(ui):`, `feat(fs):`, `refactor(core):`).
 - **Prohibition:** Strictly forbidden to use stacked Unicode characters (combining diacritics/Zalgo).
-
-**INTERACTION PROTOCOL**
-1. **Design Approval**: Always propose a high-level design and wait for explicit approval before creating an implementation plan or writing any code. Make sure to present options where applicable.
