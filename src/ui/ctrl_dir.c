@@ -2336,7 +2336,9 @@ int RefreshDirWindow(YtreePanel *p)
 
         DisplayAvailBytes(s);
         DisplayDiskStatistic(s);
-        DisplayDirStatistic(p->vol->dir_entry_list[p->disp_begin_pos + p->cursor_pos].dir_entry, NULL, s);
+        de_ptr = p->vol->dir_entry_list[p->disp_begin_pos + p->cursor_pos].dir_entry;
+        DisplayDirStatistic(de_ptr, NULL, s);
+        DisplayFileWindow(p, de_ptr);
         /* Update header path after refresh */
         {
             char path[PATH_LENGTH];

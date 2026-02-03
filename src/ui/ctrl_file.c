@@ -33,8 +33,8 @@ static long preview_line_offset = 0;
 static int saved_fixed_width = 0;
 
 /* --- Forward Declarations --- */
-static void ReadFileList(BOOL tagged_only, DirEntry *dir_entry);
-static void ReadGlobalFileList(BOOL tagged_only, DirEntry *dir_entry);
+static void ReadFileList(YtreePanel *panel, BOOL tagged_only, DirEntry *dir_entry);
+static void ReadGlobalFileList(YtreePanel *panel, BOOL tagged_only, DirEntry *dir_entry);
 static void WalkTaggedFiles(int start_file, int cursor_pos, int (*fkt) (FileEntry *, WalkingPackage *), WalkingPackage *walking_package);
 static BOOL IsMatchingTaggedFiles(void);
 static void RemoveFileEntry(int entry_no);
@@ -105,7 +105,7 @@ void BuildFileEntryList(YtreePanel *panel) {
     panel->file_entry_list_capacity = alloc_count;
 
     panel->file_count = 0;
-    ReadFileList( dir_entry->tagged_flag, dir_entry );
+    ReadFileList( panel, dir_entry->tagged_flag, dir_entry );
     Panel_Sort(panel, s->kind_of_sort);
 
     /* Push metrics to renderer and recalc layout */
@@ -144,7 +144,7 @@ void BuildFileEntryList(YtreePanel *panel) {
     panel->file_count = 0;
     global_max_visual_filename_len = 0;
     global_max_visual_linkname_len = 0;
-    ReadGlobalFileList(  dir_entry->tagged_flag, s->tree );
+    ReadGlobalFileList( panel, dir_entry->tagged_flag, s->tree );
     Panel_Sort(panel, s->kind_of_sort);
 
     /* Push metrics to renderer and recalc layout */
@@ -158,7 +158,7 @@ void BuildFileEntryList(YtreePanel *panel) {
 }
 
 
-static void ReadFileList(BOOL tagged_only, DirEntry *dir_entry)
+static void ReadFileList(YtreePanel *panel, BOOL tagged_only, DirEntry *dir_entry)
 {
   FileEntry *fe_ptr;
   unsigned int name_len;
@@ -178,21 +178,21 @@ static void ReadFileList(BOOL tagged_only, DirEntry *dir_entry)
           continue;
 
       /* Bounds check */
-      if (ActivePanel->file_count >= ActivePanel->file_entry_list_capacity) {
-          size_t new_capacity = ActivePanel->file_entry_list_capacity * 2;
+      if (panel->file_count >= panel->file_entry_list_capacity) {
+          size_t new_capacity = panel->file_entry_list_capacity * 2;
           if (new_capacity == 0) new_capacity = 128;
 
-          FileEntryList *new_list = (FileEntryList *) realloc(ActivePanel->file_entry_list, new_capacity * sizeof(FileEntryList));
+          FileEntryList *new_list = (FileEntryList *) realloc(panel->file_entry_list, new_capacity * sizeof(FileEntryList));
           if (!new_list) {
               ERROR_MSG("Realloc failed in ReadFileList*ABORT");
               exit(1);
           }
-          memset(new_list + ActivePanel->file_entry_list_capacity, 0, (new_capacity - ActivePanel->file_entry_list_capacity) * sizeof(FileEntryList));
-          ActivePanel->file_entry_list = new_list;
-          ActivePanel->file_entry_list_capacity = new_capacity;
+          memset(new_list + panel->file_entry_list_capacity, 0, (new_capacity - panel->file_entry_list_capacity) * sizeof(FileEntryList));
+          panel->file_entry_list = new_list;
+          panel->file_entry_list_capacity = new_capacity;
       }
 
-      ActivePanel->file_entry_list[ActivePanel->file_count++].file = fe_ptr;
+      panel->file_entry_list[panel->file_count++].file = fe_ptr;
       visual_name_len = StrVisualLength( fe_ptr->name );
       name_len = strlen( fe_ptr->name );
       if( S_ISLNK( fe_ptr->stat_struct.st_mode ) )
@@ -207,7 +207,7 @@ static void ReadFileList(BOOL tagged_only, DirEntry *dir_entry)
 
 
 
-static void ReadGlobalFileList(BOOL tagged_only, DirEntry *dir_entry)
+static void ReadGlobalFileList(YtreePanel *panel, BOOL tagged_only, DirEntry *dir_entry)
 {
   DirEntry  *de_ptr;
 
@@ -215,8 +215,8 @@ static void ReadGlobalFileList(BOOL tagged_only, DirEntry *dir_entry)
   {
     if (hide_dot_files && de_ptr->name[0] == '.')
         continue;
-    if( de_ptr->sub_tree ) ReadGlobalFileList( tagged_only, de_ptr->sub_tree );
-    ReadFileList( tagged_only, de_ptr );
+    if( de_ptr->sub_tree ) ReadGlobalFileList( panel, tagged_only, de_ptr->sub_tree );
+    ReadFileList( panel, tagged_only, de_ptr );
     global_max_visual_filename_len = MAX( (int)global_max_visual_filename_len, (int)max_visual_filename_len );
     global_max_visual_linkname_len = MAX( (int)global_max_visual_linkname_len, (int)max_visual_linkname_len );
   }
@@ -2149,6 +2149,12 @@ int HandleFileWindow(DirEntry *dir_entry)
      default:
                       break;
     } /* switch */
+
+    /* Centralized check: If directory became empty, we MUST pop out of file window */
+    if (ActivePanel->file_count == 0) {
+        action = ACTION_ESCAPE;
+    }
+
   } while( action != ACTION_QUIT && action != ACTION_ENTER && action != ACTION_ESCAPE && action != ACTION_QUIT );
 
   if( dir_entry->big_window ) {
@@ -2156,7 +2162,7 @@ int HandleFileWindow(DirEntry *dir_entry)
     /* We don't need full refresh here because HandleDirWindow will catch the return */
   }
 
-  if(action != ACTION_ESCAPE) {
+  if(action != ACTION_ESCAPE || ActivePanel->file_count == 0) {
     dir_entry->global_flag = FALSE;
     dir_entry->tagged_flag = FALSE;
     dir_entry->big_window  = FALSE;
