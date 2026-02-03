@@ -148,6 +148,7 @@ Active when browsing the directory tree window.
 - **G** (Group): Change directory group ownership.
 - **L** (Log): Log a new directory or archive file.
 - **M** (Makedir): Create a new directory.
+- **N** (New File): Create a new empty file.
 - **O** (Owner): Change user ownership of selected directory.
 - **R** (Rename): Rename selected directory.
 - **S** (Showall): Show all files in all directories in a global list.
@@ -180,6 +181,7 @@ Active when the file window is focused.
 - **H** (Hex): View selected file in hex mode.
 - **L** (Log): Log a new directory or archive file.
 - **M** (Move): Move the selected file.
+- **N** (New File): Create a new empty file.
 - **^N**: Move all tagged files.
 - **O** (Owner): Change user ownership.
 - **^O**: Change user ownership of all tagged files.
