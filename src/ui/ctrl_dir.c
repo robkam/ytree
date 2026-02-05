@@ -1191,7 +1191,16 @@ int HandleDirWindow(DirEntry *start_dir_entry)
                     dir_entry = s->tree;
                 }
 
-                return ESC; /* Exit loop to re-enter with new context */
+                /* Sync Global View Context */
+                GlobalView->ctx_dir_window = ActivePanel->pan_dir_window;
+                GlobalView->ctx_small_file_window = ActivePanel->pan_small_file_window;
+                GlobalView->ctx_big_file_window = ActivePanel->pan_big_file_window;
+                GlobalView->ctx_file_window = ActivePanel->pan_file_window;
+
+                /* REFRESH View for new active panel */
+                RefreshGlobalView(dir_entry);
+                need_dsp_help = TRUE;
+                continue; /* Stay in loop with new context */
 
             case ACTION_NONE:  /* -1 or unhandled keys */
                 if (ch == -1) break; /* Ignore -1 (resize_request handled above) */

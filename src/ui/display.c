@@ -570,8 +570,15 @@ void RefreshGlobalView(DirEntry *dir_entry)
         /* STANDARD SPLIT MODE */
         SwitchToSmallFileWindow();
 
+        /* Bug Fix: Explicitly ensure BOTH panels are reset for the small window layout
+         * if we are not in a global/big mode. This prevents the "stuck" big window 
+         * on the inactive panel after a switch. */
+        if (IsSplitScreen) {
+            LeftPanel->pan_file_window = LeftPanel->pan_small_file_window;
+            RightPanel->pan_file_window = RightPanel->pan_small_file_window;
+        }
+
         /* Draw Directory Tree */
-        /* This answers your question: We explicitly draw the tree here if we are in standard mode */
         if (ActivePanel && ActivePanel->pan_dir_window) {
             DisplayTree(ActivePanel->vol, ActivePanel->pan_dir_window,
                         ActivePanel->disp_begin_pos,
