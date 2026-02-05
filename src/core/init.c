@@ -442,13 +442,16 @@ void ReCreateWindows()
       ActivePanel->pan_small_file_window = LeftPanel->pan_small_file_window;
       ActivePanel->pan_big_file_window = LeftPanel->pan_big_file_window;
       ActivePanel->pan_file_window = LeftPanel->pan_file_window;
-  } else if (ActivePanel == RightPanel && IsSplitScreen && !GlobalView->preview_mode) {
+  } else if (ActivePanel == RightPanel && (IsSplitScreen || GlobalView->preview_mode)) {
+      /* In Preview Mode, RightPanel might not have windows, but ActivePanel 
+       * should still point to it if it was selected. Layout_Recalculate handles 
+       * hiding the right-side UI, but we shouldn't force-switch focus to Left. */
       ActivePanel->pan_dir_window = RightPanel->pan_dir_window;
       ActivePanel->pan_small_file_window = RightPanel->pan_small_file_window;
       ActivePanel->pan_big_file_window = RightPanel->pan_big_file_window;
       ActivePanel->pan_file_window = RightPanel->pan_file_window;
   } else {
-      /* Fallback if something went wrong (e.g. RightPanel active but SplitScreen disabled or Preview Mode active) */
+      /* Fallback if something went wrong (e.g. RightPanel active but SplitScreen/Preview disabled) */
       ActivePanel = LeftPanel;
       ActivePanel->pan_dir_window = LeftPanel->pan_dir_window;
       ActivePanel->pan_small_file_window = LeftPanel->pan_small_file_window;
