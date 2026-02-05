@@ -934,8 +934,18 @@ int HandleFileWindow(DirEntry *dir_entry)
                 UpdatePreview(dir_entry);
             }
 
+            /* Bug Fix: If we just turned OFF preview mode, AND we are not in another 
+             * big window mode (like global or tagged), we should EXIT back to 
+             * the directory tree. */
+            if (!GlobalView->preview_mode && !dir_entry->big_window && 
+                !dir_entry->global_flag && !dir_entry->tagged_flag) 
+            {
+                action = ACTION_ESCAPE;
+                break;
+            }
+
             need_dsp_help = TRUE;
-             break;
+            break;
 
       case ACTION_PREVIEW_SCROLL_DOWN:
              if (GlobalView->preview_mode) {
@@ -1006,7 +1016,11 @@ int HandleFileWindow(DirEntry *dir_entry)
              /* Update Volume Context */
              CurrentVolume = ActivePanel->vol;
 
-             return ESC; /* Exit loop to re-enter with new context */
+             /* Bug 3 Fix: We trigger a loop exit here.
+              * This ensures the cleanup code at the end of HandleFileWindow runs,
+              * restoring the small window layout before we return to HandleDirWindow. */
+             action = ACTION_ESCAPE;
+             break;
 
       case ACTION_MOVE_DOWN :  fmovedown(&dir_entry->start_file, &dir_entry->cursor_pos, &start_x, dir_entry);
               if (GlobalView->preview_mode) { preview_line_offset = 0; UpdatePreview(dir_entry); }
@@ -2162,11 +2176,11 @@ int HandleFileWindow(DirEntry *dir_entry)
     /* We don't need full refresh here because HandleDirWindow will catch the return */
   }
 
-  if(action != ACTION_ESCAPE || ActivePanel->file_count == 0) {
-    dir_entry->global_flag = FALSE;
-    dir_entry->tagged_flag = FALSE;
-    dir_entry->big_window  = FALSE;
-  }
+  /* Ensure all mode flags are cleared when exiting back to the tree. 
+   * This guarantees that RefreshGlobalView returns to small window layout. */
+  dir_entry->global_flag = FALSE;
+  dir_entry->tagged_flag = FALSE;
+  dir_entry->big_window  = FALSE;
 
   return( (action == ACTION_ENTER) ? CR : ESC ); /* Return CR or ESC based on action */
 }

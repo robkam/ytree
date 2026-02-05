@@ -1079,19 +1079,43 @@ int HandleDirWindow(DirEntry *start_dir_entry)
                 break;
 
             case ACTION_VIEW_PREVIEW:
+            {
+                YtreePanel *saved_panel = ActivePanel;
                 GlobalView->preview_mode = TRUE;
 
                 /* Enter File Window loop via HandleSwitchWindow logic */
                 /* We use HandleSwitchWindow to encapsulate the setup for HandleFileWindow */
                 HandleSwitchWindow(dir_entry, &need_dsp_help, &ch, ActivePanel);
 
-                /* Critical Safety: Check if volume changed */
-                if (CurrentVolume != start_vol) return ESC;
-
                 /* Post-Return Cleanup */
-                GlobalView->preview_mode = FALSE; /* Ensure off */
+                GlobalView->preview_mode = FALSE; /* Restore cleaning of preview mode flag */
 
-                /* CENTRALIZED REFRESH: Restore full layout (Tree, Stats, Separators) */
+                if (ActivePanel != saved_panel) {
+                    /* If panel was switched during preview, we REFRESH local state
+                     * BEFORE calling RefreshGlobalView to ensure the correct entry is drawn. */
+                    start_vol = ActivePanel->vol;
+                    s = &ActivePanel->vol->vol_stats;
+
+                    if (ActivePanel->vol && ActivePanel->vol->total_dirs > 0) {
+                        dir_entry = ActivePanel->vol->dir_entry_list[ActivePanel->disp_begin_pos + ActivePanel->cursor_pos].dir_entry;
+                    } else {
+                        dir_entry = s->tree;
+                    }
+                    
+                    /* Sync Global View Context */
+                    GlobalView->ctx_dir_window = ActivePanel->pan_dir_window;
+                    GlobalView->ctx_small_file_window = ActivePanel->pan_small_file_window;
+                    GlobalView->ctx_big_file_window = ActivePanel->pan_big_file_window;
+                    GlobalView->ctx_file_window = ActivePanel->pan_file_window;
+                    
+                    /* EXPLICIT REFRESH with the CORRECT dir_entry */
+                    RefreshGlobalView(dir_entry);
+                    
+                    need_dsp_help = TRUE;
+                    continue;
+                }
+
+                /* Standard refresh if panel didn't change */
                 RefreshGlobalView(dir_entry);
 
                 need_dsp_help = TRUE;
@@ -1101,6 +1125,7 @@ int HandleDirWindow(DirEntry *start_dir_entry)
                     dir_entry = ActivePanel->vol->dir_entry_list[ActivePanel->disp_begin_pos + ActivePanel->cursor_pos].dir_entry;
                 } else {
                     dir_entry = s->tree;
+                }
                 }
                 break;
 
@@ -1126,6 +1151,10 @@ int HandleDirWindow(DirEntry *start_dir_entry)
                     target->cursor_pos = source->cursor_pos;
                     target->disp_begin_pos = source->disp_begin_pos;
                     target->pan_file_window = target->pan_small_file_window;
+
+                    /* Bug 1 Fix: Explicitly populate the file entry list for the target panel.
+                     * This ensures the small file window is not empty on the right side. */
+                    BuildFileEntryList(target);
                 }
 
                 resize_request = TRUE;
@@ -1524,14 +1553,35 @@ int HandleDirWindow(DirEntry *start_dir_entry)
                 {
                     YtreePanel *saved_panel = ActivePanel; 
                     HandleSwitchWindow(dir_entry, &need_dsp_help, &ch, ActivePanel);
-                    if (ActivePanel != saved_panel) return ESC;
+                    
+                    if (ActivePanel != saved_panel) {
+                        /* If panel was switched, refresh state locally and continue */
+                        start_vol = ActivePanel->vol;
+                        s = &ActivePanel->vol->vol_stats;
+
+                        if (ActivePanel->vol && ActivePanel->vol->total_dirs > 0) {
+                            dir_entry = ActivePanel->vol->dir_entry_list[ActivePanel->disp_begin_pos + ActivePanel->cursor_pos].dir_entry;
+                        } else {
+                            dir_entry = s->tree;
+                        }
+                        
+                        GlobalView->ctx_dir_window = ActivePanel->pan_dir_window;
+                        GlobalView->ctx_small_file_window = ActivePanel->pan_small_file_window;
+                        GlobalView->ctx_big_file_window = ActivePanel->pan_big_file_window;
+                        GlobalView->ctx_file_window = ActivePanel->pan_file_window;
+                        
+                        RefreshGlobalView(dir_entry);
+                        need_dsp_help = TRUE;
+                        continue;
+                    }
+
+                    /* Important: Check for volume changes after returning from File Window */
+                    if (CurrentVolume != start_vol) return ESC;
+
+                    /* CENTRALIZED REFRESH: Restore clean layout after return */
+                    RefreshGlobalView(dir_entry);
+
                 }
-                /* Critical Safety: Check if volume changed after returning from File Window */
-                if (CurrentVolume != start_vol) return ESC;
-
-                /* CENTRALIZED REFRESH: Restore clean layout after return */
-                RefreshGlobalView(dir_entry);
-
                 /* Refresh local pointer */
                 dir_entry = ActivePanel->vol->dir_entry_list[ActivePanel->disp_begin_pos + ActivePanel->cursor_pos].dir_entry;
                 break;
