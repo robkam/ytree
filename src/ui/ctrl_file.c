@@ -1007,6 +1007,9 @@ int HandleFileWindow(DirEntry *dir_entry)
 
       case ACTION_SWITCH_PANEL:
              if (!IsSplitScreen) break;
+             /* Ensure the CURRENT panel is cleaned up before switching context. */
+             SwitchToSmallFileWindow();
+
              /* Switch Panel */
              if (ActivePanel == LeftPanel) {
                  ActivePanel = RightPanel;
