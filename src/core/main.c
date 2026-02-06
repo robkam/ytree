@@ -3,31 +3,6 @@
  * src/core/main.c
  * Main module
  *
- * ARCHITECTURAL MANIFESTO: F8 SPLIT SCREEN
- * ========================================
- *
- * Ytree is strictly SINGLE THREADED.
- *
- * 1.  Execution Model:
- *     - Logic executes sequentially in the main thread.
- *     - Signals (SIGINT, SIGWINCH) set flags; no complex logic in handlers.
- *
- * 2.  Split Screen / Panel Architecture:
- *     - Only ONE panel is ACTIVE (Focus) at any given time (ActivePanel).
- *     - The other panel is DORMANT/INACTIVE.
- *     - Panels maintain INDEPENDENT state:
- *       * Volume Context (vol)
- *       * Cursor Position (cursor_pos)
- *       * View Offset (disp_begin_pos)
- *       * Tagging Selection
- *     - This independence applies even if both panels view the same filesystem/path.
- *
- * 3.  Inter-Panel Operations:
- *     - Operations like Copy (F5) and Move (F6) occur directionally:
- *       Source (Active Panel) -> Destination (Inactive Panel).
- *     - Context switching must ensure the Global Volume pointer (CurrentVolume)
- *       is synchronized with the Active Panel before rendering or processing commands.
- *
  ***************************************************************************/
 
 

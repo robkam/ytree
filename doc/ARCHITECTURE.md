@@ -1,54 +1,89 @@
 # Architecture of ytree v3
 
-## Overview
-This document outlines the architectural modernization of `ytree`. The codebase has moved from a 1990s-style monolithic structure (K&R/C89) to a modular, standards-compliant C99 design.
+## 1. Overview
+This document outlines the architectural modernization of `ytree`. The codebase has transitioned from a 1990s-style monolithic structure to a modular, standards-compliant C99 design.
 
-The primary goal of this refactoring was to separate **Model** (Filesystem), **View** (Ncurses Rendering), and **Controller** (Input Handling) concerns, enabling advanced features like Split Screen (F8) and Multi-Volume support.
+The primary objective is to maintain a **predictable, high-integrity state machine**. Every component is designed to uphold the **Focus vs. Freeze** logic and the specific hierarchy of modal priorities inherited from the XTree lineage.
 
-## Directory Structure
+---
 
-The source tree is organized semantically to enforce separation of concerns:
+## 2. Execution & Concurrency Model
+`ytree` is strictly **SINGLE-THREADED**. This ensures deterministic state transitions and prevents race conditions within the Ncurses rendering pipeline.
 
-*   **`src/core/`**: Application lifecycle and state management.
-    *   `main.c`: Entry point and argument parsing.
-    *   `init.c`: Ncurses initialization and layout calculation.
-    *   `volume.c`: Management of loaded directory trees (`Volume` structs).
-*   **`src/ui/`**: User Interface logic.
-    *   `ctrl_*.c`: **Controllers**. Input loops and event dispatching (e.g., `ctrl_dir.c`, `ctrl_file.c`).
-    *   `render_*.c`: **Views**. Drawing logic decoupled from input (e.g., `render_dir.c`).
-    *   `ui_nav.c`: Generic list navigation logic.
-    *   `stats.c`: The right-hand information panel.
-    *   `vol_menu.c`: The Volume Selection UI.
-    *   `view_internal.c`: The built-in Hex/Text viewer logic.
-    *   `view_preview.c`: The F7 side-panel preview renderer.
-*   **`src/fs/`**: Filesystem Model (VFS).
-    *   `readtree.c`: Directory scanning logic.
-    *   `archive.c`: Libarchive integration for virtual filesystems.
-    *   `vfs.c`: Virtual File System abstraction layer.
-*   **`src/cmd/`**: Action Implementations.
-    *   Atomic implementations of user commands (`copy.c`, `move.c`, `delete.c`, `execute.c`, `view.c`).
-*   **`src/util/`**: Helpers.
-    *   Safe string manipulation, path normalization, and history management.
+*   **Sequential Logic:** All application logic, filesystem I/O, and UI rendering execute sequentially in the main thread.
+*   **Signal Handling:** Signals (e.g., `SIGINT`, `SIGWINCH`) are used only to set atomic flags. No complex logic, I/O, or Ncurses calls are permitted inside signal handlers.
+*   **Global Synchronization:** Before rendering or processing commands, the controller must ensure the Global Volume pointer (`CurrentVolume`) is explicitly synchronized with the **Active Panel**.
 
-## Key Architectural Decisions
+---
 
-### 1. Elimination of "God Objects"
-Legacy `ytree` relied on massive files which handled file I/O, user input, and screen drawing simultaneously. In v3.0, these have been split. For example, the `View` functionality was split into:
-*   `src/cmd/view.c`: External command execution logic.
-*   `src/ui/view_internal.c`: Interactive Hex/Text editor.
-*   `src/ui/view_preview.c`: Passive panel rendering.
+## 3. Core Architectural Invariants
 
-### 2. Multi-Volume State (`Volume` vs `Global`)
-Global variables for directory lists were replaced with a `Volume` structure managed by a Hash Table (`uthash`). This allows `ytree` to hold multiple filesystem trees (Volumes) in memory simultaneously, enabling instant context switching and the "Log" concept found in XTree.
+### 3.1 Dual-Panel Context Isolation (F8 Logic)
+The Split-Screen architecture treats each panel as an independent instance of a volume manager.
 
-### 3. Split-Screen Capabilities (`ViewContext`)
-UI references are encapsulated in `ViewContext` structures rather than hardcoded global window pointers. This prepares the rendering pipeline to support dual independent panels (Left/Right) sharing the same underlying logic.
+*   **Active vs. Inactive (Focus vs. Freeze):**
+    *   **Active Panel:** Owns keyboard focus and initiates all operations.
+    *   **Inactive Panel:** Strictly **DORMANT**. It must never update its display, refresh pointers, or change state in response to activity in the active panel.
+*   **Independent State:** Panels maintain completely isolated state variables, even if both panels are viewing the same path:
+    *   **Volume Context:** The specific logged volume or archive.
+    *   **Cursor Position:** The highlighted entry.
+    *   **View Offset:** The scroll position (display-begin).
+    *   **Tagging Selection:** File selections/tags are panel-specific.
+    *   **Filespec:** Filter strings (e.g., `*.c`).
+*   **State Persistence (Tab-Switch):** The `Tab` key is the *exclusive* bridge. Switching panels must restore the **exact** state held when that panel last had focus.
+*   **The Lazy Refresh Rule:** An inactive panel remains in its frozen state upon being "Tabbed" into. It validates/refreshes its view only when a subsequent user action forces a re-read.
 
-### 4. Modern C Standards
-*   **Strings:** Unsafe `strcpy`/`sprintf` replaced with `snprintf` and bounds-checked helpers.
-*   **System:** Transitioned to POSIX standard `statvfs` and `regex.h`.
-*   **Memory:** Strict ownership models for dynamic lists (`FileEntry`, `DirEntry`) to prevent leaks.
+### 3.2 Inter-Panel Operations (The Directional Rule)
+*   **Targeting:** Operations such as Copy and Move occur directionally: **Source (Active Panel) to Destination (Inactive Panel)**.
+*   **Read-Only Bridge:** The active panel may read the path of the inactive panel to set a default destination, but this operation must not trigger a refresh or state change in the inactive panel.
 
-## Future Roadmap
+### 3.3 The Modal Hierarchy (Command Priority)
+1.  **Level 1: F7 Autoview (Preview Mode) [PREEMPTIVE]:** Creates a modal lock. `Tab` is disabled; panel switching is prohibited.
+2.  **Level 2: F8 Split-Window [STRUCTURAL]:** Defines the dual independent volume environments.
+3.  **Level 3: The Log/Volume [DATA]:** All navigation and filtering are relative to the currently logged volume.
 
-While the architecture is stable, this is a work in progress. See `[ROADMAP.md](ROADMAP.md)` for the roadmap.
+---
+
+## 4. Behavioral Protocols
+
+### 4.1 Protocol A: Directory Entry and "No Files" Constraint
+*   **Transition Invariant:** A directory can only be "entered" (Tree to File Mode) if it contains at least one file.
+*   **Empty Directory Behavior:** If empty, the program blocks the transition. The file list shows "No files," the cursor remains in the Tree, and context does not change.
+*   **Selection Memory (Breadcrumbs):** When escaping File Mode to Tree Mode and later re-entering the same directory, the panel must restore the cursor to the **last highlighted file**.
+*   **Navigation Stability:** Moving through the Tree must never automatically trigger a transition into File Mode.
+
+### 4.2 Protocol B: Archive and Volume Lifecycle
+*   **Active Logging:** Only the active panel can "Log" a new volume or open an archive as a virtual volume.
+*   **Lifecycle Management:** The active panel supports **Logging** new volumes, **Cycling** through logged volumes, and **Releasing** (unlogging) a volume.
+*   **Independent Rooting:** Changing the root/volume in the active panel has zero impact on the inactive panel.
+
+### 4.3 Protocol C: F7 Autoview (The "No Surprise" Preview)
+*   **Contextual Logic:** F7 displays content for files and a **'Peek'** (temporary file list) for directories.
+*   **Dynamic Background Navigation:** While F7 is active, Up/Down keys move the cursor; the preview updates in real-time.
+*   **Undo Protocol:** Pressing `F7` or `Esc` destroys the overlay and returns the user to the **exact** position and mode held before the preview. No state changes persist.
+
+---
+
+## 5. Visual and Rendering Standards
+*   **Terminal Integrity:** UI updates must be atomic to prevent "ghost" characters.
+*   **Junction Grammar:** Ncurses junctions (T-pieces, crosses) should **only** be used for horizontal boundary lines (separating Tree and File areas). Vertical separators must remain clean.
+*   **Micro-Consistency:** Mode flags (`big_window`, `preview_mode`) must be synchronized with the layout before any redraw.
+
+---
+
+## 6. Operational Principles (Architectural TDD)
+*   **Test-First Fixes:** Before implementing a fix, the developer must test if the current behavior violates the Invariants or Protocols.
+*   **Side-Effect Analysis:** Every change must be checked against the "Dual-Panel Isolation" rule.
+*   **Predictability:** Do not introduce "smart" behaviors that move the cursor or change modes automatically. Stay within manual boundaries.
+
+---
+
+## 7. Directory Structure
+*   build/
+*   doc/
+*   etc/
+*   include/
+*   obj/
+*   scripts/
+*   src/
+*   tests/
