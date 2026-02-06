@@ -71,19 +71,25 @@ The Split-Screen architecture treats each panel as an independent instance of a 
 
 ---
 
-## 6. Operational Principles (Architectural TDD)
-*   **Test-First Fixes:** Before implementing a fix, the developer must test if the current behavior violates the Invariants or Protocols.
+## 6. Operational Principles (Architectural SDD)
+*   **Spec-First Fixes:** Before implementing a fix, the developer must verify if the current behavior violates the Invariants or Protocols defined in the Specification.
 *   **Side-Effect Analysis:** Every change must be checked against the "Dual-Panel Isolation" rule.
 *   **Predictability:** Do not introduce "smart" behaviors that move the cursor or change modes automatically. Stay within manual boundaries.
 
 ---
 
 ## 7. Directory Structure
-*   build/
-*   doc/
-*   etc/
-*   include/
-*   obj/
-*   scripts/
-*   src/
-*   tests/
+*   **build/**: Compiled binary outputs and distribution packages.
+*   **doc/**: Project documentation, specifications, and screenshots.
+*   **etc/**: Default configuration files and sample `ytree.conf`.
+*   **include/**: C header files defining the internal API and data structures.
+*   **obj/**: Intermediate object files generated during compilation.
+*   **scripts/**: Python utility scripts and development environment setup.
+*   **src/**: Source code partitioned by functional responsibility:
+    *   `src/core/`: Initializers, global state, and session management.
+    *   `src/fs/`: File system abstractions, archive handling, and watchers.
+    *   `src/ui/`: Ncurses rendering logic and window management.
+    *   `src/cmd/`: Implementation of specific user commands (Copy, Move, etc.).
+    *   `src/util/`: String manipulation, path normalization, and history.
+*   **tests/**: Behavioral TUI tests using Python and `pexpect`.
+
