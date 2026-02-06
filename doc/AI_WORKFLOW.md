@@ -2,12 +2,28 @@
 
 This document defines the standards and protocols for using AI agents to maintain and modernize the `ytree` codebase. These rules ensure architectural integrity and prevent "hallucination debt."
 
+---
+
 ## 1. Core Principles
 
-1.  **Human as Architect:** The AI is a "Junior Developer" or "Implementation Agent." The human maintainer provides the architectural direction and must approve every change.
-2.  **Atomic Missions:** One task = One session. Do not bundle multiple unrelated features or bug fixes into a single AI prompt/mission.
-3.  **Build-First Verification:** No code is accepted until it compiles and passes the test suite (`make clean && make && make test`).
-4.  **The "Clean Slate" Rule:** If an AI generates incorrect or "fragile" code, do not attempt to "patch" the conversation. Revert the code (`git restore .`), end the session, and start a new mission with refined instructions.
+### 1.1 The Golden Loop (Spec-First Integrity)
+The development process is strictly hierarchical. The Spec is the "Contract of Truth."
+1.  **Write/Verify Spec:** Does `specification.md` describe the desired behavior?
+2.  **Write Test:** Create a test case that fails if the behavior is missing (Red).
+3.  **Implement:** Write C code to satisfy the test (Green).
+4.  **Refactor:** Improve code structure without breaking the test.
+
+**CRITICAL RULE:** If the implementation behaves differently than the Spec, **the implementation is wrong.**
+*   **Allowed:** Rewrite the C code to match the Spec.
+*   **Allowed:** Fix the Spec if (and only if) the Spec was logically flawed.
+*   **FORBIDDEN:** Changing the Test to match the "working" code if it violates the Spec.
+
+### 1.2 General Rules
+1.  **Architecture as Blueprint:** [ARCHITECTURE.md](ARCHITECTURE.md) defines the technical structure.
+2.  **Human as Architect:** The AI is a "Junior Developer." The human maintainer provides direction.
+3.  **Atomic Missions:** One task = One session.
+4.  **Build-First Verification:** No code is accepted until it compiles and passes tests.
+5.  **The "Clean Slate" Rule:** If an AI generates fragile code, revert and restart. Do not patch.
 
 ---
 
@@ -22,14 +38,13 @@ The project maintains a set of "Persona Rules" in the `.agent/rules/` directory.
 
 ---
 
-## 3. Workflow: Antigravity (Agentic IDE)
+## 3. Workflow: Behavioral SDD (Specification-Driven Development)
 
-If you are using **Google Antigravity**, the IDE automatically ingests the rules in `.agent/rules/`.
+All development follows an **Architectural SDD** approach:
 
-1.  **Start a Mission:** Open the Agent Manager and describe the goal.
-2.  **Review the Plan:** The Agent will produce an "Implementation Plan." Verify that the correct header and source files are identified.
-3.  **Execute & Diff:** The Agent will propose code changes. Use the side-by-side diff to verify logic.
-4.  **Terminal Integration:** Use the Agent to run `make test` directly in the terminal to verify the fix.
+1.  **Identify Protocol:** Determine which Protocol (A, B, or C) or Invariant (Focus vs. Freeze) the current bug violates.
+2.  **Contract Verification:** Direct the AI to analyze the code specifically through the lens of that protocol.
+3.  **Refactor to Spec:** Fix the code so it adheres to the Specification. Do not accept "smart" shortcuts that bypass the established state machine logic.
 
 ---
 
@@ -44,18 +59,7 @@ If you are using a standard text editor and a web-based AI (like Google AI Studi
 
 ---
 
-## 5. Technical Constraints for AI Agents
-
-To maintain the legacy-compatible nature of `ytree`, all AI agents must strictly follow these technical constraints:
-
-*   **Standards:** Use C89/C99 compatible code. Avoid modern C features that break portability on older Unix-like systems.
-*   **Safety:** Always check return values of system calls (`malloc`, `chdir`, `open`, etc.) and handle `errno`.
-*   **No "Zalgo" Text:** Strictly prohibited to use stacked Unicode characters (combining diacritics) in code, comments, or UI strings.
-*   **Encapsulation:** Prioritize passing context structures (`Context *ctx`) over accessing global variables.
-
-## 6. Debugging Protocol
-
-If a bug cannot be identified through code review:
-1.  **Instrument:** Direct the AI to create a mission solely to add debug `fprintf(stderr, ...)` calls to the relevant logic.
-2.  **Observe:** Run the instrumented code and provide the terminal output back to the AI.
-3.  **Solve:** Use the runtime evidence to guide the final fix.
+## 5. Debugging Protocol
+1.  **Instrument:** Direct the AI to add `fprintf(stderr, ...)` calls to trace state transitions (e.g., tracing `ActivePanel` focus).
+2.  **Observe:** Run the instrumented code and provide terminal output to the AI.
+3.  **Solve:** Use the runtime evidence to guide the final fix back to Specification compliance.
