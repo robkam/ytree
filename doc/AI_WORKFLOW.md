@@ -35,6 +35,7 @@ The project maintains a set of "Persona Rules" in the `.agent/rules/` directory.
 *   **`builder.md`**: Used for implementation. Enforces C89/C99 standards, error handling, and file-writing constraints.
 *   **`auditor.md`**: Used for identifying architectural fragility and global state coupling.
 *   **`tester.md`**: Used for generating Python-based TUI automation tests.
+*   **`mentor.md`**: Used for general technical advice.
 
 ---
 
