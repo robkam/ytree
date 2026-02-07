@@ -527,8 +527,8 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 *   - [x] **Status:** Completed.
 
 ### **Step 4.16: Consolidate Attribute Commands**
-*   **Goal:** Group the `A` (Attribute/Mode), `O` (Owner), and `G` (Group) commands under a single `A` menu.
-*   **Rationale:** De-clutter the top-level keymap. Changing ownership/groups is an infrequent administrative task compared to navigation. This frees up the `G` and `O` keys for more common actions (e.g., Global/Go or Sort/Order).
+*   **Goal:** Group the `A` (Attribute/Mode), `O` (Owner), and `G` (Group) commands under a single `A` menu (Attributes).
+*   **Rationale:** De-clutter the top-level keymap. **Crucially, this frees up the `G` key for "Global View" and `O` for "Open", aligning with ZTree standards.**
 *   **Files to Modify:** `src/ui/input.c`, `src/ui/ctrl_dir.c`, `src/ui/ctrl_file.c`
 *   **Context Files:** `src/cmd/chmod.c`, `src/cmd/chown.c`, `src/cmd/group.c`
 *   - [ ] **Status:** Not Started.
@@ -717,13 +717,13 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 *   **Context Files:** `src/ui/input.c`
 *   - [x] **Status:** Completed.
 
-### **Step 4.37: Standardize Incremental Search (List Jump)**
-*   **Goal:** Implement robust, non-recursive incremental search activated by the `/` key in both Directory and File windows.
-*   **Rationale:** Currently, search is bound to `F12` and uses a dangerous recursive implementation. Mapping it to `/` aligns `ytree` with standard Unix tools (vi, less) and allows users to navigate quickly without triggering command hotkeys (like 'd' for delete).
-*   **Mechanism:** Refactor `ListJump` to use an iterative loop. Bind `/` in `input.c`. Support backspace handling and "search-as-you-type" highlighting.
-*   **Files to Modify:** `src/ui/ctrl_file.c`, `src/ui/ctrl_dir.c`, `src/ui/input.c`
-*   **Context Files:** None.
-*   - [x] **Status:** Completed.
+### **Step 4.37: Iterative Incremental Search (List Jump)**
+*   **Goal:** Implement robust, non-recursive incremental search activated by the `/` key that supports backspace and works in both Directory and File windows.
+*   **Rationale:** Align with standard Unix tools (`/`) but provide the **Treespec** experience (rapid filtering/navigation) found in ZTree.
+*   **Mechanism:** Sticky cursor: Cursor remains at the last valid match on failed input. Implicit exit: Action keys confirm match.
+*   **Files to Modify:** `src/ui/ui_nav.c`, `src/ui/ctrl_file.c`, `src/ui/ctrl_dir.c`, `src/ui/input.c`
+*   **Context Files:** `include/ytree_ui.h`, `include/ytree_defs.h`
+*   - [ ] **Status:** In Progress. (Basic implementation done, needs refinement for "Treespec" feel).
 
 ### **Step 4.38: Implement Bottom F-Key Menu Bar**
 *   **Goal:** Shift the existing two-line command footer up by one line and reserve the bottom-most row for a clickable, function-key reference bar (F1 Help, F3 Options, F5 Redraw, F7 View, F8 Split).
@@ -815,6 +815,29 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 ### **Step 4.49: Standardize Internal Viewer Layout**
 *   **Goal:** Ensure the internal viewer's layout geometry matches the main application (borders, headers, and footer).
 *   **Files to Modify:** `src/ui/view_internal.c`
+*   - [ ] **Status:** Not Started.
+
+### **Step 4.50: Implement Directory File Release (`-`)**
+*   **Goal:** Refactor the Minus key to correctly release file lists from memory and reset the directory status.
+*   **Rationale:** Provides high-power utility to quickly log a large tree and then "release" specific file lists to free resources or hide data without complex filters.
+*   **Mechanism:** Releases the file list of the current directory and subdirectories from memory. Recalculates volume statistics.
+*   **Files to Modify:** `src/ui/ctrl_dir.c`, `src/fs/readtree.c`, `src/ui/stats.c`
+*   **Context Files:** `include/ytree_fs.h`
+*   - [ ] **Status:** Not Started.
+
+### **Step 4.51: Unlogged State Visualization (`+` Column)**
+*   **Goal:** Implement visual indicators for unlogged directory states and update File Window status text.
+*   **Rationale:** Align with X/Z/UT memory-management paradigms.
+*   **Mechanism:** Prints a `+` in the first column if the directory is unlogged. File Window displays centered `** Not logged **`.
+*   **Files to Modify:** `src/ui/render_dir.c`, `src/ui/render_file.c`
+*   **Context Files:** `include/ytree_defs.h`
+*   - [ ] **Status:** Not Started.
+
+### **Step 4.52: Implement Global File View (`G`)**
+*   **Goal:** Implement the "Global" file view mode, which aggregates files from **all currently logged volumes** into a single flattened list.
+*   **Rationale:** A core ZTree feature allowing operations across multiple drives simultaneously.
+*   **Prerequisite:** Free up `G` key.
+*   **Files to Modify:** `src/ui/ctrl_dir.c`, `src/ui/ctrl_file.c`, `src/core/volume.c`
 *   - [ ] **Status:** Not Started.
 
 ---
@@ -1005,14 +1028,7 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 *   **Context Files:** None.
 *   - [ ] **Status:** Not Started.
 
-### **Step 6.4: Implement Shell Script Generator**
-*   **Goal:** Generate a shell script from tagged files using user-defined templates (e.g., `cp %f /backup/%f.bak`), replacing the "Batch" concept.
-*   **Rationale:** Offers complex templating logic that goes beyond simple pipe/xargs, and critically allows the user to review/edit the generated script before execution for safety.
-*   **Files to Modify:** `src/cmd/batch.c` (New)
-*   **Context Files:** `src/ui/ctrl_file.c`
-*   - [ ] **Status:** Not Started.
-
-### **Step 6.5: Implement "Grep Tagged" (`^S`)**
+### **Step 6.4: Implement "Grep Tagged" (`^S`)**
 *   **Goal:** Implement a content search feature (`^S`) that iterates through all tagged files (in File System or Archive). Files that *do not* match the search string are untagged.
 *   **Integration:** Combine this with `^V` (View Tagged) to allow the user to quickly narrow down a dataset and view only the hits.
 *   **Rationale:** This mimics the powerful "Search" function of XTreeGold, turning `ytree` into a tool for data mining and bulk text analysis.
@@ -1020,80 +1036,16 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 *   **Context Files:** `src/cmd/execute.c`
 *   - [x] **Status:** Completed.
 
-### **Step 6.6: Advanced Destination Selection (Enhanced F2)**
-*   **Goal:** Overhaul the F2 (Select Directory) dialog during Copy/Move operations. It should support:
-    *   Creating new paths on the fly.
-    *   Logging new disks/archives from within the selection window.
-    *   Toggling between "Current", "Tree", and "History" views.
-*   **Rationale:** currently, selecting a destination is rigid. This flexibility allows users to organize files into new structures without leaving the Copy/Move context.
-*   **Files to Modify:** `src/ui/ctrl_dir.c`, `src/ui/input.c`
-*   **Context Files:** `src/cmd/log.c`
+### **Step 6.5: Implement Advanced Batch Rename**
+*   **Goal:** Enhance the `Rename` command to support advanced masks (e.g., `*_<001>.bak`), sequential numbering, casing changes (`Tab`), and substring replacement.
+*   **Rationale:** Essential power-user feature for managing large file sets.
+*   **Files to Modify:** `src/cmd/rename.c`, `src/ui/input.c`
 *   - [ ] **Status:** Not Started.
 
-### **Step 6.7: Implement VFS Abstraction Layer** (Use Architect Mode)
-*   **Goal:** Replace hardcoded filesystem logic with a driver-based architecture. This allows `ytree` to treat any data source (Local FS, Archive, SSH, SQL) uniformly as a `Volume`.
-*   **Context:** Currently, `log.c` decides between "Disk" and "Archive". We will change this so `log.c` asks a Registry: "Who can handle this path?"
-
-#### **Step 6.7.1: Define VFS Interface & Volume Integration** (Use Architect Mode)
-*   **Goal:** Define the `VFS_Driver` contract (struct of function pointers) and update the `Volume` struct to hold a pointer to its active driver.
-*   **Mechanism:**
-    *   Create `include/ytree_vfs.h`.
-    *   Define function pointers: `scan`, `stat`, `lstat`, `extract`, `get_path` (for internal addressing).
-    *   Update `include/ytree_defs.h` to add `const VFS_Driver *driver` and `void *driver_data` to `struct Volume`.
-*   **Files:** `include/ytree_vfs.h`, `include/ytree_defs.h`.
-
-#### **Step 6.7.2: Implement VFS Registry** (Use Architect Mode)
-*   **Goal:** Create the core logic to register drivers and probe paths.
-*   **Mechanism:**
-    *   Create `src/fs/vfs.c`.
-    *   Implement `VFS_Init()` (registers built-in drivers).
-    *   Implement `VFS_Probe(path)` which iterates drivers asking "Can you handle this?" and returns the best match.
-*   **Files:** `src/fs/vfs.c`, `include/ytree_vfs.h`.
-
-#### **Step 6.7.3: Implement "Local" VFS Driver** (Use Architect Mode)
-*   **Goal:** Wrap the existing POSIX `opendir`/`readdir` logic into a `VFS_Driver`.
-*   **Mechanism:**
-    *   Create `src/fs/drv_local.c`.
-    *   Move logic from `src/fs/readtree.c` into the driver's `.scan` method.
-    *   Ensure it populates `DirEntry` structures exactly as before.
-*   **Files:** `src/fs/drv_local.c`, `src/fs/readtree.c` (cleanup).
-
-#### **Step 6.7.4: Implement "Archive" VFS Driver** (Use Architect Mode)
-*   **Goal:** Wrap the existing `libarchive` logic into a `VFS_Driver`.
-*   **Mechanism:**
-    *   Create `src/fs/drv_archive.c`.
-    *   Move logic from `src/fs/readarchive.c` and `src/fs/archive.c` into the driver.
-    *   Implement `.extract` to handle the temporary file creation for viewing/copying.
-*   **Files:** `src/fs/drv_archive.c`, `src/fs/readarchive.c` (delete).
-
-#### **Step 6.7.5: Switch `LoginDisk` to VFS** (Use Architect Mode)
-*   **Goal:** Update the main entry point to use the new system.
-*   **Mechanism:**
-    *   Refactor `src/cmd/log.c`.
-    *   Replace the `stat`/`S_ISDIR` check with `VFS_Probe(path)`.
-    *   Call `vol->driver->scan()` instead of calling `ReadTree` or `ReadTreeFromArchive` directly.
-*   **Files:** `src/cmd/log.c`.
-
-#### **Step 6.7.6: Refactor Consumers (Polymorphism)** (Use Architect Mode)
-*   **Goal:** Remove `if (mode == ARCHIVE)` from the rest of the codebase.
-*   **Mechanism:**
-    *   Update `view.c`, `copy.c`, `execute.c`.
-    *   Replace specific calls with `vol->driver->extract(...)` or `vol->driver->stat(...)`.
-*   **Files:** `src/cmd/*.c`.
-
----
-
-### **Step 6.8: Implement Recursive Directory Watching** (Use the Auditor Persona here)
-*   **Goal:** Extend the file system watcher to monitor all *currently expanded* directories, allowing changes in visible sibling or child directories to appear immediately without manual refresh.
-*   **Rationale:** Current `inotify` logic only watches the directory under the cursor. If a user modifies a subdirectory visible in the tree but not currently selected, the UI becomes stale.
-*   **Mechanism:**
-    *   Refactor `watcher.c` to maintain a **Hash Table** (using `uthash`) mapping Kernel Watch Descriptors (`wd`) to `DirEntry` pointers.
-    *   Hook into `ReadTree` (Expansion): Automatically add a watch when a directory is read into memory.
-    *   Hook into `UnReadTree`/`DeleteTree` (Collapse): Automatically remove the watch when a directory is freed.
-    *   **Safety:** Handle `ENOSPC` (System Watch Limit) gracefully by falling back to "Active-Dir Only" mode if the user expands too many directories.
-    *   **Archive Note:** This recursive logic applies to physical filesystems. For Archives, the Auto-Refresh logic (see Step 4.31) watches the *Container File's* timestamp to trigger a virtual tree reload; it does not set recursive watches inside the archive itself.
-*   **Files to Modify:** `src/fs/watcher.c`, `src/fs/readtree.c`
-*   **Context Files:** `include/watcher.h`
+### **Step 6.6: Enhance PathCopy to Mirror (Sync)**
+*   **Goal:** Enhance the existing `PathCopy` (`^Y`) logic to support "Mirroring". Add options to **synchronize** the destination (delete orphan files not present in source) and compare size and timestamps.
+*   **Rationale:** `PathCopy` currently acts as a "Copy", but lacks the "Sync" capabilities of ZTree's `Alt-Mirror`.
+*   **Files to Modify:** `src/cmd/copy.c`, `src/cmd/mirror.c` (New)
 *   - [ ] **Status:** Not Started.
 
 ---
@@ -1429,6 +1381,7 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 ## **Future Enhancements / Wishlist**
 *A collection of high-complexity or lower-priority features to be considered after the primary roadmap is complete.*
 
+*   **Implement Shell Script Generator:** Generate a shell script from tagged files using user-defined templates (e.g., `cp %f /backup/%f.bak`), replacing the "Batch" concept. (Relocated from Phase 6).
 *   **Per-Window Filter State (Split Screen Prerequisite):** Decouple the file filter (`file_spec`) from the `Volume` structure and move it into a new `WindowView` context. This architecture is required to support F8 Split Screen, enabling two independent views of the same volume with different filters (e.g., `*.c` in the left pane versus `*.h` in the right).
 *   **Implement Advanced, ncurses-native Command Line Editing:** Full cursor navigation (left/right, home/end, word-by-word). In-line text editing (insert, delete, backspace, clear line). Persistent command history accessible via up/down arrows. Maybe even context-aware tab completion for files and directories.
 *   **Shell-Style Tab Completion:** Replace the current history-based tab completion with true filename/directory completion in the input line.
@@ -1439,3 +1392,81 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 *   **State Preservation on Reload (^L):** Modify the Refresh command to preserve directory expansion states. Cache open paths prior to the re-scan and restore the previous view structure instead of resetting to the default depth.
 *   **Preserve Tree Expansion on Refresh:** Modify the Refresh/Rescan logic (`^L`, `F5`) to cache the list of currently expanded directories before reading the disk. After the scan is complete, programmatically re-expand those paths if they still exist.
 *   **Implement "Safe Delete" (Trash Can):** Support the FreeDesktop.org Trash specification to allow file recovery.
+
+### **Step 6.n: Implement Keyboard Macros (`F12`)**
+*   **Goal:** Implement a macro recording and playback system. `F12` starts/stops recording keystrokes to a buffer/file.
+*   **Rationale:** Allows automation of repetitive tasks (e.g., "Tag, Move, Rename, Repeat").
+*   **Files to Modify:** `src/ui/input.c`, `src/core/macro.c` (New)
+*   - [ ] **Status:** Not Started.
+
+### **Step 6.o: Implement Shell Script Generator**
+*   **Goal:** Generate a shell script from tagged files using user-defined templates (e.g., `cp %f /backup/%f.bak`), replacing the "Batch" concept.
+*   **Rationale:** Offers complex templating logic that goes beyond simple pipe/xargs, and critically allows the user to review/edit the generated script before execution for safety.
+*   **Files to Modify:** `src/cmd/batch.c` (New)
+*   **Context Files:** `src/ui/ctrl_file.c`
+*   - [ ] **Status:** Not Started.
+
+### **Step 6.p: Implement Recursive Directory Watching** (Use the Auditor Persona here)
+*   **Goal:** Extend the file system watcher to monitor all *currently expanded* directories, allowing changes in visible sibling or child directories to appear immediately without manual refresh.
+*   **Rationale:** Current `inotify` logic only watches the directory under the cursor. If a user modifies a subdirectory visible in the tree but not currently selected, the UI becomes stale.
+*   **Mechanism:**
+    *   Refactor `watcher.c` to maintain a **Hash Table** (using `uthash`) mapping Kernel Watch Descriptors (`wd`) to `DirEntry` pointers.
+    *   Hook into `ReadTree` (Expansion): Automatically add a watch when a directory is read into memory.
+    *   Hook into `UnReadTree`/`DeleteTree` (Collapse): Automatically remove the watch when a directory is freed.
+    *   **Safety:** Handle `ENOSPC` (System Watch Limit) gracefully by falling back to "Active-Dir Only" mode if the user expands too many directories.
+    *   **Archive Note:** This recursive logic applies to physical filesystems. For Archives, the Auto-Refresh logic (see Step 4.31) watches the *Container File's* timestamp to trigger a virtual tree reload; it does not set recursive watches inside the archive itself.
+*   **Files to Modify:** `src/fs/watcher.c`, `src/fs/readtree.c`
+*   **Context Files:** `include/watcher.h`
+*   - [ ] **Status:** Not Started.
+
+### **Step 6.x: Implement VFS Abstraction Layer** (Use Architect Mode)
+*   **Goal:** Replace hardcoded filesystem logic with a driver-based architecture. This allows `ytree` to treat any data source (Local FS, Archive, SSH, SQL) uniformly as a `Volume`.
+*   **Context:** Currently, `log.c` decides between "Disk" and "Archive". We will change this so `log.c` asks a Registry: "Who can handle this path?"
+
+#### **Step 6.x.1: Define VFS Interface & Volume Integration** (Use Architect Mode)
+*   **Goal:** Define the `VFS_Driver` contract (struct of function pointers) and update the `Volume` struct to hold a pointer to its active driver.
+*   **Mechanism:**
+    *   Create `include/ytree_vfs.h`.
+    *   Define function pointers: `scan`, `stat`, `lstat`, `extract`, `get_path` (for internal addressing).
+    *   Update `include/ytree_defs.h` to add `const VFS_Driver *driver` and `void *driver_data` to `struct Volume`.
+*   **Files:** `include/ytree_vfs.h`, `include/ytree_defs.h`.
+
+#### **Step 6.x.2: Implement VFS Registry** (Use Architect Mode)
+*   **Goal:** Create the core logic to register drivers and probe paths.
+*   **Mechanism:**
+    *   Create `src/fs/vfs.c`.
+    *   Implement `VFS_Init()` (registers built-in drivers).
+    *   Implement `VFS_Probe(path)` which iterates drivers asking "Can you handle this?" and returns the best match.
+*   **Files:** `src/fs/vfs.c`, `include/ytree_vfs.h`.
+
+#### **Step 6.x.3: Implement "Local" VFS Driver** (Use Architect Mode)
+*   **Goal:** Wrap the existing POSIX `opendir`/`readdir` logic into a `VFS_Driver`.
+*   **Mechanism:**
+    *   Create `src/fs/drv_local.c`.
+    *   Move logic from `src/fs/readtree.c` into the driver's `.scan` method.
+    *   Ensure it populates `DirEntry` structures exactly as before.
+*   **Files:** `src/fs/drv_local.c`, `src/fs/readtree.c` (cleanup).
+
+#### **Step 6.x.4: Implement "Archive" VFS Driver** (Use Architect Mode)
+*   **Goal:** Wrap the existing `libarchive` logic into a `VFS_Driver`.
+*   **Mechanism:**
+    *   Create `src/fs/drv_archive.c`.
+    *   Move logic from `src/fs/readarchive.c` and `src/fs/archive.c` into the driver.
+    *   Implement `.extract` to handle the temporary file creation for viewing/copying.
+*   **Files:** `src/fs/drv_archive.c`, `src/fs/readarchive.c` (delete).
+
+#### **Step 6.x.5: Switch `LoginDisk` to VFS** (Use Architect Mode)
+*   **Goal:** Update the main entry point to use the new system.
+*   **Mechanism:**
+    *   Refactor `src/cmd/log.c`.
+    *   Replace the `stat`/`S_ISDIR` check with `VFS_Probe(path)`.
+    *   Call `vol->driver->scan()` instead of calling `ReadTree` or `ReadTreeFromArchive` directly.
+*   **Files:** `src/cmd/log.c`.
+
+#### **Step 6.x.6: Refactor Consumers (Polymorphism)** (Use Architect Mode)
+*   **Goal:** Remove `if (mode == ARCHIVE)` from the rest of the codebase.
+*   **Mechanism:**
+    *   Update `view.c`, `copy.c`, `execute.c`.
+    *   Replace specific calls with `vol->driver->extract(...)` or `vol->driver->stat(...)`.
+*   **Files:** `src/cmd/*.c`.
+
