@@ -1083,6 +1083,17 @@ int HandleDirWindow(DirEntry *start_dir_entry)
             case ACTION_VIEW_PREVIEW:
             {
                 YtreePanel *saved_panel = ActivePanel;
+
+                if (IsSplitScreen && ActivePanel == RightPanel) {
+                    /* We are on the Right. To show Preview, we must jump to the Left */
+                    ActivePanel = LeftPanel;
+                    CurrentVolume = ActivePanel->vol;
+                    /* Update Global Context to ensure pointers are valid */
+                    GlobalView->ctx_dir_window = ActivePanel->pan_dir_window;
+                    GlobalView->ctx_file_window = ActivePanel->pan_file_window;
+                    dir_entry = GetPanelDirEntry(ActivePanel);
+                }
+
                 GlobalView->preview_mode = TRUE;
                 /* ADDED INSTRUCTION: Track Entry Point */
                 GlobalView->preview_entry_focus = FOCUS_TREE;
