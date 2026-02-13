@@ -527,12 +527,23 @@ void RefreshGlobalView(DirEntry *dir_entry)
 {
     Statistic *s = &CurrentVolume->vol_stats;
 
+    if (ActivePanel == NULL) ERROR_MSG("FATAL: RefreshGlobalView called with NULL ActivePanel");
+    if (ActivePanel->pan_dir_window == NULL) ERROR_MSG("FATAL: ActivePanel window is NULL in Mode: %d", GlobalView->preview_mode);
+
     /* 1. Re-evaluate Layout (Geometry) */
     ReCreateWindows();
 
     /* Update Global View Context to match Active Panel immediately after recreation */
     if (ActivePanel) {
-        GlobalView->ctx_dir_window = ActivePanel->pan_dir_window;
+        if (GlobalView->preview_mode && LeftPanel) {
+            /* In Preview Mode, the directory context (navigation) should always
+             * anchor to the LeftPanel. This prevents stale pointers if ActivePanel
+             * logic drifts or if focus is ambiguous during mode switches. */
+            GlobalView->ctx_dir_window = LeftPanel->pan_dir_window;
+        } else {
+            GlobalView->ctx_dir_window = ActivePanel->pan_dir_window;
+        }
+
         GlobalView->ctx_small_file_window = ActivePanel->pan_small_file_window;
         GlobalView->ctx_big_file_window = ActivePanel->pan_big_file_window;
         GlobalView->ctx_file_window = ActivePanel->pan_file_window;
@@ -610,6 +621,15 @@ void RefreshGlobalView(DirEntry *dir_entry)
         }
     }
 
-    /* 8. Commit Changes */
+    /* 8. Physical Cursor Correction: Ensure cursor stays on active element */
+    if (ActivePanel) {
+        if (GlobalView->focused_window == FOCUS_TREE && ActivePanel->pan_dir_window) {
+            wnoutrefresh(ActivePanel->pan_dir_window);
+        } else if (GlobalView->focused_window == FOCUS_FILE && ActivePanel->pan_file_window) {
+            wnoutrefresh(ActivePanel->pan_file_window);
+        }
+    }
+
+    /* 9. Commit Changes */
     doupdate();
 }

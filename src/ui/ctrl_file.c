@@ -910,6 +910,18 @@ int HandleFileWindow(DirEntry *dir_entry)
       case ACTION_NONE:         break;
 
       case ACTION_VIEW_PREVIEW:
+            if (!GlobalView->preview_mode) {
+                if (IsSplitScreen && ActivePanel == RightPanel) {
+                    ActivePanel = LeftPanel;
+                    CurrentVolume = ActivePanel->vol;
+                    GlobalView->ctx_dir_window = ActivePanel->pan_dir_window;
+                    GlobalView->ctx_file_window = ActivePanel->pan_file_window;
+
+                    dir_entry = GetPanelDirEntry(ActivePanel);
+                    BuildFileEntryList(ActivePanel);
+                }
+            }
+
             GlobalView->preview_mode = !GlobalView->preview_mode;
 
             if (GlobalView->preview_mode) {
