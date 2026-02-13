@@ -571,7 +571,7 @@ void RefreshGlobalView(DirEntry *dir_entry)
         SwitchToSmallFileWindow();
 
         /* Bug Fix: Explicitly ensure BOTH panels are reset for the small window layout
-         * if we are not in a global/big mode. This prevents the "stuck" big window 
+         * if we are not in a global/big mode. This prevents the "stuck" big window
          * on the inactive panel after a switch. */
         if (IsSplitScreen) {
             LeftPanel->pan_file_window = LeftPanel->pan_small_file_window;
@@ -580,12 +580,16 @@ void RefreshGlobalView(DirEntry *dir_entry)
 
         /* Draw Directory Tree */
         if (ActivePanel && ActivePanel->pan_dir_window) {
+            /* Focus Unification: Only highlight tree if focused_window is FOCUS_TREE */
+            BOOL tree_highlight = (GlobalView->focused_window == FOCUS_TREE);
             DisplayTree(ActivePanel->vol, ActivePanel->pan_dir_window,
                         ActivePanel->disp_begin_pos,
-                        ActivePanel->disp_begin_pos + ActivePanel->cursor_pos, TRUE);
+                        ActivePanel->disp_begin_pos + ActivePanel->cursor_pos,
+                        tree_highlight);
         }
 
         /* Draw File List */
+        /* Note: DisplayFileWindow handles focus checking internally via ctrl_file.c logic */
         DisplayFileWindow(ActivePanel, dir_entry);
     }
 

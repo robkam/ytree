@@ -307,6 +307,11 @@ typedef enum {
     ACTION_USER_CMD
 } YtreeAction;
 
+typedef enum {
+    FOCUS_TREE,
+    FOCUS_FILE
+} ViewFocus;
+
 /* Structs */
 
 #ifdef HAVE_LIBARCHIVE
@@ -467,6 +472,8 @@ typedef struct {
   BOOL preview_mode;
   int fixed_col_width;
   int refresh_mode;
+  ViewFocus focused_window;
+  ViewFocus preview_entry_focus;
 } ViewContext;
 
 typedef struct {
