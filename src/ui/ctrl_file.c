@@ -298,9 +298,17 @@ void DisplayFileWindow(YtreePanel *panel, DirEntry *dir_entry)
   if (!panel || !panel->pan_file_window) return;
 
   BuildFileEntryList(panel);
+
+  /* ADDED INSTRUCTION: Focus-Aware Highlighting */
+  int highlight_idx = -1;
+  if (GlobalView->focused_window == FOCUS_FILE) {
+      highlight_idx = dir_entry->start_file + dir_entry->cursor_pos;
+  }
+
   DisplayFiles(panel, dir_entry,
-		dir_entry->start_file,
-                dir_entry->start_file + dir_entry->cursor_pos, 0, panel->pan_file_window);
+        dir_entry->start_file,
+        highlight_idx,
+        0, panel->pan_file_window);
 }
 
 
@@ -723,6 +731,9 @@ int HandleFileWindow(DirEntry *dir_entry)
   int pclose_ret;
   char watcher_path[PATH_LENGTH + 1];
 
+  /* ADDED INSTRUCTION: Focus Unification */
+  GlobalView->focused_window = FOCUS_FILE;
+
   unput_char = '\0';
   fe_ptr = NULL;
 
@@ -934,14 +945,13 @@ int HandleFileWindow(DirEntry *dir_entry)
                 UpdatePreview(dir_entry);
             }
 
-            /* Bug Fix: If we just turned OFF preview mode, AND we are not in another 
-             * big window mode (like global or tagged), we should EXIT back to 
-             * the directory tree. */
-            if (!GlobalView->preview_mode && !dir_entry->big_window && 
-                !dir_entry->global_flag && !dir_entry->tagged_flag) 
-            {
-                action = ACTION_ESCAPE;
-                break;
+            /* ADDED INSTRUCTION: Conditional Exit Logic */
+            if (!GlobalView->preview_mode) {
+                if (GlobalView->preview_entry_focus == FOCUS_TREE) {
+                     action = ACTION_ESCAPE;
+                     break;
+                }
+                /* If FOCUS_FILE, stay in file window (action stays NONE usually) */
             }
 
             need_dsp_help = TRUE;
@@ -2179,7 +2189,7 @@ int HandleFileWindow(DirEntry *dir_entry)
     /* We don't need full refresh here because HandleDirWindow will catch the return */
   }
 
-  /* Ensure all mode flags are cleared when exiting back to the tree. 
+  /* Ensure all mode flags are cleared when exiting back to the tree.
    * This guarantees that RefreshGlobalView returns to small window layout. */
   dir_entry->global_flag = FALSE;
   dir_entry->tagged_flag = FALSE;

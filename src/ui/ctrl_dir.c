@@ -884,7 +884,9 @@ int HandleDirWindow(DirEntry *start_dir_entry)
     int height;
     char watcher_path[PATH_LENGTH + 1];
 
-    /* ADDED INSTRUCTION */
+    /* ADDED INSTRUCTION: Focus Unification */
+    GlobalView->focused_window = FOCUS_TREE;
+
     ReCreateWindows();
     DisplayMenu();
 
@@ -1082,6 +1084,8 @@ int HandleDirWindow(DirEntry *start_dir_entry)
             {
                 YtreePanel *saved_panel = ActivePanel;
                 GlobalView->preview_mode = TRUE;
+                /* ADDED INSTRUCTION: Track Entry Point */
+                GlobalView->preview_entry_focus = FOCUS_TREE;
 
                 /* Enter File Window loop via HandleSwitchWindow logic */
                 /* We use HandleSwitchWindow to encapsulate the setup for HandleFileWindow */
@@ -1089,6 +1093,7 @@ int HandleDirWindow(DirEntry *start_dir_entry)
 
                 /* Post-Return Cleanup */
                 GlobalView->preview_mode = FALSE; /* Restore cleaning of preview mode flag */
+                GlobalView->focused_window = FOCUS_TREE; /* Restore focus to tree on return */
 
                 if (ActivePanel != saved_panel) {
                     /* If panel was switched during preview, we REFRESH local state
@@ -1101,16 +1106,16 @@ int HandleDirWindow(DirEntry *start_dir_entry)
                     } else {
                         dir_entry = s->tree;
                     }
-                    
+
                     /* Sync Global View Context */
                     GlobalView->ctx_dir_window = ActivePanel->pan_dir_window;
                     GlobalView->ctx_small_file_window = ActivePanel->pan_small_file_window;
                     GlobalView->ctx_big_file_window = ActivePanel->pan_big_file_window;
                     GlobalView->ctx_file_window = ActivePanel->pan_file_window;
-                    
+
                     /* EXPLICIT REFRESH with the CORRECT dir_entry */
                     RefreshGlobalView(dir_entry);
-                    
+
                     need_dsp_help = TRUE;
                     continue;
                 }
@@ -1560,9 +1565,16 @@ int HandleDirWindow(DirEntry *start_dir_entry)
                 }
                 /* Fix Context Safety on Return */
                 {
-                    YtreePanel *saved_panel = ActivePanel; 
+                    YtreePanel *saved_panel = ActivePanel;
+
+                    /* ADDED INSTRUCTION: Track Entry Point */
+                    GlobalView->preview_entry_focus = FOCUS_FILE;
+
                     HandleSwitchWindow(dir_entry, &need_dsp_help, &ch, ActivePanel);
-                    
+
+                    /* Restore focus to tree on return */
+                    GlobalView->focused_window = FOCUS_TREE;
+
                     if (ActivePanel != saved_panel) {
                         /* If panel was switched, refresh state locally and continue */
                         start_vol = ActivePanel->vol;
@@ -1573,12 +1585,12 @@ int HandleDirWindow(DirEntry *start_dir_entry)
                         } else {
                             dir_entry = s->tree;
                         }
-                        
+
                         GlobalView->ctx_dir_window = ActivePanel->pan_dir_window;
                         GlobalView->ctx_small_file_window = ActivePanel->pan_small_file_window;
                         GlobalView->ctx_big_file_window = ActivePanel->pan_big_file_window;
                         GlobalView->ctx_file_window = ActivePanel->pan_file_window;
-                        
+
                         RefreshGlobalView(dir_entry);
                         need_dsp_help = TRUE;
                         continue;
