@@ -1084,6 +1084,10 @@ int HandleDirWindow(DirEntry *start_dir_entry)
             {
                 YtreePanel *saved_panel = ActivePanel;
 
+                /* Save Preview State - BEFORE potential panel switching */
+                GlobalView->preview_return_panel = ActivePanel;
+                GlobalView->preview_return_focus = GlobalView->focused_window;
+
                 if (IsSplitScreen && ActivePanel == RightPanel) {
                     /* We are on the Right. To show Preview, we must jump to the Left */
                     ActivePanel = LeftPanel;

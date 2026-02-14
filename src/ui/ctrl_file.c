@@ -911,6 +911,11 @@ int HandleFileWindow(DirEntry *dir_entry)
 
       case ACTION_VIEW_PREVIEW:
             if (!GlobalView->preview_mode) {
+                /* Turning ON */
+                /* INSTRUCTION: Before any redirection, save the current state */
+                GlobalView->preview_return_panel = ActivePanel;
+                GlobalView->preview_return_focus = GlobalView->focused_window;
+
                 if (IsSplitScreen && ActivePanel == RightPanel) {
                     ActivePanel = LeftPanel;
                     CurrentVolume = ActivePanel->vol;
@@ -940,6 +945,31 @@ int HandleFileWindow(DirEntry *dir_entry)
                 RereadWindowSize(dir_entry);
             } else {
                 /* Turning OFF */
+                /* INSTRUCTION: Restore state */
+                ActivePanel = GlobalView->preview_return_panel;
+                CurrentVolume = ActivePanel->vol;
+                GlobalView->focused_window = GlobalView->preview_return_focus;
+
+                /* CRITICAL: Update local context variables for the loop if we stay in File Window */
+                s = &ActivePanel->vol->vol_stats;
+                start_vol = CurrentVolume;
+
+                /* Refresh dir_entry for the restored panel */
+                if (ActivePanel->vol->total_dirs > 0) {
+                     int idx = ActivePanel->disp_begin_pos + ActivePanel->cursor_pos;
+                     if (idx >= ActivePanel->vol->total_dirs) idx = ActivePanel->vol->total_dirs - 1;
+                     if (idx < 0) idx = 0;
+                     dir_entry = ActivePanel->vol->dir_entry_list[idx].dir_entry;
+                } else {
+                     dir_entry = s->tree;
+                }
+
+                /* Restore Global Context Pointers */
+                GlobalView->ctx_dir_window = ActivePanel->pan_dir_window;
+                GlobalView->ctx_small_file_window = ActivePanel->pan_small_file_window;
+                GlobalView->ctx_big_file_window = ActivePanel->pan_big_file_window;
+                GlobalView->ctx_file_window = ActivePanel->pan_file_window;
+
                 /* 1. Restore width setting */
                 GlobalView->fixed_col_width = saved_fixed_width;
 
@@ -948,6 +978,9 @@ int HandleFileWindow(DirEntry *dir_entry)
 
                 /* 3. Update metrics */
                 RereadWindowSize(dir_entry);
+
+                /* Call RefreshGlobalView immediately after restoration */
+                RefreshGlobalView(dir_entry);
             }
 
             /* 5. Draw Everything (Borders, Tree, Stats, List, Preview) */
@@ -959,11 +992,12 @@ int HandleFileWindow(DirEntry *dir_entry)
 
             /* ADDED INSTRUCTION: Conditional Exit Logic */
             if (!GlobalView->preview_mode) {
-                if (GlobalView->preview_entry_focus == FOCUS_TREE) {
-                     action = ACTION_ESCAPE;
-                     break;
+                if (GlobalView->preview_return_focus == FOCUS_TREE) {
+                    action = ACTION_ESCAPE;
+                } else {
+                    /* We came from a File Window, stay here */
+                    action = ACTION_NONE;
                 }
-                /* If FOCUS_FILE, stay in file window (action stays NONE usually) */
             }
 
             need_dsp_help = TRUE;
