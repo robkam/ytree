@@ -462,6 +462,25 @@ typedef struct _PathList {
 } PathList;
 
 typedef struct {
+    WINDOW *pan_dir_window;
+    WINDOW *pan_small_file_window;
+    WINDOW *pan_big_file_window;
+    WINDOW *pan_file_window;
+    struct Volume *vol;
+    FileEntryList *file_entry_list;
+    size_t file_entry_list_capacity;
+    unsigned int file_count;
+    int dir_x, dir_y, dir_w, dir_h;
+    int small_file_x, small_file_y, small_file_w, small_file_h;
+    int big_file_x, big_file_y, big_file_w, big_file_h;
+    int cursor_pos;
+    int disp_begin_pos;
+    int start_file;
+    int file_mode;
+    int max_column;
+} YtreePanel;
+
+typedef struct {
   WINDOW *ctx_dir_window;
   WINDOW *ctx_small_file_window;
   WINDOW *ctx_big_file_window;
@@ -474,6 +493,8 @@ typedef struct {
   int refresh_mode;
   ViewFocus focused_window;
   ViewFocus preview_entry_focus;
+  YtreePanel *preview_return_panel;
+  ViewFocus preview_return_focus;
 } ViewContext;
 
 typedef struct {
@@ -506,24 +527,5 @@ typedef struct {
     int status_y;
     int bottom_border_y;
 } YtreeLayout;
-
-typedef struct {
-    WINDOW *pan_dir_window;
-    WINDOW *pan_small_file_window;
-    WINDOW *pan_big_file_window;
-    WINDOW *pan_file_window;
-    struct Volume *vol;
-    FileEntryList *file_entry_list;
-    size_t file_entry_list_capacity;
-    unsigned int file_count;
-    int dir_x, dir_y, dir_w, dir_h;
-    int small_file_x, small_file_y, small_file_w, small_file_h;
-    int big_file_x, big_file_y, big_file_w, big_file_h;
-    int cursor_pos;
-    int disp_begin_pos;
-    int start_file;
-    int file_mode;
-    int max_column;
-} YtreePanel;
 
 #endif /* YTREE_DEFS_H */
