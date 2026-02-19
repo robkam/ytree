@@ -59,6 +59,7 @@ ytree.1.*.gz
 .venv/
 __pycache__/
 *.pyc
+.coverage
 
 # File Type Rules (Deny all, Allow specific)
 *.txt

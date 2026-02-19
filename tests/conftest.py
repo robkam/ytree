@@ -16,14 +16,6 @@ def ytree_binary():
 def sandbox(tmp_path):
     """
     Creates a fresh, isolated filesystem structure for each test.
-    Structure:
-      sandbox/
-        source/
-          root_file.txt
-          deep/
-            nested/
-              deep_file.txt
-        dest/
     """
     root = tmp_path / "sandbox"
     root.mkdir()
@@ -42,27 +34,39 @@ def sandbox(tmp_path):
     return root
 
 @pytest.fixture
-def archive_sandbox(sandbox):
+def dual_panel_sandbox(tmp_path):
     """
-    Creates a 'source.tar.gz' archive containing the 'source' directory structure.
-    Returns the absolute path to the archive file.
+    Creates a specific structure for testing F7/F8 isolation.
+    Structure:
+      /left_dir/
+         very_long_filename_alpha_numeric_extension_test.txt (content: "left")
+      /right_dir/
+         0 (content: "0")
+         1 (content: "1")
+         ...
+         9 (content: "9")
     """
-    archive_path = sandbox / "source.tar.gz"
+    root = tmp_path / "dual_panel_root"
+    root.mkdir()
 
-    # Create tarball relative to sandbox root so 'source' is the top-level element
-    with tarfile.open(archive_path, "w:gz") as tar:
-        tar.add(sandbox / "source", arcname="source")
+    left = root / "left_dir"
+    left.mkdir()
+    long_name = "very_long_filename_alpha_numeric_extension_test.txt"
+    (left / long_name).write_text("left content", encoding="utf-8")
 
-    return str(archive_path)
+    right = root / "right_dir"
+    right.mkdir()
+    for i in range(10):
+        (right / str(i)).write_text(f"content of {i}", encoding="utf-8")
+
+    return root
 
 @pytest.fixture
 def controller(ytree_binary, sandbox):
     """
     Factory fixture to create a YtreeController instance.
-    The controller runs inside the 'sandbox' directory and sets HOME to that directory.
     """
-    def _create(args=None):
-        if args is None:
-            args = []
-        return YtreeController(ytree_binary, str(sandbox))
+    def _create(cwd=None):
+        work_dir = cwd if cwd else str(sandbox)
+        return YtreeController(ytree_binary, work_dir)
     return _create
