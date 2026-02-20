@@ -1,0 +1,21 @@
+---
+# Disable all checks by default, then selectively enable C-relevant ones
+Checks: >
+  -*,
+  clang-analyzer-*,
+  bugprone-*,
+  performance-*,
+  cert-*,
+  misc-*,
+  -bugprone-easily-swappable-parameters,
+  -bugprone-narrowing-conversions,
+  -cert-err33-c,
+  -cert-dcl37-c,
+  -cert-dcl51-cpp,
+  -clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling,
+  -misc-unused-parameters
+
+WarningsAsErrors: ''
+HeaderFilterRegex: '^src/.*|^include/.*'
+FormatStyle: none
+...

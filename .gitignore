@@ -21,6 +21,8 @@ desktop.ini
 obj/
 build/
 bin/
+.cache/
+.clangd/
 compile_commands.json
 
 # C/C++ Debugging and Profiling
@@ -67,4 +69,5 @@ __pycache__/
 *.html
 *.url
 *.sh
-!scripts/
+!scripts/**/*.sh
+!scripts/**/*.txt
