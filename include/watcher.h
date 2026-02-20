@@ -11,6 +11,8 @@
 #ifndef WATCHER_H
 #define WATCHER_H
 
+#include "ytree_defs.h"
+
 void Watcher_Init(void);
 void Watcher_SetDir(const char *path);
 int Watcher_GetFD(void);

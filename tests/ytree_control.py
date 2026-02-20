@@ -11,7 +11,7 @@ class YtreeController:
         self.child = pexpect.spawn(
             binary_path,
             cwd=cwd,
-            dimensions=(24, 80),
+            dimensions=(24, 160),
             encoding='utf-8',
             env={'TERM': 'xterm', 'LC_ALL': 'C.UTF-8', 'HOME': cwd},
             timeout=5
