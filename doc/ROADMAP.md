@@ -479,6 +479,7 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
     *   **Add Watch:** Implement `Watcher_SetDir(char *path)` which removes the previous watch (if any) and adds a new watch (`inotify_add_watch`) on the specified path for events: `IN_CREATE | IN_DELETE | IN_MOVE | IN_MODIFY | IN_ATTRIB`.
     *   **Check:** Implement `Watcher_CheckEvents()` which reads from the file descriptor. If events are found, it returns `TRUE`, otherwise `FALSE`.
     *   **Portability:** Guard everything with `#ifdef __linux__`. On other systems, these functions act as empty stubs.
+*   - [ ] **Status:** Not Started.
 
 #### **Step 4.13.2: Refactor Input Loop for Event Handling**
 *   **Task:** Modify `input.c` to support non-blocking input handling.
@@ -489,6 +490,7 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
         2.  `Watcher_GetFD()` (The inotify handle).
     *   If the Watcher FD triggers, call `Watcher_CheckEvents()`. If it confirms a change, set a global flag `refresh_needed = TRUE`.
     *   If STDIN triggers, proceed to `wgetch()`.
+*   - [ ] **Status:** Not Started.
 
 #### **Step 4.13.3: Implement Live Refresh Logic**
 *   **Task:** Connect the `refresh_needed` flag to the main window logic.
@@ -501,6 +503,7 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
         3.  Call `DisplayFileWindow`.
         4.  Reset `refresh_needed = FALSE`.
     *   *Note:* We must ensure the cursor stays on the same file if possible (by saving the filename before rescan and finding it after).
+*   - [ ] **Status:** Not Started.
 
 #### **Step 4.13.4: Update Watch Context on Navigation**
 *   **Task:** Ensure the watcher always monitors the *current* directory.
@@ -509,6 +512,7 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
     *   *Optimization:* Only update the watcher if the user *enters* the File Window (Enter) or stays on a directory for > X milliseconds?
     *   *Decision:* For `ytree`, the "Active Context" is the directory under the cursor in the Directory Window, OR the directory being viewed in the File Window.
     *   **Implementation:** Call `Watcher_SetDir(dir_entry->name)` inside `HandleDirWindow` navigation logic (possibly debounced) and definitely inside `HandleFileWindow`.
+*   - [ ] **Status:** Not Started.
 
 ### **Step 4.14: Implement Configurable Auto-Refresh Strategies**
 *   **Goal:** Add a configuration option (`AUTO_REFRESH`) to control when directories are re-scanned, implemented as a bitmask to allow combinations.

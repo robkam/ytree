@@ -1,4 +1,5 @@
 pytest
 pexpect
+pyte
 google-generativeai
 prompt_toolkit

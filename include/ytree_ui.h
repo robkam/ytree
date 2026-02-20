@@ -107,8 +107,8 @@ extern void SetPanelFileMode(YtreePanel *p, int new_file_mode);
 extern int GetPanelFileMode(YtreePanel *p);
 extern void RotatePanelFileMode(YtreePanel *p);
 extern int GetPanelMaxColumn(YtreePanel *p);
-extern void SetFileRenderingMetrics(unsigned max_filename, unsigned max_linkname, unsigned max_userview);
-extern void SetRenderSortOrder(BOOL reverse);
+extern void SetFileRenderingMetrics(YtreePanel *p, unsigned max_filename, unsigned max_linkname, unsigned max_userview);
+extern void SetRenderSortOrder(YtreePanel *p, BOOL reverse);
 extern void DisplayFiles(YtreePanel *panel, DirEntry *de_ptr, int start_file_no, int hilight_no, int start_x, WINDOW *win);
 extern void PrintFileEntry(YtreePanel *panel, int entry_no, int y, int x, unsigned char hilight, int start_x, WINDOW *win);
 

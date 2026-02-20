@@ -478,6 +478,10 @@ typedef struct {
     int start_file;
     int file_mode;
     int max_column;
+    unsigned int max_visual_filename_len;
+    unsigned int max_visual_linkname_len;
+    unsigned int max_visual_userview_len;
+    BOOL reverse_sort;
 } YtreePanel;
 
 typedef struct {

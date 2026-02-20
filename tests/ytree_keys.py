@@ -3,16 +3,17 @@ class Keys:
     Centralized mapping of Logical Actions to Key Characters.
     Based on standard ytree defaults and xterm sequences.
     """
-    # Navigation
-    UP = "\033[A"
-    DOWN = "\033[B"
-    RIGHT = "\033[C"
-    LEFT = "\033[D"
+    # Navigation (Application Keypad Mode strings used by ncurses)
+    UP = "\033OA"
+    DOWN = "\033OB"
+    RIGHT = "\033OC"
+    LEFT = "\033OD"
     PGUP = "\033[5~"
     PGDN = "\033[6~"
     ENTER = "\r"
     ESC = "\033"
     TAB = "\t"
+    CTRL_L = "\x0c"
 
     # Function Keys (Standard xterm/vt100)
     # Note: If these fail, try "\033OR" for F7 and "\033OS" for F8

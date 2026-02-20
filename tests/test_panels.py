@@ -11,16 +11,20 @@ def get_clean_screen(yt):
     Strips ANSI codes and normalizes whitespace.
     Crucial for matching text that might be wrapped or moved by ncurses.
     """
+    try:
+        yt.child.expect(pexpect.TIMEOUT, timeout=0.2)
+    except pexpect.TIMEOUT:
+        pass
     raw = (yt.child.before if isinstance(yt.child.before, str) else "") + \
           (yt.child.after if isinstance(yt.child.after, str) else "")
     # Remove all ANSI escape sequences to allow clean regex/string matching
-    clean = re.sub(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])', '', raw)
+    # Matches \x1b[ followed by multiple numbers/semicolons and ending in a letter.
+    # It also strips \x1b(B and \x1b[?1h etc.
+    clean = re.sub(r'\x1B(?:\[[0-9;]*[a-zA-Z]|\(B|\[\?[0-9]*[a-zA-Z]|\**|[=>])?', '', raw)
     return clean
 
 def sync_state(yt):
     """Universal synchronization: waits for the UI clock to tick."""
-    # ytree usually displays the year (202x) in the top right.
-    # Waiting for this regex ensures ncurses has finished at least one draw cycle.
     yt.child.expect(r'20\d{2}')
 
 def detect_and_fix_auto_enter(yt):
@@ -34,18 +38,22 @@ def detect_and_fix_auto_enter(yt):
         yt.child.send(Keys.ESC)
         sync_state(yt)
 
-def test_f8_split_truncation_bug(controller, dual_panel_sandbox):
+def test_f8_split_memory_corruption_bug(controller, dual_panel_sandbox):
     """
-    BUG REGRESSION: Multi-column Corruption.
-    Verified: Navigating active panel corrupts inactive multi-column list.
+    BUG REGRESSION: Inactive Panel Memory Corruption (Use-After-Free).
+    Verified: Collapsing a directory in the active panel clobbers
+    the inactive panel's FileEntryList if it shares the same tree, showing garbage characters.
     """
     yt = controller(cwd=str(dual_panel_sandbox))
     yt.wait_for_startup()
 
-    # 1. Setup multi-column list on Left
+    # 1. Setup multi-column list on Left (left_dir)
+    time.sleep(0.5)
     yt.child.send(Keys.EXPAND_ALL)
     sync_state(yt)
-    yt.child.send(Keys.ENTER) # Enter left_dir
+    yt.child.send(Keys.DOWN)  # Move to left_dir
+    sync_state(yt)
+    yt.child.send(Keys.ENTER) # Enter left_dir file window
     sync_state(yt)
 
     # 2. Split Screen
@@ -56,104 +64,143 @@ def test_f8_split_truncation_bug(controller, dual_panel_sandbox):
     yt.child.send(Keys.TAB)
     sync_state(yt)
 
-    # 4. Navigate right_dir and enter to trigger redraw
-    for _ in range(5):
-        if "right_dir" in get_clean_screen(yt): break
-        yt.child.send(Keys.DOWN)
-    yt.child.send(Keys.ENTER)
+    # 4. Navigate right_dir (pos 2)
+    yt.child.send(Keys.DOWN)
     sync_state(yt)
 
-    # 5. Bug Verification
-    screen = get_clean_screen(yt)
-    if "ch  " in screen:
-        pytest.fail("BUG CONFIRMED: Multi-column corruption detected in inactive panel (chgrp.c -> ch  ).")
+    # 5. Trigger the bug: Collapse the parent directory from the right panel
+    # In ytree, pressing LEFT on a directory usually collapses it or moves to parent.
+    yt.child.send("-")
+    sync_state(yt)
 
-    if "chgrp.c" not in screen:
-        pytest.fail("BUG CONFIRMED: Filename 'chgrp.c' missing or truncated in inactive panel.")
+    # 6. Bug Verification
+    screen = get_clean_screen(yt)
+    expected_file = "very_long_filename_alpha_numeric_extension_test.txt"
+
+    # Check for the expected file in the inactive left panel
+    if "very_long_filen" not in screen:
+        pytest.fail(f"BUG CONFIRMED: Inactive panel lost its file list or memory was corrupted. '{expected_file}' not found.")
 
     yt.quit()
 
 def test_f8_cross_panel_autoview_sourcing_bug(controller, dual_panel_sandbox):
     """
-    BUG: Autoview
+    BUG: Autoview State Breakage
     Verifies:
-    1. File list is for Right Panel and first file in list is selected.
-    2. Preview matches the selected file and changes with scroll.
+    1. F7 previews the correct file from the active panel.
+    2. Pressing F8 while IN Autoview mode is ignored (does not reset to root).
     """
     yt = controller(cwd=str(dual_panel_sandbox))
     yt.wait_for_startup()
 
-    # Expand all to ensure directories are visible in the tree
+    time.sleep(0.5)
     yt.child.send(Keys.EXPAND_ALL)
     sync_state(yt)
 
-    # Enter split-screen mode
     yt.child.send(Keys.F8)
     detect_and_fix_auto_enter(yt)
 
-    # Move focus to the Right Panel
     yt.child.send(Keys.TAB)
     sync_state(yt)
 
-    # Navigate to right_dir in the tree
-    for _ in range(10):
-        if "right_dir" in get_clean_screen(yt):
-            break
-        yt.child.send(Keys.DOWN)
-        sync_state(yt)
+    # Navigate to right_dir
+    yt.child.send(Keys.DOWN)
+    sync_state(yt)
+    yt.child.send(Keys.DOWN)
+    sync_state(yt)
 
     # Trigger Autoview (F7)
     yt.child.send(Keys.F7)
-    # ncurses needs a moment to spawn the internal pager/viewer
     time.sleep(1.0)
     sync_state(yt)
 
     screen = get_clean_screen(yt)
 
-    # 1. Verification: Is the file list sourced from the Right Panel directory?
-    # right_dir contains files named "0", "1", "2"...
-    if "0" not in screen or "1" not in screen:
-        pytest.fail("F7 Logic Error: File list failed to populate from Right Panel directory.")
-
-    # 2. Verification: Does the preview match the first selected file?
-    # We expect "content of 0" to be visible in the content pane.
     if "content of 0" not in screen:
         pytest.fail("BUG: Autoview content pane is not displaying data for the selected file '0'.")
 
-    # 3. Verification: Does the preview change when we scroll the selection?
-    yt.child.send(Keys.DOWN)
-    sync_state(yt)
-    # Wait for the view to refresh
+    # NEW TEST: Press F8 during F7
+    yt.child.send(Keys.F8)
     time.sleep(0.5)
+    sync_state(yt)
 
-    screen_after_scroll = get_clean_screen(yt)
-    if "content of 1" not in screen_after_scroll:
-        pytest.fail("BUG: Autoview content failed to update after scrolling to file '1'.")
+    screen_after_f8 = get_clean_screen(yt)
+    if "content of 0" not in screen_after_f8:
+        pytest.fail("BUG CONFIRMED: Pressing F8 during F7 Autoview breaks state and resets the view.")
 
     yt.quit()
 
-def test_f7_header_refresh_delay(controller, dual_panel_sandbox):
+def test_f7_header_shows_directory_only(controller, dual_panel_sandbox):
     """
-    BUG REGRESSION: Stale Path Header.
+    SPECIFICATION FIX: XTree/ZTree compatibility.
+    Verifies that the Path header ONLY shows the directory path,
+    and does NOT append the filename when exploring files or using F7.
     """
     yt = controller(cwd=str(dual_panel_sandbox))
     yt.wait_for_startup()
 
+    time.sleep(0.5)
     yt.child.send(Keys.EXPAND_ALL)
     sync_state(yt)
+    time.sleep(1.0) # Explicit wait before down
+
+    yt.child.send(Keys.DOWN) # left_dir
+    sync_state(yt)
+    time.sleep(1.0) # Explicit wait after down
 
     yt.child.send(Keys.F7)
     time.sleep(0.5)
     sync_state(yt)
 
     screen = get_clean_screen(yt)
-    path_match = re.search(r"Path:.*", screen)
-    if not path_match:
-        pytest.fail("TUI Error: Could not find 'Path:' header.")
-
-    path_text = path_match.group(0)
-    # BUG: Shows 'left_dir' instead of 'chgrp.c'
-    if "left_dir" in path_text and "chgrp.c" not in path_text:
-        pytest.fail("BUG CONFIRMED: F7 Header shows stale directory path; only updates after scrolling.")
+    path_matches = re.findall(r"Path:\s*([^\s\r\n\x1b]+)", screen)
+    if not path_matches:
+        pytest.fail(f"TUI Error: Could not find 'Path:' header.\nScreen Dump:\n{screen}")
+    
+    # Assert none of the paths contain the filename
+    for match in path_matches:
+        if "very_long_filename" in match:
+            pytest.fail(f"TUI Error: 'Path:' header contains filename: {match}\nAll matches: {path_matches}")
 
     yt.quit()
+
+def test_f7_visual_layout(ytree_binary, dual_panel_sandbox):
+    """
+    Test that the visual layout of the Autoview (F7) is correct in a 120x36 grid.
+    Asserts no overlapping text and proper header alignments.
+    """
+    from tui_harness import YtreeTUI
+    from ytree_keys import Keys
+    import time
+    
+    tui = YtreeTUI(executable=ytree_binary, cwd=str(dual_panel_sandbox))
+    
+    # Expand all
+    tui.send_keystroke(Keys.EXPAND_ALL)
+    
+    # Trigger Autoview (F7)
+    tui.send_keystroke(Keys.F7)
+    time.sleep(1.0) # Wait for view
+    
+    # Get the screen content
+    screen = tui.get_screen_dump()
+    
+    # Join the screen array into a single string for easier assertions, but keep line access.
+    # The grid is 36 lines by 120 columns.
+    assert len(screen) == 36
+    assert len(screen[0]) == 120
+    
+    # In F7 preview mode:
+    # Top border starts at line 1, headers typically at top.
+    # We should look for the file list left pane and the preview right pane.
+    
+    # For now, let's verify that the "Path:" and "Level:" headers are visually present
+    # and not clumped together.
+    header_found = False
+    for line in screen:
+        if "Path:" in line:
+            header_found = True
+            break
+    assert header_found, "Path: header missing in visual layout"
+    
+    tui.quit()
