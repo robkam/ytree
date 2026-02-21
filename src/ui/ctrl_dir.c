@@ -2376,6 +2376,23 @@ int KeyF2Get(DirEntry *start_dir_entry, int disp_begin_pos, int cursor_pos,
           local_disp_begin_pos = 0;
           local_cursor_pos = 0;
         }
+        /* Fix blank screen bug: redraw main UI before F2 window */
+        DisplayMenu();
+        if (ActivePanel) {
+          DisplayTree(ActivePanel->vol, dir_window, ActivePanel->disp_begin_pos,
+                      ActivePanel->disp_begin_pos + ActivePanel->cursor_pos,
+                      TRUE);
+          DisplayFileWindow(ActivePanel, GetSelectedDirEntry(ActivePanel->vol));
+          RefreshWindow(file_window);
+        }
+        DisplayDiskStatistic(&CurrentVolume->vol_stats);
+        if (CurrentVolume->vol_stats.tree) {
+          DisplayDirStatistic(GetSelectedDirEntry(CurrentVolume), NULL,
+                              &CurrentVolume->vol_stats);
+        }
+        DisplayAvailBytes(&CurrentVolume->vol_stats);
+
+        MapF2Window();
         DisplayTree(target_vol, f2_window, local_disp_begin_pos,
                     local_disp_begin_pos + local_cursor_pos, TRUE);
       }
@@ -2393,6 +2410,23 @@ int KeyF2Get(DirEntry *start_dir_entry, int disp_begin_pos, int cursor_pos,
           local_disp_begin_pos = 0;
           local_cursor_pos = 0;
         }
+        /* Fix blank screen bug: redraw main UI before F2 window */
+        DisplayMenu();
+        if (ActivePanel) {
+          DisplayTree(ActivePanel->vol, dir_window, ActivePanel->disp_begin_pos,
+                      ActivePanel->disp_begin_pos + ActivePanel->cursor_pos,
+                      TRUE);
+          DisplayFileWindow(ActivePanel, GetSelectedDirEntry(ActivePanel->vol));
+          RefreshWindow(file_window);
+        }
+        DisplayDiskStatistic(&CurrentVolume->vol_stats);
+        if (CurrentVolume->vol_stats.tree) {
+          DisplayDirStatistic(GetSelectedDirEntry(CurrentVolume), NULL,
+                              &CurrentVolume->vol_stats);
+        }
+        DisplayAvailBytes(&CurrentVolume->vol_stats);
+
+        MapF2Window();
         DisplayTree(target_vol, f2_window, local_disp_begin_pos,
                     local_disp_begin_pos + local_cursor_pos, TRUE);
       }
