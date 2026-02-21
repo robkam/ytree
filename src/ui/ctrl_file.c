@@ -333,7 +333,7 @@ static void fmovedown(int *start_file, int *cursor_pos, int *start_x,
                max_disp_files, 1);
 
   DisplayFiles(ActivePanel, dir_entry, *start_file, *start_file + *cursor_pos,
-               *start_x, file_window);  /* Update dynamic header path */
+               *start_x, file_window); /* Update dynamic header path */
   {
     char path[PATH_LENGTH];
     GetPath(dir_entry, path);
@@ -347,7 +347,7 @@ static void fmoveup(int *start_file, int *cursor_pos, int *start_x,
   Nav_MoveUp(cursor_pos, start_file);
 
   DisplayFiles(ActivePanel, dir_entry, *start_file, *start_file + *cursor_pos,
-               *start_x, file_window);  /* Update dynamic header path */
+               *start_x, file_window); /* Update dynamic header path */
   {
     char path[PATH_LENGTH];
     GetPath(dir_entry, path);
@@ -392,7 +392,7 @@ static void fmoveright(int *start_file, int *cursor_pos, int *start_x,
     }
     DisplayFiles(ActivePanel, dir_entry, *start_file, *start_file + *cursor_pos,
                  *start_x, file_window);
-  }  /* Update dynamic header path */
+  } /* Update dynamic header path */
   {
     char path[PATH_LENGTH];
     GetPath(dir_entry, path);
@@ -434,7 +434,7 @@ static void fmoveleft(int *start_file, int *cursor_pos, int *start_x,
     }
     DisplayFiles(ActivePanel, dir_entry, *start_file, *start_file + *cursor_pos,
                  *start_x, file_window);
-  }  /* Update dynamic header path */
+  } /* Update dynamic header path */
   {
     char path[PATH_LENGTH];
     GetPath(dir_entry, path);
@@ -450,7 +450,7 @@ static void fmovenpage(int *start_file, int *cursor_pos, int *start_x,
                max_disp_files);
 
   DisplayFiles(ActivePanel, dir_entry, *start_file, *start_file + *cursor_pos,
-               *start_x, file_window);  /* Update dynamic header path */
+               *start_x, file_window); /* Update dynamic header path */
   {
     char path[PATH_LENGTH];
     GetPath(dir_entry, path);
@@ -464,7 +464,7 @@ static void fmoveppage(int *start_file, int *cursor_pos, int *start_x,
   Nav_PageUp(cursor_pos, start_file, max_disp_files);
 
   DisplayFiles(ActivePanel, dir_entry, *start_file, *start_file + *cursor_pos,
-               *start_x, file_window);  /* Update dynamic header path */
+               *start_x, file_window); /* Update dynamic header path */
   {
     char path[PATH_LENGTH];
     GetPath(dir_entry, path);
@@ -2069,7 +2069,7 @@ int HandleFileWindow(DirEntry *dir_entry) {
       ActivePanel->vol->vol_stats.cursor_pos = ActivePanel->cursor_pos;
       ActivePanel->vol->vol_stats.disp_begin_pos = ActivePanel->disp_begin_pos;
 
-      if (SelectLoadedVolume() == 0) {
+      if (SelectLoadedVolume(NULL) == 0) {
         unput_char = '\0'; /* Ensure we return clean ESC, no pending input */
         return ESC;
       } else {

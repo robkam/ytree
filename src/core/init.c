@@ -258,6 +258,8 @@ int Init(char *configuration_file, char *history_file) {
   Layout_Recalculate();
   StartColors(); /* even on b/w terminals... */
 
+  UI_Dialog_Init(); /* Initialize Dialog Manager */
+
   cbreak();
   noecho();
   nonl();
