@@ -444,7 +444,8 @@ static void HandleReadSubTree(DirEntry *dir_entry, BOOL *need_dsp_help,
 
 static BOOL IsDescendant(DirEntry *ancestor, DirEntry *descendant) {
   while (descendant) {
-    if (descendant == ancestor) return TRUE;
+    if (descendant == ancestor)
+      return TRUE;
     descendant = descendant->up_tree;
   }
   return FALSE;
@@ -460,18 +461,23 @@ static void HandleUnreadSubTree(DirEntry *dir_entry, DirEntry *de_ptr,
   }
   if (dir_entry->not_scanned || (dir_entry->sub_tree == NULL)) {
   } else {
-    /* If the inactive panel is viewing this directory or its descendants, abort! */
+    /* If the inactive panel is viewing this directory or its descendants,
+     * abort! */
     if (IsSplitScreen) {
       YtreePanel *inactive = (p == LeftPanel) ? RightPanel : LeftPanel;
       if (inactive && inactive->vol == p->vol) {
         DirEntry *inactive_de;
         if (inactive->vol->total_dirs > 0) {
-          inactive_de = inactive->vol->dir_entry_list[inactive->disp_begin_pos + inactive->cursor_pos].dir_entry;
+          inactive_de = inactive->vol
+                            ->dir_entry_list[inactive->disp_begin_pos +
+                                             inactive->cursor_pos]
+                            .dir_entry;
         } else {
           inactive_de = inactive->vol->vol_stats.tree;
         }
         if (IsDescendant(dir_entry, inactive_de)) {
-          return; /* Abort collapse to prevent use-after-free in inactive panel */
+          return; /* Abort collapse to prevent use-after-free in inactive panel
+                   */
         }
       }
     }
@@ -1836,7 +1842,7 @@ int HandleDirWindow(DirEntry *start_dir_entry) {
       ActivePanel->vol->vol_stats.cursor_pos = ActivePanel->cursor_pos;
       ActivePanel->vol->vol_stats.disp_begin_pos = ActivePanel->disp_begin_pos;
 
-      int res = SelectLoadedVolume();
+      int res = SelectLoadedVolume(NULL);
       if (res == 0) { /* If volume switch was successful */
         if (CurrentVolume != start_vol)
           return ESC; /* Abort to main loop to handle clean re-entry */
