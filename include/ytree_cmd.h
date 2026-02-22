@@ -66,7 +66,7 @@ extern int ExecuteCommand(FileEntry *fe_ptr, WalkingPackage *walking_package,
 extern int ReadFilter(void);
 extern int SetFilter(char *filter_spec, Statistic *s);
 extern void ApplyFilter(DirEntry *dir_entry, Statistic *s);
-extern BOOL Match(FileEntry *fe);
+extern BOOL Match(FileEntry *fe, Statistic *s);
 
 /* log.c */
 extern int Log(DirEntry *dir_entry, Statistic *s);

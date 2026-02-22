@@ -14,34 +14,32 @@ static int dir_mode = MODE_3; /* Default to Name Only */
  * Sets the display mode for directory entries.
  * Avoid using 'mode' as parameter name due to global macro collision.
  */
-void SetDirMode(int new_mode)
-{
-    dir_mode = new_mode;
-}
+void SetDirMode(int new_mode) { dir_mode = new_mode; }
 
-void RotateDirMode(void)
-{
-  switch( dir_mode )
-  {
-    case MODE_1 : dir_mode = MODE_2 ; break;
-    case MODE_2 : dir_mode = MODE_4 ; break;
-    case MODE_3 : dir_mode = MODE_1 ; break;
-    case MODE_4 : dir_mode = MODE_3 ; break;
+void RotateDirMode(void) {
+  switch (dir_mode) {
+  case MODE_1:
+    dir_mode = MODE_2;
+    break;
+  case MODE_2:
+    dir_mode = MODE_4;
+    break;
+  case MODE_3:
+    dir_mode = MODE_1;
+    break;
+  case MODE_4:
+    dir_mode = MODE_3;
+    break;
   }
-  if( (mode != DISK_MODE && mode != USER_MODE ) &&
-      dir_mode == MODE_4 ) RotateDirMode();
+  if ((mode != DISK_MODE && mode != USER_MODE) && dir_mode == MODE_4)
+    RotateDirMode();
 }
 
-void PrintDirEntry(struct Volume *vol,
-                          WINDOW *win,
-                          int entry_no,
-                          int y,
-                          unsigned char hilight,
-                          BOOL is_active)
-{
+void PrintDirEntry(struct Volume *vol, WINDOW *win, int entry_no, int y,
+                   unsigned char hilight, BOOL is_active) {
   unsigned int j;
-  int  color;
-  char graph_buffer[PATH_LENGTH+1];
+  int color;
+  char graph_buffer[PATH_LENGTH + 1];
   char format[60];
   char *line_buffer = NULL;
   char *dir_name;
@@ -55,90 +53,76 @@ void PrintDirEntry(struct Volume *vol,
   char *group_name_ptr;
   DirEntry *de_ptr;
 
-
-  if(win == f2_window) {
-    color     = CPAIR_HST;
+  if (win == f2_window) {
+    color = CPAIR_HST;
   } else {
-    color     = CPAIR_DIR;
+    color = CPAIR_DIR;
   }
 
   /* Build the tree graph string (e.g., "| 6- ") */
   graph_buffer[0] = '\0';
-  for(j=0; j < vol->dir_entry_list[entry_no].level; j++)
-  {
-    if( vol->dir_entry_list[entry_no].indent & ( 1L << j ) )
-      (void) strcat( graph_buffer, "| " );
+  for (j = 0; j < vol->dir_entry_list[entry_no].level; j++) {
+    if (vol->dir_entry_list[entry_no].indent & (1L << j))
+      (void)strcat(graph_buffer, "| ");
     else
-      (void) strcat( graph_buffer, "  " );
+      (void)strcat(graph_buffer, "  ");
   }
 
   de_ptr = vol->dir_entry_list[entry_no].dir_entry;
-  if( de_ptr->next )
-    (void) strcat( graph_buffer, "6-" );
+  if (de_ptr->next)
+    (void)strcat(graph_buffer, "6-");
   else
-    (void) strcat( graph_buffer, "3-" );
+    (void)strcat(graph_buffer, "3-");
 
   /* Build the attribute string based on the current directory mode */
-  switch( dir_mode )
-  {
-    case MODE_1 :
-                 (void)GetAttributes(de_ptr->stat_struct.st_mode, attributes);
-                 (void)CTime( de_ptr->stat_struct.st_mtime, modify_time );
-                 /* Increased buffer size from 38 to 42 to accommodate 16-char date */
-                 line_buffer = (char *) xmalloc(42);
+  switch (dir_mode) {
+  case MODE_1:
+    (void)GetAttributes(de_ptr->stat_struct.st_mode, attributes);
+    (void)CTime(de_ptr->stat_struct.st_mtime, modify_time);
+    /* Increased buffer size from 38 to 42 to accommodate 16-char date */
+    line_buffer = (char *)xmalloc(42);
 
-#ifdef HAS_LONGLONG
-                 /* Updated %12s to %16s for date */
-                 (void) strcpy( format, "%10s %3d %8lld %16s");
+    /* Updated %12s to %16s for date */
+    (void)strcpy(format, "%10s %3d %8lld %16s");
 
-		 (void) snprintf( line_buffer, 42, format, attributes,
-                                 (int)de_ptr->stat_struct.st_nlink,
-                                 (LONGLONG) de_ptr->stat_struct.st_size,
-                                 modify_time
-                                 );
-#else
-                 (void) strcpy( format, "%10s %3d %8d %16s");
-                 (void) snprintf( line_buffer, 42, format, attributes,
-                                 (int)de_ptr->stat_struct.st_nlink,
-                                 (int)de_ptr->stat_struct.st_size,
-                                 modify_time
-                                 );
-#endif
-		 break;
-    case MODE_2 :
-                 (void)GetAttributes(de_ptr->stat_struct.st_mode, attributes);
-                 owner_name_ptr = GetDisplayPasswdName(de_ptr->stat_struct.st_uid);
-                 group_name_ptr = GetDisplayGroupName(de_ptr->stat_struct.st_gid);
-                 if( owner_name_ptr == NULL )
-                 {
-                    (void)snprintf(owner, sizeof(owner), "%d",(int)de_ptr->stat_struct.st_uid);
-                    owner_name_ptr = owner;
-                 }
-                 if( group_name_ptr == NULL )
-                 {
-                     (void) snprintf( group, sizeof(group), "%d", (int) de_ptr->stat_struct.st_gid );
-                     group_name_ptr = group;
-                 }
-                 line_buffer = (char *) xmalloc(40);
+    (void)snprintf(line_buffer, 42, format, attributes,
+                   (int)de_ptr->stat_struct.st_nlink,
+                   (long long)de_ptr->stat_struct.st_size, modify_time);
+    break;
+  case MODE_2:
+    (void)GetAttributes(de_ptr->stat_struct.st_mode, attributes);
+    owner_name_ptr = GetDisplayPasswdName(de_ptr->stat_struct.st_uid);
+    group_name_ptr = GetDisplayGroupName(de_ptr->stat_struct.st_gid);
+    if (owner_name_ptr == NULL) {
+      (void)snprintf(owner, sizeof(owner), "%d",
+                     (int)de_ptr->stat_struct.st_uid);
+      owner_name_ptr = owner;
+    }
+    if (group_name_ptr == NULL) {
+      (void)snprintf(group, sizeof(group), "%d",
+                     (int)de_ptr->stat_struct.st_gid);
+      group_name_ptr = group;
+    }
+    line_buffer = (char *)xmalloc(40);
 
-                 (void) strcpy( format, "%12u  %-12s %-12s");
-                 (void) snprintf( line_buffer, 40, format,
-                                 (unsigned int)de_ptr->stat_struct.st_ino,
-                                 owner_name_ptr,
-                                 group_name_ptr);
-                 break;
-    case MODE_3 : /* No attributes, line_buffer remains NULL */
-                 break;
-    case MODE_4 :
-                 (void) CTime( de_ptr->stat_struct.st_ctime, change_time );
-                 (void) CTime( de_ptr->stat_struct.st_atime, access_time );
-                 /* Increased buffer size from 40 to 50 to accommodate two 16-char dates */
-                 /* Format: "Chg.: " (6) + 16 + "  Acc.: " (8) + 16 = 46 chars. 50 is safe. */
-                 (void) strcpy( format, "Chg.: %16s  Acc.: %16s");
-                 line_buffer = (char *) xmalloc(50);
+    (void)strcpy(format, "%12u  %-12s %-12s");
+    (void)snprintf(line_buffer, 40, format,
+                   (unsigned int)de_ptr->stat_struct.st_ino, owner_name_ptr,
+                   group_name_ptr);
+    break;
+  case MODE_3: /* No attributes, line_buffer remains NULL */
+    break;
+  case MODE_4:
+    (void)CTime(de_ptr->stat_struct.st_ctime, change_time);
+    (void)CTime(de_ptr->stat_struct.st_atime, access_time);
+    /* Increased buffer size from 40 to 50 to accommodate two 16-char dates */
+    /* Format: "Chg.: " (6) + 16 + "  Acc.: " (8) + 16 = 46 chars. 50 is safe.
+     */
+    (void)strcpy(format, "Chg.: %16s  Acc.: %16s");
+    line_buffer = (char *)xmalloc(50);
 
-                 (void)snprintf(line_buffer, 50, format, change_time, access_time);
-                 break;
+    (void)snprintf(line_buffer, 50, format, change_time, access_time);
+    break;
   }
 
   /* --- Redesigned Drawing Logic --- */
@@ -160,89 +144,105 @@ void PrintDirEntry(struct Volume *vol,
 
   /* If full line highlight is enabled, turn on reverse now. */
   if (hilight && highlight_full_line) {
-      if (is_active) wattron(win, A_REVERSE);
-      else wattron(win, A_BOLD | A_UNDERLINE);
+    if (is_active)
+      wattron(win, A_REVERSE);
+    else
+      wattron(win, A_BOLD | A_UNDERLINE);
   }
 
   /* Part 1: Draw the tree graph characters manually */
   wmove(win, y, 0);
   for (j = 0; j < (unsigned int)graph_len; ++j) {
-      int ch;
-      switch (graph_buffer[j]) {
-          case '6': ch = ACS_LTEE; break;
-          case '3': ch = ACS_LLCORNER; break;
-          case '|': ch = ACS_VLINE; break;
-          case '-': ch = ACS_HLINE; break;
-          default:  ch = graph_buffer[j]; break;
-      }
-      waddch(win, ch | A_BOLD); /* Keep graph characters bold */
+    int ch;
+    switch (graph_buffer[j]) {
+    case '6':
+      ch = ACS_LTEE;
+      break;
+    case '3':
+      ch = ACS_LLCORNER;
+      break;
+    case '|':
+      ch = ACS_VLINE;
+      break;
+    case '-':
+      ch = ACS_HLINE;
+      break;
+    default:
+      ch = graph_buffer[j];
+      break;
+    }
+    waddch(win, ch | A_BOLD); /* Keep graph characters bold */
   }
 
   /* Part 2: Prepare and draw the directory name */
   char name_buffer[PATH_LENGTH + 2];
   dir_name = de_ptr->name;
-  (void) strcpy( name_buffer, ( *dir_name ) ? dir_name : "." );
-  if( de_ptr->not_scanned ) {
-    (void) strcat( name_buffer, "/" );
+  (void)strcpy(name_buffer, (*dir_name) ? dir_name : ".");
+  if (de_ptr->not_scanned) {
+    (void)strcat(name_buffer, "/");
   }
 
   /* Calculate maximum allowed name length based on mode and window width */
   int max_name_len;
   if (dir_mode == MODE_3) {
-      /* In MODE_3 (name-only), truncate based on full window width */
-      max_name_len = layout.dir_win_width - graph_len - 1;
+    /* In MODE_3 (name-only), truncate based on full window width */
+    max_name_len = layout.dir_win_width - graph_len - 1;
   } else {
-      /* In other modes, truncate to prevent overlap with attributes */
-      max_name_len = attr_start_col - graph_len - 1;
+    /* In other modes, truncate to prevent overlap with attributes */
+    max_name_len = attr_start_col - graph_len - 1;
   }
   /* Safety: Ensure max_name_len is at least 1 to avoid issues with CutName */
   if (max_name_len < 1) {
-      max_name_len = 1;
+    max_name_len = 1;
   }
 
   /* Apply truncation if the name is too long */
   if ((int)strlen(name_buffer) > max_name_len) {
-      char temp_name[PATH_LENGTH + 2];
-      CutName(temp_name, name_buffer, max_name_len);
-      strcpy(name_buffer, temp_name);
+    char temp_name[PATH_LENGTH + 2];
+    CutName(temp_name, name_buffer, max_name_len);
+    strcpy(name_buffer, temp_name);
   }
 
   /* If name-only highlight, toggle reverse just for the name. */
   if (hilight && !highlight_full_line) {
-      if (is_active) wattron(win, A_REVERSE);
-      else wattron(win, A_BOLD | A_UNDERLINE);
+    if (is_active)
+      wattron(win, A_REVERSE);
+    else
+      wattron(win, A_BOLD | A_UNDERLINE);
   }
   mvwaddstr(win, y, graph_len, name_buffer);
   if (hilight && !highlight_full_line) {
-      if (is_active) wattroff(win, A_REVERSE);
-      else wattroff(win, A_BOLD | A_UNDERLINE);
+    if (is_active)
+      wattroff(win, A_REVERSE);
+    else
+      wattroff(win, A_BOLD | A_UNDERLINE);
   }
-
 
   /* Part 3: Draw attributes and fill the gap in between */
   if (line_buffer) {
-      int current_x;
-      getyx(win, y, current_x); /* Use y (parameter) as dummy output */
-      for (int i = current_x; i < attr_start_col; ++i) {
-          waddch(win, ' ');
-      }
-      mvwaddstr(win, y, attr_start_col, line_buffer);
+    int current_x;
+    getyx(win, y, current_x); /* Use y (parameter) as dummy output */
+    for (int i = current_x; i < attr_start_col; ++i) {
+      waddch(win, ' ');
+    }
+    mvwaddstr(win, y, attr_start_col, line_buffer);
   }
 
   /* Turn off attributes */
   if (hilight && highlight_full_line) {
-      if (is_active) wattroff(win, A_REVERSE);
-      else wattroff(win, A_BOLD | A_UNDERLINE);
+    if (is_active)
+      wattroff(win, A_REVERSE);
+    else
+      wattroff(win, A_BOLD | A_UNDERLINE);
   }
   wattroff(win, line_attr);
 
   if (line_buffer)
-     free(line_buffer);
+    free(line_buffer);
 }
 
-
-void DisplayTree(struct Volume *vol, WINDOW *win, int start_entry_no, int hilight_no, BOOL is_active)
-{
+void DisplayTree(struct Volume *vol, WINDOW *win, int start_entry_no,
+                 int hilight_no, BOOL is_active) {
   int i, y;
   int height;
 
@@ -260,19 +260,19 @@ void DisplayTree(struct Volume *vol, WINDOW *win, int start_entry_no, int hiligh
   werase(win);
 
   if (win == f2_window) {
-      box(win, 0, 0);
+    box(win, 0, 0);
   }
 
-  for(i=0; i < height; i++)
-  {
-    if ( start_entry_no + i >= vol->total_dirs ) break;
+  for (i = 0; i < height; i++) {
+    if (start_entry_no + i >= vol->total_dirs)
+      break;
 
-    if( start_entry_no + i != hilight_no )
-      PrintDirEntry( vol, win, start_entry_no + i, i, FALSE, is_active );
+    if (start_entry_no + i != hilight_no)
+      PrintDirEntry(vol, win, start_entry_no + i, i, FALSE, is_active);
     else
       y = i;
   }
 
-  if( y >= 0 ) PrintDirEntry( vol, win, start_entry_no + y, y, TRUE, is_active );
-
+  if (y >= 0)
+    PrintDirEntry(vol, win, start_entry_no + y, y, TRUE, is_active);
 }

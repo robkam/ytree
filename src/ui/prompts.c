@@ -116,6 +116,15 @@ int GetCopyParameter(char *from_file, BOOL path_copy, char *to_file,
       if (to_dir[0] == '\0') {
         strcpy(to_dir, ".");
       }
+      {
+        FILE *df = fopen("/home/rob/ytree/debug_output.log", "a");
+        if (df) {
+          fprintf(df,
+                  "DEBUG: GetCopyParameter [prompts.c] to_file=%s to_dir=%s\n",
+                  to_file, to_dir);
+          fclose(df);
+        }
+      }
       return (0);
     }
   }

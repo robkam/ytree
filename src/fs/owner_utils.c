@@ -1,3 +1,10 @@
+/***************************************************************************
+ * src/fs/owner_utils.c
+ * Filesystem Ownership Utilities
+ *
+ * Contains low-level helpers for changing file and directory ownership.
+ ***************************************************************************/
+
 #include "ytree_cmd.h"
 #include <errno.h>
 #include <stdio.h>

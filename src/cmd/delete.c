@@ -5,8 +5,12 @@
  *
  ***************************************************************************/
 
-#include "ytree_cmd.h"
-#include "ytree_defs.h"
+#ifndef YTREE_H
+#include "../../include/ytree.h"
+#endif
+
+#include "../../include/ytree_cmd.h"
+#include "../../include/ytree_fs.h"
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -15,11 +19,10 @@
 #include <unistd.h>
 
 #ifdef HAVE_LIBARCHIVE
-#include "ytree_fs.h"
 #endif
 
 extern char *GetFileNamePath(FileEntry *file_entry, char *buffer);
-extern int GetAvailBytes(LONGLONG *avail_bytes, Statistic *s);
+extern int GetAvailBytes(long long *avail_bytes, Statistic *s);
 extern struct Volume *CurrentVolume;
 
 /* Helper for Archive Callback */
@@ -114,7 +117,7 @@ FNC_XIT:
 
 int RemoveFile(FileEntry *fe_ptr, Statistic *s) {
   DirEntry *de_ptr;
-  LONGLONG file_size;
+  long long file_size;
 
   de_ptr = fe_ptr->dir_entry;
 

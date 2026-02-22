@@ -1,3 +1,10 @@
+/***************************************************************************
+ * src/cmd/chmod.c
+ * chmod Command Implementation
+ *
+ * Implements the change attributes (mode) functionality for ytree.
+ ***************************************************************************/
+
 #include "ytree_cmd.h"
 #include <errno.h>
 #include <stdio.h>

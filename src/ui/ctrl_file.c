@@ -5,10 +5,13 @@
  *
  ***************************************************************************/
 
-#include "sort.h"
-#include "watcher.h"
-#include "ytree.h"
-#include "ytree_ui.h"
+#ifndef YTREE_H
+#include "../../include/ytree.h"
+#endif
+
+#include "../../include/sort.h"
+#include "../../include/watcher.h"
+#include "../../include/ytree_ui.h"
 #include <libgen.h>
 
 #define MAX(a, b) (((a) > (b)) ? (a) : (b))
@@ -26,7 +29,6 @@ static int hide_right;
 
 static unsigned max_visual_filename_len;
 static unsigned max_visual_linkname_len;
-static BOOL IsPreviewMode;
 static unsigned max_visual_userview_len;
 static unsigned global_max_visual_filename_len;
 static unsigned global_max_visual_linkname_len;
@@ -145,6 +147,9 @@ static void ReadFileList(YtreePanel *panel, BOOL tagged_only,
 static void ReadGlobalFileList(YtreePanel *panel, BOOL tagged_only,
                                DirEntry *dir_entry) {
   DirEntry *de_ptr;
+
+  global_max_visual_filename_len = 0;
+  global_max_visual_linkname_len = 0;
 
   for (de_ptr = dir_entry; de_ptr; de_ptr = de_ptr->next) {
     if (hide_dot_files && de_ptr->name[0] == '.')
@@ -481,7 +486,7 @@ int HandleFileWindow(DirEntry *dir_entry) {
   int ch;
   int unput_char;
   int list_pos;
-  LONGLONG file_size;
+  long long file_size;
   int i;
   int owner_id;
   int group_id;
@@ -2506,11 +2511,14 @@ static void ListJump(DirEntry *dir_entry, char *str) {
 /* UI_ViewTaggedFiles moved to prompts.c */
 
 static void UpdatePreview(DirEntry *dir_entry) {
-  if (IsPreviewMode && preview_window) {
+  if (GlobalView->preview_mode && preview_window) {
     FileEntry *fe = NULL;
     if (ActivePanel && ActivePanel->file_entry_list &&
         ActivePanel->file_count > 0) {
-      fe = ActivePanel->file_entry_list[dir_entry->cursor_pos].file;
+      int idx = dir_entry->start_file + dir_entry->cursor_pos;
+      if (idx >= 0 && (unsigned int)idx < ActivePanel->file_count) {
+        fe = ActivePanel->file_entry_list[idx].file;
+      }
     }
     if (fe) {
       char path[PATH_LENGTH];
@@ -2526,11 +2534,31 @@ void BuildFileEntryList(YtreePanel *panel) {
   DirEntry *dir_entry;
   if (!panel || !panel->vol || panel->vol->total_dirs == 0)
     return;
-  dir_entry =
-      panel->vol->dir_entry_list[panel->disp_begin_pos + panel->cursor_pos]
-          .dir_entry;
+
+  int idx = panel->disp_begin_pos + panel->cursor_pos;
+  if (idx >= panel->vol->total_dirs)
+    idx = panel->vol->total_dirs - 1;
+  dir_entry = panel->vol->dir_entry_list[idx].dir_entry;
+
+  /* Apply filter to current directory or entire tree before building list */
+  if (dir_entry->global_flag) {
+    ApplyFilterToTree(panel->vol->vol_stats.tree, &panel->vol->vol_stats);
+  } else {
+    ApplyFilter(dir_entry, &panel->vol->vol_stats);
+  }
+
   panel->file_count = 0;
-  ReadFileList(panel, FALSE, dir_entry);
+  if (dir_entry->global_flag) {
+    ReadGlobalFileList(panel, FALSE, panel->vol->vol_stats.tree);
+  } else {
+    ReadFileList(panel, FALSE, dir_entry);
+  }
+  Panel_Sort(panel, panel->vol->vol_stats.kind_of_sort);
+
+  /* Propagate metrics to the renderer */
+  SetFileRenderingMetrics(panel, max_visual_filename_len,
+                          max_visual_linkname_len, max_visual_userview_len);
+  SetPanelFileMode(panel, GetPanelFileMode(panel));
 }
 
 static void HandleInvertTags(DirEntry *dir_entry, Statistic *s) {

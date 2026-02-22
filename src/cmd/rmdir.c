@@ -5,8 +5,8 @@
  *
  ***************************************************************************/
 
+#include "ytree.h"
 #include "ytree_cmd.h"
-#include "ytree_defs.h"
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -22,7 +22,7 @@ extern struct Volume *CurrentVolume;
 extern char *GetFileNamePath(FileEntry *file_entry, char *buffer);
 extern char *GetPath(DirEntry *dir_entry, char *buffer);
 extern int ScanSubTree(DirEntry *dir_entry, Statistic *s);
-extern int GetAvailBytes(LONGLONG *avail_bytes, Statistic *s);
+extern int GetAvailBytes(long long *avail_bytes, Statistic *s);
 
 #if defined(S_IFLNK)
 #define STAT_(a, b) lstat(a, b)

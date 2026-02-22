@@ -1,3 +1,10 @@
+/***************************************************************************
+ * src/cmd/chgrp.c
+ * chgrp Command Implementation
+ *
+ * Implements the change group functionality for ytree.
+ ***************************************************************************/
+
 #include "ytree_cmd.h"
 #include <errno.h>
 #include <stdio.h>

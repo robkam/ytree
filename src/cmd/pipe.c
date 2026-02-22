@@ -5,8 +5,8 @@
  *
  ***************************************************************************/
 
+#include "ytree.h"
 #include "ytree_cmd.h"
-#include "ytree_defs.h"
 #include <errno.h>
 #include <fcntl.h>
 #include <stdio.h>
@@ -20,7 +20,7 @@
 #endif
 
 #define mode (CurrentVolume->vol_stats.login_mode)
-extern int hide_dot_files;
+extern BOOL hide_dot_files;
 extern struct Volume *CurrentVolume;
 
 extern int chdir(const char *);
@@ -28,7 +28,7 @@ extern char *GetRealFileNamePath(FileEntry *file_entry, char *buffer);
 extern char *GetPath(DirEntry *dir_entry, char *buffer);
 extern void SuspendClock(void);
 extern void InitClock(void);
-extern int GetAvailBytes(LONGLONG *avail_bytes, Statistic *s);
+extern int GetAvailBytes(long long *avail_bytes, Statistic *s);
 extern int UI_Message(const char *format, ...);
 
 int Pipe(DirEntry *dir_entry, FileEntry *file_entry, char *pipe_command) {
