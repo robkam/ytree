@@ -60,9 +60,6 @@
 
 /* --- Macros & Constants --- */
 
-#define LONGLONG long long
-#define HAS_LONGLONG 1
-
 #if !defined(WIN32) && !defined(__DJGPP__)
 #include <sys/statfs.h>
 #include <sys/statvfs.h>
@@ -207,10 +204,10 @@
 
 #define BOOL unsigned char
 #ifndef TRUE
-#define TRUE 1
+#define TRUE (1)
 #endif
 #ifndef FALSE
-#define FALSE 0
+#define FALSE (0)
 #endif
 #define LF 10
 #define ESC 27
@@ -425,9 +422,9 @@ typedef struct _dir_entry {
   struct _dir_entry *prev;
   struct _dir_entry *sub_tree;
   struct _dir_entry *up_tree;
-  LONGLONG total_bytes;
-  LONGLONG matching_bytes;
-  LONGLONG tagged_bytes;
+  long long total_bytes;
+  long long matching_bytes;
+  long long tagged_bytes;
   unsigned int total_files;
   unsigned int matching_files;
   unsigned int tagged_files;
@@ -456,14 +453,14 @@ typedef struct {
 
 typedef struct {
   DirEntry *tree;
-  LONGLONG disk_space;
-  LONGLONG disk_capacity;
-  LONGLONG disk_total_files;
-  LONGLONG disk_total_bytes;
-  LONGLONG disk_matching_files;
-  LONGLONG disk_matching_bytes;
-  LONGLONG disk_tagged_files;
-  LONGLONG disk_tagged_bytes;
+  long long disk_space;
+  long long disk_capacity;
+  long long disk_total_files;
+  long long disk_total_bytes;
+  long long disk_matching_files;
+  long long disk_matching_bytes;
+  long long disk_tagged_files;
+  long long disk_tagged_bytes;
   unsigned int disk_total_directories;
   int disp_begin_pos;
   int cursor_pos;

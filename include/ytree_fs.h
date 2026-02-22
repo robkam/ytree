@@ -47,9 +47,9 @@ extern int ReadTreeFromArchive(DirEntry **dir_entry_ptr, const char *filename,
                                void *cb_data);
 
 /* freesp.c */
-extern int GetAvailBytes(LONGLONG *avail_bytes, Statistic *s);
+extern int GetAvailBytes(long long *avail_bytes, Statistic *s);
 extern int GetDiskParameter(char *path, char *volume_name,
-                            LONGLONG *avail_bytes, LONGLONG *capacity,
+                            long long *avail_bytes, long long *capacity,
                             Statistic *s);
 
 /* owner_utils.c */
@@ -71,12 +71,13 @@ extern int RescanDir(DirEntry *dir_entry, int depth, Statistic *s,
 extern void DeleteTree(DirEntry *tree);
 extern int GetDirEntry(DirEntry *tree, DirEntry *current_dir_entry,
                        char *dir_path, DirEntry **dir_entry, char *to_path);
-extern int GetFileEntry(DirEntry *de_ptr, char *file_name,
+extern int GetFileEntry(DirEntry *de_ptr, const char *file_name,
                         FileEntry **file_entry);
 extern void SaveTreeState(DirEntry *root, PathList **expanded,
                           PathList **tagged);
 extern void RestoreTreeState(DirEntry *root, PathList **expanded,
                              PathList *tagged, Statistic *s);
+void ApplyFilterToTree(DirEntry *dir_entry, Statistic *s);
 extern void FreePathList(PathList *list);
 
 #endif /* YTREE_FS_H */

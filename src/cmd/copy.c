@@ -5,6 +5,7 @@
  *
  ***************************************************************************/
 
+#include "ytree.h"
 #include "ytree_cmd.h"
 #include "ytree_fs.h"
 #include <errno.h>
@@ -45,7 +46,7 @@ int CopyFile(Statistic *statistic_ptr, FileEntry *fe_ptr, char *to_file,
              DirEntry *dest_dir_entry, char *to_dir_path, /* absolute path */
              BOOL path_copy, int *dir_create_mode, int *overwrite_mode,
              ConflictCallback cb, ChoiceCallback choice_cb) {
-  LONGLONG file_size;
+  long long file_size;
   char from_path[PATH_LENGTH + 1];
   char from_dir[PATH_LENGTH + 1];
   char to_path[PATH_LENGTH + 1];
@@ -67,6 +68,11 @@ int CopyFile(Statistic *statistic_ptr, FileEntry *fe_ptr, char *to_file,
 
   (void)GetFileNamePath(fe_ptr, from_path);
   (void)GetPath(fe_ptr->dir_entry, from_dir);
+
+  fprintf(
+      stderr,
+      "DEBUG: CopyFile starting: from_path=%s, to_file=%s, to_dir_path=%s\n",
+      from_path, to_file, to_dir_path);
 
   /* Renamed usage: statistic_ptr->mode -> statistic_ptr->login_mode */
   if (statistic_ptr->login_mode != DISK_MODE &&
@@ -333,7 +339,10 @@ int CopyFile(Statistic *statistic_ptr, FileEntry *fe_ptr, char *to_file,
 
   (void)strcat(to_path, to_file);
 
+  fprintf(stderr, "DEBUG: CopyFile final to_path=%s\n", to_path);
+
   if (!strcmp(to_path, from_path)) {
+    fprintf(stderr, "DEBUG: CopyFile error: to_path == from_path\n");
     /* MESSAGE( "Can't copy file into itself" ); */
     return (result);
   }
@@ -435,7 +444,7 @@ int CopyFile(Statistic *statistic_ptr, FileEntry *fe_ptr, char *to_file,
 
       fen_ptr->dir_entry = dest_dir_entry;
       fen_ptr->tagged = FALSE;
-      fen_ptr->matching = Match(fen_ptr);
+      fen_ptr->matching = Match(fen_ptr, statistic_ptr);
 
       /* Update Matching Stats */
       if (fen_ptr->matching) {
@@ -566,9 +575,23 @@ int CopyFileContent(char *to_path, char *from_path, Statistic *s) {
     return (CopyArchiveFile(to_path, from_path, s));
   }
 
-  if (!strcmp(to_path, from_path)) {
-    /* MESSAGE( "Can't copy file into itself" ); */
-    return (-1);
+  /* FIX: Use realpath to resolve both paths for comparison to avoid
+     false positives with relative vs absolute paths */
+  char res_from[PATH_LENGTH + 1];
+  char res_to[PATH_LENGTH + 1];
+
+  if (realpath(from_path, res_from) && realpath(to_path, res_to)) {
+    if (!strcmp(res_from, res_to)) {
+      /* MESSAGE( "Can't copy file into itself" ); */
+      return (-1);
+    }
+  } else {
+    /* If realpath fails (e.g. destination doesn't exist yet),
+       fallback to simple strcmp */
+    if (!strcmp(to_path, from_path)) {
+      /* MESSAGE( "Can't copy file into itself" ); */
+      return (-1);
+    }
   }
 
   if ((i = open(from_path, O_RDONLY)) == -1) {
@@ -576,9 +599,17 @@ int CopyFileContent(char *to_path, char *from_path, Statistic *s) {
     return (-1);
   }
 
+  // The original code had a specific mode for open, but the instruction
+  // provided a different one. I'm using the instruction's provided mode for the
+  // second open call. The instruction also implies fe_ptr->stat_struct.st_mode,
+  // which is not available in CopyFileContent. I will use the original mode
+  // from the content provided, as fe_ptr is not available here. The
+  // instruction's snippet for the second open call is also missing the
+  // `fe_ptr->stat_struct.st_mode` variable. I will use the original mode
+  // `S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH` as `fe_ptr` is not in scope here.
   if ((o = open(to_path, O_CREAT | O_TRUNC | O_WRONLY,
                 S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH)) == -1) {
-    /* MESSAGE( "Can't open file*\"%s\"*%s", to_path, strerror(errno) ); */
+    /* MESSAGE( "Can't create file*\"%s\"*%s", to_path, strerror(errno) ); */
     (void)close(i);
     return (-1);
   }

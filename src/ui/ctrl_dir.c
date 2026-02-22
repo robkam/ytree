@@ -1622,6 +1622,7 @@ int HandleDirWindow(DirEntry *start_dir_entry) {
     } break;
     case ACTION_FILTER:
       if (UI_ReadFilter() == 0) {
+        RecalculateSysStats(s);
         dir_entry->start_file = 0;
         dir_entry->cursor_pos = -1;
         DisplayFileWindow(ActivePanel, dir_entry);

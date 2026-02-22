@@ -100,6 +100,10 @@ void RotatePanelFileMode(YtreePanel *p) {
 }
 
 static int GetVisualFileEntryLength(YtreePanel *p) {
+  int filename_len = p->max_visual_filename_len;
+  if (filename_len == 0 && !strcmp(USERVIEW, ""))
+    filename_len = 14; /* Sensible default for small windows */
+
   if (GlobalView->fixed_col_width > 0)
     return GlobalView->fixed_col_width;
 
@@ -109,36 +113,28 @@ static int GetVisualFileEntryLength(YtreePanel *p) {
   case MODE_1:
     len = (p->max_visual_linkname_len) ? p->max_visual_linkname_len + 4
                                        : 0; /* linkname + " -> " */
-    len += p->max_visual_filename_len +
-           42; /* filename + format (increased by 4 for 16-char date) */
-#ifdef HAS_LONGLONG
-    len += 4; /* %11lld instead of %7d */
-#endif
+    len +=
+        filename_len + 46; /* filename + format (increased for 11-digit size) */
     break;
 
   case MODE_2:
-    len = (p->max_visual_linkname_len) ? p->max_visual_linkname_len + 4
-                                       : 0; /* linkname + " -> " */
-    len += p->max_visual_filename_len + 40; /* filename + format */
-#ifdef HAS_LONGLONG
-    len += 4; /* %11lld instead of %7d */
-#endif
+    len = filename_len + 44; /* filename + format (11-digit size) */
     break;
 
   case MODE_3:
-    len = p->max_visual_filename_len + 2; /* filename + format */
+    len = filename_len + 2; /* filename + format */
     break;
 
   case MODE_4:
     len = (p->max_visual_linkname_len) ? p->max_visual_linkname_len + 4
                                        : 0; /* linkname + " -> " */
-    len += p->max_visual_filename_len +
+    len += filename_len +
            47; /* filename + format (increased by 8 for two 16-char dates) */
     break;
 
   case MODE_5:
-    len = GetVisualUserFileEntryLength(p->max_visual_filename_len,
-                                       p->max_visual_linkname_len, USERVIEW);
+    len = GetVisualUserFileEntryLength(filename_len, p->max_visual_linkname_len,
+                                       USERVIEW);
     p->max_visual_userview_len = len;
     break;
   }
@@ -322,7 +318,6 @@ void PrintFileEntry(YtreePanel *panel, int entry_no, int y, int x,
       (void)GetAttributes(fe_ptr->stat_struct.st_mode, attributes);
       (void)CTime(fe_ptr->stat_struct.st_mtime, modify_time);
       if (S_ISLNK(fe_ptr->stat_struct.st_mode)) {
-#ifdef HAS_LONGLONG
         /* Updated %12s to %16s */
         (void)snprintf(format, sizeof(format),
                        "%%c%%c%%-%ds %%10s %%3d %%11lld %%16s -> %%-%ds",
@@ -330,35 +325,16 @@ void PrintFileEntry(YtreePanel *panel, int entry_no, int y, int x,
         (void)snprintf(line_buffer, line_buffer_size, format,
                        (fe_ptr->tagged) ? TAGGED_SYMBOL : ' ', type_of_file,
                        fe_ptr->name, attributes, fe_ptr->stat_struct.st_nlink,
-                       (LONGLONG)fe_ptr->stat_struct.st_size, modify_time,
+                       (long long)fe_ptr->stat_struct.st_size, modify_time,
                        sym_link_name);
-#else
-        (void)snprintf(format, sizeof(format),
-                       "%%c%%c%%-%ds %%10s %%3d %%7d %%16s -> %%-%ds",
-                       filename_width, linkname_width);
-        (void)snprintf(line_buffer, line_buffer_size, format,
-                       (fe_ptr->tagged) ? TAGGED_SYMBOL : ' ', type_of_file,
-                       fe_ptr->name, attributes, fe_ptr->stat_struct.st_nlink,
-                       fe_ptr->stat_struct.st_size, modify_time, sym_link_name);
-#endif
       } else {
-#ifdef HAS_LONGLONG
         (void)snprintf(format, sizeof(format),
                        "%%c%%c%%%c%ds %%10s %%3d %%11lld %%16s", justify,
                        filename_width);
         (void)snprintf(line_buffer, line_buffer_size, format,
                        (fe_ptr->tagged) ? TAGGED_SYMBOL : ' ', type_of_file,
                        fe_ptr->name, attributes, fe_ptr->stat_struct.st_nlink,
-                       (LONGLONG)fe_ptr->stat_struct.st_size, modify_time);
-#else
-        (void)snprintf(format, sizeof(format),
-                       "%%c%%c%%%c%ds %%10s %%3d %%7d %%16s", justify,
-                       filename_width);
-        (void)snprintf(line_buffer, line_buffer_size, format,
-                       (fe_ptr->tagged) ? TAGGED_SYMBOL : ' ', type_of_file,
-                       fe_ptr->name, attributes, fe_ptr->stat_struct.st_nlink,
-                       fe_ptr->stat_struct.st_size, modify_time);
-#endif
+                       (long long)fe_ptr->stat_struct.st_size, modify_time);
       }
       break;
     case MODE_2:
@@ -373,41 +349,21 @@ void PrintFileEntry(YtreePanel *panel, int entry_no, int y, int x,
         group_name_ptr = group;
       }
       if (S_ISLNK(fe_ptr->stat_struct.st_mode)) {
-#ifdef HAS_LONGLONG
         (void)snprintf(format, sizeof(format),
                        "%%c%%c%%%c%ds %%10lld %%-12s %%-12s -> %%-%ds", justify,
                        filename_width, linkname_width);
         (void)snprintf(line_buffer, line_buffer_size, format,
                        (fe_ptr->tagged) ? TAGGED_SYMBOL : ' ', type_of_file,
-                       fe_ptr->name, (LONGLONG)fe_ptr->stat_struct.st_ino,
+                       fe_ptr->name, (long long)fe_ptr->stat_struct.st_ino,
                        owner_name_ptr, group_name_ptr, sym_link_name);
-#else
-        (void)snprintf(format, sizeof(format),
-                       "%%c%%c%%%c%ds  %%8u  %%-12s %%-12s -> %%-%ds", justify,
-                       filename_width, linkname_width);
-        (void)snprintf(line_buffer, line_buffer_size, format,
-                       (fe_ptr->tagged) ? TAGGED_SYMBOL : ' ', type_of_file,
-                       fe_ptr->name, (unsigned int)fe_ptr->stat_struct.st_ino,
-                       owner_name_ptr, group_name_ptr, sym_link_name);
-#endif
       } else {
-#ifdef HAS_LONGLONG
         (void)snprintf(format, sizeof(format),
                        "%%c%%c%%%c%ds %%10lld %%-12s %%-12s", justify,
                        filename_width);
         (void)snprintf(line_buffer, line_buffer_size, format,
                        (fe_ptr->tagged) ? TAGGED_SYMBOL : ' ', type_of_file,
-                       fe_ptr->name, (LONGLONG)fe_ptr->stat_struct.st_ino,
+                       fe_ptr->name, (long long)fe_ptr->stat_struct.st_ino,
                        owner_name_ptr, group_name_ptr);
-#else
-        (void)snprintf(format, sizeof(format),
-                       "%%c%%c%%%c%ds  %%8u  %%-12s %%-12s", justify,
-                       filename_width);
-        (void)snprintf(line_buffer, line_buffer_size, format,
-                       (fe_ptr->tagged) ? TAGGED_SYMBOL : ' ', type_of_file,
-                       fe_ptr->name, (unsigned int)fe_ptr->stat_struct.st_ino,
-                       owner_name_ptr, group_name_ptr);
-#endif
       }
       break;
     case MODE_3:
@@ -539,16 +495,10 @@ void PrintFileEntry(YtreePanel *panel, int entry_no, int y, int x,
       case MODE_1:
         (void)GetAttributes(fe_ptr->stat_struct.st_mode, attributes);
         (void)CTime(fe_ptr->stat_struct.st_mtime, modify_time);
-#ifdef HAS_LONGLONG
         /* Updated %12s to %16s */
         wprintw(win, " %10s %3d %11lld %16s", attributes,
                 (int)fe_ptr->stat_struct.st_nlink,
-                (LONGLONG)fe_ptr->stat_struct.st_size, modify_time);
-#else
-        wprintw(win, " %10s %3d %7d %16s", attributes,
-                (int)fe_ptr->stat_struct.st_nlink,
-                (int)fe_ptr->stat_struct.st_size, modify_time);
-#endif
+                (long long)fe_ptr->stat_struct.st_size, modify_time);
         if (sym_link_name && *sym_link_name)
           wprintw(win, " -> %s", sym_link_name);
         break;
@@ -563,15 +513,9 @@ void PrintFileEntry(YtreePanel *panel, int entry_no, int y, int x,
           snprintf(group, sizeof(group), "%d", (int)fe_ptr->stat_struct.st_gid);
           group_name_ptr = group;
         }
-#ifdef HAS_LONGLONG
         wprintw(win, " %10lld %-12s %-12s",
-                (LONGLONG)fe_ptr->stat_struct.st_ino, owner_name_ptr,
+                (long long)fe_ptr->stat_struct.st_ino, owner_name_ptr,
                 group_name_ptr);
-#else
-        wprintw(win, "  %8u  %-12s %-12s",
-                (unsigned int)fe_ptr->stat_struct.st_ino, owner_name_ptr,
-                group_name_ptr);
-#endif
         if (sym_link_name && *sym_link_name)
           wprintw(win, " -> %s", sym_link_name);
         break;

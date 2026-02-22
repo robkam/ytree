@@ -152,9 +152,14 @@ changelog-draft:
 clean:
 	rm -rf $(OBJ_DIR) $(BUILD_DIR)
 	rm -f core *~ *.orig *.bak
+	find $(SRC_DIR) -name "*.o" -o -name "*.d" -delete
 
 clobber: clean
 	rm -f $(MAIN) # Just in case legacy binary exists
+
+mrproper: clobber
+	rm -rf $(OBJ_DIR) $(BUILD_DIR)
+	find . -name "*.o" -o -name "*.d" -delete
 
 # Include automatically generated dependencies
 -include $(DEPS)

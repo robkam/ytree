@@ -5,8 +5,12 @@
  *
  ***************************************************************************/
 
-#include "ytree_cmd.h"
-#include "ytree_fs.h"
+#ifndef YTREE_H
+#include "../../include/ytree.h"
+#endif
+
+#include "../../include/ytree_cmd.h"
+#include "../../include/ytree_fs.h"
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -33,7 +37,7 @@ int MoveFile(FileEntry *fe_ptr, const char *to_file, DirEntry *dest_dir_entry,
              int *dir_create_mode, int *overwrite_mode, ConflictCallback cb,
              ChoiceCallback choice_cb) {
   DirEntry *de_ptr;
-  LONGLONG file_size;
+  long long file_size;
   char from_path[PATH_LENGTH + 1];
   char to_path[PATH_LENGTH + 1];
   FileEntry *dest_file_entry;
@@ -203,7 +207,8 @@ int MoveFile(FileEntry *fe_ptr, const char *to_file, DirEntry *dest_dir_entry,
 
       fen_ptr->dir_entry = dest_dir_entry;
       fen_ptr->tagged = FALSE;
-      fen_ptr->matching = Match(fen_ptr);
+      fen_ptr->matching =
+          Match(fen_ptr, target_stats_ptr ? target_stats_ptr : s);
 
       /* Update Matching Stats for TARGET volume */
       if (fen_ptr->matching) {
