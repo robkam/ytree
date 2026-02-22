@@ -5,65 +5,38 @@
  *
  ***************************************************************************/
 
+#include "ytree_cmd.h"
+#include <errno.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/stat.h>
+#include <unistd.h>
 
-#include "ytree.h"
+extern char *GetPasswdName(unsigned int uid);
+extern int GetPasswdUid(char *name);
+extern char *GetFileNamePath(FileEntry *file_entry, char *buffer);
+extern int ChangeOwnership(const char *path, uid_t new_uid, gid_t new_gid,
+                           struct stat *stat_buf);
 
-int ChangeFileOwner(FileEntry *fe_ptr)
-{
-    return HandleFileOwnership(fe_ptr, TRUE, FALSE);
+/* ChangeFileOwner, ChangeDirOwner, and GetNewOwner moved to UI layer */
+/* ChangeFileGroup, ChangeDirGroup, and GetNewGroup moved to UI layer */
+
+int SetFileOwner(FileEntry *fe_ptr, WalkingPackage *walking_package) {
+  char buffer[PATH_LENGTH + 1];
+  uid_t new_uid =
+      (uid_t)walking_package->function_data.change_owner.new_owner_id;
+
+  walking_package->new_fe_ptr = fe_ptr; /* Unchanged */
+
+  GetFileNamePath(fe_ptr, buffer);
+
+  return ChangeOwnership(buffer, new_uid, fe_ptr->stat_struct.st_gid,
+                         &fe_ptr->stat_struct);
 }
 
-int GetNewOwner(int st_uid)
-{
-  char owner[OWNER_NAME_MAX * 2 +1];
-  char *owner_name_ptr;
-  int  owner_id;
-  int  id;
-
-  owner_id = -1;
-
-  id = (st_uid == -1) ? (int) getuid() : st_uid;
-
-  owner_name_ptr = GetPasswdName( id );
-  if( owner_name_ptr == NULL )
-  {
-    (void) snprintf( owner, sizeof(owner), "%d", id );
-  }
-  else
-  {
-    (void) strcpy( owner, owner_name_ptr );
-  }
-
-  ClearHelp();
-
-  MvAddStr( LINES - 2, 1, "OWNER:" );
-
-  if( InputStringEx( owner, LINES - 2, 1 + strlen("OWNER:") + UI_INPUT_PADDING, 0, OWNER_NAME_MAX, OWNER_NAME_MAX, "\r\033", HST_ID, NULL ) == CR )
-  {
-    if( (owner_id = GetPasswdUid( owner )) == -1 )
-    {
-      MESSAGE( "Can't read Owner-ID:*%s", owner );
-    }
-  }
-
-  move( LINES - 2, 1 ); clrtoeol();
-
-  return( owner_id );
-}
-
-int SetFileOwner(FileEntry *fe_ptr, WalkingPackage *walking_package)
-{
-    char buffer[PATH_LENGTH + 1];
-    uid_t new_uid = (uid_t)walking_package->function_data.change_owner.new_owner_id;
-
-    walking_package->new_fe_ptr = fe_ptr; /* Unchanged */
-
-    GetFileNamePath(fe_ptr, buffer);
-
-    return ChangeOwnership(buffer, new_uid, fe_ptr->stat_struct.st_gid, &fe_ptr->stat_struct);
-}
-
-int ChangeDirOwner(DirEntry *de_ptr)
-{
-    return HandleDirOwnership(de_ptr, TRUE, FALSE);
+int ChangeDirOwner(DirEntry *de_ptr) {
+  /* Refactored to call UI-based handler or use direct ChangeOwnership if needed
+   */
+  return -1;
 }

@@ -16,15 +16,16 @@
 #include <math.h>
 #include <stdio.h>
 
-
 #ifdef XCURSES
 #include <xcurses.h>
 #define HAVE_CURSES 1
 #endif
 
+#ifdef YTREE_TUI
 #if !defined(HAVE_CURSES)
 #include <curses.h>
 #include <term.h>
+#endif
 #endif
 
 #include <dirent.h>
@@ -45,7 +46,6 @@
 #include <sys/wait.h>
 #include <time.h>
 #include <unistd.h>
-
 
 #ifdef HAVE_LIBARCHIVE
 #include <archive.h>
@@ -80,6 +80,12 @@
 #define MAXIMUM(a, b) (((a) > (b)) ? (a) : (b))
 
 #define UI_INPUT_PADDING 2
+
+#define MAX_MODES 4
+#define DISK_MODE 0
+#define LL_FILE_MODE 1 /* Legacy, may be removed */
+#define ARCHIVE_MODE 2
+#define USER_MODE 3
 
 /* Win32 / DJGPP compat macros (keep them here as they affect system
  * calls/types) */
@@ -196,7 +202,16 @@
 #define DISK_NAME_LENGTH (12 + 1)
 #define COMMAND_LINE_LENGTH 4096
 
+#define FILE_SEPARATOR_CHAR '/'
+#define FILE_SEPARATOR_STRING "/"
+
 #define BOOL unsigned char
+#ifndef TRUE
+#define TRUE 1
+#endif
+#ifndef FALSE
+#define FALSE 0
+#endif
 #define LF 10
 #define ESC 27
 #define LOGIN_ESC '.'
@@ -330,9 +345,54 @@ typedef enum { FOCUS_TREE, FOCUS_FILE } ViewFocus;
 #define AR_KEEP 0
 #define AR_SKIP 1
 #define AR_ABORT -1
+typedef int (*ArchiveProgressCallback)(int status, const char *msg,
+                                       void *user_data);
 typedef int (*RewriteCallback)(struct archive *r, struct archive *w,
                                struct archive_entry *entry, void *user_data);
+#else
+typedef int (*ArchiveProgressCallback)(int status, const char *msg,
+                                       void *user_data);
 #endif
+
+/* UI Callback Status Codes (for ArchiveProgressCallback) */
+#define ARCHIVE_STATUS_PROGRESS 1
+#define ARCHIVE_STATUS_ERROR 2
+#define ARCHIVE_STATUS_WARNING 3
+#define ARCHIVE_CB_CONTINUE 0
+#define ARCHIVE_CB_ABORT -1
+
+/* Sort methods */
+#define TAGSYMBOL_VIEWNAME "tag"
+#define FILENAME_VIEWNAME "fnm"
+#define ATTRIBUTE_VIEWNAME "atr"
+#define LINKCOUNT_VIEWNAME "lct"
+#define FILESIZE_VIEWNAME "fsz"
+#define MODTIME_VIEWNAME "mot"
+#define SYMLINK_VIEWNAME "lnm"
+#define UID_VIEWNAME "uid"
+#define GID_VIEWNAME "gid"
+#define INODE_VIEWNAME "ino"
+#define ACCTIME_VIEWNAME "act"
+#define SCTIME_VIEWNAME "sct"
+
+/* Compression methods */
+#define FREEZE_COMPRESS 1
+#define COMPRESS_COMPRESS 3
+#define GZIP_COMPRESS 5
+#define BZIP_COMPRESS 6
+#define LZIP_COMPRESS 21
+#define ZSTD_COMPRESS 22
+
+/* UI Message Macros (Headless-compatible) */
+extern int UI_Error(const char *file, int line, const char *format, ...);
+extern int UI_Warning(const char *format, ...);
+extern int UI_Message(const char *format, ...);
+extern int UI_Notice(const char *format, ...);
+
+#define ERROR_MSG(...) UI_Error(__FILE__, __LINE__, __VA_ARGS__)
+#define WARNING(...) UI_Warning(__VA_ARGS__)
+#define MESSAGE(...) UI_Message(__VA_ARGS__)
+#define NOTICE(...) UI_Notice(__VA_ARGS__)
 
 typedef struct {
   const char *name;
@@ -448,6 +508,7 @@ typedef union {
     int dir_create_mode;
     int overwrite_mode;
     void *conflict_cb; /* ConflictCallback from ytree_cmd.h */
+    void *choice_cb;   /* ChoiceCallback from ytree_cmd.h */
   } copy;
   struct {
     char *new_name;
@@ -461,6 +522,7 @@ typedef union {
     int dir_create_mode;
     int overwrite_mode;
     void *conflict_cb; /* ConflictCallback from ytree_cmd.h */
+    void *choice_cb;   /* ChoiceCallback from ytree_cmd.h */
   } mv;
   struct {
     FILE *pipe_file;
@@ -469,6 +531,11 @@ typedef union {
     FILE *zipfile;
     int method;
   } compress_cmd;
+  struct {
+    Statistic *statistic_ptr;
+    int auto_override;
+    void *choice_cb;
+  } del;
 } FunctionData;
 
 typedef struct {
@@ -482,10 +549,17 @@ typedef struct _PathList {
 } PathList;
 
 typedef struct {
+#ifdef YTREE_TUI
   WINDOW *pan_dir_window;
   WINDOW *pan_small_file_window;
   WINDOW *pan_big_file_window;
   WINDOW *pan_file_window;
+#else
+  void *pan_dir_window;
+  void *pan_small_file_window;
+  void *pan_big_file_window;
+  void *pan_file_window;
+#endif
   struct Volume *vol;
   FileEntryList *file_entry_list;
   size_t file_entry_list_capacity;
@@ -505,11 +579,19 @@ typedef struct {
 } YtreePanel;
 
 typedef struct {
+#ifdef YTREE_TUI
   WINDOW *ctx_dir_window;
   WINDOW *ctx_small_file_window;
   WINDOW *ctx_big_file_window;
   WINDOW *ctx_file_window;
   WINDOW *ctx_preview_window;
+#else
+  void *ctx_dir_window;
+  void *ctx_small_file_window;
+  void *ctx_big_file_window;
+  void *ctx_file_window;
+  void *ctx_preview_window;
+#endif
   int view_mode;
   BOOL show_stats;
   BOOL preview_mode;

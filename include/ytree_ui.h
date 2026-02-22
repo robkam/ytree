@@ -104,6 +104,10 @@ extern void Message(char *msg);
 extern void Notice(char *msg);
 extern void UnmapNoticeWindow(void);
 extern void Warning(char *msg);
+extern int UI_Error(const char *file, int line, const char *fmt, ...);
+extern int UI_Warning(const char *fmt, ...);
+extern int UI_Message(const char *fmt, ...);
+extern int UI_Notice(const char *fmt, ...);
 
 /* filewin.c */
 extern void BuildFileEntryList(YtreePanel *panel);
@@ -129,7 +133,7 @@ extern void PrintFileEntry(YtreePanel *panel, int entry_no, int y, int x,
 /* input.c */
 extern int Getch(void);
 extern void HitReturnToContinue(void);
-extern int InputChoice(char *msg, char *term);
+extern int InputChoice(const char *msg, const char *term);
 extern int UI_AskConflict(const char *src_path, const char *dst_path,
                           int *mode_flags);
 
@@ -189,5 +193,37 @@ extern void RenderFilePreview(WINDOW *win, char *filename,
                               long *line_offset_ptr, int col_offset);
 extern void RenderArchivePreview(WINDOW *win, char *archive_path,
                                  char *internal_path, long *line_offset_ptr);
+extern int UI_ReadFilter(void);
+extern void UI_GetKindOfSort(void);
+extern int UI_ViewTaggedFiles(DirEntry *dir_entry);
+
+/* prompts.c */
+extern int GetMoveParameter(char *from_file, char *to_file, char *to_dir);
+extern int GetCopyParameter(char *from_file, BOOL path_copy, char *to_file,
+                            char *to_dir);
+extern int GetRenameParameter(const char *old_name, char *new_name);
+extern int ChangeFileModus(FileEntry *fe_ptr);
+extern int ChangeDirModus(DirEntry *de_ptr);
+extern int GetNewOwner(int st_uid);
+extern int GetNewGroup(int st_gid);
+extern int ChangeFileOrDirOwnership(const char *path, struct stat *stat_buf,
+                                    BOOL change_owner, BOOL change_group);
+extern int HandleDirOwnership(DirEntry *de_ptr, BOOL change_owner,
+                              BOOL change_group);
+extern int HandleFileOwnership(FileEntry *fe_ptr, BOOL change_owner,
+                               BOOL change_group);
+extern int UI_ArchiveCallback(int status, const char *msg, void *user_data);
+extern int GetCommandLine(char *command_line);
+extern int GetSearchCommandLine(char *command_line, char *raw_pattern);
+extern int GetPipeCommand(char *pipe_command);
+extern int SystemCall(char *command_line, Statistic *s);
+extern int QuerySystemCall(char *command_line, Statistic *s);
+extern void shell_quote(char *dest, const char *src);
+extern int recursive_mkdir(char *path);
+extern int recursive_rmdir(const char *path);
+extern int UI_ConflictResolverWrapper(const char *src_path,
+                                      const char *dst_path, int *mode_flags);
+extern int UI_ChoiceResolver(const char *prompt, const char *choices);
+extern void BuildFileEntryList(YtreePanel *panel);
 
 #endif /* YTREE_UI_H */
