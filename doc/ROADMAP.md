@@ -1245,16 +1245,19 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 *   **Target:** `src/ui/input.c`, `src/cmd/copy.c`, `src/cmd/move.c`, `src/ui/prompt.c`.
 *   - [x] **Status:** Completed.
 
-### **Step 9.4: Standardize Menu/Popup System**
-*   **Goal:** Replace ad-hoc window creation in `vol_menu.c` and `history.c` with a centralized **Menu Manager**.
-*   **Mechanism:** Implement `UI_Menu(items, title, callback)` that handles window sizing, scrolling, and borders consistently, respecting the global layout engine.
-*   **Target:** `src/ui/vol_menu.c`, `src/util/history.c`.
-*   - [ ] **Status:** Not Started.
-
-### **Step 9.5: Centralize Window Management**
-*   **Goal:** Ensure all secondary windows (F2, Error, Help) use the `ViewContext` layout engine rather than hardcoded geometry.
-*   **Target:** `src/ui/display.c`, `src/core/init.c`.
-*   - [ ] **Status:** Not Started.
+### **Step 9.4: Implement Tiered Dialog Manager & Window Stack (Completed)**
+*   **Goal:** Eradicate ad-hoc window creation and visual fragmentation (flicker, redraw holes, overlapping artifacts) by centralizing all transient UI elements into a strict, Z-ordered Window Stack.
+*   **Mechanism:**
+    *   **The Window Stack:** Implemented `UI_Dialog_Open` and `UI_Dialog_Close` in `src/ui/dialog.c` to track active windows.
+    *   **Composite Refresh:** Engineered a flicker-free redraw algorithm (`touchwin` -> `wnoutrefresh` -> `doupdate`) that perfectly restores the underlying `GlobalView` and footer state when a dialog is popped from the stack.
+    *   **Tiered Hybrid Model:** Enforced 4 distinct UI behaviors based on `SPECIFICATION.md`:
+        *   *Tier 1 (Footer Fast-Path):* Labeled inline prompts (`AS: `, `TO: `) and confirmations (e.g., `Delete [file]?`).
+        *   *Tier 2 (Pop-over):* Left side-aligned selection boxes (History).
+        *   *Tier 3 (System Modal):* Centered, themed boxes (Volume Menu, Alerts, Info) with fallback colors.
+        *   *Tier 4 (Interactive Widget):* Integrated the F2 Directory Selector safely into the stack.
+    *   **Linear Control Flow:** Replaced complex callback architectures with "Custom Exit Keys" (Option A) to keep UI rendering strictly separated from business logic (e.g., `SelectLoadedVolume` deleting volumes via 'D').
+*   **Targets:** `src/ui/dialog.c`, `include/ytree_dialog.h`, `src/ui/vol_menu.c`, `src/util/history.c`, core command files (`copy.c`, `move.c`, `rmdir.c`).
+*   - [x] **Status:** Complete.
 
 ---
 

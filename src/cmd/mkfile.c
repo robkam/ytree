@@ -5,71 +5,53 @@
  *
  ***************************************************************************/
 
-#include "ytree.h"
-#include <fcntl.h>
-#include <unistd.h>
+#include "ytree_cmd.h"
 #include <errno.h>
+#include <fcntl.h>
+#include <string.h>
+#include <unistd.h>
 
-int MakeFile(DirEntry *dir_entry)
-{
-    char file_name[PATH_LENGTH * 2 + 1];
-    char buffer[PATH_LENGTH + 1];
-    int result = -1;
-    int fd;
-    struct stat stat_struct;
+#define FILE_SEPARATOR_STRING "/"
 
-    if (mode != DISK_MODE)
-    {
-        /* Currently only supporting Disk Mode for simplicity.
-           Archive mode would require the Rewrite Engine hooks.
-           User Mode relies on external commands so it's different.
-        */
-        MESSAGE("Touch command only available in Disk Mode");
-        return -1;
+extern int GetPath(DirEntry *dir_entry, char *buffer);
+
+int MakeFile(DirEntry *dir_entry, const char *file_name, Statistic *s,
+             int *overwrite_mode, ChoiceCallback choice_cb) {
+  char buffer[PATH_LENGTH + 1];
+  int result = -1;
+  int fd;
+  struct stat stat_struct;
+
+  if (!file_name || !*file_name) {
+    return -1;
+  }
+  /* Check if file already exists in the current view to warn user?
+     open with O_EXCL will handle the actual FS existence.
+  */
+
+  (void)GetPath(dir_entry, buffer);
+  (void)strcat(buffer, FILE_SEPARATOR_STRING);
+  (void)strcat(buffer, file_name);
+
+  /* Check existence via stat first to give a nicer error or prompt?
+     For now, let's just try to create.
+  */
+
+  if (stat(buffer, &stat_struct) == 0) {
+    /* File already exists! */
+    result = 1;
+  } else {
+    /* Use a default mask of S_IRUSR|S_IWUSR|S_IRGRP|S_IROTH */
+    fd = open(buffer, O_CREAT | O_EXCL | O_WRONLY, 0644);
+
+    if (fd == -1) {
+      /* Error creating file */
+      result = -1;
+    } else {
+      close(fd);
+      result = 0;
     }
+  }
 
-    ClearHelp();
-
-    *file_name = '\0';
-
-    if (UI_ReadString("MAKE FILE:", file_name, PATH_LENGTH, HST_FILE) == CR)
-    {
-        /* Check if file already exists in the current view to warn user? 
-           open with O_EXCL will handle the actual FS existence.
-        */
-
-        (void) GetPath(dir_entry, buffer);
-        (void) strcat(buffer, FILE_SEPARATOR_STRING);
-        (void) strcat(buffer, file_name);
-
-        /* Check existence via stat first to give a nicer error or prompt? 
-           For now, let's just try to create. 
-        */
-
-        if (stat(buffer, &stat_struct) == 0) {
-            MESSAGE("File already exists!");
-        } else {
-            fd = open(buffer, O_CREAT | O_EXCL | O_WRONLY, (S_IRUSR|S_IWUSR|S_IRGRP|S_IROTH) & ~user_umask);
-            
-            if (fd == -1) {
-                 MESSAGE("Can't create File*\"%s\"*%s", buffer, strerror(errno));
-            } else {
-                close(fd);
-                result = 0;
-
-                /* Refresh logic to show the new file */
-                /* For now, trigger a safe refresh of the current view */
-                if (ActivePanel) {
-                    RefreshTreeSafe(ActivePanel, dir_entry);
-                } else {
-                    /* Fallback if no active panel context (shouldn't happen) */
-                     /* This might be too heavy? RescanDir is what RefreshTreeSafe does. */
-                }
-            }
-        }
-    }
-
-    move(LINES - 2, 1); clrtoeol();
-
-    return result;
+  return result;
 }

@@ -1,176 +1,167 @@
 /***************************************************************************
-*
-* src/cmd/delete.c
-* Deleting files / directories
-*
-***************************************************************************/
+ *
+ * src/cmd/delete.c
+ * Deleting files / directories
+ *
+ ***************************************************************************/
 
+#include "ytree_cmd.h"
+#include "ytree_defs.h"
+#include <errno.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/stat.h>
+#include <unistd.h>
 
-#include "ytree.h"
+#ifdef HAVE_LIBARCHIVE
+#include "ytree_fs.h"
+#endif
 
-
-extern int unlink(const char *);
-extern int rmdir(const char *);
-
-
-/* Helper to resolve Panel from Stats context */
-static YtreePanel *GetPanelForStats(Statistic *s) {
-    if (!s) return NULL;
-    if (ActivePanel && &ActivePanel->vol->vol_stats == s) return ActivePanel;
-    if (IsSplitScreen) {
-        if (LeftPanel && &LeftPanel->vol->vol_stats == s) return LeftPanel;
-        if (RightPanel && &RightPanel->vol->vol_stats == s) return RightPanel;
-    }
-    return NULL;
-}
+extern char *GetFileNamePath(FileEntry *file_entry, char *buffer);
+extern int GetAvailBytes(LONGLONG *avail_bytes, Statistic *s);
+extern struct Volume *CurrentVolume;
 
 /* Helper for Archive Callback */
 static int ArchiveUICallback(int status, const char *msg, void *user_data) {
-(void)user_data;
-if (status == ARCHIVE_STATUS_PROGRESS) {
-DrawSpinner();
-if (EscapeKeyPressed()) {
-return ARCHIVE_CB_ABORT;
-}
-} else if (status == ARCHIVE_STATUS_ERROR) {
-if (msg) ERROR_MSG("%s", msg);
-} else if (status == ARCHIVE_STATUS_WARNING) {
-if (msg) WARNING("%s", msg);
-}
-return ARCHIVE_CB_CONTINUE;
+  (void)status;
+  (void)msg;
+  (void)user_data;
+  return ARCHIVE_CB_CONTINUE;
 }
 
-int DeleteFile(FileEntry *fe_ptr, int *auto_override, Statistic *s)
-{
-char     filepath[PATH_LENGTH+1];
-char	   buffer[PATH_LENGTH+1];
-int      result;
-int      term;
+int DeleteFile(FileEntry *fe_ptr, int *auto_override, Statistic *s,
+               ChoiceCallback choice_cb) {
+  char filepath[PATH_LENGTH + 1];
+  char buffer[PATH_LENGTH + 1];
+  int result;
+  int term;
 
-result = -1;
+  result = -1;
 
-(void) GetFileNamePath( fe_ptr, filepath );
+  (void)GetFileNamePath(fe_ptr, filepath);
 
 /* Handle Archive Mode Deletion Hook */
 #ifdef HAVE_LIBARCHIVE
-if (s->login_mode == ARCHIVE_MODE) {
-/* In archive mode, permissions are virtual. We skip access checks and unlink.
-* We rely on the Rewrite Engine to handle the deletion.
-*/
-if (Archive_DeleteEntry(s->login_path, filepath, ArchiveUICallback, NULL) == 0) {
-/* Success. The archive container has been rewritten.
-* Explicitly refresh the tree to update UI.
-*/
-YtreePanel *p = GetPanelForStats(s);
-if (p) RefreshTreeSafe(p, s->tree);
-else RescanDir(s->tree, strtol(TREEDEPTH, NULL, 0), s, NULL, NULL);
+  if (s->login_mode == ARCHIVE_MODE) {
+    /* In archive mode, permissions are virtual. We skip access checks and
+     * unlink. We rely on the Rewrite Engine to handle the deletion.
+     */
+    if (Archive_DeleteEntry(s->login_path, filepath, ArchiveUICallback, NULL) ==
+        0) {
+      /* Success. The archive container has been rewritten.
+      /* Success. The archive container has been rewritten.
+      * The UI must handle refreshing.
+      */
 
-return 0;
-} else {
-return -1;
-}
-}
+      return 0;
+    } else {
+      return -1;
+    }
+  }
 #endif
 
-if( !S_ISLNK( fe_ptr->stat_struct.st_mode ) )
-{
-if( access( filepath, W_OK ) )
-{
-if( access( filepath, F_OK ) )
-{
-/* File does not exist ==> done */
+  if (!S_ISLNK(fe_ptr->stat_struct.st_mode)) {
+    if (access(filepath, W_OK)) {
+      if (access(filepath, F_OK)) {
+        /* File does not exist ==> done */
 
-goto UNLINK_DONE;
-}
+        goto UNLINK_DONE;
+      }
 
-if (auto_override && *auto_override == 1) {
-term = 'Y';
-} else {
-(void) snprintf( buffer, sizeof(buffer), "overriding mode %04o for \"%s\" (Y/N/A) ? ",
-fe_ptr->stat_struct.st_mode & 0777, fe_ptr->name);
+      if (auto_override && *auto_override == 1) {
+        term = 'Y';
+      } else {
+        (void)snprintf(buffer, sizeof(buffer),
+                       "overriding mode %04o for \"%s\" (Y/N/A) ? ",
+                       fe_ptr->stat_struct.st_mode & 0777, fe_ptr->name);
 
-term = InputChoice( buffer, "YNA\033" );
-}
+        if (choice_cb) {
+          term = choice_cb(buffer, "YNA\033");
+        } else {
+          term = 'N';
+        }
+      }
 
-if (term == 'A') {
-if (auto_override) *auto_override = 1;
-term = 'Y';
-}
+      if (term == 'A') {
+        if (auto_override)
+          *auto_override = 1;
+        term = 'Y';
+      }
 
-if( term != 'Y' )
-{
-MESSAGE( "Can't delete file*\"%s\"*%s",
-filepath,
-strerror(errno)
-);
-ESCAPE;
-}
-flushinp();
-}
-}
+      if (term != 'Y') {
+        return -1;
+      }
+    }
+  }
 
-if( unlink( filepath ) )
-{
-MESSAGE( "Can't delete file*\"%s\"*%s",
-filepath,
-strerror(errno)
-);
-ESCAPE;
-}
+  if (unlink(filepath)) {
+    return -1;
+  }
 
 UNLINK_DONE:
 
-/* Remove file record */
-/*----------------*/
+  /* Remove file record */
+  /*----------------*/
 
-result = RemoveFile( fe_ptr, s );
-(void) GetAvailBytes( &s->disk_space, s );
+  result = RemoveFile(fe_ptr, s);
+  (void)GetAvailBytes(&s->disk_space, s);
 
 FNC_XIT:
 
-return( result );
+  return (result);
 }
 
+int RemoveFile(FileEntry *fe_ptr, Statistic *s) {
+  DirEntry *de_ptr;
+  LONGLONG file_size;
 
+  de_ptr = fe_ptr->dir_entry;
 
+  file_size = fe_ptr->stat_struct.st_size;
 
+  de_ptr->total_bytes -= file_size;
+  de_ptr->total_files--;
+  s->disk_total_bytes -= file_size;
+  s->disk_total_files--;
+  if (fe_ptr->matching) {
+    de_ptr->matching_bytes -= file_size;
+    de_ptr->matching_files--;
+    s->disk_matching_bytes -= file_size;
+    s->disk_matching_files--;
+  }
+  if (fe_ptr->tagged) {
+    de_ptr->tagged_bytes -= file_size;
+    de_ptr->tagged_files--;
+    s->disk_tagged_bytes -= file_size;
+    s->disk_tagged_files--;
+  }
 
-int RemoveFile(FileEntry *fe_ptr, Statistic *s)
-{
-DirEntry *de_ptr;
-LONGLONG file_size;
+  /* Remove file record */
+  /*----------------*/
 
-de_ptr = fe_ptr->dir_entry;
+  if (fe_ptr->next)
+    fe_ptr->next->prev = fe_ptr->prev;
+  if (fe_ptr->prev)
+    fe_ptr->prev->next = fe_ptr->next;
+  else
+    de_ptr->file = fe_ptr->next;
 
-file_size = fe_ptr->stat_struct.st_size;
+  free((char *)fe_ptr);
 
-de_ptr->total_bytes -= file_size;
-de_ptr->total_files--;
-s->disk_total_bytes -= file_size;
-s->disk_total_files--;
-if( fe_ptr->matching ) {
-de_ptr->matching_bytes -= file_size;
-de_ptr->matching_files--;
-s->disk_matching_bytes -= file_size;
-s->disk_matching_files--;
+  return (0);
 }
-if( fe_ptr->tagged )
-{
-de_ptr->tagged_bytes -= file_size;
-de_ptr->tagged_files--;
-s->disk_tagged_bytes -= file_size;
-s->disk_tagged_files--;
-}
 
-/* Remove file record */
-/*----------------*/
+int DeleteTaggedFiles(FileEntry *fe_ptr, WalkingPackage *walking_package) {
+  int result = -1;
+  int *auto_override = &walking_package->function_data.del.auto_override;
+  Statistic *s = walking_package->function_data.del.statistic_ptr
+                     ? walking_package->function_data.del.statistic_ptr
+                     : &CurrentVolume->vol_stats;
+  ChoiceCallback choice_cb =
+      (ChoiceCallback)walking_package->function_data.del.choice_cb;
 
-if( fe_ptr->next ) fe_ptr->next->prev = fe_ptr->prev;
-if( fe_ptr->prev ) fe_ptr->prev->next = fe_ptr->next;
-else
-de_ptr->file = fe_ptr->next;
+  result = DeleteFile(fe_ptr, auto_override, s, choice_cb);
 
-free( (char *) fe_ptr );
-
-return( 0 );
+  return (result);
 }

@@ -8,15 +8,16 @@
 #ifndef YTREE_H
 #define YTREE_H
 
-#include <stdarg.h>
+#include "ytree_cmd.h"
 #include "ytree_defs.h"
 #include "ytree_fs.h"
-#include "ytree_cmd.h"
 #include "ytree_ui.h"
+#include <stdarg.h>
 
 /* Some handy macros... */
 
-/* Cast to size_t to silence signed/unsigned comparison warnings when 'b' is sizeof/strlen */
+/* Cast to size_t to silence signed/unsigned comparison warnings when 'b' is
+ * sizeof/strlen */
 /* MINIMUM/MAXIMUM Moved to ytree_defs.h */
 
 #include "config.h"
@@ -24,98 +25,88 @@
 /* User-Defines */
 /*--------------*/
 
-#define CAT             GetProfileValue( "CAT" )
-#define HEXDUMP         GetProfileValue( "HEXDUMP" )
-#define EDITOR          GetProfileValue( "EDITOR" )
-#define PAGER           GetProfileValue( "PAGER" )
-#define MELT            GetProfileValue( "MELT" )
-#define UNCOMPRESS      GetProfileValue( "UNCOMPRESS" )
-#define GNUUNZIP        GetProfileValue( "GNUUNZIP" )
-#define BUNZIP          GetProfileValue( "BUNZIP" )
-#define MANROFF         GetProfileValue( "MANROFF" )
-#define ZSTDCAT         GetProfileValue( "ZSTDCAT" )
-#define LUNZIP          GetProfileValue( "LUNZIP" )
-#define TREEDEPTH       GetProfileValue( "TREEDEPTH" )
-#define USERVIEW        GetProfileValue( "USERVIEW" )
-#define FILEMODE        GetProfileValue( "FILEMODE" )
-#define NUMBERSEP       GetProfileValue( "NUMBERSEP" )
-#define NOSMALLWINDOW   GetProfileValue( "NOSMALLWINDOW" )
-#define INITIALDIR      GetProfileValue( "INITIALDIR" )
-#define DIR1            GetProfileValue( "DIR1" )
-#define DIR2            GetProfileValue( "DIR2" )
-#define FILE1           GetProfileValue( "FILE1" )
-#define FILE2           GetProfileValue( "FILE2" )
-#define SEARCHCOMMAND   GetProfileValue( "SEARCHCOMMAND" )
-#define HEXEDITOFFSET   GetProfileValue( "HEXEDITOFFSET" )
-#define LISTJUMPSEARCH  GetProfileValue( "LISTJUMPSEARCH" )
-#define AUDIBLEERROR    GetProfileValue( "AUDIBLEERROR" )
-#define CONFIRMQUIT     GetProfileValue( "CONFIRMQUIT" )
-#define HIDEDOTFILES    GetProfileValue( "HIDEDOTFILES" )
-#define AUTO_REFRESH    GetProfileValue("AUTO_REFRESH")
+#define CAT GetProfileValue("CAT")
+#define HEXDUMP GetProfileValue("HEXDUMP")
+#define EDITOR GetProfileValue("EDITOR")
+#define PAGER GetProfileValue("PAGER")
+#define MELT GetProfileValue("MELT")
+#define UNCOMPRESS GetProfileValue("UNCOMPRESS")
+#define GNUUNZIP GetProfileValue("GNUUNZIP")
+#define BUNZIP GetProfileValue("BUNZIP")
+#define MANROFF GetProfileValue("MANROFF")
+#define ZSTDCAT GetProfileValue("ZSTDCAT")
+#define LUNZIP GetProfileValue("LUNZIP")
+#define TREEDEPTH GetProfileValue("TREEDEPTH")
+#define USERVIEW GetProfileValue("USERVIEW")
+#define FILEMODE GetProfileValue("FILEMODE")
+#define NUMBERSEP GetProfileValue("NUMBERSEP")
+#define NOSMALLWINDOW GetProfileValue("NOSMALLWINDOW")
+#define INITIALDIR GetProfileValue("INITIALDIR")
+#define DIR1 GetProfileValue("DIR1")
+#define DIR2 GetProfileValue("DIR2")
+#define FILE1 GetProfileValue("FILE1")
+#define FILE2 GetProfileValue("FILE2")
+#define SEARCHCOMMAND GetProfileValue("SEARCHCOMMAND")
+#define HEXEDITOFFSET GetProfileValue("HEXEDITOFFSET")
+#define LISTJUMPSEARCH GetProfileValue("LISTJUMPSEARCH")
+#define AUDIBLEERROR GetProfileValue("AUDIBLEERROR")
+#define CONFIRMQUIT GetProfileValue("CONFIRMQUIT")
+#define HIDEDOTFILES GetProfileValue("HIDEDOTFILES")
+#define AUTO_REFRESH GetProfileValue("AUTO_REFRESH")
 
-#define DEFAULT_TREE       "."
+#define DEFAULT_TREE "."
 
-#define ERROR_MSG(...)     UI_Error(__FILE__, __LINE__, __VA_ARGS__)
-#define WARNING(...)       UI_Warning(__VA_ARGS__)
-#define MESSAGE(...)       UI_Message(__VA_ARGS__)
-#define NOTICE(...)        UI_Notice(__VA_ARGS__)
+/* UI Message Macros moved to ytree_defs.h */
 
-#define TAGGED_SYMBOL       '*'
-#define MAX_MODES            4
-#define DISK_MODE            0
-#define LL_FILE_MODE         1 /* Legacy, may be removed */
-#define ARCHIVE_MODE         2
-#define USER_MODE            3
+#define TAGGED_SYMBOL '*'
 
 /* Obsolete compression method definitions removed */
-#define FREEZE_COMPRESS             1
-#define COMPRESS_COMPRESS           3
-#define GZIP_COMPRESS               5
-#define BZIP_COMPRESS               6
-#define LZIP_COMPRESS               21
-#define ZSTD_COMPRESS               22
+#define FREEZE_COMPRESS 1
+#define COMPRESS_COMPRESS 3
+#define GZIP_COMPRESS 5
+#define BZIP_COMPRESS 6
+#define LZIP_COMPRESS 21
+#define ZSTD_COMPRESS 22
 
-#define SORT_BY_NAME       1
-#define SORT_BY_MOD_TIME   2
-#define SORT_BY_CHG_TIME   3
-#define SORT_BY_ACC_TIME   4
-#define SORT_BY_SIZE       5
-#define SORT_BY_OWNER      6
-#define SORT_BY_GROUP      7
-#define SORT_BY_EXTENSION  8
-#define SORT_ASC           10
-#define SORT_DSC           20
-#define SORT_CASE          40
-#define SORT_ICASE         80
+#define SORT_BY_NAME 1
+#define SORT_BY_MOD_TIME 2
+#define SORT_BY_CHG_TIME 3
+#define SORT_BY_ACC_TIME 4
+#define SORT_BY_SIZE 5
+#define SORT_BY_OWNER 6
+#define SORT_BY_GROUP 7
+#define SORT_BY_EXTENSION 8
+#define SORT_ASC 10
+#define SORT_DSC 20
+#define SORT_CASE 40
+#define SORT_ICASE 80
 
 #define DEFAULT_FILE_SPEC "*"
 
-#define TAGSYMBOL_VIEWNAME	"tag"
-#define FILENAME_VIEWNAME	"fnm"
-#define ATTRIBUTE_VIEWNAME	"atr"
-#define LINKCOUNT_VIEWNAME	"lct"
-#define FILESIZE_VIEWNAME	"fsz"
-#define MODTIME_VIEWNAME	"mot"
-#define SYMLINK_VIEWNAME	"lnm"
-#define UID_VIEWNAME		"uid"
-#define GID_VIEWNAME		"gid"
-#define INODE_VIEWNAME	"ino"
-#define ACCTIME_VIEWNAME	"act"
-#define SCTIME_VIEWNAME	"sct"
+#define TAGSYMBOL_VIEWNAME "tag"
+#define FILENAME_VIEWNAME "fnm"
+#define ATTRIBUTE_VIEWNAME "atr"
+#define LINKCOUNT_VIEWNAME "lct"
+#define FILESIZE_VIEWNAME "fsz"
+#define MODTIME_VIEWNAME "mot"
+#define SYMLINK_VIEWNAME "lnm"
+#define UID_VIEWNAME "uid"
+#define GID_VIEWNAME "gid"
+#define INODE_VIEWNAME "ino"
+#define ACCTIME_VIEWNAME "act"
+#define SCTIME_VIEWNAME "sct"
 
+#define CLOCK_INTERVAL 1
 
-#define CLOCK_INTERVAL	   1
-
-#define FILE_SEPARATOR_CHAR   '/'
+#define FILE_SEPARATOR_CHAR '/'
 #define FILE_SEPARATOR_STRING "/"
 
-#define ERR_TO_NULL           " 2> /dev/null"
-#define ERR_TO_STDOUT         " 2>&1 "
-
+#define ERR_TO_NULL " 2> /dev/null"
+#define ERR_TO_STDOUT " 2>&1 "
 
 /* Auto-Refresh Configuration Modes */
-#define REFRESH_WATCHER  1
-#define REFRESH_ON_NAV   2
+#define REFRESH_WATCHER 1
+#define REFRESH_ON_NAV 2
 #define REFRESH_ON_ENTER 4
 
 /* View Return Codes */
@@ -127,63 +118,64 @@ extern YtreeLayout layout;
 extern void Layout_Recalculate(void);
 
 /* Standard UI Vertical Layout */
-#define Y_HEADER      layout.header_y
-#define Y_PROMPT      layout.prompt_y
-#define Y_STATUS      layout.status_y
-#define Y_MESSAGE     layout.message_y
+#define Y_HEADER layout.header_y
+#define Y_PROMPT layout.prompt_y
+#define Y_STATUS layout.status_y
+#define Y_MESSAGE layout.message_y
 
 /* Dependent Macros Updated to use Layout Struct */
-#define F2_WINDOW_X          layout.dir_win_x
-#define F2_WINDOW_Y          layout.dir_win_y
-#define F2_WINDOW_WIDTH      layout.dir_win_width
-#define F2_WINDOW_HEIGHT     (layout.dir_win_height + 1)
+#define F2_WINDOW_X layout.dir_win_x
+#define F2_WINDOW_Y layout.dir_win_y
+#define F2_WINDOW_WIDTH layout.dir_win_width
+#define F2_WINDOW_HEIGHT (layout.dir_win_height + 1)
 
-#define ERROR_WINDOW_WIDTH   40
-#define ERROR_WINDOW_HEIGHT  10
-#define ERROR_WINDOW_X       ((COLS - ERROR_WINDOW_WIDTH) >> 1)
-#define ERROR_WINDOW_Y       ((LINES - ERROR_WINDOW_HEIGHT) >> 1)
+#define ERROR_WINDOW_WIDTH 40
+#define ERROR_WINDOW_HEIGHT 10
+#define ERROR_WINDOW_X ((COLS - ERROR_WINDOW_WIDTH) >> 1)
+#define ERROR_WINDOW_Y ((LINES - ERROR_WINDOW_HEIGHT) >> 1)
 
-#define HISTORY_WINDOW_X       1
-#define HISTORY_WINDOW_Y       2
-#define HISTORY_WINDOW_WIDTH   layout.main_win_width
-#define HISTORY_WINDOW_HEIGHT  (LINES - 6)
+#define HISTORY_WINDOW_X 1
+#define HISTORY_WINDOW_Y 2
+#define HISTORY_WINDOW_WIDTH layout.main_win_width
+#define HISTORY_WINDOW_HEIGHT (LINES - 6)
 
-#define MATCHES_WINDOW_X       1
-#define MATCHES_WINDOW_Y       2
-#define MATCHES_WINDOW_WIDTH   layout.main_win_width
-#define MATCHES_WINDOW_HEIGHT  (LINES - 6)
+#define MATCHES_WINDOW_X 1
+#define MATCHES_WINDOW_Y 2
+#define MATCHES_WINDOW_WIDTH layout.main_win_width
+#define MATCHES_WINDOW_HEIGHT (LINES - 6)
 
-#define TIME_WINDOW_X        (COLS - 20)
-#define TIME_WINDOW_Y        0
-#define TIME_WINDOW_WIDTH    20
-#define TIME_WINDOW_HEIGHT   1
+#define TIME_WINDOW_X (COLS - 20)
+#define TIME_WINDOW_Y 0
+#define TIME_WINDOW_WIDTH 20
+#define TIME_WINDOW_HEIGHT 1
 
-#define MODE_1                 0
-#define MODE_2                 1
-#define MODE_3                 2
-#define MODE_4                 3
-#define MODE_5                 4
+#define MODE_1 0
+#define MODE_2 1
+#define MODE_3 2
+#define MODE_4 3
+#define MODE_5 4
 
 /*
  * Message length increased to accommodate worst-case scenarios with two paths
  * (e.g. "Can't copy <path1> to <path2>") to prevent format-truncation warnings
  * and buffer overflows. (2 * 4096 + 256 for error text overhead)
  */
-#define MESSAGE_LENGTH         ((PATH_LENGTH * 2) + 256)
+#define MESSAGE_LENGTH ((PATH_LENGTH * 2) + 256)
 
-
-#define ESCAPE               goto FNC_XIT
+#define ESCAPE goto FNC_XIT
 
 #ifdef WITH_UTF8
-/* In UTF-8 mode, let ncurses handle the bytes. Only filter standard low control codes. */
+/* In UTF-8 mode, let ncurses handle the bytes. Only filter standard low control
+ * codes. */
 #define PRINT(ch) ((unsigned char)(ch) < 32 && (ch) != 0 ? ACS_BLOCK : (ch))
 #else
-#define PRINT(ch) (iscntrl(ch) && (((unsigned char)(ch)) < ' ')) ? (ACS_BLOCK) : ((unsigned char)(ch))
+#define PRINT(ch)                                                              \
+  (iscntrl(ch) && (((unsigned char)(ch)) < ' ')) ? (ACS_BLOCK)                 \
+                                                 : ((unsigned char)(ch))
 #endif
 
-#define PROFILE_FILENAME	".ytree"
-#define HISTORY_FILENAME	".ytree-hst"
-
+#define PROFILE_FILENAME ".ytree"
+#define HISTORY_FILENAME ".ytree-hst"
 
 /* ************************************************************************* */
 /*                       EXTERNS                                             */
@@ -211,7 +203,6 @@ extern BOOL IsSplitScreen;
 extern const char *StrError(int);
 #endif /* HAVE_STRERROR */
 
-
 /* Window Externs - The main view windows are now in ViewContext */
 extern WINDOW *error_window;
 extern WINDOW *history_window;
@@ -224,19 +215,20 @@ extern struct Volume *CurrentVolume;
 extern struct Volume *VolumeList;
 extern char GlobalSearchTerm[256];
 
-/* Compatibility layer for existing code using global 'statistic' and 'disk_statistic' */
+/* Compatibility layer for existing code using global 'statistic' and
+ * 'disk_statistic' */
 #define disk_statistic (CurrentVolume->vol_disk_stats)
 
-extern int       user_umask;
-extern BOOL	 print_time;
-extern BOOL      resize_request;
-extern BOOL      bypass_small_window;
-extern BOOL      highlight_full_line;
-extern BOOL      hide_dot_files;
-extern int       animation_method;
-extern char      number_seperator;
-extern char      *initial_directory;
-extern char 	 builtin_hexdump_cmd[];
+extern int user_umask;
+extern BOOL print_time;
+extern BOOL resize_request;
+extern BOOL bypass_small_window;
+extern BOOL highlight_full_line;
+extern BOOL hide_dot_files;
+extern int animation_method;
+extern char number_seperator;
+extern char *initial_directory;
+extern char builtin_hexdump_cmd[];
 
 extern UIColor ui_colors[];
 extern int NUM_UI_COLORS;
@@ -253,7 +245,8 @@ extern struct Volume *Volume_Create(void);
 extern void Volume_Delete(struct Volume *vol);
 extern void Volume_FreeAll(void);
 extern struct Volume *Volume_GetByPath(const char *path);
-extern struct Volume *Volume_Load(const char *path, struct Volume *reuse_vol, ScanProgressCallback cb);
+extern struct Volume *Volume_Load(const char *path, struct Volume *reuse_vol,
+                                  ScanProgressCallback cb);
 
 /* main.c */
 extern int ytree(int argc, char *argv[]);
@@ -264,7 +257,7 @@ extern void InitClock(void);
 extern void SuspendClock(void);
 
 /* dirwin.c */
-extern int ScanSubTree( DirEntry *dir_entry, Statistic *s );
+extern int ScanSubTree(DirEntry *dir_entry, Statistic *s);
 
 /* history.c, tabcompl.c */
 extern char *GetHistory(int type);
@@ -283,26 +276,25 @@ extern char *GetFileNamePath(FileEntry *file_entry, char *buffer);
 extern char *GetPath(DirEntry *dir_entry, char *buffer);
 extern char *GetRealFileNamePath(FileEntry *file_entry, char *buffer);
 extern void Fnsplit(char *path, char *dir, char *name);
-extern void NormPath( char *in_path, char *out_path );
+extern void NormPath(char *in_path, char *out_path);
 
 /* quit.c */
 extern void Quit(void);
-extern void QuitTo(DirEntry * dir_entry);
+extern void QuitTo(DirEntry *dir_entry);
 
 /* rmdir.c */
-extern int DeleteDirectory(DirEntry *dir_entry);
 
 /* string_utils.c */
-extern int BuildFilename( char *in_filename, char *pattern, char *out_filename);
+extern int BuildFilename(char *in_filename, char *pattern, char *out_filename);
 extern void StrCp(char *dest, const char *src);
-extern int Strrcmp(char *s1, char* s2);
+extern int Strrcmp(char *s1, char *s2);
 extern char *SubString(char *dest, char *src, int pos, int len);
 
 /* error.c */
-extern void UI_Error(const char *file, int line, const char *fmt, ...);
-extern void UI_Message(const char *fmt, ...);
-extern void UI_Warning(const char *fmt, ...);
-extern void UI_Notice(const char *fmt, ...);
+extern int UI_Error(const char *file, int line, const char *fmt, ...);
+extern int UI_Message(const char *fmt, ...);
+extern int UI_Warning(const char *fmt, ...);
+extern int UI_Notice(const char *fmt, ...);
 extern void AboutBox(void);
 extern void UnmapNoticeWindow(void);
 

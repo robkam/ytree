@@ -1621,7 +1621,7 @@ int HandleDirWindow(DirEntry *start_dir_entry) {
       need_dsp_help = TRUE;
     } break;
     case ACTION_FILTER:
-      if (ReadFilter() == 0) {
+      if (UI_ReadFilter() == 0) {
         dir_entry->start_file = 0;
         dir_entry->cursor_pos = -1;
         DisplayFileWindow(ActivePanel, dir_entry);
@@ -1726,9 +1726,14 @@ int HandleDirWindow(DirEntry *start_dir_entry) {
     case ACTION_CMD_X:
       if (mode != DISK_MODE && mode != USER_MODE) {
       } else {
-        (void)Execute(dir_entry, NULL, &ActivePanel->vol->vol_stats);
-        dir_entry = RefreshTreeSafe(ActivePanel,
-                                    dir_entry); /* Auto-Refresh after command */
+        char command_template[COMMAND_LINE_LENGTH + 1];
+        command_template[0] = '\0';
+        if (GetCommandLine(command_template) == 0) {
+          (void)Execute(dir_entry, NULL, command_template,
+                        &ActivePanel->vol->vol_stats, UI_ArchiveCallback);
+          dir_entry = RefreshTreeSafe(
+              ActivePanel, dir_entry); /* Auto-Refresh after command */
+        }
       }
       need_dsp_help = TRUE;
       DisplayAvailBytes(s);
@@ -1738,30 +1743,51 @@ int HandleDirWindow(DirEntry *start_dir_entry) {
     case ACTION_CMD_MKFILE:
       if (mode != DISK_MODE)
         break;
-      if (!MakeFile(dir_entry)) {
-        /* Determine where the new file should be.
-           Ideally MakeFile returns the new file entry, but currently it returns
-           int. BuildFileEntryList will update the list. RefreshGlobalView will
-           redraw.
-        */
-        if (ActivePanel && ActivePanel->pan_file_window) {
-          /* Force file window refresh */
-          DisplayFileWindow(ActivePanel, dir_entry);
+      {
+        char file_name[PATH_LENGTH * 2 + 1];
+        int mk_result;
+
+        ClearHelp();
+        *file_name = '\0';
+        if (UI_ReadString("MAKE FILE:", file_name, PATH_LENGTH, HST_FILE) ==
+            CR) {
+          mk_result =
+              MakeFile(dir_entry, file_name, s, NULL, UI_ChoiceResolver);
+          if (mk_result == 0) {
+            /* Determine where the new file should be. */
+            if (ActivePanel && ActivePanel->pan_file_window) {
+              /* Force file window refresh */
+              DisplayFileWindow(ActivePanel, dir_entry);
+            }
+            RefreshGlobalView(dir_entry);
+          } else if (mk_result == 1) {
+            MESSAGE("File already exists!");
+          } else {
+            MESSAGE("Can't create File*\"%s\"", file_name);
+          }
         }
-        RefreshGlobalView(dir_entry);
       }
       need_dsp_help = TRUE;
       break;
 
-    case ACTION_CMD_M:
-      if (!MakeDirectory(dir_entry)) {
-        BuildDirEntryList(ActivePanel->vol);
-        RefreshGlobalView(dir_entry);
+    case ACTION_CMD_M: {
+      char dir_name[PATH_LENGTH * 2 + 1];
+      ClearHelp();
+      *dir_name = '\0';
+      if (UI_ReadString("MAKE DIRECTORY:", dir_name, PATH_LENGTH, HST_FILE) ==
+          CR) {
+        if (!MakeDirectory(dir_entry, dir_name, s)) {
+          BuildDirEntryList(ActivePanel->vol);
+          RefreshGlobalView(dir_entry);
+        }
       }
+      move(LINES - 2, 1);
+      clrtoeol();
+    }
       need_dsp_help = TRUE;
       break;
     case ACTION_CMD_D:
-      if (!DeleteDirectory(dir_entry)) {
+      if (!DeleteDirectory(dir_entry, UI_ChoiceResolver)) {
         if (ActivePanel->disp_begin_pos + ActivePanel->cursor_pos > 0) {
           if (ActivePanel->cursor_pos > 0)
             ActivePanel->cursor_pos--;
@@ -1831,7 +1857,13 @@ int HandleDirWindow(DirEntry *start_dir_entry) {
       break;
 
     case ACTION_CMD_P: /* Pipe Directory */
-      PipeDirectory(dir_entry);
+    {
+      char pipe_cmd[PATH_LENGTH + 1];
+      pipe_cmd[0] = '\0';
+      if (GetPipeCommand(pipe_cmd) == 0) {
+        PipeDirectory(dir_entry, pipe_cmd);
+      }
+    }
       need_dsp_help = TRUE;
       break;
 

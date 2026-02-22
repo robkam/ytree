@@ -9,6 +9,7 @@
 #include "watcher.h"
 #include "ytree.h"
 #include "ytree_ui.h"
+#include <libgen.h>
 
 #define MAX(a, b) (((a) > (b)) ? (a) : (b))
 
@@ -23,9 +24,10 @@ static int my_x_step;
 /* static int  hide_left; */ /* Removed: Unused */
 static int hide_right;
 
-static unsigned max_visual_userview_len;
 static unsigned max_visual_filename_len;
 static unsigned max_visual_linkname_len;
+static BOOL IsPreviewMode;
+static unsigned max_visual_userview_len;
 static unsigned global_max_visual_filename_len;
 static unsigned global_max_visual_linkname_len;
 
@@ -43,7 +45,7 @@ static void WalkTaggedFiles(int start_file, int cursor_pos,
 static BOOL IsMatchingTaggedFiles(void);
 static void RemoveFileEntry(int entry_no);
 static void ChangeFileEntry(void);
-static int DeleteTaggedFiles(int max_dispfiles, Statistic *s);
+static int UI_DeleteTaggedFiles(int max_dispfiles, Statistic *s);
 static void SilentWalkTaggedFiles(int (*fkt)(FileEntry *, WalkingPackage *,
                                              Statistic *),
                                   WalkingPackage *walking_package);
@@ -53,127 +55,41 @@ static void SilentTagWalkTaggedFiles(int (*fkt)(FileEntry *, WalkingPackage *,
 static void RereadWindowSize(DirEntry *dir_entry);
 static void ListJump(DirEntry *dir_entry, char *str);
 static void HandleInvertTags(DirEntry *dir_entry, Statistic *s);
-static DirEntry *RefreshFileView(DirEntry *dir_entry);
-static void fmovedown(int *start_file, int *cursor_pos, int *start_x,
-                      DirEntry *dir_entry);
-static void fmoveup(int *start_file, int *cursor_pos, int *start_x,
-                    DirEntry *dir_entry);
-static void fmoveright(int *start_file, int *cursor_pos, int *start_x,
-                       DirEntry *dir_entry);
-static void fmoveleft(int *start_file, int *cursor_pos, int *start_x,
-                      DirEntry *dir_entry);
-static void fmovenpage(int *start_file, int *cursor_pos, int *start_x,
-                       DirEntry *dir_entry);
-static void fmoveppage(int *start_file, int *cursor_pos, int *start_x,
-                       DirEntry *dir_entry);
 static void UpdatePreview(DirEntry *dir_entry);
+static DirEntry *RefreshFileView(DirEntry *dir_entry);
 
-void BuildFileEntryList(YtreePanel *panel) {
-  size_t alloc_count;
-  long t_files = 0;
-  LONGLONG t_bytes = 0;
-  size_t i; /* Loop counter for recalculating tagged stats */
-  DirEntry *dir_entry;
-  Statistic *s;
-  int idx;
+int ChangeFileOwner(FileEntry *fe_ptr) {
+  int owner_id;
+  char filepath[PATH_LENGTH + 1];
 
-  if (!panel || !panel->vol)
-    return; /* Safety check */
+  if ((owner_id = GetNewOwner(fe_ptr->stat_struct.st_uid)) == -1)
+    return -1;
 
-  s = &panel->vol->vol_stats;
-
-  /* Derive current directory from panel state */
-  if (panel->vol->dir_entry_list && panel->vol->total_dirs > 0) {
-    idx = panel->disp_begin_pos + panel->cursor_pos;
-    /* Clamp */
-    if (idx < 0)
-      idx = 0;
-    if (idx >= panel->vol->total_dirs)
-      idx = panel->vol->total_dirs - 1;
-
-    dir_entry = panel->vol->dir_entry_list[idx].dir_entry;
-  } else {
-    dir_entry = s->tree;
+  GetFileNamePath(fe_ptr, filepath);
+  if (chown(filepath, owner_id, (gid_t)-1)) {
+    UI_Message("chown failed!*\"%s\"*%s", filepath, strerror(errno));
+    return -1;
   }
 
-  if (!dir_entry)
-    return;
+  fe_ptr->stat_struct.st_uid = owner_id;
+  return 0;
+}
 
-  if (panel->file_entry_list) {
-    free(panel->file_entry_list);
-    panel->file_entry_list = NULL;
-    panel->file_entry_list_capacity = 0;
+int ChangeFileGroup(FileEntry *fe_ptr) {
+  int group_id;
+  char filepath[PATH_LENGTH + 1];
+
+  if ((group_id = GetNewGroup(fe_ptr->stat_struct.st_gid)) == -1)
+    return -1;
+
+  GetFileNamePath(fe_ptr, filepath);
+  if (chown(filepath, (uid_t)-1, group_id)) {
+    UI_Message("chgrp failed!*\"%s\"*%s", filepath, strerror(errno));
+    return -1;
   }
 
-  if (!dir_entry->global_flag) {
-    /* Normal Directory View */
-
-    alloc_count =
-        dir_entry->matching_files; /* This is the potentially stale value */
-    if (alloc_count < 16)
-      alloc_count = 16;
-
-    if ((panel->file_entry_list = (FileEntryList *)calloc(
-             alloc_count, sizeof(FileEntryList))) == NULL) {
-      ERROR_MSG("Calloc Failed*ABORT");
-      exit(1);
-    }
-    panel->file_entry_list_capacity = alloc_count;
-
-    panel->file_count = 0;
-    ReadFileList(panel, dir_entry->tagged_flag, dir_entry);
-    Panel_Sort(panel, s->kind_of_sort);
-
-    /* Push metrics to renderer and recalc layout */
-    SetFileRenderingMetrics(panel, max_visual_filename_len,
-                            max_visual_linkname_len, max_visual_userview_len);
-    SetPanelFileMode(panel, GetPanelFileMode(panel));
-
-    /* Recalculate and update statistics based on the actual loaded list */
-    dir_entry->matching_files = panel->file_count;
-    t_files = 0;
-    t_bytes = 0;
-    for (i = 0; i < panel->file_count; i++) {
-      if (panel->file_entry_list[i].file->tagged) {
-        t_files++;
-        t_bytes += panel->file_entry_list[i].file->stat_struct.st_size;
-      }
-    }
-    dir_entry->tagged_files = t_files;
-    dir_entry->tagged_bytes = t_bytes;
-
-  } else {
-    /* Global / ShowAll View */
-
-    size_t count_source = (dir_entry->tagged_flag) ? s->disk_tagged_files
-                                                   : s->disk_matching_files;
-    alloc_count = count_source; /* This is also potentially stale */
-    if (alloc_count < 16)
-      alloc_count = 16;
-
-    if ((panel->file_entry_list = (FileEntryList *)calloc(
-             alloc_count, sizeof(FileEntryList))) == NULL) {
-      ERROR_MSG("Calloc Failed*ABORT");
-      exit(1);
-    }
-    panel->file_entry_list_capacity = alloc_count;
-
-    panel->file_count = 0;
-    global_max_visual_filename_len = 0;
-    global_max_visual_linkname_len = 0;
-    ReadGlobalFileList(panel, dir_entry->tagged_flag, s->tree);
-    Panel_Sort(panel, s->kind_of_sort);
-
-    /* Push metrics to renderer and recalc layout */
-    SetFileRenderingMetrics(panel, max_visual_filename_len,
-                            max_visual_linkname_len, max_visual_userview_len);
-    SetPanelFileMode(panel, GetPanelFileMode(panel));
-
-    /* Recalculate and update statistics based on the actual loaded list */
-    /* Note: Previously, this block overwrote
-       dir_entry->matching_files/tagged_files. This corruption has been removed.
-       Global stats are now handled by stats.c directly. */
-  }
+  fe_ptr->stat_struct.st_gid = group_id;
+  return 0;
 }
 
 static void ReadFileList(YtreePanel *panel, BOOL tagged_only,
@@ -554,78 +470,7 @@ static DirEntry *RefreshFileView(DirEntry *dir_entry) {
   return dir_entry;
 }
 
-static void HandleInvertTags(DirEntry *dir_entry, Statistic *s) {
-  int i;
-  FileEntry *fe_ptr;
-  DirEntry *de_ptr;
-
-  /* Iterate through the currently visible list of files */
-  for (i = 0; i < (int)ActivePanel->file_count; i++) {
-    fe_ptr = ActivePanel->file_entry_list[i].file;
-    de_ptr = fe_ptr->dir_entry;
-
-    /* Only invert matching files */
-    if (fe_ptr->matching) {
-      if (fe_ptr->tagged) {
-        fe_ptr->tagged = FALSE;
-        de_ptr->tagged_files--;
-        de_ptr->tagged_bytes -= fe_ptr->stat_struct.st_size;
-        s->disk_tagged_files--;
-        s->disk_tagged_bytes -= fe_ptr->stat_struct.st_size;
-      } else {
-        fe_ptr->tagged = TRUE;
-        de_ptr->tagged_files++;
-        de_ptr->tagged_bytes += fe_ptr->stat_struct.st_size;
-        s->disk_tagged_files++;
-        s->disk_tagged_bytes += fe_ptr->stat_struct.st_size;
-      }
-    }
-  }
-
-  /* Refresh UI */
-  DisplayFiles(ActivePanel, dir_entry, dir_entry->start_file,
-               dir_entry->start_file + dir_entry->cursor_pos, 0 /* start_x */,
-               file_window);
-  DisplayDiskStatistic(s);
-  if (dir_entry->global_flag)
-    DisplayDiskStatistic(s); /* Global view */
-  else
-    DisplayDirStatistic(dir_entry, NULL, s);
-}
-
-static void UpdatePreview(DirEntry *dir_entry) {
-  FileEntry *fe_ptr;
-  char path[PATH_LENGTH + 1];
-
-  if (!GlobalView->preview_mode || !preview_window)
-    return;
-
-  if (ActivePanel->file_count == 0) {
-    wclear(preview_window);
-    wnoutrefresh(preview_window);
-    return;
-  }
-
-  /* Check bounds */
-  if (dir_entry->start_file + dir_entry->cursor_pos >=
-      (int)ActivePanel->file_count)
-    return;
-
-  fe_ptr = ActivePanel
-               ->file_entry_list[dir_entry->start_file + dir_entry->cursor_pos]
-               .file;
-  if (!fe_ptr)
-    return;
-
-  if (mode == ARCHIVE_MODE) {
-    GetFileNamePath(fe_ptr, path);
-    RenderArchivePreview(preview_window, ActivePanel->vol->vol_stats.login_path,
-                         path, &preview_line_offset);
-  } else {
-    GetRealFileNamePath(fe_ptr, path);
-    RenderFilePreview(preview_window, path, &preview_line_offset, 0);
-  }
-}
+/* External declarations */
 
 int HandleFileWindow(DirEntry *dir_entry) {
   FileEntry *fe_ptr;
@@ -1415,17 +1260,24 @@ int HandleFileWindow(DirEntry *dir_entry) {
           ActivePanel
               ->file_entry_list[dir_entry->start_file + dir_entry->cursor_pos]
               .file;
-      de_ptr = fe_ptr->dir_entry;
-      (void)GetRealFileNamePath(fe_ptr, filepath);
-      (void)View(dir_entry, filepath);
-      need_dsp_help = TRUE;
+      if (mode == ARCHIVE_MODE) {
+        if (View(dir_entry, fe_ptr->name) != 0) {
+          /* Error message already handled in View */
+        }
+      } else {
+        char full_path[PATH_LENGTH + 1];
+        GetFileNamePath(fe_ptr, full_path);
+        if (View(dir_entry, full_path) != 0) {
+          /* Error message already handled in View */
+        }
+      }
       break;
 
     case ACTION_CMD_TAGGED_V:
       if (!IsMatchingTaggedFiles()) {
         /* STRICT FILTER MODE: No tags = no action */
       } else {
-        ViewTaggedFiles(dir_entry);
+        UI_ViewTaggedFiles(dir_entry);
         need_dsp_help = TRUE;
       }
       break;
@@ -1498,7 +1350,13 @@ int HandleFileWindow(DirEntry *dir_entry) {
         int dir_create_mode = 0; /* Local mode for single file op */
         int overwrite_mode = 0;  /* Local mode for single file op */
         CopyFile(s, fe_ptr, expanded_to_file, dest_dir_entry, to_path,
-                 path_copy, &dir_create_mode, &overwrite_mode, UI_AskConflict);
+                 path_copy, &dir_create_mode, &overwrite_mode,
+                 UI_ConflictResolverWrapper, UI_ChoiceResolver);
+      }
+
+      RefreshDirWindow(ActivePanel);
+      if (IsSplitScreen) {
+        RefreshDirWindow((ActivePanel == LeftPanel) ? RightPanel : LeftPanel);
       }
 
       RefreshGlobalView(dir_entry);
@@ -1557,14 +1415,22 @@ int HandleFileWindow(DirEntry *dir_entry) {
             to_path; /* Fixed struct access */
         walking_package.function_data.copy.path_copy =
             path_copy; /* Fixed struct access */
-        walking_package.function_data.copy.conflict_cb = (void *)UI_AskConflict;
+        walking_package.function_data.copy.conflict_cb =
+            (void *)UI_ConflictResolverWrapper;
         walking_package.function_data.copy.dir_create_mode =
             0; /* Reset auto-create mode */
         walking_package.function_data.copy.overwrite_mode =
             (term == 'N') ? 1 : 0; /* Reset overwrite mode */
+        walking_package.function_data.copy.choice_cb =
+            (void *)UI_ChoiceResolver;
 
         WalkTaggedFiles(dir_entry->start_file, dir_entry->cursor_pos,
                         CopyTaggedFiles, &walking_package);
+
+        RefreshDirWindow(ActivePanel);
+        if (IsSplitScreen) {
+          RefreshDirWindow((ActivePanel == LeftPanel) ? RightPanel : LeftPanel);
+        }
 
         RefreshGlobalView(dir_entry);
       }
@@ -1574,10 +1440,27 @@ int HandleFileWindow(DirEntry *dir_entry) {
     case ACTION_CMD_MKFILE:
       if (mode != DISK_MODE)
         break;
-      if (!MakeFile(dir_entry)) {
-        /* If successful, refresh the view */
-        BuildFileEntryList(ActivePanel);
-        RefreshGlobalView(dir_entry);
+
+      {
+        char file_name[PATH_LENGTH * 2 + 1];
+        int mk_result;
+
+        ClearHelp();
+        *file_name = '\0';
+        if (UI_ReadString("MAKE FILE:", file_name, PATH_LENGTH, HST_FILE) ==
+            CR) {
+          mk_result =
+              MakeFile(dir_entry, file_name, s, NULL, UI_ChoiceResolver);
+          if (mk_result == 0) {
+            /* If successful, refresh the view */
+            BuildFileEntryList(ActivePanel);
+            RefreshGlobalView(dir_entry);
+          } else if (mk_result == 1) {
+            MESSAGE("File already exists!");
+          } else {
+            MESSAGE("Can't create File*\"%s\"", file_name);
+          }
+        }
       }
       need_dsp_help = TRUE;
       break;
@@ -1624,7 +1507,8 @@ int HandleFileWindow(DirEntry *dir_entry) {
         }
         /* FIX: Pass &dest_dir_entry */
         if (EnsureDirectoryExists(abs_check_path, s->tree, &created,
-                                  &dest_dir_entry, &dir_create_mode) == -1)
+                                  &dest_dir_entry, &dir_create_mode,
+                                  UI_ChoiceResolver) == -1)
           break;
       }
 
@@ -1636,7 +1520,7 @@ int HandleFileWindow(DirEntry *dir_entry) {
         int overwrite_mode = 0;
         if (!MoveFile(fe_ptr, expanded_to_file, dest_dir_entry, to_path,
                       &new_fe_ptr, &dir_create_mode, &overwrite_mode,
-                      UI_AskConflict)) {
+                      UI_ConflictResolverWrapper, UI_ChoiceResolver)) {
           /* File was moved */
           /*-------------------*/
 
@@ -1644,6 +1528,13 @@ int HandleFileWindow(DirEntry *dir_entry) {
           /* ... BuildFileEntryList ... */
 
           RefreshGlobalView(dir_entry);
+
+          RefreshDirWindow(ActivePanel);
+          if (IsSplitScreen) {
+            RefreshDirWindow((ActivePanel == LeftPanel) ? RightPanel
+                                                        : LeftPanel);
+          }
+
           maybe_change_x_step = TRUE;
         }
       }
@@ -1685,7 +1576,8 @@ int HandleFileWindow(DirEntry *dir_entry) {
           }
           /* FIX: Pass &dest_dir_entry */
           if (EnsureDirectoryExists(abs_check_path, s->tree, &created,
-                                    &dest_dir_entry, &dir_create_mode) == -1)
+                                    &dest_dir_entry, &dir_create_mode,
+                                    UI_ChoiceResolver) == -1)
             break;
         }
 
@@ -1698,14 +1590,21 @@ int HandleFileWindow(DirEntry *dir_entry) {
         walking_package.function_data.mv.dest_dir_entry = dest_dir_entry;
         walking_package.function_data.mv.to_file = to_file;
         walking_package.function_data.mv.to_path = to_path;
-        walking_package.function_data.mv.conflict_cb = (void *)UI_AskConflict;
+        walking_package.function_data.mv.conflict_cb =
+            (void *)UI_ConflictResolverWrapper;
         walking_package.function_data.mv.dir_create_mode =
             0; /* Reset auto-create mode */
         walking_package.function_data.mv.overwrite_mode =
             (term == 'N') ? 1 : 0; /* Reset overwrite mode */
+        walking_package.function_data.mv.choice_cb = (void *)UI_ChoiceResolver;
 
         WalkTaggedFiles(dir_entry->start_file, dir_entry->cursor_pos,
                         MoveTaggedFiles, &walking_package);
+
+        RefreshDirWindow(ActivePanel);
+        if (IsSplitScreen) {
+          RefreshDirWindow((ActivePanel == LeftPanel) ? RightPanel : LeftPanel);
+        }
 
         BuildFileEntryList(ActivePanel);
 
@@ -1740,7 +1639,7 @@ int HandleFileWindow(DirEntry *dir_entry) {
 
       {
         int override_mode = 0;
-        if (!DeleteFile(fe_ptr, &override_mode, s)) {
+        if (!DeleteFile(fe_ptr, &override_mode, s, UI_ChoiceResolver)) {
           /* File was deleted */
           /*----------------------*/
 
@@ -1755,7 +1654,7 @@ int HandleFileWindow(DirEntry *dir_entry) {
           !IsMatchingTaggedFiles()) {
       } else {
         need_dsp_help = TRUE;
-        (void)DeleteTaggedFiles(max_disp_files, s);
+        (void)UI_DeleteTaggedFiles(max_disp_files, s);
         /* ... */
 
         RefreshGlobalView(dir_entry);
@@ -1813,7 +1712,7 @@ int HandleFileWindow(DirEntry *dir_entry) {
       break;
 
     case ACTION_CMD_S:
-      GetKindOfSort();
+      UI_GetKindOfSort();
 
       dir_entry->start_file = 0;
       dir_entry->cursor_pos = 0;
@@ -1827,7 +1726,7 @@ int HandleFileWindow(DirEntry *dir_entry) {
       break;
 
     case ACTION_FILTER:
-      if (ReadFilter() == 0) {
+      if (UI_ReadFilter() == 0) {
 
         dir_entry->start_file = 0;
         dir_entry->cursor_pos = 0;
@@ -1896,7 +1795,13 @@ int HandleFileWindow(DirEntry *dir_entry) {
               ->file_entry_list[dir_entry->start_file + dir_entry->cursor_pos]
               .file;
       de_ptr = fe_ptr->dir_entry;
-      (void)Pipe(de_ptr, fe_ptr);
+      {
+        char pipe_cmd[PATH_LENGTH + 1];
+        pipe_cmd[0] = '\0';
+        if (GetPipeCommand(pipe_cmd) == 0) {
+          (void)Pipe(de_ptr, fe_ptr, pipe_cmd);
+        }
+      }
       RefreshGlobalView(dir_entry);
       need_dsp_help = TRUE;
       break;
@@ -1906,47 +1811,43 @@ int HandleFileWindow(DirEntry *dir_entry) {
 
       if (!IsMatchingTaggedFiles()) {
       } else if (mode != DISK_MODE && mode != USER_MODE) {
-        MESSAGE("^P is not available in archive mode");
+        UI_Message("^P is not available in archive mode");
       } else {
         need_dsp_help = TRUE;
 
         filepath[0] = '\0'; /* Initialize buffer to prevent garbage prompt */
-        if (GetPipeCommand(filepath)) {
-          break;
+        if (GetPipeCommand(filepath) == 0) {
+          /* Exit ncurses mode */
+          endwin();
+          SuspendClock();
+
+          if ((walking_package.function_data.pipe_cmd.pipe_file =
+                   popen(filepath, "w")) == NULL) {
+            /* Restore ncurses mode if popen fails */
+            InitClock();
+            clearok(stdscr, TRUE);
+            refresh();
+            UI_Message("execution of command*%s*failed", filepath);
+          } else {
+            SilentWalkTaggedFiles(PipeTaggedFiles, &walking_package);
+
+            /* Close pipe and capture return value */
+            pclose_ret = pclose(walking_package.function_data.pipe_cmd
+                                    .pipe_file); /* Fixed struct access */
+
+            /* Wait for user input */
+            HitReturnToContinue();
+
+            /* Restore ncurses mode */
+            InitClock();
+            clearok(stdscr, TRUE);
+            refresh(); /* Restore screen */
+
+            if (pclose_ret) {
+              UI_Warning("pclose failed");
+            }
+          }
         }
-
-        /* Exit ncurses mode */
-        endwin();
-        SuspendClock();
-
-        if ((walking_package.function_data.pipe_cmd.pipe_file =
-                 popen(filepath, "w")) == NULL) {
-          /* Restore ncurses mode if popen fails */
-          InitClock();
-          clearok(stdscr, TRUE);
-          refresh();
-          MESSAGE("execution of command*%s*failed", filepath);
-          break;
-        }
-
-        SilentWalkTaggedFiles(PipeTaggedFiles, &walking_package);
-
-        /* Close pipe and capture return value */
-        pclose_ret = pclose(walking_package.function_data.pipe_cmd
-                                .pipe_file); /* Fixed struct access */
-
-        /* Wait for user input */
-        HitReturnToContinue();
-
-        /* Restore ncurses mode */
-        InitClock();
-        clearok(stdscr, TRUE);
-        refresh(); /* Restore screen */
-
-        if (pclose_ret) {
-          WARNING("pclose failed");
-        }
-
         RefreshGlobalView(dir_entry);
       }
       break;
@@ -1957,7 +1858,20 @@ int HandleFileWindow(DirEntry *dir_entry) {
               ->file_entry_list[dir_entry->start_file + dir_entry->cursor_pos]
               .file;
       de_ptr = fe_ptr->dir_entry;
-      (void)Execute(de_ptr, fe_ptr, &ActivePanel->vol->vol_stats);
+      {
+        char command_template[COMMAND_LINE_LENGTH + 1];
+        command_template[0] = '\0';
+        if (fe_ptr &&
+            (fe_ptr->stat_struct.st_mode & (S_IXUSR | S_IXGRP | S_IXOTH))) {
+          StrCp(command_template, fe_ptr->name);
+        }
+        if (GetCommandLine(command_template) == 0) {
+          (void)Execute(de_ptr, fe_ptr, command_template,
+                        &ActivePanel->vol->vol_stats, UI_ArchiveCallback);
+          if (mode == ARCHIVE_MODE)
+            HitReturnToContinue();
+        }
+      }
       dir_entry = RefreshFileView(dir_entry);
 
       /* Insert: Explicit Global Refresh to be safe */
@@ -2021,23 +1935,27 @@ int HandleFileWindow(DirEntry *dir_entry) {
       if (!IsMatchingTaggedFiles()) {
       } else if (mode != DISK_MODE && mode != USER_MODE &&
                  mode != ARCHIVE_MODE) {
-        MESSAGE("^X is not available in archive mode");
+        UI_Message("^X is not available in archive mode");
       } else {
         char *command_line;
 
         if ((command_line = (char *)malloc(COLS + 1)) == NULL) {
-          ERROR_MSG("Malloc failed*ABORT");
+          UI_Error(__FILE__, __LINE__, "Malloc failed*ABORT");
           exit(1);
         }
 
         need_dsp_help = TRUE;
         *command_line = '\0';
-        if (!GetCommandLine(command_line)) {
-          refresh();
+        if (GetCommandLine(command_line) == 0) {
           endwin();
+          SuspendClock();
           walking_package.function_data.execute.command = command_line;
           SilentWalkTaggedFiles(ExecuteCommand, &walking_package);
           HitReturnToContinue();
+
+          InitClock();
+          clearok(stdscr, TRUE);
+          refresh();
 
           dir_entry = RefreshFileView(dir_entry);
 
@@ -2283,9 +2201,11 @@ static void SilentWalkTaggedFiles(int (*fkt)(FileEntry *, WalkingPackage *,
 
 SilentTagWalkTaggedFiles.
 revision of above function to provide something like
-XTG's <search> facility, using external grep.
-- loops for entire filescount.
-- if called program returns 1 (grep's "no-match" retcode), untags the file.
+XTG's <search>- [x] Decouple execution: `execute.c`, `system.c`, `pipe.c`.
+- [x] Decouple remaining utilities (`filter.c`, `sort.c`, `hex.c`, `view.c`,
+etc.).
+- [x] Sanitize headers (`ytree_defs.h`, `ytree_fs.h`) for headless compilation.
+- [ ] Address lint errors and final verification.
 repeated calls can be used to pare down tags, each with a different
 string, until only the intended target files are tagged.
 
@@ -2335,7 +2255,7 @@ static BOOL IsMatchingTaggedFiles(void) {
   return (FALSE);
 }
 
-static int DeleteTaggedFiles(int max_disp_files, Statistic *s) {
+static int UI_DeleteTaggedFiles(int max_disp_files, Statistic *s) {
   FileEntry *fe_ptr;
   DirEntry *de_ptr;
   int i;
@@ -2418,7 +2338,8 @@ static int DeleteTaggedFiles(int max_disp_files, Statistic *s) {
       if (term == 'Y') {
         /* Pass the override mode pointer to suppress read-only prompts if 'A'
          * was selected previously */
-        if ((result = DeleteFile(fe_ptr, &override_mode, s)) == 0) {
+        if ((result = DeleteFile(fe_ptr, &override_mode, s,
+                                 UI_ChoiceResolver)) == 0) {
           /* File was deleted */
           /*----------------------*/
 
@@ -2575,6 +2496,54 @@ static void ListJump(DirEntry *dir_entry, char *str) {
            * cursor */
           buf_len++;
         }
+      }
+    }
+  }
+}
+
+/* Shell utilities and recursive IO moved to prompts.c */
+
+/* UI_ViewTaggedFiles moved to prompts.c */
+
+static void UpdatePreview(DirEntry *dir_entry) {
+  if (IsPreviewMode && preview_window) {
+    FileEntry *fe = NULL;
+    if (ActivePanel && ActivePanel->file_entry_list &&
+        ActivePanel->file_count > 0) {
+      fe = ActivePanel->file_entry_list[dir_entry->cursor_pos].file;
+    }
+    if (fe) {
+      char path[PATH_LENGTH];
+      GetFileNamePath(fe, path);
+      RenderFilePreview(preview_window, path, &preview_line_offset, 0);
+    } else {
+      RenderFilePreview(preview_window, "", &preview_line_offset, 0);
+    }
+  }
+}
+
+void BuildFileEntryList(YtreePanel *panel) {
+  DirEntry *dir_entry;
+  if (!panel || !panel->vol || panel->vol->total_dirs == 0)
+    return;
+  dir_entry =
+      panel->vol->dir_entry_list[panel->disp_begin_pos + panel->cursor_pos]
+          .dir_entry;
+  panel->file_count = 0;
+  ReadFileList(panel, FALSE, dir_entry);
+}
+
+static void HandleInvertTags(DirEntry *dir_entry, Statistic *s) {
+  FileEntry *fe;
+  for (fe = dir_entry->file; fe; fe = fe->next) {
+    if (fe->matching) {
+      fe->tagged = !fe->tagged;
+      if (fe->tagged) {
+        s->disk_tagged_files++;
+        dir_entry->tagged_files++;
+      } else {
+        s->disk_tagged_files--;
+        dir_entry->tagged_files--;
       }
     }
   }
