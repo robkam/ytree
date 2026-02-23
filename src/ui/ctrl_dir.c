@@ -635,6 +635,15 @@ static void HandleSwitchWindow(DirEntry *dir_entry, BOOL *need_dsp_help,
       dir_entry->start_file = 0;
       dir_entry->cursor_pos = 0;
     }
+    {
+      FILE *fp = fopen("/tmp/ytree_debug_switch.log", "a");
+      if (fp) {
+        fprintf(fp,
+                "DEBUG: HandleSwitchWindow calling HandleFileWindow for %s\n",
+                dir_entry->name);
+        fclose(fp);
+      }
+    }
     if (HandleFileWindow(dir_entry) != LOGIN_ESC) {
       /* Safety Check: If volume was deleted in File Window (via
        * SelectLoadedVolume), abort */

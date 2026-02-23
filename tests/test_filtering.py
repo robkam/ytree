@@ -73,3 +73,50 @@ def test_show_all_no_matching_files(filter_env):
     assert "FILE" not in screen
     
     tui.quit()
+
+def test_multi_pattern_filter(ytree_binary, tmp_path):
+    """
+    REGRESSION: Filter with multiple patterns (e.g. *.c,*.h) fails.
+    """
+    d = tmp_path / "filter_multi"
+    d.mkdir()
+    (d / "file1.c").write_text("c")
+    (d / "file2.h").write_text("h")
+    (d / "file3.txt").write_text("txt")
+
+    tui = YtreeTUI(executable=ytree_binary, cwd=str(d))
+    time.sleep(1.0) # Wait for scan
+
+    # Apply multi-filter
+    tui.send_keystroke(Keys.FILTER)
+    time.sleep(0.2)
+    tui.send_keystroke("\x15") # Clear line
+    tui.send_keystroke("*.c,*.h\r")
+    time.sleep(0.5)
+    
+    # Check stats for 2 files
+    screen = "\n".join(tui.get_screen_dump())
+    # Use replace(" ", "") because spacing might vary
+    assert "Mat:2" in screen.replace(" ", "") or "Mat: 2" in screen.replace(" ", "")
+    
+    # Verify Global Mode
+    tui.send_keystroke(Keys.SHOWALL)
+    time.sleep(0.5)
+    
+    screen = "\n".join(tui.get_screen_dump())
+    assert "file1.c" in screen
+    assert "file2.h" in screen
+    assert "file3.txt" not in screen
+
+    # Test with extra spaces
+    tui.send_keystroke(Keys.FILTER)
+    time.sleep(0.2)
+    tui.send_keystroke("\x15") # Clear line
+    tui.send_keystroke(" *.c , *.h \r")
+    time.sleep(0.5)
+
+    screen = "\n".join(tui.get_screen_dump())
+    assert "file1.c" in screen
+    assert "file2.h" in screen
+    
+    tui.quit()

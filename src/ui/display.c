@@ -5,8 +5,8 @@
  *
  ***************************************************************************/
 
-#include "patchlev.h"
-#include "ytree.h"
+#include "../../include/patchlev.h"
+#include "../../include/ytree.h"
 
 /* PrintMenuLine is removed as its functionality for drawing the static stats
  * panel is no longer needed. The stats panel is now fully managed by stats.c.
@@ -37,8 +37,9 @@ static char *last_line = "3-"; /* Bottom horizontal border line */
  */
 static char dir_help_disk_mode_0[] =
     "DIR       (A)ttribute A(b)out (D)elete (F)ilter   (G)roup (L)og (M)akedir";
-static char dir_help_disk_mode_1[] = "COMMANDS (O)wner (P)ipe (Q)uit (R)ename "
-                                     "(S)how (T)ag (U)ntag e(X)ec (`)dotfiles";
+static char dir_help_disk_mode_1[] =
+    "COMMANDS (O)wner (P)ipe (Q)uit (R)ename "
+    "(S)howall (T)ag (U)ntag e(X)ec (`)dotfiles";
 static char *dir_help[MAX_MODES][2] = {
     {/* DISK_MODE */
      dir_help_disk_mode_0, dir_help_disk_mode_1},
@@ -103,7 +104,7 @@ void DisplayFileHelp(void) {
   if (mode == USER_MODE) {
     if (file_help[mode][0] == file_help_disk_mode_0 && (cptr = FILE1) != NULL)
       file_help[mode][0] = cptr;
-    if (file_help[mode][1] == file_help[mode][1] && (cptr = FILE2) != NULL)
+    if (file_help[mode][1] == file_help_disk_mode_1 && (cptr = FILE2) != NULL)
       file_help[mode][1] = cptr;
   }
   for (i = 0; i < (int)(sizeof(file_help[mode]) / sizeof(file_help[mode][0]));

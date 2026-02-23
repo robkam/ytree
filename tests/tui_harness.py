@@ -3,12 +3,14 @@ import pyte
 import time
 
 class YtreeTUI:
-    def __init__(self, executable="./build/ytree", cwd=None):
+    def __init__(self, executable="./build/ytree", cwd=None, env_extra=None):
         env = {
             "COLUMNS": "120",
             "LINES": "36",
             "TERM": "xterm-256color"
         }
+        if env_extra:
+            env.update(env_extra)
         
         # Launch ytree in a headless PTY with specific dimensions
         self.child = pexpect.spawn(
@@ -50,6 +52,17 @@ class YtreeTUI:
         # Ensure latest output is collected
         self._read_output(timeout=0.05)
         return self.screen.display
+
+    def wait_for_content(self, target, timeout=5.0):
+        """Wait until the target string appearing anywhere on the screen."""
+        start_time = time.time()
+        while time.time() - start_time < timeout:
+            screen = self.get_screen_dump()
+            for line in screen:
+                if target in line:
+                    return True
+            time.sleep(0.1)
+        return False
 
     def quit(self):
         """Cleanly exit."""

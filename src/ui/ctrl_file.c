@@ -144,24 +144,28 @@ static void ReadFileList(YtreePanel *panel, BOOL tagged_only,
   }
 }
 
-static void ReadGlobalFileList(YtreePanel *panel, BOOL tagged_only,
-                               DirEntry *dir_entry) {
+static void ReadGlobalFileListInternal(YtreePanel *panel, BOOL tagged_only,
+                                       DirEntry *dir_entry) {
   DirEntry *de_ptr;
-
-  global_max_visual_filename_len = 0;
-  global_max_visual_linkname_len = 0;
 
   for (de_ptr = dir_entry; de_ptr; de_ptr = de_ptr->next) {
     if (hide_dot_files && de_ptr->name[0] == '.')
       continue;
     if (de_ptr->sub_tree)
-      ReadGlobalFileList(panel, tagged_only, de_ptr->sub_tree);
+      ReadGlobalFileListInternal(panel, tagged_only, de_ptr->sub_tree);
     ReadFileList(panel, tagged_only, de_ptr);
     global_max_visual_filename_len =
         MAX((int)global_max_visual_filename_len, (int)max_visual_filename_len);
     global_max_visual_linkname_len =
         MAX((int)global_max_visual_linkname_len, (int)max_visual_linkname_len);
   }
+}
+
+static void ReadGlobalFileList(YtreePanel *panel, BOOL tagged_only,
+                               DirEntry *dir_entry) {
+  global_max_visual_filename_len = 0;
+  global_max_visual_linkname_len = 0;
+  ReadGlobalFileListInternal(panel, tagged_only, dir_entry);
   max_visual_filename_len = global_max_visual_filename_len;
   max_visual_linkname_len = global_max_visual_linkname_len;
 }
@@ -189,7 +193,7 @@ static void RemoveFileEntry(int entry_no) {
     if (S_ISLNK(fe_ptr->stat_struct.st_mode)) {
       /* FIX: Cast StrVisualLength to int for MAX macro */
       max_visual_linkname_len =
-          MAX((int)max_visual_filename_len,
+          MAX((int)max_visual_linkname_len,
               (int)StrVisualLength(&fe_ptr->name[name_len + 1]));
     }
   }
@@ -478,6 +482,13 @@ static DirEntry *RefreshFileView(DirEntry *dir_entry) {
 /* External declarations */
 
 int HandleFileWindow(DirEntry *dir_entry) {
+  {
+    FILE *fp = fopen("/tmp/ytree_debug.log", "a");
+    if (fp) {
+      fprintf(fp, "DEBUG: HandleFileWindow ENTERED for %s\n", dir_entry->name);
+      fclose(fp);
+    }
+  }
   FileEntry *fe_ptr;
   FileEntry *new_fe_ptr;
   DirEntry *de_ptr = NULL;
@@ -2105,6 +2116,14 @@ int HandleFileWindow(DirEntry *dir_entry) {
   dir_entry->tagged_flag = FALSE;
   dir_entry->big_window = FALSE;
 
+  {
+    FILE *fp = fopen("/tmp/ytree_debug_exit.log", "a");
+    if (fp) {
+      fprintf(fp, "DEBUG: HandleFileWindow EXITING with %s\n",
+              (action == ACTION_ENTER) ? "CR" : "ESC");
+      fclose(fp);
+    }
+  }
   return ((action == ACTION_ENTER)
               ? CR
               : ESC); /* Return CR or ESC based on action */
