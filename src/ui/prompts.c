@@ -9,11 +9,13 @@
 #include "watcher.h"
 #include "ytree.h"
 #include "ytree_ui.h"
+#include <ctype.h>
 #include <dirent.h>
 #include <fcntl.h>
 #include <grp.h>
 #include <libgen.h>
 #include <pwd.h>
+#include <string.h>
 #include <sys/stat.h>
 #include <unistd.h>
 
@@ -538,11 +540,17 @@ void UI_GetKindOfSort(void) {
   int s = 0;
   int order = SORT_ASC;
 
-  ClearHelp();
+  wmove(stdscr, Y_PROMPT, 0);
+  clrtoeol();
   PrintOptions(
-      stdscr, LINES - 1, 1,
-      "Sort by (A)ccTime (C)hgTime (E)xtension (G)roup (M)odTime   (O)rder: "
-      "[ascending]");
+      stdscr, Y_PROMPT, 0,
+      "SORT by   (A)ccTime (C)hgTime (E)xtension (G)roup (M)odTime (N)ame "
+      "(S)ize");
+  wmove(stdscr, Y_PROMPT + 1, 0);
+  clrtoeol();
+  PrintOptions(stdscr, Y_PROMPT + 1, 0,
+               "COMMANDS  o(W)ner   (O)rder: [ascending]");
+  refresh();
 
   do {
     c = Getch();
@@ -580,17 +588,16 @@ void UI_GetKindOfSort(void) {
     case 'O':
       if (order == SORT_ASC) {
         order = SORT_DSC;
-        PrintOptions(stdscr, LINES - 1, 1,
-                     "Sort by (A)ccTime (C)hgTime (E)xtension (G)roup "
-                     "(M)odTime   (O)rder: "
-                     "[descending]");
       } else {
         order = SORT_ASC;
-        PrintOptions(stdscr, LINES - 1, 1,
-                     "Sort by (A)ccTime (C)hgTime (E)xtension (G)roup "
-                     "(M)odTime   (O)rder: "
-                     "[ascending]");
       }
+      wmove(stdscr, Y_PROMPT + 1, 0);
+      clrtoeol();
+      PrintOptions(stdscr, Y_PROMPT + 1, 0,
+                   (order == SORT_ASC)
+                       ? "COMMANDS  o(W)ner   (O)rder: [ascending] "
+                       : "COMMANDS  o(W)ner   (O)rder: [descending]");
+      refresh();
       break;
     }
   } while (!strchr("ACEGMNWS", c));

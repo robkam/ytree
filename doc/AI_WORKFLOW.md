@@ -64,3 +64,16 @@ If you are using a standard text editor and a web-based AI (like Google AI Studi
 1.  **Instrument:** Direct the AI to add `fprintf(stderr, ...)` calls to trace state transitions (e.g., tracing `ActivePanel` focus).
 2.  **Observe:** Run the instrumented code and provide terminal output to the AI.
 3.  **Solve:** Use the runtime evidence to guide the final fix back to Specification compliance.
+
+### 5.1 The "Hands-Off" Fix Protocol (Test-Driven AI Repair)
+
+When a bug is discovered, the most efficient and hands-off way to fix it is **not** to describe the problem and ask the AI to write C code. This leads to hallucination loops and broken state machines.
+
+Instead, force the AI to prove it understands the bug by writing a test first. Follow this strict sequence:
+
+1.  **Replicate in Python (The Test):** Describe the manual steps that cause the bug to the **Tester** persona. Instruct it: *"Write a `pytest` using the `pexpect` TUI harness that performs these exact steps and asserts the expected correct behavior. This test MUST fail currently."*
+2.  **Verify the Failure (Red):** Run `make test`. Confirm the new test fails exactly where the bug manifests. You now have a mathematical proof of the bug.
+3.  **Assign the Fix (The Code):** Hand the failing test output and the relevant C source files to the **Builder** persona. Instruct it: *"Modify the C code to make this specific test pass. Do not change the test."*
+4.  **Verify the Fix (Green):** Run `make test`. When the test passes, the bug is fixed, and you have automatically gained a permanent regression test preventing it from ever returning.
+
+**Why this works:** It removes human translation errors. The AI is forced to debug against a rigid, objective standard (the failing Python test) rather than a subjective human description.
