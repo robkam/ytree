@@ -36,7 +36,8 @@ static char *last_line = "3-"; /* Bottom horizontal border line */
  * Updated: (F)ilespec -> (F)ilter, spacing adjustments.
  */
 static char dir_help_disk_mode_0[] =
-    "DIR       (A)ttribute A(b)out (D)elete (F)ilter   (G)roup (L)og (M)akedir";
+    "DIR (A)ttribute A(b)out (D)elete (F)ilter (G)roup (L)og (M)akedir "
+    "(N)ewfile";
 static char dir_help_disk_mode_1[] =
     "COMMANDS (O)wner (P)ipe (Q)uit (R)ename "
     "(S)howall (T)ag (U)ntag e(X)ec (`)dotfiles";
@@ -60,9 +61,8 @@ static char *dir_help[MAX_MODES][2] = {
 static char file_help_disk_mode_0[] =
     "FILE      (A)ttribute (C)opy/(^K) (D)elete (E)dit (F)ilter (^F)ilemode "
     "(G)roup (H)ex";
-static char file_help_disk_mode_1[] =
-    "COMMANDS  (L)og (M)ove/(^N) (O)wner (P)ipe (Q)uit (R)ename (S)ort (V)iew "
-    "pathcop(Y)";
+static char file_help_disk_mode_1[] = "COMMANDS  (L)og (M)ove/(^N) (N)ewfile "
+                                      "(O)wner (P)ipe (Q)uit (R)ename (S)ort";
 static char *file_help[MAX_MODES][2] = {
     {/* DISK_MODE */
      file_help_disk_mode_0, file_help_disk_mode_1},
