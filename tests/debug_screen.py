@@ -3,7 +3,7 @@ import os
 from tui_harness import YtreeTUI
 from ytree_keys import Keys
 
-YTREE_BIN = "/home/rob/ytree/build/ytree"
+YTREE_BIN = os.path.abspath("./build/ytree")
 
 def debug_run():
     # Make a dummy file to copy

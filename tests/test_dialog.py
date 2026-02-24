@@ -5,7 +5,7 @@ import time
 from tui_harness import YtreeTUI
 from ytree_keys import Keys
 
-YTREE_BIN = "/home/rob/ytree/build/ytree"
+YTREE_BIN = os.path.abspath("./build/ytree")
 
 def get_screen_text(screen_dump):
     return "\n".join(screen_dump)
