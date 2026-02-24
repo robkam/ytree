@@ -1,6 +1,6 @@
 /***************************************************************************
  *
- * src/ui/prompt.c
+ * src/ui/input_line.c
  * Prompt & Input Manager
  *
  * Implements a managed window for user input, rendering in the footer area

@@ -1,9 +1,9 @@
 /***************************************************************************
- * src/ui/input.c
+ * src/ui/key_engine.c
  * Input Handling Utilities
  *
  * Contains low-level input helpers. The main string input logic has moved
- * to prompt.c (UI_ReadString).
+ * to input_line.c (UI_ReadString).
  ***************************************************************************/
 
 #include "watcher.h"

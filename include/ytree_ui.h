@@ -130,14 +130,14 @@ extern void PrintFileEntry(YtreePanel *panel, int entry_no, int y, int x,
 
 /* hex.c has moved to cmd/hex.c and prototypes to ytree_cmd.h */
 
-/* input.c */
+/* key_engine.c */
 extern int Getch(void);
 extern void HitReturnToContinue(void);
 extern int InputChoice(const char *msg, const char *term);
 extern int UI_AskConflict(const char *src_path, const char *dst_path,
                           int *mode_flags);
 
-/* prompt.c */
+/* input_line.c */
 extern int UI_ReadString(const char *prompt, char *buffer, int max_len,
                          int history_type);
 
@@ -197,7 +197,7 @@ extern int UI_ReadFilter(void);
 extern void UI_GetKindOfSort(void);
 extern int UI_ViewTaggedFiles(DirEntry *dir_entry);
 
-/* prompts.c */
+/* interactions.c */
 extern int GetMoveParameter(char *from_file, char *to_file, char *to_dir);
 extern int GetCopyParameter(char *from_file, BOOL path_copy, char *to_file,
                             char *to_dir);
