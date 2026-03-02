@@ -8,14 +8,14 @@
 #include "patchlev.h"
 #include "ytree.h"
 
-static void MapErrorWindow(char *header);
-static void MapNoticeWindow(char *header);
-static void UnmapErrorWindow(void);
-static void PrintErrorLine(int y, char *str);
-static void DisplayMessage(char *msg);
-static int PrintMessage(char *msg, BOOL do_beep);
+static void MapErrorWindow(ViewContext *ctx, char *header);
+static void MapNoticeWindow(ViewContext *ctx, char *header);
+static void UnmapErrorWindow(ViewContext *ctx);
+static void PrintErrorLine(ViewContext *ctx, int y, char *str);
+static void DisplayMessage(ViewContext *ctx, char *msg);
+static int PrintMessage(ViewContext *ctx, char *msg, BOOL do_beep);
 
-int UI_Message(const char *fmt, ...) {
+int UI_Message(ViewContext *ctx, const char *fmt, ...) {
   char buffer[MESSAGE_LENGTH + 1];
   va_list ap;
 
@@ -23,11 +23,11 @@ int UI_Message(const char *fmt, ...) {
   (void)vsnprintf(buffer, sizeof(buffer), fmt, ap);
   va_end(ap);
 
-  MapErrorWindow("E R R O R");
-  return PrintMessage(buffer, TRUE);
+  MapErrorWindow(ctx, "E R R O R");
+  return PrintMessage(ctx, buffer, TRUE);
 }
 
-int UI_Notice(const char *fmt, ...) {
+int UI_Notice(ViewContext *ctx, const char *fmt, ...) {
   char buffer[MESSAGE_LENGTH + 1];
   va_list ap;
 
@@ -35,14 +35,14 @@ int UI_Notice(const char *fmt, ...) {
   (void)vsnprintf(buffer, sizeof(buffer), fmt, ap);
   va_end(ap);
 
-  MapNoticeWindow("N O T I C E");
-  DisplayMessage(buffer);
-  RefreshWindow(error_window);
+  MapNoticeWindow(ctx, "N O T I C E");
+  DisplayMessage(ctx, buffer);
+  RefreshWindow(ctx->ctx_error_window);
   refresh();
   return 0;
 }
 
-int UI_Warning(const char *fmt, ...) {
+int UI_Warning(ViewContext *ctx, const char *fmt, ...) {
   char buffer[MESSAGE_LENGTH + 1];
   va_list ap;
 
@@ -50,11 +50,11 @@ int UI_Warning(const char *fmt, ...) {
   (void)vsnprintf(buffer, sizeof(buffer), fmt, ap);
   va_end(ap);
 
-  MapErrorWindow("W A R N I N G");
-  return PrintMessage(buffer, FALSE);
+  MapErrorWindow(ctx, "W A R N I N G");
+  return PrintMessage(ctx, buffer, FALSE);
 }
 
-void AboutBox() {
+void AboutBox(ViewContext *ctx) {
   static char version[80];
 
   (void)snprintf(version, sizeof(version),
@@ -65,11 +65,12 @@ void AboutBox() {
 #endif
                  VERSION, VERSIONDATE);
 
-  MapErrorWindow("ABOUT");
-  (void)PrintMessage(version, FALSE);
+  MapErrorWindow(ctx, "ABOUT");
+  (void)PrintMessage(ctx, version, FALSE);
 }
 
-int UI_Error(const char *module, int line, const char *fmt, ...) {
+int UI_Error(ViewContext *ctx, const char *module, int line, const char *fmt,
+             ...) {
   char msg_buffer[MESSAGE_LENGTH + 1];
   char final_buffer[MESSAGE_LENGTH + 1];
   va_list ap;
@@ -78,59 +79,77 @@ int UI_Error(const char *module, int line, const char *fmt, ...) {
   (void)vsnprintf(msg_buffer, sizeof(msg_buffer), fmt, ap);
   va_end(ap);
 
-  MapErrorWindow("INTERNAL ERROR");
+  MapErrorWindow(ctx, "INTERNAL ERROR");
   (void)snprintf(final_buffer, sizeof(final_buffer),
                  "%s*In Module \"%s\"*Line %d", msg_buffer, module, line);
-  return PrintMessage(final_buffer, TRUE);
+  return PrintMessage(ctx, final_buffer, TRUE);
 }
 
-static void MapErrorWindow(char *header) {
-  werase(error_window);
-  box(error_window, 0, 0);
+static void MapErrorWindow(ViewContext *ctx, char *header) {
+  werase(ctx->ctx_error_window);
+  wattron(ctx->ctx_error_window, COLOR_PAIR(CPAIR_WINERR) | A_ALTCHARSET);
 
-  PrintSpecialString(error_window, ERROR_WINDOW_HEIGHT - 3, 0,
-                     "6--------------------------------------7", CPAIR_WINERR);
-  wattrset(error_window, A_REVERSE | A_BLINK);
-  MvWAddStr(error_window, ERROR_WINDOW_HEIGHT - 2, 1,
+  /* Box frame with ACS */
+  wborder(ctx->ctx_error_window, 0, 0, 0, 0, 0, 0, 0, 0);
+
+  mvwhline(ctx->ctx_error_window, ERROR_WINDOW_HEIGHT - 3, 1, ACS_HLINE,
+           ERROR_WINDOW_WIDTH - 2);
+  mvwaddch(ctx->ctx_error_window, ERROR_WINDOW_HEIGHT - 3, 0, ACS_LTEE);
+  mvwaddch(ctx->ctx_error_window, ERROR_WINDOW_HEIGHT - 3,
+           ERROR_WINDOW_WIDTH - 1, ACS_RTEE);
+  wattroff(ctx->ctx_error_window, A_ALTCHARSET);
+  wattrset(ctx->ctx_error_window, A_NORMAL);
+
+  wattrset(ctx->ctx_error_window, A_REVERSE | A_BLINK);
+  MvWAddStr(ctx->ctx_error_window, ERROR_WINDOW_HEIGHT - 2, 1,
             "             PRESS ENTER              ");
-  wattrset(error_window, 0);
-  PrintErrorLine(1, header);
+  wattrset(ctx->ctx_error_window, A_NORMAL);
+  PrintErrorLine(ctx, 1, header);
 }
 
-static void MapNoticeWindow(char *header) {
-  werase(error_window);
-  box(error_window, 0, 0);
+static void MapNoticeWindow(ViewContext *ctx, char *header) {
+  werase(ctx->ctx_error_window);
+  wattron(ctx->ctx_error_window, COLOR_PAIR(CPAIR_WINERR) | A_ALTCHARSET);
 
-  PrintSpecialString(error_window, ERROR_WINDOW_HEIGHT - 3, 0,
-                     "6--------------------------------------7", CPAIR_WINERR);
-  wattrset(error_window, A_REVERSE | A_BLINK);
-  MvWAddStr(error_window, ERROR_WINDOW_HEIGHT - 2, 1,
+  /* Box frame with ACS */
+  wborder(ctx->ctx_error_window, 0, 0, 0, 0, 0, 0, 0, 0);
+
+  mvwhline(ctx->ctx_error_window, ERROR_WINDOW_HEIGHT - 3, 1, ACS_HLINE,
+           ERROR_WINDOW_WIDTH - 2);
+  mvwaddch(ctx->ctx_error_window, ERROR_WINDOW_HEIGHT - 3, 0, ACS_LTEE);
+  mvwaddch(ctx->ctx_error_window, ERROR_WINDOW_HEIGHT - 3,
+           ERROR_WINDOW_WIDTH - 1, ACS_RTEE);
+  wattroff(ctx->ctx_error_window, A_ALTCHARSET);
+  wattrset(ctx->ctx_error_window, A_NORMAL);
+
+  wattrset(ctx->ctx_error_window, A_REVERSE | A_BLINK);
+  MvWAddStr(ctx->ctx_error_window, ERROR_WINDOW_HEIGHT - 2, 1,
             "             PLEASE WAIT              ");
-  wattrset(error_window, 0);
-  PrintErrorLine(1, header);
+  wattrset(ctx->ctx_error_window, A_NORMAL);
+  PrintErrorLine(ctx, 1, header);
 }
 
-static void UnmapErrorWindow(void) {
-  werase(error_window);
+static void UnmapErrorWindow(ViewContext *ctx) {
+  werase(ctx->ctx_error_window);
   touchwin(stdscr);
   doupdate();
 }
 
-void UnmapNoticeWindow(void) {
-  werase(error_window);
+void UnmapNoticeWindow(ViewContext *ctx) {
+  werase(ctx->ctx_error_window);
   touchwin(stdscr);
   doupdate();
 }
 
-static void PrintErrorLine(int y, char *str) {
+static void PrintErrorLine(ViewContext *ctx, int y, char *str) {
   int l;
 
   l = strlen(str);
 
-  MvWAddStr(error_window, y, (ERROR_WINDOW_WIDTH - l) >> 1, str);
+  MvWAddStr(ctx->ctx_error_window, y, (ERROR_WINDOW_WIDTH - l) >> 1, str);
 }
 
-static void DisplayMessage(char *msg) {
+static void DisplayMessage(ViewContext *ctx, char *msg) {
   int y, i, j, count;
   char buffer[ERROR_WINDOW_WIDTH - 2 + 1];
 
@@ -148,7 +167,7 @@ static void DisplayMessage(char *msg) {
   for (i = 0, j = 0; msg[i]; i++) {
     if (msg[i] == '*') {
       buffer[j] = '\0';
-      PrintErrorLine(y++, buffer);
+      PrintErrorLine(ctx, y++, buffer);
       j = 0;
     } else {
       if (j < (int)((sizeof(buffer) - 1)))
@@ -156,19 +175,19 @@ static void DisplayMessage(char *msg) {
     }
   }
   buffer[j] = '\0';
-  PrintErrorLine(y, buffer);
+  PrintErrorLine(ctx, y, buffer);
 }
 
-static int PrintMessage(char *msg, BOOL do_beep) {
+static int PrintMessage(ViewContext *ctx, char *msg, BOOL do_beep) {
   int c;
 
-  DisplayMessage(msg);
-  if (do_beep && (strtol(AUDIBLEERROR, NULL, 0) != 0))
+  DisplayMessage(ctx, msg);
+  if (do_beep && (strtol((GetProfileValue)(ctx, "AUDIBLEERROR"), NULL, 0) != 0))
     beep();
-  RefreshWindow(error_window);
+  RefreshWindow(ctx->ctx_error_window);
   doupdate();
-  c = wgetch(error_window);
-  UnmapErrorWindow();
-  touchwin(dir_window);
+  c = WGetch(ctx, ctx->ctx_error_window);
+  UnmapErrorWindow(ctx);
+  touchwin(ctx->ctx_dir_window);
   return (c);
 }

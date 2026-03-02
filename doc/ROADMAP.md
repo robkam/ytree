@@ -184,8 +184,8 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 *   **Context Files:** `src/filewin.c`
 *   - [x] **Status:** Completed. (Implemented via unified `Match()` function in `filters.c`).
 
-#### **Step 4.8.7: Implement Directory Filtering**
-*   **Description:** Extend the Filter logic to support directory patterns (identified by a trailing slash, e.g., `-obj/` or `build/`). Update the Directory Tree generation logic (`ReadDirList`) to apply these filters, completely hiding matching directories and their contents from the view.
+#### **Step 4.8.7: Implement Directory Filtering (Non-Recursive)**
+*   **Description:** Extend the Filter logic to support directory patterns (identified by a trailing slash, e.g., `-obj/` or `build/`). Update the Directory Tree window view to apply these filters. **Note: This logic is non-recursive; it only affects the visibility of directories in the current view, not their internal logged state.**
 *   **Files to Modify:** `src/cmd/filter.c`, `src/ui/ctrl_dir.c`
 *   **Context Files:** `src/fs/readtree.c`
 *   - [ ] **Status:** Not Started.
@@ -555,7 +555,7 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 *   **Rationale:** Fixes a major usability issue, allowing users to easily select a destination directory on the filesystem (even from inside an archive) when copying or moving files.
 *   **Files to Modify:** `src/ui/ctrl_dir.c`
 *   **Context Files:** `src/cmd/log.c`, `src/core/volume.c`
-*   - [ ] **Status:** Not Started.
+*   - [x] **Status:** Completed.
 
 ### **Step 4.19: Add Activity Spinner**
 *   **Goal:** Display an animated spinner (e.g., `|`, `/`, `-`, `\`) in the menu bar area during long-running operations like directory scanning.
@@ -642,7 +642,40 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 *   **Context Files:** `include/config.h`
 *   - [ ] **Status:** Not Started.
 
-### **Step 4.31: Implement View Tagged Files (`^V`)**
+### **Step 4.31: Archive Write Support (Atomic Breakdown)**
+*   **Goal:** Enable modification of archives (ZIP, TAR, ISO, etc.) directly within ytree. Since `libarchive` does not support random-access modification, this requires a "Stream Rewrite" engine: open original, open temp destination, stream entries from old to new (skipping deleted ones, injecting new ones), close, and swap. The Auto-Refresh logic for archives will need to watch the archive file itself (the container) to trigger reloads.
+
+#### **Step 4.31.1: Implement Archive Rewrite Infrastructure**
+*   **Description:** Implement the core `Archive_Rewrite(char *archive_path, RewriteCallback cb, void *user_data)` function. This generic engine will handle the `Read Old -> Write New` loop, temporary file creation, atomicity, and error recovery.
+*   **Files to Modify:** `src/fs/archive.c`, `include/ytree.h`
+*   - [x] **Status:** Completed.
+
+#### **Step 4.31.2: Implement Archive Deletion**
+*   **Description:** Hook the `D` (Delete) command when in Archive Mode to use the Rewrite Engine. The callback will simply skip the entries marked for deletion during the copy stream.
+*   **Files to Modify:** `src/cmd/delete.c`, `src/fs/archive.c`
+*   - [x] **Status:** Completed.
+
+#### **Step 4.31.3: Implement Archive Addition (Copy-In) & Mkdir**
+*   **Description:** Hook `C` (Copy) and `M` (Makedir) to inject new headers and data blocks into the Rewrite stream.
+*   **Files to Modify:** `src/cmd/copy.c`, `src/cmd/mkdir.c`, `src/fs/archive.c`
+*   - [x] **Status:** Completed.
+
+#### **Step 4.31.4: Implement Archive Rename**
+*   **Description:** Hook `R` (Rename) to modify the `pathname` field of headers on the fly during the Rewrite stream.
+*   **Files to Modify:** `src/cmd/rename.c`, `src/fs/archive.c`
+*   - [x] **Status:** Completed.
+
+#### **Step 4.31.5: Implement Archive Execution & Search (`^S`/`X`)**
+*   **Description:** Implement `Execute` and `Grep` for archives by extracting files to a temporary directory (`/tmp/ytree_...`), running the command, and cleaning up. Unlike rewrite operations, this is a read-only extraction task.
+*   **Files to Modify:** `src/cmd/execute.c`, `src/ui/ctrl_file.c`
+*   - [x] **Status:** Completed.
+
+#### **Step 4.31.6: Implement Archive Move (`M`) Support**
+*   **Description:** Implement `M` (Move) for archives. Intra-archive moves use the Rewrite Engine to rename paths. Cross-volume moves use Copy-Extract + Delete.
+*   **Files to Modify:** `src/cmd/move.c`, `src/fs/archive.c`.
+*   - [ ] **Status:** Not Started.
+
+### **Step 4.32: Implement View Tagged Files (`^V`)**
 *   **Goal:** Allow sequential viewing of all tagged files.
 *   **Features:**
     *   Iterate through tagged list.
@@ -650,44 +683,7 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
     *   Untag (`u`): Allow untagging the current file while viewing.
     *   Search integration: If `^S` was used, highlight the search term in the viewer.
 *   **Files:** `src/cmd/view.c`, `src/ui/ctrl_file.c`, `src/ui/input.c`.
-*   - [ ] **Status:** Not Started.
-
-### **Step 4.32: Archive Write Support (Atomic Breakdown)**
-*   **Goal:** Enable modification of archives (ZIP, TAR, ISO, etc.) directly within ytree. Since `libarchive` does not support random-access modification, this requires a "Stream Rewrite" engine: open original, open temp destination, stream entries from old to new (skipping deleted ones, injecting new ones), close, and swap. The Auto-Refresh logic for archives will need to watch the archive file itself (the container) to trigger reloads.
-
-#### **Step 4.32.1: Implement Archive Rewrite Infrastructure**
-*   **Description:** Implement the core `Archive_Rewrite(char *archive_path, RewriteCallback cb, void *user_data)` function. This generic engine will handle the `Read Old -> Write New` loop, temporary file creation, atomicity, and error recovery.
-*   **Files to Modify:** `src/fs/archive.c`, `include/ytree.h`
 *   - [x] **Status:** Completed.
-
-#### **Step 4.32.2: Implement Archive Deletion**
-*   **Description:** Hook the `D` (Delete) command when in Archive Mode to use the Rewrite Engine. The callback will simply skip the entries marked for deletion during the copy stream.
-*   **Files to Modify:** `src/cmd/delete.c`, `src/fs/archive.c`
-*   - [x] **Status:** Completed.
-
-#### **Step 4.32.3: Implement Archive Addition (Copy-In) & Mkdir**
-*   **Description:** Hook `C` (Copy) and `M` (Makedir) to inject new headers and data blocks into the Rewrite stream.
-*   **Files to Modify:** `src/cmd/copy.c`, `src/cmd/mkdir.c`, `src/fs/archive.c`
-*   - [x] **Status:** Completed.
-
-#### **Step 4.32.4: Implement Archive Rename**
-*   **Description:** Hook `R` (Rename) to modify the `pathname` field of headers on the fly during the Rewrite stream.
-*   **Files to Modify:** `src/cmd/rename.c`, `src/fs/archive.c`
-*   - [x] **Status:** Completed.
-
-#### **Step 4.32.5: Implement Archive Execution & Search (`^S`/`X`)**
-*   **Description:** Implement `Execute` and `Grep` for archives by extracting files to a temporary directory (`/tmp/ytree_...`), running the command, and cleaning up. Unlike rewrite operations, this is a read-only extraction task.
-*   **Files to Modify:** `src/cmd/execute.c`, `src/ui/ctrl_file.c`
-*   - [x] **Status:** Completed.
-
-#### **Step 4.32.6: Implement Archive Move (`M`) Support**
-*   **Description:** Implement `M` (Move) for archives. Intra-archive moves use the Rewrite Engine to rename paths. Cross-volume moves use Copy-Extract + Delete.
-*   **Files to Modify:** `src/cmd/move.c`, `src/fs/archive.c`.
-*   - [ ] **Status:** Not Started.
-
-### **Step 4.33: Implement View Tagged Files (`^V`)**
-*   **Goal:** Allow sequential viewing of all tagged files with search term highlighting.
-*   **Description:** Uses the system pager (`less`) to view multiple files. Integrates with `^S` (Search) to pass the search pattern (e.g., `less -p "term"`) for automatic highlighting.
 
 #### **Step 4.33.1: Disk Mode View Tagged**
 *   **Implementation:** Constructs a batch command line `less file1 file2 ...`. Enables standard pager navigation (`:n` Next, `:p` Previous).
@@ -727,7 +723,7 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 *   **Mechanism:** Sticky cursor: Cursor remains at the last valid match on failed input. Implicit exit: Action keys confirm match.
 *   **Files to Modify:** `src/ui/ui_nav.c`, `src/ui/ctrl_file.c`, `src/ui/ctrl_dir.c`, `src/ui/input.c`
 *   **Context Files:** `include/ytree_ui.h`, `include/ytree_defs.h`
-*   - [ ] **Status:** In Progress. (Basic implementation done, needs refinement for "Treespec" feel).
+*   - [/] **Status:** Partially Completed. (Incremental Search implemented in File Window via `ListJump`, but missing in Directory Window).
 
 ### **Step 4.38: Implement Bottom F-Key Menu Bar**
 *   **Goal:** Shift the existing two-line command footer up by one line and reserve the bottom-most row for a clickable, function-key reference bar (F1 Help, F3 Options, F5 Redraw, F7 View, F8 Split).
@@ -912,15 +908,15 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 *   **Goal:** Refactor the F8 implementation to remove implicit dependencies on `CurrentVolume` and global window pointers. The implementation in 5.2 proved that visual splitting works, but logic state is leaking between panels.
 *   **Rationale:** "Anti-Patching" Directive. The current split-screen relies on global variable swapping which causes desynchronization bugs.
 *   **Files to Modify:** `src/ui/render_dir.c`, `src/ui/ctrl_dir.c`, `include/ytree_ui.h`
-*   - [ ] **Status:** Not Started.
+*   - [x] **Status:** Completed.
 
 #### **Step 5.3.1: Abolish Global Window Macros** (Use Architect Mode)
 *   **Goal:** Remove `#define dir_window` from `ytree.h` and force all rendering functions to accept `WINDOW*` arguments.
-*   - [ ] **Status:** Not Started.
+*   - [x] **Status:** Completed.
 
 #### **Step 5.3.2: Bind Volume to Panel (Input Loop)** (Use Architect Mode)
 *   **Goal:** Refactor `HandleDirWindow` to use `ActivePanel->vol` exclusively, removing `CurrentVolume` usage from the event loop.
-*   - [ ] **Status:** Not Started.
+*   - [x] **Status:** Completed.
 
 #### **Step 5.4: Enhanced Archive Format Detection (UDF/ISO Bridge Fix)**
 *   **Description:** Address the issue where `libarchive` defaults to the empty ISO9660 partition on "UDF Bridge" media (e.g., Windows installation ISOs), resulting in a "No Files!" directory view.
@@ -1119,7 +1115,7 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 *   **Rationale:** Enforces code quality and prevents regressions by ensuring that all changes are automatically validated.
 *   **Files to Modify:** `.github/workflows/ci.yml` (New)
 *   **Context Files:** None.
-*   - [ ] **Status:** Not Started.
+*   - [x] **Status:** Completed.
 
 ### **Step 8.5: Enhance Build System**
 *   **Goal:** Improve Makefile targets for installation and add a proper `uninstall` target to clean up all installed files. Modernize versioning by moving version info from `patchlev.h` into the `Makefile`.
@@ -1236,7 +1232,7 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 *   - [x] **Status:** Completed.
 
 ### **Step 9.2: SRP & SoC Enforcement (Audit Execution)**
-*   **Goal:** Execute the critical refactorings identified in the Architectural Audit to enforce Single Responsibility and Separation of Concerns.
+*   **Goal:** Execute the critical refactoring tasks identified in the Architectural Audit to enforce Single Responsibility and Separation of Concerns.
 *   **Rationale:** Decoupling Model (FS), View (UI), and Controller (Input) is prerequisite for stability and testing.
 
 ### **Step 9.3: Refactor Input Subsystem (Prompt Manager)**

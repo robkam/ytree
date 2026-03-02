@@ -88,7 +88,7 @@ static Profile profile[] = {
 static int Compare(const void *s1, const void *s2);
 static int ChCode(const char *s);
 
-int ReadProfile(char *filename) {
+int ReadProfile(ViewContext *ctx, char *filename) {
   int l, result = -1;
   char buffer[1024], *n, *old;
   char *name, *value, *cptr;
@@ -99,10 +99,15 @@ int ReadProfile(char *filename) {
   Dirmenu *d, *new_d;
   FILE *f;
 
+  ctx->profile_data = profile;
+  ctx->viewer_list = &viewer;
+  ctx->dirmenu_list = &dirmenu;
+  ctx->filemenu_list = &filemenu;
+
   section = NO_SECTION;
-  v = &viewer;
-  m = &filemenu;
-  d = &dirmenu;
+  v = (Viewer *)ctx->viewer_list;
+  m = (Filemenu *)ctx->filemenu_list;
+  d = (Dirmenu *)ctx->dirmenu_list;
 
   v->next = NULL;
   m->next = NULL;
@@ -166,8 +171,8 @@ int ReadProfile(char *filename) {
       if (*name && value) {
         *value++ = '\0';
         key.name = name;
-        if ((p = bsearch(&key, profile, PROFILE_ENTRIES, sizeof(*p),
-                         Compare))) {
+        if ((p = bsearch(&key, (Profile *)ctx->profile_data, PROFILE_ENTRIES,
+                         sizeof(*p), Compare))) {
           p->value = xstrdup(value);
         }
       }
@@ -188,7 +193,7 @@ int ReadProfile(char *filename) {
         *value++ = '\0';
         ParseColorString(value, &fg, &bg);
         if (fg != -1 && bg != -1) {
-          AddFileColorRule(name, fg, bg);
+          AddFileColorRule(ctx, name, fg, bg);
         }
       }
     } else if (section == MENU_SECTION) {
@@ -198,8 +203,8 @@ int ReadProfile(char *filename) {
         if (!strcmp(name, "DIR1") || !strcmp(name, "DIR2") ||
             !strcmp(name, "FILE1") || !strcmp(name, "FILE2")) {
           key.name = name;
-          if ((p = bsearch(&key, profile, PROFILE_ENTRIES, sizeof(*p),
-                           Compare))) {
+          if ((p = bsearch(&key, (Profile *)ctx->profile_data, PROFILE_ENTRIES,
+                           sizeof(*p), Compare))) {
             l = 0;
             for (cptr = value; *cptr; ++cptr) {
               if (*cptr != '(' && *cptr != ')') {
@@ -221,7 +226,8 @@ int ReadProfile(char *filename) {
           value++;
         n = strtok_r(name, ",", &old);
         while (n) {
-          for (new_m = filemenu.next; new_m != NULL; new_m = new_m->next) {
+          for (new_m = ((Filemenu *)ctx->filemenu_list)->next; new_m != NULL;
+               new_m = new_m->next) {
             if (new_m->chkey == ChCode(n)) {
               new_m->chremap = ChCode(value);
               if (new_m->chremap == 0)
@@ -247,7 +253,8 @@ int ReadProfile(char *filename) {
         *value++ = '\0';
         while (*value && isspace(*value))
           value++;
-        for (new_m = filemenu.next; new_m != NULL; new_m = new_m->next) {
+        for (new_m = ((Filemenu *)ctx->filemenu_list)->next; new_m != NULL;
+             new_m = new_m->next) {
           if (new_m->chkey == ChCode(name)) {
             new_m->cmd = xstrdup(value);
             if (new_m->chremap == 0)
@@ -273,7 +280,8 @@ int ReadProfile(char *filename) {
           value++;
         n = strtok_r(name, ",", &old);
         while (n) {
-          for (new_d = dirmenu.next; new_d != NULL; new_d = new_d->next) {
+          for (new_d = ((Dirmenu *)ctx->dirmenu_list)->next; new_d != NULL;
+               new_d = new_d->next) {
             if (new_d->chkey == ChCode(n)) {
               new_d->chremap = ChCode(value);
               if (new_d->chremap == 0)
@@ -299,7 +307,8 @@ int ReadProfile(char *filename) {
         *value++ = '\0';
         while (*value && isspace(*value))
           value++;
-        for (new_d = dirmenu.next; new_d != NULL; new_d = new_d->next) {
+        for (new_d = ((Dirmenu *)ctx->dirmenu_list)->next; new_d != NULL;
+             new_d = new_d->next) {
           if (new_d->chkey == ChCode(name)) {
             new_d->cmd = xstrdup(value);
             if (new_d->chremap == 0)
@@ -348,10 +357,11 @@ int ReadProfile(char *filename) {
   return (result);
 }
 
-void SetProfileValue(char *name, char *value) {
+void SetProfileValue(ViewContext *ctx, char *name, char *value) {
   Profile *p, key;
   key.name = name;
-  p = bsearch(&key, profile, PROFILE_ENTRIES, sizeof(*p), Compare);
+  p = bsearch(&key, (Profile *)ctx->profile_data, PROFILE_ENTRIES, sizeof(*p),
+              Compare);
   if (p) {
     if (p->value)
       free(p->value);
@@ -359,11 +369,12 @@ void SetProfileValue(char *name, char *value) {
   }
 }
 
-char *GetProfileValue(const char *name) {
+char *GetProfileValue(ViewContext *ctx, const char *name) {
   Profile *p, key;
   char *cptr;
   key.name = (char *)name;
-  p = bsearch(&key, profile, PROFILE_ENTRIES, sizeof(*p), Compare);
+  p = bsearch(&key, (Profile *)ctx->profile_data, PROFILE_ENTRIES, sizeof(*p),
+              Compare);
   if (!p)
     return ("");
   if (p->value)
@@ -384,9 +395,9 @@ static int Compare(const void *s1, const void *s2) {
   return (strcmp(((Profile *)s1)->name, ((Profile *)s2)->name));
 }
 
-char *GetUserFileAction(int chkey, int *pchremap) {
+char *GetUserFileAction(ViewContext *ctx, int chkey, int *pchremap) {
   Filemenu *m;
-  for (m = filemenu.next; m; m = m->next) {
+  for (m = ((Filemenu *)ctx->filemenu_list)->next; m; m = m->next) {
     if (chkey == m->chkey) {
       if (pchremap)
         *pchremap = m->chremap;
@@ -398,9 +409,9 @@ char *GetUserFileAction(int chkey, int *pchremap) {
   return (NULL);
 }
 
-char *GetUserDirAction(int chkey, int *pchremap) {
+char *GetUserDirAction(ViewContext *ctx, int chkey, int *pchremap) {
   Dirmenu *d;
-  for (d = dirmenu.next; d; d = d->next) {
+  for (d = ((Dirmenu *)ctx->dirmenu_list)->next; d; d = d->next) {
     if (chkey == d->chkey) {
       if (pchremap)
         *pchremap = d->chremap;
@@ -412,15 +423,16 @@ char *GetUserDirAction(int chkey, int *pchremap) {
   return (NULL);
 }
 
-BOOL IsUserActionDefined(void) {
-  return ((BOOL)(dirmenu.next != NULL || filemenu.next != NULL));
+BOOL IsUserActionDefined(ViewContext *ctx) {
+  return ((BOOL)(((Dirmenu *)ctx->dirmenu_list)->next != NULL ||
+                 ((Filemenu *)ctx->filemenu_list)->next != NULL));
 }
 
-char *GetExtViewer(char *filename) {
+char *GetExtViewer(ViewContext *ctx, char *filename) {
   Viewer *v;
   int l, x;
   l = strlen(filename);
-  for (v = viewer.next; v; v = v->next) {
+  for (v = ((Viewer *)ctx->viewer_list)->next; v; v = v->next) {
     x = strlen(v->ext);
     if (l > x) {
       if (!strcmp(&filename[l - x], v->ext)) {

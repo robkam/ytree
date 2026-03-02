@@ -5,18 +5,16 @@
  *
  ***************************************************************************/
 
-#ifndef YTREE_H
-#include "../../include/ytree.h"
-#endif
+#include "ytree.h"
 
-static void UnReadSubTree(DirEntry *dir_entry, Statistic *s);
+static void UnReadSubTree(ViewContext *ctx, DirEntry *dir_entry, Statistic *s);
 
 /* Read file tree: path = "root" path
  * dir_entry is filled by the function
  */
 
-int ReadTree(DirEntry *dir_entry, char *path, int depth, Statistic *s,
-             ScanProgressCallback cb, void *cb_data) {
+int ReadTree(ViewContext *ctx, DirEntry *dir_entry, char *path, int depth,
+             Statistic *s, ScanProgressCallback cb, void *cb_data) {
   DIR *dir;
   struct stat stat_struct;
   struct dirent *dirent;
@@ -36,14 +34,14 @@ int ReadTree(DirEntry *dir_entry, char *path, int depth, Statistic *s,
     FileEntry *f, *n;
     for (f = dir_entry->file; f; f = n) {
       n = f->next;
-      RemoveFile(f, s); /* Updates stats and frees memory */
+      RemoveFile(ctx, f, s); /* Updates stats and frees memory */
     }
     dir_entry->file = NULL;
   }
   if (dir_entry->sub_tree) {
     /* Use UnReadSubTree to recursively free children and decrement stats
      * correctly */
-    UnReadSubTree(dir_entry->sub_tree, s);
+    UnReadSubTree(ctx, dir_entry->sub_tree, s);
     dir_entry->sub_tree = NULL;
   }
 
@@ -110,7 +108,7 @@ int ReadTree(DirEntry *dir_entry, char *path, int depth, Statistic *s,
     if (EscapeKeyPressed()) {
       /* Ask whether to abort scan */
       int choice =
-          InputChoice("Abort scan (Y/N)?", "YyNn\033"); /* \033 is ESC */
+          InputChoice(ctx, "Abort scan (Y/N)?", "YyNn\033"); /* \033 is ESC */
       if (choice == 'Y' || choice == ESC) {
         closedir(dir);
         /* CRITICAL - Attach Partial Results */
@@ -147,7 +145,7 @@ int ReadTree(DirEntry *dir_entry, char *path, int depth, Statistic *s,
     if (STAT_(new_path, &stat_struct)) {
       if (errno == EACCES)
         continue;
-      ERROR_MSG("Stat failed on*%s*IGNORED", new_path);
+      MESSAGE(ctx, "Stat failed on*%s*IGNORED", new_path);
       continue;
     }
 
@@ -167,7 +165,7 @@ int ReadTree(DirEntry *dir_entry, char *path, int depth, Statistic *s,
       den_ptr->prev = den_ptr->next = NULL;
 
       /* Recursive call with abort check, passing callback data */
-      if (ReadTree(den_ptr, new_path, depth - 1, s, cb, cb_data) == -1) {
+      if (ReadTree(ctx, den_ptr, new_path, depth - 1, s, cb, cb_data) == -1) {
         /* Fix: Free the partially built subtree before returning */
         DeleteTree(den_ptr); /* Free the allocated DirEntry and its children */
         closedir(dir);
@@ -279,28 +277,28 @@ int ReadTree(DirEntry *dir_entry, char *path, int depth, Statistic *s,
   return (0);
 }
 
-void UnReadTree(DirEntry *dir_entry, Statistic *s) {
+void UnReadTree(ViewContext *ctx, DirEntry *dir_entry, Statistic *s) {
   FileEntry *fe_ptr, *next_fe_ptr;
 
   if (dir_entry == s->tree) {
-    MESSAGE("Can't delete ROOT");
+    MESSAGE(ctx, "Can't delete ROOT");
   } else {
     for (fe_ptr = dir_entry->file; fe_ptr; fe_ptr = next_fe_ptr) {
       next_fe_ptr = fe_ptr->next;
-      RemoveFile(fe_ptr, s);
+      RemoveFile(ctx, fe_ptr, s);
     }
     if (dir_entry->sub_tree) {
-      UnReadSubTree(dir_entry->sub_tree, s);
+      UnReadSubTree(ctx, dir_entry->sub_tree, s);
     }
     if (s->disk_total_directories > 0)
       s->disk_total_directories--;
     (void)GetAvailBytes(&s->disk_space, s);
-    DisplayDiskStatistic(s);
+    DisplayDiskStatistic(ctx, s);
     doupdate();
   }
 }
 
-static void UnReadSubTree(DirEntry *dir_entry, Statistic *s) {
+static void UnReadSubTree(ViewContext *ctx, DirEntry *dir_entry, Statistic *s) {
   DirEntry *de_ptr, *next_de_ptr;
   FileEntry *fe_ptr, *next_fe_ptr;
 
@@ -309,11 +307,11 @@ static void UnReadSubTree(DirEntry *dir_entry, Statistic *s) {
 
     for (fe_ptr = de_ptr->file; fe_ptr; fe_ptr = next_fe_ptr) {
       next_fe_ptr = fe_ptr->next;
-      RemoveFile(fe_ptr, s);
+      RemoveFile(ctx, fe_ptr, s);
     }
 
     if (de_ptr->sub_tree) {
-      UnReadSubTree(de_ptr->sub_tree, s);
+      UnReadSubTree(ctx, de_ptr->sub_tree, s);
     }
 
     if (!de_ptr->up_tree->not_scanned)
@@ -331,7 +329,7 @@ static void UnReadSubTree(DirEntry *dir_entry, Statistic *s) {
   }
 }
 
-int RescanDir(DirEntry *dir_entry, int depth, Statistic *s,
+int RescanDir(ViewContext *ctx, DirEntry *dir_entry, int depth, Statistic *s,
               ScanProgressCallback cb, void *cb_data) {
   char path[PATH_LENGTH + 1];
   FileEntry *fe_ptr, *next_fe_ptr;
@@ -346,7 +344,7 @@ int RescanDir(DirEntry *dir_entry, int depth, Statistic *s,
 
   /* Unlink and free all child directories recursively, updating stats. */
   if (dir_entry->sub_tree) {
-    UnReadSubTree(dir_entry->sub_tree, s);
+    UnReadSubTree(ctx, dir_entry->sub_tree, s);
     dir_entry->sub_tree = NULL;
   }
 
@@ -354,7 +352,7 @@ int RescanDir(DirEntry *dir_entry, int depth, Statistic *s,
   for (fe_ptr = dir_entry->file; fe_ptr != NULL; fe_ptr = next_fe_ptr) {
     next_fe_ptr = fe_ptr->next;
     /* RemoveFile updates stats and frees the entry */
-    RemoveFile(fe_ptr, s);
+    RemoveFile(ctx, fe_ptr, s);
   }
   dir_entry->file = NULL;
 
@@ -367,11 +365,11 @@ int RescanDir(DirEntry *dir_entry, int depth, Statistic *s,
   s->disk_total_directories--;
 
   /* Call ReadTree with the passed callback context */
-  ReadTree(dir_entry, path, depth, s, cb, cb_data);
+  ReadTree(ctx, dir_entry, path, depth, s, cb, cb_data);
 
   /* Since we just reloaded the tree, dot files are present in memory.
      We must now recalculate stats based on the current visibility setting. */
-  RecalculateSysStats(s);
+  RecalculateSysStats(ctx, s);
 
   /* Global matching stats are now incorrect. Reset and recalculate. */
   s->disk_matching_files = 0L;

@@ -32,7 +32,7 @@ MANDEST     = $(DESTDIR)/share/man/man1
 # -------------------------------------------------------------------------
 
 # ADD_CFLAGS: Add -DVI_KEYS if you want vi-cursor-keys
-ADD_CFLAGS  = # -DVI_KEYS
+ADD_CFLAGS  = -DVI_KEYS
 
 # Default configuration for Linux (WSL/Ubuntu) with ncurses 6
 # NOTE: This build now requires libarchive.

@@ -7,80 +7,62 @@
 
 #include "ytree.h"
 
-static void PrintHstEntry(int entry_no, int y, int color, int start_x,
-                          int *hide_left, int *hide_right);
-static int DisplayHistory();
+static void PrintHstEntry(ViewContext *ctx, int entry_no, int y, int color,
+                          int start_x, int *hide_left, int *hide_right);
+static int DisplayHistory(ViewContext *ctx);
 
 #define MAX_HST_FILE_LINES 200
 #define MAX(a, b) (((a) > (b)) ? (a) : (b))
 
-typedef struct _history {
-  char *hst;
-  int type;
-  int pinned;
-  struct _history *next;
-  struct _history *prev;
-} History;
-
-static int total_hist = 0;
-static int cursor_pos = 0;
-static int disp_begin_pos = 0;
-static History *Hist = NULL;
-
-/* Helper view structure for sorting/filtering */
-static History **ViewList = NULL;
-static int view_count = 0;
-
-static void FreeViewList(void) {
-  if (ViewList) {
-    free(ViewList);
-    ViewList = NULL;
+static void FreeViewList(ViewContext *ctx) {
+  if (ctx->history_view_list) {
+    free(ctx->history_view_list);
+    ctx->history_view_list = NULL;
   }
-  view_count = 0;
-  total_hist = 0;
+  ctx->history_view_count = 0;
+  ctx->total_hist = 0;
 }
 
-static void BuildViewList(int type) {
+static void BuildViewList(ViewContext *ctx, int type) {
   History *ptr;
   int i;
-  /* int pinned_count = 0; // Unused */
-  /* int unpinned_count = 0; // Unused */
 
-  FreeViewList();
+  FreeViewList(ctx);
 
   /* First, count matching items */
-  for (ptr = Hist; ptr; ptr = ptr->next) {
+  for (ptr = ctx->history_head; ptr; ptr = ptr->next) {
     if (ptr->type == type) {
-      view_count++;
+      ctx->history_view_count++;
     }
   }
-  total_hist = view_count;
+  ctx->total_hist = ctx->history_view_count;
 
-  if (view_count == 0)
+  if (ctx->history_view_count == 0)
     return;
 
-  ViewList = (History **)xmalloc(view_count * sizeof(History *));
+  ctx->history_view_list =
+      (History **)xmalloc(ctx->history_view_count * sizeof(History *));
 
   /* Populate ViewList: Pinned first (preserving relative order from Hist), then
    * Unpinned */
   i = 0;
 
   /* Pass 1: Add Pinned items */
-  for (ptr = Hist; ptr; ptr = ptr->next) {
+  for (ptr = ctx->history_head; ptr; ptr = ptr->next) {
     if (ptr->type == type && ptr->pinned) {
-      ViewList[i++] = ptr;
+      ctx->history_view_list[i++] = ptr;
     }
   }
 
   /* Pass 2: Add Unpinned items */
-  for (ptr = Hist; ptr; ptr = ptr->next) {
+  for (ptr = ctx->history_head; ptr; ptr = ptr->next) {
     if (ptr->type == type && !ptr->pinned) {
-      ViewList[i++] = ptr;
+      ctx->history_view_list[i++] = ptr;
     }
   }
 }
 
-void ReadHistory(char *Filename) {
+void ReadHistory(ViewContext *ctx, char *Filename) {
   FILE *HstFile;
   char buffer[BUFSIZ];
   char *cptr;
@@ -112,30 +94,22 @@ void ReadHistory(char *Filename) {
             pinned = atoi(content);
             content = cptr + 1;
 
-            /* Call InsHistory directly with parsed type.
-             * Note: InsHistory puts at head. ReadHistory usually reads older
-             * lines later? No, file is usually written newest-first or
-             * oldest-first? Standard ytree SaveHistory writes newest to oldest
-             * in loop 0..N? No, SaveHistory iterates list (Newest->Oldest) but
-             * writes Reversed (Oldest->Newest). So ReadHistory reads
-             * Oldest->Newest. InsHistory puts at Head. So final list is
-             * Newest->Oldest. Correct.
-             */
-            InsHistory(content, type);
+            InsHistory(ctx, content, type);
             /* Apply pinned flag to the newly inserted item (which is at Hist)
              */
-            if (Hist && strcmp(Hist->hst, content) == 0) {
-              Hist->pinned = pinned;
+            if (ctx->history_head &&
+                strcmp(ctx->history_head->hst, content) == 0) {
+              ctx->history_head->pinned = pinned;
             }
           } else {
             /* Malformed or legacy line containing colons */
             /* Restore first colon */
             *(--content) = ':';
-            InsHistory(buffer, HST_GENERAL);
+            InsHistory(ctx, buffer, HST_GENERAL);
           }
         } else {
           /* Legacy format */
-          InsHistory(buffer, HST_GENERAL);
+          InsHistory(ctx, buffer, HST_GENERAL);
         }
       }
     }
@@ -144,13 +118,13 @@ void ReadHistory(char *Filename) {
   return;
 }
 
-void SaveHistory(char *Filename) {
+void SaveHistory(ViewContext *ctx, char *Filename) {
   FILE *HstFile;
   int i, count;
   History *hst;
   History **hst_array;
 
-  if (!Hist)
+  if (!ctx->history_head)
     return;
 
   if ((HstFile = fopen(Filename, "w")) == NULL)
@@ -160,7 +134,8 @@ void SaveHistory(char *Filename) {
 
   /* Collect pointers by traversing forward (Newest -> Oldest) */
   count = 0;
-  for (hst = Hist; hst && count < MAX_HST_FILE_LINES; hst = hst->next) {
+  for (hst = ctx->history_head; hst && count < MAX_HST_FILE_LINES;
+       hst = hst->next) {
     hst_array[count++] = hst;
   }
 
@@ -174,26 +149,27 @@ void SaveHistory(char *Filename) {
   fclose(HstFile);
 }
 
-void InsHistory(char *NewHst, int type) {
+void InsHistory(ViewContext *ctx, char *NewHst, int type) {
   History *TMP, *TMP2 = NULL;
   int flag = 0;
 
   if (strlen(NewHst) == 0)
     return;
 
-  TMP2 = Hist;
-  for (TMP = Hist; TMP != NULL; TMP = TMP->next) {
+  TMP2 = ctx->history_head;
+  for (TMP = ctx->history_head; TMP != NULL; TMP = TMP->next) {
     /* Match string AND type */
     if (strcmp(TMP->hst, NewHst) == 0 && TMP->type == type) {
       if (TMP2 != TMP) {
         TMP2->next = TMP->next;
         if (TMP->next)
           TMP->next->prev = TMP2; /* Fix broken double link */
-        TMP->next = Hist;
-        Hist = TMP;
-        if (Hist->next)
-          Hist->next->prev = Hist; /* Fix prev pointer of old head */
-        Hist->prev = NULL;
+        TMP->next = ctx->history_head;
+        ctx->history_head = TMP;
+        if (ctx->history_head->next)
+          ctx->history_head->next->prev =
+              ctx->history_head; /* Fix prev pointer of old head */
+        ctx->history_head->prev = NULL;
       }
       flag = 1;
       break;
@@ -203,23 +179,21 @@ void InsHistory(char *NewHst, int type) {
 
   if (flag == 0) {
     TMP = (History *)xmalloc(sizeof(struct _history));
-    TMP->next = Hist;
+    TMP->next = ctx->history_head;
     TMP->prev = NULL;
     TMP->hst = xstrdup(NewHst);
     TMP->type = type;
     TMP->pinned = 0;
 
-    if (Hist != NULL)
-      Hist->prev = TMP;
-    Hist = TMP;
-    /* total_hist updated via BuildViewList during GetHistory, or irrelevant for
-     * globals here */
+    if (ctx->history_head != NULL)
+      ctx->history_head->prev = TMP;
+    ctx->history_head = TMP;
   }
   return;
 }
 
-static void PrintHstEntry(int entry_no, int y, int color, int start_x,
-                          int *hide_left, int *hide_right) {
+static void PrintHstEntry(ViewContext *ctx, int entry_no, int y, int color,
+                          int start_x, int *hide_left, int *hide_right) {
   int n;
   History *pp;
   char buffer[BUFSIZ];
@@ -228,7 +202,7 @@ static void PrintHstEntry(int entry_no, int y, int color, int start_x,
   int window_height;
   int ef_window_width;
 
-  GetMaxYX(history_window, &window_height, &window_width);
+  GetMaxYX(ctx->ctx_history_window, &window_height, &window_width);
   /* Reduce width by 3 to allow for 1 char border + 1 char PIN marker */
   ef_window_width = window_width - 3;
 
@@ -239,15 +213,15 @@ static void PrintHstEntry(int entry_no, int y, int color, int start_x,
   *hide_left = *hide_right = 0;
 
   /* Use ViewList instead of traversing Hist */
-  if (entry_no < 0 || entry_no >= view_count)
+  if (entry_no < 0 || entry_no >= ctx->history_view_count)
     return;
-  pp = ViewList[entry_no];
+  pp = ctx->history_view_list[entry_no];
 
   if (pp) {
     (void)strncpy(buffer, pp->hst, BUFSIZ - 3);
     buffer[BUFSIZ - 3] = '\0';
     n = strlen(buffer);
-    wmove(history_window, y, 1);
+    wmove(ctx->ctx_history_window, y, 1);
 
     if (n <= ef_window_width) {
 
@@ -280,7 +254,7 @@ static void PrintHstEntry(int entry_no, int y, int color, int start_x,
       strcpy(marker, " <");
 
     strcat(line_ptr, (color == CPAIR_HIHST) ? marker : "  ");
-    WAddStr(history_window, line_ptr);
+    WAddStr(ctx->ctx_history_window, line_ptr);
 #else
 #ifdef COLOR_SUPPORT
     /*
@@ -296,58 +270,58 @@ static void PrintHstEntry(int entry_no, int y, int color, int start_x,
       display_attr |= A_REVERSE;
     }
 
-    wattrset(history_window, display_attr);
+    wattrset(ctx->ctx_history_window, display_attr);
 
 #else
     if (color == CPAIR_HIHST)
-      wattrset(history_window, A_REVERSE);
+      wattrset(ctx->ctx_history_window, A_REVERSE);
 #endif /* COLOR_SUPPORT */
 
     /* Draw Pin Marker */
     if (pp->pinned)
-      waddch(history_window, '*');
+      waddch(ctx->ctx_history_window, '*');
     else
-      waddch(history_window, ' ');
+      waddch(ctx->ctx_history_window, ' ');
 
     /* Draw Text */
-    WAddStr(history_window, line_ptr);
+    WAddStr(ctx->ctx_history_window, line_ptr);
 
 #ifdef COLOR_SUPPORT
     /* Reset to standard window background */
-    wattrset(history_window, COLOR_PAIR(CPAIR_WINHST));
+    wattrset(ctx->ctx_history_window, COLOR_PAIR(CPAIR_WINHST));
 #else
     if (color == CPAIR_HIHST)
-      wattrset(history_window, 0);
+      wattrset(ctx->ctx_history_window, 0);
 #endif /* COLOR_SUPPORT */
 #endif /* NO_HIGHLIGHT */
   }
   return;
 }
 
-static int DisplayHistory() {
+static int DisplayHistory(ViewContext *ctx) {
   int i, hilight_no, p_y;
   int hide_left, hide_right;
 
-  hilight_no = disp_begin_pos + cursor_pos;
+  hilight_no = ctx->disp_begin_pos + ctx->cursor_pos;
   p_y = -1;
-  werase(history_window);
+  werase(ctx->ctx_history_window);
   for (i = 0; i < HISTORY_WINDOW_HEIGHT; i++) {
-    if (disp_begin_pos + i >= total_hist)
+    if (ctx->disp_begin_pos + i >= ctx->total_hist)
       break;
-    if (disp_begin_pos + i != hilight_no)
-      PrintHstEntry(disp_begin_pos + i, i, CPAIR_HST, 0, &hide_left,
+    if (ctx->disp_begin_pos + i != hilight_no)
+      PrintHstEntry(ctx, ctx->disp_begin_pos + i, i, CPAIR_HST, 0, &hide_left,
                     &hide_right);
     else
       p_y = i;
   }
   if (p_y >= 0) {
-    PrintHstEntry(disp_begin_pos + p_y, p_y, CPAIR_HIHST, 0, &hide_left,
-                  &hide_right);
+    PrintHstEntry(ctx, ctx->disp_begin_pos + p_y, p_y, CPAIR_HIHST, 0,
+                  &hide_left, &hide_right);
   }
   return 0;
 }
 
-char *GetHistory(int type) {
+char *GetHistory(ViewContext *ctx, int type) {
   int ch;
   int start_x;
   char *RetVal = NULL;
@@ -355,31 +329,31 @@ char *GetHistory(int type) {
   int hide_left, hide_right;
 
   /* Initialize View */
-  BuildViewList(type);
+  BuildViewList(ctx, type);
 
   /* Reset if list empty or smaller */
-  if (total_hist == 0)
+  if (ctx->total_hist == 0)
     return NULL;
 
-  disp_begin_pos = 0;
-  cursor_pos = 0;
+  ctx->disp_begin_pos = 0;
+  ctx->cursor_pos = 0;
   start_x = 0;
-  /* leaveok(stdscr, TRUE); */
 
-  UI_Dialog_Push(history_window, UI_TIER_POPOVER);
+  UI_Dialog_Push(ctx->ctx_history_window, UI_TIER_POPOVER);
 
-  (void)DisplayHistory();
+  (void)DisplayHistory(ctx);
 
   do {
-    RefreshWindow(history_window);
+    RefreshWindow(ctx->ctx_history_window);
     doupdate();
-    ch = Getch();
+    ch = Getch(ctx);
 
     if (ch != -1 && ch != KEY_RIGHT && ch != KEY_LEFT) {
       if (start_x) {
         start_x = 0;
-        PrintHstEntry(disp_begin_pos + cursor_pos, cursor_pos, CPAIR_HIHST,
-                      start_x, &hide_left, &hide_right);
+        PrintHstEntry(ctx, ctx->disp_begin_pos + ctx->cursor_pos,
+                      ctx->cursor_pos, CPAIR_HIHST, start_x, &hide_left,
+                      &hide_right);
       }
     }
 
@@ -395,59 +369,60 @@ char *GetHistory(int type) {
     case 'D':
     case KEY_DC:
       /* Delete current entry */
-      if (view_count > 0) {
-        History *to_del = ViewList[disp_begin_pos + cursor_pos];
+      if (ctx->history_view_count > 0) {
+        History *to_del =
+            ctx->history_view_list[ctx->disp_begin_pos + ctx->cursor_pos];
 
         /* Unlink from global list */
         if (to_del->prev)
           to_del->prev->next = to_del->next;
         if (to_del->next)
           to_del->next->prev = to_del->prev;
-        if (Hist == to_del)
-          Hist = to_del->next;
+        if (ctx->history_head == to_del)
+          ctx->history_head = to_del->next;
 
         if (to_del->hst)
           free(to_del->hst);
         free(to_del);
 
         /* Rebuild view */
-        BuildViewList(type);
+        BuildViewList(ctx, type);
 
         /* Adjust cursor */
-        if (disp_begin_pos + cursor_pos >= total_hist) {
-          if (cursor_pos > 0)
-            cursor_pos--;
-          else if (disp_begin_pos > 0)
-            disp_begin_pos--;
+        if (ctx->disp_begin_pos + ctx->cursor_pos >= ctx->total_hist) {
+          if (ctx->cursor_pos > 0)
+            ctx->cursor_pos--;
+          else if (ctx->disp_begin_pos > 0)
+            ctx->disp_begin_pos--;
         }
-        if (total_hist == 0) {
+        if (ctx->total_hist == 0) {
           RetVal = NULL;
           ch = ESC; /* Exit loop */
         } else {
-          DisplayHistory();
+          DisplayHistory(ctx);
         }
       }
       break;
 
     case 'p':
     case 'P':
+    case 'k':
+    case 'K':
       /* Toggle Pin */
-      if (view_count > 0) {
-        History *target = ViewList[disp_begin_pos + cursor_pos];
+      if (ctx->history_view_count > 0) {
+        History *target =
+            ctx->history_view_list[ctx->disp_begin_pos + ctx->cursor_pos];
         target->pinned = !target->pinned;
 
-        /* Save current selection string to re-select it after sort?
-           Or just reset cursor to top? Simpler to reset or try to track.
-           Let's keep cursor, but list will re-shuffle. */
-        BuildViewList(type);
-        DisplayHistory();
+        BuildViewList(ctx, type);
+        DisplayHistory(ctx);
       }
       break;
 
     case KEY_RIGHT:
       start_x++;
-      PrintHstEntry(disp_begin_pos + cursor_pos, cursor_pos, CPAIR_HIHST,
-                    start_x, &hide_left, &hide_right);
+      PrintHstEntry(ctx, ctx->disp_begin_pos + ctx->cursor_pos, ctx->cursor_pos,
+                    CPAIR_HIHST, start_x, &hide_left, &hide_right);
       if (hide_right < 0)
         start_x--;
       break;
@@ -455,118 +430,131 @@ char *GetHistory(int type) {
     case KEY_LEFT:
       if (start_x > 0)
         start_x--;
-      PrintHstEntry(disp_begin_pos + cursor_pos, cursor_pos, CPAIR_HIHST,
-                    start_x, &hide_left, &hide_right);
+      PrintHstEntry(ctx, ctx->disp_begin_pos + ctx->cursor_pos, ctx->cursor_pos,
+                    CPAIR_HIHST, start_x, &hide_left, &hide_right);
       break;
 
     case '\t':
     case KEY_DOWN:
-      if (disp_begin_pos + cursor_pos + 1 >= total_hist) {
+      if (ctx->disp_begin_pos + ctx->cursor_pos + 1 >= ctx->total_hist) {
         beep();
       } else {
-        if (cursor_pos + 1 < HISTORY_WINDOW_HEIGHT) {
-          PrintHstEntry(disp_begin_pos + cursor_pos, cursor_pos, CPAIR_HST,
-                        start_x, &hide_left, &hide_right);
-          cursor_pos++;
-          PrintHstEntry(disp_begin_pos + cursor_pos, cursor_pos, CPAIR_HIHST,
-                        start_x, &hide_left, &hide_right);
+        if (ctx->cursor_pos + 1 < HISTORY_WINDOW_HEIGHT) {
+          PrintHstEntry(ctx, ctx->disp_begin_pos + ctx->cursor_pos,
+                        ctx->cursor_pos, CPAIR_HST, start_x, &hide_left,
+                        &hide_right);
+          ctx->cursor_pos++;
+          PrintHstEntry(ctx, ctx->disp_begin_pos + ctx->cursor_pos,
+                        ctx->cursor_pos, CPAIR_HIHST, start_x, &hide_left,
+                        &hide_right);
         } else {
-          PrintHstEntry(disp_begin_pos + cursor_pos, cursor_pos, CPAIR_HST,
-                        start_x, &hide_left, &hide_right);
-          scroll(history_window);
-          disp_begin_pos++;
-          PrintHstEntry(disp_begin_pos + cursor_pos, cursor_pos, CPAIR_HIHST,
-                        start_x, &hide_left, &hide_right);
+          PrintHstEntry(ctx, ctx->disp_begin_pos + ctx->cursor_pos,
+                        ctx->cursor_pos, CPAIR_HST, start_x, &hide_left,
+                        &hide_right);
+          scroll(ctx->ctx_history_window);
+          ctx->disp_begin_pos++;
+          PrintHstEntry(ctx, ctx->disp_begin_pos + ctx->cursor_pos,
+                        ctx->cursor_pos, CPAIR_HIHST, start_x, &hide_left,
+                        &hide_right);
         }
       }
       break;
     case KEY_BTAB:
     case KEY_UP:
-      if (disp_begin_pos + cursor_pos - 1 < 0) {
+      if (ctx->disp_begin_pos + ctx->cursor_pos - 1 < 0) {
         beep();
       } else {
-        if (cursor_pos - 1 >= 0) {
-          PrintHstEntry(disp_begin_pos + cursor_pos, cursor_pos, CPAIR_HST,
-                        start_x, &hide_left, &hide_right);
-          cursor_pos--;
-          PrintHstEntry(disp_begin_pos + cursor_pos, cursor_pos, CPAIR_HIHST,
-                        start_x, &hide_left, &hide_right);
+        if (ctx->cursor_pos - 1 >= 0) {
+          PrintHstEntry(ctx, ctx->disp_begin_pos + ctx->cursor_pos,
+                        ctx->cursor_pos, CPAIR_HST, start_x, &hide_left,
+                        &hide_right);
+          ctx->cursor_pos--;
+          PrintHstEntry(ctx, ctx->disp_begin_pos + ctx->cursor_pos,
+                        ctx->cursor_pos, CPAIR_HIHST, start_x, &hide_left,
+                        &hide_right);
         } else {
-          PrintHstEntry(disp_begin_pos + cursor_pos, cursor_pos, CPAIR_HST,
-                        start_x, &hide_left, &hide_right);
-          wmove(history_window, 0, 0);
-          winsertln(history_window);
-          disp_begin_pos--;
-          PrintHstEntry(disp_begin_pos + cursor_pos, cursor_pos, CPAIR_HIHST,
-                        start_x, &hide_left, &hide_right);
+          PrintHstEntry(ctx, ctx->disp_begin_pos + ctx->cursor_pos,
+                        ctx->cursor_pos, CPAIR_HST, start_x, &hide_left,
+                        &hide_right);
+          wmove(ctx->ctx_history_window, 0, 0);
+          winsertln(ctx->ctx_history_window);
+          ctx->disp_begin_pos--;
+          PrintHstEntry(ctx, ctx->disp_begin_pos + ctx->cursor_pos,
+                        ctx->cursor_pos, CPAIR_HIHST, start_x, &hide_left,
+                        &hide_right);
         }
       }
       break;
     case KEY_NPAGE:
-      if (disp_begin_pos + cursor_pos >= total_hist - 1) {
+      if (ctx->disp_begin_pos + ctx->cursor_pos >= ctx->total_hist - 1) {
         beep();
       } else {
-        if (cursor_pos < HISTORY_WINDOW_HEIGHT - 1) {
-          PrintHstEntry(disp_begin_pos + cursor_pos, cursor_pos, CPAIR_HST,
-                        start_x, &hide_left, &hide_right);
-          if (disp_begin_pos + HISTORY_WINDOW_HEIGHT > total_hist - 1)
-            cursor_pos = total_hist - disp_begin_pos - 1;
+        if (ctx->cursor_pos < HISTORY_WINDOW_HEIGHT - 1) {
+          PrintHstEntry(ctx, ctx->disp_begin_pos + ctx->cursor_pos,
+                        ctx->cursor_pos, CPAIR_HST, start_x, &hide_left,
+                        &hide_right);
+          if (ctx->disp_begin_pos + HISTORY_WINDOW_HEIGHT > ctx->total_hist - 1)
+            ctx->cursor_pos = ctx->total_hist - ctx->disp_begin_pos - 1;
           else
-            cursor_pos = HISTORY_WINDOW_HEIGHT - 1;
-          PrintHstEntry(disp_begin_pos + cursor_pos, cursor_pos, CPAIR_HIHST,
-                        start_x, &hide_left, &hide_right);
+            ctx->cursor_pos = HISTORY_WINDOW_HEIGHT - 1;
+          PrintHstEntry(ctx, ctx->disp_begin_pos + ctx->cursor_pos,
+                        ctx->cursor_pos, CPAIR_HIHST, start_x, &hide_left,
+                        &hide_right);
         } else {
-          if (disp_begin_pos + cursor_pos + HISTORY_WINDOW_HEIGHT <
-              total_hist) {
-            disp_begin_pos += HISTORY_WINDOW_HEIGHT;
-            cursor_pos = HISTORY_WINDOW_HEIGHT - 1;
+          if (ctx->disp_begin_pos + ctx->cursor_pos + HISTORY_WINDOW_HEIGHT <
+              ctx->total_hist) {
+            ctx->disp_begin_pos += HISTORY_WINDOW_HEIGHT;
+            ctx->cursor_pos = HISTORY_WINDOW_HEIGHT - 1;
           } else {
-            disp_begin_pos = total_hist - HISTORY_WINDOW_HEIGHT;
-            if (disp_begin_pos < 0)
-              disp_begin_pos = 0;
-            cursor_pos = total_hist - disp_begin_pos - 1;
+            ctx->disp_begin_pos = ctx->total_hist - HISTORY_WINDOW_HEIGHT;
+            if (ctx->disp_begin_pos < 0)
+              ctx->disp_begin_pos = 0;
+            ctx->cursor_pos = ctx->total_hist - ctx->disp_begin_pos - 1;
           }
-          DisplayHistory();
+          DisplayHistory(ctx);
         }
       }
       break;
     case KEY_PPAGE:
-      if (disp_begin_pos + cursor_pos <= 0) {
+      if (ctx->disp_begin_pos + ctx->cursor_pos <= 0) {
         beep();
       } else {
-        if (cursor_pos > 0) {
-          PrintHstEntry(disp_begin_pos + cursor_pos, cursor_pos, CPAIR_HST,
-                        start_x, &hide_left, &hide_right);
-          cursor_pos = 0;
-          PrintHstEntry(disp_begin_pos + cursor_pos, cursor_pos, CPAIR_HIHST,
-                        start_x, &hide_left, &hide_right);
+        if (ctx->cursor_pos > 0) {
+          PrintHstEntry(ctx, ctx->disp_begin_pos + ctx->cursor_pos,
+                        ctx->cursor_pos, CPAIR_HST, start_x, &hide_left,
+                        &hide_right);
+          ctx->cursor_pos = 0;
+          PrintHstEntry(ctx, ctx->disp_begin_pos + ctx->cursor_pos,
+                        ctx->cursor_pos, CPAIR_HIHST, start_x, &hide_left,
+                        &hide_right);
         } else {
-          if ((disp_begin_pos -= HISTORY_WINDOW_HEIGHT) < 0) {
-            disp_begin_pos = 0;
+          if ((ctx->disp_begin_pos -= HISTORY_WINDOW_HEIGHT) < 0) {
+            ctx->disp_begin_pos = 0;
           }
-          cursor_pos = 0;
-          DisplayHistory();
+          ctx->cursor_pos = 0;
+          DisplayHistory(ctx);
         }
       }
       break;
     case KEY_HOME:
-      if (disp_begin_pos == 0 && cursor_pos == 0) {
+      if (ctx->disp_begin_pos == 0 && ctx->cursor_pos == 0) {
         beep();
       } else {
-        disp_begin_pos = 0;
-        cursor_pos = 0;
-        DisplayHistory();
+        ctx->disp_begin_pos = 0;
+        ctx->cursor_pos = 0;
+        DisplayHistory(ctx);
       }
       break;
     case KEY_END:
-      disp_begin_pos = MAX(0, total_hist - HISTORY_WINDOW_HEIGHT);
-      cursor_pos = total_hist - disp_begin_pos - 1;
-      DisplayHistory();
+      ctx->disp_begin_pos = MAX(0, ctx->total_hist - HISTORY_WINDOW_HEIGHT);
+      ctx->cursor_pos = ctx->total_hist - ctx->disp_begin_pos - 1;
+      DisplayHistory(ctx);
       break;
     case LF:
     case CR:
-      if (view_count > 0 && disp_begin_pos + cursor_pos < view_count) {
-        TMP = ViewList[disp_begin_pos + cursor_pos];
+      if (ctx->history_view_count > 0 &&
+          ctx->disp_begin_pos + ctx->cursor_pos < ctx->history_view_count) {
+        TMP = ctx->history_view_list[ctx->disp_begin_pos + ctx->cursor_pos];
         if (TMP)
           RetVal = TMP->hst;
         else
@@ -585,11 +573,9 @@ char *GetHistory(int type) {
       break;
     } /* switch */
   } while (ch != CR && ch != ESC && ch != -1);
-  /* leaveok(stdscr, FALSE); */
 
-  UI_Dialog_Pop(history_window);
-  UI_Dialog_RefreshAll();
+  UI_Dialog_Pop(ctx->ctx_history_window);
+  UI_Dialog_RefreshAll(ctx);
 
-  /* touchwin(stdscr); */
   return RetVal;
 }

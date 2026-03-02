@@ -8,6 +8,7 @@
 #include "ytree.h"
 #include <errno.h>
 #include <signal.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
@@ -24,7 +25,9 @@ static void SigIntHandler(int sig) {
 static void EmergencyExit(int sig) {
   const char *msg = "Internal Error: Signal Caught. Exiting.\n";
   /* endwin() removed as it is unsafe in signal handler */
-  write(STDERR_FILENO, msg, strlen(msg));
+  if (write(STDERR_FILENO, msg, strlen(msg))) {
+    ;
+  }
   _exit(1);
 }
 
@@ -36,11 +39,14 @@ int main(int argc, char **argv) {
   int main_loop_exit_char;
   int *path_indexes;
   int path_count = 0;
+  ViewContext ctx;
+
+  memset(&ctx, 0, sizeof(ViewContext));
 
   /* Register Signal Handlers */
-  signal(SIGSEGV, EmergencyExit); /* Segfault */
-  signal(SIGABRT, EmergencyExit); /* Abort */
-  signal(SIGINT, SigIntHandler);  /* Ctrl-C safety */
+  /* signal(SIGSEGV, EmergencyExit); */ /* Segfault */
+  /* signal(SIGABRT, EmergencyExit); */ /* Abort */
+  signal(SIGINT, SigIntHandler);        /* Ctrl-C safety */
 
   /* setlocale is now handled in Init */
 
@@ -113,8 +119,10 @@ int main(int argc, char **argv) {
     }
   }
 
-  if (Init(conf, hist))
+  if (Init(&ctx, conf, hist)) {
+    fprintf(stderr, "EXIT: Init failed\n");
     exit(1);
+  }
 
   /* Pass 1.5: Post-Init Option Parsing (-d, -f) */
   /* Process overrides that must happen after Init */
@@ -142,12 +150,12 @@ int main(int argc, char **argv) {
 
         if (d_arg) {
           if (strcasecmp(d_arg, "all") == 0 || strcasecmp(d_arg, "max") == 0) {
-            SetProfileValue("TREEDEPTH", "100");
+            SetProfileValue(&ctx, "TREEDEPTH", "100");
           } else if (strcasecmp(d_arg, "min") == 0 ||
                      strcasecmp(d_arg, "root") == 0) {
-            SetProfileValue("TREEDEPTH", "0");
+            SetProfileValue(&ctx, "TREEDEPTH", "0");
           } else {
-            SetProfileValue("TREEDEPTH", d_arg);
+            SetProfileValue(&ctx, "TREEDEPTH", d_arg);
           }
         }
       } break;
@@ -200,48 +208,55 @@ int main(int argc, char **argv) {
     }
 
     /* Use LogDisk (wrapper around Volume_Load) to load the initial path */
-    if (LogDisk(buffer) == -1) {
+    if (LogDisk(&ctx, ctx.left, buffer) == -1) {
       endwin();
       /* If defaulting to CWD fails, it's a fatal error */
-      fprintf(stderr, "Error: Failed to login to current directory\n");
+      fprintf(stderr, "EXIT: LogDisk failed for CWD\n");
       free(path_indexes);
       exit(1);
     }
   } else {
-    /* Case > 0: Load paths in REVERSE order.
-     * LogDisk pushes volumes onto a stack (LIFO concept due to CurrentVolume
-     * switch). By loading the last command-line arg first, the first
-     * command-line arg ends up as the active volume.
-     */
     for (i = path_count - 1; i >= 0; i--) {
       /* LogDisk returns -1 on failure but handles its own error messaging via
        * UI. We proceed to try loading the other requested volumes. */
-      LogDisk(argv[path_indexes[i]]);
+      LogDisk(&ctx, ctx.left, argv[path_indexes[i]]);
     }
   }
 
   free(path_indexes);
 
   /* Ensure we have at least one active volume before entering main loop */
-  if (CurrentVolume == NULL || CurrentVolume->vol_stats.tree == NULL) {
+  if (ctx.active->vol == NULL || ctx.active->vol->vol_stats.tree == NULL) {
     endwin();
-    fprintf(stderr, "Error: No valid volumes could be loaded.\n");
+    fprintf(stderr, "EXIT: No active volume\n");
     exit(1);
   }
 
   /* Apply command line filter if provided */
   if (filter_arg) {
     /* Safe copy with truncation */
-    strncpy(CurrentVolume->vol_stats.file_spec, filter_arg, FILE_SPEC_LENGTH);
-    CurrentVolume->vol_stats.file_spec[FILE_SPEC_LENGTH] = '\0';
+    strncpy(ctx.active->vol->vol_stats.file_spec, filter_arg, FILE_SPEC_LENGTH);
+    ctx.active->vol->vol_stats.file_spec[FILE_SPEC_LENGTH] = '\0';
 
-    SetFilter(CurrentVolume->vol_stats.file_spec, &CurrentVolume->vol_stats);
-    RecalculateSysStats(&CurrentVolume->vol_stats);
+    SetFilter(ctx.active->vol->vol_stats.file_spec,
+              &ctx.active->vol->vol_stats);
+    RecalculateSysStats(&ctx, &ctx.active->vol->vol_stats);
   }
 
   /* Main application loop */
+  DEBUG_LOG("STARTING MAIN LOOP: ctx.active->vol=%p", (void *)ctx.active->vol);
+  if (ctx.active->vol) {
+    DEBUG_LOG("STARTING MAIN LOOP: tree=%p",
+              (void *)ctx.active->vol->vol_stats.tree);
+  }
+
+  /* Main application loop */
+
   while (1) {
-    main_loop_exit_char = HandleDirWindow(CurrentVolume->vol_stats.tree);
+    DEBUG_LOG("Calling HandleDirWindow...");
+    main_loop_exit_char =
+        HandleDirWindow(&ctx, ctx.active->vol->vol_stats.tree);
+    DEBUG_LOG("HandleDirWindow returned %d", main_loop_exit_char);
     if (main_loop_exit_char == 'q' || main_loop_exit_char == 'Q') {
       /* User requested to quit. Break the loop to proceed with cleanup. */
       break;
@@ -254,8 +269,8 @@ int main(int argc, char **argv) {
   }
 
   /* Explicit cleanup */
-  SuspendClock(); /* Stop SIGALRM (now no-op but kept for API consistency)
-                     before touching curses/memory */
+  SuspendClock(&ctx); /* Stop SIGALRM (now no-op but kept for API
+                      consistency) before touching curses/memory */
 
   attrset(0);  /* Reset attributes */
   clear();     /* Clear internal buffer */
@@ -263,7 +278,7 @@ int main(int argc, char **argv) {
   curs_set(1); /* Restore visible cursor */
   endwin();    /* Restore terminal settings */
 
-  Volume_FreeAll(); /* Explicitly free memory */
+  Volume_FreeAll(&ctx); /* Explicitly free memory */
 
   return 0;
 }

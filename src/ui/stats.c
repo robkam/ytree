@@ -7,9 +7,7 @@
  *
  ***************************************************************************/
 
-#ifndef YTREE_H
-#include "../../include/ytree.h"
-#endif
+#include "ytree.h"
 
 #include <curses.h>
 #include <math.h>
@@ -17,7 +15,7 @@
 #include <string.h>
 
 /* Geometry Definitions */
-#define STAT_W (layout.stats_width)
+#define STAT_W (ctx->layout.stats_width)
 #define STAT_X (COLS - STAT_W)
 #define L_BORDER (STAT_X - 1)
 #define R_BORDER (COLS - 1)
@@ -26,63 +24,53 @@
 /* Y-Coordinates (Dynamic) */
 #define Y_TOP 1
 
-static int y_filter_val;
-static int y_vol_sep;
-static int y_vol_info;
-static int y_vstat_sep;
-static int y_vstat_val;
-static int y_dstat_sep;
-static int y_dstat_val;
-static int y_attr_sep;
-static int y_attr_val;
-static int y_bot;
-
 /* Prototypes */
-static void RecalcLayout(void);
-static void FormatNumber(char *buf, size_t size, long long val);
+static void RecalcLayout(ViewContext *ctx);
+static void FormatNumber(ViewContext *ctx, char *buf, size_t size,
+                         long long val);
 static void FormatShortSize(char *buf, size_t size, long long val);
-static void SetColor(void);
-static void DrawBoxFrame(void);
-static void DrawSeparator(int y, const char *title);
-static void PrintStatRow(int y, const char *label, long long count,
-                         long long bytes);
-static void DrawAttributes(const char *name, struct stat *s, FileEntry *fe);
-static void RecalcDir(DirEntry *de, Statistic *s);
+static void SetColor(ViewContext *ctx);
+static void DrawBoxFrame(ViewContext *ctx);
+static void DrawSeparator(ViewContext *ctx, int y, const char *title);
+static void PrintStatRow(ViewContext *ctx, int y, const char *label,
+                         long long count, long long bytes);
+static void DrawAttributes(ViewContext *ctx, const char *name, struct stat *s,
+                           FileEntry *fe);
+static void RecalcDir(ViewContext *ctx, DirEntry *de, Statistic *s);
 
 /* ************************************************************************* */
 /*                           LOGIC FUNCTIONS                                 */
 /* ************************************************************************* */
 
-static void RecalcLayout(void) {
-  y_bot = layout.bottom_border_y;
-
+static void RecalcLayout(ViewContext *ctx) {
   if (LINES < 26) {
     /* Compact Mode for small terminals (e.g. 24 lines) */
-    y_filter_val = 2;
-    y_vol_sep = 0;   /* Hidden */
-    y_vol_info = 3;  /* 3, 4, 5 */
-    y_vstat_sep = 0; /* Hidden */
-    y_vstat_val = 6; /* 6, 7, 8 */
-    y_dstat_sep = 0; /* Hidden */
-    y_dstat_val = 9; /* 9, 10, 11, 12 */
-    y_attr_sep = 0;  /* Hidden */
-    y_attr_val = 13; /* 13, 14, 15, 16, 17 */
-    /* Total used: 2 to 17. 18 is border. Fits in 20 (LINES=24 -> y_bot=20) */
+    ctx->layout.stats_y_filter_val = 2;
+    ctx->layout.stats_y_vol_sep = 0;   /* Hidden */
+    ctx->layout.stats_y_vol_info = 3;  /* 3, 4, 5 */
+    ctx->layout.stats_y_vstat_sep = 0; /* Hidden */
+    ctx->layout.stats_y_vstat_val = 6; /* 6, 7, 8 */
+    ctx->layout.stats_y_dstat_sep = 0; /* Hidden */
+    ctx->layout.stats_y_dstat_val = 9; /* 9, 10, 11, 12 */
+    ctx->layout.stats_y_attr_sep = 0;  /* Hidden */
+    ctx->layout.stats_y_attr_val = 13; /* 13, 14, 15, 16, 17 */
+    /* Total used: 2 to 17. 18 is border. Fits in 20 (LINES=24 ->
+     * ctx->layout.bottom_border_y=20) */
   } else {
     /* Standard Spacious Mode */
-    y_filter_val = 2;
-    y_vol_sep = 3;
-    y_vol_info = 4;
-    y_vstat_sep = 7;
-    y_vstat_val = 8;
-    y_dstat_sep = 11;
-    y_dstat_val = 12;
-    y_attr_sep = 16;
-    y_attr_val = 17;
+    ctx->layout.stats_y_filter_val = 2;
+    ctx->layout.stats_y_vol_sep = 3;
+    ctx->layout.stats_y_vol_info = 4;
+    ctx->layout.stats_y_vstat_sep = 7;
+    ctx->layout.stats_y_vstat_val = 8;
+    ctx->layout.stats_y_dstat_sep = 11;
+    ctx->layout.stats_y_dstat_val = 12;
+    ctx->layout.stats_y_attr_sep = 16;
+    ctx->layout.stats_y_attr_val = 17;
   }
 }
 
-static void RecalcDir(DirEntry *d, Statistic *s) {
+static void RecalcDir(ViewContext *ctx, DirEntry *d, Statistic *s) {
   FileEntry *f;
   DirEntry *sub;
 
@@ -95,7 +83,7 @@ static void RecalcDir(DirEntry *d, Statistic *s) {
    * globally below */
 
   for (f = d->file; f; f = f->next) {
-    if (hide_dot_files && f->name[0] == '.')
+    if (ctx->hide_dot_files && f->name[0] == '.')
       continue;
 
     d->total_files++;
@@ -109,7 +97,7 @@ static void RecalcDir(DirEntry *d, Statistic *s) {
 
   sub = d->sub_tree;
   while (sub) {
-    RecalcDir(sub, s);
+    RecalcDir(ctx, sub, s);
     s->disk_total_directories++;
     sub = sub->next;
   }
@@ -122,7 +110,7 @@ static void RecalcDir(DirEntry *d, Statistic *s) {
   s->disk_tagged_bytes += d->tagged_bytes;
 }
 
-void RecalculateSysStats(Statistic *s) {
+void RecalculateSysStats(ViewContext *ctx, Statistic *s) {
   s->disk_total_files = 0;
   s->disk_total_bytes = 0;
   s->disk_matching_files = 0;
@@ -133,7 +121,7 @@ void RecalculateSysStats(Statistic *s) {
 
   if (s->tree) {
     s->disk_total_directories++;
-    RecalcDir(s->tree, s);
+    RecalcDir(ctx, s->tree, s);
   }
 }
 
@@ -141,7 +129,8 @@ void RecalculateSysStats(Statistic *s) {
 /*                           DISPLAY HELPERS                                 */
 /* ************************************************************************* */
 
-static void FormatNumber(char *buf, size_t size, long long val) {
+static void FormatNumber(ViewContext *ctx, char *buf, size_t size,
+                         long long val) {
   char temp[64];
   int len, i, j, commacount;
 
@@ -160,7 +149,7 @@ static void FormatNumber(char *buf, size_t size, long long val) {
   for (i = len - 1; i >= 0; i--) {
     buf[--j] = temp[i];
     if (i > 0 && (len - i) % 3 == 0) {
-      buf[--j] = number_seperator;
+      buf[--j] = ctx->number_seperator;
     }
   }
 }
@@ -194,22 +183,17 @@ static void FormatShortSize(char *buf, size_t size, long long val) {
   }
 }
 
-static void SetColor(void) { attrset(COLOR_PAIR(CPAIR_WINDIR)); }
+static void SetColor(ViewContext *ctx) {
+  wattrset(ctx->ctx_border_window, COLOR_PAIR(CPAIR_WINDIR));
+}
 
-static void DrawBoxFrame(void) {
+static void DrawBoxFrame(ViewContext *ctx) {
   int y;
-  /* int hline_len = R_BORDER - L_BORDER - 1; */ /* Inner width for lines -
-                                                    Unused var removed */
-  int sep_y = layout.dir_win_y + layout.dir_win_height;
+  int sep_y = ctx->layout.dir_win_y + ctx->layout.dir_win_height;
 
-  attrset(COLOR_PAIR(CPAIR_WINDIR));
+  wattron(ctx->ctx_border_window, COLOR_PAIR(CPAIR_BORDERS) | A_ALTCHARSET);
 
   /* --- Top Border with embedded " FILTER " --- */
-  /* The ACS_ULCORNER is replaced by ACS_TTEE at the junction with the main
-   * window's top border. */
-  /* mvaddch(Y_TOP, L_BORDER, ACS_ULCORNER); */ /* Removed as per instruction */
-
-  /* Calculate embedded title position */
   {
     const char *title = " FILTER ";
     int hline_len = R_BORDER - L_BORDER - 1;
@@ -219,47 +203,56 @@ static void DrawBoxFrame(void) {
     int x = L_BORDER + 1;
 
     /* Left HLINE */
-    mvwhline(stdscr, Y_TOP, x, ACS_HLINE, left_len);
+    mvwhline(ctx->ctx_border_window, Y_TOP, x, ACS_HLINE, left_len);
     x += left_len;
 
     /* Title */
-    attron(A_BOLD);
-    mvprintw(Y_TOP, x, "%s", title);
-    attroff(A_BOLD);
+    wattroff(ctx->ctx_border_window, A_ALTCHARSET);
+    wattron(ctx->ctx_border_window, A_BOLD);
+    mvwaddstr(ctx->ctx_border_window, Y_TOP, x, title);
+    wattroff(ctx->ctx_border_window, A_BOLD);
+    wattron(ctx->ctx_border_window, A_ALTCHARSET);
     x += t_len;
 
     /* Right HLINE */
-    mvwhline(stdscr, Y_TOP, x, ACS_HLINE, right_len);
+    mvwhline(ctx->ctx_border_window, Y_TOP, x, ACS_HLINE, right_len);
   }
 
-  mvaddch(Y_TOP, R_BORDER, ACS_URCORNER);
+  mvwaddch(ctx->ctx_border_window, Y_TOP, R_BORDER, ACS_URCORNER);
 
   /* --- Bottom Border --- */
-  mvaddch(y_bot, L_BORDER, ACS_LLCORNER);
-  mvwhline(stdscr, y_bot, L_BORDER + 1, ACS_HLINE, R_BORDER - L_BORDER - 1);
-  mvaddch(y_bot, R_BORDER, ACS_LRCORNER);
+  mvwaddch(ctx->ctx_border_window, ctx->layout.bottom_border_y, L_BORDER,
+           ACS_LLCORNER);
+  mvwhline(ctx->ctx_border_window, ctx->layout.bottom_border_y, L_BORDER + 1,
+           ACS_HLINE, R_BORDER - L_BORDER - 1);
+  mvwaddch(ctx->ctx_border_window, ctx->layout.bottom_border_y, R_BORDER,
+           ACS_LRCORNER);
 
   /* --- Vertical Lines --- */
-  for (y = Y_TOP + 1; y < y_bot; y++) {
-    mvaddch(y, R_BORDER, ACS_VLINE);
-    mvaddch(y, L_BORDER, ACS_VLINE);
+  for (y = Y_TOP + 1; y < ctx->layout.bottom_border_y; y++) {
+    mvwaddch(ctx->ctx_border_window, y, R_BORDER, ACS_VLINE);
+    mvwaddch(ctx->ctx_border_window, y, L_BORDER, ACS_VLINE);
   }
 
   /* --- Junctions --- */
-  mvaddch(Y_TOP, L_BORDER, ACS_TTEE); /* Connects to Path bar in main win */
+  mvwaddch(ctx->ctx_border_window, Y_TOP, L_BORDER,
+           ACS_TTEE); /* Connects to Path bar in main win */
 
   /* Handle File Window artifact */
-  if (file_window == big_file_window) {
-    mvaddch(sep_y, L_BORDER, ACS_VLINE | A_BOLD | COLOR_PAIR(CPAIR_WINDIR));
+  if (ctx->ctx_file_window == ctx->ctx_big_file_window) {
+    mvwaddch(ctx->ctx_border_window, sep_y, L_BORDER, ACS_VLINE);
   } else {
-    mvaddch(sep_y, L_BORDER, ACS_RTEE | A_BOLD | COLOR_PAIR(CPAIR_WINDIR));
+    mvwaddch(ctx->ctx_border_window, sep_y, L_BORDER, ACS_RTEE);
   }
-  mvaddch(y_bot, L_BORDER, ACS_BTEE);
+  mvwaddch(ctx->ctx_border_window, ctx->layout.bottom_border_y, L_BORDER,
+           ACS_BTEE);
 
-  SetColor();
+  wattroff(ctx->ctx_border_window, A_ALTCHARSET);
+  wattrset(ctx->ctx_border_window, A_NORMAL);
+  SetColor(ctx);
 }
 
-static void DrawSeparator(int y, const char *title) {
+static void DrawSeparator(ViewContext *ctx, int y, const char *title) {
   int x;
   int text_len = title ? strlen(title) : 0;
   int total_inner_width = R_BORDER - L_BORDER - 1;
@@ -267,78 +260,76 @@ static void DrawSeparator(int y, const char *title) {
   if (y <= 0)
     return;
 
-  attrset(COLOR_PAIR(CPAIR_WINDIR));
+  wattron(ctx->ctx_border_window, COLOR_PAIR(CPAIR_BORDERS) | A_ALTCHARSET);
+
+  /* Side Junctions */
+  mvwaddch(ctx->ctx_border_window, y, L_BORDER, ACS_LTEE);
+  mvwaddch(ctx->ctx_border_window, y, R_BORDER, ACS_RTEE);
 
   if (title && text_len > 0) {
     int left_hline_len;
-    /* int right_hline_len; // Removed: Unused */
     int title_content_start_x;
     int pad = 2; /* 1 space each side */
 
     if (total_inner_width >= text_len + pad) {
       int rem = total_inner_width - (text_len + pad);
       left_hline_len = rem / 2;
-      /* right_hline_len = rem - left_hline_len; */
       title_content_start_x = L_BORDER + 1 + left_hline_len;
 
       /* Left Line */
-      for (x = L_BORDER + 1; x < title_content_start_x; x++)
-        mvaddch(y, x, ACS_HLINE);
+      mvwhline(ctx->ctx_border_window, y, L_BORDER + 1, ACS_HLINE,
+               left_hline_len);
 
       /* Title */
-      attron(A_BOLD);
-      mvprintw(y, title_content_start_x, " %s ", title);
-      attroff(A_BOLD);
+      wattroff(ctx->ctx_border_window, A_ALTCHARSET);
+      wattron(ctx->ctx_border_window, A_BOLD);
+      mvwaddstr(ctx->ctx_border_window, y, title_content_start_x, " ");
+      waddstr(ctx->ctx_border_window, title);
+      waddstr(ctx->ctx_border_window, " ");
+      wattroff(ctx->ctx_border_window, A_BOLD);
+      wattron(ctx->ctx_border_window, A_ALTCHARSET);
 
       /* Right Line */
-      for (x = title_content_start_x + text_len + pad; x < R_BORDER; x++)
-        mvaddch(y, x, ACS_HLINE);
+      mvwhline(ctx->ctx_border_window, y,
+               title_content_start_x + text_len + pad, ACS_HLINE,
+               total_inner_width - left_hline_len - text_len - pad);
     } else {
-      /* Truncate if too long (rare) */
-      int eff_len = MINIMUM(text_len, total_inner_width);
-      title_content_start_x = L_BORDER + 1;
-      char fmt[16];
-      snprintf(fmt, sizeof(fmt), "%%.%ds", eff_len);
-      attron(A_BOLD);
-      mvprintw(y, title_content_start_x, fmt, title);
-      attroff(A_BOLD);
-      /* Fill rest with line */
-      for (x = L_BORDER + 1 + eff_len; x < R_BORDER; x++)
-        mvaddch(y, x, ACS_HLINE);
+      /* No room for line, just title */
+      wattrset(ctx->ctx_border_window, COLOR_PAIR(CPAIR_BORDERS) | A_BOLD);
+      mvwaddnstr(ctx->ctx_border_window, y, L_BORDER + 1, title,
+                 total_inner_width);
     }
   } else {
-    /* Full line */
-    for (x = L_BORDER + 1; x < R_BORDER; x++)
-      mvaddch(y, x, ACS_HLINE);
+    /* Pure line */
+    mvwhline(ctx->ctx_border_window, y, L_BORDER + 1, ACS_HLINE,
+             total_inner_width);
   }
-
-  /* Junctions - drawn last to ensure visibility */
-  mvaddch(y, L_BORDER, ACS_LTEE | A_BOLD | COLOR_PAIR(CPAIR_WINDIR));
-  mvaddch(y, R_BORDER, ACS_RTEE | A_BOLD | COLOR_PAIR(CPAIR_WINDIR));
-
-  SetColor();
+  wattroff(ctx->ctx_border_window, A_ALTCHARSET);
+  wattrset(ctx->ctx_border_window, A_NORMAL);
 }
 
-static void PrintStatRow(int y, const char *label, long long count,
-                         long long bytes) {
+static void PrintStatRow(ViewContext *ctx, int y, const char *label,
+                         long long count, long long bytes) {
   char count_buf[32];
   char size_buf[32];
 
-  if (y >= y_bot)
+  if (y >= ctx->layout.bottom_border_y)
     return;
 
-  FormatNumber(count_buf, sizeof(count_buf), count);
+  FormatNumber(ctx, count_buf, sizeof(count_buf), count);
   FormatShortSize(size_buf, sizeof(size_buf), bytes);
 
-  SetColor();
+  SetColor(ctx);
   /* Format: "Tot: 1,831,129 12.5M"
    * Math: 4 (Label) + 1 (Space) + 9 (Count) + 1 (Space) + 6 (Size) = 21 chars.
    * INNER_W is 22. This leaves 1 char padding. Perfect.
    */
-  mvprintw(y, STAT_X + 1, "%-4s %9s %6s", label, count_buf, size_buf);
+  mvwprintw(ctx->ctx_border_window, y, STAT_X + 1, "%-4s %9s %6s", label,
+            count_buf, size_buf);
 }
 
-static void DrawAttributes(const char *name, struct stat *s, FileEntry *fe) {
+static void DrawAttributes(ViewContext *ctx, const char *name, struct stat *s,
+                           FileEntry *fe) {
   char buf[128];
   char num_buf[32];
   char time_buf[20];
@@ -347,40 +338,46 @@ static void DrawAttributes(const char *name, struct stat *s, FileEntry *fe) {
   if (!name || !s)
     return;
 
-  DrawSeparator(y_attr_sep, "ATTRIBUTES");
+  DrawSeparator(ctx, ctx->layout.stats_y_attr_sep, "ATTRIBUTES");
 
   /* Name */
   CutPathname(buf, (char *)name, INNER_W); /* Keep CutPathname for stats box */
 
   /* Explicitly clear the line to avoid background artifacts */
-  mvwhline(stdscr, y_attr_val, STAT_X + 1, ' ', INNER_W);
+  mvwhline(ctx->ctx_border_window, ctx->layout.stats_y_attr_val, STAT_X + 1,
+           ' ', INNER_W);
 
   if (fe) {
 #ifdef COLOR_SUPPORT
-    int color = GetFileTypeColor(fe);
-    attron(COLOR_PAIR(color) | A_BOLD);
-    mvprintw(y_attr_val, STAT_X + 1, "%s", buf); /* Print without padding */
-    attroff(COLOR_PAIR(color) | A_BOLD);
+    int color = GetFileTypeColor(ctx, fe);
+    wattron(ctx->ctx_border_window, COLOR_PAIR(color) | A_BOLD);
+    mvwprintw(ctx->ctx_border_window, ctx->layout.stats_y_attr_val, STAT_X + 1,
+              "%s", buf); /* Print without padding */
+    wattroff(ctx->ctx_border_window, COLOR_PAIR(color) | A_BOLD);
 #else
-    attron(A_BOLD);
-    mvprintw(y_attr_val, STAT_X + 1, "%s", buf);
-    attroff(A_BOLD);
+    wattron(ctx->ctx_border_window, A_BOLD);
+    mvwprintw(ctx->ctx_border_window, ctx->layout.stats_y_attr_val, STAT_X + 1,
+              "%s", buf);
+    wattroff(ctx->ctx_border_window, A_BOLD);
 #endif
   } else {
-    attron(A_BOLD);
-    mvprintw(y_attr_val, STAT_X + 1, "%s", buf); /* Print without padding */
-    attroff(A_BOLD);
+    wattron(ctx->ctx_border_window, A_BOLD);
+    mvwprintw(ctx->ctx_border_window, ctx->layout.stats_y_attr_val, STAT_X + 1,
+              "%s", buf); /* Print without padding */
+    wattroff(ctx->ctx_border_window, A_BOLD);
   }
 
   /* Size */
   FormatShortSize(num_buf, sizeof(num_buf), s->st_size);
   snprintf(temp, sizeof(temp), "Size: %s", num_buf);
-  mvprintw(y_attr_val + 1, STAT_X + 1, "%-22s", temp);
+  mvwprintw(ctx->ctx_border_window, ctx->layout.stats_y_attr_val + 1,
+            STAT_X + 1, "%-22s", temp);
 
   /* Attr */
   GetAttributes(s->st_mode, buf);
   snprintf(temp, sizeof(temp), "Attr: %s", buf);
-  mvprintw(y_attr_val + 2, STAT_X + 1, "%-22s", temp);
+  mvwprintw(ctx->ctx_border_window, ctx->layout.stats_y_attr_val + 2,
+            STAT_X + 1, "%-22s", temp);
 
   /* Owner */
   {
@@ -400,40 +397,42 @@ static void DrawAttributes(const char *name, struct stat *s, FileEntry *fe) {
     char full_own[64];
     snprintf(full_own, sizeof(full_own), "%s:%s", owner, group);
     CutName(buf, full_own, INNER_W - 6); /* "Own : " is 6 chars */
-    mvprintw(y_attr_val + 3, STAT_X + 1, "Own : %-16s", buf);
+    mvwprintw(ctx->ctx_border_window, ctx->layout.stats_y_attr_val + 3,
+              STAT_X + 1, "Own : %-16s", buf);
   }
 
   /* Mod */
   CTime(s->st_mtime, time_buf);
-  mvprintw(y_attr_val + 4, STAT_X + 1, "Mod : %-16s", time_buf);
-
-  refresh();
+  mvwprintw(ctx->ctx_border_window, ctx->layout.stats_y_attr_val + 4,
+            STAT_X + 1, "Mod : %-16s", time_buf);
 }
 
 /* ************************************************************************* */
 /*                           DISPLAY FUNCTIONS */
 /* ************************************************************************* */
 
-void DisplayFullStatsPanel(Statistic *s) { DisplayDiskStatistic(s); }
+void DisplayFullStatsPanel(ViewContext *ctx, Statistic *s) {
+  DisplayDiskStatistic(ctx, s);
+}
 
-void DisplayDiskName(Statistic *s) {
+void DisplayDiskName(ViewContext *ctx, Statistic *s) {
   char buf[128];
   char path_buf[PATH_LENGTH + 1];
   char size_buf[32];
-  int total_volumes = HASH_COUNT(VolumeList);
+  int total_volumes = HASH_COUNT(ctx->volumes_head);
   int current_index = 0;
   struct Volume *vol_iter, *tmp;
   int i = 1;
 
-  if (layout.stats_width == 0)
+  if (ctx->layout.stats_width == 0)
     return;
 
   /* Recalculate layout based on current terminal height */
-  RecalcLayout();
+  RecalcLayout(ctx);
 
   /* 1. Determine Volume Index */
-  if (VolumeList) {
-    HASH_ITER(hh, VolumeList, vol_iter, tmp) {
+  if (ctx->volumes_head) {
+    HASH_ITER(hh, ctx->volumes_head, vol_iter, tmp) {
       if (&vol_iter->vol_stats == s) {
         current_index = i;
         break;
@@ -445,78 +444,86 @@ void DisplayDiskName(Statistic *s) {
     current_index = 1;
 
   /* 2. Setup Panel */
-  SetColor();
-  DrawBoxFrame(); /* Draws Top Border with "FILTER" */
+  SetColor(ctx);
+  DrawBoxFrame(ctx); /* Draws Top Border with "FILTER" */
 
   /* 3. Filter Value */
   CutName(buf, s->file_spec, INNER_W);
-  attron(A_BOLD);
+  wattron(ctx->ctx_border_window, A_BOLD);
   /* Center filter text using padding format to clear ghosts */
   {
     int pad = (INNER_W - strlen(buf)) / 2;
-    mvprintw(y_filter_val, STAT_X + 1, "%*s%-*s", pad, "", INNER_W - pad, buf);
+    mvwprintw(ctx->ctx_border_window, ctx->layout.stats_y_filter_val,
+              STAT_X + 1, "%*s%-*s", pad, "", INNER_W - pad, buf);
   }
-  attroff(A_BOLD);
+  wattroff(ctx->ctx_border_window, A_BOLD);
 
   /* 4. Volume Section */
   snprintf(buf, sizeof(buf), "VOLUME %d/%d", current_index, total_volumes);
-  DrawSeparator(y_vol_sep, buf);
+  DrawSeparator(ctx, ctx->layout.stats_y_vol_sep, buf);
 
   /* Path */
-  if (mode == ARCHIVE_MODE)
+  if (ctx->view_mode == ARCHIVE_MODE)
     strncpy(path_buf, s->login_path, PATH_LENGTH);
   else
     strncpy(path_buf, s->path, PATH_LENGTH);
   path_buf[PATH_LENGTH] = '\0';
 
   CutPathname(buf, path_buf, INNER_W); /* Changed to CutPathname */
-  mvprintw(y_vol_info, STAT_X + 1, "%-*s", INNER_W, buf); /* Pad to clear */
+  mvwprintw(ctx->ctx_border_window, ctx->layout.stats_y_vol_info, STAT_X + 1,
+            "%-*s", INNER_W, buf); /* Pad to clear */
 
   /* FS */
   char fs_buf[64];
-  if (mode == ARCHIVE_MODE)
+  if (ctx->view_mode == ARCHIVE_MODE)
     snprintf(fs_buf, sizeof(fs_buf), "FS: ARCHIVE");
   else
     snprintf(fs_buf, sizeof(fs_buf), "FS: %s", s->disk_name);
   /* Truncate to fit */
   CutName(buf, fs_buf, INNER_W);
-  mvprintw(y_vol_info + 1, STAT_X + 1, "%-*s", INNER_W, buf);
+  mvwprintw(ctx->ctx_border_window, ctx->layout.stats_y_vol_info + 1,
+            STAT_X + 1, "%-*s", INNER_W, buf);
 
   /* Free */
-  if (mode == ARCHIVE_MODE) {
+  if (ctx->view_mode == ARCHIVE_MODE) {
     snprintf(fs_buf, sizeof(fs_buf), "Free: -");
   } else {
     FormatShortSize(size_buf, sizeof(size_buf), s->disk_space);
     snprintf(fs_buf, sizeof(fs_buf), "Free: %s", size_buf);
   }
-  mvprintw(y_vol_info + 2, STAT_X + 1, "%-*s", INNER_W, fs_buf);
+  mvwprintw(ctx->ctx_border_window, ctx->layout.stats_y_vol_info + 2,
+            STAT_X + 1, "%-*s", INNER_W, fs_buf);
 }
 
-void DisplayAvailBytes(Statistic *s) { DisplayDiskStatistic(s); }
+void DisplayAvailBytes(ViewContext *ctx, Statistic *s) {
+  DisplayDiskStatistic(ctx, s);
+}
 
-void DisplayFilter(Statistic *s) { DisplayDiskStatistic(s); }
+void DisplayFilter(ViewContext *ctx, Statistic *s) {
+  DisplayDiskStatistic(ctx, s);
+}
 
-void DisplayDiskStatistic(Statistic *s) {
-  if (layout.stats_width == 0)
+void DisplayDiskStatistic(ViewContext *ctx, Statistic *s) {
+  if (ctx->layout.stats_width == 0)
     return;
 
-  DisplayDiskName(s);
+  DisplayDiskName(ctx, s);
 
-  DrawSeparator(y_vstat_sep, "VOLUME STATS");
+  DrawSeparator(ctx, ctx->layout.stats_y_vstat_sep, "VOLUME STATS");
 
-  PrintStatRow(y_vstat_val, "Tot:", s->disk_total_files, s->disk_total_bytes);
-  PrintStatRow(y_vstat_val + 1, "Mat:", s->disk_matching_files,
-               s->disk_matching_bytes);
-  PrintStatRow(y_vstat_val + 2, "Tag:", s->disk_tagged_files,
-               s->disk_tagged_bytes);
-
-  refresh();
+  PrintStatRow(ctx, ctx->layout.stats_y_vstat_val, "Tot:", s->disk_total_files,
+               s->disk_total_bytes);
+  PrintStatRow(ctx, ctx->layout.stats_y_vstat_val + 1,
+               "Mat:", s->disk_matching_files, s->disk_matching_bytes);
+  PrintStatRow(ctx, ctx->layout.stats_y_vstat_val + 2,
+               "Tag:", s->disk_tagged_files, s->disk_tagged_bytes);
 }
 
-void DisplayDirStatistic(DirEntry *de, const char *title, Statistic *s) {
+void DisplayDirStatistic(ViewContext *ctx, DirEntry *de, const char *title,
+                         Statistic *s) {
   char buf[128];
 
-  if (layout.stats_width == 0)
+  if (ctx->layout.stats_width == 0)
     return;
 
   if (!de)
@@ -524,53 +531,54 @@ void DisplayDirStatistic(DirEntry *de, const char *title, Statistic *s) {
 
   /* Use provided title, or fallback to default logic */
   if (title) {
-    DrawSeparator(y_dstat_sep, title);
+    DrawSeparator(ctx, ctx->layout.stats_y_dstat_sep, title);
   } else if (de->global_flag) {
-    DrawSeparator(y_dstat_sep, "SHOW ALL");
+    DrawSeparator(ctx, ctx->layout.stats_y_dstat_sep, "SHOW ALL");
   } else {
-    if (mode == ARCHIVE_MODE) {
-      DrawSeparator(y_dstat_sep, "ARCHIVE");
+    if (ctx->view_mode == ARCHIVE_MODE) {
+      DrawSeparator(ctx, ctx->layout.stats_y_dstat_sep, "ARCHIVE");
     } else {
-      DrawSeparator(y_dstat_sep, "CURRENT DIR");
+      DrawSeparator(ctx, ctx->layout.stats_y_dstat_sep, "CURRENT DIR");
     }
   }
 
   /* Dir Name */
   CutPathname(buf, de->name, INNER_W); /* Changed to CutPathname */
-  attron(A_BOLD);
-  mvprintw(y_dstat_val, STAT_X + 1, "%-*s", INNER_W, buf); /* Clear ghosting */
-  attroff(A_BOLD);
+  wattron(ctx->ctx_border_window, A_BOLD);
+  mvwprintw(ctx->ctx_border_window, ctx->layout.stats_y_dstat_val, STAT_X + 1,
+            "%-*s", INNER_W, buf); /* Clear ghosting */
+  wattroff(ctx->ctx_border_window, A_BOLD);
 
   if (de->global_flag) {
     /* In Show All mode, display global totals */
-    PrintStatRow(y_dstat_val + 1, "Tot:", s->disk_total_files,
-                 s->disk_total_bytes);
-    PrintStatRow(y_dstat_val + 2, "Mat:", s->disk_matching_files,
-                 s->disk_matching_bytes);
+    PrintStatRow(ctx, ctx->layout.stats_y_dstat_val + 1,
+                 "Tot:", s->disk_total_files, s->disk_total_bytes);
+    PrintStatRow(ctx, ctx->layout.stats_y_dstat_val + 2,
+                 "Mat:", s->disk_matching_files, s->disk_matching_bytes);
   } else {
     /* In Normal mode, display current directory totals */
-    PrintStatRow(y_dstat_val + 1, "Tot:", de->total_files, de->total_bytes);
-    PrintStatRow(y_dstat_val + 2, "Mat:", de->matching_files,
-                 de->matching_bytes);
+    PrintStatRow(ctx, ctx->layout.stats_y_dstat_val + 1,
+                 "Tot:", de->total_files, de->total_bytes);
+    PrintStatRow(ctx, ctx->layout.stats_y_dstat_val + 2,
+                 "Mat:", de->matching_files, de->matching_bytes);
   }
 
   /* Tag count always shows global disk total in Show All mode, but we use the
    * disk stats directly if global_flag is set. */
   if (de->global_flag) {
-    PrintStatRow(y_dstat_val + 3, "Tag:", s->disk_tagged_files,
-                 s->disk_tagged_bytes);
+    PrintStatRow(ctx, ctx->layout.stats_y_dstat_val + 3,
+                 "Tag:", s->disk_tagged_files, s->disk_tagged_bytes);
   } else {
-    PrintStatRow(y_dstat_val + 3, "Tag:", de->tagged_files, de->tagged_bytes);
+    PrintStatRow(ctx, ctx->layout.stats_y_dstat_val + 3,
+                 "Tag:", de->tagged_files, de->tagged_bytes);
   }
-
-  refresh();
 }
 
-void DisplayFileParameter(FileEntry *fe) {
-  if (layout.stats_width == 0)
+void DisplayFileParameter(ViewContext *ctx, FileEntry *fe) {
+  if (ctx->layout.stats_width == 0)
     return;
   if (fe) {
-    DrawAttributes(fe->name, &fe->stat_struct, fe);
+    DrawAttributes(ctx, fe->name, &fe->stat_struct, fe);
   }
 }
 
@@ -578,28 +586,28 @@ void DisplayFileParameter(FileEntry *fe) {
 /*                           COMPATIBILITY WRAPPERS                          */
 /* ************************************************************************* */
 
-void DisplayDiskTagged(Statistic *s) {
-  if (layout.stats_width == 0)
+void DisplayDiskTagged(ViewContext *ctx, Statistic *s) {
+  if (ctx->layout.stats_width == 0)
     return;
-  DisplayDiskStatistic(s);
+  DisplayDiskStatistic(ctx, s);
 }
 
-void DisplayDirTagged(DirEntry *de, Statistic *s) {
-  if (layout.stats_width == 0)
+void DisplayDirTagged(ViewContext *ctx, DirEntry *de, Statistic *s) {
+  if (ctx->layout.stats_width == 0)
     return;
-  DisplayDirStatistic(de, NULL, s);
+  DisplayDirStatistic(ctx, de, NULL, s);
 }
 
-void DisplayDirParameter(DirEntry *de) {
-  if (layout.stats_width == 0)
+void DisplayDirParameter(ViewContext *ctx, DirEntry *de) {
+  if (ctx->layout.stats_width == 0)
     return;
   if (de) {
-    DrawAttributes(de->name, &de->stat_struct, NULL);
+    DrawAttributes(ctx, de->name, &de->stat_struct, NULL);
   }
 }
 
-void DisplayGlobalFileParameter(FileEntry *fe) {
-  if (layout.stats_width == 0)
+void DisplayGlobalFileParameter(ViewContext *ctx, FileEntry *fe) {
+  if (ctx->layout.stats_width == 0)
     return;
-  DisplayFileParameter(fe);
+  DisplayFileParameter(ctx, fe);
 }

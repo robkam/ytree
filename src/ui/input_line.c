@@ -16,11 +16,6 @@
 
 /* Helper to get visible length of string */
 /* Using extern from input.c logic (now moved here or duplicated) */
-extern int StrVisualLength(const char *str);
-extern char *StrLeft(const char *str, size_t count);
-extern int VisualPositionToBytePosition(const char *str, int visual_pos);
-extern int WGetch(WINDOW *win);
-extern int ViKey(int ch);
 
 /*
  * UI_ReadString
@@ -34,8 +29,8 @@ extern int ViKey(int ch);
  *
  * Returns: The terminating key (CR or ESC).
  */
-int UI_ReadString(const char *prompt, char *buffer, int max_len,
-                  int history_type) {
+int UI_ReadString(ViewContext *ctx, YtreePanel *panel, const char *prompt,
+                  char *buffer, int max_len, int history_type) {
   WINDOW *win;
   int win_y, win_x;
   int input_y = 1; /* Row 1 */
@@ -46,11 +41,6 @@ int UI_ReadString(const char *prompt, char *buffer, int max_len,
   int scroll_offset = 0;
   static BOOL insert_flag = TRUE;
   const char *hints;
-
-  /* Calculate window position: Bottom 3 lines */
-  win_y = layout.message_y;
-  win_x = 0;
-  input_width = COLS - 2; /* 1 char padding left/right */
 
   /* Ensure buffer is valid */
   if (buffer == NULL)
@@ -66,64 +56,87 @@ int UI_ReadString(const char *prompt, char *buffer, int max_len,
     hints = "[Up] History  [Enter] OK  [Esc] Cancel";
   }
 
-  /* Setup Window */
-  win = newwin(PROMPT_WIN_HEIGHT, COLS, win_y, win_x);
+  /* Clearance: Clear the interaction area on stdscr first */
+  mvwhline(stdscr, ctx->layout.prompt_y, 0, ' ', COLS);
+  mvwhline(stdscr, ctx->layout.status_y, 0, ' ', COLS);
+  wnoutrefresh(stdscr);
+
+  /* win_y becomes absolute from layout */
+  win_y = ctx->layout.prompt_y;
+  win_x = 0;
+
+  /* Setup Window: 2 lines (Prompt/Input and Hints) */
+  win = newwin(2, COLS, win_y, win_x);
   if (win == NULL)
     return ESC;
 
   UI_Dialog_Push(win, UI_TIER_FOOTER);
 
   keypad(win, TRUE);
-  WbkgdSet(win, COLOR_PAIR(CPAIR_MENU));
+  WbkgdSet(ctx, win, COLOR_PAIR(CPAIR_MENU));
   curs_set(1); /* Show cursor */
 
   while (1) {
     werase(win);
-    /* box(win, 0, 0); */ /* No box, simpler footer style */
 
-    /* Row 0: Prompt */
-    mvwprintw(win, 0, 1, "%s", prompt);
+    /* Row 0: Prompt and Input Field */
+    mvwprintw(win, 0, 1, "%s ", prompt);
+    int prompt_len = StrVisualLength(prompt) + 2;
+    int field_width = COLS - prompt_len - 1;
 
-    /* Row 2: Hints */
-    mvwprintw(win, 2, 1, "%s", hints);
+    /* Row 1: Hints */
+    mvwprintw(win, 1, 1, "%s", hints);
 
-    /* Row 1: Input Field */
     /* Handle Scrolling */
     if (p < scroll_offset) {
       scroll_offset = p;
-    } else if (p >= scroll_offset + input_width) {
-      scroll_offset = p - input_width + 1;
+    } else if (p >= scroll_offset + field_width) {
+      scroll_offset = p - field_width + 1;
     }
 
     /* Extract visible portion */
     int start_byte = VisualPositionToBytePosition(buffer, scroll_offset);
-    char *display_str = StrLeft(&buffer[start_byte], input_width);
+    char *display_str = StrLeft(&buffer[start_byte], field_width);
 
-    mvwaddstr(win, input_y, input_x, display_str);
+    mvwaddstr(win, 0, prompt_len, display_str);
 
-    /* Fill remaining space with underscores to indicate field */
+    /* Fill remaining space with underscores */
     int len_drawn = StrVisualLength(display_str);
     int i;
-    for (i = len_drawn; i < input_width; i++) {
+    for (i = len_drawn; i < field_width; i++) {
       waddch(win, '_');
     }
 
     free(display_str);
 
     /* Position Cursor */
-    wmove(win, input_y, input_x + (p - scroll_offset));
+    wmove(win, 0, prompt_len + (p - scroll_offset));
 
     wrefresh(win);
 
     curs_set(1); /* Ensure cursor is visible */
-    ch = WGetch(win);
+    ch = WGetch(ctx, win);
 
-#ifdef VI_KEYS
-    ch = ViKey(ch);
-#endif
+    FILE *df = fopen("/tmp/ytree_input.log", "a");
+    if (df) {
+      fprintf(df, "UI_ReadString read: %d ('%c')\n", ch,
+              (ch >= 32 && ch <= 126) ? ch : '.');
+      fclose(df);
+    }
+
+    /*
+    #ifdef VI_KEYS
+        ch = ViKey(ch);
+    #endif
+    */
 
     if (ch == ESC) {
       break;
+    }
+    if (ch == ERR) {
+      /* Wait a tiny amount to prevent CPU hang on EOF/NonBlocking */
+      napms(10);
+      continue;
     }
     if (ch == '\n' || ch == '\r') {
       ch = CR; /* Standardize return */
@@ -143,21 +156,22 @@ int UI_ReadString(const char *prompt, char *buffer, int max_len,
           }
         }
       }
+
       break;
     }
 
-    if (resize_request) {
-      resize_request = FALSE;
+    if (ctx && ctx->resize_request) {
+      ctx->resize_request = FALSE;
 
       /* Recreate window geometry */
-      win_y = layout.message_y;
-      input_width = COLS - 2;
+      win_y = ctx->layout.prompt_y;
 
-      wresize(win, PROMPT_WIN_HEIGHT, COLS);
+      wresize(win, 2, COLS);
       mvwin(win, win_y, 0);
 
       /* Refresh background to clear artifacts */
-      RefreshGlobalView(GetSelectedDirEntry(CurrentVolume));
+      RefreshGlobalView(ctx, GetSelectedDirEntry(
+                                 ctx, (panel ? panel->vol : ctx->active->vol)));
       touchwin(win);
       continue;
     }
@@ -257,7 +271,7 @@ int UI_ReadString(const char *prompt, char *buffer, int max_len,
     case KEY_UP: {
       /* GetHistory returns a pointer to internal history data.
          Do NOT free it. */
-      char *h = GetHistory(history_type);
+      char *h = GetHistory(ctx, history_type);
       if (h) {
         strncpy(buffer, h, max_len - 1);
         buffer[max_len - 1] = '\0';
@@ -267,7 +281,7 @@ int UI_ReadString(const char *prompt, char *buffer, int max_len,
 
     case '\t': {
       /* GetMatches allocates a new string. MUST free it. */
-      char *match = GetMatches(buffer);
+      char *match = GetMatches(ctx, buffer);
       if (match) {
         strncpy(buffer, match, max_len - 1);
         buffer[max_len - 1] = '\0';
@@ -285,21 +299,23 @@ int UI_ReadString(const char *prompt, char *buffer, int max_len,
         /* F2 Directory Selection */
         /* Note: KeyF2Get handles saving/restoring the screen context internally
          */
-        if (KeyF2Get(CurrentVolume->vol_stats.tree,
-                     CurrentVolume->vol_stats.disp_begin_pos,
-                     CurrentVolume->vol_stats.cursor_pos, path) == 0) {
+        if (KeyF2Get(ctx, panel, path) == 0) {
           if (*path) {
             strncpy(buffer, path, max_len - 1);
             buffer[max_len - 1] = '\0';
             p = StrVisualLength(buffer);
             /* Force refresh of global view before we redraw our window,
                just in case KeyF2Get left things dirty */
-            RefreshGlobalView(GetSelectedDirEntry(CurrentVolume));
+            RefreshGlobalView(
+                ctx, GetSelectedDirEntry(
+                         ctx, (panel ? panel->vol : ctx->active->vol)));
             touchwin(win);
           }
         } else {
           /* Cancelled or error, just ensure background is clean */
-          RefreshGlobalView(GetSelectedDirEntry(CurrentVolume));
+          RefreshGlobalView(ctx,
+                            GetSelectedDirEntry(
+                                ctx, (panel ? panel->vol : ctx->active->vol)));
           touchwin(win);
         }
       }
@@ -329,15 +345,16 @@ int UI_ReadString(const char *prompt, char *buffer, int max_len,
 
   /* Cleanup */
   curs_set(0);
-  UI_Dialog_Close(win);
+  UI_Dialog_Close(ctx, win);
 
   /* Update History on success */
   if (ch == CR && buffer[0] != '\0') {
-    InsHistory(buffer, history_type);
+    InsHistory(ctx, buffer, history_type);
   }
 
   /* Global Refresh to restore what was behind the window */
-  RefreshGlobalView(GetSelectedDirEntry(CurrentVolume));
+  RefreshGlobalView(
+      ctx, GetSelectedDirEntry(ctx, (panel ? panel->vol : ctx->active->vol)));
 
   return ch;
 }

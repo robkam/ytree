@@ -5,6 +5,7 @@
  *
  ***************************************************************************/
 
+#include "ytree.h"
 #include "ytree_cmd.h"
 #include "ytree_defs.h"
 #include "ytree_fs.h"
@@ -16,27 +17,16 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
-extern struct Volume *CurrentVolume;
 #define mode (CurrentVolume->vol_stats.login_mode)
 
 #ifdef HAVE_LIBARCHIVE
 #include "ytree_fs.h"
 #endif
 
-extern int chdir(const char *);
-extern int String_Replace(char *dest, size_t dest_size, const char *src,
-                          const char *token, const char *replacement);
-extern char *GetPath(DirEntry *dir_entry, char *buffer);
-extern char *GetFileNamePath(FileEntry *file_entry, char *buffer);
-extern void StrCp(char *dest, const char *src);
-extern void SuspendClock(void);
-extern void InitClock(void);
-extern int QuerySystemCall(char *command_line, Statistic *s);
-
 #ifdef HAVE_LIBARCHIVE
-static int ExecuteArchiveFile(DirEntry *dir_entry, FileEntry *file_entry,
-                              char *cmd_template, Statistic *s,
-                              ArchiveProgressCallback cb) {
+static int ExecuteArchiveFile(ViewContext *ctx, DirEntry *dir_entry,
+                              FileEntry *file_entry, char *cmd_template,
+                              Statistic *s, ArchiveProgressCallback cb) {
   char temp_path[PATH_LENGTH];
   char command_line[COMMAND_LINE_LENGTH];
   char quoted_temp[PATH_LENGTH * 2 + 1];
@@ -101,7 +91,7 @@ static int ExecuteArchiveFile(DirEntry *dir_entry, FileEntry *file_entry,
   }
 
   /* 4. Execute */
-  result = SilentSystemCall(command_line, s);
+  result = SilentSystemCall(ctx, command_line, s);
 
   /* 5. Cleanup */
   unlink(temp_path);
@@ -110,8 +100,8 @@ static int ExecuteArchiveFile(DirEntry *dir_entry, FileEntry *file_entry,
 }
 #endif
 
-int Execute(DirEntry *dir_entry, FileEntry *file_entry, char *cmd_template,
-            Statistic *s, ArchiveProgressCallback cb) {
+int Execute(ViewContext *ctx, DirEntry *dir_entry, FileEntry *file_entry,
+            char *cmd_template, Statistic *s, ArchiveProgressCallback cb) {
   char expanded_command[COMMAND_LINE_LENGTH + 1];
   char *final_command;
   char path[PATH_LENGTH + 1];
@@ -120,8 +110,9 @@ int Execute(DirEntry *dir_entry, FileEntry *file_entry, char *cmd_template,
 
 /* ARCHIVE MODE HANDLER */
 #ifdef HAVE_LIBARCHIVE
-  if (mode == ARCHIVE_MODE) {
-    result = ExecuteArchiveFile(dir_entry, file_entry, cmd_template, s, cb);
+  if (ctx->view_mode == ARCHIVE_MODE) {
+    result =
+        ExecuteArchiveFile(ctx, dir_entry, file_entry, cmd_template, s, cb);
     return result;
   }
 #endif
@@ -158,11 +149,11 @@ int Execute(DirEntry *dir_entry, FileEntry *file_entry, char *cmd_template,
     return -1;
   }
 
-  if (mode == DISK_MODE || mode == USER_MODE) {
+  if (ctx->view_mode == DISK_MODE || ctx->view_mode == USER_MODE) {
     if (chdir(GetPath(dir_entry, path))) {
       result = -1;
     } else {
-      result = QuerySystemCall(final_command, s);
+      result = QuerySystemCall(ctx, final_command, s);
 
       /* Restore original directory */
       if (fchdir(start_dir_fd) == -1) {
@@ -171,7 +162,7 @@ int Execute(DirEntry *dir_entry, FileEntry *file_entry, char *cmd_template,
     }
   } else {
     /* Execute is disabled in archive mode, but handle defensively */
-    result = QuerySystemCall(final_command, s);
+    result = QuerySystemCall(ctx, final_command, s);
   }
 
   close(start_dir_fd);
@@ -180,8 +171,8 @@ int Execute(DirEntry *dir_entry, FileEntry *file_entry, char *cmd_template,
 
 /* GetCommandLine and GetSearchCommandLine moved to UI layer */
 
-int ExecuteCommand(FileEntry *fe_ptr, WalkingPackage *walking_package,
-                   Statistic *s) {
+int ExecuteCommand(ViewContext *ctx, FileEntry *fe_ptr,
+                   WalkingPackage *walking_package, Statistic *s) {
   char command_line[COMMAND_LINE_LENGTH + 1];
   char temp_command_line[COMMAND_LINE_LENGTH + 1];
   char raw_path[PATH_LENGTH + 1];
@@ -192,9 +183,9 @@ int ExecuteCommand(FileEntry *fe_ptr, WalkingPackage *walking_package,
 
 #ifdef HAVE_LIBARCHIVE
   /* Archive Mode Tagged Execution */
-  if (mode == ARCHIVE_MODE) {
+  if (ctx->view_mode == ARCHIVE_MODE) {
     /* Reconstruct the template to pass to single-file handler */
-    return ExecuteArchiveFile(fe_ptr->dir_entry, fe_ptr,
+    return ExecuteArchiveFile(ctx, fe_ptr->dir_entry, fe_ptr,
                               walking_package->function_data.execute.command, s,
                               NULL);
   }
@@ -232,5 +223,5 @@ int ExecuteCommand(FileEntry *fe_ptr, WalkingPackage *walking_package,
     command_line[COMMAND_LINE_LENGTH] = '\0';
   }
 
-  return SilentSystemCallEx(command_line, FALSE, s);
+  return SilentSystemCallEx(ctx, command_line, FALSE, s);
 }

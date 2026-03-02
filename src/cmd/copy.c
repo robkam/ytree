@@ -16,13 +16,6 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-extern struct Volume *CurrentVolume;
-extern struct Volume *Volume_GetByPath(const char *path);
-extern void *xmalloc(size_t size);
-extern char *GetPath(DirEntry *dir_entry, char *buffer);
-extern int BuildFilename(char *in_filename, char *pattern, char *out_filename);
-extern char *GetFileNamePath(FileEntry *file_entry, char *buffer);
-
 #define FILE_SEPARATOR_CHAR '/'
 #define FILE_SEPARATOR_STRING "/"
 #define ESCAPE goto FNC_XIT
@@ -33,17 +26,22 @@ extern char *GetFileNamePath(FileEntry *file_entry, char *buffer);
 
 /* Helper for Archive Callback */
 static int ArchiveUICallback(int status, const char *msg, void *user_data) {
-  (void)status;
-  (void)msg;
-  (void)user_data;
-  /* UI interactions removed for decoupling */
+  ViewContext *ctx = (ViewContext *)user_data;
+  if (status == ARCHIVE_STATUS_PROGRESS) {
+    if (ctx)
+      DrawSpinner(ctx);
+    if (EscapeKeyPressed()) {
+      return ARCHIVE_CB_ABORT;
+    }
+  }
   return ARCHIVE_CB_CONTINUE;
 }
 
-static int CopyArchiveFile(char *to_path, char *from_path, Statistic *s);
+static int CopyArchiveFile(ViewContext *ctx, char *to_path, char *from_path, Statistic *s);
 
-int CopyFile(Statistic *statistic_ptr, FileEntry *fe_ptr, char *to_file,
-             DirEntry *dest_dir_entry, char *to_dir_path, /* absolute path */
+int CopyFile(ViewContext *ctx, Statistic *statistic_ptr, FileEntry *fe_ptr,
+             char *to_file, DirEntry *dest_dir_entry,
+             char *to_dir_path, /* absolute path */
              BOOL path_copy, int *dir_create_mode, int *overwrite_mode,
              ConflictCallback cb, ChoiceCallback choice_cb) {
   long long file_size;
@@ -69,10 +67,8 @@ int CopyFile(Statistic *statistic_ptr, FileEntry *fe_ptr, char *to_file,
   (void)GetFileNamePath(fe_ptr, from_path);
   (void)GetPath(fe_ptr->dir_entry, from_dir);
 
-  fprintf(
-      stderr,
-      "DEBUG: CopyFile starting: from_path=%s, to_file=%s, to_dir_path=%s\n",
-      from_path, to_file, to_dir_path);
+  DEBUG_LOG("CopyFile starting: from_path=%s, to_file=%s, to_dir_path=%s",
+            from_path, to_file, to_dir_path);
 
   /* Renamed usage: statistic_ptr->mode -> statistic_ptr->login_mode */
   if (statistic_ptr->login_mode != DISK_MODE &&
@@ -109,7 +105,7 @@ int CopyFile(Statistic *statistic_ptr, FileEntry *fe_ptr, char *to_file,
       strcat(full_dest_path, rel_path);
 
       /* Identify Target Context for directory creation */
-      target_vol = Volume_GetByPath(full_dest_path);
+      target_vol = Volume_GetByPath(ctx, full_dest_path);
       if (target_vol) {
         target_tree = target_vol->vol_stats.tree;
         target_stats = &target_vol->vol_stats;
@@ -132,7 +128,7 @@ int CopyFile(Statistic *statistic_ptr, FileEntry *fe_ptr, char *to_file,
             dest_dir_entry; // Use a temporary variable for dest_dir_entry
         char dest_dir_sys_path[PATH_LENGTH + 1];
         strcpy(dest_dir_sys_path, full_dest_path);
-        if (EnsureDirectoryExists(dest_dir_sys_path, target_tree, &created,
+        if (EnsureDirectoryExists(ctx, dest_dir_sys_path, target_tree, &created,
                                   &tmp_dest_dir_entry, dir_create_mode,
                                   choice_cb) == -1) {
           return result;
@@ -168,7 +164,7 @@ int CopyFile(Statistic *statistic_ptr, FileEntry *fe_ptr, char *to_file,
   /* We re-evaluate target_vol here to ensure consistency for the file copy
    * part. */
 
-  target_vol = Volume_GetByPath(to_path);
+  target_vol = Volume_GetByPath(ctx, to_path);
   if (target_vol) {
     target_tree = target_vol->vol_stats.tree;
     target_stats = &target_vol->vol_stats;
@@ -233,7 +229,7 @@ int CopyFile(Statistic *statistic_ptr, FileEntry *fe_ptr, char *to_file,
 
     /* Re-evaluate target volume with full path if path_copy changed it? */
     /* Usually base is enough, but to be safe: */
-    target_vol = Volume_GetByPath(to_path);
+    target_vol = Volume_GetByPath(ctx, to_path);
     if (target_vol) {
       target_tree = target_vol->vol_stats.tree;
       target_stats = &target_vol->vol_stats;
@@ -249,7 +245,7 @@ int CopyFile(Statistic *statistic_ptr, FileEntry *fe_ptr, char *to_file,
        * dest_dir_entry is updated */
       DirEntry *tmp_dest_dir_entry = dest_dir_entry;
       if (EnsureDirectoryExists(
-              to_path, target_tree ? target_tree : statistic_ptr->tree, NULL,
+              ctx, to_path, target_tree ? target_tree : statistic_ptr->tree, NULL,
               &tmp_dest_dir_entry, dir_create_mode, choice_cb) == -1) {
         return result;
       }
@@ -305,7 +301,7 @@ int CopyFile(Statistic *statistic_ptr, FileEntry *fe_ptr, char *to_file,
     strcat(relative_path, to_file);
 
     if (Archive_AddFile(target_stats->login_path, from_path, relative_path,
-                        FALSE, ArchiveUICallback, NULL) == 0) {
+                        FALSE, ArchiveUICallback, ctx) == 0) {
       /* Success */
       /* Caller will refresh view */
       return 0;
@@ -328,7 +324,7 @@ int CopyFile(Statistic *statistic_ptr, FileEntry *fe_ptr, char *to_file,
     /* Skip validation if destination is archive file (not directory) */
     /* This is handled by target_stats check above for Archive Destination */
     DirEntry *tmp_dest_dir_entry = dest_dir_entry;
-    if (EnsureDirectoryExists(to_path, target_tree, &created,
+    if (EnsureDirectoryExists(ctx, to_path, target_tree, &created,
                               &tmp_dest_dir_entry, dir_create_mode,
                               choice_cb) == -1) {
       return result;
@@ -339,10 +335,10 @@ int CopyFile(Statistic *statistic_ptr, FileEntry *fe_ptr, char *to_file,
 
   (void)strcat(to_path, to_file);
 
-  fprintf(stderr, "DEBUG: CopyFile final to_path=%s\n", to_path);
+  DEBUG_LOG("CopyFile final to_path=%s", to_path);
 
   if (!strcmp(to_path, from_path)) {
-    fprintf(stderr, "DEBUG: CopyFile error: to_path == from_path\n");
+    DEBUG_LOG("CopyFile error: to_path == from_path");
     /* MESSAGE( "Can't copy file into itself" ); */
     return (result);
   }
@@ -357,7 +353,7 @@ int CopyFile(Statistic *statistic_ptr, FileEntry *fe_ptr, char *to_file,
       /* file exists */
       /*-------------*/
       if (cb) {
-        conflict_res = cb(from_path, to_path, overwrite_mode);
+        conflict_res = cb(ctx, from_path, to_path, overwrite_mode);
         if (conflict_res == CONFLICT_ABORT) {
           result = -1;
           ESCAPE;
@@ -370,9 +366,9 @@ int CopyFile(Statistic *statistic_ptr, FileEntry *fe_ptr, char *to_file,
       }
 
       /* Delete the existing file in the destination. */
-      (void)DeleteFile(dest_file_entry, overwrite_mode,
-                       target_tree ? target_stats : &CurrentVolume->vol_stats,
-                       choice_cb);
+      (void)DeleteFile(
+          ctx, dest_file_entry, overwrite_mode,
+          target_tree ? target_stats : &ctx->active->vol->vol_stats, choice_cb);
     }
   } else {
     /* use access */
@@ -382,7 +378,7 @@ int CopyFile(Statistic *statistic_ptr, FileEntry *fe_ptr, char *to_file,
       /* file exists */
       /*-------------*/
       if (cb) {
-        conflict_res = cb(from_path, to_path, overwrite_mode);
+        conflict_res = cb(ctx, from_path, to_path, overwrite_mode);
         if (conflict_res == CONFLICT_ABORT) {
           result = -1;
           ESCAPE;
@@ -401,7 +397,7 @@ int CopyFile(Statistic *statistic_ptr, FileEntry *fe_ptr, char *to_file,
     }
   }
 
-  if (!CopyFileContent(to_path, from_path, statistic_ptr)) {
+  if (!CopyFileContent(ctx, to_path, from_path, statistic_ptr)) {
     /* File copied */
     /*-------------*/
 
@@ -503,8 +499,8 @@ char prompt_header[PATH_LENGTH + 50];
 char prompt_as[PATH_LENGTH + 1];
 
 /* Instrumentation for debugging PathCopy stalls */
-fprintf(stderr, "DEBUG: GetCopyParameter entered. from: %s, path_copy: %d\n",
-from_file ? from_file : "NULL", path_copy);
+  DEBUG_LOG("GetCopyParameter entered. from: %s, path_copy: %d",
+            from_file ? from_file : "NULL", path_copy);
 
 if( from_file == NULL )
 {
@@ -526,7 +522,7 @@ else
 }
 
 /* Log the prompt buffer */
-fprintf(stderr, "DEBUG: constructed buffer: %s\n", prompt_header);
+  DEBUG_LOG("constructed buffer: %s", prompt_header);
 
 ClearHelp();
 
@@ -538,8 +534,8 @@ if( UI_ReadString(prompt_header, to_file, PATH_LENGTH, HST_FILE) == CR){
 strncpy(prompt_as, to_file, PATH_LENGTH);
 prompt_as[PATH_LENGTH] = '\0';
 
-if (IsSplitScreen && ActivePanel) {
-YtreePanel *target = (ActivePanel == LeftPanel) ? RightPanel : LeftPanel;
+if (IsSplitScreen && GlobalView->active) {
+YtreePanel *target = (GlobalView->active == GlobalView->left) ? GlobalView->right : GlobalView->left;
 if (target && target->vol && target->vol->total_dirs > 0) {
 int idx = target->disp_begin_pos + target->cursor_pos;
 /* Safety bounds check */
@@ -551,7 +547,7 @@ GetPath(target->vol->dir_entry_list[idx].dir_entry, to_dir);
 }
 
 /* Log before InputString call for target dir */
-fprintf(stderr, "DEBUG: calling InputString for TO directory\n");
+  DEBUG_LOG("calling InputString for TO directory");
 
 if( UI_ReadString("To Directory:", to_dir, PATH_LENGTH, HST_PATH) == CR ) {
 if (to_dir[0] == '\0') {
@@ -565,14 +561,15 @@ return( -1 );
 }
 #endif
 
-int CopyFileContent(char *to_path, char *from_path, Statistic *s) {
+int CopyFileContent(ViewContext *ctx, char *to_path, char *from_path,
+                    Statistic *s) {
   int i, o, n;
   char buffer[2048];
   int spin_counter = 0;
 
   /* Renamed usage: s->mode -> s->login_mode */
   if (s->login_mode != DISK_MODE && s->login_mode != USER_MODE) {
-    return (CopyArchiveFile(to_path, from_path, s));
+    return (CopyArchiveFile(ctx, to_path, from_path, s));
   }
 
   /* FIX: Use realpath to resolve both paths for comparison to avoid
@@ -617,7 +614,7 @@ int CopyFileContent(char *to_path, char *from_path, Statistic *s) {
   while ((n = read(i, buffer, sizeof(buffer))) > 0) {
     /* Update activity spinner every 100 chunks */
     if ((++spin_counter % 100) == 0) {
-      if (ArchiveUICallback(ARCHIVE_STATUS_PROGRESS, NULL, NULL) ==
+      if (ArchiveUICallback(ARCHIVE_STATUS_PROGRESS, NULL, ctx) ==
           ARCHIVE_CB_ABORT) {
         /* MESSAGE("Operation Interrupted"); */
         close(i);
@@ -642,7 +639,8 @@ int CopyFileContent(char *to_path, char *from_path, Statistic *s) {
   return (0);
 }
 
-int CopyTaggedFiles(FileEntry *fe_ptr, WalkingPackage *walking_package) {
+int CopyTaggedFiles(ViewContext *ctx, FileEntry *fe_ptr,
+                    WalkingPackage *walking_package) {
   Statistic *s = walking_package->function_data.copy.statistic_ptr;
   BOOL path_copy = walking_package->function_data.copy.path_copy;
   char *to_path = walking_package->function_data.copy.to_path;
@@ -670,14 +668,16 @@ int CopyTaggedFiles(FileEntry *fe_ptr, WalkingPackage *walking_package) {
       /* MESSAGE( "Can't copy file to*empty name" ); */
     }
 
-    result = CopyFile(s, fe_ptr, new_name, dest_dir_entry, to_path, path_copy,
-                      dir_create_mode, overwrite_mode, cb, choice_cb);
+    result =
+        CopyFile(ctx, s, fe_ptr, new_name, dest_dir_entry, to_path, path_copy,
+                 dir_create_mode, overwrite_mode, cb, choice_cb);
   }
 
   return (result);
 }
 
-static int CopyArchiveFile(char *to_path, char *from_path, Statistic *s) {
+static int CopyArchiveFile(ViewContext *ctx, char *to_path, char *from_path,
+                           Statistic *s) {
   int result = -1;
   char *archive_path;
 
@@ -685,7 +685,7 @@ static int CopyArchiveFile(char *to_path, char *from_path, Statistic *s) {
 
 #ifdef HAVE_LIBARCHIVE
   result = ExtractArchiveNode(archive_path, from_path, to_path,
-                              ArchiveUICallback, NULL);
+                              ArchiveUICallback, ctx);
 #endif
 
   if (result != 0) {

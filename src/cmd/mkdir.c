@@ -5,6 +5,7 @@
  *
  ***************************************************************************/
 
+#include "ytree.h"
 #include "ytree_cmd.h"
 #include "ytree_fs.h"
 #include <dirent.h>
@@ -24,14 +25,8 @@
 #define ARCHIVE_MODE 2
 #define USER_MODE 3
 
-extern struct Volume *CurrentVolume;
-
-extern int user_umask;
-extern char *GetPath(DirEntry *dir_entry, char *buffer);
-extern void *xcalloc(size_t nmemb, size_t size);
-extern void NormPath(char *path, char *norm_path);
-
-static DirEntry *MakeDirEntry(DirEntry *father_dir_entry, const char *dir_name,
+static DirEntry *MakeDirEntry(ViewContext *ctx, YtreePanel *panel,
+                              DirEntry *father_dir_entry, const char *dir_name,
                               Statistic *s);
 
 /* Helper for Archive Callback */
@@ -43,21 +38,23 @@ static int ArchiveUICallback(int status, const char *msg, void *user_data) {
   return ARCHIVE_CB_CONTINUE;
 }
 
-int MakeDirectory(DirEntry *father_dir_entry, const char *dir_name,
+int MakeDirectory(ViewContext *ctx, YtreePanel *panel,
+                  DirEntry *father_dir_entry, const char *dir_name,
                   Statistic *s) {
   int result = -1;
 
   if (!dir_name || !*dir_name)
     return -1;
 
-  if (MakeDirEntry(father_dir_entry, dir_name, s) != NULL) {
+  if (MakeDirEntry(ctx, panel, father_dir_entry, dir_name, s) != NULL) {
     result = 0;
   }
 
   return (result);
 }
 
-static DirEntry *MakeDirEntry(DirEntry *father_dir_entry, const char *dir_name,
+static DirEntry *MakeDirEntry(ViewContext *ctx, YtreePanel *panel,
+                              DirEntry *father_dir_entry, const char *dir_name,
                               Statistic *s) {
   DirEntry *den_ptr = NULL, *des_ptr;
   char buffer[PATH_LENGTH + 1];
@@ -78,7 +75,7 @@ static DirEntry *MakeDirEntry(DirEntry *father_dir_entry, const char *dir_name,
 
 /* ARCHIVE MODE HANDLER */
 #ifdef HAVE_LIBARCHIVE
-  if (CurrentVolume && CurrentVolume->vol_stats.login_mode == ARCHIVE_MODE) {
+  if (panel && panel->vol && panel->vol->vol_stats.login_mode == ARCHIVE_MODE) {
     char root_path[PATH_LENGTH + 1];
     char relative_path[PATH_LENGTH + 1];
     char parent_path[PATH_LENGTH + 1];
@@ -86,7 +83,7 @@ static DirEntry *MakeDirEntry(DirEntry *father_dir_entry, const char *dir_name,
     /* Get full path of parent directory in tree */
     GetPath(father_dir_entry, parent_path);
     /* Get path of the archive file itself */
-    strcpy(root_path, CurrentVolume->vol_stats.login_path);
+    strcpy(root_path, panel->vol->vol_stats.login_path);
 
     /* Calculate internal parent path by stripping archive root */
     if (strcmp(parent_path, root_path) == 0) {
@@ -111,8 +108,8 @@ static DirEntry *MakeDirEntry(DirEntry *father_dir_entry, const char *dir_name,
     strcat(relative_path, dir_name);
 
     /* Add entry */
-    if (Archive_AddFile(CurrentVolume->vol_stats.login_path, NULL,
-                        relative_path, TRUE, ArchiveUICallback, NULL) == 0) {
+    if (Archive_AddFile(panel->vol->vol_stats.login_path, NULL, relative_path,
+                        TRUE, ArchiveUICallback, NULL) == 0) {
       /* Success: Return a dummy non-NULL to indicate success.
       The auto-refresh will reload the tree.
       */
@@ -127,7 +124,7 @@ static DirEntry *MakeDirEntry(DirEntry *father_dir_entry, const char *dir_name,
 
   if (mkdir(buffer, (S_IREAD | S_IWRITE | S_IEXEC | S_IRGRP | S_IWGRP |
                      S_IXGRP | S_IROTH | S_IWOTH | S_IXOTH) &
-                        ~user_umask)) {
+                        ~ctx->user_umask)) {
     /* Modified Logic: Allow existing directories if they are valid. */
     if (errno == EEXIST) {
       if (STAT_(buffer, &stat_struct) == 0 && S_ISDIR(stat_struct.st_mode)) {
@@ -223,7 +220,8 @@ static DirEntry *MakeDirEntry(DirEntry *father_dir_entry, const char *dir_name,
   return (den_ptr);
 }
 
-int MakePath(DirEntry *tree, char *dir_path, DirEntry **dest_dir_entry) {
+int MakePath(ViewContext *ctx, DirEntry *tree, char *dir_path,
+             DirEntry **dest_dir_entry) {
   DirEntry *de_ptr, *sde_ptr;
   char path[PATH_LENGTH + 1];
   char *token, *old;
@@ -288,7 +286,7 @@ SEARCH_TREE:
       /*----------------------------------*/
       /* MakeDirEntry returns the new node (or existing one), or NULL on error
        */
-      if ((de_ptr = MakeDirEntry(de_ptr, token, NULL)) == NULL) {
+      if ((de_ptr = MakeDirEntry(ctx, NULL, de_ptr, token, NULL)) == NULL) {
         return (result);
       }
     }
@@ -328,9 +326,9 @@ CREATE_EXTERNAL:
   return (result);
 }
 
-int EnsureDirectoryExists(char *dir_path, DirEntry *tree, BOOL *created,
-                          DirEntry **result_ptr, int *auto_create,
-                          ChoiceCallback choice_cb) {
+int EnsureDirectoryExists(ViewContext *ctx, char *dir_path, DirEntry *tree,
+                          BOOL *created, DirEntry **result_ptr,
+                          int *auto_create, ChoiceCallback choice_cb) {
   DIR *tmpdir;
   int term;
 
@@ -347,7 +345,7 @@ int EnsureDirectoryExists(char *dir_path, DirEntry *tree, BOOL *created,
         term = 'Y';
       } else {
         if (choice_cb) {
-          term = choice_cb("Directory does not exist; create (Y/N/A) ? ",
+          term = choice_cb(ctx, "Directory does not exist; create (Y/N/A) ? ",
                            "YNA\033");
         } else {
           term = 'N'; /* Default to abort headless missing cb */
@@ -385,5 +383,5 @@ int EnsureDirectoryExists(char *dir_path, DirEntry *tree, BOOL *created,
    * MakePath will create the node in memory if it's missing (even if dir exists
    * on disk), thanks to the update in MakeDirEntry.
    */
-  return MakePath(tree, dir_path, result_ptr);
+  return MakePath(ctx, tree, dir_path, result_ptr);
 }

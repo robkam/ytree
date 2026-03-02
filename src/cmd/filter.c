@@ -6,13 +6,13 @@
  ***************************************************************************/
 
 #ifndef YTREE_FS_H
+#include "ytree.h"
 #include "../../include/ytree_fs.h"
 #endif
 #include <ctype.h>
 #include <fnmatch.h>
 #include <string.h>
 
-extern char *GetFileName(FileEntry *fe, char *path);
 
 /* Core filter functions - all headless now */
 
@@ -30,6 +30,8 @@ BOOL Match(FileEntry *fe, Statistic *s) {
   char temp_spec[sizeof(s->file_spec)];
   char *pattern;
   char *saveptr;
+  BOOL has_positive = FALSE;
+  BOOL positive_match = FALSE;
 
   if (!fe || !s)
     return FALSE;
@@ -41,27 +43,54 @@ BOOL Match(FileEntry *fe, Statistic *s) {
   strncpy(temp_spec, s->file_spec, sizeof(temp_spec) - 1);
   temp_spec[sizeof(temp_spec) - 1] = '\0';
 
+  /* First pass: check for negative patterns (exclusions) */
   pattern = strtok_r(temp_spec, ",", &saveptr);
   while (pattern) {
     /* Trim leading whitespace */
     while (*pattern && isspace((unsigned char)*pattern))
       pattern++;
 
-    if (*pattern) {
-      /* Trim trailing whitespace */
-      char *end = pattern + strlen(pattern) - 1;
-      while (end > pattern && isspace((unsigned char)*end)) {
-        *end = '\0';
-        end--;
+    if (*pattern && *pattern == '-') {
+      /* Negative pattern: if it matches, exclude the file */
+      char *actual_pattern = pattern + 1;
+      if (fnmatch(actual_pattern, fe->name, 0) == 0) {
+        return FALSE; /* File matches negative pattern, exclude it */
       }
-
-      if (fnmatch(pattern, fe->name, 0) == 0) {
-        return TRUE;
-      }
+    } else if (*pattern) {
+      has_positive = TRUE;
     }
     pattern = strtok_r(NULL, ",", &saveptr);
   }
-  return FALSE;
+
+  /* Second pass: check for positive patterns (inclusions) */
+  if (has_positive) {
+    strncpy(temp_spec, s->file_spec, sizeof(temp_spec) - 1);
+    temp_spec[sizeof(temp_spec) - 1] = '\0';
+    pattern = strtok_r(temp_spec, ",", &saveptr);
+    while (pattern) {
+      /* Trim leading whitespace */
+      while (*pattern && isspace((unsigned char)*pattern))
+        pattern++;
+
+      if (*pattern && *pattern != '-') {
+        /* Trim trailing whitespace */
+        char *end = pattern + strlen(pattern) - 1;
+        while (end > pattern && isspace((unsigned char)*end)) {
+          *end = '\0';
+          end--;
+        }
+
+        if (fnmatch(pattern, fe->name, 0) == 0) {
+          return TRUE; /* File matches positive pattern, include it */
+        }
+      }
+      pattern = strtok_r(NULL, ",", &saveptr);
+    }
+    return FALSE; /* No positive pattern matched */
+  } else {
+    /* No positive patterns, only negative - include by default if not excluded */
+    return TRUE;
+  }
 }
 
 void ApplyFilter(DirEntry *dir_entry, Statistic *s) {

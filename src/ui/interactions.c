@@ -22,16 +22,18 @@
 static char move_prompt_header[PATH_LENGTH + 50];
 static char move_prompt_as[PATH_LENGTH + 1];
 
-int UI_ConflictResolverWrapper(const char *src_path, const char *dst_path,
-                               int *mode_flags) {
-  return UI_AskConflict(src_path, dst_path, mode_flags);
+int UI_ConflictResolverWrapper(ViewContext *ctx, const char *src_path,
+                               const char *dst_path, int *mode_flags) {
+  return UI_AskConflict(ctx, src_path, dst_path, mode_flags);
 }
 
-int UI_ChoiceResolver(const char *prompt, const char *choices) {
-  return InputChoice(prompt, choices);
+int UI_ChoiceResolver(ViewContext *ctx, const char *prompt,
+                      const char *choices) {
+  return InputChoice(ctx, prompt, choices);
 }
 
-int GetMoveParameter(char *from_file, char *to_file, char *to_dir) {
+int GetMoveParameter(ViewContext *ctx, char *from_file, char *to_file,
+                     char *to_dir) {
   if (from_file == NULL) {
     from_file = "TAGGED FILES";
     (void)strcpy(to_file, "*");
@@ -42,15 +44,16 @@ int GetMoveParameter(char *from_file, char *to_file, char *to_dir) {
   (void)snprintf(move_prompt_header, sizeof(move_prompt_header), "MOVE: %s",
                  from_file);
 
-  ClearHelp();
+  ClearHelp(ctx);
 
-  if (UI_ReadString(move_prompt_header, to_file, PATH_LENGTH, HST_FILE) == CR) {
+  if (UI_ReadString(ctx, ctx->active, move_prompt_header, to_file, PATH_LENGTH,
+                    HST_FILE) == CR) {
 
     strncpy(move_prompt_as, to_file, PATH_LENGTH);
     move_prompt_as[PATH_LENGTH] = '\0';
 
-    if (IsSplitScreen && ActivePanel) {
-      YtreePanel *target = (ActivePanel == LeftPanel) ? RightPanel : LeftPanel;
+    if (ctx->is_split_screen && ctx->active) {
+      YtreePanel *target = (ctx->active == ctx->left) ? ctx->right : ctx->left;
       if (target && target->vol && target->vol->total_dirs > 0) {
         int idx = target->disp_begin_pos + target->cursor_pos;
         /* Safety bounds check */
@@ -63,19 +66,20 @@ int GetMoveParameter(char *from_file, char *to_file, char *to_dir) {
       }
     }
 
-    if (UI_ReadString("To Directory:", to_dir, PATH_LENGTH, HST_PATH) == CR) {
+    if (UI_ReadString(ctx, ctx->active, "To Directory:", to_dir, PATH_LENGTH,
+                      HST_PATH) == CR) {
       if (to_dir[0] == '\0') {
         strcpy(to_dir, ".");
       }
       return (0);
     }
   }
-  ClearHelp();
+  ClearHelp(ctx);
   return (-1);
 }
 
-int GetCopyParameter(char *from_file, BOOL path_copy, char *to_file,
-                     char *to_dir) {
+int GetCopyParameter(ViewContext *ctx, char *from_file, BOOL path_copy,
+                     char *to_file, char *to_dir) {
   char prompt_header[PATH_LENGTH + 50];
   char prompt_as[PATH_LENGTH + 1];
 
@@ -93,15 +97,16 @@ int GetCopyParameter(char *from_file, BOOL path_copy, char *to_file,
     (void)snprintf(prompt_header, sizeof(prompt_header), "COPY: %s", from_file);
   }
 
-  ClearHelp();
+  ClearHelp(ctx);
 
-  if (UI_ReadString(prompt_header, to_file, PATH_LENGTH, HST_FILE) == CR) {
+  if (UI_ReadString(ctx, ctx->active, prompt_header, to_file, PATH_LENGTH,
+                    HST_FILE) == CR) {
 
     strncpy(prompt_as, to_file, PATH_LENGTH);
     prompt_as[PATH_LENGTH] = '\0';
 
-    if (IsSplitScreen && ActivePanel) {
-      YtreePanel *target = (ActivePanel == LeftPanel) ? RightPanel : LeftPanel;
+    if (ctx->is_split_screen && ctx->active) {
+      YtreePanel *target = (ctx->active == ctx->left) ? ctx->right : ctx->left;
       if (target && target->vol && target->vol->total_dirs > 0) {
         int idx = target->disp_begin_pos + target->cursor_pos;
         /* Safety bounds check */
@@ -114,18 +119,19 @@ int GetCopyParameter(char *from_file, BOOL path_copy, char *to_file,
       }
     }
 
-    if (UI_ReadString("To Directory:", to_dir, PATH_LENGTH, HST_PATH) == CR) {
+    if (UI_ReadString(ctx, ctx->active, "To Directory:", to_dir, PATH_LENGTH,
+                      HST_PATH) == CR) {
       if (to_dir[0] == '\0') {
         strcpy(to_dir, ".");
       }
       return (0);
     }
   }
-  ClearHelp();
+  ClearHelp(ctx);
   return (-1);
 }
 
-int GetRenameParameter(const char *old_name, char *new_name) {
+int GetRenameParameter(ViewContext *ctx, const char *old_name, char *new_name) {
   const char *prompt;
 
   if (old_name == NULL) {
@@ -136,26 +142,27 @@ int GetRenameParameter(const char *old_name, char *new_name) {
 
   (void)strcpy(new_name, (old_name) ? old_name : "*");
 
-  if (UI_ReadString(prompt, new_name, PATH_LENGTH, HST_FILE) != CR)
+  if (UI_ReadString(ctx, ctx->active, prompt, new_name, PATH_LENGTH,
+                    HST_FILE) != CR)
     return (-1);
 
   if (!strlen(new_name))
     return (-1);
 
   if (old_name && !strcmp(old_name, new_name)) {
-    UI_Message("Can't rename: New name same as old name.");
+    UI_Message(ctx, "Can't rename: New name same as old name.");
     return (-1);
   }
 
   if (strrchr(new_name, FILE_SEPARATOR_CHAR) != NULL) {
-    UI_Message("Invalid new name:*No slashes when renaming!");
+    UI_Message(ctx, "Invalid new name:*No slashes when renaming!");
     return (-1);
   }
 
   return (0);
 }
 
-static int InputModeString(char *modus, int y, int x) {
+static int InputModeString(ViewContext *ctx, char *modus, int y, int x) {
   int cursor_pos = 1; /* Skip file type char at index 0 */
   int ch;
   char path[PATH_LENGTH];
@@ -175,13 +182,11 @@ static int InputModeString(char *modus, int y, int x) {
     }
     wrefresh(stdscr);
 
-    ch = Getch();
+    ch = Getch(ctx);
 
     /* F2 Handling for Volume Switching */
     if (ch == KEY_F(2)) {
-      if (KeyF2Get(CurrentVolume->vol_stats.tree,
-                   CurrentVolume->vol_stats.disp_begin_pos,
-                   CurrentVolume->vol_stats.cursor_pos, path) == 0) {
+      if (KeyF2Get(ctx, ctx->active, path) == 0) {
         /* Ignore path result as chmod uses specific characters */
       }
       /* Always redraw prompt */
@@ -191,6 +196,21 @@ static int InputModeString(char *modus, int y, int x) {
 
     if (ch == ESC)
       return ESC;
+    if (ch == ERR) {
+      if (ctx && ctx->resize_request) {
+        /* Handle resize */
+        ctx->resize_request = FALSE;
+        ReCreateWindows(ctx);
+        DisplayMenu(ctx);
+        DisplayDiskStatistic(ctx, &ctx->active->vol->vol_stats);
+        /* Redraw prompt */
+        ClearHelp(ctx);
+        MvAddStr(LINES - 2, 1, "MODE:");
+        x = 1 + strlen("MODE:") + UI_INPUT_PADDING;
+        continue;
+      }
+      return ESC; /* Unexpected error */
+    }
     if (ch == '\n' || ch == '\r')
       return CR;
 
@@ -220,7 +240,7 @@ static int InputModeString(char *modus, int y, int x) {
   }
 }
 
-int ChangeFileModus(FileEntry *fe_ptr) {
+int ChangeFileModus(ViewContext *ctx, FileEntry *fe_ptr) {
   char modus[12];
   WalkingPackage walking_package;
   int result;
@@ -228,19 +248,19 @@ int ChangeFileModus(FileEntry *fe_ptr) {
 
   result = -1;
 
-  if (mode != DISK_MODE && mode != USER_MODE) {
+  if (ctx->view_mode != DISK_MODE && ctx->view_mode != USER_MODE) {
     return (result);
   }
 
   (void)GetAttributes(fe_ptr->stat_struct.st_mode, modus);
 
-  ClearHelp();
+  ClearHelp(ctx);
   MvAddStr(LINES - 2, 1, "MODE:");
   x = 1 + strlen("MODE:") + UI_INPUT_PADDING;
 
-  if (InputModeString(modus, LINES - 2, x) == CR) {
+  if (InputModeString(ctx, modus, LINES - 2, x) == CR) {
     (void)strcpy(walking_package.function_data.change_modus.new_modus, modus);
-    result = SetFileModus(fe_ptr, &walking_package);
+    result = SetFileModus(ctx, fe_ptr, &walking_package);
   }
 
   move(LINES - 2, 1);
@@ -249,7 +269,7 @@ int ChangeFileModus(FileEntry *fe_ptr) {
   return (result);
 }
 
-int ChangeDirModus(DirEntry *de_ptr) {
+int ChangeDirModus(ViewContext *ctx, DirEntry *de_ptr) {
   char modus[12];
   WalkingPackage walking_package;
   int result;
@@ -257,17 +277,17 @@ int ChangeDirModus(DirEntry *de_ptr) {
 
   result = -1;
 
-  if (mode != DISK_MODE && mode != USER_MODE) {
+  if (ctx->view_mode != DISK_MODE && ctx->view_mode != USER_MODE) {
     return (result);
   }
 
   (void)GetAttributes(de_ptr->stat_struct.st_mode, modus);
 
-  ClearHelp();
+  ClearHelp(ctx);
   MvAddStr(LINES - 2, 1, "MODE:");
   x = 1 + strlen("MODE:") + UI_INPUT_PADDING;
 
-  if (InputModeString(modus, LINES - 2, x) == CR) {
+  if (InputModeString(ctx, modus, LINES - 2, x) == CR) {
     (void)strcpy(walking_package.function_data.change_modus.new_modus, modus);
     result = SetDirModus(de_ptr, &walking_package);
   }
@@ -278,7 +298,7 @@ int ChangeDirModus(DirEntry *de_ptr) {
   return (result);
 }
 
-int GetNewOwner(int st_uid) {
+int GetNewOwner(ViewContext *ctx, int st_uid) {
   char owner[OWNER_NAME_MAX * 2 + 1];
   char *owner_name_ptr;
   int owner_id;
@@ -295,15 +315,12 @@ int GetNewOwner(int st_uid) {
     (void)strcpy(owner, owner_name_ptr);
   }
 
-  ClearHelp();
+  ClearHelp(ctx);
 
-  MvAddStr(LINES - 2, 1, "OWNER:");
-
-  if (InputStringEx(owner, LINES - 2, 1 + strlen("OWNER:") + UI_INPUT_PADDING,
-                    0, OWNER_NAME_MAX, OWNER_NAME_MAX, "\r\033", HST_ID,
-                    NULL) == CR) {
+  if (UI_ReadString(ctx, ctx->active, "OWNER:", owner, OWNER_NAME_MAX,
+                    HST_ID) == CR) {
     if ((owner_id = GetPasswdUid(owner)) == -1) {
-      UI_Message("Can't read Owner-ID:*%s", owner);
+      UI_Message(ctx, "Can't read Owner-ID:*%s", owner);
     }
   }
 
@@ -313,7 +330,7 @@ int GetNewOwner(int st_uid) {
   return (owner_id);
 }
 
-int GetNewGroup(int st_gid) {
+int GetNewGroup(ViewContext *ctx, int st_gid) {
   char group[GROUP_NAME_MAX * 2 + 1];
   char *group_name_ptr;
   int id;
@@ -330,11 +347,12 @@ int GetNewGroup(int st_gid) {
     (void)strcpy(group, group_name_ptr);
   }
 
-  ClearHelp();
+  ClearHelp(ctx);
 
-  if (UI_ReadString("GROUP:", group, GROUP_NAME_MAX, HST_ID) == CR) {
+  if (UI_ReadString(ctx, ctx->active, "GROUP:", group, GROUP_NAME_MAX,
+                    HST_ID) == CR) {
     if ((group_id = GetGroupId(group)) == -1) {
-      UI_Message("Can't read Group-ID:*\"%s\"", group);
+      UI_Message(ctx, "Can't read Group-ID:*\"%s\"", group);
     }
   }
 
@@ -344,21 +362,22 @@ int GetNewGroup(int st_gid) {
   return (group_id);
 }
 
-int ChangeFileOrDirOwnership(const char *path, struct stat *stat_buf,
-                             BOOL change_owner, BOOL change_group) {
+int ChangeFileOrDirOwnership(ViewContext *ctx, const char *path,
+                             struct stat *stat_buf, BOOL change_owner,
+                             BOOL change_group) {
   uid_t new_uid = stat_buf->st_uid;
   gid_t new_gid = stat_buf->st_gid;
   int result = -1;
 
   if (change_owner) {
-    int owner_id = GetNewOwner(stat_buf->st_uid);
+    int owner_id = GetNewOwner(ctx, stat_buf->st_uid);
     if (owner_id < 0)
       return -1; /* User cancelled or error */
     new_uid = (uid_t)owner_id;
   }
 
   if (change_group) {
-    int group_id = GetNewGroup(stat_buf->st_gid);
+    int group_id = GetNewGroup(ctx, stat_buf->st_gid);
     if (group_id < 0)
       return -1; /* User cancelled or error */
     new_gid = (gid_t)group_id;
@@ -370,55 +389,57 @@ int ChangeFileOrDirOwnership(const char *path, struct stat *stat_buf,
   return result;
 }
 
-int HandleDirOwnership(DirEntry *de_ptr, BOOL change_owner, BOOL change_group) {
+int HandleDirOwnership(ViewContext *ctx, DirEntry *de_ptr, BOOL change_owner,
+                       BOOL change_group) {
   char path[PATH_LENGTH + 1];
 
-  if (mode != DISK_MODE && mode != USER_MODE) {
+  if (ctx->view_mode != DISK_MODE && ctx->view_mode != USER_MODE) {
     return -1;
   }
 
   GetPath(de_ptr, path);
-  return ChangeFileOrDirOwnership(path, &de_ptr->stat_struct, change_owner,
+  return ChangeFileOrDirOwnership(ctx, path, &de_ptr->stat_struct, change_owner,
                                   change_group);
 }
 
-int HandleFileOwnership(FileEntry *fe_ptr, BOOL change_owner,
+int HandleFileOwnership(ViewContext *ctx, FileEntry *fe_ptr, BOOL change_owner,
                         BOOL change_group) {
   char path[PATH_LENGTH + 1];
 
-  if (mode != DISK_MODE && mode != USER_MODE) {
+  if (ctx->view_mode != DISK_MODE && ctx->view_mode != USER_MODE) {
     return -1;
   }
 
   GetFileNamePath(fe_ptr, path);
-  return ChangeFileOrDirOwnership(path, &fe_ptr->stat_struct, change_owner,
+  return ChangeFileOrDirOwnership(ctx, path, &fe_ptr->stat_struct, change_owner,
                                   change_group);
 }
 
 int UI_ArchiveCallback(int status, const char *msg, void *user_data) {
-  (void)user_data;
+  ViewContext *ctx = (ViewContext *)user_data;
   if (status == ARCHIVE_STATUS_PROGRESS) {
-    DrawSpinner();
+    if (ctx)
+      DrawSpinner(ctx);
     if (EscapeKeyPressed()) {
       return ARCHIVE_CB_ABORT;
     }
   } else if (status == ARCHIVE_STATUS_ERROR) {
-    if (msg)
-      UI_Message("%s", msg);
+    if (msg && ctx)
+      UI_Message(ctx, "%s", msg);
   } else if (status == ARCHIVE_STATUS_WARNING) {
-    if (msg)
-      UI_Warning("%s", msg);
+    if (msg && ctx)
+      UI_Warning(ctx, "%s", msg);
   }
   return ARCHIVE_CB_CONTINUE;
 }
 
-int GetCommandLine(char *command_line) {
+int GetCommandLine(ViewContext *ctx, char *command_line) {
   int result = -1;
 
-  ClearHelp();
+  ClearHelp(ctx);
 
-  if (UI_ReadString("COMMAND:", command_line, COMMAND_LINE_LENGTH, HST_EXEC) ==
-      CR) {
+  if (UI_ReadString(ctx, ctx->active, "COMMAND:", command_line,
+                    COMMAND_LINE_LENGTH, HST_EXEC) == CR) {
     result = 0;
   }
 
@@ -428,15 +449,17 @@ int GetCommandLine(char *command_line) {
   return (result);
 }
 
-int GetSearchCommandLine(char *command_line, char *raw_pattern) {
+int GetSearchCommandLine(ViewContext *ctx, char *command_line,
+                         char *raw_pattern) {
   int result = -1;
   char input_buf[256];
 
-  ClearHelp();
+  ClearHelp(ctx);
 
   input_buf[0] = '\0';
 
-  if (UI_ReadString("SEARCH TAGGED:", input_buf, 256, HST_SEARCH) == CR) {
+  if (UI_ReadString(ctx, ctx->active, "SEARCH TAGGED:", input_buf, 256,
+                    HST_SEARCH) == CR) {
     if (raw_pattern) {
       strncpy(raw_pattern, input_buf, 255);
       raw_pattern[255] = '\0';
@@ -454,13 +477,13 @@ int GetSearchCommandLine(char *command_line, char *raw_pattern) {
   return (result);
 }
 
-int GetPipeCommand(char *pipe_command) {
+int GetPipeCommand(ViewContext *ctx, char *pipe_command) {
   int result = -1;
 
-  ClearHelp();
+  ClearHelp(ctx);
 
-  if (UI_ReadString("Pipe-Command:", pipe_command, PATH_LENGTH, HST_PIPE) ==
-      CR) {
+  if (UI_ReadString(ctx, ctx->active, "Pipe-Command:", pipe_command,
+                    PATH_LENGTH, HST_PIPE) == CR) {
     result = 0;
   }
 
@@ -470,11 +493,11 @@ int GetPipeCommand(char *pipe_command) {
   return (result);
 }
 
-int SystemCall(char *command_line, Statistic *s) {
+int SystemCall(ViewContext *ctx, char *command_line, Statistic *s) {
   int result;
 
   endwin(); /* Ensure terminal state is reset before external command */
-  result = SilentSystemCall(command_line, s);
+  result = SilentSystemCall(ctx, command_line, s);
 
   (void)GetAvailBytes(&s->disk_space, s);
   /* Full screen redraw to fully restore the curses UI */
@@ -483,13 +506,13 @@ int SystemCall(char *command_line, Statistic *s) {
   return (result);
 }
 
-int QuerySystemCall(char *command_line, Statistic *s) {
+int QuerySystemCall(ViewContext *ctx, char *command_line, Statistic *s) {
   int result;
 
   endwin(); /* 1. Save state / Exit curses mode */
 
   /* 2. Execute command (runs outside curses) */
-  result = SilentSystemCallEx(command_line, FALSE, s);
+  result = SilentSystemCallEx(ctx, command_line, FALSE, s);
 
   /* The external command has finished. We are still in the raw terminal. */
 
@@ -504,18 +527,20 @@ int QuerySystemCall(char *command_line, Statistic *s) {
   return (result);
 }
 
-int UI_ReadFilter(void) {
+int UI_ReadFilter(ViewContext *ctx) {
   int result = -1;
   char buffer[FILE_SPEC_LENGTH * 2 + 1];
 
-  ClearHelp();
-  (void)strcpy(buffer, "*");
+  ClearHelp(ctx);
+  /* Pre-fill with current filter value */
+  (void)strcpy(buffer, ctx->active->vol->vol_stats.file_spec);
 
-  if (UI_ReadString("FILTER:", buffer, FILE_SPEC_LENGTH, HST_FILTER) == CR) {
-    if (SetFilter(buffer, &CurrentVolume->vol_stats)) {
-      UI_Message("Invalid Filter Spec");
+  if (UI_ReadString(ctx, ctx->active, "FILTER:", buffer, FILE_SPEC_LENGTH,
+                    HST_FILTER) == CR) {
+    if (SetFilter(buffer, &ctx->active->vol->vol_stats)) {
+      UI_Message(ctx, "Invalid Filter Spec");
     } else {
-      (void)strcpy(CurrentVolume->vol_stats.file_spec, buffer);
+      (void)strcpy(ctx->active->vol->vol_stats.file_spec, buffer);
       result = 0;
     }
   }
@@ -526,25 +551,25 @@ int UI_ReadFilter(void) {
   return (result);
 }
 
-void UI_GetKindOfSort(void) {
+void UI_GetKindOfSort(ViewContext *ctx) {
   int c;
   int s = 0;
   int order = SORT_ASC;
 
-  wmove(stdscr, Y_PROMPT, 0);
+  wmove(stdscr, Y_PROMPT(ctx), 0);
   clrtoeol();
   PrintOptions(
-      stdscr, Y_PROMPT, 0,
+      stdscr, Y_PROMPT(ctx), 0,
       "SORT by   (A)ccTime (C)hgTime (E)xtension (G)roup (M)odTime (N)ame "
       "(S)ize");
-  wmove(stdscr, Y_PROMPT + 1, 0);
+  wmove(stdscr, Y_PROMPT(ctx) + 1, 0);
   clrtoeol();
-  PrintOptions(stdscr, Y_PROMPT + 1, 0,
+  PrintOptions(stdscr, Y_PROMPT(ctx) + 1, 0,
                "COMMANDS  o(W)ner   (O)rder: [ascending]");
   refresh();
 
   do {
-    c = Getch();
+    c = Getch(ctx);
     if (c == -1 || c == ESC)
       return;
     c = toupper(c);
@@ -582,9 +607,9 @@ void UI_GetKindOfSort(void) {
       } else {
         order = SORT_ASC;
       }
-      wmove(stdscr, Y_PROMPT + 1, 0);
+      wmove(stdscr, Y_PROMPT(ctx) + 1, 0);
       clrtoeol();
-      PrintOptions(stdscr, Y_PROMPT + 1, 0,
+      PrintOptions(stdscr, Y_PROMPT(ctx) + 1, 0,
                    (order == SORT_ASC)
                        ? "COMMANDS  o(W)ner   (O)rder: [ascending] "
                        : "COMMANDS  o(W)ner   (O)rder: [descending]");
@@ -593,7 +618,7 @@ void UI_GetKindOfSort(void) {
     }
   } while (!strchr("ACEGMNWS", c));
 
-  SetKindOfSort(s + order, &CurrentVolume->vol_stats);
+  SetKindOfSort(s + order, &ctx->active->vol->vol_stats);
 }
 
 void shell_quote(char *dest, const char *src) {
@@ -656,7 +681,7 @@ int recursive_rmdir(const char *path) {
   return rmdir(path);
 }
 
-int UI_ViewTaggedFiles(DirEntry *dir_entry) {
+int UI_ViewTaggedFiles(ViewContext *ctx, DirEntry *dir_entry) {
   FileEntry *fe;
   char *command_line;
   char path[PATH_LENGTH + 1];
@@ -668,18 +693,19 @@ int UI_ViewTaggedFiles(DirEntry *dir_entry) {
   int current_len = 0;
   char temp_dir_template[PATH_LENGTH];
   char *temp_dir = NULL;
-  Statistic *s = &CurrentVolume->vol_stats;
+  Statistic *s = &ctx->active->vol->vol_stats;
 
-  const char *viewer = PAGER;
+  const char *viewer = (GetProfileValue)(ctx, "PAGER");
   if (!viewer || !*viewer)
     viewer = "less";
 
   command_line = (char *)xmalloc(max_cmd_len + 1);
   strcpy(command_line, viewer);
 
-  if (GlobalSearchTerm[0] != '\0') {
+  if (ctx->global_search_term[0] != '\0') {
     char search_arg[300];
-    snprintf(search_arg, sizeof(search_arg), " -p \"%s\"", GlobalSearchTerm);
+    snprintf(search_arg, sizeof(search_arg), " -p \"%s\"",
+             ctx->global_search_term);
     strcat(command_line, search_arg);
   }
 
@@ -689,19 +715,20 @@ int UI_ViewTaggedFiles(DirEntry *dir_entry) {
     strcpy(temp_dir_template, "/tmp/ytree_view_XXXXXX");
     temp_dir = mkdtemp(temp_dir_template);
     if (!temp_dir) {
-      UI_Error(__FILE__, __LINE__, "Could not create temp dir for viewing");
+      UI_Error(ctx, __FILE__, __LINE__,
+               "Could not create temp dir for viewing");
       free(command_line);
       return -1;
     }
   }
 
-  if (!ActivePanel || !ActivePanel->file_entry_list) {
+  if (!ctx->active || !ctx->active->file_entry_list) {
     free(command_line);
     return 0;
   }
 
-  for (i = 0; i < (int)ActivePanel->file_count; i++) {
-    fe = ActivePanel->file_entry_list[i].file;
+  for (i = 0; i < (int)ctx->active->file_count; i++) {
+    fe = ctx->active->file_entry_list[i].file;
 
     if (fe->tagged && fe->matching) {
       if (s->login_mode == DISK_MODE || s->login_mode == USER_MODE) {
@@ -709,7 +736,7 @@ int UI_ViewTaggedFiles(DirEntry *dir_entry) {
         shell_quote(quoted_path, path);
 
         if ((int)(current_len + strlen(quoted_path) + 1) >= max_cmd_len) {
-          UI_Warning("Too many tagged files. Truncated list.");
+          UI_Warning(ctx, "Too many tagged files. Truncated list.");
           break;
         }
         strcat(command_line, " ");
@@ -719,7 +746,7 @@ int UI_ViewTaggedFiles(DirEntry *dir_entry) {
       } else if (s->login_mode == ARCHIVE_MODE) {
 #ifdef HAVE_LIBARCHIVE
         if (temp_count >= 100) {
-          UI_Warning("Archive view limit (100) reached.");
+          UI_Warning(ctx, "Archive view limit (100) reached.");
           break;
         }
 
@@ -730,7 +757,7 @@ int UI_ViewTaggedFiles(DirEntry *dir_entry) {
         char internal_path[PATH_LENGTH + 1];
         char full_path[PATH_LENGTH + 1];
 
-        GetPath(CurrentVolume->vol_stats.tree, root_path);
+        GetPath(ctx->active->vol->vol_stats.tree, root_path);
         GetFileNamePath(fe, full_path);
 
         size_t root_len = strlen(root_path);
@@ -768,11 +795,11 @@ int UI_ViewTaggedFiles(DirEntry *dir_entry) {
         strcpy(internal_path, relative_path);
 
         if (ExtractArchiveNode(s->login_path, internal_path, t_filename,
-                               UI_ArchiveCallback, NULL) == 0) {
+                               UI_ArchiveCallback, ctx) == 0) {
           shell_quote(quoted_path, t_filename);
 
           if ((int)(current_len + strlen(quoted_path) + 1) >= max_cmd_len) {
-            UI_Warning("Command line too long.");
+            UI_Warning(ctx, "Command line too long.");
             break;
           }
 
@@ -781,7 +808,7 @@ int UI_ViewTaggedFiles(DirEntry *dir_entry) {
           current_len += strlen(quoted_path) + 1;
           temp_count++;
         } else {
-          UI_Warning("Failed to extract*\"%s\"", internal_path);
+          UI_Warning(ctx, "Failed to extract*\"%s\"", internal_path);
         }
 #endif
       }
@@ -791,7 +818,7 @@ int UI_ViewTaggedFiles(DirEntry *dir_entry) {
   if (s->login_mode == DISK_MODE) {
     start_dir_fd = open(".", O_RDONLY);
     if (chdir(GetPath(dir_entry, path)) == 0) {
-      SystemCall(command_line, &CurrentVolume->vol_stats);
+      SystemCall(ctx, command_line, &ctx->active->vol->vol_stats);
       if (start_dir_fd != -1) {
         (void)fchdir(start_dir_fd);
       }
@@ -800,9 +827,9 @@ int UI_ViewTaggedFiles(DirEntry *dir_entry) {
       close(start_dir_fd);
   } else {
     if (temp_count > 0) {
-      SystemCall(command_line, &CurrentVolume->vol_stats);
+      SystemCall(ctx, command_line, &ctx->active->vol->vol_stats);
     } else if (s->login_mode == ARCHIVE_MODE) {
-      UI_Message("No files extracted.");
+      UI_Message(ctx, "No files extracted.");
     }
   }
 

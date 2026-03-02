@@ -412,7 +412,8 @@ int GetVisualUserFileEntryLength(int max_visual_filename_len,
  *****************************************************************************/
 void GetMaxYX(WINDOW *win, int *height, int *width) {
   if (win == NULL) {
-    ERROR_MSG("GetMaxYX called with NULL*ABORT");
+    /* Cannot use UI_Error here without context - this is a fatal error anyway */
+    fprintf(stderr, "FATAL: GetMaxYX called with NULL window\n");
     exit(1);
   }
 

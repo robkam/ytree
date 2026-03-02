@@ -9,8 +9,6 @@
 
 #ifdef COLOR_SUPPORT
 
-static BOOL color_enabled = FALSE;
-
 UIColor ui_colors[] = {
     {"DIR_COLOR", CPAIR_DIR, COLOR_WHITE, COLOR_BLUE},
     {"HIDIR_COLOR", CPAIR_HIDIR, COLOR_BLACK, COLOR_WHITE},
@@ -116,22 +114,22 @@ void UpdateUIColor(const char *name, int fg, int bg) {
   }
 }
 
-void AddFileColorRule(const char *pattern, int fg, int bg) {
+void AddFileColorRule(ViewContext *ctx, const char *pattern, int fg, int bg) {
   FileColorRule *new_rule = xmalloc(sizeof(FileColorRule));
   new_rule->pattern = xstrdup(pattern);
   new_rule->fg = fg;
   new_rule->bg = bg;
   new_rule->pair_id = 0;
-  new_rule->next = file_color_rules_head;
-  file_color_rules_head = new_rule;
+  new_rule->next = ctx->file_color_rules_head;
+  ctx->file_color_rules_head = new_rule;
 }
 
-void ReinitColorPairs(void) {
+void ReinitColorPairs(ViewContext *ctx) {
   int i;
   FileColorRule *rule;
   int next_pair_id = F_COLOR_PAIR_BASE;
 
-  if (!color_enabled)
+  if (!ctx->color_enabled)
     return;
 
   /* Initialize UI colors */
@@ -140,7 +138,7 @@ void ReinitColorPairs(void) {
   }
 
   /* Initialize file type colors */
-  for (rule = file_color_rules_head; rule != NULL; rule = rule->next) {
+  for (rule = ctx->file_color_rules_head; rule != NULL; rule = rule->next) {
     if (rule->pair_id == 0) {
       if (next_pair_id < COLOR_PAIRS) {
         rule->pair_id = next_pair_id++;
@@ -152,24 +150,24 @@ void ReinitColorPairs(void) {
   }
 }
 
-void StartColors() {
+void StartColors(ViewContext *ctx) {
   start_color();
   if (COLORS < 8 ||
       COLOR_PAIRS < 64) { /* Check for a reasonable number of pairs */
     return;               /* No color support */
   }
 
-  color_enabled = TRUE;
-  ReinitColorPairs();
+  ctx->color_enabled = TRUE;
+  ReinitColorPairs(ctx);
 }
 
-int GetFileTypeColor(FileEntry *fe_ptr) {
+int GetFileTypeColor(ViewContext *ctx, FileEntry *fe_ptr) {
   FileColorRule *rule;
 
   if (!fe_ptr)
     return CPAIR_FILE;
 
-  for (rule = file_color_rules_head; rule != NULL; rule = rule->next) {
+  for (rule = ctx->file_color_rules_head; rule != NULL; rule = rule->next) {
     /* Check special keywords first */
     if (S_ISDIR(fe_ptr->stat_struct.st_mode) &&
         strcmp(rule->pattern, "DIR") == 0) {
@@ -199,8 +197,8 @@ int GetFileTypeColor(FileEntry *fe_ptr) {
   return CPAIR_FILE; /* Default */
 }
 
-void WbkgdSet(WINDOW *w, chtype c) {
-  if (color_enabled) {
+void WbkgdSet(ViewContext *ctx, WINDOW *w, chtype c) {
+  if (ctx->color_enabled) {
     wbkgdset(w, c);
   } else {
     c &= ~A_BOLD;

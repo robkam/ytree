@@ -12,7 +12,7 @@
  * Displays a list of currently loaded volumes and allows the user to switch
  * between them. Returns 0 on successful switch, -1 on cancel.
  */
-int SelectLoadedVolume(int *return_key) {
+int SelectLoadedVolume(ViewContext *ctx, int *return_key) {
   struct Volume *s, *tmp;
   struct Volume **vol_array = NULL;
   int num_volumes = 0;
@@ -34,7 +34,7 @@ int SelectLoadedVolume(int *return_key) {
   int scroll_offset = 0;
   int visible_lines;
 
-  ClearHelp();
+  ClearHelp(ctx);
 
   do {
     restart_menu = FALSE;
@@ -46,13 +46,14 @@ int SelectLoadedVolume(int *return_key) {
     current_volume_index = -1;
     scroll_offset = 0; /* Reset scroll offset for new menu display */
 
-    num_volumes = HASH_COUNT(VolumeList);
+    num_volumes = HASH_COUNT(ctx->volumes_head);
 
     if (num_volumes == 0) {
-      MESSAGE("No volumes currently loaded.");
-      // If we deleted the last volume, CurrentVolume should have been reset to
-      // a blank one. In this case, we should return 0 to force a refresh of the
-      // main screen. If we started with 0 volumes, this is an error.
+      UI_Message(ctx, "No volumes currently loaded.");
+      // If we deleted the last volume, GlobalView->active->vol should have been
+      // reset to a blank one. In this case, we should return 0 to force a
+      // refresh of the main screen. If we started with 0 volumes, this is an
+      // error.
       return changes_made ? 0 : -1;
     }
 
@@ -61,13 +62,13 @@ int SelectLoadedVolume(int *return_key) {
 
     i = 0;
     int new_selected_index = 0; // Default to first item
-    HASH_ITER(hh, VolumeList, s, tmp) {
+    HASH_ITER(hh, ctx->volumes_head, s, tmp) {
       vol_array[i] = s;
       int len = StrVisualLength(s->vol_stats.login_path);
       if (len > max_path_len) {
         max_path_len = len;
       }
-      if (s == CurrentVolume) {
+      if (s == ctx->active->vol) {
         current_volume_index = i;
         new_selected_index = i; // Set selected to current volume
       }
@@ -75,7 +76,7 @@ int SelectLoadedVolume(int *return_key) {
     }
     selected_index =
         new_selected_index; // Update selected_index after array is built
-    // Ensure selected_index is within bounds (should be if CurrentVolume is
+    // Ensure selected_index is within bounds (should be if ctx->active->vol is
     // valid)
     if (selected_index >= num_volumes)
       selected_index = num_volumes - 1;
@@ -93,18 +94,18 @@ int SelectLoadedVolume(int *return_key) {
 
     /* Constraint: Fit strictly within the main directory area (left of stats
      * panel) */
-    /* layout.stats_width is 24, STATS_MARGIN is 2, so the main area ends at
-     * COLS - 26 */
-    win_width = MINIMUM(win_width, COLS - layout.stats_width - 2);
+    /* ctx->layout.stats_width is 24, STATS_MARGIN is 2, so the main area
+     * ends at COLS - 26 */
+    win_width = MINIMUM(win_width, COLS - ctx->layout.stats_width - 2);
 
     win_height =
-        MINIMUM(layout.bottom_border_y,
+        MINIMUM(ctx->layout.bottom_border_y,
                 num_volumes +
                     5); /* 5 for top/bottom border, title, prompt, empty line */
     win_height = MAXIMUM(win_height, 10); /* Minimum 10 lines */
 
     /* Center the window relative to the directory area */
-    win_x = ((COLS - layout.stats_width) - win_width) / 2;
+    win_x = ((COLS - ctx->layout.stats_width) - win_width) / 2;
     /* Ensure safe X coordinate */
     if (win_x < 1)
       win_x = 1;
@@ -130,7 +131,8 @@ int SelectLoadedVolume(int *return_key) {
     // Create new window
     win = newwin(win_height, win_width, win_y, win_x);
     if (win == NULL) {
-      ERROR_MSG("Failed to create window for volume selection.");
+      UI_Error(ctx, __FILE__, __LINE__,
+               "Failed to create window for volume selection.");
       free(vol_array);
       return -1;
     }
@@ -138,7 +140,7 @@ int SelectLoadedVolume(int *return_key) {
     UI_Dialog_Push(win, UI_TIER_MODAL);
 
     keypad(win, TRUE);
-    WbkgdSet(win, COLOR_PAIR(CPAIR_MENU));
+    WbkgdSet(ctx, win, COLOR_PAIR(CPAIR_MENU));
     curs_set(0); /* Hide cursor */
 
     /* 3. Input Loop */
@@ -194,13 +196,13 @@ int SelectLoadedVolume(int *return_key) {
       }
       wrefresh(win);
 
-      ch = WGetch(win);
+      ch = WGetch(ctx, win);
 
-      if (resize_request) {
-        resize_request = FALSE;
-        ReCreateWindows();
-        DisplayMenu();
-        DisplayDiskStatistic(&CurrentVolume->vol_stats);
+      if (ctx && ctx->resize_request) {
+        ctx->resize_request = FALSE;
+        ReCreateWindows(ctx);
+        DisplayMenu(ctx);
+        DisplayDiskStatistic(ctx, &ctx->active->vol->vol_stats);
         restart_menu = TRUE;
         menu_active = FALSE;
         break;
@@ -245,22 +247,22 @@ int SelectLoadedVolume(int *return_key) {
           if (vol_array)
             free(vol_array);
           if (win)
-            UI_Dialog_Close(win);
+            UI_Dialog_Close(ctx, win);
           curs_set(1);
           return selected_index;
         }
 
         if (num_volumes <= 1) {
-          MESSAGE("Cannot release the last volume.");
+          UI_Message(ctx, "Cannot release the last volume.");
           // No need to redraw, loop will do it.
           break; // break from switch, loop continues to redraw
         }
 
-        if (InputChoice("Release this volume? (Y/N)", "YN\033") == 'Y') {
+        if (InputChoice(ctx, "Release this volume? (Y/N)", "YN\033") == 'Y') {
           struct Volume *target_vol = vol_array[selected_index];
           int neighbor_idx = -1;
 
-          if (target_vol == CurrentVolume) {
+          if (target_vol == ctx->active->vol) {
             /* Scenario A: Deleting Current Volume */
             /* Find a neighbor to switch to */
             if (num_volumes > 1) {
@@ -303,8 +305,9 @@ int SelectLoadedVolume(int *return_key) {
                          "Neighbor volume \"%s\" not accessible (Error: %s). "
                          "Removed.",
                          neighbor->vol_stats.login_path, strerror(errno));
-                MESSAGE(error_message_buffer);
-                Volume_Delete(neighbor); // Delete the inaccessible neighbor
+                UI_Message(ctx, error_message_buffer);
+                Volume_Delete(ctx,
+                              neighbor); // Delete the inaccessible neighbor
                 changes_made = TRUE;
 
                 restart_menu = TRUE;
@@ -312,29 +315,33 @@ int SelectLoadedVolume(int *return_key) {
                 break;
               }
 
-              CurrentVolume = neighbor;
-              /* Renamed usage: CurrentVolume->vol_stats.mode ->
-               * CurrentVolume->vol_stats.login_mode */
-              mode = CurrentVolume->vol_stats.login_mode; // Sync global mode
+              ctx->active->vol = neighbor;
+              /* Renamed usage: ctx->active->vol->vol_stats.mode ->
+               * ctx->active->vol->vol_stats.login_mode */
+              ctx->view_mode =
+                  ctx->active->vol->vol_stats.login_mode; // Sync global mode
             } else {
               // This case should be caught by num_volumes <= 1 check, but
               // defensive.
-              MESSAGE("Cannot release the last volume.");
+              UI_Message(ctx, "Cannot release the last volume.");
               break; // break from switch, loop continues to redraw
             }
           }
           /* Scenario B: Deleting Background Volume (or target_vol is now
-           * CurrentVolume's old self) */
-          Volume_Delete(target_vol);
+           * ctx->active->vol's old self) */
+          Volume_Delete(ctx, target_vol);
           changes_made = TRUE;
 
           /* Cleanup and restart menu */
           restart_menu = TRUE;
           menu_active = FALSE;
 
-          /* Rebuild global list if we just switched or modified CurrentVolume
-           * indirectly */
-          BuildDirEntryList(CurrentVolume);
+          /* Rebuild global list if we just switched or modified
+           * ctx->active->vol indirectly */
+          {
+            int dummy;
+            BuildDirEntryList(ctx, ctx->active->vol, &dummy);
+          }
         }
         break; // break from switch, loop continues to redraw (if not
                // restart_menu)
@@ -350,7 +357,7 @@ int SelectLoadedVolume(int *return_key) {
       vol_array = NULL;
     }
     if (win) {
-      UI_Dialog_Close(win);
+      UI_Dialog_Close(ctx, win);
       win = NULL;
     }
     /* touchwin(stdscr);
@@ -369,12 +376,12 @@ int SelectLoadedVolume(int *return_key) {
        the list to map index to pointer again safely.
     */
 
-    num_volumes = HASH_COUNT(VolumeList);
+    num_volumes = HASH_COUNT(ctx->volumes_head);
     if (num_volumes > 0) {
       vol_array =
           (struct Volume **)xmalloc(num_volumes * sizeof(struct Volume *));
       i = 0;
-      HASH_ITER(hh, VolumeList, s, tmp) { vol_array[i++] = s; }
+      HASH_ITER(hh, ctx->volumes_head, s, tmp) { vol_array[i++] = s; }
 
       /* Ensure index is still valid */
       if (selected_index >= num_volumes)
@@ -384,14 +391,18 @@ int SelectLoadedVolume(int *return_key) {
 
       struct Volume *target_vol = vol_array[selected_index];
 
-      if (target_vol != CurrentVolume) {
-        int login_result = LogDisk(target_vol->vol_stats.login_path);
+      if (target_vol != ctx->active->vol) {
+        int login_result =
+            LogDisk(ctx, ctx->active, target_vol->vol_stats.login_path);
         free(vol_array);
         return login_result;
       }
       free(vol_array);
       /* If we are already on the selected volume, just ensure list is synced */
-      BuildDirEntryList(CurrentVolume);
+      {
+        int dummy;
+        BuildDirEntryList(ctx, ctx->active->vol, &dummy);
+      }
       return 0; /* Already on selected volume */
     }
   }
@@ -401,7 +412,10 @@ int SelectLoadedVolume(int *return_key) {
   if (changes_made) {
     /* Ensure main loop has a valid list if we deleted something but didn't
      * switch via  LogDisk */
-    BuildDirEntryList(CurrentVolume);
+    {
+      int dummy;
+      BuildDirEntryList(ctx, ctx->active->vol, &dummy);
+    }
     return 0;
   }
 

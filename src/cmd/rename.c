@@ -5,6 +5,7 @@
  *
  ***************************************************************************/
 
+#include "ytree.h"
 #include "ytree_cmd.h"
 #include <errno.h>
 #include <stdio.h>
@@ -17,11 +18,6 @@
 #include "ytree_fs.h"
 #endif
 
-extern char *GetPath(DirEntry *dir_entry, char *buffer);
-extern char *GetFileNamePath(FileEntry *file_entry, char *buffer);
-extern void *xmalloc(size_t size);
-extern int BuildFilename(char *in_filename, char *pattern, char *out_filename);
-
 #define FILE_SEPARATOR_CHAR '/'
 #define FILE_SEPARATOR_STRING "/"
 
@@ -30,8 +26,6 @@ extern int BuildFilename(char *in_filename, char *pattern, char *out_filename);
 #else
 #define STAT_(a, b) stat(a, b)
 #endif
-
-extern struct Volume *CurrentVolume;
 
 static int ArchiveUICallback(int status, const char *msg, void *user_data) {
   (void)status;
@@ -43,7 +37,7 @@ static int ArchiveUICallback(int status, const char *msg, void *user_data) {
 static int RenameDirEntry(char *to_path, char *from_path);
 static int RenameFileEntry(char *to_path, char *from_path);
 
-int RenameDirectory(DirEntry *de_ptr, const char *new_name) {
+int RenameDirectory(ViewContext *ctx, DirEntry *de_ptr, const char *new_name) {
   DirEntry *den_ptr;
   DirEntry *sde_ptr;
   DirEntry *ude_ptr;
@@ -62,8 +56,8 @@ int RenameDirectory(DirEntry *de_ptr, const char *new_name) {
 
 /* ARCHIVE MODE HANDLER */
 #ifdef HAVE_LIBARCHIVE
-  if (CurrentVolume->vol_stats.login_mode == ARCHIVE_MODE) {
-    if (Archive_RenameEntry(CurrentVolume->vol_stats.login_path, from_path,
+  if (ctx->active->vol->vol_stats.login_mode == ARCHIVE_MODE) {
+    if (Archive_RenameEntry(ctx->active->vol->vol_stats.login_path, from_path,
                             new_name, ArchiveUICallback, NULL) == 0) {
       return 0;
     }
@@ -161,7 +155,7 @@ int RenameDirectory(DirEntry *de_ptr, const char *new_name) {
   return (result);
 }
 
-int RenameFile(FileEntry *fe_ptr, const char *new_name,
+int RenameFile(ViewContext *ctx, FileEntry *fe_ptr, const char *new_name,
                FileEntry **new_fe_ptr) {
   DirEntry *de_ptr;
   FileEntry *fen_ptr;
@@ -182,8 +176,8 @@ int RenameFile(FileEntry *fe_ptr, const char *new_name,
 
 /* ARCHIVE MODE HANDLER */
 #ifdef HAVE_LIBARCHIVE
-  if (CurrentVolume->vol_stats.login_mode == ARCHIVE_MODE) {
-    if (Archive_RenameEntry(CurrentVolume->vol_stats.login_path, from_path,
+  if (ctx->active->vol->vol_stats.login_mode == ARCHIVE_MODE) {
+    if (Archive_RenameEntry(ctx->active->vol->vol_stats.login_path, from_path,
                             new_name, ArchiveUICallback, NULL) == 0) {
       return 0;
     }
@@ -294,7 +288,8 @@ static int RenameFileEntry(char *to_path, char *from_path) {
   return (0);
 }
 
-int RenameTaggedFiles(FileEntry *fe_ptr, WalkingPackage *walking_package) {
+int RenameTaggedFiles(ViewContext *ctx, FileEntry *fe_ptr,
+                      WalkingPackage *walking_package) {
   int result = -1;
   char new_name[PATH_LENGTH + 1];
 
@@ -304,7 +299,7 @@ int RenameTaggedFiles(FileEntry *fe_ptr, WalkingPackage *walking_package) {
     if (*new_name == '\0') {
       return -1;
     } else {
-      result = RenameFile(fe_ptr, new_name, &walking_package->new_fe_ptr);
+      result = RenameFile(ctx, fe_ptr, new_name, &walking_package->new_fe_ptr);
     }
   }
   return (result);

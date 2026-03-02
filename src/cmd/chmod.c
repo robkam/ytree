@@ -5,6 +5,7 @@
  * Implements the change attributes (mode) functionality for ytree.
  ***************************************************************************/
 
+#include "ytree.h"
 #include "ytree_cmd.h"
 #include <errno.h>
 #include <stdio.h>
@@ -13,9 +14,6 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
-extern char *GetAttributes(mode_t mode, char *attr);
-extern char *GetPath(DirEntry *dir_entry, char *buffer);
-extern char *GetFileNamePath(FileEntry *file_entry, char *buffer);
 
 #if defined(S_IFLNK)
 #define STAT_(a, b) lstat(a, b)
@@ -32,7 +30,7 @@ static int GetNewModus(int old_modus, char *new_modus);
 /* ChangeFileModus and ChangeDirModus moved to UI layer */
 /* InputModeString moved to UI layer */
 
-int SetFileModus(FileEntry *fe_ptr, WalkingPackage *walking_package) {
+int SetFileModus(ViewContext *ctx, FileEntry *fe_ptr, WalkingPackage *walking_package) {
   struct stat stat_struct;
   char buffer[PATH_LENGTH + 1];
   int result;

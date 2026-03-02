@@ -19,26 +19,14 @@
 #include "ytree_fs.h"
 #endif
 
-#define mode (CurrentVolume->vol_stats.login_mode)
-extern BOOL hide_dot_files;
-extern struct Volume *CurrentVolume;
-
-extern int chdir(const char *);
-extern char *GetRealFileNamePath(FileEntry *file_entry, char *buffer);
-extern char *GetPath(DirEntry *dir_entry, char *buffer);
-extern void SuspendClock(void);
-extern void InitClock(void);
-extern int GetAvailBytes(long long *avail_bytes, Statistic *s);
-extern int UI_Message(const char *format, ...);
-
-int Pipe(DirEntry *dir_entry, FileEntry *file_entry, char *pipe_command) {
+int Pipe(ViewContext *ctx, DirEntry *dir_entry, FileEntry *file_entry, char *pipe_command) {
   char file_name_path[PATH_LENGTH + 1];
   int result = -1;
   FILE *pipe_fp;
   char path[PATH_LENGTH + 1];
   int start_dir_fd;
 
-  (void)GetRealFileNamePath(file_entry, file_name_path);
+  (void)GetRealFileNamePath(file_entry, file_name_path, ctx->view_mode);
 
   /* Robustly save current working directory using a file descriptor */
   start_dir_fd = open(".", O_RDONLY);
@@ -46,7 +34,8 @@ int Pipe(DirEntry *dir_entry, FileEntry *file_entry, char *pipe_command) {
     return -1;
   }
 
-  if (mode == DISK_MODE || mode == USER_MODE) {
+  if (ctx->view_mode == DISK_MODE ||
+      ctx->view_mode == USER_MODE) {
     if (chdir(GetPath(dir_entry, path))) {
       close(start_dir_fd);
       return -1;
@@ -54,7 +43,7 @@ int Pipe(DirEntry *dir_entry, FileEntry *file_entry, char *pipe_command) {
   } else { /* ARCHIVE_MODE */
     char archive_dir[PATH_LENGTH + 1];
     char *last_slash;
-    strcpy(archive_dir, CurrentVolume->vol_stats.login_path);
+    strcpy(archive_dir, ctx->active->vol->vol_stats.login_path);
     last_slash = strrchr(archive_dir, '/');
     if (last_slash) {
       if (last_slash ==
@@ -78,7 +67,8 @@ int Pipe(DirEntry *dir_entry, FileEntry *file_entry, char *pipe_command) {
     close(start_dir_fd);
     return -1;
   } else {
-    if (mode == DISK_MODE || mode == USER_MODE) {
+    if (ctx->view_mode == DISK_MODE ||
+        ctx->view_mode == USER_MODE) {
       int in_fd;
       char buffer[4096];
       ssize_t bytes_read;
@@ -94,7 +84,7 @@ int Pipe(DirEntry *dir_entry, FileEntry *file_entry, char *pipe_command) {
     } else {
       /* ARCHIVE_MODE */
 #ifdef HAVE_LIBARCHIVE
-      char *archive = CurrentVolume->vol_stats.login_path;
+      char *archive = ctx->active->vol->vol_stats.login_path;
       ExtractArchiveEntry(archive, file_name_path, fileno(pipe_fp), NULL, NULL);
 #endif
     }
@@ -108,7 +98,7 @@ int Pipe(DirEntry *dir_entry, FileEntry *file_entry, char *pipe_command) {
   return (result);
 }
 
-int PipeDirectory(DirEntry *dir_entry, char *pipe_command) {
+int PipeDirectory(ViewContext *ctx, DirEntry *dir_entry, char *pipe_command) {
   char path[PATH_LENGTH + 1];
   FILE *pipe_fp;
   FileEntry *fe;
@@ -123,7 +113,8 @@ int PipeDirectory(DirEntry *dir_entry, char *pipe_command) {
     return -1;
   }
 
-  if (mode == DISK_MODE || mode == USER_MODE) {
+  if (ctx->view_mode == DISK_MODE ||
+      ctx->view_mode == USER_MODE) {
     if (chdir(path)) {
       close(start_dir_fd);
       return (-1);
@@ -140,7 +131,7 @@ int PipeDirectory(DirEntry *dir_entry, char *pipe_command) {
 
   for (fe = dir_entry->file; fe; fe = fe->next) {
     if (fe->matching) {
-      if (!hide_dot_files || fe->name[0] != '.') {
+      if (!ctx->hide_dot_files || fe->name[0] != '.') {
         fprintf(pipe_fp, "%s\n", fe->name);
       }
     }
@@ -159,7 +150,7 @@ int PipeDirectory(DirEntry *dir_entry, char *pipe_command) {
 
 /* GetPipeCommand moved to UI layer */
 
-int PipeTaggedFiles(FileEntry *fe_ptr, WalkingPackage *walking_package,
+int PipeTaggedFiles(ViewContext *ctx, FileEntry *fe_ptr, WalkingPackage *walking_package,
                     Statistic *s) {
   int i, n;
   char from_path[PATH_LENGTH + 1];
@@ -169,7 +160,7 @@ int PipeTaggedFiles(FileEntry *fe_ptr, WalkingPackage *walking_package,
 
   walking_package->new_fe_ptr = fe_ptr; /* unchanged */
 
-  (void)GetRealFileNamePath(fe_ptr, from_path);
+  (void)GetRealFileNamePath(fe_ptr, from_path, ctx->view_mode);
   if ((i = open(from_path, O_RDONLY)) == -1) {
     return (-1);
   }

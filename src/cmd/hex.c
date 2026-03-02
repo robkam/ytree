@@ -5,6 +5,7 @@
  *
  ***************************************************************************/
 
+#include "ytree.h"
 #include "ytree_cmd.h"
 #include "ytree_defs.h"
 #include "ytree_fs.h"
@@ -15,44 +16,40 @@
 #include <string.h>
 #include <unistd.h>
 
-#define mode (CurrentVolume->vol_stats.login_mode)
-extern struct Volume *CurrentVolume;
+static int ViewHexFile(ViewContext *ctx, char *file_path);
+static int ViewHexArchiveFile(ViewContext *ctx, char *file_path);
 
-extern void DrawSpinner(void);
-extern int EscapeKeyPressed(void);
-extern int InternalView(char *file_path);
-
-static int ViewHexFile(char *file_path);
-static int ViewHexArchiveFile(char *file_path);
-
-int ViewHex(char *file_path) {
+int ViewHex(ViewContext *ctx, char *file_path) {
+  int mode = ctx->active->vol->vol_stats.login_mode;
   switch (mode) {
   case DISK_MODE:
   case USER_MODE:
-    return (ViewHexFile(file_path));
+    return (ViewHexFile(ctx, file_path));
   case ARCHIVE_MODE:
-    return (ViewHexArchiveFile(file_path));
+    return (ViewHexArchiveFile(ctx, file_path));
   default:
     return (-1);
   }
 }
 
-static int ViewHexFile(char *file_path) {
+static int ViewHexFile(ViewContext *ctx, char *file_path) {
   if (access(file_path, R_OK)) {
-    MESSAGE("HexView not possible!*\"%s\"*%s", file_path, strerror(errno));
+    MESSAGE(ctx, "HexView not possible!*\"%s\"*%s", file_path, strerror(errno));
     return -1;
   }
 
-  InternalView(file_path);
+  InternalView(ctx, file_path);
   return 0;
 }
+
+static ViewContext *hex_ctx = NULL;
 
 static int HexProgressCallback(int status, const char *msg, void *user_data) {
   (void)msg;
   (void)user_data;
 
   if (status == ARCHIVE_STATUS_PROGRESS) {
-    DrawSpinner();
+    DrawSpinner(hex_ctx);
     if (EscapeKeyPressed()) {
       return ARCHIVE_CB_ABORT;
     }
@@ -60,27 +57,29 @@ static int HexProgressCallback(int status, const char *msg, void *user_data) {
   return ARCHIVE_CB_CONTINUE;
 }
 
-static int ViewHexArchiveFile(char *file_path) {
+static int ViewHexArchiveFile(ViewContext *ctx, char *file_path) {
+  hex_ctx = ctx;
   char temp_filename[] = "/tmp/ytree_hex_XXXXXX";
   int fd;
   int result = -1;
 
   fd = mkstemp(temp_filename);
   if (fd == -1) {
-    ERROR_MSG("Could not create temporary file for hex view");
+    UI_Error(ctx, __FILE__, __LINE__,
+             "Could not create temporary file for hex view");
     return -1;
   }
 
-  if (ExtractArchiveEntry(CurrentVolume->vol_stats.login_path, file_path, fd,
+  if (ExtractArchiveEntry(ctx->active->vol->vol_stats.login_path, file_path, fd,
                           HexProgressCallback, NULL) != 0) {
-    MESSAGE("Could not extract entry*'%s'*from archive", file_path);
+    MESSAGE(ctx, "Could not extract entry*'%s'*from archive", file_path);
     close(fd);
     unlink(temp_filename);
     return -1;
   }
   close(fd);
 
-  InternalView(temp_filename);
+  InternalView(ctx, temp_filename);
 
   result = 0;
   unlink(temp_filename);

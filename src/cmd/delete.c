@@ -21,10 +21,6 @@
 #ifdef HAVE_LIBARCHIVE
 #endif
 
-extern char *GetFileNamePath(FileEntry *file_entry, char *buffer);
-extern int GetAvailBytes(long long *avail_bytes, Statistic *s);
-extern struct Volume *CurrentVolume;
-
 /* Helper for Archive Callback */
 static int ArchiveUICallback(int status, const char *msg, void *user_data) {
   (void)status;
@@ -33,8 +29,8 @@ static int ArchiveUICallback(int status, const char *msg, void *user_data) {
   return ARCHIVE_CB_CONTINUE;
 }
 
-int DeleteFile(FileEntry *fe_ptr, int *auto_override, Statistic *s,
-               ChoiceCallback choice_cb) {
+int DeleteFile(ViewContext *ctx, FileEntry *fe_ptr, int *auto_override,
+               Statistic *s, ChoiceCallback choice_cb) {
   char filepath[PATH_LENGTH + 1];
   char buffer[PATH_LENGTH + 1];
   int result;
@@ -80,7 +76,7 @@ int DeleteFile(FileEntry *fe_ptr, int *auto_override, Statistic *s,
                        fe_ptr->stat_struct.st_mode & 0777, fe_ptr->name);
 
         if (choice_cb) {
-          term = choice_cb(buffer, "YNA\033");
+          term = choice_cb(ctx, buffer, "YNA\033");
         } else {
           term = 'N';
         }
@@ -107,7 +103,7 @@ UNLINK_DONE:
   /* Remove file record */
   /*----------------*/
 
-  result = RemoveFile(fe_ptr, s);
+  result = RemoveFile(ctx, fe_ptr, s);
   (void)GetAvailBytes(&s->disk_space, s);
 
 FNC_XIT:
@@ -115,7 +111,7 @@ FNC_XIT:
   return (result);
 }
 
-int RemoveFile(FileEntry *fe_ptr, Statistic *s) {
+int RemoveFile(ViewContext *ctx, FileEntry *fe_ptr, Statistic *s) {
   DirEntry *de_ptr;
   long long file_size;
 
@@ -155,16 +151,17 @@ int RemoveFile(FileEntry *fe_ptr, Statistic *s) {
   return (0);
 }
 
-int DeleteTaggedFiles(FileEntry *fe_ptr, WalkingPackage *walking_package) {
+int DeleteTaggedFiles(ViewContext *ctx, FileEntry *fe_ptr,
+                      WalkingPackage *walking_package) {
   int result = -1;
   int *auto_override = &walking_package->function_data.del.auto_override;
   Statistic *s = walking_package->function_data.del.statistic_ptr
                      ? walking_package->function_data.del.statistic_ptr
-                     : &CurrentVolume->vol_stats;
+                     : &ctx->active->vol->vol_stats;
   ChoiceCallback choice_cb =
       (ChoiceCallback)walking_package->function_data.del.choice_cb;
 
-  result = DeleteFile(fe_ptr, auto_override, s, choice_cb);
+  result = DeleteFile(ctx, fe_ptr, auto_override, s, choice_cb);
 
   return (result);
 }

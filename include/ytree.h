@@ -11,6 +11,16 @@
 #include "ytree_cmd.h"
 #include "ytree_defs.h"
 #include "ytree_fs.h"
+#include <stdio.h>
+#define DEBUG_LOG(fmt, ...)                                                    \
+  {                                                                            \
+    FILE *fp = fopen("/tmp/ytree_debug.log", "a");                             \
+    if (fp) {                                                                  \
+      fprintf(fp, fmt "\n", ##__VA_ARGS__);                                    \
+      fflush(fp);                                                              \
+      fclose(fp);                                                              \
+    }                                                                          \
+  }
 #include "ytree_ui.h"
 #include <stdarg.h>
 
@@ -114,20 +124,18 @@
 #define VIEW_NEXT 1
 #define VIEW_PREV 2
 
-extern YtreeLayout layout;
-extern void Layout_Recalculate(void);
+extern void Layout_Recalculate(ViewContext *ctx);
 
 /* Standard UI Vertical Layout */
-#define Y_HEADER layout.header_y
-#define Y_PROMPT layout.prompt_y
-#define Y_STATUS layout.status_y
-#define Y_MESSAGE layout.message_y
+#define Y_HEADER(ctx) ((ctx)->layout.header_y)
+#define Y_PROMPT(ctx) ((ctx)->layout.prompt_y)
+#define Y_STATUS(ctx) ((ctx)->layout.status_y)
+#define Y_MESSAGE(ctx) ((ctx)->layout.message_y)
 
-/* Dependent Macros Updated to use Layout Struct */
-#define F2_WINDOW_X layout.dir_win_x
-#define F2_WINDOW_Y layout.dir_win_y
-#define F2_WINDOW_WIDTH layout.dir_win_width
-#define F2_WINDOW_HEIGHT (layout.dir_win_height + 1)
+#define F2_WINDOW_X(ctx) ((ctx)->layout.dir_win_x)
+#define F2_WINDOW_Y(ctx) ((ctx)->layout.dir_win_y)
+#define F2_WINDOW_WIDTH(ctx) ((ctx)->layout.dir_win_width)
+#define F2_WINDOW_HEIGHT(ctx) ((ctx)->layout.dir_win_height + 1)
 
 #define ERROR_WINDOW_WIDTH 40
 #define ERROR_WINDOW_HEIGHT 10
@@ -136,12 +144,12 @@ extern void Layout_Recalculate(void);
 
 #define HISTORY_WINDOW_X 1
 #define HISTORY_WINDOW_Y 2
-#define HISTORY_WINDOW_WIDTH layout.main_win_width
+#define HISTORY_WINDOW_WIDTH(ctx) ((ctx)->layout.main_win_width)
 #define HISTORY_WINDOW_HEIGHT (LINES - 6)
 
 #define MATCHES_WINDOW_X 1
 #define MATCHES_WINDOW_Y 2
-#define MATCHES_WINDOW_WIDTH layout.main_win_width
+#define MATCHES_WINDOW_WIDTH(ctx) ((ctx)->layout.main_win_width)
 #define MATCHES_WINDOW_HEIGHT (LINES - 6)
 
 #define TIME_WINDOW_X (COLS - 20)
@@ -181,21 +189,6 @@ extern void Layout_Recalculate(void);
 /*                       EXTERNS                                             */
 /* ************************************************************************* */
 
-extern ViewContext *GlobalView;
-
-/* Compatibility Macros */
-#define dir_window (GlobalView->ctx_dir_window)
-#define small_file_window (GlobalView->ctx_small_file_window)
-#define big_file_window (GlobalView->ctx_big_file_window)
-#define file_window (GlobalView->ctx_file_window)
-#define preview_window (GlobalView->ctx_preview_window)
-#define mode (GlobalView->view_mode)
-
-extern YtreePanel *LeftPanel;
-extern YtreePanel *RightPanel;
-extern YtreePanel *ActivePanel;
-extern BOOL IsSplitScreen;
-
 /* strerror() is POSIX, and all modern operating systems provide it.  */
 #define HAVE_STRERROR 1
 
@@ -204,83 +197,68 @@ extern const char *StrError(int);
 #endif /* HAVE_STRERROR */
 
 /* Window Externs - The main view windows are now in ViewContext */
-extern WINDOW *error_window;
-extern WINDOW *history_window;
-extern WINDOW *matches_window;
-extern WINDOW *f2_window;
-extern WINDOW *time_window;
 
 /* Global volume management */
-extern struct Volume *CurrentVolume;
-extern struct Volume *VolumeList;
-extern char GlobalSearchTerm[256];
-
-/* Compatibility layer for existing code using global 'statistic' and
- * 'disk_statistic' */
-#define disk_statistic (CurrentVolume->vol_disk_stats)
-
-extern int user_umask;
-extern BOOL print_time;
-extern BOOL resize_request;
-extern BOOL bypass_small_window;
-extern BOOL highlight_full_line;
-extern BOOL hide_dot_files;
-extern int animation_method;
-extern char number_seperator;
-extern char *initial_directory;
-extern char builtin_hexdump_cmd[];
 
 extern UIColor ui_colors[];
 extern int NUM_UI_COLORS;
-extern FileColorRule *file_color_rules_head;
 
 extern char *getenv(const char *);
+extern volatile sig_atomic_t ytree_shutdown_flag;
 
 /* ************************************************************************* */
 /*                       FUNCTION PROTOTYPES                                 */
 /* ************************************************************************* */
 
+/* ctrl_dir.c */
+extern int HandleDirWindow(ViewContext *ctx, DirEntry *start_dir_entry);
+
+/* ctrl_file.c */
+extern void BuildFileEntryList(ViewContext *ctx, YtreePanel *panel);
+extern void FreeFileEntryList(YtreePanel *panel);
+extern void InvalidateVolumePanels(ViewContext *ctx, struct Volume *vol);
+
 /* volume.c */
-extern struct Volume *Volume_Create(void);
-extern void Volume_Delete(struct Volume *vol);
-extern void Volume_FreeAll(void);
-extern struct Volume *Volume_GetByPath(const char *path);
-extern struct Volume *Volume_Load(const char *path, struct Volume *reuse_vol,
+extern struct Volume *Volume_Create(ViewContext *ctx);
+extern void Volume_Delete(ViewContext *ctx, struct Volume *vol);
+extern void Volume_FreeAll(ViewContext *ctx);
+extern struct Volume *Volume_GetByPath(ViewContext *ctx, const char *path);
+extern struct Volume *Volume_Load(ViewContext *ctx, const char *path,
+                                  struct Volume *reuse_vol,
                                   ScanProgressCallback cb);
 
 /* main.c */
 extern int ytree(int argc, char *argv[]);
 
 /* clock.c */
-extern void ClockHandler(int);
-extern void InitClock(void);
-extern void SuspendClock(void);
+extern void ClockHandler(ViewContext *ctx, int sig);
+extern void InitClock(ViewContext *ctx);
+extern void SuspendClock(ViewContext *ctx);
 
 /* dirwin.c */
-extern int ScanSubTree(DirEntry *dir_entry, Statistic *s);
+extern int ScanSubTree(ViewContext *ctx, DirEntry *dir_entry, Statistic *s);
 
 /* history.c, tabcompl.c */
-extern char *GetHistory(int type);
-extern char *GetMatches(char *);
-extern void InsHistory(char *new_hist, int type);
-extern void ReadHistory(char *filename);
-extern void SaveHistory(char *filename);
+extern char *GetMatches(ViewContext *ctx, char *base);
 
 /* init.c */
-extern int Init(char *configuration_file, char *history_file);
-extern void ReCreateWindows(void);
+extern int Init(ViewContext *ctx, char *configuration_file, char *history_file);
+extern void ReCreateWindows(ViewContext *ctx);
 
 /* path_utils.c */
 extern char *GetExtension(char *filename);
 extern char *GetFileNamePath(FileEntry *file_entry, char *buffer);
 extern char *GetPath(DirEntry *dir_entry, char *buffer);
-extern char *GetRealFileNamePath(FileEntry *file_entry, char *buffer);
+extern char *GetRealFileNamePath(FileEntry *file_entry, char *buffer,
+                                 int view_mode);
 extern void Fnsplit(char *path, char *dir, char *name);
 extern void NormPath(char *in_path, char *out_path);
 
+extern int MakePath(ViewContext *ctx, DirEntry *tree, char *dir_path,
+                    DirEntry **dest);
 /* quit.c */
-extern void Quit(void);
-extern void QuitTo(DirEntry *dir_entry);
+extern void Quit(ViewContext *ctx);
+extern void QuitTo(ViewContext *ctx, DirEntry *dir_entry);
 
 /* rmdir.c */
 
@@ -291,12 +269,22 @@ extern int Strrcmp(char *s1, char *s2);
 extern char *SubString(char *dest, char *src, int pos, int len);
 
 /* error.c */
-extern int UI_Error(const char *file, int line, const char *fmt, ...);
-extern int UI_Message(const char *fmt, ...);
-extern int UI_Warning(const char *fmt, ...);
-extern int UI_Notice(const char *fmt, ...);
-extern void AboutBox(void);
-extern void UnmapNoticeWindow(void);
+extern int UI_Error(ViewContext *ctx, const char *file, int line,
+                    const char *fmt, ...);
+extern int UI_Message(ViewContext *ctx, const char *fmt, ...);
+extern int UI_Warning(ViewContext *ctx, const char *fmt, ...);
+extern int UI_Notice(ViewContext *ctx, const char *fmt, ...);
+extern int(UI_ReadString)(ViewContext *ctx, YtreePanel *panel,
+                          const char *prompt, char *buffer, int max_len,
+                          int history_type);
+extern void AboutBox(ViewContext *ctx);
+extern void UnmapNoticeWindow(ViewContext *ctx);
+
+extern void Watcher_Init(ViewContext *ctx);
+extern void Watcher_SetDir(ViewContext *ctx, const char *path);
+extern int Watcher_GetFD(ViewContext *ctx);
+extern BOOL Watcher_ProcessEvents(ViewContext *ctx);
+extern void Watcher_Close(ViewContext *ctx);
 
 /* memory.c */
 extern void *xmalloc(size_t size);
@@ -305,5 +293,16 @@ extern void *xrealloc(void *ptr, size_t size);
 extern char *xstrdup(const char *s);
 
 #include "watcher.h"
+
+extern int(ReadProfile)(ViewContext *ctx, char *filename);
+extern void(ReadHistory)(ViewContext *ctx, char *filename);
+extern void(SaveHistory)(ViewContext *ctx, char *filename);
+extern void(InsHistory)(ViewContext *ctx, char *NewHst, int type);
+extern char *(GetHistory)(ViewContext * ctx, int type);
+extern int ReadGroupEntries(void);
+extern int ReadPasswdEntries(void);
+
+extern char *(GetProfileValue)(ViewContext * ctx, const char *name);
+extern void(SetProfileValue)(ViewContext *ctx, char *name, char *value);
 
 #endif /* YTREE_H */

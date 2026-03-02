@@ -1,7 +1,7 @@
 # Architecture of ytree v3
 
 ## 1. Overview
-This document outlines the architectural modernization of `ytree`. The codebase has transitioned from a 1990s-style monolithic structure to a modular, standards-compliant C99 design.
+This document outlines the architectural design of `ytree`. The codebase has transitioned from a monolithic legacy structure to a modular, standards-compliant C99 design.
 
 The primary objective is to maintain a **predictable, high-integrity state machine**. Every component is designed to uphold the **Focus vs. Freeze** logic and the specific hierarchy of modal priorities inherited from the XTree lineage.
 
@@ -12,11 +12,30 @@ The primary objective is to maintain a **predictable, high-integrity state machi
 
 *   **Sequential Logic:** All application logic, filesystem I/O, and UI rendering execute sequentially in the main thread.
 *   **Signal Handling:** Signals (e.g., `SIGINT`, `SIGWINCH`) are used only to set atomic flags. No complex logic, I/O, or Ncurses calls are permitted inside signal handlers.
-*   **Global Synchronization:** Before rendering or processing commands, the controller must ensure the Global Volume pointer (`CurrentVolume`) is explicitly synchronized with the **Active Panel**.
+*   **Context-Oriented Design:** Global variables have been abolished. All functions operate on explicitly passed Context pointers (`ViewContext`, `YtreePanel`, `Volume`).
 
 ---
 
 ## 3. Core Architectural Invariants
+
+### 3.0 Data Hierarchy (The Context Model)
+The application state is strictly hierarchical, replacing the legacy global variable model:
+
+1.  **`ViewContext` (The Session):**
+    *   **Role:** The root object representing the entire running application instance.
+    *   **Ownership:** Holds pointers to the `left` and `right` panels, the `active` panel focus pointer, and the global `volumes_head` (Registry).
+    *   **Scope:** Passed to all top-level UI and command functions.
+
+2.  **`YtreePanel` (The View):**
+    *   **Role:** Represents a single UI pane (Left or Right).
+    *   **Ownership:** Holds **View State** exclusively: `cursor_pos`, `disp_begin_pos`, `file_window_width`.
+    *   **Reference:** Points to a shared **Model** (`struct Volume *vol`).
+    *   **Isolation:** Two panels can view the same Volume but maintain independent cursors and scroll offsets.
+
+3.  **`Volume` (The Model):**
+    *   **Role:** Represents a loaded filesystem (Physical Disk or Archive).
+    *   **Ownership:** Holds **Data** exclusively: `DirEntry` tree structure, `Statistic` file counts, and path metadata.
+    *   **Invariant:** Volumes contain NO UI state (no cursors, no window pointers).
 
 ### 3.1 Dual-Panel Context Isolation (F8 Logic)
 The Split-Screen architecture treats each panel as an independent instance of a volume manager.
@@ -24,12 +43,7 @@ The Split-Screen architecture treats each panel as an independent instance of a 
 *   **Active vs. Inactive (Focus vs. Freeze):**
     *   **Active Panel:** Owns keyboard focus and initiates all operations.
     *   **Inactive Panel:** Strictly **DORMANT**. It must never update its display, refresh pointers, or change state in response to activity in the active panel.
-*   **Independent State:** Panels maintain completely isolated state variables, even if both panels are viewing the same path:
-    *   **Volume Context:** The specific logged volume or archive.
-    *   **Cursor Position:** The highlighted entry.
-    *   **View Offset:** The scroll position (display-begin).
-    *   **Tagging Selection:** File selections/tags are panel-specific.
-    *   **Filespec:** Filter strings (e.g., `*.c`).
+*   **Independent State:** Panels maintain completely isolated state variables, even if both panels are viewing the same path.
 *   **State Persistence (Tab-Switch):** The `Tab` key is the *exclusive* bridge. Switching panels must restore the **exact** state held when that panel last had focus.
 *   **The Lazy Refresh Rule:** An inactive panel remains in its frozen state upon being "Tabbed" into. It validates/refreshes its view only when a subsequent user action forces a re-read.
 
@@ -66,6 +80,7 @@ The Split-Screen architecture treats each panel as an independent instance of a 
 
 ## 5. Visual and Rendering Standards
 *   **Terminal Integrity:** UI updates must be atomic to prevent "ghost" characters.
+    *   **The Batch Pipeline:** Individual functions call `wnoutrefresh()` to stage changes. The main loop calls `RefreshGlobalView()`, which performs the Z-order compositing and issues a single `doupdate()` to flush to the terminal.
 *   **Junction Grammar:** Ncurses junctions (T-pieces, crosses) should **only** be used for horizontal boundary lines (separating Tree and File areas). Vertical separators must remain clean.
 *   **Micro-Consistency:** Mode flags (`big_window`, `preview_mode`) must be synchronized with the layout before any redraw.
 
@@ -92,4 +107,3 @@ The Split-Screen architecture treats each panel as an independent instance of a 
     *   `src/cmd/`: Implementation of specific user commands (Copy, Move, etc.).
     *   `src/util/`: String manipulation, path normalization, and history.
 *   **tests/**: Behavioral TUI tests using Python and `pexpect`.
-

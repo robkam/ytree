@@ -13,10 +13,10 @@
 
 #include "ytree_defs.h"
 
-void Watcher_Init(void);
-void Watcher_SetDir(const char *path);
-int Watcher_GetFD(void);
-BOOL Watcher_ProcessEvents(void);
-void Watcher_Close(void);
+void Watcher_Init(ViewContext *ctx);
+void Watcher_SetDir(ViewContext *ctx, const char *path);
+int Watcher_GetFD(ViewContext *ctx);
+BOOL Watcher_ProcessEvents(ViewContext *ctx);
+void Watcher_Close(ViewContext *ctx);
 
 #endif /* WATCHER_H */
