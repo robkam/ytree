@@ -17,6 +17,9 @@ static int dir_mode = MODE_3; /* Default to Name Only */
 void SetDirMode(int new_mode) { dir_mode = new_mode; }
 
 void RotateDirMode(void) {
+  /* Note: This function has no ViewContext access, needs refactoring.
+   * For now, just rotate modes without the view_mode check.
+   * The check will need to be done at call site with proper context. */
   switch (dir_mode) {
   case MODE_1:
     dir_mode = MODE_2;
@@ -31,14 +34,15 @@ void RotateDirMode(void) {
     dir_mode = MODE_3;
     break;
   }
-  if ((mode != DISK_MODE && mode != USER_MODE) && dir_mode == MODE_4)
-    RotateDirMode();
 }
 
-void PrintDirEntry(struct Volume *vol, WINDOW *win, int entry_no, int y,
-                   unsigned char hilight, BOOL is_active) {
+void PrintDirEntry(ViewContext *ctx, struct Volume *vol, WINDOW *win,
+                   int entry_no, int y, unsigned char hilight, BOOL is_active) {
   unsigned int j;
   int color;
+
+  if (!ctx || !vol || !win)
+    return;
   char graph_buffer[PATH_LENGTH + 1];
   char format[60];
   char *line_buffer = NULL;
@@ -53,7 +57,7 @@ void PrintDirEntry(struct Volume *vol, WINDOW *win, int entry_no, int y,
   char *group_name_ptr;
   DirEntry *de_ptr;
 
-  if (win == f2_window) {
+  if (win == ctx->ctx_f2_window) {
     color = CPAIR_HST;
   } else {
     color = CPAIR_DIR;
@@ -143,7 +147,7 @@ void PrintDirEntry(struct Volume *vol, WINDOW *win, int entry_no, int y,
   wattron(win, line_attr);
 
   /* If full line highlight is enabled, turn on reverse now. */
-  if (hilight && highlight_full_line) {
+  if (hilight && ctx->highlight_full_line) {
     if (is_active)
       wattron(win, A_REVERSE);
     else
@@ -152,6 +156,7 @@ void PrintDirEntry(struct Volume *vol, WINDOW *win, int entry_no, int y,
 
   /* Part 1: Draw the tree graph characters manually */
   wmove(win, y, 0);
+  wattron(win, A_ALTCHARSET);
   for (j = 0; j < (unsigned int)graph_len; ++j) {
     int ch;
     switch (graph_buffer[j]) {
@@ -171,8 +176,9 @@ void PrintDirEntry(struct Volume *vol, WINDOW *win, int entry_no, int y,
       ch = graph_buffer[j];
       break;
     }
-    waddch(win, ch | A_BOLD); /* Keep graph characters bold */
+    waddch(win, (chtype)ch | A_BOLD); /* Keep graph characters bold */
   }
+  wattroff(win, A_ALTCHARSET);
 
   /* Part 2: Prepare and draw the directory name */
   char name_buffer[PATH_LENGTH + 2];
@@ -186,7 +192,7 @@ void PrintDirEntry(struct Volume *vol, WINDOW *win, int entry_no, int y,
   int max_name_len;
   if (dir_mode == MODE_3) {
     /* In MODE_3 (name-only), truncate based on full window width */
-    max_name_len = layout.dir_win_width - graph_len - 1;
+    max_name_len = ctx->layout.dir_win_width - graph_len - 1;
   } else {
     /* In other modes, truncate to prevent overlap with attributes */
     max_name_len = attr_start_col - graph_len - 1;
@@ -204,14 +210,14 @@ void PrintDirEntry(struct Volume *vol, WINDOW *win, int entry_no, int y,
   }
 
   /* If name-only highlight, toggle reverse just for the name. */
-  if (hilight && !highlight_full_line) {
+  if (hilight && !ctx->highlight_full_line) {
     if (is_active)
       wattron(win, A_REVERSE);
     else
       wattron(win, A_BOLD | A_UNDERLINE);
   }
   mvwaddstr(win, y, graph_len, name_buffer);
-  if (hilight && !highlight_full_line) {
+  if (hilight && !ctx->highlight_full_line) {
     if (is_active)
       wattroff(win, A_REVERSE);
     else
@@ -229,7 +235,7 @@ void PrintDirEntry(struct Volume *vol, WINDOW *win, int entry_no, int y,
   }
 
   /* Turn off attributes */
-  if (hilight && highlight_full_line) {
+  if (hilight && ctx->highlight_full_line) {
     if (is_active)
       wattroff(win, A_REVERSE);
     else
@@ -241,25 +247,28 @@ void PrintDirEntry(struct Volume *vol, WINDOW *win, int entry_no, int y,
     free(line_buffer);
 }
 
-void DisplayTree(struct Volume *vol, WINDOW *win, int start_entry_no,
-                 int hilight_no, BOOL is_active) {
+void DisplayTree(ViewContext *ctx, struct Volume *vol, WINDOW *win,
+                 int start_entry_no, int hilight_no, BOOL is_active) {
   int i, y;
   int height;
+
+  if (!ctx || !vol || !win)
+    return;
 
   y = -1;
   getmaxyx(win, height, i); /* Use i for width to avoid unused var warning */
   (void)i;
 
 #ifdef COLOR_SUPPORT
-  if (win == f2_window) {
-    WbkgdSet(win, COLOR_PAIR(CPAIR_WINHST));
+  if (win == ctx->ctx_f2_window) {
+    WbkgdSet(ctx, win, COLOR_PAIR(CPAIR_WINHST));
   } else {
-    WbkgdSet(win, COLOR_PAIR(CPAIR_WINDIR));
+    WbkgdSet(ctx, win, COLOR_PAIR(CPAIR_WINDIR));
   }
 #endif
   werase(win);
 
-  if (win == f2_window) {
+  if (win == ctx->ctx_f2_window) {
     box(win, 0, 0);
   }
 
@@ -268,11 +277,11 @@ void DisplayTree(struct Volume *vol, WINDOW *win, int start_entry_no,
       break;
 
     if (start_entry_no + i != hilight_no)
-      PrintDirEntry(vol, win, start_entry_no + i, i, FALSE, is_active);
+      PrintDirEntry(ctx, vol, win, start_entry_no + i, i, FALSE, is_active);
     else
       y = i;
   }
 
   if (y >= 0)
-    PrintDirEntry(vol, win, start_entry_no + y, y, TRUE, is_active);
+    PrintDirEntry(ctx, vol, win, start_entry_no + y, y, TRUE, is_active);
 }

@@ -6,7 +6,7 @@
  ***************************************************************************/
 
 /* Default (max) TreeDepth on startup */
-#define DEFAULT_TREEDEPTH     "2"
+#define DEFAULT_TREEDEPTH     "1"
 #define DEFAULT_FILEMODE      "2"
 #define DEFAULT_NOSMALLWINDOW "1"
 #define DEFAULT_NUMBERSEP     "."

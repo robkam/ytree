@@ -7,6 +7,8 @@
 #ifndef YTREE_DEFS_H
 #define YTREE_DEFS_H
 
+typedef struct _ViewContext ViewContext;
+
 /* Large File Support must be defined before system headers */
 #define _LARGEFILE64_SOURCE 1
 #define _FILE_OFFSET_BITS 64
@@ -21,11 +23,9 @@
 #define HAVE_CURSES 1
 #endif
 
-#ifdef YTREE_TUI
 #if !defined(HAVE_CURSES)
 #include <curses.h>
 #include <term.h>
-#endif
 #endif
 
 #include <dirent.h>
@@ -273,6 +273,7 @@ typedef enum {
   ACTION_ENTER,
   ACTION_ESCAPE,
   ACTION_LOGIN,
+  ACTION_LOG,
   ACTION_QUIT,
   ACTION_QUIT_DIR,
   ACTION_TAG,
@@ -338,6 +339,47 @@ typedef enum { FOCUS_TREE, FOCUS_FILE } ViewFocus;
 
 /* Structs */
 
+typedef struct {
+  int dir_win_y;
+  int dir_win_x;
+  int dir_win_height;
+  int dir_win_width;
+
+  int small_file_win_y;
+  int small_file_win_x;
+  int small_file_win_height;
+  int small_file_win_width;
+
+  int big_file_win_y;
+  int big_file_win_x;
+  int big_file_win_height;
+  int big_file_win_width;
+
+  int preview_win_y;
+  int preview_win_x;
+  int preview_win_height;
+  int preview_win_width;
+
+  int stats_width;
+  int main_win_width;
+
+  int stats_y_filter_val;
+  int stats_y_vol_sep;
+  int stats_y_vol_info;
+  int stats_y_vstat_sep;
+  int stats_y_vstat_val;
+  int stats_y_dstat_sep;
+  int stats_y_dstat_val;
+  int stats_y_attr_sep;
+  int stats_y_attr_val;
+
+  int header_y;
+  int message_y;
+  int prompt_y;
+  int status_y;
+  int bottom_border_y;
+} YtreeLayout;
+
 #ifdef HAVE_LIBARCHIVE
 #define AR_KEEP 0
 #define AR_SKIP 1
@@ -381,15 +423,18 @@ typedef int (*ArchiveProgressCallback)(int status, const char *msg,
 #define ZSTD_COMPRESS 22
 
 /* UI Message Macros (Headless-compatible) */
-extern int UI_Error(const char *file, int line, const char *format, ...);
-extern int UI_Warning(const char *format, ...);
-extern int UI_Message(const char *format, ...);
-extern int UI_Notice(const char *format, ...);
+extern int UI_Error(ViewContext *ctx, const char *file, int line,
+                    const char *format, ...);
+extern int UI_Warning(ViewContext *ctx, const char *format, ...);
+extern int UI_Message(ViewContext *ctx, const char *format, ...);
+extern int UI_Notice(ViewContext *ctx, const char *format, ...);
 
-#define ERROR_MSG(...) UI_Error(__FILE__, __LINE__, __VA_ARGS__)
-#define WARNING(...) UI_Warning(__VA_ARGS__)
-#define MESSAGE(...) UI_Message(__VA_ARGS__)
-#define NOTICE(...) UI_Notice(__VA_ARGS__)
+#define ERROR(ctx, ...) UI_Error(ctx, __FILE__, __LINE__, __VA_ARGS__)
+#define WARNING(ctx, ...) UI_Warning(ctx, __VA_ARGS__)
+#define MESSAGE(ctx, ...) UI_Message(ctx, __VA_ARGS__)
+#define NOTICE(ctx, ...) UI_Notice(ctx, __VA_ARGS__)
+
+/* Input Debugging */
 
 typedef struct {
   const char *name;
@@ -462,8 +507,6 @@ typedef struct {
   long long disk_tagged_files;
   long long disk_tagged_bytes;
   unsigned int disk_total_directories;
-  int disp_begin_pos;
-  int cursor_pos;
   int kind_of_sort;
   int login_mode;
   char login_path[PATH_LENGTH + 1];
@@ -569,66 +612,120 @@ typedef struct {
   int start_file;
   int file_mode;
   int max_column;
+  int current_dir_entry;
   unsigned int max_visual_filename_len;
   unsigned int max_visual_linkname_len;
   unsigned int max_visual_userview_len;
   BOOL reverse_sort;
 } YtreePanel;
 
-typedef struct {
-#ifdef YTREE_TUI
+typedef struct _history {
+  char *hst;
+  int type;
+  int pinned;
+  struct _history *next;
+  struct _history *prev;
+} History;
+
+typedef struct _ViewContext {
   WINDOW *ctx_dir_window;
   WINDOW *ctx_small_file_window;
   WINDOW *ctx_big_file_window;
   WINDOW *ctx_file_window;
   WINDOW *ctx_preview_window;
-#else
-  void *ctx_dir_window;
-  void *ctx_small_file_window;
-  void *ctx_big_file_window;
-  void *ctx_file_window;
-  void *ctx_preview_window;
-#endif
+  WINDOW *ctx_border_window;
+  WINDOW *ctx_time_window;
+  WINDOW *ctx_menu_window;
+  WINDOW *ctx_error_window;
+  WINDOW *ctx_history_window;
+  WINDOW *ctx_matches_window;
+  WINDOW *ctx_f2_window;
+
+  YtreePanel *left;
+  YtreePanel *right;
+  YtreePanel *active;
+  YtreeLayout layout;
+
   int view_mode;
   BOOL show_stats;
   BOOL preview_mode;
+  BOOL clock_print_time;
   int fixed_col_width;
   int refresh_mode;
   ViewFocus focused_window;
   ViewFocus preview_entry_focus;
   YtreePanel *preview_return_panel;
   ViewFocus preview_return_focus;
+
+  /* Animation State */
+  BOOL anim_is_initialized;
+  void *anim_stars;
+  int spin_counter;
+
+  /* Color State */
+  BOOL color_enabled;
+
+  /* Global state moved to context */
+  int animation_method;
+  char number_seperator;
+  BOOL is_split_screen;
+  char global_search_term[256];
+  int user_umask;
+  BOOL resize_request;
+  BOOL bypass_small_window;
+  BOOL highlight_full_line;
+  BOOL hide_dot_files;
+  char *initial_directory;
+  char *confirm_quit;
+  void *file_color_rules_head;
+
+  /* ctrl_file state */
+  int ctrl_file_max_disp_files;
+  int ctrl_file_x_step;
+  int ctrl_file_my_x_step;
+  int ctrl_file_hide_right;
+
+  unsigned ctrl_file_max_visual_filename_len;
+  unsigned ctrl_file_max_visual_linkname_len;
+  unsigned ctrl_file_max_visual_userview_len;
+  unsigned ctrl_file_global_max_visual_filename_len;
+  unsigned ctrl_file_global_max_visual_linkname_len;
+
+  long ctrl_file_preview_line_offset;
+  int ctrl_file_saved_fixed_width;
+
+  char ctrl_file_to_dir[PATH_LENGTH + 1];
+  char ctrl_file_to_path[PATH_LENGTH + 1];
+  char ctrl_file_to_file[PATH_LENGTH + 1];
+
+  /* profile.c state */
+  void *profile_data;  /* Pointer to the profile array */
+  void *viewer_list;   /* Pointer to head of Viewer list */
+  void *dirmenu_list;  /* Pointer to head of Dirmenu list */
+  void *filemenu_list; /* Pointer to head of Filemenu list */
+
+  /* history.c state */
+  int total_hist;
+  int cursor_pos;
+  int disp_begin_pos;
+  History *history_head;
+  History **history_view_list;
+  int history_view_count;
+  /* volume.c state */
+  struct Volume *volumes_head;
+  int volume_serial;
+
+  /* watcher.c state */
+  int inotify_fd;
+  int current_wd;
+  char current_watch_path[PATH_LENGTH + 1];
+
+  /* tabcompl.c state */
+  char **tab_mtchs;
+  int tab_total_matches;
+  int tab_cursor_pos;
+  int tab_disp_begin_pos;
+
 } ViewContext;
-
-typedef struct {
-  int dir_win_y;
-  int dir_win_x;
-  int dir_win_height;
-  int dir_win_width;
-
-  int small_file_win_y;
-  int small_file_win_x;
-  int small_file_win_height;
-  int small_file_win_width;
-
-  int big_file_win_y;
-  int big_file_win_x;
-  int big_file_win_height;
-  int big_file_win_width;
-
-  int preview_win_y;
-  int preview_win_x;
-  int preview_win_height;
-  int preview_win_width;
-
-  int stats_width;
-  int main_win_width;
-
-  int header_y;
-  int message_y;
-  int prompt_y;
-  int status_y;
-  int bottom_border_y;
-} YtreeLayout;
 
 #endif /* YTREE_DEFS_H */

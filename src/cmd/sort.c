@@ -5,6 +5,7 @@
  *
  ***************************************************************************/
 
+#include "ytree.h"
 #include "ytree_cmd.h"
 #include "ytree_defs.h"
 #include "ytree_fs.h"
@@ -12,7 +13,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-extern struct Volume *CurrentVolume;
 
 void SetKindOfSort(int kind_of_sort, Statistic *s) {
   if (s) {

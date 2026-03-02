@@ -21,10 +21,7 @@
 /* 'extended_line' is removed as it was part of the static statistics panel
  * drawing logic, which is now obsolete. */
 
-static char *first_line = "1-"; /* Top horizontal border line */
-static char *middle_line_separator =
-    "6-"; /* Separator line between directory and file windows */
-static char *last_line = "3-"; /* Bottom horizontal border line */
+/* Legacy border strings removed. Use ACS_* constants directly. */
 
 /*
  * Help line definitions for different modes.
@@ -80,38 +77,48 @@ static char *file_help[MAX_MODES][2] = {
      file_help_disk_mode_0, /* Default unless changed by user prefs */
      file_help_disk_mode_1}};
 
-void DisplayDirHelp(void) {
+void DisplayDirHelp(ViewContext *ctx) {
   int i;
   char *cptr;
 
-  if (mode == USER_MODE) {
-    if (dir_help[mode][0] == dir_help_disk_mode_0 && (cptr = DIR1) != NULL)
-      dir_help[mode][0] = cptr;
-    if (dir_help[mode][1] == dir_help_disk_mode_1 && (cptr = DIR2) != NULL)
-      dir_help[mode][1] = cptr;
+  if (!ctx->ctx_menu_window)
+    return;
+
+  if (ctx->view_mode == USER_MODE) {
+    if (dir_help[ctx->view_mode][0] == dir_help_disk_mode_0 &&
+        (cptr = (GetProfileValue)(ctx, "DIR1")) != NULL)
+      dir_help[ctx->view_mode][0] = cptr;
+    if (dir_help[ctx->view_mode][1] == dir_help_disk_mode_1 &&
+        (cptr = (GetProfileValue)(ctx, "DIR2")) != NULL)
+      dir_help[ctx->view_mode][1] = cptr;
   }
-  for (i = 0; i < (int)(sizeof(dir_help[mode]) / sizeof(dir_help[mode][0]));
-       i++) {
-    PrintOptions(stdscr, Y_PROMPT + i, 0, dir_help[mode][i]);
-    clrtoeol();
+  werase(ctx->ctx_menu_window);
+  for (i = 0; i < 2; i++) {
+    PrintOptions(ctx->ctx_menu_window, i, 0, dir_help[ctx->view_mode][i]);
   }
+  wnoutrefresh(ctx->ctx_menu_window);
 }
 
-void DisplayFileHelp(void) {
+void DisplayFileHelp(ViewContext *ctx) {
   int i;
   char *cptr;
 
-  if (mode == USER_MODE) {
-    if (file_help[mode][0] == file_help_disk_mode_0 && (cptr = FILE1) != NULL)
-      file_help[mode][0] = cptr;
-    if (file_help[mode][1] == file_help_disk_mode_1 && (cptr = FILE2) != NULL)
-      file_help[mode][1] = cptr;
+  if (!ctx->ctx_menu_window)
+    return;
+
+  if (ctx->view_mode == USER_MODE) {
+    if (file_help[ctx->view_mode][0] == file_help_disk_mode_0 &&
+        (cptr = (GetProfileValue)(ctx, "FILE1")) != NULL)
+      file_help[ctx->view_mode][0] = cptr;
+    if (file_help[ctx->view_mode][1] == file_help_disk_mode_1 &&
+        (cptr = (GetProfileValue)(ctx, "FILE2")) != NULL)
+      file_help[ctx->view_mode][1] = cptr;
   }
-  for (i = 0; i < (int)(sizeof(file_help[mode]) / sizeof(file_help[mode][0]));
-       i++) {
-    PrintOptions(stdscr, Y_PROMPT + i, 0, file_help[mode][i]);
-    clrtoeol();
+  werase(ctx->ctx_menu_window);
+  for (i = 0; i < 2; i++) {
+    PrintOptions(ctx->ctx_menu_window, i, 0, file_help[ctx->view_mode][i]);
   }
+  wnoutrefresh(ctx->ctx_menu_window);
 }
 
 static void PrintHelpString(WINDOW *win, int y, int x, const char *str) {
@@ -155,25 +162,25 @@ static void PrintHelpString(WINDOW *win, int y, int x, const char *str) {
   wattrset(win, 0);
 }
 
-void DisplayPreviewHelp(void) {
+void DisplayPreviewHelp(ViewContext *ctx) {
   /*
    * Help Footer for Preview Mode (F7)
    */
-  PrintHelpString(stdscr, Y_PROMPT, 0,
+  PrintHelpString(ctx->ctx_border_window, Y_PROMPT(ctx), 0,
                   "PREVIEW   (Up/Down) Select File  (PgUp/PgDn) Scroll Page  "
                   "(Home/End) Jump");
-  clrtoeol();
-  PrintHelpString(stdscr, Y_PROMPT + 1, 0,
+  wmove(ctx->ctx_border_window, Y_PROMPT(ctx), 0);
+  wclrtoeol(ctx->ctx_border_window);
+  PrintHelpString(ctx->ctx_border_window, Y_PROMPT(ctx) + 1, 0,
                   "COMMANDS  (Shift) Navigate Preview  (F7) Exit Preview");
-  clrtoeol();
+  wmove(ctx->ctx_border_window, Y_PROMPT(ctx) + 1, 0);
+  wclrtoeol(ctx->ctx_border_window);
 }
 
-void ClearHelp(void) {
-  int i;
-
-  for (i = 0; i < 3; i++) {
-    wmove(stdscr, Y_MESSAGE + i, 0);
-    clrtoeol();
+void ClearHelp(ViewContext *ctx) {
+  if (ctx->ctx_menu_window) {
+    werase(ctx->ctx_menu_window);
+    wnoutrefresh(ctx->ctx_menu_window);
   }
 }
 
@@ -183,277 +190,151 @@ void ClearHelp(void) {
  * This function is designed to be called whenever the path changes,
  * ensuring immediate visual feedback.
  */
-void DisplayHeaderPath(char *path) {
-  char display_buffer[PATH_LENGTH + 1]; /* Declare buffer for truncated path */
+void DisplayHeaderPath(ViewContext *ctx, char *path) {
+  char display_buffer[PATH_LENGTH + 1];
   int available_width =
-      COLS - layout.stats_width -
+      COLS - ctx->layout.stats_width -
       26; /* COLS - "Path: " (6) - Stats Panel (24) - Clock/Margin (20) */
   if (available_width < 10)
-    available_width = 10; /* Safety minimum */
+    available_width = 10;
 
-  attron(COLOR_PAIR(CPAIR_MENU) | A_BOLD);
-  mvwhline(stdscr, 0, 6, ' ',
-           available_width); /* Explicitly clear the old path area */
+  CutPathname(display_buffer, path, available_width);
 
-  /* Use CutName for end-truncation (e.g. /home/user/verylong...) in the header
-   */
-  CutName(display_buffer, path, available_width);
+  DEBUG_LOG("DisplayHeaderPath: path='%s' cut='%s' avail=%d COLS=%d", path,
+            display_buffer, available_width, COLS);
 
-  mvprintw(0, 6, "%s", display_buffer); /* Print the truncated path */
-  attroff(COLOR_PAIR(CPAIR_MENU) | A_BOLD);
-  refresh(); /* Ensure it draws immediately */
+  /* Write path with fixed width to ensure old content is cleared */
+  mvwprintw(ctx->ctx_border_window, 0, 6, "%-*s", available_width,
+            display_buffer);
+  wattrset(ctx->ctx_border_window, A_NORMAL);
+  wnoutrefresh(ctx->ctx_border_window);
 }
 
-void DisplayMenu(void) {
-  int y;
-  /* int    l, c; // Removed: Unused l and c */
-  /* Define L_BORDER_FOR_DISPLAY as the column index where stats.c's left
-   * vertical border begins. display.c's lines must end one character before
-   * this to allow stats.c to draw its full frame. */
-  const int L_BORDER_FOR_DISPLAY = COLS - layout.stats_width - 1;
-  int sep_y = layout.dir_win_y + layout.dir_win_height;
+void DisplayMenu(ViewContext *ctx) {
+  const int L_BORDER_FOR_DISPLAY = COLS - ctx->layout.stats_width - 1;
+  int bottom_y = ctx->layout.bottom_border_y;
 
-  PrintSpecialString(stdscr, 0, 0, "Path: ", CPAIR_MENU);
-  /* Print the current path next to the label */
-  if (CurrentVolume) {
-    DisplayHeaderPath((mode == ARCHIVE_MODE)
-                          ? CurrentVolume->vol_stats.login_path
-                          : CurrentVolume->vol_stats.path);
-  }
-  /* The clrtoeol() call was removed to prevent it from erasing the clock
-   * display on redraw. */
+  /* Explicitly Clear all relevant windows - NO wnoutrefresh here */
+  werase(ctx->ctx_border_window);
 
-  werase(dir_window);
-  werase(big_file_window);
-  werase(small_file_window);
-  if (preview_window)
-    werase(preview_window);
+  /* Draw Header Label */
+  wattrset(ctx->ctx_border_window, COLOR_PAIR(CPAIR_MENU) | A_BOLD);
+  mvwaddstr(ctx->ctx_border_window, 0, 0, "Path: ");
+  wattrset(ctx->ctx_border_window, A_NORMAL);
 
-  /* Draw the left vertical border for the main application window.
-   * The right-hand statistics panel is now drawn entirely by stats.c. */
-  for (y = 1; y < layout.bottom_border_y; y++) { /* From y=1 up to LINES - 5 */
-    PrintOptions(stdscr, y, 0, "|");
-  }
+  /* Path will be filled in by caller (RefreshGlobalView) using
+   * GetPath(dir_entry) */
 
-  if (layout.stats_width == 0) {
-    for (y = 1; y < layout.bottom_border_y; y++) {
-      mvaddch(y, COLS - 1, ACS_VLINE);
+  /* --- NATIVE ACS BORDERS --- */
+  wattron(ctx->ctx_border_window, COLOR_PAIR(CPAIR_BORDERS) | A_ALTCHARSET);
+
+  /* Outer Box Frame (Data Area) */
+  mvwhline(ctx->ctx_border_window, 1, 0, ACS_HLINE, L_BORDER_FOR_DISPLAY);
+  mvwhline(ctx->ctx_border_window, bottom_y, 0, ACS_HLINE,
+           L_BORDER_FOR_DISPLAY);
+  mvwvline(ctx->ctx_border_window, 1, 0, ACS_VLINE, bottom_y - 1);
+  mvwvline(ctx->ctx_border_window, 1, L_BORDER_FOR_DISPLAY, ACS_VLINE,
+           bottom_y - 1);
+
+  /* Corners */
+  mvwaddch(ctx->ctx_border_window, 1, 0, ACS_ULCORNER);
+  mvwaddch(ctx->ctx_border_window, 1, L_BORDER_FOR_DISPLAY, ACS_URCORNER);
+  mvwaddch(ctx->ctx_border_window, bottom_y, 0, ACS_LLCORNER);
+  mvwaddch(ctx->ctx_border_window, bottom_y, L_BORDER_FOR_DISPLAY,
+           ACS_LRCORNER);
+
+  /* Sub-window separators */
+  if (ctx->preview_mode) {
+    int sep_x = ctx->layout.preview_win_x - 1;
+    mvwvline(ctx->ctx_border_window, 2, sep_x, ACS_VLINE, bottom_y - 2);
+    mvwaddch(ctx->ctx_border_window, 1, sep_x, ACS_TTEE);
+    mvwaddch(ctx->ctx_border_window, bottom_y, sep_x, ACS_BTEE);
+  } else {
+    /* Vertical Split Separator */
+    if (ctx->is_split_screen && ctx->left) {
+      int split_x = ctx->left->dir_x + ctx->left->dir_w;
+      mvwvline(ctx->ctx_border_window, 2, split_x, ACS_VLINE, bottom_y - 2);
+      mvwaddch(ctx->ctx_border_window, 1, split_x, ACS_TTEE);
+      mvwaddch(ctx->ctx_border_window, bottom_y, split_x, ACS_BTEE);
     }
   }
-
-  /* Draw the top horizontal line of the directory window frame. */
-  PrintLine(stdscr, 1, 0, first_line, L_BORDER_FOR_DISPLAY);
-
-  /* Draw the bottom horizontal border of the main content area. */
-  PrintLine(stdscr, layout.bottom_border_y, 0, last_line, L_BORDER_FOR_DISPLAY);
-
-  /* PREVIEW MODE SEPARATOR */
-  if (GlobalView->preview_mode) {
-    int sep_x = layout.preview_win_x - 1;
-    int top_y = 1;
-    int bottom_y = layout.bottom_border_y;
-
-#ifdef COLOR_SUPPORT
-    attron(COLOR_PAIR(CPAIR_MENU) | A_BOLD);
-#endif
-    /* Draw Vertical Line */
-    for (y = top_y + 1; y < bottom_y; y++) {
-      mvaddch(y, sep_x, ACS_VLINE);
-    }
-    /* Draw Junctions */
-    mvaddch(top_y, sep_x, ACS_TTEE);
-    mvaddch(bottom_y, sep_x, ACS_BTEE);
-#ifdef COLOR_SUPPORT
-    attroff(COLOR_PAIR(CPAIR_MENU) | A_BOLD);
-#endif
-  }
-  /* Split Screen Visual Separator & Horizontal Dividers */
-  else if (!IsSplitScreen) {
-    if (file_window == small_file_window) {
-      PrintLine(stdscr, sep_y, 0, middle_line_separator, L_BORDER_FOR_DISPLAY);
-    }
-  } else if (LeftPanel && RightPanel) {
-    int split_x = LeftPanel->dir_x + LeftPanel->dir_w;
-    int top_y = 1;
-    int bottom_y = layout.bottom_border_y;
-
-    /* Determine if horizontal separators are needed for Left/Right panels */
-    /* We check the Panel structs directly, not global 'file_window' */
-    BOOL draw_left =
-        (LeftPanel->pan_file_window == LeftPanel->pan_small_file_window);
-    BOOL draw_right =
-        (RightPanel->pan_file_window == RightPanel->pan_small_file_window);
-
-#ifdef COLOR_SUPPORT
-    attron(COLOR_PAIR(CPAIR_MENU) | A_BOLD);
-#endif
-    /* Draw Vertical Separator Line */
-    for (y = top_y + 1; y < bottom_y; y++) {
-      mvaddch(y, split_x, ACS_VLINE);
-    }
-
-    /* Draw Horizontal Lines first (so junctions overwrite them if needed) */
-    if (draw_left) {
-      mvwhline(stdscr, sep_y, 1, ACS_HLINE, split_x - 1);
-      mvaddch(sep_y, 0, ACS_LTEE);
-    }
-    if (draw_right) {
-      int right_len = L_BORDER_FOR_DISPLAY - split_x - 1;
-      if (right_len > 0) {
-        mvwhline(stdscr, sep_y, split_x + 1, ACS_HLINE, right_len);
-        if (layout.stats_width == 0) {
-          mvaddch(sep_y, L_BORDER_FOR_DISPLAY, ACS_RTEE);
-        }
-      }
-    }
-
-    /* Draw Top/Bottom Junctions */
-    mvaddch(top_y, split_x, ACS_TTEE);    /* Top T-Junction */
-    mvaddch(bottom_y, split_x, ACS_BTEE); /* Bottom T-Junction */
-
-    /* Draw Center Junction Logic */
-    int junction;
-    if (draw_left && draw_right)
-      junction = ACS_PLUS;
-    else if (draw_left)
-      junction = ACS_RTEE;
-    else if (draw_right)
-      junction = ACS_LTEE;
-    else
-      junction = ACS_VLINE;
-
-    mvaddch(sep_y, split_x, junction);
-
-#ifdef COLOR_SUPPORT
-    attroff(COLOR_PAIR(CPAIR_MENU) | A_BOLD);
-#endif
-  }
-
-  if (layout.stats_width == 0) {
-    int right_x = COLS - 1;
-    int bottom_y = layout.bottom_border_y;
-    int sep_y = layout.dir_win_y + layout.dir_win_height;
-
-    /* Draw Right Vertical Line (Content Area) */
-    /* Start at y=2 (below top border) to bottom_y-1 */
-    for (y = 2; y < bottom_y; y++) {
-      mvaddch(y, right_x, ACS_VLINE);
-    }
-
-    /* Explicitly Draw Corners and Junctions */
-    mvaddch(1, right_x, ACS_URCORNER);
-    mvaddch(bottom_y, right_x, ACS_LRCORNER);
-    if (!GlobalView->preview_mode) {
-      mvaddch(sep_y, right_x, ACS_RTEE);
-    }
-  }
-
-  /* The loops and calls related to drawing the static statistics panel (mask,
-   * extended_line, last_line) have been removed as per the decoupling
-   * objective. */
-
-  /* Only display static logo if animation is disabled - REMOVED */
-
-  /* DisplayVersion(); REMOVED from footer */
-
-  touchwin(dir_window);
-  refresh();
+  wattroff(ctx->ctx_border_window, A_ALTCHARSET);
+  wattrset(ctx->ctx_border_window, A_NORMAL);
 }
 
-void SwitchToSmallFileWindow(void) {
+void SwitchToSmallFileWindow(ViewContext *ctx) {
   /* Separator Y calculation: dir_win_y + dir_win_height */
-  int separator_y = layout.dir_win_y + layout.dir_win_height;
+  int separator_y = ctx->layout.dir_win_y + ctx->layout.dir_win_height;
 
-  werase(file_window);
-  /* Adjust PrintLine call to align with the new L_BORDER_FOR_DISPLAY logic */
-  PrintLine(stdscr, separator_y, 0, middle_line_separator,
-            COLS - layout.stats_width - 1);
-  /* The RTEE junction character at the stats panel border is now handled by
-   * stats.c:DrawBoxFrame */
+  werase(ctx->ctx_file_window);
+  int separator_width = COLS - ctx->layout.stats_width - 1;
+  wattron(ctx->ctx_border_window, COLOR_PAIR(CPAIR_BORDERS) | A_ALTCHARSET);
+  mvwhline(ctx->ctx_border_window, separator_y, 1, ACS_HLINE,
+           separator_width - 1);
+  mvwaddch(ctx->ctx_border_window, separator_y, 0, ACS_LTEE);
+  mvwaddch(ctx->ctx_border_window, separator_y, separator_width, ACS_RTEE);
 
-  if (layout.stats_width == 0) {
-    mvaddch(separator_y, COLS - 1, ACS_RTEE);
+  if (ctx->layout.stats_width == 0) {
+    mvwaddch(ctx->ctx_border_window, separator_y, COLS - 1, ACS_RTEE);
   }
 
   /* Restore Split Screen Junction if visible */
-  if (IsSplitScreen && LeftPanel) {
-    int split_x = LeftPanel->dir_x + LeftPanel->dir_w;
-#ifdef COLOR_SUPPORT
-    attron(COLOR_PAIR(CPAIR_MENU) | A_BOLD);
-#endif
-    mvaddch(separator_y, split_x, ACS_PLUS);
-#ifdef COLOR_SUPPORT
-    attroff(COLOR_PAIR(CPAIR_MENU) | A_BOLD);
-#endif
+  if (ctx->is_split_screen && ctx->left) {
+    int split_x = ctx->left->dir_x + ctx->left->dir_w;
+    mvwaddch(ctx->ctx_border_window, separator_y, split_x, ACS_PLUS);
   }
+  wattroff(ctx->ctx_border_window, A_ALTCHARSET);
+  wattrset(ctx->ctx_border_window, A_NORMAL);
 
-  file_window = small_file_window;
-  GlobalView->ctx_file_window = file_window;
-  if (ActivePanel) {
-    ActivePanel->pan_file_window = ActivePanel->pan_small_file_window;
+  ctx->ctx_file_window = ctx->ctx_small_file_window;
+  if (ctx->active) {
+    ctx->active->pan_file_window = ctx->active->pan_small_file_window;
   }
-  RefreshWindow(stdscr);
 }
 
-void SwitchToBigFileWindow(void) {
+void SwitchToBigFileWindow(ViewContext *ctx) {
   /* Separator Y calculation: dir_win_y + dir_win_height */
-  int separator_y = layout.dir_win_y + layout.dir_win_height;
+  int separator_y = ctx->layout.dir_win_y + ctx->layout.dir_win_height;
 
-  werase(file_window);
-  RefreshWindow(file_window);
-#ifdef COLOR_SUPPORT
-  mvaddch(separator_y, layout.dir_win_x - 1,
-          ACS_VLINE | COLOR_PAIR(CPAIR_MENU) | A_BOLD);
-  mvaddch(separator_y, layout.dir_win_x + layout.dir_win_width,
-          ACS_VLINE | COLOR_PAIR(CPAIR_MENU) | A_BOLD);
-  /* The VLINE junction character at the stats panel border is now handled by
-   * stats.c:DrawBoxFrame */
-
-#else
-  mvwaddch(stdscr, separator_y, layout.dir_win_x - 1, ACS_VLINE);
-  mvwaddch(stdscr, separator_y, layout.dir_win_x + layout.dir_win_width,
+  werase(ctx->ctx_file_window);
+  wattron(ctx->ctx_border_window, COLOR_PAIR(CPAIR_BORDERS) | A_ALTCHARSET);
+  mvwaddch(ctx->ctx_border_window, separator_y, ctx->layout.dir_win_x - 1,
            ACS_VLINE);
-  /* The VLINE junction character at the stats panel border is now handled by
-   * stats.c:DrawBoxFrame */
-#endif /* COLOR_SUPPORT */
-  file_window = big_file_window;
-  GlobalView->ctx_file_window = file_window;
-  if (ActivePanel) {
-    ActivePanel->pan_file_window = ActivePanel->pan_big_file_window;
+  mvwaddch(ctx->ctx_border_window, separator_y,
+           ctx->layout.dir_win_x + ctx->layout.dir_win_width, ACS_VLINE);
+  wattroff(ctx->ctx_border_window, A_ALTCHARSET);
+  wattrset(ctx->ctx_border_window, A_NORMAL);
+
+  ctx->ctx_file_window = ctx->ctx_big_file_window;
+  if (ctx->active) {
+    ctx->active->pan_file_window = ctx->active->pan_big_file_window;
   }
-  RefreshWindow(stdscr);
 }
 
-void MapF2Window(void) {
-  werase(f2_window);
-  box(f2_window, 0, 0);
-  RefreshWindow(f2_window);
+void MapF2Window(ViewContext *ctx) {
+  werase(ctx->ctx_f2_window);
+  box(ctx->ctx_f2_window, 0, 0);
+  RefreshWindow(ctx->ctx_f2_window);
 }
 
-void UnmapF2Window(void) {
+void UnmapF2Window(ViewContext *ctx) {
   /* Separator Y calculation: dir_win_y + dir_win_height */
-  int separator_y = layout.dir_win_y + layout.dir_win_height;
+  int separator_y = ctx->layout.dir_win_y + ctx->layout.dir_win_height;
 
-  werase(f2_window);
-  if (file_window == big_file_window) {
-#ifdef COLOR_SUPPORT
-    mvaddch(separator_y, layout.dir_win_x - 1,
-            ACS_VLINE | COLOR_PAIR(CPAIR_MENU) | A_BOLD);
-    mvaddch(separator_y, layout.dir_win_x + layout.dir_win_width,
-            ACS_VLINE | COLOR_PAIR(CPAIR_MENU) | A_BOLD);
-
-#else
-    mvwaddch(stdscr, separator_y, layout.dir_win_x - 1, ACS_VLINE);
-
-    mvwaddch(stdscr, separator_y, layout.dir_win_x + layout.dir_win_width,
-             ACS_VLINE);
-#endif /* COLOR_SUPPORT */
+  werase(ctx->ctx_f2_window);
+  wattrset(ctx->ctx_border_window, COLOR_PAIR(CPAIR_BORDERS));
+  if (ctx->ctx_file_window == ctx->ctx_big_file_window) {
+    mvwaddch(ctx->ctx_border_window, separator_y, ctx->layout.dir_win_x - 1,
+             '|');
+    mvwaddch(ctx->ctx_border_window, separator_y,
+             ctx->layout.dir_win_x + ctx->layout.dir_win_width, '|');
   } else {
-    PrintLine(stdscr, separator_y, 0, middle_line_separator,
-              COLS - layout.stats_width - 1);
+    int separator_width = COLS - ctx->layout.stats_width - 1;
+    mvwhline(ctx->ctx_border_window, separator_y, 1, '-', separator_width - 1);
+    mvwaddch(ctx->ctx_border_window, separator_y, 0, '+');
+    mvwaddch(ctx->ctx_border_window, separator_y, separator_width, '+');
   }
-  touchwin(stdscr);
-  refresh();
+  wattrset(ctx->ctx_border_window, A_NORMAL);
 }
 
 /* PrintMenuLine function is removed as it is no longer used after decoupling
@@ -461,7 +342,7 @@ void UnmapF2Window(void) {
 
 void RefreshWindow(WINDOW *win) { wnoutrefresh(win); }
 
-void RenderInactivePanel(YtreePanel *panel) {
+void RenderInactivePanel(ViewContext *ctx, YtreePanel *panel) {
   /* Modified check as per instructions */
   if (!panel || !panel->vol || !panel->pan_dir_window)
     return;
@@ -481,7 +362,7 @@ void RenderInactivePanel(YtreePanel *panel) {
   /* Draw Tree */
   /* Use the window pointers from the panel */
   if (panel->pan_dir_window) {
-    DisplayTree(panel->vol, panel->pan_dir_window, begin, begin + cursor,
+    DisplayTree(ctx, panel->vol, panel->pan_dir_window, begin, begin + cursor,
                 FALSE);
     wnoutrefresh(panel->pan_dir_window);
   }
@@ -499,7 +380,7 @@ void RenderInactivePanel(YtreePanel *panel) {
          * (pan_file_window) is already positioned. We use -1 for hilight_no to
          * avoid highlighting files in the inactive panel.
          */
-        DisplayFiles(panel, de, panel->start_file,
+        DisplayFiles(ctx, panel, de, panel->start_file,
                      -1, /* No highlight in inactive panel */
                      0,  /* start_x inside the window */
                      panel->pan_file_window);
@@ -515,127 +396,95 @@ void RenderInactivePanel(YtreePanel *panel) {
  * Handles the complexities of Split/Big/Preview modes in one place.
  * Use this to ensure all borders, stats, and content are consistent.
  */
-void RefreshGlobalView(DirEntry *dir_entry) {
-  Statistic *s = &CurrentVolume->vol_stats;
+void RefreshGlobalView(ViewContext *ctx, DirEntry *dir_entry) {
+  Statistic *s = &ctx->active->vol->vol_stats;
 
-  if (ActivePanel == NULL)
-    ERROR_MSG("FATAL: RefreshGlobalView called with NULL ActivePanel");
-  if (ActivePanel->pan_dir_window == NULL)
-    ERROR_MSG("FATAL: ActivePanel window is NULL in Mode: %d",
-              GlobalView->preview_mode);
+  if (ctx->active == NULL)
+    MESSAGE(ctx, "FATAL: RefreshGlobalView called with NULL ctx->active");
 
   /* 1. Re-evaluate Layout (Geometry) */
-  ReCreateWindows();
+  ReCreateWindows(ctx);
 
-  /* Update Global View Context to match Active Panel immediately after
-   * recreation */
-  if (LeftPanel)
-    SetPanelFileMode(LeftPanel, LeftPanel->file_mode);
-  if (RightPanel)
-    SetPanelFileMode(RightPanel, RightPanel->file_mode);
+  /* 2. BACKGROUND REFRESH (z=-1) */
+  touchwin(stdscr);
+  wnoutrefresh(stdscr);
 
-  if (ActivePanel) {
-    if (GlobalView->preview_mode && LeftPanel) {
-      /* In Preview Mode, the directory context (navigation) should always
-       * anchor to the LeftPanel. This prevents stale pointers if ActivePanel
-       * logic drifts or if focus is ambiguous during mode switches. */
-      GlobalView->ctx_dir_window = LeftPanel->pan_dir_window;
-    } else {
-      GlobalView->ctx_dir_window = ActivePanel->pan_dir_window;
-    }
+  /* 3. Draw Borders and Dynamic Static Frames into ctx_border_window */
+  DisplayMenu(ctx);
+  touchwin(ctx->ctx_border_window);
+  wnoutrefresh(ctx->ctx_border_window);
 
-    GlobalView->ctx_small_file_window = ActivePanel->pan_small_file_window;
-    GlobalView->ctx_big_file_window = ActivePanel->pan_big_file_window;
-    GlobalView->ctx_file_window = ActivePanel->pan_file_window;
+  /* 4. Render Stats (updates ctx_border_window) */
+  if (!ctx->preview_mode) {
+    DisplayDiskStatistic(ctx, s);
+    DisplayDirStatistic(ctx, dir_entry,
+                        (dir_entry->global_flag) ? "SHOW ALL" : NULL, s);
+    DisplayAvailBytes(ctx, s);
   }
 
-  /* 2. Draw Borders and Static Frames */
-  DisplayMenu();
+  /* 5. Refresh Background/Border Window SECOND (z=0) */
 
-  /* 3. Draw Stats Panel (Restores Right Borders) */
-  if (!GlobalView->preview_mode) {
-    DisplayDiskStatistic(s);
-    /* If global mode, stats might be special */
-    DisplayDirStatistic(dir_entry, (dir_entry->global_flag) ? "SHOW ALL" : NULL,
-                        s);
-    DisplayAvailBytes(s);
-  }
-
-  /* 4. Update Header Path (Critical Fix for Stale Paths) */
+  /* 6. Update Header Path (already drawn to border window) */
   {
     char path[PATH_LENGTH + 1];
-    GetPath(dir_entry, path);
-    DisplayHeaderPath(path);
+    /* In tree mode (small window), show parent directory path.
+     * In file mode (big window), show current directory path. */
+    if (dir_entry->big_window || dir_entry->global_flag ||
+        dir_entry->tagged_flag) {
+      /* File window mode: show the directory we're viewing files in */
+      GetPath(dir_entry, path);
+    } else if (dir_entry->up_tree) {
+      /* Tree mode: show the parent directory path (where we ARE, not what's
+       * selected) */
+      GetPath(dir_entry->up_tree, path);
+    } else {
+      /* Root directory has no parent */
+      GetPath(dir_entry, path);
+    }
+    DisplayHeaderPath(ctx, path);
   }
 
-  /* 5. Draw Content based on Mode */
-  if (GlobalView->preview_mode) {
-    /* PREVIEW MODE */
-    SwitchToBigFileWindow();
-    DisplayFileWindow(ActivePanel, dir_entry);
-    /* Note: UpdatePreview must be called by caller or we need a callback */
+  /* 7. Draw Content Panels THIRD (z=1) */
+  if (ctx->preview_mode) {
+    SwitchToBigFileWindow(ctx);
+    DisplayFileWindow(ctx, ctx->active, dir_entry);
+    if (ctx->ctx_preview_window)
+      wnoutrefresh(ctx->ctx_preview_window);
   } else if (dir_entry->big_window || dir_entry->global_flag ||
              dir_entry->tagged_flag) {
-    /* BIG WINDOW MODE */
-    SwitchToBigFileWindow();
-    DisplayFileWindow(ActivePanel, dir_entry);
+    SwitchToBigFileWindow(ctx);
+    DisplayFileWindow(ctx, ctx->active, dir_entry);
   } else {
-    /* STANDARD SPLIT MODE */
-    SwitchToSmallFileWindow();
-
-    /* Bug Fix: Explicitly ensure BOTH panels are reset for the small window
-     * layout if we are not in a global/big mode. This prevents the "stuck" big
-     * window on the inactive panel after a switch. */
-    if (IsSplitScreen) {
-      LeftPanel->pan_file_window = LeftPanel->pan_small_file_window;
-      RightPanel->pan_file_window = RightPanel->pan_small_file_window;
-    }
-
-    /* Draw Directory Tree */
-    if (ActivePanel && ActivePanel->pan_dir_window) {
-      /* Focus Unification: Only highlight tree if focused_window is FOCUS_TREE
-       */
-      BOOL tree_highlight = (GlobalView->focused_window == FOCUS_TREE);
-      DisplayTree(ActivePanel->vol, ActivePanel->pan_dir_window,
-                  ActivePanel->disp_begin_pos,
-                  ActivePanel->disp_begin_pos + ActivePanel->cursor_pos,
+    SwitchToSmallFileWindow(ctx);
+    if (ctx->active && ctx->active->pan_dir_window) {
+      BOOL tree_highlight = (ctx->focused_window == FOCUS_TREE);
+      DisplayTree(ctx, ctx->active->vol, ctx->active->pan_dir_window,
+                  ctx->active->disp_begin_pos,
+                  ctx->active->disp_begin_pos + ctx->active->cursor_pos,
                   tree_highlight);
+      wnoutrefresh(ctx->active->pan_dir_window);
     }
-
-    /* Draw File List */
-    /* Note: DisplayFileWindow handles focus checking internally via ctrl_file.c
-     * logic */
-    DisplayFileWindow(ActivePanel, dir_entry);
+    DisplayFileWindow(ctx, ctx->active, dir_entry);
   }
 
-  /* 6. Render Inactive Panel (Critical Fix for Split Screen Blanking) */
-  if (IsSplitScreen && ActivePanel) {
-    YtreePanel *inactive = (ActivePanel == LeftPanel) ? RightPanel : LeftPanel;
-    RenderInactivePanel(inactive);
+  if (ctx->is_split_screen && ctx->active) {
+    YtreePanel *inactive = (ctx->active == ctx->left) ? ctx->right : ctx->left;
+    RenderInactivePanel(ctx, inactive);
   }
 
-  /* 7. Update Footer Help */
-  if (GlobalView->preview_mode) {
-    DisplayPreviewHelp();
+  /* 8. Update Footer Help and Refresh Menu Window LAST (z=2) */
+  if (ctx->preview_mode) {
+    DisplayPreviewHelp(ctx);
   } else {
-    /* In file mode context */
-    if (file_window == stdscr || GlobalView->ctx_file_window == file_window) {
-      /* Basic clear, specific help drawn by input loop */
-      ClearHelp();
+    if (ctx->focused_window == FOCUS_TREE) {
+      DisplayDirHelp(ctx);
+    } else {
+      DisplayFileHelp(ctx);
     }
   }
+  if (ctx->ctx_menu_window)
+    wnoutrefresh(ctx->ctx_menu_window);
 
-  /* 8. Physical Cursor Correction: Ensure cursor stays on active element */
-  if (ActivePanel) {
-    if (GlobalView->focused_window == FOCUS_TREE &&
-        ActivePanel->pan_dir_window) {
-      wnoutrefresh(ActivePanel->pan_dir_window);
-    } else if (GlobalView->focused_window == FOCUS_FILE &&
-               ActivePanel->pan_file_window) {
-      wnoutrefresh(ActivePanel->pan_file_window);
-    }
-  }
-
-  /* 9. Commit Changes */
+  UI_Dialog_RefreshAll(ctx);
   doupdate();
 }

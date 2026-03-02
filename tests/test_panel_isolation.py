@@ -9,42 +9,181 @@ def test_panel_switch_updates_small_window(dual_panel_sandbox, ytree_binary):
     """
     tui = YtreeTUI(executable=ytree_binary, cwd=str(dual_panel_sandbox))
     time.sleep(1.0) # Wait for initial scan
-    
+
     # 1. Start in Left Panel (default). Small window should show left files.
     # We are in '/' of sandbox. There are 'left_dir' and 'right_dir'.
-    
+
     # Navigate to left_dir
-    tui.send_keystroke(Keys.DOWN + Keys.ENTER) 
+    tui.send_keystroke(Keys.DOWN + Keys.ENTER)
     time.sleep(0.5)
-    
+
     screen = "\n".join(tui.get_screen_dump())
     assert "very_long_filename" in screen # Found in left_dir
-    
+
     # 2. Split Screen
-    tui.send_keystroke(Keys.F8) 
+    tui.send_keystroke(Keys.F8)
     time.sleep(0.5)
-    
+
     # 3. Switch to Right Panel
     tui.send_keystroke(Keys.TAB) # TAB is usually switch panel
     time.sleep(0.5)
-    
+
     # Navigate to right_dir in right panel
     tui.send_keystroke(Keys.DOWN + Keys.ENTER)
     time.sleep(0.5)
-    
+
     # Verify right panel content (files '0'..'9') is visible
     screen = "\n".join(tui.get_screen_dump())
     assert " 0 " in screen or " 1 " in screen # Right dir files
-    
+
     # Verify left panel content is NOT in the focus of the small window anymore (if shared)
     # Actually if they are side-by-side, both might be visible.
     # But the ACTIVE file window should show the Right files.
-    
+
     # 4. Switch back to Left Panel
     tui.send_keystroke(Keys.TAB)
     time.sleep(0.5)
-    
+
     screen = "\n".join(tui.get_screen_dump())
     assert "very_long_filename" in screen
-    
+
     tui.quit()
+
+def test_f8_active_header_sync(dual_panel_sandbox, ytree_binary):
+    """
+    BUG 4: Verifies the top 'Path:' header updates to match the ACTIVE panel's volume path.
+    """
+    tui = YtreeTUI(executable=ytree_binary, cwd=str(dual_panel_sandbox))
+    time.sleep(1.0)
+
+    # Split screen
+    tui.send_keystroke(Keys.F8)
+    time.sleep(0.5)
+
+    # Tab to Right Panel
+    tui.send_keystroke(Keys.TAB)
+    time.sleep(0.5)
+
+    # Move down to 'right_dir' and ENTER
+    screen = "\n".join(tui.get_screen_dump())
+    if "child" in screen: print("CHILD ALREADY VISIBLE")
+    tui.send_keystroke(Keys.DOWN + Keys.DOWN)
+    time.sleep(0.5)
+    tui.send_keystroke(Keys.ENTER)
+    time.sleep(0.5)
+
+    screen = "\n".join(tui.get_screen_dump())
+
+    # The header should show the active panel's path (right_dir)
+    # Extract the first line (header)
+    header_line = screen.split('\n')[0]
+
+    if "right_dir" not in header_line:
+        pytest.fail(f"HEADER SYNC BUG: Expected 'right_dir' in header, but got:\n{header_line}")
+
+    tui.quit()
+
+def test_navigation_does_not_expand(tmp_path, ytree_binary):
+    """
+    BUG 2: Verifies that pressing DOWN arrow merely moves the cursor,
+    and does NOT automatically scan/expand subdirectories.
+    """
+    # Create nested structure: test_root/parent/child/file.txt
+    root = tmp_path / "test_root"
+    child_dir = root / "parent" / "child"
+    child_dir.mkdir(parents=True)
+    (child_dir / "file.txt").touch()
+
+    tui = YtreeTUI(executable=ytree_binary, cwd=str(root))
+    time.sleep(1.0)
+
+    # Press DOWN to highlight 'parent'. It should NOT expand to show 'child'.
+    screen = "\n".join(tui.get_screen_dump())
+    if "child" in screen: print("CHILD ALREADY VISIBLE")
+    tui.send_keystroke(Keys.DOWN)
+    time.sleep(0.5)
+
+    screen = "\n".join(tui.get_screen_dump())
+
+    if "child" in screen:
+        pytest.fail(f"AUTO-EXPAND BUG: Pressing DOWN automatically expanded the directory. 'child' is visible:\n{screen}")
+
+    tui.quit()
+
+def test_header_path_clearing(dual_panel_sandbox, ytree_binary):
+    """BUG 6: Header doesn't clear old long paths when moving to short paths."""
+    tui = YtreeTUI(executable=ytree_binary, cwd=str(dual_panel_sandbox))
+    time.sleep(1.0)
+
+    # 1. Navigate deep to a long path
+    tui.send_keystroke(Keys.DOWN)
+    tui.send_keystroke(Keys.ENTER)
+    time.sleep(0.5)
+
+    # 2. Navigate back up to a short path (ESC returns from file window to tree view)
+    tui.send_keystroke(Keys.ESC)
+    time.sleep(0.5)
+
+    screen = "\n".join(tui.get_screen_dump())
+    # The header should NOT contain the old directory name
+    assert "left_dir" not in screen.splitlines()[0], "Header path was not cleared properly!"
+
+def test_dialog_screen_wiping(dual_panel_sandbox, ytree_binary):
+    """BUG 4: Returning from a dialog leaves the screen missing separator lines."""
+    tui = YtreeTUI(executable=ytree_binary, cwd=str(dual_panel_sandbox))
+    time.sleep(1.0)
+
+    # Trigger a dialog (Makedir) and cancel out
+    tui.send_keystroke("M")
+    time.sleep(0.5)
+    tui.send_keystroke(Keys.ESC)
+    time.sleep(0.5)
+
+    screen = "\n".join(tui.get_screen_dump())
+    # VT100 mode renders separator lines as 'q' characters (ACS_HLINE).
+    # If the screen was wiped, the horizontal line above the menu will be missing.
+    assert "qqq" in screen, "Separator lines were wiped from the background!"
+
+def test_negative_filter_logic(dual_panel_sandbox, ytree_binary):
+    """BUG 5: Negative filter (-*.o) hides everything instead of just .o files."""
+    # Create a mixed directory
+    (dual_panel_sandbox / "code.c").touch()
+    (dual_panel_sandbox / "code.o").touch()
+
+    tui = YtreeTUI(executable=ytree_binary, cwd=str(dual_panel_sandbox))
+    time.sleep(1.0)
+
+    tui.send_keystroke("f")
+    tui.send_keystroke("\x15")  # Ctrl+U to clear the pre-filled "*"
+    tui.send_keystroke("-*.o\r")
+    time.sleep(0.5)
+
+    screen = "\n".join(tui.get_screen_dump())
+    assert "code.c" in screen, "Negative filter hid files that should be visible!"
+    assert "code.o" not in screen, "Negative filter failed to hide the target file!"
+
+def test_split_screen_memory_isolation(dual_panel_sandbox, ytree_binary):
+    """BUG 1: Inactive panel displays garbage/forgets state when active panel scrolls."""
+    (dual_panel_sandbox / "left_dir" / "target_file.txt").touch()
+
+    tui = YtreeTUI(executable=ytree_binary, cwd=str(dual_panel_sandbox))
+    time.sleep(1.0)
+
+    # Left Panel: Enter left_dir to see target_file.txt
+    tui.send_keystroke(Keys.DOWN)
+    tui.send_keystroke(Keys.ENTER)
+    time.sleep(0.5)
+
+    # Split & Tab to Right Panel
+    tui.send_keystroke(Keys.F8)
+    tui.send_keystroke(Keys.TAB)
+    time.sleep(0.5)
+
+    # Right Panel: Scroll and collapse
+    tui.send_keystroke(Keys.DOWN)
+    tui.send_keystroke(Keys.LEFT)
+    time.sleep(0.5)
+
+    screen = "\n".join(tui.get_screen_dump())
+    # If memory is corrupted or state is lost, target_file.txt will turn into garbage (e.g., *?^X)
+    assert "target_file.txt" in screen, "Inactive panel lost its memory state or was overwritten by garbage!"

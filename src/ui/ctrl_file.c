@@ -1,3 +1,4 @@
+#define NO_YTREE_MACROS
 /***************************************************************************
  *
  * src/ui/ctrl_file.c
@@ -17,7 +18,6 @@
 #define MAX(a, b) (((a) > (b)) ? (a) : (b))
 
 #if !defined(__NeXT__) && !defined(ultrix)
-extern void qsort(void *, size_t, size_t, int (*)(const void *, const void *));
 #endif /* __NeXT__ ultrix */
 
 /* Local Statics for metrics calculation - Pushed to Renderer */
@@ -37,39 +37,44 @@ static long preview_line_offset = 0;
 static int saved_fixed_width = 0;
 
 /* --- Forward Declarations --- */
-static void ReadFileList(YtreePanel *panel, BOOL tagged_only,
+static void ReadFileList(ViewContext *ctx, YtreePanel *panel, BOOL tagged_only,
                          DirEntry *dir_entry);
-static void ReadGlobalFileList(YtreePanel *panel, BOOL tagged_only,
-                               DirEntry *dir_entry);
-static void WalkTaggedFiles(int start_file, int cursor_pos,
-                            int (*fkt)(FileEntry *, WalkingPackage *),
+static void ReadGlobalFileList(ViewContext *ctx, YtreePanel *panel,
+                               BOOL tagged_only, DirEntry *dir_entry);
+static void WalkTaggedFiles(ViewContext *ctx, int start_file, int cursor_pos,
+                            int (*fkt)(ViewContext *, FileEntry *,
+                                       WalkingPackage *),
                             WalkingPackage *walking_package);
-static BOOL IsMatchingTaggedFiles(void);
-static void RemoveFileEntry(int entry_no);
-static void ChangeFileEntry(void);
-static int UI_DeleteTaggedFiles(int max_dispfiles, Statistic *s);
-static void SilentWalkTaggedFiles(int (*fkt)(FileEntry *, WalkingPackage *,
-                                             Statistic *),
+static BOOL IsMatchingTaggedFiles(ViewContext *ctx);
+static void RemoveFileEntry(ViewContext *ctx, int entry_no);
+static void ChangeFileEntry(ViewContext *ctx);
+static int UI_DeleteTaggedFiles(ViewContext *ctx, int max_dispfiles,
+                                Statistic *s);
+static void SilentWalkTaggedFiles(ViewContext *ctx,
+                                  int (*fkt)(ViewContext *, FileEntry *,
+                                             WalkingPackage *, Statistic *),
                                   WalkingPackage *walking_package);
-static void SilentTagWalkTaggedFiles(int (*fkt)(FileEntry *, WalkingPackage *,
-                                                Statistic *),
+static void SilentTagWalkTaggedFiles(ViewContext *ctx,
+                                     int (*fkt)(ViewContext *, FileEntry *,
+                                                WalkingPackage *, Statistic *),
                                      WalkingPackage *walking_package);
-static void RereadWindowSize(DirEntry *dir_entry);
-static void ListJump(DirEntry *dir_entry, char *str);
-static void HandleInvertTags(DirEntry *dir_entry, Statistic *s);
-static void UpdatePreview(DirEntry *dir_entry);
-static DirEntry *RefreshFileView(DirEntry *dir_entry);
+static void RereadWindowSize(ViewContext *ctx, DirEntry *dir_entry);
+static void ListJump(ViewContext *ctx, DirEntry *dir_entry, char *str);
+static void HandleInvertTags(ViewContext *ctx, DirEntry *dir_entry,
+                             Statistic *s);
+static void UpdatePreview(ViewContext *ctx, DirEntry *dir_entry);
+static DirEntry *RefreshFileView(ViewContext *ctx, DirEntry *dir_entry);
 
-int ChangeFileOwner(FileEntry *fe_ptr) {
+int ChangeFileOwner(ViewContext *ctx, FileEntry *fe_ptr) {
   int owner_id;
   char filepath[PATH_LENGTH + 1];
 
-  if ((owner_id = GetNewOwner(fe_ptr->stat_struct.st_uid)) == -1)
+  if ((owner_id = GetNewOwner(ctx, fe_ptr->stat_struct.st_uid)) == -1)
     return -1;
 
   GetFileNamePath(fe_ptr, filepath);
   if (chown(filepath, owner_id, (gid_t)-1)) {
-    UI_Message("chown failed!*\"%s\"*%s", filepath, strerror(errno));
+    UI_Message(ctx, "chown failed!*\"%s\"*%s", filepath, strerror(errno));
     return -1;
   }
 
@@ -77,16 +82,16 @@ int ChangeFileOwner(FileEntry *fe_ptr) {
   return 0;
 }
 
-int ChangeFileGroup(FileEntry *fe_ptr) {
+int ChangeFileGroup(ViewContext *ctx, FileEntry *fe_ptr) {
   int group_id;
   char filepath[PATH_LENGTH + 1];
 
-  if ((group_id = GetNewGroup(fe_ptr->stat_struct.st_gid)) == -1)
+  if ((group_id = GetNewGroup(ctx, fe_ptr->stat_struct.st_gid)) == -1)
     return -1;
 
   GetFileNamePath(fe_ptr, filepath);
   if (chown(filepath, (uid_t)-1, group_id)) {
-    UI_Message("chgrp failed!*\"%s\"*%s", filepath, strerror(errno));
+    UI_Message(ctx, "chgrp failed!*\"%s\"*%s", filepath, strerror(errno));
     return -1;
   }
 
@@ -94,7 +99,7 @@ int ChangeFileGroup(FileEntry *fe_ptr) {
   return 0;
 }
 
-static void ReadFileList(YtreePanel *panel, BOOL tagged_only,
+static void ReadFileList(ViewContext *ctx, YtreePanel *panel, BOOL tagged_only,
                          DirEntry *dir_entry) {
   FileEntry *fe_ptr;
   unsigned int name_len;
@@ -108,7 +113,7 @@ static void ReadFileList(YtreePanel *panel, BOOL tagged_only,
     if (fe_ptr->matching && (!tagged_only || fe_ptr->tagged)) {
       /* Ensure hidden dot files are skipped unless option is disabled.
          This applies to both FS mode and Archive mode. */
-      if (hide_dot_files && fe_ptr->name[0] == '.')
+      if (ctx->hide_dot_files && fe_ptr->name[0] == '.')
         continue;
 
       /* Bounds check */
@@ -120,7 +125,7 @@ static void ReadFileList(YtreePanel *panel, BOOL tagged_only,
         FileEntryList *new_list = (FileEntryList *)realloc(
             panel->file_entry_list, new_capacity * sizeof(FileEntryList));
         if (!new_list) {
-          ERROR_MSG("Realloc failed in ReadFileList*ABORT");
+          UI_Error(ctx, "", 0, "Realloc failed in ReadFileList*ABORT");
           exit(1);
         }
         memset(new_list + panel->file_entry_list_capacity, 0,
@@ -144,16 +149,16 @@ static void ReadFileList(YtreePanel *panel, BOOL tagged_only,
   }
 }
 
-static void ReadGlobalFileListInternal(YtreePanel *panel, BOOL tagged_only,
-                                       DirEntry *dir_entry) {
+static void ReadGlobalFileListInternal(ViewContext *ctx, YtreePanel *panel,
+                                       BOOL tagged_only, DirEntry *dir_entry) {
   DirEntry *de_ptr;
 
   for (de_ptr = dir_entry; de_ptr; de_ptr = de_ptr->next) {
-    if (hide_dot_files && de_ptr->name[0] == '.')
+    if (ctx->hide_dot_files && de_ptr->name[0] == '.')
       continue;
     if (de_ptr->sub_tree)
-      ReadGlobalFileListInternal(panel, tagged_only, de_ptr->sub_tree);
-    ReadFileList(panel, tagged_only, de_ptr);
+      ReadGlobalFileListInternal(ctx, panel, tagged_only, de_ptr->sub_tree);
+    ReadFileList(ctx, panel, tagged_only, de_ptr);
     global_max_visual_filename_len =
         MAX((int)global_max_visual_filename_len, (int)max_visual_filename_len);
     global_max_visual_linkname_len =
@@ -161,30 +166,30 @@ static void ReadGlobalFileListInternal(YtreePanel *panel, BOOL tagged_only,
   }
 }
 
-static void ReadGlobalFileList(YtreePanel *panel, BOOL tagged_only,
-                               DirEntry *dir_entry) {
+static void ReadGlobalFileList(ViewContext *ctx, YtreePanel *panel,
+                               BOOL tagged_only, DirEntry *dir_entry) {
   global_max_visual_filename_len = 0;
   global_max_visual_linkname_len = 0;
-  ReadGlobalFileListInternal(panel, tagged_only, dir_entry);
+  ReadGlobalFileListInternal(ctx, panel, tagged_only, dir_entry);
   max_visual_filename_len = global_max_visual_filename_len;
   max_visual_linkname_len = global_max_visual_linkname_len;
 }
 
 /* Removed SetKindOfSort definition - implemented in sort.c */
 
-static void RemoveFileEntry(int entry_no) {
+static void RemoveFileEntry(ViewContext *ctx, int entry_no) {
   int i, n;
   FileEntry *fe_ptr;
   int visual_name_len, name_len;
 
   max_visual_filename_len = 0;
   max_visual_linkname_len = 0;
-  n = ActivePanel->file_count - 1;
+  n = ctx->active->file_count - 1;
 
   for (i = 0; i < n; i++) {
     if (i >= entry_no)
-      ActivePanel->file_entry_list[i] = ActivePanel->file_entry_list[i + 1];
-    fe_ptr = ActivePanel->file_entry_list[i].file;
+      ctx->active->file_entry_list[i] = ctx->active->file_entry_list[i + 1];
+    fe_ptr = ctx->active->file_entry_list[i].file;
     visual_name_len = StrVisualLength(fe_ptr->name);
     name_len = strlen(fe_ptr->name);
     /* FIX: Cast StrVisualLength to int for MAX macro */
@@ -198,24 +203,24 @@ static void RemoveFileEntry(int entry_no) {
     }
   }
 
-  SetFileRenderingMetrics(ActivePanel, max_visual_filename_len,
+  SetFileRenderingMetrics(ctx->active, max_visual_filename_len,
                           max_visual_linkname_len, max_visual_userview_len);
-  SetPanelFileMode(ActivePanel, GetPanelFileMode(ActivePanel));
+  SetPanelFileMode(ctx, ctx->active, GetPanelFileMode(ctx->active));
 
-  ActivePanel->file_count--; /* no realloc */
+  ctx->active->file_count--; /* no realloc */
 }
 
-static void ChangeFileEntry(void) {
+static void ChangeFileEntry(ViewContext *ctx) {
   int i, n;
   FileEntry *fe_ptr;
   int visual_name_len, name_len;
 
   max_visual_filename_len = 0;
   max_visual_linkname_len = 0;
-  n = ActivePanel->file_count - 1;
+  n = ctx->active->file_count - 1;
 
   for (i = 0; i < n; i++) {
-    fe_ptr = ActivePanel->file_entry_list[i].file;
+    fe_ptr = ctx->active->file_entry_list[i].file;
     if (fe_ptr) {
       visual_name_len = StrVisualLength(fe_ptr->name);
       name_len = strlen(fe_ptr->name);
@@ -231,77 +236,96 @@ static void ChangeFileEntry(void) {
     }
   }
 
-  SetFileRenderingMetrics(ActivePanel, max_visual_filename_len,
+  SetFileRenderingMetrics(ctx->active, max_visual_filename_len,
                           max_visual_linkname_len, max_visual_userview_len);
-  SetPanelFileMode(ActivePanel, GetPanelFileMode(ActivePanel));
+  SetPanelFileMode(ctx, ctx->active, GetPanelFileMode(ctx->active));
 }
 
-void DisplayFileWindow(YtreePanel *panel, DirEntry *dir_entry) {
+void FreeFileEntryList(YtreePanel *panel) {
+  if (panel && panel->file_entry_list) {
+    free(panel->file_entry_list);
+    panel->file_entry_list = NULL;
+    panel->file_entry_list_capacity = 0;
+    panel->file_count = 0;
+  }
+}
+
+void InvalidateVolumePanels(ViewContext *ctx, struct Volume *vol) {
+  if (ctx->left && ctx->left->vol == vol)
+    FreeFileEntryList(ctx->left);
+  if (ctx->right && ctx->right->vol == vol)
+    FreeFileEntryList(ctx->right);
+}
+
+void DisplayFileWindow(ViewContext *ctx, YtreePanel *panel,
+                       DirEntry *dir_entry) {
   if (!panel || !panel->pan_file_window)
     return;
 
-  BuildFileEntryList(panel);
+  BuildFileEntryList(ctx, panel);
 
   /* ADDED INSTRUCTION: Focus-Aware Highlighting */
   int highlight_idx = -1;
-  if (GlobalView->focused_window == FOCUS_FILE) {
+  if (ctx->focused_window == FOCUS_FILE) {
     highlight_idx = dir_entry->start_file + dir_entry->cursor_pos;
   }
 
-  DisplayFiles(panel, dir_entry, dir_entry->start_file, highlight_idx, 0,
+  DisplayFiles(ctx, panel, dir_entry, dir_entry->start_file, highlight_idx, 0,
                panel->pan_file_window);
 }
 
-static void fmovedown(int *start_file, int *cursor_pos, int *start_x,
-                      DirEntry *dir_entry) {
-  Nav_MoveDown(cursor_pos, start_file, (int)ActivePanel->file_count,
+static void fmovedown(ViewContext *ctx, int *start_file, int *cursor_pos,
+                      int *start_x, DirEntry *dir_entry) {
+  Nav_MoveDown(cursor_pos, start_file, (int)ctx->active->file_count,
                max_disp_files, 1);
 
-  DisplayFiles(ActivePanel, dir_entry, *start_file, *start_file + *cursor_pos,
-               *start_x, file_window); /* Update dynamic header path */
+  DisplayFiles(ctx, ctx->active, dir_entry, *start_file,
+               *start_file + *cursor_pos, *start_x,
+               ctx->ctx_file_window); /* Update dynamic header path */
   {
     char path[PATH_LENGTH];
     GetPath(dir_entry, path);
-    DisplayHeaderPath(path);
+    DisplayHeaderPath(ctx, path);
   }
-  ActivePanel->start_file = *start_file;
+  ctx->active->start_file = *start_file;
 }
 
-static void fmoveup(int *start_file, int *cursor_pos, int *start_x,
-                    DirEntry *dir_entry) {
+static void fmoveup(ViewContext *ctx, int *start_file, int *cursor_pos,
+                    int *start_x, DirEntry *dir_entry) {
   Nav_MoveUp(cursor_pos, start_file);
 
-  DisplayFiles(ActivePanel, dir_entry, *start_file, *start_file + *cursor_pos,
-               *start_x, file_window); /* Update dynamic header path */
+  DisplayFiles(ctx, ctx->active, dir_entry, *start_file,
+               *start_file + *cursor_pos, *start_x,
+               ctx->ctx_file_window); /* Update dynamic header path */
   {
     char path[PATH_LENGTH];
     GetPath(dir_entry, path);
-    DisplayHeaderPath(path);
+    DisplayHeaderPath(ctx, path);
   }
-  ActivePanel->start_file = *start_file;
+  ctx->active->start_file = *start_file;
 }
 
-static void fmoveright(int *start_file, int *cursor_pos, int *start_x,
-                       DirEntry *dir_entry) {
+static void fmoveright(ViewContext *ctx, int *start_file, int *cursor_pos,
+                       int *start_x, DirEntry *dir_entry) {
   if (x_step == 1) {
     /* Special case: scroll entire file window */
     /*------------------------*/
     (*start_x)++;
-    DisplayFiles(ActivePanel, dir_entry, *start_file, *start_file + *cursor_pos,
-                 *start_x, file_window);
+    DisplayFiles(ctx, ctx->active, dir_entry, *start_file,
+                 *start_file + *cursor_pos, *start_x, ctx->ctx_file_window);
     if (hide_right <= 0)
       (*start_x)--;
   } else if ((unsigned int)(*start_file + *cursor_pos) >=
-             ActivePanel->file_count - 1) {
+             ctx->active->file_count - 1) {
     /* last position reached */
     /*-------------------------*/
   } else {
     if ((unsigned int)(*start_file + *cursor_pos + x_step) >=
-        ActivePanel->file_count) {
+        ctx->active->file_count) {
       /* full step not possible;
        * position on last entry
        */
-      my_x_step = (int)ActivePanel->file_count - *start_file - *cursor_pos - 1;
+      my_x_step = (int)ctx->active->file_count - *start_file - *cursor_pos - 1;
     } else {
       my_x_step = x_step;
     }
@@ -315,26 +339,26 @@ static void fmoveright(int *start_file, int *cursor_pos, int *start_x,
       *start_file += x_step;
       *cursor_pos -= x_step - my_x_step;
     }
-    DisplayFiles(ActivePanel, dir_entry, *start_file, *start_file + *cursor_pos,
-                 *start_x, file_window);
+    DisplayFiles(ctx, ctx->active, dir_entry, *start_file,
+                 *start_file + *cursor_pos, *start_x, ctx->ctx_file_window);
   } /* Update dynamic header path */
   {
     char path[PATH_LENGTH];
     GetPath(dir_entry, path);
-    DisplayHeaderPath(path);
+    DisplayHeaderPath(ctx, path);
   }
   return;
 }
 
-static void fmoveleft(int *start_file, int *cursor_pos, int *start_x,
-                      DirEntry *dir_entry) {
+static void fmoveleft(ViewContext *ctx, int *start_file, int *cursor_pos,
+                      int *start_x, DirEntry *dir_entry) {
   if (x_step == 1) {
     /* Special case: scroll entire file window */
     /*----------------------------------------*/
     if (*start_x > 0)
       (*start_x)--;
-    DisplayFiles(ActivePanel, dir_entry, *start_file, *start_file + *cursor_pos,
-                 *start_x, file_window);
+    DisplayFiles(ctx, ctx->active, dir_entry, *start_file,
+                 *start_file + *cursor_pos, *start_x, ctx->ctx_file_window);
   } else if (*start_file + *cursor_pos <= 0) {
     /* first position reached */
     /*-------------------------*/
@@ -357,61 +381,63 @@ static void fmoveleft(int *start_file, int *cursor_pos, int *start_x,
       if ((*start_file -= x_step) < 0)
         *start_file = 0;
     }
-    DisplayFiles(ActivePanel, dir_entry, *start_file, *start_file + *cursor_pos,
-                 *start_x, file_window);
+    DisplayFiles(ctx, ctx->active, dir_entry, *start_file,
+                 *start_file + *cursor_pos, *start_x, ctx->ctx_file_window);
   } /* Update dynamic header path */
   {
     char path[PATH_LENGTH];
     GetPath(dir_entry, path);
-    DisplayHeaderPath(path);
+    DisplayHeaderPath(ctx, path);
   }
-  ActivePanel->start_file = *start_file;
+  ctx->active->start_file = *start_file;
   return;
 }
 
-static void fmovenpage(int *start_file, int *cursor_pos, int *start_x,
-                       DirEntry *dir_entry) {
-  Nav_PageDown(cursor_pos, start_file, (int)ActivePanel->file_count,
+static void fmovenpage(ViewContext *ctx, int *start_file, int *cursor_pos,
+                       int *start_x, DirEntry *dir_entry) {
+  Nav_PageDown(cursor_pos, start_file, (int)ctx->active->file_count,
                max_disp_files);
 
-  DisplayFiles(ActivePanel, dir_entry, *start_file, *start_file + *cursor_pos,
-               *start_x, file_window); /* Update dynamic header path */
+  DisplayFiles(ctx, ctx->active, dir_entry, *start_file,
+               *start_file + *cursor_pos, *start_x,
+               ctx->ctx_file_window); /* Update dynamic header path */
   {
     char path[PATH_LENGTH];
     GetPath(dir_entry, path);
-    DisplayHeaderPath(path);
+    DisplayHeaderPath(ctx, path);
   }
-  ActivePanel->start_file = *start_file;
+  ctx->active->start_file = *start_file;
 }
 
-static void fmoveppage(int *start_file, int *cursor_pos, int *start_x,
-                       DirEntry *dir_entry) {
+static void fmoveppage(ViewContext *ctx, int *start_file, int *cursor_pos,
+                       int *start_x, DirEntry *dir_entry) {
   Nav_PageUp(cursor_pos, start_file, max_disp_files);
 
-  DisplayFiles(ActivePanel, dir_entry, *start_file, *start_file + *cursor_pos,
-               *start_x, file_window); /* Update dynamic header path */
+  DisplayFiles(ctx, ctx->active, dir_entry, *start_file,
+               *start_file + *cursor_pos, *start_x,
+               ctx->ctx_file_window); /* Update dynamic header path */
   {
     char path[PATH_LENGTH];
     GetPath(dir_entry, path);
-    DisplayHeaderPath(path);
+    DisplayHeaderPath(ctx, path);
   }
-  ActivePanel->start_file = *start_file;
+  ctx->active->start_file = *start_file;
 }
 
 /* Local helper to refresh file window, maintaining file cursor */
-static DirEntry *RefreshFileView(DirEntry *dir_entry) {
+static DirEntry *RefreshFileView(ViewContext *ctx, DirEntry *dir_entry) {
   char *saved_name = NULL;
-  Statistic *s = &ActivePanel->vol->vol_stats;
+  Statistic *s = &ctx->active->vol->vol_stats;
   int found_idx = -1;
   int start_x = 0;
 
   /* 1. Save current filename */
-  if (ActivePanel->file_count > 0) {
+  if (ctx->active->file_count > 0) {
     /* Check bounds before access */
     if (dir_entry->start_file + dir_entry->cursor_pos <
-        (int)ActivePanel->file_count) {
+        (int)ctx->active->file_count) {
       FileEntry *curr =
-          ActivePanel
+          ctx->active
               ->file_entry_list[dir_entry->start_file + dir_entry->cursor_pos]
               .file;
       if (curr)
@@ -422,16 +448,16 @@ static DirEntry *RefreshFileView(DirEntry *dir_entry) {
   /* 2. Perform Safe Tree Refresh (Save/Rescan/Restore) */
   /* Update the local pointer with the valid address returned by RefreshTreeSafe
    */
-  dir_entry = RefreshTreeSafe(ActivePanel, dir_entry);
+  dir_entry = RefreshTreeSafe(ctx, ctx->active, dir_entry);
 
   /* 3. Rebuild File List from the refreshed tree */
-  BuildFileEntryList(ActivePanel);
+  BuildFileEntryList(ctx, ctx->active);
 
   /* 4. Restore Cursor Position */
   if (saved_name) {
     int k;
-    for (k = 0; k < (int)ActivePanel->file_count; k++) {
-      if (strcmp(ActivePanel->file_entry_list[k].file->name, saved_name) == 0) {
+    for (k = 0; k < (int)ctx->active->file_count; k++) {
+      if (strcmp(ctx->active->file_entry_list[k].file->name, saved_name) == 0) {
         found_idx = k;
         break;
       }
@@ -451,11 +477,11 @@ static DirEntry *RefreshFileView(DirEntry *dir_entry) {
       dir_entry->cursor_pos = 0;
       /* Bounds check */
       if (dir_entry->start_file + max_disp_files >
-          (int)ActivePanel->file_count) {
+          (int)ctx->active->file_count) {
         dir_entry->start_file =
-            MAXIMUM(0, (int)ActivePanel->file_count - max_disp_files);
+            MAXIMUM(0, (int)ctx->active->file_count - max_disp_files);
         dir_entry->cursor_pos =
-            (int)ActivePanel->file_count - 1 - dir_entry->start_file;
+            (int)ctx->active->file_count - 1 - dir_entry->start_file;
       }
     }
   } else {
@@ -466,29 +492,23 @@ static DirEntry *RefreshFileView(DirEntry *dir_entry) {
 
   /* 5. Update Display */
   if (dir_entry->global_flag)
-    DisplayDiskStatistic(s);
+    DisplayDiskStatistic(ctx, s);
   else
-    DisplayDirStatistic(dir_entry, NULL, s);
+    DisplayDirStatistic(ctx, dir_entry, NULL, s);
 
-  DisplayFiles(ActivePanel, dir_entry, dir_entry->start_file,
+  DisplayFiles(ctx, ctx->active, dir_entry, dir_entry->start_file,
                dir_entry->start_file + dir_entry->cursor_pos, start_x,
-               file_window);
+               ctx->ctx_file_window);
 
-  ActivePanel->start_file = dir_entry->start_file;
+  ctx->active->start_file = dir_entry->start_file;
 
   return dir_entry;
 }
 
 /* External declarations */
 
-int HandleFileWindow(DirEntry *dir_entry) {
-  {
-    FILE *fp = fopen("/tmp/ytree_debug.log", "a");
-    if (fp) {
-      fprintf(fp, "DEBUG: HandleFileWindow ENTERED for %s\n", dir_entry->name);
-      fclose(fp);
-    }
-  }
+int HandleFileWindow(ViewContext *ctx, DirEntry *dir_entry) {
+  DEBUG_LOG("HandleFileWindow ENTERED for %s", dir_entry->name);
   FileEntry *fe_ptr;
   FileEntry *new_fe_ptr;
   DirEntry *de_ptr = NULL;
@@ -517,15 +537,15 @@ int HandleFileWindow(DirEntry *dir_entry) {
   char expanded_to_file[PATH_LENGTH + 1];  /* Added for copy/move expansion */
   char new_login_path[PATH_LENGTH + 1];
   int get_dir_ret;
-  YtreeAction action = ACTION_NONE;         /* Initialize action */
-  DirEntry *last_stats_dir = NULL;          /* Track context changes */
-  struct Volume *start_vol = CurrentVolume; /* Safety Check Variable */
-  Statistic *s = &ActivePanel->vol->vol_stats;
+  YtreeAction action = ACTION_NONE;            /* Initialize action */
+  DirEntry *last_stats_dir = NULL;             /* Track context changes */
+  struct Volume *start_vol = ctx->active->vol; /* Safety Check Variable */
+  Statistic *s = &ctx->active->vol->vol_stats;
   int pclose_ret;
   char watcher_path[PATH_LENGTH + 1];
 
   /* ADDED INSTRUCTION: Focus Unification */
-  GlobalView->focused_window = FOCUS_FILE;
+  ctx->focused_window = FOCUS_FILE;
 
   unput_char = '\0';
   fe_ptr = NULL;
@@ -536,10 +556,10 @@ int HandleFileWindow(DirEntry *dir_entry) {
   need_dsp_help = TRUE;
   maybe_change_x_step = TRUE;
 
-  BuildFileEntryList(ActivePanel);
+  BuildFileEntryList(ctx, ctx->active);
 
   /* Sanitize cursor position immediately after BuildFileEntryList */
-  if (ActivePanel->file_count > 0) {
+  if (ctx->active->file_count > 0) {
     if (dir_entry->cursor_pos < 0)
       dir_entry->cursor_pos = 0;
     if (dir_entry->start_file < 0)
@@ -547,63 +567,66 @@ int HandleFileWindow(DirEntry *dir_entry) {
 
     /* Bounds Check: ensure we aren't past the end */
     if ((unsigned int)(dir_entry->start_file + dir_entry->cursor_pos) >=
-        ActivePanel->file_count) {
+        ctx->active->file_count) {
       dir_entry->start_file =
-          MAXIMUM(0, (int)ActivePanel->file_count - max_disp_files);
+          MAXIMUM(0, (int)ctx->active->file_count - max_disp_files);
       dir_entry->cursor_pos =
-          (int)ActivePanel->file_count - 1 - dir_entry->start_file;
+          (int)ctx->active->file_count - 1 - dir_entry->start_file;
     }
   } else {
     dir_entry->cursor_pos = 0;
     dir_entry->start_file = 0;
   }
-  ActivePanel->start_file = dir_entry->start_file;
+  ctx->active->start_file = dir_entry->start_file;
 
   /* Initial Display using Centralized Function if applicable */
-  if (GlobalView->preview_mode) {
-    RefreshGlobalView(dir_entry);
-    UpdatePreview(dir_entry);
+  if (ctx->preview_mode) {
+    RefreshGlobalView(ctx, dir_entry);
+    UpdatePreview(ctx, dir_entry);
   } else {
     /* Standard Logic for Big/Small Window */
     if (dir_entry->global_flag || dir_entry->big_window ||
         dir_entry->tagged_flag) {
-      SwitchToBigFileWindow();
-      DisplayDiskStatistic(s);
-      DisplayDirStatistic(dir_entry,
+      SwitchToBigFileWindow(ctx);
+      DisplayDiskStatistic(ctx, s);
+      DisplayDirStatistic(ctx, dir_entry,
                           (dir_entry->global_flag) ? "SHOW ALL" : NULL, s);
     } else {
-      DisplayDirStatistic(dir_entry, NULL, s);
+      DisplayDirStatistic(ctx, dir_entry, NULL, s);
     }
 
-    DisplayFiles(ActivePanel, dir_entry, dir_entry->start_file,
+    DisplayFiles(ctx, ctx->active, dir_entry, dir_entry->start_file,
                  dir_entry->start_file + dir_entry->cursor_pos, start_x,
-                 file_window);
+                 ctx->ctx_file_window);
   }
 
   if (s->login_mode == DISK_MODE || s->login_mode == USER_MODE) {
     GetPath(dir_entry, watcher_path);
-    Watcher_SetDir(watcher_path);
+    Watcher_SetDir(ctx, watcher_path);
   }
 
   do {
     /* Critical Safety: If volume was deleted (e.g. via K menu), abort
      * immediately */
-    if (CurrentVolume != start_vol)
+    if (ctx->active->vol != start_vol)
       return ESC;
 
     if (maybe_change_x_step) {
       maybe_change_x_step = FALSE;
 
-      x_step = (GetPanelMaxColumn(ActivePanel) > 1) ? getmaxy(file_window) : 1;
-      max_disp_files = getmaxy(file_window) * GetPanelMaxColumn(ActivePanel);
+      x_step = (GetPanelMaxColumn(ctx->active) > 1)
+                   ? getmaxy(ctx->ctx_file_window)
+                   : 1;
+      max_disp_files =
+          getmaxy(ctx->ctx_file_window) * GetPanelMaxColumn(ctx->active);
     }
 
     if (need_dsp_help) {
       need_dsp_help = FALSE;
-      if (GlobalView->preview_mode)
-        DisplayPreviewHelp();
+      if (ctx->preview_mode)
+        DisplayPreviewHelp(ctx);
       else
-        DisplayFileHelp();
+        DisplayFileHelp(ctx);
     }
 
     if (unput_char) {
@@ -611,9 +634,9 @@ int HandleFileWindow(DirEntry *dir_entry) {
       unput_char = '\0';
     } else {
       /* Guard fe_ptr access against empty file list */
-      if (ActivePanel->file_count > 0) {
+      if (ctx->active->file_count > 0) {
         fe_ptr =
-            ActivePanel
+            ctx->active
                 ->file_entry_list[dir_entry->start_file + dir_entry->cursor_pos]
                 .file;
 
@@ -622,7 +645,7 @@ int HandleFileWindow(DirEntry *dir_entry) {
           last_stats_dir = fe_ptr->dir_entry;
           /* Pass "SHOW ALL" if global flag is set, otherwise NULL for default
            */
-          DisplayDirStatistic(last_stats_dir,
+          DisplayDirStatistic(ctx, last_stats_dir,
                               (dir_entry->global_flag) ? "SHOW ALL" : NULL, s);
         }
       } else {
@@ -630,52 +653,53 @@ int HandleFileWindow(DirEntry *dir_entry) {
       }
 
       if (dir_entry->global_flag)
-        DisplayGlobalFileParameter(fe_ptr);
+        DisplayGlobalFileParameter(ctx, fe_ptr);
       else
-        DisplayFileParameter(fe_ptr);
+        DisplayFileParameter(ctx, fe_ptr);
 
-      if (!GlobalView->preview_mode)
-        RefreshWindow(dir_window); /* needed: ncurses-bug ? */
-      RefreshWindow(file_window);
+      if (!ctx->preview_mode)
+        RefreshWindow(ctx->ctx_dir_window); /* needed: ncurses-bug ? */
+      RefreshWindow(ctx->ctx_file_window);
 
-      if (IsSplitScreen) {
+      if (ctx->is_split_screen) {
         YtreePanel *inactive =
-            (ActivePanel == LeftPanel) ? RightPanel : LeftPanel;
-        RenderInactivePanel(inactive);
+            (ctx->active == ctx->left) ? ctx->right : ctx->left;
+        RenderInactivePanel(ctx, inactive);
       }
 
       doupdate();
-      ch = (resize_request) ? -1 : GetEventOrKey();
+      ch = (ctx->resize_request) ? -1 : GetEventOrKey(ctx);
       if (ch == LF)
         ch = CR;
     }
 
     /* Re-check safety after blocking Getch */
-    if (CurrentVolume != start_vol)
+    if (ctx->active->vol != start_vol)
       return ESC;
 
-    if (IsUserActionDefined()) { /* User commands take precedence */
-      ch = FileUserMode(&(ActivePanel->file_entry_list[dir_entry->start_file +
+    if (IsUserActionDefined(ctx)) { /* User commands take precedence */
+      ch = FileUserMode(ctx,
+                        &(ctx->active->file_entry_list[dir_entry->start_file +
                                                        dir_entry->cursor_pos]),
-                        ch, &ActivePanel->vol->vol_stats);
-      if (CurrentVolume != start_vol)
+                        ch, &ctx->active->vol->vol_stats);
+      if (ctx->active->vol != start_vol)
         return ESC;
     }
 
-    if (resize_request) {
+    if (ctx->resize_request) {
       /* Simplified Resize using Centralized Function */
-      RereadWindowSize(dir_entry);
-      RefreshGlobalView(dir_entry);
-      if (GlobalView->preview_mode)
-        UpdatePreview(dir_entry);
+      RereadWindowSize(ctx, dir_entry);
+      RefreshGlobalView(ctx, dir_entry);
+      if (ctx->preview_mode)
+        UpdatePreview(ctx, dir_entry);
       need_dsp_help = TRUE;
-      resize_request = FALSE;
+      ctx->resize_request = FALSE;
     }
 
-    action = GetKeyAction(ch);
+    action = GetKeyAction(ctx, ch);
 
     /* Special remapping for MODE_1: TAB/BTAB act as UP/DOWN */
-    if (GetPanelFileMode(ActivePanel) == MODE_1) {
+    if (GetPanelFileMode(ctx->active) == MODE_1) {
       if (action == ACTION_TREE_EXPAND)
         action = ACTION_MOVE_DOWN;
       else if (action == ACTION_TREE_COLLAPSE)
@@ -695,9 +719,9 @@ int HandleFileWindow(DirEntry *dir_entry) {
       if (start_x) {
         start_x = 0;
 
-        DisplayFiles(ActivePanel, dir_entry, dir_entry->start_file,
+        DisplayFiles(ctx, ctx->active, dir_entry, dir_entry->start_file,
                      dir_entry->start_file + dir_entry->cursor_pos, start_x,
-                     file_window);
+                     ctx->ctx_file_window);
       }
     }
 
@@ -707,84 +731,84 @@ int HandleFileWindow(DirEntry *dir_entry) {
       break;
 
     case ACTION_VIEW_PREVIEW:
-      if (!GlobalView->preview_mode) {
+      if (!ctx->preview_mode) {
         /* Turning ON */
         /* INSTRUCTION: Before any redirection, save the current state */
-        GlobalView->preview_return_panel = ActivePanel;
-        GlobalView->preview_return_focus = GlobalView->focused_window;
+        ctx->preview_return_panel = ctx->active;
+        ctx->preview_return_focus = ctx->focused_window;
       }
 
-      GlobalView->preview_mode = !GlobalView->preview_mode;
+      ctx->preview_mode = !ctx->preview_mode;
 
-      if (GlobalView->preview_mode) {
+      if (ctx->preview_mode) {
         /* Turning ON */
         /* 1. Save current width setting */
-        saved_fixed_width = GlobalView->fixed_col_width;
+        saved_fixed_width = ctx->fixed_col_width;
 
         /* 2. Update Window Layout immediately to get new dims */
-        ReCreateWindows();
+        ReCreateWindows(ctx);
 
         /* 3. Force Compact Mode based on new width (width - 2 for
          * borders/padding) */
-        /* Accessing layout.big_file_win_width from init.c logic */
-        GlobalView->fixed_col_width = layout.big_file_win_width - 2;
+        /* Accessing ctx->layout.big_file_win_width from init.c logic */
+        ctx->fixed_col_width = ctx->layout.big_file_win_width - 2;
 
         /* 4. Update scrolling metrics (max_column, etc) based on new width/mode
          */
-        RereadWindowSize(dir_entry);
+        RereadWindowSize(ctx, dir_entry);
       } else {
         /* Turning OFF */
         /* INSTRUCTION: Restore state */
-        ActivePanel = GlobalView->preview_return_panel;
-        CurrentVolume = ActivePanel->vol;
-        GlobalView->focused_window = GlobalView->preview_return_focus;
+        ctx->active = ctx->preview_return_panel;
+        ctx->active->vol = ctx->active->vol;
+        ctx->focused_window = ctx->preview_return_focus;
 
         /* CRITICAL: Update local context variables for the loop if we stay in
          * File Window */
-        s = &ActivePanel->vol->vol_stats;
-        start_vol = CurrentVolume;
+        s = &ctx->active->vol->vol_stats;
+        start_vol = ctx->active->vol;
 
         /* Refresh dir_entry for the restored panel */
-        if (ActivePanel->vol->total_dirs > 0) {
-          int idx = ActivePanel->disp_begin_pos + ActivePanel->cursor_pos;
-          if (idx >= ActivePanel->vol->total_dirs)
-            idx = ActivePanel->vol->total_dirs - 1;
+        if (ctx->active->vol->total_dirs > 0) {
+          int idx = ctx->active->disp_begin_pos + ctx->active->cursor_pos;
+          if (idx >= ctx->active->vol->total_dirs)
+            idx = ctx->active->vol->total_dirs - 1;
           if (idx < 0)
             idx = 0;
-          dir_entry = ActivePanel->vol->dir_entry_list[idx].dir_entry;
+          dir_entry = ctx->active->vol->dir_entry_list[idx].dir_entry;
         } else {
           dir_entry = s->tree;
         }
 
         /* Restore Global Context Pointers */
-        GlobalView->ctx_dir_window = ActivePanel->pan_dir_window;
-        GlobalView->ctx_small_file_window = ActivePanel->pan_small_file_window;
-        GlobalView->ctx_big_file_window = ActivePanel->pan_big_file_window;
-        GlobalView->ctx_file_window = ActivePanel->pan_file_window;
+        ctx->ctx_dir_window = ctx->active->pan_dir_window;
+        ctx->ctx_small_file_window = ctx->active->pan_small_file_window;
+        ctx->ctx_big_file_window = ctx->active->pan_big_file_window;
+        ctx->ctx_file_window = ctx->active->pan_file_window;
 
         /* 1. Restore width setting */
-        GlobalView->fixed_col_width = saved_fixed_width;
+        ctx->fixed_col_width = saved_fixed_width;
 
         /* 2. Update Layout */
-        ReCreateWindows();
+        ReCreateWindows(ctx);
 
         /* 3. Update metrics */
-        RereadWindowSize(dir_entry);
+        RereadWindowSize(ctx, dir_entry);
 
         /* Call RefreshGlobalView immediately after restoration */
-        RefreshGlobalView(dir_entry);
+        RefreshGlobalView(ctx, dir_entry);
       }
 
       /* 5. Draw Everything (Borders, Tree, Stats, List, Preview) */
-      RefreshGlobalView(dir_entry);
+      RefreshGlobalView(ctx, dir_entry);
 
-      if (GlobalView->preview_mode) {
-        UpdatePreview(dir_entry);
+      if (ctx->preview_mode) {
+        UpdatePreview(ctx, dir_entry);
       }
 
       /* ADDED INSTRUCTION: Conditional Exit Logic */
-      if (!GlobalView->preview_mode) {
-        if (GlobalView->preview_return_focus == FOCUS_TREE) {
+      if (!ctx->preview_mode) {
+        if (ctx->preview_return_focus == FOCUS_TREE) {
           action = ACTION_ESCAPE;
         } else {
           /* We came from a File Window, stay here */
@@ -796,86 +820,78 @@ int HandleFileWindow(DirEntry *dir_entry) {
       break;
 
     case ACTION_PREVIEW_SCROLL_DOWN:
-      if (GlobalView->preview_mode) {
+      if (ctx->preview_mode) {
         preview_line_offset++;
-        UpdatePreview(dir_entry);
+        UpdatePreview(ctx, dir_entry);
       }
       break;
 
     case ACTION_PREVIEW_SCROLL_UP:
-      if (GlobalView->preview_mode) {
+      if (ctx->preview_mode) {
         if (preview_line_offset > 0)
           preview_line_offset--;
-        UpdatePreview(dir_entry);
+        UpdatePreview(ctx, dir_entry);
       }
       break;
 
     case ACTION_PREVIEW_HOME:
-      if (GlobalView->preview_mode) {
+      if (ctx->preview_mode) {
         preview_line_offset = 0;
-        UpdatePreview(dir_entry);
+        UpdatePreview(ctx, dir_entry);
       }
       break;
     case ACTION_PREVIEW_END:
-      if (GlobalView->preview_mode) {
+      if (ctx->preview_mode) {
         /* Set to a large value, renderer handles EOF */
         preview_line_offset = 2000000000L;
-        UpdatePreview(dir_entry);
+        UpdatePreview(ctx, dir_entry);
       }
       break;
     case ACTION_PREVIEW_PAGE_UP:
-      if (GlobalView->preview_mode) {
-        preview_line_offset -= (getmaxy(preview_window) - 1);
+      if (ctx->preview_mode) {
+        preview_line_offset -= (getmaxy(ctx->ctx_preview_window) - 1);
         if (preview_line_offset < 0)
           preview_line_offset = 0;
-        UpdatePreview(dir_entry);
+        UpdatePreview(ctx, dir_entry);
       }
       break;
     case ACTION_PREVIEW_PAGE_DOWN:
-      if (GlobalView->preview_mode) {
-        preview_line_offset += (getmaxy(preview_window) - 1);
-        UpdatePreview(dir_entry);
+      if (ctx->preview_mode) {
+        preview_line_offset += (getmaxy(ctx->ctx_preview_window) - 1);
+        UpdatePreview(ctx, dir_entry);
       }
       break;
 
     case ACTION_SPLIT_SCREEN:
-      IsSplitScreen = !IsSplitScreen;
-      ReCreateWindows(); /* Force layout update immediately */
+      ctx->is_split_screen = !ctx->is_split_screen;
+      ReCreateWindows(ctx); /* Force layout update immediately */
 
-      if (IsSplitScreen) {
-        /* Explicitly copy state here because we won't hit the dirwin logic */
-        YtreePanel *source = ActivePanel;
-        YtreePanel *target =
-            (ActivePanel == LeftPanel) ? RightPanel : LeftPanel;
-
-        target->vol = source->vol;
-        target->cursor_pos = source->cursor_pos;
-        target->disp_begin_pos = source->disp_begin_pos;
-        target->pan_file_window = target->pan_small_file_window;
-        target->file_mode = source->file_mode;
-        target->reverse_sort = source->reverse_sort;
-        target->max_visual_filename_len = source->max_visual_filename_len;
-        target->max_visual_linkname_len = source->max_visual_linkname_len;
-        target->max_visual_userview_len = source->max_visual_userview_len;
-        BuildFileEntryList(target);
+      if (ctx->is_split_screen) {
+        if (ctx->right && ctx->left) {
+          ctx->right->vol = ctx->left->vol;
+          ctx->right->cursor_pos = ctx->left->cursor_pos;
+          ctx->right->disp_begin_pos = ctx->left->disp_begin_pos;
+        }
+      } else {
+        ctx->active = ctx->left;
       }
 
       return ESC; /* Return to DirWindow to redraw */
 
     case ACTION_SWITCH_PANEL:
-      if (!IsSplitScreen)
+      if (!ctx->is_split_screen)
         break;
       /* Ensure the CURRENT panel is cleaned up before switching context. */
-      SwitchToSmallFileWindow();
+      SwitchToSmallFileWindow(ctx);
 
       /* Switch Panel */
-      if (ActivePanel == LeftPanel) {
-        ActivePanel = RightPanel;
+      if (ctx->active == ctx->left) {
+        ctx->active = ctx->right;
       } else {
-        ActivePanel = LeftPanel;
+        ctx->active = ctx->left;
       }
       /* Update Volume Context */
-      CurrentVolume = ActivePanel->vol;
+      ctx->active->vol = ctx->active->vol;
 
       /* Bug 3 Fix: We trigger a loop exit here.
        * This ensures the cleanup code at the end of HandleFileWindow runs,
@@ -885,102 +901,102 @@ int HandleFileWindow(DirEntry *dir_entry) {
       break;
 
     case ACTION_MOVE_DOWN:
-      fmovedown(&dir_entry->start_file, &dir_entry->cursor_pos, &start_x,
+      fmovedown(ctx, &dir_entry->start_file, &dir_entry->cursor_pos, &start_x,
                 dir_entry);
-      if (GlobalView->preview_mode) {
+      if (ctx->preview_mode) {
         preview_line_offset = 0;
-        UpdatePreview(dir_entry);
+        UpdatePreview(ctx, dir_entry);
       }
       break;
 
     case ACTION_MOVE_UP:
-      fmoveup(&dir_entry->start_file, &dir_entry->cursor_pos, &start_x,
+      fmoveup(ctx, &dir_entry->start_file, &dir_entry->cursor_pos, &start_x,
               dir_entry);
-      if (GlobalView->preview_mode) {
+      if (ctx->preview_mode) {
         preview_line_offset = 0;
-        UpdatePreview(dir_entry);
+        UpdatePreview(ctx, dir_entry);
       }
       break;
 
     case ACTION_MOVE_RIGHT:
-      if (!highlight_full_line && x_step == 1)
+      if (!ctx->highlight_full_line && x_step == 1)
         break; /* No horizontal scroll in name-only mode */
-      fmoveright(&dir_entry->start_file, &dir_entry->cursor_pos, &start_x,
+      fmoveright(ctx, &dir_entry->start_file, &dir_entry->cursor_pos, &start_x,
                  dir_entry);
-      if (GlobalView->preview_mode) {
+      if (ctx->preview_mode) {
         preview_line_offset = 0;
-        UpdatePreview(dir_entry);
+        UpdatePreview(ctx, dir_entry);
       }
       break;
 
     case ACTION_MOVE_LEFT:
-      if (!highlight_full_line && x_step == 1)
+      if (!ctx->highlight_full_line && x_step == 1)
         break; /* No horizontal scroll in name-only mode */
-      fmoveleft(&dir_entry->start_file, &dir_entry->cursor_pos, &start_x,
+      fmoveleft(ctx, &dir_entry->start_file, &dir_entry->cursor_pos, &start_x,
                 dir_entry);
-      if (GlobalView->preview_mode) {
+      if (ctx->preview_mode) {
         preview_line_offset = 0;
-        UpdatePreview(dir_entry);
+        UpdatePreview(ctx, dir_entry);
       }
       break;
 
     case ACTION_PAGE_DOWN:
-      fmovenpage(&dir_entry->start_file, &dir_entry->cursor_pos, &start_x,
+      fmovenpage(ctx, &dir_entry->start_file, &dir_entry->cursor_pos, &start_x,
                  dir_entry);
-      if (GlobalView->preview_mode) {
+      if (ctx->preview_mode) {
         preview_line_offset = 0;
-        UpdatePreview(dir_entry);
+        UpdatePreview(ctx, dir_entry);
       }
       break;
 
     case ACTION_PAGE_UP:
-      fmoveppage(&dir_entry->start_file, &dir_entry->cursor_pos, &start_x,
+      fmoveppage(ctx, &dir_entry->start_file, &dir_entry->cursor_pos, &start_x,
                  dir_entry);
-      if (GlobalView->preview_mode) {
+      if (ctx->preview_mode) {
         preview_line_offset = 0;
-        UpdatePreview(dir_entry);
+        UpdatePreview(ctx, dir_entry);
       }
       break;
 
     case ACTION_END:
       Nav_End(&dir_entry->cursor_pos, &dir_entry->start_file,
-              (int)ActivePanel->file_count, max_disp_files);
+              (int)ctx->active->file_count, max_disp_files);
 
-      DisplayFiles(ActivePanel, dir_entry, dir_entry->start_file,
+      DisplayFiles(ctx, ctx->active, dir_entry, dir_entry->start_file,
                    dir_entry->start_file + dir_entry->cursor_pos, start_x,
-                   file_window);
-      if (GlobalView->preview_mode) {
+                   ctx->ctx_file_window);
+      if (ctx->preview_mode) {
         preview_line_offset = 0;
-        UpdatePreview(dir_entry);
+        UpdatePreview(ctx, dir_entry);
       }
-      ActivePanel->start_file = dir_entry->start_file;
+      ctx->active->start_file = dir_entry->start_file;
       break;
 
     case ACTION_HOME:
       Nav_Home(&dir_entry->cursor_pos, &dir_entry->start_file);
 
-      DisplayFiles(ActivePanel, dir_entry, dir_entry->start_file,
+      DisplayFiles(ctx, ctx->active, dir_entry, dir_entry->start_file,
                    dir_entry->start_file + dir_entry->cursor_pos, start_x,
-                   file_window);
-      if (GlobalView->preview_mode) {
+                   ctx->ctx_file_window);
+      if (ctx->preview_mode) {
         preview_line_offset = 0;
-        UpdatePreview(dir_entry);
+        UpdatePreview(ctx, dir_entry);
       }
-      ActivePanel->start_file = dir_entry->start_file;
+      ctx->active->start_file = dir_entry->start_file;
       break;
 
     case ACTION_TOGGLE_HIDDEN: {
-      ToggleDotFiles(ActivePanel);
+      ToggleDotFiles(ctx, ctx->active);
 
       /* Update current dir pointer using the new accessor function */
-      dir_entry = GetPanelDirEntry(ActivePanel);
+      dir_entry = GetPanelDirEntry(ctx->active);
 
       /* Explicitly update the file window (preview) */
-      DisplayFileWindow(ActivePanel, dir_entry);
-      RefreshWindow(file_window);
-      if (GlobalView->preview_mode) {
+      DisplayFileWindow(ctx, ctx->active, dir_entry);
+      RefreshWindow(ctx->ctx_file_window);
+      if (ctx->preview_mode) {
         preview_line_offset = 0;
-        UpdatePreview(dir_entry);
+        UpdatePreview(ctx, dir_entry);
       }
 
       need_dsp_help = TRUE;
@@ -988,22 +1004,22 @@ int HandleFileWindow(DirEntry *dir_entry) {
 
     case ACTION_CMD_A:
       fe_ptr =
-          ActivePanel
+          ctx->active
               ->file_entry_list[dir_entry->start_file + dir_entry->cursor_pos]
               .file;
 
       need_dsp_help = TRUE;
 
-      if (!ChangeFileModus(fe_ptr)) {
-        DisplayFiles(ActivePanel, dir_entry, dir_entry->start_file,
+      if (!ChangeFileModus(ctx, fe_ptr)) {
+        DisplayFiles(ctx, ctx->active, dir_entry, dir_entry->start_file,
                      dir_entry->start_file + dir_entry->cursor_pos, start_x,
-                     file_window);
+                     ctx->ctx_file_window);
       }
       break;
 
     case ACTION_CMD_TAGGED_A:
-      if ((mode != DISK_MODE && mode != USER_MODE) ||
-          !IsMatchingTaggedFiles()) {
+      if ((ctx->view_mode != DISK_MODE && ctx->view_mode != USER_MODE) ||
+          !IsMatchingTaggedFiles(ctx)) {
       } else {
         need_dsp_help = TRUE;
 
@@ -1012,19 +1028,17 @@ int HandleFileWindow(DirEntry *dir_entry) {
         (void)GetAttributes(mask, modus);
 
         /* Updated to use InputString instead of GetNewFileModus */
-        ClearHelp();
-        MvAddStr(Y_PROMPT, 1, "ATTRIBUTES:");
-
-        if (InputString(modus, Y_PROMPT, 12, 0, 10, "\r\033",
-                        HST_CHANGE_MODUS) == CR) {
+        ClearHelp(ctx);
+        if (UI_ReadString(ctx, ctx->active, "ATTRIBUTES: ", modus, 10,
+                          HST_CHANGE_MODUS) == CR) {
           (void)strcpy(walking_package.function_data.change_modus.new_modus,
                        modus);
-          WalkTaggedFiles(dir_entry->start_file, dir_entry->cursor_pos,
+          WalkTaggedFiles(ctx, dir_entry->start_file, dir_entry->cursor_pos,
                           SetFileModus, &walking_package);
 
-          DisplayFiles(ActivePanel, dir_entry, dir_entry->start_file,
+          DisplayFiles(ctx, ctx->active, dir_entry, dir_entry->start_file,
                        dir_entry->start_file + dir_entry->cursor_pos, start_x,
-                       file_window);
+                       ctx->ctx_file_window);
         }
         move(LINES - 2, 1);
         clrtoeol(); /* Cleanup prompt line */
@@ -1033,72 +1047,72 @@ int HandleFileWindow(DirEntry *dir_entry) {
 
     case ACTION_CMD_O:
       fe_ptr =
-          ActivePanel
+          ctx->active
               ->file_entry_list[dir_entry->start_file + dir_entry->cursor_pos]
               .file;
 
       need_dsp_help = TRUE;
 
-      if (!ChangeFileOwner(fe_ptr)) {
-        DisplayFiles(ActivePanel, dir_entry, dir_entry->start_file,
+      if (!ChangeFileOwner(ctx, fe_ptr)) {
+        DisplayFiles(ctx, ctx->active, dir_entry, dir_entry->start_file,
                      dir_entry->start_file + dir_entry->cursor_pos, start_x,
-                     file_window);
+                     ctx->ctx_file_window);
       }
       break;
 
     case ACTION_CMD_TAGGED_O:
-      if ((mode != DISK_MODE && mode != USER_MODE) ||
-          !IsMatchingTaggedFiles()) {
+      if ((ctx->view_mode != DISK_MODE && ctx->view_mode != USER_MODE) ||
+          !IsMatchingTaggedFiles(ctx)) {
       } else {
         need_dsp_help = TRUE;
-        if ((owner_id = GetNewOwner(-1)) >= 0) {
+        if ((owner_id = GetNewOwner(ctx, -1)) >= 0) {
           walking_package.function_data.change_owner.new_owner_id = owner_id;
-          WalkTaggedFiles(dir_entry->start_file, dir_entry->cursor_pos,
+          WalkTaggedFiles(ctx, dir_entry->start_file, dir_entry->cursor_pos,
                           SetFileOwner, &walking_package);
 
-          DisplayFiles(ActivePanel, dir_entry, dir_entry->start_file,
+          DisplayFiles(ctx, ctx->active, dir_entry, dir_entry->start_file,
                        dir_entry->start_file + dir_entry->cursor_pos, start_x,
-                       file_window);
+                       ctx->ctx_file_window);
         }
       }
       break;
 
     case ACTION_CMD_G:
       fe_ptr =
-          ActivePanel
+          ctx->active
               ->file_entry_list[dir_entry->start_file + dir_entry->cursor_pos]
               .file;
 
       need_dsp_help = TRUE;
 
-      if (!ChangeFileGroup(fe_ptr)) {
-        DisplayFiles(ActivePanel, dir_entry, dir_entry->start_file,
+      if (!ChangeFileGroup(ctx, fe_ptr)) {
+        DisplayFiles(ctx, ctx->active, dir_entry, dir_entry->start_file,
                      dir_entry->start_file + dir_entry->cursor_pos, start_x,
-                     file_window);
+                     ctx->ctx_file_window);
       }
       break;
 
     case ACTION_CMD_TAGGED_G:
-      if ((mode != DISK_MODE && mode != USER_MODE) ||
-          !IsMatchingTaggedFiles()) {
+      if ((ctx->view_mode != DISK_MODE && ctx->view_mode != USER_MODE) ||
+          !IsMatchingTaggedFiles(ctx)) {
       } else {
         need_dsp_help = TRUE;
 
-        if ((group_id = GetNewGroup(-1)) >= 0) {
+        if ((group_id = GetNewGroup(ctx, -1)) >= 0) {
           walking_package.function_data.change_group.new_group_id = group_id;
-          WalkTaggedFiles(dir_entry->start_file, dir_entry->cursor_pos,
+          WalkTaggedFiles(ctx, dir_entry->start_file, dir_entry->cursor_pos,
                           SetFileGroup, &walking_package);
 
-          DisplayFiles(ActivePanel, dir_entry, dir_entry->start_file,
+          DisplayFiles(ctx, ctx->active, dir_entry, dir_entry->start_file,
                        dir_entry->start_file + dir_entry->cursor_pos, start_x,
-                       file_window);
+                       ctx->ctx_file_window);
         }
       }
       break;
 
     case ACTION_TAG:
       fe_ptr =
-          ActivePanel
+          ctx->active
               ->file_entry_list[dir_entry->start_file + dir_entry->cursor_pos]
               .file;
       de_ptr = fe_ptr->dir_entry;
@@ -1110,19 +1124,19 @@ int HandleFileWindow(DirEntry *dir_entry) {
         s->disk_tagged_files++;
         s->disk_tagged_bytes += fe_ptr->stat_struct.st_size;
       }
-      DisplayFiles(ActivePanel, dir_entry, dir_entry->start_file,
+      DisplayFiles(ctx, ctx->active, dir_entry, dir_entry->start_file,
                    dir_entry->start_file + dir_entry->cursor_pos, start_x,
-                   file_window);
-      DisplayDiskStatistic(s); /* Always update global disk stats */
+                   ctx->ctx_file_window);
+      DisplayDiskStatistic(ctx, s); /* Always update global disk stats */
       DisplayDirStatistic(
-          dir_entry, NULL,
+          ctx, dir_entry, NULL,
           s); /* Always update current list stats (even in Showall) */
       unput_char = KEY_DOWN;
 
       break;
     case ACTION_UNTAG:
       fe_ptr =
-          ActivePanel
+          ctx->active
               ->file_entry_list[dir_entry->start_file + dir_entry->cursor_pos]
               .file;
       de_ptr = fe_ptr->dir_entry;
@@ -1134,27 +1148,30 @@ int HandleFileWindow(DirEntry *dir_entry) {
         s->disk_tagged_files--;
         s->disk_tagged_bytes -= fe_ptr->stat_struct.st_size;
       }
-      DisplayFiles(ActivePanel, dir_entry, dir_entry->start_file,
+      DisplayFiles(ctx, ctx->active, dir_entry, dir_entry->start_file,
                    dir_entry->start_file + dir_entry->cursor_pos, start_x,
-                   file_window);
-      DisplayDiskStatistic(s); /* Always update global disk stats */
+                   ctx->ctx_file_window);
+      DisplayDiskStatistic(ctx, s); /* Always update global disk stats */
       DisplayDirStatistic(
-          dir_entry, NULL,
+          ctx, dir_entry, NULL,
           s); /* Always update current list stats (even in Showall) */
       unput_char = KEY_DOWN;
 
       break;
 
     case ACTION_TOGGLE_MODE:
-      if (GlobalView->preview_mode) {
+      if (ctx->preview_mode) {
         beep();
         break;
       }
       list_pos = dir_entry->start_file + dir_entry->cursor_pos;
 
-      RotatePanelFileMode(ActivePanel);
-      x_step = (GetPanelMaxColumn(ActivePanel) > 1) ? getmaxy(file_window) : 1;
-      max_disp_files = getmaxy(file_window) * GetPanelMaxColumn(ActivePanel);
+      RotatePanelFileMode(ctx, ctx->active);
+      x_step = (GetPanelMaxColumn(ctx->active) > 1)
+                   ? getmaxy(ctx->ctx_file_window)
+                   : 1;
+      max_disp_files =
+          getmaxy(ctx->ctx_file_window) * GetPanelMaxColumn(ctx->active);
 
       if (dir_entry->cursor_pos >= max_disp_files) {
         /* Cursor must be repositioned */
@@ -1164,14 +1181,14 @@ int HandleFileWindow(DirEntry *dir_entry) {
       }
 
       dir_entry->start_file = list_pos - dir_entry->cursor_pos;
-      DisplayFiles(ActivePanel, dir_entry, dir_entry->start_file,
+      DisplayFiles(ctx, ctx->active, dir_entry, dir_entry->start_file,
                    dir_entry->start_file + dir_entry->cursor_pos, start_x,
-                   file_window);
+                   ctx->ctx_file_window);
       break;
 
     case ACTION_TAG_ALL:
-      for (i = 0; i < (int)ActivePanel->file_count; i++) {
-        fe_ptr = ActivePanel->file_entry_list[i].file;
+      for (i = 0; i < (int)ctx->active->file_count; i++) {
+        fe_ptr = ctx->active->file_entry_list[i].file;
         de_ptr = fe_ptr->dir_entry;
 
         if (!fe_ptr->tagged) {
@@ -1185,18 +1202,18 @@ int HandleFileWindow(DirEntry *dir_entry) {
         }
       }
 
-      DisplayFiles(ActivePanel, dir_entry, dir_entry->start_file,
+      DisplayFiles(ctx, ctx->active, dir_entry, dir_entry->start_file,
                    dir_entry->start_file + dir_entry->cursor_pos, start_x,
-                   file_window);
-      DisplayDiskStatistic(s); /* Always update global disk stats */
+                   ctx->ctx_file_window);
+      DisplayDiskStatistic(ctx, s); /* Always update global disk stats */
       DisplayDirStatistic(
-          dir_entry, NULL,
+          ctx, dir_entry, NULL,
           s); /* Always update current list stats (even in Showall) */
       break;
 
     case ACTION_UNTAG_ALL:
-      for (i = 0; i < (int)ActivePanel->file_count; i++) {
-        fe_ptr = ActivePanel->file_entry_list[i].file;
+      for (i = 0; i < (int)ctx->active->file_count; i++) {
+        fe_ptr = ctx->active->file_entry_list[i].file;
         de_ptr = fe_ptr->dir_entry;
 
         if (fe_ptr->tagged) {
@@ -1210,19 +1227,19 @@ int HandleFileWindow(DirEntry *dir_entry) {
         }
       }
 
-      DisplayFiles(ActivePanel, dir_entry, dir_entry->start_file,
+      DisplayFiles(ctx, ctx->active, dir_entry, dir_entry->start_file,
                    dir_entry->start_file + dir_entry->cursor_pos, start_x,
-                   file_window);
-      DisplayDiskStatistic(s); /* Always update global disk stats */
+                   ctx->ctx_file_window);
+      DisplayDiskStatistic(ctx, s); /* Always update global disk stats */
       DisplayDirStatistic(
-          dir_entry, NULL,
+          ctx, dir_entry, NULL,
           s); /* Always update current list stats (even in Showall) */
       break;
 
     case ACTION_TAG_REST:
       for (i = dir_entry->start_file + dir_entry->cursor_pos;
-           i < (int)ActivePanel->file_count; i++) {
-        fe_ptr = ActivePanel->file_entry_list[i].file;
+           i < (int)ctx->active->file_count; i++) {
+        fe_ptr = ctx->active->file_entry_list[i].file;
         de_ptr = fe_ptr->dir_entry;
 
         if (!fe_ptr->tagged) {
@@ -1236,19 +1253,19 @@ int HandleFileWindow(DirEntry *dir_entry) {
         }
       }
 
-      DisplayFiles(ActivePanel, dir_entry, dir_entry->start_file,
+      DisplayFiles(ctx, ctx->active, dir_entry, dir_entry->start_file,
                    dir_entry->start_file + dir_entry->cursor_pos, start_x,
-                   file_window);
-      DisplayDiskStatistic(s); /* Always update global disk stats */
+                   ctx->ctx_file_window);
+      DisplayDiskStatistic(ctx, s); /* Always update global disk stats */
       DisplayDirStatistic(
-          dir_entry, NULL,
+          ctx, dir_entry, NULL,
           s); /* Always update current list stats (even in Showall) */
       break;
 
     case ACTION_UNTAG_REST:
       for (i = dir_entry->start_file + dir_entry->cursor_pos;
-           i < (int)ActivePanel->file_count; i++) {
-        fe_ptr = ActivePanel->file_entry_list[i].file;
+           i < (int)ctx->active->file_count; i++) {
+        fe_ptr = ctx->active->file_entry_list[i].file;
         de_ptr = fe_ptr->dir_entry;
 
         if (fe_ptr->tagged) {
@@ -1262,67 +1279,67 @@ int HandleFileWindow(DirEntry *dir_entry) {
         }
       }
 
-      DisplayFiles(ActivePanel, dir_entry, dir_entry->start_file,
+      DisplayFiles(ctx, ctx->active, dir_entry, dir_entry->start_file,
                    dir_entry->start_file + dir_entry->cursor_pos, start_x,
-                   file_window);
-      DisplayDiskStatistic(s); /* Always update global disk stats */
+                   ctx->ctx_file_window);
+      DisplayDiskStatistic(ctx, s); /* Always update global disk stats */
       DisplayDirStatistic(
-          dir_entry, NULL,
+          ctx, dir_entry, NULL,
           s); /* Always update current list stats (even in Showall) */
       break;
 
     case ACTION_CMD_V:
       fe_ptr =
-          ActivePanel
+          ctx->active
               ->file_entry_list[dir_entry->start_file + dir_entry->cursor_pos]
               .file;
-      if (mode == ARCHIVE_MODE) {
-        if (View(dir_entry, fe_ptr->name) != 0) {
+      if (ctx->view_mode == ARCHIVE_MODE) {
+        if (View(ctx, dir_entry, fe_ptr->name) != 0) {
           /* Error message already handled in View */
         }
       } else {
         char full_path[PATH_LENGTH + 1];
         GetFileNamePath(fe_ptr, full_path);
-        if (View(dir_entry, full_path) != 0) {
+        if (View(ctx, dir_entry, full_path) != 0) {
           /* Error message already handled in View */
         }
       }
       break;
 
     case ACTION_CMD_TAGGED_V:
-      if (!IsMatchingTaggedFiles()) {
+      if (!IsMatchingTaggedFiles(ctx)) {
         /* STRICT FILTER MODE: No tags = no action */
       } else {
-        UI_ViewTaggedFiles(dir_entry);
+        UI_ViewTaggedFiles(ctx, dir_entry);
         need_dsp_help = TRUE;
       }
       break;
 
     case ACTION_CMD_H:
       fe_ptr =
-          ActivePanel
+          ctx->active
               ->file_entry_list[dir_entry->start_file + dir_entry->cursor_pos]
               .file;
       de_ptr = fe_ptr->dir_entry;
-      (void)GetRealFileNamePath(fe_ptr, filepath);
-      (void)ViewHex(filepath);
+      (void)GetRealFileNamePath(fe_ptr, filepath, ctx->view_mode);
+      (void)ViewHex(ctx, filepath);
       need_dsp_help = TRUE;
       break;
 
     case ACTION_CMD_E:
       fe_ptr =
-          ActivePanel
+          ctx->active
               ->file_entry_list[dir_entry->start_file + dir_entry->cursor_pos]
               .file;
       de_ptr = fe_ptr->dir_entry;
       (void)GetFileNamePath(fe_ptr, filepath);
-      (void)Edit(de_ptr, filepath);
+      (void)Edit(ctx, de_ptr, filepath);
       break;
 
     case ACTION_CMD_Y:
     case ACTION_CMD_C:
       fe_ptr =
-          ActivePanel
+          ctx->active
               ->file_entry_list[dir_entry->start_file + dir_entry->cursor_pos]
               .file;
       de_ptr = fe_ptr->dir_entry;
@@ -1333,16 +1350,16 @@ int HandleFileWindow(DirEntry *dir_entry) {
 
       need_dsp_help = TRUE;
 
-      if (GetCopyParameter(fe_ptr->name, path_copy, to_file, to_dir)) {
+      if (GetCopyParameter(ctx, fe_ptr->name, path_copy, to_file, to_dir)) {
         break;
       }
 
-      if (mode != DISK_MODE && mode != USER_MODE) {
+      if (ctx->view_mode != DISK_MODE && ctx->view_mode != USER_MODE) {
         if (realpath(to_dir, to_path) == NULL) {
           if (errno == ENOENT) {
             strcpy(to_path, to_dir);
           } else {
-            MESSAGE("Invalid destination path*\"%s\"*%s", to_dir,
+            MESSAGE(ctx, "Invalid destination path*\"%s\"*%s", to_dir,
                     strerror(errno));
             break;
           }
@@ -1350,7 +1367,7 @@ int HandleFileWindow(DirEntry *dir_entry) {
         dest_dir_entry = NULL;
       } else {
         get_dir_ret =
-            GetDirEntry(s->tree, de_ptr, to_dir, &dest_dir_entry, to_path);
+            GetDirEntry(ctx, s->tree, de_ptr, to_dir, &dest_dir_entry, to_path);
         if (get_dir_ret == -1) { /* System error */
           break;
         }
@@ -1365,17 +1382,19 @@ int HandleFileWindow(DirEntry *dir_entry) {
       {
         int dir_create_mode = 0; /* Local mode for single file op */
         int overwrite_mode = 0;  /* Local mode for single file op */
-        CopyFile(s, fe_ptr, expanded_to_file, dest_dir_entry, to_path,
+        CopyFile(ctx, s, fe_ptr, expanded_to_file, dest_dir_entry, to_path,
                  path_copy, &dir_create_mode, &overwrite_mode,
-                 UI_ConflictResolverWrapper, UI_ChoiceResolver);
+                 (ConflictCallback)UI_ConflictResolverWrapper,
+                 (ChoiceCallback)UI_ChoiceResolver);
       }
 
-      RefreshDirWindow(ActivePanel);
-      if (IsSplitScreen) {
-        RefreshDirWindow((ActivePanel == LeftPanel) ? RightPanel : LeftPanel);
+      RefreshDirWindow(ctx, ctx->active);
+      if (ctx->is_split_screen) {
+        RefreshDirWindow(ctx,
+                         (ctx->active == ctx->left) ? ctx->right : ctx->left);
       }
 
-      RefreshGlobalView(dir_entry);
+      RefreshGlobalView(ctx, dir_entry);
 
       need_dsp_help = TRUE;
       break;
@@ -1388,28 +1407,28 @@ int HandleFileWindow(DirEntry *dir_entry) {
       if (action == ACTION_CMD_TAGGED_Y)
         path_copy = TRUE;
 
-      if (!IsMatchingTaggedFiles()) {
+      if (!IsMatchingTaggedFiles(ctx)) {
       } else {
         need_dsp_help = TRUE;
 
-        if (GetCopyParameter(NULL, path_copy, to_file, to_dir)) {
+        if (GetCopyParameter(ctx, NULL, path_copy, to_file, to_dir)) {
           break;
         }
 
-        if (mode != DISK_MODE && mode != USER_MODE) {
+        if (ctx->view_mode != DISK_MODE && ctx->view_mode != USER_MODE) {
           if (realpath(to_dir, to_path) == NULL) {
             if (errno == ENOENT) {
               strcpy(to_path, to_dir);
             } else {
-              MESSAGE("Invalid destination path*\"%s\"*%s", to_dir,
+              MESSAGE(ctx, "Invalid destination path*\"%s\"*%s", to_dir,
                       strerror(errno));
               break;
             }
           }
           dest_dir_entry = NULL;
         } else {
-          get_dir_ret =
-              GetDirEntry(s->tree, de_ptr, to_dir, &dest_dir_entry, to_path);
+          get_dir_ret = GetDirEntry(ctx, s->tree, de_ptr, to_dir,
+                                    &dest_dir_entry, to_path);
           if (get_dir_ret == -1) { /* System error */
             break;
           }
@@ -1418,8 +1437,8 @@ int HandleFileWindow(DirEntry *dir_entry) {
           }
         }
 
-        term = InputChoice("Ask for confirmation for each overwrite (Y/N) ? ",
-                           "YN\033");
+        term = InputChoice(
+            ctx, "Ask for confirmation for each overwrite (Y/N) ? ", "YN\033");
         if (term == ESC) {
           break;
         }
@@ -1432,49 +1451,50 @@ int HandleFileWindow(DirEntry *dir_entry) {
         walking_package.function_data.copy.path_copy =
             path_copy; /* Fixed struct access */
         walking_package.function_data.copy.conflict_cb =
-            (void *)UI_ConflictResolverWrapper;
+            (void *)(ConflictCallback)UI_ConflictResolverWrapper;
         walking_package.function_data.copy.dir_create_mode =
             0; /* Reset auto-create mode */
         walking_package.function_data.copy.overwrite_mode =
             (term == 'N') ? 1 : 0; /* Reset overwrite mode */
         walking_package.function_data.copy.choice_cb =
-            (void *)UI_ChoiceResolver;
+            (void *)(ChoiceCallback)UI_ChoiceResolver;
 
-        WalkTaggedFiles(dir_entry->start_file, dir_entry->cursor_pos,
+        WalkTaggedFiles(ctx, dir_entry->start_file, dir_entry->cursor_pos,
                         CopyTaggedFiles, &walking_package);
 
-        RefreshDirWindow(ActivePanel);
-        if (IsSplitScreen) {
-          RefreshDirWindow((ActivePanel == LeftPanel) ? RightPanel : LeftPanel);
+        RefreshDirWindow(ctx, ctx->active);
+        if (ctx->is_split_screen) {
+          RefreshDirWindow(ctx,
+                           (ctx->active == ctx->left) ? ctx->right : ctx->left);
         }
 
-        RefreshGlobalView(dir_entry);
+        RefreshGlobalView(ctx, dir_entry);
       }
       need_dsp_help = TRUE;
       break;
 
     case ACTION_CMD_MKFILE:
-      if (mode != DISK_MODE)
+      if (ctx->view_mode != DISK_MODE)
         break;
 
       {
         char file_name[PATH_LENGTH * 2 + 1];
         int mk_result;
 
-        ClearHelp();
+        ClearHelp(ctx);
         *file_name = '\0';
-        if (UI_ReadString("MAKE FILE:", file_name, PATH_LENGTH, HST_FILE) ==
-            CR) {
-          mk_result =
-              MakeFile(dir_entry, file_name, s, NULL, UI_ChoiceResolver);
+        if (UI_ReadString(ctx, ctx->active, "MAKE FILE:", file_name,
+                          PATH_LENGTH, HST_FILE) == CR) {
+          mk_result = MakeFile(ctx, dir_entry, file_name, s, NULL,
+                               (ChoiceCallback)UI_ChoiceResolver);
           if (mk_result == 0) {
             /* If successful, refresh the view */
-            BuildFileEntryList(ActivePanel);
-            RefreshGlobalView(dir_entry);
+            BuildFileEntryList(ctx, ctx->active);
+            RefreshGlobalView(ctx, dir_entry);
           } else if (mk_result == 1) {
-            MESSAGE("File already exists!");
+            MESSAGE(ctx, "File already exists!");
           } else {
-            MESSAGE("Can't create File*\"%s\"", file_name);
+            MESSAGE(ctx, "Can't create File*\"%s\"", file_name);
           }
         }
       }
@@ -1482,24 +1502,24 @@ int HandleFileWindow(DirEntry *dir_entry) {
       break;
 
     case ACTION_CMD_M:
-      if (mode != DISK_MODE && mode != USER_MODE) {
+      if (ctx->view_mode != DISK_MODE && ctx->view_mode != USER_MODE) {
         break;
       }
 
       fe_ptr =
-          ActivePanel
+          ctx->active
               ->file_entry_list[dir_entry->start_file + dir_entry->cursor_pos]
               .file;
       de_ptr = fe_ptr->dir_entry;
 
       need_dsp_help = TRUE;
 
-      if (GetMoveParameter(fe_ptr->name, to_file, to_dir)) {
+      if (GetMoveParameter(ctx, fe_ptr->name, to_file, to_dir)) {
         break;
       }
 
       get_dir_ret =
-          GetDirEntry(s->tree, de_ptr, to_dir, &dest_dir_entry, to_path);
+          GetDirEntry(ctx, s->tree, de_ptr, to_dir, &dest_dir_entry, to_path);
       if (get_dir_ret == -1) {
         break;
       }
@@ -1522,9 +1542,9 @@ int HandleFileWindow(DirEntry *dir_entry) {
                    current_dir, FILE_SEPARATOR_CHAR, to_dir);
         }
         /* FIX: Pass &dest_dir_entry */
-        if (EnsureDirectoryExists(abs_check_path, s->tree, &created,
+        if (EnsureDirectoryExists(ctx, abs_check_path, s->tree, &created,
                                   &dest_dir_entry, &dir_create_mode,
-                                  UI_ChoiceResolver) == -1)
+                                  (ChoiceCallback)UI_ChoiceResolver) == -1)
           break;
       }
 
@@ -1534,21 +1554,22 @@ int HandleFileWindow(DirEntry *dir_entry) {
       {
         int dir_create_mode = 0;
         int overwrite_mode = 0;
-        if (!MoveFile(fe_ptr, expanded_to_file, dest_dir_entry, to_path,
+        if (!MoveFile(ctx, fe_ptr, expanded_to_file, dest_dir_entry, to_path,
                       &new_fe_ptr, &dir_create_mode, &overwrite_mode,
-                      UI_ConflictResolverWrapper, UI_ChoiceResolver)) {
+                      (ConflictCallback)UI_ConflictResolverWrapper,
+                      (ChoiceCallback)UI_ChoiceResolver)) {
           /* File was moved */
           /*-------------------*/
 
           /* ... Stats updates ... */
           /* ... BuildFileEntryList ... */
 
-          RefreshGlobalView(dir_entry);
+          RefreshGlobalView(ctx, dir_entry);
 
-          RefreshDirWindow(ActivePanel);
-          if (IsSplitScreen) {
-            RefreshDirWindow((ActivePanel == LeftPanel) ? RightPanel
-                                                        : LeftPanel);
+          RefreshDirWindow(ctx, ctx->active);
+          if (ctx->is_split_screen) {
+            RefreshDirWindow(ctx, (ctx->active == ctx->left) ? ctx->right
+                                                             : ctx->left);
           }
 
           maybe_change_x_step = TRUE;
@@ -1558,17 +1579,17 @@ int HandleFileWindow(DirEntry *dir_entry) {
       break;
 
     case ACTION_CMD_TAGGED_M:
-      if ((mode != DISK_MODE && mode != USER_MODE) ||
-          !IsMatchingTaggedFiles()) {
+      if ((ctx->view_mode != DISK_MODE && ctx->view_mode != USER_MODE) ||
+          !IsMatchingTaggedFiles(ctx)) {
       } else {
         need_dsp_help = TRUE;
 
-        if (GetMoveParameter(NULL, to_file, to_dir)) {
+        if (GetMoveParameter(ctx, NULL, to_file, to_dir)) {
           break;
         }
 
         get_dir_ret =
-            GetDirEntry(s->tree, de_ptr, to_dir, &dest_dir_entry, to_path);
+            GetDirEntry(ctx, s->tree, de_ptr, to_dir, &dest_dir_entry, to_path);
         if (get_dir_ret == -1) {
           break;
         }
@@ -1591,14 +1612,14 @@ int HandleFileWindow(DirEntry *dir_entry) {
                      current_dir, FILE_SEPARATOR_CHAR, to_dir);
           }
           /* FIX: Pass &dest_dir_entry */
-          if (EnsureDirectoryExists(abs_check_path, s->tree, &created,
+          if (EnsureDirectoryExists(ctx, abs_check_path, s->tree, &created,
                                     &dest_dir_entry, &dir_create_mode,
-                                    UI_ChoiceResolver) == -1)
+                                    (ChoiceCallback)UI_ChoiceResolver) == -1)
             break;
         }
 
-        term = InputChoice("Ask for confirmation for each overwrite (Y/N) ? ",
-                           "YN\033");
+        term = InputChoice(
+            ctx, "Ask for confirmation for each overwrite (Y/N) ? ", "YN\033");
         if (term == ESC) {
           break;
         }
@@ -1607,40 +1628,43 @@ int HandleFileWindow(DirEntry *dir_entry) {
         walking_package.function_data.mv.to_file = to_file;
         walking_package.function_data.mv.to_path = to_path;
         walking_package.function_data.mv.conflict_cb =
-            (void *)UI_ConflictResolverWrapper;
+            (void *)(ConflictCallback)UI_ConflictResolverWrapper;
         walking_package.function_data.mv.dir_create_mode =
             0; /* Reset auto-create mode */
         walking_package.function_data.mv.overwrite_mode =
             (term == 'N') ? 1 : 0; /* Reset overwrite mode */
-        walking_package.function_data.mv.choice_cb = (void *)UI_ChoiceResolver;
+        walking_package.function_data.mv.choice_cb =
+            (void *)(ChoiceCallback)UI_ChoiceResolver;
 
-        WalkTaggedFiles(dir_entry->start_file, dir_entry->cursor_pos,
+        WalkTaggedFiles(ctx, dir_entry->start_file, dir_entry->cursor_pos,
                         MoveTaggedFiles, &walking_package);
 
-        RefreshDirWindow(ActivePanel);
-        if (IsSplitScreen) {
-          RefreshDirWindow((ActivePanel == LeftPanel) ? RightPanel : LeftPanel);
+        RefreshDirWindow(ctx, ctx->active);
+        if (ctx->is_split_screen) {
+          RefreshDirWindow(ctx,
+                           (ctx->active == ctx->left) ? ctx->right : ctx->left);
         }
 
-        BuildFileEntryList(ActivePanel);
+        BuildFileEntryList(ctx, ctx->active);
 
-        if (ActivePanel->file_count == 0)
+        if (ctx->active->file_count == 0)
           unput_char = ESC;
 
         dir_entry->start_file = 0;
         dir_entry->cursor_pos = 0;
 
-        RefreshGlobalView(dir_entry);
+        RefreshGlobalView(ctx, dir_entry);
         maybe_change_x_step = TRUE;
       }
       break;
 
     case ACTION_CMD_D:
-      if (mode != DISK_MODE && mode != USER_MODE && mode != ARCHIVE_MODE) {
+      if (ctx->view_mode != DISK_MODE && ctx->view_mode != USER_MODE &&
+          ctx->view_mode != ARCHIVE_MODE) {
         break;
       }
 
-      term = InputChoice("Delete this file (Y/N) ? ", "YN\033");
+      term = InputChoice(ctx, "Delete this file (Y/N) ? ", "YN\033");
 
       need_dsp_help = TRUE;
 
@@ -1648,56 +1672,59 @@ int HandleFileWindow(DirEntry *dir_entry) {
         break;
 
       fe_ptr =
-          ActivePanel
+          ctx->active
               ->file_entry_list[dir_entry->start_file + dir_entry->cursor_pos]
               .file;
       de_ptr = fe_ptr->dir_entry;
 
       {
         int override_mode = 0;
-        if (!DeleteFile(fe_ptr, &override_mode, s, UI_ChoiceResolver)) {
+        if (!DeleteFile(ctx, fe_ptr, &override_mode, s,
+                        (ChoiceCallback)UI_ChoiceResolver)) {
           /* File was deleted */
           /*----------------------*/
 
-          RefreshGlobalView(dir_entry);
+          RefreshGlobalView(ctx, dir_entry);
           maybe_change_x_step = TRUE;
         }
       }
       break;
 
     case ACTION_CMD_TAGGED_D:
-      if ((mode != DISK_MODE && mode != USER_MODE && mode != ARCHIVE_MODE) ||
-          !IsMatchingTaggedFiles()) {
+      if ((ctx->view_mode != DISK_MODE && ctx->view_mode != USER_MODE &&
+           ctx->view_mode != ARCHIVE_MODE) ||
+          !IsMatchingTaggedFiles(ctx)) {
       } else {
         need_dsp_help = TRUE;
-        (void)UI_DeleteTaggedFiles(max_disp_files, s);
+        (void)UI_DeleteTaggedFiles(ctx, max_disp_files, s);
         /* ... */
 
-        RefreshGlobalView(dir_entry);
+        RefreshGlobalView(ctx, dir_entry);
         maybe_change_x_step = TRUE;
       }
       break;
 
     case ACTION_CMD_R:
-      if (mode != DISK_MODE && mode != USER_MODE && mode != ARCHIVE_MODE) {
+      if (ctx->view_mode != DISK_MODE && ctx->view_mode != USER_MODE &&
+          ctx->view_mode != ARCHIVE_MODE) {
         break;
       }
 
       fe_ptr =
-          ActivePanel
+          ctx->active
               ->file_entry_list[dir_entry->start_file + dir_entry->cursor_pos]
               .file;
       de_ptr = fe_ptr->dir_entry;
 
-      if (!GetRenameParameter(fe_ptr->name, new_name)) {
+      if (!GetRenameParameter(ctx, fe_ptr->name, new_name)) {
         /* EXPAND WILDCARDS FOR SINGLE FILE RENAME */
         BuildFilename(fe_ptr->name, new_name, expanded_new_name);
 
-        if (!RenameFile(fe_ptr, expanded_new_name, &new_fe_ptr)) {
+        if (!RenameFile(ctx, fe_ptr, expanded_new_name, &new_fe_ptr)) {
           /* Rename OK */
           /*-----------*/
 
-          RefreshGlobalView(dir_entry);
+          RefreshGlobalView(ctx, dir_entry);
           maybe_change_x_step = TRUE;
         }
       }
@@ -1705,78 +1732,80 @@ int HandleFileWindow(DirEntry *dir_entry) {
       break;
 
     case ACTION_CMD_TAGGED_R:
-      if ((mode != DISK_MODE && mode != USER_MODE && mode != ARCHIVE_MODE) ||
-          !IsMatchingTaggedFiles()) {
+      if ((ctx->view_mode != DISK_MODE && ctx->view_mode != USER_MODE &&
+           ctx->view_mode != ARCHIVE_MODE) ||
+          !IsMatchingTaggedFiles(ctx)) {
       } else {
         need_dsp_help = TRUE;
 
-        if (GetRenameParameter(NULL, new_name)) {
+        if (GetRenameParameter(ctx, NULL, new_name)) {
           break;
         }
 
         walking_package.function_data.rename.new_name = new_name;
         walking_package.function_data.rename.confirm = FALSE;
 
-        WalkTaggedFiles(dir_entry->start_file, dir_entry->cursor_pos,
+        WalkTaggedFiles(ctx, dir_entry->start_file, dir_entry->cursor_pos,
                         RenameTaggedFiles, &walking_package);
 
-        BuildFileEntryList(ActivePanel);
+        BuildFileEntryList(ctx, ctx->active);
 
-        RefreshGlobalView(dir_entry);
+        RefreshGlobalView(ctx, dir_entry);
         maybe_change_x_step = TRUE;
       }
       break;
 
     case ACTION_CMD_S:
-      UI_GetKindOfSort();
+      UI_GetKindOfSort(ctx);
 
       dir_entry->start_file = 0;
       dir_entry->cursor_pos = 0;
 
-      Panel_Sort(ActivePanel, s->kind_of_sort);
+      Panel_Sort(ctx->active, s->kind_of_sort);
 
-      DisplayFiles(ActivePanel, dir_entry, dir_entry->start_file,
+      DisplayFiles(ctx, ctx->active, dir_entry, dir_entry->start_file,
                    dir_entry->start_file + dir_entry->cursor_pos, start_x,
-                   file_window);
+                   ctx->ctx_file_window);
       need_dsp_help = TRUE;
       break;
 
     case ACTION_FILTER:
-      if (UI_ReadFilter() == 0) {
+      if (UI_ReadFilter(ctx) == 0) {
 
         dir_entry->start_file = 0;
         dir_entry->cursor_pos = 0;
 
-        BuildFileEntryList(ActivePanel);
+        BuildFileEntryList(ctx, ctx->active);
 
-        DisplayFilter(s);
-        DisplayFiles(ActivePanel, dir_entry, dir_entry->start_file,
+        DisplayFilter(ctx, s);
+        DisplayFiles(ctx, ctx->active, dir_entry, dir_entry->start_file,
                      dir_entry->start_file + dir_entry->cursor_pos, start_x,
-                     file_window);
+                     ctx->ctx_file_window);
 
         if (dir_entry->global_flag)
-          DisplayDiskStatistic(s);
+          DisplayDiskStatistic(ctx, s);
         else
-          DisplayDirStatistic(dir_entry, NULL, s); /* Updated call */
+          DisplayDirStatistic(ctx, dir_entry, NULL, s); /* Updated call */
 
-        if (ActivePanel->file_count == 0)
+        if (ctx->active->file_count == 0)
           unput_char = ESC;
         maybe_change_x_step = TRUE;
       }
       need_dsp_help = TRUE;
       break;
 
+    case ACTION_LOG:
     case ACTION_LOGIN:
       fe_ptr =
-          ActivePanel
+          ctx->active
               ->file_entry_list[dir_entry->start_file + dir_entry->cursor_pos]
               .file;
-      if (mode == DISK_MODE || mode == USER_MODE) {
+      if (ctx->view_mode == DISK_MODE || ctx->view_mode == USER_MODE) {
         (void)GetFileNamePath(fe_ptr, new_login_path);
-        if (!GetNewLoginPath(new_login_path)) {
+        if (!GetNewLoginPath(ctx, ctx->active, new_login_path)) {
           dir_entry->login_flag = TRUE;
 
-          (void)LogDisk(new_login_path);
+          (void)LogDisk(ctx, ctx->active, new_login_path);
           unput_char = ESC;
         }
         need_dsp_help = TRUE;
@@ -1784,7 +1813,7 @@ int HandleFileWindow(DirEntry *dir_entry) {
       break;
 
     case ACTION_ENTER:
-      if (GlobalView->preview_mode) {
+      if (ctx->preview_mode) {
         action = ACTION_NONE;
         break;
       }
@@ -1796,10 +1825,10 @@ int HandleFileWindow(DirEntry *dir_entry) {
       ch = '\0';
 
       /* Use Global Refresh for clean transition */
-      RefreshGlobalView(dir_entry);
+      RefreshGlobalView(ctx, dir_entry);
 
       /* Update scrolling metrics for new size */
-      RereadWindowSize(dir_entry);
+      RereadWindowSize(ctx, dir_entry);
 
       action =
           ACTION_NONE; /* Prevent loop termination to stay in file window */
@@ -1807,45 +1836,45 @@ int HandleFileWindow(DirEntry *dir_entry) {
 
     case ACTION_CMD_P:
       fe_ptr =
-          ActivePanel
+          ctx->active
               ->file_entry_list[dir_entry->start_file + dir_entry->cursor_pos]
               .file;
       de_ptr = fe_ptr->dir_entry;
       {
         char pipe_cmd[PATH_LENGTH + 1];
         pipe_cmd[0] = '\0';
-        if (GetPipeCommand(pipe_cmd) == 0) {
-          (void)Pipe(de_ptr, fe_ptr, pipe_cmd);
+        if (GetPipeCommand(ctx, pipe_cmd) == 0) {
+          (void)Pipe(ctx, de_ptr, fe_ptr, pipe_cmd);
         }
       }
-      RefreshGlobalView(dir_entry);
+      RefreshGlobalView(ctx, dir_entry);
       need_dsp_help = TRUE;
       break;
 
     case ACTION_CMD_TAGGED_P:
       de_ptr = dir_entry;
 
-      if (!IsMatchingTaggedFiles()) {
-      } else if (mode != DISK_MODE && mode != USER_MODE) {
-        UI_Message("^P is not available in archive mode");
+      if (!IsMatchingTaggedFiles(ctx)) {
+      } else if (ctx->view_mode != DISK_MODE && ctx->view_mode != USER_MODE) {
+        UI_Message(ctx, "^P is not available in archive mode");
       } else {
         need_dsp_help = TRUE;
 
         filepath[0] = '\0'; /* Initialize buffer to prevent garbage prompt */
-        if (GetPipeCommand(filepath) == 0) {
+        if (GetPipeCommand(ctx, filepath) == 0) {
           /* Exit ncurses mode */
           endwin();
-          SuspendClock();
+          SuspendClock(ctx);
 
           if ((walking_package.function_data.pipe_cmd.pipe_file =
                    popen(filepath, "w")) == NULL) {
             /* Restore ncurses mode if popen fails */
-            InitClock();
+            InitClock(ctx);
             clearok(stdscr, TRUE);
             refresh();
-            UI_Message("execution of command*%s*failed", filepath);
+            UI_Message(ctx, "execution of command*%s*failed", filepath);
           } else {
-            SilentWalkTaggedFiles(PipeTaggedFiles, &walking_package);
+            SilentWalkTaggedFiles(ctx, PipeTaggedFiles, &walking_package);
 
             /* Close pipe and capture return value */
             pclose_ret = pclose(walking_package.function_data.pipe_cmd
@@ -1855,22 +1884,22 @@ int HandleFileWindow(DirEntry *dir_entry) {
             HitReturnToContinue();
 
             /* Restore ncurses mode */
-            InitClock();
+            InitClock(ctx);
             clearok(stdscr, TRUE);
             refresh(); /* Restore screen */
 
             if (pclose_ret) {
-              UI_Warning("pclose failed");
+              UI_Warning(ctx, "pclose failed");
             }
           }
         }
-        RefreshGlobalView(dir_entry);
+        RefreshGlobalView(ctx, dir_entry);
       }
       break;
 
     case ACTION_CMD_X:
       fe_ptr =
-          ActivePanel
+          ctx->active
               ->file_entry_list[dir_entry->start_file + dir_entry->cursor_pos]
               .file;
       de_ptr = fe_ptr->dir_entry;
@@ -1881,40 +1910,40 @@ int HandleFileWindow(DirEntry *dir_entry) {
             (fe_ptr->stat_struct.st_mode & (S_IXUSR | S_IXGRP | S_IXOTH))) {
           StrCp(command_template, fe_ptr->name);
         }
-        if (GetCommandLine(command_template) == 0) {
-          (void)Execute(de_ptr, fe_ptr, command_template,
-                        &ActivePanel->vol->vol_stats, UI_ArchiveCallback);
-          if (mode == ARCHIVE_MODE)
+        if (GetCommandLine(ctx, command_template) == 0) {
+          (void)Execute(ctx, de_ptr, fe_ptr, command_template,
+                        &ctx->active->vol->vol_stats, UI_ArchiveCallback);
+          if (ctx->view_mode == ARCHIVE_MODE)
             HitReturnToContinue();
         }
       }
-      dir_entry = RefreshFileView(dir_entry);
+      dir_entry = RefreshFileView(ctx, dir_entry);
 
       /* Insert: Explicit Global Refresh to be safe */
-      RefreshGlobalView(dir_entry);
+      RefreshGlobalView(ctx, dir_entry);
       need_dsp_help = TRUE;
       break;
 
     case ACTION_CMD_TAGGED_S:
       /* STRICT FILTER MODE: Only allow if tags exist */
-      if (!IsMatchingTaggedFiles()) {
+      if (!IsMatchingTaggedFiles(ctx)) {
         /* If no tags, this command does nothing (or shows error) */
-        MESSAGE("No tagged files");
-      } else if (mode != DISK_MODE && mode != USER_MODE &&
-                 mode != ARCHIVE_MODE) {
-        MESSAGE("^S is not available in archive mode");
+        MESSAGE(ctx, "No tagged files");
+      } else if (ctx->view_mode != DISK_MODE && ctx->view_mode != USER_MODE &&
+                 ctx->view_mode != ARCHIVE_MODE) {
+        MESSAGE(ctx, "^S is not available in archive mode");
       } else {
         char *command_line;
 
         if ((command_line = (char *)malloc(COLS + 1)) == NULL) {
-          ERROR_MSG("Malloc failed*ABORT");
+          UI_Error(ctx, "", 0, "Malloc failed*ABORT");
           exit(1);
         }
 
         /* Allocate new buffer for silent command */
         char *silent_cmd = (char *)malloc(COLS + 20);
         if (!silent_cmd) {
-          ERROR_MSG("Malloc failed*ABORT");
+          UI_Error(ctx, "", 0, "Malloc failed*ABORT");
           exit(1);
         }
 
@@ -1922,25 +1951,25 @@ int HandleFileWindow(DirEntry *dir_entry) {
         *command_line = '\0';
 
         /* Filter Mode */
-        if (!GetSearchCommandLine(command_line, GlobalSearchTerm)) {
+        if (!GetSearchCommandLine(ctx, command_line, ctx->global_search_term)) {
           /* Construct Silent Command */
           sprintf(silent_cmd, "%s > /dev/null 2>&1", command_line);
 
           walking_package.function_data.execute.command = silent_cmd;
           /* Use modified SilentTagWalk (Untag on Fail) */
-          SilentTagWalkTaggedFiles(ExecuteCommand, &walking_package);
+          SilentTagWalkTaggedFiles(ctx, ExecuteCommand, &walking_package);
           /* No HitReturnToContinue - purely silent */
         }
 
         /* Refresh Display */
-        DisplayFiles(ActivePanel, dir_entry, dir_entry->start_file,
+        DisplayFiles(ctx, ctx->active, dir_entry, dir_entry->start_file,
                      dir_entry->start_file + dir_entry->cursor_pos, start_x,
-                     file_window);
-        DisplayDiskStatistic(s);
+                     ctx->ctx_file_window);
+        DisplayDiskStatistic(ctx, s);
         if (dir_entry->global_flag)
-          DisplayDiskStatistic(s);
+          DisplayDiskStatistic(ctx, s);
         else
-          DisplayDirStatistic(dir_entry, NULL, s);
+          DisplayDirStatistic(ctx, dir_entry, NULL, s);
 
         free(command_line);
         free(silent_cmd);
@@ -1948,35 +1977,35 @@ int HandleFileWindow(DirEntry *dir_entry) {
       break;
 
     case ACTION_CMD_TAGGED_X:
-      if (!IsMatchingTaggedFiles()) {
-      } else if (mode != DISK_MODE && mode != USER_MODE &&
-                 mode != ARCHIVE_MODE) {
-        UI_Message("^X is not available in archive mode");
+      if (!IsMatchingTaggedFiles(ctx)) {
+      } else if (ctx->view_mode != DISK_MODE && ctx->view_mode != USER_MODE &&
+                 ctx->view_mode != ARCHIVE_MODE) {
+        UI_Message(ctx, "^X is not available in archive mode");
       } else {
         char *command_line;
 
         if ((command_line = (char *)malloc(COLS + 1)) == NULL) {
-          UI_Error(__FILE__, __LINE__, "Malloc failed*ABORT");
+          UI_Error(ctx, __FILE__, __LINE__, "Malloc failed*ABORT");
           exit(1);
         }
 
         need_dsp_help = TRUE;
         *command_line = '\0';
-        if (GetCommandLine(command_line) == 0) {
+        if (GetCommandLine(ctx, command_line) == 0) {
           endwin();
-          SuspendClock();
+          SuspendClock(ctx);
           walking_package.function_data.execute.command = command_line;
-          SilentWalkTaggedFiles(ExecuteCommand, &walking_package);
+          SilentWalkTaggedFiles(ctx, ExecuteCommand, &walking_package);
           HitReturnToContinue();
 
-          InitClock();
+          InitClock(ctx);
           clearok(stdscr, TRUE);
           refresh();
 
-          dir_entry = RefreshFileView(dir_entry);
+          dir_entry = RefreshFileView(ctx, dir_entry);
 
           /* Insert: Explicit Global Refresh */
-          RefreshGlobalView(dir_entry);
+          RefreshGlobalView(ctx, dir_entry);
         }
         free(command_line);
       }
@@ -1985,86 +2014,80 @@ int HandleFileWindow(DirEntry *dir_entry) {
     case ACTION_QUIT_DIR:
       need_dsp_help = TRUE;
       fe_ptr =
-          ActivePanel
+          ctx->active
               ->file_entry_list[dir_entry->start_file + dir_entry->cursor_pos]
               .file;
       de_ptr = fe_ptr->dir_entry;
-      QuitTo(de_ptr);
+      QuitTo(ctx, de_ptr);
       break;
 
     case ACTION_QUIT:
       need_dsp_help = TRUE;
-      Quit();
+      Quit(ctx);
       action = ACTION_NONE;
       break;
 
     case ACTION_VOL_MENU:
-      /* Save Directory Tree State before switching */
-      ActivePanel->vol->vol_stats.cursor_pos = ActivePanel->cursor_pos;
-      ActivePanel->vol->vol_stats.disp_begin_pos = ActivePanel->disp_begin_pos;
+      /* Panel state isolation: No vol_stats sync */
 
-      if (SelectLoadedVolume(NULL) == 0) {
+      if (SelectLoadedVolume(ctx, NULL) == 0) {
         unput_char = '\0'; /* Ensure we return clean ESC, no pending input */
         return ESC;
       } else {
         ch = 0;
       }
-      if (CurrentVolume != start_vol)
+      if (ctx->active->vol != start_vol)
         return ESC;
       break;
     case ACTION_VOL_PREV:
-      /* Save Directory Tree State before switching */
-      ActivePanel->vol->vol_stats.cursor_pos = ActivePanel->cursor_pos;
-      ActivePanel->vol->vol_stats.disp_begin_pos = ActivePanel->disp_begin_pos;
+      /* Panel state isolation: No vol_stats sync */
 
-      if (CycleLoadedVolume(-1) == 0) {
+      if (CycleLoadedVolume(ctx, ctx->active, -1) == 0) {
         unput_char = '\0'; /* Ensure we return clean ESC, no pending input */
         return ESC;
       } else {
         ch = 0;
       }
-      if (CurrentVolume != start_vol)
+      if (ctx->active->vol != start_vol)
         return ESC;
       break;
     case ACTION_VOL_NEXT:
-      /* Save Directory Tree State before switching */
-      ActivePanel->vol->vol_stats.cursor_pos = ActivePanel->cursor_pos;
-      ActivePanel->vol->vol_stats.disp_begin_pos = ActivePanel->disp_begin_pos;
+      /* Panel state isolation: No vol_stats sync */
 
-      if (CycleLoadedVolume(1) == 0) {
+      if (CycleLoadedVolume(ctx, ctx->active, 1) == 0) {
         unput_char = '\0'; /* Ensure we return clean ESC, no pending input */
         return ESC;
       } else {
         ch = 0;
       }
-      if (CurrentVolume != start_vol)
+      if (ctx->active->vol != start_vol)
         return ESC;
       break;
 
     case ACTION_REFRESH: {
-      dir_entry = RefreshFileView(dir_entry);
+      dir_entry = RefreshFileView(ctx, dir_entry);
       need_dsp_help = TRUE;
     } break;
 
     case ACTION_RESIZE:
-      resize_request = TRUE;
+      ctx->resize_request = TRUE;
       break;
 
     case ACTION_TOGGLE_STATS: /* ADDED */
-      GlobalView->show_stats = !GlobalView->show_stats;
-      resize_request = TRUE;
+      ctx->show_stats = !ctx->show_stats;
+      ctx->resize_request = TRUE;
       break;
 
     case ACTION_TOGGLE_COMPACT: /* ADDED */
-      GlobalView->fixed_col_width = (GlobalView->fixed_col_width == 0) ? 32 : 0;
-      resize_request = TRUE;
+      ctx->fixed_col_width = (ctx->fixed_col_width == 0) ? 32 : 0;
+      ctx->resize_request = TRUE;
       break;
 
     case ACTION_ESCAPE:
       break; /* Handled by loop condition */
 
     case ACTION_LIST_JUMP:
-      ListJump(dir_entry, "");
+      ListJump(ctx, dir_entry, "");
       need_dsp_help = TRUE;
       break;
 
@@ -2076,18 +2099,18 @@ int HandleFileWindow(DirEntry *dir_entry) {
       else
         dir_entry->tagged_flag = FALSE;
 
-      BuildFileEntryList(ActivePanel);
+      BuildFileEntryList(ctx, ctx->active);
 
       dir_entry->start_file = 0;
       dir_entry->cursor_pos = 0;
-      DisplayFiles(ActivePanel, dir_entry, dir_entry->start_file,
+      DisplayFiles(ctx, ctx->active, dir_entry, dir_entry->start_file,
                    dir_entry->start_file + dir_entry->cursor_pos, start_x,
-                   file_window);
+                   ctx->ctx_file_window);
       maybe_change_x_step = TRUE;
       break;
 
     case ACTION_ASTERISK: /* Mapped to '*' for Invert Tags in File Window */
-      HandleInvertTags(dir_entry, s);
+      HandleInvertTags(ctx, dir_entry, s);
       need_dsp_help = TRUE;
       break;
 
@@ -2097,7 +2120,7 @@ int HandleFileWindow(DirEntry *dir_entry) {
 
     /* Centralized check: If directory became empty, we MUST pop out of file
      * window */
-    if (ActivePanel->file_count == 0) {
+    if (ctx->active->file_count == 0) {
       action = ACTION_ESCAPE;
     }
 
@@ -2105,13 +2128,14 @@ int HandleFileWindow(DirEntry *dir_entry) {
            action != ACTION_ESCAPE && action != ACTION_QUIT);
 
   if (dir_entry->big_window) {
-    SwitchToSmallFileWindow();
+    SwitchToSmallFileWindow(ctx);
     /* We don't need full refresh here because HandleDirWindow will catch the
      * return */
   }
 
   /* Ensure all mode flags are cleared when exiting back to the tree.
-   * This guarantees that RefreshGlobalView returns to small window layout. */
+   * This guarantees that RefreshGlobalView returns to small window
+   * ctx->layout. */
   dir_entry->global_flag = FALSE;
   dir_entry->tagged_flag = FALSE;
   dir_entry->big_window = FALSE;
@@ -2129,8 +2153,9 @@ int HandleFileWindow(DirEntry *dir_entry) {
               : ESC); /* Return CR or ESC based on action */
 }
 
-static void WalkTaggedFiles(int start_file, int cursor_pos,
-                            int (*fkt)(FileEntry *, WalkingPackage *),
+static void WalkTaggedFiles(ViewContext *ctx, int start_file, int cursor_pos,
+                            int (*fkt)(ViewContext *, FileEntry *,
+                                       WalkingPackage *),
                             WalkingPackage *walking_package) {
   FileEntry *fe_ptr;
   int i;
@@ -2142,20 +2167,20 @@ static void WalkTaggedFiles(int start_file, int cursor_pos,
   if (baudrate() >= QUICK_BAUD_RATE)
     typeahead(0);
 
-  GetMaxYX(file_window, &height, &width);
+  GetMaxYX(ctx->ctx_file_window, &height, &width);
 
-  max_disp_files = height * GetPanelMaxColumn(ActivePanel);
+  max_disp_files = height * GetPanelMaxColumn(ctx->active);
 
-  for (i = 0; i < (int)ActivePanel->file_count && result == 0; i++) {
-    fe_ptr = ActivePanel->file_entry_list[i].file;
+  for (i = 0; i < (int)ctx->active->file_count && result == 0; i++) {
+    fe_ptr = ctx->active->file_entry_list[i].file;
 
     if (fe_ptr->tagged && fe_ptr->matching) {
       if (maybe_change_x == FALSE && i >= start_file &&
           i < start_file + max_disp_files) {
         /* Walk possible without scrolling */
         /*---------------------------*/
-        DisplayFiles(ActivePanel, fe_ptr->dir_entry, start_file, i, start_x,
-                     file_window);
+        DisplayFiles(ctx, ctx->active, fe_ptr->dir_entry, start_file, i,
+                     start_x, ctx->ctx_file_window);
         cursor_pos = i - start_file;
       } else {
         /* Scrolling necessary */
@@ -2164,29 +2189,29 @@ static void WalkTaggedFiles(int start_file, int cursor_pos,
         start_file = MAX(0, i - max_disp_files + 1);
         cursor_pos = i - start_file;
 
-        DisplayFiles(ActivePanel, fe_ptr->dir_entry, start_file,
-                     start_file + cursor_pos, start_x, file_window);
+        DisplayFiles(ctx, ctx->active, fe_ptr->dir_entry, start_file,
+                     start_file + cursor_pos, start_x, ctx->ctx_file_window);
         maybe_change_x = FALSE;
       }
 
       if (fe_ptr->dir_entry->global_flag)
-        DisplayGlobalFileParameter(fe_ptr);
+        DisplayGlobalFileParameter(ctx, fe_ptr);
       else
-        DisplayFileParameter(fe_ptr);
+        DisplayFileParameter(ctx, fe_ptr);
 
-      RefreshWindow(file_window);
+      RefreshWindow(ctx->ctx_file_window);
       doupdate();
-      result = fkt(fe_ptr, walking_package);
+      result = fkt(ctx, fe_ptr, walking_package);
 
       /* Handle case where file was removed/moved away */
       if (walking_package->new_fe_ptr == NULL) {
-        RemoveFileEntry(i);
+        RemoveFileEntry(ctx, i);
         i--; /* Adjust index since we removed current element */
         maybe_change_x = TRUE;
       } else if (walking_package->new_fe_ptr != fe_ptr) {
-        ActivePanel->file_entry_list[i].file = walking_package->new_fe_ptr;
-        ChangeFileEntry();
-        max_disp_files = height * GetPanelMaxColumn(ActivePanel);
+        ctx->active->file_entry_list[i].file = walking_package->new_fe_ptr;
+        ChangeFileEntry(ctx);
+        max_disp_files = height * GetPanelMaxColumn(ctx->active);
         maybe_change_x = TRUE;
       }
     }
@@ -2206,17 +2231,18 @@ static void WalkTaggedFiles(int start_file, int cursor_pos,
  --crb3 12mar04
 */
 
-static void SilentWalkTaggedFiles(int (*fkt)(FileEntry *, WalkingPackage *,
-                                             Statistic *),
+static void SilentWalkTaggedFiles(ViewContext *ctx,
+                                  int (*fkt)(ViewContext *, FileEntry *,
+                                             WalkingPackage *, Statistic *),
                                   WalkingPackage *walking_package) {
   FileEntry *fe_ptr;
   int i;
 
-  for (i = 0; i < (int)ActivePanel->file_count; i++) {
-    fe_ptr = ActivePanel->file_entry_list[i].file;
+  for (i = 0; i < (int)ctx->active->file_count; i++) {
+    fe_ptr = ctx->active->file_entry_list[i].file;
 
     if (fe_ptr->tagged && fe_ptr->matching) {
-      (void)fkt(fe_ptr, walking_package, &ActivePanel->vol->vol_stats);
+      (void)fkt(ctx, fe_ptr, walking_package, &ctx->active->vol->vol_stats);
     }
   }
 }
@@ -2239,38 +2265,39 @@ ExecuteCommand must have its retval unzeroed.
 
 */
 
-static void SilentTagWalkTaggedFiles(int (*fkt)(FileEntry *, WalkingPackage *,
-                                                Statistic *),
+static void SilentTagWalkTaggedFiles(ViewContext *ctx,
+                                     int (*fkt)(ViewContext *, FileEntry *,
+                                                WalkingPackage *, Statistic *),
                                      WalkingPackage *walking_package) {
   FileEntry *fe_ptr;
   int i;
   int result = 0;
 
-  for (i = 0; i < (int)ActivePanel->file_count; i++) {
-    fe_ptr = ActivePanel->file_entry_list[i].file;
+  for (i = 0; i < (int)ctx->active->file_count; i++) {
+    fe_ptr = ctx->active->file_entry_list[i].file;
 
     if (fe_ptr->tagged && fe_ptr->matching) {
-      result = fkt(fe_ptr, walking_package, &ActivePanel->vol->vol_stats);
+      result = fkt(ctx, fe_ptr, walking_package, &ctx->active->vol->vol_stats);
 
       if (result != 0) {
         fe_ptr->tagged = FALSE;
         /* Update Stats */
         fe_ptr->dir_entry->tagged_files--;
         fe_ptr->dir_entry->tagged_bytes -= fe_ptr->stat_struct.st_size;
-        ActivePanel->vol->vol_stats.disk_tagged_files--;
-        ActivePanel->vol->vol_stats.disk_tagged_bytes -=
+        ctx->active->vol->vol_stats.disk_tagged_files--;
+        ctx->active->vol->vol_stats.disk_tagged_bytes -=
             fe_ptr->stat_struct.st_size;
       }
     }
   }
 }
 
-static BOOL IsMatchingTaggedFiles(void) {
+static BOOL IsMatchingTaggedFiles(ViewContext *ctx) {
   FileEntry *fe_ptr;
   int i;
 
-  for (i = 0; i < (int)ActivePanel->file_count; i++) {
-    fe_ptr = ActivePanel->file_entry_list[i].file;
+  for (i = 0; i < (int)ctx->active->file_count; i++) {
+    fe_ptr = ctx->active->file_entry_list[i].file;
 
     if (fe_ptr->matching && fe_ptr->tagged)
       return (TRUE);
@@ -2279,7 +2306,8 @@ static BOOL IsMatchingTaggedFiles(void) {
   return (FALSE);
 }
 
-static int UI_DeleteTaggedFiles(int max_disp_files, Statistic *s) {
+static int UI_DeleteTaggedFiles(ViewContext *ctx, int max_disp_files,
+                                Statistic *s) {
   FileEntry *fe_ptr;
   DirEntry *de_ptr;
   int i;
@@ -2295,9 +2323,9 @@ static int UI_DeleteTaggedFiles(int max_disp_files, Statistic *s) {
   char prompt_buffer[MESSAGE_LENGTH];
 
   /* 1. Count tagged files */
-  for (i = 0; i < (int)ActivePanel->file_count; i++) {
-    if (ActivePanel->file_entry_list[i].file->tagged &&
-        ActivePanel->file_entry_list[i].file->matching) {
+  for (i = 0; i < (int)ctx->active->file_count; i++) {
+    if (ctx->active->file_entry_list[i].file->tagged &&
+        ctx->active->file_entry_list[i].file->matching) {
       tagged_count++;
     }
   }
@@ -2308,12 +2336,13 @@ static int UI_DeleteTaggedFiles(int max_disp_files, Statistic *s) {
   /* 2. Prompt for Intent */
   (void)snprintf(prompt_buffer, sizeof(prompt_buffer),
                  "Delete %d tagged files (Y/N) ?", tagged_count);
-  term = InputChoice(prompt_buffer, "YN\033");
+  term = InputChoice(ctx, prompt_buffer, "YN\033");
   if (term != 'Y')
     return -1;
 
   /* 3. Prompt for Mode (Confirm Each?) */
-  term = InputChoice("Ask for confirmation for each file (Y/N) ? ", "YN\033");
+  term =
+      InputChoice(ctx, "Ask for confirmation for each file (Y/N) ? ", "YN\033");
   if (term == ESC)
     return -1;
   confirm_each = (term == 'Y') ? TRUE : FALSE;
@@ -2323,33 +2352,33 @@ static int UI_DeleteTaggedFiles(int max_disp_files, Statistic *s) {
   if (baudrate() >= QUICK_BAUD_RATE)
     typeahead(0);
 
-  for (i = 0; i < (int)ActivePanel->file_count && result == 0;) {
+  for (i = 0; i < (int)ctx->active->file_count && result == 0;) {
     deleted = FALSE;
 
-    fe_ptr = ActivePanel->file_entry_list[i].file;
+    fe_ptr = ctx->active->file_entry_list[i].file;
     de_ptr = fe_ptr->dir_entry;
 
     if (fe_ptr->tagged && fe_ptr->matching) {
       /* Spinner to indicate progress during bulk deletion */
-      DrawSpinner();
+      DrawSpinner(ctx);
       doupdate();
       start_file = MAX(0, i - max_disp_files + 1);
       cursor_pos = i - start_file;
 
-      DisplayFiles(ActivePanel, de_ptr, start_file, start_file + cursor_pos,
-                   start_x, file_window);
+      DisplayFiles(ctx, ctx->active, de_ptr, start_file,
+                   start_file + cursor_pos, start_x, ctx->ctx_file_window);
 
       if (fe_ptr->dir_entry->global_flag)
-        DisplayGlobalFileParameter(fe_ptr);
+        DisplayGlobalFileParameter(ctx, fe_ptr);
       else
-        DisplayFileParameter(fe_ptr);
+        DisplayFileParameter(ctx, fe_ptr);
 
-      RefreshWindow(file_window);
+      RefreshWindow(ctx->ctx_file_window);
       doupdate();
 
       term = 'Y';
       if (confirm_each) {
-        term = InputChoice("Delete this file (Y/N) ? ", "YN\033");
+        term = InputChoice(ctx, "Delete this file (Y/N) ? ", "YN\033");
       }
 
       if (term == ESC) {
@@ -2362,21 +2391,21 @@ static int UI_DeleteTaggedFiles(int max_disp_files, Statistic *s) {
       if (term == 'Y') {
         /* Pass the override mode pointer to suppress read-only prompts if 'A'
          * was selected previously */
-        if ((result = DeleteFile(fe_ptr, &override_mode, s,
-                                 UI_ChoiceResolver)) == 0) {
+        if ((result = DeleteFile(ctx, fe_ptr, &override_mode, s,
+                                 (ChoiceCallback)UI_ChoiceResolver)) == 0) {
           /* File was deleted */
           /*----------------------*/
 
           deleted = TRUE;
 
           if (de_ptr->global_flag)
-            DisplayDiskStatistic(s);
+            DisplayDiskStatistic(ctx, s);
           else
-            DisplayDirStatistic(de_ptr, NULL, s); /* Updated call */
+            DisplayDirStatistic(ctx, de_ptr, NULL, s); /* Updated call */
 
-          DisplayAvailBytes(s);
+          DisplayAvailBytes(ctx, s);
 
-          RemoveFileEntry(start_file + cursor_pos);
+          RemoveFileEntry(ctx, start_file + cursor_pos);
         }
       }
     }
@@ -2389,16 +2418,16 @@ static int UI_DeleteTaggedFiles(int max_disp_files, Statistic *s) {
   return (result);
 }
 
-static void RereadWindowSize(DirEntry *dir_entry) {
+static void RereadWindowSize(ViewContext *ctx, DirEntry *dir_entry) {
   int height, width;
-  SetPanelFileMode(ActivePanel, GetPanelFileMode(ActivePanel));
+  SetPanelFileMode(ctx, ctx->active, GetPanelFileMode(ctx->active));
 
-  GetMaxYX(file_window, &height, &width);
-  x_step = (GetPanelMaxColumn(ActivePanel) > 1) ? height : 1;
-  max_disp_files = height * GetPanelMaxColumn(ActivePanel);
+  GetMaxYX(ctx->ctx_file_window, &height, &width);
+  x_step = (GetPanelMaxColumn(ctx->active) > 1) ? height : 1;
+  max_disp_files = height * GetPanelMaxColumn(ctx->active);
 
   if (dir_entry->start_file + dir_entry->cursor_pos <
-      (int)ActivePanel->file_count) {
+      (int)ctx->active->file_count) {
     while (dir_entry->cursor_pos >= max_disp_files) {
       dir_entry->start_file += x_step;
       dir_entry->cursor_pos -= x_step;
@@ -2407,7 +2436,7 @@ static void RereadWindowSize(DirEntry *dir_entry) {
   return;
 }
 
-static void ListJump(DirEntry *dir_entry, char *str) {
+static void ListJump(ViewContext *ctx, DirEntry *dir_entry, char *str) {
   char search_buf[256];
   int buf_len = 0;
   int ch;
@@ -2421,18 +2450,18 @@ static void ListJump(DirEntry *dir_entry, char *str) {
 
   memset(search_buf, 0, sizeof(search_buf));
 
-  ClearHelp();
-  MvAddStr(Y_PROMPT, 1, "Search: ");
+  ClearHelp(ctx);
+  MvAddStr(Y_PROMPT(ctx), 1, "Search: ");
   RefreshWindow(stdscr);
 
   while (1) {
     /* Update prompt */
-    move(Y_PROMPT, 9);
+    move(Y_PROMPT(ctx), 9);
     addstr(search_buf);
     clrtoeol();
     refresh();
 
-    ch = Getch();
+    ch = Getch(ctx);
 
     /* Handle Resize or Error */
     if (ch == -1)
@@ -2442,9 +2471,9 @@ static void ListJump(DirEntry *dir_entry, char *str) {
       /* Cancel: Restore */
       dir_entry->start_file = original_start_file;
       dir_entry->cursor_pos = original_cursor_pos;
-      DisplayFiles(ActivePanel, dir_entry, dir_entry->start_file,
+      DisplayFiles(ctx, ctx->active, dir_entry, dir_entry->start_file,
                    dir_entry->start_file + dir_entry->cursor_pos, start_x,
-                   file_window);
+                   ctx->ctx_file_window);
       break;
     }
 
@@ -2465,8 +2494,8 @@ static void ListJump(DirEntry *dir_entry, char *str) {
         } else {
           /* Search again from top for the shorter string */
           found_idx = -1;
-          for (i = 0; i < (int)ActivePanel->file_count; i++) {
-            FileEntry *fe = ActivePanel->file_entry_list[i].file;
+          for (i = 0; i < (int)ctx->active->file_count; i++) {
+            FileEntry *fe = ctx->active->file_entry_list[i].file;
             if (strncasecmp(fe->name, search_buf, buf_len) == 0) {
               found_idx = i;
               break;
@@ -2483,10 +2512,10 @@ static void ListJump(DirEntry *dir_entry, char *str) {
             }
           }
         }
-        DisplayFiles(ActivePanel, dir_entry, dir_entry->start_file,
+        DisplayFiles(ctx, ctx->active, dir_entry, dir_entry->start_file,
                      dir_entry->start_file + dir_entry->cursor_pos, start_x,
-                     file_window);
-        RefreshWindow(file_window);
+                     ctx->ctx_file_window);
+        RefreshWindow(ctx->ctx_file_window);
       }
     } else if (isprint(ch)) {
       if (buf_len < (int)sizeof(search_buf) - 1) {
@@ -2494,8 +2523,8 @@ static void ListJump(DirEntry *dir_entry, char *str) {
         search_buf[buf_len + 1] = '\0';
 
         found_idx = -1;
-        for (i = 0; i < (int)ActivePanel->file_count; i++) {
-          FileEntry *fe = ActivePanel->file_entry_list[i].file;
+        for (i = 0; i < (int)ctx->active->file_count; i++) {
+          FileEntry *fe = ctx->active->file_entry_list[i].file;
           if (strncasecmp(fe->name, search_buf, buf_len + 1) == 0) {
             found_idx = i;
             break;
@@ -2511,10 +2540,10 @@ static void ListJump(DirEntry *dir_entry, char *str) {
             dir_entry->start_file = found_idx;
             dir_entry->cursor_pos = 0;
           }
-          DisplayFiles(ActivePanel, dir_entry, dir_entry->start_file,
+          DisplayFiles(ctx, ctx->active, dir_entry, dir_entry->start_file,
                        dir_entry->start_file + dir_entry->cursor_pos, start_x,
-                       file_window);
-          RefreshWindow(file_window);
+                       ctx->ctx_file_window);
+          RefreshWindow(ctx->ctx_file_window);
         } else {
           /* No match: Accept char to show user what they typed, but do not move
            * cursor */
@@ -2529,30 +2558,38 @@ static void ListJump(DirEntry *dir_entry, char *str) {
 
 /* UI_ViewTaggedFiles moved to prompts.c */
 
-static void UpdatePreview(DirEntry *dir_entry) {
-  if (GlobalView->preview_mode && preview_window) {
+static void UpdatePreview(ViewContext *ctx, DirEntry *dir_entry) {
+  if (ctx->preview_mode && ctx->ctx_preview_window) {
     FileEntry *fe = NULL;
-    if (ActivePanel && ActivePanel->file_entry_list &&
-        ActivePanel->file_count > 0) {
+    if (ctx->active && ctx->active->file_entry_list &&
+        ctx->active->file_count > 0) {
       int idx = dir_entry->start_file + dir_entry->cursor_pos;
-      if (idx >= 0 && (unsigned int)idx < ActivePanel->file_count) {
-        fe = ActivePanel->file_entry_list[idx].file;
+      if (idx >= 0 && (unsigned int)idx < ctx->active->file_count) {
+        fe = ctx->active->file_entry_list[idx].file;
       }
     }
     if (fe) {
       char path[PATH_LENGTH];
       GetFileNamePath(fe, path);
-      RenderFilePreview(preview_window, path, &preview_line_offset, 0);
+      RenderFilePreview(ctx, ctx->ctx_preview_window, path,
+                        &preview_line_offset, 0);
     } else {
-      RenderFilePreview(preview_window, "", &preview_line_offset, 0);
+      RenderFilePreview(ctx, ctx->ctx_preview_window, "", &preview_line_offset,
+                        0);
     }
   }
 }
 
-void BuildFileEntryList(YtreePanel *panel) {
+void BuildFileEntryList(ViewContext *ctx, YtreePanel *panel) {
   DirEntry *dir_entry;
   if (!panel || !panel->vol || panel->vol->total_dirs == 0)
     return;
+
+  /* Safety: If Volume's dir_entry_list was recently freed (e.g. by
+     LogDisk/Rescan), rebuild it before attempting to access it. */
+  if (panel->vol->dir_entry_list == NULL) {
+    BuildDirEntryList(ctx, panel->vol, &panel->current_dir_entry);
+  }
 
   int idx = panel->disp_begin_pos + panel->cursor_pos;
   if (idx >= panel->vol->total_dirs)
@@ -2568,19 +2605,20 @@ void BuildFileEntryList(YtreePanel *panel) {
 
   panel->file_count = 0;
   if (dir_entry->global_flag) {
-    ReadGlobalFileList(panel, FALSE, panel->vol->vol_stats.tree);
+    ReadGlobalFileList(ctx, panel, FALSE, panel->vol->vol_stats.tree);
   } else {
-    ReadFileList(panel, FALSE, dir_entry);
+    ReadFileList(ctx, panel, FALSE, dir_entry);
   }
   Panel_Sort(panel, panel->vol->vol_stats.kind_of_sort);
 
   /* Propagate metrics to the renderer */
   SetFileRenderingMetrics(panel, max_visual_filename_len,
                           max_visual_linkname_len, max_visual_userview_len);
-  SetPanelFileMode(panel, GetPanelFileMode(panel));
+  SetPanelFileMode(ctx, panel, GetPanelFileMode(panel));
 }
 
-static void HandleInvertTags(DirEntry *dir_entry, Statistic *s) {
+static void HandleInvertTags(ViewContext *ctx, DirEntry *dir_entry,
+                             Statistic *s) {
   FileEntry *fe;
   for (fe = dir_entry->file; fe; fe = fe->next) {
     if (fe->matching) {

@@ -32,9 +32,7 @@ typedef struct {
 void UI_Dialog_Init(void);
 int UI_Dialog_Push(WINDOW *win, UITier tier);
 int UI_Dialog_Pop(WINDOW *win);
-void UI_Dialog_RefreshAll(void);
-
-/* Helpers to handle flicker free update */
-void UI_Dialog_Close(WINDOW *win);
+void UI_Dialog_RefreshAll(ViewContext *ctx);
+void UI_Dialog_Close(ViewContext *ctx, WINDOW *win);
 
 #endif /* YTREE_DIALOG_H */

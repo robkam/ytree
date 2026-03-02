@@ -9,7 +9,11 @@
 #include "watcher.h"
 #include "ytree.h"
 #include "ytree_cmd.h"
+#include <ctype.h>
+#include <curses.h>
 #include <errno.h>
+#include <stdio.h>
+#include <string.h>
 #include <sys/select.h>
 #include <unistd.h>
 
@@ -18,8 +22,6 @@
 #endif
 
 /* External declarations for Signal Safety enforcement */
-extern volatile sig_atomic_t ytree_shutdown_flag;
-extern void ClockHandler(int);
 
 /* Wrapper function to satisfy tputs(..., int (*putc_func)(int)) signature */
 /* It writes the character 'c' to standard output. */
@@ -229,18 +231,18 @@ int VisualPositionToBytePosition(const char *str, int visual_pos) {
 #endif
 }
 
-int InputChoice(const char *msg, const char *term) {
+int InputChoice(ViewContext *ctx, const char *msg, const char *term) {
   int c;
 
-  ClearHelp();
+  ClearHelp(ctx);
 
   curs_set(1);
-  leaveok(stdscr, FALSE);
-  mvprintw(LINES - 2, 1, "%s", msg);
-  RefreshWindow(stdscr);
+  leaveok(ctx->ctx_border_window, FALSE);
+  mvwprintw(ctx->ctx_border_window, ctx->layout.prompt_y, 1, "%s", msg);
+  wnoutrefresh(ctx->ctx_border_window);
   doupdate();
   do {
-    c = Getch();
+    c = WGetch(ctx, ctx->ctx_border_window);
     if (c >= 0)
       if (islower(c))
         c = toupper(c);
@@ -249,11 +251,12 @@ int InputChoice(const char *msg, const char *term) {
   if (c >= 0)
     echochar(c);
 
-  move(LINES - 2, 1);
-  clrtoeol();
-  leaveok(stdscr, TRUE);
+  mvwaddstr(ctx->ctx_border_window, ctx->layout.prompt_y, 1, " ");
+  mvwhline(ctx->ctx_border_window, ctx->layout.prompt_y, 1, ' ', COLS - 2);
+  wnoutrefresh(ctx->ctx_border_window);
+  leaveok(ctx->ctx_border_window, TRUE);
   curs_set(0);
-  refresh();
+  doupdate();
 
   return (c);
 }
@@ -293,8 +296,18 @@ BOOL KeyPressed() {
   BOOL pressed = FALSE;
 
   nodelay(stdscr, TRUE);
-  if (wgetch(stdscr) != ERR)
+  int c = wgetch(stdscr);
+  if (c != ERR) {
     pressed = TRUE;
+    ungetch(c);
+
+    FILE *l = fopen("/tmp/ytree_wgetch.log", "a");
+    if (l) {
+      fprintf(l, "KeyPressed() saw: %3d ('%c') - UNGETTING\n", c,
+              (c >= 32 && c <= 126) ? c : '.');
+      fclose(l);
+    }
+  }
   nodelay(stdscr, FALSE);
 
   return (pressed);
@@ -306,6 +319,13 @@ BOOL EscapeKeyPressed(void) {
 
   nodelay(stdscr, TRUE);
   if ((c = wgetch(stdscr)) != ERR) {
+    FILE *l = fopen("/tmp/ytree_wgetch.log", "a");
+    if (l) {
+      fprintf(l, "EscapeKeyPressed() saw: %3d ('%c')\n", c,
+              (c >= 32 && c <= 126) ? c : '.');
+      fclose(l);
+    }
+
     if (c == ESC) {
       pressed = TRUE;
     } else {
@@ -345,7 +365,7 @@ int ViKey(int ch) {
 
 #endif
 
-YtreeAction GetKeyAction(int ch) {
+YtreeAction GetKeyAction(ViewContext *ctx, int ch) {
 #ifdef VI_KEYS
   ch = ViKey(ch);
 #endif
@@ -369,7 +389,8 @@ YtreeAction GetKeyAction(int ch) {
     return ACTION_END;
 
   case '\t':
-    return (IsSplitScreen) ? ACTION_SWITCH_PANEL : ACTION_MOVE_SIBLING_NEXT;
+    return (ctx && ctx->is_split_screen) ? ACTION_SWITCH_PANEL
+                                         : ACTION_MOVE_SIBLING_NEXT;
   case '*':
     return ACTION_ASTERISK;
   case KEY_BTAB:
@@ -388,7 +409,7 @@ YtreeAction GetKeyAction(int ch) {
     return ACTION_ESCAPE;
   case 'l':
   case 'L':
-    return ACTION_LOGIN;
+    return ACTION_LOG;
   case 'q':
   case 'Q':
     return ACTION_QUIT;
@@ -492,13 +513,13 @@ YtreeAction GetKeyAction(int ch) {
   case 0x07:
     return ACTION_CMD_TAGGED_G;
   case 0x0E:
-    if (GlobalView && GlobalView->preview_mode)
+    if (ctx && ctx->preview_mode)
       return ACTION_PREVIEW_SCROLL_DOWN;
     return ACTION_CMD_TAGGED_M;
   case 0x0F:
     return ACTION_CMD_TAGGED_O;
   case 0x10:
-    if (GlobalView && GlobalView->preview_mode)
+    if (ctx && ctx->preview_mode)
       return ACTION_PREVIEW_SCROLL_UP;
     return ACTION_CMD_TAGGED_P;
   case 0x12:
@@ -560,14 +581,15 @@ YtreeAction GetKeyAction(int ch) {
   }
 }
 
-int WGetch(WINDOW *win) {
+int WGetch(ViewContext *ctx, WINDOW *win) {
   int c;
 
   c = wgetch(win);
 
 #ifdef KEY_RESIZE
   if (c == KEY_RESIZE) {
-    resize_request = TRUE;
+    if (ctx)
+      ctx->resize_request = TRUE;
     c = -1;
   }
 #endif
@@ -575,17 +597,17 @@ int WGetch(WINDOW *win) {
   return (c);
 }
 
-int Getch() { return (WGetch(stdscr)); }
+int Getch(ViewContext *ctx) { return WGetch(ctx, stdscr); }
 
-int GetEventOrKey(void) {
+int GetEventOrKey(ViewContext *ctx) {
   int ch;
-  int w_fd = Watcher_GetFD();
+  int w_fd = Watcher_GetFD(ctx);
   fd_set fds;
   int max_fd;
   int result;
   struct timeval tv;
 
-  if (resize_request)
+  if (ctx && ctx->resize_request)
     return KEY_RESIZE;
 
   /* Before the select loop, check the shutdown flag */
@@ -594,12 +616,14 @@ int GetEventOrKey(void) {
 
   /* Check if input is already available to avoid select delay */
   nodelay(stdscr, TRUE);
-  ch = WGetch(stdscr);
+  ch = WGetch(ctx, stdscr);
   nodelay(stdscr, FALSE);
-  if (ch != ERR)
-    return ch;
 
-  if (resize_request)
+  if (ch != ERR) {
+    return ch;
+  }
+
+  if (ctx && ctx->resize_request)
     return KEY_RESIZE;
 
   while (1) {
@@ -621,7 +645,8 @@ int GetEventOrKey(void) {
 
     if (result == 0) {
       /* Timeout: Update Clock */
-      ClockHandler(0);
+      if (ctx)
+        ClockHandler(ctx, 0);
       continue;
     }
 
@@ -631,11 +656,11 @@ int GetEventOrKey(void) {
           return 'q';
 
         nodelay(stdscr, TRUE);
-        ch = WGetch(stdscr);
+        ch = WGetch(ctx, stdscr);
         nodelay(stdscr, FALSE);
         if (ch != ERR)
           return ch;
-        if (resize_request)
+        if (ctx && ctx->resize_request)
           return KEY_RESIZE;
 
         continue;
@@ -643,21 +668,21 @@ int GetEventOrKey(void) {
       return -1;
     }
 
-    if ((GlobalView->refresh_mode & REFRESH_WATCHER) && w_fd >= 0 &&
+    if (ctx && (ctx->refresh_mode & REFRESH_WATCHER) && w_fd >= 0 &&
         FD_ISSET(w_fd, &fds)) {
-      if (Watcher_ProcessEvents()) {
+      if (Watcher_ProcessEvents(ctx)) {
         return KEY_F(5);
       }
     }
 
     if (FD_ISSET(STDIN_FILENO, &fds)) {
       /* Input available, perform WGetch */
-      return WGetch(stdscr);
+      return WGetch(ctx, stdscr);
     }
   }
 }
 
-int UI_AskConflict(const char *src_path, const char *dst_path,
+int UI_AskConflict(ViewContext *ctx, const char *src_path, const char *dst_path,
                    int *mode_flags) {
   char msg[1024];
   int c;
@@ -668,7 +693,7 @@ int UI_AskConflict(const char *src_path, const char *dst_path,
            dst_path);
 
   /* Allow Y, N, A, Q, and ESC (27) */
-  c = InputChoice(msg, "YNAQ\033");
+  c = InputChoice(ctx, msg, "YNAQ\033");
 
   if (c == 'Y')
     return CONFLICT_OVERWRITE;

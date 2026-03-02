@@ -17,6 +17,9 @@ def test_mkdir_command(ytree_binary, tmp_path):
     tui.send_keystroke("new_dir\r")
     time.sleep(0.5)
     
+    print("\n==== SCREEN ====")
+    print("\n".join(tui.get_screen_dump()))
+    
     assert (d / "new_dir").exists()
     assert (d / "new_dir").is_dir()
     

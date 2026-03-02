@@ -52,32 +52,40 @@ int UI_Dialog_Pop(WINDOW *win) {
   return -1;
 }
 
-void UI_Dialog_RefreshAll(void) {
+void UI_Dialog_RefreshAll(ViewContext *ctx) {
   /* Base layout */
   touchwin(stdscr);
   wnoutrefresh(stdscr);
 
+  if (!ctx)
+    return;
+
+  /* Border and Stats Frame (Background) */
+  if (ctx->ctx_border_window) {
+    touchwin(ctx->ctx_border_window);
+    wnoutrefresh(ctx->ctx_border_window);
+  }
+
   /* Active panel windows */
-  if (ActivePanel) {
-    if (ActivePanel->pan_dir_window) {
-      touchwin(ActivePanel->pan_dir_window);
-      wnoutrefresh(ActivePanel->pan_dir_window);
+  if (ctx->active) {
+    if (ctx->active->pan_dir_window) {
+      touchwin(ctx->active->pan_dir_window);
+      wnoutrefresh(ctx->active->pan_dir_window);
     }
-    if (ActivePanel->pan_file_window) {
-      touchwin(ActivePanel->pan_file_window);
-      wnoutrefresh(ActivePanel->pan_file_window);
+    if (ctx->active->pan_file_window) {
+      touchwin(ctx->active->pan_file_window);
+      wnoutrefresh(ctx->active->pan_file_window);
     }
   }
 
   /* Preview window if active */
-  if (GlobalView && GlobalView->preview_mode &&
-      GlobalView->ctx_preview_window) {
-    touchwin(GlobalView->ctx_preview_window);
-    wnoutrefresh(GlobalView->ctx_preview_window);
+  if (ctx->preview_mode && ctx->ctx_preview_window) {
+    touchwin(ctx->ctx_preview_window);
+    wnoutrefresh(ctx->ctx_preview_window);
   }
   /* Note: Inactive panel usually handled by main display logic, but can be
    * added here if needed */
-  RenderInactivePanel(ActivePanel == LeftPanel ? RightPanel : LeftPanel);
+  RenderInactivePanel(ctx, ctx->active == ctx->left ? ctx->right : ctx->left);
 
   /* Finally, stack */
   int i;
@@ -89,12 +97,12 @@ void UI_Dialog_RefreshAll(void) {
   }
 }
 
-void UI_Dialog_Close(WINDOW *win) {
+void UI_Dialog_Close(ViewContext *ctx, WINDOW *win) {
   if (!win)
     return;
   UI_Dialog_Pop(win);
   delwin(win);
   /* Flicker free redraw */
-  UI_Dialog_RefreshAll();
+  UI_Dialog_RefreshAll(ctx);
   doupdate();
 }

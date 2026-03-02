@@ -19,23 +19,17 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-extern struct Volume *CurrentVolume;
-extern struct Volume *Volume_GetByPath(const char *path);
-extern void *xmalloc(size_t size);
-extern char *GetPath(DirEntry *dir_entry, char *buffer);
-extern int BuildFilename(char *in_filename, char *pattern, char *out_filename);
-
 #define FILE_SEPARATOR_CHAR '/'
 #define FILE_SEPARATOR_STRING "/"
 
 #define ESCAPE goto FNC_XIT
 
-static int Move(char *to_path, char *from_path);
+static int Move(ViewContext *ctx, char *to_path, char *from_path);
 
-int MoveFile(FileEntry *fe_ptr, const char *to_file, DirEntry *dest_dir_entry,
-             const char *to_dir_path, FileEntry **new_fe_ptr,
-             int *dir_create_mode, int *overwrite_mode, ConflictCallback cb,
-             ChoiceCallback choice_cb) {
+int MoveFile(ViewContext *ctx, FileEntry *fe_ptr, const char *to_file,
+             DirEntry *dest_dir_entry, const char *to_dir_path,
+             FileEntry **new_fe_ptr, int *dir_create_mode, int *overwrite_mode,
+             ConflictCallback cb, ChoiceCallback choice_cb) {
   DirEntry *de_ptr;
   long long file_size;
   char from_path[PATH_LENGTH + 1];
@@ -54,7 +48,7 @@ int MoveFile(FileEntry *fe_ptr, const char *to_file, DirEntry *dest_dir_entry,
   struct Volume *target_vol = NULL;
   DirEntry *target_tree = NULL;
   Statistic *target_stats_ptr = NULL;
-  Statistic *s = &CurrentVolume->vol_stats;
+  Statistic *s = &ctx->active->vol->vol_stats;
 
   result = -1;
   *new_fe_ptr = NULL;
@@ -78,7 +72,7 @@ int MoveFile(FileEntry *fe_ptr, const char *to_file, DirEntry *dest_dir_entry,
   }
 
   /* Identify Target Volume */
-  target_vol = Volume_GetByPath(to_path);
+  target_vol = Volume_GetByPath(ctx, to_path);
   if (target_vol) {
     target_tree = target_vol->vol_stats.tree;
     target_stats_ptr = &target_vol->vol_stats;
@@ -98,8 +92,9 @@ int MoveFile(FileEntry *fe_ptr, const char *to_file, DirEntry *dest_dir_entry,
   {
     BOOL created = FALSE;
     /* FIX: Pass &dest_dir_entry to update the pointer */
-    if (EnsureDirectoryExists(to_path, target_tree, &created, &dest_dir_entry,
-                              dir_create_mode, choice_cb) == -1) {
+    if (EnsureDirectoryExists(ctx, to_path, target_tree, &created,
+                              &dest_dir_entry, dir_create_mode,
+                              choice_cb) == -1) {
       return -1;
     }
     /* if (created) refresh_dirwindow = TRUE; */
@@ -127,7 +122,7 @@ int MoveFile(FileEntry *fe_ptr, const char *to_file, DirEntry *dest_dir_entry,
       /* file exists */
       /*-------------*/
       if (cb) {
-        conflict_res = cb(from_path, to_path, overwrite_mode);
+        conflict_res = cb(ctx, from_path, to_path, overwrite_mode);
         if (conflict_res == CONFLICT_ABORT) {
           result = -1;
           ESCAPE;
@@ -139,7 +134,7 @@ int MoveFile(FileEntry *fe_ptr, const char *to_file, DirEntry *dest_dir_entry,
       }
 
       (void)DeleteFile(
-          dest_file_entry,
+          ctx, dest_file_entry,
           (overwrite_mode && (*overwrite_mode == 1 || *overwrite_mode == 2))
               ? &force
               : NULL,
@@ -153,7 +148,7 @@ int MoveFile(FileEntry *fe_ptr, const char *to_file, DirEntry *dest_dir_entry,
       /* file exists */
       /*-------------*/
       if (cb) {
-        conflict_res = cb(from_path, to_path, overwrite_mode);
+        conflict_res = cb(ctx, from_path, to_path, overwrite_mode);
         if (conflict_res == CONFLICT_ABORT) {
           result = -1;
           ESCAPE;
@@ -171,14 +166,14 @@ int MoveFile(FileEntry *fe_ptr, const char *to_file, DirEntry *dest_dir_entry,
     }
   }
 
-  if (!Move(to_path, from_path)) {
+  if (!Move(ctx, to_path, from_path)) {
     /* File moved */
     /*-----------*/
 
     /* Remove original from tree */
     /*---------------------------*/
 
-    (void)RemoveFile(fe_ptr, s);
+    (void)RemoveFile(ctx, fe_ptr, s);
 
     if (dest_dir_entry) {
       if (STAT_(to_path, &stat_struct)) {
@@ -278,8 +273,8 @@ if( UI_ReadString(move_prompt_header, to_file, PATH_LENGTH, HST_FILE) == CR ) {
 strncpy(move_prompt_as, to_file, PATH_LENGTH);
 move_prompt_as[PATH_LENGTH] = '\0';
 
-if (IsSplitScreen && ActivePanel) {
-YtreePanel *target = (ActivePanel == LeftPanel) ? RightPanel : LeftPanel;
+if (IsSplitScreen && GlobalView->active) {
+YtreePanel *target = (GlobalView->active == GlobalView->left) ? GlobalView->right : GlobalView->left;
 if (target && target->vol && target->vol->total_dirs > 0) {
 int idx = target->disp_begin_pos + target->cursor_pos;
 /* Safety bounds check */
@@ -302,13 +297,13 @@ return( -1 );
 }
 #endif
 
-static int Move(char *to_path, char *from_path) {
-  /* Statistic *s = &CurrentVolume->vol_stats; */ /* Not needed here unless
+static int Move(ViewContext *ctx, char *to_path, char *from_path) {
+  /* Statistic *s = &ctx->active->vol->vol_stats; */ /* Not needed here unless
                                                      CopyFileContent needs it */
   /* CopyFileContent does take a Statistic *s now. We need access to it. */
   /* Since Move is static and called from MoveFile, we should pass it or use
-   * global CurrentVolume */
-  Statistic *s = &CurrentVolume->vol_stats;
+   * global ctx->active->vol */
+  Statistic *s = &ctx->active->vol->vol_stats;
 
   if (!strcmp(to_path, from_path)) {
     /* MESSAGE( "Can't move file into itself" ); */
@@ -322,7 +317,7 @@ static int Move(char *to_path, char *from_path) {
 
   /* Handle Cross-Device link error by copying and deleting */
   if (errno == EXDEV) {
-    if (CopyFileContent(to_path, from_path, s) == 0) {
+    if (CopyFileContent(ctx, to_path, from_path, s) == 0) {
       if (unlink(from_path) == 0) {
         return 0;
       } else {
@@ -342,7 +337,8 @@ static int Move(char *to_path, char *from_path) {
   return (-1);
 }
 
-int MoveTaggedFiles(FileEntry *fe_ptr, WalkingPackage *walking_package) {
+int MoveTaggedFiles(ViewContext *ctx, FileEntry *fe_ptr,
+                    WalkingPackage *walking_package) {
   int result = -1;
   char new_name[PATH_LENGTH + 1];
 
@@ -367,8 +363,9 @@ int MoveTaggedFiles(FileEntry *fe_ptr, WalkingPackage *walking_package) {
       ConflictCallback cb =
           (ConflictCallback)walking_package->function_data.mv.conflict_cb;
 
-      result = MoveFile(fe_ptr, new_name, dest_dir_entry, to_path, &new_fe_ptr,
-                        dir_create_mode, overwrite_mode, cb, choice_cb);
+      result =
+          MoveFile(ctx, fe_ptr, new_name, dest_dir_entry, to_path, &new_fe_ptr,
+                   dir_create_mode, overwrite_mode, cb, choice_cb);
     }
   }
 

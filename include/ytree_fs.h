@@ -21,9 +21,9 @@ extern int ExtractArchiveEntry(const char *archive_path, const char *entry_path,
 extern int ExtractArchiveNode(const char *archive_path, const char *entry_path,
                               const char *dest_path, ArchiveProgressCallback cb,
                               void *user_data);
-extern int InsertArchiveFileEntry(DirEntry *tree, char *path, struct stat *stat,
-                                  Statistic *s);
-extern int TryInsertArchiveDirEntry(DirEntry *tree, char *dir,
+extern int InsertArchiveFileEntry(ViewContext *ctx, DirEntry *tree, char *path,
+                                  struct stat *stat, Statistic *s);
+extern int TryInsertArchiveDirEntry(ViewContext *ctx, DirEntry *tree, char *dir,
                                     struct stat *stat, Statistic *s);
 extern void MinimizeArchiveTree(DirEntry **tree_ptr, Statistic *s);
 
@@ -42,9 +42,9 @@ extern int Archive_RenameEntry(char *archive_path, char *old_path,
 #endif
 
 /* readarchive.c */
-extern int ReadTreeFromArchive(DirEntry **dir_entry_ptr, const char *filename,
-                               Statistic *s, ScanProgressCallback cb,
-                               void *cb_data);
+extern int ReadTreeFromArchive(ViewContext *ctx, DirEntry **dir_entry_ptr,
+                               const char *filename, Statistic *s,
+                               ScanProgressCallback cb, void *cb_data);
 
 /* freesp.c */
 extern int GetAvailBytes(long long *avail_bytes, Statistic *s);
@@ -55,28 +55,27 @@ extern int GetDiskParameter(char *path, char *volume_name,
 /* owner_utils.c */
 extern int ChangeOwnership(const char *path, uid_t new_uid, gid_t new_gid,
                            struct stat *stat_buf);
-extern int HandleDirOwnership(DirEntry *de_ptr, BOOL change_owner,
-                              BOOL change_group);
-extern int HandleFileOwnership(FileEntry *fe_ptr, BOOL change_owner,
-                               BOOL change_group);
 
 /* readtree.c */
-extern int ReadTree(DirEntry *dir_entry, char *path, int depth, Statistic *s,
-                    ScanProgressCallback cb, void *cb_data);
-extern void UnReadTree(DirEntry *dir_entry, Statistic *s);
-extern int RescanDir(DirEntry *dir_entry, int depth, Statistic *s,
-                     ScanProgressCallback cb, void *cb_data);
+extern int ReadTree(ViewContext *ctx, DirEntry *dir_entry, char *path,
+                    int depth, Statistic *s, ScanProgressCallback cb,
+                    void *cb_data);
+extern void UnReadTree(ViewContext *ctx, DirEntry *dir_entry, Statistic *s);
+extern int RescanDir(ViewContext *ctx, DirEntry *dir_entry, int depth,
+                     Statistic *s, ScanProgressCallback cb, void *cb_data);
 
 /* tree_utils.c */
 extern void DeleteTree(DirEntry *tree);
-extern int GetDirEntry(DirEntry *tree, DirEntry *current_dir_entry,
-                       char *dir_path, DirEntry **dir_entry, char *to_path);
+extern int GetDirEntry(ViewContext *ctx, DirEntry *tree,
+                       DirEntry *current_dir_entry, char *dir_path,
+                       DirEntry **dir_entry, char *to_path);
 extern int GetFileEntry(DirEntry *de_ptr, const char *file_name,
                         FileEntry **file_entry);
 extern void SaveTreeState(DirEntry *root, PathList **expanded,
                           PathList **tagged);
-extern void RestoreTreeState(DirEntry *root, PathList **expanded,
-                             PathList *tagged, Statistic *s);
+extern void RestoreTreeState(ViewContext *ctx, DirEntry *root,
+                             PathList **expanded, PathList *tagged,
+                             Statistic *s);
 void ApplyFilterToTree(DirEntry *dir_entry, Statistic *s);
 extern void FreePathList(PathList *list);
 

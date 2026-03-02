@@ -5,6 +5,7 @@
  * Contains low-level helpers for changing file and directory ownership.
  ***************************************************************************/
 
+#include "ytree.h"
 #include "ytree_cmd.h"
 #include <errno.h>
 #include <stdio.h>
@@ -18,9 +19,6 @@
 #else
 #define STAT_(a, b) stat(a, b)
 #endif
-
-extern char *GetPath(DirEntry *dir_entry, char *buffer);
-extern char *GetFileNamePath(FileEntry *file_entry, char *buffer);
 
 /* ChangeFileOrDirOwnership, HandleDirOwnership and HandleFileOwnership moved to
  * UI layer */

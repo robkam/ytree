@@ -3,6 +3,11 @@
 ## 0. Introduction
 `ytree` is a TUI File Manager following the **XTree/ZTree/UnixTree** lineage. It acts as a strict **State Machine**. This document serves as the "Contract of Truth" for behavior. Any deviation in UI logic or visual representation is a bug.
 
+### 0.1 Technical Foundation
+*   **Standard:** C99 (via `gcc` or `clang`).
+*   **Flags:** `-D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS=64`.
+*   **Encapsulation:** Direct access to global memory is strictly prohibited. All functions must derive state from explicitly passed pointers (ViewContext, YtreePanel, or Volume).
+*   **Isolation:** Usage of Global Variables is strictly prohibited. All logic must derive state from passed Context pointers.
 ---
 
 ## 1. The User Interface Architecture
@@ -111,3 +116,4 @@ A bordered pop-up box that overlays the center of the screen, used for:
 ## 7. Safety & Integrity
 *   **Signal Handling:** `SIGINT` and `SIGTERM` are trapped for graceful terminal restoration and VFS cleanup.
 *   **Memory Management:** Recursive scans for the Tree View respect the `TREEDEPTH` safety limit to prevent stack overflows or OOM (Out of Memory) conditions on massive filesystems.
+*   **Encapsulation:** Global state pointers are strictly forbidden. All logic must utilize the `ViewContext` structure passed explicitly through the call stack.

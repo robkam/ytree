@@ -12,67 +12,71 @@
 #include "ytree_dialog.h"
 
 /* animate.c */
-extern void InitAnimation(void);
-extern void StopAnimation(void);
-extern void DrawAnimationStep(WINDOW *win);
-extern void DrawSpinner(void);
+extern void InitAnimation(ViewContext *ctx);
+extern void StopAnimation(ViewContext *ctx);
+extern void DrawAnimationStep(ViewContext *ctx, WINDOW *win);
+extern void DrawSpinner(ViewContext *ctx);
 
 /* color.c */
 #ifdef COLOR_SUPPORT
-extern void StartColors(void);
-extern void ReinitColorPairs(void);
-extern void WbkgdSet(WINDOW *w, chtype c);
+extern void StartColors(ViewContext *ctx);
+extern void ReinitColorPairs(ViewContext *ctx);
+extern void WbkgdSet(ViewContext *ctx, WINDOW *w, chtype c);
 extern void ParseColorString(const char *color_str, int *fg, int *bg);
 extern void UpdateUIColor(const char *name, int fg, int bg);
-extern void AddFileColorRule(const char *pattern, int fg, int bg);
-extern int GetFileTypeColor(FileEntry *fe_ptr);
+extern void AddFileColorRule(ViewContext *ctx, const char *pattern, int fg,
+                             int bg);
+extern int GetFileTypeColor(ViewContext *ctx, FileEntry *fe_ptr);
+
 #else
-#define StartColors() ;
-#define ReinitColorPairs() ;
-#define WbkgdSet(a, b) ;
+#define StartColors(ctx) ;
+#define ReinitColorPairs(ctx) ;
+#define WbkgdSet(ctx, a, b) ;
 #endif
 
 /* dirwin.c */
-extern int HandleDirWindow(DirEntry *start_dir_entry);
-extern int KeyF2Get(DirEntry *start_dir_entry, int disp_begin_pos,
-                    int cursor_pos, char *path);
-extern int RefreshDirWindow(YtreePanel *panel);
-extern void ToggleDotFiles(YtreePanel *panel);
-extern DirEntry *GetSelectedDirEntry(struct Volume *vol);
+extern int HandleDirWindow(ViewContext *ctx, DirEntry *start_dir_entry);
+extern int KeyF2Get(ViewContext *ctx, YtreePanel *panel, char *path);
+extern int RefreshDirWindow(ViewContext *ctx, YtreePanel *panel);
+extern void ToggleDotFiles(ViewContext *ctx, YtreePanel *panel);
+extern DirEntry *GetSelectedDirEntry(ViewContext *ctx, struct Volume *vol);
 extern DirEntry *GetPanelDirEntry(YtreePanel *p);
-extern void BuildDirEntryList(struct Volume *vol);
-extern void FreeDirEntryList(void);
+extern void BuildDirEntryList(ViewContext *ctx, struct Volume *vol,
+                              int *index_ptr);
+extern void FreeDirEntryList(ViewContext *ctx);
 extern void FreeVolumeCache(struct Volume *vol);
-extern DirEntry *RefreshTreeSafe(YtreePanel *panel, DirEntry *entry);
+extern DirEntry *RefreshTreeSafe(ViewContext *ctx, YtreePanel *panel,
+                                 DirEntry *entry);
 
 /* render_dir.c */
-extern void DisplayTree(struct Volume *vol, WINDOW *win, int start_entry_no,
-                        int hilight_no, BOOL is_active);
-extern void PrintDirEntry(struct Volume *vol, WINDOW *win, int entry_no, int y,
-                          unsigned char hilight, BOOL is_active);
+extern void DisplayTree(ViewContext *ctx, struct Volume *vol, WINDOW *win,
+                        int start_entry_no, int hilight_no, BOOL is_active);
+extern void PrintDirEntry(ViewContext *ctx, struct Volume *vol, WINDOW *win,
+                          int entry_no, int y, unsigned char hilight,
+                          BOOL is_active);
 extern void SetDirMode(int new_mode);
 extern int GetDirMode(void);
 extern void RotateDirMode(void);
 
 /* display.c */
-extern void ClearHelp(void);
-extern void DisplayDirHelp(void);
-extern void DisplayFileHelp(void);
-extern void DisplayMenu(void);
-extern void MapF2Window(void);
+extern void ClearHelp(ViewContext *ctx);
+extern void DisplayDirHelp(ViewContext *ctx);
+extern void DisplayFileHelp(ViewContext *ctx);
+extern void DisplayMenu(ViewContext *ctx);
+extern void MapF2Window(ViewContext *ctx);
 extern void RefreshWindow(WINDOW *win);
-extern void SwitchToBigFileWindow(void);
-extern void SwitchToSmallFileWindow(void);
-extern void UnmapF2Window(void);
-extern void DisplayHeaderPath(char *path);
-extern void RenderInactivePanel(YtreePanel *panel);
-extern void RefreshGlobalView(DirEntry *dir_entry);
-extern void DisplayPreviewHelp(void);
+extern void SwitchToBigFileWindow(ViewContext *ctx);
+extern void SwitchToSmallFileWindow(ViewContext *ctx);
+extern void UnmapF2Window(ViewContext *ctx);
+extern void DisplayHeaderPath(ViewContext *ctx, char *path);
+extern void RenderInactivePanel(ViewContext *ctx, YtreePanel *panel);
+extern void RefreshGlobalView(ViewContext *ctx, DirEntry *dir_entry);
+extern void DisplayPreviewHelp(ViewContext *ctx);
 
 /* display_utils.c */
 extern int AddStr(char *str);
 extern int BuildUserFileEntry(FileEntry *fe_ptr, int filename_width,
-                              int linkname_width, char *template, int linelen,
+                              int linkname_width, char *pattern, int linelen,
                               char *line);
 extern char *CTime(time_t f_time, char *buffer);
 extern char *CutFilename(char *dest, const char *src, unsigned int max_len);
@@ -83,7 +87,7 @@ extern char *GetAttributes(unsigned short modus, char *buffer);
 extern void GetMaxYX(WINDOW *win, int *height, int *width);
 extern int GetVisualUserFileEntryLength(int max_visual_filename_len,
                                         int max_visual_linkname_len,
-                                        char *template);
+                                        char *pattern);
 extern int MvAddStr(int y, int x, char *str);
 extern int MvWAddStr(WINDOW *win, int y, int x, char *str);
 extern void Print(WINDOW *, int, int, char *, int);
@@ -95,57 +99,57 @@ extern int WAddStr(WINDOW *win, char *str);
 extern int WAttrAddStr(WINDOW *win, int attr, char *str);
 
 /* edit.c */
-extern int Edit(DirEntry *dir_entry, char *file_path);
+extern int Edit(ViewContext *ctx, DirEntry *dir_entry, char *file_path);
 
 /* error.c */
-extern void AboutBox(void);
+extern void AboutBox(ViewContext *ctx);
 extern void Error(char *msg, char *module, int line);
 extern void Message(char *msg);
 extern void Notice(char *msg);
-extern void UnmapNoticeWindow(void);
+extern void UnmapNoticeWindow(ViewContext *ctx);
 extern void Warning(char *msg);
-extern int UI_Error(const char *file, int line, const char *fmt, ...);
-extern int UI_Warning(const char *fmt, ...);
-extern int UI_Message(const char *fmt, ...);
-extern int UI_Notice(const char *fmt, ...);
+extern int UI_Error(ViewContext *ctx, const char *file, int line,
+                    const char *fmt, ...);
+extern int UI_Warning(ViewContext *ctx, const char *fmt, ...);
+extern int UI_Message(ViewContext *ctx, const char *fmt, ...);
+extern int UI_Notice(ViewContext *ctx, const char *fmt, ...);
 
 /* filewin.c */
-extern void BuildFileEntryList(YtreePanel *panel);
-extern void DisplayFileWindow(YtreePanel *panel, DirEntry *dir_entry);
-extern int HandleFileWindow(DirEntry *dir_entry);
+extern void BuildFileEntryList(ViewContext *ctx, YtreePanel *panel);
+extern void DisplayFileWindow(ViewContext *ctx, YtreePanel *panel,
+                              DirEntry *dir_entry);
+extern int HandleFileWindow(ViewContext *ctx, DirEntry *dir_entry);
 
 /* render_file.c */
-extern void SetPanelFileMode(YtreePanel *p, int new_file_mode);
+extern void SetPanelFileMode(ViewContext *ctx, YtreePanel *p,
+                             int new_file_mode);
 extern int GetPanelFileMode(YtreePanel *p);
-extern void RotatePanelFileMode(YtreePanel *p);
+extern void RotatePanelFileMode(ViewContext *ctx, YtreePanel *p);
 extern int GetPanelMaxColumn(YtreePanel *p);
 extern void SetFileRenderingMetrics(YtreePanel *p, unsigned max_filename,
                                     unsigned max_linkname,
                                     unsigned max_userview);
 extern void SetRenderSortOrder(YtreePanel *p, BOOL reverse);
-extern void DisplayFiles(YtreePanel *panel, DirEntry *de_ptr, int start_file_no,
-                         int hilight_no, int start_x, WINDOW *win);
-extern void PrintFileEntry(YtreePanel *panel, int entry_no, int y, int x,
-                           unsigned char hilight, int start_x, WINDOW *win);
+extern void DisplayFiles(ViewContext *ctx, YtreePanel *panel,
+                         DirEntry *dir_entry, int start_file_no, int hilight_no,
+                         int start_x, WINDOW *win);
+extern void PrintFileEntry(ViewContext *ctx, YtreePanel *panel, int entry_no,
+                           int y, int x, unsigned char hilight, int start_x,
+                           WINDOW *win);
 
 /* hex.c has moved to cmd/hex.c and prototypes to ytree_cmd.h */
 
 /* key_engine.c */
-extern int Getch(void);
+extern int Getch(ViewContext *ctx);
 extern void HitReturnToContinue(void);
-extern int InputChoice(const char *msg, const char *term);
-extern int UI_AskConflict(const char *src_path, const char *dst_path,
-                          int *mode_flags);
+extern int InputChoice(ViewContext *ctx, const char *msg, const char *term);
+extern int UI_AskConflict(ViewContext *ctx, const char *src_path,
+                          const char *dst_path, int *mode_flags);
 
 /* input_line.c */
-extern int UI_ReadString(const char *prompt, char *buffer, int max_len,
+extern int UI_ReadString(ViewContext *ctx, YtreePanel *panel,
+                         const char *prompt, char *buffer, int max_len,
                          int history_type);
-
-/* Legacy Macro for compatibility - Ignores y, x, and callback args for now */
-#define InputString(s, y, x, cp, len, term, hst)                               \
-  UI_ReadString("Input:", s, len, hst)
-#define InputStringEx(s, y, x, cp, dw, len, term, hst, cb)                     \
-  UI_ReadString("Input:", s, len, hst)
 
 extern BOOL KeyPressed(void);
 extern BOOL EscapeKeyPressed(void);
@@ -154,23 +158,24 @@ extern char *StrRight(const char *str, size_t count);
 extern int StrVisualLength(const char *str);
 extern int ViKey(int ch);
 extern int VisualPositionToBytePosition(const char *str, int visual_pos);
-extern int WGetch(WINDOW *win);
-extern YtreeAction GetKeyAction(int ch);
-extern int GetEventOrKey(void);
+extern int WGetch(ViewContext *ctx, WINDOW *win);
+extern YtreeAction GetKeyAction(ViewContext *ctx, int ch);
+extern int GetEventOrKey(ViewContext *ctx);
 
 /* stats.c */
-extern void DisplayAvailBytes(Statistic *s);
-extern void DisplayDirParameter(DirEntry *dir_entry);
-extern void DisplayDirStatistic(DirEntry *dir_entry, const char *title,
-                                Statistic *s);
-extern void DisplayDirTagged(DirEntry *dir_entry, Statistic *s);
-extern void DisplayDiskName(Statistic *s);
-extern void DisplayDiskStatistic(Statistic *s);
-extern void DisplayDiskTagged(Statistic *s);
-extern void DisplayFileParameter(FileEntry *file_entry);
-extern void DisplayFilter(Statistic *s);
-extern void DisplayGlobalFileParameter(FileEntry *file_entry);
-extern void RecalculateSysStats(Statistic *s);
+extern void DisplayAvailBytes(ViewContext *ctx, Statistic *s);
+extern void DisplayDirParameter(ViewContext *ctx, DirEntry *dir_entry);
+extern void DisplayDirStatistic(ViewContext *ctx, DirEntry *dir_entry,
+                                const char *title, Statistic *s);
+extern void DisplayDirTagged(ViewContext *ctx, DirEntry *dir_entry,
+                             Statistic *s);
+extern void DisplayDiskName(ViewContext *ctx, Statistic *s);
+extern void DisplayDiskStatistic(ViewContext *ctx, Statistic *s);
+extern void DisplayDiskTagged(ViewContext *ctx, Statistic *s);
+extern void DisplayFileParameter(ViewContext *ctx, FileEntry *file_entry);
+extern void DisplayFilter(ViewContext *ctx, Statistic *s);
+extern void DisplayGlobalFileParameter(ViewContext *ctx, FileEntry *file_entry);
+extern void RecalculateSysStats(ViewContext *ctx, Statistic *s);
 
 /* ui_nav.c */
 extern void Nav_MoveDown(int *cursor, int *offset, int total_items,
@@ -183,47 +188,36 @@ extern void Nav_Home(int *cursor, int *offset);
 extern void Nav_End(int *cursor, int *offset, int total_items, int page_height);
 
 /* vol_menu.c */
-extern int SelectLoadedVolume(int *return_key);
+extern int SelectLoadedVolume(ViewContext *ctx, int *return_key);
 
 /* view_internal.c */
-extern int InternalView(char *file_path);
+extern int InternalView(ViewContext *ctx, char *file_path);
 
 /* view_preview.c */
-extern void RenderFilePreview(WINDOW *win, char *filename,
+extern void RenderFilePreview(ViewContext *ctx, WINDOW *win, char *filename,
                               long *line_offset_ptr, int col_offset);
-extern void RenderArchivePreview(WINDOW *win, char *archive_path,
-                                 char *internal_path, long *line_offset_ptr);
-extern int UI_ReadFilter(void);
-extern void UI_GetKindOfSort(void);
-extern int UI_ViewTaggedFiles(DirEntry *dir_entry);
+extern void RenderArchivePreview(ViewContext *ctx, WINDOW *win,
+                                 char *archive_path, char *internal_path,
+                                 long *line_offset_ptr);
 
 /* interactions.c */
-extern int GetMoveParameter(char *from_file, char *to_file, char *to_dir);
-extern int GetCopyParameter(char *from_file, BOOL path_copy, char *to_file,
-                            char *to_dir);
-extern int GetRenameParameter(const char *old_name, char *new_name);
-extern int ChangeFileModus(FileEntry *fe_ptr);
-extern int ChangeDirModus(DirEntry *de_ptr);
-extern int GetNewOwner(int st_uid);
-extern int GetNewGroup(int st_gid);
-extern int ChangeFileOrDirOwnership(const char *path, struct stat *stat_buf,
-                                    BOOL change_owner, BOOL change_group);
-extern int HandleDirOwnership(DirEntry *de_ptr, BOOL change_owner,
-                              BOOL change_group);
-extern int HandleFileOwnership(FileEntry *fe_ptr, BOOL change_owner,
-                               BOOL change_group);
+extern int ChangeFileModus(ViewContext *ctx, FileEntry *fe_ptr);
+extern int ChangeDirModus(ViewContext *ctx, DirEntry *de_ptr);
+extern int HandleDirOwnership(ViewContext *ctx, DirEntry *de_ptr,
+                              BOOL change_owner, unsigned char change_group);
+extern int HandleFileOwnership(ViewContext *ctx, FileEntry *fe_ptr,
+                               BOOL change_owner, unsigned char change_group);
+extern int GetNewOwner(ViewContext *ctx, int st_uid);
+extern int GetNewGroup(ViewContext *ctx, int st_gid);
+extern int ChangeFileOrDirOwnership(ViewContext *ctx, const char *path,
+                                    struct stat *stat_buf, BOOL change_owner,
+                                    BOOL change_group);
 extern int UI_ArchiveCallback(int status, const char *msg, void *user_data);
-extern int GetCommandLine(char *command_line);
-extern int GetSearchCommandLine(char *command_line, char *raw_pattern);
-extern int GetPipeCommand(char *pipe_command);
-extern int SystemCall(char *command_line, Statistic *s);
-extern int QuerySystemCall(char *command_line, Statistic *s);
 extern void shell_quote(char *dest, const char *src);
 extern int recursive_mkdir(char *path);
 extern int recursive_rmdir(const char *path);
-extern int UI_ConflictResolverWrapper(const char *src_path,
+extern int UI_ConflictResolverWrapper(ViewContext *ctx, const char *src_path,
                                       const char *dst_path, int *mode_flags);
-extern int UI_ChoiceResolver(const char *prompt, const char *choices);
-extern void BuildFileEntryList(YtreePanel *panel);
+extern void BuildFileEntryList(ViewContext *ctx, YtreePanel *panel);
 
 #endif /* YTREE_UI_H */

@@ -10,7 +10,7 @@
 #define MAX(a, b) (((a) > (b)) ? (a) : (b))
 
 static char GetTypeOfFile(struct stat fst);
-static int GetVisualFileEntryLength(YtreePanel *p);
+static int GetVisualFileEntryLength(ViewContext *ctx, YtreePanel *p);
 
 void SetFileRenderingMetrics(YtreePanel *p, unsigned max_filename,
                              unsigned max_linkname, unsigned max_userview) {
@@ -42,7 +42,7 @@ int GetPanelMaxColumn(YtreePanel *p) {
   return p->max_column;
 }
 
-void SetPanelFileMode(YtreePanel *p, int new_file_mode) {
+void SetPanelFileMode(ViewContext *ctx, YtreePanel *p, int new_file_mode) {
   int width;
 
   if (!p)
@@ -57,55 +57,58 @@ void SetPanelFileMode(YtreePanel *p, int new_file_mode) {
   } else {
     /* Fallback if window not created yet (e.g. init), use layout hint or
      * default */
-    if (p == LeftPanel)
-      width = layout.dir_win_width; /* approximation */
+    if (p == ctx->left)
+      width = ctx->layout.dir_win_width; /* approximation */
     else
-      width = COLS - layout.dir_win_width;
+      width = COLS - ctx->layout.dir_win_width;
     if (width < 10)
       width = 80; /* Safe default */
   }
 
-  p->max_column = width / (GetVisualFileEntryLength(p) + 1);
+  p->max_column = width / (GetVisualFileEntryLength(ctx, p) + 1);
 
   if (p->max_column == 0)
     p->max_column = 1;
 }
 
-void RotatePanelFileMode(YtreePanel *p) {
+void RotatePanelFileMode(ViewContext *ctx, YtreePanel *p) {
   if (!p)
     return;
 
   switch (p->file_mode) {
   case MODE_1:
-    SetPanelFileMode(p, MODE_3);
+    SetPanelFileMode(ctx, p, MODE_3);
     break;
   case MODE_2:
-    SetPanelFileMode(p, MODE_5);
+    SetPanelFileMode(ctx, p, MODE_5);
     break;
   case MODE_3:
-    SetPanelFileMode(p, MODE_4);
+    SetPanelFileMode(ctx, p, MODE_4);
     break;
   case MODE_4:
-    SetPanelFileMode(p, MODE_2);
+    SetPanelFileMode(ctx, p, MODE_2);
     break;
   case MODE_5:
-    SetPanelFileMode(p, MODE_1);
+    SetPanelFileMode(ctx, p, MODE_1);
     break;
   }
-  if ((mode != DISK_MODE && mode != USER_MODE) && p->file_mode == MODE_4) {
-    RotatePanelFileMode(p);
-  } else if (p->file_mode == MODE_5 && !strcmp(USERVIEW, "")) {
-    RotatePanelFileMode(p);
+  if ((ctx->view_mode != DISK_MODE && ctx->view_mode != USER_MODE) &&
+      p->file_mode == MODE_4) {
+    RotatePanelFileMode(ctx, p);
+  } else if (p->file_mode == MODE_5 &&
+             !strcmp((GetProfileValue)(ctx, "USERVIEW"), "")) {
+    RotatePanelFileMode(ctx, p);
   }
 }
 
-static int GetVisualFileEntryLength(YtreePanel *p) {
+static int GetVisualFileEntryLength(ViewContext *ctx, YtreePanel *p) {
   int filename_len = p->max_visual_filename_len;
-  if (filename_len == 0 && !strcmp(USERVIEW, ""))
+  if (filename_len == 0 &&
+      !strcmp((GetProfileValue)(ctx, "USERVIEW"), ""))
     filename_len = 14; /* Sensible default for small windows */
 
-  if (GlobalView->fixed_col_width > 0)
-    return GlobalView->fixed_col_width;
+  if (ctx->fixed_col_width > 0)
+    return ctx->fixed_col_width;
 
   int len = 0;
 
@@ -134,7 +137,7 @@ static int GetVisualFileEntryLength(YtreePanel *p) {
 
   case MODE_5:
     len = GetVisualUserFileEntryLength(filename_len, p->max_visual_linkname_len,
-                                       USERVIEW);
+                                       (GetProfileValue)(ctx, "USERVIEW"));
     p->max_visual_userview_len = len;
     break;
   }
@@ -159,9 +162,12 @@ static char GetTypeOfFile(struct stat fst) {
     return '?';
 }
 
-void PrintFileEntry(YtreePanel *panel, int entry_no, int y, int x,
-                    unsigned char hilight, int start_x, WINDOW *win) {
+void PrintFileEntry(ViewContext *ctx, YtreePanel *panel, int entry_no, int y,
+                    int x, unsigned char hilight, int start_x, WINDOW *win) {
   char attributes[11];
+
+  if (!ctx || !panel || !panel->vol || !win)
+    return;
   char modify_time[20];
   char change_time[20];
   char access_time[20];
@@ -192,17 +198,17 @@ void PrintFileEntry(YtreePanel *panel, int entry_no, int y, int x,
 
   fe_ptr = panel->file_entry_list[entry_no].file;
 
-  if (GlobalView->fixed_col_width > 0) {
-    pos_x = x * (GlobalView->fixed_col_width + 1);
+  if (ctx->fixed_col_width > 0) {
+    pos_x = x * (ctx->fixed_col_width + 1);
     wmove(win, y, pos_x);
 
     /* Prepare Display Name */
     char display_name[PATH_LENGTH + 1];
     /* Reserve 2 chars for Tag and Type */
-    CutFilename(display_name, fe_ptr->name, GlobalView->fixed_col_width - 2);
+    CutFilename(display_name, fe_ptr->name, ctx->fixed_col_width - 2);
 
     /* Set Attributes */
-    int color = GetFileTypeColor(fe_ptr);
+    int color = GetFileTypeColor(ctx, fe_ptr);
     wattron(win, COLOR_PAIR(color));
     if (fe_ptr->tagged)
       wattron(win, A_BOLD);
@@ -216,7 +222,7 @@ void PrintFileEntry(YtreePanel *panel, int entry_no, int y, int x,
     /* Pad remaining width */
     int printed_len = 2 + StrVisualLength(display_name);
     int k;
-    for (k = printed_len; k < GlobalView->fixed_col_width; k++) {
+    for (k = printed_len; k < ctx->fixed_col_width; k++) {
       waddch(win, ' ');
     }
 
@@ -302,9 +308,9 @@ void PrintFileEntry(YtreePanel *panel, int entry_no, int y, int x,
   }
 
   wmove(win, y, pos_x);
-  base_color_pair = GetFileTypeColor(fe_ptr);
+  base_color_pair = GetFileTypeColor(ctx, fe_ptr);
 
-  if (highlight_full_line) {
+  if (ctx->highlight_full_line) {
     /* --- RENDER METHOD 1: FULL LINE HIGHLIGHT --- */
     wattron(win, COLOR_PAIR(base_color_pair));
     if (fe_ptr && fe_ptr->tagged)
@@ -394,8 +400,8 @@ void PrintFileEntry(YtreePanel *panel, int entry_no, int y, int x,
       }
       break;
     case MODE_5:
-      BuildUserFileEntry(fe_ptr, filename_width, linkname_width, USERVIEW, 200,
-                         line_buffer);
+      BuildUserFileEntry(fe_ptr, filename_width, linkname_width,
+                         (GetProfileValue)(ctx, "USERVIEW"), 200, line_buffer);
       break;
     }
 
@@ -538,9 +544,12 @@ void PrintFileEntry(YtreePanel *panel, int entry_no, int y, int x,
   wattroff(win, COLOR_PAIR(base_color_pair));
 }
 
-void DisplayFiles(YtreePanel *panel, DirEntry *de_ptr, int start_file_no,
-                  int hilight_no, int start_x, WINDOW *win) {
+void DisplayFiles(ViewContext *ctx, YtreePanel *panel, DirEntry *de_ptr,
+                  int start_file_no, int hilight_no, int start_x, WINDOW *win) {
   int x, y, p_x, p_y, j;
+
+  if (!ctx || !panel || !panel->vol || !win)
+    return;
   int height;
 
   if (!panel || !panel->file_entry_list)
@@ -549,7 +558,7 @@ void DisplayFiles(YtreePanel *panel, DirEntry *de_ptr, int start_file_no,
   height = getmaxy(win);
 
 #ifdef COLOR_SUPPORT
-  WbkgdSet(win, COLOR_PAIR(CPAIR_WINFILE));
+  WbkgdSet(ctx, win, COLOR_PAIR(CPAIR_WINFILE));
 #endif
   werase(win);
 
@@ -568,7 +577,7 @@ void DisplayFiles(YtreePanel *panel, DirEntry *de_ptr, int start_file_no,
           p_x = x;
           p_y = y;
         } else {
-          PrintFileEntry(panel, j, y, x, FALSE, start_x, win);
+          PrintFileEntry(ctx, panel, j, y, x, FALSE, start_x, win);
         }
       }
       j++;
@@ -576,7 +585,7 @@ void DisplayFiles(YtreePanel *panel, DirEntry *de_ptr, int start_file_no,
   }
 
   if (p_x >= 0)
-    PrintFileEntry(panel, hilight_no, p_y, p_x, TRUE, start_x, win);
+    PrintFileEntry(ctx, panel, hilight_no, p_y, p_x, TRUE, start_x, win);
 
   wnoutrefresh(win);
 }

@@ -5,9 +5,7 @@
  *
  ***************************************************************************/
 
-#ifndef YTREE_H
-#include "../../include/ytree.h"
-#endif
+#include "ytree.h"
 
 static void DeleteFileTree(FileEntry *fe_ptr);
 static void DeleteSubTree(DirEntry *de_ptr);
@@ -42,8 +40,8 @@ static void DeleteFileTree(FileEntry *fe_ptr) {
   }
 }
 
-int GetDirEntry(DirEntry *tree, DirEntry *current_dir_entry, char *dir_path,
-                DirEntry **dir_entry, char *to_path) {
+int GetDirEntry(ViewContext *ctx, DirEntry *tree, DirEntry *current_dir_entry,
+                char *dir_path, DirEntry **dir_entry, char *to_path) {
   int result;
   char path[PATH_LENGTH + 1];
 
@@ -78,7 +76,7 @@ int GetDirEntry(DirEntry *tree, DirEntry *current_dir_entry, char *dir_path,
    */
   NormPath(path, to_path);
 
-  if (MakePath(tree, to_path, dir_entry)) {
+  if (MakePath(ctx, tree, to_path, dir_entry)) {
     if (errno == ENOENT) {
       return -3;
     }
@@ -187,7 +185,8 @@ void FreePathList(PathList *list) {
  * If a component is missing in memory, it calls ReadTree on the parent to
  * refresh children from disk. Returns the DirEntry if found, NULL otherwise.
  */
-static DirEntry *FindOrLoadDir(DirEntry *tree, const char *path, Statistic *s) {
+static DirEntry *FindOrLoadDir(ViewContext *ctx, DirEntry *tree,
+                               const char *path, Statistic *s) {
   char *path_copy;
   char *token, *saveptr;
   DirEntry *current = tree;
@@ -249,7 +248,7 @@ static DirEntry *FindOrLoadDir(DirEntry *tree, const char *path, Statistic *s) {
       /* depth=0 loads immediate children */
       /* Pass NULL for callback and callback data (no UI feedback needed here)
        */
-      if (ReadTree(current, full_path_buf, 0, s, NULL, NULL) == 0) {
+      if (ReadTree(ctx, current, full_path_buf, 0, s, NULL, NULL) == 0) {
         /* Apply filter to newly loaded files */
         ApplyFilter(current, s);
 
@@ -276,8 +275,8 @@ static DirEntry *FindOrLoadDir(DirEntry *tree, const char *path, Statistic *s) {
   return current;
 }
 
-void RestoreTreeState(DirEntry *root, PathList **expanded, PathList *tagged,
-                      Statistic *s) {
+void RestoreTreeState(ViewContext *ctx, DirEntry *root, PathList **expanded,
+                      PathList *tagged, Statistic *s) {
   PathList *curr;
   DirEntry *de;
   FileEntry *fe;
@@ -296,7 +295,7 @@ void RestoreTreeState(DirEntry *root, PathList **expanded, PathList *tagged,
      * If nodes are missing (because RescanDir wiped them), FindOrLoadDir will
      * reload them.
      */
-    de = FindOrLoadDir(root, curr->path, s);
+    de = FindOrLoadDir(ctx, root, curr->path, s);
 
     if (de) {
       /* Found the directory. Ensure it is expanded (scanned). */
@@ -307,7 +306,7 @@ void RestoreTreeState(DirEntry *root, PathList **expanded, PathList *tagged,
       if (de->sub_tree == NULL) {
         /* Pass NULL for callback and callback data (no UI feedback needed here)
          */
-        ReadTree(de, curr->path, 0, s, NULL, NULL);
+        ReadTree(ctx, de, curr->path, 0, s, NULL, NULL);
         ApplyFilter(de, s);
       }
     }
@@ -319,7 +318,7 @@ void RestoreTreeState(DirEntry *root, PathList **expanded, PathList *tagged,
     Fnsplit(curr->path, dir_path, file_name);
 
     /* Find directory - should be in memory now if it was restored above */
-    de = FindOrLoadDir(root, dir_path, s);
+    de = FindOrLoadDir(ctx, root, dir_path, s);
 
     if (de) {
       /* Find file in the already-loaded directory */
