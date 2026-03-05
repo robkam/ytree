@@ -42,14 +42,12 @@ static int ViewHexFile(ViewContext *ctx, char *file_path) {
   return 0;
 }
 
-static ViewContext *hex_ctx = NULL;
-
 static int HexProgressCallback(int status, const char *msg, void *user_data) {
+  ViewContext *ctx = (ViewContext *)user_data;
   (void)msg;
-  (void)user_data;
 
   if (status == ARCHIVE_STATUS_PROGRESS) {
-    DrawSpinner(hex_ctx);
+    DrawSpinner(ctx);
     if (EscapeKeyPressed()) {
       return ARCHIVE_CB_ABORT;
     }
@@ -58,7 +56,6 @@ static int HexProgressCallback(int status, const char *msg, void *user_data) {
 }
 
 static int ViewHexArchiveFile(ViewContext *ctx, char *file_path) {
-  hex_ctx = ctx;
   char temp_filename[] = "/tmp/ytree_hex_XXXXXX";
   int fd;
   int result = -1;
@@ -71,7 +68,7 @@ static int ViewHexArchiveFile(ViewContext *ctx, char *file_path) {
   }
 
   if (ExtractArchiveEntry(ctx->active->vol->vol_stats.login_path, file_path, fd,
-                          HexProgressCallback, NULL) != 0) {
+                          HexProgressCallback, ctx) != 0) {
     MESSAGE(ctx, "Could not extract entry*'%s'*from archive", file_path);
     close(fd);
     unlink(temp_filename);

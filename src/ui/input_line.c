@@ -170,7 +170,7 @@ int UI_ReadString(ViewContext *ctx, YtreePanel *panel, const char *prompt,
       mvwin(win, win_y, 0);
 
       /* Refresh background to clear artifacts */
-      RefreshGlobalView(ctx, GetSelectedDirEntry(
+      RefreshView(ctx, GetSelectedDirEntry(
                                  ctx, (panel ? panel->vol : ctx->active->vol)));
       touchwin(win);
       continue;
@@ -306,14 +306,14 @@ int UI_ReadString(ViewContext *ctx, YtreePanel *panel, const char *prompt,
             p = StrVisualLength(buffer);
             /* Force refresh of global view before we redraw our window,
                just in case KeyF2Get left things dirty */
-            RefreshGlobalView(
+            RefreshView(
                 ctx, GetSelectedDirEntry(
                          ctx, (panel ? panel->vol : ctx->active->vol)));
             touchwin(win);
           }
         } else {
           /* Cancelled or error, just ensure background is clean */
-          RefreshGlobalView(ctx,
+          RefreshView(ctx,
                             GetSelectedDirEntry(
                                 ctx, (panel ? panel->vol : ctx->active->vol)));
           touchwin(win);
@@ -353,7 +353,7 @@ int UI_ReadString(ViewContext *ctx, YtreePanel *panel, const char *prompt,
   }
 
   /* Global Refresh to restore what was behind the window */
-  RefreshGlobalView(
+  RefreshView(
       ctx, GetSelectedDirEntry(ctx, (panel ? panel->vol : ctx->active->vol)));
 
   return ch;

@@ -82,7 +82,7 @@ int ReadTree(ViewContext *ctx, DirEntry *dir_entry, char *path, int depth,
 
   /* Report progress via callback */
   if (cb)
-    cb(cb_data);
+    cb(ctx, cb_data);
 
   /* Silently skip unreadable or missing directories */
   if ((dir = opendir(path)) == NULL) {
@@ -134,7 +134,7 @@ int ReadTree(ViewContext *ctx, DirEntry *dir_entry, char *path, int depth,
     if ((file_count++ % 20) == 0) {
       /* Replaced explicit UI calls with callback */
       if (cb)
-        cb(cb_data);
+        cb(ctx, cb_data);
     }
 
     (void)strcpy(new_path, path);
@@ -272,7 +272,7 @@ int ReadTree(ViewContext *ctx, DirEntry *dir_entry, char *path, int depth,
 
   /* Final UI update via callback */
   if (cb)
-    cb(cb_data);
+    cb(ctx, cb_data);
 
   return (0);
 }

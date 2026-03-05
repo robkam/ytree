@@ -7,28 +7,21 @@
 
 #include "ytree.h"
 
-/*
- * log_ctx: Static context pointer used by the Login_Progress callback.
- * Since Volume_Load takes a plain C callback (void *), we cannot pass ctx
- * through it directly. We cache it here before the call.
- */
-static ViewContext *log_ctx = NULL;
-
 /* Helper function to handle scan progress updates */
-static void Login_Progress(void *data) {
+static void Login_Progress(ViewContext *ctx, void *data) {
   Statistic *s = (Statistic *)data;
 
-  DrawSpinner(log_ctx);
-  ClockHandler(log_ctx, 0);
+  DrawSpinner(ctx);
+  ClockHandler(ctx, 0);
 
-  if (log_ctx->animation_method == 1) {
+  if (ctx->animation_method == 1) {
     /* If animating, redraw the animation step. */
-    DrawAnimationStep(log_ctx, log_ctx->ctx_file_window);
+    DrawAnimationStep(ctx, ctx->ctx_file_window);
     doupdate();
   } else {
     /* Update statistics panel periodically */
     if (s) {
-      DisplayDiskStatistic(log_ctx, s);
+      DisplayDiskStatistic(ctx, s);
       doupdate();
     }
   }
@@ -65,8 +58,6 @@ int LogDisk(ViewContext *ctx, YtreePanel *panel, char *path) {
   BOOL access_ok = FALSE;
   struct stat st_check;
 
-  /* Cache context for the Login_Progress callback */
-  log_ctx = ctx;
   DEBUG_LOG("ENTER LogDisk: path=%s", path);
 
   SuspendClock(ctx); /* Suspend clock during critical operations */
@@ -184,7 +175,7 @@ int LogDisk(ViewContext *ctx, YtreePanel *panel, char *path) {
     NOTICE(ctx, "Scanning...");
 
   /* Call Logic Core */
-  loaded_vol = Volume_Load(ctx, resolved_path, reuse_vol, Login_Progress);
+  loaded_vol = Volume_Load(ctx, resolved_path, reuse_vol, Login_Progress, NULL);
 
   DEBUG_LOG("LogDisk: Volume_Load returned %p", (void *)loaded_vol);
 

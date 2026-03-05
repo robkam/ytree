@@ -574,6 +574,56 @@ void DisplayDirStatistic(ViewContext *ctx, DirEntry *de, const char *title,
   }
 }
 
+/*
+ * DisplayFileStatistic
+ * Shows individual file information in the "CURRENT DIR" statistics area
+ * when the user is navigating files (small or big window mode).
+ */
+void DisplayFileStatistic(ViewContext *ctx, FileEntry *fe, Statistic *s) {
+  char buf[128];
+  char size_buf[32];
+  char time_buf[20];
+
+  if (ctx->layout.stats_width == 0)
+    return;
+
+  if (!fe)
+    return;
+
+  /* Title */
+  DrawSeparator(ctx, ctx->layout.stats_y_dstat_sep, "CURRENT FILE");
+
+  /* File Name */
+  CutPathname(buf, fe->name, INNER_W);
+#ifdef COLOR_SUPPORT
+  int color = GetFileTypeColor(ctx, fe);
+  wattron(ctx->ctx_border_window, COLOR_PAIR(color) | A_BOLD);
+  mvwprintw(ctx->ctx_border_window, ctx->layout.stats_y_dstat_val, STAT_X + 1,
+            "%-*s", INNER_W, buf);
+  wattroff(ctx->ctx_border_window, COLOR_PAIR(color) | A_BOLD);
+#else
+  wattron(ctx->ctx_border_window, A_BOLD);
+  mvwprintw(ctx->ctx_border_window, ctx->layout.stats_y_dstat_val, STAT_X + 1,
+            "%-*s", INNER_W, buf);
+  wattroff(ctx->ctx_border_window, A_BOLD);
+#endif
+
+  /* Size */
+  FormatShortSize(size_buf, sizeof(size_buf), fe->stat_struct.st_size);
+  mvwprintw(ctx->ctx_border_window, ctx->layout.stats_y_dstat_val + 1,
+            STAT_X + 1, "Size: %-*s", INNER_W - 6, size_buf);
+
+  /* Permissions */
+  GetAttributes(fe->stat_struct.st_mode, buf);
+  mvwprintw(ctx->ctx_border_window, ctx->layout.stats_y_dstat_val + 2,
+            STAT_X + 1, "Perm: %-*s", INNER_W - 6, buf);
+
+  /* Modified Time */
+  CTime(fe->stat_struct.st_mtime, time_buf);
+  mvwprintw(ctx->ctx_border_window, ctx->layout.stats_y_dstat_val + 3,
+            STAT_X + 1, "Mod : %-*s", INNER_W - 6, time_buf);
+}
+
 void DisplayFileParameter(ViewContext *ctx, FileEntry *fe) {
   if (ctx->layout.stats_width == 0)
     return;

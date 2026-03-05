@@ -12,7 +12,7 @@
 /* ARCHIVE_STATUS_* and ARCHIVE_CB_* moved to ytree_defs.h */
 
 /* Define the progress callback type for Scans */
-typedef void (*ScanProgressCallback)(void *user_data);
+typedef void (*ScanProgressCallback)(ViewContext *ctx, void *user_data);
 
 /* archive.c */
 extern int ExtractArchiveEntry(const char *archive_path, const char *entry_path,

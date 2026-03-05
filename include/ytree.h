@@ -225,7 +225,7 @@ extern void Volume_FreeAll(ViewContext *ctx);
 extern struct Volume *Volume_GetByPath(ViewContext *ctx, const char *path);
 extern struct Volume *Volume_Load(ViewContext *ctx, const char *path,
                                   struct Volume *reuse_vol,
-                                  ScanProgressCallback cb);
+                                  ScanProgressCallback cb, void *cb_user_data);
 
 /* main.c */
 extern int ytree(int argc, char *argv[]);
