@@ -61,68 +61,23 @@ make DEBUG=1
 
 ## Running the Test Suite
 
-The test suite uses `pytest` and `pexpect` to simulate user interaction. It relies on a robust controller (`tests/ytree_control.py`) to manage the ncurses application in a headless environment.
-
-**Prerequisite:** Ensure your Python virtual environment is activated:
-```bash
-source .venv/bin/activate
-```
-
-### 1. The Standard Way: `make test`
-This is the preferred method for general regression checks and CI.
-*   **Automatic Rebuilds:** It ensures the binary is up-to-date by automatically recompiling the C code if necessary before running tests.
-*   **Simplicity:** It provides a "One Button" experience without needing to remember pytest flags.
+**Prerequisite:** Ensure your Python virtual environment is activated (`source .venv/bin/activate`).
 
 ```bash
-# Standard run (quiet, shows progress dots)
+# Standard run (quiet, shows progress dots) — auto-rebuilds the binary
 make test
 
 # Verbose run (shows individual test names and stdout)
 make test-v
 ```
 
-### 2. The Advanced Way: Direct CLI (`pytest`)
-Use the `pytest` command directly when actively debugging, developing new features, or iterating rapidly on specific test cases.
-
-```bash
-# Run only tests matching a keyword (e.g., "archive")
-pytest -k archive
-
-# Run a specific test file
-pytest tests/test_core.py
-
-# Run and stop on the first failure (useful for debugging loops)
-pytest -x
-```
-
-**Test Infrastructure:**
-*   `tests/test_core.py`: Main regression tests for core features (Copy, Move, Rename).
-*   `tests/ytree_control.py`: The PTY controller that drives `ytree`, handling input clearing and timeouts.
-*   `tests/ytree_keys.py`: Centralized definitions for key commands.
-*   `tests/conftest.py`: Pytest fixtures for setup and teardown.
+For direct `pytest` CLI usage, test naming conventions, infrastructure details, and harness rules, see **[TESTING.md](TESTING.md)**.
 
 ---
 
 ## Architectural Decisions & Constraints
-This section documents agreed-upon architectural constraints and non-goals. These decisions prevent scope creep and ensure the codebase remains maintainable given its specific goals (TUI file manager).
 
-### 1. Concurrency Model: Single-Threaded Event Loop
-**Decision:** `ytree` will remain **single-threaded**. We will **NOT** implement multi-threading for background scanning or operations.
-**Rationale:**
-*   **Ncurses Constraints:** The `ncurses` library is not thread-safe. Updating the UI from a background thread requires complex message passing or locking mechanisms that complicate the architecture significantly.
-*   **Architectural Simplicity:** The context-passing architecture ensures clean, deterministic state flow. Introducing threads would require pervasive locking around `ViewContext` and its sub-structures, negating the clarity benefits of the current design.
-*   **The "80/20" Solution:** Use **Visual Feedback** (Animations/Spinners) and **Graceful Abort** (ESC key) mechanisms. This delivers 80% of the benefit (responsiveness) for 20% of the complexity.
-
-### 2. UI Toolkit: Hard Ncurses Dependency
-**Decision:** `ytree` is and will remain a curses-based TUI application.
-*   **Non-Goal:** Implementing a "headless" mode or porting to a different UI toolkit (GTK, Qt) is out of scope.
-*   **Non-Goal:** Removing `ncurses` to run on raw serial lines without termcap capabilities is out of scope.
-
-### 3. Context-Passing Architecture (No Global State)
-**Status:** The codebase has been fully migrated to a **context-passing architecture**. Split Screen (F8) is implemented and working. All former globals (`CurrentVolume`, `statistic`, `dir_entry_list`, etc.) have been eliminated.
-
-*   **The Rule:** Every function receives `ViewContext *ctx` (or a more specific context pointer) as its first argument. New code must **never** introduce global mutable state — add members to `ViewContext`, `YtreePanel`, or `Volume` instead.
-*   **Exceptions:** Only three globals remain, each with technical justification: `ui_colors[]` and `NUM_UI_COLORS` (immutable configuration tables), and `ytree_shutdown_flag` (POSIX signal handler requirement). See [ARCHITECTURE.md](ARCHITECTURE.md) Section 3 for details.
+The project enforces strict architectural constraints (single-threaded event loop, hard ncurses dependency, context-passing with no global mutable state). For the full specification of these rules, permitted exceptions, and rationale, see **[ARCHITECTURE.md](ARCHITECTURE.md)**.
 
 ---
 

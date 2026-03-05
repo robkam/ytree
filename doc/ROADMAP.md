@@ -840,6 +840,7 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 *   **Files to Modify:** `src/ui/ctrl_dir.c`, `src/ui/ctrl_file.c`, `src/core/volume.c`
 *   - [ ] **Status:** Not Started.
 
+
 ---
 
 ## **Phase 5: Major Architectural Refactoring**
@@ -1246,6 +1247,22 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
     *   **Linear Control Flow:** Replaced complex callback architectures with "Custom Exit Keys" (Option A) to keep UI rendering strictly separated from business logic (e.g., `SelectLoadedVolume` deleting volumes via 'D').
 *   **Targets:** `src/ui/dialog.c`, `include/ytree_dialog.h`, `src/ui/vol_menu.c`, `src/util/history.c`, core command files (`copy.c`, `move.c`, `rmdir.c`).
 *   - [x] **Status:** Complete.
+
+### **Step 9.5: Consolidate Fragmented Feature Logic** (Use the Auditor Persona here)
+*   **Goal:** Systematically audit the codebase for features whose logic is scattered across multiple files and consolidate each into a single, cohesive module or function.
+*   **Rationale:** Legacy development often spreads a single logical feature (e.g., statistics display, filtering, tagging) across many call sites and files. This fragmentation makes the code harder to understand, modify, and debug. Unifying a feature's logic into one authoritative location dramatically improves maintainability and reduces regression risk. This operationalizes the **Architectural Integrity (Anti-Patching)** guiding principle into a concrete, repeatable audit task.
+*   **Exemplar:** The _"refactor: remove GlobalView naming and document context-passing architecture"_ commit — before this refactor, statistics rendering was spread across `stats.c`, `display.c`, `dirwin.c`, and `filewin.c`. Afterward, the stats panel was driven by a single cohesive function, making future changes trivial.
+*   **Mechanism:**
+    1.  **Audit:** Use `@auditor` to identify features whose logic touches 3+ files without a clear single owner.
+    2.  **Propose:** Design a consolidation plan that creates a single authoritative module/function for the feature.
+    3.  **Refactor:** Move scattered logic into the owning module, exposing a clean API for callers.
+    4.  **Validate:** Ensure no behavioral regressions via TUI tests.
+*   **Candidates (ongoing — update as discovered):**
+    *   Tagging logic (currently touches `dirwin`, `filewin`, `stats`, `copy`, `move`, `delete`)
+    *   Sort-mode logic (state + UI spread across `input`, `filewin`, `display`)
+*   **Files to Modify:** Various — determined per audit.
+*   **Context Files:** None.
+*   - [/] **Status:** Ongoing (recurring audit task).
 
 ---
 

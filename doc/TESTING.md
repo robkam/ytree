@@ -1,5 +1,7 @@
 # Testing Guide
 
+This document is the canonical reference for test naming, structure, workflow, and infrastructure standards for the `ytree` project.
+
 ## 1. Naming & Documentation
 
 Test names and structures must describe **what behavior is being tested**, completely independent of issue tracker numbers.
@@ -39,7 +41,7 @@ class TestFooterVisibility:
 Every test must include a docstring explaining its intent:
 1. **What bug it detects** (if fixing a regression).
 2. **Expected behavior**.
-3. **User report context** (if applicable).
+3. **User report context** (if applicable). Paraphrase the report clearly and professionally; do not quote informal or unclear language verbatim.
 
 ---
 
@@ -61,14 +63,34 @@ Always prove the bug exists in the test suite before fixing it in the source cod
 4. **Verify the test PASSES**.
 5. **Run the full test suite** to ensure your fix didn't introduce regressions.
 
+This workflow implements the broader **Spec → Test → Implement → Refactor** loop defined in [AI_WORKFLOW.md §1.1 "The Golden Loop"](AI_WORKFLOW.md). The critical rule: if the implementation behaves differently than the Spec, **the implementation is wrong** — never change the test to match broken code.
+
 ---
 
-## 4. CLI Cheat Sheet
+## 4. Running Tests
+
+### The Preferred Method: `make test`
+
+This is the standard way to run tests and should be used for general regression checks and CI:
 
 ```bash
-# Activate the virtual environment before running tests
+# Activate the virtual environment
 source .venv/bin/activate
 
+# Standard run (quiet, shows progress dots)
+make test
+
+# Verbose run (shows individual test names and stdout)
+make test-v
+```
+
+`make test` automatically recompiles the C binary if source files have changed, ensuring you always test against the latest code.
+
+### Direct CLI: `pytest`
+
+Use `pytest` directly when debugging, developing new features, or iterating on specific test cases:
+
+```bash
 # Run all tests
 pytest tests/ -v
 
@@ -83,4 +105,47 @@ pytest tests/test_footer_display.py::TestFooterVisibility::test_footer_visible_i
 
 # Run tests matching a keyword/pattern
 pytest tests/ -k "footer or big_window" -v
+
+# Stop on the first failure (useful for debugging loops)
+pytest -x
 ```
+
+**Tip:** For memory-error debugging, compile with AddressSanitizer enabled (`make clean && make DEBUG=1`) before running the test suite. See [CONTRIBUTING.md §"Debug Build"](CONTRIBUTING.md) for details.
+
+---
+
+## 5. Test Infrastructure
+
+The test suite uses `pytest` and `pexpect` to simulate user interaction with the ncurses TUI in a headless PTY environment.
+
+| File | Purpose |
+|:---|:---|
+| `tests/conftest.py` | Pytest fixtures for setup and teardown (sandbox directories, binary path). |
+| `tests/ytree_control.py` | The PTY controller that drives `ytree`, handling input clearing, screen reading, and timeouts. |
+| `tests/ytree_keys.py` | Centralized `Keys` class defining all key commands (e.g., `Keys.COPY`, `Keys.DELETE`). |
+| `tests/test_core.py` | Main regression tests for core features (Copy, Move, Rename). |
+
+---
+
+## 6. Test Harness Rules
+
+These constraints ensure tests are reliable, portable, and maintainable. For the full persona specification, see [`.agent/rules/tester.md`](../.agent/rules/tester.md).
+
+### Abstraction over Hardcoding
+Never hardcode keystrokes (e.g., sending `'c'`) inside a test function. Always use the `Keys` class (e.g., `Keys.COPY`). This ensures that if keybindings change in the C source, only one Python definition file needs updating.
+
+### Sandbox Fixtures (No Absolute Paths)
+Never use absolute paths like `/home/user` or `/mnt/p`. Always use the `sandbox` fixture to generate temporary directories (`/tmp/pytest-of-user/...`). Tests must run on Linux, WSL, and macOS without modification.
+
+### Fail-Fast Timeouts
+`ytree` is a highly optimized, single-threaded C application that responds to keystrokes instantly. If `pexpect` times out, it means the test's state machine is out of sync — not that the application is "processing."
+
+*   **Always** use short, aggressive timeouts (1–2 seconds maximum).
+*   **Never** use long timeouts or looping `try/except` blocks hoping the UI will catch up.
+*   If a timeout occurs, let the test fail immediately with a descriptive error including the last screen dump.
+
+### Tripartite Verification
+A test is not complete until you verify all three layers:
+1. **UI Layer:** Did the expected prompt or screen content appear?
+2. **System Layer:** Did the file actually move/copy/delete on disk?
+3. **Data Layer:** Is the content of the resulting file correct?

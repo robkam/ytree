@@ -47,29 +47,14 @@ The codebase has been **completely refactored** to eliminate global mutable stat
 - **Panel state isolated** into `YtreePanel` structures for dual-panel independence
 - **Zero runtime regressions** - 100% test suite passing after refactor
 
-### [WARNING] Compatibility Bridge Pattern
+### [COMPLETE] Context-Passing Migration
 
-A single global pointer exists for legacy code compatibility:
+The migration to a fully context-passing architecture is **complete**. The `GlobalView` compatibility bridge has been removed. All functions now receive explicit context pointers (`ViewContext *ctx`, `YtreePanel *`, or `Volume *`) as their first argument. Only three permitted global exceptions remain (immutable config tables and the POSIX signal flag). See [ARCHITECTURE.md §3](doc/ARCHITECTURE.md) for details.
 
-```c
-ViewContext *GlobalView = NULL;  // Single remaining global (src/core/global.c)
-```
-
-**In [main.c](src/core/main.c):**
-```c
-ViewContext ctx;                 // Stack-allocated context
-GlobalView = &ctx;               // Bridge for legacy code
-```
-
-**Why this exists:**
-- Allows gradual migration without rewriting entire call chains
-- Deep functions receive `ctx` directly (best practice)
-- Shallow utility code uses `GlobalView` (transitional)
-
-**New code rules:**
-- [REQUIRED] Always accept `ViewContext *ctx` as first parameter
+**Rules for new code:**
+- [REQUIRED] Always accept `ViewContext *ctx` (or a more specific context pointer) as first parameter
 - [REQUIRED] Pass context explicitly down call chains
-- [AVOID] Only use `GlobalView` in legacy code that hasn't been refactored yet
+- [FORBIDDEN] Introducing any new global mutable state
 
 ---
 

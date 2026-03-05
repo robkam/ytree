@@ -20,6 +20,7 @@ The development process is strictly hierarchical. The Spec is the "Contract of T
 
 ### 1.2 General Rules
 1.  **Architecture as Blueprint:** [ARCHITECTURE.md](ARCHITECTURE.md) defines the technical structure.
+1.  **Testing as Standard:** [TESTING.md](TESTING.md) defines test naming, structure, and harness rules. All test code must conform to it.
 2.  **Human as Architect:** The AI acts as a partner with varying levels of specialization (see Section 3). The human maintainer provides final architectural direction.
 3.  **Atomic Missions:** One task = One session.
 4.  **Build-First Verification:** No code is accepted until it compiles and passes tests.
@@ -91,3 +92,5 @@ The mandatory focused procedure for **Antigravity** and agentic execution. It fo
 4.  **Verify the Fix (Green):** Run `make test`. When the test passes, the bug is fixed, and you have automatically gained a permanent regression test.
 
 **Why this works:** It removes human translation errors and forces the AI to debug against a rigid, objective standard rather than a subjective description.
+
+For test naming conventions, structure standards, and harness rules, see **[TESTING.md](TESTING.md)**.

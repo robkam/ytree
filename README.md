@@ -111,7 +111,7 @@ See [CHANGES.md](doc/CHANGES.md) for a detailed history of changes and version u
 
 ## Contributing
 
-Contributions are welcome! Please read [CONTRIBUTING.md](doc/CONTRIBUTING.md) for guidelines. See [SPECIFICATION.md](doc/SPECIFICATION.md) for behavioral requirements and [ARCHITECTURE.md](doc/ARCHITECTURE.md) to understand the new system design before submitting code.
+Contributions are welcome! Please read [CONTRIBUTING.md](doc/CONTRIBUTING.md) for guidelines. See [SPECIFICATION.md](doc/SPECIFICATION.md) for behavioral requirements, [ARCHITECTURE.md](doc/ARCHITECTURE.md) to understand the system design, and [TESTING.md](doc/TESTING.md) for test conventions before submitting code.
 
 ## Reporting problems
 
