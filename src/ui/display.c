@@ -25,7 +25,7 @@
 
 /*
  * Help line definitions for different modes.
- * NOTE: These strings are manually balanced to fit on a standard 80x24
+ * NOTE: These strings are manually balanced to fit on a 120x36
  * terminal screen. When adding or removing commands, care must be taken
  * to re-balance the two lines to prevent truncation. Commands are ordered
  * alphabetically for easier scanning.
@@ -33,7 +33,7 @@
  * Updated: (F)ilespec -> (F)ilter, spacing adjustments.
  */
 static char dir_help_disk_mode_0[] =
-    "DIR (A)ttribute A(b)out (D)elete (F)ilter (G)roup (L)og (M)akedir "
+    "DIR (A)ttribute (B)rief (D)elete (F)ilter (G)roup (L)og (M)akedir "
     "(N)ewfile";
 static char dir_help_disk_mode_1[] =
     "COMMANDS (O)wner (P)ipe (Q)uit (R)ename "
@@ -56,9 +56,9 @@ static char *dir_help[MAX_MODES][2] = {
      dir_help_disk_mode_1}};
 
 static char file_help_disk_mode_0[] =
-    "FILE      (A)ttribute (C)opy/(^K) (D)elete (E)dit (F)ilter (^F)ilemode "
-    "(G)roup (H)ex";
-static char file_help_disk_mode_1[] = "COMMANDS  (L)og (M)ove/(^N) (N)ewfile "
+    "FILE      (A)ttribute (B)rief (C)opy/(^K) (D)elete (E)dit (F)ilter (^F)ilemode "
+    "(G)roup";
+static char file_help_disk_mode_1[] = "COMMANDS (H)ex (L)og (M)ove/(^N) (N)ewfile "
                                       "(O)wner (P)ipe (Q)uit (R)ename (S)ort";
 static char *file_help[MAX_MODES][2] = {
     {/* DISK_MODE */
@@ -222,7 +222,7 @@ void DisplayMenu(ViewContext *ctx) {
   mvwaddstr(ctx->ctx_border_window, 0, 0, "Path: ");
   wattrset(ctx->ctx_border_window, A_NORMAL);
 
-  /* Path will be filled in by caller (RefreshGlobalView) using
+  /* Path will be filled in by caller (RefreshView) using
    * GetPath(dir_entry) */
 
   /* --- NATIVE ACS BORDERS --- */
@@ -396,11 +396,11 @@ void RenderInactivePanel(ViewContext *ctx, YtreePanel *panel) {
  * Handles the complexities of Split/Big/Preview modes in one place.
  * Use this to ensure all borders, stats, and content are consistent.
  */
-void RefreshGlobalView(ViewContext *ctx, DirEntry *dir_entry) {
+void RefreshView(ViewContext *ctx, DirEntry *dir_entry) {
   Statistic *s = &ctx->active->vol->vol_stats;
 
   if (ctx->active == NULL)
-    MESSAGE(ctx, "FATAL: RefreshGlobalView called with NULL ctx->active");
+    MESSAGE(ctx, "FATAL: RefreshView called with NULL ctx->active");
 
   /* 1. Re-evaluate Layout (Geometry) */
   ReCreateWindows(ctx);
@@ -417,8 +417,7 @@ void RefreshGlobalView(ViewContext *ctx, DirEntry *dir_entry) {
   /* 4. Render Stats (updates ctx_border_window) */
   if (!ctx->preview_mode) {
     DisplayDiskStatistic(ctx, s);
-    DisplayDirStatistic(ctx, dir_entry,
-                        (dir_entry->global_flag) ? "SHOW ALL" : NULL, s);
+    UpdateStatsPanel(ctx, dir_entry, s);
     DisplayAvailBytes(ctx, s);
   }
 

@@ -21,6 +21,7 @@ This project maintains comprehensive technical documentation. **Do not guess or 
 ### Development Workflow & Standards
 
 - **[doc/AI_WORKFLOW.md](doc/AI_WORKFLOW.md)** - The Spec-First development protocol and "Golden Loop" methodology
+- **[doc/TESTING.md](doc/TESTING.md)** - Test organization standards, naming conventions, and TDD protocol
 - **[.agent/rules/*.md](.agent/rules/)** - Role-specific persona instructions for different task types
 
 ### Available Development Personas

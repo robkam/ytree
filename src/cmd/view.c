@@ -44,8 +44,7 @@ static int ViewFile(ViewContext *ctx, DirEntry *dir_entry, char *file_path) {
   int result;
 
   if (access(file_path, R_OK)) {
-    MESSAGE(ctx, "View not possible!*\"%s\"*%s", file_path,
-            strerror(errno));
+    MESSAGE(ctx, "View not possible!*\"%s\"*%s", file_path, strerror(errno));
     return (-1);
   }
 
@@ -59,27 +58,24 @@ static int ViewFile(ViewContext *ctx, DirEntry *dir_entry, char *file_path) {
   return (result);
 }
 
-static ViewContext *view_ctx = NULL;
-
 static int ArchiveUICallback(int status, const char *msg, void *user_data) {
-  (void)user_data;
+  ViewContext *ctx = (ViewContext *)user_data;
   if (status == ARCHIVE_STATUS_PROGRESS) {
-    DrawSpinner(view_ctx);
+    DrawSpinner(ctx);
     if (EscapeKeyPressed()) {
       return ARCHIVE_CB_ABORT;
     }
   } else if (status == ARCHIVE_STATUS_ERROR) {
     if (msg)
-      MESSAGE(view_ctx, "%s", msg);
+      MESSAGE(ctx, "%s", msg);
   } else if (status == ARCHIVE_STATUS_WARNING) {
     if (msg)
-      WARNING(view_ctx, "%s", msg);
+      WARNING(ctx, "%s", msg);
   }
   return ARCHIVE_CB_CONTINUE;
 }
 
 static int ViewArchiveFile(ViewContext *ctx, char *file_path) {
-  view_ctx = ctx;
   char temp_filename[] = "/tmp/ytree_view_XXXXXX";
   char command_line[COMMAND_LINE_LENGTH + 1];
   int fd;
@@ -94,7 +90,7 @@ static int ViewArchiveFile(ViewContext *ctx, char *file_path) {
   }
 
   if (ExtractArchiveEntry(ctx->active->vol->vol_stats.login_path, file_path, fd,
-                          ArchiveUICallback, NULL) != 0) {
+                          ArchiveUICallback, ctx) != 0) {
     MESSAGE(ctx, "Could not extract entry*'%s'*from archive", file_path);
     close(fd);
     unlink(temp_filename);

@@ -163,7 +163,8 @@ struct Volume *Volume_GetByPath(ViewContext *ctx, const char *path) {
  * buffer.
  */
 struct Volume *Volume_Load(ViewContext *ctx, const char *path,
-                           struct Volume *reuse_vol, ScanProgressCallback cb) {
+                           struct Volume *reuse_vol, ScanProgressCallback cb,
+                           void *cb_user_data) {
   char resolved_path[PATH_LENGTH + 1];
   struct stat stat_struct;
   struct Volume *vol = NULL;
@@ -266,7 +267,8 @@ struct Volume *Volume_Load(ViewContext *ctx, const char *path,
   /* 7. Scanning */
   if (s->login_mode == ARCHIVE_MODE) {
 #ifdef HAVE_LIBARCHIVE
-    if (ReadTreeFromArchive(ctx, &s->tree, s->login_path, s, cb, s)) {
+    if (ReadTreeFromArchive(ctx, &s->tree, s->login_path, s, cb,
+                            cb_user_data)) {
       /* Error message is set by ReadTreeFromArchive or we can set a generic one
        */
       /* Note: ReadTreeFromArchive typically prints to 'message' on error */
@@ -285,7 +287,7 @@ struct Volume *Volume_Load(ViewContext *ctx, const char *path,
   } else {
     s->tree->next = s->tree->prev = NULL;
     depth = strtol(GetProfileValue(ctx, "TREEDEPTH"), NULL, 0);
-    res = ReadTree(ctx, s->tree, resolved_path, depth, s, cb, s);
+    res = ReadTree(ctx, s->tree, resolved_path, depth, s, cb, cb_user_data);
     if (res != 0) {
       if (res != -1)
         MESSAGE(ctx, "ReadTree Failed");

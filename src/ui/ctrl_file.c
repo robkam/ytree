@@ -65,6 +65,47 @@ static void HandleInvertTags(ViewContext *ctx, DirEntry *dir_entry,
 static void UpdatePreview(ViewContext *ctx, DirEntry *dir_entry);
 static DirEntry *RefreshFileView(ViewContext *ctx, DirEntry *dir_entry);
 
+/*
+ * UpdateStatsPanel
+ * Centralized stats panel update that shows the correct information based on context.
+ * - In file window mode: Shows stats for currently selected file
+ * - In directory mode: Shows stats for current directory
+ */
+void UpdateStatsPanel(ViewContext *ctx, DirEntry *dir_entry, Statistic *s) {
+  /* Safety checks */
+  if (!ctx || !dir_entry || !s)
+    return;
+
+  /* Check if we're in file window with files available */
+  if (ctx->focused_window == FOCUS_FILE && ctx->active->file_count > 0) {
+    /* File Window Mode - show individual file stats */
+    int file_index = dir_entry->start_file + dir_entry->cursor_pos;
+    FileEntry *fe_ptr = ctx->active->file_entry_list[file_index].file;
+    if (fe_ptr) {
+      DisplayFileStatistic(ctx, fe_ptr, s);
+
+      /* Also update attributes section */
+      if (dir_entry->global_flag)
+        DisplayGlobalFileParameter(ctx, fe_ptr);
+      else
+        DisplayFileParameter(ctx, fe_ptr);
+    }
+  } else {
+    /* Directory Mode - show directory stats */
+    if (dir_entry->global_flag) {
+      DisplayDiskStatistic(ctx, s);
+      DisplayDirStatistic(ctx, dir_entry, "SHOW ALL", s);
+    } else {
+      DisplayDirStatistic(ctx, dir_entry, NULL, s);
+    }
+    /* Show directory attributes section */
+    DisplayDirParameter(ctx, dir_entry);
+  }
+
+  /* Stage the stats panel for refresh */
+  wnoutrefresh(ctx->ctx_border_window);
+}
+
 int ChangeFileOwner(ViewContext *ctx, FileEntry *fe_ptr) {
   int owner_id;
   char filepath[PATH_LENGTH + 1];
@@ -581,19 +622,18 @@ int HandleFileWindow(ViewContext *ctx, DirEntry *dir_entry) {
 
   /* Initial Display using Centralized Function if applicable */
   if (ctx->preview_mode) {
-    RefreshGlobalView(ctx, dir_entry);
+    RefreshView(ctx, dir_entry);
     UpdatePreview(ctx, dir_entry);
+    /* Note: preview mode doesn't show stats panel, so no UpdateStatsPanel needed */
   } else {
     /* Standard Logic for Big/Small Window */
     if (dir_entry->global_flag || dir_entry->big_window ||
         dir_entry->tagged_flag) {
       SwitchToBigFileWindow(ctx);
-      DisplayDiskStatistic(ctx, s);
-      DisplayDirStatistic(ctx, dir_entry,
-                          (dir_entry->global_flag) ? "SHOW ALL" : NULL, s);
-    } else {
-      DisplayDirStatistic(ctx, dir_entry, NULL, s);
     }
+
+    /* Show initial stats (UpdateStatsPanel handles both file and dir stats) */
+    UpdateStatsPanel(ctx, dir_entry, s);
 
     DisplayFiles(ctx, ctx->active, dir_entry, dir_entry->start_file,
                  dir_entry->start_file + dir_entry->cursor_pos, start_x,
@@ -689,7 +729,7 @@ int HandleFileWindow(ViewContext *ctx, DirEntry *dir_entry) {
     if (ctx->resize_request) {
       /* Simplified Resize using Centralized Function */
       RereadWindowSize(ctx, dir_entry);
-      RefreshGlobalView(ctx, dir_entry);
+      RefreshView(ctx, dir_entry);
       if (ctx->preview_mode)
         UpdatePreview(ctx, dir_entry);
       need_dsp_help = TRUE;
@@ -795,12 +835,12 @@ int HandleFileWindow(ViewContext *ctx, DirEntry *dir_entry) {
         /* 3. Update metrics */
         RereadWindowSize(ctx, dir_entry);
 
-        /* Call RefreshGlobalView immediately after restoration */
-        RefreshGlobalView(ctx, dir_entry);
+        /* Call RefreshView immediately after restoration */
+        RefreshView(ctx, dir_entry);
       }
 
       /* 5. Draw Everything (Borders, Tree, Stats, List, Preview) */
-      RefreshGlobalView(ctx, dir_entry);
+      RefreshView(ctx, dir_entry);
 
       if (ctx->preview_mode) {
         UpdatePreview(ctx, dir_entry);
@@ -1394,7 +1434,7 @@ int HandleFileWindow(ViewContext *ctx, DirEntry *dir_entry) {
                          (ctx->active == ctx->left) ? ctx->right : ctx->left);
       }
 
-      RefreshGlobalView(ctx, dir_entry);
+      RefreshView(ctx, dir_entry);
 
       need_dsp_help = TRUE;
       break;
@@ -1468,7 +1508,7 @@ int HandleFileWindow(ViewContext *ctx, DirEntry *dir_entry) {
                            (ctx->active == ctx->left) ? ctx->right : ctx->left);
         }
 
-        RefreshGlobalView(ctx, dir_entry);
+        RefreshView(ctx, dir_entry);
       }
       need_dsp_help = TRUE;
       break;
@@ -1490,7 +1530,7 @@ int HandleFileWindow(ViewContext *ctx, DirEntry *dir_entry) {
           if (mk_result == 0) {
             /* If successful, refresh the view */
             BuildFileEntryList(ctx, ctx->active);
-            RefreshGlobalView(ctx, dir_entry);
+            RefreshView(ctx, dir_entry);
           } else if (mk_result == 1) {
             MESSAGE(ctx, "File already exists!");
           } else {
@@ -1564,7 +1604,7 @@ int HandleFileWindow(ViewContext *ctx, DirEntry *dir_entry) {
           /* ... Stats updates ... */
           /* ... BuildFileEntryList ... */
 
-          RefreshGlobalView(ctx, dir_entry);
+          RefreshView(ctx, dir_entry);
 
           RefreshDirWindow(ctx, ctx->active);
           if (ctx->is_split_screen) {
@@ -1653,7 +1693,7 @@ int HandleFileWindow(ViewContext *ctx, DirEntry *dir_entry) {
         dir_entry->start_file = 0;
         dir_entry->cursor_pos = 0;
 
-        RefreshGlobalView(ctx, dir_entry);
+        RefreshView(ctx, dir_entry);
         maybe_change_x_step = TRUE;
       }
       break;
@@ -1684,7 +1724,7 @@ int HandleFileWindow(ViewContext *ctx, DirEntry *dir_entry) {
           /* File was deleted */
           /*----------------------*/
 
-          RefreshGlobalView(ctx, dir_entry);
+          RefreshView(ctx, dir_entry);
           maybe_change_x_step = TRUE;
         }
       }
@@ -1699,7 +1739,7 @@ int HandleFileWindow(ViewContext *ctx, DirEntry *dir_entry) {
         (void)UI_DeleteTaggedFiles(ctx, max_disp_files, s);
         /* ... */
 
-        RefreshGlobalView(ctx, dir_entry);
+        RefreshView(ctx, dir_entry);
         maybe_change_x_step = TRUE;
       }
       break;
@@ -1724,7 +1764,7 @@ int HandleFileWindow(ViewContext *ctx, DirEntry *dir_entry) {
           /* Rename OK */
           /*-----------*/
 
-          RefreshGlobalView(ctx, dir_entry);
+          RefreshView(ctx, dir_entry);
           maybe_change_x_step = TRUE;
         }
       }
@@ -1750,7 +1790,7 @@ int HandleFileWindow(ViewContext *ctx, DirEntry *dir_entry) {
 
         BuildFileEntryList(ctx, ctx->active);
 
-        RefreshGlobalView(ctx, dir_entry);
+        RefreshView(ctx, dir_entry);
         maybe_change_x_step = TRUE;
       }
       break;
@@ -1825,7 +1865,7 @@ int HandleFileWindow(ViewContext *ctx, DirEntry *dir_entry) {
       ch = '\0';
 
       /* Use Global Refresh for clean transition */
-      RefreshGlobalView(ctx, dir_entry);
+      RefreshView(ctx, dir_entry);
 
       /* Update scrolling metrics for new size */
       RereadWindowSize(ctx, dir_entry);
@@ -1847,7 +1887,7 @@ int HandleFileWindow(ViewContext *ctx, DirEntry *dir_entry) {
           (void)Pipe(ctx, de_ptr, fe_ptr, pipe_cmd);
         }
       }
-      RefreshGlobalView(ctx, dir_entry);
+      RefreshView(ctx, dir_entry);
       need_dsp_help = TRUE;
       break;
 
@@ -1893,7 +1933,7 @@ int HandleFileWindow(ViewContext *ctx, DirEntry *dir_entry) {
             }
           }
         }
-        RefreshGlobalView(ctx, dir_entry);
+        RefreshView(ctx, dir_entry);
       }
       break;
 
@@ -1920,7 +1960,7 @@ int HandleFileWindow(ViewContext *ctx, DirEntry *dir_entry) {
       dir_entry = RefreshFileView(ctx, dir_entry);
 
       /* Insert: Explicit Global Refresh to be safe */
-      RefreshGlobalView(ctx, dir_entry);
+      RefreshView(ctx, dir_entry);
       need_dsp_help = TRUE;
       break;
 
@@ -2005,7 +2045,7 @@ int HandleFileWindow(ViewContext *ctx, DirEntry *dir_entry) {
           dir_entry = RefreshFileView(ctx, dir_entry);
 
           /* Insert: Explicit Global Refresh */
-          RefreshGlobalView(ctx, dir_entry);
+          RefreshView(ctx, dir_entry);
         }
         free(command_line);
       }
@@ -2134,7 +2174,7 @@ int HandleFileWindow(ViewContext *ctx, DirEntry *dir_entry) {
   }
 
   /* Ensure all mode flags are cleared when exiting back to the tree.
-   * This guarantees that RefreshGlobalView returns to small window
+   * This guarantees that RefreshView returns to small window
    * ctx->layout. */
   dir_entry->global_flag = FALSE;
   dir_entry->tagged_flag = FALSE;

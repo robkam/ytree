@@ -627,6 +627,18 @@ typedef struct _history {
   struct _history *prev;
 } History;
 
+typedef struct {
+  int wlines;
+  int wcols;
+  int bytes;
+  WINDOW *view;
+  WINDOW *border;
+  BOOL resize_done;
+  BOOL inhex;
+  BOOL inedit;
+  BOOL hexoffset;
+} ViewerState;
+
 typedef struct _ViewContext {
   WINDOW *ctx_dir_window;
   WINDOW *ctx_small_file_window;
@@ -647,6 +659,7 @@ typedef struct _ViewContext {
   YtreeLayout layout;
 
   int view_mode;
+  int dir_mode;
   BOOL show_stats;
   BOOL preview_mode;
   BOOL clock_print_time;
@@ -656,6 +669,8 @@ typedef struct _ViewContext {
   ViewFocus preview_entry_focus;
   YtreePanel *preview_return_panel;
   ViewFocus preview_return_focus;
+
+  ViewerState viewer;
 
   /* Animation State */
   BOOL anim_is_initialized;

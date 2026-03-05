@@ -37,7 +37,8 @@ static int ArchiveUICallback(int status, const char *msg, void *user_data) {
   return ARCHIVE_CB_CONTINUE;
 }
 
-static int CopyArchiveFile(ViewContext *ctx, char *to_path, char *from_path, Statistic *s);
+static int CopyArchiveFile(ViewContext *ctx, char *to_path, char *from_path,
+                           Statistic *s);
 
 int CopyFile(ViewContext *ctx, Statistic *statistic_ptr, FileEntry *fe_ptr,
              char *to_file, DirEntry *dest_dir_entry,
@@ -245,8 +246,8 @@ int CopyFile(ViewContext *ctx, Statistic *statistic_ptr, FileEntry *fe_ptr,
        * dest_dir_entry is updated */
       DirEntry *tmp_dest_dir_entry = dest_dir_entry;
       if (EnsureDirectoryExists(
-              ctx, to_path, target_tree ? target_tree : statistic_ptr->tree, NULL,
-              &tmp_dest_dir_entry, dir_create_mode, choice_cb) == -1) {
+              ctx, to_path, target_tree ? target_tree : statistic_ptr->tree,
+              NULL, &tmp_dest_dir_entry, dir_create_mode, choice_cb) == -1) {
         return result;
       }
       dest_dir_entry = tmp_dest_dir_entry;
@@ -487,79 +488,6 @@ FNC_XIT:
 }
 
 /* GetCopyParameter moved to ctrl_file.c */
-#if 0
-
-
-
-
-
-int GetCopyParameter(char *from_file, BOOL path_copy, char *to_file, char *to_dir)
-{
-char prompt_header[PATH_LENGTH + 50];
-char prompt_as[PATH_LENGTH + 1];
-
-/* Instrumentation for debugging PathCopy stalls */
-  DEBUG_LOG("GetCopyParameter entered. from: %s, path_copy: %d",
-            from_file ? from_file : "NULL", path_copy);
-
-if( from_file == NULL )
-{
-from_file = "TAGGED FILES";
-(void) strcpy( to_file, "*" );
-}
-else
-{
-(void) strcpy( to_file, from_file );
-}
-
-if( path_copy )
-{
-(void) snprintf( prompt_header, sizeof(prompt_header), "PATHCOPY: %s", from_file );
-}
-else
-{
-(void) snprintf( prompt_header, sizeof(prompt_header), "COPY: %s", from_file );
-}
-
-/* Log the prompt buffer */
-  DEBUG_LOG("constructed buffer: %s", prompt_header);
-
-ClearHelp();
-
-/* MvAddStr removed - handled by UI_ReadString */
-
-if( UI_ReadString(prompt_header, to_file, PATH_LENGTH, HST_FILE) == CR){
-
-/* Save first input for the second step's redraw - handled by UI_ReadString */
-strncpy(prompt_as, to_file, PATH_LENGTH);
-prompt_as[PATH_LENGTH] = '\0';
-
-if (IsSplitScreen && GlobalView->active) {
-YtreePanel *target = (GlobalView->active == GlobalView->left) ? GlobalView->right : GlobalView->left;
-if (target && target->vol && target->vol->total_dirs > 0) {
-int idx = target->disp_begin_pos + target->cursor_pos;
-/* Safety bounds check */
-if (idx < 0) idx = 0;
-if (idx >= target->vol->total_dirs) idx = target->vol->total_dirs - 1;
-
-GetPath(target->vol->dir_entry_list[idx].dir_entry, to_dir);
-}
-}
-
-/* Log before InputString call for target dir */
-  DEBUG_LOG("calling InputString for TO directory");
-
-if( UI_ReadString("To Directory:", to_dir, PATH_LENGTH, HST_PATH) == CR ) {
-if (to_dir[0] == '\0') {
-strcpy(to_dir, ".");
-}
-return( 0 );
-}
-}
-ClearHelp();
-return( -1 );
-}
-#endif
 
 int CopyFileContent(ViewContext *ctx, char *to_path, char *from_path,
                     Statistic *s) {

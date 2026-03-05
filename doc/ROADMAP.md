@@ -1097,17 +1097,9 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 *   **Context Files:** None.
 *   - [x] **Status:** Completed.
 
-### Step 8.3: Expand and Integrate Test Suite
-*   **Goal:** Add a `test` target to the `Makefile` and expand the regression suite from "Core Ops" to "Comprehensive Coverage".
-*   **Rationale:** Formalizes the testing process and ensures reliability before release.
-*   **Scope:**
-    *   **Archive Formats:** Verify read/extract for ZIP, TAR.GZ, TAR.BZ2.
-    *   **Split Screen:** Verify file operations between Left and Right panels.
-    *   **Tagging:** Verify Invert Tags, Tag All, and Tag Filtering.
-    *   **Sorting:** Verify sort orders (Name, Size, Date) actually change the list order.
-    *   **Edge Cases:** Empty directories, read-only files, root directory operations.
-*   **Files to Modify:** `tests/test_core.py`, `tests/test_volume.py` (New)
-*   **Context Files:** None.
+### **Step 8.3: Restructure and Expand Test Suite**
+*   **Goal:** Tidy up existing test scripts into a coherent, modular structure and thoroughly expand the regression suite for comprehensive coverage.
+*   **Rationale:** A well-structured test suite is easier to maintain and extend. Thorough, systematic coverage ensures reliability and prevents regressions across complex file operations.
 *   - [ ] **Status:** Not Started.
 
 ### **Step 8.4: Implement CI with GitHub Actions**

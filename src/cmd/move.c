@@ -249,53 +249,6 @@ ctrl_file soon. Actually get_move_parameter should be in the UI. We can comment
 it out here or leave it. Wait, if it uses UI_ReadString, it might still need
 ytree_ui.h, which we removed. Let's comment out the whole GetMoveParameter
 function because it belongs in UI */
-#if 0
-int GetMoveParameter(char *from_file, char *to_file, char *to_dir)
-{
-if( from_file == NULL )
-{
-from_file = "TAGGED FILES";
-(void) strcpy( to_file, "*" );
-}
-else
-{
-(void) strcpy( to_file, from_file );
-}
-
-(void) snprintf( move_prompt_header, sizeof(move_prompt_header), "MOVE: %s", from_file );
-
-ClearHelp();
-
-/* MvAddStr removed - handled by UI_ReadString */
-
-if( UI_ReadString(move_prompt_header, to_file, PATH_LENGTH, HST_FILE) == CR ) {
-
-strncpy(move_prompt_as, to_file, PATH_LENGTH);
-move_prompt_as[PATH_LENGTH] = '\0';
-
-if (IsSplitScreen && GlobalView->active) {
-YtreePanel *target = (GlobalView->active == GlobalView->left) ? GlobalView->right : GlobalView->left;
-if (target && target->vol && target->vol->total_dirs > 0) {
-int idx = target->disp_begin_pos + target->cursor_pos;
-/* Safety bounds check */
-if (idx < 0) idx = 0;
-if (idx >= target->vol->total_dirs) idx = target->vol->total_dirs - 1;
-
-GetPath(target->vol->dir_entry_list[idx].dir_entry, to_dir);
-}
-}
-
-if( UI_ReadString("To Directory:", to_dir, PATH_LENGTH, HST_PATH) == CR ) {
-if (to_dir[0] == '\0') {
-strcpy(to_dir, ".");
-}
-return( 0 );
-}
-}
-ClearHelp();
-return( -1 );
-}
-#endif
 
 static int Move(ViewContext *ctx, char *to_path, char *from_path) {
   /* Statistic *s = &ctx->active->vol->vol_stats; */ /* Not needed here unless

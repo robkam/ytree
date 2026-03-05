@@ -29,7 +29,7 @@ This refactor serves as a case study in using Large Language Models (LLMs) to mo
 *   **Multi-Volume Support:** Log multiple drives or archives simultaneously and switch instantly.
 *   **Archives as Directories:** Browse ZIP, TAR, GZ, and ISO files transparently using `libarchive`.
 *   **Advanced Filtering:** Filter by RegEx, Attribute, Date, and Size.
-*   **Modern Architecture:** Clean C99 codebase, no global god-objects, modular design.
+*   **Modern Architecture:** Clean C99, strict context-passing design — no global mutable state. See [ARCHITECTURE.md](doc/ARCHITECTURE.md).
 *   **Auto-Refresh:** Inotify integration for live directory updates.
 *   **External Viewers:** Associate specific file extensions with external programs (images, PDFs, etc.).
 *   **User Commands:** Bind keys to custom shell commands/scripts for infinite extensibility.
@@ -80,6 +80,26 @@ sudo make uninstall
 ```
 
 *Note: Developers can compile with AddressSanitizer enabled by running `make DEBUG=1`.*
+
+### Optional: VI Keys Navigation
+
+By default, ytree uses **case-insensitive key bindings** (e.g., both 'k' and 'K' open the volume menu).
+
+If you prefer **vi-style cursor navigation** (h/j/k/l keys), you can enable it:
+
+```bash
+# Edit Makefile and uncomment the VI_KEYS line:
+# ADD_CFLAGS  = -DVI_KEYS
+
+# Then rebuild:
+make clean && make
+```
+
+**VI Keys mappings when enabled:**
+- `h` = LEFT, `j` = DOWN, `k` = UP, `l` = RIGHT
+- `Ctrl+D` = PAGE DOWN, `Ctrl+U` = PAGE UP
+
+**Note:** When VI keys are enabled, lowercase 'k' will move the cursor UP instead of opening the volume menu. Use uppercase 'K' for volume menu in VI mode.
 
 ## Usage
 

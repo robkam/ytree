@@ -1,6 +1,6 @@
 # AI-Assisted Development Workflow
 
-This document defines the standards and protocols for using AI agents to maintain and modernize the `ytree` codebase. These rules ensure architectural integrity and prevent "hallucination debt."
+This document defines the standards and processes for using AI agents to maintain and modernize the `ytree` codebase. These rules ensure architectural integrity and prevent "hallucination debt."
 
 ---
 
@@ -8,7 +8,7 @@ This document defines the standards and protocols for using AI agents to maintai
 
 ### 1.1 The Golden Loop (Spec-First Integrity)
 The development process is strictly hierarchical. The Spec is the "Contract of Truth."
-1.  **Write/Verify Spec:** Does `specification.md` describe the desired behavior?
+1.  **Write/Verify Spec:** Does `SPECIFICATION.md` describe the desired behavior?
 2.  **Write Test:** Create a test case that fails if the behavior is missing (Red).
 3.  **Implement:** Write C code to satisfy the test (Green).
 4.  **Refactor:** Improve code structure without breaking the test.
@@ -20,10 +20,13 @@ The development process is strictly hierarchical. The Spec is the "Contract of T
 
 ### 1.2 General Rules
 1.  **Architecture as Blueprint:** [ARCHITECTURE.md](ARCHITECTURE.md) defines the technical structure.
-2.  **Human as Architect:** The AI is a "Junior Developer." The human maintainer provides direction.
+2.  **Human as Architect:** The AI acts as a partner with varying levels of specialization (see Section 3). The human maintainer provides final architectural direction.
 3.  **Atomic Missions:** One task = One session.
 4.  **Build-First Verification:** No code is accepted until it compiles and passes tests.
-5.  **The "Clean Slate" Rule:** If an AI generates fragile code, revert and restart. Do not patch.
+5.  **The "Clean Slate" Rule:** If an AI generates fragile code or follows a wrong path, do not attempt to "patch" the mistake via further dialogue. Revert the changes (`git restore .`), rephrase the original prompt from a different perspective, and restart the mission. This is mandatory because:
+    *   **Context Clearing:** It removes the "bad" code and the flawed logic that led to it.
+    *   **New Perspective:** Rephrasing prevents the model from staying stuck in a loop of bad assumptions.
+    *   **Clean Implementation:** It ensures the final code is the result of a single, clean logical flow rather than a series of ad-hoc patches.
 
 ---
 
@@ -35,45 +38,56 @@ The project maintains a set of "Persona Rules" in the `.agent/rules/` directory.
 *   **`builder.md`**: Used for implementation. Enforces C89/C99 standards, error handling, and file-writing constraints.
 *   **`auditor.md`**: Used for identifying architectural fragility and global state coupling.
 *   **`tester.md`**: Used for generating Python-based TUI automation tests.
-*   **`mentor.md`**: Used for general technical advice.
 
 ---
 
-## 3. Workflow: Behavioral SDD (Specification-Driven Development)
+## 3. Model Selection Guide
 
-All development follows an **Architectural SDD** approach:
+When working with an AI-assisted workflow, treat Large Language Models (LLMs) like developers with varying seniority levels and specialties. Select the model based on task complexity and risk to prioritize **token economy**, leveraging **Serena** across all models for semantic context.
 
-1.  **Identify Protocol:** Determine which Protocol (A, B, or C) or Invariant (Focus vs. Freeze) the current bug violates.
-2.  **Contract Verification:** Direct the AI to analyze the code specifically through the lens of that protocol.
-3.  **Refactor to Spec:** Fix the code so it adheres to the Specification. Do not accept "smart" shortcuts that bypass the established state machine logic.
-
----
-
-## 4. Workflow: Other IDEs or Web Interfaces (Manual)
-
-If you are using a standard text editor and a web-based AI (like Google AI Studio or ChatGPT), the workflow remains identical but the context management is manual.
-
-1.  **Initialize Context:** Copy the relevant persona from `.agent/rules/` into the AI's "System Instructions" or the first prompt.
-2.  **Provide Context:** Provide the AI with the source files relevant to the task.
-3.  **Generate & Apply:** Ask the AI to execute the task. Manually copy the code into your editor.
-4.  **Verify:** Run the build and test commands in your local terminal.
+*   **Gemini Flash (The Junior Developer / Scripter):** High-speed, high-quota model for bulk information retrieval, context discovery, documentation, repetitive formatting, and simple, unambiguous refactoring.
+*   **Gemini Pro (The Core Contributor / Feature Builder):** The primary development "workhorse." Use for standard feature implementation, writing complex behavioral tests, refactoring, and general architectural planning.
+*   **Claude Opus (The Lead Architect / Auditor):** High-reasoning engine reserved for the hardest problems, subtle logic bugs, zero-trust refactoring ("Architect Mode"), and critical code audits where reasoning quality is paramount.
 
 ---
 
-## 5. Debugging Protocol
-1.  **Instrument:** Direct the AI to add `fprintf(stderr, ...)` calls to trace state transitions (e.g., tracing `ActivePanel` focus).
+## 4. The Agentic Loop (Antigravity / IDE Integration)
+
+The **Google Agentic IDE (Antigravity)** is the primary tool for development. It automates the implementation loop, significantly speeding up the process of editing, building, and testing code.
+
+1.  **Direct Execution:** The agent operates directly within the codebase, eliminating the manual "copy-paste-check" cycle.
+2.  **Multimodal Reasoning:** Although the IDE has built-in models, the **Claude Extension** is used specifically for high-reasoning tasks (architectural shifts, subtle bug fixes).
+3.  **Cross-File State:** Antigravity manages the context of multiple open files and terminal states, ensuring the agent always has the relevant local environment at its disposal.
+
+---
+
+## 5. The Guidance Loop (AI Studio / Manual Research)
+
+**Google AI Studio** is used primarily for high-level guidance, architectural brainstorming, and exploratory research where direct file editing is not yet required.
+
+1.  **Avoid Implementation in Web UI:** Coding directly in AI Studio is considered "manually intensive" and prone to errors. Use it to deliberate on a plan, then move to Antigravity for the execution.
+2.  **Initialize Context:** When seeking guidance, copy the relevant persona from `.agent/rules/` into the AI's "System Instructions."
+3.  **Large Context Exploration:** Leverage the massive context window of Gemini models in AI Studio to analyze large parts of the codebase simultaneously before committing to a specific `@mission`.
+
+## 6. Debugging Procedures
+
+Never allow the AI to "guess" the cause of a bug; it will confidently hallucinate a solution that may not address the underlying issue. Instead, use one of the two following objective loops:
+
+### 6.1 Instrumentation (The Discovery Loop)
+
+Used primarily for high-level research in **AI Studio** or complex exploratory debugging. It forces the AI to "find out" what is actually happening before proposing a fix.
+
+1.  **Instrument:** Use the keyword **"Instrument"** to direct the AI to add `fprintf(stderr, ...)` calls to trace state transitions (e.g., tracing `ActivePanel` focus).
 2.  **Observe:** Run the instrumented code and provide terminal output to the AI.
-3.  **Solve:** Use the runtime evidence to guide the final fix back to Specification compliance.
+3.  **Solve:** Use the empirical runtime evidence to guide the final fix back to Specification compliance.
 
-### 5.1 The "Hands-Off" Fix Protocol (Test-Driven AI Repair)
+### 6.2 The "Hands-Off" Fix Mandate (The Agentic Loop)
 
-When a bug is discovered, the most efficient and hands-off way to fix it is **not** to describe the problem and ask the AI to write C code. This leads to hallucination loops and broken state machines.
-
-Instead, force the AI to prove it understands the bug by writing a test first. Follow this strict sequence:
+The mandatory focused procedure for **Antigravity** and agentic execution. It forces the agent to prove its understanding by writing a failing test *before* editing any code.
 
 1.  **Replicate in Python (The Test):** Describe the manual steps that cause the bug to the **Tester** persona. Instruct it: *"Write a `pytest` using the `pexpect` TUI harness that performs these exact steps and asserts the expected correct behavior. This test MUST fail currently."*
 2.  **Verify the Failure (Red):** Run `make test`. Confirm the new test fails exactly where the bug manifests. You now have a mathematical proof of the bug.
 3.  **Assign the Fix (The Code):** Hand the failing test output and the relevant C source files to the **Builder** persona. Instruct it: *"Modify the C code to make this specific test pass. Do not change the test."*
-4.  **Verify the Fix (Green):** Run `make test`. When the test passes, the bug is fixed, and you have automatically gained a permanent regression test preventing it from ever returning.
+4.  **Verify the Fix (Green):** Run `make test`. When the test passes, the bug is fixed, and you have automatically gained a permanent regression test.
 
-**Why this works:** It removes human translation errors. The AI is forced to debug against a rigid, objective standard (the failing Python test) rather than a subjective human description.
+**Why this works:** It removes human translation errors and forces the AI to debug against a rigid, objective standard rather than a subjective description.

@@ -7,31 +7,28 @@
 
 #include "ytree.h"
 
-static int dir_mode = MODE_3; /* Default to Name Only */
-
 /*
  * SetDirMode
  * Sets the display mode for directory entries.
  * Avoid using 'mode' as parameter name due to global macro collision.
  */
-void SetDirMode(int new_mode) { dir_mode = new_mode; }
+void SetDirMode(ViewContext *ctx, int new_mode) { ctx->dir_mode = new_mode; }
 
-void RotateDirMode(void) {
-  /* Note: This function has no ViewContext access, needs refactoring.
-   * For now, just rotate modes without the view_mode check.
+void RotateDirMode(ViewContext *ctx) {
+  /* For now, just rotate modes without the view_mode check.
    * The check will need to be done at call site with proper context. */
-  switch (dir_mode) {
+  switch (ctx->dir_mode) {
   case MODE_1:
-    dir_mode = MODE_2;
+    ctx->dir_mode = MODE_2;
     break;
   case MODE_2:
-    dir_mode = MODE_4;
+    ctx->dir_mode = MODE_4;
     break;
   case MODE_3:
-    dir_mode = MODE_1;
+    ctx->dir_mode = MODE_1;
     break;
   case MODE_4:
-    dir_mode = MODE_3;
+    ctx->dir_mode = MODE_3;
     break;
   }
 }
@@ -79,7 +76,7 @@ void PrintDirEntry(ViewContext *ctx, struct Volume *vol, WINDOW *win,
     (void)strcat(graph_buffer, "3-");
 
   /* Build the attribute string based on the current directory mode */
-  switch (dir_mode) {
+  switch (ctx->dir_mode) {
   case MODE_1:
     (void)GetAttributes(de_ptr->stat_struct.st_mode, attributes);
     (void)CTime(de_ptr->stat_struct.st_mtime, modify_time);
@@ -190,7 +187,7 @@ void PrintDirEntry(ViewContext *ctx, struct Volume *vol, WINDOW *win,
 
   /* Calculate maximum allowed name length based on mode and window width */
   int max_name_len;
-  if (dir_mode == MODE_3) {
+  if (ctx->dir_mode == MODE_3) {
     /* In MODE_3 (name-only), truncate based on full window width */
     max_name_len = ctx->layout.dir_win_width - graph_len - 1;
   } else {

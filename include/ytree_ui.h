@@ -54,9 +54,8 @@ extern void DisplayTree(ViewContext *ctx, struct Volume *vol, WINDOW *win,
 extern void PrintDirEntry(ViewContext *ctx, struct Volume *vol, WINDOW *win,
                           int entry_no, int y, unsigned char hilight,
                           BOOL is_active);
-extern void SetDirMode(int new_mode);
-extern int GetDirMode(void);
-extern void RotateDirMode(void);
+extern void SetDirMode(ViewContext *ctx, int new_mode);
+extern void RotateDirMode(ViewContext *ctx);
 
 /* display.c */
 extern void ClearHelp(ViewContext *ctx);
@@ -70,7 +69,7 @@ extern void SwitchToSmallFileWindow(ViewContext *ctx);
 extern void UnmapF2Window(ViewContext *ctx);
 extern void DisplayHeaderPath(ViewContext *ctx, char *path);
 extern void RenderInactivePanel(ViewContext *ctx, YtreePanel *panel);
-extern void RefreshGlobalView(ViewContext *ctx, DirEntry *dir_entry);
+extern void RefreshView(ViewContext *ctx, DirEntry *dir_entry);
 extern void DisplayPreviewHelp(ViewContext *ctx);
 
 /* display_utils.c */
@@ -173,6 +172,10 @@ extern void DisplayDiskName(ViewContext *ctx, Statistic *s);
 extern void DisplayDiskStatistic(ViewContext *ctx, Statistic *s);
 extern void DisplayDiskTagged(ViewContext *ctx, Statistic *s);
 extern void DisplayFileParameter(ViewContext *ctx, FileEntry *file_entry);
+extern void DisplayFileStatistic(ViewContext *ctx, FileEntry *file_entry,
+                                 Statistic *s);
+extern void UpdateStatsPanel(ViewContext *ctx, DirEntry *dir_entry,
+                             Statistic *s);
 extern void DisplayFilter(ViewContext *ctx, Statistic *s);
 extern void DisplayGlobalFileParameter(ViewContext *ctx, FileEntry *file_entry);
 extern void RecalculateSysStats(ViewContext *ctx, Statistic *s);

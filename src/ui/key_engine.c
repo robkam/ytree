@@ -416,16 +416,14 @@ YtreeAction GetKeyAction(ViewContext *ctx, int ch) {
   case 0x11:
     return ACTION_QUIT_DIR;
   case 't':
+  case 'T':
     return ACTION_TAG;
   case 'u':
-    return ACTION_UNTAG;
-  case 'T':
-    return ACTION_TAG_ALL;
-  case 0x14:
-    return ACTION_TAG_ALL;
   case 'U':
-    return ACTION_UNTAG_ALL;
-  case 0x15:
+    return ACTION_UNTAG;
+  case 0x14: /* Ctrl+T */
+    return ACTION_TAG_ALL;
+  case 0x15: /* Ctrl+U */
     return ACTION_UNTAG_ALL;
   case ';':
     return ACTION_TAG_REST;
@@ -441,6 +439,7 @@ YtreeAction GetKeyAction(ViewContext *ctx, int ch) {
   case KEY_RESIZE:
     return ACTION_RESIZE;
 
+  case 'k':  /* Note: lowercase 'k' converted to KEY_UP when VI_KEYS enabled */
   case 'K':
     return ACTION_VOL_MENU;
   case ',':

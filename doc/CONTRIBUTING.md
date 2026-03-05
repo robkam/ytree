@@ -110,7 +110,7 @@ This section documents agreed-upon architectural constraints and non-goals. Thes
 **Decision:** `ytree` will remain **single-threaded**. We will **NOT** implement multi-threading for background scanning or operations.
 **Rationale:**
 *   **Ncurses Constraints:** The `ncurses` library is not thread-safe. Updating the UI from a background thread requires complex message passing or locking mechanisms that complicate the architecture significantly.
-*   **Global State:** The legacy codebase relies heavily on global state (`statistic`, `dir_entry_list`). Making this thread-safe would require a complete rewrite of the core data structures (Mutexes/Locks everywhere), which is a high-risk, high-cost endeavor ("100% effort").
+*   **Architectural Simplicity:** The context-passing architecture ensures clean, deterministic state flow. Introducing threads would require pervasive locking around `ViewContext` and its sub-structures, negating the clarity benefits of the current design.
 *   **The "80/20" Solution:** Use **Visual Feedback** (Animations/Spinners) and **Graceful Abort** (ESC key) mechanisms. This delivers 80% of the benefit (responsiveness) for 20% of the complexity.
 
 ### 2. UI Toolkit: Hard Ncurses Dependency
@@ -118,10 +118,11 @@ This section documents agreed-upon architectural constraints and non-goals. Thes
 *   **Non-Goal:** Implementing a "headless" mode or porting to a different UI toolkit (GTK, Qt) is out of scope.
 *   **Non-Goal:** Removing `ncurses` to run on raw serial lines without termcap capabilities is out of scope.
 
-### 3. Global State vs. Future Split Screen (F8)
-**Context:** Currently, `ytree` uses a "Single Active Volume" model where global macros (like `statistic`) map to the `CurrentVolume`.
-*   **Constraint:** Do not attempt to prematurely refactor these globals into "Window Contexts" until Phase 5 (Split Screen Implementation).
-*   **Future Impact:** When F8 (Split Screen) is implemented, it will require a major architectural refactor to move filtering state and directory pointers out of the global scope and into per-pane structures. Until then, the codebase assumes a single active view to maintain stability.
+### 3. Context-Passing Architecture (No Global State)
+**Status:** The codebase has been fully migrated to a **context-passing architecture**. Split Screen (F8) is implemented and working. All former globals (`CurrentVolume`, `statistic`, `dir_entry_list`, etc.) have been eliminated.
+
+*   **The Rule:** Every function receives `ViewContext *ctx` (or a more specific context pointer) as its first argument. New code must **never** introduce global mutable state — add members to `ViewContext`, `YtreePanel`, or `Volume` instead.
+*   **Exceptions:** Only three globals remain, each with technical justification: `ui_colors[]` and `NUM_UI_COLORS` (immutable configuration tables), and `ytree_shutdown_flag` (POSIX signal handler requirement). See [ARCHITECTURE.md](ARCHITECTURE.md) Section 3 for details.
 
 ---
 

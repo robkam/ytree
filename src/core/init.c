@@ -206,25 +206,27 @@ void Layout_Recalculate(ViewContext *ctx) {
   }
 }
 
-void InitGlobalView(ViewContext *ctx) {
-  DEBUG_LOG("ENTER InitGlobalView");
+void InitView(ViewContext *ctx) {
+  DEBUG_LOG("ENTER InitView");
   memset(ctx, 0, sizeof(ViewContext));
+  ctx->viewer.inhex = TRUE;
   ctx->view_mode = DISK_MODE;
+  ctx->dir_mode = MODE_3;
   ctx->is_split_screen = FALSE;
   ctx->focused_window = FOCUS_TREE;
 
   /* Initialize Panels */
   ctx->left = (YtreePanel *)calloc(1, sizeof(YtreePanel));
-  DEBUG_LOG("InitGlobalView: setup left panel=%p", (void *)ctx->left);
+  DEBUG_LOG("InitView: setup left panel=%p", (void *)ctx->left);
   ctx->left->file_mode = MODE_1;
 
   ctx->right = (YtreePanel *)calloc(1, sizeof(YtreePanel));
-  DEBUG_LOG("InitGlobalView: setup right panel=%p", (void *)ctx->right);
+  DEBUG_LOG("InitView: setup right panel=%p", (void *)ctx->right);
   ctx->right->file_mode = MODE_1;
 
   ctx->active = ctx->left;
 
-  DEBUG_LOG("EXIT InitGlobalView");
+  DEBUG_LOG("EXIT InitView");
 }
 
 void ReCreateWindows(ViewContext *ctx) {
@@ -438,8 +440,9 @@ void ReCreateWindows(ViewContext *ctx) {
   if (ctx->ctx_history_window)
     delwin(ctx->ctx_history_window);
 
-  ctx->ctx_history_window = Newwin(HISTORY_WINDOW_HEIGHT, HISTORY_WINDOW_WIDTH(ctx),
-                                   HISTORY_WINDOW_Y, HISTORY_WINDOW_X);
+  ctx->ctx_history_window =
+      Newwin(HISTORY_WINDOW_HEIGHT, HISTORY_WINDOW_WIDTH(ctx), HISTORY_WINDOW_Y,
+             HISTORY_WINDOW_X);
   scrollok(ctx->ctx_history_window, TRUE);
   clearok(ctx->ctx_history_window, TRUE);
   leaveok(ctx->ctx_history_window, TRUE);
@@ -461,8 +464,8 @@ void ReCreateWindows(ViewContext *ctx) {
   if (ctx->ctx_f2_window)
     delwin(ctx->ctx_f2_window);
 
-  ctx->ctx_f2_window =
-      Newwin(F2_WINDOW_HEIGHT(ctx), F2_WINDOW_WIDTH(ctx), F2_WINDOW_Y(ctx), F2_WINDOW_X(ctx));
+  ctx->ctx_f2_window = Newwin(F2_WINDOW_HEIGHT(ctx), F2_WINDOW_WIDTH(ctx),
+                              F2_WINDOW_Y(ctx), F2_WINDOW_X(ctx));
 
   keypad(ctx->ctx_f2_window, TRUE);
   scrollok(ctx->ctx_f2_window, FALSE);
@@ -473,7 +476,7 @@ void ReCreateWindows(ViewContext *ctx) {
 }
 
 int Init(ViewContext *ctx, char *configuration_file, char *history_file) {
-  InitGlobalView(ctx);
+  InitView(ctx);
   DEBUG_LOG("ENTER Init");
   char buffer[PATH_LENGTH + 1];
   char *home = NULL;

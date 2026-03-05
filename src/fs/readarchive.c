@@ -160,7 +160,7 @@ int ReadTreeFromArchive(ViewContext *ctx, DirEntry **dir_entry_ptr,
     /* Update statistics / animation every 20 files */
     if ((count++ % 20) == 0) {
       if (cb)
-        cb(cb_data);
+        cb(ctx, cb_data);
     }
   }
 
