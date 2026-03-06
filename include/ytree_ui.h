@@ -182,6 +182,28 @@ extern void DisplayFilter(ViewContext *ctx, Statistic *s);
 extern void DisplayGlobalFileParameter(ViewContext *ctx, FileEntry *file_entry);
 extern void RecalculateSysStats(ViewContext *ctx, Statistic *s);
 
+/* ctrl_dir.c / dir_tags.c */
+extern void HandleShowAll(ViewContext *ctx, BOOL tagged_only,
+                          DirEntry *dir_entry, BOOL *need_dsp_help, int *ch,
+                          YtreePanel *p);
+extern BOOL HandleDirTagActions(ViewContext *ctx, int action,
+                                DirEntry **dir_entry_ptr, BOOL *need_dsp_help,
+                                int *ch);
+
+/* dir_nav.c */
+extern void DirNav_Movedown(ViewContext *ctx, DirEntry **dir_entry,
+                            YtreePanel *p);
+extern void DirNav_Moveup(ViewContext *ctx, DirEntry **dir_entry,
+                          YtreePanel *p);
+extern void DirNav_Movenpage(ViewContext *ctx, DirEntry **dir_entry,
+                             YtreePanel *p);
+extern void DirNav_Moveppage(ViewContext *ctx, DirEntry **dir_entry,
+                             YtreePanel *p);
+extern void DirNav_MoveEnd(ViewContext *ctx, DirEntry **dir_entry,
+                           YtreePanel *p);
+extern void DirNav_MoveHome(ViewContext *ctx, DirEntry **dir_entry,
+                            YtreePanel *p);
+
 /* ui_nav.c */
 extern void Nav_MoveDown(int *cursor, int *offset, int total_items,
                          int page_height, int step);
@@ -224,5 +246,29 @@ extern int recursive_rmdir(const char *path);
 extern int UI_ConflictResolverWrapper(ViewContext *ctx, const char *src_path,
                                       const char *dst_path, int *mode_flags);
 extern void BuildFileEntryList(ViewContext *ctx, YtreePanel *panel);
+
+/* file_tags.c */
+extern void FileTags_WalkTaggedFiles(ViewContext *ctx, int start_file,
+                                     int cursor_pos,
+                                     int (*fkt)(ViewContext *, FileEntry *,
+                                                WalkingPackage *),
+                                     WalkingPackage *walking_package);
+extern BOOL FileTags_IsMatchingTaggedFiles(ViewContext *ctx);
+extern int FileTags_UI_DeleteTaggedFiles(ViewContext *ctx, int max_dispfiles,
+                                         Statistic *s);
+extern void FileTags_SilentWalkTaggedFiles(
+    ViewContext *ctx,
+    int (*fkt)(ViewContext *, FileEntry *, WalkingPackage *, Statistic *),
+    WalkingPackage *walking_package);
+extern void FileTags_SilentTagWalkTaggedFiles(
+    ViewContext *ctx,
+    int (*fkt)(ViewContext *, FileEntry *, WalkingPackage *, Statistic *),
+    WalkingPackage *walking_package);
+extern void FileTags_HandleInvertTags(ViewContext *ctx, DirEntry *dir_entry,
+                                      Statistic *s);
+
+/* file_list.c */
+extern void FileList_RemoveFileEntry(ViewContext *ctx, int entry_no);
+extern void FileList_ChangeFileEntry(ViewContext *ctx);
 
 #endif /* YTREE_UI_H */
