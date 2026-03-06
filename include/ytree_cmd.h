@@ -55,6 +55,9 @@ extern int DeleteTaggedFiles(ViewContext *ctx, FileEntry *fe_ptr,
                              WalkingPackage *walking_package);
 extern int RemoveFile(ViewContext *ctx, FileEntry *fe_ptr, Statistic *s);
 
+/* edit.c */
+extern int Edit(ViewContext *ctx, DirEntry *dir_entry, char *file_path);
+
 /* execute.c */
 extern int Execute(ViewContext *ctx, DirEntry *dir_entry, FileEntry *file_entry,
                    char *cmd_template, Statistic *s,

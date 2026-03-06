@@ -97,9 +97,6 @@ extern void PrintSpecialString(WINDOW *win, int y, int x, char *str, int color);
 extern int WAddStr(WINDOW *win, char *str);
 extern int WAttrAddStr(WINDOW *win, int attr, char *str);
 
-/* edit.c */
-extern int Edit(ViewContext *ctx, DirEntry *dir_entry, char *file_path);
-
 /* error.c */
 extern void AboutBox(ViewContext *ctx);
 extern void Error(char *msg, char *module, int line);
