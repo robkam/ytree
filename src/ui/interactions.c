@@ -551,9 +551,10 @@ int UI_ReadFilter(ViewContext *ctx) {
   return (result);
 }
 
-void UI_GetKindOfSort(ViewContext *ctx) {
+void UI_HandleSort(ViewContext *ctx, DirEntry *dir_entry, Statistic *s,
+                   int start_x) {
   int c;
-  int s = 0;
+  int sort_kind = 0;
   int order = SORT_ASC;
 
   wmove(stdscr, Y_PROMPT(ctx), 0);
@@ -578,28 +579,28 @@ void UI_GetKindOfSort(ViewContext *ctx) {
 
     switch (c) {
     case 'N':
-      s = SORT_BY_NAME;
+      sort_kind = SORT_BY_NAME;
       break;
     case 'E':
-      s = SORT_BY_EXTENSION;
+      sort_kind = SORT_BY_EXTENSION;
       break;
     case 'M':
-      s = SORT_BY_MOD_TIME;
+      sort_kind = SORT_BY_MOD_TIME;
       break;
     case 'A':
-      s = SORT_BY_ACC_TIME;
+      sort_kind = SORT_BY_ACC_TIME;
       break;
     case 'C':
-      s = SORT_BY_CHG_TIME;
+      sort_kind = SORT_BY_CHG_TIME;
       break;
     case 'G':
-      s = SORT_BY_GROUP;
+      sort_kind = SORT_BY_GROUP;
       break;
     case 'W':
-      s = SORT_BY_OWNER;
+      sort_kind = SORT_BY_OWNER;
       break;
     case 'S':
-      s = SORT_BY_SIZE;
+      sort_kind = SORT_BY_SIZE;
       break;
     case 'O':
       if (order == SORT_ASC) {
@@ -618,7 +619,21 @@ void UI_GetKindOfSort(ViewContext *ctx) {
     }
   } while (!strchr("ACEGMNWS", c));
 
-  SetKindOfSort(s + order, &ctx->active->vol->vol_stats);
+  SetKindOfSort(sort_kind + order, s);
+
+  if (dir_entry) {
+    dir_entry->start_file = 0;
+    dir_entry->cursor_pos = 0;
+  }
+
+  if (ctx->active) {
+    Panel_Sort(ctx->active, s->kind_of_sort);
+    if (dir_entry) {
+      DisplayFiles(ctx, ctx->active, dir_entry, dir_entry->start_file,
+                   dir_entry->start_file + dir_entry->cursor_pos, start_x,
+                   ctx->ctx_file_window);
+    }
+  }
 }
 
 void shell_quote(char *dest, const char *src) {
