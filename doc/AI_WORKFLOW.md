@@ -94,3 +94,31 @@ The mandatory focused procedure for **Antigravity** and agentic execution. It fo
 **Why this works:** It removes human translation errors and forces the AI to debug against a rigid, objective standard rather than a subjective description.
 
 For test naming conventions, structure standards, and harness rules, see **[TESTING.md](TESTING.md)**.
+
+---
+
+## 7. Token Conservation
+
+AI tokens are a finite resource per session. Wasted tokens mean shorter sessions, lost context, and more frequent "clean slate" restarts. Follow these rules to maximize productive output per session.
+
+### 7.1 One Context at a Time
+*   **Do not** load multiple unrelated files, symbols, or topics into a single prompt. Each prompt should focus on one module, one feature, or one bug.
+*   **Why:** Broad context retrieval floods the window with irrelevant information, reducing the space available for reasoning about the actual problem.
+
+### 7.2 Minimize Redundant Reads
+*   If a file or symbol has already been read in the current session, do not re-read it unless it has been modified since.
+*   Use targeted symbol lookups (e.g., Serena `find_symbol`) instead of reading entire files when only one function is relevant.
+
+### 7.3 Be Specific in Prompts
+*   **Bad:** "Look at the codebase and find issues."
+*   **Good:** "Audit `src/fs/archive.c` for unchecked return values from `archive_read_next_header`."
+*   Vague prompts cause the agent to speculatively read dozens of files, burning tokens on exploration rather than execution.
+
+### 7.4 Batch Related Changes
+*   Group related edits into a single prompt (e.g., "Rename X and update all callers") rather than issuing them one at a time with full context reload each time.
+
+### 7.5 Avoid Premature Optimization of Prompts
+*   Do not ask the agent to "summarize everything it knows" or "list all functions in the project" as a warm-up. Start with the specific task - the agent will pull context as needed.
+
+### 7.6 Exit Early on Wrong Paths
+*   If the agent is heading in a wrong direction, **stop and restart** (see Section 1.2, "Clean Slate" Rule) rather than spending tokens on corrections and follow-up clarifications that compound the original mistake.
