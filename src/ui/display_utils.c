@@ -15,73 +15,73 @@
 /*****************************************************************************
  *                              GetAttributes                                *
  *****************************************************************************/
-char *GetAttributes(unsigned short modus, char *buffer) {
+char *GetAttributes(unsigned short mode, char *buffer) {
   char *save_buffer = buffer;
 
-  if (S_ISREG(modus))
+  if (S_ISREG(mode))
     *buffer++ = '-';
-  else if (S_ISDIR(modus))
+  else if (S_ISDIR(mode))
     *buffer++ = 'd';
-  else if (S_ISCHR(modus))
+  else if (S_ISCHR(mode))
     *buffer++ = 'c';
-  else if (S_ISBLK(modus))
+  else if (S_ISBLK(mode))
     *buffer++ = 'b';
-  else if (S_ISFIFO(modus))
+  else if (S_ISFIFO(mode))
     *buffer++ = 'p';
-  else if (S_ISLNK(modus))
+  else if (S_ISLNK(mode))
     *buffer++ = 'l';
-  else if (S_ISSOCK(modus))
+  else if (S_ISSOCK(mode))
     *buffer++ = 's'; /* ??? */
   else
     *buffer++ = '?'; /* unknown */
 
-  if (modus & S_IRUSR)
+  if (mode & S_IRUSR)
     *buffer++ = 'r';
   else
     *buffer++ = '-';
 
-  if (modus & S_IWUSR)
+  if (mode & S_IWUSR)
     *buffer++ = 'w';
   else
     *buffer++ = '-';
 
-  if (modus & S_IXUSR)
+  if (mode & S_IXUSR)
     *buffer++ = 'x';
   else
     *buffer++ = '-';
 
-  if (modus & S_ISUID)
+  if (mode & S_ISUID)
     *(buffer - 1) = 's';
 
-  if (modus & S_IRGRP)
+  if (mode & S_IRGRP)
     *buffer++ = 'r';
   else
     *buffer++ = '-';
 
-  if (modus & S_IWGRP)
+  if (mode & S_IWGRP)
     *buffer++ = 'w';
   else
     *buffer++ = '-';
 
-  if (modus & S_IXGRP)
+  if (mode & S_IXGRP)
     *buffer++ = 'x';
   else
     *buffer++ = '-';
 
-  if (modus & S_ISGID)
+  if (mode & S_ISGID)
     *(buffer - 1) = 's';
 
-  if (modus & S_IROTH)
+  if (mode & S_IROTH)
     *buffer++ = 'r';
   else
     *buffer++ = '-';
 
-  if (modus & S_IWOTH)
+  if (mode & S_IWOTH)
     *buffer++ = 'w';
   else
     *buffer++ = '-';
 
-  if (modus & S_IXOTH)
+  if (mode & S_IXOTH)
     *buffer++ = 'x';
   else
     *buffer++ = '-';

@@ -162,7 +162,7 @@ int GetRenameParameter(ViewContext *ctx, const char *old_name, char *new_name) {
   return (0);
 }
 
-static int InputModeString(ViewContext *ctx, char *modus, int y, int x) {
+static int InputModeString(ViewContext *ctx, char *mode, int y, int x) {
   int cursor_pos = 1; /* Skip file type char at index 0 */
   int ch;
   char path[PATH_LENGTH];
@@ -176,7 +176,7 @@ static int InputModeString(ViewContext *ctx, char *modus, int y, int x) {
     for (i = 0; i < 10; i++) {
       if (i == cursor_pos)
         wattron(stdscr, A_REVERSE);
-      waddch(stdscr, modus[i]);
+      waddch(stdscr, mode[i]);
       if (i == cursor_pos)
         wattroff(stdscr, A_REVERSE);
     }
@@ -231,7 +231,7 @@ static int InputModeString(ViewContext *ctx, char *modus, int y, int x) {
       break;
     default:
       if (strchr("rwx-sStT", ch)) {
-        modus[cursor_pos] = ch;
+        mode[cursor_pos] = ch;
         if (cursor_pos < 9)
           cursor_pos++;
       }
@@ -241,7 +241,7 @@ static int InputModeString(ViewContext *ctx, char *modus, int y, int x) {
 }
 
 int ChangeFileModus(ViewContext *ctx, FileEntry *fe_ptr) {
-  char modus[12];
+  char mode[12];
   WalkingPackage walking_package;
   int result;
   int x;
@@ -252,14 +252,14 @@ int ChangeFileModus(ViewContext *ctx, FileEntry *fe_ptr) {
     return (result);
   }
 
-  (void)GetAttributes(fe_ptr->stat_struct.st_mode, modus);
+  (void)GetAttributes(fe_ptr->stat_struct.st_mode, mode);
 
   ClearHelp(ctx);
   MvAddStr(LINES - 2, 1, "MODE:");
   x = 1 + strlen("MODE:") + UI_INPUT_PADDING;
 
-  if (InputModeString(ctx, modus, LINES - 2, x) == CR) {
-    (void)strcpy(walking_package.function_data.change_mode.new_mode, modus);
+  if (InputModeString(ctx, mode, LINES - 2, x) == CR) {
+    (void)strcpy(walking_package.function_data.change_mode.new_mode, mode);
     result = SetFileModus(ctx, fe_ptr, &walking_package);
   }
 
@@ -270,7 +270,7 @@ int ChangeFileModus(ViewContext *ctx, FileEntry *fe_ptr) {
 }
 
 int ChangeDirModus(ViewContext *ctx, DirEntry *de_ptr) {
-  char modus[12];
+  char mode[12];
   WalkingPackage walking_package;
   int result;
   int x;
@@ -281,14 +281,14 @@ int ChangeDirModus(ViewContext *ctx, DirEntry *de_ptr) {
     return (result);
   }
 
-  (void)GetAttributes(de_ptr->stat_struct.st_mode, modus);
+  (void)GetAttributes(de_ptr->stat_struct.st_mode, mode);
 
   ClearHelp(ctx);
   MvAddStr(LINES - 2, 1, "MODE:");
   x = 1 + strlen("MODE:") + UI_INPUT_PADDING;
 
-  if (InputModeString(ctx, modus, LINES - 2, x) == CR) {
-    (void)strcpy(walking_package.function_data.change_mode.new_mode, modus);
+  if (InputModeString(ctx, mode, LINES - 2, x) == CR) {
+    (void)strcpy(walking_package.function_data.change_mode.new_mode, mode);
     result = SetDirModus(de_ptr, &walking_package);
   }
 

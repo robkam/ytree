@@ -1,10 +1,11 @@
-#define NO_YTREE_MACROS
 /***************************************************************************
  *
  * src/ui/ctrl_file.c
  * File Window Controller (Input & Event Handling)
  *
  ***************************************************************************/
+
+#define NO_YTREE_MACROS
 
 #ifndef YTREE_H
 #include "../../include/ytree.h"
