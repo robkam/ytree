@@ -110,11 +110,16 @@ extern int UI_Warning(ViewContext *ctx, const char *fmt, ...);
 extern int UI_Message(ViewContext *ctx, const char *fmt, ...);
 extern int UI_Notice(ViewContext *ctx, const char *fmt, ...);
 
-/* filewin.c */
+/* filewin.c / ctrl_file.c / ctrl_file_ops.c */
 extern void BuildFileEntryList(ViewContext *ctx, YtreePanel *panel);
 extern void DisplayFileWindow(ViewContext *ctx, YtreePanel *panel,
                               DirEntry *dir_entry);
 extern int HandleFileWindow(ViewContext *ctx, DirEntry *dir_entry);
+extern DirEntry *RefreshFileView(ViewContext *ctx, DirEntry *dir_entry);
+extern BOOL handle_tag_file_action(ViewContext *ctx, int action,
+                                   DirEntry *dir_entry, int *unput_char_ptr,
+                                   BOOL *need_dsp_help_ptr, int start_x,
+                                   Statistic *s, BOOL *maybe_change_x_step_ptr);
 
 /* render_file.c */
 extern void SetPanelFileMode(ViewContext *ctx, YtreePanel *p,
