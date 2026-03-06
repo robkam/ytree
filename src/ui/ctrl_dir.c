@@ -37,6 +37,31 @@ void DirNav_Moveppage(ViewContext *ctx, DirEntry **dir_entry, YtreePanel *p);
 void DirNav_MoveEnd(ViewContext *ctx, DirEntry **dir_entry, YtreePanel *p);
 void DirNav_MoveHome(ViewContext *ctx, DirEntry **dir_entry, YtreePanel *p);
 
+static BOOL HandleDirTagActions(ViewContext *ctx, int action,
+                                DirEntry **dir_entry_ptr, BOOL *need_dsp_help,
+                                int *ch) {
+  DirEntry *dir_entry = *dir_entry_ptr;
+  switch (action) {
+  case ACTION_TAG:
+    HandleTagDir(ctx, dir_entry, TRUE, ctx->active);
+    DirNav_Movedown(ctx, dir_entry_ptr, ctx->active);
+    return TRUE;
+  case ACTION_UNTAG:
+    HandleTagDir(ctx, dir_entry, FALSE, ctx->active);
+    DirNav_Movedown(ctx, dir_entry_ptr, ctx->active);
+    return TRUE;
+  case ACTION_TAG_ALL:
+    HandleTagAllDirs(ctx, ctx->active->vol, dir_entry, TRUE, ctx->active);
+    return TRUE;
+  case ACTION_UNTAG_ALL:
+    HandleTagAllDirs(ctx, ctx->active->vol, dir_entry, FALSE, ctx->active);
+    return TRUE;
+  case ACTION_CMD_TAGGED_S:
+    HandleShowAll(ctx, TRUE, dir_entry, need_dsp_help, ch, ctx->active);
+    return TRUE;
+  }
+  return FALSE;
+}
 
 int HandleDirWindow(ViewContext *ctx, DirEntry *start_dir_entry) {
   DirEntry *dir_entry, *de_ptr;
@@ -760,20 +785,15 @@ int HandleDirWindow(ViewContext *ctx, DirEntry *start_dir_entry) {
       need_dsp_help = TRUE;
       break;
     case ACTION_TAG:
-      HandleTagDir(ctx, dir_entry, TRUE, ctx->active);
-      DirNav_Movedown(ctx, &dir_entry, ctx->active); /* ADDED */
+    case ACTION_UNTAG:
+    case ACTION_TAG_ALL:
+    case ACTION_UNTAG_ALL:
+    case ACTION_CMD_TAGGED_S:
+      if (HandleDirTagActions(ctx, action, &dir_entry, &need_dsp_help, &ch)) {
+        break;
+      }
       break;
 
-    case ACTION_UNTAG:
-      HandleTagDir(ctx, dir_entry, FALSE, ctx->active);
-      DirNav_Movedown(ctx, &dir_entry, ctx->active); /* ADDED */
-      break;
-    case ACTION_TAG_ALL:
-      HandleTagAllDirs(ctx, ctx->active->vol, dir_entry, TRUE, ctx->active);
-      break;
-    case ACTION_UNTAG_ALL:
-      HandleTagAllDirs(ctx, ctx->active->vol, dir_entry, FALSE, ctx->active);
-      break;
     case ACTION_TOGGLE_MODE:
       RotateDirMode(ctx);
       /*DisplayFileWindow(ctx,  dir_entry, 0, -1 );*/
@@ -784,9 +804,6 @@ int HandleDirWindow(ViewContext *ctx, DirEntry *start_dir_entry) {
       DisplayDiskStatistic(ctx, s);
       UpdateStatsPanel(ctx, dir_entry, s);
       need_dsp_help = TRUE;
-      break;
-    case ACTION_CMD_TAGGED_S:
-      HandleShowAll(ctx, TRUE, dir_entry, &need_dsp_help, &ch, ctx->active);
       break;
 
     case ACTION_CMD_S:
@@ -1310,4 +1327,3 @@ int HandleDirWindow(ViewContext *ctx, DirEntry *start_dir_entry) {
 
   return (ch); /* Return the last raw character that caused exit */
 }
-
