@@ -24,44 +24,9 @@ void HandleReadSubTree(ViewContext *ctx, DirEntry *dir_entry,
                        BOOL *need_dsp_help, YtreePanel *p);
 void HandleUnreadSubTree(ViewContext *ctx, DirEntry *dir_entry,
                          DirEntry *de_ptr, BOOL *need_dsp_help, YtreePanel *p);
-void HandleShowAll(ViewContext *ctx, BOOL tagged_only, DirEntry *dir_entry,
-                   BOOL *need_dsp_help, int *ch, YtreePanel *p);
+
 void HandleSwitchWindow(ViewContext *ctx, DirEntry *dir_entry,
                         BOOL *need_dsp_help, int *ch, YtreePanel *p);
-
-/* dir_nav.c */
-void DirNav_Movedown(ViewContext *ctx, DirEntry **dir_entry, YtreePanel *p);
-void DirNav_Moveup(ViewContext *ctx, DirEntry **dir_entry, YtreePanel *p);
-void DirNav_Movenpage(ViewContext *ctx, DirEntry **dir_entry, YtreePanel *p);
-void DirNav_Moveppage(ViewContext *ctx, DirEntry **dir_entry, YtreePanel *p);
-void DirNav_MoveEnd(ViewContext *ctx, DirEntry **dir_entry, YtreePanel *p);
-void DirNav_MoveHome(ViewContext *ctx, DirEntry **dir_entry, YtreePanel *p);
-
-static BOOL HandleDirTagActions(ViewContext *ctx, int action,
-                                DirEntry **dir_entry_ptr, BOOL *need_dsp_help,
-                                int *ch) {
-  DirEntry *dir_entry = *dir_entry_ptr;
-  switch (action) {
-  case ACTION_TAG:
-    HandleTagDir(ctx, dir_entry, TRUE, ctx->active);
-    DirNav_Movedown(ctx, dir_entry_ptr, ctx->active);
-    return TRUE;
-  case ACTION_UNTAG:
-    HandleTagDir(ctx, dir_entry, FALSE, ctx->active);
-    DirNav_Movedown(ctx, dir_entry_ptr, ctx->active);
-    return TRUE;
-  case ACTION_TAG_ALL:
-    HandleTagAllDirs(ctx, ctx->active->vol, dir_entry, TRUE, ctx->active);
-    return TRUE;
-  case ACTION_UNTAG_ALL:
-    HandleTagAllDirs(ctx, ctx->active->vol, dir_entry, FALSE, ctx->active);
-    return TRUE;
-  case ACTION_CMD_TAGGED_S:
-    HandleShowAll(ctx, TRUE, dir_entry, need_dsp_help, ch, ctx->active);
-    return TRUE;
-  }
-  return FALSE;
-}
 
 int HandleDirWindow(ViewContext *ctx, DirEntry *start_dir_entry) {
   DirEntry *dir_entry, *de_ptr;

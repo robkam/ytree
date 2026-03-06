@@ -80,3 +80,29 @@ void HandleTagAllDirs(ViewContext *ctx, struct Volume *vol, DirEntry *dir_entry,
   UpdateStatsPanel(ctx, dir_entry, s);
   return;
 }
+
+BOOL HandleDirTagActions(ViewContext *ctx, int action,
+                         DirEntry **dir_entry_ptr, BOOL *need_dsp_help,
+                         int *ch) {
+  DirEntry *dir_entry = *dir_entry_ptr;
+  switch (action) {
+  case ACTION_TAG:
+    HandleTagDir(ctx, dir_entry, TRUE, ctx->active);
+    DirNav_Movedown(ctx, dir_entry_ptr, ctx->active);
+    return TRUE;
+  case ACTION_UNTAG:
+    HandleTagDir(ctx, dir_entry, FALSE, ctx->active);
+    DirNav_Movedown(ctx, dir_entry_ptr, ctx->active);
+    return TRUE;
+  case ACTION_TAG_ALL:
+    HandleTagAllDirs(ctx, ctx->active->vol, dir_entry, TRUE, ctx->active);
+    return TRUE;
+  case ACTION_UNTAG_ALL:
+    HandleTagAllDirs(ctx, ctx->active->vol, dir_entry, FALSE, ctx->active);
+    return TRUE;
+  case ACTION_CMD_TAGGED_S:
+    HandleShowAll(ctx, TRUE, dir_entry, need_dsp_help, ch, ctx->active);
+    return TRUE;
+  }
+  return FALSE;
+}
