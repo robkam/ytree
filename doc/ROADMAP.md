@@ -1250,40 +1250,77 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 
 ### **Step 9.5: Module Cohesion & Source Tree Normalization** (Use the Auditor Persona here)
 *   **Goal:** Establish and enforce conventions for module (`.c`/`.h` pair) sizing, naming, and directory placement, then refactor the source tree to conform. Every module should have a clear single responsibility, a consistent size range, and live in the directory that matches its architectural layer.
-*   **Rationale:** The current source tree grew organically — some modules are bloated (2700+ LOC), some are trivially small (<50 LOC), and some are misplaced relative to their actual responsibility. This ad-hoc structure makes onboarding difficult and hides architectural boundaries. A normalized source tree makes the layered architecture (Model/View/Controller) self-documenting.
-*   **Conventions to Establish:**
-    *   **Target module size:** ~100–800 LOC. Modules outside this range are candidates for splitting or merging.
+*   **Rationale:** The current source tree grew organically. Some modules are bloated (2700+ LOC), some are trivially small (<50 LOC), and some are misplaced relative to their actual responsibility. This ad-hoc structure makes onboarding difficult and hides architectural boundaries. A normalized source tree makes the layered architecture (Model/View/Controller) self-documenting.
+*   **Branch:** `modules` (squash-merge to `main` when complete, then delete).
+*   **Conventions:**
+    *   **Target module size:** ~100-800 LOC. Modules outside this range are candidates for splitting or merging.
     *   **Directory ownership:** `core/` = application lifecycle & data structures. `fs/` = filesystem & archive I/O. `cmd/` = user commands (business logic). `ui/` = rendering, input, and interaction. `util/` = stateless helpers.
     *   **Naming:** Module name == single responsibility (e.g., `attributes.c` not three separate `chgrp.c` + `chown.c` + `chmod.c`).
     *   **Header hygiene:** One public header per layer (`ytree_cmd.h`, `ytree_fs.h`, `ytree_ui.h`), plus `ytree_defs.h` for shared types. Minimize cross-layer includes.
-*   **Known Candidates:**
-    *   **Split (bloated):**
-        *   `ui/ctrl_dir.c` (2743 LOC) — navigation, tagging, tree manipulation could separate.
-        *   `ui/ctrl_file.c` (2675 LOC) — navigation, tagging, show-all logic could separate.
-        *   `fs/archive.c` (1073 LOC) — read vs. write engines could separate.
-    *   **Merge (tiny):**
-        *   `cmd/chgrp.c` (36) + `cmd/chown.c` (37) + `cmd/chmod.c` (163) → `cmd/attributes.c` (aligns with Step 4.16).
-        *   `cmd/sort.c` (22) — evaluate whether this belongs in `core/sort.c` or should be absorbed.
-        *   `fs/owner_utils.c` (44) — candidate for merging into a parent module.
-    *   **Relocate (misplaced):**
-        *   `ui/edit.c` (79 LOC, just launches `$EDITOR`) — arguably a `cmd/` module, not `ui/`.
-    *   **Directory restructuring:** Create or rename subdirectories as needed to reflect actual boundaries (e.g., if `ui/` grows sub-concerns like `ui/render/`, `ui/input/`, `ui/widgets/`).
-*   **Mechanism:**
-    1.  **Define:** Document the conventions in `SPECIFICATION.md` or a new `CONVENTIONS.md`.
-    2.  **Audit:** Use `@auditor` to flag all modules outside the target size range or in the wrong directory.
-    3.  **Plan:** Propose split/merge/move operations as a batch, one logical group at a time.
-    4.  **Refactor:** Execute file renames, splits, merges, and `Makefile` updates. Update `#include` paths.
-    5.  **Validate:** Ensure clean build and no behavioral regressions.
-*   **Files to Modify:** Various — determined per audit. `Makefile` updated with each batch.
-*   **Context Files:** `SPECIFICATION.md`.
+*   **Serena Usage:** Each sub-step below should use Serena's semantic tools to work efficiently:
+    *   `get_symbols_overview` to understand module contents before splitting or merging.
+    *   `find_referencing_symbols` to trace callers before moving a function.
+    *   `find_symbol` to locate declarations that need updating in headers.
+    *   `rename_symbol` for safe cross-codebase renames when function names change.
+*   **Safety Protocol:**
+    1.  **One commit per file operation.** Each individual move, merge, or split gets its own commit. If something breaks, you revert one commit, not an entire batch.
+    2.  **Build after every commit.** `make clean && make` must succeed. Compiler errors (`-Werror`) mean the restructuring itself is wrong - fix it immediately. This is part of the move, not a distraction.
+    3.  **Tag before each sub-step.** Run `git tag pre-9.5.N` before starting. This gives you a hard reset point.
+    4.  **Do NOT chase bugs.** If `make test` reveals a behavioral failure, ask: "Did my structural change cause this, or was this pre-existing?" If it compiled and linked correctly, the test failure is almost certainly pre-existing. **Log it and move on.** Bugs are addressed after all 9.5 sub-steps are complete, or during 9.6. Never leave the structural track to debug a test.
+    5.  **Progress over perfection.** The goal of 9.5 is to move files into the right shape. Code quality improvements, refactoring within modules, and bug fixes belong to later steps. Stay on the plan.
 *   - [ ] **Status:** Not Started.
 
-#### **Step 9.5.1: Update Roadmap & Documentation References**
-*   **Goal:** After each batch of source tree restructuring in Step 9.5, update all "Files to Modify" and "Context Files" paths in `ROADMAP.md`, `SPECIFICATION.md`, and any other documentation to reflect the new file names, locations, and directory structure.
-*   **Rationale:** Stale file paths in planning documents cause confusion and wasted effort. This sub-step ensures the roadmap remains a reliable guide for all not-yet-started work, and that future development naturally targets the new structure.
-*   **Mechanism:** After each 9.5 restructuring batch, grep the docs for old paths and update them. This is a mechanical pass, not a design task.
-*   **Files to Modify:** `doc/ROADMAP.md`, `doc/SPECIFICATION.md`, `doc/TESTING.md`, and any other `doc/*.md` files referencing source paths.
+#### **Step 9.5.1: Define Conventions** (Gemini Flash)
+*   **Goal:** Document the module conventions (size, naming, directory ownership, header hygiene) in `SPECIFICATION.md` under a new "Module Organization" section. This becomes the reference standard for all restructuring work and future development.
+*   **Scope:** Documentation only. No code changes.
+*   **Model:** Flash (bulk retrieval and documentation writing).
+*   **Serena:** Use `get_symbols_overview` on each directory to generate a current inventory (module name, LOC, symbol count) as raw data for the conventions doc.
+*   **Validate:** Conventions reviewed and approved before proceeding.
+*   **Files to Modify:** `doc/SPECIFICATION.md`.
 *   - [ ] **Status:** Not Started.
+
+#### **Step 9.5.2: Normalize `cmd/` Directory** (Gemini Pro)
+*   **Goal:** Merge tiny command modules and relocate any misplaced files into or out of `cmd/`.
+*   **Model:** Pro (requires understanding function boundaries and updating callers).
+*   **Candidates:**
+    *   **Merge:** `chgrp.c` (36) + `chown.c` (37) + `chmod.c` (163) into `attributes.c` (aligns with Step 4.16).
+    *   **Evaluate:** `sort.c` (22) - determine if this belongs in `core/sort.c` or should be absorbed.
+    *   **Relocate in:** `ui/edit.c` (79 LOC, just launches `$EDITOR`) - this is a command, not UI rendering.
+*   **Serena:** Use `find_referencing_symbols` on each function being moved to update all callers. Use `get_symbols_overview` to verify all exports land in the correct header.
+*   **Validate:** `make clean && make` succeeds. `make test` passes.
+*   **Files to Modify:** `src/cmd/`, `Makefile`, `include/ytree_cmd.h`.
+*   - [ ] **Status:** Not Started.
+
+#### **Step 9.5.3: Normalize `fs/` Directory** (Gemini Pro)
+*   **Goal:** Split oversized filesystem modules, merge tiny ones, and verify directory ownership.
+*   **Model:** Pro (requires API boundary analysis for the archive split).
+*   **Candidates:**
+    *   **Split:** `archive.c` (1073 LOC) - separate read engine (`archive_read.c`) from write/rewrite engine (`archive_write.c`).
+    *   **Merge:** `owner_utils.c` (44) - evaluate absorption into a parent module.
+*   **Serena:** Use `get_symbols_overview` on `archive.c` to identify the natural split boundary (read API vs write API). Use `find_referencing_symbols` to verify callers target the correct new module.
+*   **Validate:** `make clean && make` succeeds. `make test` passes.
+*   **Files to Modify:** `src/fs/`, `Makefile`, `include/ytree_fs.h`.
+*   - [ ] **Status:** Not Started.
+
+#### **Step 9.5.4: Normalize `ui/` Directory** (Claude Opus)
+*   **Goal:** Split the two largest modules in the codebase and evaluate whether `ui/` needs subdirectories.
+*   **Model:** Opus (highest complexity - splitting 2700 LOC files requires careful dependency reasoning).
+*   **Candidates:**
+    *   **Split:** `ctrl_dir.c` (2743 LOC) - separate navigation, tagging, and tree manipulation.
+    *   **Split:** `ctrl_file.c` (2675 LOC) - separate navigation, tagging, and show-all logic.
+    *   **Evaluate:** Whether `ui/` benefits from subdirectories (e.g., `ui/render/`, `ui/ctrl/`, `ui/widgets/`).
+*   **Serena:** Use `get_symbols_overview` with `depth: 1` on each file to map internal functions. Use `find_referencing_symbols` on each function group to determine which callers exist outside the module. This identifies the natural split boundaries.
+*   **Validate:** `make clean && make` succeeds. `make test` passes.
+*   **Files to Modify:** `src/ui/`, `Makefile`, `include/ytree_ui.h`.
+*   - [ ] **Status:** Not Started.
+
+#### **Step 9.5.5: Update Documentation References** (Gemini Flash)
+*   **Goal:** After all restructuring is complete, update every "Files to Modify" and "Context Files" path in the project documentation to reflect the new source tree.
+*   **Scope:** Mechanical grep-and-replace pass. No design decisions.
+*   **Model:** Flash (mechanical text replacement, no reasoning needed).
+*   **Serena:** Use `search_for_pattern` to find all occurrences of old file paths across `doc/*.md` files.
+*   **Validate:** No stale paths remain in documentation.
+*   **Files to Modify:** `doc/ROADMAP.md`, `doc/SPECIFICATION.md`, `doc/TESTING.md`, and any other `doc/*.md` files referencing source paths.
 
 ### **Step 9.6: Consolidate Fragmented Feature Logic** (Use the Auditor Persona here)
 *   **Goal:** Systematically audit the codebase for features whose logic is scattered across multiple files and consolidate each into a single, cohesive module or function.

@@ -19,6 +19,7 @@ The user is a maintainer who describes issues in terms of **Behavior**. They are
 **CONSTRAINT:**
 *   **PATHING:** Return paths relative to the project root (e.g., `main.c`, `src/utils.c`). **DO NOT** prepend the project directory name (e.g., do **NOT** output `ytree/main.c`).
 *   **NO HALLUCINATIONS:** If you need to analyze a file that is not currently in the context, **STOP and ask the user to provide it**. Do not assume its contents.
+*   **GLOBAL TEXT CONSTRAINT:** All output must use plain ASCII text for structure and emphasis. Emoji, pictographs, and decorative Unicode serve no informational purpose and reduce portability. Do not use stacked Unicode characters (combining diacritics/Zalgo). Never use em dashes; use standard hyphens or rewrite the sentence. Written communication should be self-sufficient without visual decoration.
 
 **"ANTI-PATCHING" DIRECTIVE:**
 Do not apply superficial fixes for deep architectural problems. If a bug is caused by fragmented state or logic, STOP. Refactor the architecture to unify the logic before fixing the specific bug. Better to break one thing to fix the system than to patch the system and break everything.

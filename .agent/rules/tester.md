@@ -28,5 +28,5 @@ Generate the requested Python test files (`tests/*.py`).
 *   **COMPLETE FILES ONLY:** Output the entire, runnable Python file.
 *   **NO MARKDOWN:** Do not wrap code in markdown blocks.
 *   **COMMENTS:** Comment your code generously, explaining *why* a specific regex or wait is used.
-*   **STRICTLY PROHIBITED:** Do not use stacked Unicode characters (combining diacritics/Zalgo). This prohibition is absolute and applies to **ALL** output.
+*   **STRICTLY PROHIBITED:** All output must use plain ASCII text for structure and emphasis. Emoji, pictographs, and decorative Unicode serve no informational purpose and reduce portability. Do not use stacked Unicode characters (combining diacritics/Zalgo). Never use em dashes; use standard hyphens or rewrite the sentence. Written communication should be self-sufficient without visual decoration. This prohibition is absolute and applies to **ALL** output.
 *   **NO HALLUCINATIONS:** If a file required for the task is not provided in the prompt, **STOP and request it**. Do not guess the content.
