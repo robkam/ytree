@@ -133,7 +133,7 @@ Every module (`.c`/`.h` pair) must reside in the directory corresponding to its 
 ### 8.2 Module Sizing & Cohesion
 - **Target Size:** 100-800 Lines of Code (LOC).
 - **Bloat Threshold:** Modules exceeding 1,000 LOC (e.g., `ctrl_dir.c`) are candidates for decomposition into functional sub-modules.
-- **Fragmentation Threshold:** Modules under 50 LOC should be merged into cohesive units (e.g., merging `chown.c`, `chgrp.c`, and `chmod.c` into `attributes.c`).
+- **Fragmentation Threshold:** Modules under 50 LOC should be merged into cohesive units (e.g., the historical merge of `chown.c`, `chgrp.c`, and `chmod.c` into `attributes.c`).
 - **Single Responsibility:** Each module must have one clear purpose. If a module handles both I/O and UI rendering, it must be split (Separation of Concerns).
 
 ### 8.3 Naming Conventions
