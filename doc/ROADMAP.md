@@ -1304,15 +1304,15 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 
 #### **Step 9.5.4: Normalize `ui/` Directory** (Claude Opus)
 *   **Goal:** Split the two largest modules in the codebase and evaluate whether `ui/` needs subdirectories.
-*   **Model:** Opus (highest complexity - splitting 2700 LOC files requires careful dependency reasoning).
-*   **Candidates:**
-    *   **Split:** `ctrl_dir.c` (2743 LOC) - separate navigation, tagging, and tree manipulation.
-    *   **Split:** `ctrl_file.c` (2675 LOC) - separate navigation, tagging, and show-all logic.
-    *   **Evaluate:** Whether `ui/` benefits from subdirectories (e.g., `ui/render/`, `ui/ctrl/`, `ui/widgets/`).
+*   **Model:** Opus.
+*   **Results:**
+    *   **`ctrl_dir.c` (2743 to 1314 LOC):** Cohesion improved by extracting five sub-modules (`dir_list.c`, `dir_tags.c`, `dir_ops.c`, `dir_nav.c`, `f2_picker.c`).
+    *   **`ctrl_file.c` (2675 to 2150 LOC):** Extracted `file_list.c` and `file_tags.c`. Further splitting was deferred because navigation functions are tightly coupled to the monolithic `HandleFileWindow` via shared static layout variables. These are flagged for Step 9.6 (Internal Refactoring).
+    *   **Architecture:** Flat file structure maintained; subdirectories evaluated but rejected for current session simplicity.
 *   **Serena:** Use `get_symbols_overview` with `depth: 1` on each file to map internal functions. Use `find_referencing_symbols` on each function group to determine which callers exist outside the module. This identifies the natural split boundaries.
 *   **Validate:** `make clean && make` succeeds. `make test` passes.
 *   **Files to Modify:** `src/ui/`, `Makefile`, `include/ytree_ui.h`.
-*   - [ ] **Status:** Not Started.
+*   - [x] **Status:** Completed.
 
 #### **Step 9.5.5: Update Documentation References** (Gemini Flash)
 *   **Goal:** After all restructuring is complete, update every "Files to Modify" and "Context Files" path in the project documentation to reflect the new source tree.
@@ -1325,16 +1325,17 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 ### **Step 9.6: Consolidate Fragmented Feature Logic** (Use the Auditor Persona here)
 *   **Goal:** Systematically audit the codebase for features whose logic is scattered across multiple files and consolidate each into a single, cohesive module or function.
 *   **Rationale:** Legacy development often spreads a single logical feature (e.g., statistics display, filtering, tagging) across many call sites and files. This fragmentation makes the code harder to understand, modify, and debug. Unifying a feature's logic into one authoritative location dramatically improves maintainability and reduces regression risk. This operationalizes the **Architectural Integrity (Anti-Patching)** guiding principle into a concrete, repeatable audit task.
-*   **Exemplar:** The _"refactor: remove GlobalView naming and document context-passing architecture"_ commit — before this refactor, statistics rendering was spread across `stats.c`, `display.c`, `dirwin.c`, and `filewin.c`. Afterward, the stats panel was driven by a single cohesive function, making future changes trivial.
+*   **Exemplar:** The _"refactor: remove GlobalView naming and document context-passing architecture"_ commit: before this refactor, statistics rendering was spread across `stats.c`, `display.c`, `dirwin.c`, and `filewin.c`. Afterward, the stats panel was driven by a single cohesive function, making future changes trivial.
 *   **Mechanism:**
     1.  **Audit:** Use `@auditor` to identify features whose logic touches 3+ files without a clear single owner.
     2.  **Propose:** Design a consolidation plan that creates a single authoritative module/function for the feature.
     3.  **Refactor:** Move scattered logic into the owning module, exposing a clean API for callers.
     4.  **Validate:** Ensure no behavioral regressions via TUI tests.
-*   **Candidates (ongoing — update as discovered):**
+*   **Candidates (ongoing - update as discovered):**
     *   Tagging logic (currently touches `dirwin`, `filewin`, `stats`, `copy`, `move`, `delete`)
     *   Sort-mode logic (state + UI spread across `input`, `filewin`, `display`)
-*   **Files to Modify:** Various — determined per audit.
+    *   `ctrl_file.c` (~2150 LOC) - `HandleFileWindow` monolithic switch-case could be decomposed into action handlers. Nav functions remain coupled via Layout statics.
+*   **Files to Modify:** Various - determined per audit.
 *   **Context Files:** None.
 *   - [/] **Status:** Ongoing (recurring audit task).
 
@@ -1372,14 +1373,14 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 *   - [ ] **Status:** Not Started.
 
 ### **Step 10.5: Eliminate Dangling Pointers & Use-After-Free** (Use Architect Mode)
-*   **Goal:** Systematically audit and fix all dangling pointer risks — pointers that reference freed memory, stale cache entries, or uninitialized storage.
+*   **Goal:** Systematically audit and fix all dangling pointer risks: pointers that reference freed memory, stale cache entries, or uninitialized storage.
 *   **Rationale:** Dangling pointers are the most insidious class of memory bug in C: they cause intermittent crashes, data corruption, and security vulnerabilities that are extremely difficult to reproduce. In a long-running file manager that dynamically allocates/frees directory trees, file lists, and volumes, the attack surface for use-after-free is large.
 *   **Mechanism:**
     1.  **Static Analysis:** Run under Valgrind Memcheck (builds on Step 10.1 baseline) and ASan (`-fsanitize=address`) to identify all "Invalid read/write" and "use-after-free" reports.
     2.  **Nullify After Free:** Enforce the discipline of setting pointers to `NULL` immediately after `free()`. Audit `xfree()` (or create a `SAFE_FREE(ptr)` macro that nullifies automatically).
-    3.  **Ownership Audit:** For each major data structure (`Volume`, `DirEntry`, `FileEntry`, `filter`), document the ownership chain — who allocates, who may hold a reference, and who frees. Fix any case where a consumer outlives the owner.
+    3.  **Ownership Audit:** For each major data structure (`Volume`, `DirEntry`, `FileEntry`, `filter`), document the ownership chain: who allocates, who may hold a reference, and who frees. Fix any case where a consumer outlives the owner.
     4.  **Stale Reference Sweep:** Audit code paths where cached pointers (e.g., `current_dir_entry`, `file_entry_list`) survive operations that invalidate them (volume switch, tree rescan, filter change).
-*   **Files to Modify:** `src/**/*.c` — determined by Valgrind/ASan reports.
+*   **Files to Modify:** `src/**/*.c` - determined by Valgrind/ASan reports.
 *   **Context Files:** `src/util/memory.c`.
 *   - [ ] **Status:** Not Started.
 
