@@ -117,3 +117,31 @@ A bordered pop-up box that overlays the center of the screen, used for:
 *   **Signal Handling:** `SIGINT` and `SIGTERM` are trapped for graceful terminal restoration and VFS cleanup.
 *   **Memory Management:** Recursive scans for the Tree View respect the `TREEDEPTH` safety limit to prevent stack overflows or OOM (Out of Memory) conditions on massive filesystems.
 *   **Encapsulation:** Global state pointers are strictly forbidden. All logic must utilize the `ViewContext` structure passed explicitly through the call stack.
+
+---
+
+## 8. Module Organization & Architecture
+
+### 8.1 Directory Ownership
+Every module (`.c`/`.h` pair) must reside in the directory corresponding to its architectural layer:
+- **`src/core/`**: Application lifecycle, global state management (`ViewContext`, `Volume`), and session-level logic.
+- **`src/fs/`**: Filesystem and archive I/O, VFS drivers, and low-level disk operations.
+- **`src/cmd/`**: User command implementations (business logic). These modules coordinate between the FS model and the UI.
+- **`src/ui/`**: Presentation layer, input loops (`ctrl_*.c`), rendering (`render_*.c`), and interaction widgets.
+- **`src/util/`**: Stateless, non-business helpers (strings, memory, path normalization).
+
+### 8.2 Module Sizing & Cohesion
+- **Target Size:** 100-800 Lines of Code (LOC).
+- **Bloat Threshold:** Modules exceeding 1,000 LOC (e.g., `ctrl_dir.c`) are candidates for decomposition into functional sub-modules.
+- **Fragmentation Threshold:** Modules under 50 LOC should be merged into cohesive units (e.g., merging `chown.c`, `chgrp.c`, and `chmod.c` into `attributes.c`).
+- **Single Responsibility:** Each module must have one clear purpose. If a module handles both I/O and UI rendering, it must be split (Separation of Concerns).
+
+### 8.3 Naming Conventions
+- **`ctrl_` Prefix:** Reserved for modules containing the primary input/event loops for a view (Controller).
+- **`render_` Prefix:** Reserved for modules dedicated to visual output via ncurses (View).
+- **Generic Plural:** Use for stateless utility collections (e.g., `path_utils.c`).
+
+### 8.4 Header Hygiene
+- **Layered Access:** Communication between layers (e.g., UI calling FS) must occur through designated layer headers (`ytree_fs.h`, `ytree_ui.h`).
+- **Decoupling:** Minimize cross-layer `#include` directives to prevent circular dependencies and excessive recompilation.
+- **Encapsulation:** Internal module state and helper functions should remain `static`. Only the necessary API should be exposed in the header.
