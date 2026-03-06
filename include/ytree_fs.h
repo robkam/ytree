@@ -52,10 +52,6 @@ extern int GetDiskParameter(char *path, char *volume_name,
                             long long *avail_bytes, long long *capacity,
                             Statistic *s);
 
-/* owner_utils.c */
-extern int ChangeOwnership(const char *path, uid_t new_uid, gid_t new_gid,
-                           struct stat *stat_buf);
-
 /* readtree.c */
 extern int ReadTree(ViewContext *ctx, DirEntry *dir_entry, char *path,
                     int depth, Statistic *s, ScanProgressCallback cb,
