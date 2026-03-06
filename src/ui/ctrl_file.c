@@ -35,30 +35,8 @@ static int saved_fixed_width = 0;
 /* --- Forward Declarations --- */
 /* file_list.c: ReadFileList, ReadGlobalFileList, BuildFileEntryList,
  *              FreeFileEntryList, InvalidateVolumePanels, DisplayFileWindow */
-/* file_tags.c */
-void FileTags_WalkTaggedFiles(ViewContext *ctx, int start_file, int cursor_pos,
-                              int (*fkt)(ViewContext *, FileEntry *,
-                                         WalkingPackage *),
-                              WalkingPackage *walking_package);
-BOOL FileTags_IsMatchingTaggedFiles(ViewContext *ctx);
-/* file_list.c */
-void FileList_RemoveFileEntry(ViewContext *ctx, int entry_no);
-void FileList_ChangeFileEntry(ViewContext *ctx);
-int FileTags_UI_DeleteTaggedFiles(ViewContext *ctx, int max_dispfiles,
-                                  Statistic *s);
-void FileTags_SilentWalkTaggedFiles(ViewContext *ctx,
-                                    int (*fkt)(ViewContext *, FileEntry *,
-                                               WalkingPackage *, Statistic *),
-                                    WalkingPackage *walking_package);
-void FileTags_SilentTagWalkTaggedFiles(ViewContext *ctx,
-                                       int (*fkt)(ViewContext *, FileEntry *,
-                                                  WalkingPackage *,
-                                                  Statistic *),
-                                       WalkingPackage *walking_package);
 static void RereadWindowSize(ViewContext *ctx, DirEntry *dir_entry);
 static void ListJump(ViewContext *ctx, DirEntry *dir_entry, char *str);
-void FileTags_HandleInvertTags(ViewContext *ctx, DirEntry *dir_entry,
-                               Statistic *s);
 static void UpdatePreview(ViewContext *ctx, DirEntry *dir_entry);
 
 /*

@@ -11,10 +11,6 @@
 
 #define MAX(a, b) (((a) > (b)) ? (a) : (b))
 
-/* file_list.c */
-void FileList_RemoveFileEntry(ViewContext *ctx, int entry_no);
-void FileList_ChangeFileEntry(ViewContext *ctx);
-
 void FileTags_WalkTaggedFiles(ViewContext *ctx, int start_file, int cursor_pos,
                               int (*fkt)(ViewContext *, FileEntry *,
                                          WalkingPackage *),
