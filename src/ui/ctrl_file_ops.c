@@ -1,3 +1,10 @@
+/***************************************************************************
+ *
+ * src/ui/ctrl_file_ops.c
+ * File Action Handlers (Tagging, Move, Copy, Delete dispatch)
+ *
+ ***************************************************************************/
+
 #define NO_YTREE_MACROS
 #include "ytree.h"
 
@@ -15,7 +22,7 @@ BOOL handle_tag_file_action(ViewContext *ctx, int action,
   off_t file_size = 0;
   WalkingPackage walking_package;
   mode_t mask = 0;
-  char modus[11] = {0};
+  char mode[11] = {0};
   int pclose_ret = 0;
   char to_dir[PATH_LENGTH * 2 + 1] = {0};
   char to_file[PATH_LENGTH + 1] = {0};
@@ -55,14 +62,14 @@ BOOL handle_tag_file_action(ViewContext *ctx, int action,
 
       mask = S_IFREG | S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH;
 
-      (void)GetAttributes(mask, modus);
+      (void)GetAttributes(mask, mode);
 
       /* Updated to use InputString instead of GetNewFileModus */
       ClearHelp(ctx);
-      if (UI_ReadString(ctx, ctx->active, "ATTRIBUTES: ", modus, 10,
+      if (UI_ReadString(ctx, ctx->active, "ATTRIBUTES: ", mode, 10,
                         HST_CHANGE_MODUS) == CR) {
         (void)strcpy(walking_package.function_data.change_mode.new_mode,
-                     modus);
+                     mode);
         FileTags_WalkTaggedFiles(ctx, dir_entry->start_file,
                                  dir_entry->cursor_pos, SetFileModus,
                                  &walking_package);

@@ -82,7 +82,7 @@ extern char *CutFilename(char *dest, const char *src, unsigned int max_len);
 extern char *CutName(char *dest, const char *src, unsigned int max_len);
 extern char *CutPathname(char *dest, const char *src, unsigned int max_len);
 extern char *FormFilename(char *dest, char *src, unsigned int max_len);
-extern char *GetAttributes(unsigned short modus, char *buffer);
+extern char *GetAttributes(unsigned short mode, char *buffer);
 extern void GetMaxYX(WINDOW *win, int *height, int *width);
 extern int GetVisualUserFileEntryLength(int max_visual_filename_len,
                                         int max_visual_linkname_len,

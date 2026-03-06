@@ -1348,7 +1348,7 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
     2.  **Refactor:** Use `rename_symbol` to update the identifiers safely across the codebase.
     3.  **Validate:** Ensure zero behavioral changes via `make test`.
 *   **Files to Modify:** `src/**/*.c`, `include/*.h`.
-*   - [ ] **Status:** Not Started.
+*   - [x] **Status:** Completed.
 
 ---
 

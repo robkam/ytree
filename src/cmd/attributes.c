@@ -24,7 +24,7 @@
 #define PATH_LENGTH 4096
 #endif
 
-static int GetNewMode(int old_modus, char *new_modus);
+static int GetNewMode(int old_mode, char *new_mode);
 
 /*
  * Central helper to change ownership, re-stat the file, and handle errors.
@@ -92,20 +92,20 @@ int SetFileModus(ViewContext *ctx, FileEntry *fe_ptr,
   struct stat stat_struct;
   char buffer[PATH_LENGTH + 1];
   int result;
-  int new_modus;
+  int new_mode;
 
   result = -1;
 
   walking_package->new_fe_ptr = fe_ptr; /* unchanged */
 
-  new_modus =
+  new_mode =
       GetNewMode(fe_ptr->stat_struct.st_mode,
                   walking_package->function_data.change_mode.new_mode);
 
-  new_modus = new_modus | (fe_ptr->stat_struct.st_mode &
+  new_mode = new_mode | (fe_ptr->stat_struct.st_mode &
                            ~(S_IRWXO | S_IRWXG | S_IRWXU | S_ISGID | S_ISUID));
 
-  if (!chmod(GetFileNamePath(fe_ptr, buffer), new_modus)) {
+  if (!chmod(GetFileNamePath(fe_ptr, buffer), new_mode)) {
     /* Successful modification */
     /*-------------------------*/
 
@@ -127,18 +127,18 @@ int SetDirModus(DirEntry *de_ptr, WalkingPackage *walking_package) {
   struct stat stat_struct;
   char buffer[PATH_LENGTH + 1];
   int result;
-  int new_modus;
+  int new_mode;
 
   result = -1;
 
-  new_modus =
+  new_mode =
       GetNewMode(de_ptr->stat_struct.st_mode,
                   walking_package->function_data.change_mode.new_mode);
 
-  new_modus = new_modus | (de_ptr->stat_struct.st_mode &
+  new_mode = new_mode | (de_ptr->stat_struct.st_mode &
                            ~(S_IRWXO | S_IRWXG | S_IRWXU | S_ISGID | S_ISUID));
 
-  if (!chmod(GetPath(de_ptr, buffer), new_modus)) {
+  if (!chmod(GetPath(de_ptr, buffer), new_mode)) {
     /* Successful modification */
     /*-------------------------*/
 
@@ -156,67 +156,67 @@ int SetDirModus(DirEntry *de_ptr, WalkingPackage *walking_package) {
   return (result);
 }
 
-static int GetNewMode(int old_modus, char *modus) {
-  int new_modus;
+static int GetNewMode(int old_mode, char *mode) {
+  int new_mode;
 
-  new_modus = 0;
+  new_mode = 0;
 
-  if (*modus == '-')
-    new_modus |= S_IFREG;
-  if (*modus == 'd')
-    new_modus |= S_IFDIR;
+  if (*mode == '-')
+    new_mode |= S_IFREG;
+  if (*mode == 'd')
+    new_mode |= S_IFDIR;
 #ifdef S_IFLNK
-  if (*modus == 'l')
-    new_modus |= S_IFLNK;
+  if (*mode == 'l')
+    new_mode |= S_IFLNK;
 #endif /* S_IFLNK */
-  if (*modus == '?')
-    new_modus |= old_modus & S_IFMT;
-  modus++;
+  if (*mode == '?')
+    new_mode |= old_mode & S_IFMT;
+  mode++;
 
-  if (*modus == 'r')
-    new_modus |= S_IRUSR;
-  if (*modus++ == '?')
-    new_modus |= old_modus & S_IRUSR;
-  if (*modus == 'w')
-    new_modus |= S_IWUSR;
-  if (*modus++ == '?')
-    new_modus |= old_modus & S_IWUSR;
-  if (*modus == 'x')
-    new_modus |= S_IXUSR;
-  if (*modus == 's')
-    new_modus |= S_ISUID | S_IXUSR;
-  if (*modus++ == '?')
-    new_modus |= old_modus & (S_ISUID | S_IXUSR);
+  if (*mode == 'r')
+    new_mode |= S_IRUSR;
+  if (*mode++ == '?')
+    new_mode |= old_mode & S_IRUSR;
+  if (*mode == 'w')
+    new_mode |= S_IWUSR;
+  if (*mode++ == '?')
+    new_mode |= old_mode & S_IWUSR;
+  if (*mode == 'x')
+    new_mode |= S_IXUSR;
+  if (*mode == 's')
+    new_mode |= S_ISUID | S_IXUSR;
+  if (*mode++ == '?')
+    new_mode |= old_mode & (S_ISUID | S_IXUSR);
 
-  if (*modus == 'r')
-    new_modus |= S_IRGRP;
-  if (*modus++ == '?')
-    new_modus |= old_modus & S_IRGRP;
-  if (*modus == 'w')
-    new_modus |= S_IWGRP;
-  if (*modus++ == '?')
-    new_modus |= old_modus & S_IWGRP;
-  if (*modus == 'x')
-    new_modus |= S_IXGRP;
-  if (*modus == 's')
-    new_modus |= S_ISGID | S_IXGRP;
-  if (*modus++ == '?')
-    new_modus |= old_modus & (S_ISGID | S_IXGRP);
+  if (*mode == 'r')
+    new_mode |= S_IRGRP;
+  if (*mode++ == '?')
+    new_mode |= old_mode & S_IRGRP;
+  if (*mode == 'w')
+    new_mode |= S_IWGRP;
+  if (*mode++ == '?')
+    new_mode |= old_mode & S_IWGRP;
+  if (*mode == 'x')
+    new_mode |= S_IXGRP;
+  if (*mode == 's')
+    new_mode |= S_ISGID | S_IXGRP;
+  if (*mode++ == '?')
+    new_mode |= old_mode & (S_ISGID | S_IXGRP);
 
-  if (*modus == 'r')
-    new_modus |= S_IROTH;
-  if (*modus++ == '?')
-    new_modus |= old_modus & S_IROTH;
-  if (*modus == 'w')
-    new_modus |= S_IWOTH;
-  if (*modus++ == '?')
-    new_modus |= old_modus & S_IWOTH;
-  if (*modus == 'x')
-    new_modus |= S_IXOTH;
-  if (*modus++ == '?')
-    new_modus |= old_modus & S_IXOTH;
+  if (*mode == 'r')
+    new_mode |= S_IROTH;
+  if (*mode++ == '?')
+    new_mode |= old_mode & S_IROTH;
+  if (*mode == 'w')
+    new_mode |= S_IWOTH;
+  if (*mode++ == '?')
+    new_mode |= old_mode & S_IWOTH;
+  if (*mode == 'x')
+    new_mode |= S_IXOTH;
+  if (*mode++ == '?')
+    new_mode |= old_mode & S_IXOTH;
 
-  return (new_modus);
+  return (new_mode);
 }
 
-int GetModus(const char *modus) { return (GetNewMode(0, (char *)modus)); }
+int GetModus(const char *mode) { return (GetNewMode(0, (char *)mode)); }
