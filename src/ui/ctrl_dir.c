@@ -29,217 +29,13 @@ void HandleShowAll(ViewContext *ctx, BOOL tagged_only, DirEntry *dir_entry,
 void HandleSwitchWindow(ViewContext *ctx, DirEntry *dir_entry,
                         BOOL *need_dsp_help, int *ch, YtreePanel *p);
 
-/* Navigation (local to this file) */
-static void Movedown(ViewContext *ctx, DirEntry **dir_entry, YtreePanel *p);
-static void Moveup(ViewContext *ctx, DirEntry **dir_entry, YtreePanel *p);
-static void Movenpage(ViewContext *ctx, DirEntry **dir_entry, YtreePanel *p);
-static void Moveppage(ViewContext *ctx, DirEntry **dir_entry, YtreePanel *p);
-static void MoveEnd(ViewContext *ctx, DirEntry **dir_entry, YtreePanel *p);
-static void MoveHome(ViewContext *ctx, DirEntry **dir_entry, YtreePanel *p);
-
-static void Movedown(ViewContext *ctx, DirEntry **dir_entry, YtreePanel *p) {
-  Statistic *s = &p->vol->vol_stats;
-  WINDOW *win = p->pan_dir_window;
-
-  Nav_MoveDown(&p->cursor_pos, &p->disp_begin_pos, p->vol->total_dirs,
-               ctx->layout.dir_win_height, 1);
-
-  *dir_entry =
-      p->vol->dir_entry_list[p->disp_begin_pos + p->cursor_pos].dir_entry;
-
-  DEBUG_LOG("Movedown: moved to cursor_pos=%d (disp_begin_pos=%d), "
-            "total_dirs=%d, name=%s",
-            p->cursor_pos, p->disp_begin_pos, p->vol->total_dirs,
-            (*dir_entry) ? (*dir_entry)->name : "NULL");
-
-  if (0) {
-    *dir_entry = RefreshTreeSafe(ctx, p, *dir_entry);
-    /* Re-sync *dir_entry to global stats which RefreshTreeSafe might have
-     * adjusted */
-    *dir_entry =
-        p->vol->dir_entry_list[p->disp_begin_pos + p->cursor_pos].dir_entry;
-  }
-
-  (*dir_entry)->start_file = 0;
-  (*dir_entry)->cursor_pos = -1;
-  DisplayTree(ctx, p->vol, p->pan_dir_window, p->disp_begin_pos,
-              p->disp_begin_pos + p->cursor_pos, TRUE);
-  DisplayFileWindow(ctx, p, *dir_entry);
-  RefreshWindow(p->pan_file_window);
-  UpdateStatsPanel(ctx, *dir_entry, s);
-  /* Update header path */
-  {
-    char path[PATH_LENGTH];
-    GetPath(*dir_entry, path);
-    DisplayHeaderPath(ctx, path);
-  }
-}
-
-static void Moveup(ViewContext *ctx, DirEntry **dir_entry, YtreePanel *p) {
-  Statistic *s = &p->vol->vol_stats;
-  WINDOW *win = p->pan_dir_window;
-
-  Nav_MoveUp(&p->cursor_pos, &p->disp_begin_pos);
-
-  *dir_entry =
-      p->vol->dir_entry_list[p->disp_begin_pos + p->cursor_pos].dir_entry;
-
-  if (0) {
-    *dir_entry = RefreshTreeSafe(ctx, p, *dir_entry);
-    /* Re-sync *dir_entry to global stats which RefreshTreeSafe might have
-     * adjusted */
-    *dir_entry =
-        p->vol->dir_entry_list[p->disp_begin_pos + p->cursor_pos].dir_entry;
-  }
-
-  (*dir_entry)->start_file = 0;
-  (*dir_entry)->cursor_pos = -1;
-  DisplayTree(ctx, p->vol, p->pan_dir_window, p->disp_begin_pos,
-              p->disp_begin_pos + p->cursor_pos, TRUE);
-  DisplayFileWindow(ctx, p, *dir_entry);
-  RefreshWindow(p->pan_file_window);
-  UpdateStatsPanel(ctx, *dir_entry, s);
-  /* Update header path */
-  {
-    char path[PATH_LENGTH];
-    GetPath(*dir_entry, path);
-    DisplayHeaderPath(ctx, path);
-  }
-}
-
-static void Movenpage(ViewContext *ctx, DirEntry **dir_entry, YtreePanel *p) {
-  Statistic *s = &p->vol->vol_stats;
-  WINDOW *win = p->pan_dir_window;
-
-  Nav_PageDown(&p->cursor_pos, &p->disp_begin_pos, p->vol->total_dirs,
-               ctx->layout.dir_win_height);
-
-  *dir_entry =
-      p->vol->dir_entry_list[p->disp_begin_pos + p->cursor_pos].dir_entry;
-
-  if (0) {
-    *dir_entry = RefreshTreeSafe(ctx, p, *dir_entry);
-    /* Re-sync *dir_entry to global stats which RefreshTreeSafe might have
-     * adjusted */
-    *dir_entry =
-        p->vol->dir_entry_list[p->disp_begin_pos + p->cursor_pos].dir_entry;
-  }
-
-  (*dir_entry)->start_file = 0;
-  (*dir_entry)->cursor_pos = -1;
-  DisplayTree(ctx, p->vol, p->pan_dir_window, p->disp_begin_pos,
-              p->disp_begin_pos + p->cursor_pos, TRUE);
-  DisplayFileWindow(ctx, p, *dir_entry);
-  RefreshWindow(p->pan_file_window);
-  UpdateStatsPanel(ctx, *dir_entry, s);
-  /* Update header path */
-  {
-    char path[PATH_LENGTH];
-    GetPath(*dir_entry, path);
-    DisplayHeaderPath(ctx, path);
-  }
-}
-
-static void Moveppage(ViewContext *ctx, DirEntry **dir_entry, YtreePanel *p) {
-  Statistic *s = &p->vol->vol_stats;
-  WINDOW *win = p->pan_dir_window;
-
-  Nav_PageUp(&p->cursor_pos, &p->disp_begin_pos, ctx->layout.dir_win_height);
-
-  *dir_entry =
-      p->vol->dir_entry_list[p->disp_begin_pos + p->cursor_pos].dir_entry;
-
-  if (0) {
-    *dir_entry = RefreshTreeSafe(ctx, p, *dir_entry);
-    /* Re-sync *dir_entry to global stats which RefreshTreeSafe might have
-     * adjusted */
-    *dir_entry =
-        p->vol->dir_entry_list[p->disp_begin_pos + p->cursor_pos].dir_entry;
-  }
-
-  (*dir_entry)->start_file = 0;
-  (*dir_entry)->cursor_pos = -1;
-  DisplayTree(ctx, p->vol, p->pan_dir_window, p->disp_begin_pos,
-              p->disp_begin_pos + p->cursor_pos, TRUE);
-  DisplayFileWindow(ctx, p, *dir_entry);
-  RefreshWindow(p->pan_file_window);
-  UpdateStatsPanel(ctx, *dir_entry, s);
-  /* Update header path */
-  {
-    char path[PATH_LENGTH];
-    GetPath(*dir_entry, path);
-    DisplayHeaderPath(ctx, path);
-  }
-}
-
-static void MoveEnd(ViewContext *ctx, DirEntry **dir_entry, YtreePanel *p) {
-  Statistic *s = &p->vol->vol_stats;
-  WINDOW *win = p->pan_dir_window;
-
-  Nav_End(&p->cursor_pos, &p->disp_begin_pos, p->vol->total_dirs,
-          ctx->layout.dir_win_height);
-
-  *dir_entry =
-      p->vol->dir_entry_list[p->disp_begin_pos + p->cursor_pos].dir_entry;
-
-  if (0) {
-    *dir_entry = RefreshTreeSafe(ctx, p, *dir_entry);
-    /* Re-sync *dir_entry to global stats which RefreshTreeSafe might have
-     * adjusted */
-    *dir_entry =
-        p->vol->dir_entry_list[p->disp_begin_pos + p->cursor_pos].dir_entry;
-  }
-
-  (*dir_entry)->start_file = 0;
-  (*dir_entry)->cursor_pos = -1;
-  DisplayFileWindow(ctx, p, *dir_entry);
-  RefreshWindow(p->pan_file_window);
-  RefreshWindow(p->pan_file_window);
-  DisplayTree(ctx, p->vol, p->pan_dir_window, p->disp_begin_pos,
-              p->disp_begin_pos + p->cursor_pos, TRUE);
-  UpdateStatsPanel(ctx, *dir_entry, s);
-  /* Update header path */
-  {
-    char path[PATH_LENGTH];
-    GetPath(*dir_entry, path);
-    DisplayHeaderPath(ctx, path);
-  }
-  return;
-}
-
-static void MoveHome(ViewContext *ctx, DirEntry **dir_entry, YtreePanel *p) {
-  Statistic *s = &p->vol->vol_stats;
-  WINDOW *win = p->pan_dir_window;
-
-  Nav_Home(&p->cursor_pos, &p->disp_begin_pos);
-
-  *dir_entry =
-      p->vol->dir_entry_list[p->disp_begin_pos + p->cursor_pos].dir_entry;
-
-  if (0) {
-    *dir_entry = RefreshTreeSafe(ctx, p, *dir_entry);
-    /* Re-sync *dir_entry to global stats which RefreshTreeSafe might have
-     * adjusted */
-    *dir_entry =
-        p->vol->dir_entry_list[p->disp_begin_pos + p->cursor_pos].dir_entry;
-  }
-
-  (*dir_entry)->start_file = 0;
-  (*dir_entry)->cursor_pos = -1;
-  DisplayFileWindow(ctx, p, *dir_entry);
-  RefreshWindow(p->pan_file_window);
-  RefreshWindow(p->pan_file_window);
-  DisplayTree(ctx, p->vol, p->pan_dir_window, p->disp_begin_pos,
-              p->disp_begin_pos + p->cursor_pos, TRUE);
-  UpdateStatsPanel(ctx, *dir_entry, s);
-  /* Update header path */
-  {
-    char path[PATH_LENGTH];
-    GetPath(*dir_entry, path);
-    DisplayHeaderPath(ctx, path);
-  }
-  return;
-}
+/* dir_nav.c */
+void DirNav_Movedown(ViewContext *ctx, DirEntry **dir_entry, YtreePanel *p);
+void DirNav_Moveup(ViewContext *ctx, DirEntry **dir_entry, YtreePanel *p);
+void DirNav_Movenpage(ViewContext *ctx, DirEntry **dir_entry, YtreePanel *p);
+void DirNav_Moveppage(ViewContext *ctx, DirEntry **dir_entry, YtreePanel *p);
+void DirNav_MoveEnd(ViewContext *ctx, DirEntry **dir_entry, YtreePanel *p);
+void DirNav_MoveHome(ViewContext *ctx, DirEntry **dir_entry, YtreePanel *p);
 
 
 int HandleDirWindow(ViewContext *ctx, DirEntry *start_dir_entry) {
@@ -609,10 +405,10 @@ int HandleDirWindow(ViewContext *ctx, DirEntry *start_dir_entry) {
       break;
 
     case ACTION_MOVE_DOWN:
-      Movedown(ctx, &dir_entry, ctx->active);
+      DirNav_Movedown(ctx, &dir_entry, ctx->active);
       break;
     case ACTION_MOVE_UP:
-      Moveup(ctx, &dir_entry, ctx->active);
+      DirNav_Moveup(ctx, &dir_entry, ctx->active);
       break;
     case ACTION_MOVE_SIBLING_NEXT: {
       DirEntry *target = dir_entry->next;
@@ -752,16 +548,16 @@ int HandleDirWindow(ViewContext *ctx, DirEntry *start_dir_entry) {
       need_dsp_help = TRUE;
       break;
     case ACTION_PAGE_DOWN:
-      Movenpage(ctx, &dir_entry, ctx->active);
+      DirNav_Movenpage(ctx, &dir_entry, ctx->active);
       break;
     case ACTION_PAGE_UP:
-      Moveppage(ctx, &dir_entry, ctx->active);
+      DirNav_Moveppage(ctx, &dir_entry, ctx->active);
       break;
     case ACTION_HOME:
-      MoveHome(ctx, &dir_entry, ctx->active);
+      DirNav_MoveHome(ctx, &dir_entry, ctx->active);
       break;
     case ACTION_END:
-      MoveEnd(ctx, &dir_entry, ctx->active);
+      DirNav_MoveEnd(ctx, &dir_entry, ctx->active);
       break;
     case ACTION_MOVE_RIGHT:
     case ACTION_TREE_EXPAND_ALL:
@@ -965,12 +761,12 @@ int HandleDirWindow(ViewContext *ctx, DirEntry *start_dir_entry) {
       break;
     case ACTION_TAG:
       HandleTagDir(ctx, dir_entry, TRUE, ctx->active);
-      Movedown(ctx, &dir_entry, ctx->active); /* ADDED */
+      DirNav_Movedown(ctx, &dir_entry, ctx->active); /* ADDED */
       break;
 
     case ACTION_UNTAG:
       HandleTagDir(ctx, dir_entry, FALSE, ctx->active);
-      Movedown(ctx, &dir_entry, ctx->active); /* ADDED */
+      DirNav_Movedown(ctx, &dir_entry, ctx->active); /* ADDED */
       break;
     case ACTION_TAG_ALL:
       HandleTagAllDirs(ctx, ctx->active->vol, dir_entry, TRUE, ctx->active);
