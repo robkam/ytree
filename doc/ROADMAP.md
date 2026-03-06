@@ -1300,7 +1300,7 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 *   **Serena:** Use `get_symbols_overview` on `archive.c` to identify the natural split boundary (read API vs write API). Use `find_referencing_symbols` to verify callers target the correct new module.
 *   **Validate:** `make clean && make` succeeds. `make test` passes.
 *   **Files to Modify:** `src/fs/`, `Makefile`, `include/ytree_fs.h`.
-*   - [ ] **Status:** Not Started.
+*   - [x] **Status:** Completed.
 
 #### **Step 9.5.4: Normalize `ui/` Directory** (Claude Opus)
 *   **Goal:** Split the two largest modules in the codebase and evaluate whether `ui/` needs subdirectories.
