@@ -1334,6 +1334,18 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 *   **Context Files:** None.
 *   - [ ] **Status:** Not Started.
 
+### **Step 10.5: Eliminate Dangling Pointers & Use-After-Free** (Use Architect Mode)
+*   **Goal:** Systematically audit and fix all dangling pointer risks — pointers that reference freed memory, stale cache entries, or uninitialized storage.
+*   **Rationale:** Dangling pointers are the most insidious class of memory bug in C: they cause intermittent crashes, data corruption, and security vulnerabilities that are extremely difficult to reproduce. In a long-running file manager that dynamically allocates/frees directory trees, file lists, and volumes, the attack surface for use-after-free is large.
+*   **Mechanism:**
+    1.  **Static Analysis:** Run under Valgrind Memcheck (builds on Step 10.1 baseline) and ASan (`-fsanitize=address`) to identify all "Invalid read/write" and "use-after-free" reports.
+    2.  **Nullify After Free:** Enforce the discipline of setting pointers to `NULL` immediately after `free()`. Audit `xfree()` (or create a `SAFE_FREE(ptr)` macro that nullifies automatically).
+    3.  **Ownership Audit:** For each major data structure (`Volume`, `DirEntry`, `FileEntry`, `filter`), document the ownership chain — who allocates, who may hold a reference, and who frees. Fix any case where a consumer outlives the owner.
+    4.  **Stale Reference Sweep:** Audit code paths where cached pointers (e.g., `current_dir_entry`, `file_entry_list`) survive operations that invalidate them (volume switch, tree rescan, filter change).
+*   **Files to Modify:** `src/**/*.c` — determined by Valgrind/ASan reports.
+*   **Context Files:** `src/util/memory.c`.
+*   - [ ] **Status:** Not Started.
+
 ---
 
 ## **Phase 11: Architectural Integrity (SRP/SoC Audit)**
