@@ -24,7 +24,7 @@
 #define PATH_LENGTH 4096
 #endif
 
-static int GetNewModus(int old_modus, char *new_modus);
+static int GetNewMode(int old_modus, char *new_modus);
 
 /*
  * Central helper to change ownership, re-stat the file, and handle errors.
@@ -99,7 +99,7 @@ int SetFileModus(ViewContext *ctx, FileEntry *fe_ptr,
   walking_package->new_fe_ptr = fe_ptr; /* unchanged */
 
   new_modus =
-      GetNewModus(fe_ptr->stat_struct.st_mode,
+      GetNewMode(fe_ptr->stat_struct.st_mode,
                   walking_package->function_data.change_modus.new_modus);
 
   new_modus = new_modus | (fe_ptr->stat_struct.st_mode &
@@ -132,7 +132,7 @@ int SetDirModus(DirEntry *de_ptr, WalkingPackage *walking_package) {
   result = -1;
 
   new_modus =
-      GetNewModus(de_ptr->stat_struct.st_mode,
+      GetNewMode(de_ptr->stat_struct.st_mode,
                   walking_package->function_data.change_modus.new_modus);
 
   new_modus = new_modus | (de_ptr->stat_struct.st_mode &
@@ -156,7 +156,7 @@ int SetDirModus(DirEntry *de_ptr, WalkingPackage *walking_package) {
   return (result);
 }
 
-static int GetNewModus(int old_modus, char *modus) {
+static int GetNewMode(int old_modus, char *modus) {
   int new_modus;
 
   new_modus = 0;
@@ -219,4 +219,4 @@ static int GetNewModus(int old_modus, char *modus) {
   return (new_modus);
 }
 
-int GetModus(const char *modus) { return (GetNewModus(0, (char *)modus)); }
+int GetModus(const char *modus) { return (GetNewMode(0, (char *)modus)); }
