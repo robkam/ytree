@@ -100,7 +100,7 @@ int SetFileModus(ViewContext *ctx, FileEntry *fe_ptr,
 
   new_modus =
       GetNewMode(fe_ptr->stat_struct.st_mode,
-                  walking_package->function_data.change_modus.new_modus);
+                  walking_package->function_data.change_mode.new_mode);
 
   new_modus = new_modus | (fe_ptr->stat_struct.st_mode &
                            ~(S_IRWXO | S_IRWXG | S_IRWXU | S_ISGID | S_ISUID));
@@ -133,7 +133,7 @@ int SetDirModus(DirEntry *de_ptr, WalkingPackage *walking_package) {
 
   new_modus =
       GetNewMode(de_ptr->stat_struct.st_mode,
-                  walking_package->function_data.change_modus.new_modus);
+                  walking_package->function_data.change_mode.new_mode);
 
   new_modus = new_modus | (de_ptr->stat_struct.st_mode &
                            ~(S_IRWXO | S_IRWXG | S_IRWXU | S_ISGID | S_ISUID));

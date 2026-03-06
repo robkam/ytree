@@ -527,8 +527,8 @@ struct Volume {
 
 typedef union {
   struct {
-    char new_modus[12];
-  } change_modus;
+    char new_mode[12];
+  } change_mode;
   struct {
     unsigned new_owner_id;
   } change_owner;
