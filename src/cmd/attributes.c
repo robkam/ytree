@@ -1,8 +1,8 @@
 /***************************************************************************
- * src/cmd/chmod.c
- * chmod Command Implementation
+ * src/cmd/attributes.c
+ * Attributes Command Implementation
  *
- * Implements the change attributes (mode) functionality for ytree.
+ * Implements the change group, owner, and mode functionality for ytree.
  ***************************************************************************/
 
 #include "ytree.h"
@@ -27,8 +27,43 @@
 
 static int GetNewModus(int old_modus, char *new_modus);
 
-/* ChangeFileModus and ChangeDirModus moved to UI layer */
-/* InputModeString moved to UI layer */
+int SetFileGroup(ViewContext *ctx, FileEntry *fe_ptr, WalkingPackage *walking_package) {
+  char buffer[PATH_LENGTH + 1];
+  gid_t new_gid =
+      (gid_t)walking_package->function_data.change_group.new_group_id;
+
+  walking_package->new_fe_ptr = fe_ptr; /* Unchanged */
+
+  GetFileNamePath(fe_ptr, buffer);
+
+  return ChangeOwnership(buffer, fe_ptr->stat_struct.st_uid, new_gid,
+                         &fe_ptr->stat_struct);
+}
+
+int ChangeDirGroup(DirEntry *de_ptr) {
+  /* Refactored to call UI-based handler or use direct ChangeOwnership if needed
+   */
+  return -1;
+}
+
+int SetFileOwner(ViewContext *ctx, FileEntry *fe_ptr, WalkingPackage *walking_package) {
+  char buffer[PATH_LENGTH + 1];
+  uid_t new_uid =
+      (uid_t)walking_package->function_data.change_owner.new_owner_id;
+
+  walking_package->new_fe_ptr = fe_ptr; /* Unchanged */
+
+  GetFileNamePath(fe_ptr, buffer);
+
+  return ChangeOwnership(buffer, new_uid, fe_ptr->stat_struct.st_gid,
+                         &fe_ptr->stat_struct);
+}
+
+int ChangeDirOwner(DirEntry *de_ptr) {
+  /* Refactored to call UI-based handler or use direct ChangeOwnership if needed
+   */
+  return -1;
+}
 
 int SetFileModus(ViewContext *ctx, FileEntry *fe_ptr, WalkingPackage *walking_package) {
   struct stat stat_struct;
