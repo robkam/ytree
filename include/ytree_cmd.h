@@ -31,7 +31,7 @@ extern int SetFileGroup(ViewContext *ctx, FileEntry *fe_ptr,
 extern int SetFileModus(ViewContext *ctx, FileEntry *fe_ptr,
                         WalkingPackage *walking_package);
 extern int SetDirModus(DirEntry *de_ptr, WalkingPackage *walking_package);
-extern int GetModus(const char *modus);
+extern int GetMode(const char *modus);
 extern int ChangeDirOwner(DirEntry *de_ptr);
 extern int ChangeFileOwner(ViewContext *ctx, FileEntry *fe_ptr);
 extern int SetFileOwner(ViewContext *ctx, FileEntry *fe_ptr,
