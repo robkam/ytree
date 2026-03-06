@@ -1248,7 +1248,44 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 *   **Targets:** `src/ui/dialog.c`, `include/ytree_dialog.h`, `src/ui/vol_menu.c`, `src/util/history.c`, core command files (`copy.c`, `move.c`, `rmdir.c`).
 *   - [x] **Status:** Complete.
 
-### **Step 9.5: Consolidate Fragmented Feature Logic** (Use the Auditor Persona here)
+### **Step 9.5: Module Cohesion & Source Tree Normalization** (Use the Auditor Persona here)
+*   **Goal:** Establish and enforce conventions for module (`.c`/`.h` pair) sizing, naming, and directory placement, then refactor the source tree to conform. Every module should have a clear single responsibility, a consistent size range, and live in the directory that matches its architectural layer.
+*   **Rationale:** The current source tree grew organically — some modules are bloated (2700+ LOC), some are trivially small (<50 LOC), and some are misplaced relative to their actual responsibility. This ad-hoc structure makes onboarding difficult and hides architectural boundaries. A normalized source tree makes the layered architecture (Model/View/Controller) self-documenting.
+*   **Conventions to Establish:**
+    *   **Target module size:** ~100–800 LOC. Modules outside this range are candidates for splitting or merging.
+    *   **Directory ownership:** `core/` = application lifecycle & data structures. `fs/` = filesystem & archive I/O. `cmd/` = user commands (business logic). `ui/` = rendering, input, and interaction. `util/` = stateless helpers.
+    *   **Naming:** Module name == single responsibility (e.g., `attributes.c` not three separate `chgrp.c` + `chown.c` + `chmod.c`).
+    *   **Header hygiene:** One public header per layer (`ytree_cmd.h`, `ytree_fs.h`, `ytree_ui.h`), plus `ytree_defs.h` for shared types. Minimize cross-layer includes.
+*   **Known Candidates:**
+    *   **Split (bloated):**
+        *   `ui/ctrl_dir.c` (2743 LOC) — navigation, tagging, tree manipulation could separate.
+        *   `ui/ctrl_file.c` (2675 LOC) — navigation, tagging, show-all logic could separate.
+        *   `fs/archive.c` (1073 LOC) — read vs. write engines could separate.
+    *   **Merge (tiny):**
+        *   `cmd/chgrp.c` (36) + `cmd/chown.c` (37) + `cmd/chmod.c` (163) → `cmd/attributes.c` (aligns with Step 4.16).
+        *   `cmd/sort.c` (22) — evaluate whether this belongs in `core/sort.c` or should be absorbed.
+        *   `fs/owner_utils.c` (44) — candidate for merging into a parent module.
+    *   **Relocate (misplaced):**
+        *   `ui/edit.c` (79 LOC, just launches `$EDITOR`) — arguably a `cmd/` module, not `ui/`.
+    *   **Directory restructuring:** Create or rename subdirectories as needed to reflect actual boundaries (e.g., if `ui/` grows sub-concerns like `ui/render/`, `ui/input/`, `ui/widgets/`).
+*   **Mechanism:**
+    1.  **Define:** Document the conventions in `SPECIFICATION.md` or a new `CONVENTIONS.md`.
+    2.  **Audit:** Use `@auditor` to flag all modules outside the target size range or in the wrong directory.
+    3.  **Plan:** Propose split/merge/move operations as a batch, one logical group at a time.
+    4.  **Refactor:** Execute file renames, splits, merges, and `Makefile` updates. Update `#include` paths.
+    5.  **Validate:** Ensure clean build and no behavioral regressions.
+*   **Files to Modify:** Various — determined per audit. `Makefile` updated with each batch.
+*   **Context Files:** `SPECIFICATION.md`.
+*   - [ ] **Status:** Not Started.
+
+#### **Step 9.5.1: Update Roadmap & Documentation References**
+*   **Goal:** After each batch of source tree restructuring in Step 9.5, update all "Files to Modify" and "Context Files" paths in `ROADMAP.md`, `SPECIFICATION.md`, and any other documentation to reflect the new file names, locations, and directory structure.
+*   **Rationale:** Stale file paths in planning documents cause confusion and wasted effort. This sub-step ensures the roadmap remains a reliable guide for all not-yet-started work, and that future development naturally targets the new structure.
+*   **Mechanism:** After each 9.5 restructuring batch, grep the docs for old paths and update them. This is a mechanical pass, not a design task.
+*   **Files to Modify:** `doc/ROADMAP.md`, `doc/SPECIFICATION.md`, `doc/TESTING.md`, and any other `doc/*.md` files referencing source paths.
+*   - [ ] **Status:** Not Started.
+
+### **Step 9.6: Consolidate Fragmented Feature Logic** (Use the Auditor Persona here)
 *   **Goal:** Systematically audit the codebase for features whose logic is scattered across multiple files and consolidate each into a single, cohesive module or function.
 *   **Rationale:** Legacy development often spreads a single logical feature (e.g., statistics display, filtering, tagging) across many call sites and files. This fragmentation makes the code harder to understand, modify, and debug. Unifying a feature's logic into one authoritative location dramatically improves maintainability and reduces regression risk. This operationalizes the **Architectural Integrity (Anti-Patching)** guiding principle into a concrete, repeatable audit task.
 *   **Exemplar:** The _"refactor: remove GlobalView naming and document context-passing architecture"_ commit — before this refactor, statistics rendering was spread across `stats.c`, `display.c`, `dirwin.c`, and `filewin.c`. Afterward, the stats panel was driven by a single cohesive function, making future changes trivial.
