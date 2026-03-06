@@ -35,28 +35,29 @@ static int saved_fixed_width = 0;
 /* --- Forward Declarations --- */
 /* file_list.c: ReadFileList, ReadGlobalFileList, BuildFileEntryList,
  *              FreeFileEntryList, InvalidateVolumePanels, DisplayFileWindow */
-static void WalkTaggedFiles(ViewContext *ctx, int start_file, int cursor_pos,
-                            int (*fkt)(ViewContext *, FileEntry *,
-                                       WalkingPackage *),
-                            WalkingPackage *walking_package);
-static BOOL IsMatchingTaggedFiles(ViewContext *ctx);
+/* file_tags.c */
+void FileTags_WalkTaggedFiles(ViewContext *ctx, int start_file, int cursor_pos,
+                              int (*fkt)(ViewContext *, FileEntry *,
+                                         WalkingPackage *),
+                              WalkingPackage *walking_package);
+BOOL FileTags_IsMatchingTaggedFiles(ViewContext *ctx);
 /* file_list.c */
 void FileList_RemoveFileEntry(ViewContext *ctx, int entry_no);
 void FileList_ChangeFileEntry(ViewContext *ctx);
-static int UI_DeleteTaggedFiles(ViewContext *ctx, int max_dispfiles,
-                                Statistic *s);
-static void SilentWalkTaggedFiles(ViewContext *ctx,
-                                  int (*fkt)(ViewContext *, FileEntry *,
-                                             WalkingPackage *, Statistic *),
-                                  WalkingPackage *walking_package);
-static void SilentTagWalkTaggedFiles(ViewContext *ctx,
-                                     int (*fkt)(ViewContext *, FileEntry *,
-                                                WalkingPackage *, Statistic *),
-                                     WalkingPackage *walking_package);
+int FileTags_UI_DeleteTaggedFiles(ViewContext *ctx, int max_dispfiles,
+                                  Statistic *s);
+void FileTags_SilentWalkTaggedFiles(ViewContext *ctx,
+                                    int (*fkt)(ViewContext *, FileEntry *,
+                                               WalkingPackage *, Statistic *),
+                                    WalkingPackage *walking_package);
+void FileTags_SilentTagWalkTaggedFiles(
+    ViewContext *ctx,
+    int (*fkt)(ViewContext *, FileEntry *, WalkingPackage *, Statistic *),
+    WalkingPackage *walking_package);
 static void RereadWindowSize(ViewContext *ctx, DirEntry *dir_entry);
 static void ListJump(ViewContext *ctx, DirEntry *dir_entry, char *str);
-static void HandleInvertTags(ViewContext *ctx, DirEntry *dir_entry,
-                             Statistic *s);
+void FileTags_HandleInvertTags(ViewContext *ctx, DirEntry *dir_entry,
+                               Statistic *s);
 static void UpdatePreview(ViewContext *ctx, DirEntry *dir_entry);
 static DirEntry *RefreshFileView(ViewContext *ctx, DirEntry *dir_entry);
 
@@ -880,7 +881,7 @@ int HandleFileWindow(ViewContext *ctx, DirEntry *dir_entry) {
 
     case ACTION_CMD_TAGGED_A:
       if ((ctx->view_mode != DISK_MODE && ctx->view_mode != USER_MODE) ||
-          !IsMatchingTaggedFiles(ctx)) {
+          !FileTags_IsMatchingTaggedFiles(ctx)) {
       } else {
         need_dsp_help = TRUE;
 
@@ -894,7 +895,7 @@ int HandleFileWindow(ViewContext *ctx, DirEntry *dir_entry) {
                           HST_CHANGE_MODUS) == CR) {
           (void)strcpy(walking_package.function_data.change_modus.new_modus,
                        modus);
-          WalkTaggedFiles(ctx, dir_entry->start_file, dir_entry->cursor_pos,
+          FileTags_WalkTaggedFiles(ctx, dir_entry->start_file, dir_entry->cursor_pos,
                           SetFileModus, &walking_package);
 
           DisplayFiles(ctx, ctx->active, dir_entry, dir_entry->start_file,
@@ -923,12 +924,12 @@ int HandleFileWindow(ViewContext *ctx, DirEntry *dir_entry) {
 
     case ACTION_CMD_TAGGED_O:
       if ((ctx->view_mode != DISK_MODE && ctx->view_mode != USER_MODE) ||
-          !IsMatchingTaggedFiles(ctx)) {
+          !FileTags_IsMatchingTaggedFiles(ctx)) {
       } else {
         need_dsp_help = TRUE;
         if ((owner_id = GetNewOwner(ctx, -1)) >= 0) {
           walking_package.function_data.change_owner.new_owner_id = owner_id;
-          WalkTaggedFiles(ctx, dir_entry->start_file, dir_entry->cursor_pos,
+          FileTags_WalkTaggedFiles(ctx, dir_entry->start_file, dir_entry->cursor_pos,
                           SetFileOwner, &walking_package);
 
           DisplayFiles(ctx, ctx->active, dir_entry, dir_entry->start_file,
@@ -955,13 +956,13 @@ int HandleFileWindow(ViewContext *ctx, DirEntry *dir_entry) {
 
     case ACTION_CMD_TAGGED_G:
       if ((ctx->view_mode != DISK_MODE && ctx->view_mode != USER_MODE) ||
-          !IsMatchingTaggedFiles(ctx)) {
+          !FileTags_IsMatchingTaggedFiles(ctx)) {
       } else {
         need_dsp_help = TRUE;
 
         if ((group_id = GetNewGroup(ctx, -1)) >= 0) {
           walking_package.function_data.change_group.new_group_id = group_id;
-          WalkTaggedFiles(ctx, dir_entry->start_file, dir_entry->cursor_pos,
+          FileTags_WalkTaggedFiles(ctx, dir_entry->start_file, dir_entry->cursor_pos,
                           SetFileGroup, &walking_package);
 
           DisplayFiles(ctx, ctx->active, dir_entry, dir_entry->start_file,
@@ -1168,7 +1169,7 @@ int HandleFileWindow(ViewContext *ctx, DirEntry *dir_entry) {
       break;
 
     case ACTION_CMD_TAGGED_V:
-      if (!IsMatchingTaggedFiles(ctx)) {
+      if (!FileTags_IsMatchingTaggedFiles(ctx)) {
         /* STRICT FILTER MODE: No tags = no action */
       } else {
         UI_ViewTaggedFiles(ctx, dir_entry);
@@ -1268,7 +1269,7 @@ int HandleFileWindow(ViewContext *ctx, DirEntry *dir_entry) {
       if (action == ACTION_CMD_TAGGED_Y)
         path_copy = TRUE;
 
-      if (!IsMatchingTaggedFiles(ctx)) {
+      if (!FileTags_IsMatchingTaggedFiles(ctx)) {
       } else {
         need_dsp_help = TRUE;
 
@@ -1320,7 +1321,7 @@ int HandleFileWindow(ViewContext *ctx, DirEntry *dir_entry) {
         walking_package.function_data.copy.choice_cb =
             (void *)(ChoiceCallback)UI_ChoiceResolver;
 
-        WalkTaggedFiles(ctx, dir_entry->start_file, dir_entry->cursor_pos,
+        FileTags_WalkTaggedFiles(ctx, dir_entry->start_file, dir_entry->cursor_pos,
                         CopyTaggedFiles, &walking_package);
 
         RefreshDirWindow(ctx, ctx->active);
@@ -1441,7 +1442,7 @@ int HandleFileWindow(ViewContext *ctx, DirEntry *dir_entry) {
 
     case ACTION_CMD_TAGGED_M:
       if ((ctx->view_mode != DISK_MODE && ctx->view_mode != USER_MODE) ||
-          !IsMatchingTaggedFiles(ctx)) {
+          !FileTags_IsMatchingTaggedFiles(ctx)) {
       } else {
         need_dsp_help = TRUE;
 
@@ -1497,7 +1498,7 @@ int HandleFileWindow(ViewContext *ctx, DirEntry *dir_entry) {
         walking_package.function_data.mv.choice_cb =
             (void *)(ChoiceCallback)UI_ChoiceResolver;
 
-        WalkTaggedFiles(ctx, dir_entry->start_file, dir_entry->cursor_pos,
+        FileTags_WalkTaggedFiles(ctx, dir_entry->start_file, dir_entry->cursor_pos,
                         MoveTaggedFiles, &walking_package);
 
         RefreshDirWindow(ctx, ctx->active);
@@ -1554,10 +1555,10 @@ int HandleFileWindow(ViewContext *ctx, DirEntry *dir_entry) {
     case ACTION_CMD_TAGGED_D:
       if ((ctx->view_mode != DISK_MODE && ctx->view_mode != USER_MODE &&
            ctx->view_mode != ARCHIVE_MODE) ||
-          !IsMatchingTaggedFiles(ctx)) {
+          !FileTags_IsMatchingTaggedFiles(ctx)) {
       } else {
         need_dsp_help = TRUE;
-        (void)UI_DeleteTaggedFiles(ctx, max_disp_files, s);
+        (void)FileTags_UI_DeleteTaggedFiles(ctx, max_disp_files, s);
         /* ... */
 
         RefreshView(ctx, dir_entry);
@@ -1595,7 +1596,7 @@ int HandleFileWindow(ViewContext *ctx, DirEntry *dir_entry) {
     case ACTION_CMD_TAGGED_R:
       if ((ctx->view_mode != DISK_MODE && ctx->view_mode != USER_MODE &&
            ctx->view_mode != ARCHIVE_MODE) ||
-          !IsMatchingTaggedFiles(ctx)) {
+          !FileTags_IsMatchingTaggedFiles(ctx)) {
       } else {
         need_dsp_help = TRUE;
 
@@ -1606,7 +1607,7 @@ int HandleFileWindow(ViewContext *ctx, DirEntry *dir_entry) {
         walking_package.function_data.rename.new_name = new_name;
         walking_package.function_data.rename.confirm = FALSE;
 
-        WalkTaggedFiles(ctx, dir_entry->start_file, dir_entry->cursor_pos,
+        FileTags_WalkTaggedFiles(ctx, dir_entry->start_file, dir_entry->cursor_pos,
                         RenameTaggedFiles, &walking_package);
 
         BuildFileEntryList(ctx, ctx->active);
@@ -1715,7 +1716,7 @@ int HandleFileWindow(ViewContext *ctx, DirEntry *dir_entry) {
     case ACTION_CMD_TAGGED_P:
       de_ptr = dir_entry;
 
-      if (!IsMatchingTaggedFiles(ctx)) {
+      if (!FileTags_IsMatchingTaggedFiles(ctx)) {
       } else if (ctx->view_mode != DISK_MODE && ctx->view_mode != USER_MODE) {
         UI_Message(ctx, "^P is not available in archive mode");
       } else {
@@ -1735,7 +1736,7 @@ int HandleFileWindow(ViewContext *ctx, DirEntry *dir_entry) {
             refresh();
             UI_Message(ctx, "execution of command*%s*failed", filepath);
           } else {
-            SilentWalkTaggedFiles(ctx, PipeTaggedFiles, &walking_package);
+            FileTags_SilentWalkTaggedFiles(ctx, PipeTaggedFiles, &walking_package);
 
             /* Close pipe and capture return value */
             pclose_ret = pclose(walking_package.function_data.pipe_cmd
@@ -1787,7 +1788,7 @@ int HandleFileWindow(ViewContext *ctx, DirEntry *dir_entry) {
 
     case ACTION_CMD_TAGGED_S:
       /* STRICT FILTER MODE: Only allow if tags exist */
-      if (!IsMatchingTaggedFiles(ctx)) {
+      if (!FileTags_IsMatchingTaggedFiles(ctx)) {
         /* If no tags, this command does nothing (or shows error) */
         MESSAGE(ctx, "No tagged files");
       } else if (ctx->view_mode != DISK_MODE && ctx->view_mode != USER_MODE &&
@@ -1818,7 +1819,7 @@ int HandleFileWindow(ViewContext *ctx, DirEntry *dir_entry) {
 
           walking_package.function_data.execute.command = silent_cmd;
           /* Use modified SilentTagWalk (Untag on Fail) */
-          SilentTagWalkTaggedFiles(ctx, ExecuteCommand, &walking_package);
+          FileTags_SilentTagWalkTaggedFiles(ctx, ExecuteCommand, &walking_package);
           /* No HitReturnToContinue - purely silent */
         }
 
@@ -1838,7 +1839,7 @@ int HandleFileWindow(ViewContext *ctx, DirEntry *dir_entry) {
       break;
 
     case ACTION_CMD_TAGGED_X:
-      if (!IsMatchingTaggedFiles(ctx)) {
+      if (!FileTags_IsMatchingTaggedFiles(ctx)) {
       } else if (ctx->view_mode != DISK_MODE && ctx->view_mode != USER_MODE &&
                  ctx->view_mode != ARCHIVE_MODE) {
         UI_Message(ctx, "^X is not available in archive mode");
@@ -1856,7 +1857,7 @@ int HandleFileWindow(ViewContext *ctx, DirEntry *dir_entry) {
           endwin();
           SuspendClock(ctx);
           walking_package.function_data.execute.command = command_line;
-          SilentWalkTaggedFiles(ctx, ExecuteCommand, &walking_package);
+          FileTags_SilentWalkTaggedFiles(ctx, ExecuteCommand, &walking_package);
           HitReturnToContinue();
 
           InitClock(ctx);
@@ -1971,7 +1972,7 @@ int HandleFileWindow(ViewContext *ctx, DirEntry *dir_entry) {
       break;
 
     case ACTION_ASTERISK: /* Mapped to '*' for Invert Tags in File Window */
-      HandleInvertTags(ctx, dir_entry, s);
+      FileTags_HandleInvertTags(ctx, dir_entry, s);
       need_dsp_help = TRUE;
       break;
 
@@ -2014,270 +2015,13 @@ int HandleFileWindow(ViewContext *ctx, DirEntry *dir_entry) {
               : ESC); /* Return CR or ESC based on action */
 }
 
-static void WalkTaggedFiles(ViewContext *ctx, int start_file, int cursor_pos,
-                            int (*fkt)(ViewContext *, FileEntry *,
-                                       WalkingPackage *),
-                            WalkingPackage *walking_package) {
-  FileEntry *fe_ptr;
-  int i;
-  int start_x = 0;
-  int result = 0;
-  BOOL maybe_change_x = FALSE;
-  int height, width;
+/* WalkTaggedFiles moved to file_tags.c */
 
-  if (baudrate() >= QUICK_BAUD_RATE)
-    typeahead(0);
 
-  GetMaxYX(ctx->ctx_file_window, &height, &width);
 
-  max_disp_files = height * GetPanelMaxColumn(ctx->active);
 
-  for (i = 0; i < (int)ctx->active->file_count && result == 0; i++) {
-    fe_ptr = ctx->active->file_entry_list[i].file;
 
-    if (fe_ptr->tagged && fe_ptr->matching) {
-      if (maybe_change_x == FALSE && i >= start_file &&
-          i < start_file + max_disp_files) {
-        /* Walk possible without scrolling */
-        /*---------------------------*/
-        DisplayFiles(ctx, ctx->active, fe_ptr->dir_entry, start_file, i,
-                     start_x, ctx->ctx_file_window);
-        cursor_pos = i - start_file;
-      } else {
-        /* Scrolling necessary */
-        /*---------------*/
 
-        start_file = MAX(0, i - max_disp_files + 1);
-        cursor_pos = i - start_file;
-
-        DisplayFiles(ctx, ctx->active, fe_ptr->dir_entry, start_file,
-                     start_file + cursor_pos, start_x, ctx->ctx_file_window);
-        maybe_change_x = FALSE;
-      }
-
-      if (fe_ptr->dir_entry->global_flag)
-        DisplayGlobalFileParameter(ctx, fe_ptr);
-      else
-        DisplayFileParameter(ctx, fe_ptr);
-
-      RefreshWindow(ctx->ctx_file_window);
-      doupdate();
-      result = fkt(ctx, fe_ptr, walking_package);
-
-      /* Handle case where file was removed/moved away */
-      if (walking_package->new_fe_ptr == NULL) {
-        FileList_RemoveFileEntry(ctx, i);
-        i--; /* Adjust index since we removed current element */
-        maybe_change_x = TRUE;
-      } else if (walking_package->new_fe_ptr != fe_ptr) {
-        ctx->active->file_entry_list[i].file = walking_package->new_fe_ptr;
-        FileList_ChangeFileEntry(ctx);
-        max_disp_files = height * GetPanelMaxColumn(ctx->active);
-        maybe_change_x = TRUE;
-      }
-    }
-  }
-
-  if (baudrate() >= QUICK_BAUD_RATE)
-    typeahead(-1);
-}
-
-/*
- ExecuteCommand (*fkt) had its retval zeroed as found.
- ^S needs that value, so it was unzeroed. forloop below
- was modified to not care about retval instead?
-
- global flag for stop-on-error? does anybody want it?
-
- --crb3 12mar04
-*/
-
-static void SilentWalkTaggedFiles(ViewContext *ctx,
-                                  int (*fkt)(ViewContext *, FileEntry *,
-                                             WalkingPackage *, Statistic *),
-                                  WalkingPackage *walking_package) {
-  FileEntry *fe_ptr;
-  int i;
-
-  for (i = 0; i < (int)ctx->active->file_count; i++) {
-    fe_ptr = ctx->active->file_entry_list[i].file;
-
-    if (fe_ptr->tagged && fe_ptr->matching) {
-      (void)fkt(ctx, fe_ptr, walking_package, &ctx->active->vol->vol_stats);
-    }
-  }
-}
-
-/*
-
-SilentTagWalkTaggedFiles.
-revision of above function to provide something like
-XTG's <search>- [x] Decouple execution: `execute.c`, `system.c`, `pipe.c`.
-- [x] Decouple remaining utilities (`filter.c`, `sort.c`, `hex.c`, `view.c`,
-etc.).
-- [x] Sanitize headers (`ytree_defs.h`, `ytree_fs.h`) for headless compilation.
-- [ ] Address lint errors and final verification.
-repeated calls can be used to pare down tags, each with a different
-string, until only the intended target files are tagged.
-
-ExecuteCommand must have its retval unzeroed.
-
---crb3 31dec03
-
-*/
-
-static void SilentTagWalkTaggedFiles(ViewContext *ctx,
-                                     int (*fkt)(ViewContext *, FileEntry *,
-                                                WalkingPackage *, Statistic *),
-                                     WalkingPackage *walking_package) {
-  FileEntry *fe_ptr;
-  int i;
-  int result = 0;
-
-  for (i = 0; i < (int)ctx->active->file_count; i++) {
-    fe_ptr = ctx->active->file_entry_list[i].file;
-
-    if (fe_ptr->tagged && fe_ptr->matching) {
-      result = fkt(ctx, fe_ptr, walking_package, &ctx->active->vol->vol_stats);
-
-      if (result != 0) {
-        fe_ptr->tagged = FALSE;
-        /* Update Stats */
-        fe_ptr->dir_entry->tagged_files--;
-        fe_ptr->dir_entry->tagged_bytes -= fe_ptr->stat_struct.st_size;
-        ctx->active->vol->vol_stats.disk_tagged_files--;
-        ctx->active->vol->vol_stats.disk_tagged_bytes -=
-            fe_ptr->stat_struct.st_size;
-      }
-    }
-  }
-}
-
-static BOOL IsMatchingTaggedFiles(ViewContext *ctx) {
-  FileEntry *fe_ptr;
-  int i;
-
-  for (i = 0; i < (int)ctx->active->file_count; i++) {
-    fe_ptr = ctx->active->file_entry_list[i].file;
-
-    if (fe_ptr->matching && fe_ptr->tagged)
-      return (TRUE);
-  }
-
-  return (FALSE);
-}
-
-static int UI_DeleteTaggedFiles(ViewContext *ctx, int max_disp_files,
-                                Statistic *s) {
-  FileEntry *fe_ptr;
-  DirEntry *de_ptr;
-  int i;
-  int start_file;
-  int cursor_pos;
-  BOOL deleted;
-  BOOL confirm_each = FALSE;
-  int term;
-  int start_x = 0;
-  int result = 0;
-  int tagged_count = 0;
-  int override_mode = 0; /* Auto-override mode for read-only files */
-  char prompt_buffer[MESSAGE_LENGTH];
-
-  /* 1. Count tagged files */
-  for (i = 0; i < (int)ctx->active->file_count; i++) {
-    if (ctx->active->file_entry_list[i].file->tagged &&
-        ctx->active->file_entry_list[i].file->matching) {
-      tagged_count++;
-    }
-  }
-
-  if (tagged_count == 0)
-    return 0;
-
-  /* 2. Prompt for Intent */
-  (void)snprintf(prompt_buffer, sizeof(prompt_buffer),
-                 "Delete %d tagged files (Y/N) ?", tagged_count);
-  term = InputChoice(ctx, prompt_buffer, "YN\033");
-  if (term != 'Y')
-    return -1;
-
-  /* 3. Prompt for Mode (Confirm Each?) */
-  term =
-      InputChoice(ctx, "Ask for confirmation for each file (Y/N) ? ", "YN\033");
-  if (term == ESC)
-    return -1;
-  confirm_each = (term == 'Y') ? TRUE : FALSE;
-  if (!confirm_each)
-    override_mode = 1;
-
-  if (baudrate() >= QUICK_BAUD_RATE)
-    typeahead(0);
-
-  for (i = 0; i < (int)ctx->active->file_count && result == 0;) {
-    deleted = FALSE;
-
-    fe_ptr = ctx->active->file_entry_list[i].file;
-    de_ptr = fe_ptr->dir_entry;
-
-    if (fe_ptr->tagged && fe_ptr->matching) {
-      /* Spinner to indicate progress during bulk deletion */
-      DrawSpinner(ctx);
-      doupdate();
-      start_file = MAX(0, i - max_disp_files + 1);
-      cursor_pos = i - start_file;
-
-      DisplayFiles(ctx, ctx->active, de_ptr, start_file,
-                   start_file + cursor_pos, start_x, ctx->ctx_file_window);
-
-      if (fe_ptr->dir_entry->global_flag)
-        DisplayGlobalFileParameter(ctx, fe_ptr);
-      else
-        DisplayFileParameter(ctx, fe_ptr);
-
-      RefreshWindow(ctx->ctx_file_window);
-      doupdate();
-
-      term = 'Y';
-      if (confirm_each) {
-        term = InputChoice(ctx, "Delete this file (Y/N) ? ", "YN\033");
-      }
-
-      if (term == ESC) {
-        if (baudrate() >= QUICK_BAUD_RATE)
-          typeahead(-1);
-        result = -1;
-        break;
-      }
-
-      if (term == 'Y') {
-        /* Pass the override mode pointer to suppress read-only prompts if 'A'
-         * was selected previously */
-        if ((result = DeleteFile(ctx, fe_ptr, &override_mode, s,
-                                 (ChoiceCallback)UI_ChoiceResolver)) == 0) {
-          /* File was deleted */
-          /*----------------------*/
-
-          deleted = TRUE;
-
-          if (de_ptr->global_flag)
-            DisplayDiskStatistic(ctx, s);
-          else
-            DisplayDirStatistic(ctx, de_ptr, NULL, s); /* Updated call */
-
-          DisplayAvailBytes(ctx, s);
-
-          FileList_RemoveFileEntry(ctx, start_file + cursor_pos);
-        }
-      }
-    }
-    if (!deleted)
-      i++;
-  }
-  if (baudrate() >= QUICK_BAUD_RATE)
-    typeahead(-1);
-
-  return (result);
-}
 
 static void RereadWindowSize(ViewContext *ctx, DirEntry *dir_entry) {
   int height, width;
@@ -2443,19 +2187,4 @@ static void UpdatePreview(ViewContext *ctx, DirEntry *dir_entry) {
 
 
 
-static void HandleInvertTags(ViewContext *ctx, DirEntry *dir_entry,
-                             Statistic *s) {
-  FileEntry *fe;
-  for (fe = dir_entry->file; fe; fe = fe->next) {
-    if (fe->matching) {
-      fe->tagged = !fe->tagged;
-      if (fe->tagged) {
-        s->disk_tagged_files++;
-        dir_entry->tagged_files++;
-      } else {
-        s->disk_tagged_files--;
-        dir_entry->tagged_files--;
-      }
-    }
-  }
-}
+
