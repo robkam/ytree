@@ -21,19 +21,15 @@ typedef int (*ConflictCallback)(ViewContext *ctx, const char *src_path,
 typedef int (*ChoiceCallback)(ViewContext *ctx, const char *prompt,
                               const char *choices);
 
-/* chgrp.c */
+/* attributes.c */
 extern int ChangeDirGroup(DirEntry *de_ptr);
 extern int ChangeFileGroup(ViewContext *ctx, FileEntry *fe_ptr);
 extern int SetFileGroup(ViewContext *ctx, FileEntry *fe_ptr,
                         WalkingPackage *walking_package);
-
-/* chmod.c */
 extern int SetFileModus(ViewContext *ctx, FileEntry *fe_ptr,
                         WalkingPackage *walking_package);
 extern int SetDirModus(DirEntry *de_ptr, WalkingPackage *walking_package);
 extern int GetModus(const char *modus);
-
-/* chown.c */
 extern int ChangeDirOwner(DirEntry *de_ptr);
 extern int ChangeFileOwner(ViewContext *ctx, FileEntry *fe_ptr);
 extern int SetFileOwner(ViewContext *ctx, FileEntry *fe_ptr,
