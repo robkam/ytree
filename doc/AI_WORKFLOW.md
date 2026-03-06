@@ -111,7 +111,7 @@ AI tokens are a finite resource per session. Wasted tokens mean shorter sessions
 
 ### 7.3 Be Specific in Prompts
 *   **Bad:** "Look at the codebase and find issues."
-*   **Good:** "Audit `src/fs/archive.c` for unchecked return values from `archive_read_next_header`."
+*   **Good:** "Audit `src/fs/archive_read.c` for unchecked return values from `archive_read_next_header`."
 *   Vague prompts cause the agent to speculatively read dozens of files, burning tokens on exploration rather than execution.
 
 ### 7.4 Batch Related Changes
