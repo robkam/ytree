@@ -1277,7 +1277,7 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 *   **Serena:** Use `get_symbols_overview` on each directory to generate a current inventory (module name, LOC, symbol count) as raw data for the conventions doc.
 *   **Validate:** Conventions reviewed and approved before proceeding.
 *   **Files to Modify:** `doc/SPECIFICATION.md`.
-*   - [ ] **Status:** Not Started.
+*   - [x] **Status:** Completed.
 
 #### **Step 9.5.2: Normalize `cmd/` Directory** (Gemini Pro)
 *   **Goal:** Merge tiny command modules and relocate any misplaced files into or out of `cmd/`.
