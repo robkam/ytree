@@ -259,7 +259,7 @@ int ChangeFileModus(ViewContext *ctx, FileEntry *fe_ptr) {
   x = 1 + strlen("MODE:") + UI_INPUT_PADDING;
 
   if (InputModeString(ctx, modus, LINES - 2, x) == CR) {
-    (void)strcpy(walking_package.function_data.change_modus.new_modus, modus);
+    (void)strcpy(walking_package.function_data.change_mode.new_mode, modus);
     result = SetFileModus(ctx, fe_ptr, &walking_package);
   }
 
@@ -288,7 +288,7 @@ int ChangeDirModus(ViewContext *ctx, DirEntry *de_ptr) {
   x = 1 + strlen("MODE:") + UI_INPUT_PADDING;
 
   if (InputModeString(ctx, modus, LINES - 2, x) == CR) {
-    (void)strcpy(walking_package.function_data.change_modus.new_modus, modus);
+    (void)strcpy(walking_package.function_data.change_mode.new_mode, modus);
     result = SetDirModus(de_ptr, &walking_package);
   }
 

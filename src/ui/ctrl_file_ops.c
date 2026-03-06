@@ -61,7 +61,7 @@ BOOL handle_tag_file_action(ViewContext *ctx, int action,
       ClearHelp(ctx);
       if (UI_ReadString(ctx, ctx->active, "ATTRIBUTES: ", modus, 10,
                         HST_CHANGE_MODUS) == CR) {
-        (void)strcpy(walking_package.function_data.change_modus.new_modus,
+        (void)strcpy(walking_package.function_data.change_mode.new_mode,
                      modus);
         FileTags_WalkTaggedFiles(ctx, dir_entry->start_file,
                                  dir_entry->cursor_pos, SetFileModus,
