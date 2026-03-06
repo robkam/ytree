@@ -1289,7 +1289,7 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 *   **Serena:** Use `find_referencing_symbols` on each function being moved to update all callers. Use `get_symbols_overview` to verify all exports land in the correct header.
 *   **Validate:** `make clean && make` succeeds. `make test` passes.
 *   **Files to Modify:** `src/cmd/`, `Makefile`, `include/ytree_cmd.h`.
-*   - [ ] **Status:** Not Started.
+*   - [x] **Status:** Completed.
 
 #### **Step 9.5.3: Normalize `fs/` Directory** (Gemini Pro)
 *   **Goal:** Split oversized filesystem modules, merge tiny ones, and verify directory ownership.
