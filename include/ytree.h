@@ -226,6 +226,7 @@ extern struct Volume *Volume_GetByPath(ViewContext *ctx, const char *path);
 extern struct Volume *Volume_Load(ViewContext *ctx, const char *path,
                                   struct Volume *reuse_vol,
                                   ScanProgressCallback cb, void *cb_user_data);
+extern void SetKindOfSort(int kind_of_sort, Statistic *s);
 
 /* main.c */
 extern int ytree(int argc, char *argv[]);
