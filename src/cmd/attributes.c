@@ -14,7 +14,6 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
-
 #if defined(S_IFLNK)
 #define STAT_(a, b) lstat(a, b)
 #else
@@ -27,7 +26,29 @@
 
 static int GetNewModus(int old_modus, char *new_modus);
 
-int SetFileGroup(ViewContext *ctx, FileEntry *fe_ptr, WalkingPackage *walking_package) {
+/*
+ * Central helper to change ownership, re-stat the file, and handle errors.
+ * Returns 0 on success, -1 on failure.
+ */
+int ChangeOwnership(const char *path, uid_t new_uid, gid_t new_gid,
+                    struct stat *stat_buf) {
+  struct stat new_stat;
+
+  if (chown(path, new_uid, new_gid) != 0) {
+    return -1;
+  }
+
+  if (STAT_(path, &new_stat) != 0) {
+    return -1;
+  }
+
+  /* Update the caller's stat buffer */
+  *stat_buf = new_stat;
+  return 0;
+}
+
+int SetFileGroup(ViewContext *ctx, FileEntry *fe_ptr,
+                 WalkingPackage *walking_package) {
   char buffer[PATH_LENGTH + 1];
   gid_t new_gid =
       (gid_t)walking_package->function_data.change_group.new_group_id;
@@ -46,7 +67,8 @@ int ChangeDirGroup(DirEntry *de_ptr) {
   return -1;
 }
 
-int SetFileOwner(ViewContext *ctx, FileEntry *fe_ptr, WalkingPackage *walking_package) {
+int SetFileOwner(ViewContext *ctx, FileEntry *fe_ptr,
+                 WalkingPackage *walking_package) {
   char buffer[PATH_LENGTH + 1];
   uid_t new_uid =
       (uid_t)walking_package->function_data.change_owner.new_owner_id;
@@ -65,7 +87,8 @@ int ChangeDirOwner(DirEntry *de_ptr) {
   return -1;
 }
 
-int SetFileModus(ViewContext *ctx, FileEntry *fe_ptr, WalkingPackage *walking_package) {
+int SetFileModus(ViewContext *ctx, FileEntry *fe_ptr,
+                 WalkingPackage *walking_package) {
   struct stat stat_struct;
   char buffer[PATH_LENGTH + 1];
   int result;

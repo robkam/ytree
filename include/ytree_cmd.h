@@ -22,6 +22,8 @@ typedef int (*ChoiceCallback)(ViewContext *ctx, const char *prompt,
                               const char *choices);
 
 /* attributes.c */
+extern int ChangeOwnership(const char *path, uid_t new_uid, gid_t new_gid,
+                           struct stat *stat_buf);
 extern int ChangeDirGroup(DirEntry *de_ptr);
 extern int ChangeFileGroup(ViewContext *ctx, FileEntry *fe_ptr);
 extern int SetFileGroup(ViewContext *ctx, FileEntry *fe_ptr,
