@@ -152,8 +152,9 @@ extern int GetRenameParameter(ViewContext *ctx, const char *old_name,
 extern int GetPipeCommand(ViewContext *ctx, char *pipe_command);
 
 /* sort.c */
-extern void GetKindOfSort(void); /* Obsolete, use UI_GetKindOfSort */
-extern void UI_GetKindOfSort(ViewContext *ctx);
+extern void GetKindOfSort(void); /* Obsolete, use UI_HandleSort */
+extern void UI_HandleSort(ViewContext *ctx, DirEntry *dir_entry, Statistic *s,
+                          int start_x);
 extern void UI_SetKindOfSort(int kind_of_sort, Statistic *s);
 
 /* system.c */

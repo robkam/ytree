@@ -1855,16 +1855,7 @@ int HandleFileWindow(ViewContext *ctx, DirEntry *dir_entry) {
       break;
 
     case ACTION_CMD_S:
-      UI_GetKindOfSort(ctx);
-
-      dir_entry->start_file = 0;
-      dir_entry->cursor_pos = 0;
-
-      Panel_Sort(ctx->active, s->kind_of_sort);
-
-      DisplayFiles(ctx, ctx->active, dir_entry, dir_entry->start_file,
-                   dir_entry->start_file + dir_entry->cursor_pos, start_x,
-                   ctx->ctx_file_window);
+      UI_HandleSort(ctx, dir_entry, s, start_x);
       need_dsp_help = TRUE;
       break;
 
