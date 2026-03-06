@@ -308,3 +308,8 @@ struct Volume *Volume_Load(ViewContext *ctx, const char *path,
 
   return vol;
 }
+void SetKindOfSort(int kind_of_sort, Statistic *s) {
+  if (s) {
+    s->kind_of_sort = kind_of_sort;
+  }
+}

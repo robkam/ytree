@@ -149,7 +149,6 @@ extern int GetPipeCommand(ViewContext *ctx, char *pipe_command);
 /* sort.c */
 extern void GetKindOfSort(void); /* Obsolete, use UI_GetKindOfSort */
 extern void UI_GetKindOfSort(ViewContext *ctx);
-extern void SetKindOfSort(int kind_of_sort, Statistic *s);
 extern void UI_SetKindOfSort(int kind_of_sort, Statistic *s);
 
 /* system.c */
