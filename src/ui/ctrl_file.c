@@ -455,14 +455,6 @@ int HandleFileWindow(ViewContext *ctx, DirEntry *dir_entry) {
           getmaxy(ctx->ctx_file_window) * GetPanelMaxColumn(ctx->active);
     }
 
-    if (need_dsp_help) {
-      need_dsp_help = FALSE;
-      if (ctx->preview_mode)
-        DisplayPreviewHelp(ctx);
-      else
-        DisplayFileHelp(ctx);
-    }
-
     if (unput_char) {
       ch = unput_char;
       unput_char = '\0';
@@ -491,17 +483,7 @@ int HandleFileWindow(ViewContext *ctx, DirEntry *dir_entry) {
       else
         DisplayFileParameter(ctx, fe_ptr);
 
-      if (!ctx->preview_mode)
-        RefreshWindow(ctx->ctx_dir_window); /* needed: ncurses-bug ? */
-      RefreshWindow(ctx->ctx_file_window);
-
-      if (ctx->is_split_screen) {
-        YtreePanel *inactive =
-            (ctx->active == ctx->left) ? ctx->right : ctx->left;
-        RenderInactivePanel(ctx, inactive);
-      }
-
-      doupdate();
+      RefreshView(ctx, dir_entry);
       ch = (ctx->resize_request) ? -1 : GetEventOrKey(ctx);
       if (ch == LF)
         ch = CR;
