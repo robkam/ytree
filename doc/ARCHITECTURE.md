@@ -133,5 +133,5 @@ The Split-Screen architecture treats each panel as an independent instance of a 
     *   `src/fs/`: File system and archive handling.
     *   `src/ui/`: Ncurses rendering and window management.
     *   `src/cmd/`: User command implementations.
-    *   `src/util/`: Utilities and history management.
+    *   `src/util/`: Utilities and history_utils management.
 *   **tests/**: Behavioral TUI tests.

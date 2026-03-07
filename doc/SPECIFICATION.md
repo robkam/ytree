@@ -128,7 +128,7 @@ Every module (`.c`/`.h` pair) must reside in the directory corresponding to its 
 - **`src/fs/`**: Filesystem and archive I/O, VFS drivers, and low-level disk operations.
 - **`src/cmd/`**: User command implementations (business logic). These modules coordinate between the FS model and the UI.
 - **`src/ui/`**: Presentation layer, input loops (`ctrl_*.c`), rendering (`render_*.c`), and interaction widgets.
-- **`src/util/`**: Stateless, non-business helpers (strings, memory, path normalization).
+- **`src/util/`**: Stateless, non-business helpers (strings, memory_utils, path_utils, completion_utils).
 
 ### 8.2 Module Sizing & Cohesion
 - **Target Size:** 100-800 Lines of Code (LOC).

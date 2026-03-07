@@ -1,7 +1,7 @@
 /***************************************************************************
  *
- * src/util/tabcompl.c
- * Functions for filename completion (TAB key)
+ * src/util/completion_utils.c
+ * Filename completion (TAB key) utilities
  *
  ***************************************************************************/
 

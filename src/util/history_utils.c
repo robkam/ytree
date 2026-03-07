@@ -1,7 +1,7 @@
 /***************************************************************************
  *
- * src/util/history.c
- * Input History Management
+ * src/util/history_utils.c
+ * Command and path history management
  *
  ***************************************************************************/
 
