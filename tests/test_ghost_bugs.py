@@ -70,3 +70,32 @@ def test_split_screen_garbage(dual_panel_sandbox, ytree_binary):
     # ASSERTION: No control characters in output
     assert "*?" not in screen, "Found garbage memory artifacts in UI!"
     assert "^X" not in screen, "Found garbage memory artifacts in UI!"
+
+def test_hex_view_esc_corruption(tmp_path, ytree_binary):
+    """
+    BUG C: Exiting hex view with ESC vanishes ncurses attributes and shows "CURRENT DIR" instead of "CURRENT FILE".
+    EXPECTED: ESC from hex view restores the file list and "CURRENT FILE" stats.
+    """
+    (tmp_path / "hex_test.txt").write_text("dummy binary content")
+    
+    tui = YtreeTUI(executable=ytree_binary, cwd=str(tmp_path))
+    time.sleep(1.0)
+    # Enter file window
+    tui.send_keystroke(Keys.ENTER)
+    time.sleep(0.5)
+    # Press 'h' for hex view
+    tui.send_keystroke('h')
+    time.sleep(0.5)
+    # Press ESC to exit hex view
+    tui.send_keystroke(Keys.ESC)
+    time.sleep(0.5)
+    
+    screen = "\n".join(tui.get_screen_dump())
+    
+    # Assert that the file list and file stats are restored
+    if "CURRENT FILE" not in screen:
+        pytest.fail(f"BUG: UI corruption after ESC from hex view. Stats show directory instead of file.\nScreen dump:\n{screen}")
+        
+    if "hex_test.txt" not in screen:
+        pytest.fail(f"BUG: File list was lost after ESC from hex view.\nScreen dump:\n{screen}")
+    tui.quit()

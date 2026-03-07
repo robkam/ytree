@@ -193,3 +193,90 @@ class TestFooterVisibility:
         assert len(footer_text) > 10, f"Footer blank after ESC from file window:\n{footer}"
 
         tui.quit()
+
+    def test_footer_blank_on_big_window_entry(self, test_dir_with_files, ytree_binary):
+        """
+        BUG A: Footer is blank upon initially entering the big file window via the small window.
+        EXPECTED: The footer menu with command text should be visible.
+        """
+        # Start with NOSMALLWINDOW=0
+        ytree_cfg = test_dir_with_files.parent / ".ytree"
+        ytree_cfg.write_text("NOSMALLWINDOW=0\n")
+
+        tui = YtreeTUI(
+            executable=ytree_binary, 
+            cwd=str(test_dir_with_files.parent)
+        )
+        time.sleep(1.0)
+        # Move down to highlight test_dir_with_files
+        tui.send_keystroke(Keys.DOWN)
+        time.sleep(0.5)
+        # Enter small file window
+        tui.send_keystroke(Keys.ENTER)
+        time.sleep(0.5)
+        # Enter big file window
+        tui.send_keystroke(Keys.ENTER)
+        time.sleep(0.5)
+        
+        screen = "\n".join(tui.get_screen_dump())
+        lines = screen.split('\n')
+        
+        # Grab the bottom three lines where the footer resides
+        footer = '\n'.join(lines[-3:]).lower()
+        
+        # Assert that footer command text is present. If blank, this will fail.
+        # We check specifically for the command row text. 
+        # In ytree, this is usually at the very bottom or second from bottom.
+        missing_commands = []
+        for cmd in ["Attribute", "Delete", "Filter"]:
+            if cmd.lower() not in footer:
+                missing_commands.append(cmd)
+        
+        # We'll check if the combined text of the last 3 lines is just whitespace/borders
+        footer_clean = footer.replace('x', '').replace('q', '').replace(' ', '').replace('\n', '').replace('m', '')
+        if len(footer_clean) < 5:
+            pytest.fail(f"BUG: Footer is blank on big window entry.\nFooter snapshot:\n{footer}")
+            
+        if missing_commands:
+            pytest.fail(f"BUG: Footer is missing expected commands: {missing_commands}\nFooter snapshot:\n{footer}")
+        tui.quit()
+
+    def test_rename_prompt_no_footer_bleed(self, test_dir_with_files, ytree_binary):
+        """
+        BUG B: Footer text bleeds through under the rename prompt in big window mode.
+        EXPECTED: The prompt row should cleanly show the rename prompt without footer text mixing in.
+        """
+        tui = YtreeTUI(
+            executable=ytree_binary, 
+            cwd=str(test_dir_with_files),
+            env_extra={"NOSMALLWINDOW": "1"}
+        )
+        time.sleep(1.0)
+        # Enter big file window
+        tui.send_keystroke(Keys.ENTER)
+        time.sleep(0.5)
+        # Press 'r' to trigger the rename prompt
+        tui.send_keystroke('r')
+        time.sleep(0.5)
+        screen = tui.get_screen_dump()
+        
+        # Find the row containing the rename prompt
+        prompt_row_idx = -1
+        for i, line in enumerate(screen):
+            if "RENAME TO:" in line or "Rename to:" in line:
+                prompt_row_idx = i
+                break
+                
+        if prompt_row_idx == -1:
+            pytest.fail(f"BUG: Could not find the Rename prompt. It may be non-responsive in big window.\nScreen:\n{screen}")
+            
+        prompt_line = screen[prompt_row_idx]
+        line_above_prompt = screen[prompt_row_idx - 1] if prompt_row_idx > 0 else ""
+        
+        # Assert that footer text is NOT present on the line above the prompt
+        # In a bug-free UI, the rename prompt clears the entire footer area
+        footer_keywords = ["Attribute", "Brief", "Delete", "Execute", "Filter"]
+        bleeding_words = [word for word in footer_keywords if word in line_above_prompt]
+        if bleeding_words:
+            pytest.fail(f"BUG: Footer text bled through above rename prompt. Found: {bleeding_words}\nLine above prompt: {line_above_prompt}")
+        tui.quit()

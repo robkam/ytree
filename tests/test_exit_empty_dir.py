@@ -1,88 +1,117 @@
 import os
 import time
-import shutil
-import pexpect
-import tempfile
-import pytest
+from tui_harness import YtreeTUI
+from ytree_keys import Keys
 
-# Force absolute path for the binary
-YTREE_BIN = os.path.abspath("./build/ytree")
+def is_dir_window(tui):
+    """
+    Checks if the TUI is in the directory window.
+    The footer's top line shows "DIR " (case-insensitive) in directory window.
+    """
+    screen = tui.get_screen_dump()
+    # Footer is the last 3 lines. pyte screen is 36 lines (0-35).
+    # Line 33 is the top line of the footer.
+    footer_top = screen[33].lower()
+    return "dir" in footer_top[:5]
 
-def setup_module(module):
-    if not os.path.exists(YTREE_BIN):
-        pytest.skip(f"Binary {YTREE_BIN} not found. Please run 'make' first.")
+def is_file_window(tui):
+    """
+    Checks if the TUI is in the file window.
+    The footer's top line shows "FILE " (case-insensitive) in file window.
+    """
+    screen = tui.get_screen_dump()
+    footer_top = screen[33].lower()
+    return "file" in footer_top[:5]
 
-def test_exit_on_delete():
-    # Use /tmp for test directory
-    test_base_dir = tempfile.mkdtemp(prefix="ytree_test_del_", dir="/tmp")
-    test_dir = os.path.join(test_base_dir, "test_exit_del")
-    os.makedirs(test_dir)
-    test_file = os.path.join(test_dir, "file1.txt")
+def test_exit_on_delete(ytree_binary, tmp_path):
+    """
+    TEST 1 — test_exit_on_delete:
+    1. Create tmp dir with one file
+    2. Launch YtreeTUI pointed at that dir
+    3. Enter file window (Keys.ENTER), wait for file to appear
+    4. Delete file: send 'd', wait for "Delete" prompt, send 'y'
+    5. After deletion, the dir has no files — ytree should auto-return to directory window
+    6. Assert footer shows "dir" (not "file")
+    7. Quit
+    """
+    test_dir = tmp_path / "test_exit_del"
+    test_dir.mkdir()
+    test_file = test_dir / "file1.txt"
+    test_file.write_text("test content")
+
+    tui = YtreeTUI(executable=ytree_binary, cwd=str(test_dir))
     
-    with open(test_file, "w") as f:
-        f.write("test")
+    # Enter file window
+    tui.send_keystroke(Keys.ENTER)
+    assert tui.wait_for_content("file1.txt"), "File should appear in file window"
+    assert is_file_window(tui), "Should be in file window"
 
-    try:
-        os.environ['TERM'] = 'xterm'
-        child = pexpect.spawn(f"{YTREE_BIN} {test_dir}", timeout=10)
-        child.setwinsize(24, 80)
-        
-        # Wait for ytree to start
-        child.expect(r"Path:.*test_exit_del")
-        
-        # Enter file window
-        child.send("\r")
-        child.expect("file1.txt")
-        
-        # Delete the file
-        child.send("d")
-        child.expect("Delete this file")
-        child.send("y")
-        
-        # Check if we are back in the directory window (DIR in help bar)
-        index = child.expect(["FILE", "DIR"], timeout=5)
-        assert index == 1, "Should be in directory window (DIR) after deletion"
-        
-        child.send("q")
-        child.send("y")
-    finally:
-        shutil.rmtree(test_base_dir)
-
-def test_exit_on_move():
-    # Use /tmp for test directory
-    test_base_dir = tempfile.mkdtemp(prefix="ytree_test_move_", dir="/tmp")
-    src_dir = os.path.join(test_base_dir, "src")
-    dst_dir = os.path.join(test_base_dir, "dst")
-    os.makedirs(src_dir)
-    os.makedirs(dst_dir)
+    # Delete the file
+    tui.send_keystroke(Keys.DELETE)
+    assert tui.wait_for_content("Delete"), "Delete prompt should appear"
+    tui.send_keystroke(Keys.CONFIRM_YES)
     
-    with open(os.path.join(src_dir, "file1.txt"), "w") as f:
-        f.write("test")
+    # Wait for ytree to return to directory window
+    # We poll is_dir_window since it's an automatic transition
+    success = False
+    for _ in range(20):
+        if is_dir_window(tui):
+            success = True
+            break
+        time.sleep(0.1)
+    
+    assert success, "Should auto-return to directory window after last file is deleted"
+    assert not is_file_window(tui), "Should NOT be in file window"
+    
+    tui.quit()
 
-    try:
-        os.environ['TERM'] = 'xterm'
-        child = pexpect.spawn(f"{YTREE_BIN} {src_dir}", timeout=10)
-        child.setwinsize(24, 80)
-        
-        # Wait for ytree to start
-        child.expect(r"Path:.*src")
-        
-        # Enter file window
-        child.send("\r")
-        child.expect("file1.txt")
-        
-        # Move the file
-        child.send("m")
-        child.expect(r"MOVE:.*")
-        child.send("\r") # Accept default name
-        child.expect("To Directory:")
-        child.send(dst_dir + "\r")
-        
-        # Check if we are back in the directory window (DIR in help bar)
-        index = child.expect(["FILE", "DIR"], timeout=10)
-        assert index == 1, "Should be in directory window (DIR) after move"
-        
-        child.send("q")
-        child.send("y")
-    finally:
-        shutil.rmtree(test_base_dir)
+def test_exit_on_move(ytree_binary, tmp_path):
+    """
+    TEST 2 — test_exit_on_move:
+    1. Create src/ and dst/ dirs, put one file in src/
+    2. Launch YtreeTUI pointed at src/
+    3. Enter file window (Keys.ENTER)
+    4. Move file: send 'm', wait for MOVE prompt, send Enter (accept default name), 
+       wait for "To Directory:" prompt, send dst path + Enter
+    5. After move, src/ is empty — ytree should auto-return to directory window
+    6. Assert footer shows "dir" (not "file")
+    7. Quit
+    """
+    src_dir = tmp_path / "src"
+    dst_dir = tmp_path / "dst"
+    src_dir.mkdir()
+    dst_dir.mkdir()
+    
+    test_file = src_dir / "file1.txt"
+    test_file.write_text("test content")
+
+    tui = YtreeTUI(executable=ytree_binary, cwd=str(src_dir))
+    
+    # Enter file window
+    tui.send_keystroke(Keys.ENTER)
+    assert tui.wait_for_content("file1.txt"), "File should appear in file window"
+    assert is_file_window(tui), "Should be in file window"
+
+    # Move the file
+    tui.send_keystroke(Keys.MOVE)
+    assert tui.wait_for_content("MOVE"), "Move prompt should appear"
+    tui.send_keystroke(Keys.ENTER) # Accept default name
+    
+    assert tui.wait_for_content("To Directory:"), "Destination prompt should appear"
+    tui.send_keystroke(str(dst_dir) + Keys.ENTER)
+    
+    # Wait for ytree to return to directory window
+    success = False
+    for _ in range(20):
+        if is_dir_window(tui):
+            success = True
+            break
+        time.sleep(0.1)
+    
+    assert success, "Should auto-return to directory window after last file is moved"
+    
+    # Verify file actually moved
+    assert not (src_dir / "file1.txt").exists()
+    assert (dst_dir / "file1.txt").exists()
+    
+    tui.quit()
