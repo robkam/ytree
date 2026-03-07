@@ -1,7 +1,7 @@
 /***************************************************************************
  *
- * src/fs/readtree.c
- * Functions for reading the directory tree
+ * src/fs/tree_read.c
+ * Directory tree scanning and reading
  *
  ***************************************************************************/
 

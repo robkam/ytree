@@ -1,6 +1,6 @@
 /***************************************************************************
  *
- * src/util/memory.c
+ * src/util/memory_utils.c
  * Centralized safe memory management wrapper functions.
  * Fails fast on allocation errors.
  *

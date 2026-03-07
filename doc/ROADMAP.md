@@ -1296,7 +1296,9 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 *   **Model:** Pro (requires API boundary analysis for the archive split).
 *   **Candidates:**
     *   **Split:** `archive.c` (1073 LOC) - separate read engine (`archive_read.c`) from write/rewrite engine (`archive_write.c`).
-    *   **Merge:** `owner_utils.c` (44) - evaluate absorption into a parent module.
+    *   **Merge:** `src/fs/readarchive.c` merged into `src/fs/archive_read.c` (consolidated scan/extraction logic).
+    *   **Rename:** `src/fs/readtree.c` -> `src/fs/tree_read.c` (consistent with `archive_read.c`).
+    *   **Merge:** `owner_utils.c` (44) - absorbed into parent module.
 *   **Serena:** Use `get_symbols_overview` on `archive.c` to identify the natural split boundary (read API vs write API). Use `find_referencing_symbols` to verify callers target the correct new module.
 *   **Validate:** `make clean && make` succeeds. `make test` passes.
 *   **Files to Modify:** `src/fs/`, `Makefile`, `include/ytree_fs.h`.
@@ -1311,6 +1313,12 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
     *   **Architecture:** Flat file structure maintained; subdirectories evaluated but rejected for current session simplicity.
 *   **Serena:** Use `get_symbols_overview` with `depth: 1` on each file to map internal functions. Use `find_referencing_symbols` on each function group to determine which callers exist outside the module. This identifies the natural split boundaries.
 *   **Validate:** `make clean && make` succeeds. `make test` passes.
+*   **Final Normalization:** 
+    *   Renamed `src/util/history.c` -> `src/util/history_utils.c`.
+    *   Renamed `src/util/memory.c` -> `src/util/memory_utils.c`.
+    *   Renamed `src/util/tabcompl.c` -> `src/util/completion_utils.c`.
+    *   Renamed `src/ui/ui_nav.c` -> `src/ui/nav_utils.c`.
+    *   Renamed `src/ui/vol_menu.c` -> `src/ui/volume_menu.c`.
 *   **Files to Modify:** `src/ui/`, `Makefile`, `include/ytree_ui.h`.
 *   - [x] **Status:** Completed.
 
