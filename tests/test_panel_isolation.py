@@ -187,3 +187,51 @@ def test_split_screen_memory_isolation(dual_panel_sandbox, ytree_binary):
     screen = "\n".join(tui.get_screen_dump())
     # If memory is corrupted or state is lost, target_file.txt will turn into garbage (e.g., *?^X)
     assert "target_file.txt" in screen, "Inactive panel lost its memory state or was overwritten by garbage!"
+
+def test_f8_big_window_footer_and_separator_lost(dual_panel_sandbox, ytree_binary):
+    """
+    BUG D: Entering a big file window via F8 causes the footer and the horizontal panel separator in the inactive panel to disappear.
+    EXPECTED: The horizontal separator (e.g., qqqq or ---) stays, and the footer correctly appears.
+    """
+    # Start with NOSMALLWINDOW=0 to trigger the bug on the small->big transition
+    ytree_cfg = dual_panel_sandbox / ".ytree"
+    ytree_cfg.write_text("NOSMALLWINDOW=0\n")
+
+    tui = YtreeTUI(
+        executable=ytree_binary, 
+        cwd=str(dual_panel_sandbox)
+    )
+    time.sleep(1.0)
+    # 1. Split screen
+    tui.send_keystroke(Keys.F8)
+    time.sleep(0.5)
+    
+    # 2. Swap to right panel
+    tui.send_keystroke(Keys.TAB)
+    time.sleep(0.5)
+    
+    # 3. Move down to right_dir (which has files)
+    tui.send_keystroke(Keys.DOWN + Keys.DOWN)
+    time.sleep(0.5)
+    
+    # 4. Press Enter to drop into small window
+    tui.send_keystroke(Keys.ENTER)
+    time.sleep(0.5)
+    # 5. Press Enter to drop into big file window
+    tui.send_keystroke(Keys.ENTER)
+    time.sleep(0.5)
+    
+    screen = "\n".join(tui.get_screen_dump())
+    lines = screen.split('\n')
+    footer = '\n'.join(lines[-3:]).lower()
+    # Verify horizontal separator lines are present in the inactive panel
+    # We'll check for the horizontal border characters 'qqq' or '---'
+    has_separator = "qqq" in screen or "---" in screen
+    
+    if not has_separator:
+        pytest.fail(f"BUG: Horizontal panel separator lost in inactive panel after entering big window from F8 split.\n{screen}")
+        
+    # Verify the footer isn't wiped out
+    if "attribute" not in footer and "delete" not in footer:
+        pytest.fail(f"BUG: Footer disappeared after entering big window from F8 split.\nFooter dump:\n{footer}")
+    tui.quit()

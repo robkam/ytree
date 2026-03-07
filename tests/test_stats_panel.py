@@ -405,6 +405,45 @@ def test_footer_visible_in_big_window(test_dir_with_files, ytree_binary):
 
     # Footer should have some command text
     if len(footer.strip()) < 10:
-        pytest.fail(f"BUG: Footer blank in big window\n{screen}")
+        assert len(footer_text) > 10, f"Footer blank in big window mode:\n{footer}"
 
+        tui.quit()
+
+def test_pipe_command_in_big_file_window(test_dir_with_files, ytree_binary):
+    """
+    BUG E: The Pipe ('p') command is non-responsive in the big file window.
+    EXPECTED: Pressing 'p' prompts the user for a Pipe command.
+    """
+    # Start with NOSMALLWINDOW=0 
+    ytree_cfg = test_dir_with_files.parent / ".ytree"
+    ytree_cfg.write_text("NOSMALLWINDOW=0\n")
+
+    tui = YtreeTUI(
+        executable=ytree_binary, 
+        cwd=str(test_dir_with_files.parent)
+    )
+    time.sleep(1.0)
+    # Move down to highlight test_dir_with_files
+    tui.send_keystroke(Keys.DOWN)
+    time.sleep(0.5)
+    
+    # Enter small file window
+    tui.send_keystroke(Keys.ENTER)
+    time.sleep(0.5)
+    # Enter big file window
+    tui.send_keystroke(Keys.ENTER)
+    time.sleep(0.5)
+    
+    # Press 'p' for Pipe
+    tui.send_keystroke('p')
+    time.sleep(0.5)
+    
+    screen = "\n".join(tui.get_screen_dump()).lower()
+    
+    # Assert that the Pipe prompt appears. Look for "PIPE" or "Pipe" on a single line with ":"
+    # "Pipe" in the footer is not the prompt. The prompt row usually looks like "pipe-command:"
+    prompt_found = "pipe-command" in screen
+            
+    if not prompt_found:
+        pytest.fail(f"BUG: Pipe command ('p') did nothing in big file window. Prompt not found.\nScreen dump:\n{screen}")
     tui.quit()
