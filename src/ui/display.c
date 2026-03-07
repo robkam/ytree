@@ -56,10 +56,12 @@ static char *dir_help[MAX_MODES][2] = {
      dir_help_disk_mode_1}};
 
 static char file_help_disk_mode_0[] =
-    "FILE      (A)ttribute (B)rief (C)opy/(^K) (D)elete (E)dit (F)ilter (^F)ilemode "
+    "FILE      (A)ttribute (B)rief (C)opy/(^K) (D)elete (E)dit (F)ilter "
+    "(^F)ilemode "
     "(G)roup";
-static char file_help_disk_mode_1[] = "COMMANDS (H)ex (L)og (M)ove/(^N) (N)ewfile "
-                                      "(O)wner (P)ipe (Q)uit (R)ename (S)ort";
+static char file_help_disk_mode_1[] =
+    "COMMANDS (H)ex (L)og (M)ove/(^N) (N)ewfile "
+    "(O)wner (P)ipe (Q)uit (R)ename (S)ort";
 static char *file_help[MAX_MODES][2] = {
     {/* DISK_MODE */
      file_help_disk_mode_0, file_help_disk_mode_1},
@@ -330,9 +332,12 @@ void UnmapF2Window(ViewContext *ctx) {
              ctx->layout.dir_win_x + ctx->layout.dir_win_width, '|');
   } else {
     int separator_width = COLS - ctx->layout.stats_width - 1;
-    mvwhline(ctx->ctx_border_window, separator_y, 1, '-', separator_width - 1);
-    mvwaddch(ctx->ctx_border_window, separator_y, 0, '+');
-    mvwaddch(ctx->ctx_border_window, separator_y, separator_width, '+');
+    wattron(ctx->ctx_border_window, A_ALTCHARSET);
+    mvwhline(ctx->ctx_border_window, separator_y, 1, ACS_HLINE,
+             separator_width - 1);
+    mvwaddch(ctx->ctx_border_window, separator_y, 0, ACS_LTEE);
+    mvwaddch(ctx->ctx_border_window, separator_y, separator_width, ACS_RTEE);
+    wattroff(ctx->ctx_border_window, A_ALTCHARSET);
   }
   wattrset(ctx->ctx_border_window, A_NORMAL);
 }

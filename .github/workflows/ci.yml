@@ -34,5 +34,16 @@ jobs:
     - name: Run Tests
       env:
         TERM: xterm
-      # Assuming pytest is configured to find tests in tests/
-      run: pytest
+      # 1. Run pytest and save output to a file (allowing failure with "|| true")
+      # 2. Extract failure lines to the GitHub Summary page for instant viewing
+      # 3. Exit with 1 if failures were found to mark the CI as failed
+      run: |
+        pytest -q -ra --tb=no > test_results.txt 2>&1 || true
+        echo "### Test Failures" >> $GITHUB_STEP_SUMMARY
+        echo '```text' >> $GITHUB_STEP_SUMMARY
+        grep "FAILED tests/" test_results.txt >> $GITHUB_STEP_SUMMARY || echo "No test failures detected." >> $GITHUB_STEP_SUMMARY
+        echo '```' >> $GITHUB_STEP_SUMMARY
+
+        if grep -q "FAILED tests/" test_results.txt; then
+          exit 1
+        fi
