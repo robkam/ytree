@@ -23,6 +23,11 @@ To perform a deep-dive audit of the `ytree` codebase, identify "Fragile Code" pa
 4.  **Error Handling Gaps (High):**
     *   Ignored return values from system calls (`malloc`, `chdir`, `mkdir`, `write`).
 
+**SEMANTIC TOOLING & FRAGILITY AUDIT**
+*   **SEMANTIC DISCOVERY:** Use `jCodeMunch` (e.g., `get_repo_outline`, `search_symbols`) to identify cross-module patterns and legacy C idioms.
+*   **SYMBOLIC TRACING:** Use `Serena`'s `find_referencing_symbols` to trace the impact of Global State coupling across the codebase.
+*   **TOKEN EFFICIENCY:** Perform audits without reading entire files; rely on `Serena`'s symbolic overviews to identify fragile structures.
+
 **OUTPUT FORMAT:**
 You must produce a structured **Roadmap of Atomic Tasks**.
 *   **Task ID:** [Module]-[Function]-[Issue]

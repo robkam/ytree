@@ -1257,11 +1257,6 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
     *   **Directory ownership:** `core/` = application lifecycle & data structures. `fs/` = filesystem & archive I/O. `cmd/` = user commands (business logic). `ui/` = rendering, input, and interaction. `util/` = stateless helpers.
     *   **Naming:** Module name == single responsibility (e.g., `attributes.c` not three separate `chgrp.c` + `chown.c` + `chmod.c`).
     *   **Header hygiene:** One public header per layer (`ytree_cmd.h`, `ytree_fs.h`, `ytree_ui.h`), plus `ytree_defs.h` for shared types. Minimize cross-layer includes.
-*   **Serena Usage:** Each sub-step below should use Serena's semantic tools to work efficiently:
-    *   `get_symbols_overview` to understand module contents before splitting or merging.
-    *   `find_referencing_symbols` to trace callers before moving a function.
-    *   `find_symbol` to locate declarations that need updating in headers.
-    *   `rename_symbol` for safe cross-codebase renames when function names change.
 *   **Safety Protocol:**
     1.  **One commit per file operation.** Each individual move, merge, or split gets its own commit. If something breaks, you revert one commit, not an entire batch.
     2.  **Build after every commit.** `make clean && make` must succeed. Compiler errors (`-Werror`) mean the restructuring itself is wrong - fix it immediately. This is part of the move, not a distraction.
@@ -1274,7 +1269,6 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 *   **Goal:** Document the module conventions (size, naming, directory ownership, header hygiene) in `SPECIFICATION.md` under a new "Module Organization" section. This becomes the reference standard for all restructuring work and future development.
 *   **Scope:** Documentation only. No code changes.
 *   **Model:** Flash (bulk retrieval and documentation writing).
-*   **Serena:** Use `get_symbols_overview` on each directory to generate a current inventory (module name, LOC, symbol count) as raw data for the conventions doc.
 *   **Validate:** Conventions reviewed and approved before proceeding.
 *   **Files to Modify:** `doc/SPECIFICATION.md`.
 *   - [x] **Status:** Completed.
@@ -1286,7 +1280,6 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
     *   **Merge:** `chgrp.c` (36) + `chown.c` (37) + `chmod.c` (163) into `attributes.c` (aligns with Step 4.16).
     *   **Evaluate:** `sort.c` (22) - determine if this belongs in `core/sort.c` or should be absorbed.
     *   **Relocate in:** `ui/edit.c` (79 LOC, just launches `$EDITOR`) - this is a command, not UI rendering.
-*   **Serena:** Use `find_referencing_symbols` on each function being moved to update all callers. Use `get_symbols_overview` to verify all exports land in the correct header.
 *   **Validate:** `make clean && make` succeeds. `make test` passes.
 *   **Files to Modify:** `src/cmd/`, `Makefile`, `include/ytree_cmd.h`.
 *   - [x] **Status:** Completed.
@@ -1299,7 +1292,6 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
     *   **Merge:** `src/fs/readarchive.c` merged into `src/fs/archive_read.c` (consolidated scan/extraction logic).
     *   **Rename:** `src/fs/readtree.c` -> `src/fs/tree_read.c` (consistent with `archive_read.c`).
     *   **Merge:** `owner_utils.c` (44) - absorbed into parent module.
-*   **Serena:** Use `get_symbols_overview` on `archive.c` to identify the natural split boundary (read API vs write API). Use `find_referencing_symbols` to verify callers target the correct new module.
 *   **Validate:** `make clean && make` succeeds. `make test` passes.
 *   **Files to Modify:** `src/fs/`, `Makefile`, `include/ytree_fs.h`.
 *   - [x] **Status:** Completed.
@@ -1311,9 +1303,8 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
     *   **`ctrl_dir.c` (2743 to 1314 LOC):** Cohesion improved by extracting five sub-modules (`dir_list.c`, `dir_tags.c`, `dir_ops.c`, `dir_nav.c`, `f2_picker.c`).
     *   **`ctrl_file.c` (2675 to 2150 LOC):** Extracted `file_list.c` and `file_tags.c`. Further splitting was deferred because navigation functions are tightly coupled to the monolithic `HandleFileWindow` via shared static layout variables. These are flagged for Step 9.6 (Internal Refactoring).
     *   **Architecture:** Flat file structure maintained; subdirectories evaluated but rejected for current session simplicity.
-*   **Serena:** Use `get_symbols_overview` with `depth: 1` on each file to map internal functions. Use `find_referencing_symbols` on each function group to determine which callers exist outside the module. This identifies the natural split boundaries.
 *   **Validate:** `make clean && make` succeeds. `make test` passes.
-*   **Final Normalization:** 
+*   **Final Normalization:**
     *   Renamed `src/util/history.c` -> `src/util/history_utils.c`.
     *   Renamed `src/util/memory.c` -> `src/util/memory_utils.c`.
     *   Renamed `src/util/tabcompl.c` -> `src/util/completion_utils.c`.
@@ -1326,7 +1317,6 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 *   **Goal:** After all restructuring is complete, update every "Files to Modify" and "Context Files" path in the project documentation to reflect the new source tree.
 *   **Scope:** Mechanical grep-and-replace pass. No design decisions.
 *   **Model:** Flash (mechanical text replacement, no reasoning needed).
-*   **Serena:** Use `search_for_pattern` to find all occurrences of old file paths across `doc/*.md` files.
 *   **Validate:** No stale paths remain in documentation.
 *   **Files to Modify:** `doc/ROADMAP.md`, `doc/SPECIFICATION.md`, `doc/TESTING.md`, and any other `doc/*.md` files referencing source paths.
 *   - [x] **Status:** Completed.

@@ -3,7 +3,7 @@
 Thank you for your interest in contributing to ytree! This document provides guidelines for setting up your development environment, running tests, and submitting your changes.
 
 **Note for AI-Assisted Development:**
-For the AI-assisted development workflow, script usage, and System Persona prompts, please see **[AI_WORKFLOW.md](AI_WORKFLOW.md)**.
+For the AI-assisted development workflow, script usage, System Persona prompts, and semantic tool integration (**Serena**, **jCodeMunch**), please see **[ai/WORKFLOW.md](ai/WORKFLOW.md)**.
 
 ## Development Setup
 
@@ -71,7 +71,7 @@ make test
 make test-v
 ```
 
-For direct `pytest` CLI usage, test naming conventions, infrastructure details, and harness rules, see **[TESTING.md](TESTING.md)**.
+For direct `pytest` CLI usage, test naming conventions, infrastructure details, and harness rules, see **[ai/TESTING.md](ai/TESTING.md)**.
 
 ---
 

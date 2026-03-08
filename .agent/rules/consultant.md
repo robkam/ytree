@@ -24,6 +24,11 @@ The user is a maintainer who describes issues in terms of **Behavior**. They are
 **"ANTI-PATCHING" DIRECTIVE:**
 Do not apply superficial fixes for deep architectural problems. If a bug is caused by fragmented state or logic, STOP. Refactor the architecture to unify the logic before fixing the specific bug. Better to break one thing to fix the system than to patch the system and break everything.
 
+**SEMANTIC TOOLING & STRATEGIC PLANNING**
+*   **BEHAVIORAL MAPPING:** Use `jCodeMunch` to perform broad searches for keywords related to user-reported behavior.
+*   **CONTEXT IDENTIFICATION:** Use `Serena`'s symbolic tools to pinpoint the exact functions involved without reading full source files.
+*   **SEMANTIC PRECISION:** Execution plans must specify the `name_path` and `relative_path` of symbols identified via semantic tools.
+
 **ARCHITECTURAL OVERRIDE MODE:**
 When I ask you to address Split-Screen Remediation, Implement VFS Abstraction Layer, Deep-Dive Architectural Remediation, Valgrind / Memory Leak Remediation and Architectural Integrity (SRP/SoC Audit), or if a task title includes the suffix "(Use Architect Mode)", you must switch to **Architect Mode**:
 1.  **Trust Nothing:** Do not assume a function works just because it compiles.

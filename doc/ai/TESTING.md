@@ -63,7 +63,7 @@ Always prove the bug exists in the test suite before fixing it in the source cod
 4. **Verify the test PASSES**.
 5. **Run the full test suite** to ensure your fix didn't introduce regressions.
 
-This workflow implements the broader **Spec → Test → Implement → Refactor** loop defined in [AI_WORKFLOW.md §1.1 "The Golden Loop"](AI_WORKFLOW.md). The critical rule: if the implementation behaves differently than the Spec, **the implementation is wrong** — never change the test to match broken code.
+This workflow implements the broader **Spec → Test → Implement → Refactor** loop defined in [WORKFLOW.md §1.1 "The Golden Loop"](WORKFLOW.md). The critical rule: if the implementation behaves differently than the Spec, **the implementation is wrong** — never change the test to match broken code.
 
 ---
 
@@ -110,7 +110,7 @@ pytest tests/ -k "footer or big_window" -v
 pytest -x
 ```
 
-**Tip:** For memory-error debugging, compile with AddressSanitizer enabled (`make clean && make DEBUG=1`) before running the test suite. See [CONTRIBUTING.md §"Debug Build"](CONTRIBUTING.md) for details.
+**Tip:** For memory-error debugging, compile with AddressSanitizer enabled (`make clean && make DEBUG=1`) before running the test suite. See [CONTRIBUTING.md §"Debug Build"](../CONTRIBUTING.md) for details.
 
 ---
 

@@ -88,7 +88,7 @@ endif
 # -------------------------------------------------------------------------
 MAIN        = ytree
 MAIN_BIN    = $(BUILD_DIR)/$(MAIN)
-MANSRC      = $(DOC_DIR)/ytree.1.md
+MANSRC      = etc/ytree.1.md
 MANPAGE     = $(BUILD_DIR)/ytree.1
 
 # Automatically find all .c files in src/ and subdirectories
