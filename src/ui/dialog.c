@@ -83,6 +83,13 @@ void UI_Dialog_RefreshAll(ViewContext *ctx) {
     touchwin(ctx->ctx_preview_window);
     wnoutrefresh(ctx->ctx_preview_window);
   }
+
+  /* After the active panel windows are staged, stage menu window */
+  if (ctx->ctx_menu_window && !ctx->preview_mode) {
+    touchwin(ctx->ctx_menu_window);
+    wnoutrefresh(ctx->ctx_menu_window);
+  }
+
   /* Note: Inactive panel usually handled by main display logic, but can be
    * added here if needed */
   RenderInactivePanel(ctx, ctx->active == ctx->left ? ctx->right : ctx->left);

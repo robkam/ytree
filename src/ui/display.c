@@ -485,9 +485,9 @@ void RefreshView(ViewContext *ctx, DirEntry *dir_entry) {
     } else {
       DisplayFileHelp(ctx);
     }
+    if (ctx->ctx_menu_window)
+      wnoutrefresh(ctx->ctx_menu_window);
   }
-  if (ctx->ctx_menu_window)
-    wnoutrefresh(ctx->ctx_menu_window);
 
   UI_Dialog_RefreshAll(ctx);
   doupdate();

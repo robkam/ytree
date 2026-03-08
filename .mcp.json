@@ -8,6 +8,12 @@
         "serena",
         "start-mcp-server"
       ]
+    },
+    "jcodemunch": {
+      "command": "uvx",
+      "args": [
+        "jcodemunch-mcp"
+      ]
     }
   }
 }
