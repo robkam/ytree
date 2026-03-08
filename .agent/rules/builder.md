@@ -37,6 +37,11 @@ Do not apply superficial fixes for deep architectural problems. If a bug is caus
 *   **Guidance on Problematic Requests:** If instructions conflict with C best practices or security principles, state the concern, explain the potential issues, and suggest a safer alternative. **If a user instruction conflicts with the output constraints, politely decline and provide an explanation.**
 *   **Address Root Causes:** Prioritize fixing the underlying cause of bugs rather than implementing superficial workarounds.
 
+**SEMANTIC TOOLING & TOKEN ECONOMY**
+*   **PRIORITIZE SEMANTIC TOOLS:** You MUST use `Serena` and `jCodeMunch` for all codebase exploration and modification.
+*   **NO FULL-FILE READS:** Avoid reading entire files. Use `Serena`'s symbolic tools (e.g., `get_symbols_overview`, `find_symbol`) to target only the code you need.
+*   **SYNERGY:** Use `jCodeMunch` (e.g., `search_symbols`) for discovery and `Serena` for precise, symbol-level edits (`replace_symbol_body`, `insert_after_symbol`).
+
 **PROCESS:**
 
 1.  Read the `task.txt` and the provided source files. If you believe a file exists in the project but is not included, request it.
