@@ -131,7 +131,6 @@ void HandleUnreadSubTree(ViewContext *ctx, DirEntry *dir_entry,
 void HandleShowAll(ViewContext *ctx, BOOL tagged_only, DirEntry *dir_entry,
                    BOOL *need_dsp_help, int *ch, YtreePanel *p) {
   Statistic *s = &p->vol->vol_stats;
-  WINDOW *win = p->pan_dir_window;
 
   if ((tagged_only) ? s->disk_tagged_files : s->disk_matching_files) {
     if (dir_entry->login_flag) {
@@ -144,28 +143,14 @@ void HandleShowAll(ViewContext *ctx, BOOL tagged_only, DirEntry *dir_entry,
       dir_entry->cursor_pos = 0;
     }
     if (HandleFileWindow(ctx, dir_entry) != LOGIN_ESC) {
-      DisplayDiskStatistic(ctx, s);
-      UpdateStatsPanel(ctx, dir_entry, s);
+      /* Restore normal mode and refresh the entire view */
       dir_entry->start_file = 0;
       dir_entry->cursor_pos = -1;
-      DisplayFileWindow(ctx, p, dir_entry);
-      RefreshWindow(ctx->ctx_small_file_window);
-      RefreshWindow(ctx->ctx_big_file_window);
       BuildDirEntryList(ctx, p->vol, &p->current_dir_entry);
-
-      /* FIX: Update win */
-      win = p->pan_dir_window;
-
-      DisplayTree(ctx, p->vol, win, p->disp_begin_pos,
-                  p->disp_begin_pos + p->cursor_pos, TRUE);
+      RefreshView(ctx, dir_entry);
     } else {
       BuildDirEntryList(ctx, p->vol, &p->current_dir_entry);
-
-      /* FIX: Update win */
-      win = p->pan_dir_window;
-
-      DisplayTree(ctx, p->vol, win, p->disp_begin_pos,
-                  p->disp_begin_pos + p->cursor_pos, TRUE);
+      RefreshView(ctx, dir_entry);
       *ch = 'L';
     }
   } else {

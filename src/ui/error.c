@@ -131,7 +131,11 @@ static void MapNoticeWindow(ViewContext *ctx, char *header) {
 
 static void UnmapErrorWindow(ViewContext *ctx) {
   werase(ctx->ctx_error_window);
-  touchwin(stdscr);
+
+  /* Restore full UI state after error dialog */
+  DirEntry *current = GetSelectedDirEntry(ctx, ctx->active->vol);
+  RefreshView(ctx, current);
+
   doupdate();
 }
 

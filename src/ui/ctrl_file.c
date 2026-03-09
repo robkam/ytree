@@ -1172,11 +1172,13 @@ int HandleFileWindow(ViewContext *ctx, DirEntry *dir_entry) {
         /* EXPAND WILDCARDS FOR SINGLE FILE RENAME */
         BuildFilename(fe_ptr->name, new_name, expanded_new_name);
 
-        if (!RenameFile(ctx, fe_ptr, expanded_new_name, &new_fe_ptr)) {
+        int rename_result =
+            RenameFile(ctx, fe_ptr, expanded_new_name, &new_fe_ptr);
+        RefreshView(ctx, dir_entry);
+        if (!rename_result) {
           /* Rename OK */
           /*-----------*/
 
-          RefreshView(ctx, dir_entry);
           maybe_change_x_step = TRUE;
         }
       }

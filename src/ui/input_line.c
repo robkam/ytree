@@ -57,6 +57,10 @@ int UI_ReadString(ViewContext *ctx, YtreePanel *panel, const char *prompt,
   }
 
   /* Clearance: Clear the interaction area on stdscr first */
+  /* Clear line above prompt to prevent footer bleed */
+  if (ctx->layout.prompt_y > 0) {
+    mvwhline(stdscr, ctx->layout.prompt_y - 1, 0, ' ', COLS);
+  }
   mvwhline(stdscr, ctx->layout.prompt_y, 0, ' ', COLS);
   mvwhline(stdscr, ctx->layout.status_y, 0, ' ', COLS);
   wnoutrefresh(stdscr);
@@ -70,6 +74,7 @@ int UI_ReadString(ViewContext *ctx, YtreePanel *panel, const char *prompt,
   if (win == NULL)
     return ESC;
 
+  werase(win);  /* Clear window immediately to prevent footer bleed */
   UI_Dialog_Push(win, UI_TIER_FOOTER);
 
   keypad(win, TRUE);

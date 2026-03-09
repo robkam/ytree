@@ -299,6 +299,13 @@ void SwitchToBigFileWindow(ViewContext *ctx) {
   int separator_y = ctx->layout.dir_win_y + ctx->layout.dir_win_height;
 
   werase(ctx->ctx_file_window);
+  
+  /* Erase the horizontal separator line completely */
+  int separator_width = COLS - ctx->layout.stats_width - 1;
+  wmove(ctx->ctx_border_window, separator_y, 0);
+  whline(ctx->ctx_border_window, ' ', separator_width + 1);
+  
+  /* Draw vertical borders at left and right edges of dir window */
   wattron(ctx->ctx_border_window, COLOR_PAIR(CPAIR_BORDERS) | A_ALTCHARSET);
   mvwaddch(ctx->ctx_border_window, separator_y, ctx->layout.dir_win_x - 1,
            ACS_VLINE);
