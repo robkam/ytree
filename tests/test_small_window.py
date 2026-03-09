@@ -13,41 +13,50 @@ def test_dir_with_files(tmp_path):
 
 def test_small_window_transition(test_dir_with_files, ytree_binary):
     """
-    Test the NOSMALLWINDOW=0 flow:
-    - Press ENTER on a dir -> brings up small window overlay
-    - Press ENTER again -> brings up big file window
+    Test NOSMALLWINDOW=0 mode transitions through states:
+    DIR window → SMALL file window → BIG file window → back to DIR
     """
+    # Create .ytree config
     ytree_cfg = test_dir_with_files.parent / ".ytree"
-    ytree_cfg.write_text("NOSMALLWINDOW=0\n")
-
-    tui = YtreeTUI(
-        executable=ytree_binary, 
-        cwd=str(test_dir_with_files.parent)
-    )
+    ytree_cfg.write_text("[GLOBAL]\nNOSMALLWINDOW=0\n")
+    
+    tui = YtreeTUI(executable=ytree_binary, cwd=str(test_dir_with_files.parent))
     time.sleep(1.0)
     
-    # Move down to highlight test_small_win
+    # Navigate to test_small_win directory
     tui.send_keystroke(Keys.DOWN)
     time.sleep(0.5)
     
-    # 1. Press Enter to enter small file window
+    # STATE 1: DIR window (initial state - already here)
+    
+    # Transition to SMALL window
     tui.send_keystroke(Keys.ENTER)
-    time.sleep(0.5)
+    time.sleep(0.8)  # Increase sleep for reliability
     
     screen_small = "\n".join(tui.get_screen_dump())
     
-    # Verify small window is active (directory list is still partially visible, footer says FILE)
-    assert "FILE" in screen_small, "Footer should show FILE commands in small window"
-    assert "test_small_win" in screen_small, "Directory name should still be visible"
+    # Verify SMALL window state
+    assert "FILE" in screen_small, "SMALL window should show FILE footer"
+    assert "test_small_win" in screen_small, "Dir name should still be visible"
     
-    # 2. Press Enter to go to big file window
+    # Transition to BIG window
     tui.send_keystroke(Keys.ENTER)
-    time.sleep(0.5)
+    time.sleep(0.8)
     
     screen_big = "\n".join(tui.get_screen_dump())
     
-    # In big window, the directory structure (like ├── or similar volume tree) might vanish, 
-    # but the footer should remain "FILE"
-    assert "FILE" in screen_big, "Footer should remain FILE in big window"
+    # Verify BIG window state
+    assert "FILE" in screen_big, "BIG window should show FILE footer"
+    
+    # Transition back to DIR window
+    tui.send_keystroke(Keys.ENTER)
+    time.sleep(0.8)
+    
+    screen_dir = "\n".join(tui.get_screen_dump())
+    
+    # Verify back in DIR window (footer should NOT show FILE)
+    assert "test_small_win" in screen_dir, "Should be back in DIR view"
+    assert "FILE" not in screen_dir, "Should NOT show FILE footer in DIR view"
     
     tui.quit()
+
