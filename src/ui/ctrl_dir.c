@@ -938,7 +938,8 @@ int HandleDirWindow(ViewContext *ctx, DirEntry *start_dir_entry) {
 
     case ACTION_CMD_R:
       if (!GetRenameParameter(ctx, dir_entry->name, new_name)) {
-        if (!RenameDirectory(ctx, dir_entry, new_name)) {
+        int rename_result = RenameDirectory(ctx, dir_entry, new_name);
+        if (!rename_result) {
           /* Rename OK */
           BuildDirEntryList(ctx, ctx->active->vol,
                             &ctx->active->current_dir_entry);
@@ -946,8 +947,8 @@ int HandleDirWindow(ViewContext *ctx, DirEntry *start_dir_entry) {
                           ->dir_entry_list[ctx->active->disp_begin_pos +
                                            ctx->active->cursor_pos]
                           .dir_entry;
-          RefreshView(ctx, dir_entry);
         }
+        RefreshView(ctx, dir_entry);
       }
       need_dsp_help = TRUE;
       break;

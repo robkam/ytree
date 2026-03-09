@@ -4,13 +4,23 @@
 
 This project maintains comprehensive technical documentation. **Do not guess or assume** - read the appropriate document when you need context.
 
+### ⚠️ CRITICAL: Check ROADMAP.md Before Architectural Changes
+
+**BEFORE proposing any architectural changes, refactors, or new subsystems:**
+
+1. **READ [doc/ROADMAP.md](doc/ROADMAP.md) Steps 9.x** to verify the architecture hasn't already been implemented
+2. **SEARCH for keywords** related to your proposed change (e.g., "dialog", "prompt", "input", "window stack")
+3. **VERIFY completion status** - Many architectural refactors are marked `[x] Status: Complete`
+
+**Example**: Step 9.4 (Tiered Dialog Manager & Window Stack) is **already complete**. Do not propose rebuilding the dialog system.
+
 ### Global AI Development Rules
 
 **READ FIRST:** [~/.antigravityrules](~/.antigravityrules) contains high-level directives that apply to ALL AI development work:
 - Your role as Senior AI Development Partner under the Lead Architect
 - Environmental context (WSL2, POSIX paths, toolchain access)
 - Persona orchestration (@consultant, @builder, @auditor, @tester)
-- Interaction protocol (design approval workflow)
+- Interaction protocol (design approval workflow, **check ROADMAP.md first**)
 
 ### Architecture & Technical Specifications
 
