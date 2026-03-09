@@ -19,7 +19,8 @@
 #include "ytree_fs.h"
 #endif
 
-int Pipe(ViewContext *ctx, DirEntry *dir_entry, FileEntry *file_entry, char *pipe_command) {
+int Pipe(ViewContext *ctx, DirEntry *dir_entry, FileEntry *file_entry,
+         char *pipe_command) {
   char file_name_path[PATH_LENGTH + 1];
   int result = -1;
   FILE *pipe_fp;
@@ -34,8 +35,7 @@ int Pipe(ViewContext *ctx, DirEntry *dir_entry, FileEntry *file_entry, char *pip
     return -1;
   }
 
-  if (ctx->view_mode == DISK_MODE ||
-      ctx->view_mode == USER_MODE) {
+  if (ctx->view_mode == DISK_MODE || ctx->view_mode == USER_MODE) {
     if (chdir(GetPath(dir_entry, path))) {
       close(start_dir_fd);
       return -1;
@@ -59,16 +59,24 @@ int Pipe(ViewContext *ctx, DirEntry *dir_entry, FileEntry *file_entry, char *pip
     }
   }
 
+  /* Exit curses mode for external command */
+  endwin();
+  SuspendClock(ctx);
+
   pipe_fp = popen(pipe_command, "w");
   if (pipe_fp == NULL) {
+    /* Restore curses mode */
+    InitClock(ctx);
+    clearok(stdscr, TRUE);
+    refresh();
+
     /* Restore CWD before returning */
     if (fchdir(start_dir_fd) == -1) {
     }
     close(start_dir_fd);
     return -1;
   } else {
-    if (ctx->view_mode == DISK_MODE ||
-        ctx->view_mode == USER_MODE) {
+    if (ctx->view_mode == DISK_MODE || ctx->view_mode == USER_MODE) {
       int in_fd;
       char buffer[4096];
       ssize_t bytes_read;
@@ -89,7 +97,15 @@ int Pipe(ViewContext *ctx, DirEntry *dir_entry, FileEntry *file_entry, char *pip
 #endif
     }
     result = pclose(pipe_fp);
+
+    /* Wait for user to see output */
+    HitReturnToContinue();
   }
+
+  /* Restore curses mode */
+  InitClock(ctx);
+  clearok(stdscr, TRUE);
+  refresh();
 
   if (fchdir(start_dir_fd) == -1) {
   }
@@ -113,15 +129,23 @@ int PipeDirectory(ViewContext *ctx, DirEntry *dir_entry, char *pipe_command) {
     return -1;
   }
 
-  if (ctx->view_mode == DISK_MODE ||
-      ctx->view_mode == USER_MODE) {
+  if (ctx->view_mode == DISK_MODE || ctx->view_mode == USER_MODE) {
     if (chdir(path)) {
       close(start_dir_fd);
       return (-1);
     }
   }
 
+  /* Exit curses mode for external command */
+  endwin();
+  SuspendClock(ctx);
+
   if ((pipe_fp = popen(pipe_command, "w")) == NULL) {
+    /* Restore curses mode */
+    InitClock(ctx);
+    clearok(stdscr, TRUE);
+    refresh();
+
     /* Restore CWD */
     if (fchdir(start_dir_fd) == -1) {
     }
@@ -138,7 +162,16 @@ int PipeDirectory(ViewContext *ctx, DirEntry *dir_entry, char *pipe_command) {
   }
 
   pclose(pipe_fp);
+
+  /* Wait for user to see output */
+  HitReturnToContinue();
+
   result = 0;
+
+  /* Restore curses mode */
+  InitClock(ctx);
+  clearok(stdscr, TRUE);
+  refresh();
 
   /* Restore CWD */
   if (fchdir(start_dir_fd) == -1) {
@@ -150,8 +183,8 @@ int PipeDirectory(ViewContext *ctx, DirEntry *dir_entry, char *pipe_command) {
 
 /* GetPipeCommand moved to UI layer */
 
-int PipeTaggedFiles(ViewContext *ctx, FileEntry *fe_ptr, WalkingPackage *walking_package,
-                    Statistic *s) {
+int PipeTaggedFiles(ViewContext *ctx, FileEntry *fe_ptr,
+                    WalkingPackage *walking_package, Statistic *s) {
   int i, n;
   char from_path[PATH_LENGTH + 1];
   char buffer[2048];
