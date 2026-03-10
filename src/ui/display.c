@@ -430,7 +430,6 @@ void RefreshView(ViewContext *ctx, DirEntry *dir_entry) {
   if (!ctx->preview_mode) {
     DisplayDiskStatistic(ctx, s);
     UpdateStatsPanel(ctx, dir_entry, s);
-    DisplayAvailBytes(ctx, s);
   }
 
   /* 5. Refresh Background/Border Window SECOND (z=0) */
