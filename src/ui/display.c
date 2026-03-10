@@ -299,12 +299,12 @@ void SwitchToBigFileWindow(ViewContext *ctx) {
   int separator_y = ctx->layout.dir_win_y + ctx->layout.dir_win_height;
 
   werase(ctx->ctx_file_window);
-  
+
   /* Erase the horizontal separator line completely */
   int separator_width = COLS - ctx->layout.stats_width - 1;
   wmove(ctx->ctx_border_window, separator_y, 0);
   whline(ctx->ctx_border_window, ' ', separator_width + 1);
-  
+
   /* Draw vertical borders at left and right edges of dir window */
   wattron(ctx->ctx_border_window, COLOR_PAIR(CPAIR_BORDERS) | A_ALTCHARSET);
   mvwaddch(ctx->ctx_border_window, separator_y, ctx->layout.dir_win_x - 1,
@@ -437,20 +437,7 @@ void RefreshView(ViewContext *ctx, DirEntry *dir_entry) {
   /* 6. Update Header Path (already drawn to border window) */
   {
     char path[PATH_LENGTH + 1];
-    /* In tree mode (small window), show parent directory path.
-     * In file mode (big window), show current directory path. */
-    if (dir_entry->big_window || dir_entry->global_flag ||
-        dir_entry->tagged_flag) {
-      /* File window mode: show the directory we're viewing files in */
-      GetPath(dir_entry, path);
-    } else if (dir_entry->up_tree) {
-      /* Tree mode: show the parent directory path (where we ARE, not what's
-       * selected) */
-      GetPath(dir_entry->up_tree, path);
-    } else {
-      /* Root directory has no parent */
-      GetPath(dir_entry, path);
-    }
+    GetPath(dir_entry, path);
     DisplayHeaderPath(ctx, path);
   }
 
