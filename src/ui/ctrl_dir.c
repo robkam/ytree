@@ -213,6 +213,7 @@ int HandleDirWindow(ViewContext *ctx, DirEntry *start_dir_entry) {
       ch = unput_char;
       unput_char = '\0';
     } else {
+      doupdate();
       ch = (ctx->resize_request) ? -1 : GetEventOrKey(ctx);
       /* LF to CR normalization is now handled by GetKeyAction */
     }
