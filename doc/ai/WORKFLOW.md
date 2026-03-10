@@ -73,27 +73,16 @@ The **Google Agentic IDE (Antigravity)** is the primary tool for development. It
 
 ## 6. Debugging Procedures
 
-Never allow the AI to "guess" the cause of a bug; it will confidently hallucinate a solution that may not address the underlying issue. Instead, use one of the following three objective methodologies, selected based on complexity and visibility.
+Never allow the AI to "guess" the cause of a bug. Use one of the following objective methodologies, described in detail in **[DEBUGGING.md](DEBUGGING.md)**.
 
-### 6.1 Instrumentation (The Discovery Loop)
-Used primarily for high-level research in **AI Studio** or complex exploratory debugging. It forces the AI to "find out" what is actually happening before proposing a fix.
+### 6.1 Summary of Methodologies (by Usefulness)
 
-1.  **Instrument:** Use the keyword **"Instrument"** to direct the AI to add `fprintf(stderr, ...)` calls to trace state transitions (e.g., tracing `ActivePanel` focus).
-2.  **Observe:** Run the instrumented code and provide terminal output to the AI.
-3.  **Solve:** Use the empirical runtime evidence to guide the final fix back to Specification compliance.
+1.  **Targeted Root Cause Analysis:** Lightweight, hypothesis-driven approach using semantic tools (**Serena**/**jCodeMunch**) to compare working vs. broken cases.
+2.  **The "Hands-Off" Fix Mandate (Testing):** The mandatory procedure for **Antigravity**. Prove understanding by writing a failing `pytest`/`pexpect` test *before* editing code.
+3.  **Instrumentation (The Discovery Loop):** Add `fprintf(stderr, ...)` to trace state. Used primarily for exploratory research in **AI Studio**.
+4.  **External Expert Architecture Analysis:** High-reasoning audit for complex, multi-subsystem, or architectural bugs. Requires a fresh LLM context.
 
-### 6.2 The "Hands-Off" Fix Mandate (The Agentic Loop)
-The mandatory focused procedure for **Antigravity** and agentic execution. It forces the agent to prove its understanding by writing a failing test *before* editing any code.
-
-1.  **Replicate in Python (The Test):** Describe the manual steps that cause the bug to the **Tester** persona. Instruct it: *"Write a `pytest` using the `pexpect` TUI harness that performs these exact steps and asserts the expected correct behavior. This test MUST fail currently."*
-2.  **Verify the Failure (Red):** Run `make test`. Confirm the new test fails exactly where the bug manifests.
-3.  **Assign the Fix (The Code):** Hand the failing test output and the relevant C source files to the **Builder** persona. Instruct it: *"Modify the C code to make this specific test pass. Do not change the test."*
-4.  **Verify the Fix (Green):** Run `make test`. A passing test provides mathematical proof of the fix and creates a permanent regression test.
-
-### 6.3 External Expert Architecture Analysis
-The preferred method for complex bugs involving global state violations, race conditions, or subsystem-wide failures (e.g., ncurses Z-order issues). This method uses a separate, high-reasoning model instance to perform a zero-trust audit.
-
-*   **Workflow:** See **[DEBUGGING.md](DEBUGGING.md)** for the complete five-step evidence-based methodology.
+*   **Detailed Workflow:** See **[DEBUGGING.md](DEBUGGING.md)** for the complete step-by-step procedures for each method.
 
 ---
 
