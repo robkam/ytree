@@ -8,11 +8,10 @@
 #define NO_YTREE_MACROS
 #include "ytree.h"
 
-BOOL handle_tag_file_action(ViewContext *ctx, int action,
-                                   DirEntry *dir_entry, int *unput_char_ptr,
-                                   BOOL *need_dsp_help_ptr, int start_x,
-                                   Statistic *s,
-                                   BOOL *maybe_change_x_step_ptr) {
+BOOL handle_tag_file_action(ViewContext *ctx, int action, DirEntry *dir_entry,
+                            int *unput_char_ptr, BOOL *need_dsp_help_ptr,
+                            int start_x, Statistic *s,
+                            BOOL *maybe_change_x_step_ptr) {
   FileEntry *fe_ptr = NULL;
   FileEntry *new_fe_ptr = NULL;
   DirEntry *de_ptr = NULL;
@@ -68,8 +67,7 @@ BOOL handle_tag_file_action(ViewContext *ctx, int action,
       ClearHelp(ctx);
       if (UI_ReadString(ctx, ctx->active, "ATTRIBUTES: ", mode, 10,
                         HST_CHANGE_MODUS) == CR) {
-        (void)strcpy(walking_package.function_data.change_mode.new_mode,
-                     mode);
+        (void)strcpy(walking_package.function_data.change_mode.new_mode, mode);
         FileTags_WalkTaggedFiles(ctx, dir_entry->start_file,
                                  dir_entry->cursor_pos, SetFileModus,
                                  &walking_package);
@@ -494,8 +492,9 @@ BOOL handle_tag_file_action(ViewContext *ctx, int action,
                  popen(filepath, "w")) == NULL) {
           /* Restore ncurses mode if popen fails */
           InitClock(ctx);
-          clearok(stdscr, TRUE);
-          refresh();
+          touchwin(stdscr);
+          wnoutrefresh(stdscr);
+          doupdate();
           UI_Message(ctx, "execution of command*%s*failed", filepath);
         } else {
           FileTags_SilentWalkTaggedFiles(ctx, PipeTaggedFiles,
@@ -510,8 +509,9 @@ BOOL handle_tag_file_action(ViewContext *ctx, int action,
 
           /* Restore ncurses mode */
           InitClock(ctx);
-          clearok(stdscr, TRUE);
-          refresh(); /* Restore screen */
+          touchwin(stdscr);
+          wnoutrefresh(stdscr);
+          doupdate(); /* Restore screen */
 
           if (pclose_ret) {
             UI_Warning(ctx, "pclose failed");
@@ -598,8 +598,9 @@ BOOL handle_tag_file_action(ViewContext *ctx, int action,
         HitReturnToContinue();
 
         InitClock(ctx);
-        clearok(stdscr, TRUE);
-        refresh();
+        touchwin(stdscr);
+        wnoutrefresh(stdscr);
+        doupdate();
 
         dir_entry = RefreshFileView(ctx, dir_entry);
 

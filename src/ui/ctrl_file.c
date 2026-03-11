@@ -1461,7 +1461,7 @@ static void ListJump(ViewContext *ctx, DirEntry *dir_entry, char *str) {
     move(Y_PROMPT(ctx), 9);
     addstr(search_buf);
     clrtoeol();
-    refresh();
+    doupdate();
 
     ch = Getch(ctx);
 

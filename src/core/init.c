@@ -296,7 +296,7 @@ void ReCreateWindows(ViewContext *ctx) {
                                    primary->dir_y, primary->dir_x);
   keypad(primary->pan_dir_window, TRUE);
   scrollok(primary->pan_dir_window, TRUE);
-  clearok(primary->pan_dir_window, TRUE);
+
   leaveok(primary->pan_dir_window, TRUE);
   WbkgdSet(ctx, primary->pan_dir_window, COLOR_PAIR(CPAIR_WINDIR));
 
@@ -304,7 +304,7 @@ void ReCreateWindows(ViewContext *ctx) {
       Subwin(stdscr, primary->small_file_h, primary->small_file_w,
              primary->small_file_y, primary->small_file_x);
   keypad(primary->pan_small_file_window, TRUE);
-  clearok(primary->pan_small_file_window, TRUE);
+
   leaveok(primary->pan_small_file_window, TRUE);
   WbkgdSet(ctx, primary->pan_small_file_window, COLOR_PAIR(CPAIR_WINFILE));
 
@@ -312,7 +312,7 @@ void ReCreateWindows(ViewContext *ctx) {
       Subwin(stdscr, primary->big_file_h, primary->big_file_w,
              primary->big_file_y, primary->big_file_x);
   keypad(primary->pan_big_file_window, TRUE);
-  clearok(primary->pan_big_file_window, TRUE);
+
   leaveok(primary->pan_big_file_window, TRUE);
   WbkgdSet(ctx, primary->pan_big_file_window, COLOR_PAIR(CPAIR_WINFILE));
 
@@ -329,7 +329,7 @@ void ReCreateWindows(ViewContext *ctx) {
                ctx->right->dir_x);
     keypad(ctx->right->pan_dir_window, TRUE);
     scrollok(ctx->right->pan_dir_window, TRUE);
-    clearok(ctx->right->pan_dir_window, TRUE);
+
     leaveok(ctx->right->pan_dir_window, TRUE);
     WbkgdSet(ctx, ctx->right->pan_dir_window, COLOR_PAIR(CPAIR_WINDIR));
 
@@ -337,7 +337,7 @@ void ReCreateWindows(ViewContext *ctx) {
         Subwin(stdscr, ctx->right->small_file_h, ctx->right->small_file_w,
                ctx->right->small_file_y, ctx->right->small_file_x);
     keypad(ctx->right->pan_small_file_window, TRUE);
-    clearok(ctx->right->pan_small_file_window, TRUE);
+
     leaveok(ctx->right->pan_small_file_window, TRUE);
     WbkgdSet(ctx, ctx->right->pan_small_file_window, COLOR_PAIR(CPAIR_WINFILE));
 
@@ -345,7 +345,7 @@ void ReCreateWindows(ViewContext *ctx) {
         Subwin(stdscr, ctx->right->big_file_h, ctx->right->big_file_w,
                ctx->right->big_file_y, ctx->right->big_file_x);
     keypad(ctx->right->pan_big_file_window, TRUE);
-    clearok(ctx->right->pan_big_file_window, TRUE);
+
     leaveok(ctx->right->pan_big_file_window, TRUE);
     WbkgdSet(ctx, ctx->right->pan_big_file_window, COLOR_PAIR(CPAIR_WINFILE));
 
@@ -362,7 +362,7 @@ void ReCreateWindows(ViewContext *ctx) {
                ctx->layout.preview_win_y, ctx->layout.preview_win_x);
     if (ctx->ctx_preview_window) {
       keypad(ctx->ctx_preview_window, TRUE);
-      clearok(ctx->ctx_preview_window, TRUE);
+
       leaveok(ctx->ctx_preview_window, TRUE);
       WbkgdSet(ctx, ctx->ctx_preview_window, COLOR_PAIR(CPAIR_WINFILE));
     }
@@ -410,7 +410,7 @@ void ReCreateWindows(ViewContext *ctx) {
   ctx->ctx_border_window = Newwin(LINES, COLS, 0, 0);
   if (ctx->ctx_border_window) {
     WbkgdSet(ctx, ctx->ctx_border_window, COLOR_PAIR(CPAIR_BORDERS));
-    clearok(ctx->ctx_border_window, TRUE);
+
     leaveok(ctx->ctx_border_window, TRUE);
   }
 
@@ -420,7 +420,7 @@ void ReCreateWindows(ViewContext *ctx) {
   ctx->ctx_error_window = Newwin(ERROR_WINDOW_HEIGHT, ERROR_WINDOW_WIDTH,
                                  ERROR_WINDOW_Y, ERROR_WINDOW_X);
   WbkgdSet(ctx, ctx->ctx_error_window, COLOR_PAIR(CPAIR_WINERR));
-  clearok(ctx->ctx_error_window, TRUE);
+
   leaveok(ctx->ctx_error_window, TRUE);
 
 #ifdef CLOCK_SUPPORT
@@ -430,7 +430,7 @@ void ReCreateWindows(ViewContext *ctx) {
 
   ctx->ctx_time_window = Subwin(stdscr, TIME_WINDOW_HEIGHT, TIME_WINDOW_WIDTH,
                                 TIME_WINDOW_Y, TIME_WINDOW_X);
-  clearok(ctx->ctx_time_window, TRUE);
+
   scrollok(ctx->ctx_time_window, FALSE);
   leaveok(ctx->ctx_time_window, TRUE);
   WbkgdSet(ctx, ctx->ctx_time_window, COLOR_PAIR(CPAIR_WINDIR | A_BOLD));
@@ -444,7 +444,7 @@ void ReCreateWindows(ViewContext *ctx) {
       Newwin(HISTORY_WINDOW_HEIGHT, HISTORY_WINDOW_WIDTH(ctx), HISTORY_WINDOW_Y,
              HISTORY_WINDOW_X);
   scrollok(ctx->ctx_history_window, TRUE);
-  clearok(ctx->ctx_history_window, TRUE);
+
   leaveok(ctx->ctx_history_window, TRUE);
   WbkgdSet(ctx, ctx->ctx_history_window, COLOR_PAIR(CPAIR_WINHST));
 
@@ -457,7 +457,7 @@ void ReCreateWindows(ViewContext *ctx) {
   ctx->ctx_menu_window = Newwin(3, COLS, ctx->layout.message_y, 0);
   if (ctx->ctx_menu_window) {
     WbkgdSet(ctx, ctx->ctx_menu_window, COLOR_PAIR(CPAIR_MENU));
-    clearok(ctx->ctx_menu_window, TRUE);
+
     leaveok(ctx->ctx_menu_window, TRUE);
   }
 
@@ -469,7 +469,7 @@ void ReCreateWindows(ViewContext *ctx) {
 
   keypad(ctx->ctx_f2_window, TRUE);
   scrollok(ctx->ctx_f2_window, FALSE);
-  clearok(ctx->ctx_f2_window, TRUE);
+
   leaveok(ctx->ctx_f2_window, TRUE);
   WbkgdSet(ctx, ctx->ctx_f2_window, COLOR_PAIR(CPAIR_WINHST));
   DEBUG_LOG("EXIT ReCreateWindows");
@@ -524,6 +524,8 @@ int Init(ViewContext *ctx, char *configuration_file, char *history_file) {
   ctx->user_umask = umask(0);
   setenv("ESCDELAY", "25", 1);
   initscr();
+  ctx->cached_lines = LINES;
+  ctx->cached_cols = COLS;
   Layout_Recalculate(ctx);
   StartColors(ctx); /* even on b/w terminals... */
 

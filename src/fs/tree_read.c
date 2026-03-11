@@ -126,7 +126,7 @@ int ReadTree(ViewContext *ctx, DirEntry *dir_entry, char *path, int depth,
         move(LINES - 2, 0);  /* Move to prompt line (standard position) */
         clrtoeol();          /* Clear it */
         move(y, x);          /* Restore cursor */
-        refresh();
+        doupdate();
       }
     }
 
