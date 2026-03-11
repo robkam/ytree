@@ -1,24 +1,37 @@
 # ytree - A File Manager for UNIX
 
-> [!IMPORTANT]
-> **WORK IN PROGRESS: ARCHITECTURAL PREVIEW**
->
-> This is a modern **C99 refactor** of the classic ytree file manager.
-> The codebase has undergone a massive architectural overhaul to support **Multi-Volume** and **Split-Screen** workflows.
->
-> **Status:** Alpha. The core architecture is complete and stable. Feature porting and bug fixing are active.
-> **Current Focus:** Architectural integrity and modernization (refactoring) take precedence over immediate bug fixing. Contributions are welcome!
+---
 
-**ytree** is a file manager for UNIX-like systems (Linux, BSD, etc.), optimized for speed and keyboard efficiency.
+> [!IMPORTANT]
+> **STATUS: PRE-ALPHA and UNDER HEAVY DEVELOPMENT**
+>
+> This is a massive modernization, rewrite, and enhancement of Ytree v2.10. The original program is being drastically modified, but the TUI still follows the classic XTree model.
+>
+> **Notice to other developers:**
+> I am a solo developer working on this as much as my spare time and tokens allow. I am the driver of this project, utilizing an agentic IDE, but I am entirely reliant on LLMs, AI agents, and MCP utilities; I simply would not have attempted this rewrite without them.
+>
+> Because of this workflow, and because I am figuring it out as I go along, I am not yet looking for traditional code contributions or bug reports. I am currently working through a significant backlog of internal debugging and known issues; I do not have the AI tokens or the bandwidth to investigate external reports, scrutinize pull requests, or manage feature requests. Please see [ROADMAP.md](doc/ROADMAP.md) for current plans and progress.
+>
+> While I am not actively encouraging general ideas or code critiques, architectural correctness is my highest priority. If you happen to spot a place where my methodology is fundamentally outdated or flawed, you are welcome to open an Issue. I cannot promise a reply, but when I am able to, I will feed valid architectural critiques to the agents to improve the codebase.
+>
+> I have high aspirations for this rewrite, and because reaching that standard is still some way down the road and because perfect is the enemy of good, I have decided to share this work in progress now.
+>
+> Ytree is currently usable, but it is still imperfect. Parts might not work properly and are absolutely subject to change.
+
+---
+
+**Ytree** is a file manager for UNIX-like systems (Linux, BSD, etc.), optimized for speed and keyboard efficiency.
 
 ## Background
 
-Born from the lineage of **XTreeGold** (DOS), `ytree` was intended to be the definitive "Orthodox File Manager" for Unix. However, development stalled years ago, leaving Linux users without a true equivalent to the powerful "Log and Tag" workflow.
+Born from the lineage of [XTree](https://www.xtreefanpage.org/lowres/x10dirja.htm) (DOS),  [Ytree](https://www.han.de/~werner/ytree.html)  was intended to be the definitive tree-based logger for Unix. While it has been maintained for compatibility over the decades, its feature set remained largely frozen in the late 1990s, leaving Linux users without a true equivalent to the powerful "log and tag" workflow.
 
-Many file managers today function as "browsers"—they look at one directory at a time and rely on the OS to fetch files on demand. `ytree` is different: it is a **Logger**. It scans ("logs") entire drive hierarchies into memory. This treats the filesystem as a database, allowing you to **Show All** files in a flat view, filter across thousands of subdirectories instantly, and perform bulk operations on tagged files regardless of their location.
+Many file managers today function as "browsers"—they look at one directory at a time and rely on the OS to fetch files on demand. `Ytree` is different: it is a **Logger**. It scans ("logs") entire drive hierarchies into memory. This treats the filesystem as a database, allowing you to **Show All** files in a flat view, filter across thousands of subdirectories instantly, and perform bulk operations on tagged files regardless of their location.
 
-This project modernizes `ytree` to fulfill that original promise, removing legacy technical debt and introducing features required by modern power users.
+This v3.0 project modernizes `Ytree` to fulfill its potential, introducing features required by modern power users (like split-screen and integrated autoview) while moving to a clean, modern C99 architecture.
+
 ## Development Methodology
+
 This refactor serves as a case study in using Large Language Models (LLMs) to modernize legacy code. The codebase was not simply "ported"; it was systematically disassembled and re-architected. An LLM was utilized to analyze the original K&R C source, understand the undocumented logic, and reimplement it using modern C99 standards, the MVC pattern, and strict encapsulation. This demonstrates that with persistence and strict architectural guidance, AI tools can be effectively used to maintain and improve serious systems software.
 
 ## Features (v3.0 Alpha)
@@ -83,7 +96,7 @@ sudo make uninstall
 
 ### Optional: VI Keys Navigation
 
-By default, ytree uses **case-insensitive key bindings** (e.g., both 'k' and 'K' open the volume menu).
+By default, Ytree uses **case-insensitive key bindings** (e.g., both 'k' and 'K' open the volume menu).
 
 If you prefer **vi-style cursor navigation** (h/j/k/l keys), you can enable it:
 
@@ -109,9 +122,16 @@ For detailed usage, configuration, and keybindings, see [USAGE.md](doc/USAGE.md)
 
 See [CHANGES.md](doc/CHANGES.md) for a detailed history of changes and version updates.
 
+## Reporting problems
+
+As noted in the **Pre-Alpha** warning at the top of this document, I am not currently accepting general bug reports. I have a substantial backlog of known issues and internal debugging to complete before the project is ready for external feedback.
+
+If you have a critical **architectural critique** regarding the core design or memory safety of the rewrite, please open a GitHub Issue.
+
+<!--
 ## Contributing
 
-Contributions are welcome! Please read [CONTRIBUTING.md](doc/CONTRIBUTING.md) for guidelines. See [SPECIFICATION.md](doc/SPECIFICATION.md) for behavioral requirements, [ARCHITECTURE.md](doc/ARCHITECTURE.md) to understand the system design, and [TESTING.md](doc/TESTING.md) for test conventions before submitting code.
+Contributions are welcome! Please read [CONTRIBUTING.md](doc/CONTRIBUTING.md) for guidelines. See [SPECIFICATION.md](doc/SPECIFICATION.md) for behavioral requirements, and [ARCHITECTURE.md](doc/ARCHITECTURE.md) to understand the system design before submitting code.
 
 ## Reporting problems
 
@@ -123,11 +143,13 @@ It will help us to address the issue if you include the following:
 *   **Steps to Reproduce:**
 *   **Expected Behavior:**
 *   **Actual Behavior:**
+-->
 
 ## License
 
-ytree is free software distributed under the GPL. See the [LICENSE.md](LICENSE.md) file for details.
+Ytree is free software distributed under the GPL. See the [LICENSE.md](LICENSE.md) file for details.
 
 ## Contributors
 
 For detailed authorship, see [AUTHORS.md](doc/AUTHORS.md).
+

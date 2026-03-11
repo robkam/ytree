@@ -6,6 +6,6 @@
  ***************************************************************************/
 
 
-#define	VERSION		"3.0.0-alpha"
-#define	PATCHLEVEL	0
-#define VERSIONDATE	"January 2026"
+#define VERSION     "3.0.0-pre-alpha"
+#define PATCHLEVEL  1
+#define VERSIONDATE "March 2026"
