@@ -687,6 +687,8 @@ typedef struct _ViewContext {
   char global_search_term[256];
   int user_umask;
   BOOL resize_request;
+  int cached_lines;  /* Last known LINES for resize detection */
+  int cached_cols;   /* Last known COLS for resize detection */
   BOOL bypass_small_window;
   BOOL highlight_full_line;
   BOOL hide_dot_files;

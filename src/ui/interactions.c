@@ -180,7 +180,8 @@ static int InputModeString(ViewContext *ctx, char *mode, int y, int x) {
       if (i == cursor_pos)
         wattroff(stdscr, A_REVERSE);
     }
-    wrefresh(stdscr);
+    wnoutrefresh(stdscr);
+    doupdate();
 
     ch = Getch(ctx);
 
@@ -501,8 +502,9 @@ int SystemCall(ViewContext *ctx, char *command_line, Statistic *s) {
 
   (void)GetAvailBytes(&s->disk_space, s);
   /* Full screen redraw to fully restore the curses UI */
-  clearok(stdscr, TRUE);
-  refresh();
+  touchwin(stdscr);
+  wnoutrefresh(stdscr);
+  doupdate();
   return (result);
 }
 
@@ -519,8 +521,9 @@ int QuerySystemCall(ViewContext *ctx, char *command_line, Statistic *s) {
   HitReturnToContinue(); /* 3. Print message and wait for key in raw terminal */
 
   /* 4. Aggressive redraw/refresh to restore the curses UI completely */
-  clearok(stdscr, TRUE);
-  refresh();
+  touchwin(stdscr);
+  wnoutrefresh(stdscr);
+  doupdate();
 
   (void)GetAvailBytes(&s->disk_space, s);
 
@@ -567,7 +570,7 @@ void UI_HandleSort(ViewContext *ctx, DirEntry *dir_entry, Statistic *s,
   clrtoeol();
   PrintOptions(stdscr, Y_PROMPT(ctx) + 1, 0,
                "COMMANDS  o(W)ner   (O)rder: [ascending]");
-  refresh();
+  doupdate();
 
   do {
     c = Getch(ctx);
@@ -614,7 +617,7 @@ void UI_HandleSort(ViewContext *ctx, DirEntry *dir_entry, Statistic *s,
                    (order == SORT_ASC)
                        ? "COMMANDS  o(W)ner   (O)rder: [ascending] "
                        : "COMMANDS  o(W)ner   (O)rder: [descending]");
-      refresh();
+      doupdate();
       break;
     }
   } while (!strchr("ACEGMNWS", c));

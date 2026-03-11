@@ -414,12 +414,15 @@ void RefreshView(ViewContext *ctx, DirEntry *dir_entry) {
   if (ctx->active == NULL)
     MESSAGE(ctx, "FATAL: RefreshView called with NULL ctx->active");
 
-  /* 1. Re-evaluate Layout (Geometry) */
-  ReCreateWindows(ctx);
-
-  /* 2. BACKGROUND REFRESH (z=-1) */
-  touchwin(stdscr);
-  wnoutrefresh(stdscr);
+  /* 1. Re-evaluate Layout; only recreate windows on actual resize */
+  Layout_Recalculate(ctx);
+  if (ctx->cached_lines != LINES || ctx->cached_cols != COLS) {
+    ctx->cached_lines = LINES;
+    ctx->cached_cols = COLS;
+    ReCreateWindows(ctx);
+    touchwin(stdscr);
+    wnoutrefresh(stdscr);
+  }
 
   /* 3. Draw Borders and Dynamic Static Frames into ctx_border_window */
   DisplayMenu(ctx);

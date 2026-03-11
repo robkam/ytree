@@ -363,7 +363,6 @@ DirEntry *RefreshTreeSafe(ViewContext *ctx, YtreePanel *p, DirEntry *entry) {
 
   werase(p->pan_dir_window);
   werase(ctx->ctx_file_window);
-  refresh(); /* Force clear */
 
   /* Capture flags here to preserve state across destructive rescan */
   BOOL saved_big_window = entry->big_window;

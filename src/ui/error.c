@@ -38,7 +38,7 @@ int UI_Notice(ViewContext *ctx, const char *fmt, ...) {
   MapNoticeWindow(ctx, "N O T I C E");
   DisplayMessage(ctx, buffer);
   RefreshWindow(ctx->ctx_error_window);
-  refresh();
+  doupdate();
   return 0;
 }
 

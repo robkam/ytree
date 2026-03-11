@@ -104,6 +104,6 @@ void DrawSpinner(ViewContext *ctx) {
     mvaddch(LINES - 2, COLS - 2, spin_chars[ctx->spin_counter++ % 4]);
 
     /* Force immediate update to screen */
-    refresh();
+    doupdate();
   }
 }

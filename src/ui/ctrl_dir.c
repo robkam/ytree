@@ -46,8 +46,8 @@ int HandleDirWindow(ViewContext *ctx, DirEntry *start_dir_entry) {
   /* ADDED INSTRUCTION: Focus Unification */
   ctx->focused_window = FOCUS_TREE;
 
-  DEBUG_LOG("HandleDirWindow: Calling ReCreateWindows");
-  ReCreateWindows(ctx);
+  DEBUG_LOG("HandleDirWindow: Recalculating layout");
+  Layout_Recalculate(ctx);
   DEBUG_LOG("HandleDirWindow: Calling DisplayMenu");
   DisplayMenu(ctx);
 
@@ -630,8 +630,6 @@ int HandleDirWindow(ViewContext *ctx, DirEntry *start_dir_entry) {
 
           /* Force full screen clear to fix UI artifacts (separator line) */
           werase(ctx->ctx_file_window); /* Erase file window specifically */
-          clearok(stdscr, TRUE);
-          refresh();
 
           /* Refresh Full UI */
           DisplayMenu(ctx);

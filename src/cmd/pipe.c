@@ -67,8 +67,9 @@ int Pipe(ViewContext *ctx, DirEntry *dir_entry, FileEntry *file_entry,
   if (pipe_fp == NULL) {
     /* Restore curses mode */
     InitClock(ctx);
-    clearok(stdscr, TRUE);
-    refresh();
+    touchwin(stdscr);
+    wnoutrefresh(stdscr);
+    doupdate();
 
     /* Restore CWD before returning */
     if (fchdir(start_dir_fd) == -1) {
@@ -104,8 +105,9 @@ int Pipe(ViewContext *ctx, DirEntry *dir_entry, FileEntry *file_entry,
 
   /* Restore curses mode */
   InitClock(ctx);
-  clearok(stdscr, TRUE);
-  refresh();
+  touchwin(stdscr);
+  wnoutrefresh(stdscr);
+  doupdate();
 
   if (fchdir(start_dir_fd) == -1) {
   }
@@ -143,8 +145,9 @@ int PipeDirectory(ViewContext *ctx, DirEntry *dir_entry, char *pipe_command) {
   if ((pipe_fp = popen(pipe_command, "w")) == NULL) {
     /* Restore curses mode */
     InitClock(ctx);
-    clearok(stdscr, TRUE);
-    refresh();
+    touchwin(stdscr);
+    wnoutrefresh(stdscr);
+    doupdate();
 
     /* Restore CWD */
     if (fchdir(start_dir_fd) == -1) {
@@ -170,8 +173,9 @@ int PipeDirectory(ViewContext *ctx, DirEntry *dir_entry, char *pipe_command) {
 
   /* Restore curses mode */
   InitClock(ctx);
-  clearok(stdscr, TRUE);
-  refresh();
+  touchwin(stdscr);
+  wnoutrefresh(stdscr);
+  doupdate();
 
   /* Restore CWD */
   if (fchdir(start_dir_fd) == -1) {
