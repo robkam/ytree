@@ -194,22 +194,21 @@ void ClearHelp(ViewContext *ctx) {
  */
 void DisplayHeaderPath(ViewContext *ctx, char *path) {
   char display_buffer[PATH_LENGTH + 1];
-  int available_width =
-      COLS - ctx->layout.stats_width -
-      26; /* COLS - "Path: " (6) - Stats Panel (24) - Clock/Margin (20) */
-  if (available_width < 10)
-    available_width = 10;
+  int available_width;
+
+  if (!ctx->ctx_path_window)
+    return;
+
+  available_width = getmaxx(ctx->ctx_path_window);
 
   CutPathname(display_buffer, path, available_width);
 
-  DEBUG_LOG("DisplayHeaderPath: path='%s' cut='%s' avail=%d COLS=%d", path,
-            display_buffer, available_width, COLS);
+  DEBUG_LOG("DisplayHeaderPath: path='%s' cut='%s' avail=%d", path,
+            display_buffer, available_width);
 
-  /* Write path with fixed width to ensure old content is cleared */
-  mvwprintw(ctx->ctx_border_window, 0, 6, "%-*s", available_width,
-            display_buffer);
-  wattrset(ctx->ctx_border_window, A_NORMAL);
-  wnoutrefresh(ctx->ctx_border_window);
+  werase(ctx->ctx_path_window);
+  mvwaddstr(ctx->ctx_path_window, 0, 0, display_buffer);
+  wnoutrefresh(ctx->ctx_path_window);
 }
 
 void DisplayMenu(ViewContext *ctx) {
@@ -486,5 +485,6 @@ void RefreshView(ViewContext *ctx, DirEntry *dir_entry) {
   }
 
   UI_Dialog_RefreshAll(ctx);
+  ClockHandler(ctx, 0);
   doupdate();
 }

@@ -646,6 +646,7 @@ typedef struct _ViewContext {
   WINDOW *ctx_file_window;
   WINDOW *ctx_preview_window;
   WINDOW *ctx_border_window;
+  WINDOW *ctx_path_window;
   WINDOW *ctx_time_window;
   WINDOW *ctx_menu_window;
   WINDOW *ctx_error_window;
@@ -687,8 +688,8 @@ typedef struct _ViewContext {
   char global_search_term[256];
   int user_umask;
   BOOL resize_request;
-  int cached_lines;  /* Last known LINES for resize detection */
-  int cached_cols;   /* Last known COLS for resize detection */
+  int cached_lines; /* Last known LINES for resize detection */
+  int cached_cols;  /* Last known COLS for resize detection */
   BOOL bypass_small_window;
   BOOL highlight_full_line;
   BOOL hide_dot_files;
