@@ -123,6 +123,8 @@ def test_header_path_clearing(dual_panel_sandbox, ytree_binary):
     # 2. Navigate back up to a short path (ESC returns from file window to tree view)
     tui.send_keystroke(Keys.ESC)
     time.sleep(0.5)
+    tui.send_keystroke(Keys.LEFT)
+    time.sleep(0.5)
 
     screen = "\n".join(tui.get_screen_dump())
     # The header should NOT contain the old directory name

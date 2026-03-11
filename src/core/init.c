@@ -412,6 +412,12 @@ void ReCreateWindows(ViewContext *ctx) {
     WbkgdSet(ctx, ctx->ctx_border_window, COLOR_PAIR(CPAIR_BORDERS));
 
     leaveok(ctx->ctx_border_window, TRUE);
+
+    /* Header Path Window: subwindow of border */
+    if (ctx->ctx_path_window)
+      delwin(ctx->ctx_path_window);
+    ctx->ctx_path_window = Subwin(ctx->ctx_border_window, 1, COLS - 26, 0, 6);
+    leaveok(ctx->ctx_path_window, TRUE);
   }
 
   if (ctx->ctx_error_window)
@@ -428,8 +434,9 @@ void ReCreateWindows(ViewContext *ctx) {
   if (ctx->ctx_time_window)
     delwin(ctx->ctx_time_window);
 
-  ctx->ctx_time_window = Subwin(stdscr, TIME_WINDOW_HEIGHT, TIME_WINDOW_WIDTH,
-                                TIME_WINDOW_Y, TIME_WINDOW_X);
+  ctx->ctx_time_window =
+      Subwin(ctx->ctx_border_window, TIME_WINDOW_HEIGHT, TIME_WINDOW_WIDTH,
+             TIME_WINDOW_Y, TIME_WINDOW_X);
 
   scrollok(ctx->ctx_time_window, FALSE);
   leaveok(ctx->ctx_time_window, TRUE);
