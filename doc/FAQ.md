@@ -4,11 +4,11 @@
 
 ### Why modernize Ytree when UnixTree already exists?
 
-While both projects aim to provide a file manager inspired by [XTree](https://www.xtreefanpage.org/x10dirja.htm), they represent architectural solutions for different eras.
+While both projects aim to provide a file manager inspired by [XTree&trade;](https://www.xtreefanpage.org/x10dirja.htm), they represent architectural solutions for different eras.
 
 `UnixTree` was designed for a time of fragmented, incompatible commercial Unix systems. To guarantee portability, it had to be a self-contained monolith, bundling and maintaining its own internal libraries.
 
-The goal of modernizing Ytree is to create a tool native to the *current* landscape of open-source operating systems. By discarding the custom frameworks required in the past and leveraging standard system libraries, Ytree becomes a lean, POSIX-compliant utility that fits naturally into modern distributions—easier to package, audit, and maintain.
+The goal of modernizing Ytree is to create a tool native to the *current* landscape of open-source operating systems. By discarding the custom frameworks required in the past and leveraging standard system libraries, Ytree becomes a lean, POSIX-compliant utility that fits naturally into modern distributions, easier to package, audit, and maintain.
 
 ### How do the architectures compare?
 
@@ -41,7 +41,7 @@ Yes. While graphical file managers are standard for desktop users, TUI (Text Use
 ### Who is the target audience?
 
 Ytree specifically targets:
-1.  **XTree Veterans:** Users who developed "muscle memory" for the XTree layout and keybindings in the DOS era and find the Norton Commander style (used by `mc`) unintuitive.
+1.  **XTree&trade; Veterans:** Users who developed "muscle memory" for the XTree&trade; layout and keybindings in the DOS era and find the Midnight Commander style unintuitive.
 2.  **Terminal Power Users:** Developers and Admins who want a fast, lightweight file manager that integrates seamlessly with their shell history and standard CLI tools.
 3.  **Open Source Archivists:** Those interested in keeping classic Unix tools alive, compilable, and secure on modern hardware.
 

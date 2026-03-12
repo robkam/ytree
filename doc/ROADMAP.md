@@ -7,7 +7,7 @@
 - **Auditor (@auditor)**: Used for initial "Fragile Code" discovery before planning.
 
 ## **Overview**
-This document outlines the strategic roadmap for modernizing `ytree`, a curses-based file manager. The goal is to refactor legacy C code to modern standards (C99/POSIX), remove obsolete dependencies, and implement advanced power-user features inspired by XTreeGold and ZTreeWin, while maintaining the lightweight, keyboard-centric philosophy.
+This document outlines the strategic roadmap for modernizing `ytree`, a curses-based file manager. The goal is to refactor legacy C code to modern standards (C99/POSIX), remove obsolete dependencies, and implement advanced power-user features inspired by XTree&trade; and ZTreeWin, while maintaining the lightweight, keyboard-centric philosophy.
 
 ---
 
@@ -192,7 +192,7 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 
 ### **Step 4.9: Implement Multi-Volume Architecture & Global State Management**
 *   **Goal:** Transition Ytree from a single-instance root application to a **Session-Volume** file manager capable of holding multiple directory trees (drives/paths) in memory simultaneously.
-*   **Rationale:** To bridge the gap between Ytree and XTree/ZTree by enabling essential features: logging multiple disks, instant context switching between them, and performing operations on tags across different file systems. This requires replacing global static variables with dynamic data structures managed by efficient hash tables.
+*   **Rationale:** To bridge the gap between Ytree and XTree&trade;/ZTree by enabling essential features: logging multiple disks, instant context switching between them, and performing operations on tags across different file systems. This requires replacing global static variables with dynamic data structures managed by efficient hash tables.
 *   **Files to Modify:** `src/core/global.c`, `src/core/volume.c`
 *   **Context Files:** `include/ytree.h`
 *   - [x] **Status:** Completed.
@@ -298,7 +298,7 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 
 #### **Step 4.9.13: Implement Volume Release ("Unlog")**
 *   **Goal:** Allow the user to manually close (release) a volume they are no longer using to free up memory and declutter the list.
-*   **Rationale:** The "Session-Volume" architecture is incomplete without a way to remove volumes. ZTree/XTree allow "releasing" a logged disk.
+*   **Rationale:** The "Session-Volume" architecture is incomplete without a way to remove volumes. ZTree/XTree&trade; allow "releasing" a logged disk.
 *   **Mechanism:** Add functionality to the **Volume Selection Menu** (`K` key).
     *   Pressing **`D`** (Delete) or **`Delete Key`** on a menu item will prompt to close that volume.
     *   If the closed volume was the *current* one, automatically switch to another.
@@ -542,7 +542,7 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
     *   **Release:** Unload a directory branch from memory (without deleting files) to clean up the view.
     *   **Graft (Move):** Move an entire directory branch to a new parent.
     *   **PathCopy (Copy):** Recursively copy a directory branch to a new location.
-*   **Rationale:** Essential directory management features present in XTree but missing in ytree.
+*   **Rationale:** Essential directory management features present in XTree&trade; but missing in ytree.
 *   **Files to Modify:** `src/ui/ctrl_dir.c` (Navigate to `f2_picker.c`)
 *   **Context Files:** `src/cmd/copy.c`, `src/cmd/move.c`
 *   - [ ] **Status:** Not Started.
@@ -581,7 +581,7 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 
 ### **Step 4.22: Implement F7 File Preview Panel**
 *   **Goal:** Implement a file preview mode activated by F7. This mode will collapse the statistics panel and use the expanded main window area to display the contents of the selected file without launching an external pager.
-*   **Rationale:** Provides a fast, integrated way to inspect file contents, a classic and highly valued feature of Norton/XTree-style file managers.
+*   **Rationale:** Provides a fast, integrated way to inspect file contents, a classic and highly valued feature of XTree&trade;-style file managers.
 *   **Files to Modify:** `src/ui/key_engine.c`, `src/cmd/view.c`, `src/core/init.c`
 *   **Context Files:** `src/core/global.c`
 *   - [x] **Status:** Completed.
@@ -629,7 +629,7 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 *   - [x] **Status:** Completed.
 
 ### **Step 4.29: Implement Advanced Log Options**
-*   **Goal:** Enhance the `Log` command to present options for controlling the scan depth and scope, similar to ZTree/XTree (e.g., "Log drive", "Log tree", "Log directory").
+*   **Goal:** Enhance the `Log` command to present options for controlling the scan depth and scope, similar to ZTree/XTree&trade; (e.g., "Log drive", "Log tree", "Log directory").
 *   **Rationale:** Provides essential control over performance when working with very large filesystems, allowing the user to perform a shallow scan when a deep recursive scan is not needed.
 *   **Files to Modify:** `src/cmd/log.c`, `src/ui/key_engine.c`
 *   **Context Files:** `src/fs/readtree.c`
@@ -727,7 +727,7 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 
 ### **Step 4.38: Implement Bottom F-Key Menu Bar**
 *   **Goal:** Shift the existing two-line command footer up by one line and reserve the bottom-most row for a clickable, function-key reference bar (F1 Help, F3 Options, F5 Redraw, F7 View, F8 Split).
-*   **Rationale:** Aligns with the standard "Norton Commander" layout familiar to power users. It provides immediate visual cues for function keys, which are often less intuitive than mnemonic letter commands.
+*   **Rationale:** Aligns with the standard XTree&trade; layout familiar to power users. It provides immediate visual cues for function keys, which are often less intuitive than mnemonic letter commands.
 *   **Files to Modify:** `src/ui/display.c`
 *   **Context Files:** `include/ytree.h`
 *   - [ ] **Status:** Not Started.
@@ -1032,7 +1032,7 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 ### **Step 6.4: Implement "Grep Tagged" (`^S`)**
 *   **Goal:** Implement a content search feature (`^S`) that iterates through all tagged files (in File System or Archive). Files that *do not* match the search string are untagged.
 *   **Integration:** Combine this with `^V` (View Tagged) to allow the user to quickly narrow down a dataset and view only the hits.
-*   **Rationale:** This mimics the powerful "Search" function of XTreeGold, turning `ytree` into a tool for data mining and bulk text analysis.
+*   **Rationale:** This mimics the powerful "Search" function of XTree&trade;, turning `ytree` into a tool for data mining and bulk text analysis.
 *   **Files to Modify:** `src/ui/ctrl_file.c`
 *   **Context Files:** `src/cmd/execute.c`
 *   - [x] **Status:** Completed.
