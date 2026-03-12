@@ -5,7 +5,7 @@
 > [!IMPORTANT]
 > **STATUS: PRE-ALPHA and UNDER HEAVY DEVELOPMENT**
 >
-> This is a massive modernization, rewrite, and enhancement of Ytree v2.10. The original program is being drastically modified, but the TUI still follows the classic XTree model.
+> This is a massive modernization, rewrite, and enhancement of Ytree v2.10. The original program is being drastically modified, but the TUI still follows the classic XTree&trade; model.
 >
 > **Notice to other developers:**
 > I am a solo developer working on this as much as my spare time and tokens allow. I am the driver of this project, utilizing an agentic IDE, but I am entirely reliant on LLMs, AI agents, and MCP utilities; I simply would not have attempted this rewrite without them.
@@ -24,7 +24,7 @@
 
 ## Background
 
-Born from the lineage of [XTree](https://www.xtreefanpage.org/lowres/x10dirja.htm) (DOS),  [Ytree](https://www.han.de/~werner/ytree.html)  was intended to be the definitive tree-based logger for Unix. While it has been maintained for compatibility over the decades, its feature set remained largely frozen in the late 1990s, leaving Linux users without a true equivalent to the powerful "log and tag" workflow.
+Born from the lineage of [XTree&trade;](https://www.xtreefanpage.org/lowres/x10dirja.htm) (DOS),  [Ytree](https://www.han.de/~werner/ytree.html)  was intended to be the definitive tree-based logger for Unix. While it has been maintained for compatibility over the decades, its feature set remained largely frozen in the late 1990s, leaving Linux users without a true equivalent to the powerful "log and tag" workflow.
 
 Many file managers today function as "browsers"—they look at one directory at a time and rely on the OS to fetch files on demand. `Ytree` is different: it is a **Logger**. It scans ("logs") entire drive hierarchies into memory. This treats the filesystem as a database, allowing you to **Show All** files in a flat view, filter across thousands of subdirectories instantly, and perform bulk operations on tagged files regardless of their location.
 
@@ -36,7 +36,7 @@ This refactor serves as a case study in using Large Language Models (LLMs) to mo
 
 ## Features (v3.0 Alpha)
 
-*   **Classic XTree Interface:** Directory Tree + File List layout.
+*   **Classic XTree&trade; Interface:** Directory Tree + File List layout.
 *   **Split Screen Mode (F8):** Manage two independent file panels side-by-side.
 *   **File Preview (F7):** Instant view of file contents without launching external tools.
 *   **Multi-Volume Support:** Log multiple drives or archives simultaneously and switch instantly.

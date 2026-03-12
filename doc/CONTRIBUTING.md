@@ -83,12 +83,13 @@ The project enforces strict architectural constraints (single-threaded event loo
 
 ## Submitting Changes
 
+> **Submit small, focused pull requests. Each pull request should address a single fix or feature to keep reviews straightforward.**
+
 1.  **Fork the repository** on GitHub.
 2.  **Create a new branch** for your feature or bugfix (`git checkout -b feature/my-new-feature`).
 3.  **Make your changes** and commit them with a clear, declarative commit message.
-4.  **Submit small, incremental pull requests** rather than a single large one, to keep reviews straightforward.
-5.  **Push your branch** to your fork (`git push origin feature/my-new-feature`).
-6.  **Open a Pull Request** against the `main` branch of the upstream ytree repository.
+4.  **Push your branch** to your fork (`git push origin feature/my-new-feature`).
+5.  **Open a Pull Request** against the `main` branch of the upstream ytree repository.
 
 ## Coding Style
 

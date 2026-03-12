@@ -3,7 +3,7 @@
 ## 1. Overview
 This document outlines the architectural design of `ytree`. The codebase utilizes a modular, context-oriented C99 design.
 
-The primary objective is to maintain a **predictable, high-integrity state machine**. Every component is designed to uphold the **Focus vs. Freeze** logic and the specific hierarchy of modal priorities inherited from the XTree lineage.
+The primary objective is to maintain a **predictable, high-integrity state machine**. Every component is designed to uphold the **Focus vs. Freeze** logic and the specific hierarchy of modal priorities inherited from the XTree&trade; lineage.
 
 ---
 
