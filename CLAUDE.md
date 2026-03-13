@@ -4,7 +4,7 @@
 
 This project maintains comprehensive technical documentation. **Do not guess or assume** - read the appropriate document when you need context.
 
-### ⚠️ CRITICAL: Check ROADMAP.md Before Architectural Changes
+### CRITICAL: Check ROADMAP.md Before Architectural Changes
 
 **BEFORE proposing any architectural changes, refactors, or new subsystems:**
 
