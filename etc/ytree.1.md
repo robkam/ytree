@@ -16,9 +16,9 @@ ytree - A File Manager for UNIX-like systems
 
 # DESCRIPTION
 
-**ytree** is a file manager for UNIX-like systems (Linux, BSD, etc.). It is inspired by the DOS file manager **XTreeGold**, offering a text-based user interface (TUI) that is fast, lightweight, and keyboard-driven.
+**ytree** is a file manager for UNIX-like systems (Linux, BSD, etc.). It is inspired by the DOS file manager **XTree&trade;**, offering a text-based user interface (TUI) that is fast, lightweight, and keyboard-driven.
 
-This version is a modern refactor of the original **ytree** by Werner Bregulla, incorporating features from XTree and ZTreeWin, using modern C standards (C99/POSIX), and integrating robust libraries like `libarchive`.
+This version is a modern refactor of the original **ytree** by Werner Bregulla, incorporating features from XTree&trade; and ZTreeWin, using modern C standards (C99/POSIX), and integrating robust libraries like `libarchive`.
 
 If no command line arguments are provided, the current directory will be logged.
 

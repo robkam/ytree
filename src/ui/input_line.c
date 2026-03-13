@@ -4,7 +4,7 @@
  * Prompt & Input Manager
  *
  * Implements a managed window for user input, rendering in the footer area
- * (bottom 3 lines) to match XTree style.
+ * (bottom 3 lines).
  *
  ***************************************************************************/
 

@@ -132,7 +132,7 @@ def test_f8_cross_panel_autoview_sourcing_bug(controller, dual_panel_sandbox):
 
 def test_f7_header_shows_directory_only(controller, dual_panel_sandbox):
     """
-    SPECIFICATION FIX: XTree/ZTree compatibility.
+    SPECIFICATION FIX: XTree&trade;/ZTree compatibility.
     Verifies that the Path header ONLY shows the directory path,
     and does NOT append the filename when exploring files or using F7.
     """
@@ -156,7 +156,7 @@ def test_f7_header_shows_directory_only(controller, dual_panel_sandbox):
     path_matches = re.findall(r"Path:\s*([^\s\r\n\x1b]+)", screen)
     if not path_matches:
         pytest.fail(f"TUI Error: Could not find 'Path:' header.\nScreen Dump:\n{screen}")
-    
+
     # Assert none of the paths contain the filename
     for match in path_matches:
         if "very_long_filename" in match:
@@ -172,28 +172,28 @@ def test_f7_visual_layout(ytree_binary, dual_panel_sandbox):
     from tui_harness import YtreeTUI
     from ytree_keys import Keys
     import time
-    
+
     tui = YtreeTUI(executable=ytree_binary, cwd=str(dual_panel_sandbox))
-    
+
     # Expand all
     tui.send_keystroke(Keys.EXPAND_ALL)
-    
+
     # Trigger Autoview (F7)
     tui.send_keystroke(Keys.F7)
     time.sleep(1.0) # Wait for view
-    
+
     # Get the screen content
     screen = tui.get_screen_dump()
-    
+
     # Join the screen array into a single string for easier assertions, but keep line access.
     # The grid is 36 lines by 120 columns.
     assert len(screen) == 36
     assert len(screen[0]) == 120
-    
+
     # In F7 preview mode:
     # Top border starts at line 1, headers typically at top.
     # We should look for the file list left pane and the preview right pane.
-    
+
     # For now, let's verify that the "Path:" and "Level:" headers are visually present
     # and not clumped together.
     header_found = False
@@ -202,5 +202,5 @@ def test_f7_visual_layout(ytree_binary, dual_panel_sandbox):
             header_found = True
             break
     assert header_found, "Path: header missing in visual layout"
-    
+
     tui.quit()

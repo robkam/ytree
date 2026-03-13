@@ -1,7 +1,7 @@
 # Functional & Behavioral Specification of Ytree
 
 ## 0. Introduction
-`ytree` is a TUI File Manager following the **XTree/ZTree/UnixTree** lineage. It acts as a strict **State Machine**. This document serves as the "Contract of Truth" for behavior. Any deviation in UI logic or visual representation is a bug.
+`ytree` is a TUI File Manager following the **XTree&trade;/ZTree/UnixTree** lineage. It acts as a strict **State Machine**. This document serves as the "Contract of Truth" for behavior. Any deviation in UI logic or visual representation is a bug.
 
 ### 0.1 Technical Foundation
 *   **Standard:** C99 (via `gcc` or `clang`).
@@ -23,7 +23,7 @@ The screen is divided into non-overlapping zones. Geometry is calculated dynamic
 | **Stats Panel** | Right Column (**Fixed 26**) | Metadata, Filters, Disk Stats | Context-aware. Always visible in Standard Mode. |
 | **Command Area** | Bottom 3 Rows | Menu, Prompts, Messages | Handles all user interaction feedback. |
 
-### 1.2 Visual Grammar (The "XTree Look")
+### 1.2 Visual Grammar (The "XTree&trade; Look")
 *   **Junction Grammar:** Ncurses junctions (T-pieces, crosses) must **only** be used for horizontal boundary lines. Vertical separators must remain clean, unbroken lines to avoid visual clutter.
 *   **Empty State:** If a directory contains no files, the File View window must display the text: `** No files **`.
 *   **Micro-Consistency:** UI state flags (e.g., `big_window`, `split_mode`) must be synchronized with the internal state machine before any call to `doupdate()`.

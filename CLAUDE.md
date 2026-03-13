@@ -25,7 +25,7 @@ This project maintains comprehensive technical documentation. **Do not guess or 
 ### Architecture & Technical Specifications
 
 - **[doc/ARCHITECTURE.md](doc/ARCHITECTURE.md)** - System design, core invariants, dual-panel isolation rules, and rendering standards
-- **[doc/SPECIFICATION.md](doc/SPECIFICATION.md)** - Behavioral requirements, UI contracts, navigation protocols, and the "XTree" state machine
+- **[doc/SPECIFICATION.md](doc/SPECIFICATION.md)** - Behavioral requirements, UI contracts, navigation protocols, and the "XTree&trade;" state machine
 - **[doc/ROADMAP.md](doc/ROADMAP.md)** - Feature implementation history, current status, and modernization phases
 
 ### Development Workflow & Standards
