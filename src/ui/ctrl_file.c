@@ -40,6 +40,30 @@ static void RereadWindowSize(ViewContext *ctx, DirEntry *dir_entry);
 static void ListJump(ViewContext *ctx, DirEntry *dir_entry, char *str);
 static void UpdatePreview(ViewContext *ctx, DirEntry *dir_entry);
 
+static YtreeAction FilterPreviewAction(YtreeAction action) {
+  switch (action) {
+  case ACTION_NONE:
+  case ACTION_ESCAPE:
+  case ACTION_VIEW_PREVIEW:
+  case ACTION_MOVE_UP:
+  case ACTION_MOVE_DOWN:
+  case ACTION_PAGE_UP:
+  case ACTION_PAGE_DOWN:
+  case ACTION_HOME:
+  case ACTION_END:
+  case ACTION_PREVIEW_SCROLL_UP:
+  case ACTION_PREVIEW_SCROLL_DOWN:
+  case ACTION_PREVIEW_HOME:
+  case ACTION_PREVIEW_END:
+  case ACTION_PREVIEW_PAGE_UP:
+  case ACTION_PREVIEW_PAGE_DOWN:
+  case ACTION_RESIZE:
+    return action;
+  default:
+    return ACTION_NONE;
+  }
+}
+
 /*
  * UpdateStatsPanel
  * Centralized stats panel update that shows the correct information based on
@@ -415,6 +439,16 @@ int HandleFileWindow(ViewContext *ctx, DirEntry *dir_entry) {
 
   /* Initial Display using Centralized Function if applicable */
   if (ctx->preview_mode) {
+    /* F7 entered from tree mode arrives here with preview already enabled.
+     * Mirror the same initialization contract used by ACTION_VIEW_PREVIEW.
+     */
+    saved_fixed_width = ctx->fixed_col_width;
+    ReCreateWindows(ctx);
+    ctx->fixed_col_width = ctx->layout.big_file_win_width - 2;
+    if (ctx->fixed_col_width < 1)
+      ctx->fixed_col_width = 1;
+    RereadWindowSize(ctx, dir_entry);
+
     RefreshView(ctx, dir_entry);
     UpdatePreview(ctx, dir_entry);
     /* Note: preview mode doesn't show stats panel, so no UpdateStatsPanel
@@ -520,6 +554,10 @@ int HandleFileWindow(ViewContext *ctx, DirEntry *dir_entry) {
         action = ACTION_MOVE_DOWN;
       else if (action == ACTION_TREE_COLLAPSE)
         action = ACTION_MOVE_UP;
+    }
+
+    if (ctx->preview_mode) {
+      action = FilterPreviewAction(action);
     }
 
     if (x_step == 1 &&

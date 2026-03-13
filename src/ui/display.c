@@ -168,15 +168,15 @@ void DisplayPreviewHelp(ViewContext *ctx) {
   /*
    * Help Footer for Preview Mode (F7)
    */
+  wmove(ctx->ctx_border_window, Y_PROMPT(ctx), 0);
+  wclrtoeol(ctx->ctx_border_window);
   PrintHelpString(ctx->ctx_border_window, Y_PROMPT(ctx), 0,
                   "PREVIEW   (Up/Down) Select File  (PgUp/PgDn) Scroll Page  "
                   "(Home/End) Jump");
-  wmove(ctx->ctx_border_window, Y_PROMPT(ctx), 0);
+  wmove(ctx->ctx_border_window, Y_PROMPT(ctx) + 1, 0);
   wclrtoeol(ctx->ctx_border_window);
   PrintHelpString(ctx->ctx_border_window, Y_PROMPT(ctx) + 1, 0,
                   "COMMANDS  (Shift) Navigate Preview  (F7) Exit Preview");
-  wmove(ctx->ctx_border_window, Y_PROMPT(ctx) + 1, 0);
-  wclrtoeol(ctx->ctx_border_window);
 }
 
 void ClearHelp(ViewContext *ctx) {
@@ -409,6 +409,7 @@ void RenderInactivePanel(ViewContext *ctx, YtreePanel *panel) {
  */
 void RefreshView(ViewContext *ctx, DirEntry *dir_entry) {
   Statistic *s = &ctx->active->vol->vol_stats;
+  BOOL needs_window_recreate = FALSE;
 
   if (ctx->active == NULL)
     MESSAGE(ctx, "FATAL: RefreshView called with NULL ctx->active");
@@ -418,6 +419,19 @@ void RefreshView(ViewContext *ctx, DirEntry *dir_entry) {
   if (ctx->cached_lines != LINES || ctx->cached_cols != COLS) {
     ctx->cached_lines = LINES;
     ctx->cached_cols = COLS;
+    needs_window_recreate = TRUE;
+  }
+
+  /* Preview mode requires a dedicated window topology, not just resized
+   * geometry values. Recreate if the preview window lifecycle is out of sync.
+   */
+  if (ctx->preview_mode && ctx->ctx_preview_window == NULL) {
+    needs_window_recreate = TRUE;
+  } else if (!ctx->preview_mode && ctx->ctx_preview_window != NULL) {
+    needs_window_recreate = TRUE;
+  }
+
+  if (needs_window_recreate) {
     ReCreateWindows(ctx);
     touchwin(stdscr);
     wnoutrefresh(stdscr);
@@ -445,7 +459,15 @@ void RefreshView(ViewContext *ctx, DirEntry *dir_entry) {
 
   /* 7. Draw Content Panels THIRD (z=1) */
   if (ctx->preview_mode) {
-    SwitchToBigFileWindow(ctx);
+    /* Preview mode always uses the active panel's big file window as the
+     * left list pane. Avoid SwitchToBigFileWindow because its separator
+     * surgery assumes standard tree/file geometry and corrupts preview
+     * borders.
+     */
+    if (ctx->active && ctx->active->pan_big_file_window) {
+      ctx->active->pan_file_window = ctx->active->pan_big_file_window;
+      ctx->ctx_file_window = ctx->active->pan_big_file_window;
+    }
     DisplayFileWindow(ctx, ctx->active, dir_entry);
     if (ctx->ctx_preview_window)
       wnoutrefresh(ctx->ctx_preview_window);
