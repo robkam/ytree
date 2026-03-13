@@ -109,11 +109,13 @@ This project maintains comprehensive documentation and follows established globa
 
 ### Global AI Development Rules
 
-**READ FIRST:** [~/.antigravityrules](file:///home/rob/.antigravityrules) contains high-level directives that apply to ALL AI development work:
+**READ FIRST (Global):** [~/.gemini/GEMINI.md](~/.gemini/GEMINI.md) contains high-level directives that apply to ALL AI development work:
 - Your role as Senior AI Development Partner under the Lead Architect.
 - Environmental context (WSL2, POSIX paths, toolchain access).
 - Persona orchestration (@consultant, @builder, @auditor, @tester).
 - Interaction protocol (design approval workflow).
+
+**READ NEXT (Repository):** [GEMINI.md](~/ytree/GEMINI.md) contains project-level directives and strict pacing rules for this repository.
 
 ### Required Reading & Modernization Context
 
@@ -128,12 +130,13 @@ This project maintains comprehensive documentation and follows established globa
 **DO NOT apply superficial fixes for deep architectural problems.** If a bug is caused by fragmented state, inconsistent globals, or panel collision, **STOP** and refactor to unify logic first.
 
 
-### Available Development Personas
+### Repository Rule Files
 
-- **[consultant.md](file:///home/rob/ytree/.agent/rules/consultant.md)** - Planning and analysis (behavior-to-C translation, no coding).
-- **[builder.md](file:///home/rob/ytree/.agent/rules/builder.md)** - Implementation (C89/C99 standards, complete files only).
-- **[auditor.md](file:///home/rob/ytree/.agent/rules/auditor.md)** - Architecture review (identifying global state coupling).
-- **[tester.md](file:///home/rob/ytree/.agent/rules/tester.md)** - Test generation (Python/pexpect TUI automation).
+- **[GEMINI.md](~/ytree/GEMINI.md)** - Project-level Master Directives and Strict Pacing.
+- **[consultant.md](~/ytree/.agent/rules/consultant.md)** - Planning and analysis (behavior-to-C translation, no coding).
+- **[builder.md](~/ytree/.agent/rules/builder.md)** - Implementation (C89/C99 standards, complete files only).
+- **[auditor.md](~/ytree/.agent/rules/auditor.md)** - Architecture review (identifying global state coupling).
+- **[tester.md](~/ytree/.agent/rules/tester.md)** - Test generation (Python/pexpect TUI automation).
 
 ## Leveraging MCP Servers: jCodemunch, Serena, & GitHub
 
