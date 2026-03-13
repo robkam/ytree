@@ -237,3 +237,74 @@ def test_f8_big_window_footer_and_separator_lost(dual_panel_sandbox, ytree_binar
     if "attribute" not in footer and "delete" not in footer:
         pytest.fail(f"BUG: Footer disappeared after entering big window from F8 split.\nFooter dump:\n{footer}")
     tui.quit()
+
+
+def test_f8_inactive_selection_moves_to_parent_on_mirrored_collapse(tmp_path, ytree_binary):
+    """
+    Regression:
+    When both panes share the same tree and active pane collapses a branch,
+    an inactive selection inside that branch must re-anchor to the parent.
+    """
+    root = tmp_path / "f8_mirrored_collapse_root"
+    root.mkdir()
+
+    parent_dir = root / "parent_dir"
+    child_dir = parent_dir / "child_dir"
+    child_dir.mkdir(parents=True)
+
+    (parent_dir / "parent_file.txt").write_text("parent\n", encoding="utf-8")
+    (child_dir / "child_file.txt").write_text("child\n", encoding="utf-8")
+
+    sibling_dir = root / "sibling_dir"
+    sibling_dir.mkdir()
+    (sibling_dir / "sibling_file.txt").write_text("sibling\n", encoding="utf-8")
+
+    tui = YtreeTUI(executable=ytree_binary, cwd=str(root))
+    time.sleep(1.0)
+
+    # Expand tree so parent/child are visible in both panes.
+    tui.send_keystroke(Keys.EXPAND_ALL)
+    time.sleep(0.5)
+
+    # Left pane (active): move to parent_dir.
+    tui.send_keystroke(Keys.DOWN)
+    time.sleep(0.5)
+
+    # Split and move to right pane.
+    tui.send_keystroke(Keys.F8)
+    time.sleep(0.5)
+    tui.send_keystroke(Keys.TAB)
+    time.sleep(0.5)
+
+    # Right pane: move inside collapsed target branch (parent -> child).
+    tui.send_keystroke(Keys.DOWN)
+    time.sleep(0.5)
+
+    # Back to left pane and collapse parent_dir.
+    tui.send_keystroke(Keys.TAB)
+    time.sleep(0.5)
+    tui.send_keystroke(Keys.LEFT)
+    time.sleep(0.6)
+
+    # Return to right pane and enter selected directory.
+    # Expected: selection was re-anchored to parent_dir.
+    tui.send_keystroke(Keys.TAB)
+    time.sleep(0.5)
+    tui.send_keystroke(Keys.ENTER)
+    time.sleep(0.6)
+
+    screen = "\n".join(tui.get_screen_dump())
+    if "parent_file.txt" not in screen:
+        tui.quit()
+        pytest.fail(
+            "Inactive selection did not move to parent after mirrored collapse.\n"
+            f"Screen:\n{screen}"
+        )
+    if "child_file.txt" in screen:
+        tui.quit()
+        pytest.fail(
+            "Inactive pane still entered child after parent collapse.\n"
+            f"Screen:\n{screen}"
+        )
+
+    tui.quit()

@@ -81,9 +81,69 @@ static BOOL IsDescendant(DirEntry *ancestor, DirEntry *descendant) {
   return FALSE;
 }
 
+static int FindDirIndex(struct Volume *vol, DirEntry *target) {
+  int i;
+
+  if (!vol || !target || !vol->dir_entry_list || vol->total_dirs <= 0)
+    return -1;
+
+  for (i = 0; i < vol->total_dirs; i++) {
+    if (vol->dir_entry_list[i].dir_entry == target)
+      return i;
+  }
+
+  return -1;
+}
+
+static void ReanchorPanelToDir(YtreePanel *panel, DirEntry *target) {
+  int idx;
+  int height;
+
+  if (!panel)
+    return;
+
+  if (!panel->vol || panel->vol->total_dirs <= 0) {
+    panel->disp_begin_pos = 0;
+    panel->cursor_pos = 0;
+    return;
+  }
+
+  if (!target)
+    target = panel->vol->vol_stats.tree;
+
+  idx = FindDirIndex(panel->vol, target);
+  if (idx < 0)
+    idx = 0;
+
+  height = (panel->pan_dir_window) ? getmaxy(panel->pan_dir_window) : 1;
+  if (height < 1)
+    height = 1;
+
+  if (idx >= panel->disp_begin_pos && idx < panel->disp_begin_pos + height) {
+    panel->cursor_pos = idx - panel->disp_begin_pos;
+  } else {
+    panel->disp_begin_pos = idx;
+    panel->cursor_pos = 0;
+
+    if (panel->disp_begin_pos + height > panel->vol->total_dirs) {
+      panel->disp_begin_pos = panel->vol->total_dirs - height;
+      if (panel->disp_begin_pos < 0)
+        panel->disp_begin_pos = 0;
+      panel->cursor_pos = idx - panel->disp_begin_pos;
+    }
+  }
+
+  if (panel->cursor_pos < 0)
+    panel->cursor_pos = 0;
+}
+
 void HandleUnreadSubTree(ViewContext *ctx, DirEntry *dir_entry,
                          DirEntry *de_ptr, BOOL *need_dsp_help, YtreePanel *p) {
   Statistic *s = &p->vol->vol_stats;
+  YtreePanel *inactive = NULL;
+  DirEntry *inactive_de = NULL;
+  DirEntry *inactive_fallback = NULL;
+  int inactive_idx;
 
   /* Renamed usage: s->mode -> s->login_mode */
   if (s->login_mode != DISK_MODE && s->login_mode != USER_MODE) {
@@ -91,24 +151,28 @@ void HandleUnreadSubTree(ViewContext *ctx, DirEntry *dir_entry,
   }
   if (dir_entry->not_scanned || (dir_entry->sub_tree == NULL)) {
   } else {
-    /* If the inactive panel is viewing this directory or its descendants,
-     * abort! */
+    /* Capture inactive selection before mutating shared tree state. */
     if (ctx->is_split_screen) {
-      YtreePanel *inactive = (p == ctx->left) ? ctx->right : ctx->left;
+      inactive = (p == ctx->left) ? ctx->right : ctx->left;
       if (inactive && inactive->vol == p->vol) {
-        DirEntry *inactive_de;
         if (inactive->vol->total_dirs > 0) {
-          inactive_de = inactive->vol
-                            ->dir_entry_list[inactive->disp_begin_pos +
-                                             inactive->cursor_pos]
-                            .dir_entry;
+          inactive_idx = inactive->disp_begin_pos + inactive->cursor_pos;
+          if (inactive_idx < 0)
+            inactive_idx = 0;
+          if (inactive_idx >= inactive->vol->total_dirs)
+            inactive_idx = inactive->vol->total_dirs - 1;
+          inactive_de = inactive->vol->dir_entry_list[inactive_idx].dir_entry;
         } else {
           inactive_de = inactive->vol->vol_stats.tree;
         }
-        if (IsDescendant(dir_entry, inactive_de)) {
-          return; /* Abort collapse to prevent use-after-free in inactive panel
-                   */
+
+        inactive_fallback = inactive_de;
+        while (inactive_fallback && inactive_fallback != dir_entry &&
+               IsDescendant(dir_entry, inactive_fallback)) {
+          inactive_fallback = inactive_fallback->up_tree;
         }
+        if (!inactive_fallback)
+          inactive_fallback = p->vol->vol_stats.tree;
       }
     }
     for (de_ptr = dir_entry->sub_tree; de_ptr; de_ptr = de_ptr->next) {
@@ -117,6 +181,12 @@ void HandleUnreadSubTree(ViewContext *ctx, DirEntry *dir_entry,
     dir_entry->not_scanned = TRUE;
     BuildDirEntryList(ctx, p->vol, &p->current_dir_entry);
     BuildDirEntryList(ctx, p->vol, &p->current_dir_entry);
+
+    if (inactive && inactive->vol == p->vol) {
+      ReanchorPanelToDir(inactive, inactive_fallback);
+      BuildFileEntryList(ctx, inactive);
+    }
+
     DisplayTree(ctx, p->vol, p->pan_dir_window, p->disp_begin_pos,
                 p->disp_begin_pos + p->cursor_pos, TRUE);
     DisplayAvailBytes(ctx, s);
