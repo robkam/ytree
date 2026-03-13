@@ -142,7 +142,7 @@ Active when the file window is focused.
 *   **U** (Untag): Untag selected file.
 *   **^U**: Untag all displayed files.
 *   **V** (View): View file with the pager defined in `~/.ytree` (default: less).
-*   **^V**: **View Tagged**. View all tagged files sequentially.
+*   **^V**: **View Tagged**. View all tagged files sequentially. Mode is controlled by `TAGGEDVIEWER`: `external` (default, uses `$PAGER`) or `internal` (built-in viewer with in-app navigation).
 *   **X** (eXecute): Execute a shell command. `{}` is replaced by the filename.
 *   **^X**: Execute shell command for all tagged files. `{}` is replaced by the full path.
 *   **Y**: (Pathcopy): Copy selected file, replicating its directory structure relative to the current volume root.
@@ -177,7 +177,7 @@ When browsing an archive (ZIP, TAR, etc.), ytree behaves similarly to a read-onl
 *   **U** (Untag): Untag selected file.
 *   **^U**: Untag all files.
 *   **V** (View): View file.
-*   **^V**: **View Tagged**. View all tagged files sequentially.
+*   **^V**: **View Tagged**. View all tagged files sequentially. Mode is controlled by `TAGGEDVIEWER`: `external` (default, uses `$PAGER`) or `internal` (built-in viewer with in-app navigation).
 *   **^F** (File Mode): Cycle display modes.
 *   **Return**: Switch to Archive-Dir Mode.
 *   **\*** (Asterisk): Invert tag selection.
@@ -209,6 +209,8 @@ ytree looks for a configuration file at `~/.ytree`. A default is provided in `yt
     *   **4**: Refresh when entering the File Window.
     *   *Default*: `3` (1 + 2) enables both Watcher and Navigation Refresh.
 *   **HIDEDOTFILES=1**: Hide files starting with `.` by default.
+*   **TAGGEDVIEWER=external|internal**: Controls `^V` (View Tagged). `external` uses `$PAGER` (default). `internal` uses the built-in tagged viewer.
+*   **HIGLOBAL_COLOR=fg,bg**: Search-hit highlight color used in preview and internal tagged viewer only.
 *   **[COLORS]**: Customize the color scheme.
 
 ### External Viewers
