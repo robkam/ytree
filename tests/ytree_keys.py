@@ -22,6 +22,7 @@ class Keys:
     F8 = "\033[19~"
 
     # Core Commands
+    ATTRIBUTE = "a"
     COPY = "c"
     MOVE = "m"
     RENAME = "r"
