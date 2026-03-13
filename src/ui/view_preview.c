@@ -207,10 +207,11 @@ void RenderFilePreview(ViewContext *ctx, WINDOW *win, char *filename,
       if (ctx->global_search_term[0] != '\0') {
         char *ptr = disp_ptr;
         char *match;
+        size_t search_len = strlen(ctx->global_search_term);
 
         /* Simple highlighting logic */
         while (remaining_width > 0 && *ptr) {
-          match = strstr(ptr, ctx->global_search_term);
+          match = strcasestr(ptr, ctx->global_search_term);
           if (match) {
             /* Print text before match */
             int pre_len = match - ptr;
@@ -227,16 +228,25 @@ void RenderFilePreview(ViewContext *ctx, WINDOW *win, char *filename,
               break;
 
             /* Print Match */
-            int match_len = strlen(ctx->global_search_term);
+            int match_len = (int)search_len;
             if (match_len > remaining_width)
               match_len = remaining_width;
 
-            wattron(win, A_REVERSE);
-            waddnstr(win, ctx->global_search_term, match_len);
-            wattroff(win, A_REVERSE);
+#ifdef COLOR_SUPPORT
+            if (ctx->color_enabled) {
+              wattron(win, COLOR_PAIR(CPAIR_HIGLOBAL) | A_BOLD);
+              waddnstr(win, match, match_len);
+              wattroff(win, COLOR_PAIR(CPAIR_HIGLOBAL) | A_BOLD);
+            } else
+#endif
+            {
+              wattron(win, A_REVERSE);
+              waddnstr(win, match, match_len);
+              wattroff(win, A_REVERSE);
+            }
 
             remaining_width -= match_len;
-            ptr += match_len;
+            ptr = match + match_len;
           } else {
             /* No more matches, print rest */
             waddnstr(win, ptr, remaining_width);

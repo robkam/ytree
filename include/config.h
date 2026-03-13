@@ -40,6 +40,7 @@
 
 #define DEFAULT_SEARCHCOMMAND	"grep  {}"
 #define DEFAULT_LISTJUMPSEARCH	"0"
+#define DEFAULT_TAGGEDVIEWER "external"
 
 #define DEFAULT_HEXDUMP    "hexdump" /* Defaulting to Linux/BSD standard */
 #define DEFAULT_PAGER      "less"    /* Defaulting to modern standard */
