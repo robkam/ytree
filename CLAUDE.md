@@ -1,262 +1,227 @@
-# ytree Development Context
+# CLAUDE.md
 
-## Finding Information
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-This project maintains comprehensive technical documentation. **Do not guess or assume** - read the appropriate document when you need context.
+## ytree Development Context
 
-### CRITICAL: Check ROADMAP.md Before Architectural Changes
+ytree is a file manager for UNIX-like systems, optimized for speed and keyboard efficiency. This is a v3.0 modernization of the original ytree, using C99 standards and a strict context-passing architecture.
 
-**BEFORE proposing any architectural changes, refactors, or new subsystems:**
+## Build Commands
 
-1. **READ [doc/ROADMAP.md](doc/ROADMAP.md) Steps 9.x** to verify the architecture hasn't already been implemented
-2. **SEARCH for keywords** related to your proposed change (e.g., "dialog", "prompt", "input", "window stack")
-3. **VERIFY completion status** - Many architectural refactors are marked `[x] Status: Complete`
+```bash
+# Clean build (required after header changes)
+make clean && make
 
-**Example**: Step 9.4 (Tiered Dialog Manager & Window Stack) is **already complete**. Do not propose rebuilding the dialog system.
+# Debug build with AddressSanitizer
+make clean && make DEBUG=1
+
+# Run the application
+./build/ytree
+
+# Run with debug logging
+./build/ytree 2>/tmp/ytree_debug.log
+```
+
+## Testing Commands
+
+```bash
+# Activate Python virtual environment (required for tests)
+source .venv/bin/activate
+
+# Run all tests
+pytest
+
+# Run tests with verbose output
+pytest -v -s
+
+# Run a specific test file
+pytest tests/test_panels.py
+
+# Run a specific test by name pattern
+pytest -k "test_panel_isolation"
+
+# Run a specific test function
+pytest tests/test_panel_isolation.py::test_header_path_clearing -v
+
+# Check for memory leaks
+valgrind --leak-check=full ./build/ytree
+```
+
+## High-Level Architecture
+
+### Context-Passing Design
+
+The codebase follows a **strict context-passing architecture**. All functions receive explicit context pointers as their first parameter:
+
+```c
+// Every function signature begins with a context pointer
+void UpdateDisplay(ViewContext *ctx, ...);
+void RefreshPanel(YtreePanel *panel, ...);
+void LoadVolume(Volume *volume, ...);
+```
+
+**Key Rules:**
+- NO global mutable state (only 3 permitted exceptions: `ui_colors[]`, `NUM_UI_COLORS`, `ytree_shutdown_flag`)
+- All state flows through `ViewContext` → `YtreePanel` → `Volume` hierarchy
+- Functions cannot reach "sideways" through globals to find siblings
+
+### State Hierarchy
+
+```
+ViewContext (The Session Root)
+├── left   → YtreePanel (left panel view state)
+├── right  → YtreePanel (right panel view state)
+├── active → pointer to current panel (left or right)
+├── volumes_head → Volume linked list (filesystem data)
+└── viewer, layout, mode flags, etc.
+```
+
+### Dual-Panel Isolation (F8 Split-Screen)
+
+The split-screen mode maintains **complete panel independence**:
+- Active panel owns keyboard focus and initiates operations
+- Inactive panel is DORMANT - no updates or state changes
+- Tab key switches focus, preserving exact state
+- Copy/Move operations are directional: Active → Inactive
+
+### Module Organization
+
+```
+src/
+├── core/       # Main loop, signal handling, initialization
+├── ui/         # Display rendering, cursor movement, screen layout
+├── fs/         # Filesystem operations, directory tree management
+├── cmd/        # Command execution (copy, move, delete, etc.)
+├── archive/    # Archive handling via libarchive
+└── util/       # String utilities, memory management
+```
+
+### Key Architectural Invariants
+
+1. **Single-threaded execution** - No threads, deterministic state transitions
+2. **MVC separation** - UI (View), filesystem (Model), commands (Controller)
+3. **Panel independence** - Left/right panels cannot interfere with each other
+4. **Context isolation** - All state access goes through explicit pointers
+
+## Finding Information & Global Rules
+
+This project maintains comprehensive documentation and follows established global directives. **Do not guess or assume** - read the appropriate document.
 
 ### Global AI Development Rules
 
-**READ FIRST:** [~/.antigravityrules](~/.antigravityrules) contains high-level directives that apply to ALL AI development work:
-- Your role as Senior AI Development Partner under the Lead Architect
-- Environmental context (WSL2, POSIX paths, toolchain access)
-- Persona orchestration (@consultant, @builder, @auditor, @tester)
-- Interaction protocol (design approval workflow, **check ROADMAP.md first**)
+**READ FIRST:** [~/.antigravityrules](file:///home/rob/.antigravityrules) contains high-level directives that apply to ALL AI development work:
+- Your role as Senior AI Development Partner under the Lead Architect.
+- Environmental context (WSL2, POSIX paths, toolchain access).
+- Persona orchestration (@consultant, @builder, @auditor, @tester).
+- Interaction protocol (design approval workflow).
 
-### Architecture & Technical Specifications
+### Required Reading & Modernization Context
 
-- **[doc/ARCHITECTURE.md](doc/ARCHITECTURE.md)** - System design, core invariants, dual-panel isolation rules, and rendering standards
-- **[doc/SPECIFICATION.md](doc/SPECIFICATION.md)** - Behavioral requirements, UI contracts, navigation protocols, and the "XTree&trade;" state machine
-- **[doc/ROADMAP.md](doc/ROADMAP.md)** - Feature implementation history, current status, and modernization phases
+1. **Check [doc/ROADMAP.md](doc/ROADMAP.md) modernization steps** before proposing architectural changes - many refactors are moving targets.
+2. **Read [doc/ARCHITECTURE.md](doc/ARCHITECTURE.md)** for system design and invariants.
+3. **Read [doc/SPECIFICATION.md](doc/SPECIFICATION.md)** for behavioral requirements.
+4. **Read [doc/ai/WORKFLOW.md](doc/ai/WORKFLOW.md)** for the development protocol.
+5. **Progressive Disclosure Principle**: Only read the documents you need for the current task. Don't try to load all context upfront.
 
-### Development Workflow & Standards
+### The Anti-Patching Directive
 
-- **[doc/ai/WORKFLOW.md](doc/ai/WORKFLOW.md)** - The Spec-First development protocol and "Golden Loop" methodology
-- **[doc/ai/TESTING.md](doc/ai/TESTING.md)** - Test organization standards, naming conventions, and TDD protocol
-- **[doc/ai/DEBUGGING.md](doc/ai/DEBUGGING.md)** - External Expert Architecture Analysis methodology for complex bugs
-- **[.agent/rules/*.md](.agent/rules/)** - Role-specific persona instructions for different task types
+**DO NOT apply superficial fixes for deep architectural problems.** If a bug is caused by fragmented state, inconsistent globals, or panel collision, **STOP** and refactor to unify logic first.
+
 
 ### Available Development Personas
 
-The `.agent/rules/` directory contains specialized persona definitions. Read the appropriate file when taking on a specific role:
+- **[consultant.md](file:///home/rob/ytree/.agent/rules/consultant.md)** - Planning and analysis (behavior-to-C translation, no coding).
+- **[builder.md](file:///home/rob/ytree/.agent/rules/builder.md)** - Implementation (C89/C99 standards, complete files only).
+- **[auditor.md](file:///home/rob/ytree/.agent/rules/auditor.md)** - Architecture review (identifying global state coupling).
+- **[tester.md](file:///home/rob/ytree/.agent/rules/tester.md)** - Test generation (Python/pexpect TUI automation).
 
-- **[consultant.md](.agent/rules/consultant.md)** - Planning and analysis (behavior-to-C translation, no coding)
-- **[builder.md](.agent/rules/builder.md)** - Implementation (C89/C99 standards, complete files only, no snippets)
-- **[auditor.md](.agent/rules/auditor.md)** - Architecture review (identify global state coupling and fragility)
-- **[tester.md](.agent/rules/tester.md)** - Test generation (Python/pexpect TUI automation)
-- **[mentor.md](.agent/rules/mentor.md)** - General technical guidance
+## Leveraging MCP Servers: jCodemunch, Serena, & GitHub
 
----
+This project utilizes Model Context Protocol (MCP) servers for semantic code understanding and repository management.
 
-## Leveraging MCP Servers: jCodemunch & Serena
-
-This project is configured with two powerful Model Context Protocol (MCP) servers that provide **semantic code understanding** capabilities far superior to basic file operations.
-
-### When to Use Semantic Tools vs. Basic File Tools
-
-**PREFER Serena/jCodemunch for:**
-- Understanding code structure and relationships
-- Finding function/class definitions across the codebase
-- Tracing references and call chains
-- Identifying where symbols are used
-- Architecture exploration and refactoring analysis
-- Large-scale code navigation
-
-**AVOID basic file tools (Read, Grep, Glob) when:**
-- You need to understand "where is X defined?"
-- You want to find "what calls function Y?"
-- You're exploring unfamiliar code areas
-- You need architectural understanding
-
-### Strategic Use of jCodemunch
-
-jCodemunch provides **indexed symbol navigation** across the entire codebase:
+### Strategic Use of jCodemunch (Symbol Navigation)
+jCodemunch provides indexed symbol navigation across the entire codebase. Use it for finding definitions, signatures, and file outlines.
 
 ```bash
-# First-time setup: Index the ytree codebase
-mcp__jcodemunch__index_folder(path: "/home/rob/ytree")
-
-# Search for symbols by name
+# Search for functions/symbols by name
 mcp__jcodemunch__search_symbols(repo: "ytree", query: "RefreshView")
 
-# Get file structure overview
-mcp__jcodemunch__get_file_tree(repo: "ytree", path_prefix: "src/")
-
-# Get outline of specific file (all functions/classes)
+# Get file outline (all functions/classes in a file)
 mcp__jcodemunch__get_file_outline(repo: "ytree", file_path: "src/ui/ctrl_dir.c")
-
-# Retrieve symbol implementation
-mcp__jcodemunch__get_symbol(repo: "ytree", symbol_id: "<id-from-search>")
 ```
 
-**Key Benefits:**
-- **Fast symbol lookup** - No need to grep through hundreds of files
-- **Cross-file navigation** - Instantly find definitions regardless of file location
-- **Signature awareness** - See function signatures without reading full implementations
-- **AI-generated summaries** - Get natural language explanations of symbols
-
-### Strategic Use of Serena
-
-Serena provides **semantic code analysis** with LSP-powered symbol intelligence:
+### Strategic Use of Serena (Symbol Analysis & Editing)
+Serena provides LSP-powered symbol intelligence. Use it for tracing references, call chains, and architectural editing (e.g., atomic function replacement).
 
 ```bash
-# Get high-level overview of a file's structure
-mcp__serena__get_symbols_overview(relative_path: "src/ui/ctrl_dir.c", depth: 1)
+# Get file structure overview
+mcp__serena__get_symbols_overview(relative_path: "src/ui/ctrl_dir.c")
 
-# Find symbol by name pattern (supports wildcards)
-mcp__serena__find_symbol(name_path_pattern: "RefreshView", include_body: true)
+# Find symbol with implementation
+mcp__serena__find_symbol(name_path_pattern: "UpdateDisplay", include_body: true)
 
 # Find all references to a symbol
-mcp__serena__find_referencing_symbols(
-    name_path: "RefreshView",
-    relative_path: "src/ui/screen.c"
-)
+mcp__serena__find_referencing_symbols(name_path: "ViewContext", relative_path: "src/ui/screen.c")
 
-# Search for patterns in code (regex-aware)
-mcp__serena__search_for_pattern(
-    substring_pattern: "ctx->.*panel",
-    restrict_search_to_code_files: true
-)
-
-# Symbol-level editing (preferred over text replacement)
-mcp__serena__replace_symbol_body(
-    name_path: "UpdateFooter",
-    relative_path: "src/ui/footer.c",
-    body: "<new-implementation>"
-)
+# Replace entire function atomically
+mcp__serena__replace_symbol_body(name_path: "UpdateFooter", relative_path: "src/ui/footer.c", body: "...")
 ```
 
-**Key Benefits:**
-- **LSP integration** - Uses language server for accurate symbol resolution
-- **Architectural editing** - Replace entire functions atomically
-- **Reference tracking** - Find all usages before refactoring
-- **Symbol-aware search** - Filter by symbol kind (function, class, etc.)
-
-### Workflow Integration
-
-**Code Exploration (Initial Understanding):**
-1. Use `mcp__jcodemunch__get_repo_outline()` to understand project structure
-2. Use `mcp__serena__get_symbols_overview()` for specific file overviews
-3. Use `mcp__jcodemunch__search_symbols()` to locate definitions
-4. Use `mcp__serena__find_symbol()` with `include_body=true` only when you need implementation details
-
-**Refactoring (Architectural Changes):**
-1. Use `mcp__serena__find_symbol()` to locate target functions
-2. Use `mcp__serena__find_referencing_symbols()` to find all call sites
-3. Use `mcp__serena__replace_symbol_body()` for atomic function replacement
-4. Use `mcp__serena__rename_symbol()` for codebase-wide identifier changes
-
-**Debugging (Root Cause Analysis):**
-1. Use `mcp__jcodemunch__search_text()` for string literals/error messages
-2. Use `mcp__serena__find_referencing_symbols()` to trace data flow
-3. Use `mcp__serena__search_for_pattern()` for state access patterns (e.g., `"ctx->.*focused_panel"`)
-
-**Implementation (New Code):**
-1. Use `mcp__serena__get_symbols_overview()` to understand existing structure
-2. Use `mcp__serena__insert_after_symbol()` / `insert_before_symbol()` for new functions
-3. Use `mcp__serena__replace_content()` for small in-function edits
-4. Use traditional `Edit` tool only when semantic tools aren't appropriate
-
-### Anti-Patterns to Avoid
-
-**DON'T:**
-- Use `Grep` when `mcp__jcodemunch__search_symbols()` would find it instantly
-- Use `Read` entire files when `mcp__serena__get_symbols_overview()` gives you the structure
-- Use `Edit` for function replacement when `mcp__serena__replace_symbol_body()` is safer
-- Guess where symbols are defined - **search semantically first**
-
-**DO:**
-- Start exploration with semantic tools
-- Use semantic search before falling back to text search
-- Leverage symbol-level editing for architectural changes
-- Combine tools: jCodemunch for discovery, Serena for manipulation
-
-### Memory System (Long-Term Context)
-
-Serena includes a **persistent memory system** for project-specific knowledge:
+### GitHub MCP Server Integration
+Used for seamless repository management, issue tracking, and PR creation.
 
 ```bash
-# Store architectural decisions
-mcp__serena__write_memory(
-    memory_name: "refactoring/context_passing_rules",
-    content: "All functions MUST receive ViewContext *ctx as first parameter..."
-)
+# Create and manage issues
+mcp__github-mcp-server__create_issue(owner: "robkam", repo: "ytree", title: "Bug: ...", body: "...")
 
-# Recall stored knowledge
-mcp__serena__read_memory(memory_name: "refactoring/context_passing_rules")
-
-# Organize by topic
-mcp__serena__list_memories(topic: "refactoring")
+# Create pull requests
+mcp__github-mcp-server__create_pull_request(owner: "robkam", repo: "ytree", title: "fix: ...", base: "main", head: "branch")
 ```
 
-Use memories to preserve architectural insights across conversation boundaries.
+### Workflow Integration Patterns
 
----
+- **Exploration**: Start with `get_symbols_overview` for file structure, then `search_symbols` to locate logic.
+- **Refactoring**: Use `find_referencing_symbols` to find all call sites before using `replace_symbol_body` for atomic changes.
+- **Root Cause Analysis**: Use `search_for_pattern` for state access patterns and trace data flow via references.
+- **Memory System**: Use Serena's memory system (`write_memory` / `read_memory`) to preserve architectural insights across sessions.
 
-## Critical Context: Current Architecture State
+## Common Development Tasks
 
-### [COMPLETE] Context-Oriented Refactor (Phase 4.9)
+### Adding a New Command
 
-The codebase has been **completely refactored** to eliminate global mutable state:
+1. Create handler in `src/cmd/` following existing patterns
+2. Register in command dispatch table
+3. Update help text in `src/ui/help.c`
+4. Add tests using pexpect framework
 
-- **All state consolidated** into `ViewContext` structure ([include/ytree_defs.h:630-729](include/ytree_defs.h))
-- **228 function signatures** updated to receive `ViewContext *ctx` parameter
-- **Panel state isolated** into `YtreePanel` structures for dual-panel independence
-- **Zero runtime regressions** - 100% test suite passing after refactor
+### Debugging UI Issues
 
-### [COMPLETE] Context-Passing Migration
+1. Enable debug logging: `./build/ytree 2>/tmp/ytree_debug.log`
+2. Add debug prints: `fprintf(stderr, "DEBUG: panel=%p cursor=%d\n", panel, panel->cursor);`
+3. Use `tests/debug_screen.py` for screen capture analysis
+4. Check panel isolation with `test_panel_isolation.py`
 
-The migration to a fully context-passing architecture is **complete**. The `GlobalView` compatibility bridge has been removed. All functions now receive explicit context pointers (`ViewContext *ctx`, `YtreePanel *`, or `Volume *`) as their first argument. Only three permitted global exceptions remain (immutable config tables and the POSIX signal flag). See [ARCHITECTURE.md §3](doc/ARCHITECTURE.md) for details.
-
-**Rules for new code:**
-- [REQUIRED] Always accept `ViewContext *ctx` (or a more specific context pointer) as first parameter
-- [REQUIRED] Pass context explicitly down call chains
-- [FORBIDDEN] Introducing any new global mutable state
-
----
-
-## The Anti-Patching Directive
-
-**CRITICAL ARCHITECTURAL RULE:**
-
-> Do not apply superficial fixes for deep architectural problems.
-
-If a bug is caused by:
-- Fragmented state across multiple files
-- Global variables being modified inconsistently
-- Panel state collision (left/right panels interfering)
-- Logic duplicated in multiple locations
-
-**STOP.** Do not patch the symptom. Refactor the architecture to unify the logic before fixing the specific bug.
-
-**Rationale:** It is better to break one thing to fix the system than to patch the system and break everything.
-
----
-
-## Quick Reference Commands
+### Memory Debugging
 
 ```bash
-# Build
-make clean && make
+# Build with AddressSanitizer
+make clean && make DEBUG=1
 
-# Run tests
-source .venv/bin/activate;pytest
+# Run with valgrind for leak detection
+valgrind --leak-check=full --show-leak-kinds=all ./build/ytree
 
-# Run with debug logging
-./ytree 2>/tmp/ytree_debug.log
-
-# Check for memory leaks
-valgrind --leak-check=full ./ytree
+# Check specific allocation patterns
+valgrind --track-origins=yes ./build/ytree
 ```
 
----
+## Test Organization
 
-## When You Need More Information
+Tests use Python's `pexpect` library to automate the TUI:
 
-1. **Understanding a bug?** Read [doc/SPECIFICATION.md](doc/SPECIFICATION.md) to verify expected behavior
-2. **Planning a feature?** Read [doc/ARCHITECTURE.md](doc/ARCHITECTURE.md) for design constraints
-3. **Implementing code?** Read [.agent/rules/builder.md](.agent/rules/builder.md) for coding standards
-4. **Writing tests?** Read [doc/ai/TESTING.md](doc/ai/TESTING.md) for test patterns
-5. **Debugging architectural issues?** Read [doc/ai/DEBUGGING.md](doc/ai/DEBUGGING.md) for the External Expert Analysis method
-6. **Reviewing architecture?** Read [.agent/rules/auditor.md](.agent/rules/auditor.md) for audit guidelines
+- `tests/conftest.py` - Pytest fixtures and test helpers
+- `tests/ytree_control.py` - Main controller class for TUI automation
+- `test_panel_isolation.py` - Dual-panel independence tests
+- `test_stats_panel.py` - Statistics window behavior
+- `test_core.py` - Basic functionality tests
 
-**Progressive Disclosure Principle:** Only read the documents you need for the current task. Don't try to load all context upfront.
+When in doubt about architecture or behavior, consult the documentation in `doc/` rather than making assumptions.
