@@ -672,7 +672,10 @@ void PrintOptions(WINDOW *win, int y, int x, char *str) {
     }
 
 #ifdef COLOR_SUPPORT
-    wattrset(win, COLOR_PAIR(color) | A_BOLD);
+    if (color == hi_color)
+      wattrset(win, COLOR_PAIR(color) | A_BOLD);
+    else
+      wattrset(win, COLOR_PAIR(color));
 #else
     wattrset(win, color);
 #endif
@@ -713,35 +716,47 @@ void PrintMenuOptions(WINDOW *win, int y, int x, char *str, int ncolor,
 
     switch (ch) {
     case '(':
-      color = hi_color;
 #ifdef COLOR_SUPPORT
-      WAttrAddStr(win, COLOR_PAIR(color) | A_BOLD, sbuf);
+      if (color == hi_color)
+        WAttrAddStr(win, COLOR_PAIR(color) | A_BOLD, sbuf);
+      else
+        WAttrAddStr(win, COLOR_PAIR(color), sbuf);
 #else
       WAttrAddStr(win, color, sbuf);
 #endif
       strcpy(sbuf, "");
+      color = hi_color;
       continue;
 
     case ')':
-      color = lo_color;
 #ifdef COLOR_SUPPORT
-      WAttrAddStr(win, COLOR_PAIR(color) | A_BOLD, sbuf);
+      if (color == hi_color)
+        WAttrAddStr(win, COLOR_PAIR(color) | A_BOLD, sbuf);
+      else
+        WAttrAddStr(win, COLOR_PAIR(color), sbuf);
 #else
       WAttrAddStr(win, color, sbuf);
 #endif
       strcpy(sbuf, "");
+      color = lo_color;
       continue;
 
 #ifdef COLOR_SUPPORT
     case ']':
-      color = lo_color;
-      WAttrAddStr(win, COLOR_PAIR(color) | A_BOLD, sbuf);
+      if (color == hi_color)
+        WAttrAddStr(win, COLOR_PAIR(color) | A_BOLD, sbuf);
+      else
+        WAttrAddStr(win, COLOR_PAIR(color), sbuf);
       strcpy(sbuf, "");
+      color = lo_color;
       continue;
     case '[':
-      color = hi_color;
-      WAttrAddStr(win, COLOR_PAIR(color) | A_BOLD, sbuf);
+      if (color == hi_color)
+        WAttrAddStr(win, COLOR_PAIR(color) | A_BOLD, sbuf);
+      else
+        WAttrAddStr(win, COLOR_PAIR(color), sbuf);
       strcpy(sbuf, "");
+      color = hi_color;
       continue;
 #else
     case ']':
@@ -755,7 +770,10 @@ void PrintMenuOptions(WINDOW *win, int y, int x, char *str, int ncolor,
   }
 
 #ifdef COLOR_SUPPORT
-  WAttrAddStr(win, COLOR_PAIR(color) | A_BOLD, sbuf);
+  if (color == hi_color)
+    WAttrAddStr(win, COLOR_PAIR(color) | A_BOLD, sbuf);
+  else
+    WAttrAddStr(win, COLOR_PAIR(color), sbuf);
 #else
   WAttrAddStr(win, color, sbuf);
 #endif
