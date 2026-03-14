@@ -234,9 +234,9 @@ void RenderFilePreview(ViewContext *ctx, WINDOW *win, char *filename,
 
 #ifdef COLOR_SUPPORT
             if (ctx->color_enabled) {
-              wattron(win, COLOR_PAIR(CPAIR_HIGLOBAL) | A_BOLD);
+              wattron(win, COLOR_PAIR(CPAIR_HIGLOBAL));
               waddnstr(win, match, match_len);
-              wattroff(win, COLOR_PAIR(CPAIR_HIGLOBAL) | A_BOLD);
+              wattroff(win, COLOR_PAIR(CPAIR_HIGLOBAL));
             } else
 #endif
             {
