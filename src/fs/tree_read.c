@@ -64,6 +64,7 @@ int ReadTree(ViewContext *ctx, DirEntry *dir_entry, char *path, int depth,
   dir_entry->start_file = 0;
   dir_entry->cursor_pos = 0;
   dir_entry->global_flag = FALSE;
+  dir_entry->global_all_volumes = FALSE;
   dir_entry->login_flag = FALSE;
   dir_entry->big_window = FALSE;
   dir_entry->not_scanned = FALSE;
