@@ -723,7 +723,7 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 *   **Mechanism:** Sticky cursor: Cursor remains at the last valid match on failed input. Implicit exit: Action keys confirm match.
 *   **Files to Modify:** `src/ui/ui_nav.c`, `src/ui/ctrl_file.c`, `src/ui/ctrl_dir.c`, `src/ui/key_engine.c`
 *   **Context Files:** `include/ytree_ui.h`, `include/ytree_defs.h`
-*   - [/] **Status:** Partially Completed. (Incremental Search implemented in File Window via `ListJump`, but missing in Directory Window).
+*   - [x] **Status:** Completed. (Incremental Search implemented for both File Window and Directory Window via `ACTION_LIST_JUMP` handlers).
 
 ### **Step 4.38: Implement Bottom F-Key Menu Bar**
 *   **Goal:** Shift the existing two-line command footer up by one line and reserve the bottom-most row for a clickable, function-key reference bar (F1 Help, F3 Options, F5 Redraw, F7 View, F8 Split).
@@ -1577,4 +1577,3 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
     *   Update `view.c`, `copy.c`, `execute.c`.
     *   Replace specific calls with `vol->driver->extract(...)` or `vol->driver->stat(...)`.
 *   **Files:** `src/cmd/*.c`.
-
