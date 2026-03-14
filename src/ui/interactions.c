@@ -483,7 +483,6 @@ int ChangeFileModus(ViewContext *ctx, FileEntry *fe_ptr) {
       clrtoeol();
       return -1;
     }
-    UI_Message(ctx, "Mode preview: %s", preview_mode);
     (void)strcpy(walking_package.function_data.change_mode.new_mode, parsed_mode);
     result = SetFileModus(ctx, fe_ptr, &walking_package);
   }
@@ -517,7 +516,6 @@ int ChangeDirModus(ViewContext *ctx, DirEntry *de_ptr) {
       clrtoeol();
       return -1;
     }
-    UI_Message(ctx, "Mode preview: %s", preview_mode);
     (void)strcpy(walking_package.function_data.change_mode.new_mode, parsed_mode);
     result = SetDirModus(de_ptr, &walking_package);
   }

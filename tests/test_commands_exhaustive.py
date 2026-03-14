@@ -113,6 +113,8 @@ def test_chmod_command(ytree_binary, tmp_path):
     time.sleep(0.1)
     tui.send_keystroke("m")
     time.sleep(0.1)
+    tui.send_keystroke(Keys.CTRL_U)  # Ctrl+U clears prefilled mode
+    time.sleep(0.05)
     # Change to 0755 using octal input
     tui.send_keystroke("755\r")
     time.sleep(0.5)
@@ -141,6 +143,8 @@ def test_chmod_4digit_octal_command(ytree_binary, tmp_path):
     time.sleep(0.1)
     tui.send_keystroke("m")
     time.sleep(0.1)
+    tui.send_keystroke(Keys.CTRL_U)  # Ctrl+U clears prefilled mode
+    time.sleep(0.05)
     tui.send_keystroke("4755\r")
     time.sleep(0.5)
 
