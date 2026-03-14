@@ -10,17 +10,215 @@
 #include "ytree.h"
 #include "ytree_ui.h"
 #include <ctype.h>
+#include <errno.h>
 #include <dirent.h>
 #include <fcntl.h>
 #include <grp.h>
 #include <libgen.h>
 #include <pwd.h>
+#include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
+#include <time.h>
+#include <utime.h>
 #include <unistd.h>
 
 static char move_prompt_header[PATH_LENGTH + 50];
 static char move_prompt_as[PATH_LENGTH + 1];
+
+static BOOL is_valid_mode_char(int idx, int ch) {
+  switch (idx) {
+  case 0:
+    return (ch == '?' || ch == '-' || ch == 'd' || ch == 'l');
+  case 1:
+  case 4:
+  case 7:
+    return (ch == 'r' || ch == '-' || ch == '?');
+  case 2:
+  case 5:
+  case 8:
+    return (ch == 'w' || ch == '-' || ch == '?');
+  case 3:
+    return (ch == 'x' || ch == 's' || ch == 'S' || ch == '-' || ch == '?');
+  case 6:
+    return (ch == 'x' || ch == 's' || ch == 'S' || ch == '-' || ch == '?');
+  case 9:
+    return (ch == 'x' || ch == 't' || ch == 'T' || ch == '-' || ch == '?');
+  default:
+    return FALSE;
+  }
+}
+
+int UI_ParseModeInput(const char *input, char *out_mode, char *preview_mode) {
+  size_t len;
+  int i;
+  char attributes[11];
+
+  if (!input || !out_mode || !preview_mode)
+    return -1;
+
+  len = strlen(input);
+  if (len == 3 || len == 4) {
+    mode_t mode_bits = 0;
+    mode_t synthetic_mode;
+
+    for (i = 0; i < (int)len; i++) {
+      if (input[i] < '0' || input[i] > '7')
+        return -1;
+    }
+
+    mode_bits = (mode_t)strtol(input, NULL, 8);
+    synthetic_mode = S_IFREG | (mode_bits & 0777);
+    if (mode_bits & 04000)
+      synthetic_mode |= S_ISUID;
+    if (mode_bits & 02000)
+      synthetic_mode |= S_ISGID;
+#ifdef S_ISVTX
+    if (mode_bits & 01000)
+      synthetic_mode |= S_ISVTX;
+#endif
+
+    (void)GetAttributes((unsigned short)synthetic_mode, attributes);
+    out_mode[0] = '?';
+    memcpy(&out_mode[1], &attributes[1], 9);
+    out_mode[10] = '\0';
+    strncpy(preview_mode, &attributes[1], 9);
+    preview_mode[9] = '\0';
+    return 0;
+  }
+
+  if (len == 9) {
+    out_mode[0] = '?';
+    for (i = 0; i < 9; i++) {
+      if (!is_valid_mode_char(i + 1, input[i]))
+        return -1;
+      out_mode[i + 1] = (char)input[i];
+    }
+    out_mode[10] = '\0';
+    strncpy(preview_mode, input, 9);
+    preview_mode[9] = '\0';
+    return 0;
+  }
+
+  if (len == 10) {
+    for (i = 0; i < 10; i++) {
+      if (!is_valid_mode_char(i, input[i]))
+        return -1;
+      out_mode[i] = (char)input[i];
+    }
+    out_mode[10] = '\0';
+    strncpy(preview_mode, &out_mode[1], 9);
+    preview_mode[9] = '\0';
+    return 0;
+  }
+
+  return -1;
+}
+
+static void format_mode_prompt_value(mode_t mode, char *buffer, size_t size) {
+  int special = 0;
+  int perms;
+
+  perms = (int)(mode & 0777);
+  if (mode & S_ISUID)
+    special |= 4;
+  if (mode & S_ISGID)
+    special |= 2;
+#ifdef S_ISVTX
+  if (mode & S_ISVTX)
+    special |= 1;
+#endif
+
+  if (special) {
+    (void)snprintf(buffer, size, "%1o%03o", special, perms);
+  } else {
+    (void)snprintf(buffer, size, "%03o", perms);
+  }
+}
+
+static int parse_date_input(const char *input, time_t *out_time) {
+  struct tm tm_value;
+  int year = 0, month = 0, day = 0, hour = 0, minute = 0, second = 0;
+  int matched = 0;
+  time_t parsed_time;
+
+  if (!input || !out_time)
+    return -1;
+
+  matched = sscanf(input, "%d-%d-%d %d:%d:%d", &year, &month, &day, &hour,
+                   &minute, &second);
+  if (matched != 6) {
+    second = 0;
+    matched = sscanf(input, "%d-%d-%d %d:%d", &year, &month, &day, &hour,
+                     &minute);
+  }
+  if (matched != 5) {
+    hour = 0;
+    minute = 0;
+    second = 0;
+    matched = sscanf(input, "%d-%d-%d", &year, &month, &day);
+  }
+  if (matched != 3 && matched != 5 && matched != 6)
+    return -1;
+
+  if (month < 1 || month > 12 || day < 1 || day > 31 || hour < 0 || hour > 23 ||
+      minute < 0 || minute > 59 || second < 0 || second > 59) {
+    return -1;
+  }
+
+  memset(&tm_value, 0, sizeof(tm_value));
+  tm_value.tm_year = year - 1900;
+  tm_value.tm_mon = month - 1;
+  tm_value.tm_mday = day;
+  tm_value.tm_hour = hour;
+  tm_value.tm_min = minute;
+  tm_value.tm_sec = second;
+  tm_value.tm_isdst = -1;
+
+  parsed_time = mktime(&tm_value);
+  if (parsed_time == (time_t)-1)
+    return -1;
+
+  *out_time = parsed_time;
+  return 0;
+}
+
+static int change_path_date(ViewContext *ctx, const char *path,
+                            struct stat *stat_buf) {
+  struct utimbuf times;
+  struct stat updated_stat;
+  time_t new_mtime = stat_buf->st_mtime;
+  int scope_mask = 0;
+
+  if (UI_GetDateChangeSpec(ctx, &new_mtime, &scope_mask) != 0) {
+    return -1;
+  }
+
+  times.actime =
+      (scope_mask & DATE_SCOPE_ACCESS) ? new_mtime : stat_buf->st_atime;
+  times.modtime =
+      (scope_mask & DATE_SCOPE_MODIFY) ? new_mtime : stat_buf->st_mtime;
+
+  if (utime(path, &times) != 0) {
+    UI_Message(ctx, "Can't change date:*\"%s\"*%s", path, strerror(errno));
+    move(LINES - 2, 1);
+    clrtoeol();
+    return -1;
+  }
+
+  if (stat(path, &updated_stat) != 0) {
+    UI_Message(ctx, "Can't stat after date change:*\"%s\"*%s", path,
+               strerror(errno));
+    move(LINES - 2, 1);
+    clrtoeol();
+    return -1;
+  }
+  *stat_buf = updated_stat;
+
+  move(LINES - 2, 1);
+  clrtoeol();
+  return 0;
+}
 
 int UI_ConflictResolverWrapper(ViewContext *ctx, const char *src_path,
                                const char *dst_path, int *mode_flags) {
@@ -162,105 +360,131 @@ int GetRenameParameter(ViewContext *ctx, const char *old_name, char *new_name) {
   return (0);
 }
 
-static int InputModeString(ViewContext *ctx, char *mode, int y, int x) {
-  int cursor_pos = 1; /* Skip file type char at index 0 */
+int UI_PromptAttributeAction(ViewContext *ctx, BOOL tagged, BOOL allow_date) {
   int ch;
-  char path[PATH_LENGTH];
+  const char *menu_text;
 
-  curs_set(0); /* Hide hardware cursor, we manage highlighting manually */
+  if (tagged) {
+    menu_text = "ATTRIBUTES: (M)ode (O)wner (G)roup (D)ate (^D)ate";
+  } else if (allow_date) {
+    menu_text = "ATTRIBUTES: (M)ode (O)wner (G)roup (D)ate";
+  } else {
+    menu_text = "ATTRIBUTES: (M)ode (O)wner (G)roup";
+  }
+
+  ClearHelp(ctx);
+  wmove(ctx->ctx_border_window, ctx->layout.prompt_y, 0);
+  wclrtoeol(ctx->ctx_border_window);
+  PrintOptions(ctx->ctx_border_window, ctx->layout.prompt_y, 1, (char *)menu_text);
+  wnoutrefresh(ctx->ctx_border_window);
+  doupdate();
 
   while (1) {
-    /* Draw current mode string */
-    wmove(stdscr, y, x);
-    int i;
-    for (i = 0; i < 10; i++) {
-      if (i == cursor_pos)
-        wattron(stdscr, A_REVERSE);
-      waddch(stdscr, mode[i]);
-      if (i == cursor_pos)
-        wattroff(stdscr, A_REVERSE);
+    ch = WGetch(ctx, ctx->ctx_border_window);
+    if (ch == ESC) {
+      ch = ESC;
+      break;
     }
-    wnoutrefresh(stdscr);
-    doupdate();
-
-    ch = Getch(ctx);
-
-    /* F2 Handling for Volume Switching */
-    if (ch == KEY_F(2)) {
-      if (KeyF2Get(ctx, ctx->active, path) == 0) {
-        /* Ignore path result as chmod uses specific characters */
-      }
-      /* Always redraw prompt */
-      MvAddStr(LINES - 2, 1, "MODE:");
+    if (ch < 0)
       continue;
-    }
+    if (islower(ch))
+      ch = toupper(ch);
 
-    if (ch == ESC)
-      return ESC;
-    if (ch == ERR) {
-      if (ctx && ctx->resize_request) {
-        /* Handle resize */
-        ctx->resize_request = FALSE;
-        ReCreateWindows(ctx);
-        DisplayMenu(ctx);
-        DisplayDiskStatistic(ctx, &ctx->active->vol->vol_stats);
-        /* Redraw prompt */
-        ClearHelp(ctx);
-        MvAddStr(LINES - 2, 1, "MODE:");
-        x = 1 + strlen("MODE:") + UI_INPUT_PADDING;
-        continue;
-      }
-      return ESC; /* Unexpected error */
-    }
-    if (ch == '\n' || ch == '\r')
-      return CR;
-
-    switch (ch) {
-    case KEY_LEFT:
-      if (cursor_pos > 1)
-        cursor_pos--;
-      break;
-    case KEY_RIGHT:
-      if (cursor_pos < 9)
-        cursor_pos++;
-      break;
-    case KEY_HOME:
-      cursor_pos = 1;
-      break;
-    case KEY_END:
-      cursor_pos = 9;
-      break;
-    default:
-      if (strchr("rwx-sStT", ch)) {
-        mode[cursor_pos] = ch;
-        if (cursor_pos < 9)
-          cursor_pos++;
-      }
+    if (ch == 'M' || ch == 'O' || ch == 'G' || (allow_date && ch == 'D') ||
+        (tagged && (ch == 'D' || ch == 0x04))) {
       break;
     }
   }
+
+  wmove(ctx->ctx_border_window, ctx->layout.prompt_y, 0);
+  wclrtoeol(ctx->ctx_border_window);
+  wnoutrefresh(ctx->ctx_border_window);
+  doupdate();
+  return ch;
+}
+
+int UI_GetDateChangeSpec(ViewContext *ctx, time_t *new_time, int *scope_mask) {
+  char date_input[32];
+  char display_time[32];
+  struct tm *tm_ptr;
+  int which;
+  time_t base_time = (*new_time > 0) ? *new_time : time(NULL);
+
+  if (!ctx || !new_time || !scope_mask)
+    return -1;
+
+  which = InputChoice(ctx, "DATE FIELD: (M)odified (A)ccessed (B)oth", "MAB");
+  if (which == ESC || which < 0)
+    return -1;
+
+  switch (which) {
+  case 'A':
+    *scope_mask = DATE_SCOPE_ACCESS;
+    break;
+  case 'B':
+    *scope_mask = DATE_SCOPE_ACCESS | DATE_SCOPE_MODIFY;
+    break;
+  case 'M':
+  default:
+    *scope_mask = DATE_SCOPE_MODIFY;
+    break;
+  }
+
+  (void)strcpy(display_time, "1970-01-01 00:00:00");
+  tm_ptr = localtime(&base_time);
+  if (tm_ptr) {
+    (void)strftime(display_time, sizeof(display_time), "%Y-%m-%d %H:%M:%S",
+                   tm_ptr);
+  }
+
+  strncpy(date_input, display_time, sizeof(date_input) - 1);
+  date_input[sizeof(date_input) - 1] = '\0';
+
+  ClearHelp(ctx);
+  if (UI_ReadString(ctx, ctx->active, "DATE (YYYY-MM-DD [HH:MM[:SS]]):",
+                    date_input, (int)sizeof(date_input), HST_GENERAL) != CR) {
+    move(LINES - 2, 1);
+    clrtoeol();
+    return -1;
+  }
+
+  if (parse_date_input(date_input, new_time) != 0) {
+    UI_Message(ctx, "Invalid date. Use YYYY-MM-DD [HH:MM[:SS]]");
+    move(LINES - 2, 1);
+    clrtoeol();
+    return -1;
+  }
+
+  move(LINES - 2, 1);
+  clrtoeol();
+  return 0;
 }
 
 int ChangeFileModus(ViewContext *ctx, FileEntry *fe_ptr) {
-  char mode[12];
+  char mode_input[16];
+  char parsed_mode[12];
+  char preview_mode[10];
   WalkingPackage walking_package;
-  int result;
-  int x;
-
-  result = -1;
+  int result = -1;
 
   if (ctx->view_mode != DISK_MODE && ctx->view_mode != USER_MODE) {
     return (result);
   }
 
-  (void)GetAttributes(fe_ptr->stat_struct.st_mode, mode);
+  format_mode_prompt_value(fe_ptr->stat_struct.st_mode, mode_input,
+                           sizeof(mode_input));
 
   ClearHelp(ctx);
-  MvAddStr(LINES - 2, 1, "MODE:");
-  x = 1 + strlen("MODE:") + UI_INPUT_PADDING;
-
-  if (InputModeString(ctx, mode, LINES - 2, x) == CR) {
-    (void)strcpy(walking_package.function_data.change_mode.new_mode, mode);
+  if (UI_ReadString(ctx, ctx->active, "MODE (octal/rwx):", mode_input,
+                    (int)sizeof(mode_input), HST_CHANGE_MODUS) == CR) {
+    if (UI_ParseModeInput(mode_input, parsed_mode, preview_mode) != 0) {
+      UI_Message(ctx, "Invalid mode. Use 3/4-digit octal or rwxrwxrwx");
+      move(LINES - 2, 1);
+      clrtoeol();
+      return -1;
+    }
+    UI_Message(ctx, "Mode preview: %s", preview_mode);
+    (void)strcpy(walking_package.function_data.change_mode.new_mode, parsed_mode);
     result = SetFileModus(ctx, fe_ptr, &walking_package);
   }
 
@@ -271,25 +495,30 @@ int ChangeFileModus(ViewContext *ctx, FileEntry *fe_ptr) {
 }
 
 int ChangeDirModus(ViewContext *ctx, DirEntry *de_ptr) {
-  char mode[12];
+  char mode_input[16];
+  char parsed_mode[12];
+  char preview_mode[10];
   WalkingPackage walking_package;
-  int result;
-  int x;
-
-  result = -1;
+  int result = -1;
 
   if (ctx->view_mode != DISK_MODE && ctx->view_mode != USER_MODE) {
     return (result);
   }
 
-  (void)GetAttributes(de_ptr->stat_struct.st_mode, mode);
+  format_mode_prompt_value(de_ptr->stat_struct.st_mode, mode_input,
+                           sizeof(mode_input));
 
   ClearHelp(ctx);
-  MvAddStr(LINES - 2, 1, "MODE:");
-  x = 1 + strlen("MODE:") + UI_INPUT_PADDING;
-
-  if (InputModeString(ctx, mode, LINES - 2, x) == CR) {
-    (void)strcpy(walking_package.function_data.change_mode.new_mode, mode);
+  if (UI_ReadString(ctx, ctx->active, "MODE (octal/rwx):", mode_input,
+                    (int)sizeof(mode_input), HST_CHANGE_MODUS) == CR) {
+    if (UI_ParseModeInput(mode_input, parsed_mode, preview_mode) != 0) {
+      UI_Message(ctx, "Invalid mode. Use 3/4-digit octal or rwxrwxrwx");
+      move(LINES - 2, 1);
+      clrtoeol();
+      return -1;
+    }
+    UI_Message(ctx, "Mode preview: %s", preview_mode);
+    (void)strcpy(walking_package.function_data.change_mode.new_mode, parsed_mode);
     result = SetDirModus(de_ptr, &walking_package);
   }
 
@@ -297,6 +526,28 @@ int ChangeDirModus(ViewContext *ctx, DirEntry *de_ptr) {
   clrtoeol();
 
   return (result);
+}
+
+int ChangeFileDate(ViewContext *ctx, FileEntry *fe_ptr) {
+  char path[PATH_LENGTH + 1];
+
+  if (ctx->view_mode != DISK_MODE && ctx->view_mode != USER_MODE) {
+    return -1;
+  }
+
+  GetFileNamePath(fe_ptr, path);
+  return change_path_date(ctx, path, &fe_ptr->stat_struct);
+}
+
+int ChangeDirDate(ViewContext *ctx, DirEntry *de_ptr) {
+  char path[PATH_LENGTH + 1];
+
+  if (ctx->view_mode != DISK_MODE && ctx->view_mode != USER_MODE) {
+    return -1;
+  }
+
+  GetPath(de_ptr, path);
+  return change_path_date(ctx, path, &de_ptr->stat_struct);
 }
 
 int GetNewOwner(ViewContext *ctx, int st_uid) {

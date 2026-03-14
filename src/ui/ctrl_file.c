@@ -884,48 +884,56 @@ int HandleFileWindow(ViewContext *ctx, DirEntry *dir_entry) {
     } break;
 
     case ACTION_CMD_A:
+      if (ctx->view_mode != DISK_MODE && ctx->view_mode != USER_MODE) {
+        beep();
+        break;
+      }
       fe_ptr =
           ctx->active
               ->file_entry_list[dir_entry->start_file + dir_entry->cursor_pos]
               .file;
 
       need_dsp_help = TRUE;
-
-      if (!ChangeFileModus(ctx, fe_ptr)) {
+      switch (UI_PromptAttributeAction(ctx, FALSE, TRUE)) {
+      case 'M':
+        if (ChangeFileModus(ctx, fe_ptr))
+          break;
         DisplayFiles(ctx, ctx->active, dir_entry, dir_entry->start_file,
                      dir_entry->start_file + dir_entry->cursor_pos, start_x,
                      ctx->ctx_file_window);
+        break;
+      case 'O':
+        if (ChangeFileOwner(ctx, fe_ptr))
+          break;
+        DisplayFiles(ctx, ctx->active, dir_entry, dir_entry->start_file,
+                     dir_entry->start_file + dir_entry->cursor_pos, start_x,
+                     ctx->ctx_file_window);
+        break;
+      case 'G':
+        if (ChangeFileGroup(ctx, fe_ptr))
+          break;
+        DisplayFiles(ctx, ctx->active, dir_entry, dir_entry->start_file,
+                     dir_entry->start_file + dir_entry->cursor_pos, start_x,
+                     ctx->ctx_file_window);
+        break;
+      case 'D':
+        if (ChangeFileDate(ctx, fe_ptr))
+          break;
+        DisplayFiles(ctx, ctx->active, dir_entry, dir_entry->start_file,
+                     dir_entry->start_file + dir_entry->cursor_pos, start_x,
+                     ctx->ctx_file_window);
+        break;
+      default:
+        break;
       }
       break;
 
     case ACTION_CMD_O:
-      fe_ptr =
-          ctx->active
-              ->file_entry_list[dir_entry->start_file + dir_entry->cursor_pos]
-              .file;
-
-      need_dsp_help = TRUE;
-
-      if (!ChangeFileOwner(ctx, fe_ptr)) {
-        DisplayFiles(ctx, ctx->active, dir_entry, dir_entry->start_file,
-                     dir_entry->start_file + dir_entry->cursor_pos, start_x,
-                     ctx->ctx_file_window);
-      }
+      beep();
       break;
 
     case ACTION_CMD_G:
-      fe_ptr =
-          ctx->active
-              ->file_entry_list[dir_entry->start_file + dir_entry->cursor_pos]
-              .file;
-
-      need_dsp_help = TRUE;
-
-      if (!ChangeFileGroup(ctx, fe_ptr)) {
-        DisplayFiles(ctx, ctx->active, dir_entry, dir_entry->start_file,
-                     dir_entry->start_file + dir_entry->cursor_pos, start_x,
-                     ctx->ctx_file_window);
-      }
+      beep();
       break;
 
     case ACTION_TOGGLE_MODE:
@@ -1440,6 +1448,7 @@ int HandleFileWindow(ViewContext *ctx, DirEntry *dir_entry) {
    * This guarantees that RefreshView returns to small window
    * ctx->layout. */
   dir_entry->global_flag = FALSE;
+  dir_entry->global_all_volumes = FALSE;
   dir_entry->tagged_flag = FALSE;
   dir_entry->big_window = FALSE;
 

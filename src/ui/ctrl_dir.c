@@ -776,7 +776,8 @@ int HandleDirWindow(ViewContext *ctx, DirEntry *start_dir_entry) {
       break;
 
     case ACTION_CMD_S:
-      HandleShowAll(ctx, FALSE, dir_entry, &need_dsp_help, &ch, ctx->active);
+      HandleShowAll(ctx, FALSE, FALSE, dir_entry, &need_dsp_help, &ch,
+                    ctx->active);
       break;
     case ACTION_ENTER:
       if (dir_entry == NULL) {
@@ -962,31 +963,62 @@ int HandleDirWindow(ViewContext *ctx, DirEntry *start_dir_entry) {
       need_dsp_help = TRUE;
       break;
     case ACTION_CMD_G:
-      (void)ChangeDirGroup(dir_entry);
-      DisplayTree(ctx, ctx->active->vol, ctx->ctx_dir_window,
-                  ctx->active->disp_begin_pos,
-                  ctx->active->disp_begin_pos + ctx->active->cursor_pos, TRUE);
-      DisplayDiskStatistic(ctx, s);
-      UpdateStatsPanel(ctx, dir_entry, s);
-      need_dsp_help = TRUE;
+      HandleShowAll(ctx, FALSE, TRUE, dir_entry, &need_dsp_help, &ch,
+                    ctx->active);
       break;
     case ACTION_CMD_O:
-      (void)ChangeDirOwner(dir_entry);
-      DisplayTree(ctx, ctx->active->vol, ctx->ctx_dir_window,
-                  ctx->active->disp_begin_pos,
-                  ctx->active->disp_begin_pos + ctx->active->cursor_pos, TRUE);
-      DisplayDiskStatistic(ctx, s);
-      UpdateStatsPanel(ctx, dir_entry, s);
-      need_dsp_help = TRUE;
+      beep();
       break;
     case ACTION_CMD_A:
-      (void)ChangeDirModus(ctx, dir_entry);
-      DisplayTree(ctx, ctx->active->vol, ctx->ctx_dir_window,
-                  ctx->active->disp_begin_pos,
-                  ctx->active->disp_begin_pos + ctx->active->cursor_pos, TRUE);
-      DisplayDiskStatistic(ctx, s);
-      UpdateStatsPanel(ctx, dir_entry, s);
+      if (ctx->view_mode != DISK_MODE && ctx->view_mode != USER_MODE) {
+        beep();
+        break;
+      }
       need_dsp_help = TRUE;
+      switch (UI_PromptAttributeAction(ctx, FALSE, TRUE)) {
+      case 'M':
+        if (ChangeDirModus(ctx, dir_entry))
+          break;
+        DisplayTree(ctx, ctx->active->vol, ctx->ctx_dir_window,
+                    ctx->active->disp_begin_pos,
+                    ctx->active->disp_begin_pos + ctx->active->cursor_pos,
+                    TRUE);
+        DisplayDiskStatistic(ctx, s);
+        UpdateStatsPanel(ctx, dir_entry, s);
+        break;
+      case 'O':
+        if (HandleDirOwnership(ctx, dir_entry, TRUE, FALSE))
+          break;
+        DisplayTree(ctx, ctx->active->vol, ctx->ctx_dir_window,
+                    ctx->active->disp_begin_pos,
+                    ctx->active->disp_begin_pos + ctx->active->cursor_pos,
+                    TRUE);
+        DisplayDiskStatistic(ctx, s);
+        UpdateStatsPanel(ctx, dir_entry, s);
+        break;
+      case 'G':
+        if (HandleDirOwnership(ctx, dir_entry, FALSE, TRUE))
+          break;
+        DisplayTree(ctx, ctx->active->vol, ctx->ctx_dir_window,
+                    ctx->active->disp_begin_pos,
+                    ctx->active->disp_begin_pos + ctx->active->cursor_pos,
+                    TRUE);
+        DisplayDiskStatistic(ctx, s);
+        UpdateStatsPanel(ctx, dir_entry, s);
+        break;
+      case 'D':
+        if (ChangeDirDate(ctx, dir_entry))
+          break;
+        DisplayTree(ctx, ctx->active->vol, ctx->ctx_dir_window,
+                    ctx->active->disp_begin_pos,
+                    ctx->active->disp_begin_pos + ctx->active->cursor_pos,
+                    TRUE);
+        DisplayDiskStatistic(ctx, s);
+        UpdateStatsPanel(ctx, dir_entry, s);
+        break;
+      default:
+        break;
+      }
       break;
 
     case ACTION_TOGGLE_COMPACT:

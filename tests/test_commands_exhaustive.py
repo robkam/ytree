@@ -108,12 +108,13 @@ def test_chmod_command(ytree_binary, tmp_path):
     tui.send_keystroke(Keys.ENTER)
     time.sleep(0.2)
     
-    # Attributes (a)
+    # Attributes submenu (a -> m)
     tui.send_keystroke("a")
     time.sleep(0.1)
-    # The prompt is "ATTRIBUTES:"
-    # Change to 0755: rwxr-xr-x
-    tui.send_keystroke("rwxr-xr-x\r")
+    tui.send_keystroke("m")
+    time.sleep(0.1)
+    # Change to 0755 using octal input
+    tui.send_keystroke("755\r")
     time.sleep(0.5)
     
     # Verify
@@ -122,8 +123,34 @@ def test_chmod_command(ytree_binary, tmp_path):
     
     tui.quit()
 
+def test_chmod_4digit_octal_command(ytree_binary, tmp_path):
+    """Verifies 4-digit octal mode input via attributes submenu."""
+    d = tmp_path / "chmod_4digit_test"
+    d.mkdir()
+    target = d / "suid_test.sh"
+    target.write_text("#!/bin/sh\necho ok\n")
+    os.chmod(target, 0o644)
+
+    tui = YtreeTUI(executable=ytree_binary, cwd=str(d))
+    time.sleep(1.0)
+
+    tui.send_keystroke(Keys.ENTER)
+    time.sleep(0.2)
+
+    tui.send_keystroke("a")
+    time.sleep(0.1)
+    tui.send_keystroke("m")
+    time.sleep(0.1)
+    tui.send_keystroke("4755\r")
+    time.sleep(0.5)
+
+    mode = os.stat(target).st_mode & 0o7777
+    assert mode == 0o4755
+
+    tui.quit()
+
 def test_chown_command(ytree_binary, tmp_path):
-    """Verifies (O) - Change Owner command."""
+    """Verifies owner change via attributes submenu (A -> O)."""
     # Note: chown might fail if not root, but we can try to "change" to current user.
     d = tmp_path / "chown_test"
     d.mkdir()
@@ -137,8 +164,10 @@ def test_chown_command(ytree_binary, tmp_path):
     tui.send_keystroke(Keys.ENTER)
     time.sleep(0.2)
     
-    # Owner (O)
-    tui.send_keystroke("O")
+    # Attributes submenu -> Owner
+    tui.send_keystroke("a")
+    time.sleep(0.1)
+    tui.send_keystroke("o")
     time.sleep(0.1)
     # It should prompt for owner name. We'll use the current user.
     import getpass
