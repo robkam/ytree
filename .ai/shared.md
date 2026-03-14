@@ -1,0 +1,38 @@
+# Shared AI Instructions
+
+These instructions apply to all AI agents used in this repository.
+
+## Project Context
+
+- Repository: `ytree`
+- Domain: terminal file manager for UNIX-like systems
+- Codebase language: C (C89/C99, POSIX.1-2008)
+- Testing: Python `pytest` and `pexpect` from the local `.venv`
+
+## Core Engineering Rules
+
+1. Prioritize architectural stability, memory safety, and maintainability.
+2. Do not use unsafe string APIs such as `strcpy` or `sprintf`.
+3. Preserve architectural invariants: explicit context passing, dual-panel isolation, and deterministic single-threaded behavior.
+4. Avoid superficial patching for architectural issues; prefer root-cause fixes that keep invariants intact.
+5. Do not guess behavior; consult repository docs before changing architecture.
+6. Keep changes scoped to the requested task; do not anticipate future work.
+7. Prefer MCP semantic/navigation tools (symbol search, outlines, references) over loading large files into context unnecessarily.
+
+## Required Validation
+
+- Build with `make clean && make` after meaningful code changes.
+- Always activate the venv before pytest: `source .venv/bin/activate`.
+- Run relevant tests with `pytest ...`.
+- Do not claim completion without terminal verification.
+
+## Primary References
+
+- `doc/ARCHITECTURE.md`
+- `doc/SPECIFICATION.md`
+- `doc/ROADMAP.md`
+- `doc/ai/WORKFLOW.md`
+- `.agent/rules/consultant.md`
+- `.agent/rules/builder.md`
+- `.agent/rules/auditor.md`
+- `.agent/rules/tester.md`
