@@ -80,7 +80,6 @@ BOOL handle_tag_file_action(ViewContext *ctx, int action, DirEntry *dir_entry,
             clrtoeol();
             return TRUE;
           }
-          UI_Message(ctx, "Mode preview: %s", preview_mode);
           (void)strcpy(walking_package.function_data.change_mode.new_mode,
                        parsed_mode);
           FileTags_WalkTaggedFiles(ctx, dir_entry->start_file,
