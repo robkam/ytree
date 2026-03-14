@@ -18,4 +18,4 @@ Codex-specific behavior for this repository.
 - Run tests from repository root: `/home/rob/ytree`.
 - Activate the project virtual environment first: `source .venv/bin/activate`.
 - Canonical full suite command: `pytest`.
-- The pytest suite uses `pexpect` PTYs; if sandboxed execution blocks `os.openpty()` (for example, `PermissionError: [Errno 13]` or `OSError: out of pty devices`), run the same canonical command with host PTY permissions.
+- The pytest suite uses `pexpect` PTYs; always run pytest with host permissions (non-sandboxed command execution) so PTY allocation works.
