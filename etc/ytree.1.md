@@ -81,7 +81,7 @@ These commands work in most modes:
 *   **F6**: Toggle Statistics Panel (Wide Mode).
 *   **F7**: Toggle File Preview Panel.
 *   **F8**: Toggle Split Screen Mode.
-*   **/** (or **F12**): **Incremental Search** (List Jump). Start typing to jump to the first matching filename in the current list. The selection updates immediately as you type.
+*   **/** (or **F12**): **Incremental Search** (List Jump). Start typing to jump to the first matching entry in the current list (directory names in the Directory Window, filenames in the File Window). The selection updates immediately as you type. Press **Enter** to accept the current match, or **Esc** to cancel and restore the original selection.
 *   **B**: Toggle Brief (Compact) filename view in the File Window.
 *   **^L**: **Reload**. Re-read the contents of the current directory from disk and refresh the view.
 *   **K** (Shift+K): **Volume Menu**. Show a list of all currently logged volumes (drives/paths). Select a volume to switch context instantly. Press `Delete` (or `D`) in the menu to release (unlog) a volume.

@@ -27,6 +27,8 @@ void HandleUnreadSubTree(ViewContext *ctx, DirEntry *dir_entry,
 
 void HandleSwitchWindow(ViewContext *ctx, DirEntry *dir_entry,
                         BOOL *need_dsp_help, int *ch, YtreePanel *p);
+static void DirListJump(ViewContext *ctx, DirEntry **dir_entry_ptr,
+                        Statistic *s);
 
 int HandleDirWindow(ViewContext *ctx, DirEntry *start_dir_entry) {
   DirEntry *dir_entry, *de_ptr;
@@ -747,6 +749,10 @@ int HandleDirWindow(ViewContext *ctx, DirEntry *start_dir_entry) {
       }
       need_dsp_help = TRUE;
       break;
+    case ACTION_LIST_JUMP:
+      DirListJump(ctx, &dir_entry, s);
+      need_dsp_help = TRUE;
+      break;
     case ACTION_TAG:
     case ACTION_UNTAG:
     case ACTION_TAG_ALL:
@@ -1290,4 +1296,160 @@ int HandleDirWindow(ViewContext *ctx, DirEntry *start_dir_entry) {
   /* Removed shared state sync on exit */
 
   return (ch); /* Return the last raw character that caused exit */
+}
+
+static void DirListJump(ViewContext *ctx, DirEntry **dir_entry_ptr,
+                        Statistic *s) {
+  char search_buf[256];
+  int buf_len = 0;
+  int ch;
+  int i;
+  int found_idx;
+  int height;
+  int original_disp_begin_pos;
+  int original_cursor_pos;
+
+  if (!ctx || !ctx->active || !ctx->active->vol || !ctx->active->vol->dir_entry_list ||
+      ctx->active->vol->total_dirs <= 0 || !dir_entry_ptr || !*dir_entry_ptr) {
+    return;
+  }
+
+  height = getmaxy(ctx->ctx_dir_window);
+  if (height <= 0)
+    return;
+
+  original_disp_begin_pos = ctx->active->disp_begin_pos;
+  original_cursor_pos = ctx->active->cursor_pos;
+
+  memset(search_buf, 0, sizeof(search_buf));
+
+  ClearHelp(ctx);
+  MvAddStr(Y_PROMPT(ctx), 1, "Search: ");
+  RefreshWindow(stdscr);
+
+  while (1) {
+    move(Y_PROMPT(ctx), 9);
+    addstr(search_buf);
+    clrtoeol();
+    doupdate();
+
+    ch = Getch(ctx);
+    if (ch == -1)
+      break;
+
+    if (ch == ESC) {
+      ctx->active->disp_begin_pos = original_disp_begin_pos;
+      ctx->active->cursor_pos = original_cursor_pos;
+    } else if (ch == CR || ch == LF) {
+      break;
+    } else if (ch == KEY_BACKSPACE || ch == 127 || ch == '\b' || ch == KEY_DC) {
+      if (buf_len > 0) {
+        buf_len--;
+        search_buf[buf_len] = '\0';
+
+        if (buf_len == 0) {
+          ctx->active->disp_begin_pos = original_disp_begin_pos;
+          ctx->active->cursor_pos = original_cursor_pos;
+        } else {
+          found_idx = -1;
+          for (i = 0; i < ctx->active->vol->total_dirs; i++) {
+            DirEntry *candidate = ctx->active->vol->dir_entry_list[i].dir_entry;
+            if (candidate && strncasecmp(candidate->name, search_buf, buf_len) == 0) {
+              found_idx = i;
+              break;
+            }
+          }
+
+          if (found_idx != -1) {
+            if (found_idx >= ctx->active->disp_begin_pos &&
+                found_idx < ctx->active->disp_begin_pos + height) {
+              ctx->active->cursor_pos = found_idx - ctx->active->disp_begin_pos;
+            } else {
+              ctx->active->disp_begin_pos = found_idx;
+              ctx->active->cursor_pos = 0;
+              if (ctx->active->disp_begin_pos + height > ctx->active->vol->total_dirs) {
+                ctx->active->disp_begin_pos =
+                    MAXIMUM(0, ctx->active->vol->total_dirs - height);
+                ctx->active->cursor_pos = found_idx - ctx->active->disp_begin_pos;
+              }
+            }
+          }
+        }
+      }
+    } else if (isprint(ch)) {
+      if (buf_len < (int)sizeof(search_buf) - 1) {
+        search_buf[buf_len] = ch;
+        search_buf[buf_len + 1] = '\0';
+
+        found_idx = -1;
+        for (i = 0; i < ctx->active->vol->total_dirs; i++) {
+          DirEntry *candidate = ctx->active->vol->dir_entry_list[i].dir_entry;
+          if (candidate &&
+              strncasecmp(candidate->name, search_buf, (size_t)buf_len + 1) == 0) {
+            found_idx = i;
+            break;
+          }
+        }
+
+        if (found_idx != -1) {
+          buf_len++;
+          if (found_idx >= ctx->active->disp_begin_pos &&
+              found_idx < ctx->active->disp_begin_pos + height) {
+            ctx->active->cursor_pos = found_idx - ctx->active->disp_begin_pos;
+          } else {
+            ctx->active->disp_begin_pos = found_idx;
+            ctx->active->cursor_pos = 0;
+            if (ctx->active->disp_begin_pos + height > ctx->active->vol->total_dirs) {
+              ctx->active->disp_begin_pos =
+                  MAXIMUM(0, ctx->active->vol->total_dirs - height);
+              ctx->active->cursor_pos = found_idx - ctx->active->disp_begin_pos;
+            }
+          }
+        } else {
+          /* Sticky cursor: keep current selection when input has no match. */
+          buf_len++;
+        }
+      }
+    }
+
+    if (ctx->active->cursor_pos < 0)
+      ctx->active->cursor_pos = 0;
+
+    if (ctx->active->disp_begin_pos + ctx->active->cursor_pos >=
+        ctx->active->vol->total_dirs) {
+      int last_idx = ctx->active->vol->total_dirs - 1;
+      if (last_idx < 0)
+        last_idx = 0;
+      if (last_idx >= height) {
+        ctx->active->disp_begin_pos = last_idx - (height - 1);
+        ctx->active->cursor_pos = height - 1;
+      } else {
+        ctx->active->disp_begin_pos = 0;
+        ctx->active->cursor_pos = last_idx;
+      }
+    }
+
+    *dir_entry_ptr = ctx->active
+                         ->vol->dir_entry_list[ctx->active->disp_begin_pos +
+                                               ctx->active->cursor_pos]
+                         .dir_entry;
+
+    DisplayTree(ctx, ctx->active->vol, ctx->ctx_dir_window, ctx->active->disp_begin_pos,
+                ctx->active->disp_begin_pos + ctx->active->cursor_pos, TRUE);
+    DisplayFileWindow(ctx, ctx->active, *dir_entry_ptr);
+    DisplayDiskStatistic(ctx, s);
+    UpdateStatsPanel(ctx, *dir_entry_ptr, s);
+    DisplayAvailBytes(ctx, s);
+    {
+      char path[PATH_LENGTH];
+      GetPath(*dir_entry_ptr, path);
+      DisplayHeaderPath(ctx, path);
+    }
+    RefreshWindow(ctx->ctx_dir_window);
+    RefreshWindow(ctx->ctx_file_window);
+    doupdate();
+
+    if (ch == ESC)
+      break;
+  }
 }
