@@ -72,24 +72,32 @@ static YtreeAction FilterPreviewAction(YtreeAction action) {
  * - In directory mode: Shows stats for current directory
  */
 void UpdateStatsPanel(ViewContext *ctx, DirEntry *dir_entry, Statistic *s) {
+  FileEntry *fe_ptr = NULL;
+  BOOL show_file_stats = FALSE;
+
   /* Safety checks */
-  if (!ctx || !dir_entry || !s)
+  if (!ctx || !dir_entry || !s || !ctx->active)
     return;
 
   /* Check if we're in file window with files available */
-  if (ctx->focused_window == FOCUS_FILE && ctx->active->file_count > 0) {
-    /* File Window Mode - show individual file stats */
+  if (ctx->focused_window == FOCUS_FILE && ctx->active->file_entry_list &&
+      ctx->active->file_count > 0) {
     int file_index = dir_entry->start_file + dir_entry->cursor_pos;
-    FileEntry *fe_ptr = ctx->active->file_entry_list[file_index].file;
-    if (fe_ptr) {
-      DisplayFileStatistic(ctx, fe_ptr, s);
-
-      /* Also update attributes section */
-      if (dir_entry->global_flag)
-        DisplayGlobalFileParameter(ctx, fe_ptr);
-      else
-        DisplayFileParameter(ctx, fe_ptr);
+    if (file_index >= 0 && (unsigned int)file_index < ctx->active->file_count) {
+      fe_ptr = ctx->active->file_entry_list[file_index].file;
+      show_file_stats = (fe_ptr != NULL);
     }
+  }
+
+  if (show_file_stats) {
+    /* File Window Mode - show individual file stats */
+    DisplayFileStatistic(ctx, fe_ptr, s);
+
+    /* Also update attributes section */
+    if (dir_entry->global_flag)
+      DisplayGlobalFileParameter(ctx, fe_ptr);
+    else
+      DisplayFileParameter(ctx, fe_ptr);
   } else {
     /* Directory Mode - show directory stats */
     if (dir_entry->global_flag) {
