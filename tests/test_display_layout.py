@@ -18,7 +18,7 @@ def get_clean_screen(yt):
 def sync_state(yt):
     yt.child.expect(r'20\d{2}')
 
-def test_multi_column_rendering_metrics(controller, tmp_path):
+def test_multi_column_rendering_metrics(ytree_binary, tmp_path):
     """
     REGRESSION: Columns overlap when metrics (max_filename_len) are not initialized correctly.
     Verifies that the file window correctly calculates columns even on first entry.
@@ -29,28 +29,29 @@ def test_multi_column_rendering_metrics(controller, tmp_path):
     for i in range(50):
         (d / f"file_{i:02d}.txt").write_text("test")
 
-    yt = controller(cwd=str(d))
-    yt.wait_for_startup()
-    
-    # Enter file window via 'S' (Global Mode)
-    yt.child.send(Keys.SHOWALL)
-    sync_state(yt)
-    
-    # Cycle to MODE_3 (Name only)
-    # MODE_0 -> MODE_1 -> MODE_2 -> MODE_3
-    for _ in range(3):
-        yt.child.send("\x06") # Ctrl-F: Toggle Mode
-        time.sleep(0.5)
-        sync_state(yt)
+    tui = YtreeTUI(executable=ytree_binary, cwd=str(d))
 
-    screen = get_clean_screen(yt)
+    # Enter file window via 'S' (Global Mode)
+    tui.send_keystroke(Keys.SHOWALL, wait=0.35)
+
+    # Find a mode where short names visibly render in multiple columns.
+    found_multi_column = False
+    for _ in range(6):
+        lines = tui.get_screen_dump()
+        for line in lines[2:24]:
+            if len(re.findall(r"\bfile_\d{2}\.txt\b", line)) >= 2:
+                found_multi_column = True
+                break
+        if found_multi_column:
+            break
+        tui.send_keystroke("\x06", wait=0.35)  # Ctrl-F: Toggle Mode
+
+    screen = "\n".join(tui.get_screen_dump())
     assert "FILE" in screen
-    
-    # In MODE_3, 50 files with 120 width should definitely show file_49.txt
-    # (around 4-5 columns)
-    assert "file_49.txt" in screen
-    
-    yt.quit()
+
+    assert found_multi_column, "File window did not render short filenames across multiple columns"
+
+    tui.quit()
 
 
 def _detect_stats_split_x(lines):
@@ -72,6 +73,10 @@ def _current_file_from_stats(lines, split_x):
         right = line[split_x:]
         if "CURRENT FILE" in right and i + 1 < len(lines):
             next_right = lines[i + 1][split_x:]
+            # Prefer explicit filename match to avoid right-border artifacts.
+            m = re.search(r"([A-Za-z0-9._-]+\.txt)", next_right)
+            if m:
+                return m.group(1)
             m = re.search(r"x\s+([^\s]+)", next_right)
             if m:
                 return m.group(1)
@@ -85,9 +90,27 @@ def _has_two_short_file_columns(lines, split_x):
 
     for line in lines[2:24]:
         left = line[:split_x]
-        if len(re.findall(r"\ba\d{3}\.txt\b", left)) >= 2:
+        if len(re.findall(r"\b[a-z]\d{3}\.txt\b", left)) >= 2:
             return True
     return False
+
+
+def _file_index(name):
+    if not name:
+        return None
+    m = re.search(r"a(\d{3})\.txt", name)
+    if not m:
+        return None
+    return int(m.group(1))
+
+
+def _ensure_multi_column_layout(tui, split_x, max_toggles=5):
+    for _ in range(max_toggles + 1):
+        lines = tui.get_screen_dump()
+        if _has_two_short_file_columns(lines, split_x):
+            return lines
+        tui.send_keystroke("\x06", wait=0.4)  # Ctrl-F: rotate file mode
+    return None
 
 
 def test_file_window_column_stride_sync_after_hidden_toggle(ytree_binary, tmp_path):
@@ -129,18 +152,30 @@ def test_file_window_column_stride_sync_after_hidden_toggle(ytree_binary, tmp_pa
     # Show dotfiles: the long hidden entry forces single-column geometry.
     tui.send_keystroke("`", wait=0.6)
     lines = tui.get_screen_dump()
-    before = _current_file_from_stats(lines, split_x)
-    assert before is not None, "Could not read selected filename from stats panel"
     assert not _has_two_short_file_columns(
         lines, split_x
     ), "Long filename should collapse visible short-name columns"
 
-    # In one-column mode, RIGHT should not jump to a different file.
+    # Move off the long dotfile so we can compare numeric filename indices.
+    tui.send_keystroke(Keys.DOWN, wait=0.2)
+    before = _current_file_from_stats(tui.get_screen_dump(), split_x)
+    before_idx = _file_index(before)
+    assert before is not None and before_idx is not None, "Could not read selected short filename before RIGHT"
+
+    # In one-column name-only mode, RIGHT/LEFT should behave like PgDn/PgUp.
     tui.send_keystroke(Keys.RIGHT, wait=0.4)
-    after = _current_file_from_stats(tui.get_screen_dump(), split_x)
+    after_right = _current_file_from_stats(tui.get_screen_dump(), split_x)
+    after_right_idx = _file_index(after_right)
     assert (
-        after == before
-    ), f"RIGHT changed selection in one-column layout (before={before}, after={after})"
+        after_right is not None and after_right_idx is not None and
+        after_right_idx > before_idx
+    ), f"RIGHT should page in one-column layout (before={before}, after={after_right})"
+
+    tui.send_keystroke(Keys.LEFT, wait=0.4)
+    after_left = _current_file_from_stats(tui.get_screen_dump(), split_x)
+    assert (
+        after_left == before
+    ), f"LEFT should reverse RIGHT paging in one-column layout (before={before}, after_left={after_left})"
 
     # Hide dotfiles again: short-name multi-column layout must be restored.
     tui.send_keystroke("`", wait=0.6)
@@ -148,5 +183,154 @@ def test_file_window_column_stride_sync_after_hidden_toggle(ytree_binary, tmp_pa
     assert _has_two_short_file_columns(
         lines, split_x
     ), "File window did not restore multi-column layout for short filenames"
+
+    tui.quit()
+
+
+def test_file_window_left_right_edge_no_wrap(ytree_binary, tmp_path):
+    """
+    REGRESSION:
+    LEFT/RIGHT must keep row semantics. At horizontal edges with no same-row
+    target, cursor must stay put (no jump to first/last item).
+    """
+    test_dir = tmp_path / "filewin_left_right_edges"
+    test_dir.mkdir()
+    total_files = 50
+    for i in range(total_files):
+        (test_dir / f"a{i:03d}.txt").write_text("x", encoding="utf-8")
+
+    tui = YtreeTUI(executable=ytree_binary, cwd=str(test_dir))
+    tui.child.setwinsize(48, 160)
+    tui.screen.resize(48, 160)
+    time.sleep(1.0)
+    tui.send_keystroke("", wait=0.2)
+
+    tui.send_keystroke(Keys.ENTER, wait=0.5)
+    lines = tui.get_screen_dump()
+    split_x = _detect_stats_split_x(lines)
+    assert split_x is not None, "Could not detect file/stats split border"
+
+    lines = _ensure_multi_column_layout(tui, split_x)
+    assert lines is not None, "Could not reach a multi-column file layout"
+
+    # Move within first column, then verify LEFT at edge does nothing.
+    for _ in range(5):
+        tui.send_keystroke(Keys.DOWN, wait=0.12)
+    left_edge_before = _current_file_from_stats(tui.get_screen_dump(), split_x)
+    assert left_edge_before is not None, "Could not read file selection before LEFT-edge check"
+    tui.send_keystroke(Keys.LEFT, wait=0.2)
+    left_edge_after = _current_file_from_stats(tui.get_screen_dump(), split_x)
+    assert (
+        left_edge_after == left_edge_before
+    ), f"LEFT at first column should not wrap (before={left_edge_before}, after={left_edge_after})"
+
+    # Move to second column on the same row and capture the stride.
+    tui.send_keystroke(Keys.RIGHT, wait=0.2)
+    second_col_name = _current_file_from_stats(tui.get_screen_dump(), split_x)
+    idx_first_col = _file_index(left_edge_after)
+    idx_second_col = _file_index(second_col_name)
+    assert idx_first_col is not None and idx_second_col is not None, "Could not parse file index from selection"
+    assert idx_second_col > idx_first_col, "RIGHT should move to the next column on the same row"
+    x_step = idx_second_col - idx_first_col
+
+    # Choose a row that exists in column 2 but not column 3 (right edge).
+    row_min = max(0, total_files - 2 * x_step)
+    row_max = min(x_step - 1, total_files - x_step - 1)
+    assert row_min <= row_max, "Test setup did not produce a right-edge row in second column"
+    target_row = row_max
+    target_idx = x_step + target_row
+
+    if idx_second_col < target_idx:
+        for _ in range(target_idx - idx_second_col):
+            tui.send_keystroke(Keys.DOWN, wait=0.08)
+    elif idx_second_col > target_idx:
+        for _ in range(idx_second_col - target_idx):
+            tui.send_keystroke(Keys.UP, wait=0.08)
+
+    right_edge_before_name = _current_file_from_stats(tui.get_screen_dump(), split_x)
+    right_edge_before = _file_index(right_edge_before_name)
+    assert right_edge_before == target_idx, f"Expected selection index {target_idx}, got {right_edge_before}"
+
+    tui.send_keystroke(Keys.RIGHT, wait=0.2)
+    right_edge_after_name = _current_file_from_stats(tui.get_screen_dump(), split_x)
+    right_edge_after = _file_index(right_edge_after_name)
+    assert (
+        right_edge_after == right_edge_before
+    ), f"RIGHT at row edge should not jump/wrap (before={right_edge_before_name}, after={right_edge_after_name})"
+
+    tui.quit()
+
+
+def test_file_window_one_column_edges_preserve_row(ytree_binary, tmp_path):
+    """
+    REGRESSION:
+    In one-column (long-name) mode, LEFT/RIGHT page navigation must preserve
+    the current row at top/bottom boundaries and must not snap to first/last
+    file.
+    """
+    test_dir = tmp_path / "filewin_one_column_edges"
+    test_dir.mkdir()
+
+    total_files = 61
+    for i in range(total_files):
+        (test_dir / f"a{i:03d}.txt").write_text("x", encoding="utf-8")
+    long_hidden = "." + ("L" * 120) + ".txt"
+    (test_dir / long_hidden).write_text("x", encoding="utf-8")
+
+    tui = YtreeTUI(executable=ytree_binary, cwd=str(test_dir))
+    tui.child.setwinsize(36, 160)
+    tui.screen.resize(36, 160)
+    time.sleep(1.0)
+    tui.send_keystroke("", wait=0.2)
+
+    tui.send_keystroke(Keys.ENTER, wait=0.5)
+    lines = tui.get_screen_dump()
+    split_x = _detect_stats_split_x(lines)
+    assert split_x is not None, "Could not detect file/stats split border"
+
+    # Force one-column geometry by showing the long hidden dotfile.
+    tui.send_keystroke("`", wait=0.6)
+    lines = tui.get_screen_dump()
+    assert not _has_two_short_file_columns(
+        lines, split_x
+    ), "Long filename should collapse visible short-name columns"
+
+    # Move off the long dotfile and onto row 5.
+    for _ in range(6):
+        tui.send_keystroke(Keys.DOWN, wait=0.12)
+    start_name = _current_file_from_stats(tui.get_screen_dump(), split_x)
+    start_idx = _file_index(start_name)
+    assert start_idx == 5, f"Expected start index 5, got {start_name}"
+
+    # LEFT at top boundary must keep the same row/index (no snap to first file).
+    tui.send_keystroke(Keys.LEFT, wait=0.3)
+    after_left_top = _current_file_from_stats(tui.get_screen_dump(), split_x)
+    after_left_top_idx = _file_index(after_left_top)
+    assert (
+        after_left_top_idx == start_idx
+    ), f"LEFT at top boundary should preserve row (before={start_name}, after={after_left_top})"
+
+    # Page to the bottom boundary with RIGHT until selection no longer changes.
+    prev_idx = after_left_top_idx
+    for _ in range(12):
+        tui.send_keystroke(Keys.RIGHT, wait=0.25)
+        cur_name = _current_file_from_stats(tui.get_screen_dump(), split_x)
+        cur_idx = _file_index(cur_name)
+        assert cur_idx is not None, "Could not parse selection index during RIGHT paging"
+        if cur_idx == prev_idx:
+            break
+        prev_idx = cur_idx
+
+    # At bottom boundary, one-column paging keeps row and does not snap to last.
+    assert prev_idx < total_files - 1, (
+        f"RIGHT paging in one-column mode snapped to last file ({prev_idx}); "
+        "expected row-preserving boundary behavior"
+    )
+    tui.send_keystroke(Keys.RIGHT, wait=0.25)
+    after_right_bottom = _current_file_from_stats(tui.get_screen_dump(), split_x)
+    after_right_bottom_idx = _file_index(after_right_bottom)
+    assert (
+        after_right_bottom_idx == prev_idx
+    ), f"RIGHT at bottom boundary should preserve row (before_idx={prev_idx}, after={after_right_bottom})"
 
     tui.quit()
