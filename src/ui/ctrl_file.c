@@ -24,7 +24,6 @@
 /* Local Statics for metrics calculation - Pushed to Renderer */
 static int max_disp_files;
 static int x_step;
-static int my_x_step;
 /* static int  hide_left; */ /* Removed: Unused */
 static int hide_right;
 
@@ -40,6 +39,7 @@ static void RereadWindowSize(ViewContext *ctx, DirEntry *dir_entry);
 static void ListJump(ViewContext *ctx, DirEntry *dir_entry, char *str);
 static void UpdatePreview(ViewContext *ctx, DirEntry *dir_entry);
 static void SyncFileGridMetrics(ViewContext *ctx);
+static void UpdateFileHeaderPath(ViewContext *ctx, DirEntry *dir_entry);
 
 static YtreeAction FilterPreviewAction(YtreeAction action) {
   switch (action) {
@@ -157,11 +157,7 @@ static void fmovedown(ViewContext *ctx, int *start_file, int *cursor_pos,
   DisplayFiles(ctx, ctx->active, dir_entry, *start_file,
                *start_file + *cursor_pos, *start_x,
                ctx->ctx_file_window); /* Update dynamic header path */
-  {
-    char path[PATH_LENGTH];
-    GetPath(dir_entry, path);
-    DisplayHeaderPath(ctx, path);
-  }
+  UpdateFileHeaderPath(ctx, dir_entry);
   ctx->active->start_file = *start_file;
 }
 
@@ -172,16 +168,15 @@ static void fmoveup(ViewContext *ctx, int *start_file, int *cursor_pos,
   DisplayFiles(ctx, ctx->active, dir_entry, *start_file,
                *start_file + *cursor_pos, *start_x,
                ctx->ctx_file_window); /* Update dynamic header path */
-  {
-    char path[PATH_LENGTH];
-    GetPath(dir_entry, path);
-    DisplayHeaderPath(ctx, path);
-  }
+  UpdateFileHeaderPath(ctx, dir_entry);
   ctx->active->start_file = *start_file;
 }
 
 static void fmoveright(ViewContext *ctx, int *start_file, int *cursor_pos,
                        int *start_x, DirEntry *dir_entry) {
+  int current_index;
+  int file_count;
+
   if (x_step == 1) {
     /* Special case: scroll entire file window */
     /*------------------------*/
@@ -190,43 +185,32 @@ static void fmoveright(ViewContext *ctx, int *start_file, int *cursor_pos,
                  *start_file + *cursor_pos, *start_x, ctx->ctx_file_window);
     if (hide_right <= 0)
       (*start_x)--;
-  } else if ((unsigned int)(*start_file + *cursor_pos) >=
-             ctx->active->file_count - 1) {
-    /* last position reached */
-    /*-------------------------*/
   } else {
-    if ((unsigned int)(*start_file + *cursor_pos + x_step) >=
-        ctx->active->file_count) {
-      /* full step not possible;
-       * position on last entry
-       */
-      my_x_step = (int)ctx->active->file_count - *start_file - *cursor_pos - 1;
-    } else {
-      my_x_step = x_step;
+    current_index = *start_file + *cursor_pos;
+    file_count = (int)ctx->active->file_count;
+
+    if (current_index + x_step < file_count) {
+      if (*cursor_pos + x_step < max_disp_files) {
+        /* RIGHT possible without scrolling */
+        *cursor_pos += x_step;
+      } else {
+        /* Scrolling keeps row and moves to next visible column window */
+        *start_file += x_step;
+      }
+
+      DisplayFiles(ctx, ctx->active, dir_entry, *start_file,
+                   *start_file + *cursor_pos, *start_x, ctx->ctx_file_window);
     }
-    if (*cursor_pos + my_x_step < max_disp_files) {
-      /* RIGHT possible without scrolling */
-      /*----------------------------*/
-      *cursor_pos += my_x_step;
-    } else {
-      /* Scrolling */
-      /*----------*/
-      *start_file += x_step;
-      *cursor_pos -= x_step - my_x_step;
-    }
-    DisplayFiles(ctx, ctx->active, dir_entry, *start_file,
-                 *start_file + *cursor_pos, *start_x, ctx->ctx_file_window);
   } /* Update dynamic header path */
-  {
-    char path[PATH_LENGTH];
-    GetPath(dir_entry, path);
-    DisplayHeaderPath(ctx, path);
-  }
+  UpdateFileHeaderPath(ctx, dir_entry);
+  ctx->active->start_file = *start_file;
   return;
 }
 
 static void fmoveleft(ViewContext *ctx, int *start_file, int *cursor_pos,
                       int *start_x, DirEntry *dir_entry) {
+  int current_index;
+
   if (x_step == 1) {
     /* Special case: scroll entire file window */
     /*----------------------------------------*/
@@ -234,36 +218,24 @@ static void fmoveleft(ViewContext *ctx, int *start_file, int *cursor_pos,
       (*start_x)--;
     DisplayFiles(ctx, ctx->active, dir_entry, *start_file,
                  *start_file + *cursor_pos, *start_x, ctx->ctx_file_window);
-  } else if (*start_file + *cursor_pos <= 0) {
-    /* first position reached */
-    /*-------------------------*/
   } else {
-    if (*start_file + *cursor_pos - x_step < 0) {
-      /* full step not possible;
-       * position on first entry
-       */
-      my_x_step = *start_file + *cursor_pos;
-    } else {
-      my_x_step = x_step;
+    current_index = *start_file + *cursor_pos;
+
+    if (current_index - x_step >= 0) {
+      if (*cursor_pos - x_step >= 0) {
+        /* LEFT possible without scrolling */
+        *cursor_pos -= x_step;
+      } else {
+        /* Scrolling keeps row and moves to previous visible column window */
+        if ((*start_file -= x_step) < 0)
+          *start_file = 0;
+      }
+
+      DisplayFiles(ctx, ctx->active, dir_entry, *start_file,
+                   *start_file + *cursor_pos, *start_x, ctx->ctx_file_window);
     }
-    if (*cursor_pos - my_x_step >= 0) {
-      /* LEFT possible without scrolling */
-      /*---------------------------*/
-      *cursor_pos -= my_x_step;
-    } else {
-      /* Scrolling */
-      /*----------*/
-      if ((*start_file -= x_step) < 0)
-        *start_file = 0;
-    }
-    DisplayFiles(ctx, ctx->active, dir_entry, *start_file,
-                 *start_file + *cursor_pos, *start_x, ctx->ctx_file_window);
   } /* Update dynamic header path */
-  {
-    char path[PATH_LENGTH];
-    GetPath(dir_entry, path);
-    DisplayHeaderPath(ctx, path);
-  }
+  UpdateFileHeaderPath(ctx, dir_entry);
   ctx->active->start_file = *start_file;
   return;
 }
@@ -276,11 +248,7 @@ static void fmovenpage(ViewContext *ctx, int *start_file, int *cursor_pos,
   DisplayFiles(ctx, ctx->active, dir_entry, *start_file,
                *start_file + *cursor_pos, *start_x,
                ctx->ctx_file_window); /* Update dynamic header path */
-  {
-    char path[PATH_LENGTH];
-    GetPath(dir_entry, path);
-    DisplayHeaderPath(ctx, path);
-  }
+  UpdateFileHeaderPath(ctx, dir_entry);
   ctx->active->start_file = *start_file;
 }
 
@@ -291,11 +259,7 @@ static void fmoveppage(ViewContext *ctx, int *start_file, int *cursor_pos,
   DisplayFiles(ctx, ctx->active, dir_entry, *start_file,
                *start_file + *cursor_pos, *start_x,
                ctx->ctx_file_window); /* Update dynamic header path */
-  {
-    char path[PATH_LENGTH];
-    GetPath(dir_entry, path);
-    DisplayHeaderPath(ctx, path);
-  }
+  UpdateFileHeaderPath(ctx, dir_entry);
   ctx->active->start_file = *start_file;
 }
 
@@ -806,10 +770,15 @@ int HandleFileWindow(ViewContext *ctx, DirEntry *dir_entry) {
       break;
 
     case ACTION_MOVE_RIGHT:
-      if (!ctx->highlight_full_line && x_step == 1)
-        break; /* No horizontal scroll in name-only mode */
-      fmoveright(ctx, &dir_entry->start_file, &dir_entry->cursor_pos, &start_x,
-                 dir_entry);
+      if (x_step == 1) {
+        /* In one-column layouts, LEFT/RIGHT page through the list. */
+        start_x = 0;
+        fmovenpage(ctx, &dir_entry->start_file, &dir_entry->cursor_pos,
+                   &start_x, dir_entry);
+      } else {
+        fmoveright(ctx, &dir_entry->start_file, &dir_entry->cursor_pos,
+                   &start_x, dir_entry);
+      }
       if (ctx->preview_mode) {
         preview_line_offset = 0;
         UpdatePreview(ctx, dir_entry);
@@ -817,10 +786,14 @@ int HandleFileWindow(ViewContext *ctx, DirEntry *dir_entry) {
       break;
 
     case ACTION_MOVE_LEFT:
-      if (!ctx->highlight_full_line && x_step == 1)
-        break; /* No horizontal scroll in name-only mode */
-      fmoveleft(ctx, &dir_entry->start_file, &dir_entry->cursor_pos, &start_x,
-                dir_entry);
+      if (x_step == 1) {
+        start_x = 0;
+        fmoveppage(ctx, &dir_entry->start_file, &dir_entry->cursor_pos,
+                   &start_x, dir_entry);
+      } else {
+        fmoveleft(ctx, &dir_entry->start_file, &dir_entry->cursor_pos,
+                  &start_x, dir_entry);
+      }
       if (ctx->preview_mode) {
         preview_line_offset = 0;
         UpdatePreview(ctx, dir_entry);
@@ -852,6 +825,7 @@ int HandleFileWindow(ViewContext *ctx, DirEntry *dir_entry) {
       DisplayFiles(ctx, ctx->active, dir_entry, dir_entry->start_file,
                    dir_entry->start_file + dir_entry->cursor_pos, start_x,
                    ctx->ctx_file_window);
+      UpdateFileHeaderPath(ctx, dir_entry);
       if (ctx->preview_mode) {
         preview_line_offset = 0;
         UpdatePreview(ctx, dir_entry);
@@ -865,6 +839,7 @@ int HandleFileWindow(ViewContext *ctx, DirEntry *dir_entry) {
       DisplayFiles(ctx, ctx->active, dir_entry, dir_entry->start_file,
                    dir_entry->start_file + dir_entry->cursor_pos, start_x,
                    ctx->ctx_file_window);
+      UpdateFileHeaderPath(ctx, dir_entry);
       if (ctx->preview_mode) {
         preview_line_offset = 0;
         UpdatePreview(ctx, dir_entry);
@@ -1496,6 +1471,29 @@ static void SyncFileGridMetrics(ViewContext *ctx) {
   height = getmaxy(ctx->ctx_file_window);
   x_step = (GetPanelMaxColumn(ctx->active) > 1) ? height : 1;
   max_disp_files = height * GetPanelMaxColumn(ctx->active);
+}
+
+static void UpdateFileHeaderPath(ViewContext *ctx, DirEntry *dir_entry) {
+  char path[PATH_LENGTH];
+  DirEntry *path_dir;
+  int idx;
+
+  if (!ctx || !ctx->active || !dir_entry)
+    return;
+
+  path_dir = dir_entry;
+
+  if (ctx->active->file_count > 0 && ctx->active->file_entry_list) {
+    idx = dir_entry->start_file + dir_entry->cursor_pos;
+    if (idx >= 0 && (unsigned int)idx < ctx->active->file_count) {
+      FileEntry *fe = ctx->active->file_entry_list[idx].file;
+      if (fe && fe->dir_entry)
+        path_dir = fe->dir_entry;
+    }
+  }
+
+  GetPath(path_dir, path);
+  DisplayHeaderPath(ctx, path);
 }
 
 static void ListJump(ViewContext *ctx, DirEntry *dir_entry, char *str) {

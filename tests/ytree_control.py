@@ -30,8 +30,13 @@ class YtreeController:
             self.log_file.close()
 
     def wait_for_startup(self):
-        # Wait for the year to appear in the clock
-        self.child.expect(r'20\d{2}')
+        # Wait for first UI paint; do not couple startup sync to clock text.
+        idx = self.child.expect(
+            [r"Path:", r"COMMANDS", r"\x1b\[[0-9;?]*[A-Za-z]", pexpect.TIMEOUT],
+            timeout=8,
+        )
+        if idx == 3:
+            raise pexpect.TIMEOUT("Startup sync failed: no UI activity detected")
 
     def select_file(self, filename):
         """
@@ -70,8 +75,11 @@ class YtreeController:
         time.sleep(0.2)
 
     def wait_for_refresh(self):
-        """Waits for a screen update (clock tick)."""
-        self.child.expect(r'20\d{2}')
+        """Waits for a screen update without depending on clock redraw text."""
+        self.child.expect(
+            [r"Path:", r"COMMANDS", r"\x1b\[[0-9;?]*[A-Za-z]", pexpect.TIMEOUT],
+            timeout=2.0,
+        )
 
     def quit(self):
         """Aggressive quit."""

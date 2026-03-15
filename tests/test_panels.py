@@ -24,8 +24,11 @@ def get_clean_screen(yt):
     return clean
 
 def sync_state(yt):
-    """Universal synchronization: waits for the UI clock to tick."""
-    yt.child.expect(r'20\d{2}')
+    """Universal synchronization: waits for UI repaint activity."""
+    yt.child.expect(
+        [r"Path:", r"COMMANDS", r"\x1b\[[0-9;?]*[A-Za-z]", pexpect.TIMEOUT],
+        timeout=2.0,
+    )
 
 def detect_and_fix_auto_enter(yt):
     """
