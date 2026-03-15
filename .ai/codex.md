@@ -19,3 +19,4 @@ Codex-specific behavior for this repository.
 - Activate the project virtual environment first: `source .venv/bin/activate`.
 - Canonical full suite command: `pytest`.
 - The pytest suite uses `pexpect` PTYs; always run pytest with host permissions (non-sandboxed command execution) so PTY allocation works.
+- Do not run pytest in sandbox first. Start with host-permission execution immediately for any pytest command (`pytest`, `pytest -q`, targeted tests, or `-k` runs).

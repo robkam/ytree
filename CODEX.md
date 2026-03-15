@@ -11,3 +11,4 @@ Testing quick reference (Codex):
 - Run from repo root: `/home/rob/ytree`
 - Activate venv: `source .venv/bin/activate`
 - Full suite command: `pytest`
+- Always run pytest with host permissions from the start (no sandbox-first run), because PTY-based tests require unrestricted PTY allocation.

@@ -3,11 +3,18 @@ import sys
 import time
 import os
 import signal
+import tempfile
 from ytree_keys import Keys
 
 class YtreeController:
     def __init__(self, binary_path, cwd):
-        self.log_file = open("tui_debug.log", "w")
+        log_target = os.environ.get("YTREE_TUI_DEBUG_LOG")
+        if log_target:
+            if log_target.lower() in {"1", "true", "yes"}:
+                log_target = os.path.join(tempfile.gettempdir(), "ytree_tui_debug.log")
+            self.log_file = open(log_target, "w", encoding="utf-8")
+        else:
+            self.log_file = open(os.devnull, "w", encoding="utf-8")
         self.child = pexpect.spawn(
             binary_path,
             cwd=cwd,
