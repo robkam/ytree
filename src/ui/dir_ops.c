@@ -205,6 +205,7 @@ void HandleShowAll(ViewContext *ctx, BOOL tagged_only, BOOL all_volumes,
   long long visible_count = 0;
   struct Volume *vol_iter;
   struct Volume *vol_tmp;
+  int result;
 
   if (all_volumes) {
     HASH_ITER(hh, ctx->volumes_head, vol_iter, vol_tmp) {
@@ -227,7 +228,10 @@ void HandleShowAll(ViewContext *ctx, BOOL tagged_only, BOOL all_volumes,
       dir_entry->start_file = 0;
       dir_entry->cursor_pos = 0;
     }
-    if (HandleFileWindow(ctx, dir_entry) != LOGIN_ESC) {
+    result = HandleFileWindow(ctx, dir_entry);
+    ctx->focused_window = FOCUS_TREE;
+
+    if (result != LOGIN_ESC) {
       /* Restore normal mode and refresh the entire view */
       dir_entry->start_file = 0;
       dir_entry->cursor_pos = -1;
