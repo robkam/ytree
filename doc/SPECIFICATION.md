@@ -3,7 +3,10 @@
 ## 0. Introduction
 `ytree` is a TUI File Manager following the **XTree&trade;/ZTree/UnixTree** lineage. It acts as a strict **State Machine**. This document serves as the "Contract of Truth" for behavior. Any deviation in UI logic or visual representation is a bug.
 
-### 0.1 Technical Foundation
+### 0.1 Guiding Principle
+**Ytree makes filesystem work self-evident.** Users should not need command-line fluency or Unix jargon to succeed; core actions must be visible, named plainly, and understandable from the interface itself.
+
+### 0.2 Technical Foundation
 *   **Standard:** C99 (via `gcc` or `clang`).
 *   **Flags:** `-D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS=64`.
 *   **Encapsulation:** Direct access to global memory is strictly prohibited. All functions must derive state from explicitly passed pointers (ViewContext, YtreePanel, or Volume).
@@ -95,6 +98,12 @@ A bordered pop-up box that overlays the center of the screen, used for:
 *   **Warning:** Significant operational warnings that require explicit dismissal.
 *   **Error:** Critical failures (e.g., "Permission Denied" or "Archive Corrupt").
 *   **Constraint:** Modals must be dismissed with `Esc` or `Enter` before any other navigation can occur.
+
+### 4.3 Audible Feedback Policy
+`ytree` defaults to quiet interaction. Audible alerts must be treated as exceptional, not routine:
+*   **No Beep for Normal Interaction:** Navigation boundaries, unsupported keys, and input validation must remain silent.
+*   **Beep Only for Critical Stop Conditions:** Use sound only for rare, high-severity failures where immediate user attention is required and visual messaging alone is insufficient.
+*   **Consistency Rule:** If an event is expected during ordinary workflow, it must not trigger an audible cue.
 
 ---
 

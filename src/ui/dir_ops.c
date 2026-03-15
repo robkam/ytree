@@ -198,16 +198,31 @@ void HandleUnreadSubTree(ViewContext *ctx, DirEntry *dir_entry,
   return;
 }
 
-void HandleShowAll(ViewContext *ctx, BOOL tagged_only, DirEntry *dir_entry,
-                   BOOL *need_dsp_help, int *ch, YtreePanel *p) {
+void HandleShowAll(ViewContext *ctx, BOOL tagged_only, BOOL all_volumes,
+                   DirEntry *dir_entry, BOOL *need_dsp_help, int *ch,
+                   YtreePanel *p) {
   Statistic *s = &p->vol->vol_stats;
+  long long visible_count = 0;
+  struct Volume *vol_iter;
+  struct Volume *vol_tmp;
 
-  if ((tagged_only) ? s->disk_tagged_files : s->disk_matching_files) {
+  if (all_volumes) {
+    HASH_ITER(hh, ctx->volumes_head, vol_iter, vol_tmp) {
+      Statistic *vs = &vol_iter->vol_stats;
+      visible_count +=
+          tagged_only ? vs->disk_tagged_files : vs->disk_matching_files;
+    }
+  } else {
+    visible_count = tagged_only ? s->disk_tagged_files : s->disk_matching_files;
+  }
+
+  if (visible_count > 0) {
     if (dir_entry->login_flag) {
       dir_entry->login_flag = FALSE;
     } else {
       dir_entry->big_window = TRUE;
       dir_entry->global_flag = TRUE;
+      dir_entry->global_all_volumes = all_volumes;
       dir_entry->tagged_flag = tagged_only;
       dir_entry->start_file = 0;
       dir_entry->cursor_pos = 0;
@@ -218,10 +233,12 @@ void HandleShowAll(ViewContext *ctx, BOOL tagged_only, DirEntry *dir_entry,
       dir_entry->cursor_pos = -1;
       BuildDirEntryList(ctx, p->vol, &p->current_dir_entry);
       RefreshView(ctx, dir_entry);
+      dir_entry->global_all_volumes = FALSE;
     } else {
       BuildDirEntryList(ctx, p->vol, &p->current_dir_entry);
       RefreshView(ctx, dir_entry);
       *ch = 'L';
+      dir_entry->global_all_volumes = FALSE;
     }
   } else {
     dir_entry->login_flag = FALSE;
@@ -241,6 +258,7 @@ void HandleSwitchWindow(ViewContext *ctx, DirEntry *dir_entry,
       dir_entry->login_flag = FALSE;
     } else {
       dir_entry->global_flag = FALSE;
+      dir_entry->global_all_volumes = FALSE;
       dir_entry->tagged_flag = FALSE;
       dir_entry->big_window = ctx->bypass_small_window;
       dir_entry->start_file = 0;
@@ -438,6 +456,7 @@ DirEntry *RefreshTreeSafe(ViewContext *ctx, YtreePanel *p, DirEntry *entry) {
   BOOL saved_big_window = entry->big_window;
   BOOL saved_login_flag = entry->login_flag;
   BOOL saved_global_flag = entry->global_flag;
+  BOOL saved_global_all_volumes = entry->global_all_volumes;
   BOOL saved_tagged_flag = entry->tagged_flag;
 
   if (ctx->view_mode != ARCHIVE_MODE) {
@@ -460,6 +479,7 @@ DirEntry *RefreshTreeSafe(ViewContext *ctx, YtreePanel *p, DirEntry *entry) {
     entry->big_window = saved_big_window;
     entry->login_flag = saved_login_flag;
     entry->global_flag = saved_global_flag;
+    entry->global_all_volumes = saved_global_all_volumes;
     entry->tagged_flag = saved_tagged_flag;
 
     /* 3. Restore State */
@@ -514,6 +534,7 @@ DirEntry *RefreshTreeSafe(ViewContext *ctx, YtreePanel *p, DirEntry *entry) {
     entry->big_window = saved_big_window;
     entry->login_flag = saved_login_flag;
     entry->global_flag = saved_global_flag;
+    entry->global_all_volumes = saved_global_all_volumes;
     entry->tagged_flag = saved_tagged_flag;
 
     BuildDirEntryList(ctx, p->vol, &p->current_dir_entry);

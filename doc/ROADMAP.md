@@ -535,7 +535,7 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 *   **Rationale:** De-clutter the top-level keymap. **Crucially, this frees up the `G` key for "Global View" and `O` for "Open", aligning with ZTree standards.**
 *   **Files to Modify:** `src/ui/input.c`, `src/ui/ctrl_dir.c`, `src/ui/ctrl_file.c`
 *   **Context Files:** `src/cmd/attributes.c`
-*   - [ ] **Status:** Not Started.
+*   - [x] **Status:** Completed.
 
 ### **Step 4.17: Implement Directory Graft (Copy/Move) and Release**
 *   **Goal:** Implement directory manipulation commands in the Directory Window.
