@@ -1,6 +1,7 @@
 import pytest
 import time
 import os
+import re
 from tui_harness import YtreeTUI
 from ytree_keys import Keys
 
@@ -182,4 +183,121 @@ def test_chown_command(ytree_binary, tmp_path):
     # Verify (even if it didn't change, we just want to see it didn't crash)
     assert target.exists()
     
+    tui.quit()
+
+def test_dir_date_change_no_footer_artifact(ytree_binary, tmp_path):
+    """Verifies dir date change does not leave a stray footer character."""
+    d = tmp_path / "dir_date_footer_test"
+    d.mkdir()
+    (d / "subdir").mkdir()
+
+    tui = YtreeTUI(executable=ytree_binary, cwd=str(d))
+    time.sleep(1.0)
+
+    # Try to move off the current root entry so we exercise a real dir entry path.
+    tui.send_keystroke(Keys.DOWN)
+    time.sleep(0.1)
+
+    # Directory attributes -> date -> modified
+    tui.send_keystroke("a")
+    time.sleep(0.1)
+    tui.send_keystroke("d")
+    time.sleep(0.1)
+    tui.send_keystroke("m")
+    time.sleep(0.1)
+
+    # Full-width overwrite input
+    tui.send_keystroke("2026-03-15 10:11:12\r")
+    time.sleep(0.6)
+
+    screen = tui.get_screen_dump()
+    footer_lines = screen[-3:]
+    footer_text = "\n".join(footer_lines)
+
+    # Regression: previously a lone alphabetic character (e.g. "C") remained.
+    artifact_lines = [
+        line.strip()
+        for line in footer_lines
+        if re.fullmatch(r"[A-Za-z]", line.strip())
+    ]
+    assert not artifact_lines, \
+        f"Footer contained lone alphabetic artifact(s): {artifact_lines}\nFooter:\n{footer_text}"
+
+    tui.quit()
+
+
+def test_dir_mkdir_cancel_no_footer_artifact(ytree_binary, tmp_path):
+    """Verifies cancelling mkdir from dir mode does not corrupt footer lines."""
+    d = tmp_path / "dir_mkdir_cancel_footer_test"
+    d.mkdir()
+    (d / "subdir").mkdir()
+
+    tui = YtreeTUI(executable=ytree_binary, cwd=str(d))
+    time.sleep(1.0)
+
+    # Move to a real directory entry if present.
+    tui.send_keystroke(Keys.DOWN)
+    time.sleep(0.1)
+
+    # Open mkdir prompt then cancel.
+    tui.send_keystroke("M")
+    time.sleep(0.1)
+    tui.send_keystroke(Keys.ESC)
+    time.sleep(0.4)
+
+    screen = tui.get_screen_dump()
+    footer_lines = screen[-3:]
+    footer_text = "\n".join(footer_lines)
+    footer_lower = footer_text.lower()
+
+    assert "commands" in footer_lower, \
+        f"COMMANDS footer line missing after mkdir cancel.\nFooter:\n{footer_text}"
+
+    artifact_lines = [
+        line.strip()
+        for line in footer_lines
+        if re.fullmatch(r"[A-Za-z]", line.strip())
+    ]
+    assert not artifact_lines, \
+        f"Footer contained lone alphabetic artifact(s): {artifact_lines}\nFooter:\n{footer_text}"
+
+    tui.quit()
+
+
+def test_file_date_change_modified_updates_mtime(ytree_binary, tmp_path):
+    """Verifies file attributes date->modified updates the file mtime."""
+    d = tmp_path / "file_date_change_test"
+    d.mkdir()
+    target = d / "sample.txt"
+    target.write_text("x")
+
+    # Ensure old value is clearly different from requested timestamp.
+    old_epoch = 946684800  # 2000-01-01 00:00:00 UTC
+    os.utime(target, (old_epoch, old_epoch))
+
+    tui = YtreeTUI(executable=ytree_binary, cwd=str(d))
+    time.sleep(1.0)
+
+    # Enter file window and trigger Attributes -> Date -> Modified.
+    tui.send_keystroke(Keys.ENTER)
+    time.sleep(0.2)
+    tui.send_keystroke("a")
+    time.sleep(0.1)
+    tui.send_keystroke("d")
+    time.sleep(0.1)
+    tui.send_keystroke("m")
+    time.sleep(0.1)
+    tui.send_keystroke("2026-03-15 10:11:12\r")
+    time.sleep(0.6)
+
+    st = os.stat(target)
+    new_mtime = int(st.st_mtime)
+    new_atime = int(st.st_atime)
+    expected_mtime = int(time.mktime((2026, 3, 15, 10, 11, 12, 0, 0, -1)))
+
+    assert abs(new_mtime - expected_mtime) <= 1, \
+        f"mtime mismatch: expected ~{expected_mtime}, got {new_mtime}"
+    assert new_atime == old_epoch, \
+        f"atime should remain unchanged for modified-only update, got {new_atime}"
+
     tui.quit()

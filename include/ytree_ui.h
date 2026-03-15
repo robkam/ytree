@@ -109,6 +109,7 @@ extern int UI_Error(ViewContext *ctx, const char *file, int line,
 extern int UI_Warning(ViewContext *ctx, const char *fmt, ...);
 extern int UI_Message(ViewContext *ctx, const char *fmt, ...);
 extern int UI_Notice(ViewContext *ctx, const char *fmt, ...);
+extern void UI_Beep(ViewContext *ctx, BOOL critical);
 
 /* filewin.c / ctrl_file.c / ctrl_file_ops.c */
 extern void BuildFileEntryList(ViewContext *ctx, YtreePanel *panel);

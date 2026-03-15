@@ -238,7 +238,8 @@ int InputChoice(ViewContext *ctx, const char *msg, const char *term) {
 
   curs_set(1);
   leaveok(ctx->ctx_border_window, FALSE);
-  mvwprintw(ctx->ctx_border_window, ctx->layout.prompt_y, 1, "%s", msg);
+  mvwhline(ctx->ctx_border_window, ctx->layout.prompt_y, 1, ' ', COLS - 2);
+  PrintOptions(ctx->ctx_border_window, ctx->layout.prompt_y, 1, (char *)msg);
   wnoutrefresh(ctx->ctx_border_window);
   doupdate();
   do {
@@ -249,9 +250,6 @@ int InputChoice(ViewContext *ctx, const char *msg, const char *term) {
       if (islower(c))
         c = toupper(c);
   } while (c != -1 && !strchr(term, c));
-
-  if (c >= 0 && c != ESC)
-    echochar(c);
 
   mvwaddstr(ctx->ctx_border_window, ctx->layout.prompt_y, 1, " ");
   mvwhline(ctx->ctx_border_window, ctx->layout.prompt_y, 1, ' ', COLS - 2);
