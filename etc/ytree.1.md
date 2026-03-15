@@ -93,16 +93,16 @@ These commands work in most modes:
 ### Directory Mode
 Active when browsing the directory tree window.
 
-*   **A** (Attribute): Change directory permissions (chmod).
+*   **A** (Attributes): Open attributes submenu for directory metadata changes:
+    mode (chmod), owner, group, date.
 *   **D** (Delete): Delete selected directory.
 *   **F** (Filter): Set file filter. Supports regex patterns (e.g., `*.c`), exclusions (`-*.o`), attributes (`:r`, `:x`), dates (`>2023-01-01`), and sizes (`>1M`).
-*   **G** (Group): Change directory group ownership.
+*   **G** (Global): Show all files across all logged volumes in one global list.
 *   **L** (Log): Log a new directory or archive file.
 *   **M** (Makedir): Create a new directory.
 *   **N** (New File): Create a new empty file.
-*   **O** (Owner): Change user ownership of selected directory.
 *   **R** (Rename): Rename selected directory.
-*   **S** (Showall): Show all files in all directories in a global list.
+*   **S** (Showall): Show all files in all directories of the current volume.
 *   **T** (Tag): Tag all files in the selected directory.
 *   **U** (Untag): Untag all files in the selected directory.
 *   **X** (eXecute): Execute a shell command. The `{}` placeholder is replaced by the current directory path.
@@ -114,29 +114,28 @@ Active when browsing the directory tree window.
 ### File Mode
 Active when the file window is focused.
 
-*   **A** (Attribute): Change file permissions.
-*   **^A**: Change permissions of all tagged files.
+*   **A** (Attributes): Open attributes submenu for selected file metadata:
+    mode, owner, group, date.
+*   **^A**: Open attributes submenu for all tagged files:
+    mode, owner, group, date.
 *   **C** (Copy): Copy the selected file.
 *   **^K**: Copy all tagged files.
 *   **D** (Delete): Delete selected file.
 *   **^D**: Delete all tagged files.
 *   **E** (Edit): Edit selected file with `$EDITOR` (default: vi).
 *   **F** (Filter): Set file filter.
-*   **G** (Group): Change group ownership.
-*   **^G**: Change group ownership of all tagged files.
 *   **H** (Hex): View selected file in hex mode.
 *   **L** (Log): Log a new directory or archive file.
 *   **M** (Move): Move the selected file.
 *   **N** (New File): Create a new empty file.
 *   **^N**: Move all tagged files.
-*   **O** (Owner): Change user ownership.
-*   **^O**: Change user ownership of all tagged files.
 *   **P** (Pipe): Pipe content of file to a command (stdin).
 *   **^P**: Pipe content of all tagged files to a command.
 *   **R** (Rename): Rename the selected file.
 *   **^R**: Rename all tagged files.
 *   **S** (Sort): Sort filelist (Access time, Change time, Extension, Group, Modification time, Name, Owner, Size).
 *   **^S** (Search): Execute grep on tagged files. Untags files that do not match the command.
+*   **Date Changes:** Date actions change Accessed time, Modified time, or both (POSIX does not allow setting creation/birth time here).
 *   **T** (Tag): Tag selected file.
 *   **^T**: Tag all displayed files.
 *   **U** (Untag): Untag selected file.
@@ -156,6 +155,7 @@ When browsing an archive (ZIP, TAR, etc.), ytree behaves similarly to a read-onl
 
 **Archive-Dir Mode**
 *   **F** (Filter): Set file filter.
+*   **G** (Global): Show all files across all logged volumes in one global list.
 *   **L** (Log): Log a new directory or archive.
 *   **S** (Showall): Show all files in the archive.
 *   **T** (Tag): Tag all files in current virtual directory.

@@ -7,6 +7,7 @@
 
 #define NO_YTREE_MACROS
 #include "ytree.h"
+#include <utime.h>
 
 BOOL handle_tag_file_action(ViewContext *ctx, int action, DirEntry *dir_entry,
                             int *unput_char_ptr, BOOL *need_dsp_help_ptr,
@@ -21,7 +22,9 @@ BOOL handle_tag_file_action(ViewContext *ctx, int action, DirEntry *dir_entry,
   off_t file_size = 0;
   WalkingPackage walking_package;
   mode_t mask = 0;
-  char mode[11] = {0};
+  char mode[16] = {0};
+  char parsed_mode[12] = {0};
+  char preview_mode[10] = {0};
   int pclose_ret = 0;
   char to_dir[PATH_LENGTH * 2 + 1] = {0};
   char to_file[PATH_LENGTH + 1] = {0};
@@ -57,65 +60,107 @@ BOOL handle_tag_file_action(ViewContext *ctx, int action, DirEntry *dir_entry,
     if ((ctx->view_mode != DISK_MODE && ctx->view_mode != USER_MODE) ||
         !FileTags_IsMatchingTaggedFiles(ctx)) {
     } else {
+      int attr_action;
       need_dsp_help = TRUE;
+      attr_action = UI_PromptAttributeAction(ctx, TRUE, FALSE);
 
-      mask = S_IFREG | S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH;
+      if (attr_action == 'M') {
+        mask = S_IFREG | S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH;
 
-      (void)GetAttributes(mask, mode);
+        (void)GetAttributes(mask, mode);
 
-      /* Updated to use InputString instead of GetNewFileModus */
-      ClearHelp(ctx);
-      if (UI_ReadString(ctx, ctx->active, "ATTRIBUTES: ", mode, 10,
-                        HST_CHANGE_MODUS) == CR) {
-        (void)strcpy(walking_package.function_data.change_mode.new_mode, mode);
-        FileTags_WalkTaggedFiles(ctx, dir_entry->start_file,
-                                 dir_entry->cursor_pos, SetFileModus,
-                                 &walking_package);
+        /* Updated to use InputString instead of GetNewFileModus */
+        ClearHelp(ctx);
+        if (UI_ReadString(ctx, ctx->active, "MODE (octal/rwx):", mode,
+                          (int)sizeof(mode),
+                          HST_CHANGE_MODUS) == CR) {
+          if (UI_ParseModeInput(mode, parsed_mode, preview_mode) != 0) {
+            UI_Message(ctx, "Invalid mode. Use 3/4-digit octal or -rwxrwxrwx");
+            wmove(ctx->ctx_border_window, ctx->layout.prompt_y, 0);
+            wclrtoeol(ctx->ctx_border_window);
+            wnoutrefresh(ctx->ctx_border_window);
+            return TRUE;
+          }
+          (void)strcpy(walking_package.function_data.change_mode.new_mode,
+                       parsed_mode);
+          FileTags_WalkTaggedFiles(ctx, dir_entry->start_file,
+                                   dir_entry->cursor_pos, SetFileModus,
+                                   &walking_package);
+
+          DisplayFiles(ctx, ctx->active, dir_entry, dir_entry->start_file,
+                       dir_entry->start_file + dir_entry->cursor_pos, start_x,
+                       ctx->ctx_file_window);
+        }
+        wmove(ctx->ctx_border_window, ctx->layout.prompt_y, 0);
+        wclrtoeol(ctx->ctx_border_window);
+        wnoutrefresh(ctx->ctx_border_window); /* Cleanup prompt line */
+      } else if (attr_action == 'O') {
+        if ((owner_id = GetNewOwner(ctx, -1)) >= 0) {
+          walking_package.function_data.change_owner.new_owner_id = owner_id;
+          FileTags_WalkTaggedFiles(ctx, dir_entry->start_file,
+                                   dir_entry->cursor_pos, SetFileOwner,
+                                   &walking_package);
+
+          DisplayFiles(ctx, ctx->active, dir_entry, dir_entry->start_file,
+                       dir_entry->start_file + dir_entry->cursor_pos, start_x,
+                       ctx->ctx_file_window);
+        }
+      } else if (attr_action == 'G') {
+        if ((group_id = GetNewGroup(ctx, -1)) >= 0) {
+          walking_package.function_data.change_group.new_group_id = group_id;
+          FileTags_WalkTaggedFiles(ctx, dir_entry->start_file,
+                                   dir_entry->cursor_pos, SetFileGroup,
+                                   &walking_package);
+
+          DisplayFiles(ctx, ctx->active, dir_entry, dir_entry->start_file,
+                       dir_entry->start_file + dir_entry->cursor_pos, start_x,
+                       ctx->ctx_file_window);
+        }
+      } else if (attr_action == 'D' || attr_action == 0x04) {
+        time_t new_time = time(NULL);
+        int scope_mask = 0;
+        int idx;
+
+        if (UI_GetDateChangeSpec(ctx, &new_time, &scope_mask) != 0) {
+          return TRUE;
+        }
+
+        for (idx = 0; idx < (int)ctx->active->file_count; idx++) {
+          struct utimbuf times;
+          struct stat updated_stat;
+          char path[PATH_LENGTH + 1];
+
+          fe_ptr = ctx->active->file_entry_list[idx].file;
+          if (!fe_ptr || !fe_ptr->tagged)
+            continue;
+
+          GetFileNamePath(fe_ptr, path);
+          times.actime = (scope_mask & DATE_SCOPE_ACCESS)
+                             ? new_time
+                             : fe_ptr->stat_struct.st_atime;
+          times.modtime = (scope_mask & DATE_SCOPE_MODIFY)
+                              ? new_time
+                              : fe_ptr->stat_struct.st_mtime;
+
+          if (utime(path, &times) != 0)
+            continue;
+          if (stat(path, &updated_stat) == 0)
+            fe_ptr->stat_struct = updated_stat;
+        }
 
         DisplayFiles(ctx, ctx->active, dir_entry, dir_entry->start_file,
                      dir_entry->start_file + dir_entry->cursor_pos, start_x,
                      ctx->ctx_file_window);
       }
-      move(LINES - 2, 1);
-      clrtoeol(); /* Cleanup prompt line */
     }
     return TRUE;
 
   case ACTION_CMD_TAGGED_O:
-    if ((ctx->view_mode != DISK_MODE && ctx->view_mode != USER_MODE) ||
-        !FileTags_IsMatchingTaggedFiles(ctx)) {
-    } else {
-      need_dsp_help = TRUE;
-      if ((owner_id = GetNewOwner(ctx, -1)) >= 0) {
-        walking_package.function_data.change_owner.new_owner_id = owner_id;
-        FileTags_WalkTaggedFiles(ctx, dir_entry->start_file,
-                                 dir_entry->cursor_pos, SetFileOwner,
-                                 &walking_package);
-
-        DisplayFiles(ctx, ctx->active, dir_entry, dir_entry->start_file,
-                     dir_entry->start_file + dir_entry->cursor_pos, start_x,
-                     ctx->ctx_file_window);
-      }
-    }
+    UI_Beep(ctx, FALSE);
     return TRUE;
 
   case ACTION_CMD_TAGGED_G:
-    if ((ctx->view_mode != DISK_MODE && ctx->view_mode != USER_MODE) ||
-        !FileTags_IsMatchingTaggedFiles(ctx)) {
-    } else {
-      need_dsp_help = TRUE;
-
-      if ((group_id = GetNewGroup(ctx, -1)) >= 0) {
-        walking_package.function_data.change_group.new_group_id = group_id;
-        FileTags_WalkTaggedFiles(ctx, dir_entry->start_file,
-                                 dir_entry->cursor_pos, SetFileGroup,
-                                 &walking_package);
-
-        DisplayFiles(ctx, ctx->active, dir_entry, dir_entry->start_file,
-                     dir_entry->start_file + dir_entry->cursor_pos, start_x,
-                     ctx->ctx_file_window);
-      }
-    }
+    UI_Beep(ctx, FALSE);
     return TRUE;
 
   case ACTION_TAG:

@@ -14,6 +14,76 @@
 
 #define PROMPT_WIN_HEIGHT 3
 
+static BOOL is_octal_mode_string(const char *s) {
+  size_t i, len;
+
+  if (!s)
+    return FALSE;
+
+  len = strlen(s);
+  if (len == 0 || len > 4)
+    return FALSE;
+
+  for (i = 0; i < len; i++) {
+    if (s[i] < '0' || s[i] > '7')
+      return FALSE;
+  }
+  return TRUE;
+}
+
+static BOOL is_mode_literal_char(int ch) {
+  switch (ch) {
+  case '?':
+  case '-':
+  case 'd':
+  case 'l':
+  case 'r':
+  case 'w':
+  case 'x':
+  case 's':
+  case 'S':
+  case 't':
+  case 'T':
+    return TRUE;
+  default:
+    return FALSE;
+  }
+}
+
+static BOOL is_date_literal_char(int ch) {
+  return (isdigit((unsigned char)ch) || ch == '-' || ch == ':' || ch == ' ');
+}
+
+static void format_mode_from_octal(const char *octal_digits, char mode_type,
+                                   char *out, size_t out_size) {
+  mode_t mode_bits;
+  mode_t synthetic_mode;
+  char attrs[11];
+
+  if (!octal_digits || !out || out_size == 0)
+    return;
+
+  mode_bits = (mode_t)strtol(octal_digits, NULL, 8);
+  synthetic_mode = S_IFREG | (mode_bits & 0777);
+
+  if (mode_bits & 04000)
+    synthetic_mode |= S_ISUID;
+  if (mode_bits & 02000)
+    synthetic_mode |= S_ISGID;
+#ifdef S_ISVTX
+  if (mode_bits & 01000)
+    synthetic_mode |= S_ISVTX;
+#endif
+
+  (void)GetAttributes((unsigned short)synthetic_mode, attrs);
+  if (mode_type == '-' || mode_type == 'd' || mode_type == 'l' ||
+      mode_type == '?') {
+    attrs[0] = mode_type;
+  }
+
+  (void)snprintf(out, out_size, "%s", attrs);
+}
+
 /* Helper to get visible length of string */
 /* Using extern from input.c logic (now moved here or duplicated) */
 
@@ -33,21 +103,46 @@ int UI_ReadString(ViewContext *ctx, YtreePanel *panel, const char *prompt,
                   char *buffer, int max_len, int history_type) {
   WINDOW *win;
   int win_y, win_x;
-  int input_y = 1; /* Row 1 */
-  int input_x = 1; /* Left margin */
-  int input_width;
   int ch;
   int p = 0; /* Visual cursor position */
   int scroll_offset = 0;
   static BOOL insert_flag = TRUE;
+  BOOL mode_edit = (history_type == HST_CHANGE_MODUS);
+  BOOL date_overwrite_edit = (history_type == HST_GENERAL && prompt != NULL &&
+                              strncmp(prompt, "DATE (", 6) == 0);
+  BOOL overwrite_edit = (mode_edit || date_overwrite_edit);
+  BOOL restore_insert_flag = FALSE;
+  BOOL previous_insert_flag = insert_flag;
+  BOOL mode_octal_entry = FALSE;
+  char mode_octal_input[5] = {0};
+  int mode_octal_len = 0;
+  char mode_original[32] = {0};
+  char mode_type = '-';
   const char *hints;
 
   /* Ensure buffer is valid */
   if (buffer == NULL)
     return ESC;
 
-  /* Initial cursor position at end of string */
-  p = StrVisualLength(buffer);
+  /* Mode editing starts in overwrite-from-start behavior. */
+  if (overwrite_edit) {
+    strncpy(mode_original, buffer, sizeof(mode_original) - 1);
+    mode_original[sizeof(mode_original) - 1] = '\0';
+    if (mode_edit && mode_original[0] == '\0') {
+      (void)snprintf(mode_original, sizeof(mode_original), "----------");
+    }
+    mode_type = mode_original[0];
+    if (mode_edit && mode_type != '-' && mode_type != 'd' && mode_type != 'l' &&
+        mode_type != '?') {
+      mode_type = '-';
+    }
+    p = 0;
+    restore_insert_flag = TRUE;
+    insert_flag = FALSE;
+  } else {
+    /* Initial cursor position at end of string */
+    p = StrVisualLength(buffer);
+  }
 
   /* Determine Key Hints */
   if (history_type == HST_LOGIN || history_type == HST_PATH) {
@@ -250,6 +345,38 @@ int UI_ReadString(ViewContext *ctx, YtreePanel *panel, const char *prompt,
     case 'H' & 0x1F: /* Ctrl-H */
     case KEY_BACKSPACE:
     case 127: /* ASCII DEL sometimes maps to Backspace */
+      if (mode_edit && mode_octal_entry) {
+        if (mode_octal_len > 0) {
+          char converted_mode[16];
+          mode_octal_len--;
+          mode_octal_input[mode_octal_len] = '\0';
+          if (mode_octal_len == 0) {
+            mode_octal_entry = FALSE;
+            strncpy(buffer, mode_original, max_len - 1);
+            buffer[max_len - 1] = '\0';
+            p = 0;
+          } else if (mode_octal_len < 3) {
+            strncpy(buffer, mode_octal_input, max_len - 1);
+            buffer[max_len - 1] = '\0';
+            p = mode_octal_len;
+          } else {
+            format_mode_from_octal(mode_octal_input, mode_type, converted_mode,
+                                   sizeof(converted_mode));
+            strncpy(buffer, converted_mode, max_len - 1);
+            buffer[max_len - 1] = '\0';
+            p = StrVisualLength(buffer);
+          }
+        }
+        break;
+      }
+      if (mode_edit) {
+        if (p > 0) {
+          int prev_byte = VisualPositionToBytePosition(buffer, p - 1);
+          buffer[prev_byte] = '-';
+          p--;
+        }
+        break;
+      }
       if (p > 0) {
         int curr_byte = VisualPositionToBytePosition(buffer, p);
         int prev_byte = VisualPositionToBytePosition(buffer, p - 1);
@@ -261,6 +388,37 @@ int UI_ReadString(ViewContext *ctx, YtreePanel *panel, const char *prompt,
 
     case 'D' & 0x1F: /* Ctrl-D */
     case KEY_DC:     /* Delete Key */
+      if (mode_edit && mode_octal_entry) {
+        if (mode_octal_len > 0) {
+          char converted_mode[16];
+          mode_octal_len--;
+          mode_octal_input[mode_octal_len] = '\0';
+          if (mode_octal_len == 0) {
+            mode_octal_entry = FALSE;
+            strncpy(buffer, mode_original, max_len - 1);
+            buffer[max_len - 1] = '\0';
+            p = 0;
+          } else if (mode_octal_len < 3) {
+            strncpy(buffer, mode_octal_input, max_len - 1);
+            buffer[max_len - 1] = '\0';
+            p = mode_octal_len;
+          } else {
+            format_mode_from_octal(mode_octal_input, mode_type, converted_mode,
+                                   sizeof(converted_mode));
+            strncpy(buffer, converted_mode, max_len - 1);
+            buffer[max_len - 1] = '\0';
+            p = StrVisualLength(buffer);
+          }
+        }
+        break;
+      }
+      if (mode_edit) {
+        if (p < StrVisualLength(buffer)) {
+          int curr_byte = VisualPositionToBytePosition(buffer, p);
+          buffer[curr_byte] = '-';
+        }
+        break;
+      }
       if (p < StrVisualLength(buffer)) {
         int curr_byte = VisualPositionToBytePosition(buffer, p);
         int next_byte = VisualPositionToBytePosition(buffer, p + 1);
@@ -270,6 +428,8 @@ int UI_ReadString(ViewContext *ctx, YtreePanel *panel, const char *prompt,
       break;
 
     case KEY_IC:
+      if (overwrite_edit)
+        break;
       insert_flag = !insert_flag;
       break;
 
@@ -281,6 +441,27 @@ int UI_ReadString(ViewContext *ctx, YtreePanel *panel, const char *prompt,
         strncpy(buffer, h, max_len - 1);
         buffer[max_len - 1] = '\0';
         p = StrVisualLength(buffer);
+        if (mode_edit) {
+          strncpy(mode_original, buffer, sizeof(mode_original) - 1);
+          mode_original[sizeof(mode_original) - 1] = '\0';
+          if (mode_original[0] == '\0')
+            (void)snprintf(mode_original, sizeof(mode_original), "----------");
+          mode_type = mode_original[0];
+          if (mode_type != '-' && mode_type != 'd' && mode_type != 'l' &&
+              mode_type != '?') {
+            mode_type = '-';
+          }
+          if (is_octal_mode_string(buffer)) {
+            mode_octal_entry = TRUE;
+            mode_octal_len = (int)strlen(buffer);
+            strncpy(mode_octal_input, buffer, sizeof(mode_octal_input) - 1);
+            mode_octal_input[sizeof(mode_octal_input) - 1] = '\0';
+          } else {
+            mode_octal_entry = FALSE;
+            mode_octal_len = 0;
+            mode_octal_input[0] = '\0';
+          }
+        }
       }
     } break;
 
@@ -328,6 +509,73 @@ int UI_ReadString(ViewContext *ctx, YtreePanel *panel, const char *prompt,
 
     default:
       if (ch >= ' ' && ch <= '~') {
+        if (date_overwrite_edit) {
+          if (!is_date_literal_char(ch)) {
+            UI_Beep(ctx, FALSE);
+            break;
+          }
+          if (p >= 19) {
+            UI_Beep(ctx, FALSE);
+            break;
+          }
+        }
+
+        if (mode_edit) {
+          if (isupper(ch))
+            ch = tolower(ch);
+
+          if (ch >= '0' && ch <= '7') {
+            if (!mode_octal_entry) {
+              mode_octal_entry = TRUE;
+              mode_octal_len = 0;
+              mode_octal_input[0] = '\0';
+              scroll_offset = 0;
+            }
+
+            if (mode_octal_len >= 4) {
+              UI_Beep(ctx, FALSE);
+              break;
+            }
+
+            mode_octal_input[mode_octal_len++] = (char)ch;
+            mode_octal_input[mode_octal_len] = '\0';
+
+            if (mode_octal_len < 3) {
+              strncpy(buffer, mode_octal_input, max_len - 1);
+              buffer[max_len - 1] = '\0';
+              p = mode_octal_len;
+            } else {
+              char converted_mode[16];
+              format_mode_from_octal(mode_octal_input, mode_type,
+                                     converted_mode, sizeof(converted_mode));
+              strncpy(buffer, converted_mode, max_len - 1);
+              buffer[max_len - 1] = '\0';
+              p = StrVisualLength(buffer);
+            }
+            break;
+          }
+
+          mode_octal_entry = FALSE;
+          mode_octal_len = 0;
+          mode_octal_input[0] = '\0';
+
+          if (!is_mode_literal_char(ch)) {
+            UI_Beep(ctx, FALSE);
+            break;
+          }
+
+          if ((int)strlen(buffer) < 10) {
+            strncpy(buffer, mode_original, max_len - 1);
+            buffer[max_len - 1] = '\0';
+            p = 0;
+          }
+
+          if (p >= 10) {
+            UI_Beep(ctx, FALSE);
+            break;
+          }
+        }
+
         if (strlen(buffer) < (size_t)(max_len - 1)) {
           int byte_pos = VisualPositionToBytePosition(buffer, p);
           if (insert_flag) {
@@ -341,7 +589,7 @@ int UI_ReadString(ViewContext *ctx, YtreePanel *panel, const char *prompt,
           }
           p++;
         } else {
-          beep();
+          UI_Beep(ctx, FALSE);
         }
       }
       break;
@@ -349,6 +597,9 @@ int UI_ReadString(ViewContext *ctx, YtreePanel *panel, const char *prompt,
   }
 
   /* Cleanup */
+  if (restore_insert_flag) {
+    insert_flag = previous_insert_flag;
+  }
   curs_set(0);
   UI_Dialog_Close(ctx, win);
 

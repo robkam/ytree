@@ -95,6 +95,24 @@ static void ReadGlobalFileList(ViewContext *ctx, YtreePanel *panel,
   max_visual_linkname_len = global_max_visual_linkname_len;
 }
 
+static void ReadAllVolumesGlobalFileList(ViewContext *ctx, YtreePanel *panel,
+                                         BOOL tagged_only) {
+  struct Volume *vol_iter;
+  struct Volume *vol_tmp;
+
+  global_max_visual_filename_len = 0;
+  global_max_visual_linkname_len = 0;
+
+  HASH_ITER(hh, ctx->volumes_head, vol_iter, vol_tmp) {
+    if (vol_iter->vol_stats.tree == NULL)
+      continue;
+    ReadGlobalFileListInternal(ctx, panel, tagged_only, vol_iter->vol_stats.tree);
+  }
+
+  max_visual_filename_len = global_max_visual_filename_len;
+  max_visual_linkname_len = global_max_visual_linkname_len;
+}
+
 /* Removed SetKindOfSort definition - implemented in sort.c */
 
 void FileList_RemoveFileEntry(ViewContext *ctx, int entry_no) {
@@ -212,14 +230,27 @@ void BuildFileEntryList(ViewContext *ctx, YtreePanel *panel) {
 
   /* Apply filter to current directory or entire tree before building list */
   if (dir_entry->global_flag) {
-    ApplyFilterToTree(panel->vol->vol_stats.tree, &panel->vol->vol_stats);
+    if (dir_entry->global_all_volumes) {
+      struct Volume *vol_iter;
+      struct Volume *vol_tmp;
+      HASH_ITER(hh, ctx->volumes_head, vol_iter, vol_tmp) {
+        ApplyFilterToTree(vol_iter->vol_stats.tree, &vol_iter->vol_stats);
+      }
+    } else {
+      ApplyFilterToTree(panel->vol->vol_stats.tree, &panel->vol->vol_stats);
+    }
   } else {
     ApplyFilter(dir_entry, &panel->vol->vol_stats);
   }
 
   panel->file_count = 0;
   if (dir_entry->global_flag) {
-    ReadGlobalFileList(ctx, panel, FALSE, panel->vol->vol_stats.tree);
+    if (dir_entry->global_all_volumes) {
+      ReadAllVolumesGlobalFileList(ctx, panel, dir_entry->tagged_flag);
+    } else {
+      ReadGlobalFileList(ctx, panel, dir_entry->tagged_flag,
+                         panel->vol->vol_stats.tree);
+    }
   } else {
     ReadFileList(ctx, panel, FALSE, dir_entry);
   }

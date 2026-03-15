@@ -317,7 +317,7 @@ static void change_char(ViewContext *ctx, int ch) {
 
         default:
           if (strtol((GetProfileValue)(ctx, "AUDIBLEERROR"), NULL, 0) != 0)
-            beep();
+            UI_Beep(ctx, FALSE);
           touchwin(ctx->viewer.view);
           free(cambio);
           return;

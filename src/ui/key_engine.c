@@ -238,18 +238,18 @@ int InputChoice(ViewContext *ctx, const char *msg, const char *term) {
 
   curs_set(1);
   leaveok(ctx->ctx_border_window, FALSE);
-  mvwprintw(ctx->ctx_border_window, ctx->layout.prompt_y, 1, "%s", msg);
+  mvwhline(ctx->ctx_border_window, ctx->layout.prompt_y, 1, ' ', COLS - 2);
+  PrintOptions(ctx->ctx_border_window, ctx->layout.prompt_y, 1, (char *)msg);
   wnoutrefresh(ctx->ctx_border_window);
   doupdate();
   do {
     c = WGetch(ctx, ctx->ctx_border_window);
+    if (c == ESC)
+      break;
     if (c >= 0)
       if (islower(c))
         c = toupper(c);
   } while (c != -1 && !strchr(term, c));
-
-  if (c >= 0)
-    echochar(c);
 
   mvwaddstr(ctx->ctx_border_window, ctx->layout.prompt_y, 1, " ");
   mvwhline(ctx->ctx_border_window, ctx->layout.prompt_y, 1, ' ', COLS - 2);
@@ -477,9 +477,6 @@ YtreeAction GetKeyAction(ViewContext *ctx, int ch) {
   case 'n':
   case 'N':
     return ACTION_CMD_MKFILE;
-  case 'o':
-  case 'O':
-    return ACTION_CMD_O;
   case 'p':
   case 'P':
     return ACTION_CMD_P;
@@ -510,13 +507,13 @@ YtreeAction GetKeyAction(ViewContext *ctx, int ch) {
   case 0x04:
     return ACTION_CMD_TAGGED_D;
   case 0x07:
-    return ACTION_CMD_TAGGED_G;
+    return ACTION_NONE;
   case 0x0E:
     if (ctx && ctx->preview_mode)
       return ACTION_PREVIEW_SCROLL_DOWN;
     return ACTION_CMD_TAGGED_M;
   case 0x0F:
-    return ACTION_CMD_TAGGED_O;
+    return ACTION_NONE;
   case 0x10:
     if (ctx && ctx->preview_mode)
       return ACTION_PREVIEW_SCROLL_UP;
