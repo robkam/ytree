@@ -8,6 +8,7 @@
 #include "ytree.h"
 
 static void UnReadSubTree(ViewContext *ctx, DirEntry *dir_entry, Statistic *s);
+static BOOL IsTransientScanStatError(int errnum);
 
 /* Read file tree: path = "root" path
  * dir_entry is filled by the function
@@ -147,7 +148,7 @@ int ReadTree(ViewContext *ctx, DirEntry *dir_entry, char *path, int depth,
     (void)strcat(new_path, dirent->d_name);
 
     if (STAT_(new_path, &stat_struct)) {
-      if (errno == EACCES)
+      if (IsTransientScanStatError(errno))
         continue;
       MESSAGE(ctx, "Stat failed on*%s*IGNORED", new_path);
       continue;
@@ -277,6 +278,16 @@ int ReadTree(ViewContext *ctx, DirEntry *dir_entry, char *path, int depth,
     cb(ctx, cb_data);
 
   return (0);
+}
+
+static BOOL IsTransientScanStatError(int errnum) {
+  if (errnum == EACCES || errnum == ENOENT || errnum == ENOTDIR)
+    return TRUE;
+#ifdef ESTALE
+  if (errnum == ESTALE)
+    return TRUE;
+#endif
+  return FALSE;
 }
 
 void UnReadTree(ViewContext *ctx, DirEntry *dir_entry, Statistic *s) {
