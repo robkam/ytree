@@ -5,7 +5,7 @@ Codex-specific behavior for this repository.
 ## Scope
 
 - Follow all rules in `.ai/shared.md`.
-- Use `CODEX.md` at repo root only as a discovery stub.
+- Use `AGENTS.md` at repo root only as a discovery stub.
 
 ## Codex Notes
 
