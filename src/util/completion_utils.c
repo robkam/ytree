@@ -245,7 +245,7 @@ char *GetMatches(ViewContext *ctx, char *base) {
     case KEY_DOWN:
       if (ctx->tab_disp_begin_pos + ctx->tab_cursor_pos + 1 >=
           ctx->tab_total_matches) {
-        beep();
+        UI_Beep(ctx, FALSE);
       } else {
         if (ctx->tab_cursor_pos + 1 < MATCHES_WINDOW_HEIGHT) {
           PrintMtchEntry(ctx, ctx->tab_disp_begin_pos + ctx->tab_cursor_pos,
@@ -270,7 +270,7 @@ char *GetMatches(ViewContext *ctx, char *base) {
     case KEY_BTAB:
     case KEY_UP:
       if (ctx->tab_disp_begin_pos + ctx->tab_cursor_pos - 1 < 1) {
-        beep();
+        UI_Beep(ctx, FALSE);
       } else {
         if (ctx->tab_cursor_pos - 1 >= 0) {
           PrintMtchEntry(ctx, ctx->tab_disp_begin_pos + ctx->tab_cursor_pos,
@@ -296,7 +296,7 @@ char *GetMatches(ViewContext *ctx, char *base) {
     case KEY_NPAGE:
       if (ctx->tab_disp_begin_pos + ctx->tab_cursor_pos >=
           ctx->tab_total_matches - 1) {
-        beep();
+        UI_Beep(ctx, FALSE);
       } else {
         if (ctx->tab_cursor_pos < MATCHES_WINDOW_HEIGHT - 1) {
           PrintMtchEntry(ctx, ctx->tab_disp_begin_pos + ctx->tab_cursor_pos,
@@ -331,7 +331,7 @@ char *GetMatches(ViewContext *ctx, char *base) {
       break;
     case KEY_PPAGE:
       if (ctx->tab_disp_begin_pos + ctx->tab_cursor_pos <= 1) {
-        beep();
+        UI_Beep(ctx, FALSE);
       } else {
         if (ctx->tab_cursor_pos > 0) {
           PrintMtchEntry(ctx, ctx->tab_disp_begin_pos + ctx->tab_cursor_pos,
@@ -352,7 +352,7 @@ char *GetMatches(ViewContext *ctx, char *base) {
       break;
     case KEY_HOME:
       if (ctx->tab_disp_begin_pos == 1 && ctx->tab_cursor_pos == 0) {
-        beep();
+        UI_Beep(ctx, FALSE);
       } else {
         ctx->tab_disp_begin_pos = 1;
         ctx->tab_cursor_pos = 0;
@@ -382,7 +382,7 @@ char *GetMatches(ViewContext *ctx, char *base) {
       break;
 
     default:
-      beep();
+      UI_Beep(ctx, FALSE);
       break;
     } /* switch */
   } while (ch != CR && ch != ESC && ch != -1);

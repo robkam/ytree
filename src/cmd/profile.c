@@ -137,7 +137,8 @@ int ReadProfile(ViewContext *ctx, char *filename) {
     if (*name == '\0')
       continue;
 
-    for (cptr = name; !isspace(*cptr) && *cptr != '='; cptr++)
+    for (cptr = name; *cptr && !isspace((unsigned char)*cptr) && *cptr != '=';
+         cptr++)
       ;
     if (*cptr != '=')
       *cptr = '\0';

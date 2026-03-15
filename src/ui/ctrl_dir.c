@@ -393,7 +393,7 @@ int HandleDirWindow(ViewContext *ctx, DirEntry *start_dir_entry) {
       if (ch == -1)
         break; /* Ignore -1 (ctx->resize_request handled above) */
       /* Fall through for other unhandled keys to beep */
-      beep();
+      UI_Beep(ctx, FALSE);
       break;
 
     case ACTION_MOVE_DOWN:
@@ -776,11 +776,12 @@ int HandleDirWindow(ViewContext *ctx, DirEntry *start_dir_entry) {
       break;
 
     case ACTION_CMD_S:
-      HandleShowAll(ctx, FALSE, dir_entry, &need_dsp_help, &ch, ctx->active);
+      HandleShowAll(ctx, FALSE, FALSE, dir_entry, &need_dsp_help, &ch,
+                    ctx->active);
       break;
     case ACTION_ENTER:
       if (dir_entry == NULL) {
-        beep();
+        UI_Beep(ctx, FALSE);
         break;
       }
 
@@ -798,7 +799,7 @@ int HandleDirWindow(ViewContext *ctx, DirEntry *start_dir_entry) {
                 dir_entry ? dir_entry->matching_files : -1);
 
       if (dir_entry == NULL || dir_entry->total_files == 0) {
-        beep();
+        UI_Beep(ctx, FALSE);
         break;
       }
 
@@ -914,8 +915,9 @@ int HandleDirWindow(ViewContext *ctx, DirEntry *start_dir_entry) {
           RefreshView(ctx, dir_entry);
         }
       }
-      move(LINES - 2, 1);
-      clrtoeol();
+      wmove(ctx->ctx_border_window, ctx->layout.prompt_y, 0);
+      wclrtoeol(ctx->ctx_border_window);
+      wnoutrefresh(ctx->ctx_border_window);
     }
       need_dsp_help = TRUE;
       break;
@@ -962,31 +964,62 @@ int HandleDirWindow(ViewContext *ctx, DirEntry *start_dir_entry) {
       need_dsp_help = TRUE;
       break;
     case ACTION_CMD_G:
-      (void)ChangeDirGroup(dir_entry);
-      DisplayTree(ctx, ctx->active->vol, ctx->ctx_dir_window,
-                  ctx->active->disp_begin_pos,
-                  ctx->active->disp_begin_pos + ctx->active->cursor_pos, TRUE);
-      DisplayDiskStatistic(ctx, s);
-      UpdateStatsPanel(ctx, dir_entry, s);
-      need_dsp_help = TRUE;
+      HandleShowAll(ctx, FALSE, TRUE, dir_entry, &need_dsp_help, &ch,
+                    ctx->active);
       break;
     case ACTION_CMD_O:
-      (void)ChangeDirOwner(dir_entry);
-      DisplayTree(ctx, ctx->active->vol, ctx->ctx_dir_window,
-                  ctx->active->disp_begin_pos,
-                  ctx->active->disp_begin_pos + ctx->active->cursor_pos, TRUE);
-      DisplayDiskStatistic(ctx, s);
-      UpdateStatsPanel(ctx, dir_entry, s);
-      need_dsp_help = TRUE;
+      UI_Beep(ctx, FALSE);
       break;
     case ACTION_CMD_A:
-      (void)ChangeDirModus(ctx, dir_entry);
-      DisplayTree(ctx, ctx->active->vol, ctx->ctx_dir_window,
-                  ctx->active->disp_begin_pos,
-                  ctx->active->disp_begin_pos + ctx->active->cursor_pos, TRUE);
-      DisplayDiskStatistic(ctx, s);
-      UpdateStatsPanel(ctx, dir_entry, s);
+      if (ctx->view_mode != DISK_MODE && ctx->view_mode != USER_MODE) {
+        UI_Beep(ctx, FALSE);
+        break;
+      }
       need_dsp_help = TRUE;
+      switch (UI_PromptAttributeAction(ctx, FALSE, TRUE)) {
+      case 'M':
+        if (ChangeDirModus(ctx, dir_entry))
+          break;
+        DisplayTree(ctx, ctx->active->vol, ctx->ctx_dir_window,
+                    ctx->active->disp_begin_pos,
+                    ctx->active->disp_begin_pos + ctx->active->cursor_pos,
+                    TRUE);
+        DisplayDiskStatistic(ctx, s);
+        UpdateStatsPanel(ctx, dir_entry, s);
+        break;
+      case 'O':
+        if (HandleDirOwnership(ctx, dir_entry, TRUE, FALSE))
+          break;
+        DisplayTree(ctx, ctx->active->vol, ctx->ctx_dir_window,
+                    ctx->active->disp_begin_pos,
+                    ctx->active->disp_begin_pos + ctx->active->cursor_pos,
+                    TRUE);
+        DisplayDiskStatistic(ctx, s);
+        UpdateStatsPanel(ctx, dir_entry, s);
+        break;
+      case 'G':
+        if (HandleDirOwnership(ctx, dir_entry, FALSE, TRUE))
+          break;
+        DisplayTree(ctx, ctx->active->vol, ctx->ctx_dir_window,
+                    ctx->active->disp_begin_pos,
+                    ctx->active->disp_begin_pos + ctx->active->cursor_pos,
+                    TRUE);
+        DisplayDiskStatistic(ctx, s);
+        UpdateStatsPanel(ctx, dir_entry, s);
+        break;
+      case 'D':
+        if (ChangeDirDate(ctx, dir_entry))
+          break;
+        DisplayTree(ctx, ctx->active->vol, ctx->ctx_dir_window,
+                    ctx->active->disp_begin_pos,
+                    ctx->active->disp_begin_pos + ctx->active->cursor_pos,
+                    TRUE);
+        DisplayDiskStatistic(ctx, s);
+        UpdateStatsPanel(ctx, dir_entry, s);
+        break;
+      default:
+        break;
+      }
       break;
 
     case ACTION_TOGGLE_COMPACT:
@@ -1268,7 +1301,7 @@ int HandleDirWindow(ViewContext *ctx, DirEntry *start_dir_entry) {
       break;
     /* Ctrl-L is now ACTION_REFRESH, handled above */
     default: /* Unhandled action, beep */
-      beep();
+      UI_Beep(ctx, FALSE);
       break;
     } /* switch */
 

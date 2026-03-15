@@ -33,10 +33,10 @@
  * Updated: (F)ilespec -> (F)ilter, spacing adjustments.
  */
 static char dir_help_disk_mode_0[] =
-    "DIR (A)ttribute (B)rief (D)elete (F)ilter (G)roup (L)og (M)akedir "
+    "DIR (A)ttributes (B)rief (D)elete (F)ilter (G)lobal (L)og (M)akedir "
     "(N)ewfile";
 static char dir_help_disk_mode_1[] =
-    "COMMANDS (O)wner (P)ipe (Q)uit (R)ename "
+    "COMMANDS (P)ipe (Q)uit (R)ename "
     "(S)howall (T)ag (U)ntag e(X)ec (`)dotfiles";
 static char *dir_help[MAX_MODES][2] = {
     {/* DISK_MODE */
@@ -47,8 +47,8 @@ static char *dir_help[MAX_MODES][2] = {
      "COMMANDS                                                                 "
      "          "},
     {/* ARCHIVE_MODE */
-     "ARCHIVE   (C)opy (F)ilter (^F)dirmode (L)og (M)akedir (R)ename (S)howall "
-     "(T)ag  ",
+     "ARCHIVE   (C)opy (F)ilter (G)lobal (^F)dirmode (L)og (M)akedir (R)ename "
+     "(S)howall ",
      "COMMANDS  (U)ntag (Q)uit                                                 "
      "       "},
     {                      /* USER_MODE */
@@ -56,12 +56,11 @@ static char *dir_help[MAX_MODES][2] = {
      dir_help_disk_mode_1}};
 
 static char file_help_disk_mode_0[] =
-    "FILE      (A)ttribute (B)rief (C)opy/(^K) (D)elete (E)dit (F)ilter "
-    "(^F)ilemode "
-    "(G)roup";
+    "FILE      (A)ttributes (B)rief (C)opy/(^K) (D)elete (E)dit (F)ilter "
+    "(^F)ilemode";
 static char file_help_disk_mode_1[] =
     "COMMANDS (H)ex (L)og (M)ove/(^N) (N)ewfile "
-    "(O)wner (P)ipe (Q)uit (R)ename (S)ort";
+    "(P)ipe (Q)uit (R)ename (S)ort";
 static char *file_help[MAX_MODES][2] = {
     {/* DISK_MODE */
      file_help_disk_mode_0, file_help_disk_mode_1},

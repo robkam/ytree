@@ -109,6 +109,7 @@ extern int UI_Error(ViewContext *ctx, const char *file, int line,
 extern int UI_Warning(ViewContext *ctx, const char *fmt, ...);
 extern int UI_Message(ViewContext *ctx, const char *fmt, ...);
 extern int UI_Notice(ViewContext *ctx, const char *fmt, ...);
+extern void UI_Beep(ViewContext *ctx, BOOL critical);
 
 /* filewin.c / ctrl_file.c / ctrl_file_ops.c */
 extern void BuildFileEntryList(ViewContext *ctx, YtreePanel *panel);
@@ -184,6 +185,7 @@ extern void RecalculateSysStats(ViewContext *ctx, Statistic *s);
 
 /* ctrl_dir.c / dir_tags.c */
 extern void HandleShowAll(ViewContext *ctx, BOOL tagged_only,
+                          BOOL all_volumes,
                           DirEntry *dir_entry, BOOL *need_dsp_help, int *ch,
                           YtreePanel *p);
 extern BOOL HandleDirTagActions(ViewContext *ctx, int action,
@@ -228,8 +230,20 @@ extern void RenderArchivePreview(ViewContext *ctx, WINDOW *win,
                                  long *line_offset_ptr);
 
 /* interactions.c */
+/* Date-change scopes (only fields POSIX allows us to set). */
+#define DATE_SCOPE_ACCESS 1
+#define DATE_SCOPE_MODIFY 2
+
+extern int UI_PromptAttributeAction(ViewContext *ctx, BOOL tagged,
+                                    BOOL allow_date);
+extern int UI_ParseModeInput(const char *input, char *out_mode,
+                             char *preview_mode);
+extern int UI_GetDateChangeSpec(ViewContext *ctx, time_t *new_time,
+                                int *scope_mask);
 extern int ChangeFileModus(ViewContext *ctx, FileEntry *fe_ptr);
 extern int ChangeDirModus(ViewContext *ctx, DirEntry *de_ptr);
+extern int ChangeFileDate(ViewContext *ctx, FileEntry *fe_ptr);
+extern int ChangeDirDate(ViewContext *ctx, DirEntry *de_ptr);
 extern int HandleDirOwnership(ViewContext *ctx, DirEntry *de_ptr,
                               BOOL change_owner, unsigned char change_group);
 extern int HandleFileOwnership(ViewContext *ctx, FileEntry *fe_ptr,

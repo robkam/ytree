@@ -74,7 +74,7 @@ LDFLAGS     += -lncursesw -ltinfo -lreadline -larchive -lm
 # Run 'make DEBUG=1' for development (AddressSanitizer enabled)
 # Run 'make' for release (Optimized, no runtime dependency on ASan)
 # -------------------------------------------------------------------------
-ifdef DEBUG
+ifeq ($(DEBUG),1)
     # Debug Build: Enable ASan, Debug Symbols, disable optimization
     CFLAGS  += -fsanitize=address -g -O1 -fno-omit-frame-pointer
     LDFLAGS += -fsanitize=address
