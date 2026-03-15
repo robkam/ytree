@@ -64,6 +64,7 @@ int ReadTree(ViewContext *ctx, DirEntry *dir_entry, char *path, int depth,
   dir_entry->start_file = 0;
   dir_entry->cursor_pos = 0;
   dir_entry->global_flag = FALSE;
+  dir_entry->global_all_volumes = FALSE;
   dir_entry->login_flag = FALSE;
   dir_entry->big_window = FALSE;
   dir_entry->not_scanned = FALSE;
@@ -92,7 +93,9 @@ int ReadTree(ViewContext *ctx, DirEntry *dir_entry, char *path, int depth,
 
   first_dir_entry.prev = NULL;
   first_dir_entry.next = NULL;
-  *first_dir_entry.name = '\0';
+  /* DirEntry uses a flexible array member for name[]; stack sentinels have no
+   * storage for it. Keep this node as a pure link sentinel.
+   */
   first_file_entry.next = NULL;
   fes_ptr = &first_file_entry;
 
@@ -123,8 +126,9 @@ int ReadTree(ViewContext *ctx, DirEntry *dir_entry, char *path, int depth,
         /* Clear the prompt line to indicate resumption */
         int y, x;
         getyx(stdscr, y, x); /* Save cursor */
-        move(LINES - 2, 0);  /* Move to prompt line (standard position) */
-        clrtoeol();          /* Clear it */
+        wmove(ctx->ctx_border_window, ctx->layout.prompt_y, 0);
+        wclrtoeol(ctx->ctx_border_window);
+        wnoutrefresh(ctx->ctx_border_window);
         move(y, x);          /* Restore cursor */
         doupdate();
       }
@@ -182,26 +186,24 @@ int ReadTree(ViewContext *ctx, DirEntry *dir_entry, char *path, int depth,
       /* Sort by direct insertion */
       /*------------------------------------*/
 
-      for (des_ptr = &first_dir_entry; des_ptr; des_ptr = des_ptr->next) {
-        if (strcmp(des_ptr->name, den_ptr->name) > 0) {
-          /* des-element is larger */
-          /*--------------------------*/
-
-          den_ptr->next = des_ptr;
-          den_ptr->prev = des_ptr->prev;
-          des_ptr->prev->next = den_ptr;
-          des_ptr->prev = den_ptr;
-          break;
-        }
-
-        if (des_ptr->next == NULL) {
-          /* End of list reached; ==> insert */
-          /*----------------------------------------*/
-
-          den_ptr->prev = des_ptr;
-          den_ptr->next = des_ptr->next;
-          des_ptr->next = den_ptr;
-          break;
+      if (first_dir_entry.next == NULL ||
+          strcmp(first_dir_entry.next->name, den_ptr->name) > 0) {
+        den_ptr->next = first_dir_entry.next;
+        den_ptr->prev = &first_dir_entry;
+        if (first_dir_entry.next)
+          first_dir_entry.next->prev = den_ptr;
+        first_dir_entry.next = den_ptr;
+      } else {
+        for (des_ptr = first_dir_entry.next; des_ptr; des_ptr = des_ptr->next) {
+          if (des_ptr->next == NULL ||
+              strcmp(des_ptr->next->name, den_ptr->name) > 0) {
+            den_ptr->next = des_ptr->next;
+            den_ptr->prev = des_ptr;
+            if (des_ptr->next)
+              des_ptr->next->prev = den_ptr;
+            des_ptr->next = den_ptr;
+            break;
+          }
         }
       }
     } else {

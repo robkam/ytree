@@ -18,6 +18,7 @@ These instructions apply to all AI agents used in this repository.
 5. Do not guess behavior; consult repository docs before changing architecture.
 6. Keep changes scoped to the requested task; do not anticipate future work.
 7. Prefer MCP semantic/navigation tools (symbol search, outlines, references) over loading large files into context unnecessarily.
+8. All commit messages must follow the Conventional Commits specification style (e.g., `feat(ui): ...`, `fix(tests): ...`, `docs(ai): ...`).
 
 ## Required Validation
 

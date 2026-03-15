@@ -15,6 +15,12 @@ static void PrintErrorLine(ViewContext *ctx, int y, char *str);
 static void DisplayMessage(ViewContext *ctx, char *msg);
 static int PrintMessage(ViewContext *ctx, char *msg, BOOL do_beep);
 
+void UI_Beep(ViewContext *ctx, BOOL critical) {
+  (void)ctx;
+  (void)critical;
+  /* Sound cues are intentionally suppressed by default. */
+}
+
 int UI_Message(ViewContext *ctx, const char *fmt, ...) {
   char buffer[MESSAGE_LENGTH + 1];
   va_list ap;
@@ -186,8 +192,8 @@ static int PrintMessage(ViewContext *ctx, char *msg, BOOL do_beep) {
   int c;
 
   DisplayMessage(ctx, msg);
-  if (do_beep && (strtol((GetProfileValue)(ctx, "AUDIBLEERROR"), NULL, 0) != 0))
-    beep();
+  if (do_beep)
+    UI_Beep(ctx, FALSE);
   RefreshWindow(ctx->ctx_error_window);
   doupdate();
   c = WGetch(ctx, ctx->ctx_error_window);

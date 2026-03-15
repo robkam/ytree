@@ -437,7 +437,7 @@ char *GetHistory(ViewContext *ctx, int type) {
     case '\t':
     case KEY_DOWN:
       if (ctx->disp_begin_pos + ctx->cursor_pos + 1 >= ctx->total_hist) {
-        beep();
+        UI_Beep(ctx, FALSE);
       } else {
         if (ctx->cursor_pos + 1 < HISTORY_WINDOW_HEIGHT) {
           PrintHstEntry(ctx, ctx->disp_begin_pos + ctx->cursor_pos,
@@ -462,7 +462,7 @@ char *GetHistory(ViewContext *ctx, int type) {
     case KEY_BTAB:
     case KEY_UP:
       if (ctx->disp_begin_pos + ctx->cursor_pos - 1 < 0) {
-        beep();
+        UI_Beep(ctx, FALSE);
       } else {
         if (ctx->cursor_pos - 1 >= 0) {
           PrintHstEntry(ctx, ctx->disp_begin_pos + ctx->cursor_pos,
@@ -487,7 +487,7 @@ char *GetHistory(ViewContext *ctx, int type) {
       break;
     case KEY_NPAGE:
       if (ctx->disp_begin_pos + ctx->cursor_pos >= ctx->total_hist - 1) {
-        beep();
+        UI_Beep(ctx, FALSE);
       } else {
         if (ctx->cursor_pos < HISTORY_WINDOW_HEIGHT - 1) {
           PrintHstEntry(ctx, ctx->disp_begin_pos + ctx->cursor_pos,
@@ -517,7 +517,7 @@ char *GetHistory(ViewContext *ctx, int type) {
       break;
     case KEY_PPAGE:
       if (ctx->disp_begin_pos + ctx->cursor_pos <= 0) {
-        beep();
+        UI_Beep(ctx, FALSE);
       } else {
         if (ctx->cursor_pos > 0) {
           PrintHstEntry(ctx, ctx->disp_begin_pos + ctx->cursor_pos,
@@ -538,7 +538,7 @@ char *GetHistory(ViewContext *ctx, int type) {
       break;
     case KEY_HOME:
       if (ctx->disp_begin_pos == 0 && ctx->cursor_pos == 0) {
-        beep();
+        UI_Beep(ctx, FALSE);
       } else {
         ctx->disp_begin_pos = 0;
         ctx->cursor_pos = 0;
@@ -569,7 +569,7 @@ char *GetHistory(ViewContext *ctx, int type) {
       break;
 
     default:
-      beep();
+      UI_Beep(ctx, FALSE);
       break;
     } /* switch */
   } while (ch != CR && ch != ESC && ch != -1);

@@ -101,7 +101,7 @@ BOOL HandleDirTagActions(ViewContext *ctx, int action,
     HandleTagAllDirs(ctx, ctx->active->vol, dir_entry, FALSE, ctx->active);
     return TRUE;
   case ACTION_CMD_TAGGED_S:
-    HandleShowAll(ctx, TRUE, dir_entry, need_dsp_help, ch, ctx->active);
+    HandleShowAll(ctx, TRUE, FALSE, dir_entry, need_dsp_help, ch, ctx->active);
     return TRUE;
   }
   return FALSE;

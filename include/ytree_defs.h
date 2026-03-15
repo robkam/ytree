@@ -478,6 +478,7 @@ typedef struct _dir_entry {
   struct stat stat_struct;
   BOOL access_denied;
   BOOL global_flag;
+  BOOL global_all_volumes;
   BOOL tagged_flag;
   BOOL only_tagged;
   BOOL not_scanned;
