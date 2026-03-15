@@ -20,6 +20,7 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 *   **Be Better Than Midnight Commander:** Feature parity with `mc` is a baseline goal. The ultimate objective is to provide a superior, more powerful, and more intuitive user experience.
 *   **No Hidden Features:** All functionality, especially syntax like the `{}` placeholder, should be clearly explained in context within the UI (e.g., in the help lines or prompts).
 *   **Use Established Libraries:** Prefer mature, well-supported libraries (e.g., `libarchive`) instead of creating custom replacements.
+*   **Ytree makes filesystem work self-evident:** Users should not need command-line fluency or Unix jargon to succeed; core actions must be visible, named plainly, and understandable from the interface itself.
 
 ---
 
@@ -769,7 +770,7 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 *   **Rationale:** Modern terminal users expect applications to respect their terminal's color palette by default. The classic high-contrast blue scheme can be jarring.
 *   **Files to Modify:** `etc/ytree.conf`, `src/ui/color.c`
 *   **Context Files:** None.
-*   - [ ] **Status:** Not Started.
+*   - [x] **Status:** Completed.
 
 ### **Step 4.44: Refactor Tab Completion for Command Arguments**
 *   **Goal:** Update the tab completion logic in `src/util/tabcompl.c` to handle command-line arguments correctly and resolve ambiguous matches using Longest Common Prefix (LCP).
