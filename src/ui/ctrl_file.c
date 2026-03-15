@@ -39,6 +39,7 @@ static int saved_fixed_width = 0;
 static void RereadWindowSize(ViewContext *ctx, DirEntry *dir_entry);
 static void ListJump(ViewContext *ctx, DirEntry *dir_entry, char *str);
 static void UpdatePreview(ViewContext *ctx, DirEntry *dir_entry);
+static void SyncFileGridMetrics(ViewContext *ctx);
 
 static YtreeAction FilterPreviewAction(YtreeAction action) {
   switch (action) {
@@ -487,15 +488,12 @@ int HandleFileWindow(ViewContext *ctx, DirEntry *dir_entry) {
     if (ctx->active->vol != start_vol)
       return ESC;
 
-    if (maybe_change_x_step) {
-      maybe_change_x_step = FALSE;
-
-      x_step = (GetPanelMaxColumn(ctx->active) > 1)
-                   ? getmaxy(ctx->ctx_file_window)
-                   : 1;
-      max_disp_files =
-          getmaxy(ctx->ctx_file_window) * GetPanelMaxColumn(ctx->active);
-    }
+    /* Keep grid metrics in sync with the current file list/rendering width.
+     * This prevents stale x_step/max_disp_files after refresh/toggle/resize
+     * paths that rebuild the list but do not pass through mode-change logic.
+     */
+    SyncFileGridMetrics(ctx);
+    maybe_change_x_step = FALSE;
 
     if (unput_char) {
       ch = unput_char;
@@ -1476,12 +1474,7 @@ int HandleFileWindow(ViewContext *ctx, DirEntry *dir_entry) {
 /* WalkTaggedFiles moved to file_tags.c */
 
 static void RereadWindowSize(ViewContext *ctx, DirEntry *dir_entry) {
-  int height, width;
-  SetPanelFileMode(ctx, ctx->active, GetPanelFileMode(ctx->active));
-
-  GetMaxYX(ctx->ctx_file_window, &height, &width);
-  x_step = (GetPanelMaxColumn(ctx->active) > 1) ? height : 1;
-  max_disp_files = height * GetPanelMaxColumn(ctx->active);
+  SyncFileGridMetrics(ctx);
 
   if (dir_entry->start_file + dir_entry->cursor_pos <
       (int)ctx->active->file_count) {
@@ -1491,6 +1484,18 @@ static void RereadWindowSize(ViewContext *ctx, DirEntry *dir_entry) {
     }
   }
   return;
+}
+
+static void SyncFileGridMetrics(ViewContext *ctx) {
+  int height;
+
+  if (!ctx || !ctx->active || !ctx->ctx_file_window)
+    return;
+
+  SetPanelFileMode(ctx, ctx->active, GetPanelFileMode(ctx->active));
+  height = getmaxy(ctx->ctx_file_window);
+  x_step = (GetPanelMaxColumn(ctx->active) > 1) ? height : 1;
+  max_disp_files = height * GetPanelMaxColumn(ctx->active);
 }
 
 static void ListJump(ViewContext *ctx, DirEntry *dir_entry, char *str) {
