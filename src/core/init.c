@@ -441,7 +441,10 @@ void ReCreateWindows(ViewContext *ctx) {
   scrollok(ctx->ctx_time_window, FALSE);
   leaveok(ctx->ctx_time_window, TRUE);
   WbkgdSet(ctx, ctx->ctx_time_window, COLOR_PAIR(CPAIR_WINDIR | A_BOLD));
-  immedok(ctx->ctx_time_window, TRUE);
+  /* Keep clock redraws in the normal wnoutrefresh/doupdate pipeline.
+   * Immediate refresh causes visible blinking during rapid navigation.
+   */
+  immedok(ctx->ctx_time_window, FALSE);
 #endif
 
   if (ctx->ctx_history_window)

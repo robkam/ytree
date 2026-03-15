@@ -452,7 +452,19 @@ void RefreshView(ViewContext *ctx, DirEntry *dir_entry) {
   /* 6. Update Header Path (already drawn to border window) */
   {
     char path[PATH_LENGTH + 1];
-    GetPath(dir_entry, path);
+    DirEntry *path_dir = dir_entry;
+
+    if (!ctx->preview_mode && ctx->focused_window == FOCUS_FILE && ctx->active &&
+        ctx->active->file_entry_list && ctx->active->file_count > 0) {
+      int idx = dir_entry->start_file + dir_entry->cursor_pos;
+      if (idx >= 0 && (unsigned int)idx < ctx->active->file_count) {
+        FileEntry *fe = ctx->active->file_entry_list[idx].file;
+        if (fe && fe->dir_entry)
+          path_dir = fe->dir_entry;
+      }
+    }
+
+    GetPath(path_dir, path);
     DisplayHeaderPath(ctx, path);
   }
 
