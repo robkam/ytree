@@ -10,26 +10,26 @@
 #ifdef COLOR_SUPPORT
 
 UIColor ui_colors[] = {
-    {"DIR_COLOR", CPAIR_DIR, COLOR_WHITE, COLOR_BLUE},
-    {"HIDIR_COLOR", CPAIR_HIDIR, COLOR_BLACK, COLOR_WHITE},
-    {"WINDIR_COLOR", CPAIR_WINDIR, COLOR_CYAN, COLOR_BLUE},
-    {"FILE_COLOR", CPAIR_FILE, COLOR_WHITE, COLOR_BLUE},
-    {"HIFILE_COLOR", CPAIR_HIFILE, COLOR_BLACK, COLOR_WHITE},
-    {"WINFILE_COLOR", CPAIR_WINFILE, COLOR_CYAN, COLOR_BLUE},
-    {"STATS_COLOR", CPAIR_STATS, COLOR_BLUE, COLOR_CYAN},
-    {"WINSTATS_COLOR", CPAIR_WINSTATS, COLOR_BLUE, COLOR_CYAN},
-    {"BORDERS_COLOR", CPAIR_BORDERS, COLOR_BLUE, COLOR_CYAN},
-    {"HIMENUS_COLOR", CPAIR_HIMENUS, COLOR_WHITE, COLOR_BLUE},
-    {"MENU_COLOR", CPAIR_MENU, COLOR_CYAN, COLOR_BLUE},
-    {"WINERR_COLOR", CPAIR_WINERR, COLOR_BLUE, COLOR_WHITE},
-    {"HST_COLOR", CPAIR_HST, COLOR_YELLOW, COLOR_CYAN},
-    {"HIHST_COLOR", CPAIR_HIHST, COLOR_WHITE, COLOR_WHITE},
-    {"WINHST_COLOR", CPAIR_WINHST, COLOR_YELLOW, COLOR_CYAN},
-    {"HIGLOBAL_COLOR", CPAIR_HIGLOBAL, COLOR_WHITE, COLOR_YELLOW},
-    {"GLOBAL_COLOR", CPAIR_GLOBAL, COLOR_YELLOW, COLOR_CYAN},
-    {"INFO_COLOR", CPAIR_INFO, COLOR_WHITE, COLOR_BLUE},
-    {"WARN_COLOR", CPAIR_WARN, COLOR_YELLOW, COLOR_BLACK},
-    {"ERR_COLOR", CPAIR_ERR, COLOR_RED, COLOR_WHITE}};
+    {"DIR_COLOR", CPAIR_DIR, 7, 0},
+    {"HIDIR_COLOR", CPAIR_HIDIR, 0, 3},
+    {"WINDIR_COLOR", CPAIR_WINDIR, 7, 0},
+    {"FILE_COLOR", CPAIR_FILE, 7, 0},
+    {"HIFILE_COLOR", CPAIR_HIFILE, 0, 3},
+    {"WINFILE_COLOR", CPAIR_WINFILE, 7, 0},
+    {"STATS_COLOR", CPAIR_STATS, 7, 0},
+    {"WINSTATS_COLOR", CPAIR_WINSTATS, 7, 0},
+    {"BORDERS_COLOR", CPAIR_BORDERS, 8, 0},
+    {"HIMENUS_COLOR", CPAIR_HIMENUS, 15, 0},
+    {"MENU_COLOR", CPAIR_MENU, 7, 0},
+    {"WINERR_COLOR", CPAIR_WINERR, 15, 1},
+    {"HST_COLOR", CPAIR_HST, 7, 0},
+    {"HIHST_COLOR", CPAIR_HIHST, 0, 3},
+    {"WINHST_COLOR", CPAIR_WINHST, 7, 0},
+    {"HIGLOBAL_COLOR", CPAIR_HIGLOBAL, 15, 3},
+    {"GLOBAL_COLOR", CPAIR_GLOBAL, 3, 0},
+    {"INFO_COLOR", CPAIR_INFO, 15, 4},
+    {"WARN_COLOR", CPAIR_WARN, 11, 0},
+    {"ERR_COLOR", CPAIR_ERR, 15, 1}};
 
 int NUM_UI_COLORS = sizeof(ui_colors) / sizeof(ui_colors[0]);
 
@@ -47,6 +47,23 @@ static const ColorMapEntry color_map[] = {{"black", COLOR_BLACK},
                                           {"cyan", COLOR_CYAN},
                                           {"white", COLOR_WHITE},
                                           {NULL, -1}};
+
+static int NormalizeColorIndex(int color, int color_limit) {
+  if (color == -1)
+    return -1;
+  if (color < -1)
+    return COLOR_WHITE;
+  if (color_limit <= 0)
+    return color;
+  if (color < color_limit)
+    return color;
+
+  /* Bright ANSI colors fall back to base colors on 8-color terminals. */
+  if (color_limit <= 8 && color <= 15)
+    return color - 8;
+
+  return color % color_limit;
+}
 
 void ParseColorString(const char *color_str, int *fg, int *bg) {
   char *dup, *token, *saveptr;
@@ -90,9 +107,8 @@ void ParseColorString(const char *color_str, int *fg, int *bg) {
       /* Check if valid number: no error, parsed something, and full string
        * consumed */
       if (errno == 0 && endptr != token && *endptr == '\0') {
-        /* Check range: -1 (default) to color_limit-1 */
-        if (val >= -1 && val < color_limit) {
-          *target = (int)val;
+        if (val >= -1 && val <= 255) {
+          *target = NormalizeColorIndex((int)val, color_limit);
         }
       }
     }
@@ -134,7 +150,8 @@ void ReinitColorPairs(ViewContext *ctx) {
 
   /* Initialize UI colors */
   for (i = 0; i < NUM_UI_COLORS; i++) {
-    init_pair(ui_colors[i].id, ui_colors[i].fg, ui_colors[i].bg);
+    init_pair(ui_colors[i].id, NormalizeColorIndex(ui_colors[i].fg, COLORS),
+              NormalizeColorIndex(ui_colors[i].bg, COLORS));
   }
 
   /* Initialize file type colors */
@@ -146,7 +163,8 @@ void ReinitColorPairs(ViewContext *ctx) {
         rule->pair_id = CPAIR_FILE; /* Fallback */
       }
     }
-    init_pair(rule->pair_id, rule->fg, rule->bg);
+    init_pair(rule->pair_id, NormalizeColorIndex(rule->fg, COLORS),
+              NormalizeColorIndex(rule->bg, COLORS));
   }
 }
 
