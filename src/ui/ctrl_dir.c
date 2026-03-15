@@ -600,55 +600,58 @@ int HandleDirWindow(ViewContext *ctx, DirEntry *start_dir_entry) {
           /* Reset Search Term to prevent bleeding */
           ctx->global_search_term[0] = '\0';
 
-          /* Attempt to highlight the archive file we just left */
+          /* Re-sync selected directory in the new context. */
           if (ctx->active->vol->total_dirs > 0) {
-            /* Usually root, or restored position */
             dir_entry = ctx->active->vol
                             ->dir_entry_list[ctx->active->disp_begin_pos +
                                              ctx->active->cursor_pos]
                             .dir_entry;
-
-            /* Find the archive file in the file list */
-            FileEntry *fe;
-            int f_idx = 0;
-            for (fe = dir_entry->file; fe; fe = fe->next) {
-              if (strcmp(fe->name, dummy_name) == 0) {
-                dir_entry->start_file = f_idx;
-                dir_entry->cursor_pos = 0;
-                break;
-              }
-              f_idx++;
-            }
           } else {
             dir_entry = s->tree;
           }
 
-          /* Reset global view mode explicitly */
-          ctx->view_mode = DISK_MODE;
-          ctx->view_mode = DISK_MODE; /* Force legacy macro to update too */
+          /* Tree focus: keep file list in small-window mode and no file cursor.
+           */
+          dir_entry->start_file = 0;
+          dir_entry->cursor_pos = -1;
 
-          /* Force layout reset to small window split view */
-          SwitchToSmallFileWindow(ctx);
+          /* Keep the just-exited archive file visible.
+           * Use filtered file_entry_list indices to avoid blank panes when
+           * hidden/filter-mismatched files exist.
+           */
+          if (ctx->active->vol->total_dirs > 0) {
+            int target_file_idx = -1;
+            int i;
+            int visible_rows;
 
-          /* Force full screen clear to fix UI artifacts (separator line) */
-          werase(ctx->ctx_file_window); /* Erase file window specifically */
+            BuildFileEntryList(ctx, ctx->active);
+            visible_rows = getmaxy(ctx->ctx_small_file_window);
+            if (visible_rows < 1)
+              visible_rows = 1;
 
-          /* Refresh Full UI */
-          DisplayMenu(ctx);
-          DisplayTree(ctx, ctx->active->vol, ctx->ctx_dir_window,
-                      ctx->active->disp_begin_pos,
-                      ctx->active->disp_begin_pos + ctx->active->cursor_pos,
-                      TRUE);
-          DisplayFileWindow(ctx, ctx->active, dir_entry);
-          DisplayDiskStatistic(ctx, s);
-          UpdateStatsPanel(ctx, dir_entry, s);
-          DisplayAvailBytes(ctx, s);
+            for (i = 0; i < (int)ctx->active->file_count; i++) {
+              FileEntry *fe = ctx->active->file_entry_list[i].file;
+              if (fe && strcmp(fe->name, dummy_name) == 0) {
+                target_file_idx = i;
+                break;
+              }
+            }
 
-          {
-            char path[PATH_LENGTH];
-            GetPath(dir_entry, path);
-            DisplayHeaderPath(ctx, path);
+            if (target_file_idx >= visible_rows) {
+              dir_entry->start_file = target_file_idx - (visible_rows - 1);
+            }
+            if (dir_entry->start_file >= (int)ctx->active->file_count) {
+              dir_entry->start_file =
+                  MAXIMUM(0, (int)ctx->active->file_count - 1);
+            }
+            if (dir_entry->start_file < 0) {
+              dir_entry->start_file = 0;
+            }
           }
+
+          /* Keep mode in sync with selected volume and do a full redraw. */
+          ctx->view_mode = ctx->active->vol->vol_stats.login_mode;
+          RefreshView(ctx, dir_entry);
           need_dsp_help = TRUE;
           break; /* Exit case done */
         }
