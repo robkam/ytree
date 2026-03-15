@@ -641,8 +641,10 @@ int GetEventOrKey(ViewContext *ctx) {
 
     if (result == 0) {
       /* Timeout: Update Clock */
-      if (ctx)
+      if (ctx) {
         ClockHandler(ctx, 0);
+        doupdate();
+      }
       continue;
     }
 

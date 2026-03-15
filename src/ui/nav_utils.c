@@ -64,12 +64,17 @@ void Nav_MoveUp(int *cursor, int *offset) {
 void Nav_PageDown(int *cursor, int *offset, int total_items, int page_height) {
   int new_offset;
   int max_offset;
+  int step;
 
-  if (total_items <= 0)
+  if (total_items <= 0 || page_height <= 0)
     return;
 
-  /* Calculate where the offset would ideally be */
-  new_offset = *offset + (page_height - 1); /* -1 to keep one line context */
+  step = page_height - 1;
+  if (step < 1)
+    step = 1;
+
+  /* Keep row/line stable and only advance page offset. */
+  new_offset = *offset + step;
 
   /* Calculate the maximum valid offset */
   if (total_items > page_height) {
@@ -79,23 +84,24 @@ void Nav_PageDown(int *cursor, int *offset, int total_items, int page_height) {
   }
 
   /* Apply new offset, clamped to max */
-  if (new_offset > max_offset) {
-    *offset = max_offset;
-    /* If we hit the bottom, move cursor to the very last item */
-    *cursor = total_items - 1 - *offset;
-  } else {
-    *offset = new_offset;
-    /* Ensure cursor is still within valid items range relative to new offset */
-    if ((*offset + *cursor) >= total_items) {
-      *cursor = total_items - 1 - *offset;
-    }
-  }
+  if (new_offset > max_offset)
+    new_offset = max_offset;
+  if (new_offset < 0)
+    new_offset = 0;
+  *offset = new_offset;
 
   /* Ensure cursor is within page bounds (sanity check) */
   if (*cursor >= page_height)
     *cursor = page_height - 1;
   if (*cursor < 0)
     *cursor = 0;
+
+  /* Keep selection valid for short lists. */
+  if ((*offset + *cursor) >= total_items) {
+    *cursor = total_items - 1 - *offset;
+    if (*cursor < 0)
+      *cursor = 0;
+  }
 }
 
 /*
@@ -105,20 +111,29 @@ void Nav_PageDown(int *cursor, int *offset, int total_items, int page_height) {
  */
 void Nav_PageUp(int *cursor, int *offset, int page_height) {
   int new_offset;
+  int step;
 
-  /* Calculate new offset */
-  new_offset = *offset - (page_height - 1); /* -1 to keep one line context */
+  if (page_height <= 0)
+    return;
+
+  step = page_height - 1;
+  if (step < 1)
+    step = 1;
+
+  /* Keep row/line stable and only rewind page offset. */
+  new_offset = *offset - step;
 
   if (new_offset < 0) {
     *offset = 0;
-    /* If we hit the top, move cursor to the very first item */
-    *cursor = 0;
   } else {
     *offset = new_offset;
-    /* Cursor position relative to screen usually stays same,
-       but strictly no bounds check needed here for cursor > page_height
-       since page_height didn't change. */
   }
+
+  /* Ensure cursor is within visible page bounds. */
+  if (*cursor >= page_height)
+    *cursor = page_height - 1;
+  if (*cursor < 0)
+    *cursor = 0;
 }
 
 /*

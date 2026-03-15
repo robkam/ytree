@@ -36,11 +36,17 @@ void ClockHandler(ViewContext *ctx, int sig) {
 
     strftime(strtm, sizeof(strtm), "%d-%m-%Y %H:%M:%S", hora);
 
-    werase(ctx->ctx_time_window);
+    if (!ctx->ctx_time_window)
+      return;
+
 #ifdef COLOR_SUPPORT
     wattrset(ctx->ctx_time_window, COLOR_PAIR(CPAIR_MENU));
 #endif
+
+    /* Draw in-place and clear the remainder. */
     mvwaddstr(ctx->ctx_time_window, 0, 0, strtm);
+    wclrtoeol(ctx->ctx_time_window);
+
 #ifdef COLOR_SUPPORT
     wattrset(ctx->ctx_time_window, A_NORMAL);
 #endif
