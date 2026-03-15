@@ -344,7 +344,7 @@ int KeyF2Get(ViewContext *ctx, YtreePanel *panel, char *path) {
       break;
 
     default:
-      beep();
+      UI_Beep(ctx, FALSE);
       break;
     } /* switch */
   } while (action != ACTION_QUIT && action != ACTION_ENTER &&

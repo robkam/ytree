@@ -75,9 +75,10 @@ BOOL handle_tag_file_action(ViewContext *ctx, int action, DirEntry *dir_entry,
                           (int)sizeof(mode),
                           HST_CHANGE_MODUS) == CR) {
           if (UI_ParseModeInput(mode, parsed_mode, preview_mode) != 0) {
-            UI_Message(ctx, "Invalid mode. Use 3/4-digit octal or rwxrwxrwx");
-            move(LINES - 2, 1);
-            clrtoeol();
+            UI_Message(ctx, "Invalid mode. Use 3/4-digit octal or -rwxrwxrwx");
+            wmove(ctx->ctx_border_window, ctx->layout.prompt_y, 0);
+            wclrtoeol(ctx->ctx_border_window);
+            wnoutrefresh(ctx->ctx_border_window);
             return TRUE;
           }
           (void)strcpy(walking_package.function_data.change_mode.new_mode,
@@ -90,8 +91,9 @@ BOOL handle_tag_file_action(ViewContext *ctx, int action, DirEntry *dir_entry,
                        dir_entry->start_file + dir_entry->cursor_pos, start_x,
                        ctx->ctx_file_window);
         }
-        move(LINES - 2, 1);
-        clrtoeol(); /* Cleanup prompt line */
+        wmove(ctx->ctx_border_window, ctx->layout.prompt_y, 0);
+        wclrtoeol(ctx->ctx_border_window);
+        wnoutrefresh(ctx->ctx_border_window); /* Cleanup prompt line */
       } else if (attr_action == 'O') {
         if ((owner_id = GetNewOwner(ctx, -1)) >= 0) {
           walking_package.function_data.change_owner.new_owner_id = owner_id;
@@ -154,11 +156,11 @@ BOOL handle_tag_file_action(ViewContext *ctx, int action, DirEntry *dir_entry,
     return TRUE;
 
   case ACTION_CMD_TAGGED_O:
-    beep();
+    UI_Beep(ctx, FALSE);
     return TRUE;
 
   case ACTION_CMD_TAGGED_G:
-    beep();
+    UI_Beep(ctx, FALSE);
     return TRUE;
 
   case ACTION_TAG:

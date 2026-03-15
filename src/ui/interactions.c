@@ -116,47 +116,51 @@ int UI_ParseModeInput(const char *input, char *out_mode, char *preview_mode) {
 }
 
 static void format_mode_prompt_value(mode_t mode, char *buffer, size_t size) {
-  int special = 0;
-  int perms;
+  char attributes[11];
 
-  perms = (int)(mode & 0777);
-  if (mode & S_ISUID)
-    special |= 4;
-  if (mode & S_ISGID)
-    special |= 2;
-#ifdef S_ISVTX
-  if (mode & S_ISVTX)
-    special |= 1;
-#endif
+  if (!buffer || size == 0)
+    return;
 
-  if (special) {
-    (void)snprintf(buffer, size, "%1o%03o", special, perms);
-  } else {
-    (void)snprintf(buffer, size, "%03o", perms);
-  }
+  (void)GetAttributes((unsigned short)mode, attributes);
+  (void)snprintf(buffer, size, "%s", attributes);
 }
 
-static int parse_date_input(const char *input, time_t *out_time) {
+static int parse_date_input(const char *input, time_t base_time,
+                            time_t *out_time) {
   struct tm tm_value;
+  struct tm *base_tm_ptr = NULL;
   int year = 0, month = 0, day = 0, hour = 0, minute = 0, second = 0;
   int matched = 0;
   time_t parsed_time;
+  time_t effective_base_time;
 
   if (!input || !out_time)
     return -1;
 
+  effective_base_time = (base_time > 0) ? base_time : time(NULL);
+  base_tm_ptr = localtime(&effective_base_time);
+
+  memset(&tm_value, 0, sizeof(tm_value));
+  if (base_tm_ptr) {
+    tm_value = *base_tm_ptr;
+  } else {
+    tm_value.tm_year = 70;
+    tm_value.tm_mon = 0;
+    tm_value.tm_mday = 1;
+    tm_value.tm_hour = 0;
+    tm_value.tm_min = 0;
+    tm_value.tm_sec = 0;
+  }
+  tm_value.tm_isdst = -1;
+
   matched = sscanf(input, "%d-%d-%d %d:%d:%d", &year, &month, &day, &hour,
                    &minute, &second);
   if (matched != 6) {
-    second = 0;
     matched = sscanf(input, "%d-%d-%d %d:%d", &year, &month, &day, &hour,
                      &minute);
-  }
-  if (matched != 5) {
-    hour = 0;
-    minute = 0;
-    second = 0;
-    matched = sscanf(input, "%d-%d-%d", &year, &month, &day);
+    if (matched != 5) {
+      matched = sscanf(input, "%d-%d-%d", &year, &month, &day);
+    }
   }
   if (matched != 3 && matched != 5 && matched != 6)
     return -1;
@@ -166,14 +170,16 @@ static int parse_date_input(const char *input, time_t *out_time) {
     return -1;
   }
 
-  memset(&tm_value, 0, sizeof(tm_value));
   tm_value.tm_year = year - 1900;
   tm_value.tm_mon = month - 1;
   tm_value.tm_mday = day;
-  tm_value.tm_hour = hour;
-  tm_value.tm_min = minute;
-  tm_value.tm_sec = second;
-  tm_value.tm_isdst = -1;
+  if (matched >= 5) {
+    tm_value.tm_hour = hour;
+    tm_value.tm_min = minute;
+  }
+  if (matched == 6) {
+    tm_value.tm_sec = second;
+  }
 
   parsed_time = mktime(&tm_value);
   if (parsed_time == (time_t)-1)
@@ -201,22 +207,31 @@ static int change_path_date(ViewContext *ctx, const char *path,
 
   if (utime(path, &times) != 0) {
     UI_Message(ctx, "Can't change date:*\"%s\"*%s", path, strerror(errno));
-    move(LINES - 2, 1);
-    clrtoeol();
+    wmove(ctx->ctx_border_window, ctx->layout.prompt_y, 0);
+    wclrtoeol(ctx->ctx_border_window);
+    wmove(ctx->ctx_border_window, ctx->layout.status_y, 0);
+    wclrtoeol(ctx->ctx_border_window);
+    wnoutrefresh(ctx->ctx_border_window);
     return -1;
   }
 
   if (stat(path, &updated_stat) != 0) {
     UI_Message(ctx, "Can't stat after date change:*\"%s\"*%s", path,
                strerror(errno));
-    move(LINES - 2, 1);
-    clrtoeol();
+    wmove(ctx->ctx_border_window, ctx->layout.prompt_y, 0);
+    wclrtoeol(ctx->ctx_border_window);
+    wmove(ctx->ctx_border_window, ctx->layout.status_y, 0);
+    wclrtoeol(ctx->ctx_border_window);
+    wnoutrefresh(ctx->ctx_border_window);
     return -1;
   }
   *stat_buf = updated_stat;
 
-  move(LINES - 2, 1);
-  clrtoeol();
+  wmove(ctx->ctx_border_window, ctx->layout.prompt_y, 0);
+  wclrtoeol(ctx->ctx_border_window);
+  wmove(ctx->ctx_border_window, ctx->layout.status_y, 0);
+  wclrtoeol(ctx->ctx_border_window);
+  wnoutrefresh(ctx->ctx_border_window);
   return 0;
 }
 
@@ -443,20 +458,29 @@ int UI_GetDateChangeSpec(ViewContext *ctx, time_t *new_time, int *scope_mask) {
   ClearHelp(ctx);
   if (UI_ReadString(ctx, ctx->active, "DATE (YYYY-MM-DD [HH:MM[:SS]]):",
                     date_input, (int)sizeof(date_input), HST_GENERAL) != CR) {
-    move(LINES - 2, 1);
-    clrtoeol();
+    wmove(ctx->ctx_border_window, ctx->layout.prompt_y, 0);
+    wclrtoeol(ctx->ctx_border_window);
+    wmove(ctx->ctx_border_window, ctx->layout.status_y, 0);
+    wclrtoeol(ctx->ctx_border_window);
+    wnoutrefresh(ctx->ctx_border_window);
     return -1;
   }
 
-  if (parse_date_input(date_input, new_time) != 0) {
+  if (parse_date_input(date_input, base_time, new_time) != 0) {
     UI_Message(ctx, "Invalid date. Use YYYY-MM-DD [HH:MM[:SS]]");
-    move(LINES - 2, 1);
-    clrtoeol();
+    wmove(ctx->ctx_border_window, ctx->layout.prompt_y, 0);
+    wclrtoeol(ctx->ctx_border_window);
+    wmove(ctx->ctx_border_window, ctx->layout.status_y, 0);
+    wclrtoeol(ctx->ctx_border_window);
+    wnoutrefresh(ctx->ctx_border_window);
     return -1;
   }
 
-  move(LINES - 2, 1);
-  clrtoeol();
+  wmove(ctx->ctx_border_window, ctx->layout.prompt_y, 0);
+  wclrtoeol(ctx->ctx_border_window);
+  wmove(ctx->ctx_border_window, ctx->layout.status_y, 0);
+  wclrtoeol(ctx->ctx_border_window);
+  wnoutrefresh(ctx->ctx_border_window);
   return 0;
 }
 
@@ -478,17 +502,19 @@ int ChangeFileModus(ViewContext *ctx, FileEntry *fe_ptr) {
   if (UI_ReadString(ctx, ctx->active, "MODE (octal/rwx):", mode_input,
                     (int)sizeof(mode_input), HST_CHANGE_MODUS) == CR) {
     if (UI_ParseModeInput(mode_input, parsed_mode, preview_mode) != 0) {
-      UI_Message(ctx, "Invalid mode. Use 3/4-digit octal or rwxrwxrwx");
-      move(LINES - 2, 1);
-      clrtoeol();
+      UI_Message(ctx, "Invalid mode. Use 3/4-digit octal or -rwxrwxrwx");
+      wmove(ctx->ctx_border_window, ctx->layout.prompt_y, 0);
+      wclrtoeol(ctx->ctx_border_window);
+      wnoutrefresh(ctx->ctx_border_window);
       return -1;
     }
     (void)strcpy(walking_package.function_data.change_mode.new_mode, parsed_mode);
     result = SetFileModus(ctx, fe_ptr, &walking_package);
   }
 
-  move(LINES - 2, 1);
-  clrtoeol();
+  wmove(ctx->ctx_border_window, ctx->layout.prompt_y, 0);
+  wclrtoeol(ctx->ctx_border_window);
+  wnoutrefresh(ctx->ctx_border_window);
 
   return (result);
 }
@@ -511,17 +537,19 @@ int ChangeDirModus(ViewContext *ctx, DirEntry *de_ptr) {
   if (UI_ReadString(ctx, ctx->active, "MODE (octal/rwx):", mode_input,
                     (int)sizeof(mode_input), HST_CHANGE_MODUS) == CR) {
     if (UI_ParseModeInput(mode_input, parsed_mode, preview_mode) != 0) {
-      UI_Message(ctx, "Invalid mode. Use 3/4-digit octal or rwxrwxrwx");
-      move(LINES - 2, 1);
-      clrtoeol();
+      UI_Message(ctx, "Invalid mode. Use 3/4-digit octal or -rwxrwxrwx");
+      wmove(ctx->ctx_border_window, ctx->layout.prompt_y, 0);
+      wclrtoeol(ctx->ctx_border_window);
+      wnoutrefresh(ctx->ctx_border_window);
       return -1;
     }
     (void)strcpy(walking_package.function_data.change_mode.new_mode, parsed_mode);
     result = SetDirModus(de_ptr, &walking_package);
   }
 
-  move(LINES - 2, 1);
-  clrtoeol();
+  wmove(ctx->ctx_border_window, ctx->layout.prompt_y, 0);
+  wclrtoeol(ctx->ctx_border_window);
+  wnoutrefresh(ctx->ctx_border_window);
 
   return (result);
 }
@@ -574,8 +602,9 @@ int GetNewOwner(ViewContext *ctx, int st_uid) {
     }
   }
 
-  move(LINES - 2, 1);
-  clrtoeol();
+  wmove(ctx->ctx_border_window, ctx->layout.prompt_y, 0);
+  wclrtoeol(ctx->ctx_border_window);
+  wnoutrefresh(ctx->ctx_border_window);
 
   return (owner_id);
 }
@@ -606,8 +635,9 @@ int GetNewGroup(ViewContext *ctx, int st_gid) {
     }
   }
 
-  move(LINES - 2, 1);
-  clrtoeol();
+  wmove(ctx->ctx_border_window, ctx->layout.prompt_y, 0);
+  wclrtoeol(ctx->ctx_border_window);
+  wnoutrefresh(ctx->ctx_border_window);
 
   return (group_id);
 }
@@ -693,8 +723,9 @@ int GetCommandLine(ViewContext *ctx, char *command_line) {
     result = 0;
   }
 
-  move(LINES - 2, 1);
-  clrtoeol();
+  wmove(ctx->ctx_border_window, ctx->layout.prompt_y, 0);
+  wclrtoeol(ctx->ctx_border_window);
+  wnoutrefresh(ctx->ctx_border_window);
 
   return (result);
 }
@@ -721,8 +752,9 @@ int GetSearchCommandLine(ViewContext *ctx, char *command_line,
     result = 0;
   }
 
-  move(LINES - 2, 1);
-  clrtoeol();
+  wmove(ctx->ctx_border_window, ctx->layout.prompt_y, 0);
+  wclrtoeol(ctx->ctx_border_window);
+  wnoutrefresh(ctx->ctx_border_window);
 
   return (result);
 }
@@ -737,8 +769,9 @@ int GetPipeCommand(ViewContext *ctx, char *pipe_command) {
     result = 0;
   }
 
-  move(LINES - 2, 1);
-  clrtoeol();
+  wmove(ctx->ctx_border_window, ctx->layout.prompt_y, 0);
+  wclrtoeol(ctx->ctx_border_window);
+  wnoutrefresh(ctx->ctx_border_window);
 
   return (result);
 }
@@ -796,10 +829,11 @@ int UI_ReadFilter(ViewContext *ctx) {
       result = 0;
     }
   }
-  move(LINES - 3, 1);
-  clrtoeol();
-  move(LINES - 2, 1);
-  clrtoeol();
+  wmove(ctx->ctx_border_window, ctx->layout.message_y, 0);
+  wclrtoeol(ctx->ctx_border_window);
+  wmove(ctx->ctx_border_window, ctx->layout.prompt_y, 0);
+  wclrtoeol(ctx->ctx_border_window);
+  wnoutrefresh(ctx->ctx_border_window);
   return (result);
 }
 

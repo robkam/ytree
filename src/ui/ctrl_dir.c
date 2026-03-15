@@ -393,7 +393,7 @@ int HandleDirWindow(ViewContext *ctx, DirEntry *start_dir_entry) {
       if (ch == -1)
         break; /* Ignore -1 (ctx->resize_request handled above) */
       /* Fall through for other unhandled keys to beep */
-      beep();
+      UI_Beep(ctx, FALSE);
       break;
 
     case ACTION_MOVE_DOWN:
@@ -781,7 +781,7 @@ int HandleDirWindow(ViewContext *ctx, DirEntry *start_dir_entry) {
       break;
     case ACTION_ENTER:
       if (dir_entry == NULL) {
-        beep();
+        UI_Beep(ctx, FALSE);
         break;
       }
 
@@ -799,7 +799,7 @@ int HandleDirWindow(ViewContext *ctx, DirEntry *start_dir_entry) {
                 dir_entry ? dir_entry->matching_files : -1);
 
       if (dir_entry == NULL || dir_entry->total_files == 0) {
-        beep();
+        UI_Beep(ctx, FALSE);
         break;
       }
 
@@ -915,8 +915,9 @@ int HandleDirWindow(ViewContext *ctx, DirEntry *start_dir_entry) {
           RefreshView(ctx, dir_entry);
         }
       }
-      move(LINES - 2, 1);
-      clrtoeol();
+      wmove(ctx->ctx_border_window, ctx->layout.prompt_y, 0);
+      wclrtoeol(ctx->ctx_border_window);
+      wnoutrefresh(ctx->ctx_border_window);
     }
       need_dsp_help = TRUE;
       break;
@@ -967,11 +968,11 @@ int HandleDirWindow(ViewContext *ctx, DirEntry *start_dir_entry) {
                     ctx->active);
       break;
     case ACTION_CMD_O:
-      beep();
+      UI_Beep(ctx, FALSE);
       break;
     case ACTION_CMD_A:
       if (ctx->view_mode != DISK_MODE && ctx->view_mode != USER_MODE) {
-        beep();
+        UI_Beep(ctx, FALSE);
         break;
       }
       need_dsp_help = TRUE;
@@ -1300,7 +1301,7 @@ int HandleDirWindow(ViewContext *ctx, DirEntry *start_dir_entry) {
       break;
     /* Ctrl-L is now ACTION_REFRESH, handled above */
     default: /* Unhandled action, beep */
-      beep();
+      UI_Beep(ctx, FALSE);
       break;
     } /* switch */
 

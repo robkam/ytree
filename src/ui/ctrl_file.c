@@ -885,7 +885,7 @@ int HandleFileWindow(ViewContext *ctx, DirEntry *dir_entry) {
 
     case ACTION_CMD_A:
       if (ctx->view_mode != DISK_MODE && ctx->view_mode != USER_MODE) {
-        beep();
+        UI_Beep(ctx, FALSE);
         break;
       }
       fe_ptr =
@@ -929,16 +929,16 @@ int HandleFileWindow(ViewContext *ctx, DirEntry *dir_entry) {
       break;
 
     case ACTION_CMD_O:
-      beep();
+      UI_Beep(ctx, FALSE);
       break;
 
     case ACTION_CMD_G:
-      beep();
+      UI_Beep(ctx, FALSE);
       break;
 
     case ACTION_TOGGLE_MODE:
       if (ctx->preview_mode) {
-        beep();
+        UI_Beep(ctx, FALSE);
         break;
       }
       list_pos = dir_entry->start_file + dir_entry->cursor_pos;
