@@ -54,7 +54,7 @@ The mandatory focused procedure for **Antigravity** and agentic execution. It fo
 
 1.  **Replicate in Python (The Test):** Describe the manual steps that cause the bug to the **Tester** persona. Instruct it: *"Write a `pytest` using the `pexpect` TUI harness that performs these exact steps and asserts the expected correct behavior. This test MUST fail currently."*
 2.  **Verify the Failure (Red):** Run `make test`. Confirm the new test fails exactly where the bug manifests.
-3.  **Assign the Fix (The Code):** Hand the failing test output and the relevant C source files to the **Builder** persona. Instruct it: *"Modify the C code to make this specific test pass. Do not change the test."*
+3.  **Assign the Fix (The Code):** Hand the failing test output and the relevant C source files to the **Developer** persona. Instruct it: *"Modify the C code to make this specific test pass. Do not change the test."*
 4.  **Verify the Fix (Green):** Run `make test`. A passing test provides mathematical proof of the fix and creates a permanent regression test.
 
 ---
@@ -111,7 +111,7 @@ Identify root causes with specific line numbers and call chains. Provide evidenc
 ```
 
 #### Step 3: External Expert Consultation
-Use a **separate, fresh LLM instance** (e.g., Claude Opus) as an architectural auditor. Provide a high-level map using **jCodeMunch** and relevant symbols via **Serena**.
+Use a **separate, fresh LLM instance** (e.g., Claude Opus) as a **Code Auditor** for architectural analysis. Provide a high-level map using **jCodeMunch** and relevant symbols via **Serena**.
 
 #### Step 4: Extract Surgical Fixes
 Review the expert's diagnosis and identify the minimal set of changes (target 3-5 surgical edits).
@@ -124,4 +124,3 @@ Implement fixes atomically using low-cost models (e.g., Gemini Flash) for mechan
 ### See also
 - [ARCHITECTURE.md](../ARCHITECTURE.md) - System invariants and window hierarchy
 - [SPECIFICATION.md](../SPECIFICATION.md) - The behavioral "Contract of Truth"
-

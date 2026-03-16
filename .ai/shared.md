@@ -33,7 +33,8 @@ These instructions apply to all AI agents used in this repository.
 - `doc/SPECIFICATION.md`
 - `doc/ROADMAP.md`
 - `doc/ai/WORKFLOW.md`
-- `.agent/rules/consultant.md`
-- `.agent/rules/builder.md`
-- `.agent/rules/auditor.md`
+- `doc/ai/PRE_RELEASE_REVIEW.md`
+- `.agent/rules/architect.md`
+- `.agent/rules/developer.md`
+- `.agent/rules/code_auditor.md`
 - `.agent/rules/tester.md`

@@ -76,12 +76,12 @@ Activated by **F7**. The screen layout changes to show the file list on the left
 These commands work in most modes:
 
 *   **F1**: Help (**reserved**, not implemented yet).
-*   **F3**: Config (**reserved**, not implemented yet).
 *   **F5**: Refresh (same as **^L**).
 *   **F6**: Toggle Statistics Panel (Wide Mode).
 *   **F7**: Toggle File Preview Panel.
 *   **F8**: Toggle Split Screen Mode.
 *   **F9**: Application Menu (**reserved**, not implemented yet).
+*   **F10**: Config (**reserved**, not implemented yet).
 *   **/** (or **F12**): **Incremental Jump** (List Jump). Start typing to jump to the first matching entry in the current list (directory names in the Directory Window, filenames in the File Window). The selection updates immediately as you type. Press **Enter** to accept the current match, or **Esc** to cancel and restore the original selection.
 *   **\\**: In **Showall**/**Global** file lists, exit that mode and jump to the selected file in its owner directory.
 *   **B**: Toggle Brief (Compact) filename view in the File Window.
@@ -90,7 +90,6 @@ These commands work in most modes:
 *   **<** / **>** (or **,** / **.**): **Cycle Volumes**. Switch to the previous or next logged volume instantly.
 *   **^Q**: **Quit to Directory**. If you exit ytree with ^Q, the last selected directory becomes your current working directory. *Note: This requires a shell wrapper function.*
 *   **Q**: **Quit**. Exit ytree.
-*   **Up Arrow**: History (with `P` to Pin, `D` to Delete).
 
 ### Directory Mode
 Active when browsing the directory tree window.
@@ -186,7 +185,9 @@ When browsing an archive (ZIP, TAR, etc.), ytree behaves similarly to a read-onl
 
 # COMMAND LINE EDITING
 
-Input prompts support standard shortcuts:
+### Line Editing Keys
+
+Input prompts support standard text-editing shortcuts:
 
 *   **^A / Home**: Start of line.
 *   **^E / End**: End of line.
@@ -195,8 +196,13 @@ Input prompts support standard shortcuts:
 *   **^W**: Delete word left.
 *   **^D / Del**: Delete character.
 *   **^H / Backspace**: Backspace.
+
+### Prompt Navigation Keys
+
+These keys apply while prompt dialogs are active (for example: Log, Copy, Move).
+
 *   **Up Arrow**: History (with `P` to Pin, `D` to Delete).
-*   **F2**: Directory picker for path-entry prompts (for example: Log, Copy, Move destination fields).
+*   **F2**: Directory picker for path-entry prompts.
 
 # CONFIGURATION
 

@@ -1,10 +1,10 @@
 # **Modernization Plan for ytree**
 
 ## **Persona & Mode Definitions**
-- **Consultant (@consultant)**: Default planning agent.
-- **Builder (@builder)**: Default implementation agent.
-- **Architect Mode**: Triggered by specific task titles (e.g., "Use Architect Mode"). This forces the agent into a "Zero-Trust" refactoring mindset where global state is prohibited and encapsulation is mandatory.
-- **Auditor (@auditor)**: Used for initial "Fragile Code" discovery before planning.
+- **Architect (@architect)**: Default planning and architecture agent.
+- **Developer (@developer)**: Default implementation agent.
+- **Code Auditor (@code_auditor)**: Used for fragility and risk discovery before planning.
+- **Tester (@tester)**: Used for regression and acceptance validation.
 
 ## **Overview**
 This document outlines the strategic roadmap for modernizing `ytree`, a curses-based file manager. The goal is to refactor legacy C code to modern standards (C99/POSIX), remove obsolete dependencies, and implement advanced power-user features inspired by XTree&trade; and ZTreeWin, while maintaining the lightweight, keyboard-centric philosophy.
@@ -46,7 +46,7 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 ## **Phase 2: Foundational C-Standard Modernization**
 *This phase fixed critical bugs, established C99/POSIX standards compliance for core utilities, and removed reliance on custom, error-prone functions.*
 
-### **Step 2.1: Standardize String & Number Utilities** (Use the Auditor Persona here)
+### **Step 2.1: Standardize String & Number Utilities** (Use the Code Auditor persona here)
 *   **Goal:** Replace non-standard utility functions (`Strdup`, `AtoLL`, `StrCaseCmp`, etc.) with their C99/POSIX equivalents (`strdup`, `strtoll`, `strcasecmp`, etc.). This addressed the `~` lockup bug and cleaned up `util.c`.
 *   **Files to Modify:** `src/util/string_utils.c`, `include/ytree.h`
 *   **Context Files:** None.
@@ -417,7 +417,7 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 *   **Context Files:** `src/core/global.c`
 *   - [x] **Status:** Completed.
 
-### **Step 4.12: Technical Debt Remediation ("De-Brittling")** (Use the Auditor Persona here)
+### **Step 4.12: Technical Debt Remediation ("De-Brittling")** (Use the Code Auditor persona here)
 *   **Goal:** Systematically identify and refactor fragile code patterns that hinder maintenance and scalability.
 *   **Rationale:** As features are added, legacy patterns (magic numbers, unsafe buffers, hardcoded keys) create regression risks. This phase hardens the codebase before introducing complex event-driven features like Inotify or Mouse support.
 *   **Files to Modify:** `src/ui/display_utils.c`, `src/util/string_utils.c`, `src/ui/key_engine.c`
@@ -616,7 +616,7 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 *   - [ ] **Status:** Not Started.
 
 ### **Step 4.27: Add Configurable Bypass for External Viewers**
-*   **Goal:** Add a configuration option (e.g., in a future F3 settings panel) to globally disable external viewers, forcing the use of the internal viewer.
+*   **Goal:** Add a configuration option (e.g., in a future F10 settings panel) to globally disable external viewers, forcing the use of the internal viewer.
 *   **Rationale:** Provides flexibility for cases where the user wants to quickly inspect the raw bytes of a file (e.g., a PDF) without launching a heavy external application.
 *   **Files to Modify:** `src/cmd/view.c`, `src/cmd/profile.c`
 *   **Context Files:** `include/ytree.h`
@@ -636,47 +636,40 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 *   **Context Files:** `src/fs/readtree.c`
 *   - [ ] **Status:** Not Started.
 
-### **Step 4.30: Implement In-App Configuration Editor (F3)**
-*   **Goal:** Implement a settings panel (activated by a key like `F3`) that allows the user to view and change configuration options from `~/.ytree` (e.g., `CONFIRMQUIT`, colors) and save the changes.
-*   **Rationale:** Provides a user-friendly way to configure `ytree` without manually editing the configuration file, improving accessibility.
-*   **Files to Modify:** `src/cmd/profile.c`, `src/ui/key_engine.c`
-*   **Context Files:** `include/config.h`
-*   - [ ] **Status:** Not Started.
-
-### **Step 4.31: Archive Write Support (Atomic Breakdown)**
+### **Step 4.30: Archive Write Support (Atomic Breakdown)**
 *   **Goal:** Enable modification of archives (ZIP, TAR, ISO, etc.) directly within ytree. Since `libarchive` does not support random-access modification, this requires a "Stream Rewrite" engine: open original, open temp destination, stream entries from old to new (skipping deleted ones, injecting new ones), close, and swap. The Auto-Refresh logic for archives will need to watch the archive file itself (the container) to trigger reloads.
 
-#### **Step 4.31.1: Implement Archive Rewrite Infrastructure**
+#### **Step 4.30.1: Implement Archive Rewrite Infrastructure**
 *   **Description:** Implement the core `Archive_Rewrite(char *archive_path, RewriteCallback cb, void *user_data)` function. This generic engine will handle the `Read Old -> Write New` loop, temporary file creation, atomicity, and error recovery.
 *   **Files to Modify:** `src/fs/archive_write.c`, `include/ytree.h`
 *   - [x] **Status:** Completed.
 
-#### **Step 4.31.2: Implement Archive Deletion**
+#### **Step 4.30.2: Implement Archive Deletion**
 *   **Description:** Hook the `D` (Delete) command when in Archive Mode to use the Rewrite Engine. The callback will simply skip the entries marked for deletion during the copy stream.
 *   **Files to Modify:** `src/cmd/delete.c`, `src/fs/archive_write.c`
 *   - [x] **Status:** Completed.
 
-#### **Step 4.31.3: Implement Archive Addition (Copy-In) & Mkdir**
+#### **Step 4.30.3: Implement Archive Addition (Copy-In) & Mkdir**
 *   **Description:** Hook `C` (Copy) and `M` (Makedir) to inject new headers and data blocks into the Rewrite stream.
 *   **Files to Modify:** `src/cmd/copy.c`, `src/cmd/mkdir.c`, `src/fs/archive_write.c`
 *   - [x] **Status:** Completed.
 
-#### **Step 4.31.4: Implement Archive Rename**
+#### **Step 4.30.4: Implement Archive Rename**
 *   **Description:** Hook `R` (Rename) to modify the `pathname` field of headers on the fly during the Rewrite stream.
 *   **Files to Modify:** `src/cmd/rename.c`, `src/fs/archive_write.c`
 *   - [x] **Status:** Completed.
 
-#### **Step 4.31.5: Implement Archive Execution & Search (`^S`/`X`)**
+#### **Step 4.30.5: Implement Archive Execution & Search (`^S`/`X`)**
 *   **Description:** Implement `Execute` and `Grep` for archives by extracting files to a temporary directory (`/tmp/ytree_...`), running the command, and cleaning up. Unlike rewrite operations, this is a read-only extraction task.
 *   **Files to Modify:** `src/cmd/execute.c`, `src/ui/ctrl_file.c`
 *   - [x] **Status:** Completed.
 
-#### **Step 4.31.6: Implement Archive Move (`M`) Support**
+#### **Step 4.30.6: Implement Archive Move (`M`) Support**
 *   **Description:** Implement `M` (Move) for archives. Intra-archive moves use the Rewrite Engine to rename paths. Cross-volume moves use Copy-Extract + Delete.
 *   **Files to Modify:** `src/cmd/move.c`, `src/fs/archive_write.c`.
 *   - [ ] **Status:** Not Started.
 
-### **Step 4.32: Implement View Tagged Files (`^V`)**
+### **Step 4.31: Implement View Tagged Files (`^V`)**
 *   **Goal:** Allow sequential viewing of all tagged files.
 *   **Features:**
     *   Iterate through tagged list.
@@ -686,29 +679,29 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 *   **Files:** `src/cmd/view.c`, `src/ui/ctrl_file.c`, `src/ui/key_engine.c`.
 *   - [x] **Status:** Completed.
 
-#### **Step 4.33.1: Disk Mode View Tagged**
+#### **Step 4.32.1: Disk Mode View Tagged**
 *   **Implementation:** Constructs a batch command line `less file1 file2 ...`. Enables standard pager navigation (`:n` Next, `:p` Previous).
 *   **Files to Modify:** `src/cmd/view.c`, `src/ui/ctrl_file.c`, `src/cmd/execute.c`.
 *   - [x] **Status:** Completed.
 
-#### **Step 4.33.2: Archive Mode View Tagged**
+#### **Step 4.32.2: Archive Mode View Tagged**
 *   **Implementation:** Extracts all tagged files from the archive to a temporary directory (`/tmp/ytree_view_XYZ/`). Passes these temporary paths to `less`. Cleans up the temporary directory upon exit. Handles large file counts by batching or warning if command line limit exceeded.
 *   **Files to Modify:** `src/cmd/view.c`, `src/fs/archive_read.c`.
 *   - [x] **Status:** Completed.
 
-### **Step 4.34: Nested Archive Traversal**
+### **Step 4.33: Nested Archive Traversal**
 *   Allow transparently entering an archive that is itself inside another archive.
 *   **Files to Modify:** `src/fs/archive_read.c`, `src/cmd/log.c`
 *   **Context Files:** `src/fs/archive_read.c`
 *   - [ ] **Status:** Not Started.
 
-### **Step 4.35: Applications menu**
+### **Step 4.34: Applications menu**
 *   Implement a customizable Application Menu.
 *   **Files to Modify:** `src/cmd/usermode.c`, `src/cmd/profile.c`
 *   **Context Files:** None.
 *   - [ ] **Status:** Not Started.
 
-### **Step 4.36: Standardize Input Prompt Padding**
+### **Step 4.35: Standardize Input Prompt Padding**
 *   **Goal:** Standardize the visual spacing between input labels (e.g., "GROUP:", "OWNER:", "ATTRIBUTES:") and the cursor entry point across the application.
 *   **Rationale:** Currently, input fields rely on hardcoded starting columns (e.g., 12), resulting in inconsistent visual padding depending on the label length. Dynamic calculation based on label length ensures a polished, professional UI consistency.
 *   **Mechanism:**
@@ -718,7 +711,7 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 *   **Context Files:** `src/ui/key_engine.c`
 *   - [x] **Status:** Completed.
 
-### **Step 4.37: Iterative Incremental Search (List Jump)**
+### **Step 4.36: Iterative Incremental Search (List Jump)**
 *   **Goal:** Implement robust, non-recursive incremental search activated by the `/` key that supports backspace and works in both Directory and File windows.
 *   **Rationale:** Align with standard Unix tools (`/`) but provide the **Treespec** experience (rapid filtering/navigation) found in ZTree.
 *   **Mechanism:** Sticky cursor: Cursor remains at the last valid match on failed input. Implicit exit: Action keys confirm match.
@@ -726,35 +719,35 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 *   **Context Files:** `include/ytree_ui.h`, `include/ytree_defs.h`
 *   - [x] **Status:** Completed. (Incremental Search implemented for both File Window and Directory Window via `ACTION_LIST_JUMP` handlers).
 
-### **Step 4.38: Implement Bottom F-Key Menu Bar**
-*   **Goal:** Shift the existing two-line command footer up by one line and reserve the bottom-most row for a clickable, function-key reference bar (F1 Help, F3 Options, F5 Redraw, F7 View, F8 Split).
+### **Step 4.37: Implement Bottom F-Key Menu Bar**
+*   **Goal:** Shift the existing two-line command footer up by one line and reserve the bottom-most row for a clickable, function-key reference bar (F1 Help, F10 Options, F5 Redraw, F7 View, F8 Split).
 *   **Rationale:** Aligns with the standard XTree&trade; layout familiar to power users. It provides immediate visual cues for function keys, which are often less intuitive than mnemonic letter commands.
 *   **Files to Modify:** `src/ui/display.c`
 *   **Context Files:** `include/ytree.h`
-*   - [ ] **Status:** Not Started.
+*   - [x] **Status:** Completed.
 
-### **Step 4.39: Implement "Touch" (Make File) Command**
+### **Step 4.38: Implement "Touch" (Make File) Command**
 *   **Goal:** Add a command (e.g., `^M` or mapped to a specific key) to create a new, empty file in the current directory, similar to `M` (Make Directory).
 *   **Rationale:** Currently, creating a file requires shelling out (`X`) and typing `touch filename`. A native command streamlines the workflow for developers creating placeholders or config files.
 *   **Files to Modify:** `src/cmd/mkdir.c`, `src/ui/key_engine.c`
 *   **Context Files:** None.
 *   - [x] **Status:** Completed.
 
-### **Step 4.40: Enhance Archive Navigation (Tree Logic)**
+### **Step 4.39: Enhance Archive Navigation (Tree Logic)**
 *   **Goal:** Enable standard Tree Window navigation keys (specifically `Left Arrow` to collapse/parent and `Right Arrow` to expand) while browsing inside an archive.
 *   **Rationale:** Navigation inside archives currently feels "flat" or inconsistent compared to the physical filesystem. Unifying these behaviors reduces cognitive load.
 *   **Files to Modify:** `src/ui/ctrl_dir.c` (Navigate to `f2_picker.c`)
 *   **Context Files:** `src/fs/archive_read.c`
 *   - [ ] **Status:** Not Started.
 
-### **Step 4.41: Implement Auto-Execute on Command Termination**
+### **Step 4.40: Implement Auto-Execute on Command Termination**
 *   **Goal:** Allow users to execute shell commands (`X` or `P`) immediately by ending the input string with a specific terminator (e.g., `\n` or `;`), without needing to press Enter explicitly.
 *   **Rationale:** Accelerates command entry for power users who want to "fire and forget" commands rapidly.
 *   **Files to Modify:** `src/ui/key_engine.c`
 *   **Context Files:** None.
 *   - [ ] **Status:** Not Started.
 
-### **Step 4.42: Implement Responsive Adaptive Footer**
+### **Step 4.41: Implement Responsive Adaptive Footer**
 *   **Goal:** Make the two-line command footer dynamic based on terminal width.
     *   **Compact (< 80 cols):** Show only critical navigation and file operation keys (Copy, Move, Delete, Quit).
     *   **Standard (80-120 cols):** Show the standard set (current behavior).
@@ -765,14 +758,14 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 *   **Context Files:** None.
 *   - [ ] **Status:** Not Started.
 
-### **Step 4.43: Make "Terminal Classic" the default UI Color and Classic ytree color scheme the example**
+### **Step 4.42: Make "Terminal Classic" the default UI Color and Classic ytree color scheme the example**
 *   **Goal:** Update the default color scheme to adhere to the standard "Terminal Classic" aesthetic (typically white/grey text on black background), while providing the traditional "Blue/Yellow" ytree scheme as an easily selectable example or option.
 *   **Rationale:** Modern terminal users expect applications to respect their terminal's color palette by default. The classic high-contrast blue scheme can be jarring.
 *   **Files to Modify:** `etc/ytree.conf`, `src/ui/color.c`
 *   **Context Files:** None.
 *   - [x] **Status:** Completed.
 
-### **Step 4.44: Refactor Tab Completion for Command Arguments**
+### **Step 4.43: Refactor Tab Completion for Command Arguments**
 *   **Goal:** Update the tab completion logic in `src/util/tabcompl.c` to handle command-line arguments correctly and resolve ambiguous matches using Longest Common Prefix (LCP).
 *   **Rationale:** Currently, the completion engine treats the entire input line as a single path. This causes failures when trying to complete arguments for commands (e.g., `x ls /us<TAB>` fails because it looks for a file named "ls /us"). It also fails to partial-complete when multiple matches exist (e.g., `/s` matching both `/sys` and `/srv`).
 *   **Mechanism:**
@@ -784,7 +777,7 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 *   **Context Files:** None.
 *   - [ ] **Status:** Not Started.
 
-### **Step 4.45: Implement Fixed-Width Column Mode (Filename Truncation)**
+### **Step 4.44: Implement Fixed-Width Column Mode (Filename Truncation)**
 *   **Goal:** Modify the File Window logic to enforce a maximum column width (e.g., 32 characters) even if longer filenames exist. Filenames exceeding this width will be visually truncated (e.g., `00- Introductio~.pdf`) to ensure multiple columns are displayed.
 *   **Integration:** Add this as a new mode in the `^F` (File Mode) rotation, or add a configuration toggle (`COMPACT_COLUMNS=1`).
 *   **Rationale:** Currently, a single long filename forces the File Window into a inefficient single-column layout. This feature maximizes information density.
@@ -792,20 +785,20 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 *   **Context Files:** `include/ytree.h`
 *   - [x] **Status:** Completed.
 
-### **Step 4.46: Implement "Tags-Only" View Mode**
+### **Step 4.45: Implement "Tags-Only" View Mode**
 *   **Goal:** Implement a toggle (`*` or `8`) to display only the tagged files in the current File Window.
 *   **Rationale:** A core ZTreeWin feature that allows users to verify, refine, and operate on a specific subset of files without the visual clutter of non-tagged files.
 *   **Files to Modify:** `src/ui/ctrl_file.c`
 *   **Context Files:** `src/ui/ctrl_dir.c`
 *   - [ ] **Status:** Not Started.
 
-### **Step 4.47: Command Line File Filter (`-f`)**
+### **Step 4.46: Command Line File Filter (`-f`)**
 *   **Goal:** Allow users to specify an initial file filter (filespec) via command line argument, e.g., `ytree -f "*.c,*.h"`.
 *   **Rationale:** Improves startup efficiency for focused tasks and enables better shell aliases (e.g., `alias cview='ytree -f "*.c"'`).
 *   **Files to Modify:** `src/core/main.c`, `src/core/init.c`.
 *   - [x] **Status:** Completed.
 
-### **Step 4.48: Implement Archive Creation (Pack)**
+### **Step 4.47: Implement Archive Creation (Pack)**
 *   **Goal:** Enable creating new archives implicitly via Copy (`C`/`^K`) and Move (`M`/`^N`).
 *   **Description:** If the destination path does not exist and ends with a supported archive extension (e.g., `.zip`, `.tar.gz`, `.tar`), prompt the user to create a new archive.
     *   **Copy:** Create archive and add files.
@@ -813,12 +806,12 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 *   **Files to Modify:** `src/cmd/copy.c`, `src/cmd/move.c`, `src/fs/archive_write.c`.
 *   - [ ] **Status:** Not Started.
 
-### **Step 4.49: Standardize Internal Viewer Layout**
+### **Step 4.48: Standardize Internal Viewer Layout**
 *   **Goal:** Ensure the internal viewer's layout geometry matches the main application (borders, headers, and footer).
 *   **Files to Modify:** `src/ui/view_internal.c`
 *   - [ ] **Status:** Not Started.
 
-### **Step 4.50: Implement Directory File Release (`-`)**
+### **Step 4.49: Implement Directory File Release (`-`)**
 *   **Goal:** Refactor the Minus key to correctly release file lists from memory and reset the directory status.
 *   **Rationale:** Provides high-power utility to quickly log a large tree and then "release" specific file lists to free resources or hide data without complex filters.
 *   **Mechanism:** Releases the file list of the current directory and subdirectories from memory. Recalculates volume statistics.
@@ -826,7 +819,7 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 *   **Context Files:** `include/ytree_fs.h`
 *   - [ ] **Status:** Not Started.
 
-### **Step 4.51: Unlogged State Visualization (`+` Column)**
+### **Step 4.50: Unlogged State Visualization (`+` Column)**
 *   **Goal:** Implement visual indicators for unlogged directory states and update File Window status text.
 *   **Rationale:** Align with X/Z/UT memory-management paradigms.
 *   **Mechanism:** Prints a `+` in the first column if the directory is unlogged. File Window displays centered `** Not logged **`.
@@ -834,20 +827,19 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 *   **Context Files:** `include/ytree_defs.h`
 *   - [ ] **Status:** Not Started.
 
-### **Step 4.52: Implement Global File View (`G`)**
+### **Step 4.51: Implement Global File View (`G`)**
 *   **Goal:** Implement the "Global" file view mode, which aggregates files from **all currently logged volumes** into a single flattened list.
 *   **Rationale:** A core ZTree feature allowing operations across multiple drives simultaneously.
 *   **Prerequisite:** Free up `G` key.
 *   **Files to Modify:** `src/ui/ctrl_dir.c`, `src/ui/ctrl_file.c`, `src/core/volume.c`
 *   - [ ] **Status:** Not Started.
 
-
 ---
 
 ## **Phase 5: Major Architectural Refactoring**
 *This phase implements core architectural changes required for advanced features.*
 
-### **Step 5.1: Encapsulate Global UI & Configuration State** (Use the Auditor Persona here)
+### **Step 5.1: Encapsulate Global UI & Configuration State** (Use the Code Auditor persona here)
 *   **Goal:** Refactor `global.c` to move remaining global variables (e.g., `dir_window`, `file_window`, `sort_order`, `mode`) into a unified `ViewContext` or `Panel` structure. Update function signatures throughout the application to accept a `Context*` pointer instead of relying on global state.
 *   **Rationale:** This is the absolute prerequisite for **Step 5.2 (F8 Split Screen)**. Currently, the application architecture assumes a single active view. To display and interact with two independent directory trees side-by-side (e.g., copying from Left to Right), the state must be instance-specific, not global.
 *   **Files to Modify:** `src/core/global.c`, `include/ytree.h`
@@ -906,17 +898,17 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 *   **Context Files:** `include/ytree.h`, `include/ytree_defs.h`
 *   - [x] **Status:** Completed. (Initial Implementation)
 
-### **Step 5.3: Split-Screen Remediation (Global State Elimination)** (Use Architect Mode)
+### **Step 5.3: Split-Screen Remediation (Global State Elimination)** (Use the Architect persona here)
 *   **Goal:** Refactor the F8 implementation to remove implicit dependencies on `CurrentVolume` and global window pointers. The implementation in 5.2 proved that visual splitting works, but logic state is leaking between panels.
 *   **Rationale:** "Anti-Patching" Directive. The current split-screen relies on global variable swapping which causes desynchronization bugs.
 *   **Files to Modify:** `src/ui/render_dir.c`, `src/ui/ctrl_dir.c`, `include/ytree_ui.h`
 *   - [x] **Status:** Completed.
 
-#### **Step 5.3.1: Abolish Global Window Macros** (Use Architect Mode)
+#### **Step 5.3.1: Abolish Global Window Macros** (Use the Architect persona here)
 *   **Goal:** Remove `#define dir_window` from `ytree.h` and force all rendering functions to accept `WINDOW*` arguments.
 *   - [x] **Status:** Completed.
 
-#### **Step 5.3.2: Bind Volume to Panel (Input Loop)** (Use Architect Mode)
+#### **Step 5.3.2: Bind Volume to Panel (Input Loop)** (Use the Architect persona here)
 *   **Goal:** Refactor `HandleDirWindow` to use `ActivePanel->vol` exclusively, removing `CurrentVolume` usage from the event loop.
 *   - [x] **Status:** Completed.
 
@@ -1061,7 +1053,7 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 *   **Context Files:** `include/ytree.h`
 *   - [ ] **Status:** Not Started.
 
-### **Step 7.2: Standardize Localization Strategy** (Use the Auditor Persona here)
+### **Step 7.2: Standardize Localization Strategy** (Use the Code Auditor persona here)
 *   **Goal:** Audit the codebase for hardcoded German strings or personal author remarks and convert them to English. Ensure all UI text is wrapped in macros suitable for future `gettext` translation.
 *   **Rationale:** Prepares the project for a global audience and ensures consistency in the default locale.
 *   **Files to Modify:** `src/*/*.c`
@@ -1118,7 +1110,7 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 *   **Context Files:** `include/patchlev.h`
 *   - [ ] **Status:** Partially Completed (uninstall exists but can be improved).
 
-### **Step 8.6: Implement De-linting, Static Analysis, and Code Hygiene** (Use the Auditor Persona here)
+### **Step 8.6: Implement De-linting, Static Analysis, and Code Hygiene** (Use the Code Auditor persona here)
 *   **Goal:** Add `make format`, `make lint`, and `make analyze` targets to the Makefile.
     *   **Format:** Use `clang-format` to enforce a consistent coding style.
     *   **Lint/Analyze:** Use static analysis tools (e.g., `cppcheck`, `clang-tidy`, `flawfinder`) to identify potential bugs and non-standard code.
@@ -1147,77 +1139,77 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 ## **Phase 9: Systems Architecture Remediation & Core Hardening**
 *This phase represents the primary technical debt payoff for the v3.0 modernization. It transitions `ytree` from a monolithic legacy C89 codebase into a layered, modular architecture. It systematically decouples Business Logic from Presentation (Model-View Separation), enforces strict Memory Safety, eliminates unsafe Signal Handling patterns, and standardizes low-level System I/O mechanisms.*
 
-### **Step 9.1: Deep-Dive Architectural Remediation** (Use Architect Mode)
+### **Step 9.1: Deep-Dive Architectural Remediation** (Use the Architect persona here)
 *   **Goal:** Execute the specific refactoring tasks identified in the code quality audit to eliminate fragile patterns, enforcing strict separation of Logic (Model) and UI (View).
 *   **Status:** In Progress.
 
-#### **Step 9.1.1: Decouple Filesystem Scanners (readtree.c)** (Use Architect Mode)
+#### **Step 9.1.1: Decouple Filesystem Scanners (readtree.c)** (Use the Architect persona here)
 *   **Goal:** Remove UI calls (`DrawSpinner`, `doupdate`) from low-level filesystem logic.
 *   **Mechanism:** Refactor `ReadTree` to accept a `ProgressCallback` function pointer. Move the UI update logic into a callback provided by the Controller layer.
 *   **Files to Modify:** `src/fs/readtree.c`, `src/fs/archive_read.c`, `src/cmd/log.c`.
 *   - [x] **Status:** Completed.
 
-#### **Step 9.1.2: Extract Sorting Logic (Model vs Controller)** (Use Architect Mode)
+#### **Step 9.1.2: Extract Sorting Logic (Model vs Controller)** (Use the Architect persona here)
 *   **Goal:** Move `qsort` and comparison logic out of the UI Controller (`ctrl_file.c`) and into the Core/Model layer.
 *   **Mechanism:** Create `src/core/sort.c`. Implement `Volume_Sort(Volume *vol, int method)`.
 *   **Files to Modify:** `src/ui/ctrl_file.c`, `src/core/sort.c` (New).
 *   - [x] **Status:** Completed.
 
-#### **Step 9.1.3: Refactor LogDisk (Split I/O and UI)** (Use Architect Mode)
+#### **Step 9.1.3: Refactor LogDisk (Split I/O and UI)** (Use the Architect persona here)
 *   **Goal:** Split the monolithic `LoginDisk` function into a pure logic function (`Volume_Load`) and a UI wrapper (`LogDisk`), and rename the command to fix the "Login" misnomer.
 *   **Mechanism:** `Volume_Load` (core/volume.c) performs I/O, archive detection, and memory allocation only. `LogDisk` (cmd/log.c) handles user prompts, existing volume lookup, screen clearing, and error display.
 *   **Files to Modify:** `src/cmd/log.c`, `src/core/volume.c` and `src/fs/archive_read.c`, `src/ui/ctrl_dir.c`, `src/ui/ctrl_file.c`, `src/ui/vol_menu.c` for renaming.
 *   - [x] **Status:** Completed.
 
-#### **Step 9.1.4: UI Geometry Standardization (Magic Numbers)** (Use Architect Mode)
+#### **Step 9.1.4: UI Geometry Standardization (Magic Numbers)** (Use the Architect persona here)
 *   **Goal:** Eliminate hardcoded screen offsets (e.g., `LINES - 4`) used for footer/prompt positioning.
 *   **Mechanism:** Extend `YtreeLayout` struct to include footer/prompt geometry. Calculate these once in `Layout_Recalculate`. Replace magic numbers with `layout.footer_y`, etc.
 *   **Files to Modify:** `src/ui/display.c`, `src/ui/stats.c`, `src/ui/prompt.c`, `src/ui/vol_menu.c`.
 *   - [x] **Status:** Completed.
 
-#### **Step 9.1.5: Standardization of Path Parsing** (Use Architect Mode)
+#### **Step 9.1.5: Standardization of Path Parsing** (Use the Architect persona here)
 *   **Goal:** Replace manual pointer-arithmetic path parsing loops with standard functions.
 *   **Mechanism:** Refactor `Fnsplit` and similar helpers to use POSIX `dirname()` and `basename()`.
 *   **Files to Modify:** `src/util/path_utils.c`.
 *   - [x] **Status:** Completed.
 
-#### **Step 9.1.6: Encapsulate Command Context** (Use Architect Mode)
+#### **Step 9.1.6: Encapsulate Command Context** (Use the Architect persona here)
 *   **Goal:** Prevent commands from implicitly operating on the global `CurrentVolume`.
 *   **Mechanism:** Refactor `Execute`, `Delete`, and `UserMode` functions to accept a `Volume*` or `Statistic*` context argument. Update callers in `ctrl_dir.c`/`ctrl_file.c` to pass `ActivePanel->vol`.
 *   **Files to Modify:** `src/cmd/execute.c`, `src/cmd/delete.c`, `src/cmd/usermode.c`.
 *   - [x] **Status:** Completed.
 
-#### **Step 9.1.7: Secure String Construction** (Use Architect Mode)
+#### **Step 9.1.7: Secure String Construction** (Use the Architect persona here)
 *   **Goal:** Eliminate unsafe manual string substitution loops.
 *   **Mechanism:** Create `String_Replace()` utility using bounds-checked logic.
 *   **Files to Modify:** `src/cmd/execute.c`, `src/util/string_utils.c`.
 *   - [x] **Status:** Completed.
 
-#### **Step 9.1.8: Global Error Buffer Elimination** (Use Architect Mode)
+#### **Step 9.1.8: Global Error Buffer Elimination** (Use the Architect persona here)
 *   **Goal:** Remove the non-reentrant global `message` buffer.
 *   **Mechanism:** Refactor error macros to use variadic functions (`UI_Message(fmt, ...)`) with local stack buffers.
 *   **Files to Modify:** `src/core/global.c`, `src/ui/error.c`, `include/ytree.h`.
 *   - [x] **Status:** Completed.
 
-#### **Step 9.1.9: Modernize User/Group Database Handling** (Use Architect Mode)
+#### **Step 9.1.9: Modernize User/Group Database Handling** (Use the Architect persona here)
 *   **Goal:** Remove legacy caching of `/etc/passwd` which wastes memory and fails on networked systems.
 *   **Mechanism:** Replace `ReadPasswdEntries` cache with direct calls to `getpwuid`/`getgrgid`.
 *   **Files to Modify:** `src/cmd/passwd.c`, `src/cmd/group.c`.
 *   - [x] **Status:** Completed.
 
-#### **Step 9.1.10: Centralize Memory Management (DRY)** (Use Architect Mode)
+#### **Step 9.1.10: Centralize Memory Management (DRY)** (Use the Architect persona here)
 *   **Goal:** Eliminate repetitive `malloc` error checking code scattered across the project.
 *   **Mechanism:** Implement `xmalloc`, `xcalloc`, and `xstrdup` in `src/util/memory.c`. These wrappers exit safely on allocation failure. Refactor codebase to use them.
 *   **Files to Modify:** `src/util/memory.c` (New), `include/ytree.h`, all source files.
 *   - [x] **Status:** Completed.
 
-#### **Step 9.1.11: Standardize Internal Viewer Geometry** (Use Architect Mode)
+#### **Step 9.1.11: Standardize Internal Viewer Geometry** (Use the Architect persona here)
 *   **Goal:** Decouple the internal Hex/Text viewer from global `LINES`/`COLS` to allow future split-screen integration.
 *   **Mechanism:** Update `view_internal.c` to respect the global `YtreeLayout` or accept specific bounds.
 *   **Files to Modify:** `src/ui/view_internal.c`.
 *   - [x] **Status:** Completed.
 
-#### **Step 9.1.12: Enforce Signal Safety (Anti-Crash)** (Use Architect Mode)
+#### **Step 9.1.12: Enforce Signal Safety (Anti-Crash)** (Use the Architect persona here)
 *   **Goal:** Eliminate "Random" crashes caused by unsafe signal handling (SIGALRM/SIGSEGV).
 *   **Mechanism:**
     1.  **Clock:** Remove `SIGALRM` based clock. Move clock updates to the `GetEventOrKey` input loop using `timeout()`.
@@ -1249,7 +1241,7 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 *   **Targets:** `src/ui/dialog.c`, `include/ytree_dialog.h`, `src/ui/vol_menu.c`, `src/util/history.c`, core command files (`copy.c`, `move.c`, `rmdir.c`).
 *   - [x] **Status:** Complete.
 
-### **Step 9.5: Module Cohesion & Source Tree Normalization** (Use the Auditor Persona here)
+### **Step 9.5: Module Cohesion & Source Tree Normalization** (Use the Code Auditor persona here)
 *   **Goal:** Establish and enforce conventions for module (`.c`/`.h` pair) sizing, naming, and directory placement, then refactor the source tree to conform. Every module should have a clear single responsibility, a consistent size range, and live in the directory that matches its architectural layer.
 *   **Rationale:** The current source tree grew organically. Some modules are bloated (2700+ LOC), some are trivially small (<50 LOC), and some are misplaced relative to their actual responsibility. This ad-hoc structure makes onboarding difficult and hides architectural boundaries. A normalized source tree makes the layered architecture (Model/View/Controller) self-documenting.
 *   **Branch:** `modules` (squash-merge to `main` when complete, then delete).
@@ -1322,12 +1314,12 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 *   **Files to Modify:** `doc/ROADMAP.md`, `doc/SPECIFICATION.md`, `doc/TESTING.md`, and any other `doc/*.md` files referencing source paths.
 *   - [x] **Status:** Completed.
 
-### **Step 9.6: Consolidate Fragmented Feature Logic** (Use the Auditor Persona here)
+### **Step 9.6: Consolidate Fragmented Feature Logic** (Use the Code Auditor persona here)
 *   **Goal:** Systematically audit the codebase for features whose logic is scattered across multiple files and consolidate each into a single, cohesive module or function.
 *   **Rationale:** Legacy development often spreads a single logical feature (e.g., statistics display, filtering, tagging) across many call sites and files. This fragmentation makes the code harder to understand, modify, and debug. Unifying a feature's logic into one authoritative location dramatically improves maintainability and reduces regression risk. This operationalizes the **Architectural Integrity (Anti-Patching)** guiding principle into a concrete, repeatable audit task.
 *   **Exemplar:** The _"refactor: remove GlobalView naming and document context-passing architecture"_ commit: before this refactor, statistics rendering was spread across `stats.c`, `display.c`, `dirwin.c`, and `filewin.c`. Afterward, the stats panel was driven by a single cohesive function, making future changes trivial.
 *   **Mechanism:**
-    1.  **Audit:** Use `@auditor` to identify features whose logic touches 3+ files without a clear single owner.
+    1.  **Audit:** Use `@code_auditor` to identify features whose logic touches 3+ files without a clear single owner.
     2.  **Propose:** Design a consolidation plan that creates a single authoritative module/function for the feature.
     3.  **Refactor:** Move scattered logic into the owning module, exposing a clean API for callers.
     4.  **Validate:** Ensure no behavioral regressions via TUI tests.
@@ -1343,7 +1335,7 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 *   **Goal:** Replace non-English identifiers (e.g., `modus` -> `mode`) within the source code to improve professional consistency and auditability.
 *   **Rationale:** Legacy code contains several German-derived variable and function names. While they are functional, they violate the project's modern "Professional Onboarding" standard. Normalizing these to English makes the logic more self-documenting for the international development community.
 *   **Mechanism:**
-    1.  **Audit:** Use `@auditor` to identify German identifiers (excluding comments) like `modus`, `anzahl`, `liste`, etc.
+    1.  **Audit:** Use `@code_auditor` to identify German identifiers (excluding comments) like `modus`, `anzahl`, `liste`, etc.
     2.  **Refactor:** Use `rename_symbol` to update the identifiers safely across the codebase.
     3.  **Validate:** Ensure zero behavioral changes via `make test`.
 *   **Files to Modify:** `src/**/*.c`, `include/*.h`.
@@ -1361,28 +1353,28 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 *   **Context Files:** None.
 *   - [ ] **Status:** Not Started.
 
-### **Step 10.2: Memory Leak Remediation** (Use Architect Mode)
+### **Step 10.2: Memory Leak Remediation** (Use the Architect persona here)
 *   **Goal:** Systematically analyze Valgrind reports and fix all "Definitely Lost" and "Indirectly Lost" memory errors.
 *   **Rationale:** Prevents memory bloat over time, which is critical for a file manager that may be left open for days.
 *   **Files to Modify:** `src/**/*.c`
 *   **Context Files:** None.
 *   - [ ] **Status:** Not Started.
 
-### **Step 10.3: Fix Uninitialized Memory Access** (Use Architect Mode)
+### **Step 10.3: Fix Uninitialized Memory Access** (Use the Architect persona here)
 *   **Goal:** Identify and fix "Conditional jump or move depends on uninitialized value(s)" errors.
 *   **Rationale:** These are often the cause of sporadic, unreproducible crashes and erratic behavior.
 *   **Files to Modify:** `src/**/*.c`
 *   **Context Files:** None.
 *   - [ ] **Status:** Not Started.
 
-### **Step 10.4: Resource Leak Cleanup (File Descriptors)** (Use the Auditor Persona here)
+### **Step 10.4: Resource Leak Cleanup (File Descriptors)** (Use the Code Auditor persona here)
 *   **Goal:** Ensure all file descriptors (`open`, `opendir`, `popen`) are properly closed, especially in error paths and during volume switching.
 *   **Rationale:** Prevents "Too many open files" errors during heavy usage.
 *   **Files to Modify:** `src/cmd/log.c`, `src/cmd/pipe.c`, `src/fs/archive_read.c`
 *   **Context Files:** None.
 *   - [ ] **Status:** Not Started.
 
-### **Step 10.5: Eliminate Dangling Pointers & Use-After-Free** (Use Architect Mode)
+### **Step 10.5: Eliminate Dangling Pointers & Use-After-Free** (Use the Architect persona here)
 *   **Goal:** Systematically audit and fix all dangling pointer risks: pointers that reference freed memory, stale cache entries, or uninitialized storage.
 *   **Rationale:** Dangling pointers are the most insidious class of memory bug in C: they cause intermittent crashes, data corruption, and security vulnerabilities that are extremely difficult to reproduce. In a long-running file manager that dynamically allocates/frees directory trees, file lists, and volumes, the attack surface for use-after-free is large.
 *   **Mechanism:**
@@ -1399,7 +1391,7 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 ## **Phase 11: Architectural Integrity (SRP/SoC Audit)**
 *This phase addresses specific "Fragile Code" patterns identified during the deep-dive audit. The goal is to strictly enforce the Single Responsibility Principle (SRP) and Separation of Concerns (SoC) to prevent regression loops and enable safe future expansion.*
 
-### **Step 11.1: Purify Filesystem Layer (Archive UI Leakage)** (Use Architect Mode)
+### **Step 11.1: Purify Filesystem Layer (Archive UI Leakage)** (Use the Architect persona here)
 *   **Task ID:** [FS]-[Archive]-[SoC]
 *   **Severity:** **Critical**
 *   **The Fragile Code:** `src/fs/archive_read.c` currently calls `DrawSpinner()` and `MESSAGE("Operation Interrupted")` directly inside extraction loops (`ExtractArchiveEntry`, `ExtractArchiveNode`, `process_rewrite_loop`).
@@ -1411,7 +1403,7 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 *   **Files to Modify:** `src/fs/archive_read.c`, `include/ytree_fs.h`, `src/cmd/view.c`, `src/cmd/copy.c`.
 *   - [x] **Status:** Completed.
 
-### **Step 11.2: Decouple Logic from UI in Core Commands** (Use Architect Mode)
+### **Step 11.2: Decouple Logic from UI in Core Commands** (Use the Architect persona here)
 *   **Task ID:** [CMD]-[Copy/Move]-[SoC]
 *   **Severity:** **High**
 *   **The Fragile Code:** `CopyFile` (`src/cmd/copy.c`) and `MoveFile` (`src/cmd/move.c`) call `InputChoice(...)` internally to ask for overwrite confirmation.
@@ -1423,7 +1415,7 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 *   **Files to Modify:** `src/cmd/copy.c`, `src/cmd/move.c`, `include/ytree_cmd.h`.
 *   - [ ] **Status:** Not Started.
 
-### **Step 11.3: Parameterize Rendering (Global State Removal)** (Use Architect Mode)
+### **Step 11.3: Parameterize Rendering (Global State Removal)** (Use the Architect persona here)
 *   **Task ID:** [UI]-[Render]-[GlobalState]
 *   **Severity:** **Critical**
 *   **The Fragile Code:** `DisplayFiles` (`src/ui/render_file.c`) and `DisplayTree` (`src/ui/render_dir.c`) hardcode accesses to `CurrentVolume`.
@@ -1435,7 +1427,7 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 *   **Files to Modify:** `src/ui/render_file.c`, `src/ui/render_dir.c`, `src/ui/display.c`, `include/ytree_ui.h`.
 *   - [x] **Status:** Completed/Superseded. (Achieved during Step 5.1.8).
 
-### **Step 11.4: Standardize Path Construction (Safety)** (Use Architect Mode)
+### **Step 11.4: Standardize Path Construction (Safety)** (Use the Architect persona here)
 *   **Task ID:** [Util]-[Path]-[UnsafeString]
 *   **Severity:** **High**
 *   **The Fragile Code:** Various commands (`copy.c`, `move.c`) use ad-hoc `strcpy`/`strcat` sequences to build paths:
@@ -1451,7 +1443,7 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
     3.  Refactor all command modules to use this helper.
 *   **Files to Modify:** `src/util/path_utils.c`, `src/cmd/copy.c`, `src/cmd/move.c`, `src/cmd/rename.c`, `src/cmd/mkdir.c`.
 
-### **Step 11.5: Encapsulate Internal Viewer Geometry** (Use Architect Mode)
+### **Step 11.5: Encapsulate Internal Viewer Geometry** (Use the Architect persona here)
 *   **Task ID:** [UI]-[View]-[Encapsulation]
 *   **Severity:** **Medium**
 *   **The Fragile Code:** `src/ui/view_internal.c` creates windows (`VIEW`, `BORDER`) based on global `layout` coordinates but manages its own resize logic (`DoResize`) that competes with the main layout engine.
@@ -1461,7 +1453,7 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
     2.  Ensure it respects the bounds passed by the caller, allowing it to eventually run inside a Split Screen pane (future proofing).
 *   **Files to Modify:** `src/ui/view_internal.c`.
 
-### **Step 11.6: Strict Header Hygiene** (Use Architect Mode)
+### **Step 11.6: Strict Header Hygiene** (Use the Architect persona here)
 *   **Task ID:** [Core]-[Build]-[Coupling]
 *   **Severity:** **Low (Maintenance)**
 *   **The Fragile Code:** `ytree.h` includes every other header. Every `.c` file sees every prototype.
@@ -1501,7 +1493,13 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 *   **State Preservation on Reload (^L):** Modify the Refresh command to preserve directory expansion states. Cache open paths prior to the re-scan and restore the previous view structure instead of resetting to the default depth.
 *   **Preserve Tree Expansion on Refresh:** Modify the Refresh/Rescan logic (`^L`, `F5`) to cache the list of currently expanded directories before reading the disk. After the scan is complete, programmatically re-expand those paths if they still exist.
 *   **Implement "Safe Delete" (Trash Can):** Support the FreeDesktop.org Trash specification to allow file recovery.
-*   **Replace Ncurses:** Evaluate a modern terminal UI library as a replacement for `ncurses`. Either **termbox2** (simpler, smaller, lighter terminal API) or **notcurses** (richer modern terminal features, including advanced colour and inline graphics).
+
+### **Step 4.n: Implement In-App Configuration Editor (F10)**
+*   **Goal:** Implement a settings panel (activated by a key like `F10`) that allows the user to view and change configuration options from `~/.ytree` (e.g., `CONFIRMQUIT`, colors) and save the changes.
+*   **Rationale:** Provides a user-friendly way to configure `ytree` without manually editing the configuration file, improving accessibility.
+*   **Files to Modify:** `src/cmd/profile.c`, `src/ui/key_engine.c`
+*   **Context Files:** `include/config.h`
+*   - [ ] **Status:** Not Started.
 
 ### **Step 6.n: Implement Keyboard Macros (`F12`)**
 *   **Goal:** Implement a macro recording and playback system. `F12` starts/stops recording keystrokes to a buffer/file.
@@ -1516,7 +1514,7 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 *   **Context Files:** `src/ui/ctrl_file.c`
 *   - [ ] **Status:** Not Started.
 
-### **Step 6.p: Implement Recursive Directory Watching** (Use the Auditor Persona here)
+### **Step 6.p: Implement Recursive Directory Watching** (Use the Code Auditor persona here)
 *   **Goal:** Extend the file system watcher to monitor all *currently expanded* directories, allowing changes in visible sibling or child directories to appear immediately without manual refresh.
 *   **Rationale:** Current `inotify` logic only watches the directory under the cursor. If a user modifies a subdirectory visible in the tree but not currently selected, the UI becomes stale.
 *   **Mechanism:**
@@ -1529,11 +1527,11 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 *   **Context Files:** `include/watcher.h`
 *   - [ ] **Status:** Not Started.
 
-### **Step 6.x: Implement VFS Abstraction Layer** (Use Architect Mode)
+### **Step 6.x: Implement VFS Abstraction Layer** (Use the Architect persona here)
 *   **Goal:** Replace hardcoded filesystem logic with a driver-based architecture. This allows `ytree` to treat any data source (Local FS, Archive, SSH, SQL) uniformly as a `Volume`.
 *   **Context:** Currently, `log.c` decides between "Disk" and "Archive". We will change this so `log.c` asks a Registry: "Who can handle this path?"
 
-#### **Step 6.x.1: Define VFS Interface & Volume Integration** (Use Architect Mode)
+#### **Step 6.x.1: Define VFS Interface & Volume Integration** (Use the Architect persona here)
 *   **Goal:** Define the `VFS_Driver` contract (struct of function pointers) and update the `Volume` struct to hold a pointer to its active driver.
 *   **Mechanism:**
     *   Create `include/ytree_vfs.h`.
@@ -1541,7 +1539,7 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
     *   Update `include/ytree_defs.h` to add `const VFS_Driver *driver` and `void *driver_data` to `struct Volume`.
 *   **Files:** `include/ytree_vfs.h`, `include/ytree_defs.h`.
 
-#### **Step 6.x.2: Implement VFS Registry** (Use Architect Mode)
+#### **Step 6.x.2: Implement VFS Registry** (Use the Architect persona here)
 *   **Goal:** Create the core logic to register drivers and probe paths.
 *   **Mechanism:**
     *   Create `src/fs/vfs.c`.
@@ -1549,7 +1547,7 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
     *   Implement `VFS_Probe(path)` which iterates drivers asking "Can you handle this?" and returns the best match.
 *   **Files:** `src/fs/vfs.c`, `include/ytree_vfs.h`.
 
-#### **Step 6.x.3: Implement "Local" VFS Driver** (Use Architect Mode)
+#### **Step 6.x.3: Implement "Local" VFS Driver** (Use the Architect persona here)
 *   **Goal:** Wrap the existing POSIX `opendir`/`readdir` logic into a `VFS_Driver`.
 *   **Mechanism:**
     *   Create `src/fs/drv_local.c`.
@@ -1557,7 +1555,7 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
     *   Ensure it populates `DirEntry` structures exactly as before.
 *   **Files:** `src/fs/drv_local.c`, `src/fs/readtree.c` (cleanup).
 
-#### **Step 6.x.4: Implement "Archive" VFS Driver** (Use Architect Mode)
+#### **Step 6.x.4: Implement "Archive" VFS Driver** (Use the Architect persona here)
 *   **Goal:** Wrap the existing `libarchive` logic into a `VFS_Driver`.
 *   **Mechanism:**
     *   Create `src/fs/drv_archive.c`.
@@ -1565,7 +1563,7 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
     *   Implement `.extract` to handle the temporary file creation for viewing/copying.
 *   **Files:** `src/fs/drv_archive.c`, `src/fs/readarchive.c` (delete).
 
-#### **Step 6.x.5: Switch `LoginDisk` to VFS** (Use Architect Mode)
+#### **Step 6.x.5: Switch `LoginDisk` to VFS** (Use the Architect persona here)
 *   **Goal:** Update the main entry point to use the new system.
 *   **Mechanism:**
     *   Refactor `src/cmd/log.c`.
@@ -1573,7 +1571,7 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
     *   Call `vol->driver->scan()` instead of calling `ReadTree` or `ReadTreeFromArchive` directly.
 *   **Files:** `src/cmd/log.c`.
 
-#### **Step 6.x.6: Refactor Consumers (Polymorphism)** (Use Architect Mode)
+#### **Step 6.x.6: Refactor Consumers (Polymorphism)** (Use the Architect persona here)
 *   **Goal:** Remove `if (mode == ARCHIVE)` from the rest of the codebase.
 *   **Mechanism:**
     *   Update `view.c`, `copy.c`, `execute.c`.
