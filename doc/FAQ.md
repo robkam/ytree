@@ -60,3 +60,7 @@ Creating a new file manager from scratch would have resulted in a loss of identi
 The primary objective of this phase was the architectural cleanup and restoration of the existing C codebase.
 
 Switching languages immediately would constitute a total rewrite rather than a modernization. However, now that the architecture has been simplified, legacy dependencies removed, and the project stabilized, a port to a modern memory-safe language like Rust is a possibility for a future version.
+
+### Why ncurses, why not termbox2 or notcurses?
+
+Ytree only needs fast, reliable text/line-box terminal UI for file and VFS browsing, and ncurses already provides that cleanly, while switching to termbox2 or notcurses would add backend complexity for features outside ytree’s core scope (like richer in-app media rendering) that are better handled by external helper programs.

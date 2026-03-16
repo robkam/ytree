@@ -14,7 +14,7 @@ If a bug is caused by fragmented state, inconsistent global variable modificatio
 
 ## Persona Rules and Process Guidance
 The AI agent must operate strictly via `.agent/rules/`:
-- Use **@consultant** for planning and "Architect Mode" refactoring logic. **Never implement code blindly**; always propose a high-level design and wait for explicit approval.
-- Use **@builder** for source code implementation (must output Complete Files Only).
-- Use **@auditor** for discovering technical debt, coupling, and fragility.
+- Use **@architect** for planning and architecture logic. **Never implement code blindly**; always propose a high-level design and wait for explicit approval.
+- Use **@developer** for source code implementation (must output Complete Files Only).
+- Use **@code_auditor** for discovering technical debt, coupling, and fragility.
 - Use **@tester** for behavioral TUI verification using `pexpect` (run within `.venv`).
