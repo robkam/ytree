@@ -404,15 +404,15 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 *   - [x] **Status:** Completed.
 
 #### **Step 4.10.6: Implement Jump to Owner Directory (\)**
-*   **Goal:** In "Show All" mode, pressing `\` (Backslash) on a selected file will exit Show All mode and jump the Directory Tree cursor to that file's parent directory.
+*   **Goal:** In "Show All" or "Global" file-list mode, pressing `\` (Backslash) exits that mode, re-anchors the Directory Tree to the selected file's owner directory, and places the file cursor on that same file.
 *   **Rationale:** Standard ZTree feature ("\ To Dir") essential for locating files found via a global search/filter within their hierarchy context.
-*   **Files to Modify:** `src/ui/ctrl_file.c`, `src/ui/input.c`
-*   **Context Files:** `src/ui/ctrl_dir.c`
-*   - [ ] **Status:** Not Started.
+*   **Files to Modify:** `src/ui/ctrl_file.c`, `src/ui/key_engine.c`, `src/ui/display.c`, `src/ui/dir_ops.c`
+*   **Context Files:** `src/ui/ctrl_dir.c`, `src/ui/file_list.c`
+*   - [x] **Status:** Completed.
 
 ### **Step 4.11: Implement Wide Mode (Toggle Stats Panel)**
 *   **Goal:** Implement a command (`F6`) to toggle the visibility of the statistics sidebar, effectively switching between a "Wide" view (0 width stats) and the standard view (24 width stats). Add a configuration option (`STATS_PANEL=1/0`) to `~/.ytree` to set the default state.
-*   **Rationale:** Maximizes horizontal screen real estate for deep directory hierarchies or long filenames. This dynamic layout capability is a prerequisite for correctly implementing the F7 (File Preview) and F8 (Split Screen) modes.
+*   **Rationale:** Maximizes horizontal screen real estate for deep directory hierarchies or long filenames.
 *   **Files to Modify:** `src/ui/key_engine.c`, `src/core/init.c`
 *   **Context Files:** `src/core/global.c`
 *   - [x] **Status:** Completed.
@@ -1501,6 +1501,7 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 *   **State Preservation on Reload (^L):** Modify the Refresh command to preserve directory expansion states. Cache open paths prior to the re-scan and restore the previous view structure instead of resetting to the default depth.
 *   **Preserve Tree Expansion on Refresh:** Modify the Refresh/Rescan logic (`^L`, `F5`) to cache the list of currently expanded directories before reading the disk. After the scan is complete, programmatically re-expand those paths if they still exist.
 *   **Implement "Safe Delete" (Trash Can):** Support the FreeDesktop.org Trash specification to allow file recovery.
+*   **Replace Ncurses:** Evaluate a modern terminal UI library as a replacement for `ncurses`. Either **termbox2** (simpler, smaller, lighter terminal API) or **notcurses** (richer modern terminal features, including advanced colour and inline graphics).
 
 ### **Step 6.n: Implement Keyboard Macros (`F12`)**
 *   **Goal:** Implement a macro recording and playback system. `F12` starts/stops recording keystrokes to a buffer/file.

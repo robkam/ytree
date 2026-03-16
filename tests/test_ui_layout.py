@@ -42,9 +42,9 @@ def test_ui_layout_box_drawing(ytree_binary, tmp_path):
             break
     assert found_connector, "Tree root/leaf connector not detected using any supported graphics mode"
         
-    # 2. Ensure "DIR Attribute" menu item is visible (bottom menu check)
-    found_dir_attr = any("DIR Attribute" in line for line in screen)
-    assert found_dir_attr, "'DIR Attribute' menu hint not found on screen"
+    # 2. Ensure directory attributes hint is visible in bottom menu
+    found_dir_attr = any(("DIR" in line and "Attribute" in line) for line in screen)
+    assert found_dir_attr, "Directory attributes menu hint not found on screen"
     
     # 3. Ensure FILTER header is present in the stats column area
     found_filter = any("FILTER" in line for line in screen)

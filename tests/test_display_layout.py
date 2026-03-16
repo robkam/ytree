@@ -334,3 +334,154 @@ def test_file_window_one_column_edges_preserve_row(ytree_binary, tmp_path):
     ), f"RIGHT at bottom boundary should preserve row (before_idx={prev_idx}, after={after_right_bottom})"
 
     tui.quit()
+
+
+@pytest.mark.parametrize("mode_key", [Keys.SHOWALL, "g"])
+def test_backslash_to_dir_in_showall_and_global(ytree_binary, tmp_path, mode_key):
+    """
+    REGRESSION:
+    In Show All / Global file list modes, '\\' exits the mode and re-anchors
+    the tree/file cursors to the selected file inside its owner directory.
+    """
+    root = tmp_path / "to_dir_mode"
+    owner_dir = root / "owner_dir"
+    other_dir = root / "other_dir"
+    owner_dir.mkdir(parents=True)
+    other_dir.mkdir(parents=True)
+
+    target_name = "jump_target.txt"
+    (owner_dir / target_name).write_text("x", encoding="utf-8")
+    (other_dir / "other_file.txt").write_text("x", encoding="utf-8")
+
+    tui = YtreeTUI(executable=ytree_binary, cwd=str(root))
+    tui.child.setwinsize(36, 140)
+    tui.screen.resize(36, 140)
+    time.sleep(1.0)
+    tui.send_keystroke("", wait=0.2)
+
+    tui.send_keystroke(mode_key, wait=0.6)
+    screen = "\n".join(tui.get_screen_dump())
+    assert "to dir" in screen, "Show All/Global footer should include '\\ to dir'"
+
+    # Select the target file deterministically via filter.
+    tui.send_keystroke("f", wait=0.2)
+    tui.send_keystroke(f"{target_name}\r", wait=0.6)
+    screen = "\n".join(tui.get_screen_dump())
+    assert target_name in screen, "Target file should be selected in global file list"
+
+    tui.send_keystroke("\\", wait=0.7)
+    lines = tui.get_screen_dump()
+    screen = "\n".join(lines)
+    split_x = _detect_stats_split_x(lines)
+    jumped_current = _current_file_from_stats(lines, split_x)
+    assert "DIR" in screen, "Expected to return to tree mode after '\\'"
+    assert owner_dir.name in screen, "Expected header/tree context to include owner directory"
+    assert target_name in screen, "Expected file cursor to land on selected file in owner directory"
+    assert (
+        jumped_current == target_name
+    ), f"Expected CURRENT FILE to stay on selected target after '\\' (got {jumped_current})"
+
+    tui.quit()
+
+
+def test_footer_fkeys_render_as_text_in_dir_and_showall(ytree_binary, tmp_path):
+    """
+    REGRESSION:
+    Footer command rows must render function key labels as text (F7/F8/F9/F1),
+    not ACS glyph substitutions.
+    """
+    d = tmp_path / "footer_fkeys"
+    d.mkdir()
+    (d / "a.txt").write_text("x", encoding="utf-8")
+
+    tui = YtreeTUI(executable=ytree_binary, cwd=str(d))
+    tui.child.setwinsize(36, 140)
+    tui.screen.resize(36, 140)
+    time.sleep(1.0)
+    tui.send_keystroke("", wait=0.2)
+
+    screen = "\n".join(tui.get_screen_dump())
+    assert "F7" in screen and "F8" in screen and "F9" in screen and "F10" in screen and "F1" in screen
+    assert "Treespec" not in screen
+    assert "Tree  F1 help" in screen
+    assert "Dir   F1 help" not in screen
+    assert "jump" in screen
+    assert "dotfiles" in screen
+    assert "eXecute" in screen
+
+    tui.send_keystroke(Keys.SHOWALL, wait=0.6)
+    screen = "\n".join(tui.get_screen_dump())
+    assert "F7" in screen and "F8" in screen and "F9" in screen and "F10" in screen and "F1" in screen
+    assert "to dir" in screen
+    assert "Dir   F1 help" in screen
+    assert "jump" in screen
+    assert "dotfiles" in screen
+    assert "eXecute" in screen
+
+    tui.quit()
+
+
+def test_sort_prompt_uses_full_footer_without_bleed(ytree_binary, tmp_path):
+    """
+    REGRESSION:
+    Sort prompt must fully occupy the footer area in file mode. The previous
+    file footer row must not bleed through above SORT/COMMANDS lines.
+    """
+    d = tmp_path / "sort_footer_bleed"
+    d.mkdir()
+    (d / "b.txt").write_text("x", encoding="utf-8")
+    (d / "a.txt").write_text("x", encoding="utf-8")
+
+    tui = YtreeTUI(executable=ytree_binary, cwd=str(d))
+    tui.child.setwinsize(36, 140)
+    tui.screen.resize(36, 140)
+    time.sleep(1.0)
+    tui.send_keystroke("", wait=0.2)
+
+    # Enter file mode and open sort prompt.
+    tui.send_keystroke(Keys.ENTER, wait=0.4)
+    tui.send_keystroke("s", wait=0.4)
+
+    lines = tui.get_screen_dump()
+    footer = lines[-3:]
+
+    assert "SORT by" in footer[0], "Footer line 1 should be owned by sort prompt"
+    assert "COMMANDS" in footer[1], "Footer line 2 should be owned by sort prompt"
+    assert "FILE" not in footer[0], "File footer must not bleed into sort prompt"
+    assert "Attribute" not in footer[0], "File footer hints must not bleed into sort prompt"
+
+    # Exit sort prompt cleanly.
+    tui.send_keystroke(Keys.ESC, wait=0.2)
+    tui.quit()
+
+
+def test_jump_prompt_uses_footer_without_bleed(ytree_binary, tmp_path):
+    """
+    REGRESSION:
+    List-jump prompt ('/') must render in the footer area without stale file
+    footer text bleeding through.
+    """
+    d = tmp_path / "jump_footer_bleed"
+    d.mkdir()
+    (d / "alpha.txt").write_text("x", encoding="utf-8")
+    (d / "beta.txt").write_text("x", encoding="utf-8")
+
+    tui = YtreeTUI(executable=ytree_binary, cwd=str(d))
+    tui.child.setwinsize(36, 140)
+    tui.screen.resize(36, 140)
+    time.sleep(1.0)
+    tui.send_keystroke("", wait=0.2)
+
+    tui.send_keystroke(Keys.ENTER, wait=0.4)
+    tui.send_keystroke("/", wait=0.4)
+
+    lines = tui.get_screen_dump()
+    footer = lines[-3:]
+    footer_text = "\n".join(footer)
+
+    assert "Jump to:" in footer_text, "Jump prompt should be visible in footer"
+    assert "FILE" not in footer_text, "File footer should not bleed into jump prompt"
+    assert "Attributes" not in footer_text, "Old footer hints should not bleed into jump prompt"
+
+    tui.send_keystroke(Keys.ESC, wait=0.2)
+    tui.quit()
