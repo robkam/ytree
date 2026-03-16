@@ -229,17 +229,19 @@ void HandleShowAll(ViewContext *ctx, BOOL tagged_only, BOOL all_volumes,
       dir_entry->cursor_pos = 0;
     }
     result = HandleFileWindow(ctx, dir_entry);
-    ctx->focused_window = FOCUS_TREE;
+    ctx->focused_window = (result == '\\') ? FOCUS_FILE : FOCUS_TREE;
 
     if (result != LOGIN_ESC) {
       /* Restore normal mode and refresh the entire view */
       dir_entry->start_file = 0;
       dir_entry->cursor_pos = -1;
       BuildDirEntryList(ctx, p->vol, &p->current_dir_entry);
+      dir_entry = GetPanelDirEntry(p);
       RefreshView(ctx, dir_entry);
       dir_entry->global_all_volumes = FALSE;
     } else {
       BuildDirEntryList(ctx, p->vol, &p->current_dir_entry);
+      dir_entry = GetPanelDirEntry(p);
       RefreshView(ctx, dir_entry);
       *ch = 'L';
       dir_entry->global_all_volumes = FALSE;

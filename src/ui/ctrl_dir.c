@@ -29,6 +29,8 @@ void HandleSwitchWindow(ViewContext *ctx, DirEntry *dir_entry,
                         BOOL *need_dsp_help, int *ch, YtreePanel *p);
 static void DirListJump(ViewContext *ctx, DirEntry **dir_entry_ptr,
                         Statistic *s);
+static void DrawDirListJumpPrompt(ViewContext *ctx, WINDOW *win,
+                                  const char *search_buf);
 
 int HandleDirWindow(ViewContext *ctx, DirEntry *start_dir_entry) {
   DirEntry *dir_entry, *de_ptr;
@@ -1344,6 +1346,7 @@ static void DirListJump(ViewContext *ctx, DirEntry **dir_entry_ptr,
   int height;
   int original_disp_begin_pos;
   int original_cursor_pos;
+  WINDOW *jump_win = (ctx && ctx->ctx_menu_window) ? ctx->ctx_menu_window : stdscr;
 
   if (!ctx || !ctx->active || !ctx->active->vol || !ctx->active->vol->dir_entry_list ||
       ctx->active->vol->total_dirs <= 0 || !dir_entry_ptr || !*dir_entry_ptr) {
@@ -1360,14 +1363,10 @@ static void DirListJump(ViewContext *ctx, DirEntry **dir_entry_ptr,
   memset(search_buf, 0, sizeof(search_buf));
 
   ClearHelp(ctx);
-  MvAddStr(Y_PROMPT(ctx), 1, "Search: ");
-  RefreshWindow(stdscr);
+  DrawDirListJumpPrompt(ctx, jump_win, search_buf);
 
   while (1) {
-    move(Y_PROMPT(ctx), 9);
-    addstr(search_buf);
-    clrtoeol();
-    doupdate();
+    DrawDirListJumpPrompt(ctx, jump_win, search_buf);
 
     ch = Getch(ctx);
     if (ch == -1)
@@ -1488,4 +1487,33 @@ static void DirListJump(ViewContext *ctx, DirEntry **dir_entry_ptr,
     if (ch == ESC)
       break;
   }
+}
+
+static void DrawDirListJumpPrompt(ViewContext *ctx, WINDOW *win,
+                                  const char *search_buf) {
+  int y = 0;
+
+  if (!ctx || !win || !search_buf)
+    return;
+
+  if (win == stdscr) {
+    if (ctx->layout.prompt_y > 0) {
+      wmove(win, ctx->layout.prompt_y - 1, 0);
+      wclrtoeol(win);
+    }
+    wmove(win, ctx->layout.prompt_y, 0);
+    wclrtoeol(win);
+    wmove(win, ctx->layout.status_y, 0);
+    wclrtoeol(win);
+    y = ctx->layout.prompt_y;
+  } else {
+    werase(win);
+    y = 1; /* Center line in 3-line footer window */
+  }
+
+  mvwaddstr(win, y, 1, "Jump to: ");
+  mvwaddstr(win, y, 10, search_buf);
+  wclrtoeol(win);
+  wnoutrefresh(win);
+  doupdate();
 }

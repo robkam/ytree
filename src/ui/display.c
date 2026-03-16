@@ -23,6 +23,9 @@
 
 /* Legacy border strings removed. Use ACS_* constants directly. */
 
+static void PrintHelpString(WINDOW *win, int y, int x, const char *str);
+static void PrintNavLine(WINDOW *win, int y, const char *str);
+
 /*
  * Help line definitions for different modes.
  * NOTE: These strings are manually balanced to fit on a 120x36
@@ -33,11 +36,14 @@
  * Updated: (F)ilespec -> (F)ilter, spacing adjustments.
  */
 static char dir_help_disk_mode_0[] =
-    "DIR (A)ttributes (B)rief (D)elete (F)ilter (G)lobal (L)og (M)akedir "
+    "DIR      (A)ttributes (B)rief (D)elete (F)ilter (G)lobal (L)og (M)akedir "
     "(N)ewfile";
 static char dir_help_disk_mode_1[] =
     "COMMANDS (P)ipe (Q)uit (R)ename "
-    "(S)howall (T)ag (U)ntag e(X)ec (`)dotfiles";
+    "(S)howall (T)ag (U)ntag e(X)ecute (/) jump (`) dotfiles";
+static char dir_help_nav[] =
+    "Tree  (F1) help  (F5) refresh  (F6) stats  (F7) autoview  "
+    "(F8) split  (F9) menu  (F10) config  (Esc) cancel";
 static char *dir_help[MAX_MODES][2] = {
     {/* DISK_MODE */
      dir_help_disk_mode_0, dir_help_disk_mode_1},
@@ -56,11 +62,17 @@ static char *dir_help[MAX_MODES][2] = {
      dir_help_disk_mode_1}};
 
 static char file_help_disk_mode_0[] =
-    "FILE      (A)ttributes (B)rief (C)opy/(^K) (D)elete (E)dit (F)ilter "
+    "FILE     (A)ttributes (B)rief (C)opy/(^K) (D)elete (E)dit (F)ilter "
     "(^F)ilemode";
 static char file_help_disk_mode_1[] =
     "COMMANDS (H)ex (L)og (M)ove/(^N) (N)ewfile "
-    "(P)ipe (Q)uit (R)ename (S)ort";
+    "(P)ipe (Q)uit (R)ename (S)ort e(X)ecute (/) jump (`) dotfiles";
+static char file_help_nav[] =
+    "Dir   (F1) help  (F5) refresh  (F6) stats  (F7) autoview  "
+    "(F8) split  (F9) menu  (F10) config  (Esc) cancel";
+static char file_help_nav_to_dir[] =
+    "Dir   (F1) help  (F5) refresh  (F6) stats  (F7) autoview  "
+    "(F8) split  (F9) menu  (F10) config  (\\) to dir  (Esc) cancel";
 static char *file_help[MAX_MODES][2] = {
     {/* DISK_MODE */
      file_help_disk_mode_0, file_help_disk_mode_1},
@@ -97,12 +109,14 @@ void DisplayDirHelp(ViewContext *ctx) {
   for (i = 0; i < 2; i++) {
     PrintOptions(ctx->ctx_menu_window, i, 0, dir_help[ctx->view_mode][i]);
   }
+  PrintNavLine(ctx->ctx_menu_window, 2, dir_help_nav);
   wnoutrefresh(ctx->ctx_menu_window);
 }
 
-void DisplayFileHelp(ViewContext *ctx) {
+void DisplayFileHelp(ViewContext *ctx, DirEntry *dir_entry) {
   int i;
   char *cptr;
+  const char *nav_line;
 
   if (!ctx->ctx_menu_window)
     return;
@@ -119,6 +133,10 @@ void DisplayFileHelp(ViewContext *ctx) {
   for (i = 0; i < 2; i++) {
     PrintOptions(ctx->ctx_menu_window, i, 0, file_help[ctx->view_mode][i]);
   }
+  nav_line =
+      (dir_entry && dir_entry->global_flag) ? file_help_nav_to_dir
+                                            : file_help_nav;
+  PrintNavLine(ctx->ctx_menu_window, 2, nav_line);
   wnoutrefresh(ctx->ctx_menu_window);
 }
 
@@ -154,13 +172,29 @@ static void PrintHelpString(WINDOW *win, int y, int x, const char *str) {
     }
 
 #ifdef COLOR_SUPPORT
-    wattrset(win, COLOR_PAIR(color) | A_BOLD);
+    if (color == hi_color)
+      wattrset(win, COLOR_PAIR(color) | A_BOLD);
+    else
+      wattrset(win, COLOR_PAIR(color));
 #else
     wattrset(win, color);
 #endif
     waddch(win, ch);
   }
   wattrset(win, 0);
+}
+
+static void PrintNavLine(WINDOW *win, int y, const char *str) {
+#ifdef COLOR_SUPPORT
+  wattrset(win, COLOR_PAIR(CPAIR_HIMENUS) | A_BOLD);
+#else
+  wattrset(win, A_BOLD);
+#endif
+  mvwaddch(win, y, 0, ACS_LARROW);
+  mvwaddch(win, y, 1, ACS_LRCORNER);
+  wattrset(win, 0);
+  mvwaddch(win, y, 2, ' ');
+  PrintHelpString(win, y, 3, str);
 }
 
 void DisplayPreviewHelp(ViewContext *ctx) {
@@ -511,7 +545,7 @@ void RefreshView(ViewContext *ctx, DirEntry *dir_entry) {
     if (ctx->focused_window == FOCUS_TREE) {
       DisplayDirHelp(ctx);
     } else {
-      DisplayFileHelp(ctx);
+      DisplayFileHelp(ctx, dir_entry);
     }
     if (ctx->ctx_menu_window)
       wnoutrefresh(ctx->ctx_menu_window);
