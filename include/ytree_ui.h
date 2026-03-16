@@ -60,7 +60,7 @@ extern void RotateDirMode(ViewContext *ctx);
 /* display.c */
 extern void ClearHelp(ViewContext *ctx);
 extern void DisplayDirHelp(ViewContext *ctx);
-extern void DisplayFileHelp(ViewContext *ctx);
+extern void DisplayFileHelp(ViewContext *ctx, DirEntry *dir_entry);
 extern void DisplayMenu(ViewContext *ctx);
 extern void MapF2Window(ViewContext *ctx);
 extern void RefreshWindow(WINDOW *win);
