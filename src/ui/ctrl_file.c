@@ -37,9 +37,17 @@ static int saved_fixed_width = 0;
  *              FreeFileEntryList, InvalidateVolumePanels, DisplayFileWindow */
 static void RereadWindowSize(ViewContext *ctx, DirEntry *dir_entry);
 static void ListJump(ViewContext *ctx, DirEntry *dir_entry, char *str);
+static void DrawFileListJumpPrompt(ViewContext *ctx, WINDOW *win,
+                                   const char *search_buf);
 static void UpdatePreview(ViewContext *ctx, DirEntry *dir_entry);
 static void SyncFileGridMetrics(ViewContext *ctx);
 static void UpdateFileHeaderPath(ViewContext *ctx, DirEntry *dir_entry);
+static int FindDirIndexInVolume(struct Volume *vol, DirEntry *target);
+static struct Volume *FindVolumeForDir(ViewContext *ctx, DirEntry *target,
+                                       int *dir_idx_out);
+static void PositionOwnerFileCursor(ViewContext *ctx, DirEntry *owner_dir,
+                                    FileEntry *target_file);
+static BOOL JumpToOwnerDirectory(ViewContext *ctx, DirEntry *global_dir_entry);
 
 static YtreeAction FilterPreviewAction(YtreeAction action) {
   switch (action) {
@@ -370,6 +378,7 @@ int HandleFileWindow(ViewContext *ctx, DirEntry *dir_entry) {
   char new_login_path[PATH_LENGTH + 1];
   int get_dir_ret;
   YtreeAction action = ACTION_NONE;            /* Initialize action */
+  BOOL jumped_to_owner_dir = FALSE;
   DirEntry *last_stats_dir = NULL;             /* Track context changes */
   struct Volume *start_vol = ctx->active->vol; /* Safety Check Variable */
   Statistic *s = &ctx->active->vol->vol_stats;
@@ -1406,6 +1415,20 @@ int HandleFileWindow(ViewContext *ctx, DirEntry *dir_entry) {
       need_dsp_help = TRUE;
       break;
 
+    case ACTION_TO_DIR:
+      if (!dir_entry->global_flag) {
+        UI_Beep(ctx, FALSE);
+        break;
+      }
+      if (JumpToOwnerDirectory(ctx, dir_entry)) {
+        jumped_to_owner_dir = TRUE;
+        action = ACTION_ESCAPE;
+      } else {
+        UI_Beep(ctx, FALSE);
+      }
+      need_dsp_help = TRUE;
+      break;
+
     default:
       break;
     } /* switch */
@@ -1443,7 +1466,7 @@ int HandleFileWindow(ViewContext *ctx, DirEntry *dir_entry) {
   }
   return ((action == ACTION_ENTER)
               ? CR
-              : ESC); /* Return CR or ESC based on action */
+              : (jumped_to_owner_dir ? '\\' : ESC)); /* Return CR/ESC/ToDir */
 }
 
 /* WalkTaggedFiles moved to file_tags.c */
@@ -1496,6 +1519,228 @@ static void UpdateFileHeaderPath(ViewContext *ctx, DirEntry *dir_entry) {
   DisplayHeaderPath(ctx, path);
 }
 
+static int FindDirIndexInVolume(struct Volume *vol, DirEntry *target) {
+  int i;
+
+  if (!vol || !target || !vol->dir_entry_list)
+    return -1;
+
+  for (i = 0; i < vol->total_dirs; i++) {
+    if (vol->dir_entry_list[i].dir_entry == target)
+      return i;
+  }
+
+  return -1;
+}
+
+static struct Volume *FindVolumeForDir(ViewContext *ctx, DirEntry *target,
+                                       int *dir_idx_out) {
+  struct Volume *vol_iter;
+  struct Volume *vol_tmp;
+  int idx;
+
+  if (!ctx || !ctx->active || !target)
+    return NULL;
+
+  if (!ctx->active->vol->dir_entry_list || ctx->active->vol->total_dirs <= 0) {
+    BuildDirEntryList(ctx, ctx->active->vol, &ctx->active->current_dir_entry);
+  }
+  idx = FindDirIndexInVolume(ctx->active->vol, target);
+  if (idx >= 0) {
+    if (dir_idx_out)
+      *dir_idx_out = idx;
+    return ctx->active->vol;
+  }
+
+  HASH_ITER(hh, ctx->volumes_head, vol_iter, vol_tmp) {
+    int rebuild_idx = 0;
+
+    if (vol_iter == ctx->active->vol)
+      continue;
+
+    if (!vol_iter->dir_entry_list || vol_iter->total_dirs <= 0) {
+      BuildDirEntryList(ctx, vol_iter, &rebuild_idx);
+    }
+
+    idx = FindDirIndexInVolume(vol_iter, target);
+    if (idx >= 0) {
+      if (dir_idx_out)
+        *dir_idx_out = idx;
+      return vol_iter;
+    }
+  }
+
+  return NULL;
+}
+
+static void PositionOwnerFileCursor(ViewContext *ctx, DirEntry *owner_dir,
+                                    FileEntry *target_file) {
+  int i;
+  int file_idx = -1;
+  int page_height;
+  int page_size;
+  int column_count;
+  int file_count;
+
+  if (!ctx || !ctx->active || !owner_dir || !target_file)
+    return;
+
+  BuildFileEntryList(ctx, ctx->active);
+
+  file_count = (int)ctx->active->file_count;
+  if (file_count <= 0) {
+    owner_dir->start_file = 0;
+    owner_dir->cursor_pos = 0;
+    ctx->active->start_file = owner_dir->start_file;
+    return;
+  }
+
+  for (i = 0; i < file_count; i++) {
+    if (ctx->active->file_entry_list[i].file == target_file) {
+      file_idx = i;
+      break;
+    }
+  }
+
+  if (file_idx < 0) {
+    owner_dir->start_file = 0;
+    owner_dir->cursor_pos = 0;
+    ctx->active->start_file = owner_dir->start_file;
+    return;
+  }
+
+  SetPanelFileMode(ctx, ctx->active, GetPanelFileMode(ctx->active));
+  page_height = getmaxy(ctx->ctx_file_window);
+  if (page_height < 1)
+    page_height = 1;
+  column_count = GetPanelMaxColumn(ctx->active);
+  if (column_count < 1)
+    column_count = 1;
+  page_size = page_height * column_count;
+  if (page_size < 1)
+    page_size = 1;
+
+  owner_dir->start_file = file_idx;
+  owner_dir->cursor_pos = 0;
+
+  if (owner_dir->start_file + page_size > file_count) {
+    owner_dir->start_file = MAXIMUM(0, file_count - page_size);
+    owner_dir->cursor_pos = file_idx - owner_dir->start_file;
+  }
+
+  if (owner_dir->cursor_pos < 0)
+    owner_dir->cursor_pos = 0;
+  if (owner_dir->cursor_pos >= page_size)
+    owner_dir->cursor_pos = page_size - 1;
+
+  ctx->active->start_file = owner_dir->start_file;
+}
+
+static BOOL JumpToOwnerDirectory(ViewContext *ctx, DirEntry *global_dir_entry) {
+  YtreePanel *panel;
+  int selected_idx;
+  FileEntry *selected_file;
+  DirEntry *owner_dir;
+  int owner_dir_idx;
+  struct Volume *owner_vol;
+  int win_height;
+
+  if (!ctx || !ctx->active || !global_dir_entry)
+    return FALSE;
+  if (!global_dir_entry->global_flag)
+    return FALSE;
+  if (!ctx->active->file_entry_list || ctx->active->file_count == 0)
+    return FALSE;
+
+  selected_idx = global_dir_entry->start_file + global_dir_entry->cursor_pos;
+  if (selected_idx < 0 || (unsigned int)selected_idx >= ctx->active->file_count)
+    return FALSE;
+
+  selected_file = ctx->active->file_entry_list[selected_idx].file;
+  if (!selected_file || !selected_file->dir_entry)
+    return FALSE;
+  owner_dir = selected_file->dir_entry;
+
+  panel = ctx->active;
+  owner_vol = FindVolumeForDir(ctx, owner_dir, &owner_dir_idx);
+  if (!owner_vol || owner_dir_idx < 0)
+    return FALSE;
+  panel->vol = owner_vol;
+
+  if (!panel->vol->dir_entry_list || panel->vol->total_dirs <= 0) {
+    BuildDirEntryList(ctx, panel->vol, &panel->current_dir_entry);
+  }
+
+  win_height = getmaxy(ctx->ctx_dir_window);
+  if (win_height < 1)
+    win_height = ctx->layout.dir_win_height;
+  if (win_height < 1)
+    win_height = 1;
+
+  if (owner_dir_idx >= panel->disp_begin_pos &&
+      owner_dir_idx < panel->disp_begin_pos + win_height) {
+    panel->cursor_pos = owner_dir_idx - panel->disp_begin_pos;
+  } else if (owner_dir_idx < win_height) {
+    panel->disp_begin_pos = 0;
+    panel->cursor_pos = owner_dir_idx;
+  } else {
+    panel->disp_begin_pos = owner_dir_idx - (win_height / 2);
+    if (panel->disp_begin_pos > panel->vol->total_dirs - win_height) {
+      panel->disp_begin_pos = panel->vol->total_dirs - win_height;
+    }
+    if (panel->disp_begin_pos < 0)
+      panel->disp_begin_pos = 0;
+    panel->cursor_pos = owner_dir_idx - panel->disp_begin_pos;
+  }
+
+  if (panel->cursor_pos < 0)
+    panel->cursor_pos = 0;
+  if (panel->disp_begin_pos + panel->cursor_pos >= panel->vol->total_dirs) {
+    panel->cursor_pos =
+        (panel->vol->total_dirs > 0)
+            ? (panel->vol->total_dirs - 1 - panel->disp_begin_pos)
+            : 0;
+  }
+
+  owner_dir->global_flag = FALSE;
+  owner_dir->global_all_volumes = FALSE;
+  owner_dir->tagged_flag = FALSE;
+  owner_dir->big_window = FALSE;
+
+  PositionOwnerFileCursor(ctx, owner_dir, selected_file);
+
+  return TRUE;
+}
+
+static void DrawFileListJumpPrompt(ViewContext *ctx, WINDOW *win,
+                                   const char *search_buf) {
+  int y = 0;
+
+  if (!ctx || !win || !search_buf)
+    return;
+
+  if (win == stdscr) {
+    if (ctx->layout.prompt_y > 0) {
+      wmove(win, ctx->layout.prompt_y - 1, 0);
+      wclrtoeol(win);
+    }
+    wmove(win, ctx->layout.prompt_y, 0);
+    wclrtoeol(win);
+    wmove(win, ctx->layout.status_y, 0);
+    wclrtoeol(win);
+    y = ctx->layout.prompt_y;
+  } else {
+    werase(win);
+    y = 1; /* Center line in 3-line footer window */
+  }
+
+  mvwaddstr(win, y, 1, "Jump to: ");
+  mvwaddstr(win, y, 10, search_buf);
+  wclrtoeol(win);
+  wnoutrefresh(win);
+  doupdate();
+}
+
 static void ListJump(ViewContext *ctx, DirEntry *dir_entry, char *str) {
   char search_buf[256];
   int buf_len = 0;
@@ -1505,21 +1750,17 @@ static void ListJump(ViewContext *ctx, DirEntry *dir_entry, char *str) {
   int i;
   int found_idx;
   int start_x = 0;
+  WINDOW *jump_win = (ctx && ctx->ctx_menu_window) ? ctx->ctx_menu_window : stdscr;
 
   (void)str; /* Unused */
 
   memset(search_buf, 0, sizeof(search_buf));
 
   ClearHelp(ctx);
-  MvAddStr(Y_PROMPT(ctx), 1, "Search: ");
-  RefreshWindow(stdscr);
+  DrawFileListJumpPrompt(ctx, jump_win, search_buf);
 
   while (1) {
-    /* Update prompt */
-    move(Y_PROMPT(ctx), 9);
-    addstr(search_buf);
-    clrtoeol();
-    doupdate();
+    DrawFileListJumpPrompt(ctx, jump_win, search_buf);
 
     ch = Getch(ctx);
 

@@ -401,6 +401,8 @@ YtreeAction GetKeyAction(ViewContext *ctx, int ch) {
     return ACTION_TREE_EXPAND_ALL;
   case '/':
     return ACTION_LIST_JUMP;
+  case '\\':
+    return ACTION_TO_DIR;
 
   case CR:
   case LF:

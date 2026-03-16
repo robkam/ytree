@@ -26,6 +26,38 @@
 static char move_prompt_header[PATH_LENGTH + 50];
 static char move_prompt_as[PATH_LENGTH + 1];
 
+static void DrawSortPrompt(ViewContext *ctx, WINDOW *win, BOOL ascending) {
+  int y0;
+
+  if (!ctx || !win)
+    return;
+
+  if (win == stdscr) {
+    y0 = Y_PROMPT(ctx);
+    wmove(win, y0, 0);
+    wclrtoeol(win);
+    wmove(win, y0 + 1, 0);
+    wclrtoeol(win);
+    if (y0 > 0) {
+      wmove(win, y0 - 1, 0);
+      wclrtoeol(win);
+    }
+  } else {
+    y0 = 0;
+    werase(win);
+  }
+
+  PrintOptions(
+      win, y0, 0,
+      "SORT by   (A)ccTime (C)hgTime (E)xtension (G)roup (M)odTime (N)ame "
+      "(S)ize");
+  PrintOptions(win, y0 + 1, 0,
+               ascending ? "COMMANDS  o(W)ner   (O)rder: [ascending]"
+                         : "COMMANDS  o(W)ner   (O)rder: [descending]");
+  wnoutrefresh(win);
+  doupdate();
+}
+
 static BOOL is_valid_mode_char(int idx, int ch) {
   switch (idx) {
   case 0:
@@ -842,18 +874,9 @@ void UI_HandleSort(ViewContext *ctx, DirEntry *dir_entry, Statistic *s,
   int c;
   int sort_kind = 0;
   int order = SORT_ASC;
+  WINDOW *sort_win = (ctx && ctx->ctx_menu_window) ? ctx->ctx_menu_window : stdscr;
 
-  wmove(stdscr, Y_PROMPT(ctx), 0);
-  clrtoeol();
-  PrintOptions(
-      stdscr, Y_PROMPT(ctx), 0,
-      "SORT by   (A)ccTime (C)hgTime (E)xtension (G)roup (M)odTime (N)ame "
-      "(S)ize");
-  wmove(stdscr, Y_PROMPT(ctx) + 1, 0);
-  clrtoeol();
-  PrintOptions(stdscr, Y_PROMPT(ctx) + 1, 0,
-               "COMMANDS  o(W)ner   (O)rder: [ascending]");
-  doupdate();
+  DrawSortPrompt(ctx, sort_win, TRUE);
 
   do {
     c = Getch(ctx);
@@ -894,13 +917,7 @@ void UI_HandleSort(ViewContext *ctx, DirEntry *dir_entry, Statistic *s,
       } else {
         order = SORT_ASC;
       }
-      wmove(stdscr, Y_PROMPT(ctx) + 1, 0);
-      clrtoeol();
-      PrintOptions(stdscr, Y_PROMPT(ctx) + 1, 0,
-                   (order == SORT_ASC)
-                       ? "COMMANDS  o(W)ner   (O)rder: [ascending] "
-                       : "COMMANDS  o(W)ner   (O)rder: [descending]");
-      doupdate();
+      DrawSortPrompt(ctx, sort_win, (order == SORT_ASC));
       break;
     }
   } while (!strchr("ACEGMNWS", c));
