@@ -118,6 +118,8 @@ make clean && make
 
 For detailed usage, configuration, and keybindings, see [USAGE.md](doc/USAGE.md) or run `man ytree`.
 
+For the continuous audit workflow and final release gate criteria, see [AUDIT.md](doc/AUDIT.md).
+
 ## Changelog
 
 See [CHANGES.md](doc/CHANGES.md) for a detailed history of changes and version updates.
@@ -152,4 +154,3 @@ Ytree is free software distributed under the GPL. See the [LICENSE.md](LICENSE.m
 ## Contributors
 
 For detailed authorship, see [AUTHORS.md](doc/AUTHORS.md).
-
