@@ -655,9 +655,13 @@ typedef struct {
   int cursor_pos;
   int disp_begin_pos;
   int start_file;
+  int file_cursor_pos;
+  DirEntry *file_dir_entry;
+  BOOL saved_big_file_view;
   int file_mode;
   int max_column;
   int current_dir_entry;
+  ViewFocus saved_focus;
   unsigned int max_visual_filename_len;
   unsigned int max_visual_linkname_len;
   unsigned int max_visual_userview_len;

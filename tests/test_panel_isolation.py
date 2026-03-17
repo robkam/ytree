@@ -3,6 +3,10 @@ import time
 from tui_harness import YtreeTUI
 from ytree_keys import Keys
 
+
+def _footer_text(tui):
+    return "\n".join(tui.get_screen_dump()[-3:]).lower()
+
 def test_panel_switch_updates_small_window(dual_panel_sandbox, ytree_binary):
     """
     Verify that switching panels updates the content of the small file window.
@@ -28,6 +32,12 @@ def test_panel_switch_updates_small_window(dual_panel_sandbox, ytree_binary):
     tui.send_keystroke(Keys.TAB) # TAB is usually switch panel
     time.sleep(0.5)
 
+    # If split occurred from file mode, the peer panel may also be in file view.
+    # Drop to tree view before navigating to right_dir.
+    if "hex j compare" in _footer_text(tui):
+        tui.send_keystroke(Keys.ESC)
+        time.sleep(0.3)
+
     # Navigate to right_dir in right panel
     tui.send_keystroke(Keys.DOWN + Keys.ENTER)
     time.sleep(0.5)
@@ -46,6 +56,148 @@ def test_panel_switch_updates_small_window(dual_panel_sandbox, ytree_binary):
 
     screen = "\n".join(tui.get_screen_dump())
     assert "very_long_filename" in screen
+
+    tui.quit()
+
+
+def test_split_from_file_keeps_file_focus_on_tab(tmp_path, ytree_binary):
+    root = tmp_path / "split_file_focus_tab"
+    root.mkdir()
+    alpha = root / "alpha"
+    beta = root / "beta"
+    alpha.mkdir()
+    beta.mkdir()
+    (alpha / "alpha.txt").write_text("alpha\n", encoding="utf-8")
+    (beta / "beta.txt").write_text("beta\n", encoding="utf-8")
+
+    tui = YtreeTUI(executable=ytree_binary, cwd=str(root))
+    time.sleep(0.8)
+
+    tui.send_keystroke(Keys.DOWN, wait=0.2)
+    tui.send_keystroke(Keys.ENTER, wait=0.4)
+    assert "hex j compare" in _footer_text(tui)
+
+    tui.send_keystroke(Keys.F8, wait=0.4)
+    tui.send_keystroke(Keys.TAB, wait=0.4)
+
+    footer = _footer_text(tui)
+    assert "hex j compare" in footer, (
+        "Switching panels after splitting from file view should keep file mode.\n"
+        f"{footer}"
+    )
+
+    tui.quit()
+
+
+def test_split_from_file_preserves_inactive_panel_file_state(tmp_path, ytree_binary):
+    root = tmp_path / "split_file_focus_inactive_state"
+    root.mkdir()
+    alpha = root / "alpha"
+    beta = root / "beta"
+    alpha.mkdir()
+    beta.mkdir()
+    (alpha / "alpha_unique_123.txt").write_text("alpha\n", encoding="utf-8")
+    (beta / "beta_unique_456.txt").write_text("beta\n", encoding="utf-8")
+
+    tui = YtreeTUI(executable=ytree_binary, cwd=str(root))
+    time.sleep(0.8)
+
+    tui.send_keystroke(Keys.DOWN, wait=0.2)
+    tui.send_keystroke(Keys.ENTER, wait=0.4)
+    assert "hex j compare" in _footer_text(tui)
+
+    tui.send_keystroke(Keys.F8, wait=0.4)
+    tui.send_keystroke(Keys.TAB, wait=0.4)
+    assert "hex j compare" in _footer_text(tui)
+
+    screen = "\n".join(tui.get_screen_dump())
+    assert screen.count("alpha_unique_123.txt") >= 2, (
+        "Inactive panel did not retain its file-window state after split/tab.\n"
+        f"{screen}"
+    )
+
+    tui.quit()
+
+
+def test_split_tab_back_preserves_selected_file_index(tmp_path, ytree_binary):
+    root = tmp_path / "split_file_selection_persistence"
+    root.mkdir()
+    alpha = root / "alpha"
+    beta = root / "beta"
+    alpha.mkdir()
+    beta.mkdir()
+
+    (alpha / "alpha_0.txt").write_text("0\n", encoding="utf-8")
+    (alpha / "alpha_1.txt").write_text("1\n", encoding="utf-8")
+    (alpha / "alpha_2.txt").write_text("2\n", encoding="utf-8")
+    (beta / "beta_0.txt").write_text("b\n", encoding="utf-8")
+
+    tui = YtreeTUI(executable=ytree_binary, cwd=str(root))
+    time.sleep(0.8)
+
+    tui.send_keystroke(Keys.DOWN, wait=0.2)
+    tui.send_keystroke(Keys.ENTER, wait=0.4)
+    assert "hex j compare" in _footer_text(tui)
+
+    # Select alpha_2.txt in the left panel.
+    tui.send_keystroke(Keys.DOWN, wait=0.2)
+    tui.send_keystroke(Keys.DOWN, wait=0.2)
+
+    tui.send_keystroke(Keys.F8, wait=0.4)
+    tui.send_keystroke(Keys.TAB, wait=0.4)
+
+    # Do work in other panel: navigate to beta and enter file view.
+    if "hex j compare" in _footer_text(tui):
+        tui.send_keystroke(Keys.ESC, wait=0.3)
+    tui.send_keystroke(Keys.DOWN, wait=0.3)
+    tui.send_keystroke(Keys.ENTER, wait=0.4)
+    assert "hex j compare" in _footer_text(tui)
+
+    # Return to original panel and verify selected file is unchanged.
+    tui.send_keystroke(Keys.TAB, wait=0.4)
+    assert "hex j compare" in _footer_text(tui)
+
+    tui.send_keystroke("J", wait=0.3)
+    assert tui.wait_for_content("COMPARE TARGET:", timeout=1.0)
+    tui.send_keystroke(Keys.ENTER, wait=0.3)
+    assert tui.wait_for_content("SOURCE: alpha_2.txt", timeout=1.0)
+
+    tui.quit()
+
+
+def test_inactive_panel_stays_file_focused_after_tab_away(tmp_path, ytree_binary):
+    root = tmp_path / "inactive_panel_file_focus"
+    root.mkdir()
+    left = root / "left_focus_dir_A"
+    right = root / "right_focus_dir_B"
+    left.mkdir()
+    right.mkdir()
+    (right / "right_focus_file_0.txt").write_text("x\n", encoding="utf-8")
+    (right / "right_focus_file_1.txt").write_text("y\n", encoding="utf-8")
+
+    tui = YtreeTUI(executable=ytree_binary, cwd=str(root))
+    time.sleep(0.8)
+
+    tui.send_keystroke(Keys.F8, wait=0.4)
+    tui.send_keystroke(Keys.TAB, wait=0.4)
+
+    # Move right panel to right_focus_dir_B and enter file view.
+    tui.send_keystroke(Keys.DOWN, wait=0.2)
+    tui.send_keystroke(Keys.DOWN, wait=0.2)
+    tui.send_keystroke(Keys.ENTER, wait=0.4)
+    assert "hex j compare" in _footer_text(tui)
+
+    # Switch away. Inactive right panel should remain file-focused visually,
+    # not revert to tree.
+    tui.send_keystroke(Keys.TAB, wait=0.4)
+
+    screen = "\n".join(tui.get_screen_dump())
+    assert "right_focus_file_0.txt" in screen
+    assert "right_focus_file_1.txt" in screen
+    assert screen.count("right_focus_dir_B") <= 1, (
+        "Inactive panel reverted to tree view after tab away.\n"
+        f"{screen}"
+    )
 
     tui.quit()
 
@@ -306,5 +458,71 @@ def test_f8_inactive_selection_moves_to_parent_on_mirrored_collapse(tmp_path, yt
             "Inactive pane still entered child after parent collapse.\n"
             f"Screen:\n{screen}"
         )
+
+    tui.quit()
+
+
+def test_split_file_focus_survives_tab_round_trip(tmp_path, ytree_binary):
+    root = tmp_path / "split_file_focus_round_trip"
+    root.mkdir()
+    alpha = root / "alpha"
+    beta = root / "beta"
+    alpha.mkdir()
+    beta.mkdir()
+    (alpha / "alpha.txt").write_text("alpha\n", encoding="utf-8")
+    (beta / "beta.txt").write_text("beta\n", encoding="utf-8")
+
+    tui = YtreeTUI(executable=ytree_binary, cwd=str(root))
+    time.sleep(0.8)
+
+    tui.send_keystroke(Keys.DOWN, wait=0.2)
+    tui.send_keystroke(Keys.ENTER, wait=0.4)
+    assert "alpha.txt" in "\n".join(tui.get_screen_dump())
+    assert "hex j compare" in _footer_text(tui)
+
+    tui.send_keystroke(Keys.F8, wait=0.4)
+    tui.send_keystroke(Keys.TAB, wait=0.4)
+    tui.send_keystroke(Keys.TAB, wait=0.4)
+
+    screen = "\n".join(tui.get_screen_dump())
+    assert "alpha.txt" in screen, f"Left panel lost its file selection after split/tab round-trip.\n{screen}"
+    assert "hex j compare" in _footer_text(tui), f"Left panel lost file footer after split/tab round-trip.\n{screen}"
+
+    tui.quit()
+
+
+def test_split_panels_keep_independent_file_focus_states(tmp_path, ytree_binary):
+    root = tmp_path / "split_file_focus_independent"
+    root.mkdir()
+    alpha = root / "alpha"
+    beta = root / "beta"
+    alpha.mkdir()
+    beta.mkdir()
+    (alpha / "alpha.txt").write_text("alpha\n", encoding="utf-8")
+    (beta / "beta.txt").write_text("beta\n", encoding="utf-8")
+
+    tui = YtreeTUI(executable=ytree_binary, cwd=str(root))
+    time.sleep(0.8)
+
+    tui.send_keystroke(Keys.DOWN, wait=0.2)
+    tui.send_keystroke(Keys.ENTER, wait=0.4)
+    assert "alpha.txt" in "\n".join(tui.get_screen_dump())
+
+    tui.send_keystroke(Keys.F8, wait=0.4)
+    tui.send_keystroke(Keys.TAB, wait=0.4)
+
+    if "hex j compare" in _footer_text(tui):
+        tui.send_keystroke(Keys.ESC, wait=0.3)
+
+    tui.send_keystroke(Keys.DOWN, wait=0.3)
+    tui.send_keystroke(Keys.ENTER, wait=0.4)
+    assert "beta.txt" in "\n".join(tui.get_screen_dump())
+    assert "hex j compare" in _footer_text(tui)
+
+    tui.send_keystroke(Keys.TAB, wait=0.4)
+
+    screen = "\n".join(tui.get_screen_dump())
+    assert "alpha.txt" in screen, f"Returning to the left panel did not restore its file view.\n{screen}"
+    assert "hex j compare" in _footer_text(tui), f"Returning to the left panel did not restore file footer/help.\n{screen}"
 
     tui.quit()

@@ -403,34 +403,52 @@ void RenderInactivePanel(ViewContext *ctx, YtreePanel *panel) {
     cursor = 0;
   }
 
-  /* Draw Tree */
-  /* Use the window pointers from the panel */
-  if (panel->pan_dir_window) {
-    DisplayTree(ctx, panel->vol, panel->pan_dir_window, begin, begin + cursor,
-                FALSE);
-    wnoutrefresh(panel->pan_dir_window);
-  }
+  if (total <= 0)
+    return;
 
-  /* Draw File List */
-  if (panel->pan_file_window && total > 0) {
+  {
     int idx = begin + cursor;
-    if (idx >= 0 && idx < total) {
-      DirEntry *de = panel->vol->dir_entry_list[idx].dir_entry;
-      /* Ensure we have a valid entry and matching list to display */
-      if (de && panel->file_entry_list) {
-        /* Optimization: Render existing list without rebuilding using
-         * DisplayFiles directly. This avoids rescanning the directory on the
-         * inactive panel. We use start_x = 0 because the window
-         * (pan_file_window) is already positioned. We use -1 for hilight_no to
-         * avoid highlighting files in the inactive panel.
-         */
-        DisplayFiles(ctx, panel, de, panel->start_file,
-                     -1, /* No highlight in inactive panel */
-                     0,  /* start_x inside the window */
-                     panel->pan_file_window);
+    int render_start = panel->start_file;
+    int render_cursor = 0;
+    DirEntry *de = NULL;
 
-        wnoutrefresh(panel->pan_file_window);
+    if (idx < 0 || idx >= total)
+      return;
+
+    de = panel->vol->dir_entry_list[idx].dir_entry;
+    if (!de || !panel->file_entry_list)
+      return;
+
+    render_cursor = de->cursor_pos;
+    if (panel->file_dir_entry == de) {
+      render_start = panel->start_file;
+      render_cursor = panel->file_cursor_pos;
+    }
+
+    if (panel->saved_focus == FOCUS_FILE && panel->pan_big_file_window) {
+      /* Preserve file-centric state for inactive panels: when a panel was left
+       * in file mode, render it on files, not on directory tree.
+       */
+      if (panel->pan_dir_window) {
+        werase(panel->pan_dir_window);
+        wnoutrefresh(panel->pan_dir_window);
       }
+      DisplayFiles(ctx, panel, de, render_start, render_start + render_cursor,
+                   0, panel->pan_big_file_window);
+      wnoutrefresh(panel->pan_big_file_window);
+      return;
+    }
+
+    /* Tree-focused inactive panel rendering */
+    if (panel->pan_dir_window) {
+      DisplayTree(ctx, panel->vol, panel->pan_dir_window, begin, begin + cursor,
+                  FALSE);
+      wnoutrefresh(panel->pan_dir_window);
+    }
+
+    if (panel->pan_file_window) {
+      DisplayFiles(ctx, panel, de, render_start, -1, 0, panel->pan_file_window);
+      wnoutrefresh(panel->pan_file_window);
     }
   }
 }

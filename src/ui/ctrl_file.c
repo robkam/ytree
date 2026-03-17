@@ -423,6 +423,8 @@ int HandleFileWindow(ViewContext *ctx, DirEntry *dir_entry) {
   int get_dir_ret;
   YtreeAction action = ACTION_NONE;            /* Initialize action */
   BOOL jumped_to_owner_dir = FALSE;
+  BOOL switched_panel = FALSE;
+  YtreePanel *owner_panel = ctx->active;
   DirEntry *last_stats_dir = NULL;             /* Track context changes */
   struct Volume *start_vol = ctx->active->vol; /* Safety Check Variable */
   Statistic *s = &ctx->active->vol->vol_stats;
@@ -430,6 +432,11 @@ int HandleFileWindow(ViewContext *ctx, DirEntry *dir_entry) {
 
   /* ADDED INSTRUCTION: Focus Unification */
   ctx->focused_window = FOCUS_FILE;
+  ctx->active->saved_focus = FOCUS_FILE;
+  if (ctx->active->file_dir_entry == dir_entry) {
+    dir_entry->start_file = ctx->active->start_file;
+    dir_entry->cursor_pos = ctx->active->file_cursor_pos;
+  }
 
   unput_char = '\0';
   fe_ptr = NULL;
@@ -767,6 +774,15 @@ int HandleFileWindow(ViewContext *ctx, DirEntry *dir_entry) {
       break;
 
     case ACTION_SPLIT_SCREEN:
+      if (ctx->is_split_screen && ctx->active == ctx->right) {
+        ctx->left->vol = ctx->right->vol;
+        ctx->left->cursor_pos = ctx->right->cursor_pos;
+        ctx->left->disp_begin_pos = ctx->right->disp_begin_pos;
+        ctx->left->start_file = ctx->right->start_file;
+        ctx->left->file_cursor_pos = ctx->right->file_cursor_pos;
+        ctx->left->file_dir_entry = ctx->right->file_dir_entry;
+        ctx->left->saved_focus = ctx->right->saved_focus;
+      }
       ctx->is_split_screen = !ctx->is_split_screen;
       ReCreateWindows(ctx); /* Force layout update immediately */
 
@@ -775,6 +791,11 @@ int HandleFileWindow(ViewContext *ctx, DirEntry *dir_entry) {
           ctx->right->vol = ctx->left->vol;
           ctx->right->cursor_pos = ctx->left->cursor_pos;
           ctx->right->disp_begin_pos = ctx->left->disp_begin_pos;
+          ctx->right->start_file = ctx->left->start_file;
+          ctx->right->file_cursor_pos = ctx->left->file_cursor_pos;
+          ctx->right->file_dir_entry = ctx->left->file_dir_entry;
+          /* Split from file view should preserve file focus on the new peer. */
+          ctx->right->saved_focus = ctx->left->saved_focus;
         }
       } else {
         ctx->active = ctx->left;
@@ -785,6 +806,11 @@ int HandleFileWindow(ViewContext *ctx, DirEntry *dir_entry) {
     case ACTION_SWITCH_PANEL:
       if (!ctx->is_split_screen)
         break;
+      owner_panel->file_dir_entry = dir_entry;
+      owner_panel->start_file = dir_entry->start_file;
+      owner_panel->file_cursor_pos = dir_entry->cursor_pos;
+      ctx->active->saved_focus = FOCUS_FILE;
+      switched_panel = TRUE;
       /* Ensure the CURRENT panel is cleaned up before switching context. */
       SwitchToSmallFileWindow(ctx);
 
@@ -796,6 +822,7 @@ int HandleFileWindow(ViewContext *ctx, DirEntry *dir_entry) {
       }
       /* Update Volume Context */
       ctx->active->vol = ctx->active->vol;
+      ctx->focused_window = ctx->active->saved_focus;
 
       /* Bug 3 Fix: We trigger a loop exit here.
        * This ensures the cleanup code at the end of HandleFileWindow runs,
@@ -1506,6 +1533,13 @@ int HandleFileWindow(ViewContext *ctx, DirEntry *dir_entry) {
     /* We don't need full refresh here because HandleDirWindow will catch the
      * return */
   }
+
+  if (!switched_panel) {
+    ctx->active->saved_focus = FOCUS_TREE;
+  }
+  owner_panel->file_dir_entry = dir_entry;
+  owner_panel->start_file = dir_entry->start_file;
+  owner_panel->file_cursor_pos = dir_entry->cursor_pos;
 
   /* Ensure all mode flags are cleared when exiting back to the tree.
    * This guarantees that RefreshView returns to small window
