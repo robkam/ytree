@@ -31,6 +31,16 @@ static void DirListJump(ViewContext *ctx, DirEntry **dir_entry_ptr,
                         Statistic *s);
 static void DrawDirListJumpPrompt(ViewContext *ctx, WINDOW *win,
                                   const char *search_buf);
+static void HandleDirCompareStub(ViewContext *ctx);
+static void HandleTreeCompareStub(ViewContext *ctx);
+
+static void HandleDirCompareStub(ViewContext *ctx) {
+  UI_Message(ctx, "Directory compare not implemented yet.");
+}
+
+static void HandleTreeCompareStub(ViewContext *ctx) {
+  UI_Message(ctx, "Tree compare not implemented yet.");
+}
 
 int HandleDirWindow(ViewContext *ctx, DirEntry *start_dir_entry) {
   DirEntry *dir_entry, *de_ptr;
@@ -783,6 +793,14 @@ int HandleDirWindow(ViewContext *ctx, DirEntry *start_dir_entry) {
     case ACTION_CMD_S:
       HandleShowAll(ctx, FALSE, FALSE, dir_entry, &need_dsp_help, &ch,
                     ctx->active);
+      break;
+    case ACTION_COMPARE_DIR:
+      HandleDirCompareStub(ctx);
+      need_dsp_help = TRUE;
+      break;
+    case ACTION_COMPARE_TREE:
+      HandleTreeCompareStub(ctx);
+      need_dsp_help = TRUE;
       break;
     case ACTION_ENTER:
       if (dir_entry == NULL) {

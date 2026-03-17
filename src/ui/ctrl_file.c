@@ -48,6 +48,11 @@ static struct Volume *FindVolumeForDir(ViewContext *ctx, DirEntry *target,
 static void PositionOwnerFileCursor(ViewContext *ctx, DirEntry *owner_dir,
                                     FileEntry *target_file);
 static BOOL JumpToOwnerDirectory(ViewContext *ctx, DirEntry *global_dir_entry);
+static void HandleFileCompareStub(ViewContext *ctx);
+
+static void HandleFileCompareStub(ViewContext *ctx) {
+  UI_Message(ctx, "File compare not implemented yet.");
+}
 
 static YtreeAction FilterPreviewAction(YtreeAction action) {
   switch (action) {
@@ -1052,6 +1057,11 @@ int HandleFileWindow(ViewContext *ctx, DirEntry *dir_entry) {
 
       RefreshView(ctx, dir_entry);
 
+      need_dsp_help = TRUE;
+      break;
+
+    case ACTION_COMPARE_FILE:
+      HandleFileCompareStub(ctx);
       need_dsp_help = TRUE;
       break;
 
