@@ -162,14 +162,18 @@ def test_f8_file_compare_uses_inactive_panel_default_target(ytree_binary, tmp_pa
     tui.send_keystroke(Keys.F8, wait=0.4)
 
     tui.send_keystroke(Keys.TAB, wait=0.3)
+    if tui.wait_for_content("Hex J compare", timeout=0.4):
+        tui.send_keystroke(Keys.ESC, wait=0.3)
     tui.send_keystroke(Keys.DOWN, wait=0.3)
     tui.send_keystroke(Keys.ENTER, wait=0.4)
 
     tui.send_keystroke(Keys.TAB, wait=0.3)
-    tui.send_keystroke(Keys.ENTER, wait=0.3)
+    assert tui.wait_for_content("Hex J compare", timeout=1.0)
     tui.send_keystroke("J", wait=0.3)
 
-    assert not tui.wait_for_content("COMPARE TARGET:", timeout=0.7)
+    assert tui.wait_for_content("COMPARE TARGET:", timeout=1.0)
+    assert tui.wait_for_content("right.txt", timeout=1.0)
+    tui.send_keystroke(Keys.ENTER, wait=0.3)
     assert tui.wait_for_content("Compare execution not implemented yet.", timeout=1.0)
     assert tui.wait_for_content("TARGET: right.txt", timeout=1.0)
 
@@ -198,7 +202,9 @@ def test_f8_directory_compare_uses_inactive_panel_default_target(ytree_binary, t
 
     tui.send_keystroke("C", wait=0.2)
     tui.send_keystroke("D", wait=0.2)
-    assert not tui.wait_for_content("COMPARE TARGET:", timeout=0.7)
+    assert tui.wait_for_content("COMPARE TARGET:", timeout=1.0)
+    assert tui.wait_for_content("beta", timeout=1.0)
+    tui.send_keystroke(Keys.ENTER, wait=0.3)
     assert tui.wait_for_content("COMPARE BASIS:", timeout=1.0)
     tui.send_keystroke("S", wait=0.2)
     assert tui.wait_for_content("TAG RESULTS:", timeout=1.0)
@@ -225,12 +231,15 @@ def test_f8_tree_compare_uses_inactive_panel_logged_root_default(ytree_binary, t
     tui.send_keystroke(Keys.TAB, wait=0.3)
     tui.send_keystroke("L", wait=0.3)
     assert tui.wait_for_content("Log Path:", timeout=1.0)
+    tui.send_keystroke(Keys.CTRL_U, wait=0.2)
     tui.send_keystroke(str(other_root) + Keys.ENTER, wait=0.7)
 
     tui.send_keystroke(Keys.TAB, wait=0.4)
     tui.send_keystroke("C", wait=0.2)
     tui.send_keystroke("T", wait=0.2)
-    assert not tui.wait_for_content("COMPARE TARGET:", timeout=0.7)
+    assert tui.wait_for_content("COMPARE TARGET:", timeout=1.0)
+    assert tui.wait_for_content(str(other_root.name), timeout=1.0)
+    tui.send_keystroke(Keys.ENTER, wait=0.3)
     assert tui.wait_for_content("COMPARE BASIS:", timeout=1.0)
     tui.send_keystroke("S", wait=0.2)
     assert tui.wait_for_content("TAG RESULTS:", timeout=1.0)

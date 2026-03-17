@@ -849,6 +849,7 @@ int UI_SelectCompareMenuChoice(ViewContext *ctx, CompareMenuChoice *choice) {
 int UI_BuildFileCompareRequest(ViewContext *ctx, FileEntry *source_file,
                                CompareRequest *request) {
   YtreePanel *inactive = NULL;
+  const char *default_target = NULL;
 
   if (!ctx || !source_file || !request)
     return -1;
@@ -863,16 +864,16 @@ int UI_BuildFileCompareRequest(ViewContext *ctx, FileEntry *source_file,
 
   if (ctx->is_split_screen) {
     inactive = GetInactivePanel(ctx);
-    if (!inactive ||
-        GetPanelSelectedFilePath(ctx, inactive, request->target_path) != 0) {
-      UI_Message(ctx, "No default compare target file in inactive panel.");
-      return -1;
+    if (inactive &&
+        GetPanelSelectedFilePath(ctx, inactive, request->target_path) == 0) {
+      default_target = request->target_path;
+      request->used_split_default_target = TRUE;
     }
-    request->used_split_default_target = TRUE;
-    return 0;
   }
 
-  if (PromptCompareTargetPath(ctx, "COMPARE TARGET:", request->source_path,
+  if (PromptCompareTargetPath(ctx, "COMPARE TARGET:",
+                              default_target ? default_target
+                                             : request->source_path,
                               request->target_path,
                               COMPARE_HELP_FILE_TARGET) != 0) {
     return -1;
@@ -885,6 +886,7 @@ int UI_BuildDirectoryCompareRequest(ViewContext *ctx, DirEntry *source_dir,
                                     CompareFlowType flow_type,
                                     CompareRequest *request) {
   YtreePanel *inactive = NULL;
+  const char *default_target = NULL;
 
   if (!ctx || !request)
     return -1;
@@ -909,30 +911,27 @@ int UI_BuildDirectoryCompareRequest(ViewContext *ctx, DirEntry *source_dir,
 
   if (ctx->is_split_screen) {
     inactive = GetInactivePanel(ctx);
-    if (!inactive) {
-      UI_Message(ctx, "No inactive panel available for compare target.");
-      return -1;
-    }
-    if (flow_type == COMPARE_FLOW_DIRECTORY) {
-      if (GetPanelSelectedDirPath(ctx, inactive, request->target_path) != 0) {
-        UI_Message(ctx, "No default compare target directory in inactive panel.");
-        return -1;
-      }
-    } else {
-      if (GetPanelLoggedRootPath(inactive, request->target_path) != 0) {
-        UI_Message(ctx, "No default compare target root in inactive panel.");
-        return -1;
+    if (inactive) {
+      if (flow_type == COMPARE_FLOW_DIRECTORY) {
+        if (GetPanelSelectedDirPath(ctx, inactive, request->target_path) == 0) {
+          default_target = request->target_path;
+          request->used_split_default_target = TRUE;
+        }
+      } else if (GetPanelLoggedRootPath(inactive, request->target_path) == 0) {
+        default_target = request->target_path;
+        request->used_split_default_target = TRUE;
       }
     }
-    request->used_split_default_target = TRUE;
-  } else {
-    if (PromptCompareTargetPath(ctx, "COMPARE TARGET:", request->source_path,
-                                request->target_path,
-                                flow_type == COMPARE_FLOW_DIRECTORY
-                                    ? COMPARE_HELP_DIRECTORY_TARGET
-                                    : COMPARE_HELP_TREE_TARGET) != 0) {
-      return -1;
-    }
+  }
+
+  if (PromptCompareTargetPath(ctx, "COMPARE TARGET:",
+                              default_target ? default_target
+                                             : request->source_path,
+                              request->target_path,
+                              flow_type == COMPARE_FLOW_DIRECTORY
+                                  ? COMPARE_HELP_DIRECTORY_TARGET
+                                  : COMPARE_HELP_TREE_TARGET) != 0) {
+    return -1;
   }
   request->target_path[PATH_LENGTH] = '\0';
 

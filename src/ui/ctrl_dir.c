@@ -106,9 +106,6 @@ int HandleDirWindow(ViewContext *ctx, DirEntry *start_dir_entry) {
   int local_cursor_pos;
   int local_disp_begin_pos;
 
-  /* ADDED INSTRUCTION: Focus Unification */
-  ctx->focused_window = FOCUS_TREE;
-
   DEBUG_LOG("HandleDirWindow: Recalculating layout");
   Layout_Recalculate(ctx);
   DEBUG_LOG("HandleDirWindow: Calling DisplayMenu");
@@ -123,6 +120,7 @@ int HandleDirWindow(ViewContext *ctx, DirEntry *start_dir_entry) {
 
   if (ctx->active) {
     DEBUG_LOG("HandleDirWindow: Syncing panel state");
+    ctx->focused_window = ctx->active->saved_focus;
     start_vol = ctx->active->vol;
     if (ctx->active->vol)
       s = &ctx->active->vol->vol_stats;
@@ -233,8 +231,19 @@ int HandleDirWindow(ViewContext *ctx, DirEntry *start_dir_entry) {
 
   /* REPLACEMENT START: Unified Rendering Call */
   if (!dir_entry->login_flag) {
-    dir_entry->start_file = 0;
-    dir_entry->cursor_pos = -1;
+    if (ctx->active && ctx->active->saved_focus == FOCUS_FILE) {
+      if (ctx->active->file_dir_entry == dir_entry) {
+        dir_entry->start_file = ctx->active->start_file;
+        dir_entry->cursor_pos = ctx->active->file_cursor_pos;
+      }
+      if (dir_entry->start_file < 0)
+        dir_entry->start_file = 0;
+      if (dir_entry->cursor_pos < 0 && dir_entry->total_files > 0)
+        dir_entry->cursor_pos = 0;
+    } else {
+      dir_entry->start_file = 0;
+      dir_entry->cursor_pos = -1;
+    }
   }
 
   RefreshView(ctx, dir_entry);
@@ -246,6 +255,9 @@ int HandleDirWindow(ViewContext *ctx, DirEntry *start_dir_entry) {
     } else {
       unput_char = CR;
     }
+  } else if (ctx->active && ctx->active->saved_focus == FOCUS_FILE &&
+             dir_entry->total_files > 0) {
+    unput_char = CR;
   }
   do {
     /* Detect Global Volume Change (Split Brain Fix) */
@@ -377,6 +389,11 @@ int HandleDirWindow(ViewContext *ctx, DirEntry *start_dir_entry) {
         ctx->left->vol = ctx->right->vol;
         ctx->left->cursor_pos = ctx->right->cursor_pos;
         ctx->left->disp_begin_pos = ctx->right->disp_begin_pos;
+        ctx->left->start_file = ctx->right->start_file;
+        ctx->left->file_cursor_pos = ctx->right->file_cursor_pos;
+        ctx->left->file_dir_entry = ctx->right->file_dir_entry;
+        ctx->left->saved_big_file_view = ctx->right->saved_big_file_view;
+        ctx->left->saved_focus = ctx->right->saved_focus;
         /* Sync Global Volume */
         ctx->active->vol = ctx->left->vol;
       }
@@ -389,6 +406,12 @@ int HandleDirWindow(ViewContext *ctx, DirEntry *start_dir_entry) {
           ctx->right->vol = ctx->left->vol;
           ctx->right->cursor_pos = ctx->left->cursor_pos;
           ctx->right->disp_begin_pos = ctx->left->disp_begin_pos;
+          ctx->right->start_file = ctx->left->start_file;
+          ctx->right->file_cursor_pos = ctx->left->file_cursor_pos;
+          ctx->right->file_dir_entry = ctx->left->file_dir_entry;
+          ctx->right->saved_big_file_view = ctx->left->saved_big_file_view;
+          /* Start a newly split peer panel in tree focus by default. */
+          ctx->right->saved_focus = FOCUS_TREE;
         }
       } else {
         ctx->active = ctx->left;
@@ -415,6 +438,7 @@ int HandleDirWindow(ViewContext *ctx, DirEntry *start_dir_entry) {
 
       /* Restore Volume context */
       ctx->active->vol = ctx->active->vol;
+      ctx->focused_window = ctx->active->saved_focus;
       s = &ctx->active->vol->vol_stats; /* UPDATE S */
       /* Do NOT overwrite ctx->active->cursor_pos here; preserve its
        * independent state */
@@ -448,6 +472,9 @@ int HandleDirWindow(ViewContext *ctx, DirEntry *start_dir_entry) {
       /* REFRESH View for new active panel */
       RefreshView(ctx, dir_entry);
       need_dsp_help = TRUE;
+      if (ctx->focused_window == FOCUS_FILE && dir_entry->total_files > 0) {
+        unput_char = CR;
+      }
       continue; /* Stay in loop with new context */
 
     case ACTION_NONE: /* -1 or unhandled keys */
@@ -883,8 +910,9 @@ int HandleDirWindow(ViewContext *ctx, DirEntry *start_dir_entry) {
 
         HandleSwitchWindow(ctx, dir_entry, &need_dsp_help, &ch, ctx->active);
 
-        /* Restore focus to tree on return */
-        ctx->focused_window = FOCUS_TREE;
+        /* Restore whichever focus the active panel had before/after the
+         * switch. */
+        ctx->focused_window = ctx->active->saved_focus;
 
         if (ctx->active != saved_panel) {
           /* If panel was switched, refresh state locally and continue */
@@ -907,6 +935,9 @@ int HandleDirWindow(ViewContext *ctx, DirEntry *start_dir_entry) {
 
           RefreshView(ctx, dir_entry);
           need_dsp_help = TRUE;
+          if (ctx->focused_window == FOCUS_FILE && dir_entry->total_files > 0) {
+            unput_char = CR;
+          }
           action = ACTION_NONE; /* Prevent while(...) condition from exiting
                                    HandleDirWindow! */
           continue;

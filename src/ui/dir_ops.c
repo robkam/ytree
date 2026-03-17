@@ -267,8 +267,15 @@ void HandleSwitchWindow(ViewContext *ctx, DirEntry *dir_entry,
       dir_entry->global_all_volumes = FALSE;
       dir_entry->tagged_flag = FALSE;
       dir_entry->big_window = ctx->bypass_small_window;
-      dir_entry->start_file = 0;
-      dir_entry->cursor_pos = 0;
+      if (p->file_dir_entry == dir_entry) {
+        dir_entry->start_file = p->start_file;
+        dir_entry->cursor_pos = p->file_cursor_pos;
+      }
+      /* Preserve per-directory file selection when returning to file view. */
+      if (dir_entry->start_file < 0)
+        dir_entry->start_file = 0;
+      if (dir_entry->cursor_pos < 0)
+        dir_entry->cursor_pos = 0;
     }
     {
       FILE *fp = fopen("/tmp/ytree_debug_switch.log", "a");
