@@ -458,7 +458,12 @@ YtreeAction GetKeyAction(ViewContext *ctx, int ch) {
   case 'B':
     return ACTION_TOGGLE_COMPACT;
   case 'c':
+    if (ctx && ctx->focused_window == FOCUS_TREE)
+      return ACTION_COMPARE_DIR;
+    return ACTION_CMD_C;
   case 'C':
+    if (ctx && ctx->focused_window == FOCUS_TREE)
+      return ACTION_COMPARE_DIR;
     return ACTION_CMD_C;
   case 'd':
   case 'D':
@@ -548,6 +553,17 @@ YtreeAction GetKeyAction(ViewContext *ctx, int ch) {
   case KEY_F(16):
     return ACTION_TOGGLE_TAGGED_MODE;
 #endif
+
+#ifndef VI_KEYS
+  case 'j':
+    if (ctx && ctx->focused_window == FOCUS_FILE)
+      return ACTION_COMPARE_FILE;
+    return ACTION_NONE;
+#endif
+  case 'J':
+    if (ctx && ctx->focused_window == FOCUS_FILE)
+      return ACTION_COMPARE_FILE;
+    return ACTION_NONE;
 
 #ifdef KEY_SF
   case KEY_SF:
