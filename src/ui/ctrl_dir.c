@@ -31,15 +31,64 @@ static void DirListJump(ViewContext *ctx, DirEntry **dir_entry_ptr,
                         Statistic *s);
 static void DrawDirListJumpPrompt(ViewContext *ctx, WINDOW *win,
                                   const char *search_buf);
-static void HandleDirCompareStub(ViewContext *ctx);
-static void HandleTreeCompareStub(ViewContext *ctx);
+static void HandleDirectoryCompare(ViewContext *ctx, DirEntry *source_dir);
 
-static void HandleDirCompareStub(ViewContext *ctx) {
-  UI_Message(ctx, "Directory compare not implemented yet.");
+static const char *PathLeafName(const char *path) {
+  const char *sep;
+
+  if (!path || !*path)
+    return "";
+
+  sep = strrchr(path, FILE_SEPARATOR_CHAR);
+  if (!sep || !sep[1])
+    return path;
+  return sep + 1;
 }
 
-static void HandleTreeCompareStub(ViewContext *ctx) {
-  UI_Message(ctx, "Tree compare not implemented yet.");
+static void DrainPendingInput(ViewContext *ctx) {
+  int ch;
+
+  if (!ctx)
+    return;
+
+  nodelay(stdscr, TRUE);
+  do {
+    ch = WGetch(ctx, stdscr);
+  } while (ch != ERR);
+  nodelay(stdscr, FALSE);
+}
+
+static void HandleDirectoryCompare(ViewContext *ctx, DirEntry *source_dir) {
+  CompareMenuChoice menu_choice = COMPARE_MENU_CANCEL;
+  CompareFlowType flow_type = COMPARE_FLOW_DIRECTORY;
+  CompareRequest request;
+
+  if (!ctx || !source_dir)
+    return;
+
+  if (UI_SelectCompareMenuChoice(ctx, &menu_choice) != 0)
+    return;
+
+  if (menu_choice == COMPARE_MENU_DIRECTORY_PLUS_TREE) {
+    flow_type = COMPARE_FLOW_LOGGED_TREE;
+  } else if (menu_choice != COMPARE_MENU_DIRECTORY_ONLY) {
+    return;
+  }
+
+  if (UI_BuildDirectoryCompareRequest(ctx, source_dir, flow_type, &request) !=
+      0) {
+    return;
+  }
+
+  DrainPendingInput(ctx);
+  UI_Message(ctx,
+             "Compare execution not implemented yet.*FLOW: %s*SOURCE: %s"
+             "*TARGET: %s*BASIS: %s*TAG RESULTS: %s",
+             UI_CompareFlowTypeName(request.flow_type),
+             PathLeafName(request.source_path),
+             PathLeafName(request.target_path),
+             UI_CompareBasisName(request.basis),
+             UI_CompareTagResultName(request.tag_result));
 }
 
 int HandleDirWindow(ViewContext *ctx, DirEntry *start_dir_entry) {
@@ -795,11 +844,11 @@ int HandleDirWindow(ViewContext *ctx, DirEntry *start_dir_entry) {
                     ctx->active);
       break;
     case ACTION_COMPARE_DIR:
-      HandleDirCompareStub(ctx);
+      HandleDirectoryCompare(ctx, dir_entry);
       need_dsp_help = TRUE;
       break;
     case ACTION_COMPARE_TREE:
-      HandleTreeCompareStub(ctx);
+      HandleDirectoryCompare(ctx, dir_entry);
       need_dsp_help = TRUE;
       break;
     case ACTION_ENTER:

@@ -341,6 +341,46 @@ typedef enum {
 
 typedef enum { FOCUS_TREE, FOCUS_FILE } ViewFocus;
 
+typedef enum {
+  COMPARE_FLOW_FILE = 0,
+  COMPARE_FLOW_DIRECTORY,
+  COMPARE_FLOW_LOGGED_TREE
+} CompareFlowType;
+
+typedef enum {
+  COMPARE_BASIS_NONE = 0,
+  COMPARE_BASIS_SIZE,
+  COMPARE_BASIS_DATE,
+  COMPARE_BASIS_SIZE_AND_DATE,
+  COMPARE_BASIS_HASH
+} CompareBasis;
+
+typedef enum {
+  COMPARE_TAG_NONE = 0,
+  COMPARE_TAG_DIFFERENT,
+  COMPARE_TAG_MATCH,
+  COMPARE_TAG_NEWER,
+  COMPARE_TAG_OLDER,
+  COMPARE_TAG_UNIQUE,
+  COMPARE_TAG_TYPE_MISMATCH,
+  COMPARE_TAG_ERROR
+} CompareTagResult;
+
+typedef enum {
+  COMPARE_MENU_CANCEL = 0,
+  COMPARE_MENU_DIRECTORY_ONLY,
+  COMPARE_MENU_DIRECTORY_PLUS_TREE
+} CompareMenuChoice;
+
+typedef struct {
+  CompareFlowType flow_type;
+  CompareBasis basis;
+  CompareTagResult tag_result;
+  BOOL used_split_default_target;
+  char source_path[PATH_LENGTH + 1];
+  char target_path[PATH_LENGTH + 1];
+} CompareRequest;
+
 /* Structs */
 
 typedef struct {
