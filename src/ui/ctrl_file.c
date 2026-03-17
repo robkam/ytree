@@ -48,10 +48,49 @@ static struct Volume *FindVolumeForDir(ViewContext *ctx, DirEntry *target,
 static void PositionOwnerFileCursor(ViewContext *ctx, DirEntry *owner_dir,
                                     FileEntry *target_file);
 static BOOL JumpToOwnerDirectory(ViewContext *ctx, DirEntry *global_dir_entry);
-static void HandleFileCompareStub(ViewContext *ctx);
+static void HandleFileCompare(ViewContext *ctx, FileEntry *source_file);
 
-static void HandleFileCompareStub(ViewContext *ctx) {
-  UI_Message(ctx, "File compare not implemented yet.");
+static const char *PathLeafName(const char *path) {
+  const char *sep;
+
+  if (!path || !*path)
+    return "";
+
+  sep = strrchr(path, FILE_SEPARATOR_CHAR);
+  if (!sep || !sep[1])
+    return path;
+  return sep + 1;
+}
+
+static void DrainPendingInput(ViewContext *ctx) {
+  int ch;
+
+  if (!ctx)
+    return;
+
+  nodelay(stdscr, TRUE);
+  do {
+    ch = WGetch(ctx, stdscr);
+  } while (ch != ERR);
+  nodelay(stdscr, FALSE);
+}
+
+static void HandleFileCompare(ViewContext *ctx, FileEntry *source_file) {
+  CompareRequest request;
+
+  if (!ctx || !source_file)
+    return;
+
+  if (UI_BuildFileCompareRequest(ctx, source_file, &request) != 0)
+    return;
+
+  DrainPendingInput(ctx);
+  UI_Message(
+      ctx,
+      "Compare execution not implemented yet.*FLOW: %s*SOURCE: %s*TARGET: %s",
+      UI_CompareFlowTypeName(request.flow_type),
+      PathLeafName(request.source_path),
+      PathLeafName(request.target_path));
 }
 
 static YtreeAction FilterPreviewAction(YtreeAction action) {
@@ -1061,7 +1100,17 @@ int HandleFileWindow(ViewContext *ctx, DirEntry *dir_entry) {
       break;
 
     case ACTION_COMPARE_FILE:
-      HandleFileCompareStub(ctx);
+      if (ctx->active->file_count > 0 && ctx->active->file_entry_list) {
+        int compare_idx = dir_entry->start_file + dir_entry->cursor_pos;
+        if (compare_idx < 0)
+          compare_idx = 0;
+        if ((unsigned int)compare_idx >= ctx->active->file_count)
+          compare_idx = (int)ctx->active->file_count - 1;
+        if (compare_idx >= 0) {
+          fe_ptr = ctx->active->file_entry_list[compare_idx].file;
+          HandleFileCompare(ctx, fe_ptr);
+        }
+      }
       need_dsp_help = TRUE;
       break;
 
