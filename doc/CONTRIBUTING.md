@@ -4,6 +4,7 @@ Thank you for your interest in contributing to ytree! This document provides gui
 
 **Note for AI-Assisted Development:**
 For the AI-assisted development workflow, script usage, System Persona prompts, and semantic tool integration (**Serena**, **jCodeMunch**), please see **[ai/WORKFLOW.md](ai/WORKFLOW.md)**.
+For the continuous audit workflow (during development and PRs) plus final release PASS/FAIL criteria, see **[AUDIT.md](AUDIT.md)**.
 
 ## Development Setup
 

@@ -19,6 +19,8 @@ These instructions apply to all AI agents used in this repository.
 6. Keep changes scoped to the requested task; do not anticipate future work.
 7. Prefer MCP semantic/navigation tools (symbol search, outlines, references) over loading large files into context unnecessarily.
 8. All commit messages must follow the Conventional Commits specification style (e.g., `feat(ui): ...`, `fix(tests): ...`, `docs(ai): ...`).
+9. If the immediately preceding step only needs a minor correction and should remain the same logical history unit, amend it with `git commit --amend --no-edit` instead of creating a trivial follow-up fix commit. Use a new commit only when the correction is materially distinct or worth preserving separately.
+10. Treat user instructions as authoritative on goals, not automatically on exact wording, labels, keybindings, menu structure, or UX details. If a requested detail does not follow convention, established Ytree patterns, or best practices, say so explicitly and recommend the better option before implementing it.
 
 ## Required Validation
 
