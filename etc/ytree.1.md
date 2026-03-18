@@ -218,6 +218,9 @@ ytree looks for a configuration file at `~/.ytree`. A default is provided in `yt
     *   *Default*: `3` (1 + 2) enables both Watcher and Navigation Refresh.
 *   **HIDEDOTFILES=1**: Hide files starting with `.` by default.
 *   **TAGGEDVIEWER=external|internal**: Controls `^V` (View Tagged). `external` uses `$PAGER` (default). `internal` uses the built-in tagged viewer.
+*   **FILEDIFF=command**: File compare helper used by `J` in file view. Use `%1` for source and `%2` for target, or omit placeholders and ytree appends both paths.
+*   **DIRDIFF=command**: Directory compare helper used by directory compare execution flow.
+*   **TREEDIFF=command**: Logged-tree compare helper. If unset/empty, ytree follows `DIRDIFF`.
 *   **HIGLOBAL_COLOR=fg,bg**: Search-hit highlight color used in preview and internal tagged viewer only.
 *   **[COLORS]**: Customize the color scheme.
 

@@ -437,7 +437,11 @@ static int GetPanelSelectedFilePath(ViewContext *ctx, YtreePanel *panel,
   if (!dir_entry)
     return -1;
 
-  file_idx = dir_entry->start_file + dir_entry->cursor_pos;
+  if (panel->saved_focus == FOCUS_FILE && panel->file_dir_entry == dir_entry) {
+    file_idx = panel->start_file + panel->file_cursor_pos;
+  } else {
+    file_idx = dir_entry->start_file + dir_entry->cursor_pos;
+  }
   if (file_idx < 0)
     file_idx = 0;
   if ((unsigned int)file_idx >= panel->file_count)
@@ -459,6 +463,7 @@ typedef enum {
   COMPARE_HELP_DIRECTORY_TARGET,
   COMPARE_HELP_TREE_TARGET,
   COMPARE_HELP_SCOPE,
+  COMPARE_HELP_EXTERNAL_SCOPE,
   COMPARE_HELP_BASIS,
   COMPARE_HELP_RESULTS
 } CompareHelpTopic;
@@ -534,6 +539,11 @@ static void GetCompareHelpLines(CompareHelpTopic topic, const char **title,
     *line_0 = "Directory only compares the current directory.";
     *line_1 = "Logged tree compares the current logged tree recursively.";
     *line_2 = "Tree compare never auto-logs unopened '+' subdirectories.";
+    break;
+  case COMPARE_HELP_EXTERNAL_SCOPE:
+    *line_0 = "External compare launches DIRDIFF/TREEDIFF viewer commands.";
+    *line_1 = "It does not tag files and does not replace internal compare.";
+    *line_2 = "Choose directory or logged tree source scope for launch.";
     break;
   case COMPARE_HELP_BASIS:
     *line_0 =
@@ -823,15 +833,39 @@ const char *UI_CompareTagResultName(CompareTagResult tag_result) {
   }
 }
 
+const char *UI_GetCompareHelperCommand(ViewContext *ctx,
+                                       CompareFlowType flow_type) {
+  const char *helper = "";
+
+  if (!ctx)
+    return "";
+
+  switch (flow_type) {
+  case COMPARE_FLOW_FILE:
+    return GetProfileValue(ctx, "FILEDIFF");
+  case COMPARE_FLOW_DIRECTORY:
+    return GetProfileValue(ctx, "DIRDIFF");
+  case COMPARE_FLOW_LOGGED_TREE:
+    helper = GetProfileValue(ctx, "TREEDIFF");
+    if (!helper || !*helper)
+      helper = GetProfileValue(ctx, "DIRDIFF");
+    return helper ? helper : "";
+  default:
+    return "";
+  }
+}
+
 int UI_SelectCompareMenuChoice(ViewContext *ctx, CompareMenuChoice *choice) {
   int ch;
+  int scope_ch;
 
   if (!ctx || !choice)
     return -1;
 
-  ch = InputCompareChoice(
-      ctx, "COMPARE SCOPE: (D)irectory only  logged (T)ree", "DT", 'D',
-      COMPARE_HELP_SCOPE);
+  ch = InputCompareChoice(ctx,
+                          "COMPARE SCOPE: (D)irectory only  logged (T)ree  "
+                          "e(X)ternal viewer",
+                          "DTX", 'D', COMPARE_HELP_SCOPE);
   if (ch == ESC || ch < 0)
     return -1;
 
@@ -841,6 +875,15 @@ int UI_SelectCompareMenuChoice(ViewContext *ctx, CompareMenuChoice *choice) {
   }
   if (ch == 'T') {
     *choice = COMPARE_MENU_DIRECTORY_PLUS_TREE;
+    return 0;
+  }
+  if (ch == 'X') {
+    scope_ch = InputCompareChoice(ctx, "EXTERNAL VIEWER: (D)irectory  logged (T)ree",
+                                  "DT", 'D', COMPARE_HELP_EXTERNAL_SCOPE);
+    if (scope_ch == ESC || scope_ch < 0)
+      return -1;
+    *choice = (scope_ch == 'T') ? COMPARE_MENU_EXTERNAL_TREE
+                                : COMPARE_MENU_EXTERNAL_DIRECTORY;
     return 0;
   }
 
@@ -883,9 +926,11 @@ int UI_BuildFileCompareRequest(ViewContext *ctx, FileEntry *source_file,
   return 0;
 }
 
-int UI_BuildDirectoryCompareRequest(ViewContext *ctx, DirEntry *source_dir,
-                                    CompareFlowType flow_type,
-                                    CompareRequest *request) {
+static int BuildDirectoryCompareRequestInternal(ViewContext *ctx,
+                                                DirEntry *source_dir,
+                                                CompareFlowType flow_type,
+                                                CompareRequest *request,
+                                                BOOL include_compare_prompts) {
   YtreePanel *inactive = NULL;
   const char *default_target = NULL;
 
@@ -936,12 +981,31 @@ int UI_BuildDirectoryCompareRequest(ViewContext *ctx, DirEntry *source_dir,
   }
   request->target_path[PATH_LENGTH] = '\0';
 
-  if (PromptCompareBasis(ctx, &request->basis) != 0)
-    return -1;
-  if (PromptCompareTagResult(ctx, &request->tag_result) != 0)
-    return -1;
+  if (include_compare_prompts) {
+    if (PromptCompareBasis(ctx, &request->basis) != 0)
+      return -1;
+    if (PromptCompareTagResult(ctx, &request->tag_result) != 0)
+      return -1;
+  } else {
+    request->basis = COMPARE_BASIS_NONE;
+    request->tag_result = COMPARE_TAG_NONE;
+  }
 
   return 0;
+}
+
+int UI_BuildDirectoryCompareRequest(ViewContext *ctx, DirEntry *source_dir,
+                                    CompareFlowType flow_type,
+                                    CompareRequest *request) {
+  return BuildDirectoryCompareRequestInternal(ctx, source_dir, flow_type,
+                                              request, TRUE);
+}
+
+int UI_BuildDirectoryCompareLaunchRequest(ViewContext *ctx, DirEntry *source_dir,
+                                          CompareFlowType flow_type,
+                                          CompareRequest *request) {
+  return BuildDirectoryCompareRequestInternal(ctx, source_dir, flow_type,
+                                              request, FALSE);
 }
 
 int GetRenameParameter(ViewContext *ctx, const char *old_name, char *new_name) {

@@ -292,15 +292,17 @@ void HandleSwitchWindow(ViewContext *ctx, DirEntry *dir_entry,
       if (ctx->active->vol != start_vol)
         return;
 
-      /* Check if the panel we were handling is still valid/active */
+      /* Check if the panel we were handling is still valid/active.
+       * A normal TAB panel switch from file view changes ctx->active while
+       * split mode remains enabled; the caller will handle that hand-off.
+       * Only force a full redraw here when the original panel is actually
+       * gone (unsplit path). */
       if (p != ctx->active) {
-        /* Split state changed (Unsplit), and this panel (Right) is dead. */
-        /* Force a full menu redraw to restore borders */
-        DisplayMenu(ctx);
-        ctx->resize_request = TRUE; /* Force full refresh in main loop */
-        /* Abort local redraw and return to main loop to handle new
-         * ctx->active
-         */
+        if (!ctx->is_split_screen) {
+          /* Split state changed (unsplit), and this panel no longer exists. */
+          DisplayMenu(ctx);
+          ctx->resize_request = TRUE;
+        }
         return;
       }
 

@@ -594,11 +594,15 @@ void Print(WINDOW *win, int y, int x, char *str, int color) {
 void PrintOptions(WINDOW *win, int y, int x, char *str) {
   int ch;
   int color, hi_color, lo_color;
+  int max_x;
 
   if (x < 0 || y < 0) {
     /* screen too small */
     return;
   }
+  max_x = getmaxx(win);
+  if (max_x <= 0 || x >= max_x)
+    return;
 
 #ifdef COLOR_SUPPORT
   lo_color = CPAIR_MENU;
@@ -610,7 +614,7 @@ void PrintOptions(WINDOW *win, int y, int x, char *str) {
 
   color = lo_color;
 
-  for (; *str; str++) {
+  for (; *str && x < max_x; str++) {
     ch = (int)*str;
 
     switch (*str) {
@@ -688,17 +692,15 @@ void PrintMenuOptions(WINDOW *win, int y, int x, char *str, int ncolor,
                       int hcolor) {
   int ch;
   int color, hi_color, lo_color;
-  char *sbuf, buf[2];
-
-  sbuf = (char *)xmalloc(strlen(str) + 1);
-  sbuf[0] = '\0';
-  buf[1] = '\0';
+  int max_x;
 
   if (x < 0 || y < 0) {
     /* screen too small */
-    free(sbuf);
     return;
   }
+  max_x = getmaxx(win);
+  if (max_x <= 0 || x >= max_x)
+    return;
 
 #ifdef COLOR_SUPPORT
   lo_color = ncolor;
@@ -709,53 +711,24 @@ void PrintMenuOptions(WINDOW *win, int y, int x, char *str, int ncolor,
 #endif
 
   color = lo_color;
-  wmove(win, y, x);
 
-  for (; *str; str++) {
+  for (; *str && x < max_x; str++) {
     ch = (int)*str;
 
     switch (ch) {
     case '(':
-#ifdef COLOR_SUPPORT
-      if (color == hi_color)
-        WAttrAddStr(win, COLOR_PAIR(color) | A_BOLD, sbuf);
-      else
-        WAttrAddStr(win, COLOR_PAIR(color), sbuf);
-#else
-      WAttrAddStr(win, color, sbuf);
-#endif
-      strcpy(sbuf, "");
       color = hi_color;
       continue;
 
     case ')':
-#ifdef COLOR_SUPPORT
-      if (color == hi_color)
-        WAttrAddStr(win, COLOR_PAIR(color) | A_BOLD, sbuf);
-      else
-        WAttrAddStr(win, COLOR_PAIR(color), sbuf);
-#else
-      WAttrAddStr(win, color, sbuf);
-#endif
-      strcpy(sbuf, "");
       color = lo_color;
       continue;
 
 #ifdef COLOR_SUPPORT
     case ']':
-      if (color == hi_color)
-        WAttrAddStr(win, COLOR_PAIR(color) | A_BOLD, sbuf);
-      else
-        WAttrAddStr(win, COLOR_PAIR(color), sbuf);
-      strcpy(sbuf, "");
       color = lo_color;
       continue;
     case '[':
-      if (color == hi_color)
-        WAttrAddStr(win, COLOR_PAIR(color) | A_BOLD, sbuf);
-      else
-        WAttrAddStr(win, COLOR_PAIR(color), sbuf);
-      strcpy(sbuf, "");
       color = hi_color;
       continue;
 #else
@@ -764,18 +737,18 @@ void PrintMenuOptions(WINDOW *win, int y, int x, char *str, int ncolor,
       continue;
 #endif
     default:
-      buf[0] = PRINT(*str);
-      strcat(sbuf, buf);
+      ch = PRINT(ch);
+      break;
     }
-  }
-
 #ifdef COLOR_SUPPORT
-  if (color == hi_color)
-    WAttrAddStr(win, COLOR_PAIR(color) | A_BOLD, sbuf);
-  else
-    WAttrAddStr(win, COLOR_PAIR(color), sbuf);
+    if (color == hi_color)
+      wattrset(win, COLOR_PAIR(color) | A_BOLD);
+    else
+      wattrset(win, COLOR_PAIR(color));
 #else
-  WAttrAddStr(win, color, sbuf);
+    wattrset(win, color);
 #endif
-  free(sbuf);
+    mvwaddch(win, y, x++, ch);
+    wattrset(win, 0);
+  }
 }
