@@ -394,6 +394,9 @@ int HandleDirWindow(ViewContext *ctx, DirEntry *start_dir_entry) {
         ctx->left->file_dir_entry = ctx->right->file_dir_entry;
         ctx->left->saved_big_file_view = ctx->right->saved_big_file_view;
         ctx->left->saved_focus = ctx->right->saved_focus;
+        /* Left panel now follows right panel state; force rebuild to avoid
+         * stale file list from an older volume. */
+        FreeFileEntryList(ctx->left);
         /* Sync Global Volume */
         ctx->active->vol = ctx->left->vol;
       }
@@ -412,13 +415,18 @@ int HandleDirWindow(ViewContext *ctx, DirEntry *start_dir_entry) {
           ctx->right->saved_big_file_view = ctx->left->saved_big_file_view;
           /* Start a newly split peer panel in tree focus by default. */
           ctx->right->saved_focus = FOCUS_TREE;
+          /* Right panel inherited a new volume/state; drop stale cache so
+           * inactive render shows the correct mirror immediately. */
+          FreeFileEntryList(ctx->right);
         }
       } else {
+        /* Prevent hidden peer cache from leaking across later volume splits. */
+        FreeFileEntryList(ctx->right);
         ctx->active = ctx->left;
       }
-
-      ctx->resize_request = TRUE;
-      DisplayMenu(ctx);
+      ctx->focused_window = ctx->active->saved_focus;
+      RefreshView(ctx, dir_entry);
+      need_dsp_help = TRUE;
       break;
 
     case ACTION_SWITCH_PANEL:

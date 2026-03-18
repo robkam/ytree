@@ -411,13 +411,19 @@ void RenderInactivePanel(ViewContext *ctx, YtreePanel *panel) {
     int render_start = panel->start_file;
     int render_cursor = 0;
     DirEntry *de = NULL;
+    BOOL has_file_list = FALSE;
 
     if (idx < 0 || idx >= total)
       return;
 
     de = panel->vol->dir_entry_list[idx].dir_entry;
-    if (!de || !panel->file_entry_list)
+    if (!de)
       return;
+
+    if (!panel->file_entry_list) {
+      BuildFileEntryList(ctx, panel);
+    }
+    has_file_list = (panel->file_entry_list != NULL);
 
     render_cursor = de->cursor_pos;
     if (panel->file_dir_entry == de) {
@@ -433,8 +439,12 @@ void RenderInactivePanel(ViewContext *ctx, YtreePanel *panel) {
         werase(panel->pan_dir_window);
         wnoutrefresh(panel->pan_dir_window);
       }
-      DisplayFiles(ctx, panel, de, render_start, render_start + render_cursor,
-                   0, panel->pan_big_file_window);
+      if (has_file_list) {
+        DisplayFiles(ctx, panel, de, render_start, render_start + render_cursor,
+                     0, panel->pan_big_file_window);
+      } else {
+        werase(panel->pan_big_file_window);
+      }
       wnoutrefresh(panel->pan_big_file_window);
       return;
     }
@@ -447,10 +457,72 @@ void RenderInactivePanel(ViewContext *ctx, YtreePanel *panel) {
     }
 
     if (panel->pan_file_window) {
-      DisplayFiles(ctx, panel, de, render_start, -1, 0, panel->pan_file_window);
+      if (has_file_list) {
+        DisplayFiles(ctx, panel, de, render_start, -1, 0, panel->pan_file_window);
+      } else {
+        werase(panel->pan_file_window);
+      }
       wnoutrefresh(panel->pan_file_window);
     }
   }
+}
+
+static BOOL IsActivePanelBigFileMode(ViewContext *ctx, DirEntry *dir_entry) {
+  if (!ctx)
+    return FALSE;
+
+  if (ctx->focused_window == FOCUS_FILE)
+    return TRUE;
+
+  if (!dir_entry)
+    return FALSE;
+
+  return (dir_entry->big_window || dir_entry->global_flag || dir_entry->tagged_flag);
+}
+
+static void DrawSplitSeparatorRow(ViewContext *ctx, BOOL left_big, BOOL right_big) {
+  int separator_y;
+  int data_right_x;
+  int split_x;
+
+  if (!ctx || !ctx->ctx_border_window || !ctx->left)
+    return;
+
+  separator_y = ctx->layout.dir_win_y + ctx->layout.dir_win_height;
+  data_right_x = COLS - ctx->layout.stats_width - 1;
+  split_x = ctx->left->dir_x + ctx->left->dir_w;
+
+  /* Clear the entire separator row before redrawing split-aware junctions. */
+  wmove(ctx->ctx_border_window, separator_y, 0);
+  whline(ctx->ctx_border_window, ' ', data_right_x + 1);
+
+  wattron(ctx->ctx_border_window, COLOR_PAIR(CPAIR_BORDERS) | A_ALTCHARSET);
+
+  mvwaddch(ctx->ctx_border_window, separator_y, 0,
+           left_big ? ACS_VLINE : ACS_LTEE);
+  mvwaddch(ctx->ctx_border_window, separator_y, data_right_x,
+           right_big ? ACS_VLINE : ACS_RTEE);
+
+  if (!left_big && split_x > 1) {
+    mvwhline(ctx->ctx_border_window, separator_y, 1, ACS_HLINE, split_x - 1);
+  }
+  if (!right_big && data_right_x - split_x > 1) {
+    mvwhline(ctx->ctx_border_window, separator_y, split_x + 1, ACS_HLINE,
+             data_right_x - split_x - 1);
+  }
+
+  if (!left_big && !right_big) {
+    mvwaddch(ctx->ctx_border_window, separator_y, split_x, ACS_PLUS);
+  } else if (!left_big && right_big) {
+    mvwaddch(ctx->ctx_border_window, separator_y, split_x, ACS_RTEE);
+  } else if (left_big && !right_big) {
+    mvwaddch(ctx->ctx_border_window, separator_y, split_x, ACS_LTEE);
+  } else {
+    mvwaddch(ctx->ctx_border_window, separator_y, split_x, ACS_VLINE);
+  }
+
+  wattroff(ctx->ctx_border_window, A_ALTCHARSET);
+  wattrset(ctx->ctx_border_window, A_NORMAL);
 }
 
 /*
@@ -461,6 +533,7 @@ void RenderInactivePanel(ViewContext *ctx, YtreePanel *panel) {
 void RefreshView(ViewContext *ctx, DirEntry *dir_entry) {
   Statistic *s = &ctx->active->vol->vol_stats;
   BOOL needs_window_recreate = FALSE;
+  BOOL active_big_mode;
 
   if (ctx->active == NULL)
     MESSAGE(ctx, "FATAL: RefreshView called with NULL ctx->active");
@@ -521,6 +594,8 @@ void RefreshView(ViewContext *ctx, DirEntry *dir_entry) {
   }
 
   /* 7. Draw Content Panels THIRD (z=1) */
+  active_big_mode = IsActivePanelBigFileMode(ctx, dir_entry);
+
   if (ctx->preview_mode) {
     /* Preview mode always uses the active panel's big file window as the
      * left list pane. Avoid SwitchToBigFileWindow because its separator
@@ -534,26 +609,55 @@ void RefreshView(ViewContext *ctx, DirEntry *dir_entry) {
     DisplayFileWindow(ctx, ctx->active, dir_entry);
     if (ctx->ctx_preview_window)
       wnoutrefresh(ctx->ctx_preview_window);
-  } else if (dir_entry->big_window || dir_entry->global_flag ||
-             dir_entry->tagged_flag) {
-    SwitchToBigFileWindow(ctx);
-    DisplayFileWindow(ctx, ctx->active, dir_entry);
   } else {
-    SwitchToSmallFileWindow(ctx);
-    if (ctx->active && ctx->active->pan_dir_window) {
-      BOOL tree_highlight = (ctx->focused_window == FOCUS_TREE);
-      DisplayTree(ctx, ctx->active->vol, ctx->active->pan_dir_window,
-                  ctx->active->disp_begin_pos,
-                  ctx->active->disp_begin_pos + ctx->active->cursor_pos,
-                  tree_highlight);
-      wnoutrefresh(ctx->active->pan_dir_window);
-    }
-    DisplayFileWindow(ctx, ctx->active, dir_entry);
-  }
+    if (ctx->is_split_screen && ctx->left && ctx->right && ctx->active) {
+      BOOL left_big_mode;
+      BOOL right_big_mode;
+      YtreePanel *inactive;
 
-  if (ctx->is_split_screen && ctx->active) {
-    YtreePanel *inactive = (ctx->active == ctx->left) ? ctx->right : ctx->left;
-    RenderInactivePanel(ctx, inactive);
+      inactive = (ctx->active == ctx->left) ? ctx->right : ctx->left;
+
+      left_big_mode = (ctx->active == ctx->left)
+                          ? active_big_mode
+                          : (ctx->left->saved_focus == FOCUS_FILE);
+      right_big_mode = (ctx->active == ctx->right)
+                           ? active_big_mode
+                           : (ctx->right->saved_focus == FOCUS_FILE);
+
+      ctx->active->pan_file_window =
+          active_big_mode ? ctx->active->pan_big_file_window
+                          : ctx->active->pan_small_file_window;
+      ctx->ctx_file_window = ctx->active->pan_file_window;
+
+      DrawSplitSeparatorRow(ctx, left_big_mode, right_big_mode);
+
+      if (!active_big_mode && ctx->active->pan_dir_window) {
+        BOOL tree_highlight = (ctx->focused_window == FOCUS_TREE);
+        DisplayTree(ctx, ctx->active->vol, ctx->active->pan_dir_window,
+                    ctx->active->disp_begin_pos,
+                    ctx->active->disp_begin_pos + ctx->active->cursor_pos,
+                    tree_highlight);
+        wnoutrefresh(ctx->active->pan_dir_window);
+      }
+      DisplayFileWindow(ctx, ctx->active, dir_entry);
+      RenderInactivePanel(ctx, inactive);
+    } else {
+      if (active_big_mode) {
+        SwitchToBigFileWindow(ctx);
+        DisplayFileWindow(ctx, ctx->active, dir_entry);
+      } else {
+        SwitchToSmallFileWindow(ctx);
+        if (ctx->active && ctx->active->pan_dir_window) {
+          BOOL tree_highlight = (ctx->focused_window == FOCUS_TREE);
+          DisplayTree(ctx, ctx->active->vol, ctx->active->pan_dir_window,
+                      ctx->active->disp_begin_pos,
+                      ctx->active->disp_begin_pos + ctx->active->cursor_pos,
+                      tree_highlight);
+          wnoutrefresh(ctx->active->pan_dir_window);
+        }
+        DisplayFileWindow(ctx, ctx->active, dir_entry);
+      }
+    }
   }
 
   /* 8. Update Footer Help and Refresh Menu Window LAST (z=2) */

@@ -207,7 +207,7 @@ def test_f8_directory_compare_uses_inactive_panel_default_target(ytree_binary, t
     tui.send_keystroke(Keys.ENTER, wait=0.3)
     assert tui.wait_for_content("COMPARE BASIS:", timeout=1.0)
     tui.send_keystroke("S", wait=0.2)
-    assert tui.wait_for_content("TAG RESULTS:", timeout=1.0)
+    assert tui.wait_for_content("TAG FILE LIST:", timeout=1.0)
     tui.send_keystroke("F", wait=0.3)
     assert tui.wait_for_content("Compare execution not implemented yet.", timeout=1.0)
     assert tui.wait_for_content("TARGET: beta", timeout=1.0)
@@ -242,7 +242,7 @@ def test_f8_tree_compare_uses_inactive_panel_logged_root_default(ytree_binary, t
     tui.send_keystroke(Keys.ENTER, wait=0.3)
     assert tui.wait_for_content("COMPARE BASIS:", timeout=1.0)
     tui.send_keystroke("S", wait=0.2)
-    assert tui.wait_for_content("TAG RESULTS:", timeout=1.0)
+    assert tui.wait_for_content("TAG FILE LIST:", timeout=1.0)
     tui.send_keystroke("F", wait=0.3)
 
     assert tui.wait_for_content("Compare execution not implemented yet.", timeout=1.0)
@@ -282,7 +282,7 @@ def test_compare_flow_cancel_is_safe_and_footer_remains_clean(ytree_binary, tmp_
     tui.send_keystroke("D", wait=0.2)
     tui.send_keystroke("." + Keys.ENTER, wait=0.2)
     tui.send_keystroke("S", wait=0.2)
-    assert tui.wait_for_content("TAG RESULTS:", timeout=1.0)
+    assert tui.wait_for_content("TAG FILE LIST:", timeout=1.0)
     tui.send_keystroke(Keys.ESC, wait=0.2)
     assert not tui.wait_for_content("Compare execution not implemented yet.", timeout=0.5)
 
@@ -312,7 +312,7 @@ def test_compare_prompt_labels_and_result_text(ytree_binary, tmp_path):
     tui.send_keystroke("." + Keys.ENTER, wait=0.2)
     assert tui.wait_for_content("COMPARE BASIS:", timeout=1.0)
     tui.send_keystroke("S", wait=0.2)
-    assert tui.wait_for_content("TAG RESULTS:", timeout=1.0)
+    assert tui.wait_for_content("TAG FILE LIST:", timeout=1.0)
     screen_lower = _screen_text(tui).lower()
     assert "fifferent" not in screen_lower
     assert "left-only" not in screen_lower
@@ -367,14 +367,15 @@ def test_compare_help_f1_open_close_and_prompt_restore(ytree_binary, tmp_path):
     assert tui.wait_for_content("COMPARE BASIS:", timeout=1.0)
 
     tui.send_keystroke("S", wait=0.2)
-    assert tui.wait_for_content("TAG RESULTS:", timeout=1.0)
+    assert tui.wait_for_content("TAG FILE LIST:", timeout=1.0)
     tui.send_keystroke(Keys.F1, wait=0.3)
     result_help = _screen_text(tui).lower()
     assert "compare help" in result_help
-    assert "unique exists only on the source side" in result_help
-    assert "error means compare failed" in result_help
+    assert "choose which compare result to tag in the active file list" in result_help
+    assert "different tags basis mismatches" in result_help
+    assert "unique tags source-only entries" in result_help
     tui.send_keystroke(Keys.ESC, wait=0.2)
-    assert tui.wait_for_content("TAG RESULTS:", timeout=1.0)
+    assert tui.wait_for_content("TAG FILE LIST:", timeout=1.0)
     tui.send_keystroke(Keys.ESC, wait=0.2)
 
     _assert_no_footer_artifacts(tui)
