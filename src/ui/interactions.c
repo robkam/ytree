@@ -545,10 +545,11 @@ static void GetCompareHelpLines(CompareHelpTopic topic, const char **title,
     break;
   case COMPARE_HELP_RESULTS:
   default:
-    *line_0 = "diFferent/Match compare same-name entries by the chosen basis.";
+    *line_0 = "Choose which compare result to tag in the active file list.";
     *line_1 =
-        "Newer/Older use modification time. Unique exists only on the source side.";
-    *line_2 = "Type-mismatch means kinds differ. Error means compare failed.";
+        "diFferent tags basis mismatches. Unique tags source-only entries.";
+    *line_2 =
+        "Match/Newer/Older/Type-mismatch/Error each tag only that outcome.";
     break;
   }
 }
@@ -740,7 +741,7 @@ static int PromptCompareTagResult(ViewContext *ctx, CompareTagResult *tag_result
 
   ch = InputCompareChoice(
       ctx,
-      "TAG RESULTS: di(F)ferent (M)atch (N)ewer (O)lder (U)nique "
+      "TAG FILE LIST: di(F)ferent (M)atch (N)ewer (O)lder (U)nique "
       "(T)ype-mismatch (E)rror",
       "FMNOUTE", 0, COMPARE_HELP_RESULTS);
   if (ch == ESC || ch < 0)

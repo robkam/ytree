@@ -3,7 +3,7 @@ import pyte
 import time
 
 class YtreeTUI:
-    def __init__(self, executable="./build/ytree", cwd=None, env_extra=None):
+    def __init__(self, executable="./build/ytree", cwd=None, env_extra=None, args=None):
         env = {
             "TERM": "xterm",
             "LC_ALL": "C.UTF-8",
@@ -15,6 +15,7 @@ class YtreeTUI:
         # Launch ytree in a headless PTY with specific dimensions
         self.child = pexpect.spawn(
             executable,
+            args=args or [],
             env=env,
             dimensions=(36, 120),
             cwd=cwd,
@@ -71,4 +72,3 @@ class YtreeTUI:
     def quit(self):
         """Cleanly exit."""
         self.child.close(force=True)
-

@@ -782,6 +782,9 @@ int HandleFileWindow(ViewContext *ctx, DirEntry *dir_entry) {
         ctx->left->file_cursor_pos = ctx->right->file_cursor_pos;
         ctx->left->file_dir_entry = ctx->right->file_dir_entry;
         ctx->left->saved_focus = ctx->right->saved_focus;
+        /* Left panel now points at right panel's volume/state. Force list rebuild
+         * to avoid stale file cache from a previous volume. */
+        FreeFileEntryList(ctx->left);
       }
       ctx->is_split_screen = !ctx->is_split_screen;
       ReCreateWindows(ctx); /* Force layout update immediately */
@@ -796,8 +799,14 @@ int HandleFileWindow(ViewContext *ctx, DirEntry *dir_entry) {
           ctx->right->file_dir_entry = ctx->left->file_dir_entry;
           /* Split from file view should preserve file focus on the new peer. */
           ctx->right->saved_focus = ctx->left->saved_focus;
+          /* Right panel inherited a new volume/state; invalidate old cache so
+           * first render mirrors the active panel immediately. */
+          FreeFileEntryList(ctx->right);
         }
       } else {
+        /* Hidden panel cache must not leak into a later re-split on another
+         * volume. */
+        FreeFileEntryList(ctx->right);
         ctx->active = ctx->left;
       }
 

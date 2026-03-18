@@ -7,6 +7,38 @@ from ytree_keys import Keys
 def _footer_text(tui):
     return "\n".join(tui.get_screen_dump()[-3:]).lower()
 
+def _detect_split_column(lines):
+    if len(lines) < 3:
+        return None
+
+    top = lines[1]
+    for ch in ("w", "┬", "+"):
+        idx = top.find(ch, 1)
+        if idx != -1:
+            return idx
+
+    counts = {}
+    for row in lines[2:-4]:
+        for x, ch in enumerate(row):
+            if ch in ("x", "|"):
+                counts[x] = counts.get(x, 0) + 1
+
+    if not counts:
+        return None
+    return max(counts, key=counts.get)
+
+def _assert_split_column_continuous(lines, label):
+    split_col = _detect_split_column(lines)
+    assert split_col is not None, f"Could not detect split column ({label}).\n" + "\n".join(lines)
+
+    for y in range(2, max(2, len(lines) - 4)):
+        row = lines[y]
+        if split_col >= len(row):
+            continue
+        assert row[split_col] != " ", (
+            f"Split separator has a gap at row {y} ({label}).\n" + "\n".join(lines)
+        )
+
 def test_panel_switch_updates_small_window(dual_panel_sandbox, ytree_binary):
     """
     Verify that switching panels updates the content of the small file window.
@@ -88,6 +120,25 @@ def test_split_from_file_keeps_file_focus_on_tab(tmp_path, ytree_binary):
 
     tui.quit()
 
+def test_split_from_dir_immediately_renders_peer_panel(tmp_path, ytree_binary):
+    root = tmp_path / "split_dir_immediate_render"
+    root.mkdir()
+    (root / "alpha_peer_dir").mkdir()
+    (root / "beta_peer_dir").mkdir()
+
+    tui = YtreeTUI(executable=ytree_binary, cwd=str(root))
+    time.sleep(0.8)
+
+    tui.send_keystroke(Keys.F8, wait=0.4)
+
+    screen = "\n".join(tui.get_screen_dump())
+    assert screen.count("alpha_peer_dir") >= 2, (
+        "Split from dir view did not render peer panel until next keypress.\n"
+        f"{screen}"
+    )
+
+    tui.quit()
+
 
 def test_split_from_file_preserves_inactive_panel_file_state(tmp_path, ytree_binary):
     root = tmp_path / "split_file_focus_inactive_state"
@@ -114,6 +165,142 @@ def test_split_from_file_preserves_inactive_panel_file_state(tmp_path, ytree_bin
     assert screen.count("alpha_unique_123.txt") >= 2, (
         "Inactive panel did not retain its file-window state after split/tab.\n"
         f"{screen}"
+    )
+
+    tui.quit()
+
+def test_split_from_file_immediate_peer_mirror_not_blank(tmp_path, ytree_binary):
+    root = tmp_path / "split_file_immediate_mirror"
+    root.mkdir()
+    alpha = root / "alpha"
+    beta = root / "beta"
+    alpha.mkdir()
+    beta.mkdir()
+    (alpha / "alpha_immediate_uniq.txt").write_text("alpha\n", encoding="utf-8")
+    (beta / "beta_immediate_uniq.txt").write_text("beta\n", encoding="utf-8")
+
+    tui = YtreeTUI(executable=ytree_binary, cwd=str(root))
+    time.sleep(0.8)
+
+    tui.send_keystroke(Keys.DOWN, wait=0.2)
+    tui.send_keystroke(Keys.ENTER, wait=0.4)
+    assert "hex j compare" in _footer_text(tui)
+
+    tui.send_keystroke(Keys.F8, wait=0.4)
+
+    screen = "\n".join(tui.get_screen_dump())
+    assert screen.count("alpha_immediate_uniq.txt") >= 2, (
+        "Peer panel stayed blank after splitting from file view.\n"
+        f"{screen}"
+    )
+
+    tui.quit()
+
+
+def test_split_mirror_stays_on_active_volume_after_volume_cycle(tmp_path, ytree_binary):
+    vol_a = tmp_path / "vol_a"
+    vol_b = tmp_path / "vol_b"
+    vol_c = tmp_path / "vol_c"
+    vol_a.mkdir()
+    vol_b.mkdir()
+    vol_c.mkdir()
+    (vol_a / "a_only.txt").write_text("a\n", encoding="utf-8")
+    (vol_b / "b_only.txt").write_text("b\n", encoding="utf-8")
+    (vol_c / "c_only.txt").write_text("c\n", encoding="utf-8")
+
+    tui = YtreeTUI(
+        executable=ytree_binary,
+        cwd=str(vol_a),
+        args=[str(vol_b), str(vol_c)],
+    )
+    time.sleep(1.0)
+
+    vol_to_file = {
+        "vol_a": "a_only.txt",
+        "vol_b": "b_only.txt",
+        "vol_c": "c_only.txt",
+    }
+
+    def active_volume_name():
+        header = tui.get_screen_dump()[0]
+        for vol_name in vol_to_file:
+            if vol_name in header:
+                return vol_name
+        return None
+
+    start_vol = active_volume_name()
+    assert start_vol is not None, "Could not detect starting volume in header."
+
+    tui.send_keystroke(Keys.ENTER, wait=0.5)
+    assert "hex j compare" in _footer_text(tui)
+    start_file = vol_to_file[start_vol]
+    assert start_file in "\n".join(tui.get_screen_dump())
+
+    # Seed right-panel cache on the current volume, then unsplit.
+    tui.send_keystroke(Keys.F8, wait=0.5)
+    tui.send_keystroke(Keys.F8, wait=0.5)
+
+    # Cycle until a different volume becomes active.
+    target_vol = None
+    for _ in range(12):
+        current = active_volume_name()
+        if current and current != start_vol:
+            target_vol = current
+            break
+        tui.send_keystroke("<", wait=0.5)
+    assert target_vol is not None, "Failed to cycle to a different volume."
+
+    if "hex j compare" not in _footer_text(tui):
+        tui.send_keystroke(Keys.ENTER, wait=0.4)
+    assert "hex j compare" in _footer_text(tui)
+
+    target_file = vol_to_file[target_vol]
+    screen = "\n".join(tui.get_screen_dump())
+    assert target_file in screen
+
+    # Regression guard: initial split mirror must not show stale file list from
+    # another volume until TAB.
+    tui.send_keystroke(Keys.F8, wait=0.5)
+    screen = "\n".join(tui.get_screen_dump())
+    assert screen.count(target_file) >= 2, (
+        "Split mirror reused stale file list from another volume.\n"
+        f"{screen}"
+    )
+    assert start_file not in screen, (
+        "Split mirror leaked prior volume file list on first draw.\n"
+        f"{screen}"
+    )
+
+    tui.quit()
+
+
+def test_inactive_dir_focus_survives_tab_away_and_back(tmp_path, ytree_binary):
+    root = tmp_path / "inactive_dir_focus_survives_tab"
+    root.mkdir()
+    alpha = root / "alpha"
+    beta = root / "beta"
+    alpha.mkdir()
+    beta.mkdir()
+    (beta / "beta_focus_file.txt").write_text("b\n", encoding="utf-8")
+
+    tui = YtreeTUI(executable=ytree_binary, cwd=str(root))
+    time.sleep(0.8)
+    assert "dir      attributes brief compare" in _footer_text(tui)
+
+    tui.send_keystroke(Keys.F8, wait=0.4)
+    assert "dir      attributes brief compare" in _footer_text(tui)
+
+    # Move to right panel and enter file mode there.
+    tui.send_keystroke(Keys.TAB, wait=0.4)
+    tui.send_keystroke(Keys.DOWN, wait=0.2)
+    tui.send_keystroke(Keys.DOWN, wait=0.2)
+    tui.send_keystroke(Keys.ENTER, wait=0.4)
+    assert "hex j compare" in _footer_text(tui)
+
+    # Return to left panel. It must still be in dir mode.
+    tui.send_keystroke(Keys.TAB, wait=0.4)
+    assert "dir      attributes brief compare" in _footer_text(tui), (
+        "Inactive panel lost dir focus after tab-away from dir mode."
     )
 
     tui.quit()
@@ -198,6 +385,39 @@ def test_inactive_panel_stays_file_focused_after_tab_away(tmp_path, ytree_binary
         "Inactive panel reverted to tree view after tab away.\n"
         f"{screen}"
     )
+
+    tui.quit()
+
+def test_split_separator_stays_continuous_during_file_tree_toggle(tmp_path, ytree_binary):
+    root = tmp_path / "split_separator_continuity"
+    root.mkdir()
+    left = root / "left_sep_dir"
+    right = root / "right_sep_dir"
+    left.mkdir()
+    right.mkdir()
+    (left / "left_a.txt").write_text("a\n", encoding="utf-8")
+    (right / "right_a.txt").write_text("b\n", encoding="utf-8")
+
+    tui = YtreeTUI(executable=ytree_binary, cwd=str(root))
+    time.sleep(0.8)
+
+    tui.send_keystroke(Keys.F8, wait=0.4)
+    tui.send_keystroke(Keys.TAB, wait=0.4)
+    tui.send_keystroke(Keys.DOWN, wait=0.2)
+    tui.send_keystroke(Keys.DOWN, wait=0.2)
+    tui.send_keystroke(Keys.ENTER, wait=0.4)
+    assert "hex j compare" in _footer_text(tui)
+
+    lines = tui.get_screen_dump()
+    _assert_split_column_continuous(lines, "right active file / left inactive tree")
+
+    tui.send_keystroke(Keys.TAB, wait=0.4)
+    lines = tui.get_screen_dump()
+    _assert_split_column_continuous(lines, "left active tree / right inactive file")
+
+    tui.send_keystroke(Keys.TAB, wait=0.4)
+    lines = tui.get_screen_dump()
+    _assert_split_column_continuous(lines, "right active file after second tab")
 
     tui.quit()
 
@@ -524,5 +744,52 @@ def test_split_panels_keep_independent_file_focus_states(tmp_path, ytree_binary)
     screen = "\n".join(tui.get_screen_dump())
     assert "alpha.txt" in screen, f"Returning to the left panel did not restore its file view.\n{screen}"
     assert "hex j compare" in _footer_text(tui), f"Returning to the left panel did not restore file footer/help.\n{screen}"
+
+    tui.quit()
+
+
+def test_active_mode_toggles_do_not_mutate_inactive_file_state(tmp_path, ytree_binary):
+    root = tmp_path / "split_independent_mode_toggles"
+    root.mkdir()
+    alpha = root / "alpha"
+    beta = root / "beta"
+    alpha.mkdir()
+    beta.mkdir()
+    (alpha / "alpha_0.txt").write_text("0\n", encoding="utf-8")
+    (alpha / "alpha_1.txt").write_text("1\n", encoding="utf-8")
+    (beta / "beta_0.txt").write_text("0\n", encoding="utf-8")
+
+    tui = YtreeTUI(executable=ytree_binary, cwd=str(root))
+    time.sleep(0.8)
+
+    # Left panel: enter alpha file view and select alpha_1.
+    tui.send_keystroke(Keys.DOWN, wait=0.2)
+    tui.send_keystroke(Keys.ENTER, wait=0.4)
+    tui.send_keystroke(Keys.DOWN, wait=0.2)
+    assert "hex j compare" in _footer_text(tui)
+
+    # Split and move to right panel.
+    tui.send_keystroke(Keys.F8, wait=0.4)
+    tui.send_keystroke(Keys.TAB, wait=0.4)
+
+    # Right panel: toggle between dir/file/small-big transitions.
+    if "hex j compare" in _footer_text(tui):
+        tui.send_keystroke(Keys.ESC, wait=0.3)
+    tui.send_keystroke(Keys.DOWN, wait=0.2)
+    tui.send_keystroke(Keys.DOWN, wait=0.2)
+    tui.send_keystroke(Keys.ENTER, wait=0.4)  # file (small)
+    tui.send_keystroke(Keys.ENTER, wait=0.4)  # file (big)
+    tui.send_keystroke(Keys.ESC, wait=0.4)    # back to tree
+    tui.send_keystroke(Keys.ENTER, wait=0.4)  # file again
+
+    # Left panel must still have file focus and selected alpha_1.
+    tui.send_keystroke(Keys.TAB, wait=0.4)
+    assert "hex j compare" in _footer_text(tui)
+    tui.send_keystroke("J", wait=0.3)
+    assert tui.wait_for_content("COMPARE TARGET:", timeout=1.0)
+    tui.send_keystroke(Keys.ENTER, wait=0.3)
+    assert tui.wait_for_content("SOURCE: alpha_1.txt", timeout=1.0), (
+        "Active-panel mode changes mutated inactive panel file selection/state."
+    )
 
     tui.quit()
