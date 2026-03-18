@@ -58,10 +58,254 @@ static void DrainPendingInput(ViewContext *ctx) {
   nodelay(stdscr, FALSE);
 }
 
+static BOOL HasNonWhitespace(const char *text) {
+  if (!text)
+    return FALSE;
+  while (*text) {
+    if (!isspace((unsigned char)*text))
+      return TRUE;
+    text++;
+  }
+  return FALSE;
+}
+
+static int BuildCompareCommand(const char *command_template,
+                               const char *source_path,
+                               const char *target_path, char *command_line,
+                               size_t command_line_size) {
+  char escaped_source[PATH_LENGTH * 2 + 1];
+  char escaped_target[PATH_LENGTH * 2 + 1];
+  char expanded_command[COMMAND_LINE_LENGTH + 1];
+  int written;
+  BOOL has_placeholders;
+
+  if (!command_template || !source_path || !target_path || !command_line ||
+      command_line_size == 0) {
+    return -1;
+  }
+
+  StrCp(escaped_source, source_path);
+  StrCp(escaped_target, target_path);
+  has_placeholders = (strstr(command_template, "%1") != NULL ||
+                      strstr(command_template, "%2") != NULL);
+
+  if (has_placeholders) {
+    if (String_Replace(expanded_command, sizeof(expanded_command),
+                       command_template, "%1", escaped_source) != 0) {
+      return -1;
+    }
+    if (String_Replace(command_line, command_line_size, expanded_command, "%2",
+                       escaped_target) != 0) {
+      return -1;
+    }
+    return 0;
+  }
+
+  written = snprintf(command_line, command_line_size, "%s %s %s",
+                     command_template, escaped_source, escaped_target);
+  if (written < 0 || (size_t)written >= command_line_size)
+    return -1;
+
+  return 0;
+}
+
+static int ResolveDirectoryCompareTargetPath(const char *source_path,
+                                             const char *target_input,
+                                             char *resolved_target_path) {
+  char raw_target_path[(PATH_LENGTH * 2) + 2];
+  const char *home = NULL;
+  int written;
+
+  if (!source_path || !target_input || !resolved_target_path)
+    return -1;
+  if (!HasNonWhitespace(target_input))
+    return -1;
+
+  if (target_input[0] == FILE_SEPARATOR_CHAR) {
+    written = snprintf(raw_target_path, sizeof(raw_target_path), "%s",
+                       target_input);
+  } else if (target_input[0] == '~' &&
+             (target_input[1] == '\0' ||
+              target_input[1] == FILE_SEPARATOR_CHAR) &&
+             (home = getenv("HOME")) != NULL) {
+    written = snprintf(raw_target_path, sizeof(raw_target_path), "%s%s", home,
+                       target_input + 1);
+  } else {
+    written = snprintf(raw_target_path, sizeof(raw_target_path), "%s%c%s",
+                       source_path, FILE_SEPARATOR_CHAR, target_input);
+  }
+
+  if (written < 0 || (size_t)written >= sizeof(raw_target_path))
+    return -1;
+
+  NormPath(raw_target_path, resolved_target_path);
+  resolved_target_path[PATH_LENGTH] = '\0';
+  return 0;
+}
+
+static void GetCommandDisplayName(const char *command_template,
+                                  char *command_name, size_t command_name_size) {
+  const char *cursor;
+  size_t idx = 0;
+  char quote = '\0';
+
+  if (!command_name || command_name_size == 0)
+    return;
+
+  command_name[0] = '\0';
+  if (!command_template)
+    return;
+
+  cursor = command_template;
+  while (*cursor && isspace((unsigned char)*cursor))
+    cursor++;
+  if (*cursor == '\0')
+    return;
+
+  if (*cursor == '"' || *cursor == '\'') {
+    quote = *cursor++;
+    while (*cursor && *cursor != quote && idx + 1 < command_name_size) {
+      command_name[idx++] = *cursor++;
+    }
+  } else {
+    while (*cursor && !isspace((unsigned char)*cursor) &&
+           idx + 1 < command_name_size) {
+      command_name[idx++] = *cursor++;
+    }
+  }
+  command_name[idx] = '\0';
+}
+
+static void LaunchExternalDirectoryCompare(ViewContext *ctx, DirEntry *source_dir,
+                                           CompareFlowType flow_type) {
+  CompareRequest request;
+  struct stat source_stat;
+  struct stat target_stat;
+  char source_path[PATH_LENGTH + 1];
+  char target_path[PATH_LENGTH + 1];
+  char command_line[COMMAND_LINE_LENGTH + 1];
+  char command_name[PATH_LENGTH + 1];
+  const char *helper = NULL;
+  const char *helper_key = NULL;
+  int start_dir_fd = -1;
+  int result = -1;
+  int exit_status;
+
+  if (!ctx)
+    return;
+
+  if (UI_BuildDirectoryCompareLaunchRequest(ctx, source_dir, flow_type,
+                                            &request) != 0) {
+    return;
+  }
+
+  helper = UI_GetCompareHelperCommand(ctx, flow_type);
+  helper_key = (flow_type == COMPARE_FLOW_LOGGED_TREE) ? "TREEDIFF/DIRDIFF"
+                                                        : "DIRDIFF";
+  if (!HasNonWhitespace(helper)) {
+    UI_Message(ctx, "%s helper is not configured.*Set %s in ~/.ytree.",
+               UI_CompareFlowTypeName(flow_type), helper_key);
+    return;
+  }
+
+  strncpy(source_path, request.source_path, PATH_LENGTH);
+  source_path[PATH_LENGTH] = '\0';
+  if (ResolveDirectoryCompareTargetPath(source_path, request.target_path,
+                                        target_path) != 0) {
+    UI_Message(ctx, "Compare target is empty or invalid.*Choose a target path.");
+    return;
+  }
+
+  if (stat(source_path, &source_stat) != 0) {
+    UI_Message(ctx, "Compare source is not accessible:*\"%s\"*%s", source_path,
+               strerror(errno));
+    return;
+  }
+  if (stat(target_path, &target_stat) != 0) {
+    UI_Message(ctx,
+               "Compare target does not exist:*\"%s\"*Select a valid directory.",
+               target_path);
+    return;
+  }
+  if (!S_ISDIR(source_stat.st_mode) || !S_ISDIR(target_stat.st_mode)) {
+    UI_Message(ctx, "Directory compare helper requires two directories.");
+    return;
+  }
+  if ((source_stat.st_dev == target_stat.st_dev &&
+       source_stat.st_ino == target_stat.st_ino) ||
+      !strcmp(source_path, target_path)) {
+    UI_Message(ctx, "Can't compare: source and target are the same directory.");
+    return;
+  }
+
+  if (BuildCompareCommand(helper, source_path, target_path, command_line,
+                          sizeof(command_line)) != 0) {
+    UI_Message(ctx, "%s command is invalid or too long.*Check %s in ~/.ytree.",
+               helper_key, helper_key);
+    return;
+  }
+
+  start_dir_fd = open(".", O_RDONLY);
+  if (start_dir_fd == -1) {
+    UI_Message(ctx, "Error preparing compare launch:*%s", strerror(errno));
+    return;
+  }
+  if (chdir(source_path) != 0) {
+    UI_Message(ctx, "Can't change directory to*\"%s\"*%s", source_path,
+               strerror(errno));
+    close(start_dir_fd);
+    return;
+  }
+
+  DrainPendingInput(ctx);
+  result = QuerySystemCall(ctx, command_line, &ctx->active->vol->vol_stats);
+
+  if (fchdir(start_dir_fd) == -1) {
+    UI_Message(ctx, "Error restoring directory*%s", strerror(errno));
+  }
+  close(start_dir_fd);
+
+  if (result == -1) {
+    UI_Message(ctx, "Failed to launch compare helper.*Check %s in ~/.ytree.",
+               helper_key);
+    return;
+  }
+
+  if (WIFEXITED(result)) {
+    exit_status = WEXITSTATUS(result);
+    if (exit_status == 126 || exit_status == 127) {
+      GetCommandDisplayName(helper, command_name, sizeof(command_name));
+      UI_Message(ctx,
+                 "Compare helper not available:*\"%s\"*"
+                 "Install it or update %s in ~/.ytree.",
+                 command_name[0] ? command_name : helper, helper_key);
+    }
+  }
+}
+
+static void RestorePanelFileSelection(DirEntry *dir_entry, YtreePanel *panel) {
+  if (!dir_entry || !panel)
+    return;
+
+  if (panel->saved_focus != FOCUS_FILE)
+    return;
+
+  if (panel->file_dir_entry != dir_entry)
+    return;
+
+  dir_entry->start_file = panel->start_file;
+  dir_entry->cursor_pos = panel->file_cursor_pos;
+  if (dir_entry->start_file < 0)
+    dir_entry->start_file = 0;
+  if (dir_entry->cursor_pos < 0 && dir_entry->total_files > 0)
+    dir_entry->cursor_pos = 0;
+}
+
 static void HandleDirectoryCompare(ViewContext *ctx, DirEntry *source_dir) {
   CompareMenuChoice menu_choice = COMPARE_MENU_CANCEL;
   CompareFlowType flow_type = COMPARE_FLOW_DIRECTORY;
   CompareRequest request;
+  BOOL external_launch = FALSE;
 
   if (!ctx || !source_dir)
     return;
@@ -71,7 +315,18 @@ static void HandleDirectoryCompare(ViewContext *ctx, DirEntry *source_dir) {
 
   if (menu_choice == COMPARE_MENU_DIRECTORY_PLUS_TREE) {
     flow_type = COMPARE_FLOW_LOGGED_TREE;
+  } else if (menu_choice == COMPARE_MENU_EXTERNAL_DIRECTORY) {
+    flow_type = COMPARE_FLOW_DIRECTORY;
+    external_launch = TRUE;
+  } else if (menu_choice == COMPARE_MENU_EXTERNAL_TREE) {
+    flow_type = COMPARE_FLOW_LOGGED_TREE;
+    external_launch = TRUE;
   } else if (menu_choice != COMPARE_MENU_DIRECTORY_ONLY) {
+    return;
+  }
+
+  if (external_launch) {
+    LaunchExternalDirectoryCompare(ctx, source_dir, flow_type);
     return;
   }
 
@@ -478,6 +733,7 @@ int HandleDirWindow(ViewContext *ctx, DirEntry *start_dir_entry) {
       ctx->ctx_file_window = ctx->active->pan_file_window;
 
       /* REFRESH View for new active panel */
+      RestorePanelFileSelection(dir_entry, ctx->active);
       RefreshView(ctx, dir_entry);
       need_dsp_help = TRUE;
       if (ctx->focused_window == FOCUS_FILE && dir_entry->total_files > 0) {
@@ -941,6 +1197,7 @@ int HandleDirWindow(ViewContext *ctx, DirEntry *start_dir_entry) {
           ctx->ctx_big_file_window = ctx->active->pan_big_file_window;
           ctx->ctx_file_window = ctx->active->pan_file_window;
 
+          RestorePanelFileSelection(dir_entry, ctx->active);
           RefreshView(ctx, dir_entry);
           need_dsp_help = TRUE;
           if (ctx->focused_window == FOCUS_FILE && dir_entry->total_files > 0) {
@@ -1154,6 +1411,8 @@ int HandleDirWindow(ViewContext *ctx, DirEntry *start_dir_entry) {
     {
       /* Save current panel state to volume before switching away */
       /* Panel state isolation: No vol_stats sync */
+      ctx->active->vol->id =
+          ctx->active->disp_begin_pos + ctx->active->cursor_pos;
 
       int res = SelectLoadedVolume(ctx, NULL);
       if (res == 0) { /* If volume switch was successful */
@@ -1218,7 +1477,8 @@ int HandleDirWindow(ViewContext *ctx, DirEntry *start_dir_entry) {
     {
       /* Save current panel state to volume before switching away */
       /* Panel isolation: No vol_stats sync */
-      ctx->active->vol->id /* legacy removed */ = ctx->active->disp_begin_pos;
+      ctx->active->vol->id =
+          ctx->active->disp_begin_pos + ctx->active->cursor_pos;
 
       int res = CycleLoadedVolume(ctx, ctx->active, -1);
       if (res == 0) { /* If volume switch was successful */
@@ -1275,7 +1535,8 @@ int HandleDirWindow(ViewContext *ctx, DirEntry *start_dir_entry) {
     {
       /* Save current panel state to volume before switching away */
       /* Panel isolation: No vol_stats sync */
-      ctx->active->vol->id /* legacy removed */ = ctx->active->disp_begin_pos;
+      ctx->active->vol->id =
+          ctx->active->disp_begin_pos + ctx->active->cursor_pos;
 
       int res = CycleLoadedVolume(ctx, ctx->active, 1);
       if (res == 0) { /* If volume switch was successful */

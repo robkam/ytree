@@ -12,6 +12,21 @@
 static char GetTypeOfFile(struct stat fst);
 static int GetVisualFileEntryLength(ViewContext *ctx, YtreePanel *p);
 
+static void AddClippedAtCursor(WINDOW *win, const char *text, int width) {
+  int y, x, remaining;
+
+  if (!win || !text || width <= 0)
+    return;
+
+  getyx(win, y, x);
+  (void)y;
+  remaining = width - x;
+  if (remaining <= 0)
+    return;
+
+  waddnstr(win, text, remaining);
+}
+
 void SetFileRenderingMetrics(YtreePanel *p, unsigned max_filename,
                              unsigned max_linkname, unsigned max_userview) {
   if (!p)
@@ -235,7 +250,9 @@ void PrintFileEntry(ViewContext *ctx, YtreePanel *panel, int entry_no, int y,
     return;
   }
 
-  ef_window_width = width - 2; /* Effective Window Width */
+  ef_window_width = width - pos_x - 1; /* Effective width for this column */
+  if (ef_window_width < 0)
+    ef_window_width = 0;
 
   (panel->reverse_sort) ? (justify = '+') : (justify = '-');
 
@@ -438,25 +455,29 @@ void PrintFileEntry(ViewContext *ctx, YtreePanel *panel, int entry_no, int y,
       wattron(win, A_BOLD);
 
     /* Print tag and type */
-    wprintw(win, "%c%c", (fe_ptr->tagged) ? TAGGED_SYMBOL : ' ', type_of_file);
+    {
+      char prefix[3];
+      prefix[0] = (fe_ptr->tagged) ? TAGGED_SYMBOL : ' ';
+      prefix[1] = type_of_file;
+      prefix[2] = '\0';
+      AddClippedAtCursor(win, prefix, width);
+    }
 
     /* Calculate available width for name and truncate if necessary */
     int overhead = 0;
-    if (width >= 80) {
-      switch (panel->file_mode) {
-      case MODE_1:
-        overhead = 44;
-        break;
-      case MODE_2:
-        overhead = 40;
-        break;
-      case MODE_4:
-        overhead = 48;
-        break;
-      default:
-        overhead = 0;
-        break;
-      }
+    switch (panel->file_mode) {
+    case MODE_1:
+      overhead = 44;
+      break;
+    case MODE_2:
+      overhead = 40;
+      break;
+    case MODE_4:
+      overhead = 48;
+      break;
+    default:
+      overhead = 0;
+      break;
     }
     if (sym_link_name && *sym_link_name)
       overhead += 4 + linkname_width;
@@ -479,7 +500,7 @@ void PrintFileEntry(ViewContext *ctx, YtreePanel *panel, int entry_no, int y,
     /* Highlight only the name */
     if (hilight)
       wattron(win, A_REVERSE);
-    wprintw(win, "%s", display_name);
+    AddClippedAtCursor(win, display_name, width);
     if (hilight)
       wattroff(win, A_REVERSE);
 
@@ -501,12 +522,22 @@ void PrintFileEntry(ViewContext *ctx, YtreePanel *panel, int entry_no, int y,
       case MODE_1:
         (void)GetAttributes(fe_ptr->stat_struct.st_mode, attributes);
         (void)CTime(fe_ptr->stat_struct.st_mtime, modify_time);
-        /* Updated %12s to %16s */
-        wprintw(win, " %10s %3d %11lld %16s", attributes,
-                (int)fe_ptr->stat_struct.st_nlink,
-                (long long)fe_ptr->stat_struct.st_size, modify_time);
-        if (sym_link_name && *sym_link_name)
-          wprintw(win, " -> %s", sym_link_name);
+        {
+          char detail[PATH_LENGTH + 128];
+          /* Updated %12s to %16s */
+          if (sym_link_name && *sym_link_name) {
+            (void)snprintf(detail, sizeof(detail),
+                           " %10s %3d %11lld %16s -> %s", attributes,
+                           (int)fe_ptr->stat_struct.st_nlink,
+                           (long long)fe_ptr->stat_struct.st_size, modify_time,
+                           sym_link_name);
+          } else {
+            (void)snprintf(detail, sizeof(detail), " %10s %3d %11lld %16s",
+                           attributes, (int)fe_ptr->stat_struct.st_nlink,
+                           (long long)fe_ptr->stat_struct.st_size, modify_time);
+          }
+          AddClippedAtCursor(win, detail, width);
+        }
         break;
       case MODE_2:
         owner_name_ptr = GetDisplayPasswdName(fe_ptr->stat_struct.st_uid);
@@ -519,19 +550,35 @@ void PrintFileEntry(ViewContext *ctx, YtreePanel *panel, int entry_no, int y,
           snprintf(group, sizeof(group), "%d", (int)fe_ptr->stat_struct.st_gid);
           group_name_ptr = group;
         }
-        wprintw(win, " %10lld %-12s %-12s",
-                (long long)fe_ptr->stat_struct.st_ino, owner_name_ptr,
-                group_name_ptr);
-        if (sym_link_name && *sym_link_name)
-          wprintw(win, " -> %s", sym_link_name);
+        {
+          char detail[PATH_LENGTH + 128];
+          if (sym_link_name && *sym_link_name) {
+            (void)snprintf(detail, sizeof(detail), " %10lld %-12s %-12s -> %s",
+                           (long long)fe_ptr->stat_struct.st_ino,
+                           owner_name_ptr, group_name_ptr, sym_link_name);
+          } else {
+            (void)snprintf(detail, sizeof(detail), " %10lld %-12s %-12s",
+                           (long long)fe_ptr->stat_struct.st_ino,
+                           owner_name_ptr, group_name_ptr);
+          }
+          AddClippedAtCursor(win, detail, width);
+        }
         break;
       case MODE_4:
         (void)CTime(fe_ptr->stat_struct.st_ctime, change_time);
         (void)CTime(fe_ptr->stat_struct.st_atime, access_time);
-        /* Updated %12s to %16s */
-        wprintw(win, " Chg: %16s  Acc: %16s", change_time, access_time);
-        if (sym_link_name && *sym_link_name)
-          wprintw(win, " -> %s", sym_link_name);
+        {
+          char detail[PATH_LENGTH + 128];
+          /* Updated %12s to %16s */
+          if (sym_link_name && *sym_link_name) {
+            (void)snprintf(detail, sizeof(detail), " Chg: %16s  Acc: %16s -> %s",
+                           change_time, access_time, sym_link_name);
+          } else {
+            (void)snprintf(detail, sizeof(detail), " Chg: %16s  Acc: %16s",
+                           change_time, access_time);
+          }
+          AddClippedAtCursor(win, detail, width);
+        }
         break;
       case MODE_5:
         break;

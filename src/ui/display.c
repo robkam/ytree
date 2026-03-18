@@ -53,7 +53,7 @@ static char *dir_help[MAX_MODES][2] = {
      "COMMANDS                                                                 "
      "          "},
     {/* ARCHIVE_MODE */
-     "ARCHIVE   (B)rief (C)opy (F)ilter (G)lobal (^F)dirmode (L)og (M)akedir "
+     "ARCHIVE   (B)rief (C)ompare (F)ilter (^F)dirmode (G)lobal (L)og (M)akedir "
      "(R)ename (S)howall ",
      "COMMANDS  (U)ntag (Q)uit                                                 "
      "       "},
@@ -82,10 +82,9 @@ static char *file_help[MAX_MODES][2] = {
      "COMMANDS                                                                 "
      "               "},
     {/* ARCHIVE_MODE */
-     "ARCH-FILE (B)rief (C)opy (D)elete (F)ilter (^F)mode (H)ex (R)ename "
-     "(S)ort (T)ag (V)iew     ",
-     "COMMANDS  (M)akedir (P)ipe (^R)nm (U)ntag pathcop(Y)                     "
-     "       "},
+     "ARCH-FILE (B)rief (C)opy (D)elete (F)ilter (^F)ilemode (H)ex (J) compare "
+     "(R)ename (S)ort (T)ag (V)iew",
+     "COMMANDS  (M)akedir (P)ipe (^R)ename (U)ntag pathcop(Y)"},
     {                       /* USER_MODE */
      file_help_disk_mode_0, /* Default unless changed by user prefs */
      file_help_disk_mode_1}};
@@ -143,8 +142,13 @@ void DisplayFileHelp(ViewContext *ctx, DirEntry *dir_entry) {
 static void PrintHelpString(WINDOW *win, int y, int x, const char *str) {
   int ch;
   int color, hi_color, lo_color;
+  int max_x;
+  int draw_x;
 
   if (x < 0 || y < 0)
+    return;
+  max_x = getmaxx(win);
+  if (max_x <= 0 || x >= max_x)
     return;
 
 #ifdef COLOR_SUPPORT
@@ -156,9 +160,11 @@ static void PrintHelpString(WINDOW *win, int y, int x, const char *str) {
 #endif
 
   color = lo_color;
-  wmove(win, y, x);
+  draw_x = x;
 
   for (; *str; str++) {
+    if (draw_x >= max_x)
+      break;
     ch = (int)*str;
     switch (*str) {
     case '(':
@@ -179,7 +185,7 @@ static void PrintHelpString(WINDOW *win, int y, int x, const char *str) {
 #else
     wattrset(win, color);
 #endif
-    waddch(win, ch);
+    mvwaddch(win, y, draw_x++, ch);
   }
   wattrset(win, 0);
 }

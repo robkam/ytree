@@ -1,11 +1,82 @@
 import pytest
+import shlex
 import time
+import re
 from tui_harness import YtreeTUI
 from ytree_keys import Keys
 
 
 def _footer_text(tui):
     return "\n".join(tui.get_screen_dump()[-3:]).lower()
+
+
+def _detect_stats_split_x(lines):
+    if len(lines) < 2:
+        return None
+    border = lines[1]
+    marker = "wqqqqqqq FILTER"
+    idx = border.find(marker)
+    if idx != -1:
+        return idx
+    return None
+
+
+def _current_file_from_stats(lines, split_x):
+    for i, line in enumerate(lines):
+        segment = line[split_x:] if split_x is not None else line
+        if "CURRENT FILE" in segment and i + 1 < len(lines):
+            next_segment = lines[i + 1][split_x:] if split_x is not None else lines[i + 1]
+            m = re.search(r"([A-Za-z0-9._-]+\\.txt)", next_segment)
+            if m:
+                return m.group(1)
+            # Fallback: sometimes the next line capture still includes border
+            # glyphs; search the full next row as a last resort.
+            m = re.search(r"([A-Za-z0-9._-]+\\.txt)", lines[i + 1])
+            if m:
+                return m.group(1)
+    return None
+
+
+def _stats_current_dir_contains(lines, marker):
+    split_x = _detect_stats_split_x(lines)
+    for i, line in enumerate(lines):
+        segment = line[split_x:] if split_x is not None else line
+        if "CURRENT DIR" not in segment:
+            continue
+        for j in (1, 2):
+            idx = i + j
+            if idx >= len(lines):
+                continue
+            candidate = lines[idx][split_x:] if split_x is not None else lines[idx]
+            if marker in candidate:
+                return True
+    return False
+
+
+def _configure_filediff_capture(tmp_dir):
+    log_path = tmp_dir / "filediff_args.log"
+    helper_path = tmp_dir / ".capture_filediff.sh"
+    helper_path.write_text(
+        "#!/bin/sh\n"
+        f"printf '%s\\n' \"$@\" > {shlex.quote(str(log_path))}\n",
+        encoding="utf-8",
+    )
+    helper_path.chmod(0o755)
+
+    (tmp_dir / ".ytree").write_text(
+        f"[GLOBAL]\nFILEDIFF={helper_path}\n",
+        encoding="utf-8",
+    )
+    return log_path
+
+
+def _wait_for_file(path, timeout=2.0):
+    end = time.time() + timeout
+    while time.time() < end:
+        if path.exists():
+            return True
+        time.sleep(0.05)
+    return False
 
 def _detect_split_column(lines):
     if len(lines) < 3:
@@ -319,6 +390,8 @@ def test_split_tab_back_preserves_selected_file_index(tmp_path, ytree_binary):
     (alpha / "alpha_2.txt").write_text("2\n", encoding="utf-8")
     (beta / "beta_0.txt").write_text("b\n", encoding="utf-8")
 
+    log_path = _configure_filediff_capture(root)
+
     tui = YtreeTUI(executable=ytree_binary, cwd=str(root))
     time.sleep(0.8)
 
@@ -346,8 +419,16 @@ def test_split_tab_back_preserves_selected_file_index(tmp_path, ytree_binary):
 
     tui.send_keystroke("J", wait=0.3)
     assert tui.wait_for_content("COMPARE TARGET:", timeout=1.0)
-    tui.send_keystroke(Keys.ENTER, wait=0.3)
-    assert tui.wait_for_content("SOURCE: alpha_2.txt", timeout=1.0)
+    tui.send_keystroke(Keys.ENTER, wait=0.55)
+    tui.send_keystroke(Keys.ENTER, wait=0.35)  # HitReturnToContinue
+
+    assert _wait_for_file(log_path, timeout=2.0), "FILEDIFF helper did not run."
+    logged = log_path.read_text(encoding="utf-8").splitlines()
+    assert len(logged) >= 2, f"FILEDIFF should receive source+target args.\nArgs: {logged}"
+    assert logged[0] == str(alpha / "alpha_2.txt"), (
+        "Split-tab round-trip changed selected source file.\n"
+        f"Expected source: {alpha / 'alpha_2.txt'}\nActual source: {logged[0]}"
+    )
 
     tui.quit()
 
@@ -452,6 +533,111 @@ def test_f8_active_header_sync(dual_panel_sandbox, ytree_binary):
 
     if "right_dir" not in header_line:
         pytest.fail(f"HEADER SYNC BUG: Expected 'right_dir' in header, but got:\n{header_line}")
+
+    tui.quit()
+
+
+def test_volume_cycle_restores_prior_directory_selection(tmp_path, ytree_binary):
+    vol_rich = tmp_path / "vol_rich_restore_selection"
+    vol_sparse_b = tmp_path / "vol_sparse_b_restore_selection"
+    vol_sparse_c = tmp_path / "vol_sparse_c_restore_selection"
+    vol_rich.mkdir()
+    vol_sparse_b.mkdir()
+    vol_sparse_c.mkdir()
+
+    for i in range(6):
+        d = vol_rich / f"r_dir_{i}"
+        d.mkdir()
+        (d / f"r_file_{i}_unique.txt").write_text(f"{i}\n", encoding="utf-8")
+
+    (vol_sparse_b / "b_dir_0").mkdir()
+    (vol_sparse_b / "b_dir_0" / "b_file_0_unique.txt").write_text("b\n", encoding="utf-8")
+    (vol_sparse_c / "c_dir_0").mkdir()
+    (vol_sparse_c / "c_dir_0" / "c_file_0_unique.txt").write_text("c\n", encoding="utf-8")
+
+    tui = YtreeTUI(
+        executable=ytree_binary,
+        cwd=str(tmp_path),
+        args=[str(vol_rich), str(vol_sparse_b), str(vol_sparse_c)],
+    )
+    time.sleep(1.0)
+
+    def active_volume_name():
+        header = tui.get_screen_dump()[0]
+        for name in (
+            "vol_rich_restore_selection",
+            "vol_sparse_b_restore_selection",
+            "vol_sparse_c_restore_selection",
+        ):
+            if name in header:
+                return name
+        return None
+
+    # Normalize to the rich volume first so we can choose a non-trivial index.
+    for _ in range(12):
+        if active_volume_name() == "vol_rich_restore_selection":
+            break
+        tui.send_keystroke(">", wait=0.35)
+    assert active_volume_name() == "vol_rich_restore_selection", (
+        "Could not switch to rich volume for selection restore test.\n"
+        + "\n".join(tui.get_screen_dump())
+    )
+    start_vol = "vol_rich_restore_selection"
+
+    # Move off the default/root selection before capturing target.
+    tui.send_keystroke(Keys.DOWN, wait=0.25)
+    tui.send_keystroke(Keys.DOWN, wait=0.25)
+    tui.send_keystroke(Keys.DOWN, wait=0.25)
+    tui.send_keystroke(Keys.DOWN, wait=0.25)
+    tui.send_keystroke(Keys.ENTER, wait=0.45)
+    assert "hex j compare" in _footer_text(tui)
+
+    screen = "\n".join(tui.get_screen_dump())
+    expected_file = None
+    for candidate in (
+        "r_file_0_unique.txt",
+        "r_file_1_unique.txt",
+        "r_file_2_unique.txt",
+        "r_file_3_unique.txt",
+        "r_file_4_unique.txt",
+        "r_file_5_unique.txt",
+    ):
+        if candidate in screen:
+            expected_file = candidate
+            break
+    assert expected_file is not None, (
+        "Failed to detect selected file on initial volume before cycling.\n" + screen
+    )
+
+    tui.send_keystroke(Keys.ESC, wait=0.35)
+    assert "dir      attributes brief compare" in _footer_text(tui)
+    lines = tui.get_screen_dump()
+    expected_dir = expected_file.replace("r_file_", "r_dir_").replace("_unique.txt", "")
+    assert _stats_current_dir_contains(lines, expected_dir), (
+        "Baseline check failed: selected directory was not retained after leaving file view.\n"
+        f"Expected selected dir marker: {expected_dir}\n" + "\n".join(lines)
+    )
+
+    # Cycle away and back.
+    seen_other = False
+    returned = False
+    for _ in range(18):
+        tui.send_keystroke(">", wait=0.45)
+        current = active_volume_name()
+        if current and current != start_vol:
+            seen_other = True
+        if seen_other and current == start_vol:
+            returned = True
+            break
+
+    assert returned, "Did not return to start volume while cycling loaded volumes."
+
+    lines = tui.get_screen_dump()
+    screen = "\n".join(lines)
+    assert _stats_current_dir_contains(lines, expected_dir), (
+        "Directory selection was not restored after cycling volumes away/back.\n"
+        f"Expected selected dir marker: {expected_dir}\n{screen}"
+    )
 
     tui.quit()
 
@@ -759,6 +945,8 @@ def test_active_mode_toggles_do_not_mutate_inactive_file_state(tmp_path, ytree_b
     (alpha / "alpha_1.txt").write_text("1\n", encoding="utf-8")
     (beta / "beta_0.txt").write_text("0\n", encoding="utf-8")
 
+    log_path = _configure_filediff_capture(root)
+
     tui = YtreeTUI(executable=ytree_binary, cwd=str(root))
     time.sleep(0.8)
 
@@ -787,9 +975,118 @@ def test_active_mode_toggles_do_not_mutate_inactive_file_state(tmp_path, ytree_b
     assert "hex j compare" in _footer_text(tui)
     tui.send_keystroke("J", wait=0.3)
     assert tui.wait_for_content("COMPARE TARGET:", timeout=1.0)
-    tui.send_keystroke(Keys.ENTER, wait=0.3)
-    assert tui.wait_for_content("SOURCE: alpha_1.txt", timeout=1.0), (
+    tui.send_keystroke(Keys.ENTER, wait=0.55)
+    tui.send_keystroke(Keys.ENTER, wait=0.35)  # HitReturnToContinue
+    assert _wait_for_file(log_path, timeout=2.0), "FILEDIFF helper did not run."
+    logged = log_path.read_text(encoding="utf-8").splitlines()
+    assert len(logged) >= 2, f"FILEDIFF should receive source+target args.\nArgs: {logged}"
+    assert logged[0] == str(alpha / "alpha_1.txt"), (
         "Active-panel mode changes mutated inactive panel file selection/state."
+    )
+
+    tui.quit()
+
+
+def test_split_from_file_keeps_inactive_file_selection_independent(tmp_path, ytree_binary):
+    root = tmp_path / "split_file_independent_scroll_state"
+    root.mkdir()
+    alpha = root / "alpha"
+    alpha.mkdir()
+
+    (alpha / "alpha_0.txt").write_text("0\n", encoding="utf-8")
+    (alpha / "alpha_1.txt").write_text("1\n", encoding="utf-8")
+    (alpha / "alpha_2.txt").write_text("2\n", encoding="utf-8")
+    (alpha / "alpha_3.txt").write_text("3\n", encoding="utf-8")
+
+    log_path = _configure_filediff_capture(root)
+
+    tui = YtreeTUI(executable=ytree_binary, cwd=str(root))
+    time.sleep(0.8)
+
+    tui.send_keystroke(Keys.DOWN, wait=0.2)
+    tui.send_keystroke(Keys.ENTER, wait=0.4)  # Enter alpha
+    assert "hex j compare" in _footer_text(tui)
+
+    # Set split baseline to alpha_1.
+    tui.send_keystroke(Keys.DOWN, wait=0.2)
+
+    tui.send_keystroke(Keys.F8, wait=0.4)
+    assert "hex j compare" in _footer_text(tui)
+
+    # Move active panel to alpha_3; inactive panel should remain on alpha_1.
+    tui.send_keystroke(Keys.DOWN, wait=0.2)
+    tui.send_keystroke(Keys.DOWN, wait=0.2)
+
+    tui.send_keystroke(Keys.TAB, wait=0.4)
+    if "hex j compare" not in _footer_text(tui):
+        tui.send_keystroke(Keys.ENTER, wait=0.4)
+    assert "hex j compare" in _footer_text(tui)
+
+    tui.send_keystroke("J", wait=0.3)
+    assert tui.wait_for_content("COMPARE TARGET:", timeout=1.0)
+    tui.send_keystroke(Keys.ENTER, wait=0.55)
+    tui.send_keystroke(Keys.ENTER, wait=0.35)  # HitReturnToContinue
+
+    assert _wait_for_file(log_path, timeout=2.0), "FILEDIFF helper did not run."
+    logged = log_path.read_text(encoding="utf-8").splitlines()
+    assert len(logged) >= 2, f"FILEDIFF should receive source+target args.\nArgs: {logged}"
+    assert logged[0] == str(alpha / "alpha_1.txt"), (
+        "Inactive panel file selection tracked active scrolling after split-from-file."
+    )
+
+    tui.quit()
+
+
+def test_log_new_volume_from_file_view_resets_focus_and_selection(tmp_path, ytree_binary):
+    root = tmp_path / "file_log_new_volume_resets_focus"
+    root.mkdir()
+    alpha = root / "alpha"
+    beta = root / "beta"
+    alpha.mkdir()
+    beta.mkdir()
+
+    (alpha / "alpha_0.txt").write_text("0\n", encoding="utf-8")
+    (alpha / "alpha_1.txt").write_text("1\n", encoding="utf-8")
+    (alpha / "alpha_2.txt").write_text("2\n", encoding="utf-8")
+    (beta / "beta_0.txt").write_text("0\n", encoding="utf-8")
+    (beta / "beta_1.txt").write_text("1\n", encoding="utf-8")
+    (beta / "beta_2.txt").write_text("2\n", encoding="utf-8")
+    compare_target = root / "compare_target.txt"
+    compare_target.write_text("target\n", encoding="utf-8")
+
+    log_path = _configure_filediff_capture(root)
+
+    tui = YtreeTUI(executable=ytree_binary, cwd=str(root))
+    time.sleep(0.8)
+
+    # Enter alpha file view and select a non-first file.
+    tui.send_keystroke(Keys.DOWN, wait=0.2)
+    tui.send_keystroke(Keys.ENTER, wait=0.4)
+    tui.send_keystroke(Keys.DOWN, wait=0.2)
+    tui.send_keystroke(Keys.DOWN, wait=0.2)
+    assert "hex j compare" in _footer_text(tui)
+
+    # Log a new volume directly from file view.
+    tui.send_keystroke(Keys.LOG, wait=0.2)
+    tui.send_keystroke(Keys.CTRL_U + str(beta) + Keys.ENTER, wait=0.8)
+
+    # Must return to directory mode first (no implicit file-window entry).
+    footer = _footer_text(tui)
+    assert "dir      attributes brief compare" in footer, (
+        "Logging a new volume from file view should return to directory mode."
+    )
+
+    # Enter file view explicitly and ensure selection starts at first file.
+    tui.send_keystroke(Keys.ENTER, wait=0.5)
+    tui.send_keystroke("J", wait=0.3)
+    assert tui.wait_for_content("COMPARE TARGET:", timeout=1.0)
+    tui.send_keystroke(Keys.CTRL_U + str(compare_target) + Keys.ENTER, wait=0.55)
+    tui.send_keystroke(Keys.ENTER, wait=0.35)  # HitReturnToContinue
+    assert _wait_for_file(log_path, timeout=2.0), "FILEDIFF helper did not run."
+    logged = log_path.read_text(encoding="utf-8").splitlines()
+    assert len(logged) >= 2, f"FILEDIFF should receive source+target args.\nArgs: {logged}"
+    assert logged[0] == str(beta / "beta_0.txt"), (
+        "Newly logged volume file selection should reset to first entry."
     )
 
     tui.quit()

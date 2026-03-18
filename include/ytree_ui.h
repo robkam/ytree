@@ -270,9 +270,15 @@ extern int UI_BuildDirectoryCompareRequest(ViewContext *ctx,
                                            DirEntry *source_dir,
                                            CompareFlowType flow_type,
                                            CompareRequest *request);
+extern int UI_BuildDirectoryCompareLaunchRequest(ViewContext *ctx,
+                                                 DirEntry *source_dir,
+                                                 CompareFlowType flow_type,
+                                                 CompareRequest *request);
 extern const char *UI_CompareFlowTypeName(CompareFlowType flow_type);
 extern const char *UI_CompareBasisName(CompareBasis basis);
 extern const char *UI_CompareTagResultName(CompareTagResult tag_result);
+extern const char *UI_GetCompareHelperCommand(ViewContext *ctx,
+                                              CompareFlowType flow_type);
 extern int UI_ConflictResolverWrapper(ViewContext *ctx, const char *src_path,
                                       const char *dst_path, int *mode_flags);
 extern void BuildFileEntryList(ViewContext *ctx, YtreePanel *panel);

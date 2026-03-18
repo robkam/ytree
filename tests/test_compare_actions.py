@@ -1,4 +1,5 @@
 import time
+import shlex
 
 from tui_harness import YtreeTUI
 from ytree_keys import Keys
@@ -24,6 +25,61 @@ def _assert_no_footer_artifacts(tui):
         line for line in footer_lines if line.strip() and len(line.strip()) == 1 and line.strip().isalpha()
     ]
     assert not artifact_lines, f"Footer contained lone alphabetic artifact(s): {artifact_lines}\nFooter:\n{footer_text}"
+
+
+def _configure_filediff_capture(tmp_dir, use_placeholders=False):
+    log_path = tmp_dir / "filediff_args.log"
+    helper_path = tmp_dir / ".capture_filediff.sh"
+    helper_path.write_text(
+        "#!/bin/sh\n"
+        f"printf '%s\\n' \"$@\" > {shlex.quote(str(log_path))}\n",
+        encoding="utf-8",
+    )
+    helper_path.chmod(0o755)
+
+    filediff_cmd = str(helper_path)
+    if use_placeholders:
+        filediff_cmd = f"{filediff_cmd} %1 %2"
+
+    (tmp_dir / ".ytree").write_text(
+        f"[GLOBAL]\nFILEDIFF={filediff_cmd}\n",
+        encoding="utf-8",
+    )
+    return log_path
+
+
+def _configure_dirdiff_capture(tmp_dir):
+    log_path = tmp_dir / "dirdiff_args.log"
+    helper_path = tmp_dir / ".capture_dirdiff.sh"
+    helper_path.write_text(
+        "#!/bin/sh\n"
+        f"printf '%s\\n' \"$@\" > {shlex.quote(str(log_path))}\n",
+        encoding="utf-8",
+    )
+    helper_path.chmod(0o755)
+
+    (tmp_dir / ".ytree").write_text(
+        f"[GLOBAL]\nDIRDIFF={helper_path}\nTREEDIFF={helper_path}\n",
+        encoding="utf-8",
+    )
+    return log_path
+
+
+def _wait_for_file(path, timeout=2.0):
+    end = time.time() + timeout
+    while time.time() < end:
+        if path.exists():
+            return True
+        time.sleep(0.05)
+    return False
+
+
+def _run_file_compare(tui, target=None, wait=0.5):
+    if target is None:
+        tui.send_keystroke(Keys.ENTER, wait=wait)
+    else:
+        tui.send_keystroke(Keys.CTRL_U + target + Keys.ENTER, wait=wait)
+    tui.send_keystroke(Keys.ENTER, wait=0.35)  # HitReturnToContinue after helper exits
 
 
 def test_compare_footer_entries_by_view(ytree_binary, tmp_path):
@@ -86,6 +142,48 @@ def test_compare_submenu_d_and_t_choices_prompt_expected_targets(ytree_binary, t
     tui.quit()
 
 
+def test_compare_submenu_x_launches_external_dirdiff_without_tag_prompt(
+    ytree_binary, tmp_path
+):
+    d = tmp_path / "compare_submenu_external"
+    d.mkdir()
+    alpha = d / "alpha"
+    beta = d / "beta"
+    alpha.mkdir()
+    beta.mkdir()
+    (alpha / "a.txt").write_text("a", encoding="utf-8")
+    (beta / "b.txt").write_text("b", encoding="utf-8")
+    log_path = _configure_dirdiff_capture(d)
+
+    tui = YtreeTUI(executable=ytree_binary, cwd=str(d))
+    time.sleep(0.6)
+    tui.send_keystroke(Keys.DOWN, wait=0.2)  # alpha
+
+    tui.send_keystroke("C", wait=0.2)
+    assert tui.wait_for_content("COMPARE SCOPE:", timeout=1.0)
+    tui.send_keystroke("X", wait=0.2)
+    assert tui.wait_for_content("EXTERNAL VIEWER:", timeout=1.0)
+    tui.send_keystroke("D", wait=0.2)
+    assert tui.wait_for_content("COMPARE TARGET:", timeout=1.0)
+    tui.send_keystroke(Keys.CTRL_U + str(beta) + Keys.ENTER, wait=0.55)
+    tui.send_keystroke(Keys.ENTER, wait=0.35)  # HitReturnToContinue
+
+    assert _wait_for_file(log_path, timeout=2.0), "DIRDIFF helper did not run."
+    logged = log_path.read_text(encoding="utf-8").splitlines()
+    assert logged == [str(alpha), str(beta)], (
+        "DIRDIFF should receive source and target directory paths.\n"
+        f"Args: {logged}"
+    )
+    assert not tui.wait_for_content("COMPARE BASIS:", timeout=0.4), (
+        "External directory compare should not prompt for compare basis."
+    )
+    assert not tui.wait_for_content("TAG FILE LIST:", timeout=0.4), (
+        "External directory compare should not prompt for tag result."
+    )
+
+    tui.quit()
+
+
 def test_non_f8_compare_target_prompting_for_file_dir_tree(ytree_binary, tmp_path):
     d = tmp_path / "compare_non_f8_prompt"
     d.mkdir()
@@ -123,6 +221,8 @@ def test_compare_target_prompt_reuses_shared_edit_navigation_behavior(ytree_bina
     (d / "a.txt").write_text("a", encoding="utf-8")
     (d / "b.txt").write_text("b", encoding="utf-8")
     remembered_target = str(d / "remembered_target.txt")
+    (d / "remembered_target.txt").write_text("remembered", encoding="utf-8")
+    log_path = _configure_filediff_capture(d)
 
     tui = YtreeTUI(executable=ytree_binary, cwd=str(d))
     time.sleep(0.5)
@@ -130,10 +230,13 @@ def test_compare_target_prompt_reuses_shared_edit_navigation_behavior(ytree_bina
 
     tui.send_keystroke("J", wait=0.2)
     assert tui.wait_for_content("COMPARE TARGET:", timeout=1.0)
-    tui.send_keystroke(Keys.CTRL_U + remembered_target + Keys.ENTER, wait=0.4)
-    assert tui.wait_for_content("Compare execution not implemented yet.", timeout=1.0)
-    assert tui.wait_for_content("TARGET: remembered_target.txt", timeout=1.0)
-    tui.send_keystroke(Keys.ENTER, wait=0.2)
+    _run_file_compare(tui, remembered_target, wait=0.55)
+    assert _wait_for_file(log_path, timeout=2.0), "FILEDIFF helper did not run."
+    logged = log_path.read_text(encoding="utf-8").splitlines()
+    assert len(logged) == 2, f"FILEDIFF should receive source+target args.\nArgs: {logged}"
+    assert logged[1] == remembered_target, (
+        f"FILEDIFF target mismatch.\nExpected: {remembered_target}\nActual: {logged[1]}"
+    )
 
     tui.send_keystroke("J", wait=0.2)
     assert tui.wait_for_content("COMPARE TARGET:", timeout=1.0)
@@ -153,6 +256,7 @@ def test_f8_file_compare_uses_inactive_panel_default_target(ytree_binary, tmp_pa
     (left_dir / "left.txt").write_text("left", encoding="utf-8")
     right_file = right_dir / "right.txt"
     right_file.write_text("right", encoding="utf-8")
+    log_path = _configure_filediff_capture(d)
 
     tui = YtreeTUI(executable=ytree_binary, cwd=str(d))
     time.sleep(0.7)
@@ -173,11 +277,120 @@ def test_f8_file_compare_uses_inactive_panel_default_target(ytree_binary, tmp_pa
 
     assert tui.wait_for_content("COMPARE TARGET:", timeout=1.0)
     assert tui.wait_for_content("right.txt", timeout=1.0)
-    tui.send_keystroke(Keys.ENTER, wait=0.3)
-    assert tui.wait_for_content("Compare execution not implemented yet.", timeout=1.0)
-    assert tui.wait_for_content("TARGET: right.txt", timeout=1.0)
+    _run_file_compare(tui, wait=0.55)
+    assert _wait_for_file(log_path, timeout=2.0), "FILEDIFF helper did not run."
+    logged = log_path.read_text(encoding="utf-8").splitlines()
+    assert len(logged) == 2, f"FILEDIFF should receive source+target args.\nArgs: {logged}"
+    assert logged[0].endswith("left.txt"), f"Unexpected source arg: {logged[0]}"
+    assert logged[1] == str(right_file), f"Unexpected target arg: {logged[1]}"
+    tui.quit()
 
-    tui.send_keystroke(Keys.ENTER, wait=0.2)
+
+def test_file_compare_placeholder_expansion_passes_source_and_target(ytree_binary, tmp_path):
+    d = tmp_path / "compare_placeholder_expansion"
+    d.mkdir()
+    source = d / "source.txt"
+    target = d / "target.txt"
+    source.write_text("left", encoding="utf-8")
+    target.write_text("right", encoding="utf-8")
+    log_path = _configure_filediff_capture(d, use_placeholders=True)
+
+    tui = YtreeTUI(executable=ytree_binary, cwd=str(d))
+    time.sleep(0.6)
+    tui.send_keystroke(Keys.ENTER, wait=0.35)
+    tui.send_keystroke("J", wait=0.25)
+    assert tui.wait_for_content("COMPARE TARGET:", timeout=1.0)
+    _run_file_compare(tui, str(target), wait=0.55)
+
+    assert _wait_for_file(log_path, timeout=2.0), "FILEDIFF helper did not run."
+    logged = log_path.read_text(encoding="utf-8").splitlines()
+    assert logged == [str(source), str(target)], (
+        "FILEDIFF %1/%2 placeholder expansion should pass source then target.\n"
+        f"Args: {logged}"
+    )
+
+    tui.quit()
+
+
+def test_log_then_cycle_back_preserves_file_selection_across_two_volumes(
+    ytree_binary, tmp_path
+):
+    root = tmp_path / "compare_two_volume_file_selection"
+    root.mkdir()
+    vol_a = root / "vol_a"
+    vol_b = root / "vol_b"
+    vol_a.mkdir()
+    vol_b.mkdir()
+    (vol_a / "a_0.txt").write_text("0\n", encoding="utf-8")
+    (vol_a / "a_1.txt").write_text("1\n", encoding="utf-8")
+    (vol_a / "a_2.txt").write_text("2\n", encoding="utf-8")
+    (vol_a / "a_3.txt").write_text("3\n", encoding="utf-8")
+    (vol_b / "b_0.txt").write_text("b0\n", encoding="utf-8")
+    (vol_b / "b_1.txt").write_text("b1\n", encoding="utf-8")
+    compare_target = root / "compare_target.txt"
+    compare_target.write_text("target\n", encoding="utf-8")
+    log_path = _configure_filediff_capture(root)
+
+    tui = YtreeTUI(
+        executable=ytree_binary,
+        cwd=str(root),
+        args=[str(vol_a), str(vol_b)],
+    )
+    time.sleep(0.8)
+
+    def active_volume_name():
+        header = tui.get_screen_dump()[0]
+        for name in ("vol_a", "vol_b"):
+            if name in header:
+                return name
+        return None
+
+    for _ in range(8):
+        if active_volume_name() == "vol_a":
+            break
+        tui.send_keystroke(">", wait=0.3)
+    assert active_volume_name() == "vol_a"
+
+    tui.send_keystroke(Keys.ENTER, wait=0.4)
+    assert "hex j compare" in _footer_text(tui)
+    tui.send_keystroke(Keys.DOWN, wait=0.2)
+    tui.send_keystroke(Keys.DOWN, wait=0.2)
+    tui.send_keystroke(Keys.DOWN, wait=0.2)
+
+    tui.send_keystroke("J", wait=0.25)
+    assert tui.wait_for_content("COMPARE TARGET:", timeout=1.0)
+    _run_file_compare(tui, str(compare_target), wait=0.55)
+    assert _wait_for_file(log_path, timeout=2.0), "FILEDIFF helper did not run."
+    initial_source = log_path.read_text(encoding="utf-8").splitlines()[0]
+
+    tui.send_keystroke("L", wait=0.3)
+    assert tui.wait_for_content("Log Path:", timeout=1.0)
+    tui.send_keystroke(Keys.CTRL_U + str(vol_b) + Keys.ENTER, wait=0.8)
+
+    if "hex j compare" not in _footer_text(tui):
+        tui.send_keystroke(Keys.ENTER, wait=0.4)
+    assert "hex j compare" in _footer_text(tui)
+
+    for _ in range(8):
+        if active_volume_name() == "vol_a":
+            break
+        tui.send_keystroke(">", wait=0.4)
+    assert active_volume_name() == "vol_a", "Failed to cycle back to first volume."
+
+    if "hex j compare" not in _footer_text(tui):
+        tui.send_keystroke(Keys.ENTER, wait=0.4)
+    assert "hex j compare" in _footer_text(tui)
+
+    tui.send_keystroke("J", wait=0.25)
+    assert tui.wait_for_content("COMPARE TARGET:", timeout=1.0)
+    _run_file_compare(tui, str(compare_target), wait=0.55)
+    logged = log_path.read_text(encoding="utf-8").splitlines()
+    assert len(logged) >= 2
+    assert logged[0] == initial_source, (
+        "File selection was not preserved after log+cycle with two volumes.\n"
+        f"Expected source: {initial_source}\nActual source: {logged[0]}"
+    )
+
     tui.quit()
 
 
@@ -290,6 +503,46 @@ def test_compare_flow_cancel_is_safe_and_footer_remains_clean(ytree_binary, tmp_
     tui.quit()
 
 
+def test_file_compare_cancel_path_is_safe(ytree_binary, tmp_path):
+    d = tmp_path / "compare_file_cancel_safe"
+    d.mkdir()
+    (d / "alpha.txt").write_text("a", encoding="utf-8")
+    log_path = _configure_filediff_capture(d)
+
+    tui = YtreeTUI(executable=ytree_binary, cwd=str(d))
+    time.sleep(0.5)
+    tui.send_keystroke(Keys.ENTER, wait=0.35)
+    tui.send_keystroke("J", wait=0.25)
+    assert tui.wait_for_content("COMPARE TARGET:", timeout=1.0)
+    tui.send_keystroke(Keys.ESC, wait=0.2)
+
+    assert not log_path.exists(), "Cancelling file compare prompt should not launch FILEDIFF."
+    _assert_no_footer_artifacts(tui)
+    tui.quit()
+
+
+def test_file_compare_rejects_same_file_target(ytree_binary, tmp_path):
+    d = tmp_path / "compare_same_file_reject"
+    d.mkdir()
+    (d / "same.txt").write_text("x", encoding="utf-8")
+    log_path = _configure_filediff_capture(d)
+
+    tui = YtreeTUI(executable=ytree_binary, cwd=str(d))
+    time.sleep(0.5)
+    tui.send_keystroke(Keys.ENTER, wait=0.35)
+    tui.send_keystroke("J", wait=0.25)
+    assert tui.wait_for_content("COMPARE TARGET:", timeout=1.0)
+    tui.send_keystroke(Keys.ENTER, wait=0.35)
+
+    assert tui.wait_for_content("Can't compare: source and target", timeout=1.0), (
+        "Selecting the source file as compare target should be rejected."
+    )
+    assert not log_path.exists(), "Same-file compare rejection should not run helper."
+
+    tui.send_keystroke(Keys.ENTER, wait=0.2)  # Close message dialog
+    tui.quit()
+
+
 def test_compare_prompt_labels_and_result_text(ytree_binary, tmp_path):
     d = tmp_path / "compare_prompt_labels"
     d.mkdir()
@@ -378,6 +631,39 @@ def test_compare_help_f1_open_close_and_prompt_restore(ytree_binary, tmp_path):
     assert tui.wait_for_content("TAG FILE LIST:", timeout=1.0)
     tui.send_keystroke(Keys.ESC, wait=0.2)
 
+    _assert_no_footer_artifacts(tui)
+    tui.quit()
+
+
+def test_split_filemode_toggle_truncates_footer_without_wrapping(ytree_binary, tmp_path):
+    d = tmp_path / "split_footer_clip_filemode"
+    d.mkdir()
+    (d / "a.txt").write_text("a", encoding="utf-8")
+    (d / "b.txt").write_text("b", encoding="utf-8")
+
+    tui = YtreeTUI(executable=ytree_binary, cwd=str(d))
+    time.sleep(0.6)
+
+    tui.send_keystroke(Keys.ENTER, wait=0.4)
+    assert "hex j compare" in _footer_text(tui)
+
+    tui.send_keystroke(Keys.F8, wait=0.4)
+    assert "hex j compare" in _footer_text(tui)
+
+    # Ctrl-F toggles file mode; footer text must clip in-place, not wrap.
+    tui.send_keystroke("\x06", wait=0.4)
+    footer_lines = _footer_lines(tui)
+    footer_text = "\n".join(footer_lines).lower()
+
+    assert "commands" in footer_lines[1].lower(), (
+        "Footer commands line was corrupted after file mode toggle.\n" + footer_text
+    )
+    assert "f1 help" in footer_lines[2].lower(), (
+        "Footer nav/help line was corrupted after file mode toggle.\n" + footer_text
+    )
+    assert "jump" not in footer_lines[2].lower(), (
+        "Footer text wrapped into nav/help line after file mode toggle.\n" + footer_text
+    )
     _assert_no_footer_artifacts(tui)
     tui.quit()
 
