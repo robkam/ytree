@@ -176,6 +176,324 @@ static void GetCommandDisplayName(const char *command_template,
   command_name[idx] = '\0';
 }
 
+typedef struct {
+  unsigned long source_entries;
+  unsigned long different_count;
+  unsigned long match_count;
+  unsigned long newer_count;
+  unsigned long older_count;
+  unsigned long unique_count;
+  unsigned long type_mismatch_count;
+  unsigned long error_count;
+  unsigned long tagged_count;
+} DirectoryCompareSummary;
+
+static int CompareStatMtime(const struct stat *source_stat,
+                            const struct stat *target_stat) {
+  if (!source_stat || !target_stat)
+    return 0;
+
+  if (source_stat->st_mtime > target_stat->st_mtime)
+    return 1;
+  if (source_stat->st_mtime < target_stat->st_mtime)
+    return -1;
+  return 0;
+}
+
+static BOOL IsSameEntryType(const struct stat *source_stat,
+                            const struct stat *target_stat) {
+  if (!source_stat || !target_stat)
+    return FALSE;
+  return (source_stat->st_mode & S_IFMT) == (target_stat->st_mode & S_IFMT);
+}
+
+static int CompareFileContentExact(const char *source_path,
+                                   const char *target_path) {
+  char source_buf[8192];
+  char target_buf[8192];
+  int source_fd = -1;
+  int target_fd = -1;
+  int result = -1;
+
+  if (!source_path || !target_path)
+    return -1;
+
+  source_fd = open(source_path, O_RDONLY);
+  if (source_fd == -1)
+    return -1;
+
+  target_fd = open(target_path, O_RDONLY);
+  if (target_fd == -1) {
+    close(source_fd);
+    return -1;
+  }
+
+  while (1) {
+    ssize_t source_read;
+    ssize_t target_read;
+
+    do {
+      source_read = read(source_fd, source_buf, sizeof(source_buf));
+    } while (source_read < 0 && errno == EINTR);
+    if (source_read < 0) {
+      result = -1;
+      break;
+    }
+
+    do {
+      target_read = read(target_fd, target_buf, sizeof(target_buf));
+    } while (target_read < 0 && errno == EINTR);
+    if (target_read < 0) {
+      result = -1;
+      break;
+    }
+
+    if (source_read != target_read) {
+      result = 0;
+      break;
+    }
+    if (source_read == 0) {
+      result = 1;
+      break;
+    }
+    if (memcmp(source_buf, target_buf, (size_t)source_read) != 0) {
+      result = 0;
+      break;
+    }
+  }
+
+  close(source_fd);
+  close(target_fd);
+  return result;
+}
+
+static int EvaluateDirectoryCompareBasis(CompareBasis basis,
+                                         const struct stat *source_stat,
+                                         const char *source_path,
+                                         const struct stat *target_stat,
+                                         const char *target_path,
+                                         BOOL *basis_match) {
+  int hash_compare_result;
+
+  if (!source_stat || !source_path || !target_stat || !target_path ||
+      !basis_match) {
+    return -1;
+  }
+
+  switch (basis) {
+  case COMPARE_BASIS_SIZE:
+    *basis_match = (source_stat->st_size == target_stat->st_size);
+    return 0;
+  case COMPARE_BASIS_DATE:
+    *basis_match = (CompareStatMtime(source_stat, target_stat) == 0);
+    return 0;
+  case COMPARE_BASIS_SIZE_AND_DATE:
+    *basis_match = (source_stat->st_size == target_stat->st_size &&
+                    CompareStatMtime(source_stat, target_stat) == 0);
+    return 0;
+  case COMPARE_BASIS_HASH:
+    if (!S_ISREG(source_stat->st_mode) || !S_ISREG(target_stat->st_mode)) {
+      errno = EINVAL;
+      return -1;
+    }
+    if (source_stat->st_size != target_stat->st_size) {
+      *basis_match = FALSE;
+      return 0;
+    }
+    hash_compare_result = CompareFileContentExact(source_path, target_path);
+    if (hash_compare_result < 0)
+      return -1;
+    *basis_match = (hash_compare_result == 1);
+    return 0;
+  default:
+    return -1;
+  }
+}
+
+static BOOL ShouldTagComparedFile(CompareTagResult tag_result, BOOL is_error,
+                                  BOOL is_unique, BOOL is_type_mismatch,
+                                  BOOL has_target, BOOL basis_known,
+                                  BOOL basis_match, int mtime_cmp) {
+  switch (tag_result) {
+  case COMPARE_TAG_DIFFERENT:
+    return (!is_error && !is_unique && !is_type_mismatch && basis_known &&
+            !basis_match);
+  case COMPARE_TAG_MATCH:
+    return (!is_error && !is_unique && !is_type_mismatch && basis_known &&
+            basis_match);
+  case COMPARE_TAG_NEWER:
+    return (!is_error && !is_type_mismatch && has_target && mtime_cmp > 0);
+  case COMPARE_TAG_OLDER:
+    return (!is_error && !is_type_mismatch && has_target && mtime_cmp < 0);
+  case COMPARE_TAG_UNIQUE:
+    return is_unique;
+  case COMPARE_TAG_TYPE_MISMATCH:
+    return is_type_mismatch;
+  case COMPARE_TAG_ERROR:
+    return is_error;
+  default:
+    return FALSE;
+  }
+}
+
+static void TagComparedFile(FileEntry *source_file, Statistic *stats,
+                            unsigned long *tagged_count) {
+  DirEntry *owner_dir;
+  long long file_size;
+
+  if (!source_file || !stats || !source_file->dir_entry)
+    return;
+
+  if (source_file->tagged)
+    return;
+
+  owner_dir = source_file->dir_entry;
+  file_size = source_file->stat_struct.st_size;
+  source_file->tagged = TRUE;
+  owner_dir->tagged_files++;
+  owner_dir->tagged_bytes += file_size;
+  stats->disk_tagged_files++;
+  stats->disk_tagged_bytes += file_size;
+  if (tagged_count)
+    (*tagged_count)++;
+}
+
+static void RunInternalDirectoryCompare(ViewContext *ctx, DirEntry *source_dir,
+                                        const CompareRequest *request) {
+  struct stat source_dir_stat;
+  struct stat target_dir_stat;
+  char source_path[PATH_LENGTH + 1];
+  char target_path[PATH_LENGTH + 1];
+  char source_entry_path[PATH_LENGTH + 1];
+  char target_entry_path[PATH_LENGTH + 1];
+  FileEntry *source_file;
+  DirectoryCompareSummary summary;
+  Statistic *stats = NULL;
+
+  if (!ctx || !source_dir || !request)
+    return;
+
+  strncpy(source_path, request->source_path, PATH_LENGTH);
+  source_path[PATH_LENGTH] = '\0';
+
+  if (ResolveDirectoryCompareTargetPath(source_path, request->target_path,
+                                        target_path) != 0) {
+    UI_Message(ctx, "Compare target is empty or invalid.*Choose a target path.");
+    return;
+  }
+
+  if (STAT_(source_path, &source_dir_stat) != 0) {
+    UI_Message(ctx, "Compare source is not accessible:*\"%s\"*%s", source_path,
+               strerror(errno));
+    return;
+  }
+  if (STAT_(target_path, &target_dir_stat) != 0) {
+    UI_Message(ctx,
+               "Compare target does not exist:*\"%s\"*Select a valid directory.",
+               target_path);
+    return;
+  }
+  if (!S_ISDIR(source_dir_stat.st_mode) || !S_ISDIR(target_dir_stat.st_mode)) {
+    UI_Message(ctx, "Directory compare requires two directories.");
+    return;
+  }
+  if ((source_dir_stat.st_dev == target_dir_stat.st_dev &&
+       source_dir_stat.st_ino == target_dir_stat.st_ino) ||
+      !strcmp(source_path, target_path)) {
+    UI_Message(ctx, "Can't compare: source and target are the same directory.");
+    return;
+  }
+
+  memset(&summary, 0, sizeof(summary));
+  if (ctx->active && ctx->active->vol)
+    stats = &ctx->active->vol->vol_stats;
+
+  for (source_file = source_dir->file; source_file; source_file = source_file->next) {
+    struct stat source_stat;
+    struct stat target_stat;
+    BOOL has_target = FALSE;
+    BOOL is_unique = FALSE;
+    BOOL is_type_mismatch = FALSE;
+    BOOL is_error = FALSE;
+    BOOL basis_known = FALSE;
+    BOOL basis_match = FALSE;
+    int mtime_cmp = 0;
+    int written;
+
+    if (!source_file->matching)
+      continue;
+
+    summary.source_entries++;
+    GetFileNamePath(source_file, source_entry_path);
+    source_entry_path[PATH_LENGTH] = '\0';
+
+    written =
+        snprintf(target_entry_path, sizeof(target_entry_path), "%s%c%s",
+                 target_path, FILE_SEPARATOR_CHAR, source_file->name);
+    if (written < 0 || (size_t)written >= sizeof(target_entry_path)) {
+      is_error = TRUE;
+    } else if (STAT_(source_entry_path, &source_stat) != 0) {
+      is_error = TRUE;
+    } else if (STAT_(target_entry_path, &target_stat) != 0) {
+      if (errno == ENOENT)
+        is_unique = TRUE;
+      else
+        is_error = TRUE;
+    } else {
+      has_target = TRUE;
+      mtime_cmp = CompareStatMtime(&source_stat, &target_stat);
+      if (!IsSameEntryType(&source_stat, &target_stat)) {
+        is_type_mismatch = TRUE;
+      } else if (EvaluateDirectoryCompareBasis(request->basis, &source_stat,
+                                               source_entry_path, &target_stat,
+                                               target_entry_path,
+                                               &basis_match) == 0) {
+        basis_known = TRUE;
+        if (basis_match)
+          summary.match_count++;
+        else
+          summary.different_count++;
+      } else {
+        is_error = TRUE;
+      }
+    }
+
+    if (has_target && !is_error && !is_type_mismatch) {
+      if (mtime_cmp > 0)
+        summary.newer_count++;
+      else if (mtime_cmp < 0)
+        summary.older_count++;
+    }
+
+    if (is_error)
+      summary.error_count++;
+    else if (is_unique)
+      summary.unique_count++;
+    else if (is_type_mismatch)
+      summary.type_mismatch_count++;
+
+    if (ShouldTagComparedFile(request->tag_result, is_error, is_unique,
+                              is_type_mismatch, has_target, basis_known,
+                              basis_match, mtime_cmp)) {
+      TagComparedFile(source_file, stats, &summary.tagged_count);
+    }
+  }
+
+  UI_Message(
+      ctx,
+      "Directory compare complete.*SOURCE: %s*TARGET: %s*BASIS: %s"
+      "*SOURCE ENTRIES: %lu"
+      "*RESULT COUNTS: different=%lu match=%lu newer=%lu older=%lu unique=%lu "
+      "type-mismatch=%lu error=%lu"
+      "*TAGGED (%s): %lu file(s) in active/source list.",
+      PathLeafName(source_path), PathLeafName(target_path),
+      UI_CompareBasisName(request->basis), summary.source_entries,
+      summary.different_count, summary.match_count, summary.newer_count,
+      summary.older_count, summary.unique_count, summary.type_mismatch_count,
+      summary.error_count, UI_CompareTagResultName(request->tag_result),
+      summary.tagged_count);
+}
+
 static void LaunchExternalDirectoryCompare(ViewContext *ctx, DirEntry *source_dir,
                                            CompareFlowType flow_type) {
   CompareRequest request;
@@ -327,11 +645,17 @@ static void HandleDirectoryCompare(ViewContext *ctx, DirEntry *source_dir) {
 
   if (external_launch) {
     LaunchExternalDirectoryCompare(ctx, source_dir, flow_type);
+    RefreshView(ctx, source_dir);
     return;
   }
 
   if (UI_BuildDirectoryCompareRequest(ctx, source_dir, flow_type, &request) !=
       0) {
+    return;
+  }
+
+  if (flow_type == COMPARE_FLOW_DIRECTORY) {
+    RunInternalDirectoryCompare(ctx, source_dir, &request);
     return;
   }
 
