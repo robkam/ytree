@@ -1,5 +1,6 @@
 import time
 import shlex
+import os
 
 from tui_harness import YtreeTUI
 from ytree_keys import Keys
@@ -17,6 +18,17 @@ def _footer_text(tui):
     return "\n".join(_footer_lines(tui)).lower()
 
 
+def _has_border_glyphs(tui):
+    screen = _screen_text(tui)
+    for ch in ("│", "─", "┌", "┐", "└", "┘", "├", "┤", "┼"):
+        if ch in screen:
+            return True
+    # Some PTY/terminfo combinations surface ACS line drawing as ASCII fallback.
+    if "lqq" in screen and "\nx" in screen:
+        return True
+    return False
+
+
 def _assert_no_footer_artifacts(tui):
     footer_lines = _footer_lines(tui)
     footer_text = "\n".join(footer_lines).lower()
@@ -25,6 +37,30 @@ def _assert_no_footer_artifacts(tui):
         line for line in footer_lines if line.strip() and len(line.strip()) == 1 and line.strip().isalpha()
     ]
     assert not artifact_lines, f"Footer contained lone alphabetic artifact(s): {artifact_lines}\nFooter:\n{footer_text}"
+
+
+def _find_line_with_text(tui, needle):
+    for line in tui.get_screen_dump():
+        if needle in line:
+            return line
+    return None
+
+
+def _line_marks_file_as_tagged(line, filename):
+    idx = line.find(filename)
+    if idx <= 0:
+        return False
+    return "*" in line[:idx]
+
+
+def _assert_file_tag_state(tui, filename, expected_tagged):
+    line = _find_line_with_text(tui, filename)
+    assert line is not None, f"Could not find file row for {filename!r}.\nScreen:\n{_screen_text(tui)}"
+    is_tagged = _line_marks_file_as_tagged(line, filename)
+    assert is_tagged == expected_tagged, (
+        f"Unexpected tag state for {filename!r}. Expected tagged={expected_tagged}, got {is_tagged}.\n"
+        f"Row: {line}\nScreen:\n{_screen_text(tui)}"
+    )
 
 
 def _configure_filediff_capture(tmp_dir, use_placeholders=False):
@@ -179,6 +215,44 @@ def test_compare_submenu_x_launches_external_dirdiff_without_tag_prompt(
     )
     assert not tui.wait_for_content("TAG FILE LIST:", timeout=0.4), (
         "External directory compare should not prompt for tag result."
+    )
+
+    tui.quit()
+
+
+def test_external_dirdiff_return_restores_full_ncurses_frame(ytree_binary, tmp_path):
+    d = tmp_path / "compare_submenu_external_redraw"
+    d.mkdir()
+    alpha = d / "alpha"
+    beta = d / "beta"
+    alpha.mkdir()
+    beta.mkdir()
+    (alpha / "only_left.txt").write_text("left\n", encoding="utf-8")
+    (beta / "only_right.txt").write_text("right\n", encoding="utf-8")
+    (d / ".ytree").write_text(
+        "[GLOBAL]\nDIRDIFF=diff -ru\nTREEDIFF=diff -ru\n",
+        encoding="utf-8",
+    )
+
+    tui = YtreeTUI(executable=ytree_binary, cwd=str(d))
+    time.sleep(0.6)
+    tui.send_keystroke(Keys.DOWN, wait=0.2)  # alpha
+
+    tui.send_keystroke("C", wait=0.2)
+    assert tui.wait_for_content("COMPARE SCOPE:", timeout=1.0)
+    tui.send_keystroke("X", wait=0.2)
+    assert tui.wait_for_content("EXTERNAL VIEWER:", timeout=1.0)
+    tui.send_keystroke("D", wait=0.2)
+    assert tui.wait_for_content("COMPARE TARGET:", timeout=1.0)
+    tui.send_keystroke(Keys.CTRL_U + str(beta) + Keys.ENTER, wait=0.55)
+    tui.send_keystroke(Keys.ENTER, wait=0.35)  # HitReturnToContinue
+
+    assert "brief compare delete" in _footer_text(tui), (
+        "Directory footer should be restored after returning from external compare."
+    )
+    assert _has_border_glyphs(tui), (
+        "Screen frame/border glyphs disappeared after external compare return.\n"
+        f"Screen:\n{_screen_text(tui)}"
     )
 
     tui.quit()
@@ -401,8 +475,27 @@ def test_f8_directory_compare_uses_inactive_panel_default_target(ytree_binary, t
     beta = d / "beta"
     alpha.mkdir()
     beta.mkdir()
-    (alpha / "a.txt").write_text("a", encoding="utf-8")
-    (beta / "b.txt").write_text("b", encoding="utf-8")
+    diff_name = "diff.txt"
+    match_name = "match.txt"
+    alpha_diff = alpha / diff_name
+    beta_diff = beta / diff_name
+    alpha_match = alpha / match_name
+    beta_match = beta / match_name
+    alpha_diff.write_text("alpha-different-size\n", encoding="utf-8")
+    beta_diff.write_text("b\n", encoding="utf-8")
+    alpha_match.write_text("same-content\n", encoding="utf-8")
+    beta_match.write_text("same-content\n", encoding="utf-8")
+    (alpha / "alpha_only.txt").write_text("alpha-only\n", encoding="utf-8")
+    (beta / "beta_only.txt").write_text("beta-only\n", encoding="utf-8")
+
+    older_time = int(time.time()) - 3600
+    newer_time = int(time.time())
+    # Keep match.txt fully matching under size+date.
+    os.utime(alpha_match, (older_time, older_time))
+    os.utime(beta_match, (older_time, older_time))
+    # Keep diff.txt mtime equal so size+date mismatch is driven by size.
+    os.utime(alpha_diff, (newer_time, newer_time))
+    os.utime(beta_diff, (newer_time, newer_time))
 
     tui = YtreeTUI(executable=ytree_binary, cwd=str(d))
     time.sleep(0.7)
@@ -419,13 +512,26 @@ def test_f8_directory_compare_uses_inactive_panel_default_target(ytree_binary, t
     assert tui.wait_for_content("beta", timeout=1.0)
     tui.send_keystroke(Keys.ENTER, wait=0.3)
     assert tui.wait_for_content("COMPARE BASIS:", timeout=1.0)
-    tui.send_keystroke("S", wait=0.2)
+    tui.send_keystroke("Z", wait=0.2)
     assert tui.wait_for_content("TAG FILE LIST:", timeout=1.0)
     tui.send_keystroke("F", wait=0.3)
-    assert tui.wait_for_content("Compare execution not implemented yet.", timeout=1.0)
-    assert tui.wait_for_content("TARGET: beta", timeout=1.0)
+    assert tui.wait_for_content("Directory compare complete.", timeout=1.0)
+    assert tui.wait_for_content("BASIS: size+date", timeout=1.0)
+    assert tui.wait_for_content("TAGGED (different): 1", timeout=1.0)
 
-    tui.send_keystroke(Keys.ENTER, wait=0.2)
+    tui.send_keystroke(Keys.ENTER, wait=0.25)
+    _assert_no_footer_artifacts(tui)
+
+    # Active/source side (alpha) should have compare tags.
+    tui.send_keystroke(Keys.ENTER, wait=0.4)
+    _assert_file_tag_state(tui, diff_name, True)
+    _assert_file_tag_state(tui, match_name, False)
+
+    # Inactive/target side (beta) must not be tagged by compare.
+    tui.send_keystroke(Keys.TAB, wait=0.35)
+    tui.send_keystroke(Keys.ENTER, wait=0.4)
+    tui.send_keystroke(Keys.F8, wait=0.4)  # inspect target side without split overlay
+    _assert_file_tag_state(tui, diff_name, False)
     tui.quit()
 
 
