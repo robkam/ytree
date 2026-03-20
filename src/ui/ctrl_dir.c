@@ -186,6 +186,7 @@ typedef struct {
   unsigned long type_mismatch_count;
   unsigned long error_count;
   unsigned long tagged_count;
+  unsigned long skipped_unlogged_source_dirs;
 } DirectoryCompareSummary;
 
 static int CompareStatMtime(const struct stat *source_stat,
@@ -358,6 +359,66 @@ static void TagComparedFile(FileEntry *source_file, Statistic *stats,
     (*tagged_count)++;
 }
 
+static int BuildRelativeComparePath(const char *source_root_path,
+                                    const char *source_entry_path,
+                                    char *relative_path,
+                                    size_t relative_path_size) {
+  size_t root_len;
+  const char *relative_start;
+
+  if (!source_root_path || !source_entry_path || !relative_path ||
+      relative_path_size == 0) {
+    return -1;
+  }
+
+  root_len = strlen(source_root_path);
+  if (!strcmp(source_root_path, FILE_SEPARATOR_STRING)) {
+    if (source_entry_path[0] != FILE_SEPARATOR_CHAR || source_entry_path[1] == '\0')
+      return -1;
+    relative_start = source_entry_path + 1;
+  } else {
+    if (strncmp(source_entry_path, source_root_path, root_len) != 0)
+      return -1;
+    if (source_entry_path[root_len] != FILE_SEPARATOR_CHAR)
+      return -1;
+    if (source_entry_path[root_len + 1] == '\0')
+      return -1;
+    relative_start = source_entry_path + root_len + 1;
+  }
+
+  if (snprintf(relative_path, relative_path_size, "%s", relative_start) < 0 ||
+      strlen(relative_start) >= relative_path_size) {
+    return -1;
+  }
+
+  return 0;
+}
+
+static int BuildTargetComparePathFromRelative(const char *target_root_path,
+                                              const char *relative_path,
+                                              char *target_entry_path,
+                                              size_t target_entry_path_size) {
+  int written;
+
+  if (!target_root_path || !relative_path || !target_entry_path ||
+      target_entry_path_size == 0) {
+    return -1;
+  }
+
+  if (!strcmp(target_root_path, FILE_SEPARATOR_STRING)) {
+    written =
+        snprintf(target_entry_path, target_entry_path_size, "/%s", relative_path);
+  } else {
+    written = snprintf(target_entry_path, target_entry_path_size, "%s%c%s",
+                       target_root_path, FILE_SEPARATOR_CHAR, relative_path);
+  }
+
+  if (written < 0 || (size_t)written >= target_entry_path_size)
+    return -1;
+
+  return 0;
+}
+
 static void RunInternalDirectoryCompare(ViewContext *ctx, DirEntry *source_dir,
                                         const CompareRequest *request) {
   struct stat source_dir_stat;
@@ -492,6 +553,172 @@ static void RunInternalDirectoryCompare(ViewContext *ctx, DirEntry *source_dir,
       summary.older_count, summary.unique_count, summary.type_mismatch_count,
       summary.error_count, UI_CompareTagResultName(request->tag_result),
       summary.tagged_count);
+}
+
+static void RunInternalLoggedTreeCompareRecursive(
+    DirEntry *source_dir, const char *source_root_path,
+    const char *target_root_path, const CompareRequest *request,
+    DirectoryCompareSummary *summary, Statistic *stats) {
+  DirEntry *child_dir;
+  FileEntry *source_file;
+
+  if (!source_dir || !source_root_path || !target_root_path || !request ||
+      !summary) {
+    return;
+  }
+
+  if (source_dir->not_scanned)
+    summary->skipped_unlogged_source_dirs++;
+
+  for (source_file = source_dir->file; source_file; source_file = source_file->next) {
+    struct stat source_stat;
+    struct stat target_stat;
+    char source_entry_path[PATH_LENGTH + 1];
+    char relative_path[PATH_LENGTH + 1];
+    char target_entry_path[PATH_LENGTH + 1];
+    BOOL has_target = FALSE;
+    BOOL is_unique = FALSE;
+    BOOL is_type_mismatch = FALSE;
+    BOOL is_error = FALSE;
+    BOOL basis_known = FALSE;
+    BOOL basis_match = FALSE;
+    int mtime_cmp = 0;
+
+    if (!source_file->matching)
+      continue;
+
+    summary->source_entries++;
+    GetFileNamePath(source_file, source_entry_path);
+    source_entry_path[PATH_LENGTH] = '\0';
+
+    if (BuildRelativeComparePath(source_root_path, source_entry_path,
+                                 relative_path, sizeof(relative_path)) != 0) {
+      is_error = TRUE;
+    } else if (BuildTargetComparePathFromRelative(
+                   target_root_path, relative_path, target_entry_path,
+                   sizeof(target_entry_path)) != 0) {
+      is_error = TRUE;
+    } else if (STAT_(source_entry_path, &source_stat) != 0) {
+      is_error = TRUE;
+    } else if (STAT_(target_entry_path, &target_stat) != 0) {
+      if (errno == ENOENT)
+        is_unique = TRUE;
+      else
+        is_error = TRUE;
+    } else {
+      has_target = TRUE;
+      mtime_cmp = CompareStatMtime(&source_stat, &target_stat);
+      if (!IsSameEntryType(&source_stat, &target_stat)) {
+        is_type_mismatch = TRUE;
+      } else if (EvaluateDirectoryCompareBasis(request->basis, &source_stat,
+                                               source_entry_path, &target_stat,
+                                               target_entry_path,
+                                               &basis_match) == 0) {
+        basis_known = TRUE;
+        if (basis_match)
+          summary->match_count++;
+        else
+          summary->different_count++;
+      } else {
+        is_error = TRUE;
+      }
+    }
+
+    if (has_target && !is_error && !is_type_mismatch) {
+      if (mtime_cmp > 0)
+        summary->newer_count++;
+      else if (mtime_cmp < 0)
+        summary->older_count++;
+    }
+
+    if (is_error)
+      summary->error_count++;
+    else if (is_unique)
+      summary->unique_count++;
+    else if (is_type_mismatch)
+      summary->type_mismatch_count++;
+
+    if (ShouldTagComparedFile(request->tag_result, is_error, is_unique,
+                              is_type_mismatch, has_target, basis_known,
+                              basis_match, mtime_cmp)) {
+      TagComparedFile(source_file, stats, &summary->tagged_count);
+    }
+  }
+
+  for (child_dir = source_dir->sub_tree; child_dir; child_dir = child_dir->next) {
+    RunInternalLoggedTreeCompareRecursive(child_dir, source_root_path,
+                                          target_root_path, request, summary,
+                                          stats);
+  }
+}
+
+static void RunInternalLoggedTreeCompare(ViewContext *ctx,
+                                         const CompareRequest *request) {
+  struct stat source_dir_stat;
+  struct stat target_dir_stat;
+  char source_path[PATH_LENGTH + 1];
+  char target_path[PATH_LENGTH + 1];
+  DirectoryCompareSummary summary;
+  Statistic *stats = NULL;
+  DirEntry *source_root = NULL;
+
+  if (!ctx || !request || !ctx->active || !ctx->active->vol ||
+      !ctx->active->vol->vol_stats.tree) {
+    return;
+  }
+
+  source_root = ctx->active->vol->vol_stats.tree;
+  strncpy(source_path, request->source_path, PATH_LENGTH);
+  source_path[PATH_LENGTH] = '\0';
+
+  if (ResolveDirectoryCompareTargetPath(source_path, request->target_path,
+                                        target_path) != 0) {
+    UI_Message(ctx, "Compare target is empty or invalid.*Choose a target path.");
+    return;
+  }
+
+  if (STAT_(source_path, &source_dir_stat) != 0) {
+    UI_Message(ctx, "Compare source is not accessible:*\"%s\"*%s", source_path,
+               strerror(errno));
+    return;
+  }
+  if (STAT_(target_path, &target_dir_stat) != 0) {
+    UI_Message(ctx,
+               "Compare target does not exist:*\"%s\"*Select a valid directory.",
+               target_path);
+    return;
+  }
+  if (!S_ISDIR(source_dir_stat.st_mode) || !S_ISDIR(target_dir_stat.st_mode)) {
+    UI_Message(ctx, "Directory compare requires two directories.");
+    return;
+  }
+  if ((source_dir_stat.st_dev == target_dir_stat.st_dev &&
+       source_dir_stat.st_ino == target_dir_stat.st_ino) ||
+      !strcmp(source_path, target_path)) {
+    UI_Message(ctx, "Can't compare: source and target are the same directory.");
+    return;
+  }
+
+  memset(&summary, 0, sizeof(summary));
+  stats = &ctx->active->vol->vol_stats;
+
+  RunInternalLoggedTreeCompareRecursive(source_root, source_path, target_path,
+                                        request, &summary, stats);
+
+  UI_Message(
+      ctx,
+      "Logged-tree compare complete.*SOURCE: %s*TARGET: %s*BASIS: %s"
+      "*SOURCE ENTRIES: %lu"
+      "*RESULT COUNTS: different=%lu match=%lu newer=%lu older=%lu unique=%lu "
+      "type-mismatch=%lu error=%lu"
+      "*SKIPPED UNLOGGED: source=%lu"
+      "*TAGGED (%s): %lu file(s) in active/source list.",
+      PathLeafName(source_path), PathLeafName(target_path),
+      UI_CompareBasisName(request->basis), summary.source_entries,
+      summary.different_count, summary.match_count, summary.newer_count,
+      summary.older_count, summary.unique_count, summary.type_mismatch_count,
+      summary.error_count, summary.skipped_unlogged_source_dirs,
+      UI_CompareTagResultName(request->tag_result), summary.tagged_count);
 }
 
 static void LaunchExternalDirectoryCompare(ViewContext *ctx, DirEntry *source_dir,
@@ -659,15 +886,7 @@ static void HandleDirectoryCompare(ViewContext *ctx, DirEntry *source_dir) {
     return;
   }
 
-  DrainPendingInput(ctx);
-  UI_Message(ctx,
-             "Compare execution not implemented yet.*FLOW: %s*SOURCE: %s"
-             "*TARGET: %s*BASIS: %s*TAG RESULTS: %s",
-             UI_CompareFlowTypeName(request.flow_type),
-             PathLeafName(request.source_path),
-             PathLeafName(request.target_path),
-             UI_CompareBasisName(request.basis),
-             UI_CompareTagResultName(request.tag_result));
+  RunInternalLoggedTreeCompare(ctx, &request);
 }
 
 int HandleDirWindow(ViewContext *ctx, DirEntry *start_dir_entry) {
@@ -1793,6 +2012,10 @@ int HandleDirWindow(ViewContext *ctx, DirEntry *start_dir_entry) {
           GetPath(dir_entry, path);
           DisplayHeaderPath(ctx, path);
         }
+        need_dsp_help = TRUE;
+      } else {
+        /* Cancelled volume menu clears footer/help; redraw immediately. */
+        DisplayMenu(ctx);
         need_dsp_help = TRUE;
       }
     } break;
