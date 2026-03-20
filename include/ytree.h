@@ -268,6 +268,8 @@ extern int BuildFilename(char *in_filename, char *pattern, char *out_filename);
 extern void StrCp(char *dest, const char *src);
 extern int Strrcmp(char *s1, char *s2);
 extern char *SubString(char *dest, char *src, int pos, int len);
+extern int String_Replace(char *dest, size_t dest_size, const char *src,
+                          const char *token, const char *replacement);
 
 /* error.c */
 extern int UI_Error(ViewContext *ctx, const char *file, int line,

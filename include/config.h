@@ -31,6 +31,9 @@
 #define DEFAULT_CAT        "cat"
 #define DEFAULT_EDITOR     "vi"
 #define DEFAULT_MELD       "meld"
+#define DEFAULT_FILEDIFF   "diff -u"
+#define DEFAULT_DIRDIFF    "diff -ru"
+#define DEFAULT_TREEDIFF   ""
 #define DEFAULT_UNCOMPRESS "gunzip" /* Changed from original 'uncompress' on Linux */
 #define DEFAULT_GNUUNZIP   "gunzip -c"
 #define DEFAULT_BUNZIP     "bunzip2"

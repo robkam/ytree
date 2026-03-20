@@ -48,6 +48,266 @@ static struct Volume *FindVolumeForDir(ViewContext *ctx, DirEntry *target,
 static void PositionOwnerFileCursor(ViewContext *ctx, DirEntry *owner_dir,
                                     FileEntry *target_file);
 static BOOL JumpToOwnerDirectory(ViewContext *ctx, DirEntry *global_dir_entry);
+static void HandleFileCompare(ViewContext *ctx, FileEntry *source_file);
+
+static BOOL HasNonWhitespace(const char *text) {
+  if (!text)
+    return FALSE;
+  while (*text) {
+    if (!isspace((unsigned char)*text))
+      return TRUE;
+    text++;
+  }
+  return FALSE;
+}
+
+static int BuildFileCompareCommand(const char *command_template,
+                                   const char *source_path,
+                                   const char *target_path, char *command_line,
+                                   size_t command_line_size) {
+  char escaped_source[PATH_LENGTH * 2 + 1];
+  char escaped_target[PATH_LENGTH * 2 + 1];
+  char expanded_command[COMMAND_LINE_LENGTH + 1];
+  int written;
+  BOOL has_placeholders;
+
+  if (!command_template || !source_path || !target_path || !command_line ||
+      command_line_size == 0) {
+    return -1;
+  }
+
+  StrCp(escaped_source, source_path);
+  StrCp(escaped_target, target_path);
+  has_placeholders = (strstr(command_template, "%1") != NULL ||
+                      strstr(command_template, "%2") != NULL);
+
+  if (has_placeholders) {
+    if (String_Replace(expanded_command, sizeof(expanded_command),
+                       command_template, "%1", escaped_source) != 0) {
+      return -1;
+    }
+    if (String_Replace(command_line, command_line_size, expanded_command, "%2",
+                       escaped_target) != 0) {
+      return -1;
+    }
+    return 0;
+  }
+
+  written = snprintf(command_line, command_line_size, "%s %s %s",
+                     command_template, escaped_source, escaped_target);
+  if (written < 0 || (size_t)written >= command_line_size)
+    return -1;
+
+  return 0;
+}
+
+static int ResolveFileCompareTargetPath(FileEntry *source_file,
+                                        const char *target_input,
+                                        char *resolved_target_path) {
+  char source_dir[PATH_LENGTH + 1];
+  char raw_target_path[(PATH_LENGTH * 2) + 2];
+  const char *home = NULL;
+  int written;
+
+  if (!source_file || !source_file->dir_entry || !target_input ||
+      !resolved_target_path) {
+    return -1;
+  }
+
+  if (!HasNonWhitespace(target_input))
+    return -1;
+
+  GetPath(source_file->dir_entry, source_dir);
+  source_dir[PATH_LENGTH] = '\0';
+
+  if (target_input[0] == FILE_SEPARATOR_CHAR) {
+    written = snprintf(raw_target_path, sizeof(raw_target_path), "%s",
+                       target_input);
+  } else if (target_input[0] == '~' &&
+             (target_input[1] == '\0' || target_input[1] == FILE_SEPARATOR_CHAR) &&
+             (home = getenv("HOME")) != NULL) {
+    written = snprintf(raw_target_path, sizeof(raw_target_path), "%s%s", home,
+                       target_input + 1);
+  } else {
+    written = snprintf(raw_target_path, sizeof(raw_target_path), "%s%c%s",
+                       source_dir, FILE_SEPARATOR_CHAR, target_input);
+  }
+
+  if (written < 0 || (size_t)written >= sizeof(raw_target_path))
+    return -1;
+
+  NormPath(raw_target_path, resolved_target_path);
+  resolved_target_path[PATH_LENGTH] = '\0';
+  return 0;
+}
+
+static void GetCommandDisplayName(const char *command_template,
+                                  char *command_name, size_t command_name_size) {
+  const char *cursor;
+  size_t idx = 0;
+  char quote = '\0';
+
+  if (!command_name || command_name_size == 0)
+    return;
+
+  command_name[0] = '\0';
+  if (!command_template)
+    return;
+
+  cursor = command_template;
+  while (*cursor && isspace((unsigned char)*cursor))
+    cursor++;
+  if (*cursor == '\0')
+    return;
+
+  if (*cursor == '"' || *cursor == '\'') {
+    quote = *cursor++;
+    while (*cursor && *cursor != quote && idx + 1 < command_name_size) {
+      command_name[idx++] = *cursor++;
+    }
+  } else {
+    while (*cursor && !isspace((unsigned char)*cursor) &&
+           idx + 1 < command_name_size) {
+      command_name[idx++] = *cursor++;
+    }
+  }
+  command_name[idx] = '\0';
+}
+
+static void DrainPendingInput(ViewContext *ctx) {
+  int ch;
+
+  if (!ctx)
+    return;
+
+  nodelay(stdscr, TRUE);
+  do {
+    ch = WGetch(ctx, stdscr);
+  } while (ch != ERR);
+  nodelay(stdscr, FALSE);
+}
+
+static void HandleFileCompare(ViewContext *ctx, FileEntry *source_file) {
+  CompareRequest request;
+  struct stat source_stat;
+  struct stat target_stat;
+  char source_path[PATH_LENGTH + 1];
+  char target_path[PATH_LENGTH + 1];
+  char source_dir[PATH_LENGTH + 1];
+  char command_line[COMMAND_LINE_LENGTH + 1];
+  char command_name[PATH_LENGTH + 1];
+  const char *filediff = NULL;
+  int start_dir_fd = -1;
+  int result = -1;
+  int exit_status;
+
+  if (!ctx || !source_file)
+    return;
+
+  if (ctx->view_mode != DISK_MODE && ctx->view_mode != USER_MODE) {
+    UI_Message(ctx,
+               "File compare is not supported in this view mode.*"
+               "Use disk/user mode.");
+    return;
+  }
+  if (!source_file->dir_entry || source_file->dir_entry->global_flag) {
+    UI_Message(ctx,
+               "File compare is not supported in this file context.*"
+               "Use a normal file list entry.");
+    return;
+  }
+
+  if (UI_BuildFileCompareRequest(ctx, source_file, &request) != 0)
+    return;
+
+  filediff = UI_GetCompareHelperCommand(ctx, COMPARE_FLOW_FILE);
+  if (!HasNonWhitespace(filediff)) {
+    UI_Message(
+        ctx,
+        "FILEDIFF helper is not configured.*Set FILEDIFF in ~/.ytree "
+        "(or .ytree).");
+    return;
+  }
+
+  strncpy(source_path, request.source_path, PATH_LENGTH);
+  source_path[PATH_LENGTH] = '\0';
+  if (ResolveFileCompareTargetPath(source_file, request.target_path,
+                                   target_path) != 0) {
+    UI_Message(ctx, "Compare target is empty or invalid.*Choose a file target.");
+    return;
+  }
+
+  if (stat(source_path, &source_stat) != 0) {
+    UI_Message(ctx, "Compare source is not accessible:*\"%s\"*%s", source_path,
+               strerror(errno));
+    return;
+  }
+  if (stat(target_path, &target_stat) != 0) {
+    UI_Message(ctx, "Compare target does not exist:*\"%s\"*Select a valid file.",
+               target_path);
+    return;
+  }
+  if (S_ISDIR(source_stat.st_mode) || S_ISDIR(target_stat.st_mode)) {
+    UI_Message(ctx, "File compare requires two files.*Directory targets are unsupported.");
+    return;
+  }
+  if ((source_stat.st_dev == target_stat.st_dev &&
+       source_stat.st_ino == target_stat.st_ino) ||
+      !strcmp(source_path, target_path)) {
+    UI_Message(ctx, "Can't compare: source and target are the same file.");
+    return;
+  }
+
+  if (BuildFileCompareCommand(filediff, source_path, target_path, command_line,
+                              sizeof(command_line)) != 0) {
+    UI_Message(
+        ctx,
+        "FILEDIFF command is invalid or too long.*Check FILEDIFF in ~/.ytree.");
+    return;
+  }
+
+  GetPath(source_file->dir_entry, source_dir);
+  source_dir[PATH_LENGTH] = '\0';
+
+  start_dir_fd = open(".", O_RDONLY);
+  if (start_dir_fd == -1) {
+    UI_Message(ctx, "Error preparing compare launch:*%s", strerror(errno));
+    return;
+  }
+  if (chdir(source_dir) != 0) {
+    UI_Message(ctx, "Can't change directory to*\"%s\"*%s", source_dir,
+               strerror(errno));
+    close(start_dir_fd);
+    return;
+  }
+
+  DrainPendingInput(ctx);
+  result = QuerySystemCall(ctx, command_line, &ctx->active->vol->vol_stats);
+
+  if (fchdir(start_dir_fd) == -1) {
+    UI_Message(ctx, "Error restoring directory*%s", strerror(errno));
+  }
+  close(start_dir_fd);
+
+  if (result == -1) {
+    UI_Message(
+        ctx,
+        "Failed to launch FILEDIFF helper.*Install/configure FILEDIFF in "
+        "~/.ytree.");
+    return;
+  }
+
+  if (WIFEXITED(result)) {
+    exit_status = WEXITSTATUS(result);
+    if (exit_status == 126 || exit_status == 127) {
+      GetCommandDisplayName(filediff, command_name, sizeof(command_name));
+      UI_Message(ctx,
+                 "FILEDIFF helper not available:*\"%s\"*"
+                 "Install it or update FILEDIFF in ~/.ytree.",
+                 command_name[0] ? command_name : filediff);
+    }
+  }
+}
 
 static YtreeAction FilterPreviewAction(YtreeAction action) {
   switch (action) {
@@ -372,6 +632,7 @@ int HandleFileWindow(ViewContext *ctx, DirEntry *dir_entry) {
   static char to_file[PATH_LENGTH + 1];
   BOOL need_dsp_help;
   BOOL maybe_change_x_step;
+  BOOL volume_changed = FALSE;
   char new_name[PATH_LENGTH + 1];
   char expanded_new_name[PATH_LENGTH + 1];
   char expanded_to_file[PATH_LENGTH + 1];
@@ -379,6 +640,9 @@ int HandleFileWindow(ViewContext *ctx, DirEntry *dir_entry) {
   int get_dir_ret;
   YtreeAction action = ACTION_NONE;            /* Initialize action */
   BOOL jumped_to_owner_dir = FALSE;
+  BOOL switched_panel = FALSE;
+  YtreePanel *owner_panel = ctx->active;
+  DirEntry *tracked_file_dir = ctx->active->file_dir_entry;
   DirEntry *last_stats_dir = NULL;             /* Track context changes */
   struct Volume *start_vol = ctx->active->vol; /* Safety Check Variable */
   Statistic *s = &ctx->active->vol->vol_stats;
@@ -386,6 +650,12 @@ int HandleFileWindow(ViewContext *ctx, DirEntry *dir_entry) {
 
   /* ADDED INSTRUCTION: Focus Unification */
   ctx->focused_window = FOCUS_FILE;
+  ctx->active->saved_focus = FOCUS_FILE;
+  if (tracked_file_dir == dir_entry) {
+    dir_entry->start_file = ctx->active->start_file;
+    dir_entry->cursor_pos = ctx->active->file_cursor_pos;
+  }
+  ctx->active->file_dir_entry = dir_entry;
 
   unput_char = '\0';
   fe_ptr = NULL;
@@ -418,6 +688,7 @@ int HandleFileWindow(ViewContext *ctx, DirEntry *dir_entry) {
     dir_entry->start_file = 0;
   }
   ctx->active->start_file = dir_entry->start_file;
+  ctx->active->file_cursor_pos = dir_entry->cursor_pos;
 
   /* Initial Display using Centralized Function if applicable */
   if (ctx->preview_mode) {
@@ -458,8 +729,11 @@ int HandleFileWindow(ViewContext *ctx, DirEntry *dir_entry) {
   do {
     /* Critical Safety: If volume was deleted (e.g. via K menu), abort
      * immediately */
-    if (ctx->active->vol != start_vol)
-      return ESC;
+    if (ctx->active->vol != start_vol) {
+      volume_changed = TRUE;
+      action = ACTION_ESCAPE;
+      goto file_window_done;
+    }
 
     /* Keep grid metrics in sync with the current file list/rendering width.
      * This prevents stale x_step/max_disp_files after refresh/toggle/resize
@@ -503,16 +777,22 @@ int HandleFileWindow(ViewContext *ctx, DirEntry *dir_entry) {
     }
 
     /* Re-check safety after blocking Getch */
-    if (ctx->active->vol != start_vol)
-      return ESC;
+    if (ctx->active->vol != start_vol) {
+      volume_changed = TRUE;
+      action = ACTION_ESCAPE;
+      goto file_window_done;
+    }
 
     if (IsUserActionDefined(ctx)) { /* User commands take precedence */
       ch = FileUserMode(ctx,
                         &(ctx->active->file_entry_list[dir_entry->start_file +
                                                        dir_entry->cursor_pos]),
                         ch, &ctx->active->vol->vol_stats);
-      if (ctx->active->vol != start_vol)
-        return ESC;
+      if (ctx->active->vol != start_vol) {
+        volume_changed = TRUE;
+        action = ACTION_ESCAPE;
+        goto file_window_done;
+      }
     }
 
     if (ctx->resize_request) {
@@ -723,6 +1003,23 @@ int HandleFileWindow(ViewContext *ctx, DirEntry *dir_entry) {
       break;
 
     case ACTION_SPLIT_SCREEN:
+      /* Persist current file focus before cloning panel state. */
+      owner_panel->file_dir_entry = dir_entry;
+      owner_panel->start_file = dir_entry->start_file;
+      owner_panel->file_cursor_pos = dir_entry->cursor_pos;
+
+      if (ctx->is_split_screen && ctx->active == ctx->right) {
+        ctx->left->vol = ctx->right->vol;
+        ctx->left->cursor_pos = ctx->right->cursor_pos;
+        ctx->left->disp_begin_pos = ctx->right->disp_begin_pos;
+        ctx->left->start_file = ctx->right->start_file;
+        ctx->left->file_cursor_pos = ctx->right->file_cursor_pos;
+        ctx->left->file_dir_entry = ctx->right->file_dir_entry;
+        ctx->left->saved_focus = ctx->right->saved_focus;
+        /* Left panel now points at right panel's volume/state. Force list rebuild
+         * to avoid stale file cache from a previous volume. */
+        FreeFileEntryList(ctx->left);
+      }
       ctx->is_split_screen = !ctx->is_split_screen;
       ReCreateWindows(ctx); /* Force layout update immediately */
 
@@ -731,8 +1028,19 @@ int HandleFileWindow(ViewContext *ctx, DirEntry *dir_entry) {
           ctx->right->vol = ctx->left->vol;
           ctx->right->cursor_pos = ctx->left->cursor_pos;
           ctx->right->disp_begin_pos = ctx->left->disp_begin_pos;
+          ctx->right->start_file = dir_entry->start_file;
+          ctx->right->file_cursor_pos = dir_entry->cursor_pos;
+          ctx->right->file_dir_entry = dir_entry;
+          /* Split from file view should preserve file focus on the new peer. */
+          ctx->right->saved_focus = ctx->left->saved_focus;
+          /* Right panel inherited a new volume/state; invalidate old cache so
+           * first render mirrors the active panel immediately. */
+          FreeFileEntryList(ctx->right);
         }
       } else {
+        /* Hidden panel cache must not leak into a later re-split on another
+         * volume. */
+        FreeFileEntryList(ctx->right);
         ctx->active = ctx->left;
       }
 
@@ -741,6 +1049,11 @@ int HandleFileWindow(ViewContext *ctx, DirEntry *dir_entry) {
     case ACTION_SWITCH_PANEL:
       if (!ctx->is_split_screen)
         break;
+      owner_panel->file_dir_entry = dir_entry;
+      owner_panel->start_file = dir_entry->start_file;
+      owner_panel->file_cursor_pos = dir_entry->cursor_pos;
+      ctx->active->saved_focus = FOCUS_FILE;
+      switched_panel = TRUE;
       /* Ensure the CURRENT panel is cleaned up before switching context. */
       SwitchToSmallFileWindow(ctx);
 
@@ -752,6 +1065,7 @@ int HandleFileWindow(ViewContext *ctx, DirEntry *dir_entry) {
       }
       /* Update Volume Context */
       ctx->active->vol = ctx->active->vol;
+      ctx->focused_window = ctx->active->saved_focus;
 
       /* Bug 3 Fix: We trigger a loop exit here.
        * This ensures the cleanup code at the end of HandleFileWindow runs,
@@ -1052,6 +1366,21 @@ int HandleFileWindow(ViewContext *ctx, DirEntry *dir_entry) {
 
       RefreshView(ctx, dir_entry);
 
+      need_dsp_help = TRUE;
+      break;
+
+    case ACTION_COMPARE_FILE:
+      if (ctx->active->file_count > 0 && ctx->active->file_entry_list) {
+        int compare_idx = dir_entry->start_file + dir_entry->cursor_pos;
+        if (compare_idx < 0)
+          compare_idx = 0;
+        if ((unsigned int)compare_idx >= ctx->active->file_count)
+          compare_idx = (int)ctx->active->file_count - 1;
+        if (compare_idx >= 0) {
+          fe_ptr = ctx->active->file_entry_list[compare_idx].file;
+          HandleFileCompare(ctx, fe_ptr);
+        }
+      }
       need_dsp_help = TRUE;
       break;
 
@@ -1433,6 +1762,14 @@ int HandleFileWindow(ViewContext *ctx, DirEntry *dir_entry) {
       break;
     } /* switch */
 
+    if (ctx->active == owner_panel) {
+      owner_panel->file_dir_entry = dir_entry;
+      owner_panel->start_file = dir_entry->start_file;
+      owner_panel->file_cursor_pos = dir_entry->cursor_pos;
+      ctx->active->start_file = dir_entry->start_file;
+      ctx->active->file_cursor_pos = dir_entry->cursor_pos;
+    }
+
     /* Centralized check: If directory became empty, we MUST pop out of file
      * window */
     if (ctx->active->file_count == 0) {
@@ -1442,19 +1779,33 @@ int HandleFileWindow(ViewContext *ctx, DirEntry *dir_entry) {
   } while (action != ACTION_QUIT && action != ACTION_ENTER &&
            action != ACTION_ESCAPE && action != ACTION_QUIT);
 
-  if (dir_entry->big_window) {
+file_window_done:
+  if (!volume_changed && dir_entry->big_window) {
     SwitchToSmallFileWindow(ctx);
     /* We don't need full refresh here because HandleDirWindow will catch the
      * return */
   }
 
-  /* Ensure all mode flags are cleared when exiting back to the tree.
-   * This guarantees that RefreshView returns to small window
-   * ctx->layout. */
-  dir_entry->global_flag = FALSE;
-  dir_entry->global_all_volumes = FALSE;
-  dir_entry->tagged_flag = FALSE;
-  dir_entry->big_window = FALSE;
+  if (!switched_panel) {
+    owner_panel->saved_focus = FOCUS_TREE;
+  }
+  if (!volume_changed) {
+    owner_panel->file_dir_entry = dir_entry;
+    owner_panel->start_file = dir_entry->start_file;
+    owner_panel->file_cursor_pos = dir_entry->cursor_pos;
+
+    /* Ensure all mode flags are cleared when exiting back to the tree.
+     * This guarantees that RefreshView returns to small window
+     * ctx->layout. */
+    dir_entry->global_flag = FALSE;
+    dir_entry->global_all_volumes = FALSE;
+    dir_entry->tagged_flag = FALSE;
+    dir_entry->big_window = FALSE;
+  } else {
+    owner_panel->file_dir_entry = NULL;
+    owner_panel->start_file = 0;
+    owner_panel->file_cursor_pos = 0;
+  }
 
   {
     FILE *fp = fopen("/tmp/ytree_debug_exit.log", "a");

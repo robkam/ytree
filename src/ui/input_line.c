@@ -84,6 +84,44 @@ static void format_mode_from_octal(const char *octal_digits, char mode_type,
   (void)snprintf(out, out_size, "%s", attrs);
 }
 
+static int normalize_prompt_escape_key(WINDOW *win, int ch) {
+  int c1;
+  int c2;
+
+  if (!win || ch != ESC)
+    return ch;
+
+  nodelay(win, TRUE);
+  c1 = wgetch(win);
+  if (c1 == '[' || c1 == 'O') {
+    c2 = wgetch(win);
+    switch (c2) {
+    case 'A':
+      ch = KEY_UP;
+      break;
+    case 'B':
+      ch = KEY_DOWN;
+      break;
+    case 'C':
+      ch = KEY_RIGHT;
+      break;
+    case 'D':
+      ch = KEY_LEFT;
+      break;
+    default:
+      if (c2 != ERR)
+        ungetch(c2);
+      ungetch(c1);
+      break;
+    }
+  } else if (c1 != ERR) {
+    ungetch(c1);
+  }
+  nodelay(win, FALSE);
+
+  return ch;
+}
+
 /* Helper to get visible length of string */
 /* Using extern from input.c logic (now moved here or duplicated) */
 
@@ -99,9 +137,16 @@ static void format_mode_from_octal(const char *octal_digits, char mode_type,
  *
  * Returns: The terminating key (CR or ESC).
  */
-int UI_ReadString(ViewContext *ctx, YtreePanel *panel, const char *prompt,
-                  char *buffer, int max_len, int history_type) {
+static int UI_ReadStringInternal(ViewContext *ctx, YtreePanel *panel,
+                                 const char *prompt, char *buffer, int max_len,
+                                 int history_type,
+                                 const char *hints_override,
+                                 int (*help_callback)(ViewContext *, void *),
+                                 void *help_data) {
   WINDOW *win;
+  int field_width;
+  int hints_row;
+  int prompt_row;
   int win_y, win_x;
   int ch;
   int p = 0; /* Visual cursor position */
@@ -145,10 +190,12 @@ int UI_ReadString(ViewContext *ctx, YtreePanel *panel, const char *prompt,
   }
 
   /* Determine Key Hints */
-  if (history_type == HST_LOGIN || history_type == HST_PATH) {
-    hints = "[F2] Browse  [Up] History  [Enter] OK  [Esc] Cancel";
+  if (hints_override && *hints_override) {
+    hints = hints_override;
+  } else if (history_type == HST_LOGIN || history_type == HST_PATH) {
+    hints = "(F2) browse  (Up) history  (Enter) OK  (Esc) cancel";
   } else {
-    hints = "[Up] History  [Enter] OK  [Esc] Cancel";
+    hints = "(Up) history  (Enter) OK  (Esc) cancel";
   }
 
   /* Clearance: Clear the interaction area on stdscr first */
@@ -160,12 +207,16 @@ int UI_ReadString(ViewContext *ctx, YtreePanel *panel, const char *prompt,
   mvwhline(stdscr, ctx->layout.status_y, 0, ' ', COLS);
   wnoutrefresh(stdscr);
 
-  /* win_y becomes absolute from layout */
-  win_y = ctx->layout.prompt_y;
+  /* Use the full three-line prompt area so stale footer rows cannot bleed
+   * back in after browse/log interactions. */
+  prompt_row = (ctx->layout.prompt_y > 0) ? 1 : 0;
+  hints_row = prompt_row + 1;
+  win_y = (ctx->layout.prompt_y > 0) ? ctx->layout.prompt_y - 1
+                                     : ctx->layout.prompt_y;
   win_x = 0;
 
-  /* Setup Window: 2 lines (Prompt/Input and Hints) */
-  win = newwin(2, COLS, win_y, win_x);
+  /* Setup Window: blank row + prompt/input + hints */
+  win = newwin(PROMPT_WIN_HEIGHT, COLS, win_y, win_x);
   if (win == NULL)
     return ESC;
 
@@ -179,43 +230,50 @@ int UI_ReadString(ViewContext *ctx, YtreePanel *panel, const char *prompt,
   while (1) {
     werase(win);
 
-    /* Row 0: Prompt and Input Field */
-    mvwprintw(win, 0, 1, "%s ", prompt);
-    int prompt_len = StrVisualLength(prompt) + 2;
-    int field_width = COLS - prompt_len - 1;
+    /* Prompt and Input Field */
+    mvwprintw(win, prompt_row, 1, "%s ", prompt);
+    {
+      int prompt_len = StrVisualLength(prompt) + 2;
+      field_width = COLS - prompt_len - 1;
 
-    /* Row 1: Hints */
-    mvwprintw(win, 1, 1, "%s", hints);
+      /* Hints */
+      PrintMenuOptions(win, hints_row, 1, (char *)hints, CPAIR_MENU,
+                       CPAIR_HIMENUS);
 
-    /* Handle Scrolling */
-    if (p < scroll_offset) {
-      scroll_offset = p;
-    } else if (p >= scroll_offset + field_width) {
-      scroll_offset = p - field_width + 1;
+      /* Handle Scrolling */
+      if (p < scroll_offset) {
+        scroll_offset = p;
+      } else if (p >= scroll_offset + field_width) {
+        scroll_offset = p - field_width + 1;
+      }
+
+      /* Extract visible portion */
+      {
+        int start_byte = VisualPositionToBytePosition(buffer, scroll_offset);
+        char *display_str = StrLeft(&buffer[start_byte], field_width);
+        int i;
+        int len_drawn;
+
+        mvwaddstr(win, prompt_row, prompt_len, display_str);
+
+        /* Fill remaining space with underscores */
+        len_drawn = StrVisualLength(display_str);
+        for (i = len_drawn; i < field_width; i++) {
+          waddch(win, '_');
+        }
+
+        free(display_str);
+
+        /* Position Cursor */
+        wmove(win, prompt_row, prompt_len + (p - scroll_offset));
+      }
     }
-
-    /* Extract visible portion */
-    int start_byte = VisualPositionToBytePosition(buffer, scroll_offset);
-    char *display_str = StrLeft(&buffer[start_byte], field_width);
-
-    mvwaddstr(win, 0, prompt_len, display_str);
-
-    /* Fill remaining space with underscores */
-    int len_drawn = StrVisualLength(display_str);
-    int i;
-    for (i = len_drawn; i < field_width; i++) {
-      waddch(win, '_');
-    }
-
-    free(display_str);
-
-    /* Position Cursor */
-    wmove(win, 0, prompt_len + (p - scroll_offset));
 
     wrefresh(win);
 
     curs_set(1); /* Ensure cursor is visible */
     ch = WGetch(ctx, win);
+    ch = normalize_prompt_escape_key(win, ch);
 
     FILE *df = fopen("/tmp/ytree_input.log", "a");
     if (df) {
@@ -264,9 +322,12 @@ int UI_ReadString(ViewContext *ctx, YtreePanel *panel, const char *prompt,
       ctx->resize_request = FALSE;
 
       /* Recreate window geometry */
-      win_y = ctx->layout.prompt_y;
+      prompt_row = (ctx->layout.prompt_y > 0) ? 1 : 0;
+      hints_row = prompt_row + 1;
+      win_y = (ctx->layout.prompt_y > 0) ? ctx->layout.prompt_y - 1
+                                         : ctx->layout.prompt_y;
 
-      wresize(win, 2, COLS);
+      wresize(win, PROMPT_WIN_HEIGHT, COLS);
       mvwin(win, win_y, 0);
 
       /* Refresh background to clear artifacts */
@@ -433,6 +494,7 @@ int UI_ReadString(ViewContext *ctx, YtreePanel *panel, const char *prompt,
       insert_flag = !insert_flag;
       break;
 
+    case 'P' & 0x1F: /* Ctrl-P: history up (readline-style) */
     case KEY_UP: {
       /* GetHistory returns a pointer to internal history data.
          Do NOT free it. */
@@ -477,6 +539,15 @@ int UI_ReadString(ViewContext *ctx, YtreePanel *panel, const char *prompt,
     } break;
 
 #ifdef KEY_F
+    case KEY_F(1):
+      if (help_callback != NULL) {
+        curs_set(0);
+        (void)help_callback(ctx, help_data);
+        touchwin(win);
+        curs_set(1);
+      }
+      break;
+
     case KEY_F(2):
 #endif
     case 'F' & 0x1f:
@@ -613,4 +684,20 @@ int UI_ReadString(ViewContext *ctx, YtreePanel *panel, const char *prompt,
       ctx, GetSelectedDirEntry(ctx, (panel ? panel->vol : ctx->active->vol)));
 
   return ch;
+}
+
+int UI_ReadString(ViewContext *ctx, YtreePanel *panel, const char *prompt,
+                  char *buffer, int max_len, int history_type) {
+  return UI_ReadStringInternal(ctx, panel, prompt, buffer, max_len,
+                               history_type, NULL, NULL, NULL);
+}
+
+int UI_ReadStringWithHelp(ViewContext *ctx, YtreePanel *panel,
+                          const char *prompt, char *buffer, int max_len,
+                          int history_type, const char *hints_override,
+                          int (*help_callback)(ViewContext *, void *),
+                          void *help_data) {
+  return UI_ReadStringInternal(ctx, panel, prompt, buffer, max_len,
+                               history_type, hints_override, help_callback,
+                               help_data);
 }

@@ -152,6 +152,11 @@ extern int UI_AskConflict(ViewContext *ctx, const char *src_path,
 extern int UI_ReadString(ViewContext *ctx, YtreePanel *panel,
                          const char *prompt, char *buffer, int max_len,
                          int history_type);
+extern int UI_ReadStringWithHelp(ViewContext *ctx, YtreePanel *panel,
+                                 const char *prompt, char *buffer, int max_len,
+                                 int history_type, const char *hints_override,
+                                 int (*help_callback)(ViewContext *, void *),
+                                 void *help_data);
 
 extern BOOL KeyPressed(void);
 extern BOOL EscapeKeyPressed(void);
@@ -257,6 +262,23 @@ extern int UI_ArchiveCallback(int status, const char *msg, void *user_data);
 extern void shell_quote(char *dest, const char *src);
 extern int recursive_mkdir(char *path);
 extern int recursive_rmdir(const char *path);
+extern int UI_SelectCompareMenuChoice(ViewContext *ctx,
+                                      CompareMenuChoice *choice);
+extern int UI_BuildFileCompareRequest(ViewContext *ctx, FileEntry *source_file,
+                                      CompareRequest *request);
+extern int UI_BuildDirectoryCompareRequest(ViewContext *ctx,
+                                           DirEntry *source_dir,
+                                           CompareFlowType flow_type,
+                                           CompareRequest *request);
+extern int UI_BuildDirectoryCompareLaunchRequest(ViewContext *ctx,
+                                                 DirEntry *source_dir,
+                                                 CompareFlowType flow_type,
+                                                 CompareRequest *request);
+extern const char *UI_CompareFlowTypeName(CompareFlowType flow_type);
+extern const char *UI_CompareBasisName(CompareBasis basis);
+extern const char *UI_CompareTagResultName(CompareTagResult tag_result);
+extern const char *UI_GetCompareHelperCommand(ViewContext *ctx,
+                                              CompareFlowType flow_type);
 extern int UI_ConflictResolverWrapper(ViewContext *ctx, const char *src_path,
                                       const char *dst_path, int *mode_flags);
 extern void BuildFileEntryList(ViewContext *ctx, YtreePanel *panel);

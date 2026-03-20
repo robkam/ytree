@@ -7,6 +7,54 @@
 
 #include "ytree.h"
 
+static void SavePanelTreeSelection(YtreePanel *panel) {
+  int selected_index;
+
+  if (!panel || !panel->vol)
+    return;
+
+  selected_index = panel->disp_begin_pos + panel->cursor_pos;
+  if (selected_index < 0)
+    selected_index = 0;
+  panel->vol->id = selected_index;
+}
+
+static void RestorePanelTreeSelection(ViewContext *ctx, YtreePanel *panel) {
+  int selected_index;
+  int total_dirs;
+  int win_height;
+
+  if (!ctx || !panel || !panel->vol)
+    return;
+
+  total_dirs = panel->vol->total_dirs;
+  if (total_dirs <= 0) {
+    panel->disp_begin_pos = 0;
+    panel->cursor_pos = 0;
+    return;
+  }
+
+  selected_index = panel->vol->id;
+  if (selected_index < 0)
+    selected_index = 0;
+  if (selected_index >= total_dirs)
+    selected_index = total_dirs - 1;
+
+  win_height = ctx->layout.dir_win_height;
+  if (win_height <= 0 && ctx->ctx_dir_window)
+    win_height = getmaxy(ctx->ctx_dir_window);
+  if (win_height <= 0)
+    win_height = 1;
+
+  if (selected_index >= win_height) {
+    panel->disp_begin_pos = selected_index - (win_height - 1);
+    panel->cursor_pos = win_height - 1;
+  } else {
+    panel->disp_begin_pos = 0;
+    panel->cursor_pos = selected_index;
+  }
+}
+
 /* Helper function to handle scan progress updates */
 static void Login_Progress(ViewContext *ctx, void *data) {
   Statistic *s = (Statistic *)data;
@@ -61,6 +109,9 @@ int LogDisk(ViewContext *ctx, YtreePanel *panel, char *path) {
   DEBUG_LOG("ENTER LogDisk: path=%s", path);
 
   SuspendClock(ctx); /* Suspend clock during critical operations */
+
+  /* Keep per-volume tree selection before switching away. */
+  SavePanelTreeSelection(panel);
 
   /* 1. Resolve Path (for UI searching/display purposes) */
   if (realpath(path, resolved_path) == NULL) {
@@ -124,6 +175,7 @@ int LogDisk(ViewContext *ctx, YtreePanel *panel, char *path) {
       /* Refresh display */
       DisplayMenu(ctx);
       BuildDirEntryList(ctx, panel->vol, &(int){0});
+      RestorePanelTreeSelection(ctx, panel);
 
       DisplayTree(ctx, panel->vol, ctx->ctx_dir_window, panel->disp_begin_pos,
                   panel->disp_begin_pos + panel->cursor_pos, TRUE);
@@ -208,6 +260,7 @@ int LogDisk(ViewContext *ctx, YtreePanel *panel, char *path) {
 
       DisplayMenu(ctx);
       BuildDirEntryList(ctx, panel->vol, &(int){0});
+      RestorePanelTreeSelection(ctx, panel);
 
       /* Sync panel state from volume's legacy state */
       panel->disp_begin_pos = panel->disp_begin_pos;
@@ -246,7 +299,9 @@ int LogDisk(ViewContext *ctx, YtreePanel *panel, char *path) {
 
   /* Final Refresh */
   BuildDirEntryList(ctx, panel->vol, &(int){0});
-  DisplayTree(ctx, panel->vol, ctx->ctx_dir_window, 0, 0, TRUE);
+  RestorePanelTreeSelection(ctx, panel);
+  DisplayTree(ctx, panel->vol, ctx->ctx_dir_window, panel->disp_begin_pos,
+              panel->disp_begin_pos + panel->cursor_pos, TRUE);
   DisplayDiskStatistic(ctx, s);
   DisplayAvailBytes(ctx, s);
 

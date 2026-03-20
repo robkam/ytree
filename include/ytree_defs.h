@@ -333,10 +333,55 @@ typedef enum {
   ACTION_PREVIEW_END,
   ACTION_PREVIEW_PAGE_UP,
   ACTION_PREVIEW_PAGE_DOWN,
+  ACTION_COMPARE_FILE,
+  ACTION_COMPARE_DIR,
+  ACTION_COMPARE_TREE,
   ACTION_USER_CMD
 } YtreeAction;
 
 typedef enum { FOCUS_TREE, FOCUS_FILE } ViewFocus;
+
+typedef enum {
+  COMPARE_FLOW_FILE = 0,
+  COMPARE_FLOW_DIRECTORY,
+  COMPARE_FLOW_LOGGED_TREE
+} CompareFlowType;
+
+typedef enum {
+  COMPARE_BASIS_NONE = 0,
+  COMPARE_BASIS_SIZE,
+  COMPARE_BASIS_DATE,
+  COMPARE_BASIS_SIZE_AND_DATE,
+  COMPARE_BASIS_HASH
+} CompareBasis;
+
+typedef enum {
+  COMPARE_TAG_NONE = 0,
+  COMPARE_TAG_DIFFERENT,
+  COMPARE_TAG_MATCH,
+  COMPARE_TAG_NEWER,
+  COMPARE_TAG_OLDER,
+  COMPARE_TAG_UNIQUE,
+  COMPARE_TAG_TYPE_MISMATCH,
+  COMPARE_TAG_ERROR
+} CompareTagResult;
+
+typedef enum {
+  COMPARE_MENU_CANCEL = 0,
+  COMPARE_MENU_DIRECTORY_ONLY,
+  COMPARE_MENU_DIRECTORY_PLUS_TREE,
+  COMPARE_MENU_EXTERNAL_DIRECTORY,
+  COMPARE_MENU_EXTERNAL_TREE
+} CompareMenuChoice;
+
+typedef struct {
+  CompareFlowType flow_type;
+  CompareBasis basis;
+  CompareTagResult tag_result;
+  BOOL used_split_default_target;
+  char source_path[PATH_LENGTH + 1];
+  char target_path[PATH_LENGTH + 1];
+} CompareRequest;
 
 /* Structs */
 
@@ -612,9 +657,13 @@ typedef struct {
   int cursor_pos;
   int disp_begin_pos;
   int start_file;
+  int file_cursor_pos;
+  DirEntry *file_dir_entry;
+  BOOL saved_big_file_view;
   int file_mode;
   int max_column;
   int current_dir_entry;
+  ViewFocus saved_focus;
   unsigned int max_visual_filename_len;
   unsigned int max_visual_linkname_len;
   unsigned int max_visual_userview_len;

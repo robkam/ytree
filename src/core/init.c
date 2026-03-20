@@ -219,10 +219,18 @@ void InitView(ViewContext *ctx) {
   ctx->left = (YtreePanel *)calloc(1, sizeof(YtreePanel));
   DEBUG_LOG("InitView: setup left panel=%p", (void *)ctx->left);
   ctx->left->file_mode = MODE_1;
+  ctx->left->saved_focus = FOCUS_TREE;
+  ctx->left->file_cursor_pos = 0;
+  ctx->left->file_dir_entry = NULL;
+  ctx->left->saved_big_file_view = FALSE;
 
   ctx->right = (YtreePanel *)calloc(1, sizeof(YtreePanel));
   DEBUG_LOG("InitView: setup right panel=%p", (void *)ctx->right);
   ctx->right->file_mode = MODE_1;
+  ctx->right->saved_focus = FOCUS_TREE;
+  ctx->right->file_cursor_pos = 0;
+  ctx->right->file_dir_entry = NULL;
+  ctx->right->saved_big_file_view = FALSE;
 
   ctx->active = ctx->left;
 

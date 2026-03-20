@@ -113,6 +113,27 @@ def _ensure_multi_column_layout(tui, split_x, max_toggles=5):
     return None
 
 
+def _detect_panel_split_x(lines):
+    if len(lines) < 3:
+        return None
+
+    top = lines[1]
+    for ch in ("w", "┬", "+"):
+        idx = top.find(ch, 1)
+        if idx != -1:
+            return idx
+
+    counts = {}
+    for row in lines[2:-4]:
+        for x, ch in enumerate(row):
+            if ch in ("x", "|"):
+                counts[x] = counts.get(x, 0) + 1
+
+    if not counts:
+        return None
+    return max(counts, key=counts.get)
+
+
 def test_file_window_column_stride_sync_after_hidden_toggle(ytree_binary, tmp_path):
     """
     REGRESSION:
@@ -187,6 +208,52 @@ def test_file_window_column_stride_sync_after_hidden_toggle(ytree_binary, tmp_pa
     tui.quit()
 
 
+def test_split_file_details_do_not_wrap_neighbor_rows_at_120x36(ytree_binary, tmp_path):
+    """
+    Regression:
+    At 120x36 in split file view, Ctrl-F detail modes must clip per-row output.
+    Attributes/dates must not spill into adjacent lines (observed around cursor
+    and bottom rows).
+    """
+    d = tmp_path / "split_file_detail_nowrap_120x36"
+    d.mkdir()
+    for i in range(60):
+        # Long names force tighter detail rendering in split panes.
+        (d / f"very_long_filename_{i:03d}_for_split_wrap_check.txt").write_text(
+            "x", encoding="utf-8"
+        )
+
+    tui = YtreeTUI(executable=ytree_binary, cwd=str(d))
+    tui.child.setwinsize(36, 120)
+    tui.screen.resize(36, 120)
+    time.sleep(1.0)
+    tui.send_keystroke("", wait=0.2)
+
+    tui.send_keystroke(Keys.ENTER, wait=0.5)  # file view
+    tui.send_keystroke(Keys.F8, wait=0.5)     # split
+    tui.send_keystroke(Keys.DOWN, wait=0.2)
+    tui.send_keystroke(Keys.DOWN, wait=0.2)
+    tui.send_keystroke("\x06", wait=0.3)      # Ctrl-F once (your repro)
+
+    lines = tui.get_screen_dump()
+    split_x = _detect_panel_split_x(lines)
+    assert split_x is not None, "Could not detect split-panel separator."
+
+    left_rows = [line[:split_x] for line in lines[2:28]]
+    wrapped_rows = [
+        row for row in left_rows
+        if row.strip()
+        and "No Files!" not in row
+        and not re.match(r"^x  ", row)
+    ]
+    assert not wrapped_rows, (
+        "File detail output wrapped into adjacent rows in split mode.\n"
+        + "\n".join(left_rows)
+    )
+
+    tui.quit()
+
+
 def test_file_window_left_right_edge_no_wrap(ytree_binary, tmp_path):
     """
     REGRESSION:
@@ -257,6 +324,50 @@ def test_file_window_left_right_edge_no_wrap(ytree_binary, tmp_path):
     assert (
         right_edge_after == right_edge_before
     ), f"RIGHT at row edge should not jump/wrap (before={right_edge_before_name}, after={right_edge_after_name})"
+
+    tui.quit()
+
+
+def test_file_detail_rows_do_not_wrap_attributes_into_next_line(ytree_binary, tmp_path):
+    """
+    Regression guard:
+    In narrow layouts, file-detail modes must clip row content instead of
+    wrapping attributes/dates into the next visual line.
+    """
+    d = tmp_path / "file_detail_clip"
+    d.mkdir()
+    for i in range(12):
+        (d / f"f{i:03d}.txt").write_text("x", encoding="utf-8")
+
+    tui = YtreeTUI(executable=ytree_binary, cwd=str(d))
+    tui.child.setwinsize(32, 84)
+    tui.screen.resize(32, 84)
+    time.sleep(1.0)
+    tui.send_keystroke("", wait=0.2)
+
+    tui.send_keystroke(Keys.ENTER, wait=0.5)
+
+    lines = tui.get_screen_dump()
+    stats_split_x = _detect_stats_split_x(lines)
+    assert stats_split_x is not None, "Could not detect file/stats split border"
+
+    # Rotate into a detail-heavy mode that shows dates on file rows.
+    for _ in range(6):
+        screen = "\n".join(tui.get_screen_dump())
+        if re.search(r"\d{4}-\d{2}-\d{2}", screen):
+            break
+        tui.send_keystroke("\x06", wait=0.35)  # Ctrl-F
+
+    dump = tui.get_screen_dump()
+    candidate_lines = [line[:stats_split_x] for line in dump[2:24]]
+    date_no_name = [
+        line for line in candidate_lines
+        if re.search(r"\d{4}-\d{2}-\d{2}", line) and ".txt" not in line
+    ]
+    assert not date_no_name, (
+        "Detail attributes/dates wrapped into continuation lines in narrow file view.\n"
+        + "\n".join(candidate_lines)
+    )
 
     tui.quit()
 
