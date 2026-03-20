@@ -3,6 +3,11 @@
 ## 1. Purpose
 This document defines the mandatory quality process for the Ytree modernization project. Auditing is an ongoing process that starts during implementation and continues through merge and release. The release gate is the final checkpoint.
 
+## 1.1 Cadence
+- Run the full audit loop for each feature-sized change or PR.
+- Always run the merge/release gate before merge/release.
+- Do not run the full gate after every prompt-level micro-edit unless risk justifies it.
+
 ## 2. Role Mapping
 The workflow relies on four distinct roles. When using AI agents, these must be treated as adversarial personas to ensure objectivity.
 
@@ -10,6 +15,14 @@ The workflow relies on four distinct roles. When using AI agents, these must be 
 - **Developer (Agent):** Implements logic. Primary tool: `clangd` (LSP) via `compile_commands.json`.
 - **Code Auditor (Agent/Human):** adversarial review. Static tools: `clang-tidy`, `cppcheck`, `scan-build`.
 - **Tester (Human/Agent):** Validates regression safety. Dynamic tools: `pytest`, `Valgrind`.
+
+### 2.1 AI Persona Execution Mapping
+When an AI agent performs this workflow, it must execute the loop explicitly using these personas in order:
+1. Architect (scope/invariants/acceptance criteria)
+2. Developer (implementation/fixes)
+3. Code Auditor (findings/gate decision)
+4. Tester (verification/regression)
+5. Code Auditor (final pass/fail)
 
 ## 3. Mandatory Toolchain Commands
 The Auditor and Tester roles must use these exact commands to generate evidence-based findings.
