@@ -220,6 +220,45 @@ def test_compare_submenu_x_launches_external_dirdiff_without_tag_prompt(
     tui.quit()
 
 
+def test_compare_submenu_x_t_launches_external_treediff_without_tag_prompt(
+    ytree_binary, tmp_path
+):
+    source_root = tmp_path / "compare_submenu_external_tree_source"
+    target_root = tmp_path / "compare_submenu_external_tree_target"
+    source_root.mkdir()
+    target_root.mkdir()
+    (source_root / "left.txt").write_text("left", encoding="utf-8")
+    (target_root / "left.txt").write_text("right", encoding="utf-8")
+    log_path = _configure_dirdiff_capture(source_root)
+
+    tui = YtreeTUI(executable=ytree_binary, cwd=str(source_root))
+    time.sleep(0.6)
+
+    tui.send_keystroke("C", wait=0.2)
+    assert tui.wait_for_content("COMPARE SCOPE:", timeout=1.0)
+    tui.send_keystroke("X", wait=0.2)
+    assert tui.wait_for_content("EXTERNAL VIEWER:", timeout=1.0)
+    tui.send_keystroke("T", wait=0.2)
+    assert tui.wait_for_content("COMPARE TARGET:", timeout=1.0)
+    tui.send_keystroke(Keys.CTRL_U + str(target_root) + Keys.ENTER, wait=0.55)
+    tui.send_keystroke(Keys.ENTER, wait=0.35)  # HitReturnToContinue
+
+    assert _wait_for_file(log_path, timeout=2.0), "TREEDIFF helper did not run."
+    logged = log_path.read_text(encoding="utf-8").splitlines()
+    assert logged == [str(source_root), str(target_root)], (
+        "TREEDIFF should receive source and target logged-root paths.\n"
+        f"Args: {logged}"
+    )
+    assert not tui.wait_for_content("COMPARE BASIS:", timeout=0.4), (
+        "External tree compare should not prompt for compare basis."
+    )
+    assert not tui.wait_for_content("TAG FILE LIST:", timeout=0.4), (
+        "External tree compare should not prompt for tag result."
+    )
+
+    tui.quit()
+
+
 def test_external_dirdiff_return_restores_full_ncurses_frame(ytree_binary, tmp_path):
     d = tmp_path / "compare_submenu_external_redraw"
     d.mkdir()
@@ -541,7 +580,9 @@ def test_f8_tree_compare_uses_inactive_panel_logged_root_default(ytree_binary, t
     main_root.mkdir()
     other_root.mkdir()
     (main_root / "main_dir").mkdir()
-    (other_root / "other_dir").mkdir()
+    (other_root / "main_dir").mkdir()
+    (main_root / "main_dir" / "tree_diff.txt").write_text("left-tree", encoding="utf-8")
+    (other_root / "main_dir" / "tree_diff.txt").write_text("right-tree", encoding="utf-8")
 
     tui = YtreeTUI(executable=ytree_binary, cwd=str(main_root))
     time.sleep(0.8)
@@ -560,14 +601,78 @@ def test_f8_tree_compare_uses_inactive_panel_logged_root_default(ytree_binary, t
     assert tui.wait_for_content(str(other_root.name), timeout=1.0)
     tui.send_keystroke(Keys.ENTER, wait=0.3)
     assert tui.wait_for_content("COMPARE BASIS:", timeout=1.0)
-    tui.send_keystroke("S", wait=0.2)
+    tui.send_keystroke("Z", wait=0.2)
     assert tui.wait_for_content("TAG FILE LIST:", timeout=1.0)
     tui.send_keystroke("F", wait=0.3)
+    assert tui.wait_for_content("Logged-tree compare complete.", timeout=1.0)
+    assert tui.wait_for_content("BASIS: size+date", timeout=1.0)
+    assert tui.wait_for_content("TAGGED (different): 1", timeout=1.0)
 
-    assert tui.wait_for_content("Compare execution not implemented yet.", timeout=1.0)
-    assert tui.wait_for_content("TARGET:", timeout=1.0)
+    tui.send_keystroke(Keys.ENTER, wait=0.25)
+    _assert_no_footer_artifacts(tui)
 
-    tui.send_keystroke(Keys.ENTER, wait=0.2)
+    # Active/source side should have compare tags.
+    tui.send_keystroke(Keys.DOWN, wait=0.2)  # main_dir
+    tui.send_keystroke(Keys.ENTER, wait=0.35)
+    _assert_file_tag_state(tui, "tree_diff.txt", True)
+
+    # Inactive/target side must not be tagged by compare.
+    tui.send_keystroke(Keys.TAB, wait=0.35)
+    tui.send_keystroke(Keys.DOWN, wait=0.2)  # main_dir
+    tui.send_keystroke(Keys.ENTER, wait=0.35)
+    tui.send_keystroke(Keys.F8, wait=0.4)
+    _assert_file_tag_state(tui, "tree_diff.txt", False)
+
+    tui.quit()
+
+
+def test_tree_compare_logged_only_relative_path_and_skipped_unlogged_reporting(
+    ytree_binary, tmp_path
+):
+    source_root = tmp_path / "compare_tree_logged_only_source"
+    target_root = tmp_path / "compare_tree_logged_only_target"
+    source_root.mkdir()
+    target_root.mkdir()
+    (source_root / "top").mkdir()
+    (target_root / "top").mkdir()
+    (source_root / "top" / "deep").mkdir()
+    (target_root / "top" / "deep").mkdir()
+
+    source_visible = source_root / "top" / "visible_diff.txt"
+    target_visible = target_root / "top" / "visible_diff.txt"
+    source_visible.write_text("left", encoding="utf-8")
+    target_visible.write_text("right-longer", encoding="utf-8")
+    target_mtime = source_visible.stat().st_mtime + 120
+    os.utime(target_visible, (target_mtime, target_mtime))
+
+    # This file should be skipped because '+' subtree remains unlogged in source.
+    (source_root / "top" / "deep" / "unlogged_diff.txt").write_text("source", encoding="utf-8")
+    (target_root / "top" / "deep" / "unlogged_diff.txt").write_text("target-change", encoding="utf-8")
+
+    tui = YtreeTUI(executable=ytree_binary, cwd=str(source_root))
+    time.sleep(0.8)
+
+    tui.send_keystroke("C", wait=0.2)
+    assert tui.wait_for_content("COMPARE SCOPE:", timeout=1.0)
+    tui.send_keystroke("T", wait=0.2)
+    assert tui.wait_for_content("COMPARE TARGET:", timeout=1.0)
+    tui.send_keystroke(Keys.CTRL_U + str(target_root) + Keys.ENTER, wait=0.35)
+    assert tui.wait_for_content("COMPARE BASIS:", timeout=1.0)
+    tui.send_keystroke("Z", wait=0.2)
+    assert tui.wait_for_content("TAG FILE LIST:", timeout=1.0)
+    tui.send_keystroke("F", wait=0.35)
+
+    assert tui.wait_for_content("Logged-tree compare complete.", timeout=1.0)
+    assert tui.wait_for_content("BASIS: size+date", timeout=1.0)
+    assert tui.wait_for_content("SKIPPED UNLOGGED: source=", timeout=1.0)
+    assert tui.wait_for_content("TAGGED (different): 1", timeout=1.0)
+
+    tui.send_keystroke(Keys.ENTER, wait=0.3)
+    _assert_no_footer_artifacts(tui)
+
+    tui.send_keystroke(Keys.DOWN, wait=0.2)  # top
+    tui.send_keystroke(Keys.ENTER, wait=0.35)
+    _assert_file_tag_state(tui, "visible_diff.txt", True)
     tui.quit()
 
 
@@ -582,20 +687,21 @@ def test_compare_flow_cancel_is_safe_and_footer_remains_clean(ytree_binary, tmp_
     tui.send_keystroke("C", wait=0.2)
     assert tui.wait_for_content("COMPARE SCOPE:", timeout=1.0)
     tui.send_keystroke(Keys.ESC, wait=0.2)
-    assert not tui.wait_for_content("Compare execution not implemented yet.", timeout=0.5)
+    assert not tui.wait_for_content("Directory compare complete.", timeout=0.5)
+    assert not tui.wait_for_content("Logged-tree compare complete.", timeout=0.5)
 
     tui.send_keystroke("C", wait=0.2)
     tui.send_keystroke("D", wait=0.2)
     assert tui.wait_for_content("COMPARE TARGET:", timeout=1.0)
     tui.send_keystroke(Keys.ESC, wait=0.2)
-    assert not tui.wait_for_content("Compare execution not implemented yet.", timeout=0.5)
+    assert not tui.wait_for_content("Directory compare complete.", timeout=0.5)
 
     tui.send_keystroke("C", wait=0.2)
     tui.send_keystroke("D", wait=0.2)
     tui.send_keystroke("." + Keys.ENTER, wait=0.2)
     assert tui.wait_for_content("COMPARE BASIS:", timeout=1.0)
     tui.send_keystroke(Keys.ESC, wait=0.2)
-    assert not tui.wait_for_content("Compare execution not implemented yet.", timeout=0.5)
+    assert not tui.wait_for_content("Directory compare complete.", timeout=0.5)
 
     tui.send_keystroke("C", wait=0.2)
     tui.send_keystroke("D", wait=0.2)
@@ -603,7 +709,28 @@ def test_compare_flow_cancel_is_safe_and_footer_remains_clean(ytree_binary, tmp_
     tui.send_keystroke("S", wait=0.2)
     assert tui.wait_for_content("TAG FILE LIST:", timeout=1.0)
     tui.send_keystroke(Keys.ESC, wait=0.2)
-    assert not tui.wait_for_content("Compare execution not implemented yet.", timeout=0.5)
+    assert not tui.wait_for_content("Directory compare complete.", timeout=0.5)
+
+    tui.send_keystroke("C", wait=0.2)
+    tui.send_keystroke("T", wait=0.2)
+    assert tui.wait_for_content("COMPARE TARGET:", timeout=1.0)
+    tui.send_keystroke(Keys.ESC, wait=0.2)
+    assert not tui.wait_for_content("Logged-tree compare complete.", timeout=0.5)
+
+    tui.send_keystroke("C", wait=0.2)
+    tui.send_keystroke("T", wait=0.2)
+    tui.send_keystroke("x" + Keys.ENTER, wait=0.2)
+    assert tui.wait_for_content("COMPARE BASIS:", timeout=1.0)
+    tui.send_keystroke(Keys.ESC, wait=0.2)
+    assert not tui.wait_for_content("Logged-tree compare complete.", timeout=0.5)
+
+    tui.send_keystroke("C", wait=0.2)
+    tui.send_keystroke("T", wait=0.2)
+    tui.send_keystroke("x" + Keys.ENTER, wait=0.2)
+    tui.send_keystroke("S", wait=0.2)
+    assert tui.wait_for_content("TAG FILE LIST:", timeout=1.0)
+    tui.send_keystroke(Keys.ESC, wait=0.2)
+    assert not tui.wait_for_content("Logged-tree compare complete.", timeout=0.5)
 
     _assert_no_footer_artifacts(tui)
     tui.quit()

@@ -1090,3 +1090,51 @@ def test_log_new_volume_from_file_view_resets_focus_and_selection(tmp_path, ytre
     )
 
     tui.quit()
+
+
+def test_volume_menu_cancel_restores_dir_footer_immediately(tmp_path, ytree_binary):
+    root = tmp_path / "volume_menu_cancel_dir_footer"
+    root.mkdir()
+    (root / "a.txt").write_text("a\n", encoding="utf-8")
+
+    tui = YtreeTUI(executable=ytree_binary, cwd=str(root))
+    time.sleep(0.8)
+
+    tui.send_keystroke("k", wait=0.3)
+    assert tui.wait_for_content("Select Volume", timeout=1.0)
+    tui.send_keystroke(Keys.ESC, wait=0.3)
+
+    footer = _footer_text(tui)
+    assert "dir      attributes brief compare" in footer, (
+        "Cancelling volume menu from dir view should immediately restore dir footer."
+    )
+    assert "f1 help" in footer, (
+        "Cancelling volume menu from dir view left footer/help blank until next key."
+    )
+
+    tui.quit()
+
+
+def test_volume_menu_cancel_restores_file_footer_immediately(tmp_path, ytree_binary):
+    root = tmp_path / "volume_menu_cancel_file_footer"
+    root.mkdir()
+    (root / "a.txt").write_text("a\n", encoding="utf-8")
+
+    tui = YtreeTUI(executable=ytree_binary, cwd=str(root))
+    time.sleep(0.8)
+    tui.send_keystroke(Keys.ENTER, wait=0.4)
+    assert "hex j compare" in _footer_text(tui)
+
+    tui.send_keystroke("k", wait=0.3)
+    assert tui.wait_for_content("Select Volume", timeout=1.0)
+    tui.send_keystroke(Keys.ESC, wait=0.3)
+
+    footer = _footer_text(tui)
+    assert "hex j compare" in footer, (
+        "Cancelling volume menu from file view should immediately restore file footer."
+    )
+    assert "f1 help" in footer, (
+        "Cancelling volume menu from file view left footer/help blank until next key."
+    )
+
+    tui.quit()
