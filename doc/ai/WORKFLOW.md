@@ -59,6 +59,7 @@ The project maintains a set of "Persona Rules" in the `.agent/rules/` directory.
 *   **`developer.md`**: Used for implementation. Applies approved changes while preserving architecture and safety constraints.
 *   **`code_auditor.md`**: Used for adversarial quality review, fragility detection, and pass/fail gate findings.
 *   **`tester.md`**: Used for generating Python-based TUI automation tests.
+*   **`greybeard.md`**: Advisory persona for general engineering guidance, convention checks, and practical best-practice sanity checks. This is not a mandatory gate role.
 
 ---
 
@@ -146,18 +147,15 @@ Never allow the AI to "guess" the cause of a bug. Use one of the following objec
 
 ---
 
-## 7. Default Pre-Release Review Gate
+## 7. Audit Loop and Merge Gate
 
-Before code is shown to human reviewers, follow the default quality loop in **[PRE_RELEASE_REVIEW.md](PRE_RELEASE_REVIEW.md)**.
+Follow **[../AUDIT.md](../AUDIT.md)** as the canonical process.
 
-This is a multi-persona loop:
-
-1.  **Code Auditor**: strict evidence-based review and finding generation.
-2.  **Developer**: implement targeted fixes.
-3.  **Tester**: run verification and regression checks.
-4.  **Code Auditor**: re-audit final diff and decide pass/fail.
-
-Code is not review-ready until the gate exits with zero blocker/high findings and green verification.
+Cadence:
+- Treat auditing as a continuous process during implementation, not an end-only step.
+- Run the full audit loop for each feature-sized change or PR.
+- Run the merge gate before merging.
+- Do not run the full loop after every single prompt-level edit unless risk justifies it.
 
 ---
 

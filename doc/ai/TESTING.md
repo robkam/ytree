@@ -129,7 +129,7 @@ The test suite uses `pytest` and `pexpect` to simulate user interaction with the
 
 ## 6. Test Harness Rules
 
-These constraints ensure tests are reliable, portable, and maintainable. For the full persona specification, see [`.agent/rules/tester.md`](../.agent/rules/tester.md).
+These constraints ensure tests are reliable, portable, and maintainable. For the full persona specification, see [`.agent/rules/tester.md`](../../.agent/rules/tester.md).
 
 ### Abstraction over Hardcoding
 Never hardcode keystrokes (e.g., sending `'c'`) inside a test function. Always use the `Keys` class (e.g., `Keys.COPY`). This ensures that if keybindings change in the C source, only one Python definition file needs updating.
