@@ -1775,7 +1775,7 @@ int HandleFileWindow(ViewContext *ctx, DirEntry *dir_entry) {
     }
 
   } while (action != ACTION_QUIT && action != ACTION_ENTER &&
-           action != ACTION_ESCAPE && action != ACTION_QUIT);
+           action != ACTION_ESCAPE);
 
 file_window_done:
   if (!volume_changed && dir_entry->big_window) {
