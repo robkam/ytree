@@ -28,6 +28,26 @@ The development process is strictly hierarchical. The Spec is the "Contract of T
     *   **Context Clearing:** It removes the "bad" code and the flawed logic that led to it.
     *   **New Perspective:** Rephrasing prevents the model from staying stuck in a loop of bad assumptions.
     *   **Clean Implementation:** It ensures the final code is the result of a single, clean logical flow rather than a series of ad-hoc patches.
+6.  **Minor Step Corrections Should Amend:** If the immediately preceding step only needs a small correction and should remain the same logical history unit, update it with `git commit --amend --no-edit` rather than adding a trivial follow-up fix commit. Create a new commit only when the correction is meaningfully distinct, delayed enough to matter historically, or worth preserving separately in the project history.
+7.  **Intent Over Literal Wording:** Treat the human maintainer as authoritative on goals, but not automatically on exact UI wording, naming, key choices, menu structure, or workflow details. If a requested detail does not follow convention or best practices, or conflicts with existing Ytree patterns, the AI must say so explicitly and recommend the stronger conventional approach before implementing it.
+
+### 1.3 Convention & Best-Practice Check
+
+The maintainer may sometimes provide a very specific interaction detail while still intending "do what users would expect." Agents must not assume that specificity means correctness.
+
+When a prompt includes concrete UI or workflow instructions, explicitly evaluate them against:
+
+1.  **Established Ytree behavior:** Avoid breaking local consistency unless there is a strong reason.
+2.  **Lineage expectations:** Preserve XTree/ZTree muscle memory where that is clearly part of the feature intent.
+3.  **Broader convention:** Prefer Linux/TUI conventions and common user expectations for prompts, menus, help, and key behavior.
+4.  **Best practices:** Favor clarity, safety, and maintainability over clever but nonstandard interaction ideas.
+
+Required agent behavior:
+
+*   **Preserve the goal, question the detail:** Keep the user's intended outcome, but challenge interface details that appear nonstandard or weak.
+*   **Recommend before encoding:** State the better conventional or best-practice choice before baking the literal wording into specs, prompts, or code.
+*   **Explain the tradeoff:** When deviating from the user's literal wording, explain why the recommended version is stronger.
+*   **Do not silently comply with weak specifics:** Avoid turning a guessed interaction detail into lasting project behavior without review.
 
 ---
 
