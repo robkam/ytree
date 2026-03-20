@@ -75,7 +75,7 @@ Activated by **F7**. The screen layout changes to show the file list on the left
 ### Global Commands
 These commands work in most modes:
 
-*   **F1**: Help (**reserved**, not implemented yet).
+*   **F1**: Help (context-sensitive in prompts/dialogs).
 *   **F5**: Refresh (same as **^L**).
 *   **F6**: Toggle Statistics Panel (Wide Mode).
 *   **F7**: Toggle File Preview Panel.
@@ -96,6 +96,7 @@ Active when browsing the directory tree window.
 
 *   **A** (Attributes): Open attributes submenu for directory metadata changes:
     mode (chmod), owner, group, date.
+*   **C** (Compare): Open the compare submenu (directory, logged tree, or external viewer).
 *   **D** (Delete): Delete selected directory.
 *   **F** (Filter): Set file filter. Supports regex patterns (e.g., `*.c`), exclusions (`-*.o`), attributes (`:r`, `:x`), dates (`>2023-01-01`), and sizes (`>1M`).
 *   **G** (Global): Show all files across all logged volumes in one global list.
@@ -126,6 +127,7 @@ Active when the file window is focused.
 *   **E** (Edit): Edit selected file with `$EDITOR` (default: vi).
 *   **F** (Filter): Set file filter.
 *   **H** (Hex): View selected file in hex mode.
+*   **J** (Compare): Compare the selected file with a target file.
 *   **L** (Log): Log a new directory or archive file.
 *   **M** (Move): Move the selected file.
 *   **N** (New File): Create a new empty file.
@@ -183,6 +185,17 @@ When browsing an archive (ZIP, TAR, etc.), ytree behaves similarly to a read-onl
 *   **Return**: Switch to Archive-Dir Mode.
 *   **\*** (Asterisk): Invert tag selection.
 
+# COMPARE
+
+*   **File compare (`J` in File Mode):** Compare the selected file against a target file. ytree can use an external file-diff helper if configured.
+*   **Directory compare (`C` in Directory Mode):**
+    *   `D`: compare the current directory.
+    *   `T`: compare the current logged tree.
+    *   `X`: launch an external directory/tree compare viewer.
+*   Internal compare tags matches on the active/source side only.
+*   Logged-tree compare uses logged content only; it does not auto-log unopened subdirectories.
+*   There is no separate "compare tagged files" mode.
+
 # COMMAND LINE EDITING
 
 ### Line Editing Keys
@@ -218,9 +231,9 @@ ytree looks for a configuration file at `~/.ytree`. A default is provided in `yt
     *   *Default*: `3` (1 + 2) enables both Watcher and Navigation Refresh.
 *   **HIDEDOTFILES=1**: Hide files starting with `.` by default.
 *   **TAGGEDVIEWER=external|internal**: Controls `^V` (View Tagged). `external` uses `$PAGER` (default). `internal` uses the built-in tagged viewer.
-*   **FILEDIFF=command**: File compare helper used by `J` in file view. Use `%1` for source and `%2` for target, or omit placeholders and ytree appends both paths.
-*   **DIRDIFF=command**: Directory compare helper used by directory compare execution flow.
-*   **TREEDIFF=command**: Logged-tree compare helper. If unset/empty, ytree follows `DIRDIFF`.
+*   **FILEDIFF=command**: Optional external helper for file compare. Use `%1` for source and `%2` for target, or omit placeholders and ytree appends both paths.
+*   **DIRDIFF=command**: Optional external helper for external directory compare view.
+*   **TREEDIFF=command**: Optional external helper for external tree compare view. If unset/empty, ytree falls back to `DIRDIFF`.
 *   **HIGLOBAL_COLOR=fg,bg**: Search-hit highlight color used in preview and internal tagged viewer only.
 *   **[COLORS]**: Customize the color scheme.
 
