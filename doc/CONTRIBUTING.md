@@ -74,6 +74,13 @@ make test-v
 
 For direct `pytest` CLI usage, test naming conventions, infrastructure details, and harness rules, see **[ai/TESTING.md](ai/TESTING.md)**.
 
+## Audit Workflow (Required)
+
+Use **[AUDIT.md](AUDIT.md)** as the single source of truth.
+
+- Run the full audit loop on every feature-sized change, major change, and PR.
+- Use the canonical tool order from `AUDIT.md`: `clang-tidy`, `cppcheck`, `scan-build`, `valgrind`, then `pytest` for regression verification.
+
 ---
 
 ## Architectural Decisions & Constraints

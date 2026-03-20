@@ -118,7 +118,7 @@ make clean && make
 
 For detailed usage, configuration, and keybindings, see [USAGE.md](doc/USAGE.md) or run `man ytree`.
 
-For the continuous audit workflow and final release gate criteria, see [AUDIT.md](doc/AUDIT.md).
+For the continuous audit workflow and final release gate criteria, see [AUDIT.md](doc/AUDIT.md). Run the full loop for every feature-sized change, major change, and PR.
 
 ## Changelog
 

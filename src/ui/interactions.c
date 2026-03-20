@@ -1087,10 +1087,11 @@ int UI_GetDateChangeSpec(ViewContext *ctx, time_t *new_time, int *scope_mask) {
   char display_time[32];
   struct tm *tm_ptr;
   int which;
-  time_t base_time = (*new_time > 0) ? *new_time : time(NULL);
 
   if (!ctx || !new_time || !scope_mask)
     return -1;
+
+  time_t base_time = (*new_time > 0) ? *new_time : time(NULL);
 
   which = InputChoice(ctx, "DATE FIELD: (M)odified (A)ccessed (B)oth", "MAB");
   if (which == ESC || which < 0)

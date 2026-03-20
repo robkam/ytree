@@ -364,6 +364,7 @@ int ReadProfile(ViewContext *ctx, char *filename) {
 
 void SetProfileValue(ViewContext *ctx, char *name, char *value) {
   Profile *p, key;
+  memset(&key, 0, sizeof(key));
   key.name = name;
   p = bsearch(&key, (Profile *)ctx->profile_data, PROFILE_ENTRIES, sizeof(*p),
               Compare);
@@ -377,6 +378,7 @@ void SetProfileValue(ViewContext *ctx, char *name, char *value) {
 char *GetProfileValue(ViewContext *ctx, const char *name) {
   Profile *p, key;
   char *cptr;
+  memset(&key, 0, sizeof(key));
   key.name = (char *)name;
   p = bsearch(&key, (Profile *)ctx->profile_data, PROFILE_ENTRIES, sizeof(*p),
               Compare);

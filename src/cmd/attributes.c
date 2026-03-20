@@ -218,5 +218,3 @@ static int GetNewMode(int old_mode, char *mode) {
 
   return (new_mode);
 }
-
-int GetModus(const char *mode) { return (GetNewMode(0, (char *)mode)); }

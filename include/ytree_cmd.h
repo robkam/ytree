@@ -96,8 +96,8 @@ extern int MakeFile(ViewContext *ctx, DirEntry *dir_entry, const char *name,
                     ChoiceCallback choice_cb);
 
 /* move.c */
-extern int GetMoveParameter(ViewContext *ctx, char *from_file, char *to_folder,
-                            char *to_file);
+extern int GetMoveParameter(ViewContext *ctx, char *from_file, char *to_file,
+                            char *to_dir);
 extern int MoveFile(ViewContext *ctx, FileEntry *fe_ptr, const char *to_file,
                     DirEntry *dest_dir_entry, const char *to_dir_path,
                     FileEntry **new_fe_ptr, int *dir_create_mode,

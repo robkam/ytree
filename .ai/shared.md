@@ -22,12 +22,14 @@ These instructions apply to all AI agents used in this repository.
 9. If the immediately preceding step only needs a minor correction and should remain the same logical history unit, amend it with `git commit --amend --no-edit` instead of creating a trivial follow-up fix commit. Use a new commit only when the correction is materially distinct or worth preserving separately.
 10. Treat user instructions as authoritative on goals, not automatically on exact wording, labels, keybindings, menu structure, or UX details. If a requested detail does not follow convention, established Ytree patterns, or best practices, say so explicitly and recommend the better option before implementing it.
 11. For every bug fix, follow strict red-green: write/adjust a regression test first and demonstrate it fails on current code before changing implementation; then implement the architectural fix and re-run to green. A test added only after the fix is not sufficient evidence.
+12. Audit cadence is mandatory: rerun the full audit loop for every feature-sized change, every major change, and every PR update; do not treat auditing as optional or release-only.
 
 ## Required Validation
 
 - Build with `make clean && make` after meaningful code changes.
 - Always activate the venv before pytest: `source .venv/bin/activate`.
 - Run relevant tests with `pytest ...`.
+- For feature-sized/major/PR work, run the full audit loop from `doc/AUDIT.md` (clang-tidy, cppcheck, scan-build, valgrind, pytest) before claiming completion.
 - Do not claim completion without terminal verification.
 
 ## Primary References

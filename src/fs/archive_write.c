@@ -353,11 +353,14 @@ static int cb_delete_file(struct archive *r, struct archive *w,
 int Archive_DeleteEntry(char *archive_path, char *file_path,
                         ArchiveProgressCallback cb, void *user_data) {
   char internal_path[PATH_LENGTH];
-  size_t arch_len = strlen(archive_path);
-  size_t file_len = strlen(file_path);
+  size_t arch_len;
+  size_t file_len;
 
   if (!archive_path || !file_path)
     return -1;
+
+  arch_len = strlen(archive_path);
+  file_len = strlen(file_path);
 
   if (file_len > arch_len && strncmp(file_path, archive_path, arch_len) == 0) {
     char *ptr = file_path + arch_len;
@@ -529,12 +532,15 @@ static int cb_rename(struct archive *r, struct archive *w,
 int Archive_RenameEntry(char *archive_path, char *old_path, char *new_name,
                         ArchiveProgressCallback cb, void *user_data) {
   char internal_old_path[PATH_LENGTH];
-  size_t arch_len = strlen(archive_path);
-  size_t old_len = strlen(old_path);
+  size_t arch_len;
+  size_t old_len;
   RenameContext ctx;
 
   if (!archive_path || !old_path || !new_name)
     return -1;
+
+  arch_len = strlen(archive_path);
+  old_len = strlen(old_path);
 
   if (old_len > arch_len && strncmp(old_path, archive_path, arch_len) == 0) {
     char *ptr = old_path + arch_len;

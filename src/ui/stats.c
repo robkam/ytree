@@ -411,10 +411,6 @@ static void DrawAttributes(ViewContext *ctx, const char *name, struct stat *s,
 /*                           DISPLAY FUNCTIONS */
 /* ************************************************************************* */
 
-void DisplayFullStatsPanel(ViewContext *ctx, Statistic *s) {
-  DisplayDiskStatistic(ctx, s);
-}
-
 void DisplayDiskName(ViewContext *ctx, Statistic *s) {
   char buf[128];
   char path_buf[PATH_LENGTH + 1];

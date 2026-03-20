@@ -20,6 +20,9 @@ char *XCursesProgramName = "ytree";
 #endif
 
 void Layout_Recalculate(ViewContext *ctx) {
+  if (!ctx)
+    return;
+
   /* Centralize UI vertical geometry */
   ctx->layout.header_y = 0;
   ctx->layout.message_y = LINES - 3;
@@ -44,7 +47,7 @@ void Layout_Recalculate(ViewContext *ctx) {
    * Right Panel: Preview Window (Remaining width).
    * Stats and Directory Tree are hidden.
    */
-  if (ctx && ctx->preview_mode) {
+  if (ctx->preview_mode) {
     ctx->layout.stats_width = 0;
     ctx->layout.dir_win_height = 0; /* Hidden */
 
@@ -114,7 +117,7 @@ void Layout_Recalculate(ViewContext *ctx) {
   if (ctx->is_split_screen) {
     ctx->layout.stats_width = 0;
   } else {
-    if (ctx && ctx->show_stats) {
+    if (ctx->show_stats) {
       ctx->layout.stats_width = 24;
     } else {
       ctx->layout.stats_width = 0;
@@ -217,6 +220,10 @@ void InitView(ViewContext *ctx) {
 
   /* Initialize Panels */
   ctx->left = (YtreePanel *)calloc(1, sizeof(YtreePanel));
+  if (ctx->left == NULL) {
+    fprintf(stderr, "InitView: failed to allocate left panel\n");
+    exit(1);
+  }
   DEBUG_LOG("InitView: setup left panel=%p", (void *)ctx->left);
   ctx->left->file_mode = MODE_1;
   ctx->left->saved_focus = FOCUS_TREE;
@@ -225,6 +232,12 @@ void InitView(ViewContext *ctx) {
   ctx->left->saved_big_file_view = FALSE;
 
   ctx->right = (YtreePanel *)calloc(1, sizeof(YtreePanel));
+  if (ctx->right == NULL) {
+    fprintf(stderr, "InitView: failed to allocate right panel\n");
+    free(ctx->left);
+    ctx->left = NULL;
+    exit(1);
+  }
   DEBUG_LOG("InitView: setup right panel=%p", (void *)ctx->right);
   ctx->right->file_mode = MODE_1;
   ctx->right->saved_focus = FOCUS_TREE;
@@ -239,6 +252,10 @@ void InitView(ViewContext *ctx) {
 
 void ReCreateWindows(ViewContext *ctx) {
   DEBUG_LOG("ENTER ReCreateWindows");
+  if (ctx == NULL || ctx->left == NULL || ctx->right == NULL)
+    return;
+  if (ctx->active == NULL)
+    ctx->active = ctx->left;
   /* 1. Recalculate Layout based on current SplitScreen state */
   Layout_Recalculate(ctx);
 

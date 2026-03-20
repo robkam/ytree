@@ -15,6 +15,12 @@ int KeyF2Get(ViewContext *ctx, YtreePanel *panel, char *path) {
   int result = -1;
   int win_width, win_height;
   struct Volume *target_vol;
+
+  if (ctx == NULL || panel == NULL || path == NULL || ctx->active == NULL ||
+      ctx->active->vol == NULL) {
+    return -1;
+  }
+
   int local_disp_begin_pos = panel->disp_begin_pos;
   int local_cursor_pos = panel->cursor_pos;
   YtreeAction action; /* Declare YtreeAction variable */
@@ -47,6 +53,9 @@ int KeyF2Get(ViewContext *ctx, YtreePanel *panel, char *path) {
   } else {
     target_vol = ctx->active->vol;
   }
+
+  if (target_vol == NULL)
+    return -1;
 
   /* Only rebuild if list is missing. Rebuilding invalidates pointers held by
    * callers! */
@@ -228,7 +237,7 @@ int KeyF2Get(ViewContext *ctx, YtreePanel *panel, char *path) {
         }
         /* Fix blank screen bug: redraw main UI before F2 window */
         DisplayMenu(ctx);
-        if (ctx->active) {
+        if (ctx->active && ctx->active->vol) {
           DisplayTree(ctx, ctx->active->vol, ctx->ctx_dir_window,
                       ctx->active->disp_begin_pos,
                       ctx->active->disp_begin_pos + ctx->active->cursor_pos,
@@ -236,13 +245,13 @@ int KeyF2Get(ViewContext *ctx, YtreePanel *panel, char *path) {
           DisplayFileWindow(ctx, ctx->active,
                             GetSelectedDirEntry(ctx, ctx->active->vol));
           RefreshWindow(ctx->ctx_file_window);
+          DisplayDiskStatistic(ctx, &ctx->active->vol->vol_stats);
+          if (ctx->active->vol->vol_stats.tree) {
+            UpdateStatsPanel(ctx, GetSelectedDirEntry(ctx, ctx->active->vol),
+                             &ctx->active->vol->vol_stats);
+          }
+          DisplayAvailBytes(ctx, &ctx->active->vol->vol_stats);
         }
-        DisplayDiskStatistic(ctx, &ctx->active->vol->vol_stats);
-        if (ctx->active->vol->vol_stats.tree) {
-          UpdateStatsPanel(ctx, GetSelectedDirEntry(ctx, ctx->active->vol),
-                           &ctx->active->vol->vol_stats);
-        }
-        DisplayAvailBytes(ctx, &ctx->active->vol->vol_stats);
 
         MapF2Window(ctx);
         DisplayTree(ctx, target_vol, ctx->ctx_f2_window, local_disp_begin_pos,
@@ -267,7 +276,7 @@ int KeyF2Get(ViewContext *ctx, YtreePanel *panel, char *path) {
         }
         /* Fix blank screen bug: redraw main UI before F2 window */
         DisplayMenu(ctx);
-        if (ctx->active) {
+        if (ctx->active && ctx->active->vol) {
           DisplayTree(ctx, ctx->active->vol, ctx->ctx_dir_window,
                       ctx->active->disp_begin_pos,
                       ctx->active->disp_begin_pos + ctx->active->cursor_pos,
@@ -275,13 +284,13 @@ int KeyF2Get(ViewContext *ctx, YtreePanel *panel, char *path) {
           DisplayFileWindow(ctx, ctx->active,
                             GetSelectedDirEntry(ctx, ctx->active->vol));
           RefreshWindow(ctx->ctx_file_window);
+          DisplayDiskStatistic(ctx, &ctx->active->vol->vol_stats);
+          if (ctx->active->vol->vol_stats.tree) {
+            UpdateStatsPanel(ctx, GetSelectedDirEntry(ctx, ctx->active->vol),
+                             &ctx->active->vol->vol_stats);
+          }
+          DisplayAvailBytes(ctx, &ctx->active->vol->vol_stats);
         }
-        DisplayDiskStatistic(ctx, &ctx->active->vol->vol_stats);
-        if (ctx->active->vol->vol_stats.tree) {
-          UpdateStatsPanel(ctx, GetSelectedDirEntry(ctx, ctx->active->vol),
-                           &ctx->active->vol->vol_stats);
-        }
-        DisplayAvailBytes(ctx, &ctx->active->vol->vol_stats);
 
         MapF2Window(ctx);
         DisplayTree(ctx, target_vol, ctx->ctx_f2_window, local_disp_begin_pos,
@@ -359,7 +368,6 @@ int KeyF2Get(ViewContext *ctx, YtreePanel *panel, char *path) {
 
     /* 2. Restore ctx->active state from the restored volume */
     if (ctx->active) {
-      ctx->active->vol = ctx->active->vol;
       /* Panel isolation: No vol_stats sync */
       ctx->active->disp_begin_pos = ctx->active->vol->id /* legacy removed */;
     }
@@ -397,11 +405,6 @@ int KeyF2Get(ViewContext *ctx, YtreePanel *panel, char *path) {
     RefreshWindow(ctx->ctx_file_window);
 
     DisplayAvailBytes(ctx, &ctx->active->vol->vol_stats);
-  }
-
-  /* Removed sync points to legacy fields as they cause panel collision */
-  if (ctx->active->vol == original_vol && ctx->active) {
-    ctx->active->vol = ctx->active->vol;
   }
 
   panel->cursor_pos = local_cursor_pos;

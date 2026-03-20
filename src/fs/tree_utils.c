@@ -195,6 +195,9 @@ static DirEntry *FindOrLoadDir(ViewContext *ctx, DirEntry *tree,
   char full_path_buf[PATH_LENGTH +
                      1]; /* Buffer to construct path for ReadTree */
 
+  if (tree == NULL)
+    return NULL;
+
   if (!path || *path == '\0')
     return tree;
 
@@ -232,6 +235,10 @@ static DirEntry *FindOrLoadDir(ViewContext *ctx, DirEntry *tree,
 
   token = strtok_r(path_copy, FILE_SEPARATOR_STRING, &saveptr);
   while (token) {
+    if (current == NULL) {
+      free(path_copy);
+      return NULL;
+    }
     found = 0;
     /* Search children */
     for (child = current->sub_tree; child; child = child->next) {

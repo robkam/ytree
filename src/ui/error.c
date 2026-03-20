@@ -29,6 +29,11 @@ int UI_Message(ViewContext *ctx, const char *fmt, ...) {
   (void)vsnprintf(buffer, sizeof(buffer), fmt, ap);
   va_end(ap);
 
+  if (ctx == NULL || ctx->ctx_error_window == NULL) {
+    fprintf(stderr, "%s\n", buffer);
+    return 0;
+  }
+
   MapErrorWindow(ctx, "E R R O R");
   return PrintMessage(ctx, buffer, TRUE);
 }
@@ -40,6 +45,11 @@ int UI_Notice(ViewContext *ctx, const char *fmt, ...) {
   va_start(ap, fmt);
   (void)vsnprintf(buffer, sizeof(buffer), fmt, ap);
   va_end(ap);
+
+  if (ctx == NULL || ctx->ctx_error_window == NULL) {
+    fprintf(stderr, "%s\n", buffer);
+    return 0;
+  }
 
   MapNoticeWindow(ctx, "N O T I C E");
   DisplayMessage(ctx, buffer);
@@ -55,6 +65,11 @@ int UI_Warning(ViewContext *ctx, const char *fmt, ...) {
   va_start(ap, fmt);
   (void)vsnprintf(buffer, sizeof(buffer), fmt, ap);
   va_end(ap);
+
+  if (ctx == NULL || ctx->ctx_error_window == NULL) {
+    fprintf(stderr, "%s\n", buffer);
+    return 0;
+  }
 
   MapErrorWindow(ctx, "W A R N I N G");
   return PrintMessage(ctx, buffer, FALSE);
@@ -84,6 +99,11 @@ int UI_Error(ViewContext *ctx, const char *module, int line, const char *fmt,
   va_start(ap, fmt);
   (void)vsnprintf(msg_buffer, sizeof(msg_buffer), fmt, ap);
   va_end(ap);
+
+  if (ctx == NULL || ctx->ctx_error_window == NULL) {
+    fprintf(stderr, "%s (module=%s line=%d)\n", msg_buffer, module, line);
+    return -1;
+  }
 
   MapErrorWindow(ctx, "INTERNAL ERROR");
   (void)snprintf(final_buffer, sizeof(final_buffer),
