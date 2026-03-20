@@ -66,9 +66,9 @@ static void printhexline(ViewContext *ctx, WINDOW *win, char *line, char *buf, i
   }
   for (int i = 1; i <= r; i++) {
     if ((i == (ctx->viewer.bytes / 2)) || (i == ctx->viewer.bytes))
-      snprintf(aux, ctx->viewer.wcols, "%02hhX  ", buf[i - 1]);
+      snprintf(aux, ctx->viewer.wcols, "%02X  ", (unsigned char)buf[i - 1]);
     else
-      snprintf(aux, ctx->viewer.wcols, "%02hhX ", buf[i - 1]);
+      snprintf(aux, ctx->viewer.wcols, "%02X ", (unsigned char)buf[i - 1]);
     strcat(line, aux);
   }
   for (int i = r + 1; i <= ctx->viewer.bytes; i++) {

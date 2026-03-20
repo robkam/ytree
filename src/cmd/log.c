@@ -163,7 +163,6 @@ int LogDisk(ViewContext *ctx, YtreePanel *panel, char *path) {
 
     if (access_ok) {
       panel->vol = found_vol;
-      panel->vol = panel->vol;
       s = &panel->vol->vol_stats;
       ctx->global_search_term[0] = '\0';
       ctx->view_mode = panel->vol->vol_stats.login_mode;
@@ -254,17 +253,12 @@ int LogDisk(ViewContext *ctx, YtreePanel *panel, char *path) {
       /* We tried to create a NEW volume and failed. */
       /* panel->vol is still old_vol (valid). Restore its display. */
       panel->vol = old_vol;
-      panel->vol = panel->vol;
       ctx->view_mode = panel->vol->vol_stats.login_mode;
       s = &panel->vol->vol_stats;
 
       DisplayMenu(ctx);
       BuildDirEntryList(ctx, panel->vol, &(int){0});
       RestorePanelTreeSelection(ctx, panel);
-
-      /* Sync panel state from volume's legacy state */
-      panel->disp_begin_pos = panel->disp_begin_pos;
-      panel->cursor_pos = panel->cursor_pos;
 
       DisplayTree(ctx, panel->vol, ctx->ctx_dir_window, panel->disp_begin_pos,
                   panel->disp_begin_pos + panel->cursor_pos, TRUE);
@@ -281,7 +275,6 @@ int LogDisk(ViewContext *ctx, YtreePanel *panel, char *path) {
 
   /* Success */
   panel->vol = loaded_vol;
-  panel->vol = panel->vol;
   s = &panel->vol->vol_stats;
   ctx->global_search_term[0] = '\0';
   ctx->view_mode = s->login_mode;

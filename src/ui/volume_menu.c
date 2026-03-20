@@ -63,6 +63,8 @@ int SelectLoadedVolume(ViewContext *ctx, int *return_key) {
     i = 0;
     int new_selected_index = 0; // Default to first item
     HASH_ITER(hh, ctx->volumes_head, s, tmp) {
+      if (s == NULL)
+        continue;
       vol_array[i] = s;
       int len = StrVisualLength(s->vol_stats.login_path);
       if (len > max_path_len) {

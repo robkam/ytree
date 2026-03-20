@@ -238,7 +238,8 @@ int MakePath(ViewContext *ctx, DirEntry *tree, char *dir_path,
     goto CREATE_EXTERNAL;
 
   NormPath(dir_path, path);
-  *dest_dir_entry = NULL;
+  if (dest_dir_entry)
+    *dest_dir_entry = NULL;
 
   n = strlen(tree->name);
   /*
@@ -292,7 +293,8 @@ SEARCH_TREE:
     }
     token = strtok_r(NULL, FILE_SEPARATOR_STRING, &old);
   }
-  *dest_dir_entry = de_ptr;
+  if (dest_dir_entry)
+    *dest_dir_entry = de_ptr;
   result = 0;
   return result;
 

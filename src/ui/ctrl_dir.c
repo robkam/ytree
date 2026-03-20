@@ -897,8 +897,8 @@ int HandleDirWindow(ViewContext *ctx, DirEntry *start_dir_entry) {
   char new_login_path[PATH_LENGTH + 1];
   char *home;
   YtreeAction action; /* Declare YtreeAction variable */
-  struct Volume *start_vol;
-  Statistic *s;
+  struct Volume *start_vol = NULL;
+  Statistic *s = NULL;
   int height;
   char watcher_path[PATH_LENGTH + 1];
   int local_cursor_pos;
@@ -915,27 +915,18 @@ int HandleDirWindow(ViewContext *ctx, DirEntry *start_dir_entry) {
   /* Safety fallback if Init() has not set up panels */
   if (ctx->active == NULL)
     ctx->active = ctx->left;
+  if (ctx->active == NULL || ctx->active->vol == NULL)
+    return ESC;
+
+  start_vol = ctx->active->vol;
+  s = &ctx->active->vol->vol_stats;
 
   if (ctx->active) {
     DEBUG_LOG("HandleDirWindow: Syncing panel state");
     ctx->focused_window = ctx->active->saved_focus;
-    start_vol = ctx->active->vol;
-    if (ctx->active->vol)
-      s = &ctx->active->vol->vol_stats;
-    else
-      s = NULL;
 
-    if (ctx->active->vol != ctx->active->vol) {
-      ctx->active->vol = ctx->active->vol;
-      /* Panel isolation: No vol_stats sync */
-      ctx->active->disp_begin_pos = ctx->active->vol->id /* legacy removed */;
-    }
-    /* Ensure pointer is always fresh, but don't overwrite pos if vol is same */
-    ctx->active->vol = ctx->active->vol;
     local_cursor_pos = ctx->active->cursor_pos;
     local_disp_begin_pos = ctx->active->disp_begin_pos;
-    /* Ensure s points to ctx->active's volume stats */
-    s = &ctx->active->vol->vol_stats;
 
     /* Update Global View Context to match Active Panel */
     /* This ensures macros like ctx->ctx_dir_window resolve to the
@@ -1059,7 +1050,8 @@ int HandleDirWindow(ViewContext *ctx, DirEntry *start_dir_entry) {
   }
   do {
     /* Detect Global Volume Change (Split Brain Fix) */
-    if (ctx->active->vol != start_vol)
+    if (ctx->active == NULL || ctx->active->vol == NULL ||
+        ctx->active->vol != start_vol)
       return ESC;
 
     if (need_dsp_help) {
@@ -1140,6 +1132,8 @@ int HandleDirWindow(ViewContext *ctx, DirEntry *start_dir_entry) {
         /* If panel was switched during preview, we REFRESH local state
          * BEFORE calling RefreshView to ensure the correct entry is
          * drawn. */
+        if (ctx->active->vol == NULL)
+          return ESC;
         start_vol = ctx->active->vol;
         s = &ctx->active->vol->vol_stats;
 
@@ -1243,7 +1237,6 @@ int HandleDirWindow(ViewContext *ctx, DirEntry *start_dir_entry) {
       }
 
       /* Restore Volume context */
-      ctx->active->vol = ctx->active->vol;
       ctx->focused_window = ctx->active->saved_focus;
       s = &ctx->active->vol->vol_stats; /* UPDATE S */
       /* Do NOT overwrite ctx->active->cursor_pos here; preserve its
@@ -1488,9 +1481,8 @@ int HandleDirWindow(ViewContext *ctx, DirEntry *start_dir_entry) {
             Volume_Delete(ctx, old_vol);
 
           /* Update pointers for the new context */
-          s = &ctx->active->vol->vol_stats;    /* UPDATE S */
-          start_vol = ctx->active->vol;        /* Update loop safety variable */
-          ctx->active->vol = ctx->active->vol; /* Update Panel volume */
+          s = &ctx->active->vol->vol_stats; /* UPDATE S */
+          start_vol = ctx->active->vol;     /* Update loop safety variable */
 
           /* Reset Search Term to prevent bleeding */
           ctx->global_search_term[0] = '\0';
@@ -1700,9 +1692,9 @@ int HandleDirWindow(ViewContext *ctx, DirEntry *start_dir_entry) {
                         .dir_entry;
       }
 
-      DEBUG_LOG("ACTION_ENTER: dir_entry=%p name=%s matching=%d",
+      DEBUG_LOG("ACTION_ENTER: dir_entry=%p name=%s matching=%u",
                 (void *)dir_entry, dir_entry ? dir_entry->name : "NULL",
-                dir_entry ? dir_entry->matching_files : -1);
+                dir_entry ? (unsigned int)dir_entry->matching_files : 0U);
 
       if (dir_entry == NULL || dir_entry->total_files == 0) {
         UI_Beep(ctx, FALSE);
@@ -1723,6 +1715,8 @@ int HandleDirWindow(ViewContext *ctx, DirEntry *start_dir_entry) {
 
         if (ctx->active != saved_panel) {
           /* If panel was switched, refresh state locally and continue */
+          if (ctx->active->vol == NULL)
+            return ESC;
           start_vol = ctx->active->vol;
           s = &ctx->active->vol->vol_stats;
 
@@ -1964,7 +1958,6 @@ int HandleDirWindow(ViewContext *ctx, DirEntry *start_dir_entry) {
 
         /* Update loop variables for new volume */
         s = &ctx->active->vol->vol_stats; /* UPDATE S */
-        ctx->active->vol = ctx->active->vol;
         /* Panel isolation: No vol_stats sync */
         ctx->active->disp_begin_pos = ctx->active->vol->id /* legacy removed */;
 
@@ -2033,7 +2026,6 @@ int HandleDirWindow(ViewContext *ctx, DirEntry *start_dir_entry) {
           return ESC;
 
         s = &ctx->active->vol->vol_stats; /* UPDATE S */
-        ctx->active->vol = ctx->active->vol;
         /* Panel isolation: No vol_stats sync */
         ctx->active->disp_begin_pos = ctx->active->vol->id /* legacy removed */;
 
@@ -2091,7 +2083,6 @@ int HandleDirWindow(ViewContext *ctx, DirEntry *start_dir_entry) {
           return ESC;
 
         s = &ctx->active->vol->vol_stats; /* UPDATE S */
-        ctx->active->vol = ctx->active->vol;
         /* Panel isolation: No vol_stats sync */
         ctx->active->disp_begin_pos = ctx->active->vol->id /* legacy removed */;
 
@@ -2171,7 +2162,6 @@ int HandleDirWindow(ViewContext *ctx, DirEntry *start_dir_entry) {
 
           s = &ctx->active->vol
                    ->vol_stats; /* Update stats pointer for new volume */
-          ctx->active->vol = ctx->active->vol;
 
           /* Safety check / Clamping */
           if (ctx->active->vol->total_dirs > 0) {

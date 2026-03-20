@@ -247,6 +247,9 @@ int BuildUserFileEntry(FileEntry *fe_ptr, int filename_width,
   size_t remaining = linelen;
   char *dptr = line;
 
+  if (fe_ptr == NULL || line == NULL || linelen <= 0)
+    return -1;
+
   if (fe_ptr && S_ISLNK(fe_ptr->stat_struct.st_mode))
     sym_link_name = &fe_ptr->name[strlen(fe_ptr->name) + 1];
   else

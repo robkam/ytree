@@ -15,6 +15,7 @@ char *GetPath(DirEntry *dir_entry, char *buffer) {
   int i, depth = 0;
   DirEntry *de_ptr;
 
+  memset(components, 0, sizeof(components));
   *buffer = '\0';
   if (dir_entry == NULL) {
     return buffer;
@@ -26,7 +27,7 @@ char *GetPath(DirEntry *dir_entry, char *buffer) {
     components[depth++] = de_ptr->name;
   }
 
-  if (depth > 0) {
+  if (depth > 0 && components[depth - 1] != NULL) {
     /* The last component collected is the root. Start the path with it. */
     strcpy(buffer, components[depth - 1]);
 

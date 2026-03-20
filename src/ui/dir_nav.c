@@ -18,6 +18,8 @@ void DirNav_Movedown(ViewContext *ctx, DirEntry **dir_entry, YtreePanel *p) {
 
   *dir_entry =
       p->vol->dir_entry_list[p->disp_begin_pos + p->cursor_pos].dir_entry;
+  if (*dir_entry == NULL)
+    return;
 
   DEBUG_LOG("Movedown: moved to cursor_pos=%d (disp_begin_pos=%d), "
             "total_dirs=%d, name=%s",
@@ -55,6 +57,8 @@ void DirNav_Moveup(ViewContext *ctx, DirEntry **dir_entry, YtreePanel *p) {
 
   *dir_entry =
       p->vol->dir_entry_list[p->disp_begin_pos + p->cursor_pos].dir_entry;
+  if (*dir_entry == NULL)
+    return;
 
   if (0) {
     *dir_entry = RefreshTreeSafe(ctx, p, *dir_entry);
@@ -88,6 +92,8 @@ void DirNav_Movenpage(ViewContext *ctx, DirEntry **dir_entry, YtreePanel *p) {
 
   *dir_entry =
       p->vol->dir_entry_list[p->disp_begin_pos + p->cursor_pos].dir_entry;
+  if (*dir_entry == NULL)
+    return;
 
   if (0) {
     *dir_entry = RefreshTreeSafe(ctx, p, *dir_entry);
@@ -120,6 +126,8 @@ void DirNav_Moveppage(ViewContext *ctx, DirEntry **dir_entry, YtreePanel *p) {
 
   *dir_entry =
       p->vol->dir_entry_list[p->disp_begin_pos + p->cursor_pos].dir_entry;
+  if (*dir_entry == NULL)
+    return;
 
   if (0) {
     *dir_entry = RefreshTreeSafe(ctx, p, *dir_entry);
@@ -153,6 +161,8 @@ void DirNav_MoveEnd(ViewContext *ctx, DirEntry **dir_entry, YtreePanel *p) {
 
   *dir_entry =
       p->vol->dir_entry_list[p->disp_begin_pos + p->cursor_pos].dir_entry;
+  if (*dir_entry == NULL)
+    return;
 
   if (0) {
     *dir_entry = RefreshTreeSafe(ctx, p, *dir_entry);
@@ -187,6 +197,8 @@ void DirNav_MoveHome(ViewContext *ctx, DirEntry **dir_entry, YtreePanel *p) {
 
   *dir_entry =
       p->vol->dir_entry_list[p->disp_begin_pos + p->cursor_pos].dir_entry;
+  if (*dir_entry == NULL)
+    return;
 
   if (0) {
     *dir_entry = RefreshTreeSafe(ctx, p, *dir_entry);

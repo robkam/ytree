@@ -900,7 +900,6 @@ int HandleFileWindow(ViewContext *ctx, DirEntry *dir_entry) {
         /* Turning OFF */
         /* INSTRUCTION: Restore state */
         ctx->active = ctx->preview_return_panel;
-        ctx->active->vol = ctx->active->vol;
         ctx->focused_window = ctx->preview_return_focus;
 
         /* CRITICAL: Update local context variables for the loop if we stay in
@@ -1064,7 +1063,6 @@ int HandleFileWindow(ViewContext *ctx, DirEntry *dir_entry) {
         ctx->active = ctx->left;
       }
       /* Update Volume Context */
-      ctx->active->vol = ctx->active->vol;
       ctx->focused_window = ctx->active->saved_focus;
 
       /* Bug 3 Fix: We trigger a loop exit here.

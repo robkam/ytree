@@ -189,7 +189,7 @@ void PrintFileEntry(ViewContext *ctx, YtreePanel *panel, int entry_no, int y,
   char format[60];
   char justify;
   char *line_ptr;
-  int n, pos_x;
+  int n, pos_x = 0;
   FileEntry *fe_ptr;
   static char *line_buffer = NULL;
   static int old_cols = -1;
@@ -212,6 +212,8 @@ void PrintFileEntry(ViewContext *ctx, YtreePanel *panel, int entry_no, int y,
   width = getmaxx(win);
 
   fe_ptr = panel->file_entry_list[entry_no].file;
+  if (fe_ptr == NULL)
+    return;
 
   if (ctx->fixed_col_width > 0) {
     pos_x = x * (ctx->fixed_col_width + 1);
@@ -250,10 +252,6 @@ void PrintFileEntry(ViewContext *ctx, YtreePanel *panel, int entry_no, int y,
     return;
   }
 
-  ef_window_width = width - pos_x - 1; /* Effective width for this column */
-  if (ef_window_width < 0)
-    ef_window_width = 0;
-
   (panel->reverse_sort) ? (justify = '+') : (justify = '-');
 
   if (old_cols != COLS) {
@@ -264,8 +262,10 @@ void PrintFileEntry(ViewContext *ctx, YtreePanel *panel, int entry_no, int y,
     line_buffer_size = COLS + PATH_LENGTH;
     line_buffer = (char *)xmalloc(line_buffer_size);
   }
+  if (line_buffer == NULL || line_buffer_size == 0)
+    return;
 
-  if (fe_ptr && S_ISLNK(fe_ptr->stat_struct.st_mode))
+  if (S_ISLNK(fe_ptr->stat_struct.st_mode))
     sym_link_name = &fe_ptr->name[strlen(fe_ptr->name) + 1];
   else
     sym_link_name = "";
@@ -280,7 +280,7 @@ void PrintFileEntry(ViewContext *ctx, YtreePanel *panel, int entry_no, int y,
 #if defined(__GNUC__) && __GNUC__ >= 7
 #pragma GCC diagnostic pop
 #endif
-  if (fe_ptr && S_ISLNK(fe_ptr->stat_struct.st_mode))
+  if (S_ISLNK(fe_ptr->stat_struct.st_mode))
     linkname_width = panel->max_visual_linkname_len +
                      (strlen(sym_link_name) - StrVisualLength(sym_link_name));
 #else
@@ -324,13 +324,17 @@ void PrintFileEntry(ViewContext *ctx, YtreePanel *panel, int entry_no, int y,
     break;
   }
 
+  ef_window_width = width - pos_x - 1; /* Effective width for this column */
+  if (ef_window_width < 0)
+    ef_window_width = 0;
+
   wmove(win, y, pos_x);
   base_color_pair = GetFileTypeColor(ctx, fe_ptr);
 
   if (ctx->highlight_full_line) {
     /* --- RENDER METHOD 1: FULL LINE HIGHLIGHT --- */
     wattron(win, COLOR_PAIR(base_color_pair));
-    if (fe_ptr && fe_ptr->tagged)
+    if (fe_ptr->tagged)
       wattron(win, A_BOLD);
     if (hilight)
       wattron(win, A_REVERSE);
@@ -435,14 +439,18 @@ void PrintFileEntry(ViewContext *ctx, YtreePanel *panel, int entry_no, int y,
         line_ptr = &line_buffer[VisualPositionToBytePosition(
             line_buffer, n - ef_window_width)];
 
+      if (line_ptr == NULL)
+        return;
       line_end_pos = VisualPositionToBytePosition(line_ptr, ef_window_width);
+      if (line_end_pos < 0)
+        return;
       line_ptr[line_end_pos] = '\0';
     }
     waddstr(win, line_ptr);
 
     if (hilight)
       wattroff(win, A_REVERSE);
-    if (fe_ptr && fe_ptr->tagged)
+    if (fe_ptr->tagged)
       wattroff(win, A_BOLD);
 
   } else {
@@ -451,7 +459,7 @@ void PrintFileEntry(ViewContext *ctx, YtreePanel *panel, int entry_no, int y,
       start_x = 0; /* No horizontal scrolling in this mode. */
 
     wattron(win, COLOR_PAIR(base_color_pair));
-    if (fe_ptr && fe_ptr->tagged)
+    if (fe_ptr->tagged)
       wattron(win, A_BOLD);
 
     /* Print tag and type */
@@ -585,7 +593,7 @@ void PrintFileEntry(ViewContext *ctx, YtreePanel *panel, int entry_no, int y,
       }
     }
 
-    if (fe_ptr && fe_ptr->tagged)
+    if (fe_ptr->tagged)
       wattroff(win, A_BOLD);
   }
   wattroff(win, COLOR_PAIR(base_color_pair));

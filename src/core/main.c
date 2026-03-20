@@ -22,15 +22,6 @@ static void SigIntHandler(int sig) {
   ytree_shutdown_flag = 1;
 }
 
-static void EmergencyExit(int sig) {
-  const char *msg = "Internal Error: Signal Caught. Exiting.\n";
-  /* endwin() removed as it is unsafe in signal handler */
-  if (write(STDERR_FILENO, msg, strlen(msg))) {
-    ;
-  }
-  _exit(1);
-}
-
 int main(int argc, char **argv) {
   int argi, i;
   char *hist;
@@ -253,6 +244,11 @@ int main(int argc, char **argv) {
   /* Main application loop */
 
   while (1) {
+    if (ctx.active == NULL || ctx.active->vol == NULL ||
+        ctx.active->vol->vol_stats.tree == NULL) {
+      main_loop_exit_char = 'q';
+      break;
+    }
     DEBUG_LOG("Calling HandleDirWindow...");
     main_loop_exit_char =
         HandleDirWindow(&ctx, ctx.active->vol->vol_stats.tree);
