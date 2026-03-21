@@ -43,7 +43,7 @@ Local shortcut targets are available in the `Makefile`:
 - `make qa-valgrind`
 - `make qa-pytest`
 - `make qa-all` (runs `qa-clang`, `qa-cppcheck`, `qa-scan`, `qa-valgrind`, `qa-pytest` in order)
-- `make qa-all-log` (same as `qa-all`, with full output captured to `build/qa-all.log`; override with `QA_LOG=/path/to/file`)
+- `make qa-all-log` (same as `qa-all`, with full output captured to `qa-all.log` in repo root; override with `QA_LOG=/path/to/file`)
 
 GitHub CI is a baseline gate (build + `pytest`) and does not replace the full local audit loop.
 
