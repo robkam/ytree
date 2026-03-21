@@ -61,6 +61,43 @@ The project maintains a set of "Persona Rules" in the `.agent/rules/` directory.
 *   **`tester.md`**: Used for generating Python-based TUI automation tests.
 *   **`greybeard.md`**: Advisory persona for general engineering guidance, convention checks, and practical best-practice sanity checks. This is not a mandatory gate role.
 
+### 2.1 Persona Activation and Skill Auto-Load
+
+Use explicit persona switching in prompts:
+
+*   Full form: `use architect`, `use developer`, `use code_auditor`, `use tester`, `use greybeard`
+*   Short form: `use a`, `use d`, `use c`, `use t`, `use g`
+*   Default when no explicit switch is `architect`.
+*   Assistant responses should begin with `<name>:`.
+
+Skills are auto-loaded by active persona from `.ai/skills/*/SKILL.md` (no extra user command needed):
+
+*   `architect` -> `architect-planning`
+*   `developer` -> `developer-implementation`
+*   `code_auditor` -> `code-auditor-gate`
+*   `tester` -> `tester-regression-design`
+*   `greybeard` -> `greybeard-meta-guidance`
+
+Optional explicit skill controls:
+
+*   `use skill <skill-name>` to force-load a skill
+*   `skip skill <skill-name>` to suppress a skill
+*   `only skill <skill-name>[,<skill-name>...]` to load only specific skills
+*   `reset skills` to clear explicit overrides and return to defaults
+
+Cross-cutting skill auto-load:
+
+*   Bugfix work -> `bugfix-red-green-proof`
+*   Feature-sized, major, and PR-update work -> `full-audit-gate-c`
+*   PTY/pexpect flake debugging -> `pty-pexpect-debug`
+
+Skill precedence (highest to lowest):
+
+*   `only skill ...`
+*   `use skill ...` and `skip skill ...`
+*   Persona mapping
+*   Cross-cutting auto-load
+
 ---
 
 ## 3. Model Selection Guide
