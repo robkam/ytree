@@ -835,7 +835,7 @@ const char *UI_CompareTagResultName(CompareTagResult tag_result) {
 
 const char *UI_GetCompareHelperCommand(ViewContext *ctx,
                                        CompareFlowType flow_type) {
-  const char *helper = "";
+  const char *helper;
 
   if (!ctx)
     return "";
@@ -1508,6 +1508,9 @@ void UI_HandleSort(ViewContext *ctx, DirEntry *dir_entry, Statistic *s,
   int sort_kind = 0;
   int order = SORT_ASC;
   WINDOW *sort_win = (ctx && ctx->ctx_menu_window) ? ctx->ctx_menu_window : stdscr;
+
+  if (!ctx || !ctx->active || !s)
+    return;
 
   DrawSortPrompt(ctx, sort_win, TRUE);
 

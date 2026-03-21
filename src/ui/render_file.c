@@ -455,8 +455,6 @@ void PrintFileEntry(ViewContext *ctx, YtreePanel *panel, int entry_no, int y,
 
   } else {
     /* --- RENDER METHOD 2: NAME-ONLY HIGHLIGHT --- */
-    if (start_x > 0)
-      start_x = 0; /* No horizontal scrolling in this mode. */
 
     wattron(win, COLOR_PAIR(base_color_pair));
     if (fe_ptr->tagged)

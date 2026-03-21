@@ -91,10 +91,7 @@ int SetFileModus(ViewContext *ctx, FileEntry *fe_ptr,
                  WalkingPackage *walking_package) {
   struct stat stat_struct;
   char buffer[PATH_LENGTH + 1];
-  int result;
   int new_mode;
-
-  result = -1;
 
   walking_package->new_fe_ptr = fe_ptr; /* unchanged */
 
@@ -114,22 +111,17 @@ int SetFileModus(ViewContext *ctx, FileEntry *fe_ptr,
     } else {
       fe_ptr->stat_struct = stat_struct;
     }
-
-    result = 0;
   } else {
     return -1;
   }
 
-  return (result);
+  return 0;
 }
 
 int SetDirModus(DirEntry *de_ptr, WalkingPackage *walking_package) {
   struct stat stat_struct;
   char buffer[PATH_LENGTH + 1];
-  int result;
   int new_mode;
-
-  result = -1;
 
   new_mode =
       GetNewMode(de_ptr->stat_struct.st_mode,
@@ -147,13 +139,11 @@ int SetDirModus(DirEntry *de_ptr, WalkingPackage *walking_package) {
     } else {
       de_ptr->stat_struct = stat_struct;
     }
-
-    result = 0;
   } else {
     return -1;
   }
 
-  return (result);
+  return 0;
 }
 
 static int GetNewMode(int old_mode, char *mode) {

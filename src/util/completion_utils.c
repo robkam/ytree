@@ -28,7 +28,6 @@ static void PrintMtchEntry(ViewContext *ctx, int entry_no, int y, int color,
   int ef_window_width;
 
   GetMaxYX(ctx->ctx_matches_window, &window_height, &window_width);
-  ef_window_width = window_width - 2; /* Effektive Window-Width */
 
 #ifdef NO_HIGHLIGHT
   ef_window_width = window_width - 3; /* Effektive Window-Width */

@@ -519,8 +519,6 @@ BOOL handle_tag_file_action(ViewContext *ctx, int action, DirEntry *dir_entry,
     return TRUE;
 
   case ACTION_CMD_TAGGED_P:
-    de_ptr = dir_entry;
-
     if (!FileTags_IsMatchingTaggedFiles(ctx)) {
     } else if (ctx->view_mode != DISK_MODE && ctx->view_mode != USER_MODE) {
       UI_Message(ctx, "^P is not available in archive mode");

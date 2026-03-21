@@ -24,7 +24,6 @@ static void Dir_Progress(ViewContext *ctx, void *data) {
 void HandlePlus(ViewContext *ctx, DirEntry *dir_entry, DirEntry *de_ptr,
                 char *new_login_path, BOOL *need_dsp_help, YtreePanel *p) {
   Statistic *s = &p->vol->vol_stats;
-  WINDOW *win = p->pan_dir_window;
 
   /* Renamed usage: s->mode -> s->login_mode */
   if (s->login_mode != DISK_MODE && s->login_mode != USER_MODE) {
@@ -54,7 +53,6 @@ void HandlePlus(ViewContext *ctx, DirEntry *dir_entry, DirEntry *de_ptr,
 void HandleReadSubTree(ViewContext *ctx, DirEntry *dir_entry,
                        BOOL *need_dsp_help, YtreePanel *p) {
   Statistic *s = &p->vol->vol_stats;
-  WINDOW *win = p->pan_dir_window;
 
   SuspendClock(ctx); /* Suspend clock before scanning */
   if (ScanSubTree(ctx, dir_entry, s) == -1) {
@@ -331,14 +329,11 @@ void ToggleDotFiles(ViewContext *ctx, YtreePanel *p) {
   int i, found_idx = -1;
   int win_height;
   Statistic *s;
-  WINDOW *win;
 
   if (!p || !p->vol)
     return;
 
   s = &p->vol->vol_stats;
-  s = &p->vol->vol_stats;
-  /* Removed stale 'win' caching */
 
   /* Suspend clock to prevent signal handler interrupt corrupting UI during
    * rebuild */
@@ -380,22 +375,21 @@ void ToggleDotFiles(ViewContext *ctx, YtreePanel *p) {
   if (found_idx != -1) {
     /* Check if the found directory is within the current visible page */
     if (found_idx >= p->disp_begin_pos &&
-        found_idx < p->disp_begin_pos + ctx->layout.dir_win_height) {
+        found_idx < p->disp_begin_pos + win_height) {
       /* It's still on screen. Just update the cursor, don't scroll/jump. */
       p->cursor_pos = found_idx - p->disp_begin_pos;
     } else {
       /* It moved off page. Re-center or adjust slightly. */
-      if (found_idx < ctx->layout.dir_win_height) {
+      if (found_idx < win_height) {
         p->disp_begin_pos = 0;
         p->cursor_pos = found_idx;
       } else {
         /* Center the item */
-        p->disp_begin_pos = found_idx - (ctx->layout.dir_win_height / 2);
+        p->disp_begin_pos = found_idx - (win_height / 2);
 
         /* Bounds check for display position */
-        if (p->disp_begin_pos >
-            p->vol->total_dirs - ctx->layout.dir_win_height) {
-          p->disp_begin_pos = p->vol->total_dirs - ctx->layout.dir_win_height;
+        if (p->disp_begin_pos > p->vol->total_dirs - win_height) {
+          p->disp_begin_pos = p->vol->total_dirs - win_height;
         }
         if (p->disp_begin_pos < 0)
           p->disp_begin_pos = 0;
@@ -410,8 +404,8 @@ void ToggleDotFiles(ViewContext *ctx, YtreePanel *p) {
   }
 
   /* Sanity check cursor limits */
-  if (p->cursor_pos >= ctx->layout.dir_win_height)
-    p->cursor_pos = ctx->layout.dir_win_height - 1;
+  if (p->cursor_pos >= win_height)
+    p->cursor_pos = win_height - 1;
   if (p->disp_begin_pos + p->cursor_pos >= p->vol->total_dirs) {
     /* Move cursor to last valid item */
     p->cursor_pos = (p->vol->total_dirs > 0)
@@ -455,14 +449,11 @@ void ToggleDotFiles(ViewContext *ctx, YtreePanel *p) {
  */
 DirEntry *RefreshTreeSafe(ViewContext *ctx, YtreePanel *p, DirEntry *entry) {
   Statistic *s;
-  WINDOW *win;
 
   if (!p || !p->vol)
     return entry;
 
   s = &p->vol->vol_stats;
-  s = &p->vol->vol_stats;
-  /* Removed stale 'win' caching */
 
   werase(p->pan_dir_window);
   werase(ctx->ctx_file_window);

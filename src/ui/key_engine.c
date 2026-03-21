@@ -35,7 +35,6 @@ char *StrLeft(const char *str, size_t visible_count) {
 #ifdef WITH_UTF8
   mbstate_t state;
   const char *s, *s_start;
-  ;
   size_t pos = 0;
 #endif
 
@@ -61,7 +60,6 @@ char *StrLeft(const char *str, size_t visible_count) {
     sz = mbrtowc(&wc, s, MB_CUR_MAX, &state);
 
     if (sz == (size_t)-1 || sz == (size_t)-2 || sz == 0) {
-      sz = 1;
       s++;
       width = 1;
     } else {
@@ -122,7 +120,6 @@ char *StrRight(const char *str, size_t visible_count) {
     sz = mbrtowc(&wc, s, MB_CUR_MAX, &state);
 
     if (sz == (size_t)-1 || sz == (size_t)-2 || sz == 0) {
-      sz = 1;
       s++;
       width = 1;
     } else {
@@ -195,7 +192,7 @@ int VisualPositionToBytePosition(const char *str, int visual_pos) {
   const char *s, *s_start;
   int pos = 0;
 
-  s_start = s = str;
+  s = str;
 
   while (*s) {
 
@@ -208,7 +205,6 @@ int VisualPositionToBytePosition(const char *str, int visual_pos) {
     sz = mbrtowc(&wc, s, MB_CUR_MAX, &state);
 
     if (sz == (size_t)-1 || sz == (size_t)-2 || sz == 0) {
-      sz = 1;
       s++;
       width = 1;
     } else {

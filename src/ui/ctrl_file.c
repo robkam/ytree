@@ -1288,7 +1288,6 @@ int HandleFileWindow(ViewContext *ctx, DirEntry *dir_entry) {
           ctx->active
               ->file_entry_list[dir_entry->start_file + dir_entry->cursor_pos]
               .file;
-      de_ptr = fe_ptr->dir_entry;
       (void)GetRealFileNamePath(fe_ptr, filepath, ctx->view_mode);
       (void)ViewHex(ctx, filepath);
       need_dsp_help = TRUE;
@@ -1504,7 +1503,6 @@ int HandleFileWindow(ViewContext *ctx, DirEntry *dir_entry) {
           ctx->active
               ->file_entry_list[dir_entry->start_file + dir_entry->cursor_pos]
               .file;
-      de_ptr = fe_ptr->dir_entry;
 
       {
         int override_mode = 0;
@@ -1529,7 +1527,6 @@ int HandleFileWindow(ViewContext *ctx, DirEntry *dir_entry) {
           ctx->active
               ->file_entry_list[dir_entry->start_file + dir_entry->cursor_pos]
               .file;
-      de_ptr = fe_ptr->dir_entry;
 
       if (!GetRenameParameter(ctx, fe_ptr->name, new_name)) {
         /* EXPAND WILDCARDS FOR SINGLE FILE RENAME */
@@ -1606,7 +1603,6 @@ int HandleFileWindow(ViewContext *ctx, DirEntry *dir_entry) {
         break; /* Exit loop */
 
       dir_entry->big_window = TRUE;
-      ch = '\0';
 
       /* Use Global Refresh for clean transition */
       RefreshView(ctx, dir_entry);
@@ -1684,8 +1680,6 @@ int HandleFileWindow(ViewContext *ctx, DirEntry *dir_entry) {
       if (SelectLoadedVolume(ctx, NULL) == 0) {
         unput_char = '\0'; /* Ensure we return clean ESC, no pending input */
         return ESC;
-      } else {
-        ch = 0;
       }
       if (ctx->active->vol != start_vol)
         return ESC;
@@ -1696,8 +1690,6 @@ int HandleFileWindow(ViewContext *ctx, DirEntry *dir_entry) {
       if (CycleLoadedVolume(ctx, ctx->active, -1) == 0) {
         unput_char = '\0'; /* Ensure we return clean ESC, no pending input */
         return ESC;
-      } else {
-        ch = 0;
       }
       if (ctx->active->vol != start_vol)
         return ESC;
@@ -1708,8 +1700,6 @@ int HandleFileWindow(ViewContext *ctx, DirEntry *dir_entry) {
       if (CycleLoadedVolume(ctx, ctx->active, 1) == 0) {
         unput_char = '\0'; /* Ensure we return clean ESC, no pending input */
         return ESC;
-      } else {
-        ch = 0;
       }
       if (ctx->active->vol != start_vol)
         return ESC;

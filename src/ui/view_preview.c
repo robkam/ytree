@@ -138,7 +138,6 @@ void RenderFilePreview(ViewContext *ctx, WINDOW *win, char *filename,
 
           /* Restart file stream for drawing */
           rewind(fp);
-          skipped = 0; /* Reset skip counter for drawing loop */
           break;
         }
 
@@ -221,7 +220,6 @@ void RenderFilePreview(ViewContext *ctx, WINDOW *win, char *filename,
             if (pre_len > 0) {
               waddnstr(win, ptr, pre_len);
               remaining_width -= pre_len;
-              ptr += pre_len;
             }
 
             if (remaining_width <= 0)

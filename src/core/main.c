@@ -246,7 +246,6 @@ int main(int argc, char **argv) {
   while (1) {
     if (ctx.active == NULL || ctx.active->vol == NULL ||
         ctx.active->vol->vol_stats.tree == NULL) {
-      main_loop_exit_char = 'q';
       break;
     }
     DEBUG_LOG("Calling HandleDirWindow...");
