@@ -114,7 +114,7 @@ extern int Pipe(ViewContext *ctx, DirEntry *dir_entry, FileEntry *file_entry,
                 char *pipe_command);
 extern int PipeDirectory(ViewContext *ctx, DirEntry *dir_entry,
                          char *pipe_command);
-extern int PipeTaggedFiles(const ViewContext *ctx, FileEntry *fe_ptr,
+extern int PipeTaggedFiles(ViewContext *ctx, FileEntry *fe_ptr,
                            WalkingPackage *walking_package, Statistic *s);
 
 /* profile.c */

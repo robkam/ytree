@@ -106,13 +106,15 @@ CLANG_TIDY_SRCS = $(shell find $(SRC_DIR) -name '*.c' -type f)
 # Set QA_ON_BUILD=1 to run full QA (including pytest) after a normal build:
 #   make QA_ON_BUILD=1
 QA_ON_BUILD ?= 0
+QA_LOG ?= $(BUILD_DIR)/qa-all.log
 
 # -------------------------------------------------------------------------
 # Rules
 # -------------------------------------------------------------------------
 
 .PHONY: all clean clobber install uninstall docs changelog-draft test \
-	test-v qa-clang qa-cppcheck qa-scan qa-valgrind qa-pytest qa-all
+	test-v qa-clang qa-cppcheck qa-scan qa-valgrind qa-pytest qa-all \
+	qa-all-log
 
 all: $(MAIN_BIN) $(MANPAGE) $(if $(filter 1,$(QA_ON_BUILD)),qa-all)
 
@@ -219,3 +221,7 @@ qa-pytest: $(MAIN_BIN)
 	TERM=$${TERM:-xterm} $(PYTEST)
 
 qa-all: qa-clang qa-cppcheck qa-scan qa-valgrind qa-pytest
+
+qa-all-log:
+	@mkdir -p $(BUILD_DIR)
+	/bin/bash -o pipefail -c '$(MAKE_CMD) qa-all 2>&1 | tee "$(QA_LOG)"'

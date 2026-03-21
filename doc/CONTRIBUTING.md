@@ -86,6 +86,7 @@ Use **[AUDIT.md](AUDIT.md)** as the single source of truth.
 
 - Normal development build: `make`
 - Full local QA gate: `make qa-all` (includes `pytest`)
+- Full local QA gate with captured log: `make qa-all-log` (writes `build/qa-all.log`; override with `QA_LOG=/path/to/file`)
 - Optional strict mode: `make QA_ON_BUILD=1` (runs `qa-all` after build)
 - GitHub CI is a baseline gate (`make` + `pytest`); full audit remains the local/PR responsibility from `AUDIT.md`.
 
