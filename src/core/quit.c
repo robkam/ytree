@@ -16,7 +16,7 @@
 static void PerformQuit(ViewContext *ctx) {
   int term;
   char path_for_history[PATH_LENGTH + 1];
-  char *p;
+  const char *p;
 
   if (ctx->confirm_quit && strtol(ctx->confirm_quit, NULL, 0) != 0) {
     term = InputChoice(ctx, "quit ytree (Y/N) ?", "YNQq\r\033");
@@ -68,23 +68,23 @@ static void PerformQuit(ViewContext *ctx) {
  * functionality by writing the target directory to a file for the
  * calling shell script, then performs a standard quit.
  */
-void QuitTo(ViewContext *ctx, DirEntry *dir) {
+void QuitTo(ViewContext *ctx, DirEntry *dir_entry) {
   char path_to_write[PATH_LENGTH + 1];
   char qfilename[PATH_LENGTH + 1];
-  char *home_dir;
-  FILE *fp;
+  const char *home_dir;
 
   /* 2. Resolve Path: */
-  if (dir != NULL) {
-    GetPath(dir, path_to_write);
+  if (dir_entry != NULL) {
+    GetPath(dir_entry, path_to_write);
   } else {
-    /* If dir is NULL, quit to current directory. */
+    /* If dir_entry is NULL, quit to current directory. */
     strcpy(path_to_write, ctx->active->vol->vol_stats.path);
   }
 
   /* 3. Construct Filename: */
   home_dir = getenv("HOME");
   if (home_dir != NULL) {
+    FILE *fp;
     snprintf(qfilename, sizeof(qfilename), "%s/.ytree-%d.chdir", home_dir,
              (int)getppid());
 

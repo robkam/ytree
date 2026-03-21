@@ -281,8 +281,9 @@ static int PreviewProgressCallback(int status, const char *msg,
   return ARCHIVE_CB_CONTINUE;
 }
 
-void RenderArchivePreview(ViewContext *ctx, WINDOW *win, char *archive_path,
-                          char *internal_path, long *line_offset_ptr) {
+void RenderArchivePreview(ViewContext *ctx, WINDOW *win,
+                          const char *archive_path,
+                          const char *internal_path, long *line_offset_ptr) {
   char cache_file[] = "/tmp/ytree_preview.cache";
 
   if (strcmp(archive_path, last_preview_archive) != 0 ||

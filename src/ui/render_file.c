@@ -45,13 +45,13 @@ void SetRenderSortOrder(YtreePanel *p, BOOL reverse) {
   p->reverse_sort = reverse;
 }
 
-int GetPanelFileMode(YtreePanel *p) {
+int GetPanelFileMode(const YtreePanel *p) {
   if (!p)
     return MODE_1;
   return p->file_mode;
 }
 
-int GetPanelMaxColumn(YtreePanel *p) {
+int GetPanelMaxColumn(const YtreePanel *p) {
   if (!p)
     return 1;
   return p->max_column;
@@ -200,13 +200,13 @@ void PrintFileEntry(ViewContext *ctx, YtreePanel *panel, int entry_no, int y,
   char *group_name_ptr;
   int ef_window_width;
   char *sym_link_name = NULL;
-  char type_of_file = ' ';
+  char type_of_file;
   int filename_width = 0;
   int linkname_width = 0;
   int base_color_pair;
   int width;
 
-  if (!panel || !panel->file_entry_list)
+  if (!panel->file_entry_list)
     return;
 
   width = getmaxx(win);
@@ -605,7 +605,7 @@ void DisplayFiles(ViewContext *ctx, YtreePanel *panel, DirEntry *de_ptr,
     return;
   int height;
 
-  if (!panel || !panel->file_entry_list)
+  if (!panel->file_entry_list)
     return;
 
   height = getmaxy(win);

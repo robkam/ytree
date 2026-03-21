@@ -97,9 +97,8 @@ void DrawAnimationStep(ViewContext *ctx, WINDOW *win) {
 
 /* New Activity Spinner Implementation */
 void DrawSpinner(ViewContext *ctx) {
-  static char spin_chars[] = "|/-\\";
-
   if (LINES > 0 && COLS > 0) {
+    static char spin_chars[] = "|/-\\";
     /* Draw at bottom right (menu line) */
     mvaddch(LINES - 2, COLS - 2, spin_chars[ctx->spin_counter++ % 4]);
 

@@ -48,7 +48,7 @@ int MoveFile(ViewContext *ctx, FileEntry *fe_ptr, const char *to_file,
   struct Volume *target_vol = NULL;
   DirEntry *target_tree = NULL;
   Statistic *target_stats_ptr = NULL;
-  Statistic *s = &ctx->active->vol->vol_stats;
+  const Statistic *s = &ctx->active->vol->vol_stats;
 
   result = -1;
   *new_fe_ptr = NULL;
@@ -256,7 +256,7 @@ static int Move(ViewContext *ctx, char *to_path, char *from_path) {
   /* CopyFileContent does take a Statistic *s now. We need access to it. */
   /* Since Move is static and called from MoveFile, we should pass it or use
    * global ctx->active->vol */
-  Statistic *s = &ctx->active->vol->vol_stats;
+  const Statistic *s = &ctx->active->vol->vol_stats;
 
   if (!strcmp(to_path, from_path)) {
     /* MESSAGE( "Can't move file into itself" ); */
@@ -302,7 +302,7 @@ int MoveTaggedFiles(ViewContext *ctx, FileEntry *fe_ptr,
     if (*new_name == '\0') {
       /* MESSAGE( "Can't move file to*empty name" ); */
     } else {
-      char *to_path = walking_package->function_data.mv.to_path;
+      const char *to_path = walking_package->function_data.mv.to_path;
       DirEntry *dest_dir_entry =
           walking_package->function_data.mv.dest_dir_entry;
       FileEntry *new_fe_ptr;

@@ -14,16 +14,15 @@
 
 #define FILE_SEPARATOR_STRING "/"
 
-int MakeFile(ViewContext *ctx, DirEntry *dir_entry, const char *file_name,
+int MakeFile(ViewContext *ctx, DirEntry *dir_entry, const char *name,
              Statistic *s, int *overwrite_mode, ChoiceCallback choice_cb) {
   char buffer[PATH_LENGTH + 1];
   int result = -1;
-  int fd;
   struct stat stat_struct;
 
-  DEBUG_LOG("ENTER MakeFile: file_name=%s", file_name);
+  DEBUG_LOG("ENTER MakeFile: file_name=%s", name);
 
-  if (!file_name || !*file_name) {
+  if (!name || !*name) {
     return -1;
   }
   /* Check if file already exists in the current view to warn user?
@@ -32,7 +31,7 @@ int MakeFile(ViewContext *ctx, DirEntry *dir_entry, const char *file_name,
 
   (void)GetPath(dir_entry, buffer);
   (void)strcat(buffer, FILE_SEPARATOR_STRING);
-  (void)strcat(buffer, file_name);
+  (void)strcat(buffer, name);
 
   DEBUG_LOG("MakeFile: path=%s", buffer);
 
@@ -40,6 +39,7 @@ int MakeFile(ViewContext *ctx, DirEntry *dir_entry, const char *file_name,
     DEBUG_LOG("MakeFile: File already exists!");
     result = 1;
   } else {
+    int fd;
     fd = open(buffer, O_CREAT | O_EXCL | O_WRONLY, 0644);
     if (fd == -1) {
       DEBUG_LOG("MakeFile: open failed, errno=%d (%s)", errno, strerror(errno));

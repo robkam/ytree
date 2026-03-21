@@ -15,7 +15,6 @@ void FileTags_WalkTaggedFiles(ViewContext *ctx, int start_file, int cursor_pos,
                               int (*fkt)(ViewContext *, FileEntry *,
                                          WalkingPackage *),
                               WalkingPackage *walking_package) {
-  FileEntry *fe_ptr;
   int i;
   int start_x = 0;
   int result = 0;
@@ -31,7 +30,7 @@ void FileTags_WalkTaggedFiles(ViewContext *ctx, int start_file, int cursor_pos,
   max_disp_files = height * GetPanelMaxColumn(ctx->active);
 
   for (i = 0; i < (int)ctx->active->file_count && result == 0; i++) {
-    fe_ptr = ctx->active->file_entry_list[i].file;
+    FileEntry *fe_ptr = ctx->active->file_entry_list[i].file;
 
     if (fe_ptr->tagged && fe_ptr->matching) {
       if (maybe_change_x == FALSE && i >= start_file &&
@@ -93,11 +92,10 @@ void FileTags_SilentWalkTaggedFiles(ViewContext *ctx,
                                     int (*fkt)(ViewContext *, FileEntry *,
                                                WalkingPackage *, Statistic *),
                                     WalkingPackage *walking_package) {
-  FileEntry *fe_ptr;
   int i;
 
   for (i = 0; i < (int)ctx->active->file_count; i++) {
-    fe_ptr = ctx->active->file_entry_list[i].file;
+    FileEntry *fe_ptr = ctx->active->file_entry_list[i].file;
 
     if (fe_ptr->tagged && fe_ptr->matching) {
       (void)fkt(ctx, fe_ptr, walking_package, &ctx->active->vol->vol_stats);
@@ -128,15 +126,13 @@ void FileTags_SilentTagWalkTaggedFiles(ViewContext *ctx,
                                                   WalkingPackage *,
                                                   Statistic *),
                                        WalkingPackage *walking_package) {
-  FileEntry *fe_ptr;
   int i;
-  int result = 0;
 
   for (i = 0; i < (int)ctx->active->file_count; i++) {
-    fe_ptr = ctx->active->file_entry_list[i].file;
+    FileEntry *fe_ptr = ctx->active->file_entry_list[i].file;
 
     if (fe_ptr->tagged && fe_ptr->matching) {
-      result = fkt(ctx, fe_ptr, walking_package, &ctx->active->vol->vol_stats);
+      int result = fkt(ctx, fe_ptr, walking_package, &ctx->active->vol->vol_stats);
 
       if (result != 0) {
         fe_ptr->tagged = FALSE;
@@ -152,11 +148,10 @@ void FileTags_SilentTagWalkTaggedFiles(ViewContext *ctx,
 }
 
 BOOL FileTags_IsMatchingTaggedFiles(ViewContext *ctx) {
-  FileEntry *fe_ptr;
   int i;
 
   for (i = 0; i < (int)ctx->active->file_count; i++) {
-    fe_ptr = ctx->active->file_entry_list[i].file;
+    const FileEntry *fe_ptr = ctx->active->file_entry_list[i].file;
 
     if (fe_ptr->matching && fe_ptr->tagged)
       return (TRUE);
@@ -168,11 +163,9 @@ BOOL FileTags_IsMatchingTaggedFiles(ViewContext *ctx) {
 int FileTags_UI_DeleteTaggedFiles(ViewContext *ctx, int max_disp_files,
                                   Statistic *s) {
   FileEntry *fe_ptr;
-  DirEntry *de_ptr;
   int i;
   int start_file;
   int cursor_pos;
-  BOOL deleted;
   BOOL confirm_each = FALSE;
   int term;
   int start_x = 0;
@@ -212,10 +205,10 @@ int FileTags_UI_DeleteTaggedFiles(ViewContext *ctx, int max_disp_files,
     typeahead(0);
 
   for (i = 0; i < (int)ctx->active->file_count && result == 0;) {
-    deleted = FALSE;
+    BOOL deleted = FALSE;
 
     fe_ptr = ctx->active->file_entry_list[i].file;
-    de_ptr = fe_ptr->dir_entry;
+    DirEntry *de_ptr = fe_ptr->dir_entry;
 
     if (fe_ptr->tagged && fe_ptr->matching) {
       /* Spinner to indicate progress during bulk deletion */

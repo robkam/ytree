@@ -111,8 +111,6 @@ int DeleteDirectory(ViewContext *ctx, DirEntry *dir_entry,
     }
   }
 
-FNC_XIT:
-
   return (result);
 }
 
@@ -135,9 +133,6 @@ static int DeleteSubTree(ViewContext *ctx, DirEntry *dir_entry,
   }
 
   result = 0;
-
-FNC_XIT:
-
   return (result);
 }
 
@@ -179,8 +174,5 @@ static int DeleteSingleDirectory(ViewContext *ctx, DirEntry *dir_entry,
   free(dir_entry);
 
   result = 0;
-
-FNC_XIT:
-
   return (result);
 }

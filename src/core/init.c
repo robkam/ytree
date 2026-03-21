@@ -528,7 +528,7 @@ int Init(ViewContext *ctx, char *configuration_file, char *history_file) {
   InitView(ctx);
   DEBUG_LOG("ENTER Init");
   char buffer[PATH_LENGTH + 1];
-  char *home = NULL;
+  const char *home = NULL;
 
   /* ctx already assigned in main.c */
 

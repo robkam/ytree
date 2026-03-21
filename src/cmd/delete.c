@@ -103,9 +103,6 @@ UNLINK_DONE:
 
   result = RemoveFile(ctx, fe_ptr, s);
   (void)GetAvailBytes(&s->disk_space, s);
-
-FNC_XIT:
-
   return (result);
 }
 

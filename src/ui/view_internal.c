@@ -94,7 +94,6 @@ static void update_line(ViewContext *ctx, WINDOW *win, long line) {
   int r;
   char *buf;
   char *line_string;
-  char msg[50];
 
   line_string = (char *)xmalloc(ctx->viewer.wcols);
   memset(line_string, ' ', ctx->viewer.wcols);
@@ -102,6 +101,7 @@ static void update_line(ViewContext *ctx, WINDOW *win, long line) {
   buf = (char *)xmalloc(ctx->viewer.bytes);
   memset(buf, ' ', ctx->viewer.bytes);
   if (lseek(fd, (line - 1) * ctx->viewer.bytes, SEEK_SET) == -1) {
+    char msg[50];
     snprintf(msg, sizeof(msg), "File seek failed for line: %ld: %s ", line,
              strerror(errno));
     UI_Error(ctx, __FILE__, __LINE__, "%s", msg);
@@ -147,7 +147,7 @@ static void update_all_lines(ViewContext *ctx, WINDOW *win, char l) {
   doupdate();
 }
 
-static void Change2Edit(ViewContext *ctx, char *file_path) {
+static void Change2Edit(const ViewContext *ctx, const char *file_path) {
   int i;
   char *str;
 
@@ -179,7 +179,7 @@ static void Change2Edit(ViewContext *ctx, char *file_path) {
   return;
 }
 
-static void Change2View(ViewContext *ctx, char *file_path) {
+static void Change2View(const ViewContext *ctx, const char *file_path) {
   int i;
   char *str;
 
@@ -208,7 +208,7 @@ static void Change2View(ViewContext *ctx, char *file_path) {
   return;
 }
 
-static void SetupViewWindow(ViewContext *ctx, char *file_path) {
+static void SetupViewWindow(ViewContext *ctx, const char *file_path) {
   int i;
   int start_y = ctx->layout.dir_win_y;
   int start_x = ctx->layout.dir_win_x;
@@ -752,9 +752,7 @@ int InternalView(ViewContext *ctx, char *file_path) {
         if (fdstat.st_size % ctx->viewer.bytes) {
           n++; /* plus 1 not fully used line */
         }
-        if (current_line != n) {
-          current_line = n;
-        }
+        current_line = n;
       }
       update_all_lines(ctx, ctx->viewer.view, ctx->viewer.wlines);
       break;

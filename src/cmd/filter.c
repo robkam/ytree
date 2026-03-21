@@ -16,7 +16,7 @@
 
 /* Core filter functions - all headless now */
 
-int SetFilter(char *filter_spec, Statistic *s) {
+int SetFilter(const char *filter_spec, Statistic *s) {
   if (!filter_spec || !*filter_spec || !s)
     return -1;
   if (s->file_spec != filter_spec) {
@@ -26,12 +26,11 @@ int SetFilter(char *filter_spec, Statistic *s) {
   return 0;
 }
 
-BOOL Match(FileEntry *fe, Statistic *s) {
+BOOL Match(FileEntry *fe, const Statistic *s) {
   char temp_spec[sizeof(s->file_spec)];
   char *pattern;
   char *saveptr;
   BOOL has_positive = FALSE;
-  BOOL positive_match = FALSE;
 
   if (!fe || !s)
     return FALSE;
@@ -50,7 +49,7 @@ BOOL Match(FileEntry *fe, Statistic *s) {
     while (*pattern && isspace((unsigned char)*pattern))
       pattern++;
 
-    if (*pattern && *pattern == '-') {
+    if (*pattern == '-') {
       /* Negative pattern: if it matches, exclude the file */
       char *actual_pattern = pattern + 1;
       if (fnmatch(actual_pattern, fe->name, 0) == 0) {
@@ -93,7 +92,7 @@ BOOL Match(FileEntry *fe, Statistic *s) {
   }
 }
 
-void ApplyFilter(DirEntry *dir_entry, Statistic *s) {
+void ApplyFilter(DirEntry *dir_entry, const Statistic *s) {
   FileEntry *fe;
   if (!dir_entry || !s)
     return;

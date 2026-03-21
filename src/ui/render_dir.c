@@ -50,8 +50,8 @@ void PrintDirEntry(ViewContext *ctx, struct Volume *vol, WINDOW *win,
   char access_time[20]; /* Increased to 20 */
   char owner[OWNER_NAME_MAX + 1];
   char group[GROUP_NAME_MAX + 1];
-  char *owner_name_ptr;
-  char *group_name_ptr;
+  const char *owner_name_ptr;
+  const char *group_name_ptr;
   DirEntry *de_ptr;
 
   if (win == ctx->ctx_f2_window) {

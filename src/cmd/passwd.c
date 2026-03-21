@@ -43,13 +43,13 @@ char *GetPasswdName(unsigned int uid)
  */
 char *GetDisplayPasswdName(unsigned int uid)
 {
-  static char   buffer[DISPLAY_OWNER_NAME_MAX + 1];
-  struct passwd *pwd_ptr;
+  const struct passwd *pwd_ptr;
 
   pwd_ptr = getpwuid( (uid_t)uid );
 
   if( pwd_ptr )
   {
+    static char buffer[DISPLAY_OWNER_NAME_MAX + 1];
     CutName(buffer, pwd_ptr->pw_name, DISPLAY_OWNER_NAME_MAX);
     return buffer;
   }

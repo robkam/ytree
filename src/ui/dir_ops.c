@@ -23,7 +23,7 @@ static void Dir_Progress(ViewContext *ctx, void *data) {
 
 void HandlePlus(ViewContext *ctx, DirEntry *dir_entry, DirEntry *de_ptr,
                 char *new_login_path, BOOL *need_dsp_help, YtreePanel *p) {
-  Statistic *s = &p->vol->vol_stats;
+  const Statistic *s = &p->vol->vol_stats;
 
   /* Renamed usage: s->mode -> s->login_mode */
   if (s->login_mode != DISK_MODE && s->login_mode != USER_MODE) {
@@ -52,7 +52,7 @@ void HandlePlus(ViewContext *ctx, DirEntry *dir_entry, DirEntry *de_ptr,
 
 void HandleReadSubTree(ViewContext *ctx, DirEntry *dir_entry,
                        BOOL *need_dsp_help, YtreePanel *p) {
-  Statistic *s = &p->vol->vol_stats;
+  const Statistic *s = &p->vol->vol_stats;
 
   SuspendClock(ctx); /* Suspend clock before scanning */
   if (ScanSubTree(ctx, dir_entry, s) == -1) {
@@ -70,7 +70,7 @@ void HandleReadSubTree(ViewContext *ctx, DirEntry *dir_entry,
   *need_dsp_help = TRUE;
 }
 
-static BOOL IsDescendant(DirEntry *ancestor, DirEntry *descendant) {
+static BOOL IsDescendant(const DirEntry *ancestor, const DirEntry *descendant) {
   while (descendant) {
     if (descendant == ancestor)
       return TRUE;
@@ -79,7 +79,7 @@ static BOOL IsDescendant(DirEntry *ancestor, DirEntry *descendant) {
   return FALSE;
 }
 
-static int FindDirIndex(struct Volume *vol, DirEntry *target) {
+static int FindDirIndex(const struct Volume *vol, const DirEntry *target) {
   int i;
 
   if (!vol || !target || !vol->dir_entry_list || vol->total_dirs <= 0)
@@ -93,7 +93,7 @@ static int FindDirIndex(struct Volume *vol, DirEntry *target) {
   return -1;
 }
 
-static void ReanchorPanelToDir(YtreePanel *panel, DirEntry *target) {
+static void ReanchorPanelToDir(YtreePanel *panel, const DirEntry *target) {
   int idx;
   int height;
 
@@ -137,11 +137,10 @@ static void ReanchorPanelToDir(YtreePanel *panel, DirEntry *target) {
 
 void HandleUnreadSubTree(ViewContext *ctx, DirEntry *dir_entry,
                          DirEntry *de_ptr, BOOL *need_dsp_help, YtreePanel *p) {
-  Statistic *s = &p->vol->vol_stats;
+  const Statistic *s = &p->vol->vol_stats;
   YtreePanel *inactive = NULL;
   DirEntry *inactive_de = NULL;
   DirEntry *inactive_fallback = NULL;
-  int inactive_idx;
 
   /* Renamed usage: s->mode -> s->login_mode */
   if (s->login_mode != DISK_MODE && s->login_mode != USER_MODE) {
@@ -154,6 +153,7 @@ void HandleUnreadSubTree(ViewContext *ctx, DirEntry *dir_entry,
       inactive = (p == ctx->left) ? ctx->right : ctx->left;
       if (inactive && inactive->vol == p->vol) {
         if (inactive->vol->total_dirs > 0) {
+          int inactive_idx;
           inactive_idx = inactive->disp_begin_pos + inactive->cursor_pos;
           if (inactive_idx < 0)
             inactive_idx = 0;
@@ -202,10 +202,9 @@ void HandleShowAll(ViewContext *ctx, BOOL tagged_only, BOOL all_volumes,
   Statistic *s = &p->vol->vol_stats;
   long long visible_count = 0;
   struct Volume *vol_iter;
-  struct Volume *vol_tmp;
-  int result;
 
   if (all_volumes) {
+    struct Volume *vol_tmp;
     HASH_ITER(hh, ctx->volumes_head, vol_iter, vol_tmp) {
       Statistic *vs = &vol_iter->vol_stats;
       visible_count +=
@@ -216,6 +215,7 @@ void HandleShowAll(ViewContext *ctx, BOOL tagged_only, BOOL all_volumes,
   }
 
   if (visible_count > 0) {
+    int result;
     if (dir_entry->login_flag) {
       dir_entry->login_flag = FALSE;
     } else {
@@ -254,8 +254,8 @@ void HandleShowAll(ViewContext *ctx, BOOL tagged_only, BOOL all_volumes,
 void HandleSwitchWindow(ViewContext *ctx, DirEntry *dir_entry,
                         BOOL *need_dsp_help, int *ch, YtreePanel *p) {
   /* Critical Safety: Check for volume changes upon return from File Window */
-  struct Volume *start_vol = p->vol;
-  Statistic *s = &p->vol->vol_stats;
+  const struct Volume *start_vol = p->vol;
+  const Statistic *s = &p->vol->vol_stats;
 
   if (dir_entry->matching_files) {
     if (dir_entry->login_flag) {
@@ -328,7 +328,7 @@ void ToggleDotFiles(ViewContext *ctx, YtreePanel *p) {
   DirEntry *target;
   int i, found_idx = -1;
   int win_height;
-  Statistic *s;
+  const Statistic *s;
 
   if (!p || !p->vol)
     return;
@@ -448,7 +448,7 @@ void ToggleDotFiles(ViewContext *ctx, YtreePanel *p) {
  * refreshes the UI. Can be called from both Directory Window and File Window.
  */
 DirEntry *RefreshTreeSafe(ViewContext *ctx, YtreePanel *p, DirEntry *entry) {
-  Statistic *s;
+  const Statistic *s;
 
   if (!p || !p->vol)
     return entry;
@@ -567,9 +567,9 @@ DirEntry *RefreshTreeSafe(ViewContext *ctx, YtreePanel *p, DirEntry *entry) {
 
 int ScanSubTree(ViewContext *ctx, DirEntry *dir_entry, Statistic *s) {
   DirEntry *de_ptr;
-  char new_login_path[PATH_LENGTH + 1];
 
   if (dir_entry->not_scanned) {
+    char new_login_path[PATH_LENGTH + 1];
     for (de_ptr = dir_entry->sub_tree; de_ptr; de_ptr = de_ptr->next) {
       GetPath(de_ptr, new_login_path);
       if (ReadTree(ctx, de_ptr, new_login_path, 999, s, Dir_Progress, ctx) ==
@@ -596,7 +596,7 @@ int RefreshDirWindow(ViewContext *ctx, YtreePanel *p) {
   int i, n;
   int result = -1;
   int window_height;
-  Statistic *s;
+  const Statistic *s;
   WINDOW *win;
 
   if (!p || !p->vol)
@@ -621,6 +621,7 @@ int RefreshDirWindow(ViewContext *ctx, YtreePanel *p) {
     UI_Error(ctx, "", 0, "Current directory disappeared");
     result = -1;
   } else {
+    int window_height;
 
     if (n != (p->disp_begin_pos + p->cursor_pos)) {
       /* Position changed */

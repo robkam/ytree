@@ -28,7 +28,7 @@ void HandleUnreadSubTree(ViewContext *ctx, DirEntry *dir_entry,
 void HandleSwitchWindow(ViewContext *ctx, DirEntry *dir_entry,
                         BOOL *need_dsp_help, int *ch, YtreePanel *p);
 static void DirListJump(ViewContext *ctx, DirEntry **dir_entry_ptr,
-                        Statistic *s);
+                        const Statistic *s);
 static void DrawDirListJumpPrompt(ViewContext *ctx, WINDOW *win,
                                   const char *search_buf);
 static void HandleDirectoryCompare(ViewContext *ctx, DirEntry *source_dir);
@@ -147,7 +147,6 @@ static void GetCommandDisplayName(const char *command_template,
                                   char *command_name, size_t command_name_size) {
   const char *cursor;
   size_t idx = 0;
-  char quote = '\0';
 
   if (!command_name || command_name_size == 0)
     return;
@@ -163,7 +162,7 @@ static void GetCommandDisplayName(const char *command_template,
     return;
 
   if (*cursor == '"' || *cursor == '\'') {
-    quote = *cursor++;
+    char quote = *cursor++;
     while (*cursor && *cursor != quote && idx + 1 < command_name_size) {
       command_name[idx++] = *cursor++;
     }
@@ -889,15 +888,15 @@ static void HandleDirectoryCompare(ViewContext *ctx, DirEntry *source_dir) {
   RunInternalLoggedTreeCompare(ctx, &request);
 }
 
-int HandleDirWindow(ViewContext *ctx, DirEntry *start_dir_entry) {
+int HandleDirWindow(ViewContext *ctx, const DirEntry *start_dir_entry) {
   DirEntry *dir_entry, *de_ptr;
   int i, ch, unput_char;
   BOOL need_dsp_help;
   char new_name[PATH_LENGTH + 1];
   char new_login_path[PATH_LENGTH + 1];
-  char *home;
+  const char *home;
   YtreeAction action; /* Declare YtreeAction variable */
-  struct Volume *start_vol = NULL;
+  const struct Volume *start_vol = NULL;
   Statistic *s = NULL;
   int height;
   char watcher_path[PATH_LENGTH + 1];
@@ -1104,7 +1103,7 @@ int HandleDirWindow(ViewContext *ctx, DirEntry *start_dir_entry) {
       break;
 
     case ACTION_VIEW_PREVIEW: {
-      YtreePanel *saved_panel = ctx->active;
+      const YtreePanel *saved_panel = ctx->active;
 
       /* Save Preview State - BEFORE potential panel switching */
       ctx->preview_return_panel = ctx->active;
@@ -1286,7 +1285,7 @@ int HandleDirWindow(ViewContext *ctx, DirEntry *start_dir_entry) {
       DirNav_Moveup(ctx, &dir_entry, ctx->active);
       break;
     case ACTION_MOVE_SIBLING_NEXT: {
-      DirEntry *target = dir_entry->next;
+      const DirEntry *target = dir_entry->next;
       if (target == NULL) {
         /* Wrap to first sibling */
         if (dir_entry->up_tree != NULL) {
@@ -1467,7 +1466,7 @@ int HandleDirWindow(ViewContext *ctx, DirEntry *start_dir_entry) {
           /* Fix Archive Double-Free Check */
           BOOL vol_in_use = FALSE;
           if (ctx->is_split_screen) {
-            YtreePanel *other =
+            const YtreePanel *other =
                 (ctx->active == ctx->left) ? ctx->right : ctx->left;
             if (other->vol == old_vol)
               vol_in_use = TRUE;
@@ -1503,7 +1502,7 @@ int HandleDirWindow(ViewContext *ctx, DirEntry *start_dir_entry) {
            */
           if (ctx->active->vol->total_dirs > 0) {
             int target_file_idx = -1;
-            int i;
+            int file_idx;
             int visible_rows;
 
             BuildFileEntryList(ctx, ctx->active);
@@ -1511,10 +1510,11 @@ int HandleDirWindow(ViewContext *ctx, DirEntry *start_dir_entry) {
             if (visible_rows < 1)
               visible_rows = 1;
 
-            for (i = 0; i < (int)ctx->active->file_count; i++) {
-              FileEntry *fe = ctx->active->file_entry_list[i].file;
+            for (file_idx = 0; file_idx < (int)ctx->active->file_count;
+                 file_idx++) {
+              const FileEntry *fe = ctx->active->file_entry_list[file_idx].file;
               if (fe && strcmp(fe->name, dummy_name) == 0) {
-                target_file_idx = i;
+                target_file_idx = file_idx;
                 break;
               }
             }
@@ -1698,7 +1698,7 @@ int HandleDirWindow(ViewContext *ctx, DirEntry *start_dir_entry) {
 
       /* Fix Context Safety on Return */
       {
-        YtreePanel *saved_panel = ctx->active;
+        const YtreePanel *saved_panel = ctx->active;
 
         /* Note: Navigation actions already update active->cursor_pos. */
 
@@ -2236,7 +2236,7 @@ int HandleDirWindow(ViewContext *ctx, DirEntry *start_dir_entry) {
 }
 
 static void DirListJump(ViewContext *ctx, DirEntry **dir_entry_ptr,
-                        Statistic *s) {
+                        const Statistic *s) {
   char search_buf[256];
   int buf_len = 0;
   int ch;

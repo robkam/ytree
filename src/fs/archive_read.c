@@ -266,10 +266,10 @@ int ExtractArchiveNode(const char *archive_path, const char *entry_path,
 }
 #endif /* HAVE_LIBARCHIVE */
 
-static int GetArchiveDirEntry(DirEntry *tree, char *path, DirEntry **dir_entry);
+static int GetArchiveDirEntry(DirEntry *tree, const char *path, DirEntry **dir_entry);
 
 static int InsertArchiveDirEntry(ViewContext *ctx, DirEntry *tree, char *path,
-                                 struct stat *stat, Statistic *s) {
+                                 const struct stat *stat, Statistic *s) {
   DirEntry *df_ptr, *de_ptr, *ds_ptr;
   char father_path[PATH_LENGTH + 1];
   char name[PATH_LENGTH + 1];
@@ -323,7 +323,7 @@ static int InsertArchiveDirEntry(ViewContext *ctx, DirEntry *tree, char *path,
 }
 
 int InsertArchiveFileEntry(ViewContext *ctx, DirEntry *tree, char *path,
-                           struct stat *stat, Statistic *s) {
+                           const struct stat *stat, Statistic *s) {
   char dir[PATH_LENGTH + 1];
   char file[PATH_LENGTH + 1];
   DirEntry *de_ptr;
@@ -390,13 +390,13 @@ int InsertArchiveFileEntry(ViewContext *ctx, DirEntry *tree, char *path,
   return (0);
 }
 
-static int GetArchiveDirEntry(DirEntry *tree, char *path,
+static int GetArchiveDirEntry(DirEntry *tree, const char *path,
                               DirEntry **dir_entry) {
   char *path_copy;
-  char *token, *saveptr;
+  const char *token;
+  char *saveptr;
   DirEntry *current = tree;
   DirEntry *child;
-  int found;
 
   if (!path || *path == '\0' || strcmp(path, ".") == 0) {
     *dir_entry = tree;
@@ -407,7 +407,7 @@ static int GetArchiveDirEntry(DirEntry *tree, char *path,
 
   token = strtok_r(path_copy, FILE_SEPARATOR_STRING, &saveptr);
   while (token) {
-    found = 0;
+    int found = 0;
     /* Search children of 'current' */
     for (child = current->sub_tree; child; child = child->next) {
       if (strcmp(child->name, token) == 0) {
@@ -430,10 +430,11 @@ static int GetArchiveDirEntry(DirEntry *tree, char *path,
   return 0;
 }
 
-int TryInsertArchiveDirEntry(ViewContext *ctx, DirEntry *tree, char *dir,
-                             struct stat *stat, Statistic *s) {
+int TryInsertArchiveDirEntry(ViewContext *ctx, DirEntry *tree, const char *dir,
+                             const struct stat *stat, Statistic *s) {
   char *path_copy;
-  char *token, *saveptr;
+  const char *token;
+  char *saveptr;
   char current_path[PATH_LENGTH + 1];
   DirEntry *dummy;
 

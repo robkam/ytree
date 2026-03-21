@@ -26,7 +26,7 @@
 
 /* Prototypes */
 static void RecalcLayout(ViewContext *ctx);
-static void FormatNumber(ViewContext *ctx, char *buf, size_t size,
+static void FormatNumber(const ViewContext *ctx, char *buf, size_t size,
                          long long val);
 static void FormatShortSize(char *buf, size_t size, long long val);
 static void SetColor(ViewContext *ctx);
@@ -34,9 +34,9 @@ static void DrawBoxFrame(ViewContext *ctx);
 static void DrawSeparator(ViewContext *ctx, int y, const char *title);
 static void PrintStatRow(ViewContext *ctx, int y, const char *label,
                          long long count, long long bytes);
-static void DrawAttributes(ViewContext *ctx, const char *name, struct stat *s,
-                           FileEntry *fe);
-static void RecalcDir(ViewContext *ctx, DirEntry *de, Statistic *s);
+static void DrawAttributes(ViewContext *ctx, const char *name,
+                           const struct stat *s, const FileEntry *fe);
+static void RecalcDir(ViewContext *ctx, DirEntry *d, Statistic *s);
 
 /* ************************************************************************* */
 /*                           LOGIC FUNCTIONS                                 */
@@ -129,7 +129,7 @@ void RecalculateSysStats(ViewContext *ctx, Statistic *s) {
 /*                           DISPLAY HELPERS                                 */
 /* ************************************************************************* */
 
-static void FormatNumber(ViewContext *ctx, char *buf, size_t size,
+static void FormatNumber(const ViewContext *ctx, char *buf, size_t size,
                          long long val) {
   char temp[64];
   int len, i, j, commacount;
@@ -253,7 +253,6 @@ static void DrawBoxFrame(ViewContext *ctx) {
 }
 
 static void DrawSeparator(ViewContext *ctx, int y, const char *title) {
-  int x;
   int text_len = title ? strlen(title) : 0;
   int total_inner_width = R_BORDER - L_BORDER - 1;
 
@@ -267,11 +266,11 @@ static void DrawSeparator(ViewContext *ctx, int y, const char *title) {
   mvwaddch(ctx->ctx_border_window, y, R_BORDER, ACS_RTEE);
 
   if (title && text_len > 0) {
-    int left_hline_len;
-    int title_content_start_x;
     int pad = 2; /* 1 space each side */
 
     if (total_inner_width >= text_len + pad) {
+      int left_hline_len;
+      int title_content_start_x;
       int rem = total_inner_width - (text_len + pad);
       left_hline_len = rem / 2;
       title_content_start_x = L_BORDER + 1 + left_hline_len;
@@ -328,8 +327,8 @@ static void PrintStatRow(ViewContext *ctx, int y, const char *label,
             count_buf, size_buf);
 }
 
-static void DrawAttributes(ViewContext *ctx, const char *name, struct stat *s,
-                           FileEntry *fe) {
+static void DrawAttributes(ViewContext *ctx, const char *name,
+                           const struct stat *s, const FileEntry *fe) {
   char buf[128];
   char num_buf[32];
   char time_buf[20];
@@ -381,8 +380,8 @@ static void DrawAttributes(ViewContext *ctx, const char *name, struct stat *s,
 
   /* Owner */
   {
-    char *owner = GetDisplayPasswdName(s->st_uid);
-    char *group = GetDisplayGroupName(s->st_gid);
+    const char *owner = GetDisplayPasswdName(s->st_uid);
+    const char *group = GetDisplayGroupName(s->st_gid);
     char owner_buf[32];
     char grp_buf[32];
     if (!owner) {
@@ -411,14 +410,11 @@ static void DrawAttributes(ViewContext *ctx, const char *name, struct stat *s,
 /*                           DISPLAY FUNCTIONS */
 /* ************************************************************************* */
 
-void DisplayDiskName(ViewContext *ctx, Statistic *s) {
+void DisplayDiskName(ViewContext *ctx, const Statistic *s) {
   char buf[128];
   char path_buf[PATH_LENGTH + 1];
-  char size_buf[32];
   int total_volumes = HASH_COUNT(ctx->volumes_head);
   int current_index = 0;
-  struct Volume *vol_iter, *tmp;
-  int i = 1;
 
   if (ctx->layout.stats_width == 0)
     return;
@@ -428,6 +424,8 @@ void DisplayDiskName(ViewContext *ctx, Statistic *s) {
 
   /* 1. Determine Volume Index */
   if (ctx->volumes_head) {
+    struct Volume *vol_iter, *tmp;
+    int i = 1;
     HASH_ITER(hh, ctx->volumes_head, vol_iter, tmp) {
       if (&vol_iter->vol_stats == s) {
         current_index = i;
@@ -484,6 +482,7 @@ void DisplayDiskName(ViewContext *ctx, Statistic *s) {
   if (ctx->view_mode == ARCHIVE_MODE) {
     snprintf(fs_buf, sizeof(fs_buf), "Free: -");
   } else {
+    char size_buf[32];
     FormatShortSize(size_buf, sizeof(size_buf), s->disk_space);
     snprintf(fs_buf, sizeof(fs_buf), "Free: %s", size_buf);
   }
@@ -491,15 +490,15 @@ void DisplayDiskName(ViewContext *ctx, Statistic *s) {
             STAT_X + 1, "%-*s", INNER_W, fs_buf);
 }
 
-void DisplayAvailBytes(ViewContext *ctx, Statistic *s) {
+void DisplayAvailBytes(ViewContext *ctx, const Statistic *s) {
   DisplayDiskStatistic(ctx, s);
 }
 
-void DisplayFilter(ViewContext *ctx, Statistic *s) {
+void DisplayFilter(ViewContext *ctx, const Statistic *s) {
   DisplayDiskStatistic(ctx, s);
 }
 
-void DisplayDiskStatistic(ViewContext *ctx, Statistic *s) {
+void DisplayDiskStatistic(ViewContext *ctx, const Statistic *s) {
   if (ctx->layout.stats_width == 0)
     return;
 
@@ -515,8 +514,8 @@ void DisplayDiskStatistic(ViewContext *ctx, Statistic *s) {
                "Tag:", s->disk_tagged_files, s->disk_tagged_bytes);
 }
 
-void DisplayDirStatistic(ViewContext *ctx, DirEntry *de, const char *title,
-                         Statistic *s) {
+void DisplayDirStatistic(ViewContext *ctx, const DirEntry *de,
+                         const char *title, const Statistic *s) {
   char buf[128];
 
   if (ctx->layout.stats_width == 0)
@@ -575,7 +574,8 @@ void DisplayDirStatistic(ViewContext *ctx, DirEntry *de, const char *title,
  * Shows individual file information in the "CURRENT DIR" statistics area
  * when the user is navigating files (small or big window mode).
  */
-void DisplayFileStatistic(ViewContext *ctx, FileEntry *fe, Statistic *s) {
+void DisplayFileStatistic(ViewContext *ctx, const FileEntry *fe,
+                          const Statistic *s) {
   char buf[128];
   char size_buf[32];
   char time_buf[20];
@@ -632,13 +632,14 @@ void DisplayFileParameter(ViewContext *ctx, FileEntry *fe) {
 /*                           COMPATIBILITY WRAPPERS                          */
 /* ************************************************************************* */
 
-void DisplayDiskTagged(ViewContext *ctx, Statistic *s) {
+void DisplayDiskTagged(ViewContext *ctx, const Statistic *s) {
   if (ctx->layout.stats_width == 0)
     return;
   DisplayDiskStatistic(ctx, s);
 }
 
-void DisplayDirTagged(ViewContext *ctx, DirEntry *de, Statistic *s) {
+void DisplayDirTagged(ViewContext *ctx, const DirEntry *de,
+                      const Statistic *s) {
   if (ctx->layout.stats_width == 0)
     return;
   DisplayDirStatistic(ctx, de, NULL, s);

@@ -37,7 +37,8 @@ static int ArchiveUICallback(int status, const char *msg, void *user_data) {
   return ARCHIVE_CB_CONTINUE;
 }
 
-static int CopyArchiveFile(ViewContext *ctx, char *to_path, char *from_path,
+static int CopyArchiveFile(ViewContext *ctx, char *to_path,
+                           const char *from_path,
                            Statistic *s);
 
 int CopyFile(ViewContext *ctx, Statistic *statistic_ptr, FileEntry *fe_ptr,
@@ -50,12 +51,10 @@ int CopyFile(ViewContext *ctx, Statistic *statistic_ptr, FileEntry *fe_ptr,
   char from_dir[PATH_LENGTH + 1];
   char to_path[PATH_LENGTH + 1];
   char abs_path[PATH_LENGTH + 1];
-  char buffer[20];
   FileEntry *dest_file_entry;
   FileEntry *fen_ptr;
   struct stat stat_struct;
   int result;
-  int force = 1; /* For passing to DeleteFile when overwriting */
   int conflict_res;
 
   /* Context-Aware Variables */
@@ -490,7 +489,7 @@ FNC_XIT:
 /* GetCopyParameter moved to ctrl_file.c */
 
 int CopyFileContent(ViewContext *ctx, char *to_path, char *from_path,
-                    Statistic *s) {
+                    const Statistic *s) {
   int i, o, n;
   char buffer[2048];
   int spin_counter = 0;
@@ -604,22 +603,23 @@ int CopyTaggedFiles(ViewContext *ctx, FileEntry *fe_ptr,
   return (result);
 }
 
-static int CopyArchiveFile(ViewContext *ctx, char *to_path, char *from_path,
-                           Statistic *s) {
-  int result = -1;
-  char *archive_path;
-
-  archive_path = s->login_path;
-
+static int CopyArchiveFile(ViewContext *ctx, char *to_path,
+                           const char *from_path,
+                           const Statistic *s) {
 #ifdef HAVE_LIBARCHIVE
-  result = ExtractArchiveNode(archive_path, from_path, to_path,
-                              ArchiveUICallback, ctx);
-#endif
-
+  int result =
+      ExtractArchiveNode(s->login_path, from_path, to_path, ArchiveUICallback,
+                         ctx);
   if (result != 0) {
     /* WARNING("Can't copy file*%s*to file*%s", from_path, to_path); */
     unlink(to_path); /* Clean up partial file on failure */
   }
-
   return result;
+#else
+  (void)ctx;
+  (void)to_path;
+  (void)from_path;
+  (void)s;
+  return -1;
+#endif
 }

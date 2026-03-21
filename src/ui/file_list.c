@@ -118,7 +118,6 @@ static void ReadAllVolumesGlobalFileList(ViewContext *ctx, YtreePanel *panel,
 void FileList_RemoveFileEntry(ViewContext *ctx, int entry_no) {
   int i, n;
   FileEntry *fe_ptr;
-  int visual_name_len, name_len;
 
   max_visual_filename_len = 0;
   max_visual_linkname_len = 0;
@@ -128,8 +127,8 @@ void FileList_RemoveFileEntry(ViewContext *ctx, int entry_no) {
     if (i >= entry_no)
       ctx->active->file_entry_list[i] = ctx->active->file_entry_list[i + 1];
     fe_ptr = ctx->active->file_entry_list[i].file;
-    visual_name_len = StrVisualLength(fe_ptr->name);
-    name_len = strlen(fe_ptr->name);
+    int visual_name_len = StrVisualLength(fe_ptr->name);
+    int name_len = strlen(fe_ptr->name);
     /* FIX: Cast StrVisualLength to int for MAX macro */
     max_visual_filename_len =
         MAX((int)max_visual_filename_len, (int)visual_name_len);
@@ -188,7 +187,7 @@ void FreeFileEntryList(YtreePanel *panel) {
   }
 }
 
-void InvalidateVolumePanels(ViewContext *ctx, struct Volume *vol) {
+void InvalidateVolumePanels(ViewContext *ctx, const struct Volume *vol) {
   if (ctx->left && ctx->left->vol == vol)
     FreeFileEntryList(ctx->left);
   if (ctx->right && ctx->right->vol == vol)

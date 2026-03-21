@@ -8,7 +8,7 @@
 #include "ytree.h"
 #include <string.h>
 
-int Strrcmp(char *s1, char *s2) /*compares in reverse order 2 strings*/
+int Strrcmp(const char *s1, const char *s2) /*compares in reverse order 2 strings*/
 {
   int aux;
   int l1 = strlen(s1);
@@ -26,7 +26,7 @@ int Strrcmp(char *s1, char *s2) /*compares in reverse order 2 strings*/
 }
 
 void StrCp(char *dest, const char *src) {
-  static char esc_chars[] = "#*|&;()<> \t\n\r\"!$?'`~";
+  static const char esc_chars[] = "#*|&;()<> \t\n\r\"!$?'`~";
 
   while (*src) {
     if (strchr(esc_chars, *src))
@@ -106,7 +106,7 @@ int BuildFilename(char *in_filename, char *pattern, char *out_filename) {
   return (0);
 }
 
-char *SubString(char *dest, char *src, int pos, int len) {
+char *SubString(char *dest, const char *src, int pos, int len) {
   strncpy(dest, &src[pos], len);
   dest[len] = '\0';
   return dest;

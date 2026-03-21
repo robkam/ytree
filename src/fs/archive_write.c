@@ -152,13 +152,12 @@ clone_entry_for_write(struct archive_entry *in_entry) {
 
 static int copy_data_stream(struct archive *in, struct archive *out) {
   char *buf;
-  ssize_t len;
   int ret = ARCHIVE_OK;
 
   buf = xmalloc(COPY_BUF_SIZE);
 
   while (1) {
-    len = archive_read_data(in, buf, COPY_BUF_SIZE);
+    ssize_t len = archive_read_data(in, buf, COPY_BUF_SIZE);
     if (len < 0) {
       ret = (int)len; /* Error code */
       break;
@@ -256,7 +255,7 @@ static int process_rewrite_loop(struct archive *a_in, struct archive *a_out,
   return (success && writer_initialized) ? 1 : 0;
 }
 
-static int finalize_rewrite(char *orig_path, char *tmp_path, struct stat *st,
+static int finalize_rewrite(const char *orig_path, char *tmp_path, struct stat *st,
                             int success, ArchiveProgressCallback cb,
                             void *user_data) {
   if (success) {
@@ -324,7 +323,7 @@ int Archive_Rewrite(char *archive_path, RewriteCallback rw_cb, void *rw_data,
 /* Callback: Delete File */
 static int cb_delete_file(struct archive *r, struct archive *w,
                           struct archive_entry *entry, void *user_data) {
-  char *target_path = (char *)user_data;
+  const char *target_path = (const char *)user_data;
   const char *current = archive_entry_pathname(entry);
   size_t t_len, c_len;
   (void)r;
@@ -380,7 +379,7 @@ int Archive_DeleteEntry(char *archive_path, char *file_path,
 /* Callback: Add (Skip collision) */
 static int cb_add_skip(struct archive *r, struct archive *w,
                        struct archive_entry *entry, void *user_data) {
-  char *dest_name = (char *)user_data;
+  const char *dest_name = (const char *)user_data;
   const char *curr = archive_entry_pathname(entry);
   (void)r;
   (void)w;
@@ -414,7 +413,7 @@ int Archive_AddFile(char *archive_path, char *src_path, char *dest_name,
   if (success) {
     struct archive_entry *new_e = archive_entry_new();
     struct stat src_st;
-    int src_fd = -1;
+    int src_fd;
 
     archive_entry_set_pathname(new_e, dest_name);
     archive_entry_set_mtime(new_e, time(NULL), 0);
@@ -470,7 +469,7 @@ int Archive_AddFile(char *archive_path, char *src_path, char *dest_name,
 /* Callback for Renaming */
 static int cb_rename(struct archive *r, struct archive *w,
                      struct archive_entry *entry, void *user_data) {
-  RenameContext *ctx = (RenameContext *)user_data;
+  const RenameContext *ctx = (const RenameContext *)user_data;
   const char *current = archive_entry_pathname(entry);
   size_t old_len, curr_len;
   (void)r;

@@ -111,6 +111,7 @@ static int DisplayMatches(ViewContext *ctx) {
 }
 
 char *GetMatches(ViewContext *ctx, char *base) {
+#ifdef READLINE_SUPPORT
   int ch;
   int start_x;
   char *RetVal = NULL;
@@ -118,6 +119,7 @@ char *GetMatches(ViewContext *ctx, char *base) {
   char *expanded_base =
       NULL; /* Renamed from tmpval for clarity, holds tilde_expand result */
   int hide_left, hide_right;
+#endif
 
   /*  tmpval = rl_filename_completion_function(base, 0);
     if (!strcmp(tmpval,base))
@@ -152,11 +154,12 @@ char *GetMatches(ViewContext *ctx, char *base) {
     return (NULL);
   }
 #else
-  /* If READLINE_SUPPORT is not defined, ctx->tab_mtchs will remain NULL. */
-  /* expanded_base is not allocated here, so no need to free. */
+  (void)ctx;
+  (void)base;
   return (NULL);
 #endif
 
+#ifdef READLINE_SUPPORT
   /* Check if the first match is identical to the expanded base.
    * This often means no actual completion happened, or only one trivial match.
    */
@@ -392,4 +395,5 @@ char *GetMatches(ViewContext *ctx, char *base) {
   free(expanded_base); /* expanded_base is always allocated and must be freed */
   touchwin(stdscr);
   return RetVal;
+#endif
 }

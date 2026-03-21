@@ -18,7 +18,7 @@ int ReadTree(ViewContext *ctx, DirEntry *dir_entry, char *path, int depth,
              Statistic *s, ScanProgressCallback cb, void *cb_data) {
   DIR *dir;
   struct stat stat_struct;
-  struct dirent *dirent;
+  const struct dirent *dirent;
   char new_path[PATH_LENGTH + 1];
   DirEntry first_dir_entry;
   DirEntry *des_ptr;

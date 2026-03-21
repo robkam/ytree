@@ -45,10 +45,10 @@ extern int CopyFile(ViewContext *ctx, Statistic *statistic_ptr,
                     ChoiceCallback choice_cb);
 extern int CopyTaggedFiles(ViewContext *ctx, FileEntry *fe_ptr,
                            WalkingPackage *walking_package);
-extern int GetCopyParameter(ViewContext *ctx, char *from_file, BOOL path_copy,
+extern int GetCopyParameter(ViewContext *ctx, const char *from_file, BOOL path_copy,
                             char *to_file, char *to_dir);
 extern int CopyFileContent(ViewContext *ctx, char *to_path, char *from_path,
-                           Statistic *s);
+                           const Statistic *s);
 
 /* delete.c */
 extern int DeleteFile(ViewContext *ctx, FileEntry *fe_ptr, int *auto_override,
@@ -61,17 +61,17 @@ extern int RemoveFile(ViewContext *ctx, FileEntry *fe_ptr, Statistic *s);
 extern int Edit(ViewContext *ctx, DirEntry *dir_entry, char *file_path);
 
 /* execute.c */
-extern int Execute(ViewContext *ctx, DirEntry *dir_entry, FileEntry *file_entry,
-                   char *cmd_template, Statistic *s,
+extern int Execute(ViewContext *ctx, DirEntry *dir_entry, const FileEntry *file_entry,
+                   const char *cmd_template, Statistic *s,
                    ArchiveProgressCallback cb);
 extern int ExecuteCommand(ViewContext *ctx, FileEntry *fe_ptr,
                           WalkingPackage *walking_package, Statistic *s);
 
 /* filter.c */
 extern int UI_ReadFilter(ViewContext *ctx);
-extern int SetFilter(char *filter_spec, Statistic *s);
-extern void ApplyFilter(DirEntry *dir_entry, Statistic *s);
-extern BOOL Match(FileEntry *fe, Statistic *s);
+extern int SetFilter(const char *filter_spec, Statistic *s);
+extern void ApplyFilter(DirEntry *dir_entry, const Statistic *s);
+extern BOOL Match(FileEntry *fe, const Statistic *s);
 
 /* log.c */
 extern int Log(DirEntry *dir_entry, Statistic *s);
@@ -82,7 +82,7 @@ extern int CycleLoadedVolume(ViewContext *ctx, YtreePanel *panel,
 extern int GetNewLoginPath(ViewContext *ctx, YtreePanel *panel, char *path);
 
 /* mkdir.c */
-extern int MakeDirectory(ViewContext *ctx, YtreePanel *panel,
+extern int MakeDirectory(const ViewContext *ctx, YtreePanel *panel,
                          DirEntry *father_dir_entry, const char *dir_name,
                          Statistic *s);
 extern int EnsureDirectoryExists(ViewContext *ctx, char *dir_path,
@@ -96,7 +96,7 @@ extern int MakeFile(ViewContext *ctx, DirEntry *dir_entry, const char *name,
                     ChoiceCallback choice_cb);
 
 /* move.c */
-extern int GetMoveParameter(ViewContext *ctx, char *from_file, char *to_file,
+extern int GetMoveParameter(ViewContext *ctx, const char *from_file, char *to_file,
                             char *to_dir);
 extern int MoveFile(ViewContext *ctx, FileEntry *fe_ptr, const char *to_file,
                     DirEntry *dest_dir_entry, const char *to_dir_path,
@@ -114,16 +114,17 @@ extern int Pipe(ViewContext *ctx, DirEntry *dir_entry, FileEntry *file_entry,
                 char *pipe_command);
 extern int PipeDirectory(ViewContext *ctx, DirEntry *dir_entry,
                          char *pipe_command);
-extern int PipeTaggedFiles(ViewContext *ctx, FileEntry *fe_ptr,
+extern int PipeTaggedFiles(const ViewContext *ctx, FileEntry *fe_ptr,
                            WalkingPackage *walking_package, Statistic *s);
 
 /* profile.c */
-extern void SetProfileValue(ViewContext *ctx, char *name, char *value);
-extern char *GetProfileValue(ViewContext *ctx, const char *name);
-extern char *GetUserFileAction(ViewContext *ctx, int chkey, int *pchremap);
-extern char *GetUserDirAction(ViewContext *ctx, int chkey, int *pchremap);
-extern BOOL IsUserActionDefined(ViewContext *ctx);
-extern char *GetExtViewer(ViewContext *ctx, char *filename);
+extern void SetProfileValue(const ViewContext *ctx, char *name,
+                            const char *value);
+extern char *GetProfileValue(const ViewContext *ctx, const char *name);
+extern char *GetUserFileAction(const ViewContext *ctx, int chkey, int *pchremap);
+extern char *GetUserDirAction(const ViewContext *ctx, int chkey, int *pchremap);
+extern BOOL IsUserActionDefined(const ViewContext *ctx);
+extern char *GetExtViewer(const ViewContext *ctx, const char *filename);
 
 /* passwd.c */
 extern int ReadPasswdEntries(void);
@@ -141,9 +142,9 @@ extern int GetGroupId(char *name);
 extern int RemoveDirectory(ViewContext *ctx, DirEntry *dir_entry, Statistic *s);
 
 /* rename.c */
-extern int RenameFile(ViewContext *ctx, FileEntry *file_entry,
+extern int RenameFile(ViewContext *ctx, FileEntry *fe_ptr,
                       const char *new_name, FileEntry **new_fe_ptr);
-extern int RenameDirectory(ViewContext *ctx, DirEntry *dir_entry,
+extern int RenameDirectory(ViewContext *ctx, DirEntry *de_ptr,
                            const char *new_name);
 extern int RenameTaggedFiles(ViewContext *ctx, FileEntry *fe_ptr,
                              WalkingPackage *walking_package);
@@ -158,11 +159,11 @@ extern void UI_HandleSort(ViewContext *ctx, DirEntry *dir_entry, Statistic *s,
 extern void UI_SetKindOfSort(int kind_of_sort, Statistic *s);
 
 /* system.c */
-extern int QuerySystemCall(ViewContext *ctx, char *command_line, Statistic *s);
-extern int SilentSystemCall(ViewContext *ctx, char *command_line, Statistic *s);
-extern int SilentSystemCallEx(ViewContext *ctx, char *command_line,
+extern int QuerySystemCall(ViewContext *ctx, const char *command_line, Statistic *s);
+extern int SilentSystemCall(ViewContext *ctx, const char *command_line, Statistic *s);
+extern int SilentSystemCallEx(ViewContext *ctx, const char *command_line,
                               BOOL enable_clock, Statistic *s);
-extern int SystemCall(ViewContext *ctx, char *command_line, Statistic *s);
+extern int SystemCall(ViewContext *ctx, const char *command_line, Statistic *s);
 
 /* usermode.c */
 extern int DirUserMode(ViewContext *ctx, DirEntry *dir_entry, int ch,

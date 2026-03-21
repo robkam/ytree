@@ -24,13 +24,11 @@ BOOL handle_tag_file_action(ViewContext *ctx, int action, DirEntry *dir_entry,
   mode_t mask = 0;
   char mode[16] = {0};
   char parsed_mode[12] = {0};
-  char preview_mode[10] = {0};
   int pclose_ret = 0;
   char to_dir[PATH_LENGTH * 2 + 1] = {0};
   char to_file[PATH_LENGTH + 1] = {0};
   char to_path[PATH_LENGTH + 1] = {0};
   char new_name[PATH_LENGTH + 1] = {0};
-  char filepath[PATH_LENGTH + 1] = {0};
   BOOL path_copy = FALSE;
 
 /* Macros for local pointers */
@@ -74,6 +72,7 @@ BOOL handle_tag_file_action(ViewContext *ctx, int action, DirEntry *dir_entry,
         if (UI_ReadString(ctx, ctx->active, "MODE (octal/rwx):", mode,
                           (int)sizeof(mode),
                           HST_CHANGE_MODUS) == CR) {
+          char preview_mode[10] = {0};
           if (UI_ParseModeInput(mode, parsed_mode, preview_mode) != 0) {
             UI_Message(ctx, "Invalid mode. Use 3/4-digit octal or -rwxrwxrwx");
             wmove(ctx->ctx_border_window, ctx->layout.prompt_y, 0);
@@ -420,13 +419,13 @@ BOOL handle_tag_file_action(ViewContext *ctx, int action, DirEntry *dir_entry,
       /* Construct absolute path for checking */
       {
         char abs_check_path[PATH_LENGTH * 2 + 2];
-        char current_dir[PATH_LENGTH + 1];
         BOOL created = FALSE;
         int dir_create_mode = 0;
 
         if (*to_dir == FILE_SEPARATOR_CHAR) {
           strcpy(abs_check_path, to_dir);
         } else {
+          char current_dir[PATH_LENGTH + 1];
           GetPath(dir_entry, current_dir);
           snprintf(abs_check_path, sizeof(abs_check_path), "%s%c%s",
                    current_dir, FILE_SEPARATOR_CHAR, to_dir);
@@ -523,6 +522,7 @@ BOOL handle_tag_file_action(ViewContext *ctx, int action, DirEntry *dir_entry,
     } else if (ctx->view_mode != DISK_MODE && ctx->view_mode != USER_MODE) {
       UI_Message(ctx, "^P is not available in archive mode");
     } else {
+      char filepath[PATH_LENGTH + 1] = {0};
       need_dsp_help = TRUE;
 
       filepath[0] = '\0'; /* Initialize buffer to prevent garbage prompt */

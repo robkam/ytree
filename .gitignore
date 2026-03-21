@@ -66,6 +66,7 @@ __pycache__/
 # File Type Rules (Deny all, Allow specific)
 *.txt
 !requirements.txt
+!.cppcheck-suppressions.txt
 *.html
 *.url
 *.sh

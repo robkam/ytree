@@ -73,7 +73,7 @@ void Panel_Sort(YtreePanel *panel, int method) {
 static int SortByName(const void *p1, const void *p2, void *arg) {
   const FileEntryList *e1 = p1;
   const FileEntryList *e2 = p2;
-  SortContext *sctx = arg;
+  const SortContext *sctx = arg;
 
   if (sctx->case_sensitive)
     if (sctx->ascending)
@@ -89,7 +89,7 @@ static int SortByName(const void *p1, const void *p2, void *arg) {
 static int SortByExtension(const void *p1, const void *p2, void *arg) {
   const FileEntryList *e1 = p1;
   const FileEntryList *e2 = p2;
-  SortContext *sctx = arg;
+  const SortContext *sctx = arg;
   char *ext1, *ext2;
   int cmp, casecmp;
 
@@ -99,9 +99,9 @@ static int SortByExtension(const void *p1, const void *p2, void *arg) {
   casecmp = strcasecmp(ext1, ext2);
 
   if (sctx->case_sensitive && !cmp)
-    return SortByName(e1, e2, sctx);
+    return SortByName(e1, e2, (void *)sctx);
   if (!sctx->case_sensitive && !casecmp)
-    return SortByName(e1, e2, sctx);
+    return SortByName(e1, e2, (void *)sctx);
 
   if (sctx->case_sensitive)
     if (sctx->ascending)
@@ -117,7 +117,7 @@ static int SortByExtension(const void *p1, const void *p2, void *arg) {
 static int SortByModTime(const void *p1, const void *p2, void *arg) {
   const FileEntryList *e1 = p1;
   const FileEntryList *e2 = p2;
-  SortContext *sctx = arg;
+  const SortContext *sctx = arg;
 
   if (sctx->ascending)
     return (e1->file->stat_struct.st_mtime - e2->file->stat_struct.st_mtime);
@@ -128,7 +128,7 @@ static int SortByModTime(const void *p1, const void *p2, void *arg) {
 static int SortByChgTime(const void *p1, const void *p2, void *arg) {
   const FileEntryList *e1 = p1;
   const FileEntryList *e2 = p2;
-  SortContext *sctx = arg;
+  const SortContext *sctx = arg;
 
   if (sctx->ascending)
     return (e1->file->stat_struct.st_ctime - e2->file->stat_struct.st_ctime);
@@ -139,7 +139,7 @@ static int SortByChgTime(const void *p1, const void *p2, void *arg) {
 static int SortByAccTime(const void *p1, const void *p2, void *arg) {
   const FileEntryList *e1 = p1;
   const FileEntryList *e2 = p2;
-  SortContext *sctx = arg;
+  const SortContext *sctx = arg;
 
   if (sctx->ascending)
     return (e1->file->stat_struct.st_atime - e2->file->stat_struct.st_atime);
@@ -150,7 +150,7 @@ static int SortByAccTime(const void *p1, const void *p2, void *arg) {
 static int SortBySize(const void *p1, const void *p2, void *arg) {
   const FileEntryList *e1 = p1;
   const FileEntryList *e2 = p2;
-  SortContext *sctx = arg;
+  const SortContext *sctx = arg;
   int result = 0;
 
   if (e1->file->stat_struct.st_size < e2->file->stat_struct.st_size)
@@ -167,7 +167,7 @@ static int SortBySize(const void *p1, const void *p2, void *arg) {
 static int SortByOwner(const void *p1, const void *p2, void *arg) {
   const FileEntryList *e1 = p1;
   const FileEntryList *e2 = p2;
-  SortContext *sctx = arg;
+  const SortContext *sctx = arg;
   char *o1, *o2;
   char n1[10], n2[10];
 
@@ -197,7 +197,7 @@ static int SortByOwner(const void *p1, const void *p2, void *arg) {
 static int SortByGroup(const void *p1, const void *p2, void *arg) {
   const FileEntryList *e1 = p1;
   const FileEntryList *e2 = p2;
-  SortContext *sctx = arg;
+  const SortContext *sctx = arg;
   char *g1, *g2;
   char n1[10], n2[10];
 
