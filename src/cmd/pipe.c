@@ -187,7 +187,7 @@ int PipeDirectory(ViewContext *ctx, DirEntry *dir_entry, char *pipe_command) {
 
 /* GetPipeCommand moved to UI layer */
 
-int PipeTaggedFiles(const ViewContext *ctx, FileEntry *fe_ptr,
+int PipeTaggedFiles(ViewContext *ctx, FileEntry *fe_ptr,
                     WalkingPackage *walking_package, Statistic *s) {
   int i, n;
   char from_path[PATH_LENGTH + 1];
