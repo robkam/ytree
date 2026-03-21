@@ -34,8 +34,8 @@ static int ArchiveUICallback(int status, const char *msg, void *user_data) {
   return ARCHIVE_CB_CONTINUE;
 }
 
-static int RenameDirEntry(char *to_path, char *from_path);
-static int RenameFileEntry(char *to_path, char *from_path);
+static int RenameDirEntry(const char *to_path, const char *from_path);
+static int RenameFileEntry(const char *to_path, const char *from_path);
 
 int RenameDirectory(ViewContext *ctx, DirEntry *de_ptr, const char *new_name) {
   DirEntry *den_ptr;
@@ -46,7 +46,7 @@ int RenameDirectory(ViewContext *ctx, DirEntry *de_ptr, const char *new_name) {
   char to_path[PATH_LENGTH + 1];
   struct stat stat_struct;
   int result;
-  char *cptr;
+  const char *cptr;
   int len;
 
   result = -1;
@@ -250,7 +250,7 @@ int RenameFile(ViewContext *ctx, FileEntry *fe_ptr, const char *new_name,
 
 /* GetRenameParameter moved to UI layer */
 
-static int RenameDirEntry(char *to_path, char *from_path) {
+static int RenameDirEntry(const char *to_path, const char *from_path) {
   struct stat fdstat;
 
   if (!strcmp(to_path, from_path)) {
@@ -272,7 +272,7 @@ static int RenameDirEntry(char *to_path, char *from_path) {
   return (0);
 }
 
-static int RenameFileEntry(char *to_path, char *from_path) {
+static int RenameFileEntry(const char *to_path, const char *from_path) {
   if (!strcmp(to_path, from_path)) {
     return (-1);
   }

@@ -62,11 +62,10 @@ static void BuildViewList(ViewContext *ctx, int type) {
   }
 }
 
-void ReadHistory(ViewContext *ctx, char *Filename) {
+void ReadHistory(ViewContext *ctx, const char *Filename) {
   FILE *HstFile;
   char buffer[BUFSIZ];
   char *cptr;
-  int type, pinned;
   char *content;
 
   if ((HstFile = fopen(Filename, "r")) != NULL) {
@@ -84,14 +83,14 @@ void ReadHistory(ViewContext *ctx, char *Filename) {
         cptr = strchr(buffer, ':');
         if (cptr && isdigit((unsigned char)buffer[0])) {
           *cptr = '\0';
-          type = atoi(buffer);
 
           /* Find second colon */
           content = cptr + 1;
           cptr = strchr(content, ':');
           if (cptr && isdigit((unsigned char)content[0])) {
             *cptr = '\0';
-            pinned = atoi(content);
+            int type = atoi(buffer);
+            int pinned = atoi(content);
             content = cptr + 1;
 
             InsHistory(ctx, content, type);
@@ -118,7 +117,7 @@ void ReadHistory(ViewContext *ctx, char *Filename) {
   return;
 }
 
-void SaveHistory(ViewContext *ctx, char *Filename) {
+void SaveHistory(ViewContext *ctx, const char *Filename) {
   FILE *HstFile;
   int i, count;
   History *hst;
@@ -149,7 +148,7 @@ void SaveHistory(ViewContext *ctx, char *Filename) {
   fclose(HstFile);
 }
 
-void InsHistory(ViewContext *ctx, char *NewHst, int type) {
+void InsHistory(ViewContext *ctx, const char *NewHst, int type) {
   History *TMP, *TMP2 = NULL;
   int flag = 0;
 
@@ -195,7 +194,7 @@ void InsHistory(ViewContext *ctx, char *NewHst, int type) {
 static void PrintHstEntry(ViewContext *ctx, int entry_no, int y, int color,
                           int start_x, int *hide_left, int *hide_right) {
   int n;
-  History *pp;
+  const History *pp;
   char buffer[BUFSIZ];
   char *line_ptr;
   int window_width;
@@ -205,10 +204,6 @@ static void PrintHstEntry(ViewContext *ctx, int entry_no, int y, int color,
   GetMaxYX(ctx->ctx_history_window, &window_height, &window_width);
   /* Reduce width by 3 to allow for 1 char border + 1 char PIN marker */
   ef_window_width = window_width - 3;
-
-#ifdef NO_HIGHLIGHT
-  ef_window_width = window_width - 3;
-#endif
 
   *hide_left = *hide_right = 0;
 

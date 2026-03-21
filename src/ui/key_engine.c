@@ -152,7 +152,6 @@ int StrVisualLength(const char *str) {
 #ifdef WITH_UTF8
 
   int pos = 0;
-  size_t sz;
   mbstate_t state;
   const char *s = str;
 
@@ -161,7 +160,7 @@ int StrVisualLength(const char *str) {
     int width;
 
     memset(&state, 0, sizeof(state));
-    sz = mbrtowc(&wc, s, MB_CUR_MAX, &state);
+    size_t sz = mbrtowc(&wc, s, MB_CUR_MAX, &state);
 
     if (sz == (size_t)-1 || sz == (size_t)-2 || sz == 0) {
       s++;
@@ -189,7 +188,7 @@ int VisualPositionToBytePosition(const char *str, int visual_pos) {
 #ifdef WITH_UTF8
 
   mbstate_t state;
-  const char *s, *s_start;
+  const char *s;
   int pos = 0;
 
   s = str;
@@ -200,7 +199,7 @@ int VisualPositionToBytePosition(const char *str, int visual_pos) {
     size_t sz;
     int width;
 
-    s_start = s;
+    const char *s_start = s;
     memset(&state, 0, sizeof(state));
     sz = mbrtowc(&wc, s, MB_CUR_MAX, &state);
 
@@ -258,9 +257,8 @@ int InputChoice(ViewContext *ctx, const char *msg, const char *term) {
 }
 
 void HitReturnToContinue(void) {
-  char *te;
-
 #if !defined(XCURSES)
+  char *te;
 
   char *tgetstr(const char *, char **);
   int tputs(const char *, int, int (*)(int));
@@ -361,7 +359,7 @@ int ViKey(int ch) {
 
 #endif
 
-YtreeAction GetKeyAction(ViewContext *ctx, int ch) {
+YtreeAction GetKeyAction(const ViewContext *ctx, int ch) {
 #ifdef VI_KEYS
   ch = ViKey(ch);
 #endif
@@ -613,8 +611,6 @@ int GetEventOrKey(ViewContext *ctx) {
   int ch;
   int w_fd = Watcher_GetFD(ctx);
   fd_set fds;
-  int max_fd;
-  int result;
   struct timeval tv;
 
   if (ctx && ctx->resize_request)
@@ -637,6 +633,7 @@ int GetEventOrKey(ViewContext *ctx) {
     return KEY_RESIZE;
 
   while (1) {
+    int max_fd;
     FD_ZERO(&fds);
     FD_SET(STDIN_FILENO, &fds);
     max_fd = STDIN_FILENO;
@@ -651,7 +648,7 @@ int GetEventOrKey(ViewContext *ctx) {
     tv.tv_sec = 0;
     tv.tv_usec = 500000;
 
-    result = select(max_fd + 1, &fds, NULL, NULL, &tv);
+    int result = select(max_fd + 1, &fds, NULL, NULL, &tv);
 
     if (result == 0) {
       /* Timeout: Update Clock */

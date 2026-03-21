@@ -15,10 +15,10 @@
 /* SystemCall and QuerySystemCall moved to UI layer */
 
 /* Prototypes for functions defined in this file */
-int SilentSystemCallEx(ViewContext *ctx, char *command_line, BOOL enable_clock, Statistic *s);
-int SilentSystemCall(ViewContext *ctx, char *command_line, Statistic *s);
+int SilentSystemCallEx(ViewContext *ctx, const char *command_line, BOOL enable_clock, Statistic *s);
+int SilentSystemCall(ViewContext *ctx, const char *command_line, Statistic *s);
 
-int SilentSystemCallEx(ViewContext *ctx, char *command_line, BOOL enable_clock, Statistic *s) {
+int SilentSystemCallEx(ViewContext *ctx, const char *command_line, BOOL enable_clock, Statistic *s) {
   int result;
 
   /* Hier ist die einzige Stelle, in der Kommandos aufgerufen werden! */
@@ -41,6 +41,6 @@ int SilentSystemCallEx(ViewContext *ctx, char *command_line, BOOL enable_clock, 
   return (result);
 }
 
-int SilentSystemCall(ViewContext *ctx, char *command_line, Statistic *s) {
+int SilentSystemCall(ViewContext *ctx, const char *command_line, Statistic *s) {
   return (SilentSystemCallEx(ctx, command_line, TRUE, s));
 }

@@ -86,7 +86,6 @@ static void format_mode_from_octal(const char *octal_digits, char mode_type,
 
 static int normalize_prompt_escape_key(WINDOW *win, int ch) {
   int c1;
-  int c2;
 
   if (!win || ch != ESC)
     return ch;
@@ -94,7 +93,7 @@ static int normalize_prompt_escape_key(WINDOW *win, int ch) {
   nodelay(win, TRUE);
   c1 = wgetch(win);
   if (c1 == '[' || c1 == 'O') {
-    c2 = wgetch(win);
+    int c2 = wgetch(win);
     switch (c2) {
     case 'A':
       ch = KEY_UP;
@@ -301,11 +300,11 @@ static int UI_ReadStringInternal(ViewContext *ctx, YtreePanel *panel,
 
       /* Handle Tilde Expansion on Enter */
       if (buffer[0] == '~') {
-        char *home = getenv("HOME");
+        const char *home = getenv("HOME");
         if (home) {
-          char expanded[PATH_LENGTH + 1];
           /* Expand only if just "~" or "~/..." */
           if (buffer[1] == '/' || buffer[1] == '\0') {
+            char expanded[PATH_LENGTH + 1];
             snprintf(expanded, sizeof(expanded), "%s%s", home, buffer + 1);
             strncpy(buffer, expanded, max_len - 1);
             buffer[max_len - 1] = '\0';
@@ -498,7 +497,7 @@ static int UI_ReadStringInternal(ViewContext *ctx, YtreePanel *panel,
     case KEY_UP: {
       /* GetHistory returns a pointer to internal history data.
          Do NOT free it. */
-      char *h = GetHistory(ctx, history_type);
+      const char *h = GetHistory(ctx, history_type);
       if (h) {
         strncpy(buffer, h, max_len - 1);
         buffer[max_len - 1] = '\0';

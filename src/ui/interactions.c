@@ -160,7 +160,7 @@ static void format_mode_prompt_value(mode_t mode, char *buffer, size_t size) {
 static int parse_date_input(const char *input, time_t base_time,
                             time_t *out_time) {
   struct tm tm_value;
-  struct tm *base_tm_ptr = NULL;
+  const struct tm *base_tm_ptr = NULL;
   int year = 0, month = 0, day = 0, hour = 0, minute = 0, second = 0;
   int matched = 0;
   time_t parsed_time;
@@ -176,9 +176,6 @@ static int parse_date_input(const char *input, time_t base_time,
   if (base_tm_ptr) {
     tm_value = *base_tm_ptr;
   } else {
-    tm_value.tm_year = 70;
-    tm_value.tm_mon = 0;
-    tm_value.tm_mday = 1;
     tm_value.tm_hour = 0;
     tm_value.tm_min = 0;
     tm_value.tm_sec = 0;
@@ -277,7 +274,7 @@ int UI_ChoiceResolver(ViewContext *ctx, const char *prompt,
   return InputChoice(ctx, prompt, choices);
 }
 
-int GetMoveParameter(ViewContext *ctx, char *from_file, char *to_file,
+int GetMoveParameter(ViewContext *ctx, const char *from_file, char *to_file,
                      char *to_dir) {
   if (from_file == NULL) {
     from_file = "TAGGED FILES";
@@ -323,10 +320,9 @@ int GetMoveParameter(ViewContext *ctx, char *from_file, char *to_file,
   return (-1);
 }
 
-int GetCopyParameter(ViewContext *ctx, char *from_file, BOOL path_copy,
+int GetCopyParameter(ViewContext *ctx, const char *from_file, BOOL path_copy,
                      char *to_file, char *to_dir) {
   char prompt_header[PATH_LENGTH + 50];
-  char prompt_as[PATH_LENGTH + 1];
 
   if (from_file == NULL) {
     from_file = "TAGGED FILES";
@@ -346,10 +342,6 @@ int GetCopyParameter(ViewContext *ctx, char *from_file, BOOL path_copy,
 
   if (UI_ReadString(ctx, ctx->active, prompt_header, to_file, PATH_LENGTH,
                     HST_FILE) == CR) {
-
-    strncpy(prompt_as, to_file, PATH_LENGTH);
-    prompt_as[PATH_LENGTH] = '\0';
-
     if (ctx->is_split_screen && ctx->active) {
       YtreePanel *target = (ctx->active == ctx->left) ? ctx->right : ctx->left;
       if (target && target->vol && target->vol->total_dirs > 0) {
@@ -416,7 +408,7 @@ static int GetPanelLoggedRootPath(YtreePanel *panel, char *out_path) {
 
 static int GetPanelSelectedFilePath(ViewContext *ctx, YtreePanel *panel,
                                     char *out_path) {
-  DirEntry *dir_entry = NULL;
+  const DirEntry *dir_entry = NULL;
   FileEntry *file_entry = NULL;
   int file_idx;
 
@@ -833,7 +825,7 @@ const char *UI_CompareTagResultName(CompareTagResult tag_result) {
   }
 }
 
-const char *UI_GetCompareHelperCommand(ViewContext *ctx,
+const char *UI_GetCompareHelperCommand(const ViewContext *ctx,
                                        CompareFlowType flow_type) {
   const char *helper;
 
@@ -1085,7 +1077,7 @@ int UI_PromptAttributeAction(ViewContext *ctx, BOOL tagged, BOOL allow_date) {
 int UI_GetDateChangeSpec(ViewContext *ctx, time_t *new_time, int *scope_mask) {
   char date_input[32];
   char display_time[32];
-  struct tm *tm_ptr;
+  const struct tm *tm_ptr;
   int which;
 
   if (!ctx || !new_time || !scope_mask)
@@ -1243,7 +1235,7 @@ int ChangeDirDate(ViewContext *ctx, DirEntry *de_ptr) {
 
 int GetNewOwner(ViewContext *ctx, int st_uid) {
   char owner[OWNER_NAME_MAX * 2 + 1];
-  char *owner_name_ptr;
+  const char *owner_name_ptr;
   int owner_id;
   int id;
 
@@ -1276,7 +1268,7 @@ int GetNewOwner(ViewContext *ctx, int st_uid) {
 
 int GetNewGroup(ViewContext *ctx, int st_gid) {
   char group[GROUP_NAME_MAX * 2 + 1];
-  char *group_name_ptr;
+  const char *group_name_ptr;
   int id;
   int group_id;
 
@@ -1441,7 +1433,7 @@ int GetPipeCommand(ViewContext *ctx, char *pipe_command) {
   return (result);
 }
 
-int SystemCall(ViewContext *ctx, char *command_line, Statistic *s) {
+int SystemCall(ViewContext *ctx, const char *command_line, Statistic *s) {
   int result;
 
   endwin(); /* Ensure terminal state is reset before external command */
@@ -1455,7 +1447,7 @@ int SystemCall(ViewContext *ctx, char *command_line, Statistic *s) {
   return (result);
 }
 
-int QuerySystemCall(ViewContext *ctx, char *command_line, Statistic *s) {
+int QuerySystemCall(ViewContext *ctx, const char *command_line, Statistic *s) {
   int result;
 
   endwin(); /* 1. Save state / Exit curses mode */
@@ -1612,7 +1604,7 @@ int recursive_mkdir(char *path) {
 
 int recursive_rmdir(const char *path) {
   DIR *d = opendir(path);
-  struct dirent *entry;
+  const struct dirent *entry;
   char fullpath[PATH_LENGTH];
 
   if (!d)
@@ -1893,7 +1885,7 @@ static int RunExternalTaggedViewer(ViewContext *ctx, char **view_paths,
 
 int UI_ViewTaggedFiles(ViewContext *ctx, DirEntry *dir_entry) {
   FileEntry *fe;
-  char *temp_dir = NULL;
+  const char *temp_dir = NULL;
   char **view_paths = NULL;
   char **display_paths = NULL;
   char path[PATH_LENGTH + 1];

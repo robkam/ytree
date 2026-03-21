@@ -1,0 +1,14 @@
+# 2026-03-21
+# Tool-noise information diagnostics for this gate invocation.
+missingIncludeSystem
+checkLevelNormal
+checkersReport
+
+# Upstream uthash macro-expansion false-positive at HASH_ADD_INT callsite.
+unreachableCode:src/core/volume.c
+
+# UTHash internals trigger this in macro-expanded temporary variables.
+constVariablePointer:src/core/volume.c
+
+# Callback constification warning would require RewriteCallback API churn.
+constParameterCallback:src/fs/archive_write.c

@@ -27,7 +27,7 @@ void ClockHandler(ViewContext *ctx, int sig) {
 
   char strtm[23];
   time_t HORA;
-  struct tm *hora;
+  const struct tm *hora;
 
   if (COLS > 50 && ctx->clock_print_time) {
     time(&HORA);

@@ -79,10 +79,10 @@ int Pipe(ViewContext *ctx, DirEntry *dir_entry, FileEntry *file_entry,
   } else {
     if (ctx->view_mode == DISK_MODE || ctx->view_mode == USER_MODE) {
       int in_fd;
-      char buffer[4096];
-      ssize_t bytes_read;
       in_fd = open(file_name_path, O_RDONLY);
       if (in_fd != -1) {
+        char buffer[4096];
+        ssize_t bytes_read;
         while ((bytes_read = read(in_fd, buffer, sizeof(buffer))) > 0) {
           if (fwrite(buffer, 1, bytes_read, pipe_fp) < (size_t)bytes_read) {
             break;
@@ -93,7 +93,7 @@ int Pipe(ViewContext *ctx, DirEntry *dir_entry, FileEntry *file_entry,
     } else {
       /* ARCHIVE_MODE */
 #ifdef HAVE_LIBARCHIVE
-      char *archive = ctx->active->vol->vol_stats.login_path;
+      const char *archive = ctx->active->vol->vol_stats.login_path;
       ExtractArchiveEntry(archive, file_name_path, fileno(pipe_fp), NULL, NULL);
 #endif
     }
@@ -187,7 +187,7 @@ int PipeDirectory(ViewContext *ctx, DirEntry *dir_entry, char *pipe_command) {
 
 /* GetPipeCommand moved to UI layer */
 
-int PipeTaggedFiles(ViewContext *ctx, FileEntry *fe_ptr,
+int PipeTaggedFiles(const ViewContext *ctx, FileEntry *fe_ptr,
                     WalkingPackage *walking_package, Statistic *s) {
   int i, n;
   char from_path[PATH_LENGTH + 1];

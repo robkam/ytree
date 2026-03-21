@@ -6,8 +6,6 @@
  ***************************************************************************/
 
 #include "ytree.h"
-#include <stdio.h>  /* For fprintf, stderr */
-#include <stdlib.h> /* For calloc, exit, free */
 
 /*
  * Volume_Create

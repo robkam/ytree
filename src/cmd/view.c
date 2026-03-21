@@ -40,7 +40,7 @@ int View(ViewContext *ctx, DirEntry *dir_entry, char *file_path) {
 static int ViewFile(ViewContext *ctx, DirEntry *dir_entry, char *file_path) {
   char command_line[COMMAND_LINE_LENGTH + 1];
   char file_p_aux[PATH_LENGTH + 1];
-  char *pager;
+  const char *pager;
   int result;
 
   if (access(file_path, R_OK)) {
@@ -81,7 +81,7 @@ static int ViewArchiveFile(ViewContext *ctx, char *file_path) {
   int fd;
   int result = -1;
 
-  char *pager;
+  const char *pager;
 
   fd = mkstemp(temp_filename);
   if (fd == -1) {

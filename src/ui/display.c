@@ -112,7 +112,7 @@ void DisplayDirHelp(ViewContext *ctx) {
   wnoutrefresh(ctx->ctx_menu_window);
 }
 
-void DisplayFileHelp(ViewContext *ctx, DirEntry *dir_entry) {
+void DisplayFileHelp(ViewContext *ctx, const DirEntry *dir_entry) {
   int i;
   char *cptr;
   const char *nav_line;
@@ -231,7 +231,7 @@ void ClearHelp(ViewContext *ctx) {
  * This function is designed to be called whenever the path changes,
  * ensuring immediate visual feedback.
  */
-void DisplayHeaderPath(ViewContext *ctx, char *path) {
+void DisplayHeaderPath(ViewContext *ctx, const char *path) {
   char display_buffer[PATH_LENGTH + 1];
   int available_width;
 
@@ -473,7 +473,8 @@ void RenderInactivePanel(ViewContext *ctx, YtreePanel *panel) {
   }
 }
 
-static BOOL IsActivePanelBigFileMode(ViewContext *ctx, DirEntry *dir_entry) {
+static BOOL IsActivePanelBigFileMode(const ViewContext *ctx,
+                                     const DirEntry *dir_entry) {
   if (!ctx)
     return FALSE;
 
@@ -537,7 +538,7 @@ static void DrawSplitSeparatorRow(ViewContext *ctx, BOOL left_big, BOOL right_bi
  * Use this to ensure all borders, stats, and content are consistent.
  */
 void RefreshView(ViewContext *ctx, DirEntry *dir_entry) {
-  Statistic *s = &ctx->active->vol->vol_stats;
+  const Statistic *s = &ctx->active->vol->vol_stats;
   BOOL needs_window_recreate = FALSE;
   BOOL active_big_mode;
 

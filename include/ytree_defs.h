@@ -469,11 +469,11 @@ typedef int (*ArchiveProgressCallback)(int status, const char *msg,
 #define ZSTD_COMPRESS 22
 
 /* UI Message Macros (Headless-compatible) */
-extern int UI_Error(ViewContext *ctx, const char *file, int line,
-                    const char *format, ...);
-extern int UI_Warning(ViewContext *ctx, const char *format, ...);
-extern int UI_Message(ViewContext *ctx, const char *format, ...);
-extern int UI_Notice(ViewContext *ctx, const char *format, ...);
+extern int UI_Error(ViewContext *ctx, const char *module, int line,
+                    const char *fmt, ...);
+extern int UI_Warning(ViewContext *ctx, const char *fmt, ...);
+extern int UI_Message(ViewContext *ctx, const char *fmt, ...);
+extern int UI_Notice(ViewContext *ctx, const char *fmt, ...);
 
 #define ERROR(ctx, ...) UI_Error(ctx, __FILE__, __LINE__, __VA_ARGS__)
 #define WARNING(ctx, ...) UI_Warning(ctx, __VA_ARGS__)

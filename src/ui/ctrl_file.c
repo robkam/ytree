@@ -145,7 +145,6 @@ static void GetCommandDisplayName(const char *command_template,
                                   char *command_name, size_t command_name_size) {
   const char *cursor;
   size_t idx = 0;
-  char quote = '\0';
 
   if (!command_name || command_name_size == 0)
     return;
@@ -161,7 +160,7 @@ static void GetCommandDisplayName(const char *command_template,
     return;
 
   if (*cursor == '"' || *cursor == '\'') {
-    quote = *cursor++;
+    char quote = *cursor++;
     while (*cursor && *cursor != quote && idx + 1 < command_name_size) {
       command_name[idx++] = *cursor++;
     }
@@ -340,7 +339,8 @@ static YtreeAction FilterPreviewAction(YtreeAction action) {
  * - In file window mode: Shows stats for currently selected file
  * - In directory mode: Shows stats for current directory
  */
-void UpdateStatsPanel(ViewContext *ctx, DirEntry *dir_entry, Statistic *s) {
+void UpdateStatsPanel(ViewContext *ctx, DirEntry *dir_entry,
+                      const Statistic *s) {
   FileEntry *fe_ptr = NULL;
   BOOL show_file_stats = FALSE;
 
@@ -418,7 +418,7 @@ int ChangeFileGroup(ViewContext *ctx, FileEntry *fe_ptr) {
 }
 
 static void fmovedown(ViewContext *ctx, int *start_file, int *cursor_pos,
-                      int *start_x, DirEntry *dir_entry) {
+                      const int *start_x, DirEntry *dir_entry) {
   Nav_MoveDown(cursor_pos, start_file, (int)ctx->active->file_count,
                max_disp_files, 1);
 
@@ -430,7 +430,7 @@ static void fmovedown(ViewContext *ctx, int *start_file, int *cursor_pos,
 }
 
 static void fmoveup(ViewContext *ctx, int *start_file, int *cursor_pos,
-                    int *start_x, DirEntry *dir_entry) {
+                    const int *start_x, DirEntry *dir_entry) {
   Nav_MoveUp(cursor_pos, start_file);
 
   DisplayFiles(ctx, ctx->active, dir_entry, *start_file,
@@ -509,7 +509,7 @@ static void fmoveleft(ViewContext *ctx, int *start_file, int *cursor_pos,
 }
 
 static void fmovenpage(ViewContext *ctx, int *start_file, int *cursor_pos,
-                       int *start_x, DirEntry *dir_entry) {
+                       const int *start_x, DirEntry *dir_entry) {
   Nav_PageDown(cursor_pos, start_file, (int)ctx->active->file_count,
                max_disp_files);
 
@@ -521,7 +521,7 @@ static void fmovenpage(ViewContext *ctx, int *start_file, int *cursor_pos,
 }
 
 static void fmoveppage(ViewContext *ctx, int *start_file, int *cursor_pos,
-                       int *start_x, DirEntry *dir_entry) {
+                       const int *start_x, DirEntry *dir_entry) {
   Nav_PageUp(cursor_pos, start_file, max_disp_files);
 
   DisplayFiles(ctx, ctx->active, dir_entry, *start_file,
@@ -534,7 +534,7 @@ static void fmoveppage(ViewContext *ctx, int *start_file, int *cursor_pos,
 /* Local helper to refresh file window, maintaining file cursor */
 DirEntry *RefreshFileView(ViewContext *ctx, DirEntry *dir_entry) {
   char *saved_name = NULL;
-  Statistic *s = &ctx->active->vol->vol_stats;
+  const Statistic *s = &ctx->active->vol->vol_stats;
   int found_idx = -1;
   int start_x = 0;
 
@@ -543,7 +543,7 @@ DirEntry *RefreshFileView(ViewContext *ctx, DirEntry *dir_entry) {
     /* Check bounds before access */
     if (dir_entry->start_file + dir_entry->cursor_pos <
         (int)ctx->active->file_count) {
-      FileEntry *curr =
+      const FileEntry *curr =
           ctx->active
               ->file_entry_list[dir_entry->start_file + dir_entry->cursor_pos]
               .file;
@@ -1858,7 +1858,8 @@ static void UpdateFileHeaderPath(ViewContext *ctx, DirEntry *dir_entry) {
   DisplayHeaderPath(ctx, path);
 }
 
-static int FindDirIndexInVolume(struct Volume *vol, DirEntry *target) {
+static int FindDirIndexInVolume(const struct Volume *vol,
+                                const DirEntry *target) {
   int i;
 
   if (!vol || !target || !vol->dir_entry_list)
@@ -1872,7 +1873,8 @@ static int FindDirIndexInVolume(struct Volume *vol, DirEntry *target) {
   return -1;
 }
 
-static struct Volume *FindVolumeForDir(ViewContext *ctx, DirEntry *target,
+static struct Volume *FindVolumeForDir(ViewContext *ctx,
+                                       const DirEntry *target,
                                        int *dir_idx_out) {
   struct Volume *vol_iter;
   struct Volume *vol_tmp;
@@ -1913,7 +1915,7 @@ static struct Volume *FindVolumeForDir(ViewContext *ctx, DirEntry *target,
 }
 
 static void PositionOwnerFileCursor(ViewContext *ctx, DirEntry *owner_dir,
-                                    FileEntry *target_file) {
+                                    const FileEntry *target_file) {
   int i;
   int file_idx = -1;
   int page_height;
@@ -1975,7 +1977,8 @@ static void PositionOwnerFileCursor(ViewContext *ctx, DirEntry *owner_dir,
   ctx->active->start_file = owner_dir->start_file;
 }
 
-static BOOL JumpToOwnerDirectory(ViewContext *ctx, DirEntry *global_dir_entry) {
+static BOOL JumpToOwnerDirectory(ViewContext *ctx,
+                                 const DirEntry *global_dir_entry) {
   YtreePanel *panel;
   int selected_idx;
   FileEntry *selected_file;
@@ -2198,7 +2201,7 @@ static void ListJump(ViewContext *ctx, DirEntry *dir_entry, char *str) {
 
 /* UI_ViewTaggedFiles moved to prompts.c */
 
-static void UpdatePreview(ViewContext *ctx, DirEntry *dir_entry) {
+static void UpdatePreview(ViewContext *ctx, const DirEntry *dir_entry) {
   if (ctx->preview_mode && ctx->ctx_preview_window) {
     FileEntry *fe = NULL;
     if (ctx->active && ctx->active->file_entry_list &&

@@ -22,9 +22,9 @@ extern int ExtractArchiveNode(const char *archive_path, const char *entry_path,
                               const char *dest_path, ArchiveProgressCallback cb,
                               void *user_data);
 extern int InsertArchiveFileEntry(ViewContext *ctx, DirEntry *tree, char *path,
-                                  struct stat *stat, Statistic *s);
-extern int TryInsertArchiveDirEntry(ViewContext *ctx, DirEntry *tree, char *dir,
-                                    struct stat *stat, Statistic *s);
+                                  const struct stat *stat, Statistic *s);
+extern int TryInsertArchiveDirEntry(ViewContext *ctx, DirEntry *tree, const char *dir,
+                                    const struct stat *stat, Statistic *s);
 extern void MinimizeArchiveTree(DirEntry **tree_ptr, Statistic *s);
 
 #ifdef HAVE_LIBARCHIVE
@@ -62,8 +62,8 @@ extern int RescanDir(ViewContext *ctx, DirEntry *dir_entry, int depth,
 
 /* tree_utils.c */
 extern void DeleteTree(DirEntry *tree);
-extern int GetDirEntry(ViewContext *ctx, DirEntry *tree,
-                       DirEntry *current_dir_entry, char *dir_path,
+extern int GetDirEntry(const ViewContext *ctx, DirEntry *tree,
+                       DirEntry *current_dir_entry, const char *dir_path,
                        DirEntry **dir_entry, char *to_path);
 extern int GetFileEntry(DirEntry *de_ptr, const char *file_name,
                         FileEntry **file_entry);

@@ -97,7 +97,7 @@ char *GetAttributes(unsigned short mode, char *buffer) {
  * Modernized to use ISO-like format: YYYY-MM-DD HH:MM (16 chars)            *
  *****************************************************************************/
 char *CTime(time_t f_time, char *buffer) {
-  struct tm *tm_ptr;
+  const struct tm *tm_ptr;
 
   tm_ptr = localtime(&f_time);
 
@@ -237,9 +237,9 @@ int BuildUserFileEntry(FileEntry *fe_ptr, int filename_width,
   int written;
   char owner[OWNER_NAME_MAX + 1];
   char group[GROUP_NAME_MAX + 1];
-  char *owner_name_ptr;
-  char *group_name_ptr;
-  char *sym_link_name = NULL;
+  const char *owner_name_ptr;
+  const char *group_name_ptr;
+  const char *sym_link_name = NULL;
   char *sptr;
   char tag;
 
@@ -250,7 +250,7 @@ int BuildUserFileEntry(FileEntry *fe_ptr, int filename_width,
   if (fe_ptr == NULL || line == NULL || linelen <= 0)
     return -1;
 
-  if (fe_ptr && S_ISLNK(fe_ptr->stat_struct.st_mode))
+  if (S_ISLNK(fe_ptr->stat_struct.st_mode))
     sym_link_name = &fe_ptr->name[strlen(fe_ptr->name) + 1];
   else
     sym_link_name = "";
@@ -550,7 +550,7 @@ void PrintSpecialString(WINDOW *win, int y, int x, char *str, int color) {
  * start_char, fill_char. The line will consist of start_char followed by    *
  * (len-1) fill_char characters.                                             *
  *****************************************************************************/
-void PrintLine(WINDOW *win, int y, int x, char *line, int len) {
+void PrintLine(WINDOW *win, int y, int x, const char *line, int len) {
   char *buffer_content;
   int i;
 

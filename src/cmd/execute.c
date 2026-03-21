@@ -25,15 +25,12 @@
 
 #ifdef HAVE_LIBARCHIVE
 static int ExecuteArchiveFile(ViewContext *ctx, DirEntry *dir_entry,
-                              FileEntry *file_entry, char *cmd_template,
+                              const FileEntry *file_entry, const char *cmd_template,
                               Statistic *s, ArchiveProgressCallback cb) {
   char temp_path[PATH_LENGTH];
   char command_line[COMMAND_LINE_LENGTH];
   char quoted_temp[PATH_LENGTH * 2 + 1];
-  char internal_path[PATH_LENGTH];
   char dir_path[PATH_LENGTH];
-  char root_path[PATH_LENGTH + 1];
-  char relative_path[PATH_LENGTH + 1];
   int fd_tmp;
   int result = -1;
 
@@ -46,6 +43,10 @@ static int ExecuteArchiveFile(ViewContext *ctx, DirEntry *dir_entry,
 
   /* 2. Extract File Content */
   if (file_entry) {
+    char internal_path[PATH_LENGTH];
+    char root_path[PATH_LENGTH + 1];
+    char relative_path[PATH_LENGTH + 1];
+
     GetPath(file_entry->dir_entry, dir_path);
 
     /* Rebuild the path relative to the archive root (login_path) */
@@ -100,10 +101,10 @@ static int ExecuteArchiveFile(ViewContext *ctx, DirEntry *dir_entry,
 }
 #endif
 
-int Execute(ViewContext *ctx, DirEntry *dir_entry, FileEntry *file_entry,
-            char *cmd_template, Statistic *s, ArchiveProgressCallback cb) {
+int Execute(ViewContext *ctx, DirEntry *dir_entry, const FileEntry *file_entry,
+            const char *cmd_template, Statistic *s, ArchiveProgressCallback cb) {
   char expanded_command[COMMAND_LINE_LENGTH + 1];
-  char *final_command;
+  const char *final_command;
   char path[PATH_LENGTH + 1];
   int result = -1;
   int start_dir_fd;

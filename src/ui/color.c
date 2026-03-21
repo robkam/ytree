@@ -69,7 +69,6 @@ void ParseColorString(const char *color_str, int *fg, int *bg) {
   char *dup, *token, *saveptr;
   int i;
   int *target;
-  BOOL found;
   char *endptr;
   long val;
   int color_limit;
@@ -88,7 +87,7 @@ void ParseColorString(const char *color_str, int *fg, int *bg) {
   color_limit = (COLORS > 0) ? COLORS : 256;
 
   while (token) {
-    found = FALSE;
+    BOOL found = FALSE;
 
     /* 1. Try named colors */
     for (i = 0; color_map[i].name; i++) {
@@ -179,7 +178,7 @@ void StartColors(ViewContext *ctx) {
   ReinitColorPairs(ctx);
 }
 
-int GetFileTypeColor(ViewContext *ctx, FileEntry *fe_ptr) {
+int GetFileTypeColor(const ViewContext *ctx, const FileEntry *fe_ptr) {
   FileColorRule *rule;
 
   if (!fe_ptr)
@@ -215,7 +214,7 @@ int GetFileTypeColor(ViewContext *ctx, FileEntry *fe_ptr) {
   return CPAIR_FILE; /* Default */
 }
 
-void WbkgdSet(ViewContext *ctx, WINDOW *w, chtype c) {
+void WbkgdSet(const ViewContext *ctx, WINDOW *w, chtype c) {
   if (ctx->color_enabled) {
     wbkgdset(w, c);
   } else {

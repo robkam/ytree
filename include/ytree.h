@@ -211,12 +211,12 @@ extern volatile sig_atomic_t ytree_shutdown_flag;
 /* ************************************************************************* */
 
 /* ctrl_dir.c */
-extern int HandleDirWindow(ViewContext *ctx, DirEntry *start_dir_entry);
+extern int HandleDirWindow(ViewContext *ctx, const DirEntry *start_dir_entry);
 
 /* ctrl_file.c */
 extern void BuildFileEntryList(ViewContext *ctx, YtreePanel *panel);
 extern void FreeFileEntryList(YtreePanel *panel);
-extern void InvalidateVolumePanels(ViewContext *ctx, struct Volume *vol);
+extern void InvalidateVolumePanels(ViewContext *ctx, const struct Volume *vol);
 
 /* volume.c */
 extern struct Volume *Volume_Create(ViewContext *ctx);
@@ -248,7 +248,7 @@ extern void ReCreateWindows(ViewContext *ctx);
 extern void ShutdownCurses(ViewContext *ctx);
 
 /* path_utils.c */
-extern char *GetExtension(char *filename);
+extern const char *GetExtension(const char *filename);
 extern char *GetFileNamePath(FileEntry *file_entry, char *buffer);
 extern char *GetPath(DirEntry *dir_entry, char *buffer);
 extern char *GetRealFileNamePath(FileEntry *file_entry, char *buffer,
@@ -256,8 +256,8 @@ extern char *GetRealFileNamePath(FileEntry *file_entry, char *buffer,
 extern void Fnsplit(char *path, char *dir, char *name);
 extern void NormPath(char *in_path, char *out_path);
 
-extern int MakePath(ViewContext *ctx, DirEntry *tree, char *dir_path,
-                    DirEntry **dest);
+extern int MakePath(const ViewContext *ctx, DirEntry *tree, char *dir_path,
+                    DirEntry **dest_dir_entry);
 /* quit.c */
 extern void Quit(ViewContext *ctx);
 extern void QuitTo(ViewContext *ctx, DirEntry *dir_entry);
@@ -267,13 +267,13 @@ extern void QuitTo(ViewContext *ctx, DirEntry *dir_entry);
 /* string_utils.c */
 extern int BuildFilename(char *in_filename, char *pattern, char *out_filename);
 extern void StrCp(char *dest, const char *src);
-extern int Strrcmp(char *s1, char *s2);
-extern char *SubString(char *dest, char *src, int pos, int len);
+extern int Strrcmp(const char *s1, const char *s2);
+extern char *SubString(char *dest, const char *src, int pos, int len);
 extern int String_Replace(char *dest, size_t dest_size, const char *src,
                           const char *token, const char *replacement);
 
 /* error.c */
-extern int UI_Error(ViewContext *ctx, const char *file, int line,
+extern int UI_Error(ViewContext *ctx, const char *module, int line,
                     const char *fmt, ...);
 extern int UI_Message(ViewContext *ctx, const char *fmt, ...);
 extern int UI_Warning(ViewContext *ctx, const char *fmt, ...);
@@ -286,7 +286,7 @@ extern void UnmapNoticeWindow(ViewContext *ctx);
 
 extern void Watcher_Init(ViewContext *ctx);
 extern void Watcher_SetDir(ViewContext *ctx, const char *path);
-extern int Watcher_GetFD(ViewContext *ctx);
+extern int Watcher_GetFD(const ViewContext *ctx);
 extern BOOL Watcher_ProcessEvents(ViewContext *ctx);
 extern void Watcher_Close(ViewContext *ctx);
 
@@ -298,15 +298,16 @@ extern char *xstrdup(const char *s);
 
 #include "watcher.h"
 
-extern int(ReadProfile)(ViewContext *ctx, char *filename);
-extern void(ReadHistory)(ViewContext *ctx, char *filename);
-extern void(SaveHistory)(ViewContext *ctx, char *filename);
-extern void(InsHistory)(ViewContext *ctx, char *NewHst, int type);
+extern int(ReadProfile)(ViewContext *ctx, const char *filename);
+extern void(ReadHistory)(ViewContext *ctx, const char *filename);
+extern void(SaveHistory)(ViewContext *ctx, const char *filename);
+extern void(InsHistory)(ViewContext *ctx, const char *NewHst, int type);
 extern char *(GetHistory)(ViewContext * ctx, int type);
 extern int ReadGroupEntries(void);
 extern int ReadPasswdEntries(void);
 
 extern char *(GetProfileValue)(ViewContext * ctx, const char *name);
-extern void(SetProfileValue)(ViewContext *ctx, char *name, char *value);
+extern void(SetProfileValue)(const ViewContext *ctx, char *name,
+                             const char *value);
 
 #endif /* YTREE_H */

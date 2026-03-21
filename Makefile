@@ -203,7 +203,7 @@ qa-clang:
 	clang-tidy $(CLANG_TIDY_SRCS) -p .
 
 qa-cppcheck:
-	cppcheck --enable=all --inconclusive --force --std=c99 -I include --error-exitcode=1 src include
+	cppcheck --enable=all --inconclusive --force --std=c99 -I include --error-exitcode=1 --suppressions-list=.cppcheck-suppressions.txt src include
 
 qa-scan:
 	$(MAKE_CMD) QA_ON_BUILD=0 clean

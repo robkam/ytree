@@ -15,11 +15,9 @@
 int SelectLoadedVolume(ViewContext *ctx, int *return_key) {
   struct Volume *s, *tmp;
   struct Volume **vol_array = NULL;
-  int num_volumes = 0;
-  int max_path_len = 0;
+  int num_volumes;
   int i, j, ch; /* Added j for visible line iteration */
   int selected_index = 0;
-  int current_volume_index = -1;
   WINDOW *win = NULL;
   int win_height, win_width, win_x, win_y;
   int result = -1; /* Assume cancel by default */
@@ -28,15 +26,18 @@ int SelectLoadedVolume(ViewContext *ctx, int *return_key) {
       "Use UP/DOWN to select, ENTER to switch, ESC/q to cancel. D to delete.";
   BOOL changes_made = FALSE;
   BOOL restart_menu = FALSE;
-  BOOL menu_active = TRUE;
 
   /* Scrolling variables */
-  int scroll_offset = 0;
   int visible_lines;
 
   ClearHelp(ctx);
 
   do {
+    int max_path_len;
+    int current_volume_index;
+    BOOL menu_active;
+    int scroll_offset;
+
     restart_menu = FALSE;
     menu_active = TRUE;
 
@@ -260,72 +261,62 @@ int SelectLoadedVolume(ViewContext *ctx, int *return_key) {
 
         if (InputChoice(ctx, "Release this volume? (Y/N)", "YN\033") == 'Y') {
           struct Volume *target_vol = vol_array[selected_index];
-          int neighbor_idx = -1;
 
           if (target_vol == ctx->active->vol) {
             /* Scenario A: Deleting Current Volume */
             /* Find a neighbor to switch to */
-            if (num_volumes > 1) {
-              // If selected is 0, try 1. Otherwise, try 0.
-              neighbor_idx = (selected_index == 0) ? 1 : 0;
-              struct Volume *neighbor = vol_array[neighbor_idx];
+            // If selected is 0, try 1. Otherwise, try 0.
+            int neighbor_idx = (selected_index == 0) ? 1 : 0;
+            struct Volume *neighbor = vol_array[neighbor_idx];
 
-              /* Verify neighbor accessibility before switching */
-              // This logic is similar to  LogDisk, but for a neighbor.
-              BOOL neighbor_access_ok = FALSE;
-              struct stat neighbor_st_check;
+            /* Verify neighbor accessibility before switching */
+            // This logic is similar to  LogDisk, but for a neighbor.
+            BOOL neighbor_access_ok = FALSE;
+            struct stat neighbor_st_check;
 
-              /* Renamed usage: neighbor->vol_stats.mode ->
-               * neighbor->vol_stats.login_mode */
-              if (neighbor->vol_stats.login_mode == ARCHIVE_MODE) {
-                if (stat(neighbor->vol_stats.login_path, &neighbor_st_check) ==
-                        0 &&
-                    !S_ISDIR(neighbor_st_check.st_mode)) {
-                  neighbor_access_ok = TRUE;
-                  char neighbor_parent_dir[PATH_LENGTH + 1];
-                  strcpy(neighbor_parent_dir, neighbor->vol_stats.login_path);
-                  char *slash =
-                      strrchr(neighbor_parent_dir, FILE_SEPARATOR_CHAR);
-                  if (slash) {
-                    *slash = '\0';
-                    if (chdir(neighbor_parent_dir) != 0) {
-                      /* Suppress */
-                    }
+            /* Renamed usage: neighbor->vol_stats.mode ->
+             * neighbor->vol_stats.login_mode */
+            if (neighbor->vol_stats.login_mode == ARCHIVE_MODE) {
+              if (stat(neighbor->vol_stats.login_path, &neighbor_st_check) ==
+                      0 &&
+                  !S_ISDIR(neighbor_st_check.st_mode)) {
+                neighbor_access_ok = TRUE;
+                char neighbor_parent_dir[PATH_LENGTH + 1];
+                strcpy(neighbor_parent_dir, neighbor->vol_stats.login_path);
+                char *slash = strrchr(neighbor_parent_dir, FILE_SEPARATOR_CHAR);
+                if (slash) {
+                  *slash = '\0';
+                  if (chdir(neighbor_parent_dir) != 0) {
+                    /* Suppress */
                   }
                 }
-              } else {
-                if (chdir(neighbor->vol_stats.login_path) == 0) {
-                  neighbor_access_ok = TRUE;
-                }
               }
-
-              if (!neighbor_access_ok) {
-                char error_message_buffer[MESSAGE_LENGTH + 1];
-                snprintf(error_message_buffer, sizeof(error_message_buffer),
-                         "Neighbor volume \"%s\" not accessible (Error: %s). "
-                         "Removed.",
-                         neighbor->vol_stats.login_path, strerror(errno));
-                UI_Message(ctx, error_message_buffer);
-                Volume_Delete(ctx,
-                              neighbor); // Delete the inaccessible neighbor
-                changes_made = TRUE;
-
-                restart_menu = TRUE;
-                menu_active = FALSE;
-                break;
-              }
-
-              ctx->active->vol = neighbor;
-              /* Renamed usage: ctx->active->vol->vol_stats.mode ->
-               * ctx->active->vol->vol_stats.login_mode */
-              ctx->view_mode =
-                  ctx->active->vol->vol_stats.login_mode; // Sync global mode
             } else {
-              // This case should be caught by num_volumes <= 1 check, but
-              // defensive.
-              UI_Message(ctx, "Cannot release the last volume.");
-              break; // break from switch, loop continues to redraw
+              if (chdir(neighbor->vol_stats.login_path) == 0) {
+                neighbor_access_ok = TRUE;
+              }
             }
+
+            if (!neighbor_access_ok) {
+              char error_message_buffer[MESSAGE_LENGTH + 1];
+              snprintf(error_message_buffer, sizeof(error_message_buffer),
+                       "Neighbor volume \"%s\" not accessible (Error: %s). "
+                       "Removed.",
+                       neighbor->vol_stats.login_path, strerror(errno));
+              UI_Message(ctx, error_message_buffer);
+              Volume_Delete(ctx, neighbor); // Delete the inaccessible neighbor
+              changes_made = TRUE;
+
+              restart_menu = TRUE;
+              menu_active = FALSE;
+              break;
+            }
+
+            ctx->active->vol = neighbor;
+            /* Renamed usage: ctx->active->vol->vol_stats.mode ->
+             * ctx->active->vol->vol_stats.login_mode */
+            ctx->view_mode =
+                ctx->active->vol->vol_stats.login_mode; // Sync global mode
           }
           /* Scenario B: Deleting Background Volume (or target_vol is now
            * ctx->active->vol's old self) */

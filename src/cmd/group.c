@@ -43,13 +43,13 @@ char *GetGroupName(unsigned int gid)
  */
 char *GetDisplayGroupName(unsigned int gid)
 {
-  static char  buffer[DISPLAY_GROUP_NAME_MAX + 1];
-  struct group *grp_ptr;
+  const struct group *grp_ptr;
 
   grp_ptr = getgrgid( (gid_t)gid );
 
   if( grp_ptr )
   {
+    static char buffer[DISPLAY_GROUP_NAME_MAX + 1];
     CutName(buffer, grp_ptr->gr_name, DISPLAY_GROUP_NAME_MAX);
     return buffer;
   }

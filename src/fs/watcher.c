@@ -63,7 +63,7 @@ void Watcher_SetDir(ViewContext *ctx, const char *path) {
   }
 }
 
-int Watcher_GetFD(ViewContext *ctx) { return ctx->inotify_fd; }
+int Watcher_GetFD(const ViewContext *ctx) { return ctx->inotify_fd; }
 
 BOOL Watcher_ProcessEvents(ViewContext *ctx) {
   /* Buffer for inotify events. alignof ensures safety for struct casting. */
@@ -139,7 +139,7 @@ void Watcher_SetDir(ViewContext *ctx, const char *path) {
   (void)path;
 }
 
-int Watcher_GetFD(ViewContext *ctx) {
+int Watcher_GetFD(const ViewContext *ctx) {
   (void)ctx;
   return -1;
 }

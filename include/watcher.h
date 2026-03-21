@@ -15,7 +15,7 @@
 
 void Watcher_Init(ViewContext *ctx);
 void Watcher_SetDir(ViewContext *ctx, const char *path);
-int Watcher_GetFD(ViewContext *ctx);
+int Watcher_GetFD(const ViewContext *ctx);
 BOOL Watcher_ProcessEvents(ViewContext *ctx);
 void Watcher_Close(ViewContext *ctx);
 

@@ -23,11 +23,10 @@ static void SigIntHandler(int sig) {
 }
 
 int main(int argc, char **argv) {
-  int argi, i;
+  int argi;
   char *hist;
   char *conf;
-  char *filter_arg = NULL; /* Added for -f option */
-  int main_loop_exit_char;
+  const char *filter_arg = NULL; /* Added for -f option */
   int *path_indexes;
   int path_count = 0;
   ViewContext ctx;
@@ -207,7 +206,7 @@ int main(int argc, char **argv) {
       exit(1);
     }
   } else {
-    for (i = path_count - 1; i >= 0; i--) {
+    for (int i = path_count - 1; i >= 0; i--) {
       /* LogDisk returns -1 on failure but handles its own error messaging via
        * UI. We proceed to try loading the other requested volumes. */
       LogDisk(&ctx, ctx.left, argv[path_indexes[i]]);
@@ -249,7 +248,7 @@ int main(int argc, char **argv) {
       break;
     }
     DEBUG_LOG("Calling HandleDirWindow...");
-    main_loop_exit_char =
+    int main_loop_exit_char =
         HandleDirWindow(&ctx, ctx.active->vol->vol_stats.tree);
     DEBUG_LOG("HandleDirWindow returned %d", main_loop_exit_char);
     if (main_loop_exit_char == 'q' || main_loop_exit_char == 'Q') {

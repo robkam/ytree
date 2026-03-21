@@ -24,7 +24,7 @@
 #define PATH_LENGTH 4096
 #endif
 
-static int GetNewMode(int old_mode, char *new_mode);
+static int GetNewMode(int old_mode, char *mode);
 
 /*
  * Central helper to change ownership, re-stat the file, and handle errors.

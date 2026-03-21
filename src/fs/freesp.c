@@ -14,7 +14,7 @@
 /*-----------------------------------------------*/
 
 int GetDiskParameter(char *path, char *volume_name, long long *avail_bytes,
-                     long long *total_disk_space, Statistic *s) {
+                     long long *capacity, Statistic *s) {
 
 #ifdef WIN32
   struct _diskfree_t diskspace;
@@ -25,9 +25,8 @@ int GetDiskParameter(char *path, char *volume_name, long long *avail_bytes,
 #endif
 
   char *p;
-  char *fname;
+  const char *fname;
   int result;
-  long long bfree;
   long long this_disk_space;
 
 #ifdef WIN32
@@ -107,6 +106,7 @@ int GetDiskParameter(char *path, char *volume_name, long long *avail_bytes,
     this_disk_space = 900000000L; /* for now.. */
 #else
     /* Consolidated POSIX logic for disk space */
+    long long bfree;
 
     /* Use f_bavail for non-root, f_bfree for root/fallback */
     bfree = getuid() ? statfs_struct.f_bavail : statfs_struct.f_bfree;
@@ -122,8 +122,8 @@ int GetDiskParameter(char *path, char *volume_name, long long *avail_bytes,
 
 #endif /* WIN32 */
 
-    if (total_disk_space) {
-      *total_disk_space = this_disk_space;
+    if (capacity) {
+      *capacity = this_disk_space;
     }
   }
   return (result);

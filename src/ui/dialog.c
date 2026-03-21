@@ -23,7 +23,7 @@ int UI_Dialog_Push(WINDOW *win, UITier tier) {
   return 0;
 }
 
-int UI_Dialog_Pop(WINDOW *win) {
+int UI_Dialog_Pop(const WINDOW *win) {
   if (dialog_count <= 0)
     return -1;
 

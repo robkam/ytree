@@ -11,7 +11,6 @@
 
 int KeyF2Get(ViewContext *ctx, YtreePanel *panel, char *path) {
   struct Volume *original_vol; /* Declare first */
-  int ch;
   int result = -1;
   int win_width, win_height;
   struct Volume *target_vol;
@@ -87,7 +86,7 @@ int KeyF2Get(ViewContext *ctx, YtreePanel *panel, char *path) {
 
     RefreshWindow(ctx->ctx_f2_window);
     doupdate();
-    ch = Getch(ctx);
+    int ch = Getch(ctx);
     GetMaxYX(ctx->ctx_f2_window, &win_height,
              &win_width); /* Maybe changed... */
     /* LF to CR normalization is now handled by GetKeyAction */

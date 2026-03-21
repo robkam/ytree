@@ -12,7 +12,7 @@
 
 char *GetPath(DirEntry *dir_entry, char *buffer) {
   char *components[256];
-  int i, depth = 0;
+  int depth = 0;
   DirEntry *de_ptr;
 
   memset(components, 0, sizeof(components));
@@ -32,7 +32,7 @@ char *GetPath(DirEntry *dir_entry, char *buffer) {
     strcpy(buffer, components[depth - 1]);
 
     /* Append the rest of the components in correct order */
-    for (i = depth - 2; i >= 0; i--) {
+    for (int i = depth - 2; i >= 0; i--) {
       /* Add separator if the current path is not just the root "/" */
       if (strcmp(buffer, FILE_SEPARATOR_STRING) != 0) {
         strcat(buffer, FILE_SEPARATOR_STRING);
@@ -51,7 +51,7 @@ char *GetFileNamePath(FileEntry *file_entry, char *buffer) {
 }
 
 char *GetRealFileNamePath(FileEntry *file_entry, char *buffer, int view_mode) {
-  char *sym_name;
+  const char *sym_name;
 
   if (view_mode == DISK_MODE || view_mode == USER_MODE)
     return (GetFileNamePath(file_entry, buffer));
@@ -75,8 +75,8 @@ char *GetRealFileNamePath(FileEntry *file_entry, char *buffer, int view_mode) {
 void Fnsplit(char *path, char *dir, char *name) {
   char *path_copy_dir;
   char *path_copy_base;
-  char *dname;
-  char *bname;
+  const char *dname;
+  const char *bname;
   char *processed_path;
   int has_sep = 0;
   size_t len;
@@ -144,8 +144,8 @@ void Fnsplit(char *path, char *dir, char *name) {
   free(path_copy_base);
 }
 
-char *GetExtension(char *filename) {
-  char *cptr;
+const char *GetExtension(const char *filename) {
+  const char *cptr;
 
   cptr = strrchr(filename, '.');
 
@@ -176,9 +176,9 @@ void NormPath(char *in_path, char *out_path) {
   char stack[256][256]; /* Fixed depth stack for components */
   int stack_top = 0;
   char *path_copy;
-  char *token, *saveptr;
+  const char *token;
+  char *saveptr;
   int is_absolute = 0;
-  int i;
 
   if (in_path == NULL || *in_path == '\0') {
     strcpy(out_path, ".");
@@ -232,7 +232,7 @@ void NormPath(char *in_path, char *out_path) {
     return;
   }
 
-  for (i = 0; i < stack_top; i++) {
+  for (int i = 0; i < stack_top; i++) {
     /* If not the first component or if absolute and we already have the root
        slash, add a separator BEFORE appending the next component. */
     if (i > 0 || (is_absolute && out_path[0] == FILE_SEPARATOR_CHAR &&

@@ -25,7 +25,7 @@
 #define ARCHIVE_MODE 2
 #define USER_MODE 3
 
-static DirEntry *MakeDirEntry(ViewContext *ctx, YtreePanel *panel,
+static DirEntry *MakeDirEntry(const ViewContext *ctx, YtreePanel *panel,
                               DirEntry *father_dir_entry, const char *dir_name,
                               Statistic *s);
 
@@ -38,7 +38,7 @@ static int ArchiveUICallback(int status, const char *msg, void *user_data) {
   return ARCHIVE_CB_CONTINUE;
 }
 
-int MakeDirectory(ViewContext *ctx, YtreePanel *panel,
+int MakeDirectory(const ViewContext *ctx, YtreePanel *panel,
                   DirEntry *father_dir_entry, const char *dir_name,
                   Statistic *s) {
   int result = -1;
@@ -53,7 +53,7 @@ int MakeDirectory(ViewContext *ctx, YtreePanel *panel,
   return (result);
 }
 
-static DirEntry *MakeDirEntry(ViewContext *ctx, YtreePanel *panel,
+static DirEntry *MakeDirEntry(const ViewContext *ctx, YtreePanel *panel,
                               DirEntry *father_dir_entry, const char *dir_name,
                               Statistic *s) {
   DirEntry *den_ptr = NULL, *des_ptr;
@@ -220,7 +220,7 @@ static DirEntry *MakeDirEntry(ViewContext *ctx, YtreePanel *panel,
   return (den_ptr);
 }
 
-int MakePath(ViewContext *ctx, DirEntry *tree, char *dir_path,
+int MakePath(const ViewContext *ctx, DirEntry *tree, char *dir_path,
              DirEntry **dest_dir_entry) {
   DirEntry *de_ptr, *sde_ptr;
   char path[PATH_LENGTH + 1];
@@ -332,7 +332,6 @@ int EnsureDirectoryExists(ViewContext *ctx, char *dir_path, DirEntry *tree,
                           BOOL *created, DirEntry **result_ptr,
                           int *auto_create, ChoiceCallback choice_cb) {
   DIR *tmpdir;
-  int term;
 
   if (created)
     *created = FALSE;
@@ -343,6 +342,7 @@ int EnsureDirectoryExists(ViewContext *ctx, char *dir_path, DirEntry *tree,
   if ((tmpdir = opendir(dir_path)) == NULL) {
     /* If it doesn't exist, ask the user */
     if (errno == ENOENT) {
+      int term;
       if (auto_create && *auto_create) {
         term = 'Y';
       } else {

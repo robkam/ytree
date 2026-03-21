@@ -57,7 +57,7 @@ static void RestorePanelTreeSelection(ViewContext *ctx, YtreePanel *panel) {
 
 /* Helper function to handle scan progress updates */
 static void Login_Progress(ViewContext *ctx, void *data) {
-  Statistic *s = (Statistic *)data;
+  const Statistic *s = (const Statistic *)data;
 
   DrawSpinner(ctx);
   ClockHandler(ctx, 0);
@@ -103,7 +103,6 @@ int LogDisk(ViewContext *ctx, YtreePanel *panel, char *path) {
   struct Volume *old_vol = NULL;
   struct Volume *reuse_vol = NULL;
   Statistic *s;
-  BOOL access_ok = FALSE;
   struct stat st_check;
 
   DEBUG_LOG("ENTER LogDisk: path=%s", path);
@@ -137,6 +136,7 @@ int LogDisk(ViewContext *ctx, YtreePanel *panel, char *path) {
 
   if (found_vol != NULL) {
     /* Case A: Volume Found - Check Access and Switch */
+    BOOL access_ok = FALSE;
 
     if (found_vol->vol_stats.login_mode == ARCHIVE_MODE) {
       /* For archives, check if the file still exists */
@@ -304,7 +304,6 @@ int LogDisk(ViewContext *ctx, YtreePanel *panel, char *path) {
 
 int GetNewLoginPath(ViewContext *ctx, YtreePanel *panel, char *path) {
   int result;
-  char *cptr;
   char user_input[PATH_LENGTH * 2 + 1] = "";
   char current_dir_path[PATH_LENGTH + 1];
 
@@ -319,6 +318,7 @@ int GetNewLoginPath(ViewContext *ctx, YtreePanel *panel, char *path) {
   strcpy(user_input, path);
 
   if (ctx->view_mode == LL_FILE_MODE && *path == '<') {
+    char *cptr;
     for (cptr = user_input; (*cptr = *(cptr + 1)); cptr++)
       ;
     if (user_input[strlen(user_input) - 1] == '>')
@@ -365,9 +365,6 @@ int CycleLoadedVolume(ViewContext *ctx, YtreePanel *panel, int direction) {
   struct Volume *s, *tmp;
   struct Volume **vol_array = NULL;
   int num_volumes = 0;
-  int current_index = -1;
-  int target_index = -1;
-  int i = 0;
 
   int retries = 0;
   int max_retries;
@@ -390,8 +387,8 @@ int CycleLoadedVolume(ViewContext *ctx, YtreePanel *panel, int direction) {
       return -1;
     }
 
-    current_index = -1;
-    i = 0;
+    int current_index = -1;
+    int i = 0;
     HASH_ITER(hh, ctx->volumes_head, s, tmp) {
       vol_array[i] = s;
       if (s == panel->vol) {
@@ -406,7 +403,7 @@ int CycleLoadedVolume(ViewContext *ctx, YtreePanel *panel, int direction) {
       return -1;
     }
 
-    target_index = (current_index + direction + num_volumes) % num_volumes;
+    int target_index = (current_index + direction + num_volumes) % num_volumes;
 
     if (target_index == current_index && retries > 1) {
       free(vol_array);
@@ -414,7 +411,7 @@ int CycleLoadedVolume(ViewContext *ctx, YtreePanel *panel, int direction) {
       return (changes_made ? 0 : -1);
     }
 
-    struct Volume *target = vol_array[target_index];
+    const struct Volume *target = vol_array[target_index];
     char target_path[PATH_LENGTH + 1];
     strncpy(target_path, target->vol_stats.login_path, PATH_LENGTH);
     target_path[PATH_LENGTH] = '\0';
