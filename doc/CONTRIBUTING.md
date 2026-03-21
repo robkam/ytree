@@ -81,6 +81,19 @@ Use **[AUDIT.md](AUDIT.md)** as the single source of truth.
 - Run the full audit loop on every feature-sized change, major change, and PR.
 - Use the canonical tool order from `AUDIT.md`: `clang-tidy`, `cppcheck`, `scan-build`, `valgrind`, then `pytest` for regression verification.
 
+### Local QA Commands
+
+- Normal development build: `make`
+- Full local QA gate: `make qa-all`
+- Optional strict mode: `make QA_ON_BUILD=1` (runs `qa-all` after build)
+
+Individual gates:
+
+- `make qa-clang`
+- `make qa-cppcheck`
+- `make qa-scan`
+- `make qa-valgrind` (interactive; exit ytree cleanly to finish)
+
 ---
 
 ## Architectural Decisions & Constraints

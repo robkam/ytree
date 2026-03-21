@@ -36,6 +36,13 @@ Run these commands in this order to generate evidence-based findings.
 
 For step 4 in automated runs, drive a deterministic start/exit path (for example with `pexpect`) so Valgrind can finish and return an actionable exit code.
 
+Local shortcut targets are available in the `Makefile`:
+- `make qa-clang`
+- `make qa-cppcheck`
+- `make qa-scan`
+- `make qa-valgrind`
+- `make qa-all`
+
 ## 4. Continuous Audit Loop (Default)
 Run this loop for every non-trivial change and every PR.
 
