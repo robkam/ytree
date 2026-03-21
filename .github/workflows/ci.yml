@@ -1,4 +1,4 @@
-name: C/C++ CI
+name: C/C++ Baseline CI
 
 on:
   push:
@@ -8,6 +8,7 @@ on:
 
 jobs:
   build-and-test:
+    name: Baseline build + pytest
     runs-on: ubuntu-latest
 
     steps:
@@ -18,7 +19,7 @@ jobs:
         sudo apt-get update
         sudo apt-get install -y libncurses-dev libtinfo-dev libreadline-dev libarchive-dev libarchive-tools pandoc
 
-    - name: Compile (Release)
+    - name: Compile (Baseline Release Build)
       run: make
 
     - name: Set up Python 3
@@ -31,9 +32,12 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r scripts/requirements.txt
 
-    - name: Run Tests
+    - name: Run Pytest (Baseline)
       env:
         TERM: xterm
+      # This workflow is intentionally baseline-only (build + pytest).
+      # Full QA audit gates run via local/PR workflow from doc/AUDIT.md
+      # (clang-tidy, cppcheck, scan-build, valgrind, pytest).
       # 1. Run pytest and save output to a file (allowing failure with "|| true")
       # 2. Extract failure lines to the GitHub Summary page for instant viewing
       # 3. Exit with 1 if failures were found to mark the CI as failed

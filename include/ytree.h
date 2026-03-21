@@ -306,7 +306,7 @@ extern char *(GetHistory)(ViewContext * ctx, int type);
 extern int ReadGroupEntries(void);
 extern int ReadPasswdEntries(void);
 
-extern char *(GetProfileValue)(ViewContext * ctx, const char *name);
+extern char *(GetProfileValue)(const ViewContext *ctx, const char *name);
 extern void(SetProfileValue)(const ViewContext *ctx, char *name,
                              const char *value);
 
