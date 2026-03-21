@@ -41,7 +41,10 @@ Local shortcut targets are available in the `Makefile`:
 - `make qa-cppcheck`
 - `make qa-scan`
 - `make qa-valgrind`
-- `make qa-all`
+- `make qa-pytest`
+- `make qa-all` (runs `qa-clang`, `qa-cppcheck`, `qa-scan`, `qa-valgrind`, `qa-pytest` in order)
+
+GitHub CI is a baseline gate (build + `pytest`) and does not replace the full local audit loop.
 
 ## 4. Continuous Audit Loop (Default)
 Run this loop for every non-trivial change and every PR.

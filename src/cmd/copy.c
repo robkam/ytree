@@ -39,7 +39,7 @@ static int ArchiveUICallback(int status, const char *msg, void *user_data) {
 
 static int CopyArchiveFile(ViewContext *ctx, char *to_path,
                            const char *from_path,
-                           Statistic *s);
+                           const Statistic *s);
 
 int CopyFile(ViewContext *ctx, Statistic *statistic_ptr, FileEntry *fe_ptr,
              char *to_file, DirEntry *dest_dir_entry,

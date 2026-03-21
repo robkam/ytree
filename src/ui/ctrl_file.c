@@ -39,15 +39,18 @@ static void RereadWindowSize(ViewContext *ctx, DirEntry *dir_entry);
 static void ListJump(ViewContext *ctx, DirEntry *dir_entry, char *str);
 static void DrawFileListJumpPrompt(ViewContext *ctx, WINDOW *win,
                                    const char *search_buf);
-static void UpdatePreview(ViewContext *ctx, DirEntry *dir_entry);
+static void UpdatePreview(ViewContext *ctx, const DirEntry *dir_entry);
 static void SyncFileGridMetrics(ViewContext *ctx);
 static void UpdateFileHeaderPath(ViewContext *ctx, DirEntry *dir_entry);
-static int FindDirIndexInVolume(struct Volume *vol, DirEntry *target);
-static struct Volume *FindVolumeForDir(ViewContext *ctx, DirEntry *target,
+static int FindDirIndexInVolume(const struct Volume *vol,
+                                const DirEntry *target);
+static struct Volume *FindVolumeForDir(ViewContext *ctx,
+                                       const DirEntry *target,
                                        int *dir_idx_out);
 static void PositionOwnerFileCursor(ViewContext *ctx, DirEntry *owner_dir,
-                                    FileEntry *target_file);
-static BOOL JumpToOwnerDirectory(ViewContext *ctx, DirEntry *global_dir_entry);
+                                    const FileEntry *target_file);
+static BOOL JumpToOwnerDirectory(ViewContext *ctx,
+                                 const DirEntry *global_dir_entry);
 static void HandleFileCompare(ViewContext *ctx, FileEntry *source_file);
 
 static BOOL HasNonWhitespace(const char *text) {

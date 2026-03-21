@@ -103,7 +103,7 @@ CLANG_TIDY_SRCS = $(shell find $(SRC_DIR) -name '*.c' -type f)
 # -------------------------------------------------------------------------
 # QA Defaults
 # -------------------------------------------------------------------------
-# Set QA_ON_BUILD=1 to run full QA after a normal build:
+# Set QA_ON_BUILD=1 to run full QA (including pytest) after a normal build:
 #   make QA_ON_BUILD=1
 QA_ON_BUILD ?= 0
 
@@ -112,7 +112,7 @@ QA_ON_BUILD ?= 0
 # -------------------------------------------------------------------------
 
 .PHONY: all clean clobber install uninstall docs changelog-draft test \
-	test-v qa-clang qa-cppcheck qa-scan qa-valgrind qa-all
+	test-v qa-clang qa-cppcheck qa-scan qa-valgrind qa-pytest qa-all
 
 all: $(MAIN_BIN) $(MANPAGE) $(if $(filter 1,$(QA_ON_BUILD)),qa-all)
 
@@ -215,4 +215,7 @@ qa-valgrind:
 	@echo "Valgrind run is interactive: exit ytree cleanly to finish."
 	valgrind --leak-check=full --show-leak-kinds=all --track-origins=yes --error-exitcode=1 --log-file=valgrind.txt ./build/ytree .
 
-qa-all: qa-clang qa-cppcheck qa-scan qa-valgrind
+qa-pytest: $(MAIN_BIN)
+	TERM=$${TERM:-xterm} $(PYTEST)
+
+qa-all: qa-clang qa-cppcheck qa-scan qa-valgrind qa-pytest
