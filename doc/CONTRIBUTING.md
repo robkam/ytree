@@ -86,7 +86,7 @@ Use **[AUDIT.md](AUDIT.md)** as the single source of truth.
 
 - Normal development build: `make`
 - Full local QA gate: `make qa-all` (includes `pytest`)
-- Full local QA gate with captured log: `make qa-all-log` (writes `build/qa-all.log`; override with `QA_LOG=/path/to/file`)
+- Full local QA gate with captured log: `make qa-all-log` (writes `qa-all.log` in repo root; override with `QA_LOG=/path/to/file`)
 - Optional strict mode: `make QA_ON_BUILD=1` (runs `qa-all` after build)
 - GitHub CI is a baseline gate (`make` + `pytest`); full audit remains the local/PR responsibility from `AUDIT.md`.
 
@@ -140,18 +140,15 @@ When mapping keys in a terminal environment, many Control combinations generate 
 Preferred bindings that generally avoid conflicts:
 `^A` (Home), `^B`, `^E` (End), `^F`, `^G`, `^K`, `^L` (Redraw), `^N`, `^O`, `^P`, `^R`, `^T`, `^U`, `^V`, `^W`, `^X`, `^Y`.
 
+For AI-agent keybinding validation workflow, see `keybinding-collision-check` under `.ai/skills/` and **[ai/WORKFLOW.md](ai/WORKFLOW.md)**.
+
 ### Rendering
 
-When working with the ncurses UI, it is critical to handle window drawing and coloring correctly to avoid visual artifacts and performance issues.
+When working with ncurses rendering, follow these rules:
+1.  Set `WbkgdSet()` once per window refresh path, not inside per-line loops.
+2.  After setting window background, call `werase()` before drawing lines.
+3.  Use `wattron()`/`wattroff()` for line-level styling.
 
-**Cautionary Note on `WbkgdSet()`**
+These three rules prevent flicker, color bleed, and inconsistent redraw behavior.
 
-The function `WbkgdSet()` sets the background property for an **entire window**. It should not be used within rendering loops to style individual lines of text. Misusing it in this way will cause the entire window's background to change on each call, leading to flickering, incorrect colors (e.g., black or same-as-text backgrounds), and inefficient rendering. Avoid calling this function repeatedly during a single screen refresh.
-
-**The Correct Approach**
-
-The idiomatic approach for rendering a window is a two-step process that separates the window's background from the text's attributes:
-1.  **Set the Window Background Once:** In the main display function (e.g., `DisplayTree`, `DisplayFiles`), make a single call to `WbkgdSet()` to establish the desired background for the entire window. Immediately follow this with `werase()` to apply this background, creating a clean canvas for drawing.
-2.  **Style Text with Attributes:** In functions that render individual lines (e.g., `PrintDirEntry`), use `wattron()` to enable specific attributes (like a color pair for highlighting or bold text) before drawing the text, and `wattroff()` to disable them afterward. These functions only affect the characters being drawn, not the window's persistent background property.
-
-This separation ensures stable, efficient, and artifact-free rendering.
+For AI-agent execution details and automated checks, see **[ai/WORKFLOW.md](ai/WORKFLOW.md)** and the `ncurses-render-safety` skill under `.ai/skills/`.

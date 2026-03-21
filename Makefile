@@ -106,7 +106,7 @@ CLANG_TIDY_SRCS = $(shell find $(SRC_DIR) -name '*.c' -type f)
 # Set QA_ON_BUILD=1 to run full QA (including pytest) after a normal build:
 #   make QA_ON_BUILD=1
 QA_ON_BUILD ?= 0
-QA_LOG ?= $(BUILD_DIR)/qa-all.log
+QA_LOG ?= qa-all.log
 
 # -------------------------------------------------------------------------
 # Rules
@@ -223,5 +223,5 @@ qa-pytest: $(MAIN_BIN)
 qa-all: qa-clang qa-cppcheck qa-scan qa-valgrind qa-pytest
 
 qa-all-log:
-	@mkdir -p $(BUILD_DIR)
+	@mkdir -p "$(dir $(QA_LOG))"
 	/bin/bash -o pipefail -c '$(MAKE_CMD) qa-all 2>&1 | tee "$(QA_LOG)"'
