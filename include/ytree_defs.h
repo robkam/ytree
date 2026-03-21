@@ -691,6 +691,7 @@ typedef struct {
 } ViewerState;
 
 typedef struct _ViewContext {
+  SCREEN *curses_screen;
   WINDOW *ctx_dir_window;
   WINDOW *ctx_small_file_window;
   WINDOW *ctx_big_file_window;

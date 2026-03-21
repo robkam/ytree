@@ -245,6 +245,7 @@ extern char *GetMatches(ViewContext *ctx, char *base);
 /* init.c */
 extern int Init(ViewContext *ctx, char *configuration_file, char *history_file);
 extern void ReCreateWindows(ViewContext *ctx);
+extern void ShutdownCurses(ViewContext *ctx);
 
 /* path_utils.c */
 extern char *GetExtension(char *filename);

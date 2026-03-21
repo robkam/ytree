@@ -167,7 +167,7 @@ int main(int argc, char **argv) {
   /* Allocate memory for path indexes to support multiple volumes */
   path_indexes = (int *)malloc(sizeof(int) * argc);
   if (!path_indexes) {
-    endwin();
+    ShutdownCurses(&ctx);
     fprintf(stderr, "Memory allocation failed\n");
     exit(1);
   }
@@ -192,7 +192,7 @@ int main(int argc, char **argv) {
   if (path_count == 0) {
     /* Case 0: No paths provided, default to current working directory */
     if (getcwd(buffer, sizeof(buffer)) == NULL) {
-      endwin();
+      ShutdownCurses(&ctx);
       fprintf(stderr, "Error: getcwd failed: %s\n", strerror(errno));
       free(path_indexes);
       exit(1);
@@ -200,7 +200,7 @@ int main(int argc, char **argv) {
 
     /* Use LogDisk (wrapper around Volume_Load) to load the initial path */
     if (LogDisk(&ctx, ctx.left, buffer) == -1) {
-      endwin();
+      ShutdownCurses(&ctx);
       /* If defaulting to CWD fails, it's a fatal error */
       fprintf(stderr, "EXIT: LogDisk failed for CWD\n");
       free(path_indexes);
@@ -218,7 +218,7 @@ int main(int argc, char **argv) {
 
   /* Ensure we have at least one active volume before entering main loop */
   if (ctx.active->vol == NULL || ctx.active->vol->vol_stats.tree == NULL) {
-    endwin();
+    ShutdownCurses(&ctx);
     fprintf(stderr, "EXIT: No active volume\n");
     exit(1);
   }
@@ -271,7 +271,7 @@ int main(int argc, char **argv) {
   clear();     /* Clear internal buffer */
   refresh();   /* Push clear to screen */
   curs_set(1); /* Restore visible cursor */
-  endwin();    /* Restore terminal settings */
+  ShutdownCurses(&ctx);
 
   Volume_FreeAll(&ctx); /* Explicitly free memory */
 

@@ -44,7 +44,7 @@ static void PerformQuit(ViewContext *ctx) {
     clear();     /* Clear internal buffer */
     refresh();   /* Push clear to screen */
     curs_set(1); /* Restore visible cursor */
-    endwin();    /* Restore terminal settings */
+    ShutdownCurses(ctx);
 
     /* Free all allocated volumes to prevent memory leaks on exit. */
     Volume_FreeAll(ctx);
