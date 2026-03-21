@@ -36,8 +36,6 @@ int DeleteFile(ViewContext *ctx, FileEntry *fe_ptr, int *auto_override,
   int result;
   int term;
 
-  result = -1;
-
   (void)GetFileNamePath(fe_ptr, filepath);
 
 /* Handle Archive Mode Deletion Hook */

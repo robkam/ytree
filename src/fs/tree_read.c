@@ -211,16 +211,15 @@ int ReadTree(ViewContext *ctx, DirEntry *dir_entry, char *path, int depth,
       /* File Entry */
       /*------------*/
 
-      int n;
       char link_path[PATH_LENGTH + 1];
 
       /* Check if entry is symbolic link */
       /*----------------------------------------*/
 
-      n = 0;
       *link_path = '\0';
 
       if (S_ISLNK(stat_struct.st_mode)) {
+        ssize_t n;
         /* Yes, append symbolic name to "real" name */
         /*---------------------------------------------------------*/
 

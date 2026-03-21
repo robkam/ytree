@@ -40,7 +40,6 @@ void FileTags_WalkTaggedFiles(ViewContext *ctx, int start_file, int cursor_pos,
         /*---------------------------*/
         DisplayFiles(ctx, ctx->active, fe_ptr->dir_entry, start_file, i,
                      start_x, ctx->ctx_file_window);
-        cursor_pos = i - start_file;
       } else {
         /* Scrolling necessary */
         /*---------------*/

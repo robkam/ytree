@@ -41,7 +41,6 @@ int SelectLoadedVolume(ViewContext *ctx, int *return_key) {
     menu_active = TRUE;
 
     /* Reset num_volumes and max_path_len for fresh snapshot */
-    num_volumes = 0;
     max_path_len = 0;
     current_volume_index = -1;
     scroll_offset = 0; /* Reset scroll offset for new menu display */
@@ -206,7 +205,6 @@ int SelectLoadedVolume(ViewContext *ctx, int *return_key) {
         DisplayMenu(ctx);
         DisplayDiskStatistic(ctx, &ctx->active->vol->vol_stats);
         restart_menu = TRUE;
-        menu_active = FALSE;
         break;
       }
 

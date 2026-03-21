@@ -11,7 +11,6 @@
 
 void DirNav_Movedown(ViewContext *ctx, DirEntry **dir_entry, YtreePanel *p) {
   Statistic *s = &p->vol->vol_stats;
-  WINDOW *win = p->pan_dir_window;
 
   Nav_MoveDown(&p->cursor_pos, &p->disp_begin_pos, p->vol->total_dirs,
                ctx->layout.dir_win_height, 1);
@@ -51,7 +50,6 @@ void DirNav_Movedown(ViewContext *ctx, DirEntry **dir_entry, YtreePanel *p) {
 
 void DirNav_Moveup(ViewContext *ctx, DirEntry **dir_entry, YtreePanel *p) {
   Statistic *s = &p->vol->vol_stats;
-  WINDOW *win = p->pan_dir_window;
 
   Nav_MoveUp(&p->cursor_pos, &p->disp_begin_pos);
 
@@ -85,7 +83,6 @@ void DirNav_Moveup(ViewContext *ctx, DirEntry **dir_entry, YtreePanel *p) {
 
 void DirNav_Movenpage(ViewContext *ctx, DirEntry **dir_entry, YtreePanel *p) {
   Statistic *s = &p->vol->vol_stats;
-  WINDOW *win = p->pan_dir_window;
 
   Nav_PageDown(&p->cursor_pos, &p->disp_begin_pos, p->vol->total_dirs,
                ctx->layout.dir_win_height);
@@ -120,7 +117,6 @@ void DirNav_Movenpage(ViewContext *ctx, DirEntry **dir_entry, YtreePanel *p) {
 
 void DirNav_Moveppage(ViewContext *ctx, DirEntry **dir_entry, YtreePanel *p) {
   Statistic *s = &p->vol->vol_stats;
-  WINDOW *win = p->pan_dir_window;
 
   Nav_PageUp(&p->cursor_pos, &p->disp_begin_pos, ctx->layout.dir_win_height);
 
@@ -154,7 +150,6 @@ void DirNav_Moveppage(ViewContext *ctx, DirEntry **dir_entry, YtreePanel *p) {
 
 void DirNav_MoveEnd(ViewContext *ctx, DirEntry **dir_entry, YtreePanel *p) {
   Statistic *s = &p->vol->vol_stats;
-  WINDOW *win = p->pan_dir_window;
 
   Nav_End(&p->cursor_pos, &p->disp_begin_pos, p->vol->total_dirs,
           ctx->layout.dir_win_height);
@@ -191,7 +186,6 @@ void DirNav_MoveEnd(ViewContext *ctx, DirEntry **dir_entry, YtreePanel *p) {
 
 void DirNav_MoveHome(ViewContext *ctx, DirEntry **dir_entry, YtreePanel *p) {
   Statistic *s = &p->vol->vol_stats;
-  WINDOW *win = p->pan_dir_window;
 
   Nav_Home(&p->cursor_pos, &p->disp_begin_pos);
 

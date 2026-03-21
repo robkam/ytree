@@ -901,8 +901,6 @@ int HandleDirWindow(ViewContext *ctx, DirEntry *start_dir_entry) {
   Statistic *s = NULL;
   int height;
   char watcher_path[PATH_LENGTH + 1];
-  int local_cursor_pos;
-  int local_disp_begin_pos;
 
   DEBUG_LOG("HandleDirWindow: Recalculating layout");
   Layout_Recalculate(ctx);
@@ -924,9 +922,6 @@ int HandleDirWindow(ViewContext *ctx, DirEntry *start_dir_entry) {
   if (ctx->active) {
     DEBUG_LOG("HandleDirWindow: Syncing panel state");
     ctx->focused_window = ctx->active->saved_focus;
-
-    local_cursor_pos = ctx->active->cursor_pos;
-    local_disp_begin_pos = ctx->active->disp_begin_pos;
 
     /* Update Global View Context to match Active Panel */
     /* This ensures macros like ctx->ctx_dir_window resolve to the

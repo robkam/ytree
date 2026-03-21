@@ -77,7 +77,6 @@ int DeleteDirectory(ViewContext *ctx, DirEntry *dir_entry,
       if (DeleteSingleDirectory(ctx, dir_entry, choice_cb)) {
         return -1;
       }
-      result = 0;
       return 0;
     }
   } else if (choice_cb && choice_cb(ctx, "Delete this directory (Y/N) ? ",

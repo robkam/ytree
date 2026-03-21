@@ -618,8 +618,6 @@ void PrintOptions(WINDOW *win, int y, int x, char *str) {
   color = lo_color;
 
   for (; *str && x < max_x; str++) {
-    ch = (int)*str;
-
     switch (*str) {
     case '(':
       color = hi_color;
