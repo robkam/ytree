@@ -510,6 +510,20 @@ void ReCreateWindows(ViewContext *ctx) {
   DEBUG_LOG("EXIT ReCreateWindows");
 }
 
+void ShutdownCurses(ViewContext *ctx) {
+  SCREEN *screen = (ctx != NULL) ? ctx->curses_screen : NULL;
+
+  if (screen != NULL)
+    set_term(screen);
+
+  endwin();
+
+  if (screen != NULL) {
+    delscreen(screen);
+    ctx->curses_screen = NULL;
+  }
+}
+
 int Init(ViewContext *ctx, char *configuration_file, char *history_file) {
   InitView(ctx);
   DEBUG_LOG("ENTER Init");
@@ -558,7 +572,12 @@ int Init(ViewContext *ctx, char *configuration_file, char *history_file) {
 
   ctx->user_umask = umask(0);
   setenv("ESCDELAY", "25", 1);
-  initscr();
+  ctx->curses_screen = newterm(NULL, stdout, stdin);
+  if (ctx->curses_screen == NULL) {
+    fprintf(stderr, "Init: failed to initialize terminal\n");
+    return (1);
+  }
+  set_term(ctx->curses_screen);
   ctx->cached_lines = LINES;
   ctx->cached_cols = COLS;
   Layout_Recalculate(ctx);

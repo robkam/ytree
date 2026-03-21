@@ -29,9 +29,9 @@ Run these commands in this order to generate evidence-based findings.
 
 0. **Compile Database Preflight:** `make clean && bear -- make`
 1. **Linting & Modernization:** `clang-tidy $(rg --files src -g '*.c') -p .`
-2. **Static Analysis:** `cppcheck --enable=all --inconclusive --std=c99 -I include src include`
+2. **Static Analysis:** `cppcheck --enable=all --inconclusive --force --std=c99 -I include --error-exitcode=1 src include`
 3. **Logic Path Analysis:** `make clean && scan-build --status-bugs make`
-4. **Memory/Runtime Analysis:** `valgrind --leak-check=full --show-leak-kinds=all --error-exitcode=1 --log-file=valgrind.txt ./build/ytree .` (then exit ytree cleanly)
+4. **Memory/Runtime Analysis:** `valgrind --leak-check=full --show-leak-kinds=all --track-origins=yes --error-exitcode=1 --log-file=valgrind.txt ./build/ytree .` (then exit ytree cleanly)
 5. **Regression Tests:** `source .venv/bin/activate && pytest`
 
 For step 4 in automated runs, drive a deterministic start/exit path (for example with `pexpect`) so Valgrind can finish and return an actionable exit code.
@@ -49,13 +49,13 @@ Run this loop for every non-trivial change and every PR.
 
 ### Phase C: Audit (Code Auditor)
 - **Lint Gate:** Run `clang-tidy $(rg --files src -g '*.c') -p .`. Any unresolved correctness/safety finding is an automatic REJECT.
-- **Static Gate:** Run `cppcheck --enable=all --inconclusive --std=c99 -I include src include`. Any unresolved error-severity finding is an automatic REJECT.
+- **Static Gate:** Run `cppcheck --enable=all --inconclusive --force --std=c99 -I include --error-exitcode=1 src include`. Any unresolved finding is an automatic REJECT.
 - **Logic Gate:** Run `make clean && scan-build --status-bugs make`. Any reported analyzer bug is an automatic REJECT.
 - **Rules:** Provide file:line and evidence for every finding. Prefer root-cause fixes over "if(ptr)" symptom patches.
 - **Tracking Rule:** Medium/Low findings must be either fixed in the PR or explicitly tracked with rationale.
 
 ### Phase D: Verify (Tester)
-- **Memory Gate:** Run `valgrind --leak-check=full --show-leak-kinds=all --error-exitcode=1 --log-file=valgrind.txt ./build/ytree .` and exit cleanly.
+- **Memory Gate:** Run `valgrind --leak-check=full --show-leak-kinds=all --track-origins=yes --error-exitcode=1 --log-file=valgrind.txt ./build/ytree .` and exit cleanly.
 - **Dynamic Gate:** Run relevant `pytest` suites for the touched scope (or full `pytest` when scope is broad).
 - **Criteria:** Failure occurs if any test fails or if Valgrind returns a non-zero exit code.
 
@@ -66,7 +66,7 @@ Run this loop for every non-trivial change and every PR.
 ## 5. Release Gate (Final Checkpoint)
 Before a release tag/cut, run a full audit pass across the release scope:
 - Fresh `clang-tidy` run against all `src/**/*.c` files.
-- Fresh `cppcheck` run across `src/` and `include/`.
+- Fresh `cppcheck --enable=all --inconclusive --force --std=c99 -I include --error-exitcode=1 src include` run.
 - Full `pytest` suite.
 - Fresh `scan-build --status-bugs` run.
 - Valgrind verification for release-critical paths.
