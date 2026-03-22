@@ -39,6 +39,58 @@ After the first run, you must reactivate this environment for any new shell sess
 source .venv/bin/activate
 ```
 
+### 3. Enable Repository Git Hooks (Recommended)
+
+This repository ships tracked hooks under `.githooks/` so the pre-push checks are maintained in one place.
+Enable them once per clone:
+
+```bash
+make hooks-install
+```
+
+This installs a tracked pre-push gate:
+- Default on all branches: run `make` and `TERM=xterm pytest -q -ra --tb=no`.
+- Explicit fast bypass on non-`main` branches: `YTREE_PRE_PUSH_FAST=1 git push` (runs `make` only).
+- `main` is always full-gate; fast bypass is ignored on `main`.
+To inspect current hook configuration:
+
+```bash
+make hooks-status
+```
+
+### 4. Branch and Merge Gate Policy (Required)
+
+Use branch-first development and keep `main` protected:
+
+1. Create a feature branch from `main` (`feature/...`, `fix/...`, `docs/...`).
+2. Push to the feature branch.
+3. Open a PR into `main`.
+4. Merge only when required checks are green.
+
+Configure GitHub branch protection on `main`:
+
+1. Settings -> Branches -> Add branch protection rule for `main`.
+2. Enable `Require status checks to pass before merging`.
+3. Select the CI job from `.github/workflows/ci.yml` (baseline build + pytest).
+4. Enable `Require branches to be up to date before merging`.
+
+### 5. Handling Red Checks on Branches
+
+- A red check on an old commit cannot be turned green retroactively.
+- Merge gating is based on the latest commit status on the PR branch.
+- To clean PR history after fixes, squash/rebase your branch and force-push with lease:
+
+```bash
+git rebase -i origin/main
+git push --force-with-lease
+```
+
+- If you use fast bypass during iteration, run a full gate before final PR update:
+
+```bash
+git push
+```
+
 ## Building the Project
 
 The `Makefile` supports two build modes: Release (default) and Debug.
