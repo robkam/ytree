@@ -70,7 +70,6 @@ static int BuildFileCompareCommand(const char *command_template,
                                    size_t command_line_size) {
   char escaped_source[PATH_LENGTH * 2 + 1];
   char escaped_target[PATH_LENGTH * 2 + 1];
-  char expanded_command[COMMAND_LINE_LENGTH + 1];
   int written;
   BOOL has_placeholders;
 
@@ -85,6 +84,8 @@ static int BuildFileCompareCommand(const char *command_template,
                       strstr(command_template, "%2") != NULL);
 
   if (has_placeholders) {
+    char expanded_command[COMMAND_LINE_LENGTH + 1];
+
     if (String_Replace(expanded_command, sizeof(expanded_command),
                        command_template, "%1", escaped_source) != 0) {
       return -1;
@@ -197,11 +198,9 @@ static void HandleFileCompare(ViewContext *ctx, FileEntry *source_file) {
   char target_path[PATH_LENGTH + 1];
   char source_dir[PATH_LENGTH + 1];
   char command_line[COMMAND_LINE_LENGTH + 1];
-  char command_name[PATH_LENGTH + 1];
   const char *filediff = NULL;
   int start_dir_fd = -1;
   int result = -1;
-  int exit_status;
 
   if (!ctx || !source_file)
     return;
@@ -300,8 +299,9 @@ static void HandleFileCompare(ViewContext *ctx, FileEntry *source_file) {
   }
 
   if (WIFEXITED(result)) {
-    exit_status = WEXITSTATUS(result);
+    int exit_status = WEXITSTATUS(result);
     if (exit_status == 126 || exit_status == 127) {
+      char command_name[PATH_LENGTH + 1];
       GetCommandDisplayName(filediff, command_name, sizeof(command_name));
       UI_Message(ctx,
                  "FILEDIFF helper not available:*\"%s\"*"
@@ -445,9 +445,6 @@ static void fmoveup(ViewContext *ctx, int *start_file, int *cursor_pos,
 
 static void fmoveright(ViewContext *ctx, int *start_file, int *cursor_pos,
                        int *start_x, DirEntry *dir_entry) {
-  int current_index;
-  int file_count;
-
   if (x_step == 1) {
     /* Special case: scroll entire file window */
     /*------------------------*/
@@ -457,8 +454,8 @@ static void fmoveright(ViewContext *ctx, int *start_file, int *cursor_pos,
     if (hide_right <= 0)
       (*start_x)--;
   } else {
-    current_index = *start_file + *cursor_pos;
-    file_count = (int)ctx->active->file_count;
+    int current_index = *start_file + *cursor_pos;
+    int file_count = (int)ctx->active->file_count;
 
     if (current_index + x_step < file_count) {
       if (*cursor_pos + x_step < max_disp_files) {
@@ -480,8 +477,6 @@ static void fmoveright(ViewContext *ctx, int *start_file, int *cursor_pos,
 
 static void fmoveleft(ViewContext *ctx, int *start_file, int *cursor_pos,
                       int *start_x, DirEntry *dir_entry) {
-  int current_index;
-
   if (x_step == 1) {
     /* Special case: scroll entire file window */
     /*----------------------------------------*/
@@ -490,7 +485,7 @@ static void fmoveleft(ViewContext *ctx, int *start_file, int *cursor_pos,
     DisplayFiles(ctx, ctx->active, dir_entry, *start_file,
                  *start_file + *cursor_pos, *start_x, ctx->ctx_file_window);
   } else {
-    current_index = *start_file + *cursor_pos;
+    int current_index = *start_file + *cursor_pos;
 
     if (current_index - x_step >= 0) {
       if (*cursor_pos - x_step >= 0) {
@@ -1390,14 +1385,13 @@ int HandleFileWindow(ViewContext *ctx, DirEntry *dir_entry) {
 
       {
         char file_name[PATH_LENGTH * 2 + 1];
-        int mk_result;
 
         ClearHelp(ctx);
         *file_name = '\0';
         if (UI_ReadString(ctx, ctx->active, "MAKE FILE:", file_name,
                           PATH_LENGTH, HST_FILE) == CR) {
-          mk_result = MakeFile(ctx, dir_entry, file_name, s, NULL,
-                               (ChoiceCallback)UI_ChoiceResolver);
+          int mk_result = MakeFile(ctx, dir_entry, file_name, s, NULL,
+                                   (ChoiceCallback)UI_ChoiceResolver);
           if (mk_result == 0) {
             /* If successful, refresh the view */
             BuildFileEntryList(ctx, ctx->active);
@@ -1441,13 +1435,14 @@ int HandleFileWindow(ViewContext *ctx, DirEntry *dir_entry) {
       /* Construct absolute path for checking */
       {
         char abs_check_path[PATH_LENGTH * 2 + 2];
-        char current_dir[PATH_LENGTH + 1];
         BOOL created = FALSE;
         int dir_create_mode = 0;
 
         if (*to_dir == FILE_SEPARATOR_CHAR) {
           strcpy(abs_check_path, to_dir);
         } else {
+          char current_dir[PATH_LENGTH + 1];
+
           GetPath(de_ptr, current_dir);
           snprintf(abs_check_path, sizeof(abs_check_path), "%s%c%s",
                    current_dir, FILE_SEPARATOR_CHAR, to_dir);
@@ -1841,7 +1836,6 @@ static void SyncFileGridMetrics(ViewContext *ctx) {
 static void UpdateFileHeaderPath(ViewContext *ctx, DirEntry *dir_entry) {
   char path[PATH_LENGTH];
   DirEntry *path_dir;
-  int idx;
 
   if (!ctx || !ctx->active || !dir_entry)
     return;
@@ -1849,7 +1843,7 @@ static void UpdateFileHeaderPath(ViewContext *ctx, DirEntry *dir_entry) {
   path_dir = dir_entry;
 
   if (ctx->active->file_count > 0 && ctx->active->file_entry_list) {
-    idx = dir_entry->start_file + dir_entry->cursor_pos;
+    int idx = dir_entry->start_file + dir_entry->cursor_pos;
     if (idx >= 0 && (unsigned int)idx < ctx->active->file_count) {
       FileEntry *fe = ctx->active->file_entry_list[idx].file;
       if (fe && fe->dir_entry)
@@ -2089,7 +2083,6 @@ static void DrawFileListJumpPrompt(ViewContext *ctx, WINDOW *win,
 static void ListJump(ViewContext *ctx, DirEntry *dir_entry, char *str) {
   char search_buf[256];
   int buf_len = 0;
-  int ch;
   int original_start_file = dir_entry->start_file;
   int original_cursor_pos = dir_entry->cursor_pos;
   int i;
@@ -2105,6 +2098,8 @@ static void ListJump(ViewContext *ctx, DirEntry *dir_entry, char *str) {
   DrawFileListJumpPrompt(ctx, jump_win, search_buf);
 
   while (1) {
+    int ch;
+
     DrawFileListJumpPrompt(ctx, jump_win, search_buf);
 
     ch = Getch(ctx);

@@ -75,7 +75,6 @@ static int BuildCompareCommand(const char *command_template,
                                size_t command_line_size) {
   char escaped_source[PATH_LENGTH * 2 + 1];
   char escaped_target[PATH_LENGTH * 2 + 1];
-  char expanded_command[COMMAND_LINE_LENGTH + 1];
   int written;
   BOOL has_placeholders;
 
@@ -90,6 +89,8 @@ static int BuildCompareCommand(const char *command_template,
                       strstr(command_template, "%2") != NULL);
 
   if (has_placeholders) {
+    char expanded_command[COMMAND_LINE_LENGTH + 1];
+
     if (String_Replace(expanded_command, sizeof(expanded_command),
                        command_template, "%1", escaped_source) != 0) {
       return -1;
@@ -728,12 +729,10 @@ static void LaunchExternalDirectoryCompare(ViewContext *ctx, DirEntry *source_di
   char source_path[PATH_LENGTH + 1];
   char target_path[PATH_LENGTH + 1];
   char command_line[COMMAND_LINE_LENGTH + 1];
-  char command_name[PATH_LENGTH + 1];
   const char *helper = NULL;
   const char *helper_key = NULL;
   int start_dir_fd = -1;
   int result = -1;
-  int exit_status;
 
   if (!ctx)
     return;
@@ -816,8 +815,9 @@ static void LaunchExternalDirectoryCompare(ViewContext *ctx, DirEntry *source_di
   }
 
   if (WIFEXITED(result)) {
-    exit_status = WEXITSTATUS(result);
+    int exit_status = WEXITSTATUS(result);
     if (exit_status == 126 || exit_status == 127) {
+      char command_name[PATH_LENGTH + 1];
       GetCommandDisplayName(helper, command_name, sizeof(command_name));
       UI_Message(ctx,
                  "Compare helper not available:*\"%s\"*"
@@ -1778,13 +1778,12 @@ int HandleDirWindow(ViewContext *ctx, const DirEntry *start_dir_entry) {
         break;
       {
         char file_name[PATH_LENGTH * 2 + 1];
-        int mk_result;
 
         ClearHelp(ctx);
         *file_name = '\0';
         if (UI_ReadString(ctx, ctx->active, "MAKE FILE:", file_name,
                           PATH_LENGTH, HST_FILE) == CR) {
-          mk_result =
+          int mk_result =
               MakeFile(ctx, dir_entry, file_name, s, NULL, UI_ChoiceResolver);
           if (mk_result == 0) {
             /* Determine where the new file should be. */
@@ -2239,7 +2238,6 @@ static void DirListJump(ViewContext *ctx, DirEntry **dir_entry_ptr,
                         const Statistic *s) {
   char search_buf[256];
   int buf_len = 0;
-  int ch;
   int i;
   int found_idx;
   int height;
@@ -2265,6 +2263,8 @@ static void DirListJump(ViewContext *ctx, DirEntry **dir_entry_ptr,
   DrawDirListJumpPrompt(ctx, jump_win, search_buf);
 
   while (1) {
+    int ch;
+
     DrawDirListJumpPrompt(ctx, jump_win, search_buf);
 
     ch = Getch(ctx);

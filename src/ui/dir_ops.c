@@ -595,7 +595,6 @@ int RefreshDirWindow(ViewContext *ctx, YtreePanel *p) {
   DirEntry *de_ptr;
   int i, n;
   int result = -1;
-  int window_height;
   const Statistic *s;
   WINDOW *win;
 
