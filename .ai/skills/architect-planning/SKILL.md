@@ -14,6 +14,11 @@ Use this skill when the active persona is `architect`.
 3. List affected files and likely symbols.
 4. Propose a minimal change plan with atomic tasks.
 5. Include acceptance criteria that can be tested.
+6. For interactive UI flow changes, include UX economy metrics:
+   - current chain
+   - proposed chain
+   - common-path submenu depth
+   - fast-path behavior
 
 ## Output Contract
 
@@ -23,9 +28,11 @@ Use this skill when the active persona is `architect`.
 - Instructions
 - Acceptance Criteria
 - Risks and Invariants
+- UX Economy Criteria (for interactive flows)
 
 ## Guardrails
 
 - Prefer root-cause fixes over patchwork.
 - Keep architecture stable and deterministic.
 - If critical context is missing, request only the specific file or behavior detail needed.
+- UX economy gate is mandatory: target `key -> Enter -> result` and no more than one submenu on common path unless justified with equivalent fast path.

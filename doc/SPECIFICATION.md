@@ -6,6 +6,12 @@
 ### 0.1 Guiding Principle
 **Ytree makes filesystem work self-evident.** Users should not need command-line fluency or Unix jargon to succeed; core actions must be visible, named plainly, and understandable from the interface itself.
 
+### 0.1.1 Interaction Economy (Low-Friction Contract)
+Interactive command flows must minimize interruption and decision depth:
+*   **Common Path Target:** `key -> Enter -> result`.
+*   **Submenu Budget:** Maximum one submenu on the common path.
+*   **Exception Rule:** If more than one submenu is required, the flow must provide an equivalent fast path and the extra depth must be explicitly justified by safety or correctness constraints.
+
 ### 0.2 Technical Foundation
 *   **Standard:** C99 (via `gcc` or `clang`).
 *   **Flags:** `-D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS=64`.
