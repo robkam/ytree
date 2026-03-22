@@ -125,6 +125,7 @@ Please adhere to the existing coding style found throughout the project. The cod
 ### Key Bindings
 
 When mapping keys in a terminal environment, many Control combinations generate the same ASCII codes as physical keys. Binding these "Taboo" keys will break standard navigation or cause unexpected behavior.
+Also note: `Ctrl+Shift+<letter>` is not distinct from `Ctrl+<letter>` in terminal byte streams, so it cannot be used as a separate binding.
 
 **Taboo Bindings (Do Not Use)**
 

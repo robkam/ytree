@@ -182,8 +182,8 @@ def test_lowercase_k_key_opens_volume_menu(test_dir_with_files, ytree_binary):
     BUG: Lowercase 'k' should open volume menu (case-insensitive).
     EXPECTED: Both 'k' and 'K' should open volume menu.
 
-    NOTE: VI keys are now disabled by default in Makefile to allow case-insensitive
-    bindings. Users can re-enable with ADD_CFLAGS = -DVI_KEYS if desired.
+    NOTE: VI keys are runtime-configurable (`VI_KEYS=0/1` in profile). With
+    default `VI_KEYS=0`, lowercase bindings remain case-insensitive.
     """
     tui = YtreeTUI(executable=ytree_binary, cwd=str(test_dir_with_files))
     time.sleep(1.0)
@@ -414,9 +414,9 @@ def test_pipe_command_in_big_file_window(test_dir_with_files, ytree_binary):
     BUG E: The Pipe ('p') command is non-responsive in the big file window.
     EXPECTED: Pressing 'p' prompts the user for a Pipe command.
     """
-    # Start with NOSMALLWINDOW=0 
+    # Start with SMALLWINDOWSKIP=0
     ytree_cfg = test_dir_with_files.parent / ".ytree"
-    ytree_cfg.write_text("NOSMALLWINDOW=0\n")
+    ytree_cfg.write_text("SMALLWINDOWSKIP=0\n")
 
     tui = YtreeTUI(
         executable=ytree_binary, 

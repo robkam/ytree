@@ -4,7 +4,8 @@ ytree - A File Manager for UNIX-like systems
 
 # SYNOPSIS
 
-`ytree` \[`-p` *config_file*\] \[`-h` *history_file*\] \[`-d` *depth*\]
+`ytree` \[`--init`\] \[`-v`\|`-V`\|`--version`\] \[`-p` *config_file*\]
+\[`-h` *history_file*\] \[`-d` *depth*\] \[`-f` *filter*\]
 \[*directory*\|*archive*\]…
 
 # DESCRIPTION
@@ -32,8 +33,13 @@ logged.
   `ytree -f "*.c"`).
 - **-h** *history_file*: Use *history_file* instead of the default
   `~/.ytree-hst`.
+- **–init**: Create a starter profile file and exit. By default this
+  creates `~/.ytree` only if it does not already exist. Use `-p` to
+  target a different file.
 - **-p** *config_file*: Use *config_file* instead of the default
   `~/.ytree`.
+- **-v**, **-V**, **–version**: Print ytree version information and
+  exit.
 - *directory*\|*archive*: One or more directories or archive files to
   log on startup. If multiple paths are provided, they are all loaded as
   separate volumes. The first path specified becomes the active view.
@@ -140,6 +146,17 @@ These commands work in most modes:
   requires a shell wrapper function.*
 - **Q**: **Quit**. Exit ytree.
 
+### VI Keys Mode (Profile Option)
+
+When `VI_KEYS=1` in `[GLOBAL]`, ytree reserves lowercase vi navigation
+keys: `h/j/k/l` and `^D/^U` (page down/up). To avoid collisions:
+
+- Use **H/L/K** for **Hex/Log/Volume Menu**.
+- In file-view contexts, use **D** for **Delete Tagged** and **U** for
+  **Untag All**.
+- Lowercase **d/u** keep the regular context action (single item /
+  current scope untag).
+
 ### Directory Mode
 
 Active when browsing the directory tree window.
@@ -182,8 +199,10 @@ Active when the file window is focused.
   group, date.
 - **C** (Copy): Copy the selected file.
 - **^K**: Copy all tagged files.
-- **D** (Delete): Delete selected file.
-- **^D**: Delete all tagged files.
+- **D** (Delete): Delete selected file. *(With `VI_KEYS=1`, use
+  lowercase `d` for this action.)*
+- **^D**: Delete all tagged files. *(With `VI_KEYS=1`, `^D` is page-down
+  navigation and uppercase `D` becomes Delete Tagged.)*
 - **E** (Edit): Edit selected file with `$EDITOR` (default: vi).
 - **F** (Filter): Set file filter.
 - **H** (Hex): View selected file in hex mode.
@@ -204,8 +223,10 @@ Active when the file window is focused.
   both (POSIX does not allow setting creation/birth time here).
 - **T** (Tag): Tag selected file.
 - **^T**: Tag all displayed files.
-- **U** (Untag): Untag selected file.
-- **^U**: Untag all displayed files.
+- **U** (Untag): Untag selected file. *(With `VI_KEYS=1`, use lowercase
+  `u` for this action.)*
+- **^U**: Untag all displayed files. *(With `VI_KEYS=1`, `^U` is page-up
+  navigation and uppercase `U` becomes Untag All.)*
 - **V** (View): View file with the pager defined in `~/.ytree` (default:
   less).
 - **^V**: **View Tagged**. View all tagged files sequentially. Mode is
@@ -243,8 +264,10 @@ this closes the archive and returns to the parent directory.
 **P** (Pipe): Pipe content to command. \* **S** (Sort): Sort file list.
 \* **^S** (Search): Search tagged files for a string. Untags files that
 do not match. \* **T** (Tag): Tag selected file. \* **^T**: Tag all
-files. \* **U** (Untag): Untag selected file. \* **^U**: Untag all
-files. \* **V** (View): View file. \* **^V**: **View Tagged**. View all
+files. \* **U** (Untag): Untag selected file. *(With `VI_KEYS=1`, use
+lowercase `u` for this action.)* \* **^U**: Untag all files. *(With
+`VI_KEYS=1`, `^U` is page-up navigation and uppercase `U` becomes Untag
+All.)* \* **V** (View): View file. \* **^V**: **View Tagged**. View all
 tagged files sequentially. Mode is controlled by `TAGGEDVIEWER`:
 `external` (default, uses `$PAGER`) or `internal` (built-in viewer with
 in-app navigation). \* **^F** (File Mode): Cycle display modes. \*
@@ -289,44 +312,13 @@ Copy, Move).
 
 # CONFIGURATION
 
-ytree looks for a configuration file at `~/.ytree`. A default is
-provided in `ytree.conf`.
+ytree reads configuration from `~/.ytree` by default, or from `-p`
+*config_file* when provided.
 
-### Key Options
+Use `ytree --init` to create `~/.ytree` when it is missing. Existing
+files are never overwritten by `--init`. Example: `ytree --init`
 
-- **ANIMATION=1**: Enable the warp-speed starfield during scans.
-- **AUTO_REFRESH=3**: Control automatic refresh behavior (Bitmask). Add
-  values to combine modes.
-  - **1**: Enable File System Watcher (Inotify).
-  - **2**: Refresh on Directory Navigation (Cursor move).
-  - **4**: Refresh when entering the File Window.
-  - *Default*: `3` (1 + 2) enables both Watcher and Navigation Refresh.
-- **HIDEDOTFILES=1**: Hide files starting with `.` by default.
-- **TAGGEDVIEWER=external\|internal**: Controls `^V` (View Tagged).
-  `external` uses `$PAGER` (default). `internal` uses the built-in
-  tagged viewer.
-- **FILEDIFF=command**: Optional external helper for file compare. Use
-  `%1` for source and `%2` for target, or omit placeholders and ytree
-  appends both paths.
-- **DIRDIFF=command**: Optional external helper for external directory
-  compare view.
-- **TREEDIFF=command**: Optional external helper for external tree
-  compare view. If unset/empty, ytree falls back to `DIRDIFF`.
-- **HIGLOBAL_COLOR=fg,bg**: Search-hit highlight color used in preview
-  and internal tagged viewer only.
-- **\[COLORS\]**: Customize the color scheme.
-
-### External Viewers
-
-The `[VIEWER]` section maps file extensions to external programs.
-
-``` ini
-[VIEWER]
-.jpg,.gif,.png=xv
-.1,.md=nroff -man | less
-.pdf=okular
-.mp3=mpg123
-```
+The file created by `--init` is a fully annotated profile template.
 
 # QUIT TO DIRECTORY
 

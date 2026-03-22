@@ -281,12 +281,6 @@ static int UI_ReadStringInternal(ViewContext *ctx, YtreePanel *panel,
       fclose(df);
     }
 
-    /*
-    #ifdef VI_KEYS
-        ch = ViKey(ch);
-    #endif
-    */
-
     if (ch == ESC) {
       break;
     }

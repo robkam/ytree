@@ -50,7 +50,7 @@
 #define USERVIEW GetProfileValue("USERVIEW")
 #define FILEMODE GetProfileValue("FILEMODE")
 #define NUMBERSEP GetProfileValue("NUMBERSEP")
-#define NOSMALLWINDOW GetProfileValue("NOSMALLWINDOW")
+#define SMALLWINDOWSKIP GetProfileValue("SMALLWINDOWSKIP")
 #define INITIALDIR GetProfileValue("INITIALDIR")
 #define DIR1 GetProfileValue("DIR1")
 #define DIR2 GetProfileValue("DIR2")

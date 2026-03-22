@@ -32,20 +32,7 @@ MANDEST     = $(DESTDIR)/share/man/man1
 # Compile Options
 # -------------------------------------------------------------------------
 
-# ADD_CFLAGS: Add -DVI_KEYS if you want vi-cursor-keys (hjkl navigation)
-#
-# VI KEYS FEATURE:
-#   When enabled, the following keys navigate like vi/vim:
-#     h = LEFT,  j = DOWN,  k = UP,  l = RIGHT
-#     Ctrl+D = PAGE DOWN,  Ctrl+U = PAGE UP
-#
-# IMPORTANT: VI keys are DISABLED by default to allow case-insensitive
-# key bindings (e.g., both 'k' and 'K' open volume menu).
-#
-# To enable VI keys, uncomment the line below:
-# ADD_CFLAGS  = -DVI_KEYS
-#
-# Default: VI keys OFF (case-insensitive bindings enabled)
+# Optional extra compiler flags (for local experiments/debugging).
 ADD_CFLAGS  =
 
 # Default configuration for Linux (WSL/Ubuntu) with ncurses 6

@@ -663,7 +663,8 @@ int Init(ViewContext *ctx, char *configuration_file, char *history_file) {
   DEBUG_LOG("Init: locale fallback done");
 
   ctx->bypass_small_window =
-      (strtol(GetProfileValue(ctx, "NOSMALLWINDOW"), NULL, 0)) ? TRUE : FALSE;
+      (strtol(GetProfileValue(ctx, "SMALLWINDOWSKIP"), NULL, 0)) ? TRUE
+                                                                  : FALSE;
   ctx->highlight_full_line =
       (strtol(GetProfileValue(ctx, "HIGHLIGHT_FULL_LINE"), NULL, 0)) ? TRUE
                                                                      : FALSE;
