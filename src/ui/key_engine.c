@@ -235,7 +235,8 @@ int InputChoice(ViewContext *ctx, const char *msg, const char *term) {
   curs_set(1);
   leaveok(ctx->ctx_border_window, FALSE);
   mvwhline(ctx->ctx_border_window, ctx->layout.prompt_y, 1, ' ', COLS - 2);
-  PrintOptions(ctx->ctx_border_window, ctx->layout.prompt_y, 1, (char *)msg);
+  PrintMenuOptions(ctx->ctx_border_window, ctx->layout.prompt_y, 1, (char *)msg,
+                   CPAIR_MENU, CPAIR_HIMENUS);
   wnoutrefresh(ctx->ctx_border_window);
   doupdate();
   do {
