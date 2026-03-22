@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+cd "$REPO_ROOT"
+
+echo "[pre-push] Running baseline CI gate: make + pytest"
+
+CURRENT_BRANCH="$(git rev-parse --abbrev-ref HEAD)"
+if [[ "${YTREE_PRE_PUSH_FAST:-0}" == "1" && "$CURRENT_BRANCH" != "main" ]]; then
+  echo "[pre-push] Fast mode enabled on branch '$CURRENT_BRANCH': running make only."
+  make
+else
+  make
+  if [[ -x ".venv/bin/pytest" ]]; then
+    PYTEST=".venv/bin/pytest"
+  else
+    PYTEST="pytest"
+  fi
+
+  TERM=xterm "$PYTEST" -q -ra --tb=no
+fi
+
+echo "[pre-push] Checks passed. Proceeding with push."

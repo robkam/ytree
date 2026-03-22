@@ -99,7 +99,7 @@ QA_LOG ?= qa-all.log
 # Rules
 # -------------------------------------------------------------------------
 
-.PHONY: all clean clobber install uninstall docs changelog-draft test \
+.PHONY: all clean clobber install uninstall docs changelog-draft hooks-install hooks-status test \
 	test-v qa-clang qa-cppcheck qa-scan qa-valgrind qa-valgrind-interactive \
 	qa-pytest qa-all \
 	qa-all-log
@@ -160,6 +160,14 @@ changelog-draft:
 	if [ -z "$$RANGE" ]; then RANGE="HEAD"; else RANGE="$$RANGE..HEAD"; fi; \
 	git log $$RANGE --grep="^refactor\|^chore" --pretty=format:"- %s"
 	@echo ""
+
+hooks-install:
+	git config core.hooksPath .githooks
+	chmod +x .githooks/pre-push
+	@echo "Git hooks installed from .githooks/ (core.hooksPath=.githooks)"
+
+hooks-status:
+	@echo "core.hooksPath=$$(git config --get core.hooksPath || echo .git/hooks)"
 
 # Clean build artifacts
 clean:
