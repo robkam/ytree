@@ -57,6 +57,10 @@ def test_vi_uppercase_d_deletes_tagged(ytree_binary, vi_mode_test_dir):
 
     tui.send_keystroke("D")
     time.sleep(0.2)
+
+    prompt_screen = "\n".join(tui.get_screen_dump())
+    assert "Delete 2 tagged files" in prompt_screen, prompt_screen
+
     tui.send_keystroke("y")
     time.sleep(0.2)
     tui.send_keystroke("n")
