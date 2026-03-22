@@ -368,7 +368,8 @@ int KeyF2Get(ViewContext *ctx, YtreePanel *panel, char *path) {
     /* 2. Restore ctx->active state from the restored volume */
     if (ctx->active) {
       /* Panel isolation: No vol_stats sync */
-      ctx->active->disp_begin_pos = ctx->active->vol->id /* legacy removed */;
+      ctx->active->disp_begin_pos =
+          ctx->active->vol->saved_tree_index /* legacy removed */;
     }
 
     /* 3. Restore UI Layout */

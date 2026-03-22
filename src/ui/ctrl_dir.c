@@ -1942,7 +1942,7 @@ int HandleDirWindow(ViewContext *ctx, const DirEntry *start_dir_entry) {
     {
       /* Save current panel state to volume before switching away */
       /* Panel state isolation: No vol_stats sync */
-      ctx->active->vol->id =
+      ctx->active->vol->saved_tree_index =
           ctx->active->disp_begin_pos + ctx->active->cursor_pos;
 
       int res = SelectLoadedVolume(ctx, NULL);
@@ -1953,7 +1953,8 @@ int HandleDirWindow(ViewContext *ctx, const DirEntry *start_dir_entry) {
         /* Update loop variables for new volume */
         s = &ctx->active->vol->vol_stats; /* UPDATE S */
         /* Panel isolation: No vol_stats sync */
-        ctx->active->disp_begin_pos = ctx->active->vol->id /* legacy removed */;
+        ctx->active->disp_begin_pos =
+            ctx->active->vol->saved_tree_index /* legacy removed */;
 
         /* Safety check / Clamping */
         if (ctx->active->vol->total_dirs > 0) {
@@ -2011,7 +2012,7 @@ int HandleDirWindow(ViewContext *ctx, const DirEntry *start_dir_entry) {
     {
       /* Save current panel state to volume before switching away */
       /* Panel isolation: No vol_stats sync */
-      ctx->active->vol->id =
+      ctx->active->vol->saved_tree_index =
           ctx->active->disp_begin_pos + ctx->active->cursor_pos;
 
       int res = CycleLoadedVolume(ctx, ctx->active, -1);
@@ -2021,7 +2022,8 @@ int HandleDirWindow(ViewContext *ctx, const DirEntry *start_dir_entry) {
 
         s = &ctx->active->vol->vol_stats; /* UPDATE S */
         /* Panel isolation: No vol_stats sync */
-        ctx->active->disp_begin_pos = ctx->active->vol->id /* legacy removed */;
+        ctx->active->disp_begin_pos =
+            ctx->active->vol->saved_tree_index /* legacy removed */;
 
         /* Safety check / Clamping */
         if (ctx->active->vol->total_dirs > 0) {
@@ -2068,7 +2070,7 @@ int HandleDirWindow(ViewContext *ctx, const DirEntry *start_dir_entry) {
     {
       /* Save current panel state to volume before switching away */
       /* Panel isolation: No vol_stats sync */
-      ctx->active->vol->id =
+      ctx->active->vol->saved_tree_index =
           ctx->active->disp_begin_pos + ctx->active->cursor_pos;
 
       int res = CycleLoadedVolume(ctx, ctx->active, 1);
@@ -2078,7 +2080,8 @@ int HandleDirWindow(ViewContext *ctx, const DirEntry *start_dir_entry) {
 
         s = &ctx->active->vol->vol_stats; /* UPDATE S */
         /* Panel isolation: No vol_stats sync */
-        ctx->active->disp_begin_pos = ctx->active->vol->id /* legacy removed */;
+        ctx->active->disp_begin_pos =
+            ctx->active->vol->saved_tree_index /* legacy removed */;
 
         if (ctx->active->vol->total_dirs > 0) {
           if (ctx->active->disp_begin_pos + ctx->active->cursor_pos >=
