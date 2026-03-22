@@ -15,8 +15,9 @@ These instructions apply to all AI agents used in this repository.
 - Default persona is `architect` when no stronger trigger applies.
 - If the user explicitly requests a persona, that override wins until changed by the user.
 - Accept explicit persona switch commands in user text:
-  - `use <persona>`
-  - `use <abbr>` (single-letter, non-ambiguous)
+  - `:at <persona>`
+  - `:at <abbr>` (single-letter, non-ambiguous)
+  - Only parse persona switches when `:` is in column 1 and `:at` occupies columns 1-3 (`:at ...` at line start).
 - Abbreviation mapping:
   - `a` -> `architect`
   - `d` -> `developer`
@@ -34,6 +35,10 @@ These instructions apply to all AI agents used in this repository.
 ## Persona Skill Auto-Load
 
 - Skills are repo-local under `.ai/skills/<skill-name>/SKILL.md`.
+- Separation rule:
+  - Personas define role boundaries, judgment posture, and communication style.
+  - Skills define repeatable step-by-step execution workflows.
+  - Shared docs define policy and point to the relevant skills.
 - After persona selection, automatically load the mapped skills for that persona. The user does not need to request skills explicitly.
 - Load only the sections needed for the current task to control context size.
 - If a mapped skill file is missing, state that once and continue with safe fallback behavior.
@@ -57,7 +62,13 @@ These instructions apply to all AI agents used in this repository.
 - Cross-cutting auto-load:
   - Bugfix tasks: also load `bugfix-red-green-proof`.
   - Feature-sized/major/PR-update tasks: also load `full-audit-gate-c`.
+  - QA-failure remediation tasks: also load `qa-root-cause-remediation`.
   - PTY/pexpect sync or flake tasks: also load `pty-pexpect-debug`.
+  - Ncurses rendering, redraw, or color changes: also load `ncurses-render-safety`.
+  - Keybinding/menu/help key changes: also load `keybinding-collision-check`.
+  - Manpage/usage documentation sync tasks: also load `manpage-sync`.
+  - UI workflow/menu-depth/interaction-economy design tasks: also load `ui-economy-navigation`.
+  - UI prompt-chain auditing/offender-detection tasks: also load `ui-flow-offender-audit`.
 
 ## Core Engineering Rules
 
@@ -73,6 +84,8 @@ These instructions apply to all AI agents used in this repository.
 10. Treat user instructions as authoritative on goals, not automatically on exact wording, labels, keybindings, menu structure, or UX details. If a requested detail does not follow convention, established Ytree patterns, or best practices, say so explicitly and recommend the better option before implementing it.
 11. For every bug fix, follow strict red-green: write/adjust a regression test first and demonstrate it fails on current code before changing implementation; then implement the architectural fix and re-run to green. A test added only after the fix is not sufficient evidence.
 12. Audit cadence is mandatory: rerun the full audit loop for every feature-sized change, every major change, and every PR update; do not treat auditing as optional or release-only.
+13. UX economy gate is mandatory for interactive flows: common path should be `key -> Enter -> result` with at most one submenu. Any flow requiring more than one submenu must include explicit justification and an equivalent fast path.
+14. QA remediation gate is mandatory: fix root causes, do not patch around failing checks. Do not change tests solely to force a pass unless the test is demonstrably wrong against spec. Do not add local suppressions/skips/xfails as a shortcut; if a temporary suppression is the only safe short-term option, discuss with the user first and get explicit approval.
 
 ## Required Validation
 

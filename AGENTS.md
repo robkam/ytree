@@ -14,8 +14,9 @@ Testing quick reference (Codex):
 - Always run pytest with host permissions from the start (no sandbox-first run), because PTY-based tests require unrestricted PTY allocation.
 
 Persona quick switch:
-- Full names: `use architect`, `use developer`, `use code_auditor`, `use tester`, `use greybeard`
-- Abbreviations: `use a`, `use d`, `use c`, `use t`, `use g`
+- Full names: `:at architect`, `:at developer`, `:at code_auditor`, `:at tester`, `:at greybeard`
+- Abbreviations: `:at a`, `:at d`, `:at c`, `:at t`, `:at g`
+- Parsing rule: persona switching only triggers when `:` is in column 1 and `:at` occupies columns 1-3 (`:at ...` at line start).
 - Default when no explicit override is `architect` (see `./.ai/shared.md`)
 
 Persona skill auto-load:
@@ -31,4 +32,16 @@ Persona skill auto-load:
 - Cross-cutting mapping:
   - bugfix -> `bugfix-red-green-proof`
   - feature-sized/major/PR update -> `full-audit-gate-c`
+  - QA-failure remediation -> `qa-root-cause-remediation`
   - PTY/pexpect flake debugging -> `pty-pexpect-debug`
+  - ncurses rendering/redraw/color work -> `ncurses-render-safety`
+  - keybinding/menu/help key changes -> `keybinding-collision-check`
+  - manpage/usage doc sync tasks -> `manpage-sync`
+  - UI workflow/menu-depth/interaction-economy design -> `ui-economy-navigation`
+  - UI prompt-chain offender detection/audit -> `ui-flow-offender-audit`
+
+UX economy gate:
+- Common path should be `key -> Enter -> result` with at most one submenu.
+
+QA remediation gate:
+- Fix root causes for failing QA checks; do not patch around failures or add local suppressions without explicit user approval.

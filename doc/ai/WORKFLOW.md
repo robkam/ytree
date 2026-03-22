@@ -49,6 +49,30 @@ Required agent behavior:
 *   **Explain the tradeoff:** When deviating from the user's literal wording, explain why the recommended version is stronger.
 *   **Do not silently comply with weak specifics:** Avoid turning a guessed interaction detail into lasting project behavior without review.
 
+### 1.4 UX Economy Gate (Mandatory)
+
+Interactive flows must minimize interruption and decision depth.
+
+Hard rule:
+
+*   Common path should be `key -> Enter -> result`.
+*   Maximum submenu depth on common path is 1.
+*   If a flow exceeds one submenu, include explicit justification and provide an equivalent fast path.
+
+This gate applies to architecture proposals, implementations, and code-audit findings.
+
+### 1.5 QA Remediation Gate (Mandatory)
+
+When a QA gate fails (build, static analysis, sanitizer, valgrind, or pytest), remediation must target root cause rather than symptoms.
+
+Hard rule:
+
+*   Fix the underlying defect causing the failure.
+*   Do not patch around failures by weakening behavior or bypassing failing paths.
+*   Do not add local suppressions (`NOLINT`, `xfail`, `skip`, ignore lists, disable flags) as a shortcut.
+*   Test-only edits are allowed only when the test is demonstrably wrong against the Spec.
+*   If temporary suppression is the only safe short-term option, discuss with the maintainer first and get explicit approval with a rollback plan.
+
 ---
 
 ## 2. Shared Personas (The `.agent/rules/` directory)
@@ -65,8 +89,9 @@ The project maintains a set of "Persona Rules" in the `.agent/rules/` directory.
 
 Use explicit persona switching in prompts:
 
-*   Full form: `use architect`, `use developer`, `use code_auditor`, `use tester`, `use greybeard`
-*   Short form: `use a`, `use d`, `use c`, `use t`, `use g`
+*   Full form: `:at architect`, `:at developer`, `:at code_auditor`, `:at tester`, `:at greybeard`
+*   Short form: `:at a`, `:at d`, `:at c`, `:at t`, `:at g`
+*   Parse guardrail: persona switching triggers only when `:` is in column 1 and `:at` occupies columns 1-3 (`:at ...` at line start).
 *   Default when no explicit switch is `architect`.
 *   Assistant responses should begin with `<name>:`.
 
@@ -89,7 +114,13 @@ Cross-cutting skill auto-load:
 
 *   Bugfix work -> `bugfix-red-green-proof`
 *   Feature-sized, major, and PR-update work -> `full-audit-gate-c`
+*   QA-failure remediation work -> `qa-root-cause-remediation`
 *   PTY/pexpect flake debugging -> `pty-pexpect-debug`
+*   Ncurses rendering/redraw/color work -> `ncurses-render-safety`
+*   Keybinding/menu/help key changes -> `keybinding-collision-check`
+*   Manpage/usage doc sync tasks -> `manpage-sync`
+*   UI workflow/menu-depth/interaction-economy design -> `ui-economy-navigation`
+*   UI prompt-chain offender detection/audit -> `ui-flow-offender-audit`
 
 Skill precedence (highest to lowest):
 
@@ -97,6 +128,16 @@ Skill precedence (highest to lowest):
 *   `use skill ...` and `skip skill ...`
 *   Persona mapping
 *   Cross-cutting auto-load
+
+### 2.2 Dedup Contract (Persona vs Skill vs Docs)
+
+Use this strict separation to avoid instruction drift:
+
+1.  **Personas:** role boundaries, judgment posture, and communication style only.
+2.  **Skills:** repeatable step-by-step procedures and checklists.
+3.  **Docs:** policy, behavior contracts, and pointers to the right skills.
+
+If procedural instructions appear in persona files, move them into skills and leave only a pointer.
 
 ---
 
