@@ -76,15 +76,16 @@ static Profile profile[] = {
     {"LUNZIP", DEFAULT_LUNZIP, NULL, NULL},
     {"MANROFF", DEFAULT_MANROFF, NULL, NULL},
     {"MELD", DEFAULT_MELD, NULL, NULL},
-    {"NOSMALLWINDOW", DEFAULT_NOSMALLWINDOW, NULL, NULL},
     {"NUMBERSEP", DEFAULT_NUMBERSEP, NULL, NULL},
     {"PAGER", DEFAULT_PAGER, "PAGER", NULL},
     {"SEARCHCOMMAND", DEFAULT_SEARCHCOMMAND, NULL, NULL},
+    {"SMALLWINDOWSKIP", DEFAULT_SMALLWINDOWSKIP, NULL, NULL},
     {"TAGGEDVIEWER", DEFAULT_TAGGEDVIEWER, NULL, NULL},
     {"TREEDIFF", DEFAULT_TREEDIFF, NULL, NULL},
     {"TREEDEPTH", DEFAULT_TREEDEPTH, NULL, NULL},
     {"UNCOMPRESS", DEFAULT_UNCOMPRESS, NULL, NULL},
     {"USERVIEW", "", NULL, NULL},
+    {"VI_KEYS", DEFAULT_VI_KEYS, NULL, NULL},
     {"ZSTDCAT", DEFAULT_ZSTDCAT, NULL, NULL}};
 
 #define PROFILE_ENTRIES (sizeof(profile) / sizeof(profile[0]))
@@ -182,6 +183,8 @@ int ReadProfile(ViewContext *ctx, const char *filename) {
         key.name = name;
         if ((p = bsearch(&key, (Profile *)ctx->profile_data, PROFILE_ENTRIES,
                          sizeof(*p), Compare))) {
+          if (p->value)
+            free(p->value);
           p->value = xstrdup(value);
         }
       }

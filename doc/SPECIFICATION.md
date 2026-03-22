@@ -47,13 +47,13 @@ The first character column of the Tree View serves as the Memory State Indicator
 
 ## 2. Navigation & Focus Logic
 
-### 2.1 Focus Flow (`NOSMALLWINDOW`)
+### 2.1 Focus Flow (`SMALLWINDOWSKIP`)
 The behavior of the `Enter` key on a directory node is governed by the configuration:
 
-*   **Bypass Mode (`NOSMALLWINDOW=1`):**
+*   **Bypass Mode (`SMALLWINDOWSKIP=1`):**
     *   `Enter` on Tree -> **Instant Zoom**. File Window expands to full height.
     *   `Enter` or `Esc` on Zoomed Window -> Returns focus to the **Tree View**.
-*   **Staged Navigation (`NOSMALLWINDOW=0`):**
+*   **Staged Navigation (`SMALLWINDOWSKIP=0`):**
     *   `Enter` on Tree -> **Focus Shift**. Focus moves to the File View (Small Window). Tree remains visible.
     *   `Enter` on Small Window -> **Zoom**. File Window expands to full height.
 *   **Navigation Stability:** Moving the cursor through the Tree must **never** automatically trigger a transition into File Mode or Zoom.

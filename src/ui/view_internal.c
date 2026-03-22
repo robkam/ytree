@@ -473,9 +473,7 @@ static void hex_edit(ViewContext *ctx, char *file_path) {
     doupdate();
     ch = (ctx->resize_request) ? -1 : Getch(ctx);
 
-#ifdef VI_KEYS
-    ch = ViKey(ch);
-#endif
+    ch = NormalizeViKey(ctx, ch);
     if (ctx->resize_request) {
       DoResize(ctx, file_path);
       ctx->resize_request = FALSE;
@@ -680,9 +678,7 @@ int InternalView(ViewContext *ctx, char *file_path) {
 
     ch = (ctx->resize_request) ? -1 : WGetch(ctx, ctx->viewer.view);
 
-#ifdef VI_KEYS
-    ch = ViKey(ch);
-#endif
+    ch = NormalizeViKey(ctx, ch);
 
     if (ctx->resize_request) {
       DoResize(ctx, file_path);

@@ -199,9 +199,9 @@ class TestFooterVisibility:
         BUG A: Footer is blank upon initially entering the big file window via the small window.
         EXPECTED: The footer menu with command text should be visible.
         """
-        # Start with NOSMALLWINDOW=0
+        # Start with SMALLWINDOWSKIP=0
         ytree_cfg = test_dir_with_files.parent / ".ytree"
-        ytree_cfg.write_text("NOSMALLWINDOW=0\n")
+        ytree_cfg.write_text("SMALLWINDOWSKIP=0\n")
 
         tui = YtreeTUI(
             executable=ytree_binary, 
@@ -249,7 +249,7 @@ class TestFooterVisibility:
         tui = YtreeTUI(
             executable=ytree_binary, 
             cwd=str(test_dir_with_files),
-            env_extra={"NOSMALLWINDOW": "1"}
+            env_extra={"SMALLWINDOWSKIP": "1"}
         )
         time.sleep(1.0)
         # Enter big file window

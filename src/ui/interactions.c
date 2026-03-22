@@ -1745,9 +1745,7 @@ static int RunTaggedViewLoop(ViewContext *ctx, char **view_paths,
 
     ch = (ctx->resize_request) ? -1 : WGetch(ctx, ctx->viewer.view);
 
-#ifdef VI_KEYS
-    ch = ViKey(ch);
-#endif
+    ch = NormalizeViKey(ctx, ch);
 
     if (ctx->resize_request) {
       ctx->resize_request = FALSE;

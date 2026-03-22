@@ -12,6 +12,7 @@
 #include <ctype.h>
 #include <curses.h>
 #include <errno.h>
+#include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 #include <sys/select.h>
@@ -331,8 +332,6 @@ BOOL EscapeKeyPressed(void) {
   return (pressed);
 }
 
-#ifdef VI_KEYS
-
 int ViKey(int ch) {
   switch (ch) {
   case VI_KEY_UP:
@@ -357,12 +356,22 @@ int ViKey(int ch) {
   return (ch);
 }
 
-#endif
+BOOL IsViKeysEnabled(const ViewContext *ctx) {
+  if (!ctx || !ctx->profile_data)
+    return FALSE;
+  return (strtol(GetProfileValue(ctx, "VI_KEYS"), NULL, 0)) ? TRUE : FALSE;
+}
+
+int NormalizeViKey(const ViewContext *ctx, int ch) {
+  if (IsViKeysEnabled(ctx))
+    return ViKey(ch);
+  return ch;
+}
 
 YtreeAction GetKeyAction(const ViewContext *ctx, int ch) {
-#ifdef VI_KEYS
-  ch = ViKey(ch);
-#endif
+  BOOL vi_keys_enabled = IsViKeysEnabled(ctx);
+  if (vi_keys_enabled)
+    ch = ViKey(ch);
 
   switch (ch) {
   case KEY_UP:
@@ -415,7 +424,13 @@ YtreeAction GetKeyAction(const ViewContext *ctx, int ch) {
   case 'T':
     return ACTION_TAG;
   case 'u':
+    return ACTION_UNTAG;
   case 'U':
+    /* In vi-key mode, Ctrl-U is reserved for page-up navigation.
+     * Use uppercase U as the file-window "untag all" command key.
+     */
+    if (vi_keys_enabled && ctx && ctx->focused_window == FOCUS_FILE)
+      return ACTION_UNTAG_ALL;
     return ACTION_UNTAG;
   case 0x14: /* Ctrl+T */
     return ACTION_TAG_ALL;
@@ -435,7 +450,7 @@ YtreeAction GetKeyAction(const ViewContext *ctx, int ch) {
   case KEY_RESIZE:
     return ACTION_RESIZE;
 
-  case 'k':  /* Note: lowercase 'k' converted to KEY_UP when VI_KEYS enabled */
+  case 'k': /* Note: lowercase 'k' is KEY_UP when VI_KEYS profile is enabled */
   case 'K':
     return ACTION_VOL_MENU;
   case ',':
@@ -460,7 +475,14 @@ YtreeAction GetKeyAction(const ViewContext *ctx, int ch) {
       return ACTION_COMPARE_DIR;
     return ACTION_CMD_C;
   case 'd':
+    return ACTION_CMD_D;
   case 'D':
+    /* In vi-key mode, Ctrl-D is reserved for page-down navigation.
+     * Use uppercase D as the file-window "delete tagged" command key.
+     */
+    if (vi_keys_enabled && ctx && ctx->focused_window == FOCUS_FILE)
+      return ACTION_CMD_TAGGED_D;
+    return ACTION_CMD_D;
   case KEY_DC:
     return ACTION_CMD_D;
   case 'e':
@@ -548,12 +570,10 @@ YtreeAction GetKeyAction(const ViewContext *ctx, int ch) {
     return ACTION_TOGGLE_TAGGED_MODE;
 #endif
 
-#ifndef VI_KEYS
   case 'j':
-    if (ctx && ctx->focused_window == FOCUS_FILE)
+    if (!vi_keys_enabled && ctx && ctx->focused_window == FOCUS_FILE)
       return ACTION_COMPARE_FILE;
     return ACTION_NONE;
-#endif
   case 'J':
     if (ctx && ctx->focused_window == FOCUS_FILE)
       return ACTION_COMPARE_FILE;

@@ -7,11 +7,14 @@
 
 #include "ytree.h"
 #include "patchlev.h"
+#include "default_profile_template.h"
 #include <errno.h>
+#include <fcntl.h>
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/stat.h>
 #include <unistd.h>
 
 volatile sig_atomic_t ytree_shutdown_flag = 0;
@@ -23,10 +26,61 @@ static void SigIntHandler(int sig) {
   ytree_shutdown_flag = 1;
 }
 
+static const char *GetDefaultProfilePath(void) {
+  const char *home = getenv("HOME");
+  if (!home || !*home)
+    return NULL;
+  if (snprintf(buffer, sizeof(buffer), "%s%c%s", home, FILE_SEPARATOR_CHAR,
+               PROFILE_FILENAME) >= (int)sizeof(buffer)) {
+    return NULL;
+  }
+  return buffer;
+}
+
+/*
+ * Return values:
+ *   0 = profile created
+ *   1 = profile already exists (left untouched)
+ *  -1 = hard error
+ */
+static int InitProfileFile(const char *path) {
+  int fd;
+  FILE *fp;
+  size_t len;
+  size_t written;
+
+  if (!path || !*path)
+    return -1;
+
+  fd = open(path, O_WRONLY | O_CREAT | O_EXCL, S_IRUSR | S_IWUSR);
+  if (fd == -1) {
+    if (errno == EEXIST)
+      return 1;
+    return -1;
+  }
+
+  fp = fdopen(fd, "w");
+  if (!fp) {
+    close(fd);
+    unlink(path);
+    return -1;
+  }
+
+  len = strlen(default_profile_template);
+  written = fwrite(default_profile_template, 1, len, fp);
+  if (written != len || fclose(fp) != 0) {
+    unlink(path);
+    return -1;
+  }
+
+  return 0;
+}
+
 int main(int argc, char **argv) {
   int argi;
   char *hist;
   char *conf;
+  BOOL init_requested = FALSE;
   const char *filter_arg = NULL; /* Added for -f option */
   int *path_indexes;
   int path_count = 0;
@@ -48,9 +102,14 @@ int main(int argc, char **argv) {
   /* Note: -d and -f are validated here to prevent usage error, but processed
    * after Init */
   for (argi = 1; argi < argc; argi++) {
-    if (!strcmp(argv[argi], "-V") || !strcmp(argv[argi], "--version")) {
+    if (!strcmp(argv[argi], "-v") || !strcmp(argv[argi], "-V") ||
+        !strcmp(argv[argi], "--version")) {
       fprintf(stdout, "ytree %s (%s)\n", VERSION, VERSIONDATE);
       return 0;
+    }
+    if (!strcmp(argv[argi], "--init")) {
+      init_requested = TRUE;
+      continue;
     }
 
     if (argv[argi][0] == '-') {
@@ -107,12 +166,39 @@ int main(int argc, char **argv) {
         break;
       default:
         fprintf(stderr,
-                "Usage: %s [-V|--version] [-p profile_file] [-h hist_file] "
-                "[-d depth] [-f filter] [directory ...]\n",
+                "Usage: %s [--init] [-v|-V|--version] [-p profile_file] "
+                "[-h hist_file] [-d depth] [-f filter] [directory ...]\n",
                 argv[0]);
         exit(1);
       }
     }
+  }
+
+  if (init_requested) {
+    const char *init_path = conf;
+    int init_status;
+
+    if (!init_path)
+      init_path = GetDefaultProfilePath();
+    if (!init_path) {
+      fprintf(stderr,
+              "Cannot resolve target profile path. Set HOME or pass -p <file>.\n");
+      exit(1);
+    }
+
+    init_status = InitProfileFile(init_path);
+    if (init_status == 0) {
+      fprintf(stdout, "Created profile: %s\n", init_path);
+      return 0;
+    }
+    if (init_status == 1) {
+      fprintf(stdout, "%s already exists; not overwritten\n", init_path);
+      return 0;
+    }
+
+    fprintf(stderr, "Failed to initialize profile %s: %s\n", init_path,
+            strerror(errno));
+    exit(1);
   }
 
   if (Init(&ctx, conf, hist)) {

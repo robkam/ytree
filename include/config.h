@@ -8,8 +8,9 @@
 /* Default (max) TreeDepth on startup */
 #define DEFAULT_TREEDEPTH     "1"
 #define DEFAULT_FILEMODE      "2"
-#define DEFAULT_NOSMALLWINDOW "1"
+#define DEFAULT_SMALLWINDOWSKIP "1"
 #define DEFAULT_NUMBERSEP     "."
+#define DEFAULT_VI_KEYS       "0"
 #define DEFAULT_INITIALDIR    NULL
 #define DEFAULT_DIR1          NULL
 #define DEFAULT_DIR2          NULL

@@ -753,9 +753,9 @@ def test_f8_big_window_footer_and_separator_lost(dual_panel_sandbox, ytree_binar
     BUG D: Entering a big file window via F8 causes the footer and the horizontal panel separator in the inactive panel to disappear.
     EXPECTED: The horizontal separator (e.g., qqqq or ---) stays, and the footer correctly appears.
     """
-    # Start with NOSMALLWINDOW=0 to trigger the bug on the small->big transition
+    # Start with SMALLWINDOWSKIP=0 to trigger the bug on the small->big transition
     ytree_cfg = dual_panel_sandbox / ".ytree"
-    ytree_cfg.write_text("NOSMALLWINDOW=0\n")
+    ytree_cfg.write_text("SMALLWINDOWSKIP=0\n")
 
     tui = YtreeTUI(
         executable=ytree_binary, 

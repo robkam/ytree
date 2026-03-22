@@ -13,12 +13,12 @@ def test_dir_with_files(tmp_path):
 
 def test_small_window_transition(test_dir_with_files, ytree_binary):
     """
-    Test NOSMALLWINDOW=0 mode transitions through states:
+    Test SMALLWINDOWSKIP=0 mode transitions through states:
     DIR window → SMALL file window → BIG file window → back to DIR
     """
     # Create .ytree config
     ytree_cfg = test_dir_with_files.parent / ".ytree"
-    ytree_cfg.write_text("[GLOBAL]\nNOSMALLWINDOW=0\n")
+    ytree_cfg.write_text("[GLOBAL]\nSMALLWINDOWSKIP=0\n")
     
     tui = YtreeTUI(executable=ytree_binary, cwd=str(test_dir_with_files.parent))
     time.sleep(1.0)
@@ -59,4 +59,3 @@ def test_small_window_transition(test_dir_with_files, ytree_binary):
     assert "FILE" not in screen_dir, "Should NOT show FILE footer in DIR view"
     
     tui.quit()
-
