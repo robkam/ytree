@@ -564,7 +564,6 @@ static void ShowCompareHelpPopup(ViewContext *ctx, CompareHelpTopic topic) {
   const char *line_2 = NULL;
   const char *close_prompt = "(F1)/(Esc) close help";
   const char *help_lines[3];
-  int ch;
   int height;
   int i;
   int width;
@@ -604,6 +603,8 @@ static void ShowCompareHelpPopup(ViewContext *ctx, CompareHelpTopic topic) {
   curs_set(0);
 
   while (1) {
+    int ch;
+
     werase(win);
     box(win, 0, 0);
     mvwprintw(win, 1, MAXIMUM(2, (width - StrVisualLength(title)) / 2), "%s",
@@ -636,12 +637,12 @@ static int ShowCompareHelpCallback(ViewContext *ctx, void *help_data) {
 static int InputCompareChoice(ViewContext *ctx, const char *prompt,
                               const char *valid_terms, int default_choice,
                               CompareHelpTopic help_topic) {
-  int ch;
-
   if (!ctx || !prompt || !valid_terms)
     return ESC;
 
   while (1) {
+    int ch;
+
     DrawComparePrompt(ctx, prompt);
 
     ch = WGetch(ctx, ctx->ctx_border_window);
@@ -849,7 +850,6 @@ const char *UI_GetCompareHelperCommand(const ViewContext *ctx,
 
 int UI_SelectCompareMenuChoice(ViewContext *ctx, CompareMenuChoice *choice) {
   int ch;
-  int scope_ch;
 
   if (!ctx || !choice)
     return -1;
@@ -870,8 +870,9 @@ int UI_SelectCompareMenuChoice(ViewContext *ctx, CompareMenuChoice *choice) {
     return 0;
   }
   if (ch == 'X') {
-    scope_ch = InputCompareChoice(ctx, "EXTERNAL VIEWER: (D)irectory  logged (T)ree",
-                                  "DT", 'D', COMPARE_HELP_EXTERNAL_SCOPE);
+    int scope_ch =
+        InputCompareChoice(ctx, "EXTERNAL VIEWER: (D)irectory  logged (T)ree",
+                           "DT", 'D', COMPARE_HELP_EXTERNAL_SCOPE);
     if (scope_ch == ESC || scope_ch < 0)
       return -1;
     *choice = (scope_ch == 'T') ? COMPARE_MENU_EXTERNAL_TREE
@@ -1144,7 +1145,6 @@ int UI_GetDateChangeSpec(ViewContext *ctx, time_t *new_time, int *scope_mask) {
 int ChangeFileModus(ViewContext *ctx, FileEntry *fe_ptr) {
   char mode_input[16];
   char parsed_mode[12];
-  char preview_mode[10];
   WalkingPackage walking_package;
   int result = -1;
 
@@ -1158,6 +1158,8 @@ int ChangeFileModus(ViewContext *ctx, FileEntry *fe_ptr) {
   ClearHelp(ctx);
   if (UI_ReadString(ctx, ctx->active, "MODE (octal/rwx):", mode_input,
                     (int)sizeof(mode_input), HST_CHANGE_MODUS) == CR) {
+    char preview_mode[10];
+
     if (UI_ParseModeInput(mode_input, parsed_mode, preview_mode) != 0) {
       UI_Message(ctx, "Invalid mode. Use 3/4-digit octal or -rwxrwxrwx");
       wmove(ctx->ctx_border_window, ctx->layout.prompt_y, 0);
@@ -1179,7 +1181,6 @@ int ChangeFileModus(ViewContext *ctx, FileEntry *fe_ptr) {
 int ChangeDirModus(ViewContext *ctx, DirEntry *de_ptr) {
   char mode_input[16];
   char parsed_mode[12];
-  char preview_mode[10];
   WalkingPackage walking_package;
   int result = -1;
 
@@ -1193,6 +1194,8 @@ int ChangeDirModus(ViewContext *ctx, DirEntry *de_ptr) {
   ClearHelp(ctx);
   if (UI_ReadString(ctx, ctx->active, "MODE (octal/rwx):", mode_input,
                     (int)sizeof(mode_input), HST_CHANGE_MODUS) == CR) {
+    char preview_mode[10];
+
     if (UI_ParseModeInput(mode_input, parsed_mode, preview_mode) != 0) {
       UI_Message(ctx, "Invalid mode. Use 3/4-digit octal or -rwxrwxrwx");
       wmove(ctx->ctx_border_window, ctx->layout.prompt_y, 0);
@@ -1960,7 +1963,6 @@ int UI_ViewTaggedFiles(ViewContext *ctx, DirEntry *dir_entry) {
         char relative_path[PATH_LENGTH + 1];
         char internal_path[PATH_LENGTH + 1];
         char full_path[PATH_LENGTH + 1];
-        char *dir_only;
         size_t root_len;
 
         GetPath(ctx->active->vol->vol_stats.tree, root_path);
@@ -1986,6 +1988,8 @@ int UI_ViewTaggedFiles(ViewContext *ctx, DirEntry *dir_entry) {
         }
 
         if (strlen(relative_path) > 0) {
+          char *dir_only;
+
           snprintf(t_dirname, sizeof(t_dirname), "%s/%s", temp_dir,
                    relative_path);
           dir_only = xstrdup(t_dirname);

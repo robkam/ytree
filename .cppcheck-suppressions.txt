@@ -4,11 +4,14 @@ missingIncludeSystem
 checkLevelNormal
 checkersReport
 
-# Upstream uthash macro-expansion false-positive at HASH_ADD_INT callsite.
+# UTHash macro-expansion false-positive at HASH_ADD_INT callsite.
 unreachableCode:src/core/volume.c
 
 # UTHash internals trigger this in macro-expanded temporary variables.
 constVariablePointer:src/core/volume.c
+
+# Tag-walk callback signature is shared and non-const by design.
+constParameterPointer:src/cmd/pipe.c
 
 # Callback constification warning would require RewriteCallback API churn.
 constParameterCallback:src/fs/archive_write.c

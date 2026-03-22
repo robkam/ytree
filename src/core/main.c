@@ -6,6 +6,7 @@
  ***************************************************************************/
 
 #include "ytree.h"
+#include "patchlev.h"
 #include <errno.h>
 #include <signal.h>
 #include <stdio.h>
@@ -47,6 +48,11 @@ int main(int argc, char **argv) {
   /* Note: -d and -f are validated here to prevent usage error, but processed
    * after Init */
   for (argi = 1; argi < argc; argi++) {
+    if (!strcmp(argv[argi], "-V") || !strcmp(argv[argi], "--version")) {
+      fprintf(stdout, "ytree %s (%s)\n", VERSION, VERSIONDATE);
+      return 0;
+    }
+
     if (argv[argi][0] == '-') {
       switch (argv[argi][1]) {
       case 'p':
@@ -101,8 +107,8 @@ int main(int argc, char **argv) {
         break;
       default:
         fprintf(stderr,
-                "Usage: %s [-p profile_file] [-h hist_file] [-d depth] [-f "
-                "filter] [directory ...]\n",
+                "Usage: %s [-V|--version] [-p profile_file] [-h hist_file] "
+                "[-d depth] [-f filter] [directory ...]\n",
                 argv[0]);
         exit(1);
       }

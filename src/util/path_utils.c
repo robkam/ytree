@@ -233,17 +233,8 @@ void NormPath(char *in_path, char *out_path) {
   }
 
   for (int i = 0; i < stack_top; i++) {
-    /* If not the first component or if absolute and we already have the root
-       slash, add a separator BEFORE appending the next component. */
-    if (i > 0 || (is_absolute && out_path[0] == FILE_SEPARATOR_CHAR &&
-                  out_path[1] == '\0')) {
-      /* If absolute and we are at the first component (i=0), we already have
-         the slash in out_path. But if i > 0, we definitely need a slash. */
-      if (i > 0) {
-        strcat(out_path, FILE_SEPARATOR_STRING);
-      }
-    } else if (!is_absolute && i == 0) {
-      /* First relative component, out_path is empty, nothing to do here */
+    if (i > 0) {
+      strcat(out_path, FILE_SEPARATOR_STRING);
     }
     strcat(out_path, stack[i]);
   }

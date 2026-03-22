@@ -113,7 +113,8 @@ QA_LOG ?= qa-all.log
 # -------------------------------------------------------------------------
 
 .PHONY: all clean clobber install uninstall docs changelog-draft test \
-	test-v qa-clang qa-cppcheck qa-scan qa-valgrind qa-pytest qa-all \
+	test-v qa-clang qa-cppcheck qa-scan qa-valgrind qa-valgrind-interactive \
+	qa-pytest qa-all \
 	qa-all-log
 
 all: $(MAIN_BIN) $(MANPAGE) $(if $(filter 1,$(QA_ON_BUILD)),qa-all)
@@ -214,7 +215,13 @@ qa-scan:
 qa-valgrind:
 	$(MAKE_CMD) QA_ON_BUILD=0 clean
 	$(MAKE_CMD) QA_ON_BUILD=0 all
-	@echo "Valgrind run is interactive: exit ytree cleanly to finish."
+	@echo "Running non-interactive valgrind smoke check (output in valgrind.txt)."
+	valgrind --leak-check=full --show-leak-kinds=all --track-origins=yes --error-exitcode=1 --log-file=valgrind.txt ./build/ytree --version >/dev/null
+
+qa-valgrind-interactive:
+	$(MAKE_CMD) QA_ON_BUILD=0 clean
+	$(MAKE_CMD) QA_ON_BUILD=0 all
+	@echo "Interactive valgrind run: exit ytree cleanly to finish."
 	valgrind --leak-check=full --show-leak-kinds=all --track-origins=yes --error-exitcode=1 --log-file=valgrind.txt ./build/ytree .
 
 qa-pytest: $(MAIN_BIN)
