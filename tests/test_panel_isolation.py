@@ -1092,6 +1092,55 @@ def test_log_new_volume_from_file_view_resets_focus_and_selection(tmp_path, ytre
     tui.quit()
 
 
+def test_log_second_volume_from_file_view_keeps_tree_on_root(tmp_path, ytree_binary):
+    root = tmp_path / "file_log_second_volume_starts_at_root"
+    root.mkdir()
+    alpha = root / "alpha"
+    beta = root / "beta"
+    alpha.mkdir()
+    beta.mkdir()
+
+    (root / "root_mode_anchor.txt").write_text("anchor\n", encoding="utf-8")
+    (alpha / "alpha_0.txt").write_text("0\n", encoding="utf-8")
+    (alpha / "alpha_1.txt").write_text("1\n", encoding="utf-8")
+    (alpha / "alpha_2.txt").write_text("2\n", encoding="utf-8")
+    (beta / "beta_root_file.txt").write_text("root\n", encoding="utf-8")
+    (beta / "aa_probe_dir").mkdir()
+    (beta / "bb_probe_dir").mkdir()
+    (beta / "aa_probe_dir" / "aa_only.txt").write_text("aa\n", encoding="utf-8")
+    (beta / "bb_probe_dir" / "bb_only.txt").write_text("bb\n", encoding="utf-8")
+    _configure_filediff_capture(root)
+
+    tui = YtreeTUI(executable=ytree_binary, cwd=str(root))
+    time.sleep(0.8)
+
+    # Enter file view first to exercise the same path that regressed.
+    tui.send_keystroke(Keys.DOWN, wait=0.2)
+    tui.send_keystroke(Keys.ENTER, wait=0.4)
+    assert "hex j compare" in _footer_text(tui)
+
+    tui.send_keystroke(Keys.LOG, wait=0.2)
+    tui.send_keystroke(Keys.CTRL_U + str(beta) + Keys.ENTER, wait=0.9)
+
+    footer = _footer_text(tui)
+    assert "dir      attributes brief compare" in footer, (
+        "Logging a second volume from file view should return to directory mode."
+    )
+
+    lines = tui.get_screen_dump()
+    screen = "\n".join(lines)
+    assert not _stats_current_dir_contains(lines, "aa_probe_dir"), (
+        "Newly logged second volume should select root, not the first child dir.\n"
+        f"{screen}"
+    )
+    assert not _stats_current_dir_contains(lines, "bb_probe_dir"), (
+        "Newly logged second volume should select root, not a child dir.\n"
+        f"{screen}"
+    )
+
+    tui.quit()
+
+
 def test_volume_menu_cancel_restores_dir_footer_immediately(tmp_path, ytree_binary):
     root = tmp_path / "volume_menu_cancel_dir_footer"
     root.mkdir()

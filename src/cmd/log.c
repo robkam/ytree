@@ -16,7 +16,7 @@ static void SavePanelTreeSelection(YtreePanel *panel) {
   selected_index = panel->disp_begin_pos + panel->cursor_pos;
   if (selected_index < 0)
     selected_index = 0;
-  panel->vol->id = selected_index;
+  panel->vol->saved_tree_index = selected_index;
 }
 
 static void RestorePanelTreeSelection(ViewContext *ctx, YtreePanel *panel) {
@@ -34,7 +34,7 @@ static void RestorePanelTreeSelection(ViewContext *ctx, YtreePanel *panel) {
     return;
   }
 
-  selected_index = panel->vol->id;
+  selected_index = panel->vol->saved_tree_index;
   if (selected_index < 0)
     selected_index = 0;
   if (selected_index >= total_dirs)
