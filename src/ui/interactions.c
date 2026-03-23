@@ -43,6 +43,55 @@ static void CopyBoundedString(char *dst, size_t dst_size, const char *src) {
   }
 }
 
+static BOOL CopyBoundedStringChecked(char *dst, size_t dst_size,
+                                     const char *src) {
+  int written;
+
+  if (!dst || dst_size == 0)
+    return FALSE;
+
+  if (!src)
+    src = "";
+
+  written = snprintf(dst, dst_size, "%s", src);
+  if (written < 0) {
+    dst[0] = '\0';
+    return FALSE;
+  }
+  if ((size_t)written >= dst_size) {
+    dst[dst_size - 1] = '\0';
+    return FALSE;
+  }
+  return TRUE;
+}
+
+static BOOL AppendBoundedStringChecked(char *dst, size_t dst_size, size_t *len,
+                                       const char *src) {
+  int written;
+  size_t current_len;
+
+  if (!dst || dst_size == 0)
+    return FALSE;
+
+  if (!src)
+    src = "";
+
+  current_len = (len) ? *len : strlen(dst);
+  if (current_len >= dst_size)
+    return FALSE;
+
+  written = snprintf(dst + current_len, dst_size - current_len, "%s", src);
+  if (written < 0)
+    return FALSE;
+  if ((size_t)written >= (dst_size - current_len)) {
+    dst[dst_size - 1] = '\0';
+    return FALSE;
+  }
+  if (len)
+    *len = current_len + (size_t)written;
+  return TRUE;
+}
+
 static void DrawSortPrompt(ViewContext *ctx, WINDOW *win, BOOL ascending) {
   int y0;
 
@@ -1868,7 +1917,7 @@ static int RunExternalTaggedViewer(ViewContext *ctx, char **view_paths,
   char *command_line;
   char quoted_path[PATH_LENGTH * 2 + 1];
   int i;
-  int current_len;
+  size_t current_len;
 
   if (!ctx || !view_paths || path_count <= 0 || !s)
     return -1;
@@ -1878,27 +1927,39 @@ static int RunExternalTaggedViewer(ViewContext *ctx, char **view_paths,
     viewer = "less";
 
   command_line = (char *)xmalloc(COMMAND_LINE_LENGTH + 1);
-  snprintf(command_line, COMMAND_LINE_LENGTH + 1, "%s", viewer);
+  if (!CopyBoundedStringChecked(command_line, COMMAND_LINE_LENGTH + 1, viewer))
+    command_line[COMMAND_LINE_LENGTH] = '\0';
   current_len = strlen(command_line);
 
   if (ctx->global_search_term[0] != '\0') {
     char search_arg[300];
-    snprintf(search_arg, sizeof(search_arg), " -p \"%s\"", ctx->global_search_term);
-    if ((int)(current_len + strlen(search_arg)) < COMMAND_LINE_LENGTH) {
-      strcat(command_line, search_arg);
-      current_len += strlen(search_arg);
+
+    if (snprintf(search_arg, sizeof(search_arg), " -p \"%s\"",
+                 ctx->global_search_term) >= (int)sizeof(search_arg)) {
+      search_arg[sizeof(search_arg) - 1] = '\0';
+    }
+    if (current_len + strlen(search_arg) < COMMAND_LINE_LENGTH) {
+      if (!AppendBoundedStringChecked(command_line, COMMAND_LINE_LENGTH + 1,
+                                      &current_len, search_arg)) {
+        free(command_line);
+        return -1;
+      }
     }
   }
 
   for (i = 0; i < path_count; i++) {
     shell_quote(quoted_path, view_paths[i]);
-    if ((int)(current_len + strlen(quoted_path) + 1) >= COMMAND_LINE_LENGTH) {
+    if (current_len + strlen(quoted_path) + 1 >= COMMAND_LINE_LENGTH) {
       UI_Warning(ctx, "Too many tagged files. Truncated list.");
       break;
     }
-    strcat(command_line, " ");
-    strcat(command_line, quoted_path);
-    current_len += strlen(quoted_path) + 1;
+    if (!AppendBoundedStringChecked(command_line, COMMAND_LINE_LENGTH + 1,
+                                    &current_len, " ") ||
+        !AppendBoundedStringChecked(command_line, COMMAND_LINE_LENGTH + 1,
+                                    &current_len, quoted_path)) {
+      UI_Warning(ctx, "Too many tagged files. Truncated list.");
+      break;
+    }
   }
 
   (void)SystemCall(ctx, command_line, s);
@@ -1934,7 +1995,12 @@ int UI_ViewTaggedFiles(ViewContext *ctx, DirEntry *dir_entry) {
   }
 
   if (s->login_mode == ARCHIVE_MODE) {
-    strcpy(temp_dir_template, "/tmp/ytree_view_XXXXXX");
+    if (!CopyBoundedStringChecked(temp_dir_template, sizeof(temp_dir_template),
+                                  "/tmp/ytree_view_XXXXXX")) {
+      UI_Error(ctx, __FILE__, __LINE__,
+               "Could not prepare temp dir template for viewing");
+      return -1;
+    }
     temp_dir = mkdtemp(temp_dir_template);
     if (!temp_dir) {
       UI_Error(ctx, __FILE__, __LINE__,
@@ -1993,18 +2059,34 @@ int UI_ViewTaggedFiles(ViewContext *ctx, DirEntry *dir_entry) {
           char *ptr = full_path + root_len;
           if (*ptr == FILE_SEPARATOR_CHAR) {
             ptr++;
-            strcpy(relative_path, ptr);
+            if (!CopyBoundedStringChecked(relative_path, sizeof(relative_path),
+                                          ptr)) {
+              UI_Warning(ctx, "Skipped long archive path*\"%s\"", fe->name);
+              continue;
+            }
           } else if (*ptr == '\0') {
             relative_path[0] = '\0';
           } else {
-            strcpy(relative_path, full_path);
+            if (!CopyBoundedStringChecked(relative_path, sizeof(relative_path),
+                                          full_path)) {
+              UI_Warning(ctx, "Skipped long archive path*\"%s\"", fe->name);
+              continue;
+            }
           }
         } else {
-          strcpy(relative_path, full_path);
+          if (!CopyBoundedStringChecked(relative_path, sizeof(relative_path),
+                                        full_path)) {
+            UI_Warning(ctx, "Skipped long archive path*\"%s\"", fe->name);
+            continue;
+          }
         }
 
         if (strlen(relative_path) == 0) {
-          strcpy(relative_path, fe->name);
+          if (!CopyBoundedStringChecked(relative_path, sizeof(relative_path),
+                                        fe->name)) {
+            UI_Warning(ctx, "Skipped long archive path*\"%s\"", fe->name);
+            continue;
+          }
         }
 
         if (strlen(relative_path) > 0) {
@@ -2022,7 +2104,11 @@ int UI_ViewTaggedFiles(ViewContext *ctx, DirEntry *dir_entry) {
           snprintf(t_filename, sizeof(t_filename), "%s/%s", temp_dir, fe->name);
         }
 
-        strcpy(internal_path, relative_path);
+        if (!CopyBoundedStringChecked(internal_path, sizeof(internal_path),
+                                      relative_path)) {
+          UI_Warning(ctx, "Skipped long archive path*\"%s\"", fe->name);
+          continue;
+        }
 
         if (ExtractArchiveNode(s->login_path, internal_path, t_filename,
                                UI_ArchiveCallback, ctx) == 0) {

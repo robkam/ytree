@@ -80,8 +80,16 @@ BOOL handle_tag_file_action(ViewContext *ctx, int action, DirEntry *dir_entry,
             wnoutrefresh(ctx->ctx_border_window);
             return TRUE;
           }
-          (void)strcpy(walking_package.function_data.change_mode.new_mode,
-                       parsed_mode);
+          if (snprintf(walking_package.function_data.change_mode.new_mode,
+                       sizeof(walking_package.function_data.change_mode.new_mode),
+                       "%s", parsed_mode) >=
+              (int)sizeof(walking_package.function_data.change_mode.new_mode)) {
+            UI_Message(ctx, "Mode value too long.");
+            wmove(ctx->ctx_border_window, ctx->layout.prompt_y, 0);
+            wclrtoeol(ctx->ctx_border_window);
+            wnoutrefresh(ctx->ctx_border_window);
+            return TRUE;
+          }
           FileTags_WalkTaggedFiles(ctx, dir_entry->start_file,
                                    dir_entry->cursor_pos, SetFileModus,
                                    &walking_package);
@@ -341,7 +349,12 @@ BOOL handle_tag_file_action(ViewContext *ctx, int action, DirEntry *dir_entry,
       if (ctx->view_mode != DISK_MODE && ctx->view_mode != USER_MODE) {
         if (realpath(to_dir, to_path) == NULL) {
           if (errno == ENOENT) {
-            strcpy(to_path, to_dir);
+            if (snprintf(to_path, sizeof(to_path), "%s", to_dir) >=
+                (int)sizeof(to_path)) {
+              MESSAGE(ctx, "Invalid destination path*\"%s\"*Path too long",
+                      to_dir);
+              break;
+            }
           } else {
             MESSAGE(ctx, "Invalid destination path*\"%s\"*%s", to_dir,
                     strerror(errno));
@@ -423,7 +436,12 @@ BOOL handle_tag_file_action(ViewContext *ctx, int action, DirEntry *dir_entry,
         int dir_create_mode = 0;
 
         if (*to_dir == FILE_SEPARATOR_CHAR) {
-          strcpy(abs_check_path, to_dir);
+          if (snprintf(abs_check_path, sizeof(abs_check_path), "%s", to_dir) >=
+              (int)sizeof(abs_check_path)) {
+            MESSAGE(ctx, "Invalid destination path*\"%s\"*Path too long",
+                    to_dir);
+            break;
+          }
         } else {
           char current_dir[PATH_LENGTH + 1];
           GetPath(dir_entry, current_dir);
