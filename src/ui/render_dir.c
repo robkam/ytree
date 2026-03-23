@@ -41,7 +41,7 @@ void PrintDirEntry(ViewContext *ctx, struct Volume *vol, WINDOW *win,
   if (!ctx || !vol || !win)
     return;
   char graph_buffer[PATH_LENGTH + 1];
-  char format[60];
+  const char *format = NULL;
   char *line_buffer = NULL;
   char *dir_name;
   char attributes[11];
@@ -62,18 +62,30 @@ void PrintDirEntry(ViewContext *ctx, struct Volume *vol, WINDOW *win,
 
   /* Build the tree graph string (e.g., "| 6- ") */
   graph_buffer[0] = '\0';
+  size_t graph_used = 0;
   for (j = 0; j < vol->dir_entry_list[entry_no].level; j++) {
-    if (vol->dir_entry_list[entry_no].indent & (1L << j))
-      (void)strcat(graph_buffer, "| ");
-    else
-      (void)strcat(graph_buffer, "  ");
+    const char *segment =
+        (vol->dir_entry_list[entry_no].indent & (1L << j)) ? "| " : "  ";
+    int written = snprintf(graph_buffer + graph_used,
+                           sizeof(graph_buffer) - graph_used, "%s", segment);
+    if (written < 0)
+      break;
+    if ((size_t)written >= sizeof(graph_buffer) - graph_used) {
+      graph_used = sizeof(graph_buffer) - 1;
+      break;
+    }
+    graph_used += (size_t)written;
   }
 
   de_ptr = vol->dir_entry_list[entry_no].dir_entry;
-  if (de_ptr->next)
-    (void)strcat(graph_buffer, "6-");
-  else
-    (void)strcat(graph_buffer, "3-");
+  {
+    const char *branch_marker = de_ptr->next ? "6-" : "3-";
+    int written =
+        snprintf(graph_buffer + graph_used, sizeof(graph_buffer) - graph_used,
+                 "%s", branch_marker);
+    if (written >= 0 && (size_t)written < sizeof(graph_buffer) - graph_used)
+      graph_used += (size_t)written;
+  }
 
   /* Build the attribute string based on the current directory mode */
   switch (ctx->dir_mode) {
@@ -84,7 +96,7 @@ void PrintDirEntry(ViewContext *ctx, struct Volume *vol, WINDOW *win,
     line_buffer = (char *)xmalloc(42);
 
     /* Updated %12s to %16s for date */
-    (void)strcpy(format, "%10s %3d %8lld %16s");
+    format = "%10s %3d %8lld %16s";
 
     (void)snprintf(line_buffer, 42, format, attributes,
                    (int)de_ptr->stat_struct.st_nlink,
@@ -106,7 +118,7 @@ void PrintDirEntry(ViewContext *ctx, struct Volume *vol, WINDOW *win,
     }
     line_buffer = (char *)xmalloc(40);
 
-    (void)strcpy(format, "%12u  %-12s %-12s");
+    format = "%12u  %-12s %-12s";
     (void)snprintf(line_buffer, 40, format,
                    (unsigned int)de_ptr->stat_struct.st_ino, owner_name_ptr,
                    group_name_ptr);
@@ -119,7 +131,7 @@ void PrintDirEntry(ViewContext *ctx, struct Volume *vol, WINDOW *win,
     /* Increased buffer size from 40 to 50 to accommodate two 16-char dates */
     /* Format: "Chg.: " (6) + 16 + "  Acc.: " (8) + 16 = 46 chars. 50 is safe.
      */
-    (void)strcpy(format, "Chg.: %16s  Acc.: %16s");
+    format = "Chg.: %16s  Acc.: %16s";
     line_buffer = (char *)xmalloc(50);
 
     (void)snprintf(line_buffer, 50, format, change_time, access_time);
@@ -180,9 +192,14 @@ void PrintDirEntry(ViewContext *ctx, struct Volume *vol, WINDOW *win,
   /* Part 2: Prepare and draw the directory name */
   char name_buffer[PATH_LENGTH + 2];
   dir_name = de_ptr->name;
-  (void)strcpy(name_buffer, (*dir_name) ? dir_name : ".");
+  (void)snprintf(name_buffer, sizeof(name_buffer), "%s",
+                 (*dir_name) ? dir_name : ".");
   if (de_ptr->not_scanned) {
-    (void)strcat(name_buffer, "/");
+    size_t name_len = strlen(name_buffer);
+    if (name_len < sizeof(name_buffer) - 1) {
+      name_buffer[name_len] = '/';
+      name_buffer[name_len + 1] = '\0';
+    }
   }
 
   /* Calculate maximum allowed name length based on mode and window width */
@@ -203,7 +220,7 @@ void PrintDirEntry(ViewContext *ctx, struct Volume *vol, WINDOW *win,
   if ((int)strlen(name_buffer) > max_name_len) {
     char temp_name[PATH_LENGTH + 2];
     CutName(temp_name, name_buffer, max_name_len);
-    strcpy(name_buffer, temp_name);
+    (void)snprintf(name_buffer, sizeof(name_buffer), "%s", temp_name);
   }
 
   /* If name-only highlight, toggle reverse just for the name. */
