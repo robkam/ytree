@@ -232,7 +232,8 @@ struct Volume *Volume_Load(ViewContext *ctx, const char *path,
 
   /* 5. Setup */
   s->kind_of_sort = SORT_BY_NAME + SORT_ASC;
-  strcpy(s->file_spec, DEFAULT_FILE_SPEC);
+  strncpy(s->file_spec, DEFAULT_FILE_SPEC, FILE_SPEC_LENGTH);
+  s->file_spec[FILE_SPEC_LENGTH] = '\0';
 
   if (!s->tree) {
     s->tree = (DirEntry *)xcalloc(1, sizeof(DirEntry) + PATH_LENGTH);
@@ -261,7 +262,8 @@ struct Volume *Volume_Load(ViewContext *ctx, const char *path,
 
   GetDiskParameter(resolved_path, s->disk_name, &s->disk_space,
                    &s->disk_capacity, s);
-  strcpy(s->tree->name, resolved_path);
+  strncpy(s->tree->name, resolved_path, PATH_LENGTH - 1);
+  s->tree->name[PATH_LENGTH - 1] = '\0';
 
   /* 7. Scanning */
   if (s->login_mode == ARCHIVE_MODE) {
@@ -278,7 +280,8 @@ struct Volume *Volume_Load(ViewContext *ctx, const char *path,
         s->tree = NULL;
         memset(s, 0, sizeof(Statistic));
         s->kind_of_sort = SORT_BY_NAME + SORT_ASC;
-        strcpy(s->file_spec, DEFAULT_FILE_SPEC);
+        strncpy(s->file_spec, DEFAULT_FILE_SPEC, FILE_SPEC_LENGTH);
+        s->file_spec[FILE_SPEC_LENGTH] = '\0';
       }
       return NULL;
     }
@@ -297,7 +300,8 @@ struct Volume *Volume_Load(ViewContext *ctx, const char *path,
         s->tree = NULL;
         memset(s, 0, sizeof(Statistic));
         s->kind_of_sort = SORT_BY_NAME + SORT_ASC;
-        strcpy(s->file_spec, DEFAULT_FILE_SPEC);
+        strncpy(s->file_spec, DEFAULT_FILE_SPEC, FILE_SPEC_LENGTH);
+        s->file_spec[FILE_SPEC_LENGTH] = '\0';
       }
       return NULL;
     }

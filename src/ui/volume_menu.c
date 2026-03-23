@@ -282,7 +282,9 @@ int SelectLoadedVolume(ViewContext *ctx, int *return_key) {
                   !S_ISDIR(neighbor_st_check.st_mode)) {
                 neighbor_access_ok = TRUE;
                 char neighbor_parent_dir[PATH_LENGTH + 1];
-                strcpy(neighbor_parent_dir, neighbor->vol_stats.login_path);
+                strncpy(neighbor_parent_dir, neighbor->vol_stats.login_path,
+                        PATH_LENGTH);
+                neighbor_parent_dir[PATH_LENGTH] = '\0';
                 char *slash = strrchr(neighbor_parent_dir, FILE_SEPARATOR_CHAR);
                 if (slash) {
                   *slash = '\0';
