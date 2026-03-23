@@ -57,6 +57,7 @@ static DirEntry *MakeDirEntry(const ViewContext *ctx, YtreePanel *panel,
                               DirEntry *father_dir_entry, const char *dir_name,
                               Statistic *s) {
   DirEntry *den_ptr = NULL, *des_ptr;
+  char parent_path[PATH_LENGTH + 1];
   char buffer[PATH_LENGTH + 1];
   struct stat stat_struct;
 
@@ -69,21 +70,32 @@ static DirEntry *MakeDirEntry(const ViewContext *ctx, YtreePanel *panel,
     }
   }
 
-  (void)GetPath(father_dir_entry, buffer);
-  (void)strcat(buffer, FILE_SEPARATOR_STRING);
-  (void)strcat(buffer, dir_name);
+  (void)GetPath(father_dir_entry, parent_path);
+  {
+    int n = snprintf(buffer, sizeof(buffer), "%s%s%s", parent_path,
+                     FILE_SEPARATOR_STRING, dir_name);
+    if (n < 0 || n >= (int)sizeof(buffer))
+      return NULL;
+  }
 
 /* ARCHIVE MODE HANDLER */
 #ifdef HAVE_LIBARCHIVE
   if (panel && panel->vol && panel->vol->vol_stats.login_mode == ARCHIVE_MODE) {
     char root_path[PATH_LENGTH + 1];
     char relative_path[PATH_LENGTH + 1];
-    char parent_path[PATH_LENGTH + 1];
+    char archive_path[PATH_LENGTH + 1];
+    const char *separator = "";
 
     /* Get full path of parent directory in tree */
     GetPath(father_dir_entry, parent_path);
     /* Get path of the archive file itself */
-    strcpy(root_path, panel->vol->vol_stats.login_path);
+    {
+      int n = snprintf(root_path, sizeof(root_path), "%s",
+                       panel->vol->vol_stats.login_path);
+      if (n < 0 || n >= (int)sizeof(root_path)) {
+        return NULL;
+      }
+    }
 
     /* Calculate internal parent path by stripping archive root */
     if (strcmp(parent_path, root_path) == 0) {
@@ -94,21 +106,37 @@ static DirEntry *MakeDirEntry(const ViewContext *ctx, YtreePanel *panel,
       char *ptr = parent_path + strlen(root_path);
       if (*ptr == FILE_SEPARATOR_CHAR)
         ptr++;
-      strcpy(relative_path, ptr);
+      {
+        int n = snprintf(relative_path, sizeof(relative_path), "%s", ptr);
+        if (n < 0 || n >= (int)sizeof(relative_path)) {
+          return NULL;
+        }
+      }
     } else {
       /* Fallback (should not happen if logic correct) */
-      strcpy(relative_path, parent_path);
+      {
+        int n = snprintf(relative_path, sizeof(relative_path), "%s", parent_path);
+        if (n < 0 || n >= (int)sizeof(relative_path)) {
+          return NULL;
+        }
+      }
     }
 
     /* Append new directory name */
     if (relative_path[0] != '\0' &&
         relative_path[strlen(relative_path) - 1] != FILE_SEPARATOR_CHAR) {
-      strcat(relative_path, FILE_SEPARATOR_STRING);
+      separator = FILE_SEPARATOR_STRING;
     }
-    strcat(relative_path, dir_name);
+    {
+      int n = snprintf(archive_path, sizeof(archive_path), "%s%s%s",
+                       relative_path, separator, dir_name);
+      if (n < 0 || n >= (int)sizeof(archive_path)) {
+        return NULL;
+      }
+    }
 
     /* Add entry */
-    if (Archive_AddFile(panel->vol->vol_stats.login_path, NULL, relative_path,
+    if (Archive_AddFile(panel->vol->vol_stats.login_path, NULL, archive_path,
                         TRUE, ArchiveUICallback, NULL) == 0) {
       /* Success: Return a dummy non-NULL to indicate success.
       The auto-refresh will reload the tree.
