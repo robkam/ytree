@@ -12,14 +12,16 @@ Use this skill when the active persona is `developer`.
 1. Confirm task boundary and expected behavior.
 2. Locate affected symbols and implement the smallest coherent change set.
 3. Preserve explicit context passing and panel/state isolation.
-4. Build and run relevant tests before completion.
-5. Report evidence, not claims.
+4. Apply the source comment contract: document invariants/rationale where needed, and remove or update stale comments touched by the change.
+5. Build and run relevant tests before completion.
+6. Report evidence, not claims.
 
 ## Guardrails
 
 - No unsafe string APIs (`strcpy`, `sprintf`, `strcat`).
 - No unrelated refactors.
 - If instruction conflicts with invariants, state the conflict and choose a safe path.
+- Do not add "change diary" comments; keep historical narrative in commits, not source.
 
 ## Completion Evidence
 

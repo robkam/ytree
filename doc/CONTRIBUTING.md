@@ -172,6 +172,15 @@ The project enforces strict architectural constraints (single-threaded event loo
 
 Please adhere to the existing coding style found throughout the project. The codebase follows C89/C99 standards with a focus on readability, consistency, and proper resource management.
 
+## Source Comment Policy
+
+Keep source code self-explanatory where possible. Use comments for durable, non-obvious context:
+
+- Document invariants, ownership/lifetime assumptions, aliasing constraints, and rationale for unusual behavior.
+- Do not restate obvious code mechanics line-by-line.
+- Do not use source comments as temporary change history ("fixed yesterday", "changed in commit ...").
+- If a comment becomes stale due to a code change, update or remove it in the same change.
+
 ## Ncurses Guidelines
 
 ### Key Bindings

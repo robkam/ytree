@@ -87,6 +87,14 @@ These instructions apply to all AI agents used in this repository.
 13. UX economy gate is mandatory for interactive flows: common path should be `key -> Enter -> result` with at most one submenu. Any flow requiring more than one submenu must include explicit justification and an equivalent fast path.
 14. QA remediation gate is mandatory: fix root causes, do not patch around failing checks. Do not change tests solely to force a pass unless the test is demonstrably wrong against spec. Do not add local suppressions/skips/xfails as a shortcut; if a temporary suppression is the only safe short-term option, discuss with the user first and get explicit approval.
 
+## Source Comment Contract
+
+- Keep source self-explanatory where possible; comments are for non-obvious value.
+- Comment invariants, ownership/lifetime assumptions, aliasing constraints, and rationale for unusual design choices.
+- Do not narrate obvious control flow or restate what the code already says clearly.
+- Do not put temporary change-history notes in source comments ("fixed yesterday", "changed in commit X") unless the historical note is itself a durable requirement.
+- Treat stale comments as defects: update or remove them in the same change that invalidates them.
+
 ## Required Validation
 
 - Build with `make clean && make` after meaningful code changes.
