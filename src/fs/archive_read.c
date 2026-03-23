@@ -266,6 +266,29 @@ int ExtractArchiveNode(const char *archive_path, const char *entry_path,
 }
 #endif /* HAVE_LIBARCHIVE */
 
+static int AppendBoundedString(char *dst, size_t dst_size, const char *src) {
+  size_t used;
+  int written;
+
+  if (!dst || dst_size == 0 || !src) {
+    return -1;
+  }
+
+  used = strlen(dst);
+  if (used >= dst_size) {
+    dst[dst_size - 1] = '\0';
+    return -1;
+  }
+
+  written = snprintf(dst + used, dst_size - used, "%s", src);
+  if (written < 0 || (size_t)written >= (dst_size - used)) {
+    dst[dst_size - 1] = '\0';
+    return -1;
+  }
+
+  return 0;
+}
+
 static int GetArchiveDirEntry(DirEntry *tree, const char *path, DirEntry **dir_entry);
 
 static int InsertArchiveDirEntry(ViewContext *ctx, DirEntry *tree, char *path,
@@ -273,6 +296,7 @@ static int InsertArchiveDirEntry(ViewContext *ctx, DirEntry *tree, char *path,
   DirEntry *df_ptr, *de_ptr, *ds_ptr;
   char father_path[PATH_LENGTH + 1];
   char name[PATH_LENGTH + 1];
+  size_t name_len;
 
   if (strlen(path) >= PATH_LENGTH) {
     MESSAGE(ctx, "Archive path too long*skipping directory insert");
@@ -287,9 +311,10 @@ static int InsertArchiveDirEntry(ViewContext *ctx, DirEntry *tree, char *path,
   }
 
   /* FIX: Allocate exact size for name + null terminator */
-  de_ptr = (DirEntry *)xcalloc(1, sizeof(DirEntry) + strlen(name) + 1);
+  name_len = strlen(name);
+  de_ptr = (DirEntry *)xcalloc(1, sizeof(DirEntry) + name_len + 1);
 
-  (void)strcpy(de_ptr->name, name);
+  (void)memcpy(de_ptr->name, name, name_len + 1);
   (void)memcpy((char *)&de_ptr->stat_struct, (char *)stat, sizeof(struct stat));
 
   if (df_ptr->sub_tree == NULL) {
@@ -329,6 +354,9 @@ int InsertArchiveFileEntry(ViewContext *ctx, DirEntry *tree, char *path,
   DirEntry *de_ptr;
   FileEntry *fs_ptr, *fe_ptr;
   struct stat stat_struct;
+  size_t file_len;
+  size_t path_len;
+  size_t link_len = 0;
   int n;
 
   if (KeyPressed()) {
@@ -355,21 +383,24 @@ int InsertArchiveFileEntry(ViewContext *ctx, DirEntry *tree, char *path,
     }
   }
 
-  if (S_ISLNK(stat->st_mode))
-    n = strlen(&path[strlen(path) + 1]) + 1;
-  else
-    n = 0;
-
-  /* FIX: Allocate exact size for name + null + link data */
-  fe_ptr =
-      (FileEntry *)xcalloc(1, sizeof(FileEntry) + strlen(file) + 1 + n + 1);
-
-  (void)memcpy((char *)&fe_ptr->stat_struct, (char *)stat, sizeof(struct stat));
-  (void)strcpy(fe_ptr->name, file);
+  file_len = strlen(file);
+  path_len = strlen(path);
 
   if (S_ISLNK(stat->st_mode)) {
-    (void)strcpy(&fe_ptr->name[strlen(fe_ptr->name) + 1],
-                 &path[strlen(path) + 1]);
+    link_len = strlen(&path[path_len + 1]) + 1;
+    n = (int)link_len;
+  } else {
+    n = 0;
+  }
+
+  /* FIX: Allocate exact size for name + null + link data */
+  fe_ptr = (FileEntry *)xcalloc(1, sizeof(FileEntry) + file_len + 1 + n + 1);
+
+  (void)memcpy((char *)&fe_ptr->stat_struct, (char *)stat, sizeof(struct stat));
+  (void)memcpy(fe_ptr->name, file, file_len + 1);
+
+  if (S_ISLNK(stat->st_mode)) {
+    (void)memcpy(&fe_ptr->name[file_len + 1], &path[path_len + 1], link_len);
   }
 
   fe_ptr->dir_entry = de_ptr;
@@ -448,10 +479,18 @@ int TryInsertArchiveDirEntry(ViewContext *ctx, DirEntry *tree, const char *dir,
   token = strtok_r(path_copy, FILE_SEPARATOR_STRING, &saveptr);
   while (token) {
     /* Append token to current_path */
-    if (current_path[0] != '\0') {
-      strcat(current_path, FILE_SEPARATOR_STRING);
+    if (current_path[0] != '\0' &&
+        AppendBoundedString(current_path, sizeof(current_path),
+                            FILE_SEPARATOR_STRING) != 0) {
+      MESSAGE(ctx, "Archive path too long*skipping directory insert");
+      free(path_copy);
+      return -1;
     }
-    strcat(current_path, token);
+    if (AppendBoundedString(current_path, sizeof(current_path), token) != 0) {
+      MESSAGE(ctx, "Archive path too long*skipping directory insert");
+      free(path_copy);
+      return -1;
+    }
 
     /* Check if this partial path exists */
     if (GetArchiveDirEntry(tree, current_path, &dummy) != 0) {
@@ -492,9 +531,11 @@ void MinimizeArchiveTree(DirEntry **tree_ptr, Statistic *s) {
     next_ptr = de_ptr->next;
 
     if (de_ptr->prev == NULL && de_ptr->next == NULL && de_ptr->file == NULL) {
-      if (strcmp(tree->name, FILE_SEPARATOR_STRING))
-        (void)strcat(tree->name, FILE_SEPARATOR_STRING);
-      (void)strcat(tree->name, de_ptr->name);
+      if (strcmp(tree->name, FILE_SEPARATOR_STRING)) {
+        (void)AppendBoundedString(tree->name, PATH_LENGTH,
+                                  FILE_SEPARATOR_STRING);
+      }
+      (void)AppendBoundedString(tree->name, PATH_LENGTH, de_ptr->name);
 
       s->disk_total_directories--;
 
@@ -515,9 +556,11 @@ void MinimizeArchiveTree(DirEntry **tree_ptr, Statistic *s) {
       tree->sub_tree->next == NULL) {
     de_ptr = tree->sub_tree;
 
-    if (strcmp(tree->name, FILE_SEPARATOR_STRING))
-      (void)strcat(tree->name, FILE_SEPARATOR_STRING);
-    (void)strcat(tree->name, de_ptr->name);
+    if (strcmp(tree->name, FILE_SEPARATOR_STRING)) {
+      (void)AppendBoundedString(tree->name, PATH_LENGTH,
+                                FILE_SEPARATOR_STRING);
+    }
+    (void)AppendBoundedString(tree->name, PATH_LENGTH, de_ptr->name);
 
     tree->file = de_ptr->file;
     for (fe_ptr = tree->file; fe_ptr; fe_ptr = fe_ptr->next)
@@ -653,28 +696,44 @@ int ReadTreeFromArchive(ViewContext *ctx, DirEntry **dir_entry_ptr,
 
     if (S_ISDIR(stat_buf.st_mode)) {
       /* Safer string copy */
-      snprintf(path_buffer, sizeof(path_buffer), "%s", clean_path);
+      int copied = snprintf(path_buffer, sizeof(path_buffer), "%s", clean_path);
+      if (copied < 0 || (size_t)copied >= sizeof(path_buffer)) {
+        MESSAGE(ctx, "Archive entry path too long*skipping");
+        continue;
+      }
       /* Ensure directory paths end with a separator for
        * TryInsertArchiveDirEntry */
       size_t len = strlen(path_buffer);
       if (len > 0 && path_buffer[len - 1] != FILE_SEPARATOR_CHAR) {
-        if (len < sizeof(path_buffer) - 2) {
-          strcat(path_buffer, FILE_SEPARATOR_STRING);
+        if (AppendBoundedString(path_buffer, sizeof(path_buffer),
+                                FILE_SEPARATOR_STRING) != 0) {
+          MESSAGE(ctx, "Archive directory path too long*skipping");
+          continue;
         }
       }
       (void)TryInsertArchiveDirEntry(ctx, dir_entry, path_buffer, &stat_buf, s);
 
     } else if (S_ISREG(stat_buf.st_mode) || S_ISLNK(stat_buf.st_mode)) {
       /* Safer string copy */
-      snprintf(path_buffer, sizeof(path_buffer), "%s", clean_path);
+      int copied = snprintf(path_buffer, sizeof(path_buffer), "%s", clean_path);
+      if (copied < 0 || (size_t)copied >= sizeof(path_buffer)) {
+        MESSAGE(ctx, "Archive entry path too long*skipping");
+        continue;
+      }
 
       if (S_ISLNK(stat_buf.st_mode)) {
         const char *link_target = archive_entry_symlink(entry);
+        size_t len = strlen(path_buffer);
+
+        path_buffer[len + 1] = '\0';
         if (link_target) {
           /* Append symlink target after the null terminator of the path */
-          size_t len = strlen(path_buffer);
-          if (len + 1 + strlen(link_target) < sizeof(path_buffer)) {
-            strcpy(&path_buffer[len + 1], link_target);
+          size_t target_len = strlen(link_target);
+          if (len + 1 + target_len + 1 <= sizeof(path_buffer)) {
+            (void)memcpy(&path_buffer[len + 1], link_target, target_len + 1);
+          } else {
+            MESSAGE(ctx, "Archive symlink target too long*skipping");
+            continue;
           }
         }
       }
