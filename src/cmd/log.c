@@ -123,7 +123,8 @@ int LogDisk(ViewContext *ctx, YtreePanel *panel, char *path) {
     strncpy(saved_filter, panel->vol->vol_stats.file_spec, FILE_SPEC_LENGTH);
     saved_filter[FILE_SPEC_LENGTH] = '\0';
   } else {
-    strcpy(saved_filter, DEFAULT_FILE_SPEC);
+    strncpy(saved_filter, DEFAULT_FILE_SPEC, FILE_SPEC_LENGTH);
+    saved_filter[FILE_SPEC_LENGTH] = '\0';
   }
 
   /* 2. Search Existing Volume */
@@ -145,7 +146,8 @@ int LogDisk(ViewContext *ctx, YtreePanel *panel, char *path) {
         access_ok = TRUE;
         /* Optional: Attempt to chdir to the parent directory for context */
         char parent_dir[PATH_LENGTH + 1];
-        strcpy(parent_dir, found_vol->vol_stats.login_path);
+        strncpy(parent_dir, found_vol->vol_stats.login_path, PATH_LENGTH);
+        parent_dir[PATH_LENGTH] = '\0';
         char *slash = strrchr(parent_dir, FILE_SEPARATOR_CHAR);
         if (slash) {
           *slash = '\0';
@@ -284,7 +286,8 @@ int LogDisk(ViewContext *ctx, YtreePanel *panel, char *path) {
   /* If it's the very first volume (old_vol was NULL or we reused virgin),
    * default filter is already set by Volume_Load */
   if (old_vol != NULL && old_vol->vol_stats.login_path[0] != '\0') {
-    strcpy(s->file_spec, saved_filter);
+    strncpy(s->file_spec, saved_filter, FILE_SPEC_LENGTH);
+    s->file_spec[FILE_SPEC_LENGTH] = '\0';
   }
 
   (void)SetFilter(s->file_spec, s);
@@ -304,6 +307,7 @@ int LogDisk(ViewContext *ctx, YtreePanel *panel, char *path) {
 
 int GetNewLoginPath(ViewContext *ctx, YtreePanel *panel, char *path) {
   int result;
+  int copied_len;
   char user_input[PATH_LENGTH * 2 + 1] = "";
   char current_dir_path[PATH_LENGTH + 1];
 
@@ -314,8 +318,15 @@ int GetNewLoginPath(ViewContext *ctx, YtreePanel *panel, char *path) {
   MvAddStr(Y_PROMPT(ctx), 1, "LOG:");
 
   /* Save the current directory context and set it as default for user input */
-  strcpy(current_dir_path, path);
-  strcpy(user_input, path);
+  copied_len = snprintf(current_dir_path, sizeof(current_dir_path), "%s", path);
+  if (copied_len < 0 || (size_t)copied_len >= sizeof(current_dir_path)) {
+    return result;
+  }
+
+  copied_len = snprintf(user_input, sizeof(user_input), "%s", path);
+  if (copied_len < 0 || (size_t)copied_len >= sizeof(user_input)) {
+    return result;
+  }
 
   if (ctx->view_mode == LL_FILE_MODE && *path == '<') {
     char *cptr;
@@ -329,23 +340,31 @@ int GetNewLoginPath(ViewContext *ctx, YtreePanel *panel, char *path) {
                       HST_LOGIN) == CR) {
     char temp_path[PATH_LENGTH * 3 + 2];
     char resolved_path[PATH_LENGTH + 1];
+    int composed_len;
 
     /* InputString expands '~', so check if the result is an absolute path. */
     if (user_input[0] != FILE_SEPARATOR_CHAR) {
       /* It's a relative path. Construct the full path to be resolved. */
       if (strcmp(current_dir_path, FILE_SEPARATOR_STRING) == 0) {
-        snprintf(temp_path, sizeof(temp_path), "/%s", user_input);
+        composed_len = snprintf(temp_path, sizeof(temp_path), "/%s", user_input);
       } else {
-        snprintf(temp_path, sizeof(temp_path), "%s/%s", current_dir_path,
-                 user_input);
+        composed_len = snprintf(temp_path, sizeof(temp_path), "%s/%s",
+                                current_dir_path, user_input);
       }
     } else {
       /* It's an absolute path. */
-      strcpy(temp_path, user_input);
+      composed_len = snprintf(temp_path, sizeof(temp_path), "%s", user_input);
+    }
+
+    if (composed_len < 0 || (size_t)composed_len >= sizeof(temp_path)) {
+      return result;
     }
 
     if (realpath(temp_path, resolved_path) != NULL) {
-      strcpy(path, resolved_path);
+      copied_len = snprintf(path, PATH_LENGTH + 1, "%s", resolved_path);
+      if (copied_len < 0 || copied_len > PATH_LENGTH) {
+        return result;
+      }
     } else {
       NormPath(temp_path, path);
     }

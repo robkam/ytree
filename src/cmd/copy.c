@@ -96,13 +96,23 @@ int CopyFile(ViewContext *ctx, Statistic *statistic_ptr, FileEntry *fe_ptr,
       }
 
       /* Construct full destination path for the directory */
-      strcpy(full_dest_path, to_dir_path);
-      size_t full_dest_len = strlen(full_dest_path);
-      if (full_dest_len > 0 &&
-          full_dest_path[full_dest_len - 1] != FILE_SEPARATOR_CHAR) {
-        strcat(full_dest_path, FILE_SEPARATOR_STRING);
+      {
+        const char *dest_sep = "";
+        int composed_len;
+        size_t full_dest_len = strlen(to_dir_path);
+
+        if (full_dest_len > 0 &&
+            to_dir_path[full_dest_len - 1] != FILE_SEPARATOR_CHAR) {
+          dest_sep = FILE_SEPARATOR_STRING;
+        }
+
+        composed_len = snprintf(full_dest_path, sizeof(full_dest_path), "%s%s%s",
+                                to_dir_path, dest_sep, rel_path);
+        if (composed_len < 0 ||
+            (size_t)composed_len >= sizeof(full_dest_path)) {
+          return result;
+        }
       }
-      strcat(full_dest_path, rel_path);
 
       /* Identify Target Context for directory creation */
       target_vol = Volume_GetByPath(ctx, full_dest_path);
@@ -118,7 +128,7 @@ int CopyFile(ViewContext *ctx, Statistic *statistic_ptr, FileEntry *fe_ptr,
       if (target_stats && target_stats->login_mode == ARCHIVE_MODE) {
         /* We handle recursive dir creation inside Archive Destination Handler
          */
-        strcpy(to_path, full_dest_path);
+        (void)snprintf(to_path, sizeof(to_path), "%s", full_dest_path);
         path_copy = FALSE; /* Handled manually */
       } else {
         /* Standard FS creation */
@@ -127,7 +137,8 @@ int CopyFile(ViewContext *ctx, Statistic *statistic_ptr, FileEntry *fe_ptr,
         DirEntry *tmp_dest_dir_entry =
             dest_dir_entry; // Use a temporary variable for dest_dir_entry
         char dest_dir_sys_path[PATH_LENGTH + 1];
-        strcpy(dest_dir_sys_path, full_dest_path);
+        (void)snprintf(dest_dir_sys_path, sizeof(dest_dir_sys_path), "%s",
+                       full_dest_path);
         if (EnsureDirectoryExists(ctx, dest_dir_sys_path, target_tree, &created,
                                   &tmp_dest_dir_entry, dir_create_mode,
                                   choice_cb) == -1) {
@@ -137,13 +148,16 @@ int CopyFile(ViewContext *ctx, Statistic *statistic_ptr, FileEntry *fe_ptr,
         /* if (created) refresh_dirwindow = TRUE; */
 
         /* Update to_path to point to the newly created directory */
-        strcpy(to_path, full_dest_path);
+        (void)snprintf(to_path, sizeof(to_path), "%s", full_dest_path);
 
         /* Disable standard path_copy logic since we handled it manually */
         path_copy = FALSE;
       }
     } else {
-      strcpy(to_path, to_dir_path);
+      int composed_len = snprintf(to_path, sizeof(to_path), "%s", to_dir_path);
+      if (composed_len < 0 || (size_t)composed_len >= sizeof(to_path)) {
+        return result;
+      }
       /* dest_dir_entry = NULL; removed to allow resolution */
       path_copy = FALSE;
     }
@@ -152,7 +166,10 @@ int CopyFile(ViewContext *ctx, Statistic *statistic_ptr, FileEntry *fe_ptr,
     if (strcmp(to_dir_path, FILE_SEPARATOR_STRING)) {
       /* not ROOT */
       /*----------*/
-      (void)strcat(to_path, to_dir_path);
+      int composed_len = snprintf(to_path, sizeof(to_path), "%s", to_dir_path);
+      if (composed_len < 0 || (size_t)composed_len >= sizeof(to_path)) {
+        return result;
+      }
     }
   }
 
@@ -208,23 +225,30 @@ int CopyFile(ViewContext *ctx, Statistic *statistic_ptr, FileEntry *fe_ptr,
         rel_path++;
     }
 
-    /* Append separator to destination if missing */
-    len = strlen(to_path);
-    if (len > 0 && to_path[len - 1] != FILE_SEPARATOR_CHAR) {
-      strcat(to_path, FILE_SEPARATOR_STRING);
+    /* Append relative path and a trailing separator in one bounded step. */
+    {
+      const char *dest_sep = "";
+      int composed_len;
+
+      len = strlen(to_path);
+      if (len > 0 && to_path[len - 1] != FILE_SEPARATOR_CHAR) {
+        dest_sep = FILE_SEPARATOR_STRING;
+      }
+      composed_len = snprintf(abs_path, sizeof(abs_path), "%s%s%s/", to_path,
+                              dest_sep, rel_path);
+      if (composed_len < 0 || (size_t)composed_len >= sizeof(abs_path)) {
+        return result;
+      }
+      (void)snprintf(to_path, sizeof(to_path), "%s", abs_path);
     }
 
-    strcat(to_path, rel_path);
-
-    /* Create destination folder (if neccessary) */
-    /*-------------------------------------------*/
-    strcat(to_path, FILE_SEPARATOR_STRING);
-
     if (*to_path != FILE_SEPARATOR_CHAR) {
-      strcpy(abs_path, from_dir);
-      strcat(abs_path, FILE_SEPARATOR_STRING);
-      strcat(abs_path, to_path);
-      strcpy(to_path, abs_path);
+      int composed_len = snprintf(abs_path, sizeof(abs_path), "%s/%s", from_dir,
+                                  to_path);
+      if (composed_len < 0 || (size_t)composed_len >= sizeof(abs_path)) {
+        return result;
+      }
+      (void)snprintf(to_path, sizeof(to_path), "%s", abs_path);
     }
 
     /* Re-evaluate target volume with full path if path_copy changed it? */
@@ -253,15 +277,23 @@ int CopyFile(ViewContext *ctx, Statistic *statistic_ptr, FileEntry *fe_ptr,
     }
   }
 
-  (void)strcat(to_path, FILE_SEPARATOR_STRING);
+  {
+    int composed_len = snprintf(abs_path, sizeof(abs_path), "%s/", to_path);
+    if (composed_len < 0 || (size_t)composed_len >= sizeof(abs_path)) {
+      return result;
+    }
+    (void)snprintf(to_path, sizeof(to_path), "%s", abs_path);
+  }
 
   /* Pre-emptively fix relative paths to ensure EnsureDirectoryExists handles
    * them correctly */
   if (*to_path != FILE_SEPARATOR_CHAR) {
-    strcpy(abs_path, from_dir);
-    strcat(abs_path, FILE_SEPARATOR_STRING);
-    strcat(abs_path, to_path);
-    strcpy(to_path, abs_path);
+    int composed_len =
+        snprintf(abs_path, sizeof(abs_path), "%s/%s", from_dir, to_path);
+    if (composed_len < 0 || (size_t)composed_len >= sizeof(abs_path)) {
+      return result;
+    }
+    (void)snprintf(to_path, sizeof(to_path), "%s", abs_path);
   }
 
 /* ARCHIVE DESTINATION HANDLER */
@@ -276,12 +308,20 @@ int CopyFile(ViewContext *ctx, Statistic *statistic_ptr, FileEntry *fe_ptr,
     /* Build path relative to archive root */
     if (strncmp(to_path, root_path, strlen(root_path)) == 0) {
       char *ptr = to_path + strlen(root_path);
+      int composed_len;
       if (*ptr == FILE_SEPARATOR_CHAR)
         ptr++;
-      strcpy(relative_path, ptr);
+      composed_len = snprintf(relative_path, sizeof(relative_path), "%s", ptr);
+      if (composed_len < 0 || (size_t)composed_len >= sizeof(relative_path)) {
+        return result;
+      }
     } else {
       /* Fallback */
-      strcpy(relative_path, to_path);
+      int composed_len =
+          snprintf(relative_path, sizeof(relative_path), "%s", to_path);
+      if (composed_len < 0 || (size_t)composed_len >= sizeof(relative_path)) {
+        return result;
+      }
     }
 
     /* Ensure trailing slash is removed before appending file if present */
@@ -295,19 +335,33 @@ int CopyFile(ViewContext *ctx, Statistic *statistic_ptr, FileEntry *fe_ptr,
     /* This is implicit in Archive_AddFile usually, but explicit entries help
      * visibility */
 
-    if (relative_path[0] != '\0') {
-      strcat(relative_path, FILE_SEPARATOR_STRING);
-    }
-    strcat(relative_path, to_file);
+    {
+      int composed_len;
+      char archive_entry_path[PATH_LENGTH + 1];
 
-    if (Archive_AddFile(target_stats->login_path, from_path, relative_path,
-                        FALSE, ArchiveUICallback, ctx) == 0) {
-      /* Success */
-      /* Caller will refresh view */
-      return 0;
-    } else {
-      /* Failure */
-      return -1;
+      if (relative_path[0] != '\0') {
+        composed_len = snprintf(archive_entry_path, sizeof(archive_entry_path),
+                                "%s/%s", relative_path, to_file);
+      } else {
+        composed_len =
+            snprintf(archive_entry_path, sizeof(archive_entry_path), "%s",
+                     to_file);
+      }
+      if (composed_len < 0 ||
+          (size_t)composed_len >= sizeof(archive_entry_path)) {
+        return result;
+      }
+
+      if (Archive_AddFile(target_stats->login_path, from_path,
+                          archive_entry_path, FALSE, ArchiveUICallback,
+                          ctx) == 0) {
+        /* Success */
+        /* Caller will refresh view */
+        return 0;
+      } else {
+        /* Failure */
+        return -1;
+      }
     }
   }
 #endif
@@ -333,7 +387,14 @@ int CopyFile(ViewContext *ctx, Statistic *statistic_ptr, FileEntry *fe_ptr,
     /* if (created) refresh_dirwindow = TRUE; */
   }
 
-  (void)strcat(to_path, to_file);
+  {
+    int composed_len = snprintf(abs_path, sizeof(abs_path), "%s%s", to_path,
+                                to_file);
+    if (composed_len < 0 || (size_t)composed_len >= sizeof(abs_path)) {
+      return result;
+    }
+    (void)snprintf(to_path, sizeof(to_path), "%s", abs_path);
+  }
 
   DEBUG_LOG("CopyFile final to_path=%s", to_path);
 
