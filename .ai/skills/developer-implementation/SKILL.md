@@ -22,6 +22,7 @@ Use this skill when the active persona is `developer`.
 - No unrelated refactors.
 - If instruction conflicts with invariants, state the conflict and choose a safe path.
 - Do not add "change diary" comments; keep historical narrative in commits, not source.
+- Documentation signal rule: when updating docs, add or edit guidance only where contextually relevant to that section's audience; avoid duplicating AI/tooling notes in multiple unrelated sections.
 
 ## Completion Evidence
 
