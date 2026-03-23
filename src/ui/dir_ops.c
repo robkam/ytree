@@ -455,6 +455,12 @@ DirEntry *RefreshTreeSafe(ViewContext *ctx, YtreePanel *p, DirEntry *entry) {
 
   s = &p->vol->vol_stats;
 
+  /* RescanDir destroys/recreates FileEntry nodes. Any panel cache on this
+   * volume would otherwise keep dangling pointers until that panel becomes
+   * active again.
+   */
+  InvalidateVolumePanels(ctx, p->vol);
+
   werase(p->pan_dir_window);
   werase(ctx->ctx_file_window);
 
