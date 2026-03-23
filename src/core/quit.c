@@ -78,7 +78,13 @@ void QuitTo(ViewContext *ctx, DirEntry *dir_entry) {
     GetPath(dir_entry, path_to_write);
   } else {
     /* If dir_entry is NULL, quit to current directory. */
-    strcpy(path_to_write, ctx->active->vol->vol_stats.path);
+    int copied_len = snprintf(path_to_write, sizeof(path_to_write), "%s",
+                              ctx->active->vol->vol_stats.path);
+    if (copied_len < 0) {
+      path_to_write[0] = '\0';
+    } else if ((size_t)copied_len >= sizeof(path_to_write)) {
+      path_to_write[sizeof(path_to_write) - 1] = '\0';
+    }
   }
 
   /* 3. Construct Filename: */
