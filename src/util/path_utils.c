@@ -7,13 +7,37 @@
 
 #include "ytree.h"
 #include <libgen.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+static int AppendBounded(char *dst, size_t dst_size, const char *src) {
+  size_t used;
+  int written;
+
+  if (!dst || dst_size == 0 || !src) {
+    return -1;
+  }
+
+  used = strlen(dst);
+  if (used >= dst_size) {
+    dst[dst_size - 1] = '\0';
+    return -1;
+  }
+
+  written = snprintf(dst + used, dst_size - used, "%s", src);
+  if (written < 0 || (size_t)written >= (dst_size - used)) {
+    dst[dst_size - 1] = '\0';
+    return -1;
+  }
+  return 0;
+}
 
 char *GetPath(DirEntry *dir_entry, char *buffer) {
   char *components[256];
   int depth = 0;
   DirEntry *de_ptr;
+  const size_t buffer_size = PATH_LENGTH + 1;
 
   memset(components, 0, sizeof(components));
   *buffer = '\0';
@@ -29,29 +53,40 @@ char *GetPath(DirEntry *dir_entry, char *buffer) {
 
   if (depth > 0 && components[depth - 1] != NULL) {
     /* The last component collected is the root. Start the path with it. */
-    strcpy(buffer, components[depth - 1]);
+    if (snprintf(buffer, buffer_size, "%s", components[depth - 1]) < 0) {
+      buffer[0] = '\0';
+      return buffer;
+    }
 
     /* Append the rest of the components in correct order */
     for (int i = depth - 2; i >= 0; i--) {
       /* Add separator if the current path is not just the root "/" */
       if (strcmp(buffer, FILE_SEPARATOR_STRING) != 0) {
-        strcat(buffer, FILE_SEPARATOR_STRING);
+        if (AppendBounded(buffer, buffer_size, FILE_SEPARATOR_STRING) != 0) {
+          break;
+        }
       }
-      strcat(buffer, components[i]);
+      if (AppendBounded(buffer, buffer_size, components[i]) != 0) {
+        break;
+      }
     }
   }
   return buffer;
 }
 
 char *GetFileNamePath(FileEntry *file_entry, char *buffer) {
+  const size_t buffer_size = PATH_LENGTH + 1;
+
   (void)GetPath(file_entry->dir_entry, buffer);
   if (*buffer && strcmp(buffer, FILE_SEPARATOR_STRING))
-    (void)strcat(buffer, FILE_SEPARATOR_STRING);
-  return (strcat(buffer, file_entry->name));
+    (void)AppendBounded(buffer, buffer_size, FILE_SEPARATOR_STRING);
+  (void)AppendBounded(buffer, buffer_size, file_entry->name);
+  return buffer;
 }
 
 char *GetRealFileNamePath(FileEntry *file_entry, char *buffer, int view_mode) {
   const char *sym_name;
+  const size_t buffer_size = PATH_LENGTH + 1;
 
   if (view_mode == DISK_MODE || view_mode == USER_MODE)
     return (GetFileNamePath(file_entry, buffer));
@@ -59,16 +94,20 @@ char *GetRealFileNamePath(FileEntry *file_entry, char *buffer, int view_mode) {
   if (S_ISLNK(file_entry->stat_struct.st_mode)) {
     sym_name = &file_entry->name[strlen(file_entry->name) + 1];
     if (*sym_name == FILE_SEPARATOR_CHAR)
-      return (strcpy(buffer, sym_name));
+      (void)snprintf(buffer, buffer_size, "%s", sym_name);
+    if (*sym_name == FILE_SEPARATOR_CHAR)
+      return buffer;
   }
 
   (void)GetPath(file_entry->dir_entry, buffer);
   if (*buffer && strcmp(buffer, FILE_SEPARATOR_STRING))
-    (void)strcat(buffer, FILE_SEPARATOR_STRING);
+    (void)AppendBounded(buffer, buffer_size, FILE_SEPARATOR_STRING);
   if (S_ISLNK(file_entry->stat_struct.st_mode))
-    return (strcat(buffer, &file_entry->name[strlen(file_entry->name) + 1]));
+    (void)AppendBounded(buffer, buffer_size,
+                        &file_entry->name[strlen(file_entry->name) + 1]);
   else
-    return (strcat(buffer, file_entry->name));
+    (void)AppendBounded(buffer, buffer_size, file_entry->name);
+  return buffer;
 }
 
 /* Aufsplitten des Dateinamens in die einzelnen Komponenten */
@@ -136,7 +175,7 @@ void Fnsplit(char *path, char *dir, char *name) {
     UI_Warning(NULL, "filename too long:*%s*truncating to*%s", processed_path,
                name);
   } else {
-    strcpy(name, bname);
+    (void)snprintf(name, PATH_LENGTH + 1, "%s", bname);
   }
 
   /* Cleanup */
@@ -164,8 +203,7 @@ void NormPath(char *in_path, char *out_path) {
   char *canonical = realpath(in_path, NULL);
   if (canonical != NULL) {
     /* Path exists on disk, use canonical absolute path */
-    strncpy(out_path, canonical, PATH_LENGTH);
-    out_path[PATH_LENGTH] = '\0';
+    (void)snprintf(out_path, PATH_LENGTH + 1, "%s", canonical);
     free(canonical);
     return;
   }
@@ -181,7 +219,7 @@ void NormPath(char *in_path, char *out_path) {
   int is_absolute = 0;
 
   if (in_path == NULL || *in_path == '\0') {
-    strcpy(out_path, ".");
+    (void)snprintf(out_path, PATH_LENGTH + 1, "%s", ".");
     return;
   }
 
@@ -225,17 +263,22 @@ void NormPath(char *in_path, char *out_path) {
   /* Reconstruct Path */
   out_path[0] = '\0';
   if (is_absolute) {
-    strcpy(out_path, FILE_SEPARATOR_STRING);
+    (void)snprintf(out_path, PATH_LENGTH + 1, "%s", FILE_SEPARATOR_STRING);
   } else if (stack_top == 0) {
     /* If relative and stack empty (e.g. "./."), result is "." */
-    strcpy(out_path, ".");
+    (void)snprintf(out_path, PATH_LENGTH + 1, "%s", ".");
     return;
   }
 
   for (int i = 0; i < stack_top; i++) {
     if (i > 0) {
-      strcat(out_path, FILE_SEPARATOR_STRING);
+      if (AppendBounded(out_path, PATH_LENGTH + 1, FILE_SEPARATOR_STRING) !=
+          0) {
+        break;
+      }
     }
-    strcat(out_path, stack[i]);
+    if (AppendBounded(out_path, PATH_LENGTH + 1, stack[i]) != 0) {
+      break;
+    }
   }
 }
