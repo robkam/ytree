@@ -39,7 +39,6 @@ int View(ViewContext *ctx, DirEntry *dir_entry, char *file_path) {
 
 static int ViewFile(ViewContext *ctx, DirEntry *dir_entry, char *file_path) {
   char command_line[COMMAND_LINE_LENGTH + 1];
-  char file_p_aux[PATH_LENGTH + 1];
   const char *pager;
   int result;
 
@@ -48,10 +47,15 @@ static int ViewFile(ViewContext *ctx, DirEntry *dir_entry, char *file_path) {
     return (-1);
   }
 
-  strcpy(file_p_aux, file_path);
-
   pager = GetProfileValue(ctx, "PAGER");
-  snprintf(command_line, COMMAND_LINE_LENGTH + 1, "%s %s", pager, file_p_aux);
+  {
+    int n = snprintf(command_line, COMMAND_LINE_LENGTH + 1, "%s %s", pager,
+                     file_path);
+    if (n < 0 || n >= COMMAND_LINE_LENGTH + 1) {
+      MESSAGE(ctx, "View command too long!*\"%s\"", file_path);
+      return (-1);
+    }
+  }
 
   result = SilentSystemCall(ctx, command_line, &ctx->active->vol->vol_stats);
 

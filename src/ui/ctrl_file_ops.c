@@ -582,7 +582,8 @@ BOOL handle_tag_file_action(ViewContext *ctx, int action, DirEntry *dir_entry,
       }
 
       /* Allocate new buffer for silent command */
-      char *silent_cmd = (char *)malloc(COLS + 20);
+      size_t silent_cmd_size = (size_t)COLS + 20U;
+      char *silent_cmd = (char *)malloc(silent_cmd_size);
       if (!silent_cmd) {
         UI_Error(ctx, "", 0, "Malloc failed*ABORT");
         exit(1);
@@ -594,13 +595,17 @@ BOOL handle_tag_file_action(ViewContext *ctx, int action, DirEntry *dir_entry,
       /* Filter Mode */
       if (!GetSearchCommandLine(ctx, command_line, ctx->global_search_term)) {
         /* Construct Silent Command */
-        sprintf(silent_cmd, "%s > /dev/null 2>&1", command_line);
-
-        walking_package.function_data.execute.command = silent_cmd;
-        /* Use modified SilentTagWalk (Untag on Fail) */
-        FileTags_SilentTagWalkTaggedFiles(ctx, ExecuteCommand,
-                                          &walking_package);
-        /* No HitReturnToContinue - purely silent */
+        int n = snprintf(silent_cmd, silent_cmd_size, "%s > /dev/null 2>&1",
+                         command_line);
+        if (n < 0 || (size_t)n >= silent_cmd_size) {
+          UI_Message(ctx, "Command too long");
+        } else {
+          walking_package.function_data.execute.command = silent_cmd;
+          /* Use modified SilentTagWalk (Untag on Fail) */
+          FileTags_SilentTagWalkTaggedFiles(ctx, ExecuteCommand,
+                                            &walking_package);
+          /* No HitReturnToContinue - purely silent */
+        }
       }
 
       /* Refresh Display */
