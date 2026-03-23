@@ -102,6 +102,8 @@ int ReadTree(ViewContext *ctx, DirEntry *dir_entry, char *path, int depth,
 
   file_count = 0;
   while ((dirent = readdir(dir)) != NULL) {
+    size_t entry_name_len;
+
     if (!strcmp(dirent->d_name, ".") || !strcmp(dirent->d_name, ".."))
       continue;
 
@@ -142,10 +144,22 @@ int ReadTree(ViewContext *ctx, DirEntry *dir_entry, char *path, int depth,
         cb(ctx, cb_data);
     }
 
-    (void)strcpy(new_path, path);
-    if (strcmp(new_path, FILE_SEPARATOR_STRING))
-      (void)strcat(new_path, FILE_SEPARATOR_STRING);
-    (void)strcat(new_path, dirent->d_name);
+    entry_name_len = strlen(dirent->d_name);
+    if (!strcmp(path, FILE_SEPARATOR_STRING)) {
+      if (snprintf(new_path, sizeof(new_path), "%s%s", path, dirent->d_name) >=
+          (int)sizeof(new_path)) {
+        MESSAGE(ctx, "Path too long*%s%s*IGNORED", path, dirent->d_name);
+        continue;
+      }
+    } else {
+      if (snprintf(new_path, sizeof(new_path), "%s%s%s", path,
+                   FILE_SEPARATOR_STRING, dirent->d_name) >=
+          (int)sizeof(new_path)) {
+        MESSAGE(ctx, "Path too long*%s%s%s*IGNORED", path,
+                FILE_SEPARATOR_STRING, dirent->d_name);
+        continue;
+      }
+    }
 
     if (STAT_(new_path, &stat_struct)) {
       if (IsTransientScanStatError(errno))
@@ -159,12 +173,11 @@ int ReadTree(ViewContext *ctx, DirEntry *dir_entry, char *path, int depth,
       /*-----------------*/
 
       /* FIX: Added +1 to allocation for null terminator */
-      den_ptr =
-          (DirEntry *)xcalloc(1, sizeof(DirEntry) + strlen(dirent->d_name) + 1);
+      den_ptr = (DirEntry *)xcalloc(1, sizeof(DirEntry) + entry_name_len + 1);
 
       den_ptr->up_tree = dir_entry;
 
-      (void)strcpy(den_ptr->name, dirent->d_name);
+      (void)memcpy(den_ptr->name, dirent->d_name, entry_name_len + 1);
 
       (void)memcpy(&den_ptr->stat_struct, &stat_struct, sizeof(stat_struct));
       den_ptr->prev = den_ptr->next = NULL;
@@ -219,29 +232,33 @@ int ReadTree(ViewContext *ctx, DirEntry *dir_entry, char *path, int depth,
       *link_path = '\0';
 
       if (S_ISLNK(stat_struct.st_mode)) {
+        size_t link_len;
         ssize_t n;
         /* Yes, append symbolic name to "real" name */
         /*---------------------------------------------------------*/
 
-        if ((n = readlink(new_path, link_path, sizeof(link_path))) == -1) {
-          (void)strcpy(link_path, "unknown");
-          n = strlen(link_path);
+        if ((n = readlink(new_path, link_path, sizeof(link_path) - 1)) == -1) {
+          static const char unknown_link[] = "unknown";
+          (void)memcpy(link_path, unknown_link, sizeof(unknown_link));
+          n = (ssize_t)(sizeof(unknown_link) - 1);
         }
         link_path[n] = '\0';
+        link_len = (size_t)n;
 
         /* FIX: Added +1 to allocation for name's null terminator (n already
          * includes it for link) */
         fen_ptr = (FileEntry *)xcalloc(
-            1, sizeof(FileEntry) + strlen(dirent->d_name) + 1 + n + 1);
+            1, sizeof(FileEntry) + entry_name_len + 1 + link_len + 1);
 
-        (void)strcpy(fen_ptr->name, dirent->d_name);
-        (void)strcpy(&fen_ptr->name[strlen(fen_ptr->name) + 1], link_path);
+        (void)memcpy(fen_ptr->name, dirent->d_name, entry_name_len + 1);
+        (void)memcpy(&fen_ptr->name[entry_name_len + 1], link_path,
+                     link_len + 1);
       } else {
         /* FIX: Added +1 to allocation for null terminator */
-        fen_ptr = (FileEntry *)xcalloc(1, sizeof(FileEntry) +
-                                              strlen(dirent->d_name) + 1);
+        fen_ptr = (FileEntry *)xcalloc(1, sizeof(FileEntry) + entry_name_len +
+                                              1);
 
-        (void)strcpy(fen_ptr->name, dirent->d_name);
+        (void)memcpy(fen_ptr->name, dirent->d_name, entry_name_len + 1);
       }
 
       fen_ptr->next = NULL;
