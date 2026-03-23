@@ -1,6 +1,7 @@
 # AI-Assisted Development Workflow
 
 This document defines the standards and processes for using AI agents to maintain and modernize the `ytree` codebase. These rules ensure architectural integrity and prevent "hallucination debt."
+For canonical governance file ownership and edit targets, see [GOVERNANCE_INDEX.md](GOVERNANCE_INDEX.md).
 
 ---
 
