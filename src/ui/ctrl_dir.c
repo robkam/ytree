@@ -967,26 +967,36 @@ int HandleDirWindow(ViewContext *ctx, const DirEntry *start_dir_entry) {
       ctx->active->cursor_pos = 0;
       unput_char = CR;
     } else {
+      int login_path_len = -1;
       if (*ctx->initial_directory == '.') { /* Entry of form "./alpha/beta" */
-        strcpy(new_login_path, start_dir_entry->name);
-        strcat(new_login_path, ctx->initial_directory + 1);
+        login_path_len = snprintf(new_login_path, sizeof(new_login_path),
+                                  "%s%s", start_dir_entry->name,
+                                  ctx->initial_directory + 1);
       } else if (*ctx->initial_directory == '~' && (home = getenv("HOME"))) {
         /* Entry of form "~/alpha/beta" */
-        strcpy(new_login_path, home);
-        strcat(new_login_path, ctx->initial_directory + 1);
+        login_path_len = snprintf(new_login_path, sizeof(new_login_path),
+                                  "%s%s", home,
+                                  ctx->initial_directory + 1);
       } else { /* Entry of form "beta" or "/full/path/alpha/beta" */
-        strcpy(new_login_path, ctx->initial_directory);
+        login_path_len = snprintf(new_login_path, sizeof(new_login_path), "%s",
+                                  ctx->initial_directory);
       }
-      for (i = 0; i < ctx->active->vol->total_dirs; i++) {
-        if (*new_login_path == FILE_SEPARATOR_CHAR)
-          GetPath(ctx->active->vol->dir_entry_list[i].dir_entry, new_name);
-        else
-          strcpy(new_name, ctx->active->vol->dir_entry_list[i].dir_entry->name);
-        if (!strcmp(new_login_path, new_name)) {
-          ctx->active->disp_begin_pos = i;
-          ctx->active->cursor_pos = 0;
-          unput_char = CR;
-          break;
+      if (login_path_len >= 0 &&
+          (size_t)login_path_len < sizeof(new_login_path)) {
+        for (i = 0; i < ctx->active->vol->total_dirs; i++) {
+          if (*new_login_path == FILE_SEPARATOR_CHAR) {
+            GetPath(ctx->active->vol->dir_entry_list[i].dir_entry, new_name);
+          } else {
+            (void)snprintf(
+                new_name, sizeof(new_name), "%s",
+                ctx->active->vol->dir_entry_list[i].dir_entry->name);
+          }
+          if (!strcmp(new_login_path, new_name)) {
+            ctx->active->disp_begin_pos = i;
+            ctx->active->cursor_pos = 0;
+            unput_char = CR;
+            break;
+          }
         }
       }
     }
@@ -1453,7 +1463,8 @@ int HandleDirWindow(ViewContext *ctx, const DirEntry *start_dir_entry) {
         char dummy_name[PATH_LENGTH + 1];
 
         /* Calculate Parent Directory of the Archive File */
-        strcpy(archive_path, s->login_path);
+        (void)snprintf(archive_path, sizeof(archive_path), "%s",
+                       s->login_path);
         Fnsplit(archive_path, parent_dir, dummy_name);
 
         /* Force Login/Switch to the Parent Directory */
@@ -2138,7 +2149,7 @@ int HandleDirWindow(ViewContext *ctx, const DirEntry *start_dir_entry) {
     case ACTION_LOGIN:
       if (ctx->view_mode != DISK_MODE && ctx->view_mode != USER_MODE) {
         if (getcwd(new_login_path, sizeof(new_login_path)) == NULL) {
-          strcpy(new_login_path, ".");
+          (void)snprintf(new_login_path, sizeof(new_login_path), "%s", ".");
         }
       } else {
         (void)GetPath(dir_entry, new_login_path);
