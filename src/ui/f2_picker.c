@@ -310,11 +310,11 @@ int KeyF2Get(ViewContext *ctx, YtreePanel *panel, char *path) {
                   new_login_path);
         } else {
           if (getcwd(new_login_path, sizeof(new_login_path)) == NULL)
-            strcpy(new_login_path, ".");
+            (void)snprintf(new_login_path, sizeof(new_login_path), "%s", ".");
         }
       } else {
         if (getcwd(new_login_path, sizeof(new_login_path)) == NULL)
-          strcpy(new_login_path, ".");
+          (void)snprintf(new_login_path, sizeof(new_login_path), "%s", ".");
       }
 
       if (!GetNewLoginPath(ctx, panel, new_login_path)) {
