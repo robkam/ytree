@@ -216,7 +216,14 @@ int MoveFile(ViewContext *ctx, FileEntry *fe_ptr, const char *to_file,
       /* FIX: Added +1 to allocation for null terminator */
       fen_ptr = (FileEntry *)xmalloc(sizeof(FileEntry) + strlen(to_file) + 1);
 
-      (void)strcpy(fen_ptr->name, to_file);
+      {
+        size_t name_capacity = strlen(to_file) + 1;
+        int written_name = snprintf(fen_ptr->name, name_capacity, "%s", to_file);
+        if (written_name < 0 || (size_t)written_name >= name_capacity) {
+          free(fen_ptr);
+          ESCAPE;
+        }
+      }
 
       (void)memcpy(&fen_ptr->stat_struct, &stat_struct, sizeof(stat_struct));
 

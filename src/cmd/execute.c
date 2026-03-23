@@ -162,7 +162,10 @@ int Execute(ViewContext *ctx, DirEntry *dir_entry, const FileEntry *file_entry,
       strncpy(substitution_name, file_entry->name, PATH_LENGTH);
     } else {
       /* In directory context, {} means the current dir "." */
-      strcpy(substitution_name, ".");
+      int written = snprintf(substitution_name, sizeof(substitution_name), "%s", ".");
+      if (written < 0 || (size_t)written >= sizeof(substitution_name)) {
+        return -1;
+      }
     }
     substitution_name[PATH_LENGTH] = '\0';
 
