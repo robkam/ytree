@@ -44,13 +44,17 @@ int GetDirEntry(const ViewContext *ctx, DirEntry *tree,
                 DirEntry *current_dir_entry, const char *dir_path,
                 DirEntry **dir_entry, char *to_path) {
   int result;
+  int written;
   char path[PATH_LENGTH + 1];
 
   *to_path = '\0';
   if (strcmp(dir_path, FILE_SEPARATOR_STRING)) {
     /* not ROOT */
     /*----------*/
-    (void)strcat(to_path, dir_path);
+    written = snprintf(to_path, PATH_LENGTH + 1, "%s", dir_path);
+    if (written < 0 || written > PATH_LENGTH) {
+      return -1;
+    }
   }
 
   if (*dir_path != FILE_SEPARATOR_CHAR) {
@@ -59,16 +63,34 @@ int GetDirEntry(const ViewContext *ctx, DirEntry *tree,
 
     (void)GetPath(current_dir_entry, path);
 
-    if (strcmp(path, FILE_SEPARATOR_STRING))
-      (void)strcat(path, FILE_SEPARATOR_STRING);
+    if (strcmp(path, FILE_SEPARATOR_STRING)) {
+      size_t path_len = strlen(path);
+      if (path_len + 1 >= sizeof(path)) {
+        return -1;
+      }
+      path[path_len++] = FILE_SEPARATOR_CHAR;
+      path[path_len] = '\0';
+    }
 
-    (void)strcat(path, dir_path);
-    (void)strcpy(to_path, path);
+    {
+      size_t path_len = strlen(path);
+      written = snprintf(path + path_len, sizeof(path) - path_len, "%s", dir_path);
+      if (written < 0 || (size_t)written >= (sizeof(path) - path_len)) {
+        return -1;
+      }
+    }
+    written = snprintf(to_path, PATH_LENGTH + 1, "%s", path);
+    if (written < 0 || written > PATH_LENGTH) {
+      return -1;
+    }
   } else {
     /* absolute path */
     /*---------------*/
 
-    (void)strcpy(path, dir_path);
+    written = snprintf(path, sizeof(path), "%s", dir_path);
+    if (written < 0 || (size_t)written >= sizeof(path)) {
+      return -1;
+    }
   }
 
   /*
