@@ -377,6 +377,45 @@ def test_inactive_dir_focus_survives_tab_away_and_back(tmp_path, ytree_binary):
     tui.quit()
 
 
+def test_split_refresh_updates_inactive_tree_file_list_without_tab(
+    tmp_path, ytree_binary
+):
+    root = tmp_path / "split_inactive_refresh_updates_tree_file_list"
+    root.mkdir()
+    left = root / "left_dir"
+    right = root / "right_dir"
+    left.mkdir()
+    right.mkdir()
+    (left / "left_old.txt").write_text("left\n", encoding="utf-8")
+    (right / "right_old.txt").write_text("right\n", encoding="utf-8")
+
+    tui = YtreeTUI(executable=ytree_binary, cwd=str(root))
+    time.sleep(0.8)
+
+    tui.send_keystroke(Keys.F8, wait=0.4)
+    tui.send_keystroke(Keys.TAB, wait=0.4)
+
+    # Right pane: select right_dir in tree mode so its small file list is visible.
+    tui.send_keystroke(Keys.DOWN, wait=0.25)
+    tui.send_keystroke(Keys.DOWN, wait=0.25)
+    assert "right_old.txt" in "\n".join(tui.get_screen_dump())
+
+    # Keep right pane inactive while refreshing from the left pane.
+    tui.send_keystroke(Keys.TAB, wait=0.35)
+    (right / "right_new.txt").write_text("new\n", encoding="utf-8")
+    time.sleep(0.1)
+    tui.send_keystroke(Keys.CTRL_L, wait=0.9)
+
+    screen = "\n".join(tui.get_screen_dump())
+    assert "right_new.txt" in screen, (
+        "Inactive split panel did not refresh its file list after external change.\n"
+        "The new file only appeared after switching panels.\n"
+        f"{screen}"
+    )
+
+    tui.quit()
+
+
 def test_split_tab_back_preserves_selected_file_index(tmp_path, ytree_binary):
     root = tmp_path / "split_file_selection_persistence"
     root.mkdir()
