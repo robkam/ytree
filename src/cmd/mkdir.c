@@ -193,7 +193,14 @@ static DirEntry *MakeDirEntry(const ViewContext *ctx, YtreePanel *panel,
     if (s)
       s->disk_total_directories++;
 
-    (void)strcpy(den_ptr->name, dir_name);
+    {
+      size_t name_capacity = strlen(dir_name) + 1;
+      int written = snprintf(den_ptr->name, name_capacity, "%s", dir_name);
+      if (written < 0 || (size_t)written >= name_capacity) {
+        free(den_ptr);
+        return NULL;
+      }
+    }
 
     if (STAT_(buffer, &stat_struct)) {
       /* ERROR_MSG( "Stat Failed*ABORT" ); */

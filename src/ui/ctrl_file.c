@@ -1322,7 +1322,12 @@ int HandleFileWindow(ViewContext *ctx, DirEntry *dir_entry) {
       if (ctx->view_mode != DISK_MODE && ctx->view_mode != USER_MODE) {
         if (realpath(to_dir, to_path) == NULL) {
           if (errno == ENOENT) {
-            strcpy(to_path, to_dir);
+            int copied_len = snprintf(to_path, sizeof(to_path), "%s", to_dir);
+            if (copied_len < 0 || (size_t)copied_len >= sizeof(to_path)) {
+              MESSAGE(ctx, "Invalid destination path*\"%s\"*path too long",
+                      to_dir);
+              break;
+            }
           } else {
             MESSAGE(ctx, "Invalid destination path*\"%s\"*%s", to_dir,
                     strerror(errno));
@@ -1439,7 +1444,14 @@ int HandleFileWindow(ViewContext *ctx, DirEntry *dir_entry) {
         int dir_create_mode = 0;
 
         if (*to_dir == FILE_SEPARATOR_CHAR) {
-          strcpy(abs_check_path, to_dir);
+          int copied_len =
+              snprintf(abs_check_path, sizeof(abs_check_path), "%s", to_dir);
+          if (copied_len < 0 ||
+              (size_t)copied_len >= sizeof(abs_check_path)) {
+            MESSAGE(ctx, "Invalid destination path*\"%s\"*path too long",
+                    to_dir);
+            break;
+          }
         } else {
           char current_dir[PATH_LENGTH + 1];
 
