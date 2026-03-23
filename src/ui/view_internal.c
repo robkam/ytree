@@ -38,6 +38,7 @@ static struct stat fdstat;
 static void hex_edit(ViewContext *ctx, char *file_path);
 static void printhexline(ViewContext *ctx, WINDOW *win, char *line, char *buf, int r,
                          long offset);
+static int append_bounded(char *dst, size_t dst_size, const char *src);
 static void update_line(ViewContext *ctx, WINDOW *win, long line);
 static void scroll_down(ViewContext *ctx, WINDOW *win);
 static void scroll_up(ViewContext *ctx, WINDOW *win);
@@ -50,10 +51,35 @@ static void change_char(ViewContext *ctx, int ch);
 static void move_right(ViewContext *ctx, WINDOW *win);
 static void DoResize(ViewContext *ctx, char *file_path);
 
+static int append_bounded(char *dst, size_t dst_size, const char *src) {
+  size_t used;
+  size_t src_len;
+  size_t copy_len;
+
+  if (dst_size == 0)
+    return -1;
+
+  used = strlen(dst);
+  if (used >= dst_size)
+    return -1;
+
+  src_len = strlen(src);
+  if (src_len >= (dst_size - used)) {
+    copy_len = dst_size - used - 1;
+    if (copy_len > 0)
+      memcpy(dst + used, src, copy_len);
+    dst[dst_size - 1] = '\0';
+    return -1;
+  }
+
+  memcpy(dst + used, src, src_len + 1);
+  return 0;
+}
+
 static void printhexline(ViewContext *ctx, WINDOW *win, char *line, char *buf, int r,
                          long offset) {
-  char *aux;
-  aux = (char *)xmalloc(ctx->viewer.wcols);
+  char aux[5];
+  int line_overflow = 0;
 
   if (r == 0) {
     wclrtoeol(win);
@@ -66,27 +92,35 @@ static void printhexline(ViewContext *ctx, WINDOW *win, char *line, char *buf, i
   }
   for (int i = 1; i <= r; i++) {
     if ((i == (ctx->viewer.bytes / 2)) || (i == ctx->viewer.bytes))
-      snprintf(aux, ctx->viewer.wcols, "%02X  ", (unsigned char)buf[i - 1]);
+      snprintf(aux, sizeof(aux), "%02X  ", (unsigned char)buf[i - 1]);
     else
-      snprintf(aux, ctx->viewer.wcols, "%02X ", (unsigned char)buf[i - 1]);
-    strcat(line, aux);
+      snprintf(aux, sizeof(aux), "%02X ", (unsigned char)buf[i - 1]);
+    if (!line_overflow &&
+        append_bounded(line, (size_t)ctx->viewer.wcols, aux) != 0) {
+      line_overflow = 1;
+    }
   }
   for (int i = r + 1; i <= ctx->viewer.bytes; i++) {
+    const char *padding;
+
     buf[i - 1] = ' ';
     if ((i == (ctx->viewer.bytes / 2)) || (i == ctx->viewer.bytes))
-      snprintf(aux, ctx->viewer.wcols, "    ");
+      padding = "    ";
     else
-      snprintf(aux, ctx->viewer.wcols, "   ");
-    strcat(line, aux);
+      padding = "   ";
+    if (!line_overflow &&
+        append_bounded(line, (size_t)ctx->viewer.wcols, padding) != 0) {
+      line_overflow = 1;
+    }
   }
   /*    strcat(line, " ");*/
-  line[strlen(line)] = ' ';
+  if (!line_overflow)
+    (void)append_bounded(line, (size_t)ctx->viewer.wcols, " ");
   for (int i = 0; i < ctx->viewer.wcols - ctx->viewer.bytes; i++)
     waddch(win, line[i] | THECOLOR);
   for (int i = 0; i < ctx->viewer.bytes; i++)
     isprint(buf[i]) ? waddch(win, buf[i] | THECOLOR)
                     : waddch(win, ACS_BLOCK | COLOR_PAIR(CPAIR_HIDIR));
-  free(aux);
   return;
 }
 

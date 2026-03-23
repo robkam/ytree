@@ -13,6 +13,31 @@
 static char last_preview_archive[PATH_LENGTH] = "";
 static char last_preview_internal[PATH_LENGTH] = "";
 
+static int append_bounded(char *dst, size_t dst_size, const char *src) {
+  size_t used;
+  size_t src_len;
+  size_t copy_len;
+
+  if (dst_size == 0)
+    return -1;
+
+  used = strlen(dst);
+  if (used >= dst_size)
+    return -1;
+
+  src_len = strlen(src);
+  if (src_len >= (dst_size - used)) {
+    copy_len = dst_size - used - 1;
+    if (copy_len > 0)
+      memcpy(dst + used, src, copy_len);
+    dst[dst_size - 1] = '\0';
+    return -1;
+  }
+
+  memcpy(dst + used, src, src_len + 1);
+  return 0;
+}
+
 void RenderFilePreview(ViewContext *ctx, WINDOW *win, char *filename,
                        long *line_offset_ptr, int col_offset) {
   int fd;
@@ -86,19 +111,28 @@ void RenderFilePreview(ViewContext *ctx, WINDOW *win, char *filename,
 
       char hex_part[64] = "";
       char asc_part[17] = "";
+      int hex_overflow = 0;
 
       /* Build Hex and ASCII Parts */
       for (i = 0; i < 16; i++) {
         if (i < nread) {
           char tmp[4];
-          snprintf(tmp, sizeof(tmp), "%02X ", hexbuf[i]);
-          strcat(hex_part, tmp);
+          if (snprintf(tmp, sizeof(tmp), "%02X ", hexbuf[i]) < 0) {
+            hex_overflow = 1;
+          }
+          if (!hex_overflow &&
+              append_bounded(hex_part, sizeof(hex_part), tmp) != 0) {
+            hex_overflow = 1;
+          }
           if (isprint(hexbuf[i]))
             asc_part[i] = hexbuf[i];
           else
             asc_part[i] = '.';
         } else {
-          strcat(hex_part, "   ");
+          if (!hex_overflow &&
+              append_bounded(hex_part, sizeof(hex_part), "   ") != 0) {
+            hex_overflow = 1;
+          }
           asc_part[i] = ' ';
         }
       }
