@@ -47,6 +47,7 @@ int RenameDirectory(ViewContext *ctx, DirEntry *de_ptr, const char *new_name) {
   struct stat stat_struct;
   int result;
   const char *cptr;
+  size_t new_name_len;
   int len;
 
   result = -1;
@@ -106,11 +107,12 @@ int RenameDirectory(ViewContext *ctx, DirEntry *de_ptr, const char *new_name) {
     }
 
     /* FIX: Added +1 to allocation for null terminator */
-    den_ptr = (DirEntry *)xmalloc(sizeof(DirEntry) + strlen(new_name) + 1);
+    new_name_len = strlen(new_name);
+    den_ptr = (DirEntry *)xmalloc(sizeof(DirEntry) + new_name_len + 1);
 
     (void)memcpy(den_ptr, de_ptr, sizeof(DirEntry));
 
-    (void)strcpy(den_ptr->name, new_name);
+    (void)memcpy(den_ptr->name, new_name, new_name_len + 1);
 
     (void)memcpy(&den_ptr->stat_struct, &stat_struct, sizeof(stat_struct));
 
@@ -164,6 +166,7 @@ int RenameFile(ViewContext *ctx, FileEntry *fe_ptr, const char *new_name,
   char parent_path[PATH_LENGTH + 1];
   struct stat stat_struct;
   int result;
+  size_t new_name_len;
   int len;
 
   result = -1;
@@ -214,11 +217,12 @@ int RenameFile(ViewContext *ctx, FileEntry *fe_ptr, const char *new_name,
     }
 
     /* FIX: Added +1 to allocation for null terminator */
-    fen_ptr = (FileEntry *)xmalloc(sizeof(FileEntry) + strlen(new_name) + 1);
+    new_name_len = strlen(new_name);
+    fen_ptr = (FileEntry *)xmalloc(sizeof(FileEntry) + new_name_len + 1);
 
     (void)memcpy(fen_ptr, fe_ptr, sizeof(FileEntry));
 
-    (void)strcpy(fen_ptr->name, new_name);
+    (void)memcpy(fen_ptr->name, new_name, new_name_len + 1);
 
     (void)memcpy(&fen_ptr->stat_struct, &stat_struct, sizeof(stat_struct));
 
