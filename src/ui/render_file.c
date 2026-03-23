@@ -500,7 +500,13 @@ void PrintFileEntry(ViewContext *ctx, YtreePanel *panel, int entry_no, int y,
     if ((int)strlen(fe_ptr->name) > max_w) {
       CutFilename(display_name, fe_ptr->name, max_w);
     } else {
-      strcpy(display_name, fe_ptr->name);
+      int copied_len =
+          snprintf(display_name, sizeof(display_name), "%s", fe_ptr->name);
+      if (copied_len < 0) {
+        display_name[0] = '\0';
+      } else if ((size_t)copied_len >= sizeof(display_name)) {
+        display_name[sizeof(display_name) - 1] = '\0';
+      }
     }
 
     /* Highlight only the name */
