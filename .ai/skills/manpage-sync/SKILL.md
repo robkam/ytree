@@ -26,3 +26,4 @@ Use this skill when commands, options, keybindings, or user-facing behavior docs
 - No direct manual edits to `doc/USAGE.md` without regenerating.
 - Options/commands in docs match implemented behavior.
 - Prompt/menu labels are consistent with current UI text.
+- Documentation placement is audience-relevant and non-duplicative; avoid scattering the same guidance across unrelated sections.

@@ -175,9 +175,21 @@ The project enforces strict architectural constraints (single-threaded event loo
 
 1.  **Fork the repository** on GitHub.
 2.  **Create a new branch** for your feature or bugfix (`git checkout -b feature/my-new-feature`).
-3.  **Make your changes** and commit them with a clear, declarative commit message.
+3.  **Make your changes** and commit them using **Conventional Commits** (`type(scope): summary`).
+    Keep the message specific to the change and use scopes that match the area touched.
+    Examples:
+    - `fix(ui): keep active pane selection after volume cycle`
+    - `docs(ai): clarify planner/executor packet handoff rules`
+    - `test(pytest): add regression for split-pane redraw ordering`
 4.  **Push your branch** to your fork (`git push origin feature/my-new-feature`).
 5.  **Open a Pull Request** against the `main` branch of the upstream ytree repository.
+
+### Bugfix Gate (Red -> Green)
+
+For bug fixes, include strict red-green evidence in the PR:
+- Add or adjust a regression test first.
+- Demonstrate that the regression test fails on current code before implementation changes.
+- After implementing the fix, re-run and show that the regression test is green.
 
 ## Coding Style
 
@@ -213,8 +225,6 @@ Also note: `Ctrl+Shift+<letter>` is not distinct from `Ctrl+<letter>` in termina
 Preferred bindings that generally avoid conflicts:
 `^A` (Home), `^B`, `^E` (End), `^F`, `^G`, `^K`, `^L` (Redraw), `^N`, `^O`, `^P`, `^R`, `^T`, `^U`, `^V`, `^W`, `^X`, `^Y`.
 
-For AI-agent keybinding validation workflow, see `keybinding-collision-check` under `.ai/skills/` and **[ai/WORKFLOW.md](ai/WORKFLOW.md)**.
-
 ### Rendering
 
 When working with ncurses rendering, follow these rules:
@@ -223,5 +233,3 @@ When working with ncurses rendering, follow these rules:
 3.  Use `wattron()`/`wattroff()` for line-level styling.
 
 These three rules prevent flicker, color bleed, and inconsistent redraw behavior.
-
-For AI-agent execution details and automated checks, see **[ai/WORKFLOW.md](ai/WORKFLOW.md)** and the `ncurses-render-safety` skill under `.ai/skills/`.

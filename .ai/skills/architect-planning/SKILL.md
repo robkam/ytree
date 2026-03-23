@@ -36,3 +36,4 @@ Use this skill when the active persona is `architect`.
 - Keep architecture stable and deterministic.
 - If critical context is missing, request only the specific file or behavior detail needed.
 - UX economy gate is mandatory: target `key -> Enter -> result` and no more than one submenu on common path unless justified with equivalent fast path.
+- Documentation signal rule: plan doc changes only in the most relevant canonical section/file for the target reader; avoid broadcasting AI/process notes across unrelated sections.

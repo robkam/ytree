@@ -86,6 +86,7 @@ These instructions apply to all AI agents used in this repository.
 12. Audit cadence is mandatory: rerun the full audit loop for every feature-sized change, every major change, and every PR update; do not treat auditing as optional or release-only.
 13. UX economy gate is mandatory for interactive flows: common path should be `key -> Enter -> result` with at most one submenu. Any flow requiring more than one submenu must include explicit justification and an equivalent fast path.
 14. QA remediation gate is mandatory: fix root causes, do not patch around failing checks. Do not change tests solely to force a pass unless the test is demonstrably wrong against spec. Do not add local suppressions/skips/xfails as a shortcut; if a temporary suppression is the only safe short-term option, discuss with the user first and get explicit approval.
+15. Documentation signal-to-noise is mandatory: add or update guidance only in the most relevant canonical location for that audience; avoid duplicating AI/process notes across unrelated docs or sections unless uniquely necessary in that local context.
 
 ## Source Comment Contract
 
