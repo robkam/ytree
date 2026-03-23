@@ -43,6 +43,7 @@ int MoveFile(ViewContext *ctx, FileEntry *fe_ptr, const char *to_file,
   char from_dir[PATH_LENGTH + 1];
   int force = 1; /* Force delete for overwrite */
   int conflict_res;
+  int written;
 
   /* Context-Aware Variables */
   struct Volume *target_vol = NULL;
@@ -55,20 +56,30 @@ int MoveFile(ViewContext *ctx, FileEntry *fe_ptr, const char *to_file,
   de_ptr = fe_ptr->dir_entry;
 
   (void)GetPath(de_ptr, from_dir); /* Get clean source directory path */
-  (void)strcpy(from_path, from_dir);
-  (void)strcat(from_path, FILE_SEPARATOR_STRING);
-  (void)strcat(from_path, fe_ptr->name);
+  written = snprintf(from_path, sizeof(from_path), "%s%s%s", from_dir,
+                     FILE_SEPARATOR_STRING, fe_ptr->name);
+  if (written < 0 || (size_t)written >= sizeof(from_path)) {
+    return -1;
+  }
 
   /* Construct base destination path */
-  (void)strcpy(to_path, to_dir_path);
-  (void)strcat(to_path, FILE_SEPARATOR_STRING);
+  written = snprintf(to_path, sizeof(to_path), "%s%s", to_dir_path,
+                     FILE_SEPARATOR_STRING);
+  if (written < 0 || (size_t)written >= sizeof(to_path)) {
+    return -1;
+  }
 
   /* Handle relative path: make absolute based on source directory */
   if (*to_path != FILE_SEPARATOR_CHAR) {
-    strcpy(abs_path, from_dir);
-    strcat(abs_path, FILE_SEPARATOR_STRING);
-    strcat(abs_path, to_path);
-    strcpy(to_path, abs_path);
+    written = snprintf(abs_path, sizeof(abs_path), "%s%s%s", from_dir,
+                       FILE_SEPARATOR_STRING, to_path);
+    if (written < 0 || (size_t)written >= sizeof(abs_path)) {
+      return -1;
+    }
+    written = snprintf(to_path, sizeof(to_path), "%s", abs_path);
+    if (written < 0 || (size_t)written >= sizeof(to_path)) {
+      return -1;
+    }
   }
 
   /* Identify Target Volume */
@@ -100,7 +111,16 @@ int MoveFile(ViewContext *ctx, FileEntry *fe_ptr, const char *to_file,
     /* if (created) refresh_dirwindow = TRUE; */
   }
 
-  (void)strcat(to_path, to_file);
+  {
+    size_t to_path_len = strlen(to_path);
+    written =
+        snprintf(to_path + to_path_len, sizeof(to_path) - to_path_len, "%s",
+                 to_file);
+    if (written < 0 ||
+        (size_t)written >= (sizeof(to_path) - to_path_len)) {
+      return -1;
+    }
+  }
 
   if (!strcmp(to_path, from_path)) {
     /* MESSAGE( "Can't move file into itself" ); */

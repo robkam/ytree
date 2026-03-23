@@ -33,9 +33,13 @@ static int ExecuteArchiveFile(ViewContext *ctx, DirEntry *dir_entry,
   char dir_path[PATH_LENGTH];
   int fd_tmp;
   int result = -1;
+  int written;
 
   /* 1. Create Temporary File */
-  strcpy(temp_path, "/tmp/ytree_XXXXXX");
+  written = snprintf(temp_path, sizeof(temp_path), "%s", "/tmp/ytree_XXXXXX");
+  if (written < 0 || (size_t)written >= sizeof(temp_path)) {
+    return -1;
+  }
   fd_tmp = mkstemp(temp_path);
   if (fd_tmp == -1) {
     return -1;
@@ -46,6 +50,8 @@ static int ExecuteArchiveFile(ViewContext *ctx, DirEntry *dir_entry,
     char internal_path[PATH_LENGTH];
     char root_path[PATH_LENGTH + 1];
     char relative_path[PATH_LENGTH + 1];
+    const char *relative_source;
+    size_t relative_len;
 
     GetPath(file_entry->dir_entry, dir_path);
 
@@ -56,18 +62,46 @@ static int ExecuteArchiveFile(ViewContext *ctx, DirEntry *dir_entry,
       char *ptr = dir_path + strlen(root_path);
       if (*ptr == FILE_SEPARATOR_CHAR)
         ptr++;
-      strcpy(relative_path, ptr);
+      relative_source = ptr;
     } else {
-      strcpy(relative_path, dir_path);
+      relative_source = dir_path;
     }
 
-    if (relative_path[0] != '\0' &&
-        relative_path[strlen(relative_path) - 1] != FILE_SEPARATOR_CHAR) {
-      strcat(relative_path, FILE_SEPARATOR_STRING);
+    written = snprintf(relative_path, sizeof(relative_path), "%s", relative_source);
+    if (written < 0 || (size_t)written >= sizeof(relative_path)) {
+      close(fd_tmp);
+      unlink(temp_path);
+      return -1;
     }
-    strcat(relative_path, file_entry->name);
+    relative_len = (size_t)written;
 
-    strcpy(internal_path, relative_path);
+    if (relative_len > 0 &&
+        relative_path[relative_len - 1] != FILE_SEPARATOR_CHAR) {
+      if (relative_len + 1 >= sizeof(relative_path)) {
+        close(fd_tmp);
+        unlink(temp_path);
+        return -1;
+      }
+      relative_path[relative_len++] = FILE_SEPARATOR_CHAR;
+      relative_path[relative_len] = '\0';
+    }
+
+    written = snprintf(relative_path + relative_len,
+                       sizeof(relative_path) - relative_len, "%s",
+                       file_entry->name);
+    if (written < 0 ||
+        (size_t)written >= (sizeof(relative_path) - relative_len)) {
+      close(fd_tmp);
+      unlink(temp_path);
+      return -1;
+    }
+
+    written = snprintf(internal_path, sizeof(internal_path), "%s", relative_path);
+    if (written < 0 || (size_t)written >= sizeof(internal_path)) {
+      close(fd_tmp);
+      unlink(temp_path);
+      return -1;
+    }
 
     if (ExtractArchiveEntry(s->login_path, internal_path, fd_tmp, cb, NULL) !=
         0) {
