@@ -26,6 +26,23 @@
 static char move_prompt_header[PATH_LENGTH + 50];
 static char move_prompt_as[PATH_LENGTH + 1];
 
+static void CopyBoundedString(char *dst, size_t dst_size, const char *src) {
+  int written;
+
+  if (!dst || dst_size == 0)
+    return;
+
+  if (!src)
+    src = "";
+
+  written = snprintf(dst, dst_size, "%s", src);
+  if (written < 0) {
+    dst[0] = '\0';
+  } else if ((size_t)written >= dst_size) {
+    dst[dst_size - 1] = '\0';
+  }
+}
+
 static void DrawSortPrompt(ViewContext *ctx, WINDOW *win, BOOL ascending) {
   int y0;
 
@@ -278,9 +295,9 @@ int GetMoveParameter(ViewContext *ctx, const char *from_file, char *to_file,
                      char *to_dir) {
   if (from_file == NULL) {
     from_file = "TAGGED FILES";
-    (void)strcpy(to_file, "*");
+    CopyBoundedString(to_file, PATH_LENGTH + 1, "*");
   } else {
-    (void)strcpy(to_file, from_file);
+    CopyBoundedString(to_file, PATH_LENGTH + 1, from_file);
   }
 
   (void)snprintf(move_prompt_header, sizeof(move_prompt_header), "MOVE: %s",
@@ -311,7 +328,7 @@ int GetMoveParameter(ViewContext *ctx, const char *from_file, char *to_file,
     if (UI_ReadString(ctx, ctx->active, "To Directory:", to_dir, PATH_LENGTH,
                       HST_PATH) == CR) {
       if (to_dir[0] == '\0') {
-        strcpy(to_dir, ".");
+        CopyBoundedString(to_dir, PATH_LENGTH + 1, ".");
       }
       return (0);
     }
@@ -326,9 +343,9 @@ int GetCopyParameter(ViewContext *ctx, const char *from_file, BOOL path_copy,
 
   if (from_file == NULL) {
     from_file = "TAGGED FILES";
-    (void)strcpy(to_file, "*");
+    CopyBoundedString(to_file, PATH_LENGTH + 1, "*");
   } else {
-    (void)strcpy(to_file, from_file);
+    CopyBoundedString(to_file, PATH_LENGTH + 1, from_file);
   }
 
   if (path_copy) {
@@ -359,7 +376,7 @@ int GetCopyParameter(ViewContext *ctx, const char *from_file, BOOL path_copy,
     if (UI_ReadString(ctx, ctx->active, "To Directory:", to_dir, PATH_LENGTH,
                       HST_PATH) == CR) {
       if (to_dir[0] == '\0') {
-        strcpy(to_dir, ".");
+        CopyBoundedString(to_dir, PATH_LENGTH + 1, ".");
       }
       return (0);
     }
@@ -1010,7 +1027,7 @@ int GetRenameParameter(ViewContext *ctx, const char *old_name, char *new_name) {
     prompt = "RENAME TO:";
   }
 
-  (void)strcpy(new_name, (old_name) ? old_name : "*");
+  CopyBoundedString(new_name, PATH_LENGTH + 1, (old_name) ? old_name : "*");
 
   if (UI_ReadString(ctx, ctx->active, prompt, new_name, PATH_LENGTH,
                     HST_FILE) != CR)
@@ -1103,7 +1120,7 @@ int UI_GetDateChangeSpec(ViewContext *ctx, time_t *new_time, int *scope_mask) {
     break;
   }
 
-  (void)strcpy(display_time, "1970-01-01 00:00:00");
+  CopyBoundedString(display_time, sizeof(display_time), "1970-01-01 00:00:00");
   tm_ptr = localtime(&base_time);
   if (tm_ptr) {
     (void)strftime(display_time, sizeof(display_time), "%Y-%m-%d %H:%M:%S",
@@ -1167,7 +1184,9 @@ int ChangeFileModus(ViewContext *ctx, FileEntry *fe_ptr) {
       wnoutrefresh(ctx->ctx_border_window);
       return -1;
     }
-    (void)strcpy(walking_package.function_data.change_mode.new_mode, parsed_mode);
+    CopyBoundedString(walking_package.function_data.change_mode.new_mode,
+                      sizeof(walking_package.function_data.change_mode.new_mode),
+                      parsed_mode);
     result = SetFileModus(ctx, fe_ptr, &walking_package);
   }
 
@@ -1203,7 +1222,9 @@ int ChangeDirModus(ViewContext *ctx, DirEntry *de_ptr) {
       wnoutrefresh(ctx->ctx_border_window);
       return -1;
     }
-    (void)strcpy(walking_package.function_data.change_mode.new_mode, parsed_mode);
+    CopyBoundedString(walking_package.function_data.change_mode.new_mode,
+                      sizeof(walking_package.function_data.change_mode.new_mode),
+                      parsed_mode);
     result = SetDirModus(de_ptr, &walking_package);
   }
 
@@ -1250,7 +1271,7 @@ int GetNewOwner(ViewContext *ctx, int st_uid) {
   if (owner_name_ptr == NULL) {
     (void)snprintf(owner, sizeof(owner), "%d", id);
   } else {
-    (void)strcpy(owner, owner_name_ptr);
+    CopyBoundedString(owner, sizeof(owner), owner_name_ptr);
   }
 
   ClearHelp(ctx);
@@ -1283,7 +1304,7 @@ int GetNewGroup(ViewContext *ctx, int st_gid) {
   if (group_name_ptr == NULL) {
     (void)snprintf(group, sizeof(group), "%d", id);
   } else {
-    (void)strcpy(group, group_name_ptr);
+    CopyBoundedString(group, sizeof(group), group_name_ptr);
   }
 
   ClearHelp(ctx);
@@ -1478,14 +1499,15 @@ int UI_ReadFilter(ViewContext *ctx) {
 
   ClearHelp(ctx);
   /* Pre-fill with current filter value */
-  (void)strcpy(buffer, ctx->active->vol->vol_stats.file_spec);
+  CopyBoundedString(buffer, sizeof(buffer), ctx->active->vol->vol_stats.file_spec);
 
   if (UI_ReadString(ctx, ctx->active, "FILTER:", buffer, FILE_SPEC_LENGTH,
                     HST_FILTER) == CR) {
     if (SetFilter(buffer, &ctx->active->vol->vol_stats)) {
       UI_Message(ctx, "Invalid Filter Spec");
     } else {
-      (void)strcpy(ctx->active->vol->vol_stats.file_spec, buffer);
+      CopyBoundedString(ctx->active->vol->vol_stats.file_spec,
+                        sizeof(ctx->active->vol->vol_stats.file_spec), buffer);
       result = 0;
     }
   }
