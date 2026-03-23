@@ -1,9 +1,7 @@
 # Repository Conventionalization Baseline
 
 ## Scope Note and Drift Observation
-Packet 1 requests a compliance matrix against "Master Brief" sections 1-11. No in-repo file explicitly named or labeled "Master Brief" was found during repository scan. For this baseline, sections 1-11 are mapped to the in-repo normative proxy: `.ai/shared.md` "Core Engineering Rules" items 1-11 (`.ai/shared.md:75-85`).
-
-This is a packet-assumption drift condition and is reflected in `report1.txt` final status.
+Packet 1 requests a compliance matrix against "Master Brief" sections 1-11. The repository contains source-of-truth brief artifacts at `/home/rob/ytree/master_brief_minimal.txt` and `/home/rob/ytree/doc/ai/MASTER_BRIEF.md`. This baseline preserves the original matrix body and uses the in-repo normative proxy mapping to `.ai/shared.md` "Core Engineering Rules" items 1-11 (`.ai/shared.md:75-85`) as captured in the initial analysis.
 
 ## 1. Existing Assets Inventory
 
@@ -72,51 +70,49 @@ This is a packet-assumption drift condition and is reflected in `report1.txt` fi
 | 5 | Do not guess behavior; consult docs before architecture changes | fully satisfied | Policy (`.ai/shared.md:79`), anti-guessing debug rule (`doc/ai/WORKFLOW.md:215-220`), contributor doc points to canonical workflow/spec references (`doc/CONTRIBUTING.md:5-8`, `.ai/shared.md:106-117`). |
 | 6 | Keep changes scoped to requested task | fully satisfied | Policy (`.ai/shared.md:80`), atomic mission rule (`doc/ai/WORKFLOW.md:25`), contributor guidance for small focused PRs (`doc/CONTRIBUTING.md:163`). |
 | 7 | Prefer MCP semantic/navigation tools over broad file loading | fully satisfied | Policy (`.ai/shared.md:81`), semantic context requirement (`doc/ai/WORKFLOW.md:200`), token-economy targeted retrieval guidance (`doc/ai/WORKFLOW.md:244-255`). |
-| 8 | Use Conventional Commits style for commit messages | partially satisfied | Requirement is explicit in AI shared policy (`.ai/shared.md:82`), but contributor-facing submission doc only requires "clear, declarative" message (`doc/CONTRIBUTING.md:167`) and does not restate Conventional Commit format. |
+| 8 | Use Conventional Commits style for commit messages | fully satisfied | Requirement is explicit in AI shared policy (`.ai/shared.md:82`) and mirrored in contributor submission instructions with required format and examples (`doc/CONTRIBUTING.md:178-183`). |
 | 9 | Minor corrections should amend previous commit when same logical unit | fully satisfied | Explicitly defined in shared policy (`.ai/shared.md:83`) and workflow (`doc/ai/WORKFLOW.md:31`). |
 | 10 | Treat user goals as authoritative but challenge weak/nonstandard details | fully satisfied | Explicit in shared policy (`.ai/shared.md:84`) and expanded convention-check behavior (`doc/ai/WORKFLOW.md:34-50`). |
-| 11 | Strict bugfix red-green: failing regression first, then fix, then green proof | partially satisfied | Explicit in shared policy (`.ai/shared.md:85`), workflow (`doc/ai/WORKFLOW.md:220`), and bugfix skill (`.ai/skills/bugfix-red-green-proof/SKILL.md:12-16`); contributor-facing top-level docs do not consistently surface this as a universal bugfix gate. |
+| 11 | Strict bugfix red-green: failing regression first, then fix, then green proof | fully satisfied | Explicit in shared policy (`.ai/shared.md:85`), workflow (`doc/ai/WORKFLOW.md:220`), bugfix skill (`.ai/skills/bugfix-red-green-proof/SKILL.md:12-16`), and contributor-facing bugfix gate requirements (`doc/CONTRIBUTING.md:187-193`). |
 
 ### Matrix Totals
-- fully satisfied: 7
-- partially satisfied: 3
+- fully satisfied: 9
+- partially satisfied: 1
 - missing: 1
 
 ## 3. Prioritized Gap List
 
 ### P0 (must-fix)
-- Missing in-repo "Master Brief" artifact with explicit sections 1-11; baseline currently relies on inferred proxy mapping, creating governance drift.
 - Shared Rule #2 is violated broadly by current code (`strcpy`/`strcat`/`sprintf` occurrences in runtime C paths), leaving policy-to-code mismatch.
 
 ### P1 (important)
-- Conventional Commits requirement exists in AI policy but is not mirrored in contributor submission instructions (`doc/CONTRIBUTING.md`).
-- Strict red-green bugfix gate is strong in AI docs/skills but not equally explicit in contributor-facing non-AI process docs.
-- Provider adapter asymmetry: `AGENTS.md` carries richer operational constraints than `CLAUDE.md`/`GEMINI.md`, increasing drift risk across providers.
+- No open P1 governance gaps remain from packets 2-4 reconciliation; prior gaps for Master Brief presence, contributor Conventional Commits guidance, red-green contributor gate wording, and provider root-stub shared metadata parity are now resolved (`doc/ai/MASTER_BRIEF.md:1-170`, `doc/CONTRIBUTING.md:178-193`, `AGENTS.md:3-47`, `CLAUDE.md:3-46`, `GEMINI.md:3-46`).
 
 ### P2 (polish/optimization)
-- No single "AI governance index" document that maps stubs -> canonical provider files -> shared policy -> skills in one page.
-- No lightweight automated lint/check to detect policy drift between root stubs and canonical `.ai/*` provider files.
+- Governance index gap is resolved: `doc/ai/GOVERNANCE_INDEX.md` now provides a canonical map for root stubs, provider files, shared policy, persona/skill separation, and edit-target ownership (`doc/ai/GOVERNANCE_INDEX.md:1-64`), and `doc/ai/WORKFLOW.md` now points to it directly (`doc/ai/WORKFLOW.md:4`).
+- Governance drift-check gap is resolved: `scripts/check_ai_governance_drift.py` now enforces stub invariants (provider pointer, shared pointer, docs-note line, persona markers, UX/QA gate markers) across `AGENTS.md`, `CLAUDE.md`, and `GEMINI.md` (`scripts/check_ai_governance_drift.py:21-87`).
 
 ## 4. First-Pass Migration Sequence
 
-1. Establish canonical Master Brief artifact (`doc/ai/MASTER_BRIEF.md`) with explicit sections 1-11 and normative ownership.
-Dependency/order rationale: smallest safe first step; unblocks unambiguous compliance scoring.
+1. Establish canonical Master Brief artifact (`doc/ai/MASTER_BRIEF.md`) with explicit sections 1-11 and normative ownership. **Completed.**
+Completion note: canonical in-repo brief exists and is populated for sections 1-11 (`doc/ai/MASTER_BRIEF.md:1-170`).
 Rollback: remove new file and revert references if structure/content is disputed.
 
-2. Align contributor-facing governance wording with canonical policy (Conventional Commits + red-green bugfix gate) in `doc/CONTRIBUTING.md` and cross-link to `doc/ai/WORKFLOW.md`.
-Dependency/order rationale: depends on Step 1 canonical wording; prevents duplicate/contradictory language.
+2. Align contributor-facing governance wording with canonical policy (Conventional Commits + red-green bugfix gate) in `doc/CONTRIBUTING.md` and cross-link to `doc/ai/WORKFLOW.md`. **Completed.**
+Completion note: contributor submission section now requires Conventional Commits and includes examples; bugfix gate now requires fail-before-fix and post-fix green proof (`doc/CONTRIBUTING.md:178-193`).
 Rollback: revert doc edits only; no runtime impact.
 
-3. Normalize provider adapter parity: keep root stubs minimal and ensure all provider-specific details live in `.ai/{codex,claude,gemini}.md` with shared critical constraints synchronized.
-Dependency/order rationale: after policy wording is settled, adapter files can be harmonized once.
+3. Normalize provider adapter parity: keep root stubs minimal and ensure all provider-specific details live in `.ai/{codex,claude,gemini}.md` with shared critical constraints synchronized. **Completed for shared metadata parity.**
+Completion note: root stubs now mirror shared discovery metadata (canonical pointer, shared pointer, docs note, persona/skill mappings, UX/QA gates) across providers; Codex-only pytest host-permission note remains an intentional provider-specific operational detail (`AGENTS.md:3-47`, `CLAUDE.md:3-46`, `GEMINI.md:3-46`).
 Rollback: restore previous stub/provider docs from git if external tooling depends on current phrasing.
 
 4. Create and execute a safe-string migration plan for runtime C code (replace `strcpy/strcat/sprintf` with bounded APIs and helper wrappers), with staged regression coverage.
 Dependency/order rationale: policy and documentation must be stable first; runtime hardening then proceeds module-by-module.
 Rollback: revert module-level migrations independently; preserve tests introduced for each converted module.
 
-5. Add a lightweight docs/policy drift check (CI or local script) to verify stub pointers, provider parity, and core policy anchors.
-Dependency/order rationale: guardrail added after normalization to keep future drift low.
+5. Add a lightweight docs/policy drift check (CI or local script) to verify stub pointers, provider parity, and core policy anchors, with governance index anchoring for canonical edit targets. **Completed.**
+Completion note: governance index is present (`doc/ai/GOVERNANCE_INDEX.md:1-64`), workflow now links to it (`doc/ai/WORKFLOW.md:4`), and drift check script exists with concrete invariant checks for root stubs (`scripts/check_ai_governance_drift.py:21-87`).
+Dependency/order rationale: guardrail and canonical index now operate together to keep future drift low after normalization.
 Rollback: disable/remove check if false positives block workflow; keep core docs unchanged.
 
 ## 5. Explicit Preserve-As-Is List
@@ -124,4 +120,4 @@ Rollback: disable/remove check if false positives block workflow; keep core docs
 - Keep persona/skill separation (`.agent/rules/*` for role boundaries, `.ai/skills/*` for procedures); this is clear and maintainable.
 - Keep cross-cutting skill auto-load mapping structure; it encodes operational gates effectively.
 - Keep `doc/ai/WORKFLOW.md` as the detailed execution contract and `doc/AUDIT.md` as canonical gate procedure.
-- Keep root discovery-stub pattern (`AGENTS.md`, `CLAUDE.md`, `GEMINI.md`) that points to canonical `.ai/*` files; only reduce asymmetry/drift.
+- Keep root discovery-stub pattern (`AGENTS.md`, `CLAUDE.md`, `GEMINI.md`) that points to canonical `.ai/*` files; preserve shared metadata parity and keep provider-specific exceptions explicit.
