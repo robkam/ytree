@@ -99,7 +99,8 @@ QA_LOG ?= qa-all.log
 # Rules
 # -------------------------------------------------------------------------
 
-.PHONY: all clean clobber install uninstall docs changelog-draft hooks-install hooks-status test \
+.PHONY: all clean clobber install uninstall docs changelog-draft hooks-install hooks-status \
+	git-aliases-install git-aliases-status test \
 	test-v qa-clang qa-cppcheck qa-scan qa-valgrind qa-valgrind-interactive \
 	qa-pytest qa-all \
 	qa-all-log
@@ -163,11 +164,22 @@ changelog-draft:
 
 hooks-install:
 	git config core.hooksPath .githooks
+	$(MAKE_CMD) git-aliases-install
 	chmod +x .githooks/pre-push
-	@echo "Git hooks installed from .githooks/ (core.hooksPath=.githooks)"
+	@echo "Git hooks installed from .githooks/ (core.hooksPath=.githooks)."
+	@echo "Git aliases installed: push-fast, push-fast-up"
 
 hooks-status:
 	@echo "core.hooksPath=$$(git config --get core.hooksPath || echo .git/hooks)"
+	$(MAKE_CMD) git-aliases-status
+
+git-aliases-install:
+	git config --local alias.push-fast '!f(){ YTREE_PRE_PUSH_FAST=1 git push "$$@"; }; f'
+	git config --local alias.push-fast-up '!f(){ branch=$$(git rev-parse --abbrev-ref HEAD); YTREE_PRE_PUSH_FAST=1 git push -u origin "$$branch" "$$@"; }; f'
+
+git-aliases-status:
+	@echo "alias.push-fast=$$(git config --local --get alias.push-fast || echo '<not set>')"
+	@echo "alias.push-fast-up=$$(git config --local --get alias.push-fast-up || echo '<not set>')"
 
 # Clean build artifacts
 clean:

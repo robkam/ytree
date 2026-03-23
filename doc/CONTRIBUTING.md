@@ -52,10 +52,21 @@ This installs a tracked pre-push gate:
 - Default on all branches: run `make` and `TERM=xterm pytest -q -ra --tb=no`.
 - Explicit fast bypass on non-`main` branches: `YTREE_PRE_PUSH_FAST=1 git push` (runs `make` only).
 - `main` is always full-gate; fast bypass is ignored on `main`.
+
+`make hooks-install` also installs repo-local git aliases so fast push is available as native git subcommands in this clone:
+- `git push-fast` -> fast push for an already-tracked branch.
+- `git push-fast-up` -> fast push with `-u origin <current-branch>` for first push of a new branch.
+
 To inspect current hook configuration:
 
 ```bash
 make hooks-status
+```
+
+To inspect alias installation state:
+
+```bash
+git config --local --get-regexp '^alias\\.push-fast'
 ```
 
 ### 4. Branch and Merge Gate Policy (Required)
