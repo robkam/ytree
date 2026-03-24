@@ -102,7 +102,7 @@ QA_LOG ?= qa-all.log
 .PHONY: all clean clobber install uninstall docs changelog-draft hooks-install hooks-status \
 	git-aliases-install git-aliases-status test \
 	test-v qa-clang qa-cppcheck qa-scan qa-valgrind qa-valgrind-interactive \
-	qa-pytest qa-all \
+	qa-pytest qa-unsafe-apis qa-all \
 	qa-all-log
 
 all: $(MAIN_BIN) $(MANPAGE) $(if $(filter 1,$(QA_ON_BUILD)),qa-all)
@@ -234,7 +234,10 @@ qa-valgrind-interactive:
 qa-pytest: $(MAIN_BIN)
 	TERM=$${TERM:-xterm} $(PYTEST)
 
-qa-all: qa-clang qa-cppcheck qa-scan qa-valgrind qa-pytest
+qa-unsafe-apis:
+	python3 scripts/check_c_unsafe_apis.py
+
+qa-all: qa-clang qa-cppcheck qa-scan qa-valgrind qa-pytest qa-unsafe-apis
 
 qa-all-log:
 	@mkdir -p "$(dir $(QA_LOG))"
