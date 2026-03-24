@@ -8,7 +8,7 @@ on:
 
 jobs:
   build-and-test:
-    name: Baseline build + pytest
+    name: Baseline build + unsafe API guard + pytest
     runs-on: ubuntu-latest
 
     steps:
@@ -32,10 +32,14 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r scripts/requirements.txt
 
+    - name: Run Unsafe C API Guard (Baseline)
+      run: python3 scripts/check_c_unsafe_apis.py
+
     - name: Run Pytest (Baseline)
       env:
         TERM: xterm
-      # This workflow is intentionally baseline-only (build + pytest).
+      # This workflow is intentionally baseline-only
+      # (build + unsafe API guard + pytest).
       # Full QA audit gates run via local/PR workflow from doc/AUDIT.md
       # (clang-tidy, cppcheck, scan-build, valgrind, pytest).
       # 1. Run pytest and save output to a file (allowing failure with "|| true")
