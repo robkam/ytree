@@ -63,8 +63,8 @@ Packet 1 requests a compliance matrix against "Master Brief" sections 1-11. The 
 
 | Section | Requirement (proxy from `.ai/shared.md` rules 1-11) | Status | Concrete File Evidence |
 |---|---|---|---|
-| 1 | Prioritize architectural stability, memory safety, maintainability | partially satisfied | Requirement codified (`.ai/shared.md:75`), architecture constraints documented (`doc/ARCHITECTURE.md:21-33`), but unsafe APIs still present (`src/cmd/view.c:51`, `src/ui/ctrl_file_ops.c:597`, 172 total `strcpy/strcat/sprintf` matches in `src/` scan). |
-| 2 | Do not use unsafe string APIs (`strcpy`, `sprintf`) | missing | Policy exists (`.ai/shared.md:76`), direct violations present (`src/cmd/view.c:51`, `src/util/path_utils.c:32`, `src/ui/ctrl_file_ops.c:597`). |
+| 1 | Prioritize architectural stability, memory safety, maintainability | fully satisfied | Requirement codified (`.ai/shared.md:75`), architecture constraints documented (`doc/ARCHITECTURE.md:21-33`), and runtime unsafe-string regressions are now guarded by `scripts/check_c_unsafe_apis.py` wired into `Makefile` target `qa-unsafe-apis` and `qa-all`. |
+| 2 | Do not use unsafe string APIs (`strcpy`, `sprintf`) | fully satisfied | Policy exists (`.ai/shared.md:76`), runtime `src/**/*.c` callsites are clean, and enforcement is automated via `scripts/check_c_unsafe_apis.py` and `make qa-unsafe-apis` (`Makefile`). |
 | 3 | Preserve architectural invariants (explicit context, panel isolation, deterministic single-thread) | fully satisfied | Policy (`.ai/shared.md:77`), hard architecture rule (`doc/ARCHITECTURE.md:25-33`), panel isolation and directional protocol (`doc/ARCHITECTURE.md:87-97`). |
 | 4 | Prefer root-cause fixes, avoid superficial patching | fully satisfied | Policy (`.ai/shared.md:78`), QA remediation hard rules (`doc/ai/WORKFLOW.md:64-74`), dedicated remediation skill (`.ai/skills/qa-root-cause-remediation/SKILL.md:10-16`). |
 | 5 | Do not guess behavior; consult docs before architecture changes | fully satisfied | Policy (`.ai/shared.md:79`), anti-guessing debug rule (`doc/ai/WORKFLOW.md:215-220`), contributor doc points to canonical workflow/spec references (`doc/CONTRIBUTING.md:5-8`, `.ai/shared.md:106-117`). |
@@ -76,21 +76,22 @@ Packet 1 requests a compliance matrix against "Master Brief" sections 1-11. The 
 | 11 | Strict bugfix red-green: failing regression first, then fix, then green proof | fully satisfied | Explicit in shared policy (`.ai/shared.md:85`), workflow (`doc/ai/WORKFLOW.md:220`), bugfix skill (`.ai/skills/bugfix-red-green-proof/SKILL.md:12-16`), and contributor-facing bugfix gate requirements (`doc/CONTRIBUTING.md:187-193`). |
 
 ### Matrix Totals
-- fully satisfied: 9
-- partially satisfied: 1
-- missing: 1
+- fully satisfied: 11
+- partially satisfied: 0
+- missing: 0
 
 ## 3. Prioritized Gap List
 
 ### P0 (must-fix)
-- Shared Rule #2 is violated broadly by current code (`strcpy`/`strcat`/`sprintf` occurrences in runtime C paths), leaving policy-to-code mismatch.
+- No open P0 gaps. Runtime unsafe-string governance is now enforced by `scripts/check_c_unsafe_apis.py`, integrated as `qa-unsafe-apis` in `Makefile` and included in `qa-all`.
 
 ### P1 (important)
-- No open P1 governance gaps remain from packets 2-4 reconciliation; prior gaps for Master Brief presence, contributor Conventional Commits guidance, red-green contributor gate wording, and provider root-stub shared metadata parity are now resolved (`doc/ai/MASTER_BRIEF.md:1-170`, `doc/CONTRIBUTING.md:178-193`, `AGENTS.md:3-47`, `CLAUDE.md:3-46`, `GEMINI.md:3-46`).
+- No open P1 governance gaps remain; Master Brief presence, contributor Conventional Commits guidance, red-green contributor gate wording, and provider root-stub shared metadata parity remain resolved (`doc/ai/MASTER_BRIEF.md:1-170`, `doc/CONTRIBUTING.md:178-193`, `AGENTS.md:3-47`, `CLAUDE.md:3-46`, `GEMINI.md:3-46`).
 
 ### P2 (polish/optimization)
 - Governance index gap is resolved: `doc/ai/GOVERNANCE_INDEX.md` now provides a canonical map for root stubs, provider files, shared policy, persona/skill separation, and edit-target ownership (`doc/ai/GOVERNANCE_INDEX.md:1-64`), and `doc/ai/WORKFLOW.md` now points to it directly (`doc/ai/WORKFLOW.md:4`).
 - Governance drift-check gap is resolved: `scripts/check_ai_governance_drift.py` now enforces stub invariants (provider pointer, shared pointer, docs-note line, persona markers, UX/QA gate markers) across `AGENTS.md`, `CLAUDE.md`, and `GEMINI.md` (`scripts/check_ai_governance_drift.py:21-87`).
+- Runtime unsafe-string guardrail is now continuous: `scripts/check_c_unsafe_apis.py` is callable directly and enforced via `make qa-unsafe-apis` within `qa-all` (`Makefile`).
 
 ## 4. First-Pass Migration Sequence
 
@@ -106,9 +107,10 @@ Rollback: revert doc edits only; no runtime impact.
 Completion note: root stubs now mirror shared discovery metadata (canonical pointer, shared pointer, docs note, persona/skill mappings, UX/QA gates) across providers; Codex-only pytest host-permission note remains an intentional provider-specific operational detail (`AGENTS.md:3-47`, `CLAUDE.md:3-46`, `GEMINI.md:3-46`).
 Rollback: restore previous stub/provider docs from git if external tooling depends on current phrasing.
 
-4. Create and execute a safe-string migration plan for runtime C code (replace `strcpy/strcat/sprintf` with bounded APIs and helper wrappers), with staged regression coverage.
-Dependency/order rationale: policy and documentation must be stable first; runtime hardening then proceeds module-by-module.
-Rollback: revert module-level migrations independently; preserve tests introduced for each converted module.
+4. Create and execute a safe-string migration plan for runtime C code (replace `strcpy/strcat/sprintf` with bounded APIs and helper wrappers), with staged regression coverage. **Completed.**
+Completion note: runtime `src/**/*.c` callsites are now clean for banned APIs, and regression prevention is automated through `scripts/check_c_unsafe_apis.py` plus `Makefile` target `qa-unsafe-apis` in `qa-all`.
+Dependency/order rationale: policy and documentation were stabilized first; runtime hardening and enforcement then closed the lane durably.
+Rollback: revert module-level migrations independently if needed; keep or reintroduce guardrails only with explicit policy decision.
 
 5. Add a lightweight docs/policy drift check (CI or local script) to verify stub pointers, provider parity, and core policy anchors, with governance index anchoring for canonical edit targets. **Completed.**
 Completion note: governance index is present (`doc/ai/GOVERNANCE_INDEX.md:1-64`), workflow now links to it (`doc/ai/WORKFLOW.md:4`), and drift check script exists with concrete invariant checks for root stubs (`scripts/check_ai_governance_drift.py:21-87`).
