@@ -1,4 +1,4 @@
-# AI Governance Index
+# AI Governance
 
 ## Scope and Intent
 
@@ -51,14 +51,3 @@ For common governance edits, use these canonical targets:
 | Persona role boundary or posture | `.agent/rules/<persona>.md` | `.ai/skills/*` |
 | Repeatable operational checklist/procedure | `.ai/skills/<skill>/SKILL.md` | `.agent/rules/*` |
 | Workflow policy/process narrative | `doc/ai/WORKFLOW.md` | Root stubs |
-
-## Drift-Prevention Checklist for Planner Packet Handoffs
-
-Before handing off or closing a packet:
-1. Confirm each requested governance change has one canonical target file.
-2. Edit canonical files first; add at most minimal discovery pointers elsewhere.
-3. Avoid copying long policy blocks across stubs, persona rules, and workflow docs.
-4. Verify changed-file scope matches packet allowlist exactly.
-5. Record any assumption mismatch with concrete path evidence in the report.
-6. Set final status to drift only when a real repository-vs-packet mismatch exists.
-7. Run `python3 scripts/check_ai_governance_drift.py` to verify root-stub invariants before handoff.
