@@ -82,7 +82,7 @@ Configure GitHub branch protection on `main`:
 
 1. Settings -> Branches -> Add branch protection rule for `main`.
 2. Enable `Require status checks to pass before merging`.
-3. Select the CI job from `.github/workflows/ci.yml` (baseline build + pytest).
+3. Select the CI job from `.github/workflows/ci.yml` (baseline build + unsafe C API guard + pytest).
 4. Enable `Require branches to be up to date before merging`.
 
 ### 5. Handling Red Checks on Branches
@@ -151,7 +151,7 @@ Use **[AUDIT.md](AUDIT.md)** as the single source of truth.
 - Full local QA gate: `make qa-all` (includes `pytest` and the unsafe C API guard)
 - Full local QA gate with captured log: `make qa-all-log` (writes `qa-all.log` in repo root; override with `QA_LOG=/path/to/file`)
 - Optional strict mode: `make QA_ON_BUILD=1` (runs `qa-all` after build)
-- GitHub CI is a baseline gate (`make` + `pytest`); full audit remains the local/PR responsibility from `AUDIT.md`.
+- GitHub CI is a baseline gate (`make` + `python3 scripts/check_c_unsafe_apis.py` + `pytest`); full audit remains the local/PR responsibility from `AUDIT.md`.
 
 Individual gates:
 
