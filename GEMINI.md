@@ -8,7 +8,7 @@ Shared instructions for all agents: `./.ai/shared.md`
 Docs note: `doc/USAGE.md` is generated from `etc/ytree.1.md`; edit `etc/ytree.1.md` as source.
 
 Testing quick reference:
-- Run from repo root: `/home/rob/ytree`
+- Run from repo root: `~/ytree`
 - Activate venv: `source .venv/bin/activate`
 - Full suite command: `pytest`
 
