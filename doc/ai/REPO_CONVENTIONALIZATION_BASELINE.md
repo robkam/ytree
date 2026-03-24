@@ -1,7 +1,7 @@
 # Repository Conventionalization Baseline
 
 ## Scope Note and Drift Observation
-Packet 1 requests a compliance matrix against "Master Brief" sections 1-11. The repository contains source-of-truth brief artifacts at `/home/rob/ytree/master_brief_minimal.txt` and `/home/rob/ytree/doc/ai/MASTER_BRIEF.md`. This baseline preserves the original matrix body and uses the in-repo normative proxy mapping to `.ai/shared.md` "Core Engineering Rules" items 1-11 (`.ai/shared.md:75-85`) as captured in the initial analysis.
+This baseline is an evergreen repository-state artifact for compliance against "Master Brief" sections 1-11. The repository source-of-truth brief artifacts are `/home/rob/ytree/master_brief_minimal.txt` and `/home/rob/ytree/doc/ai/MASTER_BRIEF.md`. The matrix body is preserved and uses the in-repo normative proxy mapping to `.ai/shared.md` "Core Engineering Rules" items 1-11 (`.ai/shared.md:75-85`).
 
 ## 1. Existing Assets Inventory
 
