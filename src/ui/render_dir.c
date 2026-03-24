@@ -80,11 +80,8 @@ void PrintDirEntry(ViewContext *ctx, struct Volume *vol, WINDOW *win,
   de_ptr = vol->dir_entry_list[entry_no].dir_entry;
   {
     const char *branch_marker = de_ptr->next ? "6-" : "3-";
-    int written =
-        snprintf(graph_buffer + graph_used, sizeof(graph_buffer) - graph_used,
-                 "%s", branch_marker);
-    if (written >= 0 && (size_t)written < sizeof(graph_buffer) - graph_used)
-      graph_used += (size_t)written;
+    (void)snprintf(graph_buffer + graph_used, sizeof(graph_buffer) - graph_used,
+                   "%s", branch_marker);
   }
 
   /* Build the attribute string based on the current directory mode */
