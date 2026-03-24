@@ -15,7 +15,7 @@ Codex-specific behavior for this repository.
 
 ## Canonical Test Execution
 
-- Run tests from repository root: `/home/rob/ytree`.
+- Run tests from repository root: `~/ytree`.
 - Activate the project virtual environment first: `source .venv/bin/activate`.
 - Canonical full suite command: `pytest`.
 - The pytest suite uses `pexpect` PTYs; always run pytest with host permissions (non-sandboxed command execution) so PTY allocation works.

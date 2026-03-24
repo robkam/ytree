@@ -46,12 +46,10 @@ int Pipe(ViewContext *ctx, DirEntry *dir_entry, FileEntry *file_entry,
     int copied_len = snprintf(archive_dir, sizeof(archive_dir), "%s",
                               ctx->active->vol->vol_stats.login_path);
     if (copied_len < 0) {
-      archive_dir[0] = '\0';
       close(start_dir_fd);
       return -1;
     }
     if ((size_t)copied_len >= sizeof(archive_dir)) {
-      archive_dir[sizeof(archive_dir) - 1] = '\0';
       close(start_dir_fd);
       return -1;
     }
