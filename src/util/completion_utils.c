@@ -66,7 +66,14 @@ static void PrintMtchEntry(ViewContext *ctx, int entry_no, int y, int color,
     }
 
 #ifdef NO_HIGHLIGHT
-    strcat(line_ptr, (color == CPAIR_HIHST) ? " <" : "  ");
+    {
+      const char *suffix = (color == CPAIR_HIHST) ? " <" : "  ";
+      size_t line_len = strlen(line_ptr);
+      size_t suffix_len = strlen(suffix);
+      if (line_len + suffix_len + 1 <= BUFSIZ) {
+        memcpy(line_ptr + line_len, suffix, suffix_len + 1);
+      }
+    }
     WAddStr(ctx->ctx_matches_window, line_ptr);
 #else
 #ifdef COLOR_SUPPORT
@@ -178,8 +185,9 @@ char *GetMatches(ViewContext *ctx, char *base) {
   /* If there's a useful first match that's different from the base,
    * the original code would return a copy of it. */
   if (ctx->tab_mtchs[0] != NULL) {
-    TMP = xmalloc(strlen(ctx->tab_mtchs[0]) + 1);
-    strcpy(TMP, ctx->tab_mtchs[0]);
+    size_t match_len = strlen(ctx->tab_mtchs[0]);
+    TMP = xmalloc(match_len + 1);
+    memcpy(TMP, ctx->tab_mtchs[0], match_len + 1);
     RetVal = TMP;
     /* Original code had `free(ctx->tab_mtchs);` here. This is removed as
      * ctx->tab_mtchs is now managed by the static cleanup at the beginning of
@@ -370,12 +378,14 @@ char *GetMatches(ViewContext *ctx, char *base) {
       break;
     case LF:
     case CR:
-      TMP = xmalloc(
-          strlen(
-              ctx->tab_mtchs[ctx->tab_disp_begin_pos + ctx->tab_cursor_pos]) +
-          1);
-      strcpy(TMP,
-             ctx->tab_mtchs[ctx->tab_disp_begin_pos + ctx->tab_cursor_pos]);
+      {
+        size_t selected_len =
+            strlen(ctx->tab_mtchs[ctx->tab_disp_begin_pos + ctx->tab_cursor_pos]);
+        TMP = xmalloc(selected_len + 1);
+        memcpy(TMP,
+               ctx->tab_mtchs[ctx->tab_disp_begin_pos + ctx->tab_cursor_pos],
+               selected_len + 1);
+      }
       RetVal = TMP;
       break;
 
