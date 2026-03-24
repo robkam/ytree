@@ -211,7 +211,7 @@ typedef struct _ViewContext ViewContext;
 #endif
 #define LF 10
 #define ESC 27
-#define LOGIN_ESC '.'
+#define LOG_ESC '.'
 #define CR 13
 #define QUICK_BAUD_RATE 9600
 
@@ -244,7 +244,7 @@ enum UI_COLOR_PAIRS {
 
 enum HistoryType {
   HST_GENERAL = 0,
-  HST_LOGIN,
+  HST_LOG,
   HST_EXEC,
   HST_PIPE,
   HST_FILTER,
@@ -272,7 +272,6 @@ typedef enum {
   ACTION_TREE_EXPAND_ALL,
   ACTION_ENTER,
   ACTION_ESCAPE,
-  ACTION_LOGIN,
   ACTION_LOG,
   ACTION_QUIT,
   ACTION_QUIT_DIR,
@@ -529,7 +528,7 @@ typedef struct _dir_entry {
   BOOL only_tagged;
   BOOL not_scanned;
   BOOL big_window;
-  BOOL login_flag;
+  BOOL log_flag;
   char name[];
 } DirEntry;
 
@@ -555,8 +554,8 @@ typedef struct {
   long long disk_tagged_bytes;
   unsigned int disk_total_directories;
   int kind_of_sort;
-  int login_mode;
-  char login_path[PATH_LENGTH + 1];
+  int log_mode;
+  char log_path[PATH_LENGTH + 1];
   char path[PATH_LENGTH + 1];
   char file_spec[FILE_SPEC_LENGTH + 1];
   char disk_name[DISK_NAME_LENGTH + 1];

@@ -634,7 +634,7 @@ int HandleFileWindow(ViewContext *ctx, DirEntry *dir_entry) {
   char new_name[PATH_LENGTH + 1];
   char expanded_new_name[PATH_LENGTH + 1];
   char expanded_to_file[PATH_LENGTH + 1];
-  char new_login_path[PATH_LENGTH + 1];
+  char new_log_path[PATH_LENGTH + 1];
   int get_dir_ret;
   YtreeAction action = ACTION_NONE;            /* Initialize action */
   BOOL jumped_to_owner_dir = FALSE;
@@ -719,7 +719,7 @@ int HandleFileWindow(ViewContext *ctx, DirEntry *dir_entry) {
                  ctx->ctx_file_window);
   }
 
-  if (s->login_mode == DISK_MODE || s->login_mode == USER_MODE) {
+  if (s->log_mode == DISK_MODE || s->log_mode == USER_MODE) {
     GetPath(dir_entry, watcher_path);
     Watcher_SetDir(ctx, watcher_path);
   }
@@ -1586,17 +1586,16 @@ int HandleFileWindow(ViewContext *ctx, DirEntry *dir_entry) {
       break;
 
     case ACTION_LOG:
-    case ACTION_LOGIN:
       fe_ptr =
           ctx->active
               ->file_entry_list[dir_entry->start_file + dir_entry->cursor_pos]
               .file;
       if (ctx->view_mode == DISK_MODE || ctx->view_mode == USER_MODE) {
-        (void)GetFileNamePath(fe_ptr, new_login_path);
-        if (!GetNewLoginPath(ctx, ctx->active, new_login_path)) {
-          dir_entry->login_flag = TRUE;
+        (void)GetFileNamePath(fe_ptr, new_log_path);
+        if (!GetNewLogPath(ctx, ctx->active, new_log_path)) {
+          dir_entry->log_flag = TRUE;
 
-          (void)LogDisk(ctx, ctx->active, new_login_path);
+          (void)LogDisk(ctx, ctx->active, new_log_path);
           unput_char = ESC;
         }
         need_dsp_help = TRUE;

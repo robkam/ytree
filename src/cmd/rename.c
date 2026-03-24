@@ -57,8 +57,8 @@ int RenameDirectory(ViewContext *ctx, DirEntry *de_ptr, const char *new_name) {
 
 /* ARCHIVE MODE HANDLER */
 #ifdef HAVE_LIBARCHIVE
-  if (ctx->active->vol->vol_stats.login_mode == ARCHIVE_MODE) {
-    if (Archive_RenameEntry(ctx->active->vol->vol_stats.login_path, from_path,
+  if (ctx->active->vol->vol_stats.log_mode == ARCHIVE_MODE) {
+    if (Archive_RenameEntry(ctx->active->vol->vol_stats.log_path, from_path,
                             new_name, ArchiveUICallback, NULL) == 0) {
       return 0;
     }
@@ -179,8 +179,8 @@ int RenameFile(ViewContext *ctx, FileEntry *fe_ptr, const char *new_name,
 
 /* ARCHIVE MODE HANDLER */
 #ifdef HAVE_LIBARCHIVE
-  if (ctx->active->vol->vol_stats.login_mode == ARCHIVE_MODE) {
-    if (Archive_RenameEntry(ctx->active->vol->vol_stats.login_path, from_path,
+  if (ctx->active->vol->vol_stats.log_mode == ARCHIVE_MODE) {
+    if (Archive_RenameEntry(ctx->active->vol->vol_stats.log_path, from_path,
                             new_name, ArchiveUICallback, NULL) == 0) {
       return 0;
     }

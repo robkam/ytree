@@ -48,12 +48,12 @@ static char *dir_help[MAX_MODES][2] = {
     {/* DISK_MODE */
      dir_help_disk_mode_0, dir_help_disk_mode_1},
     {/* LL_FILE_MODE */
-     "DIR       (B)rief (F)ilter (^F)dirmode (L)og re(^L)oad (S)howall (T)ag "
+     "DIR       (B)rief (F)ilter (^F) dirmode (L)og re(^L)oad (S)howall (T)ag "
      "(U)ntag (Q)uit",
      "COMMANDS                                                                 "
      "          "},
     {/* ARCHIVE_MODE */
-     "ARCHIVE   (B)rief (C)ompare (F)ilter (^F)dirmode (G)lobal (L)og (M)akedir "
+     "ARCHIVE   (B)rief (C)ompare (F)ilter (^F) dirmode (G)lobal (L)og (M)akedir "
      "(R)ename (S)howall ",
      "COMMANDS  (U)ntag (Q)uit                                                 "
      "       "},
@@ -77,7 +77,7 @@ static char *file_help[MAX_MODES][2] = {
     {/* DISK_MODE */
      file_help_disk_mode_0, file_help_disk_mode_1},
     {/* LL_FILE_MODE */
-     "FILE      (B)rief (F)ilter (^F)ilemode (L)og (^L)redraw (S)ort (T)ag "
+     "FILE      (B)rief (F)ilter (^F)ilemode (L)og (^L) redraw (S)ort (T)ag "
      "(U)ntag (Q)uit      ",
      "COMMANDS                                                                 "
      "               "},

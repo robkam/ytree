@@ -70,9 +70,9 @@ int CopyFile(ViewContext *ctx, Statistic *statistic_ptr, FileEntry *fe_ptr,
   DEBUG_LOG("CopyFile starting: from_path=%s, to_file=%s, to_dir_path=%s",
             from_path, to_file, to_dir_path);
 
-  /* Renamed usage: statistic_ptr->mode -> statistic_ptr->login_mode */
-  if (statistic_ptr->login_mode != DISK_MODE &&
-      statistic_ptr->login_mode != USER_MODE) {
+  /* Renamed usage: statistic_ptr->mode -> statistic_ptr->log_mode */
+  if (statistic_ptr->log_mode != DISK_MODE &&
+      statistic_ptr->log_mode != USER_MODE) {
     /* Archive Mode Source */
     if (path_copy) {
       char root_path[PATH_LENGTH + 1];
@@ -125,7 +125,7 @@ int CopyFile(ViewContext *ctx, Statistic *statistic_ptr, FileEntry *fe_ptr,
       }
 
       /* Check if target is also an archive - skip FS creation if so */
-      if (target_stats && target_stats->login_mode == ARCHIVE_MODE) {
+      if (target_stats && target_stats->log_mode == ARCHIVE_MODE) {
         /* We handle recursive dir creation inside Archive Destination Handler
          */
         (void)snprintf(to_path, sizeof(to_path), "%s", full_dest_path);
@@ -260,7 +260,7 @@ int CopyFile(ViewContext *ctx, Statistic *statistic_ptr, FileEntry *fe_ptr,
     }
 
     /* Skip EnsureDirectoryExists for Archive Targets */
-    if (target_stats && target_stats->login_mode == ARCHIVE_MODE) {
+    if (target_stats && target_stats->log_mode == ARCHIVE_MODE) {
       /* No-op here, structure created during add */
     } else {
       /* Use EnsureDirectoryExists instead of direct MakePath to prompt the user
@@ -298,7 +298,7 @@ int CopyFile(ViewContext *ctx, Statistic *statistic_ptr, FileEntry *fe_ptr,
 
 /* ARCHIVE DESTINATION HANDLER */
 #ifdef HAVE_LIBARCHIVE
-  if (target_stats && target_stats->login_mode == ARCHIVE_MODE) {
+  if (target_stats && target_stats->log_mode == ARCHIVE_MODE) {
     /* We are copying/adding a file INTO an archive */
     char relative_path[PATH_LENGTH + 1];
     char root_path[PATH_LENGTH + 1];
@@ -352,7 +352,7 @@ int CopyFile(ViewContext *ctx, Statistic *statistic_ptr, FileEntry *fe_ptr,
         return result;
       }
 
-      if (Archive_AddFile(target_stats->login_path, from_path,
+      if (Archive_AddFile(target_stats->log_path, from_path,
                           archive_entry_path, FALSE, ArchiveUICallback,
                           ctx) == 0) {
         /* Success */
@@ -562,8 +562,8 @@ int CopyFileContent(ViewContext *ctx, char *to_path, char *from_path,
   char buffer[2048];
   int spin_counter = 0;
 
-  /* Renamed usage: s->mode -> s->login_mode */
-  if (s->login_mode != DISK_MODE && s->login_mode != USER_MODE) {
+  /* Renamed usage: s->mode -> s->log_mode */
+  if (s->log_mode != DISK_MODE && s->log_mode != USER_MODE) {
     return (CopyArchiveFile(ctx, to_path, from_path, s));
   }
 
@@ -676,7 +676,7 @@ static int CopyArchiveFile(ViewContext *ctx, char *to_path,
                            const Statistic *s) {
 #ifdef HAVE_LIBARCHIVE
   int result =
-      ExtractArchiveNode(s->login_path, from_path, to_path, ArchiveUICallback,
+      ExtractArchiveNode(s->log_path, from_path, to_path, ArchiveUICallback,
                          ctx);
   if (result != 0) {
     /* WARNING("Can't copy file*%s*to file*%s", from_path, to_path); */

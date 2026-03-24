@@ -66,7 +66,7 @@ int SelectLoadedVolume(ViewContext *ctx, int *return_key) {
       if (s == NULL)
         continue;
       vol_array[i] = s;
-      int len = StrVisualLength(s->vol_stats.login_path);
+      int len = StrVisualLength(s->vol_stats.log_path);
       if (len > max_path_len) {
         max_path_len = len;
       }
@@ -173,7 +173,7 @@ int SelectLoadedVolume(ViewContext *ctx, int *return_key) {
         }
 
         const char *path_to_display =
-            vol_array[actual_idx]->vol_stats.login_path;
+            vol_array[actual_idx]->vol_stats.log_path;
         char display_buf[PATH_LENGTH + 1];
 
         if (strlen(path_to_display) == 0) {
@@ -275,14 +275,14 @@ int SelectLoadedVolume(ViewContext *ctx, int *return_key) {
             struct stat neighbor_st_check;
 
             /* Renamed usage: neighbor->vol_stats.mode ->
-             * neighbor->vol_stats.login_mode */
-            if (neighbor->vol_stats.login_mode == ARCHIVE_MODE) {
-              if (stat(neighbor->vol_stats.login_path, &neighbor_st_check) ==
+             * neighbor->vol_stats.log_mode */
+            if (neighbor->vol_stats.log_mode == ARCHIVE_MODE) {
+              if (stat(neighbor->vol_stats.log_path, &neighbor_st_check) ==
                       0 &&
                   !S_ISDIR(neighbor_st_check.st_mode)) {
                 neighbor_access_ok = TRUE;
                 char neighbor_parent_dir[PATH_LENGTH + 1];
-                strncpy(neighbor_parent_dir, neighbor->vol_stats.login_path,
+                strncpy(neighbor_parent_dir, neighbor->vol_stats.log_path,
                         PATH_LENGTH);
                 neighbor_parent_dir[PATH_LENGTH] = '\0';
                 char *slash = strrchr(neighbor_parent_dir, FILE_SEPARATOR_CHAR);
@@ -294,7 +294,7 @@ int SelectLoadedVolume(ViewContext *ctx, int *return_key) {
                 }
               }
             } else {
-              if (chdir(neighbor->vol_stats.login_path) == 0) {
+              if (chdir(neighbor->vol_stats.log_path) == 0) {
                 neighbor_access_ok = TRUE;
               }
             }
@@ -304,7 +304,7 @@ int SelectLoadedVolume(ViewContext *ctx, int *return_key) {
               snprintf(error_message_buffer, sizeof(error_message_buffer),
                        "Neighbor volume \"%s\" not accessible (Error: %s). "
                        "Removed.",
-                       neighbor->vol_stats.login_path, strerror(errno));
+                       neighbor->vol_stats.log_path, strerror(errno));
               UI_Message(ctx, error_message_buffer);
               Volume_Delete(ctx, neighbor); // Delete the inaccessible neighbor
               changes_made = TRUE;
@@ -316,9 +316,9 @@ int SelectLoadedVolume(ViewContext *ctx, int *return_key) {
 
             ctx->active->vol = neighbor;
             /* Renamed usage: ctx->active->vol->vol_stats.mode ->
-             * ctx->active->vol->vol_stats.login_mode */
+             * ctx->active->vol->vol_stats.log_mode */
             ctx->view_mode =
-                ctx->active->vol->vol_stats.login_mode; // Sync global mode
+                ctx->active->vol->vol_stats.log_mode; // Sync global mode
           }
           /* Scenario B: Deleting Background Volume (or target_vol is now
            * ctx->active->vol's old self) */
@@ -386,7 +386,7 @@ int SelectLoadedVolume(ViewContext *ctx, int *return_key) {
 
       if (target_vol != ctx->active->vol) {
         int login_result =
-            LogDisk(ctx, ctx->active, target_vol->vol_stats.login_path);
+            LogDisk(ctx, ctx->active, target_vol->vol_stats.log_path);
         free(vol_array);
         return login_result;
       }

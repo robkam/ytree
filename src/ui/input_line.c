@@ -191,7 +191,7 @@ static int UI_ReadStringInternal(ViewContext *ctx, YtreePanel *panel,
   /* Determine Key Hints */
   if (hints_override && *hints_override) {
     hints = hints_override;
-  } else if (history_type == HST_LOGIN || history_type == HST_PATH) {
+  } else if (history_type == HST_LOG || history_type == HST_PATH) {
     hints = "(F2) browse  (Up) history  (Enter) OK  (Esc) cancel";
   } else {
     hints = "(Up) history  (Enter) OK  (Esc) cancel";
@@ -544,7 +544,7 @@ static int UI_ReadStringInternal(ViewContext *ctx, YtreePanel *panel,
     case KEY_F(2):
 #endif
     case 'F' & 0x1f:
-      if (history_type == HST_LOGIN || history_type == HST_PATH) {
+      if (history_type == HST_LOG || history_type == HST_PATH) {
         char path[PATH_LENGTH + 1];
         /* F2 Directory Selection */
         /* Note: KeyF2Get handles saving/restoring the screen context internally

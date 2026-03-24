@@ -2000,7 +2000,7 @@ int UI_ViewTaggedFiles(ViewContext *ctx, DirEntry *dir_entry) {
     use_internal_view = TRUE;
   }
 
-  if (s->login_mode == ARCHIVE_MODE) {
+  if (s->log_mode == ARCHIVE_MODE) {
     if (!CopyBoundedStringChecked(temp_dir_template, sizeof(temp_dir_template),
                                   "/tmp/ytree_view_XXXXXX")) {
       UI_Error(ctx, __FILE__, __LINE__,
@@ -2022,7 +2022,7 @@ int UI_ViewTaggedFiles(ViewContext *ctx, DirEntry *dir_entry) {
   }
 
   if (tagged_count <= 0) {
-    if (s->login_mode == ARCHIVE_MODE && temp_dir)
+    if (s->log_mode == ARCHIVE_MODE && temp_dir)
       recursive_rmdir(temp_dir);
     return 0;
   }
@@ -2036,12 +2036,12 @@ int UI_ViewTaggedFiles(ViewContext *ctx, DirEntry *dir_entry) {
     if (!(fe->tagged && fe->matching))
       continue;
 
-    if (s->login_mode == DISK_MODE || s->login_mode == USER_MODE) {
+    if (s->log_mode == DISK_MODE || s->log_mode == USER_MODE) {
       GetFileNamePath(fe, path);
       view_paths[path_count] = xstrdup(path);
       display_paths[path_count] = xstrdup(path);
       path_count++;
-    } else if (s->login_mode == ARCHIVE_MODE) {
+    } else if (s->log_mode == ARCHIVE_MODE) {
 #ifdef HAVE_LIBARCHIVE
       if (path_count >= 100) {
         UI_Warning(ctx, "Archive view limit (100) reached.");
@@ -2116,7 +2116,7 @@ int UI_ViewTaggedFiles(ViewContext *ctx, DirEntry *dir_entry) {
           continue;
         }
 
-        if (ExtractArchiveNode(s->login_path, internal_path, t_filename,
+        if (ExtractArchiveNode(s->log_path, internal_path, t_filename,
                                UI_ArchiveCallback, ctx) == 0) {
           view_paths[path_count] = xstrdup(t_filename);
           display_paths[path_count] = xstrdup(internal_path);
@@ -2139,7 +2139,7 @@ int UI_ViewTaggedFiles(ViewContext *ctx, DirEntry *dir_entry) {
     } else {
       RunExternalTaggedViewer(ctx, view_paths, path_count, s);
     }
-  } else if (s->login_mode == ARCHIVE_MODE) {
+  } else if (s->log_mode == ARCHIVE_MODE) {
     UI_Message(ctx, "No files extracted.");
   }
 
@@ -2152,7 +2152,7 @@ int UI_ViewTaggedFiles(ViewContext *ctx, DirEntry *dir_entry) {
   free(view_paths);
   free(display_paths);
 
-  if (s->login_mode == ARCHIVE_MODE && temp_dir) {
+  if (s->log_mode == ARCHIVE_MODE && temp_dir) {
     recursive_rmdir(temp_dir);
   }
 

@@ -40,11 +40,11 @@ int DeleteFile(ViewContext *ctx, FileEntry *fe_ptr, int *auto_override,
 
 /* Handle Archive Mode Deletion Hook */
 #ifdef HAVE_LIBARCHIVE
-  if (s->login_mode == ARCHIVE_MODE) {
+  if (s->log_mode == ARCHIVE_MODE) {
     /* In archive mode, permissions are virtual. We skip access checks and
      * unlink. We rely on the Rewrite Engine to handle the deletion.
      */
-    if (Archive_DeleteEntry(s->login_path, filepath, ArchiveUICallback, NULL) ==
+    if (Archive_DeleteEntry(s->log_path, filepath, ArchiveUICallback, NULL) ==
         0) {
       /* Success. The archive container has been rewritten.
       /* Success. The archive container has been rewritten.

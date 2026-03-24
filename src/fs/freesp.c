@@ -40,8 +40,8 @@ int GetDiskParameter(char *path, char *volume_name, long long *avail_bytes,
       /* Name ermitteln */
       /*----------------*/
 
-      /* Renamed usage: s->mode -> s->login_mode */
-      if (s->login_mode == DISK_MODE || s->login_mode == USER_MODE) {
+      /* Renamed usage: s->mode -> s->log_mode */
+      if (s->log_mode == DISK_MODE || s->log_mode == USER_MODE) {
 
 #if defined(__linux__)
         /* Minimal Linux/GNU FS Type Detection */
@@ -89,8 +89,8 @@ int GetDiskParameter(char *path, char *volume_name, long long *avail_bytes,
         /* ARCHIVE_MODE */
         /*--------------*/
 
-        if ((p = strrchr(s->login_path, FILE_SEPARATOR_CHAR)) == NULL)
-          p = s->login_path;
+        if ((p = strrchr(s->log_path, FILE_SEPARATOR_CHAR)) == NULL)
+          p = s->log_path;
         else
           p++;
 
