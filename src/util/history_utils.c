@@ -242,13 +242,13 @@ static void PrintHstEntry(ViewContext *ctx, int entry_no, int y, int color,
 
 #ifdef NO_HIGHLIGHT
     /* Mark pinned items */
-    char marker[4];
-    if (pp->pinned)
-      strcpy(marker, "*<");
-    else
-      strcpy(marker, " <");
-
-    strcat(line_ptr, (color == CPAIR_HIHST) ? marker : "  ");
+    const char *marker = pp->pinned ? "*<" : " <";
+    const char *suffix = (color == CPAIR_HIHST) ? marker : "  ";
+    size_t line_len = strlen(line_ptr);
+    size_t suffix_len = strlen(suffix);
+    if (line_len + suffix_len + 1 <= BUFSIZ) {
+      memcpy(line_ptr + line_len, suffix, suffix_len + 1);
+    }
     WAddStr(ctx->ctx_history_window, line_ptr);
 #else
 #ifdef COLOR_SUPPORT

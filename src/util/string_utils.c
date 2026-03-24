@@ -46,7 +46,8 @@ int BuildFilename(char *in_filename, char *pattern, char *out_filename) {
       char next_char = *(p + 1);
       if (next_char == '\0') {
         /* Optimization: pattern ends with *, copy rest of source */
-        strcpy(d, s);
+        size_t remaining_len = strlen(s);
+        memcpy(d, s, remaining_len + 1);
         return 0;
       }
 
@@ -66,9 +67,10 @@ int BuildFilename(char *in_filename, char *pattern, char *out_filename) {
         s = stop; /* Advance source to the delimiter */
       } else {
         /* Delimiter not found in source, consume remainder */
-        strcpy(d, s);
-        d += strlen(s);
-        s += strlen(s);
+        size_t remaining_len = strlen(s);
+        memcpy(d, s, remaining_len + 1);
+        d += remaining_len;
+        s += remaining_len;
       }
       p++; /* Consume '*' */
     } else if (*p == '?') {
@@ -157,6 +159,6 @@ int String_Replace(char *dest, size_t dest_size, const char *src,
     return -1;
   }
 
-  strcpy(out_ptr, in_ptr);
+  memcpy(out_ptr, in_ptr, remainder_len + 1);
   return 0;
 }
