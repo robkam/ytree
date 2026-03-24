@@ -23,7 +23,6 @@ BOOL handle_tag_file_action(ViewContext *ctx, int action, DirEntry *dir_entry,
   WalkingPackage walking_package;
   mode_t mask = 0;
   char mode[16] = {0};
-  char parsed_mode[12] = {0};
   int pclose_ret = 0;
   char to_dir[PATH_LENGTH * 2 + 1] = {0};
   char to_file[PATH_LENGTH + 1] = {0};
@@ -70,8 +69,8 @@ BOOL handle_tag_file_action(ViewContext *ctx, int action, DirEntry *dir_entry,
         /* Updated to use InputString instead of GetNewFileModus */
         ClearHelp(ctx);
         if (UI_ReadString(ctx, ctx->active, "MODE (octal/rwx):", mode,
-                          (int)sizeof(mode),
-                          HST_CHANGE_MODUS) == CR) {
+                          (int)sizeof(mode), HST_CHANGE_MODUS) == CR) {
+          char parsed_mode[12] = {0};
           char preview_mode[10] = {0};
           if (UI_ParseModeInput(mode, parsed_mode, preview_mode) != 0) {
             UI_Message(ctx, "Invalid mode. Use 3/4-digit octal or -rwxrwxrwx");
@@ -80,9 +79,10 @@ BOOL handle_tag_file_action(ViewContext *ctx, int action, DirEntry *dir_entry,
             wnoutrefresh(ctx->ctx_border_window);
             return TRUE;
           }
-          if (snprintf(walking_package.function_data.change_mode.new_mode,
-                       sizeof(walking_package.function_data.change_mode.new_mode),
-                       "%s", parsed_mode) >=
+          if (snprintf(
+                  walking_package.function_data.change_mode.new_mode,
+                  sizeof(walking_package.function_data.change_mode.new_mode),
+                  "%s", parsed_mode) >=
               (int)sizeof(walking_package.function_data.change_mode.new_mode)) {
             UI_Message(ctx, "Mode value too long.");
             wmove(ctx->ctx_border_window, ctx->layout.prompt_y, 0);

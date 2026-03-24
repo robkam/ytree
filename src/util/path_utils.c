@@ -85,14 +85,13 @@ char *GetFileNamePath(FileEntry *file_entry, char *buffer) {
 }
 
 char *GetRealFileNamePath(FileEntry *file_entry, char *buffer, int view_mode) {
-  const char *sym_name;
   const size_t buffer_size = PATH_LENGTH + 1;
 
   if (view_mode == DISK_MODE || view_mode == USER_MODE)
     return (GetFileNamePath(file_entry, buffer));
 
   if (S_ISLNK(file_entry->stat_struct.st_mode)) {
-    sym_name = &file_entry->name[strlen(file_entry->name) + 1];
+    const char *sym_name = &file_entry->name[strlen(file_entry->name) + 1];
     if (*sym_name == FILE_SEPARATOR_CHAR)
       (void)snprintf(buffer, buffer_size, "%s", sym_name);
     if (*sym_name == FILE_SEPARATOR_CHAR)

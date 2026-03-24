@@ -204,7 +204,6 @@ int CopyFile(ViewContext *ctx, Statistic *statistic_ptr, FileEntry *fe_ptr,
     char root_path[PATH_LENGTH + 1];
     char src_path[PATH_LENGTH + 1];
     char *rel_path;
-    size_t len;
 
     GetPath(statistic_ptr->tree, root_path);
     GetPath(fe_ptr->dir_entry, src_path);
@@ -229,6 +228,7 @@ int CopyFile(ViewContext *ctx, Statistic *statistic_ptr, FileEntry *fe_ptr,
     {
       const char *dest_sep = "";
       int composed_len;
+      size_t len;
 
       len = strlen(to_path);
       if (len > 0 && to_path[len - 1] != FILE_SEPARATOR_CHAR) {

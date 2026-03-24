@@ -16,7 +16,6 @@ static char last_preview_internal[PATH_LENGTH] = "";
 static int append_bounded(char *dst, size_t dst_size, const char *src) {
   size_t used;
   size_t src_len;
-  size_t copy_len;
 
   if (dst_size == 0)
     return -1;
@@ -27,7 +26,7 @@ static int append_bounded(char *dst, size_t dst_size, const char *src) {
 
   src_len = strlen(src);
   if (src_len >= (dst_size - used)) {
-    copy_len = dst_size - used - 1;
+    size_t copy_len = dst_size - used - 1;
     if (copy_len > 0)
       memcpy(dst + used, src, copy_len);
     dst[dst_size - 1] = '\0';
@@ -316,8 +315,8 @@ static int PreviewProgressCallback(int status, const char *msg,
 }
 
 void RenderArchivePreview(ViewContext *ctx, WINDOW *win,
-                          const char *archive_path,
-                          const char *internal_path, long *line_offset_ptr) {
+                          const char *archive_path, const char *internal_path,
+                          long *line_offset_ptr) {
   char cache_file[] = "/tmp/ytree_preview.cache";
 
   if (strcmp(archive_path, last_preview_archive) != 0 ||
