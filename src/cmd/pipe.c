@@ -44,7 +44,7 @@ int Pipe(ViewContext *ctx, DirEntry *dir_entry, FileEntry *file_entry,
     char archive_dir[PATH_LENGTH + 1];
     char *last_slash;
     int copied_len = snprintf(archive_dir, sizeof(archive_dir), "%s",
-                              ctx->active->vol->vol_stats.login_path);
+                              ctx->active->vol->vol_stats.log_path);
     if (copied_len < 0) {
       close(start_dir_fd);
       return -1;
@@ -102,7 +102,7 @@ int Pipe(ViewContext *ctx, DirEntry *dir_entry, FileEntry *file_entry,
     } else {
       /* ARCHIVE_MODE */
 #ifdef HAVE_LIBARCHIVE
-      const char *archive = ctx->active->vol->vol_stats.login_path;
+      const char *archive = ctx->active->vol->vol_stats.log_path;
       ExtractArchiveEntry(archive, file_name_path, fileno(pipe_fp), NULL, NULL);
 #endif
     }

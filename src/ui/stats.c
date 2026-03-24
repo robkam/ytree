@@ -458,7 +458,7 @@ void DisplayDiskName(ViewContext *ctx, const Statistic *s) {
 
   /* Path */
   if (ctx->view_mode == ARCHIVE_MODE)
-    strncpy(path_buf, s->login_path, PATH_LENGTH);
+    strncpy(path_buf, s->log_path, PATH_LENGTH);
   else
     strncpy(path_buf, s->path, PATH_LENGTH);
   path_buf[PATH_LENGTH] = '\0';

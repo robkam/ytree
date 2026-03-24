@@ -22,19 +22,19 @@ static void Dir_Progress(ViewContext *ctx, void *data) {
 }
 
 void HandlePlus(ViewContext *ctx, DirEntry *dir_entry, DirEntry *de_ptr,
-                char *new_login_path, BOOL *need_dsp_help, YtreePanel *p) {
+                char *new_log_path, BOOL *need_dsp_help, YtreePanel *p) {
   const Statistic *s = &p->vol->vol_stats;
 
-  /* Renamed usage: s->mode -> s->login_mode */
-  if (s->login_mode != DISK_MODE && s->login_mode != USER_MODE) {
+  /* Renamed usage: s->mode -> s->log_mode */
+  if (s->log_mode != DISK_MODE && s->log_mode != USER_MODE) {
     return;
   }
   if (!dir_entry->not_scanned) {
   } else {
     SuspendClock(ctx); /* Suspend clock before scanning */
     for (de_ptr = dir_entry->sub_tree; de_ptr; de_ptr = de_ptr->next) {
-      GetPath(de_ptr, new_login_path);
-      ReadTree(ctx, de_ptr, new_login_path, 0, s, Dir_Progress, NULL);
+      GetPath(de_ptr, new_log_path);
+      ReadTree(ctx, de_ptr, new_log_path, 0, s, Dir_Progress, NULL);
       ApplyFilter(de_ptr, s);
     }
     InitClock(ctx); /* Resume clock after scanning */
@@ -142,8 +142,8 @@ void HandleUnreadSubTree(ViewContext *ctx, DirEntry *dir_entry,
   DirEntry *inactive_de = NULL;
   DirEntry *inactive_fallback = NULL;
 
-  /* Renamed usage: s->mode -> s->login_mode */
-  if (s->login_mode != DISK_MODE && s->login_mode != USER_MODE) {
+  /* Renamed usage: s->mode -> s->log_mode */
+  if (s->log_mode != DISK_MODE && s->log_mode != USER_MODE) {
     return;
   }
   if (dir_entry->not_scanned || (dir_entry->sub_tree == NULL)) {
@@ -216,8 +216,8 @@ void HandleShowAll(ViewContext *ctx, BOOL tagged_only, BOOL all_volumes,
 
   if (visible_count > 0) {
     int result;
-    if (dir_entry->login_flag) {
-      dir_entry->login_flag = FALSE;
+    if (dir_entry->log_flag) {
+      dir_entry->log_flag = FALSE;
     } else {
       dir_entry->big_window = TRUE;
       dir_entry->global_flag = TRUE;
@@ -229,7 +229,7 @@ void HandleShowAll(ViewContext *ctx, BOOL tagged_only, BOOL all_volumes,
     result = HandleFileWindow(ctx, dir_entry);
     ctx->focused_window = (result == '\\') ? FOCUS_FILE : FOCUS_TREE;
 
-    if (result != LOGIN_ESC) {
+    if (result != LOG_ESC) {
       /* Restore normal mode and refresh the entire view */
       dir_entry->start_file = 0;
       dir_entry->cursor_pos = -1;
@@ -245,7 +245,7 @@ void HandleShowAll(ViewContext *ctx, BOOL tagged_only, BOOL all_volumes,
       dir_entry->global_all_volumes = FALSE;
     }
   } else {
-    dir_entry->login_flag = FALSE;
+    dir_entry->log_flag = FALSE;
   }
   *need_dsp_help = TRUE;
   return;
@@ -258,8 +258,8 @@ void HandleSwitchWindow(ViewContext *ctx, DirEntry *dir_entry,
   const Statistic *s = &p->vol->vol_stats;
 
   if (dir_entry->matching_files) {
-    if (dir_entry->login_flag) {
-      dir_entry->login_flag = FALSE;
+    if (dir_entry->log_flag) {
+      dir_entry->log_flag = FALSE;
     } else {
       dir_entry->global_flag = FALSE;
       dir_entry->global_all_volumes = FALSE;
@@ -284,7 +284,7 @@ void HandleSwitchWindow(ViewContext *ctx, DirEntry *dir_entry,
         fclose(fp);
       }
     }
-    if (HandleFileWindow(ctx, dir_entry) != LOGIN_ESC) {
+    if (HandleFileWindow(ctx, dir_entry) != LOG_ESC) {
       /* Safety Check: If volume was deleted in File Window (via
        * SelectLoadedVolume), abort */
       if (ctx->active->vol != start_vol)
@@ -308,7 +308,7 @@ void HandleSwitchWindow(ViewContext *ctx, DirEntry *dir_entry,
       RefreshView(ctx, dir_entry);
 
     } else {
-      /* ... existing LOGIN_ESC handling ... */
+      /* ... existing LOG_ESC handling ... */
       BuildDirEntryList(ctx, p->vol, &p->current_dir_entry);
 
       /* Ensure visual consistency here too */
@@ -319,7 +319,7 @@ void HandleSwitchWindow(ViewContext *ctx, DirEntry *dir_entry,
     DisplayAvailBytes(ctx, s);
     *need_dsp_help = TRUE;
   } else {
-    dir_entry->login_flag = FALSE;
+    dir_entry->log_flag = FALSE;
   }
   return;
 }
@@ -466,7 +466,7 @@ DirEntry *RefreshTreeSafe(ViewContext *ctx, YtreePanel *p, DirEntry *entry) {
 
   /* Capture flags here to preserve state across destructive rescan */
   BOOL saved_big_window = entry->big_window;
-  BOOL saved_login_flag = entry->login_flag;
+  BOOL saved_log_flag = entry->log_flag;
   BOOL saved_global_flag = entry->global_flag;
   BOOL saved_global_all_volumes = entry->global_all_volumes;
   BOOL saved_tagged_flag = entry->tagged_flag;
@@ -489,7 +489,7 @@ DirEntry *RefreshTreeSafe(ViewContext *ctx, YtreePanel *p, DirEntry *entry) {
 
     /* 2a. Restore critical flags destroyed by ReadTree */
     entry->big_window = saved_big_window;
-    entry->login_flag = saved_login_flag;
+    entry->log_flag = saved_log_flag;
     entry->global_flag = saved_global_flag;
     entry->global_all_volumes = saved_global_all_volumes;
     entry->tagged_flag = saved_tagged_flag;
@@ -544,7 +544,7 @@ DirEntry *RefreshTreeSafe(ViewContext *ctx, YtreePanel *p, DirEntry *entry) {
     RescanDir(ctx, entry, strtol(TREEDEPTH, NULL, 0), s, Dir_Progress, ctx);
     /* Restore flags for Archive mode too, as RescanDir/ReadTree clears them */
     entry->big_window = saved_big_window;
-    entry->login_flag = saved_login_flag;
+    entry->log_flag = saved_log_flag;
     entry->global_flag = saved_global_flag;
     entry->global_all_volumes = saved_global_all_volumes;
     entry->tagged_flag = saved_tagged_flag;
@@ -575,10 +575,10 @@ int ScanSubTree(ViewContext *ctx, DirEntry *dir_entry, Statistic *s) {
   DirEntry *de_ptr;
 
   if (dir_entry->not_scanned) {
-    char new_login_path[PATH_LENGTH + 1];
+    char new_log_path[PATH_LENGTH + 1];
     for (de_ptr = dir_entry->sub_tree; de_ptr; de_ptr = de_ptr->next) {
-      GetPath(de_ptr, new_login_path);
-      if (ReadTree(ctx, de_ptr, new_login_path, 999, s, Dir_Progress, ctx) ==
+      GetPath(de_ptr, new_log_path);
+      if (ReadTree(ctx, de_ptr, new_log_path, 999, s, Dir_Progress, ctx) ==
           -1) {
         /* Abort signal received from ReadTree */
         return -1;

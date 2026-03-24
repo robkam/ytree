@@ -17,7 +17,7 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
-#define mode (CurrentVolume->vol_stats.login_mode)
+#define mode (CurrentVolume->vol_stats.log_mode)
 
 #ifdef HAVE_LIBARCHIVE
 #include "ytree_fs.h"
@@ -55,7 +55,7 @@ static int ExecuteArchiveFile(ViewContext *ctx, DirEntry *dir_entry,
 
     GetPath(file_entry->dir_entry, dir_path);
 
-    /* Rebuild the path relative to the archive root (login_path) */
+    /* Rebuild the path relative to the archive root (log_path) */
     GetPath(s->tree, root_path);
 
     if (strncmp(dir_path, root_path, strlen(root_path)) == 0) {
@@ -103,7 +103,7 @@ static int ExecuteArchiveFile(ViewContext *ctx, DirEntry *dir_entry,
       return -1;
     }
 
-    if (ExtractArchiveEntry(s->login_path, internal_path, fd_tmp, cb, NULL) !=
+    if (ExtractArchiveEntry(s->log_path, internal_path, fd_tmp, cb, NULL) !=
         0) {
       close(fd_tmp);
       unlink(temp_path);

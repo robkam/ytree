@@ -56,7 +56,7 @@ static void RestorePanelTreeSelection(ViewContext *ctx, YtreePanel *panel) {
 }
 
 /* Helper function to handle scan progress updates */
-static void Login_Progress(ViewContext *ctx, void *data) {
+static void Log_Progress(ViewContext *ctx, void *data) {
   const Statistic *s = (const Statistic *)data;
 
   DrawSpinner(ctx);
@@ -129,7 +129,7 @@ int LogDisk(ViewContext *ctx, YtreePanel *panel, char *path) {
 
   /* 2. Search Existing Volume */
   HASH_ITER(hh, ctx->volumes_head, s_vol, tmp) {
-    if (strcmp(s_vol->vol_stats.login_path, resolved_path) == 0) {
+    if (strcmp(s_vol->vol_stats.log_path, resolved_path) == 0) {
       found_vol = s_vol;
       break;
     }
@@ -139,14 +139,14 @@ int LogDisk(ViewContext *ctx, YtreePanel *panel, char *path) {
     /* Case A: Volume Found - Check Access and Switch */
     BOOL access_ok = FALSE;
 
-    if (found_vol->vol_stats.login_mode == ARCHIVE_MODE) {
+    if (found_vol->vol_stats.log_mode == ARCHIVE_MODE) {
       /* For archives, check if the file still exists */
-      if (stat(found_vol->vol_stats.login_path, &st_check) == 0 &&
+      if (stat(found_vol->vol_stats.log_path, &st_check) == 0 &&
           !S_ISDIR(st_check.st_mode)) {
         access_ok = TRUE;
         /* Optional: Attempt to chdir to the parent directory for context */
         char parent_dir[PATH_LENGTH + 1];
-        strncpy(parent_dir, found_vol->vol_stats.login_path, PATH_LENGTH);
+        strncpy(parent_dir, found_vol->vol_stats.log_path, PATH_LENGTH);
         parent_dir[PATH_LENGTH] = '\0';
         char *slash = strrchr(parent_dir, FILE_SEPARATOR_CHAR);
         if (slash) {
@@ -158,7 +158,7 @@ int LogDisk(ViewContext *ctx, YtreePanel *panel, char *path) {
       }
     } else {
       /* For normal disks, try to enter the directory */
-      if (chdir(found_vol->vol_stats.login_path) == 0) {
+      if (chdir(found_vol->vol_stats.log_path) == 0) {
         access_ok = TRUE;
       }
     }
@@ -167,7 +167,7 @@ int LogDisk(ViewContext *ctx, YtreePanel *panel, char *path) {
       panel->vol = found_vol;
       s = &panel->vol->vol_stats;
       ctx->global_search_term[0] = '\0';
-      ctx->view_mode = panel->vol->vol_stats.login_mode;
+      ctx->view_mode = panel->vol->vol_stats.log_mode;
 
       /* Re-apply the volume's own filter */
       (void)SetFilter(s->file_spec, s);
@@ -187,7 +187,7 @@ int LogDisk(ViewContext *ctx, YtreePanel *panel, char *path) {
     } else {
       /* Volume exists but is inaccessible */
       MESSAGE(ctx, "Volume \"%s\" not accessible (Error: %s). Removed.",
-              found_vol->vol_stats.login_path, strerror(errno));
+              found_vol->vol_stats.log_path, strerror(errno));
 
       if (found_vol == panel->vol) {
         /* If the current volume is bad, we must delete it. */
@@ -205,7 +205,7 @@ int LogDisk(ViewContext *ctx, YtreePanel *panel, char *path) {
   old_vol = panel->vol;
 
   /* Determine if we can reuse the "virgin" volume */
-  if (old_vol != NULL && old_vol->vol_stats.login_path[0] == '\0') {
+  if (old_vol != NULL && old_vol->vol_stats.log_path[0] == '\0') {
     reuse_vol = old_vol;
   }
 
@@ -228,7 +228,7 @@ int LogDisk(ViewContext *ctx, YtreePanel *panel, char *path) {
     NOTICE(ctx, "Scanning...");
 
   /* Call Logic Core */
-  loaded_vol = Volume_Load(ctx, resolved_path, reuse_vol, Login_Progress, NULL);
+  loaded_vol = Volume_Load(ctx, resolved_path, reuse_vol, Log_Progress, NULL);
 
   DEBUG_LOG("LogDisk: Volume_Load returned %p", (void *)loaded_vol);
 
@@ -255,7 +255,7 @@ int LogDisk(ViewContext *ctx, YtreePanel *panel, char *path) {
       /* We tried to create a NEW volume and failed. */
       /* panel->vol is still old_vol (valid). Restore its display. */
       panel->vol = old_vol;
-      ctx->view_mode = panel->vol->vol_stats.login_mode;
+      ctx->view_mode = panel->vol->vol_stats.log_mode;
       s = &panel->vol->vol_stats;
 
       DisplayMenu(ctx);
@@ -279,13 +279,13 @@ int LogDisk(ViewContext *ctx, YtreePanel *panel, char *path) {
   panel->vol = loaded_vol;
   s = &panel->vol->vol_stats;
   ctx->global_search_term[0] = '\0';
-  ctx->view_mode = s->login_mode;
+  ctx->view_mode = s->log_mode;
 
   /* If this is a new volume (not the startup one), apply saved filter from
    * previous context */
   /* If it's the very first volume (old_vol was NULL or we reused virgin),
    * default filter is already set by Volume_Load */
-  if (old_vol != NULL && old_vol->vol_stats.login_path[0] != '\0') {
+  if (old_vol != NULL && old_vol->vol_stats.log_path[0] != '\0') {
     strncpy(s->file_spec, saved_filter, FILE_SPEC_LENGTH);
     s->file_spec[FILE_SPEC_LENGTH] = '\0';
   }
@@ -305,7 +305,7 @@ int LogDisk(ViewContext *ctx, YtreePanel *panel, char *path) {
   return 0;
 }
 
-int GetNewLoginPath(ViewContext *ctx, YtreePanel *panel, char *path) {
+int GetNewLogPath(ViewContext *ctx, YtreePanel *panel, char *path) {
   int result;
   int copied_len;
   char user_input[PATH_LENGTH * 2 + 1] = "";
@@ -337,7 +337,7 @@ int GetNewLoginPath(ViewContext *ctx, YtreePanel *panel, char *path) {
   }
 
   if ((UI_ReadString)(ctx, panel, "Log Path:", user_input, PATH_LENGTH - 1,
-                      HST_LOGIN) == CR) {
+                      HST_LOG) == CR) {
     char temp_path[PATH_LENGTH * 3 + 2];
     char resolved_path[PATH_LENGTH + 1];
     int composed_len;
@@ -432,7 +432,7 @@ int CycleLoadedVolume(ViewContext *ctx, YtreePanel *panel, int direction) {
 
     const struct Volume *target = vol_array[target_index];
     char target_path[PATH_LENGTH + 1];
-    strncpy(target_path, target->vol_stats.login_path, PATH_LENGTH);
+    strncpy(target_path, target->vol_stats.log_path, PATH_LENGTH);
     target_path[PATH_LENGTH] = '\0';
 
     free(vol_array);

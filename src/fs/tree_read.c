@@ -66,7 +66,7 @@ int ReadTree(ViewContext *ctx, DirEntry *dir_entry, char *path, int depth,
   dir_entry->cursor_pos = 0;
   dir_entry->global_flag = FALSE;
   dir_entry->global_all_volumes = FALSE;
-  dir_entry->login_flag = FALSE;
+  dir_entry->log_flag = FALSE;
   dir_entry->big_window = FALSE;
   dir_entry->not_scanned = FALSE;
 
@@ -363,9 +363,9 @@ int RescanDir(ViewContext *ctx, DirEntry *dir_entry, int depth, Statistic *s,
   char path[PATH_LENGTH + 1];
   FileEntry *fe_ptr, *next_fe_ptr;
 
-  /* Renamed usage: s->mode -> s->login_mode */
+  /* Renamed usage: s->mode -> s->log_mode */
   if (!dir_entry ||
-      (s->login_mode != DISK_MODE && s->login_mode != USER_MODE)) {
+      (s->log_mode != DISK_MODE && s->log_mode != USER_MODE)) {
     return -1;
   }
 

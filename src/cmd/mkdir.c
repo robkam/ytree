@@ -80,7 +80,7 @@ static DirEntry *MakeDirEntry(const ViewContext *ctx, YtreePanel *panel,
 
 /* ARCHIVE MODE HANDLER */
 #ifdef HAVE_LIBARCHIVE
-  if (panel && panel->vol && panel->vol->vol_stats.login_mode == ARCHIVE_MODE) {
+  if (panel && panel->vol && panel->vol->vol_stats.log_mode == ARCHIVE_MODE) {
     char root_path[PATH_LENGTH + 1];
     char relative_path[PATH_LENGTH + 1];
     char archive_path[PATH_LENGTH + 1];
@@ -91,7 +91,7 @@ static DirEntry *MakeDirEntry(const ViewContext *ctx, YtreePanel *panel,
     /* Get path of the archive file itself */
     {
       int n = snprintf(root_path, sizeof(root_path), "%s",
-                       panel->vol->vol_stats.login_path);
+                       panel->vol->vol_stats.log_path);
       if (n < 0 || n >= (int)sizeof(root_path)) {
         return NULL;
       }
@@ -136,7 +136,7 @@ static DirEntry *MakeDirEntry(const ViewContext *ctx, YtreePanel *panel,
     }
 
     /* Add entry */
-    if (Archive_AddFile(panel->vol->vol_stats.login_path, NULL, archive_path,
+    if (Archive_AddFile(panel->vol->vol_stats.log_path, NULL, archive_path,
                         TRUE, ArchiveUICallback, NULL) == 0) {
       /* Success: Return a dummy non-NULL to indicate success.
       The auto-refresh will reload the tree.
@@ -185,7 +185,7 @@ static DirEntry *MakeDirEntry(const ViewContext *ctx, YtreePanel *panel,
     den_ptr->cursor_pos = 0;
     den_ptr->start_file = 0;
     den_ptr->global_flag = FALSE;
-    den_ptr->login_flag = FALSE;
+    den_ptr->log_flag = FALSE;
     den_ptr->big_window = FALSE;
     den_ptr->up_tree = father_dir_entry;
     den_ptr->not_scanned = FALSE;

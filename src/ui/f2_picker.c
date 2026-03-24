@@ -23,12 +23,12 @@ int KeyF2Get(ViewContext *ctx, YtreePanel *panel, char *path) {
   int local_disp_begin_pos = panel->disp_begin_pos;
   int local_cursor_pos = panel->cursor_pos;
   YtreeAction action; /* Declare YtreeAction variable */
-  char new_login_path[PATH_LENGTH + 1];
+  char new_log_path[PATH_LENGTH + 1];
 
   original_vol = ctx->active->vol;
   DEBUG_LOG("ENTER HandleDirWindow: Panel=%s Vol=%s Cursor=%d",
             (panel == ctx->left ? "LEFT" : "RIGHT"),
-            (panel->vol ? panel->vol->vol_stats.login_path : "NULL"),
+            (panel->vol ? panel->vol->vol_stats.log_path : "NULL"),
             panel->cursor_pos);
 
   if (ctx->view_mode != DISK_MODE && ctx->view_mode != USER_MODE) {
@@ -37,8 +37,8 @@ int KeyF2Get(ViewContext *ctx, YtreePanel *panel, char *path) {
     struct Volume *disk_vol = NULL;
 
     HASH_ITER(hh, ctx->volumes_head, v, tmp) {
-      /* Renamed usage: v->vol_stats.mode -> v->vol_stats.login_mode */
-      if (v->vol_stats.login_mode == DISK_MODE) {
+      /* Renamed usage: v->vol_stats.mode -> v->vol_stats.log_mode */
+      if (v->vol_stats.log_mode == DISK_MODE) {
         disk_vol = v;
         break;
       }
@@ -298,8 +298,7 @@ int KeyF2Get(ViewContext *ctx, YtreePanel *panel, char *path) {
       break;
 
     case ACTION_LOG:
-    case ACTION_LOGIN:
-      if (target_vol && target_vol->vol_stats.login_mode == DISK_MODE) {
+      if (target_vol && target_vol->vol_stats.log_mode == DISK_MODE) {
         /* Try to use the path of the currently selected directory in F2
          * window
          */
@@ -307,18 +306,18 @@ int KeyF2Get(ViewContext *ctx, YtreePanel *panel, char *path) {
           GetPath(target_vol
                       ->dir_entry_list[local_disp_begin_pos + local_cursor_pos]
                       .dir_entry,
-                  new_login_path);
+                  new_log_path);
         } else {
-          if (getcwd(new_login_path, sizeof(new_login_path)) == NULL)
-            (void)snprintf(new_login_path, sizeof(new_login_path), "%s", ".");
+          if (getcwd(new_log_path, sizeof(new_log_path)) == NULL)
+            (void)snprintf(new_log_path, sizeof(new_log_path), "%s", ".");
         }
       } else {
-        if (getcwd(new_login_path, sizeof(new_login_path)) == NULL)
-          (void)snprintf(new_login_path, sizeof(new_login_path), "%s", ".");
+        if (getcwd(new_log_path, sizeof(new_log_path)) == NULL)
+          (void)snprintf(new_log_path, sizeof(new_log_path), "%s", ".");
       }
 
-      if (!GetNewLoginPath(ctx, panel, new_login_path)) {
-        if (LogDisk(ctx, panel, new_login_path) == 0) {
+      if (!GetNewLogPath(ctx, panel, new_log_path)) {
+        if (LogDisk(ctx, panel, new_log_path) == 0) {
           ClearHelp(ctx); /* ADDED */
           target_vol = ctx->active->vol;
           local_disp_begin_pos = panel->disp_begin_pos;
@@ -356,14 +355,14 @@ int KeyF2Get(ViewContext *ctx, YtreePanel *panel, char *path) {
       break;
     } /* switch */
   } while (action != ACTION_QUIT && action != ACTION_ENTER &&
-           action != ACTION_ESCAPE && action != ACTION_LOGIN &&
+           action != ACTION_ESCAPE &&
            action != ACTION_LOG);
 
   /* Added restoration block */
   if (ctx->active->vol != original_vol) {
     /* 1. Restore Global Volume Context */
     ctx->active->vol = original_vol;
-    ctx->view_mode = ctx->active->vol->vol_stats.login_mode;
+    ctx->view_mode = ctx->active->vol->vol_stats.log_mode;
 
     /* 2. Restore ctx->active state from the restored volume */
     if (ctx->active) {

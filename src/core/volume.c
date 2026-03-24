@@ -103,7 +103,7 @@ void Volume_FreeAll(ViewContext *ctx) {
  * Volume_GetByPath
  *
  * Finds the volume that contains the given path.
- * Returns the volume with the longest matching login_path prefix.
+ * Returns the volume with the longest matching log_path prefix.
  * This handles cases where volumes are nested or distinct.
  */
 struct Volume *Volume_GetByPath(ViewContext *ctx, const char *path) {
@@ -118,13 +118,13 @@ struct Volume *Volume_GetByPath(ViewContext *ctx, const char *path) {
 
   HASH_ITER(hh, ctx->volumes_head, s, tmp) {
     /* Check if this volume is valid (has a path) */
-    if (s->vol_stats.login_path[0] == '\0')
+    if (s->vol_stats.log_path[0] == '\0')
       continue;
 
     /* Check if 'path' starts with this volume's login path */
-    if (strncmp(path, s->vol_stats.login_path,
-                strlen(s->vol_stats.login_path)) == 0) {
-      len = strlen(s->vol_stats.login_path);
+    if (strncmp(path, s->vol_stats.log_path,
+                strlen(s->vol_stats.log_path)) == 0) {
+      len = strlen(s->vol_stats.log_path);
 
       /* Ensure it's a true path prefix match (e.g. "/usr" matches "/usr/bin"
        * but not "/usrlocal") */
@@ -239,8 +239,8 @@ struct Volume *Volume_Load(ViewContext *ctx, const char *path,
     s->tree = (DirEntry *)xcalloc(1, sizeof(DirEntry) + PATH_LENGTH);
   }
 
-  strncpy(s->login_path, resolved_path, PATH_LENGTH);
-  s->login_path[PATH_LENGTH] = '\0';
+  strncpy(s->log_path, resolved_path, PATH_LENGTH);
+  s->log_path[PATH_LENGTH] = '\0';
   strncpy(s->path, resolved_path, PATH_LENGTH);
   s->path[PATH_LENGTH] = '\0';
 
@@ -253,11 +253,11 @@ struct Volume *Volume_Load(ViewContext *ctx, const char *path,
     memset(&s->tree->stat_struct, 0, sizeof(struct stat));
     s->tree->stat_struct.st_mode = S_IFDIR;
     s->disk_total_directories = 1;
-    s->login_mode = ARCHIVE_MODE;
+    s->log_mode = ARCHIVE_MODE;
   } else if (IsUserActionDefined(ctx)) {
-    s->login_mode = USER_MODE;
+    s->log_mode = USER_MODE;
   } else {
-    s->login_mode = DISK_MODE;
+    s->log_mode = DISK_MODE;
   }
 
   GetDiskParameter(resolved_path, s->disk_name, &s->disk_space,
@@ -266,9 +266,9 @@ struct Volume *Volume_Load(ViewContext *ctx, const char *path,
   s->tree->name[PATH_LENGTH - 1] = '\0';
 
   /* 7. Scanning */
-  if (s->login_mode == ARCHIVE_MODE) {
+  if (s->log_mode == ARCHIVE_MODE) {
 #ifdef HAVE_LIBARCHIVE
-    if (ReadTreeFromArchive(ctx, &s->tree, s->login_path, s, cb,
+    if (ReadTreeFromArchive(ctx, &s->tree, s->log_path, s, cb,
                             cb_user_data)) {
       /* Error message is set by ReadTreeFromArchive or we can set a generic one
        */

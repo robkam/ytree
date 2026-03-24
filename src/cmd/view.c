@@ -25,7 +25,7 @@ static int ViewArchiveFile(ViewContext *ctx, char *file_path);
 static int ArchiveUICallback(int status, const char *msg, void *user_data);
 
 int View(ViewContext *ctx, DirEntry *dir_entry, char *file_path) {
-  int mode = ctx->active->vol->vol_stats.login_mode;
+  int mode = ctx->active->vol->vol_stats.log_mode;
   switch (mode) {
   case DISK_MODE:
   case USER_MODE:
@@ -93,7 +93,7 @@ static int ViewArchiveFile(ViewContext *ctx, char *file_path) {
     return -1;
   }
 
-  if (ExtractArchiveEntry(ctx->active->vol->vol_stats.login_path, file_path, fd,
+  if (ExtractArchiveEntry(ctx->active->vol->vol_stats.log_path, file_path, fd,
                           ArchiveUICallback, ctx) != 0) {
     MESSAGE(ctx, "Could not extract entry*'%s'*from archive", file_path);
     close(fd);

@@ -48,14 +48,14 @@ int DeleteDirectory(ViewContext *ctx, DirEntry *dir_entry,
     return -1;
   }
 #ifdef HAVE_LIBARCHIVE
-  else if (ctx->active->vol->vol_stats.login_mode == ARCHIVE_MODE) {
+  else if (ctx->active->vol->vol_stats.log_mode == ARCHIVE_MODE) {
     if (dir_entry->file || dir_entry->sub_tree) {
       return -1;
     } else if (choice_cb && choice_cb(ctx, "Delete this directory (Y/N) ? ",
                                       "YN\033") == 'Y') {
       GetPath(dir_entry, buffer);
 
-      if (Archive_DeleteEntry(ctx->active->vol->vol_stats.login_path, buffer,
+      if (Archive_DeleteEntry(ctx->active->vol->vol_stats.log_path, buffer,
                               RmdirProgressCallback, NULL) == 0) {
         /* Success - The UI must handle refreshing */
         result = 0;

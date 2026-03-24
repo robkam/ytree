@@ -20,7 +20,7 @@ static int ViewHexFile(ViewContext *ctx, char *file_path);
 static int ViewHexArchiveFile(ViewContext *ctx, char *file_path);
 
 int ViewHex(ViewContext *ctx, char *file_path) {
-  int mode = ctx->active->vol->vol_stats.login_mode;
+  int mode = ctx->active->vol->vol_stats.log_mode;
   switch (mode) {
   case DISK_MODE:
   case USER_MODE:
@@ -67,7 +67,7 @@ static int ViewHexArchiveFile(ViewContext *ctx, char *file_path) {
     return -1;
   }
 
-  if (ExtractArchiveEntry(ctx->active->vol->vol_stats.login_path, file_path, fd,
+  if (ExtractArchiveEntry(ctx->active->vol->vol_stats.log_path, file_path, fd,
                           HexProgressCallback, ctx) != 0) {
     MESSAGE(ctx, "Could not extract entry*'%s'*from archive", file_path);
     close(fd);

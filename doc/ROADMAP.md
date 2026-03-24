@@ -218,7 +218,7 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 *   - [x] **Status:** Completed.
 
 #### **Step 4.9.4: Implement Volume Switching Logic**
-*   **Task:** Modify `log.c` (specifically the `LoginDisk` function).
+*   **Task:** Modify `log.c` (specifically the `LogDisk` function).
 *   **Logic:** Instead of always destroying the current tree and rescanning:
     1.  Check if a volume with the requested path already exists in the `VolumeList` hash table.
     2.  **If it exists:** Switch `CurrentVolume` to that pointer and refresh the screen.
@@ -249,7 +249,7 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 #### **Step 4.9.7: Fix Volume Logic & Preserve State**
 *   **Goal:** Polish the user experience and fix logic errors.
 *   **Action:**
-    1.  **Fix Ghost Volume:** Modify `LoginDisk` to **reuse** the initial empty volume (Volume 0) instead of creating a new one, preventing dead menu entries.
+    1.  **Fix Ghost Volume:** Modify `LogDisk` to **reuse** the initial empty volume (Volume 0) instead of creating a new one, preventing dead menu entries.
     2.  **Fix Cycle Wrapping:** Update `CycleLoadedVolume` math to handle negative modulo correctly.
     3.  **Preserve State:** Update `dirwin.c` to **stop resetting** `cursor_pos` and `disp_begin_pos` when switching volumes, effectively saving the user's place on each drive.
 *   **Files to Modify:** `src/cmd/log.c`, `src/ui/ctrl_dir.c`
@@ -259,8 +259,8 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 #### **Step 4.9.8: Stability, Safety & Validation**
 *   **Goal:** Ensure the application does not crash when dealing with edge cases or external filesystem changes.
 *   **Action:**
-    1.  **Validation:** `LoginDisk` now verifies `chdir()` success. If a directory is deleted externally, the volume is removed from memory.
-    2.  **Self-Deletion Safety:** If the *current* volume is deleted, `LoginDisk` restores a safe blank volume to prevent dangling pointers.
+    1.  **Validation:** `LogDisk` now verifies `chdir()` success. If a directory is deleted externally, the volume is removed from memory.
+    2.  **Self-Deletion Safety:** If the *current* volume is deleted, `LogDisk` restores a safe blank volume to prevent dangling pointers.
     3.  **Auto-Skip:** `CycleLoadedVolume` loops to automatically skip over dead/deleted volumes.
     4.  **Init Fix:** `Init()` now properly populates the path of the first volume to prevent `[ ] <no path>` menu glitches.
     5.  **Underflow Fix:** `readtree.c` modified to prevent `disk_total_directories` from wrapping to huge numbers during tree collapse.
@@ -315,7 +315,7 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 *   - [x] **Status:** Completed.
 
 #### **Step 4.9.15: Fix Archive Volume Switching**
-*   **Goal:** Prevent `LoginDisk` from erroneously deleting valid archive volumes when switching back to them.
+*   **Goal:** Prevent `LogDisk` from erroneously deleting valid archive volumes when switching back to them.
 *   **Action:** Modified `log.c` to detect `ARCHIVE_MODE` and perform a file existence check (`stat`) instead of a directory check (`chdir`), as archives are files.
 *   **Files to Modify:** `src/cmd/log.c`
 *   **Context Files:** `include/ytree.h`
@@ -365,7 +365,7 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 
 #### **Step 4.10.1: Fix Statistics Calculation Logic**
 *   **Goal:** Ensure "Matching Files" and "Tagged Files" are counted correctly immediately upon logging a disk.
-*   **Rationale:** Previously, statistics were calculated *before* filters were applied in `LoginDisk`, resulting in zero counts until a manual refresh. Logic order needed correction to support the new panel's data requirements.
+*   **Rationale:** Previously, statistics were calculated *before* filters were applied in `LogDisk`, resulting in zero counts until a manual refresh. Logic order needed correction to support the new panel's data requirements.
 *   **Action:** Modified `log.c` to strictly order the sequence: `SetFilter` -> `ApplyFilter` -> `RecalculateSysStats` -> `Display`.
 *   **Files to Modify:** `src/cmd/log.c`
 *   **Context Files:** `src/core/filter.c`, `src/ui/stats.c`
@@ -398,7 +398,7 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 *   **Goal:** Resolve visual regressions: prevent the stats panel from erasing the first directory entry, and ensure the top-left "Path:" header updates correctly without ghosting characters from previous paths.
 *   **Action:**
     1.  **`stats.c`**: Removed the `mvwhline` call in `DisplayDiskName` that was incorrectly clearing the content window (`dir_window`) instead of the header area.
-    2.  **`display.c`**: Updated `DisplayMenu` to explicitly clear the header background (`mvwhline`) and print the truncated current path (`statistic.path` or `login_path`) using the new geometry constants.
+    2.  **`display.c`**: Updated `DisplayMenu` to explicitly clear the header background (`mvwhline`) and print the truncated current path (`statistic.path` or `log_path`) using the new geometry constants.
 *   **Files to Modify:** `src/ui/stats.c`, `src/ui/display.c`
 *   **Context Files:** None.
 *   - [x] **Status:** Completed.
@@ -1156,7 +1156,7 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 *   - [x] **Status:** Completed.
 
 #### **Step 9.1.3: Refactor LogDisk (Split I/O and UI)** (Use the Architect persona here)
-*   **Goal:** Split the monolithic `LoginDisk` function into a pure logic function (`Volume_Load`) and a UI wrapper (`LogDisk`), and rename the command to fix the "Login" misnomer.
+*   **Goal:** Split the monolithic `LogDisk` function into a pure logic function (`Volume_Load`) and a UI wrapper (`LogDisk`), and rename the command to fix the "Login" misnomer.
 *   **Mechanism:** `Volume_Load` (core/volume.c) performs I/O, archive detection, and memory allocation only. `LogDisk` (cmd/log.c) handles user prompts, existing volume lookup, screen clearing, and error display.
 *   **Files to Modify:** `src/cmd/log.c`, `src/core/volume.c` and `src/fs/archive_read.c`, `src/ui/ctrl_dir.c`, `src/ui/ctrl_file.c`, `src/ui/vol_menu.c` for renaming.
 *   - [x] **Status:** Completed.
@@ -1564,7 +1564,7 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
     *   Implement `.extract` to handle the temporary file creation for viewing/copying.
 *   **Files:** `src/fs/drv_archive.c`, `src/fs/readarchive.c` (delete).
 
-#### **Step 6.x.5: Switch `LoginDisk` to VFS** (Use the Architect persona here)
+#### **Step 6.x.5: Switch `LogDisk` to VFS** (Use the Architect persona here)
 *   **Goal:** Update the main entry point to use the new system.
 *   **Mechanism:**
     *   Refactor `src/cmd/log.c`.

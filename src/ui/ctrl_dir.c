@@ -19,7 +19,7 @@
 
 /* dir_ops.c */
 void HandlePlus(ViewContext *ctx, DirEntry *dir_entry, DirEntry *de_ptr,
-                char *new_login_path, BOOL *need_dsp_help, YtreePanel *p);
+                char *new_log_path, BOOL *need_dsp_help, YtreePanel *p);
 void HandleReadSubTree(ViewContext *ctx, DirEntry *dir_entry,
                        BOOL *need_dsp_help, YtreePanel *p);
 void HandleUnreadSubTree(ViewContext *ctx, DirEntry *dir_entry,
@@ -893,7 +893,7 @@ int HandleDirWindow(ViewContext *ctx, const DirEntry *start_dir_entry) {
   int i, ch, unput_char;
   BOOL need_dsp_help;
   char new_name[PATH_LENGTH + 1];
-  char new_login_path[PATH_LENGTH + 1];
+  char new_log_path[PATH_LENGTH + 1];
   const char *home;
   YtreeAction action; /* Declare YtreeAction variable */
   const struct Volume *start_vol = NULL;
@@ -967,31 +967,31 @@ int HandleDirWindow(ViewContext *ctx, const DirEntry *start_dir_entry) {
       ctx->active->cursor_pos = 0;
       unput_char = CR;
     } else {
-      int login_path_len = -1;
+      int log_path_len = -1;
       if (*ctx->initial_directory == '.') { /* Entry of form "./alpha/beta" */
-        login_path_len = snprintf(new_login_path, sizeof(new_login_path),
+        log_path_len = snprintf(new_log_path, sizeof(new_log_path),
                                   "%s%s", start_dir_entry->name,
                                   ctx->initial_directory + 1);
       } else if (*ctx->initial_directory == '~' && (home = getenv("HOME"))) {
         /* Entry of form "~/alpha/beta" */
-        login_path_len = snprintf(new_login_path, sizeof(new_login_path),
+        log_path_len = snprintf(new_log_path, sizeof(new_log_path),
                                   "%s%s", home,
                                   ctx->initial_directory + 1);
       } else { /* Entry of form "beta" or "/full/path/alpha/beta" */
-        login_path_len = snprintf(new_login_path, sizeof(new_login_path), "%s",
+        log_path_len = snprintf(new_log_path, sizeof(new_log_path), "%s",
                                   ctx->initial_directory);
       }
-      if (login_path_len >= 0 &&
-          (size_t)login_path_len < sizeof(new_login_path)) {
+      if (log_path_len >= 0 &&
+          (size_t)log_path_len < sizeof(new_log_path)) {
         for (i = 0; i < ctx->active->vol->total_dirs; i++) {
-          if (*new_login_path == FILE_SEPARATOR_CHAR) {
+          if (*new_log_path == FILE_SEPARATOR_CHAR) {
             GetPath(ctx->active->vol->dir_entry_list[i].dir_entry, new_name);
           } else {
             (void)snprintf(
                 new_name, sizeof(new_name), "%s",
                 ctx->active->vol->dir_entry_list[i].dir_entry->name);
           }
-          if (!strcmp(new_login_path, new_name)) {
+          if (!strcmp(new_log_path, new_name)) {
             ctx->active->disp_begin_pos = i;
             ctx->active->cursor_pos = 0;
             unput_char = CR;
@@ -1023,7 +1023,7 @@ int HandleDirWindow(ViewContext *ctx, const DirEntry *start_dir_entry) {
   }
 
   /* REPLACEMENT START: Unified Rendering Call */
-  if (!dir_entry->login_flag) {
+  if (!dir_entry->log_flag) {
     if (ctx->active && ctx->active->saved_focus == FOCUS_FILE) {
       if (ctx->active->file_dir_entry == dir_entry) {
         dir_entry->start_file = ctx->active->start_file;
@@ -1042,7 +1042,7 @@ int HandleDirWindow(ViewContext *ctx, const DirEntry *start_dir_entry) {
   RefreshView(ctx, dir_entry);
   /* REPLACEMENT END */
 
-  if (dir_entry->login_flag) {
+  if (dir_entry->log_flag) {
     if ((dir_entry->global_flag) || (dir_entry->tagged_flag)) {
       unput_char = 'S';
     } else {
@@ -1071,7 +1071,7 @@ int HandleDirWindow(ViewContext *ctx, const DirEntry *start_dir_entry) {
       RenderInactivePanel(ctx, inactive);
     }
 
-    if (s->login_mode == DISK_MODE || s->login_mode == USER_MODE) {
+    if (s->log_mode == DISK_MODE || s->log_mode == USER_MODE) {
       if (ctx->refresh_mode & REFRESH_WATCHER) {
         GetPath(dir_entry, watcher_path);
         Watcher_SetDir(ctx, watcher_path);
@@ -1445,7 +1445,7 @@ int HandleDirWindow(ViewContext *ctx, const DirEntry *start_dir_entry) {
       break;
     case ACTION_MOVE_RIGHT:
     case ACTION_TREE_EXPAND_ALL:
-      HandlePlus(ctx, dir_entry, de_ptr, new_login_path, &need_dsp_help,
+      HandlePlus(ctx, dir_entry, de_ptr, new_log_path, &need_dsp_help,
                  ctx->active);
       break;
     case ACTION_ASTERISK:
@@ -1464,10 +1464,10 @@ int HandleDirWindow(ViewContext *ctx, const DirEntry *start_dir_entry) {
 
         /* Calculate Parent Directory of the Archive File */
         (void)snprintf(archive_path, sizeof(archive_path), "%s",
-                       s->login_path);
+                       s->log_path);
         Fnsplit(archive_path, parent_dir, dummy_name);
 
-        /* Force Login/Switch to the Parent Directory */
+        /* Force Log/Switch to the Parent Directory */
         /* This handles both "New Volume" and "Switch to Existing" logic
          * automatically */
         if (LogDisk(ctx, ctx->active, parent_dir) == 0) {
@@ -1543,7 +1543,7 @@ int HandleDirWindow(ViewContext *ctx, const DirEntry *start_dir_entry) {
           }
 
           /* Keep mode in sync with selected volume and do a full redraw. */
-          ctx->view_mode = ctx->active->vol->vol_stats.login_mode;
+          ctx->view_mode = ctx->active->vol->vol_stats.log_mode;
           RefreshView(ctx, dir_entry);
           need_dsp_help = TRUE;
           break; /* Exit case done */
@@ -2146,22 +2146,21 @@ int HandleDirWindow(ViewContext *ctx, const DirEntry *start_dir_entry) {
       break;
 
     case ACTION_LOG:
-    case ACTION_LOGIN:
       if (ctx->view_mode != DISK_MODE && ctx->view_mode != USER_MODE) {
-        if (getcwd(new_login_path, sizeof(new_login_path)) == NULL) {
-          (void)snprintf(new_login_path, sizeof(new_login_path), "%s", ".");
+        if (getcwd(new_log_path, sizeof(new_log_path)) == NULL) {
+          (void)snprintf(new_log_path, sizeof(new_log_path), "%s", ".");
         }
       } else {
-        (void)GetPath(dir_entry, new_login_path);
+        (void)GetPath(dir_entry, new_log_path);
       }
-      if (!GetNewLoginPath(ctx, ctx->active, new_login_path)) {
+      if (!GetNewLogPath(ctx, ctx->active, new_log_path)) {
         int ret; /* DEBUG variable */
         DisplayMenu(ctx);
         doupdate();
 
-        ret = LogDisk(ctx, ctx->active, new_login_path);
+        ret = LogDisk(ctx, ctx->active, new_log_path);
 
-        /* Check return value. Only update state if login succeeded (0). */
+        /* Check return value. Only update state if log succeeded (0). */
         if (ret == 0) {
           /* Safety Check: If volume was changed, return to main loop to handle
            * new context */
@@ -2240,7 +2239,7 @@ int HandleDirWindow(ViewContext *ctx, const DirEntry *start_dir_entry) {
   } while (action != ACTION_QUIT && action != ACTION_ENTER &&
            action != ACTION_ESCAPE &&
            action !=
-               ACTION_LOGIN); /* Loop until explicit quit, escape or login */
+               ACTION_LOG); /* Loop until explicit quit, escape or log */
 
   /* Sync state back to Volume on exit */
   /* Removed shared state sync on exit */

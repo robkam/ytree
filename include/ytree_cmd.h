@@ -79,7 +79,7 @@ extern int SetLogFile(char *filename);
 extern int LogDisk(ViewContext *ctx, YtreePanel *panel, char *path);
 extern int CycleLoadedVolume(ViewContext *ctx, YtreePanel *panel,
                              int direction);
-extern int GetNewLoginPath(ViewContext *ctx, YtreePanel *panel, char *path);
+extern int GetNewLogPath(ViewContext *ctx, YtreePanel *panel, char *path);
 
 /* mkdir.c */
 extern int MakeDirectory(const ViewContext *ctx, YtreePanel *panel,
