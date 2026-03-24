@@ -25,19 +25,22 @@ static long current_line;
 static int fd, fd2;
 static struct stat fdstat;
 
-
 #define CURSOR_CALC_X                                                          \
-  (10 + (((cursor_pos_x / 2) < (ctx->viewer.bytes / 2)) ? 2 : 3) + (cursor_pos_x) +        \
-   (cursor_pos_x / 2))
-#define CURSOR_POS_X ((ctx->viewer.inhex) ? CURSOR_CALC_X : (ctx->viewer.wcols - ctx->viewer.bytes + cursor_pos_x))
+  (10 + (((cursor_pos_x / 2) < (ctx->viewer.bytes / 2)) ? 2 : 3) +             \
+   (cursor_pos_x) + (cursor_pos_x / 2))
+#define CURSOR_POS_X                                                           \
+  ((ctx->viewer.inhex)                                                         \
+       ? CURSOR_CALC_X                                                         \
+       : (ctx->viewer.wcols - ctx->viewer.bytes + cursor_pos_x))
 #define C_POSX (((cursor_pos_x % 2) != 1) ? cursor_pos_x : (cursor_pos_x - 1))
 #define CURSOR_POSX ((ctx->viewer.inhex) ? (C_POSX / 2) : cursor_pos_x)
 #define CANTX(x) ((ctx->viewer.inhex) ? (x * 2) : x)
-#define THECOLOR ((ctx->viewer.inedit) ? COLOR_PAIR(CPAIR_STATS) : COLOR_PAIR(CPAIR_DIR))
+#define THECOLOR                                                               \
+  ((ctx->viewer.inedit) ? COLOR_PAIR(CPAIR_STATS) : COLOR_PAIR(CPAIR_DIR))
 
 static void hex_edit(ViewContext *ctx, char *file_path);
-static void printhexline(ViewContext *ctx, WINDOW *win, char *line, char *buf, int r,
-                         long offset);
+static void printhexline(ViewContext *ctx, WINDOW *win, char *line, char *buf,
+                         int r, long offset);
 static int append_bounded(char *dst, size_t dst_size, const char *src);
 static void update_line(ViewContext *ctx, WINDOW *win, long line);
 static void scroll_down(ViewContext *ctx, WINDOW *win);
@@ -54,7 +57,6 @@ static void DoResize(ViewContext *ctx, char *file_path);
 static int append_bounded(char *dst, size_t dst_size, const char *src) {
   size_t used;
   size_t src_len;
-  size_t copy_len;
 
   if (dst_size == 0)
     return -1;
@@ -65,7 +67,7 @@ static int append_bounded(char *dst, size_t dst_size, const char *src) {
 
   src_len = strlen(src);
   if (src_len >= (dst_size - used)) {
-    copy_len = dst_size - used - 1;
+    size_t copy_len = dst_size - used - 1;
     if (copy_len > 0)
       memcpy(dst + used, src, copy_len);
     dst[dst_size - 1] = '\0';
@@ -76,8 +78,8 @@ static int append_bounded(char *dst, size_t dst_size, const char *src) {
   return 0;
 }
 
-static void printhexline(ViewContext *ctx, WINDOW *win, char *line, char *buf, int r,
-                         long offset) {
+static void printhexline(ViewContext *ctx, WINDOW *win, char *line, char *buf,
+                         int r, long offset) {
   char aux[5];
   int line_overflow = 0;
 
@@ -195,8 +197,8 @@ static void Change2Edit(const ViewContext *ctx, const char *file_path) {
   doupdate();
 
   Print(stdscr, ctx->layout.header_y, 0, "File: ", CPAIR_MENU);
-  Print(stdscr, ctx->layout.header_y, 6, CutPathname(str, file_path, ctx->viewer.wcols - 5),
-        CPAIR_HIMENUS);
+  Print(stdscr, ctx->layout.header_y, 6,
+        CutPathname(str, file_path, ctx->viewer.wcols - 5), CPAIR_HIMENUS);
   PrintOptions(stdscr, ctx->layout.message_y, 0,
                "(Edit file in hexadecimal mode)");
   wclrtoeol(stdscr);
@@ -225,8 +227,8 @@ static void Change2View(const ViewContext *ctx, const char *file_path) {
   doupdate();
 
   Print(stdscr, ctx->layout.header_y, 0, "File: ", CPAIR_MENU);
-  Print(stdscr, ctx->layout.header_y, 6, CutPathname(str, file_path, ctx->viewer.wcols - 5),
-        CPAIR_HIMENUS);
+  Print(stdscr, ctx->layout.header_y, 6,
+        CutPathname(str, file_path, ctx->viewer.wcols - 5), CPAIR_HIMENUS);
   PrintOptions(stdscr, ctx->layout.message_y, 0,
                "View file in hexadecimal mode");
   wclrtoeol(stdscr);
@@ -264,7 +266,8 @@ static void SetupViewWindow(ViewContext *ctx, const char *file_path) {
 
   if (ctx->viewer.view)
     delwin(ctx->viewer.view);
-  ctx->viewer.view = newwin(ctx->viewer.wlines, ctx->viewer.wcols, start_y + 1, start_x + 1);
+  ctx->viewer.view =
+      newwin(ctx->viewer.wlines, ctx->viewer.wcols, start_y + 1, start_x + 1);
 
   keypad(ctx->viewer.view, TRUE);
   scrollok(ctx->viewer.view, FALSE);
@@ -304,7 +307,8 @@ static void change_char(ViewContext *ctx, int ch) {
     UI_Error(ctx, __FILE__, __LINE__, "Malloc failed*ABORT");
     exit(1);
   }
-  cambio->pos = ((cursor_pos_y + current_line - 1) * ctx->viewer.bytes) + CURSOR_POSX;
+  cambio->pos =
+      ((cursor_pos_y + current_line - 1) * ctx->viewer.bytes) + CURSOR_POSX;
   if (lseek(fd, cambio->pos, SEEK_SET) == -1) {
     snprintf(msg, sizeof(msg), "File seek failed: %s ", strerror(errno));
     UI_Error(ctx, __FILE__, __LINE__, "%s", msg);
@@ -399,7 +403,8 @@ static void move_right(ViewContext *ctx, WINDOW *win) {
       cursor_pos_x += 1;
       wmove(win, cursor_pos_y, CURSOR_POS_X);
     } else {
-      if (fdstat.st_size >= ((current_line + cursor_pos_y) * ctx->viewer.bytes)) {
+      if (fdstat.st_size >=
+          ((current_line + cursor_pos_y) * ctx->viewer.bytes)) {
         if (cursor_pos_y < ctx->viewer.wlines - 1) {
           cursor_pos_y++;
           cursor_pos_x = 0;
@@ -424,7 +429,8 @@ static void DoResize(ViewContext *ctx, char *file_path) {
   int old_cursor_pos_y = cursor_pos_y;
   int old_WLINES = ctx->viewer.wlines;
   int old_WCOLS = ctx->viewer.wcols;
-  int offset = (cursor_pos_y + current_line - 1) * ctx->viewer.bytes + CURSOR_POSX;
+  int offset =
+      (cursor_pos_y + current_line - 1) * ctx->viewer.bytes + CURSOR_POSX;
   int new_cols;
   int new_lines;
 
@@ -434,7 +440,8 @@ static void DoResize(ViewContext *ctx, char *file_path) {
   new_lines = offset / ctx->viewer.bytes;
 
   if (ctx->viewer.wlines < old_WLINES) {
-    if (old_cursor_pos_y >= ctx->viewer.wlines) /* view is getting smaller (heigh) */
+    if (old_cursor_pos_y >=
+        ctx->viewer.wlines) /* view is getting smaller (heigh) */
     {
       /* current position is (now) in invisible line; "scoll down" */
       int n = old_WLINES - ctx->viewer.wlines;
@@ -449,7 +456,8 @@ static void DoResize(ViewContext *ctx, char *file_path) {
 
   if (ctx->viewer.wcols != old_WCOLS) {
     /* reposition x */
-    cursor_pos_x = (ctx->viewer.inhex) ? (new_cols * 2 + (old_cursor_pos_x % 2)) : new_cols;
+    cursor_pos_x = (ctx->viewer.inhex) ? (new_cols * 2 + (old_cursor_pos_x % 2))
+                                       : new_cols;
 
     /* reposition y */
     while ((cursor_pos_y + current_line - 1) <
@@ -529,10 +537,12 @@ static void hex_edit(ViewContext *ctx, char *file_path) {
     case KEY_DOWN: /*ScrollDown();*/
       fstat(fd, &fdstat);
       if (fdstat.st_size >
-          ((cursor_pos_y + current_line - 1) * ctx->viewer.bytes + CURSOR_POSX)) {
+          ((cursor_pos_y + current_line - 1) * ctx->viewer.bytes +
+           CURSOR_POSX)) {
 
         if (fdstat.st_size >
-            ((cursor_pos_y + current_line - 1 + 1) * ctx->viewer.bytes + CURSOR_POSX)) {
+            ((cursor_pos_y + current_line - 1 + 1) * ctx->viewer.bytes +
+             CURSOR_POSX)) {
 
           if (cursor_pos_y < ctx->viewer.wlines - 1) {
             wmove(ctx->viewer.view, ++cursor_pos_y, CURSOR_POS_X);
@@ -549,7 +559,8 @@ static void hex_edit(ViewContext *ctx, char *file_path) {
           if (fdstat.st_size >
               ((cursor_pos_y + current_line - 1 + 1) * ctx->viewer.bytes)) {
 
-            for (cursor_pos_x = 0; (CURSOR_POSX + 1) < (fdstat.st_size % ctx->viewer.bytes);
+            for (cursor_pos_x = 0;
+                 (CURSOR_POSX + 1) < (fdstat.st_size % ctx->viewer.bytes);
                  cursor_pos_x++)
               ;
 
@@ -609,7 +620,9 @@ static void hex_edit(ViewContext *ctx, char *file_path) {
     case KEY_NPAGE: /*ScroollPageUp();*/
       fstat(fd, &fdstat);
       if (fdstat.st_size >
-          ((current_line - 1 + ctx->viewer.wlines + cursor_pos_y) * ctx->viewer.bytes) + CURSOR_POSX) {
+          ((current_line - 1 + ctx->viewer.wlines + cursor_pos_y) *
+           ctx->viewer.bytes) +
+              CURSOR_POSX) {
         current_line += ctx->viewer.wlines;
       } else {
         int n;
@@ -620,7 +633,8 @@ static void hex_edit(ViewContext *ctx, char *file_path) {
         if (current_line != n) {
           current_line = n;
           cursor_pos_y = 0;
-          for (cursor_pos_x = 0; (CURSOR_POSX + 1) < (fdstat.st_size % ctx->viewer.bytes);
+          for (cursor_pos_x = 0;
+               (CURSOR_POSX + 1) < (fdstat.st_size % ctx->viewer.bytes);
                cursor_pos_x++)
             ;
         }
@@ -638,7 +652,8 @@ static void hex_edit(ViewContext *ctx, char *file_path) {
       break;
     case KEY_END:
       fstat(fd, &fdstat);
-      if (((cursor_pos_y + current_line) * ctx->viewer.bytes) > fdstat.st_size) {
+      if (((cursor_pos_y + current_line) * ctx->viewer.bytes) >
+          fdstat.st_size) {
         cursor_pos_x = CANTX(fdstat.st_size % ctx->viewer.bytes) - 1;
       } else {
         cursor_pos_x = CANTX(ctx->viewer.bytes) - 1;
@@ -774,7 +789,8 @@ int InternalView(ViewContext *ctx, char *file_path) {
     case KEY_RIGHT:
     case KEY_NPAGE: /*ScroollPageUp();*/
       fstat(fd, &fdstat);
-      if (fdstat.st_size > ((current_line - 1 + ctx->viewer.wlines) * ctx->viewer.bytes)) {
+      if (fdstat.st_size >
+          ((current_line - 1 + ctx->viewer.wlines) * ctx->viewer.bytes)) {
         current_line += ctx->viewer.wlines;
       } else {
         int n;

@@ -10,8 +10,8 @@
 #include "ytree.h"
 #include "ytree_ui.h"
 #include <ctype.h>
-#include <errno.h>
 #include <dirent.h>
+#include <errno.h>
 #include <fcntl.h>
 #include <grp.h>
 #include <libgen.h>
@@ -20,8 +20,8 @@
 #include <string.h>
 #include <sys/stat.h>
 #include <time.h>
-#include <utime.h>
 #include <unistd.h>
+#include <utime.h>
 
 static char move_prompt_header[PATH_LENGTH + 50];
 static char move_prompt_as[PATH_LENGTH + 1];
@@ -251,8 +251,8 @@ static int parse_date_input(const char *input, time_t base_time,
   matched = sscanf(input, "%d-%d-%d %d:%d:%d", &year, &month, &day, &hour,
                    &minute, &second);
   if (matched != 6) {
-    matched = sscanf(input, "%d-%d-%d %d:%d", &year, &month, &day, &hour,
-                     &minute);
+    matched =
+        sscanf(input, "%d-%d-%d %d:%d", &year, &month, &day, &hour, &minute);
     if (matched != 5) {
       matched = sscanf(input, "%d-%d-%d", &year, &month, &day);
     }
@@ -604,12 +604,11 @@ static void GetCompareHelpLines(CompareHelpTopic topic, const char **title,
     *line_2 = "Choose directory or logged tree source scope for launch.";
     break;
   case COMPARE_HELP_BASIS:
-    *line_0 =
-        "Size checks file length. Date checks the last-modified time.";
+    *line_0 = "Size checks file length. Date checks the last-modified time.";
     *line_1 =
         "siZe+date marks a difference if size or modification time differs.";
-    *line_2 =
-        "Hash opens both files and compares their content exactly, so it is slower.";
+    *line_2 = "Hash opens both files and compares their content exactly, so it "
+              "is slower.";
     break;
   case COMPARE_HELP_RESULTS:
   default:
@@ -743,8 +742,7 @@ static int InputCompareChoice(ViewContext *ctx, const char *prompt,
 }
 
 static int PromptCompareTargetPath(ViewContext *ctx, const char *prompt,
-                                   const char *default_path,
-                                   char *target_path,
+                                   const char *default_path, char *target_path,
                                    CompareHelpTopic help_topic) {
   static const char compare_target_hints[] =
       "(F1) help  (F2) browse  (Up) history  (Enter) OK  (Esc) cancel";
@@ -778,9 +776,9 @@ static int PromptCompareBasis(ViewContext *ctx, CompareBasis *basis) {
   if (!ctx || !basis)
     return -1;
 
-  ch = InputCompareChoice(ctx,
-                          "COMPARE BASIS: (S)ize (D)ate si(Z)e+date (H)ash",
-                          "SDZH", 0, COMPARE_HELP_BASIS);
+  ch =
+      InputCompareChoice(ctx, "COMPARE BASIS: (S)ize (D)ate si(Z)e+date (H)ash",
+                         "SDZH", 0, COMPARE_HELP_BASIS);
   if (ch == ESC || ch < 0)
     return -1;
 
@@ -802,7 +800,8 @@ static int PromptCompareBasis(ViewContext *ctx, CompareBasis *basis) {
   }
 }
 
-static int PromptCompareTagResult(ViewContext *ctx, CompareTagResult *tag_result) {
+static int PromptCompareTagResult(ViewContext *ctx,
+                                  CompareTagResult *tag_result) {
   int ch;
 
   if (!ctx || !tag_result)
@@ -974,11 +973,10 @@ int UI_BuildFileCompareRequest(ViewContext *ctx, FileEntry *source_file,
     }
   }
 
-  if (PromptCompareTargetPath(ctx, "COMPARE TARGET:",
-                              default_target ? default_target
-                                             : request->source_path,
-                              request->target_path,
-                              COMPARE_HELP_FILE_TARGET) != 0) {
+  if (PromptCompareTargetPath(
+          ctx, "COMPARE TARGET:",
+          default_target ? default_target : request->source_path,
+          request->target_path, COMPARE_HELP_FILE_TARGET) != 0) {
     return -1;
   }
 
@@ -1060,7 +1058,8 @@ int UI_BuildDirectoryCompareRequest(ViewContext *ctx, DirEntry *source_dir,
                                               request, TRUE);
 }
 
-int UI_BuildDirectoryCompareLaunchRequest(ViewContext *ctx, DirEntry *source_dir,
+int UI_BuildDirectoryCompareLaunchRequest(ViewContext *ctx,
+                                          DirEntry *source_dir,
                                           CompareFlowType flow_type,
                                           CompareRequest *request) {
   return BuildDirectoryCompareRequestInternal(ctx, source_dir, flow_type,
@@ -1113,7 +1112,8 @@ int UI_PromptAttributeAction(ViewContext *ctx, BOOL tagged, BOOL allow_date) {
   ClearHelp(ctx);
   wmove(ctx->ctx_border_window, ctx->layout.prompt_y, 0);
   wclrtoeol(ctx->ctx_border_window);
-  PrintOptions(ctx->ctx_border_window, ctx->layout.prompt_y, 1, (char *)menu_text);
+  PrintOptions(ctx->ctx_border_window, ctx->layout.prompt_y, 1,
+               (char *)menu_text);
   wnoutrefresh(ctx->ctx_border_window);
   doupdate();
 
@@ -1210,7 +1210,6 @@ int UI_GetDateChangeSpec(ViewContext *ctx, time_t *new_time, int *scope_mask) {
 
 int ChangeFileModus(ViewContext *ctx, FileEntry *fe_ptr) {
   char mode_input[16];
-  char parsed_mode[12];
   WalkingPackage walking_package;
   int result = -1;
 
@@ -1224,6 +1223,7 @@ int ChangeFileModus(ViewContext *ctx, FileEntry *fe_ptr) {
   ClearHelp(ctx);
   if (UI_ReadString(ctx, ctx->active, "MODE (octal/rwx):", mode_input,
                     (int)sizeof(mode_input), HST_CHANGE_MODUS) == CR) {
+    char parsed_mode[12];
     char preview_mode[10];
 
     if (UI_ParseModeInput(mode_input, parsed_mode, preview_mode) != 0) {
@@ -1233,9 +1233,10 @@ int ChangeFileModus(ViewContext *ctx, FileEntry *fe_ptr) {
       wnoutrefresh(ctx->ctx_border_window);
       return -1;
     }
-    CopyBoundedString(walking_package.function_data.change_mode.new_mode,
-                      sizeof(walking_package.function_data.change_mode.new_mode),
-                      parsed_mode);
+    CopyBoundedString(
+        walking_package.function_data.change_mode.new_mode,
+        sizeof(walking_package.function_data.change_mode.new_mode),
+        parsed_mode);
     result = SetFileModus(ctx, fe_ptr, &walking_package);
   }
 
@@ -1248,7 +1249,6 @@ int ChangeFileModus(ViewContext *ctx, FileEntry *fe_ptr) {
 
 int ChangeDirModus(ViewContext *ctx, DirEntry *de_ptr) {
   char mode_input[16];
-  char parsed_mode[12];
   WalkingPackage walking_package;
   int result = -1;
 
@@ -1262,6 +1262,7 @@ int ChangeDirModus(ViewContext *ctx, DirEntry *de_ptr) {
   ClearHelp(ctx);
   if (UI_ReadString(ctx, ctx->active, "MODE (octal/rwx):", mode_input,
                     (int)sizeof(mode_input), HST_CHANGE_MODUS) == CR) {
+    char parsed_mode[12];
     char preview_mode[10];
 
     if (UI_ParseModeInput(mode_input, parsed_mode, preview_mode) != 0) {
@@ -1271,9 +1272,10 @@ int ChangeDirModus(ViewContext *ctx, DirEntry *de_ptr) {
       wnoutrefresh(ctx->ctx_border_window);
       return -1;
     }
-    CopyBoundedString(walking_package.function_data.change_mode.new_mode,
-                      sizeof(walking_package.function_data.change_mode.new_mode),
-                      parsed_mode);
+    CopyBoundedString(
+        walking_package.function_data.change_mode.new_mode,
+        sizeof(walking_package.function_data.change_mode.new_mode),
+        parsed_mode);
     result = SetDirModus(de_ptr, &walking_package);
   }
 
@@ -1548,7 +1550,8 @@ int UI_ReadFilter(ViewContext *ctx) {
 
   ClearHelp(ctx);
   /* Pre-fill with current filter value */
-  CopyBoundedString(buffer, sizeof(buffer), ctx->active->vol->vol_stats.file_spec);
+  CopyBoundedString(buffer, sizeof(buffer),
+                    ctx->active->vol->vol_stats.file_spec);
 
   if (UI_ReadString(ctx, ctx->active, "FILTER:", buffer, FILE_SPEC_LENGTH,
                     HST_FILTER) == CR) {
@@ -1573,7 +1576,8 @@ void UI_HandleSort(ViewContext *ctx, DirEntry *dir_entry, Statistic *s,
   int c;
   int sort_kind = 0;
   int order = SORT_ASC;
-  WINDOW *sort_win = (ctx && ctx->ctx_menu_window) ? ctx->ctx_menu_window : stdscr;
+  WINDOW *sort_win =
+      (ctx && ctx->ctx_menu_window) ? ctx->ctx_menu_window : stdscr;
 
   if (!ctx || !ctx->active || !s)
     return;
@@ -1808,9 +1812,10 @@ static int RunTaggedViewLoop(ViewContext *ctx, char **view_paths,
   while (!quit) {
     long page_step;
 
-    DrawTaggedViewHeader(ctx, display_paths[current_idx], current_idx, path_count);
-    RenderFilePreview(ctx, ctx->viewer.view, view_paths[current_idx], &line_offset,
-                      0);
+    DrawTaggedViewHeader(ctx, display_paths[current_idx], current_idx,
+                         path_count);
+    RenderFilePreview(ctx, ctx->viewer.view, view_paths[current_idx],
+                      &line_offset, 0);
     RefreshWindow(ctx->viewer.view);
     doupdate();
 
@@ -1982,15 +1987,16 @@ int UI_ViewTaggedFiles(ViewContext *ctx, DirEntry *dir_entry) {
   const char *tagged_viewer;
 
   (void)dir_entry;
-  if (!ctx || !ctx->active || !ctx->active->vol || !ctx->active->file_entry_list)
+  if (!ctx || !ctx->active || !ctx->active->vol ||
+      !ctx->active->file_entry_list)
     return 0;
 
   s = &ctx->active->vol->vol_stats;
   tagged_viewer = GetProfileValue(ctx, "TAGGEDVIEWER");
   if (tagged_viewer &&
       (!strcasecmp(tagged_viewer, "internal") ||
-       !strcasecmp(tagged_viewer, "builtin") || !strcasecmp(tagged_viewer, "ytree") ||
-       !strcmp(tagged_viewer, "1"))) {
+       !strcasecmp(tagged_viewer, "builtin") ||
+       !strcasecmp(tagged_viewer, "ytree") || !strcmp(tagged_viewer, "1"))) {
     use_internal_view = TRUE;
   }
 
