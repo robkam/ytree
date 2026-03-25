@@ -26,7 +26,7 @@ When `VI_KEYS` is enabled, these six keys are reserved for navigation:
 - `Ctrl-D` (`0x04`) -> page down
 
 Note: control-key notation is terminal-byte based and case-insensitive.
-Use `Ctrl-U` / `Ctrl-D` wording to avoid ambiguity.
+Use `Ctrl-U` / `Ctrl-D` wording to prevent ambiguity.
 
 Any command bound to these keys must remain reachable without breaking vi navigation.
 Preferred rule: keep vi navigation on lowercase and move command bindings to uppercase

@@ -71,6 +71,7 @@ extern void DisplayHeaderPath(ViewContext *ctx, const char *path);
 extern void RenderInactivePanel(ViewContext *ctx, YtreePanel *panel);
 extern void RefreshView(ViewContext *ctx, DirEntry *dir_entry);
 extern void DisplayPreviewHelp(ViewContext *ctx);
+extern void DisplayHistoryHelp(ViewContext *ctx);
 
 /* display_utils.c */
 extern int AddStr(char *str);
@@ -132,9 +133,9 @@ extern void SetFileRenderingMetrics(YtreePanel *p, unsigned max_filename,
                                     unsigned max_linkname,
                                     unsigned max_userview);
 extern void SetRenderSortOrder(YtreePanel *p, BOOL reverse);
-extern void DisplayFiles(ViewContext *ctx, YtreePanel *panel,
-                         DirEntry *de_ptr, int start_file_no, int hilight_no,
-                         int start_x, WINDOW *win);
+extern void DisplayFiles(ViewContext *ctx, YtreePanel *panel, DirEntry *de_ptr,
+                         int start_file_no, int hilight_no, int start_x,
+                         WINDOW *win);
 extern void PrintFileEntry(ViewContext *ctx, YtreePanel *panel, int entry_no,
                            int y, int x, unsigned char hilight, int start_x,
                            WINDOW *win);
@@ -191,8 +192,7 @@ extern void DisplayGlobalFileParameter(ViewContext *ctx, FileEntry *fe);
 extern void RecalculateSysStats(ViewContext *ctx, Statistic *s);
 
 /* ctrl_dir.c / dir_tags.c */
-extern void HandleShowAll(ViewContext *ctx, BOOL tagged_only,
-                          BOOL all_volumes,
+extern void HandleShowAll(ViewContext *ctx, BOOL tagged_only, BOOL all_volumes,
                           DirEntry *dir_entry, BOOL *need_dsp_help, int *ch,
                           YtreePanel *p);
 extern BOOL HandleDirTagActions(ViewContext *ctx, int action,

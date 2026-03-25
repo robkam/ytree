@@ -72,15 +72,15 @@ These instructions apply to all AI agents used in this repository.
 
 ## Core Engineering Rules
 
-1. Prioritize architectural stability, memory safety, and maintainability.
+1. Architectural stability, memory safety, and maintainability are ABSOLUTE MUST-HAVES. Never compromise them.
 2. Do not use unsafe string APIs such as `strcpy` or `sprintf`.
 3. Preserve architectural invariants: explicit context passing, dual-panel isolation, and deterministic single-threaded behavior.
-4. Avoid superficial patching for architectural issues; prefer root-cause fixes that keep invariants intact.
+4. You MUST NOT apply superficial patches for architectural issues. You MUST implement root-cause fixes that keep invariants intact.
 5. Do not guess behavior; consult repository docs before changing architecture.
 6. Keep changes scoped to the requested task; do not anticipate future work.
-7. Prefer MCP semantic/navigation tools (symbol search, outlines, references) over loading large files into context unnecessarily.
+7. You MUST use the `serena` and `jcodemunch` MCP semantic/navigation tools (symbol search, outlines, references) for all codebase search and discovery. Do not use generic system tools (e.g., `grep_search`, `find`, or `find_by_name`) unless semantic tools completely fail.
 8. All commit messages must follow the Conventional Commits specification style (e.g., `feat(ui): ...`, `fix(tests): ...`, `docs(ai): ...`).
-9. If the immediately preceding step only needs a minor correction and should remain the same logical history unit, amend it with `git commit --amend --no-edit` instead of creating a trivial follow-up fix commit. Use a new commit only when the correction is materially distinct or worth preserving separately.
+9. You MUST amend (`git commit --amend --no-edit`) for all follow-up corrections to the same task. You MUST NOT create trivial sequential bugfix commits. Use a new commit only when the correction is materially distinct.
 10. Treat user instructions as authoritative on goals, not automatically on exact wording, labels, keybindings, menu structure, or UX details. If a requested detail does not follow convention, established Ytree patterns, or best practices, say so explicitly and recommend the better option before implementing it.
 11. For every bug fix, follow strict red-green: write/adjust a regression test first and demonstrate it fails on current code before changing implementation; then implement the architectural fix and re-run to green. A test added only after the fix is not sufficient evidence.
 12. Audit cadence is mandatory: rerun the full audit loop for every feature-sized change, every major change, and every PR update; do not treat auditing as optional or release-only.
@@ -90,9 +90,8 @@ These instructions apply to all AI agents used in this repository.
 
 ## Source Comment Contract
 
-- Keep source self-explanatory where possible; comments are for non-obvious value.
-- Comment invariants, ownership/lifetime assumptions, aliasing constraints, and rationale for unusual design choices.
-- Do not narrate obvious control flow or restate what the code already says clearly.
+- You MUST NOT generate redundant source comments describing control flow or restating what the code already says clearly.
+- Comments MUST ONLY explain invariants, ownership/lifetime assumptions, aliasing constraints, and non-obvious design rationale.
 - Do not put temporary change-history notes in source comments ("fixed yesterday", "changed in commit X") unless the historical note is itself a durable requirement.
 - Treat stale comments as defects: update or remove them in the same change that invalidates them.
 

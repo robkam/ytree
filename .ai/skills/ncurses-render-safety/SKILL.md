@@ -12,7 +12,7 @@ Use this skill for rendering, color, redraw, or window-painting changes.
 1. Set window background once per refresh path, not per line.
 2. After setting a new window background, clear with `werase()` before redraw.
 3. Use `wattron()`/`wattroff()` for line-level styling only.
-4. Keep redraw ownership clear: avoid hidden side effects across modules.
+4. Keep redraw ownership clear: you MUST NOT introduce hidden side effects across modules.
 
 ## WbkgdSet Rule
 

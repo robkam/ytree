@@ -274,12 +274,6 @@ static int UI_ReadStringInternal(ViewContext *ctx, YtreePanel *panel,
     ch = WGetch(ctx, win);
     ch = normalize_prompt_escape_key(win, ch);
 
-    FILE *df = fopen("/tmp/ytree_input.log", "a");
-    if (df) {
-      fprintf(df, "UI_ReadString read: %d ('%c')\n", ch,
-              (ch >= 32 && ch <= 126) ? ch : '.');
-      fclose(df);
-    }
 
     if (ch == ESC) {
       break;

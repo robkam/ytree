@@ -216,7 +216,7 @@ static void PrintHstEntry(ViewContext *ctx, int entry_no, int y, int color,
     (void)strncpy(buffer, pp->hst, BUFSIZ - 3);
     buffer[BUFSIZ - 3] = '\0';
     n = strlen(buffer);
-    wmove(ctx->ctx_history_window, y, 1);
+    wmove(ctx->ctx_history_window, y, 0);
 
     if (n <= ef_window_width) {
 
@@ -272,11 +272,12 @@ static void PrintHstEntry(ViewContext *ctx, int entry_no, int y, int color,
       wattrset(ctx->ctx_history_window, A_REVERSE);
 #endif /* COLOR_SUPPORT */
 
-    /* Draw Pin Marker */
+    /* Draw Pin Marker and Space */
     if (pp->pinned)
-      waddch(ctx->ctx_history_window, ACS_DIAMOND);
+      waddch(ctx->ctx_history_window, ACS_CKBOARD);
     else
       waddch(ctx->ctx_history_window, ' ');
+    waddch(ctx->ctx_history_window, ' ');
 
     /* Draw Text */
     WAddStr(ctx->ctx_history_window, line_ptr);
@@ -335,6 +336,7 @@ char *GetHistory(ViewContext *ctx, int type) {
   start_x = 0;
 
   UI_Dialog_Push(ctx->ctx_history_window, UI_TIER_POPOVER);
+  DisplayHistoryHelp(ctx);
 
   (void)DisplayHistory(ctx);
 
@@ -403,6 +405,7 @@ char *GetHistory(ViewContext *ctx, int type) {
     case 'P':
     case 'k':
     case 'K':
+    case KEY_IC:
       /* Toggle Pin */
       if (ctx->history_view_count > 0) {
         History *target =

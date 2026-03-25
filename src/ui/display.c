@@ -53,7 +53,8 @@ static char *dir_help[MAX_MODES][2] = {
      "COMMANDS                                                                 "
      "          "},
     {/* ARCHIVE_MODE */
-     "ARCHIVE   (B)rief (C)ompare (F)ilter (^F) dirmode (G)lobal (L)og (M)akedir "
+     "ARCHIVE   (B)rief (C)ompare (F)ilter (^F) dirmode (G)lobal (L)og "
+     "(M)akedir "
      "(R)ename (S)howall ",
      "COMMANDS  (U)ntag (Q)uit                                                 "
      "       "},
@@ -132,9 +133,8 @@ void DisplayFileHelp(ViewContext *ctx, const DirEntry *dir_entry) {
   for (i = 0; i < 2; i++) {
     PrintOptions(ctx->ctx_menu_window, i, 0, file_help[ctx->view_mode][i]);
   }
-  nav_line =
-      (dir_entry && dir_entry->global_flag) ? file_help_nav_to_dir
-                                            : file_help_nav;
+  nav_line = (dir_entry && dir_entry->global_flag) ? file_help_nav_to_dir
+                                                   : file_help_nav;
   PrintNavLine(ctx->ctx_menu_window, 2, nav_line);
   wnoutrefresh(ctx->ctx_menu_window);
 }
@@ -201,6 +201,15 @@ static void PrintNavLine(WINDOW *win, int y, const char *str) {
   wattrset(win, 0);
   mvwaddch(win, y, 2, ' ');
   PrintHelpString(win, y, 3, str);
+}
+
+void DisplayHistoryHelp(ViewContext *ctx) {
+  if (!ctx->ctx_menu_window)
+    return;
+  werase(ctx->ctx_menu_window);
+  PrintOptions(ctx->ctx_menu_window, 0, 0,
+               "History   (P)in/unpin    (Enter) OK    (Esc) Cancel");
+  wnoutrefresh(ctx->ctx_menu_window);
 }
 
 void DisplayPreviewHelp(ViewContext *ctx) {
@@ -464,7 +473,8 @@ void RenderInactivePanel(ViewContext *ctx, YtreePanel *panel) {
 
     if (panel->pan_file_window) {
       if (has_file_list) {
-        DisplayFiles(ctx, panel, de, render_start, -1, 0, panel->pan_file_window);
+        DisplayFiles(ctx, panel, de, render_start, -1, 0,
+                     panel->pan_file_window);
       } else {
         werase(panel->pan_file_window);
       }
@@ -484,10 +494,12 @@ static BOOL IsActivePanelBigFileMode(const ViewContext *ctx,
   if (!dir_entry)
     return FALSE;
 
-  return (dir_entry->big_window || dir_entry->global_flag || dir_entry->tagged_flag);
+  return (dir_entry->big_window || dir_entry->global_flag ||
+          dir_entry->tagged_flag);
 }
 
-static void DrawSplitSeparatorRow(ViewContext *ctx, BOOL left_big, BOOL right_big) {
+static void DrawSplitSeparatorRow(ViewContext *ctx, BOOL left_big,
+                                  BOOL right_big) {
   int separator_y;
   int data_right_x;
   int split_x;
@@ -586,8 +598,9 @@ void RefreshView(ViewContext *ctx, DirEntry *dir_entry) {
     char path[PATH_LENGTH + 1];
     DirEntry *path_dir = dir_entry;
 
-    if (!ctx->preview_mode && ctx->focused_window == FOCUS_FILE && ctx->active &&
-        ctx->active->file_entry_list && ctx->active->file_count > 0) {
+    if (!ctx->preview_mode && ctx->focused_window == FOCUS_FILE &&
+        ctx->active && ctx->active->file_entry_list &&
+        ctx->active->file_count > 0) {
       int idx = dir_entry->start_file + dir_entry->cursor_pos;
       if (idx >= 0 && (unsigned int)idx < ctx->active->file_count) {
         FileEntry *fe = ctx->active->file_entry_list[idx].file;
@@ -631,9 +644,9 @@ void RefreshView(ViewContext *ctx, DirEntry *dir_entry) {
                            ? active_big_mode
                            : (ctx->right->saved_focus == FOCUS_FILE);
 
-      ctx->active->pan_file_window =
-          active_big_mode ? ctx->active->pan_big_file_window
-                          : ctx->active->pan_small_file_window;
+      ctx->active->pan_file_window = active_big_mode
+                                         ? ctx->active->pan_big_file_window
+                                         : ctx->active->pan_small_file_window;
       ctx->ctx_file_window = ctx->active->pan_file_window;
 
       DrawSplitSeparatorRow(ctx, left_big_mode, right_big_mode);

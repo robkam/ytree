@@ -38,9 +38,9 @@ The maintainer may sometimes provide a very specific interaction detail while st
 
 When a prompt includes concrete UI or workflow instructions, explicitly evaluate them against:
 
-1.  **Established Ytree behavior:** Avoid breaking local consistency unless there is a strong reason.
+1.  **Established Ytree behavior:** You MUST NOT break local consistency without explicit, strong justification.
 2.  **Lineage expectations:** Preserve XTree/ZTree muscle memory where that is clearly part of the feature intent.
-3.  **Broader convention:** Prefer Linux/TUI conventions and common user expectations for prompts, menus, help, and key behavior.
+3.  **Broader convention:** You MUST follow Linux/TUI conventions and common user expectations for prompts, menus, help, and key behavior.
 4.  **Best practices:** Favor clarity, safety, and maintainability over clever but nonstandard interaction ideas.
 
 Required agent behavior:
@@ -48,7 +48,7 @@ Required agent behavior:
 *   **Preserve the goal, question the detail:** Keep the user's intended outcome, but challenge interface details that appear nonstandard or weak.
 *   **Recommend before encoding:** State the better conventional or best-practice choice before baking the literal wording into specs, prompts, or code.
 *   **Explain the tradeoff:** When deviating from the user's literal wording, explain why the recommended version is stronger.
-*   **Do not silently comply with weak specifics:** Avoid turning a guessed interaction detail into lasting project behavior without review.
+*   **Do not silently comply with weak specifics:** You MUST NOT turn a guessed interaction detail into lasting project behavior without explicit user review.
 
 ### 1.4 UX Economy Gate (Mandatory)
 
@@ -199,7 +199,7 @@ The primary execution environment is **Antigravity** with the **Codex extension*
 
 1.  **Direct Execution:** Run edits, builds, and tests in-repo to avoid manual copy/paste workflows.
 2.  **Model Routing:** Default to GPT Codex 5.3, escalate level first, then move to GPT 5.4 for harder reasoning tasks (see Section 3). If the Codex usage limit is reached, route to Gemini Flash for simple work, Gemini Pro/Claude Sonnet for standard work, and Claude Opus for hard reasoning tasks.
-3.  **Semantic Context:** Use **Serena** (symbol navigation) and **jCodeMunch** (repo indexing/search) for targeted context retrieval.
+3.  **Semantic Context:** You MUST use **Serena** (symbol navigation) and **jCodeMunch** (repo indexing/search) for targeted context retrieval. You MUST NOT use raw bash tools like grep or find.
 4.  **Cross-File State:** Keep terminal state, open-file context, and task history in one working loop.
 
 ---
@@ -241,7 +241,7 @@ Cadence:
 
 ## 8. Token Economy & Resource Management
 
-AI tokens and semantic tool calls are finite resources. Wasted tokens mean shorter sessions, lost context, and more frequent restarts. **Serena** and **jCodeMunch** are the primary defenses against "token bleed"—using them is not just about convenience, it is the only way to maintain a high-integrity session.
+AI tokens and semantic tool calls are finite resources. Wasted tokens mean shorter sessions, lost context, and more frequent restarts. **Serena** and **jCodeMunch** are the primary defenses against "token bleed"—using them is an ABSOLUTE MANDATE to maintain a high-integrity session.
 
 ### 8.1 Avoid "Blind Exploration"
 *   **Do not** ask the agent to "look for issues" or "summarize the file" to get started.
@@ -249,11 +249,11 @@ AI tokens and semantic tool calls are finite resources. Wasted tokens mean short
 
 ### 8.2 Targeted Retrieval
 *   **Do not** load multiple unrelated files into a single prompt.
-*   **The Semantic Advantage:** Use **Serena** `find_symbol` to extract only the relevant function or struct definition. This keeps the prompt focused and the model's reasoning sharp.
+*   **The Semantic Advantage:** You MUST use **Serena** `find_symbol` to extract only the relevant function or struct definition. This keeps the prompt focused and the model's reasoning sharp.
 
 ### 8.3 Minimize Redundant Calls
 *   If a symbol has been read in the current session, do not re-read it.
-*   Use **jCodeMunch** `search_text` for broad pattern matching across the entire project rather than manually grepping or opening dozens of files.
+*   Use **jCodeMunch** `search_text` for broad pattern matching across the entire project rather than manually grepping or opening dozens of files. This is strictly required over bash generic tools.
 
 ### 8.4 Batch Related Edits
 *   Group related changes (e.g., "Rename X and update all callers") into a single prompt to avoid the overhead of full context reload for each minor edit.
