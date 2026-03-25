@@ -101,7 +101,7 @@ QA_LOG ?= qa-all.log
 
 .PHONY: all clean clobber install uninstall docs changelog-draft hooks-install hooks-status \
 	git-aliases-install git-aliases-status test \
-	test-v qa-clang qa-cppcheck qa-scan qa-valgrind qa-valgrind-interactive \
+	test-v qa-clang qa-cppcheck qa-scan qa-valgrind qa-valgrind-interactive qa-valgrind-full \
 	qa-pytest qa-unsafe-apis qa-all \
 	qa-all-log
 
@@ -230,6 +230,12 @@ qa-valgrind-interactive:
 	$(MAKE_CMD) QA_ON_BUILD=0 all
 	@echo "Interactive valgrind run: exit ytree cleanly to finish."
 	valgrind --leak-check=full --show-leak-kinds=all --track-origins=yes --error-exitcode=1 --log-file=valgrind.txt ./build/ytree .
+
+qa-valgrind-full:
+	$(MAKE_CMD) DEBUG=0 QA_ON_BUILD=0 clean
+	$(MAKE_CMD) DEBUG=0 QA_ON_BUILD=0 all
+	@echo "Running automated interactive valgrind session (output in valgrind.txt)."
+	.venv/bin/python scripts/valgrind_session.py
 
 qa-pytest: $(MAIN_BIN)
 	TERM=$${TERM:-xterm} $(PYTEST)
