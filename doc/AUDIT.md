@@ -8,6 +8,26 @@ This document defines the mandatory quality process for the Ytree modernization 
 - Always run the merge/release gate before merge/release.
 - Do not run the full gate after every prompt-level micro-edit unless risk justifies it.
 
+## 1.2 QA Layers
+
+The project uses four QA layers with increasing depth and cost:
+
+| Layer | Command | What it checks | When to run |
+|---|---|---|---|
+| CI Gate | `git push` (automatic) | Build, unsafe C API guard, `pytest` | Every push (automatic) |
+| Local QA | `make qa-all` | clang-tidy, cppcheck, scan-build, Valgrind smoke (`--version`), `pytest`, unsafe API guard | Before every PR or feature merge |
+| Deep Audit | `make qa-valgrind-full` | Automated interactive Valgrind Memcheck session (leak, uninit, FD, use-after-free checks) | Before release, after major refactoring, or periodically |
+| Manual Feature Audit | `make qa-valgrind-interactive` | You manually drive ytree under Valgrind to exercise new feature code paths | After adding a major new feature |
+
+- **CI Gate** runs automatically on push via GitHub Actions. No developer action needed.
+- **Local QA** (`make qa-all`) is the standard pre-merge gate. Run it for every non-trivial change.
+- **Deep Audit** (`make qa-valgrind-full`) is on-demand. It drives a scripted interactive ytree session under Valgrind and takes ~2-3 minutes. Run it:
+  - Before tagging a release
+  - After changes to memory management, allocation, or cleanup paths
+  - After major refactoring sessions
+  - Periodically as a health check
+- **Manual Feature Audit** (`make qa-valgrind-interactive`) launches ytree under Valgrind for you to drive manually. Use it after adding a major feature to exercise the new code paths specifically. Exit cleanly, then inspect `valgrind.txt`.
+
 ## 2. Role Mapping
 The workflow relies on four distinct roles. When using AI agents, these must be treated as adversarial personas to ensure objectivity.
 
@@ -31,7 +51,7 @@ Run these commands in this order to generate evidence-based findings.
 1. **Linting & Modernization:** `clang-tidy $(rg --files src -g '*.c') -p .`
 2. **Static Analysis:** `cppcheck --enable=all --inconclusive --force --std=c99 -I include --error-exitcode=1 --suppressions-list=.cppcheck-suppressions.txt src include`
 3. **Logic Path Analysis:** `make clean && scan-build --status-bugs make`
-4. **Memory/Runtime Analysis:** `valgrind --leak-check=full --show-leak-kinds=all --track-origins=yes --error-exitcode=1 --log-file=valgrind.txt ./build/ytree .` (then exit ytree cleanly)
+4. **Memory/Runtime Analysis:** `valgrind --leak-check=full --show-leak-kinds=all --track-origins=yes --error-exitcode=1 --log-file=valgrind.txt ./build/ytree .` (then exit ytree cleanly). For automated interactive runs, use `make qa-valgrind-full` which drives a scripted pexpect session.
 5. **Regression Tests:** `source .venv/bin/activate && pytest`
 
 For step 4 in automated runs, drive a deterministic start/exit path (for example with `pexpect`) so Valgrind can finish and return an actionable exit code.
