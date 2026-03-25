@@ -242,7 +242,7 @@ static void PrintHstEntry(ViewContext *ctx, int entry_no, int y, int color,
 
 #ifdef NO_HIGHLIGHT
     /* Mark pinned items */
-    const char *marker = pp->pinned ? "*<" : " <";
+    const char *marker = pp->pinned ? "+<" : " <";
     const char *suffix = (color == CPAIR_HIHST) ? marker : "  ";
     size_t line_len = strlen(line_ptr);
     size_t suffix_len = strlen(suffix);
@@ -274,7 +274,7 @@ static void PrintHstEntry(ViewContext *ctx, int entry_no, int y, int color,
 
     /* Draw Pin Marker */
     if (pp->pinned)
-      waddch(ctx->ctx_history_window, '*');
+      waddch(ctx->ctx_history_window, ACS_DIAMOND);
     else
       waddch(ctx->ctx_history_window, ' ');
 
