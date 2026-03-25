@@ -91,7 +91,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [1.94]
 - Adapted Makefile to respect environment CC and LDFLAGS.
-- New log to parent node ('p') command.
+- New login to parent node ('p') command.
 
 ## [1.93]
 - Debug Crash during switch to file window (Fedora 11).

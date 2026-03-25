@@ -144,7 +144,7 @@ If procedural instructions appear in persona files, move them into skills and le
 
 ## 3. Model Selection Guide
 
-Model choice should be explicit and repeatable. In this project, default to GPT Codex models first, then use other model families only when you intentionally want a second opinion.
+Model choice should be explicit and repeatable. In this project, default to GPT Codex models first. If the GPT Codex usage limit is reached, fallback to Gemini (Flash/Pro) or Claude (Sonnet/Opus) depending on task complexity. Use other model families only when you intentionally want a second opinion or hit the primary usage limit.
 
 ### 3.1 Reasoning Level Meanings
 
@@ -155,36 +155,37 @@ Model choice should be explicit and repeatable. In this project, default to GPT 
 
 ### 3.2 Primary Selection Matrix
 
-| Task Type | Primary Model | Suggested Level | Overlap / Notes |
-|:---|:---|:---|:---|
-| Repo scanning, repetitive edits, docs cleanup | GPT Codex 5.3 | Low to Medium | Fast default for throughput; overlap with other "fast" models. |
-| Standard implementation and test work | GPT Codex 5.3 | Medium to High | Start here for most missions. |
-| Complex refactor with architecture constraints | GPT 5.4 | High | 5.3 at High can often do this too; switch if reasoning stalls. |
-| Deep bug forensics across subsystems | GPT 5.4 | High to Extra High | Use when symptoms are cross-cutting or prior fixes regressed behavior. |
-| Pre-release review gate (Code Auditor role) | GPT 5.4 | Extra High | Prefer stricter reasoning over speed. |
+| Task Type | Primary Model | Fallback Models (Usage Limit Reached) | Suggested Level | Overlap / Notes |
+|:---|:---|:---|:---|:---|
+| Repo scanning, repetitive edits, docs cleanup | GPT Codex 5.3 | Gemini Flash | Low to Medium | Fast default for throughput; overlap with other "fast" models. |
+| Standard implementation and test work | GPT Codex 5.3 | Gemini Pro / Claude Sonnet | Medium to High | Start here for most missions. |
+| Complex refactor with architecture constraints | GPT 5.4 | Gemini Pro / Claude Sonnet | High | 5.3 at High can often do this too; switch if reasoning stalls. |
+| Deep bug forensics across subsystems | GPT 5.4 | Claude Opus | High to Extra High | Use when symptoms are cross-cutting or prior fixes regressed behavior. |
+| Pre-release review gate (Code Auditor role) | GPT 5.4 | Claude Opus | Extra High | Prefer stricter reasoning over speed. |
 
 ### 3.3 Escalation Rule (Model vs. Level)
 
-1.  Start with **GPT Codex 5.3 at Medium** for normal work.
+1.  Start with **GPT Codex 5.3 at Medium** for normal work. If the Codex usage limit is reached, start with **Gemini Pro** or **Claude Sonnet**.
 2.  Raise level first (**Medium -> High**) before switching models.
-3.  Switch to **GPT 5.4** when:
+3.  Switch to **GPT 5.4** (or **Claude Opus** if the Codex usage limit is reached) when:
     *   the task is architecture-heavy,
     *   bug cause remains unclear after one focused pass, or
     *   quality gate decisions require stricter reasoning.
-4.  For audit-critical calls, use **GPT 5.4 at Extra High** by default.
+4.  For audit-critical calls, use **GPT 5.4 at Extra High** by default (fallback: **Claude Opus**).
+5.  For simple mechanical tasks when the Codex usage limit is reached, use **Gemini Flash**.
 
 ### 3.4 Intentional Overlap (When Either Works)
 
 *   **GPT Codex 5.3 (High)** and **GPT 5.4 (Medium/High)** overlap for many mid-to-hard engineering tasks.
-*   If speed matters and risk is moderate, prefer **5.3**.
-*   If certainty matters more than speed, prefer **5.4**.
-*   You can use a second model family (Gemini/Claude) as an independent audit pass, not as the default path.
+*   If speed matters and risk is moderate, prefer **5.3** (or **Gemini Flash** / **Sonnet** if the usage limit is reached).
+*   If certainty matters more than speed, prefer **5.4** (or **Claude Opus** / **Gemini Pro** if the usage limit is reached).
+*   You can use a second model family (Gemini/Claude) as an independent audit pass, or as primary if the Codex usage limit is reached.
 
 ### 3.5 Cross-Model Perspective Policy
 
 Use a two-pass approach for high-risk or ambiguous work:
 
-1.  **Build Pass (Codex):** Implement and verify in Antigravity.
+1.  **Build Pass (Codex):** Implement and verify in Antigravity. (Use Gemini/Claude if the Codex usage limit is reached).
 2.  **Challenge Pass (External):** Ask Gemini/Claude to critique assumptions, edge cases, and failure modes.
 3.  **Reconcile Pass (Codex):** Apply only evidence-backed improvements and re-run tests.
 
@@ -194,23 +195,23 @@ Use external large-context models when the task spans many documents or subsyste
 
 ## 4. The Agentic Loop (Antigravity + Codex Extension)
 
-The primary execution environment is **Antigravity** with the **Codex extension**.
+The primary execution environment is **Antigravity** with the **Codex extension**, or fallback to **Gemini/Claude** if the usage limit is reached.
 
 1.  **Direct Execution:** Run edits, builds, and tests in-repo to avoid manual copy/paste workflows.
-2.  **Model Routing:** Default to GPT Codex 5.3, escalate level first, then move to GPT 5.4 for harder reasoning tasks (see Section 3).
+2.  **Model Routing:** Default to GPT Codex 5.3, escalate level first, then move to GPT 5.4 for harder reasoning tasks (see Section 3). If the Codex usage limit is reached, route to Gemini Flash for simple work, Gemini Pro/Claude Sonnet for standard work, and Claude Opus for hard reasoning tasks.
 3.  **Semantic Context:** Use **Serena** (symbol navigation) and **jCodeMunch** (repo indexing/search) for targeted context retrieval.
 4.  **Cross-File State:** Keep terminal state, open-file context, and task history in one working loop.
 
 ---
 
-## 5. Optional Second-Opinion Loop
+## 5. Optional Second-Opinion Loop (and Usage Limit Fallback)
 
-External model families (Gemini/Claude or others) are optional and used only when you intentionally want an independent perspective.
+External model families (Gemini Flash/Pro, Claude Sonnet/Opus, or others) are used when the GPT Codex usage limit is reached, or when you intentionally want an independent perspective.
 
-1.  **No Primary Implementation There:** Do planning/review externally if useful, then implement in Antigravity with Codex.
-2.  **Persona Alignment:** Use the same persona framing (`Architect`, `Developer`, `Code Auditor`, `Tester`) to keep outputs compatible.
-3.  **Use Cases:** Architecture challenge, tie-break between competing fixes, adversarial pre-release audit cross-check, or huge-context synthesis across multiple project docs.
-
+1.  **Fallback Implementation:** If the Codex usage limit is reached, implement directly using Gemini Pro/Claude Sonnet for standard tasks, Gemini Flash for simple edits, and Claude Opus for complex architecture tasks.
+2.  **No Primary Implementation There (If Codex is Available):** Do planning/review externally if useful, then implement in Antigravity with Codex.
+3.  **Persona Alignment:** Use the same persona framing (`Architect`, `Developer`, `Code Auditor`, `Tester`) to keep outputs compatible.
+4.  **Use Cases:** Usage limit fallback, architecture challenge, tie-break between competing fixes, adversarial pre-release audit cross-check, or huge-context synthesis across multiple project docs.
 ## 6. Debugging Procedures
 
 Never allow the AI to "guess" the cause of a bug. Use one of the following objective methodologies, described in detail in **[DEBUGGING.md](DEBUGGING.md)**.
