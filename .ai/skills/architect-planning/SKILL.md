@@ -32,8 +32,8 @@ Use this skill when the active persona is `architect`.
 
 ## Guardrails
 
-- Prefer root-cause fixes over patchwork.
+- You MUST implement root-cause fixes over patchwork.
 - Keep architecture stable and deterministic.
 - If critical context is missing, request only the specific file or behavior detail needed.
 - UX economy gate is mandatory: target `key -> Enter -> result` and no more than one submenu on common path unless justified with equivalent fast path.
-- Documentation signal rule: plan doc changes only in the most relevant canonical section/file for the target reader; avoid broadcasting AI/process notes across unrelated sections.
+- Documentation signal rule: you MUST plan doc changes only in the most relevant canonical section/file for the target reader; you MUST NOT broadcast AI/process notes across unrelated sections.

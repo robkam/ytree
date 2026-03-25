@@ -17,6 +17,6 @@ Use this skill when tests involve PTY timing or synchronization issues.
 
 ## Rules
 
-- Avoid long timeout inflation as a fix.
-- Prefer deterministic wait-for-state assertions.
+- You MUST NOT inflate timeouts as a fix.
+- You MUST use deterministic wait-for-state assertions.
 - Report exact flaky trigger and stabilization method.

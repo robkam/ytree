@@ -17,6 +17,6 @@ Use this skill when the active persona is `tester`.
 
 ## Rules
 
-- Prefer behavior checks over implementation checks.
+- You MUST write behavior checks instead of implementation checks.
 - Use centralized key abstractions where available.
 - Do not hide sync issues with long timeout hacks.

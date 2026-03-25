@@ -9,10 +9,9 @@ Use this skill for UI workflow, prompt flow, menu structure, and interaction des
 
 ## Goal
 
-Prefer shallow interaction flow:
-
-- Avoid: `choice -> choice -> choice -> choice -> ... -> result`
-- Prefer: `choice -> choices -> result`
+You MUST use shallow interaction flows:
+- FORBIDDEN: `choice -> choice -> choice -> choice -> ... -> result`
+- REQUIRED: `choice -> choices -> result`
 
 ## Design Rules
 

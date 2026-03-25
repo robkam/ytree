@@ -39,5 +39,5 @@ Find flows where the common path violates UX economy:
 ## Guardrails
 
 - Do not remove safety confirmations for destructive operations without replacement safeguards.
-- Prefer combining decisions into one prompt over adding nested submenus.
+- You MUST combine decisions into one prompt instead of adding nested submenus.
 - Keep advanced options available as in-prompt toggles/defaults.

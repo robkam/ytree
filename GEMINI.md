@@ -2,6 +2,10 @@
 
 Discovery stub for Gemini tooling.
 
+🚨 **MANDATORY AI INITIALIZATION**:
+Before doing any codebase research or making tool calls, you **MUST** read `./.ai/gemini.md` and `./.ai/shared.md`.
+You **MUST** use the MCP semantic tools (`serena` and `jcodemunch`) for all searching and codebase exploration instead of fallback system tools (`grep`/`find`).
+
 Canonical Gemini instructions: `./.ai/gemini.md`
 Shared instructions for all agents: `./.ai/shared.md`
 
