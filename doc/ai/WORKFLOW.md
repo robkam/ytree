@@ -239,24 +239,30 @@ Cadence:
 
 ---
 
-## 8. Token Economy & Resource Management
+## 8. Resource Management & Usage Allowance Economy
 
-AI tokens and semantic tool calls are finite resources. Wasted tokens mean shorter sessions, lost context, and more frequent restarts. **Serena** and **jCodeMunch** are the primary defenses against "token bleed"—using them is an ABSOLUTE MANDATE to maintain a high-integrity session.
+AI computational resources (often referred to as tokens, usage allowance, context window limits, or quotas) are strictly finite. Wasted resources lead to shorter sessions, lost history, and increased costs. 
 
-### 8.1 Avoid "Blind Exploration"
+### 8.1 Mandatory Usage Allowance Guard
+*   **The AI MUST warn the user** when any requested action will unnecessarily consume massive amounts of context, generate immense output, or pull in disproportionately large data unsuited for the immediate task.
+*   **The AI MUST always suggest the more economical alternative** before proceeding.
+*   **The AI MUST NOT prevent** the user from proceeding if the user explicitly confirms they want to proceed with the expensive action anyway.
+
+### 8.2 Avoid "Blind Exploration"
 *   **Do not** ask the agent to "look for issues" or "summarize the file" to get started.
-*   **The Semantic Advantage:** **jCodeMunch** `get_repo_outline` and **Serena** `get_symbols_overview` provide the necessary context in a fraction of the token cost compared to reading raw files or directory listings.
+*   **The Semantic Advantage:** **jCodeMunch** `get_repo_outline` and **Serena** `get_symbols_overview` provide the necessary context in a fraction of the cost compared to reading raw files or directory listings.
 
-### 8.2 Targeted Retrieval
+### 8.3 Targeted Retrieval
 *   **Do not** load multiple unrelated files into a single prompt.
 *   **The Semantic Advantage:** You MUST use **Serena** `find_symbol` to extract only the relevant function or struct definition. This keeps the prompt focused and the model's reasoning sharp.
 
-### 8.3 Minimize Redundant Calls
+### 8.4 Minimize Redundant Calls
 *   If a symbol has been read in the current session, do not re-read it.
 *   Use **jCodeMunch** `search_text` for broad pattern matching across the entire project rather than manually grepping or opening dozens of files. This is strictly required over bash generic tools.
 
-### 8.4 Batch Related Edits
-*   Group related changes (e.g., "Rename X and update all callers") into a single prompt to avoid the overhead of full context reload for each minor edit.
+### 8.5 Batch Related Edits
+*   Group related changes into a single prompt to avoid the overhead of full context reload for each minor edit.
 
-### 8.5 Exit Early on Hallucinations
-*   If the agent begins to speculate or heads in a wrong direction, **stop and restart** (see Section 1.2, "Clean Slate" Rule). Spending tokens to "correct" a hallucinating model is almost always a net loss; a fresh start with refined context is the most efficient path.
+### 8.6 Chat Pruning and Context
+*   **New Chats for New Tasks:** Once a specific bug is fixed or a task is done, close the chat and start a new one to drop old contexts.
+*   **Exit Early on Hallucinations:** Stop and restart if the agent speculates. Do not waste usage allowance trying to correct a hallucinating model.
