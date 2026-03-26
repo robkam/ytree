@@ -310,4 +310,13 @@ extern void FileTags_HandleInvertTags(ViewContext *ctx, DirEntry *dir_entry,
 extern void FileList_RemoveFileEntry(ViewContext *ctx, int entry_no);
 extern void FileList_ChangeFileEntry(ViewContext *ctx);
 
+/* progress.c */
+extern void Progress_Start(ViewContext *ctx, const char *operation,
+                           const char *source_path, const char *dest_path,
+                           long long bytes_total, unsigned int items_total);
+extern BOOL Progress_Update(ViewContext *ctx, long long bytes_done,
+                            unsigned int items_done);
+extern void Progress_Finish(ViewContext *ctx);
+extern void Progress_Render(ViewContext *ctx);
+
 #endif /* YTREE_UI_H */
