@@ -690,6 +690,27 @@ typedef struct {
   BOOL hexoffset;
 } ViewerState;
 
+typedef struct {
+  BOOL active;                    /* Progress display currently shown */
+  char operation[32];             /* "COPYING", "MOVING", etc */
+  char source_path[PATH_LENGTH+1];
+  char dest_path[PATH_LENGTH+1];  /* Empty string for delete/scan ops */
+
+  /* Metrics */
+  long long bytes_total;          /* 0 if unknown */
+  long long bytes_done;
+  unsigned int items_total;       /* File/directory count (0 if N/A) */
+  unsigned int items_done;
+
+  /* ETA Calculation */
+  time_t start_time;
+  double bytes_per_sec;           /* Rolling average transfer rate */
+  int eta_seconds;                /* Estimated time remaining */
+
+  /* Cancellation */
+  BOOL cancel_requested;          /* Set by Esc key handler */
+} ProgressContext;
+
 typedef struct _ViewContext {
   SCREEN *curses_screen;
   WINDOW *ctx_dir_window;
@@ -795,6 +816,9 @@ typedef struct _ViewContext {
   int tab_total_matches;
   int tab_cursor_pos;
   int tab_disp_begin_pos;
+
+  /* progress.c state */
+  ProgressContext progress;
 
 } ViewContext;
 
