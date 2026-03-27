@@ -22,6 +22,8 @@ void HandlePlus(ViewContext *ctx, DirEntry *dir_entry, DirEntry *de_ptr,
                 char *new_log_path, BOOL *need_dsp_help, YtreePanel *p);
 void HandleReadSubTree(ViewContext *ctx, DirEntry *dir_entry,
                        BOOL *need_dsp_help, YtreePanel *p);
+void HandleCollapseSubTree(ViewContext *ctx, DirEntry *dir_entry,
+                           BOOL *need_dsp_help, YtreePanel *p);
 void HandleUnreadSubTree(ViewContext *ctx, DirEntry *dir_entry,
                          DirEntry *de_ptr, BOOL *need_dsp_help, YtreePanel *p);
 
@@ -43,6 +45,111 @@ static const char *PathLeafName(const char *path) {
   if (!sep || !sep[1])
     return path;
   return sep + 1;
+}
+
+static BOOL ExitArchiveRootToParent(ViewContext *ctx, DirEntry **dir_entry_ptr,
+                                    Statistic **s_ptr,
+                                    const struct Volume **start_vol_ptr,
+                                    BOOL retain_archive_volume,
+                                    BOOL focus_file) {
+  struct Volume *old_vol;
+  char archive_path[PATH_LENGTH + 1];
+  char parent_dir[PATH_LENGTH + 1];
+  char archive_name[PATH_LENGTH + 1];
+  int target_file_idx = -1;
+  int visible_rows = 1;
+  int file_idx;
+
+  if (!ctx || !ctx->active || !ctx->active->vol || !dir_entry_ptr || !*dir_entry_ptr ||
+      !s_ptr || !*s_ptr || !start_vol_ptr) {
+    return FALSE;
+  }
+
+  old_vol = ctx->active->vol;
+
+  (void)snprintf(archive_path, sizeof(archive_path), "%s", (*s_ptr)->log_path);
+  Fnsplit(archive_path, parent_dir, archive_name);
+
+  if (LogDisk(ctx, ctx->active, parent_dir) != 0) {
+    return FALSE;
+  }
+
+  if (!retain_archive_volume) {
+    BOOL vol_in_use = FALSE;
+    if (ctx->is_split_screen) {
+      const YtreePanel *other = (ctx->active == ctx->left) ? ctx->right : ctx->left;
+      if (other && other->vol == old_vol)
+        vol_in_use = TRUE;
+    }
+    if (!vol_in_use)
+      Volume_Delete(ctx, old_vol);
+  }
+
+  *s_ptr = &ctx->active->vol->vol_stats;
+  *start_vol_ptr = ctx->active->vol;
+  ctx->global_search_term[0] = '\0';
+
+  if (ctx->active->vol->total_dirs > 0) {
+    *dir_entry_ptr = ctx->active->vol
+                         ->dir_entry_list[ctx->active->disp_begin_pos +
+                                          ctx->active->cursor_pos]
+                         .dir_entry;
+  } else {
+    *dir_entry_ptr = (*s_ptr)->tree;
+  }
+
+  (*dir_entry_ptr)->start_file = 0;
+  (*dir_entry_ptr)->cursor_pos = focus_file ? 0 : -1;
+
+  BuildFileEntryList(ctx, ctx->active);
+  if (ctx->ctx_small_file_window) {
+    visible_rows = getmaxy(ctx->ctx_small_file_window);
+  } else if (ctx->ctx_file_window) {
+    visible_rows = getmaxy(ctx->ctx_file_window);
+  }
+  if (visible_rows < 1)
+    visible_rows = 1;
+
+  for (file_idx = 0; file_idx < (int)ctx->active->file_count; file_idx++) {
+    const FileEntry *fe = ctx->active->file_entry_list[file_idx].file;
+    if (fe && strcmp(fe->name, archive_name) == 0) {
+      target_file_idx = file_idx;
+      break;
+    }
+  }
+
+  if (target_file_idx >= visible_rows) {
+    (*dir_entry_ptr)->start_file = target_file_idx - (visible_rows - 1);
+  }
+  if ((*dir_entry_ptr)->start_file >= (int)ctx->active->file_count) {
+    (*dir_entry_ptr)->start_file = MAXIMUM(0, (int)ctx->active->file_count - 1);
+  }
+  if ((*dir_entry_ptr)->start_file < 0) {
+    (*dir_entry_ptr)->start_file = 0;
+  }
+
+  if (focus_file && target_file_idx >= 0 && ctx->active->file_count > 0) {
+    int file_cursor = target_file_idx - (*dir_entry_ptr)->start_file;
+    if (file_cursor < 0)
+      file_cursor = 0;
+    if (file_cursor >= visible_rows)
+      file_cursor = visible_rows - 1;
+    (*dir_entry_ptr)->cursor_pos = file_cursor;
+    ctx->focused_window = FOCUS_FILE;
+    ctx->active->saved_focus = FOCUS_FILE;
+  } else {
+    (*dir_entry_ptr)->cursor_pos = -1;
+    ctx->focused_window = FOCUS_TREE;
+    ctx->active->saved_focus = FOCUS_TREE;
+  }
+
+  ctx->active->file_dir_entry = *dir_entry_ptr;
+  ctx->active->start_file = (*dir_entry_ptr)->start_file;
+  ctx->active->file_cursor_pos = (*dir_entry_ptr)->cursor_pos;
+
+  ctx->view_mode = ctx->active->vol->vol_stats.log_mode;
+  RefreshView(ctx, *dir_entry_ptr);
+  return TRUE;
 }
 
 static void DrainPendingInput(ViewContext *ctx) {
@@ -1455,161 +1562,65 @@ int HandleDirWindow(ViewContext *ctx, const DirEntry *start_dir_entry) {
       HandleReadSubTree(ctx, dir_entry, &need_dsp_help, ctx->active);
       break;
     case ACTION_MOVE_LEFT:
-      /* 1. Transparent Archive Exit Logic (At Root) */
       if (dir_entry->up_tree == NULL && ctx->view_mode == ARCHIVE_MODE) {
-        struct Volume *old_vol = ctx->active->vol;
-        char archive_path[PATH_LENGTH + 1];
-        char parent_dir[PATH_LENGTH + 1];
-        char dummy_name[PATH_LENGTH + 1];
-
-        /* Calculate Parent Directory of the Archive File */
-        (void)snprintf(archive_path, sizeof(archive_path), "%s",
-                       s->log_path);
-        Fnsplit(archive_path, parent_dir, dummy_name);
-
-        /* Force Log/Switch to the Parent Directory */
-        /* This handles both "New Volume" and "Switch to Existing" logic
-         * automatically */
-        if (LogDisk(ctx, ctx->active, parent_dir) == 0) {
-          /* Successfully switched context. */
-
-          /* Delete the archive wrapper we just left to clean up memory/list */
-          /* Fix Archive Double-Free Check */
-          BOOL vol_in_use = FALSE;
-          if (ctx->is_split_screen) {
-            const YtreePanel *other =
-                (ctx->active == ctx->left) ? ctx->right : ctx->left;
-            if (other->vol == old_vol)
-              vol_in_use = TRUE;
-          }
-          if (!vol_in_use)
-            Volume_Delete(ctx, old_vol);
-
-          /* Update pointers for the new context */
-          s = &ctx->active->vol->vol_stats; /* UPDATE S */
-          start_vol = ctx->active->vol;     /* Update loop safety variable */
-
-          /* Reset Search Term to prevent bleeding */
-          ctx->global_search_term[0] = '\0';
-
-          /* Re-sync selected directory in the new context. */
-          if (ctx->active->vol->total_dirs > 0) {
-            dir_entry = ctx->active->vol
-                            ->dir_entry_list[ctx->active->disp_begin_pos +
-                                             ctx->active->cursor_pos]
-                            .dir_entry;
-          } else {
-            dir_entry = s->tree;
-          }
-
-          /* Tree focus: keep file list in small-window mode and no file cursor.
-           */
-          dir_entry->start_file = 0;
-          dir_entry->cursor_pos = -1;
-
-          /* Keep the just-exited archive file visible.
-           * Use filtered file_entry_list indices to avoid blank panes when
-           * hidden/filter-mismatched files exist.
-           */
-          if (ctx->active->vol->total_dirs > 0) {
-            int target_file_idx = -1;
-            int file_idx;
-            int visible_rows;
-
-            BuildFileEntryList(ctx, ctx->active);
-            visible_rows = getmaxy(ctx->ctx_small_file_window);
-            if (visible_rows < 1)
-              visible_rows = 1;
-
-            for (file_idx = 0; file_idx < (int)ctx->active->file_count;
-                 file_idx++) {
-              const FileEntry *fe = ctx->active->file_entry_list[file_idx].file;
-              if (fe && strcmp(fe->name, dummy_name) == 0) {
-                target_file_idx = file_idx;
-                break;
-              }
-            }
-
-            if (target_file_idx >= visible_rows) {
-              dir_entry->start_file = target_file_idx - (visible_rows - 1);
-            }
-            if (dir_entry->start_file >= (int)ctx->active->file_count) {
-              dir_entry->start_file =
-                  MAXIMUM(0, (int)ctx->active->file_count - 1);
-            }
-            if (dir_entry->start_file < 0) {
-              dir_entry->start_file = 0;
-            }
-          }
-
-          /* Keep mode in sync with selected volume and do a full redraw. */
-          ctx->view_mode = ctx->active->vol->vol_stats.log_mode;
-          RefreshView(ctx, dir_entry);
+        if (ExitArchiveRootToParent(ctx, &dir_entry, &s, &start_vol, FALSE,
+                                    FALSE)) {
           need_dsp_help = TRUE;
-          break; /* Exit case done */
+        } else {
+          MESSAGE(ctx, "Can't exit archive root.");
+          need_dsp_help = TRUE;
         }
+        break;
       }
 
-      /* 2. Standard Tree Navigation Logic */
       if (!dir_entry->not_scanned && dir_entry->sub_tree != NULL) {
-        /* It is expanded */
-        if (ctx->view_mode == ARCHIVE_MODE) {
-          /* In Archive Mode, we cannot collapse (UnRead) without data loss.
-          So we skip collapse and fall through to Jump to Parent. */
-          goto JUMP_TO_PARENT;
-        } else {
-          /* In FS Mode, collapse it. */
-          HandleUnreadSubTree(ctx, dir_entry, de_ptr, &need_dsp_help,
-                              ctx->active);
+        HandleCollapseSubTree(ctx, dir_entry, &need_dsp_help, ctx->active);
+        break;
+      }
+
+      if (dir_entry->up_tree == NULL) {
+        /* FS root boundary no-op. */
+        break;
+      }
+
+      {
+        int p_idx = -1;
+        int k;
+        for (k = 0; k < ctx->active->vol->total_dirs; k++) {
+          if (ctx->active->vol->dir_entry_list[k].dir_entry ==
+              dir_entry->up_tree) {
+            p_idx = k;
+            break;
+          }
         }
-      } else {
-        /* It is collapsed (or leaf) -> Jump to Parent */
-      JUMP_TO_PARENT:
-        if (dir_entry->up_tree != NULL) {
-          /* Find parent in the list */
-          int p_idx = -1;
-          int k;
-          for (k = 0; k < ctx->active->vol->total_dirs; k++) {
-            if (ctx->active->vol->dir_entry_list[k].dir_entry ==
-                dir_entry->up_tree) {
-              p_idx = k;
-              break;
+        if (p_idx != -1) {
+          if (p_idx >= ctx->active->disp_begin_pos &&
+              p_idx < ctx->active->disp_begin_pos + height) {
+            ctx->active->cursor_pos = p_idx - ctx->active->disp_begin_pos;
+          } else {
+            ctx->active->disp_begin_pos = p_idx;
+            ctx->active->cursor_pos = 0;
+            if (ctx->active->disp_begin_pos + height >
+                ctx->active->vol->total_dirs) {
+              ctx->active->disp_begin_pos =
+                  MAXIMUM(0, ctx->active->vol->total_dirs - height);
+              ctx->active->cursor_pos = p_idx - ctx->active->disp_begin_pos;
             }
           }
-          if (p_idx != -1) {
-            /* Move cursor to parent */
-            if (p_idx >= ctx->active->disp_begin_pos &&
-                p_idx < ctx->active->disp_begin_pos + height) {
-              /* Parent is on screen */
-              ctx->active->cursor_pos = p_idx - ctx->active->disp_begin_pos;
-            } else {
-              /* Parent is off screen - center it or move to top */
-              ctx->active->disp_begin_pos = p_idx;
-              ctx->active->cursor_pos = 0;
-              /* Adjust if near end */
-              if (ctx->active->disp_begin_pos + height >
-                  ctx->active->vol->total_dirs) {
-                ctx->active->disp_begin_pos =
-                    MAXIMUM(0, ctx->active->vol->total_dirs - height);
-                ctx->active->cursor_pos = p_idx - ctx->active->disp_begin_pos;
-              }
-            }
-            /* Sync pointers */
-            dir_entry = ctx->active->vol
-                            ->dir_entry_list[ctx->active->disp_begin_pos +
-                                             ctx->active->cursor_pos]
-                            .dir_entry;
+          dir_entry = ctx->active->vol
+                          ->dir_entry_list[ctx->active->disp_begin_pos +
+                                           ctx->active->cursor_pos]
+                          .dir_entry;
 
-            /* Refresh */
-            DisplayTree(ctx, ctx->active->vol, ctx->ctx_dir_window,
-                        ctx->active->disp_begin_pos,
-                        ctx->active->disp_begin_pos + ctx->active->cursor_pos,
-                        TRUE);
-            DisplayFileWindow(ctx, ctx->active, dir_entry);
-            DisplayDiskStatistic(ctx, s);
-            UpdateStatsPanel(ctx, dir_entry, s);
-            DisplayAvailBytes(ctx, s);
-            /* Update Header Path */
+          DisplayTree(ctx, ctx->active->vol, ctx->ctx_dir_window,
+                      ctx->active->disp_begin_pos,
+                      ctx->active->disp_begin_pos + ctx->active->cursor_pos,
+                      TRUE);
+          DisplayFileWindow(ctx, ctx->active, dir_entry);
+          DisplayDiskStatistic(ctx, s);
+          UpdateStatsPanel(ctx, dir_entry, s);
+          DisplayAvailBytes(ctx, s);
+          {
             char path[PATH_LENGTH];
             GetPath(dir_entry, path);
             DisplayHeaderPath(ctx, path);
@@ -1617,8 +1628,28 @@ int HandleDirWindow(ViewContext *ctx, const DirEntry *start_dir_entry) {
         }
       }
       break;
+    case ACTION_TO_DIR:
+      if (ctx->view_mode != ARCHIVE_MODE) {
+        break;
+      }
+      if (dir_entry->up_tree != NULL) {
+        /* Archive non-root '\' is a silent no-op by contract. */
+        break;
+      }
+      if (ExitArchiveRootToParent(ctx, &dir_entry, &s, &start_vol, TRUE, TRUE)) {
+        need_dsp_help = TRUE;
+        unput_char = CR;
+      } else {
+        MESSAGE(ctx, "Can't exit archive root.");
+        need_dsp_help = TRUE;
+      }
+      break;
     case ACTION_TREE_COLLAPSE:
-      HandleUnreadSubTree(ctx, dir_entry, de_ptr, &need_dsp_help, ctx->active);
+      if (!dir_entry->not_scanned && dir_entry->sub_tree != NULL) {
+        HandleCollapseSubTree(ctx, dir_entry, &need_dsp_help, ctx->active);
+      } else {
+        HandleUnreadSubTree(ctx, dir_entry, de_ptr, &need_dsp_help, ctx->active);
+      }
       break;
     case ACTION_TOGGLE_HIDDEN: {
       ToggleDotFiles(ctx, ctx->active);

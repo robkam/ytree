@@ -14,6 +14,20 @@ def _footer_lines(tui):
     return tui.get_screen_dump()[-3:]
 
 
+def _create_archive(root, archive_name="sample.tar"):
+    archive_source = root / "_archive_src"
+    archive_source.mkdir()
+    (archive_source / "inside.txt").write_text("inside", encoding="utf-8")
+    (archive_source / "nested").mkdir()
+    (archive_source / "nested" / "nested.txt").write_text("nested", encoding="utf-8")
+
+    archive_path = root / archive_name
+    with tarfile.open(archive_path, "w") as tf:
+        tf.add(archive_source, arcname="inside_dir")
+    shutil.rmtree(archive_source)
+    return archive_path
+
+
 def test_archive_left_exit_restores_small_window_and_files(tmp_path, ytree_binary):
     """
     Regression:
@@ -68,6 +82,101 @@ def test_archive_left_exit_restores_small_window_and_files(tmp_path, ytree_binar
     assert ("qqq" in screen or "---" in screen), (
         "Horizontal separator disappeared after archive exit.\n"
         f"Screen:\n{screen}"
+    )
+
+    tui.quit()
+
+
+def test_minus_on_leaf_unlogs_directory_state(tmp_path, ytree_binary):
+    root = tmp_path / "minus_leaf_unlog"
+    root.mkdir()
+    leaf = root / "leaf_dir"
+    leaf.mkdir()
+    (leaf / "leaf_file.txt").write_text("leaf", encoding="utf-8")
+
+    tui = YtreeTUI(executable=ytree_binary, cwd=str(root))
+    time.sleep(0.8)
+
+    tui.send_keystroke(Keys.DOWN, wait=0.3)
+    tui.send_keystroke("-", wait=0.4)
+    tui.send_keystroke(Keys.ENTER, wait=0.4)
+
+    footer = _footer_text(tui)
+    screen = "\n".join(tui.get_screen_dump())
+    assert "hex j compare" not in footer, (
+        "Leaf directory should be unlogged after '-' and not enter file mode.\n"
+        f"Footer:\n{footer}\n\nScreen:\n{screen}"
+    )
+    assert "leaf_file.txt" not in screen, (
+        "Leaf file remained visible after '-' unlog contract.\n"
+        f"Screen:\n{screen}"
+    )
+
+    tui.quit()
+
+
+def test_archive_left_non_root_does_not_exit_immediately(tmp_path, ytree_binary):
+    root = tmp_path / "a_left"
+    root.mkdir()
+    (root / "alpha.txt").write_text("alpha", encoding="utf-8")
+    (root / "beta.txt").write_text("beta", encoding="utf-8")
+    archive_path = _create_archive(root, "l.tar")
+
+    tui = YtreeTUI(executable=ytree_binary, cwd=str(root))
+    time.sleep(0.8)
+
+    tui.send_keystroke(Keys.ENTER, wait=0.4)
+    tui.send_keystroke(Keys.DOWN, wait=0.2)
+    tui.send_keystroke(Keys.DOWN, wait=0.2)
+    tui.send_keystroke(Keys.LOG, wait=0.3)
+    tui.send_keystroke(Keys.ENTER, wait=0.9)
+    assert tui.wait_for_content("ARCHIVE", timeout=3.0), "\n".join(tui.get_screen_dump())
+
+    tui.send_keystroke("*", wait=0.6)
+    for _ in range(12):
+        if "inside_dir/nested" in tui.get_screen_dump()[0]:
+            break
+        tui.send_keystroke(Keys.DOWN, wait=0.25)
+    assert "inside_dir/nested" in tui.get_screen_dump()[0], "\n".join(tui.get_screen_dump())
+
+    tui.send_keystroke(Keys.LEFT, wait=0.6)
+
+    screen = "\n".join(tui.get_screen_dump())
+    assert "ARCHIVE" in screen, (
+        "LEFT from archive non-root must not exit archive mode immediately.\n"
+        f"Screen:\n{screen}"
+    )
+
+    tui.quit()
+
+
+def test_archive_root_backslash_exits_to_parent_file_focus(tmp_path, ytree_binary):
+    root = tmp_path / "a_bs"
+    root.mkdir()
+    (root / "alpha.txt").write_text("alpha", encoding="utf-8")
+    (root / "beta.txt").write_text("beta", encoding="utf-8")
+    archive_path = _create_archive(root, "b.tar")
+
+    tui = YtreeTUI(executable=ytree_binary, cwd=str(root))
+    time.sleep(0.8)
+
+    tui.send_keystroke(Keys.ENTER, wait=0.4)
+    tui.send_keystroke(Keys.DOWN, wait=0.2)
+    tui.send_keystroke(Keys.LOG, wait=0.3)
+    tui.send_keystroke(Keys.ENTER, wait=0.9)
+    assert tui.wait_for_content("ARCHIVE", timeout=3.0), "\n".join(tui.get_screen_dump())
+
+    tui.send_keystroke("\\", wait=0.8)
+
+    screen = "\n".join(tui.get_screen_dump())
+    footer = _footer_text(tui)
+    assert "ARCHIVE" not in screen, (
+        "Backslash at archive root must exit archive context.\n"
+        f"Screen:\n{screen}"
+    )
+    assert "hex j compare" in footer, (
+        "Backslash archive-root exit must land in file focus on archive file.\n"
+        f"Footer:\n{footer}\n\nScreen:\n{screen}"
     )
 
     tui.quit()
