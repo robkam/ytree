@@ -23,26 +23,46 @@ static void Dir_Progress(ViewContext *ctx, void *data) {
 
 void HandlePlus(ViewContext *ctx, DirEntry *dir_entry, DirEntry *de_ptr,
                 char *new_log_path, BOOL *need_dsp_help, YtreePanel *p) {
-  const Statistic *s = &p->vol->vol_stats;
+  Statistic *s = &p->vol->vol_stats;
+  (void)de_ptr;
 
   /* Renamed usage: s->mode -> s->log_mode */
-  if (s->log_mode != DISK_MODE && s->log_mode != USER_MODE) {
+  if (s->log_mode != DISK_MODE && s->log_mode != USER_MODE &&
+      s->log_mode != ARCHIVE_MODE) {
     return;
   }
-  if (!dir_entry->not_scanned) {
-  } else {
-    SuspendClock(ctx); /* Suspend clock before scanning */
-    for (de_ptr = dir_entry->sub_tree; de_ptr; de_ptr = de_ptr->next) {
-      GetPath(de_ptr, new_log_path);
-      ReadTree(ctx, de_ptr, new_log_path, 0, s, Dir_Progress, NULL);
-      ApplyFilter(de_ptr, s);
-    }
-    InitClock(ctx); /* Resume clock after scanning */
+  if (!dir_entry->not_scanned)
+    return;
+
+  if (!dir_entry->unlogged_flag &&
+      (dir_entry->sub_tree != NULL || dir_entry->file != NULL)) {
     dir_entry->not_scanned = FALSE;
     BuildDirEntryList(ctx, p->vol, &p->current_dir_entry);
     BuildDirEntryList(ctx, p->vol, &p->current_dir_entry);
     DisplayTree(ctx, p->vol, p->pan_dir_window, p->disp_begin_pos,
                 p->disp_begin_pos + p->cursor_pos, TRUE);
+    DisplayFileWindow(ctx, p, dir_entry);
+    DisplayDiskStatistic(ctx, s);
+    UpdateStatsPanel(ctx, dir_entry, s);
+    DisplayAvailBytes(ctx, s);
+    *need_dsp_help = TRUE;
+    return;
+  }
+
+  {
+    SuspendClock(ctx); /* Suspend clock before scanning */
+    GetPath(dir_entry, new_log_path);
+    ReadTree(ctx, dir_entry, new_log_path, 1, s, Dir_Progress, NULL);
+    ApplyFilter(dir_entry, s);
+    InitClock(ctx); /* Resume clock after scanning */
+
+    dir_entry->not_scanned = FALSE;
+    dir_entry->unlogged_flag = FALSE;
+    BuildDirEntryList(ctx, p->vol, &p->current_dir_entry);
+    BuildDirEntryList(ctx, p->vol, &p->current_dir_entry);
+    DisplayTree(ctx, p->vol, p->pan_dir_window, p->disp_begin_pos,
+                p->disp_begin_pos + p->cursor_pos, TRUE);
+    DisplayFileWindow(ctx, p, dir_entry);
     DisplayDiskStatistic(ctx, s);
     UpdateStatsPanel(ctx, dir_entry, s); /* Show dir stats AND attributes */
     DisplayAvailBytes(ctx, s);
@@ -59,6 +79,7 @@ void HandleReadSubTree(ViewContext *ctx, DirEntry *dir_entry,
     /* Aborted. Fall through to refresh what we have. */
   }
   InitClock(ctx); /* Resume clock after scanning */
+  dir_entry->unlogged_flag = FALSE;
   BuildDirEntryList(ctx, p->vol, &p->current_dir_entry);
   BuildDirEntryList(ctx, p->vol, &p->current_dir_entry);
   DisplayTree(ctx, p->vol, p->pan_dir_window, p->disp_begin_pos,
@@ -135,64 +156,122 @@ static void ReanchorPanelToDir(YtreePanel *panel, const DirEntry *target) {
     panel->cursor_pos = 0;
 }
 
-void HandleUnreadSubTree(ViewContext *ctx, DirEntry *dir_entry,
-                         DirEntry *de_ptr, BOOL *need_dsp_help, YtreePanel *p) {
-  const Statistic *s = &p->vol->vol_stats;
+static void CaptureInactiveFallback(ViewContext *ctx, YtreePanel *p,
+                                    DirEntry *dir_entry,
+                                    YtreePanel **inactive_out,
+                                    DirEntry **inactive_fallback_out) {
   YtreePanel *inactive = NULL;
   DirEntry *inactive_de = NULL;
   DirEntry *inactive_fallback = NULL;
 
-  /* Renamed usage: s->mode -> s->log_mode */
-  if (s->log_mode != DISK_MODE && s->log_mode != USER_MODE) {
+  if (inactive_out)
+    *inactive_out = NULL;
+  if (inactive_fallback_out)
+    *inactive_fallback_out = NULL;
+  if (!ctx || !p || !dir_entry || !ctx->is_split_screen)
+    return;
+
+  inactive = (p == ctx->left) ? ctx->right : ctx->left;
+  if (!inactive || inactive->vol != p->vol)
+    return;
+
+  if (inactive->vol->total_dirs > 0) {
+    int inactive_idx = inactive->disp_begin_pos + inactive->cursor_pos;
+    if (inactive_idx < 0)
+      inactive_idx = 0;
+    if (inactive_idx >= inactive->vol->total_dirs)
+      inactive_idx = inactive->vol->total_dirs - 1;
+    inactive_de = inactive->vol->dir_entry_list[inactive_idx].dir_entry;
+  } else {
+    inactive_de = inactive->vol->vol_stats.tree;
+  }
+
+  inactive_fallback = inactive_de;
+  while (inactive_fallback && inactive_fallback != dir_entry &&
+         IsDescendant(dir_entry, inactive_fallback)) {
+    inactive_fallback = inactive_fallback->up_tree;
+  }
+  if (!inactive_fallback)
+    inactive_fallback = p->vol->vol_stats.tree;
+
+  if (inactive_out)
+    *inactive_out = inactive;
+  if (inactive_fallback_out)
+    *inactive_fallback_out = inactive_fallback;
+}
+
+void HandleCollapseSubTree(ViewContext *ctx, DirEntry *dir_entry,
+                           BOOL *need_dsp_help, YtreePanel *p) {
+  Statistic *s = &p->vol->vol_stats;
+  YtreePanel *inactive = NULL;
+  DirEntry *inactive_fallback = NULL;
+
+  if (!dir_entry || dir_entry->not_scanned || dir_entry->sub_tree == NULL)
+    return;
+
+  CaptureInactiveFallback(ctx, p, dir_entry, &inactive, &inactive_fallback);
+
+  dir_entry->not_scanned = TRUE;
+  dir_entry->unlogged_flag = FALSE;
+  BuildDirEntryList(ctx, p->vol, &p->current_dir_entry);
+  BuildDirEntryList(ctx, p->vol, &p->current_dir_entry);
+
+  if (inactive && inactive->vol == p->vol) {
+    ReanchorPanelToDir(inactive, inactive_fallback);
+    BuildFileEntryList(ctx, inactive);
+  }
+
+  DisplayTree(ctx, p->vol, p->pan_dir_window, p->disp_begin_pos,
+              p->disp_begin_pos + p->cursor_pos, TRUE);
+  DisplayFileWindow(ctx, p, dir_entry);
+  DisplayAvailBytes(ctx, s);
+  DisplayDiskStatistic(ctx, s);
+  UpdateStatsPanel(ctx, dir_entry, s);
+  *need_dsp_help = TRUE;
+}
+
+void HandleUnreadSubTree(ViewContext *ctx, DirEntry *dir_entry,
+                         DirEntry *de_ptr, BOOL *need_dsp_help, YtreePanel *p) {
+  Statistic *s = &p->vol->vol_stats;
+  YtreePanel *inactive = NULL;
+  DirEntry *inactive_fallback = NULL;
+  FileEntry *fe_ptr, *next_fe_ptr;
+
+  if (s->log_mode != DISK_MODE && s->log_mode != USER_MODE &&
+      s->log_mode != ARCHIVE_MODE) {
     return;
   }
-  if (dir_entry->not_scanned || (dir_entry->sub_tree == NULL)) {
-  } else {
-    /* Capture inactive selection before mutating shared tree state. */
-    if (ctx->is_split_screen) {
-      inactive = (p == ctx->left) ? ctx->right : ctx->left;
-      if (inactive && inactive->vol == p->vol) {
-        if (inactive->vol->total_dirs > 0) {
-          int inactive_idx;
-          inactive_idx = inactive->disp_begin_pos + inactive->cursor_pos;
-          if (inactive_idx < 0)
-            inactive_idx = 0;
-          if (inactive_idx >= inactive->vol->total_dirs)
-            inactive_idx = inactive->vol->total_dirs - 1;
-          inactive_de = inactive->vol->dir_entry_list[inactive_idx].dir_entry;
-        } else {
-          inactive_de = inactive->vol->vol_stats.tree;
-        }
-
-        inactive_fallback = inactive_de;
-        while (inactive_fallback && inactive_fallback != dir_entry &&
-               IsDescendant(dir_entry, inactive_fallback)) {
-          inactive_fallback = inactive_fallback->up_tree;
-        }
-        if (!inactive_fallback)
-          inactive_fallback = p->vol->vol_stats.tree;
-      }
-    }
-    for (de_ptr = dir_entry->sub_tree; de_ptr; de_ptr = de_ptr->next) {
-      UnReadTree(ctx, de_ptr, s);
-    }
-    dir_entry->not_scanned = TRUE;
-    BuildDirEntryList(ctx, p->vol, &p->current_dir_entry);
-    BuildDirEntryList(ctx, p->vol, &p->current_dir_entry);
-
-    if (inactive && inactive->vol == p->vol) {
-      ReanchorPanelToDir(inactive, inactive_fallback);
-      BuildFileEntryList(ctx, inactive);
-    }
-
-    DisplayTree(ctx, p->vol, p->pan_dir_window, p->disp_begin_pos,
-                p->disp_begin_pos + p->cursor_pos, TRUE);
-    DisplayAvailBytes(ctx, s);
-    RecalculateSysStats(ctx, s); /* Fix for Bug 10: Force full recalculation */
-    DisplayDiskStatistic(ctx, s);
-    UpdateStatsPanel(ctx, dir_entry, s);
-    *need_dsp_help = TRUE;
+  if (!dir_entry || dir_entry->unlogged_flag) {
+    return;
   }
+
+  CaptureInactiveFallback(ctx, p, dir_entry, &inactive, &inactive_fallback);
+
+  for (de_ptr = dir_entry->sub_tree; de_ptr; de_ptr = de_ptr->next) {
+    UnReadTree(ctx, de_ptr, s);
+  }
+  for (fe_ptr = dir_entry->file; fe_ptr; fe_ptr = next_fe_ptr) {
+    next_fe_ptr = fe_ptr->next;
+    RemoveFile(ctx, fe_ptr, s);
+  }
+  dir_entry->not_scanned = TRUE;
+  dir_entry->unlogged_flag = TRUE;
+  BuildDirEntryList(ctx, p->vol, &p->current_dir_entry);
+  BuildDirEntryList(ctx, p->vol, &p->current_dir_entry);
+
+  if (inactive && inactive->vol == p->vol) {
+    ReanchorPanelToDir(inactive, inactive_fallback);
+    BuildFileEntryList(ctx, inactive);
+  }
+
+  DisplayTree(ctx, p->vol, p->pan_dir_window, p->disp_begin_pos,
+              p->disp_begin_pos + p->cursor_pos, TRUE);
+  DisplayFileWindow(ctx, p, dir_entry);
+  DisplayAvailBytes(ctx, s);
+  RecalculateSysStats(ctx, s);
+  DisplayDiskStatistic(ctx, s);
+  UpdateStatsPanel(ctx, dir_entry, s);
+  *need_dsp_help = TRUE;
   return;
 }
 

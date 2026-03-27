@@ -69,6 +69,7 @@ int ReadTree(ViewContext *ctx, DirEntry *dir_entry, char *path, int depth,
   dir_entry->log_flag = FALSE;
   dir_entry->big_window = FALSE;
   dir_entry->not_scanned = FALSE;
+  dir_entry->unlogged_flag = FALSE;
 
   if (S_ISBLK(dir_entry->stat_struct.st_mode))
     return (0); /* Block-Device */
@@ -309,16 +310,25 @@ static BOOL IsTransientScanStatError(int errnum) {
 void UnReadTree(ViewContext *ctx, DirEntry *dir_entry, Statistic *s) {
   FileEntry *fe_ptr, *next_fe_ptr;
 
+  if (dir_entry == NULL || s == NULL)
+    return;
+
   if (dir_entry == s->tree) {
     MESSAGE(ctx, "Can't delete ROOT");
   } else {
+    if (dir_entry->unlogged_flag)
+      return;
+
     for (fe_ptr = dir_entry->file; fe_ptr; fe_ptr = next_fe_ptr) {
       next_fe_ptr = fe_ptr->next;
       RemoveFile(ctx, fe_ptr, s);
     }
     if (dir_entry->sub_tree) {
       UnReadSubTree(ctx, dir_entry->sub_tree, s);
+      dir_entry->sub_tree = NULL;
     }
+    dir_entry->not_scanned = TRUE;
+    dir_entry->unlogged_flag = TRUE;
     if (s->disk_total_directories > 0)
       s->disk_total_directories--;
     (void)GetAvailBytes(&s->disk_space, s);

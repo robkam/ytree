@@ -527,6 +527,7 @@ typedef struct _dir_entry {
   BOOL tagged_flag;
   BOOL only_tagged;
   BOOL not_scanned;
+  BOOL unlogged_flag;
   BOOL big_window;
   BOOL log_flag;
   char name[];
