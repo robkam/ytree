@@ -812,20 +812,25 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 *   - [ ] **Status:** Not Started.
 
 ### **Step 4.49: Implement Directory File Release (`-`)**
-*   **Goal:** Refactor the Minus key to correctly release file lists from memory and reset the directory status.
+*   **Goal:** Implement state-based directory release on Minus (`-`) with clear separation from Left Arrow navigation.
 *   **Rationale:** Provides high-power utility to quickly log a large tree and then "release" specific file lists to free resources or hide data without complex filters.
-*   **Mechanism:** Releases the file list of the current directory and subdirectories from memory. Recalculates volume statistics.
+*   **Mechanism:**
+    *   On expanded directory: `-` collapses.
+    *   On collapsed logged directory (or logged leaf): `-` releases/unlogs file state.
+    *   On already unlogged directory: `-` is a stable no-op.
+    *   `←` is collapse/navigation-only and never performs release.
+    *   Recalculate volume statistics after release/unlog operations.
 *   **Files to Modify:** `src/ui/ctrl_dir.c`, `src/fs/readtree.c`, `src/ui/stats.c`
 *   **Context Files:** `include/ytree_fs.h`
-*   - [ ] **Status:** Not Started.
+*   - [x] **Status:** Completed.
 
 ### **Step 4.50: Unlogged State Visualization (`+` Column)**
 *   **Goal:** Implement visual indicators for unlogged directory states and update File Window status text.
 *   **Rationale:** Align with X/Z/UT memory-management paradigms.
-*   **Mechanism:** Prints a `+` in the first column if the directory is unlogged. File Window displays centered `** Not logged **`.
+*   **Mechanism:** Prints a `+` in the first content column after tree-graph glyphs if the directory is unlogged. File Window displays `Unlogged` for unlogged state and `No files` for logged-empty state.
 *   **Files to Modify:** `src/ui/render_dir.c`, `src/ui/render_file.c`
 *   **Context Files:** `include/ytree_defs.h`
-*   - [ ] **Status:** Not Started.
+*   - [~] **Status:** In Progress. (Contract and tests exist; render-path parity and final alignment checks pending.)
 
 ### **Step 4.51: Implement Global File View (`G`)**
 *   **Goal:** Implement the "Global" file view mode, which aggregates files from **all currently logged volumes** into a single flattened list.

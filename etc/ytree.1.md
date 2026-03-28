@@ -58,7 +58,7 @@ Focus is on the file list of the selected directory. Operations here affect spec
 *   **Action:** Press **Return** to toggle the file window to full-screen. Press **Return** again to restore the split view or switch back to **Directory Mode**.
 
 **Archive Mode**
-When entering a supported archive (ZIP, TAR, GZ), ytree treats it as a read-only virtual filesystem. It behaves similarly to Directory/File modes but with a restricted command set. Typing alphanumeric characters triggers an archive mode command.
+When entering a supported archive (ZIP, TAR, GZ), ytree treats it as a virtual filesystem with archive-aware write operations (copy/move/delete/rename/mkdir paths where supported). It behaves similarly to Directory/File modes with archive-specific navigation and safety semantics.
 
 **Split Screen Mode**
 Activated by **F8**. The screen is divided vertically into two independent file manager panels.
@@ -85,7 +85,7 @@ These commands work in most modes:
 *   **F9**: Application Menu (**reserved**, not implemented yet).
 *   **F10**: Config (**reserved**, not implemented yet).
 *   **/** (or **F12**): **Incremental Jump** (List Jump). Start typing to jump to the first matching entry in the current list (directory names in the Directory Window, filenames in the File Window). The selection updates immediately as you type. Press **Enter** to accept the current match, or **Esc** to cancel and restore the original selection.
-*   **\\**: In **Showall**/**Global** file lists, exit that mode and jump to the selected file in its owner directory.
+*   **\\**: In **Showall**/**Global** file lists, exit that mode and jump to the selected file in its owner directory. In Archive-Dir mode, `\\` exits to the parent physical directory only when the archive root is selected; at archive non-root it is a no-op.
 *   **B**: Toggle Brief (Compact) filename view in the File Window.
 *   **^L**: **Reload**. Re-read the contents of the current directory from disk and refresh the view.
 *   **K** (Shift+K): **Volume Menu**. Show a list of all currently logged volumes (drives/paths). Select a volume to switch context instantly. Press `Delete` (or `D`) in the menu to release (unlog) a volume.
@@ -170,25 +170,34 @@ Active when the file window is focused.
 *   **\*** (Asterisk) / **Shift-8**: **Invert Tags**. Toggle the tag state of all currently visible files.
 
 ### Archive Mode
-When browsing an archive (ZIP, TAR, etc.), ytree behaves similarly to a read-only file system.
+When browsing an archive (ZIP, TAR, etc.), ytree behaves like a virtual file system with archive-aware operations and distinct root/non-root navigation rules.
 
 **Archive-Dir Mode**
+*   **C** (Compare): Open compare flow.
+*   **D** (Delete): Delete selected archive directory entry.
 *   **F** (Filter): Set file filter.
 *   **G** (Global): Show all files across all logged volumes in one global list.
 *   **L** (Log): Log a new directory or archive.
+*   **M** (Makedir): Create directory in archive context where supported.
+*   **R** (Rename): Rename selected archive directory entry.
 *   **S** (Showall): Show all files in the archive.
 *   **T** (Tag): Tag all files in current virtual directory.
 *   **U** (Untag): Untag all files in current virtual directory.
 *   **^F** (Dir Mode): Cycle display modes.
 *   **Return**: Switch to Archive-File Mode.
-*   **Left Arrow**: At the archive root, this closes the archive and returns to the parent directory.
+*   **-**: State-based collapse/release. Expanded nodes collapse; collapsed logged nodes (or logged leaves) unlog/release.
+*   **Left Arrow**: Collapse/navigation behavior only; does not perform archive-exit.
+*   **\\**: Root-only archive exit to parent physical directory. At archive non-root, no-op.
 
 **Archive-File Mode**
-*   **C** (Copy): Copy (Extract) selected file.
-*   **^K** (Copy Tagged): Copy (Extract) all tagged files.
+*   **C** (Copy): Copy selected file (including extract/copy paths).
+*   **^K** (Copy Tagged): Copy all tagged files.
+*   **D** (Delete): Delete selected archive file entry.
 *   **F** (Filter): Set file filter.
 *   **H** (Hex): View file in hex mode.
+*   **M** (Move): Move selected file using archive-aware semantics.
 *   **P** (Pipe): Pipe content to command.
+*   **R** (Rename): Rename selected archive file entry.
 *   **S** (Sort): Sort file list.
 *   **^S** (Search): Search tagged files for a string. Untags files that do not match.
 *   **T** (Tag): Tag selected file.
@@ -199,9 +208,14 @@ When browsing an archive (ZIP, TAR, etc.), ytree behaves similarly to a read-onl
     uppercase `U` becomes Untag All.)*
 *   **V** (View): View file.
 *   **^V**: **View Tagged**. View all tagged files sequentially. Mode is controlled by `TAGGEDVIEWER`: `external` (default, uses `$PAGER`) or `internal` (built-in viewer with in-app navigation).
+*   **Y** (Pathcopy): Copy selected file with relative path preservation.
 *   **^F** (File Mode): Cycle display modes.
 *   **Return**: Switch to Archive-Dir Mode.
 *   **\*** (Asterisk): Invert tag selection.
+
+Archive file-window status text:
+*   `Unlogged`: selected directory is unlogged.
+*   `No files`: selected directory is logged and empty.
 
 # COMPARE
 
