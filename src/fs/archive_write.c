@@ -249,6 +249,19 @@ static int process_rewrite_loop(struct archive *a_in, struct archive *a_out,
     }
   }
 
+  if (success && !writer_initialized && r == ARCHIVE_EOF) {
+    if (configure_writer(a_in, a_out) != 0) {
+      REPORT_ERROR(prog_cb, prog_data,
+                   "Unsupported archive format for writing");
+      success = 0;
+    } else if (archive_write_open_fd(a_out, *fd_tmp) != ARCHIVE_OK) {
+      REPORT_ERROR(prog_cb, prog_data, "Could not open output archive stream");
+      success = 0;
+    } else {
+      writer_initialized = 1;
+    }
+  }
+
   if (r != ARCHIVE_EOF && r != ARCHIVE_OK)
     success = 0;
 

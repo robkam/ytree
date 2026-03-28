@@ -99,6 +99,36 @@ int MoveFile(ViewContext *ctx, FileEntry *fe_ptr, const char *to_file,
     }
   }
 
+  if ((s->log_mode != DISK_MODE && s->log_mode != USER_MODE) ||
+      (target_stats_ptr && target_stats_ptr->log_mode == ARCHIVE_MODE)) {
+    int force_delete = 1;
+    int copy_result;
+    int copy_dir_create_mode = dir_create_mode ? *dir_create_mode : 0;
+    int copy_overwrite_mode = overwrite_mode ? *overwrite_mode : 0;
+
+    copy_result = CopyFile(ctx, (Statistic *)s, fe_ptr, (char *)to_file,
+                           dest_dir_entry, (char *)to_dir_path, FALSE,
+                           &copy_dir_create_mode, &copy_overwrite_mode, cb,
+                           choice_cb);
+    if (dir_create_mode) {
+      *dir_create_mode = copy_dir_create_mode;
+    }
+    if (overwrite_mode) {
+      *overwrite_mode = copy_overwrite_mode;
+    }
+    if (copy_result != 0) {
+      return -1;
+    }
+
+    if (DeleteFile(ctx, fe_ptr, &force_delete, (Statistic *)s, choice_cb) !=
+        0) {
+      return -1;
+    }
+
+    *new_fe_ptr = NULL;
+    return 0;
+  }
+
   /* Ensure the destination directory exists */
   {
     BOOL created = FALSE;
