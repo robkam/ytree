@@ -194,7 +194,7 @@ void PrintDirEntry(ViewContext *ctx, struct Volume *vol, WINDOW *win,
   if (de_ptr->not_scanned) {
     size_t name_len = strlen(name_buffer);
     if (name_len < sizeof(name_buffer) - 1) {
-      name_buffer[name_len] = '/';
+      name_buffer[name_len] = de_ptr->unlogged_flag ? '+' : '/';
       name_buffer[name_len + 1] = '\0';
     }
   }

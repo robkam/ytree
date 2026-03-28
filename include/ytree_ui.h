@@ -59,7 +59,7 @@ extern void RotateDirMode(ViewContext *ctx);
 
 /* display.c */
 extern void ClearHelp(ViewContext *ctx);
-extern void DisplayDirHelp(ViewContext *ctx);
+extern void DisplayDirHelp(ViewContext *ctx, const DirEntry *dir_entry);
 extern void DisplayFileHelp(ViewContext *ctx, const DirEntry *dir_entry);
 extern void DisplayMenu(ViewContext *ctx);
 extern void MapF2Window(ViewContext *ctx);
@@ -115,7 +115,7 @@ extern void UI_Beep(ViewContext *ctx, BOOL critical);
 /* filewin.c / ctrl_file.c / ctrl_file_ops.c */
 extern void BuildFileEntryList(ViewContext *ctx, YtreePanel *panel);
 extern void DisplayFileWindow(ViewContext *ctx, YtreePanel *panel,
-                              DirEntry *dir_entry);
+                              const DirEntry *dir_entry);
 extern int HandleFileWindow(ViewContext *ctx, DirEntry *dir_entry);
 extern DirEntry *RefreshFileView(ViewContext *ctx, DirEntry *dir_entry);
 extern BOOL handle_tag_file_action(ViewContext *ctx, int action,
@@ -133,7 +133,8 @@ extern void SetFileRenderingMetrics(YtreePanel *p, unsigned max_filename,
                                     unsigned max_linkname,
                                     unsigned max_userview);
 extern void SetRenderSortOrder(YtreePanel *p, BOOL reverse);
-extern void DisplayFiles(ViewContext *ctx, YtreePanel *panel, DirEntry *de_ptr,
+extern void DisplayFiles(ViewContext *ctx, YtreePanel *panel,
+                         const DirEntry *de_ptr,
                          int start_file_no, int hilight_no, int start_x,
                          WINDOW *win);
 extern void PrintFileEntry(ViewContext *ctx, YtreePanel *panel, int entry_no,

@@ -157,7 +157,7 @@ static void ReanchorPanelToDir(YtreePanel *panel, const DirEntry *target) {
 }
 
 static void CaptureInactiveFallback(ViewContext *ctx, YtreePanel *p,
-                                    DirEntry *dir_entry,
+                                    const DirEntry *dir_entry,
                                     YtreePanel **inactive_out,
                                     DirEntry **inactive_fallback_out) {
   YtreePanel *inactive = NULL;
@@ -202,7 +202,7 @@ static void CaptureInactiveFallback(ViewContext *ctx, YtreePanel *p,
 
 void HandleCollapseSubTree(ViewContext *ctx, DirEntry *dir_entry,
                            BOOL *need_dsp_help, YtreePanel *p) {
-  Statistic *s = &p->vol->vol_stats;
+  const Statistic *s = &p->vol->vol_stats;
   YtreePanel *inactive = NULL;
   DirEntry *inactive_fallback = NULL;
 

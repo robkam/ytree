@@ -44,6 +44,12 @@ static char dir_help_disk_mode_1[] =
 static char dir_help_nav[] =
     "Tree  (F1) help  (F5) refresh  (F6) stats  (F7) autoview  "
     "(F8) split  (F9) menu  (F10) config  (Esc) cancel";
+static char dir_help_nav_archive_to_root[] =
+    "Tree  (F1) help  (F5) refresh  (F6) stats  (F7) autoview  "
+    "(F8) split  (F9) menu  (F10) config  (\\) root  (Esc) cancel";
+static char dir_help_nav_archive_exit[] =
+    "Tree  (F1) help  (F5) refresh  (F6) stats  (F7) autoview  "
+    "(F8) split  (F9) menu  (F10) config  (\\) exit  (Esc) cancel";
 static char *dir_help[MAX_MODES][2] = {
     {/* DISK_MODE */
      dir_help_disk_mode_0, dir_help_disk_mode_1},
@@ -53,10 +59,9 @@ static char *dir_help[MAX_MODES][2] = {
      "COMMANDS                                                                 "
      "          "},
     {/* ARCHIVE_MODE */
-     "ARCHIVE   (B)rief (C)ompare (F)ilter (^F) dirmode (G)lobal (L)og "
-     "(M)akedir "
-     "(R)ename (S)howall ",
-     "COMMANDS  (U)ntag (Q)uit                                                 "
+     "ARCHIVE   (B)rief (C)ompare (D)elete (F)ilter (^F) dirmode (G)lobal "
+     "(L)og (M)akedir ",
+     "COMMANDS  (R)ename (S)howall (T)ag (U)ntag (Q)uit                        "
      "       "},
     {                      /* USER_MODE */
      dir_help_disk_mode_0, /* Default unless changed by user prefs */
@@ -85,14 +90,15 @@ static char *file_help[MAX_MODES][2] = {
     {/* ARCHIVE_MODE */
      "ARCH-FILE (B)rief (C)opy (D)elete (F)ilter (^F)ilemode (H)ex (J) compare "
      "(R)ename (S)ort (T)ag (V)iew",
-     "COMMANDS  (M)akedir (P)ipe (^R)ename (U)ntag pathcop(Y)"},
+     "COMMANDS  (M)ove (P)ipe (^R)ename (U)ntag pathcop(Y)"},
     {                       /* USER_MODE */
      file_help_disk_mode_0, /* Default unless changed by user prefs */
      file_help_disk_mode_1}};
 
-void DisplayDirHelp(ViewContext *ctx) {
+void DisplayDirHelp(ViewContext *ctx, const DirEntry *dir_entry) {
   int i;
   char *cptr;
+  const char *nav_line = dir_help_nav;
 
   if (!ctx->ctx_menu_window)
     return;
@@ -109,7 +115,11 @@ void DisplayDirHelp(ViewContext *ctx) {
   for (i = 0; i < 2; i++) {
     PrintOptions(ctx->ctx_menu_window, i, 0, dir_help[ctx->view_mode][i]);
   }
-  PrintNavLine(ctx->ctx_menu_window, 2, dir_help_nav);
+  if (ctx->view_mode == ARCHIVE_MODE && dir_entry != NULL) {
+    nav_line = (dir_entry->up_tree != NULL) ? dir_help_nav_archive_to_root
+                                            : dir_help_nav_archive_exit;
+  }
+  PrintNavLine(ctx->ctx_menu_window, 2, nav_line);
   wnoutrefresh(ctx->ctx_menu_window);
 }
 
@@ -425,7 +435,7 @@ void RenderInactivePanel(ViewContext *ctx, YtreePanel *panel) {
     int idx = begin + cursor;
     int render_start = panel->start_file;
     int render_cursor = 0;
-    DirEntry *de = NULL;
+    const DirEntry *de = NULL;
     BOOL has_file_list = FALSE;
 
     if (idx < 0 || idx >= total)
@@ -685,7 +695,7 @@ void RefreshView(ViewContext *ctx, DirEntry *dir_entry) {
     DisplayPreviewHelp(ctx);
   } else {
     if (ctx->focused_window == FOCUS_TREE) {
-      DisplayDirHelp(ctx);
+      DisplayDirHelp(ctx, dir_entry);
     } else {
       DisplayFileHelp(ctx, dir_entry);
     }

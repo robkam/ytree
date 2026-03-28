@@ -1780,7 +1780,6 @@ int HandleFileWindow(ViewContext *ctx, DirEntry *dir_entry) {
 
     case ACTION_TO_DIR:
       if (!dir_entry->global_flag) {
-        UI_Beep(ctx, FALSE);
         break;
       }
       if (JumpToOwnerDirectory(ctx, dir_entry)) {

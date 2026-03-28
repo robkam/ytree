@@ -208,7 +208,7 @@ int FileTags_UI_DeleteTaggedFiles(ViewContext *ctx, int max_disp_files,
     BOOL deleted = FALSE;
 
     fe_ptr = ctx->active->file_entry_list[i].file;
-    DirEntry *de_ptr = fe_ptr->dir_entry;
+    const DirEntry *de_ptr = fe_ptr->dir_entry;
 
     if (fe_ptr->tagged && fe_ptr->matching) {
       /* Spinner to indicate progress during bulk deletion */

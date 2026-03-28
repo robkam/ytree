@@ -603,16 +603,14 @@ void PrintFileEntry(ViewContext *ctx, YtreePanel *panel, int entry_no, int y,
   wattroff(win, COLOR_PAIR(base_color_pair));
 }
 
-void DisplayFiles(ViewContext *ctx, YtreePanel *panel, DirEntry *de_ptr,
+void DisplayFiles(ViewContext *ctx, YtreePanel *panel, const DirEntry *de_ptr,
                   int start_file_no, int hilight_no, int start_x, WINDOW *win) {
   int x, y, p_x, p_y, j;
+  BOOL show_empty_label;
 
   if (!ctx || !panel || !panel->vol || !win)
     return;
   int height;
-
-  if (!panel->file_entry_list)
-    return;
 
   height = getmaxy(win);
 
@@ -621,9 +619,22 @@ void DisplayFiles(ViewContext *ctx, YtreePanel *panel, DirEntry *de_ptr,
 #endif
   werase(win);
 
-  if (panel->file_count == 0) {
-    mvwaddstr(win, 0, 3,
-              (de_ptr->access_denied) ? "Permission Denied!" : "No Files!");
+  show_empty_label = (panel->file_entry_list == NULL || panel->file_count == 0 ||
+                      start_file_no >= (int)panel->file_count);
+  if (show_empty_label) {
+    const int first_filename_col = 2;
+    const char *empty_label = "No files";
+    if (de_ptr->access_denied) {
+      empty_label = "Permission Denied!";
+    } else if (de_ptr->unlogged_flag) {
+      empty_label = "Unlogged";
+    }
+    mvwaddstr(win, 0, first_filename_col, empty_label);
+  }
+
+  if (!panel->file_entry_list || panel->file_count == 0) {
+    wnoutrefresh(win);
+    return;
   }
 
   j = start_file_no;

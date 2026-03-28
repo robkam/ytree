@@ -85,7 +85,7 @@ These commands work in most modes:
 *   **F9**: Application Menu (**reserved**, not implemented yet).
 *   **F10**: Config (**reserved**, not implemented yet).
 *   **/** (or **F12**): **Incremental Jump** (List Jump). Start typing to jump to the first matching entry in the current list (directory names in the Directory Window, filenames in the File Window). The selection updates immediately as you type. Press **Enter** to accept the current match, or **Esc** to cancel and restore the original selection.
-*   **\\**: In **Showall**/**Global** file lists, exit that mode and jump to the selected file in its owner directory. In Archive-Dir mode, `\\` exits to the parent physical directory only when the archive root is selected; at archive non-root it is a no-op.
+*   **\\**: In **Showall**/**Global** file lists, exit that mode and jump to the selected file in its owner directory. In Archive-Dir mode, `\\` jumps to archive root when used below root, and exits to the parent physical directory when used at archive root. In normal filesystem dir/file windows and Archive-File mode, `\\` is a no-op.
 *   **B**: Toggle Brief (Compact) filename view in the File Window.
 *   **^L**: **Reload**. Re-read the contents of the current directory from disk and refresh the view.
 *   **K** (Shift+K): **Volume Menu**. Show a list of all currently logged volumes (drives/paths). Select a volume to switch context instantly. Press `Delete` (or `D`) in the menu to release (unlog) a volume.
@@ -173,6 +173,7 @@ Active when the file window is focused.
 When browsing an archive (ZIP, TAR, etc.), ytree behaves like a virtual file system with archive-aware operations and distinct root/non-root navigation rules.
 
 **Archive-Dir Mode**
+
 *   **C** (Compare): Open compare flow.
 *   **D** (Delete): Delete selected archive directory entry.
 *   **F** (Filter): Set file filter.
@@ -187,9 +188,10 @@ When browsing an archive (ZIP, TAR, etc.), ytree behaves like a virtual file sys
 *   **Return**: Switch to Archive-File Mode.
 *   **-**: State-based collapse/release. Expanded nodes collapse; collapsed logged nodes (or logged leaves) unlog/release.
 *   **Left Arrow**: Collapse/navigation behavior only; does not perform archive-exit.
-*   **\\**: Root-only archive exit to parent physical directory. At archive non-root, no-op.
+*   **\\**: At archive non-root, jump to archive root. At archive root, exit to parent physical directory.
 
 **Archive-File Mode**
+
 *   **C** (Copy): Copy selected file (including extract/copy paths).
 *   **^K** (Copy Tagged): Copy all tagged files.
 *   **D** (Delete): Delete selected archive file entry.
@@ -211,9 +213,11 @@ When browsing an archive (ZIP, TAR, etc.), ytree behaves like a virtual file sys
 *   **Y** (Pathcopy): Copy selected file with relative path preservation.
 *   **^F** (File Mode): Cycle display modes.
 *   **Return**: Switch to Archive-Dir Mode.
+*   **\\**: No-op.
 *   **\*** (Asterisk): Invert tag selection.
 
 Archive file-window status text:
+
 *   `Unlogged`: selected directory is unlogged.
 *   `No files`: selected directory is logged and empty.
 

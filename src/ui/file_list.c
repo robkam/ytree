@@ -195,7 +195,7 @@ void InvalidateVolumePanels(ViewContext *ctx, const struct Volume *vol) {
 }
 
 void DisplayFileWindow(ViewContext *ctx, YtreePanel *panel,
-                       DirEntry *dir_entry) {
+                       const DirEntry *dir_entry) {
   if (!panel || !panel->pan_file_window)
     return;
 
