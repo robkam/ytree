@@ -14,6 +14,10 @@ def _footer_lines(tui):
     return tui.get_screen_dump()[-3:]
 
 
+def _screen_text(tui):
+    return "\n".join(tui.get_screen_dump())
+
+
 def _create_archive(root, archive_name="sample.tar"):
     archive_source = root / "_archive_src"
     archive_source.mkdir()
@@ -177,6 +181,97 @@ def test_archive_root_backslash_exits_to_parent_file_focus(tmp_path, ytree_binar
     assert "hex j compare" in footer, (
         "Backslash archive-root exit must land in file focus on archive file.\n"
         f"Footer:\n{footer}\n\nScreen:\n{screen}"
+    )
+
+    tui.quit()
+
+
+def test_archive_non_root_backslash_is_silent_noop(tmp_path, ytree_binary):
+    root = tmp_path / "archive_non_root_bs_noop"
+    root.mkdir()
+    _create_archive(root, "noop.tar")
+
+    tui = YtreeTUI(executable=ytree_binary, cwd=str(root))
+    time.sleep(0.8)
+
+    tui.send_keystroke(Keys.ENTER, wait=0.3)
+    tui.send_keystroke(Keys.DOWN, wait=0.2)
+    tui.send_keystroke(Keys.LOG, wait=0.3)
+    tui.send_keystroke(Keys.ENTER, wait=0.8)
+    assert tui.wait_for_content("ARCHIVE", timeout=2.0), _screen_text(tui)
+
+    tui.send_keystroke("*", wait=0.6)
+    for _ in range(10):
+        header = tui.get_screen_dump()[0]
+        if "inside_dir/nested" in header:
+            break
+        tui.send_keystroke(Keys.DOWN, wait=0.2)
+    assert "inside_dir/nested" in tui.get_screen_dump()[0], _screen_text(tui)
+
+    before = _screen_text(tui)
+    tui.send_keystroke("\\", wait=0.6)
+    after = _screen_text(tui)
+    assert "ARCHIVE" in after, "Backslash at archive non-root must not exit archive mode."
+    assert "inside_dir/nested" in tui.get_screen_dump()[0], (
+        "Backslash at archive non-root must be a no-op and keep current node."
+    )
+    assert "\a" not in before + after, "No bell expected for no-op backslash action."
+
+    tui.quit()
+
+
+def test_unlogged_tree_shows_plus_marker_and_plus_relogs(tmp_path, ytree_binary):
+    root = tmp_path / "unlogged_plus_marker"
+    root.mkdir()
+    node = root / "node"
+    node.mkdir()
+    (node / "child.txt").write_text("payload", encoding="utf-8")
+
+    tui = YtreeTUI(executable=ytree_binary, cwd=str(root))
+    time.sleep(0.8)
+
+    tui.send_keystroke(Keys.DOWN, wait=0.3)
+    tui.send_keystroke("-", wait=0.4)
+    screen_after_unlog = _screen_text(tui)
+    node_lines = [line for line in tui.get_screen_dump() if "node" in line]
+    assert node_lines, f"Expected node row after unlog.\n{screen_after_unlog}"
+    assert any("+" in line for line in node_lines), (
+        "Unlogged directory should display '+' marker in tree row.\n"
+        f"{screen_after_unlog}"
+    )
+
+    tui.send_keystroke("+", wait=0.5)
+    tui.send_keystroke(Keys.ENTER, wait=0.4)
+    footer = _footer_text(tui)
+    assert "hex j compare" in footer, (
+        "'+' should relog directory so Enter opens file mode.\n"
+        f"Footer:\n{footer}\n\nScreen:\n{_screen_text(tui)}"
+    )
+
+    tui.quit()
+
+
+def test_logged_empty_vs_unlogged_labels(tmp_path, ytree_binary):
+    root = tmp_path / "empty_vs_unlogged_labels"
+    root.mkdir()
+    empty = root / "emptydir"
+    empty.mkdir()
+
+    tui = YtreeTUI(executable=ytree_binary, cwd=str(root))
+    time.sleep(0.8)
+
+    tui.send_keystroke(Keys.DOWN, wait=0.3)
+    tui.send_keystroke(Keys.ENTER, wait=0.4)
+    logged_empty_screen = _screen_text(tui).lower()
+    assert "no files" in logged_empty_screen, (
+        "Logged empty directory should show 'No files' text."
+    )
+
+    tui.send_keystroke(Keys.LEFT, wait=0.4)
+    tui.send_keystroke("-", wait=0.4)
+    unlogged_screen = _screen_text(tui).lower()
+    assert "unlogged" in unlogged_screen, (
+        "Unlogged directory should show 'Unlogged' text."
     )
 
     tui.quit()
