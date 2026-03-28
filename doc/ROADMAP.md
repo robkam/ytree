@@ -356,22 +356,14 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 *   **Context Files:** `src/ui/stats.c`
 *   - [x] **Status:** Completed.
 
-### **Step 4.10: Modernize UI & Statistics Panel**
-*   **Goal:** Redesign the user interface to provide a dedicated, high-density information sidebar that supports the new Multi-Volume architecture without cluttering or overwriting the main directory view.
-*   **Rationale:** The legacy interface lacked space for context (Volume Index, Filesystem Type) and suffered from layout bugs where header text overwrote the directory tree. A structured sidebar (inspired by ZTree/UnixTree) improves usability and data visibility.
-*   **Files to Modify:** `src/ui/stats.c`, `src/ui/display.c`
+### **Step 4.10: Modernize UI**
+*   **Goal:** Redesign the user interface layout to support the new Multi-Volume architecture without cluttering or overwriting the main directory view.
+*   **Rationale:** The legacy interface lacked space for context (Volume Index, Filesystem Type) and suffered from layout bugs where header text overwrote the directory tree. Centralizing geometry and fixing rendering artifacts improves usability and visual stability.
+*   **Files to Modify:** `src/ui/display.c`
 *   **Context Files:** `include/ytree.h`
 *   - [x] **Status:** Completed.
 
-#### **Step 4.10.1: Fix Statistics Calculation Logic**
-*   **Goal:** Ensure "Matching Files" and "Tagged Files" are counted correctly immediately upon logging a disk.
-*   **Rationale:** Previously, statistics were calculated *before* filters were applied in `LogDisk`, resulting in zero counts until a manual refresh. Logic order needed correction to support the new panel's data requirements.
-*   **Action:** Modified `log.c` to strictly order the sequence: `SetFilter` -> `ApplyFilter` -> `RecalculateSysStats` -> `Display`.
-*   **Files to Modify:** `src/cmd/log.c`
-*   **Context Files:** `src/core/filter.c`, `src/ui/stats.c`
-*   - [x] **Status:** Completed.
-
-#### **Step 4.10.2: Define UI Geometry Constants**
+#### **Step 4.10.1: Define UI Geometry Constants**
 *   **Goal:** Centralize window layout definitions to create a guaranteed "safe space" for the statistics panel.
 *   **Rationale:** Hardcoded widths (e.g., `COLS - 26`) made layout changes brittle. Defining `STATS_WIDTH` ensures the Directory and File windows automatically resize to fit the side panel without overlap.
 *   **Action:** Updated `ytree.h` to define `STATS_WIDTH` and `MAIN_WIN_WIDTH`, linking all window dimensions to these constants.
@@ -379,22 +371,7 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 *   **Context Files:** None.
 *   - [x] **Status:** Completed.
 
-#### **Step 4.10.3: UI Implementation - Modernized Stats Panel**
-*   **Goal:** Render the new 24-column statistics interface on the right sidebar.
-*   **Rationale:** To provide better context for the Multi-Volume features (showing Volume Index `[1/3]`, Path, and Filesystem Type) and to visually separate "Global Volume Stats" from "Current Directory Stats".
-*   **Action:** Rewrote `stats.c` to implement the new vertical layout using absolute positioning relative to the right screen edge, incorporating safe string truncation for long paths.
-*   **Files to Modify:** `src/ui/stats.c`
-*   **Context Files:** `include/ytree.h`
-*   - [x] **Status:** Completed.
-
-#### **Step 4.10.4: Refine Stats Panel (Boxed Layout & Human Readable)**
-*   **Goal:** Improve the stats panel by using a "Boxed" layout with headers embedded in separator lines and using Human Readable size formatting (e.g., `12.5M`) to fit more data on single lines.
-*   **Action:** Updated `stats.c` to implement the `DrawBoxFrame` and `FormatShortSize` logic. Fixed display bugs where Directory Attributes were hidden.
-*   **Files to Modify:** `src/ui/stats.c`
-*   **Context Files:** None.
-*   - [x] **Status:** Completed.
-
-#### **Step 4.10.5: Fix Root Masking and Header Artifacts**
+#### **Step 4.10.2: Fix Root Masking and Header Artifacts**
 *   **Goal:** Resolve visual regressions: prevent the stats panel from erasing the first directory entry, and ensure the top-left "Path:" header updates correctly without ghosting characters from previous paths.
 *   **Action:**
     1.  **`stats.c`**: Removed the `mvwhline` call in `DisplayDiskName` that was incorrectly clearing the content window (`dir_window`) instead of the header area.
@@ -403,77 +380,112 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 *   **Context Files:** None.
 *   - [x] **Status:** Completed.
 
-#### **Step 4.10.6: Implement Jump to Owner Directory (\)**
+#### **Step 4.10.3: Implement Jump to Owner Directory (\)**
 *   **Goal:** In "Show All" or "Global" file-list mode, pressing `\` (Backslash) exits that mode, re-anchors the Directory Tree to the selected file's owner directory, and places the file cursor on that same file.
 *   **Rationale:** Standard ZTree feature ("\ To Dir") essential for locating files found via a global search/filter within their hierarchy context.
 *   **Files to Modify:** `src/ui/ctrl_file.c`, `src/ui/key_engine.c`, `src/ui/display.c`, `src/ui/dir_ops.c`
 *   **Context Files:** `src/ui/ctrl_dir.c`, `src/ui/file_list.c`
 *   - [x] **Status:** Completed.
 
-### **Step 4.11: Implement Wide Mode (Toggle Stats Panel)**
+#### **Step 4.10.4: Implement Archive Boundary Navigation (\)**
+*   **Goal:** In archive directory mode, pressing `\` (Backslash) at archive non-root jumps to archive root; pressing `\` at archive root exits to the containing physical directory context.
+*   **Rationale:** Provides boundary-aware navigation that is predictable and low-friction: first surface to archive home, then leave archive context. Extends the `\` key behavior established in Step 4.10.3 to the archive context.
+*   - [x] **Status:** Completed.
+
+### **Step 4.11: Modernize Statistics Panel**
+*   **Goal:** Provide a dedicated, high-density information sidebar that supports the new Multi-Volume architecture.
+*   **Rationale:** A structured sidebar (inspired by ZTree/UnixTree) improves data visibility by showing Volume Index, Filesystem Type, and separating "Global Volume Stats" from "Current Directory Stats."
+*   **Files to Modify:** `src/ui/stats.c`
+*   **Context Files:** `include/ytree.h`
+*   - [x] **Status:** Completed.
+
+#### **Step 4.11.1: Fix Statistics Calculation Logic**
+*   **Goal:** Ensure "Matching Files" and "Tagged Files" are counted correctly immediately upon logging a disk.
+*   **Rationale:** Previously, statistics were calculated *before* filters were applied in `LogDisk`, resulting in zero counts until a manual refresh. Logic order needed correction to support the new panel's data requirements.
+*   **Action:** Modified `log.c` to strictly order the sequence: `SetFilter` -> `ApplyFilter` -> `RecalculateSysStats` -> `Display`.
+*   **Files to Modify:** `src/cmd/log.c`
+*   **Context Files:** `src/core/filter.c`, `src/ui/stats.c`
+*   - [x] **Status:** Completed.
+
+#### **Step 4.11.2: UI Implementation - Modernized Stats Panel**
+*   **Goal:** Render the new 24-column statistics interface on the right sidebar.
+*   **Rationale:** To provide better context for the Multi-Volume features (showing Volume Index `[1/3]`, Path, and Filesystem Type) and to visually separate "Global Volume Stats" from "Current Directory Stats".
+*   **Action:** Rewrote `stats.c` to implement the new vertical layout using absolute positioning relative to the right screen edge, incorporating safe string truncation for long paths.
+*   **Files to Modify:** `src/ui/stats.c`
+*   **Context Files:** `include/ytree.h`
+*   - [x] **Status:** Completed.
+
+#### **Step 4.11.3: Refine Stats Panel (Boxed Layout & Human Readable)**
+*   **Goal:** Improve the stats panel by using a "Boxed" layout with headers embedded in separator lines and using Human Readable size formatting (e.g., `12.5M`) to fit more data on single lines.
+*   **Action:** Updated `stats.c` to implement the `DrawBoxFrame` and `FormatShortSize` logic. Fixed display bugs where Directory Attributes were hidden.
+*   **Files to Modify:** `src/ui/stats.c`
+*   **Context Files:** None.
+*   - [x] **Status:** Completed.
+
+### **Step 4.12: Implement Wide Mode (Toggle Stats Panel)**
 *   **Goal:** Implement a command (`F6`) to toggle the visibility of the statistics sidebar, effectively switching between a "Wide" view (0 width stats) and the standard view (24 width stats). Add a configuration option (`STATS_PANEL=1/0`) to `~/.ytree` to set the default state.
 *   **Rationale:** Maximizes horizontal screen real estate for deep directory hierarchies or long filenames.
 *   **Files to Modify:** `src/ui/key_engine.c`, `src/core/init.c`
 *   **Context Files:** `src/core/global.c`
 *   - [x] **Status:** Completed.
 
-### **Step 4.12: Technical Debt Remediation ("De-Brittling")** (Use the Code Auditor persona here)
+### **Step 4.13: Technical Debt Remediation ("De-Brittling")** (Use the Code Auditor persona here)
 *   **Goal:** Systematically identify and refactor fragile code patterns that hinder maintenance and scalability.
 *   **Rationale:** As features are added, legacy patterns (magic numbers, unsafe buffers, hardcoded keys) create regression risks. This phase hardens the codebase before introducing complex event-driven features like Inotify or Mouse support.
 *   **Files to Modify:** `src/ui/display_utils.c`, `src/util/string_utils.c`, `src/ui/key_engine.c`
 *   **Context Files:** `include/ytree.h`
 *   - [x] **Status:** Completed.
 
-#### **Step 4.12.1: UI Layout Remediation**
+#### **Step 4.13.1: UI Layout Remediation**
 *   **Goal:** Eliminate "Magic Numbers" and hardcoded offsets from the UI rendering logic to prevent off-by-one errors and layout glitches during resizing or volume switching.
 *   **Mechanism:** Define a centralized `Layout` structure containing dynamic dimensions (`dir_win_h`, `file_win_h`, `stats_width`). Calculate these once in a `Layout_Recalculate()` function (called on Init and Resize) and replace compile-time macros with these runtime values.
 *   **Files to Modify:** `src/core/init.c`, `src/core/global.c`, `include/ytree.h`
 *   **Context Files:** `src/ui/display.c`
 *   - [x] **Status:** Completed.
 
-#### **Step 4.12.2: Harden String Handling**
+#### **Step 4.13.2: Harden String Handling**
 *   **Task:** Audit `display_utils.c` and `util.c` for unsafe string manipulations (`strcpy`, `strcat`, `sprintf` into stack buffers). Replace with `snprintf`, truncated copies, or dynamic allocation where appropriate. Specifically target functions that assume 1 byte == 1 character (fixing residual UTF-8 truncation bugs).
 *   **Benefit:** Prevents buffer overflows and ensures correct display of Unicode filenames.
 *   **Files to Modify:** `src/ui/display_utils.c`, `src/util/string_utils.c`
 *   **Context Files:** None.
 *   - [x] **Status:** Completed.
 
-#### **Step 4.12.3: Decouple Input Handling**
+#### **Step 4.13.3: Decouple Input Handling**
 *   **Task:** Refactor `input.c` to abstract key handling. Move hardcoded `case 'k':` logic out of `dirwin.c` and into a dispatch table or higher-level `Action` enum.
 *   **Benefit:** Prerequisites for Configurable Keymaps (Phase 7.1) and makes the event loop ready for non-blocking I/O (Inotify).
 *   **Files to Modify:** `src/ui/key_engine.c`, `include/ytree.h`
 *   **Context Files:** `src/ui/ctrl_dir.c`
 *   - [x] **Status:** Completed.
 
-#### **Step 4.12.4: Finalize Path Normalization and Archive Logic**
+#### **Step 4.13.4: Finalize Path Normalization and Archive Logic**
 *   **Goal:** Simplify the path normalization function in `util.c` by leveraging the stability provided by POSIX `getcwd`/`realpath` and the removal of custom tilde expansion. Also harden the archive parsing logic to prevent string corruption.
 *   **Mechanism:** Replaced destructive string tokenization with `realpath` and stack-based normalization. Standardized on `Fnsplit` for archive paths.
 *   **Files to Modify:** `src/util/path_utils.c`
 *   **Context Files:** `src/fs/archive_read.c`
 *   - [x] **Status:** Completed.
 
-#### **Step 4.12.5: Review and Finalize Terminal Input**
+#### **Step 4.13.5: Review and Finalize Terminal Input**
 *   **Goal:** Re-verify the input loop in `input.c` and clean up any remaining low-level terminal interaction to ensure stability across modern environments (Linux/WSL/macOS).
 *   **Mechanism:** Replaced potentially unsafe `strcpy`/`strcat` patterns in `InputStringEx` with `memmove` based editing to prevent buffer overflows.
 *   **Files to Modify:** `src/ui/key_engine.c`
 *   **Context Files:** None.
 *   - [x] **Status:** Completed.
 
-#### **Step 4.12.6: Security Hardening Review**
+#### **Step 4.13.6: Security Hardening Review**
 *   **Goal:** Conduct a focused review of all code paths involving external process creation, shell command execution, and temporary file handling to ensure adherence to security best practices.
 *   **Mechanism:** Standardized execution environment in `execute.c`, `pipe.c`, `view.c`, `edit.c`, and `usermode.c` to use `open/fchdir` for robust CWD restoration, preventing race conditions.
 *   **Files to Modify:** `src/cmd/execute.c`, `src/cmd/pipe.c`, `src/cmd/view.c`, `src/cmd/edit.c`, `src/cmd/usermode.c`
 *   **Context Files:** None.
 *   - [x] **Status:** Completed.
 
-### **Step 4.13: Implement File System Watcher (Inotify)**
+### **Step 4.14: Implement File System Watcher (Inotify)**
 *   **Goal:** Automatically update the file list when files are created, modified, or deleted in the currently viewed directory by external programs.
 *   **Rationale:** Currently, `ytree` shows a stale snapshot of the filesystem until the user manually presses `^L` (Refresh). Modern expectations require a "live" view. Using `inotify` is efficient and event-driven, avoiding the overhead of constant polling.
 *   **Files to Modify:** `src/fs/watcher.c`, `src/ui/key_engine.c`
 *   **Context Files:** `include/watcher.h`
 *   - [x] **Status:** Completed.
 
-#### **Step 4.13.1: Create Watcher Infrastructure (`watcher.c`)**
+#### **Step 4.14.1: Create Watcher Infrastructure (`watcher.c`)**
 *   **Task:** Create a new module `watcher.c` to abstract the OS-specific file monitoring APIs.
 *   **Logic:**
     *   **Init:** Call `inotify_init1(IN_NONBLOCK)`.
@@ -482,7 +494,7 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
     *   **Portability:** Guard everything with `#ifdef __linux__`. On other systems, these functions act as empty stubs.
 *   - [ ] **Status:** Not Started.
 
-#### **Step 4.13.2: Refactor Input Loop for Event Handling**
+#### **Step 4.14.2: Refactor Input Loop for Event Handling**
 *   **Task:** Modify `key_engine.c` to support non-blocking input handling.
 *   **Logic:**
     *   Currently, `Getch()` blocks indefinitely waiting for a key.
@@ -493,7 +505,7 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
     *   If STDIN triggers, proceed to `wgetch()`.
 *   - [ ] **Status:** Not Started.
 
-#### **Step 4.13.3: Implement Live Refresh Logic**
+#### **Step 4.14.3: Implement Live Refresh Logic**
 *   **Task:** Connect the `refresh_needed` flag to the main window logic.
 *   **Logic:**
     *   In `dirwin.c` (`HandleDirWindow`) and `filewin.c` (`HandleFileWindow`), inside the input loop:
@@ -506,7 +518,7 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
     *   *Note:* We must ensure the cursor stays on the same file if possible (by saving the filename before rescan and finding it after).
 *   - [ ] **Status:** Not Started.
 
-#### **Step 4.13.4: Update Watch Context on Navigation**
+#### **Step 4.14.4: Update Watch Context on Navigation**
 *   **Task:** Ensure the watcher always monitors the *current* directory.
 *   **Logic:**
     *   In `dirwin.c`: Whenever the user moves the cursor to a new directory (UP/DOWN), update the watcher.
@@ -515,7 +527,7 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
     *   **Implementation:** Call `Watcher_SetDir(dir_entry->name)` inside `HandleDirWindow` navigation logic (possibly debounced) and definitely inside `HandleFileWindow`.
 *   - [ ] **Status:** Not Started.
 
-### **Step 4.14: Implement Configurable Auto-Refresh Strategies**
+### **Step 4.15: Implement Configurable Auto-Refresh Strategies**
 *   **Goal:** Add a configuration option (`AUTO_REFRESH`) to control when directories are re-scanned, implemented as a bitmask to allow combinations.
     *   **1:** Enable Watcher (Inotify/Kernel Events). [Default]
     *   **2:** Refresh on Directory Navigation (Cursor Move).
@@ -525,20 +537,20 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 *   **Context Files:** `src/ui/key_engine.c`, `src/ui/ctrl_dir.c`
 *   - [x] **Status:** Completed.
 
-### **Step 4.15: Implement Proactive Directory Creation**
+### **Step 4.16: Implement Proactive Directory Creation**
 *   **Goal:** When performing operations (Copy, Move, PathCopy) on files, if the destination directory does not exist, prompt the user to create it.
 *   **Files to Modify:** `src/cmd/mkdir.c`, `src/cmd/copy.c`, `src/cmd/move.c`
 *   **Context Files:** None.
 *   - [x] **Status:** Completed.
 
-### **Step 4.16: Consolidate Attribute Commands**
+### **Step 4.17: Consolidate Attribute Commands**
 *   **Goal:** Group the `A` (Attribute/Mode), `O` (Owner), and `G` (Group) commands under a single `A` menu (Attributes).
 *   **Rationale:** De-clutter the top-level keymap. **Crucially, this frees up the `G` key for "Global View" and `O` for "Open", aligning with ZTree standards.**
 *   **Files to Modify:** `src/ui/input.c`, `src/ui/ctrl_dir.c`, `src/ui/ctrl_file.c`
 *   **Context Files:** `src/cmd/attributes.c`
 *   - [x] **Status:** Completed.
 
-### **Step 4.17: Implement Directory Graft (Copy/Move) and Release**
+### **Step 4.18: Implement Directory Graft (Copy/Move) and Release**
 *   **Goal:** Implement directory manipulation commands in the Directory Window.
     *   **Release:** Unload a directory branch from memory (without deleting files) to clean up the view.
     *   **Graft (Move):** Move an entire directory branch to a new parent.
@@ -548,7 +560,7 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 *   **Context Files:** `src/cmd/copy.c`, `src/cmd/move.c`
 *   - [ ] **Status:** Not Started.
 
-### **Step 4.18: Implement F2 Filesystem Navigation**
+### **Step 4.19: Implement F2 Filesystem Navigation**
 *   **Goal:** Enhance the F2 Directory Selection window to support volume management.
     *   Enable logging new drives/paths via `(L)og`.
     *   Enable quick switching between loaded volumes via `(<)` / `(>)` cycling.
@@ -558,21 +570,21 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 *   **Context Files:** `src/cmd/log.c`, `src/core/volume.c`
 *   - [x] **Status:** Completed.
 
-### **Step 4.19: Add Activity Spinner**
+### **Step 4.20: Add Activity Spinner**
 *   **Goal:** Display an animated spinner (e.g., `|`, `/`, `-`, `\`) in the menu bar area during long-running operations like directory scanning.
 *   **Rationale:** Provides essential visual feedback to the user that the application is busy and has not frozen.
 *   **Files to Modify:** `src/ui/animate.c`
 *   **Context Files:** `src/fs/readtree.c`, `src/cmd/log.c`
 *   - [x] **Status:** Completed.
 
-### **Step 4.20: Enhance History with Contextual Categories and Favorites**
+### **Step 4.21: Enhance History with Contextual Categories and Favorites**
 *   **Goal:** Separate command history into distinct categories (e.g., Filespec, Login, Execute) so that history recall is context-sensitive. When the user recalls history, only entries relevant to the current prompt (e.g., only paths for the Login prompt) will be shown. Additionally, implement a mechanism to mark history items as "favorites" to ensure they persist across sessions and are easily accessible.
 *   **Rationale:** Makes the history feature significantly more organized and intuitive by filtering out irrelevant entries based on the current context. The implementation must also be robust against data loss, ensuring history from previous sessions is reliably loaded.
 *   **Files to Modify:** `src/util/history.c`
 *   **Context Files:** `src/ui/key_engine.c`
 *   - [x] **Status:** Completed.
 
-### **Step 4.21: Implement "Transparent Exit" for archives**
+### **Step 4.22: Implement "Transparent Exit" for archives**
 *   **Goal:** Make `Left Arrow` at the root of a volume close it and return to the previous volume. This creates the illusion that the Archive was just a subdirectory, allowing users to "back out" of an archive seamlessly.
 *   **Rationale:** This is a major UX improvement that aligns `ytree` with the intuitive navigation model of Midnight Commander.
 *   **Mechanism:** In `HandleDirWindow` (`src/ui/ctrl_dir.c`), modify `ACTION_MOVE_LEFT`. If the user is at the Root of the volume, check if it's an Archive (or secondary volume). If so, treat the Left Arrow as a "Close Volume" command (similar to `ACTION_VOL_PREV` but destructive for the archive instance) to return to the parent context.
@@ -580,96 +592,96 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 *   **Context Files:** `src/cmd/log.c`, `src/core/volume.c`
 *   - [x] **Status:** Completed.
 
-### **Step 4.22: Implement F7 File Preview Panel**
+### **Step 4.23: Implement F7 File Preview Panel**
 *   **Goal:** Implement a file preview mode activated by F7. This mode will collapse the statistics panel and use the expanded main window area to display the contents of the selected file without launching an external pager.
 *   **Rationale:** Provides a fast, integrated way to inspect file contents, a classic and highly valued feature of XTree&trade;-style file managers.
 *   **Files to Modify:** `src/ui/key_engine.c`, `src/cmd/view.c`, `src/core/init.c`
 *   **Context Files:** `src/core/global.c`
 *   - [x] **Status:** Completed.
 
-### **Step 4.23: Refine In-App Help Text**
+### **Step 4.24: Refine In-App Help Text**
 *   **Goal:** Review all user prompts and help lines to be clear and provide context for special syntax (e.g., `{}`). The menu should be decluttered by only showing a `^` shortcut if its action differs from the base key (e.g., `(C)opy/(^K)` is good, but `pathcop(Y)/^Y` is redundant and should just be `pathcop(Y)`).
 *   **Rationale:** Fulfills the "No Hidden Features" principle and improves UI clarity by removing redundant information.
 *   **Files to Modify:** `src/ui/display.c`
 *   **Context Files:** None.
 *   - [ ] **Status:** Not Started.
 
-### **Step 4.24: Enhance Clock Display**
+### **Step 4.25: Enhance Clock Display**
 *   **Goal:** Modify the optional clock display to show both the date and time.
 *   **Rationale:** A simple UI improvement providing more context to the user.
 *   **Files to Modify:** `src/core/clock.c`
 *   **Context Files:** None.
 *   - [x] **Status:** Completed.
 
-### **Step 4.25: Implement Integrated Help System**
+### **Step 4.26: Implement Integrated Help System**
 *   **Goal:** Create a pop-up, scrollable help window (activated by F1) that displays context-sensitive command information.
 *   **Rationale:** Replaces the limited static help lines with a comprehensive and user-friendly help system, making the application easier to learn and use without consulting external documentation.
 *   **Files to Modify:** `src/ui/display.c`
 *   **Context Files:** `src/ui/key_engine.c`
 *   - [ ] **Status:** Not Started.
 
-### **Step 4.26: Implement Mouse Support**
+### **Step 4.27: Implement Mouse Support**
 *   **Goal:** Add mouse support for core navigation and selection actions within the terminal (e.g., click to select, double-click to enter, wheel scrolling).
 *   **Rationale:** A key feature of classic file managers like ZTreeWin and modern ones like Midnight Commander, mouse support dramatically improves speed and ease of use for users in capable terminal environments.
 *   **Files to Modify:** `src/ui/key_engine.c`
 *   **Context Files:** `src/ui/ctrl_dir.c`, `src/ui/ctrl_file.c`
 *   - [ ] **Status:** Not Started.
 
-### **Step 4.27: Add Configurable Bypass for External Viewers**
+### **Step 4.28: Add Configurable Bypass for External Viewers**
 *   **Goal:** Add a configuration option (e.g., in a future F10 settings panel) to globally disable external viewers, forcing the use of the internal viewer.
 *   **Rationale:** Provides flexibility for cases where the user wants to quickly inspect the raw bytes of a file (e.g., a PDF) without launching a heavy external application.
 *   **Files to Modify:** `src/cmd/view.c`, `src/cmd/profile.c`
 *   **Context Files:** `include/ytree.h`
 *   - [ ] **Status:** Not Started.
 
-### **Step 4.28: Implement Lightweight Directory Refresh**
+### **Step 4.29: Implement Lightweight Directory Refresh**
 *   **Goal:** Implement a lightweight directory refresh mechanism to ensure the UI reflects filesystem changes made by `ytree`'s own operations (like Copy, Move, Extract) without a full rescan.
 *   **Rationale:** When a file is created or modified in a directory, the view of that directory should update automatically. This is distinct from a manual full `^L` rescan and makes the program feel more responsive.
 *   **Files to Modify:** `src/ui/ctrl_file.c`, `src/ui/ctrl_dir.c`
 *   **Context Files:** `src/fs/readtree.c`
 *   - [x] **Status:** Completed.
 
-### **Step 4.29: Implement Advanced Log Options**
+### **Step 4.30: Implement Advanced Log Options**
 *   **Goal:** Enhance the `Log` command to present options for controlling the scan depth and scope, similar to ZTree/XTree&trade; (e.g., "Log drive", "Log tree", "Log directory").
 *   **Rationale:** Provides essential control over performance when working with very large filesystems, allowing the user to perform a shallow scan when a deep recursive scan is not needed.
 *   **Files to Modify:** `src/cmd/log.c`, `src/ui/key_engine.c`
 *   **Context Files:** `src/fs/readtree.c`
 *   - [ ] **Status:** Not Started.
 
-### **Step 4.30: Archive Write Support (Atomic Breakdown)**
+### **Step 4.31: Archive Write Support (Atomic Breakdown)**
 *   **Goal:** Enable modification of archives (ZIP, TAR, ISO, etc.) directly within ytree. Since `libarchive` does not support random-access modification, this requires a "Stream Rewrite" engine: open original, open temp destination, stream entries from old to new (skipping deleted ones, injecting new ones), close, and swap. The Auto-Refresh logic for archives will need to watch the archive file itself (the container) to trigger reloads.
 
-#### **Step 4.30.1: Implement Archive Rewrite Infrastructure**
+#### **Step 4.31.1: Implement Archive Rewrite Infrastructure**
 *   **Description:** Implement the core `Archive_Rewrite(char *archive_path, RewriteCallback cb, void *user_data)` function. This generic engine will handle the `Read Old -> Write New` loop, temporary file creation, atomicity, and error recovery.
 *   **Files to Modify:** `src/fs/archive_write.c`, `include/ytree.h`
 *   - [x] **Status:** Completed.
 
-#### **Step 4.30.2: Implement Archive Deletion**
+#### **Step 4.31.2: Implement Archive Deletion**
 *   **Description:** Hook the `D` (Delete) command when in Archive Mode to use the Rewrite Engine. The callback will simply skip the entries marked for deletion during the copy stream.
 *   **Files to Modify:** `src/cmd/delete.c`, `src/fs/archive_write.c`
 *   - [x] **Status:** Completed.
 
-#### **Step 4.30.3: Implement Archive Addition (Copy-In) & Mkdir**
+#### **Step 4.31.3: Implement Archive Addition (Copy-In) & Mkdir**
 *   **Description:** Hook `C` (Copy) and `M` (Makedir) to inject new headers and data blocks into the Rewrite stream.
 *   **Files to Modify:** `src/cmd/copy.c`, `src/cmd/mkdir.c`, `src/fs/archive_write.c`
 *   - [x] **Status:** Completed.
 
-#### **Step 4.30.4: Implement Archive Rename**
+#### **Step 4.31.4: Implement Archive Rename**
 *   **Description:** Hook `R` (Rename) to modify the `pathname` field of headers on the fly during the Rewrite stream.
 *   **Files to Modify:** `src/cmd/rename.c`, `src/fs/archive_write.c`
 *   - [x] **Status:** Completed.
 
-#### **Step 4.30.5: Implement Archive Execution & Search (`^S`/`X`)**
+#### **Step 4.31.5: Implement Archive Execution & Search (`^S`/`X`)**
 *   **Description:** Implement `Execute` and `Grep` for archives by extracting files to a temporary directory (`/tmp/ytree_...`), running the command, and cleaning up. Unlike rewrite operations, this is a read-only extraction task.
 *   **Files to Modify:** `src/cmd/execute.c`, `src/ui/ctrl_file.c`
 *   - [x] **Status:** Completed.
 
-#### **Step 4.30.6: Implement Archive Move (`M`) Support**
+#### **Step 4.31.6: Implement Archive Move (`M`) Support**
 *   **Description:** Implement `M` (Move) for archives. Intra-archive moves use the Rewrite Engine to rename paths. Cross-volume moves use Copy-Extract + Delete.
 *   **Files to Modify:** `src/cmd/move.c`, `src/fs/archive_write.c`.
 *   - [ ] **Status:** Not Started.
 
-### **Step 4.31: Implement View Tagged Files (`^V`)**
+### **Step 4.32: Implement View Tagged Files (`^V`)**
 *   **Goal:** Allow sequential viewing of all tagged files.
 *   **Features:**
     *   Iterate through tagged list.
@@ -679,29 +691,29 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 *   **Files:** `src/cmd/view.c`, `src/ui/ctrl_file.c`, `src/ui/key_engine.c`.
 *   - [x] **Status:** Completed.
 
-#### **Step 4.32.1: Disk Mode View Tagged**
+#### **Step 4.33.1: Disk Mode View Tagged**
 *   **Implementation:** Constructs a batch command line `less file1 file2 ...`. Enables standard pager navigation (`:n` Next, `:p` Previous).
 *   **Files to Modify:** `src/cmd/view.c`, `src/ui/ctrl_file.c`, `src/cmd/execute.c`.
 *   - [x] **Status:** Completed.
 
-#### **Step 4.32.2: Archive Mode View Tagged**
+#### **Step 4.33.2: Archive Mode View Tagged**
 *   **Implementation:** Extracts all tagged files from the archive to a temporary directory (`/tmp/ytree_view_XYZ/`). Passes these temporary paths to `less`. Cleans up the temporary directory upon exit. Handles large file counts by batching or warning if command line limit exceeded.
 *   **Files to Modify:** `src/cmd/view.c`, `src/fs/archive_read.c`.
 *   - [x] **Status:** Completed.
 
-### **Step 4.33: Nested Archive Traversal**
+### **Step 4.34: Nested Archive Traversal**
 *   Allow transparently entering an archive that is itself inside another archive.
 *   **Files to Modify:** `src/fs/archive_read.c`, `src/cmd/log.c`
 *   **Context Files:** `src/fs/archive_read.c`
 *   - [ ] **Status:** Not Started.
 
-### **Step 4.34: Applications menu**
+### **Step 4.35: Applications menu**
 *   Implement a customizable Application Menu.
 *   **Files to Modify:** `src/cmd/usermode.c`, `src/cmd/profile.c`
 *   **Context Files:** None.
 *   - [ ] **Status:** Not Started.
 
-### **Step 4.35: Standardize Input Prompt Padding**
+### **Step 4.36: Standardize Input Prompt Padding**
 *   **Goal:** Standardize the visual spacing between input labels (e.g., "GROUP:", "OWNER:", "ATTRIBUTES:") and the cursor entry point across the application.
 *   **Rationale:** Currently, input fields rely on hardcoded starting columns (e.g., 12), resulting in inconsistent visual padding depending on the label length. Dynamic calculation based on label length ensures a polished, professional UI consistency.
 *   **Mechanism:**
@@ -711,7 +723,7 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 *   **Context Files:** `src/ui/key_engine.c`
 *   - [x] **Status:** Completed.
 
-### **Step 4.36: Iterative Incremental Search (List Jump)**
+### **Step 4.37: Iterative Incremental Search (List Jump)**
 *   **Goal:** Implement robust, non-recursive incremental search activated by the `/` key that supports backspace and works in both Directory and File windows.
 *   **Rationale:** Align with standard Unix tools (`/`) but provide the **Treespec** experience (rapid filtering/navigation) found in ZTree.
 *   **Mechanism:** Sticky cursor: Cursor remains at the last valid match on failed input. Implicit exit: Action keys confirm match.
@@ -719,35 +731,35 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 *   **Context Files:** `include/ytree_ui.h`, `include/ytree_defs.h`
 *   - [x] **Status:** Completed. (Incremental Search implemented for both File Window and Directory Window via `ACTION_LIST_JUMP` handlers).
 
-### **Step 4.37: Implement Bottom F-Key Menu Bar**
+### **Step 4.38: Implement Bottom F-Key Menu Bar**
 *   **Goal:** Shift the existing two-line command footer up by one line and reserve the bottom-most row for a clickable, function-key reference bar (F1 Help, F10 Options, F5 Redraw, F7 View, F8 Split).
 *   **Rationale:** Aligns with the standard XTree&trade; layout familiar to power users. It provides immediate visual cues for function keys, which are often less intuitive than mnemonic letter commands.
 *   **Files to Modify:** `src/ui/display.c`
 *   **Context Files:** `include/ytree.h`
 *   - [x] **Status:** Completed.
 
-### **Step 4.38: Implement "Touch" (Make File) Command**
+### **Step 4.39: Implement "Touch" (Make File) Command**
 *   **Goal:** Add a command (e.g., `^M` or mapped to a specific key) to create a new, empty file in the current directory, similar to `M` (Make Directory).
 *   **Rationale:** Currently, creating a file requires shelling out (`X`) and typing `touch filename`. A native command streamlines the workflow for developers creating placeholders or config files.
 *   **Files to Modify:** `src/cmd/mkdir.c`, `src/ui/key_engine.c`
 *   **Context Files:** None.
 *   - [x] **Status:** Completed.
 
-### **Step 4.39: Enhance Archive Navigation (Tree Logic)**
+### **Step 4.40: Enhance Archive Navigation (Tree Logic)**
 *   **Goal:** Enable standard Tree Window navigation keys (specifically `Left Arrow` to collapse/parent and `Right Arrow` to expand) while browsing inside an archive.
 *   **Rationale:** Navigation inside archives currently feels "flat" or inconsistent compared to the physical filesystem. Unifying these behaviors reduces cognitive load.
 *   **Files to Modify:** `src/ui/ctrl_dir.c` (Navigate to `f2_picker.c`)
 *   **Context Files:** `src/fs/archive_read.c`
 *   - [ ] **Status:** Not Started.
 
-### **Step 4.40: Implement Auto-Execute on Command Termination**
+### **Step 4.41: Implement Auto-Execute on Command Termination**
 *   **Goal:** Allow users to execute shell commands (`X` or `P`) immediately by ending the input string with a specific terminator (e.g., `\n` or `;`), without needing to press Enter explicitly.
 *   **Rationale:** Accelerates command entry for power users who want to "fire and forget" commands rapidly.
 *   **Files to Modify:** `src/ui/key_engine.c`
 *   **Context Files:** None.
 *   - [ ] **Status:** Not Started.
 
-### **Step 4.41: Implement Responsive Adaptive Footer**
+### **Step 4.42: Implement Responsive Adaptive Footer**
 *   **Goal:** Make the two-line command footer dynamic based on terminal width.
     *   **Compact (< 80 cols):** Show only critical navigation and file operation keys (Copy, Move, Delete, Quit).
     *   **Standard (80-120 cols):** Show the standard set (current behavior).
@@ -758,14 +770,14 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 *   **Context Files:** None.
 *   - [ ] **Status:** Not Started.
 
-### **Step 4.42: Make "Terminal Classic" the default UI Color and Classic ytree color scheme the example**
+### **Step 4.43: Make "Terminal Classic" the default UI Color and Classic ytree color scheme the example**
 *   **Goal:** Update the default color scheme to adhere to the standard "Terminal Classic" aesthetic (typically white/grey text on black background), while providing the traditional "Blue/Yellow" ytree scheme as an easily selectable example or option.
 *   **Rationale:** Modern terminal users expect applications to respect their terminal's color palette by default. The classic high-contrast blue scheme can be jarring.
 *   **Files to Modify:** `etc/ytree.conf`, `src/ui/color.c`
 *   **Context Files:** None.
 *   - [x] **Status:** Completed.
 
-### **Step 4.43: Refactor Tab Completion for Command Arguments**
+### **Step 4.44: Refactor Tab Completion for Command Arguments**
 *   **Goal:** Update the tab completion logic in `src/util/tabcompl.c` to handle command-line arguments correctly and resolve ambiguous matches using Longest Common Prefix (LCP).
 *   **Rationale:** Currently, the completion engine treats the entire input line as a single path. This causes failures when trying to complete arguments for commands (e.g., `x ls /us<TAB>` fails because it looks for a file named "ls /us"). It also fails to partial-complete when multiple matches exist (e.g., `/s` matching both `/sys` and `/srv`).
 *   **Mechanism:**
@@ -777,7 +789,7 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 *   **Context Files:** None.
 *   - [ ] **Status:** Not Started.
 
-### **Step 4.44: Implement Fixed-Width Column Mode (Filename Truncation)**
+### **Step 4.45: Implement Fixed-Width Column Mode (Filename Truncation)**
 *   **Goal:** Modify the File Window logic to enforce a maximum column width (e.g., 32 characters) even if longer filenames exist. Filenames exceeding this width will be visually truncated (e.g., `00- Introductio~.pdf`) to ensure multiple columns are displayed.
 *   **Integration:** Add this as a new mode in the `^F` (File Mode) rotation, or add a configuration toggle (`COMPACT_COLUMNS=1`).
 *   **Rationale:** Currently, a single long filename forces the File Window into a inefficient single-column layout. This feature maximizes information density.
@@ -785,20 +797,20 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 *   **Context Files:** `include/ytree.h`
 *   - [x] **Status:** Completed.
 
-### **Step 4.45: Implement "Tags-Only" View Mode**
+### **Step 4.46: Implement "Tags-Only" View Mode**
 *   **Goal:** Implement a toggle (`*` or `8`) to display only the tagged files in the current File Window.
 *   **Rationale:** A core ZTreeWin feature that allows users to verify, refine, and operate on a specific subset of files without the visual clutter of non-tagged files.
 *   **Files to Modify:** `src/ui/ctrl_file.c`
 *   **Context Files:** `src/ui/ctrl_dir.c`
 *   - [ ] **Status:** Not Started.
 
-### **Step 4.46: Command Line File Filter (`-f`)**
+### **Step 4.47: Command Line File Filter (`-f`)**
 *   **Goal:** Allow users to specify an initial file filter (filespec) via command line argument, e.g., `ytree -f "*.c,*.h"`.
 *   **Rationale:** Improves startup efficiency for focused tasks and enables better shell aliases (e.g., `alias cview='ytree -f "*.c"'`).
 *   **Files to Modify:** `src/core/main.c`, `src/core/init.c`.
 *   - [x] **Status:** Completed.
 
-### **Step 4.47: Implement Archive Creation (Pack)**
+### **Step 4.48: Implement Archive Creation (Pack)**
 *   **Goal:** Enable creating new archives implicitly via Copy (`C`/`^K`) and Move (`M`/`^N`).
 *   **Description:** If the destination path does not exist and ends with a supported archive extension (e.g., `.zip`, `.tar.gz`, `.tar`), prompt the user to create a new archive.
     *   **Copy:** Create archive and add files.
@@ -806,12 +818,12 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 *   **Files to Modify:** `src/cmd/copy.c`, `src/cmd/move.c`, `src/fs/archive_write.c`.
 *   - [ ] **Status:** Not Started.
 
-### **Step 4.48: Standardize Internal Viewer Layout**
+### **Step 4.49: Standardize Internal Viewer Layout**
 *   **Goal:** Ensure the internal viewer's layout geometry matches the main application (borders, headers, and footer).
 *   **Files to Modify:** `src/ui/view_internal.c`
 *   - [ ] **Status:** Not Started.
 
-### **Step 4.49: Implement Directory File Release (`-`)**
+### **Step 4.50: Implement Directory File Release (`-`)**
 *   **Goal:** Implement state-based directory release on Minus (`-`) with clear separation from Left Arrow navigation.
 *   **Rationale:** Provides high-power utility to quickly log a large tree and then "release" specific file lists to free resources or hide data without complex filters.
 *   **Mechanism:**
@@ -824,15 +836,15 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 *   **Context Files:** `include/ytree_fs.h`
 *   - [x] **Status:** Completed.
 
-### **Step 4.50: Unlogged State Visualization (`+` Column)**
+### **Step 4.51: Unlogged State Visualization (`+` Column)**
 *   **Goal:** Implement visual indicators for unlogged directory states and update File Window status text.
 *   **Rationale:** Align with X/Z/UT memory-management paradigms.
 *   **Mechanism:** Prints a `+` in the first content column after tree-graph glyphs if the directory is unlogged. File Window displays `Unlogged` for unlogged state and `No files` for logged-empty state.
 *   **Files to Modify:** `src/ui/render_dir.c`, `src/ui/render_file.c`
 *   **Context Files:** `include/ytree_defs.h`
-*   - [~] **Status:** In Progress. (Contract and tests exist; render-path parity and final alignment checks pending.)
+*   - [x] **Status:** Completed.
 
-### **Step 4.51: Implement Global File View (`G`)**
+### **Step 4.52: Implement Global File View (`G`)**
 *   **Goal:** Implement the "Global" file view mode, which aggregates files from **all currently logged volumes** into a single flattened list.
 *   **Rationale:** A core ZTree feature allowing operations across multiple drives simultaneously.
 *   **Prerequisite:** Free up `G` key.
@@ -1275,7 +1287,7 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 *   **Goal:** Merge tiny command modules and relocate any misplaced files into or out of `cmd/`.
 *   **Model:** Pro (requires understanding function boundaries and updating callers).
 *   **Candidates:**
-    *   **Merge:** `chgrp.c` (36) + `chown.c` (37) + `chmod.c` (163) into `attributes.c` (aligns with Step 4.16).
+    *   **Merge:** `chgrp.c` (36) + `chown.c` (37) + `chmod.c` (163) into `attributes.c` (aligns with Step 4.17).
     *   **Evaluate:** `sort.c` (22) - determine if this belongs in `core/sort.c` or should be absorbed.
     *   **Relocate in:** `ui/edit.c` (79 LOC, just launches `$EDITOR`) - this is a command, not UI rendering.
 *   **Validate:** `make clean && make` succeeds. `make test` passes.

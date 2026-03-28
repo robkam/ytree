@@ -119,11 +119,10 @@ void Progress_Finish(ViewContext *ctx) {
  * Render the two-line progress display.
  */
 void Progress_Render(ViewContext *ctx) {
-  ProgressContext *p;
+  const ProgressContext *p;
   int screen_width;
   int bar_width;
   int filled_width;
-  int i;
   char line1[256];
   char time_str[32];
   char eta_str[32];
@@ -182,7 +181,7 @@ void Progress_Render(ViewContext *ctx) {
     snprintf(eta_str, sizeof(eta_str), "%02d:%02d",
              p->eta_seconds / 60, p->eta_seconds % 60);
   } else {
-    strcpy(eta_str, "--:--");
+    snprintf(eta_str, sizeof(eta_str), "%s", "--:--");
   }
 
   /* Format speed */
@@ -190,7 +189,7 @@ void Progress_Render(ViewContext *ctx) {
     double mb_per_sec = p->bytes_per_sec / (1024.0 * 1024.0);
     snprintf(speed_str, sizeof(speed_str), "%.1f MB/s", mb_per_sec);
   } else {
-    strcpy(speed_str, "-- MB/s");
+    snprintf(speed_str, sizeof(speed_str), "%s", "-- MB/s");
   }
 
   /* Build progress bar */
@@ -212,6 +211,7 @@ void Progress_Render(ViewContext *ctx) {
     waddch(ctx->ctx_menu_window, '[');
 
     /* Progress bar */
+    int i;
     for (i = 0; i < bar_width; i++) {
       if (i < filled_width) {
         waddch(ctx->ctx_menu_window, ACS_BLOCK);

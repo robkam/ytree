@@ -54,8 +54,14 @@ This installs a tracked pre-push gate:
 - `main` is always full-gate; fast bypass is ignored on `main`.
 
 `make hooks-install` also installs repo-local git aliases so fast push is available as native git subcommands in this clone:
-- `git push-fast` -> fast push for an already-tracked branch.
 - `git push-fast-up` -> fast push with `-u origin <current-branch>` for first push of a new branch.
+- `git push-fast` -> fast push for an already-tracked branch.
+
+For amended or rebased commits, pass force-with-lease through the alias:
+
+```bash
+git push-fast --force-with-lease
+```
 
 To inspect current hook configuration:
 

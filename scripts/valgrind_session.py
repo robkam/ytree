@@ -131,6 +131,7 @@ def run_valgrind_session() -> int:
             "valgrind",
             "--leak-check=full",
             "--show-leak-kinds=all",
+            "--errors-for-leak-kinds=definite,indirect",
             "--track-origins=yes",
             "--track-fds=yes",
             "--error-exitcode=42",
@@ -180,16 +181,40 @@ def run_valgrind_session() -> int:
         child.send(ENTER)
         time.sleep(2.0)
 
-        # Copy command (opens Copy dialog)
+        # Copy flow has two prompts:
+        # 1) "COPY" (filename/new name), 2) "To Directory:" (destination).
         child.send(COPY)
-        time.sleep(3.0)  # Generous under Valgrind
+        child.expect(r"COPY", timeout=60)
+        time.sleep(1.0)
+        child.send(ENTER)  # Accept default filename.
+        child.expect(r"To Directory:", timeout=60)
 
         # Input destination path: sandbox/dest
         dest_path = str(sandbox / "dest")
         child.send(CTRL_U)
         time.sleep(1.0)
         child.send(dest_path + ENTER)
-        time.sleep(3.0)
+
+        # Ensure copy prompt sequence completed before sending quit keys.
+        for _ in range(2):
+            idx = child.expect(
+                [r"To Directory:", r"COMMANDS", r"\bFILE\b", r"\bDIR\b", pexpect.TIMEOUT],
+                timeout=60,
+            )
+            if idx == 0:
+                child.send(CTRL_U)
+                time.sleep(1.0)
+                child.send(dest_path + ENTER)
+                continue
+            if idx in (1, 2, 3):
+                break
+            print("ERROR: copy workflow did not return to main UI.", file=sys.stderr)
+            return 1
+        else:
+            print("ERROR: copy destination prompt did not resolve.", file=sys.stderr)
+            return 1
+
+        time.sleep(1.0)
 
         # Quit cleanly
         print("Quitting ytree...")
@@ -198,11 +223,13 @@ def run_valgrind_session() -> int:
         child.send(CONFIRM_YES)
         time.sleep(5.0)
 
-        # Wait for process to exit (Valgrind needs time to write final report)
+        # Wait for process to exit (Valgrind teardown/report flush can be slow)
+        forced_termination = False
         try:
-            child.expect(pexpect.EOF, timeout=30)
+            child.expect(pexpect.EOF, timeout=120)
         except pexpect.TIMEOUT:
-            print("WARNING: ytree did not exit within timeout, sending SIGTERM...", file=sys.stderr)
+            print("WARNING: ytree did not exit within 120s, sending SIGTERM...", file=sys.stderr)
+            forced_termination = True
             child.kill(signal.SIGTERM)
             time.sleep(5.0)
             if child.isalive():
@@ -217,8 +244,11 @@ def run_valgrind_session() -> int:
         # Give Valgrind extra time to flush log file
         time.sleep(2.0)
         exit_status = child.exitstatus
+        signal_status = child.signalstatus
 
         print(f"ytree exited with status: {exit_status}")
+        if signal_status is not None:
+            print(f"ytree terminated by signal: {signal_status}")
 
         # Parse Valgrind log
         print(f"\nParsing Valgrind log: {valgrind_log}")
@@ -246,16 +276,14 @@ def run_valgrind_session() -> int:
         else:
             print("leaked FDs: 0")
 
-        # Determine pass/fail
-        # Note: ERROR SUMMARY includes "possibly lost" blocks, which are warnings not failures.
-        # We check for actual memory errors (Invalid read/write, uninit) separately.
+        # Determine pass/fail.
         failures = []
 
-        # Check for real memory errors (not just "possibly lost")
-        has_real_errors = bool(re.search(r"(Invalid read|Invalid write|Conditional jump.*uninit|Use of uninit)", text))
-        if has_real_errors:
-            failures.append("Valgrind detected real memory errors (Invalid/Conditional/Uninit)")
+        if forced_termination:
+            failures.append("interactive session required forced termination (timeout waiting for clean exit)")
 
+        if metrics["error_summary"] != 0:
+            failures.append(f"error summary: {metrics['error_summary']} (expected 0)")
 
         if metrics["definitely_lost"] != 0:
             failures.append(f"definitely lost: {metrics['definitely_lost']} bytes (expected 0)")
@@ -289,7 +317,7 @@ def run_valgrind_session() -> int:
             print(f"Full log: {valgrind_log}")
             return 1
 
-        print("\nPASS: Valgrind interactive session clean (0 errors, 0 definite/indirect leaks).")
+        print("\nPASS: Valgrind interactive session met gate criteria.")
         print(f"Full log: {valgrind_log}")
         return 0
 

@@ -997,11 +997,10 @@ static void HandleDirectoryCompare(ViewContext *ctx, DirEntry *source_dir) {
 
 int HandleDirWindow(ViewContext *ctx, const DirEntry *start_dir_entry) {
   DirEntry *dir_entry, *de_ptr;
-  int i, ch, unput_char;
+  int ch, unput_char;
   BOOL need_dsp_help;
   char new_name[PATH_LENGTH + 1];
   char new_log_path[PATH_LENGTH + 1];
-  const char *home;
   YtreeAction action; /* Declare YtreeAction variable */
   const struct Volume *start_vol = NULL;
   Statistic *s = NULL;
@@ -1079,17 +1078,25 @@ int HandleDirWindow(ViewContext *ctx, const DirEntry *start_dir_entry) {
         log_path_len = snprintf(new_log_path, sizeof(new_log_path),
                                   "%s%s", start_dir_entry->name,
                                   ctx->initial_directory + 1);
-      } else if (*ctx->initial_directory == '~' && (home = getenv("HOME"))) {
-        /* Entry of form "~/alpha/beta" */
-        log_path_len = snprintf(new_log_path, sizeof(new_log_path),
+      } else if (*ctx->initial_directory == '~') {
+        const char *home = getenv("HOME");
+        if (home) {
+          /* Entry of form "~/alpha/beta" */
+          log_path_len = snprintf(new_log_path, sizeof(new_log_path),
                                   "%s%s", home,
                                   ctx->initial_directory + 1);
+        } else {
+          /* Entry of form "beta" or "/full/path/alpha/beta" */
+          log_path_len = snprintf(new_log_path, sizeof(new_log_path), "%s",
+                                  ctx->initial_directory);
+        }
       } else { /* Entry of form "beta" or "/full/path/alpha/beta" */
         log_path_len = snprintf(new_log_path, sizeof(new_log_path), "%s",
                                   ctx->initial_directory);
       }
       if (log_path_len >= 0 &&
           (size_t)log_path_len < sizeof(new_log_path)) {
+        int i;
         for (i = 0; i < ctx->active->vol->total_dirs; i++) {
           if (*new_log_path == FILE_SEPARATOR_CHAR) {
             GetPath(ctx->active->vol->dir_entry_list[i].dir_entry, new_name);
@@ -1165,9 +1172,9 @@ int HandleDirWindow(ViewContext *ctx, const DirEntry *start_dir_entry) {
         ctx->active->vol != start_vol)
       return ESC;
 
-    if (need_dsp_help) {
+    if (need_dsp_help || ctx->view_mode == ARCHIVE_MODE) {
       need_dsp_help = FALSE;
-      DisplayDirHelp(ctx);
+      DisplayDirHelp(ctx, dir_entry);
     }
     DisplayDirParameter(ctx, dir_entry);
     RefreshWindow(ctx->ctx_dir_window);
@@ -1562,17 +1569,6 @@ int HandleDirWindow(ViewContext *ctx, const DirEntry *start_dir_entry) {
       HandleReadSubTree(ctx, dir_entry, &need_dsp_help, ctx->active);
       break;
     case ACTION_MOVE_LEFT:
-      if (dir_entry->up_tree == NULL && ctx->view_mode == ARCHIVE_MODE) {
-        if (ExitArchiveRootToParent(ctx, &dir_entry, &s, &start_vol, FALSE,
-                                    FALSE)) {
-          need_dsp_help = TRUE;
-        } else {
-          MESSAGE(ctx, "Can't exit archive root.");
-          need_dsp_help = TRUE;
-        }
-        break;
-      }
-
       if (!dir_entry->not_scanned && dir_entry->sub_tree != NULL) {
         HandleCollapseSubTree(ctx, dir_entry, &need_dsp_help, ctx->active);
         break;
@@ -1633,7 +1629,66 @@ int HandleDirWindow(ViewContext *ctx, const DirEntry *start_dir_entry) {
         break;
       }
       if (dir_entry->up_tree != NULL) {
-        /* Archive non-root '\' is a silent no-op by contract. */
+        DirEntry *archive_root = dir_entry;
+        int root_idx = -1;
+        int k;
+
+        while (archive_root->up_tree != NULL) {
+          int parent_idx = -1;
+          for (k = 0; k < ctx->active->vol->total_dirs; k++) {
+            if (ctx->active->vol->dir_entry_list[k].dir_entry ==
+                archive_root->up_tree) {
+              parent_idx = k;
+              break;
+            }
+          }
+          if (parent_idx < 0) {
+            break;
+          }
+          archive_root = archive_root->up_tree;
+        }
+        for (k = 0; k < ctx->active->vol->total_dirs; k++) {
+          if (ctx->active->vol->dir_entry_list[k].dir_entry == archive_root) {
+            root_idx = k;
+            break;
+          }
+        }
+        if (root_idx >= 0) {
+          if (root_idx >= ctx->active->disp_begin_pos &&
+              root_idx < ctx->active->disp_begin_pos + height) {
+            ctx->active->cursor_pos = root_idx - ctx->active->disp_begin_pos;
+          } else {
+            ctx->active->disp_begin_pos = root_idx;
+            ctx->active->cursor_pos = 0;
+            if (ctx->active->disp_begin_pos + height >
+                ctx->active->vol->total_dirs) {
+              ctx->active->disp_begin_pos =
+                  MAXIMUM(0, ctx->active->vol->total_dirs - height);
+              ctx->active->cursor_pos =
+                  root_idx - ctx->active->disp_begin_pos;
+            }
+          }
+
+          dir_entry = ctx->active
+                          ->vol->dir_entry_list[ctx->active->disp_begin_pos +
+                                                ctx->active->cursor_pos]
+                          .dir_entry;
+
+          DisplayTree(ctx, ctx->active->vol, ctx->ctx_dir_window,
+                      ctx->active->disp_begin_pos,
+                      ctx->active->disp_begin_pos + ctx->active->cursor_pos,
+                      TRUE);
+          DisplayFileWindow(ctx, ctx->active, dir_entry);
+          DisplayDiskStatistic(ctx, s);
+          UpdateStatsPanel(ctx, dir_entry, s);
+          DisplayAvailBytes(ctx, s);
+          {
+            char path[PATH_LENGTH];
+            GetPath(dir_entry, path);
+            DisplayHeaderPath(ctx, path);
+          }
+          DisplayDirHelp(ctx, dir_entry);
+        }
         break;
       }
       if (ExitArchiveRootToParent(ctx, &dir_entry, &s, &start_vol, TRUE, TRUE)) {
