@@ -1336,10 +1336,16 @@ int HandleFileWindow(ViewContext *ctx, DirEntry *dir_entry) {
         }
         dest_dir_entry = NULL;
       } else {
+        struct stat target_stat;
         get_dir_ret =
             GetDirEntry(ctx, s->tree, de_ptr, to_dir, &dest_dir_entry, to_path);
         if (get_dir_ret == -1) { /* System error */
-          break;
+          if (realpath(to_dir, to_path) == NULL ||
+              STAT_(to_path, &target_stat) != 0 ||
+              !S_ISREG(target_stat.st_mode)) {
+            break;
+          }
+          dest_dir_entry = NULL;
         }
         if (get_dir_ret == -3) { /* Directory not found, proceed */
           dest_dir_entry = NULL;
@@ -1412,7 +1418,8 @@ int HandleFileWindow(ViewContext *ctx, DirEntry *dir_entry) {
       break;
 
     case ACTION_CMD_M:
-      if (ctx->view_mode != DISK_MODE && ctx->view_mode != USER_MODE) {
+      if (ctx->view_mode != DISK_MODE && ctx->view_mode != USER_MODE &&
+          ctx->view_mode != ARCHIVE_MODE) {
         break;
       }
 
@@ -1428,42 +1435,72 @@ int HandleFileWindow(ViewContext *ctx, DirEntry *dir_entry) {
         break;
       }
 
-      get_dir_ret =
-          GetDirEntry(ctx, s->tree, de_ptr, to_dir, &dest_dir_entry, to_path);
-      if (get_dir_ret == -1) {
-        break;
-      }
-      if (get_dir_ret == -3) {
-        dest_dir_entry = NULL;
-      }
-
-      /* Construct absolute path for checking */
-      {
-        char abs_check_path[PATH_LENGTH * 2 + 2];
-        BOOL created = FALSE;
-        int dir_create_mode = 0;
-
-        if (*to_dir == FILE_SEPARATOR_CHAR) {
-          int copied_len =
-              snprintf(abs_check_path, sizeof(abs_check_path), "%s", to_dir);
-          if (copied_len < 0 ||
-              (size_t)copied_len >= sizeof(abs_check_path)) {
-            MESSAGE(ctx, "Invalid destination path*\"%s\"*path too long",
-                    to_dir);
+      if (ctx->view_mode == ARCHIVE_MODE) {
+        if (realpath(to_dir, to_path) == NULL) {
+          if (errno == ENOENT) {
+            int copied_len = snprintf(to_path, sizeof(to_path), "%s", to_dir);
+            if (copied_len < 0 || (size_t)copied_len >= sizeof(to_path)) {
+              MESSAGE(ctx, "Invalid destination path*\"%s\"*path too long",
+                      to_dir);
+              break;
+            }
+          } else {
+            MESSAGE(ctx, "Invalid destination path*\"%s\"*%s", to_dir,
+                    strerror(errno));
             break;
           }
-        } else {
-          char current_dir[PATH_LENGTH + 1];
-
-          GetPath(de_ptr, current_dir);
-          snprintf(abs_check_path, sizeof(abs_check_path), "%s%c%s",
-                   current_dir, FILE_SEPARATOR_CHAR, to_dir);
         }
-        /* FIX: Pass &dest_dir_entry */
-        if (EnsureDirectoryExists(ctx, abs_check_path, s->tree, &created,
-                                  &dest_dir_entry, &dir_create_mode,
-                                  (ChoiceCallback)UI_ChoiceResolver) == -1)
-          break;
+        dest_dir_entry = NULL;
+      } else {
+        BOOL target_is_regular_file = FALSE;
+        struct stat target_stat;
+
+        get_dir_ret =
+            GetDirEntry(ctx, s->tree, de_ptr, to_dir, &dest_dir_entry, to_path);
+        if (get_dir_ret == -1) {
+          if (realpath(to_dir, to_path) != NULL &&
+              STAT_(to_path, &target_stat) == 0 &&
+              S_ISREG(target_stat.st_mode)) {
+            dest_dir_entry = NULL;
+            target_is_regular_file = TRUE;
+          } else {
+            break;
+          }
+        }
+        if (get_dir_ret == -3) {
+          dest_dir_entry = NULL;
+        }
+
+        if (!target_is_regular_file) {
+          /* Construct absolute path for checking */
+          {
+            char abs_check_path[PATH_LENGTH * 2 + 2];
+            BOOL created = FALSE;
+            int dir_create_mode = 0;
+
+            if (*to_dir == FILE_SEPARATOR_CHAR) {
+              int copied_len = snprintf(abs_check_path, sizeof(abs_check_path),
+                                        "%s", to_dir);
+              if (copied_len < 0 ||
+                  (size_t)copied_len >= sizeof(abs_check_path)) {
+                MESSAGE(ctx, "Invalid destination path*\"%s\"*path too long",
+                        to_dir);
+                break;
+              }
+            } else {
+              char current_dir[PATH_LENGTH + 1];
+
+              GetPath(de_ptr, current_dir);
+              snprintf(abs_check_path, sizeof(abs_check_path), "%s%c%s",
+                       current_dir, FILE_SEPARATOR_CHAR, to_dir);
+            }
+            /* FIX: Pass &dest_dir_entry */
+            if (EnsureDirectoryExists(ctx, abs_check_path, s->tree, &created,
+                                      &dest_dir_entry, &dir_create_mode,
+                                      (ChoiceCallback)UI_ChoiceResolver) == -1)
+              break;
+          }
+        }
       }
 
       /* EXPAND WILDCARDS FOR SINGLE FILE MOVE */

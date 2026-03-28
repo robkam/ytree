@@ -298,16 +298,68 @@ int CopyFile(ViewContext *ctx, Statistic *statistic_ptr, FileEntry *fe_ptr,
 
 /* ARCHIVE DESTINATION HANDLER */
 #ifdef HAVE_LIBARCHIVE
-  if (target_stats && target_stats->log_mode == ARCHIVE_MODE) {
+  {
+    BOOL target_is_archive = FALSE;
+    char archive_root_path[PATH_LENGTH + 1];
+    char archive_log_path[PATH_LENGTH + 1];
+
+    archive_root_path[0] = '\0';
+    archive_log_path[0] = '\0';
+
+    if (target_stats && target_stats->log_mode == ARCHIVE_MODE) {
+      target_is_archive = TRUE;
+      (void)snprintf(archive_log_path, sizeof(archive_log_path), "%s",
+                     target_stats->log_path);
+      GetPath(target_stats->tree, archive_root_path);
+      DEBUG_LOG("CopyFile archive destination via logged volume: %s",
+                archive_log_path);
+    } else {
+      char archive_candidate[PATH_LENGTH + 1];
+      struct stat archive_stat;
+      size_t candidate_len;
+
+      (void)snprintf(archive_candidate, sizeof(archive_candidate), "%s", to_path);
+      candidate_len = strlen(archive_candidate);
+      if (candidate_len > 1 &&
+          archive_candidate[candidate_len - 1] == FILE_SEPARATOR_CHAR) {
+        archive_candidate[candidate_len - 1] = '\0';
+      }
+
+      if (STAT_(archive_candidate, &archive_stat) == 0 &&
+          S_ISREG(archive_stat.st_mode)) {
+        struct archive *archive_probe;
+
+        archive_probe = archive_read_new();
+        if (archive_probe) {
+          archive_read_support_filter_all(archive_probe);
+          archive_read_support_format_all(archive_probe);
+          DEBUG_LOG("CopyFile probing archive destination candidate: %s",
+                    archive_candidate);
+          if (archive_read_open_filename(archive_probe, archive_candidate,
+                                         10240) == ARCHIVE_OK) {
+            target_is_archive = TRUE;
+            (void)snprintf(archive_log_path, sizeof(archive_log_path), "%s",
+                           archive_candidate);
+            (void)snprintf(archive_root_path, sizeof(archive_root_path), "%s",
+                           archive_candidate);
+            DEBUG_LOG("CopyFile archive destination probe succeeded: %s",
+                      archive_log_path);
+          } else {
+            DEBUG_LOG("CopyFile archive destination probe failed: %s",
+                      archive_candidate);
+          }
+          archive_read_free(archive_probe);
+        }
+      }
+    }
+
+    if (target_is_archive) {
     /* We are copying/adding a file INTO an archive */
     char relative_path[PATH_LENGTH + 1];
-    char root_path[PATH_LENGTH + 1];
-
-    GetPath(target_stats->tree, root_path);
 
     /* Build path relative to archive root */
-    if (strncmp(to_path, root_path, strlen(root_path)) == 0) {
-      char *ptr = to_path + strlen(root_path);
+    if (strncmp(to_path, archive_root_path, strlen(archive_root_path)) == 0) {
+      char *ptr = to_path + strlen(archive_root_path);
       int composed_len;
       if (*ptr == FILE_SEPARATOR_CHAR)
         ptr++;
@@ -352,16 +404,58 @@ int CopyFile(ViewContext *ctx, Statistic *statistic_ptr, FileEntry *fe_ptr,
         return result;
       }
 
-      if (Archive_AddFile(target_stats->log_path, from_path,
+      char *archive_src_path = from_path;
+      char extracted_path[PATH_LENGTH + 1];
+      BOOL extracted_from_archive = FALSE;
+
+      extracted_path[0] = '\0';
+      if (statistic_ptr->log_mode != DISK_MODE &&
+          statistic_ptr->log_mode != USER_MODE) {
+        int fd_tmp;
+        int tmp_len = snprintf(extracted_path, sizeof(extracted_path),
+                               "/tmp/ytree_copy_XXXXXX");
+        if (tmp_len < 0 || (size_t)tmp_len >= sizeof(extracted_path)) {
+          return -1;
+        }
+
+        fd_tmp = mkstemp(extracted_path);
+        if (fd_tmp == -1) {
+          return -1;
+        }
+        close(fd_tmp);
+        (void)unlink(extracted_path);
+
+        if (ExtractArchiveNode(statistic_ptr->log_path, from_path,
+                               extracted_path, ArchiveUICallback, ctx) != 0) {
+          (void)unlink(extracted_path);
+          return -1;
+        }
+        archive_src_path = extracted_path;
+        extracted_from_archive = TRUE;
+      }
+
+      if (Archive_AddFile(archive_log_path, archive_src_path,
                           archive_entry_path, FALSE, ArchiveUICallback,
                           ctx) == 0) {
         /* Success */
         /* Caller will refresh view */
+        if (extracted_from_archive) {
+          (void)unlink(extracted_path);
+        }
         return 0;
       } else {
         /* Failure */
+        DEBUG_LOG("CopyFile Archive_AddFile failed: archive=%s entry=%s",
+                  archive_log_path, archive_entry_path);
+        if (extracted_from_archive) {
+          (void)unlink(extracted_path);
+        }
         return -1;
       }
+    }
+  }
+    else {
+      DEBUG_LOG("CopyFile destination treated as filesystem path: %s", to_path);
     }
   }
 #endif
