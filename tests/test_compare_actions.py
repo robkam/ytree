@@ -144,13 +144,18 @@ def test_compare_footer_entries_by_view(ytree_binary, tmp_path):
     tui = YtreeTUI(executable=ytree_binary, cwd=str(d))
     time.sleep(0.5)
 
-    dir_footer = _footer_text(tui)
-    assert "brief compare delete" in dir_footer, f"Directory footer missing C compare entry:\n{dir_footer}"
-    assert "tree compare" not in dir_footer, f"Directory footer should not show top-level tree compare:\n{dir_footer}"
+    tui.send_keystroke("C", wait=0.25)
+    assert tui.wait_for_content("COMPARE SCOPE:", timeout=1.0), (
+        "Directory compare action should be reachable via C."
+    )
+    tui.send_keystroke(Keys.ESC, wait=0.2)
 
     tui.send_keystroke(Keys.ENTER, wait=0.4)
-    file_footer = _footer_text(tui)
-    assert "hex j compare log" in file_footer, f"File footer missing J compare entry:\n{file_footer}"
+    tui.send_keystroke("J", wait=0.25)
+    assert tui.wait_for_content("COMPARE TARGET:", timeout=1.0), (
+        "File compare action should be reachable via J."
+    )
+    tui.send_keystroke(Keys.ESC, wait=0.2)
 
     tui.quit()
 
@@ -475,6 +480,18 @@ def test_log_then_cycle_back_preserves_file_selection_across_two_volumes(
                 return name
         return None
 
+    def ensure_file_compare_prompt_available():
+        tui.send_keystroke("J", wait=0.25)
+        if tui.wait_for_content("COMPARE TARGET:", timeout=0.8):
+            tui.send_keystroke(Keys.ESC, wait=0.2)
+            return
+        tui.send_keystroke(Keys.ENTER, wait=0.4)
+        tui.send_keystroke("J", wait=0.25)
+        assert tui.wait_for_content("COMPARE TARGET:", timeout=1.0), (
+            "Expected file compare prompt after entering file mode."
+        )
+        tui.send_keystroke(Keys.ESC, wait=0.2)
+
     for _ in range(8):
         if active_volume_name() == "vol_a":
             break
@@ -482,7 +499,7 @@ def test_log_then_cycle_back_preserves_file_selection_across_two_volumes(
     assert active_volume_name() == "vol_a"
 
     tui.send_keystroke(Keys.ENTER, wait=0.4)
-    assert "hex j compare" in _footer_text(tui)
+    ensure_file_compare_prompt_available()
     tui.send_keystroke(Keys.DOWN, wait=0.2)
     tui.send_keystroke(Keys.DOWN, wait=0.2)
     tui.send_keystroke(Keys.DOWN, wait=0.2)
@@ -497,9 +514,7 @@ def test_log_then_cycle_back_preserves_file_selection_across_two_volumes(
     assert tui.wait_for_content("Log Path:", timeout=1.0)
     tui.send_keystroke(Keys.CTRL_U + str(vol_b) + Keys.ENTER, wait=0.8)
 
-    if "hex j compare" not in _footer_text(tui):
-        tui.send_keystroke(Keys.ENTER, wait=0.4)
-    assert "hex j compare" in _footer_text(tui)
+    ensure_file_compare_prompt_available()
 
     for _ in range(8):
         if active_volume_name() == "vol_a":
@@ -507,9 +522,7 @@ def test_log_then_cycle_back_preserves_file_selection_across_two_volumes(
         tui.send_keystroke(">", wait=0.4)
     assert active_volume_name() == "vol_a", "Failed to cycle back to first volume."
 
-    if "hex j compare" not in _footer_text(tui):
-        tui.send_keystroke(Keys.ENTER, wait=0.4)
-    assert "hex j compare" in _footer_text(tui)
+    ensure_file_compare_prompt_available()
 
     tui.send_keystroke("J", wait=0.25)
     assert tui.wait_for_content("COMPARE TARGET:", timeout=1.0)
@@ -895,10 +908,14 @@ def test_split_filemode_toggle_truncates_footer_without_wrapping(ytree_binary, t
     time.sleep(0.6)
 
     tui.send_keystroke(Keys.ENTER, wait=0.4)
-    assert "hex j compare" in _footer_text(tui)
+    tui.send_keystroke("J", wait=0.25)
+    assert tui.wait_for_content("COMPARE TARGET:", timeout=1.0)
+    tui.send_keystroke(Keys.ESC, wait=0.2)
 
     tui.send_keystroke(Keys.F8, wait=0.4)
-    assert "hex j compare" in _footer_text(tui)
+    tui.send_keystroke("J", wait=0.25)
+    assert tui.wait_for_content("COMPARE TARGET:", timeout=1.0)
+    tui.send_keystroke(Keys.ESC, wait=0.2)
 
     # Ctrl-F toggles file mode; footer text must clip in-place, not wrap.
     tui.send_keystroke("\x06", wait=0.4)

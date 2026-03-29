@@ -295,6 +295,7 @@ typedef enum {
   ACTION_CMD_E,
   ACTION_CMD_G,
   ACTION_CMD_H,
+  ACTION_CMD_I,
   ACTION_CMD_M,
   ACTION_CMD_O,
   ACTION_CMD_P,
@@ -636,6 +637,17 @@ typedef struct _PathList {
   struct _PathList *next;
 } PathList;
 
+typedef struct _ArchiveExpandedEntry {
+  char *source_path;
+  char *archive_path;
+  struct _ArchiveExpandedEntry *next;
+} ArchiveExpandedEntry;
+
+typedef struct {
+  PathList *original_source_list;
+  ArchiveExpandedEntry *expanded_file_list;
+} ArchivePayload;
+
 typedef struct {
 #ifdef YTREE_TUI
   WINDOW *pan_dir_window;
@@ -767,6 +779,8 @@ typedef struct _ViewContext {
   BOOL bypass_small_window;
   BOOL highlight_full_line;
   BOOL hide_dot_files;
+  BOOL status_line_error_pending;
+  char status_line_error_text[PATH_LENGTH + 1];
   char *initial_directory;
   char *confirm_quit;
   void *file_color_rules_head;

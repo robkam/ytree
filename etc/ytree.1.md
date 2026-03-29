@@ -115,6 +115,7 @@ Active when browsing the directory tree window.
 *   **L** (Log): Log a new directory or archive file.
 *   **M** (Makedir): Create a new directory.
 *   **N** (New File): Create a new empty file.
+*   **O** (Archive): Create an archive from the current selection. If one or more files are tagged, ytree archives the tagged files. If nothing is tagged, ytree archives the selected file or selected directory. Directory sources are archived recursively. Supported destination suffixes: `.tar`, `.tar.gz`/`.tgz`, `.tar.bz2`/`.tbz2`, `.tar.xz`/`.txz`, `.zip`.
 *   **R** (Rename): Rename selected directory.
 *   **S** (Showall): Show all files in all directories of the current volume.
 *   **T** (Tag): Tag all files in the selected directory.
@@ -146,6 +147,7 @@ Active when the file window is focused.
 *   **M** (Move): Move the selected file.
 *   **N** (New File): Create a new empty file.
 *   **^N**: Move all tagged files.
+*   **O** (Archive): Create an archive from tagged files, or from the selected file/directory when nothing is tagged. Directory sources are archived recursively. Supported destination suffixes: `.tar`, `.tar.gz`/`.tgz`, `.tar.bz2`/`.tbz2`, `.tar.xz`/`.txz`, `.zip`.
 *   **P** (Pipe): Pipe content of file to a command (stdin).
 *   **^P**: Pipe content of all tagged files to a command.
 *   **R** (Rename): Rename the selected file.

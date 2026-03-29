@@ -14,11 +14,63 @@ static void UnmapErrorWindow(ViewContext *ctx);
 static void PrintErrorLine(ViewContext *ctx, int y, char *str);
 static void DisplayMessage(ViewContext *ctx, char *msg);
 static int PrintMessage(ViewContext *ctx, char *msg, BOOL do_beep);
+static void ClearStatusLineErrorLine(ViewContext *ctx);
 
 void UI_Beep(ViewContext *ctx, BOOL critical) {
   (void)ctx;
   (void)critical;
   /* Sound cues are intentionally suppressed by default. */
+}
+
+void UI_RenderStatusLineError(ViewContext *ctx) {
+  if (!ctx || !ctx->ctx_menu_window || !ctx->status_line_error_pending)
+    return;
+
+  wmove(ctx->ctx_menu_window, 2, 0);
+  wclrtoeol(ctx->ctx_menu_window);
+  PrintMenuOptions(ctx->ctx_menu_window, 2, 0, ctx->status_line_error_text,
+                   CPAIR_MENU, CPAIR_WINERR);
+  wnoutrefresh(ctx->ctx_menu_window);
+}
+
+void UI_ShowStatusLineError(ViewContext *ctx, const char *fmt, ...) {
+  va_list ap;
+
+  if (!ctx || !fmt)
+    return;
+
+  va_start(ap, fmt);
+  (void)vsnprintf(ctx->status_line_error_text, sizeof(ctx->status_line_error_text),
+                  fmt, ap);
+  va_end(ap);
+
+  ctx->status_line_error_pending = TRUE;
+  UI_RenderStatusLineError(ctx);
+  doupdate();
+}
+
+void UI_ClearStatusLineError(ViewContext *ctx) {
+  DirEntry *dir_entry = NULL;
+
+  if (!ctx || !ctx->status_line_error_pending)
+    return;
+
+  ctx->status_line_error_pending = FALSE;
+  ctx->status_line_error_text[0] = '\0';
+  ClearStatusLineErrorLine(ctx);
+  if (!ctx->ctx_menu_window)
+    return;
+
+  if (ctx->preview_mode) {
+    DisplayPreviewHelp(ctx);
+  } else {
+    if (ctx->active)
+      dir_entry = GetPanelDirEntry(ctx->active);
+    if (ctx->focused_window == FOCUS_TREE)
+      DisplayDirHelp(ctx, dir_entry);
+    else
+      DisplayFileHelp(ctx, dir_entry);
+  }
 }
 
 int UI_Message(ViewContext *ctx, const char *fmt, ...) {
@@ -220,4 +272,11 @@ static int PrintMessage(ViewContext *ctx, char *msg, BOOL do_beep) {
   UnmapErrorWindow(ctx);
   touchwin(ctx->ctx_dir_window);
   return (c);
+}
+
+static void ClearStatusLineErrorLine(ViewContext *ctx) {
+  if (!ctx || !ctx->ctx_menu_window)
+    return;
+  wmove(ctx->ctx_menu_window, 2, 0);
+  wclrtoeol(ctx->ctx_menu_window);
 }

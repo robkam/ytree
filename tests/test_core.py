@@ -2,7 +2,55 @@ import pytest
 import time
 import os
 import pexpect
+import shutil
+import subprocess
+from pathlib import Path
 from ytree_keys import Keys
+
+
+@pytest.fixture(scope="session")
+def archive_payload_driver(tmp_path_factory):
+    repo_root = Path(__file__).resolve().parents[1]
+    driver_src = repo_root / "tests" / "archive_payload_driver.c"
+    driver_bin = tmp_path_factory.mktemp("archive_payload") / "archive_payload_driver"
+
+    compile_cmd = [
+        "cc",
+        "-std=c99",
+        "-D_GNU_SOURCE",
+        "-Iinclude",
+        str(driver_src),
+        "src/ui/archive_payload.c",
+        "-o",
+        str(driver_bin),
+    ]
+    subprocess.run(
+        compile_cmd,
+        cwd=repo_root,
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    return driver_bin
+
+
+def _run_archive_payload_driver(driver, source_paths):
+    cmd = [str(driver)] + [str(path) for path in source_paths]
+    completed = subprocess.run(cmd, check=True, capture_output=True, text=True)
+    lines = [line.strip() for line in completed.stdout.splitlines() if line.strip()]
+
+    rc = int(lines[0].split("=", 1)[1])
+    original_source_list = []
+    expanded_file_list = []
+
+    for line in lines[1:]:
+        if line.startswith("orig:"):
+            original_source_list.append(line[len("orig:"):])
+        elif line.startswith("exp:"):
+            source_path, archive_path = line[len("exp:"):].split("|", 1)
+            expanded_file_list.append((source_path, archive_path))
+
+    return rc, original_source_list, expanded_file_list
 
 def test_simple_copy(controller, sandbox):
     yt = controller()
@@ -172,3 +220,58 @@ def test_path_copy(controller, sandbox):
     assert expected_path.read_text(encoding="utf-8") == "deep content"
 
     yt.quit()
+
+
+def test_archive_payload_tagged_paths_root_relative(archive_payload_driver, tmp_path):
+    tmp_file = (tmp_path / "tmp_side.txt").resolve()
+    tmp_file.write_text("tmp\n", encoding="utf-8")
+
+    repo_side_dir = Path.cwd() / ".pytest_archive_payload_root"
+    repo_side_dir.mkdir(exist_ok=True)
+    repo_file = (repo_side_dir / "repo_side.txt").resolve()
+    repo_file.write_text("repo\n", encoding="utf-8")
+
+    try:
+        selected = [tmp_file, repo_file]
+        rc, original_source_list, expanded_file_list = _run_archive_payload_driver(
+            archive_payload_driver,
+            selected,
+        )
+    finally:
+        repo_file.unlink(missing_ok=True)
+        shutil.rmtree(repo_side_dir, ignore_errors=True)
+
+    assert rc == 0
+    assert original_source_list == [str(path) for path in selected]
+
+    expanded_by_source = {source: archive for source, archive in expanded_file_list}
+    assert expanded_by_source[str(tmp_file)] == str(tmp_file).lstrip("/")
+    assert expanded_by_source[str(repo_file)] == str(repo_file).lstrip("/")
+
+
+def test_archive_payload_recursive_directory_walking(archive_payload_driver, tmp_path):
+    source_dir = (tmp_path / "source_tree").resolve()
+    nested_dir = source_dir / "nested"
+    source_dir.mkdir()
+    nested_dir.mkdir()
+
+    root_file = (source_dir / "root.txt").resolve()
+    nested_file = (nested_dir / "leaf.txt").resolve()
+    root_file.write_text("root\n", encoding="utf-8")
+    nested_file.write_text("leaf\n", encoding="utf-8")
+
+    loop_link = nested_dir / "loop_to_root"
+    os.symlink(source_dir, loop_link)
+
+    rc, original_source_list, expanded_file_list = _run_archive_payload_driver(
+        archive_payload_driver,
+        [source_dir],
+    )
+
+    assert rc == 0
+    assert original_source_list == [str(source_dir)]
+
+    expanded_relatives = {archive for _, archive in expanded_file_list}
+    assert "root.txt" in expanded_relatives
+    assert "nested/leaf.txt" in expanded_relatives
+    assert all(not rel.startswith("nested/loop_to_root/") for rel in expanded_relatives)

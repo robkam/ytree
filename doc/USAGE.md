@@ -178,6 +178,12 @@ Active when browsing the directory tree window.
 - **L** (Log): Log a new directory or archive file.
 - **M** (Makedir): Create a new directory.
 - **N** (New File): Create a new empty file.
+- **O** (Archive): Create an archive from the current selection. If one
+  or more files are tagged, ytree archives the tagged files. If nothing
+  is tagged, ytree archives the selected file or selected directory.
+  Directory sources are archived recursively. Supported destination
+  suffixes: `.tar`, `.tar.gz`/`.tgz`, `.tar.bz2`/`.tbz2`,
+  `.tar.xz`/`.txz`, `.zip`.
 - **R** (Rename): Rename selected directory.
 - **S** (Showall): Show all files in all directories of the current
   volume.
@@ -215,6 +221,10 @@ Active when the file window is focused.
 - **M** (Move): Move the selected file.
 - **N** (New File): Create a new empty file.
 - **^N**: Move all tagged files.
+- **O** (Archive): Create an archive from tagged files, or from the
+  selected file/directory when nothing is tagged. Directory sources are
+  archived recursively. Supported destination suffixes: `.tar`,
+  `.tar.gz`/`.tgz`, `.tar.bz2`/`.tbz2`, `.tar.xz`/`.txz`, `.zip`.
 - **P** (Pipe): Pipe content of file to a command (stdin).
 - **^P**: Pipe content of all tagged files to a command.
 - **R** (Rename): Rename the selected file.
@@ -254,44 +264,61 @@ When browsing an archive (ZIP, TAR, etc.), ytree behaves like a virtual
 file system with archive-aware operations and distinct root/non-root
 navigation rules.
 
-**Archive-Dir Mode** \* **C** (Compare): Open compare flow. \* **D**
-(Delete): Delete selected archive directory entry. \* **F** (Filter):
-Set file filter. \* **G** (Global): Show all files across all logged
-volumes in one global list. \* **L** (Log): Log a new directory or
-archive. \* **M** (Makedir): Create directory in archive context where
-supported. \* **R** (Rename): Rename selected archive directory entry.
-\* **S** (Showall): Show all files in the archive. \* **T** (Tag): Tag
-all files in current virtual directory. \* **U** (Untag): Untag all
-files in current virtual directory. \* **^F** (Dir Mode): Cycle display
-modes. \* **Return**: Switch to Archive-File Mode. \* **-**: State-based
-collapse/release. Expanded nodes collapse; collapsed logged nodes (or
-logged leaves) unlog/release. \* **Left Arrow**: Collapse/navigation
-behavior only; does not perform archive-exit. \* **\\**: At archive
-non-root, jump to archive root. At archive root, exit to parent physical
-directory.
+**Archive-Dir Mode**
 
-**Archive-File Mode** \* **C** (Copy): Copy selected file (including
-extract/copy paths). \* **^K** (Copy Tagged): Copy all tagged files. \*
-**D** (Delete): Delete selected archive file entry. \* **F** (Filter):
-Set file filter. \* **H** (Hex): View file in hex mode. \* **M** (Move):
-Move selected file using archive-aware semantics. \* **P** (Pipe): Pipe
-content to command. \* **R** (Rename): Rename selected archive file
-entry. \* **S** (Sort): Sort file list. \* **^S** (Search): Search
-tagged files for a string. Untags files that do not match. \* **T**
-(Tag): Tag selected file. \* **^T**: Tag all files. \* **U** (Untag):
-Untag selected file. *(With `VI_KEYS=1`, use lowercase `u` for this
-action.)* \* **^U**: Untag all files. *(With `VI_KEYS=1`, `^U` is
-page-up navigation and uppercase `U` becomes Untag All.)* \* **V**
-(View): View file. \* **^V**: **View Tagged**. View all tagged files
-sequentially. Mode is controlled by `TAGGEDVIEWER`: `external` (default,
-uses `$PAGER`) or `internal` (built-in viewer with in-app navigation).
-\* **Y** (Pathcopy): Copy selected file with relative path preservation.
-\* **^F** (File Mode): Cycle display modes. \* **Return**: Switch to
-Archive-Dir Mode. \* **\\**: No-op. \* **\*** (Asterisk): Invert tag
-selection.
+- **C** (Compare): Open compare flow.
+- **D** (Delete): Delete selected archive directory entry.
+- **F** (Filter): Set file filter.
+- **G** (Global): Show all files across all logged volumes in one global
+  list.
+- **L** (Log): Log a new directory or archive.
+- **M** (Makedir): Create directory in archive context where supported.
+- **R** (Rename): Rename selected archive directory entry.
+- **S** (Showall): Show all files in the archive.
+- **T** (Tag): Tag all files in current virtual directory.
+- **U** (Untag): Untag all files in current virtual directory.
+- **^F** (Dir Mode): Cycle display modes.
+- **Return**: Switch to Archive-File Mode.
+- **-**: State-based collapse/release. Expanded nodes collapse;
+  collapsed logged nodes (or logged leaves) unlog/release.
+- **Left Arrow**: Collapse/navigation behavior only; does not perform
+  archive-exit.
+- **\\**: At archive non-root, jump to archive root. At archive root,
+  exit to parent physical directory.
 
-Archive file-window status text: \* `Unlogged`: selected directory is
-unlogged. \* `No files`: selected directory is logged and empty.
+**Archive-File Mode**
+
+- **C** (Copy): Copy selected file (including extract/copy paths).
+- **^K** (Copy Tagged): Copy all tagged files.
+- **D** (Delete): Delete selected archive file entry.
+- **F** (Filter): Set file filter.
+- **H** (Hex): View file in hex mode.
+- **M** (Move): Move selected file using archive-aware semantics.
+- **P** (Pipe): Pipe content to command.
+- **R** (Rename): Rename selected archive file entry.
+- **S** (Sort): Sort file list.
+- **^S** (Search): Search tagged files for a string. Untags files that
+  do not match.
+- **T** (Tag): Tag selected file.
+- **^T**: Tag all files.
+- **U** (Untag): Untag selected file. *(With `VI_KEYS=1`, use lowercase
+  `u` for this action.)*
+- **^U**: Untag all files. *(With `VI_KEYS=1`, `^U` is page-up
+  navigation and uppercase `U` becomes Untag All.)*
+- **V** (View): View file.
+- **^V**: **View Tagged**. View all tagged files sequentially. Mode is
+  controlled by `TAGGEDVIEWER`: `external` (default, uses `$PAGER`) or
+  `internal` (built-in viewer with in-app navigation).
+- **Y** (Pathcopy): Copy selected file with relative path preservation.
+- **^F** (File Mode): Cycle display modes.
+- **Return**: Switch to Archive-Dir Mode.
+- **\\**: No-op.
+- **\*** (Asterisk): Invert tag selection.
+
+Archive file-window status text:
+
+- `Unlogged`: selected directory is unlogged.
+- `No files`: selected directory is logged and empty.
 
 # COMPARE
 
