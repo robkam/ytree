@@ -1228,6 +1228,37 @@ int HandleFileWindow(ViewContext *ctx, DirEntry *dir_entry) {
       }
       break;
 
+    case ACTION_CMD_I: {
+      ArchivePayload payload;
+      int create_result = -1;
+      int gather_result;
+      fe_ptr =
+          ctx->active
+              ->file_entry_list[dir_entry->start_file + dir_entry->cursor_pos]
+              .file;
+      payload.original_source_list = NULL;
+      payload.expanded_file_list = NULL;
+
+      gather_result = UI_GatherArchivePayload(ctx, dir_entry, fe_ptr, &payload);
+      if (gather_result != 0) {
+        if (gather_result < 0)
+          UI_ShowStatusLineError(ctx, "Nothing to archive");
+        need_dsp_help = FALSE;
+      } else {
+        create_result = UI_CreateArchiveFromPayload(ctx, &payload);
+        if (create_result == 0) {
+          dir_entry = RefreshFileView(ctx, dir_entry);
+          maybe_change_x_step = TRUE;
+          need_dsp_help = TRUE;
+        } else if (create_result < 0) {
+          need_dsp_help = FALSE;
+        } else {
+          need_dsp_help = TRUE;
+        }
+      }
+      UI_FreeArchivePayload(&payload);
+    } break;
+
     case ACTION_CMD_O:
       UI_Beep(ctx, FALSE);
       break;

@@ -111,6 +111,9 @@ extern int UI_Warning(ViewContext *ctx, const char *fmt, ...);
 extern int UI_Message(ViewContext *ctx, const char *fmt, ...);
 extern int UI_Notice(ViewContext *ctx, const char *fmt, ...);
 extern void UI_Beep(ViewContext *ctx, BOOL critical);
+extern void UI_ShowStatusLineError(ViewContext *ctx, const char *fmt, ...);
+extern void UI_RenderStatusLineError(ViewContext *ctx);
+extern void UI_ClearStatusLineError(ViewContext *ctx);
 
 /* filewin.c / ctrl_file.c / ctrl_file_ops.c */
 extern void BuildFileEntryList(ViewContext *ctx, YtreePanel *panel);
@@ -147,6 +150,8 @@ extern void PrintFileEntry(ViewContext *ctx, YtreePanel *panel, int entry_no,
 extern int Getch(ViewContext *ctx);
 extern void HitReturnToContinue(void);
 extern int InputChoice(ViewContext *ctx, const char *msg, const char *term);
+extern int InputChoiceLiteral(ViewContext *ctx, const char *msg,
+                              const char *term);
 extern int UI_AskConflict(ViewContext *ctx, const char *src_path,
                           const char *dst_path, int *mode_flags);
 
@@ -266,6 +271,16 @@ extern int UI_ArchiveCallback(int status, const char *msg, void *user_data);
 extern void shell_quote(char *dest, const char *src);
 extern int recursive_mkdir(char *path);
 extern int recursive_rmdir(const char *path);
+extern int UI_BuildArchivePayloadFromPaths(const char *const *source_paths,
+                                           size_t source_count,
+                                           BOOL recursive_directories,
+                                           ArchivePayload *payload);
+extern int UI_GatherArchivePayload(ViewContext *ctx, DirEntry *selected_dir,
+                                   FileEntry *selected_file,
+                                   ArchivePayload *payload);
+extern void UI_FreeArchivePayload(ArchivePayload *payload);
+extern int UI_CreateArchiveFromPayload(ViewContext *ctx,
+                                       const ArchivePayload *payload);
 extern int UI_SelectCompareMenuChoice(ViewContext *ctx,
                                       CompareMenuChoice *choice);
 extern int UI_BuildFileCompareRequest(ViewContext *ctx, FileEntry *source_file,

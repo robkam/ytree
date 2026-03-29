@@ -11,6 +11,11 @@
 
 #define COPY_BUF_SIZE 16384
 
+typedef struct {
+  const char *format_name;
+  const char *filter_name;
+} ArchiveCreateSpec;
+
 /* Struct for Rename Callback */
 typedef struct {
   const char *old_path;
@@ -40,6 +45,188 @@ typedef struct {
     if (cb)                                                                    \
       (cb)(ARCHIVE_STATUS_WARNING, _msg, (user_data));                         \
   } while (0)
+
+static BOOL ends_with_ci(const char *value, const char *suffix) {
+  size_t value_len;
+  size_t suffix_len;
+  size_t i;
+
+  if (!value || !suffix)
+    return FALSE;
+
+  value_len = strlen(value);
+  suffix_len = strlen(suffix);
+
+  if (suffix_len > value_len)
+    return FALSE;
+
+  for (i = 0; i < suffix_len; ++i) {
+    unsigned char lhs = (unsigned char)value[value_len - suffix_len + i];
+    unsigned char rhs = (unsigned char)suffix[i];
+    if (tolower(lhs) != tolower(rhs))
+      return FALSE;
+  }
+
+  return TRUE;
+}
+
+static int infer_archive_create_spec(const char *dest_path, ArchiveCreateSpec *spec) {
+  if (!dest_path || !spec)
+    return -1;
+
+  if (ends_with_ci(dest_path, ".tar.gz") || ends_with_ci(dest_path, ".tgz")) {
+    spec->format_name = "paxr";
+    spec->filter_name = "gzip";
+    return 0;
+  }
+  if (ends_with_ci(dest_path, ".tar.bz2") || ends_with_ci(dest_path, ".tbz2")) {
+    spec->format_name = "paxr";
+    spec->filter_name = "bzip2";
+    return 0;
+  }
+  if (ends_with_ci(dest_path, ".tar.xz") || ends_with_ci(dest_path, ".txz")) {
+    spec->format_name = "paxr";
+    spec->filter_name = "xz";
+    return 0;
+  }
+  if (ends_with_ci(dest_path, ".tar")) {
+    spec->format_name = "paxr";
+    spec->filter_name = NULL;
+    return 0;
+  }
+  if (ends_with_ci(dest_path, ".zip")) {
+    spec->format_name = "zip";
+    spec->filter_name = NULL;
+    return 0;
+  }
+
+  return UNSUPPORTED_FORMAT_ERROR;
+}
+
+static const char *archive_entry_name_from_source(const char *src_path) {
+  const char *cursor;
+
+  if (!src_path)
+    return NULL;
+
+  cursor = src_path + strlen(src_path);
+  while (cursor > src_path && cursor[-1] == FILE_SEPARATOR_CHAR)
+    cursor--;
+  while (cursor > src_path && cursor[-1] != FILE_SEPARATOR_CHAR)
+    cursor--;
+
+  return cursor;
+}
+
+static int archive_write_file_data(struct archive *writer, int fd) {
+  char buf[COPY_BUF_SIZE];
+  ssize_t len;
+
+  while ((len = read(fd, buf, sizeof(buf))) > 0) {
+    if (archive_write_data(writer, buf, (size_t)len) < 0)
+      return -1;
+  }
+
+  return (len < 0) ? -1 : 0;
+}
+
+int Archive_CreateFromPaths(const char *dest_path,
+                            const char *const *source_paths,
+                            const char *const *archive_paths,
+                            size_t source_count) {
+  struct archive *writer = NULL;
+  ArchiveCreateSpec spec;
+  size_t i;
+  int rc;
+
+  if (!dest_path || (!source_paths && source_count > 0))
+    return -1;
+
+  rc = infer_archive_create_spec(dest_path, &spec);
+  if (rc != 0)
+    return rc;
+
+  writer = archive_write_new();
+  if (!writer)
+    return -1;
+
+  if (archive_write_set_format_by_name(writer, spec.format_name) < ARCHIVE_OK)
+    goto error;
+  if (spec.filter_name &&
+      archive_write_add_filter_by_name(writer, spec.filter_name) < ARCHIVE_OK)
+    goto error;
+  if (archive_write_open_filename(writer, dest_path) != ARCHIVE_OK)
+    goto error;
+
+  for (i = 0; i < source_count; ++i) {
+    const char *src_path = source_paths[i];
+    const char *entry_name;
+    struct stat src_st;
+    struct archive_entry *entry;
+    int fd = -1;
+
+    if (!src_path)
+      goto error;
+
+    if (lstat(src_path, &src_st) != 0)
+      goto error;
+
+    if (archive_paths && archive_paths[i] && archive_paths[i][0] != '\0')
+      entry_name = archive_paths[i];
+    else
+      entry_name = archive_entry_name_from_source(src_path);
+    if (!entry_name || entry_name[0] == '\0')
+      goto error;
+
+    entry = archive_entry_new();
+    if (!entry)
+      goto error;
+
+    archive_entry_copy_stat(entry, &src_st);
+    archive_entry_set_pathname(entry, entry_name);
+
+    if (S_ISLNK(src_st.st_mode)) {
+      char link_target[PATH_LENGTH + 1];
+      ssize_t link_len = readlink(src_path, link_target, PATH_LENGTH);
+      if (link_len < 0 || link_len > PATH_LENGTH) {
+        archive_entry_free(entry);
+        goto error;
+      }
+      link_target[link_len] = '\0';
+      archive_entry_set_symlink(entry, link_target);
+      archive_entry_set_size(entry, 0);
+    }
+
+    if (archive_write_header(writer, entry) != ARCHIVE_OK) {
+      archive_entry_free(entry);
+      goto error;
+    }
+
+    if (S_ISREG(src_st.st_mode) && src_st.st_size > 0) {
+      fd = open(src_path, O_RDONLY);
+      if (fd < 0) {
+        archive_entry_free(entry);
+        goto error;
+      }
+      if (archive_write_file_data(writer, fd) != 0) {
+        close(fd);
+        archive_entry_free(entry);
+        goto error;
+      }
+      close(fd);
+    }
+
+    archive_entry_free(entry);
+  }
+
+  rc = archive_write_close(writer);
+  archive_write_free(writer);
+  return (rc == ARCHIVE_OK) ? 0 : -1;
+
+error:
+  archive_write_free(writer);
+  return -1;
+}
 
 /*
  * Helper to setup writer based on reader
@@ -575,6 +762,12 @@ int Archive_RenameEntry(char *archive_path, char *old_path, char *new_name,
 /* Dummy implementations if libarchive is not available */
 int Archive_Rewrite(char *archive_path, void *cb, void *user_data,
                     ArchiveProgressCallback pcb, void *pdata) {
+  return -1;
+}
+int Archive_CreateFromPaths(const char *dest_path,
+                            const char *const *source_paths,
+                            const char *const *archive_paths,
+                            size_t source_count) {
   return -1;
 }
 int Archive_DeleteEntry(char *archive_path, char *file_path,

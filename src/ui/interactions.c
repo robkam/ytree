@@ -516,6 +516,311 @@ static int GetPanelSelectedFilePath(ViewContext *ctx, YtreePanel *panel,
   return 0;
 }
 
+int UI_GatherArchivePayload(ViewContext *ctx, DirEntry *selected_dir,
+                            FileEntry *selected_file,
+                            ArchivePayload *payload) {
+  char **selected_paths = NULL;
+  size_t selected_count = 0;
+  BOOL recursive_directories = TRUE;
+  int rc = -1;
+
+  if (!ctx || !ctx->active || !payload)
+    return -1;
+
+  UI_FreeArchivePayload(payload);
+
+  BuildFileEntryList(ctx, ctx->active);
+  if (ctx->active->file_entry_list && ctx->active->file_count > 0) {
+    size_t i;
+    size_t tagged_count = 0;
+
+    for (i = 0; i < (size_t)ctx->active->file_count; ++i) {
+      FileEntry *fe = ctx->active->file_entry_list[i].file;
+      if (fe && fe->tagged)
+        tagged_count++;
+    }
+
+    if (tagged_count > 0) {
+      selected_paths = (char **)xcalloc(tagged_count, sizeof(*selected_paths));
+      if (!selected_paths)
+        return -1;
+
+      for (i = 0; i < (size_t)ctx->active->file_count; ++i) {
+        char file_path[PATH_LENGTH + 1];
+        FileEntry *fe = ctx->active->file_entry_list[i].file;
+
+        if (!fe || !fe->tagged)
+          continue;
+
+        GetFileNamePath(fe, file_path);
+        file_path[PATH_LENGTH] = '\0';
+        selected_paths[selected_count] = xstrdup(file_path);
+        if (!selected_paths[selected_count])
+          goto cleanup;
+
+        selected_count++;
+      }
+    }
+  }
+
+  if (selected_count == 0) {
+    char source_path[PATH_LENGTH + 1];
+    struct stat source_st;
+    int recursive_choice;
+
+    selected_paths = (char **)xcalloc(1, sizeof(*selected_paths));
+    if (!selected_paths)
+      return -1;
+
+    if (selected_file) {
+      GetFileNamePath(selected_file, source_path);
+      source_path[PATH_LENGTH] = '\0';
+    } else if (selected_dir) {
+      GetPath(selected_dir, source_path);
+      source_path[PATH_LENGTH] = '\0';
+    } else if (GetPanelSelectedFilePath(ctx, ctx->active, source_path) == 0) {
+      source_path[PATH_LENGTH] = '\0';
+    } else if (GetPanelSelectedDirPath(ctx, ctx->active, source_path) == 0) {
+      source_path[PATH_LENGTH] = '\0';
+    } else {
+      goto cleanup;
+    }
+
+    selected_paths[0] = xstrdup(source_path);
+    if (!selected_paths[0])
+      goto cleanup;
+    selected_count = 1;
+
+    if (lstat(source_path, &source_st) != 0) {
+      UI_ShowStatusLineError(ctx, "Cannot access selected source path");
+      goto cleanup;
+    }
+    if (S_ISDIR(source_st.st_mode)) {
+      recursive_choice = InputChoiceLiteral(ctx, "Recursive? (Y/n)", "YN\033");
+      if (recursive_choice == ESC) {
+        rc = 1;
+        goto cleanup;
+      }
+      if (recursive_choice == 'N')
+        recursive_directories = FALSE;
+    }
+  }
+
+  rc = UI_BuildArchivePayloadFromPaths((const char *const *)selected_paths,
+                                       selected_count, recursive_directories,
+                                       payload);
+
+cleanup:
+  if (selected_paths) {
+    size_t i;
+    for (i = 0; i < selected_count; ++i)
+      free(selected_paths[i]);
+    free(selected_paths);
+  }
+  if (rc < 0)
+    UI_FreeArchivePayload(payload);
+  return rc;
+}
+
+static int ResolveArchiveDestinationPath(ViewContext *ctx, const char *input_path,
+                                         char *resolved_path,
+                                         size_t resolved_size) {
+  char absolute_input[PATH_LENGTH + 1];
+  char normalized_input[PATH_LENGTH + 1];
+  char parent_path[PATH_LENGTH + 1];
+  char resolved_parent[PATH_LENGTH + 1];
+  const char *slash;
+  const char *file_name;
+  char cwd[PATH_LENGTH + 1];
+  size_t parent_len;
+  int written;
+  int parent_written;
+
+  if (!input_path || !resolved_path || resolved_size == 0)
+    return -1;
+  if (input_path[0] == '\0')
+    return -1;
+
+  if (input_path[0] == FILE_SEPARATOR_CHAR) {
+    written = snprintf(absolute_input, sizeof(absolute_input), "%s", input_path);
+  } else {
+    if (ctx && ctx->active &&
+        GetPanelSelectedDirPath(ctx, ctx->active, cwd) == 0) {
+      cwd[PATH_LENGTH] = '\0';
+    } else if (!getcwd(cwd, sizeof(cwd))) {
+      return -1;
+    }
+    written = snprintf(absolute_input, sizeof(absolute_input), "%s%c%s", cwd,
+                       FILE_SEPARATOR_CHAR, input_path);
+  }
+  if (written < 0 || (size_t)written >= sizeof(absolute_input))
+    return -1;
+
+  NormPath(absolute_input, normalized_input);
+  if (realpath(normalized_input, resolved_path) != NULL)
+    return 0;
+
+  if (errno != ENOENT)
+    return -1;
+
+  slash = strrchr(normalized_input, FILE_SEPARATOR_CHAR);
+  if (!slash)
+    return -1;
+
+  file_name = slash + 1;
+  if (file_name[0] == '\0')
+    return -1;
+
+  if (slash == normalized_input) {
+    parent_written = snprintf(parent_path, sizeof(parent_path), "%s",
+                              FILE_SEPARATOR_STRING);
+  } else {
+    parent_len = (size_t)(slash - normalized_input);
+    parent_written = snprintf(parent_path, sizeof(parent_path), "%.*s",
+                              (int)parent_len, normalized_input);
+  }
+  if (parent_written < 0 || (size_t)parent_written >= sizeof(parent_path))
+    return -1;
+
+  if (realpath(parent_path, resolved_parent) == NULL)
+    return -1;
+
+  if (strcmp(resolved_parent, FILE_SEPARATOR_STRING) == 0) {
+    written = snprintf(resolved_path, resolved_size, "%s%s", resolved_parent,
+                       file_name);
+  } else {
+    written = snprintf(resolved_path, resolved_size, "%s%c%s", resolved_parent,
+                       FILE_SEPARATOR_CHAR, file_name);
+  }
+  if (written < 0 || (size_t)written >= resolved_size)
+    return -1;
+
+  return 0;
+}
+
+static BOOL SourcePathMatchesArchiveDestination(const char *source_path,
+                                                const char *dest_path) {
+  char resolved_source[PATH_LENGTH + 1];
+
+  if (!source_path || !dest_path)
+    return FALSE;
+
+  if (realpath(source_path, resolved_source) == NULL)
+    return FALSE;
+
+  return strcmp(resolved_source, dest_path) == 0;
+}
+
+static const char *UnsupportedArchiveLabel(const char *dest_path) {
+  const char *dot;
+
+  if (!dest_path)
+    return "(none)";
+
+  dot = strrchr(dest_path, '.');
+  if (!dot || dot[1] == '\0')
+    return "(none)";
+  return dot;
+}
+
+int UI_CreateArchiveFromPayload(ViewContext *ctx, const ArchivePayload *payload) {
+  char destination_input[PATH_LENGTH + 1];
+  char destination_path[PATH_LENGTH + 1];
+  ArchiveExpandedEntry *entry;
+  const char **source_paths = NULL;
+  const char **archive_paths = NULL;
+  const char *filename = NULL;
+  size_t source_count = 0;
+  size_t idx = 0;
+  int input_result;
+  int rc;
+  struct stat dest_stat;
+  int prompt_written;
+  char overwrite_prompt[PATH_LENGTH + 64];
+
+  if (!ctx || !ctx->active || !payload)
+    return -1;
+  if (!payload->original_source_list)
+    return -1;
+
+  destination_input[0] = '\0';
+  input_result = UI_ReadString(
+      ctx, ctx->active,
+      "Create archive: (suffix .tar .tar.gz/.tgz .tar.bz2/.tbz2 .tar.xz/.txz .zip) ",
+      destination_input, PATH_LENGTH, HST_FILE);
+  if (input_result != CR || destination_input[0] == '\0')
+    return 1;
+
+  if (ResolveArchiveDestinationPath(ctx, destination_input, destination_path,
+                                    sizeof(destination_path)) != 0) {
+    UI_ShowStatusLineError(ctx, "Invalid archive destination path");
+    return -1;
+  }
+
+  if (lstat(destination_path, &dest_stat) == 0) {
+    filename = strrchr(destination_path, FILE_SEPARATOR_CHAR);
+    if (filename && filename[1] != '\0')
+      filename++;
+    else
+      filename = destination_path;
+
+    prompt_written = snprintf(overwrite_prompt, sizeof(overwrite_prompt),
+                              "Overwrite %s? (y/n)", filename);
+    if (prompt_written < 0 || (size_t)prompt_written >= sizeof(overwrite_prompt))
+      return -1;
+    if (InputChoiceLiteral(ctx, overwrite_prompt, "YN\033") != 'Y')
+      return 1;
+  } else if (errno != ENOENT) {
+    UI_ShowStatusLineError(ctx, "Cannot access destination path");
+    return -1;
+  }
+
+#ifdef HAVE_LIBARCHIVE
+  for (entry = payload->expanded_file_list; entry; entry = entry->next) {
+    if (SourcePathMatchesArchiveDestination(entry->source_path, destination_path))
+      continue;
+    source_count++;
+  }
+
+  if (source_count == 0) {
+    UI_ShowStatusLineError(ctx, "Nothing to archive");
+    return -1;
+  }
+
+  source_paths = (const char **)xcalloc(source_count, sizeof(*source_paths));
+  archive_paths = (const char **)xcalloc(source_count, sizeof(*archive_paths));
+  if (!source_paths || !archive_paths) {
+    free((void *)source_paths);
+    free((void *)archive_paths);
+    UI_ShowStatusLineError(ctx, "Out of memory while creating archive");
+    return -1;
+  }
+  for (entry = payload->expanded_file_list; entry; entry = entry->next) {
+    if (SourcePathMatchesArchiveDestination(entry->source_path, destination_path))
+      continue;
+    source_paths[idx++] = entry->source_path;
+    archive_paths[idx - 1] = entry->archive_path;
+  }
+
+  rc = Archive_CreateFromPaths(destination_path, source_paths, archive_paths,
+                               source_count);
+  free((void *)source_paths);
+  free((void *)archive_paths);
+  if (rc == 0)
+    return 0;
+  if (rc == UNSUPPORTED_FORMAT_ERROR) {
+    UI_ShowStatusLineError(ctx, "Unsupported archive format: %s",
+                           UnsupportedArchiveLabel(destination_path));
+  } else {
+    UI_ShowStatusLineError(ctx, "Failed to create archive");
+  }
+  return -1;
+#else
+  UI_ShowStatusLineError(ctx, "Archive creation requires libarchive support");
+  return -1;
+#endif
+}
+
 typedef enum {
   COMPARE_HELP_FILE_TARGET = 0,
   COMPARE_HELP_DIRECTORY_TARGET,

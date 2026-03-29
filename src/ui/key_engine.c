@@ -258,6 +258,37 @@ int InputChoice(ViewContext *ctx, const char *msg, const char *term) {
   return (c);
 }
 
+int InputChoiceLiteral(ViewContext *ctx, const char *msg, const char *term) {
+  int c;
+
+  ClearHelp(ctx);
+
+  curs_set(1);
+  leaveok(ctx->ctx_border_window, FALSE);
+  mvwhline(ctx->ctx_border_window, ctx->layout.prompt_y, 1, ' ', COLS - 2);
+  Print(ctx->ctx_border_window, ctx->layout.prompt_y, 1, (char *)msg,
+        CPAIR_MENU);
+  wnoutrefresh(ctx->ctx_border_window);
+  doupdate();
+  do {
+    c = WGetch(ctx, ctx->ctx_border_window);
+    if (c == ESC)
+      break;
+    if (c >= 0)
+      if (islower(c))
+        c = toupper(c);
+  } while (c != -1 && !strchr(term, c));
+
+  mvwaddstr(ctx->ctx_border_window, ctx->layout.prompt_y, 1, " ");
+  mvwhline(ctx->ctx_border_window, ctx->layout.prompt_y, 1, ' ', COLS - 2);
+  wnoutrefresh(ctx->ctx_border_window);
+  leaveok(ctx->ctx_border_window, TRUE);
+  curs_set(0);
+  doupdate();
+
+  return (c);
+}
+
 void HitReturnToContinue(void) {
 #if !defined(XCURSES)
   char *te;
@@ -495,6 +526,9 @@ YtreeAction GetKeyAction(const ViewContext *ctx, int ch) {
   case 'h':
   case 'H':
     return ACTION_CMD_H;
+  case 'o':
+  case 'O':
+    return ACTION_CMD_I;
   case 'm':
   case 'M':
     return ACTION_CMD_M;
@@ -537,7 +571,7 @@ YtreeAction GetKeyAction(const ViewContext *ctx, int ch) {
       return ACTION_PREVIEW_SCROLL_DOWN;
     return ACTION_CMD_TAGGED_M;
   case 0x0F:
-    return ACTION_NONE;
+    return ACTION_CMD_I;
   case 0x10:
     if (ctx && ctx->preview_mode)
       return ACTION_PREVIEW_SCROLL_UP;
@@ -614,6 +648,15 @@ int WGetch(ViewContext *ctx, WINDOW *win) {
   int c;
 
   c = wgetch(win);
+
+  if (ctx && ctx->status_line_error_pending && c != ERR) {
+#ifdef KEY_RESIZE
+    if (c != KEY_RESIZE)
+      UI_ClearStatusLineError(ctx);
+#else
+    UI_ClearStatusLineError(ctx);
+#endif
+  }
 
 #ifdef KEY_RESIZE
   if (c == KEY_RESIZE) {

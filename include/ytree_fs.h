@@ -10,6 +10,7 @@
 #include "ytree_defs.h"
 
 /* ARCHIVE_STATUS_* and ARCHIVE_CB_* moved to ytree_defs.h */
+#define UNSUPPORTED_FORMAT_ERROR -2
 
 /* Define the progress callback type for Scans */
 typedef void (*ScanProgressCallback)(ViewContext *ctx, void *user_data);
@@ -31,6 +32,10 @@ extern void MinimizeArchiveTree(DirEntry **tree_ptr, Statistic *s);
 extern int Archive_Rewrite(char *archive_path, RewriteCallback rw_cb,
                            void *rw_data, ArchiveProgressCallback cb,
                            void *user_data);
+extern int Archive_CreateFromPaths(const char *dest_path,
+                                   const char *const *source_paths,
+                                   const char *const *archive_paths,
+                                   size_t source_count);
 extern int Archive_DeleteEntry(char *archive_path, char *file_path,
                                ArchiveProgressCallback cb, void *user_data);
 extern int Archive_AddFile(char *archive_path, char *src_path, char *dest_name,

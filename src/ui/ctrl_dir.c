@@ -2018,6 +2018,32 @@ int HandleDirWindow(ViewContext *ctx, const DirEntry *start_dir_entry) {
       }
       break;
 
+    case ACTION_CMD_I: {
+      ArchivePayload payload;
+      int create_result = -1;
+      int gather_result;
+      payload.original_source_list = NULL;
+      payload.expanded_file_list = NULL;
+
+      gather_result = UI_GatherArchivePayload(ctx, dir_entry, NULL, &payload);
+      if (gather_result != 0) {
+        if (gather_result < 0)
+          UI_ShowStatusLineError(ctx, "Nothing to archive");
+        need_dsp_help = FALSE;
+      } else {
+        create_result = UI_CreateArchiveFromPayload(ctx, &payload);
+        if (create_result == 0) {
+          dir_entry = RefreshTreeSafe(ctx, ctx->active, dir_entry);
+          need_dsp_help = TRUE;
+        } else if (create_result < 0) {
+          need_dsp_help = FALSE;
+        } else {
+          need_dsp_help = TRUE;
+        }
+      }
+      UI_FreeArchivePayload(&payload);
+    } break;
+
     case ACTION_TOGGLE_COMPACT:
       ctx->fixed_col_width = (ctx->fixed_col_width == 0) ? 32 : 0;
       ctx->resize_request = TRUE;

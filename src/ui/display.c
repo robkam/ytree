@@ -36,11 +36,11 @@ static void PrintNavLine(WINDOW *win, int y, const char *str);
  * Updated: (F)ilespec -> (F)ilter, spacing adjustments.
  */
 static char dir_help_disk_mode_0[] =
-    "DIR      (A)ttributes (B)rief (C)ompare (D)elete (F)ilter (G)lobal (L)og "
-    "(M)akedir (N)ewfile";
+    "DIR      (A)ttributes (B)rief (C)ompare (D)elete (F)ilter (G)lobal "
+    "(L)og (M)akedir (N)ewfile";
 static char dir_help_disk_mode_1[] =
-    "COMMANDS (P)ipe (Q)uit (R)ename "
-    "(S)howall (T)ag (U)ntag e(X)ecute (/) jump (`) dotfiles";
+    "COMMANDS (O) archive (P)ipe (Q)uit (R)ename (S)howall (T)ag (U)ntag e(X)ecute (/) "
+    "jump (`) dotfiles";
 static char dir_help_nav[] =
     "Tree  (F1) help  (F5) refresh  (F6) stats  (F7) autoview  "
     "(F8) split  (F9) menu  (F10) config  (Esc) cancel";
@@ -69,10 +69,10 @@ static char *dir_help[MAX_MODES][2] = {
 
 static char file_help_disk_mode_0[] =
     "FILE     (A)ttributes (B)rief (C)opy/(^K) (D)elete (E)dit (F)ilter "
-    "(^F)ilemode";
+    "(^F)ilemode (H)ex (J) compare (L)og";
 static char file_help_disk_mode_1[] =
-    "COMMANDS (H)ex (J) compare (L)og (M)ove/(^N) (N)ewfile "
-    "(P)ipe (Q)uit (R)ename (S)ort e(X)ecute (/) jump (`) dotfiles";
+    "COMMANDS (M)ove/(^N) (N)ewfile "
+    "(O) archive (P)ipe (Q)uit (R)ename (S)ort e(X)ecute (/) jump (`) dotfiles";
 static char file_help_nav[] =
     "Dir   (F1) help  (F5) refresh  (F6) stats  (F7) autoview  "
     "(F8) split  (F9) menu  (F10) config  (Esc) cancel";
@@ -120,6 +120,7 @@ void DisplayDirHelp(ViewContext *ctx, const DirEntry *dir_entry) {
                                             : dir_help_nav_archive_exit;
   }
   PrintNavLine(ctx->ctx_menu_window, 2, nav_line);
+  UI_RenderStatusLineError(ctx);
   wnoutrefresh(ctx->ctx_menu_window);
 }
 
@@ -146,6 +147,7 @@ void DisplayFileHelp(ViewContext *ctx, const DirEntry *dir_entry) {
   nav_line = (dir_entry && dir_entry->global_flag) ? file_help_nav_to_dir
                                                    : file_help_nav;
   PrintNavLine(ctx->ctx_menu_window, 2, nav_line);
+  UI_RenderStatusLineError(ctx);
   wnoutrefresh(ctx->ctx_menu_window);
 }
 
