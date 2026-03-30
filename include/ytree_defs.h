@@ -199,8 +199,38 @@ typedef struct _ViewContext ViewContext;
 #define DISK_NAME_LENGTH (12 + 1)
 #define COMMAND_LINE_LENGTH 4096
 
+/*
+ * Message length covers two full paths plus context (for operations such as
+ * copy/move error reporting).
+ */
+#define MESSAGE_LENGTH ((PATH_LENGTH * 2) + 256)
+
 #define FILE_SEPARATOR_CHAR '/'
 #define FILE_SEPARATOR_STRING "/"
+#define TAGGED_SYMBOL '*'
+#define PROFILE_FILENAME ".ytree"
+#define HISTORY_FILENAME ".ytree-hst"
+#define CLOCK_INTERVAL 1
+
+#define ERR_TO_NULL " 2> /dev/null"
+#define ERR_TO_STDOUT " 2>&1 "
+
+/* Auto-refresh configuration modes */
+#define REFRESH_WATCHER 1
+#define REFRESH_ON_NAV 2
+#define REFRESH_ON_ENTER 4
+
+/* View return codes */
+#define VIEW_EXIT 0
+#define VIEW_NEXT 1
+#define VIEW_PREV 2
+
+/* File list presentation modes */
+#define MODE_1 0
+#define MODE_2 1
+#define MODE_3 2
+#define MODE_4 3
+#define MODE_5 4
 
 #define BOOL unsigned char
 #ifndef TRUE
