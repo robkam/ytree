@@ -47,6 +47,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Overwrite-All Conflict Hardening**: Unified COPY/MOVE overwrite-all behavior so selecting `A` on the first conflict suppresses repeated prompts across remaining tagged-file conflicts, with regression coverage for both operations.
 - **Path Join Standardization (Command Layer)**: Completed Step 11.4 by migrating the last ad-hoc archive-entry join in `src/cmd/copy.c` to `Path_Join`, closing command-module standardization across `copy.c`, `move.c`, `rename.c`, and `mkdir.c`.
 - **Internal Viewer Geometry Encapsulation**: Completed Step 11.5 with an explicit viewer geometry contract and removal of direct layout reads from `src/ui/view_internal.c`.
+- **Strict Header Hygiene Completion**: Completed Step 11.6 by contracting `include/ytree.h` to stop transitively exporting command/UI subsystem headers while preserving explicit include discipline across source modules.
 
 ## [2.10]
 - 7zip / iso support.

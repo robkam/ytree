@@ -13,6 +13,8 @@
 
 #include "../../include/sort.h"
 #include "../../include/watcher.h"
+#include "../../include/ytree_cmd.h"
+#include "../../include/ytree_fs.h"
 #include "../../include/ytree_ui.h"
 #include <libgen.h>
 
