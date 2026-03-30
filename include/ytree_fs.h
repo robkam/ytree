@@ -71,6 +71,10 @@ extern void UnReadTree(ViewContext *ctx, DirEntry *dir_entry, Statistic *s);
 extern int RescanDir(ViewContext *ctx, DirEntry *dir_entry, int depth,
                      Statistic *s, ScanProgressCallback cb, void *cb_data);
 
+/* path_utils.c */
+extern char *GetPath(DirEntry *dir_entry, char *buffer);
+extern void Fnsplit(char *path, char *dir, char *name);
+
 /* tree_utils.c */
 extern void DeleteTree(DirEntry *tree);
 extern int GetDirEntry(const ViewContext *ctx, DirEntry *tree,

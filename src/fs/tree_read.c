@@ -5,7 +5,9 @@
  *
  ***************************************************************************/
 
-#include "ytree.h"
+#include "ytree_cmd.h"
+#include "ytree_fs.h"
+#include "ytree_ui.h"
 
 static void UnReadSubTree(ViewContext *ctx, DirEntry *dir_entry, Statistic *s);
 static BOOL IsTransientScanStatError(int errnum);
