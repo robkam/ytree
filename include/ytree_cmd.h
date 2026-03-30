@@ -128,6 +128,9 @@ extern char *GetUserDirAction(const ViewContext *ctx, int chkey, int *pchremap);
 extern BOOL IsUserActionDefined(const ViewContext *ctx);
 extern char *GetExtViewer(const ViewContext *ctx, const char *filename);
 
+/* history.c */
+extern void SaveHistory(ViewContext *ctx, const char *filename);
+
 /* passwd.c */
 extern int ReadPasswdEntries(void);
 extern char *GetPasswdName(unsigned int uid);

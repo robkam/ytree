@@ -16,10 +16,21 @@
 typedef void (*ScanProgressCallback)(ViewContext *ctx, void *user_data);
 
 /* path_utils.c */
+extern const char *GetExtension(const char *filename);
 extern char *GetFileNamePath(FileEntry *file_entry, char *buffer);
 extern char *GetPath(DirEntry *dir_entry, char *buffer);
 extern void Fnsplit(char *path, char *dir, char *name);
 extern void NormPath(char *in_path, char *out_path);
+
+/* volume.c */
+extern struct Volume *Volume_Create(ViewContext *ctx);
+extern void Volume_Delete(ViewContext *ctx, struct Volume *vol);
+extern void Volume_FreeAll(ViewContext *ctx);
+extern struct Volume *Volume_GetByPath(ViewContext *ctx, const char *path);
+extern struct Volume *Volume_Load(ViewContext *ctx, const char *path,
+                                  struct Volume *reuse_vol,
+                                  ScanProgressCallback cb, void *cb_user_data);
+extern void SetKindOfSort(int kind_of_sort, Statistic *s);
 
 /* archive.c */
 extern int ExtractArchiveEntry(const char *archive_path, const char *entry_path,

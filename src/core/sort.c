@@ -1,6 +1,7 @@
 #define _GNU_SOURCE
 #include "sort.h"
-#include "ytree.h"
+#include "ytree_cmd.h"
+#include "ytree_fs.h"
 #include <stdlib.h>
 #include <string.h>
 

@@ -5,7 +5,10 @@
  *
  ***************************************************************************/
 
-#include "ytree.h"
+#include "ytree_cmd.h"
+#include "ytree_defs.h"
+#include "ytree_fs.h"
+#include "ytree_ui.h"
 #include "patchlev.h"
 #include "default_profile_template.h"
 #include <errno.h>
