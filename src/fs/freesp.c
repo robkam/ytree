@@ -5,7 +5,7 @@
  *
  ***************************************************************************/
 
-#include "ytree.h"
+#include "ytree_defs.h"
 #include <unistd.h>
 
 /* Removed #include <dos.h> and #include <hurd/hurd_types.h> */

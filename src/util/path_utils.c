@@ -5,7 +5,7 @@
  *
  ***************************************************************************/
 
-#include "ytree.h"
+#include "ytree_defs.h"
 #include <libgen.h>
 #include <stdio.h>
 #include <stdlib.h>
