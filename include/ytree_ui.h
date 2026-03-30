@@ -59,6 +59,7 @@ extern void DrawSpinner(ViewContext *ctx);
 
 /* init.c */
 extern int Init(ViewContext *ctx, char *configuration_file, char *history_file);
+extern void Layout_Recalculate(ViewContext *ctx);
 extern void ReCreateWindows(ViewContext *ctx);
 extern void ShutdownCurses(ViewContext *ctx);
 
@@ -168,6 +169,7 @@ extern void UI_ClearStatusLineError(ViewContext *ctx);
 
 /* filewin.c / ctrl_file.c / ctrl_file_ops.c */
 extern void FreeFileEntryList(YtreePanel *panel);
+extern void InvalidateVolumePanels(ViewContext *ctx, const struct Volume *vol);
 extern void BuildFileEntryList(ViewContext *ctx, YtreePanel *panel);
 extern void DisplayFileWindow(ViewContext *ctx, YtreePanel *panel,
                               const DirEntry *dir_entry);
