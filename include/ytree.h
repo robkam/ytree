@@ -148,9 +148,6 @@ extern void SuspendClock(ViewContext *ctx);
 /* dirwin.c */
 extern int ScanSubTree(ViewContext *ctx, DirEntry *dir_entry, Statistic *s);
 
-/* history.c, tabcompl.c */
-extern char *GetMatches(ViewContext *ctx, char *base);
-
 /* init.c */
 extern int Init(ViewContext *ctx, char *configuration_file, char *history_file);
 extern void ReCreateWindows(ViewContext *ctx);

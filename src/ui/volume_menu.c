@@ -5,6 +5,7 @@
  *
  ***************************************************************************/
 
+#include "ytree_cmd.h"
 #include "ytree_fs.h"
 #include "ytree_ui.h"
 
