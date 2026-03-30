@@ -5,7 +5,9 @@
  *
  ***************************************************************************/
 
-#include "ytree.h"
+#include "ytree_cmd.h"
+#include "ytree_fs.h"
+#include "ytree_ui.h"
 
 static void SavePanelTreeSelection(YtreePanel *panel) {
   int selected_index;
@@ -315,7 +317,7 @@ int GetNewLogPath(ViewContext *ctx, YtreePanel *panel, char *path) {
 
   ClearHelp(ctx);
 
-  MvAddStr(Y_PROMPT(ctx), 1, "LOG:");
+  MvAddStr(ctx->layout.prompt_y, 1, "LOG:");
 
   /* Save the current directory context and set it as default for user input */
   copied_len = snprintf(current_dir_path, sizeof(current_dir_path), "%s", path);

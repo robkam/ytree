@@ -5,9 +5,7 @@
  *
  ***************************************************************************/
 
-#include "ytree.h"
 #include "ytree_cmd.h"
-#include "ytree_defs.h"
 #include "ytree_fs.h"
 #include <errno.h>
 #include <fcntl.h>
@@ -18,10 +16,6 @@
 #include <unistd.h>
 
 #define mode (CurrentVolume->vol_stats.log_mode)
-
-#ifdef HAVE_LIBARCHIVE
-#include "ytree_fs.h"
-#endif
 
 #ifdef HAVE_LIBARCHIVE
 static int ExecuteArchiveFile(ViewContext *ctx, DirEntry *dir_entry,
