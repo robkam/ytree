@@ -45,6 +45,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Build System**: Updated Makefile for dependency tracking and automated manpage generation via `pandoc`.
 - **QA Suite**: Integrated GitHub Actions CI and expanded `pytest`/`pexpect` coverage for core TUI behavioral validation.
 - **Overwrite-All Conflict Hardening**: Unified COPY/MOVE overwrite-all behavior so selecting `A` on the first conflict suppresses repeated prompts across remaining tagged-file conflicts, with regression coverage for both operations.
+- **Path Join Standardization (Command Layer)**: Completed Step 11.4 by migrating the last ad-hoc archive-entry join in `src/cmd/copy.c` to `Path_Join`, closing command-module standardization across `copy.c`, `move.c`, `rename.c`, and `mkdir.c`.
 
 ## [2.10]
 - 7zip / iso support.

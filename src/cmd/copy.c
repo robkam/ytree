@@ -364,19 +364,12 @@ int CopyFile(ViewContext *ctx, Statistic *statistic_ptr, FileEntry *fe_ptr,
      * visibility */
 
     {
-      int composed_len;
+      int join_res;
       char archive_entry_path[PATH_LENGTH + 1];
 
-      if (relative_path[0] != '\0') {
-        composed_len = snprintf(archive_entry_path, sizeof(archive_entry_path),
-                                "%s/%s", relative_path, to_file);
-      } else {
-        composed_len =
-            snprintf(archive_entry_path, sizeof(archive_entry_path), "%s",
-                     to_file);
-      }
-      if (composed_len < 0 ||
-          (size_t)composed_len >= sizeof(archive_entry_path)) {
+      join_res = Path_Join(archive_entry_path, sizeof(archive_entry_path),
+                           relative_path, to_file);
+      if (join_res != 0) {
         return result;
       }
 
