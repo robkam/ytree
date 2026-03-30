@@ -5,14 +5,23 @@
  *
  ***************************************************************************/
 
-#include "ytree.h"
+#include "ytree_ui.h"
+#include <ctype.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 static void PrintHstEntry(ViewContext *ctx, int entry_no, int y, int color,
                           int start_x, int *hide_left, int *hide_right);
 static int DisplayHistory(ViewContext *ctx);
+void InsHistory(ViewContext *ctx, const char *NewHst, int type);
 
 #define MAX_HST_FILE_LINES 200
+#define HISTORY_WINDOW_HEIGHT (LINES - 6)
 #define MAX(a, b) (((a) > (b)) ? (a) : (b))
+
+extern void *xmalloc(size_t size);
+extern char *xstrdup(const char *s);
 
 static void FreeViewList(ViewContext *ctx) {
   if (ctx->history_view_list) {

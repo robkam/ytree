@@ -5,7 +5,6 @@
  *
  ***************************************************************************/
 
-#include "ytree.h"
 #include <string.h>
 
 int Strrcmp(const char *s1, const char *s2) /*compares in reverse order 2 strings*/
