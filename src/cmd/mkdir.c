@@ -71,12 +71,8 @@ static DirEntry *MakeDirEntry(const ViewContext *ctx, YtreePanel *panel,
   }
 
   (void)GetPath(father_dir_entry, parent_path);
-  {
-    int n = snprintf(buffer, sizeof(buffer), "%s%s%s", parent_path,
-                     FILE_SEPARATOR_STRING, dir_name);
-    if (n < 0 || n >= (int)sizeof(buffer))
-      return NULL;
-  }
+  if (Path_Join(buffer, sizeof(buffer), parent_path, dir_name) != 0)
+    return NULL;
 
 /* ARCHIVE MODE HANDLER */
 #ifdef HAVE_LIBARCHIVE
@@ -84,7 +80,6 @@ static DirEntry *MakeDirEntry(const ViewContext *ctx, YtreePanel *panel,
     char root_path[PATH_LENGTH + 1];
     char relative_path[PATH_LENGTH + 1];
     char archive_path[PATH_LENGTH + 1];
-    const char *separator = "";
 
     /* Get full path of parent directory in tree */
     GetPath(father_dir_entry, parent_path);
@@ -122,17 +117,9 @@ static DirEntry *MakeDirEntry(const ViewContext *ctx, YtreePanel *panel,
       }
     }
 
-    /* Append new directory name */
-    if (relative_path[0] != '\0' &&
-        relative_path[strlen(relative_path) - 1] != FILE_SEPARATOR_CHAR) {
-      separator = FILE_SEPARATOR_STRING;
-    }
-    {
-      int n = snprintf(archive_path, sizeof(archive_path), "%s%s%s",
-                       relative_path, separator, dir_name);
-      if (n < 0 || n >= (int)sizeof(archive_path)) {
-        return NULL;
-      }
+    if (Path_Join(archive_path, sizeof(archive_path), relative_path, dir_name) !=
+        0) {
+      return NULL;
     }
 
     /* Add entry */

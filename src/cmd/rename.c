@@ -19,7 +19,6 @@
 #endif
 
 #define FILE_SEPARATOR_CHAR '/'
-#define FILE_SEPARATOR_STRING "/"
 
 #if defined(S_IFLNK)
 #define STAT_(a, b) lstat(a, b)
@@ -44,11 +43,11 @@ int RenameDirectory(ViewContext *ctx, DirEntry *de_ptr, const char *new_name) {
   FileEntry *fe_ptr;
   char from_path[PATH_LENGTH + 1];
   char to_path[PATH_LENGTH + 1];
+  char parent_path[PATH_LENGTH + 1];
   struct stat stat_struct;
   int result;
   const char *cptr;
   size_t new_name_len;
-  int len;
 
   result = -1;
 
@@ -66,12 +65,7 @@ int RenameDirectory(ViewContext *ctx, DirEntry *de_ptr, const char *new_name) {
   }
 #endif
 
-  /*
-   * Safety Fix: Construct the new path using snprintf instead of modifying
-   * the string in place with strcpy/strcat.
-   */
-
-  /* Find the parent directory by locating the last separator */
+  /* Find the parent directory by locating the last separator. */
   cptr = strrchr(from_path, FILE_SEPARATOR_CHAR);
 
   if (!cptr) {
@@ -79,18 +73,18 @@ int RenameDirectory(ViewContext *ctx, DirEntry *de_ptr, const char *new_name) {
   }
 
   if (cptr == from_path) {
-    /* Parent is root '/' */
-    len = snprintf(to_path, sizeof(to_path), "%c%s", FILE_SEPARATOR_CHAR,
-                   new_name);
+    parent_path[0] = FILE_SEPARATOR_CHAR;
+    parent_path[1] = '\0';
   } else {
-    /* Calculate length of parent directory string */
-    int parent_len = cptr - from_path;
-    /* Construct new path: parent_dir + separator + new_name */
-    len = snprintf(to_path, sizeof(to_path), "%.*s%c%s", parent_len, from_path,
-                   FILE_SEPARATOR_CHAR, new_name);
+    size_t parent_len = (size_t)(cptr - from_path);
+    if (parent_len >= sizeof(parent_path)) {
+      return -1;
+    }
+    memcpy(parent_path, from_path, parent_len);
+    parent_path[parent_len] = '\0';
   }
 
-  if (len >= (int)sizeof(to_path)) {
+  if (Path_Join(to_path, sizeof(to_path), parent_path, new_name) != 0) {
     return -1;
   }
 
@@ -167,7 +161,6 @@ int RenameFile(ViewContext *ctx, FileEntry *fe_ptr, const char *new_name,
   struct stat stat_struct;
   int result;
   size_t new_name_len;
-  int len;
 
   result = -1;
 
@@ -188,19 +181,9 @@ int RenameFile(ViewContext *ctx, FileEntry *fe_ptr, const char *new_name,
   }
 #endif
 
-  /* Safety Fix: Use snprintf to construct to_path */
+  /* Construct destination path with normalized join semantics. */
   (void)GetPath(de_ptr, parent_path);
-
-  /* Handle root path case correctly (avoid double slash if parent is "/") */
-  if (strcmp(parent_path, FILE_SEPARATOR_STRING) == 0) {
-    len = snprintf(to_path, sizeof(to_path), "%c%s", FILE_SEPARATOR_CHAR,
-                   new_name);
-  } else {
-    len = snprintf(to_path, sizeof(to_path), "%s%c%s", parent_path,
-                   FILE_SEPARATOR_CHAR, new_name);
-  }
-
-  if (len >= (int)sizeof(to_path)) {
+  if (Path_Join(to_path, sizeof(to_path), parent_path, new_name) != 0) {
     return -1;
   }
 
