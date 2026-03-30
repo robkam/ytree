@@ -36,16 +36,6 @@ extern void NormPath(char *in_path, char *out_path);
 extern int Path_Join(char *dest, size_t size, const char *dir,
                      const char *leaf);
 
-/* volume.c */
-extern struct Volume *Volume_Create(ViewContext *ctx);
-extern void Volume_Delete(ViewContext *ctx, struct Volume *vol);
-extern void Volume_FreeAll(ViewContext *ctx);
-extern struct Volume *Volume_GetByPath(ViewContext *ctx, const char *path);
-extern struct Volume *Volume_Load(ViewContext *ctx, const char *path,
-                                  struct Volume *reuse_vol,
-                                  ScanProgressCallback cb, void *cb_user_data);
-extern void SetKindOfSort(int kind_of_sort, Statistic *s);
-
 /* archive.c */
 extern int ExtractArchiveEntry(const char *archive_path, const char *entry_path,
                                int out_fd, ArchiveProgressCallback cb,
