@@ -33,6 +33,61 @@ static int AppendBounded(char *dst, size_t dst_size, const char *src) {
   return 0;
 }
 
+int Path_Join(char *dest, size_t size, const char *dir, const char *leaf) {
+  size_t dir_len;
+  size_t trimmed_dir_len;
+  const char *leaf_part;
+  int is_root_dir;
+
+  if (!dest || size == 0 || !dir || !leaf) {
+    return -1;
+  }
+
+  dest[0] = '\0';
+
+  dir_len = strlen(dir);
+  trimmed_dir_len = dir_len;
+  while (trimmed_dir_len > 1 &&
+         dir[trimmed_dir_len - 1] == FILE_SEPARATOR_CHAR) {
+    trimmed_dir_len--;
+  }
+
+  leaf_part = leaf;
+  while (*leaf_part == FILE_SEPARATOR_CHAR) {
+    leaf_part++;
+  }
+
+  is_root_dir =
+      (trimmed_dir_len == 1 && dir[0] == FILE_SEPARATOR_CHAR) ? 1 : 0;
+
+  if (trimmed_dir_len > 0) {
+    if (trimmed_dir_len >= size) {
+      dest[size - 1] = '\0';
+      return -1;
+    }
+    memcpy(dest, dir, trimmed_dir_len);
+    dest[trimmed_dir_len] = '\0';
+  }
+
+  if (*leaf_part != '\0') {
+    if (trimmed_dir_len > 0 && !is_root_dir &&
+        AppendBounded(dest, size, FILE_SEPARATOR_STRING) != 0) {
+      return -1;
+    }
+    if (AppendBounded(dest, size, leaf_part) != 0) {
+      return -1;
+    }
+    return 0;
+  }
+
+  if (trimmed_dir_len > 0 && !is_root_dir &&
+      AppendBounded(dest, size, FILE_SEPARATOR_STRING) != 0) {
+    return -1;
+  }
+
+  return 0;
+}
+
 char *GetPath(DirEntry *dir_entry, char *buffer) {
   char *components[256];
   int depth = 0;
