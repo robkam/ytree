@@ -273,6 +273,7 @@
     1.  Refactor `InternalView` to accept a `WINDOW *parent` or `YtreeGeometry` struct.
     2.  Ensure it respects the bounds passed by the caller, allowing it to eventually run inside a Split Screen pane (future proofing).
 *   **Files to Modify:** `src/ui/view_internal.c`.
+*   - [x] **Status:** Completed.
 
 ### **Step 11.6: Strict Header Hygiene** (Use the Architect persona here)
 *   **Task ID:** [Core]-[Build]-[Coupling]
