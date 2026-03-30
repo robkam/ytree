@@ -5,8 +5,7 @@
  *
  ***************************************************************************/
 
-#define NO_YTREE_MACROS
-#include "ytree.h"
+#include "ytree_ui.h"
 
 /* Internal recursive helper for BuildDirEntryList */
 static void ReadDirList(ViewContext *ctx, DirEntry *dir_entry,

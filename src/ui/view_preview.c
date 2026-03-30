@@ -5,7 +5,8 @@
  *
  ***************************************************************************/
 
-#include "ytree.h"
+#include "ytree_fs.h"
+#include "ytree_ui.h"
 #include <errno.h>
 #include <sys/stat.h>
 #include <unistd.h>

@@ -5,7 +5,8 @@
  *
  ***************************************************************************/
 
-#include "ytree.h"
+#include "ytree_cmd.h"
+#include "ytree_ui.h"
 
 /*
  * SetDirMode

@@ -8,7 +8,8 @@
  *
  ***************************************************************************/
 
-#include "ytree.h"
+#include "ytree_cmd.h"
+#include "ytree_ui.h"
 #include <ctype.h>  /* For isalnum */
 #include <stdlib.h> /* For getenv */
 

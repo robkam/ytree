@@ -5,8 +5,7 @@
  *
  ***************************************************************************/
 
-#define NO_YTREE_MACROS
-#include "ytree.h"
+#include "ytree_fs.h"
 #include "ytree_ui.h"
 
 void DirNav_Movedown(ViewContext *ctx, DirEntry **dir_entry, YtreePanel *p) {

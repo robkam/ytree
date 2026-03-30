@@ -5,7 +5,7 @@
  *
  ***************************************************************************/
 
-#include "ytree.h"
+#include "ytree_ui.h"
 
 #ifdef COLOR_SUPPORT
 

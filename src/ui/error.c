@@ -6,7 +6,9 @@
  ***************************************************************************/
 
 #include "patchlev.h"
-#include "ytree.h"
+#include "ytree_ui.h"
+
+#include <stdarg.h>
 
 static void MapErrorWindow(ViewContext *ctx, char *header);
 static void MapNoticeWindow(ViewContext *ctx, char *header);
