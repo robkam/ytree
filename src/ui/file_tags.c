@@ -5,8 +5,7 @@
  *
  ***************************************************************************/
 
-#define NO_YTREE_MACROS
-#include "ytree.h"
+#include "ytree_cmd.h"
 #include "ytree_ui.h"
 
 #define MAX(a, b) (((a) > (b)) ? (a) : (b))

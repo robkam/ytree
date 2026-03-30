@@ -5,7 +5,7 @@
  *
  ***************************************************************************/
 
-#include "ytree.h"
+#include "ytree_ui.h"
 #include <time.h>
 #include <string.h>
 

@@ -6,9 +6,9 @@
  *
  ***************************************************************************/
 
-#define NO_YTREE_MACROS
 #include "watcher.h"
-#include "ytree.h"
+#include "ytree_cmd.h"
+#include "ytree_fs.h"
 #include "ytree_ui.h"
 
 /* TREEDEPTH uses GetProfileValue which is 2-arg in NO_YTREE_MACROS context */

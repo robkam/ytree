@@ -5,8 +5,6 @@
  *
  ***************************************************************************/
 
-#define NO_YTREE_MACROS
-#include "ytree.h"
 #include "ytree_ui.h"
 
 void HandleTagDir(ViewContext *ctx, DirEntry *dir_entry, BOOL value,

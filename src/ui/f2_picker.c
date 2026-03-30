@@ -5,8 +5,8 @@
  *
  ***************************************************************************/
 
-#define NO_YTREE_MACROS
-#include "ytree.h"
+#include "ytree_cmd.h"
+#include "ytree_fs.h"
 #include "ytree_ui.h"
 
 int KeyF2Get(ViewContext *ctx, YtreePanel *panel, char *path) {

@@ -11,6 +11,32 @@
 #include "ytree_defs.h"
 #include "ytree_dialog.h"
 
+#ifdef WITH_UTF8
+/* In UTF-8 mode, let ncurses handle bytes directly. */
+#ifndef PRINT
+#define PRINT(ch) ((unsigned char)(ch) < 32 && (ch) != 0 ? ACS_BLOCK : (ch))
+#endif
+#else
+#ifndef PRINT
+#define PRINT(ch)                                                              \
+  (iscntrl(ch) && (((unsigned char)(ch)) < ' ')) ? (ACS_BLOCK)                \
+                                                 : ((unsigned char)(ch))
+#endif
+#endif
+
+#ifndef ERROR_WINDOW_WIDTH
+#define ERROR_WINDOW_WIDTH 40
+#endif
+#ifndef ERROR_WINDOW_HEIGHT
+#define ERROR_WINDOW_HEIGHT 10
+#endif
+#ifndef ERROR_WINDOW_X
+#define ERROR_WINDOW_X ((COLS - ERROR_WINDOW_WIDTH) >> 1)
+#endif
+#ifndef ERROR_WINDOW_Y
+#define ERROR_WINDOW_Y ((LINES - ERROR_WINDOW_HEIGHT) >> 1)
+#endif
+
 /* animate.c */
 extern void InitAnimation(ViewContext *ctx);
 extern void StopAnimation(ViewContext *ctx);

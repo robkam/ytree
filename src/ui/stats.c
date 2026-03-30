@@ -7,7 +7,8 @@
  *
  ***************************************************************************/
 
-#include "ytree.h"
+#include "ytree_cmd.h"
+#include "ytree_ui.h"
 
 #include <curses.h>
 #include <math.h>
