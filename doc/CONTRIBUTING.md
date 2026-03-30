@@ -1,6 +1,8 @@
-# Contributing to ytree
-
-Thank you for your interest in contributing to ytree! This document provides guidelines for setting up your development environment, running tests, and submitting your changes.
+# **Contributing to ytree**
+> Thank you for your interest in contributing to ytree! This document provides guidelines for setting up your development environment, running tests, and submitting your changes.
+>
+> See **[ARCHITECTURE.md](ARCHITECTURE.md)** for technical design principles (how the code is built).
+> See **[SPECIFICATION.md](SPECIFICATION.md)** for behavioral requirements (how the UI behaves).
 
 **Note for AI-Assisted Development:**
 For the AI-assisted development workflow, script usage, System Persona prompts, and semantic tool integration (**Serena**, **jCodeMunch**), please see **[ai/WORKFLOW.md](ai/WORKFLOW.md)**.

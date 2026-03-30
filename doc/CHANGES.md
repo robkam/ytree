@@ -5,24 +5,45 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [3.0.0] - 2025-12-17
+## [3.0.0-pre-alpha] - 2026-03-30
 
-*Modernization Project initiated 30 Oct 2025. This release represents a comprehensive architectural refactor from the legacy 2.10 codebase to modern C99/POSIX standards.*
+*Modernization Project initiated 30 Oct 2025. This release represents a comprehensive architectural refactor from the legacy 2.10 codebase to modern C99/POSIX standards. While the bulk of the core modernization is complete, it is designated as **pre-alpha** as UI/UX tightening and stability refinements continue.*
 
-### Added
-- **Multi-Volume Architecture**: Support for logging multiple drives, directories, or archives simultaneously.
-- **Volume Navigation**: New Volume Menu (`K`) and cycling (`<`, `>`) to switch between loaded contexts.
-- **Volume Release**: Ability to unlog/release volumes from memory via the Volume Menu (`D`).
-- **Modern Archive Support**: Integration of `libarchive` for robust browsing and extraction of compressed archives (ZIP, TAR, 7Z, ISO, etc.). *Currently read-only.*
-- **UI Modernization**: Redesigned statistics panel with "boxed" layout, responsiveness to terminal size, and human-readable file sizes.
-- **Advanced Filtering**: Unified filter system supporting Regex patterns, Date (`>YYYY-MM-DD`), Size (`>10M`), and Attributes (`:d`, `:r`).
+### Major Architectural & Core Modernization
+- **Refactoring & Standardization**: Ported legacy C89 code to modern C99/POSIX standards.
+- **SRP & SoC Enforcement**: Deep-dive refactor to decouple the Filesystem Model (Model) from the UI (View), eradicating global "God Objects" and implicit state leakage.
+- **Source Normalization**: Total reorganization of the source tree into semantic layers (`core`, `ui`, `fs`, `cmd`, `util`) with modular header decomposition.
+- **Memory Safety & Hygiene**: Established a zero-leak baseline using Valgrind/ASan, implemented standardized `xmalloc` wrappers, and modernized user/group database handling.
+- **Signal Safety & Precision**: Replaced hazardous `SIGALRM` based clock handlers with event-loop integration and enforced strict signal-safety for application shutdown.
+- **Dynamic Layout Engine**: Eliminated layout "magic numbers" in favor of a runtime geometry engine that supports responsive resizing.
+- **Identifier Normalization**: Anglicised the source code by replacing legacy German identifiers with English equivalents.
 - **UTF-8 Support**: Full wide-character support (`ncursesw`) for correct display of Unicode filenames.
-- **Activity Spinner**: Visual feedback in the menu bar during long operations.
 
-### Changed
-- **Refactoring**: Ported legacy C89 code to modern C99/POSIX standards.
-- **Configuration**: Removed obsolete archive helper commands; moved to internal library handling.
-- **Build System**: Updated Makefile for dependency tracking and debug/release modes.
+### Multi-Volume & Archive Management
+- **Multi-Volume Architecture**: Support for logging multiple drives, directories, or archives simultaneously.
+- **Volume Navigation**: New Volume Menu (`K`) and cycling (`<`, `>`) to switch between loaded contexts (including integrated release/unlog via `D`).
+- **Universal Archive Engine**: Fully integrated `libarchive` as the primary engine for robust browsing and extraction (ZIP, TAR, 7Z, ISO, etc.), replacing dozens of external utilities.
+- **Atomic Archive Modification**: Implemented a "Stream Rewrite" engine allowing for atomic entry addition, deletion, and renaming within compressed containers.
+- **Transparent Navigation**: Seamlessly traverse nested archives and exit archive contexts back to the physical filesystem using intuitive navigation logic.
+- **UDF/ISO Bridge Support**: Enhanced detection logic to correctly handle multi-format bridge media (e.g., modern Windows ISOs).
+- **Archive Search & Execute**: Support for searching (`^S`) and executing (`X`) files directly within compressed archive containers.
+
+### UI/UX & Power-User Features
+- **Modernized Interface**: Redesigned statistics panel with "boxed" layout, responsiveness to terminal size, and human-readable file sizes.
+- **Split-Screen (F8)**: Support for independent panes with separate context, cursors, and filters for efficient cross-volume operations.
+- **Integrated Window Stack**: Implemented a tiered Dialog Manager for flicker-free rendering of prompts, menus, and history pop-overs.
+- **Advanced Comprehensive Filtering**: Unified filter stack supporting complex Regex patterns, Date ranges, File Attributes, and Size suffixes.
+- **Iterative Incremental Search**: High-speed list navigation (`/`) with sticky-cursor logic for both file and directory windows.
+- **Internal File Preview (F7)**: Fast, integrated file inspection mode that seamlessly toggles the statistics panel.
+- **Vi-Keys Profile Option**: Runtime toggle for `h`/`j`/`k`/`l` navigation (remapped conflicting `K`/`L` keys).
+- **Activity Spinner**: Visual feedback in the menu bar during long operations.
+- **Contextual History**: Separated command history into relevant categories with support for "favorite" entries.
+- **UI Consistency**: Standardized input prompt padding and command line geometry across all application modules.
+
+### Infrastructure, QA & Bug Fixes
+- **Clock & Date Localization**: Stabilized the real-time clock and date handlers, resolving the "beta" state from v2.10.
+- **Build System**: Updated Makefile for dependency tracking and automated manpage generation via `pandoc`.
+- **QA Suite**: Integrated GitHub Actions CI and expanded `pytest`/`pexpect` coverage for core TUI behavioral validation.
 
 ## [2.10]
 - 7zip / iso support.
@@ -45,7 +66,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed compile error in input.c (UTF_8 only).
 
 ## [2.05]
-- Uses regcomp instead of deprecated re_comp/re_exec (linux).
+- Uses **regcomp** instead of deprecated re_comp/re_exec (**Unix/POSIX**).
 - Debug file sort issue for very large file sizes.
 - Reduced compiler warnings.
 
