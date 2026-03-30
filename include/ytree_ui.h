@@ -37,6 +37,20 @@
 #define ERROR_WINDOW_Y ((LINES - ERROR_WINDOW_HEIGHT) >> 1)
 #endif
 
+/* Standard UI Vertical Layout */
+#ifndef Y_HEADER
+#define Y_HEADER(ctx) ((ctx)->layout.header_y)
+#endif
+#ifndef Y_PROMPT
+#define Y_PROMPT(ctx) ((ctx)->layout.prompt_y)
+#endif
+#ifndef Y_STATUS
+#define Y_STATUS(ctx) ((ctx)->layout.status_y)
+#endif
+#ifndef Y_MESSAGE
+#define Y_MESSAGE(ctx) ((ctx)->layout.message_y)
+#endif
+
 /* animate.c */
 extern void InitAnimation(ViewContext *ctx);
 extern void StopAnimation(ViewContext *ctx);
