@@ -56,24 +56,18 @@ int MoveFile(ViewContext *ctx, FileEntry *fe_ptr, const char *to_file,
   de_ptr = fe_ptr->dir_entry;
 
   (void)GetPath(de_ptr, from_dir); /* Get clean source directory path */
-  written = snprintf(from_path, sizeof(from_path), "%s%s%s", from_dir,
-                     FILE_SEPARATOR_STRING, fe_ptr->name);
-  if (written < 0 || (size_t)written >= sizeof(from_path)) {
+  if (Path_Join(from_path, sizeof(from_path), from_dir, fe_ptr->name) != 0) {
     return -1;
   }
 
   /* Construct base destination path */
-  written = snprintf(to_path, sizeof(to_path), "%s%s", to_dir_path,
-                     FILE_SEPARATOR_STRING);
-  if (written < 0 || (size_t)written >= sizeof(to_path)) {
+  if (Path_Join(to_path, sizeof(to_path), to_dir_path, "") != 0) {
     return -1;
   }
 
   /* Handle relative path: make absolute based on source directory */
   if (*to_path != FILE_SEPARATOR_CHAR) {
-    written = snprintf(abs_path, sizeof(abs_path), "%s%s%s", from_dir,
-                       FILE_SEPARATOR_STRING, to_path);
-    if (written < 0 || (size_t)written >= sizeof(abs_path)) {
+    if (Path_Join(abs_path, sizeof(abs_path), from_dir, to_path) != 0) {
       return -1;
     }
     written = snprintf(to_path, sizeof(to_path), "%s", abs_path);
@@ -142,12 +136,11 @@ int MoveFile(ViewContext *ctx, FileEntry *fe_ptr, const char *to_file,
   }
 
   {
-    size_t to_path_len = strlen(to_path);
-    written =
-        snprintf(to_path + to_path_len, sizeof(to_path) - to_path_len, "%s",
-                 to_file);
-    if (written < 0 ||
-        (size_t)written >= (sizeof(to_path) - to_path_len)) {
+    if (Path_Join(abs_path, sizeof(abs_path), to_path, to_file) != 0) {
+      return -1;
+    }
+    written = snprintf(to_path, sizeof(to_path), "%s", abs_path);
+    if (written < 0 || (size_t)written >= sizeof(to_path)) {
       return -1;
     }
   }

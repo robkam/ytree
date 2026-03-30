@@ -97,19 +97,8 @@ int CopyFile(ViewContext *ctx, Statistic *statistic_ptr, FileEntry *fe_ptr,
 
       /* Construct full destination path for the directory */
       {
-        const char *dest_sep = "";
-        int composed_len;
-        size_t full_dest_len = strlen(to_dir_path);
-
-        if (full_dest_len > 0 &&
-            to_dir_path[full_dest_len - 1] != FILE_SEPARATOR_CHAR) {
-          dest_sep = FILE_SEPARATOR_STRING;
-        }
-
-        composed_len = snprintf(full_dest_path, sizeof(full_dest_path), "%s%s%s",
-                                to_dir_path, dest_sep, rel_path);
-        if (composed_len < 0 ||
-            (size_t)composed_len >= sizeof(full_dest_path)) {
+        if (Path_Join(full_dest_path, sizeof(full_dest_path), to_dir_path,
+                      rel_path) != 0) {
           return result;
         }
       }
@@ -224,28 +213,18 @@ int CopyFile(ViewContext *ctx, Statistic *statistic_ptr, FileEntry *fe_ptr,
         rel_path++;
     }
 
-    /* Append relative path and a trailing separator in one bounded step. */
+    /* Append relative path and normalize with a trailing separator. */
     {
-      const char *dest_sep = "";
-      int composed_len;
-      size_t len;
-
-      len = strlen(to_path);
-      if (len > 0 && to_path[len - 1] != FILE_SEPARATOR_CHAR) {
-        dest_sep = FILE_SEPARATOR_STRING;
-      }
-      composed_len = snprintf(abs_path, sizeof(abs_path), "%s%s%s/", to_path,
-                              dest_sep, rel_path);
-      if (composed_len < 0 || (size_t)composed_len >= sizeof(abs_path)) {
+      if (Path_Join(abs_path, sizeof(abs_path), to_path, rel_path) != 0) {
         return result;
       }
-      (void)snprintf(to_path, sizeof(to_path), "%s", abs_path);
+      if (Path_Join(to_path, sizeof(to_path), abs_path, "") != 0) {
+        return result;
+      }
     }
 
     if (*to_path != FILE_SEPARATOR_CHAR) {
-      int composed_len = snprintf(abs_path, sizeof(abs_path), "%s/%s", from_dir,
-                                  to_path);
-      if (composed_len < 0 || (size_t)composed_len >= sizeof(abs_path)) {
+      if (Path_Join(abs_path, sizeof(abs_path), from_dir, to_path) != 0) {
         return result;
       }
       (void)snprintf(to_path, sizeof(to_path), "%s", abs_path);
@@ -278,8 +257,7 @@ int CopyFile(ViewContext *ctx, Statistic *statistic_ptr, FileEntry *fe_ptr,
   }
 
   {
-    int composed_len = snprintf(abs_path, sizeof(abs_path), "%s/", to_path);
-    if (composed_len < 0 || (size_t)composed_len >= sizeof(abs_path)) {
+    if (Path_Join(abs_path, sizeof(abs_path), to_path, "") != 0) {
       return result;
     }
     (void)snprintf(to_path, sizeof(to_path), "%s", abs_path);
@@ -288,9 +266,7 @@ int CopyFile(ViewContext *ctx, Statistic *statistic_ptr, FileEntry *fe_ptr,
   /* Pre-emptively fix relative paths to ensure EnsureDirectoryExists handles
    * them correctly */
   if (*to_path != FILE_SEPARATOR_CHAR) {
-    int composed_len =
-        snprintf(abs_path, sizeof(abs_path), "%s/%s", from_dir, to_path);
-    if (composed_len < 0 || (size_t)composed_len >= sizeof(abs_path)) {
+    if (Path_Join(abs_path, sizeof(abs_path), from_dir, to_path) != 0) {
       return result;
     }
     (void)snprintf(to_path, sizeof(to_path), "%s", abs_path);
@@ -482,9 +458,7 @@ int CopyFile(ViewContext *ctx, Statistic *statistic_ptr, FileEntry *fe_ptr,
   }
 
   {
-    int composed_len = snprintf(abs_path, sizeof(abs_path), "%s%s", to_path,
-                                to_file);
-    if (composed_len < 0 || (size_t)composed_len >= sizeof(abs_path)) {
+    if (Path_Join(abs_path, sizeof(abs_path), to_path, to_file) != 0) {
       return result;
     }
     (void)snprintf(to_path, sizeof(to_path), "%s", abs_path);
