@@ -340,24 +340,21 @@ int GetNewLogPath(ViewContext *ctx, YtreePanel *panel, char *path) {
                       HST_LOG) == CR) {
     char temp_path[PATH_LENGTH * 3 + 2];
     char resolved_path[PATH_LENGTH + 1];
-    int composed_len;
+    int composed_len = 0;
 
     /* InputString expands '~', so check if the result is an absolute path. */
     if (user_input[0] != FILE_SEPARATOR_CHAR) {
       /* It's a relative path. Construct the full path to be resolved. */
-      if (strcmp(current_dir_path, FILE_SEPARATOR_STRING) == 0) {
-        composed_len = snprintf(temp_path, sizeof(temp_path), "/%s", user_input);
-      } else {
-        composed_len = snprintf(temp_path, sizeof(temp_path), "%s/%s",
-                                current_dir_path, user_input);
+      if (Path_Join(temp_path, sizeof(temp_path), current_dir_path, user_input) !=
+          0) {
+        return result;
       }
     } else {
       /* It's an absolute path. */
       composed_len = snprintf(temp_path, sizeof(temp_path), "%s", user_input);
-    }
-
-    if (composed_len < 0 || (size_t)composed_len >= sizeof(temp_path)) {
-      return result;
+      if (composed_len < 0 || (size_t)composed_len >= sizeof(temp_path)) {
+        return result;
+      }
     }
 
     if (realpath(temp_path, resolved_path) != NULL) {
