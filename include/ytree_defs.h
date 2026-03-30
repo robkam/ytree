@@ -17,6 +17,15 @@ typedef struct _ViewContext ViewContext;
 #include <locale.h>
 #include <math.h>
 #include <stdio.h>
+#define DEBUG_LOG(fmt, ...)                                                    \
+  {                                                                            \
+    FILE *fp = fopen("/tmp/ytree_debug.log", "a");                             \
+    if (fp) {                                                                  \
+      fprintf(fp, fmt "\n", ##__VA_ARGS__);                                    \
+      fflush(fp);                                                              \
+      fclose(fp);                                                              \
+    }                                                                          \
+  }
 
 #ifdef XCURSES
 #include <xcurses.h>
@@ -211,6 +220,20 @@ typedef struct _ViewContext ViewContext;
 #define PROFILE_FILENAME ".ytree"
 #define HISTORY_FILENAME ".ytree-hst"
 #define CLOCK_INTERVAL 1
+#define DEFAULT_FILE_SPEC "*"
+
+#define SORT_BY_NAME 1
+#define SORT_BY_MOD_TIME 2
+#define SORT_BY_CHG_TIME 3
+#define SORT_BY_ACC_TIME 4
+#define SORT_BY_SIZE 5
+#define SORT_BY_OWNER 6
+#define SORT_BY_GROUP 7
+#define SORT_BY_EXTENSION 8
+#define SORT_ASC 10
+#define SORT_DSC 20
+#define SORT_CASE 40
+#define SORT_ICASE 80
 
 #define ERR_TO_NULL " 2> /dev/null"
 #define ERR_TO_STDOUT " 2>&1 "
@@ -525,6 +548,8 @@ typedef struct {
   int fg;
   int bg;
 } UIColor;
+
+extern volatile sig_atomic_t ytree_shutdown_flag;
 
 typedef struct _file_color_rule {
   char *pattern;

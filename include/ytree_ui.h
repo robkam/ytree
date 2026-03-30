@@ -17,6 +17,16 @@ extern void StopAnimation(ViewContext *ctx);
 extern void DrawAnimationStep(ViewContext *ctx, WINDOW *win);
 extern void DrawSpinner(ViewContext *ctx);
 
+/* init.c */
+extern int Init(ViewContext *ctx, char *configuration_file, char *history_file);
+extern void ReCreateWindows(ViewContext *ctx);
+extern void ShutdownCurses(ViewContext *ctx);
+
+/* clock.c */
+extern void ClockHandler(ViewContext *ctx, int sig);
+extern void InitClock(ViewContext *ctx);
+extern void SuspendClock(ViewContext *ctx);
+
 /* color.c */
 #ifdef COLOR_SUPPORT
 extern void StartColors(ViewContext *ctx);
@@ -116,6 +126,7 @@ extern void UI_RenderStatusLineError(ViewContext *ctx);
 extern void UI_ClearStatusLineError(ViewContext *ctx);
 
 /* filewin.c / ctrl_file.c / ctrl_file_ops.c */
+extern void FreeFileEntryList(YtreePanel *panel);
 extern void BuildFileEntryList(ViewContext *ctx, YtreePanel *panel);
 extern void DisplayFileWindow(ViewContext *ctx, YtreePanel *panel,
                               const DirEntry *dir_entry);

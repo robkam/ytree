@@ -11,16 +11,6 @@
 #include "ytree_cmd.h"
 #include "ytree_defs.h"
 #include "ytree_fs.h"
-#include <stdio.h>
-#define DEBUG_LOG(fmt, ...)                                                    \
-  {                                                                            \
-    FILE *fp = fopen("/tmp/ytree_debug.log", "a");                             \
-    if (fp) {                                                                  \
-      fprintf(fp, fmt "\n", ##__VA_ARGS__);                                    \
-      fflush(fp);                                                              \
-      fclose(fp);                                                              \
-    }                                                                          \
-  }
 #include "ytree_ui.h"
 #include <stdarg.h>
 
@@ -65,21 +55,6 @@
 #define AUTO_REFRESH GetProfileValue("AUTO_REFRESH")
 
 #define DEFAULT_TREE "."
-
-#define SORT_BY_NAME 1
-#define SORT_BY_MOD_TIME 2
-#define SORT_BY_CHG_TIME 3
-#define SORT_BY_ACC_TIME 4
-#define SORT_BY_SIZE 5
-#define SORT_BY_OWNER 6
-#define SORT_BY_GROUP 7
-#define SORT_BY_EXTENSION 8
-#define SORT_ASC 10
-#define SORT_DSC 20
-#define SORT_CASE 40
-#define SORT_ICASE 80
-
-#define DEFAULT_FILE_SPEC "*"
 
 extern void Layout_Recalculate(ViewContext *ctx);
 
@@ -145,7 +120,6 @@ extern UIColor ui_colors[];
 extern int NUM_UI_COLORS;
 
 extern char *getenv(const char *);
-extern volatile sig_atomic_t ytree_shutdown_flag;
 
 /* ************************************************************************* */
 /*                       FUNCTION PROTOTYPES                                 */
