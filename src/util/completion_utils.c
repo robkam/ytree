@@ -17,8 +17,6 @@
 #define MATCHES_WINDOW_HEIGHT (LINES - 6)
 #define MAX(a, b) (((a) > (b)) ? (a) : (b))
 
-extern void *xmalloc(size_t size);
-
 static void PrintMtchEntry(ViewContext *ctx, int entry_no, int y, int color,
                            int start_x, int *hide_left, int *hide_right);
 static int DisplayMatches(ViewContext *ctx);

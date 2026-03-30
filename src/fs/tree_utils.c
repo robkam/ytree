@@ -12,15 +12,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-extern void *xmalloc(size_t size);
-extern char *xstrdup(const char *s);
-extern char *GetPath(DirEntry *dir_entry, char *buffer);
-extern char *GetFileNamePath(FileEntry *file_entry, char *buffer);
-extern void Fnsplit(char *path, char *dir, char *name);
-extern void NormPath(char *in_path, char *out_path);
-extern int MakePath(const ViewContext *ctx, DirEntry *tree, char *dir_path,
-                    DirEntry **dest_dir_entry);
-
 static void DeleteFileTree(FileEntry *fe_ptr);
 static void DeleteSubTree(DirEntry *de_ptr);
 

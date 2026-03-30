@@ -15,6 +15,12 @@
 /* Define the progress callback type for Scans */
 typedef void (*ScanProgressCallback)(ViewContext *ctx, void *user_data);
 
+/* path_utils.c */
+extern char *GetFileNamePath(FileEntry *file_entry, char *buffer);
+extern char *GetPath(DirEntry *dir_entry, char *buffer);
+extern void Fnsplit(char *path, char *dir, char *name);
+extern void NormPath(char *in_path, char *out_path);
+
 /* archive.c */
 extern int ExtractArchiveEntry(const char *archive_path, const char *entry_path,
                                int out_fd, ArchiveProgressCallback cb,

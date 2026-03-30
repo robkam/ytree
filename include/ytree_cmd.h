@@ -85,6 +85,8 @@ extern int GetNewLogPath(ViewContext *ctx, YtreePanel *panel, char *path);
 extern int MakeDirectory(const ViewContext *ctx, YtreePanel *panel,
                          DirEntry *father_dir_entry, const char *dir_name,
                          Statistic *s);
+extern int MakePath(const ViewContext *ctx, DirEntry *tree, char *dir_path,
+                    DirEntry **dest_dir_entry);
 extern int EnsureDirectoryExists(ViewContext *ctx, char *dir_path,
                                  DirEntry *tree, BOOL *created,
                                  DirEntry **result_ptr, int *auto_create,
