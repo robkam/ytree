@@ -8,8 +8,34 @@
  *
  ***************************************************************************/
 
+#include "config.h"
 #include "watcher.h"
-#include "ytree.h"
+#include "ytree_cmd.h"
+#include "ytree_debug.h"
+#include "ytree_fs.h"
+#include "ytree_ui.h"
+
+#define SORT_BY_NAME 1
+
+#define F2_WINDOW_X(ctx) ((ctx)->layout.dir_win_x)
+#define F2_WINDOW_Y(ctx) ((ctx)->layout.dir_win_y)
+#define F2_WINDOW_WIDTH(ctx) ((ctx)->layout.dir_win_width)
+#define F2_WINDOW_HEIGHT(ctx) ((ctx)->layout.dir_win_height + 1)
+
+#define ERROR_WINDOW_WIDTH 40
+#define ERROR_WINDOW_HEIGHT 10
+#define ERROR_WINDOW_X ((COLS - ERROR_WINDOW_WIDTH) >> 1)
+#define ERROR_WINDOW_Y ((LINES - ERROR_WINDOW_HEIGHT) >> 1)
+
+#define HISTORY_WINDOW_X 1
+#define HISTORY_WINDOW_Y 2
+#define HISTORY_WINDOW_WIDTH(ctx) ((ctx)->layout.main_win_width)
+#define HISTORY_WINDOW_HEIGHT (LINES - 6)
+
+#define TIME_WINDOW_X (COLS - 20)
+#define TIME_WINDOW_Y 0
+#define TIME_WINDOW_WIDTH 20
+#define TIME_WINDOW_HEIGHT 1
 
 static WINDOW *Subwin(WINDOW *orig, int nlines, int ncols, int begin_y,
                       int begin_x);

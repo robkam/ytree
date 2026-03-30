@@ -127,9 +127,13 @@ extern char *GetUserFileAction(const ViewContext *ctx, int chkey, int *pchremap)
 extern char *GetUserDirAction(const ViewContext *ctx, int chkey, int *pchremap);
 extern BOOL IsUserActionDefined(const ViewContext *ctx);
 extern char *GetExtViewer(const ViewContext *ctx, const char *filename);
+extern int ReadProfile(ViewContext *ctx, const char *filename);
 
 /* history.c */
+extern void ReadHistory(ViewContext *ctx, const char *filename);
 extern void SaveHistory(ViewContext *ctx, const char *filename);
+extern void InsHistory(ViewContext *ctx, const char *new_hst, int type);
+extern char *GetHistory(ViewContext *ctx, int type);
 
 /* passwd.c */
 extern int ReadPasswdEntries(void);

@@ -15,6 +15,16 @@
 /* Define the progress callback type for Scans */
 typedef void (*ScanProgressCallback)(ViewContext *ctx, void *user_data);
 
+/* volume.c */
+extern struct Volume *Volume_Create(ViewContext *ctx);
+extern void Volume_Delete(ViewContext *ctx, struct Volume *vol);
+extern void Volume_FreeAll(ViewContext *ctx);
+extern struct Volume *Volume_GetByPath(ViewContext *ctx, const char *path);
+extern struct Volume *Volume_Load(ViewContext *ctx, const char *path,
+                                  struct Volume *reuse_vol,
+                                  ScanProgressCallback cb, void *cb_user_data);
+extern void SetKindOfSort(int kind_of_sort, Statistic *s);
+
 /* path_utils.c */
 extern const char *GetExtension(const char *filename);
 extern char *GetFileNamePath(FileEntry *file_entry, char *buffer);
