@@ -244,6 +244,10 @@ extern void RenderArchivePreview(ViewContext *ctx, WINDOW *win,
                                  const char *internal_path,
                                  long *line_offset_ptr);
 
+/* quit.c */
+extern void Quit(ViewContext *ctx);
+extern void QuitTo(ViewContext *ctx, DirEntry *dir_entry);
+
 /* interactions.c */
 /* Date-change scopes (only fields POSIX allows us to set). */
 #define DATE_SCOPE_ACCESS 1

@@ -6,7 +6,7 @@
  *
  ***************************************************************************/
 
-#include "ytree.h"
+#include "watcher.h"
 
 #ifdef __linux__
 #include <errno.h>

@@ -515,6 +515,12 @@ extern int UI_Notice(ViewContext *ctx, const char *fmt, ...);
 #define MESSAGE(ctx, ...) UI_Message(ctx, __VA_ARGS__)
 #define NOTICE(ctx, ...) UI_Notice(ctx, __VA_ARGS__)
 
+/* memory_utils.c */
+extern void *xmalloc(size_t size);
+extern void *xcalloc(size_t nmemb, size_t size);
+extern void *xrealloc(void *ptr, size_t size);
+extern char *xstrdup(const char *s);
+
 /* Input Debugging */
 
 typedef struct {

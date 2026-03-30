@@ -5,7 +5,7 @@
  *
  ***************************************************************************/
 
-#include "ytree.h"
+#include "ytree_fs.h"
 
 #ifdef HAVE_LIBARCHIVE
 
