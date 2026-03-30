@@ -44,6 +44,11 @@ extern int GetFileTypeColor(const ViewContext *ctx, const FileEntry *fe_ptr);
 #define WbkgdSet(ctx, a, b) ;
 #endif
 
+/* clock.c */
+extern void ClockHandler(ViewContext *ctx, int sig);
+extern void InitClock(ViewContext *ctx);
+extern void SuspendClock(ViewContext *ctx);
+
 /* dirwin.c */
 extern int HandleDirWindow(ViewContext *ctx, const DirEntry *start_dir_entry);
 extern int KeyF2Get(ViewContext *ctx, YtreePanel *panel, char *path);
