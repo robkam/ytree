@@ -6,7 +6,9 @@
  ***************************************************************************/
 
 #define NO_YTREE_MACROS
-#include "ytree.h"
+#include "ytree_cmd.h"
+#include "ytree_fs.h"
+#include "ytree_ui.h"
 #include <utime.h>
 
 BOOL handle_tag_file_action(ViewContext *ctx, int action, DirEntry *dir_entry,
