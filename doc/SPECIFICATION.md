@@ -1,25 +1,16 @@
-# Functional & Behavioral Specification of Ytree
+# **Functional Specification**
+> **Purpose:** This document defines the behavioral "Contract of Truth" for `ytree`. it specifies how the UI should respond to input, how the filesystem is represented, and the design philosophy that governs the user experience.
 
-## 0. Introduction
-`ytree` is a TUI File Manager following the **XTree&trade;/ZTree/UnixTree** lineage. It acts as a strict **State Machine**. This document serves as the "Contract of Truth" for behavior. Any deviation in UI logic or visual representation is a bug.
+## **1. Design Philosophy**
+The `ytree` interface is built to make the power of the Unix filesystem accessible through a high-speed, intuitive terminal interface.
 
-### 0.1 Guiding Principle
-**Ytree makes filesystem work self-evident.** Users should not need command-line fluency or Unix jargon to succeed; core actions must be visible, named plainly, and understandable from the interface itself.
+*   **Unix-First Design:** Prioritize a user experience tailored for Unix power users, emphasizing shell integration, standard POSIX conventions, and scriptability.
+*   **Ytree makes filesystem work self-evident:** Users should not need command-line fluency or Unix jargon to succeed; core actions must be visible, named plainly, and understandable from the interface itself.
+*   **Interaction Economy (Minimize Friction):** `ytree` is designed to minimize the distance between user intent and execution. Avoid unnecessary confirmations for safe operations and ensure the common path is always `key -> Enter -> result`.
+*   **Direct Access (No Menu Diving):** High-speed keyboard access is superior to hierarchical navigation. Core functionality must be accessible via single-key or simple combinations; UI depth should never exceed one level for primary actions.
+*   **No Hidden Features:** All functionality, especially syntax like the `{}` placeholder, should be explained in context within the UI (e.g., in help lines or prompts).
 
-### 0.1.1 Interaction Economy (Low-Friction Contract)
-Interactive command flows must minimize interruption and decision depth:
-*   **Common Path Target:** `key -> Enter -> result`.
-*   **Submenu Budget:** Maximum one submenu on the common path.
-*   **Exception Rule:** If more than one submenu is required, the flow must provide an equivalent fast path and the extra depth must be explicitly justified by safety or correctness constraints.
-
-### 0.2 Technical Foundation
-*   **Standard:** C99 (via `gcc` or `clang`).
-*   **Flags:** `-D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS=64`.
-*   **Encapsulation:** Direct access to global memory is strictly prohibited. All functions must derive state from explicitly passed pointers (ViewContext, YtreePanel, or Volume).
-*   **Isolation:** Usage of Global Variables is strictly prohibited. All logic must derive state from passed Context pointers.
----
-
-## 1. The User Interface Architecture
+## **2. The User Interface Architecture**
 
 ### 1.1 The Layout Grid
 The screen is divided into non-overlapping zones. Geometry is calculated dynamically, except for the Stats Panel.

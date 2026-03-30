@@ -20,7 +20,7 @@ The difference lies in how they handle system dependencies:
 *   **Trade-off:** High consistency on legacy systems, but increased code size, complex build requirements, and high maintenance overhead.
 
 **2. Ytree: The Modern Approach**
-*   **Context:** Built for standardized POSIX systems (Linux, *BSD, macOS).
+*   **Context:** Built for standardized **POSIX-compliant Unix** systems (Linux, *BSD, macOS).
 *   **Approach:** Offloads functionality to shared, well-maintained system libraries:
     *   **Terminal:** `ncurses` (Industry standard).
     *   **Archives:** `libarchive` (Supports a wide variety of formats).
@@ -63,4 +63,4 @@ Switching languages immediately would constitute a total rewrite rather than a m
 
 ### Why ncurses, why not termbox2 or notcurses?
 
-Ytree only needs fast, reliable text/line-box terminal UI for file and VFS browsing, and ncurses already provides that cleanly, while switching to termbox2 or notcurses would add backend complexity for features outside ytree’s core scope (like richer in-app media rendering) that are better handled by external helper programs.
+Ytree only needs fast, reliable text/line-box terminal UI for file and VFS browsing, and ncurses already provides that cleanly, while switching to termbox2 or notcurses would add backend complexity for features outside ytreeâ€™s core scope (like richer in-app media rendering) that are better handled by external helper programs.

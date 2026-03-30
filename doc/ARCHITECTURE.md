@@ -1,6 +1,15 @@
-# Architecture of ytree v3
+# **System Architecture**
+> **Purpose:** This document defines the internal design of `ytree`. It serves as the authoritative guide for maintaining the codebase's structural integrity.
 
-## 1. Overview
+## **1. Core Quality Principles**
+To maintain architectural stability throughout the modernization, all changes must adhere to these foundational rules:
+
+*   **Code Quality (DRY):** All development should adhere to the "Don't Repeat Yourself" principle. Code should be modular, reusable, and free of redundancy.
+*   **Architectural Integrity (Anti-Patching):** Do not apply superficial fixes for deep architectural problems. If a bug is caused by fragmented state or logic, **STOP**. Refactor the architecture to unify the logic before fixing the specific bug. It is better to break one thing to fix the system than to patch the system and break everything.
+*   **Single Responsibility (SRP):** Enforce strict modularity. Each file (module) must serve exactly one purpose. Maintain a hard separation between the **UI** (View), **File System** (Model), and **Commands** (Controller) to ensure the codebase remains testable and maintainable.
+*   **Use Established Libraries:** Prefer mature, well-supported libraries (e.g., `libarchive`) instead of creating custom replacements.
+
+## **2. Architectural Overview**
 This document outlines the architectural design of `ytree`. The codebase utilizes a modular, context-oriented C99 design.
 
 The primary objective is to maintain a **predictable, high-integrity state machine**. Every component is designed to uphold the **Focus vs. Freeze** logic and the specific hierarchy of modal priorities inherited from the XTree&trade; lineage.

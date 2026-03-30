@@ -1,22 +1,10 @@
-# ytree - A File Manager for UNIX
-
+# **ytree - The Unix File Logger**
 ---
-
 > [!IMPORTANT]
-> **STATUS: PRE-ALPHA and UNDER HEAVY DEVELOPMENT**
->
-> This is a massive modernization, rewrite, and enhancement of Ytree v2.10. The original program is being drastically modified, but the TUI still follows the classic XTree&trade; model.
->
-> **Notice to other developers:**
-> I am a solo developer working on this as much as my spare time and tokens allow. I am the driver of this project, utilizing an agentic IDE, but I am entirely reliant on LLMs, AI agents, and MCP utilities; I simply would not have attempted this rewrite without them.
->
-> Because of this workflow, and because I am figuring it out as I go along, I am not yet looking for traditional code contributions or bug reports. I am currently working through a significant backlog of internal debugging and known issues; I do not have the AI tokens or the bandwidth to investigate external reports, scrutinize pull requests, or manage feature requests. Please see [ROADMAP.md](doc/ROADMAP.md) for current plans and progress.
->
-> While I am not actively encouraging general ideas or code critiques, architectural correctness is my highest priority. If you happen to spot a place where my methodology is fundamentally outdated or flawed, you are welcome to open an Issue. I cannot promise a reply, but when I am able to, I will feed valid architectural critiques to the agents to improve the codebase.
->
-> I have high aspirations for this rewrite, and because reaching that standard is still some way down the road and because perfect is the enemy of good, I have decided to share this work in progress now.
->
-> Ytree is currently usable, but it is still imperfect. Parts might not work properly and are absolutely subject to change.
+> **STATUS: PRE-ALPHA (v3.0.0)**
+> This is a major modernization of the original `ytree`, transitioning to a modular C99/POSIX architecture. While functional, it is considered pre-alpha as UI/UX tightening and stability refinements continue.
+
+**Ytree** is a keyboard-optimized file manager for all POSIX-compliant **Unix** systems (Linux, BSD, macOS, etc.). Unlike traditional "browsers," `ytree` is a **Logger**: it scans directory hierarchies into memory, allowing for instant filtering, tagging, and bulk operations across the entire filesystem.
 
 ---
 
@@ -24,7 +12,7 @@
 
 ## Background
 
-Born from the lineage of [XTree&trade;](https://www.xtreefanpage.org/lowres/x10dirja.htm) (DOS),  [Ytree](https://www.han.de/~werner/ytree.html)  was intended to be the definitive tree-based logger for Unix. While it has been maintained for compatibility over the decades, its feature set remained largely frozen in the late 1990s, leaving Linux users without a true equivalent to the powerful "log and tag" workflow.
+Born from the lineage of [XTree&trade;](https://www.xtreefanpage.org/lowres/x10dirja.htm) (DOS), `ytree` was intended to be the definitive tree-based logger for Unix. While it has been maintained for compatibility over the decades, its feature set remained largely frozen in the late 1990s, leaving **Unix power users** without a true equivalent to the powerful "log and tag" workflow.
 
 Many file managers today function as "browsers"—they look at one directory at a time and rely on the OS to fetch files on demand. `Ytree` is different: it is a **Logger**. It scans ("logs") entire drive hierarchies into memory. This treats the filesystem as a database, allowing you to **Show All** files in a flat view, filter across thousands of subdirectories instantly, and perform bulk operations on tagged files regardless of their location.
 
@@ -94,15 +82,42 @@ sudo make uninstall
 
 *Note: Developers can compile with AddressSanitizer enabled by running `make DEBUG=1`.*
 
-## Usage
+## Documentation Guide
 
-For detailed usage, configuration, and keybindings, see [USAGE.md](doc/USAGE.md) or run `man ytree`.
+The project documentation is split into several focused files. 
 
-For the continuous audit workflow and final release gate criteria, see [AUDIT.md](doc/AUDIT.md). Run the full loop for every feature-sized change, major change, and PR.
-For developer workflow and local QA commands (including `make qa-all`, which now includes `pytest`), see [CONTRIBUTING.md](doc/CONTRIBUTING.md).
-GitHub CI is kept as a baseline build + `pytest` check; it does not replace the full audit loop.
+| Document | Purpose |
+| :--- | :--- |
+| **[USAGE.md](doc/USAGE.md)** | **User Guide**: How to navigate, tag, and use command keys. (Generated from `ytree.1.md`). |
+| **[CONTRIBUTING.md](doc/CONTRIBUTING.md)** | **Developer Setup**: How to set up the environment, run tests, and submit code. |
+| **[ARCHITECTURE.md](doc/ARCHITECTURE.md)** | **System Design**: Core technical principles (DRY, SRP, Context-passing) and data hierarchy. |
+| **[SPECIFICATION.md](doc/SPECIFICATION.md)** | **Behavioral Contract**: UI layout, navigation protocols, and design philosophy. |
+| **[CHANGES.md](doc/CHANGES.md)** | **Changelog**: Detailed history of the v3.0 modernization and feature updates. |
+| **[ROADMAP.md](doc/ROADMAP.md)** | **Future Plans**: Pending milestones and the modernization backlog. |
+| **[AUDIT.md](doc/AUDIT.md)** | **QA Workflow**: The mandatory safety/integrity checks for every PR (Valgrind, ASan, etc). |
 
-## Changelog
+---
+
+## Build & Install
+
+```bash
+# Compile (Optimized Release Build)
+make
+
+# Install
+sudo make install
+```
+
+*Note: Developers can compile with AddressSanitizer enabled by running `make DEBUG=1`.*
+
+## Reporting Issues
+
+If you find a bug, please open a [GitHub Issue](https://github.com/robkam/ytree/issues). To help us resolve it quickly, please include:
+
+1.  **System & OS**: (e.g., Ubuntu 22.04, macOS Sonoma, etc.)
+2.  **Steps to Recreate**: How to trigger the bug.
+3.  **Expected Result**: What should have happened.
+4.  **Actual Result**: What actually happened.
 
 See [CHANGES.md](doc/CHANGES.md) for a detailed history of changes and version updates.
 
