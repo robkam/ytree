@@ -18,6 +18,17 @@
 
 static int ViewHexFile(ViewContext *ctx, char *file_path);
 static int ViewHexArchiveFile(ViewContext *ctx, char *file_path);
+static ViewerGeometry BuildViewerGeometry(const ViewContext *ctx);
+
+static ViewerGeometry BuildViewerGeometry(const ViewContext *ctx) {
+  ViewerGeometry geom;
+
+  geom.start_y = ctx->layout.dir_win_y;
+  geom.start_x = ctx->layout.dir_win_x;
+  geom.height = ctx->layout.message_y - ctx->layout.dir_win_y;
+  geom.width = ctx->layout.main_win_width;
+  return geom;
+}
 
 int ViewHex(ViewContext *ctx, char *file_path) {
   int mode = ctx->active->vol->vol_stats.log_mode;
@@ -33,12 +44,15 @@ int ViewHex(ViewContext *ctx, char *file_path) {
 }
 
 static int ViewHexFile(ViewContext *ctx, char *file_path) {
+  ViewerGeometry geom;
+
   if (access(file_path, R_OK)) {
     MESSAGE(ctx, "HexView not possible!*\"%s\"*%s", file_path, strerror(errno));
     return -1;
   }
 
-  InternalView(ctx, file_path);
+  geom = BuildViewerGeometry(ctx);
+  InternalView(ctx, file_path, &geom);
   return 0;
 }
 
@@ -59,6 +73,7 @@ static int ViewHexArchiveFile(ViewContext *ctx, char *file_path) {
   char temp_filename[] = "/tmp/ytree_hex_XXXXXX";
   int fd;
   int result = -1;
+  ViewerGeometry geom;
 
   fd = mkstemp(temp_filename);
   if (fd == -1) {
@@ -76,7 +91,8 @@ static int ViewHexArchiveFile(ViewContext *ctx, char *file_path) {
   }
   close(fd);
 
-  InternalView(ctx, temp_filename);
+  geom = BuildViewerGeometry(ctx);
+  InternalView(ctx, temp_filename, &geom);
 
   result = 0;
   unlink(temp_filename);

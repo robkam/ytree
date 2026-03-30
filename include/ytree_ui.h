@@ -233,7 +233,8 @@ extern void Nav_End(int *cursor, int *offset, int total_items, int page_height);
 extern int SelectLoadedVolume(ViewContext *ctx, int *return_key);
 
 /* view_internal.c */
-extern int InternalView(ViewContext *ctx, char *file_path);
+extern int InternalView(ViewContext *ctx, char *file_path,
+                        const ViewerGeometry *geom);
 
 /* view_preview.c */
 extern void RenderFilePreview(ViewContext *ctx, WINDOW *win, char *filename,
