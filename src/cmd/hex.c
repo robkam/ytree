@@ -27,6 +27,10 @@ static ViewerGeometry BuildViewerGeometry(const ViewContext *ctx) {
   geom.start_x = ctx->layout.dir_win_x;
   geom.height = ctx->layout.message_y - ctx->layout.dir_win_y;
   geom.width = ctx->layout.main_win_width;
+  geom.header_y = ctx->layout.header_y;
+  geom.message_y = ctx->layout.message_y;
+  geom.prompt_y = ctx->layout.prompt_y;
+  geom.status_y = ctx->layout.status_y;
   return geom;
 }
 

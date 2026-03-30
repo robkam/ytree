@@ -47,8 +47,10 @@ static void update_line(ViewContext *ctx, WINDOW *win, long line);
 static void scroll_down(ViewContext *ctx, WINDOW *win);
 static void scroll_up(ViewContext *ctx, WINDOW *win);
 static void update_all_lines(ViewContext *ctx, WINDOW *win, char l);
-static void Change2Edit(const ViewContext *ctx, const char *file_path);
-static void Change2View(const ViewContext *ctx, const char *file_path);
+static void Change2Edit(const ViewContext *ctx, const ViewerGeometry *geom,
+                        const char *file_path);
+static void Change2View(const ViewContext *ctx, const ViewerGeometry *geom,
+                        const char *file_path);
 static void SetupViewWindow(ViewContext *ctx, const char *file_path,
                             const ViewerGeometry *geom);
 static unsigned char hexval(unsigned char v);
@@ -186,29 +188,30 @@ static void update_all_lines(ViewContext *ctx, WINDOW *win, char l) {
   doupdate();
 }
 
-static void Change2Edit(const ViewContext *ctx, const char *file_path) {
+static void Change2Edit(const ViewContext *ctx, const ViewerGeometry *geom,
+                        const char *file_path) {
   int i;
   char *str;
 
   str = (char *)xmalloc(ctx->viewer.wcols);
 
-  for (i = ctx->layout.message_y; i <= ctx->layout.status_y; i++) {
+  for (i = geom->message_y; i <= geom->status_y; i++) {
     wmove(stdscr, i, 0);
     wclrtoeol(stdscr);
   }
 
   doupdate();
 
-  Print(stdscr, ctx->layout.header_y, 0, "File: ", CPAIR_MENU);
-  Print(stdscr, ctx->layout.header_y, 6,
+  Print(stdscr, geom->header_y, 0, "File: ", CPAIR_MENU);
+  Print(stdscr, geom->header_y, 6,
         CutPathname(str, file_path, ctx->viewer.wcols - 5), CPAIR_HIMENUS);
-  PrintOptions(stdscr, ctx->layout.message_y, 0,
+  PrintOptions(stdscr, geom->message_y, 0,
                "(Edit file in hexadecimal mode)");
   wclrtoeol(stdscr);
-  PrintOptions(stdscr, ctx->layout.prompt_y, 0,
+  PrintOptions(stdscr, geom->prompt_y, 0,
                "(Q)uit   (^L) redraw  (<TAB>) change edit mode");
   wclrtoeol(stdscr);
-  PrintOptions(stdscr, ctx->layout.status_y, 0,
+  PrintOptions(stdscr, geom->status_y, 0,
                "(NEXT)-(RIGHT)/(PREV)-(LEFT) page   (HOME)-(END) of line   "
                "(DOWN)-(UP) line");
   wclrtoeol(stdscr);
@@ -218,27 +221,28 @@ static void Change2Edit(const ViewContext *ctx, const char *file_path) {
   return;
 }
 
-static void Change2View(const ViewContext *ctx, const char *file_path) {
+static void Change2View(const ViewContext *ctx, const ViewerGeometry *geom,
+                        const char *file_path) {
   int i;
   char *str;
 
   str = (char *)xmalloc(ctx->viewer.wcols);
-  for (i = ctx->layout.message_y; i <= ctx->layout.status_y; i++) {
+  for (i = geom->message_y; i <= geom->status_y; i++) {
     wmove(stdscr, i, 0);
     wclrtoeol(stdscr);
   }
   doupdate();
 
-  Print(stdscr, ctx->layout.header_y, 0, "File: ", CPAIR_MENU);
-  Print(stdscr, ctx->layout.header_y, 6,
+  Print(stdscr, geom->header_y, 0, "File: ", CPAIR_MENU);
+  Print(stdscr, geom->header_y, 6,
         CutPathname(str, file_path, ctx->viewer.wcols - 5), CPAIR_HIMENUS);
-  PrintOptions(stdscr, ctx->layout.message_y, 0,
+  PrintOptions(stdscr, geom->message_y, 0,
                "View file in hexadecimal mode");
   wclrtoeol(stdscr);
-  PrintOptions(stdscr, ctx->layout.prompt_y, 0,
+  PrintOptions(stdscr, geom->prompt_y, 0,
                "(Q)uit   (^L) redraw  (E)dit hex");
   wclrtoeol(stdscr);
-  PrintOptions(stdscr, ctx->layout.status_y, 0,
+  PrintOptions(stdscr, geom->status_y, 0,
                "(NEXT)-(RIGHT)/(PREV)-(LEFT) page   (HOME)-(END) of line   "
                "(DOWN)-(UP) line");
   wclrtoeol(stdscr);
@@ -285,7 +289,7 @@ static void SetupViewWindow(ViewContext *ctx, const char *file_path,
     wclrtoeol(ctx->viewer.view);
   }
   WbkgdSet(ctx, ctx->viewer.border, COLOR_PAIR(CPAIR_WINDIR) | A_BOLD);
-  Change2View(ctx, file_path);
+  Change2View(ctx, geom, file_path);
   box(ctx->viewer.border, 0, 0);
   RefreshWindow(ctx->viewer.border);
   RefreshWindow(ctx->viewer.view);
@@ -484,7 +488,7 @@ static void DoResize(ViewContext *ctx, char *file_path,
     }
   }
 
-  Change2Edit(ctx, file_path);
+  Change2Edit(ctx, geom, file_path);
   update_all_lines(ctx, ctx->viewer.view, ctx->viewer.wlines - 1);
   wmove(ctx->viewer.view, cursor_pos_y, CURSOR_POS_X);
   wnoutrefresh(ctx->viewer.view);
@@ -766,10 +770,10 @@ int InternalView(ViewContext *ctx, char *file_path, const ViewerGeometry *geom) 
       break;
     case 'e':
     case 'E':
-      Change2Edit(ctx, file_path);
+      Change2Edit(ctx, geom, file_path);
       hex_edit(ctx, file_path, geom);
       update_all_lines(ctx, ctx->viewer.view, ctx->viewer.wlines - 1);
-      Change2View(ctx, file_path);
+      Change2View(ctx, geom, file_path);
       break;
     case KEY_DOWN: /*ScrollDown();*/
       fstat(fd, &fdstat);
