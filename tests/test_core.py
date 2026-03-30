@@ -126,6 +126,61 @@ def test_move(controller, sandbox):
 
     yt.quit()
 
+def test_tagged_copy_overwrite_all_applies_to_remaining_conflicts(controller, sandbox):
+    source_dir = sandbox / "source"
+    dest_dir = sandbox / "dest"
+
+    (source_dir / "root_file.txt").unlink()
+    (source_dir / "alpha.txt").write_text("alpha source content", encoding="utf-8")
+    (source_dir / "beta.txt").write_text("beta source content", encoding="utf-8")
+    (dest_dir / "alpha.txt").write_text("old alpha content", encoding="utf-8")
+    (dest_dir / "beta.txt").write_text("old beta content", encoding="utf-8")
+
+    yt = controller(cwd=str(source_dir))
+    overwrite_alpha = r"Overwrite .*alpha\.txt"
+    overwrite_beta = r"Overwrite .*beta\.txt"
+
+    try:
+        yt.wait_for_startup()
+
+        yt.child.send(Keys.ENTER)
+        yt.wait_for_refresh()
+
+        yt.child.send("\x14")  # Ctrl+T (tag all)
+        yt.wait_for_refresh()
+
+        yt.child.send("\x03")  # Ctrl+C (copy tagged)
+        yt.child.expect("COPY: TAGGED FILES")
+        yt.child.send(Keys.ENTER)  # Keep default "*"
+        yt.child.expect("To Directory")
+        yt.input_text("../dest")
+
+        yt.child.expect("Ask for confirmation for each overwrite")
+        yt.child.send("Y")
+
+        first_conflict = yt.child.expect([overwrite_alpha, overwrite_beta], timeout=3.0)
+        yt.child.send("A")
+
+        second_conflict = overwrite_beta if first_conflict == 0 else overwrite_alpha
+        with pytest.raises(pexpect.TIMEOUT):
+            yt.child.expect(second_conflict, timeout=1.0)
+
+        expected_alpha = dest_dir / "alpha.txt"
+        expected_beta = dest_dir / "beta.txt"
+        deadline = time.time() + 3.0
+        while time.time() < deadline:
+            if (
+                expected_alpha.read_text(encoding="utf-8") == "alpha source content"
+                and expected_beta.read_text(encoding="utf-8") == "beta source content"
+            ):
+                break
+            time.sleep(0.1)
+
+        assert expected_alpha.read_text(encoding="utf-8") == "alpha source content"
+        assert expected_beta.read_text(encoding="utf-8") == "beta source content"
+    finally:
+        yt.quit()
+
 def test_wildcard_rename(controller, sandbox):
     """
     Regression: Rename root_file.txt to new.* (should preserve extension .txt)

@@ -764,6 +764,9 @@ int UI_AskConflict(ViewContext *ctx, const char *src_path, const char *dst_path,
 
   (void)src_path;
 
+  if (mode_flags && *mode_flags == CONFLICT_ALL)
+    return CONFLICT_ALL;
+
   snprintf(msg, sizeof(msg), "Overwrite %.300s? (Y)es/(N)o/(A)ll/(Q)uit",
            dst_path);
 
@@ -776,7 +779,7 @@ int UI_AskConflict(ViewContext *ctx, const char *src_path, const char *dst_path,
     return CONFLICT_SKIP;
   if (c == 'A') {
     if (mode_flags)
-      *mode_flags = 2; /* Set to 2 for ALL, distinguishing from 1 (Yes/Force) */
+      *mode_flags = CONFLICT_ALL;
     return CONFLICT_ALL;
   }
   if (c == 'Q' || c == 27)
