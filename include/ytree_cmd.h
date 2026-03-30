@@ -134,6 +134,7 @@ extern void ReadHistory(ViewContext *ctx, const char *filename);
 extern void SaveHistory(ViewContext *ctx, const char *filename);
 extern void InsHistory(ViewContext *ctx, const char *new_hst, int type);
 extern char *GetHistory(ViewContext *ctx, int type);
+extern char *GetMatches(ViewContext *ctx, char *base);
 
 /* passwd.c */
 extern int ReadPasswdEntries(void);
