@@ -44,8 +44,7 @@ static void SyncFileGridMetrics(ViewContext *ctx);
 static void UpdateFileHeaderPath(ViewContext *ctx, DirEntry *dir_entry);
 static int FindDirIndexInVolume(const struct Volume *vol,
                                 const DirEntry *target);
-static struct Volume *FindVolumeForDir(ViewContext *ctx,
-                                       const DirEntry *target,
+static struct Volume *FindVolumeForDir(ViewContext *ctx, const DirEntry *target,
                                        int *dir_idx_out);
 static void PositionOwnerFileCursor(ViewContext *ctx, DirEntry *owner_dir,
                                     const FileEntry *target_file);
@@ -125,10 +124,11 @@ static int ResolveFileCompareTargetPath(FileEntry *source_file,
   source_dir[PATH_LENGTH] = '\0';
 
   if (target_input[0] == FILE_SEPARATOR_CHAR) {
-    written = snprintf(raw_target_path, sizeof(raw_target_path), "%s",
-                       target_input);
+    written =
+        snprintf(raw_target_path, sizeof(raw_target_path), "%s", target_input);
   } else if (target_input[0] == '~' &&
-             (target_input[1] == '\0' || target_input[1] == FILE_SEPARATOR_CHAR) &&
+             (target_input[1] == '\0' ||
+              target_input[1] == FILE_SEPARATOR_CHAR) &&
              (home = getenv("HOME")) != NULL) {
     written = snprintf(raw_target_path, sizeof(raw_target_path), "%s%s", home,
                        target_input + 1);
@@ -146,7 +146,8 @@ static int ResolveFileCompareTargetPath(FileEntry *source_file,
 }
 
 static void GetCommandDisplayName(const char *command_template,
-                                  char *command_name, size_t command_name_size) {
+                                  char *command_name,
+                                  size_t command_name_size) {
   const char *cursor;
   size_t idx = 0;
 
@@ -206,15 +207,13 @@ static void HandleFileCompare(ViewContext *ctx, FileEntry *source_file) {
     return;
 
   if (ctx->view_mode != DISK_MODE && ctx->view_mode != USER_MODE) {
-    UI_Message(ctx,
-               "File compare is not supported in this view mode.*"
-               "Use disk/user mode.");
+    UI_Message(ctx, "File compare is not supported in this view mode.*"
+                    "Use disk/user mode.");
     return;
   }
   if (!source_file->dir_entry || source_file->dir_entry->global_flag) {
-    UI_Message(ctx,
-               "File compare is not supported in this file context.*"
-               "Use a normal file list entry.");
+    UI_Message(ctx, "File compare is not supported in this file context.*"
+                    "Use a normal file list entry.");
     return;
   }
 
@@ -223,10 +222,9 @@ static void HandleFileCompare(ViewContext *ctx, FileEntry *source_file) {
 
   filediff = UI_GetCompareHelperCommand(ctx, COMPARE_FLOW_FILE);
   if (!HasNonWhitespace(filediff)) {
-    UI_Message(
-        ctx,
-        "FILEDIFF helper is not configured.*Set FILEDIFF in ~/.ytree "
-        "(or .ytree).");
+    UI_Message(ctx,
+               "FILEDIFF helper is not configured.*Set FILEDIFF in ~/.ytree "
+               "(or .ytree).");
     return;
   }
 
@@ -234,7 +232,8 @@ static void HandleFileCompare(ViewContext *ctx, FileEntry *source_file) {
   source_path[PATH_LENGTH] = '\0';
   if (ResolveFileCompareTargetPath(source_file, request.target_path,
                                    target_path) != 0) {
-    UI_Message(ctx, "Compare target is empty or invalid.*Choose a file target.");
+    UI_Message(ctx,
+               "Compare target is empty or invalid.*Choose a file target.");
     return;
   }
 
@@ -244,12 +243,15 @@ static void HandleFileCompare(ViewContext *ctx, FileEntry *source_file) {
     return;
   }
   if (stat(target_path, &target_stat) != 0) {
-    UI_Message(ctx, "Compare target does not exist:*\"%s\"*Select a valid file.",
+    UI_Message(ctx,
+               "Compare target does not exist:*\"%s\"*Select a valid file.",
                target_path);
     return;
   }
   if (S_ISDIR(source_stat.st_mode) || S_ISDIR(target_stat.st_mode)) {
-    UI_Message(ctx, "File compare requires two files.*Directory targets are unsupported.");
+    UI_Message(
+        ctx,
+        "File compare requires two files.*Directory targets are unsupported.");
     return;
   }
   if ((source_stat.st_dev == target_stat.st_dev &&
@@ -292,9 +294,8 @@ static void HandleFileCompare(ViewContext *ctx, FileEntry *source_file) {
 
   if (result == -1) {
     UI_Message(
-        ctx,
-        "Failed to launch FILEDIFF helper.*Install/configure FILEDIFF in "
-        "~/.ytree.");
+        ctx, "Failed to launch FILEDIFF helper.*Install/configure FILEDIFF in "
+             "~/.ytree.");
     return;
   }
 
@@ -636,7 +637,7 @@ int HandleFileWindow(ViewContext *ctx, DirEntry *dir_entry) {
   char expanded_to_file[PATH_LENGTH + 1];
   char new_log_path[PATH_LENGTH + 1];
   int get_dir_ret;
-  YtreeAction action = ACTION_NONE;            /* Initialize action */
+  YtreeAction action = ACTION_NONE; /* Initialize action */
   BOOL jumped_to_owner_dir = FALSE;
   BOOL switched_panel = FALSE;
   YtreePanel *owner_panel = ctx->active;
@@ -857,7 +858,7 @@ int HandleFileWindow(ViewContext *ctx, DirEntry *dir_entry) {
     case ACTION_CMD_TAGGED_S:
     case ACTION_CMD_TAGGED_X:
     case ACTION_TOGGLE_TAGGED_MODE:
-    case ACTION_ASTERISK:
+    case ACTION_INVERT:
       if (handle_tag_file_action(ctx, action, dir_entry, &unput_char,
                                  &need_dsp_help, start_x, s,
                                  &maybe_change_x_step)) {
@@ -1013,8 +1014,8 @@ int HandleFileWindow(ViewContext *ctx, DirEntry *dir_entry) {
         ctx->left->file_cursor_pos = ctx->right->file_cursor_pos;
         ctx->left->file_dir_entry = ctx->right->file_dir_entry;
         ctx->left->saved_focus = ctx->right->saved_focus;
-        /* Left panel now points at right panel's volume/state. Force list rebuild
-         * to avoid stale file cache from a previous volume. */
+        /* Left panel now points at right panel's volume/state. Force list
+         * rebuild to avoid stale file cache from a previous volume. */
         FreeFileEntryList(ctx->left);
       }
       ctx->is_split_screen = !ctx->is_split_screen;
@@ -1110,8 +1111,8 @@ int HandleFileWindow(ViewContext *ctx, DirEntry *dir_entry) {
         fmoveppage(ctx, &dir_entry->start_file, &dir_entry->cursor_pos,
                    &start_x, dir_entry);
       } else {
-        fmoveleft(ctx, &dir_entry->start_file, &dir_entry->cursor_pos,
-                  &start_x, dir_entry);
+        fmoveleft(ctx, &dir_entry->start_file, &dir_entry->cursor_pos, &start_x,
+                  dir_entry);
       }
       if (ctx->preview_mode) {
         preview_line_offset = 0;
@@ -1948,8 +1949,7 @@ static int FindDirIndexInVolume(const struct Volume *vol,
   return -1;
 }
 
-static struct Volume *FindVolumeForDir(ViewContext *ctx,
-                                       const DirEntry *target,
+static struct Volume *FindVolumeForDir(ViewContext *ctx, const DirEntry *target,
                                        int *dir_idx_out) {
   struct Volume *vol_iter;
   struct Volume *vol_tmp;
@@ -2166,7 +2166,8 @@ static void ListJump(ViewContext *ctx, DirEntry *dir_entry, char *str) {
   int i;
   int found_idx;
   int start_x = 0;
-  WINDOW *jump_win = (ctx && ctx->ctx_menu_window) ? ctx->ctx_menu_window : stdscr;
+  WINDOW *jump_win =
+      (ctx && ctx->ctx_menu_window) ? ctx->ctx_menu_window : stdscr;
 
   (void)str; /* Unused */
 

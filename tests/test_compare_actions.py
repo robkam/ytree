@@ -401,13 +401,13 @@ def test_f8_file_compare_uses_inactive_panel_default_target(ytree_binary, tmp_pa
     tui.send_keystroke(Keys.F8, wait=0.4)
 
     tui.send_keystroke(Keys.TAB, wait=0.3)
-    if tui.wait_for_content("Hex J compare", timeout=0.4):
+    if tui.wait_for_content("J compare", timeout=0.4):
         tui.send_keystroke(Keys.ESC, wait=0.3)
     tui.send_keystroke(Keys.DOWN, wait=0.3)
     tui.send_keystroke(Keys.ENTER, wait=0.4)
 
     tui.send_keystroke(Keys.TAB, wait=0.3)
-    assert tui.wait_for_content("Hex J compare", timeout=1.0)
+    assert tui.wait_for_content("J compare", timeout=1.0)
     tui.send_keystroke("J", wait=0.3)
 
     assert tui.wait_for_content("COMPARE TARGET:", timeout=1.0)

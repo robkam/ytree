@@ -39,7 +39,8 @@ static char dir_help_disk_mode_0[] =
     "DIR      (A)ttributes (B)rief (C)ompare (D)elete (F)ilter (G)lobal "
     "(L)og (M)akedir (N)ewfile";
 static char dir_help_disk_mode_1[] =
-    "COMMANDS (O) archive (P)ipe (Q)uit (R)ename (S)howall (T)ag (U)ntag e(X)ecute (/) "
+    "COMMANDS (O) archive (P)ipe (Q)uit (R)ename (S)howall (T)ag (U)ntag "
+    "e(X)ecute (/) "
     "jump (`) dotfiles";
 static char dir_help_nav[] =
     "Tree  (F1) help  (F5) refresh  (F6) stats  (F7) autoview  "
@@ -69,7 +70,7 @@ static char *dir_help[MAX_MODES][2] = {
 
 static char file_help_disk_mode_0[] =
     "FILE     (A)ttributes (B)rief (C)opy/(^K) (D)elete (E)dit (F)ilter "
-    "(^F)ilemode (H)ex (J) compare (L)og";
+    "(^F)ilemode (H)ex (I)nvert (J) compare (L)og";
 static char file_help_disk_mode_1[] =
     "COMMANDS (M)ove/(^N) (N)ewfile "
     "(O) archive (P)ipe (Q)uit (R)ename (S)ort e(X)ecute (/) jump (`) dotfiles";
@@ -88,8 +89,8 @@ static char *file_help[MAX_MODES][2] = {
      "COMMANDS                                                                 "
      "               "},
     {/* ARCHIVE_MODE */
-     "ARCH-FILE (B)rief (C)opy (D)elete (F)ilter (^F)ilemode (H)ex (J) compare "
-     "(R)ename (S)ort (T)ag (V)iew",
+     "ARCH-FILE (B)rief (C)opy (D)elete (F)ilter (^F)ilemode (H)ex (I)nvert "
+     "(J) compare (R)ename (S)ort (T)ag (V)iew",
      "COMMANDS  (M)ove (P)ipe (^R)ename (U)ntag pathcop(Y)"},
     {                       /* USER_MODE */
      file_help_disk_mode_0, /* Default unless changed by user prefs */

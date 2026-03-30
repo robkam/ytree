@@ -12,8 +12,8 @@
 #include <ctype.h>
 #include <curses.h>
 #include <errno.h>
-#include <stdlib.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <sys/select.h>
 #include <unistd.h>
@@ -428,6 +428,9 @@ YtreeAction GetKeyAction(const ViewContext *ctx, int ch) {
                                          : ACTION_MOVE_SIBLING_NEXT;
   case '*':
     return ACTION_ASTERISK;
+  case 'i':
+  case 'I':
+    return ACTION_INVERT;
   case KEY_BTAB:
     return ACTION_MOVE_SIBLING_PREV;
   case '-':
@@ -598,7 +601,6 @@ YtreeAction GetKeyAction(const ViewContext *ctx, int ch) {
     return ACTION_TOGGLE_STATS;
   case KEY_F(5):
     return ACTION_REFRESH;
-  case '8':
   case KEY_F(28):
     return ACTION_TOGGLE_TAGGED_MODE;
   case KEY_F(16):
