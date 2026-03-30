@@ -20,9 +20,6 @@ void InsHistory(ViewContext *ctx, const char *NewHst, int type);
 #define HISTORY_WINDOW_HEIGHT (LINES - 6)
 #define MAX(a, b) (((a) > (b)) ? (a) : (b))
 
-extern void *xmalloc(size_t size);
-extern char *xstrdup(const char *s);
-
 static void FreeViewList(ViewContext *ctx) {
   if (ctx->history_view_list) {
     free(ctx->history_view_list);
