@@ -262,6 +262,7 @@
     2.  This function must handle separator insertion/deduplication and `snprintf` bounds checking centrally.
     3.  Refactor all command modules to use this helper.
 *   **Files to Modify:** `src/util/path_utils.c`, `src/cmd/copy.c`, `src/cmd/move.c`, `src/cmd/rename.c`, `src/cmd/mkdir.c`.
+*   - [x] **Status:** Completed.
 
 ### **Step 11.5: Encapsulate Internal Viewer Geometry** (Use the Architect persona here)
 *   **Task ID:** [UI]-[View]-[Encapsulation]
