@@ -84,7 +84,7 @@ sudo make uninstall
 
 ## Documentation Guide
 
-The project documentation is split into several focused files. 
+The project documentation is split into several focused files.
 
 | Document | Purpose |
 | :--- | :--- |
@@ -98,41 +98,9 @@ The project documentation is split into several focused files.
 
 ---
 
-## Build & Install
-
-```bash
-# Compile (Optimized Release Build)
-make
-
-# Install
-sudo make install
-```
-
 *Note: Developers can compile with AddressSanitizer enabled by running `make DEBUG=1`.*
 
 ## Reporting Issues
-
-If you find a bug, please open a [GitHub Issue](https://github.com/robkam/ytree/issues). To help us resolve it quickly, please include:
-
-1.  **System & OS**: (e.g., Ubuntu 22.04, macOS Sonoma, etc.)
-2.  **Steps to Recreate**: How to trigger the bug.
-3.  **Expected Result**: What should have happened.
-4.  **Actual Result**: What actually happened.
-
-See [CHANGES.md](doc/CHANGES.md) for a detailed history of changes and version updates.
-
-## Reporting problems
-
-As noted in the **Pre-Alpha** warning at the top of this document, I am not currently accepting general bug reports. I have a substantial backlog of known issues and internal debugging to complete before the project is ready for external feedback.
-
-If you have a critical **architectural critique** regarding the core design or memory safety of the rewrite, please open a GitHub Issue.
-
-<!--
-## Contributing
-
-Contributions are welcome! Please read [CONTRIBUTING.md](doc/CONTRIBUTING.md) for guidelines. See [SPECIFICATION.md](doc/SPECIFICATION.md) for behavioral requirements, and [ARCHITECTURE.md](doc/ARCHITECTURE.md) to understand the system design before submitting code.
-
-## Reporting problems
 
 If you find anything amiss, you can report it using [GitHub Issues](https://github.com/robkam/ytree/issues).
 
@@ -142,7 +110,10 @@ It will help us to address the issue if you include the following:
 *   **Steps to Reproduce:**
 *   **Expected Behavior:**
 *   **Actual Behavior:**
--->
+
+## Contributing
+
+Contributions are welcome! Please read [CONTRIBUTING.md](doc/CONTRIBUTING.md) for guidelines. See [SPECIFICATION.md](doc/SPECIFICATION.md) for behavioral requirements, and [ARCHITECTURE.md](doc/ARCHITECTURE.md) to understand the system design before submitting code.
 
 ## License
 
