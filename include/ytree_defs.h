@@ -540,6 +540,14 @@ extern void *xcalloc(size_t nmemb, size_t size);
 extern void *xrealloc(void *ptr, size_t size);
 extern char *xstrdup(const char *s);
 
+/* string_utils.c */
+extern int BuildFilename(char *in_filename, char *pattern, char *out_filename);
+extern void StrCp(char *dest, const char *src);
+extern int Strrcmp(const char *s1, const char *s2);
+extern char *SubString(char *dest, const char *src, int pos, int len);
+extern int String_Replace(char *dest, size_t dest_size, const char *src,
+                          const char *token, const char *replacement);
+
 /* Input Debugging */
 
 typedef struct {

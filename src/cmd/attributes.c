@@ -5,11 +5,8 @@
  * Implements the change group, owner, and mode functionality for ytree.
  ***************************************************************************/
 
-#include "ytree.h"
 #include "ytree_cmd.h"
-#include <errno.h>
-#include <stdio.h>
-#include <stdlib.h>
+#include "ytree_fs.h"
 #include <string.h>
 #include <sys/stat.h>
 #include <unistd.h>

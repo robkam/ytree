@@ -48,6 +48,7 @@ extern int GetFileTypeColor(const ViewContext *ctx, const FileEntry *fe_ptr);
 extern int HandleDirWindow(ViewContext *ctx, const DirEntry *start_dir_entry);
 extern int KeyF2Get(ViewContext *ctx, YtreePanel *panel, char *path);
 extern int RefreshDirWindow(ViewContext *ctx, YtreePanel *p);
+extern int ScanSubTree(ViewContext *ctx, DirEntry *dir_entry, Statistic *s);
 extern void ToggleDotFiles(ViewContext *ctx, YtreePanel *p);
 extern DirEntry *GetSelectedDirEntry(ViewContext *ctx, struct Volume *vol);
 extern DirEntry *GetPanelDirEntry(YtreePanel *p);

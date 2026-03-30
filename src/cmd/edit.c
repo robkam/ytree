@@ -5,7 +5,14 @@
  *
  ***************************************************************************/
 
-#include "ytree.h"
+#include "ytree_cmd.h"
+#include "ytree_fs.h"
+#include <errno.h>
+#include <fcntl.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
 
 int Edit(ViewContext *ctx, DirEntry *dir_entry, char *file_path) {
   char *command_line;
@@ -20,7 +27,7 @@ int Edit(ViewContext *ctx, DirEntry *dir_entry, char *file_path) {
 
   if (access(file_path, R_OK)) {
     UI_Message(ctx, "Edit not possible!*\"%s\"*%s", file_path, strerror(errno));
-    ESCAPE;
+    goto FNC_XIT;
   }
 
   if ((file_p_aux = (char *)malloc(COMMAND_LINE_LENGTH)) == NULL) {

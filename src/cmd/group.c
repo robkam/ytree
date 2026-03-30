@@ -6,10 +6,9 @@
  *
  ***************************************************************************/
 
-#include "ytree.h"
-#include <sys/types.h>
+#include "ytree_ui.h"
 #include <grp.h>
-#include <string.h>
+#include <sys/types.h>
 
 /*
  * ReadGroupEntries

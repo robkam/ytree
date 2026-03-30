@@ -5,12 +5,12 @@
  *
  ***************************************************************************/
 
-#include "ytree.h"
 #include "ytree_cmd.h"
+#include "ytree_fs.h"
 #include <errno.h>
 #include <fcntl.h>
-#include <stdio.h>
 #include <string.h>
+#include <sys/stat.h>
 #include <unistd.h>
 
 int MakeFile(ViewContext *ctx, DirEntry *dir_entry, const char *name,
