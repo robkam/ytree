@@ -19,8 +19,12 @@ typedef void (*ScanProgressCallback)(ViewContext *ctx, void *user_data);
 extern const char *GetExtension(const char *filename);
 extern char *GetFileNamePath(FileEntry *file_entry, char *buffer);
 extern char *GetPath(DirEntry *dir_entry, char *buffer);
+extern char *GetRealFileNamePath(FileEntry *file_entry, char *buffer,
+                                 int view_mode);
 extern void Fnsplit(char *path, char *dir, char *name);
 extern void NormPath(char *in_path, char *out_path);
+extern int Path_Join(char *dest, size_t size, const char *dir,
+                     const char *leaf);
 
 /* volume.c */
 extern struct Volume *Volume_Create(ViewContext *ctx);

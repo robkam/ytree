@@ -5,18 +5,12 @@
  *
  ***************************************************************************/
 
-#include "ytree.h"
 #include "ytree_cmd.h"
-#include <errno.h>
-#include <stdio.h>
+#include "ytree_fs.h"
+#include "ytree_ui.h"
 #include <stdlib.h>
-#include <string.h>
 #include <sys/stat.h>
 #include <unistd.h>
-
-#ifdef HAVE_LIBARCHIVE
-#include "ytree_fs.h"
-#endif
 
 #if defined(S_IFLNK)
 #define STAT_(a, b) lstat(a, b)

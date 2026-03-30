@@ -6,10 +6,9 @@
  *
  ***************************************************************************/
 
-#include "ytree.h"
-#include <sys/types.h>
+#include "ytree_ui.h"
 #include <pwd.h>
-#include <string.h>
+#include <sys/types.h>
 
 /*
  * ReadPasswdEntries

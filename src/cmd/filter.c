@@ -5,10 +5,7 @@
  *
  ***************************************************************************/
 
-#ifndef YTREE_FS_H
-#include "ytree.h"
-#include "../../include/ytree_fs.h"
-#endif
+#include "ytree_fs.h"
 #include <ctype.h>
 #include <fnmatch.h>
 #include <string.h>

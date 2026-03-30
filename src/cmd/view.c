@@ -5,19 +5,14 @@
  *
  ***************************************************************************/
 
-#include "ytree.h"
 #include "ytree_cmd.h"
-#include "ytree_defs.h"
 #include "ytree_fs.h"
+#include "ytree_ui.h"
 
-#include <ctype.h>
 #include <errno.h>
-#include <fcntl.h>
-#include <libgen.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/stat.h>
 #include <unistd.h>
 
 static int ViewFile(ViewContext *ctx, DirEntry *dir_entry, char *file_path);

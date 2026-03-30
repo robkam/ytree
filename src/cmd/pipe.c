@@ -5,19 +5,13 @@
  *
  ***************************************************************************/
 
-#include "ytree.h"
 #include "ytree_cmd.h"
-#include <errno.h>
+#include "ytree_fs.h"
+#include "ytree_ui.h"
 #include <fcntl.h>
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
-#include <sys/stat.h>
 #include <unistd.h>
-
-#ifdef HAVE_LIBARCHIVE
-#include "ytree_fs.h"
-#endif
 
 int Pipe(ViewContext *ctx, DirEntry *dir_entry, FileEntry *file_entry,
          char *pipe_command) {
