@@ -58,10 +58,6 @@ typedef struct _ViewContext ViewContext;
 
 #include "uthash.h"
 
-/* memory_utils.c */
-extern void *xmalloc(size_t size);
-extern char *xstrdup(const char *s);
-
 /* --- Macros & Constants --- */
 
 #if !defined(WIN32) && !defined(__DJGPP__)
