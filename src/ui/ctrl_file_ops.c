@@ -695,7 +695,7 @@ BOOL handle_tag_file_action(ViewContext *ctx, int action, DirEntry *dir_entry,
     maybe_change_x_step = TRUE;
     return TRUE;
 
-  case ACTION_ASTERISK: /* Mapped to '*' for Invert Tags in File Window */
+  case ACTION_INVERT: /* Mapped to 'i'/'I' for Invert Tags in File Window */
     FileTags_HandleInvertTags(ctx, dir_entry, s);
     need_dsp_help = TRUE;
     return TRUE;

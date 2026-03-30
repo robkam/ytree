@@ -137,7 +137,7 @@ def test_panel_switch_updates_small_window(dual_panel_sandbox, ytree_binary):
 
     # If split occurred from file mode, the peer panel may also be in file view.
     # Drop to tree view before navigating to right_dir.
-    if "hex j compare" in _footer_text(tui):
+    if "hex invert j compare" in _footer_text(tui):
         tui.send_keystroke(Keys.ESC)
         time.sleep(0.3)
 
@@ -178,13 +178,13 @@ def test_split_from_file_keeps_file_focus_on_tab(tmp_path, ytree_binary):
 
     tui.send_keystroke(Keys.DOWN, wait=0.2)
     tui.send_keystroke(Keys.ENTER, wait=0.4)
-    assert "hex j compare" in _footer_text(tui)
+    assert "hex invert j compare" in _footer_text(tui)
 
     tui.send_keystroke(Keys.F8, wait=0.4)
     tui.send_keystroke(Keys.TAB, wait=0.4)
 
     footer = _footer_text(tui)
-    assert "hex j compare" in footer, (
+    assert "hex invert j compare" in footer, (
         "Switching panels after splitting from file view should keep file mode.\n"
         f"{footer}"
     )
@@ -226,11 +226,11 @@ def test_split_from_file_preserves_inactive_panel_file_state(tmp_path, ytree_bin
 
     tui.send_keystroke(Keys.DOWN, wait=0.2)
     tui.send_keystroke(Keys.ENTER, wait=0.4)
-    assert "hex j compare" in _footer_text(tui)
+    assert "hex invert j compare" in _footer_text(tui)
 
     tui.send_keystroke(Keys.F8, wait=0.4)
     tui.send_keystroke(Keys.TAB, wait=0.4)
-    assert "hex j compare" in _footer_text(tui)
+    assert "hex invert j compare" in _footer_text(tui)
 
     screen = "\n".join(tui.get_screen_dump())
     assert screen.count("alpha_unique_123.txt") >= 2, (
@@ -255,7 +255,7 @@ def test_split_from_file_immediate_peer_mirror_not_blank(tmp_path, ytree_binary)
 
     tui.send_keystroke(Keys.DOWN, wait=0.2)
     tui.send_keystroke(Keys.ENTER, wait=0.4)
-    assert "hex j compare" in _footer_text(tui)
+    assert "hex invert j compare" in _footer_text(tui)
 
     tui.send_keystroke(Keys.F8, wait=0.4)
 
@@ -303,7 +303,7 @@ def test_split_mirror_stays_on_active_volume_after_volume_cycle(tmp_path, ytree_
     assert start_vol is not None, "Could not detect starting volume in header."
 
     tui.send_keystroke(Keys.ENTER, wait=0.5)
-    assert "hex j compare" in _footer_text(tui)
+    assert "hex invert j compare" in _footer_text(tui)
     start_file = vol_to_file[start_vol]
     assert start_file in "\n".join(tui.get_screen_dump())
 
@@ -321,9 +321,9 @@ def test_split_mirror_stays_on_active_volume_after_volume_cycle(tmp_path, ytree_
         tui.send_keystroke("<", wait=0.5)
     assert target_vol is not None, "Failed to cycle to a different volume."
 
-    if "hex j compare" not in _footer_text(tui):
+    if "hex invert j compare" not in _footer_text(tui):
         tui.send_keystroke(Keys.ENTER, wait=0.4)
-    assert "hex j compare" in _footer_text(tui)
+    assert "hex invert j compare" in _footer_text(tui)
 
     target_file = vol_to_file[target_vol]
     screen = "\n".join(tui.get_screen_dump())
@@ -366,7 +366,7 @@ def test_inactive_dir_focus_survives_tab_away_and_back(tmp_path, ytree_binary):
     tui.send_keystroke(Keys.DOWN, wait=0.2)
     tui.send_keystroke(Keys.DOWN, wait=0.2)
     tui.send_keystroke(Keys.ENTER, wait=0.4)
-    assert "hex j compare" in _footer_text(tui)
+    assert "hex invert j compare" in _footer_text(tui)
 
     # Return to left panel. It must still be in dir mode.
     tui.send_keystroke(Keys.TAB, wait=0.4)
@@ -436,7 +436,7 @@ def test_split_tab_back_preserves_selected_file_index(tmp_path, ytree_binary):
 
     tui.send_keystroke(Keys.DOWN, wait=0.2)
     tui.send_keystroke(Keys.ENTER, wait=0.4)
-    assert "hex j compare" in _footer_text(tui)
+    assert "hex invert j compare" in _footer_text(tui)
 
     # Select alpha_2.txt in the left panel.
     tui.send_keystroke(Keys.DOWN, wait=0.2)
@@ -446,15 +446,15 @@ def test_split_tab_back_preserves_selected_file_index(tmp_path, ytree_binary):
     tui.send_keystroke(Keys.TAB, wait=0.4)
 
     # Do work in other panel: navigate to beta and enter file view.
-    if "hex j compare" in _footer_text(tui):
+    if "hex invert j compare" in _footer_text(tui):
         tui.send_keystroke(Keys.ESC, wait=0.3)
     tui.send_keystroke(Keys.DOWN, wait=0.3)
     tui.send_keystroke(Keys.ENTER, wait=0.4)
-    assert "hex j compare" in _footer_text(tui)
+    assert "hex invert j compare" in _footer_text(tui)
 
     # Return to original panel and verify selected file is unchanged.
     tui.send_keystroke(Keys.TAB, wait=0.4)
-    assert "hex j compare" in _footer_text(tui)
+    assert "hex invert j compare" in _footer_text(tui)
 
     tui.send_keystroke("J", wait=0.3)
     assert tui.wait_for_content("COMPARE TARGET:", timeout=1.0)
@@ -492,7 +492,7 @@ def test_inactive_panel_stays_file_focused_after_tab_away(tmp_path, ytree_binary
     tui.send_keystroke(Keys.DOWN, wait=0.2)
     tui.send_keystroke(Keys.DOWN, wait=0.2)
     tui.send_keystroke(Keys.ENTER, wait=0.4)
-    assert "hex j compare" in _footer_text(tui)
+    assert "hex invert j compare" in _footer_text(tui)
 
     # Switch away. Inactive right panel should remain file-focused visually,
     # not revert to tree.
@@ -526,7 +526,7 @@ def test_split_separator_stays_continuous_during_file_tree_toggle(tmp_path, ytre
     tui.send_keystroke(Keys.DOWN, wait=0.2)
     tui.send_keystroke(Keys.DOWN, wait=0.2)
     tui.send_keystroke(Keys.ENTER, wait=0.4)
-    assert "hex j compare" in _footer_text(tui)
+    assert "hex invert j compare" in _footer_text(tui)
 
     lines = tui.get_screen_dump()
     _assert_split_column_continuous(lines, "right active file / left inactive tree")
@@ -629,7 +629,7 @@ def test_volume_cycle_restores_prior_directory_selection(tmp_path, ytree_binary)
     tui.send_keystroke(Keys.DOWN, wait=0.25)
     tui.send_keystroke(Keys.DOWN, wait=0.25)
     tui.send_keystroke(Keys.ENTER, wait=0.45)
-    assert "hex j compare" in _footer_text(tui)
+    assert "hex invert j compare" in _footer_text(tui)
 
     screen = "\n".join(tui.get_screen_dump())
     expected_file = None
@@ -923,7 +923,7 @@ def test_split_file_focus_survives_tab_round_trip(tmp_path, ytree_binary):
     tui.send_keystroke(Keys.DOWN, wait=0.2)
     tui.send_keystroke(Keys.ENTER, wait=0.4)
     assert "alpha.txt" in "\n".join(tui.get_screen_dump())
-    assert "hex j compare" in _footer_text(tui)
+    assert "hex invert j compare" in _footer_text(tui)
 
     tui.send_keystroke(Keys.F8, wait=0.4)
     tui.send_keystroke(Keys.TAB, wait=0.4)
@@ -931,7 +931,7 @@ def test_split_file_focus_survives_tab_round_trip(tmp_path, ytree_binary):
 
     screen = "\n".join(tui.get_screen_dump())
     assert "alpha.txt" in screen, f"Left panel lost its file selection after split/tab round-trip.\n{screen}"
-    assert "hex j compare" in _footer_text(tui), f"Left panel lost file footer after split/tab round-trip.\n{screen}"
+    assert "hex invert j compare" in _footer_text(tui), f"Left panel lost file footer after split/tab round-trip.\n{screen}"
 
     tui.quit()
 
@@ -956,19 +956,19 @@ def test_split_panels_keep_independent_file_focus_states(tmp_path, ytree_binary)
     tui.send_keystroke(Keys.F8, wait=0.4)
     tui.send_keystroke(Keys.TAB, wait=0.4)
 
-    if "hex j compare" in _footer_text(tui):
+    if "hex invert j compare" in _footer_text(tui):
         tui.send_keystroke(Keys.ESC, wait=0.3)
 
     tui.send_keystroke(Keys.DOWN, wait=0.3)
     tui.send_keystroke(Keys.ENTER, wait=0.4)
     assert "beta.txt" in "\n".join(tui.get_screen_dump())
-    assert "hex j compare" in _footer_text(tui)
+    assert "hex invert j compare" in _footer_text(tui)
 
     tui.send_keystroke(Keys.TAB, wait=0.4)
 
     screen = "\n".join(tui.get_screen_dump())
     assert "alpha.txt" in screen, f"Returning to the left panel did not restore its file view.\n{screen}"
-    assert "hex j compare" in _footer_text(tui), f"Returning to the left panel did not restore file footer/help.\n{screen}"
+    assert "hex invert j compare" in _footer_text(tui), f"Returning to the left panel did not restore file footer/help.\n{screen}"
 
     tui.quit()
 
@@ -993,14 +993,14 @@ def test_active_mode_toggles_do_not_mutate_inactive_file_state(tmp_path, ytree_b
     tui.send_keystroke(Keys.DOWN, wait=0.2)
     tui.send_keystroke(Keys.ENTER, wait=0.4)
     tui.send_keystroke(Keys.DOWN, wait=0.2)
-    assert "hex j compare" in _footer_text(tui)
+    assert "hex invert j compare" in _footer_text(tui)
 
     # Split and move to right panel.
     tui.send_keystroke(Keys.F8, wait=0.4)
     tui.send_keystroke(Keys.TAB, wait=0.4)
 
     # Right panel: toggle between dir/file/small-big transitions.
-    if "hex j compare" in _footer_text(tui):
+    if "hex invert j compare" in _footer_text(tui):
         tui.send_keystroke(Keys.ESC, wait=0.3)
     tui.send_keystroke(Keys.DOWN, wait=0.2)
     tui.send_keystroke(Keys.DOWN, wait=0.2)
@@ -1011,7 +1011,7 @@ def test_active_mode_toggles_do_not_mutate_inactive_file_state(tmp_path, ytree_b
 
     # Left panel must still have file focus and selected alpha_1.
     tui.send_keystroke(Keys.TAB, wait=0.4)
-    assert "hex j compare" in _footer_text(tui)
+    assert "hex invert j compare" in _footer_text(tui)
     tui.send_keystroke("J", wait=0.3)
     assert tui.wait_for_content("COMPARE TARGET:", timeout=1.0)
     tui.send_keystroke(Keys.ENTER, wait=0.55)
@@ -1044,22 +1044,22 @@ def test_split_from_file_keeps_inactive_file_selection_independent(tmp_path, ytr
 
     tui.send_keystroke(Keys.DOWN, wait=0.2)
     tui.send_keystroke(Keys.ENTER, wait=0.4)  # Enter alpha
-    assert "hex j compare" in _footer_text(tui)
+    assert "hex invert j compare" in _footer_text(tui)
 
     # Set split baseline to alpha_1.
     tui.send_keystroke(Keys.DOWN, wait=0.2)
 
     tui.send_keystroke(Keys.F8, wait=0.4)
-    assert "hex j compare" in _footer_text(tui)
+    assert "hex invert j compare" in _footer_text(tui)
 
     # Move active panel to alpha_3; inactive panel should remain on alpha_1.
     tui.send_keystroke(Keys.DOWN, wait=0.2)
     tui.send_keystroke(Keys.DOWN, wait=0.2)
 
     tui.send_keystroke(Keys.TAB, wait=0.4)
-    if "hex j compare" not in _footer_text(tui):
+    if "hex invert j compare" not in _footer_text(tui):
         tui.send_keystroke(Keys.ENTER, wait=0.4)
-    assert "hex j compare" in _footer_text(tui)
+    assert "hex invert j compare" in _footer_text(tui)
 
     tui.send_keystroke("J", wait=0.3)
     assert tui.wait_for_content("COMPARE TARGET:", timeout=1.0)
@@ -1103,7 +1103,7 @@ def test_log_new_volume_from_file_view_resets_focus_and_selection(tmp_path, ytre
     tui.send_keystroke(Keys.ENTER, wait=0.4)
     tui.send_keystroke(Keys.DOWN, wait=0.2)
     tui.send_keystroke(Keys.DOWN, wait=0.2)
-    assert "hex j compare" in _footer_text(tui)
+    assert "hex invert j compare" in _footer_text(tui)
 
     # Log a new volume directly from file view.
     tui.send_keystroke(Keys.LOG, wait=0.2)
@@ -1156,7 +1156,7 @@ def test_log_second_volume_from_file_view_keeps_tree_on_root(tmp_path, ytree_bin
     # Enter file view first to exercise the same path that regressed.
     tui.send_keystroke(Keys.DOWN, wait=0.2)
     tui.send_keystroke(Keys.ENTER, wait=0.4)
-    assert "hex j compare" in _footer_text(tui)
+    assert "hex invert j compare" in _footer_text(tui)
 
     tui.send_keystroke(Keys.LOG, wait=0.2)
     tui.send_keystroke(Keys.CTRL_U + str(beta) + Keys.ENTER, wait=0.9)
@@ -1211,14 +1211,14 @@ def test_volume_menu_cancel_restores_file_footer_immediately(tmp_path, ytree_bin
     tui = YtreeTUI(executable=ytree_binary, cwd=str(root))
     time.sleep(0.8)
     tui.send_keystroke(Keys.ENTER, wait=0.4)
-    assert "hex j compare" in _footer_text(tui)
+    assert "hex invert j compare" in _footer_text(tui)
 
     tui.send_keystroke("k", wait=0.3)
     assert tui.wait_for_content("Select Volume", timeout=1.0)
     tui.send_keystroke(Keys.ESC, wait=0.3)
 
     footer = _footer_text(tui)
-    assert "hex j compare" in footer, (
+    assert "hex invert j compare" in footer, (
         "Cancelling volume menu from file view should immediately restore file footer."
     )
     assert "f1 help" in footer, (

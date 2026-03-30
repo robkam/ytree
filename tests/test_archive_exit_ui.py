@@ -158,7 +158,7 @@ def test_archive_root_backslash_exits_to_parent_file_focus(tmp_path, ytree_binar
         "Backslash at archive root must exit archive context.\n"
         f"Screen:\n{screen}"
     )
-    assert "hex j compare" in footer, (
+    assert "hex invert j compare" in footer, (
         "Backslash archive-root exit must land in file focus on archive file.\n"
         f"Footer:\n{footer}\n\nScreen:\n{screen}"
     )
@@ -224,13 +224,13 @@ def test_archive_file_backslash_is_silent_noop(tmp_path, ytree_binary):
     tui.send_keystroke(Keys.ENTER, wait=0.4)
     before = _screen_text(tui)
     before_footer = _footer_text(tui)
-    assert "hex j compare" in before_footer, "Expected archive file window footer."
+    assert "hex invert j compare" in before_footer, "Expected archive file window footer."
 
     tui.send_keystroke("\\", wait=0.4)
     after = _screen_text(tui)
     after_footer = _footer_text(tui)
     assert "ARCHIVE" in after, "Backslash in archive file window must stay in archive context."
-    assert "hex j compare" in after_footer, "Backslash in archive file window must be a no-op."
+    assert "hex invert j compare" in after_footer, "Backslash in archive file window must be a no-op."
     assert after_footer == before_footer, "Backslash in archive file window should not move context."
     assert "\a" not in before + after, "No bell expected for no-op backslash action."
 
@@ -258,12 +258,12 @@ def test_backslash_in_fs_dir_and_file_windows_is_silent_noop(tmp_path, ytree_bin
     tui.send_keystroke(Keys.ENTER, wait=0.4)
     file_before = _screen_text(tui)
     file_before_footer = _footer_text(tui)
-    assert "hex j compare" in file_before_footer, "Expected normal filesystem file window."
+    assert "hex invert j compare" in file_before_footer, "Expected normal filesystem file window."
 
     tui.send_keystroke("\\", wait=0.4)
     file_after = _screen_text(tui)
     file_after_footer = _footer_text(tui)
-    assert "hex j compare" in file_after_footer, "Backslash in fs file window must be a no-op."
+    assert "hex invert j compare" in file_after_footer, "Backslash in fs file window must be a no-op."
     assert file_after_footer == file_before_footer, "Backslash in fs file window should not move context."
     assert "\a" not in file_before + file_after, "No bell expected for fs file backslash no-op."
 
@@ -293,7 +293,7 @@ def test_unlogged_tree_shows_plus_marker_and_plus_relogs(tmp_path, ytree_binary)
     tui.send_keystroke("+", wait=0.5)
     tui.send_keystroke(Keys.ENTER, wait=0.4)
     footer = _footer_text(tui)
-    assert "hex j compare" in footer, (
+    assert "hex invert j compare" in footer, (
         "'+' should relog directory so Enter opens file mode.\n"
         f"Footer:\n{footer}\n\nScreen:\n{_screen_text(tui)}"
     )

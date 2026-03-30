@@ -1,37 +1,11 @@
 # **Modernization Roadmap**
-> **Purpose:** This document outlines the strategic plan for modernizing `ytree` following the Oct 2025 transition. It tracks the migration of legacy features and the implementation of modern power-user capabilities.
-
-## **Persona & Mode Definitions**
-- **Architect (:at a)**: Default planning and architecture agent.
-- **Developer (:at d)**: Default implementation agent.
-- **Code Auditor (:at c)**: Used for fragility and risk discovery before planning.
-- **Tester (:at t)**: Used for regression and acceptance validation.
-
-## **Overview**
-This document outlines the strategic roadmap for modernizing `ytree`, a curses-based file manager. The goal is to refactor legacy C code to modern standards (C99/POSIX), remove obsolete dependencies, and implement advanced power-user features inspired by XTree&trade; and ZTreeWin, while maintaining the lightweight, keyboard-centric philosophy.
-
----
-
----
-
-## **Phase 1: Code Quality and Refactoring**
-*This phase focuses on improving the existing codebase's health and maintainability.*
-
-
 
 ---
 
 ## **Phase 2: Foundational C-Standard Modernization**
 *This phase fixed critical bugs, established C99/POSIX standards compliance for core utilities, and removed reliance on custom, error-prone functions.*
 
-
-
-
 ---
-
-## **Phase 3: Core Architectural Shift (Integrating libarchive)**
-*This phase rewrote the archive handling logic to replace the fragile process-spawning/text-parsing method with a stable C library, completely eliminating the dependency on dozens of external utilities.*
-
 
 ## **Phase 4: UI/UX Enhancements and Cleanup**
 *This phase adds user-facing improvements, cleans up the remaining artifacts, and ensures a clean, modern, and portable codebase.*
@@ -41,11 +15,6 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 *   **Files to Modify:** `src/cmd/filter.c`, `src/ui/ctrl_dir.c`
 *   **Context Files:** `src/fs/readtree.c`
 *   - [ ] **Status:** Not Started.
-
-
-
-
-
 
 #### **Step 4.14.1: Create Watcher Infrastructure (`watcher.c`)**
 *   **Task:** Create a new module `watcher.c` to abstract the OS-specific file monitoring APIs.
@@ -89,9 +58,6 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
     *   **Implementation:** Call `Watcher_SetDir(dir_entry->name)` inside `HandleDirWindow` navigation logic (possibly debounced) and definitely inside `HandleFileWindow`.
 *   - [ ] **Status:** Not Started.
 
-
-
-
 ### **Step 4.18: Implement Directory Graft (Copy/Move)**
 *   **Goal:** Implement directory manipulation commands in the Directory Window.
     *   **Graft (Move):** Move an entire directory branch to a new parent.
@@ -101,18 +67,12 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 *   **Context Files:** `src/cmd/copy.c`, `src/cmd/move.c`
 *   - [ ] **Status:** Not Started.
 
-
-
-
-
-
 ### **Step 4.24: Refine In-App Help Text**
 *   **Goal:** Review all user prompts and help lines to be clear and provide context for special syntax (e.g., `{}`). The menu should be decluttered by only showing a `^` shortcut if its action differs from the base key (e.g., `(C)opy/(^K)` is good, but `pathcop(Y)/^Y` is redundant and should just be `pathcop(Y)`).
 *   **Rationale:** Fulfills the "No Hidden Features" principle and improves UI clarity by removing redundant information.
 *   **Files to Modify:** `src/ui/display.c`
 *   **Context Files:** None.
 *   - [ ] **Status:** Not Started.
-
 
 ### **Step 4.26: Implement Integrated Help System**
 *   **Goal:** Create a pop-up, scrollable help window (activated by F1) that displays context-sensitive command information.
@@ -128,7 +88,6 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 *   **Context Files:** `include/ytree.h`
 *   - [ ] **Status:** Not Started.
 
-
 ### **Step 4.29: Implement Advanced Log Options**
 *   **Goal:** Enhance the `Log` command to present options for controlling the scan depth and scope, similar to ZTree/XTree&trade; (e.g., "Log drive", "Log tree", "Log directory").
 *   **Rationale:** Provides essential control over performance when working with very large filesystems, allowing the user to perform a shallow scan when a deep recursive scan is not needed.
@@ -139,24 +98,16 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 ### **Step 4.30: Archive Write Support (Atomic Breakdown)**
 *   **Goal:** Enable modification of archives (ZIP, TAR, ISO, etc.) directly within ytree. Since `libarchive` does not support random-access modification, this requires a "Stream Rewrite" engine: open original, open temp destination, stream entries from old to new (skipping deleted ones, injecting new ones), close, and swap. The Auto-Refresh logic for archives will need to watch the archive file itself (the container) to trigger reloads.
 
-
 #### **Step 4.30.6: Implement Archive Move (`M`) Support**
 *   **Description:** Implement `M` (Move) for archives. Intra-archive moves use the Rewrite Engine to rename paths. Cross-volume moves use Copy-Extract + Delete.
 *   **Files to Modify:** `src/cmd/move.c`, `src/fs/archive_write.c`.
 *   - [ ] **Status:** Not Started.
-
 
 ### **Step 4.33: Nested Archive Traversal**
 *   Allow transparently entering an archive that is itself inside another archive.
 *   **Files to Modify:** `src/fs/archive_read.c`, `src/cmd/log.c`
 *   **Context Files:** `src/fs/archive_read.c`
 *   - [ ] **Status:** Not Started.
-
-
-
-
-
-
 
 ### **Step 4.40: Implement Auto-Execute on Command Termination**
 *   **Goal:** Allow users to execute shell commands (`X` or `P`) immediately by ending the input string with a specific terminator (e.g., `\n` or `;`), without needing to press Enter explicitly.
@@ -176,7 +127,6 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 *   **Context Files:** None.
 *   - [ ] **Status:** Not Started.
 
-
 ### **Step 4.43: Refactor Tab Completion for Command Arguments**
 *   **Goal:** Update the tab completion logic in `src/util/tabcompl.c` to handle command-line arguments correctly and resolve ambiguous matches using Longest Common Prefix (LCP).
 *   **Rationale:** Currently, the completion engine treats the entire input line as a single path. This causes failures when trying to complete arguments for commands (e.g., `x ls /us<TAB>` fails because it looks for a file named "ls /us"). It also fails to partial-complete when multiple matches exist (e.g., `/s` matching both `/sys` and `/srv`).
@@ -189,7 +139,6 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 *   **Context Files:** None.
 *   - [ ] **Status:** Not Started.
 
-
 ### **Step 4.45: Implement "Tags-Only" View Mode**
 *   **Goal:** Implement a toggle (`*` or `8`) to display only the tagged files in the current File Window.
 *   **Rationale:** A core ZTreeWin feature that allows users to verify, refine, and operate on a specific subset of files without the visual clutter of non-tagged files.
@@ -197,14 +146,10 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 *   **Context Files:** `src/ui/ctrl_dir.c`
 *   - [ ] **Status:** Not Started.
 
-
-
 ### **Step 4.48: Standardize Internal Viewer Layout**
 *   **Goal:** Ensure the internal viewer's layout geometry matches the main application (borders, headers, and footer).
 *   **Files to Modify:** `src/ui/view_internal.c`
 *   - [ ] **Status:** Not Started.
-
-
 
 ### **Step 4.51: Implement Global File View (`G`)**
 *   **Goal:** Implement the "Global" file view mode, which aggregates files from **all currently logged volumes** into a single flattened list.
@@ -215,14 +160,8 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 
 ---
 
-## **Phase 5: Major Architectural Refactoring**
-*This phase implements core architectural changes required for advanced features.*
-
----
-
 ## **Phase 6: Advanced Features**
 *This phase builds upon the new architecture to add more high-level functionality.*
-
 
 ### **Step 6.4: Implement Advanced Batch Rename**
 *   **Goal:** Enhance the `Rename` command to support advanced masks (e.g., `*_<001>.bak`), sequential numbering, casing changes (`Tab`), and substring replacement.
@@ -260,18 +199,15 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 *   **Context Files:** None.
 *   - [ ] **Status:** Not Started.
 
-
 ---
 
 ## **Phase 8: Build System, Documentation, and CI**
 *This phase focuses on project infrastructure, developer experience, and release readiness.*
 
-
 ### **Step 8.3: Restructure and Expand Test Suite**
 *   **Goal:** Tidy up existing test scripts into a coherent, modular structure and thoroughly expand the regression suite for comprehensive coverage.
 *   **Rationale:** A well-structured test suite is easier to maintain and extend. Thorough, systematic coverage ensures reliability and prevents regressions across complex file operations.
 *   - [ ] **Status:** Not Started.
-
 
 ### **Step 8.5: Enhance Build System**
 *   **Goal:** Improve Makefile targets for installation and add a proper `uninstall` target to clean up all installed files. Modernize versioning by moving version info from `patchlev.h` into the `Makefile`.
@@ -279,8 +215,6 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 *   **Files to Modify:** `Makefile`
 *   **Context Files:** `include/patchlev.h`
 *   - [x] **Status:** Partially Completed (uninstall exists but can be improved).
-
-
 
 ### **Step 8.7: Finalize Documentation**
 *   **Goal:** Update the `CHANGELOG`, `README.md`, and `CONTRIBUTING.md` files to reflect all new features and changes before a release.
@@ -298,26 +232,8 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
 
 ---
 
-## **Phase 9: Systems Architecture Remediation & Core Hardening**
-*This phase represents the primary technical debt payoff for the v3.0 modernization. It transitions `ytree` from a monolithic legacy C89 codebase into a layered, modular architecture. It systematically decouples Business Logic from Presentation (Model-View Separation), enforces strict Memory Safety, eliminates unsafe Signal Handling patterns, and standardizes low-level System I/O mechanisms.*
-
-
-### **Step 9.2: SRP & SoC Enforcement (Audit Execution)**
-
-
-
-
----
-
-## **Phase 10: Valgrind Audit & Optimization**
-*This phase focuses on deep stability, memory safety, and performance profiling to ensure `ytree` is robust enough for long-running sessions.*
-
-
----
-
 ## **Phase 11: Architectural Integrity (SRP/SoC Audit)**
 *This phase addresses specific "Fragile Code" patterns identified during the deep-dive audit. The goal is to strictly enforce the Single Responsibility Principle (SRP) and Separation of Concerns (SoC) to prevent regression loops and enable safe future expansion.*
-
 
 ### **Step 11.2: Decouple Logic from UI in Core Commands** (Use the Architect persona here)
 *   **Task ID:** [CMD]-[Copy/Move]-[SoC]
@@ -330,7 +246,6 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
     3.  The callback handles the `InputChoice` UI and returns `YES`, `NO`, or `ALL`.
 *   **Files to Modify:** `src/cmd/copy.c`, `src/cmd/move.c`, `include/ytree_cmd.h`.
 *   - [ ] **Status:** Not Started.
-
 
 ### **Step 11.4: Standardize Path Construction (Safety)** (Use the Architect persona here)
 *   **Task ID:** [Util]-[Path]-[UnsafeString]
@@ -368,12 +283,6 @@ This document outlines the strategic roadmap for modernizing `ytree`, a curses-b
     2.  Update `.c` files to include only the specific headers they need (e.g., `ctrl_dir.c` needs `ytree_ui.h` and `ytree_fs.h`).
     *Note: This is a large task; prioritize after functional hardening.*
 *   **Files to Modify:** `include/ytree.h` and all `src/**/*.c`.
-
----
-
-## **Phase 12: Public Release Preparation**
-*This phase ensures the project is presentable for a public "Developer Preview," emphasizing the architectural achievements over raw feature completeness.*
-
 
 ---
 

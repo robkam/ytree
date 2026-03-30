@@ -142,6 +142,8 @@ Active when the file window is focused.
 *   **E** (Edit): Edit selected file with `$EDITOR` (default: vi).
 *   **F** (Filter): Set file filter.
 *   **H** (Hex): View selected file in hex mode.
+*   **i** / **I**: **Invert Tags**. Toggle the tag state of all visible files.
+
 *   **J** (Compare): Compare the selected file with a target file.
 *   **L** (Log): Log a new directory or archive file.
 *   **M** (Move): Move the selected file.
@@ -169,7 +171,6 @@ Active when the file window is focused.
 *   **^Y**: Copy all tagged files including path.
 *   **^F** (File Mode): Cycle file display modes.
 *   **Return**: Switch to Full Screen File Mode / Directory Mode.
-*   **\*** (Asterisk) / **Shift-8**: **Invert Tags**. Toggle the tag state of all currently visible files.
 
 ### Archive Mode
 When browsing an archive (ZIP, TAR, etc.), ytree behaves like a virtual file system with archive-aware operations and distinct root/non-root navigation rules.
@@ -199,6 +200,8 @@ When browsing an archive (ZIP, TAR, etc.), ytree behaves like a virtual file sys
 *   **D** (Delete): Delete selected archive file entry.
 *   **F** (Filter): Set file filter.
 *   **H** (Hex): View file in hex mode.
+*   **i** / **I**: **Invert Tags**. Toggle the tag state of all visible files.
+
 *   **M** (Move): Move selected file using archive-aware semantics.
 *   **P** (Pipe): Pipe content to command.
 *   **R** (Rename): Rename selected archive file entry.
@@ -216,7 +219,6 @@ When browsing an archive (ZIP, TAR, etc.), ytree behaves like a virtual file sys
 *   **^F** (File Mode): Cycle display modes.
 *   **Return**: Switch to Archive-Dir Mode.
 *   **\\**: No-op.
-*   **\*** (Asterisk): Invert tag selection.
 
 Archive file-window status text:
 
