@@ -44,6 +44,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Clock & Date Localization**: Stabilized the real-time clock and date handlers, resolving the "beta" state from v2.10.
 - **Build System**: Updated Makefile for dependency tracking and automated manpage generation via `pandoc`.
 - **QA Suite**: Integrated GitHub Actions CI and expanded `pytest`/`pexpect` coverage for core TUI behavioral validation.
+- **Overwrite-All Conflict Hardening**: Unified COPY/MOVE overwrite-all behavior so selecting `A` on the first conflict suppresses repeated prompts across remaining tagged-file conflicts, with regression coverage for both operations.
 
 ## [2.10]
 - 7zip / iso support.

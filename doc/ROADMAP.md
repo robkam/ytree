@@ -245,7 +245,7 @@
     2.  If the destination exists, the logic invokes the callback: `cb(CTX_OVERWRITE, filename)`.
     3.  The callback handles the `InputChoice` UI and returns `YES`, `NO`, or `ALL`.
 *   **Files to Modify:** `src/cmd/copy.c`, `src/cmd/move.c`, `include/ytree_cmd.h`.
-*   - [ ] **Status:** Not Started.
+*   - [x] **Status:** Completed.
 
 ### **Step 11.4: Standardize Path Construction (Safety)** (Use the Architect persona here)
 *   **Task ID:** [Util]-[Path]-[UnsafeString]
