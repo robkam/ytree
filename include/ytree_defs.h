@@ -693,6 +693,13 @@ typedef struct _history {
 } History;
 
 typedef struct {
+  int start_y;
+  int start_x;
+  int height;
+  int width;
+} ViewerGeometry;
+
+typedef struct {
   int wlines;
   int wcols;
   int bytes;

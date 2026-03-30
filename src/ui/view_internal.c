@@ -38,7 +38,8 @@ static struct stat fdstat;
 #define THECOLOR                                                               \
   ((ctx->viewer.inedit) ? COLOR_PAIR(CPAIR_STATS) : COLOR_PAIR(CPAIR_DIR))
 
-static void hex_edit(ViewContext *ctx, char *file_path);
+static void hex_edit(ViewContext *ctx, char *file_path,
+                     const ViewerGeometry *geom);
 static void printhexline(ViewContext *ctx, WINDOW *win, char *line, char *buf,
                          int r, long offset);
 static int append_bounded(char *dst, size_t dst_size, const char *src);
@@ -48,11 +49,13 @@ static void scroll_up(ViewContext *ctx, WINDOW *win);
 static void update_all_lines(ViewContext *ctx, WINDOW *win, char l);
 static void Change2Edit(const ViewContext *ctx, const char *file_path);
 static void Change2View(const ViewContext *ctx, const char *file_path);
-static void SetupViewWindow(ViewContext *ctx, const char *file_path);
+static void SetupViewWindow(ViewContext *ctx, const char *file_path,
+                            const ViewerGeometry *geom);
 static unsigned char hexval(unsigned char v);
 static void change_char(ViewContext *ctx, int ch);
 static void move_right(ViewContext *ctx, WINDOW *win);
-static void DoResize(ViewContext *ctx, char *file_path);
+static void DoResize(ViewContext *ctx, char *file_path,
+                     const ViewerGeometry *geom);
 
 static int append_bounded(char *dst, size_t dst_size, const char *src) {
   size_t used;
@@ -244,12 +247,13 @@ static void Change2View(const ViewContext *ctx, const char *file_path) {
   return;
 }
 
-static void SetupViewWindow(ViewContext *ctx, const char *file_path) {
+static void SetupViewWindow(ViewContext *ctx, const char *file_path,
+                            const ViewerGeometry *geom) {
   int i;
-  int start_y = ctx->layout.dir_win_y;
-  int start_x = ctx->layout.dir_win_x;
-  int available_height = ctx->layout.message_y - start_y;
-  int width = ctx->layout.main_win_width;
+  int start_y = geom->start_y;
+  int start_x = geom->start_x;
+  int available_height = geom->height;
+  int width = geom->width;
 
   /* Ensure minimal dimensions */
   if (available_height < 3)
@@ -424,7 +428,8 @@ static void move_right(ViewContext *ctx, WINDOW *win) {
   return;
 }
 
-static void DoResize(ViewContext *ctx, char *file_path) {
+static void DoResize(ViewContext *ctx, char *file_path,
+                     const ViewerGeometry *geom) {
   int old_cursor_pos_x = cursor_pos_x;
   int old_cursor_pos_y = cursor_pos_y;
   int old_WLINES = ctx->viewer.wlines;
@@ -434,7 +439,7 @@ static void DoResize(ViewContext *ctx, char *file_path) {
   int new_cols;
   int new_lines;
 
-  SetupViewWindow(ctx, file_path);
+  SetupViewWindow(ctx, file_path, geom);
 
   new_cols = offset % ctx->viewer.bytes;
   new_lines = offset / ctx->viewer.bytes;
@@ -487,7 +492,8 @@ static void DoResize(ViewContext *ctx, char *file_path) {
   ctx->viewer.resize_done = TRUE;
 }
 
-static void hex_edit(ViewContext *ctx, char *file_path) {
+static void hex_edit(ViewContext *ctx, char *file_path,
+                     const ViewerGeometry *geom) {
   int ch;
   char msg[50];
 
@@ -517,7 +523,7 @@ static void hex_edit(ViewContext *ctx, char *file_path) {
 
     ch = NormalizeViKey(ctx, ch);
     if (ctx->resize_request) {
-      DoResize(ctx, file_path);
+      DoResize(ctx, file_path, geom);
       ctx->resize_request = FALSE;
       continue;
     }
@@ -704,7 +710,7 @@ static void hex_edit(ViewContext *ctx, char *file_path) {
   return;
 }
 
-int InternalView(ViewContext *ctx, char *file_path) {
+int InternalView(ViewContext *ctx, char *file_path, const ViewerGeometry *geom) {
   int ch;
   BOOL QUIT = FALSE;
   int result = VIEW_EXIT;
@@ -719,7 +725,7 @@ int InternalView(ViewContext *ctx, char *file_path) {
   fd = open(file_path, O_RDONLY);
   if (fd == -1)
     return -1;
-  SetupViewWindow(ctx, file_path);
+  SetupViewWindow(ctx, file_path, geom);
   current_line = 1;
   update_all_lines(ctx, ctx->viewer.view, ctx->viewer.wlines - 1);
 
@@ -730,7 +736,7 @@ int InternalView(ViewContext *ctx, char *file_path) {
     ch = NormalizeViKey(ctx, ch);
 
     if (ctx->resize_request) {
-      DoResize(ctx, file_path);
+      DoResize(ctx, file_path, geom);
       ctx->resize_request = FALSE;
       continue;
     }
@@ -761,7 +767,7 @@ int InternalView(ViewContext *ctx, char *file_path) {
     case 'e':
     case 'E':
       Change2Edit(ctx, file_path);
-      hex_edit(ctx, file_path);
+      hex_edit(ctx, file_path, geom);
       update_all_lines(ctx, ctx->viewer.view, ctx->viewer.wlines - 1);
       Change2View(ctx, file_path);
       break;
