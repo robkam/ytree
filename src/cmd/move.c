@@ -5,12 +5,8 @@
  *
  ***************************************************************************/
 
-#ifndef YTREE_H
-#include "../../include/ytree.h"
-#endif
-
-#include "../../include/ytree_cmd.h"
-#include "../../include/ytree_fs.h"
+#include "ytree_cmd.h"
+#include "ytree_fs.h"
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>

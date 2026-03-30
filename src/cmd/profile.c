@@ -6,7 +6,7 @@
  ***************************************************************************/
 
 #include "config.h"
-#include "ytree.h"
+#include "ytree_ui.h"
 
 #define NO_SECTION 0
 #define GLOBAL_SECTION 1
