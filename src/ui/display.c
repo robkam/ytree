@@ -7,6 +7,8 @@
 
 #include "../../include/patchlev.h"
 #include "../../include/ytree.h"
+#include "../../include/ytree_cmd.h"
+#include "../../include/ytree_ui.h"
 
 /* PrintMenuLine is removed as its functionality for drawing the static stats
  * panel is no longer needed. The stats panel is now fully managed by stats.c.

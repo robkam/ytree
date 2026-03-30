@@ -8,10 +8,8 @@
 #ifndef YTREE_H
 #define YTREE_H
 
-#include "ytree_cmd.h"
 #include "ytree_defs.h"
 #include "ytree_fs.h"
-#include "ytree_ui.h"
 #include <stdarg.h>
 
 /* Some handy macros... */

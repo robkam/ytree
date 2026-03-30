@@ -285,6 +285,7 @@
     2.  Update `.c` files to include only the specific headers they need (e.g., `ctrl_dir.c` needs `ytree_ui.h` and `ytree_fs.h`).
     *Note: This is a large task; prioritize after functional hardening.*
 *   **Files to Modify:** `include/ytree.h` and all `src/**/*.c`.
+*   - [x] **Status:** Completed.
 
 ---
 
