@@ -98,8 +98,6 @@ The project documentation is split into several focused files.
 
 ---
 
-*Note: Developers can compile with AddressSanitizer enabled by running `make DEBUG=1`.*
-
 ## Reporting Issues
 
 If you find anything amiss, you can report it using [GitHub Issues](https://github.com/robkam/ytree/issues).

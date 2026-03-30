@@ -230,65 +230,6 @@
 *   **Context Files:** None.
 *   - [ ] **Status:** Not Started.
 
----
-
-## **Phase 11: Architectural Integrity (SRP/SoC Audit)**
-*This phase addresses specific "Fragile Code" patterns identified during the deep-dive audit. The goal is to strictly enforce the Single Responsibility Principle (SRP) and Separation of Concerns (SoC) to prevent regression loops and enable safe future expansion.*
-
-### **Step 11.2: Decouple Logic from UI in Core Commands** (Use the Architect persona here)
-*   **Task ID:** [CMD]-[Copy/Move]-[SoC]
-*   **Severity:** **High**
-*   **The Fragile Code:** `CopyFile` (`src/cmd/copy.c`) and `MoveFile` (`src/cmd/move.c`) call `InputChoice(...)` internally to ask for overwrite confirmation.
-*   **The Issue:** "Business Logic" functions are holding the thread hostage for UI input. This prevents scripting, batch operations, or alternative interfaces.
-*   **The Robust Fix:**
-    1.  Refactor `CopyFile` and `MoveFile` to accept a `ConfirmationCallback` function pointer (or a comprehensive flags bitmask like `OPS_INTERACTIVE | OPS_FORCE`).
-    2.  If the destination exists, the logic invokes the callback: `cb(CTX_OVERWRITE, filename)`.
-    3.  The callback handles the `InputChoice` UI and returns `YES`, `NO`, or `ALL`.
-*   **Files to Modify:** `src/cmd/copy.c`, `src/cmd/move.c`, `include/ytree_cmd.h`.
-*   - [x] **Status:** Completed.
-
-### **Step 11.4: Standardize Path Construction (Safety)** (Use the Architect persona here)
-*   **Task ID:** [Util]-[Path]-[UnsafeString]
-*   **Severity:** **High**
-*   **The Fragile Code:** Various commands (`copy.c`, `move.c`) use ad-hoc `strcpy`/`strcat` sequences to build paths:
-    ```c
-    strcpy(path, dir);
-    if (*path != '/') strcat(path, "/");
-    strcat(path, file);
-    ```
-*   **The Issue:** This pattern is error-prone (buffer overflows, double slashes, missing slashes) and repetitive (DRY violation).
-*   **The Robust Fix:**
-    1.  Implement `Path_Join(char *dest, size_t size, const char *dir, const char *file)` in `src/util/path_utils.c`.
-    2.  This function must handle separator insertion/deduplication and `snprintf` bounds checking centrally.
-    3.  Refactor all command modules to use this helper.
-*   **Files to Modify:** `src/util/path_utils.c`, `src/cmd/copy.c`, `src/cmd/move.c`, `src/cmd/rename.c`, `src/cmd/mkdir.c`.
-*   - [x] **Status:** Completed.
-
-### **Step 11.5: Encapsulate Internal Viewer Geometry** (Use the Architect persona here)
-*   **Task ID:** [UI]-[View]-[Encapsulation]
-*   **Severity:** **Medium**
-*   **The Fragile Code:** `src/ui/view_internal.c` creates windows (`VIEW`, `BORDER`) based on global `layout` coordinates but manages its own resize logic (`DoResize`) that competes with the main layout engine.
-*   **The Issue:** The internal viewer acts as a separate application mode rather than a component. It forces `Getch` loops that are disconnected from the main event loop.
-*   **The Robust Fix:**
-    1.  Refactor `InternalView` to accept a `WINDOW *parent` or `YtreeGeometry` struct.
-    2.  Ensure it respects the bounds passed by the caller, allowing it to eventually run inside a Split Screen pane (future proofing).
-*   **Files to Modify:** `src/ui/view_internal.c`.
-*   - [x] **Status:** Completed.
-
-### **Step 11.6: Strict Header Hygiene** (Use the Architect persona here)
-*   **Task ID:** [Core]-[Build]-[Coupling]
-*   **Severity:** **Low (Maintenance)**
-*   **The Fragile Code:** `ytree.h` includes every other header. Every `.c` file sees every prototype.
-*   **The Issue:** Changing a struct in `fs` triggers a recompile of `ui`.
-*   **The Robust Fix:**
-    1.  Remove `#include "ytree_*.h"` from `ytree.h`.
-    2.  Update `.c` files to include only the specific headers they need (e.g., `ctrl_dir.c` needs `ytree_ui.h` and `ytree_fs.h`).
-    *Note: This is a large task; prioritize after functional hardening.*
-*   **Files to Modify:** `include/ytree.h` and all `src/**/*.c`.
-*   - [x] **Status:** Completed.
-
----
-
 ## **Future Enhancements / Wishlist**
 *A collection of high-complexity or lower-priority features to be considered after the primary roadmap is complete.*
 

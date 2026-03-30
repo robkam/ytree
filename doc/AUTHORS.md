@@ -24,4 +24,4 @@ Originally developed by [Werner Bregulla](https://www.han.de/~werner/ytree.html)
 
 **v3.0 Modernization**
 
-After decades of dormancy, the project was refactored, modernized, and enhanced by [Rob Kam](https://github.com/robkam) with the help of a variety of AIs.
+* **Rob Kam** - Modernized and enhanced the project after decades of dormancy, making extensive use of LLMs for code generation and debugging.
