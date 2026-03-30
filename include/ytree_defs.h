@@ -697,6 +697,10 @@ typedef struct {
   int start_x;
   int height;
   int width;
+  int header_y;
+  int message_y;
+  int prompt_y;
+  int status_y;
 } ViewerGeometry;
 
 typedef struct {
