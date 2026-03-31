@@ -2,7 +2,7 @@
 
 Discovery stub for Codex tooling.
 
-🚨 **MANDATORY AI INITIALIZATION**:
+**MANDATORY AI INITIALIZATION**:
 Before doing any codebase research or making tool calls, you **MUST** read `./.ai/codex.md` and `./.ai/shared.md`.
 You **MUST** use the MCP semantic tools (`serena` and `jcodemunch`) for all searching and codebase exploration instead of fallback system tools (`grep`/`find`).
 
