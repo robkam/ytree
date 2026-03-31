@@ -58,7 +58,8 @@ extern void DrawAnimationStep(ViewContext *ctx, WINDOW *win);
 extern void DrawSpinner(ViewContext *ctx);
 
 /* init.c */
-extern int Init(ViewContext *ctx, char *configuration_file, char *history_file);
+extern int Init(ViewContext *ctx, const char *configuration_file,
+                const char *history_file);
 extern void Layout_Recalculate(ViewContext *ctx);
 extern void ReCreateWindows(ViewContext *ctx);
 extern void ShutdownCurses(ViewContext *ctx);

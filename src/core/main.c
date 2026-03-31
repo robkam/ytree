@@ -81,8 +81,8 @@ static int InitProfileFile(const char *path) {
 
 int main(int argc, char **argv) {
   int argi;
-  char *hist;
-  char *conf;
+  const char *hist;
+  const char *conf;
   BOOL init_requested = FALSE;
   const char *filter_arg = NULL; /* Added for -f option */
   int *path_indexes;

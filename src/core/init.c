@@ -550,7 +550,8 @@ void ShutdownCurses(ViewContext *ctx) {
   }
 }
 
-int Init(ViewContext *ctx, char *configuration_file, char *history_file) {
+int Init(ViewContext *ctx, const char *configuration_file,
+         const char *history_file) {
   InitView(ctx);
   DEBUG_LOG("ENTER Init");
   char buffer[PATH_LENGTH + 1];

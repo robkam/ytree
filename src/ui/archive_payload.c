@@ -250,7 +250,6 @@ static int compute_common_file_base(const char *const *source_paths,
 static int build_relative_path(const char *base_path, const char *full_path,
                                char *relative_path, size_t relative_path_size) {
   const char *start;
-  size_t base_len;
   int written;
 
   if (!base_path || !full_path || !relative_path || relative_path_size == 0)
@@ -261,7 +260,7 @@ static int build_relative_path(const char *base_path, const char *full_path,
     while (*start == FILE_SEPARATOR_CHAR)
       start++;
   } else {
-    base_len = strlen(base_path);
+    size_t base_len = strlen(base_path);
     if (strncmp(full_path, base_path, base_len) != 0)
       return -1;
 
@@ -326,7 +325,7 @@ static int expand_directory_path(const char *root_dir,
                                  ArchiveExpandedEntry **expanded_list,
                                  VisitedDirNode **visited) {
   DIR *dir;
-  struct dirent *entry;
+  const struct dirent *entry;
   struct stat st;
   int rc = 0;
 
@@ -403,7 +402,7 @@ static int expand_directory_path_non_recursive(const char *root_dir,
                                                ArchiveExpandedEntry **expanded_list,
                                                VisitedDirNode **visited) {
   DIR *dir;
-  struct dirent *entry;
+  const struct dirent *entry;
   struct stat st;
   int rc = 0;
 

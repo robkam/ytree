@@ -160,9 +160,7 @@ int MoveFile(ViewContext *ctx, FileEntry *fe_ptr, const char *to_file,
     if (dest_file_entry) {
       /* file exists */
       /*-------------*/
-      if (overwrite_mode && *overwrite_mode == CONFLICT_ALL) {
-        conflict_res = CONFLICT_ALL;
-      } else if (cb) {
+      if (!(overwrite_mode && *overwrite_mode == CONFLICT_ALL) && cb) {
         conflict_res = cb(ctx, from_path, to_path, overwrite_mode);
         if (conflict_res == CONFLICT_ABORT) {
           result = -1;
@@ -188,9 +186,7 @@ int MoveFile(ViewContext *ctx, FileEntry *fe_ptr, const char *to_file,
     if (!access(to_path, F_OK)) {
       /* file exists */
       /*-------------*/
-      if (overwrite_mode && *overwrite_mode == CONFLICT_ALL) {
-        conflict_res = CONFLICT_ALL;
-      } else if (cb) {
+      if (!(overwrite_mode && *overwrite_mode == CONFLICT_ALL) && cb) {
         conflict_res = cb(ctx, from_path, to_path, overwrite_mode);
         if (conflict_res == CONFLICT_ABORT) {
           result = -1;

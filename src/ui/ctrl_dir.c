@@ -2022,7 +2022,6 @@ int HandleDirWindow(ViewContext *ctx, const DirEntry *start_dir_entry) {
 
     case ACTION_CMD_I: {
       ArchivePayload payload;
-      int create_result = -1;
       int gather_result;
       payload.original_source_list = NULL;
       payload.expanded_file_list = NULL;
@@ -2033,6 +2032,7 @@ int HandleDirWindow(ViewContext *ctx, const DirEntry *start_dir_entry) {
           UI_ShowStatusLineError(ctx, "Nothing to archive");
         need_dsp_help = FALSE;
       } else {
+        int create_result;
         create_result = UI_CreateArchiveFromPayload(ctx, &payload);
         if (create_result == 0) {
           dir_entry = RefreshTreeSafe(ctx, ctx->active, dir_entry);

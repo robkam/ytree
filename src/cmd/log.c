@@ -342,7 +342,6 @@ int GetNewLogPath(ViewContext *ctx, YtreePanel *panel, char *path) {
                       HST_LOG) == CR) {
     char temp_path[PATH_LENGTH * 3 + 2];
     char resolved_path[PATH_LENGTH + 1];
-    int composed_len = 0;
 
     /* InputString expands '~', so check if the result is an absolute path. */
     if (user_input[0] != FILE_SEPARATOR_CHAR) {
@@ -353,8 +352,8 @@ int GetNewLogPath(ViewContext *ctx, YtreePanel *panel, char *path) {
       }
     } else {
       /* It's an absolute path. */
-      composed_len = snprintf(temp_path, sizeof(temp_path), "%s", user_input);
-      if (composed_len < 0 || (size_t)composed_len >= sizeof(temp_path)) {
+      copied_len = snprintf(temp_path, sizeof(temp_path), "%s", user_input);
+      if (copied_len < 0 || (size_t)copied_len >= sizeof(temp_path)) {
         return result;
       }
     }

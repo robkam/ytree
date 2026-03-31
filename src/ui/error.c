@@ -52,7 +52,7 @@ void UI_ShowStatusLineError(ViewContext *ctx, const char *fmt, ...) {
 }
 
 void UI_ClearStatusLineError(ViewContext *ctx) {
-  DirEntry *dir_entry = NULL;
+  const DirEntry *dir_entry = NULL;
 
   if (!ctx || !ctx->status_line_error_pending)
     return;

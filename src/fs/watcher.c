@@ -14,6 +14,9 @@
 #include <unistd.h>
 
 void Watcher_Init(ViewContext *ctx) {
+  if (!ctx)
+    return;
+
   /* Initialize inotify with Non-Blocking and Close-on-Exec flags */
   ctx->inotify_fd = inotify_init1(IN_NONBLOCK | IN_CLOEXEC);
   ctx->current_wd = -1;
@@ -26,6 +29,8 @@ void Watcher_Init(ViewContext *ctx) {
 }
 
 void Watcher_SetDir(ViewContext *ctx, const char *path) {
+  if (!ctx)
+    return;
   if (ctx->inotify_fd < 0)
     return;
   if (!path)
@@ -63,7 +68,11 @@ void Watcher_SetDir(ViewContext *ctx, const char *path) {
   }
 }
 
-int Watcher_GetFD(const ViewContext *ctx) { return ctx->inotify_fd; }
+int Watcher_GetFD(const ViewContext *ctx) {
+  if (!ctx)
+    return -1;
+  return ctx->inotify_fd;
+}
 
 BOOL Watcher_ProcessEvents(ViewContext *ctx) {
   /* Buffer for inotify events. alignof ensures safety for struct casting. */
@@ -73,7 +82,7 @@ BOOL Watcher_ProcessEvents(ViewContext *ctx) {
   const struct inotify_event *event;
   char *ptr;
 
-  if (ctx->inotify_fd < 0)
+  if (!ctx || ctx->inotify_fd < 0)
     return FALSE;
 
   /* Drain the inotify socket loop */
@@ -117,6 +126,9 @@ BOOL Watcher_ProcessEvents(ViewContext *ctx) {
 }
 
 void Watcher_Close(ViewContext *ctx) {
+  if (!ctx)
+    return;
+
   if (ctx->inotify_fd >= 0) {
     if (ctx->current_wd >= 0) {
       inotify_rm_watch(ctx->inotify_fd, ctx->current_wd);

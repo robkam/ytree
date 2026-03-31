@@ -205,58 +205,92 @@ Active when the file window is focused.
 
 - **A** (Attributes): Open attributes submenu for selected file
   metadata: mode, owner, group, date.
+
 - **^A**: Open attributes submenu for all tagged files: mode, owner,
   group, date.
+
 - **C** (Copy): Copy the selected file.
+
 - **^K**: Copy all tagged files.
+
 - **D** (Delete): Delete selected file. *(With `VI_KEYS=1`, use
   lowercase `d` for this action.)*
+
 - **^D**: Delete all tagged files. *(With `VI_KEYS=1`, `^D` is page-down
   navigation and uppercase `D` becomes Delete Tagged.)*
+
 - **E** (Edit): Edit selected file with `$EDITOR` (default: vi).
+
 - **F** (Filter): Set file filter.
+
 - **H** (Hex): View selected file in hex mode.
+
+- **i** / **I**: **Invert Tags**. Toggle the tag state of all visible
+  files.
+
 - **J** (Compare): Compare the selected file with a target file.
+
 - **L** (Log): Log a new directory or archive file.
+
 - **M** (Move): Move the selected file.
+
 - **N** (New File): Create a new empty file.
+
 - **^N**: Move all tagged files.
+
 - **O** (Archive): Create an archive from tagged files, or from the
   selected file/directory when nothing is tagged. Directory sources are
   archived recursively. Supported destination suffixes: `.tar`,
   `.tar.gz`/`.tgz`, `.tar.bz2`/`.tbz2`, `.tar.xz`/`.txz`, `.zip`.
+
 - **P** (Pipe): Pipe content of file to a command (stdin).
+
 - **^P**: Pipe content of all tagged files to a command.
+
 - **R** (Rename): Rename the selected file.
+
 - **^R**: Rename all tagged files.
+
 - **S** (Sort): Sort filelist (Access time, Change time, Extension,
   Group, Modification time, Name, Owner, Size).
+
 - **^S** (Search): Execute grep on tagged files. Untags files that do
   not match the command.
+
 - **Date Changes:** Date actions change Accessed time, Modified time, or
   both (POSIX does not allow setting creation/birth time here).
+
 - **T** (Tag): Tag selected file.
+
 - **^T**: Tag all displayed files.
+
 - **U** (Untag): Untag selected file. *(With `VI_KEYS=1`, use lowercase
   `u` for this action.)*
+
 - **^U**: Untag all displayed files. *(With `VI_KEYS=1`, `^U` is page-up
   navigation and uppercase `U` becomes Untag All.)*
+
 - **V** (View): View file with the pager defined in `~/.ytree` (default:
   less).
+
 - **^V**: **View Tagged**. View all tagged files sequentially. Mode is
   controlled by `TAGGEDVIEWER`: `external` (default, uses `$PAGER`) or
   `internal` (built-in viewer with in-app navigation).
+
 - **X** (eXecute): Execute a shell command. `{}` is replaced by the
   filename.
+
 - **^X**: Execute shell command for all tagged files. `{}` is replaced
   by the full path.
+
 - **Y**: (Pathcopy): Copy selected file, replicating its directory
   structure relative to the current volume root.
+
 - **^Y**: Copy all tagged files including path.
+
 - **^F** (File Mode): Cycle file display modes.
+
 - **Return**: Switch to Full Screen File Mode / Directory Mode.
-- **\*** (Asterisk) / **Shift-8**: **Invert Tags**. Toggle the tag state
-  of all currently visible files.
 
 ### Archive Mode
 
@@ -289,31 +323,52 @@ navigation rules.
 **Archive-File Mode**
 
 - **C** (Copy): Copy selected file (including extract/copy paths).
+
 - **^K** (Copy Tagged): Copy all tagged files.
+
 - **D** (Delete): Delete selected archive file entry.
+
 - **F** (Filter): Set file filter.
+
 - **H** (Hex): View file in hex mode.
+
+- **i** / **I**: **Invert Tags**. Toggle the tag state of all visible
+  files.
+
 - **M** (Move): Move selected file using archive-aware semantics.
+
 - **P** (Pipe): Pipe content to command.
+
 - **R** (Rename): Rename selected archive file entry.
+
 - **S** (Sort): Sort file list.
+
 - **^S** (Search): Search tagged files for a string. Untags files that
   do not match.
+
 - **T** (Tag): Tag selected file.
+
 - **^T**: Tag all files.
+
 - **U** (Untag): Untag selected file. *(With `VI_KEYS=1`, use lowercase
   `u` for this action.)*
+
 - **^U**: Untag all files. *(With `VI_KEYS=1`, `^U` is page-up
   navigation and uppercase `U` becomes Untag All.)*
+
 - **V** (View): View file.
+
 - **^V**: **View Tagged**. View all tagged files sequentially. Mode is
   controlled by `TAGGEDVIEWER`: `external` (default, uses `$PAGER`) or
   `internal` (built-in viewer with in-app navigation).
+
 - **Y** (Pathcopy): Copy selected file with relative path preservation.
+
 - **^F** (File Mode): Cycle display modes.
+
 - **Return**: Switch to Archive-Dir Mode.
+
 - **\\**: No-op.
-- **\*** (Asterisk): Invert tag selection.
 
 Archive file-window status text:
 
