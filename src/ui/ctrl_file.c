@@ -1233,7 +1233,6 @@ int HandleFileWindow(ViewContext *ctx, DirEntry *dir_entry) {
 
     case ACTION_CMD_I: {
       ArchivePayload payload;
-      int create_result = -1;
       int gather_result;
       fe_ptr =
           ctx->active
@@ -1248,6 +1247,7 @@ int HandleFileWindow(ViewContext *ctx, DirEntry *dir_entry) {
           UI_ShowStatusLineError(ctx, "Nothing to archive");
         need_dsp_help = FALSE;
       } else {
+        int create_result;
         create_result = UI_CreateArchiveFromPayload(ctx, &payload);
         if (create_result == 0) {
           dir_entry = RefreshFileView(ctx, dir_entry);

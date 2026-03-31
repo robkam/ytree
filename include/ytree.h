@@ -149,7 +149,8 @@ extern void SuspendClock(ViewContext *ctx);
 extern int ScanSubTree(ViewContext *ctx, DirEntry *dir_entry, Statistic *s);
 
 /* init.c */
-extern int Init(ViewContext *ctx, char *configuration_file, char *history_file);
+extern int Init(ViewContext *ctx, const char *configuration_file,
+                const char *history_file);
 extern void ReCreateWindows(ViewContext *ctx);
 extern void ShutdownCurses(ViewContext *ctx);
 
@@ -175,8 +176,6 @@ extern void QuitTo(ViewContext *ctx, DirEntry *dir_entry);
 /* string_utils.c */
 extern int BuildFilename(char *in_filename, char *pattern, char *out_filename);
 extern void StrCp(char *dest, const char *src);
-extern int Strrcmp(const char *s1, const char *s2);
-extern char *SubString(char *dest, const char *src, int pos, int len);
 extern int String_Replace(char *dest, size_t dest_size, const char *src,
                           const char *token, const char *replacement);
 

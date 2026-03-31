@@ -536,8 +536,8 @@ int UI_GatherArchivePayload(ViewContext *ctx, DirEntry *selected_dir,
     size_t tagged_count = 0;
 
     for (i = 0; i < (size_t)ctx->active->file_count; ++i) {
-      FileEntry *fe = ctx->active->file_entry_list[i].file;
-      if (fe && fe->tagged)
+      if (ctx->active->file_entry_list[i].file &&
+          ctx->active->file_entry_list[i].file->tagged)
         tagged_count++;
     }
 
@@ -632,8 +632,6 @@ static int ResolveArchiveDestinationPath(ViewContext *ctx, const char *input_pat
   char resolved_parent[PATH_LENGTH + 1];
   const char *slash;
   const char *file_name;
-  char cwd[PATH_LENGTH + 1];
-  size_t parent_len;
   int written;
   int parent_written;
 
@@ -645,6 +643,7 @@ static int ResolveArchiveDestinationPath(ViewContext *ctx, const char *input_pat
   if (input_path[0] == FILE_SEPARATOR_CHAR) {
     written = snprintf(absolute_input, sizeof(absolute_input), "%s", input_path);
   } else {
+    char cwd[PATH_LENGTH + 1];
     if (ctx && ctx->active &&
         GetPanelSelectedDirPath(ctx, ctx->active, cwd) == 0) {
       cwd[PATH_LENGTH] = '\0';
@@ -676,7 +675,7 @@ static int ResolveArchiveDestinationPath(ViewContext *ctx, const char *input_pat
     parent_written = snprintf(parent_path, sizeof(parent_path), "%s",
                               FILE_SEPARATOR_STRING);
   } else {
-    parent_len = (size_t)(slash - normalized_input);
+    size_t parent_len = (size_t)(slash - normalized_input);
     parent_written = snprintf(parent_path, sizeof(parent_path), "%.*s",
                               (int)parent_len, normalized_input);
   }
@@ -727,14 +726,8 @@ static const char *UnsupportedArchiveLabel(const char *dest_path) {
 int UI_CreateArchiveFromPayload(ViewContext *ctx, const ArchivePayload *payload) {
   char destination_input[PATH_LENGTH + 1];
   char destination_path[PATH_LENGTH + 1];
-  ArchiveExpandedEntry *entry;
-  const char **source_paths = NULL;
-  const char **archive_paths = NULL;
   const char *filename = NULL;
-  size_t source_count = 0;
-  size_t idx = 0;
   int input_result;
-  int rc;
   struct stat dest_stat;
   int prompt_written;
   char overwrite_prompt[PATH_LENGTH + 64];
@@ -777,6 +770,13 @@ int UI_CreateArchiveFromPayload(ViewContext *ctx, const ArchivePayload *payload)
   }
 
 #ifdef HAVE_LIBARCHIVE
+  ArchiveExpandedEntry *entry;
+  const char **source_paths = NULL;
+  const char **archive_paths = NULL;
+  size_t source_count = 0;
+  size_t idx = 0;
+  int rc;
+
   for (entry = payload->expanded_file_list; entry; entry = entry->next) {
     if (SourcePathMatchesArchiveDestination(entry->source_path, destination_path))
       continue;

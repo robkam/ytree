@@ -442,18 +442,3 @@ BOOL IsUserActionDefined(const ViewContext *ctx) {
   return ((BOOL)(((Dirmenu *)ctx->dirmenu_list)->next != NULL ||
                  ((Filemenu *)ctx->filemenu_list)->next != NULL));
 }
-
-char *GetExtViewer(const ViewContext *ctx, const char *filename) {
-  Viewer *v;
-  int l;
-  l = strlen(filename);
-  for (v = ((Viewer *)ctx->viewer_list)->next; v; v = v->next) {
-    int x = strlen(v->ext);
-    if (l > x) {
-      if (!strcmp(&filename[l - x], v->ext)) {
-        return (v->cmd);
-      }
-    }
-  }
-  return (NULL);
-}

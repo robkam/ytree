@@ -8,6 +8,7 @@
 #include "ytree_cmd.h"
 #include "ytree_fs.h"
 #include "ytree_ui.h"
+#include "watcher.h"
 #include <stdlib.h>
 
 /*
@@ -37,6 +38,7 @@ static void PerformQuit(ViewContext *ctx) {
                FILE_SEPARATOR_CHAR, HISTORY_FILENAME);
       SaveHistory(ctx, path_for_history);
     }
+    Watcher_Close(ctx);
 
     /* Ncurses cleanup sequence: clear screen, restore cursor, and reset
      * terminal */
