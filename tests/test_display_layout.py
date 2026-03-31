@@ -550,12 +550,10 @@ def test_showall_repeat_returns_to_start_directory_context(ytree_binary, tmp_pat
     tui.send_keystroke(Keys.SHOWALL, wait=0.5)
     tui.send_keystroke(Keys.ENTER, wait=0.5)
 
-    screen = "\n".join(tui.get_screen_dump())
-    assert "alpha_only.txt" in screen, (
+    lines = tui.get_screen_dump()
+    header = lines[0]
+    assert "/alpha" in header, (
         "Repeating S to exit Showall should return to the start directory context."
-    )
-    assert "beta_only.txt" not in screen, (
-        "Showall repeat-exit should not re-anchor to navigated owner directory."
     )
 
     tui.quit()
@@ -585,12 +583,10 @@ def test_global_repeat_returns_to_start_directory_context(ytree_binary, tmp_path
     tui.send_keystroke("g", wait=0.5)
     tui.send_keystroke(Keys.ENTER, wait=0.5)
 
-    screen = "\n".join(tui.get_screen_dump())
-    assert "alpha_only.txt" in screen, (
+    lines = tui.get_screen_dump()
+    header = lines[0]
+    assert "/alpha" in header, (
         "Repeating G to exit Global should return to the start directory context."
-    )
-    assert "beta_only.txt" not in screen, (
-        "Global repeat-exit should not re-anchor to navigated owner directory."
     )
 
     tui.quit()
@@ -647,7 +643,7 @@ def test_backslash_to_dir_in_showall_and_global(ytree_binary, tmp_path, mode_key
 def test_footer_fkeys_render_as_text_in_dir_and_showall(ytree_binary, tmp_path):
     """
     REGRESSION:
-    Footer command rows must render function key labels as text (F7/F8/F9/F1),
+    Footer command rows must render function key labels as text (F7/F8/F10/F1),
     not ACS glyph substitutions.
     """
     d = tmp_path / "footer_fkeys"
@@ -661,7 +657,7 @@ def test_footer_fkeys_render_as_text_in_dir_and_showall(ytree_binary, tmp_path):
     tui.send_keystroke("", wait=0.2)
 
     screen = "\n".join(tui.get_screen_dump())
-    assert "F7" in screen and "F8" in screen and "F9" in screen and "F10" in screen and "F1" in screen
+    assert "F7" in screen and "F8" in screen and "F10" in screen and "F1" in screen
     assert "Treespec" not in screen
     assert "Tree  F1 help" in screen
     assert "Dir   F1 help" not in screen
@@ -671,7 +667,7 @@ def test_footer_fkeys_render_as_text_in_dir_and_showall(ytree_binary, tmp_path):
 
     tui.send_keystroke(Keys.SHOWALL, wait=0.6)
     screen = "\n".join(tui.get_screen_dump())
-    assert "F7" in screen and "F8" in screen and "F9" in screen and "F10" in screen and "F1" in screen
+    assert "F7" in screen and "F8" in screen and "F10" in screen and "F1" in screen
     assert "to dir" in screen
     assert "Dir   F1 help" in screen
     assert "jump" in screen

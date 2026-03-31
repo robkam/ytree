@@ -175,37 +175,31 @@
 *   **Context Files:** `include/ytree.h`
 *   - [ ] **Status:** Not Started.
 
-### **Task 23: Externalize UI Strings for Internationalization (i18n)**
-*   **Description:** Move all user-facing strings (menus, prompts, error messages) out of the C code and into a separate, loadable resource file. This is a prerequisite for translation. The application will load the appropriate language file at startup.
-*   **Files to Modify:** `src/util/i18n.c` (New), `src/*/*.c`
-*   **Context Files:** None.
-*   - [ ] **Status:** Not Started.
-
 ---
 
 ## **Phase 4: Build System, Documentation, and CI**
 *This phase focuses on project infrastructure, developer experience, and release readiness.*
 
-### **Task 24: Restructure and Expand Test Suite**
+### **Task 23: Restructure and Expand Test Suite**
 *   **Goal:** Tidy up existing test scripts into a coherent, modular structure and thoroughly expand the regression suite for comprehensive coverage.
 *   **Rationale:** A well-structured test suite is easier to maintain and extend. Thorough, systematic coverage ensures reliability and prevents regressions across complex file operations.
 *   - [ ] **Status:** Not Started.
 
-### **Task 25: Enhance Build System**
+### **Task 24: Enhance Build System**
 *   **Goal:** Improve Makefile targets for installation and add a proper `uninstall` target to clean up all installed files. Modernize versioning by moving version info from `patchlev.h` into the `Makefile`.
 *   **Rationale:** Provides a more robust and complete build system for end-users and packagers.
 *   **Files to Modify:** `Makefile`
 *   **Context Files:** `include/patchlev.h`
 *   - [x] **Status:** Partially Completed (uninstall exists but can be improved).
 
-### **Task 26: Finalize Documentation**
+### **Task 25: Finalize Documentation**
 *   **Goal:** Update the `CHANGELOG`, `README.md`, and `CONTRIBUTING.md` files to reflect all new features and changes before a release.
 *   **Rationale:** Ensures users and developers have accurate, up-to-date information about the project.
 *   **Files to Modify:** `README.md`, `doc/CHANGES.md`, `doc/CONTRIBUTING.md`
 *   **Context Files:** None.
 *   - [ ] **Status:** Not Started.
 
-### **Task 27: Initialize Distributed Issue Tracking (git-bug)**
+### **Task 26: Initialize Distributed Issue Tracking (git-bug)**
 *   **Goal:** Configure `git-bug` to act as a bridge between the local repository and GitHub Issues. Migrate the contents of `BUGS.md` and `TODO.txt` into this system prior to public release.
 *   **Rationale:** Allows the developer to maintain a simple local text-based workflow during heavy development, while ensuring that all tracking data can be synchronized to the public web interface when the project goes live.
 *   **Files to Modify:** `doc/BUGS.md`
@@ -217,45 +211,52 @@
 ## **Future Enhancements / Wishlist**
 *A collection of high-complexity or lower-priority features to be considered after the primary roadmap is complete.*
 
+### **Task 1: Externalize UI Strings for Internationalization (i18n)**
+*   **Description:** Move all user-facing strings (menus, prompts, error messages) out of the C code and into a separate, loadable resource file. This is a prerequisite for translation. The application will load the appropriate language file at startup.
+*   **Rationale:** As discussed, this is a major architectural shift that risks breaking existing test harnesses. It should be deferred until the core UI logic and path completion refinements are stable. 
+*   **Files to Modify:** `src/util/i18n.c` (New), `src/*/*.c`
+*   **Context Files:** None.
+*   - [ ] **Status:** Not Started.
+
 ### **Phase 1: UI/UX Enhancements and Cleanup**
 
-### **Task 11: Implement In-App Configuration Editor (F10)**
+### **Task 12: Implement In-App Configuration Editor (F10)**
 *   **Goal:** Implement a settings panel (activated by `F10`) that allows the user to view and change configuration options from `~/.ytree` (e.g., `CONFIRMQUIT`, colors) and save the changes.
 *   **Rationale:** Provides a user-friendly way to configure `ytree` without manually editing the configuration file, improving accessibility.
 *   **Files to Modify:** `src/cmd/profile.c`, `src/ui/key_engine.c`
 *   **Context Files:** `include/config.h`
 *   - [ ] **Status:** Not Started.
 
-### **Task 12: Implement Mouse Support**
+### **Task 13: Implement Mouse Support**
 *   **Goal:** Add mouse support for core navigation and selection actions within the terminal (e.g., click to select, double-click to enter, wheel scrolling).
 *   **Rationale:** A key feature of classic file managers like ZTreeWin and modern ones like Midnight Commander, mouse support dramatically improves speed and ease of use for users in capable terminal environments.
 *   **Files to Modify:** `src/ui/key_engine.c`
 *   **Context Files:** `src/ui/ctrl_dir.c`, `src/ui/ctrl_file.c`
 *   - [ ] **Status:** Not Started.
 
-*   **Task 13: Shell-Style Tab Completion:** Replace the current history-based tab completion with true filename/directory completion in the input line.
-*   **Task 14: Implement Advanced, ncurses-native Command Line Editing:** Full cursor navigation (left/right, home/end, word-by-word). In-line text editing (insert, delete, backspace, clear line). Persistent command history accessible via up/down arrows. Maybe even context-aware tab completion for files and directories.
-*   **Task 15: Per-Window Filter State (Split Screen Prerequisite):** Decouple the file filter (`file_spec`) from the `Volume` structure and move it into a new `WindowView` context. This architecture is required to support F8 Split Screen, enabling two independent views of the same volume with different filters (e.g., `*.c` in the left pane versus `*.h` in the right).
-*   **Task 16: State Preservation on Reload (^L):** Modify the Refresh command to preserve directory expansion states. Cache open paths prior to the re-scan and restore the previous view structure instead of resetting to the default depth.
-*   **Task 17: Preserve Tree Expansion on Refresh:** Modify the Refresh/Rescan logic (`^L`, `F5`) to cache the list of currently expanded directories before reading the disk. After the scan is complete, programmatically re-expand those paths if they still exist.
+*   **Task 14: Shell-Style Tab Completion:** Replace the current history-based tab completion with true filename/directory completion in the input line.
+*   **Task 15: Implement Advanced, ncurses-native Command Line Editing:** Full cursor navigation (left/right, home/end, word-by-word). In-line text editing (insert, delete, backspace, clear line). Persistent command history accessible via up/down arrows. Maybe even context-aware tab completion for files and directories.
+*   **Task 16: Per-Window Filter State (Split Screen Prerequisite):** Decouple the file filter (`file_spec`) from the `Volume` structure and move it into a new `WindowView` context. This architecture is required to support F8 Split Screen, enabling two independent views of the same volume with different filters (e.g., `*.c` in the left pane versus `*.h` in the right).
+*   **Task 17: State Preservation on Reload (^L):** Modify the Refresh command to preserve directory expansion states. Cache open paths prior to the re-scan and restore the previous view structure instead of resetting to the default depth.
+*   **Task 18: Preserve Tree Expansion on Refresh:** Modify the Refresh/Rescan logic (`^L`, `F5`) to cache the list of currently expanded directories before reading the disk. After the scan is complete, programmatically re-expand those paths if they still exist.
 
-### **Task 18: Step 4.m: Applications menu (F9)**
+### **Task 19: Step 4.m: Applications menu (F9)**
 *   Implement a customizable Application Menu (low-priority; add only with a qualified use-case).
 *   **Files to Modify:** `src/cmd/usermode.c`, `src/cmd/profile.c`
 *   **Context Files:** None.
 *   - [ ] **Status:** Not Started.
 
-*   **Task 19: Scroll bars:**  On left border of the file and directory windows to indicate the relative position of the highlighted item in the entire list, (configurable to char or line).
-*   **Task 22: Callback API Constification Cleanup (cppcheck strict mode):** `cppcheck` suggests const-qualifying callback `user_data`, but doing this correctly likely requires changing callback typedef/API signatures (e.g., `RewriteCallback`) and related call sites. Defer this to a focused API pass to avoid scattered casts and partial churn.
+*   **Task 20: Scroll bars:**  On left border of the file and directory windows to indicate the relative position of the highlighted item in the entire list, (configurable to char or line).
+*   **Task 23: Callback API Constification Cleanup (cppcheck strict mode):** `cppcheck` suggests const-qualifying callback `user_data`, but doing this correctly likely requires changing callback typedef/API signatures (e.g., `RewriteCallback`) and related call sites. Defer this to a focused API pass to avoid scattered casts and partial churn.
 
 
 ### **Phase 2: Advanced Features**
 
-### **Task 1: Implement VFS Abstraction Layer** (Use the Architect persona here)
+### **Task 2: Implement VFS Abstraction Layer** (Use the Architect persona here)
 *   **Goal:** Replace hardcoded filesystem logic with a driver-based architecture. This allows `ytree` to treat any data source (Local FS, Archive, SSH, SQL) uniformly as a `Volume`.
 *   **Context:** Currently, `log.c` decides between "Disk" and "Archive". We will change this so `log.c` asks a Registry: "Who can handle this path?"
 
-#### **Task 2: Define VFS Interface & Volume Integration** (Use the Architect persona here)
+#### **Task 3: Define VFS Interface & Volume Integration** (Use the Architect persona here)
 *   **Goal:** Define the `VFS_Driver` contract (struct of function pointers) and update the `Volume` struct to hold a pointer to its active driver.
 *   **Mechanism:**
     *   Create `include/ytree_vfs.h`.
@@ -263,7 +264,7 @@
     *   Update `include/ytree_defs.h` to add `const VFS_Driver *driver` and `void *driver_data` to `struct Volume`.
 *   **Files:** `include/ytree_vfs.h`, `include/ytree_defs.h`.
 
-#### **Task 3: Implement VFS Registry** (Use the Architect persona here)
+#### **Task 4: Implement VFS Registry** (Use the Architect persona here)
 *   **Goal:** Create the core logic to register drivers and probe paths.
 *   **Mechanism:**
     *   Create `src/fs/vfs.c`.
@@ -271,7 +272,7 @@
     *   Implement `VFS_Probe(path)` which iterates drivers asking "Can you handle this?" and returns the best match.
 *   **Files:** `src/fs/vfs.c`, `include/ytree_vfs.h`.
 
-#### **Task 4: Implement "Local" VFS Driver** (Use the Architect persona here)
+#### **Task 5: Implement "Local" VFS Driver** (Use the Architect persona here)
 *   **Goal:** Wrap the existing POSIX `opendir`/`readdir` logic into a `VFS_Driver`.
 *   **Mechanism:**
     *   Create `src/fs/drv_local.c`.
@@ -279,7 +280,7 @@
     *   Ensure it populates `DirEntry` structures exactly as before.
 *   **Files:** `src/fs/drv_local.c`, `src/fs/readtree.c` (cleanup).
 
-#### **Task 5: Implement "Archive" VFS Driver** (Use the Architect persona here)
+#### **Task 6: Implement "Archive" VFS Driver** (Use the Architect persona here)
 *   **Goal:** Wrap the existing `libarchive` logic into a `VFS_Driver`.
 *   **Mechanism:**
     *   Create `src/fs/drv_archive.c`.
@@ -287,7 +288,7 @@
     *   Implement `.extract` to handle the temporary file creation for viewing/copying.
 *   **Files:** `src/fs/drv_archive.c`, `src/fs/readarchive.c` (delete).
 
-#### **Task 6: Switch `LogDisk` to VFS** (Use the Architect persona here)
+#### **Task 7: Switch `LogDisk` to VFS** (Use the Architect persona here)
 *   **Goal:** Update the main entry point to use the new system.
 *   **Mechanism:**
     *   Refactor `src/cmd/log.c`.
@@ -295,14 +296,14 @@
     *   Call `vol->driver->scan()` instead of calling `ReadTree` or `ReadTreeFromArchive` directly.
 *   **Files:** `src/cmd/log.c`.
 
-#### **Task 7: Refactor Consumers (Polymorphism)** (Use the Architect persona here)
+#### **Task 8: Refactor Consumers (Polymorphism)** (Use the Architect persona here)
 *   **Goal:** Remove `if (mode == ARCHIVE)` from the rest of the codebase.
 *   **Mechanism:**
     *   Update `view.c`, `copy.c`, `execute.c`.
     *   Replace specific calls with `vol->driver->extract(...)` or `vol->driver->stat(...)`.
 *   **Files:** `src/cmd/*.c`.
 
-### **Task 8: Implement Recursive Directory Watching** (Use the Code Auditor persona here)
+### **Task 9: Implement Recursive Directory Watching** (Use the Code Auditor persona here)
 *   **Goal:** Extend the file system watcher to monitor all *currently expanded* directories, allowing changes in visible sibling or child directories to appear immediately without manual refresh.
 *   **Rationale:** Current `inotify` logic only watches the directory under the cursor. If a user modifies a subdirectory visible in the tree but not currently selected, the UI becomes stale.
 *   **Mechanism:**
@@ -315,22 +316,22 @@
 *   **Context Files:** `include/watcher.h`
 *   - [ ] **Status:** Not Started.
 
-### **Task 9: Implement Shell Script Generator**
+### **Task 10: Implement Shell Script Generator**
 *   **Goal:** Generate a shell script from tagged files using user-defined templates (e.g., `cp %f /backup/%f.bak`), replacing the "Batch" concept.
 *   **Rationale:** Offers complex templating logic that goes beyond simple pipe/xargs, and critically allows the user to review/edit the generated script before execution for safety.
 *   **Files to Modify:** `src/cmd/batch.c` (New)
 *   **Context Files:** `src/ui/ctrl_file.c`
 *   - [ ] **Status:** Not Started.
 
-### **Task 10: Implement Keyboard Macros (F12)**
+### **Task 11: Implement Keyboard Macros (F12)**
 *   **Goal:** Implement a macro recording and playback system. `F12` starts/stops recording keystrokes to a buffer/file.
 *   **Rationale:** Allows automation of repetitive tasks (e.g., "Tag, Move, Rename, Repeat").
 *   **Files to Modify:** `src/ui/key_engine.c`, `src/core/macro.c` (New)
 *   - [ ] **Status:** Not Started.
 
-*   **Task 20: Implement "Safe Delete" (Trash Can):** Support the FreeDesktop.org Trash specification to allow file recovery.
-*   **Task 21: Print Functionality:** Investigate and potentially implement a "Print" command that is distinct from "Pipe," if a clear use case for modern systems can be defined.
+*   **Task 21: Implement "Safe Delete" (Trash Can):** Support the FreeDesktop.org Trash specification to allow file recovery.
+*   **Task 22: Print Functionality:** Investigate and potentially implement a "Print" command that is distinct from "Pipe," if a clear use case for modern systems can be defined.
 
 ### **Phase 3: Internationalization and Configurability**
 
-*   **Task 23: Terminal-Independent TUI Mode:** Investigate a mode to run the `ytree` TUI directly on a **Unix virtual console** (e.g., via `/dev/tty*` or framebuffer), independent of a terminal emulator session.
+*   **Task 24: Terminal-Independent TUI Mode:** Investigate a mode to run the `ytree` TUI directly on a **Unix virtual console** (e.g., via `/dev/tty*` or framebuffer), independent of a terminal emulator session.
