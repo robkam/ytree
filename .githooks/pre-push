@@ -4,21 +4,44 @@ set -euo pipefail
 REPO_ROOT="$(git rev-parse --show-toplevel)"
 cd "$REPO_ROOT"
 
-echo "[pre-push] Running baseline CI gate: make + pytest"
+ZERO_SHA="0000000000000000000000000000000000000000"
+delete_only=1
+updates_main=0
+
+while read -r local_ref local_sha remote_ref remote_sha; do
+  if [[ "$local_sha" != "$ZERO_SHA" && "$local_ref" != "(delete)" ]]; then
+    delete_only=0
+  fi
+  if [[ "$remote_ref" == "refs/heads/main" && "$local_sha" != "$ZERO_SHA" &&
+        "$local_ref" != "(delete)" ]]; then
+    updates_main=1
+  fi
+done
+
+if [[ "$delete_only" == "1" ]]; then
+  echo "[pre-push] Delete-only push detected: skipping CI gate."
+  exit 0
+fi
+
+if [[ "$updates_main" != "1" ]]; then
+  echo "[pre-push] Push does not update main: skipping CI gate."
+  exit 0
+fi
+
+echo "[pre-push] Updating main: running baseline CI gate: make + pytest"
 
 CURRENT_BRANCH="$(git rev-parse --abbrev-ref HEAD)"
 if [[ "${YTREE_PRE_PUSH_FAST:-0}" == "1" && "$CURRENT_BRANCH" != "main" ]]; then
-  echo "[pre-push] Fast mode enabled on branch '$CURRENT_BRANCH': running make only."
-  make
-else
-  make
-  if [[ -x ".venv/bin/pytest" ]]; then
-    PYTEST=".venv/bin/pytest"
-  else
-    PYTEST="pytest"
-  fi
-
-  TERM=xterm "$PYTEST" -q -ra --tb=no
+  echo "[pre-push] Fast mode ignored: push updates main."
 fi
+
+make
+if [[ -x ".venv/bin/pytest" ]]; then
+  PYTEST=".venv/bin/pytest"
+else
+  PYTEST="pytest"
+fi
+
+TERM=xterm "$PYTEST" -q -ra --tb=no
 
 echo "[pre-push] Checks passed. Proceeding with push."
