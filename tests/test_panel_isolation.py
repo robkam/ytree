@@ -10,6 +10,13 @@ def _footer_text(tui):
     return "\n".join(tui.get_screen_dump()[-3:]).lower()
 
 
+def _assert_dir_mode_footer(tui, message):
+    footer = _footer_text(tui)
+    assert "hex invert j compare" not in footer and "j compare" in footer and "j tree" in footer, (
+        f"{message}\n{footer}"
+    )
+
+
 def _detect_stats_split_x(lines):
     if len(lines) < 2:
         return None
@@ -356,10 +363,10 @@ def test_inactive_dir_focus_survives_tab_away_and_back(tmp_path, ytree_binary):
 
     tui = YtreeTUI(executable=ytree_binary, cwd=str(root))
     time.sleep(0.8)
-    assert "dir      attributes brief compare" in _footer_text(tui)
+    _assert_dir_mode_footer(tui, "Expected directory footer at startup.")
 
     tui.send_keystroke(Keys.F8, wait=0.4)
-    assert "dir      attributes brief compare" in _footer_text(tui)
+    _assert_dir_mode_footer(tui, "Expected directory footer after split.")
 
     # Move to right panel and enter file mode there.
     tui.send_keystroke(Keys.TAB, wait=0.4)
@@ -370,8 +377,8 @@ def test_inactive_dir_focus_survives_tab_away_and_back(tmp_path, ytree_binary):
 
     # Return to left panel. It must still be in dir mode.
     tui.send_keystroke(Keys.TAB, wait=0.4)
-    assert "dir      attributes brief compare" in _footer_text(tui), (
-        "Inactive panel lost dir focus after tab-away from dir mode."
+    _assert_dir_mode_footer(
+        tui, "Inactive panel lost dir focus after tab-away from dir mode."
     )
 
     tui.quit()
@@ -649,7 +656,7 @@ def test_volume_cycle_restores_prior_directory_selection(tmp_path, ytree_binary)
     )
 
     tui.send_keystroke(Keys.ESC, wait=0.35)
-    assert "dir      attributes brief compare" in _footer_text(tui)
+    _assert_dir_mode_footer(tui, "Expected directory footer after leaving file view.")
     lines = tui.get_screen_dump()
     expected_dir = expected_file.replace("r_file_", "r_dir_").replace("_unique.txt", "")
     assert _stats_current_dir_contains(lines, expected_dir), (
@@ -1110,9 +1117,8 @@ def test_log_new_volume_from_file_view_resets_focus_and_selection(tmp_path, ytre
     tui.send_keystroke(Keys.CTRL_U + str(beta) + Keys.ENTER, wait=0.8)
 
     # Must return to directory mode first (no implicit file-window entry).
-    footer = _footer_text(tui)
-    assert "dir      attributes brief compare" in footer, (
-        "Logging a new volume from file view should return to directory mode."
+    _assert_dir_mode_footer(
+        tui, "Logging a new volume from file view should return to directory mode."
     )
 
     # Enter file view explicitly and ensure selection starts at first file.
@@ -1161,9 +1167,8 @@ def test_log_second_volume_from_file_view_keeps_tree_on_root(tmp_path, ytree_bin
     tui.send_keystroke(Keys.LOG, wait=0.2)
     tui.send_keystroke(Keys.CTRL_U + str(beta) + Keys.ENTER, wait=0.9)
 
-    footer = _footer_text(tui)
-    assert "dir      attributes brief compare" in footer, (
-        "Logging a second volume from file view should return to directory mode."
+    _assert_dir_mode_footer(
+        tui, "Logging a second volume from file view should return to directory mode."
     )
 
     lines = tui.get_screen_dump()
@@ -1193,8 +1198,9 @@ def test_volume_menu_cancel_restores_dir_footer_immediately(tmp_path, ytree_bina
     tui.send_keystroke(Keys.ESC, wait=0.3)
 
     footer = _footer_text(tui)
-    assert "dir      attributes brief compare" in footer, (
-        "Cancelling volume menu from dir view should immediately restore dir footer."
+    _assert_dir_mode_footer(
+        tui,
+        "Cancelling volume menu from dir view should immediately restore dir footer.",
     )
     assert "f1 help" in footer, (
         "Cancelling volume menu from dir view left footer/help blank until next key."
