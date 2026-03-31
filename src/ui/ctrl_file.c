@@ -17,6 +17,7 @@
 #include "../../include/ytree_fs.h"
 #include "../../include/ytree_ui.h"
 #include <libgen.h>
+#include <stdlib.h>
 
 #define MAX(a, b) (((a) > (b)) ? (a) : (b))
 
@@ -53,6 +54,26 @@ static void PositionOwnerFileCursor(ViewContext *ctx, DirEntry *owner_dir,
 static BOOL JumpToOwnerDirectory(ViewContext *ctx,
                                  const DirEntry *global_dir_entry);
 static void HandleFileCompare(ViewContext *ctx, FileEntry *source_file);
+
+static void OpenConfigProfile(ViewContext *ctx, DirEntry *dir_entry) {
+  char profile_path[PATH_LENGTH + 1];
+  const char *home;
+
+  profile_path[0] = '\0';
+  home = getenv("HOME");
+  if (home && *home) {
+    int written;
+    written = snprintf(profile_path, sizeof(profile_path), "%s/%s", home,
+                       PROFILE_FILENAME);
+    if (written < 0 || written >= (int)sizeof(profile_path))
+      profile_path[0] = '\0';
+  }
+  if (!profile_path[0])
+    (void)snprintf(profile_path, sizeof(profile_path), "%s", PROFILE_FILENAME);
+
+  if (Edit(ctx, dir_entry, profile_path) != 0)
+    MESSAGE(ctx, "Can't edit \"%s\"", profile_path);
+}
 
 static BOOL HasNonWhitespace(const char *text) {
   if (!text)
@@ -1789,6 +1810,11 @@ int HandleFileWindow(ViewContext *ctx, DirEntry *dir_entry) {
       dir_entry = RefreshFileView(ctx, dir_entry);
       need_dsp_help = TRUE;
     } break;
+
+    case ACTION_EDIT_CONFIG:
+      OpenConfigProfile(ctx, dir_entry);
+      need_dsp_help = TRUE;
+      break;
 
     case ACTION_RESIZE:
       ctx->resize_request = TRUE;

@@ -38,21 +38,22 @@ static void PrintNavLine(WINDOW *win, int y, const char *str);
  * Updated: (F)ilespec -> (F)ilter, spacing adjustments.
  */
 static char dir_help_disk_mode_0[] =
-    "DIR      (A)ttributes (B)rief (C)ompare (D)elete (F)ilter (G)lobal "
+    "DIR      (A)ttributes (B)rief (C)opy (D)elete (F)ilter (G)lobal (J) compare "
     "(L)og (M)akedir (N)ewfile";
 static char dir_help_disk_mode_1[] =
-    "COMMANDS (O) archive (P)ipe (Q)uit (R)ename (S)howall (T)ag (U)ntag "
+    "COMMANDS c(O)mpress (P)ipe (Q)uit (R)ename (S)howall (T)ag (U)ntag "
+    "mo(V)edir "
     "e(X)ecute (/) "
     "jump (`) dotfiles";
 static char dir_help_nav[] =
     "Tree  (F1) help  (F5) refresh  (F6) stats  (F7) autoview  "
-    "(F8) split  (F9) menu  (F10) config  (Esc) cancel";
+    "(F8) split  (F10) config  (Esc) cancel";
 static char dir_help_nav_archive_to_root[] =
     "Tree  (F1) help  (F5) refresh  (F6) stats  (F7) autoview  "
-    "(F8) split  (F9) menu  (F10) config  (\\) root  (Esc) cancel";
+    "(F8) split  (F10) config  (\\) root  (Esc) cancel";
 static char dir_help_nav_archive_exit[] =
     "Tree  (F1) help  (F5) refresh  (F6) stats  (F7) autoview  "
-    "(F8) split  (F9) menu  (F10) config  (\\) exit  (Esc) cancel";
+    "(F8) split  (F10) config  (\\) exit  (Esc) cancel";
 static char *dir_help[MAX_MODES][2] = {
     {/* DISK_MODE */
      dir_help_disk_mode_0, dir_help_disk_mode_1},
@@ -62,10 +63,9 @@ static char *dir_help[MAX_MODES][2] = {
      "COMMANDS                                                                 "
      "          "},
     {/* ARCHIVE_MODE */
-     "ARCHIVE   (B)rief (C)ompare (D)elete (F)ilter (^F) dirmode (G)lobal "
-     "(L)og (M)akedir ",
-     "COMMANDS  (R)ename (S)howall (T)ag (U)ntag (Q)uit                        "
-     "       "},
+     "ARCHIVE   (B)rief (C)opy (D)elete (F)ilter (^F) dirmode (G)lobal "
+     "(J) compare (L)og (M)akedir ",
+     "COMMANDS  (R)ename (S)howall (T)ag (U)ntag mo(V)edir (Q)uit"},
     {                      /* USER_MODE */
      dir_help_disk_mode_0, /* Default unless changed by user prefs */
      dir_help_disk_mode_1}};
@@ -75,13 +75,16 @@ static char file_help_disk_mode_0[] =
     "(^F)ilemode (H)ex (I)nvert (J) compare (L)og";
 static char file_help_disk_mode_1[] =
     "COMMANDS (M)ove/(^N) (N)ewfile "
-    "(O) archive (P)ipe (Q)uit (R)ename (S)ort e(X)ecute (/) jump (`) dotfiles";
+    "(O) archive (P)ipe (Q)uit (R)ename (S)ort e(X)ecute pathcop(Y) (/) jump (`) dotfiles";
 static char file_help_nav[] =
     "Dir   (F1) help  (F5) refresh  (F6) stats  (F7) autoview  "
-    "(F8) split  (F9) menu  (F10) config  (Esc) cancel";
-static char file_help_nav_to_dir[] =
+    "(F8) split  (F10) config  (Esc) cancel";
+static char file_help_nav_showall[] =
     "Dir   (F1) help  (F5) refresh  (F6) stats  (F7) autoview  "
-    "(F8) split  (F9) menu  (F10) config  (\\) to dir  (Esc) cancel";
+    "(F8) split  (F10) config  (S) showall off  (\\) to dir  (Esc) cancel";
+static char file_help_nav_global[] =
+    "Dir   (F1) help  (F5) refresh  (F6) stats  (F7) autoview  "
+    "(F8) split  (F10) config  (G) global off  (\\) to dir  (Esc) cancel";
 static char *file_help[MAX_MODES][2] = {
     {/* DISK_MODE */
      file_help_disk_mode_0, file_help_disk_mode_1},
@@ -147,8 +150,12 @@ void DisplayFileHelp(ViewContext *ctx, const DirEntry *dir_entry) {
   for (i = 0; i < 2; i++) {
     PrintOptions(ctx->ctx_menu_window, i, 0, file_help[ctx->view_mode][i]);
   }
-  nav_line = (dir_entry && dir_entry->global_flag) ? file_help_nav_to_dir
-                                                   : file_help_nav;
+  if (dir_entry && dir_entry->global_flag) {
+    nav_line = dir_entry->global_all_volumes ? file_help_nav_global
+                                             : file_help_nav_showall;
+  } else {
+    nav_line = file_help_nav;
+  }
   PrintNavLine(ctx->ctx_menu_window, 2, nav_line);
   UI_RenderStatusLineError(ctx);
   wnoutrefresh(ctx->ctx_menu_window);

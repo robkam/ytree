@@ -144,9 +144,9 @@ def test_compare_footer_entries_by_view(ytree_binary, tmp_path):
     tui = YtreeTUI(executable=ytree_binary, cwd=str(d))
     time.sleep(0.5)
 
-    tui.send_keystroke("C", wait=0.25)
+    tui.send_keystroke("J", wait=0.25)
     assert tui.wait_for_content("COMPARE SCOPE:", timeout=1.0), (
-        "Directory compare action should be reachable via C."
+        "Directory compare action should be reachable via J."
     )
     tui.send_keystroke(Keys.ESC, wait=0.2)
 
@@ -168,7 +168,7 @@ def test_c_opens_compare_submenu(ytree_binary, tmp_path):
     tui = YtreeTUI(executable=ytree_binary, cwd=str(d))
     time.sleep(0.5)
 
-    tui.send_keystroke("C", wait=0.25)
+    tui.send_keystroke("J", wait=0.25)
     assert tui.wait_for_content("COMPARE SCOPE:", timeout=1.0)
 
     tui.send_keystroke(Keys.ESC, wait=0.2)
@@ -185,13 +185,13 @@ def test_compare_submenu_d_and_t_choices_prompt_expected_targets(ytree_binary, t
     tui = YtreeTUI(executable=ytree_binary, cwd=str(d))
     time.sleep(0.6)
 
-    tui.send_keystroke("C", wait=0.2)
+    tui.send_keystroke("J", wait=0.2)
     assert tui.wait_for_content("COMPARE SCOPE:", timeout=1.0)
     tui.send_keystroke("D", wait=0.3)
     assert tui.wait_for_content("COMPARE TARGET:", timeout=1.0)
     tui.send_keystroke(Keys.ESC, wait=0.2)
 
-    tui.send_keystroke("C", wait=0.2)
+    tui.send_keystroke("J", wait=0.2)
     assert tui.wait_for_content("COMPARE SCOPE:", timeout=1.0)
     tui.send_keystroke("T", wait=0.3)
     assert tui.wait_for_content("COMPARE TARGET:", timeout=1.0)
@@ -217,7 +217,7 @@ def test_compare_submenu_x_launches_external_dirdiff_without_tag_prompt(
     time.sleep(0.6)
     tui.send_keystroke(Keys.DOWN, wait=0.2)  # alpha
 
-    tui.send_keystroke("C", wait=0.2)
+    tui.send_keystroke("J", wait=0.2)
     assert tui.wait_for_content("COMPARE SCOPE:", timeout=1.0)
     tui.send_keystroke("X", wait=0.2)
     assert tui.wait_for_content("EXTERNAL VIEWER:", timeout=1.0)
@@ -256,7 +256,7 @@ def test_compare_submenu_x_t_launches_external_treediff_without_tag_prompt(
     tui = YtreeTUI(executable=ytree_binary, cwd=str(source_root))
     time.sleep(0.6)
 
-    tui.send_keystroke("C", wait=0.2)
+    tui.send_keystroke("J", wait=0.2)
     assert tui.wait_for_content("COMPARE SCOPE:", timeout=1.0)
     tui.send_keystroke("X", wait=0.2)
     assert tui.wait_for_content("EXTERNAL VIEWER:", timeout=1.0)
@@ -299,7 +299,7 @@ def test_external_dirdiff_return_restores_full_ncurses_frame(ytree_binary, tmp_p
     time.sleep(0.6)
     tui.send_keystroke(Keys.DOWN, wait=0.2)  # alpha
 
-    tui.send_keystroke("C", wait=0.2)
+    tui.send_keystroke("J", wait=0.2)
     assert tui.wait_for_content("COMPARE SCOPE:", timeout=1.0)
     tui.send_keystroke("X", wait=0.2)
     assert tui.wait_for_content("EXTERNAL VIEWER:", timeout=1.0)
@@ -308,9 +308,11 @@ def test_external_dirdiff_return_restores_full_ncurses_frame(ytree_binary, tmp_p
     tui.send_keystroke(Keys.CTRL_U + str(beta) + Keys.ENTER, wait=0.55)
     tui.send_keystroke(Keys.ENTER, wait=0.35)  # HitReturnToContinue
 
-    assert "brief compare delete" in _footer_text(tui), (
-        "Directory footer should be restored after returning from external compare."
-    )
+    footer = _footer_text(tui).lower()
+    for token in ("brief", "copy", "delete"):
+        assert token in footer, (
+            "Directory footer should be restored after returning from external compare."
+        )
     assert _has_border_glyphs(tui), (
         "Screen frame/border glyphs disappeared after external compare return.\n"
         f"Screen:\n{_screen_text(tui)}"
@@ -337,12 +339,12 @@ def test_non_f8_compare_target_prompting_for_file_dir_tree(ytree_binary, tmp_pat
     tui.send_keystroke(Keys.ESC, wait=0.2)
 
     tui.send_keystroke(Keys.ESC, wait=0.2)
-    tui.send_keystroke("C", wait=0.2)
+    tui.send_keystroke("J", wait=0.2)
     tui.send_keystroke("D", wait=0.2)
     assert tui.wait_for_content("COMPARE TARGET:", timeout=1.0)
     tui.send_keystroke(Keys.ESC, wait=0.2)
 
-    tui.send_keystroke("C", wait=0.2)
+    tui.send_keystroke("J", wait=0.2)
     tui.send_keystroke("T", wait=0.2)
     assert tui.wait_for_content("COMPARE TARGET:", timeout=1.0)
     tui.send_keystroke(Keys.ESC, wait=0.2)
@@ -575,7 +577,7 @@ def test_f8_directory_compare_uses_inactive_panel_default_target(ytree_binary, t
     tui.send_keystroke(Keys.DOWN, wait=0.2)  # beta
     tui.send_keystroke(Keys.TAB, wait=0.3)
 
-    tui.send_keystroke("C", wait=0.2)
+    tui.send_keystroke("J", wait=0.2)
     tui.send_keystroke("D", wait=0.2)
     assert tui.wait_for_content("COMPARE TARGET:", timeout=1.0)
     assert tui.wait_for_content("beta", timeout=1.0)
@@ -625,7 +627,7 @@ def test_f8_tree_compare_uses_inactive_panel_logged_root_default(ytree_binary, t
     tui.send_keystroke(str(other_root) + Keys.ENTER, wait=0.7)
 
     tui.send_keystroke(Keys.TAB, wait=0.4)
-    tui.send_keystroke("C", wait=0.2)
+    tui.send_keystroke("J", wait=0.2)
     tui.send_keystroke("T", wait=0.2)
     assert tui.wait_for_content("COMPARE TARGET:", timeout=1.0)
     assert tui.wait_for_content(str(other_root.name), timeout=1.0)
@@ -682,7 +684,7 @@ def test_tree_compare_logged_only_relative_path_and_skipped_unlogged_reporting(
     tui = YtreeTUI(executable=ytree_binary, cwd=str(source_root))
     time.sleep(0.8)
 
-    tui.send_keystroke("C", wait=0.2)
+    tui.send_keystroke("J", wait=0.2)
     assert tui.wait_for_content("COMPARE SCOPE:", timeout=1.0)
     tui.send_keystroke("T", wait=0.2)
     assert tui.wait_for_content("COMPARE TARGET:", timeout=1.0)
@@ -714,26 +716,26 @@ def test_compare_flow_cancel_is_safe_and_footer_remains_clean(ytree_binary, tmp_
     tui = YtreeTUI(executable=ytree_binary, cwd=str(d))
     time.sleep(0.6)
 
-    tui.send_keystroke("C", wait=0.2)
+    tui.send_keystroke("J", wait=0.2)
     assert tui.wait_for_content("COMPARE SCOPE:", timeout=1.0)
     tui.send_keystroke(Keys.ESC, wait=0.2)
     assert not tui.wait_for_content("Directory compare complete.", timeout=0.5)
     assert not tui.wait_for_content("Logged-tree compare complete.", timeout=0.5)
 
-    tui.send_keystroke("C", wait=0.2)
+    tui.send_keystroke("J", wait=0.2)
     tui.send_keystroke("D", wait=0.2)
     assert tui.wait_for_content("COMPARE TARGET:", timeout=1.0)
     tui.send_keystroke(Keys.ESC, wait=0.2)
     assert not tui.wait_for_content("Directory compare complete.", timeout=0.5)
 
-    tui.send_keystroke("C", wait=0.2)
+    tui.send_keystroke("J", wait=0.2)
     tui.send_keystroke("D", wait=0.2)
     tui.send_keystroke("." + Keys.ENTER, wait=0.2)
     assert tui.wait_for_content("COMPARE BASIS:", timeout=1.0)
     tui.send_keystroke(Keys.ESC, wait=0.2)
     assert not tui.wait_for_content("Directory compare complete.", timeout=0.5)
 
-    tui.send_keystroke("C", wait=0.2)
+    tui.send_keystroke("J", wait=0.2)
     tui.send_keystroke("D", wait=0.2)
     tui.send_keystroke("." + Keys.ENTER, wait=0.2)
     tui.send_keystroke("S", wait=0.2)
@@ -741,20 +743,20 @@ def test_compare_flow_cancel_is_safe_and_footer_remains_clean(ytree_binary, tmp_
     tui.send_keystroke(Keys.ESC, wait=0.2)
     assert not tui.wait_for_content("Directory compare complete.", timeout=0.5)
 
-    tui.send_keystroke("C", wait=0.2)
+    tui.send_keystroke("J", wait=0.2)
     tui.send_keystroke("T", wait=0.2)
     assert tui.wait_for_content("COMPARE TARGET:", timeout=1.0)
     tui.send_keystroke(Keys.ESC, wait=0.2)
     assert not tui.wait_for_content("Logged-tree compare complete.", timeout=0.5)
 
-    tui.send_keystroke("C", wait=0.2)
+    tui.send_keystroke("J", wait=0.2)
     tui.send_keystroke("T", wait=0.2)
     tui.send_keystroke("x" + Keys.ENTER, wait=0.2)
     assert tui.wait_for_content("COMPARE BASIS:", timeout=1.0)
     tui.send_keystroke(Keys.ESC, wait=0.2)
     assert not tui.wait_for_content("Logged-tree compare complete.", timeout=0.5)
 
-    tui.send_keystroke("C", wait=0.2)
+    tui.send_keystroke("J", wait=0.2)
     tui.send_keystroke("T", wait=0.2)
     tui.send_keystroke("x" + Keys.ENTER, wait=0.2)
     tui.send_keystroke("S", wait=0.2)
@@ -814,7 +816,7 @@ def test_compare_prompt_labels_and_result_text(ytree_binary, tmp_path):
     tui = YtreeTUI(executable=ytree_binary, cwd=str(d))
     time.sleep(0.6)
 
-    tui.send_keystroke("C", wait=0.2)
+    tui.send_keystroke("J", wait=0.2)
     assert tui.wait_for_content("COMPARE SCOPE:", timeout=1.0)
     screen_lower = _screen_text(tui).lower()
     assert "logged tree" in screen_lower
@@ -848,7 +850,7 @@ def test_compare_help_f1_open_close_and_prompt_restore(ytree_binary, tmp_path):
     tui = YtreeTUI(executable=ytree_binary, cwd=str(d))
     time.sleep(0.6)
 
-    tui.send_keystroke("C", wait=0.2)
+    tui.send_keystroke("J", wait=0.2)
     assert tui.wait_for_content("COMPARE SCOPE:", timeout=1.0)
 
     tui.send_keystroke(Keys.F1, wait=0.3)
@@ -1037,7 +1039,7 @@ def test_compare_submenu_x_t_falls_back_to_dirdiff_when_treediff_unset(
     tui = YtreeTUI(executable=ytree_binary, cwd=str(source_root))
     time.sleep(0.6)
 
-    tui.send_keystroke("C", wait=0.2)
+    tui.send_keystroke("J", wait=0.2)
     assert tui.wait_for_content("COMPARE SCOPE:", timeout=1.0)
     tui.send_keystroke("X", wait=0.2)
     assert tui.wait_for_content("EXTERNAL VIEWER:", timeout=1.0)
@@ -1049,7 +1051,7 @@ def test_compare_submenu_x_t_falls_back_to_dirdiff_when_treediff_unset(
     assert _wait_for_file(log_path, timeout=2.0), "DIRDIFF fallback helper did not run."
     logged = log_path.read_text(encoding="utf-8").splitlines()
     assert logged == [str(source_root), str(target_root)], (
-        "When TREEDIFF is unset, C->X->T should fall back to DIRDIFF.\n"
+        "When TREEDIFF is unset, J->X->T should fall back to DIRDIFF.\n"
         f"Args: {logged}"
     )
     assert not tui.wait_for_content("COMPARE BASIS:", timeout=0.4), (
@@ -1080,7 +1082,7 @@ def test_external_compare_launch_does_not_modify_file_tag_state(ytree_binary, tm
     time.sleep(0.6)
     tui.send_keystroke(Keys.DOWN, wait=0.2)  # alpha
 
-    tui.send_keystroke("C", wait=0.2)
+    tui.send_keystroke("J", wait=0.2)
     assert tui.wait_for_content("COMPARE SCOPE:", timeout=1.0)
     tui.send_keystroke("X", wait=0.2)
     assert tui.wait_for_content("EXTERNAL VIEWER:", timeout=1.0)
@@ -1112,7 +1114,7 @@ def test_compare_help_close_with_f1_and_esc_returns_to_same_prompt(
     tui = YtreeTUI(executable=ytree_binary, cwd=str(d))
     time.sleep(0.6)
 
-    tui.send_keystroke("C", wait=0.2)
+    tui.send_keystroke("J", wait=0.2)
     assert tui.wait_for_content("COMPARE SCOPE:", timeout=1.0)
 
     tui.send_keystroke(Keys.F1, wait=0.3)

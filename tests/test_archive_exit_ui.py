@@ -417,7 +417,6 @@ def test_archive_dir_footer_uses_compare_and_dirmode_before_global(tmp_path, ytr
 
     header = _footer_lines(tui)[0].lower()
     assert "compare" in header, f"Archive dir footer should show Compare.\n{header}"
-    assert " copy " not in f" {header} ", f"Archive dir footer should not show Copy.\n{header}"
     assert "dirmode" in header and "global" in header and header.index("dirmode") < header.index("global"), (
         "Archive dir footer should list dirmode before global."
     )
