@@ -447,6 +447,155 @@ def test_file_window_one_column_edges_preserve_row(ytree_binary, tmp_path):
     tui.quit()
 
 
+def _footer_text(tui):
+    return "\n".join(tui.get_screen_dump()[-3:]).lower()
+
+
+def test_global_toggle_repeat_exits_global_view(ytree_binary, tmp_path):
+    root = tmp_path / "global_toggle_repeat"
+    root.mkdir()
+    (root / "a.txt").write_text("a", encoding="utf-8")
+    (root / "b.txt").write_text("b", encoding="utf-8")
+
+    tui = YtreeTUI(executable=ytree_binary, cwd=str(root))
+    time.sleep(0.6)
+
+    tui.send_keystroke("g", wait=0.5)
+    footer = _footer_text(tui)
+    assert "global off" in footer, (
+        "Global file-view footer should advertise repeat-key exit with G."
+    )
+    assert "to dir" in footer
+
+    tui.send_keystroke("g", wait=0.5)
+    footer = _footer_text(tui)
+    assert "dir" in footer and "global" in footer, (
+        "Repeating G in global file view should return to directory mode."
+    )
+    assert "global off" not in footer
+    assert "to dir" not in footer
+
+    tui.quit()
+
+
+def test_showall_toggle_repeat_exits_showall_view(ytree_binary, tmp_path):
+    root = tmp_path / "showall_toggle_repeat"
+    root.mkdir()
+    (root / "a.txt").write_text("a", encoding="utf-8")
+    (root / "b.txt").write_text("b", encoding="utf-8")
+
+    tui = YtreeTUI(executable=ytree_binary, cwd=str(root))
+    time.sleep(0.6)
+
+    tui.send_keystroke(Keys.SHOWALL, wait=0.5)
+    footer = _footer_text(tui)
+    assert "showall off" in footer, (
+        "Showall file-view footer should advertise repeat-key exit with S."
+    )
+    assert "to dir" in footer
+
+    tui.send_keystroke(Keys.SHOWALL, wait=0.5)
+    footer = _footer_text(tui)
+    assert "dir" in footer and "showall" in footer, (
+        "Repeating S in showall file view should return to directory mode."
+    )
+    assert "showall off" not in footer
+    assert "to dir" not in footer
+
+    tui.quit()
+
+
+def test_mutating_action_repeat_is_not_undo(ytree_binary, tmp_path):
+    root = tmp_path / "mkdir_repeat_action"
+    root.mkdir()
+
+    tui = YtreeTUI(executable=ytree_binary, cwd=str(root))
+    time.sleep(0.6)
+
+    tui.send_keystroke("M", wait=0.25)
+    tui.send_keystroke("first_dir\r", wait=0.6)
+    tui.send_keystroke("M", wait=0.25)
+    tui.send_keystroke("second_dir\r", wait=0.6)
+    tui.quit()
+
+    assert (root / "first_dir").is_dir(), (
+        "First mkdir action should persist after repeating the key."
+    )
+    assert (root / "second_dir").is_dir(), (
+        "Second mkdir keypress must execute another create action, not undo."
+    )
+
+
+def test_showall_repeat_returns_to_start_directory_context(ytree_binary, tmp_path):
+    root = tmp_path / "showall_repeat_start_dir"
+    root.mkdir()
+    alpha = root / "alpha"
+    beta = root / "beta"
+    alpha.mkdir()
+    beta.mkdir()
+    (alpha / "alpha_only.txt").write_text("a", encoding="utf-8")
+    (beta / "beta_only.txt").write_text("b", encoding="utf-8")
+
+    tui = YtreeTUI(executable=ytree_binary, cwd=str(root))
+    time.sleep(0.6)
+
+    # Move from root to alpha in tree mode and remember this start context.
+    tui.send_keystroke(Keys.DOWN, wait=0.3)
+
+    tui.send_keystroke(Keys.SHOWALL, wait=0.5)
+    tui.send_keystroke("f", wait=0.2)
+    tui.send_keystroke("beta_only.txt\r", wait=0.5)
+
+    # Toggle off with same key: should return to start directory (alpha), not owner jump.
+    tui.send_keystroke(Keys.SHOWALL, wait=0.5)
+    tui.send_keystroke(Keys.ENTER, wait=0.5)
+
+    screen = "\n".join(tui.get_screen_dump())
+    assert "alpha_only.txt" in screen, (
+        "Repeating S to exit Showall should return to the start directory context."
+    )
+    assert "beta_only.txt" not in screen, (
+        "Showall repeat-exit should not re-anchor to navigated owner directory."
+    )
+
+    tui.quit()
+
+
+def test_global_repeat_returns_to_start_directory_context(ytree_binary, tmp_path):
+    root = tmp_path / "global_repeat_start_dir"
+    root.mkdir()
+    alpha = root / "alpha"
+    beta = root / "beta"
+    alpha.mkdir()
+    beta.mkdir()
+    (alpha / "alpha_only.txt").write_text("a", encoding="utf-8")
+    (beta / "beta_only.txt").write_text("b", encoding="utf-8")
+
+    tui = YtreeTUI(executable=ytree_binary, cwd=str(root))
+    time.sleep(0.6)
+
+    # Move from root to alpha in tree mode and remember this start context.
+    tui.send_keystroke(Keys.DOWN, wait=0.3)
+
+    tui.send_keystroke("g", wait=0.5)
+    tui.send_keystroke("f", wait=0.2)
+    tui.send_keystroke("beta_only.txt\r", wait=0.5)
+
+    # Toggle off with same key: should return to start directory (alpha), not owner jump.
+    tui.send_keystroke("g", wait=0.5)
+    tui.send_keystroke(Keys.ENTER, wait=0.5)
+
+    screen = "\n".join(tui.get_screen_dump())
+    assert "alpha_only.txt" in screen, (
+        "Repeating G to exit Global should return to the start directory context."
+    )
+    assert "beta_only.txt" not in screen, (
+        "Global repeat-exit should not re-anchor to navigated owner directory."
+    )
+
+    tui.quit()
+
+
 @pytest.mark.parametrize("mode_key", [Keys.SHOWALL, "g"])
 def test_backslash_to_dir_in_showall_and_global(ytree_binary, tmp_path, mode_key):
     """
@@ -563,6 +712,58 @@ def test_sort_prompt_uses_full_footer_without_bleed(ytree_binary, tmp_path):
 
     # Exit sort prompt cleanly.
     tui.send_keystroke(Keys.ESC, wait=0.2)
+    tui.quit()
+
+
+@pytest.mark.parametrize(
+    "action_key,new_name,confirm_text",
+    [
+        ("c", "dir_copy_out", "Copy directory now"),
+        ("v", "dir_move_out", "Move directory now"),
+    ],
+)
+def test_dir_copy_move_keeps_full_frame_after_command(
+    ytree_binary, tmp_path, action_key, new_name, confirm_text
+):
+    root = tmp_path / "dir_ops_frame"
+    root.mkdir()
+    src = root / "src_dir"
+    src.mkdir()
+    (src / "nested").mkdir()
+    (src / "nested" / "payload.txt").write_text("x", encoding="utf-8")
+
+    tui = YtreeTUI(executable=ytree_binary, cwd=str(root))
+    tui.child.setwinsize(36, 140)
+    tui.screen.resize(36, 140)
+    time.sleep(1.0)
+    tui.send_keystroke("", wait=0.2)
+
+    # Select src_dir (first child of logged root in this fixture).
+    tui.send_keystroke(Keys.DOWN, wait=0.3)
+    screen = "\n".join(tui.get_screen_dump())
+    assert "src_dir" in screen
+
+    tui.child.send(action_key)
+    tui.child.expect("COPY:|MOVE:")
+    tui.child.send("\x15")
+    tui.child.send(f"{new_name}\r")
+    tui.child.expect("To Directory")
+    tui.child.send("\x15")
+    tui.child.send(".\r")
+    tui.child.expect(confirm_text)
+    tui.child.send("Y")
+    tui.send_keystroke("", wait=0.8)
+
+    out_dir = root / new_name
+    assert out_dir.exists() and out_dir.is_dir()
+    assert (out_dir / "nested" / "payload.txt").exists()
+    if action_key == "v":
+        assert not src.exists()
+
+    post = "\n".join(tui.get_screen_dump())
+    assert "Tree  F1 help" in post, "Footer/help row disappeared after dir copy/move"
+    assert "Path:" in post, "Header/border row disappeared after dir copy/move"
+
     tui.quit()
 
 

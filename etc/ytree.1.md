@@ -57,16 +57,26 @@ Focus is on the directory hierarchy tree. Navigation keys allow moving between f
 Focus is on the file list of the selected directory. Operations here affect specific files. Typing alphanumeric characters triggers a file mode command (key bindings).
 *   **Action:** Press **Return** to toggle the file window to full-screen. Press **Return** again to restore the split view or switch back to **Directory Mode**.
 
+**Showall Mode**
+Toggle file-list mode for all files in the currently logged volume.
+*   **Action:** Press **Esc** to return to the previously selected directory. Press **\\** to jump to the owner directory of the selected file.
+
+**Global Mode**
+Toggle file-list mode for all files across all logged volumes.
+*   **Action:** Press **Esc** to return to the previously selected directory. Press **\\** to jump to the owner directory of the selected file.
+
 **Archive Mode**
 When entering a supported archive (ZIP, TAR, GZ), ytree treats it as a virtual filesystem with archive-aware write operations (copy/move/delete/rename/mkdir paths where supported). It behaves similarly to Directory/File modes with archive-specific navigation and safety semantics.
 
 **Split Screen Mode**
 Activated by **F8**. The screen is divided vertically into two independent file manager panels.
+*   **Toggle:** Press **F8** again to return to single-panel mode.
 *   **Switch Focus:** Press **TAB** to switch active control between the Left and Right panels.
 *   **Targeting:** Operations like **Copy** and **Move** automatically default to the path of the inactive (passive) panel as the destination.
 
 **File Preview Mode**
 Activated by **F7**. The screen layout changes to show the file list on the left (or active panel) and the file contents on the right.
+*   **Toggle:** Press **F7** again to leave preview mode.
 *   **Navigate File List:** Use **Up/Down**, **Page Up/Down**, **Home/End** to move the selection in the file list. The preview pane updates immediately.
 *   **Scroll Preview:** Use **Shift+Up/Down** (or **^P** / **^N**) to scroll the content of the preview window line by line. Use **Shift+Page Up/Down** to scroll by pages. **Shift+Home/End** jumps to the beginning or end of the file.
 
@@ -82,8 +92,7 @@ These commands work in most modes:
 *   **F6**: Toggle Statistics Panel (Wide Mode).
 *   **F7**: Toggle File Preview Panel.
 *   **F8**: Toggle Split Screen Mode.
-*   **F9**: Application Menu (**reserved**, not implemented yet).
-*   **F10**: Config (**reserved**, not implemented yet).
+*   **F10**: Edit `~/.ytree` in `$EDITOR`. If the file does not exist yet, the editor opens a new buffer at that path; save to create it (or run `ytree --init` to generate defaults first).
 *   **/** (or **F12**): **Incremental Jump** (List Jump). Start typing to jump to the first matching entry in the current list (directory names in the Directory Window, filenames in the File Window). The selection updates immediately as you type. Press **Enter** to accept the current match, or **Esc** to cancel and restore the original selection.
 *   **\\**: In **Showall**/**Global** file lists, exit that mode and jump to the selected file in its owner directory. In Archive-Dir mode, `\\` jumps to archive root when used below root, and exits to the parent physical directory when used at archive root. In normal filesystem dir/file windows and Archive-File mode, `\\` is a no-op.
 *   **B**: Toggle Brief (Compact) filename view in the File Window.
@@ -108,18 +117,20 @@ Active when browsing the directory tree window.
 
 *   **A** (Attributes): Open attributes submenu for directory metadata changes:
     mode (chmod), owner, group, date.
-*   **C** (Compare): Open the compare submenu (directory, logged tree, or external viewer).
+*   **C** (Copy): Copy the selected directory branch.
 *   **D** (Delete): Delete selected directory.
 *   **F** (Filter): Set file filter. Supports regex patterns (e.g., `*.c`), exclusions (`-*.o`), attributes (`:r`, `:x`), dates (`>2023-01-01`), and sizes (`>1M`).
 *   **G** (Global): Show all files across all logged volumes in one global list.
+*   **J** (Compare): Open the compare submenu (directory, logged tree, or external viewer).
 *   **L** (Log): Log a new directory or archive file.
 *   **M** (Makedir): Create a new directory.
 *   **N** (New File): Create a new empty file.
-*   **O** (Archive): Create an archive from the current selection. If one or more files are tagged, ytree archives the tagged files. If nothing is tagged, ytree archives the selected file or selected directory. Directory sources are archived recursively. Supported destination suffixes: `.tar`, `.tar.gz`/`.tgz`, `.tar.bz2`/`.tbz2`, `.tar.xz`/`.txz`, `.zip`.
+*   **O** (Compress): Create an archive from the current selection. If one or more files are tagged, ytree archives the tagged files. If nothing is tagged, ytree archives the selected file or selected directory. Directory sources are archived recursively. Supported destination suffixes: `.tar`, `.tar.gz`/`.tgz`, `.tar.bz2`/`.tbz2`, `.tar.xz`/`.txz`, `.zip`.
 *   **R** (Rename): Rename selected directory.
 *   **S** (Showall): Show all files in all directories of the current volume.
 *   **T** (Tag): Tag all files in the selected directory.
 *   **U** (Untag): Untag all files in the selected directory.
+*   **V** (MoveDir): Move the selected directory branch.
 *   **X** (eXecute): Execute a shell command. The `{}` placeholder is replaced by the current directory path.
 *   **`** (Backtick): Toggle visibility of hidden dot-files and directories.
 *   **^F** (Dir Mode): Cycle directory display modes (Filenames only -> Attributes -> Inode/Owner -> Times).

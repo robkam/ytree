@@ -116,6 +116,17 @@ pages. **Shift+Home/End** jumps to the beginning or end of the file.
 **Note:** All keys are case insensitive unless otherwise noted. The
 symbol `^` denotes the **CTRL** key.
 
+### Input Semantics
+
+ytree separates **view-state toggles** from **one-shot actions**:
+
+- **Toggles** change view state and are reversible by leaving that
+  state.
+- **Actions** perform operations; pressing the same key again runs the
+  action again and never means undo.
+- **Esc** cancels the active prompt/dialog/mode-entry step. It does
+  **not** undo completed filesystem mutations.
+
 ### Global Commands
 
 These commands work in most modes:
@@ -125,8 +136,9 @@ These commands work in most modes:
 - **F6**: Toggle Statistics Panel (Wide Mode).
 - **F7**: Toggle File Preview Panel.
 - **F8**: Toggle Split Screen Mode.
-- **F9**: Application Menu (**reserved**, not implemented yet).
-- **F10**: Config (**reserved**, not implemented yet).
+- **F10**: Edit `~/.ytree` in `$EDITOR`. If the file does not exist yet,
+  the editor opens a new buffer at that path; save to create it (or run
+  `ytree --init` to generate defaults first).
 - **/** (or **F12**): **Incremental Jump** (List Jump). Start typing to
   jump to the first matching entry in the current list (directory names
   in the Directory Window, filenames in the File Window). The selection
@@ -167,18 +179,19 @@ Active when browsing the directory tree window.
 
 - **A** (Attributes): Open attributes submenu for directory metadata
   changes: mode (chmod), owner, group, date.
-- **C** (Compare): Open the compare submenu (directory, logged tree, or
-  external viewer).
+- **C** (Copy): Copy the selected directory branch.
 - **D** (Delete): Delete selected directory.
 - **F** (Filter): Set file filter. Supports regex patterns (e.g.,
   `*.c`), exclusions (`-*.o`), attributes (`:r`, `:x`), dates
   (`>2023-01-01`), and sizes (`>1M`).
 - **G** (Global): Show all files across all logged volumes in one global
   list.
+- **J** (Compare): Open the compare submenu (directory, logged tree, or
+  external viewer).
 - **L** (Log): Log a new directory or archive file.
 - **M** (Makedir): Create a new directory.
 - **N** (New File): Create a new empty file.
-- **O** (Archive): Create an archive from the current selection. If one
+- **O** (Compress): Create an archive from the current selection. If one
   or more files are tagged, ytree archives the tagged files. If nothing
   is tagged, ytree archives the selected file or selected directory.
   Directory sources are archived recursively. Supported destination
@@ -189,6 +202,7 @@ Active when browsing the directory tree window.
   volume.
 - **T** (Tag): Tag all files in the selected directory.
 - **U** (Untag): Untag all files in the selected directory.
+- **V** (MoveDir): Move the selected directory branch.
 - **X** (eXecute): Execute a shell command. The `{}` placeholder is
   replaced by the current directory path.
 - **\`** (Backtick): Toggle visibility of hidden dot-files and
@@ -291,6 +305,27 @@ Active when the file window is focused.
 - **^F** (File Mode): Cycle file display modes.
 
 - **Return**: Switch to Full Screen File Mode / Directory Mode.
+
+### Showall/Global File-View State
+
+When you enter these stateful views from Directory Mode:
+
+- **G** enters **Global (all volumes)** file view. Press **G** again to
+  exit back to Directory Mode.
+- **S** enters **Showall (current volume)** file view. Press **S** again
+  to exit back to Directory Mode.
+- **\\** exits to the owner directory of the selected file.
+- **Esc** exits the state.
+
+Sort and file actions remain one-shot actions; repeated action keys do
+not undo prior mutations.
+
+### Migration Note
+
+- **Changed behavior:** In Showall/Global file-view states, repeating
+  the entry key now exits that state (`G` for Global, `S` for Showall).
+- **Rationale:** keeps stateful view keys as explicit toggles and keeps
+  mutating keys strictly one-shot.
 
 ### Archive Mode
 

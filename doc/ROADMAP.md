@@ -5,37 +5,63 @@
 ## **Phase 1: UI/UX Enhancements and Cleanup**
 *This phase adds user-facing improvements, cleans up the remaining artifacts, and ensures a clean, modern, and portable codebase.*
 
-### **Task 1: Implement Directory Graft (Copy/Move)**
-*   **Goal:** Implement directory manipulation commands in the Directory Window.
-    *   **Graft (Move):** Move an entire directory branch to a new parent.
-    *   **PathCopy (Copy):** Recursively copy a directory branch to a new location.
-*   **Rationale:** Essential directory management features present in XTree&trade; but missing in ytree.
-*   **Files to Modify:** `src/ui/ctrl_dir.c` (Navigate to `f2_picker.c`)
-*   **Context Files:** `src/cmd/copy.c`, `src/cmd/move.c`
-*   - [ ] **Status:** Not Started.
+### **Task 1: Implement Directory Copy and moVe**
+*   - [x] **Status:** Completed.
 
 ### **Task 2: Implement Global File View (`G`)**
-*   **Goal:** Implement the "Global" file view mode, which aggregates files from **all currently logged volumes** into a single flattened list.
-*   **Rationale:** A core ZTree feature allowing operations across multiple drives simultaneously.
-*   **Prerequisite:** Free up `G` key.
-*   **Files to Modify:** `src/ui/ctrl_dir.c`, `src/ui/ctrl_file.c`, `src/core/volume.c`
-*   - [ ] **Status:** Not Started.
+*   - [x] **Status:** Completed.
 
 ### **Task 3: Implement Advanced Log Options**
-*   **Goal:** Enhance the `Log` command to present options for controlling the scan depth and scope, similar to ZTree/XTree&trade; (e.g., "Log drive", "Log tree", "Log directory").
-*   **Rationale:** Provides essential control over performance when working with very large filesystems, allowing the user to perform a shallow scan when a deep recursive scan is not needed.
-*   **Files to Modify:** `src/cmd/log.c`, `src/ui/key_engine.c`
-*   **Context Files:** `src/fs/readtree.c`
+*   - [x] **Status:** Completed.
+
+### Task 4: Remove Footer Prompt for / Search
+*   Goal: Keep existing / search behavior in all contexts (Dir, File, Showall, Global), but stop using the footer prompt area for search input.
+*   Rationale: Current search semantics already work; only the footer prompt is unnecessary UI churn.
+*   Requirements:
+*   Preserve current semantics: incremental match while typing, Enter confirms jump, Esc cancels.
+*   Do not redraw/replace footer help lines during / search.
+*   Use a non-footer inline input/render path for search text and match feedback.
+*   Files to Modify: src/ui/ctrl_dir.c, src/ui/ctrl_file.c, src/ui/interactions.c, src/ui/display.c
+*   Status: Not Started
+
+### **Task 5: Refactor Tab Completion for Command Arguments**
+*   **Goal:** Update the tab completion logic in `src/util/tabcompl.c` to handle command-line arguments correctly and resolve ambiguous matches using Longest Common Prefix (LCP).
+*   **Rationale:** Currently, the completion engine treats the entire input line as a single path. This causes failures when trying to complete arguments for commands (e.g., `x ls /us<TAB>` fails because it looks for a file named "ls /us"). It also fails to partial-complete when multiple matches exist (e.g., `/s` matching both `/sys` and `/srv`).
+*   **Mechanism:**
+    *   Tokenize the input string to identify the word under the cursor.
+    *   Perform globbing/matching *only* on that specific token.
+    *   If multiple matches are found, calculate the Longest Common Prefix and return that (standard shell behavior) instead of failing or returning the first match.
+    *   Reassemble the command string (prefix + completed token) before returning.
+*   **Files to Modify:** `src/util/tabcompl.c`, `src/ui/key_engine.c`
+*   **Context Files:** None.
 *   - [ ] **Status:** Not Started.
 
-### **Task 4: Implement "Tags-Only" View Mode**
-*   **Goal:** Implement a toggle (`*` or `8`) to display only the tagged files in the current File Window.
-*   **Rationale:** A core ZTreeWin feature that allows users to verify, refine, and operate on a specific subset of files without the visual clutter of non-tagged files.
-*   **Files to Modify:** `src/ui/ctrl_file.c`
-*   **Context Files:** `src/ui/ctrl_dir.c`
+### **Task 6: Implement Responsive Adaptive Footer**
+*   **Goal:** Make the two-line command footer dynamic based on terminal width.
+    *   **Compact (< 80 cols):** Show only critical navigation and file operation keys (Copy, Move, Delete, Quit).
+    *   **Standard (80-120 cols):** Show the standard set (current behavior).
+    *   **Wide (> 120 cols):** Unfold "hidden" or advanced commands (Hex, Group, Sort modes) directly into the footer so the user doesn't have to remember them.
+*   **Rationale:** Maximizes utility on large displays while preventing line-wrapping visual corruption on small screens. It reduces the need to consult F1 on large monitors.
+*   **Mechanism:** Define command groups (Priority 1, 2, 3). In `DisplayDirHelp` / `DisplayFileHelp`, construct the string dynamically based on `COLS`.
+*   **Files to Modify:** `src/ui/display.c`
+*   **Context Files:** None.
 *   - [ ] **Status:** Not Started.
 
-#### **Task 5: Create Watcher Infrastructure (`watcher.c`)**
+### **Task 7: Implement Integrated Help System**
+*   **Goal:** Create a pop-up, scrollable help window (activated by F1) that displays context-sensitive command information.
+*   **Rationale:** Replaces the limited static help lines with a comprehensive and user-friendly help system, making the application easier to learn and use without consulting external documentation.
+*   **Files to Modify:** `src/ui/display.c`
+*   **Context Files:** `src/ui/key_engine.c`
+*   - [ ] **Status:** Not Started.
+
+### **Task 8: Refine In-App Help Text**
+*   **Goal:** Review all user prompts and help lines to be clear and provide context for special syntax (e.g., `{}`). The menu should be decluttered by only showing a `^` shortcut if its action differs from the base key (e.g., `(C)opy/(^K)` is good, but `pathcop(Y)/^Y` is redundant and should just be `pathcop(Y)`).
+*   **Rationale:** Fulfills the "No Hidden Features" principle and improves UI clarity by removing redundant information.
+*   **Files to Modify:** `src/ui/display.c`
+*   **Context Files:** None.
+*   - [ ] **Status:** Not Started.
+
+#### **Task 9: Create Watcher Infrastructure (`watcher.c`)**
 *   **Task:** Create a new module `watcher.c` to abstract the OS-specific file monitoring APIs.
 *   **Logic:**
     *   **Init:** Call `inotify_init1(IN_NONBLOCK)`.
@@ -44,7 +70,7 @@
     *   **Portability:** Guard everything with `#ifdef __linux__`. On other systems, these functions act as empty stubs.
 *   - [ ] **Status:** Not Started.
 
-#### **Task 6: Refactor Input Loop for Event Handling**
+#### **Task 10: Refactor Input Loop for Event Handling**
 *   **Task:** Modify `key_engine.c` to support non-blocking input handling.
 *   **Logic:**
     *   Currently, `Getch()` blocks indefinitely waiting for a key.
@@ -55,7 +81,7 @@
     *   If STDIN triggers, proceed to `wgetch()`.
 *   - [ ] **Status:** Not Started.
 
-#### **Task 7: Implement Live Refresh Logic**
+#### **Task 11: Implement Live Refresh Logic**
 *   **Task:** Connect the `refresh_needed` flag to the main window logic.
 *   **Logic:**
     *   In `dirwin.c` (`HandleDirWindow`) and `filewin.c` (`HandleFileWindow`), inside the input loop:
@@ -68,50 +94,13 @@
     *   *Note:* We must ensure the cursor stays on the same file if possible (by saving the filename before rescan and finding it after).
 *   - [ ] **Status:** Not Started.
 
-#### **Task 8: Update Watch Context on Navigation**
+#### **Task 12: Update Watch Context on Navigation**
 *   **Task:** Ensure the watcher always monitors the *current* directory.
 *   **Logic:**
     *   In `dirwin.c`: Whenever the user moves the cursor to a new directory (UP/DOWN), update the watcher.
     *   *Optimization:** Only update the watcher if the user *enters* the File Window (Enter) or stays on a directory for > X milliseconds?
     *   *Decision:* For `ytree`, the "Active Context" is the directory under the cursor in the Directory Window, OR the directory being viewed in the File Window.
     *   **Implementation:** Call `Watcher_SetDir(dir_entry->name)` inside `HandleDirWindow` navigation logic (possibly debounced) and definitely inside `HandleFileWindow`.
-*   - [ ] **Status:** Not Started.
-
-### **Task 9: Implement Responsive Adaptive Footer**
-*   **Goal:** Make the two-line command footer dynamic based on terminal width.
-    *   **Compact (< 80 cols):** Show only critical navigation and file operation keys (Copy, Move, Delete, Quit).
-    *   **Standard (80-120 cols):** Show the standard set (current behavior).
-    *   **Wide (> 120 cols):** Unfold "hidden" or advanced commands (Hex, Group, Sort modes) directly into the footer so the user doesn't have to remember them.
-*   **Rationale:** Maximizes utility on large displays while preventing line-wrapping visual corruption on small screens. It reduces the need to consult F1 on large monitors.
-*   **Mechanism:** Define command groups (Priority 1, 2, 3). In `DisplayDirHelp` / `DisplayFileHelp`, construct the string dynamically based on `COLS`.
-*   **Files to Modify:** `src/ui/display.c`
-*   **Context Files:** None.
-*   - [ ] **Status:** Not Started.
-
-### **Task 10: Implement Integrated Help System**
-*   **Goal:** Create a pop-up, scrollable help window (activated by F1) that displays context-sensitive command information.
-*   **Rationale:** Replaces the limited static help lines with a comprehensive and user-friendly help system, making the application easier to learn and use without consulting external documentation.
-*   **Files to Modify:** `src/ui/display.c`
-*   **Context Files:** `src/ui/key_engine.c`
-*   - [ ] **Status:** Not Started.
-
-### **Task 11: Refine In-App Help Text**
-*   **Goal:** Review all user prompts and help lines to be clear and provide context for special syntax (e.g., `{}`). The menu should be decluttered by only showing a `^` shortcut if its action differs from the base key (e.g., `(C)opy/(^K)` is good, but `pathcop(Y)/^Y` is redundant and should just be `pathcop(Y)`).
-*   **Rationale:** Fulfills the "No Hidden Features" principle and improves UI clarity by removing redundant information.
-*   **Files to Modify:** `src/ui/display.c`
-*   **Context Files:** None.
-*   - [ ] **Status:** Not Started.
-
-### **Task 12: Refactor Tab Completion for Command Arguments**
-*   **Goal:** Update the tab completion logic in `src/util/tabcompl.c` to handle command-line arguments correctly and resolve ambiguous matches using Longest Common Prefix (LCP).
-*   **Rationale:** Currently, the completion engine treats the entire input line as a single path. This causes failures when trying to complete arguments for commands (e.g., `x ls /us<TAB>` fails because it looks for a file named "ls /us"). It also fails to partial-complete when multiple matches exist (e.g., `/s` matching both `/sys` and `/srv`).
-*   **Mechanism:**
-    *   Tokenize the input string to identify the word under the cursor.
-    *   Perform globbing/matching *only* on that specific token.
-    *   If multiple matches are found, calculate the Longest Common Prefix and return that (standard shell behavior) instead of failing or returning the first match.
-    *   Reassemble the command string (prefix + completed token) before returning.
-*   **Files to Modify:** `src/util/tabcompl.c`, `src/ui/key_engine.c`
-*   **Context Files:** None.
 *   - [ ] **Status:** Not Started.
 
 #### **Task 13: Implement Directory Filtering (Non-Recursive)**
@@ -121,7 +110,8 @@
 *   - [ ] **Status:** Not Started.
 
 ### **Task 14: Add Configurable Bypass for External Viewers**
-*   **Goal:** Add a configuration option (e.g., in a future F10 settings panel) to globally disable external viewers, forcing the use of the internal viewer.
+*   **Goal:** Add a configuration option to globally disable external viewers, forcing the use of the internal viewer.
+*   **UI Note:** Expose this in the planned `F10` configuration UI when that panel is implemented.
 *   **Rationale:** Provides flexibility for cases where the user wants to quickly inspect the raw bytes of a file (e.g., a PDF) without launching a heavy external application.
 *   **Files to Modify:** `src/cmd/view.c`, `src/cmd/profile.c`
 *   **Context Files:** `include/ytree.h`
@@ -230,7 +220,7 @@
 ### **Phase 1: UI/UX Enhancements and Cleanup**
 
 ### **Task 11: Implement In-App Configuration Editor (F10)**
-*   **Goal:** Implement a settings panel (activated by a key like `F10`) that allows the user to view and change configuration options from `~/.ytree` (e.g., `CONFIRMQUIT`, colors) and save the changes.
+*   **Goal:** Implement a settings panel (activated by `F10`) that allows the user to view and change configuration options from `~/.ytree` (e.g., `CONFIRMQUIT`, colors) and save the changes.
 *   **Rationale:** Provides a user-friendly way to configure `ytree` without manually editing the configuration file, improving accessibility.
 *   **Files to Modify:** `src/cmd/profile.c`, `src/ui/key_engine.c`
 *   **Context Files:** `include/config.h`
@@ -249,14 +239,15 @@
 *   **Task 16: State Preservation on Reload (^L):** Modify the Refresh command to preserve directory expansion states. Cache open paths prior to the re-scan and restore the previous view structure instead of resetting to the default depth.
 *   **Task 17: Preserve Tree Expansion on Refresh:** Modify the Refresh/Rescan logic (`^L`, `F5`) to cache the list of currently expanded directories before reading the disk. After the scan is complete, programmatically re-expand those paths if they still exist.
 
-### **Task 18: Step 4.m: Applications menu**
-*   Implement a customizable Application Menu.
+### **Task 18: Step 4.m: Applications menu (F9)**
+*   Implement a customizable Application Menu (low-priority; add only with a qualified use-case).
 *   **Files to Modify:** `src/cmd/usermode.c`, `src/cmd/profile.c`
 *   **Context Files:** None.
 *   - [ ] **Status:** Not Started.
 
 *   **Task 19: Scroll bars:**  On left border of the file and directory windows to indicate the relative position of the highlighted item in the entire list, (configurable to char or line).
 *   **Task 22: Callback API Constification Cleanup (cppcheck strict mode):** `cppcheck` suggests const-qualifying callback `user_data`, but doing this correctly likely requires changing callback typedef/API signatures (e.g., `RewriteCallback`) and related call sites. Defer this to a focused API pass to avoid scattered casts and partial churn.
+
 
 ### **Phase 2: Advanced Features**
 
@@ -343,7 +334,3 @@
 ### **Phase 3: Internationalization and Configurability**
 
 *   **Task 23: Terminal-Independent TUI Mode:** Investigate a mode to run the `ytree` TUI directly on a **Unix virtual console** (e.g., via `/dev/tty*` or framebuffer), independent of a terminal emulator session.
-
-### **Phase 4: Build System, Documentation, and CI**
-
-*   **Task 24: Windows Port:** Adapt the build system and platform-specific APIs to support compilation and execution on modern Windows via MinGW-w64 and PDCurses.

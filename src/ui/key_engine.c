@@ -394,6 +394,34 @@ BOOL IsViKeysEnabled(const ViewContext *ctx) {
   return (strtol(GetProfileValue(ctx, "VI_KEYS"), NULL, 0)) ? TRUE : FALSE;
 }
 
+static const DirEntry *GetActiveFileDirEntry(const ViewContext *ctx) {
+  if (!ctx || !ctx->active)
+    return NULL;
+  return ctx->active->file_dir_entry;
+}
+
+static BOOL IsShowAllFileView(const ViewContext *ctx) {
+  const DirEntry *file_dir_entry = GetActiveFileDirEntry(ctx);
+
+  if (!ctx || ctx->focused_window != FOCUS_FILE || !file_dir_entry)
+    return FALSE;
+
+  return (file_dir_entry->global_flag && !file_dir_entry->global_all_volumes)
+             ? TRUE
+             : FALSE;
+}
+
+static BOOL IsGlobalAllVolumesFileView(const ViewContext *ctx) {
+  const DirEntry *file_dir_entry = GetActiveFileDirEntry(ctx);
+
+  if (!ctx || ctx->focused_window != FOCUS_FILE || !file_dir_entry)
+    return FALSE;
+
+  return (file_dir_entry->global_flag && file_dir_entry->global_all_volumes)
+             ? TRUE
+             : FALSE;
+}
+
 int NormalizeViKey(const ViewContext *ctx, int ch) {
   if (IsViKeysEnabled(ctx))
     return ViKey(ch);
@@ -502,12 +530,7 @@ YtreeAction GetKeyAction(const ViewContext *ctx, int ch) {
   case 'B':
     return ACTION_TOGGLE_COMPACT;
   case 'c':
-    if (ctx && ctx->focused_window == FOCUS_TREE)
-      return ACTION_COMPARE_DIR;
-    return ACTION_CMD_C;
   case 'C':
-    if (ctx && ctx->focused_window == FOCUS_TREE)
-      return ACTION_COMPARE_DIR;
     return ACTION_CMD_C;
   case 'd':
     return ACTION_CMD_D;
@@ -525,6 +548,8 @@ YtreeAction GetKeyAction(const ViewContext *ctx, int ch) {
     return ACTION_CMD_E;
   case 'g':
   case 'G':
+    if (IsGlobalAllVolumesFileView(ctx))
+      return ACTION_ESCAPE;
     return ACTION_CMD_G;
   case 'h':
   case 'H':
@@ -546,6 +571,8 @@ YtreeAction GetKeyAction(const ViewContext *ctx, int ch) {
     return ACTION_CMD_R;
   case 's':
   case 'S':
+    if (IsShowAllFileView(ctx))
+      return ACTION_ESCAPE;
     return ACTION_CMD_S;
   case 'v':
   case 'V':
@@ -601,6 +628,8 @@ YtreeAction GetKeyAction(const ViewContext *ctx, int ch) {
     return ACTION_TOGGLE_STATS;
   case KEY_F(5):
     return ACTION_REFRESH;
+  case KEY_F(10):
+    return ACTION_EDIT_CONFIG;
   case KEY_F(28):
     return ACTION_TOGGLE_TAGGED_MODE;
   case KEY_F(16):
@@ -608,12 +637,20 @@ YtreeAction GetKeyAction(const ViewContext *ctx, int ch) {
 #endif
 
   case 'j':
-    if (!vi_keys_enabled && ctx && ctx->focused_window == FOCUS_FILE)
-      return ACTION_COMPARE_FILE;
+    if (!vi_keys_enabled && ctx) {
+      if (ctx->focused_window == FOCUS_TREE)
+        return ACTION_COMPARE_DIR;
+      if (ctx->focused_window == FOCUS_FILE)
+        return ACTION_COMPARE_FILE;
+    }
     return ACTION_NONE;
   case 'J':
-    if (ctx && ctx->focused_window == FOCUS_FILE)
-      return ACTION_COMPARE_FILE;
+    if (ctx) {
+      if (ctx->focused_window == FOCUS_TREE)
+        return ACTION_COMPARE_DIR;
+      if (ctx->focused_window == FOCUS_FILE)
+        return ACTION_COMPARE_FILE;
+    }
     return ACTION_NONE;
 
 #ifdef KEY_SF
