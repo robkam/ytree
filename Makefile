@@ -222,19 +222,19 @@ qa-scan:
 qa-valgrind:
 	$(MAKE_CMD) QA_ON_BUILD=0 clean
 	$(MAKE_CMD) QA_ON_BUILD=0 all
-	@echo "Running non-interactive valgrind smoke check (output in valgrind.txt)."
-	valgrind --leak-check=full --show-leak-kinds=all --track-origins=yes --error-exitcode=1 --log-file=valgrind.txt ./build/ytree --version >/dev/null
+	@echo "Running non-interactive valgrind smoke check (output in valgrind.log)."
+	valgrind --leak-check=full --show-leak-kinds=all --track-origins=yes --error-exitcode=1 --log-file=valgrind.log ./build/ytree --version >/dev/null
 
 qa-valgrind-interactive:
 	$(MAKE_CMD) QA_ON_BUILD=0 clean
 	$(MAKE_CMD) QA_ON_BUILD=0 all
 	@echo "Interactive valgrind run: exit ytree cleanly to finish."
-	valgrind --leak-check=full --show-leak-kinds=all --track-origins=yes --error-exitcode=1 --log-file=valgrind.txt ./build/ytree .
+	valgrind --leak-check=full --show-leak-kinds=all --track-origins=yes --error-exitcode=1 --log-file=valgrind.log ./build/ytree .
 
 qa-valgrind-full:
 	$(MAKE_CMD) DEBUG=0 QA_ON_BUILD=0 clean
 	$(MAKE_CMD) DEBUG=0 QA_ON_BUILD=0 all
-	@echo "Running automated interactive valgrind session (output in valgrind.txt)."
+	@echo "Running automated interactive valgrind session (output in valgrind.log)."
 	.venv/bin/python scripts/valgrind_session.py
 
 qa-pytest: $(MAIN_BIN)

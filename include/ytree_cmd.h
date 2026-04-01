@@ -45,8 +45,8 @@ extern int CopyFile(ViewContext *ctx, Statistic *statistic_ptr,
                     ChoiceCallback choice_cb);
 extern int CopyTaggedFiles(ViewContext *ctx, FileEntry *fe_ptr,
                            WalkingPackage *walking_package);
-extern int GetCopyParameter(ViewContext *ctx, const char *from_file, BOOL path_copy,
-                            char *to_file, char *to_dir);
+extern int GetCopyParameter(ViewContext *ctx, const char *from_file,
+                            BOOL path_copy, char *to_file, char *to_dir);
 extern int CopyFileContent(ViewContext *ctx, char *to_path, char *from_path,
                            const Statistic *s);
 
@@ -61,9 +61,9 @@ extern int RemoveFile(ViewContext *ctx, FileEntry *fe_ptr, Statistic *s);
 extern int Edit(ViewContext *ctx, DirEntry *dir_entry, char *file_path);
 
 /* execute.c */
-extern int Execute(ViewContext *ctx, DirEntry *dir_entry, const FileEntry *file_entry,
-                   const char *cmd_template, Statistic *s,
-                   ArchiveProgressCallback cb);
+extern int Execute(ViewContext *ctx, DirEntry *dir_entry,
+                   const FileEntry *file_entry, const char *cmd_template,
+                   Statistic *s, ArchiveProgressCallback cb);
 extern int ExecuteCommand(ViewContext *ctx, FileEntry *fe_ptr,
                           WalkingPackage *walking_package, Statistic *s);
 
@@ -98,8 +98,8 @@ extern int MakeFile(ViewContext *ctx, DirEntry *dir_entry, const char *name,
                     ChoiceCallback choice_cb);
 
 /* move.c */
-extern int GetMoveParameter(ViewContext *ctx, const char *from_file, char *to_file,
-                            char *to_dir);
+extern int GetMoveParameter(ViewContext *ctx, const char *from_file,
+                            char *to_file, char *to_dir);
 extern int MoveFile(ViewContext *ctx, FileEntry *fe_ptr, const char *to_file,
                     DirEntry *dest_dir_entry, const char *to_dir_path,
                     FileEntry **new_fe_ptr, int *dir_create_mode,
@@ -119,11 +119,15 @@ extern int PipeDirectory(ViewContext *ctx, DirEntry *dir_entry,
 extern int PipeTaggedFiles(ViewContext *ctx, FileEntry *fe_ptr,
                            WalkingPackage *walking_package, Statistic *s);
 
+/* print_ops.c */
+extern void UI_HandlePrint(ViewContext *ctx, DirEntry *dir_entry, BOOL tagged);
+
 /* profile.c */
 extern void SetProfileValue(const ViewContext *ctx, char *name,
                             const char *value);
 extern char *GetProfileValue(const ViewContext *ctx, const char *name);
-extern char *GetUserFileAction(const ViewContext *ctx, int chkey, int *pchremap);
+extern char *GetUserFileAction(const ViewContext *ctx, int chkey,
+                               int *pchremap);
 extern char *GetUserDirAction(const ViewContext *ctx, int chkey, int *pchremap);
 extern BOOL IsUserActionDefined(const ViewContext *ctx);
 extern int ReadProfile(ViewContext *ctx, const char *filename);
@@ -151,8 +155,8 @@ extern int GetGroupId(char *name);
 extern int RemoveDirectory(ViewContext *ctx, DirEntry *dir_entry, Statistic *s);
 
 /* rename.c */
-extern int RenameFile(ViewContext *ctx, FileEntry *fe_ptr,
-                      const char *new_name, FileEntry **new_fe_ptr);
+extern int RenameFile(ViewContext *ctx, FileEntry *fe_ptr, const char *new_name,
+                      FileEntry **new_fe_ptr);
 extern int RenameDirectory(ViewContext *ctx, DirEntry *de_ptr,
                            const char *new_name);
 extern int RenameTaggedFiles(ViewContext *ctx, FileEntry *fe_ptr,
@@ -168,8 +172,10 @@ extern void UI_HandleSort(ViewContext *ctx, DirEntry *dir_entry, Statistic *s,
 extern void UI_SetKindOfSort(int kind_of_sort, Statistic *s);
 
 /* system.c */
-extern int QuerySystemCall(ViewContext *ctx, const char *command_line, Statistic *s);
-extern int SilentSystemCall(ViewContext *ctx, const char *command_line, Statistic *s);
+extern int QuerySystemCall(ViewContext *ctx, const char *command_line,
+                           Statistic *s);
+extern int SilentSystemCall(ViewContext *ctx, const char *command_line,
+                            Statistic *s);
 extern int SilentSystemCallEx(ViewContext *ctx, const char *command_line,
                               BOOL enable_clock, Statistic *s);
 extern int SystemCall(ViewContext *ctx, const char *command_line, Statistic *s);

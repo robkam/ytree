@@ -37,14 +37,13 @@ static void PrintNavLine(WINDOW *win, int y, const char *str);
  *
  * Updated: (F)ilespec -> (F)ilter, spacing adjustments.
  */
-static char dir_help_disk_mode_0[] =
-    "DIR      (A)ttributes (B)rief (C)opy (D)elete (F)ilter (G)lobal (J) compare "
-    "(L)og (M)akedir (N)ewfile";
+static char dir_help_disk_mode_0[] = "DIR      (A)ttributes (B)rief (C)opy "
+                                     "(D)elete (F)ilter (G)lobal (J) compare "
+                                     "(L)og (M)akedir (N)ewfile";
 static char dir_help_disk_mode_1[] =
     "COMMANDS c(O)mpress (P)ipe (Q)uit (R)ename (S)howall (T)ag (U)ntag "
     "mo(V)edir "
-    "e(X)ecute (/) "
-    "jump (`) dotfiles";
+    "(W)rite e(X)ecute (/) jump (`) dotfiles";
 static char dir_help_nav[] =
     "Tree  (F1) help  (F5) refresh  (F6) stats  (F7) autoview  "
     "(F8) split  (F10) config  (Esc) cancel";
@@ -75,7 +74,8 @@ static char file_help_disk_mode_0[] =
     "(^F)ilemode (H)ex (I)nvert (J) compare (L)og";
 static char file_help_disk_mode_1[] =
     "COMMANDS (M)ove/(^N) (N)ewfile "
-    "(O) archive (P)ipe (Q)uit (R)ename (S)ort e(X)ecute pathcop(Y) (/) jump (`) dotfiles";
+    "(O) archive (P)ipe (Q)uit (R)ename (S)ort (W)rite e(X)ecute pathcop(Y) "
+    "(/) jump (`) dotfiles";
 static char file_help_nav[] =
     "Dir   (F1) help  (F5) refresh  (F6) stats  (F7) autoview  "
     "(F8) split  (F10) config  (Esc) cancel";

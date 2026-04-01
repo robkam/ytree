@@ -305,7 +305,8 @@ enum HistoryType {
   HST_FILE,
   HST_PATH,
   HST_ID,
-  HST_CHANGE_MODUS
+  HST_CHANGE_MODUS,
+  HST_PRINT_FRAME
 };
 
 typedef enum {
@@ -357,6 +358,7 @@ typedef enum {
   ACTION_CMD_V,
   ACTION_CMD_X,
   ACTION_CMD_Y,
+  ACTION_CMD_PRINT,
   ACTION_TOGGLE_HIDDEN,
   ACTION_TOGGLE_COMPACT,
   ACTION_CMD_MKFILE,
@@ -372,6 +374,7 @@ typedef enum {
   ACTION_CMD_TAGGED_V,
   ACTION_CMD_TAGGED_X,
   ACTION_CMD_TAGGED_Y,
+  ACTION_CMD_TAGGED_PRINT,
   ACTION_LIST_JUMP,
   ACTION_TO_DIR,
   ACTION_TOGGLE_TAGGED_MODE,
@@ -437,6 +440,20 @@ typedef struct {
   char source_path[PATH_LENGTH + 1];
   char target_path[PATH_LENGTH + 1];
 } CompareRequest;
+
+typedef enum {
+  PRINT_FORMAT_RAW = 0,
+  PRINT_FORMAT_FRAMED,
+  PRINT_FORMAT_PAGEBREAK
+} PrintFormat;
+
+typedef struct {
+  PrintFormat format;
+  int lines_per_page;
+  int margin;
+  char print_to[PATH_LENGTH + 1];
+  char frame_separator[32];
+} PrintConfig;
 
 /* Structs */
 
@@ -784,24 +801,24 @@ typedef struct {
 } ViewerState;
 
 typedef struct {
-  BOOL active;                    /* Progress display currently shown */
-  char operation[32];             /* "COPYING", "MOVING", etc */
-  char source_path[PATH_LENGTH+1];
-  char dest_path[PATH_LENGTH+1];  /* Empty string for delete/scan ops */
+  BOOL active;        /* Progress display currently shown */
+  char operation[32]; /* "COPYING", "MOVING", etc */
+  char source_path[PATH_LENGTH + 1];
+  char dest_path[PATH_LENGTH + 1]; /* Empty string for delete/scan ops */
 
   /* Metrics */
-  long long bytes_total;          /* 0 if unknown */
+  long long bytes_total; /* 0 if unknown */
   long long bytes_done;
-  unsigned int items_total;       /* File/directory count (0 if N/A) */
+  unsigned int items_total; /* File/directory count (0 if N/A) */
   unsigned int items_done;
 
   /* ETA Calculation */
   time_t start_time;
-  double bytes_per_sec;           /* Rolling average transfer rate */
-  int eta_seconds;                /* Estimated time remaining */
+  double bytes_per_sec; /* Rolling average transfer rate */
+  int eta_seconds;      /* Estimated time remaining */
 
   /* Cancellation */
-  BOOL cancel_requested;          /* Set by Esc key handler */
+  BOOL cancel_requested; /* Set by Esc key handler */
 } ProgressContext;
 
 typedef struct _ViewContext {

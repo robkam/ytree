@@ -5,49 +5,60 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [3.0.0-pre-alpha] - 2026-03-30
+## [3.0.0-alpha] - 2026-04-30
 
-*Modernization Project initiated 30 Oct 2025. This release represents a comprehensive architectural refactor from the legacy 2.10 codebase to modern C99/POSIX standards. While the bulk of the core modernization is complete, it is designated as **pre-alpha** as UI/UX tightening and stability refinements continue.*
+*Modernization Project initiated 30 Oct 2025. This release represents a comprehensive architectural refactor from the legacy 2.10 codebase to modern C99/POSIX standards, introducing significant power-user features, enhanced safety, and robust quality assurance.*
 
-### Major Architectural & Core Modernization
+### Core Architecture & Modernization
 - **Refactoring & Standardization**: Ported legacy C89 code to modern C99/POSIX standards.
-- **SRP & SoC Enforcement**: Deep-dive refactor to decouple the Filesystem Model (Model) from the UI (View), eradicating global "God Objects" and implicit state leakage.
-- **Source Normalization**: Total reorganization of the source tree into semantic layers (`core`, `ui`, `fs`, `cmd`, `util`) with modular header decomposition.
-- **Memory Safety & Hygiene**: Established a zero-leak baseline using Valgrind/ASan, implemented standardized `xmalloc` wrappers, and modernized user/group database handling.
-- **Signal Safety & Precision**: Replaced hazardous `SIGALRM` based clock handlers with event-loop integration and enforced strict signal-safety for application shutdown.
-- **Dynamic Layout Engine**: Eliminated layout "magic numbers" in favor of a runtime geometry engine that supports responsive resizing.
+- **SRP & SoC Enforcement**: Deep-dive refactor to decouple the Filesystem Model (Model) from the UI (View), eradicating global objects and implicit state leakage.
+- **Global State Encapsulation**: Refactored the core engine to encapsulate previously global variables, improving reentrancy and modularity.
+- **Source Normalization**: Reorganized the source tree into semantic layers (`core`, `ui`, `fs`, `cmd`, `util`) with modular header decomposition.
 - **Identifier Normalization**: Anglicised the source code by replacing legacy German identifiers with English equivalents.
+- **Signal Safety & Precision**: Replaced hazardous `SIGALRM` based clock handlers with event-loop integration and enforced strict signal-safety for application shutdown.
+- **Clock & Date Localization**: Stabilized the real-time clock and date handlers, resolving the "beta" state from v2.10.
+- **Dynamic Layout Engine**: Eliminated layout "magic numbers" in favor of a runtime geometry engine that supports responsive resizing.
 - **UTF-8 Support**: Full wide-character support (`ncursesw`) for correct display of Unicode filenames.
 
 ### Multi-Volume & Archive Management
 - **Multi-Volume Architecture**: Support for logging multiple drives, directories, or archives simultaneously.
 - **Volume Navigation**: New Volume Menu (`K`) and cycling (`<`, `>`) to switch between loaded contexts (including integrated release/unlog via `D`).
 - **Universal Archive Engine**: Fully integrated `libarchive` as the primary engine for robust browsing and extraction (ZIP, TAR, 7Z, ISO, etc.), replacing dozens of external utilities.
+- **Full Archive Creation**: Added the `O` action to the TUI flow for creating new archives, with automatic format inference from extensions (ZIP, TAR, GZ, BZ2, XZ).
 - **Atomic Archive Modification**: Implemented a "Stream Rewrite" engine allowing for atomic entry addition, deletion, and renaming within compressed containers.
 - **Transparent Navigation**: Seamlessly traverse nested archives and exit archive contexts back to the physical filesystem using intuitive navigation logic.
-- **UDF/ISO Bridge Support**: Enhanced detection logic to correctly handle multi-format bridge media (e.g., modern Windows ISOs).
 - **Archive Search & Execute**: Support for searching (`^S`) and executing (`X`) files directly within compressed archive containers.
+- **UDF/ISO Bridge Support**: Enhanced detection logic to correctly handle multi-format bridge media (e.g., modern Windows ISOs).
 
-### UI/UX & Power-User Features
-- **Modernized Interface**: Redesigned statistics panel with "boxed" layout, responsiveness to terminal size, and human-readable file sizes.
+### New Features & UI/UX Refinements
+- **Color Theme Engine**: Added full **256-Color Support** and a dynamic theme engine. Users can now define custom color palettes for both UI elements (`[COLORS]`) and specific file types/extensions (`[FILE_COLORS]`) in the configuration file.
+- **Hidden File Visibility**: Dotfiles and hidden directories are now filtered by default. Use the backtick (`` ` ``) key to toggle their visibility globally.
 - **Split-Screen (F8)**: Support for independent panes with separate context, cursors, and filters for efficient cross-volume operations.
+- **Integrated Comparison Suite**: Added a dedicated Compare submenu supporting Directory, File, and Logged-Tree comparisons.
+- **Progress & ETA Tracking**: Implemented a universal progress display for long-running operations, providing a real-time progress bar, transfer rates, and linear ETA projections.
+- **Incremental "To" Jump**: Integrated high-speed list navigation (`/`) and "To Dir"/"To File" selection jumps with sticky-cursor logic.
+- **Comprehensive Filtering**: Unified filter stack supporting complex Regex patterns, Date ranges, File Attributes, and Size suffixes.
+- **Internal File Preview (F7)**: Integrated file inspection mode that seamlessly toggles the statistics panel.
+- **Vi-Keys Profile**: Runtime toggle for `h/j/k/l` navigation with automatic remapping of conflicting legacy keybindings.
+- **Attributes Menu Consolidation**: Unified separate Date, Mode, Owner, and Group modification commands under a single `A` (Attributes) action menu.
 - **Integrated Window Stack**: Implemented a tiered Dialog Manager for flicker-free rendering of prompts, menus, and history pop-overs.
-- **Advanced Comprehensive Filtering**: Unified filter stack supporting complex Regex patterns, Date ranges, File Attributes, and Size suffixes.
-- **Iterative Incremental Search**: High-speed list navigation (`/`) with sticky-cursor logic for both file and directory windows.
-- **Internal File Preview (F7)**: Fast, integrated file inspection mode that seamlessly toggles the statistics panel.
-- **Vi-Keys Profile Option**: Runtime toggle for `h`/`j`/`k`/`l` navigation (remapped conflicting `K`/`L` keys).
 - **Activity Spinner**: Visual feedback in the menu bar during long operations.
 - **Contextual History**: Separated command history into relevant categories with support for "favorite" entries.
+- **Smart Directory Creation**: Automatic prompts to create missing parent directories during Copy and Move operations.
+- **Standardized Tag Inversion**: Aligned the invert-selection keys to `i` (current) and `I` (all) for consistency.
 - **UI Consistency**: Standardized input prompt padding and command line geometry across all application modules.
 
-### Infrastructure, QA & Bug Fixes
-- **Clock & Date Localization**: Stabilized the real-time clock and date handlers, resolving the "beta" state from v2.10.
-- **Build System**: Updated Makefile for dependency tracking and automated manpage generation via `pandoc`.
-- **QA Suite**: Integrated GitHub Actions CI and expanded `pytest`/`pexpect` coverage for core TUI behavioral validation.
-- **Overwrite-All Conflict Hardening**: Unified COPY/MOVE overwrite-all behavior so selecting `A` on the first conflict suppresses repeated prompts across remaining tagged-file conflicts, with regression coverage for both operations.
-- **Path Join Standardization (Command Layer)**: Migrated the last ad-hoc archive-entry join in `src/cmd/copy.c` to `Path_Join`, closing command-module standardization across `copy.c`, `move.c`, `rename.c`, and `mkdir.c`.
+### Stability, Security & QA
+- **Security Hardening**: Completed a comprehensive sweep to replace all unsafe `sprintf` calls with bounds-checked `snprintf` across the entire codebase.
+- **Memory Safety & Hygiene**: Established a zero-leak baseline using Valgrind/ASan, implemented standardized `xmalloc` wrappers, and modernized user/group database handling.
+- **Subsystem Header Hardening**: Decoupled core and UI subsystem headers to eliminate transitive exports and enforce strict include discipline.
+- **Path Utility Standardization**: Migrated all command-layer path compositions to a centralized, bounds-safe `Path_Join` utility.
 - **Internal Viewer Geometry Encapsulation**: Implemented an explicit viewer geometry contract and removed direct layout reads from `src/ui/view_internal.c`.
-- **Strict Header Hygiene Completion**: Contracted `include/ytree.h` to stop transitively exporting command/UI subsystem headers while preserving explicit include discipline across source modules.
+- **QA Suite & CI**: Integrated GitHub Actions CI and expanded `pytest`/`pexpect` coverage for core TUI behavioral validation, including new automated interactive Valgrind sessions (`make qa-valgrind-full`).
+- **Build System**: Updated Makefile for dependency tracking and unified documentation sourcing (`doc/USAGE.md` and `ytree.1.md` are now generated from a single `etc/ytree.1.md` source).
+- **Silent Refresh-Scan Handling**: Suppressed transient `stat` errors during directory refreshes to prevent non-fatal race conditions.
+- **Overwrite-All Conflict Hardening**: Unified COPY/MOVE overwrite-all behavior so selecting `A` on the first conflict suppresses repeated prompts across remaining tagged-file conflicts.
+- **AI Governance framework**: Established a formal AI orchestration system using persona routing and automation "skills" to maintain architectural consistency.
 
 ## [2.10]
 - 7zip / iso support.

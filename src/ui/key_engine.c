@@ -577,6 +577,9 @@ YtreeAction GetKeyAction(const ViewContext *ctx, int ch) {
   case 'v':
   case 'V':
     return ACTION_CMD_V;
+  case 'w':
+  case 'W':
+    return ACTION_CMD_PRINT;
   case 'x':
   case 'X':
     return ACTION_CMD_X;
@@ -612,10 +615,14 @@ YtreeAction GetKeyAction(const ViewContext *ctx, int ch) {
     return ACTION_CMD_TAGGED_S;
   case 0x16:
     return ACTION_CMD_TAGGED_V;
+  case 0x17:
+    return ACTION_CMD_TAGGED_PRINT;
   case 0x18:
     return ACTION_CMD_TAGGED_X;
   case 0x19:
     return ACTION_CMD_TAGGED_Y;
+  case 0x1C:
+    return ACTION_CMD_TAGGED_P;
 
 #ifdef KEY_F
   case KEY_F(12):
