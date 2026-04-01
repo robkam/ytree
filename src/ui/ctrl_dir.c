@@ -93,7 +93,8 @@ static BOOL IsPathInside(const char *outer, const char *candidate) {
     return FALSE;
   if (strncmp(outer, candidate, outer_len) != 0)
     return FALSE;
-  return (candidate[outer_len] == FILE_SEPARATOR_CHAR || candidate[outer_len] == '\0');
+  return (candidate[outer_len] == FILE_SEPARATOR_CHAR ||
+          candidate[outer_len] == '\0');
 }
 
 static BOOL BuildDirOpCommand(BOOL move_dir, const char *quoted_src,
@@ -133,7 +134,8 @@ static int ResolveDirTargetPath(DirEntry *dir_entry, const char *to_dir_in,
   char resolved_dir[PATH_LENGTH + 1];
   const char *leaf;
 
-  if (!dir_entry || !to_dir_in || !to_file || !*to_file || !src_path || !dest_path)
+  if (!dir_entry || !to_dir_in || !to_file || !*to_file || !src_path ||
+      !dest_path)
     return -1;
 
   GetPath(dir_entry, src_path);
@@ -158,7 +160,8 @@ static int ResolveDirTargetPath(DirEntry *dir_entry, const char *to_dir_in,
       parent_path[parent_len] = '\0';
     }
 
-    if (Path_Join(resolved_dir, sizeof(resolved_dir), parent_path, to_dir_in) != 0)
+    if (Path_Join(resolved_dir, sizeof(resolved_dir), parent_path, to_dir_in) !=
+        0)
       return -1;
   }
 
@@ -189,7 +192,8 @@ static DirEntry *HandleDirCopyMove(ViewContext *ctx, DirEntry *dir_entry,
     return dir_entry;
 
   if (ctx->view_mode != DISK_MODE && ctx->view_mode != USER_MODE) {
-    UI_ShowStatusLineError(ctx, "Directory copy/move is only supported in filesystem mode");
+    UI_ShowStatusLineError(
+        ctx, "Directory copy/move is only supported in filesystem mode");
     if (need_dsp_help)
       *need_dsp_help = TRUE;
     return dir_entry;
@@ -212,7 +216,8 @@ static DirEntry *HandleDirCopyMove(ViewContext *ctx, DirEntry *dir_entry,
       return dir_entry;
   }
 
-  if (ResolveDirTargetPath(dir_entry, to_dir, to_file, src_path, dest_path) != 0) {
+  if (ResolveDirTargetPath(dir_entry, to_dir, to_file, src_path, dest_path) !=
+      0) {
     UI_ShowStatusLineError(ctx, "Invalid destination path");
     if (need_dsp_help)
       *need_dsp_help = TRUE;
@@ -226,7 +231,8 @@ static DirEntry *HandleDirCopyMove(ViewContext *ctx, DirEntry *dir_entry,
     return dir_entry;
   }
   if (IsPathInside(src_path, dest_path)) {
-    UI_ShowStatusLineError(ctx, "Destination cannot be inside the source directory");
+    UI_ShowStatusLineError(ctx,
+                           "Destination cannot be inside the source directory");
     if (need_dsp_help)
       *need_dsp_help = TRUE;
     return dir_entry;
@@ -277,7 +283,8 @@ static DirEntry *HandleDirCopyMove(ViewContext *ctx, DirEntry *dir_entry,
     return dir_entry;
   }
 
-  anchor = dir_entry->up_tree ? dir_entry->up_tree : ctx->active->vol->vol_stats.tree;
+  anchor = dir_entry->up_tree ? dir_entry->up_tree
+                              : ctx->active->vol->vol_stats.tree;
   dir_entry = RefreshTreeSafe(ctx, ctx->active, anchor);
   RefreshView(ctx, dir_entry);
   if (need_dsp_help)
@@ -318,8 +325,8 @@ static BOOL ExitArchiveRootToParent(ViewContext *ctx, DirEntry **dir_entry_ptr,
   int visible_rows = 1;
   int file_idx;
 
-  if (!ctx || !ctx->active || !ctx->active->vol || !dir_entry_ptr || !*dir_entry_ptr ||
-      !s_ptr || !*s_ptr || !start_vol_ptr) {
+  if (!ctx || !ctx->active || !ctx->active->vol || !dir_entry_ptr ||
+      !*dir_entry_ptr || !s_ptr || !*s_ptr || !start_vol_ptr) {
     return FALSE;
   }
 
@@ -335,7 +342,8 @@ static BOOL ExitArchiveRootToParent(ViewContext *ctx, DirEntry **dir_entry_ptr,
   if (!retain_archive_volume) {
     BOOL vol_in_use = FALSE;
     if (ctx->is_split_screen) {
-      const YtreePanel *other = (ctx->active == ctx->left) ? ctx->right : ctx->left;
+      const YtreePanel *other =
+          (ctx->active == ctx->left) ? ctx->right : ctx->left;
       if (other && other->vol == old_vol)
         vol_in_use = TRUE;
     }
@@ -435,9 +443,8 @@ static BOOL HasNonWhitespace(const char *text) {
 }
 
 static int BuildCompareCommand(const char *command_template,
-                               const char *source_path,
-                               const char *target_path, char *command_line,
-                               size_t command_line_size) {
+                               const char *source_path, const char *target_path,
+                               char *command_line, size_t command_line_size) {
   char escaped_source[PATH_LENGTH * 2 + 1];
   char escaped_target[PATH_LENGTH * 2 + 1];
   int written;
@@ -488,8 +495,8 @@ static int ResolveDirectoryCompareTargetPath(const char *source_path,
     return -1;
 
   if (target_input[0] == FILE_SEPARATOR_CHAR) {
-    written = snprintf(raw_target_path, sizeof(raw_target_path), "%s",
-                       target_input);
+    written =
+        snprintf(raw_target_path, sizeof(raw_target_path), "%s", target_input);
   } else if (target_input[0] == '~' &&
              (target_input[1] == '\0' ||
               target_input[1] == FILE_SEPARATOR_CHAR) &&
@@ -510,7 +517,8 @@ static int ResolveDirectoryCompareTargetPath(const char *source_path,
 }
 
 static void GetCommandDisplayName(const char *command_template,
-                                  char *command_name, size_t command_name_size) {
+                                  char *command_name,
+                                  size_t command_name_size) {
   const char *cursor;
   size_t idx = 0;
 
@@ -738,7 +746,8 @@ static int BuildRelativeComparePath(const char *source_root_path,
 
   root_len = strlen(source_root_path);
   if (!strcmp(source_root_path, FILE_SEPARATOR_STRING)) {
-    if (source_entry_path[0] != FILE_SEPARATOR_CHAR || source_entry_path[1] == '\0')
+    if (source_entry_path[0] != FILE_SEPARATOR_CHAR ||
+        source_entry_path[1] == '\0')
       return -1;
     relative_start = source_entry_path + 1;
   } else {
@@ -771,8 +780,8 @@ static int BuildTargetComparePathFromRelative(const char *target_root_path,
   }
 
   if (!strcmp(target_root_path, FILE_SEPARATOR_STRING)) {
-    written =
-        snprintf(target_entry_path, target_entry_path_size, "/%s", relative_path);
+    written = snprintf(target_entry_path, target_entry_path_size, "/%s",
+                       relative_path);
   } else {
     written = snprintf(target_entry_path, target_entry_path_size, "%s%c%s",
                        target_root_path, FILE_SEPARATOR_CHAR, relative_path);
@@ -804,7 +813,8 @@ static void RunInternalDirectoryCompare(ViewContext *ctx, DirEntry *source_dir,
 
   if (ResolveDirectoryCompareTargetPath(source_path, request->target_path,
                                         target_path) != 0) {
-    UI_Message(ctx, "Compare target is empty or invalid.*Choose a target path.");
+    UI_Message(ctx,
+               "Compare target is empty or invalid.*Choose a target path.");
     return;
   }
 
@@ -814,9 +824,9 @@ static void RunInternalDirectoryCompare(ViewContext *ctx, DirEntry *source_dir,
     return;
   }
   if (STAT_(target_path, &target_dir_stat) != 0) {
-    UI_Message(ctx,
-               "Compare target does not exist:*\"%s\"*Select a valid directory.",
-               target_path);
+    UI_Message(
+        ctx, "Compare target does not exist:*\"%s\"*Select a valid directory.",
+        target_path);
     return;
   }
   if (!S_ISDIR(source_dir_stat.st_mode) || !S_ISDIR(target_dir_stat.st_mode)) {
@@ -834,7 +844,8 @@ static void RunInternalDirectoryCompare(ViewContext *ctx, DirEntry *source_dir,
   if (ctx->active && ctx->active->vol)
     stats = &ctx->active->vol->vol_stats;
 
-  for (source_file = source_dir->file; source_file; source_file = source_file->next) {
+  for (source_file = source_dir->file; source_file;
+       source_file = source_file->next) {
     struct stat source_stat;
     struct stat target_stat;
     BOOL has_target = FALSE;
@@ -853,9 +864,8 @@ static void RunInternalDirectoryCompare(ViewContext *ctx, DirEntry *source_dir,
     GetFileNamePath(source_file, source_entry_path);
     source_entry_path[PATH_LENGTH] = '\0';
 
-    written =
-        snprintf(target_entry_path, sizeof(target_entry_path), "%s%c%s",
-                 target_path, FILE_SEPARATOR_CHAR, source_file->name);
+    written = snprintf(target_entry_path, sizeof(target_entry_path), "%s%c%s",
+                       target_path, FILE_SEPARATOR_CHAR, source_file->name);
     if (written < 0 || (size_t)written >= sizeof(target_entry_path)) {
       is_error = TRUE;
     } else if (STAT_(source_entry_path, &source_stat) != 0) {
@@ -870,10 +880,9 @@ static void RunInternalDirectoryCompare(ViewContext *ctx, DirEntry *source_dir,
       mtime_cmp = CompareStatMtime(&source_stat, &target_stat);
       if (!IsSameEntryType(&source_stat, &target_stat)) {
         is_type_mismatch = TRUE;
-      } else if (EvaluateDirectoryCompareBasis(request->basis, &source_stat,
-                                               source_entry_path, &target_stat,
-                                               target_entry_path,
-                                               &basis_match) == 0) {
+      } else if (EvaluateDirectoryCompareBasis(
+                     request->basis, &source_stat, source_entry_path,
+                     &target_stat, target_entry_path, &basis_match) == 0) {
         basis_known = TRUE;
         if (basis_match)
           summary.match_count++;
@@ -935,7 +944,8 @@ static void RunInternalLoggedTreeCompareRecursive(
   if (source_dir->not_scanned)
     summary->skipped_unlogged_source_dirs++;
 
-  for (source_file = source_dir->file; source_file; source_file = source_file->next) {
+  for (source_file = source_dir->file; source_file;
+       source_file = source_file->next) {
     struct stat source_stat;
     struct stat target_stat;
     char source_entry_path[PATH_LENGTH + 1];
@@ -975,10 +985,9 @@ static void RunInternalLoggedTreeCompareRecursive(
       mtime_cmp = CompareStatMtime(&source_stat, &target_stat);
       if (!IsSameEntryType(&source_stat, &target_stat)) {
         is_type_mismatch = TRUE;
-      } else if (EvaluateDirectoryCompareBasis(request->basis, &source_stat,
-                                               source_entry_path, &target_stat,
-                                               target_entry_path,
-                                               &basis_match) == 0) {
+      } else if (EvaluateDirectoryCompareBasis(
+                     request->basis, &source_stat, source_entry_path,
+                     &target_stat, target_entry_path, &basis_match) == 0) {
         basis_known = TRUE;
         if (basis_match)
           summary->match_count++;
@@ -1010,10 +1019,10 @@ static void RunInternalLoggedTreeCompareRecursive(
     }
   }
 
-  for (child_dir = source_dir->sub_tree; child_dir; child_dir = child_dir->next) {
-    RunInternalLoggedTreeCompareRecursive(child_dir, source_root_path,
-                                          target_root_path, request, summary,
-                                          stats);
+  for (child_dir = source_dir->sub_tree; child_dir;
+       child_dir = child_dir->next) {
+    RunInternalLoggedTreeCompareRecursive(
+        child_dir, source_root_path, target_root_path, request, summary, stats);
   }
 }
 
@@ -1038,7 +1047,8 @@ static void RunInternalLoggedTreeCompare(ViewContext *ctx,
 
   if (ResolveDirectoryCompareTargetPath(source_path, request->target_path,
                                         target_path) != 0) {
-    UI_Message(ctx, "Compare target is empty or invalid.*Choose a target path.");
+    UI_Message(ctx,
+               "Compare target is empty or invalid.*Choose a target path.");
     return;
   }
 
@@ -1048,9 +1058,9 @@ static void RunInternalLoggedTreeCompare(ViewContext *ctx,
     return;
   }
   if (STAT_(target_path, &target_dir_stat) != 0) {
-    UI_Message(ctx,
-               "Compare target does not exist:*\"%s\"*Select a valid directory.",
-               target_path);
+    UI_Message(
+        ctx, "Compare target does not exist:*\"%s\"*Select a valid directory.",
+        target_path);
     return;
   }
   if (!S_ISDIR(source_dir_stat.st_mode) || !S_ISDIR(target_dir_stat.st_mode)) {
@@ -1086,7 +1096,8 @@ static void RunInternalLoggedTreeCompare(ViewContext *ctx,
       UI_CompareTagResultName(request->tag_result), summary.tagged_count);
 }
 
-static void LaunchExternalDirectoryCompare(ViewContext *ctx, DirEntry *source_dir,
+static void LaunchExternalDirectoryCompare(ViewContext *ctx,
+                                           DirEntry *source_dir,
                                            CompareFlowType flow_type) {
   CompareRequest request;
   struct stat source_stat;
@@ -1108,8 +1119,8 @@ static void LaunchExternalDirectoryCompare(ViewContext *ctx, DirEntry *source_di
   }
 
   helper = UI_GetCompareHelperCommand(ctx, flow_type);
-  helper_key = (flow_type == COMPARE_FLOW_LOGGED_TREE) ? "TREEDIFF/DIRDIFF"
-                                                        : "DIRDIFF";
+  helper_key =
+      (flow_type == COMPARE_FLOW_LOGGED_TREE) ? "TREEDIFF/DIRDIFF" : "DIRDIFF";
   if (!HasNonWhitespace(helper)) {
     UI_Message(ctx, "%s helper is not configured.*Set %s in ~/.ytree.",
                UI_CompareFlowTypeName(flow_type), helper_key);
@@ -1120,7 +1131,8 @@ static void LaunchExternalDirectoryCompare(ViewContext *ctx, DirEntry *source_di
   source_path[PATH_LENGTH] = '\0';
   if (ResolveDirectoryCompareTargetPath(source_path, request.target_path,
                                         target_path) != 0) {
-    UI_Message(ctx, "Compare target is empty or invalid.*Choose a target path.");
+    UI_Message(ctx,
+               "Compare target is empty or invalid.*Choose a target path.");
     return;
   }
 
@@ -1130,9 +1142,9 @@ static void LaunchExternalDirectoryCompare(ViewContext *ctx, DirEntry *source_di
     return;
   }
   if (stat(target_path, &target_stat) != 0) {
-    UI_Message(ctx,
-               "Compare target does not exist:*\"%s\"*Select a valid directory.",
-               target_path);
+    UI_Message(
+        ctx, "Compare target does not exist:*\"%s\"*Select a valid directory.",
+        target_path);
     return;
   }
   if (!S_ISDIR(source_stat.st_mode) || !S_ISDIR(target_stat.st_mode)) {
@@ -1333,16 +1345,15 @@ int HandleDirWindow(ViewContext *ctx, const DirEntry *start_dir_entry) {
     } else {
       int log_path_len = -1;
       if (*ctx->initial_directory == '.') { /* Entry of form "./alpha/beta" */
-        log_path_len = snprintf(new_log_path, sizeof(new_log_path),
-                                  "%s%s", start_dir_entry->name,
-                                  ctx->initial_directory + 1);
+        log_path_len =
+            snprintf(new_log_path, sizeof(new_log_path), "%s%s",
+                     start_dir_entry->name, ctx->initial_directory + 1);
       } else if (*ctx->initial_directory == '~') {
         const char *home = getenv("HOME");
         if (home) {
           /* Entry of form "~/alpha/beta" */
-          log_path_len = snprintf(new_log_path, sizeof(new_log_path),
-                                  "%s%s", home,
-                                  ctx->initial_directory + 1);
+          log_path_len = snprintf(new_log_path, sizeof(new_log_path), "%s%s",
+                                  home, ctx->initial_directory + 1);
         } else {
           /* Entry of form "beta" or "/full/path/alpha/beta" */
           log_path_len = snprintf(new_log_path, sizeof(new_log_path), "%s",
@@ -1350,18 +1361,16 @@ int HandleDirWindow(ViewContext *ctx, const DirEntry *start_dir_entry) {
         }
       } else { /* Entry of form "beta" or "/full/path/alpha/beta" */
         log_path_len = snprintf(new_log_path, sizeof(new_log_path), "%s",
-                                  ctx->initial_directory);
+                                ctx->initial_directory);
       }
-      if (log_path_len >= 0 &&
-          (size_t)log_path_len < sizeof(new_log_path)) {
+      if (log_path_len >= 0 && (size_t)log_path_len < sizeof(new_log_path)) {
         int i;
         for (i = 0; i < ctx->active->vol->total_dirs; i++) {
           if (*new_log_path == FILE_SEPARATOR_CHAR) {
             GetPath(ctx->active->vol->dir_entry_list[i].dir_entry, new_name);
           } else {
-            (void)snprintf(
-                new_name, sizeof(new_name), "%s",
-                ctx->active->vol->dir_entry_list[i].dir_entry->name);
+            (void)snprintf(new_name, sizeof(new_name), "%s",
+                           ctx->active->vol->dir_entry_list[i].dir_entry->name);
           }
           if (!strcmp(new_log_path, new_name)) {
             ctx->active->disp_begin_pos = i;
@@ -1927,14 +1936,13 @@ int HandleDirWindow(ViewContext *ctx, const DirEntry *start_dir_entry) {
                 ctx->active->vol->total_dirs) {
               ctx->active->disp_begin_pos =
                   MAXIMUM(0, ctx->active->vol->total_dirs - height);
-              ctx->active->cursor_pos =
-                  root_idx - ctx->active->disp_begin_pos;
+              ctx->active->cursor_pos = root_idx - ctx->active->disp_begin_pos;
             }
           }
 
-          dir_entry = ctx->active
-                          ->vol->dir_entry_list[ctx->active->disp_begin_pos +
-                                                ctx->active->cursor_pos]
+          dir_entry = ctx->active->vol
+                          ->dir_entry_list[ctx->active->disp_begin_pos +
+                                           ctx->active->cursor_pos]
                           .dir_entry;
 
           DisplayTree(ctx, ctx->active->vol, ctx->ctx_dir_window,
@@ -1954,7 +1962,8 @@ int HandleDirWindow(ViewContext *ctx, const DirEntry *start_dir_entry) {
         }
         break;
       }
-      if (ExitArchiveRootToParent(ctx, &dir_entry, &s, &start_vol, TRUE, TRUE)) {
+      if (ExitArchiveRootToParent(ctx, &dir_entry, &s, &start_vol, TRUE,
+                                  TRUE)) {
         need_dsp_help = TRUE;
         unput_char = CR;
       } else {
@@ -1966,7 +1975,8 @@ int HandleDirWindow(ViewContext *ctx, const DirEntry *start_dir_entry) {
       if (!dir_entry->not_scanned && dir_entry->sub_tree != NULL) {
         HandleCollapseSubTree(ctx, dir_entry, &need_dsp_help, ctx->active);
       } else {
-        HandleUnreadSubTree(ctx, dir_entry, de_ptr, &need_dsp_help, ctx->active);
+        HandleUnreadSubTree(ctx, dir_entry, de_ptr, &need_dsp_help,
+                            ctx->active);
       }
       break;
     case ACTION_TOGGLE_HIDDEN: {
@@ -2329,6 +2339,11 @@ int HandleDirWindow(ViewContext *ctx, const DirEntry *start_dir_entry) {
       need_dsp_help = TRUE;
       break;
 
+    case ACTION_CMD_PRINT: /* Print Directory */
+      UI_HandlePrint(ctx, dir_entry, FALSE);
+      need_dsp_help = TRUE;
+      break;
+
     /* Volume Cycling and Selection */
     case ACTION_VOL_MENU: /* Shift-K: Select Loaded Volume */
     {
@@ -2619,8 +2634,7 @@ int HandleDirWindow(ViewContext *ctx, const DirEntry *start_dir_entry) {
 
   } while (action != ACTION_QUIT && action != ACTION_ENTER &&
            action != ACTION_ESCAPE &&
-           action !=
-               ACTION_LOG); /* Loop until explicit quit, escape or log */
+           action != ACTION_LOG); /* Loop until explicit quit, escape or log */
 
   /* Sync state back to Volume on exit */
   /* Removed shared state sync on exit */
@@ -2637,10 +2651,12 @@ static void DirListJump(ViewContext *ctx, DirEntry **dir_entry_ptr,
   int height;
   int original_disp_begin_pos;
   int original_cursor_pos;
-  WINDOW *jump_win = (ctx && ctx->ctx_menu_window) ? ctx->ctx_menu_window : stdscr;
+  WINDOW *jump_win =
+      (ctx && ctx->ctx_menu_window) ? ctx->ctx_menu_window : stdscr;
 
-  if (!ctx || !ctx->active || !ctx->active->vol || !ctx->active->vol->dir_entry_list ||
-      ctx->active->vol->total_dirs <= 0 || !dir_entry_ptr || !*dir_entry_ptr) {
+  if (!ctx || !ctx->active || !ctx->active->vol ||
+      !ctx->active->vol->dir_entry_list || ctx->active->vol->total_dirs <= 0 ||
+      !dir_entry_ptr || !*dir_entry_ptr) {
     return;
   }
 
@@ -2682,7 +2698,8 @@ static void DirListJump(ViewContext *ctx, DirEntry **dir_entry_ptr,
           found_idx = -1;
           for (i = 0; i < ctx->active->vol->total_dirs; i++) {
             DirEntry *candidate = ctx->active->vol->dir_entry_list[i].dir_entry;
-            if (candidate && strncasecmp(candidate->name, search_buf, buf_len) == 0) {
+            if (candidate &&
+                strncasecmp(candidate->name, search_buf, buf_len) == 0) {
               found_idx = i;
               break;
             }
@@ -2695,10 +2712,12 @@ static void DirListJump(ViewContext *ctx, DirEntry **dir_entry_ptr,
             } else {
               ctx->active->disp_begin_pos = found_idx;
               ctx->active->cursor_pos = 0;
-              if (ctx->active->disp_begin_pos + height > ctx->active->vol->total_dirs) {
+              if (ctx->active->disp_begin_pos + height >
+                  ctx->active->vol->total_dirs) {
                 ctx->active->disp_begin_pos =
                     MAXIMUM(0, ctx->active->vol->total_dirs - height);
-                ctx->active->cursor_pos = found_idx - ctx->active->disp_begin_pos;
+                ctx->active->cursor_pos =
+                    found_idx - ctx->active->disp_begin_pos;
               }
             }
           }
@@ -2712,8 +2731,8 @@ static void DirListJump(ViewContext *ctx, DirEntry **dir_entry_ptr,
         found_idx = -1;
         for (i = 0; i < ctx->active->vol->total_dirs; i++) {
           DirEntry *candidate = ctx->active->vol->dir_entry_list[i].dir_entry;
-          if (candidate &&
-              strncasecmp(candidate->name, search_buf, (size_t)buf_len + 1) == 0) {
+          if (candidate && strncasecmp(candidate->name, search_buf,
+                                       (size_t)buf_len + 1) == 0) {
             found_idx = i;
             break;
           }
@@ -2727,7 +2746,8 @@ static void DirListJump(ViewContext *ctx, DirEntry **dir_entry_ptr,
           } else {
             ctx->active->disp_begin_pos = found_idx;
             ctx->active->cursor_pos = 0;
-            if (ctx->active->disp_begin_pos + height > ctx->active->vol->total_dirs) {
+            if (ctx->active->disp_begin_pos + height >
+                ctx->active->vol->total_dirs) {
               ctx->active->disp_begin_pos =
                   MAXIMUM(0, ctx->active->vol->total_dirs - height);
               ctx->active->cursor_pos = found_idx - ctx->active->disp_begin_pos;
@@ -2757,12 +2777,13 @@ static void DirListJump(ViewContext *ctx, DirEntry **dir_entry_ptr,
       }
     }
 
-    *dir_entry_ptr = ctx->active
-                         ->vol->dir_entry_list[ctx->active->disp_begin_pos +
-                                               ctx->active->cursor_pos]
+    *dir_entry_ptr = ctx->active->vol
+                         ->dir_entry_list[ctx->active->disp_begin_pos +
+                                          ctx->active->cursor_pos]
                          .dir_entry;
 
-    DisplayTree(ctx, ctx->active->vol, ctx->ctx_dir_window, ctx->active->disp_begin_pos,
+    DisplayTree(ctx, ctx->active->vol, ctx->ctx_dir_window,
+                ctx->active->disp_begin_pos,
                 ctx->active->disp_begin_pos + ctx->active->cursor_pos, TRUE);
     DisplayFileWindow(ctx, ctx->active, *dir_entry_ptr);
     DisplayDiskStatistic(ctx, s);

@@ -878,6 +878,7 @@ int HandleFileWindow(ViewContext *ctx, DirEntry *dir_entry) {
     case ACTION_CMD_TAGGED_D:
     case ACTION_CMD_TAGGED_R:
     case ACTION_CMD_TAGGED_P:
+    case ACTION_CMD_TAGGED_PRINT:
     case ACTION_CMD_TAGGED_S:
     case ACTION_CMD_TAGGED_X:
     case ACTION_TOGGLE_TAGGED_MODE:
@@ -1728,6 +1729,12 @@ int HandleFileWindow(ViewContext *ctx, DirEntry *dir_entry) {
           (void)Pipe(ctx, de_ptr, fe_ptr, pipe_cmd);
         }
       }
+      RefreshView(ctx, dir_entry);
+      need_dsp_help = TRUE;
+      break;
+
+    case ACTION_CMD_PRINT:
+      UI_HandlePrint(ctx, dir_entry, FALSE);
       RefreshView(ctx, dir_entry);
       need_dsp_help = TRUE;
       break;

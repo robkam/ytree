@@ -585,6 +585,17 @@ BOOL handle_tag_file_action(ViewContext *ctx, int action, DirEntry *dir_entry,
     }
     return TRUE;
 
+  case ACTION_CMD_TAGGED_PRINT:
+    if (!FileTags_IsMatchingTaggedFiles(ctx)) {
+    } else if (ctx->view_mode != DISK_MODE && ctx->view_mode != USER_MODE) {
+      UI_Message(ctx, "^P is not available in archive mode");
+    } else {
+      need_dsp_help = TRUE;
+      UI_HandlePrint(ctx, dir_entry, TRUE);
+      RefreshView(ctx, dir_entry);
+    }
+    return TRUE;
+
   case ACTION_CMD_TAGGED_S:
     /* STRICT FILTER MODE: Only allow if tags exist */
     if (!FileTags_IsMatchingTaggedFiles(ctx)) {

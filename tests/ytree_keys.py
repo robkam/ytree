@@ -10,9 +10,11 @@ class Keys:
     LEFT = "\033OD"
     PGUP = "\033[5~"
     PGDN = "\033[6~"
+    HOME = "\033[H"
     ENTER = "\r"
     ESC = "\033"
     TAB = "\t"
+    CTRL_A = "\x01"
     CTRL_L = "\x0c"
     CTRL_U = "\x15"
 
@@ -20,6 +22,7 @@ class Keys:
     # Note: If these fail, try "\033OR" for F7 and "\033OS" for F8
     F1 = "\033OP"
     F2 = "\033OQ"
+    F5 = "\033[15~"
     F7 = "\033[18~"
     F8 = "\033[19~"
 

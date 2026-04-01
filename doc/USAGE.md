@@ -89,6 +89,16 @@ triggers a file mode command (key bindings). \* **Action:** Press
 **Return** to toggle the file window to full-screen. Press **Return**
 again to restore the split view or switch back to **Directory Mode**.
 
+**Showall Mode** Toggle file-list mode for all files in the currently
+logged volume. \* **Action:** Press **Esc** to return to the previously
+selected directory. Press **\\** to jump to the owner directory of the
+selected file.
+
+**Global Mode** Toggle file-list mode for all files across all logged
+volumes. \* **Action:** Press **Esc** to return to the previously
+selected directory. Press **\\** to jump to the owner directory of the
+selected file.
+
 **Archive Mode** When entering a supported archive (ZIP, TAR, GZ), ytree
 treats it as a virtual filesystem with archive-aware write operations
 (copy/move/delete/rename/mkdir paths where supported). It behaves
@@ -96,36 +106,27 @@ similarly to Directory/File modes with archive-specific navigation and
 safety semantics.
 
 **Split Screen Mode** Activated by **F8**. The screen is divided
-vertically into two independent file manager panels. \* **Switch
-Focus:** Press **TAB** to switch active control between the Left and
-Right panels. \* **Targeting:** Operations like **Copy** and **Move**
+vertically into two independent file manager panels. \* **Toggle:**
+Press **F8** again to return to single-panel mode. \* **Switch Focus:**
+Press **TAB** to switch active control between the Left and Right
+panels. \* **Targeting:** Operations like **Copy** and **Move**
 automatically default to the path of the inactive (passive) panel as the
 destination.
 
 **File Preview Mode** Activated by **F7**. The screen layout changes to
 show the file list on the left (or active panel) and the file contents
-on the right. \* **Navigate File List:** Use **Up/Down**, **Page
-Up/Down**, **Home/End** to move the selection in the file list. The
-preview pane updates immediately. \* **Scroll Preview:** Use
-**Shift+Up/Down** (or **^P** / **^N**) to scroll the content of the
-preview window line by line. Use **Shift+Page Up/Down** to scroll by
-pages. **Shift+Home/End** jumps to the beginning or end of the file.
+on the right. \* **Toggle:** Press **F7** again to leave preview mode.
+\* **Navigate File List:** Use **Up/Down**, **Page Up/Down**,
+**Home/End** to move the selection in the file list. The preview pane
+updates immediately. \* **Scroll Preview:** Use **Shift+Up/Down** (or
+**^P** / **^N**) to scroll the content of the preview window line by
+line. Use **Shift+Page Up/Down** to scroll by pages. **Shift+Home/End**
+jumps to the beginning or end of the file.
 
 # KEY BINDINGS
 
 **Note:** All keys are case insensitive unless otherwise noted. The
 symbol `^` denotes the **CTRL** key.
-
-### Input Semantics
-
-ytree separates **view-state toggles** from **one-shot actions**:
-
-- **Toggles** change view state and are reversible by leaving that
-  state.
-- **Actions** perform operations; pressing the same key again runs the
-  action again and never means undo.
-- **Esc** cancels the active prompt/dialog/mode-entry step. It does
-  **not** undo completed filesystem mutations.
 
 ### Global Commands
 
@@ -198,6 +199,9 @@ Active when browsing the directory tree window.
   suffixes: `.tar`, `.tar.gz`/`.tgz`, `.tar.bz2`/`.tbz2`,
   `.tar.xz`/`.txz`, `.zip`.
 - **R** (Rename): Rename selected directory.
+- **P** (Print): Print or export the selected directory’s files to a
+  command or file.
+- **\|** (Pipe): Pipe the selected directory to a command.
 - **S** (Showall): Show all files in all directories of the current
   volume.
 - **T** (Tag): Tag all files in the selected directory.
@@ -259,7 +263,7 @@ Active when the file window is focused.
 
 - **P** (Pipe): Pipe content of file to a command (stdin).
 
-- **^P**: Pipe content of all tagged files to a command.
+- **^\*\* (or **^\|\*\*): Pipe content of all tagged files to a command.
 
 - **R** (Rename): Rename the selected file.
 
@@ -305,27 +309,6 @@ Active when the file window is focused.
 - **^F** (File Mode): Cycle file display modes.
 
 - **Return**: Switch to Full Screen File Mode / Directory Mode.
-
-### Showall/Global File-View State
-
-When you enter these stateful views from Directory Mode:
-
-- **G** enters **Global (all volumes)** file view. Press **G** again to
-  exit back to Directory Mode.
-- **S** enters **Showall (current volume)** file view. Press **S** again
-  to exit back to Directory Mode.
-- **\\** exits to the owner directory of the selected file.
-- **Esc** exits the state.
-
-Sort and file actions remain one-shot actions; repeated action keys do
-not undo prior mutations.
-
-### Migration Note
-
-- **Changed behavior:** In Showall/Global file-view states, repeating
-  the entry key now exits that state (`G` for Global, `S` for Showall).
-- **Rationale:** keeps stateful view keys as explicit toggles and keeps
-  mutating keys strictly one-shot.
 
 ### Archive Mode
 
