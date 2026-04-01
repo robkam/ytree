@@ -17,6 +17,10 @@ Testing quick reference (Codex):
 - Full suite command: `pytest`
 - Always run pytest with host permissions from the start (no sandbox-first run), because PTY-based tests require unrestricted PTY allocation.
 
+MCP health check (Codex):
+- Diagnose MCP startup/config drift: `make mcp-doctor`
+- Auto-add safe `UV_CACHE_DIR`/`UV_TOOL_DIR` env blocks in `~/.codex/config.toml`: `make mcp-doctor FIX=1`
+
 Persona quick switch:
 - Full names: `:at architect`, `:at developer`, `:at code_auditor`, `:at tester`, `:at greybeard`
 - Abbreviations: `:at a`, `:at d`, `:at c`, `:at t`, `:at g`
