@@ -16,6 +16,10 @@ Testing quick reference:
 - Activate venv: `source .venv/bin/activate`
 - Full suite command: `pytest`
 
+MCP health check:
+- Diagnose MCP startup/config drift: `make mcp-doctor`
+- Auto-add safe `UV_CACHE_DIR`/`UV_TOOL_DIR` env blocks in `~/.codex/config.toml`: `make mcp-doctor FIX=1`
+
 Persona quick switch:
 - Full names: `:at architect`, `:at developer`, `:at code_auditor`, `:at tester`, `:at greybeard`
 - Abbreviations: `:at a`, `:at d`, `:at c`, `:at t`, `:at g`
