@@ -54,7 +54,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Subsystem Header Hardening**: Decoupled core and UI subsystem headers to eliminate transitive exports and enforce strict include discipline.
 - **Path Utility Standardization**: Migrated all command-layer path compositions to a centralized, bounds-safe `Path_Join` utility.
 - **Internal Viewer Geometry Encapsulation**: Implemented an explicit viewer geometry contract and removed direct layout reads from `src/ui/view_internal.c`.
-- **QA Suite & CI**: Integrated GitHub Actions CI and expanded `pytest`/`pexpect` coverage for core TUI behavioral validation, including new automated interactive Valgrind sessions (`make qa-valgrind-full`).
+- **CI and QA Suite**: Introduced GitHub Actions CI and a comprehensive local QA gate with `clang-tidy`, `cppcheck`, `scan-build`, Valgrind (including automated interactive runs), `pytest`/`pexpect`, and a module-boundary guard (`make qa-all`).
 - **Build System**: Updated Makefile for dependency tracking and unified documentation sourcing (`doc/USAGE.md` and `ytree.1.md` are now generated from a single `etc/ytree.1.md` source).
 - **Silent Refresh-Scan Handling**: Suppressed transient `stat` errors during directory refreshes to prevent non-fatal race conditions.
 - **Overwrite-All Conflict Hardening**: Unified COPY/MOVE overwrite-all behavior so selecting `A` on the first conflict suppresses repeated prompts across remaining tagged-file conflicts.

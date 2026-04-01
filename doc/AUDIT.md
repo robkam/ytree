@@ -15,7 +15,7 @@ The project uses four QA layers with increasing depth and cost:
 | Layer | Command | What it checks | When to run |
 |---|---|---|---|
 | CI Gate | `git push` (automatic) | Build, unsafe C API guard, `pytest` | Every push (automatic) |
-| Local QA | `make qa-all` | clang-tidy, cppcheck, scan-build, Valgrind smoke (`--version`), `pytest`, unsafe API guard | Before every PR or feature merge |
+| Local QA | `make qa-all` | clang-tidy, cppcheck, scan-build, Valgrind smoke (`--version`), `pytest`, unsafe API guard, module-boundary guard | Before every PR or feature merge |
 | Deep Audit | `make qa-valgrind-full` | Automated interactive Valgrind Memcheck session (leak, uninit, FD, use-after-free checks) | Before release, after major refactoring, or periodically |
 | Manual Feature Audit | `make qa-valgrind-interactive` | You manually drive ytree under Valgrind to exercise new feature code paths | After adding a major new feature |
 
@@ -63,7 +63,8 @@ Local shortcut targets are available in the `Makefile`:
 - `make qa-valgrind`
 - `make qa-pytest`
 - `make qa-unsafe-apis`
-- `make qa-all` (runs `qa-clang`, `qa-cppcheck`, `qa-scan`, `qa-valgrind`, `qa-pytest`, `qa-unsafe-apis` in order)
+- `make qa-module-boundaries`
+- `make qa-all` (runs `qa-clang`, `qa-cppcheck`, `qa-scan`, `qa-valgrind`, `qa-pytest`, `qa-unsafe-apis`, `qa-module-boundaries` in order)
 - `make qa-all-log` (same as `qa-all`, with full output captured to `qa-all.log` in repo root; override with `QA_LOG=/path/to/file`)
 
 GitHub CI is a baseline gate (build + unsafe C API guard + `pytest`) and does not replace the full local audit loop.
