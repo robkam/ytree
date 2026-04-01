@@ -193,7 +193,7 @@ void Fnsplit(char *path, char *dir, char *name) {
       free(path_copy_dir);
     if (path_copy_base)
       free(path_copy_base);
-    UI_Message(NULL, "strdup failed in Fnsplit*ABORT");
+    fprintf(stderr, "ytree: strdup failed in Fnsplit\n");
     exit(1);
   }
 
@@ -225,9 +225,8 @@ void Fnsplit(char *path, char *dir, char *name) {
   if (len >= PATH_LENGTH) {
     strncpy(name, bname, PATH_LENGTH - 1);
     name[PATH_LENGTH - 1] = '\0';
-
-    UI_Warning(NULL, "filename too long:*%s*truncating to*%s", processed_path,
-               name);
+    fprintf(stderr, "ytree: warning: filename too long, truncating: %s\n",
+            processed_path);
   } else {
     (void)snprintf(name, PATH_LENGTH + 1, "%s", bname);
   }

@@ -10,6 +10,22 @@ To maintain architectural stability throughout the modernization, all changes mu
 *   **Use Established Libraries:** Prefer mature, well-supported libraries (e.g., `libarchive`) instead of creating custom replacements.
 *   **Module Ownership (Feature Containment):** A feature that can be self-contained **MUST** be self-contained in its own module. It is **FORBIDDEN** to implement a new feature as a sub-function within an existing controller (`ctrl_*.c`) unless that logic is exclusively and inseparably part of that controller's input/event loop. The canonical test: *"Could this function be called from a different context without modification?"* If yes, it does not belong in a controller. Before adding any new function to `ctrl_dir.c` or `ctrl_file.c`, you MUST first ask: which module owns this logic? If no suitable module exists, create one. Controllers are terminal sinks - they dispatch to modules; they do not house modules.
 
+### 1.1 Module Boundary Contract (Enforced)
+
+The project uses a structural QA guard (`make qa-module-boundaries`) to catch architectural drift early. This guard is intentionally concrete and deterministic:
+
+*   **No implementation includes:** `#include "*.c"` is forbidden.
+*   **Per-directory dependency policy:** each source directory may depend only on approved layer(s). The target policy is:
+    *   `core -> core`
+    *   `util -> core, util`
+    *   `fs -> core, fs, util`
+    *   `cmd -> core, cmd, fs, util`
+    *   `ui -> core, cmd, fs, ui, util`
+*   **Legacy exceptions are explicit:** pre-existing violations are enumerated in `scripts/check_module_boundaries.py` as a temporary debt list. The guard fails on any new violation and also fails if an exception becomes stale and is not removed.
+*   **Controller growth budget:** `src/ui/ctrl_dir.c` and `src/ui/ctrl_file.c` have line-count budgets as anti-regression tripwires to prevent feature creep back into controller modules.
+
+This does **not** replace architecture review. It is a fitness function: mechanical checks that fail fast when structure drifts.
+
 ## **2. Architectural Overview**
 This document outlines the architectural design of `ytree`. The codebase utilizes a modular, context-oriented C99 design.
 

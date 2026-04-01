@@ -156,7 +156,7 @@ Use **[AUDIT.md](AUDIT.md)** as the single source of truth.
 ### Local QA Commands
 
 - Normal development build: `make`
-- Full local QA gate: `make qa-all` (includes `pytest` and the unsafe C API guard)
+- Full local QA gate: `make qa-all` (includes `pytest`, unsafe C API guard, and module-boundary guard)
 - Full local QA gate with captured log: `make qa-all-log` (writes `qa-all.log` in repo root; override with `QA_LOG=/path/to/file`)
 - Optional strict mode: `make QA_ON_BUILD=1` (runs `qa-all` after build)
 - GitHub CI is a baseline gate (`make` + `python3 scripts/check_c_unsafe_apis.py` + `pytest`); full audit remains the local/PR responsibility from `AUDIT.md`.
@@ -169,6 +169,7 @@ Individual gates:
 - `make qa-valgrind` (interactive; exit ytree cleanly to finish)
 - `make qa-pytest`
 - `make qa-unsafe-apis`
+- `make qa-module-boundaries`
 
 ---
 
