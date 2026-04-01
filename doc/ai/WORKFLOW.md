@@ -202,6 +202,39 @@ The primary execution environment is **Antigravity** with the **Codex extension*
 3.  **Semantic Context:** You MUST use **Serena** (symbol navigation) and **jCodeMunch** (repo indexing/search) for targeted context retrieval. You MUST NOT use raw bash tools like grep or find.
 4.  **Cross-File State:** Keep terminal state, open-file context, and task history in one working loop.
 
+### 4.1 Stateless Multi-AI Delivery Workflow (Non-Trivial Missions)
+
+Use this workflow when the mission is large enough that one-shot implementation is risky.
+
+1.  **Mission Definition Pass (Stateless):**
+    *   Start with a stateless planning session to produce an unambiguous mission definition.
+    *   Output must include:
+        *   clear mission scope and constraints,
+        *   explicit acceptance criteria,
+        *   a prompt for a stateless `architect` run.
+2.  **Architect Breakdown Pass (Stateless, New Branch):**
+    *   Run stateless `architect` on a dedicated feature branch (local and GitHub remote branch).
+    *   Architect must break work into a sequence of numbered tasks in a text file committed in the project directory.
+    *   Tasks must be atomic enough for safe verification, but not fragmented into trivial micro-steps.
+    *   Architect outputs only the next developer prompt for exactly one task at a time.
+3.  **Developer Execution Pass (Stateless, One Task at a Time):**
+    *   Run a stateless `developer` for one task only.
+    *   Developer reads the task file, implements the task, and writes a task report file (what changed, why, evidence/tests run, risks/open items).
+    *   Do not batch multiple numbered tasks in one developer pass.
+4.  **Architect Handoff Tailoring Pass (Stateless):**
+    *   After each developer report and maintainer manual check, rerun formerly-stateless `architect`.
+    *   Architect reviews repository state plus report files, then tailors the next single-task developer prompt.
+    *   Handoffs must be file-based so agents read prior artifacts directly; avoid manual copy/paste relay.
+5.  **Commit Discipline (Maintainer Approval Required):**
+    *   After each completed numbered task, create one commit on the branch.
+    *   Commit message content requires maintainer approval before commit.
+    *   Commit messages should describe achieved behavior/scope, not task numbering.
+    *   Push with project fast workflow (`push-fast`) so each task has a remote last-known-good point.
+6.  **Completion Gate and Merge:**
+    *   When the final task is complete, run full project gate (`make qa-all`) and require green results.
+    *   Merge branch into `main` only after maintainer-approved merge message.
+    *   Delete the feature branch both locally and on GitHub after successful merge.
+
 ---
 
 ## 5. Optional Second-Opinion Loop (and Usage Limit Fallback)

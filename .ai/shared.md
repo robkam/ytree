@@ -8,6 +8,7 @@ These instructions apply to all AI agents used in this repository.
 - Domain: terminal file manager for UNIX-like systems
 - Codebase language: C (C89/C99, POSIX.1-2008)
 - Testing: Python `pytest` and `pexpect` from the local `.venv`
+- For non-trivial missions, follow the stateless relay workflow in `doc/ai/WORKFLOW.md` ("Stateless Multi-AI Delivery Workflow"): architect plans one task at a time, developer executes one task at a time, with maintainer-approved per-task commits and QA-gated merge/cleanup.
 
 ## Persona Routing
 
