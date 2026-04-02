@@ -10,8 +10,8 @@ Codex-specific behavior for this repository.
 ## Codex Notes
 
 - Prefer direct implementation over long planning unless design is explicitly requested.
-- Keep edits minimal and coherent; preserve existing style and architecture.
-- Use fast repo search and inspect docs before broad refactors.
+- Keep edits minimal and coherent. You MUST preserve existing style and architecture unless the requested task explicitly requires a refactor that still complies with `.ai/shared.md`.
+- Before any broad refactor, you MUST use repo search and inspect the relevant docs to confirm the affected surface area.
 
 ## Canonical Test Execution
 

@@ -29,6 +29,6 @@ pytest tests/test_panel_isolation.py::test_header_path_clearing -v
 
 ## Architecture Notes
 
-- Enforce explicit context-passing through `ViewContext`, `YtreePanel`, and `Volume`.
-- Avoid mutable global state except approved constants/flags already in the codebase.
-- Preserve dual-panel isolation semantics (active panel drives operations).
+- You MUST preserve explicit context-passing through `ViewContext`, `YtreePanel`, and `Volume`.
+- You MUST NOT introduce mutable global state. Existing approved global constants/flags already in the codebase are the only exception.
+- You MUST preserve dual-panel isolation semantics (active panel drives operations).

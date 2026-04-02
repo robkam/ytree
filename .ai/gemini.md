@@ -10,5 +10,5 @@ Gemini-specific behavior for this repository.
 ## Gemini Notes
 
 - Keep responses concise and implementation-focused.
-- Preserve existing architecture unless refactor is explicitly requested.
-- When uncertain, inspect docs and source before proposing changes.
+- You MUST preserve existing architecture unless the requested task explicitly requires a refactor that still complies with `.ai/shared.md`.
+- When uncertain, you MUST inspect docs and source before proposing changes.
