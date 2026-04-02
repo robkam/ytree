@@ -48,7 +48,7 @@ Persona skill auto-load:
   - UI prompt-chain offender detection/audit -> `ui-flow-offender-audit`
 
 UX economy gate:
-- Common path should be `key -> Enter -> result` with at most one submenu.
+- Common path MUST be `key -> Enter -> result` with at most one submenu.
 
 QA remediation gate:
 - Fix root causes for failing QA checks; do not patch around failures or add local suppressions without explicit user approval.
