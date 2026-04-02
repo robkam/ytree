@@ -7,7 +7,6 @@
 
 #include "ytree_cmd.h"
 #include "ytree_fs.h"
-#include "ytree_ui.h"
 #include <stdlib.h>
 #include <sys/stat.h>
 #include <unistd.h>
@@ -61,7 +60,8 @@ int DeleteDirectory(ViewContext *ctx, DirEntry *dir_entry,
     if (choice_cb && choice_cb(ctx, "Directory not empty, PRUNE ? (Y/N) ? ",
                                "YN\033") == 'Y') {
       if (dir_entry->sub_tree) {
-        if (ScanSubTree(ctx, dir_entry, &ctx->active->vol->vol_stats)) {
+        if (!ctx->hook_scan_subtree ||
+            ctx->hook_scan_subtree(ctx, dir_entry, &ctx->active->vol->vol_stats)) {
           return -1;
         }
         if (DeleteSubTree(ctx, dir_entry->sub_tree, choice_cb)) {

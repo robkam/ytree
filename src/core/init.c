@@ -40,6 +40,7 @@
 static WINDOW *Subwin(WINDOW *orig, int nlines, int ncols, int begin_y,
                       int begin_x);
 static WINDOW *Newwin(int nlines, int ncols, int begin_y, int begin_x);
+static void InitBoundaryHooks(ViewContext *ctx);
 
 #ifdef XCURSES
 char *XCursesProgramName = "ytree";
@@ -238,6 +239,7 @@ void Layout_Recalculate(ViewContext *ctx) {
 void InitView(ViewContext *ctx) {
   DEBUG_LOG("ENTER InitView");
   memset(ctx, 0, sizeof(ViewContext));
+  InitBoundaryHooks(ctx);
   ctx->viewer.inhex = TRUE;
   ctx->view_mode = DISK_MODE;
   ctx->dir_mode = MODE_3;
@@ -274,6 +276,21 @@ void InitView(ViewContext *ctx) {
   ctx->active = ctx->left;
 
   DEBUG_LOG("EXIT InitView");
+}
+
+static void InitBoundaryHooks(ViewContext *ctx) {
+#ifdef COLOR_SUPPORT
+  ctx->hook_parse_color = ParseColorString;
+  ctx->hook_update_ui_color = UpdateUIColor;
+  ctx->hook_add_file_color_rule = AddFileColorRule;
+#else
+  ctx->hook_parse_color = NULL;
+  ctx->hook_update_ui_color = NULL;
+  ctx->hook_add_file_color_rule = NULL;
+#endif
+  ctx->hook_get_profile_value = GetProfileValue;
+  ctx->hook_has_user_action = IsUserActionDefined;
+  ctx->hook_scan_subtree = ScanSubTree;
 }
 
 void ReCreateWindows(ViewContext *ctx) {

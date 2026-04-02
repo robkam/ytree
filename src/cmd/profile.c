@@ -6,7 +6,7 @@
  ***************************************************************************/
 
 #include "config.h"
-#include "ytree_ui.h"
+#include "ytree_cmd.h"
 
 #define NO_SECTION 0
 #define GLOBAL_SECTION 1
@@ -193,9 +193,11 @@ int ReadProfile(ViewContext *ctx, const char *filename) {
       if (value) {
         int fg = -1, bg = -1;
         *value++ = '\0';
-        ParseColorString(value, &fg, &bg);
-        if (fg != -1 && bg != -1) {
-          UpdateUIColor(name, fg, bg);
+        if (ctx->hook_parse_color) {
+          ctx->hook_parse_color(value, &fg, &bg);
+        }
+        if (fg != -1 && bg != -1 && ctx->hook_update_ui_color) {
+          ctx->hook_update_ui_color(name, fg, bg);
         }
       }
     } else if (section == FILE_COLORS_SECTION) {
@@ -203,9 +205,11 @@ int ReadProfile(ViewContext *ctx, const char *filename) {
       if (value) {
         int fg = -1, bg = -1;
         *value++ = '\0';
-        ParseColorString(value, &fg, &bg);
-        if (fg != -1 && bg != -1) {
-          AddFileColorRule(ctx, name, fg, bg);
+        if (ctx->hook_parse_color) {
+          ctx->hook_parse_color(value, &fg, &bg);
+        }
+        if (fg != -1 && bg != -1 && ctx->hook_add_file_color_rule) {
+          ctx->hook_add_file_color_rule(ctx, name, fg, bg);
         }
       }
     } else if (section == MENU_SECTION) {

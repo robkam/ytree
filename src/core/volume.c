@@ -5,9 +5,38 @@
  *
  ***************************************************************************/
 
-#include "ytree_cmd.h"
 #include "ytree_fs.h"
-#include "ytree_ui.h"
+
+static void Volume_ClearPanelFileEntries(YtreePanel *panel) {
+  if (panel && panel->file_entry_list) {
+    free(panel->file_entry_list);
+    panel->file_entry_list = NULL;
+    panel->file_entry_list_capacity = 0;
+    panel->file_count = 0;
+  }
+}
+
+static void Volume_FreeCache(struct Volume *vol) {
+  if (vol && vol->dir_entry_list != NULL) {
+    free(vol->dir_entry_list);
+    vol->dir_entry_list = NULL;
+    vol->dir_entry_list_capacity = 0;
+    vol->total_dirs = 0;
+  }
+}
+
+static BOOL Volume_HasUserActions(const ViewContext *ctx) {
+  if (!ctx || !ctx->hook_has_user_action)
+    return FALSE;
+  return ctx->hook_has_user_action(ctx);
+}
+
+static int Volume_ReadTreeDepth(const ViewContext *ctx) {
+  const char *depth_str = "0";
+  if (ctx && ctx->hook_get_profile_value)
+    depth_str = ctx->hook_get_profile_value(ctx, "TREEDEPTH");
+  return (int)strtol(depth_str, NULL, 0);
+}
 
 /*
  * Volume_Create
@@ -59,11 +88,11 @@ void Volume_Delete(ViewContext *ctx, struct Volume *vol) {
 
   /* Invalidate any panels using this volume to prevent stale references */
   if (ctx->left && ctx->left->vol == vol) {
-    FreeFileEntryList(ctx->left);
+    Volume_ClearPanelFileEntries(ctx->left);
     ctx->left->vol = NULL;
   }
   if (ctx->right && ctx->right->vol == vol) {
-    FreeFileEntryList(ctx->right);
+    Volume_ClearPanelFileEntries(ctx->right);
     ctx->right->vol = NULL;
   }
 
@@ -223,7 +252,7 @@ struct Volume *Volume_Load(ViewContext *ctx, const char *path,
       vol->vol_stats.tree = NULL;
     }
     memset(&vol->vol_stats, 0, sizeof(Statistic));
-    FreeVolumeCache(vol);
+    Volume_FreeCache(vol);
   } else {
     vol = Volume_Create(ctx);
     if (!vol)
@@ -256,7 +285,7 @@ struct Volume *Volume_Load(ViewContext *ctx, const char *path,
     s->tree->stat_struct.st_mode = S_IFDIR;
     s->disk_total_directories = 1;
     s->log_mode = ARCHIVE_MODE;
-  } else if (IsUserActionDefined(ctx)) {
+  } else if (Volume_HasUserActions(ctx)) {
     s->log_mode = USER_MODE;
   } else {
     s->log_mode = DISK_MODE;
@@ -290,7 +319,7 @@ struct Volume *Volume_Load(ViewContext *ctx, const char *path,
 #endif
   } else {
     s->tree->next = s->tree->prev = NULL;
-    depth = strtol(GetProfileValue(ctx, "TREEDEPTH"), NULL, 0);
+    depth = Volume_ReadTreeDepth(ctx);
     res = ReadTree(ctx, s->tree, resolved_path, depth, s, cb, cb_user_data);
     if (res != 0) {
       if (res != -1)
