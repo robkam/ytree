@@ -901,6 +901,16 @@ typedef struct _ViewContext {
   char ctrl_file_to_path[PATH_LENGTH + 1];
   char ctrl_file_to_file[PATH_LENGTH + 1];
 
+  /* Boundary inversion hooks */
+  void (*hook_parse_color)(const char *color_str, int *fg, int *bg);
+  void (*hook_update_ui_color)(const char *name, int fg, int bg);
+  void (*hook_add_file_color_rule)(ViewContext *ctx, const char *pattern,
+                                   int fg, int bg);
+  char *(*hook_get_profile_value)(const ViewContext *ctx, const char *name);
+  BOOL (*hook_has_user_action)(const ViewContext *ctx);
+  int (*hook_scan_subtree)(ViewContext *ctx, DirEntry *dir_entry,
+                           Statistic *s);
+
   /* profile.c state */
   void *profile_data;  /* Pointer to the profile array */
   void *viewer_list;   /* Pointer to head of Viewer list */
