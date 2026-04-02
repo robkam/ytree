@@ -5,12 +5,20 @@
  *
  ***************************************************************************/
 
-#include "ytree_cmd.h"
 #include "ytree_fs.h"
 #include "ytree_ui.h"
 
 static void UnReadSubTree(ViewContext *ctx, DirEntry *dir_entry, Statistic *s);
 static BOOL IsTransientScanStatError(int errnum);
+static void RemoveFileWithBoundary(ViewContext *ctx, FileEntry *fe_ptr,
+                                   Statistic *s);
+
+static void RemoveFileWithBoundary(ViewContext *ctx, FileEntry *fe_ptr,
+                                   Statistic *s) {
+  if (!ctx || !ctx->hook_remove_file)
+    return;
+  (void)ctx->hook_remove_file(ctx, fe_ptr, s);
+}
 
 /* Read file tree: path = "root" path
  * dir_entry is filled by the function
@@ -37,7 +45,7 @@ int ReadTree(ViewContext *ctx, DirEntry *dir_entry, char *path, int depth,
     FileEntry *f, *n;
     for (f = dir_entry->file; f; f = n) {
       n = f->next;
-      RemoveFile(ctx, f, s); /* Updates stats and frees memory */
+      RemoveFileWithBoundary(ctx, f, s); /* Updates stats and frees memory */
     }
     dir_entry->file = NULL;
   }
@@ -323,7 +331,7 @@ void UnReadTree(ViewContext *ctx, DirEntry *dir_entry, Statistic *s) {
 
     for (fe_ptr = dir_entry->file; fe_ptr; fe_ptr = next_fe_ptr) {
       next_fe_ptr = fe_ptr->next;
-      RemoveFile(ctx, fe_ptr, s);
+      RemoveFileWithBoundary(ctx, fe_ptr, s);
     }
     if (dir_entry->sub_tree) {
       UnReadSubTree(ctx, dir_entry->sub_tree, s);
@@ -348,7 +356,7 @@ static void UnReadSubTree(ViewContext *ctx, DirEntry *dir_entry, Statistic *s) {
 
     for (fe_ptr = de_ptr->file; fe_ptr; fe_ptr = next_fe_ptr) {
       next_fe_ptr = fe_ptr->next;
-      RemoveFile(ctx, fe_ptr, s);
+      RemoveFileWithBoundary(ctx, fe_ptr, s);
     }
 
     if (de_ptr->sub_tree) {
@@ -393,7 +401,7 @@ int RescanDir(ViewContext *ctx, DirEntry *dir_entry, int depth, Statistic *s,
   for (fe_ptr = dir_entry->file; fe_ptr != NULL; fe_ptr = next_fe_ptr) {
     next_fe_ptr = fe_ptr->next;
     /* RemoveFile updates stats and frees the entry */
-    RemoveFile(ctx, fe_ptr, s);
+    RemoveFileWithBoundary(ctx, fe_ptr, s);
   }
   dir_entry->file = NULL;
 
@@ -415,7 +423,7 @@ int RescanDir(ViewContext *ctx, DirEntry *dir_entry, int depth, Statistic *s,
   /* Global matching stats are now incorrect. Reset and recalculate. */
   s->disk_matching_files = 0L;
   s->disk_matching_bytes = 0L;
-  ApplyFilter(s->tree, s);
+  FsApplyFilter(s->tree, s);
 
   return 0;
 }

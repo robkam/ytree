@@ -5,7 +5,6 @@
  *
  ***************************************************************************/
 
-#include "ytree_cmd.h"
 #include "ytree_fs.h"
 #include <errno.h>
 #include <stdio.h>
@@ -101,10 +100,14 @@ int GetDirEntry(const ViewContext *ctx, DirEntry *tree,
   /*
    * NormPath resolves .. and . components to create a canonical absolute path.
    * This handles cases like ../sibling or ./child correctly.
-   */
+  */
   NormPath(path, to_path);
 
-  if (MakePath(ctx, tree, to_path, dir_entry)) {
+  if (!ctx || !ctx->hook_make_path) {
+    return -1;
+  }
+
+  if (ctx->hook_make_path(ctx, tree, to_path, dir_entry)) {
     if (errno == ENOENT) {
       return -3;
     }
@@ -285,7 +288,7 @@ static DirEntry *FindOrLoadDir(ViewContext *ctx, DirEntry *tree,
        */
       if (ReadTree(ctx, current, full_path_buf, 0, s, NULL, NULL) == 0) {
         /* Apply filter to newly loaded files */
-        ApplyFilter(current, s);
+        FsApplyFilter(current, s);
 
         /* Search again */
         for (child = current->sub_tree; child; child = child->next) {
@@ -342,7 +345,7 @@ void RestoreTreeState(ViewContext *ctx, DirEntry *root, PathList **expanded,
         /* Pass NULL for callback and callback data (no UI feedback needed here)
          */
         ReadTree(ctx, de, curr->path, 0, s, NULL, NULL);
-        ApplyFilter(de, s);
+        FsApplyFilter(de, s);
       }
     }
   }
@@ -377,7 +380,7 @@ void ApplyFilterToTree(DirEntry *dir_entry, Statistic *s) {
   if (!dir_entry)
     return;
 
-  ApplyFilter(dir_entry, s);
+  FsApplyFilter(dir_entry, s);
 
   for (de_ptr = dir_entry->sub_tree; de_ptr; de_ptr = de_ptr->next) {
     ApplyFilterToTree(de_ptr, s);
