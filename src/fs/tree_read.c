@@ -6,18 +6,74 @@
  ***************************************************************************/
 
 #include "ytree_fs.h"
-#include "ytree_ui.h"
+#include <stdarg.h>
 
 static void UnReadSubTree(ViewContext *ctx, DirEntry *dir_entry, Statistic *s);
 static BOOL IsTransientScanStatError(int errnum);
 static void RemoveFileWithBoundary(ViewContext *ctx, FileEntry *fe_ptr,
                                    Statistic *s);
+static BOOL EscapeKeyPressedWithBoundary(const ViewContext *ctx);
+static int InputChoiceWithBoundary(ViewContext *ctx, const char *msg,
+                                   const char *choices);
+static void ClearPromptLineWithBoundary(ViewContext *ctx);
+static void MessageWithBoundary(ViewContext *ctx, const char *fmt, ...);
+static void DisplayDiskStatisticWithBoundary(ViewContext *ctx,
+                                             const Statistic *s);
+static void RecalculateSysStatsWithBoundary(ViewContext *ctx, Statistic *s);
+static void RefreshUiWithBoundary(const ViewContext *ctx);
 
 static void RemoveFileWithBoundary(ViewContext *ctx, FileEntry *fe_ptr,
                                    Statistic *s) {
   if (!ctx || !ctx->hook_remove_file)
     return;
   (void)ctx->hook_remove_file(ctx, fe_ptr, s);
+}
+
+static BOOL EscapeKeyPressedWithBoundary(const ViewContext *ctx) {
+  if (ctx && ctx->hook_escape_key_pressed)
+    return ctx->hook_escape_key_pressed();
+  return FALSE;
+}
+
+static int InputChoiceWithBoundary(ViewContext *ctx, const char *msg,
+                                   const char *choices) {
+  if (ctx && ctx->hook_input_choice)
+    return ctx->hook_input_choice(ctx, msg, choices);
+  return ESC;
+}
+
+static void ClearPromptLineWithBoundary(ViewContext *ctx) {
+  if (ctx && ctx->hook_clear_prompt_line)
+    ctx->hook_clear_prompt_line(ctx);
+}
+
+static void MessageWithBoundary(ViewContext *ctx, const char *fmt, ...) {
+  va_list ap;
+  char msg[MESSAGE_LENGTH];
+
+  if (!ctx || !ctx->hook_ui_message || !fmt)
+    return;
+
+  va_start(ap, fmt);
+  vsnprintf(msg, sizeof(msg), fmt, ap);
+  va_end(ap);
+  (void)ctx->hook_ui_message(ctx, "%s", msg);
+}
+
+static void DisplayDiskStatisticWithBoundary(ViewContext *ctx,
+                                             const Statistic *s) {
+  if (ctx && ctx->hook_display_disk_statistic)
+    ctx->hook_display_disk_statistic(ctx, s);
+}
+
+static void RecalculateSysStatsWithBoundary(ViewContext *ctx, Statistic *s) {
+  if (ctx && ctx->hook_recalculate_sys_stats)
+    ctx->hook_recalculate_sys_stats(ctx, s);
+}
+
+static void RefreshUiWithBoundary(const ViewContext *ctx) {
+  if (ctx && ctx->hook_refresh_ui)
+    (void)ctx->hook_refresh_ui();
 }
 
 /* Read file tree: path = "root" path
@@ -122,10 +178,10 @@ int ReadTree(ViewContext *ctx, DirEntry *dir_entry, char *path, int depth,
        We load ALL files/dirs into memory now, and filter only at display time.
      */
 
-    if (EscapeKeyPressed()) {
+    if (EscapeKeyPressedWithBoundary(ctx)) {
       /* Ask whether to abort scan */
-      int choice =
-          InputChoice(ctx, "Abort scan (Y/N)?", "YyNn\033"); /* \033 is ESC */
+      int choice = InputChoiceWithBoundary(
+          ctx, "Abort scan (Y/N)?", "YyNn\033"); /* \033 is ESC */
       if (choice == 'Y' || choice == ESC) {
         closedir(dir);
         /* CRITICAL - Attach Partial Results */
@@ -137,14 +193,7 @@ int ReadTree(ViewContext *ctx, DirEntry *dir_entry, char *path, int depth,
         dir_entry->sub_tree = first_dir_entry.next;
         return -1;
       } else {
-        /* Clear the prompt line to indicate resumption */
-        int y, x;
-        getyx(stdscr, y, x); /* Save cursor */
-        wmove(ctx->ctx_border_window, ctx->layout.prompt_y, 0);
-        wclrtoeol(ctx->ctx_border_window);
-        wnoutrefresh(ctx->ctx_border_window);
-        move(y, x);          /* Restore cursor */
-        doupdate();
+        ClearPromptLineWithBoundary(ctx);
       }
     }
 
@@ -159,15 +208,16 @@ int ReadTree(ViewContext *ctx, DirEntry *dir_entry, char *path, int depth,
     if (!strcmp(path, FILE_SEPARATOR_STRING)) {
       if (snprintf(new_path, sizeof(new_path), "%s%s", path, dirent->d_name) >=
           (int)sizeof(new_path)) {
-        MESSAGE(ctx, "Path too long*%s%s*IGNORED", path, dirent->d_name);
+        MessageWithBoundary(ctx, "Path too long*%s%s*IGNORED", path,
+                            dirent->d_name);
         continue;
       }
     } else {
       if (snprintf(new_path, sizeof(new_path), "%s%s%s", path,
                    FILE_SEPARATOR_STRING, dirent->d_name) >=
           (int)sizeof(new_path)) {
-        MESSAGE(ctx, "Path too long*%s%s%s*IGNORED", path,
-                FILE_SEPARATOR_STRING, dirent->d_name);
+        MessageWithBoundary(ctx, "Path too long*%s%s%s*IGNORED", path,
+                            FILE_SEPARATOR_STRING, dirent->d_name);
         continue;
       }
     }
@@ -175,7 +225,7 @@ int ReadTree(ViewContext *ctx, DirEntry *dir_entry, char *path, int depth,
     if (STAT_(new_path, &stat_struct)) {
       if (IsTransientScanStatError(errno))
         continue;
-      MESSAGE(ctx, "Stat failed on*%s*IGNORED", new_path);
+      MessageWithBoundary(ctx, "Stat failed on*%s*IGNORED", new_path);
       continue;
     }
 
@@ -324,7 +374,7 @@ void UnReadTree(ViewContext *ctx, DirEntry *dir_entry, Statistic *s) {
     return;
 
   if (dir_entry == s->tree) {
-    MESSAGE(ctx, "Can't delete ROOT");
+    MessageWithBoundary(ctx, "Can't delete ROOT");
   } else {
     if (dir_entry->unlogged_flag)
       return;
@@ -342,8 +392,8 @@ void UnReadTree(ViewContext *ctx, DirEntry *dir_entry, Statistic *s) {
     if (s->disk_total_directories > 0)
       s->disk_total_directories--;
     (void)GetAvailBytes(&s->disk_space, s);
-    DisplayDiskStatistic(ctx, s);
-    doupdate();
+    DisplayDiskStatisticWithBoundary(ctx, s);
+    RefreshUiWithBoundary(ctx);
   }
 }
 
@@ -418,7 +468,7 @@ int RescanDir(ViewContext *ctx, DirEntry *dir_entry, int depth, Statistic *s,
 
   /* Since we just reloaded the tree, dot files are present in memory.
      We must now recalculate stats based on the current visibility setting. */
-  RecalculateSysStats(ctx, s);
+  RecalculateSysStatsWithBoundary(ctx, s);
 
   /* Global matching stats are now incorrect. Reset and recalculate. */
   s->disk_matching_files = 0L;

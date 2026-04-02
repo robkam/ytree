@@ -913,6 +913,16 @@ typedef struct _ViewContext {
   int (*hook_remove_file)(ViewContext *ctx, FileEntry *fe_ptr, Statistic *s);
   int (*hook_make_path)(const ViewContext *ctx, DirEntry *tree, char *dir_path,
                         DirEntry **dest_dir_entry);
+  BOOL (*hook_key_pressed)(void);
+  BOOL (*hook_escape_key_pressed)(void);
+  int (*hook_input_choice)(ViewContext *ctx, const char *msg,
+                           const char *choices);
+  void (*hook_quit)(ViewContext *ctx);
+  int (*hook_ui_message)(ViewContext *ctx, const char *fmt, ...);
+  void (*hook_display_disk_statistic)(ViewContext *ctx, const Statistic *s);
+  void (*hook_recalculate_sys_stats)(ViewContext *ctx, Statistic *s);
+  void (*hook_clear_prompt_line)(ViewContext *ctx);
+  int (*hook_refresh_ui)(void);
 
   /* profile.c state */
   void *profile_data;  /* Pointer to the profile array */
