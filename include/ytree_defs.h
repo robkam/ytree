@@ -910,6 +910,9 @@ typedef struct _ViewContext {
   BOOL (*hook_has_user_action)(const ViewContext *ctx);
   int (*hook_scan_subtree)(ViewContext *ctx, DirEntry *dir_entry,
                            Statistic *s);
+  int (*hook_remove_file)(ViewContext *ctx, FileEntry *fe_ptr, Statistic *s);
+  int (*hook_make_path)(const ViewContext *ctx, DirEntry *tree, char *dir_path,
+                        DirEntry **dest_dir_entry);
 
   /* profile.c state */
   void *profile_data;  /* Pointer to the profile array */

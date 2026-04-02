@@ -291,6 +291,8 @@ static void InitBoundaryHooks(ViewContext *ctx) {
   ctx->hook_get_profile_value = GetProfileValue;
   ctx->hook_has_user_action = IsUserActionDefined;
   ctx->hook_scan_subtree = ScanSubTree;
+  ctx->hook_remove_file = RemoveFile;
+  ctx->hook_make_path = MakePath;
 }
 
 void ReCreateWindows(ViewContext *ctx) {

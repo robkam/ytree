@@ -105,4 +105,8 @@ extern void RestoreTreeState(ViewContext *ctx, DirEntry *root,
 void ApplyFilterToTree(DirEntry *dir_entry, Statistic *s);
 extern void FreePathList(PathList *list);
 
+/* filter_core.c */
+extern BOOL FsMatchFilter(FileEntry *fe, const Statistic *s);
+extern void FsApplyFilter(DirEntry *dir_entry, const Statistic *s);
+
 #endif /* YTREE_FS_H */
