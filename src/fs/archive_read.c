@@ -6,7 +6,43 @@
  ***************************************************************************/
 
 #include "ytree_fs.h"
-#include "ytree_ui.h"
+#include <stdarg.h>
+
+static void ArchiveMessageWithBoundary(ViewContext *ctx, const char *fmt, ...);
+static BOOL ArchiveKeyPressedWithBoundary(const ViewContext *ctx);
+static void ArchiveQuitWithBoundary(ViewContext *ctx);
+static void ArchiveRecalculateSysStatsWithBoundary(ViewContext *ctx,
+                                                   Statistic *s);
+
+static void ArchiveMessageWithBoundary(ViewContext *ctx, const char *fmt, ...) {
+  va_list ap;
+  char msg[MESSAGE_LENGTH];
+
+  if (!ctx || !ctx->hook_ui_message || !fmt)
+    return;
+
+  va_start(ap, fmt);
+  vsnprintf(msg, sizeof(msg), fmt, ap);
+  va_end(ap);
+  (void)ctx->hook_ui_message(ctx, "%s", msg);
+}
+
+static BOOL ArchiveKeyPressedWithBoundary(const ViewContext *ctx) {
+  if (ctx && ctx->hook_key_pressed)
+    return ctx->hook_key_pressed();
+  return FALSE;
+}
+
+static void ArchiveQuitWithBoundary(ViewContext *ctx) {
+  if (ctx && ctx->hook_quit)
+    ctx->hook_quit(ctx);
+}
+
+static void ArchiveRecalculateSysStatsWithBoundary(ViewContext *ctx,
+                                                   Statistic *s) {
+  if (ctx && ctx->hook_recalculate_sys_stats)
+    ctx->hook_recalculate_sys_stats(ctx, s);
+}
 
 #ifdef HAVE_LIBARCHIVE
 
@@ -300,14 +336,15 @@ static int InsertArchiveDirEntry(ViewContext *ctx, DirEntry *tree, char *path,
   size_t name_len;
 
   if (strlen(path) >= PATH_LENGTH) {
-    MESSAGE(ctx, "Archive path too long*skipping directory insert");
+    ArchiveMessageWithBoundary(ctx,
+                               "Archive path too long*skipping directory insert");
     return -1;
   }
 
   Fnsplit(path, father_path, name);
 
   if (GetArchiveDirEntry(tree, father_path, &df_ptr)) {
-    MESSAGE(ctx, "can't find subdir*%s", father_path);
+    ArchiveMessageWithBoundary(ctx, "can't find subdir*%s", father_path);
     return (-1);
   }
 
@@ -360,8 +397,8 @@ int InsertArchiveFileEntry(ViewContext *ctx, DirEntry *tree, char *path,
   size_t link_len = 0;
   int n;
 
-  if (KeyPressed()) {
-    Quit(ctx);
+  if (ArchiveKeyPressedWithBoundary(ctx)) {
+    ArchiveQuitWithBoundary(ctx);
   }
 
   Fnsplit(path, dir, file);
@@ -375,11 +412,12 @@ int InsertArchiveFileEntry(ViewContext *ctx, DirEntry *tree, char *path,
     stat_struct.st_mode = S_IFDIR;
 
     if (TryInsertArchiveDirEntry(ctx, tree, dir, &stat_struct, s)) {
-      MESSAGE(ctx, "inserting directory failed");
+      ArchiveMessageWithBoundary(ctx, "inserting directory failed");
       return (-1);
     }
     if (GetArchiveDirEntry(tree, dir, &de_ptr)) {
-      MESSAGE(ctx, "again: can't get directory for file*%s*giving up", path);
+      ArchiveMessageWithBoundary(
+          ctx, "again: can't get directory for file*%s*giving up", path);
       return (-1);
     }
   }
@@ -483,12 +521,14 @@ int TryInsertArchiveDirEntry(ViewContext *ctx, DirEntry *tree, const char *dir,
     if (current_path[0] != '\0' &&
         AppendBoundedString(current_path, sizeof(current_path),
                             FILE_SEPARATOR_STRING) != 0) {
-      MESSAGE(ctx, "Archive path too long*skipping directory insert");
+      ArchiveMessageWithBoundary(
+          ctx, "Archive path too long*skipping directory insert");
       free(path_copy);
       return -1;
     }
     if (AppendBoundedString(current_path, sizeof(current_path), token) != 0) {
-      MESSAGE(ctx, "Archive path too long*skipping directory insert");
+      ArchiveMessageWithBoundary(
+          ctx, "Archive path too long*skipping directory insert");
       free(path_copy);
       return -1;
     }
@@ -652,7 +692,7 @@ int ReadTreeFromArchive(ViewContext *ctx, DirEntry **dir_entry_ptr,
 
   a = archive_read_new();
   if (a == NULL) {
-    MESSAGE(ctx, "archive_read_new() failed");
+    ArchiveMessageWithBoundary(ctx, "archive_read_new() failed");
     return -1;
   }
 
@@ -661,8 +701,8 @@ int ReadTreeFromArchive(ViewContext *ctx, DirEntry **dir_entry_ptr,
 
   r = archive_read_open_filename(a, filename, 10240);
   if (r != ARCHIVE_OK) {
-    MESSAGE(ctx, "Could not open archive*'%s'*%s", filename,
-            archive_error_string(a));
+    ArchiveMessageWithBoundary(ctx, "Could not open archive*'%s'*%s", filename,
+                               archive_error_string(a));
     archive_read_free(a);
     return -1;
   }
@@ -699,7 +739,7 @@ int ReadTreeFromArchive(ViewContext *ctx, DirEntry **dir_entry_ptr,
       /* Safer string copy */
       int copied = snprintf(path_buffer, sizeof(path_buffer), "%s", clean_path);
       if (copied < 0 || (size_t)copied >= sizeof(path_buffer)) {
-        MESSAGE(ctx, "Archive entry path too long*skipping");
+        ArchiveMessageWithBoundary(ctx, "Archive entry path too long*skipping");
         continue;
       }
       /* Ensure directory paths end with a separator for
@@ -708,7 +748,8 @@ int ReadTreeFromArchive(ViewContext *ctx, DirEntry **dir_entry_ptr,
       if (len > 0 && path_buffer[len - 1] != FILE_SEPARATOR_CHAR) {
         if (AppendBoundedString(path_buffer, sizeof(path_buffer),
                                 FILE_SEPARATOR_STRING) != 0) {
-          MESSAGE(ctx, "Archive directory path too long*skipping");
+          ArchiveMessageWithBoundary(
+              ctx, "Archive directory path too long*skipping");
           continue;
         }
       }
@@ -718,7 +759,7 @@ int ReadTreeFromArchive(ViewContext *ctx, DirEntry **dir_entry_ptr,
       /* Safer string copy */
       int copied = snprintf(path_buffer, sizeof(path_buffer), "%s", clean_path);
       if (copied < 0 || (size_t)copied >= sizeof(path_buffer)) {
-        MESSAGE(ctx, "Archive entry path too long*skipping");
+        ArchiveMessageWithBoundary(ctx, "Archive entry path too long*skipping");
         continue;
       }
 
@@ -733,7 +774,8 @@ int ReadTreeFromArchive(ViewContext *ctx, DirEntry **dir_entry_ptr,
           if (len + 1 + target_len + 1 <= sizeof(path_buffer)) {
             (void)memcpy(&path_buffer[len + 1], link_target, target_len + 1);
           } else {
-            MESSAGE(ctx, "Archive symlink target too long*skipping");
+            ArchiveMessageWithBoundary(
+                ctx, "Archive symlink target too long*skipping");
             continue;
           }
         }
@@ -741,8 +783,8 @@ int ReadTreeFromArchive(ViewContext *ctx, DirEntry **dir_entry_ptr,
       (void)InsertArchiveFileEntry(ctx, dir_entry, path_buffer, &stat_buf, s);
     }
 
-    if (KeyPressed()) {
-      Quit(ctx);
+    if (ArchiveKeyPressedWithBoundary(ctx)) {
+      ArchiveQuitWithBoundary(ctx);
     }
 
     /* Update statistics / animation every 20 files */
@@ -759,7 +801,7 @@ int ReadTreeFromArchive(ViewContext *ctx, DirEntry **dir_entry_ptr,
 
   /* Important: Recalculate visibility based on current settings immediately
    * after load */
-  RecalculateSysStats(ctx, s);
+  ArchiveRecalculateSysStatsWithBoundary(ctx, s);
 
   return 0;
 }

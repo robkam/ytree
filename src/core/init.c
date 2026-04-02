@@ -41,6 +41,7 @@ static WINDOW *Subwin(WINDOW *orig, int nlines, int ncols, int begin_y,
                       int begin_x);
 static WINDOW *Newwin(int nlines, int ncols, int begin_y, int begin_x);
 static void InitBoundaryHooks(ViewContext *ctx);
+static void BoundaryClearPromptLine(ViewContext *ctx);
 
 #ifdef XCURSES
 char *XCursesProgramName = "ytree";
@@ -293,6 +294,29 @@ static void InitBoundaryHooks(ViewContext *ctx) {
   ctx->hook_scan_subtree = ScanSubTree;
   ctx->hook_remove_file = RemoveFile;
   ctx->hook_make_path = MakePath;
+  ctx->hook_key_pressed = KeyPressed;
+  ctx->hook_escape_key_pressed = EscapeKeyPressed;
+  ctx->hook_input_choice = InputChoice;
+  ctx->hook_quit = Quit;
+  ctx->hook_ui_message = UI_Message;
+  ctx->hook_display_disk_statistic = DisplayDiskStatistic;
+  ctx->hook_recalculate_sys_stats = RecalculateSysStats;
+  ctx->hook_clear_prompt_line = BoundaryClearPromptLine;
+  ctx->hook_refresh_ui = doupdate;
+}
+
+static void BoundaryClearPromptLine(ViewContext *ctx) {
+  int y, x;
+
+  if (ctx == NULL || ctx->ctx_border_window == NULL)
+    return;
+
+  getyx(stdscr, y, x);
+  wmove(ctx->ctx_border_window, ctx->layout.prompt_y, 0);
+  wclrtoeol(ctx->ctx_border_window);
+  wnoutrefresh(ctx->ctx_border_window);
+  move(y, x);
+  doupdate();
 }
 
 void ReCreateWindows(ViewContext *ctx) {
