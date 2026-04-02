@@ -36,10 +36,8 @@ POLICY_ALLOWED_DEPENDENCIES = {
 # Any new exception requires explicit architecture review.
 LEGACY_POLICY_EXCEPTIONS = {
     ("src/cmd/copy.c", "ytree_ui.h"),
-    ("src/cmd/group.c", "ytree_ui.h"),
     ("src/cmd/hex.c", "ytree_ui.h"),
     ("src/cmd/log.c", "ytree_ui.h"),
-    ("src/cmd/passwd.c", "ytree_ui.h"),
     ("src/cmd/pipe.c", "ytree_ui.h"),
     ("src/cmd/print_ops.c", "ytree_ui.h"),
     ("src/cmd/profile.c", "ytree_ui.h"),
@@ -58,8 +56,6 @@ LEGACY_POLICY_EXCEPTIONS = {
     ("src/core/quit.c", "ytree_cmd.h"),
     ("src/core/quit.c", "ytree_fs.h"),
     ("src/core/quit.c", "ytree_ui.h"),
-    ("src/core/sort.c", "ytree_cmd.h"),
-    ("src/core/sort.c", "ytree_fs.h"),
     ("src/core/volume.c", "ytree_cmd.h"),
     ("src/core/volume.c", "ytree_fs.h"),
     ("src/core/volume.c", "ytree_ui.h"),

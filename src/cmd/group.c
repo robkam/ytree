@@ -6,7 +6,7 @@
  *
  ***************************************************************************/
 
-#include "ytree_ui.h"
+#include "ytree_defs.h"
 #include <grp.h>
 #include <sys/types.h>
 
@@ -35,6 +35,31 @@ char *GetGroupName(unsigned int gid)
   else          return( NULL );
 }
 
+static char *TruncateDisplayGroupName(char *dest, const char *src,
+                                      unsigned int max_len)
+{
+  unsigned int l;
+
+  l = strlen(src);
+
+  if( l <= max_len )
+  {
+    snprintf(dest, max_len + 1, "%s", src);
+  }
+  else
+  {
+    if( max_len < 4 )
+    {
+      snprintf(dest, max_len + 1, "%.*s", (int)max_len, "...");
+    }
+    else
+    {
+      snprintf(dest, max_len + 1, "%.*s...", (int)(max_len - 3), src);
+    }
+  }
+  return( dest );
+}
+
 /*
  * GetDisplayGroupName
  * Returns a formatted/truncated group name for display.
@@ -49,7 +74,7 @@ char *GetDisplayGroupName(unsigned int gid)
   if( grp_ptr )
   {
     static char buffer[DISPLAY_GROUP_NAME_MAX + 1];
-    CutName(buffer, grp_ptr->gr_name, DISPLAY_GROUP_NAME_MAX);
+    TruncateDisplayGroupName(buffer, grp_ptr->gr_name, DISPLAY_GROUP_NAME_MAX);
     return buffer;
   }
   else
