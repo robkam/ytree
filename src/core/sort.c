@@ -1,7 +1,5 @@
 #define _GNU_SOURCE
 #include "sort.h"
-#include "ytree_cmd.h"
-#include "ytree_fs.h"
 #include <stdlib.h>
 #include <string.h>
 
@@ -10,12 +8,18 @@ typedef struct {
   BOOL case_sensitive;
 } SortContext;
 
+extern const char *GetExtension(const char *filename);
+
 /* Forward declarations */
 static int SortByName(const void *p1, const void *p2, void *arg);
 static int SortByChgTime(const void *p1, const void *p2, void *arg);
 static int SortByAccTime(const void *p1, const void *p2, void *arg);
 static int SortByModTime(const void *p1, const void *p2, void *arg);
 static int SortBySize(const void *p1, const void *p2, void *arg);
+static const char *LookupOwnerSortName(uid_t uid, char *fallback,
+                                       size_t fallback_size);
+static const char *LookupGroupSortName(gid_t gid, char *fallback,
+                                       size_t fallback_size);
 static int SortByOwner(const void *p1, const void *p2, void *arg);
 static int SortByGroup(const void *p1, const void *p2, void *arg);
 static int SortByExtension(const void *p1, const void *p2, void *arg);
@@ -165,25 +169,40 @@ static int SortBySize(const void *p1, const void *p2, void *arg) {
   return result;
 }
 
+static const char *LookupOwnerSortName(uid_t uid, char *fallback,
+                                       size_t fallback_size) {
+  struct passwd *pwd_ptr;
+
+  pwd_ptr = getpwuid(uid);
+  if (pwd_ptr && pwd_ptr->pw_name)
+    return pwd_ptr->pw_name;
+
+  (void)snprintf(fallback, fallback_size, "%u", (unsigned int)uid);
+  return fallback;
+}
+
+static const char *LookupGroupSortName(gid_t gid, char *fallback,
+                                       size_t fallback_size) {
+  struct group *grp_ptr;
+
+  grp_ptr = getgrgid(gid);
+  if (grp_ptr && grp_ptr->gr_name)
+    return grp_ptr->gr_name;
+
+  (void)snprintf(fallback, fallback_size, "%u", (unsigned int)gid);
+  return fallback;
+}
+
 static int SortByOwner(const void *p1, const void *p2, void *arg) {
   const FileEntryList *e1 = p1;
   const FileEntryList *e2 = p2;
   const SortContext *sctx = arg;
-  char *o1, *o2;
-  char n1[10], n2[10];
+  const char *o1, *o2;
+  char n1[32], n2[32];
 
-  o1 = GetPasswdName(e1->file->stat_struct.st_uid);
-  o2 = GetPasswdName(e2->file->stat_struct.st_uid);
+  o1 = LookupOwnerSortName((uid_t)e1->file->stat_struct.st_uid, n1, sizeof(n1));
+  o2 = LookupOwnerSortName((uid_t)e2->file->stat_struct.st_uid, n2, sizeof(n2));
 
-  if (o1 == NULL) {
-    (void)snprintf(n1, sizeof(n1), "%d", (int)e1->file->stat_struct.st_uid);
-    o1 = n1;
-  }
-
-  if (o2 == NULL) {
-    (void)snprintf(n2, sizeof(n2), "%d", (int)e2->file->stat_struct.st_uid);
-    o2 = n2;
-  }
   if (sctx->case_sensitive)
     if (sctx->ascending)
       return (strcmp(o1, o2));
@@ -199,21 +218,12 @@ static int SortByGroup(const void *p1, const void *p2, void *arg) {
   const FileEntryList *e1 = p1;
   const FileEntryList *e2 = p2;
   const SortContext *sctx = arg;
-  char *g1, *g2;
-  char n1[10], n2[10];
+  const char *g1, *g2;
+  char n1[32], n2[32];
 
-  g1 = GetGroupName(e1->file->stat_struct.st_gid);
-  g2 = GetGroupName(e2->file->stat_struct.st_gid);
+  g1 = LookupGroupSortName((gid_t)e1->file->stat_struct.st_gid, n1, sizeof(n1));
+  g2 = LookupGroupSortName((gid_t)e2->file->stat_struct.st_gid, n2, sizeof(n2));
 
-  if (g1 == NULL) {
-    (void)snprintf(n1, sizeof(n1), "%d", (int)e1->file->stat_struct.st_uid);
-    g1 = n1;
-  }
-
-  if (g2 == NULL) {
-    (void)snprintf(n2, sizeof(n2), "%d", (int)e2->file->stat_struct.st_uid);
-    g2 = n2;
-  }
   if (sctx->case_sensitive)
     if (sctx->ascending)
       return (strcmp(g1, g2));

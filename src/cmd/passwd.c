@@ -6,7 +6,7 @@
  *
  ***************************************************************************/
 
-#include "ytree_ui.h"
+#include "ytree_defs.h"
 #include <pwd.h>
 #include <sys/types.h>
 
@@ -35,6 +35,31 @@ char *GetPasswdName(unsigned int uid)
   else          return( NULL );
 }
 
+static char *TruncateDisplayOwnerName(char *dest, const char *src,
+                                      unsigned int max_len)
+{
+  unsigned int l;
+
+  l = strlen(src);
+
+  if( l <= max_len )
+  {
+    snprintf(dest, max_len + 1, "%s", src);
+  }
+  else
+  {
+    if( max_len < 4 )
+    {
+      snprintf(dest, max_len + 1, "%.*s", (int)max_len, "...");
+    }
+    else
+    {
+      snprintf(dest, max_len + 1, "%.*s...", (int)(max_len - 3), src);
+    }
+  }
+  return( dest );
+}
+
 /*
  * GetDisplayPasswdName
  * Returns a formatted/truncated username for display.
@@ -49,7 +74,7 @@ char *GetDisplayPasswdName(unsigned int uid)
   if( pwd_ptr )
   {
     static char buffer[DISPLAY_OWNER_NAME_MAX + 1];
-    CutName(buffer, pwd_ptr->pw_name, DISPLAY_OWNER_NAME_MAX);
+    TruncateDisplayOwnerName(buffer, pwd_ptr->pw_name, DISPLAY_OWNER_NAME_MAX);
     return buffer;
   }
   else
