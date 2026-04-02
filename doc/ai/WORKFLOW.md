@@ -215,12 +215,22 @@ Use this workflow when the mission is large enough that one-shot implementation 
 2.  **Architect Breakdown Pass (Stateless, New Branch):**
     *   Run stateless `architect` on a dedicated feature branch (local and GitHub remote branch).
     *   Architect must break work into a sequence of numbered tasks in a text file committed in the project directory.
+    *   Architect must break work into a sequence of numbered tasks in a plain-text relay file in the repo root (`/home/rob/ytree/task-*.txt`).
+    *   Relay files are workflow artifacts and MUST NOT be committed.
     *   Tasks must be atomic enough for safe verification, but not fragmented into trivial micro-steps.
     *   Architect outputs only the next developer prompt for exactly one task at a time.
+    *   Architect outputs only the next developer prompt for exactly one task at a time.
+    *   Architect relay response to maintainer MUST be exactly these three lines:
+        *   `Reasoning level: <Low|Medium|High|Extra High>`
+        *   `Prompt file: <task-...-developer-prompt.txt>`
+        *   `Handoff line: developer: Execute /home/rob/ytree/<task-...-developer-prompt.txt> exactly as written (Task N only).`
 3.  **Developer Execution Pass (Stateless, One Task at a Time):**
     *   Run a stateless `developer` for one task only.
     *   Developer reads the task file, implements the task, and writes a task report file (what changed, why, evidence/tests run, risks/open items).
+    *   Developer reads the task file, implements the task, and writes a task report file in repo root (`/home/rob/ytree/task-<task-id>-report.txt`).
     *   Do not batch multiple numbered tasks in one developer pass.
+    *   Developer chat response to maintainer MUST be one line only:
+        *   `Task <task-id> completed, report in /home/rob/ytree/task-<task-id>-report.txt`
 4.  **Architect Handoff Tailoring Pass (Stateless):**
     *   After each developer report and maintainer manual check, rerun formerly-stateless `architect`.
     *   Architect reviews repository state plus report files, then tailors the next single-task developer prompt.
@@ -229,11 +239,15 @@ Use this workflow when the mission is large enough that one-shot implementation 
     *   After each completed numbered task, create one commit on the branch.
     *   Commit message content requires maintainer approval before commit.
     *   Commit messages should describe achieved behavior/scope, not task numbering.
+    *   Commit only task code/refactor files required for that task.
+    *   Do not include relay artifacts (`task-*.txt`, ad-hoc AI reports) in commits.
+    *   Do not create cleanup-only commits for relay artifact deletion.
     *   Push with project fast workflow (`push-fast`) so each task has a remote last-known-good point.
 6.  **Completion Gate and Merge:**
     *   When the final task is complete, run full project gate (`make qa-all`) and require green results.
     *   Merge branch into `main` only after maintainer-approved merge message.
     *   Delete the feature branch both locally and on GitHub after successful merge.
+    *   Delete consumed relay files (`/home/rob/ytree/task-*.txt`) locally as soon as they are no longer needed.
 
 ---
 
@@ -274,7 +288,7 @@ Cadence:
 
 ## 8. Resource Management & Usage Allowance Economy
 
-AI computational resources (often referred to as tokens, usage allowance, context window limits, or quotas) are strictly finite. Wasted resources lead to shorter sessions, lost history, and increased costs. 
+AI computational resources (often referred to as tokens, usage allowance, context window limits, or quotas) are strictly finite. Wasted resources lead to shorter sessions, lost history, and increased costs.
 
 ### 8.1 Mandatory Usage Allowance Guard
 *   **The AI MUST warn the user** when any requested action will unnecessarily consume massive amounts of context, generate immense output, or pull in disproportionately large data unsuited for the immediate task.
