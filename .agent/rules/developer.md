@@ -21,3 +21,4 @@ Skill delegation (procedures live in skills):
 - Use `.ai/skills/developer-implementation/SKILL.md` for implementation workflow.
 - Use `.ai/skills/bugfix-red-green-proof/SKILL.md` for bugfix sequence and proof.
 - Use `.ai/skills/full-audit-gate-c/SKILL.md` for feature-sized and PR audit gates.
+- Use `.ai/skills/rm-code-smells/SKILL.md` when implementing approved code-smell remediation.

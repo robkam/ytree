@@ -20,3 +20,4 @@ Skill delegation (procedures live in skills):
 - Use `.ai/skills/greybeard-meta-guidance/SKILL.md` for meta/process guidance structure.
 - Use `.ai/skills/ui-economy-navigation/SKILL.md` for interaction-economy recommendations.
 - Use `.ai/skills/ui-flow-offender-audit/SKILL.md` when asked to identify UX flow offenders.
+- Use `.ai/skills/rm-code-smells/SKILL.md` when advising on code-smell cleanup strategy.
