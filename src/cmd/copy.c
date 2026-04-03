@@ -7,7 +7,6 @@
 
 #include "ytree_cmd.h"
 #include "ytree_fs.h"
-#include "ytree_ui.h"
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -23,19 +22,6 @@
 #define DISK_MODE 0
 #define ARCHIVE_MODE 2
 #define USER_MODE 3
-
-/* Helper for Archive Callback */
-static int ArchiveUICallback(int status, const char *msg, void *user_data) {
-  ViewContext *ctx = (ViewContext *)user_data;
-  if (status == ARCHIVE_STATUS_PROGRESS) {
-    if (ctx)
-      DrawSpinner(ctx);
-    if (EscapeKeyPressed()) {
-      return ARCHIVE_CB_ABORT;
-    }
-  }
-  return ARCHIVE_CB_CONTINUE;
-}
 
 static int CopyArchiveFile(ViewContext *ctx, char *to_path,
                            const char *from_path,
@@ -395,7 +381,7 @@ int CopyFile(ViewContext *ctx, Statistic *statistic_ptr, FileEntry *fe_ptr,
         (void)unlink(extracted_path);
 
         if (ExtractArchiveNode(statistic_ptr->log_path, from_path,
-                               extracted_path, ArchiveUICallback, ctx) != 0) {
+                               extracted_path, UI_ArchiveCallback, ctx) != 0) {
           (void)unlink(extracted_path);
           return -1;
         }
@@ -404,7 +390,7 @@ int CopyFile(ViewContext *ctx, Statistic *statistic_ptr, FileEntry *fe_ptr,
       }
 
       if (Archive_AddFile(archive_log_path, archive_src_path,
-                          archive_entry_path, FALSE, ArchiveUICallback,
+                          archive_entry_path, FALSE, UI_ArchiveCallback,
                           ctx) == 0) {
         /* Success */
         /* Caller will refresh view */
@@ -670,7 +656,7 @@ int CopyFileContent(ViewContext *ctx, char *to_path, char *from_path,
   while ((n = read(i, buffer, sizeof(buffer))) > 0) {
     /* Update activity spinner every 100 chunks */
     if ((++spin_counter % 100) == 0) {
-      if (ArchiveUICallback(ARCHIVE_STATUS_PROGRESS, NULL, ctx) ==
+      if (UI_ArchiveCallback(ARCHIVE_STATUS_PROGRESS, NULL, ctx) ==
           ARCHIVE_CB_ABORT) {
         /* MESSAGE("Operation Interrupted"); */
         close(i);
@@ -737,7 +723,7 @@ static int CopyArchiveFile(ViewContext *ctx, char *to_path,
                            const Statistic *s) {
 #ifdef HAVE_LIBARCHIVE
   int result =
-      ExtractArchiveNode(s->log_path, from_path, to_path, ArchiveUICallback,
+      ExtractArchiveNode(s->log_path, from_path, to_path, UI_ArchiveCallback,
                          ctx);
   if (result != 0) {
     /* WARNING("Can't copy file*%s*to file*%s", from_path, to_path); */

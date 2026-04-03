@@ -187,6 +187,8 @@ extern int FileUserMode(ViewContext *ctx, FileEntryList *file_entry_list,
                         int ch, Statistic *s);
 
 /* view.c */
+extern int InternalView(ViewContext *ctx, char *file_path,
+                        const ViewerGeometry *geometry);
 extern int View(ViewContext *ctx, DirEntry *dir_entry, char *file_path);
 extern int ViewHex(ViewContext *ctx, char *file_path);
 extern int
