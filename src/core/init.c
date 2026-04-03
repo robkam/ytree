@@ -8,12 +8,9 @@
  *
  ***************************************************************************/
 
-#include "config.h"
 #include "watcher.h"
-#include "ytree_cmd.h"
 #include "ytree_debug.h"
 #include "ytree_fs.h"
-#include "ytree_ui.h"
 
 #define SORT_BY_NAME 1
 
@@ -41,6 +38,11 @@ static WINDOW *Subwin(WINDOW *orig, int nlines, int ncols, int begin_y,
                       int begin_x);
 static WINDOW *Newwin(int nlines, int ncols, int begin_y, int begin_x);
 static void InitBoundaryHooks(ViewContext *ctx);
+static void RegisterCoreInitOps(ViewContext *ctx);
+static const char *CoreInitGetProfileValue(const ViewContext *ctx,
+                                           const char *name);
+static void CoreInitWbkgdSet(const ViewContext *ctx, WINDOW *win, chtype c);
+static int CoreInitUINotice(ViewContext *ctx, const char *msg);
 static void BoundaryClearPromptLine(ViewContext *ctx);
 extern int RuntimePort_MainInit(ViewContext *ctx, const char *configuration_file,
                                 const char *history_file);
@@ -59,6 +61,34 @@ extern void RuntimePort_MainVolumeFreeAll(ViewContext *ctx);
 #ifdef XCURSES
 char *XCursesProgramName = "ytree";
 #endif
+
+static void RegisterCoreInitOps(ViewContext *ctx) {
+  if (ctx == NULL)
+    return;
+  memset(&ctx->core_init_ops, 0, sizeof(ctx->core_init_ops));
+  CoreInitOps_RegisterCmdConfig(&ctx->core_init_ops);
+  CoreInitOps_RegisterCmdProfile(&ctx->core_init_ops);
+  CoreInitOps_RegisterUIRuntime(&ctx->core_init_ops);
+}
+
+static const char *CoreInitGetProfileValue(const ViewContext *ctx,
+                                           const char *name) {
+  if (ctx == NULL || ctx->core_init_ops.get_profile_value == NULL)
+    return "";
+  return ctx->core_init_ops.get_profile_value(ctx, name);
+}
+
+static void CoreInitWbkgdSet(const ViewContext *ctx, WINDOW *win, chtype c) {
+  if (ctx == NULL || ctx->core_init_ops.wbkgd_set == NULL || win == NULL)
+    return;
+  ctx->core_init_ops.wbkgd_set(ctx, win, c);
+}
+
+static int CoreInitUINotice(ViewContext *ctx, const char *msg) {
+  if (ctx == NULL || ctx->core_init_ops.ui_notice == NULL)
+    return -1;
+  return ctx->core_init_ops.ui_notice(ctx, msg);
+}
 
 void Layout_Recalculate(ViewContext *ctx) {
   if (!ctx)
@@ -254,7 +284,6 @@ void InitView(ViewContext *ctx) {
   DEBUG_LOG("ENTER InitView");
   memset(ctx, 0, sizeof(ViewContext));
   CoreMainOps_Register(ctx);
-  InitBoundaryHooks(ctx);
   ctx->viewer.inhex = TRUE;
   ctx->view_mode = DISK_MODE;
   ctx->dir_mode = MODE_3;
@@ -309,55 +338,17 @@ void CoreMainOps_Register(ViewContext *ctx) {
 }
 
 static void InitBoundaryHooks(ViewContext *ctx) {
-#ifdef COLOR_SUPPORT
-  ctx->hook_parse_color = ParseColorString;
-  ctx->hook_update_ui_color = UpdateUIColor;
-  ctx->hook_add_file_color_rule = AddFileColorRule;
-#else
-  ctx->hook_parse_color = NULL;
-  ctx->hook_update_ui_color = NULL;
-  ctx->hook_add_file_color_rule = NULL;
-#endif
-  ctx->hook_get_profile_value = GetProfileValue;
-  ctx->hook_has_user_action = IsUserActionDefined;
-  ctx->hook_scan_subtree = ScanSubTree;
-  ctx->hook_remove_file = RemoveFile;
-  ctx->hook_make_path = MakePath;
-  ctx->hook_key_pressed = KeyPressed;
-  ctx->hook_escape_key_pressed = EscapeKeyPressed;
-  ctx->hook_input_choice = InputChoice;
-  ctx->hook_quit = Quit;
-  ctx->hook_ui_message = UI_Message;
-  ctx->hook_ui_notice = UI_Notice;
-  ctx->hook_draw_spinner = DrawSpinner;
-  ctx->hook_clock_handler = ClockHandler;
-  ctx->hook_draw_animation_step = DrawAnimationStep;
-  ctx->hook_display_disk_statistic = DisplayDiskStatistic;
-  ctx->hook_display_avail_bytes = DisplayAvailBytes;
-  ctx->hook_display_menu = DisplayMenu;
-  ctx->hook_build_dir_entry_list = BuildDirEntryList;
-  ctx->hook_display_tree = DisplayTree;
-  ctx->hook_switch_to_big_file_window = SwitchToBigFileWindow;
-  ctx->hook_init_animation = InitAnimation;
-  ctx->hook_refresh_window = RefreshWindow;
-  ctx->hook_stop_animation = StopAnimation;
-  ctx->hook_switch_to_small_file_window = SwitchToSmallFileWindow;
-  ctx->hook_clear_help = ClearHelp;
-  ctx->hook_mv_add_str = MvAddStr;
-  ctx->hook_read_string = UI_ReadString;
-  ctx->hook_recreate_windows = ReCreateWindows;
-  ctx->hook_hit_return_to_continue = HitReturnToContinue;
-  ctx->hook_recalculate_sys_stats = RecalculateSysStats;
-  ctx->hook_suspend_clock = SuspendClock;
-  ctx->hook_init_clock = InitClock;
+  if (ctx == NULL)
+    return;
+  ctx->hook_parse_color = ctx->core_init_ops.parse_color_string;
+  ctx->hook_update_ui_color = ctx->core_init_ops.update_ui_color;
+  ctx->hook_add_file_color_rule = ctx->core_init_ops.add_file_color_rule;
+  ctx->hook_get_profile_value = ctx->core_init_ops.get_profile_value;
+  ctx->hook_has_user_action = ctx->core_init_ops.has_user_action;
+  if (ctx->core_init_ops.bind_runtime_hooks != NULL)
+    ctx->core_init_ops.bind_runtime_hooks(ctx);
   ctx->hook_clear_prompt_line = BoundaryClearPromptLine;
   ctx->hook_refresh_ui = doupdate;
-  ctx->core_quit_ops.confirm_quit = UI_CoreQuitConfirm;
-  ctx->core_quit_ops.save_history = UI_CoreQuitSaveHistory;
-  ctx->core_quit_ops.close_watcher = UI_CoreQuitCloseWatcher;
-  ctx->core_quit_ops.cleanup_volume_tree = UI_CoreQuitCleanupVolumeTree;
-  ctx->core_quit_ops.suspend_clock = UI_CoreQuitSuspendClock;
-  ctx->core_quit_ops.shutdown_terminal = UI_CoreQuitShutdownTerminal;
 }
 
 static void BoundaryClearPromptLine(ViewContext *ctx) {
@@ -447,7 +438,7 @@ void ReCreateWindows(ViewContext *ctx) {
   scrollok(primary->pan_dir_window, TRUE);
 
   leaveok(primary->pan_dir_window, TRUE);
-  WbkgdSet(ctx, primary->pan_dir_window, COLOR_PAIR(CPAIR_WINDIR));
+  CoreInitWbkgdSet(ctx, primary->pan_dir_window, COLOR_PAIR(CPAIR_WINDIR));
 
   primary->pan_small_file_window =
       Subwin(stdscr, primary->small_file_h, primary->small_file_w,
@@ -455,7 +446,7 @@ void ReCreateWindows(ViewContext *ctx) {
   keypad(primary->pan_small_file_window, TRUE);
 
   leaveok(primary->pan_small_file_window, TRUE);
-  WbkgdSet(ctx, primary->pan_small_file_window, COLOR_PAIR(CPAIR_WINFILE));
+  CoreInitWbkgdSet(ctx, primary->pan_small_file_window, COLOR_PAIR(CPAIR_WINFILE));
 
   primary->pan_big_file_window =
       Subwin(stdscr, primary->big_file_h, primary->big_file_w,
@@ -463,7 +454,7 @@ void ReCreateWindows(ViewContext *ctx) {
   keypad(primary->pan_big_file_window, TRUE);
 
   leaveok(primary->pan_big_file_window, TRUE);
-  WbkgdSet(ctx, primary->pan_big_file_window, COLOR_PAIR(CPAIR_WINFILE));
+  CoreInitWbkgdSet(ctx, primary->pan_big_file_window, COLOR_PAIR(CPAIR_WINFILE));
 
   /* Determine current file window for primary based on its OWN state */
   primary->pan_file_window = (primary == ctx->left ? left_is_big : right_is_big)
@@ -480,7 +471,7 @@ void ReCreateWindows(ViewContext *ctx) {
     scrollok(ctx->right->pan_dir_window, TRUE);
 
     leaveok(ctx->right->pan_dir_window, TRUE);
-    WbkgdSet(ctx, ctx->right->pan_dir_window, COLOR_PAIR(CPAIR_WINDIR));
+    CoreInitWbkgdSet(ctx, ctx->right->pan_dir_window, COLOR_PAIR(CPAIR_WINDIR));
 
     ctx->right->pan_small_file_window =
         Subwin(stdscr, ctx->right->small_file_h, ctx->right->small_file_w,
@@ -488,7 +479,7 @@ void ReCreateWindows(ViewContext *ctx) {
     keypad(ctx->right->pan_small_file_window, TRUE);
 
     leaveok(ctx->right->pan_small_file_window, TRUE);
-    WbkgdSet(ctx, ctx->right->pan_small_file_window, COLOR_PAIR(CPAIR_WINFILE));
+    CoreInitWbkgdSet(ctx, ctx->right->pan_small_file_window, COLOR_PAIR(CPAIR_WINFILE));
 
     ctx->right->pan_big_file_window =
         Subwin(stdscr, ctx->right->big_file_h, ctx->right->big_file_w,
@@ -496,7 +487,7 @@ void ReCreateWindows(ViewContext *ctx) {
     keypad(ctx->right->pan_big_file_window, TRUE);
 
     leaveok(ctx->right->pan_big_file_window, TRUE);
-    WbkgdSet(ctx, ctx->right->pan_big_file_window, COLOR_PAIR(CPAIR_WINFILE));
+    CoreInitWbkgdSet(ctx, ctx->right->pan_big_file_window, COLOR_PAIR(CPAIR_WINFILE));
 
     /* Determine current file window for RightPanel based on its OWN state */
     ctx->right->pan_file_window = (right_is_big)
@@ -513,7 +504,7 @@ void ReCreateWindows(ViewContext *ctx) {
       keypad(ctx->ctx_preview_window, TRUE);
 
       leaveok(ctx->ctx_preview_window, TRUE);
-      WbkgdSet(ctx, ctx->ctx_preview_window, COLOR_PAIR(CPAIR_WINFILE));
+      CoreInitWbkgdSet(ctx, ctx->ctx_preview_window, COLOR_PAIR(CPAIR_WINFILE));
     }
   }
 
@@ -558,7 +549,7 @@ void ReCreateWindows(ViewContext *ctx) {
 
   ctx->ctx_border_window = Newwin(LINES, COLS, 0, 0);
   if (ctx->ctx_border_window) {
-    WbkgdSet(ctx, ctx->ctx_border_window, COLOR_PAIR(CPAIR_BORDERS));
+    CoreInitWbkgdSet(ctx, ctx->ctx_border_window, COLOR_PAIR(CPAIR_BORDERS));
 
     leaveok(ctx->ctx_border_window, TRUE);
 
@@ -574,7 +565,7 @@ void ReCreateWindows(ViewContext *ctx) {
 
   ctx->ctx_error_window = Newwin(ERROR_WINDOW_HEIGHT, ERROR_WINDOW_WIDTH,
                                  ERROR_WINDOW_Y, ERROR_WINDOW_X);
-  WbkgdSet(ctx, ctx->ctx_error_window, COLOR_PAIR(CPAIR_WINERR));
+  CoreInitWbkgdSet(ctx, ctx->ctx_error_window, COLOR_PAIR(CPAIR_WINERR));
 
   leaveok(ctx->ctx_error_window, TRUE);
 
@@ -589,7 +580,7 @@ void ReCreateWindows(ViewContext *ctx) {
 
   scrollok(ctx->ctx_time_window, FALSE);
   leaveok(ctx->ctx_time_window, TRUE);
-  WbkgdSet(ctx, ctx->ctx_time_window, COLOR_PAIR(CPAIR_WINDIR | A_BOLD));
+  CoreInitWbkgdSet(ctx, ctx->ctx_time_window, COLOR_PAIR(CPAIR_WINDIR | A_BOLD));
   /* Keep clock redraws in the normal wnoutrefresh/doupdate pipeline.
    * Immediate refresh causes visible blinking during rapid navigation.
    */
@@ -605,7 +596,7 @@ void ReCreateWindows(ViewContext *ctx) {
   scrollok(ctx->ctx_history_window, TRUE);
 
   leaveok(ctx->ctx_history_window, TRUE);
-  WbkgdSet(ctx, ctx->ctx_history_window, COLOR_PAIR(CPAIR_WINHST));
+  CoreInitWbkgdSet(ctx, ctx->ctx_history_window, COLOR_PAIR(CPAIR_WINHST));
 
   ctx->ctx_matches_window = ctx->ctx_history_window;
 
@@ -615,7 +606,7 @@ void ReCreateWindows(ViewContext *ctx) {
   /* Menu area: Y_MESSAGE down to bottom (typically 3 lines) */
   ctx->ctx_menu_window = Newwin(3, COLS, ctx->layout.message_y, 0);
   if (ctx->ctx_menu_window) {
-    WbkgdSet(ctx, ctx->ctx_menu_window, COLOR_PAIR(CPAIR_MENU));
+    CoreInitWbkgdSet(ctx, ctx->ctx_menu_window, COLOR_PAIR(CPAIR_MENU));
 
     leaveok(ctx->ctx_menu_window, TRUE);
   }
@@ -630,7 +621,7 @@ void ReCreateWindows(ViewContext *ctx) {
   scrollok(ctx->ctx_f2_window, FALSE);
 
   leaveok(ctx->ctx_f2_window, TRUE);
-  WbkgdSet(ctx, ctx->ctx_f2_window, COLOR_PAIR(CPAIR_WINHST));
+  CoreInitWbkgdSet(ctx, ctx->ctx_f2_window, COLOR_PAIR(CPAIR_WINHST));
   DEBUG_LOG("EXIT ReCreateWindows");
 }
 
@@ -651,6 +642,8 @@ void ShutdownCurses(ViewContext *ctx) {
 int Init(ViewContext *ctx, const char *configuration_file,
          const char *history_file) {
   InitView(ctx);
+  RegisterCoreInitOps(ctx);
+  InitBoundaryHooks(ctx);
   DEBUG_LOG("ENTER Init");
   char buffer[PATH_LENGTH + 1];
   const char *home = NULL;
@@ -706,9 +699,11 @@ int Init(ViewContext *ctx, const char *configuration_file,
   ctx->cached_lines = LINES;
   ctx->cached_cols = COLS;
   Layout_Recalculate(ctx);
-  StartColors(ctx); /* even on b/w terminals... */
+  if (ctx->core_init_ops.start_colors != NULL)
+    ctx->core_init_ops.start_colors(ctx); /* even on b/w terminals... */
 
-  UI_Dialog_Init(); /* Initialize Dialog Manager */
+  if (ctx->core_init_ops.dialog_init != NULL)
+    ctx->core_init_ops.dialog_init(); /* Initialize Dialog Manager */
 
   cbreak();
   noecho();
@@ -719,7 +714,7 @@ int Init(ViewContext *ctx, const char *configuration_file,
   leaveok(stdscr, FALSE);
   curs_set(0);
 
-  WbkgdSet(ctx, stdscr, COLOR_PAIR(CPAIR_WINDIR) | A_BOLD);
+  CoreInitWbkgdSet(ctx, stdscr, COLOR_PAIR(CPAIR_WINDIR) | A_BOLD);
 
   ReCreateWindows(ctx);
   DEBUG_LOG("Init: ReCreateWindows done");
@@ -732,48 +727,57 @@ int Init(ViewContext *ctx, const char *configuration_file,
   ctx->ctx_file_window = ctx->ctx_small_file_window;
 
   DEBUG_LOG("Init: Calling ReadGroupEntries");
-  if (ReadGroupEntries()) {
-    UI_Notice(ctx, "ReadGroupEntries failed*ABORT");
+  if (ctx->core_init_ops.read_group_entries != NULL &&
+      ctx->core_init_ops.read_group_entries()) {
+    CoreInitUINotice(ctx, "ReadGroupEntries failed*ABORT");
     exit(1);
   }
   DEBUG_LOG("Init: ReadGroupEntries done");
 
   DEBUG_LOG("Init: Calling ReadPasswdEntries");
-  if (ReadPasswdEntries()) {
-    UI_Notice(ctx, "ReadPasswdEntries failed*ABORT");
+  if (ctx->core_init_ops.read_passwd_entries != NULL &&
+      ctx->core_init_ops.read_passwd_entries()) {
+    CoreInitUINotice(ctx, "ReadPasswdEntries failed*ABORT");
     exit(1);
   }
   DEBUG_LOG("Init: ReadPasswdEntries done");
 
   if (configuration_file != NULL) {
     DEBUG_LOG("Init: Reading profile %s", configuration_file);
-    ReadProfile(ctx, configuration_file);
+    if (ctx->core_init_ops.read_profile != NULL)
+      ctx->core_init_ops.read_profile(ctx, configuration_file);
   } else if ((home = getenv("HOME"))) {
     snprintf(buffer, sizeof(buffer), "%s%c%s", home, FILE_SEPARATOR_CHAR,
              PROFILE_FILENAME);
     DEBUG_LOG("Init: Reading profile %s", buffer);
-    ReadProfile(ctx, buffer);
+    if (ctx->core_init_ops.read_profile != NULL)
+      ctx->core_init_ops.read_profile(ctx, buffer);
   }
   DEBUG_LOG("Init: ReadProfile done");
 
   if (history_file != NULL) {
     DEBUG_LOG("Init: Reading history %s", history_file);
-    ReadHistory(ctx, history_file);
+    if (ctx->core_init_ops.read_history != NULL)
+      ctx->core_init_ops.read_history(ctx, history_file);
   } else if (home) {
     snprintf(buffer, sizeof(buffer), "%s%c%s", home, FILE_SEPARATOR_CHAR,
              HISTORY_FILENAME);
     DEBUG_LOG("Init: Reading history %s", buffer);
-    ReadHistory(ctx, buffer);
+    if (ctx->core_init_ops.read_history != NULL)
+      ctx->core_init_ops.read_history(ctx, buffer);
   }
   DEBUG_LOG("Init: ReadHistory done");
 
-  ReinitColorPairs(ctx);
+  if (ctx->core_init_ops.reinit_color_pairs != NULL)
+    ctx->core_init_ops.reinit_color_pairs(ctx);
   DEBUG_LOG("Init: ReinitColorPairs done");
 
   /* Initial Mode Setup for both panels */
-  int initial_mode = strtol(GetProfileValue(ctx, "FILEMODE"), NULL, 0);
-  SetPanelFileMode(ctx, ctx->left, initial_mode);
-  SetPanelFileMode(ctx, ctx->right, initial_mode);
+  int initial_mode = strtol(CoreInitGetProfileValue(ctx, "FILEMODE"), NULL, 0);
+  if (ctx->core_init_ops.set_panel_file_mode != NULL) {
+    ctx->core_init_ops.set_panel_file_mode(ctx, ctx->left, initial_mode);
+    ctx->core_init_ops.set_panel_file_mode(ctx, ctx->right, initial_mode);
+  }
   DEBUG_LOG("Init: SetPanelFileMode done");
 
   SetKindOfSort(SORT_BY_NAME, &ctx->active->vol->vol_stats);
@@ -788,20 +792,25 @@ int Init(ViewContext *ctx, const char *configuration_file,
   DEBUG_LOG("Init: locale fallback done");
 
   ctx->bypass_small_window =
-      (strtol(GetProfileValue(ctx, "SMALLWINDOWSKIP"), NULL, 0)) ? TRUE
-                                                                  : FALSE;
+      (strtol(CoreInitGetProfileValue(ctx, "SMALLWINDOWSKIP"), NULL, 0)) ? TRUE
+                                                                          : FALSE;
   ctx->highlight_full_line =
-      (strtol(GetProfileValue(ctx, "HIGHLIGHT_FULL_LINE"), NULL, 0)) ? TRUE
-                                                                     : FALSE;
+      (strtol(CoreInitGetProfileValue(ctx, "HIGHLIGHT_FULL_LINE"), NULL, 0))
+          ? TRUE
+          : FALSE;
   ctx->hide_dot_files =
-      (strtol(GetProfileValue(ctx, "HIDEDOTFILES"), NULL, 0)) ? TRUE : FALSE;
-  ctx->animation_method = strtol(GetProfileValue(ctx, "ANIMATION"), NULL, 0);
-  ctx->initial_directory = GetProfileValue(ctx, "INITIALDIR");
+      (strtol(CoreInitGetProfileValue(ctx, "HIDEDOTFILES"), NULL, 0)) ? TRUE
+                                                                       : FALSE;
+  ctx->animation_method =
+      strtol(CoreInitGetProfileValue(ctx, "ANIMATION"), NULL, 0);
+  ctx->initial_directory = (char *)CoreInitGetProfileValue(ctx, "INITIALDIR");
 
-  ctx->refresh_mode = strtol(GetProfileValue(ctx, "AUTO_REFRESH"), NULL, 0);
+  ctx->refresh_mode =
+      strtol(CoreInitGetProfileValue(ctx, "AUTO_REFRESH"), NULL, 0);
   DEBUG_LOG("Init: Profile variables done");
 
-  InitClock(ctx);
+  if (ctx->hook_init_clock != NULL)
+    ctx->hook_init_clock(ctx);
   DEBUG_LOG("Init: InitClock done");
   if (ctx->refresh_mode & REFRESH_WATCHER)
     Watcher_Init(ctx);
