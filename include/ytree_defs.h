@@ -865,6 +865,22 @@ typedef struct {
   void (*volume_free_all)(ViewContext *ctx);
 } CoreMainOps;
 
+typedef void (*ScanProgressCallback)(ViewContext *ctx, void *user_data);
+typedef void (*CoreScanProgressCallback)(ViewContext *ctx, void *user_data);
+
+typedef struct {
+  int (*get_disk_parameter)(char *path, char *volume_name,
+                            long long *avail_bytes, long long *capacity,
+                            Statistic *s);
+  int (*read_tree)(ViewContext *ctx, DirEntry *dir_entry, char *path, int depth,
+                   Statistic *s, CoreScanProgressCallback cb, void *cb_data);
+  int (*read_tree_from_archive)(ViewContext *ctx, DirEntry **dir_entry_ptr,
+                                const char *filename, Statistic *s,
+                                CoreScanProgressCallback cb, void *cb_data);
+  void (*delete_tree)(DirEntry *tree);
+  void (*watcher_init)(ViewContext *ctx);
+} CoreStorageOps;
+
 extern int UI_CoreQuitConfirm(ViewContext *ctx, const char *msg,
                               const char *choices);
 extern void UI_CoreQuitSaveHistory(ViewContext *ctx,
@@ -877,6 +893,31 @@ extern void CoreInitOps_RegisterCmdConfig(CoreInitOps *ops);
 extern void CoreInitOps_RegisterCmdProfile(CoreInitOps *ops);
 extern void CoreInitOps_RegisterUIRuntime(CoreInitOps *ops);
 extern void CoreMainOps_Register(ViewContext *ctx);
+extern void CoreStorageOps_Register(ViewContext *ctx);
+extern void CoreWatcherOps_Register(ViewContext *ctx);
+
+extern void UI_Dialog_Init(void);
+extern void ParseColorString(const char *color_str, int *fg, int *bg);
+extern void UpdateUIColor(const char *name, int fg, int bg);
+extern void AddFileColorRule(ViewContext *ctx, const char *pattern, int fg,
+                             int bg);
+extern char *GetProfileValue(const ViewContext *ctx, const char *name);
+extern BOOL IsUserActionDefined(const ViewContext *ctx);
+extern int ScanSubTree(ViewContext *ctx, DirEntry *dir_entry, Statistic *s);
+extern int RemoveFile(ViewContext *ctx, FileEntry *fe_ptr, Statistic *s);
+extern int MakePath(const ViewContext *ctx, DirEntry *tree, char *dir_path,
+                    DirEntry **dest_dir_entry);
+extern int ReadProfile(ViewContext *ctx, const char *filename);
+extern void ReadHistory(ViewContext *ctx, const char *Filename);
+extern int ReadPasswdEntries(void);
+extern int ReadGroupEntries(void);
+extern void StartColors(ViewContext *ctx);
+extern void ReinitColorPairs(ViewContext *ctx);
+extern void WbkgdSet(const ViewContext *ctx, WINDOW *w, chtype c);
+extern void SetPanelFileMode(ViewContext *ctx, YtreePanel *p, int new_file_mode);
+extern void InitClock(ViewContext *ctx);
+extern struct Volume *Volume_Create(ViewContext *ctx);
+extern void SetKindOfSort(int kind_of_sort, Statistic *s);
 
 typedef struct _ViewContext {
   SCREEN *curses_screen;
@@ -1005,6 +1046,7 @@ typedef struct _ViewContext {
   void (*hook_clear_prompt_line)(ViewContext *ctx);
   int (*hook_refresh_ui)(void);
   CoreInitOps core_init_ops;
+  CoreStorageOps core_storage_ops;
   CoreQuitOps core_quit_ops;
   CoreMainOps core_main_ops;
 
