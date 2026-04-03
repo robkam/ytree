@@ -5,8 +5,8 @@
  *
  ***************************************************************************/
 
+#include "ytree_cmd.h"
 #include "ytree_fs.h"
-#include "ytree_ui.h"
 
 #include <errno.h>
 #include <stdlib.h>
@@ -57,19 +57,6 @@ static int ViewHexFile(ViewContext *ctx, char *file_path) {
   return 0;
 }
 
-static int HexProgressCallback(int status, const char *msg, void *user_data) {
-  ViewContext *ctx = (ViewContext *)user_data;
-  (void)msg;
-
-  if (status == ARCHIVE_STATUS_PROGRESS) {
-    DrawSpinner(ctx);
-    if (EscapeKeyPressed()) {
-      return ARCHIVE_CB_ABORT;
-    }
-  }
-  return ARCHIVE_CB_CONTINUE;
-}
-
 static int ViewHexArchiveFile(ViewContext *ctx, char *file_path) {
   char temp_filename[] = "/tmp/ytree_hex_XXXXXX";
   int fd;
@@ -84,7 +71,7 @@ static int ViewHexArchiveFile(ViewContext *ctx, char *file_path) {
   }
 
   if (ExtractArchiveEntry(ctx->active->vol->vol_stats.log_path, file_path, fd,
-                          HexProgressCallback, ctx) != 0) {
+                          UI_ArchiveCallback, ctx) != 0) {
     MESSAGE(ctx, "Could not extract entry*'%s'*from archive", file_path);
     close(fd);
     unlink(temp_filename);

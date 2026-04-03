@@ -7,7 +7,6 @@
 
 #include "ytree_cmd.h"
 #include "ytree_fs.h"
-#include "ytree_ui.h"
 
 #include <errno.h>
 #include <stdio.h>
@@ -17,7 +16,6 @@
 
 static int ViewFile(ViewContext *ctx, DirEntry *dir_entry, char *file_path);
 static int ViewArchiveFile(ViewContext *ctx, char *file_path);
-static int ArchiveUICallback(int status, const char *msg, void *user_data);
 
 int View(ViewContext *ctx, DirEntry *dir_entry, char *file_path) {
   int mode = ctx->active->vol->vol_stats.log_mode;
@@ -57,23 +55,6 @@ static int ViewFile(ViewContext *ctx, DirEntry *dir_entry, char *file_path) {
   return (result);
 }
 
-static int ArchiveUICallback(int status, const char *msg, void *user_data) {
-  ViewContext *ctx = (ViewContext *)user_data;
-  if (status == ARCHIVE_STATUS_PROGRESS) {
-    DrawSpinner(ctx);
-    if (EscapeKeyPressed()) {
-      return ARCHIVE_CB_ABORT;
-    }
-  } else if (status == ARCHIVE_STATUS_ERROR) {
-    if (msg)
-      MESSAGE(ctx, "%s", msg);
-  } else if (status == ARCHIVE_STATUS_WARNING) {
-    if (msg)
-      WARNING(ctx, "%s", msg);
-  }
-  return ARCHIVE_CB_CONTINUE;
-}
-
 static int ViewArchiveFile(ViewContext *ctx, char *file_path) {
   char temp_filename[] = "/tmp/ytree_view_XXXXXX";
   char command_line[COMMAND_LINE_LENGTH + 1];
@@ -89,7 +70,7 @@ static int ViewArchiveFile(ViewContext *ctx, char *file_path) {
   }
 
   if (ExtractArchiveEntry(ctx->active->vol->vol_stats.log_path, file_path, fd,
-                          ArchiveUICallback, ctx) != 0) {
+                          UI_ArchiveCallback, ctx) != 0) {
     MESSAGE(ctx, "Could not extract entry*'%s'*from archive", file_path);
     close(fd);
     unlink(temp_filename);
