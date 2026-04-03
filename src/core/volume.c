@@ -5,7 +5,7 @@
  *
  ***************************************************************************/
 
-#include "ytree_fs.h"
+#include "ytree_defs.h"
 
 static void Volume_ClearPanelFileEntries(YtreePanel *panel) {
   if (panel && panel->file_entry_list) {
@@ -36,6 +36,42 @@ static int Volume_ReadTreeDepth(const ViewContext *ctx) {
   if (ctx && ctx->hook_get_profile_value)
     depth_str = ctx->hook_get_profile_value(ctx, "TREEDEPTH");
   return (int)strtol(depth_str, NULL, 0);
+}
+
+static void Volume_DeleteTree(ViewContext *ctx, DirEntry *tree) {
+  if (!ctx || !tree)
+    return;
+  if (ctx->core_storage_ops.delete_tree != NULL)
+    ctx->core_storage_ops.delete_tree(tree);
+}
+
+static int Volume_GetDiskParameter(ViewContext *ctx, char *path,
+                                   char *volume_name, long long *avail_bytes,
+                                   long long *capacity, Statistic *s) {
+  if (!ctx || ctx->core_storage_ops.get_disk_parameter == NULL)
+    return -1;
+  return ctx->core_storage_ops.get_disk_parameter(path, volume_name, avail_bytes,
+                                                  capacity, s);
+}
+
+static int Volume_ReadTreePort(ViewContext *ctx, DirEntry *dir_entry, char *path,
+                               int depth, Statistic *s,
+                               ScanProgressCallback cb, void *cb_data) {
+  if (!ctx || ctx->core_storage_ops.read_tree == NULL)
+    return -1;
+  return ctx->core_storage_ops.read_tree(ctx, dir_entry, path, depth, s, cb,
+                                         cb_data);
+}
+
+static int Volume_ReadTreeFromArchivePort(ViewContext *ctx,
+                                          DirEntry **dir_entry_ptr,
+                                          const char *filename, Statistic *s,
+                                          ScanProgressCallback cb,
+                                          void *cb_data) {
+  if (!ctx || ctx->core_storage_ops.read_tree_from_archive == NULL)
+    return -1;
+  return ctx->core_storage_ops.read_tree_from_archive(
+      ctx, dir_entry_ptr, filename, s, cb, cb_data);
 }
 
 /*
@@ -76,7 +112,6 @@ struct Volume *Volume_Create(ViewContext *ctx) {
  *   vol - A pointer to the Volume structure to be deleted.
  */
 void Volume_Delete(ViewContext *ctx, struct Volume *vol) {
-  (void)ctx;
   if (vol == NULL) {
     return;
   }
@@ -101,7 +136,7 @@ void Volume_Delete(ViewContext *ctx, struct Volume *vol) {
 
   /* Free the associated directory tree if it exists */
   if (vol->vol_stats.tree != NULL) {
-    DeleteTree(vol->vol_stats.tree);
+    Volume_DeleteTree(ctx, vol->vol_stats.tree);
     vol->vol_stats.tree = NULL; /* Good practice to nullify after freeing */
   }
 
@@ -248,7 +283,7 @@ struct Volume *Volume_Load(ViewContext *ctx, const char *path,
   if (reuse_vol) {
     vol = reuse_vol;
     if (vol->vol_stats.tree) {
-      DeleteTree(vol->vol_stats.tree);
+      Volume_DeleteTree(ctx, vol->vol_stats.tree);
       vol->vol_stats.tree = NULL;
     }
     memset(&vol->vol_stats, 0, sizeof(Statistic));
@@ -291,23 +326,27 @@ struct Volume *Volume_Load(ViewContext *ctx, const char *path,
     s->log_mode = DISK_MODE;
   }
 
-  GetDiskParameter(resolved_path, s->disk_name, &s->disk_space,
-                   &s->disk_capacity, s);
+  if (Volume_GetDiskParameter(ctx, resolved_path, s->disk_name, &s->disk_space,
+                              &s->disk_capacity, s) != 0) {
+    s->disk_name[0] = '\0';
+    s->disk_space = 0;
+    s->disk_capacity = 0;
+  }
   strncpy(s->tree->name, resolved_path, PATH_LENGTH - 1);
   s->tree->name[PATH_LENGTH - 1] = '\0';
 
   /* 7. Scanning */
   if (s->log_mode == ARCHIVE_MODE) {
 #ifdef HAVE_LIBARCHIVE
-    if (ReadTreeFromArchive(ctx, &s->tree, s->log_path, s, cb,
-                            cb_user_data)) {
+    if (Volume_ReadTreeFromArchivePort(ctx, &s->tree, s->log_path, s, cb,
+                                       cb_user_data)) {
       /* Error message is set by ReadTreeFromArchive or we can set a generic one
        */
       /* Note: ReadTreeFromArchive typically prints to 'message' on error */
       if (!reuse_vol)
         Volume_Delete(ctx, vol);
       else {
-        DeleteTree(s->tree);
+        Volume_DeleteTree(ctx, s->tree);
         s->tree = NULL;
         memset(s, 0, sizeof(Statistic));
         s->kind_of_sort = SORT_BY_NAME + SORT_ASC;
@@ -320,14 +359,15 @@ struct Volume *Volume_Load(ViewContext *ctx, const char *path,
   } else {
     s->tree->next = s->tree->prev = NULL;
     depth = Volume_ReadTreeDepth(ctx);
-    res = ReadTree(ctx, s->tree, resolved_path, depth, s, cb, cb_user_data);
+    res = Volume_ReadTreePort(ctx, s->tree, resolved_path, depth, s, cb,
+                              cb_user_data);
     if (res != 0) {
       if (res != -1)
         MESSAGE(ctx, "ReadTree Failed");
       if (!reuse_vol)
         Volume_Delete(ctx, vol);
       else {
-        DeleteTree(s->tree);
+        Volume_DeleteTree(ctx, s->tree);
         s->tree = NULL;
         memset(s, 0, sizeof(Statistic));
         s->kind_of_sort = SORT_BY_NAME + SORT_ASC;

@@ -8,9 +8,8 @@
  *
  ***************************************************************************/
 
-#include "watcher.h"
+#include "ytree_defs.h"
 #include "ytree_debug.h"
-#include "ytree_fs.h"
 
 #define SORT_BY_NAME 1
 
@@ -347,6 +346,8 @@ static void InitBoundaryHooks(ViewContext *ctx) {
   ctx->hook_has_user_action = ctx->core_init_ops.has_user_action;
   if (ctx->core_init_ops.bind_runtime_hooks != NULL)
     ctx->core_init_ops.bind_runtime_hooks(ctx);
+  CoreStorageOps_Register(ctx);
+  CoreWatcherOps_Register(ctx);
   ctx->hook_clear_prompt_line = BoundaryClearPromptLine;
   ctx->hook_refresh_ui = doupdate;
 }
@@ -812,8 +813,9 @@ int Init(ViewContext *ctx, const char *configuration_file,
   if (ctx->hook_init_clock != NULL)
     ctx->hook_init_clock(ctx);
   DEBUG_LOG("Init: InitClock done");
-  if (ctx->refresh_mode & REFRESH_WATCHER)
-    Watcher_Init(ctx);
+  if ((ctx->refresh_mode & REFRESH_WATCHER) &&
+      ctx->core_storage_ops.watcher_init != NULL)
+    ctx->core_storage_ops.watcher_init(ctx);
   DEBUG_LOG("Init: Watcher_Init done");
 
   DEBUG_LOG("EXIT Init");

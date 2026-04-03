@@ -34,11 +34,7 @@ POLICY_ALLOWED_DEPENDENCIES = {
 
 # Temporary debt exceptions for pre-existing cross-layer couplings.
 # Any new exception requires explicit architecture review.
-LEGACY_POLICY_EXCEPTIONS = {
-    ("src/core/init.c", "watcher.h"),
-    ("src/core/init.c", "ytree_fs.h"),
-    ("src/core/volume.c", "ytree_fs.h"),
-}
+LEGACY_POLICY_EXCEPTIONS = set()
 
 # Prevent regression of known "god module" hotspots.
 CONTROLLER_LINE_BUDGET = {
