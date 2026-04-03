@@ -207,48 +207,78 @@ The primary execution environment is **Antigravity** with the **Codex extension*
 
 Use this workflow when the mission is large enough that one-shot implementation is risky.
 
-1.  **Mission Definition Pass (Stateless):**
-    *   Start with a stateless planning session to produce an unambiguous mission definition.
-    *   Output must include:
-        *   clear mission scope and constraints,
-        *   explicit acceptance criteria,
-        *   a prompt for a stateless `architect` run.
-2.  **Architect Breakdown Pass (Stateless, New Branch):**
-    *   Run stateless `architect` on a dedicated feature branch (local and GitHub remote branch).
-    *   Architect must break work into a sequence of numbered tasks in a text file committed in the project directory.
-    *   Architect must break work into a sequence of numbered tasks in a plain-text relay file in the repo root (`/home/rob/ytree/task-*.txt`).
-    *   Relay files are workflow artifacts and MUST NOT be committed.
-    *   Tasks must be atomic enough for safe verification, but not fragmented into trivial micro-steps.
-    *   Architect outputs only the next developer prompt for exactly one task at a time.
-    *   Architect outputs only the next developer prompt for exactly one task at a time.
-    *   Architect relay response to maintainer MUST be exactly these three lines:
-        *   `Reasoning level: <Low|Medium|High|Extra High>`
-        *   `Prompt file: <task-...-developer-prompt.txt>`
-        *   `Handoff line: developer: Execute /home/rob/ytree/<task-...-developer-prompt.txt> exactly as written (Task N only).`
-3.  **Developer Execution Pass (Stateless, One Task at a Time):**
-    *   Run a stateless `developer` for one task only.
-    *   Developer reads the task file, implements the task, and writes a task report file (what changed, why, evidence/tests run, risks/open items).
-    *   Developer reads the task file, implements the task, and writes a task report file in repo root (`/home/rob/ytree/task-<task-id>-report.txt`).
-    *   Do not batch multiple numbered tasks in one developer pass.
-    *   Developer chat response to maintainer MUST be one line only:
-        *   `Task <task-id> completed, report in /home/rob/ytree/task-<task-id>-report.txt`
-4.  **Architect Handoff Tailoring Pass (Stateless):**
-    *   After each developer report and maintainer manual check, rerun formerly-stateless `architect`.
-    *   Architect reviews repository state plus report files, then tailors the next single-task developer prompt.
-    *   Handoffs must be file-based so agents read prior artifacts directly; avoid manual copy/paste relay.
-5.  **Commit Discipline (Maintainer Approval Required):**
-    *   After each completed numbered task, create one commit on the branch.
-    *   Commit message content requires maintainer approval before commit.
-    *   Commit messages should describe achieved behavior/scope, not task numbering.
-    *   Commit only task code/refactor files required for that task.
-    *   Do not include relay artifacts (`task-*.txt`, ad-hoc AI reports) in commits.
-    *   Do not create cleanup-only commits for relay artifact deletion.
-    *   Push with project fast workflow (`push-fast`) so each task has a remote last-known-good point.
-6.  **Completion Gate and Merge:**
-    *   When the final task is complete, run full project gate (`make qa-all`) and require green results.
-    *   Merge branch into `main` only after maintainer-approved merge message.
-    *   Delete the feature branch both locally and on GitHub after successful merge.
-    *   Delete consumed relay files (`/home/rob/ytree/task-*.txt`) locally as soon as they are no longer needed.
+#### 4.1.1 Workflow Contract (Mandatory)
+
+1.  This workflow is mandatory for non-trivial missions.
+2.  Work is executed as numbered tasks that are:
+    *   atomic and independently verifiable,
+    *   not fragmented into trivial micro-steps,
+    *   executed one task at a time.
+3.  All relay artifacts MUST be plain-text `.txt` files in repo root (`~/ytree`).
+    *   `~` is the canonical notation in this doc; agents must resolve it to the user's absolute home path at runtime.
+4.  Relay artifacts (`task*.txt`, `task-*-report.txt`, `*-auditor-report.txt`) are workflow artifacts and MUST NOT be committed.
+
+#### 4.1.2 Mission Definition Pass (Stateless Planning)
+
+1.  Run a stateless planning session to define mission scope, constraints, and acceptance criteria.
+2.  Output must include a prompt for a stateless `architect` pass.
+
+#### 4.1.3 Architect Pass (Stateless, Branch Setup, File-Based Handoffs)
+
+1.  Start on a dedicated feature branch (local + remote).
+2.  Architect writes a numbered master plan file in repo root (plain text, `.txt`).
+3.  Architect emits exactly one developer handoff at a time (never multiple tasks in one handoff).
+4.  Each developer handoff must be a `.txt` prompt file in repo root and must include:
+    *   strict scope lock,
+    *   acceptance criteria,
+    *   verification commands,
+    *   stop/blocker conditions,
+    *   mandatory developer report output path.
+5.  Architect relay response to maintainer MUST include:
+    *   `Reasoning level: <Low|Medium|High|Extra High>`
+    *   `Handoff line: developer: Execute ~/ytree/<...dev_prompt.txt> exactly as written (Task ... only).`
+
+#### 4.1.4 Developer Pass (Stateless, Single Task Only)
+
+1.  Run a stateless `developer` for exactly one task.
+2.  Developer executes only the assigned task prompt.
+3.  On completion, developer MUST write report file:
+    *   `~/ytree/task-<task-id>-report.txt`
+4.  Developer chat response to maintainer MUST be one line only:
+    *   `Task <task-id> completed, report in ~/ytree/task-<task-id>-report.txt`
+
+#### 4.1.5 Auditor Pass (Stateless, Single Task Only)
+
+1.  After each developer-completed atomic task, architect prepares a single-task auditor prompt `.txt` file.
+2.  This includes correction/rework tasks (`R` tasks): each rework is treated as a new atomic task and must receive its own auditor pass.
+3.  Run a stateless `code_auditor` for that same task only.
+4.  Auditor MUST write report file:
+    *   `~/ytree/task-<task-id>-auditor-report.txt`
+5.  Auditor chat response to maintainer MUST be one line only:
+    *   `Task <task-id> auditor pass completed, report in ~/ytree/task-<task-id>-auditor-report.txt`
+
+#### 4.1.6 Architect Validation, Commit, and Cleanup
+
+1.  Maintainer provides developer/auditor completion lines and report paths back to architect.
+2.  Architect validates repository state + report evidence.
+3.  If task is accepted:
+    *   commit only task code files (no `.txt` relay/report artifacts),
+    *   use maintainer-approved commit message describing behavior/scope (no task numbering),
+    *   for first push of a new branch, use `git push-fast-up`,
+    *   for already-tracked branches, use `git push-fast`.
+4.  If a follow-up correction is needed for the same task or set, amend and repush:
+    *   `git commit --amend --no-edit`
+    *   then push using the branch rule above (`push-fast-up` first push, else `push-fast`).
+5.  After commit/push, delete consumed task prompt/report `.txt` artifacts.
+6.  Repeat from architect handoff for the next single task.
+7.  If a task fails audit or has implementation defects, architect must issue a new tailored correction task prompt for a new stateless `developer` pass. Do not reuse the previous developer session.
+
+#### 4.1.7 Completion Gate and Merge
+
+1.  When final numbered task is accepted, run full project gate (`make qa-all`) and require green results.
+2.  Integrate branch to `main` with fast-forward only; do not create a merge message commit.
+3.  Delete feature branch locally and on remote after successful integration.
+4.  Ensure relay/report `.txt` artifacts are cleaned from working tree and not committed.
 
 ---
 
