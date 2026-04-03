@@ -7,7 +7,6 @@
 
 #include "ytree_cmd.h"
 #include "ytree_fs.h"
-#include "ytree_ui.h"
 
 static void SavePanelTreeSelection(YtreePanel *panel) {
   int selected_index;
@@ -61,19 +60,23 @@ static void RestorePanelTreeSelection(ViewContext *ctx, YtreePanel *panel) {
 static void Log_Progress(ViewContext *ctx, void *data) {
   const Statistic *s = (const Statistic *)data;
 
-  DrawSpinner(ctx);
-  ClockHandler(ctx, 0);
+  if (ctx->hook_draw_spinner)
+    ctx->hook_draw_spinner(ctx);
+  if (ctx->hook_clock_handler)
+    ctx->hook_clock_handler(ctx, 0);
 
   if (ctx->animation_method == 1) {
     /* If animating, redraw the animation step. */
-    DrawAnimationStep(ctx, ctx->ctx_file_window);
-    doupdate();
+    if (ctx->hook_draw_animation_step)
+      ctx->hook_draw_animation_step(ctx, ctx->ctx_file_window);
+    if (ctx->hook_refresh_ui)
+      ctx->hook_refresh_ui();
   } else {
     /* Update statistics panel periodically */
-    if (s) {
-      DisplayDiskStatistic(ctx, s);
-      doupdate();
-    }
+    if (s && ctx->hook_display_disk_statistic)
+      ctx->hook_display_disk_statistic(ctx, s);
+    if (ctx->hook_refresh_ui)
+      ctx->hook_refresh_ui();
   }
 }
 
@@ -109,7 +112,8 @@ int LogDisk(ViewContext *ctx, YtreePanel *panel, char *path) {
 
   DEBUG_LOG("ENTER LogDisk: path=%s", path);
 
-  SuspendClock(ctx); /* Suspend clock during critical operations */
+  if (ctx->hook_suspend_clock)
+    ctx->hook_suspend_clock(ctx); /* Suspend clock during critical operations */
 
   /* Keep per-volume tree selection before switching away. */
   SavePanelTreeSelection(panel);
@@ -173,23 +177,32 @@ int LogDisk(ViewContext *ctx, YtreePanel *panel, char *path) {
 
       /* Re-apply the volume's own filter */
       (void)SetFilter(s->file_spec, s);
-      RecalculateSysStats(ctx, s);
+      if (ctx->hook_recalculate_sys_stats)
+        ctx->hook_recalculate_sys_stats(ctx, s);
 
       /* Refresh display */
-      DisplayMenu(ctx);
-      BuildDirEntryList(ctx, panel->vol, &(int){0});
+      if (ctx->hook_display_menu)
+        ctx->hook_display_menu(ctx);
+      if (ctx->hook_build_dir_entry_list)
+        ctx->hook_build_dir_entry_list(ctx, panel->vol, &(int){0});
       RestorePanelTreeSelection(ctx, panel);
 
-      DisplayTree(ctx, panel->vol, ctx->ctx_dir_window, panel->disp_begin_pos,
-                  panel->disp_begin_pos + panel->cursor_pos, TRUE);
-      DisplayDiskStatistic(ctx, s);
-      DisplayAvailBytes(ctx, s);
-      InitClock(ctx);
+      if (ctx->hook_display_tree)
+        ctx->hook_display_tree(ctx, panel->vol, ctx->ctx_dir_window,
+                               panel->disp_begin_pos,
+                               panel->disp_begin_pos + panel->cursor_pos, TRUE);
+      if (ctx->hook_display_disk_statistic)
+        ctx->hook_display_disk_statistic(ctx, s);
+      if (ctx->hook_display_avail_bytes)
+        ctx->hook_display_avail_bytes(ctx, s);
+      if (ctx->hook_init_clock)
+        ctx->hook_init_clock(ctx);
       return 0;
     } else {
       /* Volume exists but is inaccessible */
-      MESSAGE(ctx, "Volume \"%s\" not accessible (Error: %s). Removed.",
-              found_vol->vol_stats.log_path, strerror(errno));
+      if (ctx->hook_ui_message)
+        ctx->hook_ui_message(ctx, "Volume \"%s\" not accessible (Error: %s). Removed.",
+                             found_vol->vol_stats.log_path, strerror(errno));
 
       if (found_vol == panel->vol) {
         /* If the current volume is bad, we must delete it. */
@@ -212,31 +225,38 @@ int LogDisk(ViewContext *ctx, YtreePanel *panel, char *path) {
   }
 
   /* Prepare UI for loading */
-  DisplayMenu(ctx);
-  if (panel->vol)
-    DisplayDiskStatistic(
+  if (ctx->hook_display_menu)
+    ctx->hook_display_menu(ctx);
+  if (panel->vol && ctx->hook_display_disk_statistic)
+    ctx->hook_display_disk_statistic(
         ctx, &panel->vol->vol_stats); /* Maintain frame if possible */
 
   if (ctx->animation_method == 1) {
-    SwitchToBigFileWindow(ctx);
-    InitAnimation(ctx);
+    if (ctx->hook_switch_to_big_file_window)
+      ctx->hook_switch_to_big_file_window(ctx);
+    if (ctx->hook_init_animation)
+      ctx->hook_init_animation(ctx);
   } else {
-    RefreshWindow(stdscr);
-    RefreshWindow(ctx->ctx_dir_window);
+    if (ctx->hook_refresh_window) {
+      ctx->hook_refresh_window(stdscr);
+      ctx->hook_refresh_window(ctx->ctx_dir_window);
+    }
   }
-  doupdate();
+  if (ctx->hook_refresh_ui)
+    ctx->hook_refresh_ui();
 
-  if (ctx->animation_method == 0)
-    NOTICE(ctx, "Scanning...");
+  if (ctx->animation_method == 0 && ctx->hook_ui_notice)
+    ctx->hook_ui_notice(ctx, "Scanning...");
 
   /* Call Logic Core */
   loaded_vol = Volume_Load(ctx, resolved_path, reuse_vol, Log_Progress, NULL);
 
   DEBUG_LOG("LogDisk: Volume_Load returned %p", (void *)loaded_vol);
 
-  if (ctx->animation_method == 1)
-    StopAnimation(ctx);
-  SwitchToSmallFileWindow(ctx);
+  if (ctx->animation_method == 1 && ctx->hook_stop_animation)
+    ctx->hook_stop_animation(ctx);
+  if (ctx->hook_switch_to_small_file_window)
+    ctx->hook_switch_to_small_file_window(ctx);
 
   /* Handle Result */
   if (loaded_vol == NULL) {
@@ -248,11 +268,16 @@ int LogDisk(ViewContext *ctx, YtreePanel *panel, char *path) {
       /* We reused the virgin volume and it failed. It's now empty/reset. */
       /* panel->vol is still pointing to it (old_vol == reuse_vol). */
       /* Display empty state. */
-      DisplayMenu(ctx);
-      BuildDirEntryList(ctx, panel->vol, &(int){0});
-      DisplayTree(ctx, panel->vol, ctx->ctx_dir_window, 0, 0, TRUE);
-      DisplayDiskStatistic(ctx, &panel->vol->vol_stats);
-      DisplayAvailBytes(ctx, &panel->vol->vol_stats);
+      if (ctx->hook_display_menu)
+        ctx->hook_display_menu(ctx);
+      if (ctx->hook_build_dir_entry_list)
+        ctx->hook_build_dir_entry_list(ctx, panel->vol, &(int){0});
+      if (ctx->hook_display_tree)
+        ctx->hook_display_tree(ctx, panel->vol, ctx->ctx_dir_window, 0, 0, TRUE);
+      if (ctx->hook_display_disk_statistic)
+        ctx->hook_display_disk_statistic(ctx, &panel->vol->vol_stats);
+      if (ctx->hook_display_avail_bytes)
+        ctx->hook_display_avail_bytes(ctx, &panel->vol->vol_stats);
     } else if (old_vol != NULL) {
       /* We tried to create a NEW volume and failed. */
       /* panel->vol is still old_vol (valid). Restore its display. */
@@ -260,20 +285,27 @@ int LogDisk(ViewContext *ctx, YtreePanel *panel, char *path) {
       ctx->view_mode = panel->vol->vol_stats.log_mode;
       s = &panel->vol->vol_stats;
 
-      DisplayMenu(ctx);
-      BuildDirEntryList(ctx, panel->vol, &(int){0});
+      if (ctx->hook_display_menu)
+        ctx->hook_display_menu(ctx);
+      if (ctx->hook_build_dir_entry_list)
+        ctx->hook_build_dir_entry_list(ctx, panel->vol, &(int){0});
       RestorePanelTreeSelection(ctx, panel);
 
-      DisplayTree(ctx, panel->vol, ctx->ctx_dir_window, panel->disp_begin_pos,
-                  panel->disp_begin_pos + panel->cursor_pos, TRUE);
-      DisplayDiskStatistic(ctx, s);
-      DisplayAvailBytes(ctx, s);
+      if (ctx->hook_display_tree)
+        ctx->hook_display_tree(ctx, panel->vol, ctx->ctx_dir_window,
+                               panel->disp_begin_pos,
+                               panel->disp_begin_pos + panel->cursor_pos, TRUE);
+      if (ctx->hook_display_disk_statistic)
+        ctx->hook_display_disk_statistic(ctx, s);
+      if (ctx->hook_display_avail_bytes)
+        ctx->hook_display_avail_bytes(ctx, s);
     } else {
       /* Critical: No old volume, failed to load new one (e.g., initial startup
        * fail) */
       /* Main will handle exit if panel->vol is invalid */
     }
-    InitClock(ctx);
+    if (ctx->hook_init_clock)
+      ctx->hook_init_clock(ctx);
     return -1;
   }
 
@@ -293,17 +325,24 @@ int LogDisk(ViewContext *ctx, YtreePanel *panel, char *path) {
   }
 
   (void)SetFilter(s->file_spec, s);
-  RecalculateSysStats(ctx, s);
+  if (ctx->hook_recalculate_sys_stats)
+    ctx->hook_recalculate_sys_stats(ctx, s);
 
   /* Final Refresh */
-  BuildDirEntryList(ctx, panel->vol, &(int){0});
+  if (ctx->hook_build_dir_entry_list)
+    ctx->hook_build_dir_entry_list(ctx, panel->vol, &(int){0});
   RestorePanelTreeSelection(ctx, panel);
-  DisplayTree(ctx, panel->vol, ctx->ctx_dir_window, panel->disp_begin_pos,
-              panel->disp_begin_pos + panel->cursor_pos, TRUE);
-  DisplayDiskStatistic(ctx, s);
-  DisplayAvailBytes(ctx, s);
+  if (ctx->hook_display_tree)
+    ctx->hook_display_tree(ctx, panel->vol, ctx->ctx_dir_window,
+                           panel->disp_begin_pos,
+                           panel->disp_begin_pos + panel->cursor_pos, TRUE);
+  if (ctx->hook_display_disk_statistic)
+    ctx->hook_display_disk_statistic(ctx, s);
+  if (ctx->hook_display_avail_bytes)
+    ctx->hook_display_avail_bytes(ctx, s);
 
-  InitClock(ctx);
+  if (ctx->hook_init_clock)
+    ctx->hook_init_clock(ctx);
   return 0;
 }
 
@@ -315,9 +354,11 @@ int GetNewLogPath(ViewContext *ctx, YtreePanel *panel, char *path) {
 
   result = -1;
 
-  ClearHelp(ctx);
+  if (ctx->hook_clear_help)
+    ctx->hook_clear_help(ctx);
 
-  MvAddStr(ctx->layout.prompt_y, 1, "LOG:");
+  if (ctx->hook_mv_add_str)
+    ctx->hook_mv_add_str(ctx->layout.prompt_y, 1, "LOG:");
 
   /* Save the current directory context and set it as default for user input */
   copied_len = snprintf(current_dir_path, sizeof(current_dir_path), "%s", path);
@@ -338,8 +379,9 @@ int GetNewLogPath(ViewContext *ctx, YtreePanel *panel, char *path) {
       user_input[strlen(user_input) - 1] = '\0';
   }
 
-  if ((UI_ReadString)(ctx, panel, "Log Path:", user_input, PATH_LENGTH - 1,
-                      HST_LOG) == CR) {
+  if (ctx->hook_read_string &&
+      (ctx->hook_read_string)(ctx, panel, "Log Path:", user_input,
+                              PATH_LENGTH - 1, HST_LOG) == CR) {
     char temp_path[PATH_LENGTH * 3 + 2];
     char resolved_path[PATH_LENGTH + 1];
 
@@ -394,13 +436,16 @@ int CycleLoadedVolume(ViewContext *ctx, YtreePanel *panel, int direction) {
     num_volumes = HASH_COUNT(ctx->volumes_head);
 
     if (num_volumes <= 1) {
-      MESSAGE(ctx, "Only one volume loaded.*No cycling possible.");
+      if (ctx->hook_ui_message)
+        ctx->hook_ui_message(ctx, "Only one volume loaded.*No cycling possible.");
       return (changes_made ? 0 : -1);
     }
 
     vol_array = (struct Volume **)malloc(num_volumes * sizeof(struct Volume *));
     if (vol_array == NULL) {
-      MESSAGE(ctx, "Failed to allocate memory for volume list during cycle.");
+      if (ctx->hook_ui_message)
+        ctx->hook_ui_message(ctx,
+                             "Failed to allocate memory for volume list during cycle.");
       return -1;
     }
 
@@ -415,7 +460,8 @@ int CycleLoadedVolume(ViewContext *ctx, YtreePanel *panel, int direction) {
     }
 
     if (current_index == -1) {
-      MESSAGE(ctx, "Current volume not found in list during cycle.");
+      if (ctx->hook_ui_message)
+        ctx->hook_ui_message(ctx, "Current volume not found in list during cycle.");
       free(vol_array);
       return -1;
     }
@@ -424,7 +470,8 @@ int CycleLoadedVolume(ViewContext *ctx, YtreePanel *panel, int direction) {
 
     if (target_index == current_index && retries > 1) {
       free(vol_array);
-      MESSAGE(ctx, "No other accessible volumes found.");
+      if (ctx->hook_ui_message)
+        ctx->hook_ui_message(ctx, "No other accessible volumes found.");
       return (changes_made ? 0 : -1);
     }
 
@@ -440,8 +487,10 @@ int CycleLoadedVolume(ViewContext *ctx, YtreePanel *panel, int direction) {
     if (LogDisk(ctx, panel, target_path) == 0) {
       /* Force UI reset to standard split view on cycle */
       RecursiveClearBigWindow(panel->vol->vol_stats.tree);
-      ReCreateWindows(ctx);
-      ClockHandler(ctx, 0);
+      if (ctx->hook_recreate_windows)
+        ctx->hook_recreate_windows(ctx);
+      if (ctx->hook_clock_handler)
+        ctx->hook_clock_handler(ctx, 0);
       return 0;
     } else {
       /* If LogDisk failed, the target volume was likely removed.
@@ -450,7 +499,8 @@ int CycleLoadedVolume(ViewContext *ctx, YtreePanel *panel, int direction) {
     }
   }
 
-  MESSAGE(ctx,
-          "Failed to switch to an accessible volume after multiple attempts.");
+  if (ctx->hook_ui_message)
+    ctx->hook_ui_message(
+        ctx, "Failed to switch to an accessible volume after multiple attempts.");
   return (changes_made ? 0 : -1);
 }

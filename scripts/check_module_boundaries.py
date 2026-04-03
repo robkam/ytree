@@ -35,10 +35,7 @@ POLICY_ALLOWED_DEPENDENCIES = {
 # Temporary debt exceptions for pre-existing cross-layer couplings.
 # Any new exception requires explicit architecture review.
 LEGACY_POLICY_EXCEPTIONS = {
-    ("src/cmd/log.c", "ytree_ui.h"),
-    ("src/cmd/pipe.c", "ytree_ui.h"),
     ("src/cmd/print_ops.c", "ytree_ui.h"),
-    ("src/cmd/system.c", "ytree_ui.h"),
     ("src/core/init.c", "config.h"),
     ("src/core/init.c", "watcher.h"),
     ("src/core/init.c", "ytree_cmd.h"),

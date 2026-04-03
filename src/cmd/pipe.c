@@ -7,7 +7,6 @@
 
 #include "ytree_cmd.h"
 #include "ytree_fs.h"
-#include "ytree_ui.h"
 #include <fcntl.h>
 #include <stdio.h>
 #include <string.h>
@@ -64,15 +63,18 @@ int Pipe(ViewContext *ctx, DirEntry *dir_entry, FileEntry *file_entry,
 
   /* Exit curses mode for external command */
   endwin();
-  SuspendClock(ctx);
+  if (ctx->hook_suspend_clock)
+    ctx->hook_suspend_clock(ctx);
 
   pipe_fp = popen(pipe_command, "w");
   if (pipe_fp == NULL) {
     /* Restore curses mode */
-    InitClock(ctx);
+    if (ctx->hook_init_clock)
+      ctx->hook_init_clock(ctx);
     touchwin(stdscr);
     wnoutrefresh(stdscr);
-    doupdate();
+    if (ctx->hook_refresh_ui)
+      ctx->hook_refresh_ui();
 
     /* Restore CWD before returning */
     if (fchdir(start_dir_fd) == -1) {
@@ -103,14 +105,17 @@ int Pipe(ViewContext *ctx, DirEntry *dir_entry, FileEntry *file_entry,
     result = pclose(pipe_fp);
 
     /* Wait for user to see output */
-    HitReturnToContinue();
+    if (ctx->hook_hit_return_to_continue)
+      ctx->hook_hit_return_to_continue();
   }
 
   /* Restore curses mode */
-  InitClock(ctx);
+  if (ctx->hook_init_clock)
+    ctx->hook_init_clock(ctx);
   touchwin(stdscr);
   wnoutrefresh(stdscr);
-  doupdate();
+  if (ctx->hook_refresh_ui)
+    ctx->hook_refresh_ui();
 
   if (fchdir(start_dir_fd) == -1) {
   }
@@ -143,14 +148,17 @@ int PipeDirectory(ViewContext *ctx, DirEntry *dir_entry, char *pipe_command) {
 
   /* Exit curses mode for external command */
   endwin();
-  SuspendClock(ctx);
+  if (ctx->hook_suspend_clock)
+    ctx->hook_suspend_clock(ctx);
 
   if ((pipe_fp = popen(pipe_command, "w")) == NULL) {
     /* Restore curses mode */
-    InitClock(ctx);
+    if (ctx->hook_init_clock)
+      ctx->hook_init_clock(ctx);
     touchwin(stdscr);
     wnoutrefresh(stdscr);
-    doupdate();
+    if (ctx->hook_refresh_ui)
+      ctx->hook_refresh_ui();
 
     /* Restore CWD */
     if (fchdir(start_dir_fd) == -1) {
@@ -170,15 +178,18 @@ int PipeDirectory(ViewContext *ctx, DirEntry *dir_entry, char *pipe_command) {
   pclose(pipe_fp);
 
   /* Wait for user to see output */
-  HitReturnToContinue();
+  if (ctx->hook_hit_return_to_continue)
+    ctx->hook_hit_return_to_continue();
 
   result = 0;
 
   /* Restore curses mode */
-  InitClock(ctx);
+  if (ctx->hook_init_clock)
+    ctx->hook_init_clock(ctx);
   touchwin(stdscr);
   wnoutrefresh(stdscr);
-  doupdate();
+  if (ctx->hook_refresh_ui)
+    ctx->hook_refresh_ui();
 
   /* Restore CWD */
   if (fchdir(start_dir_fd) == -1) {
