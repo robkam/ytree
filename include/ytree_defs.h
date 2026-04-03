@@ -821,6 +821,24 @@ typedef struct {
   BOOL cancel_requested; /* Set by Esc key handler */
 } ProgressContext;
 
+typedef struct {
+  int (*confirm_quit)(ViewContext *ctx, const char *msg, const char *choices);
+  void (*save_history)(ViewContext *ctx, const char *path_for_history);
+  void (*close_watcher)(ViewContext *ctx);
+  void (*cleanup_volume_tree)(ViewContext *ctx);
+  void (*suspend_clock)(ViewContext *ctx);
+  void (*shutdown_terminal)(ViewContext *ctx);
+} CoreQuitOps;
+
+extern int UI_CoreQuitConfirm(ViewContext *ctx, const char *msg,
+                              const char *choices);
+extern void UI_CoreQuitSaveHistory(ViewContext *ctx,
+                                   const char *path_for_history);
+extern void UI_CoreQuitCloseWatcher(ViewContext *ctx);
+extern void UI_CoreQuitCleanupVolumeTree(ViewContext *ctx);
+extern void UI_CoreQuitSuspendClock(ViewContext *ctx);
+extern void UI_CoreQuitShutdownTerminal(ViewContext *ctx);
+
 typedef struct _ViewContext {
   SCREEN *curses_screen;
   WINDOW *ctx_dir_window;
@@ -947,6 +965,7 @@ typedef struct _ViewContext {
   void (*hook_init_clock)(ViewContext *ctx);
   void (*hook_clear_prompt_line)(ViewContext *ctx);
   int (*hook_refresh_ui)(void);
+  CoreQuitOps core_quit_ops;
 
   /* profile.c state */
   void *profile_data;  /* Pointer to the profile array */

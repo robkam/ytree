@@ -323,6 +323,12 @@ static void InitBoundaryHooks(ViewContext *ctx) {
   ctx->hook_init_clock = InitClock;
   ctx->hook_clear_prompt_line = BoundaryClearPromptLine;
   ctx->hook_refresh_ui = doupdate;
+  ctx->core_quit_ops.confirm_quit = UI_CoreQuitConfirm;
+  ctx->core_quit_ops.save_history = UI_CoreQuitSaveHistory;
+  ctx->core_quit_ops.close_watcher = UI_CoreQuitCloseWatcher;
+  ctx->core_quit_ops.cleanup_volume_tree = UI_CoreQuitCleanupVolumeTree;
+  ctx->core_quit_ops.suspend_clock = UI_CoreQuitSuspendClock;
+  ctx->core_quit_ops.shutdown_terminal = UI_CoreQuitShutdownTerminal;
 }
 
 static void BoundaryClearPromptLine(ViewContext *ctx) {

@@ -43,10 +43,6 @@ LEGACY_POLICY_EXCEPTIONS = {
     ("src/core/main.c", "ytree_cmd.h"),
     ("src/core/main.c", "ytree_fs.h"),
     ("src/core/main.c", "ytree_ui.h"),
-    ("src/core/quit.c", "watcher.h"),
-    ("src/core/quit.c", "ytree_cmd.h"),
-    ("src/core/quit.c", "ytree_fs.h"),
-    ("src/core/quit.c", "ytree_ui.h"),
     ("src/core/volume.c", "ytree_fs.h"),
 }
 
