@@ -280,28 +280,28 @@
     *   `make qa-module-boundaries` must pass at batch end.
 *   **Files to Modify:** `scripts/check_module_boundaries.py`, source/header files for each batch, `doc/ARCHITECTURE.md` when policy changes.
 *   **Context Files:** `doc/AUDIT.md`, `doc/ai/WORKFLOW.md`
-*   - [ ] **Status:** Not Started.
+*   - [x] **Status:** Completed.
 
 ##### **Task 27.5.1: Burn-Down Batch 1 (util and low-risk include cleanup)**
 *   **Goal:** Remove a first small batch (4-6) of legacy exceptions focused on low-risk dependency cleanup.
 *   **Suggested Scope:** `src/util/*.c` and straightforward include reductions that do not alter runtime behavior.
 *   **Verification:** `make -j4`, targeted `pytest`, `make qa-module-boundaries`.
-*   - [ ] **Status:** Not Started.
+*   - [x] **Status:** Completed.
 
 ##### **Task 27.5.2: Burn-Down Batch 2 (fs/cmd boundary cleanup)**
 *   **Goal:** Remove the next small batch (4-6) of exceptions in `fs` and `cmd` where UI dependencies can be inverted or routed via narrower interfaces.
 *   **Verification:** `make -j4`, relevant `pytest` scope, `make qa-module-boundaries`.
-*   - [ ] **Status:** Not Started.
+*   - [x] **Status:** Completed.
 
 ##### **Task 27.5.3: Burn-Down Batch 3 (core boundary cleanup)**
 *   **Goal:** Remove the next small batch (4-6) of `core` cross-layer exceptions by tightening startup/lifecycle boundaries.
 *   **Verification:** `make -j4`, relevant `pytest` scope, `make qa-module-boundaries`.
-*   - [ ] **Status:** Not Started.
+*   - [x] **Status:** Completed.
 
 ##### **Task 27.5.4: Burn-Down Completion (zero-exception target)**
 *   **Goal:** Reach zero legacy exceptions and keep the module-boundary policy fully enforced by default.
 *   **Done Criteria:** `LEGACY_POLICY_EXCEPTIONS` empty, `make qa-all` green, docs aligned.
-*   - [ ] **Status:** Not Started.
+*   - [x] **Status:** Completed.
 
 ---
 
