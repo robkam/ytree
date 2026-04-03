@@ -446,3 +446,24 @@ BOOL IsUserActionDefined(const ViewContext *ctx) {
   return ((BOOL)(((Dirmenu *)ctx->dirmenu_list)->next != NULL ||
                  ((Filemenu *)ctx->filemenu_list)->next != NULL));
 }
+
+static int CoreInit_ReadProfile(ViewContext *ctx, const char *filename) {
+  return ReadProfile(ctx, filename);
+}
+
+static char *CoreInit_GetProfileValue(const ViewContext *ctx, const char *name) {
+  return GetProfileValue(ctx, name);
+}
+
+static BOOL CoreInit_HasUserAction(const ViewContext *ctx) {
+  return IsUserActionDefined(ctx);
+}
+
+void CoreInitOps_RegisterCmdProfile(CoreInitOps *ops) {
+  if (ops == NULL)
+    return;
+
+  ops->read_profile = CoreInit_ReadProfile;
+  ops->get_profile_value = CoreInit_GetProfileValue;
+  ops->has_user_action = CoreInit_HasUserAction;
+}

@@ -831,6 +831,27 @@ typedef struct {
 } CoreQuitOps;
 
 typedef struct {
+  int (*read_group_entries)(void);
+  int (*read_passwd_entries)(void);
+  int (*read_profile)(ViewContext *ctx, const char *filename);
+  void (*read_history)(ViewContext *ctx, const char *filename);
+  char *(*get_profile_value)(const ViewContext *ctx, const char *name);
+  BOOL (*has_user_action)(const ViewContext *ctx);
+  void (*start_colors)(ViewContext *ctx);
+  void (*dialog_init)(void);
+  void (*reinit_color_pairs)(ViewContext *ctx);
+  void (*set_panel_file_mode)(ViewContext *ctx, YtreePanel *panel,
+                              int new_file_mode);
+  void (*wbkgd_set)(const ViewContext *ctx, WINDOW *win, chtype c);
+  int (*ui_notice)(ViewContext *ctx, const char *msg);
+  void (*parse_color_string)(const char *color_str, int *fg, int *bg);
+  void (*update_ui_color)(const char *name, int fg, int bg);
+  void (*add_file_color_rule)(ViewContext *ctx, const char *pattern, int fg,
+                              int bg);
+  void (*bind_runtime_hooks)(ViewContext *ctx);
+} CoreInitOps;
+
+typedef struct {
   int (*init)(ViewContext *ctx, const char *configuration_file,
               const char *history_file);
   void (*set_profile_value)(const ViewContext *ctx, char *name,
@@ -852,6 +873,9 @@ extern void UI_CoreQuitCloseWatcher(ViewContext *ctx);
 extern void UI_CoreQuitCleanupVolumeTree(ViewContext *ctx);
 extern void UI_CoreQuitSuspendClock(ViewContext *ctx);
 extern void UI_CoreQuitShutdownTerminal(ViewContext *ctx);
+extern void CoreInitOps_RegisterCmdConfig(CoreInitOps *ops);
+extern void CoreInitOps_RegisterCmdProfile(CoreInitOps *ops);
+extern void CoreInitOps_RegisterUIRuntime(CoreInitOps *ops);
 extern void CoreMainOps_Register(ViewContext *ctx);
 
 typedef struct _ViewContext {
@@ -980,6 +1004,7 @@ typedef struct _ViewContext {
   void (*hook_init_clock)(ViewContext *ctx);
   void (*hook_clear_prompt_line)(ViewContext *ctx);
   int (*hook_refresh_ui)(void);
+  CoreInitOps core_init_ops;
   CoreQuitOps core_quit_ops;
   CoreMainOps core_main_ops;
 
