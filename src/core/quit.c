@@ -5,10 +5,7 @@
  *
  ***************************************************************************/
 
-#include "ytree_cmd.h"
-#include "ytree_fs.h"
-#include "ytree_ui.h"
-#include "watcher.h"
+#include "ytree.h"
 #include <stdlib.h>
 
 /*
@@ -20,45 +17,37 @@ static void PerformQuit(ViewContext *ctx) {
   int term;
   char path_for_history[PATH_LENGTH + 1];
   const char *p;
+  CoreQuitOps *quit_ops = NULL;
+
+  if (ctx != NULL)
+    quit_ops = &ctx->core_quit_ops;
 
   if (ctx->confirm_quit && strtol(ctx->confirm_quit, NULL, 0) != 0) {
-    term = InputChoice(ctx, "quit ytree (Y/N) ?", "YNQq\r\033");
+    if (quit_ops != NULL && quit_ops->confirm_quit != NULL) {
+      term = quit_ops->confirm_quit(ctx, "quit ytree (Y/N) ?", "YNQq\r\033");
+    } else {
+      term = 'Y';
+    }
   } else {
     term = 'Y';
   }
 
   if (term == 'Y' || term == 'Q' || term == 'q') {
-    /* CRITICAL FIX: Stop the clock signal immediately to prevent race
-     * conditions. If SIGALRM fires after endwin() but before exit(), it causes
-     * a crash. */
-    SuspendClock(ctx);
+    if (quit_ops != NULL && quit_ops->suspend_clock != NULL)
+      quit_ops->suspend_clock(ctx);
     /* Common exit procedure for all quit types */
     if ((p = getenv("HOME"))) {
       snprintf(path_for_history, sizeof(path_for_history), "%s%c%s", p,
                FILE_SEPARATOR_CHAR, HISTORY_FILENAME);
-      SaveHistory(ctx, path_for_history);
+      if (quit_ops != NULL && quit_ops->save_history != NULL)
+        quit_ops->save_history(ctx, path_for_history);
     }
-    Watcher_Close(ctx);
-
-    /* Ncurses cleanup sequence: clear screen, restore cursor, and reset
-     * terminal */
-    /* Performed BEFORE freeing memory to ensure clean terminal state if crash
-     * occurs */
-    attrset(0);  /* Reset attributes */
-    clear();     /* Clear internal buffer */
-    refresh();   /* Push clear to screen */
-    curs_set(1); /* Restore visible cursor */
-    ShutdownCurses(ctx);
-
-    /* Free all allocated volumes to prevent memory leaks on exit. */
-    Volume_FreeAll(ctx);
-
-    /* Free the global directory entry list */
-    FreeDirEntryList(ctx);
-
-#ifdef XCURSES
-    XCursesExit();
-#endif
+    if (quit_ops != NULL && quit_ops->close_watcher != NULL)
+      quit_ops->close_watcher(ctx);
+    if (quit_ops != NULL && quit_ops->shutdown_terminal != NULL)
+      quit_ops->shutdown_terminal(ctx);
+    if (quit_ops != NULL && quit_ops->cleanup_volume_tree != NULL)
+      quit_ops->cleanup_volume_tree(ctx);
     /* Final safety net for terminal state */
     if (system("stty sane")) {
       ;

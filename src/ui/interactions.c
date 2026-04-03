@@ -341,6 +341,34 @@ int UI_ChoiceResolver(ViewContext *ctx, const char *prompt,
   return InputChoice(ctx, prompt, choices);
 }
 
+int UI_CoreQuitConfirm(ViewContext *ctx, const char *msg, const char *choices) {
+  return InputChoice(ctx, msg, choices);
+}
+
+void UI_CoreQuitSaveHistory(ViewContext *ctx, const char *path_for_history) {
+  SaveHistory(ctx, path_for_history);
+}
+
+void UI_CoreQuitCloseWatcher(ViewContext *ctx) { Watcher_Close(ctx); }
+
+void UI_CoreQuitCleanupVolumeTree(ViewContext *ctx) {
+  Volume_FreeAll(ctx);
+  FreeDirEntryList(ctx);
+}
+
+void UI_CoreQuitSuspendClock(ViewContext *ctx) { SuspendClock(ctx); }
+
+void UI_CoreQuitShutdownTerminal(ViewContext *ctx) {
+  attrset(0);  /* Reset attributes */
+  clear();     /* Clear internal buffer */
+  refresh();   /* Push clear to screen */
+  curs_set(1); /* Restore visible cursor */
+  ShutdownCurses(ctx);
+#ifdef XCURSES
+  XCursesExit();
+#endif
+}
+
 int GetMoveParameter(ViewContext *ctx, const char *from_file, char *to_file,
                      char *to_dir) {
   if (from_file == NULL) {
