@@ -148,6 +148,9 @@ extern int ReadProfile(ViewContext *ctx, const char *filename);
 extern void ReadHistory(ViewContext *ctx, const char *filename);
 extern void SaveHistory(ViewContext *ctx, const char *filename);
 extern void InsHistory(ViewContext *ctx, const char *new_hst, int type);
+extern void BuildHistoryViewList(ViewContext *ctx, int type);
+extern char *PrepareCompletionMatches(ViewContext *ctx, char *base,
+                                      int *show_dialog);
 extern char *GetHistory(ViewContext *ctx, int type);
 extern char *GetMatches(ViewContext *ctx, char *base);
 
