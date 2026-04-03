@@ -122,6 +122,7 @@ Cross-cutting skill auto-load:
 *   Manpage/usage doc sync tasks -> `manpage-sync`
 *   UI workflow/menu-depth/interaction-economy design -> `ui-economy-navigation`
 *   UI prompt-chain offender detection/audit -> `ui-flow-offender-audit`
+*   Code-smell audit/remediation (deslop-style) -> `rm-code-smells` (prompt guide: [RM_CODE_SMELLS.md](RM_CODE_SMELLS.md))
 
 Skill precedence (highest to lowest):
 
