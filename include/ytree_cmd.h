@@ -120,7 +120,19 @@ extern int PipeTaggedFiles(ViewContext *ctx, FileEntry *fe_ptr,
                            WalkingPackage *walking_package, Statistic *s);
 
 /* print_ops.c */
+typedef enum {
+  PRINT_WRITE_OK = 0,
+  PRINT_WRITE_NO_DESTINATION,
+  PRINT_WRITE_IO_ERROR,
+  PRINT_WRITE_OPEN_FAILED
+} PrintWriteStatus;
+extern PrintWriteStatus Cmd_WritePrintOutput(ViewContext *ctx,
+                                             DirEntry *dir_entry, BOOL tagged,
+                                             PrintConfig *config, int *is_pipe,
+                                             char *error_target);
 extern void UI_HandlePrint(ViewContext *ctx, DirEntry *dir_entry, BOOL tagged);
+extern void UI_HandlePrintController(ViewContext *ctx, DirEntry *dir_entry,
+                                     BOOL tagged);
 
 /* profile.c */
 extern void SetProfileValue(const ViewContext *ctx, char *name,
