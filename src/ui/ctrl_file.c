@@ -1734,7 +1734,7 @@ int HandleFileWindow(ViewContext *ctx, DirEntry *dir_entry) {
       break;
 
     case ACTION_CMD_PRINT:
-      UI_HandlePrint(ctx, dir_entry, FALSE);
+      UI_HandlePrintController(ctx, dir_entry, FALSE);
       RefreshView(ctx, dir_entry);
       need_dsp_help = TRUE;
       break;

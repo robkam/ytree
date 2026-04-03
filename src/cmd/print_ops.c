@@ -7,7 +7,6 @@
 
 #include "ytree_cmd.h"
 #include "ytree_fs.h"
-#include "ytree_ui.h"
 #include <fcntl.h>
 #include <pwd.h>
 #include <stdio.h>
@@ -102,41 +101,44 @@ static int PrintFileContent(ViewContext *ctx, FileEntry *file_entry,
   return result;
 }
 
-static BOOL WritePrintOutput(ViewContext *ctx, DirEntry *dir_entry, BOOL tagged,
-                             PrintConfig *config) {
+PrintWriteStatus Cmd_WritePrintOutput(ViewContext *ctx, DirEntry *dir_entry,
+                                      BOOL tagged, PrintConfig *config,
+                                      int *is_pipe_out, char *error_target) {
   FILE *out_fp = NULL;
-  BOOL is_pipe = TRUE;
+  int is_pipe = TRUE;
   char *dest_raw = config->print_to;
   char expanded[PATH_LENGTH + 1];
   char path[PATH_LENGTH + 1];
   int start_dir_fd;
+
+  if (is_pipe_out) {
+    *is_pipe_out = TRUE;
+  }
+  if (error_target) {
+    error_target[0] = '\0';
+  }
 
   /* Strip leading spaces */
   while (*dest_raw == ' ')
     dest_raw++;
 
   if (*dest_raw == '\0') {
-    UI_Message(ctx, "No destination specified");
-    return FALSE;
+    return PRINT_WRITE_NO_DESTINATION;
   }
 
   /* Robustly save current working directory */
   start_dir_fd = open(".", O_RDONLY);
   if (start_dir_fd == -1) {
-    return FALSE;
+    return PRINT_WRITE_IO_ERROR;
   }
 
   /* Change to the current panel's directory so bare relative paths work */
   if (ctx->view_mode == DISK_MODE || ctx->view_mode == USER_MODE) {
     if (chdir(GetPath(dir_entry, path))) {
       close(start_dir_fd);
-      return FALSE;
+      return PRINT_WRITE_IO_ERROR;
     }
   }
-
-  /* Exit curses mode */
-  endwin();
-  SuspendClock(ctx);
 
   const char *dest = dest_raw;
   if (*dest == '>') {
@@ -151,19 +153,16 @@ static BOOL WritePrintOutput(ViewContext *ctx, DirEntry *dir_entry, BOOL tagged,
   }
 
   if (out_fp == NULL) {
-    InitClock(ctx);
-    touchwin(stdscr);
-    wnoutrefresh(stdscr);
-    doupdate();
     if (fchdir(start_dir_fd) == -1) {
     }
     close(start_dir_fd);
-    if (is_pipe) {
-      UI_Message(ctx, "execution of command*%s*failed", dest);
-    } else {
-      UI_Message(ctx, "Failed to open file*%s*", is_pipe ? dest : expanded);
+    if (error_target) {
+      snprintf(error_target, PATH_LENGTH + 1, "%s", is_pipe ? dest : expanded);
     }
-    return FALSE;
+    if (is_pipe_out) {
+      *is_pipe_out = is_pipe;
+    }
+    return PRINT_WRITE_OPEN_FAILED;
   }
 
   /* Walk and write files, passing is_first/is_last for separator logic */
@@ -196,96 +195,16 @@ static BOOL WritePrintOutput(ViewContext *ctx, DirEntry *dir_entry, BOOL tagged,
 
   if (is_pipe) {
     pclose(out_fp);
-    /* Only pause for pipes, since file writes are silent */
-    HitReturnToContinue();
   } else {
     fclose(out_fp);
   }
-
-  /* Restore curses mode */
-  InitClock(ctx);
-  touchwin(stdscr);
-  wnoutrefresh(stdscr);
-  doupdate();
 
   if (fchdir(start_dir_fd) == -1) {
   }
   close(start_dir_fd);
 
-  return TRUE;
-}
-
-void UI_HandlePrint(ViewContext *ctx, DirEntry *dir_entry, BOOL tagged) {
-  PrintConfig config;
-  int term;
-
-  memset(&config, 0, sizeof(config));
-  config.format = PRINT_FORMAT_RAW;
-
-  if (tagged && dir_entry->tagged_files == 0) {
-    UI_Beep(ctx, FALSE);
-    return;
+  if (is_pipe_out) {
+    *is_pipe_out = is_pipe;
   }
-
-  ClearHelp(ctx);
-
-  term = InputChoice(
-      ctx, "Format: (R)aw, (F)ramed, (P)age break  (Esc) cancel  ", "RFP\033");
-  if (term == ESC || term == '\033') {
-    wmove(ctx->ctx_border_window, ctx->layout.prompt_y, 0);
-    wclrtoeol(ctx->ctx_border_window);
-    wnoutrefresh(ctx->ctx_border_window);
-    return;
-  }
-
-  if (term == 'R')
-    config.format = PRINT_FORMAT_RAW;
-  else if (term == 'F')
-    config.format = PRINT_FORMAT_FRAMED;
-  else
-    config.format = PRINT_FORMAT_PAGEBREAK;
-
-  if (config.format == PRINT_FORMAT_FRAMED ||
-      config.format == PRINT_FORMAT_PAGEBREAK) {
-    char frame_sep[32] = "";
-    if (UI_ReadString(ctx, ctx->active,
-                      "Frame separator (default: ```): ", frame_sep,
-                      sizeof(frame_sep) - 1, HST_PRINT_FRAME) == ESC) {
-      wmove(ctx->ctx_border_window, ctx->layout.prompt_y, 0);
-      wclrtoeol(ctx->ctx_border_window);
-      wnoutrefresh(ctx->ctx_border_window);
-      return;
-    }
-    if (frame_sep[0] == '\0') {
-      snprintf(frame_sep, sizeof(frame_sep), "```");
-    }
-    snprintf(config.frame_separator, sizeof(config.frame_separator), "%s",
-             frame_sep);
-  }
-
-  {
-    char prompt[COMMAND_LINE_LENGTH + 1];
-    char cwd[PATH_LENGTH + 1];
-    if (getcwd(cwd, sizeof(cwd))) {
-      /* Safe truncation for prompt */
-      snprintf(prompt, sizeof(prompt), "Write to (CWD: %.200s): ", cwd);
-    } else {
-      snprintf(prompt, sizeof(prompt), "Write to (command or >file): ");
-    }
-
-    if (UI_ReadString(ctx, ctx->active, prompt, config.print_to, PATH_LENGTH,
-                      HST_FILE) != CR) {
-      wmove(ctx->ctx_border_window, ctx->layout.prompt_y, 0);
-      wclrtoeol(ctx->ctx_border_window);
-      wnoutrefresh(ctx->ctx_border_window);
-      return;
-    }
-  }
-
-  WritePrintOutput(ctx, dir_entry, tagged, &config);
-
-  /* Clear prompt */
-  wmove(ctx->ctx_border_window, ctx->layout.prompt_y, 0);
-  wclrtoeol(ctx->ctx_border_window);
-  wnoutrefresh(ctx->ctx_border_window);
+  return PRINT_WRITE_OK;
 }

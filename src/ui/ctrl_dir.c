@@ -2340,7 +2340,7 @@ int HandleDirWindow(ViewContext *ctx, const DirEntry *start_dir_entry) {
       break;
 
     case ACTION_CMD_PRINT: /* Print Directory */
-      UI_HandlePrint(ctx, dir_entry, FALSE);
+      UI_HandlePrintController(ctx, dir_entry, FALSE);
       need_dsp_help = TRUE;
       break;
 
