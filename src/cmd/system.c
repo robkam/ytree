@@ -7,7 +7,6 @@
 
 #include "ytree_cmd.h"
 #include "ytree_fs.h"
-#include "ytree_ui.h"
 #include <stdlib.h>
 
 /* SystemCall and QuerySystemCall moved to UI layer */
@@ -21,7 +20,8 @@ int SilentSystemCallEx(ViewContext *ctx, const char *command_line, BOOL enable_c
 
   /* Hier ist die einzige Stelle, in der Kommandos aufgerufen werden! */
 
-  SuspendClock(ctx);
+  if (ctx->hook_suspend_clock)
+    ctx->hook_suspend_clock(ctx);
 
   result = system(command_line);
 
@@ -30,10 +30,10 @@ int SilentSystemCallEx(ViewContext *ctx, const char *command_line, BOOL enable_c
      If enable_clock is FALSE, the caller (QuerySystemCall) is responsible
      for the display/pause. */
 
-  if (enable_clock)
-    InitClock(ctx); /* Re-initializes timer AND calls refresh/restores
-                            * curses mode
-                            */
+  if (enable_clock && ctx->hook_init_clock)
+    ctx->hook_init_clock(ctx); /* Re-initializes timer AND calls refresh/restores
+                                * curses mode
+                                */
 
   (void)GetAvailBytes(&s->disk_space, s);
   return (result);

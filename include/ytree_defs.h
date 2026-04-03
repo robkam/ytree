@@ -919,8 +919,32 @@ typedef struct _ViewContext {
                            const char *choices);
   void (*hook_quit)(ViewContext *ctx);
   int (*hook_ui_message)(ViewContext *ctx, const char *fmt, ...);
+  int (*hook_ui_notice)(ViewContext *ctx, const char *fmt, ...);
+  void (*hook_draw_spinner)(ViewContext *ctx);
+  void (*hook_clock_handler)(ViewContext *ctx, int sig);
+  void (*hook_draw_animation_step)(ViewContext *ctx, WINDOW *win);
   void (*hook_display_disk_statistic)(ViewContext *ctx, const Statistic *s);
+  void (*hook_display_avail_bytes)(ViewContext *ctx, const Statistic *s);
+  void (*hook_display_menu)(ViewContext *ctx);
+  void (*hook_build_dir_entry_list)(ViewContext *ctx, struct Volume *vol,
+                                    int *index_ptr);
+  void (*hook_display_tree)(ViewContext *ctx, struct Volume *vol, WINDOW *win,
+                            int start_entry_no, int hilight_no, BOOL is_active);
+  void (*hook_switch_to_big_file_window)(ViewContext *ctx);
+  void (*hook_init_animation)(ViewContext *ctx);
+  void (*hook_refresh_window)(WINDOW *win);
+  void (*hook_stop_animation)(ViewContext *ctx);
+  void (*hook_switch_to_small_file_window)(ViewContext *ctx);
+  void (*hook_clear_help)(ViewContext *ctx);
+  int (*hook_mv_add_str)(int y, int x, char *str);
+  int (*hook_read_string)(ViewContext *ctx, YtreePanel *panel,
+                          const char *prompt, char *buffer, int max_len,
+                          int history_type);
+  void (*hook_recreate_windows)(ViewContext *ctx);
+  void (*hook_hit_return_to_continue)(void);
   void (*hook_recalculate_sys_stats)(ViewContext *ctx, Statistic *s);
+  void (*hook_suspend_clock)(ViewContext *ctx);
+  void (*hook_init_clock)(ViewContext *ctx);
   void (*hook_clear_prompt_line)(ViewContext *ctx);
   int (*hook_refresh_ui)(void);
 
