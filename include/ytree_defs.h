@@ -830,6 +830,20 @@ typedef struct {
   void (*shutdown_terminal)(ViewContext *ctx);
 } CoreQuitOps;
 
+typedef struct {
+  int (*init)(ViewContext *ctx, const char *configuration_file,
+              const char *history_file);
+  void (*set_profile_value)(const ViewContext *ctx, char *name,
+                            const char *value);
+  int (*log_disk)(ViewContext *ctx, YtreePanel *panel, char *path);
+  int (*set_filter)(const char *filter_spec, Statistic *s);
+  void (*recalculate_sys_stats)(ViewContext *ctx, Statistic *s);
+  int (*handle_dir_window)(ViewContext *ctx, const DirEntry *start_dir_entry);
+  void (*suspend_clock)(ViewContext *ctx);
+  void (*shutdown_curses)(ViewContext *ctx);
+  void (*volume_free_all)(ViewContext *ctx);
+} CoreMainOps;
+
 extern int UI_CoreQuitConfirm(ViewContext *ctx, const char *msg,
                               const char *choices);
 extern void UI_CoreQuitSaveHistory(ViewContext *ctx,
@@ -838,6 +852,7 @@ extern void UI_CoreQuitCloseWatcher(ViewContext *ctx);
 extern void UI_CoreQuitCleanupVolumeTree(ViewContext *ctx);
 extern void UI_CoreQuitSuspendClock(ViewContext *ctx);
 extern void UI_CoreQuitShutdownTerminal(ViewContext *ctx);
+extern void CoreMainOps_Register(ViewContext *ctx);
 
 typedef struct _ViewContext {
   SCREEN *curses_screen;
@@ -966,6 +981,7 @@ typedef struct _ViewContext {
   void (*hook_clear_prompt_line)(ViewContext *ctx);
   int (*hook_refresh_ui)(void);
   CoreQuitOps core_quit_ops;
+  CoreMainOps core_main_ops;
 
   /* profile.c state */
   void *profile_data;  /* Pointer to the profile array */
