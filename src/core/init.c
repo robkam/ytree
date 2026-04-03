@@ -42,6 +42,19 @@ static WINDOW *Subwin(WINDOW *orig, int nlines, int ncols, int begin_y,
 static WINDOW *Newwin(int nlines, int ncols, int begin_y, int begin_x);
 static void InitBoundaryHooks(ViewContext *ctx);
 static void BoundaryClearPromptLine(ViewContext *ctx);
+extern int RuntimePort_MainInit(ViewContext *ctx, const char *configuration_file,
+                                const char *history_file);
+extern void RuntimePort_MainSetProfileValue(const ViewContext *ctx, char *name,
+                                            const char *value);
+extern int RuntimePort_MainLogDisk(ViewContext *ctx, YtreePanel *panel,
+                                   char *path);
+extern int RuntimePort_MainSetFilter(const char *filter_spec, Statistic *s);
+extern void RuntimePort_MainRecalculateSysStats(ViewContext *ctx, Statistic *s);
+extern int RuntimePort_MainHandleDirWindow(ViewContext *ctx,
+                                           const DirEntry *start_dir_entry);
+extern void RuntimePort_MainSuspendClock(ViewContext *ctx);
+extern void RuntimePort_MainShutdownCurses(ViewContext *ctx);
+extern void RuntimePort_MainVolumeFreeAll(ViewContext *ctx);
 
 #ifdef XCURSES
 char *XCursesProgramName = "ytree";
@@ -240,6 +253,7 @@ void Layout_Recalculate(ViewContext *ctx) {
 void InitView(ViewContext *ctx) {
   DEBUG_LOG("ENTER InitView");
   memset(ctx, 0, sizeof(ViewContext));
+  CoreMainOps_Register(ctx);
   InitBoundaryHooks(ctx);
   ctx->viewer.inhex = TRUE;
   ctx->view_mode = DISK_MODE;
@@ -277,6 +291,21 @@ void InitView(ViewContext *ctx) {
   ctx->active = ctx->left;
 
   DEBUG_LOG("EXIT InitView");
+}
+
+void CoreMainOps_Register(ViewContext *ctx) {
+  if (ctx == NULL)
+    return;
+
+  ctx->core_main_ops.init = RuntimePort_MainInit;
+  ctx->core_main_ops.set_profile_value = RuntimePort_MainSetProfileValue;
+  ctx->core_main_ops.log_disk = RuntimePort_MainLogDisk;
+  ctx->core_main_ops.set_filter = RuntimePort_MainSetFilter;
+  ctx->core_main_ops.recalculate_sys_stats = RuntimePort_MainRecalculateSysStats;
+  ctx->core_main_ops.handle_dir_window = RuntimePort_MainHandleDirWindow;
+  ctx->core_main_ops.suspend_clock = RuntimePort_MainSuspendClock;
+  ctx->core_main_ops.shutdown_curses = RuntimePort_MainShutdownCurses;
+  ctx->core_main_ops.volume_free_all = RuntimePort_MainVolumeFreeAll;
 }
 
 static void InitBoundaryHooks(ViewContext *ctx) {

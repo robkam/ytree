@@ -5,10 +5,7 @@
  *
  ***************************************************************************/
 
-#include "ytree_cmd.h"
 #include "ytree_defs.h"
-#include "ytree_fs.h"
-#include "ytree_ui.h"
 #include "patchlev.h"
 #include "default_profile_template.h"
 #include <errno.h>
@@ -23,6 +20,14 @@
 volatile sig_atomic_t ytree_shutdown_flag = 0;
 
 static char buffer[PATH_LENGTH + 1];
+
+static int CoreMainOpsReady(const CoreMainOps *ops) {
+  return ops != NULL && ops->init != NULL && ops->set_profile_value != NULL &&
+         ops->log_disk != NULL && ops->set_filter != NULL &&
+         ops->recalculate_sys_stats != NULL && ops->handle_dir_window != NULL &&
+         ops->suspend_clock != NULL && ops->shutdown_curses != NULL &&
+         ops->volume_free_all != NULL;
+}
 
 static void SigIntHandler(int sig) {
   (void)sig;
@@ -90,6 +95,11 @@ int main(int argc, char **argv) {
   ViewContext ctx;
 
   memset(&ctx, 0, sizeof(ViewContext));
+  CoreMainOps_Register(&ctx);
+  if (!CoreMainOpsReady(&ctx.core_main_ops)) {
+    fprintf(stderr, "EXIT: CoreMainOps not configured\n");
+    exit(1);
+  }
 
   /* Register Signal Handlers */
   /* signal(SIGSEGV, EmergencyExit); */ /* Segfault */
@@ -204,8 +214,12 @@ int main(int argc, char **argv) {
     exit(1);
   }
 
-  if (Init(&ctx, conf, hist)) {
+  if (ctx.core_main_ops.init(&ctx, conf, hist)) {
     fprintf(stderr, "EXIT: Init failed\n");
+    exit(1);
+  }
+  if (!CoreMainOpsReady(&ctx.core_main_ops)) {
+    fprintf(stderr, "EXIT: CoreMainOps registration lost\n");
     exit(1);
   }
 
@@ -235,12 +249,12 @@ int main(int argc, char **argv) {
 
         if (d_arg) {
           if (strcasecmp(d_arg, "all") == 0 || strcasecmp(d_arg, "max") == 0) {
-            SetProfileValue(&ctx, "TREEDEPTH", "100");
+            ctx.core_main_ops.set_profile_value(&ctx, "TREEDEPTH", "100");
           } else if (strcasecmp(d_arg, "min") == 0 ||
                      strcasecmp(d_arg, "root") == 0) {
-            SetProfileValue(&ctx, "TREEDEPTH", "0");
+            ctx.core_main_ops.set_profile_value(&ctx, "TREEDEPTH", "0");
           } else {
-            SetProfileValue(&ctx, "TREEDEPTH", d_arg);
+            ctx.core_main_ops.set_profile_value(&ctx, "TREEDEPTH", d_arg);
           }
         }
       } break;
@@ -261,7 +275,7 @@ int main(int argc, char **argv) {
   /* Allocate memory for path indexes to support multiple volumes */
   path_indexes = (int *)malloc(sizeof(int) * argc);
   if (!path_indexes) {
-    ShutdownCurses(&ctx);
+    ctx.core_main_ops.shutdown_curses(&ctx);
     fprintf(stderr, "Memory allocation failed\n");
     exit(1);
   }
@@ -286,15 +300,15 @@ int main(int argc, char **argv) {
   if (path_count == 0) {
     /* Case 0: No paths provided, default to current working directory */
     if (getcwd(buffer, sizeof(buffer)) == NULL) {
-      ShutdownCurses(&ctx);
+      ctx.core_main_ops.shutdown_curses(&ctx);
       fprintf(stderr, "Error: getcwd failed: %s\n", strerror(errno));
       free(path_indexes);
       exit(1);
     }
 
     /* Use LogDisk (wrapper around Volume_Load) to load the initial path */
-    if (LogDisk(&ctx, ctx.left, buffer) == -1) {
-      ShutdownCurses(&ctx);
+    if (ctx.core_main_ops.log_disk(&ctx, ctx.left, buffer) == -1) {
+      ctx.core_main_ops.shutdown_curses(&ctx);
       /* If defaulting to CWD fails, it's a fatal error */
       fprintf(stderr, "EXIT: LogDisk failed for CWD\n");
       free(path_indexes);
@@ -304,7 +318,7 @@ int main(int argc, char **argv) {
     for (int i = path_count - 1; i >= 0; i--) {
       /* LogDisk returns -1 on failure but handles its own error messaging via
        * UI. We proceed to try loading the other requested volumes. */
-      LogDisk(&ctx, ctx.left, argv[path_indexes[i]]);
+      ctx.core_main_ops.log_disk(&ctx, ctx.left, argv[path_indexes[i]]);
     }
   }
 
@@ -312,7 +326,7 @@ int main(int argc, char **argv) {
 
   /* Ensure we have at least one active volume before entering main loop */
   if (ctx.active->vol == NULL || ctx.active->vol->vol_stats.tree == NULL) {
-    ShutdownCurses(&ctx);
+    ctx.core_main_ops.shutdown_curses(&ctx);
     fprintf(stderr, "EXIT: No active volume\n");
     exit(1);
   }
@@ -323,9 +337,9 @@ int main(int argc, char **argv) {
     strncpy(ctx.active->vol->vol_stats.file_spec, filter_arg, FILE_SPEC_LENGTH);
     ctx.active->vol->vol_stats.file_spec[FILE_SPEC_LENGTH] = '\0';
 
-    SetFilter(ctx.active->vol->vol_stats.file_spec,
-              &ctx.active->vol->vol_stats);
-    RecalculateSysStats(&ctx, &ctx.active->vol->vol_stats);
+    ctx.core_main_ops.set_filter(ctx.active->vol->vol_stats.file_spec,
+                                 &ctx.active->vol->vol_stats);
+    ctx.core_main_ops.recalculate_sys_stats(&ctx, &ctx.active->vol->vol_stats);
   }
 
   /* Main application loop */
@@ -343,8 +357,8 @@ int main(int argc, char **argv) {
       break;
     }
     DEBUG_LOG("Calling HandleDirWindow...");
-    int main_loop_exit_char =
-        HandleDirWindow(&ctx, ctx.active->vol->vol_stats.tree);
+    int main_loop_exit_char = ctx.core_main_ops.handle_dir_window(
+        &ctx, ctx.active->vol->vol_stats.tree);
     DEBUG_LOG("HandleDirWindow returned %d", main_loop_exit_char);
     if (main_loop_exit_char == 'q' || main_loop_exit_char == 'Q') {
       /* User requested to quit. Break the loop to proceed with cleanup. */
@@ -358,16 +372,17 @@ int main(int argc, char **argv) {
   }
 
   /* Explicit cleanup */
-  SuspendClock(&ctx); /* Stop SIGALRM (now no-op but kept for API
-                      consistency) before touching curses/memory */
+  ctx.core_main_ops.suspend_clock(
+      &ctx); /* Stop SIGALRM (now no-op but kept for API consistency) before
+                touching curses/memory */
 
   attrset(0);  /* Reset attributes */
   clear();     /* Clear internal buffer */
   refresh();   /* Push clear to screen */
   curs_set(1); /* Restore visible cursor */
-  ShutdownCurses(&ctx);
+  ctx.core_main_ops.shutdown_curses(&ctx);
 
-  Volume_FreeAll(&ctx); /* Explicitly free memory */
+  ctx.core_main_ops.volume_free_all(&ctx); /* Explicitly free memory */
 
   return 0;
 }
