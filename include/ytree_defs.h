@@ -563,6 +563,10 @@ extern int BuildFilename(char *in_filename, char *pattern, char *out_filename);
 extern void StrCp(char *dest, const char *src);
 extern int String_Replace(char *dest, size_t dest_size, const char *src,
                           const char *token, const char *replacement);
+extern BOOL String_HasNonWhitespace(const char *text);
+extern void String_GetCommandDisplayName(const char *command_template,
+                                         char *command_name,
+                                         size_t command_name_size);
 
 /* Input Debugging */
 

@@ -233,6 +233,9 @@
 *   **Context Files:** `include/ytree_ui.h`, `include/ytree_defs.h`
 *   - [ ] **Status:** Not Started.
 
+:at a
+Check for scope drift/context drift.
+
 #### **Task 27.2: Directory Compare Decomposition Completion**
 *   **Goal:** Complete extraction of remaining directory/tree comparison logic from directory controller paths into focused compare module(s).
 *   **Rationale:** Comparison flows are high-complexity and should be isolated from input-loop/controller dispatch for maintainability and safer testing.
@@ -310,7 +313,7 @@
 
 ### **Task 1: Externalize UI Strings for Internationalization (i18n)**
 *   **Description:** Move all user-facing strings (menus, prompts, error messages) out of the C code and into a separate, loadable resource file. This is a prerequisite for translation. The application will load the appropriate language file at startup.
-*   **Rationale:** As discussed, this is a major architectural shift that risks breaking existing test harnesses. It should be deferred until the core UI logic and path completion refinements are stable. 
+*   **Rationale:** As discussed, this is a major architectural shift that risks breaking existing test harnesses. It should be deferred until the core UI logic and path completion refinements are stable.
 *   **Files to Modify:** `src/util/i18n.c` (New), `src/*/*.c`
 *   **Context Files:** None.
 *   - [ ] **Status:** Not Started.

@@ -5,6 +5,8 @@
  *
  ***************************************************************************/
 
+#include "ytree_defs.h"
+#include <ctype.h>
 #include <string.h>
 
 void StrCp(char *dest, const char *src) {
@@ -137,4 +139,47 @@ int String_Replace(char *dest, size_t dest_size, const char *src,
 
   memcpy(out_ptr, in_ptr, remainder_len + 1);
   return 0;
+}
+
+BOOL String_HasNonWhitespace(const char *text) {
+  if (!text)
+    return FALSE;
+  while (*text) {
+    if (!isspace((unsigned char)*text))
+      return TRUE;
+    text++;
+  }
+  return FALSE;
+}
+
+void String_GetCommandDisplayName(const char *command_template, char *command_name,
+                                  size_t command_name_size) {
+  const char *cursor;
+  size_t idx = 0;
+
+  if (!command_name || command_name_size == 0)
+    return;
+
+  command_name[0] = '\0';
+  if (!command_template)
+    return;
+
+  cursor = command_template;
+  while (*cursor && isspace((unsigned char)*cursor))
+    cursor++;
+  if (*cursor == '\0')
+    return;
+
+  if (*cursor == '"' || *cursor == '\'') {
+    char quote = *cursor++;
+    while (*cursor && *cursor != quote && idx + 1 < command_name_size) {
+      command_name[idx++] = *cursor++;
+    }
+  } else {
+    while (*cursor && !isspace((unsigned char)*cursor) &&
+           idx + 1 < command_name_size) {
+      command_name[idx++] = *cursor++;
+    }
+  }
+  command_name[idx] = '\0';
 }
