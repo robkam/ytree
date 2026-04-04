@@ -57,7 +57,7 @@ static void RestorePanelTreeSelection(ViewContext *ctx, YtreePanel *panel) {
 }
 
 /* Helper function to handle scan progress updates */
-static void Log_Progress(ViewContext *ctx, void *data) {
+static void Log_Progress(ViewContext *ctx, const void *data) {
   const Statistic *s = (const Statistic *)data;
 
   if (ctx->hook_draw_spinner)
@@ -249,7 +249,8 @@ int LogDisk(ViewContext *ctx, YtreePanel *panel, char *path) {
     ctx->hook_ui_notice(ctx, "Scanning...");
 
   /* Call Logic Core */
-  loaded_vol = Volume_Load(ctx, resolved_path, reuse_vol, Log_Progress, NULL);
+  loaded_vol = Volume_Load(ctx, resolved_path, reuse_vol,
+                           (ScanProgressCallback)Log_Progress, NULL);
 
   DEBUG_LOG("LogDisk: Volume_Load returned %p", (void *)loaded_vol);
 

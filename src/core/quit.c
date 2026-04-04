@@ -15,15 +15,14 @@
  */
 static void PerformQuit(ViewContext *ctx) {
   int term;
-  char path_for_history[PATH_LENGTH + 1];
-  const char *p;
-  CoreQuitOps *quit_ops = NULL;
+  CoreQuitOps *quit_ops;
 
-  if (ctx != NULL)
-    quit_ops = &ctx->core_quit_ops;
+  if (ctx == NULL)
+    return;
+  quit_ops = &ctx->core_quit_ops;
 
   if (ctx->confirm_quit && strtol(ctx->confirm_quit, NULL, 0) != 0) {
-    if (quit_ops != NULL && quit_ops->confirm_quit != NULL) {
+    if (quit_ops->confirm_quit != NULL) {
       term = quit_ops->confirm_quit(ctx, "quit ytree (Y/N) ?", "YNQq\r\033");
     } else {
       term = 'Y';
@@ -33,20 +32,22 @@ static void PerformQuit(ViewContext *ctx) {
   }
 
   if (term == 'Y' || term == 'Q' || term == 'q') {
-    if (quit_ops != NULL && quit_ops->suspend_clock != NULL)
+    if (quit_ops->suspend_clock != NULL)
       quit_ops->suspend_clock(ctx);
     /* Common exit procedure for all quit types */
-    if ((p = getenv("HOME"))) {
+    const char *p = getenv("HOME");
+    if (p) {
+      char path_for_history[PATH_LENGTH + 1];
       snprintf(path_for_history, sizeof(path_for_history), "%s%c%s", p,
                FILE_SEPARATOR_CHAR, HISTORY_FILENAME);
-      if (quit_ops != NULL && quit_ops->save_history != NULL)
+      if (quit_ops->save_history != NULL)
         quit_ops->save_history(ctx, path_for_history);
     }
-    if (quit_ops != NULL && quit_ops->close_watcher != NULL)
+    if (quit_ops->close_watcher != NULL)
       quit_ops->close_watcher(ctx);
-    if (quit_ops != NULL && quit_ops->shutdown_terminal != NULL)
+    if (quit_ops->shutdown_terminal != NULL)
       quit_ops->shutdown_terminal(ctx);
-    if (quit_ops != NULL && quit_ops->cleanup_volume_tree != NULL)
+    if (quit_ops->cleanup_volume_tree != NULL)
       quit_ops->cleanup_volume_tree(ctx);
     /* Final safety net for terminal state */
     if (system("stty sane")) {

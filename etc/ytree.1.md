@@ -179,6 +179,10 @@ Active when the file window is focused.
 *   **Y**: (Pathcopy): Copy selected file, replicating its directory structure relative to the current volume root.
 *   **^F** (File Mode): Cycle file display modes.
 *   **Return**: Switch to Full Screen File Mode / Directory Mode.
+*   **Left Arrow**: Move to the previous visible file column; in one-column
+    layouts this performs page-up navigation.
+*   **Right Arrow**: Move to the next visible file column; in one-column
+    layouts this performs page-down navigation.
 *   **Date Changes:** Date actions change Accessed time, Modified time, or both (POSIX does not allow setting creation/birth time here).
 
 ### Archive Mode

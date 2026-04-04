@@ -24,27 +24,16 @@
 #if !defined(__NeXT__) && !defined(ultrix)
 #endif /* __NeXT__ ultrix */
 
-/* Local Statics for metrics calculation - Pushed to Renderer */
-static int max_disp_files;
-static int x_step;
-/* static int  hide_left; */ /* Removed: Unused */
-static int hide_right;
-
-/* Metrics statics moved to file_list.c */
-
 static long preview_line_offset = 0;
 static int saved_fixed_width = 0;
 
 /* --- Forward Declarations --- */
 /* file_list.c: ReadFileList, ReadGlobalFileList, BuildFileEntryList,
  *              FreeFileEntryList, InvalidateVolumePanels, DisplayFileWindow */
-static void RereadWindowSize(ViewContext *ctx, DirEntry *dir_entry);
 static void ListJump(ViewContext *ctx, DirEntry *dir_entry, char *str);
 static void DrawFileListJumpPrompt(ViewContext *ctx, WINDOW *win,
                                    const char *search_buf);
 static void UpdatePreview(ViewContext *ctx, const DirEntry *dir_entry);
-static void SyncFileGridMetrics(ViewContext *ctx);
-static void UpdateFileHeaderPath(ViewContext *ctx, DirEntry *dir_entry);
 static int FindDirIndexInVolume(const struct Volume *vol,
                                 const DirEntry *target);
 static struct Volume *FindVolumeForDir(ViewContext *ctx, const DirEntry *target,
@@ -183,115 +172,6 @@ int ChangeFileGroup(ViewContext *ctx, FileEntry *fe_ptr) {
   return 0;
 }
 
-static void fmovedown(ViewContext *ctx, int *start_file, int *cursor_pos,
-                      const int *start_x, DirEntry *dir_entry) {
-  Nav_MoveDown(cursor_pos, start_file, (int)ctx->active->file_count,
-               max_disp_files, 1);
-
-  DisplayFiles(ctx, ctx->active, dir_entry, *start_file,
-               *start_file + *cursor_pos, *start_x,
-               ctx->ctx_file_window); /* Update dynamic header path */
-  UpdateFileHeaderPath(ctx, dir_entry);
-  ctx->active->start_file = *start_file;
-}
-
-static void fmoveup(ViewContext *ctx, int *start_file, int *cursor_pos,
-                    const int *start_x, DirEntry *dir_entry) {
-  Nav_MoveUp(cursor_pos, start_file);
-
-  DisplayFiles(ctx, ctx->active, dir_entry, *start_file,
-               *start_file + *cursor_pos, *start_x,
-               ctx->ctx_file_window); /* Update dynamic header path */
-  UpdateFileHeaderPath(ctx, dir_entry);
-  ctx->active->start_file = *start_file;
-}
-
-static void fmoveright(ViewContext *ctx, int *start_file, int *cursor_pos,
-                       int *start_x, DirEntry *dir_entry) {
-  if (x_step == 1) {
-    /* Special case: scroll entire file window */
-    /*------------------------*/
-    (*start_x)++;
-    DisplayFiles(ctx, ctx->active, dir_entry, *start_file,
-                 *start_file + *cursor_pos, *start_x, ctx->ctx_file_window);
-    if (hide_right <= 0)
-      (*start_x)--;
-  } else {
-    int current_index = *start_file + *cursor_pos;
-    int file_count = (int)ctx->active->file_count;
-
-    if (current_index + x_step < file_count) {
-      if (*cursor_pos + x_step < max_disp_files) {
-        /* RIGHT possible without scrolling */
-        *cursor_pos += x_step;
-      } else {
-        /* Scrolling keeps row and moves to next visible column window */
-        *start_file += x_step;
-      }
-
-      DisplayFiles(ctx, ctx->active, dir_entry, *start_file,
-                   *start_file + *cursor_pos, *start_x, ctx->ctx_file_window);
-    }
-  } /* Update dynamic header path */
-  UpdateFileHeaderPath(ctx, dir_entry);
-  ctx->active->start_file = *start_file;
-  return;
-}
-
-static void fmoveleft(ViewContext *ctx, int *start_file, int *cursor_pos,
-                      int *start_x, DirEntry *dir_entry) {
-  if (x_step == 1) {
-    /* Special case: scroll entire file window */
-    /*----------------------------------------*/
-    if (*start_x > 0)
-      (*start_x)--;
-    DisplayFiles(ctx, ctx->active, dir_entry, *start_file,
-                 *start_file + *cursor_pos, *start_x, ctx->ctx_file_window);
-  } else {
-    int current_index = *start_file + *cursor_pos;
-
-    if (current_index - x_step >= 0) {
-      if (*cursor_pos - x_step >= 0) {
-        /* LEFT possible without scrolling */
-        *cursor_pos -= x_step;
-      } else {
-        /* Scrolling keeps row and moves to previous visible column window */
-        if ((*start_file -= x_step) < 0)
-          *start_file = 0;
-      }
-
-      DisplayFiles(ctx, ctx->active, dir_entry, *start_file,
-                   *start_file + *cursor_pos, *start_x, ctx->ctx_file_window);
-    }
-  } /* Update dynamic header path */
-  UpdateFileHeaderPath(ctx, dir_entry);
-  ctx->active->start_file = *start_file;
-  return;
-}
-
-static void fmovenpage(ViewContext *ctx, int *start_file, int *cursor_pos,
-                       const int *start_x, DirEntry *dir_entry) {
-  Nav_PageDown(cursor_pos, start_file, (int)ctx->active->file_count,
-               max_disp_files);
-
-  DisplayFiles(ctx, ctx->active, dir_entry, *start_file,
-               *start_file + *cursor_pos, *start_x,
-               ctx->ctx_file_window); /* Update dynamic header path */
-  UpdateFileHeaderPath(ctx, dir_entry);
-  ctx->active->start_file = *start_file;
-}
-
-static void fmoveppage(ViewContext *ctx, int *start_file, int *cursor_pos,
-                       const int *start_x, DirEntry *dir_entry) {
-  Nav_PageUp(cursor_pos, start_file, max_disp_files);
-
-  DisplayFiles(ctx, ctx->active, dir_entry, *start_file,
-               *start_file + *cursor_pos, *start_x,
-               ctx->ctx_file_window); /* Update dynamic header path */
-  UpdateFileHeaderPath(ctx, dir_entry);
-  ctx->active->start_file = *start_file;
-}
-
 /* Local helper to refresh file window, maintaining file cursor */
 DirEntry *RefreshFileView(ViewContext *ctx, DirEntry *dir_entry) {
   char *saved_name = NULL;
@@ -336,7 +216,7 @@ DirEntry *RefreshFileView(ViewContext *ctx, DirEntry *dir_entry) {
   if (found_idx != -1) {
     /* Calculate new start_file and cursor_pos */
     if (found_idx >= dir_entry->start_file &&
-        found_idx < dir_entry->start_file + max_disp_files) {
+        found_idx < dir_entry->start_file + FileNav_GetMaxDispFiles(ctx)) {
       /* Still on screen, just move cursor */
       dir_entry->cursor_pos = found_idx - dir_entry->start_file;
     } else {
@@ -344,10 +224,11 @@ DirEntry *RefreshFileView(ViewContext *ctx, DirEntry *dir_entry) {
       dir_entry->start_file = found_idx;
       dir_entry->cursor_pos = 0;
       /* Bounds check */
-      if (dir_entry->start_file + max_disp_files >
+      if (dir_entry->start_file + FileNav_GetMaxDispFiles(ctx) >
           (int)ctx->active->file_count) {
         dir_entry->start_file =
-            MAXIMUM(0, (int)ctx->active->file_count - max_disp_files);
+            MAXIMUM(0, (int)ctx->active->file_count -
+                              FileNav_GetMaxDispFiles(ctx));
         dir_entry->cursor_pos =
             (int)ctx->active->file_count - 1 - dir_entry->start_file;
       }
@@ -428,6 +309,8 @@ int HandleFileWindow(ViewContext *ctx, DirEntry *dir_entry) {
   maybe_change_x_step = TRUE;
 
   BuildFileEntryList(ctx, ctx->active);
+  FileNav_SyncGridMetrics(ctx);
+  ctx->ctrl_file_hide_right = 0;
 
   /* Sanitize cursor position immediately after BuildFileEntryList */
   if (ctx->active->file_count > 0) {
@@ -440,7 +323,8 @@ int HandleFileWindow(ViewContext *ctx, DirEntry *dir_entry) {
     if ((unsigned int)(dir_entry->start_file + dir_entry->cursor_pos) >=
         ctx->active->file_count) {
       dir_entry->start_file =
-          MAXIMUM(0, (int)ctx->active->file_count - max_disp_files);
+          MAXIMUM(0, (int)ctx->active->file_count -
+                            FileNav_GetMaxDispFiles(ctx));
       dir_entry->cursor_pos =
           (int)ctx->active->file_count - 1 - dir_entry->start_file;
     }
@@ -461,7 +345,7 @@ int HandleFileWindow(ViewContext *ctx, DirEntry *dir_entry) {
     ctx->fixed_col_width = ctx->layout.big_file_win_width - 2;
     if (ctx->fixed_col_width < 1)
       ctx->fixed_col_width = 1;
-    RereadWindowSize(ctx, dir_entry);
+    FileNav_RereadWindowSize(ctx, dir_entry);
 
     RefreshView(ctx, dir_entry);
     UpdatePreview(ctx, dir_entry);
@@ -500,7 +384,7 @@ int HandleFileWindow(ViewContext *ctx, DirEntry *dir_entry) {
      * This prevents stale x_step/max_disp_files after refresh/toggle/resize
      * paths that rebuild the list but do not pass through mode-change logic.
      */
-    SyncFileGridMetrics(ctx);
+    FileNav_SyncGridMetrics(ctx);
     maybe_change_x_step = FALSE;
 
     if (unput_char) {
@@ -558,7 +442,7 @@ int HandleFileWindow(ViewContext *ctx, DirEntry *dir_entry) {
 
     if (ctx->resize_request) {
       /* Simplified Resize using Centralized Function */
-      RereadWindowSize(ctx, dir_entry);
+      FileNav_RereadWindowSize(ctx, dir_entry);
       RefreshView(ctx, dir_entry);
       if (ctx->preview_mode)
         UpdatePreview(ctx, dir_entry);
@@ -580,7 +464,7 @@ int HandleFileWindow(ViewContext *ctx, DirEntry *dir_entry) {
       action = FilterPreviewAction(action);
     }
 
-    if (x_step == 1 &&
+    if (FileNav_GetXStep(ctx) == 1 &&
         (action == ACTION_MOVE_RIGHT || action == ACTION_MOVE_LEFT)) {
       /* do not reset start_x */
       /*-----------------------------*/
@@ -657,7 +541,7 @@ int HandleFileWindow(ViewContext *ctx, DirEntry *dir_entry) {
 
         /* 4. Update scrolling metrics (max_column, etc) based on new width/mode
          */
-        RereadWindowSize(ctx, dir_entry);
+        FileNav_RereadWindowSize(ctx, dir_entry);
       } else {
         /* Turning OFF */
         /* INSTRUCTION: Restore state */
@@ -694,7 +578,7 @@ int HandleFileWindow(ViewContext *ctx, DirEntry *dir_entry) {
         ReCreateWindows(ctx);
 
         /* 3. Update metrics */
-        RereadWindowSize(ctx, dir_entry);
+        FileNav_RereadWindowSize(ctx, dir_entry);
 
         /* Call RefreshView immediately after restoration */
         RefreshView(ctx, dir_entry);
@@ -835,8 +719,7 @@ int HandleFileWindow(ViewContext *ctx, DirEntry *dir_entry) {
       break;
 
     case ACTION_MOVE_DOWN:
-      fmovedown(ctx, &dir_entry->start_file, &dir_entry->cursor_pos, &start_x,
-                dir_entry);
+      FileNav_MoveDown(ctx, dir_entry, start_x);
       if (ctx->preview_mode) {
         preview_line_offset = 0;
         UpdatePreview(ctx, dir_entry);
@@ -844,8 +727,7 @@ int HandleFileWindow(ViewContext *ctx, DirEntry *dir_entry) {
       break;
 
     case ACTION_MOVE_UP:
-      fmoveup(ctx, &dir_entry->start_file, &dir_entry->cursor_pos, &start_x,
-              dir_entry);
+      FileNav_MoveUp(ctx, dir_entry, start_x);
       if (ctx->preview_mode) {
         preview_line_offset = 0;
         UpdatePreview(ctx, dir_entry);
@@ -853,14 +735,12 @@ int HandleFileWindow(ViewContext *ctx, DirEntry *dir_entry) {
       break;
 
     case ACTION_MOVE_RIGHT:
-      if (x_step == 1) {
+      if (FileNav_GetXStep(ctx) == 1) {
         /* In one-column layouts, LEFT/RIGHT page through the list. */
         start_x = 0;
-        fmovenpage(ctx, &dir_entry->start_file, &dir_entry->cursor_pos,
-                   &start_x, dir_entry);
+        FileNav_PageDown(ctx, dir_entry, start_x);
       } else {
-        fmoveright(ctx, &dir_entry->start_file, &dir_entry->cursor_pos,
-                   &start_x, dir_entry);
+        FileNav_MoveRight(ctx, dir_entry, &start_x);
       }
       if (ctx->preview_mode) {
         preview_line_offset = 0;
@@ -869,13 +749,11 @@ int HandleFileWindow(ViewContext *ctx, DirEntry *dir_entry) {
       break;
 
     case ACTION_MOVE_LEFT:
-      if (x_step == 1) {
+      if (FileNav_GetXStep(ctx) == 1) {
         start_x = 0;
-        fmoveppage(ctx, &dir_entry->start_file, &dir_entry->cursor_pos,
-                   &start_x, dir_entry);
+        FileNav_PageUp(ctx, dir_entry, start_x);
       } else {
-        fmoveleft(ctx, &dir_entry->start_file, &dir_entry->cursor_pos, &start_x,
-                  dir_entry);
+        FileNav_MoveLeft(ctx, dir_entry, &start_x);
       }
       if (ctx->preview_mode) {
         preview_line_offset = 0;
@@ -884,8 +762,7 @@ int HandleFileWindow(ViewContext *ctx, DirEntry *dir_entry) {
       break;
 
     case ACTION_PAGE_DOWN:
-      fmovenpage(ctx, &dir_entry->start_file, &dir_entry->cursor_pos, &start_x,
-                 dir_entry);
+      FileNav_PageDown(ctx, dir_entry, start_x);
       if (ctx->preview_mode) {
         preview_line_offset = 0;
         UpdatePreview(ctx, dir_entry);
@@ -893,8 +770,7 @@ int HandleFileWindow(ViewContext *ctx, DirEntry *dir_entry) {
       break;
 
     case ACTION_PAGE_UP:
-      fmoveppage(ctx, &dir_entry->start_file, &dir_entry->cursor_pos, &start_x,
-                 dir_entry);
+      FileNav_PageUp(ctx, dir_entry, start_x);
       if (ctx->preview_mode) {
         preview_line_offset = 0;
         UpdatePreview(ctx, dir_entry);
@@ -903,12 +779,12 @@ int HandleFileWindow(ViewContext *ctx, DirEntry *dir_entry) {
 
     case ACTION_END:
       Nav_End(&dir_entry->cursor_pos, &dir_entry->start_file,
-              (int)ctx->active->file_count, max_disp_files);
+              (int)ctx->active->file_count, FileNav_GetMaxDispFiles(ctx));
 
       DisplayFiles(ctx, ctx->active, dir_entry, dir_entry->start_file,
                    dir_entry->start_file + dir_entry->cursor_pos, start_x,
                    ctx->ctx_file_window);
-      UpdateFileHeaderPath(ctx, dir_entry);
+      FileNav_UpdateHeaderPath(ctx, dir_entry);
       if (ctx->preview_mode) {
         preview_line_offset = 0;
         UpdatePreview(ctx, dir_entry);
@@ -922,7 +798,7 @@ int HandleFileWindow(ViewContext *ctx, DirEntry *dir_entry) {
       DisplayFiles(ctx, ctx->active, dir_entry, dir_entry->start_file,
                    dir_entry->start_file + dir_entry->cursor_pos, start_x,
                    ctx->ctx_file_window);
-      UpdateFileHeaderPath(ctx, dir_entry);
+      FileNav_UpdateHeaderPath(ctx, dir_entry);
       if (ctx->preview_mode) {
         preview_line_offset = 0;
         UpdatePreview(ctx, dir_entry);
@@ -1039,17 +915,13 @@ int HandleFileWindow(ViewContext *ctx, DirEntry *dir_entry) {
       list_pos = dir_entry->start_file + dir_entry->cursor_pos;
 
       RotatePanelFileMode(ctx, ctx->active);
-      x_step = (GetPanelMaxColumn(ctx->active) > 1)
-                   ? getmaxy(ctx->ctx_file_window)
-                   : 1;
-      max_disp_files =
-          getmaxy(ctx->ctx_file_window) * GetPanelMaxColumn(ctx->active);
+      FileNav_SyncGridMetrics(ctx);
 
-      if (dir_entry->cursor_pos >= max_disp_files) {
+      if (dir_entry->cursor_pos >= FileNav_GetMaxDispFiles(ctx)) {
         /* Cursor must be repositioned */
         /*-------------------------------------*/
 
-        dir_entry->cursor_pos = max_disp_files - 1;
+        dir_entry->cursor_pos = FileNav_GetMaxDispFiles(ctx) - 1;
       }
 
       dir_entry->start_file = list_pos - dir_entry->cursor_pos;
@@ -1449,7 +1321,7 @@ int HandleFileWindow(ViewContext *ctx, DirEntry *dir_entry) {
       RefreshView(ctx, dir_entry);
 
       /* Update scrolling metrics for new size */
-      RereadWindowSize(ctx, dir_entry);
+      FileNav_RereadWindowSize(ctx, dir_entry);
 
       action =
           ACTION_NONE; /* Prevent loop termination to stay in file window */
@@ -1660,53 +1532,6 @@ file_window_done:
 }
 
 /* WalkTaggedFiles moved to file_tags.c */
-
-static void RereadWindowSize(ViewContext *ctx, DirEntry *dir_entry) {
-  SyncFileGridMetrics(ctx);
-
-  if (dir_entry->start_file + dir_entry->cursor_pos <
-      (int)ctx->active->file_count) {
-    while (dir_entry->cursor_pos >= max_disp_files) {
-      dir_entry->start_file += x_step;
-      dir_entry->cursor_pos -= x_step;
-    }
-  }
-  return;
-}
-
-static void SyncFileGridMetrics(ViewContext *ctx) {
-  int height;
-
-  if (!ctx || !ctx->active || !ctx->ctx_file_window)
-    return;
-
-  SetPanelFileMode(ctx, ctx->active, GetPanelFileMode(ctx->active));
-  height = getmaxy(ctx->ctx_file_window);
-  x_step = (GetPanelMaxColumn(ctx->active) > 1) ? height : 1;
-  max_disp_files = height * GetPanelMaxColumn(ctx->active);
-}
-
-static void UpdateFileHeaderPath(ViewContext *ctx, DirEntry *dir_entry) {
-  char path[PATH_LENGTH];
-  DirEntry *path_dir;
-
-  if (!ctx || !ctx->active || !dir_entry)
-    return;
-
-  path_dir = dir_entry;
-
-  if (ctx->active->file_count > 0 && ctx->active->file_entry_list) {
-    int idx = dir_entry->start_file + dir_entry->cursor_pos;
-    if (idx >= 0 && (unsigned int)idx < ctx->active->file_count) {
-      FileEntry *fe = ctx->active->file_entry_list[idx].file;
-      if (fe && fe->dir_entry)
-        path_dir = fe->dir_entry;
-    }
-  }
-
-  GetPath(path_dir, path);
-  DisplayHeaderPath(ctx, path);
-}
 
 static int FindDirIndexInVolume(const struct Volume *vol,
                                 const DirEntry *target) {
@@ -1935,6 +1760,7 @@ static void DrawFileListJumpPrompt(ViewContext *ctx, WINDOW *win,
 static void ListJump(ViewContext *ctx, DirEntry *dir_entry, char *str) {
   char search_buf[256];
   int buf_len = 0;
+  int max_disp_files = FileNav_GetMaxDispFiles(ctx);
   int original_start_file = dir_entry->start_file;
   int original_cursor_pos = dir_entry->cursor_pos;
   int i;

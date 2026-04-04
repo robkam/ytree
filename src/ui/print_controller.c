@@ -37,7 +37,6 @@ void UI_HandlePrintController(ViewContext *ctx, DirEntry *dir_entry,
   PrintWriteStatus status;
 
   memset(&config, 0, sizeof(config));
-  config.format = PRINT_FORMAT_RAW;
   error_target[0] = '\0';
 
   if (tagged && dir_entry->tagged_files == 0) {
@@ -49,7 +48,7 @@ void UI_HandlePrintController(ViewContext *ctx, DirEntry *dir_entry,
 
   term = InputChoice(
       ctx, "Format: (R)aw, (F)ramed, (P)age break  (Esc) cancel  ", "RFP\033");
-  if (term == ESC || term == '\033') {
+  if (term == ESC) {
     ClearPrintPrompt(ctx);
     return;
   }

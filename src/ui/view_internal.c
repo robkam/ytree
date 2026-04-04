@@ -715,7 +715,8 @@ static void hex_edit(ViewContext *ctx, char *file_path,
   return;
 }
 
-int InternalView(ViewContext *ctx, char *file_path, const ViewerGeometry *geom) {
+int InternalView(ViewContext *ctx, char *file_path,
+                 const ViewerGeometry *geometry) {
   int ch;
   BOOL QUIT = FALSE;
   int result = VIEW_EXIT;
@@ -730,7 +731,7 @@ int InternalView(ViewContext *ctx, char *file_path, const ViewerGeometry *geom) 
   fd = open(file_path, O_RDONLY);
   if (fd == -1)
     return -1;
-  SetupViewWindow(ctx, file_path, geom);
+  SetupViewWindow(ctx, file_path, geometry);
   current_line = 1;
   update_all_lines(ctx, ctx->viewer.view, ctx->viewer.wlines - 1);
 
@@ -741,7 +742,7 @@ int InternalView(ViewContext *ctx, char *file_path, const ViewerGeometry *geom) 
     ch = NormalizeViKey(ctx, ch);
 
     if (ctx->resize_request) {
-      DoResize(ctx, file_path, geom);
+      DoResize(ctx, file_path, geometry);
       ctx->resize_request = FALSE;
       continue;
     }
@@ -771,10 +772,10 @@ int InternalView(ViewContext *ctx, char *file_path, const ViewerGeometry *geom) 
       break;
     case 'e':
     case 'E':
-      Change2Edit(ctx, geom, file_path);
-      hex_edit(ctx, file_path, geom);
+      Change2Edit(ctx, geometry, file_path);
+      hex_edit(ctx, file_path, geometry);
       update_all_lines(ctx, ctx->viewer.view, ctx->viewer.wlines - 1);
-      Change2View(ctx, geom, file_path);
+      Change2View(ctx, geometry, file_path);
       break;
     case KEY_DOWN: /*ScrollDown();*/
       fstat(fd, &fdstat);
