@@ -1,0 +1,31 @@
+model = "gpt-5.3-codex"
+model_reasoning_effort = "high"
+approval_policy = "on-request"
+sandbox_mode = "workspace-write"
+model_instructions_file = ".ai/codex.md"
+
+[mcp_servers.serena]
+command = "uvx"
+args = ["--from", "git+https://github.com/oraios/serena", "serena", "start-mcp-server", "--context", "codex"]
+
+[mcp_servers.serena.env]
+UV_CACHE_DIR = "/tmp/codex-uv-cache"
+UV_TOOL_DIR = "/tmp/codex-uv-tools"
+
+[mcp_servers.jcodemunch]
+command = "uvx"
+args = ["jcodemunch-mcp"]
+
+[mcp_servers.jcodemunch.env]
+UV_CACHE_DIR = "/tmp/codex-uv-cache"
+UV_TOOL_DIR = "/tmp/codex-uv-tools"
+
+[profiles.conservative]
+approval_policy = "on-request"
+sandbox_mode = "workspace-write"
+model_reasoning_effort = "high"
+
+[profiles.trusted]
+approval_policy = "never"
+sandbox_mode = "danger-full-access"
+model_reasoning_effort = "medium"

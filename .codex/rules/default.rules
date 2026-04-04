@@ -1,0 +1,8 @@
+# Keep this file short and reusable. Avoid one-off command snapshots.
+
+prefix_rule(pattern=["source", ".venv/bin/activate"], decision="allow")
+prefix_rule(pattern=["pytest"], decision="allow")
+prefix_rule(pattern=[".venv/bin/pytest"], decision="allow")
+prefix_rule(pattern=["make"], decision="allow")
+prefix_rule(pattern=["make", "mcp-doctor"], decision="allow")
+prefix_rule(pattern=["git", "fetch", "origin"], decision="allow")

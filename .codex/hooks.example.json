@@ -1,0 +1,10 @@
+{
+  "hooks": [
+    {
+      "name": "qa-reminder-before-main-push",
+      "event": "pre_command",
+      "match": "^git push(\\s|$)",
+      "command": "echo '[codex hook] main branch pushes should pass make + pytest (+ audit gates for feature/PR-sized work).'"
+    }
+  ]
+}
