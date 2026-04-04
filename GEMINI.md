@@ -11,6 +11,8 @@ Shared instructions for all agents: `./.ai/shared.md`
 
 Docs note: `doc/USAGE.md` is generated from `etc/ytree.1.md`; edit `etc/ytree.1.md` as source.
 
+Commit messages: see `./.ai/shared.md` rule 8 (enforced by `.githooks/commit-msg`).
+
 Testing quick reference:
 - Run from repo root: `~/ytree`
 - Activate venv: `source .venv/bin/activate`

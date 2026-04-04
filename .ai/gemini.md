@@ -7,6 +7,10 @@ Gemini-specific behavior for this repository.
 - Follow all rules in `.ai/shared.md`.
 - Use `GEMINI.md` at repo root only as a discovery stub.
 
+## Commit Messages
+
+- Follow `.ai/shared.md` rule 8. Enforcement lives in `.githooks/commit-msg`.
+
 ## Gemini Notes
 
 - Keep responses concise and implementation-focused.

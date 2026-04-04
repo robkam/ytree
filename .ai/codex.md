@@ -7,6 +7,10 @@ Codex-specific behavior for this repository.
 - Follow all rules in `.ai/shared.md`.
 - Use `AGENTS.md` at repo root only as a discovery stub.
 
+## Commit Messages
+
+- Follow `.ai/shared.md` rule 8. Enforcement lives in `.githooks/commit-msg`.
+
 ## Codex Notes
 
 - Prefer direct implementation over long planning unless design is explicitly requested.
