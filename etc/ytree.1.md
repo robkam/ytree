@@ -71,7 +71,7 @@ When entering a supported archive (ZIP, TAR, GZ), ytree treats it as a virtual f
 **Split Screen Mode**
 Activated by **F8**. The screen is divided vertically into two independent file manager panels.
 *   **Toggle:** Press **F8** again to return to single-panel mode.
-*   **Switch Focus:** Press **TAB** to switch active control between the Left and Right panels.
+*   **Switch Focus:** Press **Tab** to switch active control between the Left and Right panels.
 *   **Targeting:** Operations like **Copy** and **Move** automatically default to the path of the inactive (passive) panel as the destination.
 
 **File Preview Mode**
@@ -99,14 +99,14 @@ These commands work in most modes:
 *   **^L**: **Reload**. Re-read the contents of the current directory from disk and refresh the view.
 *   **K**: **Volume Menu**. Show a list of all currently logged volumes (drives/paths). Select a volume to switch context instantly. Press `Delete` (or `D`) in the menu to release (unlog) a volume. *(With `VI_KEYS=1`, use uppercase `K`; lowercase `k` is navigation.)*
 *   **<** / **>** (or **,** / **.**): **Cycle Volumes**. Switch to the previous or next logged volume instantly.
-*   **^Q**: **Quit to Directory**. If you exit ytree with ^Q, the last selected directory becomes your current working directory. *Note: This requires a shell wrapper function.*
+*   **^Q**: **Quit to Directory**. If you exit ytree with ^Q, the last selected directory becomes your current working directory. See shell wrapper function below.
 *   **Q**: **Quit**. Exit ytree.
 
 ### VI Keys Mode (Profile Option)
 When `VI_KEYS=1` in `[GLOBAL]`, ytree reserves lowercase vi navigation keys:
 `h/j/k/l` and `^D/^U` (page down/up). To avoid collisions:
 
-*   Use **H/L/K** for **Hex/Log/Volume Menu**.
+*   Use **H/L/K/J** for **Hex/Log/Volume Menu/Compare**.
 *   In file-view contexts, use **D** for **Delete Tagged** and **U** for
     **Untag All**.
 *   Lowercase **d/u** keep the regular context action (single item / current
@@ -180,7 +180,7 @@ Active when the file window is focused.
 *   **Date Changes:** Date actions change Accessed time, Modified time, or both (POSIX does not allow setting creation/birth time here).
 
 ### Archive Mode
-When browsing an archive (ZIP, TAR, etc.), ytree behaves like a virtual file system with archive-aware operations and distinct root/non-root navigation rules.
+When browsing an archive (ZIP, TAR, ISO, etc.), ytree behaves like a virtual file system with archive-aware operations and distinct root/non-root navigation rules.
 
 **Archive-Dir Mode**
 
@@ -279,7 +279,7 @@ The file created by `--init` is a fully annotated profile template.
 
 # QUIT TO DIRECTORY
 
-To allow `^Q` to change your shell's working directory, add this shell wrapper function to your `~/.bashrc`:
+To allow `^Q` to change your shell's working directory, add this shell wrapper function to your `~/.bashrc`. It also gives you a short `yt` command:
 
 ```bash
 yt() {
@@ -291,8 +291,6 @@ yt() {
     fi
 }
 ```
-
-This `yt()` function is the wrapper. It also gives you a short `yt` command (for example: `yt /tmp`) while preserving `^Q` "quit-to-directory" behavior.
 
 # FILES
 
