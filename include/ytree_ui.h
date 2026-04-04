@@ -371,6 +371,9 @@ extern void DirCompare_RunInternalLoggedTree(ViewContext *ctx,
 extern void DirCompare_LaunchExternal(ViewContext *ctx, DirEntry *source_dir,
                                       CompareFlowType flow_type);
 
+/* file_compare.c */
+extern void FileCompare_LaunchExternal(ViewContext *ctx, FileEntry *source_file);
+
 /* file_tags.c */
 extern void FileTags_WalkTaggedFiles(ViewContext *ctx, int start_file,
                                      int cursor_pos,
