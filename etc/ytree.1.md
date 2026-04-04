@@ -137,9 +137,11 @@ Active when browsing the directory tree window.
 *   **`** (Backtick): Toggle visibility of hidden dot-files and directories.
 *   **^F** (Dir Mode): Cycle directory display modes (Filenames only -> Attributes -> Inode/Owner -> Times).
 *   **Return**: Switch to File Mode (focus the file window).
-*   **Left Arrow**: If the selected directory is expanded, collapse it one level. Otherwise move selection to its parent directory; at filesystem root, collapse the root subtree one level.
-*   **Right Arrow** (or **+**): Expand the selected directory by one level.
-*   **\*** (Asterisk): Expand the current directory and all its subdirectories.
+*   **-**: State-based collapse/release. First press collapses an expanded node. Second press on a collapsed logged node evicts the file list (sets `+` status) and marks the directory as Unlogged.
+*   **Left Arrow**: If the selected directory is expanded, collapse it. Otherwise move selection to its parent directory. At filesystem root, collapse the root subtree; if already collapsed, this is a no-op.
+*   **Right Arrow** (Drill Down): Progressive depth navigation. If collapsed: expand one level. If already expanded: move cursor to the first child.
+*   **+** (or **=**): Expand the selected directory by one level. `=` is a convenience alias (unshifted `+` on most keyboards).
+*   **\*** (Asterisk): Recursively expand the current directory and all its subdirectories.
 
 ### File Mode
 Active when the file window is focused.
@@ -198,7 +200,8 @@ When browsing an archive (ZIP, TAR, ISO, etc.), ytree behaves like a virtual fil
 *   **Return**: Switch to Archive-File Mode.
 *   **-**: State-based collapse/release. Expanded nodes collapse; collapsed logged nodes (or logged leaves) unlog/release.
 *   **Left Arrow**: Collapse the current archive directory when expanded; otherwise move selection to its parent directory.
-*   **Right Arrow** (or **+**): Expand the current archive directory by one level.
+*   **Right Arrow** (Drill Down): Progressive depth navigation. If collapsed: expand one level. If already expanded: move cursor to the first child.
+*   **+** (or **=**): Expand the current archive directory by one level.
 *   **\\**: At archive non-root, jump to archive root. At archive root, exit to parent physical directory.
 
 **Archive-File Mode**
