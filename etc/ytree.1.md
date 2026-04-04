@@ -239,6 +239,7 @@ Archive file-window status text:
 # COMPARE
 
 *   **File compare (`J` in File Mode):** Compare the selected file against a target file. ytree can use an external file-diff helper if configured.
+    *   `FILEDIFF` may use `%1` (source) and `%2` (target) placeholders; when omitted, ytree appends source and target paths to the helper command.
 *   **Directory compare (`J` in Directory Mode):**
     *   `D`: compare the current directory.
     *   `T`: compare the current logged tree.
