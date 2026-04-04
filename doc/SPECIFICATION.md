@@ -29,7 +29,7 @@ The screen is divided into non-overlapping zones. Geometry is calculated dynamic
 | :--- | :--- | :--- | :--- |
 | **Header** | Row 0 | Volume, Path, Clock, Version | Updates on every navigation event. |
 | **Tree View** | Top-Left | Visual directory hierarchy | Primary Navigation anchor. |
-| **File View** | Bottom-Left | File list of selected directory | Shows "** No files **" if empty; "** Not logged **" if unread. |
+| **File View** | Bottom-Left | File list of selected directory | Shows "** No files **" if empty; "** Unlogged **" if unread. |
 | **Stats Panel** | Right Column (**Fixed 26**) | Metadata, Filters, Disk Stats | Context-aware. Always visible in Standard Mode. |
 | **Command Area** | Bottom 3 Rows | Menu, Prompts, Messages | Handles all user interaction feedback. |
 
@@ -40,7 +40,7 @@ The screen is divided into non-overlapping zones. Geometry is calculated dynamic
 
 ### 2.4 Tree Status Column
 The first character column of the Tree View serves as the Memory State Indicator:
-*   `+` : **Unlogged.** The directory entry is visible in the tree, but its file list is not in memory. The File View must display `** Not logged **`.
+*   `+` : **Unlogged.** The directory entry is visible in the tree, but its file list is not in memory. The File View must display `**Unlogged**`.
 *   ` ` (Blank): **Logged.** The file list for this directory is resident in memory.
 *   Trailing `/`: Visual indicator that the directory contains subdirectories on the disk.
 
