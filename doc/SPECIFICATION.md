@@ -1,5 +1,5 @@
 # **Functional Specification**
-> **Purpose:** This document defines the behavioral "Contract of Truth" for `ytree`. it specifies how the UI should respond to input, how the filesystem is represented, and the design philosophy that governs the user experience.
+> **Purpose:** This document defines the behavioral "Contract of Truth" for `ytree`. It specifies how the UI should respond to input, how the filesystem is represented, and the design philosophy that governs the user experience.
 
 ## **1. Design Philosophy**
 The `ytree` interface is built to make the power of the Unix filesystem accessible through a high-speed, intuitive terminal interface.
@@ -18,7 +18,7 @@ ytree separates **view-state toggles** from **one-shot actions**:
 
 *   **`Enter` toggles Tree/File focus states** in normal navigation flow.
 *   **`F7`/`F8` are toggle view modes:** Preview and Split Screen are stateful layout modes toggled by repeating the same key.
-*   **`S`/`G` are mode-entry keys, not same-key toggles:** they enter Showall/Global file-list states; behavior of repeated `S`/`G` follows that state's local keymap.
+*   **`s`/`g` are mode-entry keys, not same-key toggles:** they enter Showall/Global file-list states; behavior of repeated `s`/`g` follows that state's local keymap.
 *   **Actions are one-way:** repeating the same key may run another action, insert input into an active prompt, or do nothing; it never means undo.
 *   **Esc** is universal cancel/return. It does **not** undo completed filesystem mutations.
 
@@ -70,75 +70,118 @@ The behavior of the `Enter` key on a directory node is governed by the configura
 
 ---
 
-## 4. Split-Screen (F8) & Session Model
+## 4. Keyboard Interaction Taxonomy
 
-### 4.1 The Active-Inactive Rule
+The `ytree` input system follows a layered model designed for high-speed interaction and contextual efficiency.
+
+### 4.1 Input Principles
+*   **Case-Sensitivity:** Keys are **case-insensitive** by default. Lowercase notation is used for letter-based commands (e.g., `c` for copy). The Ctrl key is shown by the `^` symbol.
+*   **Standard Conventions**: Function keys use the `F1`-`F12` (uppercase prefix) notation. Control keys use the `^key` (e.g., `^l`) lowercase notation.
+*   **Contextual Logic:** The effect of a key depends on whether focus is on the Tree View or File View.
+
+### 4.2 Interaction Layers
+
+| Category | Definition | Behavioral Persistence |
+| :--- | :--- | :--- |
+| **Linguistic Mnemonics** | Keys bound to command strings (e.g., `c`=copy, `m`=move). | Primary candidates for l10n/i18n re-mapping. |
+| **Structural Controls** | Positional keys (`+`, `-`, `*`) that manipulate the tree. | Static; universal regardless of locale. |
+| **TUI Conventions** | Universal terminal muscle memory (`/`, `^l`, `^v`, `^q`). | Fixed; standard Unix utility behavior. |
+| **State Toggles** | Binary or stateful switches (`` ` ``, `F6`, `F7`, `F8`). | Stateful; toggles UI display modes. |
+| **Control Aliases** | ASCII Control characters as functional aliases. | Fixed at the terminal protocol level (e.g., `^m` = Enter). |
+| **Prompt Interactions** | Contextual shortcuts active only during text prompts. | Specialized editing and browsing tools. |
+
+### 4.3 Key Behavioral Rules
+*   **The Minus Rule (`-`):** Depth-first memory release. First collapse, second press evicts the file list (sets `+` status).
+*   **The Archive/Global Jump (`\`):** In Archive Mode, jumps to the archive root. in Global/Showall views, jumps to the highlighted file's directory.
+*   **Vi-Key Collision Policy:** When `VI_KEYS=1`, lowercase `h/j/k/l` are reserved for navigation. Uppercase `H/K/L/J` are used for commands (Hex, Volume, Log, Compare).
+*   **Tagged Actions**: `^u` (Untag All) and `^d` (Delete All Tagged) provide batch operations across the visible scope.
+*   **Quit to Directory (`^q`):** Exits `ytree` to the currently highlighted directory (requires shell-level support to finalize the shell path).
+
+### 4.4 Function Key Blueprint (F1-F12)
+*   **`F1`**: help.
+*   **`F2`**: directory picker (Prompts Only).
+*   **`F5`**: refresh.
+*   **`F6`**: stats toggle.
+*   **`F7`**: autoview toggle.
+*   **`F8`**: split-screen toggle.
+*   **`F9`**: user menu (Macros).
+*   **`F10`**: configuration.
+*   **`F12`**: incremental jump (Legacy alias for `/`).
+
+### 4.5 Prompt Interaction Standards
+When a text prompt is active, specialized conventions ensure a refined editing experience:
+*   **Line Editing**: `^a` / `^e` (start/end), `^k` / `^u` (kill to end/start), `^w` (kill word).
+*   **History**: `^p` or `Up` arrow recalls contextual history (e.g., previous filters).
+*   **Browsing**: `F2` or `^f` opens the directory selection browser.
+
+---
+
+## 5. Split-Screen (F8) & Session Model
+
+### 5.1 The Active-Inactive Rule
 The Split-Screen architecture treats each panel as an independent instance of a volume manager.
 *   **Active Panel:** Owns keyboard focus. Updates visuals immediately.
 *   **Inactive Panel (The "Frozen" Rule):** Strictly **DORMANT**. It must not update its file list, scroll, or change selection while inactive.
 *   **Lazy Refresh:** The inactive panel only validates or re-reads its directory content from the disk the moment it regains focus via `Tab`.
 
-### 4.2 State Persistence
+### 5.2 State Persistence
 Switching panels via `Tab` must restore the exact state held when that panel last had focus, including:
 *   **Volume Context:** Logged volume or archive.
 *   **Cursor & Offset:** Highlighted entry and scroll position.
 *   **Selection:** Tags are specific to the panel session.
 *   **Filter (Filespec):** Independent search/filter strings.
 
-### 4.3 Modal Search Behavior
+### 5.3 Modal Search Behavior
 *   **Persistence:** The search string is retained after the mode is exited.
 *   **Sticky Cursor:** If a character is typed that produces no match, the cursor remains at the last successful match.
 *   **Implicit Exit:** Pressing a key associated with a file operation (Copy, Delete, Move) confirms the current search match and immediately executes that command.
 
 ---
 
-## 5. Notification & Messaging Tiers
-`ytree` distinguishes between two primary locations for communication:
+## 6. Notification & Messaging Tiers
+`ytree` distinguishes between three primary locations for communication:
 
-### 5.1 Footer Messages (Command Area)
+### 6.1 Footer Messages (Command Area)
 *   **Transient:** Non-critical status (e.g., "File copied"). Appears in the Message row. Disappears on the next keystroke.
 *   **Sticky/Warning:** Requires acknowledgment or input (e.g., "Delete file? Y/N" or "Path not found"). Stays in the footer until the user responds or hits a key to clear the warning.
 
-### 5.2 Modal Messages (Centered Box)
+### 6.2 Modal Messages (Centered Box)
 A bordered pop-up box that overlays the center of the screen, used for:
 *   **Info:** Detailed system information or multi-line status.
 *   **Warning:** Significant operational warnings that require explicit dismissal.
 *   **Error:** Critical failures (e.g., "Permission Denied" or "Archive Corrupt").
 *   **Constraint:** Modals must be dismissed with `Esc` or `Enter` before any other navigation can occur.
 
-### 5.3 Audible Feedback Policy
-`ytree` defaults to quiet interaction. Audible alerts must be treated as exceptional, not routine:
-*   **No Beep for Normal Interaction:** Navigation boundaries, unsupported keys, and input validation must remain silent.
-*   **Beep Only for Critical Stop Conditions:** Use sound only for rare, high-severity failures where immediate user attention is required and visual messaging alone is insufficient.
-*   **Consistency Rule:** If an event is expected during ordinary workflow, it must not trigger an audible cue.
+### 6.3 Audible Feedback Policy
+`ytree` interaction is completely silent. Navigation boundaries, unsupported keys, and input validation must remain silent. If an event is expected during ordinary workflow, it must not trigger an audible cue.
 
 ---
 
-## 6. The Virtual Filesystem (VFS)
+## 7. The Virtual Filesystem (VFS)
 *   **Archive Integration:** Archives are treated as directories. Entering an archive logs it as a Virtual Volume. `Left Arrow` at the root of an archive "Backs Out" to the parent physical volume.
 *   **Stream Rewrite:** Modifications to archives use an atomic rewrite strategy to ensure data integrity.
 *   **Live View:** Use `inotify` (where available) for automatic refreshes. If kernel limits are hit, the system falls back to manual refresh logic safely.
 
 ---
 
-## 7. Filtering & Command Execution
+## 8. Filtering & Command Execution
 *   **Filter Stack:** Cumulative logic applies: `Filespec AND Attribute Mask AND Date/Size AND Regex`.
-*   **Grep Tagged (`^S`):** A non-destructive content filter applied to the currently tagged set.
+*   **Grep Tagged (`^s`):** A non-destructive content filter applied to the currently tagged set.
 *   **Targeting:** In Split-Screen, Copy/Move operations in the Active Panel use the Inactive Panel's current path as the default destination.
-*   **User Menu (`F9`):** Supports macro expansion: `%f` (file), `%d` (dir), `%t` (tagged list), `%p` (inactive panel path).
+*   **User Menu (`f9`):** Supports macro expansion: `%f` (file), `%d` (dir), `%t` (tagged list), `%p` (inactive panel path).
 
 ---
 
-## 8. Safety & Integrity
+## 9. Safety & Integrity
 *   **Signal Handling:** `SIGINT` and `SIGTERM` are trapped for graceful terminal restoration and VFS cleanup.
 *   **Memory Management:** Recursive scans for the Tree View respect the `TREEDEPTH` safety limit to prevent stack overflows or OOM (Out of Memory) conditions on massive filesystems.
 *   **Encapsulation:** Global state pointers are strictly forbidden. All logic must utilize the `ViewContext` structure passed explicitly through the call stack.
 
 ---
 
-## 9. Module Organization & Architecture
+## 10. Module Organization & Architecture
 
-### 9.1 Directory Ownership
+### 10.1 Directory Ownership
 Every module (`.c`/`.h` pair) must reside in the directory corresponding to its architectural layer:
 - **`src/core/`**: Application lifecycle, global state management (`ViewContext`, `Volume`), and session-level logic.
 - **`src/fs/`**: Filesystem and archive I/O, VFS drivers, and low-level disk operations.
@@ -146,18 +189,18 @@ Every module (`.c`/`.h` pair) must reside in the directory corresponding to its 
 - **`src/ui/`**: Presentation layer, input loops (`ctrl_*.c`), rendering (`render_*.c`), and interaction widgets.
 - **`src/util/`**: Stateless, non-business helpers (strings, memory_utils, path_utils, completion_utils).
 
-### 9.2 Module Sizing & Cohesion
+### 10.2 Module Sizing & Cohesion
 - **Target Size:** 100-800 Lines of Code (LOC).
-- **Bloat Threshold:** Modules exceeding 1,000 LOC (e.g., `ctrl_dir.c`) are candidates for decomposition into functional sub-modules.
-- **Fragmentation Threshold:** Modules under 50 LOC should be merged into cohesive units (e.g., the historical merge of `chown.c`, `chgrp.c`, and `chmod.c` into `attributes.c`).
-- **Single Responsibility:** Each module must have one clear purpose. If a module handles both I/O and UI rendering, it must be split (Separation of Concerns).
+- **Bloat Threshold:** Modules exceeding 1,000 LOC are candidates for decomposition.
+- **Fragmentation Threshold:** Modules under 50 LOC should be merged into cohesive units.
+- **Single Responsibility:** Each module must have one clear purpose.
 
-### 9.3 Naming Conventions
+### 10.3 Naming Conventions
 - **`ctrl_` Prefix:** Reserved for modules containing the primary input/event loops for a view (Controller).
 - **`render_` Prefix:** Reserved for modules dedicated to visual output via ncurses (View).
 - **Generic Plural:** Use for stateless utility collections (e.g., `path_utils.c`).
 
-### 9.4 Header Hygiene
-- **Layered Access:** Communication between layers (e.g., UI calling FS) must occur through designated layer headers (`ytree_fs.h`, `ytree_ui.h`).
-- **Decoupling:** Minimize cross-layer `#include` directives to prevent circular dependencies and excessive recompilation.
+### 10.4 Header Hygiene
+- **Layered Access:** Communication between layers must occur through designated layer headers (`ytree_fs.h`, `ytree_ui.h`).
+- **Decoupling:** Minimize cross-layer `#include` directives.
 - **Encapsulation:** Internal module state and helper functions should remain `static`. Only the necessary API should be exposed in the header.
