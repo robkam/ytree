@@ -362,6 +362,15 @@ extern int UI_ConflictResolverWrapper(ViewContext *ctx, const char *src_path,
                                       const char *dst_path, int *mode_flags);
 extern void BuildFileEntryList(ViewContext *ctx, YtreePanel *panel);
 
+/* dir_compare.c */
+extern void DirCompare_RunInternalDirectory(ViewContext *ctx,
+                                            DirEntry *source_dir,
+                                            const CompareRequest *request);
+extern void DirCompare_RunInternalLoggedTree(ViewContext *ctx,
+                                             const CompareRequest *request);
+extern void DirCompare_LaunchExternal(ViewContext *ctx, DirEntry *source_dir,
+                                      CompareFlowType flow_type);
+
 /* file_tags.c */
 extern void FileTags_WalkTaggedFiles(ViewContext *ctx, int start_file,
                                      int cursor_pos,
