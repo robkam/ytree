@@ -63,10 +63,15 @@ The behavior of the `Enter` key on a directory node is governed by the configura
 *   **Logging vs. Entry:** "Logging" is the act of scanning a directory branch. Any directory can be logged and exist in the Tree. However, **Entry** (transitioning focus from Tree to File View) is strictly prohibited if the directory contains zero files.
 *   **Selection Memory (Breadcrumbs):** When returning from File Mode to Tree Mode and later re-entering the same directory, the panel must restore the cursor to the **last highlighted file**.
 
-### 3.3 Directory Memory Commands
-*   **`+` (Plus):** Shallow Log. Scans the files of the current directory and the names of immediate subdirectories.
+### 3.3 Directory Memory Commands (Structural Controls)
+*   **`+` or `=` (Expand):** Shallow Log. Scans the files of the current directory and the names of immediate subdirectories. `=` is a convenience alias (unshifted `+` on most keyboard layouts).
 *   **`*` (Asterisk):** Deep Log. Recursively scans the entire branch.
-*   **`-` (Minus):** Release. Evicts the file list of the current directory and all its subdirectories from memory. Sets the status indicator to `+`.
+*   **`-` (Minus / Collapse):** State-based memory release. First press collapses an expanded node. Second press on a collapsed (but logged) node evicts the file list, sets the status indicator to `+`, and marks the directory as Unlogged.
+
+### 3.4 Arrow Key Navigation (Spatial Controls)
+Arrow keys provide spatial, cursor-oriented navigation through the tree. They are distinct from the structural `+`/`-`/`*` controls:
+*   **`→` (Right Arrow / Drill Down):** Progressive depth navigation. If the node is collapsed: expand one level. If already expanded: move cursor to the first child.
+*   **`←` (Left Arrow):** If the selected directory is expanded, collapse it. Otherwise, move selection to its parent directory. At the filesystem root, collapse the root subtree; if already collapsed, this is a no-op.
 
 ---
 
@@ -84,14 +89,17 @@ The `ytree` input system follows a layered model designed for high-speed interac
 | Category | Definition | Behavioral Persistence |
 | :--- | :--- | :--- |
 | **Linguistic Mnemonics** | Keys bound to command strings (e.g., `c`=copy, `m`=move). | Primary candidates for l10n/i18n re-mapping. |
-| **Structural Controls** | Positional keys (`+`, `-`, `*`) that manipulate the tree. | Static; universal regardless of locale. |
+| **Structural Controls** | Positional keys (`+`/`=`, `-`, `*`) that manipulate the tree. | Static; universal regardless of locale. |
+| **Spatial Navigation** | Arrow keys (`←`, `→`) for cursor-oriented tree traversal. | Fixed; directional drill-down / retreat. |
 | **TUI Conventions** | Universal terminal muscle memory (`/`, `^l`, `^v`, `^q`). | Fixed; standard Unix utility behavior. |
 | **State Toggles** | Binary or stateful switches (`` ` ``, `F6`, `F7`, `F8`). | Stateful; toggles UI display modes. |
 | **Control Aliases** | ASCII Control characters as functional aliases. | Fixed at the terminal protocol level (e.g., `^m` = Enter). |
 | **Prompt Interactions** | Contextual shortcuts active only during text prompts. | Specialized editing and browsing tools. |
 
 ### 4.3 Key Behavioral Rules
-*   **The Minus Rule (`-`):** Depth-first memory release. First collapse, second press evicts the file list (sets `+` status).
+*   **The Minus Rule (`-`):** State-based memory release. First press collapses an expanded node; second press on a collapsed logged node evicts the file list (sets `+` status) and marks the directory as Unlogged.
+*   **The Right Arrow Rule (`→`):** Progressive drill-down. Expand collapsed → move to child. Always takes the user one step deeper into the tree.
+*   **The Plus/Equals Rule (`+`/`=`):** Explicit one-level expand only. No cursor movement. `=` is the unshifted alias for `+`.
 *   **The Archive/Global Jump (`\`):** In Archive Mode, jumps to the archive root. in Global/Showall views, jumps to the highlighted file's directory.
 *   **Vi-Key Collision Policy:** When `VI_KEYS=1`, lowercase `h/j/k/l` are reserved for navigation. Uppercase `H/K/L/J` are used for commands (Hex, Volume, Log, Compare).
 *   **Tagged Actions**: `^u` (Untag All) and `^d` (Delete All Tagged) provide batch operations across the visible scope.
