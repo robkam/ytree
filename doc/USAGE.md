@@ -48,14 +48,17 @@ logged.
 
 ### The Display
 
-The screen is divided into three areas: The **Directory Tree** (left),
-the **File Window** (below), and the **Statistics/Info** pane (right).
+The screen is divided into three panes plus a footer help line: the
+**Directory Tree** (upper-left), the **File Window** (below the tree),
+and the **Statistics/Info** pane (right, spanning both left panes). The
+footer shows context-sensitive keybinding hints.
 
 ### Logging
 
-Unlike standard `ls`-based managers, ytree “logs” (scans) directory
-structures into memory. This allows for instant navigation and searching
-without disk lag. Use the **l** command to log new paths or archives.
+Unlike file managers that rescan directories on demand, ytree “logs”
+(scans) directory structures into memory. This allows instant navigation
+and searching without disk lag. Use the **l** command to log new paths
+or archives.
 
 ### Auto-Refresh
 
@@ -108,7 +111,7 @@ safety semantics.
 **Split Screen Mode** Activated by **F8**. The screen is divided
 vertically into two independent file manager panels. \* **Toggle:**
 Press **F8** again to return to single-panel mode. \* **Switch Focus:**
-Press **TAB** to switch active control between the Left and Right
+Press **Tab** to switch active control between the Left and Right
 panels. \* **Targeting:** Operations like **Copy** and **Move**
 automatically default to the path of the inactive (passive) panel as the
 destination.
@@ -155,14 +158,15 @@ These commands work in most modes:
 - **B**: Toggle Brief (Compact) filename view in the File Window.
 - **^L**: **Reload**. Re-read the contents of the current directory from
   disk and refresh the view.
-- **K** (Shift+K): **Volume Menu**. Show a list of all currently logged
-  volumes (drives/paths). Select a volume to switch context instantly.
-  Press `Delete` (or `D`) in the menu to release (unlog) a volume.
+- **K**: **Volume Menu**. Show a list of all currently logged volumes
+  (drives/paths). Select a volume to switch context instantly. Press
+  `Delete` (or `D`) in the menu to release (unlog) a volume. *(With
+  `VI_KEYS=1`, use uppercase `K`; lowercase `k` is navigation.)*
 - **\<** / **\>** (or **,** / **.**): **Cycle Volumes**. Switch to the
   previous or next logged volume instantly.
 - **^Q**: **Quit to Directory**. If you exit ytree with ^Q, the last
-  selected directory becomes your current working directory. *Note: This
-  requires a shell wrapper function.*
+  selected directory becomes your current working directory. See shell
+  wrapper function below.
 - **Q**: **Quit**. Exit ytree.
 
 ### VI Keys Mode (Profile Option)
@@ -170,7 +174,7 @@ These commands work in most modes:
 When `VI_KEYS=1` in `[GLOBAL]`, ytree reserves lowercase vi navigation
 keys: `h/j/k/l` and `^D/^U` (page down/up). To avoid collisions:
 
-- Use **H/L/K** for **Hex/Log/Volume Menu**.
+- Use **H/L/K/J** for **Hex/Log/Volume Menu/Compare**.
 - In file-view contexts, use **D** for **Delete Tagged** and **U** for
   **Untag All**.
 - Lowercase **d/u** keep the regular context action (single item /
@@ -190,7 +194,7 @@ Active when browsing the directory tree window.
 - **G** (Global): Show all files across all logged volumes in one global
   list.
 - **J** (Compare): Open the compare submenu (directory, logged tree, or
-  external viewer).
+  external viewer). With `VI_KEYS=1`, use uppercase `J` for this action.
 - **L** (Log): Log a new directory or archive file.
 - **M** (Makedir): Create a new directory.
 - **N** (New File): Create a new empty file.
@@ -217,6 +221,11 @@ Active when browsing the directory tree window.
 - **^F** (Dir Mode): Cycle directory display modes (Filenames only -\>
   Attributes -\> Inode/Owner -\> Times).
 - **Return**: Switch to File Mode (focus the file window).
+- **Left Arrow**: If the selected directory is expanded, collapse it one
+  level. Otherwise move selection to its parent directory; at filesystem
+  root, collapse the root subtree one level.
+- **Right Arrow** (or **+**): Expand the selected directory by one
+  level.
 - **\*** (Asterisk): Expand the current directory and all its
   subdirectories.
 
@@ -271,13 +280,14 @@ Active when the file window is focused.
 
 ### Archive Mode
 
-When browsing an archive (ZIP, TAR, etc.), ytree behaves like a virtual
-file system with archive-aware operations and distinct root/non-root
-navigation rules.
+When browsing an archive (ZIP, TAR, ISO, etc.), ytree behaves like a
+virtual file system with archive-aware operations and distinct
+root/non-root navigation rules.
 
 **Archive-Dir Mode**
 
-- **C** (Compare): Open compare flow.
+- **J** (Compare): Open compare flow. With `VI_KEYS=1`, use uppercase
+  `J` for this action.
 - **D** (Delete): Delete selected archive directory entry.
 - **F** (Filter): Set file filter.
 - **G** (Global): Show all files across all logged volumes in one global
@@ -292,8 +302,10 @@ navigation rules.
 - **Return**: Switch to Archive-File Mode.
 - **-**: State-based collapse/release. Expanded nodes collapse;
   collapsed logged nodes (or logged leaves) unlog/release.
-- **Left Arrow**: Collapse/navigation behavior only; does not perform
-  archive-exit.
+- **Left Arrow**: Collapse the current archive directory when expanded;
+  otherwise move selection to its parent directory.
+- **Right Arrow** (or **+**): Expand the current archive directory by
+  one level.
 - **\\**: At archive non-root, jump to archive root. At archive root,
   exit to parent physical directory.
 
@@ -336,10 +348,11 @@ Archive file-window status text:
 - **File compare (`J` in File Mode):** Compare the selected file against
   a target file. ytree can use an external file-diff helper if
   configured.
-- **Directory compare (`C` in Directory Mode):**
+- **Directory compare (`J` in Directory Mode):**
   - `D`: compare the current directory.
   - `T`: compare the current logged tree.
-  - `X`: launch an external directory/tree compare viewer.
+  - `X`: launch an external directory/tree compare viewer. *(With
+    `VI_KEYS=1`, use uppercase `J` for this action.)*
 - Internal compare tags matches on the active/source side only.
 - Logged-tree compare uses logged content only; it does not auto-log
   unopened subdirectories.
@@ -379,8 +392,9 @@ The file created by `--init` is a fully annotated profile template.
 
 # QUIT TO DIRECTORY
 
-To allow `^Q` to change your shell’s working directory, add this
-function to your `~/.bashrc`:
+To allow `^Q` to change your shell’s working directory, add this shell
+wrapper function to your `~/.bashrc`. It also gives you a short `yt`
+command:
 
 ``` bash
 yt() {
@@ -397,15 +411,6 @@ yt() {
 
 - `~/.ytree`: Configuration file.
 - `~/.ytree-hst`: Command line history.
-
-# BUGS
-
-To avoid problems with escape sequences on RS/6000 machines
-(telnet/rlogin), set `ESCDELAY`:
-
-``` bash
-export ESCDELAY=1000
-```
 
 ### Reporting problems
 
