@@ -221,13 +221,19 @@ Active when browsing the directory tree window.
 - **^F** (Dir Mode): Cycle directory display modes (Filenames only -\>
   Attributes -\> Inode/Owner -\> Times).
 - **Return**: Switch to File Mode (focus the file window).
-- **Left Arrow**: If the selected directory is expanded, collapse it one
-  level. Otherwise move selection to its parent directory; at filesystem
-  root, collapse the root subtree one level.
-- **Right Arrow** (or **+**): Expand the selected directory by one
-  level.
-- **\*** (Asterisk): Expand the current directory and all its
-  subdirectories.
+- **-**: State-based collapse/release. First press collapses an expanded
+  node. Second press on a collapsed logged node evicts the file list
+  (sets `+` status) and marks the directory as Unlogged.
+- **Left Arrow**: If the selected directory is expanded, collapse it.
+  Otherwise move selection to its parent directory. At filesystem root,
+  collapse the root subtree; if already collapsed, this is a no-op.
+- **Right Arrow** (Drill Down): Progressive depth navigation. If
+  collapsed: expand one level. If already expanded: move cursor to the
+  first child.
+- **+** (or **=**): Expand the selected directory by one level. `=` is a
+  convenience alias (unshifted `+` on most keyboards).
+- **\*** (Asterisk): Recursively expand the current directory and all
+  its subdirectories.
 
 ### File Mode
 
@@ -275,6 +281,10 @@ Active when the file window is focused.
   structure relative to the current volume root.
 - **^F** (File Mode): Cycle file display modes.
 - **Return**: Switch to Full Screen File Mode / Directory Mode.
+- **Left Arrow**: Move to the previous visible file column; in
+  one-column layouts this performs page-up navigation.
+- **Right Arrow**: Move to the next visible file column; in one-column
+  layouts this performs page-down navigation.
 - **Date Changes:** Date actions change Accessed time, Modified time, or
   both (POSIX does not allow setting creation/birth time here).
 
@@ -304,8 +314,10 @@ root/non-root navigation rules.
   collapsed logged nodes (or logged leaves) unlog/release.
 - **Left Arrow**: Collapse the current archive directory when expanded;
   otherwise move selection to its parent directory.
-- **Right Arrow** (or **+**): Expand the current archive directory by
-  one level.
+- **Right Arrow** (Drill Down): Progressive depth navigation. If
+  collapsed: expand one level. If already expanded: move cursor to the
+  first child.
+- **+** (or **=**): Expand the current archive directory by one level.
 - **\\**: At archive non-root, jump to archive root. At archive root,
   exit to parent physical directory.
 

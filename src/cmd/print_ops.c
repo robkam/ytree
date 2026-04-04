@@ -20,7 +20,7 @@ static void ExpandPath(const char *src, char *dest, size_t dest_size) {
   if (src[0] == '~' && (src[1] == '/' || src[1] == '\0' || src[1] == ' ')) {
     const char *home = getenv("HOME");
     if (!home || *home == '\0') {
-      struct passwd *pw = getpwuid(getuid());
+      const struct passwd *pw = getpwuid(getuid());
       if (pw)
         home = pw->pw_dir;
     }
@@ -37,8 +37,8 @@ static void ExpandPath(const char *src, char *dest, size_t dest_size) {
  * between-files divider: separator appears AFTER each file except the last.
  * A heading (### filename) is always emitted for Framed mode.
  */
-static int PrintFileContent(ViewContext *ctx, FileEntry *file_entry,
-                            FILE *out_fp, PrintConfig *config, BOOL is_first,
+static int PrintFileContent(const ViewContext *ctx, FileEntry *file_entry,
+                            FILE *out_fp, const PrintConfig *config, BOOL is_first,
                             BOOL is_last) {
   char file_name_path[PATH_LENGTH + 1];
   int in_fd;
@@ -103,16 +103,16 @@ static int PrintFileContent(ViewContext *ctx, FileEntry *file_entry,
 
 PrintWriteStatus Cmd_WritePrintOutput(ViewContext *ctx, DirEntry *dir_entry,
                                       BOOL tagged, PrintConfig *config,
-                                      int *is_pipe_out, char *error_target) {
+                                      int *is_pipe, char *error_target) {
   FILE *out_fp = NULL;
-  int is_pipe = TRUE;
+  int pipe_output = TRUE;
   char *dest_raw = config->print_to;
   char expanded[PATH_LENGTH + 1];
   char path[PATH_LENGTH + 1];
   int start_dir_fd;
 
-  if (is_pipe_out) {
-    *is_pipe_out = TRUE;
+  if (is_pipe) {
+    *is_pipe = TRUE;
   }
   if (error_target) {
     error_target[0] = '\0';
@@ -142,7 +142,7 @@ PrintWriteStatus Cmd_WritePrintOutput(ViewContext *ctx, DirEntry *dir_entry,
 
   const char *dest = dest_raw;
   if (*dest == '>') {
-    is_pipe = FALSE;
+    pipe_output = FALSE;
     dest++; /* Skip '>' */
     while (*dest == ' ')
       dest++; /* Skip spaces after '>' */
@@ -157,10 +157,11 @@ PrintWriteStatus Cmd_WritePrintOutput(ViewContext *ctx, DirEntry *dir_entry,
     }
     close(start_dir_fd);
     if (error_target) {
-      snprintf(error_target, PATH_LENGTH + 1, "%s", is_pipe ? dest : expanded);
+      snprintf(error_target, PATH_LENGTH + 1, "%s",
+               pipe_output ? dest : expanded);
     }
-    if (is_pipe_out) {
-      *is_pipe_out = is_pipe;
+    if (is_pipe) {
+      *is_pipe = pipe_output;
     }
     return PRINT_WRITE_OPEN_FAILED;
   }
@@ -171,7 +172,7 @@ PrintWriteStatus Cmd_WritePrintOutput(ViewContext *ctx, DirEntry *dir_entry,
     int total_tagged = 0, written = 0;
     int i;
     for (i = 0; i < (int)ctx->active->file_count; i++) {
-      FileEntry *fe = ctx->active->file_entry_list[i].file;
+      const FileEntry *fe = ctx->active->file_entry_list[i].file;
       if (fe && fe->tagged)
         total_tagged++;
     }
@@ -193,7 +194,7 @@ PrintWriteStatus Cmd_WritePrintOutput(ViewContext *ctx, DirEntry *dir_entry,
     }
   }
 
-  if (is_pipe) {
+  if (pipe_output) {
     pclose(out_fp);
   } else {
     fclose(out_fp);
@@ -203,8 +204,8 @@ PrintWriteStatus Cmd_WritePrintOutput(ViewContext *ctx, DirEntry *dir_entry,
   }
   close(start_dir_fd);
 
-  if (is_pipe_out) {
-    *is_pipe_out = is_pipe;
+  if (is_pipe) {
+    *is_pipe = pipe_output;
   }
   return PRINT_WRITE_OK;
 }

@@ -274,6 +274,23 @@ extern void DirNav_MoveEnd(ViewContext *ctx, DirEntry **dir_entry,
 extern void DirNav_MoveHome(ViewContext *ctx, DirEntry **dir_entry,
                             YtreePanel *p);
 
+/* file_nav.c */
+extern void FileNav_MoveDown(ViewContext *ctx, DirEntry *dir_entry,
+                             int start_x);
+extern void FileNav_MoveUp(ViewContext *ctx, DirEntry *dir_entry, int start_x);
+extern void FileNav_MoveRight(ViewContext *ctx, DirEntry *dir_entry,
+                              int *start_x);
+extern void FileNav_MoveLeft(ViewContext *ctx, DirEntry *dir_entry,
+                             int *start_x);
+extern void FileNav_PageDown(ViewContext *ctx, DirEntry *dir_entry,
+                             int start_x);
+extern void FileNav_PageUp(ViewContext *ctx, DirEntry *dir_entry, int start_x);
+extern void FileNav_RereadWindowSize(ViewContext *ctx, DirEntry *dir_entry);
+extern void FileNav_SyncGridMetrics(ViewContext *ctx);
+extern int FileNav_GetMaxDispFiles(const ViewContext *ctx);
+extern int FileNav_GetXStep(const ViewContext *ctx);
+extern void FileNav_UpdateHeaderPath(ViewContext *ctx, DirEntry *dir_entry);
+
 /* ui_nav.c */
 extern void Nav_MoveDown(int *cursor, int *offset, int total_items,
                          int page_height, int step);
