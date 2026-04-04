@@ -102,6 +102,7 @@ These instructions apply to all AI agents used in this repository.
 
 - Build with `make clean && make` after meaningful code changes.
 - Always activate the venv before pytest: `source .venv/bin/activate`.
+- Run audit targets (`make qa-all`, `make qa-*`) with host permissions from the start; do not do sandbox-first retries for QA gates.
 - Run relevant tests with `pytest ...`.
 - For feature-sized/major/PR work, run the full audit loop from `doc/AUDIT.md` (clang-tidy, cppcheck, scan-build, valgrind, pytest) before claiming completion.
 - Do not claim completion without terminal verification.
