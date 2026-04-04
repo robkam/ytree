@@ -35,6 +35,8 @@ extern void Fnsplit(char *path, char *dir, char *name);
 extern void NormPath(char *in_path, char *out_path);
 extern int Path_Join(char *dest, size_t size, const char *dir,
                      const char *leaf);
+extern const char *Path_LeafName(const char *path);
+extern BOOL Path_ShellQuote(const char *src, char *dst, size_t dst_size);
 
 /* archive.c */
 extern int ExtractArchiveEntry(const char *archive_path, const char *entry_path,

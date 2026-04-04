@@ -19,8 +19,6 @@
 
 volatile sig_atomic_t ytree_shutdown_flag = 0;
 
-static char buffer[PATH_LENGTH + 1];
-
 static int CoreMainOpsReady(const CoreMainOps *ops) {
   return ops != NULL && ops->init != NULL && ops->set_profile_value != NULL &&
          ops->log_disk != NULL && ops->set_filter != NULL &&
@@ -34,15 +32,19 @@ static void SigIntHandler(int sig) {
   ytree_shutdown_flag = 1;
 }
 
-static const char *GetDefaultProfilePath(void) {
+static int GetDefaultProfilePath(char *path, size_t path_size) {
   const char *home = getenv("HOME");
-  if (!home || !*home)
-    return NULL;
-  if (snprintf(buffer, sizeof(buffer), "%s%c%s", home, FILE_SEPARATOR_CHAR,
-               PROFILE_FILENAME) >= (int)sizeof(buffer)) {
-    return NULL;
+  int written;
+
+  if (!path || path_size == 0 || !home || !*home)
+    return -1;
+
+  written = snprintf(path, path_size, "%s%c%s", home, FILE_SEPARATOR_CHAR,
+                     PROFILE_FILENAME);
+  if (written < 0 || (size_t)written >= path_size) {
+    return -1;
   }
-  return buffer;
+  return 0;
 }
 
 /*
@@ -188,11 +190,20 @@ int main(int argc, char **argv) {
   }
 
   if (init_requested) {
+    char init_path_buffer[PATH_LENGTH + 1];
     const char *init_path = conf;
     int init_status;
 
-    if (!init_path)
-      init_path = GetDefaultProfilePath();
+    if (!init_path) {
+      if (GetDefaultProfilePath(init_path_buffer, sizeof(init_path_buffer)) !=
+          0) {
+        fprintf(
+            stderr,
+            "Cannot resolve target profile path. Set HOME or pass -p <file>.\n");
+        exit(1);
+      }
+      init_path = init_path_buffer;
+    }
     if (!init_path) {
       fprintf(stderr,
               "Cannot resolve target profile path. Set HOME or pass -p <file>.\n");
@@ -298,8 +309,10 @@ int main(int argc, char **argv) {
 
   /* Processing Paths or Default */
   if (path_count == 0) {
+    char cwd_path[PATH_LENGTH + 1];
+
     /* Case 0: No paths provided, default to current working directory */
-    if (getcwd(buffer, sizeof(buffer)) == NULL) {
+    if (getcwd(cwd_path, sizeof(cwd_path)) == NULL) {
       ctx.core_main_ops.shutdown_curses(&ctx);
       fprintf(stderr, "Error: getcwd failed: %s\n", strerror(errno));
       free(path_indexes);
@@ -307,7 +320,7 @@ int main(int argc, char **argv) {
     }
 
     /* Use LogDisk (wrapper around Volume_Load) to load the initial path */
-    if (ctx.core_main_ops.log_disk(&ctx, ctx.left, buffer) == -1) {
+    if (ctx.core_main_ops.log_disk(&ctx, ctx.left, cwd_path) == -1) {
       ctx.core_main_ops.shutdown_curses(&ctx);
       /* If defaulting to CWD fails, it's a fatal error */
       fprintf(stderr, "EXIT: LogDisk failed for CWD\n");

@@ -33,6 +33,48 @@ static int AppendBounded(char *dst, size_t dst_size, const char *src) {
   return 0;
 }
 
+const char *Path_LeafName(const char *path) {
+  const char *sep;
+
+  if (!path || !*path)
+    return "";
+
+  sep = strrchr(path, FILE_SEPARATOR_CHAR);
+  if (!sep || !sep[1])
+    return path;
+  return sep + 1;
+}
+
+BOOL Path_ShellQuote(const char *src, char *dst, size_t dst_size) {
+  size_t out = 0;
+
+  if (!src || !dst || dst_size < 3)
+    return FALSE;
+
+  dst[out++] = '\'';
+  while (*src) {
+    if (*src == '\'') {
+      if (out + 4 >= dst_size)
+        return FALSE;
+      dst[out++] = '\'';
+      dst[out++] = '\\';
+      dst[out++] = '\'';
+      dst[out++] = '\'';
+    } else {
+      if (out + 1 >= dst_size)
+        return FALSE;
+      dst[out++] = *src;
+    }
+    src++;
+  }
+
+  if (out + 2 > dst_size)
+    return FALSE;
+  dst[out++] = '\'';
+  dst[out] = '\0';
+  return TRUE;
+}
+
 int Path_Join(char *dest, size_t size, const char *dir, const char *leaf) {
   size_t dir_len;
   size_t trimmed_dir_len;
@@ -170,7 +212,7 @@ void Fnsplit(char *path, char *dir, char *name) {
   char *path_copy_base;
   const char *dname;
   const char *bname;
-  char *processed_path;
+  const char *processed_path;
   int has_sep = 0;
   size_t len;
 

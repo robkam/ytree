@@ -41,48 +41,6 @@ static void DrawDirListJumpPrompt(ViewContext *ctx, WINDOW *win,
                                   const char *search_buf);
 static void HandleDirectoryCompare(ViewContext *ctx, DirEntry *source_dir);
 
-static const char *PathLeafName(const char *path) {
-  const char *sep;
-
-  if (!path || !*path)
-    return "";
-
-  sep = strrchr(path, FILE_SEPARATOR_CHAR);
-  if (!sep || !sep[1])
-    return path;
-  return sep + 1;
-}
-
-static BOOL ShellQuotePath(const char *src, char *dst, size_t dst_size) {
-  size_t out = 0;
-
-  if (!src || !dst || dst_size < 3)
-    return FALSE;
-
-  dst[out++] = '\'';
-  while (*src) {
-    if (*src == '\'') {
-      if (out + 4 >= dst_size)
-        return FALSE;
-      dst[out++] = '\'';
-      dst[out++] = '\\';
-      dst[out++] = '\'';
-      dst[out++] = '\'';
-    } else {
-      if (out + 1 >= dst_size)
-        return FALSE;
-      dst[out++] = *src;
-    }
-    src++;
-  }
-
-  if (out + 2 > dst_size)
-    return FALSE;
-  dst[out++] = '\'';
-  dst[out] = '\0';
-  return TRUE;
-}
-
 static BOOL IsPathInside(const char *outer, const char *candidate) {
   size_t outer_len;
 
@@ -165,7 +123,7 @@ static int ResolveDirTargetPath(DirEntry *dir_entry, const char *to_dir_in,
       return -1;
   }
 
-  leaf = PathLeafName(to_file);
+  leaf = Path_LeafName(to_file);
   if (!leaf || !*leaf)
     return -1;
 
@@ -249,8 +207,8 @@ static DirEntry *HandleDirCopyMove(ViewContext *ctx, DirEntry *dir_entry,
     return dir_entry;
   }
 
-  if (!ShellQuotePath(src_path, quoted_src, sizeof(quoted_src)) ||
-      !ShellQuotePath(dest_path, quoted_dst, sizeof(quoted_dst))) {
+  if (!Path_ShellQuote(src_path, quoted_src, sizeof(quoted_src)) ||
+      !Path_ShellQuote(dest_path, quoted_dst, sizeof(quoted_dst))) {
     UI_ShowStatusLineError(ctx, "Path too long");
     if (need_dsp_help)
       *need_dsp_help = TRUE;
@@ -431,17 +389,6 @@ static void DrainPendingInput(ViewContext *ctx) {
   nodelay(stdscr, FALSE);
 }
 
-static BOOL HasNonWhitespace(const char *text) {
-  if (!text)
-    return FALSE;
-  while (*text) {
-    if (!isspace((unsigned char)*text))
-      return TRUE;
-    text++;
-  }
-  return FALSE;
-}
-
 static int BuildCompareCommand(const char *command_template,
                                const char *source_path, const char *target_path,
                                char *command_line, size_t command_line_size) {
@@ -491,7 +438,7 @@ static int ResolveDirectoryCompareTargetPath(const char *source_path,
 
   if (!source_path || !target_input || !resolved_target_path)
     return -1;
-  if (!HasNonWhitespace(target_input))
+  if (!String_HasNonWhitespace(target_input))
     return -1;
 
   if (target_input[0] == FILE_SEPARATOR_CHAR) {
@@ -514,39 +461,6 @@ static int ResolveDirectoryCompareTargetPath(const char *source_path,
   NormPath(raw_target_path, resolved_target_path);
   resolved_target_path[PATH_LENGTH] = '\0';
   return 0;
-}
-
-static void GetCommandDisplayName(const char *command_template,
-                                  char *command_name,
-                                  size_t command_name_size) {
-  const char *cursor;
-  size_t idx = 0;
-
-  if (!command_name || command_name_size == 0)
-    return;
-
-  command_name[0] = '\0';
-  if (!command_template)
-    return;
-
-  cursor = command_template;
-  while (*cursor && isspace((unsigned char)*cursor))
-    cursor++;
-  if (*cursor == '\0')
-    return;
-
-  if (*cursor == '"' || *cursor == '\'') {
-    char quote = *cursor++;
-    while (*cursor && *cursor != quote && idx + 1 < command_name_size) {
-      command_name[idx++] = *cursor++;
-    }
-  } else {
-    while (*cursor && !isspace((unsigned char)*cursor) &&
-           idx + 1 < command_name_size) {
-      command_name[idx++] = *cursor++;
-    }
-  }
-  command_name[idx] = '\0';
 }
 
 typedef struct {
@@ -921,7 +835,7 @@ static void RunInternalDirectoryCompare(ViewContext *ctx, DirEntry *source_dir,
       "*RESULT COUNTS: different=%lu match=%lu newer=%lu older=%lu unique=%lu "
       "type-mismatch=%lu error=%lu"
       "*TAGGED (%s): %lu file(s) in active/source list.",
-      PathLeafName(source_path), PathLeafName(target_path),
+      Path_LeafName(source_path), Path_LeafName(target_path),
       UI_CompareBasisName(request->basis), summary.source_entries,
       summary.different_count, summary.match_count, summary.newer_count,
       summary.older_count, summary.unique_count, summary.type_mismatch_count,
@@ -1088,7 +1002,7 @@ static void RunInternalLoggedTreeCompare(ViewContext *ctx,
       "type-mismatch=%lu error=%lu"
       "*SKIPPED UNLOGGED: source=%lu"
       "*TAGGED (%s): %lu file(s) in active/source list.",
-      PathLeafName(source_path), PathLeafName(target_path),
+      Path_LeafName(source_path), Path_LeafName(target_path),
       UI_CompareBasisName(request->basis), summary.source_entries,
       summary.different_count, summary.match_count, summary.newer_count,
       summary.older_count, summary.unique_count, summary.type_mismatch_count,
@@ -1121,7 +1035,7 @@ static void LaunchExternalDirectoryCompare(ViewContext *ctx,
   helper = UI_GetCompareHelperCommand(ctx, flow_type);
   helper_key =
       (flow_type == COMPARE_FLOW_LOGGED_TREE) ? "TREEDIFF/DIRDIFF" : "DIRDIFF";
-  if (!HasNonWhitespace(helper)) {
+  if (!String_HasNonWhitespace(helper)) {
     UI_Message(ctx, "%s helper is not configured.*Set %s in ~/.ytree.",
                UI_CompareFlowTypeName(flow_type), helper_key);
     return;
@@ -1195,7 +1109,7 @@ static void LaunchExternalDirectoryCompare(ViewContext *ctx,
     int exit_status = WEXITSTATUS(result);
     if (exit_status == 126 || exit_status == 127) {
       char command_name[PATH_LENGTH + 1];
-      GetCommandDisplayName(helper, command_name, sizeof(command_name));
+      String_GetCommandDisplayName(helper, command_name, sizeof(command_name));
       UI_Message(ctx,
                  "Compare helper not available:*\"%s\"*"
                  "Install it or update %s in ~/.ytree.",
