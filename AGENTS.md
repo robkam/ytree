@@ -18,6 +18,7 @@ Testing quick reference (Codex):
 - Activate venv: `source .venv/bin/activate`
 - Full suite command: `pytest`
 - Always run pytest with host permissions from the start (no sandbox-first run), because PTY-based tests require unrestricted PTY allocation.
+- Run audit targets (`make qa-all`, `make qa-*`) with host permissions from the start (no sandbox-first run), because toolchain steps can require unrestricted environment access.
 
 MCP health check (Codex):
 - Diagnose MCP startup/config drift: `make mcp-doctor`

@@ -24,6 +24,8 @@ Codex-specific behavior for this repository.
 - Canonical full suite command: `pytest`.
 - The pytest suite uses `pexpect` PTYs; always run pytest with host permissions (non-sandboxed command execution) so PTY allocation works.
 - Do not run pytest in sandbox first. Start with host-permission execution immediately for any pytest command (`pytest`, `pytest -q`, targeted tests, or `-k` runs).
+- For audit targets (`make qa-all` and `make qa-*`), run with host permissions (non-sandboxed command execution) from the start.
+- Do not run `make qa-*` in sandbox first and then retry; execute host-first to avoid predictable permission failures and duplicate runs.
 
 ## MCP Doctor
 
