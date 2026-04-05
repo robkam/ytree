@@ -400,17 +400,6 @@ static const DirEntry *GetActiveFileDirEntry(const ViewContext *ctx) {
   return ctx->active->file_dir_entry;
 }
 
-static BOOL IsShowAllFileView(const ViewContext *ctx) {
-  const DirEntry *file_dir_entry = GetActiveFileDirEntry(ctx);
-
-  if (!ctx || ctx->focused_window != FOCUS_FILE || !file_dir_entry)
-    return FALSE;
-
-  return (file_dir_entry->global_flag && !file_dir_entry->global_all_volumes)
-             ? TRUE
-             : FALSE;
-}
-
 static BOOL IsGlobalAllVolumesFileView(const ViewContext *ctx) {
   const DirEntry *file_dir_entry = GetActiveFileDirEntry(ctx);
 
@@ -549,7 +538,7 @@ YtreeAction GetKeyAction(const ViewContext *ctx, int ch) {
   case 'g':
   case 'G':
     if (IsGlobalAllVolumesFileView(ctx))
-      return ACTION_ESCAPE;
+      return ACTION_NONE;
     return ACTION_CMD_G;
   case 'h':
   case 'H':
@@ -571,8 +560,6 @@ YtreeAction GetKeyAction(const ViewContext *ctx, int ch) {
     return ACTION_CMD_R;
   case 's':
   case 'S':
-    if (IsShowAllFileView(ctx))
-      return ACTION_ESCAPE;
     return ACTION_CMD_S;
   case 'v':
   case 'V':

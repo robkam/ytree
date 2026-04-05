@@ -74,17 +74,17 @@ static char file_help_disk_mode_0[] =
     "(^F)ilemode (H)ex (I)nvert (J) compare (L)og";
 static char file_help_disk_mode_1[] =
     "COMMANDS (M)ove/(^N) (N)ewfile "
-    "(O) archive (P)ipe (Q)uit (R)ename (S)ort (W)rite e(X)ecute pathcop(Y) "
+    "c(O)mpress (P)ipe (Q)uit (R)ename (S)ort (W)rite e(X)ecute pathcop(Y) "
     "(/) jump (`) dotfiles";
 static char file_help_nav[] =
     "Dir   (F1) help  (F5) refresh  (F6) stats  (F7) autoview  "
     "(F8) split  (F10) config  (Esc) cancel";
 static char file_help_nav_showall[] =
     "Dir   (F1) help  (F5) refresh  (F6) stats  (F7) autoview  "
-    "(F8) split  (F10) config  (S) showall off  (\\) to dir  (Esc) cancel";
+    "(F8) split  (F10) config  (\\) to dir  (Esc) cancel";
 static char file_help_nav_global[] =
     "Dir   (F1) help  (F5) refresh  (F6) stats  (F7) autoview  "
-    "(F8) split  (F10) config  (G) global off  (\\) to dir  (Esc) cancel";
+    "(F8) split  (F10) config  (\\) to dir  (Esc) cancel";
 static char *file_help[MAX_MODES][2] = {
     {/* DISK_MODE */
      file_help_disk_mode_0, file_help_disk_mode_1},
