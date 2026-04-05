@@ -38,8 +38,8 @@ LEGACY_POLICY_EXCEPTIONS = set()
 
 # Prevent regression of known "god module" hotspots.
 CONTROLLER_FILE_LINE_BUDGET = {
-    "src/ui/ctrl_dir.c": 2005,
-    "src/ui/ctrl_file.c": 1901,
+    "src/ui/ctrl_dir.c": 1988,
+    "src/ui/ctrl_file.c": 1883,
 }
 
 INCLUDE_RE = re.compile(r'^\s*#\s*include\s*"([^"]+)"')
@@ -55,7 +55,6 @@ CONTROLLER_TOP_LEVEL_ALLOWLIST = {
         "BuildDirOpCommand",
         "ResolveDirTargetPath",
         "HandleDirCopyMove",
-        "OpenConfigProfile",
         "ExitArchiveRootToParent",
         "RestorePanelFileSelection",
         "HandleDirectoryCompare",
@@ -64,7 +63,6 @@ CONTROLLER_TOP_LEVEL_ALLOWLIST = {
         "DrawDirListJumpPrompt",
     },
     "src/ui/ctrl_file.c": {
-        "OpenConfigProfile",
         "FilterPreviewAction",
         "UpdateStatsPanel",
         "ChangeFileOwner",

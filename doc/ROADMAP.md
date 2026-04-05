@@ -2,10 +2,65 @@
 
 ---
 
+## **Phase 0: Security Hardening Baseline**
+*This phase is a release gate: security hardening lands before new feature work.*
+
+### **Task 0.1: Refactor Shell Command Construction to a Single Security Boundary**
+*   **Goal:** Replace scattered shell string assembly with one hardened command-building boundary for `view`, `execute`, compare helpers, and user-defined actions.
+*   **Rationale:** Current per-call-site escaping is inconsistent and fragile; one trusted path prevents command injection drift.
+*   **Mechanism:** Centralize quoting/interpolation policy (including placeholder expansion), enforce bounded buffers, and reject unsafe/truncated command materialization.
+*   **Files to Modify:** `src/cmd/view.c`, `src/cmd/execute.c`, `src/cmd/usermode.c`, `src/ui/file_compare.c`, `src/ui/dir_compare.c`, `src/ui/interactions.c`, `src/util/path_utils.c`
+*   **Context Files:** `include/ytree_cmd.h`, `include/ytree_fs.h`, `include/ytree_ui.h`
+*   - [ ] **Status:** Not Started.
+
+### **Task 0.2: Retire Unsafe Escaping APIs (`StrCp` / legacy shell quote variants)**
+*   **Goal:** Replace unbounded escaping helpers with size-aware APIs and remove legacy entry points from runtime paths.
+*   **Rationale:** Unbounded escaping enables overflow classes and inconsistent semantics across modules.
+*   **Mechanism:** Introduce/standardize bounded escape APIs only, migrate all call sites, and keep any compatibility wrapper isolated and non-production.
+*   **Files to Modify:** `src/util/string_utils.c`, `src/util/path_utils.c`, `src/cmd/*.c`, `src/ui/*.c`
+*   **Context Files:** `include/ytree_defs.h`, `include/ytree.h`, `include/ytree_ui.h`
+*   - [ ] **Status:** Not Started.
+
+### **Task 0.3: Enforce Archive Internal-Path Trust Policy**
+*   **Goal:** Reject unsafe archive member paths before indexing or extraction (absolute paths, `..`, empty segments, and normalization ambiguities).
+*   **Rationale:** Archive traversal can escape extraction roots and poison command/view flows.
+*   **Mechanism:** Add a single canonical internal-path validator and apply it in archive read, lookup, and extraction paths.
+*   **Files to Modify:** `src/fs/archive_read.c`, `src/ui/interactions.c`, `src/cmd/execute.c`, `src/ui/view_preview.c`
+*   **Context Files:** `include/ytree_fs.h`
+*   - [ ] **Status:** Not Started.
+
+### **Task 0.4: Replace Predictable `/tmp` Artifacts with Secure Temp Lifecycle**
+*   **Goal:** Remove fixed temp filenames and migrate to `mkstemp`/`mkdtemp` + controlled cleanup for preview/extract/debug artifacts.
+*   **Rationale:** Predictable `/tmp` paths create symlink/TOCTOU and cross-user disclosure risk.
+*   **Mechanism:** Use per-process random temp paths, avoid reopening by name where possible, and gate debug logging behind explicit opt-in path config.
+*   **Files to Modify:** `src/ui/view_preview.c`, `src/ui/interactions.c`, `include/ytree_defs.h`, `include/ytree_debug.h`
+*   **Context Files:** `src/cmd/view.c`, `src/cmd/hex.c`
+*   - [ ] **Status:** Not Started.
+
+### **Task 0.5: Add Regression Tests for Shell Injection and Escaping Boundaries**
+*   **Goal:** Lock in non-exploitability for metacharacter-heavy file paths and command placeholders.
+*   **Coverage:** `;`, `&`, backslash, single quote, whitespace, and placeholder expansion in compare/view/execute paths.
+*   **Files to Modify:** `tests/test_compare_actions.py`, `tests/test_commands_exhaustive.py` (or new `tests/test_security_shell_paths.py`)
+*   - [ ] **Status:** Not Started.
+
+### **Task 0.6: Add Regression Tests for Archive Traversal Rejection**
+*   **Goal:** Prove that `../` and absolute archive entries are ignored/rejected and never extracted outside allowed roots.
+*   **Coverage:** tree-load visibility, extract/copy/view flows, and malformed path variants.
+*   **Files to Modify:** `tests/test_archive_ui.py`, `tests/test_archive_write_parity.py` (and/or a focused archive security driver test)
+*   - [ ] **Status:** Not Started.
+
+### **Task 0.7: Add Regression Tests for Temp-Artifact Safety**
+*   **Goal:** Ensure fixed `/tmp/ytree_*` names are no longer used for preview/debug/extract paths.
+*   **Coverage:** archive preview cache behavior, tagged-view extraction temp roots, and debug logging path policy.
+*   **Files to Modify:** `tests/test_f7_preview.py`, `tests/test_archive_exit_ui.py` (or new `tests/test_security_tempfiles.py`)
+*   - [ ] **Status:** Not Started.
+
+---
+
 ## **Phase 1: UI/UX Enhancements and Cleanup**
 *This phase adds user-facing improvements, cleans up the remaining artifacts, and ensures a clean, modern, and portable codebase.*
 
-### **Task 1: Decompose Oversized UI Controllers (`ctrl_dir.c` / `ctrl_file.c`)**
+### **Task 2: Decompose Oversized UI Controllers (`ctrl_dir.c` / `ctrl_file.c`)**
 *   **Priority:** High (must be completed before Future Enhancements/Wishlist work).
 *   **Goal:** Reduce size and complexity of `src/ui/ctrl_dir.c` and `src/ui/ctrl_file.c` by extracting action-family handlers and repeated rendering/sync blocks into focused modules and helpers, while preserving current behavior.
 *   **Rationale:** These controllers are current hotspot/risk files; decomposition lowers regression risk, improves reviewability, and makes future feature work safer.
