@@ -114,8 +114,7 @@ static int FindDirIndex(const struct Volume *vol, const DirEntry *target) {
   return -1;
 }
 
-static void ReanchorPanelToDir(YtreePanel *panel, const DirEntry *target) {
-  int idx;
+static void PositionPanelAtIndex(YtreePanel *panel, int idx) {
   int height;
 
   if (!panel)
@@ -126,13 +125,6 @@ static void ReanchorPanelToDir(YtreePanel *panel, const DirEntry *target) {
     panel->cursor_pos = 0;
     return;
   }
-
-  if (!target)
-    target = panel->vol->vol_stats.tree;
-
-  idx = FindDirIndex(panel->vol, target);
-  if (idx < 0)
-    idx = 0;
 
   height = (panel->pan_dir_window) ? getmaxy(panel->pan_dir_window) : 1;
   if (height < 1)
@@ -154,6 +146,66 @@ static void ReanchorPanelToDir(YtreePanel *panel, const DirEntry *target) {
 
   if (panel->cursor_pos < 0)
     panel->cursor_pos = 0;
+}
+
+static void ReanchorPanelToDir(YtreePanel *panel, const DirEntry *target) {
+  int idx;
+
+  if (!panel)
+    return;
+  if (!panel->vol || panel->vol->total_dirs <= 0) {
+    panel->disp_begin_pos = 0;
+    panel->cursor_pos = 0;
+    return;
+  }
+
+  if (!target)
+    target = panel->vol->vol_stats.tree;
+
+  idx = FindDirIndex(panel->vol, target);
+  if (idx < 0)
+    idx = 0;
+
+  PositionPanelAtIndex(panel, idx);
+}
+
+BOOL DirOps_SelectVisibleDirAndRefresh(ViewContext *ctx, YtreePanel *panel,
+                                       const DirEntry *target,
+                                       DirEntry **dir_entry_ptr) {
+  const Statistic *s;
+  WINDOW *dir_win;
+  int idx;
+  DirEntry *selected;
+  char path[PATH_LENGTH];
+
+  if (!ctx || !panel || !panel->vol || !target || !dir_entry_ptr)
+    return FALSE;
+  if (!panel->vol->dir_entry_list || panel->vol->total_dirs <= 0)
+    return FALSE;
+
+  idx = FindDirIndex(panel->vol, target);
+  if (idx < 0)
+    return FALSE;
+
+  PositionPanelAtIndex(panel, idx);
+  selected = panel->vol->dir_entry_list[panel->disp_begin_pos + panel->cursor_pos]
+                 .dir_entry;
+  if (!selected)
+    return FALSE;
+
+  *dir_entry_ptr = selected;
+  s = &panel->vol->vol_stats;
+  dir_win = panel->pan_dir_window ? panel->pan_dir_window : ctx->ctx_dir_window;
+
+  DisplayTree(ctx, panel->vol, dir_win, panel->disp_begin_pos,
+              panel->disp_begin_pos + panel->cursor_pos, TRUE);
+  DisplayFileWindow(ctx, panel, selected);
+  DisplayDiskStatistic(ctx, s);
+  UpdateStatsPanel(ctx, selected, s);
+  DisplayAvailBytes(ctx, s);
+  GetPath(selected, path);
+  DisplayHeaderPath(ctx, path);
+  return TRUE;
 }
 
 static void CaptureInactiveFallback(ViewContext *ctx, YtreePanel *p,

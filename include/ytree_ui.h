@@ -105,6 +105,9 @@ extern void FreeDirEntryList(ViewContext *ctx);
 extern void FreeVolumeCache(struct Volume *vol);
 extern DirEntry *RefreshTreeSafe(ViewContext *ctx, YtreePanel *p,
                                  DirEntry *entry);
+extern BOOL DirOps_SelectVisibleDirAndRefresh(ViewContext *ctx, YtreePanel *p,
+                                              const DirEntry *target,
+                                              DirEntry **dir_entry_ptr);
 
 /* render_dir.c */
 extern void DisplayTree(ViewContext *ctx, struct Volume *vol, WINDOW *win,

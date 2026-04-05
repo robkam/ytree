@@ -842,59 +842,8 @@ int HandleDirWindow(ViewContext *ctx, const DirEntry *start_dir_entry) {
       }
 
       if (target != NULL && target != dir_entry) {
-        /* Find the sibling in the linear list to update cursor index */
-        int k;
-        int found_idx = -1;
-
-        for (k = 0; k < ctx->active->vol->total_dirs; k++) {
-          if (ctx->active->vol->dir_entry_list[k].dir_entry == target) {
-            found_idx = k;
-            break;
-          }
-        }
-
-        if (found_idx != -1) {
-          /* Move cursor to sibling */
-          if (found_idx >= ctx->active->disp_begin_pos &&
-              found_idx < ctx->active->disp_begin_pos + height) {
-            ctx->active->cursor_pos = found_idx - ctx->active->disp_begin_pos;
-          } else {
-            /* Off screen, center it or move to top */
-            ctx->active->disp_begin_pos = found_idx;
-            ctx->active->cursor_pos = 0;
-            /* Bounds check */
-            if (ctx->active->disp_begin_pos + height >
-                ctx->active->vol->total_dirs) {
-              ctx->active->disp_begin_pos =
-                  MAXIMUM(0, ctx->active->vol->total_dirs - height);
-              ctx->active->cursor_pos = found_idx - ctx->active->disp_begin_pos;
-            }
-          }
-          /* Sync */
-          dir_entry = ctx->active->vol
-                          ->dir_entry_list[ctx->active->disp_begin_pos +
-                                           ctx->active->cursor_pos]
-                          .dir_entry;
-
-          if (0) {
-            dir_entry = RefreshTreeSafe(ctx, ctx->active, dir_entry);
-            break; /* Skip manual refresh logic below */
-          }
-
-          /* Refresh */
-          DisplayTree(ctx, ctx->active->vol, ctx->ctx_dir_window,
-                      ctx->active->disp_begin_pos,
-                      ctx->active->disp_begin_pos + ctx->active->cursor_pos,
-                      TRUE);
-          DisplayFileWindow(ctx, ctx->active, dir_entry);
-          DisplayDiskStatistic(ctx, s);
-          UpdateStatsPanel(ctx, dir_entry, s);
-          DisplayAvailBytes(ctx, s);
-
-          char path[PATH_LENGTH];
-          GetPath(dir_entry, path);
-          DisplayHeaderPath(ctx, path);
-        }
+        (void)DirOps_SelectVisibleDirAndRefresh(ctx, ctx->active, target,
+                                                &dir_entry);
       }
     }
       need_dsp_help = TRUE;
@@ -912,59 +861,8 @@ int HandleDirWindow(ViewContext *ctx, const DirEntry *start_dir_entry) {
       }
 
       if (target != NULL && target != dir_entry) {
-        /* Find the sibling in the linear list to update cursor index */
-        int k;
-        int found_idx = -1;
-
-        for (k = 0; k < ctx->active->vol->total_dirs; k++) {
-          if (ctx->active->vol->dir_entry_list[k].dir_entry == target) {
-            found_idx = k;
-            break;
-          }
-        }
-
-        if (found_idx != -1) {
-          /* Move cursor to sibling */
-          if (found_idx >= ctx->active->disp_begin_pos &&
-              found_idx < ctx->active->disp_begin_pos + height) {
-            ctx->active->cursor_pos = found_idx - ctx->active->disp_begin_pos;
-          } else {
-            /* Off screen, center it or move to top */
-            ctx->active->disp_begin_pos = found_idx;
-            ctx->active->cursor_pos = 0;
-            /* Bounds check */
-            if (ctx->active->disp_begin_pos + height >
-                ctx->active->vol->total_dirs) {
-              ctx->active->disp_begin_pos =
-                  MAXIMUM(0, ctx->active->vol->total_dirs - height);
-              ctx->active->cursor_pos = found_idx - ctx->active->disp_begin_pos;
-            }
-          }
-          /* Sync */
-          dir_entry = ctx->active->vol
-                          ->dir_entry_list[ctx->active->disp_begin_pos +
-                                           ctx->active->cursor_pos]
-                          .dir_entry;
-
-          if (0) {
-            dir_entry = RefreshTreeSafe(ctx, ctx->active, dir_entry);
-            break; /* Skip manual refresh logic below */
-          }
-
-          /* Refresh */
-          DisplayTree(ctx, ctx->active->vol, ctx->ctx_dir_window,
-                      ctx->active->disp_begin_pos,
-                      ctx->active->disp_begin_pos + ctx->active->cursor_pos,
-                      TRUE);
-          DisplayFileWindow(ctx, ctx->active, dir_entry);
-          DisplayDiskStatistic(ctx, s);
-          UpdateStatsPanel(ctx, dir_entry, s);
-          DisplayAvailBytes(ctx, s);
-
-          char path[PATH_LENGTH];
-          GetPath(dir_entry, path);
-          DisplayHeaderPath(ctx, path);
-        }
+        (void)DirOps_SelectVisibleDirAndRefresh(ctx, ctx->active, target,
+                                                &dir_entry);
       }
     }
       need_dsp_help = TRUE;
@@ -1003,50 +901,8 @@ int HandleDirWindow(ViewContext *ctx, const DirEntry *start_dir_entry) {
         break;
       }
 
-      {
-        int p_idx = -1;
-        int k;
-        for (k = 0; k < ctx->active->vol->total_dirs; k++) {
-          if (ctx->active->vol->dir_entry_list[k].dir_entry ==
-              dir_entry->up_tree) {
-            p_idx = k;
-            break;
-          }
-        }
-        if (p_idx != -1) {
-          if (p_idx >= ctx->active->disp_begin_pos &&
-              p_idx < ctx->active->disp_begin_pos + height) {
-            ctx->active->cursor_pos = p_idx - ctx->active->disp_begin_pos;
-          } else {
-            ctx->active->disp_begin_pos = p_idx;
-            ctx->active->cursor_pos = 0;
-            if (ctx->active->disp_begin_pos + height >
-                ctx->active->vol->total_dirs) {
-              ctx->active->disp_begin_pos =
-                  MAXIMUM(0, ctx->active->vol->total_dirs - height);
-              ctx->active->cursor_pos = p_idx - ctx->active->disp_begin_pos;
-            }
-          }
-          dir_entry = ctx->active->vol
-                          ->dir_entry_list[ctx->active->disp_begin_pos +
-                                           ctx->active->cursor_pos]
-                          .dir_entry;
-
-          DisplayTree(ctx, ctx->active->vol, ctx->ctx_dir_window,
-                      ctx->active->disp_begin_pos,
-                      ctx->active->disp_begin_pos + ctx->active->cursor_pos,
-                      TRUE);
-          DisplayFileWindow(ctx, ctx->active, dir_entry);
-          DisplayDiskStatistic(ctx, s);
-          UpdateStatsPanel(ctx, dir_entry, s);
-          DisplayAvailBytes(ctx, s);
-          {
-            char path[PATH_LENGTH];
-            GetPath(dir_entry, path);
-            DisplayHeaderPath(ctx, path);
-          }
-        }
-      }
+      (void)DirOps_SelectVisibleDirAndRefresh(ctx, ctx->active,
+                                              dir_entry->up_tree, &dir_entry);
       break;
     case ACTION_TO_DIR:
       if (ctx->view_mode != ARCHIVE_MODE) {
@@ -1054,7 +910,6 @@ int HandleDirWindow(ViewContext *ctx, const DirEntry *start_dir_entry) {
       }
       if (dir_entry->up_tree != NULL) {
         DirEntry *archive_root = dir_entry;
-        int root_idx = -1;
         int k;
 
         while (archive_root->up_tree != NULL) {
@@ -1071,45 +926,8 @@ int HandleDirWindow(ViewContext *ctx, const DirEntry *start_dir_entry) {
           }
           archive_root = archive_root->up_tree;
         }
-        for (k = 0; k < ctx->active->vol->total_dirs; k++) {
-          if (ctx->active->vol->dir_entry_list[k].dir_entry == archive_root) {
-            root_idx = k;
-            break;
-          }
-        }
-        if (root_idx >= 0) {
-          if (root_idx >= ctx->active->disp_begin_pos &&
-              root_idx < ctx->active->disp_begin_pos + height) {
-            ctx->active->cursor_pos = root_idx - ctx->active->disp_begin_pos;
-          } else {
-            ctx->active->disp_begin_pos = root_idx;
-            ctx->active->cursor_pos = 0;
-            if (ctx->active->disp_begin_pos + height >
-                ctx->active->vol->total_dirs) {
-              ctx->active->disp_begin_pos =
-                  MAXIMUM(0, ctx->active->vol->total_dirs - height);
-              ctx->active->cursor_pos = root_idx - ctx->active->disp_begin_pos;
-            }
-          }
-
-          dir_entry = ctx->active->vol
-                          ->dir_entry_list[ctx->active->disp_begin_pos +
-                                           ctx->active->cursor_pos]
-                          .dir_entry;
-
-          DisplayTree(ctx, ctx->active->vol, ctx->ctx_dir_window,
-                      ctx->active->disp_begin_pos,
-                      ctx->active->disp_begin_pos + ctx->active->cursor_pos,
-                      TRUE);
-          DisplayFileWindow(ctx, ctx->active, dir_entry);
-          DisplayDiskStatistic(ctx, s);
-          UpdateStatsPanel(ctx, dir_entry, s);
-          DisplayAvailBytes(ctx, s);
-          {
-            char path[PATH_LENGTH];
-            GetPath(dir_entry, path);
-            DisplayHeaderPath(ctx, path);
-          }
+        if (DirOps_SelectVisibleDirAndRefresh(ctx, ctx->active, archive_root,
+                                              &dir_entry)) {
           DisplayDirHelp(ctx, dir_entry);
         }
         break;
