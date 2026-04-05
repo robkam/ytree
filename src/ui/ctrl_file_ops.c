@@ -11,6 +11,337 @@
 #include "ytree_ui.h"
 #include <utime.h>
 
+BOOL handle_file_window_command_action(ViewContext *ctx, YtreeAction action,
+                                       DirEntry **dir_entry_ptr,
+                                       BOOL *need_dsp_help_ptr,
+                                       BOOL *maybe_change_x_step_ptr,
+                                       Statistic *s) {
+  FileEntry *fe_ptr = NULL;
+  FileEntry *new_fe_ptr = NULL;
+  DirEntry *de_ptr = NULL;
+  DirEntry *dest_dir_entry = NULL;
+  DirEntry *dir_entry = *dir_entry_ptr;
+  BOOL path_copy = FALSE;
+  int term = 0;
+  int get_dir_ret = 0;
+  static char to_dir[PATH_LENGTH + 1];
+  static char to_path[PATH_LENGTH + 1];
+  static char to_file[PATH_LENGTH + 1];
+  char new_name[PATH_LENGTH + 1];
+  char expanded_new_name[PATH_LENGTH + 1];
+  char expanded_to_file[PATH_LENGTH + 1];
+
+#define need_dsp_help (*need_dsp_help_ptr)
+#define maybe_change_x_step (*maybe_change_x_step_ptr)
+
+  switch (action) {
+  case ACTION_CMD_Y:
+  case ACTION_CMD_C:
+    fe_ptr =
+        ctx->active
+            ->file_entry_list[dir_entry->start_file + dir_entry->cursor_pos]
+            .file;
+    de_ptr = fe_ptr->dir_entry;
+
+    path_copy = FALSE;
+    if (action == ACTION_CMD_Y)
+      path_copy = TRUE;
+
+    need_dsp_help = TRUE;
+
+    if (GetCopyParameter(ctx, fe_ptr->name, path_copy, to_file, to_dir)) {
+      break;
+    }
+
+    if (ctx->view_mode != DISK_MODE && ctx->view_mode != USER_MODE) {
+      if (realpath(to_dir, to_path) == NULL) {
+        if (errno == ENOENT) {
+          int copied_len = snprintf(to_path, sizeof(to_path), "%s", to_dir);
+          if (copied_len < 0 || (size_t)copied_len >= sizeof(to_path)) {
+            MESSAGE(ctx, "Invalid destination path*\"%s\"*path too long",
+                    to_dir);
+            break;
+          }
+        } else {
+          MESSAGE(ctx, "Invalid destination path*\"%s\"*%s", to_dir,
+                  strerror(errno));
+          break;
+        }
+      }
+      dest_dir_entry = NULL;
+    } else {
+      struct stat target_stat;
+      get_dir_ret =
+          GetDirEntry(ctx, s->tree, de_ptr, to_dir, &dest_dir_entry, to_path);
+      if (get_dir_ret == -1) { /* System error */
+        if (realpath(to_dir, to_path) == NULL || STAT_(to_path, &target_stat) != 0 ||
+            !S_ISREG(target_stat.st_mode)) {
+          break;
+        }
+        dest_dir_entry = NULL;
+      }
+      if (get_dir_ret == -3) { /* Directory not found, proceed */
+        dest_dir_entry = NULL;
+      }
+    }
+
+    /* EXPAND WILDCARDS FOR SINGLE FILE COPY */
+    BuildFilename(fe_ptr->name, to_file, expanded_to_file);
+
+    {
+      int dir_create_mode = 0; /* Local mode for single file op */
+      int overwrite_mode = 0;  /* Local mode for single file op */
+      CopyFile(ctx, s, fe_ptr, expanded_to_file, dest_dir_entry, to_path,
+               path_copy, &dir_create_mode, &overwrite_mode,
+               (ConflictCallback)UI_ConflictResolverWrapper,
+               (ChoiceCallback)UI_ChoiceResolver);
+    }
+
+    RefreshDirWindow(ctx, ctx->active);
+    if (ctx->is_split_screen) {
+      RefreshDirWindow(ctx, (ctx->active == ctx->left) ? ctx->right
+                                                       : ctx->left);
+    }
+
+    RefreshView(ctx, dir_entry);
+    need_dsp_help = TRUE;
+    break;
+
+  case ACTION_CMD_M:
+    if (ctx->view_mode != DISK_MODE && ctx->view_mode != USER_MODE &&
+        ctx->view_mode != ARCHIVE_MODE) {
+      break;
+    }
+
+    fe_ptr =
+        ctx->active
+            ->file_entry_list[dir_entry->start_file + dir_entry->cursor_pos]
+            .file;
+    de_ptr = fe_ptr->dir_entry;
+
+    need_dsp_help = TRUE;
+
+    if (GetMoveParameter(ctx, fe_ptr->name, to_file, to_dir)) {
+      break;
+    }
+
+    if (ctx->view_mode == ARCHIVE_MODE) {
+      if (realpath(to_dir, to_path) == NULL) {
+        if (errno == ENOENT) {
+          int copied_len = snprintf(to_path, sizeof(to_path), "%s", to_dir);
+          if (copied_len < 0 || (size_t)copied_len >= sizeof(to_path)) {
+            MESSAGE(ctx, "Invalid destination path*\"%s\"*path too long",
+                    to_dir);
+            break;
+          }
+        } else {
+          MESSAGE(ctx, "Invalid destination path*\"%s\"*%s", to_dir,
+                  strerror(errno));
+          break;
+        }
+      }
+      dest_dir_entry = NULL;
+    } else {
+      BOOL target_is_regular_file = FALSE;
+      struct stat target_stat;
+
+      get_dir_ret =
+          GetDirEntry(ctx, s->tree, de_ptr, to_dir, &dest_dir_entry, to_path);
+      if (get_dir_ret == -1) {
+        if (realpath(to_dir, to_path) != NULL &&
+            STAT_(to_path, &target_stat) == 0 &&
+            S_ISREG(target_stat.st_mode)) {
+          dest_dir_entry = NULL;
+          target_is_regular_file = TRUE;
+        } else {
+          break;
+        }
+      }
+      if (get_dir_ret == -3) {
+        dest_dir_entry = NULL;
+      }
+
+      if (!target_is_regular_file) {
+        /* Construct absolute path for checking */
+        {
+          char abs_check_path[PATH_LENGTH * 2 + 2];
+          BOOL created = FALSE;
+          int dir_create_mode = 0;
+
+          if (*to_dir == FILE_SEPARATOR_CHAR) {
+            int copied_len =
+                snprintf(abs_check_path, sizeof(abs_check_path), "%s", to_dir);
+            if (copied_len < 0 ||
+                (size_t)copied_len >= sizeof(abs_check_path)) {
+              MESSAGE(ctx, "Invalid destination path*\"%s\"*path too long",
+                      to_dir);
+              break;
+            }
+          } else {
+            char current_dir[PATH_LENGTH + 1];
+
+            GetPath(de_ptr, current_dir);
+            snprintf(abs_check_path, sizeof(abs_check_path), "%s%c%s",
+                     current_dir, FILE_SEPARATOR_CHAR, to_dir);
+          }
+          /* FIX: Pass &dest_dir_entry */
+          if (EnsureDirectoryExists(ctx, abs_check_path, s->tree, &created,
+                                    &dest_dir_entry, &dir_create_mode,
+                                    (ChoiceCallback)UI_ChoiceResolver) == -1)
+            break;
+        }
+      }
+    }
+
+    /* EXPAND WILDCARDS FOR SINGLE FILE MOVE */
+    BuildFilename(fe_ptr->name, to_file, expanded_to_file);
+
+    {
+      int dir_create_mode = 0;
+      int overwrite_mode = 0;
+      if (!MoveFile(ctx, fe_ptr, expanded_to_file, dest_dir_entry, to_path,
+                    &new_fe_ptr, &dir_create_mode, &overwrite_mode,
+                    (ConflictCallback)UI_ConflictResolverWrapper,
+                    (ChoiceCallback)UI_ChoiceResolver)) {
+        /* File was moved */
+        /*-------------------*/
+
+        /* ... Stats updates ... */
+        /* ... BuildFileEntryList ... */
+
+        RefreshView(ctx, dir_entry);
+
+        RefreshDirWindow(ctx, ctx->active);
+        if (ctx->is_split_screen) {
+          RefreshDirWindow(ctx, (ctx->active == ctx->left) ? ctx->right
+                                                           : ctx->left);
+        }
+
+        maybe_change_x_step = TRUE;
+      }
+    }
+    need_dsp_help = TRUE;
+    break;
+
+  case ACTION_CMD_D:
+    if (ctx->view_mode != DISK_MODE && ctx->view_mode != USER_MODE &&
+        ctx->view_mode != ARCHIVE_MODE) {
+      break;
+    }
+
+    term = InputChoice(ctx, "Delete this file (Y/N) ? ", "YN\033");
+
+    need_dsp_help = TRUE;
+
+    if (term != 'Y')
+      break;
+
+    fe_ptr =
+        ctx->active
+            ->file_entry_list[dir_entry->start_file + dir_entry->cursor_pos]
+            .file;
+
+    {
+      int override_mode = 0;
+      if (!DeleteFile(ctx, fe_ptr, &override_mode, s,
+                      (ChoiceCallback)UI_ChoiceResolver)) {
+        /* File was deleted */
+        /*----------------------*/
+
+        RefreshView(ctx, dir_entry);
+        maybe_change_x_step = TRUE;
+      }
+    }
+    break;
+
+  case ACTION_CMD_R:
+    if (ctx->view_mode != DISK_MODE && ctx->view_mode != USER_MODE &&
+        ctx->view_mode != ARCHIVE_MODE) {
+      break;
+    }
+
+    fe_ptr =
+        ctx->active
+            ->file_entry_list[dir_entry->start_file + dir_entry->cursor_pos]
+            .file;
+
+    if (!GetRenameParameter(ctx, fe_ptr->name, new_name)) {
+      /* EXPAND WILDCARDS FOR SINGLE FILE RENAME */
+      BuildFilename(fe_ptr->name, new_name, expanded_new_name);
+
+      if (!RenameFile(ctx, fe_ptr, expanded_new_name, &new_fe_ptr)) {
+        /* Rename OK */
+        /*-----------*/
+
+        maybe_change_x_step = TRUE;
+      }
+      RefreshView(ctx, dir_entry);
+    }
+    need_dsp_help = TRUE;
+    break;
+
+  case ACTION_CMD_P:
+    fe_ptr =
+        ctx->active
+            ->file_entry_list[dir_entry->start_file + dir_entry->cursor_pos]
+            .file;
+    de_ptr = fe_ptr->dir_entry;
+    {
+      char pipe_cmd[PATH_LENGTH + 1];
+      pipe_cmd[0] = '\0';
+      if (GetPipeCommand(ctx, pipe_cmd) == 0) {
+        (void)Pipe(ctx, de_ptr, fe_ptr, pipe_cmd);
+      }
+    }
+    RefreshView(ctx, dir_entry);
+    need_dsp_help = TRUE;
+    break;
+
+  case ACTION_CMD_PRINT:
+    UI_HandlePrintController(ctx, dir_entry, FALSE);
+    RefreshView(ctx, dir_entry);
+    need_dsp_help = TRUE;
+    break;
+
+  case ACTION_CMD_X:
+    fe_ptr =
+        ctx->active
+            ->file_entry_list[dir_entry->start_file + dir_entry->cursor_pos]
+            .file;
+    de_ptr = fe_ptr->dir_entry;
+    {
+      char command_template[COMMAND_LINE_LENGTH + 1];
+      command_template[0] = '\0';
+      if (fe_ptr &&
+          (fe_ptr->stat_struct.st_mode & (S_IXUSR | S_IXGRP | S_IXOTH))) {
+        StrCp(command_template, fe_ptr->name);
+      }
+      if (GetCommandLine(ctx, command_template) == 0) {
+        (void)Execute(ctx, de_ptr, fe_ptr, command_template,
+                      &ctx->active->vol->vol_stats, UI_ArchiveCallback);
+        if (ctx->view_mode == ARCHIVE_MODE)
+          HitReturnToContinue();
+      }
+    }
+    dir_entry = RefreshFileView(ctx, dir_entry);
+
+    /* Insert: Explicit Global Refresh to be safe */
+    RefreshView(ctx, dir_entry);
+    need_dsp_help = TRUE;
+    break;
+
+  default:
+#undef need_dsp_help
+#undef maybe_change_x_step
+    return FALSE;
+  }
+
+  *dir_entry_ptr = dir_entry;
+#undef need_dsp_help
+#undef maybe_change_x_step
+  return TRUE;
+}
+
 BOOL handle_tag_file_action(ViewContext *ctx, int action, DirEntry *dir_entry,
                             int *unput_char_ptr, BOOL *need_dsp_help_ptr,
                             int start_x, Statistic *s,
