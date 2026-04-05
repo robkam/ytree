@@ -1294,90 +1294,21 @@ int HandleDirWindow(ViewContext *ctx, const DirEntry *start_dir_entry) {
       UpdateStatsPanel(ctx, dir_entry, s);
       break;
     case ACTION_CMD_MKFILE:
-      DEBUG_LOG("ACTION_CMD_MKFILE reached in ctrl_dir.c. mode=%d",
-                ctx->view_mode);
-      if (ctx->view_mode != DISK_MODE)
-        break;
-      {
-        char file_name[PATH_LENGTH * 2 + 1];
-
-        ClearHelp(ctx);
-        *file_name = '\0';
-        if (UI_ReadString(ctx, ctx->active, "MAKE FILE:", file_name,
-                          PATH_LENGTH, HST_FILE) == CR) {
-          int mk_result =
-              MakeFile(ctx, dir_entry, file_name, s, NULL, UI_ChoiceResolver);
-          if (mk_result == 0) {
-            /* Determine where the new file should be. */
-            if (ctx->active && ctx->active->pan_file_window) {
-              /* Force file window refresh */
-              DisplayFileWindow(ctx, ctx->active, dir_entry);
-            }
-            RefreshView(ctx, dir_entry);
-          } else if (mk_result == 1) {
-            MESSAGE(ctx, "File already exists!");
-          } else {
-            MESSAGE(ctx, "Can't create File*\"%s\"", file_name);
-          }
-        }
-      }
-      need_dsp_help = TRUE;
+      if (HandleDirMakeFile(ctx, dir_entry))
+        need_dsp_help = TRUE;
       break;
 
-    case ACTION_CMD_M: {
-      char dir_name[PATH_LENGTH * 2 + 1];
-      ClearHelp(ctx);
-      *dir_name = '\0';
-      if (UI_ReadString(ctx, ctx->active, "MAKE DIRECTORY:", dir_name,
-                        PATH_LENGTH, HST_FILE) == CR) {
-        if (!MakeDirectory(ctx, ctx->active, dir_entry, dir_name, s)) {
-          BuildDirEntryList(ctx, ctx->active->vol,
-                            &ctx->active->current_dir_entry);
-          RefreshView(ctx, dir_entry);
-        }
-      }
-      wmove(ctx->ctx_border_window, ctx->layout.prompt_y, 0);
-      wclrtoeol(ctx->ctx_border_window);
-      wnoutrefresh(ctx->ctx_border_window);
-    }
+    case ACTION_CMD_M:
+      HandleDirMakeDirectory(ctx, dir_entry, s);
       need_dsp_help = TRUE;
       break;
     case ACTION_CMD_D:
-      if (!DeleteDirectory(ctx, dir_entry, UI_ChoiceResolver)) {
-        if (ctx->active->disp_begin_pos + ctx->active->cursor_pos > 0) {
-          if (ctx->active->cursor_pos > 0)
-            ctx->active->cursor_pos--;
-          else
-            ctx->active->disp_begin_pos--;
-        }
-      }
-      /* Update regardless of success */
-      BuildDirEntryList(ctx, ctx->active->vol, &ctx->active->current_dir_entry);
-      dir_entry = ctx->active->vol
-                      ->dir_entry_list[ctx->active->disp_begin_pos +
-                                       ctx->active->cursor_pos]
-                      .dir_entry;
-      dir_entry->start_file = 0;
-      dir_entry->cursor_pos = -1;
-
-      RefreshView(ctx, dir_entry);
+      dir_entry = HandleDirDeleteDirectory(ctx, dir_entry);
       need_dsp_help = TRUE;
       break;
 
     case ACTION_CMD_R:
-      if (!GetRenameParameter(ctx, dir_entry->name, new_name)) {
-        int rename_result = RenameDirectory(ctx, dir_entry, new_name);
-        if (!rename_result) {
-          /* Rename OK */
-          BuildDirEntryList(ctx, ctx->active->vol,
-                            &ctx->active->current_dir_entry);
-          dir_entry = ctx->active->vol
-                          ->dir_entry_list[ctx->active->disp_begin_pos +
-                                           ctx->active->cursor_pos]
-                          .dir_entry;
-        }
-        RefreshView(ctx, dir_entry);
-      }
+      dir_entry = HandleDirRenameDirectory(ctx, dir_entry);
       need_dsp_help = TRUE;
       break;
     case ACTION_REFRESH: /* Rescan */
