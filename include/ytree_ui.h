@@ -92,6 +92,11 @@ extern int KeyF2Get(ViewContext *ctx, YtreePanel *panel, char *path);
 extern int RefreshDirWindow(ViewContext *ctx, YtreePanel *p);
 extern int ScanSubTree(ViewContext *ctx, DirEntry *dir_entry, Statistic *s);
 extern void ToggleDotFiles(ViewContext *ctx, YtreePanel *p);
+extern BOOL HandleDirMakeFile(ViewContext *ctx, DirEntry *dir_entry);
+extern void HandleDirMakeDirectory(ViewContext *ctx, DirEntry *dir_entry,
+                                   Statistic *s);
+extern DirEntry *HandleDirDeleteDirectory(ViewContext *ctx, DirEntry *dir_entry);
+extern DirEntry *HandleDirRenameDirectory(ViewContext *ctx, DirEntry *dir_entry);
 extern DirEntry *GetSelectedDirEntry(ViewContext *ctx, struct Volume *vol);
 extern DirEntry *GetPanelDirEntry(YtreePanel *p);
 extern void BuildDirEntryList(ViewContext *ctx, struct Volume *vol,

@@ -275,6 +275,92 @@ void HandleUnreadSubTree(ViewContext *ctx, DirEntry *dir_entry,
   return;
 }
 
+BOOL HandleDirMakeFile(ViewContext *ctx, DirEntry *dir_entry) {
+  char file_name[PATH_LENGTH * 2 + 1];
+  int mk_result;
+
+  DEBUG_LOG("ACTION_CMD_MKFILE reached in ctrl_dir.c. mode=%d", ctx->view_mode);
+  if (ctx->view_mode != DISK_MODE)
+    return FALSE;
+
+  ClearHelp(ctx);
+  *file_name = '\0';
+  if (UI_ReadString(ctx, ctx->active, "MAKE FILE:", file_name, PATH_LENGTH,
+                    HST_FILE) == CR) {
+    mk_result = MakeFile(ctx, dir_entry, file_name, &ctx->active->vol->vol_stats,
+                         NULL, UI_ChoiceResolver);
+    if (mk_result == 0) {
+      if (ctx->active && ctx->active->pan_file_window) {
+        DisplayFileWindow(ctx, ctx->active, dir_entry);
+      }
+      RefreshView(ctx, dir_entry);
+    } else if (mk_result == 1) {
+      MESSAGE(ctx, "File already exists!");
+    } else {
+      MESSAGE(ctx, "Can't create File*\"%s\"", file_name);
+    }
+  }
+
+  return TRUE;
+}
+
+void HandleDirMakeDirectory(ViewContext *ctx, DirEntry *dir_entry,
+                            Statistic *s) {
+  char dir_name[PATH_LENGTH * 2 + 1];
+
+  ClearHelp(ctx);
+  *dir_name = '\0';
+  if (UI_ReadString(ctx, ctx->active, "MAKE DIRECTORY:", dir_name, PATH_LENGTH,
+                    HST_FILE) == CR) {
+    if (!MakeDirectory(ctx, ctx->active, dir_entry, dir_name, s)) {
+      BuildDirEntryList(ctx, ctx->active->vol, &ctx->active->current_dir_entry);
+      RefreshView(ctx, dir_entry);
+    }
+  }
+  wmove(ctx->ctx_border_window, ctx->layout.prompt_y, 0);
+  wclrtoeol(ctx->ctx_border_window);
+  wnoutrefresh(ctx->ctx_border_window);
+}
+
+DirEntry *HandleDirDeleteDirectory(ViewContext *ctx, DirEntry *dir_entry) {
+  if (!DeleteDirectory(ctx, dir_entry, UI_ChoiceResolver)) {
+    if (ctx->active->disp_begin_pos + ctx->active->cursor_pos > 0) {
+      if (ctx->active->cursor_pos > 0)
+        ctx->active->cursor_pos--;
+      else
+        ctx->active->disp_begin_pos--;
+    }
+  }
+
+  BuildDirEntryList(ctx, ctx->active->vol, &ctx->active->current_dir_entry);
+  dir_entry = ctx->active->vol
+                  ->dir_entry_list[ctx->active->disp_begin_pos +
+                                   ctx->active->cursor_pos]
+                  .dir_entry;
+  dir_entry->start_file = 0;
+  dir_entry->cursor_pos = -1;
+  RefreshView(ctx, dir_entry);
+  return dir_entry;
+}
+
+DirEntry *HandleDirRenameDirectory(ViewContext *ctx, DirEntry *dir_entry) {
+  char new_name[PATH_LENGTH + 1];
+
+  if (!GetRenameParameter(ctx, dir_entry->name, new_name)) {
+    int rename_result = RenameDirectory(ctx, dir_entry, new_name);
+    if (!rename_result) {
+      BuildDirEntryList(ctx, ctx->active->vol, &ctx->active->current_dir_entry);
+      dir_entry = ctx->active->vol
+                      ->dir_entry_list[ctx->active->disp_begin_pos +
+                                       ctx->active->cursor_pos]
+                      .dir_entry;
+    }
+    RefreshView(ctx, dir_entry);
+  }
+
+  return dir_entry;
+}
+
 void HandleShowAll(ViewContext *ctx, BOOL tagged_only, BOOL all_volumes,
                    DirEntry *dir_entry, BOOL *need_dsp_help, int *ch,
                    YtreePanel *p) {
