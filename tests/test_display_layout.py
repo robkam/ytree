@@ -451,7 +451,7 @@ def _footer_text(tui):
     return "\n".join(tui.get_screen_dump()[-3:]).lower()
 
 
-def test_global_toggle_repeat_exits_global_view(ytree_binary, tmp_path):
+def test_global_repeat_key_is_noop_in_global_view(ytree_binary, tmp_path):
     root = tmp_path / "global_toggle_repeat"
     root.mkdir()
     (root / "a.txt").write_text("a", encoding="utf-8")
@@ -462,23 +462,21 @@ def test_global_toggle_repeat_exits_global_view(ytree_binary, tmp_path):
 
     tui.send_keystroke("g", wait=0.5)
     footer = _footer_text(tui)
-    assert "global off" in footer, (
-        "Global file-view footer should advertise repeat-key exit with G."
-    )
+    assert "global off" not in footer
     assert "to dir" in footer
 
     tui.send_keystroke("g", wait=0.5)
     footer = _footer_text(tui)
-    assert "dir" in footer and "global" in footer, (
-        "Repeating G in global file view should return to directory mode."
-    )
-    assert "global off" not in footer
+    assert "to dir" in footer, "G in global mode should be a no-op."
+
+    tui.send_keystroke("\\", wait=0.5)
+    footer = _footer_text(tui)
     assert "to dir" not in footer
 
     tui.quit()
 
 
-def test_showall_toggle_repeat_exits_showall_view(ytree_binary, tmp_path):
+def test_showall_repeat_key_sorts_in_showall_view(ytree_binary, tmp_path):
     root = tmp_path / "showall_toggle_repeat"
     root.mkdir()
     (root / "a.txt").write_text("a", encoding="utf-8")
@@ -489,17 +487,18 @@ def test_showall_toggle_repeat_exits_showall_view(ytree_binary, tmp_path):
 
     tui.send_keystroke(Keys.SHOWALL, wait=0.5)
     footer = _footer_text(tui)
-    assert "showall off" in footer, (
-        "Showall file-view footer should advertise repeat-key exit with S."
-    )
+    assert "showall off" not in footer
     assert "to dir" in footer
 
     tui.send_keystroke(Keys.SHOWALL, wait=0.5)
     footer = _footer_text(tui)
-    assert "dir" in footer and "showall" in footer, (
-        "Repeating S in showall file view should return to directory mode."
-    )
-    assert "showall off" not in footer
+    assert "sort by" in footer, "S in showall mode should trigger sort."
+    tui.send_keystroke(Keys.ESC, wait=0.5)
+    footer = _footer_text(tui)
+    assert "to dir" in footer, "After dismissing sort prompt, stay in file view."
+
+    tui.send_keystroke("\\", wait=0.5)
+    footer = _footer_text(tui)
     assert "to dir" not in footer
 
     tui.quit()
@@ -526,7 +525,7 @@ def test_mutating_action_repeat_is_not_undo(ytree_binary, tmp_path):
     )
 
 
-def test_showall_repeat_returns_to_start_directory_context(ytree_binary, tmp_path):
+def test_showall_repeat_stays_in_showall_context(ytree_binary, tmp_path):
     root = tmp_path / "showall_repeat_start_dir"
     root.mkdir()
     alpha = root / "alpha"
@@ -546,20 +545,20 @@ def test_showall_repeat_returns_to_start_directory_context(ytree_binary, tmp_pat
     tui.send_keystroke("f", wait=0.2)
     tui.send_keystroke("beta_only.txt\r", wait=0.5)
 
-    # Toggle off with same key: should return to start directory (alpha), not owner jump.
+    # Repeat S in showall: should sort, not leave showall mode.
     tui.send_keystroke(Keys.SHOWALL, wait=0.5)
-    tui.send_keystroke(Keys.ENTER, wait=0.5)
-
-    lines = tui.get_screen_dump()
-    header = lines[0]
-    assert "/alpha" in header, (
-        "Repeating S to exit Showall should return to the start directory context."
-    )
+    footer = _footer_text(tui)
+    assert "sort by" in footer
+    tui.send_keystroke(Keys.ESC, wait=0.5)
+    footer = _footer_text(tui)
+    screen = "\n".join(tui.get_screen_dump())
+    assert "to dir" in footer
+    assert "beta_only.txt" in screen
 
     tui.quit()
 
 
-def test_global_repeat_returns_to_start_directory_context(ytree_binary, tmp_path):
+def test_global_repeat_stays_in_global_context(ytree_binary, tmp_path):
     root = tmp_path / "global_repeat_start_dir"
     root.mkdir()
     alpha = root / "alpha"
@@ -579,15 +578,12 @@ def test_global_repeat_returns_to_start_directory_context(ytree_binary, tmp_path
     tui.send_keystroke("f", wait=0.2)
     tui.send_keystroke("beta_only.txt\r", wait=0.5)
 
-    # Toggle off with same key: should return to start directory (alpha), not owner jump.
+    # Repeat G in global-all-volumes mode: should be a no-op.
     tui.send_keystroke("g", wait=0.5)
-    tui.send_keystroke(Keys.ENTER, wait=0.5)
-
-    lines = tui.get_screen_dump()
-    header = lines[0]
-    assert "/alpha" in header, (
-        "Repeating G to exit Global should return to the start directory context."
-    )
+    footer = _footer_text(tui)
+    screen = "\n".join(tui.get_screen_dump())
+    assert "to dir" in footer
+    assert "beta_only.txt" in screen
 
     tui.quit()
 
