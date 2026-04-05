@@ -19,7 +19,7 @@
 #else
 #ifndef PRINT
 #define PRINT(ch)                                                              \
-  (iscntrl(ch) && (((unsigned char)(ch)) < ' ')) ? (ACS_BLOCK)                \
+  (iscntrl(ch) && (((unsigned char)(ch)) < ' ')) ? (ACS_BLOCK)                 \
                                                  : ((unsigned char)(ch))
 #endif
 #endif
@@ -192,9 +192,8 @@ extern void SetFileRenderingMetrics(YtreePanel *p, unsigned max_filename,
                                     unsigned max_userview);
 extern void SetRenderSortOrder(YtreePanel *p, BOOL reverse);
 extern void DisplayFiles(ViewContext *ctx, YtreePanel *panel,
-                         const DirEntry *de_ptr,
-                         int start_file_no, int hilight_no, int start_x,
-                         WINDOW *win);
+                         const DirEntry *de_ptr, int start_file_no,
+                         int hilight_no, int start_x, WINDOW *win);
 extern void PrintFileEntry(ViewContext *ctx, YtreePanel *panel, int entry_no,
                            int y, int x, unsigned char hilight, int start_x,
                            WINDOW *win);
@@ -259,6 +258,9 @@ extern void HandleShowAll(ViewContext *ctx, BOOL tagged_only, BOOL all_volumes,
 extern BOOL HandleDirTagActions(ViewContext *ctx, int action,
                                 DirEntry **dir_entry_ptr, BOOL *need_dsp_help,
                                 int *ch);
+
+/* ui_edit_config.c */
+extern void UI_OpenConfigProfile(ViewContext *ctx, DirEntry *dir_entry);
 
 /* dir_nav.c */
 extern void DirNav_Movedown(ViewContext *ctx, DirEntry **dir_entry,
@@ -389,7 +391,8 @@ extern void DirCompare_LaunchExternal(ViewContext *ctx, DirEntry *source_dir,
                                       CompareFlowType flow_type);
 
 /* file_compare.c */
-extern void FileCompare_LaunchExternal(ViewContext *ctx, FileEntry *source_file);
+extern void FileCompare_LaunchExternal(ViewContext *ctx,
+                                       FileEntry *source_file);
 
 /* file_tags.c */
 extern void FileTags_WalkTaggedFiles(ViewContext *ctx, int start_file,

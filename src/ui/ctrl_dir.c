@@ -250,26 +250,6 @@ static DirEntry *HandleDirCopyMove(ViewContext *ctx, DirEntry *dir_entry,
   return dir_entry;
 }
 
-static void OpenConfigProfile(ViewContext *ctx, DirEntry *dir_entry) {
-  char profile_path[PATH_LENGTH + 1];
-  const char *home;
-
-  profile_path[0] = '\0';
-  home = getenv("HOME");
-  if (home && *home) {
-    int written;
-    written = snprintf(profile_path, sizeof(profile_path), "%s/%s", home,
-                       PROFILE_FILENAME);
-    if (written < 0 || written >= (int)sizeof(profile_path))
-      profile_path[0] = '\0';
-  }
-  if (!profile_path[0])
-    (void)snprintf(profile_path, sizeof(profile_path), "%s", PROFILE_FILENAME);
-
-  if (Edit(ctx, dir_entry, profile_path) != 0)
-    MESSAGE(ctx, "Can't edit \"%s\"", profile_path);
-}
-
 static BOOL ExitArchiveRootToParent(ViewContext *ctx, DirEntry **dir_entry_ptr,
                                     Statistic **s_ptr,
                                     const struct Volume **start_vol_ptr,
@@ -661,7 +641,7 @@ int HandleDirWindow(ViewContext *ctx, const DirEntry *start_dir_entry) {
       break;
 
     case ACTION_EDIT_CONFIG:
-      OpenConfigProfile(ctx, dir_entry);
+      UI_OpenConfigProfile(ctx, dir_entry);
       need_dsp_help = TRUE;
       break;
 

@@ -43,26 +43,6 @@ static void PositionOwnerFileCursor(ViewContext *ctx, DirEntry *owner_dir,
 static BOOL JumpToOwnerDirectory(ViewContext *ctx,
                                  const DirEntry *global_dir_entry);
 
-static void OpenConfigProfile(ViewContext *ctx, DirEntry *dir_entry) {
-  char profile_path[PATH_LENGTH + 1];
-  const char *home;
-
-  profile_path[0] = '\0';
-  home = getenv("HOME");
-  if (home && *home) {
-    int written;
-    written = snprintf(profile_path, sizeof(profile_path), "%s/%s", home,
-                       PROFILE_FILENAME);
-    if (written < 0 || written >= (int)sizeof(profile_path))
-      profile_path[0] = '\0';
-  }
-  if (!profile_path[0])
-    (void)snprintf(profile_path, sizeof(profile_path), "%s", PROFILE_FILENAME);
-
-  if (Edit(ctx, dir_entry, profile_path) != 0)
-    MESSAGE(ctx, "Can't edit \"%s\"", profile_path);
-}
-
 static YtreeAction FilterPreviewAction(YtreeAction action) {
   switch (action) {
   case ACTION_NONE:
@@ -226,9 +206,8 @@ DirEntry *RefreshFileView(ViewContext *ctx, DirEntry *dir_entry) {
       /* Bounds check */
       if (dir_entry->start_file + FileNav_GetMaxDispFiles(ctx) >
           (int)ctx->active->file_count) {
-        dir_entry->start_file =
-            MAXIMUM(0, (int)ctx->active->file_count -
-                              FileNav_GetMaxDispFiles(ctx));
+        dir_entry->start_file = MAXIMUM(0, (int)ctx->active->file_count -
+                                               FileNav_GetMaxDispFiles(ctx));
         dir_entry->cursor_pos =
             (int)ctx->active->file_count - 1 - dir_entry->start_file;
       }
@@ -322,9 +301,8 @@ int HandleFileWindow(ViewContext *ctx, DirEntry *dir_entry) {
     /* Bounds Check: ensure we aren't past the end */
     if ((unsigned int)(dir_entry->start_file + dir_entry->cursor_pos) >=
         ctx->active->file_count) {
-      dir_entry->start_file =
-          MAXIMUM(0, (int)ctx->active->file_count -
-                            FileNav_GetMaxDispFiles(ctx));
+      dir_entry->start_file = MAXIMUM(0, (int)ctx->active->file_count -
+                                             FileNav_GetMaxDispFiles(ctx));
       dir_entry->cursor_pos =
           (int)ctx->active->file_count - 1 - dir_entry->start_file;
     }
@@ -1430,7 +1408,7 @@ int HandleFileWindow(ViewContext *ctx, DirEntry *dir_entry) {
     } break;
 
     case ACTION_EDIT_CONFIG:
-      OpenConfigProfile(ctx, dir_entry);
+      UI_OpenConfigProfile(ctx, dir_entry);
       need_dsp_help = TRUE;
       break;
 
