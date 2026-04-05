@@ -187,6 +187,24 @@ extern DirEntry *RefreshFileView(ViewContext *ctx, DirEntry *dir_entry);
 extern BOOL handle_file_window_command_action(
     ViewContext *ctx, YtreeAction action, DirEntry **dir_entry_ptr,
     BOOL *need_dsp_help_ptr, BOOL *maybe_change_x_step_ptr, Statistic *s);
+extern BOOL handle_file_window_preview_action(
+    ViewContext *ctx, YtreeAction action, DirEntry **dir_entry_ptr,
+    YtreeAction *loop_action_ptr, Statistic **stats_ptr,
+    struct Volume **start_vol_ptr, BOOL *need_dsp_help_ptr,
+    long *preview_line_offset_ptr, int *saved_fixed_width_ptr,
+    void (*update_preview)(ViewContext *, const DirEntry *));
+extern BOOL handle_file_window_navigation_action(
+    ViewContext *ctx, YtreeAction action, DirEntry *dir_entry, int *start_x_ptr,
+    BOOL *need_dsp_help_ptr, long *preview_line_offset_ptr,
+    void (*update_preview)(ViewContext *, const DirEntry *),
+    void (*list_jump)(ViewContext *, DirEntry *, char *));
+extern BOOL handle_file_window_split_switch_action(
+    ViewContext *ctx, YtreeAction action, DirEntry *dir_entry,
+    YtreePanel *owner_panel, BOOL *switched_panel_ptr,
+    YtreeAction *loop_action_ptr, BOOL *return_esc_ptr);
+extern BOOL handle_file_window_volume_action(
+    ViewContext *ctx, YtreeAction action, struct Volume *start_vol,
+    int *unput_char_ptr, BOOL *return_esc_ptr);
 extern BOOL handle_tag_file_action(ViewContext *ctx, int action,
                                    DirEntry *dir_entry, int *unput_char_ptr,
                                    BOOL *need_dsp_help_ptr, int start_x,
