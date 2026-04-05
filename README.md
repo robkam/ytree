@@ -1,7 +1,7 @@
 # **ytree - The Unix File Logger**
 ---
 > [!IMPORTANT]
-> **STATUS: PRE-ALPHA (v3.0.0)**
+> **STATUS: ALPHA (v3.0.0)**
 > This is a major modernization of the original `ytree`, transitioning to a modular C99/POSIX architecture. While functional, it is considered pre-alpha as UI/UX tightening and stability refinements continue.
 
 **Ytree** is a keyboard-optimized file manager for all POSIX-compliant **Unix** systems (Linux, BSD, macOS, etc.). Unlike traditional "browsers," `ytree` is a **Logger**: it scans directory hierarchies into memory, allowing for instant filtering, tagging, and bulk operations across the entire filesystem.

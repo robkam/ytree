@@ -37,12 +37,54 @@ POLICY_ALLOWED_DEPENDENCIES = {
 LEGACY_POLICY_EXCEPTIONS = set()
 
 # Prevent regression of known "god module" hotspots.
-CONTROLLER_LINE_BUDGET = {
-    "src/ui/ctrl_dir.c": 2833,
-    "src/ui/ctrl_file.c": 2336,
+CONTROLLER_FILE_LINE_BUDGET = {
+    "src/ui/ctrl_dir.c": 2005,
+    "src/ui/ctrl_file.c": 1901,
 }
 
 INCLUDE_RE = re.compile(r'^\s*#\s*include\s*"([^"]+)"')
+FUNCTION_DEF_RE = re.compile(
+    r"(?m)^([A-Za-z_][\w\s\*]*?)\b([A-Za-z_][A-Za-z0-9_]*)\s*\(([^;{}]*)\)\s*\{"
+)
+
+CONTROL_FLOW_KEYWORDS = {"if", "for", "while", "switch"}
+
+CONTROLLER_TOP_LEVEL_ALLOWLIST = {
+    "src/ui/ctrl_dir.c": {
+        "IsPathInside",
+        "BuildDirOpCommand",
+        "ResolveDirTargetPath",
+        "HandleDirCopyMove",
+        "OpenConfigProfile",
+        "ExitArchiveRootToParent",
+        "RestorePanelFileSelection",
+        "HandleDirectoryCompare",
+        "HandleDirWindow",
+        "DirListJump",
+        "DrawDirListJumpPrompt",
+    },
+    "src/ui/ctrl_file.c": {
+        "OpenConfigProfile",
+        "FilterPreviewAction",
+        "UpdateStatsPanel",
+        "ChangeFileOwner",
+        "ChangeFileGroup",
+        "RefreshFileView",
+        "HandleFileWindow",
+        "FindDirIndexInVolume",
+        "FindVolumeForDir",
+        "PositionOwnerFileCursor",
+        "JumpToOwnerDirectory",
+        "DrawFileListJumpPrompt",
+        "ListJump",
+        "UpdatePreview",
+    },
+}
+
+CONTROLLER_GOD_FUNCTION_LINE_BUDGET = {
+    "src/ui/ctrl_dir.c": {"HandleDirWindow": 1376},
+    "src/ui/ctrl_file.c": {"HandleFileWindow": 1274},
+}
 
 
 def parse_includes(text: str) -> list[str]:
@@ -53,6 +95,141 @@ def parse_includes(text: str) -> list[str]:
             continue
         includes.append(m.group(1))
     return includes
+
+
+def strip_non_code(text: str) -> str:
+    out: list[str] = []
+    i = 0
+    n = len(text)
+    state = "code"
+    while i < n:
+        ch = text[i]
+        nxt = text[i + 1] if i + 1 < n else ""
+        if state == "code":
+            if ch == "/" and nxt == "/":
+                state = "line_comment"
+                out.extend((" ", " "))
+                i += 2
+                continue
+            if ch == "/" and nxt == "*":
+                state = "block_comment"
+                out.extend((" ", " "))
+                i += 2
+                continue
+            if ch == '"':
+                state = "string"
+                out.append('"')
+                i += 1
+                continue
+            if ch == "'":
+                state = "char"
+                out.append("'")
+                i += 1
+                continue
+            out.append(ch)
+            i += 1
+            continue
+
+        if state == "line_comment":
+            out.append("\n" if ch == "\n" else " ")
+            if ch == "\n":
+                state = "code"
+            i += 1
+            continue
+
+        if state == "block_comment":
+            if ch == "*" and nxt == "/":
+                state = "code"
+                out.extend((" ", " "))
+                i += 2
+                continue
+            out.append("\n" if ch == "\n" else " ")
+            i += 1
+            continue
+
+        if state == "string":
+            if ch == "\\":
+                out.append(" ")
+                if i + 1 < n:
+                    out.append(" ")
+                    i += 2
+                else:
+                    i += 1
+                continue
+            if ch == '"':
+                state = "code"
+                out.append('"')
+                i += 1
+                continue
+            out.append("\n" if ch == "\n" else " ")
+            i += 1
+            continue
+
+        if ch == "\\":
+            out.append(" ")
+            if i + 1 < n:
+                out.append(" ")
+                i += 2
+            else:
+                i += 1
+            continue
+        if ch == "'":
+            state = "code"
+            out.append("'")
+            i += 1
+            continue
+        out.append("\n" if ch == "\n" else " ")
+        i += 1
+
+    return "".join(out)
+
+
+def find_matching_brace(text: str, open_index: int) -> int | None:
+    depth = 0
+    for i in range(open_index, len(text)):
+        ch = text[i]
+        if ch == "{":
+            depth += 1
+            continue
+        if ch == "}":
+            depth -= 1
+            if depth == 0:
+                return i
+    return None
+
+
+def parse_top_level_function_lengths(text: str) -> dict[str, int]:
+    clean = strip_non_code(text)
+    lengths: dict[str, int] = {}
+    brace_depth = 0
+    depth_at_index = [0] * (len(clean) + 1)
+    for i, ch in enumerate(clean):
+        depth_at_index[i] = brace_depth
+        if ch == "{":
+            brace_depth += 1
+        elif ch == "}":
+            brace_depth = max(0, brace_depth - 1)
+    depth_at_index[len(clean)] = brace_depth
+
+    for m in FUNCTION_DEF_RE.finditer(clean):
+        fn_name = m.group(2)
+        if fn_name in CONTROL_FLOW_KEYWORDS:
+            continue
+        if depth_at_index[m.start()] != 0:
+            continue
+
+        open_index = clean.find("{", m.end() - 1)
+        if open_index < 0:
+            continue
+        close_index = find_matching_brace(clean, open_index)
+        if close_index is None:
+            continue
+
+        start_line = clean.count("\n", 0, m.start()) + 1
+        end_line = clean.count("\n", 0, close_index) + 1
+        lengths[fn_name] = end_line - start_line + 1
+
+    return lengths
 
 
 def check_source_file(path: Path, root: Path) -> list[str]:
@@ -88,9 +265,55 @@ def check_source_file(path: Path, root: Path) -> list[str]:
     return failures
 
 
+def check_controller_allowlists(root: Path) -> list[str]:
+    failures: list[str] = []
+    for rel, approved in sorted(CONTROLLER_TOP_LEVEL_ALLOWLIST.items()):
+        path = root / rel
+        if not path.exists():
+            failures.append(f"{rel}: missing file (controller allowlist check cannot run)")
+            continue
+        observed = set(
+            parse_top_level_function_lengths(
+                path.read_text(encoding="utf-8", errors="replace")
+            )
+        )
+        introduced = sorted(observed - approved)
+        if introduced:
+            introduced_names = ", ".join(introduced)
+            failures.append(
+                f"{rel}: unapproved top-level controller function(s): {introduced_names}; "
+                "move business/utility logic to dedicated module unless inseparable from "
+                "the event loop; allowlist updates require explicit architecture approval"
+            )
+    return failures
+
+
+def check_controller_god_function_budgets(root: Path) -> list[str]:
+    failures: list[str] = []
+    for rel, fn_budgets in sorted(CONTROLLER_GOD_FUNCTION_LINE_BUDGET.items()):
+        path = root / rel
+        if not path.exists():
+            failures.append(f"{rel}: missing file (god-function budget check cannot run)")
+            continue
+        lengths = parse_top_level_function_lengths(
+            path.read_text(encoding="utf-8", errors="replace")
+        )
+        for fn_name, budget in sorted(fn_budgets.items()):
+            line_count = lengths.get(fn_name)
+            if line_count is None:
+                failures.append(f"{rel}: missing top-level function '{fn_name}'")
+                continue
+            if line_count > budget:
+                failures.append(
+                    f"{rel}: {fn_name} line budget exceeded ({line_count} > {budget}); "
+                    "split logic into dedicated module(s) and keep controller dispatch-only"
+                )
+    return failures
+
+
 def check_controller_budgets(root: Path) -> list[str]:
     failures: list[str] = []
-    for rel, budget in sorted(CONTROLLER_LINE_BUDGET.items()):
+    for rel, budget in sorted(CONTROLLER_FILE_LINE_BUDGET.items()):
         path = root / rel
         if not path.exists():
             failures.append(f"{rel}: missing file (budget check cannot run)")
@@ -112,6 +335,8 @@ def main() -> int:
     for path in sorted(src_root.rglob("*.c")):
         failures.extend(check_source_file(path, root))
 
+    failures.extend(check_controller_allowlists(root))
+    failures.extend(check_controller_god_function_budgets(root))
     failures.extend(check_controller_budgets(root))
 
     stale_exceptions = []

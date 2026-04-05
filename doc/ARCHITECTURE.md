@@ -23,6 +23,25 @@ The project uses a structural QA guard (`make qa-module-boundaries`) to catch ar
     *   `ui -> core, cmd, fs, ui, util`
 *   **Legacy exceptions are explicit:** pre-existing violations are enumerated in `scripts/check_module_boundaries.py` as a temporary debt list. The guard fails on any new violation and also fails if an exception becomes stale and is not removed.
 *   **Controller growth budget:** `src/ui/ctrl_dir.c` and `src/ui/ctrl_file.c` have line-count budgets as anti-regression tripwires to prevent feature creep back into controller modules.
+*   **Controller top-level allowlists:** `src/ui/ctrl_dir.c` and `src/ui/ctrl_file.c` are pinned to approved top-level function sets. Any newly introduced top-level helper fails the guard unless architecture explicitly approves an allowlist update.
+*   **God-function anti-growth budgets:** `HandleDirWindow` and `HandleFileWindow` have explicit line budgets; growth beyond baseline fails the guard and must be addressed by moving separable logic into dedicated modules.
+
+### 1.2 Controller Ownership Rule (Dispatch-Only)
+
+Controllers (`ctrl_*.c`) are orchestration boundaries, not ownership modules.
+
+Acceptable controller contents:
+*   Input/event dispatch loops.
+*   Prompt/confirmation wiring that is inseparable from event flow.
+*   UI-state coordination that cannot be reused outside the controller loop.
+
+Unacceptable controller contents:
+*   Reusable business logic (copy/move/compare/path transforms).
+*   Generic helper utilities that could be called from non-controller modules.
+*   Feature logic that can live in `src/cmd`, `src/fs`, `src/ui` helper modules, or a new dedicated module.
+
+Canonical ownership test:
+*   If a function could be called from another context without modification, it must not be introduced as a top-level controller function.
 
 This does **not** replace architecture review. It is a fitness function: mechanical checks that fail fast when structure drifts.
 

@@ -5,6 +5,7 @@ This document defines the mandatory quality process for the Ytree modernization 
 
 ## 1.1 Cadence
 - Run the full audit loop for each feature-sized change or PR.
+- For feature-sized changes, include explicit `make qa-module-boundaries` evidence (controller allowlists + growth budgets) in the verification notes.
 - Always run the merge/release gate before merge/release.
 - Do not run the full gate after every prompt-level micro-edit unless risk justifies it.
 
@@ -66,6 +67,8 @@ Local shortcut targets are available in the `Makefile`:
 - `make qa-module-boundaries`
 - `make qa-all` (runs `qa-clang`, `qa-cppcheck`, `qa-scan`, `qa-valgrind`, `qa-pytest`, `qa-unsafe-apis`, `qa-module-boundaries` in order)
 - `make qa-all-log` (same as `qa-all`, with full output captured to `qa-all.log` in repo root; override with `QA_LOG=/path/to/file`)
+
+For feature-sized/PR-scope changes, audit evidence must include a successful `make qa-module-boundaries` run so controller-slimming checks are explicitly validated.
 
 GitHub CI is a baseline gate (build + unsafe C API guard + `pytest`) and does not replace the full local audit loop.
 
