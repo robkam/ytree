@@ -251,6 +251,7 @@ int HandleFileWindow(ViewContext *ctx, DirEntry *dir_entry) {
   YtreeAction action = ACTION_NONE; /* Initialize action */
   BOOL jumped_to_owner_dir = FALSE;
   BOOL switched_panel = FALSE;
+  BOOL return_esc = FALSE;
   YtreePanel *owner_panel = ctx->active;
   DirEntry *tracked_file_dir = ctx->active->file_dir_entry;
   DirEntry *last_stats_dir = NULL;             /* Track context changes */
@@ -484,293 +485,39 @@ int HandleFileWindow(ViewContext *ctx, DirEntry *dir_entry) {
       break;
 
     case ACTION_VIEW_PREVIEW:
-      if (!ctx->preview_mode) {
-        /* Turning ON */
-        /* INSTRUCTION: Before any redirection, save the current state */
-        ctx->preview_return_panel = ctx->active;
-        ctx->preview_return_focus = ctx->focused_window;
-      }
-
-      ctx->preview_mode = !ctx->preview_mode;
-
-      if (ctx->preview_mode) {
-        /* Turning ON */
-        /* 1. Save current width setting */
-        saved_fixed_width = ctx->fixed_col_width;
-
-        /* 2. Update Window Layout immediately to get new dims */
-        ReCreateWindows(ctx);
-
-        /* 3. Force Compact Mode based on new width (width - 2 for
-         * borders/padding) */
-        /* Accessing ctx->layout.big_file_win_width from init.c logic */
-        ctx->fixed_col_width = ctx->layout.big_file_win_width - 2;
-
-        /* 4. Update scrolling metrics (max_column, etc) based on new width/mode
-         */
-        FileNav_RereadWindowSize(ctx, dir_entry);
-      } else {
-        /* Turning OFF */
-        /* INSTRUCTION: Restore state */
-        ctx->active = ctx->preview_return_panel;
-        ctx->focused_window = ctx->preview_return_focus;
-
-        /* CRITICAL: Update local context variables for the loop if we stay in
-         * File Window */
-        s = &ctx->active->vol->vol_stats;
-        start_vol = ctx->active->vol;
-
-        /* Refresh dir_entry for the restored panel */
-        if (ctx->active->vol->total_dirs > 0) {
-          int idx = ctx->active->disp_begin_pos + ctx->active->cursor_pos;
-          if (idx >= ctx->active->vol->total_dirs)
-            idx = ctx->active->vol->total_dirs - 1;
-          if (idx < 0)
-            idx = 0;
-          dir_entry = ctx->active->vol->dir_entry_list[idx].dir_entry;
-        } else {
-          dir_entry = s->tree;
-        }
-
-        /* Restore Global Context Pointers */
-        ctx->ctx_dir_window = ctx->active->pan_dir_window;
-        ctx->ctx_small_file_window = ctx->active->pan_small_file_window;
-        ctx->ctx_big_file_window = ctx->active->pan_big_file_window;
-        ctx->ctx_file_window = ctx->active->pan_file_window;
-
-        /* 1. Restore width setting */
-        ctx->fixed_col_width = saved_fixed_width;
-
-        /* 2. Update Layout */
-        ReCreateWindows(ctx);
-
-        /* 3. Update metrics */
-        FileNav_RereadWindowSize(ctx, dir_entry);
-
-        /* Call RefreshView immediately after restoration */
-        RefreshView(ctx, dir_entry);
-      }
-
-      /* 5. Draw Everything (Borders, Tree, Stats, List, Preview) */
-      RefreshView(ctx, dir_entry);
-
-      if (ctx->preview_mode) {
-        UpdatePreview(ctx, dir_entry);
-      }
-
-      /* ADDED INSTRUCTION: Conditional Exit Logic */
-      if (!ctx->preview_mode) {
-        if (ctx->preview_return_focus == FOCUS_TREE) {
-          action = ACTION_ESCAPE;
-        } else {
-          /* We came from a File Window, stay here */
-          action = ACTION_NONE;
-        }
-      }
-
-      need_dsp_help = TRUE;
-      break;
-
     case ACTION_PREVIEW_SCROLL_DOWN:
-      if (ctx->preview_mode) {
-        preview_line_offset++;
-        UpdatePreview(ctx, dir_entry);
-      }
-      break;
-
     case ACTION_PREVIEW_SCROLL_UP:
-      if (ctx->preview_mode) {
-        if (preview_line_offset > 0)
-          preview_line_offset--;
-        UpdatePreview(ctx, dir_entry);
-      }
-      break;
-
     case ACTION_PREVIEW_HOME:
-      if (ctx->preview_mode) {
-        preview_line_offset = 0;
-        UpdatePreview(ctx, dir_entry);
-      }
-      break;
     case ACTION_PREVIEW_END:
-      if (ctx->preview_mode) {
-        /* Set to a large value, renderer handles EOF */
-        preview_line_offset = 2000000000L;
-        UpdatePreview(ctx, dir_entry);
-      }
-      break;
     case ACTION_PREVIEW_PAGE_UP:
-      if (ctx->preview_mode) {
-        preview_line_offset -= (getmaxy(ctx->ctx_preview_window) - 1);
-        if (preview_line_offset < 0)
-          preview_line_offset = 0;
-        UpdatePreview(ctx, dir_entry);
-      }
-      break;
     case ACTION_PREVIEW_PAGE_DOWN:
-      if (ctx->preview_mode) {
-        preview_line_offset += (getmaxy(ctx->ctx_preview_window) - 1);
-        UpdatePreview(ctx, dir_entry);
-      }
+      (void)handle_file_window_preview_action(
+          ctx, action, &dir_entry, &action, &s, &start_vol, &need_dsp_help,
+          &preview_line_offset, &saved_fixed_width, UpdatePreview);
       break;
 
     case ACTION_SPLIT_SCREEN:
-      /* Persist current file focus before cloning panel state. */
-      owner_panel->file_dir_entry = dir_entry;
-      owner_panel->start_file = dir_entry->start_file;
-      owner_panel->file_cursor_pos = dir_entry->cursor_pos;
-
-      if (ctx->is_split_screen && ctx->active == ctx->right) {
-        ctx->left->vol = ctx->right->vol;
-        ctx->left->cursor_pos = ctx->right->cursor_pos;
-        ctx->left->disp_begin_pos = ctx->right->disp_begin_pos;
-        ctx->left->start_file = ctx->right->start_file;
-        ctx->left->file_cursor_pos = ctx->right->file_cursor_pos;
-        ctx->left->file_dir_entry = ctx->right->file_dir_entry;
-        ctx->left->saved_focus = ctx->right->saved_focus;
-        /* Left panel now points at right panel's volume/state. Force list
-         * rebuild to avoid stale file cache from a previous volume. */
-        FreeFileEntryList(ctx->left);
-      }
-      ctx->is_split_screen = !ctx->is_split_screen;
-      ReCreateWindows(ctx); /* Force layout update immediately */
-
-      if (ctx->is_split_screen) {
-        if (ctx->right && ctx->left) {
-          ctx->right->vol = ctx->left->vol;
-          ctx->right->cursor_pos = ctx->left->cursor_pos;
-          ctx->right->disp_begin_pos = ctx->left->disp_begin_pos;
-          ctx->right->start_file = dir_entry->start_file;
-          ctx->right->file_cursor_pos = dir_entry->cursor_pos;
-          ctx->right->file_dir_entry = dir_entry;
-          /* Split from file view should preserve file focus on the new peer. */
-          ctx->right->saved_focus = ctx->left->saved_focus;
-          /* Right panel inherited a new volume/state; invalidate old cache so
-           * first render mirrors the active panel immediately. */
-          FreeFileEntryList(ctx->right);
-        }
-      } else {
-        /* Hidden panel cache must not leak into a later re-split on another
-         * volume. */
-        FreeFileEntryList(ctx->right);
-        ctx->active = ctx->left;
-      }
-
-      return ESC; /* Return to DirWindow to redraw */
-
     case ACTION_SWITCH_PANEL:
-      if (!ctx->is_split_screen)
+      if (handle_file_window_split_switch_action(
+              ctx, action, dir_entry, owner_panel, &switched_panel, &action,
+              &return_esc)) {
+        if (return_esc)
+          return ESC;
         break;
-      owner_panel->file_dir_entry = dir_entry;
-      owner_panel->start_file = dir_entry->start_file;
-      owner_panel->file_cursor_pos = dir_entry->cursor_pos;
-      ctx->active->saved_focus = FOCUS_FILE;
-      switched_panel = TRUE;
-      /* Ensure the CURRENT panel is cleaned up before switching context. */
-      SwitchToSmallFileWindow(ctx);
-
-      /* Switch Panel */
-      if (ctx->active == ctx->left) {
-        ctx->active = ctx->right;
-      } else {
-        ctx->active = ctx->left;
       }
-      /* Update Volume Context */
-      ctx->focused_window = ctx->active->saved_focus;
-
-      /* Bug 3 Fix: We trigger a loop exit here.
-       * This ensures the cleanup code at the end of HandleFileWindow runs,
-       * restoring the small window layout before we return to HandleDirWindow.
-       */
-      action = ACTION_ESCAPE;
       break;
 
     case ACTION_MOVE_DOWN:
-      FileNav_MoveDown(ctx, dir_entry, start_x);
-      if (ctx->preview_mode) {
-        preview_line_offset = 0;
-        UpdatePreview(ctx, dir_entry);
-      }
-      break;
-
     case ACTION_MOVE_UP:
-      FileNav_MoveUp(ctx, dir_entry, start_x);
-      if (ctx->preview_mode) {
-        preview_line_offset = 0;
-        UpdatePreview(ctx, dir_entry);
-      }
-      break;
-
     case ACTION_MOVE_RIGHT:
-      if (FileNav_GetXStep(ctx) == 1) {
-        /* In one-column layouts, LEFT/RIGHT page through the list. */
-        start_x = 0;
-        FileNav_PageDown(ctx, dir_entry, start_x);
-      } else {
-        FileNav_MoveRight(ctx, dir_entry, &start_x);
-      }
-      if (ctx->preview_mode) {
-        preview_line_offset = 0;
-        UpdatePreview(ctx, dir_entry);
-      }
-      break;
-
     case ACTION_MOVE_LEFT:
-      if (FileNav_GetXStep(ctx) == 1) {
-        start_x = 0;
-        FileNav_PageUp(ctx, dir_entry, start_x);
-      } else {
-        FileNav_MoveLeft(ctx, dir_entry, &start_x);
-      }
-      if (ctx->preview_mode) {
-        preview_line_offset = 0;
-        UpdatePreview(ctx, dir_entry);
-      }
-      break;
-
     case ACTION_PAGE_DOWN:
-      FileNav_PageDown(ctx, dir_entry, start_x);
-      if (ctx->preview_mode) {
-        preview_line_offset = 0;
-        UpdatePreview(ctx, dir_entry);
-      }
-      break;
-
     case ACTION_PAGE_UP:
-      FileNav_PageUp(ctx, dir_entry, start_x);
-      if (ctx->preview_mode) {
-        preview_line_offset = 0;
-        UpdatePreview(ctx, dir_entry);
-      }
-      break;
-
     case ACTION_END:
-      Nav_End(&dir_entry->cursor_pos, &dir_entry->start_file,
-              (int)ctx->active->file_count, FileNav_GetMaxDispFiles(ctx));
-
-      DisplayFiles(ctx, ctx->active, dir_entry, dir_entry->start_file,
-                   dir_entry->start_file + dir_entry->cursor_pos, start_x,
-                   ctx->ctx_file_window);
-      FileNav_UpdateHeaderPath(ctx, dir_entry);
-      if (ctx->preview_mode) {
-        preview_line_offset = 0;
-        UpdatePreview(ctx, dir_entry);
-      }
-      ctx->active->start_file = dir_entry->start_file;
-      break;
-
     case ACTION_HOME:
-      Nav_Home(&dir_entry->cursor_pos, &dir_entry->start_file);
-
-      DisplayFiles(ctx, ctx->active, dir_entry, dir_entry->start_file,
-                   dir_entry->start_file + dir_entry->cursor_pos, start_x,
-                   ctx->ctx_file_window);
-      FileNav_UpdateHeaderPath(ctx, dir_entry);
-      if (ctx->preview_mode) {
-        preview_line_offset = 0;
-        UpdatePreview(ctx, dir_entry);
-      }
-      ctx->active->start_file = dir_entry->start_file;
+      (void)handle_file_window_navigation_action(
+          ctx, action, dir_entry, &start_x, &need_dsp_help,
+          &preview_line_offset, UpdatePreview, ListJump);
       break;
 
     case ACTION_TOGGLE_HIDDEN: {
@@ -1090,33 +837,11 @@ int HandleFileWindow(ViewContext *ctx, DirEntry *dir_entry) {
       break;
 
     case ACTION_VOL_MENU:
-      /* Panel state isolation: No vol_stats sync */
-
-      if (SelectLoadedVolume(ctx, NULL) == 0) {
-        unput_char = '\0'; /* Ensure we return clean ESC, no pending input */
-        return ESC;
-      }
-      if (ctx->active->vol != start_vol)
-        return ESC;
-      break;
     case ACTION_VOL_PREV:
-      /* Panel state isolation: No vol_stats sync */
-
-      if (CycleLoadedVolume(ctx, ctx->active, -1) == 0) {
-        unput_char = '\0'; /* Ensure we return clean ESC, no pending input */
-        return ESC;
-      }
-      if (ctx->active->vol != start_vol)
-        return ESC;
-      break;
     case ACTION_VOL_NEXT:
-      /* Panel state isolation: No vol_stats sync */
-
-      if (CycleLoadedVolume(ctx, ctx->active, 1) == 0) {
-        unput_char = '\0'; /* Ensure we return clean ESC, no pending input */
-        return ESC;
-      }
-      if (ctx->active->vol != start_vol)
+      (void)handle_file_window_volume_action(ctx, action, start_vol,
+                                             &unput_char, &return_esc);
+      if (return_esc)
         return ESC;
       break;
 
@@ -1148,8 +873,9 @@ int HandleFileWindow(ViewContext *ctx, DirEntry *dir_entry) {
       break; /* Handled by loop condition */
 
     case ACTION_LIST_JUMP:
-      ListJump(ctx, dir_entry, "");
-      need_dsp_help = TRUE;
+      (void)handle_file_window_navigation_action(
+          ctx, action, dir_entry, &start_x, &need_dsp_help,
+          &preview_line_offset, UpdatePreview, ListJump);
       break;
 
     case ACTION_TO_DIR:

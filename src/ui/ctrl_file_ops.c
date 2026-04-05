@@ -11,6 +11,355 @@
 #include "ytree_ui.h"
 #include <utime.h>
 
+static void ResetPreviewAfterNavigation(
+    ViewContext *ctx, DirEntry *dir_entry, long *preview_line_offset_ptr,
+    void (*update_preview)(ViewContext *, const DirEntry *)) {
+  if (!ctx->preview_mode)
+    return;
+  *preview_line_offset_ptr = 0;
+  if (update_preview)
+    update_preview(ctx, dir_entry);
+}
+
+BOOL handle_file_window_preview_action(
+    ViewContext *ctx, YtreeAction action, DirEntry **dir_entry_ptr,
+    YtreeAction *loop_action_ptr, Statistic **stats_ptr,
+    struct Volume **start_vol_ptr, BOOL *need_dsp_help_ptr,
+    long *preview_line_offset_ptr, int *saved_fixed_width_ptr,
+    void (*update_preview)(ViewContext *, const DirEntry *)) {
+  DirEntry *dir_entry;
+
+  if (!ctx || !dir_entry_ptr)
+    return FALSE;
+
+  dir_entry = *dir_entry_ptr;
+  switch (action) {
+  case ACTION_VIEW_PREVIEW:
+    if (!ctx->preview_mode) {
+      ctx->preview_return_panel = ctx->active;
+      ctx->preview_return_focus = ctx->focused_window;
+    }
+
+    ctx->preview_mode = !ctx->preview_mode;
+    if (ctx->preview_mode) {
+      *saved_fixed_width_ptr = ctx->fixed_col_width;
+      ReCreateWindows(ctx);
+      ctx->fixed_col_width = ctx->layout.big_file_win_width - 2;
+      if (ctx->fixed_col_width < 1)
+        ctx->fixed_col_width = 1;
+      FileNav_RereadWindowSize(ctx, dir_entry);
+    } else {
+      Statistic *stats_local;
+
+      ctx->active = ctx->preview_return_panel;
+      ctx->focused_window = ctx->preview_return_focus;
+      stats_local = &ctx->active->vol->vol_stats;
+      if (stats_ptr)
+        *stats_ptr = stats_local;
+      if (start_vol_ptr)
+        *start_vol_ptr = ctx->active->vol;
+
+      if (ctx->active->vol->total_dirs > 0) {
+        int idx = ctx->active->disp_begin_pos + ctx->active->cursor_pos;
+        if (idx >= ctx->active->vol->total_dirs)
+          idx = ctx->active->vol->total_dirs - 1;
+        if (idx < 0)
+          idx = 0;
+        dir_entry = ctx->active->vol->dir_entry_list[idx].dir_entry;
+      } else {
+        dir_entry = stats_local->tree;
+      }
+
+      ctx->ctx_dir_window = ctx->active->pan_dir_window;
+      ctx->ctx_small_file_window = ctx->active->pan_small_file_window;
+      ctx->ctx_big_file_window = ctx->active->pan_big_file_window;
+      ctx->ctx_file_window = ctx->active->pan_file_window;
+
+      ctx->fixed_col_width = *saved_fixed_width_ptr;
+      ReCreateWindows(ctx);
+      FileNav_RereadWindowSize(ctx, dir_entry);
+      RefreshView(ctx, dir_entry);
+    }
+
+    RefreshView(ctx, dir_entry);
+    if (ctx->preview_mode && update_preview)
+      update_preview(ctx, dir_entry);
+
+    if (!ctx->preview_mode && loop_action_ptr) {
+      if (ctx->preview_return_focus == FOCUS_TREE)
+        *loop_action_ptr = ACTION_ESCAPE;
+      else
+        *loop_action_ptr = ACTION_NONE;
+    }
+
+    *need_dsp_help_ptr = TRUE;
+    *dir_entry_ptr = dir_entry;
+    return TRUE;
+
+  case ACTION_PREVIEW_SCROLL_DOWN:
+    if (ctx->preview_mode) {
+      (*preview_line_offset_ptr)++;
+      if (update_preview)
+        update_preview(ctx, dir_entry);
+    }
+    return TRUE;
+
+  case ACTION_PREVIEW_SCROLL_UP:
+    if (ctx->preview_mode) {
+      if (*preview_line_offset_ptr > 0)
+        (*preview_line_offset_ptr)--;
+      if (update_preview)
+        update_preview(ctx, dir_entry);
+    }
+    return TRUE;
+
+  case ACTION_PREVIEW_HOME:
+    if (ctx->preview_mode) {
+      *preview_line_offset_ptr = 0;
+      if (update_preview)
+        update_preview(ctx, dir_entry);
+    }
+    return TRUE;
+
+  case ACTION_PREVIEW_END:
+    if (ctx->preview_mode) {
+      *preview_line_offset_ptr = 2000000000L;
+      if (update_preview)
+        update_preview(ctx, dir_entry);
+    }
+    return TRUE;
+
+  case ACTION_PREVIEW_PAGE_UP:
+    if (ctx->preview_mode) {
+      *preview_line_offset_ptr -= (getmaxy(ctx->ctx_preview_window) - 1);
+      if (*preview_line_offset_ptr < 0)
+        *preview_line_offset_ptr = 0;
+      if (update_preview)
+        update_preview(ctx, dir_entry);
+    }
+    return TRUE;
+
+  case ACTION_PREVIEW_PAGE_DOWN:
+    if (ctx->preview_mode) {
+      *preview_line_offset_ptr += (getmaxy(ctx->ctx_preview_window) - 1);
+      if (update_preview)
+        update_preview(ctx, dir_entry);
+    }
+    return TRUE;
+
+  default:
+    return FALSE;
+  }
+}
+
+BOOL handle_file_window_navigation_action(
+    ViewContext *ctx, YtreeAction action, DirEntry *dir_entry, int *start_x_ptr,
+    BOOL *need_dsp_help_ptr, long *preview_line_offset_ptr,
+    void (*update_preview)(ViewContext *, const DirEntry *),
+    void (*list_jump)(ViewContext *, DirEntry *, char *)) {
+  if (!ctx || !dir_entry || !start_x_ptr)
+    return FALSE;
+
+  switch (action) {
+  case ACTION_MOVE_DOWN:
+    FileNav_MoveDown(ctx, dir_entry, *start_x_ptr);
+    ResetPreviewAfterNavigation(ctx, dir_entry, preview_line_offset_ptr,
+                                update_preview);
+    return TRUE;
+
+  case ACTION_MOVE_UP:
+    FileNav_MoveUp(ctx, dir_entry, *start_x_ptr);
+    ResetPreviewAfterNavigation(ctx, dir_entry, preview_line_offset_ptr,
+                                update_preview);
+    return TRUE;
+
+  case ACTION_MOVE_RIGHT:
+    if (FileNav_GetXStep(ctx) == 1) {
+      *start_x_ptr = 0;
+      FileNav_PageDown(ctx, dir_entry, *start_x_ptr);
+    } else {
+      FileNav_MoveRight(ctx, dir_entry, start_x_ptr);
+    }
+    ResetPreviewAfterNavigation(ctx, dir_entry, preview_line_offset_ptr,
+                                update_preview);
+    return TRUE;
+
+  case ACTION_MOVE_LEFT:
+    if (FileNav_GetXStep(ctx) == 1) {
+      *start_x_ptr = 0;
+      FileNav_PageUp(ctx, dir_entry, *start_x_ptr);
+    } else {
+      FileNav_MoveLeft(ctx, dir_entry, start_x_ptr);
+    }
+    ResetPreviewAfterNavigation(ctx, dir_entry, preview_line_offset_ptr,
+                                update_preview);
+    return TRUE;
+
+  case ACTION_PAGE_DOWN:
+    FileNav_PageDown(ctx, dir_entry, *start_x_ptr);
+    ResetPreviewAfterNavigation(ctx, dir_entry, preview_line_offset_ptr,
+                                update_preview);
+    return TRUE;
+
+  case ACTION_PAGE_UP:
+    FileNav_PageUp(ctx, dir_entry, *start_x_ptr);
+    ResetPreviewAfterNavigation(ctx, dir_entry, preview_line_offset_ptr,
+                                update_preview);
+    return TRUE;
+
+  case ACTION_END:
+    Nav_End(&dir_entry->cursor_pos, &dir_entry->start_file,
+            (int)ctx->active->file_count, FileNav_GetMaxDispFiles(ctx));
+    DisplayFiles(ctx, ctx->active, dir_entry, dir_entry->start_file,
+                 dir_entry->start_file + dir_entry->cursor_pos, *start_x_ptr,
+                 ctx->ctx_file_window);
+    FileNav_UpdateHeaderPath(ctx, dir_entry);
+    ResetPreviewAfterNavigation(ctx, dir_entry, preview_line_offset_ptr,
+                                update_preview);
+    ctx->active->start_file = dir_entry->start_file;
+    return TRUE;
+
+  case ACTION_HOME:
+    Nav_Home(&dir_entry->cursor_pos, &dir_entry->start_file);
+    DisplayFiles(ctx, ctx->active, dir_entry, dir_entry->start_file,
+                 dir_entry->start_file + dir_entry->cursor_pos, *start_x_ptr,
+                 ctx->ctx_file_window);
+    FileNav_UpdateHeaderPath(ctx, dir_entry);
+    ResetPreviewAfterNavigation(ctx, dir_entry, preview_line_offset_ptr,
+                                update_preview);
+    ctx->active->start_file = dir_entry->start_file;
+    return TRUE;
+
+  case ACTION_LIST_JUMP:
+    if (list_jump)
+      list_jump(ctx, dir_entry, "");
+    *need_dsp_help_ptr = TRUE;
+    return TRUE;
+
+  default:
+    return FALSE;
+  }
+}
+
+BOOL handle_file_window_split_switch_action(
+    ViewContext *ctx, YtreeAction action, DirEntry *dir_entry,
+    YtreePanel *owner_panel, BOOL *switched_panel_ptr,
+    YtreeAction *loop_action_ptr, BOOL *return_esc_ptr) {
+  if (!ctx || !dir_entry || !owner_panel || !switched_panel_ptr ||
+      !loop_action_ptr || !return_esc_ptr)
+    return FALSE;
+
+  *return_esc_ptr = FALSE;
+
+  switch (action) {
+  case ACTION_SPLIT_SCREEN:
+    owner_panel->file_dir_entry = dir_entry;
+    owner_panel->start_file = dir_entry->start_file;
+    owner_panel->file_cursor_pos = dir_entry->cursor_pos;
+
+    if (ctx->is_split_screen && ctx->active == ctx->right) {
+      ctx->left->vol = ctx->right->vol;
+      ctx->left->cursor_pos = ctx->right->cursor_pos;
+      ctx->left->disp_begin_pos = ctx->right->disp_begin_pos;
+      ctx->left->start_file = ctx->right->start_file;
+      ctx->left->file_cursor_pos = ctx->right->file_cursor_pos;
+      ctx->left->file_dir_entry = ctx->right->file_dir_entry;
+      ctx->left->saved_focus = ctx->right->saved_focus;
+      FreeFileEntryList(ctx->left);
+    }
+    ctx->is_split_screen = !ctx->is_split_screen;
+    ReCreateWindows(ctx);
+
+    if (ctx->is_split_screen) {
+      if (ctx->right && ctx->left) {
+        ctx->right->vol = ctx->left->vol;
+        ctx->right->cursor_pos = ctx->left->cursor_pos;
+        ctx->right->disp_begin_pos = ctx->left->disp_begin_pos;
+        ctx->right->start_file = dir_entry->start_file;
+        ctx->right->file_cursor_pos = dir_entry->cursor_pos;
+        ctx->right->file_dir_entry = dir_entry;
+        ctx->right->saved_focus = ctx->left->saved_focus;
+        FreeFileEntryList(ctx->right);
+      }
+    } else {
+      FreeFileEntryList(ctx->right);
+      ctx->active = ctx->left;
+    }
+
+    *return_esc_ptr = TRUE;
+    return TRUE;
+
+  case ACTION_SWITCH_PANEL:
+    if (!ctx->is_split_screen)
+      return TRUE;
+    owner_panel->file_dir_entry = dir_entry;
+    owner_panel->start_file = dir_entry->start_file;
+    owner_panel->file_cursor_pos = dir_entry->cursor_pos;
+    ctx->active->saved_focus = FOCUS_FILE;
+    *switched_panel_ptr = TRUE;
+    SwitchToSmallFileWindow(ctx);
+
+    if (ctx->active == ctx->left) {
+      ctx->active = ctx->right;
+    } else {
+      ctx->active = ctx->left;
+    }
+    ctx->focused_window = ctx->active->saved_focus;
+    *loop_action_ptr = ACTION_ESCAPE;
+    return TRUE;
+
+  default:
+    return FALSE;
+  }
+}
+
+BOOL handle_file_window_volume_action(ViewContext *ctx, YtreeAction action,
+                                      struct Volume *start_vol,
+                                      int *unput_char_ptr,
+                                      BOOL *return_esc_ptr) {
+  if (!ctx || !unput_char_ptr || !return_esc_ptr)
+    return FALSE;
+
+  *return_esc_ptr = FALSE;
+  switch (action) {
+  case ACTION_VOL_MENU:
+    if (SelectLoadedVolume(ctx, NULL) == 0) {
+      *unput_char_ptr = '\0';
+      *return_esc_ptr = TRUE;
+      return TRUE;
+    }
+    if (ctx->active->vol != start_vol) {
+      *return_esc_ptr = TRUE;
+    }
+    return TRUE;
+
+  case ACTION_VOL_PREV:
+    if (CycleLoadedVolume(ctx, ctx->active, -1) == 0) {
+      *unput_char_ptr = '\0';
+      *return_esc_ptr = TRUE;
+      return TRUE;
+    }
+    if (ctx->active->vol != start_vol) {
+      *return_esc_ptr = TRUE;
+    }
+    return TRUE;
+
+  case ACTION_VOL_NEXT:
+    if (CycleLoadedVolume(ctx, ctx->active, 1) == 0) {
+      *unput_char_ptr = '\0';
+      *return_esc_ptr = TRUE;
+      return TRUE;
+    }
+    if (ctx->active->vol != start_vol) {
+      *return_esc_ptr = TRUE;
+    }
+    return TRUE;
+
+  default:
+    return FALSE;
+  }
+}
+
 BOOL handle_file_window_command_action(ViewContext *ctx, YtreeAction action,
                                        DirEntry **dir_entry_ptr,
                                        BOOL *need_dsp_help_ptr,
