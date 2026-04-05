@@ -5,14 +5,13 @@
 ## **Phase 1: UI/UX Enhancements and Cleanup**
 *This phase adds user-facing improvements, cleans up the remaining artifacts, and ensures a clean, modern, and portable codebase.*
 
-### **Task 1: Implement Directory Copy and moVe**
-*   - [x] **Status:** Completed.
-
-### **Task 2: Implement Global File View (`G`)**
-*   - [x] **Status:** Completed.
-
-### **Task 3: Implement Advanced Log Options**
-*   - [x] **Status:** Completed.
+### **Task 1: Decompose Oversized UI Controllers (`ctrl_dir.c` / `ctrl_file.c`)**
+*   **Priority:** High (must be completed before Future Enhancements/Wishlist work).
+*   **Goal:** Reduce size and complexity of `src/ui/ctrl_dir.c` and `src/ui/ctrl_file.c` by extracting action-family handlers and repeated rendering/sync blocks into focused modules and helpers, while preserving current behavior.
+*   **Rationale:** These controllers are current hotspot/risk files; decomposition lowers regression risk, improves reviewability, and makes future feature work safer.
+*   **Files to Modify:** `src/ui/ctrl_dir.c`, `src/ui/ctrl_file.c`, `src/ui/ctrl_file_ops.c`, `src/ui/dir_ops.c` (and new focused helpers as needed).
+*   **Context Files:** `include/ytree_ui.h`, `src/ui/dir_tags.c`, `src/ui/file_tags.c`, `doc/ARCHITECTURE.md`
+*   - [ ] **Status:** Not Started.
 
 ### Task 4: Remove Footer Prompt for / Search
 *   Goal: Keep existing / search behavior in all contexts (Dir, File, Showall, Global), but stop using the footer prompt area for search input.
