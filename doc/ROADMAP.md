@@ -60,13 +60,21 @@
 ## **Phase 1: UI/UX Enhancements and Cleanup**
 *This phase adds user-facing improvements, cleans up the remaining artifacts, and ensures a clean, modern, and portable codebase.*
 
+### **Task 1: Enhance Build System**
+*   **Goal:** Improve Makefile targets for installation and add a proper `uninstall` target to clean up all installed files. Modernize versioning by moving version info from `patchlev.h` into the `Makefile`.
+*   **Rationale:** Provides a more robust and complete build system for end-users and packagers.
+*   **Files to Modify:** `Makefile`
+*   **Context Files:** `include/patchlev.h`
+*   - [x] **Status:** Partially Completed (uninstall exists but can be improved).
+
 ### **Task 2: Decompose Oversized UI Controllers (`ctrl_dir.c` / `ctrl_file.c`)**
 *   **Priority:** High (must be completed before Future Enhancements/Wishlist work).
 *   **Goal:** Reduce size and complexity of `src/ui/ctrl_dir.c` and `src/ui/ctrl_file.c` by extracting action-family handlers and repeated rendering/sync blocks into focused modules and helpers, while preserving current behavior.
 *   **Rationale:** These controllers are current hotspot/risk files; decomposition lowers regression risk, improves reviewability, and makes future feature work safer.
 *   **Files to Modify:** `src/ui/ctrl_dir.c`, `src/ui/ctrl_file.c`, `src/ui/ctrl_file_ops.c`, `src/ui/dir_ops.c` (and new focused helpers as needed).
 *   **Context Files:** `include/ytree_ui.h`, `src/ui/dir_tags.c`, `src/ui/file_tags.c`, `doc/ARCHITECTURE.md`
-*   - [ ] **Status:** Not Started.
+*   **Execution Note:** Follow `doc/ai/WORKFLOW.md` Section 4.1 efficient cadence: developer runs task verification and reports evidence; auditor is evidence-first and reruns only when needed; architect validates evidence and commits.
+*   - [ ] **Status:** In Progress (Task 2.1, 2.2, and 2.3 completed).
 
 ### Task 4: Remove Footer Prompt for / Search
 *   Goal: Keep existing / search behavior in all contexts (Dir, File, Showall, Global), but stop using the footer prompt area for search input.
@@ -239,21 +247,14 @@
 *   **Rationale:** A well-structured test suite is easier to maintain and extend. Thorough, systematic coverage ensures reliability and prevents regressions across complex file operations.
 *   - [ ] **Status:** Not Started.
 
-### **Task 24: Enhance Build System**
-*   **Goal:** Improve Makefile targets for installation and add a proper `uninstall` target to clean up all installed files. Modernize versioning by moving version info from `patchlev.h` into the `Makefile`.
-*   **Rationale:** Provides a more robust and complete build system for end-users and packagers.
-*   **Files to Modify:** `Makefile`
-*   **Context Files:** `include/patchlev.h`
-*   - [x] **Status:** Partially Completed (uninstall exists but can be improved).
-
-### **Task 25: Finalize Documentation**
+### **Task 24: Finalize Documentation**
 *   **Goal:** Update the `CHANGELOG`, `README.md`, and `CONTRIBUTING.md` files to reflect all new features and changes before a release.
 *   **Rationale:** Ensures users and developers have accurate, up-to-date information about the project.
 *   **Files to Modify:** `README.md`, `doc/CHANGES.md`, `doc/CONTRIBUTING.md`
 *   **Context Files:** None.
 *   - [ ] **Status:** Not Started.
 
-### **Task 26: Initialize Distributed Issue Tracking (git-bug)**
+### **Task 25: Initialize Distributed Issue Tracking (git-bug)**
 *   **Goal:** Configure `git-bug` to act as a bridge between the local repository and GitHub Issues. Migrate the contents of `BUGS.md` and `TODO.txt` into this system prior to public release.
 *   **Rationale:** Allows the developer to maintain a simple local text-based workflow during heavy development, while ensuring that all tracking data can be synchronized to the public web interface when the project goes live.
 *   **Files to Modify:** `doc/BUGS.md`
