@@ -242,9 +242,15 @@ Use this workflow when the mission is large enough that one-shot implementation 
 
 1.  Run a stateless `developer` for exactly one task.
 2.  Developer executes only the assigned task prompt.
-3.  On completion, developer MUST write report file:
+3.  Developer is the primary per-task verifier and MUST run the task verification commands exactly once per code change set (build/tests/targeted QA listed in the prompt).
+4.  Developer MUST NOT mark the task complete while any required verification command is failing.
+5.  Developer report MUST include:
+    *   exact commands executed,
+    *   pass/fail outcome per command,
+    *   enough output summary to validate evidence quickly.
+6.  On completion, developer MUST write report file:
     *   `~/ytree/task-<task-id>-report.txt`
-4.  Developer chat response to maintainer MUST be one line only:
+7.  Developer chat response to maintainer MUST be one line only:
     *   `Task <task-id> completed, report in ~/ytree/task-<task-id>-report.txt`
 
 #### 4.1.5 Auditor Pass (Stateless, Single Task Only)
@@ -252,26 +258,30 @@ Use this workflow when the mission is large enough that one-shot implementation 
 1.  After each developer-completed atomic task, architect prepares a single-task auditor prompt `.txt` file.
 2.  This includes correction/rework tasks (`R` tasks): each rework is treated as a new atomic task and must receive its own auditor pass.
 3.  Run a stateless `code_auditor` for that same task only.
-4.  Auditor MUST write report file:
+4.  Auditor workflow is evidence-first: validate code changes + developer verification evidence before rerunning commands.
+5.  Auditor SHOULD rerun verification commands only when needed (missing evidence, contradictory results, suspicious behavior/risk, or inability to confirm a claimed pass from artifacts).
+6.  Auditor report MUST state whether commands were rerun and why.
+7.  Auditor MUST write report file:
     *   `~/ytree/task-<task-id>-auditor-report.txt`
-5.  Auditor chat response to maintainer MUST be one line only:
+8.  Auditor chat response to maintainer MUST be one line only:
     *   `Task <task-id> auditor pass completed, report in ~/ytree/task-<task-id>-auditor-report.txt`
 
 #### 4.1.6 Architect Validation, Commit, and Cleanup
 
 1.  Maintainer provides developer/auditor completion lines and report paths back to architect.
 2.  Architect validates repository state + report evidence.
-3.  If task is accepted:
+3.  Architect should avoid redundant per-task reruns. Re-run commands only when evidence is incomplete, conflicting, or high-risk details remain unresolved.
+4.  If task is accepted:
     *   commit only task code files (no `.txt` relay/report artifacts),
     *   use maintainer-approved commit message describing behavior/scope (no task numbering),
     *   for first push of a new branch, use `git push-fast-up`,
     *   for already-tracked branches, use `git push-fast`.
-4.  If a follow-up correction is needed for the same task or set, amend and repush:
+5.  If a follow-up correction is needed for the same task or set, amend and repush:
     *   `git commit --amend --no-edit`
     *   then push using the branch rule above (`push-fast-up` first push, else `push-fast`).
-5.  After commit/push, delete consumed task prompt/report `.txt` artifacts.
-6.  Repeat from architect handoff for the next single task.
-7.  If a task fails audit or has implementation defects, architect must issue a new tailored correction task prompt for a new stateless `developer` pass. Do not reuse the previous developer session.
+6.  After commit/push, delete consumed task prompt/report `.txt` artifacts.
+7.  Repeat from architect handoff for the next single task.
+8.  If a task fails audit or has implementation defects, architect must issue a new tailored correction task prompt for a new stateless `developer` pass. Do not reuse the previous developer session.
 
 #### 4.1.7 Completion Gate and Merge
 
