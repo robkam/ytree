@@ -390,8 +390,6 @@ BOOL handle_file_window_command_action(ViewContext *ctx, YtreeAction action,
   static char to_dir[PATH_LENGTH + 1];
   static char to_path[PATH_LENGTH + 1];
   static char to_file[PATH_LENGTH + 1];
-  char new_name[PATH_LENGTH + 1];
-  char expanded_new_name[PATH_LENGTH + 1];
   char expanded_to_file[PATH_LENGTH + 1];
 
 #define need_dsp_help (*need_dsp_help_ptr)
@@ -616,17 +614,21 @@ BOOL handle_file_window_command_action(ViewContext *ctx, YtreeAction action,
             ->file_entry_list[dir_entry->start_file + dir_entry->cursor_pos]
             .file;
 
-    if (!GetRenameParameter(ctx, fe_ptr->name, new_name)) {
-      /* EXPAND WILDCARDS FOR SINGLE FILE RENAME */
-      BuildFilename(fe_ptr->name, new_name, expanded_new_name);
+    {
+      char new_name[PATH_LENGTH + 1];
+      char expanded_new_name[PATH_LENGTH + 1];
+      if (!GetRenameParameter(ctx, fe_ptr->name, new_name)) {
+        /* EXPAND WILDCARDS FOR SINGLE FILE RENAME */
+        BuildFilename(fe_ptr->name, new_name, expanded_new_name);
 
-      if (!RenameFile(ctx, fe_ptr, expanded_new_name, &new_fe_ptr)) {
-        /* Rename OK */
-        /*-----------*/
+        if (!RenameFile(ctx, fe_ptr, expanded_new_name, &new_fe_ptr)) {
+          /* Rename OK */
+          /*-----------*/
 
-        maybe_change_x_step = TRUE;
+          maybe_change_x_step = TRUE;
+        }
+        RefreshView(ctx, dir_entry);
       }
-      RefreshView(ctx, dir_entry);
     }
     need_dsp_help = TRUE;
     break;
@@ -659,12 +661,13 @@ BOOL handle_file_window_command_action(ViewContext *ctx, YtreeAction action,
         ctx->active
             ->file_entry_list[dir_entry->start_file + dir_entry->cursor_pos]
             .file;
+    if (!fe_ptr)
+      break;
     de_ptr = fe_ptr->dir_entry;
     {
       char command_template[COMMAND_LINE_LENGTH + 1];
       command_template[0] = '\0';
-      if (fe_ptr &&
-          (fe_ptr->stat_struct.st_mode & (S_IXUSR | S_IXGRP | S_IXOTH))) {
+      if (fe_ptr->stat_struct.st_mode & (S_IXUSR | S_IXGRP | S_IXOTH)) {
         StrCp(command_template, fe_ptr->name);
       }
       if (GetCommandLine(ctx, command_template) == 0) {
@@ -705,8 +708,6 @@ BOOL handle_tag_file_action(ViewContext *ctx, int action, DirEntry *dir_entry,
       group_id = 0;
   off_t file_size = 0;
   WalkingPackage walking_package;
-  mode_t mask = 0;
-  char mode[16] = {0};
   int pclose_ret = 0;
   char to_dir[PATH_LENGTH * 2 + 1] = {0};
   char to_file[PATH_LENGTH + 1] = {0};
@@ -732,7 +733,6 @@ BOOL handle_tag_file_action(ViewContext *ctx, int action, DirEntry *dir_entry,
   (void)owner_id;
   (void)group_id;
   (void)file_size;
-  (void)mask;
   (void)pclose_ret;
   (void)path_copy;
 
@@ -746,7 +746,8 @@ BOOL handle_tag_file_action(ViewContext *ctx, int action, DirEntry *dir_entry,
       attr_action = UI_PromptAttributeAction(ctx, TRUE, FALSE);
 
       if (attr_action == 'M') {
-        mask = S_IFREG | S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH;
+        mode_t mask = S_IFREG | S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH;
+        char mode[16] = {0};
 
         (void)GetAttributes(mask, mode);
 
