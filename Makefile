@@ -102,7 +102,7 @@ QA_LOG ?= qa-all.log
 .PHONY: all clean clobber install uninstall docs changelog-draft hooks-install hooks-status \
 	git-aliases-install git-aliases-status test \
 	test-v qa-clang qa-cppcheck qa-scan qa-valgrind qa-valgrind-interactive qa-valgrind-full \
-	qa-pytest qa-unsafe-apis qa-module-boundaries qa-all mcp-doctor \
+	qa-pytest qa-unsafe-apis qa-module-boundaries qa-ai-config qa-all mcp-doctor \
 	qa-all-log
 
 all: $(MAIN_BIN) $(MANPAGE) $(if $(filter 1,$(QA_ON_BUILD)),qa-all)
@@ -246,7 +246,10 @@ qa-unsafe-apis:
 qa-module-boundaries:
 	python3 scripts/check_module_boundaries.py
 
-qa-all: qa-clang qa-cppcheck qa-scan qa-valgrind qa-pytest qa-unsafe-apis qa-module-boundaries
+qa-ai-config:
+	python3 scripts/check_project_ai_config.py
+
+qa-all: qa-clang qa-cppcheck qa-scan qa-valgrind qa-pytest qa-unsafe-apis qa-module-boundaries qa-ai-config
 
 qa-all-log:
 	@mkdir -p "$(dir $(QA_LOG))"

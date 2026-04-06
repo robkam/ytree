@@ -73,8 +73,9 @@
 *   **Rationale:** These controllers are current hotspot/risk files; decomposition lowers regression risk, improves reviewability, and makes future feature work safer.
 *   **Files to Modify:** `src/ui/ctrl_dir.c`, `src/ui/ctrl_file.c`, `src/ui/ctrl_file_ops.c`, `src/ui/dir_ops.c` (and new focused helpers as needed).
 *   **Context Files:** `include/ytree_ui.h`, `src/ui/dir_tags.c`, `src/ui/file_tags.c`, `doc/ARCHITECTURE.md`
-*   **Execution Note:** Follow `doc/ai/WORKFLOW.md` Section 4.1 efficient cadence: developer runs task verification and reports evidence; auditor is evidence-first and reruns only when needed; architect validates evidence and commits.
-*   - [ ] **Status:** In Progress (Task 2.1, 2.2, and 2.3 completed).
+*   - [ ] **Status:** Not Started.
+
+### **Task 3: Decompose Oversized interactions.c?**
 
 ### Task 4: Remove Footer Prompt for / Search
 *   Goal: Keep existing / search behavior in all contexts (Dir, File, Showall, Global), but stop using the footer prompt area for search input.

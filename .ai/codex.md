@@ -30,7 +30,7 @@ Codex-specific behavior for this repository.
 ## MCP Doctor
 
 - Run `make mcp-doctor` when MCP tools fail to start or disappear.
-- Run `make mcp-doctor FIX=1` to auto-add writable `UV_CACHE_DIR`/`UV_TOOL_DIR` env blocks to `~/.codex/config.toml`.
+- Run `make mcp-doctor FIX=1` to bootstrap missing `~/.codex/config.toml` from repo `.codex/config.toml` and auto-add writable `UV_CACHE_DIR`/`UV_TOOL_DIR` env blocks.
 
 ## Mandatory Audit Cadence
 
