@@ -75,7 +75,7 @@
 *   **Context Files:** `include/ytree_ui.h`, `src/ui/dir_tags.c`, `src/ui/file_tags.c`, `doc/ARCHITECTURE.md`
 *   - [ ] **Status:** Not Started.
 
-### **Task 3: Decompose Oversized interactions.c?**
+### **Task 3: Decompose Oversized src/ui/interactions.c?**
 
 ### Task 4: Remove Footer Prompt for / Search
 *   Goal: Keep existing / search behavior in all contexts (Dir, File, Showall, Global), but stop using the footer prompt area for search input.
