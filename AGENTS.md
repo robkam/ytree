@@ -22,7 +22,7 @@ Testing quick reference (Codex):
 
 MCP health check (Codex):
 - Diagnose MCP startup/config drift: `make mcp-doctor`
-- Auto-add safe `UV_CACHE_DIR`/`UV_TOOL_DIR` env blocks in `~/.codex/config.toml`: `make mcp-doctor FIX=1`
+- Bootstrap missing `~/.codex/config.toml` from repo `.codex/config.toml` and add safe `UV_CACHE_DIR`/`UV_TOOL_DIR` env blocks: `make mcp-doctor FIX=1`
 
 Persona quick switch:
 - Full names: `:at architect`, `:at developer`, `:at code_auditor`, `:at tester`, `:at greybeard`

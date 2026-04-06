@@ -41,6 +41,17 @@ After the first run, you must reactivate this environment for any new shell sess
 source .venv/bin/activate
 ```
 
+### 2.5 Codex AI Config Bootstrap (Recommended)
+
+To ensure clone-local AI tooling picks up the same project defaults, run:
+
+```bash
+make mcp-doctor FIX=1
+```
+
+This bootstraps `~/.codex/config.toml` from repo-tracked `.codex/config.toml` when missing, while keeping personal files in `~/.codex` (auth/session/history/local-only rules) untouched.
+It warns on home-path values in MCP server config (for example `/home/...`): that is acceptable for personal overrides, but team defaults must be edited in repo `.codex/config.toml`.
+
 ### 3. Enable Repository Git Hooks (Recommended)
 
 This repository ships tracked hooks under `.githooks/` so the pre-push checks are maintained in one place.
@@ -170,6 +181,7 @@ Individual gates:
 - `make qa-pytest`
 - `make qa-unsafe-apis`
 - `make qa-module-boundaries`
+- `make qa-ai-config`
 
 ---
 

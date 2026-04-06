@@ -16,6 +16,8 @@ from typing import Any
 
 DEFAULT_CACHE_DIR = "/tmp/codex-uv-cache"
 DEFAULT_TOOL_DIR = "/tmp/codex-uv-tools"
+REPO_ROOT = Path(__file__).resolve().parent.parent
+PROJECT_CONFIG_PATH = REPO_ROOT / ".codex" / "config.toml"
 CONFIG_PATH = Path.home() / ".codex" / "config.toml"
 SERVERS = ("serena", "jcodemunch")
 
@@ -24,6 +26,14 @@ def _read_config(path: Path) -> tuple[str, dict[str, Any]]:
     text = path.read_text(encoding="utf-8")
     data = tomllib.loads(text)
     return text, data
+
+
+def _bootstrap_user_config() -> tuple[bool, str]:
+    if not PROJECT_CONFIG_PATH.exists():
+        return False, f"missing project template: {PROJECT_CONFIG_PATH}"
+    CONFIG_PATH.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(PROJECT_CONFIG_PATH, CONFIG_PATH)
+    return True, f"bootstrapped {CONFIG_PATH} from {PROJECT_CONFIG_PATH}"
 
 
 def _server_cfg(data: dict[str, Any], name: str) -> dict[str, Any]:
@@ -59,6 +69,15 @@ def _normalize_args(value: Any) -> list[str]:
     if isinstance(value, list):
         return [str(v) for v in value]
     return [str(value)]
+
+
+def _has_nonportable_home_path(cfg: dict[str, Any]) -> str | None:
+    command = str(cfg.get("command", "")).strip()
+    args = _normalize_args(cfg.get("args"))
+    for token in [command] + args:
+        if "/home/" in token or token.startswith("~/"):
+            return token
+    return None
 
 
 def _run_smoke(name: str, cfg: dict[str, Any]) -> tuple[str, str]:
@@ -105,8 +124,17 @@ def main() -> int:
     args = parser.parse_args()
 
     if not CONFIG_PATH.exists():
-        print(f"FAIL: missing config: {CONFIG_PATH}")
-        return 1
+        if not args.fix:
+            print(
+                f"FAIL: missing config: {CONFIG_PATH} "
+                f"(run with --fix to bootstrap from {PROJECT_CONFIG_PATH})"
+            )
+            return 1
+        ok, message = _bootstrap_user_config()
+        if not ok:
+            print(f"FAIL: {message}")
+            return 1
+        print(f"FIXED: {message}")
 
     raw_text, data = _read_config(CONFIG_PATH)
     failures = 0
@@ -147,6 +175,14 @@ def main() -> int:
         cfg = _server_cfg(data, name)
         if not cfg:
             continue
+        nonportable = _has_nonportable_home_path(cfg)
+        if nonportable:
+            print(
+                f"WARN: {name} config references a home path ({nonportable}). "
+                "This is allowed for personal overrides, but shared defaults must stay in "
+                f"{PROJECT_CONFIG_PATH}."
+            )
+            warnings += 1
         env_cfg = cfg.get("env", {}) if isinstance(cfg.get("env"), dict) else {}
         for key in ("UV_CACHE_DIR", "UV_TOOL_DIR"):
             path = env_cfg.get(key)
