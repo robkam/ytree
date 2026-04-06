@@ -21,6 +21,24 @@ static void ResetPreviewAfterNavigation(
     update_preview(ctx, dir_entry);
 }
 
+/* =========================================================================
+ * Shared UI Helpers for Post-Action Refresh, Sync, and Render
+ * ========================================================================= */
+
+void UI_RefreshSyncPanels(ViewContext *ctx, DirEntry *dir_entry) {
+  RefreshDirWindow(ctx, ctx->active);
+  if (ctx->is_split_screen) {
+    RefreshDirWindow(ctx, (ctx->active == ctx->left) ? ctx->right : ctx->left);
+  }
+  RefreshView(ctx, dir_entry);
+}
+
+void UI_RenderFilePanel(ViewContext *ctx, DirEntry *dir_entry, int start_x) {
+  DisplayFiles(ctx, ctx->active, dir_entry, dir_entry->start_file,
+               dir_entry->start_file + dir_entry->cursor_pos, start_x,
+               ctx->ctx_file_window);
+}
+
 BOOL handle_file_window_preview_action(
     ViewContext *ctx, YtreeAction action, DirEntry **dir_entry_ptr,
     YtreeAction *loop_action_ptr, Statistic **stats_ptr,
@@ -210,9 +228,7 @@ BOOL handle_file_window_navigation_action(
   case ACTION_END:
     Nav_End(&dir_entry->cursor_pos, &dir_entry->start_file,
             (int)ctx->active->file_count, FileNav_GetMaxDispFiles(ctx));
-    DisplayFiles(ctx, ctx->active, dir_entry, dir_entry->start_file,
-                 dir_entry->start_file + dir_entry->cursor_pos, *start_x_ptr,
-                 ctx->ctx_file_window);
+    UI_RenderFilePanel(ctx, dir_entry, *start_x_ptr);
     FileNav_UpdateHeaderPath(ctx, dir_entry);
     ResetPreviewAfterNavigation(ctx, dir_entry, preview_line_offset_ptr,
                                 update_preview);
@@ -221,9 +237,7 @@ BOOL handle_file_window_navigation_action(
 
   case ACTION_HOME:
     Nav_Home(&dir_entry->cursor_pos, &dir_entry->start_file);
-    DisplayFiles(ctx, ctx->active, dir_entry, dir_entry->start_file,
-                 dir_entry->start_file + dir_entry->cursor_pos, *start_x_ptr,
-                 ctx->ctx_file_window);
+    UI_RenderFilePanel(ctx, dir_entry, *start_x_ptr);
     FileNav_UpdateHeaderPath(ctx, dir_entry);
     ResetPreviewAfterNavigation(ctx, dir_entry, preview_line_offset_ptr,
                                 update_preview);
@@ -423,7 +437,8 @@ BOOL handle_file_window_command_action(ViewContext *ctx, YtreeAction action,
       get_dir_ret =
           GetDirEntry(ctx, s->tree, de_ptr, to_dir, &dest_dir_entry, to_path);
       if (get_dir_ret == -1) { /* System error */
-        if (realpath(to_dir, to_path) == NULL || STAT_(to_path, &target_stat) != 0 ||
+        if (realpath(to_dir, to_path) == NULL ||
+            STAT_(to_path, &target_stat) != 0 ||
             !S_ISREG(target_stat.st_mode)) {
           break;
         }
@@ -446,13 +461,7 @@ BOOL handle_file_window_command_action(ViewContext *ctx, YtreeAction action,
                (ChoiceCallback)UI_ChoiceResolver);
     }
 
-    RefreshDirWindow(ctx, ctx->active);
-    if (ctx->is_split_screen) {
-      RefreshDirWindow(ctx, (ctx->active == ctx->left) ? ctx->right
-                                                       : ctx->left);
-    }
-
-    RefreshView(ctx, dir_entry);
+    UI_RefreshSyncPanels(ctx, dir_entry);
     need_dsp_help = TRUE;
     break;
 
@@ -498,8 +507,7 @@ BOOL handle_file_window_command_action(ViewContext *ctx, YtreeAction action,
           GetDirEntry(ctx, s->tree, de_ptr, to_dir, &dest_dir_entry, to_path);
       if (get_dir_ret == -1) {
         if (realpath(to_dir, to_path) != NULL &&
-            STAT_(to_path, &target_stat) == 0 &&
-            S_ISREG(target_stat.st_mode)) {
+            STAT_(to_path, &target_stat) == 0 && S_ISREG(target_stat.st_mode)) {
           dest_dir_entry = NULL;
           target_is_regular_file = TRUE;
         } else {
@@ -558,13 +566,7 @@ BOOL handle_file_window_command_action(ViewContext *ctx, YtreeAction action,
         /* ... Stats updates ... */
         /* ... BuildFileEntryList ... */
 
-        RefreshView(ctx, dir_entry);
-
-        RefreshDirWindow(ctx, ctx->active);
-        if (ctx->is_split_screen) {
-          RefreshDirWindow(ctx, (ctx->active == ctx->left) ? ctx->right
-                                                           : ctx->left);
-        }
+        UI_RefreshSyncPanels(ctx, dir_entry);
 
         maybe_change_x_step = TRUE;
       }
@@ -776,9 +778,7 @@ BOOL handle_tag_file_action(ViewContext *ctx, int action, DirEntry *dir_entry,
                                    dir_entry->cursor_pos, SetFileModus,
                                    &walking_package);
 
-          DisplayFiles(ctx, ctx->active, dir_entry, dir_entry->start_file,
-                       dir_entry->start_file + dir_entry->cursor_pos, start_x,
-                       ctx->ctx_file_window);
+          UI_RenderFilePanel(ctx, dir_entry, start_x);
         }
         wmove(ctx->ctx_border_window, ctx->layout.prompt_y, 0);
         wclrtoeol(ctx->ctx_border_window);
@@ -790,9 +790,7 @@ BOOL handle_tag_file_action(ViewContext *ctx, int action, DirEntry *dir_entry,
                                    dir_entry->cursor_pos, SetFileOwner,
                                    &walking_package);
 
-          DisplayFiles(ctx, ctx->active, dir_entry, dir_entry->start_file,
-                       dir_entry->start_file + dir_entry->cursor_pos, start_x,
-                       ctx->ctx_file_window);
+          UI_RenderFilePanel(ctx, dir_entry, start_x);
         }
       } else if (attr_action == 'G') {
         if ((group_id = GetNewGroup(ctx, -1)) >= 0) {
@@ -801,9 +799,7 @@ BOOL handle_tag_file_action(ViewContext *ctx, int action, DirEntry *dir_entry,
                                    dir_entry->cursor_pos, SetFileGroup,
                                    &walking_package);
 
-          DisplayFiles(ctx, ctx->active, dir_entry, dir_entry->start_file,
-                       dir_entry->start_file + dir_entry->cursor_pos, start_x,
-                       ctx->ctx_file_window);
+          UI_RenderFilePanel(ctx, dir_entry, start_x);
         }
       } else if (attr_action == 'D' || attr_action == 0x04) {
         time_t new_time = time(NULL);
@@ -837,9 +833,7 @@ BOOL handle_tag_file_action(ViewContext *ctx, int action, DirEntry *dir_entry,
             fe_ptr->stat_struct = updated_stat;
         }
 
-        DisplayFiles(ctx, ctx->active, dir_entry, dir_entry->start_file,
-                     dir_entry->start_file + dir_entry->cursor_pos, start_x,
-                     ctx->ctx_file_window);
+        UI_RenderFilePanel(ctx, dir_entry, start_x);
       }
     }
     return TRUE;
@@ -866,9 +860,7 @@ BOOL handle_tag_file_action(ViewContext *ctx, int action, DirEntry *dir_entry,
       s->disk_tagged_files++;
       s->disk_tagged_bytes += fe_ptr->stat_struct.st_size;
     }
-    DisplayFiles(ctx, ctx->active, dir_entry, dir_entry->start_file,
-                 dir_entry->start_file + dir_entry->cursor_pos, start_x,
-                 ctx->ctx_file_window);
+    UI_RenderFilePanel(ctx, dir_entry, start_x);
     DisplayDiskStatistic(ctx, s); /* Always update global disk stats */
     DisplayDirStatistic(
         ctx, dir_entry, NULL,
@@ -890,9 +882,7 @@ BOOL handle_tag_file_action(ViewContext *ctx, int action, DirEntry *dir_entry,
       s->disk_tagged_files--;
       s->disk_tagged_bytes -= fe_ptr->stat_struct.st_size;
     }
-    DisplayFiles(ctx, ctx->active, dir_entry, dir_entry->start_file,
-                 dir_entry->start_file + dir_entry->cursor_pos, start_x,
-                 ctx->ctx_file_window);
+    UI_RenderFilePanel(ctx, dir_entry, start_x);
     DisplayDiskStatistic(ctx, s); /* Always update global disk stats */
     DisplayDirStatistic(
         ctx, dir_entry, NULL,
@@ -917,9 +907,7 @@ BOOL handle_tag_file_action(ViewContext *ctx, int action, DirEntry *dir_entry,
       }
     }
 
-    DisplayFiles(ctx, ctx->active, dir_entry, dir_entry->start_file,
-                 dir_entry->start_file + dir_entry->cursor_pos, start_x,
-                 ctx->ctx_file_window);
+    UI_RenderFilePanel(ctx, dir_entry, start_x);
     DisplayDiskStatistic(ctx, s); /* Always update global disk stats */
     DisplayDirStatistic(
         ctx, dir_entry, NULL,
@@ -942,9 +930,7 @@ BOOL handle_tag_file_action(ViewContext *ctx, int action, DirEntry *dir_entry,
       }
     }
 
-    DisplayFiles(ctx, ctx->active, dir_entry, dir_entry->start_file,
-                 dir_entry->start_file + dir_entry->cursor_pos, start_x,
-                 ctx->ctx_file_window);
+    UI_RenderFilePanel(ctx, dir_entry, start_x);
     DisplayDiskStatistic(ctx, s); /* Always update global disk stats */
     DisplayDirStatistic(
         ctx, dir_entry, NULL,
@@ -968,9 +954,7 @@ BOOL handle_tag_file_action(ViewContext *ctx, int action, DirEntry *dir_entry,
       }
     }
 
-    DisplayFiles(ctx, ctx->active, dir_entry, dir_entry->start_file,
-                 dir_entry->start_file + dir_entry->cursor_pos, start_x,
-                 ctx->ctx_file_window);
+    UI_RenderFilePanel(ctx, dir_entry, start_x);
     DisplayDiskStatistic(ctx, s); /* Always update global disk stats */
     DisplayDirStatistic(
         ctx, dir_entry, NULL,
@@ -994,9 +978,7 @@ BOOL handle_tag_file_action(ViewContext *ctx, int action, DirEntry *dir_entry,
       }
     }
 
-    DisplayFiles(ctx, ctx->active, dir_entry, dir_entry->start_file,
-                 dir_entry->start_file + dir_entry->cursor_pos, start_x,
-                 ctx->ctx_file_window);
+    UI_RenderFilePanel(ctx, dir_entry, start_x);
     DisplayDiskStatistic(ctx, s); /* Always update global disk stats */
     DisplayDirStatistic(
         ctx, dir_entry, NULL,
@@ -1081,13 +1063,7 @@ BOOL handle_tag_file_action(ViewContext *ctx, int action, DirEntry *dir_entry,
                                dir_entry->cursor_pos, CopyTaggedFiles,
                                &walking_package);
 
-      RefreshDirWindow(ctx, ctx->active);
-      if (ctx->is_split_screen) {
-        RefreshDirWindow(ctx,
-                         (ctx->active == ctx->left) ? ctx->right : ctx->left);
-      }
-
-      RefreshView(ctx, dir_entry);
+      UI_RefreshSyncPanels(ctx, dir_entry);
     }
     need_dsp_help = TRUE;
     return TRUE;
@@ -1159,11 +1135,7 @@ BOOL handle_tag_file_action(ViewContext *ctx, int action, DirEntry *dir_entry,
                                dir_entry->cursor_pos, MoveTaggedFiles,
                                &walking_package);
 
-      RefreshDirWindow(ctx, ctx->active);
-      if (ctx->is_split_screen) {
-        RefreshDirWindow(ctx,
-                         (ctx->active == ctx->left) ? ctx->right : ctx->left);
-      }
+      UI_RefreshSyncPanels(ctx, dir_entry);
 
       BuildFileEntryList(ctx, ctx->active);
 
@@ -1320,9 +1292,7 @@ BOOL handle_tag_file_action(ViewContext *ctx, int action, DirEntry *dir_entry,
       }
 
       /* Refresh Display */
-      DisplayFiles(ctx, ctx->active, dir_entry, dir_entry->start_file,
-                   dir_entry->start_file + dir_entry->cursor_pos, start_x,
-                   ctx->ctx_file_window);
+      UI_RenderFilePanel(ctx, dir_entry, start_x);
       DisplayDiskStatistic(ctx, s);
       if (dir_entry->global_flag)
         DisplayDiskStatistic(ctx, s);
@@ -1382,9 +1352,7 @@ BOOL handle_tag_file_action(ViewContext *ctx, int action, DirEntry *dir_entry,
 
     dir_entry->start_file = 0;
     dir_entry->cursor_pos = 0;
-    DisplayFiles(ctx, ctx->active, dir_entry, dir_entry->start_file,
-                 dir_entry->start_file + dir_entry->cursor_pos, start_x,
-                 ctx->ctx_file_window);
+    UI_RenderFilePanel(ctx, dir_entry, start_x);
     maybe_change_x_step = TRUE;
     return TRUE;
 
