@@ -498,9 +498,9 @@ int HandleFileWindow(ViewContext *ctx, DirEntry *dir_entry) {
 
     case ACTION_SPLIT_SCREEN:
     case ACTION_SWITCH_PANEL:
-      if (handle_file_window_split_switch_action(
-              ctx, action, dir_entry, owner_panel, &switched_panel, &action,
-              &return_esc)) {
+      if (handle_file_window_split_switch_action(ctx, action, dir_entry,
+                                                 owner_panel, &switched_panel,
+                                                 &action, &return_esc)) {
         if (return_esc)
           return ESC;
         break;
