@@ -205,6 +205,18 @@ For bug fixes, include strict red-green evidence in the PR:
 
 Please adhere to the existing coding style found throughout the project. The codebase follows C89/C99 standards with a focus on readability, consistency, and proper resource management.
 
+## Security Practices
+
+Contributions must preserve a secure-by-default codebase:
+
+- Do not introduce known vulnerability classes (buffer/integer overflows, format-string misuse, use-after-free/double-free, path traversal, symlink TOCTOU races, command injection).
+- Validate and bound-check untrusted input before memory, file, or process operations.
+- Prefer standard/POSIX and well-maintained existing primitives over custom security-sensitive implementations.
+- Default to fail-closed behavior on invalid or unexpected states.
+- Use least-privilege file/process handling; avoid broad permissions or escalation unless explicitly required.
+
+Security evidence is part of the required audit flow: include `make qa-unsafe-apis` results per **[AUDIT.md](AUDIT.md)**.
+
 ## Source Comment Policy
 
 Keep source code self-explanatory where possible. Use comments for durable, non-obvious context:
