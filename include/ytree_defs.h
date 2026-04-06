@@ -540,7 +540,7 @@ typedef int (*ArchiveProgressCallback)(int status, const char *msg,
 #define LZIP_COMPRESS 21
 #define ZSTD_COMPRESS 22
 
-/* UI Message Macros (Headless-compatible) */
+/* UI Message Macros (Global Messaging API) */
 extern int UI_Error(ViewContext *ctx, const char *module, int line,
                     const char *fmt, ...);
 extern int UI_Warning(ViewContext *ctx, const char *fmt, ...);
@@ -901,10 +901,6 @@ extern void CoreStorageOps_Register(ViewContext *ctx);
 extern void CoreWatcherOps_Register(ViewContext *ctx);
 
 extern void UI_Dialog_Init(void);
-extern void ParseColorString(const char *color_str, int *fg, int *bg);
-extern void UpdateUIColor(const char *name, int fg, int bg);
-extern void AddFileColorRule(ViewContext *ctx, const char *pattern, int fg,
-                             int bg);
 extern char *GetProfileValue(const ViewContext *ctx, const char *name);
 extern BOOL IsUserActionDefined(const ViewContext *ctx);
 extern int ScanSubTree(ViewContext *ctx, DirEntry *dir_entry, Statistic *s);
@@ -915,10 +911,8 @@ extern int ReadProfile(ViewContext *ctx, const char *filename);
 extern void ReadHistory(ViewContext *ctx, const char *Filename);
 extern int ReadPasswdEntries(void);
 extern int ReadGroupEntries(void);
-extern void StartColors(ViewContext *ctx);
-extern void ReinitColorPairs(ViewContext *ctx);
-extern void WbkgdSet(const ViewContext *ctx, WINDOW *w, chtype c);
-extern void SetPanelFileMode(ViewContext *ctx, YtreePanel *p, int new_file_mode);
+extern void SetPanelFileMode(ViewContext *ctx, YtreePanel *p,
+                             int new_file_mode);
 extern void InitClock(ViewContext *ctx);
 extern struct Volume *Volume_Create(ViewContext *ctx);
 extern void SetKindOfSort(int kind_of_sort, Statistic *s);
@@ -1010,8 +1004,7 @@ typedef struct _ViewContext {
                                    int fg, int bg);
   char *(*hook_get_profile_value)(const ViewContext *ctx, const char *name);
   BOOL (*hook_has_user_action)(const ViewContext *ctx);
-  int (*hook_scan_subtree)(ViewContext *ctx, DirEntry *dir_entry,
-                           Statistic *s);
+  int (*hook_scan_subtree)(ViewContext *ctx, DirEntry *dir_entry, Statistic *s);
   int (*hook_remove_file)(ViewContext *ctx, FileEntry *fe_ptr, Statistic *s);
   int (*hook_make_path)(const ViewContext *ctx, DirEntry *tree, char *dir_path,
                         DirEntry **dest_dir_entry);

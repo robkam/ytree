@@ -163,16 +163,7 @@ extern int WAttrAddStr(WINDOW *win, int attr, char *str);
 
 /* error.c */
 extern void AboutBox(ViewContext *ctx);
-extern void Error(char *msg, char *module, int line);
-extern void Message(char *msg);
-extern void Notice(char *msg);
 extern void UnmapNoticeWindow(ViewContext *ctx);
-extern void Warning(char *msg);
-extern int UI_Error(ViewContext *ctx, const char *module, int line,
-                    const char *fmt, ...);
-extern int UI_Warning(ViewContext *ctx, const char *fmt, ...);
-extern int UI_Message(ViewContext *ctx, const char *fmt, ...);
-extern int UI_Notice(ViewContext *ctx, const char *fmt, ...);
 extern void UI_Beep(ViewContext *ctx, BOOL critical);
 extern void UI_ShowStatusLineError(ViewContext *ctx, const char *fmt, ...);
 extern void UI_RenderStatusLineError(ViewContext *ctx);
@@ -233,8 +224,6 @@ extern void DisplayFiles(ViewContext *ctx, YtreePanel *panel,
 extern void PrintFileEntry(ViewContext *ctx, YtreePanel *panel, int entry_no,
                            int y, int x, unsigned char hilight, int start_x,
                            WINDOW *win);
-
-/* hex.c has moved to cmd/hex.c and prototypes to ytree_cmd.h */
 
 /* key_engine.c */
 extern int Getch(ViewContext *ctx);
@@ -415,9 +404,6 @@ extern const char *UI_GetCompareHelperCommand(const ViewContext *ctx,
                                               CompareFlowType flow_type);
 extern int UI_ConflictResolverWrapper(ViewContext *ctx, const char *src_path,
                                       const char *dst_path, int *mode_flags);
-extern void BuildFileEntryList(ViewContext *ctx, YtreePanel *panel);
-
-/* dir_compare.c */
 extern void DirCompare_RunInternalDirectory(ViewContext *ctx,
                                             DirEntry *source_dir,
                                             const CompareRequest *request);
