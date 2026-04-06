@@ -60,22 +60,81 @@
 ## **Phase 1: UI/UX Enhancements and Cleanup**
 *This phase adds user-facing improvements, cleans up the remaining artifacts, and ensures a clean, modern, and portable codebase.*
 
-### **Task 1: Enhance Build System**
+### **Task 0: Enhance Build System**
 *   **Goal:** Improve Makefile targets for installation and add a proper `uninstall` target to clean up all installed files. Modernize versioning by moving version info from `patchlev.h` into the `Makefile`.
 *   **Rationale:** Provides a more robust and complete build system for end-users and packagers.
 *   **Files to Modify:** `Makefile`
 *   **Context Files:** `include/patchlev.h`
 *   - [x] **Status:** Partially Completed (uninstall exists but can be improved).
 
-### **Task 2: Decompose Oversized UI Controllers (`ctrl_dir.c` / `ctrl_file.c`)**
-*   **Priority:** High (must be completed before Future Enhancements/Wishlist work).
-*   **Goal:** Reduce size and complexity of `src/ui/ctrl_dir.c` and `src/ui/ctrl_file.c` by extracting action-family handlers and repeated rendering/sync blocks into focused modules and helpers, while preserving current behavior.
-*   **Rationale:** These controllers are current hotspot/risk files; decomposition lowers regression risk, improves reviewability, and makes future feature work safer.
-*   **Files to Modify:** `src/ui/ctrl_dir.c`, `src/ui/ctrl_file.c`, `src/ui/ctrl_file_ops.c`, `src/ui/dir_ops.c` (and new focused helpers as needed).
-*   **Context Files:** `include/ytree_ui.h`, `src/ui/dir_tags.c`, `src/ui/file_tags.c`, `doc/ARCHITECTURE.md`
+### **Task 1: Harden Build Source Discovery (Recursive + Deterministic)**
+*   **Priority:** High (prerequisite for future shallow subfolders under `src/`).
+*   **Goal:** Update build source discovery so all C files under `src/` are discovered recursively with deterministic ordering.
+*   **Rationale:** Current discovery only covers up to one subdirectory level and will miss files after module reorganization.
+*   **Scope Lock:** Build discovery and related guard/test updates only. No feature behavior changes.
+*   **Files to Modify:** `Makefile` (and tests/guards only if required by this change).
+*   **Context Files:** `doc/ARCHITECTURE.md`, `doc/AUDIT.md`
+*   **Acceptance Criteria:**
+*   Build still succeeds with `make clean && make`.
+*   Full QA gate still passes with `make qa-all`.
+*   Source file list ordering is deterministic across runs.
 *   - [ ] **Status:** Not Started.
 
-### **Task 3: Decompose Oversized src/ui/interactions.c?**
+### **Task 2: Reorganize Modules into Shallow Hierarchical Folders**
+*   **Priority:** Medium-High (after Task 1 build-discovery hardening).
+*   **Goal:** Group modules into shallow, purpose-based subfolders and update build/header/linkage references accordingly.
+*   **Rationale:** Improves discoverability and ownership without changing behavior.
+*   **Scope Lock:** File moves + include/path/build/script/test reference updates only. No feature behavior changes.
+*   **Files to Modify:** `src/**`, `include/**` (if include paths change), `Makefile`, `scripts/check_module_boundaries.py`, affected tests/docs.
+*   **Acceptance Criteria:**
+*   `make clean && make` passes.
+*   `make qa-module-boundaries` and `make qa-all` pass.
+*   No runtime behavior changes.
+*   Folder depth remains shallow (max one extra level under `src/ui` and `src/cmd`).
+*   - [ ] **Status:** Not Started.
+
+### **Task 3: Decompose Remaining Hotspot Modules (Atomic Subtasks)**
+*   **Priority:** High.
+*   **Goal:** Reduce complexity in remaining hotspot files by extracting cohesive action families into focused modules while preserving behavior.
+*   **Rationale:** These files remain risk hotspots after controller decomposition and slow safe feature delivery.
+*   **Execution Rule:** Must be delivered one atomic subtask at a time (3.1 to 3.5), each with its own architect plan, developer pass, auditor pass, and QA evidence.
+*   **Context Files:** `include/ytree_ui.h`, `include/ytree_cmd.h`, `doc/ARCHITECTURE.md`
+*   - [ ] **Status:** Not Started.
+
+### **Task 3.1: Decompose `src/ui/interactions.c`**
+*   **Goal:** Split mixed responsibilities in `interactions.c` into cohesive UI interaction modules (for example compare prompts/builders, archive payload UI, attribute/ownership/date UI, tagged-view flow).
+*   **Scope Lock:** No behavior changes in prompts, key paths, or command execution semantics.
+*   **Files to Modify:** `src/ui/interactions.c` and new focused `src/ui/*` modules as needed; `include/ytree_ui.h`.
+*   **Acceptance Criteria:** Reduced file size/complexity, stable exported API surface, and green QA.
+*   - [ ] **Status:** Not Started.
+
+### **Task 3.2: Decompose `src/ui/ctrl_file_ops.c` (`handle_tag_file_action` focus)**
+*   **Goal:** Extract large tagged-action branches from `handle_tag_file_action` into focused helpers/modules.
+*   **Scope Lock:** Preserve all tagged-file behavior and command semantics.
+*   **Files to Modify:** `src/ui/ctrl_file_ops.c`, `src/ui/file_tags.c` (and new focused helpers as needed), `include/ytree_ui.h`.
+*   **Acceptance Criteria:** Smaller dispatcher function, unchanged behavior, green QA.
+*   - [ ] **Status:** Not Started.
+
+### **Task 3.3: Decompose `src/ui/key_engine.c`**
+*   **Goal:** Separate key mapping/dispatch concerns from input-loop mechanics and context-specific action routing.
+*   **Scope Lock:** No keybinding behavior change unless explicitly approved in a separate task.
+*   **Files to Modify:** `src/ui/key_engine.c` and new focused `src/ui/*` modules as needed.
+*   **Acceptance Criteria:** Cleaner dispatch boundaries, unchanged key behavior, green QA.
+*   - [ ] **Status:** Not Started.
+
+### **Task 3.4: Decompose `src/cmd/copy.c`**
+*   **Goal:** Isolate copy conflict handling, path/precondition validation, and transfer orchestration into focused units.
+*   **Scope Lock:** No copy/move/archive user-visible behavior changes.
+*   **Files to Modify:** `src/cmd/copy.c` and new focused `src/cmd/*` helpers as needed; `include/ytree_cmd.h`.
+*   **Acceptance Criteria:** Reduced complexity in core copy path, unchanged behavior, green QA.
+*   - [ ] **Status:** Not Started.
+
+### **Task 3.5: Decompose `src/cmd/profile.c`**
+*   **Goal:** Split profile parsing, validation/defaulting, and apply/update logic into focused units.
+*   **Scope Lock:** No configuration semantic changes.
+*   **Files to Modify:** `src/cmd/profile.c` and new focused `src/cmd/*` helpers as needed; related headers.
+*   **Acceptance Criteria:** Clear parser/apply separation, unchanged config behavior, green QA.
+*   - [ ] **Status:** Not Started.
 
 ### Task 4: Remove Footer Prompt for / Search
 *   Goal: Keep existing / search behavior in all contexts (Dir, File, Showall, Global), but stop using the footer prompt area for search input.

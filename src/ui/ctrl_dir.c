@@ -417,7 +417,7 @@ static void HandleDirectoryCompare(ViewContext *ctx, DirEntry *source_dir) {
   DirCompare_RunInternalLoggedTree(ctx, &request);
 }
 
-int HandleDirWindow(ViewContext *ctx, const DirEntry *start_dir_entry) {
+extern int HandleDirWindow(ViewContext *ctx, const DirEntry *start_dir_entry) {
   DirEntry *dir_entry, *de_ptr;
   int ch, unput_char;
   BOOL need_dsp_help;
