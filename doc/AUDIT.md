@@ -69,6 +69,7 @@ Local shortcut targets are available in the `Makefile`:
 - `make qa-all-log` (same as `qa-all`, with full output captured to `qa-all.log` in repo root; override with `QA_LOG=/path/to/file`)
 
 For feature-sized/PR-scope changes, audit evidence must include a successful `make qa-module-boundaries` run so controller-slimming checks are explicitly validated.
+Audit evidence must also include `make qa-unsafe-apis` results as explicit enforcement evidence for the shared Security gate policy in `.ai/shared.md` Core Engineering Rules.
 
 GitHub CI is a baseline gate (build + unsafe C API guard + `pytest`) and does not replace the full local audit loop.
 
