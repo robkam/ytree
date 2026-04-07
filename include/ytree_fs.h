@@ -37,6 +37,11 @@ extern int Path_Join(char *dest, size_t size, const char *dir,
                      const char *leaf);
 extern const char *Path_LeafName(const char *path);
 extern BOOL Path_ShellQuote(const char *src, char *dst, size_t dst_size);
+extern int Path_BuildCompareCommandLine(const char *command_template,
+                                        const char *source_path,
+                                        const char *target_path,
+                                        char *command_line,
+                                        size_t command_line_size);
 
 /* archive.c */
 extern int ExtractArchiveEntry(const char *archive_path, const char *entry_path,

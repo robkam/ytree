@@ -75,6 +75,67 @@ BOOL Path_ShellQuote(const char *src, char *dst, size_t dst_size) {
   return TRUE;
 }
 
+int Path_BuildCompareCommandLine(const char *command_template,
+                                 const char *source_path,
+                                 const char *target_path, char *command_line,
+                                 size_t command_line_size) {
+  char quoted_source[(PATH_LENGTH * 4) + 3];
+  char quoted_target[(PATH_LENGTH * 4) + 3];
+  const char *template_ptr;
+  BOOL has_placeholders;
+
+  if (!command_template || !source_path || !target_path || !command_line ||
+      command_line_size == 0) {
+    return -1;
+  }
+
+  if (!Path_ShellQuote(source_path, quoted_source, sizeof(quoted_source)) ||
+      !Path_ShellQuote(target_path, quoted_target, sizeof(quoted_target))) {
+    return -1;
+  }
+
+  has_placeholders = (strstr(command_template, "%1") != NULL ||
+                      strstr(command_template, "%2") != NULL);
+
+  command_line[0] = '\0';
+  if (!has_placeholders) {
+    if (AppendBounded(command_line, command_line_size, command_template) != 0 ||
+        AppendBounded(command_line, command_line_size, " ") != 0 ||
+        AppendBounded(command_line, command_line_size, quoted_source) != 0 ||
+        AppendBounded(command_line, command_line_size, " ") != 0 ||
+        AppendBounded(command_line, command_line_size, quoted_target) != 0) {
+      return -1;
+    }
+    return 0;
+  }
+
+  for (template_ptr = command_template; *template_ptr; template_ptr++) {
+    if (*template_ptr == '%' && template_ptr[1] == '1') {
+      if (AppendBounded(command_line, command_line_size, quoted_source) != 0)
+        return -1;
+      template_ptr++;
+      continue;
+    }
+
+    if (*template_ptr == '%' && template_ptr[1] == '2') {
+      if (AppendBounded(command_line, command_line_size, quoted_target) != 0)
+        return -1;
+      template_ptr++;
+      continue;
+    }
+
+    {
+      char single_char[2];
+      single_char[0] = *template_ptr;
+      single_char[1] = '\0';
+      if (AppendBounded(command_line, command_line_size, single_char) != 0)
+        return -1;
+    }
+  }
+
+  return 0;
+}
+
 int Path_Join(char *dest, size_t size, const char *dir, const char *leaf) {
   size_t dir_len;
   size_t trimmed_dir_len;
