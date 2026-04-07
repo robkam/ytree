@@ -13,46 +13,6 @@
 #include <string.h>
 #include <sys/stat.h>
 
-static int BuildCompareCommand(const char *command_template,
-                               const char *source_path, const char *target_path,
-                               char *command_line, size_t command_line_size) {
-  char escaped_source[PATH_LENGTH * 2 + 1];
-  char escaped_target[PATH_LENGTH * 2 + 1];
-  int written;
-  BOOL has_placeholders;
-
-  if (!command_template || !source_path || !target_path || !command_line ||
-      command_line_size == 0) {
-    return -1;
-  }
-
-  StrCp(escaped_source, source_path);
-  StrCp(escaped_target, target_path);
-  has_placeholders = (strstr(command_template, "%1") != NULL ||
-                      strstr(command_template, "%2") != NULL);
-
-  if (has_placeholders) {
-    char expanded_command[COMMAND_LINE_LENGTH + 1];
-
-    if (String_Replace(expanded_command, sizeof(expanded_command),
-                       command_template, "%1", escaped_source) != 0) {
-      return -1;
-    }
-    if (String_Replace(command_line, command_line_size, expanded_command, "%2",
-                       escaped_target) != 0) {
-      return -1;
-    }
-    return 0;
-  }
-
-  written = snprintf(command_line, command_line_size, "%s %s %s",
-                     command_template, escaped_source, escaped_target);
-  if (written < 0 || (size_t)written >= command_line_size)
-    return -1;
-
-  return 0;
-}
-
 static int ResolveFileCompareTargetPath(FileEntry *source_file,
                                         const char *target_input,
                                         char *resolved_target_path) {
@@ -177,8 +137,8 @@ void FileCompare_LaunchExternal(ViewContext *ctx, FileEntry *source_file) {
     return;
   }
 
-  if (BuildCompareCommand(filediff, source_path, target_path, command_line,
-                          sizeof(command_line)) != 0) {
+  if (Path_BuildCompareCommandLine(filediff, source_path, target_path,
+                                   command_line, sizeof(command_line)) != 0) {
     UI_Message(
         ctx,
         "FILEDIFF command is invalid or too long.*Check FILEDIFF in ~/.ytree.");
