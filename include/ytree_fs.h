@@ -37,6 +37,11 @@ extern int Path_Join(char *dest, size_t size, const char *dir,
                      const char *leaf);
 extern const char *Path_LeafName(const char *path);
 extern BOOL Path_ShellQuote(const char *src, char *dst, size_t dst_size);
+extern int Path_BuildCommandLine(const char *command_template,
+                                 const char *append_path, const char *token1,
+                                 const char *value1, const char *token2,
+                                 const char *value2, char *command_line,
+                                 size_t command_line_size);
 extern int Path_BuildCompareCommandLine(const char *command_template,
                                         const char *source_path,
                                         const char *target_path,

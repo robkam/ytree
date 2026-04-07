@@ -41,13 +41,10 @@ static int ViewFile(ViewContext *ctx, DirEntry *dir_entry, char *file_path) {
   }
 
   pager = GetProfileValue(ctx, "PAGER");
-  {
-    int n = snprintf(command_line, COMMAND_LINE_LENGTH + 1, "%s %s", pager,
-                     file_path);
-    if (n < 0 || n >= COMMAND_LINE_LENGTH + 1) {
-      MESSAGE(ctx, "View command too long!*\"%s\"", file_path);
-      return (-1);
-    }
+  if (Path_BuildCommandLine(pager, file_path, NULL, NULL, NULL, NULL,
+                            command_line, sizeof(command_line)) != 0) {
+    MESSAGE(ctx, "View command too long!*\"%s\"", file_path);
+    return (-1);
   }
 
   result = SilentSystemCall(ctx, command_line, &ctx->active->vol->vol_stats);
@@ -79,8 +76,12 @@ static int ViewArchiveFile(ViewContext *ctx, char *file_path) {
   close(fd);
 
   pager = GetProfileValue(ctx, "PAGER");
-  snprintf(command_line, COMMAND_LINE_LENGTH + 1, "%s %s", pager,
-           temp_filename);
+  if (Path_BuildCommandLine(pager, temp_filename, NULL, NULL, NULL, NULL,
+                            command_line, sizeof(command_line)) != 0) {
+    MESSAGE(ctx, "View command too long!*\"%s\"", file_path);
+    unlink(temp_filename);
+    return -1;
+  }
 
   result = SilentSystemCall(ctx, command_line, &ctx->active->vol->vol_stats);
 

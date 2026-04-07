@@ -75,6 +75,82 @@ BOOL Path_ShellQuote(const char *src, char *dst, size_t dst_size) {
   return TRUE;
 }
 
+int Path_BuildCommandLine(const char *command_template, const char *append_path,
+                          const char *token1, const char *value1,
+                          const char *token2, const char *value2,
+                          char *command_line, size_t command_line_size) {
+  char quoted_append[(PATH_LENGTH * 4) + 3];
+  char quoted_value1[(PATH_LENGTH * 4) + 3];
+  char quoted_value2[(PATH_LENGTH * 4) + 3];
+  const char *template_ptr;
+  size_t token1_len;
+  size_t token2_len;
+
+  if (!command_template || !command_line || command_line_size == 0) {
+    return -1;
+  }
+
+  if ((token1 && !value1) || (!token1 && value1) || (token2 && !value2) ||
+      (!token2 && value2)) {
+    return -1;
+  }
+
+  if (append_path &&
+      !Path_ShellQuote(append_path, quoted_append, sizeof(quoted_append))) {
+    return -1;
+  }
+  if (token1 &&
+      !Path_ShellQuote(value1, quoted_value1, sizeof(quoted_value1))) {
+    return -1;
+  }
+  if (token2 &&
+      !Path_ShellQuote(value2, quoted_value2, sizeof(quoted_value2))) {
+    return -1;
+  }
+
+  token1_len = token1 ? strlen(token1) : 0;
+  token2_len = token2 ? strlen(token2) : 0;
+  command_line[0] = '\0';
+
+  for (template_ptr = command_template; *template_ptr; template_ptr++) {
+    if (token1 && token1_len > 0 &&
+        strncmp(template_ptr, token1, token1_len) == 0) {
+      if (AppendBounded(command_line, command_line_size, quoted_value1) != 0)
+        return -1;
+      template_ptr += token1_len - 1;
+      continue;
+    }
+
+    if (token2 && token2_len > 0 &&
+        strncmp(template_ptr, token2, token2_len) == 0) {
+      if (AppendBounded(command_line, command_line_size, quoted_value2) != 0)
+        return -1;
+      template_ptr += token2_len - 1;
+      continue;
+    }
+
+    {
+      char single_char[2];
+      single_char[0] = *template_ptr;
+      single_char[1] = '\0';
+      if (AppendBounded(command_line, command_line_size, single_char) != 0)
+        return -1;
+    }
+  }
+
+  if (append_path) {
+    if (*command_line &&
+        AppendBounded(command_line, command_line_size, " ") != 0) {
+      return -1;
+    }
+    if (AppendBounded(command_line, command_line_size, quoted_append) != 0) {
+      return -1;
+    }
+  }
+
+  return 0;
+}
+
 int Path_BuildCompareCommandLine(const char *command_template,
                                  const char *source_path,
                                  const char *target_path, char *command_line,

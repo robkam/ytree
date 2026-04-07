@@ -22,8 +22,7 @@ static int ExecuteArchiveFile(ViewContext *ctx, DirEntry *dir_entry,
                               const FileEntry *file_entry, const char *cmd_template,
                               Statistic *s, ArchiveProgressCallback cb) {
   char temp_path[PATH_LENGTH];
-  char command_line[COMMAND_LINE_LENGTH];
-  char quoted_temp[PATH_LENGTH * 2 + 1];
+  char command_line[COMMAND_LINE_LENGTH + 1];
   char dir_path[PATH_LENGTH];
   int fd_tmp;
   int result = -1;
@@ -110,19 +109,13 @@ static int ExecuteArchiveFile(ViewContext *ctx, DirEntry *dir_entry,
   }
   close(fd_tmp);
 
-  /* 3. Substitute {} with temp path using String_Replace */
-  StrCp(quoted_temp, temp_path); /* Escape spaces */
-
-  if (String_Replace(command_line, sizeof(command_line), cmd_template, "{}",
-                     quoted_temp) != 0) {
+  if (Path_BuildCommandLine(cmd_template, NULL, "{}", temp_path, NULL, NULL,
+                            command_line, sizeof(command_line)) != 0) {
     unlink(temp_path);
     return -1;
   }
 
-  /* 4. Execute */
   result = SilentSystemCall(ctx, command_line, s);
-
-  /* 5. Cleanup */
   unlink(temp_path);
 
   return result;
@@ -131,9 +124,9 @@ static int ExecuteArchiveFile(ViewContext *ctx, DirEntry *dir_entry,
 
 int Execute(ViewContext *ctx, DirEntry *dir_entry, const FileEntry *file_entry,
             const char *cmd_template, Statistic *s, ArchiveProgressCallback cb) {
-  char expanded_command[COMMAND_LINE_LENGTH + 1];
-  const char *final_command;
+  char command_line[COMMAND_LINE_LENGTH + 1];
   char path[PATH_LENGTH + 1];
+  const char *substitution_name;
   int result = -1;
   int start_dir_fd;
 
@@ -146,33 +139,10 @@ int Execute(ViewContext *ctx, DirEntry *dir_entry, const FileEntry *file_entry,
   }
 #endif
 
-  /* Check if placeholder expansion is needed */
-  if (strstr(cmd_template, "{}") != NULL) {
-    char substitution_name[PATH_LENGTH + 1];
-    char escaped_name[PATH_LENGTH * 2 + 1];
-
-    if (file_entry) {
-      /* In file context, {} is the filename, as we chdir first. */
-      strncpy(substitution_name, file_entry->name, PATH_LENGTH);
-    } else {
-      /* In directory context, {} means the current dir "." */
-      int written = snprintf(substitution_name, sizeof(substitution_name), "%s", ".");
-      if (written < 0 || (size_t)written >= sizeof(substitution_name)) {
-        return -1;
-      }
-    }
-    substitution_name[PATH_LENGTH] = '\0';
-
-    /* The name may contain spaces, so escape it for the shell. */
-    StrCp(escaped_name, substitution_name);
-
-    if (String_Replace(expanded_command, sizeof(expanded_command), cmd_template,
-                       "{}", escaped_name) != 0) {
-      return -1;
-    }
-    final_command = expanded_command;
-  } else {
-    final_command = cmd_template;
+  substitution_name = file_entry ? file_entry->name : ".";
+  if (Path_BuildCommandLine(cmd_template, NULL, "{}", substitution_name, NULL,
+                            NULL, command_line, sizeof(command_line)) != 0) {
+    return -1;
   }
 
   /* Robustly save current working directory using a file descriptor */
@@ -185,7 +155,7 @@ int Execute(ViewContext *ctx, DirEntry *dir_entry, const FileEntry *file_entry,
     if (chdir(GetPath(dir_entry, path))) {
       result = -1;
     } else {
-      result = QuerySystemCall(ctx, final_command, s);
+      result = QuerySystemCall(ctx, command_line, s);
 
       /* Restore original directory */
       if (fchdir(start_dir_fd) == -1) {
@@ -194,7 +164,7 @@ int Execute(ViewContext *ctx, DirEntry *dir_entry, const FileEntry *file_entry,
     }
   } else {
     /* Execute is disabled in archive mode, but handle defensively */
-    result = QuerySystemCall(ctx, final_command, s);
+    result = QuerySystemCall(ctx, command_line, s);
   }
 
   close(start_dir_fd);
@@ -206,9 +176,7 @@ int Execute(ViewContext *ctx, DirEntry *dir_entry, const FileEntry *file_entry,
 int ExecuteCommand(ViewContext *ctx, FileEntry *fe_ptr,
                    WalkingPackage *walking_package, Statistic *s) {
   char command_line[COMMAND_LINE_LENGTH + 1];
-  char temp_command_line[COMMAND_LINE_LENGTH + 1];
   char raw_path[PATH_LENGTH + 1];
-  char quoted_path[PATH_LENGTH * 2 + 1];
   const char *template_ptr;
 
   walking_package->new_fe_ptr = fe_ptr;
@@ -226,33 +194,11 @@ int ExecuteCommand(ViewContext *ctx, FileEntry *fe_ptr,
   /* 1. Get the raw filename/path */
   (void)GetFileNamePath(fe_ptr, raw_path);
 
-  /* 2. Quote/Escape the path using StrCp (handles spaces/special chars) */
-  StrCp(quoted_path, raw_path);
-
-  /* 3. Build the final command string */
   template_ptr = walking_package->function_data.execute.command;
-
-  /* Step 3a: Check for {} in template and replace if present */
-  if (strstr(template_ptr, "{}")) {
-    if (String_Replace(temp_command_line, sizeof(temp_command_line),
-                       template_ptr, "{}", quoted_path) != 0) {
-      return -1;
-    }
-  } else {
-    strncpy(temp_command_line, template_ptr, COMMAND_LINE_LENGTH);
-    temp_command_line[COMMAND_LINE_LENGTH] = '\0';
-  }
-
-  /* Step 3b: Check for %s in ORIGINAL template and replace in temp buffer if
-   * present */
-  if (strstr(template_ptr, "%s")) {
-    if (String_Replace(command_line, sizeof(command_line), temp_command_line,
-                       "%s", quoted_path) != 0) {
-      return -1;
-    }
-  } else {
-    strncpy(command_line, temp_command_line, COMMAND_LINE_LENGTH);
-    command_line[COMMAND_LINE_LENGTH] = '\0';
+  if (Path_BuildCommandLine(template_ptr, NULL, "{}", raw_path, "%s",
+                            raw_path, command_line, sizeof(command_line)) !=
+      0) {
+    return -1;
   }
 
   return SilentSystemCallEx(ctx, command_line, FALSE, s);
