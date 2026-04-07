@@ -5,7 +5,6 @@
  *
  ***************************************************************************/
 
-#include "patchlev.h"
 #include "ytree_ui.h"
 
 #include <stdarg.h>

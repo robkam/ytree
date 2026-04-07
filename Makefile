@@ -5,6 +5,12 @@
 ############################################################################
 
 # -------------------------------------------------------------------------
+# Version Information
+# -------------------------------------------------------------------------
+VERSION     = 3.0.0-pre-alpha
+VERSIONDATE = April 2026
+
+# -------------------------------------------------------------------------
 # Directory Configuration
 # -------------------------------------------------------------------------
 SRC_DIR     = src
@@ -24,9 +30,15 @@ MAKE_CMD    ?= $(MAKE)
 # -------------------------------------------------------------------------
 # Install Destinations
 # -------------------------------------------------------------------------
-DESTDIR     = /usr
-BINDEST     = $(DESTDIR)/bin
-MANDEST     = $(DESTDIR)/share/man/man1
+PREFIX      ?= /usr/local
+DESTDIR     ?=
+BINDIR      = $(PREFIX)/bin
+MANDIR      = $(PREFIX)/share/man
+MAN1DIR     = $(MANDIR)/man1
+
+# For compatibility with old variable names
+BINDEST     = $(DESTDIR)$(BINDIR)
+MANDEST     = $(DESTDIR)$(MAN1DIR)
 
 # -------------------------------------------------------------------------
 # Compile Options
@@ -51,7 +63,9 @@ WARNINGS    = -Wall -Wextra -Wno-unused-parameter
 # Standard Flags
 # -I$(INC_DIR): Look for headers in the include/ directory
 # -MMD -MP:     Auto-generate dependency files (.d) to track header changes
+# -DVERSION, -DVERSIONDATE: Version info from Makefile variables
 CFLAGS      += -D_GNU_SOURCE -DHAVE_LIBARCHIVE -DWITH_UTF8 \
+               -DVERSION='"$(VERSION)"' -DVERSIONDATE='"$(VERSIONDATE)"' \
                $(COLOR) $(CLOCK) $(READLINE) $(ADD_CFLAGS) \
                -I$(INC_DIR) -MMD -MP $(WARNINGS)
 
@@ -131,19 +145,30 @@ docs:
 $(MANPAGE): $(MANSRC) | $(BUILD_DIR)
 	$(PANDOC) -s -t man $(MANSRC) -o $@
 
-# Install binary and man page
+# Install binary, man page, and documentation
 install: $(MAIN_BIN) $(MANPAGE) docs
-	if [ ! -e $(BINDEST) ]; then mkdir -p $(BINDEST); fi
-	install $(MAIN_BIN) $(BINDEST)/$(MAIN)
-	if [ ! -e $(MANDEST) ]; then mkdir -p $(MANDEST); fi
+	@echo "Installing ytree $(VERSION) to $(PREFIX)..."
+	install -d -m 755 $(BINDEST)
+	install -m 755 $(MAIN_BIN) $(BINDEST)/$(MAIN)
+	install -d -m 755 $(MANDEST)
 	gzip -9c $(MANPAGE) > $(MANPAGE).gz
-	install -m 0644 $(MANPAGE).gz $(MANDEST)/
-	rm $(MANPAGE).gz
+	install -m 644 $(MANPAGE).gz $(MANDEST)/$(MAIN).1.gz
+	rm -f $(MANPAGE).gz
+	@echo "Installation complete."
+	@echo "Binary: $(BINDEST)/$(MAIN)"
+	@echo "Manual: $(MANDEST)/$(MAIN).1.gz"
 
-# Uninstall
+# Uninstall all installed files
 uninstall:
+	@echo "Uninstalling ytree from $(PREFIX)..."
 	rm -f $(BINDEST)/$(MAIN)
-	rm -f $(MANDEST)/ytree.1.gz
+	rm -f $(MANDEST)/$(MAIN).1.gz
+	-rmdir $(MANDEST) 2>/dev/null || true
+	-rmdir $(MANDIR) 2>/dev/null || true
+	-rmdir $(BINDEST) 2>/dev/null || true
+	-rmdir $(PREFIX)/share 2>/dev/null || true
+	-rmdir $(PREFIX) 2>/dev/null || true
+	@echo "Uninstall complete."
 
 # Draft Changelog generator
 # If no tags exist, uses the full history (HEAD).
