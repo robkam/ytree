@@ -60,13 +60,6 @@
 ## **Phase 1: UI/UX Enhancements and Cleanup**
 *This phase adds user-facing improvements, cleans up the remaining artifacts, and ensures a clean, modern, and portable codebase.*
 
-### **Task 0: Enhance Build System**
-*   **Goal:** Improve Makefile targets for installation and add a proper `uninstall` target to clean up all installed files. Modernize versioning by moving version info from `patchlev.h` into the `Makefile`.
-*   **Rationale:** Provides a more robust and complete build system for end-users and packagers.
-*   **Files to Modify:** `Makefile`
-*   **Context Files:** `include/patchlev.h`
-*   - [x] **Status:** Partially Completed (uninstall exists but can be improved).
-
 ### **Task 1: Harden Build Source Discovery (Recursive + Deterministic)**
 *   **Priority:** High (prerequisite for future shallow subfolders under `src/`).
 *   **Goal:** Update build source discovery so all C files under `src/` are discovered recursively with deterministic ordering.

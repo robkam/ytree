@@ -11,7 +11,6 @@ LAYER_ORDER = ("core", "cmd", "fs", "ui", "util")
 HEADER_LAYER = {
     "config.h": "cmd",
     "default_profile_template.h": "core",
-    "patchlev.h": "core",
     "sort.h": "core",
     "watcher.h": "fs",
     "ytree.h": "core",

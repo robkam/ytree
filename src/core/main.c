@@ -6,7 +6,6 @@
  ***************************************************************************/
 
 #include "ytree_defs.h"
-#include "patchlev.h"
 #include "default_profile_template.h"
 #include <errno.h>
 #include <fcntl.h>
