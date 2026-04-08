@@ -421,7 +421,6 @@ extern int HandleDirWindow(ViewContext *ctx, const DirEntry *start_dir_entry) {
   DirEntry *dir_entry, *de_ptr;
   int ch, unput_char;
   BOOL need_dsp_help;
-  char new_name[PATH_LENGTH + 1];
   char new_log_path[PATH_LENGTH + 1];
   YtreeAction action; /* Declare YtreeAction variable */
   const struct Volume *start_vol = NULL;
@@ -518,6 +517,8 @@ extern int HandleDirWindow(ViewContext *ctx, const DirEntry *start_dir_entry) {
       if (log_path_len >= 0 && (size_t)log_path_len < sizeof(new_log_path)) {
         int i;
         for (i = 0; i < ctx->active->vol->total_dirs; i++) {
+          char new_name[PATH_LENGTH + 1];
+
           if (*new_log_path == FILE_SEPARATOR_CHAR) {
             GetPath(ctx->active->vol->dir_entry_list[i].dir_entry, new_name);
           } else {

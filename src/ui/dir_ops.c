@@ -329,7 +329,6 @@ void HandleUnreadSubTree(ViewContext *ctx, DirEntry *dir_entry,
 
 BOOL HandleDirMakeFile(ViewContext *ctx, DirEntry *dir_entry) {
   char file_name[PATH_LENGTH * 2 + 1];
-  int mk_result;
 
   DEBUG_LOG("ACTION_CMD_MKFILE reached in ctrl_dir.c. mode=%d", ctx->view_mode);
   if (ctx->view_mode != DISK_MODE)
@@ -339,8 +338,9 @@ BOOL HandleDirMakeFile(ViewContext *ctx, DirEntry *dir_entry) {
   *file_name = '\0';
   if (UI_ReadString(ctx, ctx->active, "MAKE FILE:", file_name, PATH_LENGTH,
                     HST_FILE) == CR) {
-    mk_result = MakeFile(ctx, dir_entry, file_name, &ctx->active->vol->vol_stats,
-                         NULL, UI_ChoiceResolver);
+    int mk_result =
+        MakeFile(ctx, dir_entry, file_name, &ctx->active->vol->vol_stats, NULL,
+                 UI_ChoiceResolver);
     if (mk_result == 0) {
       if (ctx->active && ctx->active->pan_file_window) {
         DisplayFileWindow(ctx, ctx->active, dir_entry);

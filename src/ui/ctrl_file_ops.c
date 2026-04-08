@@ -33,7 +33,8 @@ void UI_RefreshSyncPanels(ViewContext *ctx, DirEntry *dir_entry) {
   RefreshView(ctx, dir_entry);
 }
 
-void UI_RenderFilePanel(ViewContext *ctx, DirEntry *dir_entry, int start_x) {
+void UI_RenderFilePanel(ViewContext *ctx, const DirEntry *dir_entry,
+                        int start_x) {
   DisplayFiles(ctx, ctx->active, dir_entry, dir_entry->start_file,
                dir_entry->start_file + dir_entry->cursor_pos, start_x,
                ctx->ctx_file_window);
@@ -328,7 +329,7 @@ BOOL handle_file_window_split_switch_action(
 }
 
 BOOL handle_file_window_volume_action(ViewContext *ctx, YtreeAction action,
-                                      struct Volume *start_vol,
+                                      const struct Volume *start_vol,
                                       int *unput_char_ptr,
                                       BOOL *return_esc_ptr) {
   if (!ctx || !unput_char_ptr || !return_esc_ptr)
@@ -616,8 +617,9 @@ BOOL handle_file_window_command_action(ViewContext *ctx, YtreeAction action,
 
     {
       char new_name[PATH_LENGTH + 1];
-      char expanded_new_name[PATH_LENGTH + 1];
       if (!GetRenameParameter(ctx, fe_ptr->name, new_name)) {
+        char expanded_new_name[PATH_LENGTH + 1];
+
         /* EXPAND WILDCARDS FOR SINGLE FILE RENAME */
         BuildFilename(fe_ptr->name, new_name, expanded_new_name);
 
@@ -707,7 +709,7 @@ BOOL handle_tag_file_action(ViewContext *ctx, int action, DirEntry *dir_entry,
   int i = 0, list_pos = 0, term = 0, get_dir_ret = 0, owner_id = 0,
       group_id = 0;
   off_t file_size = 0;
-  WalkingPackage walking_package;
+  WalkingPackage walking_package = {0};
   int pclose_ret = 0;
   char to_dir[PATH_LENGTH * 2 + 1] = {0};
   char to_file[PATH_LENGTH + 1] = {0};
@@ -1073,6 +1075,7 @@ BOOL handle_tag_file_action(ViewContext *ctx, int action, DirEntry *dir_entry,
     if ((ctx->view_mode != DISK_MODE && ctx->view_mode != USER_MODE) ||
         !FileTags_IsMatchingTaggedFiles(ctx)) {
     } else {
+      de_ptr = dir_entry;
       need_dsp_help = TRUE;
 
       if (GetMoveParameter(ctx, NULL, to_file, to_dir)) {
@@ -1139,9 +1142,6 @@ BOOL handle_tag_file_action(ViewContext *ctx, int action, DirEntry *dir_entry,
       UI_RefreshSyncPanels(ctx, dir_entry);
 
       BuildFileEntryList(ctx, ctx->active);
-
-      if (ctx->active->file_count == 0)
-        unput_char = ESC;
 
       dir_entry->start_file = 0;
       dir_entry->cursor_pos = 0;
