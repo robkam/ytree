@@ -16,12 +16,11 @@
 
 int DirUserMode(ViewContext *ctx, DirEntry *dir_entry, int ch, Statistic *s) {
   int chremap;
-  char *command_str;
   int command_was_run = 0;
   int current_key = ch;
 
   while (1) {
-    command_str = GetUserDirAction(ctx, current_key, &chremap);
+    const char *command_str = GetUserDirAction(ctx, current_key, &chremap);
 
     if (command_str != NULL) {
       command_was_run = 1;
@@ -80,12 +79,11 @@ int DirUserMode(ViewContext *ctx, DirEntry *dir_entry, int ch, Statistic *s) {
 int FileUserMode(ViewContext *ctx, FileEntryList *file_entry_list, int ch,
                  Statistic *s) {
   int chremap;
-  char *command_str;
   int command_was_run = 0;
   int current_key = ch;
 
   while (1) {
-    command_str = GetUserFileAction(ctx, current_key, &chremap);
+    const char *command_str = GetUserFileAction(ctx, current_key, &chremap);
 
     if (command_str != NULL) {
       command_was_run = 1;

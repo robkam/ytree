@@ -107,7 +107,8 @@ extern void FreeDirEntryList(ViewContext *ctx);
 extern void FreeVolumeCache(struct Volume *vol);
 extern DirEntry *RefreshTreeSafe(ViewContext *ctx, YtreePanel *p,
                                  DirEntry *entry);
-extern BOOL DirOps_SelectVisibleDirAndRefresh(ViewContext *ctx, YtreePanel *p,
+extern BOOL DirOps_SelectVisibleDirAndRefresh(ViewContext *ctx,
+                                              YtreePanel *panel,
                                               const DirEntry *target,
                                               DirEntry **dir_entry_ptr);
 
@@ -178,7 +179,7 @@ extern void DisplayFileWindow(ViewContext *ctx, YtreePanel *panel,
 extern int HandleFileWindow(ViewContext *ctx, DirEntry *dir_entry);
 extern DirEntry *RefreshFileView(ViewContext *ctx, DirEntry *dir_entry);
 extern void UI_RefreshSyncPanels(ViewContext *ctx, DirEntry *dir_entry);
-extern void UI_RenderFilePanel(ViewContext *ctx, DirEntry *dir_entry,
+extern void UI_RenderFilePanel(ViewContext *ctx, const DirEntry *dir_entry,
                                int start_x);
 extern BOOL handle_file_window_command_action(
     ViewContext *ctx, YtreeAction action, DirEntry **dir_entry_ptr,
@@ -200,7 +201,7 @@ extern BOOL handle_file_window_split_switch_action(
     YtreeAction *loop_action_ptr, BOOL *return_esc_ptr);
 extern BOOL handle_file_window_volume_action(ViewContext *ctx,
                                              YtreeAction action,
-                                             struct Volume *start_vol,
+                                             const struct Volume *start_vol,
                                              int *unput_char_ptr,
                                              BOOL *return_esc_ptr);
 extern BOOL handle_tag_file_action(ViewContext *ctx, int action,

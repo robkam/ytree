@@ -254,7 +254,7 @@ int HandleFileWindow(ViewContext *ctx, DirEntry *dir_entry) {
   BOOL return_esc = FALSE;
   YtreePanel *owner_panel = ctx->active;
   DirEntry *tracked_file_dir = ctx->active->file_dir_entry;
-  DirEntry *last_stats_dir = NULL;             /* Track context changes */
+  const DirEntry *last_stats_dir = NULL; /* Track context changes */
   struct Volume *start_vol = ctx->active->vol; /* Safety Check Variable */
   Statistic *s = &ctx->active->vol->vol_stats;
   char watcher_path[PATH_LENGTH + 1];
@@ -1182,14 +1182,21 @@ static void DrawFileListJumpPrompt(ViewContext *ctx, WINDOW *win,
 static void ListJump(ViewContext *ctx, DirEntry *dir_entry, char *str) {
   char search_buf[256];
   int buf_len = 0;
-  int max_disp_files = FileNav_GetMaxDispFiles(ctx);
-  int original_start_file = dir_entry->start_file;
-  int original_cursor_pos = dir_entry->cursor_pos;
+  int max_disp_files;
+  int original_start_file;
+  int original_cursor_pos;
   int i;
   int found_idx;
   int start_x = 0;
-  WINDOW *jump_win =
-      (ctx && ctx->ctx_menu_window) ? ctx->ctx_menu_window : stdscr;
+  WINDOW *jump_win;
+
+  if (!ctx || !ctx->active || !dir_entry)
+    return;
+
+  max_disp_files = FileNav_GetMaxDispFiles(ctx);
+  original_start_file = dir_entry->start_file;
+  original_cursor_pos = dir_entry->cursor_pos;
+  jump_win = ctx->ctx_menu_window ? ctx->ctx_menu_window : stdscr;
 
   (void)str; /* Unused */
 
