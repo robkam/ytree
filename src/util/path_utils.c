@@ -33,6 +33,134 @@ static int AppendBounded(char *dst, size_t dst_size, const char *src) {
   return 0;
 }
 
+static BOOL AppendBoundedSpan(char *dst, size_t dst_size, size_t *len,
+                              const char *src, size_t src_len) {
+  size_t current_len;
+
+  if (!dst || dst_size == 0 || !len || !src)
+    return FALSE;
+
+  current_len = *len;
+  if (current_len >= dst_size) {
+    dst[dst_size - 1] = '\0';
+    return FALSE;
+  }
+  if (src_len >= (dst_size - current_len)) {
+    dst[dst_size - 1] = '\0';
+    return FALSE;
+  }
+
+  memcpy(dst + current_len, src, src_len);
+  current_len += src_len;
+  dst[current_len] = '\0';
+  *len = current_len;
+  return TRUE;
+}
+
+BOOL Path_CommandInit(char *command_line, size_t command_size,
+                      size_t *command_len, const char *prefix) {
+  if (!command_line || command_size == 0 || !command_len)
+    return FALSE;
+
+  command_line[0] = '\0';
+  *command_len = 0;
+  if (!prefix)
+    return TRUE;
+
+  return AppendBoundedSpan(command_line, command_size, command_len, prefix,
+                           strlen(prefix));
+}
+
+BOOL Path_CommandAppendLiteral(char *command_line, size_t command_size,
+                               size_t *command_len, const char *literal) {
+  if (!command_line || command_size == 0 || !command_len)
+    return FALSE;
+  if (!literal)
+    literal = "";
+
+  return AppendBoundedSpan(command_line, command_size, command_len, literal,
+                           strlen(literal));
+}
+
+BOOL Path_CommandAppendQuotedArg(char *command_line, size_t command_size,
+                                 size_t *command_len, const char *arg) {
+  static const char escaped_single_quote[] = "'\\''";
+  const char *cptr;
+
+  if (!command_line || command_size == 0 || !command_len)
+    return FALSE;
+  if (!arg)
+    arg = "";
+
+  if (!AppendBoundedSpan(command_line, command_size, command_len, "'", 1))
+    return FALSE;
+
+  for (cptr = arg; *cptr; cptr++) {
+    if (*cptr == '\'') {
+      if (!AppendBoundedSpan(command_line, command_size, command_len,
+                             escaped_single_quote,
+                             sizeof(escaped_single_quote) - 1)) {
+        return FALSE;
+      }
+    } else {
+      if (!AppendBoundedSpan(command_line, command_size, command_len, cptr, 1))
+        return FALSE;
+    }
+  }
+
+  return AppendBoundedSpan(command_line, command_size, command_len, "'", 1);
+}
+
+BOOL Path_BuildUserActionCommand(const char *command_template, const char *path,
+                                 char *command_line, size_t command_size) {
+  const char *cptr;
+  size_t command_len;
+  BOOL saw_placeholder = FALSE;
+
+  if (!command_template || !path || !command_line || command_size == 0)
+    return FALSE;
+
+  if (!Path_CommandInit(command_line, command_size, &command_len, ""))
+    return FALSE;
+
+  cptr = command_template;
+  while (*cptr) {
+    if (cptr[0] == '%' && cptr[1] == 's') {
+      if (!Path_CommandAppendQuotedArg(command_line, command_size, &command_len,
+                                       path)) {
+        return FALSE;
+      }
+      cptr += 2;
+      saw_placeholder = TRUE;
+      continue;
+    }
+    if (cptr[0] == '%' && cptr[1] == '%') {
+      if (!Path_CommandAppendLiteral(command_line, command_size, &command_len,
+                                     "%")) {
+        return FALSE;
+      }
+      cptr += 2;
+      continue;
+    }
+    if (!AppendBoundedSpan(command_line, command_size, &command_len, cptr, 1))
+      return FALSE;
+    cptr++;
+  }
+
+  if (!saw_placeholder) {
+    if (!Path_CommandAppendLiteral(command_line, command_size, &command_len,
+                                   " ")) {
+      return FALSE;
+    }
+    if (!Path_CommandAppendQuotedArg(command_line, command_size, &command_len,
+                                     path)) {
+      return FALSE;
+    }
+  }
+
+  return TRUE;
+}
+
 const char *Path_LeafName(const char *path) {
   const char *sep;
 
