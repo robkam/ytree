@@ -66,33 +66,6 @@ static BOOL CopyBoundedStringChecked(char *dst, size_t dst_size,
   return TRUE;
 }
 
-static BOOL AppendBoundedStringChecked(char *dst, size_t dst_size, size_t *len,
-                                       const char *src) {
-  int written;
-  size_t current_len;
-
-  if (!dst || dst_size == 0)
-    return FALSE;
-
-  if (!src)
-    src = "";
-
-  current_len = (len) ? *len : strlen(dst);
-  if (current_len >= dst_size)
-    return FALSE;
-
-  written = snprintf(dst + current_len, dst_size - current_len, "%s", src);
-  if (written < 0)
-    return FALSE;
-  if ((size_t)written >= (dst_size - current_len)) {
-    dst[dst_size - 1] = '\0';
-    return FALSE;
-  }
-  if (len)
-    *len = current_len + (size_t)written;
-  return TRUE;
-}
-
 static void DrawSortPrompt(ViewContext *ctx, WINDOW *win, BOOL ascending) {
   int y0;
 
@@ -1807,15 +1780,25 @@ int GetSearchCommandLine(ViewContext *ctx, char *command_line,
 
   if (UI_ReadString(ctx, ctx->active, "SEARCH TAGGED:", input_buf, 256,
                     HST_SEARCH) == CR) {
+    size_t command_len;
+
     if (raw_pattern) {
       strncpy(raw_pattern, input_buf, 255);
       raw_pattern[255] = '\0';
     }
 
-    /* Construct command line: grep -i "pattern" {} */
-    snprintf(command_line, COMMAND_LINE_LENGTH, "grep -i \"%s\" {}", input_buf);
-
-    result = 0;
+    if (!Path_CommandInit(command_line, COMMAND_LINE_LENGTH + 1, &command_len,
+                          "grep -i --") ||
+        !Path_CommandAppendLiteral(command_line, COMMAND_LINE_LENGTH + 1,
+                                   &command_len, " ") ||
+        !Path_CommandAppendQuotedArg(command_line, COMMAND_LINE_LENGTH + 1,
+                                     &command_len, input_buf) ||
+        !Path_CommandAppendLiteral(command_line, COMMAND_LINE_LENGTH + 1,
+                                   &command_len, " {}")) {
+      UI_Warning(ctx, "Search command too long.");
+    } else {
+      result = 0;
+    }
   }
 
   wmove(ctx->ctx_border_window, ctx->layout.prompt_y, 0);
@@ -1977,23 +1960,6 @@ void UI_HandleSort(ViewContext *ctx, DirEntry *dir_entry, Statistic *s,
                    ctx->ctx_file_window);
     }
   }
-}
-
-void shell_quote(char *dest, const char *src) {
-  *dest++ = '\'';
-  while (*src) {
-    if (*src == '\'') {
-      *dest++ = '\'';
-      *dest++ = '\\';
-      *dest++ = '\'';
-      *dest++ = '\'';
-    } else {
-      *dest++ = *src;
-    }
-    src++;
-  }
-  *dest++ = '\'';
-  *dest = '\0';
 }
 
 int recursive_mkdir(char *path) {
@@ -2254,7 +2220,6 @@ static int RunExternalTaggedViewer(ViewContext *ctx, char **view_paths,
                                    int path_count, Statistic *s) {
   const char *viewer;
   char *command_line;
-  char quoted_path[PATH_LENGTH * 2 + 1];
   int i;
   size_t current_len;
 
@@ -2266,38 +2231,31 @@ static int RunExternalTaggedViewer(ViewContext *ctx, char **view_paths,
     viewer = "less";
 
   command_line = (char *)xmalloc(COMMAND_LINE_LENGTH + 1);
-  if (!CopyBoundedStringChecked(command_line, COMMAND_LINE_LENGTH + 1, viewer))
-    command_line[COMMAND_LINE_LENGTH] = '\0';
-  current_len = strlen(command_line);
+  if (!Path_CommandInit(command_line, COMMAND_LINE_LENGTH + 1, &current_len,
+                        viewer)) {
+    free(command_line);
+    return -1;
+  }
 
   if (ctx->global_search_term[0] != '\0') {
-    char search_arg[300];
-
-    if (snprintf(search_arg, sizeof(search_arg), " -p \"%s\"",
-                 ctx->global_search_term) >= (int)sizeof(search_arg)) {
-      search_arg[sizeof(search_arg) - 1] = '\0';
-    }
-    if (current_len + strlen(search_arg) < COMMAND_LINE_LENGTH) {
-      if (!AppendBoundedStringChecked(command_line, COMMAND_LINE_LENGTH + 1,
-                                      &current_len, search_arg)) {
-        free(command_line);
-        return -1;
-      }
+    if (!Path_CommandAppendLiteral(command_line, COMMAND_LINE_LENGTH + 1,
+                                   &current_len, " -p ") ||
+        !Path_CommandAppendQuotedArg(command_line, COMMAND_LINE_LENGTH + 1,
+                                     &current_len, ctx->global_search_term)) {
+      UI_Warning(ctx, "Search pattern too long.");
+      free(command_line);
+      return -1;
     }
   }
 
   for (i = 0; i < path_count; i++) {
-    shell_quote(quoted_path, view_paths[i]);
-    if (current_len + strlen(quoted_path) + 1 >= COMMAND_LINE_LENGTH) {
-      UI_Warning(ctx, "Too many tagged files. Truncated list.");
-      break;
-    }
-    if (!AppendBoundedStringChecked(command_line, COMMAND_LINE_LENGTH + 1,
-                                    &current_len, " ") ||
-        !AppendBoundedStringChecked(command_line, COMMAND_LINE_LENGTH + 1,
-                                    &current_len, quoted_path)) {
-      UI_Warning(ctx, "Too many tagged files. Truncated list.");
-      break;
+    if (!Path_CommandAppendLiteral(command_line, COMMAND_LINE_LENGTH + 1,
+                                   &current_len, " ") ||
+        !Path_CommandAppendQuotedArg(command_line, COMMAND_LINE_LENGTH + 1,
+                                     &current_len, view_paths[i])) {
+      UI_Warning(ctx, "Tagged viewer command too long.");
+      free(command_line);
+      return -1;
     }
   }
 

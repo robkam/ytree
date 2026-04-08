@@ -9,7 +9,6 @@
 #include "ytree_fs.h"
 #include <errno.h>
 #include <fcntl.h>
-#include <stdio.h>
 #include <string.h>
 #include <unistd.h>
 
@@ -30,26 +29,13 @@ int DirUserMode(ViewContext *ctx, DirEntry *dir_entry, int ch, Statistic *s) {
       char command_line[COMMAND_LINE_LENGTH + 1];
       char path[PATH_LENGTH + 1];
       char filepath[PATH_LENGTH + 1];
-      char escaped_filepath[PATH_LENGTH * 2 + 1];
       int start_dir_fd;
 
       GetPath(dir_entry, filepath);
-      StrCp(escaped_filepath, filepath);
-
-      /* Safe string formatting with escaped path */
-      if (strstr(command_str, "%s") != NULL) {
-        /* If user provided %s placeholder, use it */
-        snprintf(command_line, sizeof(command_line), command_str,
-                 escaped_filepath);
-      } else {
-        /* Otherwise append filepath to command */
-        /* Use snprintf directly to ensure safety and silence warnings */
-        int written = snprintf(command_line, sizeof(command_line), "%s %s",
-                               command_str, escaped_filepath);
-        if (written >= (int)sizeof(command_line)) {
-          WARNING(ctx, "Command line truncated!*Path too long.");
-          return -1;
-        }
+      if (!Path_BuildUserActionCommand(command_str, filepath, command_line,
+                                       sizeof(command_line))) {
+        WARNING(ctx, "Invalid command template or command too long.");
+        return -1;
       }
 
       /* Robustly save current working directory using a file descriptor */
@@ -107,25 +93,14 @@ int FileUserMode(ViewContext *ctx, FileEntryList *file_entry_list, int ch,
       char command_line[COMMAND_LINE_LENGTH + 1];
       char path[PATH_LENGTH + 1];
       char filepath[PATH_LENGTH + 1];
-      char escaped_filepath[PATH_LENGTH * 2 + 1];
       int start_dir_fd;
       DirEntry *dir_entry = file_entry_list->file->dir_entry;
 
       GetRealFileNamePath(file_entry_list->file, filepath, ctx->view_mode);
-      StrCp(escaped_filepath, filepath);
-
-      /* Safe string formatting with escaped path */
-      if (strstr(command_str, "%s") != NULL) {
-        snprintf(command_line, sizeof(command_line), command_str,
-                 escaped_filepath);
-      } else {
-        /* Use snprintf directly to ensure safety and silence warnings */
-        int written = snprintf(command_line, sizeof(command_line), "%s %s",
-                               command_str, escaped_filepath);
-        if (written >= (int)sizeof(command_line)) {
-          WARNING(ctx, "Command line truncated!*Path too long.");
-          return -1;
-        }
+      if (!Path_BuildUserActionCommand(command_str, filepath, command_line,
+                                       sizeof(command_line))) {
+        WARNING(ctx, "Invalid command template or command too long.");
+        return -1;
       }
 
       /* Robustly save current working directory using a file descriptor */
