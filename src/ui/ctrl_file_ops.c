@@ -670,7 +670,11 @@ BOOL handle_file_window_command_action(ViewContext *ctx, YtreeAction action,
       char command_template[COMMAND_LINE_LENGTH + 1];
       command_template[0] = '\0';
       if (fe_ptr->stat_struct.st_mode & (S_IXUSR | S_IXGRP | S_IXOTH)) {
-        StrCp(command_template, fe_ptr->name);
+        if (!Path_ShellQuote(fe_ptr->name, command_template,
+                             sizeof(command_template))) {
+          WARNING(ctx, "Command line too long.");
+          break;
+        }
       }
       if (GetCommandLine(ctx, command_template) == 0) {
         (void)Execute(ctx, de_ptr, fe_ptr, command_template,
