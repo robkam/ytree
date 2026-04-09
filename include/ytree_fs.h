@@ -59,6 +59,8 @@ extern int Path_BuildCompareCommandLine(const char *command_template,
                                         size_t command_line_size);
 
 /* archive.c */
+extern int Archive_ValidateInternalPath(const char *path, char *canonical_path,
+                                        size_t canonical_size);
 extern int ExtractArchiveEntry(const char *archive_path, const char *entry_path,
                                int out_fd, ArchiveProgressCallback cb,
                                void *user_data);

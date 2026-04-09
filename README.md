@@ -1,8 +1,8 @@
 # **ytree - The Unix File Logger**
 ---
 > [!IMPORTANT]
-> **STATUS: ALPHA (v3.0.0)**
-> This is a major modernization of the original `ytree`, transitioning to a modular C99/POSIX architecture. While functional, it is considered pre-alpha as UI/UX tightening and stability refinements continue.
+> **STATUS: ALPHA (v3.0.0-alpha)**
+> This is a major modernization of the original `ytree`, transitioning to a modular C99/POSIX architecture. While functional, it is considered alpha as UI/UX tightening and stability refinements continue.
 
 **Ytree** is a keyboard-optimized file manager for all POSIX-compliant **Unix** systems (Linux, BSD, macOS, etc.). Unlike traditional "browsers," `ytree` is a **Logger**: it scans directory hierarchies into memory, allowing for instant filtering, tagging, and bulk operations across the entire filesystem.
 
@@ -22,7 +22,7 @@ This v3.0 project modernizes `Ytree` to fulfill its potential, introducing featu
 
 This refactor serves as a case study in using Large Language Models (LLMs) to modernize legacy code. The codebase was not simply "ported"; it was systematically disassembled and re-architected. An LLM was utilized to analyze the original K&R C source, understand the undocumented logic, and reimplement it using modern C99 standards, the MVC pattern, and strict encapsulation. This demonstrates that with persistence and strict architectural guidance, AI tools can be effectively used to maintain and improve serious systems software.
 
-## Features (v3.0 Alpha)
+## Features (v3.0.0-alpha)
 
 *   **Classic XTree&trade; Interface:** Directory Tree + File List layout.
 *   **Split Screen Mode (F8):** Manage two independent file panels side-by-side.

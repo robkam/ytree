@@ -41,6 +41,7 @@ static int ExecuteArchiveFile(ViewContext *ctx, DirEntry *dir_entry,
   /* 2. Extract File Content */
   if (file_entry) {
     char internal_path[PATH_LENGTH];
+    char canonical_internal_path[PATH_LENGTH];
     char root_path[PATH_LENGTH + 1];
     char relative_path[PATH_LENGTH + 1];
     const char *relative_source;
@@ -96,7 +97,15 @@ static int ExecuteArchiveFile(ViewContext *ctx, DirEntry *dir_entry,
       return -1;
     }
 
-    if (ExtractArchiveEntry(s->log_path, internal_path, fd_tmp, cb, NULL) !=
+    if (Archive_ValidateInternalPath(internal_path, canonical_internal_path,
+                                     sizeof(canonical_internal_path)) != 0) {
+      close(fd_tmp);
+      unlink(temp_path);
+      return -1;
+    }
+
+    if (ExtractArchiveEntry(s->log_path, canonical_internal_path, fd_tmp, cb,
+                            NULL) !=
         0) {
       close(fd_tmp);
       unlink(temp_path);

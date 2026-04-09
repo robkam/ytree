@@ -1,3 +1,5 @@
+import io
+import tarfile
 import zipfile
 
 from tui_harness import YtreeTUI
@@ -18,6 +20,117 @@ def _zip_names(path):
 def _zip_read_text(path, name):
     with zipfile.ZipFile(path, "r") as zf:
         return zf.read(name).decode("utf-8")
+
+
+def _create_tar(path, entries):
+    with tarfile.open(path, "w") as tf:
+        for name, data in entries.items():
+            payload = data.encode("utf-8")
+            info = tarfile.TarInfo(name=name)
+            info.size = len(payload)
+            info.mode = 0o644
+            tf.addfile(info, io.BytesIO(payload))
+
+
+def _enter_archive_from_selected_file(tui):
+    tui.send_keystroke(Keys.ENTER, wait=0.5)
+    tui.send_keystroke(Keys.LOG, wait=0.3)
+    tui.send_keystroke(Keys.ENTER, wait=0.8)
+
+    for _ in range(6):
+        if tui.wait_for_content("Skipped unsafe archive member path", timeout=0.3):
+            tui.send_keystroke(Keys.ENTER, wait=0.3)
+        else:
+            break
+
+
+def test_archive_internal_path_trust_rejects_unsafe_members(
+    ytree_binary, tmp_path
+):
+    root = tmp_path / "archive_internal_path_trust_rejects"
+    root.mkdir()
+    archive_path = root / "trust.tar"
+    _create_tar(
+        archive_path,
+        {
+            "safe_member.txt": "safe payload",
+            "../unsafe_dotdot_member.txt": "bad",
+            "/unsafe_absolute_member.txt": "bad",
+            "nested//unsafe_empty_segment_member.txt": "bad",
+            "nested/./unsafe_dot_segment_member.txt": "bad",
+            r"nested\\unsafe_separator_ambiguity_member.txt": "bad",
+        },
+    )
+
+    tui = YtreeTUI(executable=ytree_binary, cwd=str(root))
+    try:
+        _enter_archive_from_selected_file(tui)
+        assert tui.wait_for_content("safe_member.txt", timeout=3.0)
+        tui.send_keystroke(Keys.EXPAND_ALL, wait=0.5)
+
+        assert not tui.wait_for_content("unsafe_dotdot_member.txt", timeout=1.0)
+        assert not tui.wait_for_content("unsafe_absolute_member.txt", timeout=1.0)
+        assert not tui.wait_for_content(
+            "unsafe_empty_segment_member.txt", timeout=1.0
+        )
+        assert not tui.wait_for_content("unsafe_dot_segment_member.txt", timeout=1.0)
+        assert not tui.wait_for_content(
+            "unsafe_separator_ambiguity_member.txt", timeout=1.0
+        )
+    finally:
+        tui.quit()
+
+
+def test_archive_internal_path_trust_safe_member_still_viewable(
+    ytree_binary, tmp_path
+):
+    root = tmp_path / "archive_internal_path_trust_safe"
+    root.mkdir()
+    archive_path = root / "trust_safe.tar"
+    _create_tar(
+        archive_path,
+        {
+            "safe_member.txt": "safe payload",
+            "../unsafe_dotdot_member.txt": "bad",
+        },
+    )
+
+    tui = YtreeTUI(executable=ytree_binary, cwd=str(root))
+    try:
+        _enter_archive_from_selected_file(tui)
+        assert tui.wait_for_content("safe_member.txt", timeout=3.0)
+        assert not tui.wait_for_content("No files extracted.", timeout=0.8)
+    finally:
+        tui.quit()
+
+
+def test_archive_internal_path_trust_trailing_slash_empty_dir_visible(
+    ytree_binary, tmp_path
+):
+    root = tmp_path / "archive_internal_path_trust_trailing_dir"
+    root.mkdir()
+    archive_path = root / "trust_trailing_dir.tar"
+
+    with tarfile.open(archive_path, "w") as tf:
+        dir_info = tarfile.TarInfo(name="safe_dir/")
+        dir_info.type = tarfile.DIRTYPE
+        dir_info.mode = 0o755
+        tf.addfile(dir_info)
+
+        payload = "anchor payload".encode("utf-8")
+        file_info = tarfile.TarInfo(name="safe_anchor.txt")
+        file_info.size = len(payload)
+        file_info.mode = 0o644
+        tf.addfile(file_info, io.BytesIO(payload))
+
+    tui = YtreeTUI(executable=ytree_binary, cwd=str(root))
+    try:
+        _enter_archive_from_selected_file(tui)
+        assert tui.wait_for_content("safe_anchor.txt", timeout=3.0)
+        tui.send_keystroke(Keys.EXPAND_ALL, wait=0.5)
+        assert tui.wait_for_content("safe_dir", timeout=3.0)
+    finally:
+        tui.quit()
 
 
 def test_archive_create_overwrite_prompt_respects_no_then_yes(ytree_binary, tmp_path):

@@ -319,20 +319,32 @@ void RenderArchivePreview(ViewContext *ctx, WINDOW *win,
                           const char *archive_path, const char *internal_path,
                           long *line_offset_ptr) {
   char cache_file[] = "/tmp/ytree_preview.cache";
+  char canonical_internal_path[PATH_LENGTH];
+
+  if (Archive_ValidateInternalPath(internal_path, canonical_internal_path,
+                                   sizeof(canonical_internal_path)) != 0) {
+    unlink(cache_file);
+    wclear(win);
+    mvwprintw(win, 0, 0, "Preview blocked: unsafe archive path.");
+    wnoutrefresh(win);
+    last_preview_archive[0] = '\0';
+    last_preview_internal[0] = '\0';
+    return;
+  }
 
   if (strcmp(archive_path, last_preview_archive) != 0 ||
-      strcmp(internal_path, last_preview_internal) != 0) {
+      strcmp(canonical_internal_path, last_preview_internal) != 0) {
 
     /* New file requested, extract it */
     unlink(cache_file);
 
     /* Assuming ExtractArchiveNode is available via ytree.h */
-    if (ExtractArchiveNode(archive_path, internal_path, cache_file,
+    if (ExtractArchiveNode(archive_path, canonical_internal_path, cache_file,
                            PreviewProgressCallback, ctx) == 0) {
       /* Update Cache Keys */
       strncpy(last_preview_archive, archive_path, PATH_LENGTH - 1);
       last_preview_archive[PATH_LENGTH - 1] = '\0';
-      strncpy(last_preview_internal, internal_path, PATH_LENGTH - 1);
+      strncpy(last_preview_internal, canonical_internal_path, PATH_LENGTH - 1);
       last_preview_internal[PATH_LENGTH - 1] = '\0';
     } else {
       wclear(win);
@@ -340,6 +352,7 @@ void RenderArchivePreview(ViewContext *ctx, WINDOW *win,
       wnoutrefresh(win);
       /* Invalidate cache */
       last_preview_archive[0] = '\0';
+      last_preview_internal[0] = '\0';
       return;
     }
   }
