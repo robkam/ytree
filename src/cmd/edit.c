@@ -34,18 +34,27 @@ int Edit(ViewContext *ctx, DirEntry *dir_entry, char *file_path) {
     UI_Message(ctx, "Malloc failed*ABORT");
     exit(1);
   }
-  StrCp(file_p_aux, file_path);
+  if (!Path_ShellQuote(file_path, file_p_aux, COMMAND_LINE_LENGTH)) {
+    UI_Message(ctx, "Edit not possible!*\"%s\"*path quoting failed", file_path);
+    free(file_p_aux);
+    goto FNC_XIT;
+  }
 
   if ((command_line = (char *)malloc(COMMAND_LINE_LENGTH)) == NULL) {
     UI_Message(ctx, "Malloc failed*ABORT");
     exit(1);
   }
-  /*
-   * Replaced unsafe strcpy/strcat construction with snprintf
-   * to ensure bounds checking and secure string handling.
-   */
-  (void)snprintf(command_line, COMMAND_LINE_LENGTH, "%s \"%s\"",
-                 (GetProfileValue)(ctx, "EDITOR"), file_p_aux);
+  {
+    int written = snprintf(command_line, COMMAND_LINE_LENGTH, "%s %s",
+                           (GetProfileValue)(ctx, "EDITOR"), file_p_aux);
+    if (written < 0 || written >= COMMAND_LINE_LENGTH) {
+      UI_Message(ctx, "Edit not possible!*\"%s\"*command line too long",
+                 file_path);
+      free(file_p_aux);
+      free(command_line);
+      return -1;
+    }
+  }
 
   free(file_p_aux);
 
