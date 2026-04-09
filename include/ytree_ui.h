@@ -373,7 +373,6 @@ extern int ChangeFileOrDirOwnership(ViewContext *ctx, const char *path,
                                     struct stat *stat_buf, BOOL change_owner,
                                     BOOL change_group);
 extern int UI_ArchiveCallback(int status, const char *msg, void *user_data);
-extern void shell_quote(char *dest, const char *src);
 extern int recursive_mkdir(char *path);
 extern int recursive_rmdir(const char *path);
 extern int UI_BuildArchivePayloadFromPaths(const char *const *source_paths,
