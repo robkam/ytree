@@ -206,6 +206,7 @@ The primary execution environment is **Antigravity** with the **Codex extension*
 ### 4.1 Stateless Multi-AI Delivery Workflow (Non-Trivial Missions)
 
 Use this workflow when the mission is large enough that one-shot implementation is risky.
+For the canonical maintainer copy/paste mission prompt, see **[AGENT_PROMPT_TEMPLATE.md](AGENT_PROMPT_TEMPLATE.md)**.
 
 #### 4.1.1 Workflow Contract (Mandatory)
 

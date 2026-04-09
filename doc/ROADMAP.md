@@ -11,7 +11,7 @@
 *   **Mechanism:** Centralize quoting/interpolation policy (including placeholder expansion), enforce bounded buffers, and reject unsafe/truncated command materialization.
 *   **Files to Modify:** `src/cmd/view.c`, `src/cmd/execute.c`, `src/cmd/usermode.c`, `src/ui/file_compare.c`, `src/ui/dir_compare.c`, `src/ui/interactions.c`, `src/util/path_utils.c`
 *   **Context Files:** `include/ytree_cmd.h`, `include/ytree_fs.h`, `include/ytree_ui.h`
-*   - [ ] **Status:** Not Started.
+*   - [x] **Status:** Completed.
 
 ### **Task 0.2: Retire Unsafe Escaping APIs (`StrCp` / legacy shell quote variants)**
 *   **Goal:** Replace unbounded escaping helpers with size-aware APIs and remove legacy entry points from runtime paths.
@@ -19,7 +19,7 @@
 *   **Mechanism:** Introduce/standardize bounded escape APIs only, migrate all call sites, and keep any compatibility wrapper isolated and non-production.
 *   **Files to Modify:** `src/util/string_utils.c`, `src/util/path_utils.c`, `src/cmd/*.c`, `src/ui/*.c`
 *   **Context Files:** `include/ytree_defs.h`, `include/ytree.h`, `include/ytree_ui.h`
-*   - [ ] **Status:** Not Started.
+*   - [x] **Status:** Completed.
 
 ### **Task 0.3: Enforce Archive Internal-Path Trust Policy**
 *   **Goal:** Reject unsafe archive member paths before indexing or extraction (absolute paths, `..`, empty segments, and normalization ambiguities).
@@ -257,7 +257,60 @@
 
 ---
 
-## **Phase 2: Advanced Features**
+## **Phase 2: Permanent Security and Code-Quality Gates**
+*This phase is an enforcement gate: audit the current codebase for existing debt, then detect and block introduced/reintroduced security risks and code smells on every non-trivial change.*
+
+### **Task 2.1: Security Risk Gate (Audit + Detect + Block)**
+*   **Goal:** Add explicit QA and merge-gate enforcement that audits the current codebase for security risks and blocks new or reintroduced security findings.
+*   **Scope:** shell-command construction and escaping boundaries, archive path trust policy, tempfile lifecycle, and unsafe API usage.
+*   **Acceptance Criteria:** Security baseline audit evidence exists, recurring security checks are mandatory in `qa-all`/PR evidence, and merge is blocked on unresolved blocker/high security findings.
+*   - [ ] **Status:** Not Started.
+
+#### **Task 2.1.1: Baseline Security Debt Audit and Classification**
+*   **Goal:** Run and document a focused baseline audit of current security risk classes already in scope for Phase 0.
+*   **Deliverables:** findings inventory with severity, owner, disposition (fix now vs tracked debt), and explicit residual-risk notes.
+*   **Files to Modify:** `doc/AUDIT.md` (security evidence section), security-focused test/docs references as needed.
+*   - [ ] **Status:** Not Started.
+
+#### **Task 2.1.2: Expand Security Guard Coverage to Block Reintroduction**
+*   **Goal:** Ensure banned/legacy security-sensitive APIs and patterns are explicitly rejected by automated guard scripts.
+*   **Mechanism:** Extend guard checks for legacy unsafe escaping/runtime paths and other approved denylisted APIs/patterns.
+*   **Files to Modify:** `scripts/check_c_unsafe_apis.py`, related guard configs/tests.
+*   - [ ] **Status:** Not Started.
+
+#### **Task 2.1.3: Security Regression Gate in CI + Merge Workflow**
+*   **Goal:** Make security verification non-optional in routine change flow.
+*   **Mechanism:** Require security gate evidence for non-trivial PRs and keep merge blocked until gates pass.
+*   **Files to Modify:** `.github/workflows/ci.yml`, `doc/AUDIT.md`, `doc/ai/WORKFLOW.md` (gate evidence requirements only).
+*   - [ ] **Status:** Not Started.
+
+### **Task 2.2: Code-Smell Gate (Audit + Detect + Block)**
+*   **Goal:** Add explicit QA and merge-gate enforcement that audits current code smells and blocks new/reintroduced structural smell debt.
+*   **Scope:** controller growth, god-function budgets, module-boundary violations, complexity hotspots, and architecture drift.
+*   **Acceptance Criteria:** Smell baseline audit evidence exists, recurring smell checks are mandatory in `qa-all`/PR evidence, and merge is blocked on unapproved new smell violations.
+*   - [ ] **Status:** Not Started.
+
+#### **Task 2.2.1: Baseline Code-Smell Audit and Debt Register**
+*   **Goal:** Audit current codebase for structural smells and categorize debt with explicit remediation sequencing.
+*   **Deliverables:** baseline report covering hotspots, oversized controllers/functions, boundary exceptions, and tracked rationale for retained debt.
+*   **Files to Modify:** `doc/AUDIT.md` (smell evidence section), roadmap/task references as needed.
+*   - [ ] **Status:** Not Started.
+
+#### **Task 2.2.2: Strengthen Smell-Prevention Guards**
+*   **Goal:** Prevent reintroduction of known smell patterns via automated policy checks.
+*   **Mechanism:** Tighten module-boundary/controller-growth policies and require explicit approval paths for exceptions.
+*   **Files to Modify:** `scripts/check_module_boundaries.py`, guard policy/config docs.
+*   - [ ] **Status:** Not Started.
+
+#### **Task 2.2.3: Smell Gate Evidence as Merge Prerequisite**
+*   **Goal:** Ensure smell-audit results are part of mandatory merge evidence, not optional review notes.
+*   **Mechanism:** Require successful smell checks in QA artifacts and block integration on unresolved unapproved violations.
+*   **Files to Modify:** `doc/AUDIT.md`, `doc/ai/WORKFLOW.md`, related QA docs.
+*   - [ ] **Status:** Not Started.
+
+---
+
+## **Phase 3: Advanced Features**
 *This phase builds upon the new architecture to add more high-level functionality.*
 
 ### **Task 19: Implement Advanced Batch Rename**
@@ -274,7 +327,7 @@
 
 ---
 
-## **Phase 3: Internationalization and Configurability**
+## **Phase 4: Internationalization and Configurability**
 *   **Goal:** Refactor the application to support localization and user-defined keybindings, moving away from hardcoded English-centric values.
 
 ### **Task 21: Implement Configurable Keymap**
@@ -292,7 +345,7 @@
 
 ---
 
-## **Phase 4: Build System, Documentation, and CI**
+## **Phase 5: Build System, Documentation, and CI**
 *This phase focuses on project infrastructure, developer experience, and release readiness.*
 
 ### **Task 23: Restructure and Expand Test Suite**
