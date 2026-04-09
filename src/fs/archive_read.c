@@ -13,6 +13,115 @@ static BOOL ArchiveKeyPressedWithBoundary(const ViewContext *ctx);
 static void ArchiveQuitWithBoundary(ViewContext *ctx);
 static void ArchiveRecalculateSysStatsWithBoundary(ViewContext *ctx,
                                                    Statistic *s);
+static int ArchiveCanonicalizeRequestPath(const char *archive_path,
+                                          const char *entry_path,
+                                          char *canonical_path,
+                                          size_t canonical_size);
+
+int Archive_ValidateInternalPath(const char *path, char *canonical_path,
+                                 size_t canonical_size) {
+  const char *segment_start;
+  size_t out_len = 0;
+  BOOL has_trailing_separator = FALSE;
+
+  if (!path || !canonical_path || canonical_size == 0) {
+    return -1;
+  }
+
+  canonical_path[0] = '\0';
+  if (path[0] == '\0' || path[0] == FILE_SEPARATOR_CHAR || path[0] == '\\') {
+    return -1;
+  }
+
+  segment_start = path;
+  while (1) {
+    const char *separator = strchr(segment_start, FILE_SEPARATOR_CHAR);
+    size_t segment_len =
+        separator ? (size_t)(separator - segment_start) : strlen(segment_start);
+
+    if (segment_len == 0) {
+      if (!separator && segment_start != path) {
+        has_trailing_separator = TRUE;
+        break;
+      }
+      return -1;
+    }
+
+    if ((segment_len == 1 && segment_start[0] == '.') ||
+        (segment_len == 2 && segment_start[0] == '.' &&
+         segment_start[1] == '.')) {
+      return -1;
+    }
+
+    if (memchr(segment_start, '\\', segment_len) != NULL) {
+      return -1;
+    }
+
+    if (out_len > 0) {
+      if (out_len + 1 >= canonical_size) {
+        return -1;
+      }
+      canonical_path[out_len++] = FILE_SEPARATOR_CHAR;
+      canonical_path[out_len] = '\0';
+    }
+
+    if (out_len + segment_len >= canonical_size) {
+      return -1;
+    }
+    memcpy(canonical_path + out_len, segment_start, segment_len);
+    out_len += segment_len;
+    canonical_path[out_len] = '\0';
+
+    if (!separator) {
+      break;
+    }
+    segment_start = separator + 1;
+    if (*segment_start == '\0') {
+      has_trailing_separator = TRUE;
+      break;
+    }
+  }
+
+  if (out_len == 0) {
+    return -1;
+  }
+
+  if (has_trailing_separator) {
+    if (out_len + 1 >= canonical_size) {
+      return -1;
+    }
+    canonical_path[out_len++] = FILE_SEPARATOR_CHAR;
+    canonical_path[out_len] = '\0';
+  }
+
+  return 0;
+}
+
+static int ArchiveCanonicalizeRequestPath(const char *archive_path,
+                                          const char *entry_path,
+                                          char *canonical_path,
+                                          size_t canonical_size) {
+  const char *candidate_path = entry_path;
+
+  if (!entry_path || !canonical_path || canonical_size == 0) {
+    return -1;
+  }
+
+  if (archive_path && archive_path[0] != '\0') {
+    size_t archive_len = strlen(archive_path);
+    if (strncmp(entry_path, archive_path, archive_len) == 0 &&
+        (entry_path[archive_len] == '\0' ||
+         entry_path[archive_len] == FILE_SEPARATOR_CHAR)) {
+      candidate_path = entry_path + archive_len;
+      while (*candidate_path == FILE_SEPARATOR_CHAR) {
+        candidate_path++;
+      }
+    }
+  }
+
+  return Archive_ValidateInternalPath(candidate_path, canonical_path,
+                                      canonical_size);
+}
 
 static void ArchiveMessageWithBoundary(ViewContext *ctx, const char *fmt, ...) {
   va_list ap;
@@ -85,12 +194,17 @@ int ExtractArchiveEntry(const char *archive_path, const char *entry_path,
   size_t size;
   la_int64_t offset;
   int spin_counter = 0; /* Activity spinner counter */
-  size_t entry_len;
   int found = 0;
+  char canonical_entry_path[PATH_LENGTH + 1];
 
   if (!entry_path)
     return -1;
-  entry_len = strlen(entry_path);
+  if (ArchiveCanonicalizeRequestPath(archive_path, entry_path,
+                                     canonical_entry_path,
+                                     sizeof(canonical_entry_path)) != 0) {
+    REPORT_ERROR(cb, user_data, "Unsafe archive internal path requested");
+    return -1;
+  }
 
   a = archive_read_new();
   if (a == NULL) {
@@ -106,47 +220,39 @@ int ExtractArchiveEntry(const char *archive_path, const char *entry_path,
   }
 
   while (archive_read_next_header(a, &entry) == ARCHIVE_OK) {
-    const char *clean_path = archive_entry_pathname(entry);
+    const char *member_path = archive_entry_pathname(entry);
+    char canonical_member_path[PATH_LENGTH + 1];
 
-    /* Normalize internal path: skip leading ./ or / */
-    if (clean_path[0] == '.' && clean_path[1] == FILE_SEPARATOR_CHAR) {
-      clean_path += 2;
+    if (member_path == NULL) {
+      continue;
     }
-    while (*clean_path == FILE_SEPARATOR_CHAR) {
-      clean_path++;
+    if (Archive_ValidateInternalPath(member_path, canonical_member_path,
+                                     sizeof(canonical_member_path)) != 0) {
+      REPORT_WARNING(cb, user_data, "Skipped unsafe archive member path: %s",
+                     member_path);
+      continue;
     }
 
-    size_t clean_len = strlen(clean_path);
-
-    if (entry_len >= clean_len) {
-      const char *suffix = entry_path + (entry_len - clean_len);
-
-      if (strcmp(suffix, clean_path) == 0) {
-        /* The suffix matches. Now verify boundary to prevent partial name
-         * matches. */
-        if (suffix == entry_path || *(suffix - 1) == FILE_SEPARATOR_CHAR) {
-          /* MATCH FOUND! */
-          found = 1;
-          while ((r = archive_read_data_block(a, &buff, &size, &offset)) ==
-                 ARCHIVE_OK) {
-            if ((++spin_counter % 100) == 0) {
-              if (cb && cb(ARCHIVE_STATUS_PROGRESS, NULL, user_data) ==
-                            ARCHIVE_CB_ABORT) {
-                REPORT_ERROR(cb, user_data, "Operation Interrupted");
-                found = 0;
-                break;
-              }
-            }
-            if (write(out_fd, buff, size) != (ssize_t)size) {
-              found = 0; /* Write error */
-              break;
-            }
+    if (strcmp(canonical_entry_path, canonical_member_path) == 0) {
+      found = 1;
+      while ((r = archive_read_data_block(a, &buff, &size, &offset)) ==
+             ARCHIVE_OK) {
+        if ((++spin_counter % 100) == 0) {
+          if (cb && cb(ARCHIVE_STATUS_PROGRESS, NULL, user_data) ==
+                        ARCHIVE_CB_ABORT) {
+            REPORT_ERROR(cb, user_data, "Operation Interrupted");
+            found = 0;
+            break;
           }
-          if (r != ARCHIVE_EOF && r != ARCHIVE_OK && found)
-            found = 0; /* Read error or interrupt */
-          break;       /* Stop searching */
+        }
+        if (write(out_fd, buff, size) != (ssize_t)size) {
+          found = 0; /* Write error */
+          break;
         }
       }
+      if (r != ARCHIVE_EOF && r != ARCHIVE_OK && found)
+        found = 0; /* Read error or interrupt */
+      break;       /* Stop searching */
     }
 
     /* Update spinner while searching headers too */
@@ -174,13 +280,18 @@ int ExtractArchiveNode(const char *archive_path, const char *entry_path,
   size_t size;
   la_int64_t offset;
   int spin_counter = 0;
-  size_t entry_len;
   int found = 0;
   int fd;
+  char canonical_entry_path[PATH_LENGTH + 1];
 
   if (!entry_path || !dest_path)
     return -1;
-  entry_len = strlen(entry_path);
+  if (ArchiveCanonicalizeRequestPath(archive_path, entry_path,
+                                     canonical_entry_path,
+                                     sizeof(canonical_entry_path)) != 0) {
+    REPORT_ERROR(cb, user_data, "Unsafe archive internal path requested");
+    return -1;
+  }
 
   a = archive_read_new();
   if (a == NULL) {
@@ -206,78 +317,73 @@ int ExtractArchiveNode(const char *archive_path, const char *entry_path,
       }
     }
 
-    const char *clean_path = archive_entry_pathname(entry);
+    const char *member_path = archive_entry_pathname(entry);
+    char canonical_member_path[PATH_LENGTH + 1];
 
-    /* Normalize internal path: skip leading ./ or / */
-    if (clean_path[0] == '.' && clean_path[1] == FILE_SEPARATOR_CHAR) {
-      clean_path += 2;
+    if (member_path == NULL) {
+      continue;
     }
-    while (*clean_path == FILE_SEPARATOR_CHAR) {
-      clean_path++;
+    if (Archive_ValidateInternalPath(member_path, canonical_member_path,
+                                     sizeof(canonical_member_path)) != 0) {
+      REPORT_WARNING(cb, user_data, "Skipped unsafe archive member path: %s",
+                     member_path);
+      continue;
     }
 
-    size_t clean_len = strlen(clean_path);
+    if (strcmp(canonical_entry_path, canonical_member_path) == 0) {
+      /* MATCH FOUND! */
+      found = 1;
+      mode_t type = archive_entry_filetype(entry);
 
-    if (entry_len >= clean_len) {
-      const char *suffix = entry_path + (entry_len - clean_len);
-
-      if (strcmp(suffix, clean_path) == 0) {
-        if (suffix == entry_path || *(suffix - 1) == FILE_SEPARATOR_CHAR) {
-          /* MATCH FOUND! */
-          found = 1;
-          mode_t type = archive_entry_filetype(entry);
-
-          if (type == AE_IFLNK) {
-            const char *target = archive_entry_symlink(entry);
-            if (target) {
-              if (symlink(target, dest_path) != 0) {
-                if (errno == EEXIST) {
-                  unlink(dest_path);
-                  if (symlink(target, dest_path) != 0)
-                    found = 0;
-                } else {
-                  found = 0;
-                }
-              }
-            } else {
-              found = 0;
-            }
-          } else if (type == AE_IFREG) {
-            fd = open(dest_path, O_CREAT | O_WRONLY | O_TRUNC, 0644);
-            if (fd == -1) {
-              found = 0;
-            } else {
-              while ((r = archive_read_data_block(a, &buff, &size, &offset)) ==
-                     ARCHIVE_OK) {
-                if ((++spin_counter % 100) == 0) {
-                  if (cb && cb(ARCHIVE_STATUS_PROGRESS, NULL, user_data) ==
-                                ARCHIVE_CB_ABORT) {
-                    REPORT_ERROR(cb, user_data, "Operation Interrupted");
-                    found = 0;
-                    break;
-                  }
-                }
-                if (write(fd, buff, size) != (ssize_t)size) {
-                  found = 0; /* Write error */
-                  break;
-                }
-              }
-              close(fd);
-              if (r != ARCHIVE_EOF && r != ARCHIVE_OK && found) {
+      if (type == AE_IFLNK) {
+        const char *target = archive_entry_symlink(entry);
+        if (target) {
+          if (symlink(target, dest_path) != 0) {
+            if (errno == EEXIST) {
+              unlink(dest_path);
+              if (symlink(target, dest_path) != 0)
                 found = 0;
-                /* Cleanup partial file on error/interrupt */
-                unlink(dest_path);
-              } else if (found == 0) {
-                unlink(dest_path);
+            } else {
+              found = 0;
+            }
+          }
+        } else {
+          found = 0;
+        }
+      } else if (type == AE_IFREG) {
+        fd = open(dest_path, O_CREAT | O_WRONLY | O_TRUNC, 0644);
+        if (fd == -1) {
+          found = 0;
+        } else {
+          while ((r = archive_read_data_block(a, &buff, &size, &offset)) ==
+                 ARCHIVE_OK) {
+            if ((++spin_counter % 100) == 0) {
+              if (cb && cb(ARCHIVE_STATUS_PROGRESS, NULL, user_data) ==
+                            ARCHIVE_CB_ABORT) {
+                REPORT_ERROR(cb, user_data, "Operation Interrupted");
+                found = 0;
+                break;
               }
             }
-          } else {
-            /* Unsupported file type */
-            found = 0;
+            if (write(fd, buff, size) != (ssize_t)size) {
+              found = 0; /* Write error */
+              break;
+            }
           }
-          break; /* Stop searching */
+          close(fd);
+          if (r != ARCHIVE_EOF && r != ARCHIVE_OK && found) {
+            found = 0;
+            /* Cleanup partial file on error/interrupt */
+            unlink(dest_path);
+          } else if (found == 0) {
+            unlink(dest_path);
+          }
         }
+      } else {
+        /* Unsupported file type */
+        found = 0;
       }
+      break; /* Stop searching */
     }
   }
 
@@ -683,6 +789,7 @@ int ReadTreeFromArchive(ViewContext *ctx, DirEntry **dir_entry_ptr,
   struct archive_entry *entry;
   int r;
   char path_buffer[PATH_LENGTH * 2]; /* Buffer for path + symlink target */
+  char canonical_path[PATH_LENGTH + 1];
   struct stat stat_buf;
   int count = 0;
   const char *clean_path;
@@ -714,24 +821,13 @@ int ReadTreeFromArchive(ViewContext *ctx, DirEntry **dir_entry_ptr,
       continue;
     }
 
-    /* Normalize path: strip leading "./" if present to avoid confusion in
-     * Fnsplit */
-    if (pathname[0] == '.' && pathname[1] == FILE_SEPARATOR_CHAR) {
-      clean_path = pathname + 2;
-    } else {
-      clean_path = pathname;
-    }
-
-    /* Strip leading separator if present to ensure internal path relative to
-     * root */
-    while (*clean_path == FILE_SEPARATOR_CHAR) {
-      clean_path++;
-    }
-
-    /* Skip if the path is empty or just "." (root) */
-    if (*clean_path == '\0' || (strcmp(clean_path, ".") == 0)) {
+    if (Archive_ValidateInternalPath(pathname, canonical_path,
+                                     sizeof(canonical_path)) != 0) {
+      ArchiveMessageWithBoundary(ctx, "Skipped unsafe archive member path*%s",
+                                 pathname);
       continue;
     }
+    clean_path = canonical_path;
 
     copy_stat_from_entry(&stat_buf, entry);
 

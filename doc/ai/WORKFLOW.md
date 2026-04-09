@@ -243,7 +243,10 @@ For the canonical maintainer copy/paste mission prompt, see **[AGENT_PROMPT_TEMP
 
 1.  Run a stateless `developer` for exactly one task.
 2.  Developer executes only the assigned task prompt.
-3.  Developer is the primary per-task verifier and MUST run the task verification commands exactly once per code change set (build/tests/targeted QA listed in the prompt).
+3.  Developer is the primary per-task verifier. Verification cadence within the same atomic task is mandatory:
+    *   initial pass for the task: run the full verification set listed in the task prompt (including full gate if listed).
+    *   correction/rework passes for that same task: rerun only previously failing checks and directly impacted targeted tests.
+    *   do not rerun full `make qa-all` on every iteration unless architect explicitly requests it or risk materially changes.
 4.  Developer MUST NOT mark the task complete while any required verification command is failing.
 5.  Developer report MUST include:
     *   exact commands executed,
@@ -261,10 +264,12 @@ For the canonical maintainer copy/paste mission prompt, see **[AGENT_PROMPT_TEMP
 3.  Run a stateless `code_auditor` for that same task only.
 4.  Auditor workflow is evidence-first: validate code changes + developer verification evidence before rerunning commands.
 5.  Auditor SHOULD rerun verification commands only when needed (missing evidence, contradictory results, suspicious behavior/risk, or inability to confirm a claimed pass from artifacts).
-6.  Auditor report MUST state whether commands were rerun and why.
-7.  Auditor MUST write report file:
+6.  On correction/rework iterations, auditor reruns should default to the failing checks and directly affected targeted tests; do not rerun full `make qa-all` by default.
+7.  Full-suite rerun by auditor is reserved for unresolved high-risk uncertainty or explicit architect request.
+8.  Auditor report MUST state whether commands were rerun and why.
+9.  Auditor MUST write report file:
     *   `~/ytree/task-<task-id>-auditor-report.txt`
-8.  Auditor chat response to maintainer MUST be one line only:
+10. Auditor chat response to maintainer MUST be one line only:
     *   `Task <task-id> auditor pass completed, report in ~/ytree/task-<task-id>-auditor-report.txt`
 
 #### 4.1.6 Architect Validation, Commit, and Cleanup
@@ -272,17 +277,18 @@ For the canonical maintainer copy/paste mission prompt, see **[AGENT_PROMPT_TEMP
 1.  Maintainer provides developer/auditor completion lines and report paths back to architect.
 2.  Architect validates repository state + report evidence.
 3.  Architect should avoid redundant per-task reruns. Re-run commands only when evidence is incomplete, conflicting, or high-risk details remain unresolved.
-4.  If task is accepted:
+4.  Before commit, architect MUST ensure fresh full-gate evidence (`make qa-all`) exists for the current accepted branch state (from current developer evidence or architect rerun when evidence is stale/incomplete).
+5.  If task is accepted:
     *   commit only task code files (no `.txt` relay/report artifacts),
     *   use maintainer-approved commit message describing behavior/scope (no task numbering),
     *   for first push of a new branch, use `git push-fast-up`,
     *   for already-tracked branches, use `git push-fast`.
-5.  If a follow-up correction is needed for the same task or set, amend and repush:
+6.  If a follow-up correction is needed for the same task or set, amend and repush:
     *   `git commit --amend --no-edit`
     *   then push using the branch rule above (`push-fast-up` first push, else `push-fast`).
-6.  After commit/push, delete consumed task prompt/report `.txt` artifacts.
-7.  Repeat from architect handoff for the next single task.
-8.  If a task fails audit or has implementation defects, architect must issue a new tailored correction task prompt for a new stateless `developer` pass. Do not reuse the previous developer session.
+7.  After commit/push, delete consumed task prompt/report `.txt` artifacts.
+8.  Repeat from architect handoff for the next single task.
+9.  If a task fails audit or has implementation defects, architect must issue a new tailored correction task prompt for a new stateless `developer` pass. Do not reuse the previous developer session.
 
 #### 4.1.7 Completion Gate and Merge
 
@@ -323,6 +329,7 @@ Follow **[../AUDIT.md](../AUDIT.md)** as the canonical process.
 Cadence:
 - Treat auditing as a continuous process during implementation, not an end-only step.
 - Run the full audit loop for each feature-sized change or PR.
+- Within a single feature relay chain, run full `make qa-all` on the initial task pass and before architect commit; use failing-check + targeted reruns between those points.
 - Run the merge gate before merging.
 - Do not run the full loop after every single prompt-level edit unless risk justifies it.
 

@@ -2346,6 +2346,7 @@ int UI_ViewTaggedFiles(ViewContext *ctx, DirEntry *dir_entry) {
         char root_path[PATH_LENGTH + 1];
         char relative_path[PATH_LENGTH + 1];
         char internal_path[PATH_LENGTH + 1];
+        char canonical_internal_path[PATH_LENGTH + 1];
         char full_path[PATH_LENGTH + 1];
         size_t root_len;
 
@@ -2387,34 +2388,40 @@ int UI_ViewTaggedFiles(ViewContext *ctx, DirEntry *dir_entry) {
           }
         }
 
-        if (strlen(relative_path) > 0) {
-          char *dir_only;
-
-          snprintf(t_dirname, sizeof(t_dirname), "%s/%s", temp_dir,
-                   relative_path);
-          dir_only = xstrdup(t_dirname);
-          dirname(dir_only);
-          recursive_mkdir(dir_only);
-          free(dir_only);
-          snprintf(t_filename, sizeof(t_filename), "%s/%s", temp_dir,
-                   relative_path);
-        } else {
-          snprintf(t_filename, sizeof(t_filename), "%s/%s", temp_dir, fe->name);
-        }
-
         if (!CopyBoundedStringChecked(internal_path, sizeof(internal_path),
                                       relative_path)) {
           UI_Warning(ctx, "Skipped long archive path*\"%s\"", fe->name);
           continue;
         }
+        if (Archive_ValidateInternalPath(internal_path, canonical_internal_path,
+                                         sizeof(canonical_internal_path)) != 0) {
+          UI_Warning(ctx, "Skipped unsafe archive member path*\"%s\"",
+                     internal_path);
+          continue;
+        }
 
-        if (ExtractArchiveNode(s->log_path, internal_path, t_filename,
+        if (strlen(canonical_internal_path) > 0) {
+          char *dir_only;
+
+          snprintf(t_dirname, sizeof(t_dirname), "%s/%s", temp_dir,
+                   canonical_internal_path);
+          dir_only = xstrdup(t_dirname);
+          dirname(dir_only);
+          recursive_mkdir(dir_only);
+          free(dir_only);
+          snprintf(t_filename, sizeof(t_filename), "%s/%s", temp_dir,
+                   canonical_internal_path);
+        } else {
+          snprintf(t_filename, sizeof(t_filename), "%s/%s", temp_dir, fe->name);
+        }
+
+        if (ExtractArchiveNode(s->log_path, canonical_internal_path, t_filename,
                                UI_ArchiveCallback, ctx) == 0) {
           view_paths[path_count] = xstrdup(t_filename);
-          display_paths[path_count] = xstrdup(internal_path);
+          display_paths[path_count] = xstrdup(canonical_internal_path);
           path_count++;
         } else {
-          UI_Warning(ctx, "Failed to extract*\"%s\"", internal_path);
+          UI_Warning(ctx, "Failed to extract*\"%s\"", canonical_internal_path);
         }
       }
 #else
