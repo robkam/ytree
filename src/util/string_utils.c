@@ -9,17 +9,6 @@
 #include <ctype.h>
 #include <string.h>
 
-void StrCp(char *dest, const char *src) {
-  static const char esc_chars[] = "#*|&;()<> \t\n\r\"!$?'`~";
-
-  while (*src) {
-    if (strchr(esc_chars, *src))
-      *dest++ = '\\';
-    *dest++ = *src++;
-  }
-  *dest = '\0';
-}
-
 int BuildFilename(char *in_filename, char *pattern, char *out_filename) {
   const char *s = in_filename;
   const char *p = pattern;
