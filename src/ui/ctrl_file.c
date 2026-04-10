@@ -1319,9 +1319,47 @@ static void UpdatePreview(ViewContext *ctx, const DirEntry *dir_entry) {
     }
     if (fe) {
       char path[PATH_LENGTH];
+      const Statistic *s = NULL;
       GetFileNamePath(fe, path);
-      RenderFilePreview(ctx, ctx->ctx_preview_window, path,
-                        &preview_line_offset, 0);
+      if (ctx->active->vol) {
+        s = &ctx->active->vol->vol_stats;
+      }
+
+      if (s && s->log_mode == ARCHIVE_MODE) {
+        char archive_root[PATH_LENGTH + 1];
+        char internal_path[PATH_LENGTH + 1];
+        const char *relative_path = path;
+        size_t root_len;
+        int written;
+
+        GetPath(ctx->active->vol->vol_stats.tree, archive_root);
+        root_len = strlen(archive_root);
+
+        if (root_len > 0 && strncmp(path, archive_root, root_len) == 0) {
+          relative_path = path + root_len;
+          if (*relative_path == FILE_SEPARATOR_CHAR) {
+            relative_path++;
+          }
+        }
+        if (*relative_path == '\0') {
+          relative_path = fe->name;
+        }
+
+        written = snprintf(internal_path, sizeof(internal_path), "%s",
+                           relative_path);
+        if (written < 0 || (size_t)written >= sizeof(internal_path)) {
+          werase(ctx->ctx_preview_window);
+          mvwprintw(ctx->ctx_preview_window, 0, 0, "Preview path too long.");
+          wnoutrefresh(ctx->ctx_preview_window);
+        } else {
+          RenderArchivePreview(ctx, ctx->ctx_preview_window,
+                               ctx->active->vol->vol_stats.log_path,
+                               internal_path, &preview_line_offset);
+        }
+      } else {
+        RenderFilePreview(ctx, ctx->ctx_preview_window, path,
+                          &preview_line_offset, 0);
+      }
     } else {
       RenderFilePreview(ctx, ctx->ctx_preview_window, "", &preview_line_offset,
                         0);

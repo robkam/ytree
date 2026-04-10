@@ -8,8 +8,27 @@
 #include "ytree_fs.h"
 #include "ytree_ui.h"
 #include <errno.h>
+#include <stdlib.h>
 #include <sys/stat.h>
 #include <unistd.h>
+
+static char last_preview_archive[PATH_LENGTH] = "";
+static char last_preview_internal[PATH_LENGTH] = "";
+static char preview_cache_file[PATH_LENGTH] = "";
+static int preview_cache_cleanup_registered = 0;
+
+static void CleanupPreviewTempFile(void) {
+  if (preview_cache_file[0] != '\0') {
+    unlink(preview_cache_file);
+    preview_cache_file[0] = '\0';
+  }
+}
+
+static void InvalidatePreviewCache(void) {
+  CleanupPreviewTempFile();
+  last_preview_archive[0] = '\0';
+  last_preview_internal[0] = '\0';
+}
 
 static int append_bounded(char *dst, size_t dst_size, const char *src) {
   size_t used;
@@ -295,4 +314,84 @@ void RenderFilePreview(ViewContext *ctx, WINDOW *win, char *filename,
 
   close(fd);
   wnoutrefresh(win);
+}
+
+static int PreviewProgressCallback(int status, const char *msg,
+                                   void *user_data) {
+  ViewContext *ctx = (ViewContext *)user_data;
+  (void)msg;
+
+  if (status == ARCHIVE_STATUS_PROGRESS) {
+    if (ctx)
+      DrawSpinner(ctx);
+    if (EscapeKeyPressed()) {
+      return ARCHIVE_CB_ABORT;
+    }
+  }
+  return ARCHIVE_CB_CONTINUE;
+}
+
+void RenderArchivePreview(ViewContext *ctx, WINDOW *win,
+                          const char *archive_path, const char *internal_path,
+                          long *line_offset_ptr) {
+  char cache_template[] = "/tmp/ytree_preview_XXXXXX";
+  char canonical_internal_path[PATH_LENGTH];
+  BOOL needs_extract;
+  int fd;
+
+  if (!ctx || !win || !archive_path || !internal_path) {
+    return;
+  }
+
+  if (Archive_ValidateInternalPath(internal_path, canonical_internal_path,
+                                   sizeof(canonical_internal_path)) != 0) {
+    InvalidatePreviewCache();
+    wclear(win);
+    mvwprintw(win, 0, 0, "Preview blocked: unsafe archive path.");
+    wnoutrefresh(win);
+    return;
+  }
+
+  needs_extract = (preview_cache_file[0] == '\0' ||
+                   strcmp(archive_path, last_preview_archive) != 0 ||
+                   strcmp(canonical_internal_path, last_preview_internal) != 0 ||
+                   access(preview_cache_file, F_OK) != 0);
+
+  if (needs_extract) {
+    InvalidatePreviewCache();
+    fd = mkstemp(cache_template);
+    if (fd == -1) {
+      wclear(win);
+      mvwprintw(win, 0, 0, "Preview extraction failed.");
+      wnoutrefresh(win);
+      return;
+    }
+
+    strncpy(preview_cache_file, cache_template, PATH_LENGTH - 1);
+    preview_cache_file[PATH_LENGTH - 1] = '\0';
+
+    if (!preview_cache_cleanup_registered &&
+        atexit(CleanupPreviewTempFile) == 0) {
+      preview_cache_cleanup_registered = 1;
+    }
+
+    if (ExtractArchiveEntry(archive_path, canonical_internal_path, fd,
+                            PreviewProgressCallback, ctx) != 0) {
+      close(fd);
+      InvalidatePreviewCache();
+      wclear(win);
+      mvwprintw(win, 0, 0, "Preview extraction failed.");
+      wnoutrefresh(win);
+      return;
+    }
+
+    close(fd);
+
+    strncpy(last_preview_archive, archive_path, PATH_LENGTH - 1);
+    last_preview_archive[PATH_LENGTH - 1] = '\0';
+    strncpy(last_preview_internal, canonical_internal_path, PATH_LENGTH - 1);
+    last_preview_internal[PATH_LENGTH - 1] = '\0';
+  }
+
+  RenderFilePreview(ctx, win, preview_cache_file, line_offset_ptr, 0);
 }

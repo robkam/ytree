@@ -133,6 +133,53 @@ def test_archive_internal_path_trust_trailing_slash_empty_dir_visible(
         tui.quit()
 
 
+def test_archive_root_dot_member_is_ignored_without_warning(ytree_binary, tmp_path):
+    root = tmp_path / "archive_root_dot_member"
+    root.mkdir()
+    archive_path = root / "dot_root.tar"
+
+    with tarfile.open(archive_path, "w") as tf:
+        dot_info = tarfile.TarInfo(name=".")
+        dot_info.type = tarfile.DIRTYPE
+        dot_info.mode = 0o755
+        tf.addfile(dot_info)
+
+        payload = "safe payload".encode("utf-8")
+        file_info = tarfile.TarInfo(name="safe_member.txt")
+        file_info.size = len(payload)
+        file_info.mode = 0o644
+        tf.addfile(file_info, io.BytesIO(payload))
+
+    tui = YtreeTUI(executable=ytree_binary, cwd=str(root))
+    try:
+        tui.send_keystroke(Keys.ENTER, wait=0.5)
+        tui.send_keystroke(Keys.LOG, wait=0.3)
+        tui.send_keystroke(Keys.ENTER, wait=0.8)
+
+        assert not tui.wait_for_content("Skipped unsafe archive member path", timeout=1.0)
+        assert tui.wait_for_content("safe_member.txt", timeout=3.0)
+    finally:
+        tui.quit()
+
+
+def test_archive_f7_preview_renders_member_content(ytree_binary, tmp_path):
+    root = tmp_path / "archive_f7_preview"
+    root.mkdir()
+    archive_path = root / "preview.tar"
+    _create_tar(archive_path, {"safe_member.txt": "safe payload"})
+
+    tui = YtreeTUI(executable=ytree_binary, cwd=str(root))
+    try:
+        _enter_archive_from_selected_file(tui)
+        assert tui.wait_for_content("safe_member.txt", timeout=3.0)
+
+        tui.send_keystroke(Keys.F7, wait=0.8)
+        assert not tui.wait_for_content("Error opening file:", timeout=0.8)
+        assert tui.wait_for_content("safe payload", timeout=3.0)
+    finally:
+        tui.quit()
+
+
 def test_archive_create_overwrite_prompt_respects_no_then_yes(ytree_binary, tmp_path):
     root = tmp_path / "overwrite_prompt"
     root.mkdir()
