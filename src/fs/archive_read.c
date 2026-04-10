@@ -17,6 +17,7 @@ static int ArchiveCanonicalizeRequestPath(const char *archive_path,
                                           const char *entry_path,
                                           char *canonical_path,
                                           size_t canonical_size);
+static BOOL ArchiveIsRootMarkerPath(const char *path);
 
 int Archive_ValidateInternalPath(const char *path, char *canonical_path,
                                  size_t canonical_size) {
@@ -121,6 +122,22 @@ static int ArchiveCanonicalizeRequestPath(const char *archive_path,
 
   return Archive_ValidateInternalPath(candidate_path, canonical_path,
                                       canonical_size);
+}
+
+static BOOL ArchiveIsRootMarkerPath(const char *path) {
+  const char *p;
+
+  if (!path || path[0] != '.') {
+    return FALSE;
+  }
+
+  for (p = path + 1; *p != '\0'; ++p) {
+    if (*p != FILE_SEPARATOR_CHAR) {
+      return FALSE;
+    }
+  }
+
+  return TRUE;
 }
 
 static void ArchiveMessageWithBoundary(ViewContext *ctx, const char *fmt, ...) {
@@ -228,6 +245,9 @@ int ExtractArchiveEntry(const char *archive_path, const char *entry_path,
     }
     if (Archive_ValidateInternalPath(member_path, canonical_member_path,
                                      sizeof(canonical_member_path)) != 0) {
+      if (ArchiveIsRootMarkerPath(member_path)) {
+        continue;
+      }
       REPORT_WARNING(cb, user_data, "Skipped unsafe archive member path: %s",
                      member_path);
       continue;
@@ -325,6 +345,9 @@ int ExtractArchiveNode(const char *archive_path, const char *entry_path,
     }
     if (Archive_ValidateInternalPath(member_path, canonical_member_path,
                                      sizeof(canonical_member_path)) != 0) {
+      if (ArchiveIsRootMarkerPath(member_path)) {
+        continue;
+      }
       REPORT_WARNING(cb, user_data, "Skipped unsafe archive member path: %s",
                      member_path);
       continue;
@@ -823,6 +846,9 @@ int ReadTreeFromArchive(ViewContext *ctx, DirEntry **dir_entry_ptr,
 
     if (Archive_ValidateInternalPath(pathname, canonical_path,
                                      sizeof(canonical_path)) != 0) {
+      if (ArchiveIsRootMarkerPath(pathname)) {
+        continue;
+      }
       ArchiveMessageWithBoundary(ctx, "Skipped unsafe archive member path*%s",
                                  pathname);
       continue;
