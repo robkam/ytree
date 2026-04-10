@@ -17,15 +17,7 @@ typedef struct _ViewContext ViewContext;
 #include <locale.h>
 #include <math.h>
 #include <stdio.h>
-#define DEBUG_LOG(fmt, ...)                                                    \
-  {                                                                            \
-    FILE *fp = fopen("/tmp/ytree_debug.log", "a");                             \
-    if (fp) {                                                                  \
-      fprintf(fp, fmt "\n", ##__VA_ARGS__);                                    \
-      fflush(fp);                                                              \
-      fclose(fp);                                                              \
-    }                                                                          \
-  }
+#include "ytree_debug.h"
 
 #ifdef XCURSES
 #include <xcurses.h>

@@ -35,7 +35,7 @@
 *   **Mechanism:** Use per-process random temp paths, avoid reopening by name where possible, and gate debug logging behind explicit opt-in path config.
 *   **Files to Modify:** `src/ui/view_preview.c`, `src/ui/interactions.c`, `include/ytree_defs.h`, `include/ytree_debug.h`
 *   **Context Files:** `src/cmd/view.c`, `src/cmd/hex.c`
-*   - [ ] **Status:** Not Started.
+*   - [x] **Status:** Completed.
 
 ### **Task 0.5: Add Regression Tests for Shell Injection and Escaping Boundaries**
 *   **Goal:** Lock in non-exploitability for metacharacter-heavy file paths and command placeholders.

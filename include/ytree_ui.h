@@ -339,10 +339,6 @@ extern int InternalView(ViewContext *ctx, char *file_path,
 /* view_preview.c */
 extern void RenderFilePreview(ViewContext *ctx, WINDOW *win, char *filename,
                               long *line_offset_ptr, int col_offset);
-extern void RenderArchivePreview(ViewContext *ctx, WINDOW *win,
-                                 const char *archive_path,
-                                 const char *internal_path,
-                                 long *line_offset_ptr);
 
 /* quit.c */
 extern void Quit(ViewContext *ctx);

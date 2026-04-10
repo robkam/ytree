@@ -2277,6 +2277,7 @@ int UI_ViewTaggedFiles(ViewContext *ctx, DirEntry *dir_entry) {
   char temp_dir_template[PATH_LENGTH];
   Statistic *s;
   const char *tagged_viewer;
+  int result = 0;
 
   (void)dir_entry;
   if (!ctx || !ctx->active || !ctx->active->vol ||
@@ -2314,13 +2315,17 @@ int UI_ViewTaggedFiles(ViewContext *ctx, DirEntry *dir_entry) {
   }
 
   if (tagged_count <= 0) {
-    if (s->log_mode == ARCHIVE_MODE && temp_dir)
-      recursive_rmdir(temp_dir);
-    return 0;
+    goto cleanup;
   }
 
   view_paths = (char **)xcalloc((size_t)tagged_count, sizeof(char *));
   display_paths = (char **)xcalloc((size_t)tagged_count, sizeof(char *));
+  if (!view_paths || !display_paths) {
+    UI_Error(ctx, __FILE__, __LINE__,
+             "Out of memory while preparing tagged view");
+    result = -1;
+    goto cleanup;
+  }
 
   for (i = 0; i < (int)ctx->active->file_count; i++) {
     fe = ctx->active->file_entry_list[i].file;
@@ -2407,7 +2412,12 @@ int UI_ViewTaggedFiles(ViewContext *ctx, DirEntry *dir_entry) {
                    canonical_internal_path);
           dir_only = xstrdup(t_dirname);
           dirname(dir_only);
-          recursive_mkdir(dir_only);
+          if (recursive_mkdir(dir_only) != 0) {
+            UI_Warning(ctx, "Failed to prepare temp path*\"%s\"",
+                       canonical_internal_path);
+            free(dir_only);
+            continue;
+          }
           free(dir_only);
           snprintf(t_filename, sizeof(t_filename), "%s/%s", temp_dir,
                    canonical_internal_path);
@@ -2442,6 +2452,7 @@ int UI_ViewTaggedFiles(ViewContext *ctx, DirEntry *dir_entry) {
     UI_Message(ctx, "No files extracted.");
   }
 
+cleanup:
   for (i = 0; i < tagged_count; i++) {
     if (view_paths && view_paths[i])
       free(view_paths[i]);
@@ -2455,5 +2466,5 @@ int UI_ViewTaggedFiles(ViewContext *ctx, DirEntry *dir_entry) {
     recursive_rmdir(temp_dir);
   }
 
-  return 0;
+  return result;
 }
