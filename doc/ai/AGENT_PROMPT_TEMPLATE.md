@@ -16,8 +16,9 @@ Mandatory startup (before any repo exploration):
 
 Goal:
 Deliver all outcomes for doc/ROADMAP.md Task $TASK using procedure 4.1 in ~/ytree/doc/ai/WORKFLOW.md on a new branch named for this task.
-First push: git push-fast-up
-Subsequent pushes: git push-fast
+- Branch name must not use words: “phase”, “step”, “task” and must contain no digits.
+- First push: git push-fast-up
+- Subsequent pushes: git push-fast
 
 Execution model:
 1) Create one master plan file at repo root: ~/ytree/task-$TASK-master-plan.txt
@@ -30,6 +31,7 @@ Execution model:
 7) Remove obsolete relay/report/script artifacts when no longer needed.
 8) Correct semantic-index drift and context drift before each validation/commit.
 9) Run final completion gate from workflow and report final status.
+10) Architect updates doc/ROADMAP.md
 
 Prompt/report artifact rules:
 - Use ~ paths in all status updates.
