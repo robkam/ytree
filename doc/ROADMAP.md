@@ -27,7 +27,7 @@
 *   **Mechanism:** Add a single canonical internal-path validator and apply it in archive read, lookup, and extraction paths.
 *   **Files to Modify:** `src/fs/archive_read.c`, `src/ui/interactions.c`, `src/cmd/execute.c`, `src/ui/view_preview.c`
 *   **Context Files:** `include/ytree_fs.h`
-*   - [ ] **Status:** Not Started.
+*   - [x] **Status:** Completed.
 
 ### **Task 0.4: Replace Predictable `/tmp` Artifacts with Secure Temp Lifecycle**
 *   **Goal:** Remove fixed temp filenames and migrate to `mkstemp`/`mkdtemp` + controlled cleanup for preview/extract/debug artifacts.
@@ -110,9 +110,10 @@
 
 ### **Task 3.3: Decompose `src/ui/key_engine.c`**
 *   **Goal:** Separate key mapping/dispatch concerns from input-loop mechanics and context-specific action routing.
+*   **Action Name Cleanup**: Consolidate and rename `YtreeAction` identifiers (e.g., `ACTION_TREE_EXPAND_ALL` -> `ACTION_TREE_EXPAND`) to match behavior (see `BUGS.md`).
 *   **Scope Lock:** No keybinding behavior change unless explicitly approved in a separate task.
-*   **Files to Modify:** `src/ui/key_engine.c` and new focused `src/ui/*` modules as needed.
-*   **Acceptance Criteria:** Cleaner dispatch boundaries, unchanged key behavior, green QA.
+*   **Files to Modify:** `src/ui/key_engine.c`, `include/ytree_defs.h`, and new focused `src/ui/*` modules as needed.
+*   **Acceptance Criteria:** Cleaner dispatch boundaries, consistent action naming, unchanged key behavior, green QA.
 *   - [ ] **Status:** Not Started.
 
 ### **Task 3.4: Decompose `src/cmd/copy.c`**
@@ -171,6 +172,7 @@
 
 ### **Task 8: Refine In-App Help Text**
 *   **Goal:** Review all user prompts and help lines to be clear and provide context for special syntax (e.g., `{}`). The menu should be decluttered by only showing a `^` shortcut if its action differs from the base key (e.g., `(C)opy/(^K)` is good, but `pathcop(Y)/^Y` is redundant and should just be `pathcop(Y)`).
+*   **VI Mode Signaling**: Ensure footer help lines dynamically reflect uppercase commands (e.g., `(K) Vol` instead of `(k) Vol`) when `VI_KEYS=1` is active to avoid navigation collisions.
 *   **Rationale:** Fulfills the "No Hidden Features" principle and improves UI clarity by removing redundant information.
 *   **Files to Modify:** `src/ui/display.c`
 *   **Context Files:** None.
