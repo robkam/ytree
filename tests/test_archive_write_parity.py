@@ -1,4 +1,6 @@
 import io
+from pathlib import Path
+import pexpect
 import tarfile
 import time
 
@@ -42,6 +44,24 @@ def _log_archive(controller, archive_path):
     controller.child.expect("ARCHIVE")
 
 
+def _log_archive_dismissing_unsafe_warnings(controller, archive_path):
+    controller.child.send(Keys.LOG)
+    time.sleep(0.2)
+    controller.input_text(str(archive_path))
+    for _ in range(8):
+        idx = controller.child.expect(
+            [r"Skipped unsafe archive member path", r"ARCHIVE", pexpect.TIMEOUT],
+            timeout=0.8,
+        )
+        if idx == 0:
+            controller.child.send(Keys.ENTER)
+            time.sleep(0.2)
+            continue
+        if idx == 1:
+            return
+    controller.child.expect("ARCHIVE")
+
+
 def _exit_archive_keep_volume(controller):
     controller.child.send("\\")
     time.sleep(0.7)
@@ -68,6 +88,23 @@ def _move_selected_file(controller, new_name, to_dir):
     controller.child.expect("To Directory")
     controller.input_text(str(to_dir))
     time.sleep(0.7)
+
+
+def _enter_archive_member_list_dismissing_unsafe_warnings(controller, anchor_member):
+    controller.child.send(Keys.ENTER)
+    time.sleep(0.4)
+    for _ in range(8):
+        idx = controller.child.expect(
+            [r"Skipped unsafe archive member path", anchor_member, pexpect.TIMEOUT],
+            timeout=0.6,
+        )
+        if idx == 0:
+            controller.child.send(Keys.ENTER)
+            time.sleep(0.2)
+            continue
+        if idx == 1:
+            return
+    controller.child.expect(anchor_member)
 
 
 def test_archive_copy_matrix_fs_to_vfs(ytree_binary, tmp_path):
@@ -115,6 +152,49 @@ def test_archive_copy_matrix_vfs_to_fs(ytree_binary, tmp_path):
     assert copied.read_text(encoding="utf-8") == "from archive"
 
     yt.quit()
+
+
+def test_archive_traversal_rejection_copy_vfs_to_fs_never_writes_outside_destination(
+    ytree_binary, tmp_path
+):
+    root = tmp_path / "copy_vfs_to_fs_traversal_rejection"
+    root.mkdir()
+    out_dir = root / "out"
+    out_dir.mkdir()
+
+    token = str(time.time_ns())
+    dotdot_escape_name = f"escape_dotdot_{token}.txt"
+    dotdot_escape_path = root / dotdot_escape_name
+    absolute_escape_path = Path("/tmp") / f"ytree_archive_abs_escape_{token}.txt"
+
+    src_archive = root / "src.tar"
+    _create_archive(
+        src_archive,
+        {
+            "safe_member.txt": "from archive",
+            f"../{dotdot_escape_name}": "unsafe dotdot",
+            str(absolute_escape_path): "unsafe absolute",
+            "nested//unsafe_empty_segment_member.txt": "unsafe empty segment",
+            "nested/./unsafe_dot_segment_member.txt": "unsafe dot segment",
+        },
+    )
+
+    yt = YtreeController(ytree_binary, str(root))
+    try:
+        yt.wait_for_startup()
+        _log_archive_dismissing_unsafe_warnings(yt, src_archive)
+        _enter_archive_member_list_dismissing_unsafe_warnings(yt, "safe_member.txt")
+
+        _copy_selected_file(yt, "copied_safe.txt", out_dir)
+
+        copied = out_dir / "copied_safe.txt"
+        assert copied.exists()
+        assert copied.read_text(encoding="utf-8") == "from archive"
+        assert sorted(path.name for path in out_dir.iterdir()) == ["copied_safe.txt"]
+        assert not dotdot_escape_path.exists()
+        assert not absolute_escape_path.exists()
+    finally:
+        yt.quit()
 
 
 def test_archive_copy_matrix_vfs_to_vfs(ytree_binary, tmp_path):
