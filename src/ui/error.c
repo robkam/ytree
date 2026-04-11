@@ -14,13 +14,13 @@ static void MapNoticeWindow(ViewContext *ctx, char *header);
 static void UnmapErrorWindow(ViewContext *ctx);
 static void PrintErrorLine(ViewContext *ctx, int y, char *str);
 static void DisplayMessage(ViewContext *ctx, char *msg);
-static int PrintMessage(ViewContext *ctx, char *msg, BOOL do_beep);
+static int PrintMessage(ViewContext *ctx, char *msg);
 static void ClearStatusLineErrorLine(ViewContext *ctx);
 
 void UI_Beep(ViewContext *ctx, BOOL critical) {
   (void)ctx;
   (void)critical;
-  /* Sound cues are intentionally suppressed by default. */
+  /* Audible bell behavior is permanently disabled. */
 }
 
 void UI_RenderStatusLineError(ViewContext *ctx) {
@@ -88,7 +88,7 @@ int UI_Message(ViewContext *ctx, const char *fmt, ...) {
   }
 
   MapErrorWindow(ctx, "E R R O R");
-  return PrintMessage(ctx, buffer, TRUE);
+  return PrintMessage(ctx, buffer);
 }
 
 int UI_Notice(ViewContext *ctx, const char *fmt, ...) {
@@ -125,7 +125,7 @@ int UI_Warning(ViewContext *ctx, const char *fmt, ...) {
   }
 
   MapErrorWindow(ctx, "W A R N I N G");
-  return PrintMessage(ctx, buffer, FALSE);
+  return PrintMessage(ctx, buffer);
 }
 
 void AboutBox(ViewContext *ctx) {
@@ -140,7 +140,7 @@ void AboutBox(ViewContext *ctx) {
                  VERSION, VERSIONDATE);
 
   MapErrorWindow(ctx, "ABOUT");
-  (void)PrintMessage(ctx, version, FALSE);
+  (void)PrintMessage(ctx, version);
 }
 
 int UI_Error(ViewContext *ctx, const char *module, int line, const char *fmt,
@@ -161,7 +161,7 @@ int UI_Error(ViewContext *ctx, const char *module, int line, const char *fmt,
   MapErrorWindow(ctx, "INTERNAL ERROR");
   (void)snprintf(final_buffer, sizeof(final_buffer),
                  "%s*In Module \"%s\"*Line %d", msg_buffer, module, line);
-  return PrintMessage(ctx, final_buffer, TRUE);
+  return PrintMessage(ctx, final_buffer);
 }
 
 static void MapErrorWindow(ViewContext *ctx, char *header) {
@@ -261,12 +261,10 @@ static void DisplayMessage(ViewContext *ctx, char *msg) {
   PrintErrorLine(ctx, y, buffer);
 }
 
-static int PrintMessage(ViewContext *ctx, char *msg, BOOL do_beep) {
+static int PrintMessage(ViewContext *ctx, char *msg) {
   int c;
 
   DisplayMessage(ctx, msg);
-  if (do_beep)
-    UI_Beep(ctx, FALSE);
   RefreshWindow(ctx->ctx_error_window);
   doupdate();
   c = WGetch(ctx, ctx->ctx_error_window);
