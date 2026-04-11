@@ -81,6 +81,43 @@ def test_archive_internal_path_trust_rejects_unsafe_members(
         tui.quit()
 
 
+def test_archive_traversal_rejection_tree_load_filters_unsafe_variants(
+    ytree_binary, tmp_path
+):
+    root = tmp_path / "archive_traversal_tree_filters"
+    root.mkdir()
+    archive_path = root / "traversal_filters.tar"
+    _create_tar(
+        archive_path,
+        {
+            "safe_member.txt": "safe payload",
+            "../unsafe_dotdot_member.txt": "bad dotdot",
+            "/unsafe_absolute_member.txt": "bad absolute",
+            "nested//unsafe_empty_segment_member.txt": "bad empty segment",
+            "nested/./unsafe_dot_segment_member.txt": "bad dot segment",
+            r"nested\\unsafe_separator_ambiguity_member.txt": "bad separator",
+        },
+    )
+
+    tui = YtreeTUI(executable=ytree_binary, cwd=str(root))
+    try:
+        _enter_archive_from_selected_file(tui)
+        assert tui.wait_for_content("safe_member.txt", timeout=3.0)
+        tui.send_keystroke(Keys.EXPAND_ALL, wait=0.5)
+
+        assert not tui.wait_for_content("unsafe_dotdot_member.txt", timeout=1.0)
+        assert not tui.wait_for_content("unsafe_absolute_member.txt", timeout=1.0)
+        assert not tui.wait_for_content(
+            "unsafe_empty_segment_member.txt", timeout=1.0
+        )
+        assert not tui.wait_for_content("unsafe_dot_segment_member.txt", timeout=1.0)
+        assert not tui.wait_for_content(
+            "unsafe_separator_ambiguity_member.txt", timeout=1.0
+        )
+    finally:
+        tui.quit()
+
+
 def test_archive_internal_path_trust_safe_member_still_viewable(
     ytree_binary, tmp_path
 ):
@@ -176,6 +213,40 @@ def test_archive_f7_preview_renders_member_content(ytree_binary, tmp_path):
         tui.send_keystroke(Keys.F7, wait=0.8)
         assert not tui.wait_for_content("Error opening file:", timeout=0.8)
         assert tui.wait_for_content("safe payload", timeout=3.0)
+    finally:
+        tui.quit()
+
+
+def test_archive_traversal_rejection_view_flow_ignores_unsafe_members(
+    ytree_binary, tmp_path
+):
+    root = tmp_path / "archive_traversal_view_flow"
+    root.mkdir()
+    archive_path = root / "view_flow.tar"
+    _create_tar(
+        archive_path,
+        {
+            "safe_member.txt": "safe preview payload",
+            "../unsafe_dotdot_member.txt": "UNSAFE_SHOULD_NEVER_RENDER",
+            "/unsafe_absolute_member.txt": "UNSAFE_SHOULD_NEVER_RENDER",
+            "nested/./unsafe_dot_segment_member.txt": "UNSAFE_SHOULD_NEVER_RENDER",
+        },
+    )
+
+    tui = YtreeTUI(executable=ytree_binary, cwd=str(root))
+    try:
+        _enter_archive_from_selected_file(tui)
+        assert tui.wait_for_content("safe_member.txt", timeout=3.0)
+        tui.send_keystroke(Keys.EXPAND_ALL, wait=0.5)
+
+        assert not tui.wait_for_content("unsafe_dotdot_member.txt", timeout=1.0)
+        assert not tui.wait_for_content("unsafe_absolute_member.txt", timeout=1.0)
+        assert not tui.wait_for_content("unsafe_dot_segment_member.txt", timeout=1.0)
+
+        tui.send_keystroke(Keys.F7, wait=0.8)
+        assert not tui.wait_for_content("Error opening file:", timeout=0.8)
+        assert tui.wait_for_content("safe preview payload", timeout=3.0)
+        assert not tui.wait_for_content("UNSAFE_SHOULD_NEVER_RENDER", timeout=1.0)
     finally:
         tui.quit()
 
