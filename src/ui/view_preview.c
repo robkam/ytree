@@ -334,10 +334,8 @@ static int PreviewProgressCallback(int status, const char *msg,
 void RenderArchivePreview(ViewContext *ctx, WINDOW *win,
                           const char *archive_path, const char *internal_path,
                           long *line_offset_ptr) {
-  char cache_template[] = "/tmp/ytree_preview_XXXXXX";
   char canonical_internal_path[PATH_LENGTH];
   BOOL needs_extract;
-  int fd;
 
   if (!ctx || !win || !archive_path || !internal_path) {
     return;
@@ -358,6 +356,9 @@ void RenderArchivePreview(ViewContext *ctx, WINDOW *win,
                    access(preview_cache_file, F_OK) != 0);
 
   if (needs_extract) {
+    char cache_template[] = "/tmp/ytree_preview_XXXXXX";
+    int fd;
+
     InvalidatePreviewCache();
     fd = mkstemp(cache_template);
     if (fd == -1) {
