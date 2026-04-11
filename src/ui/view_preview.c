@@ -356,10 +356,17 @@ void RenderArchivePreview(ViewContext *ctx, WINDOW *win,
                    access(preview_cache_file, F_OK) != 0);
 
   if (needs_extract) {
-    char cache_template[] = "/tmp/ytree_preview_XXXXXX";
+    char cache_template[PATH_LENGTH];
     int fd;
 
     InvalidatePreviewCache();
+    if (!Path_BuildTempTemplate(cache_template, sizeof(cache_template),
+                                "ytree_preview_")) {
+      wclear(win);
+      mvwprintw(win, 0, 0, "Preview extraction failed.");
+      wnoutrefresh(win);
+      return;
+    }
     fd = mkstemp(cache_template);
     if (fd == -1) {
       wclear(win);

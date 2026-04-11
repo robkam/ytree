@@ -395,6 +395,37 @@ int Path_Join(char *dest, size_t size, const char *dir, const char *leaf) {
   return 0;
 }
 
+BOOL Path_BuildTempTemplate(char *dest, size_t size, const char *name_prefix) {
+  const char *tmp_root;
+  size_t tmp_root_len;
+  const char *separator;
+  int written;
+
+  if (!dest || size == 0 || !name_prefix || name_prefix[0] == '\0') {
+    return FALSE;
+  }
+
+  tmp_root = getenv("TMPDIR");
+  if (!tmp_root || tmp_root[0] == '\0') {
+    tmp_root = "/tmp";
+  }
+
+  tmp_root_len = strlen(tmp_root);
+  separator = "";
+  if (tmp_root_len > 0 && tmp_root[tmp_root_len - 1] != FILE_SEPARATOR_CHAR) {
+    separator = FILE_SEPARATOR_STRING;
+  }
+
+  written = snprintf(dest, size, "%s%s%sXXXXXX", tmp_root, separator,
+                     name_prefix);
+  if (written < 0 || (size_t)written >= size) {
+    dest[size - 1] = '\0';
+    return FALSE;
+  }
+
+  return TRUE;
+}
+
 char *GetPath(DirEntry *dir_entry, char *buffer) {
   char *components[256];
   int depth = 0;

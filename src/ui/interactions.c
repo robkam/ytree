@@ -2294,8 +2294,8 @@ int UI_ViewTaggedFiles(ViewContext *ctx, DirEntry *dir_entry) {
   }
 
   if (s->log_mode == ARCHIVE_MODE) {
-    if (!CopyBoundedStringChecked(temp_dir_template, sizeof(temp_dir_template),
-                                  "/tmp/ytree_view_XXXXXX")) {
+    if (!Path_BuildTempTemplate(temp_dir_template, sizeof(temp_dir_template),
+                                "ytree_view_")) {
       UI_Error(ctx, __FILE__, __LINE__,
                "Could not prepare temp dir template for viewing");
       return -1;
