@@ -142,6 +142,8 @@ int ReadTree(ViewContext *ctx, DirEntry *dir_entry, char *path, int depth,
 
   if (depth < 0) {
     if (dir_entry->up_tree) {
+      /* Keep both parent and this node expandable for progressive scans. */
+      dir_entry->not_scanned = TRUE;
       dir_entry->up_tree->not_scanned = TRUE;
       return (1);
     }
