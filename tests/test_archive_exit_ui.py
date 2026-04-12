@@ -348,6 +348,45 @@ def test_logged_empty_vs_unlogged_labels(tmp_path, ytree_binary):
     tui.quit()
 
 
+def test_depth_limited_placeholder_plus_loads_leaf_files(tmp_path, ytree_binary):
+    root = tmp_path / "depth_limited_placeholder"
+    root.mkdir()
+    doc = root / "doc"
+    doc.mkdir()
+    ai = doc / "ai"
+    ai.mkdir()
+    (ai / "AGENT_PROMPT_TEMPLATE.md").write_text("prompt", encoding="utf-8")
+    (ai / "DEBUGGING.md").write_text("debug", encoding="utf-8")
+    (ai / "WORKFLOW.md").write_text("workflow", encoding="utf-8")
+
+    tui = YtreeTUI(executable=ytree_binary, cwd=str(root))
+    time.sleep(0.8)
+
+    # root -> doc -> expand doc -> select doc/ai
+    tui.send_keystroke(Keys.DOWN, wait=0.3)
+    tui.send_keystroke(Keys.RIGHT, wait=0.4)
+    tui.send_keystroke(Keys.DOWN, wait=0.3)
+
+    header = tui.get_screen_dump()[0]
+    assert "doc/ai" in header, (
+        "Expected doc/ai to be selected before expansion.\n"
+        f"Header: {header!r}\n\nScreen:\n{_screen_text(tui)}"
+    )
+
+    tui.send_keystroke("+", wait=0.6)
+    screen = _screen_text(tui)
+    assert "AGENT_PROMPT_TEMPLATE.md" in screen, (
+        "Depth-limited placeholder should load visible files after '+'.\n"
+        f"Screen:\n{screen}"
+    )
+    assert "DEBUGGING.md" in screen, (
+        "Leaf directory should no longer remain an empty placeholder.\n"
+        f"Screen:\n{screen}"
+    )
+
+    tui.quit()
+
+
 def test_archive_file_footer_uses_full_labels_and_shows_compare(tmp_path, ytree_binary):
     root = tmp_path / "archive_footer_labels"
     root.mkdir()
