@@ -20,6 +20,10 @@ args = ["jcodemunch-mcp"]
 UV_CACHE_DIR = "/tmp/codex-uv-cache"
 UV_TOOL_DIR = "/tmp/codex-uv-tools"
 
+[mcp_servers.github-mcp-server]
+command = "docker"
+args = ["run", "-i", "--rm", "-e", "GITHUB_PERSONAL_ACCESS_TOKEN", "ghcr.io/github/github-mcp-server"]
+
 [profiles.conservative]
 approval_policy = "on-request"
 sandbox_mode = "workspace-write"

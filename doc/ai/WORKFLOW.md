@@ -208,6 +208,11 @@ The primary execution environment is **Antigravity** with the **Codex extension*
 Use this workflow when the mission is large enough that one-shot implementation is risky.
 For the canonical maintainer copy/paste mission prompt, see **[AGENT_PROMPT_TEMPLATE.md](AGENT_PROMPT_TEMPLATE.md)**.
 
+#### 4.1.0 Relay Runtime Prerequisite
+
+Before starting the loop, ensure Tether MCP is installed and configured for every client used in the chain (`architect`, `developer`, `code_auditor`).
+Canonical local setup details (install + config locations for Codex/Claude/Gemini) are in **[../CONTRIBUTING.md](../CONTRIBUTING.md)** section `2.6`.
+
 #### 4.1.1 Workflow Contract (Mandatory)
 
 1.  This workflow is mandatory for non-trivial missions.
@@ -215,29 +220,29 @@ For the canonical maintainer copy/paste mission prompt, see **[AGENT_PROMPT_TEMP
     *   atomic and independently verifiable,
     *   not fragmented into trivial micro-steps,
     *   executed one task at a time.
-3.  All relay artifacts MUST be plain-text `.txt` files in repo root (`~/ytree`).
-    *   `~` is the canonical notation in this doc; agents must resolve it to the user's absolute home path at runtime.
-4.  Relay artifacts (`task*.txt`, `task-*-report.txt`, `*-auditor-report.txt`) are workflow artifacts and MUST NOT be committed.
+3.  All relay artifacts MUST be Tether messages with stable handles.
+    *   Completion/status lines shared with maintainer MUST include the relevant handle.
+4.  Relay artifacts (prompt/report/status messages) are workflow artifacts and MUST NOT be committed.
 
 #### 4.1.2 Mission Definition Pass (Stateless Planning)
 
 1.  Run a stateless planning session to define mission scope, constraints, and acceptance criteria.
 2.  Output must include a prompt for a stateless `architect` pass.
 
-#### 4.1.3 Architect Pass (Stateless, Branch Setup, File-Based Handoffs)
+#### 4.1.3 Architect Pass (Stateless, Branch Setup, Tether-Based Handoffs)
 
 1.  Start on a dedicated feature branch (local + remote).
-2.  Architect writes a numbered master plan file in repo root (plain text, `.txt`).
+2.  Architect publishes a numbered master plan relay message in Tether and keeps its handle.
 3.  Architect emits exactly one developer handoff at a time (never multiple tasks in one handoff).
-4.  Each developer handoff must be a `.txt` prompt file in repo root and must include:
+4.  Each developer handoff must be a Tether prompt message and must include:
     *   strict scope lock,
     *   acceptance criteria,
     *   verification commands,
     *   stop/blocker conditions,
-    *   mandatory developer report output path.
+    *   mandatory developer report handle in completion line.
 5.  Architect relay response to maintainer MUST include:
     *   `Reasoning level: <Low|Medium|High|Extra High>`
-    *   `Handoff line: developer: Execute ~/ytree/<...dev_prompt.txt> exactly as written (Task ... only).`
+    *   `Handoff line: developer: Execute task <task-id> from handle <handoff-handle> exactly as written (Task ... only).`
 
 #### 4.1.4 Developer Pass (Stateless, Single Task Only)
 
@@ -252,14 +257,13 @@ For the canonical maintainer copy/paste mission prompt, see **[AGENT_PROMPT_TEMP
     *   exact commands executed,
     *   pass/fail outcome per command,
     *   enough output summary to validate evidence quickly.
-6.  On completion, developer MUST write report file:
-    *   `~/ytree/task-<task-id>-report.txt`
+6.  On completion, developer MUST publish a Tether report message and capture its handle.
 7.  Developer chat response to maintainer MUST be one line only:
-    *   `Task <task-id> completed, report in ~/ytree/task-<task-id>-report.txt`
+    *   `Task <task-id> completed, report handle: <report-handle>`
 
 #### 4.1.5 Auditor Pass (Stateless, Single Task Only)
 
-1.  After each developer-completed atomic task, architect prepares a single-task auditor prompt `.txt` file.
+1.  After each developer-completed atomic task, architect prepares a single-task auditor prompt message in Tether.
 2.  This includes correction/rework tasks (`R` tasks): each rework is treated as a new atomic task and must receive its own auditor pass.
 3.  Run a stateless `code_auditor` for that same task only.
 4.  Auditor workflow is evidence-first: validate code changes + developer verification evidence before rerunning commands.
@@ -267,26 +271,25 @@ For the canonical maintainer copy/paste mission prompt, see **[AGENT_PROMPT_TEMP
 6.  On correction/rework iterations, auditor reruns should default to the failing checks and directly affected targeted tests; do not rerun full `make qa-all` by default.
 7.  Full-suite rerun by auditor is reserved for unresolved high-risk uncertainty or explicit architect request.
 8.  Auditor report MUST state whether commands were rerun and why.
-9.  Auditor MUST write report file:
-    *   `~/ytree/task-<task-id>-auditor-report.txt`
+9.  Auditor MUST publish an auditor report message in Tether and capture its handle.
 10. Auditor chat response to maintainer MUST be one line only:
-    *   `Task <task-id> auditor pass completed, report in ~/ytree/task-<task-id>-auditor-report.txt`
+    *   `Task <task-id> auditor pass completed, report handle: <auditor-report-handle>`
 
 #### 4.1.6 Architect Validation, Commit, and Cleanup
 
-1.  Maintainer provides developer/auditor completion lines and report paths back to architect.
+1.  Maintainer provides developer/auditor completion lines and report handles back to architect.
 2.  Architect validates repository state + report evidence.
 3.  Architect should avoid redundant per-task reruns. Re-run commands only when evidence is incomplete, conflicting, or high-risk details remain unresolved.
 4.  Before commit, architect MUST ensure fresh full-gate evidence (`make qa-all`) exists for the current accepted branch state (from current developer evidence or architect rerun when evidence is stale/incomplete).
 5.  If task is accepted:
-    *   commit only task code files (no `.txt` relay/report artifacts),
+    *   commit only task code files (no local relay/report artifacts),
     *   use maintainer-approved commit message describing behavior/scope (no task numbering),
     *   for first push of a new branch, use `git push-fast-up`,
     *   for already-tracked branches, use `git push-fast`.
 6.  If a follow-up correction is needed for the same task or set, amend and repush:
     *   `git commit --amend --no-edit`
     *   then push using the branch rule above (`push-fast-up` first push, else `push-fast`).
-7.  After commit/push, delete consumed task prompt/report `.txt` artifacts.
+7.  After commit/push, expire or delete consumed relay messages according to TTL/retention policy.
 8.  Repeat from architect handoff for the next single task.
 9.  If a task fails audit or has implementation defects, architect must issue a new tailored correction task prompt for a new stateless `developer` pass. Do not reuse the previous developer session.
 
@@ -295,7 +298,7 @@ For the canonical maintainer copy/paste mission prompt, see **[AGENT_PROMPT_TEMP
 1.  When final numbered task is accepted, run full project gate (`make qa-all`) and require green results.
 2.  Integrate branch to `main` with fast-forward only; do not create a merge message commit.
 3.  Delete feature branch locally and on remote after successful integration.
-4.  Ensure relay/report `.txt` artifacts are cleaned from working tree and not committed.
+4.  Ensure relay artifacts are either expired/archived per policy and never committed.
 
 ---
 
