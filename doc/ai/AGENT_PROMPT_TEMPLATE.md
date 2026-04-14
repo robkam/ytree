@@ -15,7 +15,7 @@ Mandatory startup (before any repo exploration):
 3) Use MCP semantic tools only (serena + jcodemunch) for exploration
 
 Goal:
-Deliver all outcomes for doc/ROADMAP.md Task $TASK using procedure 4.1 in ~/ytree/doc/ai/WORKFLOW.md on a new branch named for this task.
+Deliver all outcomes for doc/ROADMAP.md Task $TASK by following 3.1.3 through 3.1.7 of the Agentic Loop procedure in ~/ytree/doc/ai/WORKFLOW.md, on a new branch named for this task.
 - Branch name must not use words: “phase”, “step”, “task” and must contain no digits.
 - First push: git push-fast-up
 - Subsequent pushes: git push-fast
