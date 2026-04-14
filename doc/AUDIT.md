@@ -15,8 +15,8 @@ The project uses layered QA gates with increasing depth and cost:
 
 | Layer | Command | What it checks | When to run |
 |---|---|---|---|
-| Baseline CI Gate | GitHub Actions (automatic) | `make ci-baseline` (unsafe C API guard, `pytest`, gcov/lcov C coverage summary) | Every PR to `main`, every push to `main` |
-| PR Full QA Gate | GitHub Actions (automatic) | `make qa-all` (clang-tidy, cppcheck, scan-build, Valgrind smoke, `pytest`, unsafe API guard, module-boundary guard, AI config guard) | Every PR to `main` |
+| Baseline CI Gate | GitHub Actions (automatic) | `make ci-baseline` (unsafe C API guard, `pytest`, gcov/lcov C coverage summary, fuzz smoke) | Every PR to `main`, every push to `main` |
+| PR Full QA Gate | GitHub Actions (automatic) | `make qa-all` (clang-tidy, cppcheck, scan-build, Valgrind smoke, `pytest`, unsafe API guard, module-boundary guard, AI config guard, fuzz smoke) | Every PR to `main` |
 | Local QA | `make qa-all` | Same gate as PR Full QA; run locally for fast feedback and before pushing risky changes | During development, before major updates |
 | Deep Audit | `make qa-valgrind-full` | Automated interactive Valgrind Memcheck session (leak, uninit, FD, use-after-free checks) | Nightly CI, before release, after major refactoring, or periodically |
 | Manual Feature Audit | `make qa-valgrind-interactive` | You manually drive ytree under Valgrind to exercise new feature code paths | After adding a major new feature |
@@ -68,8 +68,11 @@ Local shortcut targets are available in the `Makefile`:
 - `make qa-pytest-coverage`
 - `make qa-unsafe-apis`
 - `make qa-module-boundaries`
+- `make qa-fuzz` (builds fuzz harnesses and runs bounded smoke passes)
+- `make fuzz` (build-only for all fuzz harnesses)
+- `make fuzz-smoke` (run-only smoke gate for all fuzz harnesses)
 - `make ci-baseline` (baseline gate used by GitHub baseline CI and the local pre-push hook when pushing to `main`)
-- `make qa-all` (runs `qa-clang`, `qa-cppcheck`, `qa-scan`, `qa-valgrind`, `qa-pytest`, `qa-unsafe-apis`, `qa-module-boundaries`, `qa-ai-config` in order)
+- `make qa-all` (runs `qa-clang`, `qa-cppcheck`, `qa-scan`, `qa-valgrind`, `qa-pytest`, `qa-unsafe-apis`, `qa-module-boundaries`, `qa-ai-config`, `qa-fuzz` in order)
 - `make qa-all-log` (same as `qa-all`, with full output captured to `qa-all.log` in repo root; override with `QA_LOG=/path/to/file`)
 
 For feature-sized/PR-scope changes, audit evidence must include a successful `make qa-module-boundaries` run so controller-slimming checks are explicitly validated.

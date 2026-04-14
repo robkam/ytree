@@ -58,10 +58,12 @@ Inspect file contents without leaving the file manager. (Shown: Previewing a fil
 
 ### Prerequisites
 
-*   **C Compiler** (GCC tested; Clang unverified)
+*   **C Compiler** (GCC or Clang; Clang is required for fuzz targets)
 *   **ncurses** (libncurses-dev / ncurses-devel)
 *   **readline** (libreadline-dev / readline-devel)
 *   **libarchive** (libarchive-dev / libarchive-devel)
+*   **lcov** (for baseline coverage reports)
+*   **llvm-symbolizer** (recommended for sanitizer/fuzz stack traces)
 
 ### Build from Source
 

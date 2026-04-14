@@ -24,6 +24,7 @@ BIN_DIR     = .
 # Toolchain & Utilities
 # -------------------------------------------------------------------------
 CC          ?= cc
+FUZZ_CC     ?= clang
 PANDOC      ?= pandoc
 MAKE_CMD    ?= $(MAKE)
 
@@ -119,6 +120,20 @@ GCOV ?= gcov
 LCOV ?= lcov
 LCOV_INFO ?= coverage/lcov.info
 LCOV_SUMMARY ?= coverage/summary.txt
+FUZZ_BUILD_DIR ?= $(BUILD_DIR)/fuzz
+FUZZ_ARTIFACT_DIR ?= $(FUZZ_BUILD_DIR)/artifacts
+FUZZ_RUNS ?= 2000
+FUZZ_SANITIZERS ?= fuzzer,address,undefined
+FUZZ_COMMON_SRC := tests/fuzz/fuzz_common.c
+FUZZ_COMMON_HDR := tests/fuzz/fuzz_common.h
+FUZZ_CFLAGS ?= -std=c99 -D_GNU_SOURCE -I$(INC_DIR) -Itests/fuzz \
+	-g -O1 -fno-omit-frame-pointer -Wall -Wextra -Wno-unused-parameter \
+	-fsanitize=$(FUZZ_SANITIZERS)
+FUZZ_LDFLAGS ?= -fsanitize=$(FUZZ_SANITIZERS)
+FUZZ_STRING_UTILS_BIN := $(FUZZ_BUILD_DIR)/fuzz_string_utils
+FUZZ_PATH_UTILS_BIN := $(FUZZ_BUILD_DIR)/fuzz_path_utils
+FUZZ_FILTER_CORE_BIN := $(FUZZ_BUILD_DIR)/fuzz_filter_core
+FUZZ_BINS := $(FUZZ_STRING_UTILS_BIN) $(FUZZ_PATH_UTILS_BIN) $(FUZZ_FILTER_CORE_BIN)
 
 # -------------------------------------------------------------------------
 # Rules
@@ -126,6 +141,7 @@ LCOV_SUMMARY ?= coverage/summary.txt
 
 .PHONY: all clean clobber install uninstall docs changelog-draft hooks-install hooks-status \
 	git-aliases-install git-aliases-status test \
+	fuzz fuzz-smoke fuzz-string-utils fuzz-path-utils fuzz-filter-core qa-fuzz \
 	test-v qa-clang qa-cppcheck qa-scan qa-valgrind qa-valgrind-interactive qa-valgrind-full \
 	qa-pytest qa-pytest-coverage qa-unsafe-apis qa-module-boundaries qa-ai-config qa-all \
 	ci-baseline mcp-doctor \
@@ -243,6 +259,37 @@ test: $(MAIN_BIN)
 test-v: $(MAIN_BIN)
 	$(PYTEST) -v -s
 
+# Fuzz Targets
+$(FUZZ_BUILD_DIR):
+	mkdir -p $(FUZZ_BUILD_DIR)
+
+$(FUZZ_STRING_UTILS_BIN): tests/fuzz/fuzz_string_utils.c $(FUZZ_COMMON_SRC) $(FUZZ_COMMON_HDR) src/util/string_utils.c | $(FUZZ_BUILD_DIR)
+	$(FUZZ_CC) $(FUZZ_CFLAGS) -o $@ tests/fuzz/fuzz_string_utils.c $(FUZZ_COMMON_SRC) src/util/string_utils.c $(FUZZ_LDFLAGS)
+
+$(FUZZ_PATH_UTILS_BIN): tests/fuzz/fuzz_path_utils.c $(FUZZ_COMMON_SRC) $(FUZZ_COMMON_HDR) src/util/path_utils.c | $(FUZZ_BUILD_DIR)
+	$(FUZZ_CC) $(FUZZ_CFLAGS) -o $@ tests/fuzz/fuzz_path_utils.c $(FUZZ_COMMON_SRC) src/util/path_utils.c $(FUZZ_LDFLAGS)
+
+$(FUZZ_FILTER_CORE_BIN): tests/fuzz/fuzz_filter_core.c $(FUZZ_COMMON_SRC) $(FUZZ_COMMON_HDR) src/fs/filter_core.c | $(FUZZ_BUILD_DIR)
+	$(FUZZ_CC) $(FUZZ_CFLAGS) -o $@ tests/fuzz/fuzz_filter_core.c $(FUZZ_COMMON_SRC) src/fs/filter_core.c $(FUZZ_LDFLAGS)
+
+fuzz-string-utils: $(FUZZ_STRING_UTILS_BIN)
+
+fuzz-path-utils: $(FUZZ_PATH_UTILS_BIN)
+
+fuzz-filter-core: $(FUZZ_FILTER_CORE_BIN)
+
+fuzz: $(FUZZ_BINS)
+
+fuzz-smoke: fuzz
+	@mkdir -p "$(FUZZ_ARTIFACT_DIR)"
+	$(FUZZ_STRING_UTILS_BIN) -runs=$(FUZZ_RUNS) -artifact_prefix=$(FUZZ_ARTIFACT_DIR)/string-utils-
+	$(FUZZ_PATH_UTILS_BIN) -runs=$(FUZZ_RUNS) -artifact_prefix=$(FUZZ_ARTIFACT_DIR)/path-utils-
+	$(FUZZ_FILTER_CORE_BIN) -runs=$(FUZZ_RUNS) -artifact_prefix=$(FUZZ_ARTIFACT_DIR)/filter-core-
+
+qa-fuzz:
+	@command -v $(FUZZ_CC) >/dev/null || { echo "$(FUZZ_CC) is required for qa-fuzz"; exit 1; }
+	$(MAKE_CMD) fuzz-smoke
+
 # QA Targets
 qa-clang:
 	$(MAKE_CMD) QA_ON_BUILD=0 clean
@@ -298,9 +345,9 @@ qa-module-boundaries:
 qa-ai-config:
 	python3 scripts/check_project_ai_config.py
 
-ci-baseline: qa-unsafe-apis qa-pytest-coverage
+ci-baseline: qa-unsafe-apis qa-pytest-coverage qa-fuzz
 
-qa-all: qa-clang qa-cppcheck qa-scan qa-valgrind qa-pytest qa-unsafe-apis qa-module-boundaries qa-ai-config
+qa-all: qa-clang qa-cppcheck qa-scan qa-valgrind qa-pytest qa-unsafe-apis qa-module-boundaries qa-ai-config qa-fuzz
 
 qa-all-log:
 	@mkdir -p "$(dir $(QA_LOG))"
