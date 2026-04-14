@@ -44,46 +44,6 @@ After the first run, you must reactivate this environment for any new shell sess
 source .venv/bin/activate
 ```
 
-### 2.5 Codex AI Config Bootstrap (Recommended)
-
-To ensure clone-local AI tooling picks up the same project defaults, run:
-
-```bash
-make mcp-doctor FIX=1
-```
-
-This bootstraps `~/.codex/config.toml` from repo-tracked `.codex/config.toml` when missing, while keeping personal files in `~/.codex` (auth/session/history/local-only rules) untouched.
-It warns on home-path values in MCP server config (for example `/home/...`): that is acceptable for personal overrides, but team defaults must be edited in repo `.codex/config.toml`.
-
-### 2.6 Tether Relay MCP Setup (Codex, Claude, Gemini)
-
-The stateless multi-AI loop now uses **Tether** relay handles instead of root-level `.txt` prompt/report handoff files.
-
-Install Tether once on your machine:
-
-```bash
-mkdir -p ~/.local/src ~/.local/share/tether
-cd ~/.local/src
-git clone https://github.com/latentcollapse/Tether.git
-cd Tether
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -e .
-```
-
-Recommended shared DB path:
-- `~/.local/share/tether/postoffice.db`
-
-Expected MCP runtime wiring:
-- **Codex**: `~/.codex/config.toml` -> `mcp_servers.serena`, `mcp_servers.jcodemunch`, `mcp_servers.tether`, `mcp_servers.github-mcp-server`
-- **Claude**: `~/.claude.json` project `mcpServers` for `/home/rob/ytree`
-- **Gemini (Antigravity)**: `~/.gemini/antigravity/mcp_config.json` -> `mcpServers.tether`
-
-Example server command:
-- command: `~/.local/src/Tether/.venv/bin/python`
-- args: `~/.local/src/Tether/tether/mcp_server.py`
-- env: `TETHER_DB=~/.local/share/tether/postoffice.db`
-
 ### 3. Enable Repository Git Hooks (Recommended)
 
 This repository ships tracked hooks under `.githooks/` so the pre-push checks are maintained in one place.

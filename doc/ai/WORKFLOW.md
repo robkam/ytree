@@ -22,7 +22,7 @@ The development process is strictly hierarchical. The Spec is the "Contract of T
 ### 1.2 General Rules
 1.  **Architecture as Blueprint:** [ARCHITECTURE.md](../ARCHITECTURE.md) defines the technical structure.
 1.  **Testing as Standard:** [TESTING.md](TESTING.md) defines test naming, structure, and harness rules. All test code must conform to it.
-2.  **Human as Architect:** The AI acts as a partner with varying levels of specialization (see Section 3). The human maintainer provides final architectural direction.
+2.  **Human as Architect:** The AI acts as a partner with varying levels of specialization (see Section 2). The human maintainer provides final architectural direction.
 3.  **Atomic Missions:** One task = One session.
 4.  **Build-First Verification:** No code is accepted until it compiles and passes tests.
 5.  **The "Clean Slate" Rule:** If an AI generates fragile code or follows a wrong path, do not attempt to "patch" the mistake via further dialogue. Revert the changes (`git restore .`), rephrase the original prompt from a different perspective, and restart the mission. This is mandatory because:
@@ -143,77 +143,54 @@ If procedural instructions appear in persona files, move them into skills and le
 
 ---
 
-## 3. Model Selection Guide
-
-Model choice should be explicit and repeatable. In this project, default to GPT Codex models first. If the GPT Codex usage limit is reached, fallback to Gemini (Flash/Pro) or Claude (Sonnet/Opus) depending on task complexity. Use other model families only when you intentionally want a second opinion or hit the primary usage limit.
-
-### 3.1 Reasoning Level Meanings
-
-*   **Low:** Mechanical edits, straightforward formatting/docs updates, simple search-and-replace, low-risk file shuffling.
-*   **Medium:** Normal feature work, focused bug fixes, standard pytest updates, moderate multi-file changes.
-*   **High:** Architectural risk, subtle state bugs, cross-module behavior coupling, non-obvious regressions.
-*   **Extra High:** Pre-release gate audits, adversarial code review, ambiguous root-cause analysis, high-cost mistakes.
-
-### 3.2 Primary Selection Matrix
-
-| Task Type | Primary Model | Fallback Models (Usage Limit Reached) | Suggested Level | Overlap / Notes |
-|:---|:---|:---|:---|:---|
-| Repo scanning, repetitive edits, docs cleanup | GPT Codex 5.3 | Gemini Flash | Low to Medium | Fast default for throughput; overlap with other "fast" models. |
-| Standard implementation and test work | GPT Codex 5.3 | Gemini Pro / Claude Sonnet | Medium to High | Start here for most missions. |
-| Complex refactor with architecture constraints | GPT 5.4 | Gemini Pro / Claude Sonnet | High | 5.3 at High can often do this too; switch if reasoning stalls. |
-| Deep bug forensics across subsystems | GPT 5.4 | Claude Opus | High to Extra High | Use when symptoms are cross-cutting or prior fixes regressed behavior. |
-| Pre-release review gate (Code Auditor role) | GPT 5.4 | Claude Opus | Extra High | Prefer stricter reasoning over speed. |
-
-### 3.3 Escalation Rule (Model vs. Level)
-
-1.  Start with **GPT Codex 5.3 at Medium** for normal work. If the Codex usage limit is reached, start with **Gemini Pro** or **Claude Sonnet**.
-2.  Raise level first (**Medium -> High**) before switching models.
-3.  Switch to **GPT 5.4** (or **Claude Opus** if the Codex usage limit is reached) when:
-    *   the task is architecture-heavy,
-    *   bug cause remains unclear after one focused pass, or
-    *   quality gate decisions require stricter reasoning.
-4.  For audit-critical calls, use **GPT 5.4 at Extra High** by default (fallback: **Claude Opus**).
-5.  For simple mechanical tasks when the Codex usage limit is reached, use **Gemini Flash**.
-
-### 3.4 Intentional Overlap (When Either Works)
-
-*   **GPT Codex 5.3 (High)** and **GPT 5.4 (Medium/High)** overlap for many mid-to-hard engineering tasks.
-*   If speed matters and risk is moderate, prefer **5.3** (or **Gemini Flash** / **Sonnet** if the usage limit is reached).
-*   If certainty matters more than speed, prefer **5.4** (or **Claude Opus** / **Gemini Pro** if the usage limit is reached).
-*   You can use a second model family (Gemini/Claude) as an independent audit pass, or as primary if the Codex usage limit is reached.
-
-### 3.5 Cross-Model Perspective Policy
-
-Use a two-pass approach for high-risk or ambiguous work:
-
-1.  **Build Pass (Codex):** Implement and verify in Antigravity. (Use Gemini/Claude if the Codex usage limit is reached).
-2.  **Challenge Pass (External):** Ask Gemini/Claude to critique assumptions, edge cases, and failure modes.
-3.  **Reconcile Pass (Codex):** Apply only evidence-backed improvements and re-run tests.
-
-Use external large-context models when the task spans many documents or subsystems (for example: roadmap + architecture + spec + manpage consistency checks).
-
----
-
-## 4. The Agentic Loop (Antigravity + Codex Extension)
-
-The primary execution environment is **Antigravity** with the **Codex extension**, or fallback to **Gemini/Claude** if the usage limit is reached.
+## 3. The Agentic Loop
 
 1.  **Direct Execution:** Run edits, builds, and tests in-repo to avoid manual copy/paste workflows.
-2.  **Model Routing:** Default to GPT Codex 5.3, escalate level first, then move to GPT 5.4 for harder reasoning tasks (see Section 3). If the Codex usage limit is reached, route to Gemini Flash for simple work, Gemini Pro/Claude Sonnet for standard work, and Claude Opus for hard reasoning tasks.
+2.  **Model Routing Principle:** Choose the available model/runtime by task risk and uncertainty: lower capability for mechanical edits, higher capability for ambiguous or high-impact decisions. Keep this as a capability decision, not a provider-name decision.
 3.  **Semantic Context:** You MUST use **Serena** (symbol navigation) and **jCodeMunch** (repo indexing/search) for targeted context retrieval. You MUST NOT use raw bash tools like grep or find.
 4.  **Cross-File State:** Keep terminal state, open-file context, and task history in one working loop.
 
-### 4.1 Stateless Multi-AI Delivery Workflow (Non-Trivial Missions)
+### 3.1 Stateless Multi-AI Delivery Workflow (Non-Trivial Missions)
 
 Use this workflow when the mission is large enough that one-shot implementation is risky.
 For the canonical maintainer copy/paste mission prompt, see **[AGENT_PROMPT_TEMPLATE.md](AGENT_PROMPT_TEMPLATE.md)**.
 
-#### 4.1.0 Relay Runtime Prerequisite
+#### 3.1.0 Relay Runtime Prerequisite
 
 Before starting the loop, ensure Tether MCP is installed and configured for every client used in the chain (`architect`, `developer`, `code_auditor`).
-Canonical local setup details (install + config locations for Codex/Claude/Gemini) are in **[../CONTRIBUTING.md](../CONTRIBUTING.md)** section `2.6`.
+The stateless multi-AI loop uses Tether relay handles.
 
-#### 4.1.1 Workflow Contract (Mandatory)
+##### 3.1.0.1 MCP Config Bootstrap (Recommended)
+
+To ensure local AI tooling picks up project defaults, run:
+
+```bash
+make mcp-doctor FIX=1
+```
+
+This bootstraps local MCP client configuration from repo-tracked defaults when missing, while preserving personal auth/session/history settings.
+Principle: keep team-shared defaults in repo config and keep user-specific paths, credentials, and local overrides in user-local config.
+
+##### 3.1.0.2 Tether Relay MCP Setup
+
+Install Tether once on your machine:
+
+```bash
+mkdir -p "$HOME/.local/src" "$HOME/.local/share/tether"
+cd "$HOME/.local/src"
+git clone https://github.com/latentcollapse/Tether.git
+cd Tether
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -e .
+```
+
+Recommended shared DB path:
+- `$HOME/.local/share/tether/postoffice.db`
+
+All participating clients in the workflow should point to the same Tether server entry and shared DB path.
+
+#### 3.1.1 Workflow Contract (Mandatory)
 
 1.  This workflow is mandatory for non-trivial missions.
 2.  Work is executed as numbered tasks that are:
@@ -224,12 +201,12 @@ Canonical local setup details (install + config locations for Codex/Claude/Gemin
     *   Completion/status lines shared with maintainer MUST include the relevant handle.
 4.  Relay artifacts (prompt/report/status messages) are workflow artifacts and MUST NOT be committed.
 
-#### 4.1.2 Mission Definition Pass (Stateless Planning)
+#### 3.1.2 Mission Definition Pass (Stateless Planning)
 
 1.  Run a stateless planning session to define mission scope, constraints, and acceptance criteria.
 2.  Output must include a prompt for a stateless `architect` pass.
 
-#### 4.1.3 Architect Pass (Stateless, Branch Setup, Tether-Based Handoffs)
+#### 3.1.3 Architect Pass (Stateless, Branch Setup, Tether-Based Handoffs)
 
 1.  Start on a dedicated feature branch (local + remote).
 2.  Architect publishes a numbered master plan relay message in Tether and keeps its handle.
@@ -244,7 +221,7 @@ Canonical local setup details (install + config locations for Codex/Claude/Gemin
     *   `Reasoning level: <Low|Medium|High|Extra High>`
     *   `Handoff line: developer: Execute task <task-id> from handle <handoff-handle> exactly as written (Task ... only).`
 
-#### 4.1.4 Developer Pass (Stateless, Single Task Only)
+#### 3.1.4 Developer Pass (Stateless, Single Task Only)
 
 1.  Run a stateless `developer` for exactly one task.
 2.  Developer executes only the assigned task prompt.
@@ -261,7 +238,7 @@ Canonical local setup details (install + config locations for Codex/Claude/Gemin
 7.  Developer chat response to maintainer MUST be one line only:
     *   `Task <task-id> completed, report handle: <report-handle>`
 
-#### 4.1.5 Auditor Pass (Stateless, Single Task Only)
+#### 3.1.5 Auditor Pass (Stateless, Single Task Only)
 
 1.  After each developer-completed atomic task, architect prepares a single-task auditor prompt message in Tether.
 2.  This includes correction/rework tasks (`R` tasks): each rework is treated as a new atomic task and must receive its own auditor pass.
@@ -275,7 +252,7 @@ Canonical local setup details (install + config locations for Codex/Claude/Gemin
 10. Auditor chat response to maintainer MUST be one line only:
     *   `Task <task-id> auditor pass completed, report handle: <auditor-report-handle>`
 
-#### 4.1.6 Architect Validation, Commit, and Cleanup
+#### 3.1.6 Architect Validation, Commit, and Cleanup
 
 1.  Maintainer provides developer/auditor completion lines and report handles back to architect.
 2.  Architect validates repository state + report evidence.
@@ -293,28 +270,18 @@ Canonical local setup details (install + config locations for Codex/Claude/Gemin
 8.  Repeat from architect handoff for the next single task.
 9.  If a task fails audit or has implementation defects, architect must issue a new tailored correction task prompt for a new stateless `developer` pass. Do not reuse the previous developer session.
 
-#### 4.1.7 Completion Gate and Merge
+#### 3.1.7 Completion Gate and Merge
 
 1.  When final numbered task is accepted, run full project gate (`make qa-all`) and require green results.
 2.  Integrate branch to `main` with fast-forward only; do not create a merge message commit.
 3.  Delete feature branch locally and on remote after successful integration.
 4.  Ensure relay artifacts are either expired/archived per policy and never committed.
 
----
-
-## 5. Optional Second-Opinion Loop (and Usage Limit Fallback)
-
-External model families (Gemini Flash/Pro, Claude Sonnet/Opus, or others) are used when the GPT Codex usage limit is reached, or when you intentionally want an independent perspective.
-
-1.  **Fallback Implementation:** If the Codex usage limit is reached, implement directly using Gemini Pro/Claude Sonnet for standard tasks, Gemini Flash for simple edits, and Claude Opus for complex architecture tasks.
-2.  **No Primary Implementation There (If Codex is Available):** Do planning/review externally if useful, then implement in Antigravity with Codex.
-3.  **Persona Alignment:** Use the same persona framing (`Architect`, `Developer`, `Code Auditor`, `Tester`) to keep outputs compatible.
-4.  **Use Cases:** Usage limit fallback, architecture challenge, tie-break between competing fixes, adversarial pre-release audit cross-check, or huge-context synthesis across multiple project docs.
-## 6. Debugging Procedures
+## 4. Debugging Procedures
 
 Never allow the AI to "guess" the cause of a bug. Use one of the following objective methodologies, described in detail in **[DEBUGGING.md](DEBUGGING.md)**.
 
-### 6.1 Summary of Methodologies (by Usefulness)
+### 4.1 Summary of Methodologies (by Usefulness)
 
 1.  **Targeted Root Cause Analysis:** Lightweight, hypothesis-driven approach using semantic tools (**Serena**/**jCodeMunch**) to compare working vs. broken cases.
 2.  **The "Hands-Off" Fix Mandate (Testing):** The mandatory procedure for **Antigravity**. Prove understanding by writing a failing `pytest`/`pexpect` test *before* editing code.
@@ -325,7 +292,7 @@ Never allow the AI to "guess" the cause of a bug. Use one of the following objec
 
 ---
 
-## 7. Audit Loop and Merge Gate
+## 5. Audit Loop and Merge Gate
 
 Follow **[../AUDIT.md](../AUDIT.md)** as the canonical process.
 
@@ -338,30 +305,30 @@ Cadence:
 
 ---
 
-## 8. Resource Management & Usage Allowance Economy
+## 6. Resource Management & Usage Allowance Economy
 
 AI computational resources (often referred to as tokens, usage allowance, context window limits, or quotas) are strictly finite. Wasted resources lead to shorter sessions, lost history, and increased costs.
 
-### 8.1 Mandatory Usage Allowance Guard
+### 6.1 Mandatory Usage Allowance Guard
 *   **The AI MUST warn the user** when any requested action will unnecessarily consume massive amounts of context, generate immense output, or pull in disproportionately large data unsuited for the immediate task.
 *   **The AI MUST always suggest the more economical alternative** before proceeding.
 *   **The AI MUST NOT prevent** the user from proceeding if the user explicitly confirms they want to proceed with the expensive action anyway.
 
-### 8.2 Avoid "Blind Exploration"
+### 6.2 Avoid "Blind Exploration"
 *   **Do not** ask the agent to "look for issues" or "summarize the file" to get started.
 *   **The Semantic Advantage:** **jCodeMunch** `get_repo_outline` and **Serena** `get_symbols_overview` provide the necessary context in a fraction of the cost compared to reading raw files or directory listings.
 
-### 8.3 Targeted Retrieval
+### 6.3 Targeted Retrieval
 *   **Do not** load multiple unrelated files into a single prompt.
 *   **The Semantic Advantage:** You MUST use **Serena** `find_symbol` to extract only the relevant function or struct definition. This keeps the prompt focused and the model's reasoning sharp.
 
-### 8.4 Minimize Redundant Calls
+### 6.4 Minimize Redundant Calls
 *   If a symbol has been read in the current session, do not re-read it.
 *   Use **jCodeMunch** `search_text` for broad pattern matching across the entire project rather than manually grepping or opening dozens of files. This is strictly required over bash generic tools.
 
-### 8.5 Batch Related Edits
+### 6.5 Batch Related Edits
 *   Group related changes into a single prompt to avoid the overhead of full context reload for each minor edit.
 
-### 8.6 Chat Pruning and Context
+### 6.6 Chat Pruning and Context
 *   **New Chats for New Tasks:** Once a specific bug is fixed or a task is done, close the chat and start a new one to drop old contexts.
 *   **Exit Early on Hallucinations:** Stop and restart if the agent speculates. Do not waste usage allowance trying to correct a hallucinating model.
