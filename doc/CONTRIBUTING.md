@@ -16,16 +16,17 @@ This project uses a combination of C for the application and Python for the test
 
 ### 1. Prerequisites
 
-- A C compiler (like `gcc`) and `make`.
+- A C compiler (`gcc` or `clang`) and `make`.
 - `libncurses-dev`, `libtinfo-dev`, `libreadline-dev`, `libarchive-dev`.
 - `python3` and `python3-venv`.
 - `pandoc` (for generating the man page).
 - `lcov` (for baseline CI coverage reports).
+- `llvm` tools (`llvm-symbolizer`) for sanitizer/fuzz diagnostics.
 
 On a Debian/Ubuntu-based system, you can install these with:
 ```bash
 sudo apt-get update
-sudo apt-get install build-essential libncurses-dev libtinfo-dev libreadline-dev libarchive-dev python3-venv pandoc lcov
+sudo apt-get install build-essential clang llvm libncurses-dev libtinfo-dev libreadline-dev libarchive-dev python3-venv pandoc lcov
 ```
 
 ### 2. Initial Python Environment Setup
@@ -199,7 +200,7 @@ Use **[AUDIT.md](AUDIT.md)** as the single source of truth.
 ### Local QA Commands
 
 - Normal development build: `make`
-- Full local QA gate: `make qa-all` (includes `pytest`, unsafe C API guard, and module-boundary guard)
+- Full local QA gate: `make qa-all` (includes `pytest`, unsafe C API guard, module-boundary guard, and fuzz smoke)
 - Full local QA gate with captured log: `make qa-all-log` (writes `qa-all.log` in repo root; override with `QA_LOG=/path/to/file`)
 - Optional strict mode: `make QA_ON_BUILD=1` (runs `qa-all` after build)
 - GitHub baseline CI (`.github/workflows/ci.yml`) runs `make ci-baseline` on PRs to `main` and pushes to `main`.
@@ -219,6 +220,9 @@ Individual gates:
 - `make qa-unsafe-apis`
 - `make qa-module-boundaries`
 - `make qa-ai-config`
+- `make qa-fuzz` (builds and runs all fuzz smoke targets)
+- `make fuzz` (builds all fuzz binaries under `build/fuzz/`)
+- `make fuzz-smoke` (runs bounded libFuzzer smoke passes for all harnesses)
 
 ---
 
