@@ -38,14 +38,14 @@ jobs:
 
     - name: Upload qa-all log artifact
       if: always() && hashFiles('qa-all.log') != ''
-      uses: actions/upload-artifact@v6
+      uses: actions/upload-artifact@v7
       with:
         name: qa-all-log
         path: qa-all.log
 
     - name: Upload valgrind log artifact
       if: always() && hashFiles('valgrind.log') != ''
-      uses: actions/upload-artifact@v6
+      uses: actions/upload-artifact@v7
       with:
         name: qa-all-valgrind-log
         path: valgrind.log
