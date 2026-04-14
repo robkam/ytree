@@ -71,6 +71,13 @@ CFLAGS      += -D_GNU_SOURCE -DHAVE_LIBARCHIVE -DWITH_UTF8 \
 
 LDFLAGS     += -lncursesw -ltinfo -lreadline -larchive -lm
 
+# Coverage build switch (for gcov/lcov-driven C coverage reports).
+COVERAGE    ?= 0
+ifeq ($(COVERAGE),1)
+    CFLAGS  += --coverage
+    LDFLAGS += --coverage
+endif
+
 # -------------------------------------------------------------------------
 # Build Mode Selection
 # Run 'make DEBUG=1' for development (AddressSanitizer enabled)
@@ -108,6 +115,10 @@ CLANG_TIDY_SRCS = $(shell find $(SRC_DIR) -name '*.c' -type f)
 #   make QA_ON_BUILD=1
 QA_ON_BUILD ?= 0
 QA_LOG ?= qa-all.log
+GCOV ?= gcov
+LCOV ?= lcov
+LCOV_INFO ?= coverage/lcov.info
+LCOV_SUMMARY ?= coverage/summary.txt
 
 # -------------------------------------------------------------------------
 # Rules
@@ -116,7 +127,8 @@ QA_LOG ?= qa-all.log
 .PHONY: all clean clobber install uninstall docs changelog-draft hooks-install hooks-status \
 	git-aliases-install git-aliases-status test \
 	test-v qa-clang qa-cppcheck qa-scan qa-valgrind qa-valgrind-interactive qa-valgrind-full \
-	qa-pytest qa-unsafe-apis qa-module-boundaries qa-ai-config qa-all mcp-doctor \
+	qa-pytest qa-pytest-coverage qa-unsafe-apis qa-module-boundaries qa-ai-config qa-all \
+	ci-baseline mcp-doctor \
 	qa-all-log
 
 all: $(MAIN_BIN) $(MANPAGE) $(if $(filter 1,$(QA_ON_BUILD)),qa-all)
@@ -265,6 +277,18 @@ qa-valgrind-full:
 qa-pytest: $(MAIN_BIN)
 	TERM=$${TERM:-xterm} $(PYTEST)
 
+qa-pytest-coverage:
+	$(MAKE_CMD) DEBUG=0 COVERAGE=1 QA_ON_BUILD=0 clean
+	$(MAKE_CMD) DEBUG=0 COVERAGE=1 QA_ON_BUILD=0 all
+	@command -v $(GCOV) >/dev/null || { echo "gcov is required for qa-pytest-coverage"; exit 1; }
+	@command -v $(LCOV) >/dev/null || { echo "lcov is required for qa-pytest-coverage"; exit 1; }
+	@mkdir -p coverage
+	@rm -f "$(LCOV_INFO)" "$(LCOV_SUMMARY)"
+	TERM=$${TERM:-xterm} $(PYTEST) -q -ra --tb=no
+	$(LCOV) --capture --directory "$(OBJ_DIR)" --output-file "$(LCOV_INFO)" --gcov-tool "$(GCOV)"
+	$(LCOV) --remove "$(LCOV_INFO)" '/usr/*' --output-file "$(LCOV_INFO)"
+	$(LCOV) --summary "$(LCOV_INFO)" | tee "$(LCOV_SUMMARY)"
+
 qa-unsafe-apis:
 	python3 scripts/check_c_unsafe_apis.py
 
@@ -273,6 +297,8 @@ qa-module-boundaries:
 
 qa-ai-config:
 	python3 scripts/check_project_ai_config.py
+
+ci-baseline: qa-unsafe-apis qa-pytest-coverage
 
 qa-all: qa-clang qa-cppcheck qa-scan qa-valgrind qa-pytest qa-unsafe-apis qa-module-boundaries qa-ai-config
 

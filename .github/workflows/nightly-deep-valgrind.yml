@@ -1,0 +1,45 @@
+name: C/C++ Nightly Deep Valgrind
+
+on:
+  schedule:
+    - cron: "15 2 * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: nightly-deep-valgrind-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  deep-valgrind:
+    name: Deep scripted Valgrind gate (qa-valgrind-full)
+    if: github.repository == 'robkam/ytree'
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+
+    steps:
+    - uses: actions/checkout@v6
+
+    - name: Install System Dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libncurses-dev libtinfo-dev libreadline-dev libarchive-dev libarchive-tools pandoc valgrind
+
+    - name: Set up Python 3
+      uses: actions/setup-python@v6
+      with:
+        python-version: "3.x"
+
+    - name: Install Python Dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r scripts/requirements.txt
+
+    - name: Run deep Valgrind gate
+      run: make qa-valgrind-full
+
+    - name: Upload deep Valgrind log artifact
+      if: always() && hashFiles('valgrind.log') != ''
+      uses: actions/upload-artifact@v6
+      with:
+        name: nightly-deep-valgrind-log
+        path: valgrind.log

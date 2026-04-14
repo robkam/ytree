@@ -20,11 +20,12 @@ This project uses a combination of C for the application and Python for the test
 - `libncurses-dev`, `libtinfo-dev`, `libreadline-dev`, `libarchive-dev`.
 - `python3` and `python3-venv`.
 - `pandoc` (for generating the man page).
+- `lcov` (for baseline CI coverage reports).
 
 On a Debian/Ubuntu-based system, you can install these with:
 ```bash
 sudo apt-get update
-sudo apt-get install build-essential libncurses-dev libtinfo-dev libreadline-dev libarchive-dev python3-venv pandoc
+sudo apt-get install build-essential libncurses-dev libtinfo-dev libreadline-dev libarchive-dev python3-venv pandoc lcov
 ```
 
 ### 2. Initial Python Environment Setup
@@ -92,9 +93,8 @@ make hooks-install
 ```
 
 This installs a tracked pre-push gate:
-- Default on all branches: run `make` and `TERM=xterm pytest -q -ra --tb=no`.
-- Explicit fast bypass on non-`main` branches: `YTREE_PRE_PUSH_FAST=1 git push` (runs `make` only).
-- `main` is always full-gate; fast bypass is ignored on `main`.
+- Pushes that do not update `main`: skip local pre-push CI gate.
+- Pushes that update `main`: run `make ci-baseline` (unsafe C API guard + pytest coverage via gcov/lcov).
 
 `make hooks-install` also installs repo-local git aliases so fast push is available as native git subcommands in this clone:
 - `git push-fast-up` -> fast push with `-u origin <current-branch>` for first push of a new branch.
@@ -131,7 +131,9 @@ Configure GitHub branch protection on `main`:
 
 1. Settings -> Branches -> Add branch protection rule for `main`.
 2. Enable `Require status checks to pass before merging`.
-3. Select the CI job from `.github/workflows/ci.yml` (baseline build + unsafe C API guard + pytest).
+3. Select required checks from GitHub Actions:
+   - `.github/workflows/ci.yml`: `Baseline local-equivalent gate` (`make ci-baseline`).
+   - `.github/workflows/full-qa.yml`: `Full local-equivalent QA gate (qa-all)`.
 4. Enable `Require branches to be up to date before merging`.
 
 ### 5. Handling Red Checks on Branches
@@ -200,15 +202,20 @@ Use **[AUDIT.md](AUDIT.md)** as the single source of truth.
 - Full local QA gate: `make qa-all` (includes `pytest`, unsafe C API guard, and module-boundary guard)
 - Full local QA gate with captured log: `make qa-all-log` (writes `qa-all.log` in repo root; override with `QA_LOG=/path/to/file`)
 - Optional strict mode: `make QA_ON_BUILD=1` (runs `qa-all` after build)
-- GitHub CI is a baseline gate (`make` + `python3 scripts/check_c_unsafe_apis.py` + `pytest`); full audit remains the local/PR responsibility from `AUDIT.md`.
+- GitHub baseline CI (`.github/workflows/ci.yml`) runs `make ci-baseline` on PRs to `main` and pushes to `main`.
+- GitHub PR full QA CI (`.github/workflows/full-qa.yml`) runs `make qa-all` on PRs to `main`.
+- GitHub nightly deep Valgrind CI (`.github/workflows/nightly-deep-valgrind.yml`) runs `make qa-valgrind-full` on schedule (and manual dispatch).
 
 Individual gates:
 
 - `make qa-clang`
 - `make qa-cppcheck`
 - `make qa-scan`
-- `make qa-valgrind` (interactive; exit ytree cleanly to finish)
+- `make qa-valgrind` (non-interactive Valgrind smoke on `ytree --version`)
+- `make qa-valgrind-interactive` (manual interactive Valgrind session)
+- `make qa-valgrind-full` (scripted deep Valgrind session)
 - `make qa-pytest`
+- `make qa-pytest-coverage` (coverage build + pytest + gcov/lcov report)
 - `make qa-unsafe-apis`
 - `make qa-module-boundaries`
 - `make qa-ai-config`
