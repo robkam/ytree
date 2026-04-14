@@ -28,21 +28,13 @@ if [[ "$updates_main" != "1" ]]; then
   exit 0
 fi
 
-echo "[pre-push] Updating main: running baseline CI gate: clean make + pytest"
+echo "[pre-push] Updating main: running baseline CI gate: make ci-baseline"
 
 CURRENT_BRANCH="$(git rev-parse --abbrev-ref HEAD)"
 if [[ "${YTREE_PRE_PUSH_FAST:-0}" == "1" && "$CURRENT_BRANCH" != "main" ]]; then
   echo "[pre-push] Fast mode ignored: push updates main."
 fi
 
-make DEBUG=0 QA_ON_BUILD=0 clean
-make DEBUG=0 QA_ON_BUILD=0 all
-if [[ -x ".venv/bin/pytest" ]]; then
-  PYTEST=".venv/bin/pytest"
-else
-  PYTEST="pytest"
-fi
-
-TERM=xterm "$PYTEST" -q -ra --tb=no
+make ci-baseline
 
 echo "[pre-push] Checks passed. Proceeding with push."

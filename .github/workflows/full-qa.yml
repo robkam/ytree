@@ -1,0 +1,51 @@
+name: C/C++ Full QA
+
+on:
+  pull_request:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+concurrency:
+  group: full-qa-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: true
+
+jobs:
+  qa-all:
+    name: Full local-equivalent QA gate (qa-all)
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+
+    steps:
+    - uses: actions/checkout@v6
+
+    - name: Install System Dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libncurses-dev libtinfo-dev libreadline-dev libarchive-dev libarchive-tools pandoc clang-tidy cppcheck clang-tools bear valgrind
+
+    - name: Set up Python 3
+      uses: actions/setup-python@v6
+      with:
+        python-version: "3.x"
+
+    - name: Install Python Dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r scripts/requirements.txt
+
+    - name: Run full QA gate
+      run: make qa-all-log QA_LOG=qa-all.log
+
+    - name: Upload qa-all log artifact
+      if: always() && hashFiles('qa-all.log') != ''
+      uses: actions/upload-artifact@v6
+      with:
+        name: qa-all-log
+        path: qa-all.log
+
+    - name: Upload valgrind log artifact
+      if: always() && hashFiles('valgrind.log') != ''
+      uses: actions/upload-artifact@v6
+      with:
+        name: qa-all-valgrind-log
+        path: valgrind.log

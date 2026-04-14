@@ -8,7 +8,7 @@ on:
 
 jobs:
   build-and-test:
-    name: Baseline build + unsafe API guard + pytest
+    name: Baseline local-equivalent gate
     runs-on: ubuntu-latest
 
     steps:
@@ -17,10 +17,7 @@ jobs:
     - name: Install System Dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y libncurses-dev libtinfo-dev libreadline-dev libarchive-dev libarchive-tools pandoc
-
-    - name: Compile (Baseline Release Build)
-      run: make
+        sudo apt-get install -y libncurses-dev libtinfo-dev libreadline-dev libarchive-dev libarchive-tools pandoc lcov
 
     - name: Set up Python 3
       uses: actions/setup-python@v6
@@ -32,26 +29,20 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r scripts/requirements.txt
 
-    - name: Run Unsafe C API Guard (Baseline)
-      run: python3 scripts/check_c_unsafe_apis.py
+    - name: Run baseline gate (local-equivalent)
+      run: make ci-baseline
 
-    - name: Run Pytest (Baseline)
-      env:
-        TERM: xterm
-      # This workflow is intentionally baseline-only
-      # (build + unsafe API guard + pytest).
-      # Full QA audit gates run via local/PR workflow from doc/AUDIT.md
-      # (clang-tidy, cppcheck, scan-build, valgrind, pytest).
-      # 1. Run pytest and save output to a file (allowing failure with "|| true")
-      # 2. Extract failure lines to the GitHub Summary page for instant viewing
-      # 3. Exit with 1 if failures were found to mark the CI as failed
+    - name: Publish coverage summary
+      if: always() && hashFiles('coverage/summary.txt') != ''
       run: |
-        pytest -q -ra --tb=no > test_results.txt 2>&1 || true
-        echo "### Test Failures" >> $GITHUB_STEP_SUMMARY
-        echo '```text' >> $GITHUB_STEP_SUMMARY
-        grep "FAILED tests/" test_results.txt >> $GITHUB_STEP_SUMMARY || echo "No test failures detected." >> $GITHUB_STEP_SUMMARY
-        echo '```' >> $GITHUB_STEP_SUMMARY
+        echo "### C Coverage (gcov + lcov)" >> "$GITHUB_STEP_SUMMARY"
+        echo '```text' >> "$GITHUB_STEP_SUMMARY"
+        cat coverage/summary.txt >> "$GITHUB_STEP_SUMMARY"
+        echo '```' >> "$GITHUB_STEP_SUMMARY"
 
-        if grep -q "FAILED tests/" test_results.txt; then
-          exit 1
-        fi
+    - name: Upload lcov report artifact
+      if: always() && hashFiles('coverage/lcov.info') != ''
+      uses: actions/upload-artifact@v6
+      with:
+        name: lcov-info
+        path: coverage/lcov.info
