@@ -2,9 +2,9 @@
 ---
 > [!IMPORTANT]
 > **STATUS: ALPHA (v3.0.0-alpha)**
-> This is a major modernization of the original `ytree`, transitioning to a modular C99/POSIX architecture. While functional, it is considered alpha as UI/UX tightening and stability refinements continue.
+> `ytree` is in active alpha development. Expect rough edges, incomplete behaviour, and occasional regressions. Interfaces, key bindings, and configuration details may change before the first stable release.
 
-**Ytree** is a keyboard-optimized file manager for all POSIX-compliant **Unix** systems (Linux, BSD, macOS, etc.). Unlike traditional "browsers," `ytree` is a **Logger**: it scans directory hierarchies into memory, allowing for instant filtering, tagging, and bulk operations across the entire filesystem.
+Ytree gives you a fast, keyboard-first view of logged storage: a directory tree, a file list for the current directory, and Showall for all files in the current volume (plus Global across logged volumes). You can filter and tag files, then run normal file operations (copy, move, rename, delete, archive, edit) on single files or in bulk. It also includes built-in file preview, file/directory compare tools, split-screen workflows, and archive-as-directory support with archive creation plus in-archive write operations (copy/move/rename/delete/mkdir where supported).
 
 ---
 
@@ -16,11 +16,11 @@ Born from the lineage of [XTree&trade;](https://www.xtreefanpage.org/lowres/x10d
 
 Many file managers today function as "browsers"—they look at one directory at a time and rely on the OS to fetch files on demand. `Ytree` is different: it is a **Logger**. It scans ("logs") entire drive hierarchies into memory. This treats the filesystem as a database, allowing you to **Show All** files in a flat view, filter across thousands of subdirectories instantly, and perform bulk operations on tagged files regardless of their location.
 
-This v3.0 project modernizes `Ytree` to fulfill its potential, introducing features required by modern power users (like split-screen and integrated autoview) while moving to a clean, modern C99 architecture.
+This v3.0 project focuses on feature completeness for Unix power users, including split-screen and integrated autoview. The move to a modular C99/POSIX architecture is a practical side effect of delivering those capabilities safely and maintainably.
 
 ## Development Methodology
 
-This refactor serves as a case study in using Large Language Models (LLMs) to modernize legacy code. The codebase was not simply "ported"; it was systematically disassembled and re-architected. An LLM was utilized to analyze the original K&R C source, understand the undocumented logic, and reimplement it using modern C99 standards, the MVC pattern, and strict encapsulation. This demonstrates that with persistence and strict architectural guidance, AI tools can be effectively used to maintain and improve serious systems software.
+This refactor serves as a case study in using Large Language Models (LLMs) to evolve legacy code toward feature completeness and maintainability. The codebase was not simply "ported"; it was systematically disassembled and re-architected. An LLM was utilized to analyze the original K&R C source, understand the undocumented logic, and reimplement it using C99/POSIX standards, the MVC pattern, and strict encapsulation. This demonstrates that with persistence and strict architectural guidance, AI tools can be effectively used to maintain and improve serious systems software.
 
 ## Features (v3.0.0-alpha)
 
@@ -94,8 +94,8 @@ The project documentation is split into several focused files.
 | **[CONTRIBUTING.md](doc/CONTRIBUTING.md)** | **Developer Setup**: How to set up the environment, run tests, and submit code. |
 | **[ARCHITECTURE.md](doc/ARCHITECTURE.md)** | **System Design**: Core technical principles (DRY, SRP, Context-passing) and data hierarchy. |
 | **[SPECIFICATION.md](doc/SPECIFICATION.md)** | **Behavioral Contract**: UI layout, navigation protocols, and design philosophy. |
-| **[CHANGES.md](doc/CHANGES.md)** | **Changelog**: Detailed history of the v3.0 modernization and feature updates. |
-| **[ROADMAP.md](doc/ROADMAP.md)** | **Future Plans**: Pending milestones and the modernization backlog. |
+| **[CHANGES.md](doc/CHANGES.md)** | **Changelog**: Detailed history of v3.0 feature delivery, architecture work, and updates. |
+| **[ROADMAP.md](doc/ROADMAP.md)** | **Future Plans**: Pending milestones and prioritized delivery backlog. |
 | **[AUDIT.md](doc/AUDIT.md)** | **QA Workflow**: The mandatory safety/integrity checks for every PR (Valgrind, ASan, etc). |
 
 ---
