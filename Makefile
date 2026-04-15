@@ -251,6 +251,7 @@ mrproper: clobber
 -include $(DEPS)
 
 # Test Targets
+PYTHON ?= $(shell if [ -x .venv/bin/python ]; then echo ".venv/bin/python"; elif command -v python3 >/dev/null 2>&1; then echo "python3"; else echo "python"; fi)
 PYTEST ?= $(shell if [ -x .venv/bin/pytest ]; then echo ".venv/bin/pytest"; else echo "pytest"; fi)
 
 test: $(MAIN_BIN)
@@ -319,7 +320,7 @@ qa-valgrind-full:
 	$(MAKE_CMD) DEBUG=0 QA_ON_BUILD=0 clean
 	$(MAKE_CMD) DEBUG=0 QA_ON_BUILD=0 all
 	@echo "Running automated interactive valgrind session (output in valgrind.log)."
-	.venv/bin/python scripts/valgrind_session.py
+	$(PYTHON) scripts/valgrind_session.py
 
 qa-pytest: $(MAIN_BIN)
 	TERM=$${TERM:-xterm} $(PYTEST)

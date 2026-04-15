@@ -1,8 +1,6 @@
 name: C/C++ Nightly Deep Valgrind
 
 on:
-  schedule:
-    - cron: "15 2 * * *"
   workflow_dispatch:
 
 concurrency:
@@ -18,6 +16,19 @@ jobs:
 
     steps:
     - uses: actions/checkout@v6
+
+    - name: Assert qa-valgrind-full Python launcher contract
+      run: |
+        set -euo pipefail
+        block="$(awk '/^qa-valgrind-full:/{flag=1;next}/^[^[:space:]]/{flag=0}flag{print}' Makefile)"
+        printf '%s\n' "$block" | grep -Fq '$(PYTHON) scripts/valgrind_session.py' || {
+          echo "qa-valgrind-full must invoke scripts/valgrind_session.py via \$(PYTHON)."
+          exit 1
+        }
+        if printf '%s\n' "$block" | grep -Fq '.venv/bin/python scripts/valgrind_session.py'; then
+          echo "qa-valgrind-full must not hardcode .venv/bin/python."
+          exit 1
+        fi
 
     - name: Install System Dependencies
       run: |

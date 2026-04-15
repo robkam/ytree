@@ -124,7 +124,7 @@ def run_valgrind_session() -> int:
 
     try:
         sandbox = create_sandbox()
-        valgrind_log = repo_root / "valgrind.txt"
+        valgrind_log = repo_root / "valgrind.log"
 
         # Build Valgrind command
         valgrind_cmd = [
