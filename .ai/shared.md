@@ -63,6 +63,7 @@ These instructions apply to all AI agents used in this repository.
 - Cross-cutting auto-load:
   - Bugfix tasks: also load `bugfix-red-green-proof`.
   - Feature-sized/major/PR-update tasks: also load `full-audit-gate-c`.
+  - PR review/conflict triage tasks: also load `pr-gate-review`.
   - QA-failure remediation tasks: also load `qa-root-cause-remediation`.
   - PTY/pexpect sync or flake tasks: also load `pty-pexpect-debug`.
   - Ncurses rendering, redraw, or color changes: also load `ncurses-render-safety`.
