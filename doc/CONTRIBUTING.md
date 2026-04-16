@@ -9,6 +9,7 @@ For the AI-assisted development workflow, script usage, System Persona prompts, 
 Persona routing, shorthand persona commands, and persona-skill auto-load controls are documented in that same workflow doc.
 For the continuous audit workflow (during development and PRs) plus final release PASS/FAIL criteria, see **[AUDIT.md](AUDIT.md)**.
 For the canonical maintainer copy/paste mission prompt, see **[ai/AGENT_PROMPT_TEMPLATE.md](ai/AGENT_PROMPT_TEMPLATE.md)**.
+For pull-request governance and conflict triage policy, see **[PR_GATE.md](PR_GATE.md)**.
 
 ## Development Setup
 
@@ -94,7 +95,8 @@ Configure GitHub branch protection on `main`:
 2. Enable `Require status checks to pass before merging`.
 3. Select required checks from GitHub Actions:
    - `.github/workflows/ci.yml`: `Baseline local-equivalent gate` (`make ci-baseline`).
-   - `.github/workflows/full-qa.yml`: `Full local-equivalent QA gate (qa-all)`.
+   - `.github/workflows/pr-gate.yml`: `PR Risk Summary`.
+   - `.github/workflows/pr-conflict-assistant.yml`: `PR Conflict Check`.
 4. Enable `Require branches to be up to date before merging`.
 
 ### 5. Handling Red Checks on Branches
@@ -195,6 +197,7 @@ The project enforces strict architectural constraints (single-threaded event loo
 ## Submitting Changes
 
 > **Submit small, focused pull requests. Each pull request should address a single fix or feature to keep reviews straightforward.**
+> **Do not submit monolithic PRs. Prefer incremental (stacked/sequenced) PRs that preserve logical checkpoints.**
 
 1.  **Fork the repository** on GitHub.
 2.  **Create a new branch** for your feature or bugfix (`git checkout -b feature/my-new-feature`).
