@@ -1,5 +1,6 @@
 # **Functional Specification**
 > **Purpose:** This document defines the behavioral "Contract of Truth" for `ytree`. It specifies how the UI should respond to input, how the filesystem is represented, and the design philosophy that governs the user experience.
+> This specification defines behavior contracts only; detailed regression-test inventories and case matrices belong in roadmap/planning artifacts and the test suite, not in this file.
 
 ## **1. Design Philosophy**
 The `ytree` interface is built to make the power of the Unix filesystem accessible through a high-speed, intuitive terminal interface.
@@ -36,6 +37,12 @@ The screen is divided into non-overlapping zones. Geometry is calculated dynamic
 ### 2.3 Visual Grammar (The "XTree&trade; Look")
 *   **Junction Grammar:** Ncurses junctions (T-pieces, crosses) must **only** be used for horizontal boundary lines. Vertical separators must remain clean, unbroken lines to avoid visual clutter.
 *   **Empty State:** If a directory contains no files, the File View window must display the text: `** No files **`.
+*   **Single-Row List Invariant:** Tree/File/Showall/archive list rows must never wrap to a second terminal line.
+*   **Informative Truncation Policy:** When width is insufficient, content must be truncated (not wrapped) using a deterministic strategy that preserves the most useful identity cues. Prefer `prefix…suffix` elision when both ends carry meaning (for example filename stem + extension or path tail); use one-sided clipping only when the omitted side is low-value in that context.
+*   **Static Text Rule:** Truncated UI labels are static and stable while focused; marquee/auto-scrolling text is not permitted for core list and attribute surfaces.
+*   **Motion-Only-When-Informative Rule:** UI animation is avoided by default. Motion is permitted only when it conveys live operational state (for example scanning/copying progress, spinner/ETA/progress counter) rather than decorative movement.
+*   **Progress Indicator Selection Rule:** Use a spinner when duration is unknown (default). Use a progress bar/percent/ETA when total work is measurable.
+*   **Regression Guard:** No-wrap/truncate behavior is a required regression-test contract across normal and archive view modes.
 *   **Micro-Consistency:** UI state flags (e.g., `big_window`, `split_mode`) must be synchronized with the internal state machine before any call to `doupdate()`.
 
 ### 2.4 Tree Status Column
@@ -73,6 +80,15 @@ Arrow keys provide spatial, cursor-oriented navigation through the tree. They ar
 *   **`→` (Right Arrow / Drill Down):** Progressive depth navigation. If the node is collapsed: expand one level. If already expanded: move cursor to the first child.
 *   **`←` (Left Arrow):** If the selected directory is expanded, collapse it. Otherwise, move selection to its parent directory. At the filesystem root, collapse the root subtree; if already collapsed, this is a no-op.
 
+### 3.5 Preview Mode (`F7`) Contract
+`F7` is the primary inspect mode for viewing file contents while retaining list-oriented navigation.
+*   **Activation/Toggle:** `F7` enters preview mode and `F7` again exits preview mode.
+*   **Layout Contract:** Preview mode presents a file-list pane and a content-preview pane simultaneously.
+*   **List-First Navigation:** Standard list navigation changes selection in the list pane; preview content updates to the selected file.
+*   **Preview-Scroll Modifiers:** Shift-modified navigation keys (and configured equivalents such as `^P`/`^N`) scroll preview content without changing list selection.
+*   **Mode Safety Rule:** Split-navigation controls are not active while preview mode is active (for example `F8` and `Tab` must not perform split/layout switching from inside preview mode).
+*   **Command Availability Rule:** Preview mode may expose a defined in-context command subset; unavailable commands must not trigger unintended mode/layout transitions.
+
 ---
 
 ## 4. Keyboard Interaction Taxonomy
@@ -82,6 +98,7 @@ The `ytree` input system follows a layered model designed for high-speed interac
 ### 4.1 Input Principles
 *   **Case-Sensitivity:** Keys are **case-insensitive** by default. Lowercase notation is used for letter-based commands (e.g., `c` for copy). The Ctrl key is shown by the `^` symbol.
 *   **Standard Conventions**: Function keys use the `F1`-`F12` (uppercase prefix) notation. Control keys use the `^key` (e.g., `^l`) lowercase notation.
+*   **Alt-Key Portability Rule:** `Alt`/Meta key sequences are terminal-dependent and are not part of supported key contracts. Core workflows must use non-`Alt` bindings.
 *   **Contextual Logic:** The effect of a key depends on whether focus is on the Tree View or File View.
 
 ### 4.2 Interaction Layers
@@ -127,19 +144,36 @@ When a text prompt is active, specialized conventions ensure a refined editing e
 ## 5. Split-Screen (F8) & Session Model
 
 ### 5.1 The Active-Inactive Rule
-The Split-Screen architecture treats each panel as an independent instance of a volume manager.
-*   **Active Panel:** Owns keyboard focus. Updates visuals immediately.
-*   **Inactive Panel (The "Frozen" Rule):** Strictly **DORMANT**. It must not update its file list, scroll, or change selection while inactive.
-*   **Lazy Refresh:** The inactive panel only validates or re-reads its directory content from the disk the moment it regains focus via `Tab`.
+Split mode is a two-pane session entered/exited by `F8`.
+*   **Activation:** `F8` toggles split mode on/off.
+*   **Focus Switch:** `Tab` switches the active pane.
+*   **Active Panel:** Owns keyboard focus and receives command/navigation input.
+*   **Inactive Panel:** Does not process direct input while inactive; its own cursor/selection context is retained until focus is switched back.
 
 ### 5.2 State Persistence
-Switching panels via `Tab` must restore the exact state held when that panel last had focus, including:
+Switching panels via `Tab` must restore the exact state held when that panel last had focus for panel-local state:
 *   **Volume Context:** Logged volume or archive.
 *   **Cursor & Offset:** Highlighted entry and scroll position.
 *   **Selection:** Tags are specific to the panel session.
 *   **Filter (Filespec):** Independent search/filter strings.
+*   **Window/Mode Context:** Directory/File/Showall-style pane-local focus context.
 
-### 5.3 Modal Search Behavior
+### 5.3 Shared Tree Topology Contract
+The split panes share one logged tree topology contract for a given logged volume:
+*   **Shared Logging State:** Logged/unlogged directory-memory state is shared.
+*   **Shared Structural State:** Expand/collapse/release tree-shape changes are shared.
+*   **Mirror Rule:** Structural tree changes triggered in the active pane must be reflected in the inactive pane immediately.
+*   **Selection Retention Rule:** Mirrored structural updates must not move the inactive pane's cursor/selection when its selected node remains visible/valid.
+*   **Non-Invalidating Changes Rule:** Adding siblings/ancestors, or changing sibling structure that does not invalidate the inactive selected node, must not move the inactive selection.
+*   **Deterministic Fallback Rule (When Selected Node Becomes Invalid):**
+    *   Keep exact node if still visible/valid after mirror update.
+    *   Else move to nearest visible ancestor of the previously selected node.
+    *   Else move to next visible sibling in display order.
+    *   Else move to previous visible sibling.
+    *   Else move to the root visible node.
+*   **No Surprise Parent-Jump Rule:** Collapsing a parent/grandparent in the active pane must not force the inactive selection to jump to parent unless the previously selected node is no longer visible/valid.
+
+### 5.4 Modal Search Behavior
 *   **Persistence:** The search string is retained after the mode is exited.
 *   **Sticky Cursor:** If a character is typed that produces no match, the cursor remains at the last successful match.
 *   **Implicit Exit:** Pressing a key associated with a file operation (Copy, Delete, Move) confirms the current search match and immediately executes that command.
@@ -152,6 +186,7 @@ Switching panels via `Tab` must restore the exact state held when that panel las
 ### 6.1 Footer Messages (Command Area)
 *   **Transient:** Non-critical status (e.g., "File copied"). Appears in the Message row. Disappears on the next keystroke.
 *   **Sticky/Warning:** Requires acknowledgment or input (e.g., "Delete file? Y/N" or "Path not found"). Stays in the footer until the user responds or hits a key to clear the warning.
+*   **Modifier-Held Shortcut Footer:** While `Ctrl` is physically held, the footer MUST switch to the `Ctrl` shortcut help set and remain visible for the full hold duration. On `Ctrl` release, the footer MUST immediately return to the normal context help. This is transient key-state behavior, not a toggle.
 
 ### 6.2 Modal Messages (Centered Box)
 A bordered pop-up box that overlays the center of the screen, used for:
@@ -162,6 +197,13 @@ A bordered pop-up box that overlays the center of the screen, used for:
 
 ### 6.3 Audible Feedback Policy
 `ytree` interaction is completely silent. Navigation boundaries, unsupported keys, and input validation must remain silent. If an event is expected during ordinary workflow, it must not trigger an audible cue.
+
+### 6.4 Context Help Contract (Footer <-> F1)
+*   **Parity Rule:** For any active context, commands shown in footer help MUST appear in that context's F1 help set. Missing footer commands in F1 are defects.
+*   **Concision Rule:** F1 content is concise and contextual. Detailed semantics and examples belong in `etc/ytree.1.md` and generated `doc/USAGE.md`.
+*   **Coverage Rule (Required):** Contract coverage includes filesystem and archive contexts (directory/file), `F7`, `F8`, `Showall`, `Global`, and tagged workflows.
+*   **Variant Rule:** Help rendering must stay correct for `VI_KEYS=1` variants and Ctrl-held footer variants.
+*   **i18n Readiness Rule:** Footer/F1 text must be structured for gettext extraction and reuse to avoid duplicated, drifting message strings across contexts.
 
 ---
 
