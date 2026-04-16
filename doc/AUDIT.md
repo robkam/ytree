@@ -11,19 +11,17 @@ This document defines the mandatory quality process for the Ytree modernization 
 
 ## 1.2 QA Layers
 
-The project uses layered QA gates with increasing depth and cost:
+The project uses four QA layers with increasing depth and cost:
 
 | Layer | Command | What it checks | When to run |
 |---|---|---|---|
-| Baseline CI Gate | GitHub Actions (automatic) | `make ci-baseline` (unsafe C API guard, `pytest`, gcov/lcov C coverage summary, fuzz smoke) | Every PR to `main`, every push to `main` |
-| PR Full QA Gate | GitHub Actions (automatic) | `make qa-all` (clang-tidy, cppcheck, scan-build, Valgrind smoke, `pytest`, unsafe API guard, module-boundary guard, AI config guard, fuzz smoke) | Every PR to `main` |
-| Local QA | `make qa-all` | Same gate as PR Full QA; run locally for fast feedback and before pushing risky changes | During development, before major updates |
-| Deep Audit | `make qa-valgrind-full` | Automated interactive Valgrind Memcheck session (leak, uninit, FD, use-after-free checks) | Nightly CI, before release, after major refactoring, or periodically |
+| CI Gate | `git push` (automatic) | Build, gitleaks, unsafe C API guard, `pytest` | Every push (automatic) |
+| Local QA | `make qa-all` | clang-tidy, cppcheck, scan-build, Valgrind smoke (`--version`), `pytest`, unsafe API guard, gitleaks, module-boundary guard | Before every PR or feature merge |
+| Deep Audit | `make qa-valgrind-full` | Automated interactive Valgrind Memcheck session (leak, uninit, FD, use-after-free checks) | Before release, after major refactoring, or periodically |
 | Manual Feature Audit | `make qa-valgrind-interactive` | You manually drive ytree under Valgrind to exercise new feature code paths | After adding a major new feature |
 
-- **Baseline CI Gate** runs automatically in GitHub Actions for PRs to `main` and pushes to `main`, executing `make ci-baseline`.
-- **PR Full QA Gate** runs automatically in GitHub Actions for PRs to `main`, executing `make qa-all`.
-- **Local QA** (`make qa-all`) remains the standard developer pre-merge gate for fast local feedback.
+- **CI Gate** runs automatically on push via GitHub Actions. No developer action needed.
+- **Local QA** (`make qa-all`) is the standard pre-merge gate. Run it for every non-trivial change.
 - **Deep Audit** (`make qa-valgrind-full`) is on-demand. It drives a scripted interactive ytree session under Valgrind and takes ~2-3 minutes. Run it:
   - Before tagging a release
   - After changes to memory management, allocation, or cleanup paths
@@ -56,6 +54,7 @@ Run these commands in this order to generate evidence-based findings.
 3. **Logic Path Analysis:** `make clean && scan-build --status-bugs make`
 4. **Memory/Runtime Analysis:** `valgrind --leak-check=full --show-leak-kinds=all --track-origins=yes --error-exitcode=1 --log-file=valgrind.txt ./build/ytree .` (then exit ytree cleanly). For automated interactive runs, use `make qa-valgrind-full` which drives a scripted pexpect session.
 5. **Regression Tests:** `source .venv/bin/activate && pytest`
+6. **Secret Scanning:** `gitleaks detect --source . --redact --exit-code 1` (or `gitleaks dir --redact --exit-code 1 .` on newer CLI variants)
 
 For step 4 in automated runs, drive a deterministic start/exit path (for example with `pexpect`) so Valgrind can finish and return an actionable exit code.
 
@@ -65,20 +64,16 @@ Local shortcut targets are available in the `Makefile`:
 - `make qa-scan`
 - `make qa-valgrind`
 - `make qa-pytest`
-- `make qa-pytest-coverage`
 - `make qa-unsafe-apis`
+- `make qa-gitleaks`
 - `make qa-module-boundaries`
-- `make qa-fuzz` (builds fuzz harnesses and runs bounded smoke passes)
-- `make fuzz` (build-only for all fuzz harnesses)
-- `make fuzz-smoke` (run-only smoke gate for all fuzz harnesses)
-- `make ci-baseline` (baseline gate used by GitHub baseline CI and the local pre-push hook when pushing to `main`)
-- `make qa-all` (runs `qa-clang`, `qa-cppcheck`, `qa-scan`, `qa-valgrind`, `qa-pytest`, `qa-unsafe-apis`, `qa-module-boundaries`, `qa-ai-config`, `qa-fuzz` in order)
+- `make qa-all` (runs `qa-clang`, `qa-cppcheck`, `qa-scan`, `qa-valgrind`, `qa-pytest`, `qa-unsafe-apis`, `qa-gitleaks`, `qa-module-boundaries` in order)
 - `make qa-all-log` (same as `qa-all`, with full output captured to `qa-all.log` in repo root; override with `QA_LOG=/path/to/file`)
 
 For feature-sized/PR-scope changes, audit evidence must include a successful `make qa-module-boundaries` run so controller-slimming checks are explicitly validated.
 Audit evidence must also include `make qa-unsafe-apis` results as explicit enforcement evidence for the shared Security gate policy in `.ai/shared.md` Core Engineering Rules.
 
-GitHub CI now has layered gates: baseline (`make ci-baseline`) and PR full QA (`make qa-all`), plus scheduled deep Valgrind (`make qa-valgrind-full`). Local execution of these gates remains recommended for faster feedback and easier debugging.
+GitHub CI is a baseline gate (build + gitleaks + unsafe C API guard + `pytest`) and does not replace the full local audit loop.
 
 ## 4. Continuous Audit Loop (Default)
 Run this loop for every non-trivial change and every PR.
