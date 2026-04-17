@@ -123,6 +123,7 @@ Cross-cutting skill auto-load:
 *   UI workflow/menu-depth/interaction-economy design -> `ui-economy-navigation`
 *   UI prompt-chain offender detection/audit -> `ui-flow-offender-audit`
 *   Code-smell audit/remediation (deslop-style) -> `rm-code-smells` (prompt guide: [RM_CODE_SMELLS.md](RM_CODE_SMELLS.md))
+*   AI-writing-tell and prose de-slop tasks -> `ai-writing-tells`
 
 Skill precedence (highest to lowest):
 

@@ -4,6 +4,13 @@
 > See **[ARCHITECTURE.md](ARCHITECTURE.md)** for technical design principles (how the code is built).
 > See **[SPECIFICATION.md](SPECIFICATION.md)** for behavioral requirements (how the UI behaves).
 
+## Pull Request Scope
+
+> **Submit small, focused pull requests. Each pull request should address a single fix or feature to keep reviews straightforward.**
+> **Do not submit monolithic PRs. Prefer incremental (stacked/sequenced) PRs that preserve logical checkpoints.**
+>
+> See **[Submitting Changes](#submitting-changes)** for the full PR workflow.
+
 **Note for AI-Assisted Development:**
 For the AI-assisted development workflow, script usage, System Persona prompts, and semantic tool integration (**Serena**, **jCodeMunch**), please see **[ai/WORKFLOW.md](ai/WORKFLOW.md)**.
 Persona routing, shorthand persona commands, and persona-skill auto-load controls are documented in that same workflow doc.

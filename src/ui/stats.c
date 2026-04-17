@@ -484,8 +484,20 @@ void DisplayDiskName(ViewContext *ctx, const Statistic *s) {
     snprintf(fs_buf, sizeof(fs_buf), "Free: -");
   } else {
     char size_buf[32];
+    int free_percent = -1;
     FormatShortSize(size_buf, sizeof(size_buf), s->disk_space);
-    snprintf(fs_buf, sizeof(fs_buf), "Free: %s", size_buf);
+    if (s->disk_capacity > 0) {
+      double percent = ((double)s->disk_space * 100.0) / (double)s->disk_capacity;
+      if (percent < 0.0)
+        percent = 0.0;
+      if (percent > 100.0)
+        percent = 100.0;
+      free_percent = (int)(percent + 0.5);
+    }
+    if (free_percent >= 0)
+      snprintf(fs_buf, sizeof(fs_buf), "Free: %s (%d%%)", size_buf, free_percent);
+    else
+      snprintf(fs_buf, sizeof(fs_buf), "Free: %s", size_buf);
   }
   mvwprintw(ctx->ctx_border_window, ctx->layout.stats_y_vol_info + 2,
             STAT_X + 1, "%-*s", INNER_W, fs_buf);

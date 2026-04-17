@@ -72,6 +72,7 @@ These instructions apply to all AI agents used in this repository.
   - UI workflow/menu-depth/interaction-economy design tasks: also load `ui-economy-navigation`.
   - UI prompt-chain auditing/offender-detection tasks: also load `ui-flow-offender-audit`.
   - Code-smell audit/remediation tasks (including deslop-style requests): also load `rm-code-smells`.
+  - AI-writing-tell and prose de-slop tasks: also load `ai-writing-tells`.
 
 ## Core Engineering Rules
 
