@@ -1,10 +1,26 @@
-> Optional: you can leave this empty.
-> Filling any part helps maintainers, but AI/CI review runs even when this template is not used.
+> Before opening this PR, update your branch from the latest `main` and commit on top of that latest `main`.
+> This helps avoid merge conflicts and stale reviews.
 
-## Optional Context
+## Type
+- [ ] Typo/docs
+- [ ] i18n
+- [ ] Refactor (no behavior change)
+- [ ] Bug fix
+- [ ] Feature/enhancement
+- [ ] Other (describe):
 
-- Why is this change required? What problem does it solve?
-- Linked issue (optional): use `fixes #<num>` or `closes #<num>` to auto-close on merge.
-- Intent of this PR:
-- Anything you think is risky:
-- Tests you ran (if any):
+## What changed
+-
+
+## Why this change
+-
+
+## What you did to verify changes and results
+<!-- In plain language, say what you checked and what happened.
+If you did not run checks/tests, write: none + why. -->
+
+## For large PRs only
+<!-- Fill this only if CI labels the PR size/L or size/XL -->
+- Why is this PR large?
+- Why not split it now? Add links to any related PRs.
+- What could break?
