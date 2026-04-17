@@ -5,9 +5,9 @@ This is the canonical pull-request governance policy for `main`.
 ## Who Controls What
 
 - `SKILL.md` (`.ai/skills/pr-gate-review/SKILL.md`): AI behavior for PR scrutiny and conflict triage.
-- `.github/pull_request_template.md`: optional contributor context for maintainers.
-- `.github/workflows/pr-gate.yml`: automated machine triage comment.
-- `.github/workflows/pr-conflict-assistant.yml`: automated merge-conflict detection and actionable conflict report.
+- `.github/pull_request_template.md`: plain-language author context.
+- `.github/workflows/pr-gate.yml`: PR size label assignment plus large-PR warning comment.
+- `.github/workflows/pr-conflict-assistant.yml`: required branch freshness gate (`Up To Date With Main`).
 
 Use all four together. None of them is sufficient by itself.
 
@@ -16,24 +16,24 @@ Use all four together. None of them is sufficient by itself.
 Before merging a PR into `main`, require all of the following:
 
 1. Baseline CI is green.
-2. PR risk summary comment has been posted and reviewed.
-3. Conflict assistant reports no unresolved conflicts.
+2. `Up To Date With Main` is green.
+3. If size is `L` or `XL`, large-PR warning context is present in the PR body.
 4. At least one human maintainer approves.
 
 ## AI-First Review Contract
 
 AI is expected to audit PRs directly from code + CI + PR metadata without requiring maintainers to read raw diffs:
 
-1. Risk summary from `pr-gate.yml`.
-2. Conflict report from `pr-conflict-assistant.yml`.
+1. Size signal from `pr-gate.yml` (`size/S`, `size/M`, `size/L`, `size/XL`).
+2. Freshness result from `pr-conflict-assistant.yml` (`Up To Date With Main`).
 3. CI outcomes and changed file metadata.
-4. Optional PR author context when provided.
+4. PR author context from the template.
 
-## Conflict Handling
+## Branch Freshness Handling
 
-If conflicts are detected:
+If the freshness gate fails:
 
-1. AI conflict assistant identifies conflicting files.
-2. Contributor or maintainer resolves conflicts on the branch.
-3. CI and PR gate rerun.
-4. Merge only when conflict report is clean and required checks are green.
+1. Contributor updates branch to latest `main`.
+2. Contributor pushes updated branch.
+3. Gate reruns automatically.
+4. Merge only when freshness and required checks are green.
