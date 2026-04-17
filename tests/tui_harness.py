@@ -1,9 +1,11 @@
 import pexpect
 import pyte
 import time
+import os
 
 class YtreeTUI:
     def __init__(self, executable="./build/ytree", cwd=None, env_extra=None, args=None):
+        self.time_scale = self._read_time_scale()
         env = {
             "TERM": "xterm",
             "LC_ALL": "C.UTF-8",
@@ -20,7 +22,7 @@ class YtreeTUI:
             dimensions=(36, 120),
             cwd=cwd,
             encoding='utf-8',
-            timeout=5
+            timeout=max(5.0 * self.time_scale, 5.0)
         )
         
         # Initialize an in-memory terminal screen using pyte
@@ -31,18 +33,30 @@ class YtreeTUI:
         # The tree pane shows box-drawing like "tq" or "mq" once the dir is scanned.
         if not self.wait_for_content("tq", timeout=8.0) and not self.wait_for_content("mq", timeout=1.0):
             # Fallback: just sleep and drain
-            time.sleep(2.0)
+            time.sleep(2.0 * self.time_scale)
             self._read_output()
-        
+
+    @staticmethod
+    def _read_time_scale():
+        raw = os.getenv("YTREE_TUI_TIME_SCALE", "1.0")
+        try:
+            scale = float(raw)
+        except (TypeError, ValueError):
+            return 1.0
+        return max(1.0, scale)
+
+    def _scaled(self, seconds):
+        return seconds * self.time_scale
+
     def _read_output(self, timeout=0.1):
         """Read pending output from the PTY and feed it to the virtual screen."""
         try:
             # We use a short sleep to allow the application to process and write to the PTY
-            time.sleep(timeout)
+            time.sleep(self._scaled(timeout))
             
             # Non-blocking read (read_nonblocking could throw Timeout or EOF)
             while True:
-                data = self.child.read_nonblocking(size=4096, timeout=0.1)
+                data = self.child.read_nonblocking(size=4096, timeout=self._scaled(0.1))
                 self.stream.feed(data)
         except (pexpect.TIMEOUT, pexpect.EOF):
             pass
@@ -60,8 +74,9 @@ class YtreeTUI:
 
     def wait_for_content(self, target, timeout=5.0):
         """Wait until the target string appearing anywhere on the screen."""
+        effective_timeout = self._scaled(timeout)
         start_time = time.time()
-        while time.time() - start_time < timeout:
+        while time.time() - start_time < effective_timeout:
             screen = self.get_screen_dump()
             for line in screen:
                 if target in line:

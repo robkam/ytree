@@ -1058,8 +1058,13 @@ static int PromptCompareTargetPath(ViewContext *ctx, const char *prompt,
     return -1;
 
   if (default_path) {
-    strncpy(target_path, default_path, PATH_LENGTH);
-    target_path[PATH_LENGTH] = '\0';
+    if (default_path != target_path) {
+      strncpy(target_path, default_path, PATH_LENGTH);
+      target_path[PATH_LENGTH] = '\0';
+    } else {
+      /* Preserve existing in-place target buffer when default aliases it. */
+      target_path[PATH_LENGTH] = '\0';
+    }
   } else {
     target_path[0] = '\0';
   }
