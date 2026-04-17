@@ -3,6 +3,13 @@ import time
 from tui_harness import YtreeTUI
 from ytree_keys import Keys
 
+def _time_scale():
+    raw = os.getenv("YTREE_TUI_TIME_SCALE", "1.0")
+    try:
+        return max(1.0, float(raw))
+    except (TypeError, ValueError):
+        return 1.0
+
 def is_dir_window(tui):
     """
     Checks if the TUI is in the directory window.
@@ -22,6 +29,14 @@ def is_file_window(tui):
     screen = tui.get_screen_dump()
     footer_top = screen[33].lower()
     return "file" in footer_top[:5]
+
+def wait_for_dir_window(tui, timeout=2.0):
+    deadline = time.time() + timeout * _time_scale()
+    while time.time() < deadline:
+        if is_dir_window(tui):
+            return True
+        time.sleep(0.1)
+    return False
 
 def test_exit_on_delete(ytree_binary, tmp_path):
     """
@@ -53,13 +68,8 @@ def test_exit_on_delete(ytree_binary, tmp_path):
     
     # Wait for ytree to return to directory window
     # We poll is_dir_window since it's an automatic transition
-    success = False
-    for _ in range(20):
-        if is_dir_window(tui):
-            success = True
-            break
-        time.sleep(0.1)
-    
+    success = wait_for_dir_window(tui, timeout=2.0)
+
     assert success, "Should auto-return to directory window after last file is deleted"
     assert not is_file_window(tui), "Should NOT be in file window"
     
@@ -101,13 +111,8 @@ def test_exit_on_move(ytree_binary, tmp_path):
     tui.send_keystroke(str(dst_dir) + Keys.ENTER)
     
     # Wait for ytree to return to directory window
-    success = False
-    for _ in range(20):
-        if is_dir_window(tui):
-            success = True
-            break
-        time.sleep(0.1)
-    
+    success = wait_for_dir_window(tui, timeout=2.0)
+
     assert success, "Should auto-return to directory window after last file is moved"
     
     # Verify file actually moved

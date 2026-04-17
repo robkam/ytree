@@ -79,6 +79,13 @@ ifeq ($(COVERAGE),1)
     LDFLAGS += --coverage
 endif
 
+# Sanitizer build switch (for dedicated ASan/UBSan QA runs).
+SANITIZE    ?= 0
+ifeq ($(SANITIZE),1)
+    CFLAGS  += -fsanitize=address,undefined -fno-omit-frame-pointer -g -O1
+    LDFLAGS += -fsanitize=address,undefined
+endif
+
 # -------------------------------------------------------------------------
 # Build Mode Selection
 # Run 'make DEBUG=1' for development (AddressSanitizer enabled)
@@ -89,8 +96,11 @@ ifeq ($(DEBUG),1)
     CFLAGS  += -fsanitize=address -g -O1 -fno-omit-frame-pointer
     LDFLAGS += -fsanitize=address
 else
-    # Release Build: Standard Optimization
-    CFLAGS  += -O2
+    # Release Build: Standard Optimization.
+    # Keep sanitizer builds at -O1 for better diagnostics and deterministic PTY timing.
+    ifneq ($(SANITIZE),1)
+        CFLAGS  += -O2
+    endif
 endif
 
 # -------------------------------------------------------------------------
@@ -124,6 +134,7 @@ FUZZ_BUILD_DIR ?= $(BUILD_DIR)/fuzz
 FUZZ_ARTIFACT_DIR ?= $(FUZZ_BUILD_DIR)/artifacts
 FUZZ_RUNS ?= 2000
 FUZZ_SANITIZERS ?= fuzzer,address,undefined
+SANITIZE_PYTEST_TIME_SCALE ?= 2.5
 FUZZ_COMMON_SRC := tests/fuzz/fuzz_common.c
 FUZZ_COMMON_HDR := tests/fuzz/fuzz_common.h
 FUZZ_CFLAGS ?= -std=c99 -D_GNU_SOURCE -I$(INC_DIR) -Itests/fuzz \
@@ -143,7 +154,7 @@ FUZZ_BINS := $(FUZZ_STRING_UTILS_BIN) $(FUZZ_PATH_UTILS_BIN) $(FUZZ_FILTER_CORE_
 	git-aliases-install git-aliases-status test \
 	fuzz fuzz-smoke fuzz-string-utils fuzz-path-utils fuzz-filter-core qa-fuzz \
 	test-v qa-clang qa-cppcheck qa-scan qa-valgrind qa-valgrind-interactive qa-valgrind-full \
-	qa-pytest qa-pytest-coverage qa-unsafe-apis qa-module-boundaries qa-ai-config qa-all \
+	qa-pytest qa-pytest-coverage qa-sanitize qa-unsafe-apis qa-module-boundaries qa-ai-config qa-all \
 	ci-baseline mcp-doctor \
 	qa-all-log
 
@@ -336,6 +347,14 @@ qa-pytest-coverage:
 	$(LCOV) --capture --directory "$(OBJ_DIR)" --output-file "$(LCOV_INFO)" --gcov-tool "$(GCOV)"
 	$(LCOV) --remove "$(LCOV_INFO)" '/usr/*' --output-file "$(LCOV_INFO)"
 	$(LCOV) --summary "$(LCOV_INFO)" | tee "$(LCOV_SUMMARY)"
+
+qa-sanitize:
+	$(MAKE_CMD) DEBUG=0 SANITIZE=1 QA_ON_BUILD=0 clean
+	$(MAKE_CMD) DEBUG=0 SANITIZE=1 QA_ON_BUILD=0 all
+	YTREE_TUI_TIME_SCALE=$(SANITIZE_PYTEST_TIME_SCALE) \
+	ASAN_OPTIONS=detect_leaks=1:abort_on_error=1 \
+	UBSAN_OPTIONS=halt_on_error=1 \
+	TERM=$${TERM:-xterm} $(PYTEST)
 
 qa-unsafe-apis:
 	python3 scripts/check_c_unsafe_apis.py

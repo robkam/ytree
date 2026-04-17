@@ -40,6 +40,44 @@ void UI_RenderFilePanel(ViewContext *ctx, const DirEntry *dir_entry,
                ctx->ctx_file_window);
 }
 
+static void RebuildActiveFileListAfterMutation(ViewContext *ctx,
+                                               DirEntry *dir_entry) {
+  int max_disp_files;
+  int file_count;
+
+  if (!ctx || !ctx->active || !dir_entry)
+    return;
+
+  BuildFileEntryList(ctx, ctx->active);
+
+  file_count = (int)ctx->active->file_count;
+  if (file_count <= 0) {
+    dir_entry->start_file = 0;
+    dir_entry->cursor_pos = 0;
+  } else {
+    max_disp_files = FileNav_GetMaxDispFiles(ctx);
+    if (max_disp_files < 1)
+      max_disp_files = 1;
+
+    if (dir_entry->start_file < 0)
+      dir_entry->start_file = 0;
+    if (dir_entry->start_file >= file_count)
+      dir_entry->start_file = file_count - 1;
+    if (dir_entry->cursor_pos < 0)
+      dir_entry->cursor_pos = 0;
+    if (dir_entry->cursor_pos >= max_disp_files)
+      dir_entry->cursor_pos = max_disp_files - 1;
+
+    if (dir_entry->start_file + dir_entry->cursor_pos >= file_count) {
+      dir_entry->start_file = MAXIMUM(0, file_count - max_disp_files);
+      dir_entry->cursor_pos = file_count - 1 - dir_entry->start_file;
+    }
+  }
+
+  ctx->active->start_file = dir_entry->start_file;
+  ctx->active->file_cursor_pos = dir_entry->cursor_pos;
+}
+
 BOOL handle_file_window_preview_action(
     ViewContext *ctx, YtreeAction action, DirEntry **dir_entry_ptr,
     YtreeAction *loop_action_ptr, Statistic **stats_ptr,
@@ -564,6 +602,7 @@ BOOL handle_file_window_command_action(ViewContext *ctx, YtreeAction action,
 
         /* ... Stats updates ... */
         /* ... BuildFileEntryList ... */
+        RebuildActiveFileListAfterMutation(ctx, dir_entry);
 
         UI_RefreshSyncPanels(ctx, dir_entry);
 
@@ -597,8 +636,9 @@ BOOL handle_file_window_command_action(ViewContext *ctx, YtreeAction action,
                       (ChoiceCallback)UI_ChoiceResolver)) {
         /* File was deleted */
         /*----------------------*/
+        RebuildActiveFileListAfterMutation(ctx, dir_entry);
 
-        RefreshView(ctx, dir_entry);
+        UI_RefreshSyncPanels(ctx, dir_entry);
         maybe_change_x_step = TRUE;
       }
     }

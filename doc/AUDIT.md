@@ -17,6 +17,7 @@ The project uses four QA layers with increasing depth and cost:
 |---|---|---|---|
 | CI Gate | `git push` (automatic) | Build, gitleaks, unsafe C API guard, `pytest` | Every push (automatic) |
 | Local QA | `make qa-all` | clang-tidy, cppcheck, scan-build, Valgrind smoke (`--version`), `pytest`, unsafe API guard, gitleaks, module-boundary guard | Before every PR or feature merge |
+| Sanitizer QA | `make qa-sanitize` | Main ytree build + `pytest` under AddressSanitizer/UndefinedBehaviorSanitizer | Before release, after memory/UB-sensitive changes, or when triaging suspicious crashes |
 | Deep Audit | `make qa-valgrind-full` | Automated interactive Valgrind Memcheck session (leak, uninit, FD, use-after-free checks) | Before release, after major refactoring, or periodically |
 | Manual Feature Audit | `make qa-valgrind-interactive` | You manually drive ytree under Valgrind to exercise new feature code paths | After adding a major new feature |
 
@@ -27,6 +28,10 @@ The project uses four QA layers with increasing depth and cost:
   - After changes to memory management, allocation, or cleanup paths
   - After major refactoring sessions
   - Periodically as a health check
+- **Sanitizer QA** (`make qa-sanitize`) is on-demand and complementary to Valgrind. It builds the main binary with ASan/UBSan and runs `pytest` with fail-fast sanitizer settings. Run it:
+  - After touching pointer arithmetic, allocation/free paths, or integer-heavy logic
+  - When triaging intermittent or environment-sensitive crashes
+  - Before alpha/release candidates as an extra memory/UB gate
 - **Manual Feature Audit** (`make qa-valgrind-interactive`) launches ytree under Valgrind for you to drive manually. Use it after adding a major feature to exercise the new code paths specifically. Exit cleanly, then inspect `valgrind.txt`.
 
 ## 2. Role Mapping
@@ -63,6 +68,7 @@ Local shortcut targets are available in the `Makefile`:
 - `make qa-cppcheck`
 - `make qa-scan`
 - `make qa-valgrind`
+- `make qa-sanitize`
 - `make qa-pytest`
 - `make qa-unsafe-apis`
 - `make qa-gitleaks`
@@ -106,6 +112,7 @@ Run this loop for every non-trivial change and every PR.
 Before a release tag/cut, run a full audit pass across the release scope:
 - Fresh `clang-tidy` run against all `src/**/*.c` files.
 - Fresh `cppcheck --enable=all --inconclusive --force --std=c99 -I include --error-exitcode=1 --suppressions-list=.cppcheck-suppressions.txt src include` run.
+- Fresh `make qa-sanitize` run (main binary + pytest under ASan/UBSan).
 - Full `pytest` suite.
 - Fresh `scan-build --status-bugs` run.
 - Valgrind verification for release-critical paths.
