@@ -42,6 +42,7 @@ The screen is divided into non-overlapping zones. Geometry is calculated dynamic
 *   **Static Text Rule:** Truncated UI labels are static and stable while focused; marquee/auto-scrolling text is not permitted for core list and attribute surfaces.
 *   **Motion-Only-When-Informative Rule:** UI animation is avoided by default. Motion is permitted only when it conveys live operational state (for example scanning/copying progress, spinner/ETA/progress counter) rather than decorative movement.
 *   **Progress Indicator Selection Rule:** Use a spinner when duration is unknown (default). Use a progress bar/percent/ETA when total work is measurable.
+*   **Progress Surface Ownership Rule:** Progress/spinner updates MUST NOT overwrite or hide footer help, active prompt text, or F1 help surfaces. If layout is constrained, degrade to a compact indicator instead of replacing those surfaces.
 *   **Regression Guard:** No-wrap/truncate behavior is a required regression-test contract across normal and archive view modes.
 *   **Micro-Consistency:** UI state flags (e.g., `big_window`, `split_mode`) must be synchronized with the internal state machine before any call to `doupdate()`.
 
@@ -186,6 +187,7 @@ The split panes share one logged tree topology contract for a given logged volum
 ### 6.1 Footer Messages (Command Area)
 *   **Transient:** Non-critical status (e.g., "File copied"). Appears in the Message row. Disappears on the next keystroke.
 *   **Sticky/Warning:** Requires acknowledgment or input (e.g., "Delete file? Y/N" or "Path not found"). Stays in the footer until the user responds or hits a key to clear the warning.
+*   **Outcome Clarity Rule:** Successful commands may remain quiet, but ytree MUST NOT appear successful while doing nothing. No-op/skip/error outcomes must be explicit and user-visible.
 *   **Modifier-Held Shortcut Footer:** While `Ctrl` is physically held, the footer MUST switch to the `Ctrl` shortcut help set and remain visible for the full hold duration. On `Ctrl` release, the footer MUST immediately return to the normal context help. This is transient key-state behavior, not a toggle.
 
 ### 6.2 Modal Messages (Centered Box)
@@ -204,6 +206,7 @@ A bordered pop-up box that overlays the center of the screen, used for:
 *   **Coverage Rule (Required):** Contract coverage includes filesystem and archive contexts (directory/file), `F7`, `F8`, `Showall`, `Global`, and tagged workflows.
 *   **Variant Rule:** Help rendering must stay correct for `VI_KEYS=1` variants and Ctrl-held footer variants.
 *   **i18n Readiness Rule:** Footer/F1 text must be structured for gettext extraction and reuse to avoid duplicated, drifting message strings across contexts.
+*   **Progress Coexistence Rule:** Long-operation progress rendering must coexist with footer/prompt/F1 guidance and must not seize ownership of those help surfaces.
 
 ---
 
@@ -218,6 +221,9 @@ A bordered pop-up box that overlays the center of the screen, used for:
 *   **Filter Stack:** Cumulative logic applies: `Filespec AND Attribute Mask AND Date/Size AND Regex`.
 *   **Grep Tagged (`^s`):** A non-destructive content filter applied to the currently tagged set.
 *   **Targeting:** In Split-Screen, Copy/Move operations in the Active Panel use the Inactive Panel's current path as the default destination.
+*   **Copy Contract:** `Copy` uses source-type semantics: file/tagged-file sources copy non-recursively; directory/tagged-directory sources copy recursively.
+*   **Preserve Ancestor Paths Option:** `Copy` may preserve ancestor-relative path from source into destination when enabled. Base root for preserved segments is the operation base root (logged/selected source root), never filesystem `/`.
+*   **Source Scope Rule:** Unlogged directories are excluded from copy source scope by default unless explicitly selected/logged.
 *   **User Menu (`f9`):** Supports macro expansion: `%f` (file), `%d` (dir), `%t` (tagged list), `%p` (inactive panel path).
 
 ---
@@ -226,6 +232,7 @@ A bordered pop-up box that overlays the center of the screen, used for:
 *   **Signal Handling:** `SIGINT` and `SIGTERM` are trapped for graceful terminal restoration and VFS cleanup.
 *   **Memory Management:** Recursive scans for the Tree View respect the `TREEDEPTH` safety limit to prevent stack overflows or OOM (Out of Memory) conditions on massive filesystems.
 *   **Encapsulation:** Global state pointers are strictly forbidden. All logic must utilize the `ViewContext` structure passed explicitly through the call stack.
+*   **Destructive-Action Confirmation Rule:** Before destructive mutations (delete, overwrite, replace), ytree MUST show explicit confirmation with clear source/target context and a default-safe choice. Safe/non-destructive operations should remain confirmation-free.
 
 ---
 

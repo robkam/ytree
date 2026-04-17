@@ -51,6 +51,7 @@ Persona skill auto-load:
   - UI workflow/menu-depth/interaction-economy design -> `ui-economy-navigation`
   - UI prompt-chain offender detection/audit -> `ui-flow-offender-audit`
   - code-smell audit/remediation (deslop-style) -> `rm-code-smells`
+  - AI-writing-tell/prose de-slop tasks -> `ai-writing-tells`
 
 UX economy gate:
 - Common path MUST be `key -> Enter -> result` with at most one submenu.
