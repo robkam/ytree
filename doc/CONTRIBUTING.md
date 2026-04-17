@@ -231,6 +231,7 @@ Contributions must preserve a secure-by-default codebase:
 - Use least-privilege file/process handling; avoid broad permissions or escalation unless explicitly required.
 
 Security evidence is part of the required audit flow: include `make qa-unsafe-apis` results per **[AUDIT.md](AUDIT.md)**.
+If you change safety-sensitive behavior, update **[TRUST.md](TRUST.md)** so user-facing trust claims stay accurate.
 
 ## Source Comment Policy
 

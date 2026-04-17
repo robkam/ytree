@@ -97,12 +97,15 @@ The project documentation is split into several focused files.
 | **[CHANGES.md](doc/CHANGES.md)** | **Changelog**: Detailed history of v3.0 feature delivery, architecture work, and updates. |
 | **[ROADMAP.md](doc/ROADMAP.md)** | **Future Plans**: Pending milestones and prioritized delivery backlog. |
 | **[AUDIT.md](doc/AUDIT.md)** | **QA Workflow**: The mandatory safety/integrity checks for every PR (Valgrind, ASan, etc). |
+| **[TRUST.md](doc/TRUST.md)** | **Trust & Safety**: Safety claims and where to verify them in the codebase. |
 
 ---
 
 ## Reporting Issues
 
 If you find anything amiss, you can report it using [GitHub Issues](https://github.com/robkam/ytree/issues).
+
+For security-sensitive bugs, report privately via [SECURITY.md](SECURITY.md).
 
 It will help us to address the issue if you include the following:
 *   **OS & Configuration:** (Distro, Terminal type, etc.)
