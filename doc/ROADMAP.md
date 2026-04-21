@@ -24,7 +24,7 @@ Ordering policy (for all editors, including AI editors):
 *   Red test first: very long tagged command/search input reproducer asserts no crash/corruption.
 *   No dynamic command buffer sized by `COLS` remains in these flows.
 *   Long input truncates safely and regression test passes.
-*   - [ ] **Status:** Not Started.
+*   - [x] **Status:** Completed.
 
 ### **Task 72: Remove or hard-gate `/tmp` debug keystroke logging**
 *   **Goal:** Ensure plaintext key/debug logs are not emitted in normal runtime.
@@ -794,7 +794,7 @@ Ordering policy (for all editors, including AI editors):
 
 ### **Future Phase 2: UI/UX Enhancements and Cleanup**
 
-### **Idea FE-2A: Extended `sYsinfo` in Directory-Window Mode**
+### **Idea FE-2: Extended `sYsinfo` in Directory-Window Mode**
 *   **Goal:** Add an on-demand extended stats/system-info surface (`sYsinfo`) for directory-window workflows without replacing the default compact stats panel.
 *   **Rationale:** Advanced disk/system context is useful for planning operations, but should stay opt-in to avoid clutter in normal navigation.
 *   **Keybinding Direction:** Keep context-specific `Y` behavior collision-free: directory-window `Y` may expose `sYsinfo`; file-window `Y` may expose sync workflow entry.
@@ -836,7 +836,7 @@ Ordering policy (for all editors, including AI editors):
 *   **Rationale:** Prompt entry should be strong enough that common path-based workflows stay direct: "type path -> complete/adjust -> Enter -> result" without forcing a separate browser/menu detour.
 *   - [ ] **Status:** Not Started.
 
-### **Idea FE-6A: Tagged-Only Results View**
+### **Idea FE-7: Tagged-Only Results View**
 *   **Goal:** Add a view mode that shows only tagged files without altering the tag set itself.
 *   **User-Facing Behavior:**
     *   In file lists, Showall, Global, and archive file views, users can toggle a **Tagged-Only** filter to temporarily narrow the visible list to currently tagged items.
@@ -845,13 +845,13 @@ Ordering policy (for all editors, including AI editors):
 *   **Rationale:** After tagging, compare, or grep operations, users often want a focused "show me only the files I marked" result view instead of manually navigating through the full list.
 *   - [ ] **Status:** Not Started.
 
-### **Idea FE-6AA: Investigate Recursive Tagging vs Existing Showall/Global Workflow**
+### **Idea FE-8: Investigate Recursive Tagging vs Existing Showall/Global Workflow**
 *   **Goal:** Determine whether recursive tagging provides enough real workflow benefit over the current `log dir -> Showall/Global -> tag` path to justify added complexity.
 *   **Rationale:** Recursive tagging may reduce steps in some trees, but can also add command ambiguity and accidental broad-selection risk.
 *   **Investigation Output:** Document concrete user workflows, interaction-depth impact, and safety tradeoffs; propose either (a) no change, or (b) a minimal, default-safe recursive tagging design with clear scope/confirmation semantics.
 *   - [ ] **Status:** Not Started.
 
-### **Idea FE-6B: Richer Compare Result Views**
+### **Idea FE-9: Richer Compare Result Views**
 *   **Goal:** Extend compare workflows so the result can be viewed directly, not just turned into tags on the active side.
 *   **User-Facing Behavior:**
     *   After comparing two directories/trees, users can narrow the result to categories such as **left/source only**, **right/target only**, **newer**, **older**, **size different**, **content different**, or **identical**.
@@ -860,7 +860,7 @@ Ordering policy (for all editors, including AI editors):
 *   **Rationale:** Current compare behavior is useful but blunt. A richer result view makes compare a practical review tool rather than only a tag generator.
 *   - [ ] **Status:** Not Started.
 
-### **Idea FE-6C: Recent-Directory Bookmarks and Pinned Favorites**
+### **Idea FE-10: Recent-Directory Bookmarks and Pinned Favorites**
 *   **Goal:** Add a first-class recent-directory and pinned-favorites picker for fast return to commonly visited locations.
 *   **User-Facing Behavior:**
     *   Show a compact list of recently visited directories together with user-pinned favorites.
@@ -870,7 +870,7 @@ Ordering policy (for all editors, including AI editors):
 *   **Rationale:** Prompt history helps when the user remembers what they typed. A dedicated recent-directory/favorites list helps when the user remembers the place, not the exact command string.
 *   - [ ] **Status:** Not Started.
 
-### **Idea FE-6E: Dual-Preview Split Mode**
+### **Idea FE-11: Dual-Preview Split Mode**
 *   **Goal:** Allow each `F8` split pane to enter and retain its own `F7`-style preview state independently.
 *   **User-Facing Behavior:**
     *   In split mode, each pane can independently enter preview without forcing preview state changes in the other pane.
@@ -886,7 +886,7 @@ Ordering policy (for all editors, including AI editors):
 *   Focused regression coverage proves per-pane state retention, pane switching, and exit/return behavior.
 *   - [ ] **Status:** Not Started.
 
-### **Idea FE-6D: Unified `N Create` Entry Point (Capability-Filtered by Backend)**
+### **Idea FE-12: Unified `N Create` Entry Point (Capability-Filtered by Backend)**
 *   **Goal:** Replace the narrow `NewFile` entry point with a single explicit `Create` chooser whose available options are filtered by the active backend and context.
 *   **User-Facing Behavior:**
     *   Where creation is supported, `n`/`N` opens `Create:` with only the actions that are valid for the active backend/context.
@@ -910,81 +910,81 @@ Ordering policy (for all editors, including AI editors):
 *   Symlink creation is available natively where supported, with explicit prompts and focused regression coverage for both selected-target and explicit-target flows.
 *   - [ ] **Status:** Not Started.
 
-### **Idea FE-8: Per-Window Filter State (Split Screen Prerequisite)**
+### **Idea FE-13: Per-Window Filter State (Split Screen Prerequisite)**
 *   Decouple the file filter (`file_spec`) from the `Volume` structure and move it into a new `WindowView` context. This architecture is required to support F8 Split Screen, enabling two independent views of the same volume with different filters (e.g., `*.c` in the left pane versus `*.h` in the right).
 *   - [ ] **Status:** Not Started.
 
-### **Idea FE-9: State Preservation on Reload (`^L`)**
+### **Idea FE-14: State Preservation on Reload (`^L`)**
 *   Modify the Refresh command to preserve directory expansion states. Cache open paths prior to the re-scan and restore the previous view structure instead of resetting to the default depth.
 *   - [ ] **Status:** Not Started.
 
-### **Idea FE-10: Preserve Tree Expansion on Refresh**
+### **Idea FE-15: Preserve Tree Expansion on Refresh**
 *   Modify the Refresh/Rescan logic (`^L`, `F5`) to cache the list of currently expanded directories before reading the disk. After the scan is complete, programmatically re-expand those paths if they still exist.
 *   - [ ] **Status:** Not Started.
 
-### **Idea FE-12: Scroll Bars**
+### **Idea FE-16: Scroll Bars**
 *   On left border of the file and directory windows to indicate the relative position of the highlighted item in the entire list (configurable to char or line).
 *   - [ ] **Status:** Not Started.
 
-### **Idea FE-14: Callback API Constification Cleanup (cppcheck strict mode)**
+### **Idea FE-17: Callback API Constification Cleanup (cppcheck strict mode)**
 *   `cppcheck` suggests const-qualifying callback `user_data`, but doing this correctly likely requires changing callback typedef/API signatures (e.g., `RewriteCallback`) and related call sites. Defer this to a focused API pass to avoid scattered casts and partial churn.
 *   - [ ] **Status:** Not Started.
 
 ### **Future Phase 3: Long-Horizon Experiments**
 
-### **Idea FE-3.1: Implement VFS Abstraction Layer** (Use the Architect persona here)
+### **Idea FE-18: Implement VFS Abstraction Layer** (Use the Architect persona here)
 *   **Goal:** Replace hardcoded filesystem logic with a driver-based architecture. This allows `ytree` to treat any data source (Local FS, Archive, SSH, SQL) uniformly as a `Volume`.
 *   **Context:** Currently, `log.c` decides between "Disk" and "Archive". We will change this so `log.c` asks a Registry: "Who can handle this path?"
 *   **Follow-on Direction:** Include remote logging backends under this VFS model (FTP/SFTP candidates), with final protocol choice deferred until security and maintenance review.
 
-### **Idea FE-3.2: Define VFS Interface & Volume Integration** (Use the Architect persona here)
+### **Idea FE-19: Define VFS Interface & Volume Integration** (Use the Architect persona here)
 *   **Goal:** Define the `VFS_Driver` contract (struct of function pointers) and update the `Volume` struct to hold a pointer to its active driver.
 *   **Mechanism:**
     *   Create `include/ytree_vfs.h`.
     *   Define function pointers: `scan`, `stat`, `lstat`, `extract`, `get_path` (for internal addressing).
     *   Update `include/ytree_defs.h` to add `const VFS_Driver *driver` and `void *driver_data` to `struct Volume`.
 
-### **Idea FE-3.3: Implement VFS Registry** (Use the Architect persona here)
+### **Idea FE-20: Implement VFS Registry** (Use the Architect persona here)
 *   **Goal:** Create the core logic to register drivers and probe paths.
 *   **Mechanism:**
     *   Create `src/fs/vfs.c`.
     *   Implement `VFS_Init()` (registers built-in drivers).
     *   Implement `VFS_Probe(path)` which iterates drivers asking "Can you handle this?" and returns the best match.
 
-### **Idea FE-3.4: Implement "Local" VFS Driver** (Use the Architect persona here)
+### **Idea FE-21: Implement "Local" VFS Driver** (Use the Architect persona here)
 *   **Goal:** Wrap the existing POSIX `opendir`/`readdir` logic into a `VFS_Driver`.
 *   **Mechanism:**
     *   Create `src/fs/drv_local.c`.
     *   Move logic from `src/fs/tree_read.c` into the driver's `.scan` method.
     *   Ensure it populates `DirEntry` structures exactly as before.
 
-### **Idea FE-3.5: Implement "Archive" VFS Driver** (Use the Architect persona here)
+### **Idea FE-22: Implement "Archive" VFS Driver** (Use the Architect persona here)
 *   **Goal:** Wrap the existing `libarchive` logic into a `VFS_Driver`.
 *   **Mechanism:**
     *   Create `src/fs/drv_archive.c`.
     *   Move logic from `src/fs/archive_read.c` and `src/fs/archive_write.c` into the driver.
     *   Implement `.extract` to handle the temporary file creation for viewing/copying.
 
-### **Idea FE-3.6: Switch `LogDisk` to VFS** (Use the Architect persona here)
+### **Idea FE-23: Switch `LogDisk` to VFS** (Use the Architect persona here)
 *   **Goal:** Update the main entry point to use the new system.
 *   **Mechanism:**
     *   Refactor `src/cmd/log.c`.
     *   Replace the `stat`/`S_ISDIR` check with `VFS_Probe(path)`.
     *   Call `vol->driver->scan()` instead of calling `ReadTree` or `ReadTreeFromArchive` directly.
 
-### **Idea FE-3.7: Refactor Consumers (Polymorphism)** (Use the Architect persona here)
+### **Idea FE-24: Refactor Consumers (Polymorphism)** (Use the Architect persona here)
 *   **Goal:** Remove `if (mode == ARCHIVE)` from the rest of the codebase.
 *   **Mechanism:**
     *   Update `view.c`, `copy.c`, `execute.c`.
     *   Replace specific calls with `vol->driver->extract(...)` or `vol->driver->stat(...)`.
 
-### **Idea FE-3.7A: Database Browsing and Editing via Virtual Filesystem Drivers**
+### **Idea FE-25: Database Browsing and Editing via Virtual Filesystem Drivers**
 *   **Goal:** After the driver-based VFS abstraction exists, allow ytree to browse supported database formats as navigable virtual filesystems and eventually edit them through driver-defined operations.
 *   **User-Facing Direction:** Treat a database as a structured volume (for example database -> tables -> rows/records or exported views) rather than as one opaque file blob.
 *   **Rationale:** This is a specialized extension of the VFS model, not a core file-manager requirement. Keep it as a future experiment until a clear driver design and real use-case exist.
 *   - [ ] **Status:** Not Started.
 
-### **Idea FE-3.8: Implement Recursive Directory Watching**
+### **Idea FE-26: Implement Recursive Directory Watching**
 *   **Goal:** Keep visible tree and file-list state fresh by watching all currently expanded filesystem directories, not only the active cursor directory.
 *   **Rationale:** Without recursive watch coverage, edits in visible sibling/child directories can leave the UI stale until manual refresh.
 *   **Scope Lock:** Filesystem watcher behavior only; no archive-internal recursive watching.
@@ -1000,17 +1000,17 @@ Ordering policy (for all editors, including AI editors):
     *   `ENOSPC` fallback is explicit, stable, and non-fatal.
 *   - [ ] **Status:** Not Started.
 
-### **Idea FE-3.9: Implement Shell Script Generator**
+### **Idea FE-27: Implement Shell Script Generator**
 *   **Goal:** Generate a shell script from tagged files using user-defined templates (e.g., `cp %f /backup/%f.bak`), replacing the "Batch" concept.
 *   **Rationale:** Offers complex templating logic that goes beyond simple pipe/xargs, and critically allows the user to review/edit the generated script before execution for safety.
 *   - [ ] **Status:** Not Started.
 
-### **Idea FE-3.10: Implement Keyboard Macros (F12 Record/Playback)**
+### **Idea FE-28: Implement Keyboard Macros (F12 Record/Playback)**
 *   **Goal:** Implement keystroke recording and replay. `F12` starts/stops recording command/input sequences for deterministic playback.
 *   **Rationale:** Allows automation of repetitive interaction sequences (for example "Tag, Move, Rename, Repeat") without creating shell command templates.
 *   - [ ] **Status:** Not Started.
 
-### **Idea FE-3.10AA: Enhance Built-In Viewer**
+### **Idea FE-29: Enhance Built-In Viewer**
 *   **Goal:** Evolve ytree's internal viewer from a basic fallback inspector into a more capable built-in viewing tool for normal terminal workflows.
 *   **Builds On:** Current-delivery viewer work such as `Add Configurable Bypass for External Viewers` and `Standardize Internal Viewer Layout`.
 *   **Candidate Scope:**
@@ -1022,19 +1022,19 @@ Ordering policy (for all editors, including AI editors):
 *   **Rationale:** A stronger built-in viewer would make ytree more self-contained for terminal inspection work, while still keeping the project focused on file management rather than format-specific rendering.
 *   - [ ] **Status:** Not Started.
 
-### **Idea FE-3.10A: Preview Helper Pipeline for Non-Text File Types**
+### **Idea FE-30: Preview Helper Pipeline for Non-Text File Types**
 *   **Goal:** Investigate a very-low-priority preview-helper system that can convert non-text formats into something ytree can preview, without turning ytree itself into a giant all-format viewer.
 *   **Examples:** Route images, PDFs, office files, or database exports through user-configured helper commands that emit plain text, ANSI output, or temporary preview artifacts.
 *   **Non-Goal:** Do not make ytree responsible for natively understanding every binary/GUI format. Prefer the Unix model of helper programs and explicit pipelines.
 *   **Rationale:** This could make `F7`/viewer workflows more useful for odd file types, but it is a large, optional integration surface and should stay firmly in wishlist territory until someone explicitly wants to build it.
 *   - [ ] **Status:** Not Started.
 
-### **Idea FE-3.11: Terminal-Independent TUI Runtime (ncurses-Decoupling Investigation)**
+### **Idea FE-31: Terminal-Independent TUI Runtime (ncurses-Decoupling Investigation)**
 *   **Goal:** Investigate a runtime path where ytree's TUI is not tightly coupled to ncurses.
 *   **Rationale:** This is a platform/input architecture effort intended to evaluate whether backend decoupling can reduce current control-key handling constraints (including limitations around mappings like `^M`) while preserving ytree interaction semantics.
 *   - [ ] **Status:** Not Started.
 
-### **Idea FE-3.12: Implement "Safe Delete" (Trash Can)**
+### **Idea FE-32: Implement "Safe Delete" (Trash Can)**
 *   **Goal:** Add optional trash-backed delete where the active filesystem/backend supports it.
 *   **Config:** Add a `ytree.conf` switch for trash-delete with default `1` (enabled).
 *   **Fallback:** If trash-delete is disabled or unsupported for the active backend, use permanent delete with explicit confirmation.

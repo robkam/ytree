@@ -42,7 +42,6 @@ void UI_RenderFilePanel(ViewContext *ctx, const DirEntry *dir_entry,
 
 static void RebuildActiveFileListAfterMutation(ViewContext *ctx,
                                                DirEntry *dir_entry) {
-  int max_disp_files;
   int file_count;
 
   if (!ctx || !ctx->active || !dir_entry)
@@ -55,6 +54,8 @@ static void RebuildActiveFileListAfterMutation(ViewContext *ctx,
     dir_entry->start_file = 0;
     dir_entry->cursor_pos = 0;
   } else {
+    int max_disp_files;
+
     max_disp_files = FileNav_GetMaxDispFiles(ctx);
     if (max_disp_files < 1)
       max_disp_files = 1;
@@ -1304,13 +1305,14 @@ BOOL handle_tag_file_action(ViewContext *ctx, int action, DirEntry *dir_entry,
     } else {
       char *command_line;
 
-      if ((command_line = (char *)malloc(COLS + 1)) == NULL) {
+      if ((command_line = (char *)malloc(COMMAND_LINE_LENGTH + 1)) == NULL) {
         UI_Error(ctx, "", 0, "Malloc failed*ABORT");
         exit(1);
       }
 
       /* Allocate new buffer for silent command */
-      size_t silent_cmd_size = (size_t)COLS + 20U;
+      size_t silent_cmd_size =
+          (size_t)COMMAND_LINE_LENGTH + sizeof(" > /dev/null 2>&1");
       char *silent_cmd = (char *)malloc(silent_cmd_size);
       if (!silent_cmd) {
         UI_Error(ctx, "", 0, "Malloc failed*ABORT");
@@ -1357,7 +1359,7 @@ BOOL handle_tag_file_action(ViewContext *ctx, int action, DirEntry *dir_entry,
     } else {
       char *command_line;
 
-      if ((command_line = (char *)malloc(COLS + 1)) == NULL) {
+      if ((command_line = (char *)malloc(COMMAND_LINE_LENGTH + 1)) == NULL) {
         UI_Error(ctx, __FILE__, __LINE__, "Malloc failed*ABORT");
         exit(1);
       }

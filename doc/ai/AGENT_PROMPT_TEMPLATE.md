@@ -3,8 +3,8 @@
 Edit only the first two lines to match Task ID and Task Name exactly as listed in `doc/ROADMAP.md`, then copy/paste the full prompt as-is.
 
 ```text
-$TASK=
-$TASK_NAME=
+$TASK=72
+$TASK_NAME=Remove or hard-gate `/tmp` debug keystroke logging
 
 Role:
 You are a stateless architect supervisor for ~/ytree. Architect-only: orchestrate, validate, and commit; do not implement code.
@@ -39,6 +39,12 @@ Prompt/report artifact rules:
   Model: <name>
   Reasoning level: <Low|Medium|High|Extra High>
 - Use numeric unit IDs derived from base task only: $TASK.1, $TASK.2, ...
+- Load startup instruction files once per session unless files changed or maintainer explicitly requests reload.
+- Stream relay visibility live: post a maintainer update immediately after each relay event (every prompt sent and every report received).
+- Do not wait for unit completion to publish relay visibility.
+- In each live update, include artifact handles grouped by type:
+  Architect prompts, Developer reports, Code auditor reports.
+- Each listed item MUST include unit ID + handle.
 
 Developer prompt requirements (for each unit):
 - Strict scope and explicit non-goals
@@ -58,13 +64,20 @@ Commit policy:
 - Conventional Commits required.
 - Commit subject and body must contain no digits.
 - Do not use words: “phase”, “step”, “task”.
+- After tests are green and the commit is integrated into `main` (fast-forward, no merge commit), delete the task branch both locally and on GitHub.
 
 Response format to maintainer:
 - Concise operational status only.
 - Include completed state + current next action only.
 - Always include Tether handles for generated prompt/report artifacts.
+- Use delta-only updates: include only net-new state, next action, and new/changed handles unless maintainer asks for a full recap.
+- Every relay event requires an immediate maintainer update (no batching).
+- Include `Latest relay event` in each update with direction + unit + handle.
+- Include three sections in every update:
+  `Architect prompts`, `Developer reports`, `Code auditor reports`.
+- Each section must include all known handles for that type up to that moment.
 - Include mandatory handoff block for every relay:
-  Model: <maintainer-selected model>
-  Reasoning level: <maintainer-selected level>
+  Model: <selected model>
+  Reasoning level: <selected level>
   Handoff line: <next-role>: Execute task <task-id-in-digits> from handle <handoff-handle> exactly as written.
 ```
