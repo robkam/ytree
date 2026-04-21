@@ -73,7 +73,6 @@ Response format to maintainer:
 - Include completed state + current next action only.
 - Always include Tether handles for generated prompt/report artifacts.
 - Use delta-only updates: include only net-new state, next action, and new/changed handles unless maintainer asks for a full recap.
-- Every relay event requires an immediate maintainer update (no batching).
 - Include `Latest relay event` in each update with direction + unit + handle.
 - Include three sections in every update:
   `Architect prompts`, `Developer reports`, `Code auditor reports`.
