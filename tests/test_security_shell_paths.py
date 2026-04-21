@@ -78,6 +78,40 @@ def test_tagged_search_long_uses_command_line_length_contract():
     )
 
 
+def test_tagged_search_normalization_uses_command_line_length_contract():
+    src = _read_ctrl_file_ops_source()
+    block = _extract_case_block(
+        src, "case ACTION_CMD_TAGGED_S:", "case ACTION_CMD_TAGGED_X:"
+    )
+
+    assert "NormalizeQuotedExecPlaceholders(command_line, (size_t)COLS + 1U);" not in block, (
+        "Tagged search normalization must not be bounded by COLS."
+    )
+    assert "NormalizeQuotedExecPlaceholders(" in block, (
+        "Tagged search path must normalize quoted placeholders."
+    )
+    assert "(size_t)COMMAND_LINE_LENGTH + 1U" in block, (
+        "Tagged search normalization must use COMMAND_LINE_LENGTH + 1."
+    )
+
+
+def test_tagged_execute_normalization_uses_command_line_length_contract():
+    src = _read_ctrl_file_ops_source()
+    block = _extract_case_block(
+        src, "case ACTION_CMD_TAGGED_X:", "case ACTION_TOGGLE_TAGGED_MODE:"
+    )
+
+    assert "NormalizeQuotedExecPlaceholders(command_line, (size_t)COLS + 1U);" not in block, (
+        "Tagged execute normalization must not be bounded by COLS."
+    )
+    assert "NormalizeQuotedExecPlaceholders(" in block, (
+        "Tagged execute path must normalize quoted placeholders."
+    )
+    assert "(size_t)COMMAND_LINE_LENGTH + 1U" in block, (
+        "Tagged execute normalization must use COMMAND_LINE_LENGTH + 1."
+    )
+
+
 def test_compare_placeholder_expansion_preserves_metacharacter_paths(
     ytree_binary, tmp_path
 ):
@@ -171,6 +205,45 @@ def test_execute_command_placeholder_preserves_metacharacter_filename_literal(
         "Execute {} placeholder expansion must preserve filename as a single "
         "literal argument.\n"
         f"Args: {logged}"
+    )
+
+    tui.quit()
+
+
+def test_execute_placeholder_in_user_quotes_does_not_enable_shell_injection(
+    ytree_binary, tmp_path
+):
+    root = tmp_path / "execute_shell_quote_injection_guard"
+    root.mkdir()
+
+    marker_name = "task71_injected_marker"
+    marker_path = root / marker_name
+    filename = f"exec ; touch {marker_name}"
+    file_path = root / filename
+    file_path.write_text("echo payload\n", encoding="utf-8")
+
+    helper_path, log_path = _configure_capture_helper(root, "exec_quoted_placeholder.log")
+
+    tui = YtreeTUI(executable=ytree_binary, cwd=str(root))
+    time.sleep(0.6)
+    tui.send_keystroke(Keys.ENTER, wait=0.35)  # tree -> file view
+    tui.send_keystroke("x", wait=0.35)
+    assert tui.wait_for_content("COMMAND:", timeout=1.0)
+    tui.send_keystroke(
+        Keys.CTRL_U + str(helper_path) + " '{}'" + Keys.ENTER,
+        wait=0.55,
+    )
+
+    assert _wait_for_file(log_path, timeout=2.0), "Execute helper did not run."
+    logged = log_path.read_text(encoding="utf-8").splitlines()
+    assert logged == [filename], (
+        "Quoted {} placeholder expansion must still pass the filename as one "
+        "literal argument.\n"
+        f"Args: {logged}"
+    )
+    assert not marker_path.exists(), (
+        "Shell metacharacters from filename must not execute unintended commands "
+        "when {} is used inside user quotes."
     )
 
     tui.quit()

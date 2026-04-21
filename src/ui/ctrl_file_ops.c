@@ -79,6 +79,48 @@ static void RebuildActiveFileListAfterMutation(ViewContext *ctx,
   ctx->active->file_cursor_pos = dir_entry->cursor_pos;
 }
 
+/* Placeholder values are shell-quoted by Path_BuildCommandLine().
+ * If users also wrap {} / %s in quotes, the resulting command line can
+ * create broken quoting (e.g. ''value'') and re-expose shell metacharacters.
+ * Normalize quoted placeholders back to bare tokens before expansion. */
+static void NormalizeQuotedExecPlaceholders(char *command_template,
+                                            size_t command_template_size) {
+  size_t read_idx = 0;
+  size_t write_idx = 0;
+
+  if (!command_template || command_template_size == 0) {
+    return;
+  }
+
+  while (command_template[read_idx] != '\0' &&
+         write_idx + 1 < command_template_size) {
+    char quote = command_template[read_idx];
+
+    if ((quote == '\'' || quote == '"') && read_idx + 3 < command_template_size &&
+        command_template[read_idx + 3] == quote) {
+      if (command_template[read_idx + 1] == '{' &&
+          command_template[read_idx + 2] == '}') {
+        command_template[write_idx++] = '{';
+        command_template[write_idx++] = '}';
+        read_idx += 4;
+        continue;
+      }
+
+      if (command_template[read_idx + 1] == '%' &&
+          command_template[read_idx + 2] == 's') {
+        command_template[write_idx++] = '%';
+        command_template[write_idx++] = 's';
+        read_idx += 4;
+        continue;
+      }
+    }
+
+    command_template[write_idx++] = command_template[read_idx++];
+  }
+
+  command_template[write_idx] = '\0';
+}
+
 BOOL handle_file_window_preview_action(
     ViewContext *ctx, YtreeAction action, DirEntry **dir_entry_ptr,
     YtreeAction *loop_action_ptr, Statistic **stats_ptr,
@@ -718,6 +760,8 @@ BOOL handle_file_window_command_action(ViewContext *ctx, YtreeAction action,
         }
       }
       if (GetCommandLine(ctx, command_template) == 0) {
+        NormalizeQuotedExecPlaceholders(command_template,
+                                        sizeof(command_template));
         (void)Execute(ctx, de_ptr, fe_ptr, command_template,
                       &ctx->active->vol->vol_stats, UI_ArchiveCallback);
         if (ctx->view_mode == ARCHIVE_MODE)
@@ -1324,6 +1368,8 @@ BOOL handle_tag_file_action(ViewContext *ctx, int action, DirEntry *dir_entry,
 
       /* Filter Mode */
       if (!GetSearchCommandLine(ctx, command_line, ctx->global_search_term)) {
+        NormalizeQuotedExecPlaceholders(
+            command_line, (size_t)COMMAND_LINE_LENGTH + 1U);
         /* Construct Silent Command */
         int n = snprintf(silent_cmd, silent_cmd_size, "%s > /dev/null 2>&1",
                          command_line);
@@ -1367,6 +1413,8 @@ BOOL handle_tag_file_action(ViewContext *ctx, int action, DirEntry *dir_entry,
       need_dsp_help = TRUE;
       *command_line = '\0';
       if (GetCommandLine(ctx, command_line) == 0) {
+        NormalizeQuotedExecPlaceholders(
+            command_line, (size_t)COMMAND_LINE_LENGTH + 1U);
         endwin();
         SuspendClock(ctx);
         walking_package.function_data.execute.command = command_line;
