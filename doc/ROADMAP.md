@@ -33,7 +33,7 @@ Ordering policy (for all editors, including AI editors):
 *   Debug logging is compile-time gated and off by default.
 *   Log path handling is secure (no predictable world-readable temp logs).
 *   Red test first: default build writes no such logs during normal interaction.
-*   - [ ] **Status:** Not Started.
+*   - [x] **Status:** Completed.
 
 ### **Task 71: Tighten shell-exec attack surface**
 *   **Goal:** Separate trusted template execution from raw user shell commands; prefer argv-based exec where possible and keep shell-required paths explicit and user-confirmed.

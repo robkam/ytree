@@ -492,15 +492,8 @@ void HandleSwitchWindow(ViewContext *ctx, DirEntry *dir_entry,
       if (dir_entry->cursor_pos < 0)
         dir_entry->cursor_pos = 0;
     }
-    {
-      FILE *fp = fopen("/tmp/ytree_debug_switch.log", "a");
-      if (fp) {
-        fprintf(fp,
-                "DEBUG: HandleSwitchWindow calling HandleFileWindow for %s\n",
-                dir_entry->name);
-        fclose(fp);
-      }
-    }
+    DEBUG_LOG("DEBUG: HandleSwitchWindow calling HandleFileWindow for %s",
+              dir_entry->name);
     if (HandleFileWindow(ctx, dir_entry) != LOG_ESC) {
       /* Safety Check: If volume was deleted in File Window (via
        * SelectLoadedVolume), abort */
