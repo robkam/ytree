@@ -14,6 +14,10 @@
 #define YTREE_DEBUG_LOG_PATH_ENV "YTREE_DEBUG_LOG_PATH"
 #define YTREE_DEBUG_LOG_PATH_LIMIT 4096U
 
+#ifndef YTREE_ENABLE_KEYSTROKE_DEBUG_LOG
+#define YTREE_ENABLE_KEYSTROKE_DEBUG_LOG 0
+#endif
+
 #define DEBUG_LOG(fmt, ...)                                                     \
   do {                                                                           \
     const char *ytree_debug_log_path = getenv(YTREE_DEBUG_LOG_PATH_ENV);         \
@@ -45,5 +49,13 @@
       fclose(fp);                                                                \
     }                                                                            \
   } while (0)
+
+#if YTREE_ENABLE_KEYSTROKE_DEBUG_LOG
+#define DEBUG_KEYSTROKE_LOG(fmt, ...) DEBUG_LOG(fmt, ##__VA_ARGS__)
+#else
+#define DEBUG_KEYSTROKE_LOG(fmt, ...)                                            \
+  do {                                                                           \
+  } while (0)
+#endif
 
 #endif /* YTREE_DEBUG_H */

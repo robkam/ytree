@@ -327,13 +327,8 @@ BOOL KeyPressed() {
   if (c != ERR) {
     pressed = TRUE;
     ungetch(c);
-
-    FILE *l = fopen("/tmp/ytree_wgetch.log", "a");
-    if (l) {
-      fprintf(l, "KeyPressed() saw: %3d ('%c') - UNGETTING\n", c,
-              (c >= 32 && c <= 126) ? c : '.');
-      fclose(l);
-    }
+    DEBUG_KEYSTROKE_LOG("KeyPressed() saw: %3d ('%c') - UNGETTING", c,
+                        (c >= 32 && c <= 126) ? c : '.');
   }
   nodelay(stdscr, FALSE);
 
@@ -346,12 +341,8 @@ BOOL EscapeKeyPressed(void) {
 
   nodelay(stdscr, TRUE);
   if ((c = wgetch(stdscr)) != ERR) {
-    FILE *l = fopen("/tmp/ytree_wgetch.log", "a");
-    if (l) {
-      fprintf(l, "EscapeKeyPressed() saw: %3d ('%c')\n", c,
-              (c >= 32 && c <= 126) ? c : '.');
-      fclose(l);
-    }
+    DEBUG_KEYSTROKE_LOG("EscapeKeyPressed() saw: %3d ('%c')", c,
+                        (c >= 32 && c <= 126) ? c : '.');
 
     if (c == ESC) {
       pressed = TRUE;
