@@ -10,6 +10,12 @@ Gemini-specific behavior for this repository.
 ## Commit Messages
 
 - Follow `.ai/shared.md` rule 8. Enforcement lives in `.githooks/commit-msg`.
+- Prefer outcome-first wording and never use workflow labels (`task`, `step`) or numeric workflow IDs in commit text.
+
+## Context Budget
+
+- Treat startup instructions as session-scoped: load once unless files changed or the maintainer requests reload.
+- After startup, use delta-only reporting with only net-new state and next action unless a full recap is requested.
 
 ## Gemini Notes
 

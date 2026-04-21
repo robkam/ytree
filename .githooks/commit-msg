@@ -31,3 +31,26 @@ EOF
   echo "[commit-msg] Got: $SUBJECT" >&2
   exit 1
 fi
+
+# Disallow workflow-label wording in commit text.
+if grep -Eiq '\b(task|step)\b' "$MSG_FILE"; then
+  cat >&2 <<'EOF'
+[commit-msg] Commit text must not use workflow labels like 'task' or 'step'.
+Use durable intent/outcome wording instead.
+EOF
+  exit 1
+fi
+
+# By default, disallow digits in commit text to avoid ephemeral workflow IDs.
+# Add [allow-digits] in the commit body only when a maintainer-approved
+# exception is explicitly required.
+if ! grep -Fqi '[allow-digits]' "$MSG_FILE"; then
+  if grep -Eq '[0-9]' "$MSG_FILE"; then
+    cat >&2 <<'EOF'
+[commit-msg] Commit text must not include digits by default.
+If digits are required by an explicit maintainer-approved exception,
+add [allow-digits] in the commit body.
+EOF
+    exit 1
+  fi
+fi

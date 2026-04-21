@@ -1,5 +1,6 @@
 import shlex
 import time
+from pathlib import Path
 
 from tui_harness import YtreeTUI
 from ytree_keys import Keys
@@ -31,6 +32,50 @@ def _write_global_profile(tmp_dir, entries):
     for key, value in entries:
         body.append(f"{key}={value}")
     (tmp_dir / ".ytree").write_text("\n".join(body) + "\n", encoding="utf-8")
+
+
+def _read_ctrl_file_ops_source():
+    repo_root = Path(__file__).resolve().parents[1]
+    return (repo_root / "src/ui/ctrl_file_ops.c").read_text(encoding="utf-8")
+
+
+def _extract_case_block(source, case_label, next_case_label):
+    start = source.find(case_label)
+    assert start >= 0, f"Could not find case label: {case_label}"
+    end = source.find(next_case_label, start)
+    assert end >= 0, f"Could not find next case label: {next_case_label}"
+    return source[start:end]
+
+
+def test_tagged_command_long_uses_command_line_length_contract():
+    src = _read_ctrl_file_ops_source()
+    block = _extract_case_block(
+        src, "case ACTION_CMD_TAGGED_X:", "case ACTION_TOGGLE_TAGGED_MODE:"
+    )
+
+    assert "malloc(COLS + 1)" not in block, (
+        "Tagged execute command buffer must not be sized by COLS for long input."
+    )
+    assert "malloc(COMMAND_LINE_LENGTH + 1)" in block, (
+        "Tagged execute command buffer must use COMMAND_LINE_LENGTH + 1."
+    )
+
+
+def test_tagged_search_long_uses_command_line_length_contract():
+    src = _read_ctrl_file_ops_source()
+    block = _extract_case_block(
+        src, "case ACTION_CMD_TAGGED_S:", "case ACTION_CMD_TAGGED_X:"
+    )
+
+    assert "malloc(COLS + 1)" not in block, (
+        "Tagged search command buffer must not be sized by COLS for long input."
+    )
+    assert "malloc(COMMAND_LINE_LENGTH + 1)" in block, (
+        "Tagged search command buffer must use COMMAND_LINE_LENGTH + 1."
+    )
+    assert "COMMAND_LINE_LENGTH + sizeof(\" > /dev/null 2>&1\")" in block, (
+        "Tagged silent command must size from COMMAND_LINE_LENGTH contract."
+    )
 
 
 def test_compare_placeholder_expansion_preserves_metacharacter_paths(
