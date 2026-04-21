@@ -30,3 +30,16 @@ def test_debug_logging_requires_explicit_env_path_without_tmp_fallback() -> None
     assert "if (ytree_debug_log_path_valid)" in src
     assert "fopen(ytree_debug_log_path, \"a\")" in src
     assert "/tmp/ytree_" not in src
+
+
+def test_ui_tmp_debug_keystroke_logs_not_present() -> None:
+    key_engine = _read("src/ui/key_engine.c")
+    ctrl_file = _read("src/ui/ctrl_file.c")
+    dir_ops = _read("src/ui/dir_ops.c")
+    debug_header = _read("include/ytree_debug.h")
+
+    assert "/tmp/ytree_wgetch.log" not in key_engine
+    assert "/tmp/ytree_debug_exit.log" not in ctrl_file
+    assert "/tmp/ytree_debug_switch.log" not in dir_ops
+    assert "YTREE_ENABLE_KEYSTROKE_DEBUG_LOG" in debug_header
+    assert "#define YTREE_ENABLE_KEYSTROKE_DEBUG_LOG 0" in debug_header

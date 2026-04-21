@@ -940,14 +940,8 @@ file_window_done:
     owner_panel->file_cursor_pos = 0;
   }
 
-  {
-    FILE *fp = fopen("/tmp/ytree_debug_exit.log", "a");
-    if (fp) {
-      fprintf(fp, "DEBUG: HandleFileWindow EXITING with %s\n",
-              (action == ACTION_ENTER) ? "CR" : "ESC");
-      fclose(fp);
-    }
-  }
+  DEBUG_LOG("DEBUG: HandleFileWindow EXITING with %s",
+            (action == ACTION_ENTER) ? "CR" : "ESC");
   return ((action == ACTION_ENTER)
               ? CR
               : (jumped_to_owner_dir ? '\\' : ESC)); /* Return CR/ESC/ToDir */
