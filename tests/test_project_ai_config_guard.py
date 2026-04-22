@@ -77,6 +77,37 @@ def test_check_config_requires_model_instructions_file(tmp_path: Path) -> None:
     assert any("model_instructions_file" in failure for failure in failures)
 
 
+def test_check_config_accepts_absolute_model_instructions_file(tmp_path: Path) -> None:
+    config = tmp_path / "config.toml"
+    _write(
+        config,
+        textwrap.dedent(
+            """\
+            model_instructions_file = "/home/rob/ytree/.ai/codex.md"
+
+            [mcp_servers.serena]
+            command = "uvx"
+            args = ["serena", "start-mcp-server", "--context", "codex"]
+
+            [mcp_servers.serena.env]
+            UV_CACHE_DIR = "/tmp/codex-uv-cache"
+            UV_TOOL_DIR = "/tmp/codex-uv-tools"
+
+            [mcp_servers.jcodemunch]
+            command = "uvx"
+            args = ["jcodemunch-mcp"]
+
+            [mcp_servers.jcodemunch.env]
+            UV_CACHE_DIR = "/tmp/codex-uv-cache"
+            UV_TOOL_DIR = "/tmp/codex-uv-tools"
+            """
+        ),
+    )
+
+    failures = guard.check_config(config)
+    assert not any("model_instructions_file" in failure for failure in failures)
+
+
 def test_current_repository_baseline_passes() -> None:
     repo_root = Path(__file__).resolve().parents[1]
     run = subprocess.run(
