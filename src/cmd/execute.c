@@ -24,21 +24,19 @@ static int ExecuteArchiveFile(ViewContext *ctx, DirEntry *dir_entry,
   char temp_path[PATH_LENGTH];
   char command_line[COMMAND_LINE_LENGTH + 1];
   char dir_path[PATH_LENGTH];
-  int fd_tmp;
+  int fd_tmp = -1;
   int result = -1;
   int written;
+  BOOL temp_file_created = FALSE;
 
-  /* 1. Create Temporary File */
-  written = snprintf(temp_path, sizeof(temp_path), "%s", "/tmp/ytree_XXXXXX");
-  if (written < 0 || (size_t)written >= sizeof(temp_path)) {
+  temp_path[0] = '\0';
+
+  if (!Path_CreateTempFile(temp_path, sizeof(temp_path), "ytree_execute_",
+                           FALSE, &fd_tmp)) {
     return -1;
   }
-  fd_tmp = mkstemp(temp_path);
-  if (fd_tmp == -1) {
-    return -1;
-  }
+  temp_file_created = TRUE;
 
-  /* 2. Extract File Content */
   if (file_entry) {
     char internal_path[PATH_LENGTH];
     char canonical_internal_path[PATH_LENGTH];
@@ -63,18 +61,14 @@ static int ExecuteArchiveFile(ViewContext *ctx, DirEntry *dir_entry,
 
     written = snprintf(relative_path, sizeof(relative_path), "%s", relative_source);
     if (written < 0 || (size_t)written >= sizeof(relative_path)) {
-      close(fd_tmp);
-      unlink(temp_path);
-      return -1;
+      goto cleanup;
     }
     relative_len = (size_t)written;
 
     if (relative_len > 0 &&
         relative_path[relative_len - 1] != FILE_SEPARATOR_CHAR) {
       if (relative_len + 1 >= sizeof(relative_path)) {
-        close(fd_tmp);
-        unlink(temp_path);
-        return -1;
+        goto cleanup;
       }
       relative_path[relative_len++] = FILE_SEPARATOR_CHAR;
       relative_path[relative_len] = '\0';
@@ -85,48 +79,44 @@ static int ExecuteArchiveFile(ViewContext *ctx, DirEntry *dir_entry,
                        file_entry->name);
     if (written < 0 ||
         (size_t)written >= (sizeof(relative_path) - relative_len)) {
-      close(fd_tmp);
-      unlink(temp_path);
-      return -1;
+      goto cleanup;
     }
 
     written = snprintf(internal_path, sizeof(internal_path), "%s", relative_path);
     if (written < 0 || (size_t)written >= sizeof(internal_path)) {
-      close(fd_tmp);
-      unlink(temp_path);
-      return -1;
+      goto cleanup;
     }
 
     if (Archive_ValidateInternalPath(internal_path, canonical_internal_path,
                                      sizeof(canonical_internal_path)) != 0) {
-      close(fd_tmp);
-      unlink(temp_path);
-      return -1;
+      goto cleanup;
     }
 
     if (ExtractArchiveEntry(s->log_path, canonical_internal_path, fd_tmp, cb,
                             NULL) !=
         0) {
-      close(fd_tmp);
-      unlink(temp_path);
-      return -1;
+      goto cleanup;
     }
   } else {
-    close(fd_tmp);
-    unlink(temp_path);
-    return -1;
+    goto cleanup;
   }
   close(fd_tmp);
+  fd_tmp = -1;
 
   if (Path_BuildCommandLine(cmd_template, NULL, "{}", temp_path, NULL, NULL,
                             command_line, sizeof(command_line)) != 0) {
-    unlink(temp_path);
-    return -1;
+    goto cleanup;
   }
 
   result = SilentSystemCall(ctx, command_line, s);
-  unlink(temp_path);
 
+cleanup:
+  if (fd_tmp != -1) {
+    close(fd_tmp);
+  }
+  if (temp_file_created && temp_path[0] != '\0') {
+    unlink(temp_path);
+  }
   return result;
 }
 #endif

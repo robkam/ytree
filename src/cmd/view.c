@@ -53,40 +53,45 @@ static int ViewFile(ViewContext *ctx, DirEntry *dir_entry, char *file_path) {
 }
 
 static int ViewArchiveFile(ViewContext *ctx, char *file_path) {
-  char temp_filename[] = "/tmp/ytree_view_XXXXXX";
+  char temp_filename[PATH_LENGTH];
   char command_line[COMMAND_LINE_LENGTH + 1];
-  int fd;
+  int fd = -1;
   int result = -1;
 
   const char *pager;
 
-  fd = mkstemp(temp_filename);
-  if (fd == -1) {
+  temp_filename[0] = '\0';
+
+  if (!Path_CreateTempFile(temp_filename, sizeof(temp_filename), "ytree_view_",
+                           FALSE, &fd)) {
     MESSAGE(ctx, "Could not create temporary file for viewing");
-    return -1;
+    goto cleanup;
   }
 
   if (ExtractArchiveEntry(ctx->active->vol->vol_stats.log_path, file_path, fd,
                           UI_ArchiveCallback, ctx) != 0) {
     MESSAGE(ctx, "Could not extract entry*'%s'*from archive", file_path);
-    close(fd);
-    unlink(temp_filename);
-    return -1;
+    goto cleanup;
   }
   close(fd);
+  fd = -1;
 
   pager = GetProfileValue(ctx, "PAGER");
   if (Path_BuildCommandLine(pager, temp_filename, NULL, NULL, NULL, NULL,
                             command_line, sizeof(command_line)) != 0) {
     MESSAGE(ctx, "View command too long!*\"%s\"", file_path);
-    unlink(temp_filename);
-    return -1;
+    goto cleanup;
   }
 
   result = SilentSystemCall(ctx, command_line, &ctx->active->vol->vol_stats);
 
-  unlink(temp_filename);
-
+cleanup:
+  if (fd != -1) {
+    close(fd);
+  }
+  if (temp_filename[0] != '\0') {
+    unlink(temp_filename);
+  }
   return result;
 }
 

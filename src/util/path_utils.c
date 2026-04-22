@@ -11,6 +11,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 
 static int AppendBounded(char *dst, size_t dst_size, const char *src) {
   size_t used;
@@ -424,6 +425,37 @@ BOOL Path_BuildTempTemplate(char *dest, size_t size, const char *name_prefix) {
     return FALSE;
   }
 
+  return TRUE;
+}
+
+BOOL Path_CreateTempFile(char *dest, size_t size, const char *name_prefix,
+                         BOOL unlink_after_open, int *fd_out) {
+  int fd;
+
+  if (!dest || size == 0 || !name_prefix || !fd_out) {
+    return FALSE;
+  }
+
+  if (!Path_BuildTempTemplate(dest, size, name_prefix)) {
+    return FALSE;
+  }
+
+  fd = mkstemp(dest);
+  if (fd == -1) {
+    dest[0] = '\0';
+    return FALSE;
+  }
+
+  if (unlink_after_open) {
+    if (unlink(dest) != 0) {
+      close(fd);
+      dest[0] = '\0';
+      return FALSE;
+    }
+    dest[0] = '\0';
+  }
+
+  *fd_out = fd;
   return TRUE;
 }
 

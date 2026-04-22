@@ -58,32 +58,39 @@ static int ViewHexFile(ViewContext *ctx, char *file_path) {
 }
 
 static int ViewHexArchiveFile(ViewContext *ctx, char *file_path) {
-  char temp_filename[] = "/tmp/ytree_hex_XXXXXX";
-  int fd;
+  char temp_filename[PATH_LENGTH];
+  int fd = -1;
   int result = -1;
   ViewerGeometry geom;
 
-  fd = mkstemp(temp_filename);
-  if (fd == -1) {
+  temp_filename[0] = '\0';
+
+  if (!Path_CreateTempFile(temp_filename, sizeof(temp_filename), "ytree_hex_",
+                           FALSE, &fd)) {
     UI_Error(ctx, __FILE__, __LINE__,
              "Could not create temporary file for hex view");
-    return -1;
+    goto cleanup;
   }
 
   if (ExtractArchiveEntry(ctx->active->vol->vol_stats.log_path, file_path, fd,
                           UI_ArchiveCallback, ctx) != 0) {
     MESSAGE(ctx, "Could not extract entry*'%s'*from archive", file_path);
-    close(fd);
-    unlink(temp_filename);
-    return -1;
+    goto cleanup;
   }
   close(fd);
+  fd = -1;
 
   geom = BuildViewerGeometry(ctx);
   InternalView(ctx, temp_filename, &geom);
 
   result = 0;
-  unlink(temp_filename);
 
+cleanup:
+  if (fd != -1) {
+    close(fd);
+  }
+  if (temp_filename[0] != '\0') {
+    unlink(temp_filename);
+  }
   return result;
 }
