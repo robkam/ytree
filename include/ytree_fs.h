@@ -62,6 +62,9 @@ extern int Path_BuildCompareCommandLine(const char *command_template,
                                         size_t command_line_size);
 extern BOOL Path_BuildTempTemplate(char *dest, size_t size,
                                    const char *name_prefix);
+extern BOOL Path_CreateTempFile(char *dest, size_t size,
+                                const char *name_prefix, BOOL unlink_after_open,
+                                int *fd_out);
 
 /* archive.c */
 extern int Archive_ValidateInternalPath(const char *path, char *canonical_path,

@@ -356,27 +356,16 @@ void RenderArchivePreview(ViewContext *ctx, WINDOW *win,
                    access(preview_cache_file, F_OK) != 0);
 
   if (needs_extract) {
-    char cache_template[PATH_LENGTH];
-    int fd;
+    int fd = -1;
 
     InvalidatePreviewCache();
-    if (!Path_BuildTempTemplate(cache_template, sizeof(cache_template),
-                                "ytree_preview_")) {
+    if (!Path_CreateTempFile(preview_cache_file, sizeof(preview_cache_file),
+                             "ytree_preview_", FALSE, &fd)) {
       wclear(win);
       mvwprintw(win, 0, 0, "Preview extraction failed.");
       wnoutrefresh(win);
       return;
     }
-    fd = mkstemp(cache_template);
-    if (fd == -1) {
-      wclear(win);
-      mvwprintw(win, 0, 0, "Preview extraction failed.");
-      wnoutrefresh(win);
-      return;
-    }
-
-    strncpy(preview_cache_file, cache_template, PATH_LENGTH - 1);
-    preview_cache_file[PATH_LENGTH - 1] = '\0';
 
     if (!preview_cache_cleanup_registered &&
         atexit(CleanupPreviewTempFile) == 0) {
@@ -385,20 +374,30 @@ void RenderArchivePreview(ViewContext *ctx, WINDOW *win,
 
     if (ExtractArchiveEntry(archive_path, canonical_internal_path, fd,
                             PreviewProgressCallback, ctx) != 0) {
-      close(fd);
-      InvalidatePreviewCache();
-      wclear(win);
-      mvwprintw(win, 0, 0, "Preview extraction failed.");
-      wnoutrefresh(win);
-      return;
+      goto extract_failed;
     }
 
     close(fd);
+    fd = -1;
 
     strncpy(last_preview_archive, archive_path, PATH_LENGTH - 1);
     last_preview_archive[PATH_LENGTH - 1] = '\0';
     strncpy(last_preview_internal, canonical_internal_path, PATH_LENGTH - 1);
     last_preview_internal[PATH_LENGTH - 1] = '\0';
+    goto extract_done;
+
+  extract_failed:
+    if (fd != -1) {
+      close(fd);
+    }
+    InvalidatePreviewCache();
+    wclear(win);
+    mvwprintw(win, 0, 0, "Preview extraction failed.");
+    wnoutrefresh(win);
+    return;
+
+  extract_done:
+    ;
   }
 
   RenderFilePreview(ctx, win, preview_cache_file, line_offset_ptr, 0);

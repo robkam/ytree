@@ -57,7 +57,7 @@ Ordering policy (for all editors, including AI editors):
 *   **Acceptance Criteria:**
 *   Red test first: forced failures leave no temp artifacts.
 *   No temp-file leaks across success/failure/cancel paths.
-*   - [ ] **Status:** Not Started.
+*   - [x] **Status:** Completed.
 
 ### **Task 68: Remove `exit(1)` from user-triggered runtime paths**
 *   **Goal:** Convert hard aborts to propagated errors + UI messages so the process stays alive.

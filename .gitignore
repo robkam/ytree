@@ -72,3 +72,4 @@ __pycache__/
 *.sh
 !scripts/**/*.sh
 !scripts/**/*.txt
+tether.db

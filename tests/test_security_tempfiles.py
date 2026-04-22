@@ -8,11 +8,47 @@ def _read(relpath: str) -> str:
     return (REPO_ROOT / relpath).read_text(encoding="utf-8")
 
 
-def test_archive_preview_cache_avoids_fixed_tmp_template_name() -> None:
+def test_archive_preview_cache_uses_shared_tempfile_creator() -> None:
     src = _read("src/ui/view_preview.c")
+    assert "Path_CreateTempFile(preview_cache_file, sizeof(preview_cache_file)," in src
+    assert '"ytree_preview_"' in src
     assert "/tmp/ytree_preview_XXXXXX" not in src
-    assert "Path_BuildTempTemplate(cache_template, sizeof(cache_template)," in src
-    assert '"ytree_preview_")' in src
+
+
+def test_archive_execute_view_hex_use_shared_tempfile_creator() -> None:
+    execute_src = _read("src/cmd/execute.c")
+    view_src = _read("src/cmd/view.c")
+    hex_src = _read("src/cmd/hex.c")
+
+    assert "Path_CreateTempFile(temp_path, sizeof(temp_path), \"ytree_execute_\"" in execute_src
+    assert "Path_CreateTempFile(temp_filename, sizeof(temp_filename), \"ytree_view_\"" in view_src
+    assert "Path_CreateTempFile(temp_filename, sizeof(temp_filename), \"ytree_hex_\"" in hex_src
+
+    assert "/tmp/ytree_XXXXXX" not in execute_src
+    assert "/tmp/ytree_view_XXXXXX" not in view_src
+    assert "/tmp/ytree_hex_XXXXXX" not in hex_src
+
+
+def test_archive_tempfile_cleanup_paths_remain_present() -> None:
+    execute_src = _read("src/cmd/execute.c")
+    view_src = _read("src/cmd/view.c")
+    hex_src = _read("src/cmd/hex.c")
+    preview_src = _read("src/ui/view_preview.c")
+
+    assert "if (fd_tmp != -1)" in execute_src
+    assert "temp_path[0] != '\\0'" in execute_src
+    assert "unlink(temp_path);" in execute_src
+
+    assert "if (fd != -1)" in view_src
+    assert "if (temp_filename[0] != '\\0')" in view_src
+    assert "unlink(temp_filename);" in view_src
+
+    assert "if (fd != -1)" in hex_src
+    assert "if (temp_filename[0] != '\\0')" in hex_src
+    assert "unlink(temp_filename);" in hex_src
+
+    assert "if (fd != -1)" in preview_src
+    assert "InvalidatePreviewCache();" in preview_src
 
 
 def test_tagged_archive_view_temp_root_avoids_fixed_tmp_template_name() -> None:
