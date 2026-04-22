@@ -41,7 +41,7 @@ Ordering policy (for all editors, including AI editors):
 *   **Acceptance Criteria:**
 *   Red test first: malicious filenames/inputs with shell metacharacters do not execute unintended commands in templated flows.
 *   Templated flows are quote-safe end-to-end; shell-required flows are explicit.
-*   - [ ] **Status:** Not Started.
+*   - [x] **Status:** Completed.
 
 ### **Task 70: Make `NormPath` fail-safe on deep component stacks**
 *   **Goal:** Stop silent component drop; return explicit error on overflow (or move to dynamic component list) and propagate failure.
@@ -49,7 +49,7 @@ Ordering policy (for all editors, including AI editors):
 *   **Acceptance Criteria:**
 *   Red test first: paths with >256 segments fail explicitly.
 *   No silent truncation to an incorrect normalized path.
-*   - [ ] **Status:** Not Started.
+*   - [x] **Status:** Completed.
 
 ### **Task 69: Temp-file lifecycle hardening across archive/view/execute paths**
 *   **Goal:** Unify secure temp creation, ensure cleanup on all error/cancel paths, and prefer unlink-after-open where practical.

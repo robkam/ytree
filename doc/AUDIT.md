@@ -28,6 +28,7 @@ The project uses four QA layers with increasing depth and cost:
   - After changes to memory management, allocation, or cleanup paths
   - After major refactoring sessions
   - Periodically as a health check
+  - After reviewing the results, remove `valgrind.log` from the repository root when it is no longer needed
 - **Sanitizer QA** (`make qa-sanitize`) is on-demand and complementary to Valgrind. It builds the main binary with ASan/UBSan and runs `pytest` with fail-fast sanitizer settings. Run it:
   - After touching pointer arithmetic, allocation/free paths, or integer-heavy logic
   - When triaging intermittent or environment-sensitive crashes

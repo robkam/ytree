@@ -260,6 +260,12 @@ int MakePath(const ViewContext *ctx, DirEntry *tree, char *dir_path,
     goto CREATE_EXTERNAL;
 
   NormPath(dir_path, path);
+  if (path[0] == '\0') {
+    if (errno == 0) {
+      errno = ENAMETOOLONG;
+    }
+    return (result);
+  }
   if (dest_dir_entry)
     *dest_dir_entry = NULL;
 

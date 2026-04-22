@@ -7,6 +7,7 @@
 
 #include "ytree_defs.h"
 #include <libgen.h>
+#include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -591,7 +592,17 @@ const char *GetExtension(const char *filename) {
 
 void NormPath(char *in_path, char *out_path) {
   /* Step 1: Try physical resolution using realpath (if file exists) */
+  const size_t component_stack_limit = 256;
   char *canonical = realpath(in_path, NULL);
+  int overflowed = 0;
+
+  if (out_path == NULL) {
+    errno = EINVAL;
+    return;
+  }
+
+  out_path[0] = '\0';
+
   if (canonical != NULL) {
     /* Path exists on disk, use canonical absolute path */
     (void)snprintf(out_path, PATH_LENGTH + 1, "%s", canonical);
@@ -640,16 +651,25 @@ void NormPath(char *in_path, char *out_path) {
       }
     } else {
       /* Push directory */
-      if (stack_top < 256) {
-        strncpy(stack[stack_top], token, 255);
-        stack[stack_top][255] = '\0';
-        stack_top++;
+      size_t token_len = strlen(token);
+      if ((size_t)stack_top >= component_stack_limit || token_len >= 256) {
+        overflowed = 1;
+        break;
       }
+      strncpy(stack[stack_top], token, 255);
+      stack[stack_top][255] = '\0';
+      stack_top++;
     }
     token = strtok_r(NULL, FILE_SEPARATOR_STRING, &saveptr);
   }
 
   free(path_copy);
+
+  if (overflowed) {
+    errno = ENAMETOOLONG;
+    out_path[0] = '\0';
+    return;
+  }
 
   /* Reconstruct Path */
   out_path[0] = '\0';
@@ -665,11 +685,15 @@ void NormPath(char *in_path, char *out_path) {
     if (i > 0) {
       if (AppendBounded(out_path, PATH_LENGTH + 1, FILE_SEPARATOR_STRING) !=
           0) {
-        break;
+        errno = ENAMETOOLONG;
+        out_path[0] = '\0';
+        return;
       }
     }
     if (AppendBounded(out_path, PATH_LENGTH + 1, stack[i]) != 0) {
-      break;
+      errno = ENAMETOOLONG;
+      out_path[0] = '\0';
+      return;
     }
   }
 }
