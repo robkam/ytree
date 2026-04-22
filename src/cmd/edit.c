@@ -31,8 +31,8 @@ int Edit(ViewContext *ctx, DirEntry *dir_entry, char *file_path) {
   }
 
   if ((file_p_aux = (char *)malloc(COMMAND_LINE_LENGTH)) == NULL) {
-    UI_Message(ctx, "Malloc failed*ABORT");
-    exit(1);
+    UI_Message(ctx, "Malloc failed");
+    goto FNC_XIT;
   }
   if (!Path_ShellQuote(file_path, file_p_aux, COMMAND_LINE_LENGTH)) {
     UI_Message(ctx, "Edit not possible!*\"%s\"*path quoting failed", file_path);
@@ -41,8 +41,9 @@ int Edit(ViewContext *ctx, DirEntry *dir_entry, char *file_path) {
   }
 
   if ((command_line = (char *)malloc(COMMAND_LINE_LENGTH)) == NULL) {
-    UI_Message(ctx, "Malloc failed*ABORT");
-    exit(1);
+    UI_Message(ctx, "Malloc failed");
+    free(file_p_aux);
+    goto FNC_XIT;
   }
   {
     int written = snprintf(command_line, COMMAND_LINE_LENGTH, "%s %s",

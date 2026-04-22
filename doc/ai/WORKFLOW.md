@@ -277,6 +277,7 @@ All participating clients in the workflow should point to the same Tether server
 2.  Integrate branch to `main` with fast-forward only; do not create a merge message commit.
 3.  Delete feature branch locally and on remote after successful integration.
 4.  Ensure relay artifacts are either expired/archived per policy and never committed.
+5.  After commit is integrated into main and the temporary branch is deleted locally/remotely, the architect MUST delete all Tether relay handles related to that roadmap item (master plan, developer handoff/report, auditor handoff/report) and verify no related handles remain in the shared DB.
 
 ## 4. Debugging Procedures
 

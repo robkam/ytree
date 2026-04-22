@@ -564,8 +564,14 @@ void Fnsplit(char *path, char *dir, char *name) {
       free(path_copy_dir);
     if (path_copy_base)
       free(path_copy_base);
-    fprintf(stderr, "ytree: strdup failed in Fnsplit\n");
-    exit(1);
+    if (dir)
+      dir[0] = '\0';
+    if (name) {
+      (void)snprintf(name, PATH_LENGTH + 1, "%s", processed_path);
+    }
+    errno = ENOMEM;
+    UI_Message(NULL, "Fnsplit not possible!*out of memory");
+    return;
   }
 
   /* Execution */
@@ -664,8 +670,10 @@ void NormPath(char *in_path, char *out_path) {
   /* Create a mutable copy for tokenization */
   path_copy = strdup(in_path);
   if (path_copy == NULL) {
-    UI_Message(NULL, "strdup failed*ABORT");
-    exit(1);
+    errno = ENOMEM;
+    UI_Message(NULL, "NormPath failed*out of memory");
+    out_path[0] = '\0';
+    return;
   }
 
   token = strtok_r(path_copy, FILE_SEPARATOR_STRING, &saveptr);

@@ -66,6 +66,9 @@ Commit policy:
 - After tests are green and the commit is integrated into `main` (fast-forward, no merge commit), delete the task branch both locally and on GitHub.
 - Do not set `doc/ROADMAP.md` Task status to completed until all are true: commit is done, change is integrated into `main` via fast-forward, and the temporary task branch is deleted locally and on remote.
 
+Cleanup rules:
+- On task completion+commit, delete all related Tether relay artifacts from shared storage; never retain stale task handles.
+
 Response format to maintainer:
 - Concise operational status only.
 - Include completed state + current next action only.

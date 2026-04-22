@@ -248,8 +248,7 @@ Active when the file window is focused.
 - **E** (Edit): Edit selected file with `$EDITOR` (default: vi).
 - **F** (Filter): Set file filter.
 - **H** (Hex): View selected file in hex mode.
-- **i** / **I**: **Invert Tags**. Toggle the tag state of all visible
-  files.
+- **I** (Invert Tags): Toggle the tag state of all visible files.
 - **J** (Compare): Compare the selected file with a target file.
 - **L** (Log): Log a new directory or archive file.
 - **M** (Move): Move the selected file.
@@ -328,8 +327,7 @@ root/non-root navigation rules.
 - **D** (Delete): Delete selected archive file entry.
 - **F** (Filter): Set file filter.
 - **H** (Hex): View file in hex mode.
-- **i** / **I**: **Invert Tags**. Toggle the tag state of all visible
-  files.
+- **I** (Invert Tags): Toggle the tag state of all visible files.
 - **M** (Move): Move selected file using archive-aware semantics.
 - **P** (Pipe, or **\|**): Pipe content to command.
 - **R** (Rename): Rename selected archive file entry.
