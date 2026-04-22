@@ -1350,8 +1350,8 @@ BOOL handle_tag_file_action(ViewContext *ctx, int action, DirEntry *dir_entry,
       char *command_line;
 
       if ((command_line = (char *)malloc(COMMAND_LINE_LENGTH + 1)) == NULL) {
-        UI_Error(ctx, "", 0, "Malloc failed*ABORT");
-        exit(1);
+        UI_Error(ctx, "", 0, "Malloc failed");
+        return TRUE;
       }
 
       /* Allocate new buffer for silent command */
@@ -1359,8 +1359,9 @@ BOOL handle_tag_file_action(ViewContext *ctx, int action, DirEntry *dir_entry,
           (size_t)COMMAND_LINE_LENGTH + sizeof(" > /dev/null 2>&1");
       char *silent_cmd = (char *)malloc(silent_cmd_size);
       if (!silent_cmd) {
-        UI_Error(ctx, "", 0, "Malloc failed*ABORT");
-        exit(1);
+        UI_Error(ctx, "", 0, "Malloc failed");
+        free(command_line);
+        return TRUE;
       }
 
       need_dsp_help = TRUE;
@@ -1406,8 +1407,8 @@ BOOL handle_tag_file_action(ViewContext *ctx, int action, DirEntry *dir_entry,
       char *command_line;
 
       if ((command_line = (char *)malloc(COMMAND_LINE_LENGTH + 1)) == NULL) {
-        UI_Error(ctx, __FILE__, __LINE__, "Malloc failed*ABORT");
-        exit(1);
+        UI_Error(ctx, __FILE__, __LINE__, "Malloc failed");
+        return TRUE;
       }
 
       need_dsp_help = TRUE;

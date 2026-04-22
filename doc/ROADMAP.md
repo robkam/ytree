@@ -65,7 +65,7 @@ Ordering policy (for all editors, including AI editors):
 *   **Acceptance Criteria:**
 *   Red test first: injected allocation/IO failure returns gracefully without process termination.
 *   No hard process exit remains in interactive command paths.
-*   - [ ] **Status:** Not Started.
+*   - [x] **Status:** Completed.
 
 ### **Task 67: Break up high-risk god functions to cut regression risk**
 *   **Goal:** Extract isolated command handlers/modules without behavior change.
