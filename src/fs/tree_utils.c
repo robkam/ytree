@@ -102,6 +102,9 @@ int GetDirEntry(const ViewContext *ctx, DirEntry *tree,
    * This handles cases like ../sibling or ./child correctly.
   */
   NormPath(path, to_path);
+  if (*to_path == '\0') {
+    return -1;
+  }
 
   if (!ctx || !ctx->hook_make_path) {
     return -1;

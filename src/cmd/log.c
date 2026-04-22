@@ -406,10 +406,13 @@ int GetNewLogPath(ViewContext *ctx, YtreePanel *panel, char *path) {
       if (copied_len < 0 || copied_len > PATH_LENGTH) {
         return result;
       }
+      result = 0;
     } else {
       NormPath(temp_path, path);
+      if (path[0] != '\0') {
+        result = 0;
+      }
     }
-    result = 0;
   }
 
   return (result);

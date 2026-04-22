@@ -163,6 +163,9 @@ extern int Path_Join(char *dest, size_t size, const char *dir,
 extern char *GetRealFileNamePath(FileEntry *file_entry, char *buffer,
                                  int view_mode);
 extern void Fnsplit(char *path, char *dir, char *name);
+/* On normalization failure (e.g. component stack overflow), out_path is set to
+ * an empty string and errno is set.
+ */
 extern void NormPath(char *in_path, char *out_path);
 
 extern int MakePath(const ViewContext *ctx, DirEntry *tree, char *dir_path,

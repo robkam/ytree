@@ -42,9 +42,7 @@ Prompt/report artifact rules:
 - Load startup instruction files once per session unless files changed or maintainer explicitly requests reload.
 - Stream relay visibility live: post a maintainer update immediately after each relay event (every prompt sent and every report received).
 - Do not wait for unit completion to publish relay visibility.
-- In each live update, include artifact handles grouped by type:
-  Architect prompts, Developer reports, Code auditor reports.
-- Each listed item MUST include unit ID + handle.
+- In each live update, include only net-new/changed artifact handles relevant to that relay event.
 
 Developer prompt requirements (for each unit):
 - Strict scope and explicit non-goals
@@ -74,9 +72,7 @@ Response format to maintainer:
 - Always include Tether handles for generated prompt/report artifacts.
 - Use delta-only updates: include only net-new state, next action, and new/changed handles unless maintainer asks for a full recap.
 - Include `Latest relay event` in each update with direction + unit + handle.
-- Include three sections in every update:
-  `Architect prompts`, `Developer reports`, `Code auditor reports`.
-- Each section must include all known handles for that type up to that moment.
+- Do not repeat full historical handle inventories unless the maintainer explicitly requests a full recap.
 - Include mandatory handoff block for every relay:
   Model: <selected model>
   Reasoning level: <selected level>
