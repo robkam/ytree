@@ -9,6 +9,9 @@ from pathlib import Path
 from typing import Any
 
 CONFIG_PATH = Path(__file__).resolve().parent.parent / ".codex" / "config.toml"
+REPO_ROOT = CONFIG_PATH.parent.parent
+MODEL_INSTRUCTIONS_RELATIVE = ".ai/codex.md"
+MODEL_INSTRUCTIONS_ABSOLUTE = str((REPO_ROOT / MODEL_INSTRUCTIONS_RELATIVE).resolve())
 SERVERS = ("serena", "jcodemunch")
 REQUIRED_ENV_KEYS = ("UV_CACHE_DIR", "UV_TOOL_DIR")
 
@@ -35,8 +38,11 @@ def check_config(path: Path) -> list[str]:
     except (OSError, tomllib.TOMLDecodeError) as exc:
         return [f"failed to read/parse {path}: {exc}"]
 
-    if data.get("model_instructions_file") != ".ai/codex.md":
-        failures.append("model_instructions_file must be '.ai/codex.md'")
+    model_instructions = data.get("model_instructions_file")
+    if model_instructions not in (MODEL_INSTRUCTIONS_RELATIVE, MODEL_INSTRUCTIONS_ABSOLUTE):
+        failures.append(
+            "model_instructions_file must target '.ai/codex.md' (relative or canonical absolute path)"
+        )
 
     mcp_servers = data.get("mcp_servers", {})
     if not isinstance(mcp_servers, dict):
