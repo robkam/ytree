@@ -238,16 +238,12 @@ DirEntry *RefreshFileView(ViewContext *ctx, DirEntry *dir_entry) {
 int HandleFileWindow(ViewContext *ctx, DirEntry *dir_entry) {
   DEBUG_LOG("HandleFileWindow ENTERED for %s", dir_entry->name);
   FileEntry *fe_ptr;
-  DirEntry *de_ptr = NULL;
   int ch;
   int unput_char;
-  int list_pos;
   int start_x = 0;
-  char filepath[PATH_LENGTH + 1];
   BOOL need_dsp_help;
   BOOL maybe_change_x_step;
   BOOL volume_changed = FALSE;
-  char new_log_path[PATH_LENGTH + 1];
   YtreeAction action = ACTION_NONE; /* Initialize action */
   BOOL jumped_to_owner_dir = FALSE;
   BOOL switched_panel = FALSE;
@@ -520,23 +516,6 @@ int HandleFileWindow(ViewContext *ctx, DirEntry *dir_entry) {
           &preview_line_offset, UpdatePreview, ListJump);
       break;
 
-    case ACTION_TOGGLE_HIDDEN: {
-      ToggleDotFiles(ctx, ctx->active);
-
-      /* Update current dir pointer using the new accessor function */
-      dir_entry = GetPanelDirEntry(ctx->active);
-
-      /* Explicitly update the file window (preview) */
-      DisplayFileWindow(ctx, ctx->active, dir_entry);
-      RefreshWindow(ctx->ctx_file_window);
-      if (ctx->preview_mode) {
-        preview_line_offset = 0;
-        UpdatePreview(ctx, dir_entry);
-      }
-
-      need_dsp_help = TRUE;
-    } break;
-
     case ACTION_CMD_A:
       if (ctx->view_mode != DISK_MODE && ctx->view_mode != USER_MODE) {
         UI_Beep(ctx, FALSE);
@@ -582,258 +561,16 @@ int HandleFileWindow(ViewContext *ctx, DirEntry *dir_entry) {
       }
       break;
 
-    case ACTION_CMD_I: {
-      ArchivePayload payload;
-      int gather_result;
-      fe_ptr =
-          ctx->active
-              ->file_entry_list[dir_entry->start_file + dir_entry->cursor_pos]
-              .file;
-      payload.original_source_list = NULL;
-      payload.expanded_file_list = NULL;
-
-      gather_result = UI_GatherArchivePayload(ctx, dir_entry, fe_ptr, &payload);
-      if (gather_result != 0) {
-        if (gather_result < 0)
-          UI_ShowStatusLineError(ctx, "Nothing to archive");
-        need_dsp_help = FALSE;
-      } else {
-        int create_result;
-        create_result = UI_CreateArchiveFromPayload(ctx, &payload);
-        if (create_result == 0) {
-          dir_entry = RefreshFileView(ctx, dir_entry);
-          maybe_change_x_step = TRUE;
-          need_dsp_help = TRUE;
-        } else if (create_result < 0) {
-          need_dsp_help = FALSE;
-        } else {
-          need_dsp_help = TRUE;
-        }
-      }
-      UI_FreeArchivePayload(&payload);
-    } break;
-
-    case ACTION_CMD_O:
-      UI_Beep(ctx, FALSE);
-      break;
-
-    case ACTION_CMD_G:
-      UI_Beep(ctx, FALSE);
-      break;
-
-    case ACTION_TOGGLE_MODE:
-      if (ctx->preview_mode) {
-        UI_Beep(ctx, FALSE);
-        break;
-      }
-      list_pos = dir_entry->start_file + dir_entry->cursor_pos;
-
-      RotatePanelFileMode(ctx, ctx->active);
-      FileNav_SyncGridMetrics(ctx);
-
-      if (dir_entry->cursor_pos >= FileNav_GetMaxDispFiles(ctx)) {
-        /* Cursor must be repositioned */
-        /*-------------------------------------*/
-
-        dir_entry->cursor_pos = FileNav_GetMaxDispFiles(ctx) - 1;
-      }
-
-      dir_entry->start_file = list_pos - dir_entry->cursor_pos;
-      DisplayFiles(ctx, ctx->active, dir_entry, dir_entry->start_file,
-                   dir_entry->start_file + dir_entry->cursor_pos, start_x,
-                   ctx->ctx_file_window);
-      break;
-
-    case ACTION_CMD_V:
-      fe_ptr =
-          ctx->active
-              ->file_entry_list[dir_entry->start_file + dir_entry->cursor_pos]
-              .file;
-      if (ctx->view_mode == ARCHIVE_MODE) {
-        if (View(ctx, dir_entry, fe_ptr->name) != 0) {
-          /* Error message already handled in View */
-        }
-      } else {
-        char full_path[PATH_LENGTH + 1];
-        GetFileNamePath(fe_ptr, full_path);
-        if (View(ctx, dir_entry, full_path) != 0) {
-          /* Error message already handled in View */
-        }
-      }
-      break;
-
-    case ACTION_CMD_H:
-      fe_ptr =
-          ctx->active
-              ->file_entry_list[dir_entry->start_file + dir_entry->cursor_pos]
-              .file;
-      (void)GetRealFileNamePath(fe_ptr, filepath, ctx->view_mode);
-      (void)ViewHex(ctx, filepath);
-      need_dsp_help = TRUE;
-      break;
-
-    case ACTION_CMD_E:
-      fe_ptr =
-          ctx->active
-              ->file_entry_list[dir_entry->start_file + dir_entry->cursor_pos]
-              .file;
-      de_ptr = fe_ptr->dir_entry;
-      (void)GetFileNamePath(fe_ptr, filepath);
-      (void)Edit(ctx, de_ptr, filepath);
-      break;
-
     case ACTION_CMD_Y:
     case ACTION_CMD_C:
-      (void)handle_file_window_command_action(
-          ctx, action, &dir_entry, &need_dsp_help, &maybe_change_x_step, s);
-      break;
-
-    case ACTION_COMPARE_FILE:
-      if (ctx->active->file_count > 0 && ctx->active->file_entry_list) {
-        int compare_idx = dir_entry->start_file + dir_entry->cursor_pos;
-        if (compare_idx < 0)
-          compare_idx = 0;
-        if ((unsigned int)compare_idx >= ctx->active->file_count)
-          compare_idx = (int)ctx->active->file_count - 1;
-        if (compare_idx >= 0) {
-          fe_ptr = ctx->active->file_entry_list[compare_idx].file;
-          FileCompare_LaunchExternal(ctx, fe_ptr);
-        }
-      }
-      need_dsp_help = TRUE;
-      break;
-
-    case ACTION_CMD_MKFILE:
-      if (ctx->view_mode != DISK_MODE)
-        break;
-
-      {
-        char file_name[PATH_LENGTH * 2 + 1];
-
-        ClearHelp(ctx);
-        *file_name = '\0';
-        if (UI_ReadString(ctx, ctx->active, "MAKE FILE:", file_name,
-                          PATH_LENGTH, HST_FILE) == CR) {
-          int mk_result = MakeFile(ctx, dir_entry, file_name, s, NULL,
-                                   (ChoiceCallback)UI_ChoiceResolver);
-          if (mk_result == 0) {
-            /* If successful, refresh the view */
-            BuildFileEntryList(ctx, ctx->active);
-            RefreshView(ctx, dir_entry);
-          } else if (mk_result == 1) {
-            MESSAGE(ctx, "File already exists!");
-          } else {
-            MESSAGE(ctx, "Can't create File*\"%s\"", file_name);
-          }
-        }
-      }
-      need_dsp_help = TRUE;
-      break;
-
     case ACTION_CMD_M:
-      (void)handle_file_window_command_action(
-          ctx, action, &dir_entry, &need_dsp_help, &maybe_change_x_step, s);
-      break;
-
     case ACTION_CMD_D:
-      (void)handle_file_window_command_action(
-          ctx, action, &dir_entry, &need_dsp_help, &maybe_change_x_step, s);
-      break;
-
     case ACTION_CMD_R:
-      (void)handle_file_window_command_action(
-          ctx, action, &dir_entry, &need_dsp_help, &maybe_change_x_step, s);
-      break;
-
-    case ACTION_CMD_S:
-      UI_HandleSort(ctx, dir_entry, s, start_x);
-      need_dsp_help = TRUE;
-      break;
-
-    case ACTION_FILTER:
-      if (UI_ReadFilter(ctx) == 0) {
-
-        dir_entry->start_file = 0;
-        dir_entry->cursor_pos = 0;
-
-        BuildFileEntryList(ctx, ctx->active);
-
-        DisplayFilter(ctx, s);
-        DisplayFiles(ctx, ctx->active, dir_entry, dir_entry->start_file,
-                     dir_entry->start_file + dir_entry->cursor_pos, start_x,
-                     ctx->ctx_file_window);
-
-        if (dir_entry->global_flag)
-          DisplayDiskStatistic(ctx, s);
-        else
-          DisplayDirStatistic(ctx, dir_entry, NULL, s); /* Updated call */
-
-        if (ctx->active->file_count == 0)
-          unput_char = ESC;
-        maybe_change_x_step = TRUE;
-      }
-      need_dsp_help = TRUE;
-      break;
-
-    case ACTION_LOG:
-      fe_ptr =
-          ctx->active
-              ->file_entry_list[dir_entry->start_file + dir_entry->cursor_pos]
-              .file;
-      if (ctx->view_mode == DISK_MODE || ctx->view_mode == USER_MODE) {
-        (void)GetFileNamePath(fe_ptr, new_log_path);
-        if (!GetNewLogPath(ctx, ctx->active, new_log_path)) {
-          dir_entry->log_flag = TRUE;
-
-          (void)LogDisk(ctx, ctx->active, new_log_path);
-          unput_char = ESC;
-        }
-        need_dsp_help = TRUE;
-      }
-      break;
-
-    case ACTION_ENTER:
-      if (ctx->preview_mode) {
-        action = ACTION_NONE;
-        break;
-      }
-      /* Toggle Big Window */
-      if (dir_entry->big_window)
-        break; /* Exit loop */
-
-      dir_entry->big_window = TRUE;
-
-      /* Use Global Refresh for clean transition */
-      RefreshView(ctx, dir_entry);
-
-      /* Update scrolling metrics for new size */
-      FileNav_RereadWindowSize(ctx, dir_entry);
-
-      action =
-          ACTION_NONE; /* Prevent loop termination to stay in file window */
-      break;
-
     case ACTION_CMD_P:
     case ACTION_CMD_PRINT:
     case ACTION_CMD_X:
       (void)handle_file_window_command_action(
           ctx, action, &dir_entry, &need_dsp_help, &maybe_change_x_step, s);
-      break;
-
-    case ACTION_QUIT_DIR:
-      need_dsp_help = TRUE;
-      fe_ptr =
-          ctx->active
-              ->file_entry_list[dir_entry->start_file + dir_entry->cursor_pos]
-              .file;
-      de_ptr = fe_ptr->dir_entry;
-      QuitTo(ctx, de_ptr);
-      break;
-
-    case ACTION_QUIT:
-      need_dsp_help = TRUE;
-      Quit(ctx);
-      action = ACTION_NONE;
       break;
 
     case ACTION_VOL_MENU:
@@ -845,32 +582,33 @@ int HandleFileWindow(ViewContext *ctx, DirEntry *dir_entry) {
         return ESC;
       break;
 
-    case ACTION_REFRESH: {
-      dir_entry = RefreshFileView(ctx, dir_entry);
-      need_dsp_help = TRUE;
-    } break;
-
+    case ACTION_TOGGLE_HIDDEN:
+    case ACTION_CMD_I:
+    case ACTION_CMD_O:
+    case ACTION_CMD_G:
+    case ACTION_TOGGLE_MODE:
+    case ACTION_CMD_V:
+    case ACTION_CMD_H:
+    case ACTION_CMD_E:
+    case ACTION_COMPARE_FILE:
+    case ACTION_CMD_MKFILE:
+    case ACTION_CMD_S:
+    case ACTION_FILTER:
+    case ACTION_LOG:
+    case ACTION_ENTER:
+    case ACTION_QUIT_DIR:
+    case ACTION_QUIT:
+    case ACTION_REFRESH:
     case ACTION_EDIT_CONFIG:
-      UI_OpenConfigProfile(ctx, dir_entry);
-      need_dsp_help = TRUE;
-      break;
-
     case ACTION_RESIZE:
-      ctx->resize_request = TRUE;
-      break;
-
-    case ACTION_TOGGLE_STATS: /* ADDED */
-      ctx->show_stats = !ctx->show_stats;
-      ctx->resize_request = TRUE;
-      break;
-
-    case ACTION_TOGGLE_COMPACT: /* ADDED */
-      ctx->fixed_col_width = (ctx->fixed_col_width == 0) ? 32 : 0;
-      ctx->resize_request = TRUE;
-      break;
-
+    case ACTION_TOGGLE_STATS:
+    case ACTION_TOGGLE_COMPACT:
     case ACTION_ESCAPE:
-      break; /* Handled by loop condition */
+      (void)handle_file_window_misc_dispatch_action(
+          ctx, action, &dir_entry, &action, &unput_char, &start_x,
+          &need_dsp_help, &maybe_change_x_step, s, &preview_line_offset,
+          UpdatePreview);
+      break;
 
     case ACTION_LIST_JUMP:
       (void)handle_file_window_navigation_action(

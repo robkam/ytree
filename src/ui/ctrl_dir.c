@@ -356,24 +356,6 @@ static BOOL ExitArchiveRootToParent(ViewContext *ctx, DirEntry **dir_entry_ptr,
   return TRUE;
 }
 
-static void RestorePanelFileSelection(DirEntry *dir_entry, YtreePanel *panel) {
-  if (!dir_entry || !panel)
-    return;
-
-  if (panel->saved_focus != FOCUS_FILE)
-    return;
-
-  if (panel->file_dir_entry != dir_entry)
-    return;
-
-  dir_entry->start_file = panel->start_file;
-  dir_entry->cursor_pos = panel->file_cursor_pos;
-  if (dir_entry->start_file < 0)
-    dir_entry->start_file = 0;
-  if (dir_entry->cursor_pos < 0 && dir_entry->total_files > 0)
-    dir_entry->cursor_pos = 0;
-}
-
 static void HandleDirectoryCompare(ViewContext *ctx, DirEntry *source_dir) {
   CompareMenuChoice menu_choice = COMPARE_MENU_CANCEL;
   CompareFlowType flow_type = COMPARE_FLOW_DIRECTORY;
@@ -416,7 +398,6 @@ static void HandleDirectoryCompare(ViewContext *ctx, DirEntry *source_dir) {
 
   DirCompare_RunInternalLoggedTree(ctx, &request);
 }
-
 extern int HandleDirWindow(ViewContext *ctx, const DirEntry *start_dir_entry) {
   DirEntry *dir_entry, *de_ptr;
   int ch, unput_char;
@@ -449,14 +430,8 @@ extern int HandleDirWindow(ViewContext *ctx, const DirEntry *start_dir_entry) {
     DEBUG_LOG("HandleDirWindow: Syncing panel state");
     ctx->focused_window = ctx->active->saved_focus;
 
-    /* Update Global View Context to match Active Panel */
-    /* This ensures macros like ctx->ctx_dir_window resolve to the
-     * correct ncurses window
-     */
-    ctx->ctx_dir_window = ctx->active->pan_dir_window;
-    ctx->ctx_small_file_window = ctx->active->pan_small_file_window;
-    ctx->ctx_big_file_window = ctx->active->pan_big_file_window;
-    ctx->ctx_file_window = ctx->active->pan_file_window;
+    /* Ensure global context windows follow the active panel. */
+    SyncActivePanelWindows(ctx);
   }
 
   /* Safety Reset for Preview Mode */
@@ -466,12 +441,7 @@ extern int HandleDirWindow(ViewContext *ctx, const DirEntry *start_dir_entry) {
     ReCreateWindows(ctx);
     DisplayMenu(ctx);
     /* Update context again after ReCreateWindows */
-    if (ctx->active) {
-      ctx->ctx_dir_window = ctx->active->pan_dir_window;
-      ctx->ctx_small_file_window = ctx->active->pan_small_file_window;
-      ctx->ctx_big_file_window = ctx->active->pan_big_file_window;
-      ctx->ctx_file_window = ctx->active->pan_file_window;
-    }
+    SyncActivePanelWindows(ctx);
   }
 
   height = getmaxy(ctx->ctx_dir_window);
@@ -651,174 +621,18 @@ extern int HandleDirWindow(ViewContext *ctx, const DirEntry *start_dir_entry) {
       ctx->resize_request = TRUE;
       break;
 
-    case ACTION_VIEW_PREVIEW: {
-      const YtreePanel *saved_panel = ctx->active;
-
-      /* Save Preview State - BEFORE potential panel switching */
-      ctx->preview_return_panel = ctx->active;
-      ctx->preview_return_focus = ctx->focused_window;
-
-      ctx->preview_mode = TRUE;
-      /* ADDED INSTRUCTION: Track Entry Point */
-      ctx->preview_entry_focus = FOCUS_TREE;
-
-      /* Enter File Window loop via HandleSwitchWindow logic */
-      /* We use HandleSwitchWindow to encapsulate the setup for HandleFileWindow
-       */
-      HandleSwitchWindow(ctx, dir_entry, &need_dsp_help, &ch, ctx->active);
-
-      /* Post-Return Cleanup */
-      ctx->preview_mode = FALSE; /* Restore cleaning of preview mode flag */
-      ctx->focused_window = FOCUS_TREE; /* Restore focus to tree on return */
-
-      if (ctx->active != saved_panel) {
-        /* If panel was switched during preview, we REFRESH local state
-         * BEFORE calling RefreshView to ensure the correct entry is
-         * drawn. */
-        if (ctx->active->vol == NULL)
-          return ESC;
-        start_vol = ctx->active->vol;
-        s = &ctx->active->vol->vol_stats;
-
-        if (ctx->active->vol && ctx->active->vol->total_dirs > 0) {
-          dir_entry = ctx->active->vol
-                          ->dir_entry_list[ctx->active->disp_begin_pos +
-                                           ctx->active->cursor_pos]
-                          .dir_entry;
-        } else {
-          dir_entry = s->tree;
-        }
-
-        /* Sync Global View Context */
-        ctx->ctx_dir_window = ctx->active->pan_dir_window;
-        ctx->ctx_small_file_window = ctx->active->pan_small_file_window;
-        ctx->ctx_big_file_window = ctx->active->pan_big_file_window;
-        ctx->ctx_file_window = ctx->active->pan_file_window;
-
-        /* EXPLICIT REFRESH with the CORRECT dir_entry */
-        RefreshView(ctx, dir_entry);
-
-        need_dsp_help = TRUE;
-        continue;
-      }
-
-      /* Standard refresh if panel didn't change */
-      RefreshView(ctx, dir_entry);
-
-      need_dsp_help = TRUE;
-
-      /* Refresh local pointer */
-      if (ctx->active->vol->total_dirs > 0) {
-        dir_entry = ctx->active->vol
-                        ->dir_entry_list[ctx->active->disp_begin_pos +
-                                         ctx->active->cursor_pos]
-                        .dir_entry;
-      } else {
-        dir_entry = s->tree;
-      }
-    } break;
-
+    case ACTION_VIEW_PREVIEW:
     case ACTION_SPLIT_SCREEN:
-      if (ctx->is_split_screen && ctx->active == ctx->right) {
-        /* Preserve Right Panel state into Left Panel before unsplitting */
-        ctx->left->vol = ctx->right->vol;
-        ctx->left->cursor_pos = ctx->right->cursor_pos;
-        ctx->left->disp_begin_pos = ctx->right->disp_begin_pos;
-        ctx->left->start_file = ctx->right->start_file;
-        ctx->left->file_cursor_pos = ctx->right->file_cursor_pos;
-        ctx->left->file_dir_entry = ctx->right->file_dir_entry;
-        ctx->left->saved_big_file_view = ctx->right->saved_big_file_view;
-        ctx->left->saved_focus = ctx->right->saved_focus;
-        /* Left panel now follows right panel state; force rebuild to avoid
-         * stale file list from an older volume. */
-        FreeFileEntryList(ctx->left);
-        /* Sync Global Volume */
-        ctx->active->vol = ctx->left->vol;
-      }
-
-      ctx->is_split_screen = !ctx->is_split_screen;
-      ReCreateWindows(ctx); /* Force layout update immediately */
-
-      if (ctx->is_split_screen) {
-        if (ctx->right && ctx->left) {
-          ctx->right->vol = ctx->left->vol;
-          ctx->right->cursor_pos = ctx->left->cursor_pos;
-          ctx->right->disp_begin_pos = ctx->left->disp_begin_pos;
-          ctx->right->start_file = ctx->left->start_file;
-          ctx->right->file_cursor_pos = ctx->left->file_cursor_pos;
-          ctx->right->file_dir_entry = ctx->left->file_dir_entry;
-          ctx->right->saved_big_file_view = ctx->left->saved_big_file_view;
-          /* Start a newly split peer panel in tree focus by default. */
-          ctx->right->saved_focus = FOCUS_TREE;
-          /* Right panel inherited a new volume/state; drop stale cache so
-           * inactive render shows the correct mirror immediately. */
-          FreeFileEntryList(ctx->right);
-        }
-      } else {
-        /* Prevent hidden peer cache from leaking across later volume splits. */
-        FreeFileEntryList(ctx->right);
-        ctx->active = ctx->left;
-      }
-      ctx->focused_window = ctx->active->saved_focus;
-      RefreshView(ctx, dir_entry);
-      need_dsp_help = TRUE;
+    case ACTION_SWITCH_PANEL: {
+      DirWindowDispatchResult panel_result =
+          HandleDirWindowPanelAction(ctx, action, &dir_entry, &s, &start_vol,
+                                     &need_dsp_help, &ch, &unput_char);
+      if (panel_result == DIR_WINDOW_DISPATCH_RETURN_ESC)
+        return ESC;
+      if (panel_result == DIR_WINDOW_DISPATCH_CONTINUE)
+        continue;
       break;
-
-    case ACTION_SWITCH_PANEL:
-      if (!ctx->is_split_screen)
-        break;
-
-      /* Save local state to Active Panel for persistence before switching */
-      /* Note: Navigation actions already update ctx->active->cursor_pos
-       * directly. Do NOT overwrite with stale local_cursor_pos! */
-
-      /* Switch Panel */
-      if (ctx->active == ctx->left) {
-        ctx->active = ctx->right;
-      } else {
-        ctx->active = ctx->left;
-      }
-
-      /* Restore Volume context */
-      ctx->focused_window = ctx->active->saved_focus;
-      s = &ctx->active->vol->vol_stats; /* UPDATE S */
-      /* Do NOT overwrite ctx->active->cursor_pos here; preserve its
-       * independent state */
-
-      /* Recalculate local dir_entry for the new ctx->active */
-      if (ctx->active->vol->total_dirs > 0) {
-        /* Clamp coordinates just in case */
-        if (ctx->active->disp_begin_pos + ctx->active->cursor_pos >=
-            ctx->active->vol->total_dirs) {
-          ctx->active->cursor_pos =
-              ctx->active->vol->total_dirs - 1 - ctx->active->disp_begin_pos;
-        }
-        dir_entry = ctx->active->vol
-                        ->dir_entry_list[ctx->active->disp_begin_pos +
-                                         ctx->active->cursor_pos]
-                        .dir_entry;
-      } else {
-        dir_entry = s->tree;
-      }
-      DEBUG_LOG("ACTION_SWITCH_PANEL: active panel is now %s with "
-                "cursor_pos=%d, dir_entry=%s",
-                ctx->active == ctx->left ? "LEFT" : "RIGHT",
-                ctx->active->cursor_pos, dir_entry ? dir_entry->name : "NULL");
-
-      /* Sync Global View Context */
-      ctx->ctx_dir_window = ctx->active->pan_dir_window;
-      ctx->ctx_small_file_window = ctx->active->pan_small_file_window;
-      ctx->ctx_big_file_window = ctx->active->pan_big_file_window;
-      ctx->ctx_file_window = ctx->active->pan_file_window;
-
-      /* REFRESH View for new active panel */
-      RestorePanelFileSelection(dir_entry, ctx->active);
-      RefreshView(ctx, dir_entry);
-      need_dsp_help = TRUE;
-      if (ctx->focused_window == FOCUS_FILE && dir_entry->total_files > 0) {
-        unput_char = CR;
-      }
-      continue; /* Stay in loop with new context */
+    }
 
     case ACTION_NONE: /* -1 or unhandled keys */
       if (ch == -1)
@@ -845,9 +659,9 @@ extern int HandleDirWindow(ViewContext *ctx, const DirEntry *start_dir_entry) {
       if (target != NULL && target != dir_entry) {
         (void)DirOps_SelectVisibleDirAndRefresh(ctx, ctx->active, target,
                                                 &dir_entry);
+        need_dsp_help = TRUE;
       }
     }
-      need_dsp_help = TRUE;
       break;
     case ACTION_MOVE_SIBLING_PREV: {
       DirEntry *target = dir_entry->prev;
@@ -864,9 +678,9 @@ extern int HandleDirWindow(ViewContext *ctx, const DirEntry *start_dir_entry) {
       if (target != NULL && target != dir_entry) {
         (void)DirOps_SelectVisibleDirAndRefresh(ctx, ctx->active, target,
                                                 &dir_entry);
+        need_dsp_help = TRUE;
       }
     }
-      need_dsp_help = TRUE;
       break;
     case ACTION_PAGE_DOWN:
       DirNav_Movenpage(ctx, &dir_entry, ctx->active);
@@ -1013,88 +827,15 @@ extern int HandleDirWindow(ViewContext *ctx, const DirEntry *start_dir_entry) {
       HandleDirectoryCompare(ctx, dir_entry);
       need_dsp_help = TRUE;
       break;
-    case ACTION_ENTER:
-      if (dir_entry == NULL) {
-        UI_Beep(ctx, FALSE);
-        break;
-      }
-
-      if (ctx->refresh_mode & REFRESH_ON_ENTER) {
-        dir_entry = RefreshTreeSafe(ctx, ctx->active, dir_entry);
-        /* Sync pointer from list in case address changed */
-        dir_entry = ctx->active->vol
-                        ->dir_entry_list[ctx->active->disp_begin_pos +
-                                         ctx->active->cursor_pos]
-                        .dir_entry;
-      }
-
-      DEBUG_LOG("ACTION_ENTER: dir_entry=%p name=%s matching=%u",
-                (void *)dir_entry, dir_entry ? dir_entry->name : "NULL",
-                dir_entry ? (unsigned int)dir_entry->matching_files : 0U);
-
-      if (dir_entry == NULL || dir_entry->total_files == 0) {
-        UI_Beep(ctx, FALSE);
-        break;
-      }
-
-      /* Fix Context Safety on Return */
-      {
-        const YtreePanel *saved_panel = ctx->active;
-
-        /* Note: Navigation actions already update active->cursor_pos. */
-
-        HandleSwitchWindow(ctx, dir_entry, &need_dsp_help, &ch, ctx->active);
-
-        /* Restore whichever focus the active panel had before/after the
-         * switch. */
-        ctx->focused_window = ctx->active->saved_focus;
-
-        if (ctx->active != saved_panel) {
-          /* If panel was switched, refresh state locally and continue */
-          if (ctx->active->vol == NULL)
-            return ESC;
-          start_vol = ctx->active->vol;
-          s = &ctx->active->vol->vol_stats;
-
-          if (ctx->active->vol && ctx->active->vol->total_dirs > 0) {
-            dir_entry = ctx->active->vol
-                            ->dir_entry_list[ctx->active->disp_begin_pos +
-                                             ctx->active->cursor_pos]
-                            .dir_entry;
-          } else {
-            dir_entry = s->tree;
-          }
-
-          ctx->ctx_dir_window = ctx->active->pan_dir_window;
-          ctx->ctx_small_file_window = ctx->active->pan_small_file_window;
-          ctx->ctx_big_file_window = ctx->active->pan_big_file_window;
-          ctx->ctx_file_window = ctx->active->pan_file_window;
-
-          RestorePanelFileSelection(dir_entry, ctx->active);
-          RefreshView(ctx, dir_entry);
-          need_dsp_help = TRUE;
-          if (ctx->focused_window == FOCUS_FILE && dir_entry->total_files > 0) {
-            unput_char = CR;
-          }
-          action = ACTION_NONE; /* Prevent while(...) condition from exiting
-                                   HandleDirWindow! */
-          continue;
-        }
-
-        /* Important: Check for volume changes after returning from File Window
-         */
-        if (ctx->active->vol != start_vol)
-          return ESC;
-
-        /* CENTRALIZED REFRESH: Restore clean layout after return */
-        RefreshView(ctx, dir_entry);
-      }
-      /* Refresh local pointer */
-      dir_entry = ctx->active->vol
-                      ->dir_entry_list[ctx->active->disp_begin_pos +
-                                       ctx->active->cursor_pos]
-                      .dir_entry;
-      break;
+    case ACTION_ENTER: {
+      DirWindowDispatchResult enter_result =
+          HandleDirWindowEnterAction(ctx, &dir_entry, &s, &start_vol,
+                                     &need_dsp_help, &ch, &unput_char, &action);
+      if (enter_result == DIR_WINDOW_DISPATCH_RETURN_ESC)
+        return ESC;
+      if (enter_result == DIR_WINDOW_DISPATCH_CONTINUE)
+        continue;
+    } break;
     case ACTION_CMD_X:
       if (ctx->view_mode != DISK_MODE && ctx->view_mode != USER_MODE) {
       } else {
@@ -1248,188 +989,13 @@ extern int HandleDirWindow(ViewContext *ctx, const DirEntry *start_dir_entry) {
 
     /* Volume Cycling and Selection */
     case ACTION_VOL_MENU: /* Shift-K: Select Loaded Volume */
-    {
-      /* Save current panel state to volume before switching away */
-      /* Panel state isolation: No vol_stats sync */
-      ctx->active->vol->saved_tree_index =
-          ctx->active->disp_begin_pos + ctx->active->cursor_pos;
-
-      int res = SelectLoadedVolume(ctx, NULL);
-      if (res == 0) { /* If volume switch was successful */
-        if (ctx->active->vol != start_vol)
-          return ESC; /* Abort to main loop to handle clean re-entry */
-
-        /* Update loop variables for new volume */
-        s = &ctx->active->vol->vol_stats; /* UPDATE S */
-        /* Panel isolation: No vol_stats sync */
-        ctx->active->disp_begin_pos =
-            ctx->active->vol->saved_tree_index /* legacy removed */;
-
-        /* Safety check / Clamping */
-        if (ctx->active->vol->total_dirs > 0) {
-          /* If saved position is beyond current end, clamp to last item */
-          if (ctx->active->disp_begin_pos + ctx->active->cursor_pos >=
-              ctx->active->vol->total_dirs) {
-            /* Clamp to last valid index */
-            int last_idx = ctx->active->vol->total_dirs - 1;
-            /* Determine new disp_begin_pos and cursor_pos */
-            if (last_idx >= ctx->layout.dir_win_height) {
-              ctx->active->disp_begin_pos =
-                  last_idx - (ctx->layout.dir_win_height - 1);
-              ctx->active->cursor_pos = ctx->layout.dir_win_height - 1;
-            } else {
-              ctx->active->disp_begin_pos = 0;
-              ctx->active->cursor_pos = last_idx;
-            }
-          }
-          /* Now safe to assign dir_entry */
-          dir_entry = ctx->active->vol
-                          ->dir_entry_list[ctx->active->disp_begin_pos +
-                                           ctx->active->cursor_pos]
-                          .dir_entry;
-        } else {
-          dir_entry = s->tree;
-        }
-
-        DisplayMenu(ctx); /* Force redraw of frame/separator */
-        DisplayTree(ctx, ctx->active->vol, ctx->ctx_dir_window,
-                    ctx->active->disp_begin_pos,
-                    ctx->active->disp_begin_pos + ctx->active->cursor_pos,
-                    TRUE);
-        DisplayFileWindow(
-            ctx, ctx->active,
-            dir_entry); /* Refresh file window for the new directory */
-        RefreshWindow(ctx->ctx_file_window);
-        DisplayDiskStatistic(ctx, s);
-        UpdateStatsPanel(ctx, dir_entry, s);
-        DisplayAvailBytes(ctx, s);
-        /* Update header path after volume switch */
-        {
-          char path[PATH_LENGTH];
-          GetPath(dir_entry, path);
-          DisplayHeaderPath(ctx, path);
-        }
-        need_dsp_help = TRUE;
-      } else {
-        /* Cancelled volume menu clears footer/help; redraw immediately. */
-        DisplayMenu(ctx);
-        need_dsp_help = TRUE;
-      }
-    } break;
-
     case ACTION_VOL_PREV: /* Previous Volume */
-    {
-      /* Save current panel state to volume before switching away */
-      /* Panel isolation: No vol_stats sync */
-      ctx->active->vol->saved_tree_index =
-          ctx->active->disp_begin_pos + ctx->active->cursor_pos;
-
-      int res = CycleLoadedVolume(ctx, ctx->active, -1);
-      if (res == 0) { /* If volume switch was successful */
-        if (ctx->active->vol != start_vol)
-          return ESC;
-
-        s = &ctx->active->vol->vol_stats; /* UPDATE S */
-        /* Panel isolation: No vol_stats sync */
-        ctx->active->disp_begin_pos =
-            ctx->active->vol->saved_tree_index /* legacy removed */;
-
-        /* Safety check / Clamping */
-        if (ctx->active->vol->total_dirs > 0) {
-          if (ctx->active->disp_begin_pos + ctx->active->cursor_pos >=
-              ctx->active->vol->total_dirs) {
-            int last_idx = ctx->active->vol->total_dirs - 1;
-            if (last_idx >= ctx->layout.dir_win_height) {
-              ctx->active->disp_begin_pos =
-                  last_idx - (ctx->layout.dir_win_height - 1);
-              ctx->active->cursor_pos = ctx->layout.dir_win_height - 1;
-            } else {
-              ctx->active->disp_begin_pos = 0;
-              ctx->active->cursor_pos = last_idx;
-            }
-          }
-          dir_entry = ctx->active->vol
-                          ->dir_entry_list[ctx->active->disp_begin_pos +
-                                           ctx->active->cursor_pos]
-                          .dir_entry;
-        } else {
-          dir_entry = s->tree;
-        }
-
-        DisplayMenu(ctx);
-        DisplayTree(ctx, ctx->active->vol, ctx->ctx_dir_window,
-                    ctx->active->disp_begin_pos,
-                    ctx->active->disp_begin_pos + ctx->active->cursor_pos,
-                    TRUE);
-        DisplayFileWindow(ctx, ctx->active, dir_entry);
-        RefreshWindow(ctx->ctx_file_window);
-        DisplayDiskStatistic(ctx, s);
-        UpdateStatsPanel(ctx, dir_entry, s);
-        DisplayAvailBytes(ctx, s);
-        {
-          char path[PATH_LENGTH];
-          GetPath(dir_entry, path);
-          DisplayHeaderPath(ctx, path);
-        }
-        need_dsp_help = TRUE;
-      }
-    } break;
-
     case ACTION_VOL_NEXT: /* Next Volume */
     {
-      /* Save current panel state to volume before switching away */
-      /* Panel isolation: No vol_stats sync */
-      ctx->active->vol->saved_tree_index =
-          ctx->active->disp_begin_pos + ctx->active->cursor_pos;
-
-      int res = CycleLoadedVolume(ctx, ctx->active, 1);
-      if (res == 0) { /* If volume switch was successful */
-        if (ctx->active->vol != start_vol)
-          return ESC;
-
-        s = &ctx->active->vol->vol_stats; /* UPDATE S */
-        /* Panel isolation: No vol_stats sync */
-        ctx->active->disp_begin_pos =
-            ctx->active->vol->saved_tree_index /* legacy removed */;
-
-        if (ctx->active->vol->total_dirs > 0) {
-          if (ctx->active->disp_begin_pos + ctx->active->cursor_pos >=
-              ctx->active->vol->total_dirs) {
-            int last_idx = ctx->active->vol->total_dirs - 1;
-            if (last_idx >= ctx->layout.dir_win_height) {
-              ctx->active->disp_begin_pos =
-                  last_idx - (ctx->layout.dir_win_height - 1);
-              ctx->active->cursor_pos = ctx->layout.dir_win_height - 1;
-            } else {
-              ctx->active->disp_begin_pos = 0;
-              ctx->active->cursor_pos = last_idx;
-            }
-          }
-          dir_entry = ctx->active->vol
-                          ->dir_entry_list[ctx->active->disp_begin_pos +
-                                           ctx->active->cursor_pos]
-                          .dir_entry;
-        } else {
-          dir_entry = s->tree;
-        }
-
-        DisplayMenu(ctx);
-        DisplayTree(ctx, ctx->active->vol, ctx->ctx_dir_window,
-                    ctx->active->disp_begin_pos,
-                    ctx->active->disp_begin_pos + ctx->active->cursor_pos,
-                    TRUE);
-        DisplayFileWindow(ctx, ctx->active, dir_entry);
-        RefreshWindow(ctx->ctx_file_window);
-        DisplayDiskStatistic(ctx, s);
-        UpdateStatsPanel(ctx, dir_entry, s);
-        DisplayAvailBytes(ctx, s);
-        {
-          char path[PATH_LENGTH];
-          GetPath(dir_entry, path);
-          DisplayHeaderPath(ctx, path);
-        }
-        need_dsp_help = TRUE;
-      }
+      DirWindowDispatchResult volume_result = HandleDirWindowVolumeAction(
+          ctx, action, &dir_entry, &s, start_vol, &need_dsp_help);
+      if (volume_result == DIR_WINDOW_DISPATCH_RETURN_ESC)
+        return ESC;
     } break;
 
     case ACTION_QUIT_DIR:
@@ -1443,76 +1009,13 @@ extern int HandleDirWindow(ViewContext *ctx, const DirEntry *start_dir_entry) {
       action = ACTION_NONE;
       break;
 
-    case ACTION_LOG:
-      if (ctx->view_mode != DISK_MODE && ctx->view_mode != USER_MODE) {
-        if (getcwd(new_log_path, sizeof(new_log_path)) == NULL) {
-          (void)snprintf(new_log_path, sizeof(new_log_path), "%s", ".");
-        }
-      } else {
-        (void)GetPath(dir_entry, new_log_path);
-      }
-      if (!GetNewLogPath(ctx, ctx->active, new_log_path)) {
-        int ret; /* DEBUG variable */
-        DisplayMenu(ctx);
-        doupdate();
-
-        ret = LogDisk(ctx, ctx->active, new_log_path);
-
-        /* Check return value. Only update state if log succeeded (0). */
-        if (ret == 0) {
-          /* Safety Check: If volume was changed, return to main loop to handle
-           * new context */
-          if (ctx->active->vol != start_vol)
-            return ESC;
-
-          s = &ctx->active->vol
-                   ->vol_stats; /* Update stats pointer for new volume */
-
-          /* Safety check / Clamping */
-          if (ctx->active->vol->total_dirs > 0) {
-            if (ctx->active->disp_begin_pos + ctx->active->cursor_pos >=
-                ctx->active->vol->total_dirs) {
-              int last_idx = ctx->active->vol->total_dirs - 1;
-              if (last_idx >= ctx->layout.dir_win_height) {
-                ctx->active->disp_begin_pos =
-                    last_idx - (ctx->layout.dir_win_height - 1);
-                ctx->active->cursor_pos = ctx->layout.dir_win_height - 1;
-              } else {
-                ctx->active->disp_begin_pos = 0;
-                ctx->active->cursor_pos = last_idx;
-              }
-            }
-            /* Now safe to assign dir_entry */
-            dir_entry = ctx->active->vol
-                            ->dir_entry_list[ctx->active->disp_begin_pos +
-                                             ctx->active->cursor_pos]
-                            .dir_entry;
-          } else {
-            dir_entry = s->tree;
-          }
-
-          DisplayMenu(ctx); /* Redraw menu/frame */
-
-          /* Force Full Display Refresh */
-          DisplayTree(ctx, ctx->active->vol, ctx->ctx_dir_window,
-                      ctx->active->disp_begin_pos,
-                      ctx->active->disp_begin_pos + ctx->active->cursor_pos,
-                      TRUE);
-          DisplayFileWindow(ctx, ctx->active, dir_entry);
-          RefreshWindow(ctx->ctx_file_window);
-          DisplayDiskStatistic(ctx, s);
-          DisplayDirStatistic(ctx, dir_entry, NULL, s);
-          DisplayAvailBytes(ctx, s);
-          /* Update header path */
-          {
-            char path[PATH_LENGTH];
-            GetPath(dir_entry, path);
-            DisplayHeaderPath(ctx, path);
-          }
-        }
-        need_dsp_help = TRUE;
-      }
-      break;
+    case ACTION_LOG: {
+      DirWindowDispatchResult log_result = HandleDirWindowLogAction(
+          ctx, &dir_entry, &s, start_vol, &need_dsp_help, new_log_path,
+          sizeof(new_log_path));
+      if (log_result == DIR_WINDOW_DISPATCH_RETURN_ESC)
+        return ESC;
+    } break;
     /* Ctrl-L is now ACTION_REFRESH, handled above */
     default: /* Unhandled action, beep */
       UI_Beep(ctx, FALSE);

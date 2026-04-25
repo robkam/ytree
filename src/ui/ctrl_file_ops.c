@@ -787,296 +787,315 @@ BOOL handle_file_window_command_action(ViewContext *ctx, YtreeAction action,
   return TRUE;
 }
 
-BOOL handle_tag_file_action(ViewContext *ctx, int action, DirEntry *dir_entry,
-                            int *unput_char_ptr, BOOL *need_dsp_help_ptr,
-                            int start_x, Statistic *s,
-                            BOOL *maybe_change_x_step_ptr) {
+BOOL handle_file_window_misc_dispatch_action(
+    ViewContext *ctx, YtreeAction action, DirEntry **dir_entry_ptr,
+    YtreeAction *loop_action_ptr, int *unput_char_ptr,
+    const int *start_x_ptr,
+    BOOL *need_dsp_help_ptr, BOOL *maybe_change_x_step_ptr, Statistic *s,
+    long *preview_line_offset_ptr,
+    void (*update_preview)(ViewContext *, const DirEntry *)) {
+  DirEntry *dir_entry = NULL;
   FileEntry *fe_ptr = NULL;
-  FileEntry *new_fe_ptr = NULL;
+  DirEntry *de_ptr = NULL;
+  BOOL handled = TRUE;
+  char filepath[PATH_LENGTH + 1];
+  char new_log_path[PATH_LENGTH + 1];
+
+#define loop_action (*loop_action_ptr)
+#define unput_char (*unput_char_ptr)
+#define start_x (*start_x_ptr)
+#define need_dsp_help (*need_dsp_help_ptr)
+#define maybe_change_x_step (*maybe_change_x_step_ptr)
+
+  if (!ctx || !dir_entry_ptr || !*dir_entry_ptr || !loop_action_ptr ||
+      !unput_char_ptr || !start_x_ptr || !need_dsp_help_ptr ||
+      !maybe_change_x_step_ptr || !s || !preview_line_offset_ptr) {
+    handled = FALSE;
+    goto misc_dispatch_done;
+  }
+
+  dir_entry = *dir_entry_ptr;
+
+  switch (action) {
+  case ACTION_TOGGLE_HIDDEN:
+    ToggleDotFiles(ctx, ctx->active);
+    dir_entry = GetPanelDirEntry(ctx->active);
+    DisplayFileWindow(ctx, ctx->active, dir_entry);
+    RefreshWindow(ctx->ctx_file_window);
+    if (ctx->preview_mode) {
+      *preview_line_offset_ptr = 0;
+      if (update_preview)
+        update_preview(ctx, dir_entry);
+    }
+    need_dsp_help = TRUE;
+    break;
+
+  case ACTION_CMD_I: {
+    ArchivePayload payload;
+    int gather_result;
+    payload.original_source_list = NULL;
+    payload.expanded_file_list = NULL;
+    fe_ptr =
+        ctx->active
+            ->file_entry_list[dir_entry->start_file + dir_entry->cursor_pos]
+            .file;
+
+    gather_result = UI_GatherArchivePayload(ctx, dir_entry, fe_ptr, &payload);
+    if (gather_result != 0) {
+      if (gather_result < 0)
+        UI_ShowStatusLineError(ctx, "Nothing to archive");
+      need_dsp_help = FALSE;
+    } else {
+      int create_result;
+      create_result = UI_CreateArchiveFromPayload(ctx, &payload);
+      if (create_result == 0) {
+        dir_entry = RefreshFileView(ctx, dir_entry);
+        maybe_change_x_step = TRUE;
+        need_dsp_help = TRUE;
+      } else if (create_result < 0) {
+        need_dsp_help = FALSE;
+      } else {
+        need_dsp_help = TRUE;
+      }
+    }
+    UI_FreeArchivePayload(&payload);
+  } break;
+
+  case ACTION_CMD_O:
+  case ACTION_CMD_G:
+    UI_Beep(ctx, FALSE);
+    break;
+
+  case ACTION_TOGGLE_MODE: {
+    int list_pos;
+    if (ctx->preview_mode) {
+      UI_Beep(ctx, FALSE);
+      break;
+    }
+    list_pos = dir_entry->start_file + dir_entry->cursor_pos;
+    RotatePanelFileMode(ctx, ctx->active);
+    FileNav_SyncGridMetrics(ctx);
+    if (dir_entry->cursor_pos >= FileNav_GetMaxDispFiles(ctx)) {
+      dir_entry->cursor_pos = FileNav_GetMaxDispFiles(ctx) - 1;
+    }
+    dir_entry->start_file = list_pos - dir_entry->cursor_pos;
+    DisplayFiles(ctx, ctx->active, dir_entry, dir_entry->start_file,
+                 dir_entry->start_file + dir_entry->cursor_pos, start_x,
+                 ctx->ctx_file_window);
+  } break;
+
+  case ACTION_CMD_V:
+    fe_ptr =
+        ctx->active
+            ->file_entry_list[dir_entry->start_file + dir_entry->cursor_pos]
+            .file;
+    if (ctx->view_mode == ARCHIVE_MODE) {
+      (void)View(ctx, dir_entry, fe_ptr->name);
+    } else {
+      char full_path[PATH_LENGTH + 1];
+      GetFileNamePath(fe_ptr, full_path);
+      (void)View(ctx, dir_entry, full_path);
+    }
+    break;
+
+  case ACTION_CMD_H:
+    fe_ptr =
+        ctx->active
+            ->file_entry_list[dir_entry->start_file + dir_entry->cursor_pos]
+            .file;
+    (void)GetRealFileNamePath(fe_ptr, filepath, ctx->view_mode);
+    (void)ViewHex(ctx, filepath);
+    need_dsp_help = TRUE;
+    break;
+
+  case ACTION_CMD_E:
+    fe_ptr =
+        ctx->active
+            ->file_entry_list[dir_entry->start_file + dir_entry->cursor_pos]
+            .file;
+    de_ptr = fe_ptr->dir_entry;
+    (void)GetFileNamePath(fe_ptr, filepath);
+    (void)Edit(ctx, de_ptr, filepath);
+    break;
+
+  case ACTION_COMPARE_FILE:
+    if (ctx->active->file_count > 0 && ctx->active->file_entry_list) {
+      int compare_idx = dir_entry->start_file + dir_entry->cursor_pos;
+      if (compare_idx < 0)
+        compare_idx = 0;
+      if ((unsigned int)compare_idx >= ctx->active->file_count)
+        compare_idx = (int)ctx->active->file_count - 1;
+      if (compare_idx >= 0) {
+        fe_ptr = ctx->active->file_entry_list[compare_idx].file;
+        FileCompare_LaunchExternal(ctx, fe_ptr);
+      }
+    }
+    need_dsp_help = TRUE;
+    break;
+
+  case ACTION_CMD_MKFILE:
+    if (ctx->view_mode == DISK_MODE) {
+      char file_name[PATH_LENGTH * 2 + 1];
+      ClearHelp(ctx);
+      *file_name = '\0';
+      if (UI_ReadString(ctx, ctx->active, "MAKE FILE:", file_name, PATH_LENGTH,
+                        HST_FILE) == CR) {
+        int mk_result = MakeFile(ctx, dir_entry, file_name, s, NULL,
+                                 (ChoiceCallback)UI_ChoiceResolver);
+        if (mk_result == 0) {
+          BuildFileEntryList(ctx, ctx->active);
+          RefreshView(ctx, dir_entry);
+        } else if (mk_result == 1) {
+          MESSAGE(ctx, "File already exists!");
+        } else {
+          MESSAGE(ctx, "Can't create File*\"%s\"", file_name);
+        }
+      }
+      need_dsp_help = TRUE;
+    }
+    break;
+
+  case ACTION_CMD_S:
+    UI_HandleSort(ctx, dir_entry, s, start_x);
+    need_dsp_help = TRUE;
+    break;
+
+  case ACTION_FILTER:
+    if (UI_ReadFilter(ctx) == 0) {
+      dir_entry->start_file = 0;
+      dir_entry->cursor_pos = 0;
+      BuildFileEntryList(ctx, ctx->active);
+      DisplayFilter(ctx, s);
+      DisplayFiles(ctx, ctx->active, dir_entry, dir_entry->start_file,
+                   dir_entry->start_file + dir_entry->cursor_pos, start_x,
+                   ctx->ctx_file_window);
+
+      if (dir_entry->global_flag)
+        DisplayDiskStatistic(ctx, s);
+      else
+        DisplayDirStatistic(ctx, dir_entry, NULL, s);
+
+      if (ctx->active->file_count == 0)
+        unput_char = ESC;
+      maybe_change_x_step = TRUE;
+    }
+    need_dsp_help = TRUE;
+    break;
+
+  case ACTION_LOG:
+    fe_ptr =
+        ctx->active
+            ->file_entry_list[dir_entry->start_file + dir_entry->cursor_pos]
+            .file;
+    if (ctx->view_mode == DISK_MODE || ctx->view_mode == USER_MODE) {
+      (void)GetFileNamePath(fe_ptr, new_log_path);
+      if (!GetNewLogPath(ctx, ctx->active, new_log_path)) {
+        dir_entry->log_flag = TRUE;
+        (void)LogDisk(ctx, ctx->active, new_log_path);
+        unput_char = ESC;
+      }
+      need_dsp_help = TRUE;
+    }
+    break;
+
+  case ACTION_ENTER:
+    if (ctx->preview_mode) {
+      loop_action = ACTION_NONE;
+      break;
+    }
+    if (dir_entry->big_window)
+      break;
+    dir_entry->big_window = TRUE;
+    RefreshView(ctx, dir_entry);
+    FileNav_RereadWindowSize(ctx, dir_entry);
+    loop_action = ACTION_NONE;
+    break;
+
+  case ACTION_QUIT_DIR:
+    need_dsp_help = TRUE;
+    fe_ptr =
+        ctx->active
+            ->file_entry_list[dir_entry->start_file + dir_entry->cursor_pos]
+            .file;
+    de_ptr = fe_ptr->dir_entry;
+    QuitTo(ctx, de_ptr);
+    break;
+
+  case ACTION_QUIT:
+    need_dsp_help = TRUE;
+    Quit(ctx);
+    loop_action = ACTION_NONE;
+    break;
+
+  case ACTION_REFRESH:
+    dir_entry = RefreshFileView(ctx, dir_entry);
+    need_dsp_help = TRUE;
+    break;
+
+  case ACTION_EDIT_CONFIG:
+    UI_OpenConfigProfile(ctx, dir_entry);
+    need_dsp_help = TRUE;
+    break;
+
+  case ACTION_RESIZE:
+    ctx->resize_request = TRUE;
+    break;
+
+  case ACTION_TOGGLE_STATS:
+    ctx->show_stats = !ctx->show_stats;
+    ctx->resize_request = TRUE;
+    break;
+
+  case ACTION_TOGGLE_COMPACT:
+    ctx->fixed_col_width = (ctx->fixed_col_width == 0) ? 32 : 0;
+    ctx->resize_request = TRUE;
+    break;
+
+  case ACTION_ESCAPE:
+    break;
+
+  default:
+    handled = FALSE;
+    break;
+  }
+
+misc_dispatch_done:
+  if (handled && dir_entry_ptr && dir_entry)
+    *dir_entry_ptr = dir_entry;
+
+#undef loop_action
+#undef unput_char
+#undef start_x
+#undef need_dsp_help
+#undef maybe_change_x_step
+  return handled;
+}
+
+static BOOL HandleTaggedFileOpDispatchAction(
+    ViewContext *ctx, int action, DirEntry *dir_entry, int start_x,
+    Statistic *s, BOOL *need_dsp_help_ptr, BOOL *maybe_change_x_step_ptr,
+    BOOL *handled_ptr) {
+  WalkingPackage walking_package = {0};
   DirEntry *de_ptr = NULL;
   DirEntry *dest_dir_entry = NULL;
-  int i = 0, list_pos = 0, term = 0, get_dir_ret = 0, owner_id = 0,
-      group_id = 0;
-  off_t file_size = 0;
-  WalkingPackage walking_package = {0};
-  int pclose_ret = 0;
+  int term = 0;
+  int get_dir_ret = 0;
+  int max_disp_files =
+      getmaxy(ctx->ctx_file_window) * GetPanelMaxColumn(ctx->active);
   char to_dir[PATH_LENGTH * 2 + 1] = {0};
   char to_file[PATH_LENGTH + 1] = {0};
   char to_path[PATH_LENGTH + 1] = {0};
   char new_name[PATH_LENGTH + 1] = {0};
   BOOL path_copy = FALSE;
 
-/* Macros for local pointers */
-#define unput_char (*unput_char_ptr)
 #define need_dsp_help (*need_dsp_help_ptr)
 #define maybe_change_x_step (*maybe_change_x_step_ptr)
 
-  int max_disp_files =
-      getmaxy(ctx->ctx_file_window) * GetPanelMaxColumn(ctx->active);
-  int x_step =
-      (GetPanelMaxColumn(ctx->active) > 1) ? getmaxy(ctx->ctx_file_window) : 1;
-  (void)x_step;
-  (void)new_fe_ptr;
-  (void)i;
-  (void)list_pos;
-  (void)term;
-  (void)get_dir_ret;
-  (void)owner_id;
-  (void)group_id;
-  (void)file_size;
-  (void)pclose_ret;
-  (void)path_copy;
+  if (!handled_ptr)
+    return FALSE;
 
+  *handled_ptr = TRUE;
   switch (action) {
-  case ACTION_CMD_TAGGED_A:
-    if ((ctx->view_mode != DISK_MODE && ctx->view_mode != USER_MODE) ||
-        !FileTags_IsMatchingTaggedFiles(ctx)) {
-    } else {
-      int attr_action;
-      need_dsp_help = TRUE;
-      attr_action = UI_PromptAttributeAction(ctx, TRUE, FALSE);
-
-      if (attr_action == 'M') {
-        mode_t mask = S_IFREG | S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH;
-        char mode[16] = {0};
-
-        (void)GetAttributes(mask, mode);
-
-        /* Updated to use InputString instead of GetNewFileModus */
-        ClearHelp(ctx);
-        if (UI_ReadString(ctx, ctx->active, "MODE (octal/rwx):", mode,
-                          (int)sizeof(mode), HST_CHANGE_MODUS) == CR) {
-          char parsed_mode[12] = {0};
-          char preview_mode[10] = {0};
-          if (UI_ParseModeInput(mode, parsed_mode, preview_mode) != 0) {
-            UI_Message(ctx, "Invalid mode. Use 3/4-digit octal or -rwxrwxrwx");
-            wmove(ctx->ctx_border_window, ctx->layout.prompt_y, 0);
-            wclrtoeol(ctx->ctx_border_window);
-            wnoutrefresh(ctx->ctx_border_window);
-            return TRUE;
-          }
-          if (snprintf(
-                  walking_package.function_data.change_mode.new_mode,
-                  sizeof(walking_package.function_data.change_mode.new_mode),
-                  "%s", parsed_mode) >=
-              (int)sizeof(walking_package.function_data.change_mode.new_mode)) {
-            UI_Message(ctx, "Mode value too long.");
-            wmove(ctx->ctx_border_window, ctx->layout.prompt_y, 0);
-            wclrtoeol(ctx->ctx_border_window);
-            wnoutrefresh(ctx->ctx_border_window);
-            return TRUE;
-          }
-          FileTags_WalkTaggedFiles(ctx, dir_entry->start_file,
-                                   dir_entry->cursor_pos, SetFileModus,
-                                   &walking_package);
-
-          UI_RenderFilePanel(ctx, dir_entry, start_x);
-        }
-        wmove(ctx->ctx_border_window, ctx->layout.prompt_y, 0);
-        wclrtoeol(ctx->ctx_border_window);
-        wnoutrefresh(ctx->ctx_border_window); /* Cleanup prompt line */
-      } else if (attr_action == 'O') {
-        if ((owner_id = GetNewOwner(ctx, -1)) >= 0) {
-          walking_package.function_data.change_owner.new_owner_id = owner_id;
-          FileTags_WalkTaggedFiles(ctx, dir_entry->start_file,
-                                   dir_entry->cursor_pos, SetFileOwner,
-                                   &walking_package);
-
-          UI_RenderFilePanel(ctx, dir_entry, start_x);
-        }
-      } else if (attr_action == 'G') {
-        if ((group_id = GetNewGroup(ctx, -1)) >= 0) {
-          walking_package.function_data.change_group.new_group_id = group_id;
-          FileTags_WalkTaggedFiles(ctx, dir_entry->start_file,
-                                   dir_entry->cursor_pos, SetFileGroup,
-                                   &walking_package);
-
-          UI_RenderFilePanel(ctx, dir_entry, start_x);
-        }
-      } else if (attr_action == 'D' || attr_action == 0x04) {
-        time_t new_time = time(NULL);
-        int scope_mask = 0;
-        int idx;
-
-        if (UI_GetDateChangeSpec(ctx, &new_time, &scope_mask) != 0) {
-          return TRUE;
-        }
-
-        for (idx = 0; idx < (int)ctx->active->file_count; idx++) {
-          struct utimbuf times;
-          struct stat updated_stat;
-          char path[PATH_LENGTH + 1];
-
-          fe_ptr = ctx->active->file_entry_list[idx].file;
-          if (!fe_ptr || !fe_ptr->tagged)
-            continue;
-
-          GetFileNamePath(fe_ptr, path);
-          times.actime = (scope_mask & DATE_SCOPE_ACCESS)
-                             ? new_time
-                             : fe_ptr->stat_struct.st_atime;
-          times.modtime = (scope_mask & DATE_SCOPE_MODIFY)
-                              ? new_time
-                              : fe_ptr->stat_struct.st_mtime;
-
-          if (utime(path, &times) != 0)
-            continue;
-          if (stat(path, &updated_stat) == 0)
-            fe_ptr->stat_struct = updated_stat;
-        }
-
-        UI_RenderFilePanel(ctx, dir_entry, start_x);
-      }
-    }
-    return TRUE;
-
-  case ACTION_CMD_TAGGED_O:
-    UI_Beep(ctx, FALSE);
-    return TRUE;
-
-  case ACTION_CMD_TAGGED_G:
-    UI_Beep(ctx, FALSE);
-    return TRUE;
-
-  case ACTION_TAG:
-    fe_ptr =
-        ctx->active
-            ->file_entry_list[dir_entry->start_file + dir_entry->cursor_pos]
-            .file;
-    de_ptr = fe_ptr->dir_entry;
-
-    if (!fe_ptr->tagged) {
-      fe_ptr->tagged = TRUE;
-      de_ptr->tagged_files++;
-      de_ptr->tagged_bytes += fe_ptr->stat_struct.st_size;
-      s->disk_tagged_files++;
-      s->disk_tagged_bytes += fe_ptr->stat_struct.st_size;
-    }
-    UI_RenderFilePanel(ctx, dir_entry, start_x);
-    DisplayDiskStatistic(ctx, s); /* Always update global disk stats */
-    DisplayDirStatistic(
-        ctx, dir_entry, NULL,
-        s); /* Always update current list stats (even in Showall) */
-    unput_char = KEY_DOWN;
-
-    return TRUE;
-  case ACTION_UNTAG:
-    fe_ptr =
-        ctx->active
-            ->file_entry_list[dir_entry->start_file + dir_entry->cursor_pos]
-            .file;
-    de_ptr = fe_ptr->dir_entry;
-    if (fe_ptr->tagged) {
-      fe_ptr->tagged = FALSE;
-
-      de_ptr->tagged_files--;
-      de_ptr->tagged_bytes -= fe_ptr->stat_struct.st_size;
-      s->disk_tagged_files--;
-      s->disk_tagged_bytes -= fe_ptr->stat_struct.st_size;
-    }
-    UI_RenderFilePanel(ctx, dir_entry, start_x);
-    DisplayDiskStatistic(ctx, s); /* Always update global disk stats */
-    DisplayDirStatistic(
-        ctx, dir_entry, NULL,
-        s); /* Always update current list stats (even in Showall) */
-    unput_char = KEY_DOWN;
-
-    return TRUE;
-
-  case ACTION_TAG_ALL:
-    for (i = 0; i < (int)ctx->active->file_count; i++) {
-      fe_ptr = ctx->active->file_entry_list[i].file;
-      de_ptr = fe_ptr->dir_entry;
-
-      if (!fe_ptr->tagged) {
-        file_size = fe_ptr->stat_struct.st_size;
-
-        fe_ptr->tagged = TRUE;
-        de_ptr->tagged_files++;
-        de_ptr->tagged_bytes += file_size;
-        s->disk_tagged_files++;
-        s->disk_tagged_bytes += file_size;
-      }
-    }
-
-    UI_RenderFilePanel(ctx, dir_entry, start_x);
-    DisplayDiskStatistic(ctx, s); /* Always update global disk stats */
-    DisplayDirStatistic(
-        ctx, dir_entry, NULL,
-        s); /* Always update current list stats (even in Showall) */
-    return TRUE;
-
-  case ACTION_UNTAG_ALL:
-    for (i = 0; i < (int)ctx->active->file_count; i++) {
-      fe_ptr = ctx->active->file_entry_list[i].file;
-      de_ptr = fe_ptr->dir_entry;
-
-      if (fe_ptr->tagged) {
-        file_size = fe_ptr->stat_struct.st_size;
-
-        fe_ptr->tagged = FALSE;
-        de_ptr->tagged_files--;
-        de_ptr->tagged_bytes -= file_size;
-        s->disk_tagged_files--;
-        s->disk_tagged_bytes -= file_size;
-      }
-    }
-
-    UI_RenderFilePanel(ctx, dir_entry, start_x);
-    DisplayDiskStatistic(ctx, s); /* Always update global disk stats */
-    DisplayDirStatistic(
-        ctx, dir_entry, NULL,
-        s); /* Always update current list stats (even in Showall) */
-    return TRUE;
-
-  case ACTION_TAG_REST:
-    for (i = dir_entry->start_file + dir_entry->cursor_pos;
-         i < (int)ctx->active->file_count; i++) {
-      fe_ptr = ctx->active->file_entry_list[i].file;
-      de_ptr = fe_ptr->dir_entry;
-
-      if (!fe_ptr->tagged) {
-        file_size = fe_ptr->stat_struct.st_size;
-
-        fe_ptr->tagged = TRUE;
-        de_ptr->tagged_files++;
-        de_ptr->tagged_bytes += file_size;
-        s->disk_tagged_files++;
-        s->disk_tagged_bytes += file_size;
-      }
-    }
-
-    UI_RenderFilePanel(ctx, dir_entry, start_x);
-    DisplayDiskStatistic(ctx, s); /* Always update global disk stats */
-    DisplayDirStatistic(
-        ctx, dir_entry, NULL,
-        s); /* Always update current list stats (even in Showall) */
-    return TRUE;
-
-  case ACTION_UNTAG_REST:
-    for (i = dir_entry->start_file + dir_entry->cursor_pos;
-         i < (int)ctx->active->file_count; i++) {
-      fe_ptr = ctx->active->file_entry_list[i].file;
-      de_ptr = fe_ptr->dir_entry;
-
-      if (fe_ptr->tagged) {
-        file_size = fe_ptr->stat_struct.st_size;
-
-        fe_ptr->tagged = FALSE;
-        de_ptr->tagged_files--;
-        de_ptr->tagged_bytes -= file_size;
-        s->disk_tagged_files--;
-        s->disk_tagged_bytes -= file_size;
-      }
-    }
-
-    UI_RenderFilePanel(ctx, dir_entry, start_x);
-    DisplayDiskStatistic(ctx, s); /* Always update global disk stats */
-    DisplayDirStatistic(
-        ctx, dir_entry, NULL,
-        s); /* Always update current list stats (even in Showall) */
-    return TRUE;
-
   case ACTION_CMD_TAGGED_V:
     if (!FileTags_IsMatchingTaggedFiles(ctx)) {
       /* STRICT FILTER MODE: No tags = no action */
@@ -1099,7 +1118,7 @@ BOOL handle_tag_file_action(ViewContext *ctx, int action, DirEntry *dir_entry,
       need_dsp_help = TRUE;
 
       if (GetCopyParameter(ctx, NULL, path_copy, to_file, to_dir)) {
-        break;
+        return FALSE;
       }
 
       if (ctx->view_mode != DISK_MODE && ctx->view_mode != USER_MODE) {
@@ -1109,12 +1128,12 @@ BOOL handle_tag_file_action(ViewContext *ctx, int action, DirEntry *dir_entry,
                 (int)sizeof(to_path)) {
               MESSAGE(ctx, "Invalid destination path*\"%s\"*Path too long",
                       to_dir);
-              break;
+              return FALSE;
             }
           } else {
             MESSAGE(ctx, "Invalid destination path*\"%s\"*%s", to_dir,
                     strerror(errno));
-            break;
+            return FALSE;
           }
         }
         dest_dir_entry = NULL;
@@ -1122,7 +1141,7 @@ BOOL handle_tag_file_action(ViewContext *ctx, int action, DirEntry *dir_entry,
         get_dir_ret =
             GetDirEntry(ctx, s->tree, de_ptr, to_dir, &dest_dir_entry, to_path);
         if (get_dir_ret == -1) { /* System error */
-          break;
+          return FALSE;
         }
         if (get_dir_ret == -3) { /* Directory not found, proceed */
           dest_dir_entry = NULL;
@@ -1132,28 +1151,23 @@ BOOL handle_tag_file_action(ViewContext *ctx, int action, DirEntry *dir_entry,
       term = InputChoice(
           ctx, "Ask for confirmation for each overwrite (Y/N) ? ", "YN\033");
       if (term == ESC) {
-        break;
+        return FALSE;
       }
 
       walking_package.function_data.copy.statistic_ptr = s;
       walking_package.function_data.copy.dest_dir_entry = dest_dir_entry;
       walking_package.function_data.copy.to_file = to_file;
-      walking_package.function_data.copy.to_path =
-          to_path; /* Fixed struct access */
-      walking_package.function_data.copy.path_copy =
-          path_copy; /* Fixed struct access */
+      walking_package.function_data.copy.to_path = to_path;
+      walking_package.function_data.copy.path_copy = path_copy;
       walking_package.function_data.copy.conflict_cb =
           (void *)(ConflictCallback)UI_ConflictResolverWrapper;
-      walking_package.function_data.copy.dir_create_mode =
-          0; /* Reset auto-create mode */
-      walking_package.function_data.copy.overwrite_mode =
-          (term == 'N') ? 1 : 0; /* Reset overwrite mode */
+      walking_package.function_data.copy.dir_create_mode = 0;
+      walking_package.function_data.copy.overwrite_mode = (term == 'N') ? 1 : 0;
       walking_package.function_data.copy.choice_cb =
           (void *)(ChoiceCallback)UI_ChoiceResolver;
 
-      FileTags_WalkTaggedFiles(ctx, dir_entry->start_file,
-                               dir_entry->cursor_pos, CopyTaggedFiles,
-                               &walking_package);
+      FileTags_WalkTaggedFiles(ctx, dir_entry->start_file, dir_entry->cursor_pos,
+                               CopyTaggedFiles, &walking_package);
 
       UI_RefreshSyncPanels(ctx, dir_entry);
     }
@@ -1168,13 +1182,13 @@ BOOL handle_tag_file_action(ViewContext *ctx, int action, DirEntry *dir_entry,
       need_dsp_help = TRUE;
 
       if (GetMoveParameter(ctx, NULL, to_file, to_dir)) {
-        break;
+        return FALSE;
       }
 
       get_dir_ret =
           GetDirEntry(ctx, s->tree, de_ptr, to_dir, &dest_dir_entry, to_path);
       if (get_dir_ret == -1) {
-        break;
+        return FALSE;
       }
       if (get_dir_ret == -3) {
         dest_dir_entry = NULL;
@@ -1191,7 +1205,7 @@ BOOL handle_tag_file_action(ViewContext *ctx, int action, DirEntry *dir_entry,
               (int)sizeof(abs_check_path)) {
             MESSAGE(ctx, "Invalid destination path*\"%s\"*Path too long",
                     to_dir);
-            break;
+            return FALSE;
           }
         } else {
           char current_dir[PATH_LENGTH + 1];
@@ -1199,17 +1213,16 @@ BOOL handle_tag_file_action(ViewContext *ctx, int action, DirEntry *dir_entry,
           snprintf(abs_check_path, sizeof(abs_check_path), "%s%c%s",
                    current_dir, FILE_SEPARATOR_CHAR, to_dir);
         }
-        /* FIX: Pass &dest_dir_entry */
         if (EnsureDirectoryExists(ctx, abs_check_path, s->tree, &created,
                                   &dest_dir_entry, &dir_create_mode,
                                   (ChoiceCallback)UI_ChoiceResolver) == -1)
-          break;
+          return FALSE;
       }
 
       term = InputChoice(
           ctx, "Ask for confirmation for each overwrite (Y/N) ? ", "YN\033");
       if (term == ESC) {
-        break;
+        return FALSE;
       }
 
       walking_package.function_data.mv.dest_dir_entry = dest_dir_entry;
@@ -1217,16 +1230,13 @@ BOOL handle_tag_file_action(ViewContext *ctx, int action, DirEntry *dir_entry,
       walking_package.function_data.mv.to_path = to_path;
       walking_package.function_data.mv.conflict_cb =
           (void *)(ConflictCallback)UI_ConflictResolverWrapper;
-      walking_package.function_data.mv.dir_create_mode =
-          0; /* Reset auto-create mode */
-      walking_package.function_data.mv.overwrite_mode =
-          (term == 'N') ? 1 : 0; /* Reset overwrite mode */
+      walking_package.function_data.mv.dir_create_mode = 0;
+      walking_package.function_data.mv.overwrite_mode = (term == 'N') ? 1 : 0;
       walking_package.function_data.mv.choice_cb =
           (void *)(ChoiceCallback)UI_ChoiceResolver;
 
-      FileTags_WalkTaggedFiles(ctx, dir_entry->start_file,
-                               dir_entry->cursor_pos, MoveTaggedFiles,
-                               &walking_package);
+      FileTags_WalkTaggedFiles(ctx, dir_entry->start_file, dir_entry->cursor_pos,
+                               MoveTaggedFiles, &walking_package);
 
       UI_RefreshSyncPanels(ctx, dir_entry);
 
@@ -1262,15 +1272,14 @@ BOOL handle_tag_file_action(ViewContext *ctx, int action, DirEntry *dir_entry,
       need_dsp_help = TRUE;
 
       if (GetRenameParameter(ctx, NULL, new_name)) {
-        break;
+        return FALSE;
       }
 
       walking_package.function_data.rename.new_name = new_name;
       walking_package.function_data.rename.confirm = FALSE;
 
-      FileTags_WalkTaggedFiles(ctx, dir_entry->start_file,
-                               dir_entry->cursor_pos, RenameTaggedFiles,
-                               &walking_package);
+      FileTags_WalkTaggedFiles(ctx, dir_entry->start_file, dir_entry->cursor_pos,
+                               RenameTaggedFiles, &walking_package);
 
       BuildFileEntryList(ctx, ctx->active);
 
@@ -1302,12 +1311,11 @@ BOOL handle_tag_file_action(ViewContext *ctx, int action, DirEntry *dir_entry,
           doupdate();
           UI_Message(ctx, "execution of command*%s*failed", filepath);
         } else {
-          FileTags_SilentWalkTaggedFiles(ctx, PipeTaggedFiles,
-                                         &walking_package);
+          FileTags_SilentWalkTaggedFiles(ctx, PipeTaggedFiles, &walking_package);
 
           /* Close pipe and capture return value */
-          pclose_ret = pclose(walking_package.function_data.pipe_cmd
-                                  .pipe_file); /* Fixed struct access */
+          const int pclose_ret =
+              pclose(walking_package.function_data.pipe_cmd.pipe_file);
 
           /* Wait for user input */
           HitReturnToContinue();
@@ -1372,16 +1380,18 @@ BOOL handle_tag_file_action(ViewContext *ctx, int action, DirEntry *dir_entry,
         NormalizeQuotedExecPlaceholders(
             command_line, (size_t)COMMAND_LINE_LENGTH + 1U);
         /* Construct Silent Command */
-        int n = snprintf(silent_cmd, silent_cmd_size, "%s > /dev/null 2>&1",
-                         command_line);
-        if (n < 0 || (size_t)n >= silent_cmd_size) {
-          UI_Message(ctx, "Command too long");
-        } else {
-          walking_package.function_data.execute.command = silent_cmd;
-          /* Use modified SilentTagWalk (Untag on Fail) */
-          FileTags_SilentTagWalkTaggedFiles(ctx, ExecuteCommand,
-                                            &walking_package);
-          /* No HitReturnToContinue - purely silent */
+        {
+          int n = snprintf(silent_cmd, silent_cmd_size, "%s > /dev/null 2>&1",
+                           command_line);
+          if (n < 0 || (size_t)n >= silent_cmd_size) {
+            UI_Message(ctx, "Command too long");
+          } else {
+            walking_package.function_data.execute.command = silent_cmd;
+            /* Use modified SilentTagWalk (Untag on Fail) */
+            FileTags_SilentTagWalkTaggedFiles(ctx, ExecuteCommand,
+                                              &walking_package);
+            /* No HitReturnToContinue - purely silent */
+          }
         }
       }
 
@@ -1436,29 +1446,301 @@ BOOL handle_tag_file_action(ViewContext *ctx, int action, DirEntry *dir_entry,
     }
     return TRUE;
 
-  case ACTION_TOGGLE_TAGGED_MODE:
+  default:
+    *handled_ptr = FALSE;
+    return FALSE;
+  }
 
-    /* Toggle mode (if possible) */
+#undef need_dsp_help
+#undef maybe_change_x_step
+}
+
+static BOOL HandleTaggedAttributeDispatchAction(
+    ViewContext *ctx, int action, const DirEntry *dir_entry, int start_x,
+    BOOL *need_dsp_help_ptr, BOOL *handled_ptr) {
+  WalkingPackage walking_package = {0};
+  FileEntry *fe_ptr = NULL;
+  int owner_id = 0, group_id = 0;
+
+  if (!handled_ptr)
+    return FALSE;
+
+  *handled_ptr = TRUE;
+  if (action != ACTION_CMD_TAGGED_A) {
+    *handled_ptr = FALSE;
+    return FALSE;
+  }
+
+#define need_dsp_help (*need_dsp_help_ptr)
+
+  if ((ctx->view_mode != DISK_MODE && ctx->view_mode != USER_MODE) ||
+      !FileTags_IsMatchingTaggedFiles(ctx)) {
+    return TRUE;
+  }
+
+  need_dsp_help = TRUE;
+  {
+    int attr_action = UI_PromptAttributeAction(ctx, TRUE, FALSE);
+
+    if (attr_action == 'M') {
+      mode_t mask = S_IFREG | S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH;
+      char mode[16] = {0};
+
+      (void)GetAttributes(mask, mode);
+      ClearHelp(ctx);
+      if (UI_ReadString(ctx, ctx->active, "MODE (octal/rwx):", mode,
+                        (int)sizeof(mode), HST_CHANGE_MODUS) == CR) {
+        char parsed_mode[12] = {0};
+        char preview_mode[10] = {0};
+
+        if (UI_ParseModeInput(mode, parsed_mode, preview_mode) != 0) {
+          UI_Message(ctx, "Invalid mode. Use 3/4-digit octal or -rwxrwxrwx");
+          wmove(ctx->ctx_border_window, ctx->layout.prompt_y, 0);
+          wclrtoeol(ctx->ctx_border_window);
+          wnoutrefresh(ctx->ctx_border_window);
+          return TRUE;
+        }
+
+        if (snprintf(walking_package.function_data.change_mode.new_mode,
+                     sizeof(walking_package.function_data.change_mode.new_mode),
+                     "%s", parsed_mode) >=
+            (int)sizeof(walking_package.function_data.change_mode.new_mode)) {
+          UI_Message(ctx, "Mode value too long.");
+          wmove(ctx->ctx_border_window, ctx->layout.prompt_y, 0);
+          wclrtoeol(ctx->ctx_border_window);
+          wnoutrefresh(ctx->ctx_border_window);
+          return TRUE;
+        }
+
+        FileTags_WalkTaggedFiles(ctx, dir_entry->start_file, dir_entry->cursor_pos,
+                                 SetFileModus, &walking_package);
+        UI_RenderFilePanel(ctx, dir_entry, start_x);
+      }
+
+      wmove(ctx->ctx_border_window, ctx->layout.prompt_y, 0);
+      wclrtoeol(ctx->ctx_border_window);
+      wnoutrefresh(ctx->ctx_border_window);
+    } else if (attr_action == 'O') {
+      if ((owner_id = GetNewOwner(ctx, -1)) >= 0) {
+        walking_package.function_data.change_owner.new_owner_id = owner_id;
+        FileTags_WalkTaggedFiles(ctx, dir_entry->start_file, dir_entry->cursor_pos,
+                                 SetFileOwner, &walking_package);
+        UI_RenderFilePanel(ctx, dir_entry, start_x);
+      }
+    } else if (attr_action == 'G') {
+      if ((group_id = GetNewGroup(ctx, -1)) >= 0) {
+        walking_package.function_data.change_group.new_group_id = group_id;
+        FileTags_WalkTaggedFiles(ctx, dir_entry->start_file, dir_entry->cursor_pos,
+                                 SetFileGroup, &walking_package);
+        UI_RenderFilePanel(ctx, dir_entry, start_x);
+      }
+    } else if (attr_action == 'D' || attr_action == 0x04) {
+      time_t new_time = time(NULL);
+      int scope_mask = 0;
+      int idx = 0;
+
+      if (UI_GetDateChangeSpec(ctx, &new_time, &scope_mask) != 0) {
+        return TRUE;
+      }
+
+      for (idx = 0; idx < (int)ctx->active->file_count; idx++) {
+        struct utimbuf times;
+        struct stat updated_stat;
+        char path[PATH_LENGTH + 1];
+
+        fe_ptr = ctx->active->file_entry_list[idx].file;
+        if (!fe_ptr || !fe_ptr->tagged)
+          continue;
+
+        GetFileNamePath(fe_ptr, path);
+        times.actime = (scope_mask & DATE_SCOPE_ACCESS)
+                           ? new_time
+                           : fe_ptr->stat_struct.st_atime;
+        times.modtime = (scope_mask & DATE_SCOPE_MODIFY)
+                            ? new_time
+                            : fe_ptr->stat_struct.st_mtime;
+
+        if (utime(path, &times) != 0)
+          continue;
+        if (stat(path, &updated_stat) == 0)
+          fe_ptr->stat_struct = updated_stat;
+      }
+
+      UI_RenderFilePanel(ctx, dir_entry, start_x);
+    }
+  }
+
+  return TRUE;
+
+#undef need_dsp_help
+}
+
+static void UpdateTaggedActionStatistics(ViewContext *ctx,
+                                         const DirEntry *dir_entry, int start_x,
+                                         const Statistic *s) {
+  UI_RenderFilePanel(ctx, dir_entry, start_x);
+  DisplayDiskStatistic(ctx, s);
+  DisplayDirStatistic(ctx, dir_entry, NULL, s);
+}
+
+static void SetFileTaggedState(FileEntry *fe_ptr, Statistic *s, BOOL tagged) {
+  DirEntry *de_ptr = NULL;
+  off_t file_size = 0;
+
+  if (!fe_ptr)
+    return;
+
+  de_ptr = fe_ptr->dir_entry;
+  file_size = fe_ptr->stat_struct.st_size;
+  if (tagged) {
+    if (fe_ptr->tagged)
+      return;
+
+    fe_ptr->tagged = TRUE;
+    de_ptr->tagged_files++;
+    de_ptr->tagged_bytes += file_size;
+    s->disk_tagged_files++;
+    s->disk_tagged_bytes += file_size;
+    return;
+  }
+
+  if (!fe_ptr->tagged)
+    return;
+
+  fe_ptr->tagged = FALSE;
+  de_ptr->tagged_files--;
+  de_ptr->tagged_bytes -= file_size;
+  s->disk_tagged_files--;
+  s->disk_tagged_bytes -= file_size;
+}
+
+static void SetFileTaggedStateRange(ViewContext *ctx, int start_idx, BOOL tagged,
+                                    Statistic *s) {
+  int i = 0;
+
+  for (i = start_idx; i < (int)ctx->active->file_count; i++) {
+    FileEntry *fe_ptr = ctx->active->file_entry_list[i].file;
+    SetFileTaggedState(fe_ptr, s, tagged);
+  }
+}
+
+static BOOL HandleTaggedSelectionDispatchAction(
+    ViewContext *ctx, int action, DirEntry *dir_entry, int *unput_char_ptr,
+    int start_x, Statistic *s, BOOL *need_dsp_help_ptr,
+    BOOL *maybe_change_x_step_ptr, BOOL *handled_ptr) {
+  FileEntry *fe_ptr = NULL;
+
+  if (!handled_ptr)
+    return FALSE;
+
+  *handled_ptr = TRUE;
+  switch (action) {
+  case ACTION_TAG:
+    fe_ptr =
+        ctx->active
+            ->file_entry_list[dir_entry->start_file + dir_entry->cursor_pos]
+            .file;
+    SetFileTaggedState(fe_ptr, s, TRUE);
+    UpdateTaggedActionStatistics(ctx, dir_entry, start_x, s);
+    if (unput_char_ptr)
+      *unput_char_ptr = KEY_DOWN;
+    return TRUE;
+
+  case ACTION_UNTAG:
+    fe_ptr =
+        ctx->active
+            ->file_entry_list[dir_entry->start_file + dir_entry->cursor_pos]
+            .file;
+    SetFileTaggedState(fe_ptr, s, FALSE);
+    UpdateTaggedActionStatistics(ctx, dir_entry, start_x, s);
+    if (unput_char_ptr)
+      *unput_char_ptr = KEY_DOWN;
+    return TRUE;
+
+  case ACTION_TAG_ALL:
+    SetFileTaggedStateRange(ctx, 0, TRUE, s);
+    UpdateTaggedActionStatistics(ctx, dir_entry, start_x, s);
+    return TRUE;
+
+  case ACTION_UNTAG_ALL:
+    SetFileTaggedStateRange(ctx, 0, FALSE, s);
+    UpdateTaggedActionStatistics(ctx, dir_entry, start_x, s);
+    return TRUE;
+
+  case ACTION_TAG_REST:
+    SetFileTaggedStateRange(ctx, dir_entry->start_file + dir_entry->cursor_pos,
+                            TRUE, s);
+    UpdateTaggedActionStatistics(ctx, dir_entry, start_x, s);
+    return TRUE;
+
+  case ACTION_UNTAG_REST:
+    SetFileTaggedStateRange(ctx, dir_entry->start_file + dir_entry->cursor_pos,
+                            FALSE, s);
+    UpdateTaggedActionStatistics(ctx, dir_entry, start_x, s);
+    return TRUE;
+
+  case ACTION_TOGGLE_TAGGED_MODE:
     if (dir_entry->tagged_files)
       dir_entry->tagged_flag = !dir_entry->tagged_flag;
     else
       dir_entry->tagged_flag = FALSE;
 
     BuildFileEntryList(ctx, ctx->active);
-
     dir_entry->start_file = 0;
     dir_entry->cursor_pos = 0;
     UI_RenderFilePanel(ctx, dir_entry, start_x);
-    maybe_change_x_step = TRUE;
+
+    if (maybe_change_x_step_ptr)
+      *maybe_change_x_step_ptr = TRUE;
     return TRUE;
 
-  case ACTION_INVERT: /* Mapped to 'i'/'I' for Invert Tags in File Window */
+  case ACTION_INVERT:
     FileTags_HandleInvertTags(ctx, dir_entry, s);
-    need_dsp_help = TRUE;
+    if (need_dsp_help_ptr)
+      *need_dsp_help_ptr = TRUE;
+    return TRUE;
+
+  default:
+    *handled_ptr = FALSE;
+    return FALSE;
+  }
+}
+
+BOOL handle_tag_file_action(ViewContext *ctx, int action, DirEntry *dir_entry,
+                            int *unput_char_ptr, BOOL *need_dsp_help_ptr,
+                            int start_x, Statistic *s,
+                            BOOL *maybe_change_x_step_ptr) {
+  BOOL handled = FALSE;
+
+  if (HandleTaggedFileOpDispatchAction(ctx, action, dir_entry, start_x, s,
+                                       need_dsp_help_ptr,
+                                       maybe_change_x_step_ptr, &handled)) {
     return TRUE;
   }
-#undef unput_char
-#undef need_dsp_help
-#undef maybe_change_x_step
+  if (handled)
+    return FALSE;
+
+  if (HandleTaggedAttributeDispatchAction(ctx, action, dir_entry, start_x,
+                                          need_dsp_help_ptr, &handled)) {
+    return TRUE;
+  }
+  if (handled)
+    return FALSE;
+
+  if (HandleTaggedSelectionDispatchAction(ctx, action, dir_entry, unput_char_ptr,
+                                          start_x, s, need_dsp_help_ptr,
+                                          maybe_change_x_step_ptr, &handled)) {
+    return TRUE;
+  }
+  if (handled)
+    return FALSE;
+
+  switch (action) {
+  case ACTION_CMD_TAGGED_O:
+  case ACTION_CMD_TAGGED_G:
+    UI_Beep(ctx, FALSE);
+    return TRUE;
+  }
+
   return FALSE;
 }
