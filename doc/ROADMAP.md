@@ -74,7 +74,7 @@ Ordering policy (for all editors, including AI editors):
 *   Red test first: snapshot existing behavior with focused regression tests.
 *   Complexity drops materially with unchanged behavior/tests.
 *   Coordinate with decomposition work in current-delivery module-hotspot tasks.
-*   - [ ] **Status:** Not Started.
+*   - [x] **Status:** Completed.
 
 ### **Task 66: Add permanent security regression gates**
 *   **Goal:** Add durable regression checks for command-buffer sizing, no default debug logs, temp-file cleanup, and shell-quoting integrity.

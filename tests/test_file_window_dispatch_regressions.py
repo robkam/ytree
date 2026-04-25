@@ -1,0 +1,146 @@
+import re
+import time
+from pathlib import Path
+
+from tui_harness import YtreeTUI
+from ytree_keys import Keys
+
+
+def _screen_text(tui):
+    return "\n".join(tui.get_screen_dump())
+
+
+def _footer_text(tui):
+    return "\n".join(tui.get_screen_dump()[-3:]).lower()
+
+
+def _read_source(path):
+    repo_root = Path(__file__).resolve().parents[1]
+    return (repo_root / path).read_text(encoding="utf-8")
+
+
+def _extract_function_block(source, signature):
+    start = source.find(signature)
+    assert start >= 0, f"Could not find function signature: {signature}"
+
+    open_brace = source.find("{", start)
+    assert open_brace >= 0, f"Could not find opening brace for: {signature}"
+
+    depth = 0
+    for idx in range(open_brace, len(source)):
+        ch = source[idx]
+        if ch == "{":
+            depth += 1
+        elif ch == "}":
+            depth -= 1
+            if depth == 0:
+                return source[start : idx + 1]
+
+    raise AssertionError(f"Could not find closing brace for: {signature}")
+
+
+def _current_file_from_stats(tui):
+    lines = tui.get_screen_dump()
+    for idx, line in enumerate(lines):
+        if "CURRENT FILE" not in line:
+            continue
+        for look_ahead in (1, 2):
+            row_idx = idx + look_ahead
+            if row_idx >= len(lines):
+                continue
+            match = re.search(r"([A-Za-z0-9._-]+\.txt)", lines[row_idx])
+            if match:
+                return match.group(1)
+    return None
+
+
+def test_navigation_dispatch_updates_current_file_stats(ytree_binary, tmp_path):
+    root = tmp_path / "dispatch_navigation_stats"
+    root.mkdir()
+    (root / "aa_one.txt").write_text("one\n", encoding="utf-8")
+    (root / "bb_two.txt").write_text("two\n", encoding="utf-8")
+    (root / "cc_three.txt").write_text("three\n", encoding="utf-8")
+
+    tui = YtreeTUI(executable=ytree_binary, cwd=str(root))
+    time.sleep(0.8)
+
+    try:
+        tui.send_keystroke(Keys.ENTER, wait=0.4)
+
+        first_file = _current_file_from_stats(tui)
+        assert first_file == "aa_one.txt", _screen_text(tui)
+
+        tui.send_keystroke(Keys.DOWN, wait=0.25)
+        second_file = _current_file_from_stats(tui)
+        assert second_file == "bb_two.txt", _screen_text(tui)
+
+        tui.send_keystroke(Keys.UP, wait=0.25)
+        up_file = _current_file_from_stats(tui)
+        assert up_file == "aa_one.txt", _screen_text(tui)
+    finally:
+        tui.quit()
+
+
+def test_make_file_prompt_dispatch_creates_file(ytree_binary, tmp_path):
+    root = tmp_path / "dispatch_make_file_prompt"
+    root.mkdir()
+    (root / "seed.txt").write_text("seed\n", encoding="utf-8")
+
+    tui = YtreeTUI(executable=ytree_binary, cwd=str(root))
+    time.sleep(0.8)
+
+    try:
+        tui.send_keystroke(Keys.ENTER, wait=0.35)
+        tui.send_keystroke(Keys.MAKE_FILE, wait=0.25)
+        assert tui.wait_for_content("MAKE FILE:", timeout=1.0), _screen_text(tui)
+
+        tui.send_keystroke("created_from_prompt.txt" + Keys.ENTER, wait=0.45)
+        assert (root / "created_from_prompt.txt").exists()
+    finally:
+        tui.quit()
+
+
+def test_split_and_tab_dispatch_keeps_file_mode_footer(ytree_binary, tmp_path):
+    root = tmp_path / "dispatch_split_switch_footer"
+    root.mkdir()
+    (root / "left.txt").write_text("left\n", encoding="utf-8")
+    (root / "right.txt").write_text("right\n", encoding="utf-8")
+
+    tui = YtreeTUI(executable=ytree_binary, cwd=str(root))
+    time.sleep(0.8)
+
+    try:
+        tui.send_keystroke(Keys.ENTER, wait=0.35)
+        assert "hex invert j compare" in _footer_text(tui), _screen_text(tui)
+
+        tui.send_keystroke(Keys.F8, wait=0.45)
+        tui.send_keystroke(Keys.TAB, wait=0.45)
+
+        footer = _footer_text(tui)
+        assert "hex invert j compare" in footer, _screen_text(tui)
+    finally:
+        tui.quit()
+
+
+def test_HandleFileWindow_delegates_misc_dispatch_hotspot():
+    ctrl_source = _read_source("src/ui/ctrl_file.c")
+    ops_source = _read_source("src/ui/ctrl_file_ops.c")
+    handle_block = _extract_function_block(ctrl_source, "int HandleFileWindow(")
+
+    assert "BOOL handle_file_window_misc_dispatch_action(" in ops_source, (
+        "File-window misc action dispatch helper must exist in ctrl_file_ops.c "
+        "so hotspot branches are extracted out of HandleFileWindow."
+    )
+    assert "handle_file_window_misc_dispatch_action(" in handle_block, (
+        "HandleFileWindow must delegate misc action handling to the extracted "
+        "non-controller helper."
+    )
+    assert 'UI_ReadString(ctx, ctx->active, "MAKE FILE:"' not in handle_block, (
+        "Make-file prompt branch body should be handled in extracted misc helper."
+    )
+    assert "UI_ReadFilter(ctx) == 0" not in handle_block, (
+        "Filter branch body should be handled in extracted misc helper."
+    )
+    assert "GetNewLogPath(ctx, ctx->active" not in handle_block, (
+        "Log branch body should be handled in extracted misc helper."
+    )

@@ -33,6 +33,12 @@ These instructions apply to all AI agents used in this repository.
   - `greybeard`: best-practice, convention, expectation, and explanatory guidance requests, plus meta/process guidance (skills, personas, conventions, and IDE/tooling workflow).
 - For multi-part requests spanning multiple roles, execute in phases and switch personas per phase. When switching, restate `<name>:` before that phase output.
 
+## User Notification
+
+- When finishing a long-running mission or when explicitly requesting user review via `notify_user`, you SHOULD trigger a desktop notification on the Windows host.
+- Execute: `/home/rob/ytree/scripts/wsl-notify.sh "Antigravity" "<Context-specific message>"`
+- Example: `/home/rob/ytree/scripts/wsl-notify.sh "Antigravity" "Implementation complete, ready for review."`
+
 ## Persona Skill Auto-Load
 
 - Skills are repo-local under `.ai/skills/<skill-name>/SKILL.md`.

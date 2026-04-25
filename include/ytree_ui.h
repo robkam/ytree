@@ -184,6 +184,13 @@ extern void UI_RenderFilePanel(ViewContext *ctx, const DirEntry *dir_entry,
 extern BOOL handle_file_window_command_action(
     ViewContext *ctx, YtreeAction action, DirEntry **dir_entry_ptr,
     BOOL *need_dsp_help_ptr, BOOL *maybe_change_x_step_ptr, Statistic *s);
+extern BOOL handle_file_window_misc_dispatch_action(
+    ViewContext *ctx, YtreeAction action, DirEntry **dir_entry_ptr,
+    YtreeAction *loop_action_ptr, int *unput_char_ptr,
+    const int *start_x_ptr,
+    BOOL *need_dsp_help_ptr, BOOL *maybe_change_x_step_ptr, Statistic *s,
+    long *preview_line_offset_ptr,
+    void (*update_preview)(ViewContext *, const DirEntry *));
 extern BOOL handle_file_window_preview_action(
     ViewContext *ctx, YtreeAction action, DirEntry **dir_entry_ptr,
     YtreeAction *loop_action_ptr, Statistic **stats_ptr,
@@ -277,6 +284,13 @@ extern void DisplayFilter(ViewContext *ctx, const Statistic *s);
 extern void DisplayGlobalFileParameter(ViewContext *ctx, FileEntry *fe);
 extern void RecalculateSysStats(ViewContext *ctx, Statistic *s);
 
+typedef enum {
+  DIR_WINDOW_DISPATCH_UNHANDLED = 0,
+  DIR_WINDOW_DISPATCH_HANDLED,
+  DIR_WINDOW_DISPATCH_CONTINUE,
+  DIR_WINDOW_DISPATCH_RETURN_ESC
+} DirWindowDispatchResult;
+
 /* ctrl_dir.c / dir_tags.c */
 extern void HandleShowAll(ViewContext *ctx, BOOL tagged_only, BOOL all_volumes,
                           DirEntry *dir_entry, BOOL *need_dsp_help, int *ch,
@@ -284,6 +298,32 @@ extern void HandleShowAll(ViewContext *ctx, BOOL tagged_only, BOOL all_volumes,
 extern BOOL HandleDirTagActions(ViewContext *ctx, int action,
                                 DirEntry **dir_entry_ptr, BOOL *need_dsp_help,
                                 int *ch);
+extern void SyncActivePanelWindows(ViewContext *ctx);
+extern DirEntry *ResolveActiveDirEntry(ViewContext *ctx, const Statistic *s);
+extern void RefreshVolumeSwitchViews(ViewContext *ctx, DirEntry *dir_entry,
+                                     const Statistic *s);
+extern DirWindowDispatchResult
+HandleDirWindowPanelAction(ViewContext *ctx, YtreeAction action,
+                           DirEntry **dir_entry_ptr, Statistic **s_ptr,
+                           const struct Volume **start_vol_ptr,
+                           BOOL *need_dsp_help_ptr, int *ch_ptr,
+                           int *unput_char_ptr);
+extern DirWindowDispatchResult
+HandleDirWindowEnterAction(ViewContext *ctx, DirEntry **dir_entry_ptr,
+                           Statistic **s_ptr,
+                           const struct Volume **start_vol_ptr,
+                           BOOL *need_dsp_help_ptr, int *ch_ptr,
+                           int *unput_char_ptr, YtreeAction *action_ptr);
+extern DirWindowDispatchResult
+HandleDirWindowVolumeAction(ViewContext *ctx, YtreeAction action,
+                            DirEntry **dir_entry_ptr, Statistic **s_ptr,
+                            const struct Volume *start_vol,
+                            BOOL *need_dsp_help_ptr);
+extern DirWindowDispatchResult
+HandleDirWindowLogAction(ViewContext *ctx, DirEntry **dir_entry_ptr,
+                         Statistic **s_ptr, const struct Volume *start_vol,
+                         BOOL *need_dsp_help_ptr, char *new_log_path,
+                         size_t new_log_path_size);
 
 /* ui_edit_config.c */
 extern void UI_OpenConfigProfile(ViewContext *ctx, DirEntry *dir_entry);
