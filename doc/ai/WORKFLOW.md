@@ -158,8 +158,9 @@ For the canonical maintainer copy/paste mission prompt, see **[AGENT_PROMPT_TEMP
 
 #### 3.1.0 Relay Runtime Prerequisite
 
-Before starting the loop, ensure Tether MCP is installed and configured for every client used in the chain (`architect`, `developer`, `code_auditor`).
-The stateless multi-AI loop uses Tether relay handles.
+Before starting the loop, ensure the auto-relay runtime is configured for every client role (`architect`, `developer`, `code_auditor`) and that systemd worker services are available:
+- Run `scripts/setup_relay_runtime.sh` once per machine/user (or again only after relay config/unit changes).
+- On each new WSL start, run `scripts/relay-workers.sh health`; if unhealthy, run `scripts/relay-workers.sh start`.
 
 ##### 3.1.0.1 MCP Config Bootstrap (Recommended)
 
@@ -172,24 +173,33 @@ make mcp-doctor FIX=1
 This bootstraps local MCP client configuration from repo-tracked defaults when missing, while preserving personal auth/session/history settings.
 Principle: keep team-shared defaults in repo config and keep user-specific paths, credentials, and local overrides in user-local config.
 
-##### 3.1.0.2 Tether Relay MCP Setup
+##### 3.1.0.2 Auto-Relay Runtime Setup
 
-Install Tether once on your machine:
+One-time install (per machine/user):
 
 ```bash
-mkdir -p "$HOME/.local/src" "$HOME/.local/share/tether"
-cd "$HOME/.local/src"
-git clone https://github.com/latentcollapse/Tether.git
-cd Tether
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -e .
+scripts/relay-systemd-install.sh
 ```
 
-Recommended shared DB path:
-- `$HOME/.local/share/tether/postoffice.db`
+First start after install (or after unit changes):
 
-All participating clients in the workflow should point to the same Tether server entry and shared DB path.
+```bash
+scripts/relay-workers.sh start
+```
+
+Per WSL start:
+
+```bash
+scripts/relay-workers.sh health
+# if unhealthy:
+scripts/relay-workers.sh start
+```
+
+Default durable paths (informational defaults, not commands):
+- `~/.local/state/ytree/relay.db`
+- `~/.local/state/ytree/relay-events.jsonl`
+
+These defaults are read from relay env configuration (`RELAY_DB`, `RELAY_EVENT_LOG`) and can be changed in `~/.config/ytree/relay.env`.
 
 #### 3.1.1 Workflow Contract (Mandatory)
 
@@ -198,86 +208,80 @@ All participating clients in the workflow should point to the same Tether server
     *   atomic and independently verifiable,
     *   not fragmented into trivial micro-steps,
     *   executed one task at a time.
-3.  All relay artifacts MUST be Tether messages with stable handles.
-    *   Completion/status lines shared with maintainer MUST include the relevant handle.
-4.  Relay artifacts (prompt/report/status messages) are workflow artifacts and MUST NOT be committed.
+3.  All runtime transitions MUST be recorded in the append-only event log with monotonic sequence.
+4.  Runtime artifacts (prompt/report/status/event artifacts) are workflow artifacts and MUST NOT be committed.
 
 #### 3.1.2 Mission Definition Pass (Stateless Planning)
 
 1.  Run a stateless planning session to define mission scope, constraints, and acceptance criteria.
 2.  Output must include a prompt for a stateless `architect` pass.
 
-#### 3.1.3 Architect Pass (Stateless, Branch Setup, Tether-Based Handoffs)
+#### 3.1.3 Architect Pass (Stateless, Branch Setup, Temporal Run Start)
 
 1.  Start on a dedicated feature branch (local + remote).
-2.  Architect publishes a numbered master plan relay message in Tether and keeps its handle.
-3.  Architect emits exactly one developer handoff at a time (never multiple tasks in one handoff).
-4.  Each developer handoff must be a Tether prompt message and must include:
+2.  Architect starts exactly one durable run with stable `run_id` + idempotency key.
+3.  Unit lifecycle is fixed and durable: `architect_handoff -> developer_run -> auditor_run -> architect_validation`.
+4.  Architect emits exactly one runnable developer unit at a time (never multiple units in-flight for the same run unless explicitly designed).
+5.  Every unit definition must include:
     *   strict scope lock,
     *   acceptance criteria,
     *   verification commands,
-    *   stop/blocker conditions,
-    *   mandatory developer report handle in completion line.
-5.  Architect relay response to maintainer MUST include:
+    *   blocker conditions,
+    *   bounded timeout + retry policy.
+6.  Architect status update to maintainer MUST include:
     *   `Reasoning level: <Low|Medium|High|Extra High>`
-    *   `Handoff line: developer: Execute task <task-id> from handle <handoff-handle> exactly as written (Task ... only).`
+    *   `run_id`, `unit_id`, and latest event sequence.
 
-#### 3.1.4 Developer Pass (Stateless, Single Task Only)
+#### 3.1.4 Developer Pass (systemd Worker, Lease + Heartbeat, Single Unit)
 
-1.  Run a stateless `developer` for exactly one task.
-2.  Developer executes only the assigned task prompt.
-3.  Developer is the primary per-task verifier. Verification cadence within the same atomic task is mandatory:
-    *   initial pass for the task: run the full verification set listed in the task prompt (including full gate if listed).
-    *   correction/rework passes for that same task: rerun only previously failing checks and directly impacted targeted tests.
-    *   do not rerun full `make qa-all` on every iteration unless architect explicitly requests it or risk materially changes.
-4.  Developer MUST NOT mark the task complete while any required verification command is failing.
-5.  Developer report MUST include:
-    *   exact commands executed,
-    *   pass/fail outcome per command,
-    *   enough output summary to validate evidence quickly.
-6.  On completion, developer MUST publish a Tether report message and capture its handle.
-7.  Developer chat response to maintainer MUST be one line only:
-    *   `Task <task-id> completed, report handle: <report-handle>`
+1.  Developer execution is performed by a systemd-supervised worker (`Restart=always`).
+2.  Worker may execute a unit only after successful lease CAS acquisition.
+3.  While running, worker MUST renew heartbeat before lease expiry.
+4.  Verification cadence inside one atomic unit remains mandatory:
+    *   initial pass: full verification set listed for the unit,
+    *   correction/rework pass: rerun failing checks + directly impacted targeted tests,
+    *   avoid full `make qa-all` reruns unless risk materially changed or architect requests it.
+5.  Worker MUST NOT mark unit complete while required checks are failing.
+6.  On success/failure/timeout, worker MUST emit explicit event log entries (no silent loops).
+7.  Developer status line to maintainer must be delta-only: net-new state + next action + changed handles only.
 
-#### 3.1.5 Auditor Pass (Stateless, Single Task Only)
+#### 3.1.5 Auditor Pass (systemd Worker, Lease + Heartbeat, Single Unit)
 
-1.  After each developer-completed atomic task, architect prepares a single-task auditor prompt message in Tether.
-2.  This includes correction/rework tasks (`R` tasks): each rework is treated as a new atomic task and must receive its own auditor pass.
-3.  Run a stateless `code_auditor` for that same task only.
-4.  Auditor workflow is evidence-first: validate code changes + developer verification evidence before rerunning commands.
-5.  Auditor SHOULD rerun verification commands only when needed (missing evidence, contradictory results, suspicious behavior/risk, or inability to confirm a claimed pass from artifacts).
-6.  On correction/rework iterations, auditor reruns should default to the failing checks and directly affected targeted tests; do not rerun full `make qa-all` by default.
-7.  Full-suite rerun by auditor is reserved for unresolved high-risk uncertainty or explicit architect request.
-8.  Auditor report MUST state whether commands were rerun and why.
-9.  Auditor MUST publish an auditor report message in Tether and capture its handle.
-10. Auditor chat response to maintainer MUST be one line only:
-    *   `Task <task-id> auditor pass completed, report handle: <auditor-report-handle>`
+1.  Auditor execution is also systemd-supervised with the same lease/heartbeat contract.
+2.  Auditor runs only after `developer_run` is durably marked successful.
+3.  Auditor workflow remains evidence-first:
+    *   validate code diff + verification evidence first,
+    *   rerun commands only when evidence is incomplete, contradictory, or risk is high.
+4.  Correction/rework iterations are separate atomic units and must be re-audited.
+5.  Auditor emits explicit pass/fail + risk events; missing heartbeat or timeout is treated as stall, not silent pass.
 
-#### 3.1.6 Architect Validation, Commit, and Cleanup
+#### 3.1.6 Architect Validation, Watchdog Semantics, Commit, and Cleanup
 
-1.  Maintainer provides developer/auditor completion lines and report handles back to architect.
-2.  Architect validates repository state + report evidence.
-3.  Architect should avoid redundant per-task reruns. Re-run commands only when evidence is incomplete, conflicting, or high-risk details remain unresolved.
-4.  Before commit, architect MUST ensure fresh full-gate evidence (`make qa-all`) exists for the current accepted branch state (from current developer evidence or architect rerun when evidence is stale/incomplete).
-5.  If task is accepted:
-    *   commit only task code files (no local relay/report artifacts),
-    *   use maintainer-approved commit message describing behavior/scope (no task numbering),
-    *   for first push of a new branch, use `git push-fast-up`,
-    *   for already-tracked branches, use `git push-fast`.
-6.  If a follow-up correction is needed for the same task or set, amend and repush:
+1.  Architect validates durable run state plus developer/auditor evidence.
+2.  Watchdog continuously enforces liveness:
+    *   expired lease or stale heartbeat -> `stall_detected` event,
+    *   requeue/reassign with bounded retry,
+    *   terminal fail when retry budget is exhausted.
+3.  Before commit, architect MUST ensure fresh full-gate evidence (`make qa-all`) for accepted branch state.
+4.  If accepted:
+    *   commit only code/doc files (no relay/runtime artifacts),
+    *   use maintainer-approved commit message describing durable behavior (no task numbering),
+    *   first push: `git push-fast-up`; tracked branch: `git push-fast`.
+5.  If correction is needed for the same logical change set, amend and repush:
     *   `git commit --amend --no-edit`
-    *   then push using the branch rule above (`push-fast-up` first push, else `push-fast`).
-7.  After commit/push, expire or delete consumed relay messages according to TTL/retention policy.
-8.  Repeat from architect handoff for the next single task.
-9.  If a task fails audit or has implementation defects, architect must issue a new tailored correction task prompt for a new stateless `developer` pass. Do not reuse the previous developer session.
+    *   push with the branch rule above.
+6.  Cleanup consumed transient artifacts after usefulness ends (for example `compile_commands.json`, `valgrind.log`, temporary relay scratch files).
 
-#### 3.1.7 Completion Gate and Merge
+#### 3.1.7 Completion Gate, Merge, and Manual Fallback
 
-1.  When final numbered task is accepted, run full project gate (`make qa-all`) and require green results.
-2.  Integrate branch to `main` with fast-forward only; do not create a merge message commit.
-3.  Delete feature branch locally and on remote after successful integration.
-4.  Ensure relay artifacts are either expired/archived per policy and never committed.
-5.  After commit is integrated into main and the temporary branch is deleted locally/remotely, the architect MUST delete all Tether relay handles related to that roadmap item (master plan, developer handoff/report, auditor handoff/report) and verify no related handles remain in the shared DB.
+1.  When final unit is accepted, require green full project gate (`make qa-all`).
+2.  Integrate branch to `main` using fast-forward only.
+3.  Delete temporary feature branch locally and on remote after merge.
+4.  Verify runtime artifacts are not committed and event logs remain append-only.
+5.  Manual fallback mode is allowed only when runtime infrastructure is unavailable:
+    *   operator records explicit fallback event,
+    *   performs one-unit-at-a-time handoff manually,
+    *   resumes durable runtime as soon as available.
 
 ## 4. Debugging Procedures
 

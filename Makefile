@@ -155,7 +155,7 @@ FUZZ_BINS := $(FUZZ_STRING_UTILS_BIN) $(FUZZ_PATH_UTILS_BIN) $(FUZZ_FILTER_CORE_
 	fuzz fuzz-smoke fuzz-string-utils fuzz-path-utils fuzz-filter-core qa-fuzz \
 	test-v qa-clang qa-cppcheck qa-scan qa-valgrind qa-valgrind-interactive qa-valgrind-full \
 	qa-pytest qa-pytest-coverage qa-sanitize qa-unsafe-apis qa-module-boundaries qa-ai-config qa-all \
-	ci-baseline mcp-doctor \
+	ci-baseline mcp-doctor py-requirements relay-setup \
 	qa-all-log
 
 all: $(MAIN_BIN) $(MANPAGE) $(if $(filter 1,$(QA_ON_BUILD)),qa-all)
@@ -375,3 +375,9 @@ qa-all-log:
 
 mcp-doctor:
 	python3 scripts/mcp_doctor.py $(if $(filter 1,$(FIX)),--fix,)
+
+py-requirements:
+	bash scripts/update_python_requirements.sh
+
+relay-setup:
+	bash scripts/setup_relay_runtime.sh

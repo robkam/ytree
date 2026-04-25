@@ -1,5 +1,47 @@
-pytest
-pexpect
-pyte
-google-generativeai
-prompt_toolkit
+#
+# Generated from scripts/requirements.in using pip-tools.
+# Update with:
+#   source .venv/bin/activate
+#   PIP_TOOLS_CACHE_DIR=/tmp/ytree-pip-tools-cache pip-compile --upgrade \
+#       -o scripts/requirements.txt scripts/requirements.in
+#
+annotated-types==0.7.0
+cachetools==6.2.2
+certifi==2025.11.12
+charset-normalizer==3.4.4
+google-ai-generativelanguage==0.6.15
+google-api-core==2.28.1
+google-api-python-client==2.187.0
+google-auth==2.43.0
+google-auth-httplib2==0.2.1
+google-generativeai==0.8.6
+googleapis-common-protos==1.72.0
+httplib2==0.31.0
+idna==3.11
+iniconfig==2.3.0
+nexus-rpc==1.4.0
+packaging==25.0
+pexpect==4.9.0
+pluggy==1.6.0
+prompt-toolkit==3.0.52
+proto-plus==1.26.1
+protobuf==5.29.5
+ptyprocess==0.7.0
+pyasn1==0.6.1
+pyasn1-modules==0.4.2
+pydantic==2.12.4
+pydantic-core==2.41.5
+pygments==2.19.2
+pyparsing==3.2.5
+pyte==0.8.2
+pytest==9.0.3
+requests==2.32.5
+rsa==4.9.1
+temporalio==1.26.0
+tqdm==4.67.1
+types-protobuf==6.32.1.20260221
+typing-extensions==4.15.0
+typing-inspection==0.4.2
+uritemplate==4.2.0
+urllib3==2.5.0
+wcwidth==0.2.14
