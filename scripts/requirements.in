@@ -1,0 +1,7 @@
+# Top-level Python dependencies for ytree scripts and tests.
+pytest
+pexpect
+pyte
+google-generativeai
+prompt_toolkit
+temporalio

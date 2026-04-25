@@ -1,0 +1,24 @@
+[Unit]
+Description=ytree durable relay developer worker
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=%h/ytree
+EnvironmentFile=-/etc/ytree/relay.env
+EnvironmentFile=-%h/.config/ytree/relay.env
+Environment=RELAY_DB=%h/.local/state/ytree/relay.db
+Environment=RELAY_EVENT_LOG=%h/.local/state/ytree/relay-events.jsonl
+Environment=RELAY_DEVELOPER_CMD=/usr/bin/true
+ExecStart=/usr/bin/env bash -lc 'source .venv/bin/activate && exec python3 scripts/relay_runtime.py worker --role developer --poll-seconds 2 --heartbeat-interval 10'
+Restart=always
+RestartSec=5
+StartLimitIntervalSec=120
+StartLimitBurst=30
+TimeoutStopSec=15
+KillSignal=SIGTERM
+NoNewPrivileges=yes
+
+[Install]
+WantedBy=default.target

@@ -20,29 +20,32 @@ Deliver all outcomes for doc/ROADMAP.md Task $TASK by following 3.1.3 through 3.
 - First push: git push-fast-up
 - Subsequent pushes: git push-fast
 
-Execution model:
-1) Publish one master plan relay message in Tether and keep its handle.
-2) Break work into the smallest practical number of atomic units that still map to Task $TASK outcomes.
-3) For each unit, run strict handoff cycle:
-   architect -> developer -> code_auditor -> architect validation
-4) Emit exactly one developer prompt message for a unit, wait for completion evidence, then exactly one auditor prompt message for the same unit.
-5) Validate evidence and commit only code/doc changes for accepted unit(s).
-6) Keep relay/report artifacts as Tether handles, never commit local relay artifacts.
-7) Expire/remove consumed relay artifacts per retention policy when no longer needed.
-8) Correct semantic-index drift and context drift before each validation/commit.
-9) Run final completion gate from workflow and report final status.
-10) Architect updates doc/ROADMAP.md
+Execution model (auto-relay runtime):
+1) Start one durable run with a stable `run_id` + idempotency key.
+2) Runtime lifecycle is fixed and durable:
+   architect_handoff -> developer_run -> auditor_run -> architect_validation
+3) Developer/code_auditor units run via systemd-supervised workers with `Restart=always`.
+4) Workers must hold lease ownership and emit periodic heartbeats while active.
+5) Watchdog policy is mandatory: timeout/stale heartbeat -> stall event -> retry/reassign, bounded by retry limit.
+6) Keep relay/runtime state in durable storage + append-only event log; never commit runtime artifacts.
+7) Correct semantic-index drift and context drift before each validation/commit.
+8) Run final completion gate from workflow and report final status.
+9) Architect updates doc/ROADMAP.md
 
 Prompt/report artifact rules:
-- Use Tether handles in all status updates.
+- Use run_id + unit_id + event seq in all status updates; include handles only when new/changed.
 - Before each prompt message you generate, print exactly:
   Model: <name>
   Reasoning level: <Low|Medium|High|Extra High>
 - Use numeric unit IDs derived from base task only: $TASK.1, $TASK.2, ...
 - Load startup instruction files once per session unless files changed or maintainer explicitly requests reload.
-- Stream relay visibility live: post a maintainer update immediately after each relay event (every prompt sent and every report received).
+- Stream relay visibility live: post a maintainer update immediately after each runtime event.
 - Do not wait for unit completion to publish relay visibility.
-- In each live update, include only net-new/changed artifact handles relevant to that relay event.
+- In each live update, include only net-new state + next action + changed handles.
+
+Stall/escalation policy:
+- If a unit exceeds timeout or misses heartbeat, watchdog MUST emit a stall event.
+- Watchdog then retries/reassigns within retry policy; if retries are exhausted, mark terminal failure and escalate.
 
 Developer prompt requirements (for each unit):
 - Strict scope and explicit non-goals
@@ -67,12 +70,13 @@ Commit policy:
 - Do not set `doc/ROADMAP.md` Task status to completed until all are true: commit is done, change is integrated into `main` via fast-forward, and the temporary task branch is deleted locally and on remote.
 
 Cleanup rules:
-- On task completion+commit, delete all related Tether relay artifacts from shared storage; never retain stale task handles.
+- On task completion+commit, delete transient artifacts once they are no longer useful.
+- Required transient cleanup includes: compile_commands.json, valgrind.log, and stale local relay scratch files.
 
 Response format to maintainer:
 - Concise operational status only.
 - Include completed state + current next action only.
-- Always include Tether handles for generated prompt/report artifacts.
+- Include handles only when they changed or are newly created.
 - Use delta-only updates: include only net-new state, next action, and new/changed handles unless maintainer asks for a full recap.
 - Include `Latest relay event` in each update with direction + unit + handle.
 - Do not repeat full historical handle inventories unless the maintainer explicitly requests a full recap.

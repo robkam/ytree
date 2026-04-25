@@ -11,6 +11,25 @@
 >
 > See **[Submitting Changes](#submitting-changes)** for the full PR workflow.
 
+## Pull Request Guidelines
+
+- Ensure your PR addresses an existing issue or a well-defined new feature.
+- Keep PRs focused on a single issue or feature.
+- Provide a clear PR description and link any relevant issues.
+- Ensure your code passes all quality checks.
+- Include or update tests for your changes. New features require tests; bug fixes should include a regression test when possible.
+- Be responsive to review feedback and follow-up comments.
+
+### Commit Message Guidelines
+
+Use **Conventional Commits** so history stays searchable and consistent:
+
+- Format: `<type>(<scope>): <description>` (scope optional).
+- Allowed `type` values: `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`, `chore`, `revert`.
+- Write the description as the durable outcome of the change (not workflow notes).
+- Do **not** use workflow labels like `task` or `step`, and do **not** include numeric workflow IDs.
+- Keep subjects short and specific (prefer ~72 chars or less).
+
 **Note for AI-Assisted Development:**
 For the AI-assisted development workflow, script usage, System Persona prompts, and semantic tool integration (**Serena**, **jCodeMunch**), please see **[ai/WORKFLOW.md](ai/WORKFLOW.md)**.
 Persona routing, shorthand persona commands, and persona-skill auto-load controls are documented in that same workflow doc.
@@ -45,7 +64,20 @@ A helper script is provided to create an isolated Python environment for testing
 scripts/setup_dev.sh
 ```
 
-This script will create a `.venv` directory, activate it, and install the required Python libraries (`pytest`, `pexpect`, `google-generativeai`, `prompt_toolkit`).
+This script will create a `.venv` directory, activate it, and install the pinned Python libraries from `scripts/requirements.txt`.
+
+### 2.1 Updating Python Dependencies
+
+Top-level dependencies are declared in `scripts/requirements.in`.
+The pinned lock file is `scripts/requirements.txt`.
+
+Refresh both with:
+
+```bash
+make py-requirements
+```
+
+This runs `scripts/update_python_requirements.sh`, which uses `pip-compile --upgrade` and writes a deterministic lock file.
 
 After the first run, you must reactivate this environment for any new shell session:
 ```bash
