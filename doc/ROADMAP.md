@@ -433,7 +433,7 @@ Ordering policy (for all editors, including AI editors):
 *   **Goal:** Split mixed responsibilities in `interactions.c` into cohesive UI interaction modules (for example compare prompts/builders, archive payload UI, attribute/ownership/date UI, tagged-view flow).
 *   **Scope Lock:** No behavior changes in prompts, key paths, or command execution semantics.
 *   **Acceptance Criteria:** Reduced file size/complexity, stable exported API surface, and green QA.
-*   - [ ] **Status:** Not Started.
+*   - [x] **Status:** Completed.
 
 ### **Task 39: Decompose `src/ui/ctrl_file_ops.c` (`handle_tag_file_action` focus)**
 *   **Goal:** Extract large tagged-action branches from `handle_tag_file_action` into focused helpers/modules.

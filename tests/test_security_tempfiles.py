@@ -52,7 +52,7 @@ def test_archive_tempfile_cleanup_paths_remain_present() -> None:
 
 
 def test_tagged_archive_view_temp_root_avoids_fixed_tmp_template_name() -> None:
-    src = _read("src/ui/interactions.c")
+    src = _read("src/ui/tagged_view.c")
     assert "/tmp/ytree_view_XXXXXX" not in src
     assert "Path_BuildTempTemplate(temp_dir_template, sizeof(temp_dir_template)," in src
     assert '"ytree_view_")' in src
