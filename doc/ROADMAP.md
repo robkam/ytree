@@ -87,7 +87,7 @@ Ordering policy (for all editors, including AI editors):
 *   Release/merge evidence requires all core QA gates, including `qa-fileops-integrity`, to be green before sign-off.
 *   These vulnerability classes fail CI if reintroduced.
 *   Evidence/gating aligns with Security Risk Gate tasks in this roadmap.
-*   - [ ] **Status:** Not Started.
+*   - [x] **Status:** Completed.
 
 ## **Phase 1: Build System, Documentation, and CI**
 *This phase focuses on project infrastructure, developer experience, and release readiness.*

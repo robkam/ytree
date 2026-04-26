@@ -154,7 +154,7 @@ FUZZ_BINS := $(FUZZ_STRING_UTILS_BIN) $(FUZZ_PATH_UTILS_BIN) $(FUZZ_FILTER_CORE_
 	git-aliases-install git-aliases-status test \
 	fuzz fuzz-smoke fuzz-string-utils fuzz-path-utils fuzz-filter-core qa-fuzz \
 	test-v qa-clang qa-cppcheck qa-scan qa-valgrind qa-valgrind-interactive qa-valgrind-full \
-	qa-pytest qa-pytest-coverage qa-sanitize qa-unsafe-apis qa-module-boundaries qa-ai-config qa-all \
+	qa-pytest qa-fileops-integrity qa-pytest-coverage qa-sanitize qa-unsafe-apis qa-module-boundaries qa-ai-config qa-all \
 	ci-baseline mcp-doctor py-requirements relay-setup \
 	qa-all-log
 
@@ -336,6 +336,21 @@ qa-valgrind-full:
 qa-pytest: $(MAIN_BIN)
 	TERM=$${TERM:-xterm} $(PYTEST)
 
+qa-fileops-integrity: $(MAIN_BIN)
+	TERM=$${TERM:-xterm} $(PYTEST) -q -ra --tb=no \
+		tests/test_fileops_integrity.py \
+		tests/test_security_shell_paths.py \
+		tests/test_security_tempfiles.py \
+		tests/test_core.py::test_tagged_copy_overwrite_all_applies_to_remaining_conflicts \
+		tests/test_core.py::test_tagged_move_overwrite_all_applies_to_remaining_conflicts \
+		tests/test_tagged_action_regressions.py::test_tagged_copy_prompt_cancel_preserves_tagged_state \
+		tests/test_tagged_action_regressions.py::test_tagged_move_prompt_cancel_preserves_tagged_state \
+		tests/test_archive_write_parity.py \
+		tests/test_archive_ui.py::test_archive_create_overwrite_prompt_respects_no_then_yes \
+		tests/test_archive_ui.py::test_archive_create_overwrite_excludes_destination_from_payload \
+		tests/test_archive_ui.py::test_archive_create_exclusion_empty_payload_shows_status_and_aborts \
+		tests/test_archive_ui.py::test_archive_create_inside_source_round_trip_integrity
+
 qa-pytest-coverage:
 	$(MAKE_CMD) DEBUG=0 COVERAGE=1 QA_ON_BUILD=0 clean
 	$(MAKE_CMD) DEBUG=0 COVERAGE=1 QA_ON_BUILD=0 all
@@ -365,9 +380,9 @@ qa-module-boundaries:
 qa-ai-config:
 	python3 scripts/check_project_ai_config.py
 
-ci-baseline: qa-unsafe-apis qa-pytest-coverage qa-fuzz
+ci-baseline: qa-unsafe-apis qa-fileops-integrity qa-pytest-coverage qa-fuzz
 
-qa-all: qa-clang qa-cppcheck qa-scan qa-valgrind qa-pytest qa-unsafe-apis qa-module-boundaries qa-ai-config qa-fuzz
+qa-all: qa-clang qa-cppcheck qa-scan qa-valgrind qa-fileops-integrity qa-pytest qa-unsafe-apis qa-module-boundaries qa-ai-config qa-fuzz
 
 qa-all-log:
 	@mkdir -p "$(dir $(QA_LOG))"
