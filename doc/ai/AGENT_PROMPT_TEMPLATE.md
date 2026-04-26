@@ -1,8 +1,10 @@
 # AGENT Prompt Template
 
-Edit only the first two lines to match Task ID and Task Name exactly as listed in `doc/ROADMAP.md`, then copy/paste the full prompt as-is.
+Edit only the first four lines to match the tracked work item exactly, then copy/paste the full prompt as-is.
 
 ```text
+$WORK_DOC=doc/ROADMAP.md
+$WORK_KIND=Task
 $TASK=
 $TASK_NAME=
 
@@ -15,7 +17,7 @@ Mandatory startup (before any repo exploration):
 3) Use MCP semantic tools only (serena + jcodemunch) for exploration
 
 Goal:
-Deliver all outcomes for doc/ROADMAP.md Task $TASK by following 3.1.3 through 3.1.7 of the Agentic Loop procedure in ~/ytree/doc/ai/WORKFLOW.md, on a new branch named for this task.
+Deliver all outcomes for $WORK_DOC $WORK_KIND $TASK by following 3.1.3 through 3.1.7 of the Agentic Loop procedure in ~/ytree/doc/ai/WORKFLOW.md, on a new branch named for this work item.
 - Branch name must not use words: “phase”, “step”, “task” and must contain no digits.
 - First push: git push-fast-up
 - Subsequent pushes: git push-fast
@@ -30,14 +32,14 @@ Execution model (auto-relay runtime):
 6) Keep relay/runtime state in durable storage + append-only event log; never commit runtime artifacts.
 7) Correct semantic-index drift and context drift before each validation/commit.
 8) Run final completion gate from workflow and report final status.
-9) Architect updates doc/ROADMAP.md
+9) Architect updates $WORK_DOC
 
 Prompt/report artifact rules:
 - Use run_id + unit_id + event seq in all status updates; include handles only when new/changed.
 - Before each prompt message you generate, print exactly:
   Model: <name>
   Reasoning level: <Low|Medium|High|Extra High>
-- Use numeric unit IDs derived from base task only: $TASK.1, $TASK.2, ...
+- Use unit IDs derived from the base work item only: $TASK.1, $TASK.2, ...
 - Load startup instruction files once per session unless files changed or maintainer explicitly requests reload.
 - Stream relay visibility live: post a maintainer update immediately after each runtime event.
 - Do not wait for unit completion to publish relay visibility.
@@ -66,11 +68,11 @@ Commit policy:
 - Conventional Commits required.
 - Commit subject and body must contain no digits.
 - Do not use words: “phase”, “step”, “task”.
-- After tests are green and the commit is integrated into `main` (fast-forward, no merge commit), delete the task branch both locally and on GitHub.
-- Do not set `doc/ROADMAP.md` Task status to completed until all are true: commit is done, change is integrated into `main` via fast-forward, and the temporary task branch is deleted locally and on remote.
+- After tests are green and the commit is integrated into `main` (fast-forward, no merge commit), delete the temporary branch both locally and on GitHub.
+- Do not update $WORK_DOC to mark $WORK_KIND $TASK as completed/fixed until all are true: commit is done, change is integrated into `main` via fast-forward, and the temporary branch is deleted locally and on remote.
 
 Cleanup rules:
-- On task completion+commit, delete transient artifacts once they are no longer useful.
+- On completion+commit, delete transient artifacts once they are no longer useful.
 - Required transient cleanup includes: compile_commands.json, valgrind.log, and stale local relay scratch files.
 
 Response format to maintainer:
@@ -83,5 +85,5 @@ Response format to maintainer:
 - Include mandatory handoff block for every relay:
   Model: <selected model>
   Reasoning level: <selected level>
-  Handoff line: <next-role>: Execute task <task-id-in-digits> from handle <handoff-handle> exactly as written.
+  Handoff line: <next-role>: Execute $WORK_KIND $TASK from handle <handoff-handle> exactly as written.
 ```
