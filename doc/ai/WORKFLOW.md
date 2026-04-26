@@ -23,7 +23,7 @@ The development process is strictly hierarchical. The Spec is the "Contract of T
 1.  **Architecture as Blueprint:** [ARCHITECTURE.md](../ARCHITECTURE.md) defines the technical structure.
 1.  **Testing as Standard:** [TESTING.md](TESTING.md) defines test naming, structure, and harness rules. All test code must conform to it.
 2.  **Human as Architect:** The AI acts as a partner with varying levels of specialization (see Section 2). The human maintainer provides final architectural direction.
-3.  **Atomic Missions:** One task = One session.
+3.  **Atomic Missions:** One work item (bug or task) = One session.
 4.  **Build-First Verification:** No code is accepted until it compiles and passes tests.
 5.  **The "Clean Slate" Rule:** If an AI generates fragile code or follows a wrong path, do not attempt to "patch" the mistake via further dialogue. Revert the changes (`git restore .`), rephrase the original prompt from a different perspective, and restart the mission. This is mandatory because:
     *   **Context Clearing:** It removes the "bad" code and the flawed logic that led to it.
@@ -173,7 +173,45 @@ make mcp-doctor FIX=1
 This bootstraps local MCP client configuration from repo-tracked defaults when missing, while preserving personal auth/session/history settings.
 Principle: keep team-shared defaults in repo config and keep user-specific paths, credentials, and local overrides in user-local config.
 
-##### 3.1.0.2 Auto-Relay Runtime Setup
+##### 3.1.0.2 Periodic Codex/AI Tooling Refresh (Recommended)
+
+If you use the Codex/AI workflow, run this checklist periodically from the repository root:
+
+```bash
+# Tether (pull + reinstall)
+./scripts/tether-update.sh
+
+# uvx-managed tools: force fresh resolve + latest
+uvx --refresh codex-lb@latest --help
+uvx --refresh --from git+https://github.com/oraios/serena@main serena --help
+uvx --refresh jcodemunch-mcp@latest --help
+
+# GitHub MCP Docker image (only if you use that MCP server)
+docker pull ghcr.io/github/github-mcp-server:latest
+
+# Optional MCP config health check
+make mcp-doctor
+# If drift/missing config is reported:
+make mcp-doctor FIX=1
+
+# Optional: refresh pinned helper-script requirements
+pip-compile --upgrade -o scripts/requirements.txt scripts/requirements.in
+```
+
+Fuzz harnesses under `tests/fuzz/` are hand-maintained source files (not generated). Keep them in sync with their target modules:
+
+- `tests/fuzz/fuzz_string_utils.c` -> `src/util/string_utils.c`
+- `tests/fuzz/fuzz_path_utils.c` -> `src/util/path_utils.c`
+- `tests/fuzz/fuzz_filter_core.c` -> `src/fs/filter_core.c`
+- `tests/fuzz/fuzz_common.c` / `tests/fuzz/fuzz_common.h` -> shared helper layer used by all fuzz harnesses
+
+When you change any of those target modules, update the matching fuzz harness(es) in the same change and run:
+
+```bash
+make qa-fuzz
+```
+
+##### 3.1.0.3 Auto-Relay Runtime Setup
 
 One-time install (per machine/user):
 
@@ -204,10 +242,10 @@ These defaults are read from relay env configuration (`RELAY_DB`, `RELAY_EVENT_L
 #### 3.1.1 Workflow Contract (Mandatory)
 
 1.  This workflow is mandatory for non-trivial missions.
-2.  Work is executed as numbered tasks that are:
+2.  Work is executed as numbered work items that are:
     *   atomic and independently verifiable,
     *   not fragmented into trivial micro-steps,
-    *   executed one task at a time.
+    *   executed one work item at a time.
 3.  All runtime transitions MUST be recorded in the append-only event log with monotonic sequence.
 4.  Runtime artifacts (prompt/report/status/event artifacts) are workflow artifacts and MUST NOT be committed.
 
@@ -305,7 +343,7 @@ Follow **[../AUDIT.md](../AUDIT.md)** as the canonical process.
 Cadence:
 - Treat auditing as a continuous process during implementation, not an end-only step.
 - Run the full audit loop for each feature-sized change or PR.
-- Within a single feature relay chain, run full `make qa-all` on the initial task pass and before architect commit; use failing-check + targeted reruns between those points.
+- Within a single feature relay chain, run full `make qa-all` on the initial work-item pass and before architect commit; use failing-check + targeted reruns between those points.
 - Run the merge gate before merging.
 - Do not run the full loop after every single prompt-level edit unless risk justifies it.
 
@@ -336,5 +374,5 @@ AI computational resources (often referred to as tokens, usage allowance, contex
 *   Group related changes into a single prompt to avoid the overhead of full context reload for each minor edit.
 
 ### 6.6 Chat Pruning and Context
-*   **New Chats for New Tasks:** Once a specific bug is fixed or a task is done, close the chat and start a new one to drop old contexts.
+*   **New Chats for New Work Items:** Once a specific work item (bug or task) is done, close the chat and start a new one to drop old contexts.
 *   **Exit Early on Hallucinations:** Stop and restart if the agent speculates. Do not waste usage allowance trying to correct a hallucinating model.
