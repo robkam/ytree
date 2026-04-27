@@ -27,7 +27,7 @@ Ordering policy (for all editors, including AI editors):
     *   Right as “expand-or-drill-down” and Left as “collapse-or-parent” is the common expectation.
 *   **Impact**: Breaks common tree-navigation muscle memory and slows keyboard-only navigation.
 *   **Remediation**: Align `Right Arrow` handling with documented progressive drill-down behavior in Directory Mode.
-*   **Status**: Confirmed.
+*   **Status**: Fixed.
 
 ### **BUG-36: F8 Mirrored Tree Changes Can Move Inactive Selection to Wrong Node**
 *   **Description**: In `F8` split mode, mirrored expand/collapse changes can move the inactive pane selection unexpectedly to another sibling/ancestor even when the original inactive selection should remain valid.
