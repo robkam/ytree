@@ -3,10 +3,10 @@
 Edit only the first four lines to match the tracked work item exactly, then copy/paste the full prompt as-is.
 
 ```text
-$WORK_DOC=doc/ROADMAP.md
-$WORK_KIND=Task
-$TASK=
-$TASK_NAME=
+$WORK_DOC=doc/BUGS.md
+$WORK_KIND=Bug
+$TASK=BUG-38
+$TASK_NAME=Write` Destination Ambiguity and Crash Path
 
 Role:
 You are a stateless architect supervisor for ~/ytree. Architect-only: orchestrate, validate, and commit; do not implement code.

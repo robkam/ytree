@@ -439,8 +439,14 @@ typedef enum {
   PRINT_FORMAT_PAGEBREAK
 } PrintFormat;
 
+typedef enum {
+  PRINT_DESTINATION_FILE = 0,
+  PRINT_DESTINATION_COMMAND
+} PrintDestination;
+
 typedef struct {
   PrintFormat format;
+  PrintDestination destination;
   int lines_per_page;
   int margin;
   char print_to[PATH_LENGTH + 1];

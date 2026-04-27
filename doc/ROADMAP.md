@@ -229,14 +229,14 @@ Ordering policy (for all editors, including AI editors):
 *   Update `etc/ytree.1.md` and regenerate `doc/USAGE.md` (`make docs`) when behavior lands.
 *   - [ ] **Status:** Not Started.
 
-### **Task 56: Manual File-Column Width Controls (`[` Narrower, `]` Wider, `0` Reset)**
+### **Task 56: Manual File-Column Width Controls (`[` Narrower, `]` Wider, `{` / `}` Reset)**
 *   **Goal:** Add explicit keyboard controls for file-list column width so users can quickly trade density vs readability in the file window.
 *   **Rationale:** Long-name workflows need fast, deterministic control over visible filename identity without terminal resize churn.
 *   **Scope Lock:** File-window list column width controls only; no F7 split-preview width redesign in this task.
 *   **Acceptance Criteria:**
 *   `[` decreases file-column width in fixed-width list layouts.
 *   `]` increases file-column width in fixed-width list layouts.
-*   `0` resets to default auto-layout behavior.
+*   `{` / `}` resets to default auto-layout behavior.
 *   Behavior is deterministic and static (no marquee/auto-scrolling text).
 *   Footer/F1 help documents these keys in file contexts where they apply.
 *   Add focused regression coverage for width adjust left/right/reset behavior and bounds handling.
@@ -505,30 +505,36 @@ Ordering policy (for all editors, including AI editors):
 *   Add a keybinding parity audit gate that verifies active runtime keybindings remain consistently documented across footer, `F1`, and `etc/ytree.1.md`/`doc/USAGE.md`.
 *   - [ ] **Status:** Not Started.
 
-### **Task 30: Replace `^F` Mode Cycling with Direct `1..4` Mode Selection**
-*   **Goal:** Replace display-mode cycling with direct numeric selection for the focused pane.
+### **Task 30: Replace `^F` Mode Cycling with Unified Numeric `FileInfo` Band (`1..9`, `0`)**
+*   **Goal:** Replace display-mode cycling with direct numeric `FileInfo` controls for the focused pane.
 *   **Behavior Contract:**
 *   `1` => Name only (default/baseline).
 *   `2` => Long.
 *   `3` => Owner.
 *   `4` => Times.
-*   Pressing the currently active mode key (`1..4`) reverts to mode `1`.
-*   Pressing a different mode key switches directly to that mode.
-*   Applies in Directory and File contexts for FS and VFS.
+*   `5` => toggle file-size units (`binary` vs `human-readable`) for list/stat surfaces that display size.
+*   `5` composes with the currently selected file-info mode and does not reset other file-info toggles.
+*   `6` => toggle symlink row rendering (`name` vs `name -> target`) in list rows.
+*   `7` => toggle richer metadata/text-snippet view.
+*   `8` => toggle file-type/summary view.
+*   `9` => toggle brief/full width behavior for the focused pane.
+*   `0` => reset file-info state for `1..8` to profile defaults (does not affect `9` width toggle).
+*   Number keys are toggle-driven controls: `1..4` select the primary file-info layout while `5..9` toggle additive display behaviors.
+*   Applies to file-display rendering across normal list contexts for the active pane (whether focus is currently on tree/dir window or file window); not active in `F7` preview mode.
 *   If a requested mode is unsupported in the active context (for example VFS file mode `4`), do a silent no-op (no beep).
+*   Add `FILE_SIZE_UNITS=binary|human-readable` profile setting (default `binary`) as the seed for `5`.
 *   **Keybinding Policy:** Remove `^F` from runtime behavior and help/manpage docs. This task is the explicit keybinding-change exception referenced by Task 38 scope lock.
-*   **UX/Help Policy:** Keep footer concise; mode details live in F1 help/manpage.
+*   **UX/Help Policy:** Footer stays concise (`1..0 FileInfo`); full key semantics live in F1 help/manpage.
 *   - [ ] **Status:** Not Started.
 
-### **Task 29: File-List Metadata Preview Modes (`File`/`Showall`/`Global`)**
-*   **Goal:** Add lightweight metadata/text-summary rendering modes for list-based browsing contexts (`File`, `Showall`, `Global`) without requiring `F7`.
-*   **Rationale:** Users need quick content-type insight while scanning lists, not only inside preview mode.
-*   **Scope Lock:** List-context metadata presentation and key wiring only; no `F7` mode coupling in this task.
+### **Task 29: Add Case-Sensitive Sort Toggle + Profile Default**
+*   **Goal:** Add case-sensitivity as a sort option in the existing sort flow and profile defaults.
+*   **Rationale:** Users need deterministic lexical control without introducing extra global keybindings.
+*   **Scope Lock:** Sort comparison behavior only; no tree/file model changes.
 *   **Acceptance Criteria:**
-*   Add two list-context metadata modes (proposed bindings: `5` for file-type/summary view, `6` for richer metadata/text-snippet view).
-*   Modes operate in `File`/`Showall`/`Global` contexts and are clearly indicated in footer/F1 help.
-*   Rendering is deterministic, clipped/no-wrap, and performant on large lists.
-*   `etc/ytree.1.md` and generated `doc/USAGE.md` are updated when behavior lands.
+*   Add `SORT_CASE_SENSITIVE=0|1` profile setting (default `0`) and wire it to default sort behavior.
+*   Existing sort prompt (`S` flow) includes a case-sensitivity toggle.
+*   Footer/F1/help/manpage text are synchronized for the new sort option.
 *   - [ ] **Status:** Not Started.
 
 #### **Task 28: Create Watcher Infrastructure (`watcher.c`)**
