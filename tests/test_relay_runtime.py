@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import os
 import sys
 from pathlib import Path
 
@@ -32,6 +33,12 @@ def _start_run(store: relay.TemporalRelayStore, run_id: str, now: float = 1000.0
         activity_timeout_seconds=30,
         now=now,
     )
+
+
+def _write_executable_script(path: Path, body: str) -> Path:
+    path.write_text(body, encoding="utf-8")
+    path.chmod(0o755)
+    return path
 
 
 def test_crash_restart_recovery_resumes_and_completes(tmp_path: Path) -> None:
@@ -198,3 +205,106 @@ def test_end_to_end_cycle_completes_durably(tmp_path: Path) -> None:
     reader = relay.DashboardReader(event_log, reopened_store)
     rendered = reader.render(verbose=False, raw=False, limit=200)
     assert "workflow_completed" in rendered
+
+
+def test_preflight_rejects_placeholder_worker_commands() -> None:
+    error = relay._preflight_worker_command(["/usr/bin/true"], role=relay.ROLE_DEVELOPER)
+    assert error is not None
+    assert "placeholder" in error
+
+
+def test_worker_success_rejects_stale_report_handle(tmp_path: Path) -> None:
+    store, _event_log, _db_path, _log_path = _new_store(tmp_path)
+    _start_run(store, "run-stale-report", now=6000.0)
+
+    developer = relay.RelayWorker(store, role=relay.ROLE_DEVELOPER, worker_id="developer-stale-report")
+    lease = developer.claim_next(now=6000.0)
+    assert lease is not None
+
+    report_path = tmp_path / "run-stale-report_developer_run_report.md"
+    report_path.write_text("stale\n", encoding="utf-8")
+    os.utime(report_path, (5900.0, 5900.0))
+    command = _write_executable_script(
+        tmp_path / "stale_report.sh",
+        "\n".join(
+            [
+                "#!/usr/bin/env bash",
+                "set -euo pipefail",
+                f"echo report_handle={report_path}",
+            ]
+        )
+        + "\n",
+    )
+
+    success, message = relay._run_command_with_heartbeats(
+        worker=developer,
+        lease=lease,
+        command=[str(command)],
+        heartbeat_interval=10,
+    )
+    assert success is False
+    assert "stale report handle" in message
+
+
+def test_worker_success_rejects_non_namespaced_report_handle(tmp_path: Path) -> None:
+    store, _event_log, _db_path, _log_path = _new_store(tmp_path)
+    _start_run(store, "run-namespaced", now=7000.0)
+
+    developer = relay.RelayWorker(store, role=relay.ROLE_DEVELOPER, worker_id="developer-namespaced")
+    lease = developer.claim_next(now=7000.0)
+    assert lease is not None
+
+    report_path = tmp_path / "wrong_report.md"
+    command = _write_executable_script(
+        tmp_path / "wrong_report.sh",
+        "\n".join(
+            [
+                "#!/usr/bin/env bash",
+                "set -euo pipefail",
+                f"echo ok > {report_path}",
+                f"echo report_handle={report_path}",
+            ]
+        )
+        + "\n",
+    )
+
+    success, message = relay._run_command_with_heartbeats(
+        worker=developer,
+        lease=lease,
+        command=[str(command)],
+        heartbeat_interval=10,
+    )
+    assert success is False
+    assert "not namespaced for this run/unit" in message
+
+
+def test_worker_success_accepts_fresh_namespaced_report_handle(tmp_path: Path) -> None:
+    store, _event_log, _db_path, _log_path = _new_store(tmp_path)
+    _start_run(store, "run-fresh-report", now=8000.0)
+
+    developer = relay.RelayWorker(store, role=relay.ROLE_DEVELOPER, worker_id="developer-fresh-report")
+    lease = developer.claim_next(now=8000.0)
+    assert lease is not None
+
+    report_path = tmp_path / "run-fresh-report_developer_run_report.md"
+    command = _write_executable_script(
+        tmp_path / "fresh_report.sh",
+        "\n".join(
+            [
+                "#!/usr/bin/env bash",
+                "set -euo pipefail",
+                f"echo ok > {report_path}",
+                f"echo report_handle={report_path}",
+            ]
+        )
+        + "\n",
+    )
+
+    success, message = relay._run_command_with_heartbeats(
+        worker=developer,
+        lease=lease,
+        command=[str(command)],
+        heartbeat_interval=10,
+    )
+    assert success is True
+    assert "report_handle=" in message

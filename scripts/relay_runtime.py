@@ -8,6 +8,7 @@ import datetime as dt
 import fcntl
 import json
 import os
+import re
 import shlex
 import signal
 import sqlite3
@@ -43,6 +44,14 @@ WORKFLOW_UNITS: tuple[tuple[str, str], ...] = (
 )
 
 AUTO_COMPLETE_UNITS = {"architect_handoff", "architect_validation"}
+
+_NOOP_PLACEHOLDER_COMMANDS: set[tuple[str, ...]] = {
+    ("true",),
+    ("/usr/bin/true",),
+    ("/bin/true",),
+}
+
+_REPORT_HANDLE_PATTERN = re.compile(r"(?:^|\s)report_handle=(\S+)")
 
 
 def _utc_iso(ts: float | None = None) -> str:
@@ -1114,6 +1123,83 @@ def _parse_command(command_text: str) -> list[str]:
     return parts
 
 
+def _preflight_worker_command(command: Sequence[str], *, role: str) -> str | None:
+    if not command:
+        return f"worker command for role {role} is empty"
+
+    normalized = tuple(command)
+    if normalized in _NOOP_PLACEHOLDER_COMMANDS:
+        return f"worker command for role {role} is placeholder no-op ({command[0]})"
+
+    executable = command[0]
+    if "/" in executable:
+        exe_path = Path(executable).expanduser()
+        if not exe_path.exists():
+            return f"worker command executable not found for role {role}: {executable}"
+        if not exe_path.is_file():
+            return f"worker command executable is not a file for role {role}: {executable}"
+        if not os.access(exe_path, os.X_OK):
+            return f"worker command executable is not executable for role {role}: {executable}"
+
+    return None
+
+
+def _preflight_configured_worker_commands() -> list[str]:
+    errors: list[str] = []
+    for role in (ROLE_DEVELOPER, ROLE_AUDITOR):
+        resolved_command = _default_worker_command(role)
+        if not resolved_command:
+            errors.append(f"missing command for role {role}")
+            continue
+        try:
+            parsed = _parse_command(resolved_command)
+        except ValueError as exc:
+            errors.append(f"invalid command for role {role}: {exc}")
+            continue
+        validation_error = _preflight_worker_command(parsed, role=role)
+        if validation_error:
+            errors.append(validation_error)
+    return errors
+
+
+def _extract_report_handle(command_output: str) -> str | None:
+    matches = _REPORT_HANDLE_PATTERN.findall(command_output)
+    if not matches:
+        return None
+    return matches[-1]
+
+
+def _validate_worker_success_output(*, lease: Lease, command_output: str) -> tuple[bool, str]:
+    report_handle = _extract_report_handle(command_output)
+    if not report_handle:
+        return False, "worker command succeeded but did not emit required report_handle=... output"
+
+    if lease.run_id not in report_handle or lease.unit_id not in report_handle:
+        return (
+            False,
+            "worker command emitted report_handle that is not namespaced for this run/unit "
+            f"(run_id={lease.run_id}, unit_id={lease.unit_id})",
+        )
+
+    report_path = Path(report_handle).expanduser()
+    if not report_path.exists():
+        return False, f"worker command emitted missing report handle path: {report_handle}"
+    if not report_path.is_file():
+        return False, f"worker command emitted non-file report handle path: {report_handle}"
+
+    # Filesystems may have 1-second mtime granularity; tolerate sub-second rounding.
+    stale_cutoff = lease.heartbeat_at - 1.0
+    report_mtime = report_path.stat().st_mtime
+    if report_mtime < stale_cutoff:
+        return (
+            False,
+            f"worker command emitted stale report handle path: {report_handle} "
+            f"(mtime={_utc_iso(report_mtime)} < lease_start={_utc_iso(lease.heartbeat_at)})",
+        )
+
+    return True, report_handle
+
+
 def _run_command_with_heartbeats(
     *,
     worker: RelayWorker,
@@ -1144,7 +1230,15 @@ def _run_command_with_heartbeats(
         if heartbeat_failed.is_set():
             return False, "heartbeat renewal failed while command was running"
         if proc.returncode == 0:
-            return True, (proc.stdout.strip() or "command completed")[:400]
+            stdout = proc.stdout.strip()
+            stderr = proc.stderr.strip()
+            combined_output = "\n".join(part for part in (stdout, stderr) if part)
+            output_is_valid, output_message = _validate_worker_success_output(
+                lease=lease, command_output=combined_output
+            )
+            if not output_is_valid:
+                return False, output_message
+            return True, (stdout or stderr or "command completed")[:400]
         stderr = proc.stderr.strip() or proc.stdout.strip() or f"exit={proc.returncode}"
         return False, f"command failed: {stderr[:400]}"
     except subprocess.TimeoutExpired:
@@ -1198,6 +1292,17 @@ def _run_worker_loop(
             event_type="worker_misconfigured",
             status="error",
             message=str(exc),
+        )
+        return 2
+    command_preflight_error = _preflight_worker_command(parsed_command, role=role)
+    if command_preflight_error:
+        store.event_log.append(
+            run_id="-",
+            unit_id="-",
+            role=role,
+            event_type="worker_misconfigured",
+            status="error",
+            message=command_preflight_error,
         )
         return 2
 
@@ -1313,6 +1418,11 @@ def main(argv: Sequence[str] | None = None) -> int:
             raise SystemExit("--retry-limit must be >= 1")
         if args.activity_timeout < 1:
             raise SystemExit("--activity-timeout must be >= 1")
+        preflight_errors = _preflight_configured_worker_commands()
+        if preflight_errors:
+            for error in preflight_errors:
+                print(f"preflight_error={error}", file=sys.stderr)
+            raise SystemExit("worker preflight failed")
         run_id, state = store.start_or_resume_run(
             run_id=args.run_id,
             idempotency_key=args.idempotency_key,
