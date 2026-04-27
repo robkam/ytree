@@ -695,6 +695,18 @@ extern int HandleDirWindow(ViewContext *ctx, const DirEntry *start_dir_entry) {
       DirNav_MoveEnd(ctx, &dir_entry, ctx->active);
       break;
     case ACTION_MOVE_RIGHT:
+      if (!dir_entry->not_scanned && dir_entry->sub_tree != NULL) {
+        if (DirOps_SelectVisibleDirAndRefresh(ctx, ctx->active,
+                                              dir_entry->sub_tree,
+                                              &dir_entry)) {
+          need_dsp_help = TRUE;
+        }
+        break;
+      }
+
+      HandlePlus(ctx, dir_entry, de_ptr, new_log_path, &need_dsp_help,
+                 ctx->active);
+      break;
     case ACTION_TREE_EXPAND_ALL:
       HandlePlus(ctx, dir_entry, de_ptr, new_log_path, &need_dsp_help,
                  ctx->active);

@@ -158,3 +158,30 @@ def test_dir_window_split_and_tab_keeps_file_focus(ytree_binary, tmp_path):
     )
 
     tui.quit()
+
+
+def test_dir_right_arrow_drills_into_first_child_when_already_expanded(
+    ytree_binary, tmp_path
+):
+    root = tmp_path / "dir_dispatch_right_drill"
+    root.mkdir()
+    parent = root / "parent_dir_dispatch"
+    child = parent / "child_dir_dispatch"
+    child.mkdir(parents=True)
+    (child / "child_only_marker.txt").write_text("child\n", encoding="utf-8")
+
+    tui = YtreeTUI(executable=ytree_binary, cwd=str(root))
+    time.sleep(0.8)
+
+    tui.send_keystroke(Keys.DOWN, wait=0.25)  # select parent_dir_dispatch
+    tui.send_keystroke(Keys.RIGHT, wait=0.35)  # expand parent
+    tui.send_keystroke(Keys.RIGHT, wait=0.35)  # drill into first child
+
+    screen = _screen_text(tui)
+    assert "parent_dir_dispatch/child_dir_dispatch" in screen, (
+        "RIGHT on an already-expanded node should move selection to its first "
+        "child and update the active path.\n"
+        f"{screen}"
+    )
+
+    tui.quit()
