@@ -304,6 +304,7 @@ These defaults are read from relay env configuration (`RELAY_DB`, `RELAY_EVENT_L
 4.  If accepted:
     *   commit only code/doc files (no relay/runtime artifacts),
     *   use maintainer-approved commit message describing durable behavior (no task numbering),
+    *   include explicit work-item status text in the same commit (for example `Status: Confirmed.`, `Status: In Progress.`, or `Status: Fixed.`) so no status transition is left ambiguous,
     *   first push: `git push-fast-up`; tracked branch: `git push-fast`.
 5.  If correction is needed for the same logical change set, amend and repush:
     *   `git commit --amend --no-edit`
@@ -314,9 +315,10 @@ These defaults are read from relay env configuration (`RELAY_DB`, `RELAY_EVENT_L
 
 1.  When final unit is accepted, require green full project gate (`make qa-all`).
 2.  Integrate branch to `main` using fast-forward only.
-3.  Delete temporary feature branch locally and on remote after merge.
-4.  Verify runtime artifacts are not committed and event logs remain append-only.
-5.  Manual fallback mode is allowed only when runtime infrastructure is unavailable:
+3.  For any bug or task, mark final status (Fixed/Completed) in the commit that is fast-forwarded to main; before that, status must stay non-final (Confirmed/In Progress).
+4.  Delete temporary feature branch locally and on remote after merge.
+5.  Verify runtime artifacts are not committed and event logs remain append-only.
+6.  Manual fallback mode is allowed only when runtime infrastructure is unavailable:
     *   operator records explicit fallback event,
     *   performs one-unit-at-a-time handoff manually,
     *   resumes durable runtime as soon as available.

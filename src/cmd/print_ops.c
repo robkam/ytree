@@ -9,6 +9,7 @@
 #include "ytree_fs.h"
 #include <fcntl.h>
 #include <pwd.h>
+#include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -105,14 +106,19 @@ PrintWriteStatus Cmd_WritePrintOutput(ViewContext *ctx, DirEntry *dir_entry,
                                       BOOL tagged, PrintConfig *config,
                                       int *is_pipe, char *error_target) {
   FILE *out_fp = NULL;
-  int pipe_output = TRUE;
+  int pipe_output = FALSE;
   char *dest_raw = config->print_to;
   char expanded[PATH_LENGTH + 1];
+  PrintDestination destination = config->destination;
+  const char *dest;
   char path[PATH_LENGTH + 1];
   int start_dir_fd;
+  int write_failed = FALSE;
+  int close_failed = FALSE;
+  void (*old_sigpipe)(int) = SIG_DFL;
 
   if (is_pipe) {
-    *is_pipe = TRUE;
+    *is_pipe = FALSE;
   }
   if (error_target) {
     error_target[0] = '\0';
@@ -123,6 +129,23 @@ PrintWriteStatus Cmd_WritePrintOutput(ViewContext *ctx, DirEntry *dir_entry,
     dest_raw++;
 
   if (*dest_raw == '\0') {
+    return PRINT_WRITE_NO_DESTINATION;
+  }
+
+  dest = dest_raw;
+  if (*dest == '>') {
+    destination = PRINT_DESTINATION_FILE;
+    dest++;
+    while (*dest == ' ')
+      dest++;
+  } else if (*dest == '!') {
+    destination = PRINT_DESTINATION_COMMAND;
+    dest++;
+    while (*dest == ' ')
+      dest++;
+  }
+
+  if (*dest == '\0') {
     return PRINT_WRITE_NO_DESTINATION;
   }
 
@@ -140,16 +163,16 @@ PrintWriteStatus Cmd_WritePrintOutput(ViewContext *ctx, DirEntry *dir_entry,
     }
   }
 
-  const char *dest = dest_raw;
-  if (*dest == '>') {
+  if (destination == PRINT_DESTINATION_FILE) {
     pipe_output = FALSE;
-    dest++; /* Skip '>' */
-    while (*dest == ' ')
-      dest++; /* Skip spaces after '>' */
     ExpandPath(dest, expanded, sizeof(expanded));
     out_fp = fopen(expanded, "a");
   } else {
+    pipe_output = TRUE;
     out_fp = popen(dest, "w");
+    if (out_fp != NULL) {
+      old_sigpipe = signal(SIGPIPE, SIG_IGN);
+    }
   }
 
   if (out_fp == NULL) {
@@ -180,8 +203,11 @@ PrintWriteStatus Cmd_WritePrintOutput(ViewContext *ctx, DirEntry *dir_entry,
       FileEntry *fe_ptr = ctx->active->file_entry_list[i].file;
       if (fe_ptr && fe_ptr->tagged) {
         written++;
-        PrintFileContent(ctx, fe_ptr, out_fp, config, written == 1,
-                         written == total_tagged);
+        if (PrintFileContent(ctx, fe_ptr, out_fp, config, written == 1,
+                             written == total_tagged) != 0) {
+          write_failed = TRUE;
+          break;
+        }
       }
     }
   } else {
@@ -190,14 +216,23 @@ PrintWriteStatus Cmd_WritePrintOutput(ViewContext *ctx, DirEntry *dir_entry,
             ->file_entry_list[dir_entry->start_file + dir_entry->cursor_pos]
             .file;
     if (fe_ptr) {
-      PrintFileContent(ctx, fe_ptr, out_fp, config, TRUE, TRUE);
+      if (PrintFileContent(ctx, fe_ptr, out_fp, config, TRUE, TRUE) != 0) {
+        write_failed = TRUE;
+      }
     }
   }
 
   if (pipe_output) {
-    pclose(out_fp);
+    if (pclose(out_fp) != 0) {
+      close_failed = TRUE;
+    }
+    if (old_sigpipe != SIG_ERR) {
+      (void)signal(SIGPIPE, old_sigpipe);
+    }
   } else {
-    fclose(out_fp);
+    if (fclose(out_fp) != 0) {
+      close_failed = TRUE;
+    }
   }
 
   if (fchdir(start_dir_fd) == -1) {
@@ -206,6 +241,13 @@ PrintWriteStatus Cmd_WritePrintOutput(ViewContext *ctx, DirEntry *dir_entry,
 
   if (is_pipe) {
     *is_pipe = pipe_output;
+  }
+  if (write_failed || close_failed) {
+    if (error_target) {
+      snprintf(error_target, PATH_LENGTH + 1, "%s",
+               pipe_output ? dest : expanded);
+    }
+    return PRINT_WRITE_OPEN_FAILED;
   }
   return PRINT_WRITE_OK;
 }

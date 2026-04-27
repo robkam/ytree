@@ -14,7 +14,7 @@ Ordering policy (for all editors, including AI editors):
 *   **Description**: In `Write`, entering a plain filename (for example `report-2026-04-11.txt`) can be interpreted as a command execution path instead of file output, and user repro indicates this path can crash after command failure handling.
 *   **Impact**: Violates least-surprise behavior, risks data-loss/confusion for new users, and introduces a stability defect (segmentation fault).
 *   **Remediation**: Make destination handling explicit and safe: default plain filename/path input to file output, provide an explicit File vs Command destination choice in the flow, keep expert shortcuts as optional aliases, and harden all command/file-open failure paths to eliminate crashes.
-*   **Status**: Confirmed.
+*   **Status**: Fixed.
 
 ### **BUG-37: Right Arrow Does Not Drill Down on Expanded Nodes**
 *   **Description**: In Directory Mode, `Right Arrow` expands a collapsed node correctly, but performs a no-op when the node is already expanded.
