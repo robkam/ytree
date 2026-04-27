@@ -48,5 +48,6 @@ def test_setup_relay_runtime_script_orchestrates_one_time_bootstrap() -> None:
     assert "relay-workers.sh" in script
     assert "RELAY_DEVELOPER_CMD" in script
     assert "RELAY_CODE_AUDITOR_CMD" in script
+    assert "placeholder '/usr/bin/true'" in script
     assert "XDG_RUNTIME_DIR" in script
     assert "systemctl --user show-environment" in script

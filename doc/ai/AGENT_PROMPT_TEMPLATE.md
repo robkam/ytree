@@ -68,12 +68,12 @@ Commit policy:
 - Conventional Commits required.
 - Commit subject and body must contain no digits.
 - Do not use words: “phase”, “step”, “task”.
-- After tests are green and the commit is integrated into `main` (fast-forward, no merge commit), delete the temporary branch both locally and on GitHub.
+- After tests are green and the commit is integrated into `main` (fast-forward, no merge commit), delete all temporary work branches once they have served their purpose, both locally and on GitHub.
 - Do not update $WORK_DOC to mark $WORK_KIND $TASK as completed/fixed until all are true: commit is done, change is integrated into `main` via fast-forward, and the temporary branch is deleted locally and on remote.
 
 Cleanup rules:
 - On completion+commit, delete transient artifacts once they are no longer useful.
-- Required transient cleanup includes: compile_commands.json, valgrind.log, and stale local relay scratch files.
+- Required transient cleanup includes: compile_commands.json, valgrind.log, stale local relay scratch files, and any stale `/tmp` files/directories created by this run.
 
 Response format to maintainer:
 - Concise operational status only.

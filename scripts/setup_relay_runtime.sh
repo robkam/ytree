@@ -96,6 +96,16 @@ if ! grep -q '^RELAY_CODE_AUDITOR_CMD=' "$env_target"; then
   echo "ERROR: RELAY_CODE_AUDITOR_CMD missing in $env_target" >&2
   exit 1
 fi
+if grep -Eq '^RELAY_DEVELOPER_CMD=(/usr/bin/true|/bin/true|true)$' "$env_target"; then
+  echo "ERROR: RELAY_DEVELOPER_CMD in $env_target is still placeholder '/usr/bin/true'." >&2
+  echo "       Set RELAY_DEVELOPER_CMD to your real developer worker command before start-run." >&2
+  exit 1
+fi
+if grep -Eq '^RELAY_CODE_AUDITOR_CMD=(/usr/bin/true|/bin/true|true)$' "$env_target"; then
+  echo "ERROR: RELAY_CODE_AUDITOR_CMD in $env_target is still placeholder '/usr/bin/true'." >&2
+  echo "       Set RELAY_CODE_AUDITOR_CMD to your real auditor worker command before start-run." >&2
+  exit 1
+fi
 
 if [[ "$SYSTEM_MODE" -eq 1 ]]; then
   echo "[setup-relay] Installing system services"
