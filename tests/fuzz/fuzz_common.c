@@ -68,7 +68,7 @@ long long FuzzCursor_ReadSigned64(FuzzCursor *cursor) {
     value <<= 8;
     value |= (unsigned long long)FuzzCursor_NextByte(cursor);
   }
-  if (value > (unsigned long long)LLONG_MAX)
-    return -(long long)(value - (unsigned long long)LLONG_MAX);
-  return (long long)value;
+  if (value <= (unsigned long long)LLONG_MAX)
+    return (long long)value;
+  return -1LL - (long long)(~value);
 }

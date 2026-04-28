@@ -2,30 +2,16 @@ import pytest
 import shlex
 import time
 import re
+from helpers_files import wait_for_file as _wait_for_file
+from helpers_stats import detect_stats_split_x as _detect_stats_split_x
+from helpers_ui import (
+    find_line_with_text as _find_line_with_text,
+    footer_text as _footer_text,
+    line_marks_file_as_tagged as _line_marks_file_as_tagged,
+    screen_text as _screen_text,
+)
 from tui_harness import YtreeTUI
 from ytree_keys import Keys
-
-
-def _footer_text(tui):
-    return "\n".join(tui.get_screen_dump()[-3:]).lower()
-
-
-def _screen_text(tui):
-    return "\n".join(tui.get_screen_dump())
-
-
-def _find_line_with_text(tui, needle):
-    for line in tui.get_screen_dump():
-        if needle in line:
-            return line
-    return None
-
-
-def _line_marks_file_as_tagged(line, filename):
-    idx = line.find(filename)
-    if idx <= 0:
-        return False
-    return "*" in line[:idx]
 
 
 def _current_copy_source(tui):
@@ -40,33 +26,6 @@ def _assert_dir_mode_footer(tui, message):
     assert "hex invert j compare" not in footer and "j compare" in footer and "j tree" in footer, (
         f"{message}\n{footer}"
     )
-
-
-def _detect_stats_split_x(lines):
-    if len(lines) < 2:
-        return None
-    border = lines[1]
-    marker = "wqqqqqqq FILTER"
-    idx = border.find(marker)
-    if idx != -1:
-        return idx
-    return None
-
-
-def _current_file_from_stats(lines, split_x):
-    for i, line in enumerate(lines):
-        segment = line[split_x:] if split_x is not None else line
-        if "CURRENT FILE" in segment and i + 1 < len(lines):
-            next_segment = lines[i + 1][split_x:] if split_x is not None else lines[i + 1]
-            m = re.search(r"([A-Za-z0-9._-]+\\.txt)", next_segment)
-            if m:
-                return m.group(1)
-            # Fallback: sometimes the next line capture still includes border
-            # glyphs; search the full next row as a last resort.
-            m = re.search(r"([A-Za-z0-9._-]+\\.txt)", lines[i + 1])
-            if m:
-                return m.group(1)
-    return None
 
 
 def _stats_current_dir_contains(lines, marker):
@@ -101,14 +60,6 @@ def _configure_filediff_capture(tmp_dir):
     )
     return log_path
 
-
-def _wait_for_file(path, timeout=2.0):
-    end = time.time() + timeout
-    while time.time() < end:
-        if path.exists():
-            return True
-        time.sleep(0.05)
-    return False
 
 def _detect_split_column(lines):
     if len(lines) < 3:

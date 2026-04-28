@@ -1,57 +1,16 @@
-import re
 import time
-from pathlib import Path
 
+from helpers_source import extract_function_block as _extract_function_block
+from helpers_source import read_repo_source as _read_source
+from helpers_stats import current_file_from_stats
+from helpers_ui import footer_text as _footer_text
+from helpers_ui import screen_text as _screen_text
 from tui_harness import YtreeTUI
 from ytree_keys import Keys
 
 
-def _screen_text(tui):
-    return "\n".join(tui.get_screen_dump())
-
-
-def _footer_text(tui):
-    return "\n".join(tui.get_screen_dump()[-3:]).lower()
-
-
-def _read_source(path):
-    repo_root = Path(__file__).resolve().parents[1]
-    return (repo_root / path).read_text(encoding="utf-8")
-
-
-def _extract_function_block(source, signature):
-    start = source.find(signature)
-    assert start >= 0, f"Could not find function signature: {signature}"
-
-    open_brace = source.find("{", start)
-    assert open_brace >= 0, f"Could not find opening brace for: {signature}"
-
-    depth = 0
-    for idx in range(open_brace, len(source)):
-        ch = source[idx]
-        if ch == "{":
-            depth += 1
-        elif ch == "}":
-            depth -= 1
-            if depth == 0:
-                return source[start : idx + 1]
-
-    raise AssertionError(f"Could not find closing brace for: {signature}")
-
-
 def _current_file_from_stats(tui):
-    lines = tui.get_screen_dump()
-    for idx, line in enumerate(lines):
-        if "CURRENT FILE" not in line:
-            continue
-        for look_ahead in (1, 2):
-            row_idx = idx + look_ahead
-            if row_idx >= len(lines):
-                continue
-            match = re.search(r"([A-Za-z0-9._-]+\.txt)", lines[row_idx])
-            if match:
-                return match.group(1)
-    return None
+    return current_file_from_stats(tui.get_screen_dump())
 
 
 def test_navigation_dispatch_updates_current_file_stats(ytree_binary, tmp_path):

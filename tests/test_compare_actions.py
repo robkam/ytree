@@ -2,20 +2,15 @@ import time
 import shlex
 import os
 
+from helpers_files import wait_for_file as _wait_for_file
+from helpers_ui import (
+    assert_file_tag_state as _assert_file_tag_state,
+    footer_lines as _footer_lines,
+    footer_text as _footer_text,
+    screen_text as _screen_text,
+)
 from tui_harness import YtreeTUI
 from ytree_keys import Keys
-
-
-def _screen_text(tui):
-    return "\n".join(tui.get_screen_dump())
-
-
-def _footer_lines(tui):
-    return tui.get_screen_dump()[-3:]
-
-
-def _footer_text(tui):
-    return "\n".join(_footer_lines(tui)).lower()
 
 
 def _has_border_glyphs(tui):
@@ -37,30 +32,6 @@ def _assert_no_footer_artifacts(tui):
         line for line in footer_lines if line.strip() and len(line.strip()) == 1 and line.strip().isalpha()
     ]
     assert not artifact_lines, f"Footer contained lone alphabetic artifact(s): {artifact_lines}\nFooter:\n{footer_text}"
-
-
-def _find_line_with_text(tui, needle):
-    for line in tui.get_screen_dump():
-        if needle in line:
-            return line
-    return None
-
-
-def _line_marks_file_as_tagged(line, filename):
-    idx = line.find(filename)
-    if idx <= 0:
-        return False
-    return "*" in line[:idx]
-
-
-def _assert_file_tag_state(tui, filename, expected_tagged):
-    line = _find_line_with_text(tui, filename)
-    assert line is not None, f"Could not find file row for {filename!r}.\nScreen:\n{_screen_text(tui)}"
-    is_tagged = _line_marks_file_as_tagged(line, filename)
-    assert is_tagged == expected_tagged, (
-        f"Unexpected tag state for {filename!r}. Expected tagged={expected_tagged}, got {is_tagged}.\n"
-        f"Row: {line}\nScreen:\n{_screen_text(tui)}"
-    )
 
 
 def _configure_filediff_capture(tmp_dir, use_placeholders=False):
@@ -116,15 +87,6 @@ def _configure_dirdiff_only_capture(tmp_dir):
         encoding="utf-8",
     )
     return log_path
-
-
-def _wait_for_file(path, timeout=2.0):
-    end = time.time() + timeout
-    while time.time() < end:
-        if path.exists():
-            return True
-        time.sleep(0.05)
-    return False
 
 
 def _run_file_compare(tui, target=None, wait=0.5):

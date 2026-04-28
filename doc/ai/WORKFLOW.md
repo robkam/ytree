@@ -21,16 +21,16 @@ The development process is strictly hierarchical. The Spec is the "Contract of T
 
 ### 1.2 General Rules
 1.  **Architecture as Blueprint:** [ARCHITECTURE.md](../ARCHITECTURE.md) defines the technical structure.
-1.  **Testing as Standard:** [TESTING.md](TESTING.md) defines test naming, structure, and harness rules. All test code must conform to it.
-2.  **Human as Architect:** The AI acts as a partner with varying levels of specialization (see Section 2). The human maintainer provides final architectural direction.
-3.  **Atomic Missions:** One work item (bug or task) = One session.
-4.  **Build-First Verification:** No code is accepted until it compiles and passes tests.
-5.  **The "Clean Slate" Rule:** If an AI generates fragile code or follows a wrong path, do not attempt to "patch" the mistake via further dialogue. Revert the changes (`git restore .`), rephrase the original prompt from a different perspective, and restart the mission. This is mandatory because:
+2.  **Testing as Standard:** [TESTING.md](TESTING.md) defines test naming, structure, and harness rules. All test code must conform to it.
+3.  **Human as Architect:** The AI acts as a partner with varying levels of specialization (see Section 2). The human maintainer provides final architectural direction.
+4.  **Atomic Missions:** One work item (bug or task) = One session.
+5.  **Build-First Verification:** No code is accepted until it compiles and passes tests.
+6.  **The "Clean Slate" Rule:** If an AI generates fragile code or follows a wrong path, do not attempt to "patch" the mistake via further dialogue. Revert the changes (`git restore .`), rephrase the original prompt from a different perspective, and restart the mission. This is mandatory because:
     *   **Context Clearing:** It removes the "bad" code and the flawed logic that led to it.
     *   **New Perspective:** Rephrasing prevents the model from staying stuck in a loop of bad assumptions.
     *   **Clean Implementation:** It ensures the final code is the result of a single, clean logical flow rather than a series of ad-hoc patches.
-6.  **Minor Step Corrections Should Amend:** If the immediately preceding step only needs a small correction and should remain the same logical history unit, update it with `git commit --amend --no-edit` rather than adding a trivial follow-up fix commit. Create a new commit only when the correction is meaningfully distinct, delayed enough to matter historically, or worth preserving separately in the project history.
-7.  **Intent Over Literal Wording:** Treat the human maintainer as authoritative on goals, but not automatically on exact UI wording, naming, key choices, menu structure, or workflow details. If a requested detail does not follow convention or best practices, or conflicts with existing Ytree patterns, the AI must say so explicitly and recommend the stronger conventional approach before implementing it.
+7.  **Minor Step Corrections Should Amend:** If the immediately preceding step only needs a small correction and should remain the same logical history unit, update it with `git commit --amend --no-edit` rather than adding a trivial follow-up fix commit. Create a new commit only when the correction is meaningfully distinct, delayed enough to matter historically, or worth preserving separately in the project history.
+8.  **Intent Over Literal Wording:** Treat the human maintainer as authoritative on goals, but not automatically on exact UI wording, naming, key choices, menu structure, or workflow details. If a requested detail does not follow convention or best practices, or conflicts with existing Ytree patterns, the AI must say so explicitly and recommend the stronger conventional approach before implementing it.
 
 ### 1.3 Convention & Best-Practice Check
 
@@ -225,13 +225,26 @@ First start after install (or after unit changes):
 scripts/relay-workers.sh start
 ```
 
-Per WSL start:
+Per WSL start readiness check:
 
 ```bash
-scripts/relay-workers.sh health
-# if unhealthy:
+systemctl --user is-active \
+  ytree-relay-developer.service \
+  ytree-relay-code-auditor.service \
+  ytree-relay-watchdog.service
+```
+
+Expected output: 3 lines, all active.
+
+If all 3 are active, proceed.
+
+If any line is not active (inactive, failed, etc.):
+
+```bash
 scripts/relay-workers.sh start
 ```
+
+Then re-run the is-active check.
 
 Default durable paths (informational defaults, not commands):
 - `~/.local/state/ytree/relay.db`

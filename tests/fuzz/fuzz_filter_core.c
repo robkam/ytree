@@ -30,6 +30,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
   char file_name[PATH_LENGTH + 1];
   char file_spec[FILE_SPEC_LENGTH + 1];
   long long signed_size;
+  unsigned long long size_magnitude;
   FileEntry *file_entry;
   DirEntry *dir_entry;
   Statistic statistic;
@@ -50,8 +51,10 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
 
   signed_size = FuzzCursor_ReadSigned64(&cursor);
   if (signed_size < 0)
-    signed_size = -signed_size;
-  file_entry->stat_struct.st_size = (off_t)(signed_size % 65536);
+    size_magnitude = (unsigned long long)(-(signed_size + 1LL)) + 1ULL;
+  else
+    size_magnitude = (unsigned long long)signed_size;
+  file_entry->stat_struct.st_size = (off_t)(size_magnitude % 65536ULL);
 
   (void)FsMatchFilter(file_entry, &statistic);
 

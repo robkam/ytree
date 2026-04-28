@@ -1,64 +1,14 @@
 import time
-from pathlib import Path
 
+from helpers_source import extract_function_block as _extract_function_block
+from helpers_source import read_repo_source
+from helpers_ui import assert_file_tag_state as _assert_file_tag_state
 from tui_harness import YtreeTUI
 from ytree_keys import Keys
 
 
-def _screen_text(tui):
-    return "\n".join(tui.get_screen_dump())
-
-
 def _read_ctrl_file_ops_source():
-    repo_root = Path(__file__).resolve().parents[1]
-    return (repo_root / "src/ui/ctrl_file_ops.c").read_text(encoding="utf-8")
-
-
-def _extract_function_block(source, signature):
-    start = source.find(signature)
-    assert start >= 0, f"Could not find function signature: {signature}"
-
-    open_brace = source.find("{", start)
-    assert open_brace >= 0, f"Could not find opening brace for: {signature}"
-
-    depth = 0
-    for idx in range(open_brace, len(source)):
-        ch = source[idx]
-        if ch == "{":
-            depth += 1
-        elif ch == "}":
-            depth -= 1
-            if depth == 0:
-                return source[start : idx + 1]
-
-    raise AssertionError(f"Could not find closing brace for: {signature}")
-
-
-def _find_line_with_text(tui, needle):
-    for line in tui.get_screen_dump():
-        if needle in line:
-            return line
-    return None
-
-
-def _line_marks_file_as_tagged(line, filename):
-    idx = line.find(filename)
-    if idx <= 0:
-        return False
-    return "*" in line[:idx]
-
-
-def _assert_file_tag_state(tui, filename, expected_tagged):
-    line = _find_line_with_text(tui, filename)
-    assert line is not None, (
-        f"Could not find file row for {filename!r}.\nScreen:\n{_screen_text(tui)}"
-    )
-    is_tagged = _line_marks_file_as_tagged(line, filename)
-    assert is_tagged == expected_tagged, (
-        f"Unexpected tag state for {filename!r}. "
-        f"Expected tagged={expected_tagged}, got {is_tagged}.\n"
-        f"Row: {line}\nScreen:\n{_screen_text(tui)}"
-    )
+    return read_repo_source("src/ui/ctrl_file_ops.c")
 
 
 def test_invert_tags_i_and_upper_i_on_mixed_set(ytree_binary, tmp_path):
