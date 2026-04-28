@@ -24,9 +24,17 @@ static void Dir_Progress(ViewContext *ctx, void *data) {
   DrawSpinner(ctx);
 }
 
+static void CaptureInactiveFallback(ViewContext *ctx, YtreePanel *p,
+                                    const DirEntry *dir_entry,
+                                    YtreePanel **inactive_out,
+                                    DirEntry **inactive_fallback_out);
+static void ReanchorPanelToDir(YtreePanel *panel, const DirEntry *target);
+
 void HandlePlus(ViewContext *ctx, DirEntry *dir_entry, DirEntry *de_ptr,
                 char *new_log_path, BOOL *need_dsp_help, YtreePanel *p) {
   Statistic *s = &p->vol->vol_stats;
+  YtreePanel *inactive = NULL;
+  DirEntry *inactive_target = NULL;
   (void)de_ptr;
 
   /* Renamed usage: s->mode -> s->log_mode */
@@ -37,11 +45,17 @@ void HandlePlus(ViewContext *ctx, DirEntry *dir_entry, DirEntry *de_ptr,
   if (!dir_entry->not_scanned)
     return;
 
+  CaptureInactiveFallback(ctx, p, NULL, &inactive, &inactive_target);
+
   if (!dir_entry->unlogged_flag &&
       (dir_entry->sub_tree != NULL || dir_entry->file != NULL)) {
     dir_entry->not_scanned = FALSE;
     BuildDirEntryList(ctx, p->vol, &p->current_dir_entry);
     BuildDirEntryList(ctx, p->vol, &p->current_dir_entry);
+    if (inactive && inactive->vol == p->vol) {
+      ReanchorPanelToDir(inactive, inactive_target);
+      BuildFileEntryList(ctx, inactive);
+    }
     DisplayTree(ctx, p->vol, p->pan_dir_window, p->disp_begin_pos,
                 p->disp_begin_pos + p->cursor_pos, TRUE);
     DisplayFileWindow(ctx, p, dir_entry);
@@ -63,6 +77,10 @@ void HandlePlus(ViewContext *ctx, DirEntry *dir_entry, DirEntry *de_ptr,
     dir_entry->unlogged_flag = FALSE;
     BuildDirEntryList(ctx, p->vol, &p->current_dir_entry);
     BuildDirEntryList(ctx, p->vol, &p->current_dir_entry);
+    if (inactive && inactive->vol == p->vol) {
+      ReanchorPanelToDir(inactive, inactive_target);
+      BuildFileEntryList(ctx, inactive);
+    }
     DisplayTree(ctx, p->vol, p->pan_dir_window, p->disp_begin_pos,
                 p->disp_begin_pos + p->cursor_pos, TRUE);
     DisplayFileWindow(ctx, p, dir_entry);
@@ -76,6 +94,10 @@ void HandlePlus(ViewContext *ctx, DirEntry *dir_entry, DirEntry *de_ptr,
 void HandleReadSubTree(ViewContext *ctx, DirEntry *dir_entry,
                        BOOL *need_dsp_help, YtreePanel *p) {
   const Statistic *s = &p->vol->vol_stats;
+  YtreePanel *inactive = NULL;
+  DirEntry *inactive_target = NULL;
+
+  CaptureInactiveFallback(ctx, p, NULL, &inactive, &inactive_target);
 
   SuspendClock(ctx); /* Suspend clock before scanning */
   if (ScanSubTree(ctx, dir_entry, s) == -1) {
@@ -85,6 +107,10 @@ void HandleReadSubTree(ViewContext *ctx, DirEntry *dir_entry,
   dir_entry->unlogged_flag = FALSE;
   BuildDirEntryList(ctx, p->vol, &p->current_dir_entry);
   BuildDirEntryList(ctx, p->vol, &p->current_dir_entry);
+  if (inactive && inactive->vol == p->vol) {
+    ReanchorPanelToDir(inactive, inactive_target);
+    BuildFileEntryList(ctx, inactive);
+  }
   DisplayTree(ctx, p->vol, p->pan_dir_window, p->disp_begin_pos,
               p->disp_begin_pos + p->cursor_pos, TRUE);
   RecalculateSysStats(ctx, s); /* Fix for Bug 10: Force full recalculation */
@@ -223,7 +249,7 @@ static void CaptureInactiveFallback(ViewContext *ctx, YtreePanel *p,
     *inactive_out = NULL;
   if (inactive_fallback_out)
     *inactive_fallback_out = NULL;
-  if (!ctx || !p || !dir_entry || !ctx->is_split_screen)
+  if (!ctx || !p || !ctx->is_split_screen)
     return;
 
   inactive = (p == ctx->left) ? ctx->right : ctx->left;
@@ -242,9 +268,11 @@ static void CaptureInactiveFallback(ViewContext *ctx, YtreePanel *p,
   }
 
   inactive_fallback = inactive_de;
-  while (inactive_fallback && inactive_fallback != dir_entry &&
-         IsDescendant(dir_entry, inactive_fallback)) {
-    inactive_fallback = inactive_fallback->up_tree;
+  if (dir_entry != NULL) {
+    while (inactive_fallback && inactive_fallback != dir_entry &&
+           IsDescendant(dir_entry, inactive_fallback)) {
+      inactive_fallback = inactive_fallback->up_tree;
+    }
   }
   if (!inactive_fallback)
     inactive_fallback = p->vol->vol_stats.tree;

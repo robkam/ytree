@@ -914,6 +914,72 @@ def test_f8_inactive_selection_moves_to_parent_on_mirrored_collapse(tmp_path, yt
     tui.quit()
 
 
+def test_bug_f_eight_mirrored_inactive_selection_identity_stable(tmp_path, ytree_binary):
+    """
+    BUG-36 regression:
+    In mirrored split mode, expanding a sibling branch in the active pane must not
+    shift inactive pane selection by row index when the selected directory still
+    exists.
+    """
+    root = tmp_path / "bug_f_eight_identity_root"
+    root.mkdir()
+
+    parent_dir = root / "parent_dir"
+    child_dir = parent_dir / "child_dir"
+    child_dir.mkdir(parents=True)
+    (child_dir / "child_file.txt").write_text("child\n", encoding="utf-8")
+
+    sibling_dir = root / "sibling_dir"
+    sibling_dir.mkdir()
+    (sibling_dir / "sibling_file.txt").write_text("sibling\n", encoding="utf-8")
+
+    tui = YtreeTUI(executable=ytree_binary, cwd=str(root))
+    time.sleep(1.0)
+
+    # Left pane (active): select parent_dir.
+    tui.send_keystroke(Keys.DOWN)
+    time.sleep(0.4)
+
+    # Split and move to right pane (mirrored tree state).
+    tui.send_keystroke(Keys.F8)
+    time.sleep(0.4)
+    tui.send_keystroke(Keys.TAB)
+    time.sleep(0.4)
+
+    # Right pane (inactive target): select sibling_dir.
+    tui.send_keystroke(Keys.DOWN)
+    time.sleep(0.4)
+
+    # Back to left pane and expand parent_dir.
+    tui.send_keystroke(Keys.TAB)
+    time.sleep(0.4)
+    tui.send_keystroke(Keys.RIGHT)
+    time.sleep(0.6)
+
+    # Return to right pane and enter the selected directory.
+    # Expected: still sibling_dir (stable identity), not parent_dir/child_dir.
+    tui.send_keystroke(Keys.TAB)
+    time.sleep(0.4)
+    tui.send_keystroke(Keys.ENTER)
+    time.sleep(0.6)
+
+    screen = "\n".join(tui.get_screen_dump())
+    if "sibling_file.txt" not in screen:
+        tui.quit()
+        pytest.fail(
+            "Inactive pane selection drifted after mirrored expand.\n"
+            f"Screen:\n{screen}"
+        )
+    if "child_file.txt" in screen:
+        tui.quit()
+        pytest.fail(
+            "Inactive pane entered child_dir after mirrored expand.\n"
+            f"Screen:\n{screen}"
+        )
+
+    tui.quit()
+
+
 def test_split_file_focus_survives_tab_round_trip(tmp_path, ytree_binary):
     root = tmp_path / "split_file_focus_round_trip"
     root.mkdir()
