@@ -2,20 +2,11 @@ import shutil
 import tarfile
 import time
 
+from helpers_ui import footer_lines as _footer_lines
+from helpers_ui import footer_text as _footer_text
+from helpers_ui import screen_text as _screen_text
 from tui_harness import YtreeTUI
 from ytree_keys import Keys
-
-
-def _footer_text(tui):
-    return "\n".join(tui.get_screen_dump()[-3:]).lower()
-
-
-def _footer_lines(tui):
-    return tui.get_screen_dump()[-3:]
-
-
-def _screen_text(tui):
-    return "\n".join(tui.get_screen_dump())
 
 
 def _send_left_arrow(tui, wait=0.4):

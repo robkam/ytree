@@ -2,6 +2,9 @@ import pytest
 import time
 import re
 import pexpect
+from helpers_stats import current_file_from_stats as _current_file_from_stats
+from helpers_stats import detect_stats_split_x as _detect_stats_split_x
+from helpers_ui import footer_text as _footer_text
 from ytree_keys import Keys
 from tui_harness import YtreeTUI
 
@@ -52,36 +55,6 @@ def test_multi_column_rendering_metrics(ytree_binary, tmp_path):
     assert found_multi_column, "File window did not render short filenames across multiple columns"
 
     tui.quit()
-
-
-def _detect_stats_split_x(lines):
-    if len(lines) < 2:
-        return None
-    border = lines[1]
-    marker = "wqqqqqqq FILTER"
-    idx = border.find(marker)
-    if idx != -1:
-        return idx
-    return None
-
-
-def _current_file_from_stats(lines, split_x):
-    if split_x is None:
-        return None
-
-    for i, line in enumerate(lines):
-        right = line[split_x:]
-        if "CURRENT FILE" in right and i + 1 < len(lines):
-            next_right = lines[i + 1][split_x:]
-            # Prefer explicit filename match to avoid right-border artifacts.
-            m = re.search(r"([A-Za-z0-9._-]+\.txt)", next_right)
-            if m:
-                return m.group(1)
-            m = re.search(r"x\s+([^\s]+)", next_right)
-            if m:
-                return m.group(1)
-            return None
-    return None
 
 
 def _has_two_short_file_columns(lines, split_x):
@@ -445,10 +418,6 @@ def test_file_window_one_column_edges_preserve_row(ytree_binary, tmp_path):
     ), f"RIGHT at bottom boundary should preserve row (before_idx={prev_idx}, after={after_right_bottom})"
 
     tui.quit()
-
-
-def _footer_text(tui):
-    return "\n".join(tui.get_screen_dump()[-3:]).lower()
 
 
 def test_global_repeat_key_is_noop_in_global_view(ytree_binary, tmp_path):

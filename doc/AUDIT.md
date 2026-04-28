@@ -16,7 +16,7 @@ The project uses five QA layers with increasing depth and cost:
 | Layer | Command | What it checks | When to run |
 |---|---|---|---|
 | CI Gate | `git push` (automatic) | Build, gitleaks, unsafe C API guard, `pytest` | Every push (automatic) |
-| Local QA | `make qa-all` | clang-tidy, cppcheck, scan-build, Valgrind smoke (`--version`), `pytest`, unsafe API guard, gitleaks, module-boundary guard | Before every PR or feature merge |
+| Local QA | `make qa-all` | clang-tidy, cppcheck, scan-build, Valgrind smoke (`--version`), full `pytest`, unsafe API guard, gitleaks, module-boundary guard | Before every PR or feature merge |
 | Fileops Integrity Gate | `make qa-fileops-integrity` | Deterministic file/archive mutation integrity + security regression checks (copy/move/delete/rename/archive rewrite, cancel/failure safeguards, shell/tempfile hardening contracts) | Before merge and when touching file/archive mutation flows |
 | Sanitizer QA | `make qa-sanitize` | Main ytree build + `pytest` under AddressSanitizer/UndefinedBehaviorSanitizer | Before release, after memory/UB-sensitive changes, or when triaging suspicious crashes |
 | Deep Audit | `make qa-valgrind-full` | Automated interactive Valgrind Memcheck session (leak, uninit, FD, use-after-free checks) | Before release, after major refactoring, or periodically |
@@ -77,7 +77,7 @@ Local shortcut targets are available in the `Makefile`:
 - `make qa-unsafe-apis`
 - `make qa-gitleaks`
 - `make qa-module-boundaries`
-- `make qa-all` (runs `qa-clang`, `qa-cppcheck`, `qa-scan`, `qa-valgrind`, `qa-fileops-integrity`, `qa-pytest`, `qa-unsafe-apis`, `qa-gitleaks`, `qa-module-boundaries` in order)
+- `make qa-all` (runs `qa-clang`, `qa-cppcheck`, `qa-scan`, `qa-valgrind`, `qa-pytest`, `qa-unsafe-apis`, `qa-gitleaks`, `qa-module-boundaries` in order; run `qa-fileops-integrity` separately when touching mutation flows)
 - `make qa-all-log` (same as `qa-all`, with full output captured to `qa-all.log` in repo root; override with `QA_LOG=/path/to/file`)
 
 For feature-sized/PR-scope changes, audit evidence must include a successful `make qa-module-boundaries` run so controller-slimming checks are explicitly validated.

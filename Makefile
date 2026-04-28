@@ -333,9 +333,11 @@ qa-valgrind-full:
 	@echo "Running automated interactive valgrind session (output in valgrind.log)."
 	$(PYTHON) scripts/valgrind_session.py
 
+# Full pytest regression gate (entire suite).
 qa-pytest: $(MAIN_BIN)
 	TERM=$${TERM:-xterm} $(PYTEST)
 
+# Fast targeted integrity/security pytest gate for file/archive mutations.
 qa-fileops-integrity: $(MAIN_BIN)
 	TERM=$${TERM:-xterm} $(PYTEST) -q -ra --tb=no \
 		tests/test_fileops_integrity.py \
@@ -374,6 +376,9 @@ qa-sanitize:
 qa-unsafe-apis:
 	python3 scripts/check_c_unsafe_apis.py
 
+qa-gitleaks:
+	gitleaks detect --source . --redact --exit-code 1
+
 qa-module-boundaries:
 	python3 scripts/check_module_boundaries.py
 
@@ -382,7 +387,9 @@ qa-ai-config:
 
 ci-baseline: qa-unsafe-apis qa-fileops-integrity qa-pytest-coverage qa-fuzz
 
-qa-all: qa-clang qa-cppcheck qa-scan qa-valgrind qa-fileops-integrity qa-pytest qa-unsafe-apis qa-module-boundaries qa-ai-config qa-fuzz
+# Comprehensive local gate: static/runtime checks + full pytest once.
+# Run qa-fileops-integrity explicitly when file/archive mutation flows are touched.
+qa-all: qa-clang qa-cppcheck qa-scan qa-valgrind qa-pytest qa-unsafe-apis qa-gitleaks qa-module-boundaries qa-ai-config qa-fuzz
 
 qa-all-log:
 	@mkdir -p "$(dir $(QA_LOG))"

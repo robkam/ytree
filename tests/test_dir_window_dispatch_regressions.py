@@ -2,16 +2,10 @@ from pathlib import Path
 import re
 import time
 
+from helpers_ui import footer_text as _footer_text
+from helpers_ui import screen_text as _screen_text
 from tui_harness import YtreeTUI
 from ytree_keys import Keys
-
-
-def _screen_text(tui):
-    return "\n".join(tui.get_screen_dump())
-
-
-def _footer_text(tui):
-    return "\n".join(tui.get_screen_dump()[-3:]).lower()
 
 
 def _dir_navigation_action_case_source(action_name):

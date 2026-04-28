@@ -5,8 +5,8 @@ Edit only the first four lines to match the tracked work item exactly, then copy
 ```text
 $WORK_DOC=doc/BUGS.md
 $WORK_KIND=Bug
-$TASK=BUG-38
-$TASK_NAME=Write` Destination Ambiguity and Crash Path
+$TASK=BUG-35
+$TASK_NAME=F7 Preview Over-Restricts Command Availability
 
 Role:
 You are a stateless architect supervisor for ~/ytree. Architect-only: orchestrate, validate, and commit; do not implement code.

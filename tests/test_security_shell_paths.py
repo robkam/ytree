@@ -1,18 +1,10 @@
 import shlex
 import time
-from pathlib import Path
 
+from helpers_files import wait_for_file as _wait_for_file
+from helpers_source import read_repo_source
 from tui_harness import YtreeTUI
 from ytree_keys import Keys
-
-
-def _wait_for_file(path, timeout=2.0):
-    end = time.time() + timeout
-    while time.time() < end:
-        if path.exists():
-            return True
-        time.sleep(0.05)
-    return False
 
 
 def _configure_capture_helper(tmp_dir, log_name):
@@ -35,8 +27,7 @@ def _write_global_profile(tmp_dir, entries):
 
 
 def _read_ctrl_file_ops_source():
-    repo_root = Path(__file__).resolve().parents[1]
-    return (repo_root / "src/ui/ctrl_file_ops.c").read_text(encoding="utf-8")
+    return read_repo_source("src/ui/ctrl_file_ops.c")
 
 
 def _extract_case_block(source, case_label, next_case_label):
