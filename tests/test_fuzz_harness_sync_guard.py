@@ -45,3 +45,22 @@ def test_current_repository_baseline_passes() -> None:
         check=False,
     )
     assert run.returncode == 0, run.stdout + run.stderr
+
+
+def test_invalid_base_sha_falls_back_to_head_show() -> None:
+    repo_root = Path(__file__).resolve().parents[1]
+    run = subprocess.run(
+        [
+            "python3",
+            "scripts/check_fuzz_harness_sync.py",
+            "--base",
+            "f3f9637177947a0bdafb95540bbc0bf34179a3c0",
+            "--head",
+            "HEAD",
+        ],
+        cwd=repo_root,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert run.returncode == 0, run.stdout + run.stderr

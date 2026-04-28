@@ -28,6 +28,28 @@ def _normalize_paths(paths: list[str]) -> set[str]:
     return normalized
 
 
+def _run_git_changed_files(repo_root: Path, cmd: list[str]) -> set[str]:
+    run = subprocess.run(
+        cmd,
+        cwd=repo_root,
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    return _normalize_paths(run.stdout.splitlines())
+
+
+def _is_revision_error(exc: subprocess.CalledProcessError) -> bool:
+    output = ((exc.stdout or "") + (exc.stderr or "")).lower()
+    patterns = (
+        "invalid revision range",
+        "bad revision",
+        "unknown revision",
+        "ambiguous argument",
+    )
+    return any(pattern in output for pattern in patterns)
+
+
 def _git_changed_files(repo_root: Path, base: str | None, head: str | None) -> set[str]:
     if base and head:
         if base == ZERO_SHA:
@@ -37,14 +59,13 @@ def _git_changed_files(repo_root: Path, base: str | None, head: str | None) -> s
     else:
         cmd = ["git", "diff", "--name-only", "HEAD", "--"]
 
-    run = subprocess.run(
-        cmd,
-        cwd=repo_root,
-        check=True,
-        capture_output=True,
-        text=True,
-    )
-    return _normalize_paths(run.stdout.splitlines())
+    try:
+        return _run_git_changed_files(repo_root, cmd)
+    except subprocess.CalledProcessError as exc:
+        if base and head and base != ZERO_SHA and _is_revision_error(exc):
+            fallback = ["git", "show", "--pretty=format:", "--name-only", head, "--"]
+            return _run_git_changed_files(repo_root, fallback)
+        raise
 
 
 def find_missing_fuzz_updates(changed_files: set[str]) -> list[str]:

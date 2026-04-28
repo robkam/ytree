@@ -40,6 +40,80 @@ void UI_RenderFilePanel(ViewContext *ctx, const DirEntry *dir_entry,
                ctx->ctx_file_window);
 }
 
+static void CapturePanelSelectionAnchor(ViewContext *ctx, YtreePanel *panel,
+                                        const DirEntry *dir_entry) {
+  int idx;
+  const FileEntry *selected_file;
+
+  if (!panel)
+    return;
+
+  panel->file_selection_name[0] = '\0';
+  panel->file_selection_dir_path[0] = '\0';
+
+  if (!ctx || !dir_entry)
+    return;
+
+  if (!panel->file_entry_list || panel->file_count == 0)
+    BuildFileEntryList(ctx, panel);
+  if (!panel->file_entry_list || panel->file_count == 0)
+    return;
+
+  idx = panel->start_file + panel->file_cursor_pos;
+  if (idx < 0)
+    idx = 0;
+  if ((unsigned int)idx >= panel->file_count)
+    idx = (int)panel->file_count - 1;
+  if (idx < 0)
+    return;
+
+  selected_file = panel->file_entry_list[idx].file;
+  if (!selected_file)
+    return;
+
+  (void)snprintf(panel->file_selection_name, sizeof(panel->file_selection_name),
+                 "%s", selected_file->name);
+  GetPath((DirEntry *)dir_entry, panel->file_selection_dir_path);
+  panel->file_selection_dir_path[PATH_LENGTH] = '\0';
+}
+
+static FileEntry *GetActivePanelSelectedFile(ViewContext *ctx,
+                                             const DirEntry *dir_entry) {
+  int idx;
+
+  if (!ctx || !ctx->active || !dir_entry || !ctx->active->file_entry_list ||
+      ctx->active->file_count == 0) {
+    return NULL;
+  }
+
+  if (ctx->active->file_selection_name[0] != '\0' &&
+      ctx->active->file_selection_dir_path[0] != '\0') {
+    char current_dir_path[PATH_LENGTH + 1];
+
+    GetPath((DirEntry *)dir_entry, current_dir_path);
+    current_dir_path[PATH_LENGTH] = '\0';
+    if (strcmp(current_dir_path, ctx->active->file_selection_dir_path) == 0) {
+      for (unsigned int i = 0; i < ctx->active->file_count; i++) {
+        FileEntry *candidate = ctx->active->file_entry_list[i].file;
+        if (candidate &&
+            strcmp(candidate->name, ctx->active->file_selection_name) == 0) {
+          return candidate;
+        }
+      }
+    }
+  }
+
+  idx = ctx->active->start_file + ctx->active->file_cursor_pos;
+  if (idx < 0)
+    idx = 0;
+  if ((unsigned int)idx >= ctx->active->file_count)
+    idx = (int)ctx->active->file_count - 1;
+  if (idx < 0)
+    return NULL;
+
+  return ctx->active->file_entry_list[idx].file;
+}
+
 static void RebuildActiveFileListAfterMutation(ViewContext *ctx,
                                                DirEntry *dir_entry) {
   int file_count;
@@ -341,17 +415,32 @@ BOOL handle_file_window_split_switch_action(
     ViewContext *ctx, YtreeAction action, DirEntry *dir_entry,
     YtreePanel *owner_panel, BOOL *switched_panel_ptr,
     YtreeAction *loop_action_ptr, BOOL *return_esc_ptr) {
+  const FileEntry *active_selected_file = NULL;
+  char active_selected_dir[PATH_LENGTH + 1];
+
   if (!ctx || !dir_entry || !owner_panel || !switched_panel_ptr ||
       !loop_action_ptr || !return_esc_ptr)
     return FALSE;
 
+  active_selected_dir[0] = '\0';
   *return_esc_ptr = FALSE;
 
   switch (action) {
   case ACTION_SPLIT_SCREEN:
-    owner_panel->file_dir_entry = dir_entry;
-    owner_panel->start_file = dir_entry->start_file;
-    owner_panel->file_cursor_pos = dir_entry->cursor_pos;
+    if (ctx->is_split_screen && ctx->active == owner_panel) {
+      active_selected_file = GetActivePanelSelectedFile(ctx, dir_entry);
+      if (active_selected_file) {
+        GetPath((DirEntry *)dir_entry, active_selected_dir);
+        active_selected_dir[PATH_LENGTH] = '\0';
+      }
+    }
+
+    if (!ctx->is_split_screen) {
+      owner_panel->file_dir_entry = dir_entry;
+      owner_panel->start_file = dir_entry->start_file;
+      owner_panel->file_cursor_pos = dir_entry->cursor_pos;
+    }
+    CapturePanelSelectionAnchor(ctx, owner_panel, dir_entry);
 
     if (ctx->is_split_screen && ctx->active == ctx->right) {
       ctx->left->vol = ctx->right->vol;
@@ -360,6 +449,22 @@ BOOL handle_file_window_split_switch_action(
       ctx->left->start_file = ctx->right->start_file;
       ctx->left->file_cursor_pos = ctx->right->file_cursor_pos;
       ctx->left->file_dir_entry = ctx->right->file_dir_entry;
+      (void)snprintf(ctx->left->file_selection_name,
+                     sizeof(ctx->left->file_selection_name), "%s",
+                     ctx->right->file_selection_name);
+      (void)snprintf(ctx->left->file_selection_dir_path,
+                     sizeof(ctx->left->file_selection_dir_path), "%s",
+                     ctx->right->file_selection_dir_path);
+      if (active_selected_file) {
+        (void)snprintf(ctx->left->file_selection_name,
+                       sizeof(ctx->left->file_selection_name), "%s",
+                       active_selected_file->name);
+      }
+      if (active_selected_dir[0] != '\0') {
+        (void)snprintf(ctx->left->file_selection_dir_path,
+                       sizeof(ctx->left->file_selection_dir_path), "%s",
+                       active_selected_dir);
+      }
       ctx->left->saved_focus = ctx->right->saved_focus;
       FreeFileEntryList(ctx->left);
     }
@@ -391,6 +496,7 @@ BOOL handle_file_window_split_switch_action(
     owner_panel->file_dir_entry = dir_entry;
     owner_panel->start_file = dir_entry->start_file;
     owner_panel->file_cursor_pos = dir_entry->cursor_pos;
+    CapturePanelSelectionAnchor(ctx, owner_panel, dir_entry);
     ctx->active->saved_focus = FOCUS_FILE;
     *switched_panel_ptr = TRUE;
     SwitchToSmallFileWindow(ctx);
@@ -480,10 +586,9 @@ BOOL handle_file_window_command_action(ViewContext *ctx, YtreeAction action,
   switch (action) {
   case ACTION_CMD_Y:
   case ACTION_CMD_C:
-    fe_ptr =
-        ctx->active
-            ->file_entry_list[dir_entry->start_file + dir_entry->cursor_pos]
-            .file;
+    fe_ptr = GetActivePanelSelectedFile(ctx, dir_entry);
+    if (!fe_ptr)
+      break;
     de_ptr = fe_ptr->dir_entry;
 
     path_copy = FALSE;
@@ -551,10 +656,9 @@ BOOL handle_file_window_command_action(ViewContext *ctx, YtreeAction action,
       break;
     }
 
-    fe_ptr =
-        ctx->active
-            ->file_entry_list[dir_entry->start_file + dir_entry->cursor_pos]
-            .file;
+    fe_ptr = GetActivePanelSelectedFile(ctx, dir_entry);
+    if (!fe_ptr)
+      break;
     de_ptr = fe_ptr->dir_entry;
 
     need_dsp_help = TRUE;
