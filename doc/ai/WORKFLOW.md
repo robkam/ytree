@@ -239,6 +239,27 @@ Default durable paths (informational defaults, not commands):
 
 These defaults are read from relay env configuration (`RELAY_DB`, `RELAY_EVENT_LOG`) and can be changed in `~/.config/ytree/relay.env`.
 
+##### 3.1.0.4 Run Start Preflight and Live Monitoring (Mandatory)
+
+Before every `start-run`, confirm worker commands are configured in `~/.config/ytree/relay.env` and are not placeholders:
+- `RELAY_DEVELOPER_CMD=...`
+- `RELAY_CODE_AUDITOR_CMD=...`
+
+When invoking `scripts/relay_runtime.py start-run` directly, load relay env first so runtime preflight reads the configured worker commands:
+
+```bash
+set -a
+source ~/.config/ytree/relay.env
+set +a
+python3 scripts/relay_runtime.py start-run ...
+```
+
+For live monitoring, use verbose dashboard output so heartbeat events are visible:
+
+```bash
+watch -n 5 'python3 scripts/relay_runtime.py dashboard --verbose --limit 20'
+```
+
 #### 3.1.1 Workflow Contract (Mandatory)
 
 1.  This workflow is mandatory for non-trivial missions.

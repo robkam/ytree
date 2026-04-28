@@ -10,6 +10,31 @@ def _footer_text(tui):
     return "\n".join(tui.get_screen_dump()[-3:]).lower()
 
 
+def _screen_text(tui):
+    return "\n".join(tui.get_screen_dump())
+
+
+def _find_line_with_text(tui, needle):
+    for line in tui.get_screen_dump():
+        if needle in line:
+            return line
+    return None
+
+
+def _line_marks_file_as_tagged(line, filename):
+    idx = line.find(filename)
+    if idx <= 0:
+        return False
+    return "*" in line[:idx]
+
+
+def _current_copy_source(tui):
+    m = re.search(r"COPY:\s+([^\s_]+)", _screen_text(tui))
+    if not m:
+        return None
+    return m.group(1)
+
+
 def _assert_dir_mode_footer(tui, message):
     footer = _footer_text(tui)
     assert "hex invert j compare" not in footer and "j compare" in footer and "j tree" in footer, (
@@ -978,6 +1003,131 @@ def test_bug_f_eight_mirrored_inactive_selection_identity_stable(tmp_path, ytree
         )
 
     tui.quit()
+
+
+def test_bug_f_eight_source_selection_survives_destination_tree_prep(
+    tmp_path, ytree_binary
+):
+    """
+    BUG-36 regression:
+    In same-volume split mode, destination-side prep work (newfile + tree
+    navigation + mkdir/cd) must not re-index source file selection.
+    """
+    root = tmp_path / "bug_f_eight_source_selection_tree_prep"
+    root.mkdir()
+
+    source_dir = root / "source_dir"
+    source_dir.mkdir()
+    target_dir = root / "target_dir"
+    target_dir.mkdir()
+
+    (source_dir / "source_0.txt").write_text("0\n", encoding="utf-8")
+    (source_dir / "source_1.txt").write_text("1\n", encoding="utf-8")
+    (source_dir / "source_2.txt").write_text("2\n", encoding="utf-8")
+
+    tui = YtreeTUI(executable=ytree_binary, cwd=str(root))
+    time.sleep(0.9)
+
+    try:
+        # Source intent: tag source_0, then keep source_1 selected.
+        tui.send_keystroke(Keys.DOWN, wait=0.2)
+        tui.send_keystroke(Keys.ENTER, wait=0.4)
+        assert "hex invert j compare" in _footer_text(tui)
+        tui.send_keystroke("t", wait=0.2)
+
+        # Baseline check: without split prep, copy source should be source_1.
+        tui.send_keystroke("c", wait=0.3)
+        assert tui.wait_for_content("COPY: source_1.txt", timeout=1.0), _screen_text(
+            tui
+        )
+        tui.send_keystroke(Keys.ESC, wait=0.2)
+
+        source_line = _find_line_with_text(tui, "source_0.txt")
+        assert source_line is not None, _screen_text(tui)
+        assert _line_marks_file_as_tagged(source_line, "source_0.txt"), _screen_text(
+            tui
+        )
+
+        # Split, switch to destination, then do destination prep.
+        tui.send_keystroke(Keys.F8, wait=0.4)
+        tui.send_keystroke(Keys.TAB, wait=0.4)
+        tui.send_keystroke("n", wait=0.2)
+        assert tui.wait_for_content("MAKE FILE:", timeout=1.0), _screen_text(tui)
+        tui.send_keystroke("aaa_new.txt" + Keys.ENTER, wait=0.8)
+        tui.send_keystroke(Keys.ESC, wait=0.3)
+        tui.send_keystroke(Keys.DOWN, wait=0.3)
+        tui.send_keystroke("M", wait=0.2)
+        assert tui.wait_for_content("MAKE DIRECTORY:", timeout=1.0), _screen_text(tui)
+        tui.send_keystroke("stage_dir" + Keys.ENTER, wait=0.7)
+        tui.send_keystroke(Keys.ENTER, wait=0.5)
+
+        # Back to source and verify source intent is stable by identity.
+        tui.send_keystroke(Keys.TAB, wait=0.5)
+        source_line_after = _find_line_with_text(tui, "source_0.txt")
+        assert source_line_after is not None, _screen_text(tui)
+        assert _line_marks_file_as_tagged(source_line_after, "source_0.txt"), (
+            "Destination-side prep mutated source tagged state.\n"
+            f"Row: {source_line_after}\n{_screen_text(tui)}"
+        )
+
+        tui.send_keystroke("c", wait=0.3)
+        assert tui.wait_for_content("COPY: source_1.txt", timeout=1.0), (
+            "Destination-side prep re-indexed source file selection by row position.\n"
+            f"{_screen_text(tui)}"
+        )
+        tui.send_keystroke(Keys.ESC, wait=0.2)
+    finally:
+        tui.quit()
+
+
+def test_source_tagged_selection_survives_destination_prep(tmp_path, ytree_binary):
+    """
+    BUG-36 regression:
+    When split is closed from the right panel, source selection identity must
+    stay with the active (right) file instead of restoring a stale left anchor.
+    """
+    root = tmp_path / "bug_f_eight_unsplit_right_anchor"
+    root.mkdir()
+    source_dir = root / "source_dir"
+    source_dir.mkdir()
+
+    (source_dir / "a.txt").write_text("a\n", encoding="utf-8")
+    (source_dir / "b.txt").write_text("b\n", encoding="utf-8")
+    (source_dir / "c.txt").write_text("c\n", encoding="utf-8")
+
+    tui = YtreeTUI(executable=ytree_binary, cwd=str(root))
+    time.sleep(0.9)
+
+    try:
+        tui.send_keystroke(Keys.DOWN, wait=0.2)
+        tui.send_keystroke(Keys.ENTER, wait=0.4)
+        assert "hex invert j compare" in _footer_text(tui)
+
+        # Left source anchor: keep b.txt selected before splitting.
+        tui.send_keystroke(Keys.DOWN, wait=0.2)
+        assert _find_line_with_text(tui, "b.txt") is not None, _screen_text(tui)
+
+        # Split and switch to right panel; select c.txt there.
+        tui.send_keystroke(Keys.F8, wait=0.4)
+        tui.send_keystroke(Keys.TAB, wait=0.4)
+        tui.send_keystroke(Keys.DOWN, wait=0.2)
+
+        tui.send_keystroke("c", wait=0.3)
+        assert _current_copy_source(tui) == "c.txt", _screen_text(tui)
+        tui.send_keystroke(Keys.ESC, wait=0.2)
+
+        # Close split from right panel; source must stay c.txt.
+        tui.send_keystroke(Keys.F8, wait=0.5)
+        assert _find_line_with_text(tui, "b.txt") is not None, _screen_text(tui)
+
+        tui.send_keystroke("c", wait=0.3)
+        assert _current_copy_source(tui) == "c.txt", (
+            "Unsplitting from right restored stale left source anchor.\n"
+            f"{_screen_text(tui)}"
+        )
+        tui.send_keystroke(Keys.ESC, wait=0.2)
+    finally:
+        tui.quit()
 
 
 def test_split_file_focus_survives_tab_round_trip(tmp_path, ytree_binary):
