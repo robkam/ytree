@@ -10,13 +10,13 @@ Ordering policy (for all editors, including AI editors):
 
 ## **Current Runtime Defects (Highest Priority First)**
 
-### **BUG-38: `Write` Destination Ambiguity and Crash Path**
+### **BUG-39: `Write` Destination Ambiguity and Crash Path**
 *   **Description**: In `Write`, entering a plain filename (for example `report-2026-04-11.txt`) can be interpreted as a command execution path instead of file output, and user repro indicates this path can crash after command failure handling.
 *   **Impact**: Violates least-surprise behavior, risks data-loss/confusion for new users, and introduces a stability defect (segmentation fault).
 *   **Remediation**: Make destination handling explicit and safe: default plain filename/path input to file output, provide an explicit File vs Command destination choice in the flow, keep expert shortcuts as optional aliases, and harden all command/file-open failure paths to eliminate crashes.
 *   **Status**: Fixed.
 
-### **BUG-37: Right Arrow Does Not Drill Down on Expanded Nodes**
+### **BUG-38: Right Arrow Does Not Drill Down on Expanded Nodes**
 *   **Description**: In Directory Mode, `Right Arrow` expands a collapsed node correctly, but performs a no-op when the node is already expanded.
 *   **Findings**:
     *   `Right Arrow` on collapsed node: expands one level (works).
@@ -29,7 +29,7 @@ Ordering policy (for all editors, including AI editors):
 *   **Remediation**: Align `Right Arrow` handling with documented progressive drill-down behavior in Directory Mode.
 *   **Status**: Fixed.
 
-### **BUG-36: F8 Mirrored Tree Changes Can Move Inactive Selection to Wrong Node**
+### **BUG-37: F8 Mirrored Tree Changes Can Move Inactive Selection to Wrong Node**
 *   **Description**: In `F8` split mode, mirrored expand/collapse changes can move the inactive pane selection unexpectedly to another sibling/ancestor even when the original inactive selection should remain valid.
 *   **Repro (Confirmed)**:
 *   Select `~/ytree/obj/cmd`, then enter split mode (`F8`).
@@ -42,16 +42,16 @@ Ordering policy (for all editors, including AI editors):
 *   **Impact**: Breaks split-pane predictability and makes inactive-pane targeting unreliable for copy/move/compare workflows.
 *   **Remediation**: Preserve inactive selection by stable node identity (not row/index), and apply deterministic fallback only when the selected node becomes invalid.
 *   **Related**: `ROADMAP` Task 45 (inactive split-panel selection semantics + regression coverage).
-*   **Status**: Confirmed.
+*   **Status**: Fixed.
 
-### **BUG-35: F8 Same-Volume Destination Navigation Can Lose Source Selection/Tagged Set**
+### **BUG-36: F8 Same-Volume Destination Navigation Can Lose Source Selection/Tagged Set**
 *   **Description**: In `F8` split mode on the same volume, navigating the destination side (including creating/changing directories during copy/move preparation) can cause the original source file selection/tagged set to disappear or be replaced by the destination-context file list.
 *   **Impact**: Breaks split-panel isolation and creates high wrong-target risk in copy/move workflows because source intent is lost while preparing destination paths.
 *   **Remediation**: Enforce source-vs-destination state isolation in split mode so destination-side `mkdir`/`cd` and tree navigation cannot mutate source selection/tag state. Preserve source tagged/selection state by stable file identity across destination context changes, and apply deterministic fallback only when a selected source entry truly no longer exists.
-*   **Related**: `BUG-36` (inactive split selection stability), `ROADMAP` Task 45 (split selection semantics/regression coverage).
+*   **Related**: `BUG-37` (inactive split selection stability), `ROADMAP` Task 45 (split selection semantics/regression coverage).
 *   **Status**: Confirmed.
 
-### **BUG-34: F7 Preview Over-Restricts Command Availability**
+### **BUG-35: F7 Preview Over-Restricts Command Availability**
 *   **Description**: `F7` mode is currently incomplete for inspect-and-act workflows. Too many common file actions are disabled, so users must leave preview to continue work.
 *   **Expected Behavior**:
     *   `F7` should allow a practical command subset for in-context file work (for example attributes/copy/delete/edit/filter/compare/move/new-date/open/print/rename/tag/untag/view/execute/quit paths as applicable).
@@ -63,92 +63,92 @@ Ordering policy (for all editors, including AI editors):
 *   **Related**: Existing regression intent for `F8`-in-`F7` state safety should remain preserved and extended to `Tab`.
 *   **Status**: Confirmed.
 
-### **BUG-33: `Write` Offers/Describes Actions That Are Not Context-Valid**
+### **BUG-34: `Write` Offers/Describes Actions That Are Not Context-Valid**
 *   **Description**: `Write` format/options/prompt/help are not consistently aligned with context (`dir`/`file`/`archive`/`tagged`) and can imply workflows that are unavailable or misleading in the active mode.
 *   **Impact**: Reduces discoverability and trust, and creates avoidable trial-and-error in critical output/export flows.
 *   **Remediation**: Define and enforce a context-valid option matrix for `Write`, expose only valid options in each mode, and keep prompt/help text explicit and non-jargon (including destination examples such as file output and printer-command output). Keep `SPECIFICATION`, `F1` help, and manpage/USAGE text synchronized with the same destination semantics.
 *   **Status**: Confirmed.
 
-### **BUG-32: `F10` Hard-Fails When `~/.ytree` Is Missing**
+### **BUG-33: `F10` Hard-Fails When `~/.ytree` Is Missing**
 *   **Description**: If `~/.ytree` does not exist, pressing `F10` fails with an edit error instead of letting users proceed with configuration editing.
 *   **Impact**: Creates avoidable first-run friction in a common workflow and forces users to discover `--init` before they can use in-app config editing.
 *   **Remediation**: On `F10` with missing `~/.ytree`, open an editable default config buffer immediately and create `~/.ytree` only if the user saves; if they exit without saving, do not create the file.
 *   **Status**: Confirmed.
 
-### **BUG-31: `SMALLWINDOWSKIP=0` Is Ignored**
+### **BUG-32: `SMALLWINDOWSKIP=0` Is Ignored**
 *   **Description**: Setting `SMALLWINDOWSKIP=0` does not re-enable the small window; runtime still behaves as if small-window skipping is active.
 *   **Impact**: Breaks configuration trust and blocks users from restoring a primary layout element through documented config.
 *   **Remediation**: Ensure `SMALLWINDOWSKIP` is parsed/applied correctly so `0` reliably enables the small window and `1` skips it across relevant contexts.
 *   **Status**: Confirmed.
 
-### **BUG-30: `F10` Save Does Not Reload Configuration in-Session**
+### **BUG-31: `F10` Save Does Not Reload Configuration in-Session**
 *   **Description**: Editing and saving configuration via `F10` does not update active runtime behavior until ytree is quit and restarted.
 *   **Impact**: Violates expected interactive-config workflow and adds avoidable friction after in-app edits.
 *   **Remediation**: Live-apply is preferred: reload and apply safe settings immediately after `F10` save. For settings that are not safe to rebind mid-session, show a concise explicit notice that restart is required.
 *   **Status**: Confirmed.
 
-### **BUG-29: Dir/Tree View Loses Lines/Path After Returning From `F10` Editor**
+### **BUG-30: Dir/Tree View Loses Lines/Path After Returning From `F10` Editor**
 *   **Description**: From directory/tree context, running `F10` to edit config and returning to ytree can leave directory and small-window lines/path missing; the same flow from file view does not show this symptom.
 *   **Impact**: Corrupts primary navigation UI after a common workflow and reduces operator trust in view stability.
 *   **Remediation**: On return from external editor/config-save flow, restore/redraw directory-tree and small-window state deterministically for dir context (including path/header lines), and keep behavior consistent with file-view return path.
-*   **Related**: `BUG-15` (state/layout transition corruption family), `BUG-30` (post-`F10` apply/return family).
+*   **Related**: `BUG-15` (state/layout transition corruption family), `BUG-31` (post-`F10` apply/return family).
 *   **Status**: Confirmed.
 
-### **BUG-28: External Viewer Return Can Corrupt Ytree UI Redraw**
+### **BUG-29: External Viewer Return Can Corrupt Ytree UI Redraw**
 *   **Description**: Returning from external viewer/pager flows can leave ytree in a visibly corrupted state (for example shell prompt fragments or stray text rendered into panes/footer instead of a clean ncurses repaint).
 *   **Impact**: Breaks core usability immediately after viewing, obscures navigation/help text, and reduces trust in terminal-state safety.
 *   **Remediation**: Ensure external-view return paths always restore curses mode and perform a full deterministic UI repaint (header, panes, footer/help lines), including prompt-line cleanup before accepting further input.
 *   **Status**: Confirmed.
 
-### **BUG-27: Viewer Return (`v` -> `q`) Can Corrupt UI and Input State**
+### **BUG-28: Viewer Return (`v` -> `q`) Can Corrupt UI and Input State**
 *   **Description**: In WSL repro, running ytree, opening `View` on a file (`v`), then quitting viewer (`q`) can leave the main UI mostly vanished/artifacted (for example stray clock digits only). Follow-on input/state is also corrupted: `^L` has negligible/no effect, `Enter` no longer toggles to dir window, and a subsequent `q` exits ytree.
 *   **Impact**: Breaks core post-view workflow and can leave the session in a partially unusable state until restart.
 *   **Remediation**: Harden viewer-return restore path to reestablish full ncurses paint + mode/input state atomically (window ownership, active pane mode, key handling context) before processing next key events.
-*   **Related**: `BUG-28` (same return/redraw defect family).
+*   **Related**: `BUG-29` (same return/redraw defect family).
 *   **Status**: Confirmed.
 
-### **BUG-26: Copy/Move Cancel (`Esc`) Can Leave Footer Blank**
+### **BUG-27: Copy/Move Cancel (`Esc`) Can Leave Footer Blank**
 *   **Description**: In `Copy`/`Move` flows, canceling with `Esc` can leave footer/help lines blank instead of restoring the normal context footer.
 *   **Impact**: Hides command discoverability immediately after a canceled mutation flow and makes the UI look partially broken.
 *   **Remediation**: On all `Copy`/`Move` cancel/exit paths (`Esc` and equivalent cancel keys), restore footer/help ownership deterministically to the active view context and force a full footer redraw before accepting the next command.
 *   **Related**: `BUG-6` (footer restore consistency during input flows), `ROADMAP` Task 31 (footer/F1 context parity).
 *   **Status**: Confirmed.
 
-### **BUG-25: Prompt Footer/F1 Parity Can Hide Available Prompt Actions**
+### **BUG-26: Prompt Footer/F1 Parity Can Hide Available Prompt Actions**
 *   **Description**: In prompt-driven workflows, footer/F1 coverage can omit active prompt actions and semantics (for example completion/browse controls and compare/archive prompt meanings), leaving available behavior under-discoverable.
 *   **Impact**: Creates hidden-feature workflow confusion and high-friction issue reports during routine operations.
 *   **Remediation**: Enforce a prompt-context parity contract: footer shows currently available prompt actions; F1 may add concise semantics/examples for those same actions, but must not advertise unavailable actions.
-*   **Related**: `ROADMAP` Task 31 (footer/F1 context parity), `BUG-20` (hidden archive action), `BUG-33` (prompt/help context mismatch).
+*   **Related**: `ROADMAP` Task 31 (footer/F1 context parity), `BUG-21` (hidden archive action), `BUG-34` (prompt/help context mismatch).
 *   **Status**: Confirmed.
 
-### **BUG-24: Progress Spinner Can Overwrite Footer/Prompt Help Surfaces**
+### **BUG-25: Progress Spinner Can Overwrite Footer/Prompt Help Surfaces**
 *   **Description**: During long-running operations, spinner/progress rendering can overwrite footer/prompt help text instead of using a non-obtrusive status area.
 *   **Impact**: Hides available actions and makes active workflows look unstable or hung.
 *   **Remediation**: Preserve footer/prompt/F1 ownership during progress updates. Render progress in a dedicated non-obtrusive status surface, and degrade to a compact indicator when space is constrained rather than overwriting help text.
 *   **Related**: `ROADMAP` Task 54 (progress indicators), `ROADMAP` Task 31 (footer/F1 parity contract).
 *   **Status**: Confirmed.
 
-### **BUG-23: Modal Severity Messages Render as Error-Red**
+### **BUG-24: Modal Severity Messages Render as Error-Red**
 *   **Description**: Centered modal messages can render with error-red styling even when the message severity is informational or warning-level, instead of using severity-specific visual treatment.
 *   **Impact**: Blurs severity intent, increases operator confusion, and conflicts with documented message tiers and configurable color expectations.
 *   **Remediation**: Perform a full user-message surface audit (modal/footer/status paths), identify all message-producing callsites and severity-routing logic, and enforce a single severity-aware rendering contract. Ensure modal severity maps to `INFO_COLOR`, `WARN_COLOR`, and `ERR_COLOR` from `ytree.conf`, then add focused regression tests that prove correct severity-to-color routing (including config-driven overrides and safe defaults).
 *   **Related**: `doc/SPECIFICATION.md` section 6.2 modal severity tiers; `etc/ytree.conf` `[COLORS]` keys `INFO_COLOR`, `WARN_COLOR`, `ERR_COLOR`.
 *   **Status**: Confirmed.
 
-### **BUG-22: Copy/Move/PathCopy Rename Prompt Missing Explicit `AS:` Label**
+### **BUG-23: Copy/Move/PathCopy Rename Prompt Missing Explicit `AS:` Label**
 *   **Description**: The first rename-target prompt in `Copy`, `Move`, and `PathCopy` can appear as `COPY: <source> <edited_target>` (and equivalents) without explicit `AS:` labeling, making source vs new-name intent ambiguous.
 *   **Impact**: Increases wrong-target risk and slows high-frequency copy/move workflows because users must infer prompt semantics from field behavior.
 *   **Remediation**: Make rename intent explicit in prompt text for all three flows (for example `COPY: <source> AS: <target>`), keep one-flow interaction depth, and keep destination-dir prompt behavior unchanged. Add focused regression coverage for prompt text/flow parity in `Copy`, `Move`, and `PathCopy`. Keep `F1` help, manpage/USAGE text, and specification wording synchronized with final prompt contract.
 *   **Related**: `ROADMAP` Task 32 (prompt/help clarity).
 *   **Status**: Confirmed.
 
-### **BUG-21: Archive Unavailable-Action Message Reports Wrong Shortcut**
+### **BUG-22: Archive Unavailable-Action Message Reports Wrong Shortcut**
 *   **Description**: In archive mode, triggering `^W` can show an error message for a different shortcut (`^P is not available in archive mode`).
 *   **Impact**: Misleading feedback increases operator confusion and undermines trust in key/action hints.
 *   **Remediation**: Ensure unavailable-action messaging reports the actual attempted action/shortcut in archive context.
 *   **Status**: Confirmed.
 
-### **BUG-20: Archive Footer Omits Available `Pipe` Action**
+### **BUG-21: Archive Footer Omits Available `Pipe` Action**
 *   **Description**: In archive directory context, `Pipe` works but is not shown in footer/help, while users rely on footer discoverability to know what is available.
 *   **Findings**:
     *   `Pipe` is available but omitted from archive footer/help lines.
@@ -156,10 +156,24 @@ Ordering policy (for all editors, including AI editors):
 *   **Remediation**: Ensure archive footer/help reflects all currently available actions (including `Pipe`) and keeps unavailable actions hidden.
 *   **Status**: Confirmed.
 
-### **BUG-19: F8 File-Window Active/Inactive Indicators Aren't Distinct**
+### **BUG-20: F8 File-Window Active/Inactive Indicators Aren't Distinct**
 *   **Description**: In F8 split mode, active (inverted) versus inactive (bold and underlined) panel cursors are correct in directory view, but both are inverted in file view.
 *   **Impact**: Users can't distinguish the active panel during file navigation.
 *   **Remediation**: Make active/inactive indicator rendering consistent between directory and file views in split mode.
+*   **Status**: Confirmed.
+
+### **BUG-19: Unlogged Tree Nodes Mislabel as `No files` and Use Misleading `dir/` Suffix**
+*   **Description**: In directory tree navigation (for example log `~`, expand `ytree/src`), an unlogged directory like `cmd` can render as `cmd/` with `No files`; expanding it then reveals files.
+*   **Findings**:
+    *   The node is shown with an empty-state label before discovery/logging completes.
+    *   The trailing slash cues subtree semantics even when the immediate user question is file-presence state.
+    *   Repeated collapse input (`Left` or `-` twice) can preserve/return to the misleading empty-state text instead of a truthful unlogged state.
+*   **Expected Behavior**:
+    *   Unscanned/unlogged nodes must render as `Unlogged` (or equivalent), never `No files`.
+    *   `No files` must be reserved for scanned-and-empty directories only.
+    *   Collapse behavior (`Left` / `-`) must be idempotent for content state and must not mutate status classification.
+*   **Impact**: Misleads users about whether files exist, breaks trust in tree-state cues, and increases navigation friction in common expand/collapse workflows.
+*   **Remediation**: Enforce a strict tree-state contract (`unlogged` vs `empty` vs `has files`) with deterministic render precedence; avoid suffix/label combinations that imply false emptiness; and add regression coverage for expand/collapse (including repeated `Left`/`-`) on unlogged nodes.
 *   **Status**: Confirmed.
 
 ### **BUG-18: Tree `+` Status Marker Renders in Name Text Instead of Margin Slot**
@@ -229,7 +243,7 @@ Ordering policy (for all editors, including AI editors):
 *   **Description**: After directory-copy flow or execute-return paths, ncurses header/footer/path lines can disappear while stats/clock remain, and users must press additional keys to restore full frame.
 *   **Impact**: Makes the UI look partially broken in high-frequency workflows and reduces operator trust.
 *   **Remediation**: Harden post-command frame-restore/redraw ownership so full header/path/footer surfaces are restored atomically before next input.
-*   **Related**: `BUG-28`, `BUG-27` (return/redraw defect family).
+*   **Related**: `BUG-29`, `BUG-28` (return/redraw defect family).
 *   **Status**: Confirmed.
 
 ### **BUG-8: Attributes Name Truncation Can Hide File Identity**
