@@ -203,7 +203,7 @@ A bordered pop-up box that overlays the center of the screen, used for:
 
 ### 6.4 Context Help Contract (Footer <-> F1)
 *   **Parity Rule:** For any active context, commands shown in footer help MUST appear in that context's F1 help set. Missing footer commands in F1 are defects.
-*   **Concision Rule:** F1 content is concise and contextual. Detailed semantics and examples belong in `etc/ytree.1.md` and generated `doc/USAGE.md`.
+*   **Concision Rule:** F1 content is concise and contextual. Detailed semantics and examples belong in `etc/ytree.1.md` and generated `docs/USAGE.md`.
 *   **Coverage Rule (Required):** Contract coverage includes filesystem and archive contexts (directory/file), `F7`, `F8`, `Showall`, `Global`, and tagged workflows.
 *   **Variant Rule:** Help rendering must stay correct for `VI_KEYS=1` variants and Ctrl-held footer variants.
 *   **i18n Readiness Rule:** Footer/F1 text must be structured for gettext extraction and reuse to avoid duplicated, drifting message strings across contexts.

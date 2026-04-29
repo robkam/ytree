@@ -55,7 +55,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Path Utility Standardization**: Migrated all command-layer path compositions to a centralized, bounds-safe `Path_Join` utility.
 - **Internal Viewer Geometry Encapsulation**: Implemented an explicit viewer geometry contract and removed direct layout reads from `src/ui/view_internal.c`.
 - **CI and QA Suite**: Introduced GitHub Actions CI and a comprehensive local QA gate with `clang-tidy`, `cppcheck`, `scan-build`, Valgrind (including automated interactive runs), `pytest`/`pexpect`, and a module-boundary guard (`make qa-all`).
-- **Build System**: Updated Makefile for dependency tracking and unified documentation sourcing (`doc/USAGE.md` and `ytree.1.md` are now generated from a single `etc/ytree.1.md` source).
+- **Build System**: Updated Makefile for dependency tracking and unified documentation sourcing (`docs/USAGE.md` and `ytree.1.md` are now generated from a single `etc/ytree.1.md` source).
 - **Silent Refresh-Scan Handling**: Suppressed transient `stat` errors during directory refreshes to prevent non-fatal race conditions.
 - **Overwrite-All Conflict Hardening**: Unified COPY/MOVE overwrite-all behavior so selecting `A` on the first conflict suppresses repeated prompts across remaining tagged-file conflicts.
 - **AI Governance framework**: Established a formal AI orchestration system using persona routing and automation "skills" to maintain architectural consistency.

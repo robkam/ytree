@@ -5,7 +5,7 @@ This guide shows how to invoke the `rm-code-smells` skill in prompts.
 ## Filename and Location
 
 - Conventional filename: `RM_CODE_SMELLS.md`
-- Canonical location: `doc/ai/`
+- Canonical location: `docs/ai/`
 
 ## Quick Start
 

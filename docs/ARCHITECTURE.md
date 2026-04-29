@@ -169,7 +169,7 @@ The Split-Screen architecture treats each panel as an independent instance of a 
 
 ## 7. Directory Structure
 *   **build/**: Compiled binary outputs.
-*   **doc/**: Project documentation and specifications.
+*   **docs/**: Project documentation and specifications.
 *   **etc/**: Default configuration files.
 *   **include/**: C header files.
 *   **obj/**: Intermediate object files.

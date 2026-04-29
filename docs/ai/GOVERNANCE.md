@@ -50,4 +50,4 @@ For common governance edits, use these canonical targets:
 | Gemini-only behavior | `.ai/gemini.md` | `GEMINI.md` |
 | Persona role boundary or posture | `.agent/rules/<persona>.md` | `.ai/skills/*` |
 | Repeatable operational checklist/procedure | `.ai/skills/<skill>/SKILL.md` | `.agent/rules/*` |
-| Workflow policy/process narrative | `doc/ai/WORKFLOW.md` | Root stubs |
+| Workflow policy/process narrative | `docs/ai/WORKFLOW.md` | Root stubs |

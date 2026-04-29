@@ -9,7 +9,7 @@ You **MUST** use the MCP semantic tools (`serena` and `jcodemunch`) for all sear
 Canonical Gemini instructions: `./.ai/gemini.md`
 Shared instructions for all agents: `./.ai/shared.md`
 
-Docs note: `doc/USAGE.md` is generated from `etc/ytree.1.md`; edit `etc/ytree.1.md` as source.
+Docs note: `docs/USAGE.md` is generated from `etc/ytree.1.md`; edit `etc/ytree.1.md` as source.
 
 Commit messages: see `./.ai/shared.md` rule 8 (enforced by `.githooks/commit-msg`).
 

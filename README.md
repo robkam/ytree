@@ -30,7 +30,7 @@ This refactor serves as a case study in using Large Language Models (LLMs) to ev
 *   **Multi-Volume Support:** Log multiple drives or archives simultaneously and switch instantly.
 *   **Archives as Directories:** Browse ZIP, TAR, GZ, and ISO files transparently using `libarchive`.
 *   **Advanced Filtering:** Filter by RegEx, Attribute, Date, and Size.
-*   **Modern Architecture:** Clean C99, strict context-passing design — no global mutable state. See [ARCHITECTURE.md](doc/ARCHITECTURE.md).
+*   **Modern Architecture:** Clean C99, strict context-passing design — no global mutable state. See [ARCHITECTURE.md](docs/ARCHITECTURE.md).
 *   **Auto-Refresh:** Inotify integration for live directory updates.
 *   **External Viewers:** Associate specific file extensions with external programs (images, PDFs, etc.).
 *   **User Commands:** Bind keys to custom shell commands/scripts for infinite extensibility.
@@ -42,15 +42,15 @@ This refactor serves as a case study in using Large Language Models (LLMs) to ev
 
 **1. The Classic Interface**
 Visualize and navigate your directory hierarchy instantly.
-![Main View](doc/screenshots/01_main.png)
+![Main View](docs/screenshots/01_main.png)
 
 **2. Split Screen & Archives**
 Manage two independent panels. Here, browsing an ISO on the left and copying files directly to the Home Directory on the right.
-![Split Screen Archive](doc/screenshots/02_split_archive.png)
+![Split Screen Archive](docs/screenshots/02_split_archive.png)
 
 **3. Integrated Preview**
 Inspect file contents without leaving the file manager. (Shown: Previewing a file *inside* an ISO archive).
-![Preview Mode](doc/screenshots/03_preview.png)
+![Preview Mode](docs/screenshots/03_preview.png)
 
 </details>
 
@@ -90,14 +90,14 @@ The project documentation is split into several focused files.
 
 | Document | Purpose |
 | :--- | :--- |
-| **[USAGE.md](doc/USAGE.md)** | **User Guide**: How to navigate, tag, and use command keys. (Generated from `ytree.1.md`). |
-| **[CONTRIBUTING.md](doc/CONTRIBUTING.md)** | **Developer Setup**: How to set up the environment, run tests, and submit code. |
-| **[ARCHITECTURE.md](doc/ARCHITECTURE.md)** | **System Design**: Core technical principles (DRY, SRP, Context-passing) and data hierarchy. |
-| **[SPECIFICATION.md](doc/SPECIFICATION.md)** | **Behavioral Contract**: UI layout, navigation protocols, and design philosophy. |
-| **[CHANGES.md](doc/CHANGES.md)** | **Changelog**: Detailed history of v3.0 feature delivery, architecture work, and updates. |
-| **[ROADMAP.md](doc/ROADMAP.md)** | **Future Plans**: Pending milestones and prioritized delivery backlog. |
-| **[AUDIT.md](doc/AUDIT.md)** | **QA Workflow**: The mandatory safety/integrity checks for every PR (Valgrind, ASan, etc). |
-| **[TRUST.md](doc/TRUST.md)** | **Trust & Safety**: Safety claims and where to verify them in the codebase. |
+| **[USAGE.md](docs/USAGE.md)** | **User Guide**: How to navigate, tag, and use command keys. (Generated from `ytree.1.md`). |
+| **[CONTRIBUTING.md](docs/CONTRIBUTING.md)** | **Developer Setup**: How to set up the environment, run tests, and submit code. |
+| **[ARCHITECTURE.md](docs/ARCHITECTURE.md)** | **System Design**: Core technical principles (DRY, SRP, Context-passing) and data hierarchy. |
+| **[SPECIFICATION.md](docs/SPECIFICATION.md)** | **Behavioral Contract**: UI layout, navigation protocols, and design philosophy. |
+| **[CHANGES.md](docs/CHANGES.md)** | **Changelog**: Detailed history of v3.0 feature delivery, architecture work, and updates. |
+| **[ROADMAP.md](docs/ROADMAP.md)** | **Future Plans**: Pending milestones and prioritized delivery backlog. |
+| **[AUDIT.md](docs/AUDIT.md)** | **QA Workflow**: The mandatory safety/integrity checks for every PR (Valgrind, ASan, etc). |
+| **[TRUST.md](docs/TRUST.md)** | **Trust & Safety**: Safety claims and where to verify them in the codebase. |
 
 ---
 
@@ -116,7 +116,7 @@ It will help us to address the issue if you include the following:
 
 ## Contributing
 
-Contributions are welcome! Please read [CONTRIBUTING.md](doc/CONTRIBUTING.md) for guidelines. See [SPECIFICATION.md](doc/SPECIFICATION.md) for behavioral requirements, and [ARCHITECTURE.md](doc/ARCHITECTURE.md) to understand the system design before submitting code.
+Contributions are welcome! Please read [CONTRIBUTING.md](docs/CONTRIBUTING.md) for guidelines. See [SPECIFICATION.md](docs/SPECIFICATION.md) for behavioral requirements, and [ARCHITECTURE.md](docs/ARCHITECTURE.md) to understand the system design before submitting code.
 
 ## License
 
@@ -124,4 +124,4 @@ Ytree is free software distributed under the GPL. See the [LICENSE.md](LICENSE.m
 
 ## Contributors
 
-For detailed authorship, see [AUTHORS.md](doc/AUTHORS.md).
+For detailed authorship, see [AUTHORS.md](docs/AUTHORS.md).
