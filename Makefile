@@ -16,7 +16,7 @@ VERSIONDATE = April 2026
 SRC_DIR     = src
 INC_DIR     = include
 OBJ_DIR     = obj
-DOC_DIR     = doc
+DOC_DIR     = docs
 BUILD_DIR   = build
 BIN_DIR     = .
 

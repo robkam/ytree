@@ -5,8 +5,8 @@ Edit only the first four lines to match the tracked work item exactly, then copy
 ```text
 $WORK_DOC=docs/BUGS.md
 $WORK_KIND=Bug
-$TASK=BUG-35
-$TASK_NAME=F7 Preview Over-Restricts Command Availability
+$TASK=BUG-36
+$TASK_NAME=F8 Same-Volume Destination Navigation Can Lose Source Selection/Tagged Set
 
 Role:
 You are a stateless architect supervisor for ~/ytree. Architect-only: orchestrate, validate, and commit; do not implement code.

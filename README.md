@@ -91,13 +91,15 @@ The project documentation is split into several focused files.
 | Document | Purpose |
 | :--- | :--- |
 | **[USAGE.md](docs/USAGE.md)** | **User Guide**: How to navigate, tag, and use command keys. (Generated from `ytree.1.md`). |
+| **[BUGS.md](docs/BUGS.md)** | **Known Issues**: Current defects, reproductions, and fix status. |
 | **[CONTRIBUTING.md](docs/CONTRIBUTING.md)** | **Developer Setup**: How to set up the environment, run tests, and submit code. |
-| **[ARCHITECTURE.md](docs/ARCHITECTURE.md)** | **System Design**: Core technical principles (DRY, SRP, Context-passing) and data hierarchy. |
-| **[SPECIFICATION.md](docs/SPECIFICATION.md)** | **Behavioral Contract**: UI layout, navigation protocols, and design philosophy. |
-| **[CHANGES.md](docs/CHANGES.md)** | **Changelog**: Detailed history of v3.0 feature delivery, architecture work, and updates. |
-| **[ROADMAP.md](docs/ROADMAP.md)** | **Future Plans**: Pending milestones and prioritized delivery backlog. |
+| **[PR_GATE.md](docs/PR_GATE.md)** | **PR Governance**: Required PR gate checks and triage rules needed for merge readiness. |
 | **[AUDIT.md](docs/AUDIT.md)** | **QA Workflow**: The mandatory safety/integrity checks for every PR (Valgrind, ASan, etc). |
+| **[SPECIFICATION.md](docs/SPECIFICATION.md)** | **Behavioral Contract**: UI layout, navigation protocols, and design philosophy. |
+| **[ARCHITECTURE.md](docs/ARCHITECTURE.md)** | **System Design**: Core technical principles (DRY, SRP, Context-passing) and data hierarchy. |
 | **[TRUST.md](docs/TRUST.md)** | **Trust & Safety**: Safety claims and where to verify them in the codebase. |
+| **[ROADMAP.md](docs/ROADMAP.md)** | **Future Plans**: Pending milestones and prioritized delivery backlog. |
+| **[CHANGES.md](docs/CHANGES.md)** | **Changelog**: Detailed history of v3.0 feature delivery, architecture work, and updates. |
 
 ---
 
@@ -106,6 +108,8 @@ The project documentation is split into several focused files.
 If you find anything amiss, you can report it using [GitHub Issues](https://github.com/robkam/ytree/issues).
 
 For security-sensitive bugs, report privately via [SECURITY.md](SECURITY.md).
+
+Feature requests and enhancement ideas are welcome too. Suggestions are appreciated, but not every request can be implemented.
 
 It will help us to address the issue if you include the following:
 *   **OS & Configuration:** (Distro, Terminal type, etc.)
@@ -117,6 +121,7 @@ It will help us to address the issue if you include the following:
 ## Contributing
 
 Contributions are welcome! Please read [CONTRIBUTING.md](docs/CONTRIBUTING.md) for guidelines. See [SPECIFICATION.md](docs/SPECIFICATION.md) for behavioral requirements, and [ARCHITECTURE.md](docs/ARCHITECTURE.md) to understand the system design before submitting code.
+Contributions do not need to be low-level C internals: bug reports, documentation updates, typo fixes, wording/UX clarifications, and translations are all valuable.
 
 ## License
 
