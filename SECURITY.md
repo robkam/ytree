@@ -21,4 +21,4 @@ I'll attempt a fix as soon as I can. There is no bug bounty.
 ## Non-Security Bugs
 For non-security bugs and feature requests, use [GitHub Issues](https://github.com/robkam/ytree/issues).
 
-For trust/safety claims and evidence links, see `doc/TRUST.md`.
+For trust/safety claims and evidence links, see `docs/TRUST.md`.

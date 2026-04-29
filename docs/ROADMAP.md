@@ -101,7 +101,7 @@ Ordering policy (for all editors, including AI editors):
 *   CI publishes coverage output as build artifacts and reports pass/fail status.
 *   CI fails when measured statement coverage drops below 80% (or configured threshold).
 *   Document how to run coverage locally and how threshold policy is enforced in CI.
-*   Update `doc/AUDIT.md` in the same change so audit policy reflects implemented coverage commands/gates (not planned-only wording).
+*   Update `docs/AUDIT.md` in the same change so audit policy reflects implemented coverage commands/gates (not planned-only wording).
 *   - [ ] **Status:** Not Started.
 
 ### **Task 64: Restructure and Expand Test Suite**
@@ -188,7 +188,7 @@ Ordering policy (for all editors, including AI editors):
 *   `F2` destination-directory picker behavior remains unchanged.
 *   Rendering stays concise and non-repetitive: single-line summary with deterministic clipping (middle truncation) when width is constrained.
 *   Add focused regression tests for preview correctness and resulting destination path in representative filesystem scenarios (including nested roots and absolute destination input).
-*   Update `doc/SPECIFICATION.md`, `etc/ytree.1.md`, generated `doc/USAGE.md`, and F1/context help text so include-path root/relative/result contract and `[`/`]` controls are explicit and consistent.
+*   Update `docs/SPECIFICATION.md`, `etc/ytree.1.md`, generated `docs/USAGE.md`, and F1/context help text so include-path root/relative/result contract and `[`/`]` controls are explicit and consistent.
 *   - [ ] **Status:** Not Started.
 
 ### **Task 59C: Proactive Missing-Destination Directory Creation Prompt**
@@ -201,7 +201,7 @@ Ordering policy (for all editors, including AI editors):
 *   Choosing `N`/`Esc` leaves filesystem state unchanged and returns control to destination input flow.
 *   On creation failure (permissions/path errors), show a precise actionable error and do not continue the mutation command.
 *   Add focused regression coverage for `yes`, `no/cancel`, and failure-path behavior.
-*   Update `etc/ytree.1.md` and regenerate `doc/USAGE.md` (`make docs`) when behavior lands.
+*   Update `etc/ytree.1.md` and regenerate `docs/USAGE.md` (`make docs`) when behavior lands.
 *   - [ ] **Status:** Not Started.
 
 ### **Task 58: Add `i/I` Invert Tags in Directory Mode**
@@ -214,7 +214,7 @@ Ordering policy (for all editors, including AI editors):
 *   Split-panel isolation remains intact (only active-panel scope is mutated).
 *   If the scope has no files, the action is a silent no-op (no beep/modal).
 *   Add focused regression tests for dir-mode invert behavior (filesystem + archive coverage).
-*   Update `etc/ytree.1.md` and regenerate `doc/USAGE.md` (`make docs`) when behavior lands.
+*   Update `etc/ytree.1.md` and regenerate `docs/USAGE.md` (`make docs`) when behavior lands.
 *   - [ ] **Status:** Not Started.
 
 ### **Task 57: F7 Top Path Line Must Preserve Full `filename.ext`**
@@ -226,7 +226,7 @@ Ordering policy (for all editors, including AI editors):
 *   When width is insufficient, truncate middle of path segment; keep full selected `filename.ext` visible.
 *   The same identity-preservation rule applies in filesystem and archive preview contexts.
 *   Add focused regression tests for F7 top-line truncation/identity behavior.
-*   Update `etc/ytree.1.md` and regenerate `doc/USAGE.md` (`make docs`) when behavior lands.
+*   Update `etc/ytree.1.md` and regenerate `docs/USAGE.md` (`make docs`) when behavior lands.
 *   - [ ] **Status:** Not Started.
 
 ### **Task 56: Manual File-Column Width Controls (`[` Narrower, `]` Wider, `{` / `}` Reset)**
@@ -307,7 +307,7 @@ Ordering policy (for all editors, including AI editors):
 *   Regression tests verify option visibility/behavior parity across at least filesystem + archive contexts.
 *   Regression tests verify destination semantics (plain filename file-output default, command destination behavior, and no-crash error paths).
 *   F1/help text stays synchronized with the same matrix contract.
-*   `doc/SPECIFICATION.md`, `etc/ytree.1.md`, and generated `doc/USAGE.md` are updated in the same delivery so docs match runtime behavior.
+*   `docs/SPECIFICATION.md`, `etc/ytree.1.md`, and generated `docs/USAGE.md` are updated in the same delivery so docs match runtime behavior.
 *   - [ ] **Status:** Not Started.
 
 ### **Task 50: Add `Catalog` Output Mode to `Write`**
@@ -360,7 +360,7 @@ Ordering policy (for all editors, including AI editors):
 *   Persist last-used compare options across restart; config values seed defaults and runtime usage updates remembered defaults.
 *   Default behavior remains unchanged when quick/preset config is absent.
 *   Add focused regression coverage for compare behavior and split-panel isolation.
-*   Update compare docs/help text in `etc/ytree.1.md` and regenerate `doc/USAGE.md`.
+*   Update compare docs/help text in `etc/ytree.1.md` and regenerate `docs/USAGE.md`.
 *   - [ ] **Status:** Not Started.
 
 ### **Task 46: Add Recursive Directory Compare in `J` Flow**
@@ -372,7 +372,7 @@ Ordering policy (for all editors, including AI editors):
 *   Recursive and non-recursive directory compare are both available from the same `J`-entry compare flow.
 *   The recursive choice is explicit and discoverable in compare prompts/help.
 *   Compare target confirmation and split-panel isolation behavior remain unchanged.
-*   `etc/ytree.1.md` and generated `doc/USAGE.md` are updated when behavior lands.
+*   `etc/ytree.1.md` and generated `docs/USAGE.md` are updated when behavior lands.
 *   - [ ] **Status:** Not Started.
 
 ### **Task 45: Lock Inactive Split-Panel Selection Semantics + Regression Coverage**
@@ -383,7 +383,7 @@ Ordering policy (for all editors, including AI editors):
 *   Inactive selection remains unchanged when its selected node is still visible/valid after mirrored updates.
 *   When invalidated, fallback target follows a deterministic order (nearest visible ancestor, then next/previous visible sibling, then root visible node).
 *   Add focused regression tests for mirrored collapse, sibling/ancestor delete, and sibling/ancestor add scenarios.
-*   Update `doc/SPECIFICATION.md` contract references if implementation details differ during delivery.
+*   Update `docs/SPECIFICATION.md` contract references if implementation details differ during delivery.
 *   - [ ] **Status:** Not Started.
 
 ### **Task 44: Enable Practical Command Subset in `F7` Preview (Keep `F8`/`Tab` Blocked)**
@@ -397,7 +397,7 @@ Ordering policy (for all editors, including AI editors):
 *   `F8` and `Tab` are explicit no-ops in `F7` mode.
 *   Footer/F1 help in `F7` accurately reflects allowed actions and blocked keys.
 *   Add focused regression tests for allowed-command execution in `F7` and blocked-key enforcement (`F8`, `Tab`).
-*   Update `etc/ytree.1.md` and regenerate `doc/USAGE.md` when behavior lands.
+*   Update `etc/ytree.1.md` and regenerate `docs/USAGE.md` when behavior lands.
 *   - [ ] **Status:** Not Started.
 
 ### **Phase Follow-On Work**
@@ -499,10 +499,10 @@ Ordering policy (for all editors, including AI editors):
 *   For each supported context, every footer command appears in the matching F1 help set with concise wording and no essay-style descriptions.
 *   For active prompt contexts, footer lists currently available prompt actions; F1 may add brief semantics/examples for those same actions but must not introduce actions unavailable at runtime.
 *   First-pass required contexts: FS dir, FS file, VFS dir, VFS file, F7, F8, Showall, Global, tagged flows, `VI_KEYS=1` variants, and Ctrl-held footer variant.
-*   Context-sensitive actions keep short in-app summaries while full semantics remain in `etc/ytree.1.md`/`doc/USAGE.md` (for example compare `J` modes, compare basis/tag/hash meaning, and compress format/extension behavior).
+*   Context-sensitive actions keep short in-app summaries while full semantics remain in `etc/ytree.1.md`/`docs/USAGE.md` (for example compare `J` modes, compare basis/tag/hash meaning, and compress format/extension behavior).
 *   Help text paths are structured for gettext extraction/reuse (no duplicated ad-hoc strings per view path).
 *   Add regression checks that detect footer/F1 parity drift in covered contexts.
-*   Add a keybinding parity audit gate that verifies active runtime keybindings remain consistently documented across footer, `F1`, and `etc/ytree.1.md`/`doc/USAGE.md`.
+*   Add a keybinding parity audit gate that verifies active runtime keybindings remain consistently documented across footer, `F1`, and `etc/ytree.1.md`/`docs/USAGE.md`.
 *   - [ ] **Status:** Not Started.
 
 ### **Task 30: Replace `^F` Mode Cycling with Unified Numeric `FileInfo` Band (`1..9`, `0`)**

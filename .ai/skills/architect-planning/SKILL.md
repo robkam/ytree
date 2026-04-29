@@ -10,7 +10,7 @@ Use this skill when the active persona is `architect`.
 ## Workflow
 
 1. Restate requested behavior in one precise sentence.
-2. Identify constraints from `doc/SPECIFICATION.md`, `doc/ARCHITECTURE.md`, and `.ai/shared.md`.
+2. Identify constraints from `docs/SPECIFICATION.md`, `docs/ARCHITECTURE.md`, and `.ai/shared.md`.
 3. List affected files and likely symbols.
 4. Propose a minimal change plan with atomic tasks.
 5. Include acceptance criteria that can be tested.

@@ -3,7 +3,7 @@
 Edit only the first four lines to match the tracked work item exactly, then copy/paste the full prompt as-is.
 
 ```text
-$WORK_DOC=doc/BUGS.md
+$WORK_DOC=docs/BUGS.md
 $WORK_KIND=Bug
 $TASK=BUG-35
 $TASK_NAME=F7 Preview Over-Restricts Command Availability
@@ -17,7 +17,7 @@ Mandatory startup (before any repo exploration):
 3) Use MCP semantic tools only (serena + jcodemunch) for exploration
 
 Goal:
-Deliver all outcomes for $WORK_DOC $WORK_KIND $TASK by following 3.1.3 through 3.1.7 of the Agentic Loop procedure in ~/ytree/doc/ai/WORKFLOW.md, on a new branch named for this work item.
+Deliver all outcomes for $WORK_DOC $WORK_KIND $TASK by following 3.1.3 through 3.1.7 of the Agentic Loop procedure in ~/ytree/docs/ai/WORKFLOW.md, on a new branch named for this work item.
 - Branch name must not use words: “phase”, “step”, “task” and must contain no digits.
 - First push: git push-fast-up
 - Subsequent pushes: git push-fast

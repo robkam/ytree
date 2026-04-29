@@ -32,7 +32,7 @@ No file manager is zero-risk.
 - Archive write parity tests: `ytree/tests/test_archive_write_parity.py`
 - Temp file/dir handling: `ytree/src/util/path_utils.c`, `ytree/src/ui/interactions.c`, `ytree/src/ui/view_preview.c`
 - Temp handling tests: `ytree/tests/test_security_tempfiles.py`
-- QA gates: `ytree/Makefile`, `ytree/doc/AUDIT.md`
+- QA gates: `ytree/Makefile`, `ytree/docs/AUDIT.md`
 
 ## Limits
 - `ytree` is currently alpha. See `ytree/README.md`.

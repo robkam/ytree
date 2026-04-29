@@ -10,7 +10,7 @@ Use this skill when commands, options, keybindings, or user-facing behavior docs
 ## Source of Truth
 
 - Edit `etc/ytree.1.md`.
-- Treat `doc/USAGE.md` as generated output.
+- Treat `docs/USAGE.md` as generated output.
 
 ## Sync Workflow
 
@@ -23,7 +23,7 @@ Use this skill when commands, options, keybindings, or user-facing behavior docs
 
 ## Checks
 
-- No direct manual edits to `doc/USAGE.md` without regenerating.
+- No direct manual edits to `docs/USAGE.md` without regenerating.
 - Options/commands in docs match implemented behavior.
 - Prompt/menu labels are consistent with current UI text.
 - Documentation placement MUST be audience-relevant and non-duplicative; you MUST NOT scatter the same guidance across unrelated sections.

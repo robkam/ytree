@@ -8,7 +8,7 @@ These instructions apply to all AI agents used in this repository.
 - Domain: terminal file manager for UNIX-like systems
 - Codebase language: C (C89/C99, POSIX.1-2008)
 - Testing: Python `pytest` and `pexpect` from the local `.venv`
-- For non-trivial missions, follow the stateless relay workflow in `doc/ai/WORKFLOW.md` ("Stateless Multi-AI Delivery Workflow"): architect plans one task at a time, developer executes one task at a time, with maintainer-approved per-task commits and QA-gated merge/cleanup.
+- For non-trivial missions, follow the stateless relay workflow in `docs/ai/WORKFLOW.md` ("Stateless Multi-AI Delivery Workflow"): architect plans one task at a time, developer executes one task at a time, with maintainer-approved per-task commits and QA-gated merge/cleanup.
 
 ## Persona Routing
 
@@ -116,16 +116,16 @@ These instructions apply to all AI agents used in this repository.
 - Always activate the venv before pytest: `source .venv/bin/activate`.
 - Run audit targets (`make qa-all`, `make qa-*`) with host permissions from the start; do not do sandbox-first retries for QA gates.
 - Run relevant tests with `pytest ...`.
-- For feature-sized/major/PR work, run the full audit loop from `doc/AUDIT.md` (clang-tidy, cppcheck, scan-build, valgrind, pytest) before claiming completion.
+- For feature-sized/major/PR work, run the full audit loop from `docs/AUDIT.md` (clang-tidy, cppcheck, scan-build, valgrind, pytest) before claiming completion.
 - Do not claim completion without terminal verification.
 
 ## Primary References
 
-- `doc/ARCHITECTURE.md`
-- `doc/SPECIFICATION.md`
-- `doc/ROADMAP.md`
-- `doc/ai/WORKFLOW.md`
-- `doc/AUDIT.md`
+- `docs/ARCHITECTURE.md`
+- `docs/SPECIFICATION.md`
+- `docs/ROADMAP.md`
+- `docs/ai/WORKFLOW.md`
+- `docs/AUDIT.md`
 - `.agent/rules/architect.md`
 - `.agent/rules/developer.md`
 - `.agent/rules/code_auditor.md`

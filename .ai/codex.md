@@ -41,5 +41,5 @@ Codex-specific behavior for this repository.
 
 ## Mandatory Audit Cadence
 
-- For every feature-sized change, major change, and PR update, rerun the full audit loop defined in `doc/AUDIT.md` before marking work complete.
+- For every feature-sized change, major change, and PR update, rerun the full audit loop defined in `docs/AUDIT.md` before marking work complete.
 - Treat this as a required gate, not an optional checklist.
