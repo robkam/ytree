@@ -3,6 +3,7 @@
 >
 > See **[ARCHITECTURE.md](ARCHITECTURE.md)** for technical design principles (how the code is built).
 > See **[SPECIFICATION.md](SPECIFICATION.md)** for behavioral requirements (how the UI behaves).
+> See **[CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)** for community expectations.
 
 ## Pull Request Scope
 

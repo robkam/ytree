@@ -49,7 +49,7 @@ Ordering policy (for all editors, including AI editors):
 *   **Impact**: Breaks split-panel isolation and creates high wrong-target risk in copy/move workflows because source intent is lost while preparing destination paths.
 *   **Remediation**: Enforce source-vs-destination state isolation in split mode so destination-side `mkdir`/`cd` and tree navigation cannot mutate source selection/tag state. Preserve source tagged/selection state by stable file identity across destination context changes, and apply deterministic fallback only when a selected source entry truly no longer exists.
 *   **Related**: `BUG-37` (inactive split selection stability), `ROADMAP` Task 45 (split selection semantics/regression coverage).
-*   **Status**: Fixed.
+*   **Status**: Confirmed.
 
 ### **BUG-35: F7 Preview Over-Restricts Command Availability**
 *   **Description**: `F7` mode is currently incomplete for inspect-and-act workflows. Too many common file actions are disabled, so users must leave preview to continue work.
