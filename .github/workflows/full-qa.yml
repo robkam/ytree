@@ -5,15 +5,22 @@ on:
     branches: [ "main" ]
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 concurrency:
   group: full-qa-${{ github.event.pull_request.number || github.sha }}
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   qa-all:
     name: Full local-equivalent QA gate (qa-all)
     runs-on: ubuntu-latest
     timeout-minutes: 90
+    env:
+      CC: ccache cc
+      CCACHE_DIR: ${{ github.workspace }}/.ccache
+      CCACHE_BASEDIR: ${{ github.workspace }}
 
     steps:
     - uses: actions/checkout@v6
@@ -23,17 +30,34 @@ jobs:
     - name: Install System Dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y gitleaks libncurses-dev libtinfo-dev libreadline-dev libarchive-dev libarchive-tools pandoc clang-tidy cppcheck clang-tools bear valgrind
+        sudo apt-get install -y ccache gitleaks libncurses-dev libtinfo-dev libreadline-dev libarchive-dev libarchive-tools pandoc clang-tidy cppcheck clang-tools bear valgrind
+
+    - name: Restore ccache
+      uses: actions/cache@v4
+      with:
+        path: ${{ github.workspace }}/.ccache
+        key: ${{ runner.os }}-ccache-${{ github.workflow }}-qa-all-${{ hashFiles('Makefile', '.github/workflows/full-qa.yml') }}
+        restore-keys: |
+          ${{ runner.os }}-ccache-${{ github.workflow }}-qa-all-
+          ${{ runner.os }}-ccache-${{ github.workflow }}-
 
     - name: Set up Python 3
       uses: actions/setup-python@v6
       with:
         python-version: "3.12"
+        cache: pip
+        cache-dependency-path: scripts/requirements.txt
 
     - name: Install Python Dependencies
       run: |
         python -m pip install --upgrade pip
         pip install -r scripts/requirements.txt
+
+    - name: Configure compiler cache
+      run: |
+        ccache --set-config=max_size=900M
+        ccache --set-config=sloppiness=time_macros
+        ccache --zero-stats
 
     - name: Guard fuzz harness sync
       env:
@@ -70,10 +94,18 @@ jobs:
         name: qa-all-valgrind-log
         path: valgrind.log
 
+    - name: Report ccache stats
+      if: always()
+      run: ccache --show-stats
+
   qa-sanitize:
     name: Sanitizer gate (qa-sanitize)
     runs-on: ubuntu-latest
     timeout-minutes: 120
+    env:
+      CC: ccache cc
+      CCACHE_DIR: ${{ github.workspace }}/.ccache
+      CCACHE_BASEDIR: ${{ github.workspace }}
 
     steps:
     - uses: actions/checkout@v6
@@ -81,17 +113,34 @@ jobs:
     - name: Install System Dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y libncurses-dev libtinfo-dev libreadline-dev libarchive-dev libarchive-tools pandoc clang
+        sudo apt-get install -y ccache libncurses-dev libtinfo-dev libreadline-dev libarchive-dev libarchive-tools pandoc clang
+
+    - name: Restore ccache
+      uses: actions/cache@v4
+      with:
+        path: ${{ github.workspace }}/.ccache
+        key: ${{ runner.os }}-ccache-${{ github.workflow }}-qa-sanitize-${{ hashFiles('Makefile', '.github/workflows/full-qa.yml') }}
+        restore-keys: |
+          ${{ runner.os }}-ccache-${{ github.workflow }}-qa-sanitize-
+          ${{ runner.os }}-ccache-${{ github.workflow }}-
 
     - name: Set up Python 3
       uses: actions/setup-python@v6
       with:
         python-version: "3.12"
+        cache: pip
+        cache-dependency-path: scripts/requirements.txt
 
     - name: Install Python Dependencies
       run: |
         python -m pip install --upgrade pip
         pip install -r scripts/requirements.txt
+
+    - name: Configure compiler cache
+      run: |
+        ccache --set-config=max_size=900M
+        ccache --set-config=sloppiness=time_macros
+        ccache --zero-stats
 
     - name: Run sanitizer QA gate
       run: make qa-sanitize 2>&1 | tee qa-sanitize.log
@@ -102,3 +151,7 @@ jobs:
       with:
         name: qa-sanitize-log
         path: qa-sanitize.log
+
+    - name: Report ccache stats
+      if: always()
+      run: ccache --show-stats
