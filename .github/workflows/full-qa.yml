@@ -23,7 +23,7 @@ jobs:
     - name: Install System Dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y libncurses-dev libtinfo-dev libreadline-dev libarchive-dev libarchive-tools pandoc clang-tidy cppcheck clang-tools bear valgrind
+        sudo apt-get install -y gitleaks libncurses-dev libtinfo-dev libreadline-dev libarchive-dev libarchive-tools pandoc clang-tidy cppcheck clang-tools bear valgrind
 
     - name: Set up Python 3
       uses: actions/setup-python@v6

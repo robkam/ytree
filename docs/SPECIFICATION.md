@@ -151,12 +151,15 @@ Split mode is a two-pane session entered/exited by `F8`.
 *   **Focus Switch:** `Tab` switches the active pane.
 *   **Active Panel:** Owns keyboard focus and receives command/navigation input.
 *   **Inactive Panel:** Does not process direct input while inactive; its own cursor/selection context is retained until focus is switched back.
+*   **Freeze/Resume Rule:** When a pane loses focus, its pane-local state is frozen; when it becomes active again (via `Tab`), it must resume exactly where it left off.
+*   **Active-Only Mutation Rule:** Commands mutate only the active pane's pane-local state. Cross-pane updates are limited to shared topology mirroring defined in §5.3.
 
 ### 5.2 State Persistence
 Switching panels via `Tab` must restore the exact state held when that panel last had focus for panel-local state:
 *   **Volume Context:** Logged volume or archive.
 *   **Cursor & Offset:** Highlighted entry and scroll position.
-*   **Selection:** Tags are specific to the panel session.
+*   **Selection:** Tags are specific to the panel session. Collapsing a directory (`Left` or `-`) or explicitly unreading/releasing it (`--`) discards saved tags beneath that directory; reloading it must not resurrect stale tags.
+*   **Compare Tagging Rule:** Compare workflows may report difference counts, but they do not implicitly mutate per-file tag state; tags change only through explicit tagging actions.
 *   **Filter (Filespec):** Independent search/filter strings.
 *   **Window/Mode Context:** Directory/File/Showall-style pane-local focus context.
 
@@ -167,6 +170,8 @@ The split panes share one logged tree topology contract for a given logged volum
 *   **Mirror Rule:** Structural tree changes triggered in the active pane must be reflected in the inactive pane immediately.
 *   **Selection Retention Rule:** Mirrored structural updates must not move the inactive pane's cursor/selection when its selected node remains visible/valid.
 *   **Non-Invalidating Changes Rule:** Adding siblings/ancestors, or changing sibling structure that does not invalidate the inactive selected node, must not move the inactive selection.
+*   **Frozen File-View Anchor Rule:** A pane left in file view is restored from its saved directory path and selected filename, not from the current flattened tree index. If shared-tree rebuilding leaves that directory as a visible but unloaded placeholder, the directory payload must be reloaded before the pane is rendered or resumed so the file window cannot degrade to an empty or unrelated listing.
+*   **Render Is Not Authority Rule:** Rendering may display the saved pane state, but it must not decide a new pane selection from whatever entry currently occupies the saved numeric index after a shared tree rebuild.
 *   **Deterministic Fallback Rule (When Selected Node Becomes Invalid):**
     *   Keep exact node if still visible/valid after mirror update.
     *   Else move to nearest visible ancestor of the previously selected node.

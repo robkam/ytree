@@ -93,6 +93,20 @@ def _assert_split_column_continuous(lines, label):
             f"Split separator has a gap at row {y} ({label}).\n" + "\n".join(lines)
         )
 
+
+def _split_segments_for_file(tui, filename):
+    lines = tui.get_screen_dump()
+    split_col = _detect_split_column(lines)
+    screen = "\n".join(lines)
+    assert split_col is not None, f"Could not detect split column.\n{screen}"
+
+    for line in lines:
+        if filename in line:
+            return line[:split_col], line[split_col:], screen
+
+    raise AssertionError(f"Could not find {filename} in split screen.\n{screen}")
+
+
 def test_panel_switch_updates_small_window(dual_panel_sandbox, ytree_binary):
     """
     Verify that switching panels updates the content of the small file window.
@@ -173,6 +187,153 @@ def test_split_from_file_keeps_file_focus_on_tab(tmp_path, ytree_binary):
     )
 
     tui.quit()
+
+
+def test_split_same_directory_file_tags_are_panel_local(tmp_path, ytree_binary):
+    root = tmp_path / "split_same_dir_panel_local_tags"
+    root.mkdir()
+    alpha = root / "alpha"
+    beta = root / "beta"
+    alpha.mkdir()
+    beta.mkdir()
+    for idx in range(3):
+        (alpha / f"panel_tag_{idx}.txt").write_text("tag\n", encoding="utf-8")
+
+    tui = YtreeTUI(executable=ytree_binary, cwd=str(root))
+    time.sleep(0.8)
+
+    try:
+        tui.send_keystroke(Keys.DOWN, wait=0.2)
+        tui.send_keystroke(Keys.ENTER, wait=0.4)
+        assert "hex invert j compare" in _footer_text(tui), _screen_text(tui)
+
+        tui.send_keystroke(Keys.F8, wait=0.4)
+        tui.send_keystroke("t", wait=0.3)
+        left, right, screen = _split_segments_for_file(tui, "panel_tag_0.txt")
+        assert _line_marks_file_as_tagged(left, "panel_tag_0.txt"), screen
+        assert not _line_marks_file_as_tagged(right, "panel_tag_0.txt"), (
+            "Tagging the active pane leaked to the inactive peer pane.\n"
+            f"{screen}"
+        )
+
+        tui.send_keystroke(Keys.TAB, wait=0.4)
+        left, right, screen = _split_segments_for_file(tui, "panel_tag_0.txt")
+        assert _line_marks_file_as_tagged(left, "panel_tag_0.txt"), screen
+        assert not _line_marks_file_as_tagged(right, "panel_tag_0.txt"), (
+            "Switching panes should not import the other pane's tags.\n"
+            f"{screen}"
+        )
+
+        tui.send_keystroke(Keys.DOWN, wait=0.2)
+        tui.send_keystroke("t", wait=0.3)
+        left, right, screen = _split_segments_for_file(tui, "panel_tag_1.txt")
+        assert not _line_marks_file_as_tagged(left, "panel_tag_1.txt"), (
+            "Right-pane tagging leaked into the left pane.\n"
+            f"{screen}"
+        )
+        assert _line_marks_file_as_tagged(right, "panel_tag_1.txt"), screen
+
+        tui.send_keystroke(Keys.TAB, wait=0.4)
+        left, right, screen = _split_segments_for_file(tui, "panel_tag_0.txt")
+        assert _line_marks_file_as_tagged(left, "panel_tag_0.txt"), screen
+        assert not _line_marks_file_as_tagged(right, "panel_tag_0.txt"), screen
+        left, right, screen = _split_segments_for_file(tui, "panel_tag_1.txt")
+        assert not _line_marks_file_as_tagged(left, "panel_tag_1.txt"), screen
+        assert _line_marks_file_as_tagged(right, "panel_tag_1.txt"), screen
+    finally:
+        tui.quit()
+
+
+def test_unreading_directory_clears_panel_local_tags(tmp_path, ytree_binary):
+    root = tmp_path / "unread_clears_panel_tags"
+    root.mkdir()
+    alpha = root / "alpha"
+    (alpha / "child").mkdir(parents=True)
+    (alpha / "panel_tag_0.txt").write_text("tag\n", encoding="utf-8")
+    (alpha / "child" / "nested.txt").write_text("nested\n", encoding="utf-8")
+
+    tui = YtreeTUI(executable=ytree_binary, cwd=str(root))
+    time.sleep(0.8)
+
+    try:
+        tui.send_keystroke(Keys.DOWN, wait=0.2)
+        tui.send_keystroke(Keys.RIGHT, wait=0.4)
+        tui.send_keystroke(Keys.ENTER, wait=0.4)
+        assert "hex invert j compare" in _footer_text(tui), _screen_text(tui)
+
+        tui.send_keystroke("t", wait=0.3)
+        line = _find_line_with_text(tui, "panel_tag_0.txt")
+        assert line is not None, _screen_text(tui)
+        assert _line_marks_file_as_tagged(line, "panel_tag_0.txt"), _screen_text(tui)
+
+        tui.send_keystroke(Keys.ESC, wait=0.3)
+        assert "hex invert j compare" not in _footer_text(tui), _screen_text(tui)
+
+        tui.send_keystroke("-", wait=0.3)
+        tui.send_keystroke("-", wait=0.4)
+        tui.send_keystroke(Keys.RIGHT, wait=0.4)
+        tui.send_keystroke(Keys.ENTER, wait=0.5)
+        assert "hex invert j compare" in _footer_text(tui), _screen_text(tui)
+
+        line = _find_line_with_text(tui, "panel_tag_0.txt")
+        assert line is not None, _screen_text(tui)
+        assert not _line_marks_file_as_tagged(line, "panel_tag_0.txt"), (
+            "Unreading a directory must discard saved tags beneath it.\n"
+            f"Row: {line}\n{_screen_text(tui)}"
+        )
+    finally:
+        tui.quit()
+
+
+def _assert_collapse_action_clears_panel_local_tags(tmp_path, ytree_binary, key):
+    root = tmp_path / f"collapse_clears_panel_tags_{ord(key[0])}"
+    root.mkdir()
+    alpha = root / "alpha"
+    (alpha / "child").mkdir(parents=True)
+    (alpha / "panel_tag_0.txt").write_text("tag\n", encoding="utf-8")
+    (alpha / "child" / "nested.txt").write_text("nested\n", encoding="utf-8")
+
+    tui = YtreeTUI(executable=ytree_binary, cwd=str(root))
+    time.sleep(0.8)
+
+    try:
+        tui.send_keystroke(Keys.DOWN, wait=0.2)
+        tui.send_keystroke(Keys.RIGHT, wait=0.4)
+        tui.send_keystroke(Keys.ENTER, wait=0.4)
+        assert "hex invert j compare" in _footer_text(tui), _screen_text(tui)
+
+        tui.send_keystroke("t", wait=0.3)
+        line = _find_line_with_text(tui, "panel_tag_0.txt")
+        assert line is not None, _screen_text(tui)
+        assert _line_marks_file_as_tagged(line, "panel_tag_0.txt"), _screen_text(tui)
+
+        tui.send_keystroke(Keys.ESC, wait=0.3)
+        assert "hex invert j compare" not in _footer_text(tui), _screen_text(tui)
+
+        tui.send_keystroke(key, wait=0.4)
+        tui.send_keystroke(Keys.RIGHT, wait=0.4)
+        tui.send_keystroke(Keys.ENTER, wait=0.5)
+        assert "hex invert j compare" in _footer_text(tui), _screen_text(tui)
+
+        line = _find_line_with_text(tui, "panel_tag_0.txt")
+        assert line is not None, _screen_text(tui)
+        assert not _line_marks_file_as_tagged(line, "panel_tag_0.txt"), (
+            "Collapsing a directory must discard saved tags beneath it.\n"
+            f"Row: {line}\n{_screen_text(tui)}"
+        )
+    finally:
+        tui.quit()
+
+
+def test_minus_collapse_clears_panel_local_tags(tmp_path, ytree_binary):
+    _assert_collapse_action_clears_panel_local_tags(tmp_path, ytree_binary, "-")
+
+
+def test_left_arrow_collapse_clears_panel_local_tags(tmp_path, ytree_binary):
+    _assert_collapse_action_clears_panel_local_tags(
+        tmp_path, ytree_binary, Keys.LEFT
+    )
+
 
 def test_split_from_dir_immediately_renders_peer_panel(tmp_path, ytree_binary):
     root = tmp_path / "split_dir_immediate_render"
@@ -1144,6 +1305,510 @@ def test_source_selection_survives_destination_tree_prep_home_mkdir(
             f"{_screen_text(tui)}"
         )
         tui.send_keystroke(Keys.ESC, wait=0.2)
+    finally:
+        tui.quit()
+
+
+def test_bug_same_volume_home_mkdir_keeps_inactive_source_dir(tmp_path, ytree_binary):
+    """
+    Repro from manual QA:
+    In same-volume split mode, destination HOME+mkdir must not retarget the
+    inactive source panel to an unrelated directory.
+    """
+    root = tmp_path / "same_volume_home_mkdir_inactive_anchor"
+    root.mkdir()
+
+    src_dir = root / "src"
+    src_dir.mkdir()
+    cmd_dir = src_dir / "cmd"
+    cmd_dir.mkdir()
+    tests_dir = root / "tests"
+    tests_dir.mkdir()
+
+    for idx in range(3):
+        (cmd_dir / f"f{idx}.txt").write_text(f"{idx}\n", encoding="utf-8")
+    for idx in range(2):
+        (tests_dir / f"t{idx}.txt").write_text(f"{idx}\n", encoding="utf-8")
+
+    tui = YtreeTUI(executable=ytree_binary, cwd=str(root))
+    time.sleep(0.9)
+
+    try:
+        # Tree -> src -> cmd -> file window
+        found_src = False
+        for _ in range(20):
+            lines = tui.get_screen_dump()
+            if _stats_current_dir_contains(lines, "src"):
+                found_src = True
+                break
+            tui.send_keystroke(Keys.DOWN, wait=0.2)
+        assert found_src, _screen_text(tui)
+
+        tui.send_keystroke(Keys.RIGHT, wait=0.3)
+
+        found_cmd = False
+        for _ in range(20):
+            lines = tui.get_screen_dump()
+            if _stats_current_dir_contains(lines, "cmd"):
+                found_cmd = True
+                break
+            tui.send_keystroke(Keys.DOWN, wait=0.2)
+        assert found_cmd, _screen_text(tui)
+
+        tui.send_keystroke(Keys.RIGHT, wait=0.2)
+        tui.send_keystroke(Keys.ENTER, wait=0.4)
+        assert "hex invert j compare" in _footer_text(tui), _screen_text(tui)
+
+        # Tag three files in source.
+        tui.send_keystroke("t", wait=0.2)
+        tui.send_keystroke(Keys.DOWN, wait=0.2)
+        tui.send_keystroke("t", wait=0.2)
+        tui.send_keystroke(Keys.DOWN, wait=0.2)
+        tui.send_keystroke("t", wait=0.2)
+
+        # Split, switch to destination panel, then HOME+mkdir there.
+        tui.send_keystroke(Keys.F8, wait=0.4)
+        tui.send_keystroke(Keys.TAB, wait=0.4)
+        if "hex invert j compare" in _footer_text(tui):
+            tui.send_keystroke(Keys.ESC, wait=0.3)
+        _assert_dir_mode_footer(tui, "Destination should be in tree mode.")
+        tui.send_keystroke(Keys.HOME, wait=0.3)
+        tui.send_keystroke("M", wait=0.2)
+        assert tui.wait_for_content("MAKE DIRECTORY:", timeout=1.0), _screen_text(tui)
+        tui.send_keystroke("00" + Keys.ENTER, wait=0.7)
+        tui.send_keystroke(Keys.ENTER, wait=0.4)
+
+        screen_while_right_active = _screen_text(tui)
+        assert "f0.txt" in screen_while_right_active and "f1.txt" in screen_while_right_active, (
+            "Inactive source pane lost cmd file view while destination panel stayed active.\n"
+            f"{screen_while_right_active}"
+        )
+        assert "t0.txt" not in screen_while_right_active and "t1.txt" not in screen_while_right_active, (
+            "Inactive source pane jumped to tests while destination panel stayed active.\n"
+            f"{screen_while_right_active}"
+        )
+
+        # Returning to source must keep cmd file view, not jump to tests.
+        tui.send_keystroke(Keys.TAB, wait=0.5)
+        screen = _screen_text(tui)
+        assert "hex invert j compare" in _footer_text(tui), screen
+        assert "f0.txt" in screen and "f1.txt" in screen and "f2.txt" in screen, (
+            "Source pane lost cmd file view after destination HOME+mkdir flow.\n"
+            f"{screen}"
+        )
+        assert "t0.txt" not in screen and "t1.txt" not in screen, (
+            "Source pane jumped to tests file view after destination HOME+mkdir flow.\n"
+            f"{screen}"
+        )
+    finally:
+        tui.quit()
+
+
+def test_bug_same_volume_home_mkdir_with_repo_like_tree_keeps_inactive_source(
+    tmp_path, ytree_binary
+):
+    """
+    Reproduce manual flow on a repo-like tree:
+    while destination performs ENTER+HOME+mkdir, inactive source must stay on
+    src/cmd file view and must not jump to tests/.
+    """
+    home = tmp_path / "home" / "user"
+    repo = home / "ytree"
+    repo.mkdir(parents=True)
+    (home / ".ytree").write_text(
+        "[GLOBAL]\n"
+        "AUTO_REFRESH=3\n"
+        "TREEDEPTH=2\n"
+        "FILEMODE=2\n"
+        "SMALLWINDOWSKIP=1\n"
+        "HIDEDOTFILES=1\n",
+        encoding="utf-8",
+    )
+
+    for name in (
+        "build",
+        "coverage",
+        "docs",
+        "etc",
+        "include",
+        "infra",
+        "src",
+        "tests",
+    ):
+        (repo / name).mkdir()
+
+    src_alt_dir = repo / "src" / "aaa"
+    src_alt_dir.mkdir()
+    cmd_dir = repo / "src" / "cmd"
+    cmd_dir.mkdir()
+    tests_dir = repo / "tests"
+    (repo / "bak.sh").write_text("#!/bin/sh\n", encoding="utf-8")
+
+    for idx in range(3):
+        (cmd_dir / f"src_file_{idx}.c").write_text("x\n", encoding="utf-8")
+    for idx in range(4):
+        (tests_dir / f"test_file_{idx}.py").write_text("y\n", encoding="utf-8")
+
+    tui = YtreeTUI(
+        executable=ytree_binary, cwd=str(repo), env_extra={"HOME": str(home)}
+    )
+    time.sleep(0.9)
+
+    try:
+        found_src = False
+        for _ in range(80):
+            lines = tui.get_screen_dump()
+            if _stats_current_dir_contains(lines, "src"):
+                found_src = True
+                break
+            tui.send_keystroke(Keys.DOWN, wait=0.12)
+        assert found_src, _screen_text(tui)
+
+        tui.send_keystroke(Keys.RIGHT, wait=0.25)
+
+        found_cmd = False
+        for _ in range(80):
+            lines = tui.get_screen_dump()
+            if _stats_current_dir_contains(lines, "cmd"):
+                found_cmd = True
+                break
+            tui.send_keystroke(Keys.DOWN, wait=0.12)
+        assert found_cmd, _screen_text(tui)
+
+        tui.send_keystroke(Keys.RIGHT, wait=0.2)
+        tui.send_keystroke(Keys.ENTER, wait=0.45)
+        assert "hex invert j compare" in _footer_text(tui), _screen_text(tui)
+
+        tui.send_keystroke("t", wait=0.2)
+        tui.send_keystroke(Keys.DOWN, wait=0.2)
+        tui.send_keystroke("t", wait=0.2)
+        tui.send_keystroke(Keys.DOWN, wait=0.2)
+        tui.send_keystroke("t", wait=0.2)
+
+        # Exact manual sequence: f8 tab enter home mkdir 00
+        tui.send_keystroke(Keys.F8, wait=0.4)
+        tui.send_keystroke(Keys.TAB, wait=0.4)
+        tui.send_keystroke(Keys.ENTER, wait=0.35)
+        tui.send_keystroke(Keys.HOME, wait=0.35)
+        tui.send_keystroke("M", wait=0.2)
+        assert tui.wait_for_content("MAKE DIRECTORY:", timeout=1.0), _screen_text(tui)
+        tui.send_keystroke("00" + Keys.ENTER, wait=0.8)
+
+        screen_while_right_active = _screen_text(tui)
+        assert "src_file_0.c" in screen_while_right_active, screen_while_right_active
+        assert "test_file_0.py" not in screen_while_right_active, (
+            "Inactive source pane jumped to tests while destination remained active.\n"
+            f"{screen_while_right_active}"
+        )
+
+        tui.send_keystroke(Keys.TAB, wait=0.5)
+        screen = _screen_text(tui)
+        assert "hex invert j compare" in _footer_text(tui), screen
+        assert "src_file_0.c" in screen and "src_file_1.c" in screen, screen
+        assert "test_file_0.py" not in screen and "test_file_1.py" not in screen, (
+            "Source pane jumped to tests after destination ENTER+HOME+mkdir.\n"
+            f"{screen}"
+        )
+    finally:
+        tui.quit()
+
+
+def test_bug_same_volume_home_mkdir_listjump_sequence_keeps_inactive_source(
+    tmp_path, ytree_binary
+):
+    """
+    Portable regression for the user-reported variant:
+    log HOME -> down/down/right -> /s Enter -> right -> down Enter -> ttt ->
+    F8 Tab Enter Home -> mkdir 00.
+
+    Inactive source panel must not jump to tests file view or collapse to
+    repo-root file view.
+    """
+    home = tmp_path / "home" / "user"
+    repo = home / "ytree"
+    repo.mkdir(parents=True)
+    (home / ".ytree").write_text(
+        "[GLOBAL]\n"
+        "AUTO_REFRESH=3\n"
+        "TREEDEPTH=2\n"
+        "FILEMODE=2\n"
+        "SMALLWINDOWSKIP=1\n"
+        "HIDEDOTFILES=1\n",
+        encoding="utf-8",
+    )
+
+    for name in (
+        "build",
+        "coverage",
+        "docs",
+        "etc",
+        "include",
+        "infra",
+        "src",
+        "tests",
+    ):
+        (repo / name).mkdir()
+
+    cmd_dir = repo / "src" / "cmd"
+    cmd_dir.mkdir()
+    tests_dir = repo / "tests"
+    (repo / "bak.sh").write_text("#!/bin/sh\n", encoding="utf-8")
+
+    for idx in range(3):
+        (cmd_dir / f"src_file_{idx}.c").write_text("x\n", encoding="utf-8")
+    for idx in range(4):
+        (tests_dir / f"test_file_{idx}.py").write_text("y\n", encoding="utf-8")
+
+    tui = YtreeTUI(
+        executable=ytree_binary, cwd=str(repo), env_extra={"HOME": str(home)}
+    )
+    time.sleep(0.9)
+
+    try:
+        tui.send_keystroke("l", wait=0.2)
+        if tui.wait_for_content("LOG", timeout=0.8) or tui.wait_for_content(
+            "PATH", timeout=0.8
+        ):
+            tui.send_keystroke(str(home) + Keys.ENTER, wait=0.7)
+        else:
+            tui.send_keystroke(Keys.ESC, wait=0.2)
+
+        tui.send_keystroke(Keys.DOWN, wait=0.2)
+        tui.send_keystroke(Keys.DOWN, wait=0.2)
+        tui.send_keystroke(Keys.RIGHT, wait=0.25)
+        tui.send_keystroke("/", wait=0.2)
+        tui.send_keystroke("s", wait=0.2)
+        tui.send_keystroke(Keys.ENTER, wait=0.35)
+        tui.send_keystroke(Keys.RIGHT, wait=0.25)
+        tui.send_keystroke(Keys.DOWN, wait=0.2)
+        tui.send_keystroke(Keys.ENTER, wait=0.45)
+
+        assert "hex invert j compare" in _footer_text(tui), _screen_text(tui)
+        if "src_file_0.c" not in _screen_text(tui):
+            if "hex invert j compare" in _footer_text(tui):
+                tui.send_keystroke(Keys.ESC, wait=0.25)
+
+            found_cmd = False
+            for _ in range(40):
+                if _stats_current_dir_contains(tui.get_screen_dump(), "cmd"):
+                    found_cmd = True
+                    break
+                tui.send_keystroke(Keys.UP, wait=0.12)
+            for _ in range(120):
+                if found_cmd:
+                    break
+                if _stats_current_dir_contains(tui.get_screen_dump(), "cmd"):
+                    found_cmd = True
+                    break
+                tui.send_keystroke(Keys.DOWN, wait=0.12)
+            assert found_cmd, _screen_text(tui)
+            tui.send_keystroke(Keys.ENTER, wait=0.45)
+
+        pre_screen = _screen_text(tui)
+        assert "src_file_0.c" in pre_screen, (
+            "List-jump variant did not reach src/cmd file mode before split flow.\n"
+            f"{pre_screen}"
+        )
+
+        tui.send_keystroke("t", wait=0.2)
+        tui.send_keystroke("t", wait=0.2)
+        tui.send_keystroke("t", wait=0.2)
+
+        tui.send_keystroke(Keys.F8, wait=0.4)
+        tui.send_keystroke(Keys.TAB, wait=0.4)
+        tui.send_keystroke(Keys.ENTER, wait=0.35)
+        tui.send_keystroke(Keys.HOME, wait=0.35)
+        tui.send_keystroke("M", wait=0.2)
+        assert tui.wait_for_content("MAKE DIRECTORY:", timeout=1.0), _screen_text(tui)
+        tui.send_keystroke("00" + Keys.ENTER, wait=0.8)
+
+        screen = _screen_text(tui)
+        path_line = screen.splitlines()[0] if screen else ""
+        repo_root_jump = "Path: " in path_line and path_line.rstrip().endswith("/ytree")
+        root_file_window = "bak.sh" in screen
+        assert (
+            "test_file_0.py" not in screen
+            and "/tests" not in screen
+            and not (repo_root_jump and root_file_window)
+        ), (
+            "Inactive source panel drifted after list-jump variant "
+            "(tests jump or repo-root collapse).\n"
+            f"{screen}"
+        )
+
+        for name in ("src_file_0.c", "src_file_1.c", "src_file_2.c"):
+            line = _find_line_with_text(tui, name)
+            assert line is not None, (
+                "Inactive source panel blanked during destination mkdir.\n"
+                f"{screen}"
+            )
+            assert _line_marks_file_as_tagged(line, name), (
+                "Inactive source tagged state was lost during destination mkdir.\n"
+                f"Row: {line}\n{screen}"
+            )
+
+        tui.send_keystroke(Keys.TAB, wait=0.5)
+        screen_after_switch = _screen_text(tui)
+        assert "hex invert j compare" in _footer_text(tui), screen_after_switch
+        for name in ("src_file_0.c", "src_file_1.c", "src_file_2.c"):
+            line = _find_line_with_text(tui, name)
+            assert line is not None, (
+                "Source pane lost file rows after switching back from destination.\n"
+                f"{screen_after_switch}"
+            )
+            assert _line_marks_file_as_tagged(line, name), (
+                "Tagged files were cleared after switching back to source pane.\n"
+                f"Row: {line}\n{screen_after_switch}"
+            )
+    finally:
+        tui.quit()
+
+
+def test_bug_same_volume_home_mkdir_from_home_root_keeps_inactive_file_state(
+    tmp_path, ytree_binary
+):
+    """
+    Reproduces the user's direct flow from HOME root:
+    start at HOME, expand ytree/src/cmd, enter file mode, tag three files,
+    split, switch to right, HOME, mkdir.
+
+    Inactive left pane must stay in file view on src/cmd with tags intact.
+    """
+    home = tmp_path / "home" / "user"
+    repo = home / "ytree"
+    repo.mkdir(parents=True)
+    (home / ".ytree").write_text(
+        "[GLOBAL]\n"
+        "AUTO_REFRESH=3\n"
+        "TREEDEPTH=2\n"
+        "FILEMODE=2\n"
+        "SMALLWINDOWSKIP=1\n"
+        "HIDEDOTFILES=1\n",
+        encoding="utf-8",
+    )
+
+    for name in ("go", "snap", "wikiteam3_utilities"):
+        (home / name).mkdir()
+    (home / "go" / "pkg").mkdir()
+    (home / "snap" / "glow").mkdir(parents=True)
+    (home / "wikiteam3_utilities" / "dumps").mkdir(parents=True)
+    (home / "wikiteam3_utilities" / "for later").mkdir(parents=True)
+
+    for name in (
+        "build",
+        "coverage",
+        "docs",
+        "etc",
+        "include",
+        "infra",
+        "obj",
+        "scripts",
+        "src",
+        "tests",
+    ):
+        (repo / name).mkdir()
+
+    cmd_dir = repo / "src" / "cmd"
+    cmd_dir.mkdir()
+    tests_dir = repo / "tests"
+    (repo / "bak.sh").write_text("#!/bin/sh\n", encoding="utf-8")
+    for idx in range(3):
+        (cmd_dir / f"src_file_{idx}.c").write_text("x\n", encoding="utf-8")
+    for idx in range(4):
+        (tests_dir / f"test_file_{idx}.py").write_text("y\n", encoding="utf-8")
+
+    tui = YtreeTUI(
+        executable=ytree_binary, cwd=str(home), env_extra={"HOME": str(home)}
+    )
+    time.sleep(0.9)
+
+    try:
+        found_ytree = False
+        for _ in range(200):
+            if _stats_current_dir_contains(tui.get_screen_dump(), "ytree"):
+                found_ytree = True
+                break
+            tui.send_keystroke(Keys.DOWN, wait=0.08)
+        assert found_ytree, _screen_text(tui)
+
+        tui.send_keystroke(Keys.RIGHT, wait=0.25)
+        found_src = False
+        for _ in range(200):
+            if _stats_current_dir_contains(tui.get_screen_dump(), "src"):
+                found_src = True
+                break
+            tui.send_keystroke(Keys.DOWN, wait=0.08)
+        assert found_src, _screen_text(tui)
+
+        tui.send_keystroke(Keys.RIGHT, wait=0.25)
+        found_cmd = False
+        for _ in range(200):
+            if _stats_current_dir_contains(tui.get_screen_dump(), "cmd"):
+                found_cmd = True
+                break
+            tui.send_keystroke(Keys.DOWN, wait=0.08)
+        assert found_cmd, _screen_text(tui)
+
+        tui.send_keystroke(Keys.RIGHT, wait=0.2)
+        tui.send_keystroke(Keys.ENTER, wait=0.45)
+        assert "hex invert j compare" in _footer_text(tui), _screen_text(tui)
+
+        for _ in range(3):
+            tui.send_keystroke("t", wait=0.2)
+        pre_screen = _screen_text(tui)
+        pre_tag_state = {}
+        for name in ("src_file_0.c", "src_file_1.c", "src_file_2.c"):
+            line = _find_line_with_text(tui, name)
+            assert line is not None, pre_screen
+            pre_tag_state[name] = _line_marks_file_as_tagged(line, name)
+        assert any(pre_tag_state.values()), (
+            "Precondition failed: no tagged source files before split flow.\n"
+            f"{pre_screen}"
+        )
+
+        tui.send_keystroke(Keys.F8, wait=0.4)
+        tui.send_keystroke(Keys.TAB, wait=0.4)
+        tui.send_keystroke(Keys.ENTER, wait=0.35)
+        tui.send_keystroke(Keys.HOME, wait=0.35)
+        tui.send_keystroke("M", wait=0.2)
+        assert tui.wait_for_content("MAKE DIRECTORY:", timeout=1.0), _screen_text(tui)
+        tui.send_keystroke("00" + Keys.ENTER, wait=0.8)
+
+        screen_right_active = _screen_text(tui)
+        assert "src_file_0.c" in screen_right_active, (
+            "Inactive left pane blanked while destination pane remained active.\n"
+            f"{screen_right_active}"
+        )
+        for name in ("src_file_0.c", "src_file_1.c", "src_file_2.c"):
+            line = _find_line_with_text(tui, name)
+            assert line is not None, (
+                "Inactive source pane lost file rows after destination mkdir.\n"
+                f"{screen_right_active}"
+            )
+            assert _line_marks_file_as_tagged(line, name) == pre_tag_state[name], (
+                "Inactive source tagged state changed after destination mkdir.\n"
+                f"Expected tagged={pre_tag_state[name]} Row: {line}\n"
+                f"{screen_right_active}"
+            )
+
+        tui.send_keystroke(Keys.TAB, wait=0.5)
+        screen_after_tab = _screen_text(tui)
+        assert "hex invert j compare" in _footer_text(tui), screen_after_tab
+        assert "No files" not in screen_after_tab, (
+            "Switching to source pane produced empty file view.\n"
+            f"{screen_after_tab}"
+        )
+        for name in ("src_file_0.c", "src_file_1.c", "src_file_2.c"):
+            line = _find_line_with_text(tui, name)
+            assert line is not None, (
+                "Source pane did not resume src/cmd file view after TAB.\n"
+                f"{screen_after_tab}"
+            )
+            assert _line_marks_file_as_tagged(line, name) == pre_tag_state[name], (
+                "Source tag state changed after TAB back to source pane.\n"
+                f"Expected tagged={pre_tag_state[name]} Row: {line}\n"
+                f"{screen_after_tab}"
+            )
     finally:
         tui.quit()
 

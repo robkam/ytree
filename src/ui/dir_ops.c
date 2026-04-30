@@ -30,6 +30,92 @@ static void CaptureInactiveFallback(ViewContext *ctx, YtreePanel *p,
                                     DirEntry **inactive_fallback_out);
 static void ReanchorPanelToDir(YtreePanel *panel, const DirEntry *target);
 
+static BOOL DirBelongsToVolume(const struct Volume *vol, const DirEntry *target) {
+  int i;
+
+  if (!vol || !target || !vol->dir_entry_list || vol->total_dirs <= 0)
+    return FALSE;
+
+  for (i = 0; i < vol->total_dirs; i++) {
+    if (vol->dir_entry_list[i].dir_entry == target)
+      return TRUE;
+  }
+
+  return FALSE;
+}
+
+static void DebugLogPanelState(const char *label, const YtreePanel *panel) {
+  char tree_path[PATH_LENGTH + 1];
+  char file_dir_path[PATH_LENGTH + 1];
+  int idx = -1;
+  const DirEntry *tree_de = NULL;
+  const char *tree_text = "<none>";
+  const char *file_dir_text = "<none>";
+  const char *selection_dir_text = "<none>";
+  const char *selection_name_text = "<none>";
+
+  tree_path[0] = '\0';
+  file_dir_path[0] = '\0';
+
+  if (!panel) {
+    DEBUG_LOG("PANEL[%s] <null>", label ? label : "?");
+    return;
+  }
+
+  if (panel->vol && panel->vol->total_dirs > 0 && panel->vol->dir_entry_list) {
+    idx = panel->disp_begin_pos + panel->cursor_pos;
+    if (idx < 0)
+      idx = 0;
+    if (idx >= panel->vol->total_dirs)
+      idx = panel->vol->total_dirs - 1;
+    tree_de = panel->vol->dir_entry_list[idx].dir_entry;
+    if (tree_de) {
+      GetPath((DirEntry *)tree_de, tree_path);
+      tree_path[PATH_LENGTH] = '\0';
+      tree_text = tree_path;
+    }
+  }
+
+  if (panel->file_dir_entry && DirBelongsToVolume(panel->vol, panel->file_dir_entry)) {
+    GetPath(panel->file_dir_entry, file_dir_path);
+    file_dir_path[PATH_LENGTH] = '\0';
+    file_dir_text = file_dir_path;
+  } else if (panel->file_dir_entry) {
+    file_dir_text = "<stale>";
+  }
+
+  if (panel->file_selection_dir_path[0] != '\0')
+    selection_dir_text = panel->file_selection_dir_path;
+  if (panel->file_selection_name[0] != '\0')
+    selection_name_text = panel->file_selection_name;
+
+  DEBUG_LOG(
+      "PANEL[%s] saved_focus=%d disp=%d cur=%d idx=%d start=%d fcur=%d "
+      "tree='%s' file_dir='%s' sel_dir='%s' sel_name='%s'",
+      label ? label : "?", panel->saved_focus, panel->disp_begin_pos,
+      panel->cursor_pos, idx, panel->start_file, panel->file_cursor_pos,
+      tree_text, file_dir_text, selection_dir_text, selection_name_text);
+}
+
+static void DebugLogSplitState(const char *label, const ViewContext *ctx) {
+  const char *active_side = "?";
+
+  if (!ctx) {
+    DEBUG_LOG("SPLIT[%s] <null>", label ? label : "?");
+    return;
+  }
+
+  if (ctx->active == ctx->left)
+    active_side = "LEFT";
+  else if (ctx->active == ctx->right)
+    active_side = "RIGHT";
+
+  DEBUG_LOG("SPLIT[%s] is_split=%d active=%s focused=%d", label ? label : "?",
+            ctx->is_split_screen, active_side, ctx->focused_window);
+  DebugLogPanelState("LEFT", ctx->left);
+  DebugLogPanelState("RIGHT", ctx->right);
+}
+
 void HandlePlus(ViewContext *ctx, DirEntry *dir_entry, DirEntry *de_ptr,
                 char *new_log_path, BOOL *need_dsp_help, YtreePanel *p) {
   Statistic *s = &p->vol->vol_stats;
@@ -143,24 +229,173 @@ static int FindDirIndex(const struct Volume *vol, const DirEntry *target) {
   return -1;
 }
 
-static DirEntry *FindDirByPath(const struct Volume *vol, const char *path) {
-  int i;
+static DirEntry *FindDirByPathInSubTree(DirEntry *entry, const char *path) {
   char candidate_path[PATH_LENGTH + 1];
 
-  if (!vol || !path || !*path || !vol->dir_entry_list || vol->total_dirs <= 0)
-    return NULL;
-
-  for (i = 0; i < vol->total_dirs; i++) {
-    DirEntry *candidate = vol->dir_entry_list[i].dir_entry;
-    if (!candidate)
-      continue;
-    GetPath(candidate, candidate_path);
+  for (; entry; entry = entry->next) {
+    GetPath(entry, candidate_path);
     candidate_path[PATH_LENGTH] = '\0';
     if (strcmp(candidate_path, path) == 0)
-      return candidate;
+      return entry;
+    if (entry->sub_tree) {
+      DirEntry *resolved = FindDirByPathInSubTree(entry->sub_tree, path);
+      if (resolved)
+        return resolved;
+    }
   }
 
   return NULL;
+}
+
+static DirEntry *FindDirByPath(const struct Volume *vol, const char *path) {
+  if (!vol || !path || !*path)
+    return NULL;
+
+  if (vol->dir_entry_list && vol->total_dirs > 0) {
+    char candidate_path[PATH_LENGTH + 1];
+    int i;
+    for (i = 0; i < vol->total_dirs; i++) {
+      DirEntry *candidate = vol->dir_entry_list[i].dir_entry;
+      if (!candidate)
+        continue;
+      GetPath(candidate, candidate_path);
+      candidate_path[PATH_LENGTH] = '\0';
+      if (strcmp(candidate_path, path) == 0)
+        return candidate;
+    }
+  }
+
+  if (!vol->vol_stats.tree)
+    return NULL;
+
+  return FindDirByPathInSubTree(vol->vol_stats.tree, path);
+}
+
+static BOOL EnsureDirVisible(ViewContext *ctx, YtreePanel *panel, DirEntry *target) {
+  BOOL changed = FALSE;
+  DirEntry *ancestor;
+
+  if (!ctx || !panel || !panel->vol || !target)
+    return FALSE;
+
+  for (ancestor = target->up_tree; ancestor; ancestor = ancestor->up_tree) {
+    if (ancestor->not_scanned && ancestor->sub_tree) {
+      ancestor->not_scanned = FALSE;
+      changed = TRUE;
+    }
+  }
+
+  if (changed)
+    BuildDirEntryList(ctx, panel->vol, &panel->current_dir_entry);
+
+  return FindDirIndex(panel->vol, target) >= 0;
+}
+
+static DirEntry *FindDirByPathOrAncestor(const struct Volume *vol,
+                                         const char *path) {
+  char probe[PATH_LENGTH + 1];
+  size_t prev_len;
+
+  if (!vol || !path || !*path)
+    return NULL;
+
+  (void)snprintf(probe, sizeof(probe), "%s", path);
+  probe[PATH_LENGTH] = '\0';
+  prev_len = strlen(probe) + 1;
+
+  while (probe[0] != '\0') {
+    DirEntry *resolved = FindDirByPath(vol, probe);
+    char *slash;
+
+    if (resolved)
+      return resolved;
+
+    if (probe[0] == FILE_SEPARATOR_CHAR && probe[1] == '\0')
+      break;
+
+    if (strlen(probe) >= prev_len)
+      break;
+    prev_len = strlen(probe);
+
+    while (prev_len > 1 && probe[prev_len - 1] == FILE_SEPARATOR_CHAR) {
+      probe[prev_len - 1] = '\0';
+      prev_len--;
+    }
+
+    slash = strrchr(probe, FILE_SEPARATOR_CHAR);
+    if (!slash)
+      break;
+    if (slash == probe) {
+      probe[1] = '\0';
+    } else {
+      *slash = '\0';
+    }
+  }
+
+  return NULL;
+}
+
+static void AddPathSnapshot(PathList **list, const char *path) {
+  PathList *node;
+
+  if (!list || !path || !*path)
+    return;
+
+  node = (PathList *)xcalloc(1, sizeof(PathList));
+  node->path = xstrdup(path);
+  node->next = *list;
+  *list = node;
+}
+
+static void CapturePanelTaggedSnapshot(const YtreePanel *panel,
+                                       PathList **tagged) {
+  char path[PATH_LENGTH + 1];
+  unsigned int i;
+  const FileEntry *fe;
+
+  if (!panel || !tagged)
+    return;
+
+  for (i = 0; i < panel->file_count; i++) {
+    fe = panel->file_entry_list ? panel->file_entry_list[i].file : NULL;
+    if (fe && fe->tagged) {
+      GetFileNamePath((FileEntry *)fe, path);
+      path[PATH_LENGTH] = '\0';
+      AddPathSnapshot(tagged, path);
+    }
+  }
+
+  if (*tagged || !panel->file_dir_entry)
+    return;
+
+  for (fe = panel->file_dir_entry->file; fe; fe = fe->next) {
+    if (fe->tagged) {
+      GetFileNamePath((FileEntry *)fe, path);
+      path[PATH_LENGTH] = '\0';
+      AddPathSnapshot(tagged, path);
+    }
+  }
+}
+
+static void RestoreTaggedSnapshot(ViewContext *ctx, struct Volume *vol,
+                                  PathList *tagged) {
+  PathList *expanded = NULL;
+
+  if (!ctx || !vol || !vol->vol_stats.tree || !tagged)
+    return;
+
+  RestoreTreeState(ctx, vol->vol_stats.tree, &expanded, tagged,
+                   &vol->vol_stats);
+  FreePathList(expanded);
+}
+
+static int CountPathSnapshot(const PathList *list) {
+  int count = 0;
+
+  for (; list; list = list->next)
+    count++;
+
+  return count;
 }
 
 static void PositionPanelAtIndex(YtreePanel *panel, int idx) {
@@ -283,7 +518,13 @@ static void CaptureInactiveFallback(ViewContext *ctx, YtreePanel *p,
     if (inactive_idx >= inactive->vol->total_dirs)
       inactive_idx = inactive->vol->total_dirs - 1;
     inactive_de = inactive->vol->dir_entry_list[inactive_idx].dir_entry;
-  } else {
+  }
+  if (!inactive_de && inactive->file_selection_dir_path[0] != '\0') {
+    inactive_de = FindDirByPath(inactive->vol, inactive->file_selection_dir_path);
+  }
+  if (!inactive_de)
+    inactive_de = inactive->file_dir_entry;
+  if (!inactive_de) {
     inactive_de = inactive->vol->vol_stats.tree;
   }
 
@@ -313,6 +554,10 @@ void HandleCollapseSubTree(ViewContext *ctx, DirEntry *dir_entry,
     return;
 
   CaptureInactiveFallback(ctx, p, dir_entry, &inactive, &inactive_fallback);
+  if (ctx->left && ctx->left->vol == p->vol)
+    PanelTags_PruneUnderDir(ctx->left, dir_entry);
+  if (ctx->right && ctx->right->vol == p->vol)
+    PanelTags_PruneUnderDir(ctx->right, dir_entry);
 
   dir_entry->not_scanned = TRUE;
   dir_entry->unlogged_flag = FALSE;
@@ -349,6 +594,10 @@ void HandleUnreadSubTree(ViewContext *ctx, DirEntry *dir_entry,
   }
 
   CaptureInactiveFallback(ctx, p, dir_entry, &inactive, &inactive_fallback);
+  if (ctx->left && ctx->left->vol == p->vol)
+    PanelTags_PruneUnderDir(ctx->left, dir_entry);
+  if (ctx->right && ctx->right->vol == p->vol)
+    PanelTags_PruneUnderDir(ctx->right, dir_entry);
 
   for (de_ptr = dir_entry->sub_tree; de_ptr; de_ptr = de_ptr->next) {
     UnReadTree(ctx, de_ptr, s);
@@ -414,22 +663,67 @@ void HandleDirMakeDirectory(ViewContext *ctx, DirEntry *dir_entry,
   DirEntry *inactive_fallback = NULL;
   char inactive_path[PATH_LENGTH + 1];
   BOOL has_inactive_path = FALSE;
+  BOOL restore_inactive_file_anchor = FALSE;
+  int inactive_start_file = 0;
+  int inactive_file_cursor = 0;
+  char inactive_file_dir_path[PATH_LENGTH + 1];
+  char inactive_file_name[PATH_LENGTH + 1];
+  PathList *inactive_tagged_snapshot = NULL;
 
   if (!ctx || !ctx->active || !ctx->active->vol || !dir_entry)
     return;
 
+  DebugLogSplitState("HandleDirMakeDirectory:entry", ctx);
   ClearHelp(ctx);
   *dir_name = '\0';
   CaptureInactiveFallback(ctx, ctx->active, NULL, &inactive,
                           &inactive_fallback);
+  if (inactive_fallback) {
+    char fallback_path[PATH_LENGTH + 1];
+    GetPath(inactive_fallback, fallback_path);
+    fallback_path[PATH_LENGTH] = '\0';
+    DEBUG_LOG("HandleDirMakeDirectory:inactive_fallback='%s'", fallback_path);
+  } else {
+    DEBUG_LOG("HandleDirMakeDirectory:inactive_fallback=<null>");
+  }
   if (inactive && inactive->vol == ctx->active->vol && inactive_fallback) {
     GetPath(inactive_fallback, inactive_path);
     inactive_path[PATH_LENGTH] = '\0';
     has_inactive_path = TRUE;
   }
+  if (inactive && inactive->vol == ctx->active->vol &&
+      inactive->saved_focus == FOCUS_FILE) {
+    if (inactive->vol->total_dirs > 0) {
+      int inactive_idx = inactive->disp_begin_pos + inactive->cursor_pos;
+      DirEntry *inactive_dir = NULL;
+      if (inactive_idx < 0)
+        inactive_idx = 0;
+      if (inactive_idx >= inactive->vol->total_dirs)
+        inactive_idx = inactive->vol->total_dirs - 1;
+      inactive_dir = inactive->vol->dir_entry_list[inactive_idx].dir_entry;
+      if (!inactive_dir)
+        inactive_dir = inactive->file_dir_entry;
+      if (inactive_dir) {
+        inactive->file_dir_entry = inactive_dir;
+        CapturePanelSelectionAnchor(ctx, inactive, inactive_dir);
+      }
+    }
+    inactive_start_file = inactive->start_file;
+    inactive_file_cursor = inactive->file_cursor_pos;
+    (void)snprintf(inactive_file_dir_path, sizeof(inactive_file_dir_path), "%s",
+                   inactive->file_selection_dir_path);
+    (void)snprintf(inactive_file_name, sizeof(inactive_file_name), "%s",
+                   inactive->file_selection_name);
+    CapturePanelTaggedSnapshot(inactive, &inactive_tagged_snapshot);
+    restore_inactive_file_anchor = TRUE;
+  }
   if (UI_ReadString(ctx, ctx->active, "MAKE DIRECTORY:", dir_name, PATH_LENGTH,
                     HST_FILE) == CR) {
+    DEBUG_LOG("HandleDirMakeDirectory:requested='%s'", dir_name);
+    DebugLogSplitState("HandleDirMakeDirectory:before_make", ctx);
     if (!MakeDirectory(ctx, ctx->active, dir_entry, dir_name, s)) {
+      DebugLogSplitState("HandleDirMakeDirectory:after_make_before_rebuild",
+                         ctx);
       BuildDirEntryList(ctx, ctx->active->vol, &ctx->active->current_dir_entry);
       if (inactive && inactive->vol == ctx->active->vol) {
         const DirEntry *inactive_target = inactive_fallback;
@@ -439,14 +733,38 @@ void HandleDirMakeDirectory(ViewContext *ctx, DirEntry *dir_entry,
             inactive_target = resolved;
         }
         ReanchorPanelToDir(inactive, inactive_target);
+        if (restore_inactive_file_anchor) {
+          DirEntry *resolved_file_dir =
+              FindDirByPath(inactive->vol, inactive_file_dir_path);
+          if (resolved_file_dir)
+            inactive->file_dir_entry = resolved_file_dir;
+          inactive->start_file = inactive_start_file;
+          inactive->file_cursor_pos = inactive_file_cursor;
+          (void)snprintf(inactive->file_selection_dir_path,
+                         sizeof(inactive->file_selection_dir_path), "%s",
+                         inactive_file_dir_path);
+          (void)snprintf(inactive->file_selection_name,
+                         sizeof(inactive->file_selection_name), "%s",
+                         inactive_file_name);
+          if (resolved_file_dir) {
+            DirOps_ReloadPanelFileAnchorIfMissing(ctx, inactive,
+                                                  resolved_file_dir);
+          }
+        }
+        RestoreTaggedSnapshot(ctx, inactive->vol, inactive_tagged_snapshot);
+        PanelTags_Restore(ctx, inactive);
         BuildFileEntryList(ctx, inactive);
+        DebugLogSplitState("HandleDirMakeDirectory:after_inactive_restore",
+                           ctx);
       }
       RefreshView(ctx, dir_entry);
+      DebugLogSplitState("HandleDirMakeDirectory:after_refresh", ctx);
     }
   }
   wmove(ctx->ctx_border_window, ctx->layout.prompt_y, 0);
   wclrtoeol(ctx->ctx_border_window);
   wnoutrefresh(ctx->ctx_border_window);
+  FreePathList(inactive_tagged_snapshot);
 }
 
 DirEntry *HandleDirDeleteDirectory(ViewContext *ctx, DirEntry *dir_entry) {
@@ -575,6 +893,11 @@ void HandleSwitchWindow(ViewContext *ctx, DirEntry *dir_entry,
       if (ctx->active->vol != start_vol)
         return;
 
+      p->file_dir_entry = dir_entry;
+      p->start_file = dir_entry->start_file;
+      p->file_cursor_pos = dir_entry->cursor_pos;
+      CapturePanelSelectionAnchor(ctx, p, dir_entry);
+
       /* Check if the panel we were handling is still valid/active.
        * A normal TAB panel switch from file view changes ctx->active while
        * split mode remains enabled; the caller will handle that hand-off.
@@ -651,9 +974,69 @@ void RefreshVolumeSwitchViews(ViewContext *ctx, DirEntry *dir_entry,
   DisplayHeaderPath(ctx, path);
 }
 
+
+
+void DirOps_ReloadPanelFileAnchorIfMissing(ViewContext *ctx, YtreePanel *panel,
+                                           DirEntry *dir_entry) {
+  char dir_path[PATH_LENGTH + 1];
+  Statistic *stats;
+  PathList *expanded = NULL;
+  PathList *tagged = NULL;
+  PathList *panel_tagged = NULL;
+
+  if (!ctx || !panel || !panel->vol || !dir_entry)
+    return;
+  if (panel->file_selection_name[0] == '\0' ||
+      panel->file_selection_dir_path[0] == '\0')
+    return;
+
+  GetPath(dir_entry, dir_path);
+  dir_path[PATH_LENGTH] = '\0';
+  if (strcmp(dir_path, panel->file_selection_dir_path) != 0)
+    return;
+
+  if (dir_entry->file != NULL || dir_entry->total_files > 0)
+    return;
+  if (!dir_entry->not_scanned && !dir_entry->unlogged_flag)
+    return;
+
+  stats = &panel->vol->vol_stats;
+  DEBUG_LOG(
+      "RestorePanelFileSelection:reload anchor path='%s' file='%s' not_scanned=%d",
+      panel->file_selection_dir_path, panel->file_selection_name,
+      dir_entry->not_scanned);
+
+  CapturePanelTaggedSnapshot(panel, &panel_tagged);
+  SaveTreeState(stats->tree, &expanded, &tagged);
+  DEBUG_LOG("RestorePanelFileSelection:tag_snapshot panel=%d tree=%d",
+            CountPathSnapshot(panel_tagged), CountPathSnapshot(tagged));
+  InvalidateVolumePanels(ctx, panel->vol);
+  if (RescanDir(ctx, dir_entry, 0, stats, Dir_Progress, ctx) == 0) {
+    RestoreTreeState(ctx, stats->tree, &expanded, tagged, stats);
+    RestoreTaggedSnapshot(ctx, panel->vol, panel_tagged);
+    PanelTags_Restore(ctx, panel);
+  }
+  FreePathList(expanded);
+  FreePathList(tagged);
+  FreePathList(panel_tagged);
+
+  BuildDirEntryList(ctx, panel->vol, &panel->current_dir_entry);
+  ReanchorPanelToDir(panel, FindDirByPathOrAncestor(panel->vol, dir_path));
+}
+
+static BOOL PanelHasVisibleFiles(ViewContext *ctx, YtreePanel *panel,
+                                 DirEntry *dir_entry) {
+  if (!ctx || !panel || !dir_entry)
+    return FALSE;
+  panel->file_dir_entry = dir_entry;
+  BuildFileEntryList(ctx, panel);
+  return panel->file_count > 0;
+}
+
 static DirEntry *RestorePanelFileSelection(ViewContext *ctx, DirEntry *dir_entry,
                                            YtreePanel *panel) {
   int selected_idx = -1;
+  unsigned int file_count = 0;
 
   if (!ctx || !dir_entry || !panel)
     return dir_entry;
@@ -664,17 +1047,29 @@ static DirEntry *RestorePanelFileSelection(ViewContext *ctx, DirEntry *dir_entry
   if (panel->file_selection_dir_path[0] != '\0' && panel->vol) {
     char current_dir_path[PATH_LENGTH + 1];
     DirEntry *resolved_dir = NULL;
+    DirEntry *exact_dir = NULL;
 
     GetPath(dir_entry, current_dir_path);
     current_dir_path[PATH_LENGTH] = '\0';
     if (strcmp(current_dir_path, panel->file_selection_dir_path) != 0) {
-      resolved_dir = FindDirByPath(panel->vol, panel->file_selection_dir_path);
+      exact_dir = FindDirByPath(panel->vol, panel->file_selection_dir_path);
+      if (exact_dir && EnsureDirVisible(ctx, panel, exact_dir))
+        resolved_dir = exact_dir;
+      if (!resolved_dir) {
+        resolved_dir =
+            FindDirByPathOrAncestor(panel->vol, panel->file_selection_dir_path);
+      }
       if (resolved_dir) {
         ReanchorPanelToDir(panel, resolved_dir);
         dir_entry = resolved_dir;
+      } else if (panel->vol && panel->vol->vol_stats.tree) {
+        ReanchorPanelToDir(panel, panel->vol->vol_stats.tree);
+        dir_entry = panel->vol->vol_stats.tree;
       }
     }
   }
+
+  DirOps_ReloadPanelFileAnchorIfMissing(ctx, panel, dir_entry);
 
   dir_entry->start_file = panel->start_file;
   dir_entry->cursor_pos = panel->file_cursor_pos;
@@ -720,6 +1115,40 @@ static DirEntry *RestorePanelFileSelection(ViewContext *ctx, DirEntry *dir_entry
     dir_entry->cursor_pos = selected_idx - start;
   }
 
+  file_count = panel->file_count;
+  if (file_count == 0 && panel->file_selection_dir_path[0] != '\0') {
+    BuildFileEntryList(ctx, panel);
+    file_count = panel->file_count;
+  }
+  if (file_count == 0) {
+    DEBUG_LOG("RestorePanelFileSelection:empty_file_list path='%s' file='%s'",
+              panel->file_selection_dir_path, panel->file_selection_name);
+    dir_entry->start_file = 0;
+    dir_entry->cursor_pos = 0;
+  } else {
+    int original_start = dir_entry->start_file;
+    int original_cursor = dir_entry->cursor_pos;
+    if (dir_entry->start_file < 0)
+      dir_entry->start_file = 0;
+    if ((unsigned int)dir_entry->start_file >= file_count)
+      dir_entry->start_file = (int)file_count - 1;
+    if (dir_entry->cursor_pos < 0)
+      dir_entry->cursor_pos = 0;
+    if ((unsigned int)(dir_entry->start_file + dir_entry->cursor_pos) >=
+        file_count) {
+      dir_entry->cursor_pos = (int)file_count - 1 - dir_entry->start_file;
+      if (dir_entry->cursor_pos < 0)
+        dir_entry->cursor_pos = 0;
+    }
+    if (original_start != dir_entry->start_file ||
+        original_cursor != dir_entry->cursor_pos) {
+      DEBUG_LOG(
+          "RestorePanelFileSelection:clamp start=%d->%d cursor=%d->%d count=%u",
+          original_start, dir_entry->start_file, original_cursor,
+          dir_entry->cursor_pos, file_count);
+    }
+  }
+
   panel->file_dir_entry = dir_entry;
   panel->start_file = dir_entry->start_file;
   panel->file_cursor_pos = dir_entry->cursor_pos;
@@ -727,6 +1156,14 @@ static DirEntry *RestorePanelFileSelection(ViewContext *ctx, DirEntry *dir_entry
     dir_entry->start_file = 0;
   if (dir_entry->cursor_pos < 0 && dir_entry->total_files > 0)
     dir_entry->cursor_pos = 0;
+  DEBUG_LOG(
+      "RestorePanelFileSelection:dir='%s' total=%u matching=%u file_count=%u "
+      "start=%d cursor=%d focus=%d spec='%s'",
+      dir_entry->name ? dir_entry->name : "<null>",
+      (unsigned int)dir_entry->total_files,
+      (unsigned int)dir_entry->matching_files, panel->file_count,
+      dir_entry->start_file, dir_entry->cursor_pos, panel->saved_focus,
+      panel->vol ? panel->vol->vol_stats.file_spec : "");
   return dir_entry;
 }
 
@@ -777,6 +1214,7 @@ HandleDirWindowPanelAction(ViewContext *ctx, YtreeAction action,
   }
 
   case ACTION_SPLIT_SCREEN:
+    DebugLogSplitState("DirPanelAction:split:before", ctx);
     if (ctx->is_split_screen && ctx->active == ctx->right && ctx->left &&
         ctx->right) {
       BOOL preserve_left_file_state =
@@ -848,12 +1286,14 @@ HandleDirWindowPanelAction(ViewContext *ctx, YtreeAction action,
 
     ctx->focused_window = ctx->active->saved_focus;
     RefreshView(ctx, *dir_entry_ptr);
+    DebugLogSplitState("DirPanelAction:split:after", ctx);
     *need_dsp_help_ptr = TRUE;
     return DIR_WINDOW_DISPATCH_HANDLED;
 
   case ACTION_SWITCH_PANEL:
     if (!ctx->is_split_screen)
       return DIR_WINDOW_DISPATCH_HANDLED;
+    DebugLogSplitState("DirPanelAction:switch:before", ctx);
 
     if (ctx->active == ctx->left) {
       ctx->active = ctx->right;
@@ -863,6 +1303,9 @@ HandleDirWindowPanelAction(ViewContext *ctx, YtreeAction action,
 
     ctx->focused_window = ctx->active->saved_focus;
     *s_ptr = &ctx->active->vol->vol_stats;
+    PanelTags_ApplyToTree(ctx, ctx->active);
+    DEBUG_LOG("DirPanelAction:switch:post_toggle active_saved_focus=%d",
+              ctx->active->saved_focus);
 
     if (ctx->active->vol->total_dirs > 0) {
       if (ctx->active->disp_begin_pos + ctx->active->cursor_pos >=
@@ -874,6 +1317,14 @@ HandleDirWindowPanelAction(ViewContext *ctx, YtreeAction action,
     } else {
       *dir_entry_ptr = (*s_ptr)->tree;
     }
+    if (*dir_entry_ptr) {
+      char switch_path[PATH_LENGTH + 1];
+      GetPath(*dir_entry_ptr, switch_path);
+      switch_path[PATH_LENGTH] = '\0';
+      DEBUG_LOG("DirPanelAction:switch:resolved_dir='%s'", switch_path);
+    } else {
+      DEBUG_LOG("DirPanelAction:switch:resolved_dir=<null>");
+    }
 
     DEBUG_LOG("ACTION_SWITCH_PANEL: active panel is now %s with "
               "cursor_pos=%d, dir_entry=%s",
@@ -882,14 +1333,28 @@ HandleDirWindowPanelAction(ViewContext *ctx, YtreeAction action,
               *dir_entry_ptr ? (*dir_entry_ptr)->name : "NULL");
 
     SyncActivePanelWindows(ctx);
+    DEBUG_LOG("DirPanelAction:switch:after_sync_windows");
     *dir_entry_ptr =
         RestorePanelFileSelection(ctx, *dir_entry_ptr, ctx->active);
-    RefreshView(ctx, *dir_entry_ptr);
+    if (!*dir_entry_ptr && *s_ptr) {
+      *dir_entry_ptr = (*s_ptr)->tree;
+      DEBUG_LOG("DirPanelAction:switch:restore returned null; fallback tree");
+    }
+    if (*dir_entry_ptr) {
+      DEBUG_LOG("DirPanelAction:switch:before_refresh dir='%s'",
+                (*dir_entry_ptr)->name ? (*dir_entry_ptr)->name : "<nullname>");
+      RefreshView(ctx, *dir_entry_ptr);
+      DEBUG_LOG("DirPanelAction:switch:after_refresh");
+    } else {
+      DEBUG_LOG("DirPanelAction:switch:skip_refresh dir_entry null");
+      return DIR_WINDOW_DISPATCH_HANDLED;
+    }
     *need_dsp_help_ptr = TRUE;
     if (ctx->focused_window == FOCUS_FILE && *dir_entry_ptr &&
-        (*dir_entry_ptr)->total_files > 0) {
+        PanelHasVisibleFiles(ctx, ctx->active, *dir_entry_ptr)) {
       *unput_char_ptr = CR;
     }
+    DebugLogSplitState("DirPanelAction:switch:after", ctx);
     return DIR_WINDOW_DISPATCH_CONTINUE;
 
   default:
@@ -947,7 +1412,7 @@ HandleDirWindowEnterAction(ViewContext *ctx, DirEntry **dir_entry_ptr,
     RefreshView(ctx, *dir_entry_ptr);
     *need_dsp_help_ptr = TRUE;
     if (ctx->focused_window == FOCUS_FILE && *dir_entry_ptr &&
-        (*dir_entry_ptr)->total_files > 0) {
+        PanelHasVisibleFiles(ctx, ctx->active, *dir_entry_ptr)) {
       *unput_char_ptr = CR;
     }
     *action_ptr = ACTION_NONE;
@@ -1270,6 +1735,7 @@ DirEntry *RefreshTreeSafe(ViewContext *ctx, YtreePanel *p, DirEntry *entry) {
 
     /* 3. Restore State */
     RestoreTreeState(ctx, s->tree, &expanded, tagged, s);
+    PanelTags_Restore(ctx, p);
     FreePathList(expanded);
     FreePathList(tagged);
 
@@ -1322,6 +1788,7 @@ DirEntry *RefreshTreeSafe(ViewContext *ctx, YtreePanel *p, DirEntry *entry) {
     entry->global_flag = saved_global_flag;
     entry->global_all_volumes = saved_global_all_volumes;
     entry->tagged_flag = saved_tagged_flag;
+    PanelTags_Restore(ctx, p);
 
     BuildDirEntryList(ctx, p->vol, &p->current_dir_entry);
     /* Basic bounds check */

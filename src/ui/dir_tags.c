@@ -30,6 +30,7 @@ void HandleTagDir(ViewContext *ctx, DirEntry *dir_entry, BOOL value,
         s->disk_tagged_files--;
         s->disk_tagged_bytes -= fe_ptr->stat_struct.st_size;
       }
+      PanelTags_RecordFileState(p, fe_ptr, value);
     }
   }
   dir_entry->start_file = 0;
@@ -67,6 +68,7 @@ void HandleTagAllDirs(ViewContext *ctx, struct Volume *vol, DirEntry *dir_entry,
           s->disk_tagged_files--;
           s->disk_tagged_bytes -= fe_ptr->stat_struct.st_size;
         }
+        PanelTags_RecordFileState(p, fe_ptr, value);
       }
     }
   }

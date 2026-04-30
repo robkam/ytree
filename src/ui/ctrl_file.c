@@ -273,6 +273,7 @@ int HandleFileWindow(ViewContext *ctx, DirEntry *dir_entry) {
   need_dsp_help = TRUE;
   maybe_change_x_step = TRUE;
 
+  PanelTags_ApplyToTree(ctx, ctx->active);
   BuildFileEntryList(ctx, ctx->active);
   FileNav_SyncGridMetrics(ctx);
   ctx->ctrl_file_hide_right = 0;

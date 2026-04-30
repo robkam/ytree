@@ -6,6 +6,12 @@ from ytree_control import YtreeController
 @pytest.fixture(scope="session")
 def ytree_binary():
     """Locates the ytree binary in build/ or current directory."""
+    override = os.environ.get("YTREE_TEST_BIN")
+    if override:
+        if os.path.exists(override) and os.access(override, os.X_OK):
+            return os.path.abspath(override)
+        pytest.fail(f"YTREE_TEST_BIN is not executable: {override}")
+
     paths = ["build/ytree", "./ytree"]
     for p in paths:
         if os.path.exists(p) and os.access(p, os.X_OK):

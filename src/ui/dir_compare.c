@@ -221,8 +221,8 @@ static BOOL ShouldTagComparedFile(CompareTagResult tag_result, BOOL is_error,
   }
 }
 
-static void TagComparedFile(FileEntry *source_file, Statistic *stats,
-                            unsigned long *tagged_count) {
+static void TagComparedFile(YtreePanel *panel, FileEntry *source_file,
+                            Statistic *stats, unsigned long *tagged_count) {
   DirEntry *owner_dir;
   long long file_size;
 
@@ -239,6 +239,7 @@ static void TagComparedFile(FileEntry *source_file, Statistic *stats,
   owner_dir->tagged_bytes += file_size;
   stats->disk_tagged_files++;
   stats->disk_tagged_bytes += file_size;
+  PanelTags_RecordFileState(panel, source_file, TRUE);
   if (tagged_count)
     (*tagged_count)++;
 }
@@ -421,7 +422,7 @@ void DirCompare_RunInternalDirectory(ViewContext *ctx, DirEntry *source_dir,
     if (ShouldTagComparedFile(request->tag_result, is_error, is_unique,
                               is_type_mismatch, has_target, basis_known,
                               basis_match, mtime_cmp)) {
-      TagComparedFile(source_file, stats, &summary.tagged_count);
+      TagComparedFile(ctx->active, source_file, stats, &summary.tagged_count);
     }
   }
 
@@ -526,7 +527,7 @@ static void RunInternalLoggedTreeCompareRecursive(
     if (ShouldTagComparedFile(request->tag_result, is_error, is_unique,
                               is_type_mismatch, has_target, basis_known,
                               basis_match, mtime_cmp)) {
-      TagComparedFile(source_file, stats, &summary->tagged_count);
+      TagComparedFile(NULL, source_file, stats, &summary->tagged_count);
     }
   }
 
