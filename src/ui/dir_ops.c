@@ -143,6 +143,26 @@ static int FindDirIndex(const struct Volume *vol, const DirEntry *target) {
   return -1;
 }
 
+static DirEntry *FindDirByPath(const struct Volume *vol, const char *path) {
+  int i;
+  char candidate_path[PATH_LENGTH + 1];
+
+  if (!vol || !path || !*path || !vol->dir_entry_list || vol->total_dirs <= 0)
+    return NULL;
+
+  for (i = 0; i < vol->total_dirs; i++) {
+    DirEntry *candidate = vol->dir_entry_list[i].dir_entry;
+    if (!candidate)
+      continue;
+    GetPath(candidate, candidate_path);
+    candidate_path[PATH_LENGTH] = '\0';
+    if (strcmp(candidate_path, path) == 0)
+      return candidate;
+  }
+
+  return NULL;
+}
+
 static void PositionPanelAtIndex(YtreePanel *panel, int idx) {
   int height;
 
@@ -390,13 +410,37 @@ BOOL HandleDirMakeFile(ViewContext *ctx, DirEntry *dir_entry) {
 void HandleDirMakeDirectory(ViewContext *ctx, DirEntry *dir_entry,
                             Statistic *s) {
   char dir_name[PATH_LENGTH * 2 + 1];
+  YtreePanel *inactive = NULL;
+  DirEntry *inactive_fallback = NULL;
+  char inactive_path[PATH_LENGTH + 1];
+  BOOL has_inactive_path = FALSE;
+
+  if (!ctx || !ctx->active || !ctx->active->vol || !dir_entry)
+    return;
 
   ClearHelp(ctx);
   *dir_name = '\0';
+  CaptureInactiveFallback(ctx, ctx->active, NULL, &inactive,
+                          &inactive_fallback);
+  if (inactive && inactive->vol == ctx->active->vol && inactive_fallback) {
+    GetPath(inactive_fallback, inactive_path);
+    inactive_path[PATH_LENGTH] = '\0';
+    has_inactive_path = TRUE;
+  }
   if (UI_ReadString(ctx, ctx->active, "MAKE DIRECTORY:", dir_name, PATH_LENGTH,
                     HST_FILE) == CR) {
     if (!MakeDirectory(ctx, ctx->active, dir_entry, dir_name, s)) {
       BuildDirEntryList(ctx, ctx->active->vol, &ctx->active->current_dir_entry);
+      if (inactive && inactive->vol == ctx->active->vol) {
+        const DirEntry *inactive_target = inactive_fallback;
+        if (has_inactive_path) {
+          DirEntry *resolved = FindDirByPath(ctx->active->vol, inactive_path);
+          if (resolved)
+            inactive_target = resolved;
+        }
+        ReanchorPanelToDir(inactive, inactive_target);
+        BuildFileEntryList(ctx, inactive);
+      }
       RefreshView(ctx, dir_entry);
     }
   }
@@ -607,15 +651,30 @@ void RefreshVolumeSwitchViews(ViewContext *ctx, DirEntry *dir_entry,
   DisplayHeaderPath(ctx, path);
 }
 
-static void RestorePanelFileSelection(ViewContext *ctx, DirEntry *dir_entry,
-                                      YtreePanel *panel) {
+static DirEntry *RestorePanelFileSelection(ViewContext *ctx, DirEntry *dir_entry,
+                                           YtreePanel *panel) {
   int selected_idx = -1;
 
   if (!ctx || !dir_entry || !panel)
-    return;
+    return dir_entry;
 
   if (panel->saved_focus != FOCUS_FILE)
-    return;
+    return dir_entry;
+
+  if (panel->file_selection_dir_path[0] != '\0' && panel->vol) {
+    char current_dir_path[PATH_LENGTH + 1];
+    DirEntry *resolved_dir = NULL;
+
+    GetPath(dir_entry, current_dir_path);
+    current_dir_path[PATH_LENGTH] = '\0';
+    if (strcmp(current_dir_path, panel->file_selection_dir_path) != 0) {
+      resolved_dir = FindDirByPath(panel->vol, panel->file_selection_dir_path);
+      if (resolved_dir) {
+        ReanchorPanelToDir(panel, resolved_dir);
+        dir_entry = resolved_dir;
+      }
+    }
+  }
 
   dir_entry->start_file = panel->start_file;
   dir_entry->cursor_pos = panel->file_cursor_pos;
@@ -668,6 +727,7 @@ static void RestorePanelFileSelection(ViewContext *ctx, DirEntry *dir_entry,
     dir_entry->start_file = 0;
   if (dir_entry->cursor_pos < 0 && dir_entry->total_files > 0)
     dir_entry->cursor_pos = 0;
+  return dir_entry;
 }
 
 DirWindowDispatchResult
@@ -719,6 +779,23 @@ HandleDirWindowPanelAction(ViewContext *ctx, YtreeAction action,
   case ACTION_SPLIT_SCREEN:
     if (ctx->is_split_screen && ctx->active == ctx->right && ctx->left &&
         ctx->right) {
+      BOOL preserve_left_file_state =
+          (ctx->left->saved_focus == FOCUS_FILE &&
+           ctx->right->saved_focus != FOCUS_FILE);
+      int preserved_start_file = ctx->left->start_file;
+      int preserved_file_cursor = ctx->left->file_cursor_pos;
+      DirEntry *preserved_file_dir_entry = ctx->left->file_dir_entry;
+      BOOL preserved_big_file_view = ctx->left->saved_big_file_view;
+      char preserved_file_selection_name[PATH_LENGTH + 1];
+      char preserved_file_selection_dir_path[PATH_LENGTH + 1];
+
+      (void)snprintf(preserved_file_selection_name,
+                     sizeof(preserved_file_selection_name), "%s",
+                     ctx->left->file_selection_name);
+      (void)snprintf(preserved_file_selection_dir_path,
+                     sizeof(preserved_file_selection_dir_path), "%s",
+                     ctx->left->file_selection_dir_path);
+
       ctx->left->vol = ctx->right->vol;
       ctx->left->cursor_pos = ctx->right->cursor_pos;
       ctx->left->disp_begin_pos = ctx->right->disp_begin_pos;
@@ -733,6 +810,18 @@ HandleDirWindowPanelAction(ViewContext *ctx, YtreeAction action,
                      ctx->right->file_selection_dir_path);
       ctx->left->saved_big_file_view = ctx->right->saved_big_file_view;
       ctx->left->saved_focus = ctx->right->saved_focus;
+      if (preserve_left_file_state) {
+        ctx->left->start_file = preserved_start_file;
+        ctx->left->file_cursor_pos = preserved_file_cursor;
+        ctx->left->file_dir_entry = preserved_file_dir_entry;
+        ctx->left->saved_big_file_view = preserved_big_file_view;
+        (void)snprintf(ctx->left->file_selection_name,
+                       sizeof(ctx->left->file_selection_name), "%s",
+                       preserved_file_selection_name);
+        (void)snprintf(ctx->left->file_selection_dir_path,
+                       sizeof(ctx->left->file_selection_dir_path), "%s",
+                       preserved_file_selection_dir_path);
+      }
       FreeFileEntryList(ctx->left);
       ctx->active->vol = ctx->left->vol;
     }
@@ -793,7 +882,8 @@ HandleDirWindowPanelAction(ViewContext *ctx, YtreeAction action,
               *dir_entry_ptr ? (*dir_entry_ptr)->name : "NULL");
 
     SyncActivePanelWindows(ctx);
-    RestorePanelFileSelection(ctx, *dir_entry_ptr, ctx->active);
+    *dir_entry_ptr =
+        RestorePanelFileSelection(ctx, *dir_entry_ptr, ctx->active);
     RefreshView(ctx, *dir_entry_ptr);
     *need_dsp_help_ptr = TRUE;
     if (ctx->focused_window == FOCUS_FILE && *dir_entry_ptr &&
@@ -852,7 +942,8 @@ HandleDirWindowEnterAction(ViewContext *ctx, DirEntry **dir_entry_ptr,
     *dir_entry_ptr = ResolveActiveDirEntry(ctx, *s_ptr);
     SyncActivePanelWindows(ctx);
 
-    RestorePanelFileSelection(ctx, *dir_entry_ptr, ctx->active);
+    *dir_entry_ptr =
+        RestorePanelFileSelection(ctx, *dir_entry_ptr, ctx->active);
     RefreshView(ctx, *dir_entry_ptr);
     *need_dsp_help_ptr = TRUE;
     if (ctx->focused_window == FOCUS_FILE && *dir_entry_ptr &&

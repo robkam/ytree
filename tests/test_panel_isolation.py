@@ -969,8 +969,8 @@ def test_bug_f_eight_source_selection_survives_destination_tree_prep(
 
     source_dir = root / "source_dir"
     source_dir.mkdir()
-    target_dir = root / "target_dir"
-    target_dir.mkdir()
+    alpha_dir = root / "alpha_dir"
+    alpha_dir.mkdir()
 
     (source_dir / "source_0.txt").write_text("0\n", encoding="utf-8")
     (source_dir / "source_1.txt").write_text("1\n", encoding="utf-8")
@@ -980,7 +980,8 @@ def test_bug_f_eight_source_selection_survives_destination_tree_prep(
     time.sleep(0.9)
 
     try:
-        # Source intent: tag source_0, then keep source_1 selected.
+        # Source intent: enter source_dir, tag source_0, then keep source_1 selected.
+        tui.send_keystroke(Keys.DOWN, wait=0.2)
         tui.send_keystroke(Keys.DOWN, wait=0.2)
         tui.send_keystroke(Keys.ENTER, wait=0.4)
         assert "hex invert j compare" in _footer_text(tui)
@@ -999,21 +1000,20 @@ def test_bug_f_eight_source_selection_survives_destination_tree_prep(
             tui
         )
 
-        # Split, switch to destination, then do destination prep.
+        # Split, switch to destination, then do destination prep that inserts a
+        # new tree row before source_dir (alpha_dir + mkdir child).
         tui.send_keystroke(Keys.F8, wait=0.4)
         tui.send_keystroke(Keys.TAB, wait=0.4)
-        tui.send_keystroke("n", wait=0.2)
-        assert tui.wait_for_content("MAKE FILE:", timeout=1.0), _screen_text(tui)
-        tui.send_keystroke("aaa_new.txt" + Keys.ENTER, wait=0.8)
         tui.send_keystroke(Keys.ESC, wait=0.3)
-        tui.send_keystroke(Keys.DOWN, wait=0.3)
+        tui.send_keystroke(Keys.UP, wait=0.3)
         tui.send_keystroke("M", wait=0.2)
         assert tui.wait_for_content("MAKE DIRECTORY:", timeout=1.0), _screen_text(tui)
-        tui.send_keystroke("stage_dir" + Keys.ENTER, wait=0.7)
+        tui.send_keystroke("aaa_shift_anchor" + Keys.ENTER, wait=0.7)
         tui.send_keystroke(Keys.ENTER, wait=0.5)
 
         # Back to source and verify source intent is stable by identity.
         tui.send_keystroke(Keys.TAB, wait=0.5)
+        assert "hex invert j compare" in _footer_text(tui), _screen_text(tui)
         source_line_after = _find_line_with_text(tui, "source_0.txt")
         assert source_line_after is not None, _screen_text(tui)
         assert _line_marks_file_as_tagged(source_line_after, "source_0.txt"), (
@@ -1024,6 +1024,123 @@ def test_bug_f_eight_source_selection_survives_destination_tree_prep(
         tui.send_keystroke("c", wait=0.3)
         assert tui.wait_for_content("COPY: source_1.txt", timeout=1.0), (
             "Destination-side prep re-indexed source file selection by row position.\n"
+            f"{_screen_text(tui)}"
+        )
+        tui.send_keystroke(Keys.ESC, wait=0.2)
+    finally:
+        tui.quit()
+
+
+def test_source_selection_survives_destination_tree_prep_home_mkdir(
+    tmp_path, ytree_binary
+):
+    """
+    BUG-36 regression:
+    Destination tree HOME+mkdir prep in same-volume split mode must not blank
+    the source pane or mutate source tagged/selection identity.
+    """
+    root = tmp_path / "bug_f_eight_source_selection_tree_home_mkdir"
+    root.mkdir()
+
+    source_dir = root / "source_dir"
+    source_dir.mkdir()
+    target_dir = root / "target_dir"
+    target_dir.mkdir()
+
+    (source_dir / "source_0.txt").write_text("0\n", encoding="utf-8")
+    (source_dir / "source_1.txt").write_text("1\n", encoding="utf-8")
+    (source_dir / "source_2.txt").write_text("2\n", encoding="utf-8")
+
+    tui = YtreeTUI(executable=ytree_binary, cwd=str(root))
+    time.sleep(0.9)
+
+    try:
+        tui.send_keystroke(Keys.DOWN, wait=0.2)
+        tui.send_keystroke(Keys.ENTER, wait=0.4)
+        assert "hex invert j compare" in _footer_text(tui)
+        tui.send_keystroke("t", wait=0.2)
+
+        tui.send_keystroke("c", wait=0.3)
+        assert tui.wait_for_content("COPY: source_1.txt", timeout=1.0), _screen_text(
+            tui
+        )
+        tui.send_keystroke(Keys.ESC, wait=0.2)
+
+        source_line = _find_line_with_text(tui, "source_0.txt")
+        assert source_line is not None, _screen_text(tui)
+        assert _line_marks_file_as_tagged(source_line, "source_0.txt"), _screen_text(
+            tui
+        )
+
+        tui.send_keystroke(Keys.F8, wait=0.4)
+        tui.send_keystroke(Keys.TAB, wait=0.4)
+        if "hex invert j compare" in _footer_text(tui):
+            tui.send_keystroke(Keys.ESC, wait=0.3)
+        _assert_dir_mode_footer(tui, "Destination panel should be in tree view.")
+        tui.send_keystroke(Keys.LEFT, wait=0.3)
+        tui.send_keystroke(Keys.HOME, wait=0.3)
+        tui.send_keystroke("M", wait=0.2)
+        assert tui.wait_for_content("MAKE DIRECTORY:", timeout=1.0), _screen_text(tui)
+        tui.send_keystroke("aaa_dest_stage_dir" + Keys.ENTER, wait=0.8)
+        tui.send_keystroke(Keys.ENTER, wait=0.5)
+
+        screen_while_right_active = _screen_text(tui)
+        assert "source_1.txt" in screen_while_right_active, (
+            "Source pane blanked while destination tree flow remained active.\n"
+            f"{screen_while_right_active}"
+        )
+
+        tui.send_keystroke(Keys.TAB, wait=0.5)
+        screen = _screen_text(tui)
+        assert "source_1.txt" in screen, (
+            "Source pane blanked after destination tree HOME+mkdir flow.\n" f"{screen}"
+        )
+        assert "hex invert j compare" in _footer_text(tui), screen
+
+        source_line_after = _find_line_with_text(tui, "source_0.txt")
+        assert source_line_after is not None, screen
+        assert _line_marks_file_as_tagged(source_line_after, "source_0.txt"), (
+            "Destination tree HOME+mkdir flow mutated source tagged state.\n"
+            f"Row: {source_line_after}\n{screen}"
+        )
+
+        tui.send_keystroke("c", wait=0.3)
+        assert tui.wait_for_content("COPY: source_1.txt", timeout=1.0), (
+            "Destination tree HOME+mkdir flow re-indexed source file selection.\n"
+            f"{_screen_text(tui)}"
+        )
+        tui.send_keystroke(Keys.ESC, wait=0.2)
+
+        # Close split from destination tree context, then recover source_dir.
+        tui.send_keystroke(Keys.TAB, wait=0.4)
+        if "hex invert j compare" in _footer_text(tui):
+            tui.send_keystroke(Keys.ESC, wait=0.3)
+        _assert_dir_mode_footer(tui, "Destination should be in tree mode before unsplit.")
+        tui.send_keystroke(Keys.F8, wait=0.5)
+        _assert_dir_mode_footer(
+            tui, "Unsplitting from destination tree must keep tree UI stable."
+        )
+
+        found_source_dir = False
+        for _ in range(8):
+            lines = tui.get_screen_dump()
+            if _stats_current_dir_contains(lines, "source_dir"):
+                found_source_dir = True
+                break
+            tui.send_keystroke(Keys.DOWN, wait=0.2)
+        assert found_source_dir, _screen_text(tui)
+
+        tui.send_keystroke(Keys.ENTER, wait=0.5)
+        assert "hex invert j compare" in _footer_text(tui), _screen_text(tui)
+        source_line_unsplit = _find_line_with_text(tui, "source_0.txt")
+        assert source_line_unsplit is not None, _screen_text(tui)
+        assert _line_marks_file_as_tagged(source_line_unsplit, "source_0.txt"), (
+            "Unsplitting from destination tree lost source tagged state.\n"
+            f"{_screen_text(tui)}"
+        )
+        tui.send_keystroke("c", wait=0.3)
+        assert tui.wait_for_content("COPY: source_1.txt", timeout=1.0), (
+            "Unsplitting from destination tree changed source selection identity.\n"
             f"{_screen_text(tui)}"
         )
         tui.send_keystroke(Keys.ESC, wait=0.2)
