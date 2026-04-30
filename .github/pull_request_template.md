@@ -19,8 +19,10 @@
 <!-- In plain language, say what you checked and what happened.
 If you did not run checks/tests, write: none + why. -->
 
-## For large PRs only
-<!-- Fill this only if CI labels the PR size/L or size/XL -->
-- Why is this PR large?
-- Why not split it now? Add links to any related PRs.
-- What could break?
+<!--
+If CI posts a "Large PR Warning", edit the PR description and answer this section.
+If you opened the PR with a custom body and this section is missing, add it manually.
+-->
+- Why this PR is large:
+- Why it is not split right now (include links to related PRs, if any):
+- What could break:
