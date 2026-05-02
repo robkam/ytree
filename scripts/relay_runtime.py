@@ -52,6 +52,18 @@ _NOOP_PLACEHOLDER_COMMANDS: set[tuple[str, ...]] = {
 }
 
 _REPORT_HANDLE_PATTERN = re.compile(r"(?:^|\s)report_handle=(\S+)")
+DEFAULT_MAINTAINER_HEARTBEAT_SECONDS = max(
+    30, int(os.environ.get("RELAY_MAINTAINER_HEARTBEAT_SECONDS", "300"))
+)
+DEFAULT_NO_PROGRESS_STALL_SECONDS = max(
+    DEFAULT_MAINTAINER_HEARTBEAT_SECONDS + 30,
+    int(
+        os.environ.get(
+            "RELAY_NO_PROGRESS_STALL_SECONDS",
+            str(DEFAULT_MAINTAINER_HEARTBEAT_SECONDS * 3),
+        )
+    ),
+)
 
 
 def _utc_iso(ts: float | None = None) -> str:
@@ -823,8 +835,16 @@ class TemporalRelayStore:
         self._emit_events(events)
         return final_status
 
-    def watchdog_scan(self, *, now: float | None = None) -> dict[str, int]:
+    def watchdog_scan(
+        self,
+        *,
+        now: float | None = None,
+        maintainer_heartbeat_seconds: int = DEFAULT_MAINTAINER_HEARTBEAT_SECONDS,
+        no_progress_stall_seconds: int = DEFAULT_NO_PROGRESS_STALL_SECONDS,
+    ) -> dict[str, int]:
         stamp = now if now is not None else time.time()
+        maintainer_interval = max(30, int(maintainer_heartbeat_seconds))
+        progress_stall_interval = max(maintainer_interval + 30, int(no_progress_stall_seconds))
         stalled = 0
         requeued = 0
         failed = 0
@@ -837,36 +857,109 @@ class TemporalRelayStore:
                 FROM units u
                 INNER JOIN runs r ON r.run_id = u.run_id
                 WHERE u.status = ?
-                  AND (
-                        (u.lease_expires_at IS NOT NULL AND u.lease_expires_at <= ?)
-                        OR
-                        (u.heartbeat_at IS NOT NULL AND u.heartbeat_at <= (? - r.heartbeat_stale_seconds))
-                  )
+                  AND r.status = ?
                 """,
-                (UNIT_STATUS_RUNNING, stamp, stamp),
+                (UNIT_STATUS_RUNNING, RUN_STATUS_RUNNING),
             ).fetchall()
 
             for row in candidates:
-                stale_reason = "lease_expired"
-                if row["heartbeat_at"] is not None and float(row["heartbeat_at"]) <= stamp - int(
+                run_id = str(row["run_id"])
+                unit_id = str(row["unit_id"])
+                role = str(row["role"])
+                heartbeat_at = float(row["heartbeat_at"]) if row["heartbeat_at"] is not None else None
+                lease_expired = row["lease_expires_at"] is not None and float(row["lease_expires_at"]) <= stamp
+                heartbeat_stale = heartbeat_at is not None and heartbeat_at <= stamp - int(
                     row["heartbeat_stale_seconds"]
-                ):
+                )
+
+                progress_row = conn.execute(
+                    """
+                    SELECT MAX(ts_epoch) AS ts_epoch
+                    FROM temporal_history
+                    WHERE run_id = ?
+                      AND unit_id = ?
+                      AND event_type != ?
+                    """,
+                    (run_id, unit_id, "heartbeat"),
+                ).fetchone()
+                last_progress_epoch = (
+                    float(progress_row["ts_epoch"])
+                    if progress_row and progress_row["ts_epoch"] is not None
+                    else stamp
+                )
+                progress_age = max(0.0, stamp - last_progress_epoch)
+                no_progress_stall = progress_age >= float(progress_stall_interval)
+
+                stale_reason = None
+                stall_event_type = "stall_detected"
+                stall_message = "watchdog detected stale lease"
+                if heartbeat_stale:
                     stale_reason = "heartbeat_stale"
+                elif lease_expired:
+                    stale_reason = "lease_expired"
+                elif no_progress_stall:
+                    stale_reason = "no_progress"
+                    stall_event_type = "stall_detected_no_progress"
+                    stall_message = "watchdog detected no-progress stall"
+
+                if stale_reason is None:
+                    if progress_age >= float(maintainer_interval):
+                        reminder_row = conn.execute(
+                            """
+                            SELECT MAX(ts_epoch) AS ts_epoch
+                            FROM temporal_history
+                            WHERE run_id = ?
+                              AND unit_id = ?
+                              AND event_type = ?
+                            """,
+                            (run_id, unit_id, "maintainer_update_required"),
+                        ).fetchone()
+                        last_reminder_epoch = (
+                            float(reminder_row["ts_epoch"])
+                            if reminder_row and reminder_row["ts_epoch"] is not None
+                            else None
+                        )
+                        reminder_due = (
+                            last_reminder_epoch is None
+                            or (stamp - last_reminder_epoch) >= float(maintainer_interval)
+                        )
+                        if reminder_due:
+                            events.append(
+                                {
+                                    "run_id": run_id,
+                                    "unit_id": unit_id,
+                                    "role": role,
+                                    "event_type": "maintainer_update_required",
+                                    "status": UNIT_STATUS_RUNNING,
+                                    "message": "unit still running; maintainer update required",
+                                    "metadata": {
+                                        "progress_age_s": round(progress_age, 1),
+                                        "heartbeat_age_s": round(stamp - heartbeat_at, 1)
+                                        if heartbeat_at is not None
+                                        else None,
+                                        "maintainer_heartbeat_seconds": maintainer_interval,
+                                    },
+                                    "ts": stamp,
+                                }
+                            )
+                    continue
+
                 stalled += 1
 
                 attempts = int(row["attempt"])
                 max_attempts = int(row["max_attempts"])
                 base_event = {
-                    "run_id": str(row["run_id"]),
-                    "unit_id": str(row["unit_id"]),
-                    "role": str(row["role"]),
-                    "event_type": "stall_detected",
+                    "run_id": run_id,
+                    "unit_id": unit_id,
+                    "role": role,
+                    "event_type": stall_event_type,
                     "status": "stalled",
-                    "message": "watchdog detected stale lease",
+                    "message": stall_message,
                     "metadata": {
                         "stale_reason": stale_reason,
                         "lease_owner": row["lease_owner"],
                         "lease_token": row["lease_token"],
+                        "progress_age_s": round(progress_age, 1),
                     },
                     "ts": stamp,
                 }
@@ -905,9 +998,9 @@ class TemporalRelayStore:
                         events.append(base_event)
                         events.append(
                             {
-                                "run_id": str(row["run_id"]),
-                                "unit_id": str(row["unit_id"]),
-                                "role": str(row["role"]),
+                                "run_id": run_id,
+                                "unit_id": unit_id,
+                                "role": role,
                                 "event_type": "retry_scheduled",
                                 "status": UNIT_STATUS_RETRYABLE,
                                 "message": "watchdog requeued stalled unit",
@@ -959,7 +1052,7 @@ class TemporalRelayStore:
                         events.append(base_event)
                         events.append(
                             {
-                                "run_id": str(row["run_id"]),
+                                "run_id": run_id,
                                 "unit_id": "-",
                                 "role": ROLE_SYSTEM,
                                 "event_type": "workflow_failed",
@@ -1391,6 +1484,24 @@ def _build_parser() -> argparse.ArgumentParser:
     watchdog = sub.add_parser("watchdog", help="Detect stale leases and requeue/fail units")
     watchdog.add_argument("--once", action="store_true")
     watchdog.add_argument("--poll-seconds", type=int, default=5)
+    watchdog.add_argument(
+        "--maintainer-heartbeat-seconds",
+        type=int,
+        default=DEFAULT_MAINTAINER_HEARTBEAT_SECONDS,
+        help=(
+            "Emit maintainer_update_required when unit progress is silent for this interval "
+            "(minimum 30s)"
+        ),
+    )
+    watchdog.add_argument(
+        "--no-progress-stall-seconds",
+        type=int,
+        default=DEFAULT_NO_PROGRESS_STALL_SECONDS,
+        help=(
+            "Treat a running unit as stalled when no non-heartbeat progress arrives for this interval "
+            "(minimum maintainer heartbeat + 30s)"
+        ),
+    )
 
     dash = sub.add_parser("dashboard", help="Render low-noise dashboard view")
     dash.add_argument("--verbose", action="store_true")
@@ -1450,7 +1561,10 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     if args.command == "watchdog":
         while True:
-            result = store.watchdog_scan()
+            result = store.watchdog_scan(
+                maintainer_heartbeat_seconds=args.maintainer_heartbeat_seconds,
+                no_progress_stall_seconds=args.no_progress_stall_seconds,
+            )
             print(
                 f"watchdog stalled={result['stalled']} requeued={result['requeued']} failed={result['failed']}"
             )

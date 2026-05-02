@@ -35,6 +35,29 @@ def _start_run(store: relay.TemporalRelayStore, run_id: str, now: float = 1000.0
     )
 
 
+def _start_run_custom_lease(
+    store: relay.TemporalRelayStore,
+    run_id: str,
+    *,
+    now: float,
+    lease_ttl_seconds: int,
+    heartbeat_late_seconds: int,
+    heartbeat_stale_seconds: int,
+) -> None:
+    store.start_or_resume_run(
+        run_id=run_id,
+        idempotency_key=f"idem-{run_id}",
+        retry_policy=relay.RetryPolicy(max_attempts=3, backoff_seconds=0),
+        lease_policy=relay.LeasePolicy(
+            lease_ttl_seconds=lease_ttl_seconds,
+            heartbeat_late_seconds=heartbeat_late_seconds,
+            heartbeat_stale_seconds=heartbeat_stale_seconds,
+        ),
+        activity_timeout_seconds=30,
+        now=now,
+    )
+
+
 def _write_executable_script(path: Path, body: str) -> Path:
     path.write_text(body, encoding="utf-8")
     path.chmod(0o755)
@@ -92,6 +115,84 @@ def test_watchdog_marks_stale_and_requeues(tmp_path: Path) -> None:
 
     event_types = [event["event_type"] for event in event_log.read_events()]
     assert "stall_detected" in event_types
+    assert "retry_scheduled" in event_types
+
+
+def test_watchdog_emits_maintainer_update_required_for_long_running_unit(tmp_path: Path) -> None:
+    store, event_log, _db_path, _log_path = _new_store(tmp_path)
+    _start_run_custom_lease(
+        store,
+        "run-maintainer-update",
+        now=1000.0,
+        lease_ttl_seconds=600,
+        heartbeat_late_seconds=900,
+        heartbeat_stale_seconds=1200,
+    )
+
+    developer = relay.RelayWorker(store, role=relay.ROLE_DEVELOPER, worker_id="developer-maintainer")
+    lease = developer.claim_next(now=1000.0)
+    assert lease is not None
+
+    first = store.watchdog_scan(
+        now=1031.0,
+        maintainer_heartbeat_seconds=30,
+        no_progress_stall_seconds=120,
+    )
+    assert first == {"stalled": 0, "requeued": 0, "failed": 0}
+
+    second = store.watchdog_scan(
+        now=1040.0,
+        maintainer_heartbeat_seconds=30,
+        no_progress_stall_seconds=120,
+    )
+    assert second == {"stalled": 0, "requeued": 0, "failed": 0}
+
+    third = store.watchdog_scan(
+        now=1062.0,
+        maintainer_heartbeat_seconds=30,
+        no_progress_stall_seconds=120,
+    )
+    assert third == {"stalled": 0, "requeued": 0, "failed": 0}
+
+    reminder_events = [
+        event for event in event_log.read_events() if event["event_type"] == "maintainer_update_required"
+    ]
+    assert len(reminder_events) == 2
+    assert reminder_events[0]["metadata"]["maintainer_heartbeat_seconds"] == 30
+
+    unit = [row for row in store.list_units(run_id="run-maintainer-update") if row["unit_id"] == "developer_run"][0]
+    assert unit["status"] == relay.UNIT_STATUS_RUNNING
+
+
+def test_watchdog_no_progress_stall_requeues_when_heartbeats_continue(tmp_path: Path) -> None:
+    store, event_log, _db_path, _log_path = _new_store(tmp_path)
+    _start_run_custom_lease(
+        store,
+        "run-no-progress",
+        now=2000.0,
+        lease_ttl_seconds=600,
+        heartbeat_late_seconds=900,
+        heartbeat_stale_seconds=1200,
+    )
+
+    developer = relay.RelayWorker(store, role=relay.ROLE_DEVELOPER, worker_id="developer-no-progress")
+    lease = developer.claim_next(now=2000.0)
+    assert lease is not None
+    assert developer.heartbeat(lease, now=2090.0)
+
+    result = store.watchdog_scan(
+        now=2100.0,
+        maintainer_heartbeat_seconds=30,
+        no_progress_stall_seconds=60,
+    )
+    assert result == {"stalled": 1, "requeued": 1, "failed": 0}
+
+    unit = [row for row in store.list_units(run_id="run-no-progress") if row["unit_id"] == "developer_run"][0]
+    assert unit["status"] == relay.UNIT_STATUS_RETRYABLE
+    assert unit["last_error"] == "watchdog: no_progress"
+
+    event_types = [event["event_type"] for event in event_log.read_events()]
+    assert "stall_detected_no_progress" in event_types
     assert "retry_scheduled" in event_types
 
 
