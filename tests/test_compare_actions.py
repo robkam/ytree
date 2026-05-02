@@ -605,10 +605,10 @@ def test_f8_tree_compare_uses_inactive_panel_logged_root_default(ytree_binary, t
     tui.send_keystroke(Keys.ENTER, wait=0.25)
     _assert_no_footer_artifacts(tui)
 
-    # Active/source side should have compare tags.
+    # Tree compare reports differences but does not auto-apply file tags.
     tui.send_keystroke(Keys.DOWN, wait=0.2)  # main_dir
     tui.send_keystroke(Keys.ENTER, wait=0.35)
-    _assert_file_tag_state(tui, "tree_diff.txt", True)
+    _assert_file_tag_state(tui, "tree_diff.txt", False)
 
     # Inactive/target side must not be tagged by compare.
     tui.send_keystroke(Keys.TAB, wait=0.35)
@@ -666,7 +666,7 @@ def test_tree_compare_logged_only_relative_path_and_skipped_unlogged_reporting(
 
     tui.send_keystroke(Keys.DOWN, wait=0.2)  # top
     tui.send_keystroke(Keys.ENTER, wait=0.35)
-    _assert_file_tag_state(tui, "visible_diff.txt", True)
+    _assert_file_tag_state(tui, "visible_diff.txt", False)
     tui.quit()
 
 

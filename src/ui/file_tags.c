@@ -141,6 +141,7 @@ void FileTags_SilentTagWalkTaggedFiles(ViewContext *ctx,
         ctx->active->vol->vol_stats.disk_tagged_files--;
         ctx->active->vol->vol_stats.disk_tagged_bytes -=
             fe_ptr->stat_struct.st_size;
+        PanelTags_RecordFileState(ctx->active, fe_ptr, FALSE);
       }
     }
   }
@@ -282,6 +283,7 @@ void FileTags_HandleInvertTags(ViewContext *ctx, DirEntry *dir_entry,
         s->disk_tagged_files--;
         dir_entry->tagged_files--;
       }
+      PanelTags_RecordFileState(ctx->active, fe, fe->tagged);
     }
   }
 }

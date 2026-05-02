@@ -206,6 +206,7 @@ void PrintFileEntry(ViewContext *ctx, YtreePanel *panel, int entry_no, int y,
   int linkname_width = 0;
   int base_color_pair;
   int width;
+  BOOL is_tagged;
 
   if (!panel->file_entry_list)
     return;
@@ -215,6 +216,7 @@ void PrintFileEntry(ViewContext *ctx, YtreePanel *panel, int entry_no, int y,
   fe_ptr = panel->file_entry_list[entry_no].file;
   if (fe_ptr == NULL)
     return;
+  is_tagged = PanelTags_FileIsTagged(panel, fe_ptr);
 
   if (ctx->fixed_col_width > 0) {
     pos_x = x * (ctx->fixed_col_width + 1);
@@ -228,13 +230,13 @@ void PrintFileEntry(ViewContext *ctx, YtreePanel *panel, int entry_no, int y,
     /* Set Attributes */
     int color = GetFileTypeColor(ctx, fe_ptr);
     wattron(win, COLOR_PAIR(color));
-    if (fe_ptr->tagged)
+    if (is_tagged)
       wattron(win, A_BOLD);
     if (hilight)
       wattron(win, A_REVERSE);
 
     /* Draw */
-    wprintw(win, "%c%c%s", (fe_ptr->tagged) ? TAGGED_SYMBOL : ' ',
+    wprintw(win, "%c%c%s", (is_tagged) ? TAGGED_SYMBOL : ' ',
             GetTypeOfFile(fe_ptr->stat_struct), display_name);
 
     /* Pad remaining width */
@@ -247,7 +249,7 @@ void PrintFileEntry(ViewContext *ctx, YtreePanel *panel, int entry_no, int y,
     /* Cleanup */
     if (hilight)
       wattroff(win, A_REVERSE);
-    if (fe_ptr->tagged)
+    if (is_tagged)
       wattroff(win, A_BOLD);
     wattroff(win, COLOR_PAIR(color));
     return;
@@ -335,7 +337,7 @@ void PrintFileEntry(ViewContext *ctx, YtreePanel *panel, int entry_no, int y,
   if (ctx->highlight_full_line) {
     /* --- RENDER METHOD 1: FULL LINE HIGHLIGHT --- */
     wattron(win, COLOR_PAIR(base_color_pair));
-    if (fe_ptr->tagged)
+    if (is_tagged)
       wattron(win, A_BOLD);
     if (hilight)
       wattron(win, A_REVERSE);
@@ -351,7 +353,7 @@ void PrintFileEntry(ViewContext *ctx, YtreePanel *panel, int entry_no, int y,
                        "%%c%%c%%-%ds %%10s %%3d %%11lld %%16s -> %%-%ds",
                        filename_width, linkname_width);
         (void)snprintf(line_buffer, line_buffer_size, format,
-                       (fe_ptr->tagged) ? TAGGED_SYMBOL : ' ', type_of_file,
+                       (is_tagged) ? TAGGED_SYMBOL : ' ', type_of_file,
                        fe_ptr->name, attributes, fe_ptr->stat_struct.st_nlink,
                        (long long)fe_ptr->stat_struct.st_size, modify_time,
                        sym_link_name);
@@ -360,7 +362,7 @@ void PrintFileEntry(ViewContext *ctx, YtreePanel *panel, int entry_no, int y,
                        "%%c%%c%%%c%ds %%10s %%3d %%11lld %%16s", justify,
                        filename_width);
         (void)snprintf(line_buffer, line_buffer_size, format,
-                       (fe_ptr->tagged) ? TAGGED_SYMBOL : ' ', type_of_file,
+                       (is_tagged) ? TAGGED_SYMBOL : ' ', type_of_file,
                        fe_ptr->name, attributes, fe_ptr->stat_struct.st_nlink,
                        (long long)fe_ptr->stat_struct.st_size, modify_time);
       }
@@ -381,7 +383,7 @@ void PrintFileEntry(ViewContext *ctx, YtreePanel *panel, int entry_no, int y,
                        "%%c%%c%%%c%ds %%10lld %%-12s %%-12s -> %%-%ds", justify,
                        filename_width, linkname_width);
         (void)snprintf(line_buffer, line_buffer_size, format,
-                       (fe_ptr->tagged) ? TAGGED_SYMBOL : ' ', type_of_file,
+                       (is_tagged) ? TAGGED_SYMBOL : ' ', type_of_file,
                        fe_ptr->name, (long long)fe_ptr->stat_struct.st_ino,
                        owner_name_ptr, group_name_ptr, sym_link_name);
       } else {
@@ -389,7 +391,7 @@ void PrintFileEntry(ViewContext *ctx, YtreePanel *panel, int entry_no, int y,
                        "%%c%%c%%%c%ds %%10lld %%-12s %%-12s", justify,
                        filename_width);
         (void)snprintf(line_buffer, line_buffer_size, format,
-                       (fe_ptr->tagged) ? TAGGED_SYMBOL : ' ', type_of_file,
+                       (is_tagged) ? TAGGED_SYMBOL : ' ', type_of_file,
                        fe_ptr->name, (long long)fe_ptr->stat_struct.st_ino,
                        owner_name_ptr, group_name_ptr);
       }
@@ -398,7 +400,7 @@ void PrintFileEntry(ViewContext *ctx, YtreePanel *panel, int entry_no, int y,
       (void)snprintf(format, sizeof(format), "%%c%%c%%%c%ds", justify,
                      filename_width);
       (void)snprintf(line_buffer, line_buffer_size, format,
-                     (fe_ptr->tagged) ? TAGGED_SYMBOL : ' ', type_of_file,
+                     (is_tagged) ? TAGGED_SYMBOL : ' ', type_of_file,
                      fe_ptr->name);
       break;
     case MODE_4:
@@ -410,19 +412,19 @@ void PrintFileEntry(ViewContext *ctx, YtreePanel *panel, int entry_no, int y,
                        "%%c%%c%%%c%ds Chg: %%16s  Acc: %%16s -> %%-%ds",
                        justify, filename_width, linkname_width);
         (void)snprintf(line_buffer, line_buffer_size, format,
-                       (fe_ptr->tagged) ? TAGGED_SYMBOL : ' ', type_of_file,
+                       (is_tagged) ? TAGGED_SYMBOL : ' ', type_of_file,
                        fe_ptr->name, change_time, access_time, sym_link_name);
       } else {
         (void)snprintf(format, sizeof(format),
                        "%%c%%c%%%c%ds Chg: %%16s  Acc: %%16s", justify,
                        filename_width);
         (void)snprintf(line_buffer, line_buffer_size, format,
-                       (fe_ptr->tagged) ? TAGGED_SYMBOL : ' ', type_of_file,
+                       (is_tagged) ? TAGGED_SYMBOL : ' ', type_of_file,
                        fe_ptr->name, change_time, access_time);
       }
       break;
     case MODE_5:
-      BuildUserFileEntry(fe_ptr, filename_width, linkname_width,
+      BuildUserFileEntry(fe_ptr, filename_width, linkname_width, is_tagged,
                          (GetProfileValue)(ctx, "USERVIEW"), 200, line_buffer);
       break;
     }
@@ -451,20 +453,20 @@ void PrintFileEntry(ViewContext *ctx, YtreePanel *panel, int entry_no, int y,
 
     if (hilight)
       wattroff(win, A_REVERSE);
-    if (fe_ptr->tagged)
+    if (is_tagged)
       wattroff(win, A_BOLD);
 
   } else {
     /* --- RENDER METHOD 2: NAME-ONLY HIGHLIGHT --- */
 
     wattron(win, COLOR_PAIR(base_color_pair));
-    if (fe_ptr->tagged)
+    if (is_tagged)
       wattron(win, A_BOLD);
 
     /* Print tag and type */
     {
       char prefix[3];
-      prefix[0] = (fe_ptr->tagged) ? TAGGED_SYMBOL : ' ';
+      prefix[0] = (is_tagged) ? TAGGED_SYMBOL : ' ';
       prefix[1] = type_of_file;
       prefix[2] = '\0';
       AddClippedAtCursor(win, prefix, width);
@@ -598,7 +600,7 @@ void PrintFileEntry(ViewContext *ctx, YtreePanel *panel, int entry_no, int y,
       }
     }
 
-    if (fe_ptr->tagged)
+    if (is_tagged)
       wattroff(win, A_BOLD);
   }
   wattroff(win, COLOR_PAIR(base_color_pair));

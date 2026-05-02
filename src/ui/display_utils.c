@@ -227,8 +227,8 @@ char *CutName(char *dest, const char *src, unsigned int max_len) {
  *                           BuildUserFileEntry                              *
  *****************************************************************************/
 int BuildUserFileEntry(FileEntry *fe_ptr, int filename_width,
-                       int linkname_width, char *template, int linelen,
-                       char *line) {
+                       int linkname_width, BOOL tagged, char *template,
+                       int linelen, char *line) {
   char attributes[11];
   char modify_time[20];
   char change_time[20];
@@ -256,7 +256,7 @@ int BuildUserFileEntry(FileEntry *fe_ptr, int filename_width,
   else
     sym_link_name = "";
 
-  tag = (fe_ptr->tagged) ? TAGGED_SYMBOL : ' ';
+  tag = tagged ? TAGGED_SYMBOL : ' ';
   (void)GetAttributes(fe_ptr->stat_struct.st_mode, attributes);
 
   (void)CTime(fe_ptr->stat_struct.st_mtime, modify_time);

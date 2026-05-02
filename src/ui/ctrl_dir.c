@@ -9,6 +9,7 @@
 #include "watcher.h"
 #include "ytree_cmd.h"
 #include "ytree_fs.h"
+#include "ytree_panel_anchor.h"
 #include "ytree_ui.h"
 #include <errno.h>
 #include <stdio.h>
@@ -398,6 +399,7 @@ static void HandleDirectoryCompare(ViewContext *ctx, DirEntry *source_dir) {
 
   DirCompare_RunInternalLoggedTree(ctx, &request);
 }
+
 extern int HandleDirWindow(ViewContext *ctx, const DirEntry *start_dir_entry) {
   DirEntry *dir_entry, *de_ptr;
   int ch, unput_char;
@@ -408,6 +410,10 @@ extern int HandleDirWindow(ViewContext *ctx, const DirEntry *start_dir_entry) {
   Statistic *s = NULL;
   int height;
   char watcher_path[PATH_LENGTH + 1];
+  char left_anchor_path[PATH_LENGTH + 1];
+  char right_anchor_path[PATH_LENGTH + 1];
+  BOOL has_left_anchor = FALSE;
+  BOOL has_right_anchor = FALSE;
 
   DEBUG_LOG("HandleDirWindow: Recalculating layout");
   Layout_Recalculate(ctx);
@@ -456,7 +462,24 @@ extern int HandleDirWindow(ViewContext *ctx, const DirEntry *start_dir_entry) {
 
   DEBUG_LOG("HandleDirWindow: Building DirEntryList for vol=%p",
             (void *)ctx->active->vol);
+  has_left_anchor = CapturePanelAnchorPath(ctx->left, ctx->active->vol,
+                                           left_anchor_path,
+                                           sizeof(left_anchor_path));
+  has_right_anchor = CapturePanelAnchorPath(ctx->right, ctx->active->vol,
+                                            right_anchor_path,
+                                            sizeof(right_anchor_path));
+  if (has_left_anchor || has_right_anchor) {
+    DEBUG_LOG("HandleDirWindow:anchors before rebuild left='%s' right='%s'",
+              has_left_anchor ? left_anchor_path : "<none>",
+              has_right_anchor ? right_anchor_path : "<none>");
+  }
   BuildDirEntryList(ctx, ctx->active->vol, &ctx->active->current_dir_entry);
+  if (has_left_anchor)
+    RestorePanelAnchorPath(ctx->active->vol, ctx->left, left_anchor_path);
+  if (has_right_anchor)
+    RestorePanelAnchorPath(ctx->active->vol, ctx->right, right_anchor_path);
+  EnsurePanelAnchorVisible(ctx, ctx->active->vol, ctx->left, "LEFT");
+  EnsurePanelAnchorVisible(ctx, ctx->active->vol, ctx->right, "RIGHT");
   if (ctx->initial_directory != NULL) {
     if (!strcmp(ctx->initial_directory, ".")) /* Entry just a single "." */
     {
@@ -554,7 +577,9 @@ extern int HandleDirWindow(ViewContext *ctx, const DirEntry *start_dir_entry) {
     }
   } else if (ctx->active && ctx->active->saved_focus == FOCUS_FILE &&
              dir_entry->total_files > 0) {
-    unput_char = CR;
+    BuildFileEntryList(ctx, ctx->active);
+    if (ctx->active->file_count > 0)
+      unput_char = CR;
   }
   do {
     /* Detect Global Volume Change (Split Brain Fix) */
@@ -572,6 +597,7 @@ extern int HandleDirWindow(ViewContext *ctx, const DirEntry *start_dir_entry) {
     if (ctx->is_split_screen) {
       YtreePanel *inactive =
           (ctx->active == ctx->left) ? ctx->right : ctx->left;
+      EnsurePanelAnchorVisible(ctx, ctx->active->vol, inactive, "INACTIVE");
       RenderInactivePanel(ctx, inactive);
     }
 
@@ -584,6 +610,7 @@ extern int HandleDirWindow(ViewContext *ctx, const DirEntry *start_dir_entry) {
 
     if (unput_char) {
       ch = unput_char;
+      DEBUG_LOG("DirLoop:consuming_unput ch=%d", ch);
       unput_char = '\0';
     } else {
       doupdate();
@@ -605,6 +632,8 @@ extern int HandleDirWindow(ViewContext *ctx, const DirEntry *start_dir_entry) {
     }
 
     action = GetKeyAction(ctx, ch); /* Translate raw input to YtreeAction */
+    DebugLogDirLoopState("before_dispatch", ctx, dir_entry, ch, action,
+                         unput_char);
 
     switch (action) {
     case ACTION_RESIZE:
@@ -1048,6 +1077,8 @@ extern int HandleDirWindow(ViewContext *ctx, const DirEntry *start_dir_entry) {
         dir_entry = ctx->active->vol->vol_stats.tree;
       }
     }
+    DebugLogDirLoopState("after_dispatch", ctx, dir_entry, ch, action,
+                         unput_char);
 
   } while (action != ACTION_QUIT && action != ACTION_ENTER &&
            action != ACTION_ESCAPE &&

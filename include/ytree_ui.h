@@ -107,6 +107,18 @@ extern void FreeDirEntryList(ViewContext *ctx);
 extern void FreeVolumeCache(struct Volume *vol);
 extern DirEntry *RefreshTreeSafe(ViewContext *ctx, YtreePanel *p,
                                  DirEntry *entry);
+extern void DirOps_ReloadPanelFileAnchorIfMissing(ViewContext *ctx,
+                                                  YtreePanel *panel,
+                                                  DirEntry *dir_entry);
+extern void PanelTags_Clear(YtreePanel *panel);
+extern void PanelTags_Copy(YtreePanel *dst, const YtreePanel *src);
+extern void PanelTags_PruneUnderDir(YtreePanel *panel, DirEntry *dir_entry);
+extern BOOL PanelTags_FileIsTagged(const YtreePanel *panel,
+                                   FileEntry *file_entry);
+extern void PanelTags_RecordFileState(YtreePanel *panel, FileEntry *file_entry,
+                                      BOOL tagged);
+extern void PanelTags_ApplyToTree(ViewContext *ctx, YtreePanel *panel);
+extern void PanelTags_Restore(ViewContext *ctx, YtreePanel *panel);
 extern BOOL DirOps_SelectVisibleDirAndRefresh(ViewContext *ctx,
                                               YtreePanel *panel,
                                               const DirEntry *target,
@@ -140,8 +152,8 @@ extern void DisplayHistoryHelp(ViewContext *ctx);
 /* display_utils.c */
 extern int AddStr(char *str);
 extern int BuildUserFileEntry(FileEntry *fe_ptr, int filename_width,
-                              int linkname_width, char *template, int linelen,
-                              char *line);
+                              int linkname_width, BOOL tagged, char *template,
+                              int linelen, char *line);
 extern char *CTime(time_t f_time, char *buffer);
 extern char *CutFilename(char *dest, const char *src, unsigned int max_len);
 extern char *CutName(char *dest, const char *src, unsigned int max_len);
@@ -202,6 +214,8 @@ extern BOOL handle_file_window_navigation_action(
     BOOL *need_dsp_help_ptr, long *preview_line_offset_ptr,
     void (*update_preview)(ViewContext *, const DirEntry *),
     void (*list_jump)(ViewContext *, DirEntry *, char *));
+extern void CapturePanelSelectionAnchor(ViewContext *ctx, YtreePanel *panel,
+                                        const DirEntry *dir_entry);
 extern BOOL handle_file_window_split_switch_action(
     ViewContext *ctx, YtreeAction action, DirEntry *dir_entry,
     YtreePanel *owner_panel, BOOL *switched_panel_ptr,
