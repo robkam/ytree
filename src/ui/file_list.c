@@ -196,18 +196,49 @@ void InvalidateVolumePanels(ViewContext *ctx, const struct Volume *vol) {
 
 void DisplayFileWindow(ViewContext *ctx, YtreePanel *panel,
                        const DirEntry *dir_entry) {
+  int render_start;
+  int render_cursor;
+  int highlight_idx;
+
   if (!panel || !panel->pan_file_window)
     return;
 
   BuildFileEntryList(ctx, panel);
 
-  /* ADDED INSTRUCTION: Focus-Aware Highlighting */
-  int highlight_idx = -1;
-  if (ctx->focused_window == FOCUS_FILE) {
-    highlight_idx = dir_entry->start_file + dir_entry->cursor_pos;
+  render_start = dir_entry->start_file;
+  render_cursor = dir_entry->cursor_pos;
+  if (panel->file_count == 0) {
+    render_start = 0;
+    render_cursor = 0;
+  } else {
+    int original_start = render_start;
+    int original_cursor = render_cursor;
+    if (render_start < 0)
+      render_start = 0;
+    if ((unsigned int)render_start >= panel->file_count)
+      render_start = (int)panel->file_count - 1;
+    if (render_cursor < 0)
+      render_cursor = 0;
+    if ((unsigned int)(render_start + render_cursor) >= panel->file_count) {
+      render_cursor = (int)panel->file_count - 1 - render_start;
+      if (render_cursor < 0)
+        render_cursor = 0;
+    }
+    if (original_start != render_start || original_cursor != render_cursor) {
+      DEBUG_LOG("DisplayFileWindow:clamp start=%d->%d cursor=%d->%d count=%u",
+                original_start, render_start, original_cursor, render_cursor,
+                panel->file_count);
+    }
   }
 
-  DisplayFiles(ctx, panel, dir_entry, dir_entry->start_file, highlight_idx, 0,
+  panel->start_file = render_start;
+  panel->file_cursor_pos = render_cursor;
+
+  highlight_idx = -1;
+  if (ctx->focused_window == FOCUS_FILE)
+    highlight_idx = render_start + render_cursor;
+
+  DisplayFiles(ctx, panel, dir_entry, render_start, highlight_idx, 0,
                panel->pan_file_window);
 }
 

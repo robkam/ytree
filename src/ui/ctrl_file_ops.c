@@ -40,8 +40,8 @@ void UI_RenderFilePanel(ViewContext *ctx, const DirEntry *dir_entry,
                ctx->ctx_file_window);
 }
 
-static void CapturePanelSelectionAnchor(ViewContext *ctx, YtreePanel *panel,
-                                        const DirEntry *dir_entry) {
+void CapturePanelSelectionAnchor(ViewContext *ctx, YtreePanel *panel,
+                                 const DirEntry *dir_entry) {
   int idx;
   const FileEntry *selected_file;
 
@@ -75,6 +75,91 @@ static void CapturePanelSelectionAnchor(ViewContext *ctx, YtreePanel *panel,
                  "%s", selected_file->name);
   GetPath((DirEntry *)dir_entry, panel->file_selection_dir_path);
   panel->file_selection_dir_path[PATH_LENGTH] = '\0';
+}
+
+static void DebugLogFilePanelState(const char *label, const YtreePanel *panel) {
+  char tree_path[PATH_LENGTH + 1];
+  char file_dir_path[PATH_LENGTH + 1];
+  int idx = -1;
+  const DirEntry *tree_de = NULL;
+  const char *tree_text = "<none>";
+  const char *file_dir_text = "<none>";
+  const char *selection_dir_text = "<none>";
+  const char *selection_name_text = "<none>";
+
+  tree_path[0] = '\0';
+  file_dir_path[0] = '\0';
+
+  if (!panel) {
+    DEBUG_LOG("FILE_PANEL[%s] <null>", label ? label : "?");
+    return;
+  }
+
+  if (panel->vol && panel->vol->total_dirs > 0 && panel->vol->dir_entry_list) {
+    idx = panel->disp_begin_pos + panel->cursor_pos;
+    if (idx < 0)
+      idx = 0;
+    if (idx >= panel->vol->total_dirs)
+      idx = panel->vol->total_dirs - 1;
+    tree_de = panel->vol->dir_entry_list[idx].dir_entry;
+    if (tree_de) {
+      GetPath((DirEntry *)tree_de, tree_path);
+      tree_path[PATH_LENGTH] = '\0';
+      tree_text = tree_path;
+    }
+  }
+
+  if (panel->file_dir_entry && panel->vol && panel->vol->dir_entry_list &&
+      panel->vol->total_dirs > 0) {
+    BOOL in_volume = FALSE;
+    int j;
+    for (j = 0; j < panel->vol->total_dirs; j++) {
+      if (panel->vol->dir_entry_list[j].dir_entry == panel->file_dir_entry) {
+        in_volume = TRUE;
+        break;
+      }
+    }
+    if (in_volume) {
+      GetPath(panel->file_dir_entry, file_dir_path);
+      file_dir_path[PATH_LENGTH] = '\0';
+      file_dir_text = file_dir_path;
+    } else {
+      file_dir_text = "<stale>";
+    }
+  } else if (panel->file_dir_entry) {
+    file_dir_text = "<stale>";
+  }
+
+  if (panel->file_selection_dir_path[0] != '\0')
+    selection_dir_text = panel->file_selection_dir_path;
+  if (panel->file_selection_name[0] != '\0')
+    selection_name_text = panel->file_selection_name;
+
+  DEBUG_LOG(
+      "FILE_PANEL[%s] saved_focus=%d disp=%d cur=%d idx=%d start=%d fcur=%d "
+      "tree='%s' file_dir='%s' sel_dir='%s' sel_name='%s'",
+      label ? label : "?", panel->saved_focus, panel->disp_begin_pos,
+      panel->cursor_pos, idx, panel->start_file, panel->file_cursor_pos,
+      tree_text, file_dir_text, selection_dir_text, selection_name_text);
+}
+
+static void DebugLogFileSplitState(const char *label, const ViewContext *ctx) {
+  const char *active_side = "?";
+
+  if (!ctx) {
+    DEBUG_LOG("FILE_SPLIT[%s] <null>", label ? label : "?");
+    return;
+  }
+  if (ctx->active == ctx->left)
+    active_side = "LEFT";
+  else if (ctx->active == ctx->right)
+    active_side = "RIGHT";
+
+  DEBUG_LOG("FILE_SPLIT[%s] is_split=%d active=%s focused=%d",
+            label ? label : "?", ctx->is_split_screen, active_side,
+            ctx->focused_window);
+  DebugLogFilePanelState("LEFT", ctx->left);
+  DebugLogFilePanelState("RIGHT", ctx->right);
 }
 
 static FileEntry *GetActivePanelSelectedFile(ViewContext *ctx,
@@ -427,6 +512,7 @@ BOOL handle_file_window_split_switch_action(
 
   switch (action) {
   case ACTION_SPLIT_SCREEN:
+    DebugLogFileSplitState("FileAction:split:before", ctx);
     if (ctx->is_split_screen && ctx->active == owner_panel) {
       active_selected_file = GetActivePanelSelectedFile(ctx, dir_entry);
       if (active_selected_file) {
@@ -465,6 +551,7 @@ BOOL handle_file_window_split_switch_action(
                        sizeof(ctx->left->file_selection_dir_path), "%s",
                        active_selected_dir);
       }
+      PanelTags_Copy(ctx->left, ctx->right);
       ctx->left->saved_focus = ctx->right->saved_focus;
       FreeFileEntryList(ctx->left);
     }
@@ -480,6 +567,7 @@ BOOL handle_file_window_split_switch_action(
         ctx->right->file_cursor_pos = dir_entry->cursor_pos;
         ctx->right->file_dir_entry = dir_entry;
         ctx->right->saved_focus = ctx->left->saved_focus;
+        PanelTags_Copy(ctx->right, ctx->left);
         FreeFileEntryList(ctx->right);
       }
     } else {
@@ -487,12 +575,15 @@ BOOL handle_file_window_split_switch_action(
       ctx->active = ctx->left;
     }
 
+    DebugLogFileSplitState("FileAction:split:after", ctx);
+
     *return_esc_ptr = TRUE;
     return TRUE;
 
   case ACTION_SWITCH_PANEL:
     if (!ctx->is_split_screen)
       return TRUE;
+    DebugLogFileSplitState("FileAction:switch:before", ctx);
     owner_panel->file_dir_entry = dir_entry;
     owner_panel->start_file = dir_entry->start_file;
     owner_panel->file_cursor_pos = dir_entry->cursor_pos;
@@ -508,6 +599,7 @@ BOOL handle_file_window_split_switch_action(
     }
     ctx->focused_window = ctx->active->saved_focus;
     *loop_action_ptr = ACTION_ESCAPE;
+    DebugLogFileSplitState("FileAction:switch:after", ctx);
     return TRUE;
 
   default:
@@ -1687,7 +1779,8 @@ static void UpdateTaggedActionStatistics(ViewContext *ctx,
   DisplayDirStatistic(ctx, dir_entry, NULL, s);
 }
 
-static void SetFileTaggedState(FileEntry *fe_ptr, Statistic *s, BOOL tagged) {
+static void SetFileTaggedState(YtreePanel *panel, FileEntry *fe_ptr,
+                               Statistic *s, BOOL tagged) {
   DirEntry *de_ptr = NULL;
   off_t file_size = 0;
 
@@ -1705,6 +1798,7 @@ static void SetFileTaggedState(FileEntry *fe_ptr, Statistic *s, BOOL tagged) {
     de_ptr->tagged_bytes += file_size;
     s->disk_tagged_files++;
     s->disk_tagged_bytes += file_size;
+    PanelTags_RecordFileState(panel, fe_ptr, TRUE);
     return;
   }
 
@@ -1716,6 +1810,7 @@ static void SetFileTaggedState(FileEntry *fe_ptr, Statistic *s, BOOL tagged) {
   de_ptr->tagged_bytes -= file_size;
   s->disk_tagged_files--;
   s->disk_tagged_bytes -= file_size;
+  PanelTags_RecordFileState(panel, fe_ptr, FALSE);
 }
 
 static void SetFileTaggedStateRange(ViewContext *ctx, int start_idx, BOOL tagged,
@@ -1724,7 +1819,7 @@ static void SetFileTaggedStateRange(ViewContext *ctx, int start_idx, BOOL tagged
 
   for (i = start_idx; i < (int)ctx->active->file_count; i++) {
     FileEntry *fe_ptr = ctx->active->file_entry_list[i].file;
-    SetFileTaggedState(fe_ptr, s, tagged);
+    SetFileTaggedState(ctx->active, fe_ptr, s, tagged);
   }
 }
 
@@ -1744,7 +1839,7 @@ static BOOL HandleTaggedSelectionDispatchAction(
         ctx->active
             ->file_entry_list[dir_entry->start_file + dir_entry->cursor_pos]
             .file;
-    SetFileTaggedState(fe_ptr, s, TRUE);
+    SetFileTaggedState(ctx->active, fe_ptr, s, TRUE);
     UpdateTaggedActionStatistics(ctx, dir_entry, start_x, s);
     if (unput_char_ptr)
       *unput_char_ptr = KEY_DOWN;
@@ -1755,7 +1850,7 @@ static BOOL HandleTaggedSelectionDispatchAction(
         ctx->active
             ->file_entry_list[dir_entry->start_file + dir_entry->cursor_pos]
             .file;
-    SetFileTaggedState(fe_ptr, s, FALSE);
+    SetFileTaggedState(ctx->active, fe_ptr, s, FALSE);
     UpdateTaggedActionStatistics(ctx, dir_entry, start_x, s);
     if (unput_char_ptr)
       *unput_char_ptr = KEY_DOWN;

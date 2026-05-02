@@ -7,6 +7,7 @@
 
 #include "../../include/ytree.h"
 #include "../../include/ytree_cmd.h"
+#include "../../include/ytree_fs.h"
 #include "../../include/ytree_ui.h"
 
 /* PrintMenuLine is removed as its functionality for drawing the static stats
@@ -422,19 +423,116 @@ void UnmapF2Window(ViewContext *ctx) {
 
 void RefreshWindow(WINDOW *win) { wnoutrefresh(win); }
 
+static int FindPanelDirIndexByEntry(const YtreePanel *panel,
+                                    const DirEntry *target) {
+  int i;
+
+  if (!panel || !panel->vol || !target || !panel->vol->dir_entry_list ||
+      panel->vol->total_dirs <= 0)
+    return -1;
+
+  for (i = 0; i < panel->vol->total_dirs; i++) {
+    if (panel->vol->dir_entry_list[i].dir_entry == target)
+      return i;
+  }
+
+  return -1;
+}
+
+static int FindPanelDirIndexByPath(const YtreePanel *panel, const char *path) {
+  int i;
+  char candidate_path[PATH_LENGTH + 1];
+
+  if (!panel || !panel->vol || !path || !*path || !panel->vol->dir_entry_list ||
+      panel->vol->total_dirs <= 0)
+    return -1;
+
+  for (i = 0; i < panel->vol->total_dirs; i++) {
+    const DirEntry *candidate = panel->vol->dir_entry_list[i].dir_entry;
+    if (!candidate)
+      continue;
+    GetPath((DirEntry *)candidate, candidate_path);
+    candidate_path[PATH_LENGTH] = '\0';
+    if (strcmp(candidate_path, path) == 0)
+      return i;
+  }
+
+  return -1;
+}
+
+static void PositionPanelAtDirIndex(YtreePanel *panel, int idx) {
+  int height;
+
+  if (!panel || !panel->vol || !panel->vol->dir_entry_list ||
+      panel->vol->total_dirs <= 0)
+    return;
+
+  if (idx < 0)
+    idx = 0;
+  if (idx >= panel->vol->total_dirs)
+    idx = panel->vol->total_dirs - 1;
+
+  height = panel->pan_dir_window ? getmaxy(panel->pan_dir_window) : 1;
+  if (height < 1)
+    height = 1;
+
+  if (idx >= panel->disp_begin_pos && idx < panel->disp_begin_pos + height) {
+    panel->cursor_pos = idx - panel->disp_begin_pos;
+  } else {
+    panel->disp_begin_pos = idx;
+    panel->cursor_pos = 0;
+    if (panel->disp_begin_pos + height > panel->vol->total_dirs) {
+      panel->disp_begin_pos = panel->vol->total_dirs - height;
+      if (panel->disp_begin_pos < 0)
+        panel->disp_begin_pos = 0;
+      panel->cursor_pos = idx - panel->disp_begin_pos;
+      if (panel->cursor_pos < 0)
+        panel->cursor_pos = 0;
+    }
+  }
+}
+
+static DirEntry *ResolvePanelFileAnchor(const YtreePanel *panel) {
+  int anchor_idx = -1;
+
+  if (!panel || !panel->vol || panel->saved_focus != FOCUS_FILE)
+    return NULL;
+
+  if (panel->file_selection_dir_path[0] != '\0') {
+    anchor_idx = FindPanelDirIndexByPath(panel, panel->file_selection_dir_path);
+  }
+  if (anchor_idx < 0 && panel->file_dir_entry) {
+    anchor_idx = FindPanelDirIndexByEntry(panel, panel->file_dir_entry);
+  }
+  if (anchor_idx < 0)
+    return NULL;
+
+  PositionPanelAtDirIndex(panel, anchor_idx);
+  return panel->vol->dir_entry_list[anchor_idx].dir_entry;
+}
+
+static DirEntry *EnsurePanelFileAnchorRenderable(ViewContext *ctx,
+                                                 YtreePanel *panel) {
+  DirEntry *anchor;
+
+  (void)ctx;
+  anchor = ResolvePanelFileAnchor(panel);
+  if (!anchor)
+    return NULL;
+
+  panel->file_dir_entry = anchor;
+  return anchor;
+}
+
 void RenderInactivePanel(ViewContext *ctx, YtreePanel *panel) {
-  /* Modified check as per instructions */
   if (!panel || !panel->vol || !panel->pan_dir_window)
     return;
 
-  /* Clamp cursor */
   int total = panel->vol->total_dirs;
-  /* Use Panel state, not Volume state */
   int begin = panel->disp_begin_pos;
   int cursor = panel->cursor_pos;
 
   if (total > 0 && (begin + cursor >= total)) {
-    /* Fix invalid position if any */
     begin = 0;
     cursor = 0;
   }
@@ -442,12 +540,17 @@ void RenderInactivePanel(ViewContext *ctx, YtreePanel *panel) {
   if (total <= 0)
     return;
 
+  if (panel->saved_focus == FOCUS_FILE &&
+      EnsurePanelFileAnchorRenderable(ctx, panel)) {
+    begin = panel->disp_begin_pos;
+    cursor = panel->cursor_pos;
+  }
+
   {
     int idx = begin + cursor;
     int render_start = panel->start_file;
     int render_cursor = 0;
     const DirEntry *de = NULL;
-    BOOL has_file_list = FALSE;
 
     if (idx < 0 || idx >= total)
       return;
@@ -456,36 +559,59 @@ void RenderInactivePanel(ViewContext *ctx, YtreePanel *panel) {
     if (!de)
       return;
 
-    if (!panel->file_entry_list) {
+    if (panel->saved_focus == FOCUS_FILE) {
+      BOOL refresh_file_cache = FALSE;
+
+      DirOps_ReloadPanelFileAnchorIfMissing(ctx, panel, (DirEntry *)de);
+      if (panel->file_dir_entry != de || panel->file_entry_list == NULL) {
+        refresh_file_cache = TRUE;
+      }
+      panel->file_dir_entry = (DirEntry *)de;
+      if (refresh_file_cache) {
+        FreeFileEntryList(panel);
+        BuildFileEntryList(ctx, panel);
+      }
+    } else if (!panel->file_entry_list) {
       BuildFileEntryList(ctx, panel);
     }
-    has_file_list = (panel->file_entry_list != NULL);
 
     render_cursor = de->cursor_pos;
     if (panel->file_dir_entry == de) {
       render_start = panel->start_file;
       render_cursor = panel->file_cursor_pos;
     }
+    if (panel->file_count > 0) {
+      if (render_start < 0)
+        render_start = 0;
+      if ((unsigned int)render_start >= panel->file_count)
+        render_start = (int)panel->file_count - 1;
+      if (render_cursor < 0)
+        render_cursor = 0;
+      if ((unsigned int)(render_start + render_cursor) >= panel->file_count) {
+        render_cursor = (int)panel->file_count - 1 - render_start;
+        if (render_cursor < 0)
+          render_cursor = 0;
+      }
+    } else {
+      render_start = 0;
+      render_cursor = 0;
+    }
 
     if (panel->saved_focus == FOCUS_FILE && panel->pan_big_file_window) {
-      /* Preserve file-centric state for inactive panels: when a panel was left
-       * in file mode, render it on files, not on directory tree.
-       */
+      DEBUG_LOG("RenderInactivePanel:file path='%s' start=%d cursor=%d count=%u",
+                panel->file_selection_dir_path[0] ? panel->file_selection_dir_path
+                                                   : "<none>",
+                render_start, render_cursor, panel->file_count);
       if (panel->pan_dir_window) {
         werase(panel->pan_dir_window);
         wnoutrefresh(panel->pan_dir_window);
       }
-      if (has_file_list) {
-        DisplayFiles(ctx, panel, de, render_start, render_start + render_cursor,
-                     0, panel->pan_big_file_window);
-      } else {
-        werase(panel->pan_big_file_window);
-      }
+      DisplayFiles(ctx, panel, de, render_start, render_start + render_cursor,
+                   0, panel->pan_big_file_window);
       wnoutrefresh(panel->pan_big_file_window);
       return;
     }
 
-    /* Tree-focused inactive panel rendering */
     if (panel->pan_dir_window) {
       DisplayTree(ctx, panel->vol, panel->pan_dir_window, begin, begin + cursor,
                   FALSE);
@@ -493,12 +619,7 @@ void RenderInactivePanel(ViewContext *ctx, YtreePanel *panel) {
     }
 
     if (panel->pan_file_window) {
-      if (has_file_list) {
-        DisplayFiles(ctx, panel, de, render_start, -1, 0,
-                     panel->pan_file_window);
-      } else {
-        werase(panel->pan_file_window);
-      }
+      DisplayFiles(ctx, panel, de, render_start, -1, 0, panel->pan_file_window);
       wnoutrefresh(panel->pan_file_window);
     }
   }

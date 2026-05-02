@@ -845,6 +845,7 @@ Ordering policy (for all editors, including AI editors):
 ### **Idea FE-7: Tagged-Only Results View**
 *   **Goal:** Add a view mode that shows only tagged files without altering the tag set itself.
 *   **User-Facing Behavior:**
+    *   `F4` toggles **Tagged-Only** view mode.
     *   In file lists, Showall, Global, and archive file views, users can toggle a **Tagged-Only** filter to temporarily narrow the visible list to currently tagged items.
     *   Leaving the mode restores the normal file/filter view; tags remain unchanged.
     *   This should compose cleanly with existing filters, grep-on-tagged workflows, and compare/tag workflows.

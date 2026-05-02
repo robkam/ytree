@@ -7,6 +7,8 @@
 
 #include "ytree_defs.h"
 
+extern void FreePathList(PathList *list);
+
 static void Volume_ClearPanelFileEntries(YtreePanel *panel) {
   if (panel && panel->file_entry_list) {
     free(panel->file_entry_list);
@@ -14,6 +16,13 @@ static void Volume_ClearPanelFileEntries(YtreePanel *panel) {
     panel->file_entry_list_capacity = 0;
     panel->file_count = 0;
   }
+}
+
+static void Volume_ClearPanelTags(YtreePanel *panel) {
+  if (!panel)
+    return;
+  FreePathList(panel->tagged_paths);
+  panel->tagged_paths = NULL;
 }
 
 static void Volume_FreeCache(struct Volume *vol) {
@@ -120,14 +129,15 @@ void Volume_Delete(ViewContext *ctx, struct Volume *vol) {
     free(vol->dir_entry_list);
     vol->dir_entry_list = NULL;
   }
-
   /* Invalidate any panels using this volume to prevent stale references */
   if (ctx->left && ctx->left->vol == vol) {
     Volume_ClearPanelFileEntries(ctx->left);
+    Volume_ClearPanelTags(ctx->left);
     ctx->left->vol = NULL;
   }
   if (ctx->right && ctx->right->vol == vol) {
     Volume_ClearPanelFileEntries(ctx->right);
+    Volume_ClearPanelTags(ctx->right);
     ctx->right->vol = NULL;
   }
 
@@ -288,6 +298,10 @@ struct Volume *Volume_Load(ViewContext *ctx, const char *path,
     }
     memset(&vol->vol_stats, 0, sizeof(Statistic));
     Volume_FreeCache(vol);
+    if (ctx->left && ctx->left->vol == vol)
+      Volume_ClearPanelTags(ctx->left);
+    if (ctx->right && ctx->right->vol == vol)
+      Volume_ClearPanelTags(ctx->right);
   } else {
     vol = Volume_Create(ctx);
     if (!vol)

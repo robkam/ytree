@@ -83,10 +83,10 @@ The `ViewContext` struct (defined in `include/ytree_defs.h`) is the root of all 
 
 ```
 ViewContext (The Session)
-├── left   → YtreePanel (View: cursor, scroll, window state)
-├── right  → YtreePanel (View: cursor, scroll, window state)
+├── left   → YtreePanel (Pane: cursor, scroll, window state, tags)
+├── right  → YtreePanel (Pane: cursor, scroll, window state, tags)
 ├── active → points to left or right
-├── volumes_head → Volume linked list (Model: DirEntry trees, statistics)
+├── volumes_head → Volume linked list (Model: shared DirEntry trees, statistics)
 └── viewer, layout, mode flags, etc.
 ```
 
@@ -120,14 +120,14 @@ The application state is strictly hierarchical:
 
 2.  **`YtreePanel` (The View):**
     *   Represents a single UI pane.
-    *   Owns **View State**: cursor position, scroll offset, and window-specific dimensions.
+    *   Owns **Pane-Local State**: cursor position, scroll offset, file-view anchor, focus/window mode, filespec/filter, and selected/tagged files for that pane.
     *   Holds a reference to a `Volume`.
-    *   Independent Panels may point to the same `Volume` while maintaining unique cursors.
+    *   Independent panels may point to the same `Volume` while maintaining different pane-local state. Pane-local state must not be inferred from a shared tree index after the tree is rebuilt.
 
 3.  **`Volume` (The Model):**
     *   Represents a filesystem (Physical Disk or Archive).
-    *   Owns **Data**: `DirEntry` tree structure, `Statistic` metadata, and path info.
-    *   Contains no UI state.
+    *   Owns **Shared Data**: `DirEntry` tree topology, logged/unlogged memory state, file payload cache, `Statistic` metadata, and path info.
+    *   Contains no pane-local UI state: no active focus, cursor, file-view anchor, selected file, filespec/filter, or pane-local tags.
 
 ### 4.2 Dual-Panel Context Isolation (F8 Logic)
 The Split-Screen architecture treats each panel as an independent instance of a volume manager.
@@ -135,6 +135,7 @@ The Split-Screen architecture treats each panel as an independent instance of a 
 *   **Active Panel:** Owns keyboard focus and initiates all operations.
 *   **Inactive Panel:** Strictly **DORMANT**. It does not update its display or change state in response to activity in the active panel.
 *   **State Persistence (Tab-Switch):** The `Tab` key is the bridge. Switching panels restores the exact state held when that panel last had focus.
+*   **Pane vs. Volume Rule:** Sharing a `Volume` only shares logged tree topology and file payload cache. It never shares pane-local tags, file-window anchors, cursor identity, or focus/mode state.
 
 ### 4.3 Inter-Panel Operations (The Directional Rule)
 *   **Targeting:** Copy and Move operations occur directionally: **Source (Active Panel) to Destination (Inactive Panel)**.

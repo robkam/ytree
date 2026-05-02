@@ -759,6 +759,7 @@ typedef struct {
   int start_file;
   int file_cursor_pos;
   DirEntry *file_dir_entry;
+  struct _PathList *tagged_paths;
   char file_selection_name[PATH_LENGTH + 1];
   char file_selection_dir_path[PATH_LENGTH + 1];
   BOOL saved_big_file_view;
