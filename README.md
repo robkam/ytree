@@ -3,6 +3,7 @@
 > [!IMPORTANT]
 > **STATUS: ALPHA (v3.0.0-alpha)**
 > `ytree` is in active alpha development. Expect rough edges, incomplete behaviour, and occasional regressions. Interfaces, key bindings, and configuration details may change before the first stable release.
+> Before opening an issue or suggesting a feature, check [BUGS.md](docs/BUGS.md) and [ROADMAP.md](docs/ROADMAP.md) first, so as not to create a duplicate if it is already listed.
 
 Ytree gives you a fast, keyboard-first view of logged storage: a directory tree, a file list for the current directory, and Showall for all files in the current volume (plus Global across logged volumes). You can filter and tag files, then run normal file operations (copy, move, rename, delete, archive, edit) on single files or in bulk. It also includes built-in file preview, file/directory compare tools, split-screen workflows, and archive-as-directory support with archive creation plus in-archive write operations (copy/move/rename/delete/mkdir where supported).
 
