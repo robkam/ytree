@@ -385,20 +385,20 @@ int SelectLoadedVolume(ViewContext *ctx, int *return_key) {
         selected_index = 0;
 
       struct Volume *target_vol = vol_array[selected_index];
-
       if (target_vol != ctx->active->vol) {
         int login_result =
             LogDisk(ctx, ctx->active, target_vol->vol_stats.log_path);
         free(vol_array);
         return login_result;
       }
+
       free(vol_array);
-      /* If we are already on the selected volume, just ensure list is synced */
+      /* Already on selected volume: preserve existing in-memory state. */
       {
         int dummy;
         BuildDirEntryList(ctx, ctx->active->vol, &dummy);
       }
-      return 0; /* Already on selected volume */
+      return 0;
     }
   }
 

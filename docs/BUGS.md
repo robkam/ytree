@@ -10,6 +10,18 @@ Ordering policy (for all editors, including AI editors):
 
 ## **Current Runtime Defects (Highest Priority First)**
 
+### **BUG-41: F8 Release-Volume Flow Can Blank Pane and Crash on Tab**
+*   **Description**: In `F8` split mode, after logging two volumes and releasing one, the small window can go blank, separator line can disappear, inactive pane can blank, and tabbing to the inactive pane can trigger a segmentation fault.
+*   **Impact**: Critical stability and data-safety risk (crash), plus severe UI corruption in a core split-pane workflow.
+*   **Remediation**: Harden split-pane volume-release lifecycle so panel/window ownership and active/inactive bindings are always valid after release. Add focused regression coverage for `F8` with multi-volume log/release and `Tab` switching after release.
+*   **Status**: Confirmed.
+
+### **BUG-40: Cycle-Volumes (`<`/`>`, `,`/`.`) Leaks Dir/File View State Across Volumes**
+*   **Description**: Cycling logged volumes can cause dir/file window mode/state changes in one volume to appear in the other, instead of each volume retaining its own last-used state.
+*   **Impact**: Breaks per-volume navigation predictability and increases wrong-target risk during fast volume switching workflows.
+*   **Remediation**: Preserve and restore per-volume dir/file window state independently when cycling volumes. Add regression coverage for repeated `<`/`>` transitions across volumes with different view states.
+*   **Status**: Confirmed.
+
 ### **BUG-39: `Write` Destination Ambiguity and Crash Path**
 *   **Description**: In `Write`, entering a plain filename (for example `report-2026-04-11.txt`) can be interpreted as a command execution path instead of file output, and user repro indicates this path can crash after command failure handling.
 *   **Impact**: Violates least-surprise behavior, risks data-loss/confusion for new users, and introduces a stability defect (segmentation fault).
@@ -160,7 +172,7 @@ Ordering policy (for all editors, including AI editors):
 *   **Description**: In F8 split mode, active (inverted) versus inactive (bold and underlined) panel cursors are correct in directory view, but both are inverted in file view.
 *   **Impact**: Users can't distinguish the active panel during file navigation.
 *   **Remediation**: Make active/inactive indicator rendering consistent between directory and file views in split mode.
-*   **Status**: Confirmed.
+*   **Status**: Fixed.
 
 ### **BUG-19: Unlogged Tree Nodes Mislabel as `No files` and Use Misleading `dir/` Suffix**
 *   **Description**: In directory tree navigation (for example log `~`, expand `ytree/src`), an unlogged directory like `cmd` can render as `cmd/` with `No files`; expanding it then reveals files.
@@ -174,13 +186,13 @@ Ordering policy (for all editors, including AI editors):
     *   Collapse behavior (`Left` / `-`) must be idempotent for content state and must not mutate status classification.
 *   **Impact**: Misleads users about whether files exist, breaks trust in tree-state cues, and increases navigation friction in common expand/collapse workflows.
 *   **Remediation**: Enforce a strict tree-state contract (`unlogged` vs `empty` vs `has files`) with deterministic render precedence; avoid suffix/label combinations that imply false emptiness; and add regression coverage for expand/collapse (including repeated `Left`/`-`) on unlogged nodes.
-*   **Status**: Confirmed.
+*   **Status**: Fixed.
 
 ### **BUG-18: Tree `+` Status Marker Renders in Name Text Instead of Margin Slot**
 *   **Description**: When a directory is Unlogged/released, the `+` state marker can appear appended to the directory name text rather than in the dedicated tree status/margin position.
 *   **Impact**: Blurs directory identity with state signaling and makes tree-state scanning less reliable in navigation-heavy flows.
 *   **Remediation**: Render `+` only in the tree status/margin slot for Unlogged entries and keep directory name text unchanged.
-*   **Status**: Confirmed.
+*   **Status**: Fixed.
 
 ### **BUG-17: Single-Empty-Directory Archive Can Collapse Tree Rendering**
 *   **Description**: In archive mode, when the archive contains only one empty directory, ytree can skip normal tree-node rendering and show that directory identity as appended archive-name/path text instead.

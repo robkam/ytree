@@ -50,7 +50,7 @@ The screen is divided into non-overlapping zones. Geometry is calculated dynamic
 The first character column of the Tree View serves as the Memory State Indicator:
 *   `+` : **Unlogged.** The directory entry is visible in the tree, but its file list is not in memory. The File View must display `**Unlogged**`.
 *   ` ` (Blank): **Logged.** The file list for this directory is resident in memory.
-*   Trailing `/`: Visual indicator that the directory contains subdirectories on the disk.
+*   Directory-name suffix contract: `+` is a status-margin marker (not a name suffix). A trailing `/` may still be shown on a directory name to indicate subdirectory presence.
 
 ---
 
@@ -59,11 +59,12 @@ The first character column of the Tree View serves as the Memory State Indicator
 ### 3.1 Focus Flow (`SMALLWINDOWSKIP`)
 The behavior of the `Enter` key on a directory node is governed by the configuration:
 
+*   **State gate (all configs):** If the selected directory is unlogged/not-yet-scanned, `Enter` performs one-level log/reveal (same as `+`) and keeps focus in Tree View.
 *   **Bypass Mode (`SMALLWINDOWSKIP=1`):**
-    *   `Enter` on Tree -> **Instant Zoom**. File Window expands to full height.
+    *   `Enter` on a logged directory in Tree -> **Instant Zoom**. File Window expands to full height.
     *   `Enter` or `Esc` on Zoomed Window -> Returns focus to the **Tree View**.
 *   **Staged Navigation (`SMALLWINDOWSKIP=0`):**
-    *   `Enter` on Tree -> **Focus Shift**. Focus moves to the File View (Small Window). Tree remains visible.
+    *   `Enter` on a logged directory in Tree -> **Focus Shift**. Focus moves to the File View (Small Window). Tree remains visible.
     *   `Enter` on Small Window -> **Zoom**. File Window expands to full height.
 *   **Navigation Stability:** Moving the cursor through the Tree must **never** automatically trigger a transition into File Mode or Zoom.
 
@@ -74,12 +75,12 @@ The behavior of the `Enter` key on a directory node is governed by the configura
 ### 3.3 Directory Memory Commands (Structural Controls)
 *   **`+` or `=` (Expand):** Shallow Log. Scans the files of the current directory and the names of immediate subdirectories. `=` is a convenience alias (unshifted `+` on most keyboard layouts).
 *   **`*` (Asterisk):** Deep Log. Recursively scans the entire branch.
-*   **`-` (Minus / Collapse):** State-based memory release. First press collapses an expanded node. Second press on a collapsed (but logged) node evicts the file list, sets the status indicator to `+`, and marks the directory as Unlogged.
+*   **`-` (Minus / Collapse):** State-based memory release. First press collapses an expanded node. Second press on a collapsed (but logged) node evicts the file list, sets the status indicator to `+`, and marks the directory as Unlogged. At root, use `-` to release logged contents.
 
 ### 3.4 Arrow Key Navigation (Spatial Controls)
 Arrow keys provide spatial, cursor-oriented navigation through the tree. They are distinct from the structural `+`/`-`/`*` controls:
 *   **`→` (Right Arrow / Drill Down):** Progressive depth navigation. If the node is collapsed: expand one level. If already expanded: move cursor to the first child.
-*   **`←` (Left Arrow):** If the selected directory is expanded, collapse it. Otherwise, move selection to its parent directory. At the filesystem root, collapse the root subtree; if already collapsed, this is a no-op.
+*   **`←` (Left Arrow):** If the selected directory is expanded, collapse it. Otherwise, move selection to its parent directory. At the filesystem root, `Left` is a no-op.
 
 ### 3.5 Preview Mode (`F7`) Contract
 `F7` is the primary inspect mode for viewing file contents while retaining list-oriented navigation.
@@ -117,7 +118,11 @@ The `ytree` input system follows a layered model designed for high-speed interac
 ### 4.3 Key Behavioral Rules
 *   **The Minus Rule (`-`):** State-based memory release. First press collapses an expanded node; second press on a collapsed logged node evicts the file list (sets `+` status) and marks the directory as Unlogged.
 *   **The Right Arrow Rule (`→`):** Progressive drill-down. Expand collapsed → move to child. Always takes the user one step deeper into the tree.
+*   **The Root-Left Rule (`←` at root):** No-op. Root content release is handled by `-`, not by `Left`.
 *   **The Plus/Equals Rule (`+`/`=`):** Explicit one-level expand only. No cursor movement. `=` is the unshifted alias for `+`.
+*   **The Tree Marker Rule (`+` status):** Unlogged state is rendered only in the dedicated tree status margin column; directory names do not carry a `+` suffix.
+*   **The Volume Menu Rule (`K` menu):** Selecting the already-active volume preserves its current in-memory state (no implicit relog/reload).
+*   **The Explicit Relog Rule (`L` on current path):** Logging an already logged volume/path performs a fresh relog/reload of that volume state and reanchors selection at volume root.
 *   **The Archive/Global Jump (`\`):** In Archive Mode, jumps to the archive root. in Global/Showall views, jumps to the highlighted file's directory.
 *   **Numeric FileInfo Band (`1..9`, `0`):** Number keys are the canonical file-display controls in normal list contexts (not active in `F7` preview). These controls apply to file-display rendering for the active pane whether focus is currently in the tree/dir window or file window.
 *   **Vi-Key Collision Policy:** When `VI_KEYS=1`, lowercase `h/j/k/l` are reserved for navigation. Uppercase `H/K/L/J` are used for commands (Hex, Volume, Log, Compare).
