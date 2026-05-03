@@ -138,6 +138,8 @@ void PrintDirEntry(ViewContext *ctx, struct Volume *vol, WINDOW *win,
 
   /* --- Redesigned Drawing Logic --- */
 
+  const int status_col = 0;
+  const int graph_col = 3;
   int attr_start_col = 38; /* Column where attributes begin */
   int graph_len = strlen(graph_buffer);
   chtype line_attr;
@@ -161,8 +163,10 @@ void PrintDirEntry(ViewContext *ctx, struct Volume *vol, WINDOW *win,
       wattron(win, A_BOLD | A_UNDERLINE);
   }
 
-  /* Part 1: Draw the tree graph characters manually */
-  wmove(win, y, 0);
+  /* Part 1: Draw status marker and tree graph characters manually */
+  mvwaddch(win, y, status_col,
+           (de_ptr->unlogged_flag || de_ptr->not_scanned) ? '+' : ' ');
+  wmove(win, y, graph_col);
   wattron(win, A_ALTCHARSET);
   for (j = 0; j < (unsigned int)graph_len; ++j) {
     int ch;
@@ -193,10 +197,17 @@ void PrintDirEntry(ViewContext *ctx, struct Volume *vol, WINDOW *win,
   (void)snprintf(name_buffer, sizeof(name_buffer), "%s",
                  (*dir_name) ? dir_name : ".");
   if (de_ptr->not_scanned) {
-    size_t name_len = strlen(name_buffer);
-    if (name_len < sizeof(name_buffer) - 1) {
-      name_buffer[name_len] = de_ptr->unlogged_flag ? '+' : '/';
-      name_buffer[name_len + 1] = '\0';
+    BOOL has_subdirs = (de_ptr->sub_tree != NULL);
+    if (!has_subdirs && S_ISDIR(de_ptr->stat_struct.st_mode) &&
+        de_ptr->stat_struct.st_nlink > 2) {
+      has_subdirs = TRUE;
+    }
+    if (has_subdirs) {
+      size_t name_len = strlen(name_buffer);
+      if (name_len < sizeof(name_buffer) - 1) {
+        name_buffer[name_len] = '/';
+        name_buffer[name_len + 1] = '\0';
+      }
     }
   }
 
@@ -204,10 +215,10 @@ void PrintDirEntry(ViewContext *ctx, struct Volume *vol, WINDOW *win,
   int max_name_len;
   if (ctx->dir_mode == MODE_3) {
     /* In MODE_3 (name-only), truncate based on full window width */
-    max_name_len = ctx->layout.dir_win_width - graph_len - 1;
+    max_name_len = ctx->layout.dir_win_width - graph_col - graph_len - 1;
   } else {
     /* In other modes, truncate to prevent overlap with attributes */
-    max_name_len = attr_start_col - graph_len - 1;
+    max_name_len = attr_start_col - graph_col - graph_len - 1;
   }
   /* Safety: Ensure max_name_len is at least 1 to avoid issues with CutName */
   if (max_name_len < 1) {
@@ -228,7 +239,7 @@ void PrintDirEntry(ViewContext *ctx, struct Volume *vol, WINDOW *win,
     else
       wattron(win, A_BOLD | A_UNDERLINE);
   }
-  mvwaddstr(win, y, graph_len, name_buffer);
+  mvwaddstr(win, y, graph_col + graph_len, name_buffer);
   if (hilight && !ctx->highlight_full_line) {
     if (is_active)
       wattroff(win, A_REVERSE);

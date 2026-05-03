@@ -107,6 +107,7 @@ int LogDisk(ViewContext *ctx, YtreePanel *panel, char *path) {
   struct Volume *loaded_vol = NULL;
   struct Volume *old_vol = NULL;
   struct Volume *reuse_vol = NULL;
+  BOOL reload_requested = FALSE;
   Statistic *s;
   struct stat st_check;
 
@@ -170,34 +171,39 @@ int LogDisk(ViewContext *ctx, YtreePanel *panel, char *path) {
     }
 
     if (access_ok) {
-      panel->vol = found_vol;
-      s = &panel->vol->vol_stats;
-      ctx->global_search_term[0] = '\0';
-      ctx->view_mode = panel->vol->vol_stats.log_mode;
+      if (found_vol == panel->vol &&
+          strcmp(found_vol->vol_stats.log_path, resolved_path) == 0) {
+        reload_requested = TRUE;
+      } else {
+        panel->vol = found_vol;
+        s = &panel->vol->vol_stats;
+        ctx->global_search_term[0] = '\0';
+        ctx->view_mode = panel->vol->vol_stats.log_mode;
 
-      /* Re-apply the volume's own filter */
-      (void)SetFilter(s->file_spec, s);
-      if (ctx->hook_recalculate_sys_stats)
-        ctx->hook_recalculate_sys_stats(ctx, s);
+        /* Re-apply the volume's own filter */
+        (void)SetFilter(s->file_spec, s);
+        if (ctx->hook_recalculate_sys_stats)
+          ctx->hook_recalculate_sys_stats(ctx, s);
 
-      /* Refresh display */
-      if (ctx->hook_display_menu)
-        ctx->hook_display_menu(ctx);
-      if (ctx->hook_build_dir_entry_list)
-        ctx->hook_build_dir_entry_list(ctx, panel->vol, &(int){0});
-      RestorePanelTreeSelection(ctx, panel);
+        /* Refresh display */
+        if (ctx->hook_display_menu)
+          ctx->hook_display_menu(ctx);
+        if (ctx->hook_build_dir_entry_list)
+          ctx->hook_build_dir_entry_list(ctx, panel->vol, &(int){0});
+        RestorePanelTreeSelection(ctx, panel);
 
-      if (ctx->hook_display_tree)
-        ctx->hook_display_tree(ctx, panel->vol, ctx->ctx_dir_window,
-                               panel->disp_begin_pos,
-                               panel->disp_begin_pos + panel->cursor_pos, TRUE);
-      if (ctx->hook_display_disk_statistic)
-        ctx->hook_display_disk_statistic(ctx, s);
-      if (ctx->hook_display_avail_bytes)
-        ctx->hook_display_avail_bytes(ctx, s);
-      if (ctx->hook_init_clock)
-        ctx->hook_init_clock(ctx);
-      return 0;
+        if (ctx->hook_display_tree)
+          ctx->hook_display_tree(
+              ctx, panel->vol, ctx->ctx_dir_window, panel->disp_begin_pos,
+              panel->disp_begin_pos + panel->cursor_pos, TRUE);
+        if (ctx->hook_display_disk_statistic)
+          ctx->hook_display_disk_statistic(ctx, s);
+        if (ctx->hook_display_avail_bytes)
+          ctx->hook_display_avail_bytes(ctx, s);
+        if (ctx->hook_init_clock)
+          ctx->hook_init_clock(ctx);
+        return 0;
+      }
     } else {
       /* Volume exists but is inaccessible */
       if (ctx->hook_ui_message)
@@ -220,7 +226,8 @@ int LogDisk(ViewContext *ctx, YtreePanel *panel, char *path) {
   old_vol = panel->vol;
 
   /* Determine if we can reuse the "virgin" volume */
-  if (old_vol != NULL && old_vol->vol_stats.log_path[0] == '\0') {
+  if (old_vol != NULL &&
+      (old_vol->vol_stats.log_path[0] == '\0' || reload_requested)) {
     reuse_vol = old_vol;
   }
 
@@ -332,7 +339,13 @@ int LogDisk(ViewContext *ctx, YtreePanel *panel, char *path) {
   /* Final Refresh */
   if (ctx->hook_build_dir_entry_list)
     ctx->hook_build_dir_entry_list(ctx, panel->vol, &(int){0});
-  RestorePanelTreeSelection(ctx, panel);
+  if (reload_requested) {
+    panel->disp_begin_pos = 0;
+    panel->cursor_pos = 0;
+    panel->vol->saved_tree_index = 0;
+  } else {
+    RestorePanelTreeSelection(ctx, panel);
+  }
   if (ctx->hook_display_tree)
     ctx->hook_display_tree(ctx, panel->vol, ctx->ctx_dir_window,
                            panel->disp_begin_pos,

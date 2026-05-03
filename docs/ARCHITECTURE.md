@@ -149,9 +149,12 @@ The Split-Screen architecture treats each panel as an independent instance of a 
 *   **Transition Invariant:** A directory can only be entered (Tree to File Mode) if it contains at least one file.
 *   **Selection Memory (Breadcrumbs):** When returning from File Mode to Tree Mode and later re-entering the same directory, the panel restores the cursor to the last highlighted file.
 *   **Navigation Stability:** Moving through the Tree never automatically triggers a transition into File Mode.
+*   **Root Boundary Rule:** `Left` at root is a no-op; root-content release uses `-` state-release semantics.
 
 ### 5.2 Protocol B: Archive and Volume Lifecycle
 *   **Lifecycle Management:** The active panel handles Logging new volumes, Cycling through logged volumes, and Releasing (unlogging) volumes.
+*   **Volume Menu Selection Rule:** Selecting an already-active loaded volume preserves its current in-memory expansion/collapse/tag/log state (no implicit relog).
+*   **Explicit Relog Rule:** Logging an already logged volume/path performs a fresh reload of that volume state and reanchors selection at the volume root.
 *   **Independent Rooting:** Changing the root or volume in the active panel has no impact on the inactive panel.
 
 ### 5.3 Protocol C: F7 Autoview
@@ -164,6 +167,7 @@ The Split-Screen architecture treats each panel as an independent instance of a 
 ## 6. Visual and Rendering Standards
 *   **Terminal Integrity:** UI updates are staged using `wnoutrefresh()` and committed atomically via `doupdate()` to prevent visual artifacts.
 *   **Junction Grammar:** Ncurses junctions (T-pieces, crosses) are used only for horizontal boundary lines. Vertical separators must remain clean.
+*   **Tree State Rendering Contract:** Unlogged state is rendered in the dedicated tree status-margin column; directory names do not carry a `+` suffix, while `/` may still be shown when the directory has subdirectories.
 *   **Micro-Consistency:** Mode flags must be synchronized with the layout before any redraw.
 
 ---
