@@ -125,7 +125,6 @@ Active when browsing the directory tree window.
 *   **L** (Log): Log a new directory or archive file.
 *   **M** (Makedir): Create a new directory.
 *   **N** (New File): Create a new empty file.
-*   **O** (Compress): Create an archive from the current selection. If one or more files are tagged, ytree archives the tagged files. If nothing is tagged, ytree archives the selected file or selected directory. Directory sources are archived recursively. Supported destination suffixes: `.tar`, `.tar.gz`/`.tgz`, `.tar.bz2`/`.tbz2`, `.tar.xz`/`.txz`, `.zip`.
 *   **P** (Pipe, or **|**): Pipe the selected directory to a command (stdin).
 *   **R** (Rename): Rename selected directory.
 *   **S** (Showall): Show all files in all directories of the current volume.
@@ -134,6 +133,7 @@ Active when browsing the directory tree window.
 *   **V** (MoveDir): Move the selected directory branch.
 *   **W** (Write): Export files in the selected directory to a command or file using a formatting dialog (Raw, Framed, Page Break).
 *   **X** (eXecute): Execute a shell command. The `{}` placeholder is replaced by the current directory path.
+*   **Z** (archive): Create an archive from the current selection. If one or more files are tagged, ytree archives the tagged files. If nothing is tagged, ytree archives the selected file or selected directory. Directory sources are archived recursively. Supported destination suffixes: `.tar`, `.tar.gz`/`.tgz`, `.tar.bz2`/`.tbz2`, `.tar.xz`/`.txz`, `.zip`.
 *   **`** (Backtick): Toggle visibility of hidden dot-files and directories.
 *   **^F** (Dir Mode): Cycle directory display modes (Filenames only -> Attributes -> Inode/Owner -> Times).
 *   **Return**: Switch to File Mode (focus the file window).
@@ -161,7 +161,6 @@ Active when the file window is focused.
 *   **M** (Move): Move the selected file.
 *   **^N**: Move all tagged files.
 *   **N** (New File): Create a new empty file.
-*   **O** (Archive): Create an archive from tagged files, or from the selected file/directory when nothing is tagged. Directory sources are archived recursively.
 *   **P** (Pipe, or **|**): Pipe content of file to a command (stdin).
 *   **R** (Rename): Rename the selected file.
 *   **S** (Sort): Sort filelist (Access time, Change time, Extension, Group, Modification time, Name, Owner, Size).
@@ -177,6 +176,7 @@ Active when the file window is focused.
 *   **W** (Write): Export the selected file to a command or file using a formatting dialog (Raw, Framed, Page Break).
 *   **X** (eXecute): Execute a shell command. `{}` is replaced by the filename.
 *   **Y**: (Pathcopy): Copy selected file, replicating its directory structure relative to the current volume root.
+*   **Z** (archive): Create an archive from tagged files, or from the selected file/directory when nothing is tagged. Directory sources are archived recursively.
 *   **^F** (File Mode): Cycle file display modes.
 *   **Return**: Switch to Full Screen File Mode / Directory Mode.
 *   **Left Arrow**: Move to the previous visible file column; in one-column

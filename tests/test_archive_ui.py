@@ -264,7 +264,7 @@ def test_archive_create_overwrite_prompt_respects_no_then_yes(ytree_binary, tmp_
         tui.send_keystroke(Keys.ENTER, wait=0.4)
         assert tui.wait_for_content("0_source.txt", timeout=3.0)
 
-        tui.send_keystroke("O", wait=0.2)
+        tui.send_keystroke("Z", wait=0.2)
         assert tui.wait_for_content("Create archive:", timeout=3.0)
         tui.send_keystroke(f"{archive_path}\r", wait=0.3)
         assert tui.wait_for_content("Overwrite z_existing.zip? (y/n)", timeout=3.0)
@@ -273,7 +273,7 @@ def test_archive_create_overwrite_prompt_respects_no_then_yes(ytree_binary, tmp_
         assert _zip_names(archive_path) == ["existing.txt"]
         assert _zip_read_text(archive_path, "existing.txt") == "old payload"
 
-        tui.send_keystroke("O", wait=0.2)
+        tui.send_keystroke("Z", wait=0.2)
         assert tui.wait_for_content("Create archive:", timeout=3.0)
         tui.send_keystroke(f"{archive_path}\r", wait=0.3)
         assert tui.wait_for_content("Overwrite z_existing.zip? (y/n)", timeout=3.0)
@@ -318,7 +318,7 @@ def test_archive_create_inside_source_directory_is_allowed(ytree_binary, tmp_pat
 
     tui = YtreeTUI(executable=ytree_binary, cwd=str(root))
     try:
-        tui.send_keystroke("O", wait=0.2)
+        tui.send_keystroke("Z", wait=0.2)
         assert tui.wait_for_content("Recursive? (Y/n)", timeout=3.0)
         tui.send_keystroke("y", wait=0.2)
         assert tui.wait_for_content("Create archive:", timeout=3.0)
@@ -345,7 +345,7 @@ def test_archive_create_overwrite_excludes_destination_from_payload(
 
     tui = YtreeTUI(executable=ytree_binary, cwd=str(root))
     try:
-        tui.send_keystroke("O", wait=0.2)
+        tui.send_keystroke("Z", wait=0.2)
         assert tui.wait_for_content("Recursive? (Y/n)", timeout=3.0)
         tui.send_keystroke("y", wait=0.2)
         assert tui.wait_for_content("Create archive:", timeout=3.0)
@@ -375,7 +375,7 @@ def test_archive_create_exclusion_empty_payload_shows_status_and_aborts(
         tui.send_keystroke(Keys.ENTER, wait=0.4)
         assert tui.wait_for_content("only.zip", timeout=3.0)
 
-        tui.send_keystroke("O", wait=0.2)
+        tui.send_keystroke("Z", wait=0.2)
         assert tui.wait_for_content("Create archive:", timeout=3.0)
         tui.send_keystroke(f"{destination}\r", wait=0.3)
         assert tui.wait_for_content("Overwrite only.zip? (y/n)", timeout=3.0)
@@ -406,7 +406,7 @@ def test_archive_create_inside_source_round_trip_integrity(ytree_binary, tmp_pat
 
     tui = YtreeTUI(executable=ytree_binary, cwd=str(root))
     try:
-        tui.send_keystroke("O", wait=0.2)
+        tui.send_keystroke("Z", wait=0.2)
         assert tui.wait_for_content("Recursive? (Y/n)", timeout=3.0)
         tui.send_keystroke("y", wait=0.2)
         assert tui.wait_for_content("Create archive:", timeout=3.0)
@@ -446,7 +446,7 @@ def test_archive_create_unsupported_format_shows_and_clears_status_error(
         tui.send_keystroke(Keys.ENTER, wait=0.4)
         assert tui.wait_for_content("source.txt", timeout=3.0)
 
-        tui.send_keystroke("O", wait=0.2)
+        tui.send_keystroke("Z", wait=0.2)
         assert tui.wait_for_content("Create archive:", timeout=3.0)
         tui.send_keystroke(f"{destination}\r", wait=0.4)
         assert tui.wait_for_content("Unsupported archive format: .7z", timeout=3.0)
