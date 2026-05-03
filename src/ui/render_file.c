@@ -207,6 +207,7 @@ void PrintFileEntry(ViewContext *ctx, YtreePanel *panel, int entry_no, int y,
   int base_color_pair;
   int width;
   BOOL is_tagged;
+  int highlight_attr;
 
   if (!panel->file_entry_list)
     return;
@@ -217,6 +218,9 @@ void PrintFileEntry(ViewContext *ctx, YtreePanel *panel, int entry_no, int y,
   if (fe_ptr == NULL)
     return;
   is_tagged = PanelTags_FileIsTagged(panel, fe_ptr);
+  highlight_attr = (ctx->is_split_screen && panel != ctx->active)
+                       ? (A_BOLD | A_UNDERLINE)
+                       : A_REVERSE;
 
   if (ctx->fixed_col_width > 0) {
     pos_x = x * (ctx->fixed_col_width + 1);
@@ -233,7 +237,7 @@ void PrintFileEntry(ViewContext *ctx, YtreePanel *panel, int entry_no, int y,
     if (is_tagged)
       wattron(win, A_BOLD);
     if (hilight)
-      wattron(win, A_REVERSE);
+      wattron(win, highlight_attr);
 
     /* Draw */
     wprintw(win, "%c%c%s", (is_tagged) ? TAGGED_SYMBOL : ' ',
@@ -248,7 +252,7 @@ void PrintFileEntry(ViewContext *ctx, YtreePanel *panel, int entry_no, int y,
 
     /* Cleanup */
     if (hilight)
-      wattroff(win, A_REVERSE);
+      wattroff(win, highlight_attr);
     if (is_tagged)
       wattroff(win, A_BOLD);
     wattroff(win, COLOR_PAIR(color));
@@ -340,7 +344,7 @@ void PrintFileEntry(ViewContext *ctx, YtreePanel *panel, int entry_no, int y,
     if (is_tagged)
       wattron(win, A_BOLD);
     if (hilight)
-      wattron(win, A_REVERSE);
+      wattron(win, highlight_attr);
 
     /* Build the full line string */
     switch (panel->file_mode) {
@@ -452,7 +456,7 @@ void PrintFileEntry(ViewContext *ctx, YtreePanel *panel, int entry_no, int y,
     waddstr(win, line_ptr);
 
     if (hilight)
-      wattroff(win, A_REVERSE);
+      wattroff(win, highlight_attr);
     if (is_tagged)
       wattroff(win, A_BOLD);
 
@@ -514,10 +518,10 @@ void PrintFileEntry(ViewContext *ctx, YtreePanel *panel, int entry_no, int y,
 
     /* Highlight only the name */
     if (hilight)
-      wattron(win, A_REVERSE);
+      wattron(win, highlight_attr);
     AddClippedAtCursor(win, display_name, width);
     if (hilight)
-      wattroff(win, A_REVERSE);
+      wattroff(win, highlight_attr);
 
     /* Print attributes for modes other than MODE_3 */
     if (panel->file_mode != MODE_3) {

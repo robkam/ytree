@@ -103,3 +103,18 @@ def test_HandleFileWindow_delegates_misc_dispatch_hotspot():
     assert "GetNewLogPath(ctx, ctx->active" not in handle_block, (
         "Log branch body should be handled in extracted misc helper."
     )
+
+
+def test_PrintFileEntry_uses_inactive_split_highlight_style():
+    render_source = _read_source("src/ui/render_file.c")
+    print_file_entry_block = _extract_function_block(
+        render_source, "void PrintFileEntry("
+    )
+
+    assert "ctx->is_split_screen && panel != ctx->active" in print_file_entry_block, (
+        "PrintFileEntry must detect inactive split-panel rows instead of treating "
+        "all highlighted rows as active."
+    )
+    assert "A_BOLD | A_UNDERLINE" in print_file_entry_block, (
+        "Inactive split-panel file-row highlight must use underline+bold styling."
+    )
