@@ -633,7 +633,7 @@ void DisplayFiles(ViewContext *ctx, YtreePanel *panel, const DirEntry *de_ptr,
     const char *empty_label = "No files";
     if (de_ptr->access_denied) {
       empty_label = "Permission Denied!";
-    } else if (de_ptr->unlogged_flag) {
+    } else if (de_ptr->unlogged_flag || de_ptr->not_scanned) {
       empty_label = "Unlogged";
     }
     mvwaddstr(win, 0, first_filename_col, empty_label);

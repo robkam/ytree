@@ -1371,6 +1371,7 @@ HandleDirWindowEnterAction(ViewContext *ctx, DirEntry **dir_entry_ptr,
                            BOOL *need_dsp_help_ptr, int *ch_ptr,
                            int *unput_char_ptr, YtreeAction *action_ptr) {
   const YtreePanel *saved_panel;
+  char new_log_path[PATH_LENGTH + 1];
 
   if (!ctx || !ctx->active || !dir_entry_ptr || !*dir_entry_ptr || !s_ptr ||
       !*s_ptr || !start_vol_ptr || !*start_vol_ptr || !need_dsp_help_ptr ||
@@ -1388,6 +1389,29 @@ HandleDirWindowEnterAction(ViewContext *ctx, DirEntry **dir_entry_ptr,
             *dir_entry_ptr ? (*dir_entry_ptr)->name : "NULL",
             *dir_entry_ptr ? (unsigned int)(*dir_entry_ptr)->matching_files
                            : 0U);
+
+  if (*dir_entry_ptr &&
+      ((*dir_entry_ptr)->unlogged_flag ||
+       ((*dir_entry_ptr)->not_scanned && (*dir_entry_ptr)->total_files == 0))) {
+    DirEntry *child;
+
+    new_log_path[0] = '\0';
+    HandlePlus(ctx, *dir_entry_ptr, NULL, new_log_path, need_dsp_help_ptr,
+               ctx->active);
+    *dir_entry_ptr = ResolveActiveDirEntry(ctx, *s_ptr);
+
+    if (*dir_entry_ptr) {
+      for (child = (*dir_entry_ptr)->sub_tree; child; child = child->next) {
+        child->not_scanned = TRUE;
+        child->unlogged_flag = TRUE;
+      }
+      BuildDirEntryList(ctx, ctx->active->vol, &ctx->active->current_dir_entry);
+      RefreshView(ctx, *dir_entry_ptr);
+    }
+
+    ctx->focused_window = FOCUS_TREE;
+    return DIR_WINDOW_DISPATCH_HANDLED;
+  }
 
   if (*dir_entry_ptr == NULL || (*dir_entry_ptr)->total_files == 0) {
     UI_Beep(ctx, FALSE);

@@ -97,7 +97,7 @@ These commands work in most modes:
 *   **\\**: In **Showall**/**Global** file lists, exit that mode and jump to the selected file in its owner directory. In Archive-Dir mode, `\\` jumps to archive root when used below root, and exits to the parent physical directory when used at archive root. In normal filesystem dir/file windows and Archive-File mode, `\\` is a no-op.
 *   **B**: Toggle Brief (Compact) filename view in the File Window.
 *   **^L**: **Reload**. Re-read the contents of the current directory from disk and refresh the view.
-*   **K**: **Volume Menu**. Show a list of all currently logged volumes (drives/paths). Select a volume to switch context instantly. Press `Delete` (or `D`) in the menu to release (unlog) a volume. *(With `VI_KEYS=1`, use uppercase `K`; lowercase `k` is navigation.)*
+*   **K**: **Volume Menu**. Show a list of all currently logged volumes (drives/paths). Select a volume to switch context instantly. Selecting the already-active volume preserves its current in-memory state (no implicit relog). Press `Delete` (or `D`) in the menu to release (unlog) a volume. *(With `VI_KEYS=1`, use uppercase `K`; lowercase `k` is navigation.)*
 *   **<** / **>** (or **,** / **.**): **Cycle Volumes**. Switch to the previous or next logged volume instantly.
 *   **^Q**: **Quit to Directory**. If you exit ytree with ^Q, the last selected directory becomes your current working directory. See shell wrapper function below.
 *   **Q**: **Quit**. Exit ytree.
@@ -122,7 +122,7 @@ Active when browsing the directory tree window.
 *   **F** (Filter): Set file filter. Supports regex patterns (e.g., `*.c`), exclusions (`-*.o`), attributes (`:r`, `:x`), dates (`>2023-01-01`), and sizes (`>1M`).
 *   **G** (Global): Show all files across all logged volumes in one global list.
 *   **J** (Compare): Open the compare submenu (directory, logged tree, or external viewer). With `VI_KEYS=1`, use uppercase `J` for this action.
-*   **L** (Log): Log a new directory or archive file.
+*   **L** (Log): Log a new directory or archive file. Logging an already logged volume/path performs a fresh reload and reanchors selection at the volume root.
 *   **M** (Makedir): Create a new directory.
 *   **N** (New File): Create a new empty file.
 *   **P** (Pipe, or **|**): Pipe the selected directory to a command (stdin).
@@ -136,11 +136,12 @@ Active when browsing the directory tree window.
 *   **Z** (archive): Create an archive from the current selection. If one or more files are tagged, ytree archives the tagged files. If nothing is tagged, ytree archives the selected file or selected directory. Directory sources are archived recursively. Supported destination suffixes: `.tar`, `.tar.gz`/`.tgz`, `.tar.bz2`/`.tbz2`, `.tar.xz`/`.txz`, `.zip`.
 *   **`** (Backtick): Toggle visibility of hidden dot-files and directories.
 *   **^F** (Dir Mode): Cycle directory display modes (Filenames only -> Attributes -> Inode/Owner -> Times).
-*   **Return**: Switch to File Mode (focus the file window).
-*   **-**: State-based collapse/release. First press collapses an expanded node. Second press on a collapsed logged node evicts the file list (sets `+` status) and marks the directory as Unlogged.
-*   **Left Arrow**: If the selected directory is expanded, collapse it. Otherwise move selection to its parent directory. At filesystem root, collapse the root subtree; if already collapsed, this is a no-op.
-*   **Right Arrow** (Drill Down): Progressive depth navigation. If collapsed: expand one level. If already expanded: move cursor to the first child.
-*   **+** (or **=**): Expand the selected directory by one level. `=` is a convenience alias (unshifted `+` on most keyboards).
+*   **Return**: On logged directories, switch to File Mode (focus the file window). On unlogged/not-yet-scanned directories, perform one-level log/reveal (same behavior as `+`) and stay in Directory Mode.
+*   **-**: State-based collapse/release. First press collapses an expanded node. Second press on a collapsed logged node evicts the file list (sets `+` status) and marks the directory as Unlogged. At root, use `-` to release logged contents.
+*   **Tree status marker**: Unlogged directories use `+` in the left status margin column. Directory names do not carry a `+` suffix; an unlogged directory may still show `/` when it has subdirectories.
+*   **Left Arrow**: If the selected directory is expanded, collapse it. Otherwise move selection to its parent directory. Repeated `Left` keeps ascending (and collapsing where needed). At filesystem root, `Left` is a no-op.
+*   **Right Arrow** (Drill Down): Progressive depth navigation. If collapsed: expand one level. If already expanded: move cursor to the first child. It does not jump to siblings.
+*   **+** (or **=**): One-level log/reveal only (no cursor movement). `=` is a convenience alias (unshifted `+` on most keyboards).
 *   **\*** (Asterisk): Recursively expand the current directory and all its subdirectories.
 
 ### File Mode
@@ -157,7 +158,7 @@ Active when the file window is focused.
 *   **H** (Hex): View selected file in hex mode.
 *   **I** (Invert Tags): Toggle the tag state of all visible files.
 *   **J** (Compare): Compare the selected file with a target file.
-*   **L** (Log): Log a new directory or archive file.
+*   **L** (Log): Log a new directory or archive file. Logging an already logged volume/path performs a fresh reload and reanchors selection at the volume root.
 *   **M** (Move): Move the selected file.
 *   **^N**: Move all tagged files.
 *   **N** (New File): Create a new empty file.
@@ -194,7 +195,7 @@ When browsing an archive (ZIP, TAR, ISO, etc.), ytree behaves like a virtual fil
 *   **D** (Delete): Delete selected archive directory entry.
 *   **F** (Filter): Set file filter.
 *   **G** (Global): Show all files across all logged volumes in one global list.
-*   **L** (Log): Log a new directory or archive.
+*   **L** (Log): Log a new directory or archive. Logging an already logged volume/path performs a fresh reload and reanchors selection at the volume root.
 *   **M** (Makedir): Create directory in archive context where supported.
 *   **R** (Rename): Rename selected archive directory entry.
 *   **S** (Showall): Show all files in the archive.
