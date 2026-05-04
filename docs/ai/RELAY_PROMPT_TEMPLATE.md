@@ -1,4 +1,4 @@
-# AGENT Prompt Template
+# Relay Prompt Template
 
 Edit only the first four lines to match the tracked work item exactly, then copy/paste the full prompt as-is.
 
