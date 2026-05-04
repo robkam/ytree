@@ -96,7 +96,9 @@ make hooks-install
 
 This installs a tracked pre-push gate:
 - Pushes that do not update `main`: skip local pre-push CI gate.
-- Pushes that update `main`: run `make ci-baseline` (unsafe C API guard + pytest coverage via gcov/lcov).
+- Pushes that update `main` with codebase changes (`src/`, `include/`, `tests/`, `scripts/`, `.githooks/`, `Makefile`): run `make ci-baseline` (unsafe C API guard + pytest coverage via gcov/lcov).
+- Pushes that update `main` without codebase changes (for example docs-only updates): skip the local pre-push CI gate.
+- Set `YTREE_PRE_PUSH_FORCE=1` to force the baseline gate on any `main` update.
 
 `make hooks-install` also installs repo-local git aliases so fast push is available as native git subcommands in this clone:
 - `git push-fast-up` -> fast push with `-u origin <current-branch>` for first push of a new branch.

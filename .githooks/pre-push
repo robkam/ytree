@@ -7,6 +7,17 @@ cd "$REPO_ROOT"
 ZERO_SHA="0000000000000000000000000000000000000000"
 delete_only=1
 updates_main=0
+codebase_changed=0
+
+is_codebase_path() {
+  local path="$1"
+  case "$path" in
+    src/*|include/*|tests/*|scripts/*|.githooks/*|Makefile)
+      return 0
+      ;;
+  esac
+  return 1
+}
 
 while read -r local_ref local_sha remote_ref remote_sha; do
   if [[ "$local_sha" != "$ZERO_SHA" && "$local_ref" != "(delete)" ]]; then
@@ -15,6 +26,26 @@ while read -r local_ref local_sha remote_ref remote_sha; do
   if [[ "$remote_ref" == "refs/heads/main" && "$local_sha" != "$ZERO_SHA" &&
         "$local_ref" != "(delete)" ]]; then
     updates_main=1
+    if [[ "${YTREE_PRE_PUSH_FORCE:-0}" == "1" ]]; then
+      codebase_changed=1
+      continue
+    fi
+
+    if [[ "$remote_sha" == "$ZERO_SHA" ]]; then
+      diff_range="$local_sha"
+    else
+      diff_range="$remote_sha..$local_sha"
+    fi
+
+    while IFS= read -r changed_path; do
+      if [[ -z "$changed_path" ]]; then
+        continue
+      fi
+      if is_codebase_path "$changed_path"; then
+        codebase_changed=1
+        break
+      fi
+    done < <(git diff --name-only --diff-filter=ACMRTUXB "$diff_range")
   fi
 done
 
@@ -25,6 +56,12 @@ fi
 
 if [[ "$updates_main" != "1" ]]; then
   echo "[pre-push] Push does not update main: skipping CI gate."
+  exit 0
+fi
+
+if [[ "$codebase_changed" != "1" ]]; then
+  echo "[pre-push] Updating main without codebase changes: skipping CI gate."
+  echo "[pre-push] Set YTREE_PRE_PUSH_FORCE=1 to force make ci-baseline."
   exit 0
 fi
 

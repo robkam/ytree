@@ -98,21 +98,25 @@ jobs:
                 marker,
                 "### Large PR Warning",
                 "",
-                `This PR is labeled **${labelName}** (${changedLines} changed lines).`,
+                "Thank you for your contribution.",
+                `This PR is labeled **${labelName}**.`,
                 "",
-                "Please fill the **For large PRs only** section in the PR template:",
-                "- Why this PR is large",
+                "Please add the following in the PR description:",
+                "If this warning appears again, paste the same answers in the latest warning comment as well.",
+                "A brief plain-language summary of the PR is also helpful.",
                 "- Why it is not split right now (and links to related PRs, if any)",
                 "- What could break",
               ].join("\n");
 
               if (existingComment) {
-                await github.rest.issues.updateComment({
-                  owner,
-                  repo,
-                  comment_id: existingComment.id,
-                  body,
-                });
+                if ((existingComment.body || "").trim() !== body.trim()) {
+                  await github.rest.issues.updateComment({
+                    owner,
+                    repo,
+                    comment_id: existingComment.id,
+                    body,
+                  });
+                }
               } else {
                 await github.rest.issues.createComment({
                   owner,
