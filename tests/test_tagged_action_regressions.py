@@ -1,8 +1,11 @@
 import time
+import zipfile
 
 from helpers_source import extract_function_block as _extract_function_block
 from helpers_source import read_repo_source
 from helpers_ui import assert_file_tag_state as _assert_file_tag_state
+from helpers_ui import footer_text as _footer_text
+from helpers_ui import screen_text as _screen_text
 from tui_harness import YtreeTUI
 from ytree_keys import Keys
 
@@ -42,6 +45,99 @@ def test_invert_tags_i_and_upper_i_on_mixed_set(ytree_binary, tmp_path):
         _assert_file_tag_state(tui, "alpha.txt", True)
         _assert_file_tag_state(tui, "beta.txt", False)
         _assert_file_tag_state(tui, "gamma.txt", True)
+    finally:
+        tui.quit()
+
+
+def test_invert_tags_i_and_upper_i_in_directory_window(ytree_binary, tmp_path):
+    work_dir = tmp_path / "dir_window_invert_tags"
+    work_dir.mkdir()
+    (work_dir / "alpha.txt").write_text("alpha", encoding="utf-8")
+    (work_dir / "beta.txt").write_text("beta", encoding="utf-8")
+
+    tui = YtreeTUI(executable=ytree_binary, cwd=str(work_dir))
+    time.sleep(0.5)
+
+    try:
+        footer = _footer_text(tui)
+        assert "j tree" in footer, f"Expected dir-window footer before invert.\n{footer}"
+
+        tui.send_keystroke("t", wait=0.25)
+        _assert_file_tag_state(tui, "alpha.txt", True)
+        _assert_file_tag_state(tui, "beta.txt", True)
+
+        tui.send_keystroke("i", wait=0.25)
+        _assert_file_tag_state(tui, "alpha.txt", False)
+        _assert_file_tag_state(tui, "beta.txt", False)
+
+        tui.send_keystroke("I", wait=0.25)
+        _assert_file_tag_state(tui, "alpha.txt", True)
+        _assert_file_tag_state(tui, "beta.txt", True)
+    finally:
+        tui.quit()
+
+
+def test_invert_tags_i_and_upper_i_in_archive_directory_window(
+    ytree_binary, tmp_path
+):
+    archive_path = tmp_path / "invert_archive.zip"
+    with zipfile.ZipFile(archive_path, "w") as zf:
+        zf.writestr("alpha.txt", "alpha")
+        zf.writestr("beta.txt", "beta")
+
+    tui = YtreeTUI(
+        executable=ytree_binary, cwd=str(tmp_path), args=[str(archive_path)]
+    )
+    time.sleep(0.6)
+
+    try:
+        tui.send_keystroke("t", wait=0.25)
+        _assert_file_tag_state(tui, "alpha.txt", True)
+        _assert_file_tag_state(tui, "beta.txt", True)
+
+        tui.send_keystroke("i", wait=0.25)
+        _assert_file_tag_state(tui, "alpha.txt", False)
+        _assert_file_tag_state(tui, "beta.txt", False)
+
+        tui.send_keystroke("I", wait=0.25)
+        _assert_file_tag_state(tui, "alpha.txt", True)
+        _assert_file_tag_state(tui, "beta.txt", True)
+    finally:
+        tui.quit()
+
+
+def test_only_tagged_toggle_o_from_directory_window(ytree_binary, tmp_path):
+    work_dir = tmp_path / "dir_window_only_tagged"
+    work_dir.mkdir()
+    (work_dir / "alpha.txt").write_text("alpha", encoding="utf-8")
+    (work_dir / "beta.txt").write_text("beta", encoding="utf-8")
+    (work_dir / "gamma.txt").write_text("gamma", encoding="utf-8")
+
+    tui = YtreeTUI(executable=ytree_binary, cwd=str(work_dir))
+    time.sleep(0.5)
+
+    try:
+        tui.send_keystroke(Keys.ENTER, wait=0.35)
+        tui.send_keystroke("t", wait=0.2)  # alpha
+        tui.send_keystroke(Keys.DOWN, wait=0.2)
+        tui.send_keystroke(Keys.DOWN, wait=0.2)
+        tui.send_keystroke("t", wait=0.2)  # gamma
+        tui.send_keystroke(Keys.ESC, wait=0.35)
+
+        footer = _footer_text(tui)
+        assert "j tree" in footer, f"Expected directory footer before tagged-only toggle.\n{footer}"
+
+        tui.send_keystroke("o", wait=0.35)
+        tagged_only_screen = _screen_text(tui)
+        assert "alpha.txt" in tagged_only_screen, tagged_only_screen
+        assert "gamma.txt" in tagged_only_screen, tagged_only_screen
+        assert "beta.txt" not in tagged_only_screen, tagged_only_screen
+
+        tui.send_keystroke("O", wait=0.35)
+        full_screen = _screen_text(tui)
+        assert "alpha.txt" in full_screen, full_screen
+        assert "beta.txt" in full_screen, full_screen
+        assert "gamma.txt" in full_screen, full_screen
     finally:
         tui.quit()
 

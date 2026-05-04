@@ -83,13 +83,13 @@ available commands.
 **Directory Mode** Focus is on the directory hierarchy tree. Navigation
 keys allow moving between folders. Typing alphanumeric characters
 triggers a directory mode command (key bindings). \* **Action:** Press
-**Return** to switch focus to the **File Mode** (file list) for the
+**Enter** to switch focus to the **File Mode** (file list) for the
 selected directory.
 
 **File Mode** Focus is on the file list of the selected directory.
 Operations here affect specific files. Typing alphanumeric characters
 triggers a file mode command (key bindings). \* **Action:** Press
-**Return** to toggle the file window to full-screen. Press **Return**
+**Enter** to toggle the file window to full-screen. Press **Enter**
 again to restore the split view or switch back to **Directory Mode**.
 
 **Showall Mode** Toggle file-list mode for all files in the currently
@@ -195,6 +195,8 @@ Active when browsing the directory tree window.
   (`>2023-01-01`), and sizes (`>1M`).
 - **G** (Global): Show all files across all logged volumes in one global
   list.
+- **I** (Invert Tags): Toggle tag state for files in the
+  selected/current directory scope.
 - **J** (Compare): Open the compare submenu (directory, logged tree, or
   external viewer). With `VI_KEYS=1`, use uppercase `J` for this action.
 - **L** (Log): Log a new directory or archive file. Logging an already
@@ -202,6 +204,8 @@ Active when browsing the directory tree window.
   the volume root.
 - **M** (Makedir): Create a new directory.
 - **N** (New File): Create a new empty file.
+- **O** (Only tagged): Toggle tagged-only file-list view for the current
+  directory scope.
 - **P** (Pipe, or **\|**): Pipe the selected directory to a command
   (stdin).
 - **R** (Rename): Rename selected directory.
@@ -224,7 +228,7 @@ Active when browsing the directory tree window.
   directories.
 - **^F** (Dir Mode): Cycle directory display modes (Filenames only -\>
   Attributes -\> Inode/Owner -\> Times).
-- **Return**: On logged directories, switch to File Mode (focus the file
+- **Enter**: On logged directories, switch to File Mode (focus the file
   window). On unlogged/not-yet-scanned directories, perform one-level
   log/reveal (same behavior as `+`) and stay in Directory Mode.
 - **-**: State-based collapse/release. First press collapses an expanded
@@ -267,6 +271,8 @@ Active when the file window is focused.
 - **M** (Move): Move the selected file.
 - **^N**: Move all tagged files.
 - **N** (New File): Create a new empty file.
+- **O** (Only tagged): Toggle tagged-only file-list view (show tagged
+  files only).
 - **P** (Pipe, or **\|**): Pipe content of file to a command (stdin).
 - **R** (Rename): Rename the selected file.
 - **S** (Sort): Sort filelist (Access time, Change time, Extension,
@@ -292,7 +298,7 @@ Active when the file window is focused.
   selected file/directory when nothing is tagged. Directory sources are
   archived recursively.
 - **^F** (File Mode): Cycle file display modes.
-- **Return**: Switch to Full Screen File Mode / Directory Mode.
+- **Enter**: Switch to Full Screen File Mode / Directory Mode.
 - **Left Arrow**: Move to the previous visible file column; in
   one-column layouts this performs page-up navigation.
 - **Right Arrow**: Move to the next visible file column; in one-column
@@ -314,16 +320,20 @@ root/non-root navigation rules.
 - **F** (Filter): Set file filter.
 - **G** (Global): Show all files across all logged volumes in one global
   list.
+- **I** (Invert Tags): Toggle tag state for files in the
+  selected/current archive directory scope.
 - **L** (Log): Log a new directory or archive. Logging an already logged
   volume/path performs a fresh reload and reanchors selection at the
   volume root.
 - **M** (Makedir): Create directory in archive context where supported.
+- **O** (Only tagged): Toggle tagged-only file-list view for the current
+  archive directory scope.
 - **R** (Rename): Rename selected archive directory entry.
 - **S** (Showall): Show all files in the archive.
 - **T** (Tag): Tag all files in current virtual directory.
 - **U** (Untag): Untag all files in current virtual directory.
 - **^F** (Dir Mode): Cycle display modes.
-- **Return**: Switch to Archive-File Mode.
+- **Enter**: Switch to Archive-File Mode.
 - **-**: State-based collapse/release. Expanded nodes collapse;
   collapsed logged nodes (or logged leaves) unlog/release.
 - **Left Arrow**: Collapse the current archive directory when expanded;
@@ -344,6 +354,8 @@ root/non-root navigation rules.
 - **H** (Hex): View file in hex mode.
 - **I** (Invert Tags): Toggle the tag state of all visible files.
 - **M** (Move): Move selected file using archive-aware semantics.
+- **O** (Only tagged): Toggle tagged-only file-list view (show tagged
+  files only).
 - **P** (Pipe, or **\|**): Pipe content to command.
 - **R** (Rename): Rename selected archive file entry.
 - **S** (Sort): Sort file list.
@@ -360,7 +372,7 @@ root/non-root navigation rules.
 - **W** (Write): Export file content to a command or file.
 - **Y** (Pathcopy): Copy selected file with relative path preservation.
 - **^F** (File Mode): Cycle display modes.
-- **Return**: Switch to Archive-Dir Mode.
+- **Enter**: Switch to Archive-Dir Mode.
 - **\\**: No-op.
 
 Archive file-window status text:

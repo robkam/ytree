@@ -149,6 +149,7 @@ The Split-Screen architecture treats each panel as an independent instance of a 
 *   **Transition Invariant:** A directory can only be entered (Tree to File Mode) if it contains at least one file.
 *   **Selection Memory (Breadcrumbs):** When returning from File Mode to Tree Mode and later re-entering the same directory, the panel restores the cursor to the last highlighted file.
 *   **Navigation Stability:** Moving through the Tree never automatically triggers a transition into File Mode.
+*   **Tag-View Scope Rule:** `i/I` (invert tags) and `o/O` (tagged-only file-list toggle) operate on the active pane's current file-list scope, regardless of whether focus is in tree or file window.
 *   **Root Boundary Rule:** `Left` at root is a no-op; root-content release uses `-` state-release semantics.
 
 ### 5.2 Protocol B: Archive and Volume Lifecycle

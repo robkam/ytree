@@ -540,6 +540,9 @@ YtreeAction GetKeyAction(const ViewContext *ctx, int ch) {
   case 'n':
   case 'N':
     return ACTION_CMD_MKFILE;
+  case 'o':
+  case 'O':
+    return ACTION_TOGGLE_TAGGED_MODE;
   case 'p':
   case 'P':
     return ACTION_CMD_P;
