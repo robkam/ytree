@@ -849,6 +849,8 @@ extern int HandleDirWindow(ViewContext *ctx, const DirEntry *start_dir_entry) {
     case ACTION_UNTAG:
     case ACTION_TAG_ALL:
     case ACTION_UNTAG_ALL:
+    case ACTION_INVERT:
+    case ACTION_TOGGLE_TAGGED_MODE:
     case ACTION_CMD_TAGGED_S:
       if (HandleDirTagActions(ctx, action, &dir_entry, &need_dsp_help, &ch)) {
         break;

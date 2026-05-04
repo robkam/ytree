@@ -282,7 +282,7 @@ void BuildFileEntryList(ViewContext *ctx, YtreePanel *panel) {
                          panel->vol->vol_stats.tree);
     }
   } else {
-    ReadFileList(ctx, panel, FALSE, dir_entry);
+    ReadFileList(ctx, panel, dir_entry->tagged_flag, dir_entry);
   }
   Panel_Sort(panel, panel->vol->vol_stats.kind_of_sort);
 
