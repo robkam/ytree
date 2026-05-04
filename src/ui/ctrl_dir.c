@@ -761,9 +761,12 @@ extern int HandleDirWindow(ViewContext *ctx, const DirEntry *start_dir_entry) {
       if (dir_entry->up_tree == NULL) {
         if (!dir_entry->not_scanned && dir_entry->sub_tree != NULL) {
           HandleCollapseSubTree(ctx, dir_entry, &need_dsp_help, ctx->active);
+        } else if (!dir_entry->unlogged_flag) {
+          HandleUnreadSubTree(ctx, dir_entry, de_ptr, &need_dsp_help,
+                              ctx->active);
         }
-        /* At root, LEFT collapses one level when possible; collapsed root is
-         * a no-op. */
+        /* At root, LEFT follows progressive retreat:
+         * collapse -> release -> no-op. */
         break;
       }
 

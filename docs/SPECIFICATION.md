@@ -83,7 +83,7 @@ The behavior of the `Enter` key on a directory node is governed by the configura
 ### 3.4 Arrow Key Navigation (Spatial Controls)
 Arrow keys provide spatial, cursor-oriented navigation through the tree. They are distinct from the structural `+`/`-`/`*` controls:
 *   **`→` (Right Arrow / Drill Down):** Progressive depth navigation. If the node is collapsed: expand one level. If already expanded: move cursor to the first child.
-*   **`←` (Left Arrow):** If the selected directory is expanded, collapse it. Otherwise, move selection to its parent directory. At the filesystem/archive root, `Left` collapses one level when children are visible; if already collapsed, `Left` is a no-op.
+*   **`←` (Left Arrow):** If the selected directory is expanded, collapse it. Otherwise, move selection to its parent directory. At the filesystem/archive root, `Left` follows progressive retreat: first collapse visible children, then release/unlog, then no-op.
 
 ### 3.5 Preview Mode (`F7`) Contract
 `F7` is the primary inspect mode for viewing file contents while retaining list-oriented navigation.
@@ -121,7 +121,7 @@ The `ytree` input system follows a layered model designed for high-speed interac
 ### 4.3 Key Behavioral Rules
 *   **The Minus Rule (`-`):** State-based memory release. First press collapses an expanded node; second press on a collapsed logged node evicts the file list (sets `+` status) and marks the directory as Unlogged.
 *   **The Right Arrow Rule (`→`):** Progressive drill-down. Expand collapsed → move to child. Always takes the user one step deeper into the tree.
-*   **The Root-Left Rule (`←` at root):** First `Left` collapses visible root children; subsequent `Left` on an already-collapsed root is a no-op.
+*   **The Root-Left Rule (`←` at root):** First `Left` collapses visible root children. Second `Left` releases/unlogs root contents. Further `Left` on already-unlogged root is a no-op.
 *   **The Plus/Equals Rule (`+`/`=`):** Explicit one-level expand only. No cursor movement. `=` is the unshifted alias for `+`.
 *   **The Tree Marker Rule (`+` status):** Unlogged state is rendered only in the dedicated tree status margin column; directory names do not carry a `+` suffix.
 *   **The Volume Menu Rule (`K` menu):** Selecting the already-active volume preserves its current in-memory state (no implicit relog/reload).
