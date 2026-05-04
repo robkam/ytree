@@ -123,10 +123,10 @@ The `ytree` input system follows a layered model designed for high-speed interac
 *   **The Tree Marker Rule (`+` status):** Unlogged state is rendered only in the dedicated tree status margin column; directory names do not carry a `+` suffix.
 *   **The Volume Menu Rule (`K` menu):** Selecting the already-active volume preserves its current in-memory state (no implicit relog/reload).
 *   **The Explicit Relog Rule (`L` on current path):** Logging an already logged volume/path performs a fresh relog/reload of that volume state and reanchors selection at volume root.
-*   **The Invert Rule (`i`/`I`):** In both tree and file windows, invert tags applies to the active pane's current file-list scope (filesystem and archive contexts).
-*   **The Only-Tagged Rule (`o`/`O`):** In both tree and file windows, toggle tagged-only file-list view for the active pane's current scope; toggling never changes tag state.
+*   **The Invert Rule (`i`/`I`):** In both tree and file windows, invert tags applies to the active panel's current file-list scope (filesystem and archive contexts).
+*   **The Only-Tagged Rule (`o`/`O`):** In both tree and file windows, toggle tagged-only file-list view for the active panel's current scope; toggling never changes tag state.
 *   **The Archive/Global Jump (`\`):** In Archive Mode, jumps to the archive root. in Global/Showall views, jumps to the highlighted file's directory.
-*   **Numeric FileInfo Band (`1..9`, `0`):** Number keys are the canonical file-display controls in normal list contexts (not active in `F7` preview). These controls apply to file-display rendering for the active pane whether focus is currently in the tree/dir window or file window.
+*   **Numeric FileInfo Band (`1..9`, `0`):** Number keys are the canonical file-display controls in normal list contexts (not active in `F7` preview). These controls apply to file-display rendering for the active panel whether focus is currently in the tree/dir window or file window.
 *   **Vi-Key Collision Policy:** When `VI_KEYS=1`, lowercase `h/j/k/l` are reserved for navigation. Uppercase `H/K/L/J` are used for commands (Hex, Volume, Log, Compare).
 *   **Tagged Actions**: `^u` (Untag All) and `^d` (Delete All Tagged) provide batch operations across the visible scope.
 *   **Quit to Directory (`^q`):** Exits `ytree` to the currently highlighted directory (requires shell-level support to finalize the shell path).
@@ -153,13 +153,13 @@ When a text prompt is active, specialized conventions ensure a refined editing e
 ## 5. Split-Screen (F8) & Session Model
 
 ### 5.1 The Active-Inactive Rule
-Split mode is a two-pane session entered/exited by `F8`.
+Split mode is a two-panel session entered/exited by `F8`.
 *   **Activation:** `F8` toggles split mode on/off.
-*   **Focus Switch:** `Tab` switches the active pane.
+*   **Focus Switch:** `Tab` switches the active panel.
 *   **Active Panel:** Owns keyboard focus and receives command/navigation input.
 *   **Inactive Panel:** Does not process direct input while inactive; its own cursor/selection context is retained until focus is switched back.
-*   **Freeze/Resume Rule:** When a pane loses focus, its pane-local state is frozen; when it becomes active again (via `Tab`), it must resume exactly where it left off.
-*   **Active-Only Mutation Rule:** Commands mutate only the active pane's pane-local state. Cross-pane updates are limited to shared topology mirroring defined in §5.3.
+*   **Freeze/Resume Rule:** When a panel loses focus, its panel-local state is frozen; when it becomes active again (via `Tab`), it must resume exactly where it left off.
+*   **Active-Only Mutation Rule:** Commands mutate only the active panel's panel-local state. Cross-panel updates are limited to shared topology mirroring defined in §5.3.
 
 ### 5.2 State Persistence
 Switching panels via `Tab` must restore the exact state held when that panel last had focus for panel-local state:
@@ -168,24 +168,24 @@ Switching panels via `Tab` must restore the exact state held when that panel las
 *   **Selection:** Tags are specific to the panel session. Collapsing a directory (`Left` or `-`) or explicitly unreading/releasing it (`--`) discards saved tags beneath that directory; reloading it must not resurrect stale tags.
 *   **Compare Tagging Rule:** Compare workflows may report difference counts, but they do not implicitly mutate per-file tag state; tags change only through explicit tagging actions.
 *   **Filter (Filespec):** Independent search/filter strings.
-*   **Window/Mode Context:** Directory/File/Showall-style pane-local focus context.
+*   **Window/Mode Context:** Directory/File/Showall-style panel-local focus context.
 
 ### 5.3 Shared Tree Topology Contract
-The split panes share one logged tree topology contract for a given logged volume:
+The split panels share one logged tree topology contract for a given logged volume:
 *   **Shared Logging State:** Logged/unlogged directory-memory state is shared.
 *   **Shared Structural State:** Expand/collapse/release tree-shape changes are shared.
-*   **Mirror Rule:** Structural tree changes triggered in the active pane must be reflected in the inactive pane immediately.
-*   **Selection Retention Rule:** Mirrored structural updates must not move the inactive pane's cursor/selection when its selected node remains visible/valid.
+*   **Mirror Rule:** Structural tree changes triggered in the active panel must be reflected in the inactive panel immediately.
+*   **Selection Retention Rule:** Mirrored structural updates must not move the inactive panel's cursor/selection when its selected node remains visible/valid.
 *   **Non-Invalidating Changes Rule:** Adding siblings/ancestors, or changing sibling structure that does not invalidate the inactive selected node, must not move the inactive selection.
-*   **Frozen File-View Anchor Rule:** A pane left in file view is restored from its saved directory path and selected filename, not from the current flattened tree index. If shared-tree rebuilding leaves that directory as a visible but unloaded placeholder, the directory payload must be reloaded before the pane is rendered or resumed so the file window cannot degrade to an empty or unrelated listing.
-*   **Render Is Not Authority Rule:** Rendering may display the saved pane state, but it must not decide a new pane selection from whatever entry currently occupies the saved numeric index after a shared tree rebuild.
+*   **Frozen File-View Anchor Rule:** A panel left in file view is restored from its saved directory path and selected filename, not from the current flattened tree index. If shared-tree rebuilding leaves that directory as a visible but unloaded placeholder, the directory payload must be reloaded before the panel is rendered or resumed so the file window cannot degrade to an empty or unrelated listing.
+*   **Render Is Not Authority Rule:** Rendering may display the saved panel state, but it must not decide a new panel selection from whatever entry currently occupies the saved numeric index after a shared tree rebuild.
 *   **Deterministic Fallback Rule (When Selected Node Becomes Invalid):**
     *   Keep exact node if still visible/valid after mirror update.
     *   Else move to nearest visible ancestor of the previously selected node.
     *   Else move to next visible sibling in display order.
     *   Else move to previous visible sibling.
     *   Else move to the root visible node.
-*   **No Surprise Parent-Jump Rule:** Collapsing a parent/grandparent in the active pane must not force the inactive selection to jump to parent unless the previously selected node is no longer visible/valid.
+*   **No Surprise Parent-Jump Rule:** Collapsing a parent/grandparent in the active panel must not force the inactive selection to jump to parent unless the previously selected node is no longer visible/valid.
 
 ### 5.4 Modal Search Behavior
 *   **Persistence:** The search string is retained after the mode is exited.

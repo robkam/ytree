@@ -376,7 +376,7 @@ Ordering policy (for all editors, including AI editors):
 *   - [ ] **Status:** Not Started.
 
 ### **Task 45: Lock Inactive Split-Panel Selection Semantics + Regression Coverage**
-*   **Goal:** Define and enforce deterministic inactive-pane cursor behavior under mirrored tree-structure changes in `F8` split mode.
+*   **Goal:** Define and enforce deterministic inactive-panel cursor behavior under mirrored tree-structure changes in `F8` split mode.
 *   **Rationale:** Real-time mirrored tree updates are useful, but must stay predictable when parent/ancestor collapse, add, or delete operations change visibility.
 *   **Scope Lock:** Selection/cursor semantics and regression coverage only; no unrelated split-layout or keybinding redesign.
 *   **Acceptance Criteria:**
@@ -506,7 +506,7 @@ Ordering policy (for all editors, including AI editors):
 *   - [ ] **Status:** Not Started.
 
 ### **Task 30: Replace `^F` Mode Cycling with Unified Numeric `FileInfo` Band (`1..9`, `0`)**
-*   **Goal:** Replace display-mode cycling with direct numeric `FileInfo` controls for the focused pane.
+*   **Goal:** Replace display-mode cycling with direct numeric `FileInfo` controls for the focused panel.
 *   **Behavior Contract:**
 *   `1` => Name only (default/baseline).
 *   `2` => Long.
@@ -517,10 +517,10 @@ Ordering policy (for all editors, including AI editors):
 *   `6` => toggle symlink row rendering (`name` vs `name -> target`) in list rows.
 *   `7` => toggle richer metadata/text-snippet view.
 *   `8` => toggle file-type/summary view.
-*   `9` => toggle brief/full width behavior for the focused pane.
+*   `9` => toggle brief/full width behavior for the focused panel.
 *   `0` => reset file-info state for `1..8` to profile defaults (does not affect `9` width toggle).
 *   Number keys are toggle-driven controls: `1..4` select the primary file-info layout while `5..9` toggle additive display behaviors.
-*   Applies to file-display rendering across normal list contexts for the active pane (whether focus is currently on tree/dir window or file window); not active in `F7` preview mode.
+*   Applies to file-display rendering across normal list contexts for the active panel (whether focus is currently on tree/dir window or file window); not active in `F7` preview mode.
 *   If a requested mode is unsupported in the active context (for example VFS file mode `4`), do a silent no-op (no beep).
 *   Add `FILE_SIZE_UNITS=binary|human-readable` profile setting (default `binary`) as the seed for `5`.
 *   **Keybinding Policy:** Remove `^F` from runtime behavior and help/manpage docs. This task is the explicit keybinding-change exception referenced by Task 38 scope lock.
@@ -821,13 +821,13 @@ Ordering policy (for all editors, including AI editors):
 *   - [ ] **Status:** Not Started.
 
 ### **Idea FE-5: Configurable Split Header Path Display (`active` or `both`)**
-*   **Goal:** Add a user option for split-mode header path display so users can choose active-pane-only path or both-pane paths.
+*   **Goal:** Add a user option for split-mode header path display so users can choose active-panel-only path or both-panel paths.
 *   **Rationale:** Active-only header is cleaner by default, while dual-path header can improve orientation for users managing two distant locations.
 *   **Scope Lock:** Header display policy only; no split navigation, selection, or command behavior changes.
 *   **Acceptance Criteria:**
 *   Default mode remains `active` (current behavior).
-*   Optional mode `both` renders left/right pane paths in split mode with deterministic truncation/clipping and no wrapping.
-*   Active pane remains visually obvious in both modes.
+*   Optional mode `both` renders left/right panel paths in split mode with deterministic truncation/clipping and no wrapping.
+*   Active panel remains visually obvious in both modes.
 *   Footer/F1 help and config docs are updated when option lands.
 *   - [ ] **Status:** Not Started.
 
@@ -878,19 +878,19 @@ Ordering policy (for all editors, including AI editors):
 *   - [ ] **Status:** Not Started.
 
 ### **Idea FE-11: Dual-Preview Split Mode**
-*   **Goal:** Allow each `F8` split pane to enter and retain its own `F7`-style preview state independently.
+*   **Goal:** Allow each `F8` split panel to enter and retain its own `F7`-style preview state independently.
 *   **User-Facing Behavior:**
-    *   In split mode, each pane can independently enter preview without forcing preview state changes in the other pane.
-    *   Switching active pane preserves the preview/list state already held by each side.
-    *   Entering or leaving preview on one pane must not unexpectedly reset scroll position, selection, or return-state on the other pane.
-    *   The design must keep pane ownership obvious so users can still tell which side is active, which side is in preview, and what `Enter`/`Tab`/`F7` will affect next.
-*   **Rationale:** Active-pane-only preview is useful, but independent per-pane preview would make split review/compare workflows more powerful for users who want to inspect both sides without repeatedly toggling state back and forth.
+    *   In split mode, each panel can independently enter preview without forcing preview state changes in the other panel.
+    *   Switching active panel preserves the preview/list state already held by each side.
+    *   Entering or leaving preview on one panel must not unexpectedly reset scroll position, selection, or return-state on the other panel.
+    *   The design must keep panel ownership obvious so users can still tell which side is active, which side is in preview, and what `Enter`/`Tab`/`F7` will affect next.
+*   **Rationale:** Active-panel-only preview is useful, but independent per-panel preview would make split review/compare workflows more powerful for users who want to inspect both sides without repeatedly toggling state back and forth.
 *   **Scope Lock:** This is an advanced split/preview state feature only. It does not require a broader orthodox-style layout redesign and should preserve ytree's existing xtree/unixtree/ztree-derived interaction style.
 *   **Acceptance Criteria:**
-*   Both panes can hold independent preview/list state without leaking state across panes.
+*   Both panels can hold independent preview/list state without leaking state across panels.
 *   `Tab`, `F7`, and return-to-list behavior are deterministic and documented in footer/F1/manpage text.
-*   Split-pane active/inactive indicators remain unambiguous while one or both panes are in preview.
-*   Focused regression coverage proves per-pane state retention, pane switching, and exit/return behavior.
+*   Split-panel active/inactive indicators remain unambiguous while one or both panels are in preview.
+*   Focused regression coverage proves per-panel state retention, panel switching, and exit/return behavior.
 *   - [ ] **Status:** Not Started.
 
 ### **Idea FE-12: Unified `N Create` Entry Point (Capability-Filtered by Backend)**
@@ -918,7 +918,7 @@ Ordering policy (for all editors, including AI editors):
 *   - [ ] **Status:** Not Started.
 
 ### **Idea FE-13: Per-Window Filter State (Split Screen Prerequisite)**
-*   Decouple the file filter (`file_spec`) from the `Volume` structure and move it into a new `WindowView` context. This architecture is required to support F8 Split Screen, enabling two independent views of the same volume with different filters (e.g., `*.c` in the left pane versus `*.h` in the right).
+*   Decouple the file filter (`file_spec`) from the `Volume` structure and move it into a new `WindowView` context. This architecture is required to support F8 Split Screen, enabling two independent views of the same volume with different filters (e.g., `*.c` in the left panel versus `*.h` in the right).
 *   - [ ] **Status:** Not Started.
 
 ### **Idea FE-14: State Preservation on Reload (`^L`)**
