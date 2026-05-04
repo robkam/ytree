@@ -212,6 +212,49 @@ def test_fs_left_at_root_collapses_once_then_noop(tmp_path, ytree_binary):
         tui.quit()
 
 
+def test_fs_root_left_then_right_does_not_restore_deep_state(tmp_path, ytree_binary):
+    root = tmp_path / "fs_root_left_right_reset"
+    root.mkdir()
+    (root / "alpha" / "child" / "grand").mkdir(parents=True)
+
+    tui = YtreeTUI(executable=ytree_binary, cwd=str(root))
+    time.sleep(0.8)
+
+    try:
+        tui.send_keystroke(Keys.DOWN, wait=0.2)   # alpha
+        tui.send_keystroke(Keys.RIGHT, wait=0.4)  # expand alpha
+        tui.send_keystroke(Keys.DOWN, wait=0.2)   # child
+        tui.send_keystroke(Keys.RIGHT, wait=0.4)  # expand child
+        tui.send_keystroke(Keys.DOWN, wait=0.2)   # grand
+
+        before_reset = "\n".join(tui.get_screen_dump())
+        assert "grand" in before_reset, (
+            "Precondition failed: expected deep expansion before reset.\n"
+            f"Screen:\n{before_reset}"
+        )
+
+        tui.send_keystroke(Keys.UP, wait=0.2)
+        tui.send_keystroke(Keys.UP, wait=0.2)
+        tui.send_keystroke(Keys.UP, wait=0.2)     # root
+        _send_left_arrow(tui, wait=0.6)           # reset root
+        tui.send_keystroke(Keys.RIGHT, wait=0.6)  # expand root again
+
+        after_lines = tui.get_screen_dump()
+        after_reexpand = "\n".join(after_lines)
+        tree_and_footer = "\n".join(after_lines[1:])
+        assert "alpha" in after_reexpand, (
+            "Root re-expand should show immediate child directories.\n"
+            f"Screen:\n{after_reexpand}"
+        )
+        assert " mqchild" not in tree_and_footer and " mqgrand" not in tree_and_footer, (
+            "Root LEFT reset must discard prior ad-hoc deep expansion; RIGHT must"
+            " not restore it.\n"
+            f"Screen:\n{after_reexpand}"
+        )
+    finally:
+        tui.quit()
+
+
 def test_archive_root_backslash_exits_to_parent_file_focus(tmp_path, ytree_binary):
     root = tmp_path / "a_bs"
     root.mkdir()
@@ -506,7 +549,7 @@ def test_enter_on_placeholder_dir_logs_and_reveals_first_level_only(
         tui.quit()
 
 
-def test_root_minus_resets_tree_and_right_relogs_to_profile_depth(
+def test_root_left_resets_tree_and_right_relogs_to_profile_depth(
     tmp_path, ytree_binary
 ):
     root = tmp_path / "root_minus_right_profile_depth"
@@ -539,34 +582,23 @@ def test_root_minus_resets_tree_and_right_relogs_to_profile_depth(
                 break
             tui.send_keystroke(Keys.LEFT, wait=0.3)
 
-        before_rows = tui.get_screen_dump()
-        at_root_before = "\n".join(before_rows)
+        at_root_before = _screen_text(tui)
         assert str(root) in tui.get_screen_dump()[0], (
-            "Precondition failed: expected selection at root before root-left "
-            "no-op assertion.\n"
+            "Precondition failed: expected selection at root before root-left reset.\n"
             f"{at_root_before}"
         )
 
-        tui.send_keystroke(Keys.LEFT, wait=0.5)
-        after_rows = tui.get_screen_dump()
-        at_root_after = "\n".join(after_rows)
-        assert "\n".join(after_rows[1:]) == "\n".join(before_rows[1:]), (
-            "Left at root should be a no-op; use '-' to release root contents.\n"
-            f"Before:\n{at_root_before}\n\nAfter:\n{at_root_after}"
-        )
-
-        tui.send_keystroke("-", wait=0.7)
-        tui.send_keystroke("-", wait=0.7)
-        after_minus = _screen_text(tui)
-        assert "deeper" not in after_minus, (
-            "Root '-' release should clear expanded descendant state.\n"
-            f"{after_minus}"
+        tui.send_keystroke(Keys.LEFT, wait=0.7)
+        after_left = _screen_text(tui)
+        assert "deeper" not in after_left, (
+            "Left collapse at root should reset/release expanded descendant state.\n"
+            f"{after_left}"
         )
 
         tui.send_keystroke(Keys.RIGHT, wait=0.9)
         after_right = _screen_text(tui)
         assert "src/" in after_right, (
-            "Right on reset root should relog to configured depth and show "
+            "Right on reset root should relog to configured TREEDEPTH and show "
             "first-level directory placeholders.\n"
             f"{after_right}"
         )
