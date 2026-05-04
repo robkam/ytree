@@ -245,9 +245,9 @@ The project enforces strict architectural constraints (single-threaded event loo
 3.  **Make your changes** and commit them using **Conventional Commits** (`type(scope): summary`).
     Keep the message specific to the change and use scopes that match the area touched.
     Examples:
-    - `fix(ui): keep active pane selection after volume cycle`
+    - `fix(ui): keep active panel selection after volume cycle`
     - `docs(ai): clarify planner/executor packet handoff rules`
-    - `test(pytest): add regression for split-pane redraw ordering`
+    - `test(pytest): add regression for split-panel redraw ordering`
 4.  **Push your branch** to your fork (`git push origin feature/my-new-feature`).
 5.  **Open a Pull Request** against the `main` branch of the upstream ytree repository.
 

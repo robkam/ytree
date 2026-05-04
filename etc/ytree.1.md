@@ -75,7 +75,7 @@ Activated by **F8**. The screen is divided vertically into two independent file 
 *   **Targeting:** Operations like **Copy** and **Move** automatically default to the path of the inactive (passive) panel as the destination.
 
 **File Preview Mode**
-Activated by **F7**. The screen layout changes to show the file list on the left (or active panel) and the file contents on the right.
+Activated by **F7**. The screen layout changes to show the file list on the left (or active pane) and the file contents on the right.
 *   **Toggle:** Press **F7** again to leave preview mode.
 *   **Navigate File List:** Use **Up/Down**, **Page Up/Down**, **Home/End** to move the selection in the file list. The preview pane updates immediately.
 *   **Scroll Preview:** Use **Shift+Up/Down** (or **^P** / **^N**) to scroll the content of the preview window line by line. Use **Shift+Page Up/Down** to scroll by pages. **Shift+Home/End** jumps to the beginning or end of the file.
@@ -90,7 +90,7 @@ These commands work in most modes:
 *   **F1**: Help (context-sensitive in prompts/dialogs).
 *   **F5**: Refresh (same as **^L**).
 *   **F6**: Toggle Statistics Panel (Wide Mode).
-*   **F7**: Toggle File Preview Panel.
+*   **F7**: Toggle File Preview Pane.
 *   **F8**: Toggle Split Screen Mode.
 *   **F10**: Edit `~/.ytree` in `$EDITOR`. If the file does not exist yet, the editor opens a new buffer at that path; save to create it (or run `ytree --init` to generate defaults first).
 *   **/** (or **F12**): **Incremental Jump** (List Jump). Start typing to jump to the first matching entry in the current list (directory names in the Directory Window, filenames in the File Window). The selection updates immediately as you type. Press **Enter** to accept the current match, or **Esc** to cancel and restore the original selection.

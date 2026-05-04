@@ -33,7 +33,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### New Features & UI/UX Refinements
 - **Color Theme Engine**: Added full **256-Color Support** and a dynamic theme engine. Users can now define custom color palettes for both UI elements (`[COLORS]`) and specific file types/extensions (`[FILE_COLORS]`) in the configuration file.
 - **Hidden File Visibility**: Dotfiles and hidden directories are now filtered by default. Use the backtick (`` ` ``) key to toggle their visibility globally.
-- **Split-Screen (F8)**: Support for independent panes with separate context, cursors, and filters for efficient cross-volume operations.
+- **Split-Screen (F8)**: Support for independent panels with separate context, cursors, and filters for efficient cross-volume operations.
 - **Integrated Comparison Suite**: Added a dedicated Compare submenu supporting Directory, File, and Logged-Tree comparisons.
 - **Progress & ETA Tracking**: Implemented a universal progress display for long-running operations, providing a real-time progress bar, transfer rates, and linear ETA projections.
 - **Incremental "To" Jump**: Integrated high-speed list navigation (`/`) and "To Dir"/"To File" selection jumps with sticky-cursor logic.
