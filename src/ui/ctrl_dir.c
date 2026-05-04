@@ -759,7 +759,11 @@ extern int HandleDirWindow(ViewContext *ctx, const DirEntry *start_dir_entry) {
       break;
     case ACTION_MOVE_LEFT:
       if (dir_entry->up_tree == NULL) {
-        /* Root boundary: left is a no-op. Use '-' to release root contents. */
+        if (!dir_entry->not_scanned && dir_entry->sub_tree != NULL) {
+          HandleCollapseSubTree(ctx, dir_entry, &need_dsp_help, ctx->active);
+        }
+        /* At root, LEFT collapses one level when possible; collapsed root is
+         * a no-op. */
         break;
       }
 
