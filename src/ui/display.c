@@ -38,10 +38,10 @@ static void PrintNavLine(WINDOW *win, int y, const char *str);
  * Updated: (F)ilespec -> (F)ilter, spacing adjustments.
  */
 static char dir_help_disk_mode_0[] = "DIR      (A)ttributes (B)rief (C)opy "
-                                     "(D)elete (F)ilter (G)lobal (J) compare "
-                                     "(L)og (M)akedir (N)ewfile";
+                                     "(D)elete (F)ilter (G)lobal (I)nvert "
+                                     "(J) compare (L)og (M)akedir (N)ewfile";
 static char dir_help_disk_mode_1[] =
-    "COMMANDS (P)ipe (Q)uit (R)ename (S)howall (T)ag (U)ntag mo(V)edir "
+    "COMMANDS (O)nly tagged (P)ipe (Q)uit (R)ename (S)howall (T)ag (U)ntag mo(V)edir "
     "(W)rite e(X)ecute "
     "(Z) archive (/) jump (`) dotfiles";
 static char dir_help_nav[] =
@@ -73,7 +73,7 @@ static char file_help_disk_mode_0[] =
     "FILE     (A)ttributes (B)rief (C)opy/(^K) (D)elete (E)dit (F)ilter "
     "(^F)ilemode (H)ex (I)nvert (J) compare (L)og";
 static char file_help_disk_mode_1[] =
-    "COMMANDS (M)ove/(^N) (N)ewfile "
+    "COMMANDS (M)ove/(^N) (N)ewfile (O)nly tagged "
     "(P)ipe (Q)uit (R)ename (S)ort (W)rite e(X)ecute pathcop(Y) "
     "(Z) archive "
     "(/) jump (`) dotfiles";

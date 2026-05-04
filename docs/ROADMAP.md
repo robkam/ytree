@@ -215,7 +215,7 @@ Ordering policy (for all editors, including AI editors):
 *   If the scope has no files, the action is a silent no-op (no beep/modal).
 *   Add focused regression tests for dir-mode invert behavior (filesystem + archive coverage).
 *   Update `etc/ytree.1.md` and regenerate `docs/USAGE.md` (`make docs`) when behavior lands.
-*   - [ ] **Status:** Not Started.
+*   - [x] **Status:** Completed.
 
 ### **Task 57: F7 Top Path Line Must Preserve Full `filename.ext`**
 *   **Goal:** In F7 preview mode, the top line above the directory window must display file context as `path + filename.ext` for the selected file.
@@ -850,7 +850,7 @@ Ordering policy (for all editors, including AI editors):
     *   Leaving the mode restores the normal file/filter view; tags remain unchanged.
     *   This should compose cleanly with existing filters, grep-on-tagged workflows, and compare/tag workflows.
 *   **Rationale:** After tagging, compare, or grep operations, users often want a focused "show me only the files I marked" result view instead of manually navigating through the full list.
-*   - [ ] **Status:** Not Started.
+*   - [ ] **Status:** In Progress (tagged-only toggle shipped on `o/O`; broader workflow/key-shape refinements remain).
 
 ### **Idea FE-8: Investigate Recursive Tagging vs Existing Showall/Global Workflow**
 *   **Goal:** Determine whether recursive tagging provides enough real workflow benefit over the current `log dir -> Showall/Global -> tag` path to justify added complexity.
