@@ -83,8 +83,8 @@ The `ViewContext` struct (defined in `include/ytree_defs.h`) is the root of all 
 
 ```
 ViewContext (The Session)
-├── left   → YtreePanel (Pane: cursor, scroll, window state, tags)
-├── right  → YtreePanel (Pane: cursor, scroll, window state, tags)
+├── left   → YtreePanel (Panel: cursor, scroll, window state, tags)
+├── right  → YtreePanel (Panel: cursor, scroll, window state, tags)
 ├── active → points to left or right
 ├── volumes_head → Volume linked list (Model: shared DirEntry trees, statistics)
 └── viewer, layout, mode flags, etc.
@@ -119,15 +119,15 @@ The application state is strictly hierarchical:
     *   Owns the `volumes_head` registry of all loaded volumes.
 
 2.  **`YtreePanel` (The View):**
-    *   Represents a single UI pane.
-    *   Owns **Pane-Local State**: cursor position, scroll offset, file-view anchor, focus/window mode, filespec/filter, and selected/tagged files for that pane.
+    *   Represents a single UI panel.
+    *   Owns **Panel-Local State**: cursor position, scroll offset, file-view anchor, focus/window mode, filespec/filter, and selected/tagged files for that panel.
     *   Holds a reference to a `Volume`.
-    *   Independent panels may point to the same `Volume` while maintaining different pane-local state. Pane-local state must not be inferred from a shared tree index after the tree is rebuilt.
+    *   Independent panels may point to the same `Volume` while maintaining different panel-local state. Panel-local state must not be inferred from a shared tree index after the tree is rebuilt.
 
 3.  **`Volume` (The Model):**
     *   Represents a filesystem (Physical Disk or Archive).
     *   Owns **Shared Data**: `DirEntry` tree topology, logged/unlogged memory state, file payload cache, `Statistic` metadata, and path info.
-    *   Contains no pane-local UI state: no active focus, cursor, file-view anchor, selected file, filespec/filter, or pane-local tags.
+    *   Contains no panel-local UI state: no active focus, cursor, file-view anchor, selected file, filespec/filter, or panel-local tags.
 
 ### 4.2 Dual-Panel Context Isolation (F8 Logic)
 The Split-Screen architecture treats each panel as an independent instance of a volume manager.
@@ -135,7 +135,7 @@ The Split-Screen architecture treats each panel as an independent instance of a 
 *   **Active Panel:** Owns keyboard focus and initiates all operations.
 *   **Inactive Panel:** Strictly **DORMANT**. It does not update its display or change state in response to activity in the active panel.
 *   **State Persistence (Tab-Switch):** The `Tab` key is the bridge. Switching panels restores the exact state held when that panel last had focus.
-*   **Pane vs. Volume Rule:** Sharing a `Volume` only shares logged tree topology and file payload cache. It never shares pane-local tags, file-window anchors, cursor identity, or focus/mode state.
+*   **Panel vs. Volume Rule:** Sharing a `Volume` only shares logged tree topology and file payload cache. It never shares panel-local tags, file-window anchors, cursor identity, or focus/mode state.
 
 ### 4.3 Inter-Panel Operations (The Directional Rule)
 *   **Targeting:** Copy and Move operations occur directionally: **Source (Active Panel) to Destination (Inactive Panel)**.
@@ -149,7 +149,7 @@ The Split-Screen architecture treats each panel as an independent instance of a 
 *   **Transition Invariant:** A directory can only be entered (Tree to File Mode) if it contains at least one file.
 *   **Selection Memory (Breadcrumbs):** When returning from File Mode to Tree Mode and later re-entering the same directory, the panel restores the cursor to the last highlighted file.
 *   **Navigation Stability:** Moving through the Tree never automatically triggers a transition into File Mode.
-*   **Tag-View Scope Rule:** `i/I` (invert tags) and `o/O` (tagged-only file-list toggle) operate on the active pane's current file-list scope, regardless of whether focus is in tree or file window.
+*   **Tag-View Scope Rule:** `i/I` (invert tags) and `o/O` (tagged-only file-list toggle) operate on the active panel's current file-list scope, regardless of whether focus is in tree or file window.
 *   **Root Boundary Rule:** `Left` at root is a no-op; root-content release uses `-` state-release semantics.
 
 ### 5.2 Protocol B: Archive and Volume Lifecycle

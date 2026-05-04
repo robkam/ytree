@@ -212,7 +212,7 @@ def test_split_same_directory_file_tags_are_panel_local(tmp_path, ytree_binary):
         left, right, screen = _split_segments_for_file(tui, "panel_tag_0.txt")
         assert _line_marks_file_as_tagged(left, "panel_tag_0.txt"), screen
         assert not _line_marks_file_as_tagged(right, "panel_tag_0.txt"), (
-            "Tagging the active pane leaked to the inactive peer pane.\n"
+            "Tagging the active panel leaked to the inactive peer panel.\n"
             f"{screen}"
         )
 
@@ -220,7 +220,7 @@ def test_split_same_directory_file_tags_are_panel_local(tmp_path, ytree_binary):
         left, right, screen = _split_segments_for_file(tui, "panel_tag_0.txt")
         assert _line_marks_file_as_tagged(left, "panel_tag_0.txt"), screen
         assert not _line_marks_file_as_tagged(right, "panel_tag_0.txt"), (
-            "Switching panes should not import the other pane's tags.\n"
+            "Switching panels should not import the other panel's tags.\n"
             f"{screen}"
         )
 
@@ -228,7 +228,7 @@ def test_split_same_directory_file_tags_are_panel_local(tmp_path, ytree_binary):
         tui.send_keystroke("t", wait=0.3)
         left, right, screen = _split_segments_for_file(tui, "panel_tag_1.txt")
         assert not _line_marks_file_as_tagged(left, "panel_tag_1.txt"), (
-            "Right-pane tagging leaked into the left pane.\n"
+            "Right-panel tagging leaked into the left panel.\n"
             f"{screen}"
         )
         assert _line_marks_file_as_tagged(right, "panel_tag_1.txt"), screen
@@ -539,12 +539,12 @@ def test_split_refresh_updates_inactive_tree_file_list_without_tab(
     tui.send_keystroke(Keys.F8, wait=0.4)
     tui.send_keystroke(Keys.TAB, wait=0.4)
 
-    # Right pane: select right_dir in tree mode so its small file list is visible.
+    # Right panel: select right_dir in tree mode so its small file list is visible.
     tui.send_keystroke(Keys.DOWN, wait=0.25)
     tui.send_keystroke(Keys.DOWN, wait=0.25)
     assert "right_old.txt" in "\n".join(tui.get_screen_dump())
 
-    # Keep right pane inactive while refreshing from the left pane.
+    # Keep right panel inactive while refreshing from the left panel.
     tui.send_keystroke(Keys.TAB, wait=0.35)
     (right / "right_new.txt").write_text("new\n", encoding="utf-8")
     time.sleep(0.1)
@@ -983,7 +983,7 @@ def test_f8_big_window_footer_and_separator_lost(dual_panel_sandbox, ytree_binar
 def test_f8_inactive_selection_moves_to_parent_on_mirrored_collapse(tmp_path, ytree_binary):
     """
     Regression:
-    When both panes share the same tree and active pane collapses a branch,
+    When both panels share the same tree and active panel collapses a branch,
     an inactive selection inside that branch must re-anchor to the parent.
     """
     root = tmp_path / "f8_mirrored_collapse_root"
@@ -1003,31 +1003,31 @@ def test_f8_inactive_selection_moves_to_parent_on_mirrored_collapse(tmp_path, yt
     tui = YtreeTUI(executable=ytree_binary, cwd=str(root))
     time.sleep(1.0)
 
-    # Expand tree so parent/child are visible in both panes.
+    # Expand tree so parent/child are visible in both panels.
     tui.send_keystroke(Keys.EXPAND_ALL)
     time.sleep(0.5)
 
-    # Left pane (active): move to parent_dir.
+    # Left panel (active): move to parent_dir.
     tui.send_keystroke(Keys.DOWN)
     time.sleep(0.5)
 
-    # Split and move to right pane.
+    # Split and move to right panel.
     tui.send_keystroke(Keys.F8)
     time.sleep(0.5)
     tui.send_keystroke(Keys.TAB)
     time.sleep(0.5)
 
-    # Right pane: move inside collapsed target branch (parent -> child).
+    # Right panel: move inside collapsed target branch (parent -> child).
     tui.send_keystroke(Keys.DOWN)
     time.sleep(0.5)
 
-    # Back to left pane and collapse parent_dir.
+    # Back to left panel and collapse parent_dir.
     tui.send_keystroke(Keys.TAB)
     time.sleep(0.5)
     tui.send_keystroke(Keys.LEFT)
     time.sleep(0.6)
 
-    # Return to right pane and enter selected directory.
+    # Return to right panel and enter selected directory.
     # Expected: selection was re-anchored to parent_dir.
     tui.send_keystroke(Keys.TAB)
     time.sleep(0.5)
@@ -1044,7 +1044,7 @@ def test_f8_inactive_selection_moves_to_parent_on_mirrored_collapse(tmp_path, yt
     if "child_file.txt" in screen:
         tui.quit()
         pytest.fail(
-            "Inactive pane still entered child after parent collapse.\n"
+            "Inactive panel still entered child after parent collapse.\n"
             f"Screen:\n{screen}"
         )
 
@@ -1054,8 +1054,8 @@ def test_f8_inactive_selection_moves_to_parent_on_mirrored_collapse(tmp_path, yt
 def test_bug_f_eight_mirrored_inactive_selection_identity_stable(tmp_path, ytree_binary):
     """
     BUG-36 regression:
-    In mirrored split mode, expanding a sibling branch in the active pane must not
-    shift inactive pane selection by row index when the selected directory still
+    In mirrored split mode, expanding a sibling branch in the active panel must not
+    shift inactive panel selection by row index when the selected directory still
     exists.
     """
     root = tmp_path / "bug_f_eight_identity_root"
@@ -1073,27 +1073,27 @@ def test_bug_f_eight_mirrored_inactive_selection_identity_stable(tmp_path, ytree
     tui = YtreeTUI(executable=ytree_binary, cwd=str(root))
     time.sleep(1.0)
 
-    # Left pane (active): select parent_dir.
+    # Left panel (active): select parent_dir.
     tui.send_keystroke(Keys.DOWN)
     time.sleep(0.4)
 
-    # Split and move to right pane (mirrored tree state).
+    # Split and move to right panel (mirrored tree state).
     tui.send_keystroke(Keys.F8)
     time.sleep(0.4)
     tui.send_keystroke(Keys.TAB)
     time.sleep(0.4)
 
-    # Right pane (inactive target): select sibling_dir.
+    # Right panel (inactive target): select sibling_dir.
     tui.send_keystroke(Keys.DOWN)
     time.sleep(0.4)
 
-    # Back to left pane and expand parent_dir.
+    # Back to left panel and expand parent_dir.
     tui.send_keystroke(Keys.TAB)
     time.sleep(0.4)
     tui.send_keystroke(Keys.RIGHT)
     time.sleep(0.6)
 
-    # Return to right pane and enter the selected directory.
+    # Return to right panel and enter the selected directory.
     # Expected: still sibling_dir (stable identity), not parent_dir/child_dir.
     tui.send_keystroke(Keys.TAB)
     time.sleep(0.4)
@@ -1104,13 +1104,13 @@ def test_bug_f_eight_mirrored_inactive_selection_identity_stable(tmp_path, ytree
     if "sibling_file.txt" not in screen:
         tui.quit()
         pytest.fail(
-            "Inactive pane selection drifted after mirrored expand.\n"
+            "Inactive panel selection drifted after mirrored expand.\n"
             f"Screen:\n{screen}"
         )
     if "child_file.txt" in screen:
         tui.quit()
         pytest.fail(
-            "Inactive pane entered child_dir after mirrored expand.\n"
+            "Inactive panel entered child_dir after mirrored expand.\n"
             f"Screen:\n{screen}"
         )
 
@@ -1198,7 +1198,7 @@ def test_source_selection_survives_destination_tree_prep_home_mkdir(
     """
     BUG-36 regression:
     Destination tree HOME+mkdir prep in same-volume split mode must not blank
-    the source pane or mutate source tagged/selection identity.
+    the source panel or mutate source tagged/selection identity.
     """
     root = tmp_path / "bug_f_eight_source_selection_tree_home_mkdir"
     root.mkdir()
@@ -1247,14 +1247,14 @@ def test_source_selection_survives_destination_tree_prep_home_mkdir(
 
         screen_while_right_active = _screen_text(tui)
         assert "source_1.txt" in screen_while_right_active, (
-            "Source pane blanked while destination tree flow remained active.\n"
+            "Source panel blanked while destination tree flow remained active.\n"
             f"{screen_while_right_active}"
         )
 
         tui.send_keystroke(Keys.TAB, wait=0.5)
         screen = _screen_text(tui)
         assert "source_1.txt" in screen, (
-            "Source pane blanked after destination tree HOME+mkdir flow.\n" f"{screen}"
+            "Source panel blanked after destination tree HOME+mkdir flow.\n" f"{screen}"
         )
         assert "hex invert j compare" in _footer_text(tui), screen
 
@@ -1380,11 +1380,11 @@ def test_bug_same_volume_home_mkdir_keeps_inactive_source_dir(tmp_path, ytree_bi
 
         screen_while_right_active = _screen_text(tui)
         assert "f0.txt" in screen_while_right_active and "f1.txt" in screen_while_right_active, (
-            "Inactive source pane lost cmd file view while destination panel stayed active.\n"
+            "Inactive source panel lost cmd file view while destination panel stayed active.\n"
             f"{screen_while_right_active}"
         )
         assert "t0.txt" not in screen_while_right_active and "t1.txt" not in screen_while_right_active, (
-            "Inactive source pane jumped to tests while destination panel stayed active.\n"
+            "Inactive source panel jumped to tests while destination panel stayed active.\n"
             f"{screen_while_right_active}"
         )
 
@@ -1393,11 +1393,11 @@ def test_bug_same_volume_home_mkdir_keeps_inactive_source_dir(tmp_path, ytree_bi
         screen = _screen_text(tui)
         assert "hex invert j compare" in _footer_text(tui), screen
         assert "f0.txt" in screen and "f1.txt" in screen and "f2.txt" in screen, (
-            "Source pane lost cmd file view after destination HOME+mkdir flow.\n"
+            "Source panel lost cmd file view after destination HOME+mkdir flow.\n"
             f"{screen}"
         )
         assert "t0.txt" not in screen and "t1.txt" not in screen, (
-            "Source pane jumped to tests file view after destination HOME+mkdir flow.\n"
+            "Source panel jumped to tests file view after destination HOME+mkdir flow.\n"
             f"{screen}"
         )
     finally:
@@ -1497,7 +1497,7 @@ def test_bug_same_volume_home_mkdir_with_repo_like_tree_keeps_inactive_source(
         screen_while_right_active = _screen_text(tui)
         assert "src_file_0.c" in screen_while_right_active, screen_while_right_active
         assert "test_file_0.py" not in screen_while_right_active, (
-            "Inactive source pane jumped to tests while destination remained active.\n"
+            "Inactive source panel jumped to tests while destination remained active.\n"
             f"{screen_while_right_active}"
         )
 
@@ -1506,7 +1506,7 @@ def test_bug_same_volume_home_mkdir_with_repo_like_tree_keeps_inactive_source(
         assert "hex invert j compare" in _footer_text(tui), screen
         assert "src_file_0.c" in screen and "src_file_1.c" in screen, screen
         assert "test_file_0.py" not in screen and "test_file_1.py" not in screen, (
-            "Source pane jumped to tests after destination ENTER+HOME+mkdir.\n"
+            "Source panel jumped to tests after destination ENTER+HOME+mkdir.\n"
             f"{screen}"
         )
     finally:
@@ -1653,11 +1653,11 @@ def test_bug_same_volume_home_mkdir_listjump_sequence_keeps_inactive_source(
         for name in ("src_file_0.c", "src_file_1.c", "src_file_2.c"):
             line = _find_line_with_text(tui, name)
             assert line is not None, (
-                "Source pane lost file rows after switching back from destination.\n"
+                "Source panel lost file rows after switching back from destination.\n"
                 f"{screen_after_switch}"
             )
             assert _line_marks_file_as_tagged(line, name), (
-                "Tagged files were cleared after switching back to source pane.\n"
+                "Tagged files were cleared after switching back to source panel.\n"
                 f"Row: {line}\n{screen_after_switch}"
             )
     finally:
@@ -1672,7 +1672,7 @@ def test_bug_same_volume_home_mkdir_from_home_root_keeps_inactive_file_state(
     start at HOME, expand ytree/src/cmd, enter file mode, tag three files,
     split, switch to right, HOME, mkdir.
 
-    Inactive left pane must stay in file view on src/cmd with tags intact.
+    Inactive left panel must stay in file view on src/cmd with tags intact.
     """
     home = tmp_path / "home" / "user"
     repo = home / "ytree"
@@ -1776,13 +1776,13 @@ def test_bug_same_volume_home_mkdir_from_home_root_keeps_inactive_file_state(
 
         screen_right_active = _screen_text(tui)
         assert "src_file_0.c" in screen_right_active, (
-            "Inactive left pane blanked while destination pane remained active.\n"
+            "Inactive left panel blanked while destination panel remained active.\n"
             f"{screen_right_active}"
         )
         for name in ("src_file_0.c", "src_file_1.c", "src_file_2.c"):
             line = _find_line_with_text(tui, name)
             assert line is not None, (
-                "Inactive source pane lost file rows after destination mkdir.\n"
+                "Inactive source panel lost file rows after destination mkdir.\n"
                 f"{screen_right_active}"
             )
             assert _line_marks_file_as_tagged(line, name) == pre_tag_state[name], (
@@ -1795,17 +1795,17 @@ def test_bug_same_volume_home_mkdir_from_home_root_keeps_inactive_file_state(
         screen_after_tab = _screen_text(tui)
         assert "hex invert j compare" in _footer_text(tui), screen_after_tab
         assert "No files" not in screen_after_tab, (
-            "Switching to source pane produced empty file view.\n"
+            "Switching to source panel produced empty file view.\n"
             f"{screen_after_tab}"
         )
         for name in ("src_file_0.c", "src_file_1.c", "src_file_2.c"):
             line = _find_line_with_text(tui, name)
             assert line is not None, (
-                "Source pane did not resume src/cmd file view after TAB.\n"
+                "Source panel did not resume src/cmd file view after TAB.\n"
                 f"{screen_after_tab}"
             )
             assert _line_marks_file_as_tagged(line, name) == pre_tag_state[name], (
-                "Source tag state changed after TAB back to source pane.\n"
+                "Source tag state changed after TAB back to source panel.\n"
                 f"Expected tagged={pre_tag_state[name]} Row: {line}\n"
                 f"{screen_after_tab}"
             )

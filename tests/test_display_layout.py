@@ -191,7 +191,7 @@ def test_split_file_details_do_not_wrap_neighbor_rows_at_120x36(ytree_binary, tm
     d = tmp_path / "split_file_detail_nowrap_120x36"
     d.mkdir()
     for i in range(60):
-        # Long names force tighter detail rendering in split panes.
+        # Long names force tighter detail rendering in split panels.
         (d / f"very_long_filename_{i:03d}_for_split_wrap_check.txt").write_text(
             "x", encoding="utf-8"
         )

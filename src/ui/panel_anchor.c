@@ -1,7 +1,7 @@
 /***************************************************************************
  *
  * src/ui/panel_anchor.c
- * Panel anchor helpers for split-pane directory/file state restoration.
+ * Panel anchor helpers for split-panel directory/file state restoration.
  *
  ***************************************************************************/
 

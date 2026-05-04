@@ -10,10 +10,10 @@ Ordering policy (for all editors, including AI editors):
 
 ## **Current Runtime Defects (Highest Priority First)**
 
-### **BUG-41: F8 Release-Volume Flow Can Blank Pane and Crash on Tab**
-*   **Description**: In `F8` split mode, after logging two volumes and releasing one, the small window can go blank, separator line can disappear, inactive pane can blank, and tabbing to the inactive pane can trigger a segmentation fault.
-*   **Impact**: Critical stability and data-safety risk (crash), plus severe UI corruption in a core split-pane workflow.
-*   **Remediation**: Harden split-pane volume-release lifecycle so panel/window ownership and active/inactive bindings are always valid after release. Add focused regression coverage for `F8` with multi-volume log/release and `Tab` switching after release.
+### **BUG-41: F8 Release-Volume Flow Can Blank Panel and Crash on Tab**
+*   **Description**: In `F8` split mode, after logging two volumes and releasing one, the small window can go blank, separator line can disappear, inactive panel can blank, and tabbing to the inactive panel can trigger a segmentation fault.
+*   **Impact**: Critical stability and data-safety risk (crash), plus severe UI corruption in a core split-panel workflow.
+*   **Remediation**: Harden split-panel volume-release lifecycle so panel/window ownership and active/inactive bindings are always valid after release. Add focused regression coverage for `F8` with multi-volume log/release and `Tab` switching after release.
 *   **Status**: Confirmed.
 
 ### **BUG-40: Cycle-Volumes (`<`/`>`, `,`/`.`) Leaks Dir/File View State Across Volumes**
@@ -42,7 +42,7 @@ Ordering policy (for all editors, including AI editors):
 *   **Status**: Fixed.
 
 ### **BUG-37: F8 Mirrored Tree Changes Can Move Inactive Selection to Wrong Node**
-*   **Description**: In `F8` split mode, mirrored expand/collapse changes can move the inactive pane selection unexpectedly to another sibling/ancestor even when the original inactive selection should remain valid.
+*   **Description**: In `F8` split mode, mirrored expand/collapse changes can move the inactive panel selection unexpectedly to another sibling/ancestor even when the original inactive selection should remain valid.
 *   **Repro (Confirmed)**:
 *   Select `~/ytree/obj/cmd`, then enter split mode (`F8`).
     *   Collapse `obj`: inactive cursor moves to `obj`; expand `obj`: inactive remains on `obj`.
@@ -51,7 +51,7 @@ Ordering policy (for all editors, including AI editors):
 *   **Expected Behavior**:
     *   Inactive selection remains stable under mirrored tree-shape updates while its selected node is still visible/valid.
     *   If invalidated, fallback target must follow a deterministic rule.
-*   **Impact**: Breaks split-pane predictability and makes inactive-pane targeting unreliable for copy/move/compare workflows.
+*   **Impact**: Breaks split-panel predictability and makes inactive-panel targeting unreliable for copy/move/compare workflows.
 *   **Remediation**: Preserve inactive selection by stable node identity (not row/index), and apply deterministic fallback only when the selected node becomes invalid.
 *   **Related**: `ROADMAP` Task 45 (inactive split-panel selection semantics + regression coverage).
 *   **Status**: Fixed.
@@ -115,7 +115,7 @@ Ordering policy (for all editors, including AI editors):
 ### **BUG-28: Viewer Return (`v` -> `q`) Can Corrupt UI and Input State**
 *   **Description**: In WSL repro, running ytree, opening `View` on a file (`v`), then quitting viewer (`q`) can leave the main UI mostly vanished/artifacted (for example stray clock digits only). Follow-on input/state is also corrupted: `^L` has negligible/no effect, `Enter` no longer toggles to dir window, and a subsequent `q` exits ytree.
 *   **Impact**: Breaks core post-view workflow and can leave the session in a partially unusable state until restart.
-*   **Remediation**: Harden viewer-return restore path to reestablish full ncurses paint + mode/input state atomically (window ownership, active pane mode, key handling context) before processing next key events.
+*   **Remediation**: Harden viewer-return restore path to reestablish full ncurses paint + mode/input state atomically (window ownership, active panel mode, key handling context) before processing next key events.
 *   **Related**: `BUG-29` (same return/redraw defect family).
 *   **Status**: Confirmed.
 
