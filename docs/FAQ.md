@@ -64,3 +64,20 @@ Switching languages immediately would constitute a total rewrite rather than a m
 ### Why ncurses, why not termbox2 or notcurses?
 
 Ytree only needs fast, reliable text/line-box terminal UI for file and VFS browsing, and ncurses already provides that cleanly, while switching to termbox2 or notcurses would add backend complexity for features outside ytree’s core scope (like richer in-app media rendering) that are better handled by external helper programs.
+
+### How is AI used in this project?
+
+AI is used as an implementation assistant, not as an autonomous authority.
+
+The human maintainer owns design decisions, architecture constraints, and merge quality. AI helps accelerate coding and refactoring work, but changes are accepted only after manual review plus repository QA gates. This workflow is iterative and often slow: a lot of the effort is in steering, verification, and correction.
+
+For the concrete checks and evidence model, see:
+- [`docs/AUDIT.md`](AUDIT.md)
+- [`docs/TRUST.md`](TRUST.md)
+- [`docs/PR_GATE.md`](PR_GATE.md)
+
+### Why release an alpha before beta?
+
+The alpha is published early so users and contributors can inspect the code, test real workflows, and provide feedback while major design decisions are still adjustable.
+
+In short: the project is usable now, but not stable yet. Expect rough edges, occasional regressions, and evolving UX details until beta and then stable release.
