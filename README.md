@@ -3,6 +3,7 @@
 > [!IMPORTANT]
 > **STATUS: ALPHA (v3.0.0-alpha)**
 > `ytree` is in active alpha development. Expect rough edges, incomplete behaviour, and occasional regressions. Interfaces, key bindings, and configuration details may change before the first stable release.
+>
 > Before opening an issue or suggesting a feature, check [BUGS.md](docs/BUGS.md) and [ROADMAP.md](docs/ROADMAP.md) first, so as not to create a duplicate if it is already listed.
 
 Ytree gives you a fast, keyboard-first view of logged storage: a directory tree, a file list for the current directory, and Showall for all files in the current volume (plus Global across logged volumes). You can filter and tag files, then run normal file operations (copy, move, rename, delete, archive, edit) on single files or in bulk. It also includes built-in file preview, file/directory compare tools, split-screen workflows, and archive-as-directory support with archive creation plus in-archive write operations (copy/move/rename/delete/mkdir where supported).
@@ -21,7 +22,18 @@ This v3.0 project focuses on feature completeness for Unix power users, includin
 
 ## Development Methodology
 
-This refactor serves as a case study in using Large Language Models (LLMs) to evolve legacy code toward feature completeness and maintainability. The codebase was not simply "ported"; it was systematically disassembled and re-architected. An LLM was utilized to analyze the original K&R C source, understand the undocumented logic, and reimplement it using C99/POSIX standards, the MVC pattern, and strict encapsulation. This demonstrates that with persistence and strict architectural guidance, AI tools can be effectively used to maintain and improve serious systems software.
+This refactor is an experiment in AI-assisted systems engineering. The codebase was not simply "ported"; it was systematically disassembled and re-architected toward feature completeness and maintainability.
+
+In practice, the human maintains design ownership and quality control, while AI is used as an implementation assistant. This requires substantial iteration, verification, and architectural guardrails for each meaningful change. The goal is to show that LLM-assisted development can still meet normal project standards when the process is disciplined, specification-driven, and strongly validated.
+
+Quality claims are backed by repository-visible gates and documentation:
+- [AUDIT.md](docs/AUDIT.md): required QA/audit loop and merge gates.
+- [TRUST.md](docs/TRUST.md): safety posture, limits, and code-level evidence pointers.
+- [PR_GATE.md](docs/PR_GATE.md): governance and merge-readiness checks.
+
+## Why release alpha now?
+
+v3.0.0-alpha is being published early so people can use the program, inspect the code, and evaluate the direction before beta. It is usable today, but still in active development: expect rough edges, occasional UX/workflow bugs, and ongoing refinement of some features.
 
 ## Features (v3.0.0-alpha)
 
