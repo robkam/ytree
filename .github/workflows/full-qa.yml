@@ -3,6 +3,17 @@ name: C/C++ Full QA
 on:
   pull_request:
     branches: [ "main" ]
+    paths:
+      - "src/**/*.c"
+      - "src/**/*.cpp"
+      - "**/*.h"
+      - "**/*.yml"
+      - "**/*.yaml"
+      - "tests/**/*.py"
+      - "scripts/**/*.py"
+      - "scripts/requirements.txt"
+      - "Makefile"
+      - ".github/workflows/full-qa.yml"
   workflow_dispatch:
 
 permissions:
