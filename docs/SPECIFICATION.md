@@ -37,6 +37,9 @@ The screen is divided into non-overlapping zones. Geometry is calculated dynamic
 ### 2.3 Visual Grammar (The "XTree&trade; Look")
 *   **Junction Grammar:** Ncurses junctions (T-pieces, crosses) must **only** be used for horizontal boundary lines. Vertical separators must remain clean, unbroken lines to avoid visual clutter.
 *   **Empty State:** If a directory contains no files, the File View window must display the text: `** No files **`.
+*   **Small-Window Name Column Alignment:** In the small File View, reserve the first post-border cell for tag (`*` or space), the second as a spacer, and start all row text at the same column. This applies to regular names, symlink labels, and placeholders (e.g., `No files`, `Unlogged`).  
+    Untagged: `│  check_xml_integrit`, `│  @current`, `│  No files`, `│  Unlogged`  
+    Tagged: `│* check_xml_integrit`, `│* @current`, `│  No files`, `│  Unlogged`
 *   **Single-Row List Invariant:** Tree/File/Showall/archive list rows must never wrap to a second terminal line.
 *   **Informative Truncation Policy:** When width is insufficient, content must be truncated (not wrapped) using a deterministic strategy that preserves the most useful identity cues. Prefer `prefix…suffix` elision when both ends carry meaning (for example filename stem + extension or path tail); use one-sided clipping only when the omitted side is low-value in that context.
 *   **Static Text Rule:** Truncated UI labels are static and stable while focused; marquee/auto-scrolling text is not permitted for core list and attribute surfaces.

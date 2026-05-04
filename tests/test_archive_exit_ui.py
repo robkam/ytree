@@ -661,6 +661,65 @@ def test_logged_empty_vs_unlogged_labels(tmp_path, ytree_binary):
     tui.quit()
 
 
+def test_small_window_tagged_symlink_and_empty_labels_share_name_column(
+    tmp_path, ytree_binary
+):
+    root = tmp_path / "small_window_symlink_alignment"
+    root.mkdir()
+    target = root / "check_xml_integrit"
+    target.write_text("payload", encoding="utf-8")
+    (root / "current").symlink_to(target.name)
+
+    tui = YtreeTUI(executable=ytree_binary, cwd=str(root))
+    time.sleep(0.8)
+
+    try:
+        initial_lines = tui.get_screen_dump()
+        file_row = next(
+            (line for line in initial_lines if "check_xml_integrit" in line), ""
+        )
+        symlink_row = next((line for line in initial_lines if "@current" in line), "")
+        assert file_row, "Expected untagged file row."
+        assert symlink_row, "Expected untagged symlink row with '@' prefix."
+
+        name_col = file_row.find("check_xml_integrit")
+        symlink_col = symlink_row.find("@current")
+        assert name_col >= 0 and symlink_col >= 0
+        assert symlink_col == name_col, (
+            "Untagged symlink label must start at the same file-name column.\n"
+            f"name_col={name_col}, symlink_col={symlink_col}\n"
+            f"file_row={file_row!r}\nsymlink_row={symlink_row!r}"
+        )
+
+        tui.send_keystroke(Keys.ENTER, wait=0.4)
+        tui.send_keystroke("\x14", wait=0.5)  # Ctrl+T (tag all)
+
+        tagged_lines = tui.get_screen_dump()
+        tagged_file_row = next(
+            (line for line in tagged_lines if "* check_xml_integrit" in line), ""
+        )
+        tagged_symlink_row = next(
+            (line for line in tagged_lines if "* @current" in line), ""
+        )
+        assert tagged_file_row, "Expected tagged file row with '* ' prefix."
+        assert tagged_symlink_row, "Expected tagged symlink row with '* @' prefix."
+
+        tagged_name_col = tagged_file_row.find("check_xml_integrit")
+        tagged_symlink_col = tagged_symlink_row.find("@current")
+        assert tagged_name_col == name_col, (
+            "Tagged file label must preserve the filename start column.\n"
+            f"expected={name_col}, actual={tagged_name_col}\n"
+            f"row={tagged_file_row!r}"
+        )
+        assert tagged_symlink_col == name_col, (
+            "Tagged symlink label must preserve the filename start column.\n"
+            f"expected={name_col}, actual={tagged_symlink_col}\n"
+            f"row={tagged_symlink_row!r}"
+        )
+    finally:
+        tui.quit()
+
+
 def test_placeholder_dir_shows_unlogged_not_no_files(tmp_path, ytree_binary):
     root = tmp_path / "placeholder_shows_unlogged"
     root.mkdir()

@@ -12,6 +12,8 @@
 
 static char GetTypeOfFile(struct stat fst);
 static int GetVisualFileEntryLength(ViewContext *ctx, YtreePanel *p);
+static void BuildFileRowLabel(char *buffer, size_t buffer_size,
+                              const FileEntry *fe_ptr, char type_of_file);
 
 static void AddClippedAtCursor(WINDOW *win, const char *text, int width) {
   int y, x, remaining;
@@ -178,6 +180,31 @@ static char GetTypeOfFile(struct stat fst) {
     return '?';
 }
 
+static void BuildFileRowLabel(char *buffer, size_t buffer_size,
+                              const FileEntry *fe_ptr, char type_of_file) {
+  int written = 0;
+
+  if (!buffer || buffer_size == 0)
+    return;
+
+  if (!fe_ptr) {
+    buffer[0] = '\0';
+    return;
+  }
+
+  if (type_of_file == ' ') {
+    written = snprintf(buffer, buffer_size, "%s", fe_ptr->name);
+  } else {
+    written = snprintf(buffer, buffer_size, "%c%s", type_of_file, fe_ptr->name);
+  }
+
+  if (written < 0) {
+    buffer[0] = '\0';
+  } else if ((size_t)written >= buffer_size) {
+    buffer[buffer_size - 1] = '\0';
+  }
+}
+
 void PrintFileEntry(ViewContext *ctx, YtreePanel *panel, int entry_no, int y,
                     int x, unsigned char hilight, int start_x, WINDOW *win) {
   char attributes[11];
@@ -207,7 +234,10 @@ void PrintFileEntry(ViewContext *ctx, YtreePanel *panel, int entry_no, int y,
   int base_color_pair;
   int width;
   BOOL is_tagged;
+  BOOL align_name_col;
   int highlight_attr;
+  char row_label[PATH_LENGTH + 2];
+  const char *primary_name;
 
   if (!panel->file_entry_list)
     return;
@@ -217,6 +247,14 @@ void PrintFileEntry(ViewContext *ctx, YtreePanel *panel, int entry_no, int y,
   fe_ptr = panel->file_entry_list[entry_no].file;
   if (fe_ptr == NULL)
     return;
+  type_of_file = GetTypeOfFile(fe_ptr->stat_struct);
+  align_name_col =
+      (panel->pan_small_file_window && win == panel->pan_small_file_window);
+  primary_name = fe_ptr->name;
+  if (align_name_col || panel->file_mode == MODE_3) {
+    BuildFileRowLabel(row_label, sizeof(row_label), fe_ptr, type_of_file);
+    primary_name = row_label;
+  }
   is_tagged = PanelTags_FileIsTagged(panel, fe_ptr);
   highlight_attr = (ctx->is_split_screen && panel != ctx->active)
                        ? (A_BOLD | A_UNDERLINE)
@@ -227,9 +265,11 @@ void PrintFileEntry(ViewContext *ctx, YtreePanel *panel, int entry_no, int y,
     wmove(win, y, pos_x);
 
     /* Prepare Display Name */
-    char display_name[PATH_LENGTH + 1];
-    /* Reserve 2 chars for Tag and Type */
-    CutFilename(display_name, fe_ptr->name, ctx->fixed_col_width - 2);
+    char display_name[PATH_LENGTH + 2];
+    char compact_label[PATH_LENGTH + 2];
+    /* Reserve 2 chars for Tag and spacer. */
+    BuildFileRowLabel(compact_label, sizeof(compact_label), fe_ptr, type_of_file);
+    CutFilename(display_name, compact_label, ctx->fixed_col_width - 2);
 
     /* Set Attributes */
     int color = GetFileTypeColor(ctx, fe_ptr);
@@ -240,8 +280,7 @@ void PrintFileEntry(ViewContext *ctx, YtreePanel *panel, int entry_no, int y,
       wattron(win, highlight_attr);
 
     /* Draw */
-    wprintw(win, "%c%c%s", (is_tagged) ? TAGGED_SYMBOL : ' ',
-            GetTypeOfFile(fe_ptr->stat_struct), display_name);
+    wprintw(win, "%c %s", (is_tagged) ? TAGGED_SYMBOL : ' ', display_name);
 
     /* Pad remaining width */
     int printed_len = 2 + StrVisualLength(display_name);
@@ -294,8 +333,6 @@ void PrintFileEntry(ViewContext *ctx, YtreePanel *panel, int entry_no, int y,
   filename_width = panel->max_visual_filename_len;
   linkname_width = panel->max_visual_linkname_len;
 #endif
-
-  type_of_file = GetTypeOfFile(fe_ptr->stat_struct);
 
   /* Calculate starting column position (pos_x) based on column index `x` */
   switch (panel->file_mode) {
@@ -353,22 +390,43 @@ void PrintFileEntry(ViewContext *ctx, YtreePanel *panel, int entry_no, int y,
       (void)CTime(fe_ptr->stat_struct.st_mtime, modify_time);
       if (S_ISLNK(fe_ptr->stat_struct.st_mode)) {
         /* Updated %12s to %16s */
-        (void)snprintf(format, sizeof(format),
-                       "%%c%%c%%-%ds %%10s %%3d %%11lld %%16s -> %%-%ds",
-                       filename_width, linkname_width);
-        (void)snprintf(line_buffer, line_buffer_size, format,
-                       (is_tagged) ? TAGGED_SYMBOL : ' ', type_of_file,
-                       fe_ptr->name, attributes, fe_ptr->stat_struct.st_nlink,
-                       (long long)fe_ptr->stat_struct.st_size, modify_time,
-                       sym_link_name);
+        if (align_name_col) {
+          (void)snprintf(format, sizeof(format),
+                         "%%c %%-%ds %%10s %%3d %%11lld %%16s -> %%-%ds",
+                         filename_width, linkname_width);
+          (void)snprintf(line_buffer, line_buffer_size, format,
+                         (is_tagged) ? TAGGED_SYMBOL : ' ', primary_name,
+                         attributes, fe_ptr->stat_struct.st_nlink,
+                         (long long)fe_ptr->stat_struct.st_size, modify_time,
+                         sym_link_name);
+        } else {
+          (void)snprintf(format, sizeof(format),
+                         "%%c%%c%%-%ds %%10s %%3d %%11lld %%16s -> %%-%ds",
+                         filename_width, linkname_width);
+          (void)snprintf(line_buffer, line_buffer_size, format,
+                         (is_tagged) ? TAGGED_SYMBOL : ' ', type_of_file,
+                         fe_ptr->name, attributes, fe_ptr->stat_struct.st_nlink,
+                         (long long)fe_ptr->stat_struct.st_size, modify_time,
+                         sym_link_name);
+        }
       } else {
-        (void)snprintf(format, sizeof(format),
-                       "%%c%%c%%%c%ds %%10s %%3d %%11lld %%16s", justify,
-                       filename_width);
-        (void)snprintf(line_buffer, line_buffer_size, format,
-                       (is_tagged) ? TAGGED_SYMBOL : ' ', type_of_file,
-                       fe_ptr->name, attributes, fe_ptr->stat_struct.st_nlink,
-                       (long long)fe_ptr->stat_struct.st_size, modify_time);
+        if (align_name_col) {
+          (void)snprintf(format, sizeof(format),
+                         "%%c %%%c%ds %%10s %%3d %%11lld %%16s", justify,
+                         filename_width);
+          (void)snprintf(line_buffer, line_buffer_size, format,
+                         (is_tagged) ? TAGGED_SYMBOL : ' ', primary_name,
+                         attributes, fe_ptr->stat_struct.st_nlink,
+                         (long long)fe_ptr->stat_struct.st_size, modify_time);
+        } else {
+          (void)snprintf(format, sizeof(format),
+                         "%%c%%c%%%c%ds %%10s %%3d %%11lld %%16s", justify,
+                         filename_width);
+          (void)snprintf(line_buffer, line_buffer_size, format,
+                         (is_tagged) ? TAGGED_SYMBOL : ' ', type_of_file,
+                         fe_ptr->name, attributes, fe_ptr->stat_struct.st_nlink,
+                         (long long)fe_ptr->stat_struct.st_size, modify_time);
+        }
       }
       break;
     case MODE_2:
@@ -383,48 +441,85 @@ void PrintFileEntry(ViewContext *ctx, YtreePanel *panel, int entry_no, int y,
         group_name_ptr = group;
       }
       if (S_ISLNK(fe_ptr->stat_struct.st_mode)) {
-        (void)snprintf(format, sizeof(format),
-                       "%%c%%c%%%c%ds %%10lld %%-12s %%-12s -> %%-%ds", justify,
-                       filename_width, linkname_width);
-        (void)snprintf(line_buffer, line_buffer_size, format,
-                       (is_tagged) ? TAGGED_SYMBOL : ' ', type_of_file,
-                       fe_ptr->name, (long long)fe_ptr->stat_struct.st_ino,
-                       owner_name_ptr, group_name_ptr, sym_link_name);
+        if (align_name_col) {
+          (void)snprintf(format, sizeof(format),
+                         "%%c %%%c%ds %%10lld %%-12s %%-12s -> %%-%ds", justify,
+                         filename_width, linkname_width);
+          (void)snprintf(line_buffer, line_buffer_size, format,
+                         (is_tagged) ? TAGGED_SYMBOL : ' ', primary_name,
+                         (long long)fe_ptr->stat_struct.st_ino, owner_name_ptr,
+                         group_name_ptr, sym_link_name);
+        } else {
+          (void)snprintf(format, sizeof(format),
+                         "%%c%%c%%%c%ds %%10lld %%-12s %%-12s -> %%-%ds",
+                         justify, filename_width, linkname_width);
+          (void)snprintf(line_buffer, line_buffer_size, format,
+                         (is_tagged) ? TAGGED_SYMBOL : ' ', type_of_file,
+                         fe_ptr->name, (long long)fe_ptr->stat_struct.st_ino,
+                         owner_name_ptr, group_name_ptr, sym_link_name);
+        }
       } else {
-        (void)snprintf(format, sizeof(format),
-                       "%%c%%c%%%c%ds %%10lld %%-12s %%-12s", justify,
-                       filename_width);
-        (void)snprintf(line_buffer, line_buffer_size, format,
-                       (is_tagged) ? TAGGED_SYMBOL : ' ', type_of_file,
-                       fe_ptr->name, (long long)fe_ptr->stat_struct.st_ino,
-                       owner_name_ptr, group_name_ptr);
+        if (align_name_col) {
+          (void)snprintf(format, sizeof(format),
+                         "%%c %%%c%ds %%10lld %%-12s %%-12s", justify,
+                         filename_width);
+          (void)snprintf(line_buffer, line_buffer_size, format,
+                         (is_tagged) ? TAGGED_SYMBOL : ' ', primary_name,
+                         (long long)fe_ptr->stat_struct.st_ino, owner_name_ptr,
+                         group_name_ptr);
+        } else {
+          (void)snprintf(format, sizeof(format),
+                         "%%c%%c%%%c%ds %%10lld %%-12s %%-12s", justify,
+                         filename_width);
+          (void)snprintf(line_buffer, line_buffer_size, format,
+                         (is_tagged) ? TAGGED_SYMBOL : ' ', type_of_file,
+                         fe_ptr->name, (long long)fe_ptr->stat_struct.st_ino,
+                         owner_name_ptr, group_name_ptr);
+        }
       }
       break;
     case MODE_3:
-      (void)snprintf(format, sizeof(format), "%%c%%c%%%c%ds", justify,
+      (void)snprintf(format, sizeof(format), "%%c %%%c%ds", justify,
                      filename_width);
       (void)snprintf(line_buffer, line_buffer_size, format,
-                     (is_tagged) ? TAGGED_SYMBOL : ' ', type_of_file,
-                     fe_ptr->name);
+                     (is_tagged) ? TAGGED_SYMBOL : ' ', primary_name);
       break;
     case MODE_4:
       (void)CTime(fe_ptr->stat_struct.st_ctime, change_time);
       (void)CTime(fe_ptr->stat_struct.st_atime, access_time);
       if (S_ISLNK(fe_ptr->stat_struct.st_mode)) {
         /* Updated %12s to %16s */
-        (void)snprintf(format, sizeof(format),
-                       "%%c%%c%%%c%ds Chg: %%16s  Acc: %%16s -> %%-%ds",
-                       justify, filename_width, linkname_width);
-        (void)snprintf(line_buffer, line_buffer_size, format,
-                       (is_tagged) ? TAGGED_SYMBOL : ' ', type_of_file,
-                       fe_ptr->name, change_time, access_time, sym_link_name);
+        if (align_name_col) {
+          (void)snprintf(format, sizeof(format),
+                         "%%c %%%c%ds Chg: %%16s  Acc: %%16s -> %%-%ds",
+                         justify, filename_width, linkname_width);
+          (void)snprintf(line_buffer, line_buffer_size, format,
+                         (is_tagged) ? TAGGED_SYMBOL : ' ', primary_name,
+                         change_time, access_time, sym_link_name);
+        } else {
+          (void)snprintf(format, sizeof(format),
+                         "%%c%%c%%%c%ds Chg: %%16s  Acc: %%16s -> %%-%ds",
+                         justify, filename_width, linkname_width);
+          (void)snprintf(line_buffer, line_buffer_size, format,
+                         (is_tagged) ? TAGGED_SYMBOL : ' ', type_of_file,
+                         fe_ptr->name, change_time, access_time, sym_link_name);
+        }
       } else {
-        (void)snprintf(format, sizeof(format),
-                       "%%c%%c%%%c%ds Chg: %%16s  Acc: %%16s", justify,
-                       filename_width);
-        (void)snprintf(line_buffer, line_buffer_size, format,
-                       (is_tagged) ? TAGGED_SYMBOL : ' ', type_of_file,
-                       fe_ptr->name, change_time, access_time);
+        if (align_name_col) {
+          (void)snprintf(format, sizeof(format),
+                         "%%c %%%c%ds Chg: %%16s  Acc: %%16s", justify,
+                         filename_width);
+          (void)snprintf(line_buffer, line_buffer_size, format,
+                         (is_tagged) ? TAGGED_SYMBOL : ' ', primary_name,
+                         change_time, access_time);
+        } else {
+          (void)snprintf(format, sizeof(format),
+                         "%%c%%c%%%c%ds Chg: %%16s  Acc: %%16s", justify,
+                         filename_width);
+          (void)snprintf(line_buffer, line_buffer_size, format,
+                         (is_tagged) ? TAGGED_SYMBOL : ' ', type_of_file,
+                         fe_ptr->name, change_time, access_time);
+        }
       }
       break;
     case MODE_5:
@@ -467,11 +562,12 @@ void PrintFileEntry(ViewContext *ctx, YtreePanel *panel, int entry_no, int y,
     if (is_tagged)
       wattron(win, A_BOLD);
 
-    /* Print tag and type */
+    /* Print tag and type/spacer */
     {
       char prefix[3];
       prefix[0] = (is_tagged) ? TAGGED_SYMBOL : ' ';
-      prefix[1] = type_of_file;
+      prefix[1] = (align_name_col || panel->file_mode == MODE_3) ? ' '
+                                                                   : type_of_file;
       prefix[2] = '\0';
       AddClippedAtCursor(win, prefix, width);
     }
@@ -503,12 +599,18 @@ void PrintFileEntry(ViewContext *ctx, YtreePanel *panel, int entry_no, int y,
     if (max_w > width - pos_x - 3)
       max_w = width - pos_x - 3;
 
-    char display_name[PATH_LENGTH + 1];
-    if ((int)strlen(fe_ptr->name) > max_w) {
-      CutFilename(display_name, fe_ptr->name, max_w);
+    char display_name[PATH_LENGTH + 2];
+    const char *name_text = fe_ptr->name;
+    char mode3_name[PATH_LENGTH + 2];
+    if (align_name_col || panel->file_mode == MODE_3) {
+      BuildFileRowLabel(mode3_name, sizeof(mode3_name), fe_ptr, type_of_file);
+      name_text = mode3_name;
+    }
+    if ((int)strlen(name_text) > max_w) {
+      CutFilename(display_name, name_text, max_w);
     } else {
       int copied_len =
-          snprintf(display_name, sizeof(display_name), "%s", fe_ptr->name);
+          snprintf(display_name, sizeof(display_name), "%s", name_text);
       if (copied_len < 0) {
         display_name[0] = '\0';
       } else if ((size_t)copied_len >= sizeof(display_name)) {

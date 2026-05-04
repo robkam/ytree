@@ -9,7 +9,7 @@ Process requirements:
    - git pull --ff-only
 
 2) Create and use branch:
-   - git checkout -b <type>/<short-task-name>
+   - git checkout -b codex/mixed-features-fixes <type>/<short-task-name>
    - use a suitable type (e.g. fix, feat, chore, docs)
 
 3) Before implementing:
