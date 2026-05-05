@@ -16,6 +16,7 @@
 
 int Edit(ViewContext *ctx, DirEntry *dir_entry, char *file_path) {
   char *command_line;
+  const char *editor_command;
   int result = -1;
   char *file_p_aux = NULL;
   char path[PATH_LENGTH + 1];
@@ -45,9 +46,10 @@ int Edit(ViewContext *ctx, DirEntry *dir_entry, char *file_path) {
     free(file_p_aux);
     goto FNC_XIT;
   }
+  editor_command = GetProfileValue(ctx, "EDITOR");
   {
     int written = snprintf(command_line, COMMAND_LINE_LENGTH, "%s %s",
-                           (GetProfileValue)(ctx, "EDITOR"), file_p_aux);
+                           editor_command, file_p_aux);
     if (written < 0 || written >= COMMAND_LINE_LENGTH) {
       UI_Message(ctx, "Edit not possible!*\"%s\"*command line too long",
                  file_path);

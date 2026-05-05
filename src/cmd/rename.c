@@ -232,14 +232,8 @@ int RenameFile(ViewContext *ctx, FileEntry *fe_ptr, const char *new_name,
 /* GetRenameParameter moved to UI layer */
 
 static int RenameDirEntry(const char *to_path, const char *from_path) {
-  struct stat fdstat;
-
   if (!strcmp(to_path, from_path)) {
     return (0);
-  }
-
-  if (stat(to_path, &fdstat) == 0) {
-    return (-1);
   }
 
   /*
