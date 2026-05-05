@@ -129,6 +129,24 @@ void HandlePlus(ViewContext *ctx, DirEntry *dir_entry, DirEntry *de_ptr,
       s->log_mode != ARCHIVE_MODE) {
     return;
   }
+
+  if (dir_entry && dir_entry->up_tree == NULL && dir_entry->unlogged_flag &&
+      s->log_mode == ARCHIVE_MODE) {
+    if (new_log_path) {
+      (void)snprintf(new_log_path, PATH_LENGTH + 1, "%s", s->log_path);
+      new_log_path[PATH_LENGTH] = '\0';
+      if (LogDisk(ctx, p, new_log_path) == 0) {
+        DirEntry *refreshed_dir = GetPanelDirEntry(p);
+        if (!refreshed_dir && p->vol)
+          refreshed_dir = p->vol->vol_stats.tree;
+        if (refreshed_dir)
+          RefreshView(ctx, refreshed_dir);
+        *need_dsp_help = TRUE;
+      }
+    }
+    return;
+  }
+
   if (!dir_entry->not_scanned)
     return;
 

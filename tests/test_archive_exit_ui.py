@@ -255,6 +255,39 @@ def test_fs_root_left_then_right_does_not_restore_deep_state(tmp_path, ytree_bin
         tui.quit()
 
 
+def test_archive_root_unlogged_right_does_not_show_permission_denied(
+    tmp_path, ytree_binary
+):
+    root = tmp_path / "archive_root_unlogged_right"
+    root.mkdir()
+    _create_archive(root, "roundtrip.tar")
+
+    tui = YtreeTUI(executable=ytree_binary, cwd=str(root))
+    time.sleep(0.8)
+
+    try:
+        tui.send_keystroke(Keys.ENTER, wait=0.4)
+        tui.send_keystroke(Keys.LOG, wait=0.3)
+        tui.send_keystroke(Keys.ENTER, wait=0.9)
+        assert tui.wait_for_content("ARCHIVE", timeout=3.0), _screen_text(tui)
+
+        _send_left_arrow(tui, wait=0.8)  # reset/unlog archive root
+        tui.send_keystroke(Keys.RIGHT, wait=0.9)
+
+        after = _screen_text(tui)
+        assert "Permission Denied" not in after, (
+            "Right at unlogged archive root should relog archive context, not "
+            "raise a filesystem permission error.\n"
+            f"{after}"
+        )
+        assert "ARCHIVE" in after, (
+            "Right at unlogged archive root should remain in archive mode.\n"
+            f"{after}"
+        )
+    finally:
+        tui.quit()
+
+
 def test_archive_root_backslash_exits_to_parent_file_focus(tmp_path, ytree_binary):
     root = tmp_path / "a_bs"
     root.mkdir()
