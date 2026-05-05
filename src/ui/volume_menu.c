@@ -9,6 +9,67 @@
 #include "ytree_fs.h"
 #include "ytree_ui.h"
 
+static void NormalizePanelCursorForVolume(YtreePanel *panel) {
+  if (!panel || !panel->vol) {
+    return;
+  }
+
+  if (panel->vol->total_dirs <= 0) {
+    panel->disp_begin_pos = 0;
+    panel->cursor_pos = 0;
+    panel->file_dir_entry = NULL;
+    return;
+  }
+
+  if (panel->disp_begin_pos < 0)
+    panel->disp_begin_pos = 0;
+  if (panel->cursor_pos < 0)
+    panel->cursor_pos = 0;
+  if (panel->disp_begin_pos >= panel->vol->total_dirs)
+    panel->disp_begin_pos = panel->vol->total_dirs - 1;
+  if (panel->disp_begin_pos + panel->cursor_pos >= panel->vol->total_dirs)
+    panel->cursor_pos = panel->vol->total_dirs - 1 - panel->disp_begin_pos;
+  if (panel->cursor_pos < 0)
+    panel->cursor_pos = 0;
+}
+
+static void EnsurePanelsReferenceActiveVolume(ViewContext *ctx) {
+  int idx;
+
+  if (!ctx || !ctx->active || !ctx->active->vol)
+    return;
+
+  if (ctx->left && ctx->left->vol == NULL)
+    ctx->left->vol = ctx->active->vol;
+  if (ctx->right && ctx->right->vol == NULL)
+    ctx->right->vol = ctx->active->vol;
+
+  if (!ctx->is_split_screen)
+    return;
+
+  if (ctx->left && ctx->left->vol == ctx->active->vol) {
+    BuildDirEntryList(ctx, ctx->left->vol, &ctx->left->current_dir_entry);
+    NormalizePanelCursorForVolume(ctx->left);
+    idx = ctx->left->disp_begin_pos + ctx->left->cursor_pos;
+    if (ctx->left->vol->total_dirs > 0) {
+      ctx->left->file_dir_entry = ctx->left->vol->dir_entry_list[idx].dir_entry;
+      BuildFileEntryList(ctx, ctx->left);
+    }
+  }
+
+  if (ctx->right && ctx->right->vol == ctx->active->vol) {
+    BuildDirEntryList(ctx, ctx->right->vol, &ctx->right->current_dir_entry);
+    NormalizePanelCursorForVolume(ctx->right);
+    idx = ctx->right->disp_begin_pos + ctx->right->cursor_pos;
+    if (ctx->right->vol->total_dirs > 0) {
+      ctx->right->file_dir_entry = ctx->right->vol->dir_entry_list[idx].dir_entry;
+      BuildFileEntryList(ctx, ctx->right);
+    }
+  }
+
+  SyncActivePanelWindows(ctx);
+}
+
 /*
  * SelectLoadedVolume
  * Displays a list of currently loaded volumes and allows the user to switch
@@ -388,6 +449,7 @@ int SelectLoadedVolume(ViewContext *ctx, int *return_key) {
       if (target_vol != ctx->active->vol) {
         int login_result =
             LogDisk(ctx, ctx->active, target_vol->vol_stats.log_path);
+        EnsurePanelsReferenceActiveVolume(ctx);
         free(vol_array);
         return login_result;
       }
@@ -398,6 +460,7 @@ int SelectLoadedVolume(ViewContext *ctx, int *return_key) {
         int dummy;
         BuildDirEntryList(ctx, ctx->active->vol, &dummy);
       }
+      EnsurePanelsReferenceActiveVolume(ctx);
       return 0;
     }
   }
@@ -411,6 +474,7 @@ int SelectLoadedVolume(ViewContext *ctx, int *return_key) {
       int dummy;
       BuildDirEntryList(ctx, ctx->active->vol, &dummy);
     }
+    EnsurePanelsReferenceActiveVolume(ctx);
     return 0;
   }
 
