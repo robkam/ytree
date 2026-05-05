@@ -1525,7 +1525,7 @@ HandleDirWindowVolumeAction(ViewContext *ctx, YtreeAction action,
     *dir_entry_ptr = (*s_ptr)->tree;
   }
 
-  RefreshVolumeSwitchViews(ctx, *dir_entry_ptr, *s_ptr);
+  RefreshView(ctx, *dir_entry_ptr);
   *need_dsp_help_ptr = TRUE;
   return DIR_WINDOW_DISPATCH_HANDLED;
 }

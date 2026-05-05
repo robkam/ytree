@@ -1,5 +1,6 @@
 import pytest
 import shlex
+import tarfile
 import time
 import re
 from helpers_files import wait_for_file as _wait_for_file
@@ -2299,5 +2300,62 @@ def test_f8_release_volume_keeps_small_window_and_tab_safe(tmp_path, ytree_binar
             f"{screen}"
         )
         _assert_split_column_continuous(lines, "after split release + repeated tab")
+    finally:
+        tui.quit()
+
+
+def test_f8_release_inactive_disk_volume_while_active_archive_keeps_split_stable(
+    tmp_path, ytree_binary
+):
+    root = tmp_path / "bug41_archive_release_inactive"
+    root.mkdir()
+    disk_vol = root / "disk_vol"
+    disk_vol.mkdir()
+    (disk_vol / "disk_only.txt").write_text("disk\n", encoding="utf-8")
+
+    archive_src = root / "_archive_src"
+    archive_src.mkdir()
+    (archive_src / "inside.txt").write_text("inside\n", encoding="utf-8")
+    (archive_src / "nested").mkdir()
+    (archive_src / "nested" / "deep.txt").write_text("deep\n", encoding="utf-8")
+    archive_path = root / "sample.tar"
+    with tarfile.open(archive_path, "w") as tf:
+        tf.add(archive_src, arcname="inside_dir")
+
+    tui = YtreeTUI(
+        executable=ytree_binary,
+        cwd=str(disk_vol),
+        args=[str(archive_path)],
+    )
+    time.sleep(1.0)
+
+    try:
+        # Move active context to archive volume first.
+        for _ in range(6):
+            if "sample.tar" in tui.get_screen_dump()[0]:
+                break
+            tui.send_keystroke("<", wait=0.5)
+        assert "sample.tar" in tui.get_screen_dump()[0], _screen_text(tui)
+
+        tui.send_keystroke(Keys.F8, wait=0.5)
+        tui.send_keystroke("k", wait=0.3)
+        assert tui.wait_for_content("Select Volume", timeout=1.0), _screen_text(tui)
+        tui.send_keystroke(Keys.DOWN, wait=0.2)  # select inactive disk volume
+        tui.send_keystroke("d", wait=0.2)
+        tui.send_keystroke("y", wait=0.8)
+        if tui.wait_for_content("Select Volume", timeout=0.4):
+            tui.send_keystroke(Keys.ESC, wait=0.5)
+
+        lines = tui.get_screen_dump()
+        screen = "\n".join(lines)
+        assert "Path:" in screen, (
+            "Release-volume flow in active archive mode blanked/crashed UI.\n"
+            f"{screen}"
+        )
+        assert screen.count("inside.txt") >= 1, (
+            "Active archive pane content disappeared after releasing inactive disk volume.\n"
+            f"{screen}"
+        )
+        _assert_split_column_continuous(lines, "archive active + inactive release")
     finally:
         tui.quit()
