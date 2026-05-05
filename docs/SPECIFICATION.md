@@ -76,14 +76,14 @@ The behavior of the `Enter` key on a directory node is governed by the configura
 *   **Selection Memory (Breadcrumbs):** When returning from File Mode to Tree Mode and later re-entering the same directory, the panel must restore the cursor to the **last highlighted file**.
 
 ### 3.3 Directory Memory Commands (Structural Controls)
-*   **`+` or `=` (Expand):** Shallow Log. Scans the files of the current directory and the names of immediate subdirectories. `=` is a convenience alias (unshifted `+` on most keyboard layouts).
+*   **`+` or `=` (Expand):** Expand using configured `TREEDEPTH` behavior for the node context. `=` is a convenience alias (unshifted `+` on most keyboard layouts).
 *   **`*` (Asterisk):** Deep Log. Recursively scans the entire branch.
-*   **`-` (Minus / Collapse):** State-based memory release. First press collapses an expanded node. Second press on a collapsed (but logged) node evicts the file list, sets the status indicator to `+`, and marks the directory as Unlogged. At root, use `-` to release logged contents.
+*   **`-` (Minus / Collapse):** Collapsing a directory node is a state reset for that node. When `-` collapses a currently expanded node, that subtree is released/unlogged. Re-expanding starts from normal configured depth behavior instead of restoring prior ad-hoc expansion history.
 
 ### 3.4 Arrow Key Navigation (Spatial Controls)
 Arrow keys provide spatial, cursor-oriented navigation through the tree. They are distinct from the structural `+`/`-`/`*` controls:
 *   **`→` (Right Arrow / Drill Down):** Progressive depth navigation. If the node is collapsed: expand one level. If already expanded: move cursor to the first child.
-*   **`←` (Left Arrow):** If the selected directory is expanded, collapse it. Otherwise, move selection to its parent directory. At the filesystem root, `Left` is a no-op.
+*   **`←` (Left Arrow):** If the selected directory is expanded, collapse it. Otherwise, move selection to its parent directory. Collapsing with `Left` is a state reset for that node; after reset at filesystem/archive root, further `Left` is a no-op.
 
 ### 3.5 Preview Mode (`F7`) Contract
 `F7` is the primary inspect mode for viewing file contents while retaining list-oriented navigation.
@@ -119,10 +119,10 @@ The `ytree` input system follows a layered model designed for high-speed interac
 | **Prompt Interactions** | Contextual shortcuts active only during text prompts. | Specialized editing and browsing tools. |
 
 ### 4.3 Key Behavioral Rules
-*   **The Minus Rule (`-`):** State-based memory release. First press collapses an expanded node; second press on a collapsed logged node evicts the file list (sets `+` status) and marks the directory as Unlogged.
+*   **The Minus Rule (`-`):** Collapsing an expanded node is a node-local state reset: the subtree is released/unlogged, and later expand does not restore prior ad-hoc expansion history.
 *   **The Right Arrow Rule (`→`):** Progressive drill-down. Expand collapsed → move to child. Always takes the user one step deeper into the tree.
-*   **The Root-Left Rule (`←` at root):** No-op. Root content release is handled by `-`, not by `Left`.
-*   **The Plus/Equals Rule (`+`/`=`):** Explicit one-level expand only. No cursor movement. `=` is the unshifted alias for `+`.
+*   **The Root-Left Rule (`←` at root):** `Left` on expanded root performs the same node-local reset (collapse + release/unlog). Further `Left` on already-unlogged root is a no-op.
+*   **The Plus/Equals Rule (`+`/`=`):** Explicit expand using configured `TREEDEPTH`. No cursor movement. `=` is the unshifted alias for `+`.
 *   **The Tree Marker Rule (`+` status):** Unlogged state is rendered only in the dedicated tree status margin column; directory names do not carry a `+` suffix.
 *   **The Volume Menu Rule (`K` menu):** Selecting the already-active volume preserves its current in-memory state (no implicit relog/reload).
 *   **The Explicit Relog Rule (`L` on current path):** Logging an already logged volume/path performs a fresh relog/reload of that volume state and reanchors selection at volume root.
