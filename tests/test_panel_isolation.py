@@ -2231,3 +2231,59 @@ def test_volume_menu_cancel_restores_file_footer_immediately(tmp_path, ytree_bin
     )
 
     tui.quit()
+
+
+def test_f8_release_volume_keeps_small_window_and_tab_safe(tmp_path, ytree_binary):
+    vol_a = tmp_path / "bug41_vol_a"
+    vol_b = tmp_path / "bug41_vol_b"
+    vol_a.mkdir()
+    vol_b.mkdir()
+    (vol_a / "a_only.txt").write_text("a\n", encoding="utf-8")
+    (vol_b / "b_only.txt").write_text("b\n", encoding="utf-8")
+
+    tui = YtreeTUI(
+        executable=ytree_binary,
+        cwd=str(vol_a),
+        args=[str(vol_b)],
+    )
+    time.sleep(1.0)
+
+    try:
+        tui.send_keystroke(Keys.F8, wait=0.5)
+
+        # Open loaded-volume menu and release selected volume.
+        tui.send_keystroke("k", wait=0.4)
+        assert tui.wait_for_content("Select Volume", timeout=1.0), _screen_text(tui)
+        tui.send_keystroke("d", wait=0.3)
+        tui.send_keystroke("y", wait=0.8)
+        if tui.wait_for_content("Select Volume", timeout=0.4):
+            tui.send_keystroke(Keys.ESC, wait=0.5)
+
+        lines = tui.get_screen_dump()
+        screen = "\n".join(lines)
+        assert "Path:" in screen, (
+            "UI header vanished after releasing a volume in split mode.\n"
+            f"{screen}"
+        )
+        assert screen.count("a_only.txt") + screen.count("b_only.txt") >= 2, (
+            "Small/file windows were not rendered in both split panes after "
+            "release-volume flow.\n"
+            f"{screen}"
+        )
+        _assert_split_column_continuous(lines, "after split release-volume flow")
+
+        # Regression: Tab after release must not blank/crash.
+        tui.send_keystroke(Keys.TAB, wait=0.6)
+        lines = tui.get_screen_dump()
+        screen = "\n".join(lines)
+        assert "Path:" in screen, (
+            "Tab after split release-volume flow blanked/crashed UI.\n"
+            f"{screen}"
+        )
+        assert screen.count("a_only.txt") + screen.count("b_only.txt") >= 2, (
+            "Tab after release-volume flow left one split pane blank.\n"
+            f"{screen}"
+        )
+        _assert_split_column_continuous(lines, "after split release + tab")
+    finally:
+        tui.quit()
