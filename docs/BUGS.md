@@ -20,7 +20,7 @@ Ordering policy (for all editors, including AI editors):
 *   **Description**: Cycling logged volumes can cause dir/file window mode/state changes in one volume to appear in the other, instead of each volume retaining its own last-used state.
 *   **Impact**: Breaks per-volume navigation predictability and increases wrong-target risk during fast volume switching workflows.
 *   **Remediation**: Preserve and restore per-volume dir/file window state independently when cycling volumes. Add regression coverage for repeated `<`/`>` transitions across volumes with different view states.
-*   **Status**: Confirmed.
+*   **Status**: Fixed.
 
 ### **BUG-39: `Write` Destination Ambiguity and Crash Path**
 *   **Description**: In `Write`, entering a plain filename (for example `report-2026-04-11.txt`) can be interpreted as a command execution path instead of file output, and user repro indicates this path can crash after command failure handling.
