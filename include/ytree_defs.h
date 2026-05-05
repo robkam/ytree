@@ -653,6 +653,7 @@ typedef struct {
 struct Volume {
   int id;
   int saved_tree_index;
+  int saved_focus;
   Statistic vol_stats;
   Statistic vol_disk_stats;
   DirEntryList *dir_entry_list;

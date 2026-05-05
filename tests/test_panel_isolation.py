@@ -540,6 +540,52 @@ def test_split_mirror_stays_on_active_volume_after_volume_cycle(tmp_path, ytree_
     tui.quit()
 
 
+def test_volume_cycle_does_not_leak_file_focus_between_volumes(tmp_path, ytree_binary):
+    vol_a = tmp_path / "bug40_vol_a"
+    vol_b = tmp_path / "bug40_vol_b"
+    vol_a.mkdir()
+    vol_b.mkdir()
+    (vol_a / "a0.txt").write_text("a0\n", encoding="utf-8")
+    (vol_b / "b0.txt").write_text("b0\n", encoding="utf-8")
+
+    tui = YtreeTUI(executable=ytree_binary, cwd=str(vol_a))
+    time.sleep(0.9)
+
+    try:
+        _assert_dir_mode_footer(tui, "Precondition failed: expected tree mode.")
+        assert "bug40_vol_a" in tui.get_screen_dump()[0], _screen_text(tui)
+
+        # Log second volume so cycling has two loaded targets.
+        tui.send_keystroke(Keys.LOG, wait=0.2)
+        tui.send_keystroke(Keys.CTRL_U + str(vol_b) + Keys.ENTER, wait=0.9)
+        assert "bug40_vol_b" in tui.get_screen_dump()[0], _screen_text(tui)
+        _assert_dir_mode_footer(tui, "Expected tree mode after logging volume B.")
+
+        # Return to volume A in tree mode.
+        tui.send_keystroke("<", wait=0.6)
+        assert "bug40_vol_a" in tui.get_screen_dump()[0], _screen_text(tui)
+        _assert_dir_mode_footer(tui, "Expected tree mode after cycling back to A.")
+
+        tui.send_keystroke(Keys.ENTER, wait=0.4)
+        assert "hex invert j compare" in _footer_text(tui), _screen_text(tui)
+
+        tui.send_keystroke("<", wait=0.8)
+        screen = _screen_text(tui)
+        footer = _footer_text(tui)
+
+        assert "bug40_vol_b" in tui.get_screen_dump()[0], (
+            "Volume cycle did not switch to target volume.\n"
+            f"{screen}"
+        )
+        assert "hex invert j compare" not in footer and "j tree" in footer, (
+            "Cycling volumes must not leak file-mode focus from one volume to "
+            "another.\n"
+            f"Footer:\n{footer}\n\nScreen:\n{screen}"
+        )
+    finally:
+        tui.quit()
+
+
 def test_inactive_dir_focus_survives_tab_away_and_back(tmp_path, ytree_binary):
     root = tmp_path / "inactive_dir_focus_survives_tab"
     root.mkdir()
