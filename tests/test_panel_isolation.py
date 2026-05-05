@@ -335,6 +335,56 @@ def test_left_arrow_collapse_clears_panel_local_tags(tmp_path, ytree_binary):
     )
 
 
+def _assert_collapse_resets_subtree_expansion(tmp_path, ytree_binary, key):
+    root = tmp_path / f"collapse_reset_subtree_{ord(key[0])}"
+    root.mkdir()
+    alpha = root / "alpha"
+    (alpha / "child" / "grand" / "great").mkdir(parents=True)
+
+    tui = YtreeTUI(executable=ytree_binary, cwd=str(root))
+    time.sleep(0.8)
+
+    try:
+        tui.send_keystroke(Keys.DOWN, wait=0.2)   # alpha
+        tui.send_keystroke(Keys.RIGHT, wait=0.4)  # show child
+        tui.send_keystroke(Keys.DOWN, wait=0.2)   # child
+        tui.send_keystroke(Keys.RIGHT, wait=0.4)  # show grand
+        tui.send_keystroke(Keys.DOWN, wait=0.2)   # grand
+        tui.send_keystroke(Keys.RIGHT, wait=0.4)  # show great
+
+        before = _screen_text(tui)
+        assert "great" in before, (
+            "Precondition failed: deep expansion should reveal great.\n"
+            f"{before}"
+        )
+
+        tui.send_keystroke(Keys.UP, wait=0.2)     # child
+        tui.send_keystroke(Keys.UP, wait=0.2)     # alpha
+        tui.send_keystroke(key, wait=0.4)         # collapse/reset alpha
+        tui.send_keystroke(Keys.RIGHT, wait=0.4)  # re-expand alpha
+
+        after = _screen_text(tui)
+        assert "child" in after, (
+            "Re-expand should restore immediate child visibility.\n"
+            f"{after}"
+        )
+        assert "grand" not in after and "great" not in after, (
+            "Collapse with Left or '-' must reset subtree expansion state for"
+            " that node.\n"
+            f"{after}"
+        )
+    finally:
+        tui.quit()
+
+
+def test_minus_collapse_resets_subtree_expansion_state(tmp_path, ytree_binary):
+    _assert_collapse_resets_subtree_expansion(tmp_path, ytree_binary, "-")
+
+
+def test_left_collapse_resets_subtree_expansion_state(tmp_path, ytree_binary):
+    _assert_collapse_resets_subtree_expansion(tmp_path, ytree_binary, Keys.LEFT)
+
+
 def test_split_from_dir_immediately_renders_peer_panel(tmp_path, ytree_binary):
     root = tmp_path / "split_dir_immediate_render"
     root.mkdir()

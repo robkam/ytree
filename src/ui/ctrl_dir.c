@@ -724,17 +724,6 @@ extern int HandleDirWindow(ViewContext *ctx, const DirEntry *start_dir_entry) {
       DirNav_MoveEnd(ctx, &dir_entry, ctx->active);
       break;
     case ACTION_MOVE_RIGHT:
-      if (dir_entry->up_tree == NULL && dir_entry->unlogged_flag) {
-        (void)snprintf(new_log_path, sizeof(new_log_path), "%s",
-                       s->log_path);
-        if (LogDisk(ctx, ctx->active, new_log_path) == 0) {
-          s = &ctx->active->vol->vol_stats;
-          dir_entry = ResolveActiveDirEntry(ctx, s);
-          need_dsp_help = TRUE;
-        }
-        break;
-      }
-
       if (!dir_entry->not_scanned && dir_entry->sub_tree != NULL) {
         if (DirOps_SelectVisibleDirAndRefresh(ctx, ctx->active,
                                               dir_entry->sub_tree,
@@ -759,7 +748,13 @@ extern int HandleDirWindow(ViewContext *ctx, const DirEntry *start_dir_entry) {
       break;
     case ACTION_MOVE_LEFT:
       if (dir_entry->up_tree == NULL) {
-        /* Root boundary: left is a no-op. Use '-' to release root contents. */
+        if (!dir_entry->not_scanned && dir_entry->sub_tree != NULL) {
+          HandleCollapseSubTree(ctx, dir_entry, &need_dsp_help, ctx->active);
+        } else if (!dir_entry->unlogged_flag) {
+          HandleUnreadSubTree(ctx, dir_entry, de_ptr, &need_dsp_help,
+                              ctx->active);
+        }
+        /* At root, LEFT collapse is a state reset; once reset, LEFT is no-op. */
         break;
       }
 

@@ -128,7 +128,7 @@ void HandlePlus(ViewContext *ctx, DirEntry *dir_entry, DirEntry *de_ptr,
       s->log_mode != ARCHIVE_MODE) {
     return;
   }
-  if (!dir_entry->not_scanned)
+  if (!dir_entry || !dir_entry->not_scanned)
     return;
 
   CaptureInactiveFallback(ctx, p, NULL, &inactive, &inactive_target);
@@ -153,9 +153,16 @@ void HandlePlus(ViewContext *ctx, DirEntry *dir_entry, DirEntry *de_ptr,
   }
 
   {
+    int read_depth = 1;
+
     SuspendClock(ctx); /* Suspend clock before scanning */
     GetPath(dir_entry, new_log_path);
-    ReadTree(ctx, dir_entry, new_log_path, 1, s, Dir_Progress, NULL);
+    if (dir_entry->unlogged_flag) {
+      read_depth = strtol(TREEDEPTH, NULL, 0);
+      if (read_depth < 0)
+        read_depth = 0;
+    }
+    ReadTree(ctx, dir_entry, new_log_path, read_depth, s, Dir_Progress, NULL);
     ApplyFilter(dir_entry, s);
     InitClock(ctx); /* Resume clock after scanning */
 
@@ -546,9 +553,11 @@ static void CaptureInactiveFallback(ViewContext *ctx, YtreePanel *p,
 
 void HandleCollapseSubTree(ViewContext *ctx, DirEntry *dir_entry,
                            BOOL *need_dsp_help, YtreePanel *p) {
-  const Statistic *s = &p->vol->vol_stats;
+  Statistic *s = &p->vol->vol_stats;
   YtreePanel *inactive = NULL;
   DirEntry *inactive_fallback = NULL;
+  DirEntry *de_ptr;
+  FileEntry *fe_ptr, *next_fe_ptr;
 
   if (!dir_entry || dir_entry->not_scanned || dir_entry->sub_tree == NULL)
     return;
@@ -559,8 +568,16 @@ void HandleCollapseSubTree(ViewContext *ctx, DirEntry *dir_entry,
   if (ctx->right && ctx->right->vol == p->vol)
     PanelTags_PruneUnderDir(ctx->right, dir_entry);
 
+  for (de_ptr = dir_entry->sub_tree; de_ptr; de_ptr = de_ptr->next) {
+    UnReadTree(ctx, de_ptr, s);
+  }
+  for (fe_ptr = dir_entry->file; fe_ptr; fe_ptr = next_fe_ptr) {
+    next_fe_ptr = fe_ptr->next;
+    RemoveFile(ctx, fe_ptr, s);
+  }
+
   dir_entry->not_scanned = TRUE;
-  dir_entry->unlogged_flag = FALSE;
+  dir_entry->unlogged_flag = TRUE;
   BuildDirEntryList(ctx, p->vol, &p->current_dir_entry);
   BuildDirEntryList(ctx, p->vol, &p->current_dir_entry);
 
@@ -573,6 +590,7 @@ void HandleCollapseSubTree(ViewContext *ctx, DirEntry *dir_entry,
               p->disp_begin_pos + p->cursor_pos, TRUE);
   DisplayFileWindow(ctx, p, dir_entry);
   DisplayAvailBytes(ctx, s);
+  RecalculateSysStats(ctx, s);
   DisplayDiskStatistic(ctx, s);
   UpdateStatsPanel(ctx, dir_entry, s);
   *need_dsp_help = TRUE;
