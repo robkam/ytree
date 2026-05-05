@@ -2285,5 +2285,19 @@ def test_f8_release_volume_keeps_small_window_and_tab_safe(tmp_path, ytree_binar
             f"{screen}"
         )
         _assert_split_column_continuous(lines, "after split release + tab")
+
+        tui.send_keystroke(Keys.TAB, wait=0.4)
+        tui.send_keystroke(Keys.TAB, wait=0.4)
+        lines = tui.get_screen_dump()
+        screen = "\n".join(lines)
+        assert "Path:" in screen, (
+            "Repeated tabbing after split release-volume flow corrupted UI.\n"
+            f"{screen}"
+        )
+        assert screen.count("a_only.txt") + screen.count("b_only.txt") >= 2, (
+            "Repeated tabbing after split release-volume flow left a pane blank.\n"
+            f"{screen}"
+        )
+        _assert_split_column_continuous(lines, "after split release + repeated tab")
     finally:
         tui.quit()
