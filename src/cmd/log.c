@@ -116,6 +116,10 @@ int LogDisk(ViewContext *ctx, YtreePanel *panel, char *path) {
   if (ctx->hook_suspend_clock)
     ctx->hook_suspend_clock(ctx); /* Suspend clock during critical operations */
 
+  if (panel->vol != NULL) {
+    panel->vol->saved_focus = panel->saved_focus;
+  }
+
   /* Keep per-volume tree selection before switching away. */
   SavePanelTreeSelection(panel);
 
@@ -177,6 +181,7 @@ int LogDisk(ViewContext *ctx, YtreePanel *panel, char *path) {
       } else {
         panel->vol = found_vol;
         s = &panel->vol->vol_stats;
+        panel->saved_focus = panel->vol->saved_focus;
         ctx->global_search_term[0] = '\0';
         ctx->view_mode = panel->vol->vol_stats.log_mode;
 
@@ -320,6 +325,7 @@ int LogDisk(ViewContext *ctx, YtreePanel *panel, char *path) {
   /* Success */
   panel->vol = loaded_vol;
   s = &panel->vol->vol_stats;
+  panel->saved_focus = panel->vol->saved_focus;
   ctx->global_search_term[0] = '\0';
   ctx->view_mode = s->log_mode;
 
