@@ -44,7 +44,7 @@ jobs:
         sudo apt-get install -y ccache gitleaks libncurses-dev libtinfo-dev libreadline-dev libarchive-dev libarchive-tools pandoc clang-tidy cppcheck clang-tools bear valgrind
 
     - name: Restore ccache
-      uses: actions/cache@v4
+      uses: actions/cache@v5
       with:
         path: ${{ github.workspace }}/.ccache
         key: ${{ runner.os }}-ccache-${{ github.workflow }}-qa-all-${{ hashFiles('Makefile', '.github/workflows/full-qa.yml') }}
@@ -127,7 +127,7 @@ jobs:
         sudo apt-get install -y ccache libncurses-dev libtinfo-dev libreadline-dev libarchive-dev libarchive-tools pandoc clang
 
     - name: Restore ccache
-      uses: actions/cache@v4
+      uses: actions/cache@v5
       with:
         path: ${{ github.workspace }}/.ccache
         key: ${{ runner.os }}-ccache-${{ github.workflow }}-qa-sanitize-${{ hashFiles('Makefile', '.github/workflows/full-qa.yml') }}
