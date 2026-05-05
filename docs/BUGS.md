@@ -14,7 +14,7 @@ Ordering policy (for all editors, including AI editors):
 *   **Description**: In `F8` split mode, after logging two volumes and releasing one, the small window can go blank, separator line can disappear, inactive panel can blank, and tabbing to the inactive panel can trigger a segmentation fault.
 *   **Impact**: Critical stability and data-safety risk (crash), plus severe UI corruption in a core split-panel workflow.
 *   **Remediation**: Harden split-panel volume-release lifecycle so panel/window ownership and active/inactive bindings are always valid after release. Add focused regression coverage for `F8` with multi-volume log/release and `Tab` switching after release.
-*   **Status**: Confirmed.
+*   **Status**: Fixed.
 
 ### **BUG-40: Cycle-Volumes (`<`/`>`, `,`/`.`) Leaks Dir/File View State Across Volumes**
 *   **Description**: Cycling logged volumes can cause dir/file window mode/state changes in one volume to appear in the other, instead of each volume retaining its own last-used state.
