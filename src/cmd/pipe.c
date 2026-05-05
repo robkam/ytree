@@ -7,16 +7,171 @@
 
 #include "ytree_cmd.h"
 #include "ytree_fs.h"
+#include <errno.h>
 #include <fcntl.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
+#include <sys/types.h>
+#include <sys/wait.h>
 #include <unistd.h>
+
+#define PIPE_ARGV_MAX 64
+
+static int ParsePipeCommand(char *command_line, char **argv, size_t argv_len) {
+  size_t argc = 0;
+  char *p = command_line;
+
+  if (!command_line || !argv || argv_len < 2) {
+    return -1;
+  }
+
+  while (*p) {
+    while (*p == ' ' || *p == '\t') {
+      p++;
+    }
+    if (!*p) {
+      break;
+    }
+    if (argc + 1 >= argv_len) {
+      return -1;
+    }
+    argv[argc++] = p;
+    while (*p && *p != ' ' && *p != '\t') {
+      p++;
+    }
+    if (*p) {
+      *p = '\0';
+      p++;
+    }
+  }
+
+  if (argc == 0) {
+    return -1;
+  }
+
+  argv[argc] = NULL;
+  return 0;
+}
+
+static int OpenPipeWriter(const char *pipe_command, FILE **pipe_fp_out,
+                          pid_t *child_pid_out) {
+  int pipefd[2];
+  int copied_len;
+  FILE *pipe_fp;
+  pid_t child_pid;
+  size_t argc;
+  size_t i;
+  char command_line[PATH_LENGTH + 1];
+  char *argv[PIPE_ARGV_MAX];
+  char *redirect_path = NULL;
+  BOOL redirect_append = FALSE;
+
+  if (!pipe_command || !pipe_fp_out || !child_pid_out) {
+    return -1;
+  }
+
+  copied_len = snprintf(command_line, sizeof(command_line), "%s", pipe_command);
+  if (copied_len < 0 || (size_t)copied_len >= sizeof(command_line)) {
+    errno = EINVAL;
+    return -1;
+  }
+  if (ParsePipeCommand(command_line, argv, PIPE_ARGV_MAX) != 0) {
+    errno = EINVAL;
+    return -1;
+  }
+  for (argc = 0; argc < PIPE_ARGV_MAX && argv[argc]; argc++) {
+  }
+  for (i = 0; i < argc; i++) {
+    if (!strcmp(argv[i], ">") || !strcmp(argv[i], ">>")) {
+      if (i + 1 >= argc) {
+        errno = EINVAL;
+        return -1;
+      }
+      redirect_path = argv[i + 1];
+      redirect_append = (argv[i][1] == '>');
+      argv[i] = NULL;
+      argc = i;
+      break;
+    }
+  }
+  if (argc == 0 || !argv[0]) {
+    errno = EINVAL;
+    return -1;
+  }
+
+  if (pipe(pipefd) != 0) {
+    return -1;
+  }
+
+  child_pid = fork();
+  if (child_pid == -1) {
+    close(pipefd[0]);
+    close(pipefd[1]);
+    return -1;
+  }
+
+  if (child_pid == 0) {
+    if (dup2(pipefd[0], STDIN_FILENO) == -1) {
+      _exit(127);
+    }
+    if (redirect_path) {
+      int out_fd;
+      int flags = O_WRONLY | O_CREAT | (redirect_append ? O_APPEND : O_TRUNC);
+      out_fd = open(redirect_path, flags, 0666);
+      if (out_fd == -1) {
+        _exit(127);
+      }
+      if (dup2(out_fd, STDOUT_FILENO) == -1) {
+        close(out_fd);
+        _exit(127);
+      }
+      close(out_fd);
+    }
+    close(pipefd[0]);
+    close(pipefd[1]);
+    execvp(argv[0], argv);
+    _exit(127);
+  }
+
+  close(pipefd[0]);
+  pipe_fp = fdopen(pipefd[1], "w");
+  if (!pipe_fp) {
+    close(pipefd[1]);
+    (void)waitpid(child_pid, NULL, 0);
+    return -1;
+  }
+
+  *pipe_fp_out = pipe_fp;
+  *child_pid_out = child_pid;
+  return 0;
+}
+
+static int ClosePipeWriter(FILE *pipe_fp, pid_t child_pid) {
+  int wait_status;
+  int close_status;
+
+  if (!pipe_fp) {
+    return -1;
+  }
+
+  close_status = fclose(pipe_fp);
+  do {
+    wait_status = waitpid(child_pid, NULL, 0);
+  } while (wait_status == -1 && errno == EINTR);
+
+  if (close_status != 0 || wait_status == -1) {
+    return -1;
+  }
+  return 0;
+}
 
 int Pipe(ViewContext *ctx, DirEntry *dir_entry, FileEntry *file_entry,
          char *pipe_command) {
   char file_name_path[PATH_LENGTH + 1];
   int result = -1;
-  FILE *pipe_fp;
+  FILE *pipe_fp = NULL;
+  pid_t child_pid = -1;
   char path[PATH_LENGTH + 1];
   int start_dir_fd;
 
@@ -66,8 +221,7 @@ int Pipe(ViewContext *ctx, DirEntry *dir_entry, FileEntry *file_entry,
   if (ctx->hook_suspend_clock)
     ctx->hook_suspend_clock(ctx);
 
-  pipe_fp = popen(pipe_command, "w");
-  if (pipe_fp == NULL) {
+  if (OpenPipeWriter(pipe_command, &pipe_fp, &child_pid) != 0) {
     /* Restore curses mode */
     if (ctx->hook_init_clock)
       ctx->hook_init_clock(ctx);
@@ -102,7 +256,7 @@ int Pipe(ViewContext *ctx, DirEntry *dir_entry, FileEntry *file_entry,
       ExtractArchiveEntry(archive, file_name_path, fileno(pipe_fp), NULL, NULL);
 #endif
     }
-    result = pclose(pipe_fp);
+    result = ClosePipeWriter(pipe_fp, child_pid);
 
     /* Wait for user to see output */
     if (ctx->hook_hit_return_to_continue)
@@ -126,10 +280,11 @@ int Pipe(ViewContext *ctx, DirEntry *dir_entry, FileEntry *file_entry,
 
 int PipeDirectory(ViewContext *ctx, DirEntry *dir_entry, char *pipe_command) {
   char path[PATH_LENGTH + 1];
-  FILE *pipe_fp;
+  FILE *pipe_fp = NULL;
   FileEntry *fe;
   int result = -1;
   int start_dir_fd;
+  pid_t child_pid = -1;
 
   (void)GetPath(dir_entry, path);
 
@@ -151,7 +306,7 @@ int PipeDirectory(ViewContext *ctx, DirEntry *dir_entry, char *pipe_command) {
   if (ctx->hook_suspend_clock)
     ctx->hook_suspend_clock(ctx);
 
-  if ((pipe_fp = popen(pipe_command, "w")) == NULL) {
+  if (OpenPipeWriter(pipe_command, &pipe_fp, &child_pid) != 0) {
     /* Restore curses mode */
     if (ctx->hook_init_clock)
       ctx->hook_init_clock(ctx);
@@ -175,7 +330,9 @@ int PipeDirectory(ViewContext *ctx, DirEntry *dir_entry, char *pipe_command) {
     }
   }
 
-  pclose(pipe_fp);
+  if (ClosePipeWriter(pipe_fp, child_pid) != 0) {
+    goto PIPE_CLOSE_FAILURE;
+  }
 
   /* Wait for user to see output */
   if (ctx->hook_hit_return_to_continue)
@@ -197,6 +354,21 @@ int PipeDirectory(ViewContext *ctx, DirEntry *dir_entry, char *pipe_command) {
   close(start_dir_fd);
 
   return (result);
+
+PIPE_CLOSE_FAILURE:
+  /* Restore curses mode */
+  if (ctx->hook_init_clock)
+    ctx->hook_init_clock(ctx);
+  touchwin(stdscr);
+  wnoutrefresh(stdscr);
+  if (ctx->hook_refresh_ui)
+    ctx->hook_refresh_ui();
+
+  /* Restore CWD */
+  if (fchdir(start_dir_fd) == -1) {
+  }
+  close(start_dir_fd);
+  return -1;
 }
 
 /* GetPipeCommand moved to UI layer */

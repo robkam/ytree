@@ -180,12 +180,10 @@ int MoveFile(ViewContext *ctx, FileEntry *fe_ptr, const char *to_file,
           target_stats_ptr ? target_stats_ptr : s, choice_cb);
     }
   } else {
-    /* use access */
-    /*------------*/
+    int existing_fd = open(to_path, O_RDONLY);
+    if (existing_fd >= 0) {
+      close(existing_fd);
 
-    if (!access(to_path, F_OK)) {
-      /* file exists */
-      /*-------------*/
       if (!(overwrite_mode && *overwrite_mode == CONFLICT_ALL) && cb) {
         conflict_res = cb(ctx, from_path, to_path, overwrite_mode);
         if (conflict_res == CONFLICT_ABORT) {
@@ -202,6 +200,8 @@ int MoveFile(ViewContext *ctx, FileEntry *fe_ptr, const char *to_file,
         /* MESSAGE( "Can't unlink*\"%s\"*%s", to_path, strerror(errno) ); */
         ESCAPE;
       }
+    } else if (errno != ENOENT) {
+      ESCAPE;
     }
   }
 

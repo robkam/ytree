@@ -18,7 +18,6 @@ int MakeFile(ViewContext *ctx, DirEntry *dir_entry, const char *name,
   char parent_path[PATH_LENGTH + 1];
   char buffer[PATH_LENGTH + 1];
   int result = -1;
-  struct stat stat_struct;
 
   DEBUG_LOG("ENTER MakeFile: file_name=%s", name);
 
@@ -38,15 +37,17 @@ int MakeFile(ViewContext *ctx, DirEntry *dir_entry, const char *name,
 
   DEBUG_LOG("MakeFile: path=%s", buffer);
 
-  if (stat(buffer, &stat_struct) == 0) {
-    DEBUG_LOG("MakeFile: File already exists!");
-    result = 1;
-  } else {
+  {
     int fd;
     fd = open(buffer, O_CREAT | O_EXCL | O_WRONLY, 0644);
     if (fd == -1) {
-      DEBUG_LOG("MakeFile: open failed, errno=%d (%s)", errno, strerror(errno));
-      result = -1;
+      if (errno == EEXIST) {
+        DEBUG_LOG("MakeFile: File already exists!");
+        result = 1;
+      } else {
+        DEBUG_LOG("MakeFile: open failed, errno=%d (%s)", errno, strerror(errno));
+        result = -1;
+      }
     } else {
       DEBUG_LOG("MakeFile: successfully created file");
       close(fd);

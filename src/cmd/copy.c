@@ -479,12 +479,10 @@ int CopyFile(ViewContext *ctx, Statistic *statistic_ptr, FileEntry *fe_ptr,
           target_tree ? target_stats : &ctx->active->vol->vol_stats, choice_cb);
     }
   } else {
-    /* use access */
-    /*------------*/
+    int existing_fd = open(to_path, O_RDONLY);
+    if (existing_fd >= 0) {
+      close(existing_fd);
 
-    if (!access(to_path, F_OK)) {
-      /* file exists */
-      /*-------------*/
       if (!(overwrite_mode && *overwrite_mode == CONFLICT_ALL) && cb) {
         conflict_res = cb(ctx, from_path, to_path, overwrite_mode);
         if (conflict_res == CONFLICT_ABORT) {
@@ -502,6 +500,8 @@ int CopyFile(ViewContext *ctx, Statistic *statistic_ptr, FileEntry *fe_ptr,
         /* MESSAGE( "Can't unlink*\"%s\"*%s", to_path, strerror(errno) ); */
         ESCAPE;
       }
+    } else if (errno != ENOENT) {
+      ESCAPE;
     }
   }
 
