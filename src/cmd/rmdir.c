@@ -77,9 +77,7 @@ int DeleteDirectory(ViewContext *ctx, DirEntry *dir_entry,
                                     "YN\033") == 'Y') {
     (void)GetPath(dir_entry, buffer);
 
-    if (access(buffer, W_OK)) {
-      return -1;
-    } else if (rmdir(buffer)) {
+    if (rmdir(buffer)) {
       return -1;
     } else {
       /* Directory geloescht
@@ -138,10 +136,6 @@ static int DeleteSingleDirectory(ViewContext *ctx, DirEntry *dir_entry,
   int force = 1;
 
   (void)GetPath(dir_entry, buffer);
-
-  if (access(buffer, W_OK)) {
-    return -1;
-  }
 
   for (fe_ptr = dir_entry->file; fe_ptr; fe_ptr = next_fe_ptr) {
     next_fe_ptr = fe_ptr->next;

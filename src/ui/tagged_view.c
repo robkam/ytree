@@ -9,6 +9,7 @@
 #include "ytree_fs.h"
 #include "ytree_ui.h"
 #include <dirent.h>
+#include <errno.h>
 #include <libgen.h>
 #include <string.h>
 #include <sys/stat.h>
@@ -58,6 +59,7 @@ int recursive_rmdir(const char *path) {
   DIR *d = opendir(path);
   const struct dirent *entry;
   char fullpath[PATH_LENGTH];
+  int written;
 
   if (!d)
     return -1;
@@ -65,13 +67,22 @@ int recursive_rmdir(const char *path) {
   while ((entry = readdir(d))) {
     if (!strcmp(entry->d_name, ".") || !strcmp(entry->d_name, ".."))
       continue;
-    snprintf(fullpath, sizeof(fullpath), "%s/%s", path, entry->d_name);
-    struct stat st;
-    if (stat(fullpath, &st) == 0) {
-      if (S_ISDIR(st.st_mode)) {
-        recursive_rmdir(fullpath);
+    written = snprintf(fullpath, sizeof(fullpath), "%s/%s", path, entry->d_name);
+    if (written < 0 || (size_t)written >= sizeof(fullpath)) {
+      closedir(d);
+      errno = ENAMETOOLONG;
+      return -1;
+    }
+
+    if (recursive_rmdir(fullpath) != 0) {
+      if (errno == ENOTDIR || errno == EINVAL) {
+        if (unlink(fullpath) != 0) {
+          closedir(d);
+          return -1;
+        }
       } else {
-        unlink(fullpath);
+        closedir(d);
+        return -1;
       }
     }
   }

@@ -724,13 +724,17 @@ int InternalView(ViewContext *ctx, char *file_path,
   ctx->viewer.hexoffset =
       (!strcmp((GetProfileValue)(ctx, "HEXEDITOFFSET"), "HEX")) ? TRUE : FALSE;
 
-  if (stat(file_path, &fdstat) != 0)
-    return -1;
-  if (!(S_ISREG(fdstat.st_mode)) || S_ISBLK(fdstat.st_mode))
-    return -1;
   fd = open(file_path, O_RDONLY);
   if (fd == -1)
     return -1;
+  if (fstat(fd, &fdstat) != 0) {
+    close(fd);
+    return -1;
+  }
+  if (!(S_ISREG(fdstat.st_mode)) || S_ISBLK(fdstat.st_mode)) {
+    close(fd);
+    return -1;
+  }
   SetupViewWindow(ctx, file_path, geometry);
   current_line = 1;
   update_all_lines(ctx, ctx->viewer.view, ctx->viewer.wlines - 1);
