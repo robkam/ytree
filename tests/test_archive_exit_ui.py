@@ -10,8 +10,7 @@ from ytree_keys import Keys
 
 
 def _send_left_arrow(tui, wait=0.4):
-    # Use CSI-left to assert ACTION_MOVE_LEFT behavior explicitly.
-    tui.send_keystroke("\033[D", wait=wait)
+    tui.send_keystroke(Keys.LEFT, wait=wait)
 
 
 def _create_archive(root, archive_name="sample.tar"):
@@ -61,8 +60,8 @@ def _assert_margin_plus_marker(screen_rows, dir_name, expect_slash=False):
         )
 
 
-def test_archive_left_at_root_does_not_exit_archive(tmp_path, ytree_binary):
-    """LEFT is collapse-only and must not exit archive mode at archive root."""
+def test_archive_left_at_root_collapses_once_then_noop(tmp_path, ytree_binary):
+    """At archive root: first LEFT collapses children, second LEFT is a no-op."""
     root = tmp_path / "archive_exit_root"
     root.mkdir()
 
@@ -79,17 +78,35 @@ def test_archive_left_at_root_does_not_exit_archive(tmp_path, ytree_binary):
     tui.send_keystroke(Keys.ENTER, wait=0.9)
     assert tui.wait_for_content("ARCHIVE", timeout=3.0), _screen_text(tui)
 
-    # LEFT at archive root must not exit archive mode.
+    before_left = "\n".join(tui.get_screen_dump())
+    assert "nested" in before_left, (
+        "Precondition failed: archive root should show nested child row before LEFT.\n"
+        f"Screen:\n{before_left}"
+    )
+
+    # First LEFT at archive root collapses one level but does not exit archive mode.
     _send_left_arrow(tui, wait=0.8)
 
-    screen = "\n".join(tui.get_screen_dump())
-    assert "ARCHIVE" in screen, (
-        "LEFT at archive root must not exit archive mode.\n"
-        f"Screen:\n{screen}"
+    after_first_left = "\n".join(tui.get_screen_dump())
+    assert "ARCHIVE" in after_first_left, (
+        "First LEFT at archive root must not exit archive mode.\n"
+        f"Screen:\n{after_first_left}"
     )
-    assert "inside_dir" in screen, (
-        "LEFT at archive root should keep archive tree visible.\n"
-        f"Screen:\n{screen}"
+    assert "nested" not in after_first_left, (
+        "First LEFT at archive root should collapse child rows.\n"
+        f"Screen:\n{after_first_left}"
+    )
+
+    # Second LEFT at already-collapsed archive root is a no-op.
+    _send_left_arrow(tui, wait=0.8)
+    after_second_left = "\n".join(tui.get_screen_dump())
+    assert "ARCHIVE" in after_second_left, (
+        "Second LEFT at collapsed archive root must stay in archive mode.\n"
+        f"Screen:\n{after_second_left}"
+    )
+    assert "nested" not in after_second_left, (
+        "Second LEFT at collapsed archive root should remain collapsed.\n"
+        f"Screen:\n{after_second_left}"
     )
 
     tui.quit()
@@ -156,6 +173,86 @@ def test_archive_left_non_root_does_not_exit_immediately(tmp_path, ytree_binary)
     )
 
     tui.quit()
+
+
+def test_fs_left_at_root_collapses_once_then_noop(tmp_path, ytree_binary):
+    root = tmp_path / "fs_left_root_collapse_once"
+    root.mkdir()
+    (root / "child_a").mkdir()
+    (root / "child_b").mkdir()
+
+    tui = YtreeTUI(executable=ytree_binary, cwd=str(root))
+    time.sleep(0.8)
+
+    try:
+        before_left = "\n".join(tui.get_screen_dump())
+        assert "child_a" in before_left or "child_b" in before_left, (
+            "Precondition failed: filesystem root should show child rows before LEFT.\n"
+            f"Screen:\n{before_left}"
+        )
+
+        _send_left_arrow(tui, wait=0.6)
+        after_first_left = "\n".join(tui.get_screen_dump())
+        assert "child_a" not in after_first_left and "child_b" not in after_first_left, (
+            "First LEFT at filesystem root should collapse child rows.\n"
+            f"Screen:\n{after_first_left}"
+        )
+
+        _send_left_arrow(tui, wait=0.6)
+        after_second_left = "\n".join(tui.get_screen_dump())
+        assert "child_a" not in after_second_left and "child_b" not in after_second_left, (
+            "Second LEFT at collapsed filesystem root should keep children collapsed.\n"
+            f"Screen:\n{after_second_left}"
+        )
+        assert "Unlogged" in after_second_left, (
+            "Second LEFT at collapsed filesystem root should keep root unlogged.\n"
+            f"Screen:\n{after_second_left}"
+        )
+    finally:
+        tui.quit()
+
+
+def test_fs_root_left_then_right_does_not_restore_deep_state(tmp_path, ytree_binary):
+    root = tmp_path / "fs_root_left_right_reset"
+    root.mkdir()
+    (root / "alpha" / "child" / "grand").mkdir(parents=True)
+
+    tui = YtreeTUI(executable=ytree_binary, cwd=str(root))
+    time.sleep(0.8)
+
+    try:
+        tui.send_keystroke(Keys.DOWN, wait=0.2)   # alpha
+        tui.send_keystroke(Keys.RIGHT, wait=0.4)  # expand alpha
+        tui.send_keystroke(Keys.DOWN, wait=0.2)   # child
+        tui.send_keystroke(Keys.RIGHT, wait=0.4)  # expand child
+        tui.send_keystroke(Keys.DOWN, wait=0.2)   # grand
+
+        before_reset = "\n".join(tui.get_screen_dump())
+        assert "grand" in before_reset, (
+            "Precondition failed: expected deep expansion before reset.\n"
+            f"Screen:\n{before_reset}"
+        )
+
+        tui.send_keystroke(Keys.UP, wait=0.2)
+        tui.send_keystroke(Keys.UP, wait=0.2)
+        tui.send_keystroke(Keys.UP, wait=0.2)     # root
+        _send_left_arrow(tui, wait=0.6)           # reset root
+        tui.send_keystroke(Keys.RIGHT, wait=0.6)  # expand root again
+
+        after_lines = tui.get_screen_dump()
+        after_reexpand = "\n".join(after_lines)
+        tree_and_footer = "\n".join(after_lines[1:])
+        assert "alpha" in after_reexpand, (
+            "Root re-expand should show immediate child directories.\n"
+            f"Screen:\n{after_reexpand}"
+        )
+        assert " mqchild" not in tree_and_footer and " mqgrand" not in tree_and_footer, (
+            "Root LEFT reset must discard prior ad-hoc deep expansion; RIGHT must"
+            " not restore it.\n"
+            f"Screen:\n{after_reexpand}"
+        )
+    finally:
+        tui.quit()
 
 
 def test_archive_root_backslash_exits_to_parent_file_focus(tmp_path, ytree_binary):
@@ -452,7 +549,7 @@ def test_enter_on_placeholder_dir_logs_and_reveals_first_level_only(
         tui.quit()
 
 
-def test_root_minus_resets_tree_and_right_relogs_to_profile_depth(
+def test_root_left_resets_tree_and_right_relogs_to_profile_depth(
     tmp_path, ytree_binary
 ):
     root = tmp_path / "root_minus_right_profile_depth"
@@ -485,34 +582,23 @@ def test_root_minus_resets_tree_and_right_relogs_to_profile_depth(
                 break
             tui.send_keystroke(Keys.LEFT, wait=0.3)
 
-        before_rows = tui.get_screen_dump()
-        at_root_before = "\n".join(before_rows)
+        at_root_before = _screen_text(tui)
         assert str(root) in tui.get_screen_dump()[0], (
-            "Precondition failed: expected selection at root before root-left "
-            "no-op assertion.\n"
+            "Precondition failed: expected selection at root before root-left reset.\n"
             f"{at_root_before}"
         )
 
-        tui.send_keystroke(Keys.LEFT, wait=0.5)
-        after_rows = tui.get_screen_dump()
-        at_root_after = "\n".join(after_rows)
-        assert "\n".join(after_rows[1:]) == "\n".join(before_rows[1:]), (
-            "Left at root should be a no-op; use '-' to release root contents.\n"
-            f"Before:\n{at_root_before}\n\nAfter:\n{at_root_after}"
-        )
-
-        tui.send_keystroke("-", wait=0.7)
-        tui.send_keystroke("-", wait=0.7)
-        after_minus = _screen_text(tui)
-        assert "deeper" not in after_minus, (
-            "Root '-' release should clear expanded descendant state.\n"
-            f"{after_minus}"
+        tui.send_keystroke(Keys.LEFT, wait=0.7)
+        after_left = _screen_text(tui)
+        assert "deeper" not in after_left, (
+            "Left collapse at root should reset/release expanded descendant state.\n"
+            f"{after_left}"
         )
 
         tui.send_keystroke(Keys.RIGHT, wait=0.9)
         after_right = _screen_text(tui)
         assert "src/" in after_right, (
-            "Right on reset root should relog to configured depth and show "
+            "Right on reset root should relog to configured TREEDEPTH and show "
             "first-level directory placeholders.\n"
             f"{after_right}"
         )
