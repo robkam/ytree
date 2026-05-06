@@ -53,6 +53,7 @@ ytree.1.*.gz
 .history/
 .ytree-hst
 .ytree-*.chdir
+.serena/
 
 # Secrets and Local Environment
 *.env
