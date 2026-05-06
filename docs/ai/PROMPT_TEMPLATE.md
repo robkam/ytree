@@ -11,6 +11,7 @@ Process requirements:
 2) Create and use branch:
    - git checkout -b codex/mixed-features-fixes <type>/<short-task-name>
    - use a suitable type (e.g. fix, feat, chore, docs)
+   - never push directly to main; all pushes must go to the branch and PR flow
 
 3) Before implementing:
    - discuss the task with me first
@@ -22,6 +23,7 @@ Process requirements:
    - keep scope tight and avoid unrelated edits
 
 5) Validation:
+   - before first push, run a quick local gate (build + targeted smoke/tests)
    - run targeted tests as needed
    - after task completion, run full gate:
      source .venv/bin/activate
@@ -34,7 +36,10 @@ Process requirements:
      git commit --amend --no-edit
    - keep branch history workable; final merge will be rebase/ff-friendly
 
-7) Push + PR-ready summary:
+7) Push + draft PR + PR-ready summary:
+   - open a draft PR early after first push (it may be red while iterating)
+   - do not request reviewers until full gate is green
+   - convert to Ready only after posting full QA evidence in the PR
    - what changed (by file)
    - test evidence (commands + outcomes)
    - risks/regressions to watch
