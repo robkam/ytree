@@ -51,3 +51,11 @@ For common governance edits, use these canonical targets:
 | Persona role boundary or posture | `.agent/rules/<persona>.md` | `.ai/skills/*` |
 | Repeatable operational checklist/procedure | `.ai/skills/<skill>/SKILL.md` | `.agent/rules/*` |
 | Workflow policy/process narrative | `docs/ai/WORKFLOW.md` | Root stubs |
+
+## Prompt Template Map
+
+Prompt templates live in `docs/ai/` and are maintained as copy/paste entrypoints:
+- `PROMPT_TEMPLATE.md`: single quick developer unit only; includes a hard redirect to relay if scope is broader.
+- `RELAY_PROMPT_TEMPLATE.md`: architect-supervised relay workflow for non-trivial, multi-unit missions.
+
+When template behavior or routing rules change, update both the template file and `docs/ai/WORKFLOW.md`.
