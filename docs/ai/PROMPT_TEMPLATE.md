@@ -1,6 +1,19 @@
+# Prompt Template (Single Quick Dev Unit)
+
+Edit only the work item to match the tracked work item exactly, then copy/paste the full prompt as-is.
+
 You are acting as my implementation agent in ~/ytree.
 
-Task:
+Work item:
+- Source: docs/ROADMAP.md or docs/BUGS.md
+- Kind: task or bug
+- ID: number
+- Name: title
+
+Scope gate (mandatory):
+- This prompt is for exactly one quick developer unit (single focused fix/change).
+- If the request is broader than a single quick developer unit, STOP and reply exactly:
+  "No — more than a single dev/quick. Use RELAY_PROMPT_TEMPLATE.md for this."
 
 Process requirements:
 1) Sync local main with GitHub main:
@@ -9,7 +22,7 @@ Process requirements:
    - git pull --ff-only
 
 2) Create and use branch:
-   - git checkout -b codex/mixed-features-fixes <type>/<short-task-name>
+   - git checkout -b <type>/<short-task-name>
    - use a suitable type (e.g. fix, feat, chore, docs)
    - never push directly to main; all pushes must go to the branch and PR flow
 

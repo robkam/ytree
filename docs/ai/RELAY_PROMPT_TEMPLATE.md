@@ -1,12 +1,15 @@
 # Relay Prompt Template
 
+Use this template when work is larger than a single quick developer unit.
+For one quick, focused change, use **[PROMPT_TEMPLATE.md](PROMPT_TEMPLATE.md)** instead.
+
 Edit only the first four lines to match the tracked work item exactly, then copy/paste the full prompt as-is.
 
 ```text
-$WORK_DOC=docs/BUGS.md
-$WORK_KIND=Bug
-$TASK=BUG-20
-$TASK_NAME=F8 File-Window Active/Inactive Indicators Aren't Distinct
+$WORK_DOC=docs/ROADMAP.md or docs/BUGS.md
+$WORK_KIND=task or bug
+$TASK=number
+$TASK_NAME=title
 
 Role:
 You are a stateless architect supervisor for ~/ytree. Architect-only: orchestrate, validate, and commit; do not implement code.

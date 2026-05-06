@@ -35,7 +35,7 @@ Use **Conventional Commits** so history stays searchable and consistent:
 For the AI-assisted development workflow, script usage, System Persona prompts, and semantic tool integration (**Serena**, **jCodeMunch**), please see **[ai/WORKFLOW.md](ai/WORKFLOW.md)**.
 Persona routing, shorthand persona commands, and persona-skill auto-load controls are documented in that same workflow doc.
 For the continuous audit workflow (during development and PRs) plus final release PASS/FAIL criteria, see **[AUDIT.md](AUDIT.md)**.
-For the canonical maintainer copy/paste mission prompt, see **[ai/AGENT_PROMPT_TEMPLATE.md](ai/AGENT_PROMPT_TEMPLATE.md)**.
+For maintainer copy/paste prompts, see **[ai/PROMPT_TEMPLATE.md](ai/PROMPT_TEMPLATE.md)** (single quick unit) and **[ai/RELAY_PROMPT_TEMPLATE.md](ai/RELAY_PROMPT_TEMPLATE.md)** (multi-unit relay).
 For pull-request governance and conflict triage policy, see **[PR_GATE.md](PR_GATE.md)**.
 
 ## Development Setup

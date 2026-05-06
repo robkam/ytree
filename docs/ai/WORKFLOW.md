@@ -154,7 +154,9 @@ If procedural instructions appear in persona files, move them into skills and le
 ### 3.1 Stateless Multi-AI Delivery Workflow (Non-Trivial Missions)
 
 Use this workflow when the mission is large enough that one-shot implementation is risky.
-For the canonical maintainer copy/paste mission prompt, see **[AGENT_PROMPT_TEMPLATE.md](AGENT_PROMPT_TEMPLATE.md)**.
+Prompt templates:
+- **[PROMPT_TEMPLATE.md](PROMPT_TEMPLATE.md)**: single quick developer unit only; if the work is broader, it explicitly redirects to relay.
+- **[RELAY_PROMPT_TEMPLATE.md](RELAY_PROMPT_TEMPLATE.md)**: multi-unit relay workflow for non-trivial missions.
 
 #### 3.1.0 Relay Runtime Prerequisite
 
