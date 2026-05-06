@@ -102,6 +102,14 @@ These instructions apply to all AI agents used in this repository.
 18. Dead-history notes are forbidden in active guidance: do not preserve statements about removed workflow mechanisms unless they are required migration instructions. State only the current, actionable behavior.
 19. Context budget gate is mandatory: treat startup instructions as session-scoped and load them once per conversation/session unless the underlying files changed or the user explicitly requests a reload.
 20. Delta-only reporting is mandatory: after startup, do not repeat full prompts, policies, or prior summaries. Provide only net-new state, next action, and new/changed handles unless the user asks for a full recap.
+21. GitHub branch protection workflow is mandatory: for any change intended for GitHub, create/use a non-`main` branch, push that branch, and open/update a PR. Do not push directly to `main`. If work was committed locally on `main`, branch from current HEAD before the first push and continue via PR.
+22. Hybrid PR quality workflow is mandatory:
+    - Before first push, run a quick local gate (build plus targeted smoke/tests).
+    - Open a draft PR early; red is allowed while iterating.
+    - While PR is red, prefix draft title with `WIP:` and do not request reviewers.
+    - Before marking ready for review, require full local audit gates (`make qa-all` and required audit loop).
+    - Convert draft PR to ready only after posting full QA evidence in a PR comment.
+    - Before merge, require green PR checks and reviewer signoff.
 
 ## Source Comment Contract
 

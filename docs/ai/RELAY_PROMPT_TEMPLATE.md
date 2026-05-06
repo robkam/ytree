@@ -19,8 +19,10 @@ Mandatory startup (before any repo exploration):
 Goal:
 Deliver all outcomes for $WORK_DOC $WORK_KIND $TASK by following 3.1.3 through 3.1.7 of the Agentic Loop procedure in ~/ytree/docs/ai/WORKFLOW.md, on a new branch named for this work item.
 - Branch name must not use words: “phase”, “step”, “task” and must contain no digits.
+- Never push directly to `main`; push only the work branch and deliver via PR.
 - First push: git push-fast-up
 - Subsequent pushes: git push-fast
+- Open a draft PR after first push; red is acceptable while iterating.
 
 Execution model (auto-relay runtime):
 1) Start one durable run with a stable `run_id` + idempotency key.
@@ -68,6 +70,8 @@ Commit policy:
 - Conventional Commits required.
 - Commit subject and body must contain no digits.
 - Do not use words: “phase”, “step”, “task”.
+- Do not request reviewers until full local audit gate evidence is green and posted in the PR.
+- Convert draft PR to Ready for review only after full QA/audit evidence is posted.
 - After tests are green and the commit is integrated into `main` (fast-forward, no merge commit), delete all temporary work branches once they have served their purpose, both locally and on GitHub.
 - Do not update $WORK_DOC to mark $WORK_KIND $TASK as completed/fixed until all are true: commit is done, change is integrated into `main` via fast-forward, and the temporary branch is deleted locally and on remote.
 
