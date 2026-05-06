@@ -116,17 +116,26 @@ Ordering policy (for all editors, including AI editors):
 *   Document fixture/helper conventions so new contributors can add mutation-integrity tests consistently.
 *   - [ ] **Status:** Not Started.
 
-### **Task 63: Optimize Test Runtime Without Coverage/Quality Loss**
-*   **Goal:** Reduce CI and local pytest runtime materially while preserving rigorous regression confidence.
-*   **Rationale:** Faster feedback improves delivery speed, but must not trade away critical-path coverage or increase flake risk.
-*   **Scope Lock:** Test architecture/policy and harness improvements only; no feature behavior changes in this task.
+### **Task 63: Optimize QA Gate Organization and Test Runtime Without Safety Loss**
+*   **Goal:** Reduce local/CI feedback time by reorganizing QA cadence, de-duplicating overlapping checks/tests, and improving harness efficiency while preserving (or strengthening) regression/security confidence.
+*   **Rationale:** Delivery speed is constrained by repeated heavy gates and runtime-heavy test patterns; optimization must improve iteration speed without weakening merge/release assurance.
+*   **Scope Lock:** QA/check/test architecture, policy, workflow triggers, and harness improvements only; no runtime feature behavior changes in this task.
+*   **Scope Boundary (Strict):** Non-QA workflow-policy edits (for example PR title/body wording rules) are out of scope for this work item and must be tracked in a separate task/PR.
+*   **Policy Anchor:** `docs/AUDIT.md` section **1.3 Gate Organization & Efficiency** (tier ownership matrix, branch-protection readiness criteria, runtime trend reporting, rollout/rollback risk register) and `.ai/shared.md` branch/PR + hybrid quality workflow rules.
 *   **Acceptance Criteria:**
-*   Define fast required gate vs full regression gate, with explicit suite membership and rationale.
-*   Audit and remove/merge redundant tests where behavior overlap is provable.
-*   Centralize timeout policy (defaults + justified exceptions); do not remove PTY safety timeouts blindly.
-*   Add runtime budget tracking in CI and fail on significant unapproved regressions.
+*   Define and document tiered QA cadence with explicit ownership and triggers:
+*   Tier A (local fast iteration), Tier B (draft PR CI), Tier C (ready-for-review full gate), Tier D (merge/release gate).
+*   Preserve all beneficial checks in the system (unsafe APIs, module boundaries, ai-config, gitleaks, fuzz, fileops integrity, full pytest, static analyzers, valgrind/sanitize/deep valgrind), allowing cadence changes but no silent removals.
+*   Remove redundant same-stage overlap between targeted and full suites where equivalent coverage is already provided; each gate must have explicit non-overlapping default intent.
+*   Define required PR branch-protection checks and readiness criteria so draft iteration can be fast while pre-merge assurance remains strict.
+*   De-duplicate near-identical tests using parametrization/shared helpers where behavior equivalence is provable, with unchanged or stronger assertion strength.
+*   Replace avoidable fixed sleeps with deterministic condition/poll-based waits and centralized timeout policy (defaults + justified exceptions), preserving PTY safety constraints.
+*   Add runtime-budget and trend reporting (local/CI) with measurable before/after evidence:
+*   median draft feedback time, time-to-green, full-gate runtime, and flake rate.
+*   Define provisional numeric targets for auditability (for example Tier B p50 runtime, full-gate p50 runtime, max flake rate, and target time-to-green) so completion is evidence-based.
+*   Provide phased rollout + rollback criteria and a risk register showing how coverage/signal quality is preserved during transition.
 *   Demonstrate no loss of critical-path coverage across core file operations, archive workflows, and split/panel isolation flows.
-*   - [ ] **Status:** Not Started.
+*   - [ ] **Status:** In Progress.
 
 ### **Task 62: Finalize Documentation**
 *   **Goal:** Update the `CHANGELOG`, `README.md`, and `CONTRIBUTING.md` files to reflect all new features and changes before a release.

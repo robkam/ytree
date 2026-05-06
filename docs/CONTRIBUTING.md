@@ -136,7 +136,10 @@ Configure GitHub branch protection on `main`:
 1. Settings -> Branches -> Add branch protection rule for `main`.
 2. Enable `Require status checks to pass before merging`.
 3. Select required checks from GitHub Actions:
-   - `.github/workflows/ci.yml`: `Baseline local-equivalent gate` (`make ci-baseline`).
+   - `.github/workflows/ci.yml`: `Guard fuzz harness sync`.
+   - `.github/workflows/ci.yml`: `File mutation integrity gate`.
+   - `.github/workflows/ci.yml`: `Full coverage baseline gate`.
+   - `.github/workflows/ci.yml`: `Fuzz baseline gate`.
    - `.github/workflows/pr-conflict-assistant.yml`: `Up To Date With Main`.
 4. Enable `Require branches to be up to date before merging`.
 
