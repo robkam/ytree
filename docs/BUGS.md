@@ -14,7 +14,7 @@ Ordering policy (for all editors, including AI editors):
 *   **Description**: In `F8` split mode, after logging two volumes and releasing one, the small window can go blank, separator line can disappear, inactive panel can blank, and tabbing to the inactive panel can trigger a segmentation fault.
 *   **Impact**: Critical stability and data-safety risk (crash), plus severe UI corruption in a core split-panel workflow.
 *   **Remediation**: Harden split-panel volume-release lifecycle so panel/window ownership and active/inactive bindings are always valid after release. Add focused regression coverage for `F8` with multi-volume log/release and `Tab` switching after release.
-*   **Status**: Confirmed.
+*   **Status**: Fixed.
 
 ### **BUG-40: Cycle-Volumes (`<`/`>`, `,`/`.`) Leaks Dir/File View State Across Volumes**
 *   **Description**: Cycling logged volumes can cause dir/file window mode/state changes in one volume to appear in the other, instead of each volume retaining its own last-used state.
@@ -104,20 +104,20 @@ Ordering policy (for all editors, including AI editors):
 *   **Impact**: Corrupts primary navigation UI after a common workflow and reduces operator trust in view stability.
 *   **Remediation**: On return from external editor/config-save flow, restore/redraw directory-tree and small-window state deterministically for dir context (including path/header lines), and keep behavior consistent with file-view return path.
 *   **Related**: `BUG-15` (state/layout transition corruption family), `BUG-31` (post-`F10` apply/return family).
-*   **Status**: Confirmed.
+*   **Status**: Fixed.
 
 ### **BUG-29: External Viewer Return Can Corrupt Ytree UI Redraw**
 *   **Description**: Returning from external viewer/pager flows can leave ytree in a visibly corrupted state (for example shell prompt fragments or stray text rendered into panes/footer instead of a clean ncurses repaint).
 *   **Impact**: Breaks core usability immediately after viewing, obscures navigation/help text, and reduces trust in terminal-state safety.
 *   **Remediation**: Ensure external-view return paths always restore curses mode and perform a full deterministic UI repaint (header, panes, footer/help lines), including prompt-line cleanup before accepting further input.
-*   **Status**: Confirmed.
+*   **Status**: Fixed.
 
 ### **BUG-28: Viewer Return (`v` -> `q`) Can Corrupt UI and Input State**
 *   **Description**: In WSL repro, running ytree, opening `View` on a file (`v`), then quitting viewer (`q`) can leave the main UI mostly vanished/artifacted (for example stray clock digits only). Follow-on input/state is also corrupted: `^L` has negligible/no effect, `Enter` no longer toggles to dir window, and a subsequent `q` exits ytree.
 *   **Impact**: Breaks core post-view workflow and can leave the session in a partially unusable state until restart.
 *   **Remediation**: Harden viewer-return restore path to reestablish full ncurses paint + mode/input state atomically (window ownership, active panel mode, key handling context) before processing next key events.
 *   **Related**: `BUG-29` (same return/redraw defect family).
-*   **Status**: Confirmed.
+*   **Status**: Fixed.
 
 ### **BUG-27: Copy/Move Cancel (`Esc`) Can Leave Footer Blank**
 *   **Description**: In `Copy`/`Move` flows, canceling with `Esc` can leave footer/help lines blank instead of restoring the normal context footer.
@@ -142,6 +142,8 @@ Ordering policy (for all editors, including AI editors):
 
 ### **BUG-24: Modal Severity Messages Render as Error-Red**
 *   **Description**: Centered modal messages can render with error-red styling even when the message severity is informational or warning-level, instead of using severity-specific visual treatment.
+*   **Findings**:
+    *   Directory compare completion summary dialogs (counts + tagged-match summary) can render in error-red despite being non-error informational results.
 *   **Impact**: Blurs severity intent, increases operator confusion, and conflicts with documented message tiers and configurable color expectations.
 *   **Remediation**: Perform a full user-message surface audit (modal/footer/status paths), identify all message-producing callsites and severity-routing logic, and enforce a single severity-aware rendering contract. Ensure modal severity maps to `INFO_COLOR`, `WARN_COLOR`, and `ERR_COLOR` from `ytree.conf`, then add focused regression tests that prove correct severity-to-color routing (including config-driven overrides and safe defaults).
 *   **Related**: `docs/SPECIFICATION.md` section 6.2 modal severity tiers; `etc/ytree.conf` `[COLORS]` keys `INFO_COLOR`, `WARN_COLOR`, `ERR_COLOR`.
@@ -256,7 +258,23 @@ Ordering policy (for all editors, including AI editors):
 *   **Impact**: Makes the UI look partially broken in high-frequency workflows and reduces operator trust.
 *   **Remediation**: Harden post-command frame-restore/redraw ownership so full header/path/footer surfaces are restored atomically before next input.
 *   **Related**: `BUG-29`, `BUG-28` (return/redraw defect family).
-*   **Status**: Confirmed.
+*   **Status**: Fixed.
+
+### **BUG-9A: Copy to Nonexistent Destination Misses Create-Dir Prompt Contract**
+*   **Description**: Copying to a nonexistent destination path did not consistently show the expected destination-create prompt contract and could fall into misleading confirmation flow.
+*   **Status**: Fixed.
+
+### **BUG-9A.1: Copy-Yes Path Could Create Destination But Leave View Incoherent**
+*   **Description**: Accepting copy to a newly created destination could complete without coherent immediate view state for resulting entries.
+*   **Status**: Fixed.
+
+### **BUG-9A.2: Copy-No Path Could Leave Footer/Frame State Corrupted**
+*   **Description**: Declining the copy confirmation in nonexistent-destination flow could leave footer/frame state degraded.
+*   **Status**: Fixed.
+
+### **BUG-9B: Execute/Return Frame Restore Could Require Extra Keystrokes**
+*   **Description**: After execute-return flow, path and frame lines could remain partially missing until extra keypresses forced redraw.
+*   **Status**: Fixed.
 
 ### **BUG-8: Attributes Name Truncation Can Hide File Identity**
 *   **Description**: In attributes/stat contexts, long file names can be truncated using a tail-only style (for example `...fy_xml_integrity.sh`) that hides too much distinguishing information and makes similarly named files harder to differentiate at a glance.

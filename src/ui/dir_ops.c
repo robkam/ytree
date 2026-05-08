@@ -294,6 +294,66 @@ static DirEntry *FindDirByPath(const struct Volume *vol, const char *path) {
   return FindDirByPathInSubTree(vol->vol_stats.tree, path);
 }
 
+DirEntry *DirOps_FindDirEntryByPath(const ViewContext *ctx,
+                                    const char *dir_path) {
+  if (!ctx || !ctx->active || !ctx->active->vol || !dir_path ||
+      dir_path[0] != FILE_SEPARATOR_CHAR) {
+    return NULL;
+  }
+
+  return FindDirByPath(ctx->active->vol, dir_path);
+}
+
+DirEntry *DirOps_ResolveCopyMoveRefreshAnchor(ViewContext *ctx,
+                                              const char *src_path,
+                                              const char *dest_dir_path,
+                                              DirEntry *fallback) {
+  DirEntry *tree;
+  DirEntry *anchor;
+  char common_path[PATH_LENGTH + 1];
+  size_t i;
+  size_t last_separator = (size_t)-1;
+
+  if (!ctx || !ctx->active || !ctx->active->vol)
+    return fallback;
+
+  tree = ctx->active->vol->vol_stats.tree;
+  if (!tree)
+    return fallback;
+
+  if (!src_path || !dest_dir_path)
+    return tree;
+  if (src_path[0] != FILE_SEPARATOR_CHAR ||
+      dest_dir_path[0] != FILE_SEPARATOR_CHAR) {
+    return tree;
+  }
+
+  for (i = 0; src_path[i] != '\0' && dest_dir_path[i] != '\0'; ++i) {
+    if (src_path[i] != dest_dir_path[i])
+      break;
+    if (src_path[i] == FILE_SEPARATOR_CHAR)
+      last_separator = i;
+  }
+
+  if (last_separator == (size_t)-1)
+    return tree;
+
+  if (last_separator == 0) {
+    common_path[0] = FILE_SEPARATOR_CHAR;
+    common_path[1] = '\0';
+  } else {
+    if (last_separator >= PATH_LENGTH)
+      return tree;
+    memcpy(common_path, src_path, last_separator);
+    common_path[last_separator] = '\0';
+  }
+
+  anchor = DirOps_FindDirEntryByPath(ctx, common_path);
+  if (anchor)
+    return anchor;
+  return tree;
+}
+
 static BOOL EnsureDirVisible(ViewContext *ctx, YtreePanel *panel, DirEntry *target) {
   BOOL changed = FALSE;
   DirEntry *ancestor;

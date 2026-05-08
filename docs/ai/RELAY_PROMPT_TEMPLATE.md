@@ -53,6 +53,7 @@ Prompt/report artifact rules:
 Stall/escalation policy:
 - If a unit exceeds timeout or misses heartbeat, watchdog MUST emit a stall event.
 - Watchdog then retries/reassigns within retry policy; if retries are exhausted, mark terminal failure and escalate.
+- Do not run checks or QA until maintainer explicitly agrees.
 
 Developer prompt requirements (for each unit):
 - Strict scope and explicit non-goals
@@ -70,6 +71,7 @@ Auditor prompt requirements (same unit):
 Commit policy:
 - Commit only after developer + auditor evidence is accepted and maintainer approves commit message.
 - Do not commit unless the maintainer has explicitly approved the commit message.
+- For PR creation/edit via `gh`, provide PR text via file/heredoc (`--body-file` or API body), never escaped `\n` in `--body`.
 - Conventional Commits required.
 - Commit subject and body must contain no digits.
 - Do not use words: “phase”, “step”, “task”.

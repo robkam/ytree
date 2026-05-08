@@ -123,6 +123,12 @@ extern BOOL DirOps_SelectVisibleDirAndRefresh(ViewContext *ctx,
                                               YtreePanel *panel,
                                               const DirEntry *target,
                                               DirEntry **dir_entry_ptr);
+extern DirEntry *DirOps_FindDirEntryByPath(const ViewContext *ctx,
+                                           const char *dir_path);
+extern DirEntry *DirOps_ResolveCopyMoveRefreshAnchor(ViewContext *ctx,
+                                                     const char *src_path,
+                                                     const char *dest_dir_path,
+                                                     DirEntry *fallback);
 
 /* render_dir.c */
 extern void DisplayTree(ViewContext *ctx, struct Volume *vol, WINDOW *win,
@@ -340,6 +346,7 @@ HandleDirWindowLogAction(ViewContext *ctx, DirEntry **dir_entry_ptr,
                          size_t new_log_path_size);
 
 /* ui_edit_config.c */
+extern BOOL ParseSmallWindowSkipValue(const char *value);
 extern void UI_OpenConfigProfile(ViewContext *ctx, DirEntry *dir_entry);
 
 /* dir_nav.c */
