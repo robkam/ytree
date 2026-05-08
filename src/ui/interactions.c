@@ -173,10 +173,11 @@ int GetCopyParameter(ViewContext *ctx, const char *from_file, BOOL path_copy,
   }
 
   if (path_copy) {
-    (void)snprintf(prompt_header, sizeof(prompt_header), "PATHCOPY: %s",
+    (void)snprintf(prompt_header, sizeof(prompt_header), "PATHCOPY: %s AS:",
                    from_file);
   } else {
-    (void)snprintf(prompt_header, sizeof(prompt_header), "COPY: %s", from_file);
+    (void)snprintf(prompt_header, sizeof(prompt_header), "COPY: %s AS:",
+                   from_file);
   }
 
   ClearHelp(ctx);
@@ -772,4 +773,3 @@ void UI_HandleSort(ViewContext *ctx, DirEntry *dir_entry, Statistic *s,
     }
   }
 }
-

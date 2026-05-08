@@ -47,7 +47,9 @@ static int ViewFile(ViewContext *ctx, DirEntry *dir_entry, char *file_path) {
     return (-1);
   }
 
-  result = SilentSystemCall(ctx, command_line, &ctx->active->vol->vol_stats);
+  result = SystemCall(ctx, command_line, &ctx->active->vol->vol_stats);
+  if (dir_entry != NULL)
+    RefreshView(ctx, dir_entry);
 
   return (result);
 }
@@ -83,7 +85,7 @@ static int ViewArchiveFile(ViewContext *ctx, char *file_path) {
     goto cleanup;
   }
 
-  result = SilentSystemCall(ctx, command_line, &ctx->active->vol->vol_stats);
+  result = SystemCall(ctx, command_line, &ctx->active->vol->vol_stats);
 
 cleanup:
   if (fd != -1) {

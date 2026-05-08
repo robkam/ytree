@@ -89,6 +89,26 @@ static int CoreInitUINotice(ViewContext *ctx, const char *msg) {
   return ctx->core_init_ops.ui_notice(ctx, msg);
 }
 
+BOOL ParseSmallWindowSkipValue(const char *value) {
+  char *end_ptr;
+  long parsed;
+
+  if (!value)
+    return FALSE;
+
+  errno = 0;
+  parsed = strtol(value, &end_ptr, 10);
+  if (errno != 0)
+    return FALSE;
+
+  while (end_ptr && *end_ptr && isspace((unsigned char)*end_ptr))
+    ++end_ptr;
+  if (end_ptr && *end_ptr != '\0')
+    return FALSE;
+
+  return (parsed == 1) ? TRUE : FALSE;
+}
+
 void Layout_Recalculate(ViewContext *ctx) {
   if (!ctx)
     return;
@@ -793,8 +813,7 @@ int Init(ViewContext *ctx, const char *configuration_file,
   DEBUG_LOG("Init: locale fallback done");
 
   ctx->bypass_small_window =
-      (strtol(CoreInitGetProfileValue(ctx, "SMALLWINDOWSKIP"), NULL, 0)) ? TRUE
-                                                                          : FALSE;
+      ParseSmallWindowSkipValue(CoreInitGetProfileValue(ctx, "SMALLWINDOWSKIP"));
   ctx->highlight_full_line =
       (strtol(CoreInitGetProfileValue(ctx, "HIGHLIGHT_FULL_LINE"), NULL, 0))
           ? TRUE

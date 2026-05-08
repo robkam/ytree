@@ -13,7 +13,14 @@ Work item:
 Scope gate (mandatory):
 - This prompt is for exactly one quick developer unit (single focused fix/change).
 - If the request is broader than a single quick developer unit, STOP and reply exactly:
-  "No — more than a single dev/quick. Use RELAY_PROMPT_TEMPLATE.md for this."
+  "No — this is more than a single quick development task. Use RELAY_PROMPT_TEMPLATE.md for this."
+
+## Subagent-safe prompt profile (required)
+
+- Keep worker prompts to minimal technical payload only (scope, acceptance, commands, blockers).
+- Avoid long policy/governance prose in worker prompts.
+- If worker creation is policy-blocked, auto-retry once with a reduced prompt profile.
+- Relay proceeds autonomously; maintainer interruption is only for blockers and commit-message approval gate.
 
 Process requirements:
 1) Sync local main with GitHub main:
@@ -36,6 +43,7 @@ Process requirements:
    - keep scope tight and avoid unrelated edits
 
 5) Validation:
+   - do not run checks or QA until I explicitly agree
    - before first push, run a quick local gate (build + targeted smoke/tests)
    - run targeted tests as needed
    - after task completion, run full gate:
@@ -51,6 +59,7 @@ Process requirements:
 
 7) Push + draft PR + PR-ready summary:
    - open a draft PR early after first push (it may be red while iterating)
+   - when using `gh pr create`, provide PR text via `--body-file` (or heredoc/file), never escaped `\n` in `--body`
    - do not request reviewers until full gate is green
    - convert to Ready only after posting full QA evidence in the PR
    - what changed (by file)
