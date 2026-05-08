@@ -3,17 +3,6 @@ name: C/C++ Full QA
 on:
   pull_request:
     branches: [ "main" ]
-    paths:
-      - "src/**/*.c"
-      - "src/**/*.cpp"
-      - "**/*.h"
-      - "**/*.yml"
-      - "**/*.yaml"
-      - "tests/**/*.py"
-      - "scripts/**/*.py"
-      - "scripts/requirements.txt"
-      - "Makefile"
-      - ".github/workflows/full-qa.yml"
   workflow_dispatch:
 
 permissions:
@@ -24,9 +13,39 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  changes:
+    name: Detect full-QA relevant changes
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      qa_relevant: ${{ steps.force.outputs.qa_relevant || steps.filter.outputs.qa_relevant }}
+    steps:
+    - name: Force full QA for manual dispatch
+      id: force
+      if: github.event_name == 'workflow_dispatch'
+      run: echo "qa_relevant=true" >> "$GITHUB_OUTPUT"
+
+    - name: Detect PR file changes
+      id: filter
+      if: github.event_name == 'pull_request'
+      uses: dorny/paths-filter@v4
+      with:
+        filters: |
+          qa_relevant:
+            - 'src/**'
+            - 'include/**'
+            - 'tests/**'
+            - 'scripts/**'
+            - 'Makefile'
+            - '.github/workflows/**'
+
   qa-all:
     name: Full local-equivalent QA gate (qa-all)
     runs-on: ubuntu-latest
+    needs: changes
+    if: github.event_name == 'workflow_dispatch' || needs.changes.outputs.qa_relevant == 'true'
     timeout-minutes: 90
     env:
       CC: ccache cc
@@ -112,6 +131,8 @@ jobs:
   qa-sanitize:
     name: Sanitizer gate (qa-sanitize)
     runs-on: ubuntu-latest
+    needs: changes
+    if: github.event_name == 'workflow_dispatch' || needs.changes.outputs.qa_relevant == 'true'
     timeout-minutes: 120
     env:
       CC: ccache cc
