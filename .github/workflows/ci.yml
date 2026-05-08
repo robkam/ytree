@@ -10,9 +10,39 @@ permissions:
   contents: read
 
 jobs:
+  changes:
+    name: Detect QA-relevant changes
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      qa_relevant: ${{ steps.force.outputs.qa_relevant || steps.filter.outputs.qa_relevant }}
+    steps:
+    - name: Force QA on main pushes
+      id: force
+      if: github.event_name == 'push'
+      run: echo "qa_relevant=true" >> "$GITHUB_OUTPUT"
+
+    - name: Detect PR file changes
+      id: filter
+      if: github.event_name == 'pull_request'
+      uses: dorny/paths-filter@v4
+      with:
+        filters: |
+          qa_relevant:
+            - 'src/**'
+            - 'include/**'
+            - 'tests/**'
+            - 'scripts/**'
+            - 'Makefile'
+            - '.github/workflows/**'
+
   guard-fuzz-sync:
     name: Guard fuzz harness sync
     runs-on: ubuntu-latest
+    needs: changes
+    if: github.event_name == 'push' || needs.changes.outputs.qa_relevant == 'true'
 
     steps:
     - uses: actions/checkout@v6
@@ -47,7 +77,8 @@ jobs:
   qa-fileops-integrity:
     name: File mutation integrity gate
     runs-on: ubuntu-latest
-    needs: guard-fuzz-sync
+    needs: [changes, guard-fuzz-sync]
+    if: github.event_name == 'push' || needs.changes.outputs.qa_relevant == 'true'
     env:
       CC: ccache cc
       CCACHE_DIR: ${{ github.workspace }}/.ccache
@@ -100,7 +131,8 @@ jobs:
   qa-pytest-coverage:
     name: Full coverage baseline gate
     runs-on: ubuntu-latest
-    needs: guard-fuzz-sync
+    needs: [changes, guard-fuzz-sync]
+    if: github.event_name == 'push' || needs.changes.outputs.qa_relevant == 'true'
     env:
       CC: ccache cc
       CCACHE_DIR: ${{ github.workspace }}/.ccache
@@ -166,7 +198,8 @@ jobs:
   qa-fuzz:
     name: Fuzz baseline gate
     runs-on: ubuntu-latest
-    needs: guard-fuzz-sync
+    needs: [changes, guard-fuzz-sync]
+    if: github.event_name == 'push' || needs.changes.outputs.qa_relevant == 'true'
     env:
       FUZZ_CC: ccache clang
       CCACHE_DIR: ${{ github.workspace }}/.ccache
