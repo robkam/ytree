@@ -69,6 +69,7 @@ The behavior of the `Enter` key on a directory node is governed by the configura
 *   **Staged Navigation (`SMALLWINDOWSKIP=0`):**
     *   `Enter` on a logged directory in Tree -> **Focus Shift**. Focus moves to the File View (Small Window). Tree remains visible.
     *   `Enter` on Small Window -> **Zoom**. File Window expands to full height.
+    *   `Enter` on Zoomed Window -> Returns focus to the **Tree View**.
 *   **Navigation Stability:** Moving the cursor through the Tree must **never** automatically trigger a transition into File Mode or Zoom.
 
 ### 3.2 Directory Protocols

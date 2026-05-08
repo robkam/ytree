@@ -60,6 +60,19 @@ def _assert_margin_plus_marker(screen_rows, dir_name, expect_slash=False):
         )
 
 
+def _has_tree_row_for_dir(screen_rows, dir_name):
+    for line in screen_rows:
+        if (
+            dir_name in line
+            and "Path:" not in line
+            and "CURRENT DIR" not in line
+            and "CURRENT FILE" not in line
+            and ("mq" in line or "tq" in line)
+        ):
+            return True
+    return False
+
+
 def test_archive_left_at_root_collapses_once_then_noop(tmp_path, ytree_binary):
     """At archive root: first LEFT collapses children, second LEFT is a no-op."""
     root = tmp_path / "archive_exit_root"
@@ -728,6 +741,193 @@ def test_enter_on_placeholder_dir_is_consistent_with_smallwindowskip_zero(
             "Enter on placeholder dir should remain in directory view when "
             "SMALLWINDOWSKIP=0.\n"
             f"Footer:\n{footer}\n\nScreen:\n{after}"
+        )
+    finally:
+        tui.quit()
+
+
+def test_smallwindowskip_negative_value_falls_back_to_staged_navigation(
+    tmp_path, ytree_binary
+):
+    root = tmp_path / "smallwindowskip_negative_value"
+    root.mkdir()
+    target = root / "target"
+    target.mkdir()
+    (target / "file0.txt").write_text("x", encoding="utf-8")
+    (root / ".ytree").write_text(
+        "[GLOBAL]\nSMALLWINDOWSKIP=-1\n", encoding="utf-8"
+    )
+
+    tui = YtreeTUI(executable=ytree_binary, cwd=str(root))
+    time.sleep(0.8)
+
+    try:
+        tui.send_keystroke(Keys.DOWN, wait=0.3)
+        tui.send_keystroke(Keys.ENTER, wait=0.5)
+        tui.send_keystroke(Keys.ENTER, wait=0.5)
+        footer = _footer_text(tui).lower()
+        assert "file" in footer and "tree" not in footer, (
+            "SMALLWINDOWSKIP=-1 should be treated as staged navigation "
+            "(same as SMALLWINDOWSKIP=0), not bypass mode.\n"
+            f"Footer:\n{footer}\n\nScreen:\n{_screen_text(tui)}"
+        )
+    finally:
+        tui.quit()
+
+
+def test_smallwindowskip_trailing_junk_value_falls_back_to_staged_navigation(
+    tmp_path, ytree_binary
+):
+    root = tmp_path / "smallwindowskip_trailing_junk_value"
+    root.mkdir()
+    target = root / "target"
+    target.mkdir()
+    (target / "file0.txt").write_text("x", encoding="utf-8")
+    (root / ".ytree").write_text(
+        "[GLOBAL]\nSMALLWINDOWSKIP=1junk\n", encoding="utf-8"
+    )
+
+    tui = YtreeTUI(executable=ytree_binary, cwd=str(root))
+    time.sleep(0.8)
+
+    try:
+        tui.send_keystroke(Keys.DOWN, wait=0.3)
+        tui.send_keystroke(Keys.ENTER, wait=0.5)
+        tui.send_keystroke(Keys.ENTER, wait=0.5)
+        footer = _footer_text(tui).lower()
+        assert "file" in footer and "tree" not in footer, (
+            "SMALLWINDOWSKIP=1junk should be treated as staged navigation "
+            "(same as SMALLWINDOWSKIP=0), not bypass mode.\n"
+            f"Footer:\n{footer}\n\nScreen:\n{_screen_text(tui)}"
+        )
+    finally:
+        tui.quit()
+
+
+def test_smallwindowskip_config_edit_applies_immediately_in_session(
+    tmp_path, ytree_binary
+):
+    root = tmp_path / "smallwindowskip_live_apply"
+    root.mkdir()
+    target = root / "target"
+    target.mkdir()
+    (target / "file0.txt").write_text("x", encoding="utf-8")
+
+    toggle_editor = root / "toggle_smallwindowskip.sh"
+    toggle_editor.write_text(
+        "#!/bin/sh\n"
+        "f=\"$1\"\n"
+        "if grep -q '^SMALLWINDOWSKIP=' \"$f\"; then\n"
+        "  sed -i 's/^SMALLWINDOWSKIP=.*/SMALLWINDOWSKIP=1/' \"$f\"\n"
+        "else\n"
+        "  printf '\\nSMALLWINDOWSKIP=1\\n' >> \"$f\"\n"
+        "fi\n",
+        encoding="utf-8",
+    )
+    toggle_editor.chmod(0o755)
+
+    (root / ".ytree").write_text(
+        "[GLOBAL]\n"
+        "SMALLWINDOWSKIP=0\n"
+        f"EDITOR={toggle_editor}\n",
+        encoding="utf-8",
+    )
+
+    tui = YtreeTUI(executable=ytree_binary, cwd=str(root))
+    time.sleep(0.8)
+
+    try:
+        tui.send_keystroke(Keys.DOWN, wait=0.3)  # select target dir
+
+        # Baseline (SMALLWINDOWSKIP=0): two ENTER presses stay in file views.
+        tui.send_keystroke(Keys.ENTER, wait=0.5)
+        tui.send_keystroke(Keys.ENTER, wait=0.5)
+        assert "file" in _footer_text(tui).lower(), (
+            "Precondition failed: SMALLWINDOWSKIP=0 should still be in file view "
+            "after two ENTER presses.\n"
+            f"{_screen_text(tui)}"
+        )
+        tui.send_keystroke(Keys.ENTER, wait=0.5)  # back to dir
+
+        # Edit config via F10 and let the configured editor switch value to 1.
+        tui.send_keystroke("\x1b[21~", wait=0.9)
+        assert "SMALLWINDOWSKIP=1" in (root / ".ytree").read_text(
+            encoding="utf-8"
+        ), "Config edit flow did not update SMALLWINDOWSKIP in profile file."
+
+        # After live apply: two ENTER presses should return to dir mode.
+        tui.send_keystroke(Keys.ENTER, wait=0.5)
+        tui.send_keystroke(Keys.ENTER, wait=0.5)
+        footer_after = _footer_text(tui).lower()
+        footer_after_lines = [line.strip().lower() for line in _footer_lines(tui)]
+        assert footer_after_lines and footer_after_lines[0].startswith("dir"), (
+            "SMALLWINDOWSKIP change from config edit did not apply in-session.\n"
+            f"Footer:\n{footer_after}\n\nScreen:\n{_screen_text(tui)}"
+        )
+        assert "tree" in footer_after, (
+            "Directory footer should be restored after returning with "
+            "SMALLWINDOWSKIP=1.\n"
+            f"Footer:\n{footer_after}\n\nScreen:\n{_screen_text(tui)}"
+        )
+    finally:
+        tui.quit()
+
+
+def test_smallwindowskip_zero_enter_chain_is_small_then_big_then_tree(
+    tmp_path, ytree_binary
+):
+    root = tmp_path / "smallwindowskip_zero_enter_chain"
+    root.mkdir()
+    target = root / "target"
+    target.mkdir()
+    (target / "file0.txt").write_text("x", encoding="utf-8")
+    (target / "file1.txt").write_text("x", encoding="utf-8")
+    (root / ".ytree").write_text("[GLOBAL]\nSMALLWINDOWSKIP=0\n", encoding="utf-8")
+
+    tui = YtreeTUI(executable=ytree_binary, cwd=str(root))
+    time.sleep(0.8)
+
+    try:
+        tui.send_keystroke(Keys.DOWN, wait=0.3)
+
+        before_rows = tui.get_screen_dump()
+        assert _has_tree_row_for_dir(before_rows, "target"), (
+            "Precondition failed: tree row for selected directory was not visible.\n"
+            f"{_screen_text(tui)}"
+        )
+
+        tui.send_keystroke(Keys.ENTER, wait=0.5)
+        first_rows = tui.get_screen_dump()
+        assert "file" in _footer_text(tui).lower(), (
+            "First ENTER should move from tree to file mode.\n"
+            f"{_screen_text(tui)}"
+        )
+        assert _has_tree_row_for_dir(first_rows, "target"), (
+            "SMALLWINDOWSKIP=0 first ENTER must keep tree pane visible (small file window).\n"
+            f"{_screen_text(tui)}"
+        )
+
+        tui.send_keystroke(Keys.ENTER, wait=0.5)
+        second_rows = tui.get_screen_dump()
+        assert "file" in _footer_text(tui).lower(), (
+            "Second ENTER should remain in file mode (big window).\n"
+            f"{_screen_text(tui)}"
+        )
+        assert not _has_tree_row_for_dir(second_rows, "target"), (
+            "Second ENTER must switch to big file window and hide tree pane.\n"
+            f"{_screen_text(tui)}"
+        )
+
+        tui.send_keystroke(Keys.ENTER, wait=0.5)
+        footer_third = _footer_text(tui).lower()
+        footer_third_lines = [line.strip().lower() for line in _footer_lines(tui)]
+        assert footer_third_lines and footer_third_lines[0].startswith("dir"), (
+            "Third ENTER should return to tree mode.\n"
+            f"Footer:\n{footer_third}\n\nScreen:\n{_screen_text(tui)}"
+        )
+        assert "tree" in footer_third, (
+            "Tree footer should be visible after returning from big file window.\n"
+            f"Footer:\n{footer_third}\n\nScreen:\n{_screen_text(tui)}"
         )
     finally:
         tui.quit()

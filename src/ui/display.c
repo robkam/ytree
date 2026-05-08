@@ -631,9 +631,6 @@ static BOOL IsActivePanelBigFileMode(const ViewContext *ctx,
   if (!ctx)
     return FALSE;
 
-  if (ctx->focused_window == FOCUS_FILE)
-    return TRUE;
-
   if (!dir_entry)
     return FALSE;
 

@@ -213,6 +213,23 @@ Ordering policy (for all editors, including AI editors):
 *   Update `etc/ytree.1.md` and regenerate `docs/USAGE.md` (`make docs`) when behavior lands.
 *   - [ ] **Status:** Not Started.
 
+### **Task 59D: Add Inline `Shift+N` Create-Link Flow (Symlink/Hardlink)**
+*   **Goal:** Add an in-app link creation command that mirrors existing `mkdir/newfile/copy` prompt ergonomics without requiring external `X` shell execution.
+*   **Rationale:** Link creation is a core file-manager workflow; requiring shell fallback breaks interaction consistency and discoverability.
+*   **Scope Lock:** Filesystem link creation UX/behavior only (`symlink` and `hardlink`); no unrelated command flow redesign.
+*   **Acceptance Criteria:**
+*   Add one primary keybinding: `Shift+N` (`N`) for `Create Link`.
+*   The command is available in both directory and file contexts where filesystem mutations are valid, including showall/global file flows.
+*   Flow is single-surface (no pre-step menu): first prompt is the link-target input and footer exposes live type toggle (`s`/`h`) with a default already set.
+*   Prompt/header contract is explicit and concise (for example: `CREATE LINK [s=symlink h=hard] TARGET:`), and a second prompt captures `LINK NAME:`.
+*   Default link type is `symlink`; pressing `s`/`h` in the first prompt switches mode inline without leaving the prompt.
+*   Target prefill follows existing copy/newfile conventions for active selection context and remains overrideable by direct typing.
+*   Destination resolution in showall/global targets the owner directory of the highlighted entry (not unrelated tree cursor state).
+*   Existing `n`/`N` newfile behavior is remapped to preserve intuitive command grouping while keeping help/footer truthfully synchronized.
+*   Add focused regression coverage for: symlink create, hardlink create, cancel/no-op behavior, showall/global owner-directory resolution, split-panel isolation, and error-path messaging.
+*   Update `etc/ytree.1.md` and regenerate `docs/USAGE.md` (`make docs`) when behavior lands.
+*   - [ ] **Status:** Not Started.
+
 ### **Task 58: Add `i/I` Invert Tags in Directory Mode**
 *   **Goal:** Support `i/I` invert-tag action from directory contexts.
 *   **Rationale:** Tag inversion at the directory level is missing.
@@ -517,7 +534,7 @@ Ordering policy (for all editors, including AI editors):
 ### **Task 30: Replace `^F` Mode Cycling with Unified Numeric `FileInfo` Band (`1..9`, `0`)**
 *   **Goal:** Replace display-mode cycling with direct numeric `FileInfo` controls for the focused panel.
 *   **Behavior Contract:**
-*   `1` => Name only (default/baseline).
+*   `1` => Name only (default/baseline). This is also the reset-to-default selection.
 *   `2` => Long.
 *   `3` => Owner.
 *   `4` => Times.
@@ -527,10 +544,11 @@ Ordering policy (for all editors, including AI editors):
 *   `7` => toggle richer metadata/text-snippet view.
 *   `8` => toggle file-type/summary view.
 *   `9` => toggle brief/full width behavior for the focused panel.
-*   `0` => reset file-info state for `1..8` to profile defaults (does not affect `9` width toggle).
-*   Number keys are toggle-driven controls: `1..4` select the primary file-info layout while `5..9` toggle additive display behaviors.
+*   `0` => Git-focused file-info band (status-oriented view) when the current scope is inside a Git worktree.
+*   Number keys are toggle-driven controls: `0..4` select the primary file-info layout while `5..9` toggle additive display behaviors.
 *   Applies to file-display rendering across normal list contexts for the active panel (whether focus is currently on tree/dir window or file window); not active in `F7` preview mode.
-*   If a requested mode is unsupported in the active context (for example VFS file mode `4`), do a silent no-op (no beep).
+*   If a requested mode is unsupported in the active context (for example VFS file mode `4`, or `0` outside a Git worktree), do a silent no-op (no beep).
+*   Git band (`0`) defaults to off, uses cached/non-blocking status refresh, and must not stall list rendering in large repos.
 *   Add `FILE_SIZE_UNITS=binary|human-readable` profile setting (default `binary`) as the seed for `5`.
 *   **Keybinding Policy:** Remove `^F` from runtime behavior and help/manpage docs. This task is the explicit keybinding-change exception referenced by Task 38 scope lock.
 *   **UX/Help Policy:** Footer stays concise (`1..0 FileInfo`); full key semantics live in F1 help/manpage.
@@ -801,6 +819,19 @@ Ordering policy (for all editors, including AI editors):
 
 ### **Future Phase 1: Post-Baseline Configurability Follow-On**
 
+### **Idea FE-37: Explicit Accessibility Mode (Screen-Reader-First Terminal Behavior)**
+*   **Goal:** Introduce an opt-in explicit accessibility mode focused on stable, low-noise behavior for screen-reader workflows.
+*   **Research Gate (Required Before Implementation):**
+    *   Audit current redraw/cursor-update hotspots (clock, spinner, status-line, dialogs, preview loops) for assistive-tech impact.
+    *   Validate behavior with real screen-reader workflows (e.g., Speakup/NVDA terminal usage patterns) before locking UX contracts.
+    *   Define measurable acceptance criteria (reduced cursor churn, reduced unsolicited announcements, no input-lag regressions).
+*   **Implementation Direction (Post-Research):**
+    *   Add a dedicated runtime/config toggle (not ad-hoc flags).
+    *   Suppress/de-rate non-essential dynamic redraws in accessibility mode (e.g., spinners/timers) and prefer deterministic refresh cadence.
+    *   Favor linear, prompt/result interaction paths where feasible; keep existing default behavior unchanged when mode is off.
+*   **Rationale:** Terminal UI is not automatically accessible; explicit mode-level contracts are needed to avoid redraw/cursor noise regressions.
+*   - [ ] **Status:** Not Started.
+
 ### **Idea FE-36: Portable Keyboard Capability Probe + `.ytree` Key Workarounds**
 *   **Goal:** Add startup-time terminal key-capability probing and user-configurable key overrides/workarounds in `~/.ytree`.
 *   **Behavior Direction:**
@@ -817,6 +848,36 @@ Ordering policy (for all editors, including AI editors):
 *   - [ ] **Status:** Not Started.
 
 ### **Future Phase 2: UI/UX Enhancements and Cleanup**
+
+### **Idea FE-39: Configurable VCS Provider for `0` FileInfo Band**
+*   **Goal:** Keep `0` as one stable VCS info band while allowing users to choose which backend powers it.
+*   **Config Direction (`ytree.conf`):** Add a single-provider selector (for example `VCS_PROVIDER=off|git|hg|svn|fossil|auto`).
+*   **Behavior Contract:**
+    *   Only one VCS provider is active at a time for `0`; no mixed multi-provider rendering in one view.
+    *   Default remains off for performance/noise control.
+    *   If the selected provider is unavailable in the current path/repo, `0` performs a silent no-op.
+*   **Rationale:** Preserves key stability and avoids renumbering while keeping a path open for non-Git users.
+*   - [ ] **Status:** Not Started.
+
+### **Idea FE-38: Typed Filter Modes (`glob` default, `re:`, `fz:`)**
+*   **Goal:** Extend file filtering with explicit typed terms while preserving today's glob-first behavior and key flow.
+*   **User-Facing Behavior:**
+    *   Keep existing glob syntax as default (`*.c`, `*.c,*.h`, `-*.tmp`).
+    *   Add typed terms:
+        *   `re:<expr>` for POSIX ERE regex.
+        *   `fz:<text>` for simple fuzzy subsequence matching (case-insensitive).
+        *   `glob:<pattern>` as explicit glob alias (optional but accepted).
+    *   Keep exclusion semantics explicit and deterministic: exclusion matches always win.
+    *   Matching target remains basename (`fe->name`) to preserve current expectations.
+*   **Parsing/Validation Direction:**
+    *   Support quoted terms so commas can be used inside a term (for example `re:"^x{1,3}$",*.c`).
+    *   Treat malformed specs as invalid (for example `,,`, trailing comma, unmatched quote, empty `re:`/`fz:`/`glob:` term, or bare `-` term).
+*   **UX/Help Direction:**
+    *   Keep `FILTER:` prompt flow unchanged (`key -> Enter -> result`).
+    *   Add lightweight inline hint text only (for example `glob(default) | re: | fz:`), without using `?` (reserved for backward search).
+    *   Put full syntax/examples in `F1` help and manpage source (`etc/ytree.1.md`).
+*   **Rationale:** Adds regex/fuzzy power in a Unix-style, scriptable format without breaking existing wildcard workflows or adding submenu friction.
+*   - [ ] **Status:** Not Started.
 
 ### **Idea FE-34: Prompt Input Decode Hardening (curses-first, legacy ESC fallback)**
 *   **Goal:** Replace prompt-path manual ESC sequence parsing with curses/terminfo-first decoding, while keeping legacy manual ESC parsing as controlled fallback (or config-gated compatibility mode).
@@ -1072,10 +1133,158 @@ Ordering policy (for all editors, including AI editors):
 *   - [ ] **Status:** Not Started.
 
 ### **Idea FE-3: Preview Helper Pipeline for Non-Text File Types**
-*   **Goal:** Investigate a very-low-priority preview-helper system that can convert non-text formats into something ytree can preview, without turning ytree itself into a giant all-format viewer.
-*   **Examples:** Route images, PDFs, office files, or database exports through user-configured helper commands that emit plain text, ANSI output, or temporary preview artifacts.
-*   **Non-Goal:** Do not make ytree responsible for natively understanding every binary/GUI format. Prefer the Unix model of helper programs and explicit pipelines.
-*   **Rationale:** This could make `F7`/viewer workflows more useful for odd file types, but it is a large, optional integration surface and should stay firmly in wishlist territory until someone explicitly wants to build it.
+*   **Goal:** Implement an F7 dual-mode preview pipeline that keeps internal preview as the guaranteed baseline while allowing helper-rendered output for non-text file types.
+*   **Non-Goal:** Do not make ytree natively decode every binary/GUI format. Keep helper-based rendering as the Unix-style extension surface.
+*   **Roadmap Fit:** This is the concrete implementation shape for the long-standing preview-helper direction, while preserving strict internal fallback behavior.
+*   **Implementation-Ready Spec:**
+    **Status:** Proposed / implementation-ready.
+
+    **Scope:** Add dual-mode preview behavior to `F7` with strict fallback guarantees:
+    * `BINARY` = internal preview path only (never executes helpers).
+    * `RENDER` = helper-driven preview path; on any failure/unavailability, fallback to `BINARY`.
+
+    **Terminology (Normative):**
+    * `BINARY`: internal preview mode only; no external helper execution; text-like content when decodable, otherwise raw/byte-oriented internal representation.
+    * `RENDER`: helper preview mode via extension mapping; output shown in preview pane; fallback to `BINARY` on no-match, error, timeout, overflow, or safety rejection.
+
+    **User Interaction Contract:**
+    * `F7` enters preview mode.
+    * `F7` or `Esc` exits preview mode and restores prior state.
+    * In `F7`, `r`/`R` toggles `BINARY` ⇄ `RENDER`.
+    * Bottom-left footer mode label must be exactly `BINARY` or `RENDER` (fixed-width, no wobble).
+    * Default F7 mode comes from config (`PREVIEW_MODE_DEFAULT`, default `binary`).
+
+    **Split-Mode Behavior:**
+    * Preview mode state is panel-local (left/right independent).
+    * Toggling mode in one panel must not mutate the other panel state.
+
+    **Helper Execution Contract:**
+    * Prefer argv-style execution (no shell interpolation).
+    * If template parsing is retained, allow `%s` only; reject all other `%` tokens.
+    * File path must be inserted as one safely quoted argument via existing command/path helpers.
+    * Bound command length by existing command-line limits.
+
+    **Render Safety & Limits:**
+    * Enforce timeout (`PREVIEW_RENDER_TIMEOUT_MS`).
+    * Enforce captured output cap (`PREVIEW_RENDER_MAX_BYTES`).
+    * Enforce ANSI policy (`RENDER_ALLOW_ANSI`).
+    * On any violation/failure, fallback to `BINARY`.
+
+    **Extension Matching Rules (Deterministic):**
+    1. Exact extension rule match (single-ext entry).
+    2. First matching multi-extension rule in config order.
+    3. No match ⇒ `BINARY`.
+    * Extension matching is case-insensitive.
+    * No MIME probing in v1.
+
+    **Cache Contract:**
+    * RENDER cache key must include:
+      * path (canonical key)
+      * file mtime
+      * file size
+      * preview mode
+      * resolved helper command string
+      * ANSI policy
+      * timeout value
+      * output-cap value
+    * This ensures config/helper edits invalidate cached renders.
+
+    **Failure UX Contract:**
+    * On RENDER failure, continue showing `BINARY`.
+    * Optional one-shot notice: `RENDER unavailable; using BINARY`.
+    * Anti-spam:
+      * deduplicate by `(file, helper, error_class)`
+      * rate-limit global notices during cursor movement (recommended ≥ 750ms interval)
+
+    **Configuration (Canonical Defaults + User Override):**
+    * Canonical defaults source-of-truth:
+      * `etc/ytree.conf`
+      * `src/core/default_profile_template.h`
+
+    **Global keys:**
+
+    | Key | Type | Allowed | Default | Meaning |
+    |---|---|---|---|---|
+    | `PREVIEW_MODE_DEFAULT` | enum | `binary` \| `render` | `binary` | Initial F7 mode on entry |
+    | `PREVIEW_AUTOPLAY_MEDIA` | bool-int | `0` \| `1` | `0` | Whether media render helpers may autoplay |
+    | `PREVIEW_RENDER_TIMEOUT_MS` | int | `100..10000` | `1200` | Max helper runtime in milliseconds |
+    | `PREVIEW_RENDER_MAX_BYTES` | int | `4096..1048576` | `262144` | Max captured helper output bytes |
+    | `RENDER_ALLOW_ANSI` | bool-int | `0` \| `1` | `0` | ANSI handling policy for RENDER output |
+
+    **`[PREVIEW_RENDER]` section format:**
+    ```ini
+    [PREVIEW_RENDER]
+    .ext=command %s
+    .ext1,.ext2,.ext3=command %s
+    ```
+    * Extensions are case-insensitive.
+    * `%s` is the selected file path token.
+    * Comment out/remove mappings to keep those types in `BINARY`.
+
+    **Example:**
+    ```ini
+    PREVIEW_MODE_DEFAULT=binary
+    PREVIEW_AUTOPLAY_MEDIA=0
+    PREVIEW_RENDER_TIMEOUT_MS=1200
+    PREVIEW_RENDER_MAX_BYTES=262144
+    RENDER_ALLOW_ANSI=0
+
+    [PREVIEW_RENDER]
+    .pdf=gs -q -dNOPAUSE -dBATCH -sDEVICE=txtwrite -sOutputFile=- %s
+    .jpg,.jpeg,.png,.gif=chafa --animate off %s
+    .mp3,.flac=ffprobe -hide_banner %s
+    .mp4,.mkv,.avi,.mpg=ffprobe -hide_banner %s
+    ```
+
+    **Error-State Matrix (Normative):**
+
+    | Condition | Active Mode | Action | Displayed Mode | User Notice |
+    |---|---|---|---|---|
+    | Helper mapping found, helper succeeds | RENDER | Show helper output | RENDER | none |
+    | No helper mapping for extension | RENDER | Fallback | BINARY | optional one-shot |
+    | Helper command parse invalid (`%` token not allowed) | RENDER | Reject + fallback | BINARY | optional one-shot |
+    | Helper executable missing / spawn failure | RENDER | Fallback | BINARY | optional one-shot |
+    | Helper timeout exceeded | RENDER | Stop helper, fallback | BINARY | optional one-shot |
+    | Helper output exceeds max bytes | RENDER | Reject + fallback | BINARY | optional one-shot |
+    | ANSI disallowed and output contains ANSI (`RENDER_ALLOW_ANSI=0`) | RENDER | Strip ANSI; if strip fails, fallback | BINARY or RENDER* | optional one-shot on fallback |
+    | Any internal render-path error | BINARY or fallback target | Show safe error line; remain in preview | BINARY | yes |
+    | Toggle key pressed (`r`/`R`) | F7 | Flip mode state | BINARY or RENDER | footer update |
+    | Exit key (`F7`/`Esc`) | F7 | Exit preview | N/A | none |
+
+    \* If ANSI strip succeeds, remain `RENDER`; if strip fails, fallback `BINARY`.
+
+    **Security & Robustness Requirements:**
+    * No unsafe shell concatenation of untrusted paths.
+    * Command construction must remain bounded.
+    * Fail closed to `BINARY`.
+    * Preserve curses/terminal integrity across helper invocation and return.
+
+    **Acceptance Criteria:**
+    1. F7 opens in configured default mode (`binary` by default).
+    2. `r`/`R` toggles mode and footer shows exact `BINARY` or `RENDER`.
+    3. Footer alignment does not move on mode toggle.
+    4. `BINARY` path never executes helpers.
+    5. `RENDER` falls back to `BINARY` for all matrix failure classes.
+    6. Media autoplay is disabled by default (`PREVIEW_AUTOPLAY_MEDIA=0`).
+    7. Commented/removed mappings keep file types in `BINARY`.
+    8. Split-mode state is panel-local.
+    9. Failure notices are deduplicated and rate-limited.
+    10. Manpage/profile/template docs are synced.
+
+    **Minimum Test Requirements:**
+    * Config parsing coverage for all new keys.
+    * `[PREVIEW_RENDER]` single + multi-ext parse tests.
+    * Invalid token rejection (`%x`, `%%`, etc.).
+    * Matching/precedence tests (case-insensitive extension behavior).
+    * Runtime tests: toggle + footer, no-helper fallback, timeout fallback, overflow fallback, ANSI policy handling.
+    * Split tests: panel-local independence.
+    * Regression tests: existing F7 nav/exit behavior unchanged; no redraw corruption after helper return.
+
+    **Documentation Sync Requirements (when implemented):**
+    * `etc/ytree.1.md` (canonical manpage source)
+    * generated `docs/USAGE.md`
+    * `etc/ytree.conf` defaults/comments
+    * `src/core/default_profile_template.h` defaults/comments
 *   - [ ] **Status:** Not Started.
 
 ### **Idea FE-2: Terminal-Independent TUI Runtime (ncurses-Decoupling Investigation)**

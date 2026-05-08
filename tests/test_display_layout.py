@@ -728,6 +728,301 @@ def test_dir_copy_move_keeps_full_frame_after_command(
     tui.quit()
 
 
+def test_dir_copy_to_missing_destination_prompts_create_and_no_restores_footer(
+    ytree_binary, tmp_path
+):
+    root = tmp_path / "dir_copy_missing_dest_no"
+    root.mkdir()
+    src = root / "src_dir"
+    src.mkdir()
+    (src / "nested").mkdir()
+    (src / "nested" / "payload.txt").write_text("x", encoding="utf-8")
+
+    tui = YtreeTUI(executable=ytree_binary, cwd=str(root))
+    tui.child.setwinsize(36, 140)
+    tui.screen.resize(36, 140)
+    time.sleep(1.0)
+    tui.send_keystroke("", wait=0.2)
+
+    tui.send_keystroke(Keys.DOWN, wait=0.3)
+    tui.child.send("c")
+    tui.child.expect("COPY:")
+    tui.child.send("\x15")
+    tui.child.send("copied_src\r")
+    tui.child.expect("To Directory")
+    tui.child.send("\x15")
+    tui.child.send("./new_parent\r")
+    tui.child.expect("Directory does not exist; create", timeout=2.0)
+    tui.child.send("N")
+    tui.send_keystroke("", wait=0.6)
+
+    assert not (root / "new_parent").exists()
+    assert (root / "src_dir" / "nested" / "payload.txt").exists()
+
+    post = "\n".join(tui.get_screen_dump())
+    footer = _footer_text(tui).lower()
+    assert "Path:" in post, "Header/path row disappeared after canceling create prompt"
+    assert "tree" in footer and "help" in footer, (
+        "Footer/help row was not restored after canceling create prompt.\n"
+        f"Footer:\n{footer}\n\nScreen:\n{post}"
+    )
+
+    tui.quit()
+
+
+def test_dir_copy_to_missing_destination_create_yes_copies_and_restores_frame(
+    ytree_binary, tmp_path
+):
+    root = tmp_path / "dir_copy_missing_dest_yes"
+    root.mkdir()
+    src = root / "src_dir"
+    src.mkdir()
+    (src / "nested").mkdir()
+    (src / "nested" / "payload.txt").write_text("x", encoding="utf-8")
+
+    tui = YtreeTUI(executable=ytree_binary, cwd=str(root))
+    tui.child.setwinsize(36, 140)
+    tui.screen.resize(36, 140)
+    time.sleep(1.0)
+    tui.send_keystroke("", wait=0.2)
+
+    tui.send_keystroke(Keys.DOWN, wait=0.3)
+    tui.child.send("c")
+    tui.child.expect("COPY:")
+    tui.child.send("\x15")
+    tui.child.send("copied_src\r")
+    tui.child.expect("To Directory")
+    tui.child.send("\x15")
+    tui.child.send("./new_parent\r")
+    tui.child.expect("Directory does not exist; create", timeout=2.0)
+    tui.child.send("Y")
+    tui.child.expect("Copy directory now", timeout=2.0)
+    tui.child.send("Y")
+    tui.send_keystroke("", wait=0.8)
+
+    copied = root / "new_parent" / "copied_src" / "nested" / "payload.txt"
+    assert copied.exists(), "Directory copy did not complete after confirming create"
+
+    post = "\n".join(tui.get_screen_dump())
+    footer = _footer_text(tui).lower()
+    assert "Path:" in post, "Header/path row disappeared after create+copy flow"
+    assert "tree" in footer and "f1" in footer and "help" in footer, (
+        "Footer/help row was not restored after create+copy flow.\n"
+        f"Footer:\n{footer}\n\nScreen:\n{post}"
+    )
+
+    tui.quit()
+
+
+def test_dir_copy_prompt_shows_source_and_as_target(ytree_binary, tmp_path):
+    root = tmp_path / "dir_copy_prompt_as"
+    root.mkdir()
+    src = root / "src_dir"
+    src.mkdir()
+
+    tui = YtreeTUI(executable=ytree_binary, cwd=str(root))
+    tui.child.setwinsize(36, 140)
+    tui.screen.resize(36, 140)
+    time.sleep(1.0)
+    tui.send_keystroke("", wait=0.2)
+
+    tui.send_keystroke(Keys.DOWN, wait=0.3)
+    tui.child.send("c")
+    tui.child.expect(r"COPY:\s+src_dir\s+AS:", timeout=2.0)
+    tui.child.send(Keys.ESC)
+    tui.send_keystroke("", wait=0.2)
+    tui.quit()
+
+
+def test_dir_copy_refreshes_destination_branch_without_relog(ytree_binary, tmp_path):
+    root = tmp_path / "dir_copy_cross_branch_refresh"
+    root.mkdir()
+    source_bucket = root / "source_bucket"
+    target_bucket = root / "target_bucket"
+    source_bucket.mkdir()
+    target_bucket.mkdir()
+    src = source_bucket / "src_dir"
+    src.mkdir()
+    (src / "nested").mkdir()
+    (src / "nested" / "payload.txt").write_text("x", encoding="utf-8")
+
+    tui = YtreeTUI(executable=ytree_binary, cwd=str(root))
+    tui.child.setwinsize(36, 140)
+    tui.screen.resize(36, 140)
+    time.sleep(1.0)
+    tui.send_keystroke("", wait=0.2)
+
+    # root -> source_bucket -> src_dir
+    tui.send_keystroke(Keys.DOWN, wait=0.3)
+    tui.send_keystroke(Keys.RIGHT, wait=0.6)
+    tui.send_keystroke(Keys.DOWN, wait=0.3)
+
+    tui.child.send("c")
+    tui.child.expect("COPY:")
+    tui.child.send("\x15")
+    tui.child.send("copied_src\r")
+    tui.child.expect("To Directory")
+    tui.child.send("\x15")
+    tui.child.send("../target_bucket/new_parent\r")
+    tui.child.expect("Directory does not exist; create", timeout=2.0)
+    tui.child.send("Y")
+    tui.child.expect("Copy directory now", timeout=2.0)
+    tui.child.send("Y")
+    tui.send_keystroke("", wait=1.0)
+
+    copied = root / "target_bucket" / "new_parent" / "copied_src" / "nested" / "payload.txt"
+    assert copied.exists(), "Directory copy did not complete"
+
+    # Move to target_bucket and verify the copied branch is visible immediately.
+    for _ in range(16):
+        if "target_bucket" in tui.get_screen_dump()[0]:
+            break
+        tui.send_keystroke(Keys.DOWN, wait=0.2)
+    assert "target_bucket" in tui.get_screen_dump()[0], "\n".join(tui.get_screen_dump())
+
+    tui.send_keystroke(Keys.ENTER, wait=0.6)
+    after_target_enter = "\n".join(tui.get_screen_dump())
+    assert "new_parent" in after_target_enter, (
+        "Created destination directory is not visible in-session after copy "
+        "(requires relog today).\n"
+        f"{after_target_enter}"
+    )
+
+    for _ in range(16):
+        if "new_parent" in tui.get_screen_dump()[0]:
+            break
+        tui.send_keystroke(Keys.DOWN, wait=0.2)
+    assert "new_parent" in tui.get_screen_dump()[0], "\n".join(tui.get_screen_dump())
+
+    tui.send_keystroke(Keys.ENTER, wait=0.6)
+    after_new_parent_enter = "\n".join(tui.get_screen_dump())
+    assert "copied_src" in after_new_parent_enter, (
+        "Copied subtree is not visible immediately after destination creation.\n"
+        f"{after_new_parent_enter}"
+    )
+
+    tui.quit()
+
+
+def test_dir_copy_delete_created_destination_updates_in_session(ytree_binary, tmp_path):
+    root = tmp_path / "dir_copy_delete_created_destination"
+    root.mkdir()
+    source_bucket = root / "source_bucket"
+    target_bucket = root / "target_bucket"
+    source_bucket.mkdir()
+    target_bucket.mkdir()
+    src = source_bucket / "src_dir"
+    src.mkdir()
+    (src / "nested").mkdir()
+    (src / "nested" / "payload.txt").write_text("x", encoding="utf-8")
+
+    tui = YtreeTUI(executable=ytree_binary, cwd=str(root))
+    tui.child.setwinsize(36, 140)
+    tui.screen.resize(36, 140)
+    time.sleep(1.0)
+    tui.send_keystroke("", wait=0.2)
+
+    tui.send_keystroke(Keys.DOWN, wait=0.3)
+    tui.send_keystroke(Keys.RIGHT, wait=0.6)
+    tui.send_keystroke(Keys.DOWN, wait=0.3)
+
+    tui.child.send("c")
+    tui.child.expect("COPY:")
+    tui.child.send("\x15")
+    tui.child.send("copied_src\r")
+    tui.child.expect("To Directory")
+    tui.child.send("\x15")
+    tui.child.send("../target_bucket/new_parent\r")
+    tui.child.expect("Directory does not exist; create", timeout=2.0)
+    tui.child.send("Y")
+    tui.child.expect("Copy directory now", timeout=2.0)
+    tui.child.send("Y")
+    tui.send_keystroke("", wait=1.0)
+
+    # Navigate to created destination directory and delete it.
+    for _ in range(16):
+        if "target_bucket" in tui.get_screen_dump()[0]:
+            break
+        tui.send_keystroke(Keys.DOWN, wait=0.2)
+    assert "target_bucket" in tui.get_screen_dump()[0], "\n".join(tui.get_screen_dump())
+    tui.send_keystroke(Keys.ENTER, wait=0.6)
+
+    for _ in range(16):
+        if "new_parent" in tui.get_screen_dump()[0]:
+            break
+        tui.send_keystroke(Keys.DOWN, wait=0.2)
+    assert "new_parent" in tui.get_screen_dump()[0], "\n".join(tui.get_screen_dump())
+
+    tui.child.send(Keys.DELETE)
+    tui.child.expect(r"(Delete this directory|PRUNE)", timeout=2.0)
+    tui.child.send("Y")
+    tui.send_keystroke("", wait=0.8)
+
+    assert not (root / "target_bucket" / "new_parent").exists(), (
+        "Deleting the created destination directory had no filesystem effect."
+    )
+    after_delete = "\n".join(tui.get_screen_dump())
+    assert "new_parent" not in after_delete, (
+        "Created destination directory still rendered after in-session delete.\n"
+        f"{after_delete}"
+    )
+
+    tui.quit()
+
+
+def test_dir_copy_absolute_destination_refreshes_without_relog(ytree_binary, tmp_path):
+    root = tmp_path / "dir_copy_absolute_destination_refresh"
+    root.mkdir()
+    source_bucket = root / "source_bucket"
+    target_bucket = root / "target_bucket"
+    source_bucket.mkdir()
+    target_bucket.mkdir()
+    src = source_bucket / "src_dir"
+    src.mkdir()
+    (src / "nested").mkdir()
+    (src / "nested" / "payload.txt").write_text("x", encoding="utf-8")
+
+    tui = YtreeTUI(executable=ytree_binary, cwd=str(root))
+    tui.child.setwinsize(36, 140)
+    tui.screen.resize(36, 140)
+    time.sleep(1.0)
+    tui.send_keystroke("", wait=0.2)
+
+    tui.send_keystroke(Keys.DOWN, wait=0.3)
+    tui.send_keystroke(Keys.RIGHT, wait=0.6)
+    tui.send_keystroke(Keys.DOWN, wait=0.3)
+
+    tui.child.send("c")
+    tui.child.expect("COPY:")
+    tui.child.send("\x15")
+    tui.child.send("copied_src\r")
+    tui.child.expect("To Directory")
+    tui.child.send("\x15")
+    tui.child.send(f"{target_bucket}/new_parent\r")
+    tui.child.expect("Directory does not exist; create", timeout=2.0)
+    tui.child.send("Y")
+    tui.child.expect("Copy directory now", timeout=2.0)
+    tui.child.send("Y")
+    tui.send_keystroke("", wait=1.0)
+
+    copied = root / "target_bucket" / "new_parent" / "copied_src" / "nested" / "payload.txt"
+    assert copied.exists(), "Directory copy to absolute destination did not complete"
+
+    for _ in range(16):
+        if "target_bucket" in tui.get_screen_dump()[0]:
+            break
+        tui.send_keystroke(Keys.DOWN, wait=0.2)
+    assert "target_bucket" in tui.get_screen_dump()[0], "\n".join(tui.get_screen_dump())
+    tui.send_keystroke(Keys.ENTER, wait=0.6)
+    after_target_enter = "\n".join(tui.get_screen_dump())
+    assert "new_parent" in after_target_enter, (
+        "Absolute-path destination not visible in-session after copy.\n"
+        f"{after_target_enter}"
+    )
+
+    tui.quit()
+
+
 def test_jump_prompt_uses_footer_without_bleed(ytree_binary, tmp_path):
     """
     REGRESSION:

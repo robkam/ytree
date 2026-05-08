@@ -336,16 +336,18 @@ watch -n 5 'python3 scripts/relay_runtime.py dashboard --verbose --limit 20'
     *   expired lease or stale heartbeat -> `stall_detected` event,
     *   requeue/reassign with bounded retry,
     *   terminal fail when retry budget is exhausted.
-3.  Before commit, architect MUST ensure fresh full-gate evidence (`make qa-all`) for accepted branch state.
-4.  If accepted:
+    *   if worker creation is policy-blocked, retry once with a reduced subagent-safe prompt profile (minimal technical payload only).
+3.  Relay execution remains autonomous end-to-end; maintainer interruption is reserved for explicit blockers and commit-message approval gate.
+4.  Before commit, architect MUST ensure fresh full-gate evidence (`make qa-all`) for accepted branch state.
+5.  If accepted:
     *   commit only code/doc files (no relay/runtime artifacts),
     *   use maintainer-approved commit message describing durable behavior (no task numbering),
     *   include explicit work-item status text in the same commit (for example `Status: Confirmed.`, `Status: In Progress.`, or `Status: Fixed.`) so no status transition is left ambiguous,
     *   first push: `git push-fast-up`; tracked branch: `git push-fast`.
-5.  If correction is needed for the same logical change set, amend and repush:
+6.  If correction is needed for the same logical change set, amend and repush:
     *   `git commit --amend --no-edit`
     *   push with the branch rule above.
-6.  Cleanup consumed transient artifacts after usefulness ends (for example `compile_commands.json`, `valgrind.log`, temporary relay scratch files).
+7.  Cleanup consumed transient artifacts after usefulness ends (for example `compile_commands.json`, `valgrind.log`, temporary relay scratch files).
 
 #### 3.1.7 Completion Gate, Merge, and Manual Fallback
 

@@ -13,24 +13,32 @@
 #include <string.h>
 #include <sys/stat.h>
 
-static int ResolveFileCompareTargetPath(FileEntry *source_file,
+static int ResolveFileCompareTargetPath(const char *source_path,
                                         const char *target_input,
                                         char *resolved_target_path) {
   char source_dir[PATH_LENGTH + 1];
+  char source_name[PATH_LENGTH + 1];
+  char source_copy[PATH_LENGTH + 1];
   char raw_target_path[(PATH_LENGTH * 2) + 2];
   const char *home = NULL;
   int written;
 
-  if (!source_file || !source_file->dir_entry || !target_input ||
-      !resolved_target_path) {
+  if (!source_path || !target_input || !resolved_target_path) {
     return -1;
   }
 
   if (!String_HasNonWhitespace(target_input))
     return -1;
 
-  GetPath(source_file->dir_entry, source_dir);
+  strncpy(source_copy, source_path, PATH_LENGTH);
+  source_copy[PATH_LENGTH] = '\0';
+  Fnsplit(source_copy, source_dir, source_name);
   source_dir[PATH_LENGTH] = '\0';
+  source_name[PATH_LENGTH] = '\0';
+  if (source_dir[0] == '\0')
+    return -1;
+  if (source_name[0] == '\0')
+    return -1;
 
   if (target_input[0] == FILE_SEPARATOR_CHAR) {
     written =
@@ -42,8 +50,10 @@ static int ResolveFileCompareTargetPath(FileEntry *source_file,
     written = snprintf(raw_target_path, sizeof(raw_target_path), "%s%s", home,
                        target_input + 1);
   } else {
-    written = snprintf(raw_target_path, sizeof(raw_target_path), "%s%c%s",
-                       source_dir, FILE_SEPARATOR_CHAR, target_input);
+    if (Path_Join(raw_target_path, sizeof(raw_target_path), source_dir,
+                  target_input) != 0)
+      return -1;
+    written = (int)strlen(raw_target_path);
   }
 
   if (written < 0 || (size_t)written >= sizeof(raw_target_path))
@@ -73,7 +83,9 @@ void FileCompare_LaunchExternal(ViewContext *ctx, FileEntry *source_file) {
   struct stat target_stat;
   char source_path[PATH_LENGTH + 1];
   char target_path[PATH_LENGTH + 1];
+  char source_path_copy[PATH_LENGTH + 1];
   char source_dir[PATH_LENGTH + 1];
+  char source_name[PATH_LENGTH + 1];
   char command_line[COMMAND_LINE_LENGTH + 1];
   const char *filediff = NULL;
   int start_dir_fd = -1;
@@ -106,10 +118,23 @@ void FileCompare_LaunchExternal(ViewContext *ctx, FileEntry *source_file) {
 
   strncpy(source_path, request.source_path, PATH_LENGTH);
   source_path[PATH_LENGTH] = '\0';
-  if (ResolveFileCompareTargetPath(source_file, request.target_path,
+  if (ResolveFileCompareTargetPath(source_path, request.target_path,
                                    target_path) != 0) {
     UI_Message(ctx,
                "Compare target is empty or invalid.*Choose a file target.");
+    return;
+  }
+  strncpy(source_path_copy, source_path, PATH_LENGTH);
+  source_path_copy[PATH_LENGTH] = '\0';
+  Fnsplit(source_path_copy, source_dir, source_name);
+  source_dir[PATH_LENGTH] = '\0';
+  source_name[PATH_LENGTH] = '\0';
+  if (source_dir[0] == '\0') {
+    UI_Message(ctx, "Compare source path is invalid.*Select a file again.");
+    return;
+  }
+  if (source_name[0] == '\0') {
+    UI_Message(ctx, "Compare source path is invalid.*Select a file again.");
     return;
   }
 
@@ -144,9 +169,6 @@ void FileCompare_LaunchExternal(ViewContext *ctx, FileEntry *source_file) {
         "FILEDIFF command is invalid or too long.*Check FILEDIFF in ~/.ytree.");
     return;
   }
-
-  GetPath(source_file->dir_entry, source_dir);
-  source_dir[PATH_LENGTH] = '\0';
 
   start_dir_fd = open(".", O_RDONLY);
   if (start_dir_fd == -1) {
