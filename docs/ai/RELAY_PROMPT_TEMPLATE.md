@@ -27,6 +27,13 @@ Deliver all outcomes for $WORK_DOC $WORK_KIND $TASK by following 3.1.3 through 3
 - Subsequent pushes: git push-fast
 - Open a draft PR after first push; red is acceptable while iterating.
 
+Bug-first gate (mandatory when $WORK_KIND=bug):
+- Before any implementation unit, provide a concise maintainer-run manual reproduction script (numbered steps, exact inputs/commands, expected vs actual).
+- Have the maintainer execute that script and explicitly confirm either:
+  - reproduced (still a bug), or
+  - not reproduced (possibly fixed since originally reported).
+- If the maintainer reports not reproduced, stop implementation and report evidence for maintainer decision.
+
 Execution model (auto-relay runtime):
 1) Start one durable run with a stable `run_id` + idempotency key.
 2) Runtime lifecycle is fixed and durable:
