@@ -19,8 +19,12 @@ Scope gate (mandatory):
 
 - Keep worker prompts to minimal technical payload only (scope, acceptance, commands, blockers).
 - Avoid long policy/governance prose in worker prompts.
-- If worker creation is policy-blocked, auto-retry once with a reduced prompt profile.
-- Relay proceeds autonomously; maintainer interruption is only for blockers and commit-message approval gate.
+- If worker creation is policy-blocked, auto-retry once with a reduced prompt profile and continue without maintainer interruption for that recoverable path.
+- Relay proceeds autonomously; maintainer interruption is only for `true_blocker_decision` and `commit_message_approval`.
+- Canonical relay autonomy policy tokens (required):
+  - `policy_block_retry_once`
+  - `watchdog_stall_retry_terminal`
+  - `maintainer_pause_gate=true_blocker_decision|commit_message_approval`
 
 Process requirements:
 1) Sync local main with GitHub main:
@@ -46,6 +50,7 @@ Process requirements:
    - do not run checks or QA until I explicitly agree
    - before first push, run a quick local gate (build + targeted smoke/tests)
    - run targeted tests as needed
+   - if I approve full QA for a unit state, run `make qa-all` at most once for that exact accepted state; rerun only after code changes
    - after task completion, run full gate:
      source .venv/bin/activate
      make qa-all
@@ -73,5 +78,6 @@ Process requirements:
 Important guardrails:
 - Do not rewrite or drop prior merged work from main.
 - Do not broaden scope beyond the approved task.
+- Status updates must be facts-first: report what was completed (with evidence handle) before stating next action.
 - If uncertain, ask before choosing behavior-changing options.
 - If anything is ambiguous, ask me to clarify instead of guessing.

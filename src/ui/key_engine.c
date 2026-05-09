@@ -698,6 +698,79 @@ int WGetch(ViewContext *ctx, WINDOW *win) {
 
 int Getch(ViewContext *ctx) { return WGetch(ctx, stdscr); }
 
+static int NormalizeEscSequence(int ch) {
+  int seq1;
+  int seq2;
+
+  if (ch != ESC)
+    return ch;
+
+  nodelay(stdscr, TRUE);
+  seq1 = wgetch(stdscr);
+  if (seq1 == ERR) {
+    nodelay(stdscr, FALSE);
+    return ESC;
+  }
+
+  if (seq1 != '[' && seq1 != 'O') {
+    ungetch(seq1);
+    nodelay(stdscr, FALSE);
+    return ESC;
+  }
+
+  seq2 = wgetch(stdscr);
+  if (seq2 == ERR) {
+    ungetch(seq1);
+    nodelay(stdscr, FALSE);
+    return ESC;
+  }
+
+  switch (seq2) {
+  case 'A':
+    ch = KEY_UP;
+    break;
+  case 'B':
+    ch = KEY_DOWN;
+    break;
+  case 'C':
+    ch = KEY_RIGHT;
+    break;
+  case 'D':
+    ch = KEY_LEFT;
+    break;
+  case 'H':
+    ch = KEY_HOME;
+    break;
+  case 'F':
+    ch = KEY_END;
+    break;
+  case '1':
+  case '4':
+  case '7':
+  case '8': {
+    int seq3 = wgetch(stdscr);
+    if (seq3 == '~') {
+      ch = (seq2 == '1' || seq2 == '7') ? KEY_HOME : KEY_END;
+    } else {
+      if (seq3 != ERR)
+        ungetch(seq3);
+      ungetch(seq2);
+      ungetch(seq1);
+      ch = ESC;
+    }
+    break;
+  }
+  default:
+    ungetch(seq2);
+    ungetch(seq1);
+    ch = ESC;
+    break;
+  }
+
+  nodelay(stdscr, FALSE);
+  return ch;
+}
+
 int GetEventOrKey(ViewContext *ctx) {
   int ch;
   int w_fd = Watcher_GetFD(ctx);
@@ -717,7 +790,7 @@ int GetEventOrKey(ViewContext *ctx) {
   nodelay(stdscr, FALSE);
 
   if (ch != ERR) {
-    return ch;
+    return NormalizeEscSequence(ch);
   }
 
   if (ctx && ctx->resize_request)
@@ -759,7 +832,7 @@ int GetEventOrKey(ViewContext *ctx) {
         ch = WGetch(ctx, stdscr);
         nodelay(stdscr, FALSE);
         if (ch != ERR)
-          return ch;
+          return NormalizeEscSequence(ch);
         if (ctx && ctx->resize_request)
           return KEY_RESIZE;
 
@@ -777,7 +850,7 @@ int GetEventOrKey(ViewContext *ctx) {
 
     if (FD_ISSET(STDIN_FILENO, &fds)) {
       /* Input available, perform WGetch */
-      return WGetch(ctx, stdscr);
+      return NormalizeEscSequence(WGetch(ctx, stdscr));
     }
   }
 }

@@ -57,5 +57,6 @@ For common governance edits, use these canonical targets:
 Prompt templates live in `docs/ai/` and are maintained as copy/paste entrypoints:
 - `PROMPT_TEMPLATE.md`: single quick developer unit only; includes a hard redirect to relay if scope is broader.
 - `RELAY_PROMPT_TEMPLATE.md`: architect-supervised relay workflow for non-trivial, multi-unit missions.
+- Both templates enforce facts-first relay visibility updates (completed evidence before planned next action).
 
 When template behavior or routing rules change, update both the template file and `docs/ai/WORKFLOW.md`.

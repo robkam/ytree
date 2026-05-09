@@ -314,10 +314,15 @@ watch -n 5 'python3 scripts/relay_runtime.py dashboard --verbose --limit 20'
 4.  Verification cadence inside one atomic unit remains mandatory:
     *   initial pass: full verification set listed for the unit,
     *   correction/rework pass: rerun failing checks + directly impacted targeted tests,
-    *   avoid full `make qa-all` reruns unless risk materially changed or architect requests it.
+    *   avoid full `make qa-all` reruns unless risk materially changed or architect requests it,
+    *   once maintainer has approved QA for a given accepted unit state, run `make qa-all` at most once for that state and rerun only after subsequent code changes.
 5.  Worker MUST NOT mark unit complete while required checks are failing.
 6.  On success/failure/timeout, worker MUST emit explicit event log entries (no silent loops).
 7.  Developer status line to maintainer must be delta-only: net-new state + next action + changed handles only.
+8.  Developer/architect relay updates are facts-first:
+    *   state completed work in past tense before planned next actions,
+    *   include concrete evidence handles for each completion event (`report_handle`, event seq, command excerpt),
+    *   heartbeat-only updates are liveness-only and must include elapsed runtime plus current active action.
 
 #### 3.1.5 Auditor Pass (systemd Worker, Lease + Heartbeat, Single Unit)
 
@@ -335,19 +340,24 @@ watch -n 5 'python3 scripts/relay_runtime.py dashboard --verbose --limit 20'
 2.  Watchdog continuously enforces liveness:
     *   expired lease or stale heartbeat -> `stall_detected` event,
     *   requeue/reassign with bounded retry,
-    *   terminal fail when retry budget is exhausted.
-    *   if worker creation is policy-blocked, retry once with a reduced subagent-safe prompt profile (minimal technical payload only).
-3.  Relay execution remains autonomous end-to-end; maintainer interruption is reserved for explicit blockers and commit-message approval gate.
-4.  Before commit, architect MUST ensure fresh full-gate evidence (`make qa-all`) for accepted branch state.
-5.  If accepted:
+    *   terminal fail when retry budget is exhausted (no silent stop states),
+    *   if worker creation is policy-blocked, retry once with a reduced subagent-safe prompt profile (minimal technical payload only) and do not pause maintainer for that recoverable path.
+3.  Relay execution remains autonomous end-to-end; maintainer interruption is reserved strictly for `true_blocker_decision` and `commit_message_approval`.
+4.  Canonical relay autonomy policy tokens (required in docs + guards):
+    *   `policy_block_retry_once`: policy-blocked worker prompt failure is auto-retried once with reduced prompt profile and no maintainer interruption.
+    *   `watchdog_stall_retry_terminal`: stale heartbeat/timeout must emit `stall_detected`, then bounded retry/reassign, then terminal escalation on retry exhaustion.
+    *   `maintainer_pause_gate=true_blocker_decision|commit_message_approval`: pause gate allows maintainer interruption only for those two reasons.
+    *   Runtime event naming should prefer explicit completion semantics (`worker_command_started`, `worker_command_completed`, `worker_command_failed`, `unit_completed`, `unit_failed`) so maintainers can distinguish done-vs-next without prompt interpretation.
+5.  Before commit, architect MUST ensure fresh full-gate evidence (`make qa-all`) for accepted branch state.
+6.  If accepted:
     *   commit only code/doc files (no relay/runtime artifacts),
     *   use maintainer-approved commit message describing durable behavior (no task numbering),
     *   include explicit work-item status text in the same commit (for example `Status: Confirmed.`, `Status: In Progress.`, or `Status: Fixed.`) so no status transition is left ambiguous,
     *   first push: `git push-fast-up`; tracked branch: `git push-fast`.
-6.  If correction is needed for the same logical change set, amend and repush:
+7.  If correction is needed for the same logical change set, amend and repush:
     *   `git commit --amend --no-edit`
     *   push with the branch rule above.
-7.  Cleanup consumed transient artifacts after usefulness ends (for example `compile_commands.json`, `valgrind.log`, temporary relay scratch files).
+8.  Cleanup consumed transient artifacts after usefulness ends (for example `compile_commands.json`, `valgrind.log`, temporary relay scratch files).
 
 #### 3.1.7 Completion Gate, Merge, and Manual Fallback
 

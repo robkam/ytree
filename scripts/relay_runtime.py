@@ -18,7 +18,7 @@ import threading
 import time
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Callable, Iterable, Sequence
+from typing import Any, Callable, Iterable, Mapping, Sequence
 
 RUN_STATUS_RUNNING = "running"
 RUN_STATUS_COMPLETED = "completed"
@@ -51,7 +51,7 @@ _NOOP_PLACEHOLDER_COMMANDS: set[tuple[str, ...]] = {
     ("/bin/true",),
 }
 
-_REPORT_HANDLE_PATTERN = re.compile(r"(?:^|\s)report_handle=(\S+)")
+_REPORT_HANDLE_PATTERN = re.compile(r"(?:^|\s)report_handle=([^\s;]+)")
 DEFAULT_MAINTAINER_HEARTBEAT_SECONDS = max(
     30, int(os.environ.get("RELAY_MAINTAINER_HEARTBEAT_SECONDS", "300"))
 )
@@ -63,6 +63,26 @@ DEFAULT_NO_PROGRESS_STALL_SECONDS = max(
             str(DEFAULT_MAINTAINER_HEARTBEAT_SECONDS * 3),
         )
     ),
+)
+POLICY_BLOCK_RETRY_LIMIT = 1
+STRICT_MAINTAINER_INTERRUPT_REASONS = frozenset(
+    {"true_blocker_decision", "commit_message_approval"}
+)
+_MAINTAINER_INTERRUPT_REASON_ENV = os.environ.get(
+    "RELAY_MAINTAINER_INTERRUPT_REASONS",
+    "true_blocker_decision,commit_message_approval",
+)
+_CONFIGURED_MAINTAINER_INTERRUPT_REASONS = frozenset(
+    part.strip() for part in _MAINTAINER_INTERRUPT_REASON_ENV.split(",") if part.strip()
+)
+MAINTAINER_INTERRUPT_REASONS = (
+    _CONFIGURED_MAINTAINER_INTERRUPT_REASONS
+    if _CONFIGURED_MAINTAINER_INTERRUPT_REASONS == STRICT_MAINTAINER_INTERRUPT_REASONS
+    else STRICT_MAINTAINER_INTERRUPT_REASONS
+)
+_POLICY_BLOCK_PATTERNS: tuple[re.Pattern[str], ...] = (
+    re.compile(r"\b(can(?:not|'t)\s+comply|unable\s+to\s+comply|refus(?:e|ed|al))\b", re.IGNORECASE),
+    re.compile(r"\b(policy|safety)\b.*\b(block|blocked|reject|rejected|violat|disallow|restricted)\b", re.IGNORECASE),
 )
 
 
@@ -784,6 +804,11 @@ class TemporalRelayStore:
                     )
                 else:
                     final_status = UNIT_STATUS_FAILED
+                    pause_reason = _extract_maintainer_pause_reason(message)
+                    pause_allowed = (
+                        pause_reason is not None
+                        and _maintainer_pause_allowed(reason=pause_reason, recoverable=False)
+                    )
                     conn.execute(
                         """
                         UPDATE units
@@ -829,6 +854,22 @@ class TemporalRelayStore:
                             },
                         ]
                     )
+                    if pause_allowed:
+                        events.append(
+                            {
+                                "run_id": lease.run_id,
+                                "unit_id": lease.unit_id,
+                                "role": ROLE_ARCHITECT,
+                                "event_type": "maintainer_pause_required",
+                                "status": "blocked",
+                                "message": (
+                                    "relay paused for maintainer decision gate "
+                                    f"({pause_reason})"
+                                ),
+                                "metadata": {"pause_reason": pause_reason},
+                                "ts": stamp,
+                            }
+                        )
 
             self._record_events(conn, events)
 
@@ -1183,8 +1224,11 @@ class DashboardReader:
 
         lines: list[str] = []
         for event in events:
+            metadata = event.get("metadata") if isinstance(event.get("metadata"), dict) else {}
+            evidence = metadata.get("report_handle")
+            suffix = f" evidence={evidence}" if isinstance(evidence, str) and evidence else ""
             lines.append(
-                "[{ts}] seq={seq} run={run} unit={unit} role={role} {etype} {status}: {message}".format(
+                "[{ts}] seq={seq} run={run} unit={unit} role={role} {etype} {status}: {message}{suffix}".format(
                     ts=event.get("ts_utc_iso", "-"),
                     seq=event.get("seq", "-"),
                     run=event.get("run_id", "-"),
@@ -1193,6 +1237,7 @@ class DashboardReader:
                     etype=event.get("event_type", "-"),
                     status=event.get("status", "-"),
                     message=event.get("message", ""),
+                    suffix=suffix,
                 )
             )
 
@@ -1214,6 +1259,32 @@ def _parse_command(command_text: str) -> list[str]:
     if not parts:
         raise ValueError("worker command is empty")
     return parts
+
+
+def _is_policy_block_failure(message: str) -> bool:
+    if not message:
+        return False
+    return any(pattern.search(message) for pattern in _POLICY_BLOCK_PATTERNS)
+
+
+def _maintainer_pause_allowed(*, reason: str, recoverable: bool) -> bool:
+    if recoverable:
+        return False
+    return reason in MAINTAINER_INTERRUPT_REASONS
+
+
+def _extract_maintainer_pause_reason(reason: str) -> str | None:
+    normalized = reason.strip().lower()
+    if normalized in MAINTAINER_INTERRUPT_REASONS:
+        return normalized
+    if "true blocker" in normalized or "maintainer decision required" in normalized:
+        return "true_blocker_decision"
+    if "commit message approval" in normalized:
+        return "commit_message_approval"
+    for token in MAINTAINER_INTERRUPT_REASONS:
+        if f"pause_reason={token}" in normalized:
+            return token
+    return None
 
 
 def _preflight_worker_command(command: Sequence[str], *, role: str) -> str | None:
@@ -1262,6 +1333,15 @@ def _extract_report_handle(command_output: str) -> str | None:
     return matches[-1]
 
 
+def _summarize_worker_output(command_output: str, *, limit: int = 240) -> str:
+    lines = [line.strip() for line in command_output.splitlines() if line.strip()]
+    filtered = [line for line in lines if _REPORT_HANDLE_PATTERN.search(line) is None]
+    summary = filtered[-1] if filtered else "worker command completed"
+    if len(summary) <= limit:
+        return summary
+    return f"{summary[: limit - 1]}…"
+
+
 def _validate_worker_success_output(*, lease: Lease, command_output: str) -> tuple[bool, str]:
     report_handle = _extract_report_handle(command_output)
     if not report_handle:
@@ -1299,6 +1379,7 @@ def _run_command_with_heartbeats(
     lease: Lease,
     command: Sequence[str],
     heartbeat_interval: int,
+    extra_env: Mapping[str, str] | None = None,
 ) -> tuple[bool, str]:
     stop = threading.Event()
     heartbeat_failed = threading.Event()
@@ -1313,12 +1394,17 @@ def _run_command_with_heartbeats(
     heartbeat_thread.start()
 
     try:
+        env: dict[str, str] | None = None
+        if extra_env:
+            env = dict(os.environ)
+            env.update(extra_env)
         proc = subprocess.run(
             command,
             capture_output=True,
             text=True,
             timeout=lease.activity_timeout_seconds,
             check=False,
+            env=env,
         )
         if heartbeat_failed.is_set():
             return False, "heartbeat renewal failed while command was running"
@@ -1331,7 +1417,8 @@ def _run_command_with_heartbeats(
             )
             if not output_is_valid:
                 return False, output_message
-            return True, (stdout or stderr or "command completed")[:400]
+            summary = _summarize_worker_output(combined_output)
+            return True, f"worker command completed; report_handle={output_message}; summary={summary}"
         stderr = proc.stderr.strip() or proc.stdout.strip() or f"exit={proc.returncode}"
         return False, f"command failed: {stderr[:400]}"
     except subprocess.TimeoutExpired:
@@ -1407,11 +1494,79 @@ def _run_worker_loop(
             time.sleep(poll_seconds)
             continue
 
+        store.event_log.append(
+            run_id=lease.run_id,
+            unit_id=lease.unit_id,
+            role=lease.role,
+            event_type="worker_command_started",
+            status=UNIT_STATUS_RUNNING,
+            message="worker command execution started",
+            metadata={
+                "lease_owner": lease.lease_owner,
+                "lease_token": lease.lease_token,
+            },
+        )
         success, message = _run_command_with_heartbeats(
             worker=worker,
             lease=lease,
             command=parsed_command,
             heartbeat_interval=heartbeat_interval,
+        )
+        if not success and _is_policy_block_failure(message):
+            store.event_log.append(
+                run_id=lease.run_id,
+                unit_id=lease.unit_id,
+                role=lease.role,
+                event_type="policy_block_detected",
+                status=UNIT_STATUS_RUNNING,
+                message="worker reported policy block; retrying once with reduced prompt profile",
+            )
+            retry_success, retry_message = _run_command_with_heartbeats(
+                worker=worker,
+                lease=lease,
+                command=parsed_command,
+                heartbeat_interval=heartbeat_interval,
+                extra_env={
+                    "RELAY_REDUCED_PROMPT_PROFILE": "1",
+                    "RELAY_POLICY_BLOCK_RETRY_ATTEMPT": str(POLICY_BLOCK_RETRY_LIMIT),
+                },
+            )
+            if retry_success:
+                store.event_log.append(
+                    run_id=lease.run_id,
+                    unit_id=lease.unit_id,
+                    role=lease.role,
+                    event_type="policy_retry_recovered",
+                    status=UNIT_STATUS_RUNNING,
+                    message="policy-block failure recovered automatically via reduced prompt profile",
+                )
+                success, message = True, retry_message
+            else:
+                store.event_log.append(
+                    run_id=lease.run_id,
+                    unit_id=lease.unit_id,
+                    role=lease.role,
+                    event_type="policy_retry_exhausted",
+                    status=UNIT_STATUS_RUNNING,
+                    message="policy-block recovery retry exhausted",
+                )
+                message = f"{message}; reduced profile retry failed: {retry_message}"
+        status = UNIT_STATUS_RUNNING if success else "error"
+        completion_metadata: dict[str, Any] = {
+            "lease_owner": lease.lease_owner,
+            "lease_token": lease.lease_token,
+        }
+        report_handle = _extract_report_handle(message)
+        if report_handle:
+            completion_metadata["report_handle"] = report_handle
+        store.event_log.append(
+            run_id=lease.run_id,
+            unit_id=lease.unit_id,
+            role=lease.role,
+            event_type="worker_command_completed" if success else "worker_command_failed",
+            status=status,
+            message=message,
+            metadata=completion_metadata,
         )
         worker.complete(lease, success=success, message=message)
 
