@@ -38,6 +38,13 @@ For the continuous audit workflow (during development and PRs) plus final releas
 For maintainer copy/paste prompts, see **[ai/PROMPT_TEMPLATE.md](ai/PROMPT_TEMPLATE.md)** (single quick unit) and **[ai/RELAY_PROMPT_TEMPLATE.md](ai/RELAY_PROMPT_TEMPLATE.md)** (multi-unit relay).
 For pull-request governance and conflict triage policy, see **[PR_GATE.md](PR_GATE.md)**.
 
+## Planning and History Docs Policy
+
+- `docs/ROADMAP.md` and `docs/BUGS.md` are forward-looking (`planned`/`in-progress`).
+- Completed items may be removed from those active planning docs after landing/fix.
+- `docs/CHANGES.md` is milestone-level only; do not add every trivial fix.
+- Git history is the complete detailed archive of all changes.
+
 ## Development Setup
 
 This project uses a combination of C for the application and Python for the test suite and AI assistance tools.

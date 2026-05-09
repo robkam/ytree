@@ -620,8 +620,15 @@ void RenderInactivePanel(ViewContext *ctx, YtreePanel *panel) {
     }
 
     if (panel->pan_file_window) {
-      DisplayFiles(ctx, panel, de, render_start, -1, 0, panel->pan_file_window);
-      wnoutrefresh(panel->pan_file_window);
+      if (panel->saved_focus != FOCUS_FILE && ctx &&
+          ctx->focused_window == FOCUS_FILE && panel->file_count == 0) {
+        werase(panel->pan_file_window);
+        wnoutrefresh(panel->pan_file_window);
+      } else {
+        DisplayFiles(ctx, panel, de, render_start, -1, 0,
+                     panel->pan_file_window);
+        wnoutrefresh(panel->pan_file_window);
+      }
     }
   }
 }

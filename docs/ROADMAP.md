@@ -6,93 +6,93 @@ Ordering policy (for all editors, including AI editors):
 - Organize work as `Current Delivery Roadmap` and `Future Enhancements / Wishlist`, then by phase.
 - Inside each phase: put items that are high-impact first after that order remaining items by ease of implementation.
 - Insert new approved items at the correct priority position (do not append by default).
-- In `Current Delivery Roadmap`, keep `Task` numbering as a priority countdown where practical (`highest number = highest priority`).
-- In `Future Enhancements / Wishlist`, use `Idea FE-*` IDs to avoid collisions with current-delivery task IDs.
+- In `Current Delivery Roadmap`, number `Task` items top-to-bottom in ascending order (`1` = highest priority).
+- In `Future Enhancements / Wishlist`, use `Idea FE-*` IDs in top-to-bottom ascending order (`FE-1` = highest priority in wishlist).
 - IDs are unstable labels and are likely to change often due to reprioritization/renumbering.
-
-## **Current Delivery Roadmap**
+- Roadmap is forward-looking (`planned`/`in-progress`). Completed items will be removed after landing; add only significant outcomes to `docs/CHANGES.md` and use git history as the full archive.
 
 ---
 
-## **Phase 0: Exploitability-First Security Hardening (Pre-Alpha Release Blocker)**
+## **Phase 1: Exploitability-First Security Hardening (Pre-Alpha Release Blocker)**
 *This phase is first by priority for real-world security readiness. Ship only after these classes are closed or explicitly risk-accepted.*
 
-### **Task 73: Fix command-buffer overflow (`COLS+1` vs `COMMAND_LINE_LENGTH`)**
-*   **Goal:** Replace `malloc(COLS + 1)` command/search buffers used with `GetCommandLine` / `GetSearchCommandLine` by `COMMAND_LINE_LENGTH + 1` storage and enforce one size contract.
-*   **Scope:** `src/ui/ctrl_file_ops.c`, `src/ui/interactions.c`, `include/ytree_defs.h`.
-*   **Acceptance Criteria:**
-*   Red test first: very long tagged command/search input reproducer asserts no crash/corruption.
-*   No dynamic command buffer sized by `COLS` remains in these flows.
-*   Long input truncates safely and regression test passes.
-*   - [x] **Status:** Completed.
+## **Phase 2: Architecture and Clean-Code Guardrails (Early Prevention)**
+*This phase codifies architectural and coding-discipline guardrails early so regressions are blocked before they become backlog debt.*
 
-### **Task 72: Remove or hard-gate `/tmp` debug keystroke logging**
-*   **Goal:** Ensure plaintext key/debug logs are not emitted in normal runtime.
-*   **Scope:** `src/ui/key_engine.c`, `src/ui/ctrl_file.c`, `src/ui/dir_ops.c`.
+### **Task 72: Eliminate Oversized Controller Functions (Dispatch-Only End State)**
+*   **Goal:** Decompose all oversized controller functions so controllers remain dispatch-focused and behavior logic is extracted into dedicated modules.
+*   **Scope:** `src/ui/ctrl_*.c` and any controller-dispatch hotspots identified by `qa-module-boundaries`.
+*   **Mechanism:** Set explicit per-function and per-file budgets, split by action family, and keep controller functions as thin routing layers.
 *   **Acceptance Criteria:**
-*   Debug logging is compile-time gated and off by default.
-*   Log path handling is secure (no predictable world-readable temp logs).
-*   Red test first: default build writes no such logs during normal interaction.
-*   - [x] **Status:** Completed.
+*   No controller function exceeds approved line budget.
+*   No controller file exceeds approved line budget.
+*   `make qa-module-boundaries` and `make qa-all` pass.
+*   Split/extracted code preserves existing behavior (no UX/command semantic drift).
+*   - [ ] **Status:** Not Started.
 
-### **Task 71: Tighten shell-exec attack surface**
-*   **Goal:** Separate trusted template execution from raw user shell commands; prefer argv-based exec where possible and keep shell-required paths explicit and user-confirmed.
-*   **Scope:** `src/cmd/system.c`, `src/cmd/pipe.c`, `src/cmd/print_ops.c`, `src/ui/ctrl_file_ops.c`.
+### **Task 73: Remove Dead-History Comments + Add Anti-History Comment Gate**
+*   **Goal:** Remove comments that describe removed code/history and prevent their reintroduction.
+*   **Policy:** Source comments may describe only invariants, ownership/lifetime assumptions, aliasing constraints, or non-obvious design rationale.
+*   **Forbidden Comment Classes:** "removed/obsolete/used to", "original code did X", instruction-transcript comments, and commented-out declarations retained as history.
+*   **Mechanism:** Add a QA guard script (wired into `qa-all`) that fails on forbidden dead-history comment patterns, with allowlist-only exceptions for migration-required cases.
 *   **Acceptance Criteria:**
-*   Red test first: malicious filenames/inputs with shell metacharacters do not execute unintended commands in templated flows.
-*   Templated flows are quote-safe end-to-end; shell-required flows are explicit.
-*   - [x] **Status:** Completed.
+*   Existing dead-history comments in first-party code are removed or rewritten to durable design intent.
+*   New guard fails on forbidden patterns and passes on current baseline.
+*   `make qa-all` passes with the new guard enabled.
+*   - [ ] **Status:** Not Started.
 
-### **Task 70: Make `NormPath` fail-safe on deep component stacks**
-*   **Goal:** Stop silent component drop; return explicit error on overflow (or move to dynamic component list) and propagate failure.
-*   **Scope:** `src/util/path_utils.c` plus impacted callsites (`src/cmd/log.c`, `src/cmd/mkdir.c`, `src/fs/tree_utils.c`).
+### **Task 74: Unified Clean-Code Compliance Gate**
+*   **Goal:** Enforce clean-code rules continuously through one measurable gate instead of ad-hoc review.
+*   **Scope:** Naming quality, function size/argument/side-effect discipline, duplication control, boundary-condition encapsulation, and test clarity/independence.
+*   **Mechanism:** Add `qa-clean-code` (included in `qa-all`) that combines static checks + targeted meta-tests:
+    *   **Naming checks:** fail on new ambiguous/abbreviated single-letter identifiers outside accepted loop/index conventions; fail on new magic-number literals outside approved constant contexts.
+    *   **Function checks:** enforce max function-size budget, max argument-count budget, and fail on new flag-argument signatures; require explicit annotation/wrapper for approved side-effect functions.
+    *   **Duplication checks:** fail on new duplicate blocks above threshold unless explicitly allowlisted with rationale.
+    *   **Boundary checks:** fail when boundary logic (path bounds/index guards/null-termination guards) is duplicated across modules instead of using shared helpers.
+    *   **Test checks:** fail on tests that combine unrelated assertions/flows without clear phase separation; require independent setup/teardown (no order-coupled fixtures or shared mutable global state).
 *   **Acceptance Criteria:**
-*   Red test first: paths with >256 segments fail explicitly.
-*   No silent truncation to an incorrect normalized path.
-*   - [x] **Status:** Completed.
+*   `qa-clean-code` exists, is documented, and is wired into `qa-all`.
+*   Baseline debt is explicitly allowlisted with owner + removal plan; no silent grandfathering.
+*   New violations fail local gate and CI evidence.
+*   `make qa-all` passes with `qa-clean-code` enabled on the current baseline.
+*   - [ ] **Status:** Not Started.
 
-### **Task 69: Temp-file lifecycle hardening across archive/view/execute paths**
-*   **Goal:** Unify secure temp creation, ensure cleanup on all error/cancel paths, and prefer unlink-after-open where practical.
-*   **Scope:** `src/cmd/execute.c`, `src/cmd/view.c`, `src/cmd/hex.c`, `src/ui/view_preview.c`.
+### **Task 49: Compiler Warning Baseline + No-New-Warnings Gate**
+*   **Goal:** Reduce `-Wall/-Wextra` warning debt to a maintained baseline and prevent warning regressions on supported toolchains.
+*   **Rationale:** A low-noise warning profile improves signal quality and catches real defects earlier without forcing brittle all-or-nothing local builds.
+*   **Scope:** Build/QA policy and warning remediation only; no feature behavior changes in this task.
 *   **Acceptance Criteria:**
-*   Red test first: forced failures leave no temp artifacts.
-*   No temp-file leaks across success/failure/cancel paths.
-*   - [x] **Status:** Completed.
+*   Define and document baseline warning counts for `gcc` and `clang` under current default flags.
+*   Add strict QA mode (for example `STRICT=1`) that enables `-Werror` for CI/QA gates while preserving a portable default developer build.
+*   Burn down existing warning debt in prioritized batches (safety/correctness first), keeping suppressions minimal and justified.
+*   CI/QA fails on new warnings in strict mode for supported compilers.
+*   - [ ] **Status:** Not Started.
 
-### **Task 68: Remove `exit(1)` from user-triggered runtime paths**
-*   **Goal:** Convert hard aborts to propagated errors + UI messages so the process stays alive.
-*   **Scope:** `src/cmd/edit.c`, `src/ui/ctrl_file_ops.c`, `src/util/path_utils.c`.
-*   **Acceptance Criteria:**
-*   Red test first: injected allocation/IO failure returns gracefully without process termination.
-*   No hard process exit remains in interactive command paths.
-*   - [x] **Status:** Completed.
+### **Task 55: Code-Smell Gate (Audit + Detect + Block)**
+*   **Goal:** Add explicit QA and merge-gate enforcement that audits current code smells and blocks new/reintroduced structural smell debt.
+*   **Scope:** controller growth, god-function budgets, module-boundary violations, complexity hotspots, and architecture drift.
+*   **Acceptance Criteria:** Smell baseline audit evidence exists, recurring smell checks are mandatory in `qa-all`/PR evidence, and merge is blocked on unapproved new smell violations.
+*   - [ ] **Status:** Not Started.
 
-### **Task 67: Break up high-risk god functions to cut regression risk**
-*   **Goal:** Extract isolated command handlers/modules without behavior change.
-*   **Scope:** `src/ui/ctrl_dir.c`, `src/ui/ctrl_file.c`, `src/ui/ctrl_file_ops.c`.
-*   **Acceptance Criteria:**
-*   Red test first: snapshot existing behavior with focused regression tests.
-*   Complexity drops materially with unchanged behavior/tests.
-*   Coordinate with decomposition work in current-delivery module-hotspot tasks.
-*   - [x] **Status:** Completed.
+#### **Task 56: Baseline Code-Smell Audit and Debt Register**
+*   **Goal:** Audit current codebase for structural smells and categorize debt with explicit remediation sequencing.
+*   **Deliverables:** baseline report covering hotspots, oversized controllers/functions, boundary exceptions, and tracked rationale for retained debt.
+*   - [ ] **Status:** Not Started.
 
-### **Task 66: Add permanent security regression gates**
-*   **Goal:** Add durable regression checks for command-buffer sizing, no default debug logs, temp-file cleanup, and shell-quoting integrity.
-*   **Scope:** `tests/` and QA scripts (`pytest` / `qa-all` integration).
-*   **Acceptance Criteria:**
-*   Introduce a dedicated integrity gate target (`qa-fileops-integrity`) and wire it into `qa-all`/CI.
-*   The gate runs deterministic pre/post integrity assertions (file counts + content hashes) for mutation paths: `Copy`, `Move`, `Delete`, `Rename`, and archive write/edit flows.
-*   The gate covers cancel/interruption/failure paths and asserts no partial or corrupt leftovers, including archive rewrite paths.
-*   The gate covers overwrite/self-target, same-path, cross-device boundaries, permission/no-space failures, odd filenames, and archive path edge cases.
-*   Release/merge evidence requires all core QA gates, including `qa-fileops-integrity`, to be green before sign-off.
-*   These vulnerability classes fail CI if reintroduced.
-*   Evidence/gating aligns with Security Risk Gate tasks in this roadmap.
-*   - [x] **Status:** Completed.
+#### **Task 57: Strengthen Smell-Prevention Guards**
+*   **Goal:** Prevent reintroduction of known smell patterns via automated policy checks.
+*   **Mechanism:** Tighten module-boundary/controller-growth policies and require explicit approval paths for exceptions.
+*   - [ ] **Status:** Not Started.
 
-## **Phase 1: Build System, Documentation, and CI**
+#### **Task 58: Smell Gate Evidence as Merge Prerequisite**
+*   **Goal:** Ensure smell-audit results are part of mandatory merge evidence, not optional review notes.
+*   **Mechanism:** Require successful smell checks in QA artifacts and block integration on unresolved unapproved violations.
+*   - [ ] **Status:** Not Started.
+
+## **Phase 3: Build System, Documentation, and CI**
 *This phase focuses on project infrastructure, developer experience, and release readiness.*
 
-### **Task 65: Add Automated Coverage Reporting and CI Threshold Gate**
+### **Task 1: Add Automated Coverage Reporting and CI Threshold Gate**
 *   **Goal:** Integrate `gcov`/`lcov` into Makefile and CI to generate automated statement-coverage reports and enforce a minimum coverage threshold.
 *   **Rationale:** Coverage reporting gives a measurable quality signal and prevents silent regression of test effectiveness.
 *   **Scope Lock:** Coverage instrumentation, report generation, and CI gating only; no feature behavior changes in this task.
@@ -104,7 +104,7 @@ Ordering policy (for all editors, including AI editors):
 *   Update `docs/AUDIT.md` in the same change so audit policy reflects implemented coverage commands/gates (not planned-only wording).
 *   - [ ] **Status:** Not Started.
 
-### **Task 64: Restructure and Expand Test Suite**
+### **Task 2: Restructure and Expand Test Suite**
 *   **Goal:** Tidy up existing test scripts into a coherent, modular structure and thoroughly expand the regression suite for comprehensive coverage.
 *   **Rationale:** A well-structured test suite is easier to maintain and extend. Thorough, systematic coverage ensures reliability and prevents regressions across complex file operations.
 *   **Scope Lock:** Test architecture, fixtures, and regression coverage expansion only; no runtime feature behavior changes in this task.
@@ -116,38 +116,17 @@ Ordering policy (for all editors, including AI editors):
 *   Document fixture/helper conventions so new contributors can add mutation-integrity tests consistently.
 *   - [ ] **Status:** Not Started.
 
-### **Task 63: Optimize QA Gate Organization and Test Runtime Without Safety Loss**
-*   **Goal:** Reduce local/CI feedback time by reorganizing QA cadence, de-duplicating overlapping checks/tests, and improving harness efficiency while preserving (or strengthening) regression/security confidence.
-*   **Rationale:** Delivery speed is constrained by repeated heavy gates and runtime-heavy test patterns; optimization must improve iteration speed without weakening merge/release assurance.
-*   **Scope Lock:** QA/check/test architecture, policy, workflow triggers, and harness improvements only; no runtime feature behavior changes in this task.
-*   **Scope Boundary (Strict):** Non-QA workflow-policy edits (for example PR title/body wording rules) are out of scope for this work item and must be tracked in a separate task/PR.
-*   **Policy Anchor:** `docs/AUDIT.md` section **1.3 Gate Organization & Efficiency** (tier ownership matrix, branch-protection readiness criteria, runtime trend reporting, rollout/rollback risk register) and `.ai/shared.md` branch/PR + hybrid quality workflow rules.
-*   **Acceptance Criteria:**
-*   Define and document tiered QA cadence with explicit ownership and triggers:
-*   Tier A (local fast iteration), Tier B (draft PR CI), Tier C (ready-for-review full gate), Tier D (merge/release gate).
-*   Preserve all beneficial checks in the system (unsafe APIs, module boundaries, ai-config, gitleaks, fuzz, fileops integrity, full pytest, static analyzers, valgrind/sanitize/deep valgrind), allowing cadence changes but no silent removals.
-*   Remove redundant same-stage overlap between targeted and full suites where equivalent coverage is already provided; each gate must have explicit non-overlapping default intent.
-*   Define required PR branch-protection checks and readiness criteria so draft iteration can be fast while pre-merge assurance remains strict.
-*   De-duplicate near-identical tests using parametrization/shared helpers where behavior equivalence is provable, with unchanged or stronger assertion strength.
-*   Replace avoidable fixed sleeps with deterministic condition/poll-based waits and centralized timeout policy (defaults + justified exceptions), preserving PTY safety constraints.
-*   Add runtime-budget and trend reporting (local/CI) with measurable before/after evidence:
-*   median draft feedback time, time-to-green, full-gate runtime, and flake rate.
-*   Define provisional numeric targets for auditability (for example Tier B p50 runtime, full-gate p50 runtime, max flake rate, and target time-to-green) so completion is evidence-based.
-*   Provide phased rollout + rollback criteria and a risk register showing how coverage/signal quality is preserved during transition.
-*   Demonstrate no loss of critical-path coverage across core file operations, archive workflows, and split/panel isolation flows.
-*   - [x] **Status:** Completed.
-
-### **Task 62: Finalize Documentation**
+### **Task 3: Finalize Documentation**
 *   **Goal:** Update the `CHANGELOG`, `README.md`, and `CONTRIBUTING.md` files to reflect all new features and changes before a release.
 *   **Rationale:** Ensures users and developers have accurate, up-to-date information about the project.
 *   - [ ] **Status:** Not Started.
 
-### **Task 61: Initialize Distributed Issue Tracking (git-bug)**
+### **Task 4: Initialize Distributed Issue Tracking (git-bug)**
 *   **Goal:** Configure `git-bug` to act as a bridge between the local repository and GitHub Issues. Migrate the contents of `BUGS.md` and `TODO.txt` into this system prior to public release.
 *   **Rationale:** Allows the developer to maintain a simple local text-based workflow during heavy development, while ensuring that all tracking data can be synchronized to the public web interface when the project goes live.
 *   - [ ] **Status:** Not Started.
 
-### **Task 60: Config Source-of-Truth + Generation/Verification Gate**
+### **Task 5: Config Source-of-Truth + Generation/Verification Gate**
 *   **Goal:** Enforce one canonical editable default profile source and make generated artifacts deterministic and verifiable.
 *   **Source-of-Truth Policy:** `etc/ytree.conf` is the only human-edited default profile source; `src/core/default_profile_template.h` is generated-only and consumed by `--init`.
 *   **Mechanism:** Add a reproducible generator path (`etc/ytree.conf` -> `src/core/default_profile_template.h`) and a QA/CI check that fails when generated output is stale or hand-edited.
@@ -160,12 +139,12 @@ Ordering policy (for all editors, including AI editors):
 
 ---
 
-## **Phase 2: UI/UX Enhancements and Cleanup**
+## **Phase 4: UI/UX Enhancements and Cleanup**
 *This phase adds user-facing improvements, cleans up the remaining artifacts, and ensures a clean, modern, and portable codebase.*
 
 ### **Immediate Quick Wins**
 
-### **Task 59: Footer Action Parity in Archive Mode (`Pipe`)**
+### **Task 6: Footer Action Parity in Archive Mode (`Pipe`)**
 *   **Goal:** Make archive-mode footer/help lines accurately reflect runtime-available actions, starting with `Pipe`.
 *   **Rationale:** Footer/help is the primary discoverability surface; available actions must not be hidden.
 *   **Scope Lock:** No command semantics or keybinding behavior changes; visibility/alignment only.
@@ -175,7 +154,7 @@ Ordering policy (for all editors, including AI editors):
 *   A focused regression test (or existing footer/help test extension) verifies archive footer/action parity.
 *   - [ ] **Status:** Not Started.
 
-### **Task 59A: Path Message Formatting Audit (`//` Artifact Prevention)**
+### **Task 7: Path Message Formatting Audit (`//` Artifact Prevention)**
 *   **Goal:** Audit user-facing message/path rendering and eliminate accidental double-slash artifacts in status/error/footer output.
 *   **Rationale:** Message correctness is a trust surface; inconsistent path rendering invites avoidable bug reports and operator confusion.
 *   **Scope Lock:** Message/path formatting and tests only; no navigation, keybinding, or filesystem behavior changes.
@@ -186,7 +165,7 @@ Ordering policy (for all editors, including AI editors):
 *   Preserve valid POSIX-leading `//` semantics where intentional; do not blanket-collapse legitimate leading doubles.
 *   - [ ] **Status:** Not Started.
 
-### **Task 59B: Copy Include-Paths Base/Result Preview Contract (Predictable Root Semantics)**
+### **Task 8: Copy Include-Paths Base/Result Preview Contract (Predictable Root Semantics)**
 *   **Goal:** Make `Copy` with `Preserve ancestor paths` explicit and predictable by showing a compact computed preview of base root, relative segment, and resulting destination path.
 *   **Rationale:** Users cannot infer include-path base semantics from UI alone, which makes destination depth feel arbitrary and increases wrong-target risk.
 *   **Scope Lock:** Prompt/help/docs and regression coverage only; do not change underlying copy/sync semantics in this task.
@@ -200,7 +179,7 @@ Ordering policy (for all editors, including AI editors):
 *   Update `docs/SPECIFICATION.md`, `etc/ytree.1.md`, generated `docs/USAGE.md`, and F1/context help text so include-path root/relative/result contract and `[`/`]` controls are explicit and consistent.
 *   - [ ] **Status:** Not Started.
 
-### **Task 59C: Proactive Missing-Destination Directory Creation Prompt**
+### **Task 9: Proactive Missing-Destination Directory Creation Prompt**
 *   **Goal:** When a destination directory is missing in destination-driven workflows, detect it before execution and offer an explicit one-step create confirmation.
 *   **Rationale:** Prevents avoidable late failures, reduces wrong-target mistakes from typos, and improves alpha-readiness of copy/move-style flows.
 *   **Scope Lock:** Destination validation and confirmation behavior only; no command semantic/keybinding changes.
@@ -213,7 +192,7 @@ Ordering policy (for all editors, including AI editors):
 *   Update `etc/ytree.1.md` and regenerate `docs/USAGE.md` (`make docs`) when behavior lands.
 *   - [ ] **Status:** Not Started.
 
-### **Task 59D: Add Inline `Shift+N` Create-Link Flow (Symlink/Hardlink)**
+### **Task 10: Add Inline `Shift+N` Create-Link Flow (Symlink/Hardlink)**
 *   **Goal:** Add an in-app link creation command that mirrors existing `mkdir/newfile/copy` prompt ergonomics without requiring external `X` shell execution.
 *   **Rationale:** Link creation is a core file-manager workflow; requiring shell fallback breaks interaction consistency and discoverability.
 *   **Scope Lock:** Filesystem link creation UX/behavior only (`symlink` and `hardlink`); no unrelated command flow redesign.
@@ -230,20 +209,7 @@ Ordering policy (for all editors, including AI editors):
 *   Update `etc/ytree.1.md` and regenerate `docs/USAGE.md` (`make docs`) when behavior lands.
 *   - [ ] **Status:** Not Started.
 
-### **Task 58: Add `i/I` Invert Tags in Directory Mode**
-*   **Goal:** Support `i/I` invert-tag action from directory contexts.
-*   **Rationale:** Tag inversion at the directory level is missing.
-*   **Scope Lock:** Add directory-context invert behavior only; do not change existing file-mode invert semantics.
-*   **Acceptance Criteria:**
-*   In filesystem and archive directory modes, `i`/`I` inverts tag state for files in the selected/current directory scope.
-*   File-mode `i`/`I` behavior remains unchanged.
-*   Split-panel isolation remains intact (only active-panel scope is mutated).
-*   If the scope has no files, the action is a silent no-op (no beep/modal).
-*   Add focused regression tests for dir-mode invert behavior (filesystem + archive coverage).
-*   Update `etc/ytree.1.md` and regenerate `docs/USAGE.md` (`make docs`) when behavior lands.
-*   - [x] **Status:** Completed.
-
-### **Task 57: F7 Top Path Line Must Preserve Full `filename.ext`**
+### **Task 11: F7 Top Path Line Must Preserve Full `filename.ext`**
 *   **Goal:** In F7 preview mode, the top line above the directory window must display file context as `path + filename.ext` for the selected file.
 *   **Rationale:** In preview workflows, the selected file identity must remain explicit and unambiguous.
 *   **Scope Lock:** F7 top-line rendering contract only; no preview navigation/keybinding changes in this task.
@@ -255,7 +221,7 @@ Ordering policy (for all editors, including AI editors):
 *   Update `etc/ytree.1.md` and regenerate `docs/USAGE.md` (`make docs`) when behavior lands.
 *   - [ ] **Status:** Not Started.
 
-### **Task 56: Manual File-Column Width Controls (`[` Narrower, `]` Wider, `{` / `}` Reset)**
+### **Task 12: Manual File-Column Width Controls (`[` Narrower, `]` Wider, `{` / `}` Reset)**
 *   **Goal:** Add explicit keyboard controls for file-list column width so users can quickly trade density vs readability in the file window.
 *   **Rationale:** Long-name workflows need fast, deterministic control over visible filename identity without terminal resize churn.
 *   **Scope Lock:** File-window list column width controls only; no F7 split-preview width redesign in this task.
@@ -266,10 +232,10 @@ Ordering policy (for all editors, including AI editors):
 *   Behavior is deterministic and static (no marquee/auto-scrolling text).
 *   Footer/F1 help documents these keys in file contexts where they apply.
 *   Add focused regression coverage for width adjust left/right/reset behavior and bounds handling.
-*   **Related:** Task 55 (F7 pane-width tuning).
+*   **Related:** Task 13 (F7 pane-width tuning).
 *   - [ ] **Status:** Not Started.
 
-### **Task 55: Adjustable List/Preview Width in `F7` Mode**
+### **Task 13: Adjustable List/Preview Width in `F7` Mode**
 *   **Goal:** Allow users to adjust the relative width of file-list and preview panes while in `F7` preview mode.
 *   **Rationale:** Different file types and terminal sizes benefit from quick width tuning during inspect workflows.
 *   **Scope Lock:** `F7` pane-width behavior only; no split-mode (`F8`) layout redesign.
@@ -281,7 +247,7 @@ Ordering policy (for all editors, including AI editors):
 *   Footer/F1 help and config docs are updated when behavior lands.
 *   - [ ] **Status:** Not Started.
 
-### **Task 54: Progress Indicators for Copy/Move/Delete/Archive Workflows**
+### **Task 14: Progress Indicators for Copy/Move/Delete/Archive Workflows**
 *   **Goal:** Add consistent progress feedback for long-running mutation workflows (`Copy`, `Move`, `Delete`, archive create/extract/rewrite).
 *   **Rationale:** Users need immediate confidence that work is active and not hung, especially during large operations.
 *   **Scope Lock:** Progress signaling and UI/status messaging only; no changes to command semantics, confirmation policies, or keybindings.
@@ -294,7 +260,7 @@ Ordering policy (for all editors, including AI editors):
 *   Add focused regression coverage for progress-state selection (indeterminate vs measurable) and completion/error transitions.
 *   - [ ] **Status:** Not Started.
 
-### **Task 53: Clarify Internal `^V` Navigation for File vs Hit Traversal**
+### **Task 15: Clarify Internal `^V` Navigation for File vs Hit Traversal**
 *   **Goal:** Make internal `View Tagged` (`^V`) navigation unambiguous by separating file-to-file movement from hit-to-hit movement.
 *   **Rationale:** Current flow is easy to misinterpret (`Space` paging, `S` sort, and `^S` tagged search/filter context), which increases user friction during review workflows.
 *   **Scope Lock:** Internal `^V` viewer behavior/help only; do not change tagged-filter semantics in file/archive list mode.
@@ -308,7 +274,7 @@ Ordering policy (for all editors, including AI editors):
 *   Add focused regression coverage for key behavior and help discoverability in this mode.
 *   - [ ] **Status:** Not Started.
 
-### **Task 52: Harden `Write` Destination UX (Least Surprise)**
+### **Task 16: Harden `Write` Destination UX (Least Surprise)**
 *   **Goal:** Make `Write` destination handling explicit and predictable for both Unix power users and new users, while keeping the interaction path shallow.
 *   **Rationale:** Current destination parsing is ambiguous and error-prone; users should not need hidden syntax to perform a basic file write.
 *   **Scope Lock:** Keep key as `W` labeled `Write`; no extra submenu layers.
@@ -323,7 +289,7 @@ Ordering policy (for all editors, including AI editors):
 *   No crash on command-not-found or destination-open failures.
 *   - [ ] **Status:** Not Started.
 
-### **Task 51: Enforce `Write` Context-Valid Option Matrix + Regression Gate**
+### **Task 17: Enforce `Write` Context-Valid Option Matrix + Regression Gate**
 *   **Goal:** Ensure `Write` offers only valid formats/actions per active context (`dir`/`file`/`archive`/`tagged`) and that prompt/help always match runtime behavior.
 *   **Rationale:** UI option surfaces must be truthful to reduce friction and prevent hidden-feature drift.
 *   **Scope Lock:** Behavior alignment and tests only; no new keybindings in this task.
@@ -336,7 +302,7 @@ Ordering policy (for all editors, including AI editors):
 *   `docs/SPECIFICATION.md`, `etc/ytree.1.md`, and generated `docs/USAGE.md` are updated in the same delivery so docs match runtime behavior.
 *   - [ ] **Status:** Not Started.
 
-### **Task 50: Add `Catalog` Output Mode to `Write`**
+### **Task 18: Add `Catalog` Output Mode to `Write`**
 *   **Goal:** Extend the existing `Write` format dialog with a `Catalog` mode that exports a deterministic file/directory inventory (similar intent to `ls -1pR`) instead of file contents.
 *   **Rationale:** Users need an in-app way to generate list/report output to command or file without dropping to shell-specific workflows.
 *   **Scope Lock:** Add format behavior only; do not define or change keybindings in this task.
@@ -347,7 +313,7 @@ Ordering policy (for all editors, including AI editors):
 *   Focused regression tests cover at least one filesystem case and one archive case.
 *   - [ ] **Status:** Not Started.
 
-### **Task 49: Remove Footer Prompt for / Search**
+### **Task 19: Remove Footer Prompt for / Search**
 *   Goal: Keep existing / search behavior in all contexts (Dir, File, Showall, Global), but stop using the footer prompt area for search input.
 *   Rationale: Current search semantics already work; only the footer prompt is unnecessary UI churn.
 *   Requirements:
@@ -357,7 +323,7 @@ Ordering policy (for all editors, including AI editors):
 *   Use a non-footer inline input/render path for search text and match feedback.
 *   Status: Not Started
 
-### **Task 48: Enforce One-Level Primary Action Depth (Prompt-Chain Audit)**
+### **Task 20: Enforce One-Level Primary Action Depth (Prompt-Chain Audit)**
 *   **Goal:** Audit and remediate primary interactive workflows so the common path stays `key -> Enter -> result` with at most one submenu/prompt layer.
 *   **Rationale:** Deep prompt chains increase friction and slow high-frequency workflows.
 *   **Scope Lock:** Interaction depth, defaults, and prompt composition only; no command semantic changes in this task.
@@ -372,10 +338,10 @@ Ordering policy (for all editors, including AI editors):
 *   Add regression coverage for at least one remediated deep flow to prevent prompt-chain regressions.
 *   - [ ] **Status:** Not Started.
 
-### **Task 47: Simplify Compare Mode Flow with Persistent Presets**
+### **Task 21: Simplify Compare Mode Flow with Persistent Presets**
 *   **Goal:** Keep compare fast and explicit by consolidating options in compare mode while preserving current safe defaults and target confirmation.
 *   **Rationale:** Compare is high-frequency and should require fewer chained prompts without hiding safety-critical target selection.
-*   **Dependency:** Sequence after Task 48 prompt-chain simplification baseline.
+*   **Dependency:** Sequence after Task 20 prompt-chain simplification baseline.
 *   **Scope Lock:** Compare flow only (`j/J` entry behavior); no unrelated keybinding or footer redesign.
 *   **Acceptance Criteria:**
 *   Compare remains a modal state and compare footer/help owns the footer while active.
@@ -389,7 +355,7 @@ Ordering policy (for all editors, including AI editors):
 *   Update compare docs/help text in `etc/ytree.1.md` and regenerate `docs/USAGE.md`.
 *   - [ ] **Status:** Not Started.
 
-### **Task 46: Add Recursive Directory Compare in `J` Flow**
+### **Task 22: Add Recursive Directory Compare in `J` Flow**
 *   **Goal:** Support recursive directory-tree compare from the existing `J` compare flow.
 *   **Rationale:** Recursive compare is a practical file-manager workflow and improves alpha usefulness for real tree-diff tasks.
 *   **Scope Lock:** Add recursive compare capability and prompt/menu wiring only; do not redesign unrelated compare UI.
@@ -401,7 +367,7 @@ Ordering policy (for all editors, including AI editors):
 *   `etc/ytree.1.md` and generated `docs/USAGE.md` are updated when behavior lands.
 *   - [ ] **Status:** Not Started.
 
-### **Task 45: Lock Inactive Split-Panel Selection Semantics + Regression Coverage**
+### **Task 23: Lock Inactive Split-Panel Selection Semantics + Regression Coverage**
 *   **Goal:** Define and enforce deterministic inactive-panel cursor behavior under mirrored tree-structure changes in `F8` split mode.
 *   **Rationale:** Real-time mirrored tree updates are useful, but must stay predictable when parent/ancestor collapse, add, or delete operations change visibility.
 *   **Scope Lock:** Selection/cursor semantics and regression coverage only; no unrelated split-layout or keybinding redesign.
@@ -412,7 +378,7 @@ Ordering policy (for all editors, including AI editors):
 *   Update `docs/SPECIFICATION.md` contract references if implementation details differ during delivery.
 *   - [ ] **Status:** Not Started.
 
-### **Task 44: Enable Practical Command Subset in `F7` Preview (Keep `F8`/`Tab` Blocked)**
+### **Task 24: Enable Practical Command Subset in `F7` Preview (Keep `F8`/`Tab` Blocked)**
 *   **Goal:** Finish `F7` as an in-place work mode: users can run common file actions without leaving preview, while `F8`/`Tab` stay blocked for preview-state safety.
 *   **Rationale:** `F7` currently feels unfinished because common workflows still require repeated exits.
 *   **Scope Lock:** `F7` command availability contract, help/footer parity, and regression coverage only; no split-layout redesign.
@@ -428,7 +394,7 @@ Ordering policy (for all editors, including AI editors):
 
 ### **Phase Follow-On Work**
 
-### **Task 43: Harden Build Source Discovery (Recursive + Deterministic)**
+### **Task 25: Harden Build Source Discovery (Recursive + Deterministic)**
 *   **Goal:** Update build source discovery so all C files under `src/` are discovered recursively with deterministic ordering.
 *   **Rationale:** Current discovery only covers up to one subdirectory level and will miss files after module reorganization.
 *   **Scope Lock:** Build discovery and related guard/test updates only. No feature behavior changes.
@@ -438,7 +404,7 @@ Ordering policy (for all editors, including AI editors):
 *   Source file list ordering is deterministic across runs.
 *   - [ ] **Status:** Not Started.
 
-### **Task 42: Reorganize Modules into Shallow Hierarchical Folders**
+### **Task 26: Reorganize Modules into Shallow Hierarchical Folders**
 *   **Goal:** Group modules into shallow, purpose-based subfolders and update build/header/linkage references accordingly.
 *   **Rationale:** Improves discoverability and ownership without changing behavior.
 *   **Scope Lock:** File moves + include/path/build/script/test reference updates only. No feature behavior changes.
@@ -449,44 +415,38 @@ Ordering policy (for all editors, including AI editors):
 *   Folder depth remains shallow (max one extra level under `src/ui` and `src/cmd`).
 *   - [ ] **Status:** Not Started.
 
-### **Task 41: Decompose Remaining Hotspot Modules (Atomic Subtasks)**
+### **Task 27: Decompose Remaining Hotspot Modules (Atomic Subtasks)**
 *   **Goal:** Reduce complexity in remaining hotspot files by extracting cohesive action families into focused modules while preserving behavior.
 *   **Rationale:** These files remain risk hotspots after controller decomposition and slow safe feature delivery.
 *   **Execution Rule:** Must be delivered one atomic subtask at a time (3.1 to 3.5), each with its own architect plan, developer pass, auditor pass, and QA evidence.
 *   - [ ] **Status:** Not Started.
 
-### **Task 40: Decompose `src/ui/interactions.c`**
-*   **Goal:** Split mixed responsibilities in `interactions.c` into cohesive UI interaction modules (for example compare prompts/builders, archive payload UI, attribute/ownership/date UI, tagged-view flow).
-*   **Scope Lock:** No behavior changes in prompts, key paths, or command execution semantics.
-*   **Acceptance Criteria:** Reduced file size/complexity, stable exported API surface, and green QA.
-*   - [x] **Status:** Completed.
-
-### **Task 39: Decompose `src/ui/ctrl_file_ops.c` (`handle_tag_file_action` focus)**
+### **Task 28: Decompose `src/ui/ctrl_file_ops.c` (`handle_tag_file_action` focus)**
 *   **Goal:** Extract large tagged-action branches from `handle_tag_file_action` into focused helpers/modules.
 *   **Scope Lock:** Preserve all tagged-file behavior and command semantics.
 *   **Acceptance Criteria:** Smaller dispatcher function, unchanged behavior, green QA.
 *   - [ ] **Status:** Not Started.
 
-### **Task 38: Decompose `src/ui/key_engine.c`**
+### **Task 29: Decompose `src/ui/key_engine.c`**
 *   **Goal:** Separate key mapping/dispatch concerns from input-loop mechanics and context-specific action routing.
 *   **Action Name Cleanup:** Normalize tree-expand action identifiers so names match behavior: shallow expand (`+`) is `ACTION_TREE_EXPAND`, recursive expand (`*`) is `ACTION_TREE_EXPAND_RECURSIVE`, and any redundant tree-expand identifier is merged or removed. Update key/action mappings and related tests with no behavior change.
 *   **Scope Lock:** No keybinding behavior change unless explicitly approved in a separate task.
 *   **Acceptance Criteria:** Cleaner dispatch boundaries, consistent action naming, unchanged key behavior, green QA.
 *   - [ ] **Status:** Not Started.
 
-### **Task 37: Decompose `src/cmd/copy.c`**
+### **Task 30: Decompose `src/cmd/copy.c`**
 *   **Goal:** Isolate copy conflict handling, path/precondition validation, and transfer orchestration into focused units.
 *   **Scope Lock:** No copy/move/archive user-visible behavior changes.
 *   **Acceptance Criteria:** Reduced complexity in core copy path, unchanged behavior, green QA.
 *   - [ ] **Status:** Not Started.
 
-### **Task 36: Decompose `src/cmd/profile.c`**
+### **Task 31: Decompose `src/cmd/profile.c`**
 *   **Goal:** Split profile parsing, validation/defaulting, and apply/update logic into focused units.
 *   **Scope Lock:** No configuration semantic changes.
 *   **Acceptance Criteria:** Clear parser/apply separation, unchanged config behavior, green QA.
 *   - [ ] **Status:** Not Started.
 
-### **Task 35: Refactor Tab Completion for Command Arguments**
+### **Task 32: Refactor Tab Completion for Command Arguments**
 *   **Goal:** Update the tab completion logic in `src/util/tabcompl.c` to handle command-line arguments correctly and resolve ambiguous matches using Longest Common Prefix (LCP).
 *   **Rationale:** Currently, the completion engine treats the entire input line as a single path. This causes failures when trying to complete arguments for commands (e.g., `x ls /us<TAB>` fails because it looks for a file named "ls /us"). It also fails to partial-complete when multiple matches exist (e.g., `/s` matching both `/sys` and `/srv`).
 *   **Mechanism:**
@@ -496,7 +456,7 @@ Ordering policy (for all editors, including AI editors):
     *   Reassemble the command string (prefix + completed token) before returning.
 *   - [ ] **Status:** Not Started.
 
-### **Task 34: Implement Responsive Adaptive Footer**
+### **Task 33: Implement Responsive Adaptive Footer**
 *   **Goal:** Make the two-line command footer dynamic based on terminal width.
     *   **Compact (constrained dimensions):** Show all currently available actions as bound-key hints only (minimal/no labels), and always keep `(F1)` visible for full help.
     *   **Standard (80-120 cols):** Show the standard set (current behavior).
@@ -505,19 +465,19 @@ Ordering policy (for all editors, including AI editors):
 *   **Mechanism:** Define command groups (Priority 1, 2, 3). In `DisplayDirHelp` / `DisplayFileHelp`, construct the string dynamically based on `COLS`.
 *   - [ ] **Status:** Not Started.
 
-### **Task 33: Implement Integrated Help System**
+### **Task 34: Implement Integrated Help System**
 *   **Goal:** Create a pop-up, scrollable help window (activated by F1) that displays context-sensitive command information.
 *   **Rationale:** Replaces the limited static help lines with a comprehensive and user-friendly help system, making the application easier to learn and use without consulting external documentation.
 *   - [ ] **Status:** Not Started.
 
-### **Task 32: Refine In-App Help Text**
+### **Task 35: Refine In-App Help Text**
 *   **Goal:** Review all user prompts and help lines to be clear and provide context for special syntax (e.g., `{}`). The menu should be decluttered by only showing a `^` shortcut if its action differs from the base key (e.g., `(C)opy/(^K)` is good; redundant duplicate bindings should not be listed).
 *   **VI Mode Signaling**: Ensure footer help lines dynamically reflect uppercase commands (e.g., `(K) Vol` instead of `(k) Vol`) when `VI_KEYS=1` is active to avoid navigation collisions.
 *   **Ctrl-Held Footer Signaling:** While `Ctrl` is physically held, show the `Ctrl` shortcut footer and keep it visible for the full hold duration. On `Ctrl` release, immediately restore the normal context footer. This is transient key-state feedback, not a toggle mode.
 *   **Rationale:** Fulfills the "No Hidden Features" principle and improves UI clarity by removing redundant information.
 *   - [ ] **Status:** Not Started.
 
-### **Task 31: Enforce Footer/F1 Context-Parity Contract (gettext-ready)**
+### **Task 36: Enforce Footer/F1 Context-Parity Contract (gettext-ready)**
 *   **Goal:** Ensure F1 help is concise, context-specific, and complete for each footer/help variant, with no missing commands.
 *   **Rationale:** Footer and F1 are the primary in-app guidance surfaces; they must match exactly while keeping F1 brief and pushing detail to manpage/USAGE.
 *   **Scope Lock:** Help contract, coverage matrix, and text-structure readiness only; no command behavior changes in this task.
@@ -531,7 +491,7 @@ Ordering policy (for all editors, including AI editors):
 *   Add a keybinding parity audit gate that verifies active runtime keybindings remain consistently documented across footer, `F1`, and `etc/ytree.1.md`/`docs/USAGE.md`.
 *   - [ ] **Status:** Not Started.
 
-### **Task 30: Replace `^F` Mode Cycling with Unified Numeric `FileInfo` Band (`1..9`, `0`)**
+### **Task 37: Replace `^F` Mode Cycling with Unified Numeric `FileInfo` Band (`1..9`, `0`)**
 *   **Goal:** Replace display-mode cycling with direct numeric `FileInfo` controls for the focused panel.
 *   **Behavior Contract:**
 *   `1` => Name only (default/baseline). This is also the reset-to-default selection.
@@ -550,11 +510,11 @@ Ordering policy (for all editors, including AI editors):
 *   If a requested mode is unsupported in the active context (for example VFS file mode `4`, or `0` outside a Git worktree), do a silent no-op (no beep).
 *   Git band (`0`) defaults to off, uses cached/non-blocking status refresh, and must not stall list rendering in large repos.
 *   Add `FILE_SIZE_UNITS=binary|human-readable` profile setting (default `binary`) as the seed for `5`.
-*   **Keybinding Policy:** Remove `^F` from runtime behavior and help/manpage docs. This task is the explicit keybinding-change exception referenced by Task 38 scope lock.
+*   **Keybinding Policy:** Remove `^F` from runtime behavior and help/manpage docs. This task is the explicit keybinding-change exception referenced by Task 29 scope lock.
 *   **UX/Help Policy:** Footer stays concise (`1..0 FileInfo`); full key semantics live in F1 help/manpage.
 *   - [ ] **Status:** Not Started.
 
-### **Task 29: Add Case-Sensitive Sort Toggle + Profile Default**
+### **Task 38: Add Case-Sensitive Sort Toggle + Profile Default**
 *   **Goal:** Add case-sensitivity as a sort option in the existing sort flow and profile defaults.
 *   **Rationale:** Users need deterministic lexical control without introducing extra global keybindings.
 *   **Scope Lock:** Sort comparison behavior only; no tree/file model changes.
@@ -564,7 +524,7 @@ Ordering policy (for all editors, including AI editors):
 *   Footer/F1/help/manpage text are synchronized for the new sort option.
 *   - [ ] **Status:** Not Started.
 
-#### **Task 28: Create Watcher Infrastructure (`watcher.c`)**
+#### **Task 39: Create Watcher Infrastructure (`watcher.c`)**
 *   **Task:** Create a new module `watcher.c` to abstract the OS-specific file monitoring APIs.
 *   **Logic:**
     *   **Init:** Call `inotify_init1(IN_NONBLOCK)`.
@@ -573,7 +533,7 @@ Ordering policy (for all editors, including AI editors):
     *   **Portability:** Guard everything with `#ifdef __linux__`. On other systems, these functions act as empty stubs.
 *   - [ ] **Status:** Not Started.
 
-#### **Task 27: Refactor Input Loop for Event Handling**
+#### **Task 40: Refactor Input Loop for Event Handling**
 *   **Task:** Modify `key_engine.c` to support non-blocking input handling.
 *   **Logic:**
     *   Currently, `Getch()` blocks indefinitely waiting for a key.
@@ -584,7 +544,7 @@ Ordering policy (for all editors, including AI editors):
     *   If STDIN triggers, proceed to `wgetch()`.
 *   - [ ] **Status:** Not Started.
 
-#### **Task 26: Implement Live Refresh Logic**
+#### **Task 41: Implement Live Refresh Logic**
 *   **Task:** Connect the `refresh_needed` flag to the main window logic.
 *   **Logic:**
     *   In `dirwin.c` (`HandleDirWindow`) and `filewin.c` (`HandleFileWindow`), inside the input loop:
@@ -597,7 +557,7 @@ Ordering policy (for all editors, including AI editors):
     *   *Note:* We must ensure the cursor stays on the same file if possible (by saving the filename before rescan and finding it after).
 *   - [ ] **Status:** Not Started.
 
-#### **Task 25: Update Watch Context on Navigation (Current-Directory Auto-Refresh Context)**
+#### **Task 42: Update Watch Context on Navigation (Current-Directory Auto-Refresh Context)**
 *   **Task:** Ensure the watcher always monitors the *current* directory so the file list the user is looking at stays fresh without a manual reload.
 *   **Logic:**
     *   In `dirwin.c`: Whenever the user moves the cursor to a new directory (UP/DOWN), update the watcher.
@@ -606,7 +566,7 @@ Ordering policy (for all editors, including AI editors):
     *   **Implementation:** Call `Watcher_SetDir(dir_entry->name)` inside `HandleDirWindow` navigation logic (possibly debounced) and definitely inside `HandleFileWindow`.
 *   - [ ] **Status:** Not Started.
 
-#### **Task 24: Implement Directory Filtering (Non-Recursive)**
+#### **Task 43: Implement Directory Filtering (Non-Recursive)**
 *   **Description:** Extend Filter to support directory-pattern tokens identified by a trailing slash.
     *   `dir/` means include matching directories in the current tree view.
     *   `-dir/` means exclude matching directories in the current tree view.
@@ -614,68 +574,57 @@ Ordering policy (for all editors, including AI editors):
     *   This logic is non-recursive and visibility-only: it affects what is shown in the current view, not internal directory state.
 *   - [ ] **Status:** Not Started.
 
-### **Task 23: Add Configurable Bypass for External Viewers**
+### **Task 44: Add Configurable Bypass for External Viewers**
 *   **Goal:** Add a configuration option to globally disable external viewers, forcing the use of the internal viewer.
 *   **UI Note:** Expose this in the planned `F10` configuration UI when that panel is implemented.
 *   **Rationale:** Provides flexibility for cases where the user wants to quickly inspect the raw bytes of a file (e.g., a PDF) without launching a heavy external application.
 *   **Coverage Clarification:** This task also covers single-file `V` parity with tagged viewing: users must be able to choose internal vs external behavior consistently for both single-file view and tagged-view workflows.
 *   - [ ] **Status:** Not Started.
 
-### **Task 22: Implement Auto-Execute on Command Termination**
+### **Task 45: Implement Auto-Execute on Command Termination**
 *   **Goal:** Allow users to execute shell commands (`X` or `P`) immediately by ending the input string with a specific terminator (e.g., `\n` or `;`), without needing to press Enter explicitly.
 *   **Rationale:** Accelerates command entry for power users who want to "fire and forget" commands rapidly.
 *   - [ ] **Status:** Not Started.
 
-### **Task 21: Standardize Internal Viewer Layout**
+### **Task 46: Standardize Internal Viewer Layout**
 *   **Goal:** Ensure the internal viewer's layout geometry matches the main application (borders, headers, and footer).
 *   - [ ] **Status:** Not Started.
 
-#### **Task 20: Implement Archive Move (`M`) Support**
+#### **Task 47: Implement Archive Move (`M`) Support**
 *   **Description:** Implement `M` (Move) for archives. Intra-archive moves use the Rewrite Engine to rename paths. Cross-volume moves use Copy-Extract + Delete.
 *   - [ ] **Status:** Not Started.
 
-### **Task 19: Nested Archive Traversal**
+### **Task 48: Nested Archive Traversal**
 *   Allow transparently entering an archive that is itself inside another archive.
 *   - [ ] **Status:** Not Started.
 
 ---
 
-## **Phase 3: Permanent Security and Code-Quality Gates**
-*This phase is an enforcement gate: audit the current codebase for existing debt, then detect and block introduced/reintroduced security risks and code smells on every non-trivial change.*
+## **Phase 5: Permanent Security Gates**
+*This phase is an enforcement gate for security risk classes: audit baseline debt, then detect and block introduced/reintroduced security findings on every non-trivial change.*
 
-### **Task 18: Compiler Warning Baseline + No-New-Warnings Gate**
-*   **Goal:** Reduce `-Wall/-Wextra` warning debt to a maintained baseline and prevent warning regressions on supported toolchains.
-*   **Rationale:** A low-noise warning profile improves signal quality and catches real defects earlier without forcing brittle all-or-nothing local builds.
-*   **Scope:** Build/QA policy and warning remediation only; no feature behavior changes in this task.
-*   **Acceptance Criteria:**
-*   Define and document baseline warning counts for `gcc` and `clang` under current default flags.
-*   Add strict QA mode (for example `STRICT=1`) that enables `-Werror` for CI/QA gates while preserving a portable default developer build.
-*   Burn down existing warning debt in prioritized batches (safety/correctness first), keeping suppressions minimal and justified.
-*   CI/QA fails on new warnings in strict mode for supported compilers.
-*   - [ ] **Status:** Not Started.
-
-### **Task 17: Security Risk Gate (Audit + Detect + Block)**
+### **Task 50: Security Risk Gate (Audit + Detect + Block)**
 *   **Goal:** Add explicit QA and merge-gate enforcement that audits the current codebase for security risks and blocks new or reintroduced security findings.
 *   **Scope:** shell-command construction and escaping boundaries, archive path trust policy, tempfile lifecycle, and unsafe API usage.
 *   **Acceptance Criteria:** Security baseline audit evidence exists, recurring security checks are mandatory in `qa-all`/PR evidence, and merge is blocked on unresolved blocker/high security findings.
 *   - [ ] **Status:** Not Started.
 
-#### **Task 16: Baseline Security Debt Audit and Classification**
+#### **Task 51: Baseline Security Debt Audit and Classification**
 *   **Goal:** Run and document a focused baseline audit of current security risk classes already in scope for Phase 0.
 *   **Deliverables:** findings inventory with severity, owner, disposition (fix now vs tracked debt), and explicit residual-risk notes.
 *   - [ ] **Status:** Not Started.
 
-#### **Task 15: Expand Security Guard Coverage to Block Reintroduction**
+#### **Task 52: Expand Security Guard Coverage to Block Reintroduction**
 *   **Goal:** Ensure banned/legacy security-sensitive APIs and patterns are explicitly rejected by automated guard scripts.
 *   **Mechanism:** Extend guard checks for legacy unsafe escaping/runtime paths and other approved denylisted APIs/patterns.
 *   - [ ] **Status:** Not Started.
 
-#### **Task 14: Security Regression Gate in CI + Merge Workflow**
+#### **Task 53: Security Regression Gate in CI + Merge Workflow**
 *   **Goal:** Make security verification non-optional in routine change flow.
 *   **Mechanism:** Require security gate evidence for non-trivial PRs and keep merge blocked until gates pass.
 *   - [ ] **Status:** Not Started.
 
-### **Task 13: Add Security Fuzzing Harness for High-Risk Input Paths**
+### **Task 54: Add Security Fuzzing Harness for High-Risk Input Paths**
 *   **Goal:** Add fuzzing coverage (for example libFuzzer) for archive parsing and shell-command construction paths to detect malformed-input crashes and security-critical edge cases early.
 *   **Rationale:** Complements static checks and regression tests with adversarial input exploration.
 *   **Scope Lock:** Harness, seed corpus, and reproducible crash-minimization workflow only; no feature UX changes in this task.
@@ -685,39 +634,18 @@ Ordering policy (for all editors, including AI editors):
 *   Findings flow into the existing security gate workflow.
 *   - [ ] **Status:** Not Started.
 
-### **Task 12: Code-Smell Gate (Audit + Detect + Block)**
-*   **Goal:** Add explicit QA and merge-gate enforcement that audits current code smells and blocks new/reintroduced structural smell debt.
-*   **Scope:** controller growth, god-function budgets, module-boundary violations, complexity hotspots, and architecture drift.
-*   **Acceptance Criteria:** Smell baseline audit evidence exists, recurring smell checks are mandatory in `qa-all`/PR evidence, and merge is blocked on unapproved new smell violations.
-*   - [ ] **Status:** Not Started.
-
-#### **Task 11: Baseline Code-Smell Audit and Debt Register**
-*   **Goal:** Audit current codebase for structural smells and categorize debt with explicit remediation sequencing.
-*   **Deliverables:** baseline report covering hotspots, oversized controllers/functions, boundary exceptions, and tracked rationale for retained debt.
-*   - [ ] **Status:** Not Started.
-
-#### **Task 10: Strengthen Smell-Prevention Guards**
-*   **Goal:** Prevent reintroduction of known smell patterns via automated policy checks.
-*   **Mechanism:** Tighten module-boundary/controller-growth policies and require explicit approval paths for exceptions.
-*   - [ ] **Status:** Not Started.
-
-#### **Task 9: Smell Gate Evidence as Merge Prerequisite**
-*   **Goal:** Ensure smell-audit results are part of mandatory merge evidence, not optional review notes.
-*   **Mechanism:** Require successful smell checks in QA artifacts and block integration on unresolved unapproved violations.
-*   - [ ] **Status:** Not Started.
-
 ---
 
-## **Phase 4: Current Delivery Completion Queue**
+## **Phase 6: Current Delivery Completion Queue**
 *This phase is still current-delivery scope and contains implementation work that is planned to land.*
 
-### **Task 8: Implement Advanced Batch Rename**
+### **Task 59: Implement Advanced Batch Rename**
 *   **Goal:** Add a ytree-native batch rename flow for tagged files with numbering support, casing changes (`Tab`), substring replacement, and pattern-based keep/remove operations.
 *   **Rationale:** Essential power-user feature for managing large file sets without forcing one-by-one rename loops.
 *   **Preview/Apply Contract:** Batch rename is preview-first. Show `old -> new` results before mutation and support per-item apply controls: `y` (apply current), `n` (skip current), `a` (apply all remaining), `Esc` (cancel remaining).
 *   - [ ] **Status:** Not Started.
 
-### **Task 7: Unify Copy Semantics and Add Directory Sync (`Y`)**
+### **Task 60: Unify Copy Semantics and Add Directory Sync (`Y`)**
 *   **Goal:** Define one clear `Copy` contract (with optional ancestor-path preservation) and add a guided directory-sync flow from dir footer `Y`, backed by `rsync` where practical.
 *   **User-Facing Behavior:**
     *   **Copy (file/tagged files):** Non-recursive single-item copy behavior is explicit and predictable.
@@ -739,7 +667,7 @@ Ordering policy (for all editors, including AI editors):
     *   The synchronize path prefers `rsync` for plain filesystem paths and does not require ytree to own a new recursive sync engine.
 *   - [ ] **Status:** Not Started.
 
-### **Task 7B: Promote Applications Menu (`F9`) with Safe Default Presets**
+### **Task 61: Promote Applications Menu (`F9`) with Safe Default Presets**
 *   **Goal:** Bring `F9` Applications Menu into current-delivery scope as a visible, contributor-friendly command surface with sensible default entries.
 *   **Semantics:** Entries are user commands/templates (with optional placeholders/parameters) that execute commands; this is not keystroke recording.
 *   **Default Presets (initial set):**
@@ -755,12 +683,56 @@ Ordering policy (for all editors, including AI editors):
     *   Command completion reporting is explicit (`success` on zero exit, actionable error summary on non-zero exit).
 *   - [ ] **Status:** Not Started.
 
+### **Task 62: Define Extension Surface Contract (`F9` Apps + `F7` Preview Plugins)**
+*   **Goal:** Define one explicit extension contract for external-tool integrations so command apps (`F9`) and preview plugins (`F7`) follow the same safety, UX, and fallback rules.
+*   **Scope:** Contract/spec-only delivery for external execution surfaces (`X`, `P`, `W`, `FILEDIFF`, `F9`, and `F7` preview-helper boundary).
+*   **Rationale:** ytree should reuse mature external tools without accumulating ad-hoc one-off behavior per feature.
+*   **Acceptance Criteria:**
+    *   Contract defines provider types (`app`, `preview`) and shared lifecycle semantics.
+    *   Contract defines placeholder/token policy, argument safety rules, and bounded command construction.
+    *   Contract defines deterministic completion/failure reporting and fallback behavior.
+    *   Footer/F1/manpage wording aligns with the new contract language.
+*   - [ ] **Status:** Not Started.
+
+### **Task 63: Implement Shared Provider Registry (Plugin-Lite, External-Tool-First)**
+*   **Goal:** Implement a shared provider registry/runtime for extension providers instead of isolated one-off paths.
+*   **Non-Goal:** Do not add in-process arbitrary binary/plugin loading; providers remain external-tool adapters.
+*   **Rationale:** A unified provider runtime keeps behavior predictable and lowers maintenance risk while preserving Unix-style composability.
+*   **Acceptance Criteria:**
+    *   Shared provider model supports at least `app` and `preview` provider classes.
+    *   Common execution/safety controls are centralized (timeouts, output caps, exit-code mapping, fallback policy).
+    *   Config/profile format is documented and validated with focused regression tests.
+*   - [ ] **Status:** Not Started.
+
+### **Task 64: Add Optional Background App Execution (`bg`)**
+*   **Goal:** Allow selected external commands to run in background so users can continue navigating immediately.
+*   **Entry Direction:** Prefer `F9` as the primary UX surface, with optional command-prompt parity where it fits cleanly.
+*   **Scope Lock:** External commands/apps only (no async copy/move/delete queue in this task).
+*   **Rationale:** This captures high-value "run and continue" workflow speed without requiring an embedded subshell model.
+*   **Acceptance Criteria:**
+    *   Users can launch an app in foreground or background using explicit UI choice/marker.
+    *   Background job state is visible and queryable (running/success/failure) with actionable completion messaging.
+    *   Failed background runs return clear diagnostics without destabilizing curses state.
+*   - [ ] **Status:** Not Started.
+
+### **Task 65: Implement F7 Preview Helper Pipeline (Promote Preview-Helper Pipeline into Current Delivery)**
+*   **Goal:** Deliver the beta-scope F7 helper pipeline with strict fallback guarantees.
+*   **Baseline Contract:** `BINARY` (internal preview, no helpers) and `RENDER` (helper-rendered output with guaranteed fallback to `BINARY` on failure).
+*   **Scope Lock:** Ship the baseline safety/fallback pipeline now; defer optional advanced renderer ergonomics until later phases.
+*   **Rationale:** This provides practical plugin-like preview extensibility while keeping ytree's internal preview as the reliability floor.
+*   **Acceptance Criteria:**
+    *   `F7` supports deterministic `BINARY` <-> `RENDER` mode toggling with stable footer labeling.
+    *   Helper execution is bounded and safe (argv-first execution, timeout, output cap, failure fallback).
+    *   Panel-local mode state is preserved in split mode.
+    *   Config/docs/tests are synchronized for the delivered baseline behavior.
+*   - [ ] **Status:** Not Started.
+
 ---
 
-## **Phase 5: Internationalization and Configurability**
+## **Phase 7: Internationalization and Configurability**
 *   **Goal:** Refactor the application to support localization and user-defined keybindings, moving away from hardcoded English-centric values.
 
-### **Task 6: Externalize UI Strings with GNU gettext (i18n Foundation)**
+### **Task 66: Externalize UI Strings with GNU gettext (i18n Foundation)**
 *   **Description:** Replace hardcoded user-facing strings with gettext-backed message lookups (`gettext`/`_()`), initialize locale/domain at startup, and add a standard catalog workflow (`.pot` -> `.po` -> compiled catalogs). Keep default locale as English while enabling translation packs.
 *   **Documentation i18n split:** Use `po4a` for manpage/doc translation workflow (source: `etc/ytree.1.md`; generated docs stay derived artifacts). Use gettext for runtime UI surfaces (`F1`, footer labels/help, prompts, status/error/info text).
 *   **Translation path policy:** Define default translation discovery paths for system and user installs (for example system locale catalogs under `/usr/share/locale/.../LC_MESSAGES/ytree.mo` with a user-level override path), and document contributor workflow for adding a language.
@@ -768,7 +740,7 @@ Ordering policy (for all editors, including AI editors):
 *   **Rationale:** For C/POSIX terminal software, GNU gettext is the most conventional and broadly understood approach. It has mature tooling, standard translator workflow, and broad ecosystem familiarity; a custom loadable language-file system would add avoidable maintenance and onboarding cost.
 *   - [ ] **Status:** Not Started.
 
-### **Task 5: Implement Configurable Keymap**
+### **Task 67: Implement Configurable Keymap**
 *   **Description:** Abstract all hardcoded key commands (e.g., 'm', '^N') into a configurable keymap loaded from a separate keymap profile file. The core application logic will respond to command identifiers (e.g., `CMD_MOVE`), not raw characters. This will allow users to customize their workflow and resolve keybinding conflicts.
 *   **Config contract:** Select profile via `ytree.conf` (opt-in), keeping a stable default keymap for existing users.
 *   **Display contract:** Footer/help text must render active key + localized command label together (for example active binding `C` + translated `Copy` -> `(C)opy`) so runtime hints always match active bindings.
@@ -776,15 +748,15 @@ Ordering policy (for all editors, including AI editors):
 
 ---
 
-## **Phase 6: Final Polish (Post-Alpha, Pre-v3.0.0)**
-*This phase focuses on release polish. Security, module-boundary, and quality gates remain continuous from Phase 2 and are not deferred to this phase.*
+## **Phase 8: Final Polish (Post-Alpha, Pre-v3.0.0)**
+*This phase focuses on release polish. Security, module-boundary, and quality gates remain continuous from earlier phases and are not deferred to this phase.*
 
-### **Task 4: UI/UX Snappiness Polish (Targeted Optimization)**
+### **Task 68: UI/UX Snappiness Polish (Targeted Optimization)**
 *   **Goal:** Improve perceived responsiveness in high-frequency flows using profiling-driven optimizations.
 *   **Rationale:** Premature optimization is avoided; final polish applies targeted improvements where bottlenecks are measured.
 *   - [ ] **Status:** Not Started.
 
-### **Task 3: Source Comment Hygiene Pass**
+### **Task 69: Source Comment Hygiene Pass**
 *   **Goal:** Tidy comments for clarity and maintainability before v3.0.0.
 *   **Policy:** Keep comments for invariants and design rationale; remove redundant narration of obvious control flow.
 *   **Check:** Verify banner comments are only used where they add design/invariant context.
@@ -795,12 +767,12 @@ Ordering policy (for all editors, including AI editors):
 *   **Excluded:** Do not modify third-party `uthash.h`.
 *   - [ ] **Status:** Not Started.
 
-### **Task 2: Final Consistency Sweep (Style, Docs, UX Wording)**
+### **Task 70: Final Consistency Sweep (Style, Docs, UX Wording)**
 *   **Goal:** Run a final consistency pass across style-sensitive surfaces (code style guardrails, docs wording, and help/footer terminology).
 *   **Rationale:** Multi-contributor consistency is enforced continuously via guardrails and review; this task is a final convergence pass.
 *   - [ ] **Status:** Not Started.
 
-### **Task 1: Multi-Round Adversarial Security Review**
+### **Task 71: Multi-Round Adversarial Security Review**
 *   **Goal:** Perform a pre-v3.0.0 multi-round security review using adversarial and AppSec perspectives.
 *   **Examples:** Senior AppSec reviewer, penetration-tester mindset, and insider-knowledge threat modeling.
 *   **Rationale:** Final pre-release pressure test on top of continuous Phase 2 security gates.
@@ -819,7 +791,7 @@ Ordering policy (for all editors, including AI editors):
 
 ### **Future Phase 1: Post-Baseline Configurability Follow-On**
 
-### **Idea FE-37: Explicit Accessibility Mode (Screen-Reader-First Terminal Behavior)**
+### **Idea FE-1: Explicit Accessibility Mode (Screen-Reader-First Terminal Behavior)**
 *   **Goal:** Introduce an opt-in explicit accessibility mode focused on stable, low-noise behavior for screen-reader workflows.
 *   **Research Gate (Required Before Implementation):**
     *   Audit current redraw/cursor-update hotspots (clock, spinner, status-line, dialogs, preview loops) for assistive-tech impact.
@@ -832,7 +804,7 @@ Ordering policy (for all editors, including AI editors):
 *   **Rationale:** Terminal UI is not automatically accessible; explicit mode-level contracts are needed to avoid redraw/cursor noise regressions.
 *   - [ ] **Status:** Not Started.
 
-### **Idea FE-36: Portable Keyboard Capability Probe + `.ytree` Key Workarounds**
+### **Idea FE-2: Portable Keyboard Capability Probe + `.ytree` Key Workarounds**
 *   **Goal:** Add startup-time terminal key-capability probing and user-configurable key overrides/workarounds in `~/.ytree`.
 *   **Behavior Direction:**
     *   Probe optional key availability once at startup (cache results; no per-keystroke probing overhead).
@@ -841,7 +813,7 @@ Ordering policy (for all editors, including AI editors):
 *   **Rationale:** Improves old-terminal portability while keeping runtime input handling fast.
 *   - [ ] **Status:** Not Started.
 
-### **Idea FE-35: Keymap Follow-On Work (Post-Baseline)**
+### **Idea FE-3: Keymap Follow-On Work (Post-Baseline)**
 *   **Description:** Follow-up keymap work after baseline keymap support lands (preset profiles, conflict diagnostics, import/export format hardening, and migration notes for existing users).
 *   **Localized keymap profiles:** Add opt-in locale-oriented profiles as separate keymap files (not automatic locale remapping), while keeping the default keymap stable.
 *   **Best-practice guardrails:** Preserve a universal core of stable bindings (function keys/Ctrl/digits/arrows), allow locale mnemonic aliases where safe, and enforce strict collision/unbound-action validation with clear diagnostics.
@@ -849,7 +821,7 @@ Ordering policy (for all editors, including AI editors):
 
 ### **Future Phase 2: UI/UX Enhancements and Cleanup**
 
-### **Idea FE-39: Configurable VCS Provider for `0` FileInfo Band**
+### **Idea FE-4: Configurable VCS Provider for `0` FileInfo Band**
 *   **Goal:** Keep `0` as one stable VCS info band while allowing users to choose which backend powers it.
 *   **Config Direction (`ytree.conf`):** Add a single-provider selector (for example `VCS_PROVIDER=off|git|hg|svn|fossil|auto`).
 *   **Behavior Contract:**
@@ -859,7 +831,7 @@ Ordering policy (for all editors, including AI editors):
 *   **Rationale:** Preserves key stability and avoids renumbering while keeping a path open for non-Git users.
 *   - [ ] **Status:** Not Started.
 
-### **Idea FE-38: Typed Filter Modes (`glob` default, `re:`, `fz:`)**
+### **Idea FE-5: Typed Filter Modes (`glob` default, `re:`, `fz:`)**
 *   **Goal:** Extend file filtering with explicit typed terms while preserving today's glob-first behavior and key flow.
 *   **User-Facing Behavior:**
     *   Keep existing glob syntax as default (`*.c`, `*.c,*.h`, `-*.tmp`).
@@ -879,18 +851,18 @@ Ordering policy (for all editors, including AI editors):
 *   **Rationale:** Adds regex/fuzzy power in a Unix-style, scriptable format without breaking existing wildcard workflows or adding submenu friction.
 *   - [ ] **Status:** Not Started.
 
-### **Idea FE-34: Prompt Input Decode Hardening (curses-first, legacy ESC fallback)**
+### **Idea FE-6: Prompt Input Decode Hardening (curses-first, legacy ESC fallback)**
 *   **Goal:** Replace prompt-path manual ESC sequence parsing with curses/terminfo-first decoding, while keeping legacy manual ESC parsing as controlled fallback (or config-gated compatibility mode).
 *   **Rationale:** Reduces xterm-specific assumptions in prompt entry and improves cross-terminal correctness on older UNIX environments.
 *   - [ ] **Status:** Not Started.
 
-### **Idea FE-33: Input Portability Regression Matrix (`TERM`)**
+### **Idea FE-7: Input Portability Regression Matrix (`TERM`)**
 *   **Goal:** Expand UI regression coverage with a terminal-profile matrix and action-level assertions for keyboard behavior.
 *   **Initial Matrix Target:** `xterm`, `vt100`, `screen`, `tmux`, `linux`.
 *   **Rationale:** Existing UI tests prove behavior well in xterm-like sequences, but matrix runs provide stronger evidence for old/variant terminal compatibility.
 *   - [ ] **Status:** Not Started.
 
-### **Idea FE-32: Extended `sYsinfo` in Directory-Window Mode**
+### **Idea FE-8: Extended `sYsinfo` in Directory-Window Mode**
 *   **Goal:** Add an on-demand extended stats/system-info surface (`sYsinfo`) for directory-window workflows without replacing the default compact stats panel.
 *   **Rationale:** Advanced disk/system context is useful for planning operations, but should stay opt-in to avoid clutter in normal navigation.
 *   **Keybinding Direction:** Keep context-specific `Y` behavior collision-free: directory-window `Y` may expose `sYsinfo`; file-window `Y` may expose sync workflow entry.
@@ -900,17 +872,17 @@ Ordering policy (for all editors, including AI editors):
 *   Footer/F1/manpage wording explicitly documents context split where `Y` differs by mode.
 *   - [ ] **Status:** Not Started.
 
-### **Idea FE-31: Implement In-App Configuration Editor (F10)**
+### **Idea FE-9: Implement In-App Configuration Editor (F10)**
 *   **Goal:** Implement a user-friendly configuration editor (activated by `F10`) that supports guided editing for common options in `~/.ytree` (e.g., `CONFIRMQUIT`, colors), while retaining an expert raw-text path.
 *   **Rationale:** Reduces configuration friction for most users without removing power-user flexibility.
 *   - [ ] **Status:** Not Started.
 
-### **Idea FE-30: Implement Mouse Support**
+### **Idea FE-10: Implement Mouse Support**
 *   **Goal:** Add mouse support for core navigation and selection actions within the terminal (e.g., click to select, double-click to enter, wheel scrolling).
 *   **Rationale:** In capable terminal environments, mouse support can improve speed and ease of use for navigation and selection without changing the keyboard-first design.
 *   - [ ] **Status:** Not Started.
 
-### **Idea FE-29: Configurable Split Header Path Display (`active` or `both`)**
+### **Idea FE-11: Configurable Split Header Path Display (`active` or `both`)**
 *   **Goal:** Add a user option for split-mode header path display so users can choose active-panel-only path or both-panel paths.
 *   **Rationale:** Active-only header is cleaner by default, while dual-path header can improve orientation for users managing two distant locations.
 *   **Scope Lock:** Header display policy only; no split navigation, selection, or command behavior changes.
@@ -921,7 +893,7 @@ Ordering policy (for all editors, including AI editors):
 *   Footer/F1 help and config docs are updated when option lands.
 *   - [ ] **Status:** Not Started.
 
-### **Idea FE-28: Prompt Path Entry, Shell-Style Completion, and ncurses-Native Input Editing**
+### **Idea FE-12: Prompt Path Entry, Shell-Style Completion, and ncurses-Native Input Editing**
 *   **Goal:** Replace the current history-biased prompt input with a first-class path-entry workflow that is good enough for deep navigation, destination entry, and command prompts.
 *   **Scope:** This task subsumes the previous separate ideas for shell-style tab completion, deep path jump, and advanced ncurses-native command-line editing.
 *   **Behavior to Deliver:**
@@ -932,7 +904,7 @@ Ordering policy (for all editors, including AI editors):
 *   **Rationale:** Prompt entry should be strong enough that common path-based workflows stay direct: "type path -> complete/adjust -> Enter -> result" without forcing a separate browser/menu detour.
 *   - [ ] **Status:** Not Started.
 
-### **Idea FE-27: Tagged-Only Results View**
+### **Idea FE-13: Tagged-Only Results View**
 *   **Goal:** Add a view mode that shows only tagged files without altering the tag set itself.
 *   **User-Facing Behavior:**
     *   `F4` toggles **Tagged-Only** view mode.
@@ -942,13 +914,13 @@ Ordering policy (for all editors, including AI editors):
 *   **Rationale:** After tagging, compare, or grep operations, users often want a focused "show me only the files I marked" result view instead of manually navigating through the full list.
 *   - [ ] **Status:** In Progress (tagged-only toggle shipped on `o/O`; broader workflow/key-shape refinements remain).
 
-### **Idea FE-26: Investigate Recursive Tagging vs Existing Showall/Global Workflow**
+### **Idea FE-14: Investigate Recursive Tagging vs Existing Showall/Global Workflow**
 *   **Goal:** Determine whether recursive tagging provides enough real workflow benefit over the current `log dir -> Showall/Global -> tag` path to justify added complexity.
 *   **Rationale:** Recursive tagging may reduce steps in some trees, but can also add command ambiguity and accidental broad-selection risk.
 *   **Investigation Output:** Document concrete user workflows, interaction-depth impact, and safety tradeoffs; propose either (a) no change, or (b) a minimal, default-safe recursive tagging design with clear scope/confirmation semantics.
 *   - [ ] **Status:** Not Started.
 
-### **Idea FE-25: Richer Compare Result Views**
+### **Idea FE-15: Richer Compare Result Views**
 *   **Goal:** Extend compare workflows so the result can be viewed directly, not just turned into tags on the active side.
 *   **User-Facing Behavior:**
     *   After comparing two directories/trees, users can narrow the result to categories such as **left/source only**, **right/target only**, **newer**, **older**, **size different**, **content different**, or **identical**.
@@ -957,7 +929,7 @@ Ordering policy (for all editors, including AI editors):
 *   **Rationale:** Current compare behavior is useful but blunt. A richer result view makes compare a practical review tool rather than only a tag generator.
 *   - [ ] **Status:** Not Started.
 
-### **Idea FE-24: Recent-Directory Bookmarks and Pinned Favorites**
+### **Idea FE-16: Recent-Directory Bookmarks and Pinned Favorites**
 *   **Goal:** Add a first-class recent-directory and pinned-favorites picker for fast return to commonly visited locations.
 *   **User-Facing Behavior:**
     *   Show a compact list of recently visited directories together with user-pinned favorites.
@@ -967,7 +939,7 @@ Ordering policy (for all editors, including AI editors):
 *   **Rationale:** Prompt history helps when the user remembers what they typed. A dedicated recent-directory/favorites list helps when the user remembers the place, not the exact command string.
 *   - [ ] **Status:** Not Started.
 
-### **Idea FE-23: Dual-Preview Split Mode**
+### **Idea FE-17: Dual-Preview Split Mode**
 *   **Goal:** Allow each `F8` split panel to enter and retain its own `F7`-style preview state independently.
 *   **User-Facing Behavior:**
     *   In split mode, each panel can independently enter preview without forcing preview state changes in the other panel.
@@ -983,7 +955,7 @@ Ordering policy (for all editors, including AI editors):
 *   Focused regression coverage proves per-panel state retention, panel switching, and exit/return behavior.
 *   - [ ] **Status:** Not Started.
 
-### **Idea FE-22: Directory-Focus Small-File Peek Navigation (`Shift` + Nav Keys)**
+### **Idea FE-18: Directory-Focus Small-File Peek Navigation (`Shift` + Nav Keys)**
 *   **Goal:** In directory focus, allow `Shift+Up/Down/Page/Home/End` to scroll the small file window for the selected directory without switching to full file-window focus.
 *   **Rationale:** This gives a fast "peek and keep tree focus" workflow and mirrors the existing `Shift`-navigation feel used in `F7` preview.
 *   **Scope Lock:** Directory-focus small-file-window navigation only; no new submenu flow, no change to normal unshifted tree navigation, and no change to `F7` preview behavior.
@@ -996,7 +968,7 @@ Ordering policy (for all editors, including AI editors):
 *   Add focused regression coverage for shifted small-window navigation bounds/offset behavior and isolation from directory navigation.
 *   - [ ] **Status:** Not Started.
 
-### **Idea FE-21: Unified `N Create` Entry Point (Capability-Filtered by Backend)**
+### **Idea FE-19: Unified `N Create` Entry Point (Capability-Filtered by Backend)**
 *   **Goal:** Replace the narrow `NewFile` entry point with a single explicit `Create` chooser whose available options are filtered by the active backend and context.
 *   **User-Facing Behavior:**
     *   Where creation is supported, `n`/`N` opens `Create:` with only the actions that are valid for the active backend/context.
@@ -1024,77 +996,77 @@ Ordering policy (for all editors, including AI editors):
 *   Decouple the file filter (`file_spec`) from the `Volume` structure and move it into a new `WindowView` context. This architecture is required to support F8 Split Screen, enabling two independent views of the same volume with different filters (e.g., `*.c` in the left panel versus `*.h` in the right).
 *   - [ ] **Status:** Not Started.
 
-### **Idea FE-19: State Preservation on Reload (`^L`)**
+### **Idea FE-21: State Preservation on Reload (`^L`)**
 *   Modify the Refresh command to preserve directory expansion states. Cache open paths prior to the re-scan and restore the previous view structure instead of resetting to the default depth.
 *   - [ ] **Status:** Not Started.
 
-### **Idea FE-18: Preserve Tree Expansion on Refresh**
+### **Idea FE-22: Preserve Tree Expansion on Refresh**
 *   Modify the Refresh/Rescan logic (`^L`, `F5`) to cache the list of currently expanded directories before reading the disk. After the scan is complete, programmatically re-expand those paths if they still exist.
 *   - [ ] **Status:** Not Started.
 
-### **Idea FE-17: Scroll Bars**
+### **Idea FE-23: Scroll Bars**
 *   On left border of the file and directory windows to indicate the relative position of the highlighted item in the entire list (configurable to char or line).
 *   - [ ] **Status:** Not Started.
 
-### **Idea FE-16: Callback API Constification Cleanup (cppcheck strict mode)**
+### **Idea FE-24: Callback API Constification Cleanup (cppcheck strict mode)**
 *   `cppcheck` suggests const-qualifying callback `user_data`, but doing this correctly likely requires changing callback typedef/API signatures (e.g., `RewriteCallback`) and related call sites. Defer this to a focused API pass to avoid scattered casts and partial churn.
 *   - [ ] **Status:** Not Started.
 
 ### **Future Phase 3: Long-Horizon Experiments**
 
-### **Idea FE-15: Implement VFS Abstraction Layer** (Use the Architect persona here)
+### **Idea FE-25: Implement VFS Abstraction Layer** (Use the Architect persona here)
 *   **Goal:** Replace hardcoded filesystem logic with a driver-based architecture. This allows `ytree` to treat any data source (Local FS, Archive, SSH, SQL) uniformly as a `Volume`.
 *   **Context:** Currently, `log.c` decides between "Disk" and "Archive". We will change this so `log.c` asks a Registry: "Who can handle this path?"
 *   **Follow-on Direction:** Include remote logging backends under this VFS model (FTP/SFTP candidates), with final protocol choice deferred until security and maintenance review.
 
-### **Idea FE-14: Define VFS Interface & Volume Integration** (Use the Architect persona here)
+### **Idea FE-26: Define VFS Interface & Volume Integration** (Use the Architect persona here)
 *   **Goal:** Define the `VFS_Driver` contract (struct of function pointers) and update the `Volume` struct to hold a pointer to its active driver.
 *   **Mechanism:**
     *   Create `include/ytree_vfs.h`.
     *   Define function pointers: `scan`, `stat`, `lstat`, `extract`, `get_path` (for internal addressing).
     *   Update `include/ytree_defs.h` to add `const VFS_Driver *driver` and `void *driver_data` to `struct Volume`.
 
-### **Idea FE-13: Implement VFS Registry** (Use the Architect persona here)
+### **Idea FE-27: Implement VFS Registry** (Use the Architect persona here)
 *   **Goal:** Create the core logic to register drivers and probe paths.
 *   **Mechanism:**
     *   Create `src/fs/vfs.c`.
     *   Implement `VFS_Init()` (registers built-in drivers).
     *   Implement `VFS_Probe(path)` which iterates drivers asking "Can you handle this?" and returns the best match.
 
-### **Idea FE-12: Implement "Local" VFS Driver** (Use the Architect persona here)
+### **Idea FE-28: Implement "Local" VFS Driver** (Use the Architect persona here)
 *   **Goal:** Wrap the existing POSIX `opendir`/`readdir` logic into a `VFS_Driver`.
 *   **Mechanism:**
     *   Create `src/fs/drv_local.c`.
     *   Move logic from `src/fs/tree_read.c` into the driver's `.scan` method.
     *   Ensure it populates `DirEntry` structures exactly as before.
 
-### **Idea FE-11: Implement "Archive" VFS Driver** (Use the Architect persona here)
+### **Idea FE-29: Implement "Archive" VFS Driver** (Use the Architect persona here)
 *   **Goal:** Wrap the existing `libarchive` logic into a `VFS_Driver`.
 *   **Mechanism:**
     *   Create `src/fs/drv_archive.c`.
     *   Move logic from `src/fs/archive_read.c` and `src/fs/archive_write.c` into the driver.
     *   Implement `.extract` to handle the temporary file creation for viewing/copying.
 
-### **Idea FE-10: Switch `LogDisk` to VFS** (Use the Architect persona here)
+### **Idea FE-30: Switch `LogDisk` to VFS** (Use the Architect persona here)
 *   **Goal:** Update the main entry point to use the new system.
 *   **Mechanism:**
     *   Refactor `src/cmd/log.c`.
     *   Replace the `stat`/`S_ISDIR` check with `VFS_Probe(path)`.
     *   Call `vol->driver->scan()` instead of calling `ReadTree` or `ReadTreeFromArchive` directly.
 
-### **Idea FE-9: Refactor Consumers (Polymorphism)** (Use the Architect persona here)
+### **Idea FE-31: Refactor Consumers (Polymorphism)** (Use the Architect persona here)
 *   **Goal:** Remove `if (mode == ARCHIVE)` from the rest of the codebase.
 *   **Mechanism:**
     *   Update `view.c`, `copy.c`, `execute.c`.
     *   Replace specific calls with `vol->driver->extract(...)` or `vol->driver->stat(...)`.
 
-### **Idea FE-8: Database Browsing and Editing via Virtual Filesystem Drivers**
+### **Idea FE-32: Database Browsing and Editing via Virtual Filesystem Drivers**
 *   **Goal:** After the driver-based VFS abstraction exists, allow ytree to browse supported database formats as navigable virtual filesystems and eventually edit them through driver-defined operations.
 *   **User-Facing Direction:** Treat a database as a structured volume (for example database -> tables -> rows/records or exported views) rather than as one opaque file blob.
 *   **Rationale:** This is a specialized extension of the VFS model, not a core file-manager requirement. Keep it as a future experiment until a clear driver design and real use-case exist.
 *   - [ ] **Status:** Not Started.
 
-### **Idea FE-7: Implement Recursive Directory Watching**
+### **Idea FE-33: Implement Recursive Directory Watching**
 *   **Goal:** Keep visible tree and file-list state fresh by watching all currently expanded filesystem directories, not only the active cursor directory.
 *   **Rationale:** Without recursive watch coverage, edits in visible sibling/child directories can leave the UI stale until manual refresh.
 *   **Scope Lock:** Filesystem watcher behavior only; no archive-internal recursive watching.
@@ -1110,17 +1082,17 @@ Ordering policy (for all editors, including AI editors):
     *   `ENOSPC` fallback is explicit, stable, and non-fatal.
 *   - [ ] **Status:** Not Started.
 
-### **Idea FE-6: Implement Shell Script Generator**
+### **Idea FE-34: Implement Shell Script Generator**
 *   **Goal:** Generate a shell script from tagged files using user-defined templates (e.g., `cp %f /backup/%f.bak`), replacing the "Batch" concept.
 *   **Rationale:** Offers complex templating logic that goes beyond simple pipe/xargs, and critically allows the user to review/edit the generated script before execution for safety.
 *   - [ ] **Status:** Not Started.
 
-### **Idea FE-5: Implement Keyboard Macros (F12 Record/Playback)**
+### **Idea FE-35: Implement Keyboard Macros (F12 Record/Playback)**
 *   **Goal:** Implement keystroke recording and replay. `F12` starts/stops recording command/input sequences for deterministic playback.
 *   **Rationale:** Allows automation of repetitive interaction sequences (for example "Tag, Move, Rename, Repeat") without creating shell command templates.
 *   - [ ] **Status:** Not Started.
 
-### **Idea FE-4: Enhance Built-In Viewer**
+### **Idea FE-36: Enhance Built-In Viewer**
 *   **Goal:** Evolve ytree's internal viewer from a basic fallback inspector into a more capable built-in viewing tool for normal terminal workflows.
 *   **Builds On:** Current-delivery viewer work such as `Add Configurable Bypass for External Viewers` and `Standardize Internal Viewer Layout`.
 *   **Candidate Scope:**
@@ -1132,167 +1104,13 @@ Ordering policy (for all editors, including AI editors):
 *   **Rationale:** A stronger built-in viewer would make ytree more self-contained for terminal inspection work, while still keeping the project focused on file management rather than format-specific rendering.
 *   - [ ] **Status:** Not Started.
 
-### **Idea FE-3: Preview Helper Pipeline for Non-Text File Types**
-*   **Goal:** Implement an F7 dual-mode preview pipeline that keeps internal preview as the guaranteed baseline while allowing helper-rendered output for non-text file types.
-*   **Non-Goal:** Do not make ytree natively decode every binary/GUI format. Keep helper-based rendering as the Unix-style extension surface.
-*   **Roadmap Fit:** This is the concrete implementation shape for the long-standing preview-helper direction, while preserving strict internal fallback behavior.
-*   **Implementation-Ready Spec:**
-    **Status:** Proposed / implementation-ready.
 
-    **Scope:** Add dual-mode preview behavior to `F7` with strict fallback guarantees:
-    * `BINARY` = internal preview path only (never executes helpers).
-    * `RENDER` = helper-driven preview path; on any failure/unavailability, fallback to `BINARY`.
-
-    **Terminology (Normative):**
-    * `BINARY`: internal preview mode only; no external helper execution; text-like content when decodable, otherwise raw/byte-oriented internal representation.
-    * `RENDER`: helper preview mode via extension mapping; output shown in preview pane; fallback to `BINARY` on no-match, error, timeout, overflow, or safety rejection.
-
-    **User Interaction Contract:**
-    * `F7` enters preview mode.
-    * `F7` or `Esc` exits preview mode and restores prior state.
-    * In `F7`, `r`/`R` toggles `BINARY` ⇄ `RENDER`.
-    * Bottom-left footer mode label must be exactly `BINARY` or `RENDER` (fixed-width, no wobble).
-    * Default F7 mode comes from config (`PREVIEW_MODE_DEFAULT`, default `binary`).
-
-    **Split-Mode Behavior:**
-    * Preview mode state is panel-local (left/right independent).
-    * Toggling mode in one panel must not mutate the other panel state.
-
-    **Helper Execution Contract:**
-    * Prefer argv-style execution (no shell interpolation).
-    * If template parsing is retained, allow `%s` only; reject all other `%` tokens.
-    * File path must be inserted as one safely quoted argument via existing command/path helpers.
-    * Bound command length by existing command-line limits.
-
-    **Render Safety & Limits:**
-    * Enforce timeout (`PREVIEW_RENDER_TIMEOUT_MS`).
-    * Enforce captured output cap (`PREVIEW_RENDER_MAX_BYTES`).
-    * Enforce ANSI policy (`RENDER_ALLOW_ANSI`).
-    * On any violation/failure, fallback to `BINARY`.
-
-    **Extension Matching Rules (Deterministic):**
-    1. Exact extension rule match (single-ext entry).
-    2. First matching multi-extension rule in config order.
-    3. No match ⇒ `BINARY`.
-    * Extension matching is case-insensitive.
-    * No MIME probing in v1.
-
-    **Cache Contract:**
-    * RENDER cache key must include:
-      * path (canonical key)
-      * file mtime
-      * file size
-      * preview mode
-      * resolved helper command string
-      * ANSI policy
-      * timeout value
-      * output-cap value
-    * This ensures config/helper edits invalidate cached renders.
-
-    **Failure UX Contract:**
-    * On RENDER failure, continue showing `BINARY`.
-    * Optional one-shot notice: `RENDER unavailable; using BINARY`.
-    * Anti-spam:
-      * deduplicate by `(file, helper, error_class)`
-      * rate-limit global notices during cursor movement (recommended ≥ 750ms interval)
-
-    **Configuration (Canonical Defaults + User Override):**
-    * Canonical defaults source-of-truth:
-      * `etc/ytree.conf`
-      * `src/core/default_profile_template.h`
-
-    **Global keys:**
-
-    | Key | Type | Allowed | Default | Meaning |
-    |---|---|---|---|---|
-    | `PREVIEW_MODE_DEFAULT` | enum | `binary` \| `render` | `binary` | Initial F7 mode on entry |
-    | `PREVIEW_AUTOPLAY_MEDIA` | bool-int | `0` \| `1` | `0` | Whether media render helpers may autoplay |
-    | `PREVIEW_RENDER_TIMEOUT_MS` | int | `100..10000` | `1200` | Max helper runtime in milliseconds |
-    | `PREVIEW_RENDER_MAX_BYTES` | int | `4096..1048576` | `262144` | Max captured helper output bytes |
-    | `RENDER_ALLOW_ANSI` | bool-int | `0` \| `1` | `0` | ANSI handling policy for RENDER output |
-
-    **`[PREVIEW_RENDER]` section format:**
-    ```ini
-    [PREVIEW_RENDER]
-    .ext=command %s
-    .ext1,.ext2,.ext3=command %s
-    ```
-    * Extensions are case-insensitive.
-    * `%s` is the selected file path token.
-    * Comment out/remove mappings to keep those types in `BINARY`.
-
-    **Example:**
-    ```ini
-    PREVIEW_MODE_DEFAULT=binary
-    PREVIEW_AUTOPLAY_MEDIA=0
-    PREVIEW_RENDER_TIMEOUT_MS=1200
-    PREVIEW_RENDER_MAX_BYTES=262144
-    RENDER_ALLOW_ANSI=0
-
-    [PREVIEW_RENDER]
-    .pdf=gs -q -dNOPAUSE -dBATCH -sDEVICE=txtwrite -sOutputFile=- %s
-    .jpg,.jpeg,.png,.gif=chafa --animate off %s
-    .mp3,.flac=ffprobe -hide_banner %s
-    .mp4,.mkv,.avi,.mpg=ffprobe -hide_banner %s
-    ```
-
-    **Error-State Matrix (Normative):**
-
-    | Condition | Active Mode | Action | Displayed Mode | User Notice |
-    |---|---|---|---|---|
-    | Helper mapping found, helper succeeds | RENDER | Show helper output | RENDER | none |
-    | No helper mapping for extension | RENDER | Fallback | BINARY | optional one-shot |
-    | Helper command parse invalid (`%` token not allowed) | RENDER | Reject + fallback | BINARY | optional one-shot |
-    | Helper executable missing / spawn failure | RENDER | Fallback | BINARY | optional one-shot |
-    | Helper timeout exceeded | RENDER | Stop helper, fallback | BINARY | optional one-shot |
-    | Helper output exceeds max bytes | RENDER | Reject + fallback | BINARY | optional one-shot |
-    | ANSI disallowed and output contains ANSI (`RENDER_ALLOW_ANSI=0`) | RENDER | Strip ANSI; if strip fails, fallback | BINARY or RENDER* | optional one-shot on fallback |
-    | Any internal render-path error | BINARY or fallback target | Show safe error line; remain in preview | BINARY | yes |
-    | Toggle key pressed (`r`/`R`) | F7 | Flip mode state | BINARY or RENDER | footer update |
-    | Exit key (`F7`/`Esc`) | F7 | Exit preview | N/A | none |
-
-    \* If ANSI strip succeeds, remain `RENDER`; if strip fails, fallback `BINARY`.
-
-    **Security & Robustness Requirements:**
-    * No unsafe shell concatenation of untrusted paths.
-    * Command construction must remain bounded.
-    * Fail closed to `BINARY`.
-    * Preserve curses/terminal integrity across helper invocation and return.
-
-    **Acceptance Criteria:**
-    1. F7 opens in configured default mode (`binary` by default).
-    2. `r`/`R` toggles mode and footer shows exact `BINARY` or `RENDER`.
-    3. Footer alignment does not move on mode toggle.
-    4. `BINARY` path never executes helpers.
-    5. `RENDER` falls back to `BINARY` for all matrix failure classes.
-    6. Media autoplay is disabled by default (`PREVIEW_AUTOPLAY_MEDIA=0`).
-    7. Commented/removed mappings keep file types in `BINARY`.
-    8. Split-mode state is panel-local.
-    9. Failure notices are deduplicated and rate-limited.
-    10. Manpage/profile/template docs are synced.
-
-    **Minimum Test Requirements:**
-    * Config parsing coverage for all new keys.
-    * `[PREVIEW_RENDER]` single + multi-ext parse tests.
-    * Invalid token rejection (`%x`, `%%`, etc.).
-    * Matching/precedence tests (case-insensitive extension behavior).
-    * Runtime tests: toggle + footer, no-helper fallback, timeout fallback, overflow fallback, ANSI policy handling.
-    * Split tests: panel-local independence.
-    * Regression tests: existing F7 nav/exit behavior unchanged; no redraw corruption after helper return.
-
-    **Documentation Sync Requirements (when implemented):**
-    * `etc/ytree.1.md` (canonical manpage source)
-    * generated `docs/USAGE.md`
-    * `etc/ytree.conf` defaults/comments
-    * `src/core/default_profile_template.h` defaults/comments
-*   - [ ] **Status:** Not Started.
-
-### **Idea FE-2: Terminal-Independent TUI Runtime (ncurses-Decoupling Investigation)**
+### **Idea FE-37: Terminal-Independent TUI Runtime (ncurses-Decoupling Investigation)**
 *   **Goal:** Investigate a runtime path where ytree's TUI is not tightly coupled to ncurses.
 *   **Rationale:** This is a platform/input architecture effort intended to evaluate whether backend decoupling can reduce current control-key handling constraints (including limitations around mappings like `^M`) while preserving ytree interaction semantics.
 *   - [ ] **Status:** Not Started.
 
-### **Idea FE-1: Implement "Safe Delete" (Trash Can)**
+### **Idea FE-38: Implement "Safe Delete" (Trash Can)**
 *   **Goal:** Add optional trash-backed delete where the active filesystem/backend supports it.
 *   **Config:** Add a `ytree.conf` switch for trash-delete with default `1` (enabled).
 *   **Fallback:** If trash-delete is disabled or unsupported for the active backend, use permanent delete with explicit confirmation.
