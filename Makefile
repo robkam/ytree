@@ -385,7 +385,7 @@ qa-module-boundaries:
 qa-ai-config:
 	python3 scripts/check_project_ai_config.py
 
-ci-baseline: qa-unsafe-apis qa-fileops-integrity qa-pytest-coverage qa-fuzz
+ci-baseline: qa-unsafe-apis qa-ai-config qa-fileops-integrity qa-pytest-coverage qa-fuzz
 
 # Comprehensive local gate: static/runtime checks + full pytest once.
 # Run qa-fileops-integrity explicitly when file/archive mutation flows are touched.

@@ -58,6 +58,24 @@ def _start_run_custom_lease(
     )
 
 
+def _start_run_custom_retry(
+    store: relay.TemporalRelayStore,
+    run_id: str,
+    *,
+    now: float,
+    max_attempts: int,
+    backoff_seconds: int = 0,
+) -> None:
+    store.start_or_resume_run(
+        run_id=run_id,
+        idempotency_key=f"idem-{run_id}",
+        retry_policy=relay.RetryPolicy(max_attempts=max_attempts, backoff_seconds=backoff_seconds),
+        lease_policy=relay.LeasePolicy(lease_ttl_seconds=2, heartbeat_late_seconds=3, heartbeat_stale_seconds=4),
+        activity_timeout_seconds=30,
+        now=now,
+    )
+
+
 def _write_executable_script(path: Path, body: str) -> Path:
     path.write_text(body, encoding="utf-8")
     path.chmod(0o755)
@@ -116,6 +134,8 @@ def test_watchdog_marks_stale_and_requeues(tmp_path: Path) -> None:
     event_types = [event["event_type"] for event in event_log.read_events()]
     assert "stall_detected" in event_types
     assert "retry_scheduled" in event_types
+    assert "maintainer_update_required" not in event_types
+    assert "maintainer_pause_required" not in event_types
 
 
 def test_watchdog_emits_maintainer_update_required_for_long_running_unit(tmp_path: Path) -> None:
@@ -194,6 +214,27 @@ def test_watchdog_no_progress_stall_requeues_when_heartbeats_continue(tmp_path: 
     event_types = [event["event_type"] for event in event_log.read_events()]
     assert "stall_detected_no_progress" in event_types
     assert "retry_scheduled" in event_types
+
+
+def test_watchdog_terminal_escalation_when_retry_budget_exhausted(tmp_path: Path) -> None:
+    store, event_log, _db_path, _log_path = _new_store(tmp_path)
+    _start_run_custom_retry(store, "run-watchdog-terminal", now=2600.0, max_attempts=1)
+
+    developer = relay.RelayWorker(store, role=relay.ROLE_DEVELOPER, worker_id="developer-terminal")
+    lease = developer.claim_next(now=2600.0)
+    assert lease is not None
+    assert developer.heartbeat(lease, now=2601.0)
+
+    result = store.watchdog_scan(now=2608.0)
+    assert result == {"stalled": 1, "requeued": 0, "failed": 1}
+
+    run_state = store.run_state("run-watchdog-terminal")
+    assert run_state is not None
+    assert run_state["status"] == relay.RUN_STATUS_FAILED
+
+    event_types = [event["event_type"] for event in event_log.read_events()]
+    assert "stall_detected" in event_types
+    assert "workflow_failed" in event_types
 
 
 def test_concurrent_contention_allows_single_lease_owner(tmp_path: Path) -> None:
@@ -312,6 +353,196 @@ def test_preflight_rejects_placeholder_worker_commands() -> None:
     error = relay._preflight_worker_command(["/usr/bin/true"], role=relay.ROLE_DEVELOPER)
     assert error is not None
     assert "placeholder" in error
+
+
+def test_worker_policy_block_retry_is_recovered_without_maintainer_prompt(tmp_path: Path) -> None:
+    store, event_log, _db_path, _log_path = _new_store(tmp_path)
+    _start_run(store, "run-policy-recover", now=9000.0)
+
+    report_path = tmp_path / "run-policy-recover_developer_run_report.md"
+    command = _write_executable_script(
+        tmp_path / "policy_retry_worker.sh",
+        "\n".join(
+            [
+                "#!/usr/bin/env bash",
+                "set -euo pipefail",
+                "if [[ \"${RELAY_REDUCED_PROMPT_PROFILE:-0}\" != \"1\" ]]; then",
+                "  echo \"policy blocked: safety policy rejected worker prompt\" >&2",
+                "  exit 7",
+                "fi",
+                f"echo ok > {report_path}",
+                f"echo report_handle={report_path}",
+            ]
+        )
+        + "\n",
+    )
+
+    rc = relay._run_worker_loop(
+        store=store,
+        role=relay.ROLE_DEVELOPER,
+        worker_id="developer-policy-recover",
+        command_text=str(command),
+        once=True,
+        poll_seconds=1,
+        heartbeat_interval=10,
+    )
+    assert rc == 0
+
+    unit = [row for row in store.list_units(run_id="run-policy-recover") if row["unit_id"] == "developer_run"][0]
+    assert unit["status"] == relay.UNIT_STATUS_SUCCEEDED
+
+    event_types = [event["event_type"] for event in event_log.read_events()]
+    assert "worker_command_started" in event_types
+    assert "worker_command_completed" in event_types
+    assert "policy_block_detected" in event_types
+    assert "policy_retry_recovered" in event_types
+    assert "maintainer_update_required" not in event_types
+    assert "maintainer_pause_required" not in event_types
+    completion_events = [event for event in event_log.read_events() if event["event_type"] == "worker_command_completed"]
+    assert completion_events
+    assert completion_events[-1]["metadata"]["report_handle"] == str(report_path)
+
+
+def test_worker_policy_block_retryable_failure_does_not_prompt_maintainer(tmp_path: Path) -> None:
+    store, event_log, _db_path, _log_path = _new_store(tmp_path)
+    _start_run(store, "run-policy-retryable", now=9050.0)
+
+    command = _write_executable_script(
+        tmp_path / "policy_retryable_worker.sh",
+        "\n".join(
+            [
+                "#!/usr/bin/env bash",
+                "set -euo pipefail",
+                "echo \"policy blocked: safety policy rejected worker prompt\" >&2",
+                "exit 7",
+            ]
+        )
+        + "\n",
+    )
+
+    rc = relay._run_worker_loop(
+        store=store,
+        role=relay.ROLE_DEVELOPER,
+        worker_id="developer-policy-retryable",
+        command_text=str(command),
+        once=True,
+        poll_seconds=1,
+        heartbeat_interval=10,
+    )
+    assert rc == 0
+
+    unit = [row for row in store.list_units(run_id="run-policy-retryable") if row["unit_id"] == "developer_run"][0]
+    assert unit["status"] == relay.UNIT_STATUS_RETRYABLE
+
+    event_types = [event["event_type"] for event in event_log.read_events()]
+    assert "worker_command_started" in event_types
+    assert "worker_command_failed" in event_types
+    assert "policy_block_detected" in event_types
+    assert "policy_retry_exhausted" in event_types
+    assert "retry_scheduled" in event_types
+    assert "maintainer_update_required" not in event_types
+    assert "maintainer_pause_required" not in event_types
+
+
+def test_worker_timeout_failure_is_retryable_without_maintainer_prompt(tmp_path: Path) -> None:
+    store, event_log, _db_path, _log_path = _new_store(tmp_path)
+    store.start_or_resume_run(
+        run_id="run-timeout-retry",
+        idempotency_key="idem-run-timeout-retry",
+        retry_policy=relay.RetryPolicy(max_attempts=3, backoff_seconds=0),
+        lease_policy=relay.LeasePolicy(lease_ttl_seconds=2, heartbeat_late_seconds=3, heartbeat_stale_seconds=4),
+        activity_timeout_seconds=1,
+        now=9060.0,
+    )
+
+    command = _write_executable_script(
+        tmp_path / "timeout_retry_worker.sh",
+        "\n".join(
+            [
+                "#!/usr/bin/env bash",
+                "set -euo pipefail",
+                "sleep 2",
+            ]
+        )
+        + "\n",
+    )
+
+    rc = relay._run_worker_loop(
+        store=store,
+        role=relay.ROLE_DEVELOPER,
+        worker_id="developer-timeout-retry",
+        command_text=str(command),
+        once=True,
+        poll_seconds=1,
+        heartbeat_interval=1,
+    )
+    assert rc == 0
+
+    unit = [row for row in store.list_units(run_id="run-timeout-retry") if row["unit_id"] == "developer_run"][0]
+    assert unit["status"] == relay.UNIT_STATUS_RETRYABLE
+    assert "command exceeded timeout (1s)" in unit["last_error"]
+
+    event_types = [event["event_type"] for event in event_log.read_events()]
+    assert "retry_scheduled" in event_types
+    assert "maintainer_update_required" not in event_types
+    assert "maintainer_pause_required" not in event_types
+
+
+def test_maintainer_pause_gate_allows_only_blocker_and_commit_approval() -> None:
+    assert relay._maintainer_pause_allowed(reason="true_blocker_decision", recoverable=False)
+    assert relay._maintainer_pause_allowed(reason="commit_message_approval", recoverable=False)
+    assert not relay._maintainer_pause_allowed(reason="policy_block_recoverable", recoverable=False)
+    assert not relay._maintainer_pause_allowed(reason="true_blocker_decision", recoverable=True)
+
+
+def test_maintainer_pause_event_emitted_only_for_allowed_terminal_reason(tmp_path: Path) -> None:
+    store, event_log, _db_path, _log_path = _new_store(tmp_path)
+    _start_run_custom_retry(store, "run-pause-allowed", now=9100.0, max_attempts=1)
+
+    developer = relay.RelayWorker(store, role=relay.ROLE_DEVELOPER, worker_id="developer-pause-allowed")
+    lease = developer.claim_next(now=9100.0)
+    assert lease is not None
+    developer.complete(
+        lease,
+        success=False,
+        message="pause_reason=true_blocker_decision: maintainer decision required",
+        now=9100.1,
+    )
+
+    pause_events = [event for event in event_log.read_events() if event["event_type"] == "maintainer_pause_required"]
+    assert len(pause_events) == 1
+    assert pause_events[0]["metadata"]["pause_reason"] == "true_blocker_decision"
+
+    store2, event_log2, _db_path2, _log_path2 = _new_store(tmp_path / "second")
+    _start_run_custom_retry(store2, "run-pause-commit", now=9200.0, max_attempts=1)
+    developer2 = relay.RelayWorker(store2, role=relay.ROLE_DEVELOPER, worker_id="developer-pause-commit")
+    lease2 = developer2.claim_next(now=9200.0)
+    assert lease2 is not None
+    developer2.complete(
+        lease2,
+        success=False,
+        message="pause_reason=commit_message_approval: commit message approval required",
+        now=9200.1,
+    )
+
+    commit_pause_events = [event for event in event_log2.read_events() if event["event_type"] == "maintainer_pause_required"]
+    assert len(commit_pause_events) == 1
+    assert commit_pause_events[0]["metadata"]["pause_reason"] == "commit_message_approval"
+
+    store3, event_log3, _db_path3, _log_path3 = _new_store(tmp_path / "third")
+    _start_run_custom_retry(store3, "run-pause-denied", now=9300.0, max_attempts=1)
+    developer3 = relay.RelayWorker(store3, role=relay.ROLE_DEVELOPER, worker_id="developer-pause-denied")
+    lease3 = developer3.claim_next(now=9300.0)
+    assert lease3 is not None
+    developer3.complete(
+        lease3,
+        success=False,
+        message="policy-blocked failure after reduced profile retry",
+        now=9300.1,
+    )
+
+    denied_events = [event for event in event_log3.read_events() if event["event_type"] == "maintainer_pause_required"]
+    assert denied_events == []
 
 
 def test_worker_success_rejects_stale_report_handle(tmp_path: Path) -> None:

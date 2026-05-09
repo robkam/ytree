@@ -49,11 +49,20 @@ Prompt/report artifact rules:
 - Stream relay visibility live: post a maintainer update immediately after each runtime event.
 - Do not wait for unit completion to publish relay visibility.
 - In each live update, include only net-new state + next action + changed handles.
+- Visibility contract is facts-first, not intent-first:
+  - Every update MUST include a completed-action line in past tense before any next-action text.
+  - Include concrete evidence in every runtime update (`report_handle`, command output excerpt, or event-log handle).
+  - Heartbeat-only updates are liveness pings and MUST include elapsed runtime + current executing action.
+  - Do not emit “will do X” updates unless the prior event already emitted “did X” evidence for the previous action.
+- Runtime event labels should prefer explicit completion facts (`worker_command_started`, `worker_command_completed`, `worker_command_failed`, `unit_completed`, `unit_failed`, `retry_scheduled`, `workflow_completed`, `workflow_failed`).
 
 Stall/escalation policy:
 - If a unit exceeds timeout or misses heartbeat, watchdog MUST emit a stall event.
 - Watchdog then retries/reassigns within retry policy; if retries are exhausted, mark terminal failure and escalate.
 - Do not run checks or QA until maintainer explicitly agrees.
+- When maintainer approves checks/QA for a unit state, avoid duplicate full-gate churn:
+  - `make qa-all` runs at most once per accepted unit state.
+  - Re-run full gate only if code changed after the last full-gate evidence.
 
 Developer prompt requirements (for each unit):
 - Strict scope and explicit non-goals

@@ -5,6 +5,9 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+Scope policy: `docs/CHANGES.md` records major user-visible or project-level milestones only.
+Minor/trivial fixes are tracked in git history.
+
 ## [3.0.0-alpha] - 2026-04-29
 
 *Modernization Project initiated 30 Oct 2025. This release represents a comprehensive architectural refactor from the legacy 2.10 codebase to modern C99/POSIX standards, introducing significant power-user features, enhanced safety, and robust quality assurance.*
@@ -55,6 +58,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Path Utility Standardization**: Migrated all command-layer path compositions to a centralized, bounds-safe `Path_Join` utility.
 - **Internal Viewer Geometry Encapsulation**: Implemented an explicit viewer geometry contract and removed direct layout reads from `src/ui/view_internal.c`.
 - **CI and QA Suite**: Introduced GitHub Actions CI and a comprehensive local QA gate with `clang-tidy`, `cppcheck`, `scan-build`, Valgrind (including automated interactive runs), `pytest`/`pexpect`, and a module-boundary guard (`make qa-all`).
+- **Controller Hotspot Decomposition**: Broke up high-risk controller "god function" paths into smaller, cohesive units to reduce regression blast radius and improve maintainability.
+- **Permanent Security Regression Gates**: Added durable security/file-operation integrity checks so previously fixed exploitability classes are continuously guarded in QA/CI.
+- **QA Cadence Optimization**: Reorganized QA gate cadence and overlap to improve iteration feedback speed while preserving strict pre-merge and release assurance depth.
 - **Build System**: Updated Makefile for dependency tracking and unified documentation sourcing (`docs/USAGE.md` and `ytree.1.md` are now generated from a single `etc/ytree.1.md` source).
 - **Silent Refresh-Scan Handling**: Suppressed transient `stat` errors during directory refreshes to prevent non-fatal race conditions.
 - **Overwrite-All Conflict Hardening**: Unified COPY/MOVE overwrite-all behavior so selecting `A` on the first conflict suppresses repeated prompts across remaining tagged-file conflicts.

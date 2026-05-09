@@ -106,6 +106,25 @@ if grep -Eq '^RELAY_CODE_AUDITOR_CMD=(/usr/bin/true|/bin/true|true)$' "$env_targ
   echo "       Set RELAY_CODE_AUDITOR_CMD to your real auditor worker command before start-run." >&2
   exit 1
 fi
+for required_key in \
+  RELAY_POLICY_BLOCK_RETRY_LIMIT \
+  RELAY_MAINTAINER_HEARTBEAT_SECONDS \
+  RELAY_NO_PROGRESS_STALL_SECONDS \
+  RELAY_MAINTAINER_INTERRUPT_REASONS
+do
+  if ! grep -q "^${required_key}=" "$env_target"; then
+    echo "ERROR: ${required_key} missing in $env_target" >&2
+    exit 1
+  fi
+done
+if ! grep -Eq '^RELAY_POLICY_BLOCK_RETRY_LIMIT=1$' "$env_target"; then
+  echo "ERROR: RELAY_POLICY_BLOCK_RETRY_LIMIT must be set to 1 in $env_target" >&2
+  exit 1
+fi
+if ! grep -Eq '^RELAY_MAINTAINER_INTERRUPT_REASONS=true_blocker_decision,commit_message_approval$' "$env_target"; then
+  echo "ERROR: RELAY_MAINTAINER_INTERRUPT_REASONS must be true_blocker_decision,commit_message_approval in $env_target" >&2
+  exit 1
+fi
 
 if [[ "$SYSTEM_MODE" -eq 1 ]]; then
   echo "[setup-relay] Installing system services"
