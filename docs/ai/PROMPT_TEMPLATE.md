@@ -40,6 +40,9 @@ Process requirements:
 3) Before implementing:
    - discuss the task with me first
    - confirm exact scope, intended behavior, and acceptance criteria
+   - for bug work: first provide a concise, copy/paste manual reproduction script for me to run, then ask me to confirm one of:
+     - reproduced (still a bug), or
+     - not reproduced (possibly fixed since report)
    - only implement after I explicitly approve
 
 4) Implementation:
