@@ -14,16 +14,12 @@ Root stubs are entry points only. They should stay short and contain:
 
 Files:
 - `AGENTS.md` (Codex discovery stub)
-- `CLAUDE.md` (Claude discovery stub)
-- `GEMINI.md` (Gemini discovery stub)
 
 ## Canonical Provider and Shared Policy Files
 
 Primary governance sources:
 - Shared cross-provider policy: `.ai/shared.md`
 - Codex provider policy: `.ai/codex.md`
-- Claude provider policy: `.ai/claude.md`
-- Gemini provider policy: `.ai/gemini.md`
 
 Ownership model:
 - Shared policy changes are centralized in `.ai/shared.md`.
@@ -44,10 +40,8 @@ For common governance edits, use these canonical targets:
 
 | Change Type | Edit Here (Canonical) | Do Not Treat As Canonical |
 | --- | --- | --- |
-| Rule shared across all providers | `.ai/shared.md` | `AGENTS.md`, `CLAUDE.md`, `GEMINI.md` |
+| Rule shared across all providers | `.ai/shared.md` | `AGENTS.md` |
 | Codex-only behavior | `.ai/codex.md` | `AGENTS.md` |
-| Claude-only behavior | `.ai/claude.md` | `CLAUDE.md` |
-| Gemini-only behavior | `.ai/gemini.md` | `GEMINI.md` |
 | Persona role boundary or posture | `.agent/rules/<persona>.md` | `.ai/skills/*` |
 | Repeatable operational checklist/procedure | `.ai/skills/<skill>/SKILL.md` | `.agent/rules/*` |
 | Workflow policy/process narrative | `docs/ai/WORKFLOW.md` | Root stubs |
