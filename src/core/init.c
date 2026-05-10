@@ -10,6 +10,10 @@
 
 #include "ytree_defs.h"
 #include "ytree_debug.h"
+#include "default_profile_template.h"
+#include <fcntl.h>
+#include <string.h>
+#include <unistd.h>
 
 #define SORT_BY_NAME 1
 
@@ -43,6 +47,7 @@ static const char *CoreInitGetProfileValue(const ViewContext *ctx,
 static void CoreInitWbkgdSet(const ViewContext *ctx, WINDOW *win, chtype c);
 static int CoreInitUINotice(ViewContext *ctx, const char *msg);
 static void BoundaryClearPromptLine(ViewContext *ctx);
+static int CoreInitLoadDefaultProfileTemplate(ViewContext *ctx);
 extern int RuntimePort_MainInit(ViewContext *ctx, const char *configuration_file,
                                 const char *history_file);
 extern void RuntimePort_MainSetProfileValue(const ViewContext *ctx, char *name,
@@ -56,6 +61,45 @@ extern int RuntimePort_MainHandleDirWindow(ViewContext *ctx,
 extern void RuntimePort_MainSuspendClock(ViewContext *ctx);
 extern void RuntimePort_MainShutdownCurses(ViewContext *ctx);
 extern void RuntimePort_MainVolumeFreeAll(ViewContext *ctx);
+
+static int CoreInitWriteAll(int fd, const char *buf, size_t len) {
+  size_t written_total = 0;
+
+  while (written_total < len) {
+    ssize_t written_now = write(fd, buf + written_total, len - written_total);
+    if (written_now <= 0)
+      return -1;
+    written_total += (size_t)written_now;
+  }
+
+  return 0;
+}
+
+static int CoreInitLoadDefaultProfileTemplate(ViewContext *ctx) {
+  char template_path[] = "/tmp/ytree-default-profile-XXXXXX";
+  int fd;
+  size_t template_len;
+  int result = -1;
+
+  if (!ctx || !ctx->core_init_ops.read_profile)
+    return -1;
+
+  fd = mkstemp(template_path);
+  if (fd == -1)
+    return -1;
+
+  template_len = strlen(default_profile_template);
+  if (CoreInitWriteAll(fd, default_profile_template, template_len) == 0) {
+    if (close(fd) == 0) {
+      fd = -1;
+      result = ctx->core_init_ops.read_profile(ctx, template_path);
+    }
+  }
+  if (fd != -1)
+    close(fd);
+  unlink(template_path);
+  return result;
+}
 
 #ifdef XCURSES
 char *XCursesProgramName = "ytree";
@@ -768,11 +812,30 @@ int Init(ViewContext *ctx, const char *configuration_file,
     if (ctx->core_init_ops.read_profile != NULL)
       ctx->core_init_ops.read_profile(ctx, configuration_file);
   } else if ((home = getenv("HOME"))) {
+    int read_profile_result = -1;
     snprintf(buffer, sizeof(buffer), "%s%c%s", home, FILE_SEPARATOR_CHAR,
              PROFILE_FILENAME);
     DEBUG_LOG("Init: Reading profile %s", buffer);
     if (ctx->core_init_ops.read_profile != NULL)
-      ctx->core_init_ops.read_profile(ctx, buffer);
+      read_profile_result = ctx->core_init_ops.read_profile(ctx, buffer);
+    if (read_profile_result != 0) {
+      const char *editor_env = getenv("EDITOR");
+      const char *pager_env = getenv("PAGER");
+
+      DEBUG_LOG("Init: Profile missing or unreadable, loading built-in default "
+                "profile template");
+      if (CoreInitLoadDefaultProfileTemplate(ctx) == 0 &&
+          ctx->core_main_ops.set_profile_value != NULL) {
+        if (editor_env && *editor_env) {
+          char editor_key[] = "EDITOR";
+          ctx->core_main_ops.set_profile_value(ctx, editor_key, editor_env);
+        }
+        if (pager_env && *pager_env) {
+          char pager_key[] = "PAGER";
+          ctx->core_main_ops.set_profile_value(ctx, pager_key, pager_env);
+        }
+      }
+    }
   }
   DEBUG_LOG("Init: ReadProfile done");
 

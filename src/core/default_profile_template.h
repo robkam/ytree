@@ -15,7 +15,7 @@ static const char default_profile_template[] =
     "# 2 Refresh on Directory Navigation selection.\n"
     "# 4 Refresh when entering the File Window.\n"
     "AUTO_REFRESH=3\n"
-    "TREEDEPTH=1\n"
+    "TREEDEPTH=2\n"
     "FILEMODE=2\n"
     "NUMBERSEP=.\n"
     "SMALLWINDOWSKIP=1\n"
