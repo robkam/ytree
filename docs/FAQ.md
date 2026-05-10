@@ -1,5 +1,48 @@
 # Frequently Asked Questions
 
+## Development Decisions
+
+### How can I trust a file manager written with AI assistance on my filesystem?
+
+Ytree performs standard file operations (rename, move, copy, delete) through normal OS APIs, just like other file managers.
+
+This is the same trust model you should use for any file manager: do not assume zero risk, verify behavior, keep backups, and, at first, try it out in a non-critical directory.
+
+### How is AI used in this project?
+
+AI is used as an implementation assistant, not as an autonomous authority.
+
+The human maintainer owns design decisions, architecture constraints, and merge quality. AI helps accelerate coding and refactoring work, but changes are accepted only after manual review plus repository QA gates. This workflow is iterative and often slow: a lot of the effort is in steering, verification, and correction.
+
+For the concrete checks and evidence model, see:
+- [`docs/AUDIT.md`](AUDIT.md)
+- [`docs/TRUST.md`](TRUST.md)
+- [`docs/PR_GATE.md`](PR_GATE.md)
+
+### Why release an alpha before beta?
+
+The alpha is published early so users and contributors can inspect the code, test real workflows, and provide feedback while major design decisions are still adjustable.
+
+In short: the project is usable now, but not stable yet. Expect rough edges, occasional regressions, and evolving UX details until beta and then stable release.
+
+### Why refactor the existing code instead of writing a new one from scratch?
+
+The decision was made to modernize the existing codebase because Ytree is a known application with an established look and feel.
+
+Creating a new file manager from scratch would have resulted in a loss of identity and name recognition. By refactoring, we preserve the specific behavior and interface style of the original application while significantly enhancing the user experience and replacing the underlying architecture. This approach revitalizes the project without discarding its history.
+
+### Why is this not written in Rust?
+
+The primary objective of this phase was the architectural cleanup and restoration of the existing C codebase.
+
+Switching languages immediately would constitute a total rewrite rather than a modernization. However, now that the architecture has been simplified, legacy dependencies removed, and the project stabilized, a port to a modern memory-safe language like Rust is a possibility for a future version.
+
+### Why ncurses, why not termbox2 or notcurses?
+
+Ytree only needs fast, reliable text/line-box terminal UI for file and VFS browsing, and ncurses already provides that cleanly, while switching to termbox2 or notcurses would add backend complexity for features outside ytree’s core scope (like richer in-app media rendering) that are better handled by external helper programs.
+
+---
+
 ## Project Philosophy
 
 ### Why modernize Ytree when UnixTree already exists?
@@ -44,40 +87,3 @@ Ytree specifically targets:
 1.  **XTree&trade; Veterans:** Users who developed "muscle memory" for the XTree&trade; layout and keybindings in the DOS era and find the Midnight Commander style unintuitive.
 2.  **Terminal Power Users:** Developers and Admins who want a fast, lightweight file manager that integrates seamlessly with their shell history and standard CLI tools.
 3.  **Open Source Archivists:** Those interested in keeping classic Unix tools alive, compilable, and secure on modern hardware.
-
----
-
-## Development Decisions
-
-### Why refactor the existing code instead of writing a new one from scratch?
-
-The decision was made to modernize the existing codebase because Ytree is a known application with an established look and feel.
-
-Creating a new file manager from scratch would have resulted in a loss of identity and name recognition. By refactoring, we preserve the specific behavior and interface style of the original application while significantly enhancing the user experience and replacing the underlying architecture. This approach revitalizes the project without discarding its history.
-
-### Why is this not written in Rust?
-
-The primary objective of this phase was the architectural cleanup and restoration of the existing C codebase.
-
-Switching languages immediately would constitute a total rewrite rather than a modernization. However, now that the architecture has been simplified, legacy dependencies removed, and the project stabilized, a port to a modern memory-safe language like Rust is a possibility for a future version.
-
-### Why ncurses, why not termbox2 or notcurses?
-
-Ytree only needs fast, reliable text/line-box terminal UI for file and VFS browsing, and ncurses already provides that cleanly, while switching to termbox2 or notcurses would add backend complexity for features outside ytree’s core scope (like richer in-app media rendering) that are better handled by external helper programs.
-
-### How is AI used in this project?
-
-AI is used as an implementation assistant, not as an autonomous authority.
-
-The human maintainer owns design decisions, architecture constraints, and merge quality. AI helps accelerate coding and refactoring work, but changes are accepted only after manual review plus repository QA gates. This workflow is iterative and often slow: a lot of the effort is in steering, verification, and correction.
-
-For the concrete checks and evidence model, see:
-- [`docs/AUDIT.md`](AUDIT.md)
-- [`docs/TRUST.md`](TRUST.md)
-- [`docs/PR_GATE.md`](PR_GATE.md)
-
-### Why release an alpha before beta?
-
-The alpha is published early so users and contributors can inspect the code, test real workflows, and provide feedback while major design decisions are still adjustable.
-
-In short: the project is usable now, but not stable yet. Expect rough edges, occasional regressions, and evolving UX details until beta and then stable release.

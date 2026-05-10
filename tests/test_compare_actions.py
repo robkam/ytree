@@ -627,6 +627,8 @@ def test_tree_compare_logged_only_relative_path_and_skipped_unlogged_reporting(
     target_root = tmp_path / "compare_tree_logged_only_target"
     source_root.mkdir()
     target_root.mkdir()
+    (source_root / ".ytree").write_text("[GLOBAL]\nTREEDEPTH=1\n", encoding="utf-8")
+    (target_root / ".ytree").write_text("[GLOBAL]\nTREEDEPTH=1\n", encoding="utf-8")
     (source_root / "top").mkdir()
     (target_root / "top").mkdir()
     (source_root / "top" / "deep").mkdir()

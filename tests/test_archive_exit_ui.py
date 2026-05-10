@@ -228,6 +228,7 @@ def test_fs_left_at_root_collapses_once_then_noop(tmp_path, ytree_binary):
 def test_fs_root_left_then_right_does_not_restore_deep_state(tmp_path, ytree_binary):
     root = tmp_path / "fs_root_left_right_reset"
     root.mkdir()
+    (root / ".ytree").write_text("[GLOBAL]\nTREEDEPTH=1\n", encoding="utf-8")
     (root / "alpha" / "child" / "grand").mkdir(parents=True)
 
     tui = YtreeTUI(executable=ytree_binary, cwd=str(root))
@@ -536,7 +537,7 @@ def test_unlogged_placeholder_with_subdirs_shows_slash_suffix(
 ):
     root = tmp_path / "unlogged_placeholder_slash_suffix"
     root.mkdir()
-    (root / ".ytree").write_text("TREEDEPTH=0\n", encoding="utf-8")
+    (root / ".ytree").write_text("[GLOBAL]\nTREEDEPTH=1\n", encoding="utf-8")
     top = root / "top"
     top.mkdir()
     (top / "child").mkdir()
@@ -556,6 +557,7 @@ def test_enter_on_placeholder_dir_logs_and_reveals_first_level_only(
 ):
     root = tmp_path / "placeholder_enter_reveals_first_level"
     root.mkdir()
+    (root / ".ytree").write_text("[GLOBAL]\nTREEDEPTH=1\n", encoding="utf-8")
     src = root / "src"
     src.mkdir()
     (src / "cmd").mkdir()
@@ -600,7 +602,7 @@ def test_root_left_resets_tree_and_right_relogs_to_profile_depth(
 ):
     root = tmp_path / "root_minus_right_profile_depth"
     root.mkdir()
-    (root / ".ytree").write_text("TREEDEPTH=1\n", encoding="utf-8")
+    (root / ".ytree").write_text("[GLOBAL]\nTREEDEPTH=1\n", encoding="utf-8")
     src = root / "src"
     src.mkdir()
     cmd = src / "cmd"
@@ -661,7 +663,9 @@ def test_enter_on_placeholder_dir_is_consistent_with_smallwindowskip_one(
 ):
     root = tmp_path / "placeholder_enter_smallwindowskip_one"
     root.mkdir()
-    (root / ".ytree").write_text("SMALLWINDOWSKIP=1\n", encoding="utf-8")
+    (root / ".ytree").write_text(
+        "[GLOBAL]\nTREEDEPTH=1\nSMALLWINDOWSKIP=1\n", encoding="utf-8"
+    )
 
     src = root / "src"
     src.mkdir()
@@ -706,7 +710,9 @@ def test_enter_on_placeholder_dir_is_consistent_with_smallwindowskip_zero(
 ):
     root = tmp_path / "placeholder_enter_smallwindowskip_zero"
     root.mkdir()
-    (root / ".ytree").write_text("SMALLWINDOWSKIP=0\n", encoding="utf-8")
+    (root / ".ytree").write_text(
+        "[GLOBAL]\nTREEDEPTH=1\nSMALLWINDOWSKIP=0\n", encoding="utf-8"
+    )
 
     src = root / "src"
     src.mkdir()
@@ -868,6 +874,103 @@ def test_smallwindowskip_config_edit_applies_immediately_in_session(
             "Directory footer should be restored after returning with "
             "SMALLWINDOWSKIP=1.\n"
             f"Footer:\n{footer_after}\n\nScreen:\n{_screen_text(tui)}"
+        )
+    finally:
+        tui.quit()
+
+
+def test_missing_profile_f10_no_save_does_not_create_profile(tmp_path, ytree_binary):
+    root = tmp_path / "missing_profile_f10_no_save"
+    root.mkdir()
+    target = root / "target"
+    target.mkdir()
+    (target / "file0.txt").write_text("x", encoding="utf-8")
+
+    editor_capture = root / "f10_default_buffer_snapshot.txt"
+    noop_editor = root / "noop_profile_editor.sh"
+    noop_editor.write_text(
+        "#!/bin/sh\n"
+        "f=\"$1\"\n"
+        f"cp \"$f\" \"{editor_capture}\"\n"
+        "exit 0\n",
+        encoding="utf-8",
+    )
+    noop_editor.chmod(0o755)
+
+    profile_path = root / ".ytree"
+    assert not profile_path.exists()
+
+    tui = YtreeTUI(
+        executable=ytree_binary,
+        cwd=str(root),
+        env_extra={"EDITOR": str(noop_editor)},
+    )
+    time.sleep(0.8)
+
+    try:
+        tui.send_keystroke(Keys.DOWN, wait=0.3)
+        tui.send_keystroke("\x1b[21~", wait=0.9)
+
+        for _ in range(20):
+            if editor_capture.exists():
+                break
+            time.sleep(0.1)
+        assert editor_capture.exists(), (
+            "F10 on missing ~/.ytree must open an editable default profile buffer."
+        )
+        assert "[GLOBAL]" in editor_capture.read_text(encoding="utf-8"), (
+            "Default profile buffer should include [GLOBAL] section header."
+        )
+        assert not profile_path.exists(), (
+            "Exiting config edit without save must not create ~/.ytree."
+        )
+    finally:
+        tui.quit()
+
+
+def test_missing_profile_f10_save_creates_profile(tmp_path, ytree_binary):
+    root = tmp_path / "missing_profile_f10_save"
+    root.mkdir()
+    target = root / "target"
+    target.mkdir()
+    (target / "file0.txt").write_text("x", encoding="utf-8")
+
+    editor_capture = root / "f10_saved_buffer_snapshot.txt"
+    save_editor = root / "save_profile_editor.sh"
+    save_editor.write_text(
+        "#!/bin/sh\n"
+        "f=\"$1\"\n"
+        "printf '\\nSMALLWINDOWSKIP=1\\n' >> \"$f\"\n"
+        f"cp \"$f\" \"{editor_capture}\"\n"
+        "exit 0\n",
+        encoding="utf-8",
+    )
+    save_editor.chmod(0o755)
+
+    profile_path = root / ".ytree"
+    assert not profile_path.exists()
+
+    tui = YtreeTUI(
+        executable=ytree_binary,
+        cwd=str(root),
+        env_extra={"EDITOR": str(save_editor)},
+    )
+    time.sleep(0.8)
+
+    try:
+        tui.send_keystroke(Keys.DOWN, wait=0.3)
+        tui.send_keystroke("\x1b[21~", wait=0.9)
+
+        for _ in range(20):
+            if editor_capture.exists():
+                break
+            time.sleep(0.1)
+        assert editor_capture.exists(), (
+            "F10 on missing ~/.ytree must open an editable default profile buffer."
+        )
+        assert profile_path.exists(), "Saving config edit must create ~/.ytree."
+        assert "SMALLWINDOWSKIP=1" in profile_path.read_text(encoding="utf-8"), (
+            "Saved missing-profile edit must persist into ~/.ytree."
         )
     finally:
         tui.quit()
@@ -1042,6 +1145,7 @@ def test_small_window_tagged_symlink_and_empty_labels_share_name_column(
 def test_placeholder_dir_shows_unlogged_not_no_files(tmp_path, ytree_binary):
     root = tmp_path / "placeholder_shows_unlogged"
     root.mkdir()
+    (root / ".ytree").write_text("[GLOBAL]\nTREEDEPTH=1\n", encoding="utf-8")
     src = root / "src"
     src.mkdir()
     (src / "cmd").mkdir()
