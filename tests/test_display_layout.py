@@ -837,6 +837,7 @@ def test_dir_copy_prompt_shows_source_and_as_target(ytree_binary, tmp_path):
 def test_dir_copy_refreshes_destination_branch_without_relog(ytree_binary, tmp_path):
     root = tmp_path / "dir_copy_cross_branch_refresh"
     root.mkdir()
+    (root / ".ytree").write_text("[GLOBAL]\nTREEDEPTH=1\n", encoding="utf-8")
     source_bucket = root / "source_bucket"
     target_bucket = root / "target_bucket"
     source_bucket.mkdir()
@@ -907,6 +908,7 @@ def test_dir_copy_refreshes_destination_branch_without_relog(ytree_binary, tmp_p
 def test_dir_copy_delete_created_destination_updates_in_session(ytree_binary, tmp_path):
     root = tmp_path / "dir_copy_delete_created_destination"
     root.mkdir()
+    (root / ".ytree").write_text("[GLOBAL]\nTREEDEPTH=1\n", encoding="utf-8")
     source_bucket = root / "source_bucket"
     target_bucket = root / "target_bucket"
     source_bucket.mkdir()
@@ -973,6 +975,7 @@ def test_dir_copy_delete_created_destination_updates_in_session(ytree_binary, tm
 def test_dir_copy_absolute_destination_refreshes_without_relog(ytree_binary, tmp_path):
     root = tmp_path / "dir_copy_absolute_destination_refresh"
     root.mkdir()
+    (root / ".ytree").write_text("[GLOBAL]\nTREEDEPTH=1\n", encoding="utf-8")
     source_bucket = root / "source_bucket"
     target_bucket = root / "target_bucket"
     source_bucket.mkdir()

@@ -248,6 +248,7 @@ def test_split_same_directory_file_tags_are_panel_local(tmp_path, ytree_binary):
 def test_unreading_directory_clears_panel_local_tags(tmp_path, ytree_binary):
     root = tmp_path / "unread_clears_panel_tags"
     root.mkdir()
+    (root / ".ytree").write_text("[GLOBAL]\nTREEDEPTH=1\n", encoding="utf-8")
     alpha = root / "alpha"
     (alpha / "child").mkdir(parents=True)
     (alpha / "panel_tag_0.txt").write_text("tag\n", encoding="utf-8")
@@ -289,6 +290,7 @@ def test_unreading_directory_clears_panel_local_tags(tmp_path, ytree_binary):
 def _assert_collapse_action_clears_panel_local_tags(tmp_path, ytree_binary, key):
     root = tmp_path / f"collapse_clears_panel_tags_{ord(key[0])}"
     root.mkdir()
+    (root / ".ytree").write_text("[GLOBAL]\nTREEDEPTH=1\n", encoding="utf-8")
     alpha = root / "alpha"
     (alpha / "child").mkdir(parents=True)
     (alpha / "panel_tag_0.txt").write_text("tag\n", encoding="utf-8")
@@ -339,6 +341,7 @@ def test_left_arrow_collapse_clears_panel_local_tags(tmp_path, ytree_binary):
 def _assert_collapse_resets_subtree_expansion(tmp_path, ytree_binary, key):
     root = tmp_path / f"collapse_reset_subtree_{ord(key[0])}"
     root.mkdir()
+    (root / ".ytree").write_text("[GLOBAL]\nTREEDEPTH=1\n", encoding="utf-8")
     alpha = root / "alpha"
     (alpha / "child" / "grand" / "great").mkdir(parents=True)
 
@@ -928,6 +931,8 @@ def test_navigation_does_not_expand(tmp_path, ytree_binary):
     """
     # Create nested structure: test_root/parent/child/file.txt
     root = tmp_path / "test_root"
+    root.mkdir()
+    (root / ".ytree").write_text("[GLOBAL]\nTREEDEPTH=1\n", encoding="utf-8")
     child_dir = root / "parent" / "child"
     child_dir.mkdir(parents=True)
     (child_dir / "file.txt").touch()
@@ -1157,6 +1162,7 @@ def test_bug_f_eight_mirrored_inactive_selection_identity_stable(tmp_path, ytree
     """
     root = tmp_path / "bug_f_eight_identity_root"
     root.mkdir()
+    (root / ".ytree").write_text("[GLOBAL]\nTREEDEPTH=1\n", encoding="utf-8")
 
     parent_dir = root / "parent_dir"
     child_dir = parent_dir / "child_dir"
