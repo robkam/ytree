@@ -20,10 +20,22 @@ INTERVAL=3
 LIMIT=20
 FOLLOW=1
 AUTO_SELECT_RUN=0
+SOUND=0
+SOUND_INPUT="${RELAY_MONITOR_SOUND_INPUT:-}"
+SOUND_FAIL="${RELAY_MONITOR_SOUND_FAIL:-}"
+SOUND_SUCCESS="${RELAY_MONITOR_SOUND_SUCCESS:-}"
+LAST_NOTIFIED_SEQ=""
+LAST_NOTIFIED_ACTION=""
 
 usage() {
   cat <<'USAGE'
 Usage: scripts/relay-monitor.sh [--run <run_id>] [--view quiet|normal|verbose] [--interval <seconds>] [--limit <n>] [--once]
+
+Sound options:
+  --sound                         enable sound notifications
+  --sound-input <file.mp3>        sound when maintainer input is needed
+  --sound-fail <file.mp3>         sound when workflow fails/errors
+  --sound-success <file.mp3>      sound when workflow completes
 
 Defaults:
   --run       latest run in relay DB
@@ -55,6 +67,25 @@ while [[ $# -gt 0 ]]; do
       FOLLOW=0
       shift
       ;;
+    --sound)
+      SOUND=1
+      shift
+      ;;
+    --sound-input)
+      SOUND=1
+      SOUND_INPUT="${2:-}"
+      shift 2
+      ;;
+    --sound-fail)
+      SOUND=1
+      SOUND_FAIL="${2:-}"
+      shift 2
+      ;;
+    --sound-success)
+      SOUND=1
+      SOUND_SUCCESS="${2:-}"
+      shift 2
+      ;;
     -h|--help)
       usage
       exit 0
@@ -80,6 +111,10 @@ if [[ -f "$HOME/.config/ytree/relay.env" ]]; then
   # shellcheck disable=SC1090
   source "$HOME/.config/ytree/relay.env"
   set +a
+fi
+
+if [[ "$SOUND" -eq 0 && (-n "${SOUND_INPUT:-}" || -n "${SOUND_FAIL:-}" || -n "${SOUND_SUCCESS:-}") ]]; then
+  SOUND=1
 fi
 
 cd "$REPO_ROOT"
@@ -165,8 +200,27 @@ unit = last.get('unit_id', '-')
 ts = last.get('ts_utc_iso', '-')
 print(f"LATEST: seq={seq} event={event} status={status} unit={unit} at={ts}")
 
+def find_report_handle(unit_id: str) -> str:
+    for row in reversed(rows):
+        if row.get("event_type") != "unit_completed":
+            continue
+        if row.get("unit_id") != unit_id:
+            continue
+        msg = str(row.get("message", ""))
+        marker = "report_handle="
+        idx = msg.find(marker)
+        if idx < 0:
+            continue
+        remainder = msg[idx + len(marker):]
+        return remainder.split(";", 1)[0].strip()
+    return "-"
+
 action = "none"
-if last.get('event_type') not in ('workflow_completed', 'workflow_failed'):
+if event == "workflow_completed":
+    action = f'if IDE is silent, reply "provide final delivery package now for run_id {run_id} from history_seq {seq}"'
+elif event == "workflow_failed":
+    action = f'if IDE is silent, reply "explain workflow failure for run_id {run_id} from history_seq {seq}"'
+else:
     for row in reversed(rows):
         msg = str(row.get('message', ''))
         msg_l = msg.lower()
@@ -178,6 +232,11 @@ if last.get('event_type') not in ('workflow_completed', 'workflow_failed'):
             action = msg
             break
 print(f"ACTION NEEDED (maintainer): {action}")
+
+if event in ("workflow_completed", "workflow_failed"):
+    dev_report = find_report_handle("developer_run")
+    auditor_report = find_report_handle("auditor_run")
+    print(f"REPORTS: developer={dev_report} auditor={auditor_report}")
 
 if view == 'quiet':
     sys.exit(0)
@@ -202,15 +261,76 @@ PY
 )" "$RUN_ID" "$VIEW" "$LIMIT"
 }
 
+play_sound_file() {
+  local sound_file="$1"
+  if [[ -z "$sound_file" || ! -f "$sound_file" ]]; then
+    printf '\a'
+    return 0
+  fi
+  if command -v ffplay >/dev/null 2>&1; then
+    (ffplay -nodisp -autoexit -loglevel quiet "$sound_file" >/dev/null 2>&1 &)
+  elif command -v mpv >/dev/null 2>&1; then
+    (mpv --really-quiet --no-video "$sound_file" >/dev/null 2>&1 &)
+  elif command -v mpg123 >/dev/null 2>&1; then
+    (mpg123 -q "$sound_file" >/dev/null 2>&1 &)
+  elif command -v play >/dev/null 2>&1; then
+    (play -q "$sound_file" >/dev/null 2>&1 &)
+  else
+    printf '\a'
+  fi
+}
+
+notify_from_rendered() {
+  local rendered="$1"
+  [[ "$SOUND" -eq 1 ]] || return 0
+
+  local latest_line action_line seq event action
+  latest_line="$(printf '%s\n' "$rendered" | sed -n 's/^LATEST: /LATEST: /p' | head -n1)"
+  action_line="$(printf '%s\n' "$rendered" | sed -n 's/^ACTION NEEDED (maintainer): /ACTION NEEDED (maintainer): /p' | head -n1)"
+  seq="$(printf '%s\n' "$latest_line" | sed -n 's/^LATEST: seq=\([^ ]*\) .*/\1/p')"
+  event="$(printf '%s\n' "$latest_line" | sed -n 's/^LATEST: seq=[^ ]* event=\([^ ]*\) .*/\1/p')"
+  action="${action_line#ACTION NEEDED (maintainer): }"
+
+  if [[ -n "$seq" && "$seq" != "$LAST_NOTIFIED_SEQ" ]]; then
+    case "$event" in
+      workflow_completed)
+        play_sound_file "$SOUND_SUCCESS"
+        LAST_NOTIFIED_SEQ="$seq"
+        LAST_NOTIFIED_ACTION="$action"
+        return 0
+        ;;
+      workflow_failed|unit_failed|worker_command_failed)
+        play_sound_file "$SOUND_FAIL"
+        LAST_NOTIFIED_SEQ="$seq"
+        LAST_NOTIFIED_ACTION="$action"
+        return 0
+        ;;
+    esac
+  fi
+
+  if [[ "${action:-none}" != "none" && "${action:-}" != "$LAST_NOTIFIED_ACTION" ]]; then
+    play_sound_file "$SOUND_INPUT"
+  fi
+
+  if [[ -n "$seq" ]]; then
+    LAST_NOTIFIED_SEQ="$seq"
+  fi
+  LAST_NOTIFIED_ACTION="${action:-none}"
+}
+
 if [[ "$FOLLOW" -eq 0 ]]; then
   refresh_auto_selected_run
-  render_once
+  rendered_once="$(render_once)"
+  printf '%s\n' "$rendered_once"
+  notify_from_rendered "$rendered_once"
   exit $?
 fi
 
 while true; do
   refresh_auto_selected_run
   clear
-  render_once || true
+  rendered_loop="$(render_once || true)"
+  printf '%s\n' "$rendered_loop"
+  notify_from_rendered "$rendered_loop"
   sleep "$INTERVAL"
 done

@@ -273,7 +273,7 @@ The run wrapper auto-loads relay env and prints `RUN STARTED: <run_id>` (or `RUN
 If pending, stage them with:
 
 ```bash
-scripts/relay-prompts.sh stage --run-id <run_id> --developer <developer_prompt_source> --auditor <auditor_prompt_source>
+scripts/relay-prompts.sh stage --run-id <run_id> --auto
 scripts/relay-prompts.sh verify --run-id <run_id>
 ```
 

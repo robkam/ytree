@@ -92,4 +92,6 @@ Operator UX contract (mandatory):
 - If `ACTION NEEDED` is `none`, keep the rest of the update to at most five concise lines.
 - If `ACTION NEEDED` is not `none`, print that line before any other content.
 - Do not ask the maintainer to extract machine/runtime internals from logs; provide exact values directly.
+- If relay prompt artifacts are needed, do not ask maintainer for source-path discovery; provide one exact command:
+  `scripts/relay-prompts.sh stage --run-id <run_id> --auto;scripts/relay-prompts.sh verify --run-id <run_id>`
 - On completion, proactively emit final delivery package (summary, verification evidence, commit-ready status, and exact approval text when needed) without waiting for maintainer prodding.

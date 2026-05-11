@@ -31,7 +31,7 @@ If prompt artifacts are still pending, stage them immediately:
 
 ```bash
 cd ~/ytree
-scripts/relay-prompts.sh stage --run-id <run_id> --developer <developer_prompt_source> --auditor <auditor_prompt_source>
+scripts/relay-prompts.sh stage --run-id <run_id> --auto
 scripts/relay-prompts.sh verify --run-id <run_id>
 ```
 
@@ -46,6 +46,7 @@ Detail levels:
 - `quiet`: status + `ACTION NEEDED (maintainer)` only
 - `normal`: key transitions (heartbeat noise filtered)
 - `verbose`: full event stream including heartbeats
+- on terminal completion/failure, monitor includes report handles plus an exact IDE fallback line if IDE goes silent
 
 Convenience:
 - omit `--run` to monitor the latest run in durable relay state.

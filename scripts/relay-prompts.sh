@@ -3,6 +3,7 @@
 #
 # Usage:
 #   scripts/relay-prompts.sh stage --run-id <id> --developer <path> --auditor <path>
+#   scripts/relay-prompts.sh stage --run-id <id> --auto
 #   scripts/relay-prompts.sh verify --run-id <id>
 set -euo pipefail
 
@@ -13,11 +14,13 @@ MODE=""
 RUN_ID=""
 DEVELOPER_SRC=""
 AUDITOR_SRC=""
+AUTO_STAGE=0
 
 usage() {
   cat <<'USAGE'
 Usage:
   scripts/relay-prompts.sh stage --run-id <id> --developer <path> --auditor <path>
+  scripts/relay-prompts.sh stage --run-id <id> --auto
   scripts/relay-prompts.sh verify --run-id <id>
 USAGE
 }
@@ -48,6 +51,10 @@ while [[ $# -gt 0 ]]; do
     --auditor)
       AUDITOR_SRC="${2:-}"
       shift 2
+      ;;
+    --auto)
+      AUTO_STAGE=1
+      shift
       ;;
     -h|--help)
       usage
@@ -82,8 +89,23 @@ cd "$REPO_ROOT"
 
 case "$MODE" in
   stage)
+    if [[ "$AUTO_STAGE" -eq 1 ]]; then
+      auto_src_dir="$HOME/.local/state/ytree/prompt-sources/$RUN_ID"
+      if [[ -d "$auto_src_dir" ]]; then
+        DEVELOPER_SRC="$(ls -1t "$auto_src_dir"/developer*.txt 2>/dev/null | head -n1 || true)"
+        AUDITOR_SRC="$(ls -1t "$auto_src_dir"/auditor*.txt 2>/dev/null | head -n1 || true)"
+      fi
+      if [[ -z "$DEVELOPER_SRC" || -z "$AUDITOR_SRC" ]]; then
+        echo "ERROR: auto stage could not find prompt sources for run_id=$RUN_ID" >&2
+        echo "       looked in: $auto_src_dir" >&2
+        echo "       expected files like: developer*.txt and auditor*.txt" >&2
+        exit 1
+      fi
+      echo "AUTO SOURCE: developer=$DEVELOPER_SRC"
+      echo "AUTO SOURCE: auditor=$AUDITOR_SRC"
+    fi
     if [[ -z "$DEVELOPER_SRC" || -z "$AUDITOR_SRC" ]]; then
-      echo "ERROR: stage requires --developer and --auditor" >&2
+      echo "ERROR: stage requires either --auto or both --developer and --auditor" >&2
       exit 2
     fi
     if [[ ! -f "$DEVELOPER_SRC" ]]; then
