@@ -5,6 +5,8 @@ For one quick, focused change, use **[PROMPT_TEMPLATE.md](PROMPT_TEMPLATE.md)** 
 
 Edit only the first four lines to match the tracked work item exactly, then copy/paste the full prompt as-is.
 
+Operator prerequisite: run the single-terminal startup/monitoring flow in **[RELAY_RUNBOOK.md](RELAY_RUNBOOK.md)** so this prompt is attached to durable relay runtime state.
+
 ```text
 $WORK_DOC=docs/ROADMAP.md or docs/BUGS.md
 $WORK_KIND=task or bug
@@ -45,6 +47,8 @@ Execution model (auto-relay runtime):
 7) Correct semantic-index drift and context drift before each validation/commit.
 8) Run final completion gate from workflow and report final status.
 9) Architect updates $WORK_DOC
+10) After starting the durable run, print exactly one explicit line:
+    `RUN STARTED: <run_id>`
 
 Prompt/report artifact rules:
 - Use run_id + unit_id + event seq in all status updates; include handles only when new/changed.
@@ -104,10 +108,15 @@ Response format to maintainer:
 - Concise operational status only.
 - Include completed state + current next action only.
 - Include handles only when they changed or are newly created.
+- For any required maintainer decision/approval, include one standalone explicit line:
+  - `ACTION NEEDED (maintainer): reply "<exact text to send>"`
+  - Example: `ACTION NEEDED (maintainer): reply "approve checks for BUG-11.2"`
+- If no maintainer input is required, include:
+  - `ACTION NEEDED (maintainer): none`
 - Use delta-only updates: include only net-new state, next action, and new/changed handles unless maintainer asks for a full recap.
 - Include `Latest relay event` in each update with direction + unit + handle.
 - Do not repeat full historical handle inventories unless the maintainer explicitly requests a full recap.
-- Include mandatory handoff block for every relay:
+- Include handoff block for relay role-to-role traceability only (maintainer does not need to copy/paste this):
   Model: <selected model>
   Reasoning level: <selected level>
   Handoff line: <next-role>: Execute $WORK_KIND $TASK from handle <handoff-handle> exactly as written.

@@ -2,6 +2,8 @@
 Description=ytree durable relay code_auditor worker
 After=network-online.target
 Wants=network-online.target
+StartLimitIntervalSec=120
+StartLimitBurst=30
 
 [Service]
 Type=simple
@@ -14,8 +16,6 @@ Environment=RELAY_CODE_AUDITOR_CMD=/usr/bin/true
 ExecStart=/usr/bin/env bash -lc 'source .venv/bin/activate && exec python3 scripts/relay_runtime.py worker --role code_auditor --poll-seconds 2 --heartbeat-interval 10'
 Restart=always
 RestartSec=5
-StartLimitIntervalSec=120
-StartLimitBurst=30
 TimeoutStopSec=15
 KillSignal=SIGTERM
 NoNewPrivileges=yes

@@ -143,3 +143,4 @@ else
 fi
 
 echo "[setup-relay] Complete."
+echo "[setup-relay] Next: use scripts/relay-run.sh to start runs and scripts/relay-monitor.sh to monitor one run in a single terminal."
