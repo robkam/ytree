@@ -84,3 +84,12 @@ Important guardrails:
 - Status updates must be facts-first: report what was completed (with evidence handle) before stating next action.
 - If uncertain, ask before choosing behavior-changing options.
 - If anything is ambiguous, ask me to clarify instead of guessing.
+
+Operator UX contract (mandatory):
+- First line of every update MUST be exactly one of:
+  - `ACTION NEEDED (maintainer): none`
+  - `ACTION NEEDED (maintainer): reply "<exact text>"`
+- If `ACTION NEEDED` is `none`, keep the rest of the update to at most five concise lines.
+- If `ACTION NEEDED` is not `none`, print that line before any other content.
+- Do not ask the maintainer to extract machine/runtime internals from logs; provide exact values directly.
+- On completion, proactively emit final delivery package (summary, verification evidence, commit-ready status, and exact approval text when needed) without waiting for maintainer prodding.

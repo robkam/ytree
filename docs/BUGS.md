@@ -42,24 +42,6 @@ Ordering policy (for all editors, including AI editors):
 *   **Remediation**: Define and enforce a context-valid option matrix for `Write`, expose only valid options in each mode, and keep prompt/help text explicit and non-jargon (including destination examples such as file output and printer-command output). Keep `SPECIFICATION`, `F1` help, and manpage/USAGE text synchronized with the same destination semantics.
 *   **Status**: Confirmed.
 
-### **BUG-5: `F10` Hard-Fails When `~/.ytree` Is Missing**
-*   **Description**: If `~/.ytree` does not exist, pressing `F10` fails with an edit error instead of letting users proceed with configuration editing.
-*   **Impact**: Creates avoidable first-run friction in a common workflow and forces users to discover `--init` before they can use in-app config editing.
-*   **Remediation**: On `F10` with missing `~/.ytree`, open an editable default config buffer immediately and create `~/.ytree` only if the user saves; if they exit without saving, do not create the file.
-*   **Status**: Confirmed.
-
-### **BUG-6: `SMALLWINDOWSKIP=0` Is Ignored**
-*   **Description**: Setting `SMALLWINDOWSKIP=0` does not re-enable the small window; runtime still behaves as if small-window skipping is active.
-*   **Impact**: Breaks configuration trust and blocks users from restoring a primary layout element through documented config.
-*   **Remediation**: Ensure `SMALLWINDOWSKIP` is parsed/applied correctly so `0` reliably enables the small window and `1` skips it across relevant contexts.
-*   **Status**: Confirmed.
-
-### **BUG-7: `F10` Save Does Not Reload Configuration in-Session**
-*   **Description**: Editing and saving configuration via `F10` does not update active runtime behavior until ytree is quit and restarted.
-*   **Impact**: Violates expected interactive-config workflow and adds avoidable friction after in-app edits.
-*   **Remediation**: Live-apply is preferred: reload and apply safe settings immediately after `F10` save. For settings that are not safe to rebind mid-session, show a concise explicit notice that restart is required.
-*   **Status**: Confirmed.
-
 ### **BUG-8: Copy/Move Cancel (`Esc`) Can Leave Footer Blank**
 *   **Description**: In `Copy`/`Move` flows, canceling with `Esc` can leave footer/help lines blank instead of restoring the normal context footer.
 *   **Impact**: Hides command discoverability immediately after a canceled mutation flow and makes the UI look partially broken.

@@ -19,6 +19,7 @@ RUN_ID=""
 INTERVAL=3
 LIMIT=20
 FOLLOW=1
+AUTO_SELECT_RUN=0
 
 usage() {
   cat <<'USAGE'
@@ -84,20 +85,50 @@ fi
 cd "$REPO_ROOT"
 
 if [[ -z "$RUN_ID" ]]; then
-  RUN_ID="$(python3 - <<'PY'
-import os, sqlite3
-path = os.path.expanduser(os.environ.get('RELAY_DB', '~/.local/state/ytree/relay.db'))
+  AUTO_SELECT_RUN=1
+fi
+
+resolve_run_id() {
+  python3 - <<'PY'
+import os
+import sqlite3
+
+path = os.path.expanduser(os.environ.get("RELAY_DB", "~/.local/state/ytree/relay.db"))
 conn = sqlite3.connect(path)
-row = conn.execute('SELECT run_id FROM runs ORDER BY updated_at DESC LIMIT 1').fetchone()
-print(row[0] if row else '')
+row = conn.execute(
+    "SELECT run_id FROM runs WHERE status = 'running' ORDER BY updated_at DESC LIMIT 1"
+).fetchone()
+if row:
+    print(row[0])
+else:
+    fallback = conn.execute("SELECT run_id FROM runs ORDER BY updated_at DESC LIMIT 1").fetchone()
+    print(fallback[0] if fallback else "")
 PY
-)"
+}
+
+if [[ -z "$RUN_ID" ]]; then
+  RUN_ID="$(resolve_run_id)"
 fi
 
 if [[ -z "$RUN_ID" ]]; then
   echo "No relay runs found." >&2
   exit 1
 fi
+
+if [[ "$AUTO_SELECT_RUN" -eq 1 ]]; then
+  echo "Auto-selecting run_id=$RUN_ID" >&2
+fi
+
+refresh_auto_selected_run() {
+  if [[ "$AUTO_SELECT_RUN" -ne 1 ]]; then
+    return
+  fi
+  local selected
+  selected="$(resolve_run_id)"
+  if [[ -n "$selected" ]]; then
+    RUN_ID="$selected"
+  fi
+}
 
 render_once() {
   local history
@@ -172,11 +203,13 @@ PY
 }
 
 if [[ "$FOLLOW" -eq 0 ]]; then
+  refresh_auto_selected_run
   render_once
   exit $?
 fi
 
 while true; do
+  refresh_auto_selected_run
   clear
   render_once || true
   sleep "$INTERVAL"

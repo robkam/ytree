@@ -54,4 +54,14 @@ if [[ -n "$run_id" ]]; then
   else
     echo "RUN RESUMED: $run_id"
   fi
+
+  prompt_dir="${RELAY_PROMPT_DIR:-$HOME/.config/ytree/relay-prompts}"
+  developer_prompt="$prompt_dir/${run_id}_developer_run_developer.txt"
+  auditor_prompt="$prompt_dir/${run_id}_auditor_run_code_auditor.txt"
+  if [[ -f "$developer_prompt" && -f "$auditor_prompt" ]]; then
+    echo "PROMPT ARTIFACTS READY: $run_id"
+  else
+    echo "PROMPT ARTIFACTS PENDING: $run_id"
+    echo "NEXT: scripts/relay-prompts.sh stage --run-id $run_id --developer <developer_prompt_source> --auditor <auditor_prompt_source>"
+  fi
 fi

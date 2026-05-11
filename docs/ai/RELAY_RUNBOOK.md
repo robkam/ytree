@@ -1,6 +1,6 @@
 # Relay Runbook (Single-Terminal)
 
-Use this runbook for autonomous architect -> developer -> auditor relay execution without tmux or multi-terminal monitoring.
+Use this runbook for autonomous architect -> developer -> auditor relay execution in a single terminal.
 
 ## Quickstart
 
@@ -26,6 +26,14 @@ scripts/relay-run.sh --run-id <run_id> --idempotency-key <idempotency_key> --act
 On success, the script prints one explicit line:
 
 - `RUN STARTED: <run_id>` (or `RUN RESUMED: <run_id>`)
+
+If prompt artifacts are still pending, stage them immediately:
+
+```bash
+cd ~/ytree
+scripts/relay-prompts.sh stage --run-id <run_id> --developer <developer_prompt_source> --auditor <auditor_prompt_source>
+scripts/relay-prompts.sh verify --run-id <run_id>
+```
 
 ## Monitor one run (optional)
 
