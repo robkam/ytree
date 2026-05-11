@@ -163,6 +163,7 @@ Prompt templates:
 Before starting the loop, ensure the auto-relay runtime is configured for every client role (`architect`, `developer`, `code_auditor`) and that systemd worker services are available:
 - Run `scripts/setup_relay_runtime.sh` once per machine/user (or again only after relay config/unit changes).
 - On each new WSL start, run `scripts/relay-workers.sh health`; if unhealthy, run `scripts/relay-workers.sh start`.
+- For single-terminal operations (start + monitor), use **[RELAY_RUNBOOK.md](RELAY_RUNBOOK.md)**.
 
 ##### 3.1.0.1 MCP Config Bootstrap (Recommended)
 
@@ -197,6 +198,7 @@ make mcp-doctor
 make mcp-doctor FIX=1
 
 # Optional: refresh pinned helper-script requirements
+source .venv/bin/activate
 pip-compile --upgrade -o scripts/requirements.txt scripts/requirements.in
 ```
 
@@ -260,7 +262,16 @@ Before every `start-run`, confirm worker commands are configured in `~/.config/y
 - `RELAY_DEVELOPER_CMD=...`
 - `RELAY_CODE_AUDITOR_CMD=...`
 
-When invoking `scripts/relay_runtime.py start-run` directly, load relay env first so runtime preflight reads the configured worker commands:
+Preferred operator entrypoints:
+
+```bash
+scripts/relay-run.sh --run-id <run_id> --idempotency-key <idempotency_key> --activity-timeout 900 --retry-limit 2
+scripts/relay-monitor.sh --run <run_id> --view quiet
+```
+
+The run wrapper auto-loads relay env and prints `RUN STARTED: <run_id>` (or `RUN RESUMED: <run_id>`).
+
+Manual fallback (direct runtime invocation): load relay env first so runtime preflight reads the configured worker commands:
 
 ```bash
 set -a
@@ -269,7 +280,7 @@ set +a
 python3 scripts/relay_runtime.py start-run ...
 ```
 
-For live monitoring, use verbose dashboard output so heartbeat events are visible:
+Manual fallback live monitoring:
 
 ```bash
 watch -n 5 'python3 scripts/relay_runtime.py dashboard --verbose --limit 20'
@@ -343,6 +354,10 @@ watch -n 5 'python3 scripts/relay_runtime.py dashboard --verbose --limit 20'
     *   terminal fail when retry budget is exhausted (no silent stop states),
     *   if worker creation is policy-blocked, retry once with a reduced subagent-safe prompt profile (minimal technical payload only) and do not pause maintainer for that recoverable path.
 3.  Relay execution remains autonomous end-to-end; maintainer interruption is reserved strictly for `true_blocker_decision` and `commit_message_approval`.
+    *   When maintainer input is required, architect MUST emit exactly one standalone line:
+        `ACTION NEEDED (maintainer): reply "<exact text to send>"`.
+    *   When no maintainer input is required, architect MUST emit:
+        `ACTION NEEDED (maintainer): none`.
 4.  Canonical relay autonomy policy tokens (required in docs + guards):
     *   `policy_block_retry_once`: policy-blocked worker prompt failure is auto-retried once with reduced prompt profile and no maintainer interruption.
     *   `watchdog_stall_retry_terminal`: stale heartbeat/timeout must emit `stall_detected`, then bounded retry/reassign, then terminal escalation on retry exhaustion.

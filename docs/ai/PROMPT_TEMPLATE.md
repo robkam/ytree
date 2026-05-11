@@ -13,7 +13,7 @@ Work item:
 Scope gate (mandatory):
 - This prompt is for exactly one quick developer unit (single focused fix/change).
 - If the request is broader than a single quick developer unit, STOP and reply exactly:
-  "No — this is more than a single quick development task. Use RELAY_PROMPT_TEMPLATE.md for this."
+  "No — this is more than a single quick development task. Use RELAY_PROMPT_TEMPLATE.md for this, and use RELAY_RUNBOOK.md for runtime execution/monitoring."
 
 ## Subagent-safe prompt profile (required)
 

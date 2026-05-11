@@ -2,6 +2,8 @@
 Description=ytree durable relay watchdog
 After=network-online.target
 Wants=network-online.target
+StartLimitIntervalSec=120
+StartLimitBurst=30
 
 [Service]
 Type=simple
@@ -13,8 +15,6 @@ Environment=RELAY_EVENT_LOG=%h/.local/state/ytree/relay-events.jsonl
 ExecStart=/usr/bin/env bash -lc 'source .venv/bin/activate && exec python3 scripts/relay_runtime.py watchdog --poll-seconds 5'
 Restart=always
 RestartSec=5
-StartLimitIntervalSec=120
-StartLimitBurst=30
 TimeoutStopSec=15
 KillSignal=SIGTERM
 NoNewPrivileges=yes
