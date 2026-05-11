@@ -19,12 +19,22 @@ RUNTIME_SPEC.loader.exec_module(relay)
 def _new_store(tmp_path: Path) -> tuple[relay.TemporalRelayStore, relay.AppendOnlyEventLog, Path, Path]:
     db_path = tmp_path / "relay.db"
     log_path = tmp_path / "relay-events.jsonl"
+    prompt_dir = tmp_path / "relay-prompts"
+    prompt_dir.mkdir(parents=True, exist_ok=True)
+    os.environ["RELAY_PROMPT_DIR"] = str(prompt_dir)
     event_log = relay.AppendOnlyEventLog(log_path)
     store = relay.TemporalRelayStore(db_path, event_log)
     return store, event_log, db_path, log_path
 
 
+def _stage_prompt_artifacts(run_id: str) -> None:
+    prompt_dir = Path(os.environ["RELAY_PROMPT_DIR"])
+    (prompt_dir / f"{run_id}_developer_run_developer.txt").write_text("developer prompt\n", encoding="utf-8")
+    (prompt_dir / f"{run_id}_auditor_run_code_auditor.txt").write_text("auditor prompt\n", encoding="utf-8")
+
+
 def _start_run(store: relay.TemporalRelayStore, run_id: str, now: float = 1000.0) -> None:
+    _stage_prompt_artifacts(run_id)
     store.start_or_resume_run(
         run_id=run_id,
         idempotency_key=f"idem-{run_id}",
@@ -44,6 +54,7 @@ def _start_run_custom_lease(
     heartbeat_late_seconds: int,
     heartbeat_stale_seconds: int,
 ) -> None:
+    _stage_prompt_artifacts(run_id)
     store.start_or_resume_run(
         run_id=run_id,
         idempotency_key=f"idem-{run_id}",
@@ -66,6 +77,7 @@ def _start_run_custom_retry(
     max_attempts: int,
     backoff_seconds: int = 0,
 ) -> None:
+    _stage_prompt_artifacts(run_id)
     store.start_or_resume_run(
         run_id=run_id,
         idempotency_key=f"idem-{run_id}",
@@ -307,6 +319,7 @@ def test_event_log_is_append_only_and_dashboard_low_noise(tmp_path: Path) -> Non
 
 def test_end_to_end_cycle_completes_durably(tmp_path: Path) -> None:
     store, event_log, db_path, log_path = _new_store(tmp_path)
+    _stage_prompt_artifacts("run-e2e")
     run_id, state = store.start_or_resume_run(
         run_id="run-e2e",
         idempotency_key="idem-run-e2e",
@@ -446,6 +459,7 @@ def test_worker_policy_block_retryable_failure_does_not_prompt_maintainer(tmp_pa
 
 def test_worker_timeout_failure_is_retryable_without_maintainer_prompt(tmp_path: Path) -> None:
     store, event_log, _db_path, _log_path = _new_store(tmp_path)
+    _stage_prompt_artifacts("run-timeout-retry")
     store.start_or_resume_run(
         run_id="run-timeout-retry",
         idempotency_key="idem-run-timeout-retry",

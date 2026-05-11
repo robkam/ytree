@@ -269,7 +269,13 @@ scripts/relay-run.sh --run-id <run_id> --idempotency-key <idempotency_key> --act
 scripts/relay-monitor.sh --run <run_id> --view quiet
 ```
 
-The run wrapper auto-loads relay env and prints `RUN STARTED: <run_id>` (or `RUN RESUMED: <run_id>`).
+The run wrapper auto-loads relay env and prints `RUN STARTED: <run_id>` (or `RUN RESUMED: <run_id>`), then reports whether prompt artifacts are ready or pending.
+If pending, stage them with:
+
+```bash
+scripts/relay-prompts.sh stage --run-id <run_id> --developer <developer_prompt_source> --auditor <auditor_prompt_source>
+scripts/relay-prompts.sh verify --run-id <run_id>
+```
 
 Manual fallback (direct runtime invocation): load relay env first so runtime preflight reads the configured worker commands:
 
@@ -307,6 +313,7 @@ watch -n 5 'python3 scripts/relay_runtime.py dashboard --verbose --limit 20'
 2.  Architect starts exactly one durable run with stable `run_id` + idempotency key.
 3.  Unit lifecycle is fixed and durable: `architect_handoff -> developer_run -> auditor_run -> architect_validation`.
 4.  Architect emits exactly one runnable developer unit at a time (never multiple units in-flight for the same run unless explicitly designed).
+    *   Before requesting maintainer approval to dispatch `developer_run`, architect MUST stage and verify relay prompt artifacts for the run id.
 5.  Every unit definition must include:
     *   strict scope lock,
     *   acceptance criteria,

@@ -52,6 +52,9 @@ _NOOP_PLACEHOLDER_COMMANDS: set[tuple[str, ...]] = {
 }
 
 _REPORT_HANDLE_PATTERN = re.compile(r"(?:^|\s)report_handle=([^\s;]+)")
+_MISSING_PROMPT_FILE_PATTERN = re.compile(
+    r"missing prompt file(?:[:\s]+)(?P<path>[^\s;]+)", re.IGNORECASE
+)
 DEFAULT_MAINTAINER_HEARTBEAT_SECONDS = max(
     30, int(os.environ.get("RELAY_MAINTAINER_HEARTBEAT_SECONDS", "300"))
 )
@@ -400,7 +403,7 @@ class TemporalRelayStore:
                             status = UNIT_STATUS_SUCCEEDED
                             attempt = 1
                         elif unit_id == "developer_run":
-                            status = UNIT_STATUS_QUEUED
+                            status = UNIT_STATUS_BLOCKED
                             attempt = 0
                         else:
                             status = UNIT_STATUS_BLOCKED
@@ -451,9 +454,15 @@ class TemporalRelayStore:
                                 "run_id": run_id,
                                 "unit_id": "developer_run",
                                 "role": ROLE_DEVELOPER,
-                                "event_type": "unit_queued",
-                                "status": UNIT_STATUS_QUEUED,
-                                "message": "developer unit queued",
+                                "event_type": "unit_blocked",
+                                "status": UNIT_STATUS_BLOCKED,
+                                "message": "developer unit blocked pending prompt artifacts",
+                                "metadata": {
+                                    "prompt_files": [
+                                        str(_expected_prompt_files(run_id)[0]),
+                                        str(_expected_prompt_files(run_id)[1]),
+                                    ]
+                                },
                                 "ts": stamp,
                             },
                         ]
@@ -468,6 +477,60 @@ class TemporalRelayStore:
         events: list[dict[str, Any]] = []
         lease: Lease | None = None
         with self._conn() as conn:
+            if role == ROLE_DEVELOPER:
+                blocked = conn.execute(
+                    """
+                    SELECT u.run_id, u.unit_id
+                    FROM units u
+                    INNER JOIN runs r ON r.run_id = u.run_id
+                    WHERE u.role = ?
+                      AND u.status = ?
+                      AND r.status = ?
+                    ORDER BY u.updated_at ASC
+                    """,
+                    (ROLE_DEVELOPER, UNIT_STATUS_BLOCKED, RUN_STATUS_RUNNING),
+                ).fetchall()
+                for row in blocked:
+                    run_id = str(row["run_id"])
+                    if not _developer_prompts_ready(run_id):
+                        continue
+                    updated = conn.execute(
+                        """
+                        UPDATE units
+                        SET status = ?, retry_not_before = ?, updated_at = ?
+                        WHERE run_id = ?
+                          AND unit_id = ?
+                          AND status = ?
+                        """,
+                        (
+                            UNIT_STATUS_QUEUED,
+                            stamp,
+                            stamp,
+                            run_id,
+                            str(row["unit_id"]),
+                            UNIT_STATUS_BLOCKED,
+                        ),
+                    )
+                    if updated.rowcount == 1:
+                        developer_prompt, auditor_prompt = _expected_prompt_files(run_id)
+                        events.append(
+                            {
+                                "run_id": run_id,
+                                "unit_id": "developer_run",
+                                "role": ROLE_DEVELOPER,
+                                "event_type": "unit_queued",
+                                "status": UNIT_STATUS_QUEUED,
+                                "message": "developer unit queued after prompt artifacts detected",
+                                "metadata": {
+                                    "prompt_files": [
+                                        str(developer_prompt),
+                                        str(auditor_prompt),
+                                    ]
+                                },
+                                "ts": stamp,
+                            }
+                        )
+
             candidate = conn.execute(
                 """
                 SELECT u.*, r.activity_timeout_seconds, r.lease_ttl_seconds
@@ -483,90 +546,204 @@ class TemporalRelayStore:
                 (role, UNIT_STATUS_QUEUED, UNIT_STATUS_RETRYABLE, stamp, RUN_STATUS_RUNNING),
             ).fetchone()
             if not candidate:
-                return None
+                if events:
+                    self._record_events(conn, events)
+                lease = None
+            else:
+                lease_version = int(candidate["lease_version"])
+                lease_token = lease_version + 1
+                lease_expires_at = stamp + int(candidate["lease_ttl_seconds"])
+                updated = conn.execute(
+                    """
+                    UPDATE units
+                    SET status = ?,
+                        attempt = attempt + 1,
+                        lease_owner = ?,
+                        lease_token = ?,
+                        lease_version = ?,
+                        lease_expires_at = ?,
+                        heartbeat_at = ?,
+                        updated_at = ?
+                    WHERE run_id = ?
+                      AND unit_id = ?
+                      AND lease_version = ?
+                      AND status IN (?, ?)
+                    """,
+                    (
+                        UNIT_STATUS_RUNNING,
+                        lease_owner,
+                        lease_token,
+                        lease_token,
+                        lease_expires_at,
+                        stamp,
+                        stamp,
+                        candidate["run_id"],
+                        candidate["unit_id"],
+                        lease_version,
+                        UNIT_STATUS_QUEUED,
+                        UNIT_STATUS_RETRYABLE,
+                    ),
+                )
+                if updated.rowcount != 1:
+                    if events:
+                        self._record_events(conn, events)
+                    lease = None
+                else:
+                    refreshed = conn.execute(
+                        """
+                        SELECT u.*, r.activity_timeout_seconds
+                        FROM units u
+                        INNER JOIN runs r ON r.run_id = u.run_id
+                        WHERE u.run_id = ? AND u.unit_id = ?
+                        """,
+                        (candidate["run_id"], candidate["unit_id"]),
+                    ).fetchone()
+                    if not refreshed:
+                        if events:
+                            self._record_events(conn, events)
+                        lease = None
+                    else:
+                        lease = Lease(
+                            run_id=str(refreshed["run_id"]),
+                            unit_id=str(refreshed["unit_id"]),
+                            role=str(refreshed["role"]),
+                            lease_owner=str(refreshed["lease_owner"]),
+                            lease_token=int(refreshed["lease_token"]),
+                            lease_version=int(refreshed["lease_version"]),
+                            lease_expires_at=float(refreshed["lease_expires_at"]),
+                            heartbeat_at=float(refreshed["heartbeat_at"]),
+                            attempt=int(refreshed["attempt"]),
+                            max_attempts=int(refreshed["max_attempts"]),
+                            activity_timeout_seconds=int(refreshed["activity_timeout_seconds"]),
+                        )
+                        events.append(
+                            {
+                                "run_id": lease.run_id,
+                                "unit_id": lease.unit_id,
+                                "role": lease.role,
+                                "event_type": "lease_acquired",
+                                "status": UNIT_STATUS_RUNNING,
+                                "message": "worker acquired lease",
+                                "metadata": {
+                                    "lease_owner": lease_owner,
+                                    "lease_token": lease.lease_token,
+                                    "attempt": lease.attempt,
+                                },
+                                "ts": stamp,
+                            }
+                        )
+                        self._record_events(conn, events)
 
-            lease_version = int(candidate["lease_version"])
-            lease_token = lease_version + 1
-            lease_expires_at = stamp + int(candidate["lease_ttl_seconds"])
-            updated = conn.execute(
+        if events:
+            self._emit_events(events)
+        return lease
+
+    def defer_unit_waiting_for_prompt(
+        self,
+        lease: Lease,
+        *,
+        message: str,
+        missing_prompt_file: str | None,
+        now: float | None = None,
+    ) -> str:
+        stamp = now if now is not None else time.time()
+        events: list[dict[str, Any]] = []
+        final_status = UNIT_STATUS_QUEUED
+        with self._conn() as conn:
+            unit = conn.execute(
+                "SELECT * FROM units WHERE run_id = ? AND unit_id = ?",
+                (lease.run_id, lease.unit_id),
+            ).fetchone()
+            if not unit:
+                raise RuntimeError("unit not found")
+            if (
+                unit["status"] != UNIT_STATUS_RUNNING
+                or unit["lease_owner"] != lease.lease_owner
+                or unit["lease_token"] != lease.lease_token
+            ):
+                events.append(
+                    {
+                        "run_id": lease.run_id,
+                        "unit_id": lease.unit_id,
+                        "role": lease.role,
+                        "event_type": "unit_defer_rejected",
+                        "status": "error",
+                        "message": "defer rejected due to lease mismatch",
+                        "metadata": {"lease_owner": lease.lease_owner, "lease_token": lease.lease_token},
+                        "ts": stamp,
+                    }
+                )
+                self._record_events(conn, events)
+                self._emit_events(events)
+                return "rejected"
+
+            run_row = conn.execute(
+                "SELECT retry_backoff_seconds FROM runs WHERE run_id = ?",
+                (lease.run_id,),
+            ).fetchone()
+            backoff = int(run_row["retry_backoff_seconds"]) if run_row else 10
+            retry_at = stamp + max(2, backoff)
+            next_attempt = max(0, int(unit["attempt"]) - 1)
+            conn.execute(
                 """
                 UPDATE units
                 SET status = ?,
-                    attempt = attempt + 1,
-                    lease_owner = ?,
-                    lease_token = ?,
-                    lease_version = ?,
-                    lease_expires_at = ?,
-                    heartbeat_at = ?,
+                    attempt = ?,
+                    retry_not_before = ?,
+                    lease_owner = NULL,
+                    lease_token = NULL,
+                    lease_expires_at = NULL,
+                    heartbeat_at = NULL,
+                    last_error = ?,
                     updated_at = ?
-                WHERE run_id = ?
-                  AND unit_id = ?
-                  AND lease_version = ?
-                  AND status IN (?, ?)
+                WHERE run_id = ? AND unit_id = ?
                 """,
                 (
-                    UNIT_STATUS_RUNNING,
-                    lease_owner,
-                    lease_token,
-                    lease_token,
-                    lease_expires_at,
-                    stamp,
-                    stamp,
-                    candidate["run_id"],
-                    candidate["unit_id"],
-                    lease_version,
                     UNIT_STATUS_QUEUED,
-                    UNIT_STATUS_RETRYABLE,
+                    next_attempt,
+                    retry_at,
+                    message,
+                    stamp,
+                    lease.run_id,
+                    lease.unit_id,
                 ),
             )
-            if updated.rowcount != 1:
-                return None
-
-            refreshed = conn.execute(
-                """
-                SELECT u.*, r.activity_timeout_seconds
-                FROM units u
-                INNER JOIN runs r ON r.run_id = u.run_id
-                WHERE u.run_id = ? AND u.unit_id = ?
-                """,
-                (candidate["run_id"], candidate["unit_id"]),
-            ).fetchone()
-            if not refreshed:
-                return None
-
-            lease = Lease(
-                run_id=str(refreshed["run_id"]),
-                unit_id=str(refreshed["unit_id"]),
-                role=str(refreshed["role"]),
-                lease_owner=str(refreshed["lease_owner"]),
-                lease_token=int(refreshed["lease_token"]),
-                lease_version=int(refreshed["lease_version"]),
-                lease_expires_at=float(refreshed["lease_expires_at"]),
-                heartbeat_at=float(refreshed["heartbeat_at"]),
-                attempt=int(refreshed["attempt"]),
-                max_attempts=int(refreshed["max_attempts"]),
-                activity_timeout_seconds=int(refreshed["activity_timeout_seconds"]),
-            )
+            metadata: dict[str, Any] = {
+                "retry_not_before": _utc_iso(retry_at),
+            }
+            if missing_prompt_file:
+                metadata["missing_prompt_file"] = missing_prompt_file
             events.append(
                 {
                     "run_id": lease.run_id,
                     "unit_id": lease.unit_id,
                     "role": lease.role,
-                    "event_type": "lease_acquired",
-                    "status": UNIT_STATUS_RUNNING,
-                    "message": "worker acquired lease",
-                    "metadata": {
-                        "lease_owner": lease_owner,
-                        "lease_token": lease.lease_token,
-                        "attempt": lease.attempt,
-                    },
+                    "event_type": "unit_waiting_for_prompt",
+                    "status": UNIT_STATUS_QUEUED,
+                    "message": "worker deferred unit until prompt artifacts are available",
+                    "metadata": metadata,
+                    "ts": stamp,
+                }
+            )
+            maintainer_message = "prompt artifacts missing for developer unit"
+            if missing_prompt_file:
+                maintainer_message = f"{maintainer_message}: {missing_prompt_file}"
+            events.append(
+                {
+                    "run_id": lease.run_id,
+                    "unit_id": lease.unit_id,
+                    "role": ROLE_ARCHITECT,
+                    "event_type": "maintainer_update_required",
+                    "status": UNIT_STATUS_QUEUED,
+                    "message": maintainer_message,
+                    "metadata": metadata,
                     "ts": stamp,
                 }
             )
             self._record_events(conn, events)
 
         self._emit_events(events)
-        return lease
+        return final_status
 
     def renew_heartbeat(self, lease: Lease, *, now: float | None = None) -> bool:
         stamp = now if now is not None else time.time()
@@ -1103,6 +1280,66 @@ class TemporalRelayStore:
                             }
                         )
 
+            blocked_developer_units = conn.execute(
+                """
+                SELECT u.run_id, u.unit_id
+                FROM units u
+                INNER JOIN runs r ON r.run_id = u.run_id
+                WHERE u.status = ?
+                  AND u.role = ?
+                  AND r.status = ?
+                ORDER BY u.updated_at ASC
+                """,
+                (UNIT_STATUS_BLOCKED, ROLE_DEVELOPER, RUN_STATUS_RUNNING),
+            ).fetchall()
+            for blocked_row in blocked_developer_units:
+                run_id = str(blocked_row["run_id"])
+                unit_id = str(blocked_row["unit_id"])
+                if _developer_prompts_ready(run_id):
+                    continue
+                reminder_row = conn.execute(
+                    """
+                    SELECT MAX(ts_epoch) AS ts_epoch
+                    FROM temporal_history
+                    WHERE run_id = ?
+                      AND unit_id = ?
+                      AND event_type = ?
+                    """,
+                    (run_id, unit_id, "maintainer_update_required"),
+                ).fetchone()
+                last_reminder_epoch = (
+                    float(reminder_row["ts_epoch"])
+                    if reminder_row and reminder_row["ts_epoch"] is not None
+                    else None
+                )
+                reminder_due = (
+                    last_reminder_epoch is None
+                    or (stamp - last_reminder_epoch) >= float(maintainer_interval)
+                )
+                if not reminder_due:
+                    continue
+                developer_prompt, auditor_prompt = _expected_prompt_files(run_id)
+                events.append(
+                    {
+                        "run_id": run_id,
+                        "unit_id": unit_id,
+                        "role": ROLE_ARCHITECT,
+                        "event_type": "maintainer_update_required",
+                        "status": UNIT_STATUS_BLOCKED,
+                        "message": (
+                            "ACTION NEEDED (maintainer): ask architect to stage relay prompt artifacts "
+                            f"for run_id {run_id}"
+                        ),
+                        "metadata": {
+                            "missing_prompt_files": [
+                                str(developer_prompt),
+                                str(auditor_prompt),
+                            ]
+                        },
+                        "ts": stamp,
+                    }
+                )
+
             if events:
                 self._record_events(conn, events)
 
@@ -1188,6 +1425,21 @@ class RelayWorker:
 
     def complete(self, lease: Lease, *, success: bool, message: str, now: float | None = None) -> str:
         return self.store.complete_unit(lease, success=success, message=message, now=now)
+
+    def defer_waiting_for_prompt(
+        self,
+        lease: Lease,
+        *,
+        message: str,
+        missing_prompt_file: str | None,
+        now: float | None = None,
+    ) -> str:
+        return self.store.defer_unit_waiting_for_prompt(
+            lease,
+            message=message,
+            missing_prompt_file=missing_prompt_file,
+            now=now,
+        )
 
     def run_once(
         self,
@@ -1331,6 +1583,33 @@ def _extract_report_handle(command_output: str) -> str | None:
     if not matches:
         return None
     return matches[-1]
+
+
+def _extract_missing_prompt_file(command_output: str) -> str | None:
+    match = _MISSING_PROMPT_FILE_PATTERN.search(command_output or "")
+    if not match:
+        return None
+    return match.group("path")
+
+
+def _relay_prompt_dir() -> Path:
+    configured = os.environ.get("RELAY_PROMPT_DIR")
+    if configured:
+        return Path(configured).expanduser()
+    return Path.home() / ".config" / "ytree" / "relay-prompts"
+
+
+def _expected_prompt_files(run_id: str) -> tuple[Path, Path]:
+    prompt_dir = _relay_prompt_dir()
+    return (
+        prompt_dir / f"{run_id}_developer_run_developer.txt",
+        prompt_dir / f"{run_id}_auditor_run_code_auditor.txt",
+    )
+
+
+def _developer_prompts_ready(run_id: str) -> bool:
+    developer_prompt, auditor_prompt = _expected_prompt_files(run_id)
+    return developer_prompt.is_file() and auditor_prompt.is_file()
 
 
 def _summarize_worker_output(command_output: str, *, limit: int = 240) -> str:
@@ -1512,6 +1791,29 @@ def _run_worker_loop(
             command=parsed_command,
             heartbeat_interval=heartbeat_interval,
         )
+        missing_prompt_file = _extract_missing_prompt_file(message) if not success else None
+        if missing_prompt_file:
+            store.event_log.append(
+                run_id=lease.run_id,
+                unit_id=lease.unit_id,
+                role=lease.role,
+                event_type="worker_command_deferred",
+                status=UNIT_STATUS_RUNNING,
+                message="worker command deferred until prompt artifacts are present",
+                metadata={
+                    "missing_prompt_file": missing_prompt_file,
+                    "lease_owner": lease.lease_owner,
+                    "lease_token": lease.lease_token,
+                },
+            )
+            worker.defer_waiting_for_prompt(
+                lease,
+                message=message,
+                missing_prompt_file=missing_prompt_file,
+            )
+            if once:
+                return 0
+            continue
         if not success and _is_policy_block_failure(message):
             store.event_log.append(
                 run_id=lease.run_id,
