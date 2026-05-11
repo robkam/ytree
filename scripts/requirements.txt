@@ -116,7 +116,7 @@ typing-inspection==0.4.2
     # via pydantic
 uritemplate==4.2.0
     # via google-api-python-client
-urllib3==2.6.3
+urllib3==2.7.0
     # via requests
 wcwidth==0.6.0
     # via
