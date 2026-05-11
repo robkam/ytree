@@ -67,7 +67,7 @@ Prompt/report artifact rules:
   - Do not emit “will do X” updates unless the prior event already emitted “did X” evidence for the previous action.
 - Runtime event labels should prefer explicit completion facts (`worker_command_started`, `worker_command_completed`, `worker_command_failed`, `unit_completed`, `unit_failed`, `retry_scheduled`, `workflow_completed`, `workflow_failed`).
 - Before requesting maintainer approval to dispatch `developer_run`, you MUST stage both relay prompt artifacts for this run_id:
-  - `scripts/relay-prompts.sh stage --run-id <run_id> --developer <developer_prompt_source> --auditor <auditor_prompt_source>`
+  - `scripts/relay-prompts.sh stage --run-id <run_id> --auto`
   - Then verify with `scripts/relay-prompts.sh verify --run-id <run_id>`
 - Do not claim dispatch/start for `developer_run` without runtime evidence (`unit_queued`, `lease_acquired`, or `worker_command_started`) and its `history_seq`.
 
@@ -134,7 +134,7 @@ Non-negotiable operator UX contract:
 - On run start/resume, provide exactly one copy-paste command line for runtime launch:
   - `scripts/relay-run.sh --run-id <run_id> --idempotency-key <idempotency_key> --activity-timeout 900 --retry-limit 2`
 - If prompt artifacts are required, provide exactly one copy-paste command line for staging+verify:
-  - `scripts/relay-prompts.sh stage --run-id <run_id> --developer <developer_prompt_source> --auditor <auditor_prompt_source>;scripts/relay-prompts.sh verify --run-id <run_id>`
+  - `scripts/relay-prompts.sh stage --run-id <run_id> --auto;scripts/relay-prompts.sh verify --run-id <run_id>`
 - Do not require maintainer to query runtime internals (run_id lookup, idempotency lookup, history parsing); architect must provide exact values.
 - On `workflow_completed`, immediately emit final delivery package without maintainer prodding: summary, pass/fail, commit-ready status, commit-message approval line (or `none`), PR/CI status, and cleanup commands.
 ```

@@ -62,6 +62,6 @@ if [[ -n "$run_id" ]]; then
     echo "PROMPT ARTIFACTS READY: $run_id"
   else
     echo "PROMPT ARTIFACTS PENDING: $run_id"
-    echo "NEXT: scripts/relay-prompts.sh stage --run-id $run_id --developer <developer_prompt_source> --auditor <auditor_prompt_source>"
+    echo "NEXT: scripts/relay-prompts.sh stage --run-id $run_id --auto;scripts/relay-prompts.sh verify --run-id $run_id"
   fi
 fi
