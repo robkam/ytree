@@ -149,6 +149,9 @@ else
   echo "[setup-relay] 1) workers: run scripts/relay-workers.sh start"
 fi
 echo "[setup-relay] 2) IDE: paste a task-customized relay prompt template"
-echo "[setup-relay] 3) run: scripts/relay-run.sh --run-id <run_id> --idempotency-key <idempotency_key> --activity-timeout 900 --retry-limit 2"
-echo "[setup-relay] 4) if pending prompts: scripts/relay-prompts.sh stage --run-id <run_id> --auto;scripts/relay-prompts.sh verify --run-id <run_id>"
-echo "[setup-relay] 5) optional monitor: scripts/relay-monitor.sh --view quiet"
+echo "[setup-relay] 3) copy/paste when IDE gives run_id:"
+echo "    scripts/relay-run.sh --run-id <run_id> --idempotency-key <idempotency_key> --activity-timeout 900 --retry-limit 2"
+echo "[setup-relay] 4) if pending prompts, copy/paste:"
+echo "    scripts/relay-prompts.sh stage --run-id <run_id> --auto;scripts/relay-prompts.sh verify --run-id <run_id>"
+echo "[setup-relay] 5) optional monitor:"
+echo "    scripts/relay-monitor.sh --run <run_id> --view quiet --sound"
