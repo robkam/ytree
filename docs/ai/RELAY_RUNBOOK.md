@@ -42,11 +42,21 @@ cd ~/ytree
 scripts/relay-monitor.sh --run <run_id> --view quiet
 ```
 
+Sound notifications (optional):
+
+```bash
+sudo apt-get update
+sudo apt-get install -y ffmpeg
+scripts/relay-monitor.sh --run <run_id> --view quiet --sound
+```
+
 Detail levels:
 - `quiet`: status + `ACTION NEEDED (maintainer)` only
 - `normal`: key transitions (heartbeat noise filtered)
 - `verbose`: full event stream including heartbeats
 - on terminal completion/failure, monitor includes report handles plus an exact IDE fallback line if IDE goes silent
+- `--sound` plays notifications for maintainer input needed, workflow failure, and workflow completion
+- if no supported player is available, monitor warns and falls back to terminal bell
 
 Convenience:
 - omit `--run` to monitor the latest run in durable relay state.
