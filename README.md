@@ -114,6 +114,25 @@ The project documentation is split into several focused files.
 | **[ROADMAP.md](docs/ROADMAP.md)** | **Future Plans**: Pending milestones and prioritized delivery backlog. |
 | **[CHANGES.md](docs/CHANGES.md)** | **Changelog**: Detailed history of v3.0 feature delivery, architecture work, and updates. |
 
+## Project Structure
+
+```text
+ytree/
+├── src/                 C source files
+├── include/             C headers
+├── tests/               pytest/pexpect test suite
+├── scripts/             helper scripts (build, relay, tooling)
+├── docs/                user, developer, and process documentation
+├── infra/               service and infrastructure templates
+├── etc/                 manpage source and related assets
+├── build/               build artifacts
+├── obj/                 object files
+├── coverage/            coverage outputs
+├── Makefile             primary build/test targets
+├── README.md            project overview
+└── AGENTS.md            Codex/agent discovery stub
+```
+
 ---
 
 ## Reporting Issues
