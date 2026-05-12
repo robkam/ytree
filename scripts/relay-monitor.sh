@@ -27,6 +27,7 @@ SOUND_FAIL="${RELAY_MONITOR_SOUND_FAIL:-$DEFAULT_SOUND_DIR/gen.mp3}"
 SOUND_SUCCESS="${RELAY_MONITOR_SOUND_SUCCESS:-$DEFAULT_SOUND_DIR/all.mp3}"
 LAST_NOTIFIED_SEQ=""
 LAST_NOTIFIED_ACTION=""
+SOUND_PLAYER=""
 
 usage() {
   cat <<'USAGE'
@@ -140,6 +141,20 @@ resolve_sound_path() {
 SOUND_INPUT="$(resolve_sound_path "$SOUND_INPUT")"
 SOUND_FAIL="$(resolve_sound_path "$SOUND_FAIL")"
 SOUND_SUCCESS="$(resolve_sound_path "$SOUND_SUCCESS")"
+
+if [[ "$SOUND" -eq 1 ]]; then
+  if command -v ffplay >/dev/null 2>&1; then
+    SOUND_PLAYER="ffplay"
+  elif command -v mpv >/dev/null 2>&1; then
+    SOUND_PLAYER="mpv"
+  elif command -v mpg123 >/dev/null 2>&1; then
+    SOUND_PLAYER="mpg123"
+  elif command -v play >/dev/null 2>&1; then
+    SOUND_PLAYER="play"
+  else
+    echo "WARN: no audio player found for --sound (ffplay/mpv/mpg123/play). Falling back to terminal bell." >&2
+  fi
+fi
 
 if [[ -z "$RUN_ID" ]]; then
   AUTO_SELECT_RUN=1
@@ -285,17 +300,21 @@ PY
 
 play_sound_file() {
   local sound_file="$1"
+  if [[ -z "$SOUND_PLAYER" ]]; then
+    printf '\a'
+    return 0
+  fi
   if [[ -z "$sound_file" || ! -f "$sound_file" ]]; then
     printf '\a'
     return 0
   fi
-  if command -v ffplay >/dev/null 2>&1; then
+  if [[ "$SOUND_PLAYER" == "ffplay" ]]; then
     (ffplay -nodisp -autoexit -loglevel quiet "$sound_file" >/dev/null 2>&1 &)
-  elif command -v mpv >/dev/null 2>&1; then
+  elif [[ "$SOUND_PLAYER" == "mpv" ]]; then
     (mpv --really-quiet --no-video "$sound_file" >/dev/null 2>&1 &)
-  elif command -v mpg123 >/dev/null 2>&1; then
+  elif [[ "$SOUND_PLAYER" == "mpg123" ]]; then
     (mpg123 -q "$sound_file" >/dev/null 2>&1 &)
-  elif command -v play >/dev/null 2>&1; then
+  elif [[ "$SOUND_PLAYER" == "play" ]]; then
     (play -q "$sound_file" >/dev/null 2>&1 &)
   else
     printf '\a'
