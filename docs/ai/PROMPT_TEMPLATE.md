@@ -89,9 +89,20 @@ Operator UX contract (mandatory):
 - First line of every update MUST be exactly one of:
   - `ACTION NEEDED (maintainer): none`
   - `ACTION NEEDED (maintainer): reply "<exact text>"`
-- If `ACTION NEEDED` is `none`, keep the rest of the update to at most five concise lines.
+- If `ACTION NEEDED` is `none`, keep the rest of the update to at most six concise lines.
 - If `ACTION NEEDED` is not `none`, print that line before any other content.
+- Required section order (no extra sections):
+  1) `ACTION NEEDED`
+  2) `COMPLETED`
+  3) `RUN` (only when relay runtime is involved)
+  4) `NEXT`
+  5) `REPRO` (only when maintainer-run repro is needed)
+  6) `LATEST EVENT` (only when relay runtime is involved)
+- Repro instructions must be numbered with one step per line (no single-line paragraph lists).
+- Do not emit `Model:` / `Reasoning level:` banners in routine updates.
 - Do not ask the maintainer to extract machine/runtime internals from logs; provide exact values directly.
 - If relay prompt artifacts are needed, do not ask maintainer for source-path discovery; provide one exact command:
   `scripts/relay-prompts.sh stage --run-id <run_id> --auto;scripts/relay-prompts.sh verify --run-id <run_id>`
+- If relay run start/resume is reported in the current update, include one exact launch command with concrete values:
+  `scripts/relay-run.sh --run-id <actual_run_id> --idempotency-key <actual_idempotency_key> --activity-timeout 900 --retry-limit 2`
 - On completion, proactively emit final delivery package (summary, verification evidence, commit-ready status, and exact approval text when needed) without waiting for maintainer prodding.
