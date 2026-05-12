@@ -118,21 +118,28 @@ Response format to maintainer:
 - If no maintainer input is required, include:
   - `ACTION NEEDED (maintainer): none`
 - Use delta-only updates: include only net-new state, next action, and new/changed handles unless maintainer asks for a full recap.
-- Include `Latest relay event` in each update with direction + unit + handle.
+- Include `LATEST EVENT` in each update with direction + unit + handle.
 - Do not repeat full historical handle inventories unless the maintainer explicitly requests a full recap.
-- Include handoff block for relay role-to-role traceability only (maintainer does not need to copy/paste this):
-  Model: <selected model>
-  Reasoning level: <selected level>
-  Handoff line: <next-role>: Execute $WORK_KIND $TASK from handle <handoff-handle> exactly as written.
+- Do not emit `Model:` / `Reasoning level:` banners in routine updates.
+- Handoff is one optional short line only, and only when changed:
+  `HANDOFF: <next-role>: Execute $WORK_KIND $TASK from handle <handoff-handle> exactly as written.`
 
 Non-negotiable operator UX contract:
 - First line of every update MUST be exactly one of:
   - `ACTION NEEDED (maintainer): none`
   - `ACTION NEEDED (maintainer): reply "<exact text>"`
 - If `ACTION NEEDED` is not `none`, emit that line before any other content.
-- If `ACTION NEEDED` is `none`, keep update body to at most five concise lines.
-- On run start/resume, provide exactly one copy-paste command line for runtime launch:
-  - `scripts/relay-run.sh --run-id <run_id> --idempotency-key <idempotency_key> --activity-timeout 900 --retry-limit 2`
+- If `ACTION NEEDED` is `none`, keep update body to at most six concise lines.
+- Required section order (no extra sections):
+  1) `ACTION NEEDED`
+  2) `COMPLETED`
+  3) `RUN`
+  4) `NEXT`
+  5) `REPRO` (only when maintainer-run repro is needed)
+  6) `LATEST EVENT`
+- Repro instructions must be numbered with one step per line (no single-line paragraph lists).
+- On run start/resume in the current update, provide exactly one copy-paste runtime command line with concrete values (not placeholders):
+  - `scripts/relay-run.sh --run-id <actual_run_id> --idempotency-key <actual_idempotency_key> --activity-timeout 900 --retry-limit 2`
 - If prompt artifacts are required, provide exactly one copy-paste command line for staging+verify:
   - `scripts/relay-prompts.sh stage --run-id <run_id> --auto;scripts/relay-prompts.sh verify --run-id <run_id>`
 - Do not require maintainer to query runtime internals (run_id lookup, idempotency lookup, history parsing); architect must provide exact values.
