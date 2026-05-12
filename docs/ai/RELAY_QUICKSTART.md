@@ -37,6 +37,8 @@ scripts/relay-prompts.sh stage --run-id <run_id> --auto;scripts/relay-prompts.sh
 scripts/relay-monitor.sh --run <run_id> --view quiet --sound
 ```
 
+For long non-relay bash commands with sound alerts, use `attn <command>` after one-time setup in `docs/ai/RELAY_RUNBOOK.md`.
+
 ## 7) [BASH] Done
 
 ```bash
