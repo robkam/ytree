@@ -49,6 +49,14 @@ cd ~/ytree
 scripts/relay-monitor.sh --run <run_id> --view quiet
 ```
 
+Sound notifications (optional):
+
+```bash
+sudo apt-get update
+sudo apt-get install -y ffmpeg
+scripts/relay-monitor.sh --run <run_id> --view quiet --sound
+```
+
 Other views:
 
 ```bash
@@ -60,6 +68,8 @@ scripts/relay-monitor.sh --run <run_id> --view verbose
 - `normal` = key transitions
 - `verbose` = full stream (includes heartbeats)
 - on terminal completion/failure, monitor prints report handles and an exact IDE fallback line if IDE goes silent
+- `--sound` plays notifications for maintainer input needed, workflow failure, and workflow completion
+- if no supported player is available, monitor warns and falls back to terminal bell
 
 Stop monitor with `Ctrl+C`.
 
