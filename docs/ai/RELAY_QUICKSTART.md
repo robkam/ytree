@@ -11,7 +11,7 @@ scripts/setup_relay_runtime.sh
 
 ```bash
 cd ~/ytree
-scripts/relay-workers.sh start
+scripts/relay-workers.sh stop;scripts/relay-workers.sh start
 ```
 
 ## 3) [IDE] Paste the task prompt
