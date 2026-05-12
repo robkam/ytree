@@ -69,6 +69,7 @@ Every update should include exactly one explicit line:
 
 - `ACTION NEEDED (maintainer): none`
 - or `ACTION NEEDED (maintainer): reply "<exact text>"`
+- checks/QA should run autonomously; maintainer replies should normally be only blocker clarification or commit-message approval.
 
 (“maintainer” means you.)
 

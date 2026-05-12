@@ -62,6 +62,7 @@ If no input is required:
 - `ACTION NEEDED (maintainer): none`
 
 In relay messages, **maintainer** means you (operator/user).
+Checks/QA run autonomously; maintainer interruption is for blocker clarification or commit-message approval.
 
 ## Stop workers when done
 
