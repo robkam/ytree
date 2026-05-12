@@ -21,9 +21,10 @@ LIMIT=20
 FOLLOW=1
 AUTO_SELECT_RUN=0
 SOUND=0
-SOUND_INPUT="${RELAY_MONITOR_SOUND_INPUT:-}"
-SOUND_FAIL="${RELAY_MONITOR_SOUND_FAIL:-}"
-SOUND_SUCCESS="${RELAY_MONITOR_SOUND_SUCCESS:-}"
+DEFAULT_SOUND_DIR="$REPO_ROOT/scripts/assets/sounds"
+SOUND_INPUT="${RELAY_MONITOR_SOUND_INPUT:-$DEFAULT_SOUND_DIR/hey.mp3}"
+SOUND_FAIL="${RELAY_MONITOR_SOUND_FAIL:-$DEFAULT_SOUND_DIR/gen.mp3}"
+SOUND_SUCCESS="${RELAY_MONITOR_SOUND_SUCCESS:-$DEFAULT_SOUND_DIR/all.mp3}"
 LAST_NOTIFIED_SEQ=""
 LAST_NOTIFIED_ACTION=""
 
@@ -118,6 +119,27 @@ if [[ "$SOUND" -eq 0 && (-n "${SOUND_INPUT:-}" || -n "${SOUND_FAIL:-}" || -n "${
 fi
 
 cd "$REPO_ROOT"
+
+resolve_sound_path() {
+  local sound_file="$1"
+  if [[ -z "$sound_file" ]]; then
+    printf '%s' ""
+    return 0
+  fi
+  if [[ -f "$sound_file" ]]; then
+    printf '%s' "$sound_file"
+    return 0
+  fi
+  if [[ "$sound_file" != */* && -f "$DEFAULT_SOUND_DIR/$sound_file" ]]; then
+    printf '%s' "$DEFAULT_SOUND_DIR/$sound_file"
+    return 0
+  fi
+  printf '%s' "$sound_file"
+}
+
+SOUND_INPUT="$(resolve_sound_path "$SOUND_INPUT")"
+SOUND_FAIL="$(resolve_sound_path "$SOUND_FAIL")"
+SOUND_SUCCESS="$(resolve_sound_path "$SOUND_SUCCESS")"
 
 if [[ -z "$RUN_ID" ]]; then
   AUTO_SELECT_RUN=1
