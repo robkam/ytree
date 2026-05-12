@@ -52,10 +52,10 @@ scripts/relay-monitor.sh --run <run_id> --view quiet
 Sound notifications (optional):
 
 ```bash
-sudo apt-get update
-sudo apt-get install -y ffmpeg
 scripts/relay-monitor.sh --run <run_id> --view quiet --sound
 ```
+
+If sound does not play on this machine yet, do one-time audio setup from `docs/ai/RELAY_RUNBOOK.md`.
 
 Other views:
 
@@ -69,7 +69,7 @@ scripts/relay-monitor.sh --run <run_id> --view verbose
 - `verbose` = full stream (includes heartbeats)
 - on terminal completion/failure, monitor prints report handles and an exact IDE fallback line if IDE goes silent
 - `--sound` plays notifications for maintainer input needed, workflow failure, and workflow completion
-- if no supported player is available, monitor warns and falls back to terminal bell
+- if no supported player is available, monitor falls back to terminal bell
 
 Stop monitor with `Ctrl+C`.
 
