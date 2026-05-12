@@ -313,16 +313,14 @@ watch -n 5 'python3 scripts/relay_runtime.py dashboard --verbose --limit 20'
 2.  Architect starts exactly one durable run with stable `run_id` + idempotency key.
 3.  Unit lifecycle is fixed and durable: `architect_handoff -> developer_run -> auditor_run -> architect_validation`.
 4.  Architect emits exactly one runnable developer unit at a time (never multiple units in-flight for the same run unless explicitly designed).
-    *   Before requesting maintainer approval to dispatch `developer_run`, architect MUST stage and verify relay prompt artifacts for the run id.
+    *   Before dispatching `developer_run`, architect MUST stage and verify relay prompt artifacts for the run id using `scripts/relay-prompts.sh stage --run-id <run_id> --auto` then `scripts/relay-prompts.sh verify --run-id <run_id>`.
 5.  Every unit definition must include:
     *   strict scope lock,
     *   acceptance criteria,
     *   verification commands,
     *   blocker conditions,
     *   bounded timeout + retry policy.
-6.  Architect status update to maintainer MUST include:
-    *   `Reasoning level: <Low|Medium|High|Extra High>`
-    *   `run_id`, `unit_id`, and latest event sequence.
+6.  Architect status update to maintainer MUST include `run_id`, `unit_id`, and latest event sequence.
 
 #### 3.1.4 Developer Pass (systemd Worker, Lease + Heartbeat, Single Unit)
 
@@ -333,7 +331,7 @@ watch -n 5 'python3 scripts/relay_runtime.py dashboard --verbose --limit 20'
     *   initial pass: full verification set listed for the unit,
     *   correction/rework pass: rerun failing checks + directly impacted targeted tests,
     *   avoid full `make qa-all` reruns unless risk materially changed or architect requests it,
-    *   once maintainer has approved QA for a given accepted unit state, run `make qa-all` at most once for that state and rerun only after subsequent code changes.
+    *   run `make qa-all` at most once for a given accepted code state and rerun only after subsequent code changes.
 5.  Worker MUST NOT mark unit complete while required checks are failing.
 6.  On success/failure/timeout, worker MUST emit explicit event log entries (no silent loops).
 7.  Developer status line to maintainer must be delta-only: net-new state + next action + changed handles only.
