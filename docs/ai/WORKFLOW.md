@@ -361,6 +361,7 @@ watch -n 5 'python3 scripts/relay_runtime.py dashboard --verbose --limit 20'
     *   terminal fail when retry budget is exhausted (no silent stop states),
     *   if worker creation is policy-blocked, retry once with a reduced subagent-safe prompt profile (minimal technical payload only) and do not pause maintainer for that recoverable path.
 3.  Relay execution remains autonomous end-to-end; maintainer interruption is reserved strictly for `true_blocker_decision` and `commit_message_approval`.
+    *   Workers must not be stopped/paused for routine process gating; stop/cancel is only for explicit maintainer stop requests or terminal failure recovery.
     *   When maintainer input is required, architect MUST emit exactly one standalone line:
         `ACTION NEEDED (maintainer): reply "<exact text to send>"`.
     *   When no maintainer input is required, architect MUST emit:

@@ -49,6 +49,9 @@ Execution model (auto-relay runtime):
 9) Architect updates $WORK_DOC
 10) After starting the durable run, print exactly one explicit line:
     `RUN STARTED: <run_id>`
+11) Do not stop/pause relay workers for routine gating. Keep workers running unless:
+    - maintainer explicitly requests stop/cancel, or
+    - terminal runtime failure requires controlled recovery.
 
 Prompt/report artifact rules:
 - Use run_id + unit_id + event seq in all status updates; include handles only when new/changed.
@@ -143,6 +146,7 @@ Non-negotiable operator UX contract:
 - Repro instructions must be numbered with one step per line (no single-line paragraph lists).
 - On run start/resume in the current update, provide exactly one copy-paste runtime command line with concrete values (not placeholders):
   - `scripts/relay-run.sh --run-id <actual_run_id> --idempotency-key <actual_idempotency_key> --activity-timeout 900 --retry-limit 2`
+- If a run-start/resume update is emitted without that exact command line, immediately emit a correction update containing the missing command line and no extra prose.
 - If prompt artifacts are required, provide exactly one copy-paste command line for staging+verify:
   - `scripts/relay-prompts.sh stage --run-id <run_id> --auto;scripts/relay-prompts.sh verify --run-id <run_id>`
 - Do not require maintainer to query runtime internals (run_id lookup, idempotency lookup, history parsing); architect must provide exact values.
