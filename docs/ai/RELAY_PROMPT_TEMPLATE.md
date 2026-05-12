@@ -55,9 +55,6 @@ Execution model (auto-relay runtime):
 
 Prompt/report artifact rules:
 - Use run_id + unit_id + event seq in all status updates; include handles only when new/changed.
-- Before each prompt message you generate, print exactly:
-  Model: <name>
-  Reasoning level: <Low|Medium|High|Extra High>
 - Use unit IDs derived from the base work item only: $TASK.1, $TASK.2, ...
 - Load startup instruction files once per session unless files changed or maintainer explicitly requests reload.
 - Stream relay visibility live: post a maintainer update immediately after each runtime event.
@@ -69,9 +66,10 @@ Prompt/report artifact rules:
   - Heartbeat-only updates are liveness pings and MUST include elapsed runtime + current executing action.
   - Do not emit “will do X” updates unless the prior event already emitted “did X” evidence for the previous action.
 - Runtime event labels should prefer explicit completion facts (`worker_command_started`, `worker_command_completed`, `worker_command_failed`, `unit_completed`, `unit_failed`, `retry_scheduled`, `workflow_completed`, `workflow_failed`).
-- Before requesting maintainer approval to dispatch `developer_run`, you MUST stage both relay prompt artifacts for this run_id:
+- Before dispatching `developer_run`, you MUST stage both relay prompt artifacts for this run_id:
   - `scripts/relay-prompts.sh stage --run-id <run_id> --auto`
   - Then verify with `scripts/relay-prompts.sh verify --run-id <run_id>`
+- Do not ask maintainer to run `relay-prompts.sh` with `--developer` / `--auditor` source paths.
 - Do not claim dispatch/start for `developer_run` without runtime evidence (`unit_queued`, `lease_acquired`, or `worker_command_started`) and its `history_seq`.
 
 Stall/escalation policy:

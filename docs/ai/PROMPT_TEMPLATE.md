@@ -106,6 +106,7 @@ Operator UX contract (mandatory):
 - Do not ask the maintainer to extract machine/runtime internals from logs; provide exact values directly.
 - If relay prompt artifacts are needed, do not ask maintainer for source-path discovery; provide one exact command:
   `scripts/relay-prompts.sh stage --run-id <run_id> --auto;scripts/relay-prompts.sh verify --run-id <run_id>`
+- Do not ask maintainer to run `relay-prompts.sh` with `--developer` / `--auditor` source-path arguments.
 - If relay run start/resume is reported in the current update, include one exact launch command with concrete values:
   `scripts/relay-run.sh --run-id <actual_run_id> --idempotency-key <actual_idempotency_key> --activity-timeout 900 --retry-limit 2`
 - If that run-start/resume command line is missing, immediately send a correction update with only the missing command line.
