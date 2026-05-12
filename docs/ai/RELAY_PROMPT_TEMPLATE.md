@@ -74,10 +74,13 @@ Prompt/report artifact rules:
 Stall/escalation policy:
 - If a unit exceeds timeout or misses heartbeat, watchdog MUST emit a stall event.
 - Watchdog then retries/reassigns within retry policy; if retries are exhausted, mark terminal failure and escalate.
-- Do not run checks or QA until maintainer explicitly agrees.
-- When maintainer approves checks/QA for a unit state, avoid duplicate full-gate churn:
-  - `make qa-all` runs at most once per accepted unit state.
+- Run required checks/QA autonomously; do not ask maintainer approval for checks.
+- Avoid duplicate full-gate churn:
+  - `make qa-all` runs at most once per accepted code state.
   - Re-run full gate only if code changed after the last full-gate evidence.
+- Maintainer interruption is reserved only for:
+  - `true_blocker_decision`
+  - `commit_message_approval`
 
 Developer prompt requirements (for each unit):
 - Strict scope and explicit non-goals
@@ -114,7 +117,7 @@ Response format to maintainer:
 - Include handles only when they changed or are newly created.
 - For any required maintainer decision/approval, include one standalone explicit line:
   - `ACTION NEEDED (maintainer): reply "<exact text to send>"`
-  - Example: `ACTION NEEDED (maintainer): reply "approve checks for BUG-11.2"`
+  - Example: `ACTION NEEDED (maintainer): reply "approve commit message: fix(ui): ..."`
 - If no maintainer input is required, include:
   - `ACTION NEEDED (maintainer): none`
 - Use delta-only updates: include only net-new state, next action, and new/changed handles unless maintainer asks for a full recap.

@@ -50,10 +50,10 @@ Process requirements:
    - keep scope tight and avoid unrelated edits
 
 5) Validation:
-   - do not run checks or QA until I explicitly agree
+   - run required checks/QA autonomously; do not stop for checks approval
    - before first push, run a quick local gate (build + targeted smoke/tests)
    - run targeted tests as needed
-   - if I approve full QA for a unit state, run `make qa-all` at most once for that exact accepted state; rerun only after code changes
+   - run `make qa-all` at most once per accepted code state; rerun only after code changes
    - after task completion, run full gate:
      source .venv/bin/activate
      make qa-all
@@ -84,6 +84,9 @@ Important guardrails:
 - Status updates must be facts-first: report what was completed (with evidence handle) before stating next action.
 - If uncertain, ask before choosing behavior-changing options.
 - If anything is ambiguous, ask me to clarify instead of guessing.
+- Maintainer interruption is reserved for:
+  - `true_blocker_decision`
+  - `commit_message_approval`
 
 Operator UX contract (mandatory):
 - First line of every update MUST be exactly one of:
