@@ -61,6 +61,29 @@ Detail levels:
 Convenience:
 - omit `--run` to monitor the latest run in durable relay state.
 
+## Attention notifications (IDE + bash)
+
+IDE/relay attention is covered by monitor sound events (`ACTION NEEDED`, failure, completion):
+
+```bash
+scripts/relay-monitor.sh --run <run_id> --view quiet --sound
+```
+
+For long bash commands outside relay monitor, add a one-time helper to `~/.bashrc`:
+
+```bash
+cat >> ~/.bashrc <<'EOF'
+attn(){ "$@"; rc=$?; if [ $rc -eq 0 ]; then ffplay -nodisp -autoexit -loglevel error ~/ytree/scripts/assets/sounds/all.mp3 >/dev/null 2>&1; else ffplay -nodisp -autoexit -loglevel error ~/ytree/scripts/assets/sounds/gen.mp3 >/dev/null 2>&1; fi; return $rc; }
+EOF
+source ~/.bashrc
+```
+
+Usage:
+
+```bash
+attn make qa-all
+```
+
 ## Maintainer action line contract
 
 When the architect needs your input, updates must include exactly one explicit line:
