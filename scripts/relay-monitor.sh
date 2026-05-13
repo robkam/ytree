@@ -252,21 +252,39 @@ def find_report_handle(unit_id: str) -> str:
         return remainder.split(";", 1)[0].strip()
     return "-"
 
+def normalize_action_message(message: str) -> str:
+    text = message.strip()
+    prefix = "ACTION NEEDED (maintainer):"
+    if text.startswith(prefix):
+        text = text[len(prefix):].strip()
+    return text or "maintainer update required"
+
 action = "none"
 if event == "workflow_completed":
     action = f'if IDE is silent, reply "provide final delivery package now for run_id {run_id} from history_seq {seq}"'
 elif event == "workflow_failed":
     action = f'if IDE is silent, reply "explain workflow failure for run_id {run_id} from history_seq {seq}"'
 else:
+    resolution_events = {
+        "workflow_resumed",
+        "unit_queued",
+        "lease_acquired",
+        "worker_command_started",
+        "worker_command_completed",
+        "unit_completed",
+        "heartbeat",
+    }
     for row in reversed(rows):
         msg = str(row.get('message', ''))
         msg_l = msg.lower()
         event_type = str(row.get('event_type', ''))
+        if event_type in resolution_events:
+            break
         if event_type == 'maintainer_update_required':
-            action = msg or "maintainer update required"
+            action = normalize_action_message(msg)
             break
         if 'maintainer' in msg_l and any(tok in msg_l for tok in ('reply', 'approve', 'confirm', 'decision', 'required')):
-            action = msg
+            action = normalize_action_message(msg)
             break
 print(f"ACTION NEEDED (maintainer): {action}")
 

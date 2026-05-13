@@ -106,7 +106,14 @@ Operator UX contract (mandatory):
 - Do not ask the maintainer to extract machine/runtime internals from logs; provide exact values directly.
 - If relay prompt artifacts are needed, do not ask maintainer for source-path discovery; provide one exact command:
   `scripts/relay-prompts.sh stage --run-id <run_id> --auto;scripts/relay-prompts.sh verify --run-id <run_id>`
+- Before asking maintainer to run relay prompt staging, emit auto prompt source files under:
+  `~/.local/state/ytree/prompt-sources/<run_id>/` with filenames matching `developer*.txt` and `auditor*.txt`.
+- If those source files are not emitted yet, do not ask maintainer to run staging; report waiting state instead.
 - Do not ask maintainer to run `relay-prompts.sh` with `--developer` / `--auditor` source-path arguments.
+- Never emit deprecated staging/output noise:
+  - no `--developer` / `--auditor` source-path staging commands
+  - no `Model:` / `Reasoning level:` banners
+  - no `Handoff line:` blocks
 - If relay run start/resume is reported in the current update, include one exact launch command with concrete values:
   `scripts/relay-run.sh --run-id <actual_run_id> --idempotency-key <actual_idempotency_key> --activity-timeout 900 --retry-limit 2`
 - If that run-start/resume command line is missing, immediately send a correction update with only the missing command line.

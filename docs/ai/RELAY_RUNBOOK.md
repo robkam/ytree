@@ -27,7 +27,7 @@ On success, the script prints one explicit line:
 
 - `RUN STARTED: <run_id>` (or `RUN RESUMED: <run_id>`)
 
-If prompt artifacts are still pending, stage them immediately:
+The run wrapper auto-attempts prompt staging+verify once. If prompt artifacts are still pending, run:
 
 ```bash
 cd ~/ytree
@@ -35,11 +35,21 @@ scripts/relay-prompts.sh stage --run-id <run_id> --auto
 scripts/relay-prompts.sh verify --run-id <run_id>
 ```
 
+If run output says `INFO: auto prompt sources not emitted yet`, wait for the architect update that emits prompt sources, then run the staging command.
+Do not run `relay-prompts.sh stage --auto` before the architect has acknowledged your repro result for that run.
+
 ## Monitor one run (optional)
 
 ```bash
 cd ~/ytree
 scripts/relay-monitor.sh --run <run_id> --view quiet
+```
+
+Latest run shortcut (no placeholder required):
+
+```bash
+cd ~/ytree
+scripts/relay-monitor.sh --view quiet
 ```
 
 Sound notifications (optional):
