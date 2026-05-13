@@ -51,3 +51,38 @@ def test_setup_relay_runtime_script_orchestrates_one_time_bootstrap() -> None:
     assert "placeholder '/usr/bin/true'" in script
     assert "XDG_RUNTIME_DIR" in script
     assert "systemctl --user show-environment" in script
+
+
+def test_relay_run_script_attempts_prompt_auto_stage_and_prints_fallback_command() -> None:
+    script = (Path(__file__).resolve().parents[1] / "scripts" / "relay-run.sh").read_text(
+        encoding="utf-8"
+    )
+
+    assert "scripts/relay-prompts.sh stage --run-id \"$run_id\" --auto" in script
+    assert "scripts/relay-prompts.sh verify --run-id \"$run_id\"" in script
+    assert "PROMPT ARTIFACTS AUTO-STAGED" in script
+    assert "PROMPT ARTIFACTS PENDING" in script
+    assert "auto_src_dir=\"$HOME/.local/state/ytree/prompt-sources/$run_id\"" in script
+    assert "INFO: auto prompt sources not emitted yet" in script
+    assert "INFO: auto prompt sources incomplete in" in script
+    assert "NEXT: $prompt_stage_cmd" in script
+
+
+def test_relay_monitor_normalizes_and_clears_stale_action_needed() -> None:
+    script = (Path(__file__).resolve().parents[1] / "scripts" / "relay-monitor.sh").read_text(
+        encoding="utf-8"
+    )
+
+    assert 'prefix = "ACTION NEEDED (maintainer):"' in script
+    assert '"workflow_resumed"' in script
+    assert '"heartbeat"' in script
+    assert 'action = normalize_action_message(msg)' in script
+
+
+def test_relay_prompts_auto_stage_reports_wait_for_architect_when_sources_missing() -> None:
+    script = (Path(__file__).resolve().parents[1] / "scripts" / "relay-prompts.sh").read_text(
+        encoding="utf-8"
+    )
+
+    assert "expected files like: developer*.txt and auditor*.txt" in script
+    assert "wait for architect update that confirms prompt sources were emitted" in script

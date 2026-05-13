@@ -99,6 +99,7 @@ case "$MODE" in
         echo "ERROR: auto stage could not find prompt sources for run_id=$RUN_ID" >&2
         echo "       looked in: $auto_src_dir" >&2
         echo "       expected files like: developer*.txt and auditor*.txt" >&2
+        echo "       wait for architect update that confirms prompt sources were emitted, then retry --auto" >&2
         exit 1
       fi
       echo "AUTO SOURCE: developer=$DEVELOPER_SRC"

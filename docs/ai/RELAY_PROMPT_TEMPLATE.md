@@ -21,6 +21,17 @@ Mandatory startup (before any repo exploration):
 2) Read ~/ytree/.ai/shared.md
 3) Use MCP semantic tools only (serena + jcodemunch) for exploration
 
+## Subagent-safe prompt profile (required)
+
+- Keep worker prompts to minimal technical payload only (scope, acceptance, commands, blockers).
+- Avoid long policy/governance prose in worker prompts.
+- If worker creation is policy-blocked, auto-retry once with a reduced prompt profile and continue without maintainer interruption for that recoverable path.
+- Relay proceeds autonomously; maintainer interruption is only for `true_blocker_decision` and `commit_message_approval`.
+- Canonical relay autonomy policy tokens (required):
+  - `policy_block_retry_once`
+  - `watchdog_stall_retry_terminal`
+  - `maintainer_pause_gate=true_blocker_decision|commit_message_approval`
+
 Goal:
 Deliver all outcomes for $WORK_DOC $WORK_KIND $TASK by following 3.1.3 through 3.1.7 of the Agentic Loop procedure in ~/ytree/docs/ai/WORKFLOW.md, on a new branch named for this work item.
 - Branch name must not use words: “phase”, “step”, “task” and must contain no digits.
@@ -69,6 +80,10 @@ Prompt/report artifact rules:
 - Before dispatching `developer_run`, you MUST stage both relay prompt artifacts for this run_id:
   - `scripts/relay-prompts.sh stage --run-id <run_id> --auto`
   - Then verify with `scripts/relay-prompts.sh verify --run-id <run_id>`
+- Before asking maintainer to run `relay-prompts.sh ... --auto`, you MUST first emit auto prompt sources:
+  - write developer/auditor prompt source files under `~/.local/state/ytree/prompt-sources/<run_id>/`
+  - filenames MUST match `developer*.txt` and `auditor*.txt`
+  - include emitted file paths as runtime evidence in the update
 - Do not ask maintainer to run `relay-prompts.sh` with `--developer` / `--auditor` source paths.
 - Do not claim dispatch/start for `developer_run` without runtime evidence (`unit_queued`, `lease_acquired`, or `worker_command_started`) and its `history_seq`.
 
@@ -147,6 +162,11 @@ Non-negotiable operator UX contract:
 - If a run-start/resume update is emitted without that exact command line, immediately emit a correction update containing the missing command line and no extra prose.
 - If prompt artifacts are required, provide exactly one copy-paste command line for staging+verify:
   - `scripts/relay-prompts.sh stage --run-id <run_id> --auto;scripts/relay-prompts.sh verify --run-id <run_id>`
+- If prompt source files have not yet been emitted for this run_id, do not ask maintainer to run staging; emit `ACTION NEEDED (maintainer): none` and report waiting on architect source emission.
+- Never emit deprecated staging/output noise:
+  - no `--developer` / `--auditor` source-path staging commands
+  - no `Model:` / `Reasoning level:` banners
+  - no `Handoff line:` blocks
 - Do not require maintainer to query runtime internals (run_id lookup, idempotency lookup, history parsing); architect must provide exact values.
 - On `workflow_completed`, immediately emit final delivery package without maintainer prodding: summary, pass/fail, commit-ready status, commit-message approval line (or `none`), PR/CI status, and cleanup commands.
 ```

@@ -58,10 +58,43 @@ if [[ -n "$run_id" ]]; then
   prompt_dir="${RELAY_PROMPT_DIR:-$HOME/.config/ytree/relay-prompts}"
   developer_prompt="$prompt_dir/${run_id}_developer_run_developer.txt"
   auditor_prompt="$prompt_dir/${run_id}_auditor_run_code_auditor.txt"
+  auto_src_dir="$HOME/.local/state/ytree/prompt-sources/$run_id"
+  prompt_stage_cmd="scripts/relay-prompts.sh stage --run-id $run_id --auto;scripts/relay-prompts.sh verify --run-id $run_id"
   if [[ -f "$developer_prompt" && -f "$auditor_prompt" ]]; then
     echo "PROMPT ARTIFACTS READY: $run_id"
   else
-    echo "PROMPT ARTIFACTS PENDING: $run_id"
-    echo "NEXT: scripts/relay-prompts.sh stage --run-id $run_id --auto;scripts/relay-prompts.sh verify --run-id $run_id"
+    auto_developer_src=""
+    auto_auditor_src=""
+    if [[ -d "$auto_src_dir" ]]; then
+      auto_developer_src="$(ls -1t "$auto_src_dir"/developer*.txt 2>/dev/null | head -n1 || true)"
+      auto_auditor_src="$(ls -1t "$auto_src_dir"/auditor*.txt 2>/dev/null | head -n1 || true)"
+    fi
+    if [[ -n "$auto_developer_src" && -n "$auto_auditor_src" ]]; then
+      auto_stage_output=""
+      auto_verify_output=""
+      if auto_stage_output="$(scripts/relay-prompts.sh stage --run-id "$run_id" --auto 2>&1)" \
+        && auto_verify_output="$(scripts/relay-prompts.sh verify --run-id "$run_id" 2>&1)"; then
+        printf '%s\n' "$auto_stage_output"
+        printf '%s\n' "$auto_verify_output"
+        echo "PROMPT ARTIFACTS AUTO-STAGED: $run_id"
+      else
+        echo "PROMPT ARTIFACTS PENDING: $run_id"
+        if [[ -n "$auto_stage_output" ]]; then
+          printf '%s\n' "$auto_stage_output"
+        fi
+        if [[ -n "$auto_verify_output" ]]; then
+          printf '%s\n' "$auto_verify_output"
+        fi
+        echo "NEXT: $prompt_stage_cmd"
+      fi
+    else
+      echo "PROMPT ARTIFACTS PENDING: $run_id"
+      if [[ -d "$auto_src_dir" ]]; then
+        echo "INFO: auto prompt sources incomplete in $auto_src_dir (need developer*.txt and auditor*.txt)"
+      else
+        echo "INFO: auto prompt sources not emitted yet: $auto_src_dir"
+      fi
+      echo "NEXT: $prompt_stage_cmd"
+    fi
   fi
 fi
