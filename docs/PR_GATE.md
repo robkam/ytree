@@ -6,7 +6,7 @@ This is the canonical pull-request governance policy for `main`.
 
 - `SKILL.md` (`.ai/skills/pr-gate-review/SKILL.md`): AI behavior for PR scrutiny and conflict triage.
 - `.github/pull_request_template.md`: plain-language author context.
-- `.github/workflows/pr-gate.yml`: PR size label assignment plus large-PR warning comment.
+- `.github/workflows/pr-gate.yml`: PR size label assignment.
 - `.github/workflows/pr-conflict-assistant.yml`: required branch freshness gate (`Up To Date With Main`).
 
 Use all four together. None of them is sufficient by itself.
@@ -17,7 +17,7 @@ Before merging a PR into `main`, require all of the following:
 
 1. Baseline CI is green.
 2. `Up To Date With Main` is green.
-3. If size is `L` or `XL`, large-PR warning context is present in the PR body.
+3. If size is `L` or `XL`, the PR body explains why it is large, why it is not split right now, and what could break. Provide this once, updating only if scope materially changes.
 4. At least one human maintainer approves.
 
 ## AI-First Review Contract

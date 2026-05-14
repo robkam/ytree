@@ -2,8 +2,8 @@
 > A brief plain-language summary of this PR is appreciated.
 
 <!--
-For size/L and size/XL PRs, if CI posts a "Large PR Warning", also add:
+Large PRs are difficult to review and carry more regression risk.
+For size/L and size/XL PRs, please add once (update only if scope materially changes):
 - Why it is not split right now (include links to related PRs, if any)
 - What could break
-If the bot asks again, paste the same answers into the latest bot warning comment too.
 -->

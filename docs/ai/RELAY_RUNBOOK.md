@@ -1,6 +1,6 @@
-# Relay Runbook (Single-Terminal)
+# Legacy Relay Runbook (Single-Terminal Compatibility)
 
-Use this runbook for autonomous architect -> developer -> auditor relay execution in a single terminal.
+Use this runbook only for the older helper-script relay runtime. For new manual architect-led work, start from `docs/ai/PROMPT_TEMPLATE.md`.
 
 ## Quickstart
 

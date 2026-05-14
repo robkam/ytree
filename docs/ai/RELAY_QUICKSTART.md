@@ -1,4 +1,6 @@
-# Relay Quickstart (Minimal)
+# Legacy Relay Quickstart (Compatibility)
+
+This covers the older helper-script relay runtime. For new manual architect-led work, start from `docs/ai/PROMPT_TEMPLATE.md`.
 
 ## 1) [BASH] One-time (or after relay config/unit changes)
 
@@ -16,8 +18,8 @@ scripts/relay-workers.sh stop;scripts/relay-workers.sh start
 
 ## 3) [IDE] Paste the task prompt
 
-- Non-trivial work: `docs/ai/RELAY_PROMPT_TEMPLATE.md`
-- Single quick unit: `docs/ai/PROMPT_TEMPLATE.md`
+- Use `docs/ai/PROMPT_TEMPLATE.md` for the architect-led manual relay prompt.
+- The architect decides whether the work item is one developer/auditor unit or must be split into atomic rounds.
 - Always copy fresh from repo files for each run (do not reuse older pasted variants).
 
 ## 4) [BASH] Run the exact start/resume command the IDE gives

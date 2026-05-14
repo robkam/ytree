@@ -49,9 +49,8 @@ For common governance edits, use these canonical targets:
 ## Prompt Template Map
 
 Prompt templates live in `docs/ai/` and are maintained as copy/paste entrypoints:
-- `PROMPT_TEMPLATE.md`: single quick developer unit only; includes a hard redirect to relay if scope is broader.
-- `RELAY_PROMPT_TEMPLATE.md`: architect-supervised relay workflow for non-trivial, multi-unit missions.
-- `RELAY_RUNBOOK.md`: single-terminal operator runbook for starting and monitoring durable relay runs.
-- Both templates enforce facts-first relay visibility updates (completed evidence before planned next action).
+- `PROMPT_TEMPLATE.md`: architect-supervised manual relay workflow for one tracked work item; the architect decides whether the item is a single unit or must be split into atomic developer/auditor rounds.
+- `RELAY_RUNBOOK.md`: compatibility runbook for the older durable relay helper scripts while the Python-first relay is being built.
+- The prompt template enforces facts-first visibility updates (completed evidence before planned next action).
 
 When template behavior or routing rules change, update both the template file and `docs/ai/WORKFLOW.md`.
