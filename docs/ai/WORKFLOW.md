@@ -153,10 +153,9 @@ If procedural instructions appear in persona files, move them into skills and le
 
 ### 3.1 Stateless Multi-AI Delivery Workflow (Non-Trivial Missions)
 
-Use this workflow when the mission is large enough that one-shot implementation is risky.
-Prompt templates:
-- **[PROMPT_TEMPLATE.md](PROMPT_TEMPLATE.md)**: single quick developer unit only; if the work is broader, it explicitly redirects to relay.
-- **[RELAY_PROMPT_TEMPLATE.md](RELAY_PROMPT_TEMPLATE.md)**: multi-unit relay workflow for non-trivial missions.
+Use this workflow when a tracked bug or task needs architect-supervised implementation.
+Prompt template:
+- **[PROMPT_TEMPLATE.md](PROMPT_TEMPLATE.md)**: one architect-led entrypoint. The architect decides whether the work is a single developer/auditor unit or must be split into atomic relay units. If the work likely creates a large PR, the architect must explain why it is large, why it should or should not be split, and what could break once before dispatching implementation, repeating only if scope materially changes.
 
 #### 3.1.0 Relay Runtime Prerequisite
 

@@ -8,18 +8,16 @@ on:
 permissions:
   contents: read
   issues: write
-  pull-requests: write
 
 jobs:
   size-signal:
-    name: PR Size Label And Warning
+    name: PR Size Label
     runs-on: ubuntu-latest
     steps:
-      - name: Label PR size and post warning for large changes
+      - name: Label PR size
         uses: actions/github-script@v9
         with:
           script: |
-            const marker = "<!-- pr-size-warning-comment -->";
             const issue_number = context.payload.pull_request.number;
             const { owner, repo } = context.repo;
             const pr = context.payload.pull_request;
@@ -82,53 +80,5 @@ jobs:
                 repo,
                 issue_number,
                 labels: [labelName],
-              });
-            }
-
-            const comments = await github.paginate(
-              github.rest.issues.listComments,
-              { owner, repo, issue_number, per_page: 100 }
-            );
-            const existingComment = comments.find(
-              (c) => c.user && c.user.type === "Bot" && c.body && c.body.includes(marker)
-            );
-
-            if (size === "L" || size === "XL") {
-              const body = [
-                marker,
-                "### Large PR Warning",
-                "",
-                "Thank you for your contribution.",
-                `This PR is labeled **${labelName}**.`,
-                "",
-                "Please add the following in the PR description:",
-                "If this warning appears again, paste the same answers in the latest warning comment as well.",
-                "A brief plain-language summary of the PR is also helpful.",
-                "- Why it is not split right now (and links to related PRs, if any)",
-                "- What could break",
-              ].join("\n");
-
-              if (existingComment) {
-                if ((existingComment.body || "").trim() !== body.trim()) {
-                  await github.rest.issues.updateComment({
-                    owner,
-                    repo,
-                    comment_id: existingComment.id,
-                    body,
-                  });
-                }
-              } else {
-                await github.rest.issues.createComment({
-                  owner,
-                  repo,
-                  issue_number,
-                  body,
-                });
-              }
-            } else if (existingComment) {
-              await github.rest.issues.deleteComment({
-                owner,
-                repo,
-                comment_id: existingComment.id,
               });
             }
