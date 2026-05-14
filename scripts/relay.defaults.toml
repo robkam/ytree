@@ -1,0 +1,5 @@
+backend = "codex"
+runtime_dir = "/tmp/ytree-relay"
+stale_seconds = 86400
+codex_command = ["codex", "exec", "--prompt-file", "{prompt_path}"]
+codex_timeout_seconds = 3600

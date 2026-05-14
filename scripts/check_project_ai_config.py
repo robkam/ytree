@@ -23,32 +23,41 @@ RELAY_POLICY_TOKENS = (
     "watchdog_stall_retry_terminal",
     "maintainer_pause_gate=true_blocker_decision|commit_message_approval",
 )
-RELAY_ENV_TEMPLATE = "infra/systemd/relay.env.example"
-REQUIRED_RELAY_ENV_SETTINGS = {
-    "RELAY_POLICY_BLOCK_RETRY_LIMIT": "1",
-    "RELAY_MAINTAINER_HEARTBEAT_SECONDS": None,
-    "RELAY_NO_PROGRESS_STALL_SECONDS": None,
-    "RELAY_MAINTAINER_INTERRUPT_REASONS": "true_blocker_decision,commit_message_approval",
+RELAY_DEFAULTS_FILE = "scripts/relay.defaults.toml"
+REQUIRED_RELAY_DEFAULTS = {
+    "backend": "codex",
+    "runtime_dir": "/tmp/ytree-relay",
+    "stale_seconds": 86400,
+    "codex_timeout_seconds": 3600,
 }
-RELAY_RUNTIME_FILE = "scripts/relay_runtime.py"
-RELAY_RUNTIME_REQUIRED_MARKERS = (
-    "--retry-limit",
-    "--heartbeat-stale",
-    "--maintainer-heartbeat-seconds",
-    "--no-progress-stall-seconds",
-    "POLICY_BLOCK_RETRY_LIMIT",
-    "_is_policy_block_failure",
-    "policy_block_detected",
-    "policy_retry_recovered",
-    "policy_retry_exhausted",
-    "RELAY_REDUCED_PROMPT_PROFILE",
-    "STRICT_MAINTAINER_INTERRUPT_REASONS",
-    "_maintainer_pause_allowed",
-    "maintainer_pause_required",
-    "stall_detected",
-    "retry_scheduled",
-    "workflow_failed",
-)
+REQUIRED_RELAY_CODEX_COMMAND = ["codex", "exec", "--prompt-file", "{prompt_path}"]
+RELAY_RUNTIME_MARKER_REQUIREMENTS = {
+    "scripts/relay.py": (
+        'sub.add_parser("run"',
+        "--bug",
+        "--task",
+        "resolve_work_item",
+        "_command_monitor",
+        "_command_health",
+    ),
+    "scripts/relay_core.py": (
+        'Path("/tmp")',
+        "policy_block_retry_once",
+        "watchdog_stall_retry_terminal",
+        "maintainer_pause_gate=true_blocker_decision|commit_message_approval",
+        "def resolve_settings",
+        "def cleanup_stale_runtime",
+    ),
+    "scripts/relay_backends.py": (
+        "class RelayBackend(Protocol)",
+        "class BackendResult",
+    ),
+    "scripts/relay_backend_codex.py": (
+        "class CodexBackend",
+        "subprocess.run(",
+        "action_needed",
+    ),
+}
 
 
 def _normalize_args(value: Any) -> list[str]:
@@ -119,19 +128,6 @@ def check_config(path: Path) -> list[str]:
     return failures
 
 
-def _parse_env_lines(path: Path) -> dict[str, str]:
-    parsed: dict[str, str] = {}
-    for raw_line in path.read_text(encoding="utf-8").splitlines():
-        line = raw_line.strip()
-        if not line or line.startswith("#"):
-            continue
-        if "=" not in line:
-            continue
-        key, value = line.split("=", 1)
-        parsed[key.strip()] = value.strip()
-    return parsed
-
-
 def check_relay_policy_requirements(repo_root: Path) -> list[str]:
     failures: list[str] = []
     for relative_path in RELAY_POLICY_FILES:
@@ -144,34 +140,40 @@ def check_relay_policy_requirements(repo_root: Path) -> list[str]:
             if token not in content:
                 failures.append(f"{relative_path}: missing relay policy token '{token}'")
 
-    env_path = repo_root / RELAY_ENV_TEMPLATE
-    if not env_path.exists():
-        failures.append(f"missing relay env template: {RELAY_ENV_TEMPLATE}")
+    defaults_path = repo_root / RELAY_DEFAULTS_FILE
+    if not defaults_path.exists():
+        failures.append(f"missing relay defaults file: {RELAY_DEFAULTS_FILE}")
         return failures
 
-    env_values = _parse_env_lines(env_path)
-    for key, expected in REQUIRED_RELAY_ENV_SETTINGS.items():
-        value = env_values.get(key)
-        if value is None or value == "":
-            failures.append(f"{RELAY_ENV_TEMPLATE}: missing setting {key}")
+    try:
+        defaults_data = tomllib.loads(defaults_path.read_text(encoding="utf-8"))
+    except (OSError, tomllib.TOMLDecodeError) as exc:
+        failures.append(f"failed to read/parse {RELAY_DEFAULTS_FILE}: {exc}")
+        return failures
+
+    for key, expected in REQUIRED_RELAY_DEFAULTS.items():
+        value = defaults_data.get(key)
+        if value is None:
+            failures.append(f"{RELAY_DEFAULTS_FILE}: missing setting {key}")
             continue
-        if expected is not None and value != expected:
-            failures.append(f"{RELAY_ENV_TEMPLATE}: expected {key}={expected}")
-        if key in {"RELAY_MAINTAINER_HEARTBEAT_SECONDS", "RELAY_NO_PROGRESS_STALL_SECONDS"}:
-            try:
-                if int(value) < 1:
-                    failures.append(f"{RELAY_ENV_TEMPLATE}: {key} must be >= 1")
-            except ValueError:
-                failures.append(f"{RELAY_ENV_TEMPLATE}: {key} must be an integer")
+        if value != expected:
+            failures.append(f"{RELAY_DEFAULTS_FILE}: expected {key}={expected}")
 
-    runtime_path = repo_root / RELAY_RUNTIME_FILE
-    if not runtime_path.exists():
-        failures.append(f"missing relay runtime file: {RELAY_RUNTIME_FILE}")
-        return failures
-    runtime_content = runtime_path.read_text(encoding="utf-8")
-    for marker in RELAY_RUNTIME_REQUIRED_MARKERS:
-        if marker not in runtime_content:
-            failures.append(f"{RELAY_RUNTIME_FILE}: missing runtime marker '{marker}'")
+    codex_command = defaults_data.get("codex_command")
+    if codex_command != REQUIRED_RELAY_CODEX_COMMAND:
+        failures.append(
+            f"{RELAY_DEFAULTS_FILE}: expected codex_command={REQUIRED_RELAY_CODEX_COMMAND}"
+        )
+
+    for relative_path, markers in RELAY_RUNTIME_MARKER_REQUIREMENTS.items():
+        runtime_path = repo_root / relative_path
+        if not runtime_path.exists():
+            failures.append(f"missing relay runtime file: {relative_path}")
+            continue
+        runtime_content = runtime_path.read_text(encoding="utf-8")
+        for marker in markers:
+            if marker not in runtime_content:
+                failures.append(f"{relative_path}: missing runtime marker '{marker}'")
     return failures
 
 

@@ -1,115 +1,66 @@
-# Legacy Relay Runbook (Single-Terminal Compatibility)
+# Relay Runbook (Python-First)
 
-Use this runbook only for the older helper-script relay runtime. For new manual architect-led work, start from `docs/ai/PROMPT_TEMPLATE.md`.
+Relay is Python-first and is the only supported runtime path.
 
-## Quickstart
-
-```bash
-cd ~/ytree
-scripts/setup_relay_runtime.sh
-```
-
-Then, for each session:
+## One-time setup
 
 ```bash
 cd ~/ytree
-scripts/relay-workers.sh start
+python3 scripts/relay.py --help
 ```
 
-## Start a run
+## Run one tracked work item
 
 ```bash
 cd ~/ytree
-scripts/relay-run.sh --run-id <run_id> --idempotency-key <idempotency_key> --activity-timeout 900 --retry-limit 2
+scripts/relay.py run --bug <id>
+# or
+scripts/relay.py run --task <id>
 ```
 
-On success, the script prints one explicit line:
+Behavior:
+- Title is derived from `docs/BUGS.md` or `docs/ROADMAP.md`.
+- Unknown IDs are hard errors.
+- Prompt/report lifecycle is internalized.
+- Runtime scratch defaults to `/tmp/ytree-relay` with stale cleanup.
 
-- `RUN STARTED: <run_id>` (or `RUN RESUMED: <run_id>`)
-
-The run wrapper auto-attempts prompt staging+verify once. If prompt artifacts are still pending, run:
+## Monitor relay state
 
 ```bash
-cd ~/ytree
-scripts/relay-prompts.sh stage --run-id <run_id> --auto
-scripts/relay-prompts.sh verify --run-id <run_id>
+scripts/relay.py monitor --view quiet
 ```
 
-If run output says `INFO: auto prompt sources not emitted yet`, wait for the architect update that emits prompt sources, then run the staging command.
-Do not run `relay-prompts.sh stage --auto` before the architect has acknowledged your repro result for that run.
-
-## Monitor one run (optional)
+Specific run:
 
 ```bash
-cd ~/ytree
-scripts/relay-monitor.sh --run <run_id> --view quiet
-```
-
-Latest run shortcut (no placeholder required):
-
-```bash
-cd ~/ytree
-scripts/relay-monitor.sh --view quiet
-```
-
-Sound notifications (optional):
-
-```bash
-sudo apt-get update
-sudo apt-get install -y ffmpeg
-scripts/relay-monitor.sh --run <run_id> --view quiet --sound
+scripts/relay.py monitor --run-id <run_id> --view quiet
 ```
 
 Detail levels:
-- `quiet`: status + `ACTION NEEDED (maintainer)` only
-- `normal`: key transitions (heartbeat noise filtered)
-- `verbose`: full event stream including heartbeats
-- on terminal completion/failure, monitor includes report handles plus an exact IDE fallback line if IDE goes silent
-- `--sound` plays notifications for maintainer input needed, workflow failure, and workflow completion
-- if no supported player is available, monitor warns and falls back to terminal bell
+- `quiet`: latest state + single `ACTION NEEDED (maintainer)` line
+- `normal`: latest + recent events
+- `verbose`: full recent event list
 
-Convenience:
-- omit `--run` to monitor the latest run in durable relay state.
-
-## Attention notifications (IDE + bash)
-
-IDE/relay attention is covered by monitor sound events (`ACTION NEEDED`, failure, completion):
+One-shot snapshot:
 
 ```bash
-scripts/relay-monitor.sh --run <run_id> --view quiet --sound
+scripts/relay.py monitor --once --view normal
 ```
 
-For long bash commands outside relay monitor, add a one-time helper to `~/.bashrc`:
+## Health
 
 ```bash
-cat >> ~/.bashrc <<'EOF'
-attn(){ "$@"; rc=$?; if [ $rc -eq 0 ]; then ffplay -nodisp -autoexit -loglevel error ~/ytree/scripts/assets/sounds/all.mp3 >/dev/null 2>&1; else ffplay -nodisp -autoexit -loglevel error ~/ytree/scripts/assets/sounds/gen.mp3 >/dev/null 2>&1; fi; return $rc; }
-EOF
-source ~/.bashrc
-```
-
-Usage:
-
-```bash
-attn make qa-all
+scripts/relay.py health
 ```
 
 ## Maintainer action line contract
 
-When the architect needs your input, updates must include exactly one explicit line:
+When maintainer input is required, updates must include exactly one explicit line:
 
 - `ACTION NEEDED (maintainer): reply "<exact short text>"`
 
-If no input is required:
+When no input is required:
 
 - `ACTION NEEDED (maintainer): none`
 
-In relay messages, **maintainer** means you (operator/user).
-Checks/QA run autonomously; maintainer interruption is for blocker clarification or commit-message approval.
-
-## Stop workers when done
-
-```bash
-cd ~/ytree
-scripts/relay-workers.sh stop
-```
+Checks/QA run autonomously; maintainer interruption is reserved for blocker clarification or commit-message approval.

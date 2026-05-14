@@ -159,10 +159,10 @@ Prompt template:
 
 #### 3.1.0 Relay Runtime Prerequisite
 
-Before starting the loop, ensure the auto-relay runtime is configured for every client role (`architect`, `developer`, `code_auditor`) and that systemd worker services are available:
-- Run `scripts/setup_relay_runtime.sh` once per machine/user (or again only after relay config/unit changes).
-- On each new WSL start, run `scripts/relay-workers.sh health`; if unhealthy, run `scripts/relay-workers.sh start`.
-- For single-terminal operations (start + monitor), use **[RELAY_RUNBOOK.md](RELAY_RUNBOOK.md)**.
+Before starting the loop, ensure the Python-first relay runtime is configured for every client role (`architect`, `developer`, `code_auditor`):
+- Primary run entrypoint: `scripts/relay.py run --bug <id>` or `scripts/relay.py run --task <id>`.
+- Primary monitor entrypoint: `scripts/relay.py monitor --view quiet`.
+- Use **[RELAY_RUNBOOK.md](RELAY_RUNBOOK.md)** for command reference.
 
 ##### 3.1.0.1 MCP Config Bootstrap (Recommended)
 
@@ -216,80 +216,26 @@ make qa-fuzz
 
 ##### 3.1.0.3 Auto-Relay Runtime Setup
 
-One-time install (per machine/user):
+Default runtime scratch/artifacts:
+- `/tmp/ytree-relay`
 
-```bash
-scripts/relay-systemd-install.sh
-```
-
-First start after install (or after unit changes):
-
-```bash
-scripts/relay-workers.sh start
-```
-
-Per WSL start readiness check:
-
-```bash
-systemctl --user is-active \
-  ytree-relay-developer.service \
-  ytree-relay-code-auditor.service \
-  ytree-relay-watchdog.service
-```
-
-Expected output: 3 lines, all active.
-
-If all 3 are active, proceed.
-
-If any line is not active (inactive, failed, etc.):
-
-```bash
-scripts/relay-workers.sh start
-```
-
-Then re-run the is-active check.
-
-Default durable paths (informational defaults, not commands):
-- `~/.local/state/ytree/relay.db`
-- `~/.local/state/ytree/relay-events.jsonl`
-
-These defaults are read from relay env configuration (`RELAY_DB`, `RELAY_EVENT_LOG`) and can be changed in `~/.config/ytree/relay.env`.
+Relay runtime artifacts are internalized in that scratch tree (run metadata, prompts, events, reports) and must not be committed.
 
 ##### 3.1.0.4 Run Start Preflight and Live Monitoring (Mandatory)
 
-Before every `start-run`, confirm worker commands are configured in `~/.config/ytree/relay.env` and are not placeholders:
-- `RELAY_DEVELOPER_CMD=...`
-- `RELAY_CODE_AUDITOR_CMD=...`
-
-Preferred operator entrypoints:
+Operator entrypoints:
 
 ```bash
-scripts/relay-run.sh --run-id <run_id> --idempotency-key <idempotency_key> --activity-timeout 900 --retry-limit 2
-scripts/relay-monitor.sh --run <run_id> --view quiet
+scripts/relay.py run --bug <id>
+# or
+scripts/relay.py run --task <id>
+scripts/relay.py monitor --view quiet
 ```
 
-The run wrapper auto-loads relay env and prints `RUN STARTED: <run_id>` (or `RUN RESUMED: <run_id>`), then reports whether prompt artifacts are ready or pending.
-If pending, stage them with:
-
-```bash
-scripts/relay-prompts.sh stage --run-id <run_id> --auto
-scripts/relay-prompts.sh verify --run-id <run_id>
-```
-
-Manual fallback (direct runtime invocation): load relay env first so runtime preflight reads the configured worker commands:
-
-```bash
-set -a
-source ~/.config/ytree/relay.env
-set +a
-python3 scripts/relay_runtime.py start-run ...
-```
-
-Manual fallback live monitoring:
-
-```bash
-watch -n 5 'python3 scripts/relay_runtime.py dashboard --verbose --limit 20'
-```
+Notes:
+- Title derivation is strict from `docs/BUGS.md` / `docs/ROADMAP.md`.
+- Unknown IDs are hard errors.
+- No manual run_id/idempotency/prompt staging/report path handling is required.
 
 #### 3.1.1 Workflow Contract (Mandatory)
 
@@ -309,10 +255,10 @@ watch -n 5 'python3 scripts/relay_runtime.py dashboard --verbose --limit 20'
 #### 3.1.3 Architect Pass (Stateless, Branch Setup, Temporal Run Start)
 
 1.  Start on a dedicated feature branch (local + remote).
-2.  Architect starts exactly one durable run with stable `run_id` + idempotency key.
+2.  Architect starts exactly one durable run from the Python supervisor (`scripts/relay.py run --bug <id>` or `--task <id>`).
 3.  Unit lifecycle is fixed and durable: `architect_handoff -> developer_run -> auditor_run -> architect_validation`.
 4.  Architect emits exactly one runnable developer unit at a time (never multiple units in-flight for the same run unless explicitly designed).
-    *   Before dispatching `developer_run`, architect MUST stage and verify relay prompt artifacts for the run id using `scripts/relay-prompts.sh stage --run-id <run_id> --auto` then `scripts/relay-prompts.sh verify --run-id <run_id>`.
+    *   Prompt/report artifacts are managed by the Python supervisor; architect must not require maintainer prompt staging steps in normal flow.
 5.  Every unit definition must include:
     *   strict scope lock,
     *   acceptance criteria,
@@ -321,9 +267,9 @@ watch -n 5 'python3 scripts/relay_runtime.py dashboard --verbose --limit 20'
     *   bounded timeout + retry policy.
 6.  Architect status update to maintainer MUST include `run_id`, `unit_id`, and latest event sequence.
 
-#### 3.1.4 Developer Pass (systemd Worker, Lease + Heartbeat, Single Unit)
+#### 3.1.4 Developer Pass (Python Supervisor Worker, Lease + Heartbeat, Single Unit)
 
-1.  Developer execution is performed by a systemd-supervised worker (`Restart=always`).
+1.  Developer execution is orchestrated by the Python supervisor runtime.
 2.  Worker may execute a unit only after successful lease CAS acquisition.
 3.  While running, worker MUST renew heartbeat before lease expiry.
 4.  Verification cadence inside one atomic unit remains mandatory:
@@ -339,9 +285,9 @@ watch -n 5 'python3 scripts/relay_runtime.py dashboard --verbose --limit 20'
     *   include concrete evidence handles for each completion event (`report_handle`, event seq, command excerpt),
     *   heartbeat-only updates are liveness-only and must include elapsed runtime plus current active action.
 
-#### 3.1.5 Auditor Pass (systemd Worker, Lease + Heartbeat, Single Unit)
+#### 3.1.5 Auditor Pass (Python Supervisor Worker, Lease + Heartbeat, Single Unit)
 
-1.  Auditor execution is also systemd-supervised with the same lease/heartbeat contract.
+1.  Auditor execution is orchestrated by the Python supervisor runtime with the same lease/heartbeat contract.
 2.  Auditor runs only after `developer_run` is durably marked successful.
 3.  Auditor workflow remains evidence-first:
     *   validate code diff + verification evidence first,
