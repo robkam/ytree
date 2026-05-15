@@ -123,7 +123,6 @@ ytree/
 ├── tests/               pytest/pexpect test suite
 ├── scripts/             helper scripts (build, relay, tooling)
 ├── docs/                user, developer, and process documentation
-├── infra/               service and infrastructure templates
 ├── etc/                 manpage source and related assets
 ├── build/               build artifacts
 ├── obj/                 object files
