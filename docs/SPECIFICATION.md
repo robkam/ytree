@@ -105,6 +105,7 @@ The `ytree` input system follows a layered model designed for high-speed interac
 *   **Case-Sensitivity:** Keys are **case-insensitive** by default. Lowercase notation is used for letter-based commands (e.g., `c` for copy). The Ctrl key is shown by the `^` symbol.
 *   **Standard Conventions**: Function keys use the `F1`-`F12` (uppercase prefix) notation. Control keys use the `^key` (e.g., `^l`) lowercase notation.
 *   **Alt-Key Portability Rule:** `Alt`/Meta key sequences are terminal-dependent and are not part of supported key contracts. Core workflows must use non-`Alt` bindings.
+*   **Control-Alias Canonicalization Rule:** Terminal-equivalent aliases (`^M`/Enter/CR, `^J`/LF enter path, `^I`/Tab, `^[`/Esc) are a single canonical input for binding and validation; mapping alias forms to different commands is invalid.
 *   **Keyboard Portability Baseline:** ytree keyboard semantics follow curses `getch`/`KEY_*` behavior with terminfo capability mapping (practical references: [`curs_getch(3x)`](https://man7.org/linux/man-pages/man3/curs_getch.3x.html) and [`terminfo(5)`](https://man7.org/linux/man-pages/man5/terminfo.5.html)).
 *   **Contextual Logic:** The effect of a key depends on whether focus is on the Tree View or File View.
 
