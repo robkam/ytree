@@ -28,7 +28,24 @@ Behavior rules:
 4) Maintainer interruption is reserved for:
    - true_blocker_decision
    - commit_message_approval
+   - explicitly not for agent status reminders
 
+Relay autonomy policy tokens (required):
+- `policy_block_retry_once`
+- `watchdog_stall_retry_terminal`
+- `maintainer_pause_gate=true_blocker_decision|commit_message_approval`
+
+Subagent autonomy rules (required):
+- Do not wait for maintainer nudges about agent state.
+- Treat any subagent completion notification as an immediate trigger.
+- On completion, immediately:
+  1) read the report file,
+  2) run required validation/checks,
+  3) close the completed agent,
+  4) proceed to the next planned step,
+  5) post a maintainer update.
+- Poll/wait on active agents proactively until they reach terminal status.
+- Never leave completed agents open unless explicitly instructed.
 Branch/process setup:
 1) Sync local main with GitHub main:
    - git checkout main
@@ -83,13 +100,14 @@ Validation:
 - Run required checks/QA autonomously; do not stop for routine checks approval.
 - Before first push, run a quick local gate (build plus targeted smoke/tests).
 - Run targeted tests as needed.
-- Run `make qa-all` at most once per accepted code state; rerun only after code changes.
-- Before PR-ready/final approval, run:
+- Do not run `make qa-all` during routine iteration unless explicitly requested.
+- Before merge to `main`, or when maintainer explicitly requests it, run:
   - `source .venv/bin/activate`
   - `make qa-all`
 
 Commit and PR flow:
 - Use Conventional Commits.
+- Commit subject and PR title/summary must describe the concrete behavior/problem; do not rely on volatile tracker IDs alone.
 - For follow-up corrections to the same intent, prefer:
   - `git commit --amend --no-edit`
 - Open a draft PR early after first push.

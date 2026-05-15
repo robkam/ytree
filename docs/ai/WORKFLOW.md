@@ -239,8 +239,8 @@ make qa-fuzz
 2.  Verification cadence inside one atomic unit remains mandatory:
     *   initial pass: full verification set listed for the unit,
     *   correction/rework pass: rerun failing checks + directly impacted targeted tests,
-    *   avoid full `make qa-all` reruns unless risk materially changed or architect requests it,
-    *   run `make qa-all` at most once for a given accepted code state and rerun only after subsequent code changes.
+    *   avoid full `make qa-all` during routine iteration unless maintainer explicitly requests it,
+    *   rely on failing-check reruns + directly impacted targeted tests between implementation steps.
 3.  Developer MUST NOT mark unit complete while required checks are failing.
 4.  Developer status updates are facts-first:
     *   state completed work in past tense before planned next actions,
@@ -260,10 +260,11 @@ make qa-fuzz
 
 1.  Architect validates developer/auditor evidence before commit.
 2.  Maintainer interruption is reserved for `true_blocker_decision` and `commit_message_approval`.
-3.  Before commit, architect MUST ensure fresh full-gate evidence (`make qa-all`) for accepted branch state.
+3.  Before merge to `main`, architect MUST ensure fresh full-gate evidence (`make qa-all`) for accepted branch state (or explicit maintainer waiver).
 4.  If accepted:
     *   commit only code/doc files (no workflow scratch artifacts),
     *   use maintainer-approved commit message describing durable behavior (no task numbering),
+    *   PR title/summary and commit wording must describe concrete behavior/problem and must not rely on volatile tracker IDs alone,
     *   include explicit work-item status text in the same commit (for example `Status: Confirmed.`, `Status: In Progress.`, or `Status: Fixed.`) so no status transition is left ambiguous,
     *   first push: `git push-fast-up`; tracked branch: `git push-fast`.
 5.  If correction is needed for the same logical change set, amend and repush:
@@ -273,7 +274,7 @@ make qa-fuzz
 
 #### 3.1.7 Completion Gate, Merge, and Manual Fallback
 
-1.  When final unit is accepted, require green full project gate (`make qa-all`).
+1.  When preparing merge to `main`, require green full project gate (`make qa-all`).
 2.  Integrate branch to `main` using fast-forward only.
 3.  For any bug or task, mark final status (Fixed/Completed) in the commit that is fast-forwarded to main; before that, status must stay non-final (Confirmed/In Progress).
 4.  Delete temporary feature branch locally and on remote after merge.
@@ -301,8 +302,8 @@ Follow **[../AUDIT.md](../AUDIT.md)** as the canonical process.
 
 Cadence:
 - Treat auditing as a continuous process during implementation, not an end-only step.
-- Run the full audit loop for each feature-sized change or PR.
-- Within a single feature chain, run full `make qa-all` on the initial work-item pass and before architect commit; use failing-check + targeted reruns between those points.
+- Use focused build/test checks during each feature-sized change or PR iteration.
+- Run full `make qa-all` only before merge to `main` or when the maintainer explicitly requests it.
 - Run the merge gate before merging.
 - Do not run the full loop after every single prompt-level edit unless risk justifies it.
 

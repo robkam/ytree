@@ -17,6 +17,7 @@
 - Ensure your PR addresses an existing issue or a well-defined new feature.
 - Keep PRs focused on a single issue or feature.
 - Provide a clear PR description and link any relevant issues.
+- PR title/summary should describe the concrete behavior/problem fixed; do not rely on volatile tracker IDs alone (for example `BUG-14`) as the primary description.
 - Ensure your code passes all quality checks.
 - Include or update tests for your changes. New features require tests; bug fixes should include a regression test when possible.
 - Be responsive to review feedback and follow-up comments.
@@ -207,14 +208,15 @@ For direct `pytest` CLI usage, test naming conventions, infrastructure details, 
 
 Use **[AUDIT.md](AUDIT.md)** as the single source of truth.
 
-- Run the full audit loop on every feature-sized change, major change, and PR.
+- During implementation, run focused checks first (`make` + targeted tests for touched scope).
+- Run the full audit loop before merge to `main` (or earlier only when explicitly requested).
 - Use the canonical tool order from `AUDIT.md`: `clang-tidy`, `cppcheck`, `scan-build`, `valgrind`, then `pytest` for regression verification.
 
 ### Local QA Commands
 
 - Normal development build: `make`
-- Full local QA gate: `make qa-all` (includes `pytest`, unsafe C API guard, module-boundary guard, and fuzz smoke)
-- Full local QA gate with captured log: `make qa-all-log` (writes `qa-all.log` in repo root; override with `QA_LOG=/path/to/file`)
+- Full local QA gate (pre-merge / on explicit request): `make qa-all` (includes `pytest`, unsafe C API guard, module-boundary guard, and fuzz smoke)
+- Full local QA gate with captured log (pre-merge / on explicit request): `make qa-all-log` (writes `qa-all.log` in repo root; override with `QA_LOG=/path/to/file`)
 - Optional strict mode: `make QA_ON_BUILD=1` (runs `qa-all` after build)
 - GitHub baseline CI (`.github/workflows/ci.yml`) runs `make ci-baseline` on PRs to `main` and pushes to `main`.
 - GitHub PR full QA CI (`.github/workflows/full-qa.yml`) runs `make qa-all` on PRs to `main`.

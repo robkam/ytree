@@ -41,5 +41,6 @@ Codex-specific behavior for this repository.
 
 ## Mandatory Audit Cadence
 
-- For every feature-sized change, major change, and PR update, rerun the full audit loop defined in `docs/AUDIT.md` before marking work complete.
-- Treat this as a required gate, not an optional checklist.
+- Use focused build/test checks during normal implementation.
+- Run full `make qa-all` only before merge to `main` or when the maintainer explicitly requests it.
+- Treat this as a required pre-merge gate, not a per-iteration requirement.
