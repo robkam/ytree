@@ -753,8 +753,12 @@ Ordering policy (for all editors, including AI editors):
 
 ### **Task 67: Implement Configurable Keymap**
 *   **Description:** Abstract all hardcoded key commands (e.g., 'm', '^N') into a configurable keymap loaded from a separate keymap profile file. The core application logic will respond to command identifiers (e.g., `CMD_MOVE`), not raw characters. This will allow users to customize their workflow and resolve keybinding conflicts.
+*   **Sequencing dependency:** Implement after Task 35 (Ctrl-held footer signaling + footer wording cleanup). Prefer completing Task 36 parity gate first so keymap work lands on a stable footer/F1 contract.
 *   **Config contract:** Select profile via `ytree.conf` (opt-in), keeping a stable default keymap for existing users.
 *   **Display contract:** Footer/help text must render active key + localized command label together (for example active binding `C` + translated `Copy` -> `(C)opy`) so runtime hints always match active bindings.
+*   **Canonicalization/validation contract:** Normalize terminal byte aliases during keymap load (`^M`=`Enter`/`CR`, `^J`=`LF`/newline enter path, `^I`=`Tab`, `^[`=`Esc`) and reject profiles that map alias-equivalent inputs to different commands. Alias-equivalent inputs mapping to the same command are valid.
+*   **Portability fallback contract:** Require workflow-level fallback for core actions (reachable without fragile terminal-specific modifiers). This is not a per-key duplication mandate; tagged/single-item variants may share menu/mode-driven paths when direct keyspace is exhausted.
+*   **Behavior stability contract:** Default shipping keymap remains portable and stable; custom overrides are opt-in and must pass collision/unbound-action validation before activation.
 *   - [ ] **Status:** Not Started.
 
 ---
