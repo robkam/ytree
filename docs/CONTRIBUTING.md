@@ -17,6 +17,7 @@
 - Ensure your PR addresses an existing issue or a well-defined new feature.
 - Keep PRs focused on a single issue or feature.
 - Provide a clear PR description and link any relevant issues.
+- PR title/summary should describe the concrete behavior/problem fixed; do not rely on volatile tracker IDs alone (for example `BUG-14`) as the primary description.
 - Ensure your code passes all quality checks.
 - Include or update tests for your changes. New features require tests; bug fixes should include a regression test when possible.
 - Be responsive to review feedback and follow-up comments.
@@ -35,7 +36,7 @@ Use **Conventional Commits** so history stays searchable and consistent:
 For the AI-assisted development workflow, script usage, System Persona prompts, and semantic tool integration (**Serena**, **jCodeMunch**), please see **[ai/WORKFLOW.md](ai/WORKFLOW.md)**.
 Persona routing, shorthand persona commands, and persona-skill auto-load controls are documented in that same workflow doc.
 For the continuous audit workflow (during development and PRs) plus final release PASS/FAIL criteria, see **[AUDIT.md](AUDIT.md)**.
-For maintainer copy/paste prompts, see **[ai/PROMPT_TEMPLATE.md](ai/PROMPT_TEMPLATE.md)** (architect-led manual relay for single-unit or split work items).
+For maintainer copy/paste prompts, see **[ai/PROMPT_TEMPLATE.md](ai/PROMPT_TEMPLATE.md)** (architect-led manual workflow for single-unit or split work items).
 For pull-request governance and conflict triage policy, see **[PR_GATE.md](PR_GATE.md)**.
 
 ## Planning and History Docs Policy

@@ -155,14 +155,7 @@ If procedural instructions appear in persona files, move them into skills and le
 
 Use this workflow when a tracked bug or task needs architect-supervised implementation.
 Prompt template:
-- **[PROMPT_TEMPLATE.md](PROMPT_TEMPLATE.md)**: one architect-led entrypoint. The architect decides whether the work is a single developer/auditor unit or must be split into atomic relay units. If the work likely creates a large PR, the architect must explain why it is large, why it should or should not be split, and what could break once before dispatching implementation, repeating only if scope materially changes.
-
-#### 3.1.0 Relay Runtime Prerequisite
-
-Before starting the loop, ensure the auto-relay runtime is configured for every client role (`architect`, `developer`, `code_auditor`) and that systemd worker services are available:
-- Run `scripts/setup_relay_runtime.sh` once per machine/user (or again only after relay config/unit changes).
-- On each new WSL start, run `scripts/relay-workers.sh health`; if unhealthy, run `scripts/relay-workers.sh start`.
-- For single-terminal operations (start + monitor), use **[RELAY_RUNBOOK.md](RELAY_RUNBOOK.md)**.
+- **[PROMPT_TEMPLATE.md](PROMPT_TEMPLATE.md)**: one architect-led entrypoint. The architect decides whether the work is a single developer/auditor unit or must be split into atomic units. If the work likely creates a large PR, the architect must explain why it is large, why it should or should not be split, and what could break once before dispatching implementation, repeating only if scope materially changes.
 
 ##### 3.1.0.1 MCP Config Bootstrap (Recommended)
 
@@ -214,83 +207,6 @@ When you change any of those target modules, update the matching fuzz harness(es
 make qa-fuzz
 ```
 
-##### 3.1.0.3 Auto-Relay Runtime Setup
-
-One-time install (per machine/user):
-
-```bash
-scripts/relay-systemd-install.sh
-```
-
-First start after install (or after unit changes):
-
-```bash
-scripts/relay-workers.sh start
-```
-
-Per WSL start readiness check:
-
-```bash
-systemctl --user is-active \
-  ytree-relay-developer.service \
-  ytree-relay-code-auditor.service \
-  ytree-relay-watchdog.service
-```
-
-Expected output: 3 lines, all active.
-
-If all 3 are active, proceed.
-
-If any line is not active (inactive, failed, etc.):
-
-```bash
-scripts/relay-workers.sh start
-```
-
-Then re-run the is-active check.
-
-Default durable paths (informational defaults, not commands):
-- `~/.local/state/ytree/relay.db`
-- `~/.local/state/ytree/relay-events.jsonl`
-
-These defaults are read from relay env configuration (`RELAY_DB`, `RELAY_EVENT_LOG`) and can be changed in `~/.config/ytree/relay.env`.
-
-##### 3.1.0.4 Run Start Preflight and Live Monitoring (Mandatory)
-
-Before every `start-run`, confirm worker commands are configured in `~/.config/ytree/relay.env` and are not placeholders:
-- `RELAY_DEVELOPER_CMD=...`
-- `RELAY_CODE_AUDITOR_CMD=...`
-
-Preferred operator entrypoints:
-
-```bash
-scripts/relay-run.sh --run-id <run_id> --idempotency-key <idempotency_key> --activity-timeout 900 --retry-limit 2
-scripts/relay-monitor.sh --run <run_id> --view quiet
-```
-
-The run wrapper auto-loads relay env and prints `RUN STARTED: <run_id>` (or `RUN RESUMED: <run_id>`), then reports whether prompt artifacts are ready or pending.
-If pending, stage them with:
-
-```bash
-scripts/relay-prompts.sh stage --run-id <run_id> --auto
-scripts/relay-prompts.sh verify --run-id <run_id>
-```
-
-Manual fallback (direct runtime invocation): load relay env first so runtime preflight reads the configured worker commands:
-
-```bash
-set -a
-source ~/.config/ytree/relay.env
-set +a
-python3 scripts/relay_runtime.py start-run ...
-```
-
-Manual fallback live monitoring:
-
-```bash
-watch -n 5 'python3 scripts/relay_runtime.py dashboard --verbose --limit 20'
-```
-
 #### 3.1.1 Workflow Contract (Mandatory)
 
 1.  This workflow is mandatory for non-trivial missions.
@@ -298,86 +214,63 @@ watch -n 5 'python3 scripts/relay_runtime.py dashboard --verbose --limit 20'
     *   atomic and independently verifiable,
     *   not fragmented into trivial micro-steps,
     *   executed one work item at a time.
-3.  All runtime transitions MUST be recorded in the append-only event log with monotonic sequence.
-4.  Runtime artifacts (prompt/report/status/event artifacts) are workflow artifacts and MUST NOT be committed.
+3.  Prompt/report artifacts used for handoff are workflow artifacts and MUST NOT be committed.
 
 #### 3.1.2 Mission Definition Pass (Stateless Planning)
 
 1.  Run a stateless planning session to define mission scope, constraints, and acceptance criteria.
 2.  Output must include a prompt for a stateless `architect` pass.
 
-#### 3.1.3 Architect Pass (Stateless, Branch Setup, Temporal Run Start)
+#### 3.1.3 Architect Pass (Stateless, Branch Setup)
 
 1.  Start on a dedicated feature branch (local + remote).
-2.  Architect starts exactly one durable run with stable `run_id` + idempotency key.
-3.  Unit lifecycle is fixed and durable: `architect_handoff -> developer_run -> auditor_run -> architect_validation`.
-4.  Architect emits exactly one runnable developer unit at a time (never multiple units in-flight for the same run unless explicitly designed).
-    *   Before dispatching `developer_run`, architect MUST stage and verify relay prompt artifacts for the run id using `scripts/relay-prompts.sh stage --run-id <run_id> --auto` then `scripts/relay-prompts.sh verify --run-id <run_id>`.
-5.  Every unit definition must include:
+2.  Architect emits exactly one runnable developer unit at a time.
+3.  Every unit definition must include:
     *   strict scope lock,
     *   acceptance criteria,
     *   verification commands,
     *   blocker conditions,
-    *   bounded timeout + retry policy.
-6.  Architect status update to maintainer MUST include `run_id`, `unit_id`, and latest event sequence.
+    *   expected completion report path (for example `/tmp/report<id>.txt`).
+4.  Architect status updates to maintainer must be delta-only and include concrete evidence handles.
 
-#### 3.1.4 Developer Pass (systemd Worker, Lease + Heartbeat, Single Unit)
+#### 3.1.4 Developer Pass (Single Unit)
 
-1.  Developer execution is performed by a systemd-supervised worker (`Restart=always`).
-2.  Worker may execute a unit only after successful lease CAS acquisition.
-3.  While running, worker MUST renew heartbeat before lease expiry.
-4.  Verification cadence inside one atomic unit remains mandatory:
+1.  Developer executes one scoped unit and produces a completion report.
+2.  Verification cadence inside one atomic unit remains mandatory:
     *   initial pass: full verification set listed for the unit,
     *   correction/rework pass: rerun failing checks + directly impacted targeted tests,
     *   avoid full `make qa-all` during routine iteration unless maintainer explicitly requests it,
     *   rely on failing-check reruns + directly impacted targeted tests between implementation steps.
-5.  Worker MUST NOT mark unit complete while required checks are failing.
-6.  On success/failure/timeout, worker MUST emit explicit event log entries (no silent loops).
-7.  Developer status line to maintainer must be delta-only: net-new state + next action + changed handles only.
-8.  Developer/architect relay updates are facts-first:
+3.  Developer MUST NOT mark unit complete while required checks are failing.
+4.  Developer status updates are facts-first:
     *   state completed work in past tense before planned next actions,
     *   include concrete evidence handles for each completion event (`report_handle`, event seq, command excerpt),
-    *   heartbeat-only updates are liveness-only and must include elapsed runtime plus current active action.
+    *   keep updates delta-only: net-new state + next action + changed handles.
 
-#### 3.1.5 Auditor Pass (systemd Worker, Lease + Heartbeat, Single Unit)
+#### 3.1.5 Auditor Pass (Single Unit)
 
-1.  Auditor execution is also systemd-supervised with the same lease/heartbeat contract.
-2.  Auditor runs only after `developer_run` is durably marked successful.
-3.  Auditor workflow remains evidence-first:
+1.  Auditor runs only after developer evidence is available.
+2.  Auditor workflow is evidence-first:
     *   validate code diff + verification evidence first,
     *   rerun commands only when evidence is incomplete, contradictory, or risk is high.
-4.  Correction/rework iterations are separate atomic units and must be re-audited.
-5.  Auditor emits explicit pass/fail + risk events; missing heartbeat or timeout is treated as stall, not silent pass.
+3.  Correction/rework iterations are separate atomic units and must be re-audited.
+4.  Auditor output must include explicit pass/fail decision and severity-ranked risks.
 
-#### 3.1.6 Architect Validation, Watchdog Semantics, Commit, and Cleanup
+#### 3.1.6 Architect Validation, Commit, and Cleanup
 
-1.  Architect validates durable run state plus developer/auditor evidence.
-2.  Watchdog continuously enforces liveness:
-    *   expired lease or stale heartbeat -> `stall_detected` event,
-    *   requeue/reassign with bounded retry,
-    *   terminal fail when retry budget is exhausted (no silent stop states),
-    *   if worker creation is policy-blocked, retry once with a reduced subagent-safe prompt profile (minimal technical payload only) and do not pause maintainer for that recoverable path.
-3.  Relay execution remains autonomous end-to-end; maintainer interruption is reserved strictly for `true_blocker_decision` and `commit_message_approval`.
-    *   Workers must not be stopped/paused for routine process gating; stop/cancel is only for explicit maintainer stop requests or terminal failure recovery.
-    *   When maintainer input is required, architect MUST emit exactly one standalone line:
-        `ACTION NEEDED (maintainer): reply "<exact text to send>"`.
-    *   When no maintainer input is required, architect MUST emit:
-        `ACTION NEEDED (maintainer): none`.
-4.  Canonical relay autonomy policy tokens (required in docs + guards):
-    *   `policy_block_retry_once`: policy-blocked worker prompt failure is auto-retried once with reduced prompt profile and no maintainer interruption.
-    *   `watchdog_stall_retry_terminal`: stale heartbeat/timeout must emit `stall_detected`, then bounded retry/reassign, then terminal escalation on retry exhaustion.
-    *   `maintainer_pause_gate=true_blocker_decision|commit_message_approval`: pause gate allows maintainer interruption only for those two reasons.
-    *   Runtime event naming should prefer explicit completion semantics (`worker_command_started`, `worker_command_completed`, `worker_command_failed`, `unit_completed`, `unit_failed`) so maintainers can distinguish done-vs-next without prompt interpretation.
-5.  Before merge to `main`, architect MUST ensure fresh full-gate evidence (`make qa-all`) for accepted branch state.
-6.  If accepted:
-    *   commit only code/doc files (no relay/runtime artifacts),
+1.  Architect validates developer/auditor evidence before commit.
+2.  Maintainer interruption is reserved for `true_blocker_decision` and `commit_message_approval`.
+3.  Before merge to `main`, architect MUST ensure fresh full-gate evidence (`make qa-all`) for accepted branch state (or explicit maintainer waiver).
+4.  If accepted:
+    *   commit only code/doc files (no workflow scratch artifacts),
     *   use maintainer-approved commit message describing durable behavior (no task numbering),
+    *   PR title/summary and commit wording must describe concrete behavior/problem and must not rely on volatile tracker IDs alone,
     *   include explicit work-item status text in the same commit (for example `Status: Confirmed.`, `Status: In Progress.`, or `Status: Fixed.`) so no status transition is left ambiguous,
     *   first push: `git push-fast-up`; tracked branch: `git push-fast`.
-7.  If correction is needed for the same logical change set, amend and repush:
+5.  If correction is needed for the same logical change set, amend and repush:
     *   `git commit --amend --no-edit`
     *   push with the branch rule above.
-8.  Cleanup consumed transient artifacts after usefulness ends (for example `compile_commands.json`, `valgrind.log`, temporary relay scratch files).
+6.  Cleanup consumed transient artifacts after usefulness ends (for example `compile_commands.json`, `valgrind.log`, temporary `/tmp` files).
 
 #### 3.1.7 Completion Gate, Merge, and Manual Fallback
 
@@ -385,11 +278,8 @@ watch -n 5 'python3 scripts/relay_runtime.py dashboard --verbose --limit 20'
 2.  Integrate branch to `main` using fast-forward only.
 3.  For any bug or task, mark final status (Fixed/Completed) in the commit that is fast-forwarded to main; before that, status must stay non-final (Confirmed/In Progress).
 4.  Delete temporary feature branch locally and on remote after merge.
-5.  Verify runtime artifacts are not committed and event logs remain append-only.
-6.  Manual fallback mode is allowed only when runtime infrastructure is unavailable:
-    *   operator records explicit fallback event,
-    *   performs one-unit-at-a-time handoff manually,
-    *   resumes durable runtime as soon as available.
+5.  Verify workflow artifacts are not committed.
+6.  Manual mode is default: one-unit-at-a-time architect -> developer -> auditor handoff.
 
 ## 4. Debugging Procedures
 
