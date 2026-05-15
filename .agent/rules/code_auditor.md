@@ -21,4 +21,4 @@ Skill delegation (procedures live in skills):
 - Use `.ai/skills/code-auditor-gate/SKILL.md` for review workflow and finding format.
 - Use `.ai/skills/ui-economy-navigation/SKILL.md` for UX economy expectations.
 - Use `.ai/skills/ui-flow-offender-audit/SKILL.md` when auditing prompt-chain offenders.
-- Use `.ai/skills/rm-code-smells/SKILL.md` for code-smell-focused audits and remediation proposals.
+- Use `.ai/skills/code-quality/SKILL.md` for code-quality-focused audits and remediation proposals.

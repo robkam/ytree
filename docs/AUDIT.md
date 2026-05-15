@@ -16,7 +16,7 @@ The project uses six QA layers with increasing depth and cost:
 
 | Layer | Command | What it checks | When to run |
 |---|---|---|---|
-| CI Gate | `git push` (automatic) | Draft-PR baseline confidence checks (`qa-unsafe-apis` + `qa-fileops-integrity`, coverage pytest gate, fuzz gate) | Every push to `main` and every PR update targeting `main` (automatic) |
+| CI Gate | `git push` (automatic) | Draft-PR baseline confidence checks (`qa-code-quality` + `qa-fileops-integrity`, coverage pytest gate, fuzz gate) | Every push to `main` and every PR update targeting `main` (automatic) |
 | Local QA | `make qa-all` | clang-tidy, cppcheck, scan-build, Valgrind smoke (`--version`), full `pytest`, unsafe API guard, gitleaks, module-boundary guard, ai-config guard, fuzz guard | Before every PR or feature merge |
 | Fileops Integrity Gate | `make qa-fileops-integrity` | Deterministic file/archive mutation integrity + security regression checks (copy/move/delete/rename/archive rewrite, cancel/failure safeguards, shell/tempfile hardening contracts) | Before merge and when touching file/archive mutation flows |
 | Sanitizer QA | `make qa-sanitize` | Main ytree build + `pytest` under AddressSanitizer/UndefinedBehaviorSanitizer | Before release, after memory/UB-sensitive changes, or when triaging suspicious crashes |
@@ -62,7 +62,7 @@ Scope is strict: QA/check/test organization and efficiency only. Non-QA workflow
 | Tier | Owner | Trigger | Required checks | Non-overlap default intent |
 |---|---|---|---|---|
 | Tier A (local fast iteration) | Developer | During implementation before first push and between risky edits | `make`; targeted pytest for touched scope; targeted guards (`qa-unsafe-apis`, `qa-fileops-integrity`) when relevant | Keep iteration fast; avoid full-suite duplication unless local risk demands it |
-| Tier B (draft PR baseline CI) | CI + PR author | Every push while PR is draft | `ci-baseline` (`qa-unsafe-apis` + `qa-fileops-integrity` + `qa-pytest-coverage` + `qa-fuzz`) | Provide baseline branch-protection signal (includes coverage by design); do not duplicate Tier C full local gate content |
+| Tier B (draft PR baseline CI) | CI + PR author | Every push while PR is draft | `ci-baseline` (`qa-code-quality` + `qa-fileops-integrity` + `qa-pytest-coverage` + `qa-fuzz`) | Provide baseline branch-protection signal (includes coverage by design); do not duplicate Tier C full local gate content |
 | Tier C (pre-merge full gate) | PR author | Before merge to `main` (or earlier only when explicitly requested) | `make qa-all-log` evidence (`qa-clang`, `qa-cppcheck`, `qa-scan`, `qa-valgrind`, `qa-pytest`, `qa-unsafe-apis`, `qa-gitleaks`, `qa-module-boundaries`, `qa-ai-config`, `qa-fuzz`) plus explicit `qa-fileops-integrity` evidence when mutation workflows changed | Consolidate full local quality signal at merge boundary; avoid repeating full gates during routine iteration |
 | Tier D (merge/release gate) | Maintainer + reviewer | Before merge and before release/tag cut | Branch-protection checks green; reviewer signoff; `qa-sanitize`; `qa-valgrind-full` for release-risk changes; `qa-valgrind-interactive` after major feature flows | Reserve deepest runtime checks for merge/release assurance to avoid slowing every draft iteration |
 
@@ -182,6 +182,7 @@ Local shortcut targets are available in the `Makefile`:
 - `make qa-gitleaks`
 - `make qa-module-boundaries`
 - `make qa-ai-config`
+- `make qa-code-quality` (runs `qa-unsafe-apis`, `qa-module-boundaries`, `qa-ai-config`)
 - `make qa-fuzz`
 - `make qa-all` (runs `qa-clang`, `qa-cppcheck`, `qa-scan`, `qa-valgrind`, `qa-pytest`, `qa-unsafe-apis`, `qa-gitleaks`, `qa-module-boundaries`, `qa-ai-config`, `qa-fuzz` in order; run `qa-fileops-integrity` separately when touching mutation flows)
 - `make qa-all-log` (same as `qa-all`, with full output captured to `qa-all.log` in repo root; override with `QA_LOG=/path/to/file`)

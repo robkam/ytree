@@ -260,6 +260,17 @@ Ordering policy (for all editors, including AI editors):
 *   Add focused regression coverage for progress-state selection (indeterminate vs measurable) and completion/error transitions.
 *   - [ ] **Status:** Not Started.
 
+### **Task 75: Unify Stats + Main-Pane Frame Redraw Contract**
+*   **Goal:** Eliminate intermittent split-brain rendering where stats and main panes update on different redraw lifecycles.
+*   **Rationale:** UI trust depends on one coherent frame; partial redraw divergence creates stale/corrupted mixed states.
+*   **Scope Lock:** Rendering/invalidation pipeline and regression coverage only; no command/keybinding semantics changes.
+*   **Acceptance Criteria:**
+*   Stats, path, dir, and file surfaces are drawn from one frame/layout snapshot and flushed in one update cycle.
+*   Resize, mode-switch, and recoverable-error paths trigger deterministic full-surface invalidation and redraw.
+*   No persistent mixed state where stats is fresh while main panes are stale (or vice versa) after redraw-triggering actions.
+*   Add focused regression coverage for redraw coherence across resize/mode toggles and representative recovery paths.
+*   - [ ] **Status:** Not Started.
+
 ### **Task 15: Clarify Internal `^V` Navigation for File vs Hit Traversal**
 *   **Goal:** Make internal `View Tagged` (`^V`) navigation unambiguous by separating file-to-file movement from hit-to-hit movement.
 *   **Rationale:** Current flow is easy to misinterpret (`Space` paging, `S` sort, and `^S` tagged search/filter context), which increases user friction during review workflows.

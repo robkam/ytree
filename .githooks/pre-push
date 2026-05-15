@@ -22,10 +22,10 @@ is_codebase_path() {
 while read -r local_ref local_sha remote_ref remote_sha; do
   if [[ "$local_sha" != "$ZERO_SHA" && "$local_ref" != "(delete)" ]]; then
     delete_only=0
-  fi
-  if [[ "$remote_ref" == "refs/heads/main" && "$local_sha" != "$ZERO_SHA" &&
-        "$local_ref" != "(delete)" ]]; then
-    updates_main=1
+    if [[ "$remote_ref" == "refs/heads/main" ]]; then
+      updates_main=1
+    fi
+
     if [[ "${YTREE_PRE_PUSH_FORCE:-0}" == "1" ]]; then
       codebase_changed=1
       continue
@@ -54,24 +54,18 @@ if [[ "$delete_only" == "1" ]]; then
   exit 0
 fi
 
-if [[ "$updates_main" != "1" ]]; then
-  echo "[pre-push] Push does not update main: skipping CI gate."
-  exit 0
-fi
-
 if [[ "$codebase_changed" != "1" ]]; then
-  echo "[pre-push] Updating main without codebase changes: skipping CI gate."
-  echo "[pre-push] Set YTREE_PRE_PUSH_FORCE=1 to force make ci-baseline."
+  echo "[pre-push] Push without codebase changes: skipping local quality gate."
+  echo "[pre-push] Set YTREE_PRE_PUSH_FORCE=1 to force make qa-code-quality."
   exit 0
 fi
 
-echo "[pre-push] Updating main: running baseline CI gate: make ci-baseline"
+echo "[pre-push] Running local code-quality gate: make qa-code-quality"
+make qa-code-quality
 
-CURRENT_BRANCH="$(git rev-parse --abbrev-ref HEAD)"
-if [[ "${YTREE_PRE_PUSH_FAST:-0}" == "1" && "$CURRENT_BRANCH" != "main" ]]; then
-  echo "[pre-push] Fast mode ignored: push updates main."
+if [[ "$updates_main" == "1" ]]; then
+  echo "[pre-push] Push updates main: running baseline gate: make ci-baseline"
+  make ci-baseline
 fi
-
-make ci-baseline
 
 echo "[pre-push] Checks passed. Proceeding with push."

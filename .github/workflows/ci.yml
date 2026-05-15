@@ -119,10 +119,9 @@ jobs:
         ccache --set-config=sloppiness=time_macros
         ccache --zero-stats
 
-    - name: Run unsafe API, relay policy config, and file mutation gate
+    - name: Run code-quality and file mutation gates
       run: |
-        make qa-unsafe-apis
-        make qa-ai-config
+        make qa-code-quality
         make qa-fileops-integrity
 
     - name: Report ccache stats

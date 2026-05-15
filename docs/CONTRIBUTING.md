@@ -103,10 +103,10 @@ make hooks-install
 ```
 
 This installs a tracked pre-push gate:
-- Pushes that do not update `main`: skip local pre-push CI gate.
-- Pushes that update `main` with codebase changes (`src/`, `include/`, `tests/`, `scripts/`, `.githooks/`, `Makefile`): run `make ci-baseline` (unsafe C API guard + pytest coverage via gcov/lcov).
-- Pushes that update `main` without codebase changes (for example docs-only updates): skip the local pre-push CI gate.
-- Set `YTREE_PRE_PUSH_FORCE=1` to force the baseline gate on any `main` update.
+- Pushes with codebase changes (`src/`, `include/`, `tests/`, `scripts/`, `.githooks/`, `Makefile`): run `make qa-code-quality`.
+- Pushes that also update `main` run `make ci-baseline` after `qa-code-quality`.
+- Pushes without codebase changes (for example docs-only updates): skip the local pre-push quality gate.
+- Set `YTREE_PRE_PUSH_FORCE=1` to force `make qa-code-quality`.
 
 `make hooks-install` also installs repo-local git aliases so fast push is available as native git subcommands in this clone:
 - `git push-fast-up` -> fast push with `-u origin <current-branch>` for first push of a new branch.
@@ -220,6 +220,7 @@ Use **[AUDIT.md](AUDIT.md)** as the single source of truth.
 - Optional strict mode: `make QA_ON_BUILD=1` (runs `qa-all` after build)
 - GitHub baseline CI (`.github/workflows/ci.yml`) runs `make ci-baseline` on PRs to `main` and pushes to `main`.
 - GitHub PR full QA CI (`.github/workflows/full-qa.yml`) runs `make qa-all` on PRs to `main`.
+- GitHub PR sanitizer gate in `.github/workflows/full-qa.yml` runs only on manual dispatch or when PR label `qa-sanitize` is present.
 - GitHub nightly deep Valgrind CI (`.github/workflows/nightly-deep-valgrind.yml`) runs `make qa-valgrind-full` on schedule (and manual dispatch).
 
 Individual gates:
@@ -235,6 +236,7 @@ Individual gates:
 - `make qa-unsafe-apis`
 - `make qa-module-boundaries`
 - `make qa-ai-config`
+- `make qa-code-quality` (runs `qa-unsafe-apis`, `qa-module-boundaries`, `qa-ai-config`)
 - `make qa-fuzz` (builds and runs all fuzz smoke targets)
 - `make fuzz` (builds all fuzz binaries under `build/fuzz/`)
 - `make fuzz-smoke` (runs bounded libFuzzer smoke passes for all harnesses)

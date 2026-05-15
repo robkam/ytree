@@ -1,15 +1,15 @@
 ---
-name: rm-code-smells
-description: Identify and remove high-impact code smells with principle-driven, risk-ranked recommendations and optional implementation.
+name: code-quality
+description: Prevent and remove high-impact code-quality issues with principle-driven, risk-ranked recommendations and optional implementation.
 ---
 
-# RM Code Smells
+# Code Quality
 
-Use this skill when the request is about code smells, "deslop"-style quality review, or cleanup/refactor recommendations.
+Use this skill when the request is about code quality, clean-code enforcement, deslop-style review, or cleanup/refactor recommendations.
 
 ## Objective
 
-- Detect concrete code smells in the requested scope.
+- Detect concrete code-quality issues in the requested scope.
 - Prioritize fixes by impact, risk, and effort.
 - Offer implementation only after presenting findings and obtaining user approval.
 

@@ -6,7 +6,7 @@ Use `code_auditor` when the goal is to hunt for serious defects, fragility, slop
 
 ```text
 :at code_auditor
-use skill rm-code-smells
+use skill code-quality
 
 Audit ytree as if you were actively trying to prove it is unsafe, fragile, or sloppily engineered.
 
