@@ -329,8 +329,8 @@ watch -n 5 'python3 scripts/relay_runtime.py dashboard --verbose --limit 20'
 4.  Verification cadence inside one atomic unit remains mandatory:
     *   initial pass: full verification set listed for the unit,
     *   correction/rework pass: rerun failing checks + directly impacted targeted tests,
-    *   avoid full `make qa-all` reruns unless risk materially changed or architect requests it,
-    *   run `make qa-all` at most once for a given accepted code state and rerun only after subsequent code changes.
+    *   avoid full `make qa-all` during routine iteration unless maintainer explicitly requests it,
+    *   rely on failing-check reruns + directly impacted targeted tests between implementation steps.
 5.  Worker MUST NOT mark unit complete while required checks are failing.
 6.  On success/failure/timeout, worker MUST emit explicit event log entries (no silent loops).
 7.  Developer status line to maintainer must be delta-only: net-new state + next action + changed handles only.
@@ -368,7 +368,7 @@ watch -n 5 'python3 scripts/relay_runtime.py dashboard --verbose --limit 20'
     *   `watchdog_stall_retry_terminal`: stale heartbeat/timeout must emit `stall_detected`, then bounded retry/reassign, then terminal escalation on retry exhaustion.
     *   `maintainer_pause_gate=true_blocker_decision|commit_message_approval`: pause gate allows maintainer interruption only for those two reasons.
     *   Runtime event naming should prefer explicit completion semantics (`worker_command_started`, `worker_command_completed`, `worker_command_failed`, `unit_completed`, `unit_failed`) so maintainers can distinguish done-vs-next without prompt interpretation.
-5.  Before commit, architect MUST ensure fresh full-gate evidence (`make qa-all`) for accepted branch state.
+5.  Before merge to `main`, architect MUST ensure fresh full-gate evidence (`make qa-all`) for accepted branch state.
 6.  If accepted:
     *   commit only code/doc files (no relay/runtime artifacts),
     *   use maintainer-approved commit message describing durable behavior (no task numbering),
@@ -381,7 +381,7 @@ watch -n 5 'python3 scripts/relay_runtime.py dashboard --verbose --limit 20'
 
 #### 3.1.7 Completion Gate, Merge, and Manual Fallback
 
-1.  When final unit is accepted, require green full project gate (`make qa-all`).
+1.  When preparing merge to `main`, require green full project gate (`make qa-all`).
 2.  Integrate branch to `main` using fast-forward only.
 3.  For any bug or task, mark final status (Fixed/Completed) in the commit that is fast-forwarded to main; before that, status must stay non-final (Confirmed/In Progress).
 4.  Delete temporary feature branch locally and on remote after merge.
@@ -412,8 +412,8 @@ Follow **[../AUDIT.md](../AUDIT.md)** as the canonical process.
 
 Cadence:
 - Treat auditing as a continuous process during implementation, not an end-only step.
-- Run the full audit loop for each feature-sized change or PR.
-- Within a single feature relay chain, run full `make qa-all` on the initial work-item pass and before architect commit; use failing-check + targeted reruns between those points.
+- Use focused build/test checks during each feature-sized change or PR iteration.
+- Run full `make qa-all` only before merge to `main` or when the maintainer explicitly requests it.
 - Run the merge gate before merging.
 - Do not run the full loop after every single prompt-level edit unless risk justifies it.
 

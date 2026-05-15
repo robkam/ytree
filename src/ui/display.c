@@ -64,7 +64,7 @@ static char *dir_help[MAX_MODES][2] = {
     {/* ARCHIVE_MODE */
      "ARCHIVE   (B)rief (C)opy (D)elete (F)ilter (^F) dirmode (G)lobal "
      "(J) compare (L)og (M)akedir ",
-     "COMMANDS  (R)ename (S)howall (T)ag (U)ntag mo(V)edir (Q)uit"},
+     "COMMANDS  (P)ipe (R)ename (S)howall (T)ag (U)ntag mo(V)edir (Q)uit"},
     {                      /* USER_MODE */
      dir_help_disk_mode_0, /* Default unless changed by user prefs */
      dir_help_disk_mode_1}};

@@ -166,6 +166,27 @@ static int ClosePipeWriter(FILE *pipe_fp, pid_t child_pid) {
   return 0;
 }
 
+static void RestorePipeCommandUi(ViewContext *ctx, DirEntry *dir_entry) {
+  if (!ctx) {
+    return;
+  }
+
+  if (ctx->hook_init_clock) {
+    ctx->hook_init_clock(ctx);
+  }
+  touchwin(stdscr);
+  wnoutrefresh(stdscr);
+
+  if (dir_entry && ctx->active && ctx->active->vol) {
+    RefreshView(ctx, dir_entry);
+    return;
+  }
+
+  if (ctx->hook_refresh_ui) {
+    ctx->hook_refresh_ui();
+  }
+}
+
 int Pipe(ViewContext *ctx, DirEntry *dir_entry, FileEntry *file_entry,
          char *pipe_command) {
   char file_name_path[PATH_LENGTH + 1];
@@ -222,13 +243,7 @@ int Pipe(ViewContext *ctx, DirEntry *dir_entry, FileEntry *file_entry,
     ctx->hook_suspend_clock(ctx);
 
   if (OpenPipeWriter(pipe_command, &pipe_fp, &child_pid) != 0) {
-    /* Restore curses mode */
-    if (ctx->hook_init_clock)
-      ctx->hook_init_clock(ctx);
-    touchwin(stdscr);
-    wnoutrefresh(stdscr);
-    if (ctx->hook_refresh_ui)
-      ctx->hook_refresh_ui();
+    RestorePipeCommandUi(ctx, dir_entry);
 
     /* Restore CWD before returning */
     if (fchdir(start_dir_fd) == -1) {
@@ -263,13 +278,7 @@ int Pipe(ViewContext *ctx, DirEntry *dir_entry, FileEntry *file_entry,
       ctx->hook_hit_return_to_continue();
   }
 
-  /* Restore curses mode */
-  if (ctx->hook_init_clock)
-    ctx->hook_init_clock(ctx);
-  touchwin(stdscr);
-  wnoutrefresh(stdscr);
-  if (ctx->hook_refresh_ui)
-    ctx->hook_refresh_ui();
+  RestorePipeCommandUi(ctx, dir_entry);
 
   if (fchdir(start_dir_fd) == -1) {
   }
@@ -307,13 +316,7 @@ int PipeDirectory(ViewContext *ctx, DirEntry *dir_entry, char *pipe_command) {
     ctx->hook_suspend_clock(ctx);
 
   if (OpenPipeWriter(pipe_command, &pipe_fp, &child_pid) != 0) {
-    /* Restore curses mode */
-    if (ctx->hook_init_clock)
-      ctx->hook_init_clock(ctx);
-    touchwin(stdscr);
-    wnoutrefresh(stdscr);
-    if (ctx->hook_refresh_ui)
-      ctx->hook_refresh_ui();
+    RestorePipeCommandUi(ctx, dir_entry);
 
     /* Restore CWD */
     if (fchdir(start_dir_fd) == -1) {
@@ -340,13 +343,7 @@ int PipeDirectory(ViewContext *ctx, DirEntry *dir_entry, char *pipe_command) {
 
   result = 0;
 
-  /* Restore curses mode */
-  if (ctx->hook_init_clock)
-    ctx->hook_init_clock(ctx);
-  touchwin(stdscr);
-  wnoutrefresh(stdscr);
-  if (ctx->hook_refresh_ui)
-    ctx->hook_refresh_ui();
+  RestorePipeCommandUi(ctx, dir_entry);
 
   /* Restore CWD */
   if (fchdir(start_dir_fd) == -1) {
@@ -356,13 +353,7 @@ int PipeDirectory(ViewContext *ctx, DirEntry *dir_entry, char *pipe_command) {
   return (result);
 
 PIPE_CLOSE_FAILURE:
-  /* Restore curses mode */
-  if (ctx->hook_init_clock)
-    ctx->hook_init_clock(ctx);
-  touchwin(stdscr);
-  wnoutrefresh(stdscr);
-  if (ctx->hook_refresh_ui)
-    ctx->hook_refresh_ui();
+  RestorePipeCommandUi(ctx, dir_entry);
 
   /* Restore CWD */
   if (fchdir(start_dir_fd) == -1) {

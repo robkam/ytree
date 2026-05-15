@@ -105,7 +105,7 @@ These instructions apply to all AI agents used in this repository.
 9. You MUST amend (`git commit --amend --no-edit`) for all follow-up corrections to the same task. You MUST NOT create trivial sequential bugfix commits. Use a new commit only when the correction is materially distinct.
 10. Treat user instructions as authoritative on goals, not automatically on exact wording, labels, keybindings, menu structure, or UX details. If a requested detail does not follow convention, established Ytree patterns, or best practices, say so explicitly and recommend the better option before implementing it.
 11. For every bug fix, follow strict red-green: write/adjust a regression test first and demonstrate it fails on current code before changing implementation; then implement the architectural fix and re-run to green. A test added only after the fix is not sufficient evidence.
-12. Audit cadence is mandatory: rerun the full audit loop for every feature-sized change, every major change, and every PR update; do not treat auditing as optional or release-only.
+12. Focused-first audit cadence is mandatory: use targeted build/test checks during implementation; reserve full-project `make qa-all` for pre-merge into `main` or explicit maintainer request.
 13. UX economy gate is mandatory for interactive flows: common path MUST be `key -> Enter -> result` with at most one submenu. Any flow requiring more than one submenu must include explicit justification and an equivalent fast path.
 14. QA remediation gate is mandatory: fix root causes, do not patch around failing checks. Do not change tests solely to force a pass unless the test is demonstrably wrong against spec. Do not add local suppressions/skips/xfails as a shortcut; if a temporary suppression is the only safe short-term option, discuss with the user first and get explicit approval.
 15. Documentation signal-to-noise is mandatory: add or update guidance only in the most relevant canonical location for that audience; avoid duplicating AI/process notes across unrelated docs or sections unless uniquely necessary in that local context.
@@ -119,7 +119,7 @@ These instructions apply to all AI agents used in this repository.
     - Before first push, run a quick local gate (build plus targeted smoke/tests).
     - Open a draft PR early; red is allowed while iterating.
     - While PR is red, prefix draft title with `WIP:` and do not request reviewers.
-    - Before marking ready for review, require full local audit gates (`make qa-all` and required audit loop).
+    - Before merge to `main`, require full local audit gates (`make qa-all` and required audit loop) unless the maintainer explicitly waives.
     - Convert draft PR to ready only after posting full QA evidence in a PR comment.
     - Before merge, require green PR checks and reviewer signoff.
 
@@ -134,9 +134,9 @@ These instructions apply to all AI agents used in this repository.
 
 - Build with `make clean && make` after meaningful code changes.
 - Always activate the venv before pytest: `source .venv/bin/activate`.
-- Run audit targets (`make qa-all`, `make qa-*`) with host permissions from the start; do not do sandbox-first retries for QA gates.
+- Run audit targets (`make qa-all`, `make qa-*`) with host permissions from the start when those targets are explicitly requested.
 - Run relevant tests with `pytest ...`.
-- For feature-sized/major/PR work, run the full audit loop from `docs/AUDIT.md` (clang-tidy, cppcheck, scan-build, valgrind, pytest) before claiming completion.
+- For feature-sized/major/PR work, run focused checks during development; run the full audit loop from `docs/AUDIT.md` before merge to `main` or when explicitly requested by the maintainer.
 - Do not claim completion without terminal verification.
 
 ## Primary References

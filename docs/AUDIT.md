@@ -4,7 +4,8 @@
 This document defines the mandatory quality process for the Ytree modernization project. Auditing is an ongoing process that starts during implementation and continues through merge and release. The release gate is the final checkpoint.
 
 ## 1.1 Cadence
-- Run the full audit loop for each feature-sized change or PR.
+- Use focused checks during feature-sized change or PR iteration.
+- Run the full audit loop before merge to `main` (or when explicitly requested by the maintainer).
 - For feature-sized changes, include explicit `make qa-module-boundaries` evidence (controller allowlists + growth budgets) in the verification notes.
 - Always run the merge/release gate before merge/release.
 - Do not run the full gate after every prompt-level micro-edit unless risk justifies it.
@@ -23,7 +24,7 @@ The project uses six QA layers with increasing depth and cost:
 | Manual Feature Audit | `make qa-valgrind-interactive` | You manually drive ytree under Valgrind to exercise new feature code paths | After adding a major new feature |
 
 - **CI Gate** runs automatically on push via GitHub Actions. No developer action needed.
-- **Local QA** (`make qa-all`) is the standard pre-merge gate. Run it for every non-trivial change.
+- **Local QA** (`make qa-all`) is the standard pre-merge gate. Avoid running it on every iteration unless explicitly requested.
 - **Fileops Integrity Gate** (`make qa-fileops-integrity`) is the dedicated regression wall for mutation integrity/security contracts; run it before merge and whenever file/archive mutation code or prompts change.
 - **Deep Audit** (`make qa-valgrind-full`) is on-demand. It drives a scripted interactive ytree session under Valgrind and takes ~2-3 minutes. Run it:
   - Before tagging a release
@@ -53,7 +54,7 @@ Scope is strict: QA/check/test organization and efficiency only. Non-QA workflow
 - Before first push, run a quick local gate (`make`, plus targeted smoke/tests for touched scope).
 - Open a draft PR early; draft PR checks may be red while iterating.
 - Do not request review while draft checks are red.
-- Before marking **Ready for review**, run full local audit gates (`make qa-all` + required loop evidence from this document).
+- Before merge to `main`, run full local audit gates (`make qa-all` + required loop evidence from this document), unless the maintainer explicitly waives.
 - Before merge, require green PR checks and reviewer signoff.
 
 ### Required Gate Tiers
@@ -62,13 +63,13 @@ Scope is strict: QA/check/test organization and efficiency only. Non-QA workflow
 |---|---|---|---|---|
 | Tier A (local fast iteration) | Developer | During implementation before first push and between risky edits | `make`; targeted pytest for touched scope; targeted guards (`qa-unsafe-apis`, `qa-fileops-integrity`) when relevant | Keep iteration fast; avoid full-suite duplication unless local risk demands it |
 | Tier B (draft PR baseline CI) | CI + PR author | Every push while PR is draft | `ci-baseline` (`qa-unsafe-apis` + `qa-fileops-integrity` + `qa-pytest-coverage` + `qa-fuzz`) | Provide baseline branch-protection signal (includes coverage by design); do not duplicate Tier C full local gate content |
-| Tier C (Ready for review gate) | PR author | Immediately before changing PR state to **Ready for review** | `make qa-all-log` evidence (`qa-clang`, `qa-cppcheck`, `qa-scan`, `qa-valgrind`, `qa-pytest`, `qa-unsafe-apis`, `qa-gitleaks`, `qa-module-boundaries`, `qa-ai-config`, `qa-fuzz`) plus explicit `qa-fileops-integrity` evidence when mutation workflows changed | Consolidate full local quality signal once per review cycle; avoid repeating Tier B-only quick gates locally |
+| Tier C (pre-merge full gate) | PR author | Before merge to `main` (or earlier only when explicitly requested) | `make qa-all-log` evidence (`qa-clang`, `qa-cppcheck`, `qa-scan`, `qa-valgrind`, `qa-pytest`, `qa-unsafe-apis`, `qa-gitleaks`, `qa-module-boundaries`, `qa-ai-config`, `qa-fuzz`) plus explicit `qa-fileops-integrity` evidence when mutation workflows changed | Consolidate full local quality signal at merge boundary; avoid repeating full gates during routine iteration |
 | Tier D (merge/release gate) | Maintainer + reviewer | Before merge and before release/tag cut | Branch-protection checks green; reviewer signoff; `qa-sanitize`; `qa-valgrind-full` for release-risk changes; `qa-valgrind-interactive` after major feature flows | Reserve deepest runtime checks for merge/release assurance to avoid slowing every draft iteration |
 
 ### branch-protection and PR State Criteria (Mandatory)
 
 - **Draft PR:** Branch exists and PR stays draft. Red checks are acceptable while iterating. No review requests.
-- **Ready for review:** Tier C evidence is posted, Tier B branch-protection checks are green, and no unresolved blocker findings remain.
+- **Ready for review:** Tier B branch-protection checks are green and no unresolved blocker findings remain. Tier C may be deferred to pre-merge unless explicitly requested earlier.
 - **Merge:** All required branch-protection checks are green, reviewer signoff is present, and Tier D evidence is attached for the current diff/risk.
 - Required branch-protection checks (sync with current workflows):
   - `.github/workflows/ci.yml`: `Guard fuzz harness sync`

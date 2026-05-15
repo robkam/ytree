@@ -2,6 +2,7 @@ import io
 import tarfile
 import zipfile
 
+from helpers_ui import footer_lines as _footer_lines
 from tui_harness import YtreeTUI
 from ytree_keys import Keys
 
@@ -42,6 +43,87 @@ def _enter_archive_from_selected_file(tui):
             tui.send_keystroke(Keys.ENTER, wait=0.3)
         else:
             break
+
+
+def test_archive_dir_footer_pipe_action_visible(ytree_binary, tmp_path):
+    root = tmp_path / "archive_dir_footer_pipe"
+    root.mkdir()
+    archive_path = root / "footer_pipe.tar"
+    _create_tar(archive_path, {"inside_dir/inside.txt": "inside payload"})
+
+    tui = YtreeTUI(executable=ytree_binary, cwd=str(root))
+    try:
+        _enter_archive_from_selected_file(tui)
+        assert tui.wait_for_content("ARCHIVE", timeout=2.0)
+
+        footer_lines = [line.lower() for line in _footer_lines(tui)]
+        assert "archive" in footer_lines[0], (
+            "Precondition failed: expected archive directory footer context.\n"
+            f"{footer_lines[0]}"
+        )
+        assert "pipe" in footer_lines[1], (
+            "Archive directory footer should advertise Pipe.\n"
+            f"{footer_lines[1]}"
+        )
+    finally:
+        tui.quit()
+
+
+def test_archive_pipe_return_restores_ui_surfaces(ytree_binary, tmp_path):
+    root = tmp_path / "archive_pipe_return"
+    root.mkdir()
+    archive_path = root / "pipe_return.tar"
+    _create_tar(archive_path, {"inside_dir/inside.txt": "inside payload"})
+
+    tui = YtreeTUI(executable=ytree_binary, cwd=str(root))
+    try:
+        _enter_archive_from_selected_file(tui)
+        assert tui.wait_for_content("ARCHIVE", timeout=2.0)
+
+        pre_footer_lines = [line.lower() for line in _footer_lines(tui)]
+        assert "archive" in pre_footer_lines[0], (
+            "Precondition failed: expected archive directory footer context.\n"
+            f"{pre_footer_lines[0]}"
+        )
+        assert "pipe" in pre_footer_lines[1], (
+            "Precondition failed: expected Pipe action in archive footer.\n"
+            f"{pre_footer_lines[1]}"
+        )
+
+        pipe_output = root / "pipe_return.txt"
+        tui.send_keystroke("p", wait=0.2)
+        assert tui.wait_for_content("Pipe-Command:", timeout=2.0)
+        tui.send_keystroke(f"cat > {pipe_output}\r", wait=0.8)
+        assert tui.wait_for_content("return to continue", timeout=3.0)
+        tui.send_keystroke(Keys.ENTER, wait=0.8)
+
+        assert pipe_output.exists(), "Pipe command did not run."
+
+        screen = tui.get_screen_dump()
+        assert screen[0].startswith("Path: "), (
+            "Path surface was not restored after pipe return.\n"
+            f"{screen[0]!r}"
+        )
+        assert screen[1].startswith("l"), (
+            "Top border surface was not restored after pipe return.\n"
+            f"{screen[1]!r}"
+        )
+
+        post_footer_lines = [line.lower() for line in _footer_lines(tui)]
+        assert post_footer_lines[0].strip(), (
+            "Status/footer surface is blank after pipe return.\n"
+            f"{post_footer_lines[0]!r}"
+        )
+        assert "archive" in post_footer_lines[0], (
+            "Archive footer context was not restored after pipe return.\n"
+            f"{post_footer_lines[0]}"
+        )
+        assert "pipe" in post_footer_lines[1], (
+            "Archive directory footer lost Pipe action after pipe return.\n"
+            f"{post_footer_lines[1]}"
+        )
+    finally:
+        tui.quit()
 
 
 def test_archive_internal_path_trust_rejects_unsafe_members(
