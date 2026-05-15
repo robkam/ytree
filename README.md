@@ -121,9 +121,8 @@ ytree/
 ├── src/                 C source files
 ├── include/             C headers
 ├── tests/               pytest/pexpect test suite
-├── scripts/             helper scripts (build, relay, tooling)
+├── scripts/             helper scripts (build and tooling)
 ├── docs/                user, developer, and process documentation
-├── infra/               service and infrastructure templates
 ├── etc/                 manpage source and related assets
 ├── build/               build artifacts
 ├── obj/                 object files

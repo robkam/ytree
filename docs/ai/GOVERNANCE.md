@@ -49,8 +49,7 @@ For common governance edits, use these canonical targets:
 ## Prompt Template Map
 
 Prompt templates live in `docs/ai/` and are maintained as copy/paste entrypoints:
-- `PROMPT_TEMPLATE.md`: architect-supervised manual relay workflow for one tracked work item; the architect decides whether the item is a single unit or must be split into atomic developer/auditor rounds.
-- `RELAY_RUNBOOK.md`: compatibility runbook for the older durable relay helper scripts while the Python-first relay is being built.
+- `PROMPT_TEMPLATE.md`: architect-supervised manual workflow for one tracked work item; the architect decides whether the item is a single unit or must be split into atomic developer/auditor rounds.
 - The prompt template enforces facts-first visibility updates (completed evidence before planned next action).
 
 When template behavior or routing rules change, update both the template file and `docs/ai/WORKFLOW.md`.

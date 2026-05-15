@@ -8,19 +8,7 @@ These instructions apply to all AI agents used in this repository.
 - Domain: terminal file manager for UNIX-like systems
 - Codebase language: C (C89/C99, POSIX.1-2008)
 - Testing: Python `pytest` and `pexpect` from the local `.venv`
-- For non-trivial missions, follow the stateless relay workflow in `docs/ai/WORKFLOW.md` ("Stateless Multi-AI Delivery Workflow"): architect plans one task at a time, developer executes one task at a time, with maintainer-approved per-task commits and QA-gated merge/cleanup.
-
-## Relay Autonomy Hard Requirement
-
-- Relay execution must be autonomous after kickoff: no maintainer prodding for recoverable failures.
-- Policy-blocked worker prompt failures must auto-retry once with a reduced prompt profile.
-- Watchdog behavior is mandatory and explicit: stale heartbeat/timeout -> `stall_detected` -> bounded retry/reassign -> terminal escalation when retries are exhausted.
-- Maintainer pause gate is strict: relay may pause only for `true_blocker_decision` or `commit_message_approval`.
-- Recoverable failures must not trigger maintainer pause/prompt gates.
-- Canonical relay autonomy policy tokens (required):
-  - `policy_block_retry_once`
-  - `watchdog_stall_retry_terminal`
-  - `maintainer_pause_gate=true_blocker_decision|commit_message_approval`
+- For non-trivial missions, follow the stateless multi-AI workflow in `docs/ai/WORKFLOW.md`: architect plans one task at a time, developer executes one task at a time, with maintainer-approved per-task commits and QA-gated merge/cleanup.
 
 ## Persona Routing
 
