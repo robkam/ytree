@@ -3,6 +3,7 @@ name: C/C++ Full QA
 on:
   pull_request:
     branches: [ "main" ]
+    types: [opened, synchronize, reopened, ready_for_review, labeled, unlabeled]
   workflow_dispatch:
 
 permissions:
@@ -129,10 +130,16 @@ jobs:
       run: ccache --show-stats
 
   qa-sanitize:
-    name: Sanitizer gate (qa-sanitize)
+    name: Sanitizer gate (qa-sanitize, labeled/manual)
     runs-on: ubuntu-latest
     needs: changes
-    if: github.event_name == 'workflow_dispatch' || needs.changes.outputs.qa_relevant == 'true'
+    if: |
+      github.event_name == 'workflow_dispatch' ||
+      (
+        github.event_name == 'pull_request' &&
+        needs.changes.outputs.qa_relevant == 'true' &&
+        contains(github.event.pull_request.labels.*.name, 'qa-sanitize')
+      )
     timeout-minutes: 120
     env:
       CC: ccache cc

@@ -50,7 +50,7 @@ Persona skill auto-load:
   - manpage/usage doc sync tasks -> `manpage-sync`
   - UI workflow/menu-depth/interaction-economy design -> `ui-economy-navigation`
   - UI prompt-chain offender detection/audit -> `ui-flow-offender-audit`
-  - code-smell audit/remediation (deslop-style) -> `rm-code-smells`
+  - code-quality audit/remediation (clean-code/deslop-style) -> `code-quality`
   - AI-writing-tell/prose de-slop tasks -> `ai-writing-tells`
 
 UX economy gate:

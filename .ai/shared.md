@@ -77,7 +77,7 @@ These instructions apply to all AI agents used in this repository.
   - Manpage/usage documentation sync tasks: also load `manpage-sync`.
   - UI workflow/menu-depth/interaction-economy design tasks: also load `ui-economy-navigation`.
   - UI prompt-chain auditing/offender-detection tasks: also load `ui-flow-offender-audit`.
-  - Code-smell audit/remediation tasks (including deslop-style requests): also load `rm-code-smells`.
+  - Code-quality audit/remediation tasks (including clean-code and deslop-style requests): also load `code-quality`.
   - AI-writing-tell and prose de-slop tasks: also load `ai-writing-tells`.
 
 ## Core Engineering Rules

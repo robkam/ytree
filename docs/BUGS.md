@@ -85,14 +85,6 @@ Ordering policy (for all editors, including AI editors):
 *   **Remediation**: Ensure unavailable-action messaging reports the actual attempted action/shortcut in archive context.
 *   **Status**: Confirmed.
 
-### **BUG-14: Archive Footer Omits Available `Pipe` Action**
-*   **Description**: In archive directory context, `Pipe` works but is not shown in footer/help, while users rely on footer discoverability to know what is available.
-*   **Findings**:
-    *   `Pipe` is available but omitted from archive footer/help lines.
-*   **Impact**: Violates "No Hidden Features" discoverability and makes archive workflows look more limited than they are.
-*   **Remediation**: Ensure archive footer/help reflects all currently available actions (including `Pipe`) and keeps unavailable actions hidden.
-*   **Status**: Confirmed.
-
 ### **BUG-15: Single-Empty-Directory Archive Can Collapse Tree Rendering**
 *   **Description**: In archive mode, when the archive contains only one empty directory, ytree can skip normal tree-node rendering and show that directory identity as appended archive-name/path text instead.
 *   **Impact**: Obscures archive structure and creates high-friction navigation confusion in a common edge case.
@@ -214,3 +206,10 @@ Ordering policy (for all editors, including AI editors):
     *   Rename `ACTION_TREE_EXPAND_ALL` -> `ACTION_TREE_EXPAND` (or `ACTION_TREE_EXPAND_LEVEL`).
     *   Rename `ACTION_ASTERISK` -> `ACTION_TREE_EXPAND_RECURSIVE`.
 *   **Status**: Confirmed.
+
+### **BUG-31: Intermittent Split-Brain Redraw Between Stats Box and Main Panes**
+*   **Description**: Intermittently, the stats box redraw state can diverge from the main UI surfaces (`path`, `dir`, and `file` windows), leaving one surface fresh while the other appears stale/corrupted.
+*   **Impact**: Creates a visibly broken UI state and undermines trust in navigation context during active workflows.
+*   **Remediation**: Unify frame redraw ownership so stats and main panes are rendered from one layout snapshot in one update cycle, and force full-surface invalidation/redraw on resize/recovery/error paths.
+*   **Related**: `ROADMAP` Task 75 (unified frame redraw contract).
+*   **Status**: Confirmed (intermittent; no deterministic repro sequence yet).
