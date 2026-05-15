@@ -241,8 +241,10 @@ make qa-fuzz
     *   correction/rework pass: rerun failing checks + directly impacted targeted tests,
     *   avoid full `make qa-all` during routine iteration unless maintainer explicitly requests it,
     *   rely on failing-check reruns + directly impacted targeted tests between implementation steps.
-3.  Developer MUST NOT mark unit complete while required checks are failing.
-4.  Developer status updates are facts-first:
+5.  Worker MUST NOT mark unit complete while required checks are failing.
+6.  On success/failure/timeout, worker MUST emit explicit event log entries (no silent loops).
+7.  Developer status line to maintainer must be delta-only: net-new state + next action + changed handles only.
+8.  Developer/architect relay updates are facts-first:
     *   state completed work in past tense before planned next actions,
     *   include concrete evidence handles for each completion event (`report_handle`, event seq, command excerpt),
     *   keep updates delta-only: net-new state + next action + changed handles.
@@ -258,11 +260,26 @@ make qa-fuzz
 
 #### 3.1.6 Architect Validation, Commit, and Cleanup
 
-1.  Architect validates developer/auditor evidence before commit.
-2.  Maintainer interruption is reserved for `true_blocker_decision` and `commit_message_approval`.
-3.  Before merge to `main`, architect MUST ensure fresh full-gate evidence (`make qa-all`) for accepted branch state (or explicit maintainer waiver).
-4.  If accepted:
-    *   commit only code/doc files (no workflow scratch artifacts),
+1.  Architect validates durable run state plus developer/auditor evidence.
+2.  Watchdog continuously enforces liveness:
+    *   expired lease or stale heartbeat -> `stall_detected` event,
+    *   requeue/reassign with bounded retry,
+    *   terminal fail when retry budget is exhausted (no silent stop states),
+    *   if worker creation is policy-blocked, retry once with a reduced subagent-safe prompt profile (minimal technical payload only) and do not pause maintainer for that recoverable path.
+3.  Relay execution remains autonomous end-to-end; maintainer interruption is reserved strictly for `true_blocker_decision` and `commit_message_approval`.
+    *   Workers must not be stopped/paused for routine process gating; stop/cancel is only for explicit maintainer stop requests or terminal failure recovery.
+    *   When maintainer input is required, architect MUST emit exactly one standalone line:
+        `ACTION NEEDED (maintainer): reply "<exact text to send>"`.
+    *   When no maintainer input is required, architect MUST emit:
+        `ACTION NEEDED (maintainer): none`.
+4.  Canonical relay autonomy policy tokens (required in docs + guards):
+    *   `policy_block_retry_once`: policy-blocked worker prompt failure is auto-retried once with reduced prompt profile and no maintainer interruption.
+    *   `watchdog_stall_retry_terminal`: stale heartbeat/timeout must emit `stall_detected`, then bounded retry/reassign, then terminal escalation on retry exhaustion.
+    *   `maintainer_pause_gate=true_blocker_decision|commit_message_approval`: pause gate allows maintainer interruption only for those two reasons.
+    *   Runtime event naming should prefer explicit completion semantics (`worker_command_started`, `worker_command_completed`, `worker_command_failed`, `unit_completed`, `unit_failed`) so maintainers can distinguish done-vs-next without prompt interpretation.
+5.  Before merge to `main`, architect MUST ensure fresh full-gate evidence (`make qa-all`) for accepted branch state.
+6.  If accepted:
+    *   commit only code/doc files (no relay/runtime artifacts),
     *   use maintainer-approved commit message describing durable behavior (no task numbering),
     *   PR title/summary and commit wording must describe concrete behavior/problem and must not rely on volatile tracker IDs alone,
     *   include explicit work-item status text in the same commit (for example `Status: Confirmed.`, `Status: In Progress.`, or `Status: Fixed.`) so no status transition is left ambiguous,
