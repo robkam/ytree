@@ -9,8 +9,15 @@
 
 #include <stdarg.h>
 
-static void MapErrorWindow(ViewContext *ctx, char *header);
-static void MapNoticeWindow(ViewContext *ctx, char *header);
+typedef enum ModalSeverity {
+  MODAL_SEVERITY_INFO = 0,
+  MODAL_SEVERITY_WARNING,
+  MODAL_SEVERITY_ERROR
+} ModalSeverity;
+
+static short ModalSeverityColorPair(ModalSeverity severity);
+static void MapModalWindow(ViewContext *ctx, char *header, char *prompt,
+                           ModalSeverity severity);
 static void UnmapErrorWindow(ViewContext *ctx);
 static void PrintErrorLine(ViewContext *ctx, int y, char *str);
 static void DisplayMessage(ViewContext *ctx, char *msg);
@@ -87,7 +94,8 @@ int UI_Message(ViewContext *ctx, const char *fmt, ...) {
     return 0;
   }
 
-  MapErrorWindow(ctx, "E R R O R");
+  MapModalWindow(ctx, "I N F O", "             PRESS ENTER              ",
+                 MODAL_SEVERITY_INFO);
   return PrintMessage(ctx, buffer);
 }
 
@@ -104,7 +112,8 @@ int UI_Notice(ViewContext *ctx, const char *fmt, ...) {
     return 0;
   }
 
-  MapNoticeWindow(ctx, "N O T I C E");
+  MapModalWindow(ctx, "N O T I C E", "             PLEASE WAIT              ",
+                 MODAL_SEVERITY_INFO);
   DisplayMessage(ctx, buffer);
   RefreshWindow(ctx->ctx_error_window);
   doupdate();
@@ -124,7 +133,8 @@ int UI_Warning(ViewContext *ctx, const char *fmt, ...) {
     return 0;
   }
 
-  MapErrorWindow(ctx, "W A R N I N G");
+  MapModalWindow(ctx, "W A R N I N G", "             PRESS ENTER              ",
+                 MODAL_SEVERITY_WARNING);
   return PrintMessage(ctx, buffer);
 }
 
@@ -139,7 +149,8 @@ void AboutBox(ViewContext *ctx) {
 #endif
                  VERSION, VERSIONDATE);
 
-  MapErrorWindow(ctx, "ABOUT");
+  MapModalWindow(ctx, "ABOUT", "             PRESS ENTER              ",
+                 MODAL_SEVERITY_INFO);
   (void)PrintMessage(ctx, version);
 }
 
@@ -158,37 +169,32 @@ int UI_Error(ViewContext *ctx, const char *module, int line, const char *fmt,
     return -1;
   }
 
-  MapErrorWindow(ctx, "INTERNAL ERROR");
+  MapModalWindow(ctx, "INTERNAL ERROR", "             PRESS ENTER              ",
+                 MODAL_SEVERITY_ERROR);
   (void)snprintf(final_buffer, sizeof(final_buffer),
                  "%s*In Module \"%s\"*Line %d", msg_buffer, module, line);
   return PrintMessage(ctx, final_buffer);
 }
 
-static void MapErrorWindow(ViewContext *ctx, char *header) {
-  werase(ctx->ctx_error_window);
-  wattron(ctx->ctx_error_window, COLOR_PAIR(CPAIR_WINERR) | A_ALTCHARSET);
-
-  /* Box frame with ACS */
-  wborder(ctx->ctx_error_window, 0, 0, 0, 0, 0, 0, 0, 0);
-
-  mvwhline(ctx->ctx_error_window, ERROR_WINDOW_HEIGHT - 3, 1, ACS_HLINE,
-           ERROR_WINDOW_WIDTH - 2);
-  mvwaddch(ctx->ctx_error_window, ERROR_WINDOW_HEIGHT - 3, 0, ACS_LTEE);
-  mvwaddch(ctx->ctx_error_window, ERROR_WINDOW_HEIGHT - 3,
-           ERROR_WINDOW_WIDTH - 1, ACS_RTEE);
-  wattroff(ctx->ctx_error_window, A_ALTCHARSET);
-  wattrset(ctx->ctx_error_window, A_NORMAL);
-
-  wattrset(ctx->ctx_error_window, A_REVERSE | A_BLINK);
-  MvWAddStr(ctx->ctx_error_window, ERROR_WINDOW_HEIGHT - 2, 1,
-            "             PRESS ENTER              ");
-  wattrset(ctx->ctx_error_window, A_NORMAL);
-  PrintErrorLine(ctx, 1, header);
+static short ModalSeverityColorPair(ModalSeverity severity) {
+  switch (severity) {
+    case MODAL_SEVERITY_INFO:
+      return CPAIR_INFO;
+    case MODAL_SEVERITY_WARNING:
+      return CPAIR_WARN;
+    case MODAL_SEVERITY_ERROR:
+    default:
+      return CPAIR_ERR;
+  }
 }
 
-static void MapNoticeWindow(ViewContext *ctx, char *header) {
+static void MapModalWindow(ViewContext *ctx, char *header, char *prompt,
+                           ModalSeverity severity) {
+  short color_pair = ModalSeverityColorPair(severity);
+
+  WbkgdSet(ctx, ctx->ctx_error_window, COLOR_PAIR(color_pair));
   werase(ctx->ctx_error_window);
-  wattron(ctx->ctx_error_window, COLOR_PAIR(CPAIR_WINERR) | A_ALTCHARSET);
+  wattron(ctx->ctx_error_window, COLOR_PAIR(color_pair) | A_ALTCHARSET);
 
   /* Box frame with ACS */
   wborder(ctx->ctx_error_window, 0, 0, 0, 0, 0, 0, 0, 0);
@@ -202,8 +208,7 @@ static void MapNoticeWindow(ViewContext *ctx, char *header) {
   wattrset(ctx->ctx_error_window, A_NORMAL);
 
   wattrset(ctx->ctx_error_window, A_REVERSE | A_BLINK);
-  MvWAddStr(ctx->ctx_error_window, ERROR_WINDOW_HEIGHT - 2, 1,
-            "             PLEASE WAIT              ");
+  MvWAddStr(ctx->ctx_error_window, ERROR_WINDOW_HEIGHT - 2, 1, prompt);
   wattrset(ctx->ctx_error_window, A_NORMAL);
   PrintErrorLine(ctx, 1, header);
 }

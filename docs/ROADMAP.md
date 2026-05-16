@@ -154,6 +154,19 @@ Ordering policy (for all editors, including AI editors):
 *   A focused regression test (or existing footer/help test extension) verifies archive footer/action parity.
 *   - [ ] **Status:** Not Started.
 
+### **Task 76: Modal Dialog Severity Taxonomy + Full Existing-Modal Color Audit**
+*   **Goal:** Classify every existing modal/dialog surface as `severity` (`info`/`warn`/`error`) or `neutral interaction`, then enforce color routing contracts for each class.
+*   **Rationale:** Current and future modal trust depends on deterministic visual semantics: severity-bearing messages must use severity colors, while interaction dialogs must remain neutral and consistent.
+*   **Scope Lock:** Modal/dialog color taxonomy, routing, and configuration surface only; no keybinding/flow-depth redesign.
+*   **Acceptance Criteria:**
+*   Define and document a modal taxonomy contract in `docs/SPECIFICATION.md` (severity vs neutral interaction classes).
+*   Audit all existing modal/dialog producers and assign each to one class with explicit rationale.
+*   Severity-class modals must route through `INFO_COLOR`, `WARN_COLOR`, or `ERR_COLOR` (via mapped runtime color pairs) with focused regression coverage.
+*   Neutral-class dialogs (for example selection/picker/help/history/volume interaction surfaces) must not use severity colors; they must use dedicated neutral palette keys.
+*   Any neutral dialog surface without a dedicated configurable color key in `ytree.conf` must receive one, with deterministic defaults and synchronized docs/help/manpage text.
+*   Add regression coverage that prevents severity/neutral cross-contamination (severity modal rendered neutral or neutral dialog rendered as warn/error).
+*   - [ ] **Status:** Not Started.
+
 ### **Task 7: Path Message Formatting Audit (`//` Artifact Prevention)**
 *   **Goal:** Audit user-facing message/path rendering and eliminate accidental double-slash artifacts in status/error/footer output.
 *   **Rationale:** Message correctness is a trust surface; inconsistent path rendering invites avoidable bug reports and operator confusion.
