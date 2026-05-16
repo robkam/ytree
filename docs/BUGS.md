@@ -65,11 +65,10 @@ Ordering policy (for all editors, including AI editors):
 
 ### **BUG-11: Modal Severity Messages Render as Error-Red**
 *   **Description**: Centered modal messages can render with error-red styling even when the message severity is informational or warning-level, instead of using severity-specific visual treatment.
-*   **Findings**:
-    *   Directory compare completion summary dialogs (counts + tagged-match summary) can render in error-red despite being non-error informational results.
+*   **Findings**: Mmodal messages can render with error-red styling even when the message severity is informational or warning-level, instead of using severity-specific visual treatment.
 *   **Impact**: Blurs severity intent, increases operator confusion, and conflicts with documented message tiers and configurable color expectations.
 *   **Remediation**: Perform a full user-message surface audit (modal/footer/status paths), identify all message-producing callsites and severity-routing logic, and enforce a single severity-aware rendering contract. Ensure modal severity maps to `INFO_COLOR`, `WARN_COLOR`, and `ERR_COLOR` from `ytree.conf`, then add focused regression tests that prove correct severity-to-color routing (including config-driven overrides and safe defaults).
-*   **Related**: `docs/SPECIFICATION.md` section 6.2 modal severity tiers; `etc/ytree.conf` `[COLORS]` keys `INFO_COLOR`, `WARN_COLOR`, `ERR_COLOR`.
+*   **Related**: `docs/SPECIFICATION.md` section 6.2 modal severity tiers; `ROADMAP` Task 76 (full modal taxonomy/color audit); `etc/ytree.conf` `[COLORS]` keys `INFO_COLOR`, `WARN_COLOR`, `ERR_COLOR`.
 *   **Status**: Confirmed.
 
 ### **BUG-12: Copy/Move/PathCopy Rename Prompt Missing Explicit `AS:` Label**

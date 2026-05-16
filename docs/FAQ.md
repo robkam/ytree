@@ -8,6 +8,8 @@ Ytree performs standard file operations (rename, move, copy, delete) through nor
 
 This is the same trust model you should use for any file manager: do not assume zero risk, verify behavior, keep backups, and, at first, try it out in a non-critical directory.
 
+For detailed safeguards, limits, and verification pointers, see [`TRUST.md`](TRUST.md).
+
 ### How is AI used in this project?
 
 AI is used as an implementation assistant, not as an autonomous authority.
