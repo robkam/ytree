@@ -277,7 +277,7 @@ make qa-fuzz
     *   `watchdog_stall_retry_terminal`: stale heartbeat/timeout must emit `stall_detected`, then bounded retry/reassign, then terminal escalation on retry exhaustion.
     *   `maintainer_pause_gate=true_blocker_decision|commit_message_approval`: pause gate allows maintainer interruption only for those two reasons.
     *   Runtime event naming should prefer explicit completion semantics (`worker_command_started`, `worker_command_completed`, `worker_command_failed`, `unit_completed`, `unit_failed`) so maintainers can distinguish done-vs-next without prompt interpretation.
-5.  Before merge to `main`, architect MUST ensure fresh full-gate evidence (`make qa-all`) for accepted branch state.
+5.  Before merge to `main`, architect MUST ensure green PR full-QA CI evidence (`make qa-all` equivalent) for accepted branch state.
 6.  If accepted:
     *   commit only code/doc files (no relay/runtime artifacts),
     *   use maintainer-approved commit message describing durable behavior (no task numbering),
@@ -291,12 +291,39 @@ make qa-fuzz
 
 #### 3.1.7 Completion Gate, Merge, and Manual Fallback
 
-1.  When preparing merge to `main`, require green full project gate (`make qa-all`).
+1.  When preparing merge to `main`, require green PR full-QA CI gate (`make qa-all` equivalent).
 2.  Integrate branch to `main` using fast-forward only.
 3.  For any bug or task, mark final status (Fixed/Completed) in the commit that is fast-forwarded to main; before that, status must stay non-final (Confirmed/In Progress).
 4.  Delete temporary feature branch locally and on remote after merge.
 5.  Verify workflow artifacts are not committed.
 6.  Manual mode is default: one-unit-at-a-time architect -> developer -> auditor handoff.
+
+#### 3.1.8 Practical Prompt-Template Finish Flow (Consecutive Role Order)
+
+Use this when wrapping up a PROMPT_TEMPLATE-driven mission and returning the repo to a stable post-merge state.
+
+1.  **Maintainer (local):** Run manual verification of the latest change first. Typical flow:
+    *   `clear; make clean; sudo make uninstall; make; sudo make install`
+    *   `ytree ~`
+    *   Manually exercise the changed behavior.
+2.  **Maintainer -> Architect/AI:** If manual checks find issues, report failures; architect dispatches a new developer/auditor unit and repeats the loop until manual checks are green.
+3.  **Architect/AI:** Clean stale task artifacts from the finished mission (prompt/report/temp workflow files).
+4.  **Architect/AI:** Run quick local checks only (build + targeted smoke/tests for touched scope).
+5.  **Architect/AI:** Stage intended changes only (exclude unrelated local edits and workflow artifacts).
+6.  **Architect/AI:** Suggest a Conventional Commit subject and request maintainer commit-message approval.
+7.  **Architect/AI:** Commit, push branch, and open/update a draft PR.
+8.  **Maintainer (GitHub):** Review draft PR scope and evidence.
+9.  **Maintainer (GitHub):** Wait for PR CI full gate; if any checks are red, report failures to architect/AI.
+10. **Architect/AI:** Fix CI failures root-cause-first, push updates, and repeat until required PR full-QA CI (`make qa-all` equivalent) is green.
+11. **Maintainer (GitHub):** Merge PR to `main` after checks are green and review is satisfied.
+12. **Maintainer (GitHub):** Delete remote branch:
+    *   `git push origin --delete <branch>`
+13. **Maintainer (local):** Sync local `main` to remote:
+    *   `git checkout main`
+    *   `git fetch origin`
+    *   `git pull --ff-only`
+14. **Maintainer (local):** Delete local feature branch:
+    *   `git branch -d <branch>` (use `-D` only when needed)
 
 ## 4. Debugging Procedures
 
@@ -320,7 +347,7 @@ Follow **[../AUDIT.md](../AUDIT.md)** as the canonical process.
 Cadence:
 - Treat auditing as a continuous process during implementation, not an end-only step.
 - Use focused build/test checks during each feature-sized change or PR iteration.
-- Run full `make qa-all` only before merge to `main` or when the maintainer explicitly requests it.
+- Use PR full-QA CI (`make qa-all` equivalent) as the required pre-merge full gate; run local `make qa-all` only when the maintainer explicitly requests it or when extra local confidence is needed.
 - Run the merge gate before merging.
 - Do not run the full loop after every single prompt-level edit unless risk justifies it.
 

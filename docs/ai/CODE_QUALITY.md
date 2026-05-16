@@ -31,7 +31,7 @@ Then report/implement only approved P0-P1 issues.
 Keep these repo guardrails active in every change:
 
 1. Conventional commit-msg hook policy enforcement.
-2. Mandatory focused verification in development; full `make qa-all` at pre-merge gate.
+2. Mandatory focused verification in development; green PR full-QA CI (`make qa-all` equivalent) at pre-merge gate.
 3. QA remediation gate: fix root cause, do not patch around failures.
 4. Module ownership gate: keep business logic out of controllers when separable.
 5. UX economy gate for interactive paths.
