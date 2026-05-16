@@ -209,17 +209,17 @@ For direct `pytest` CLI usage, test naming conventions, infrastructure details, 
 Use **[AUDIT.md](AUDIT.md)** as the single source of truth.
 
 - During implementation, run focused checks first (`make` + targeted tests for touched scope).
-- Run the full audit loop before merge to `main` (or earlier only when explicitly requested).
+- Before merge to `main`, require green PR full-QA CI (`.github/workflows/full-qa.yml`, `make qa-all` equivalent). Local full audit loop is optional unless explicitly requested.
 - Use the canonical tool order from `AUDIT.md`: `clang-tidy`, `cppcheck`, `scan-build`, `valgrind`, then `pytest` for regression verification.
 
 ### Local QA Commands
 
 - Normal development build: `make`
-- Full local QA gate (pre-merge / on explicit request): `make qa-all` (includes `pytest`, unsafe C API guard, module-boundary guard, and fuzz smoke)
-- Full local QA gate with captured log (pre-merge / on explicit request): `make qa-all-log` (writes `qa-all.log` in repo root; override with `QA_LOG=/path/to/file`)
+- Full local QA gate (optional unless maintainer-requested): `make qa-all` (includes `pytest`, unsafe C API guard, module-boundary guard, and fuzz smoke)
+- Full local QA gate with captured log (optional unless maintainer-requested): `make qa-all-log` (writes `qa-all.log` in repo root; override with `QA_LOG=/path/to/file`)
 - Optional strict mode: `make QA_ON_BUILD=1` (runs `qa-all` after build)
 - GitHub baseline CI (`.github/workflows/ci.yml`) runs `make ci-baseline` on PRs to `main` and pushes to `main`.
-- GitHub PR full QA CI (`.github/workflows/full-qa.yml`) runs `make qa-all` on PRs to `main`.
+- GitHub PR full QA CI (`.github/workflows/full-qa.yml`) runs `make qa-all` on PRs to `main` and is the required full pre-merge gate.
 - GitHub PR sanitizer gate in `.github/workflows/full-qa.yml` runs only on manual dispatch or when PR label `qa-sanitize` is present.
 - GitHub nightly deep Valgrind CI (`.github/workflows/nightly-deep-valgrind.yml`) runs `make qa-valgrind-full` on schedule (and manual dispatch).
 

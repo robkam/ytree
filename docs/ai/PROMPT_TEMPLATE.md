@@ -101,11 +101,11 @@ Validation:
 - Before first push, run a quick local gate (build plus targeted smoke/tests).
 - Run targeted tests as needed.
 - Do not run `make qa-all` during routine iteration unless explicitly requested.
-- Before merge to `main`, or when maintainer explicitly requests it, run:
-  - `source .venv/bin/activate`
-  - `make qa-all`
+- Before merge to `main`, require green PR full-QA CI (`.github/workflows/full-qa.yml`, `make qa-all` equivalent).
+- Run local `make qa-all` only when maintainer explicitly requests it or when extra local confidence is needed.
 
 Commit and PR flow:
+- See `docs/ai/WORKFLOW.md` section **3.1.8** for the practical finish flow (AI instructions + maintainer GitHub/local steps).
 - Use Conventional Commits.
 - Commit subject and PR title/summary must describe the concrete behavior/problem; do not rely on volatile tracker IDs alone.
 - For follow-up corrections to the same intent, prefer:

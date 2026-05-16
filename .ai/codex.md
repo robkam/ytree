@@ -42,5 +42,5 @@ Codex-specific behavior for this repository.
 ## Mandatory Audit Cadence
 
 - Use focused build/test checks during normal implementation.
-- Run full `make qa-all` only before merge to `main` or when the maintainer explicitly requests it.
-- Treat this as a required pre-merge gate, not a per-iteration requirement.
+- Use PR full-QA CI (`make qa-all` equivalent) as the required pre-merge gate before merging to `main`.
+- Run local full `make qa-all` only when the maintainer explicitly requests it or when extra local confidence is needed.

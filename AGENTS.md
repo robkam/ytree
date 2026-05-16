@@ -19,6 +19,7 @@ Testing quick reference (Codex):
 - Full suite command: `pytest`
 - Always run pytest with host permissions from the start (no sandbox-first run), because PTY-based tests require unrestricted PTY allocation.
 - Run audit targets (`make qa-all`, `make qa-*`) with host permissions from the start (no sandbox-first run), because toolchain steps can require unrestricted environment access.
+- Pre-merge quality gate is PR full-QA CI (`make qa-all` equivalent). Local `make qa-all` is optional unless maintainer-requested.
 
 MCP health check (Codex):
 - Diagnose MCP startup/config drift: `make mcp-doctor`

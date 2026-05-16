@@ -5,7 +5,7 @@ This document defines the mandatory quality process for the Ytree modernization 
 
 ## 1.1 Cadence
 - Use focused checks during feature-sized change or PR iteration.
-- Run the full audit loop before merge to `main` (or when explicitly requested by the maintainer).
+- Before merge to `main`, require green PR full-QA CI (`make qa-all` equivalent). Local full audit loop is optional unless explicitly requested by the maintainer.
 - For feature-sized changes, include explicit `make qa-module-boundaries` evidence (controller allowlists + growth budgets) in the verification notes.
 - Always run the merge/release gate before merge/release.
 - Do not run the full gate after every prompt-level micro-edit unless risk justifies it.
@@ -17,14 +17,15 @@ The project uses six QA layers with increasing depth and cost:
 | Layer | Command | What it checks | When to run |
 |---|---|---|---|
 | CI Gate | `git push` (automatic) | Draft-PR baseline confidence checks (`qa-code-quality` + `qa-fileops-integrity`, coverage pytest gate, fuzz gate) | Every push to `main` and every PR update targeting `main` (automatic) |
-| Local QA | `make qa-all` | clang-tidy, cppcheck, scan-build, Valgrind smoke (`--version`), full `pytest`, unsafe API guard, gitleaks, module-boundary guard, ai-config guard, fuzz guard | Before every PR or feature merge |
+| PR Full QA CI (required) | `.github/workflows/full-qa.yml` (`make qa-all`) | clang-tidy, cppcheck, scan-build, Valgrind smoke (`--version`), full `pytest`, unsafe API guard, gitleaks, module-boundary guard, ai-config guard, fuzz guard | Must be green before merge to `main` |
 | Fileops Integrity Gate | `make qa-fileops-integrity` | Deterministic file/archive mutation integrity + security regression checks (copy/move/delete/rename/archive rewrite, cancel/failure safeguards, shell/tempfile hardening contracts) | Before merge and when touching file/archive mutation flows |
 | Sanitizer QA | `make qa-sanitize` | Main ytree build + `pytest` under AddressSanitizer/UndefinedBehaviorSanitizer | Before release, after memory/UB-sensitive changes, or when triaging suspicious crashes |
 | Deep Audit | `make qa-valgrind-full` | Automated interactive Valgrind Memcheck session (leak, uninit, FD, use-after-free checks) | Before release, after major refactoring, or periodically |
 | Manual Feature Audit | `make qa-valgrind-interactive` | You manually drive ytree under Valgrind to exercise new feature code paths | After adding a major new feature |
 
 - **CI Gate** runs automatically on push via GitHub Actions. No developer action needed.
-- **Local QA** (`make qa-all`) is the standard pre-merge gate. Avoid running it on every iteration unless explicitly requested.
+- **PR Full QA CI** (`.github/workflows/full-qa.yml`, `make qa-all` equivalent) is the standard pre-merge gate.
+- **Local QA** (`make qa-all`) is optional for faster local confidence and maintainer-requested deep preflight; avoid running it on every iteration by default.
 - **Fileops Integrity Gate** (`make qa-fileops-integrity`) is the dedicated regression wall for mutation integrity/security contracts; run it before merge and whenever file/archive mutation code or prompts change.
 - **Deep Audit** (`make qa-valgrind-full`) is on-demand. It drives a scripted interactive ytree session under Valgrind and takes ~2-3 minutes. Run it:
   - Before tagging a release
@@ -54,7 +55,7 @@ Scope is strict: QA/check/test organization and efficiency only. Non-QA workflow
 - Before first push, run a quick local gate (`make`, plus targeted smoke/tests for touched scope).
 - Open a draft PR early; draft PR checks may be red while iterating.
 - Do not request review while draft checks are red.
-- Before merge to `main`, run full local audit gates (`make qa-all` + required loop evidence from this document), unless the maintainer explicitly waives.
+- Before merge to `main`, require green PR full-QA CI (`make qa-all` equivalent) plus required loop evidence from this document; local full audit reruns are optional unless the maintainer explicitly requests them.
 - Before merge, require green PR checks and reviewer signoff.
 
 ### Required Gate Tiers
@@ -63,7 +64,7 @@ Scope is strict: QA/check/test organization and efficiency only. Non-QA workflow
 |---|---|---|---|---|
 | Tier A (local fast iteration) | Developer | During implementation before first push and between risky edits | `make`; targeted pytest for touched scope; targeted guards (`qa-unsafe-apis`, `qa-fileops-integrity`) when relevant | Keep iteration fast; avoid full-suite duplication unless local risk demands it |
 | Tier B (draft PR baseline CI) | CI + PR author | Every push while PR is draft | `ci-baseline` (`qa-code-quality` + `qa-fileops-integrity` + `qa-pytest-coverage` + `qa-fuzz`) | Provide baseline branch-protection signal (includes coverage by design); do not duplicate Tier C full local gate content |
-| Tier C (pre-merge full gate) | PR author | Before merge to `main` (or earlier only when explicitly requested) | `make qa-all-log` evidence (`qa-clang`, `qa-cppcheck`, `qa-scan`, `qa-valgrind`, `qa-pytest`, `qa-unsafe-apis`, `qa-gitleaks`, `qa-module-boundaries`, `qa-ai-config`, `qa-fuzz`) plus explicit `qa-fileops-integrity` evidence when mutation workflows changed | Consolidate full local quality signal at merge boundary; avoid repeating full gates during routine iteration |
+| Tier C (pre-merge full gate) | CI + PR author | Before merge to `main` (or earlier only when explicitly requested) | Green PR full-QA CI (`.github/workflows/full-qa.yml`, `make qa-all` equivalent); optional local `make qa-all-log` evidence when maintainer-requested; plus explicit `qa-fileops-integrity` evidence when mutation workflows changed | Use CI as canonical full-gate signal; avoid duplicate local full-gate reruns during routine iteration |
 | Tier D (merge/release gate) | Maintainer + reviewer | Before merge and before release/tag cut | Branch-protection checks green; reviewer signoff; `qa-sanitize`; `qa-valgrind-full` for release-risk changes; `qa-valgrind-interactive` after major feature flows | Reserve deepest runtime checks for merge/release assurance to avoid slowing every draft iteration |
 
 ### branch-protection and PR State Criteria (Mandatory)
