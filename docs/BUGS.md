@@ -44,6 +44,9 @@ Ordering policy (for all editors, including AI editors):
 
 ### **BUG-8: Copy/Move Cancel (`Esc`) Can Leave Footer Blank**
 *   **Description**: In `Copy`/`Move` flows, canceling with `Esc` can leave footer/help lines blank instead of restoring the normal context footer.
+*   **Findings**:
+    *   Deterministic repro under sanitizer gate (`make qa-sanitize`) on 2026-05-16: `tests/test_display_layout.py::test_dir_copy_to_missing_destination_prompts_create_and_no_restores_footer` fails with `AssertionError: Header/path row disappeared after canceling create prompt`.
+    *   The failing path is directory copy to a missing destination where the create-directory prompt is canceled with `No`.
 *   **Impact**: Hides command discoverability immediately after a canceled mutation flow and makes the UI look partially broken.
 *   **Remediation**: On all `Copy`/`Move` cancel/exit paths (`Esc` and equivalent cancel keys), restore footer/help ownership deterministically to the active view context and force a full footer redraw before accepting the next command.
 *   **Related**: `BUG-25` (footer restore consistency during input flows), `ROADMAP` Task 36 (footer/F1 context parity).
@@ -65,7 +68,7 @@ Ordering policy (for all editors, including AI editors):
 
 ### **BUG-11: Modal Severity Messages Render as Error-Red**
 *   **Description**: Centered modal messages can render with error-red styling even when the message severity is informational or warning-level, instead of using severity-specific visual treatment.
-*   **Findings**: Mmodal messages can render with error-red styling even when the message severity is informational or warning-level, instead of using severity-specific visual treatment.
+*   **Findings**: Modal messages can render with error-red styling even when the message severity is informational or warning-level, instead of using severity-specific visual treatment.
 *   **Impact**: Blurs severity intent, increases operator confusion, and conflicts with documented message tiers and configurable color expectations.
 *   **Remediation**: Perform a full user-message surface audit (modal/footer/status paths), identify all message-producing callsites and severity-routing logic, and enforce a single severity-aware rendering contract. Ensure modal severity maps to `INFO_COLOR`, `WARN_COLOR`, and `ERR_COLOR` from `ytree.conf`, then add focused regression tests that prove correct severity-to-color routing (including config-driven overrides and safe defaults).
 *   **Related**: `docs/SPECIFICATION.md` section 6.2 modal severity tiers; `ROADMAP` Task 76 (full modal taxonomy/color audit); `etc/ytree.conf` `[COLORS]` keys `INFO_COLOR`, `WARN_COLOR`, `ERR_COLOR`.
