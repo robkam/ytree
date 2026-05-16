@@ -224,7 +224,7 @@ static int UI_ReadStringInternal(ViewContext *ctx, YtreePanel *panel,
   UI_Dialog_Push(win, UI_TIER_FOOTER);
 
   keypad(win, TRUE);
-  WbkgdSet(ctx, win, COLOR_PAIR(CPAIR_MENU));
+  WbkgdSet(ctx, win, COLOR_PAIR(CPAIR_DIALOG));
   curs_set(1); /* Show cursor */
 
   while (1) {
@@ -237,7 +237,7 @@ static int UI_ReadStringInternal(ViewContext *ctx, YtreePanel *panel,
       field_width = COLS - prompt_len - 1;
 
       /* Hints */
-      PrintMenuOptions(win, hints_row, 1, (char *)hints, CPAIR_MENU,
+      PrintMenuOptions(win, hints_row, 1, (char *)hints, CPAIR_DIALOG,
                        CPAIR_HIMENUS);
 
       /* Handle Scrolling */

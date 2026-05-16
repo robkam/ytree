@@ -205,7 +205,7 @@ int SelectLoadedVolume(ViewContext *ctx, int *return_key) {
     UI_Dialog_Push(win, UI_TIER_MODAL);
 
     keypad(win, TRUE);
-    WbkgdSet(ctx, win, COLOR_PAIR(CPAIR_MENU));
+    WbkgdSet(ctx, win, COLOR_PAIR(CPAIR_DIALOG));
     curs_set(0); /* Hide cursor */
 
     /* 3. Input Loop */

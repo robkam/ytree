@@ -28,7 +28,7 @@ Ordering policy (for all editors, including AI editors):
 *   No controller file exceeds approved line budget.
 *   `make qa-module-boundaries` and `make qa-all` pass.
 *   Split/extracted code preserves existing behavior (no UX/command semantic drift).
-*   - [ ] **Status:** Not Started.
+*   - [x] **Status:** Completed
 
 ### **Task 73: Remove Dead-History Comments + Add Anti-History Comment Gate**
 *   **Goal:** Remove comments that describe removed code/history and prevent their reintroduction.
@@ -165,7 +165,7 @@ Ordering policy (for all editors, including AI editors):
 *   Neutral-class dialogs (for example selection/picker/help/history/volume interaction surfaces) must not use severity colors; they must use dedicated neutral palette keys.
 *   Any neutral dialog surface without a dedicated configurable color key in `ytree.conf` must receive one, with deterministic defaults and synchronized docs/help/manpage text.
 *   Add regression coverage that prevents severity/neutral cross-contamination (severity modal rendered neutral or neutral dialog rendered as warn/error).
-*   - [ ] **Status:** Not Started.
+*   - [x] **Status:** Completed
 
 ### **Task 7: Path Message Formatting Audit (`//` Artifact Prevention)**
 *   **Goal:** Audit user-facing message/path rendering and eliminate accidental double-slash artifacts in status/error/footer output.

@@ -227,6 +227,29 @@ A bordered pop-up box that overlays the center of the screen, used for:
 *   **i18n Readiness Rule:** Footer/F1 text must be structured for gettext extraction and reuse to avoid duplicated, drifting message strings across contexts.
 *   **Progress Coexistence Rule:** Long-operation progress rendering must coexist with footer/prompt/F1 guidance and must not seize ownership of those help surfaces.
 
+### 6.5 Modal/Dialog Color Taxonomy Contract
+`ytree` modal and dialog surfaces are split into two classes:
+*   **Severity class (`info`, `warn`, `error`):** Outcome/diagnostic overlays that communicate informational notices, warnings, or errors and require acknowledgment.
+*   **Neutral interaction class:** Selection/picker/help/history/volume/prompt-like interaction surfaces used to collect or browse input.
+
+Routing contract:
+*   Severity class MUST route through runtime-mapped severity pairs only: `INFO_COLOR` -> `CPAIR_INFO`, `WARN_COLOR` -> `CPAIR_WARN`, `ERR_COLOR` -> `CPAIR_ERR`.
+*   Neutral interaction class MUST NOT use severity pairs. Neutral dialogs/pickers use dedicated neutral palette keys (`DIALOG_COLOR` for generic neutral dialogs/prompts; history surfaces use `WINHST_COLOR`/`HST_COLOR`).
+*   Rationale: severity coloring encodes risk/outcome state, while neutral interaction coloring preserves low-stress, task-oriented input flow.
+
+Current modal/dialog audit:
+
+| Surface | Class | Routing |
+| :--- | :--- | :--- |
+| `src/ui/error.c` `UI_Message`, `UI_Notice`, `AboutBox` | Severity `info` | `MapModalWindow(... MODAL_SEVERITY_INFO)` -> `INFO_COLOR` |
+| `src/ui/error.c` `UI_Warning` | Severity `warn` | `MapModalWindow(... MODAL_SEVERITY_WARNING)` -> `WARN_COLOR` |
+| `src/ui/error.c` `UI_Error` | Severity `error` | `MapModalWindow(... MODAL_SEVERITY_ERROR)` -> `ERR_COLOR` |
+| `src/ui/compare_request.c` `ShowCompareHelpPopup` | Neutral interaction (help popup) | `DIALOG_COLOR` (`CPAIR_DIALOG`) |
+| `src/ui/volume_menu.c` `SelectLoadedVolume` window | Neutral interaction (volume picker) | `DIALOG_COLOR` (`CPAIR_DIALOG`) |
+| `src/ui/input_line.c` `UI_ReadStringInternal` prompt window | Neutral interaction (prompt/input) | `DIALOG_COLOR` (`CPAIR_DIALOG`) |
+| `src/ui/history_dialog.c` `SelectHistoryEntry` | Neutral interaction (history browser) | `WINHST_COLOR` + `HST_COLOR`/`HIHST_COLOR` |
+| `src/ui/completion_dialog.c` completion list window | Neutral interaction (selection list) | `WINHST_COLOR` + `HST_COLOR`/`HIHST_COLOR` |
+
 ---
 
 ## 7. The Virtual Filesystem (VFS)

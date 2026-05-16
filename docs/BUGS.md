@@ -66,13 +66,12 @@ Ordering policy (for all editors, including AI editors):
 *   **Related**: `ROADMAP` Task 14 (progress indicators), `ROADMAP` Task 36 (footer/F1 parity contract).
 *   **Status**: Confirmed.
 
-### **BUG-11: Modal Severity Messages Render as Error-Red**
-*   **Description**: Centered modal messages can render with error-red styling even when the message severity is informational or warning-level, instead of using severity-specific visual treatment.
-*   **Findings**: Modal messages can render with error-red styling even when the message severity is informational or warning-level, instead of using severity-specific visual treatment.
-*   **Impact**: Blurs severity intent, increases operator confusion, and conflicts with documented message tiers and configurable color expectations.
-*   **Remediation**: Perform a full user-message surface audit (modal/footer/status paths), identify all message-producing callsites and severity-routing logic, and enforce a single severity-aware rendering contract. Ensure modal severity maps to `INFO_COLOR`, `WARN_COLOR`, and `ERR_COLOR` from `ytree.conf`, then add focused regression tests that prove correct severity-to-color routing (including config-driven overrides and safe defaults).
-*   **Related**: `docs/SPECIFICATION.md` section 6.2 modal severity tiers; `ROADMAP` Task 76 (full modal taxonomy/color audit); `etc/ytree.conf` `[COLORS]` keys `INFO_COLOR`, `WARN_COLOR`, `ERR_COLOR`.
-*   **Status**: Confirmed.
+### **BUG-11: Long Modal Body Messages Clip Instead of Wrapping**
+*   **Description**: Centered modal dialogs can clip longer body lines (for example compare-flow info messages), truncating text instead of wrapping it across additional body rows.
+*   **Impact**: Hides critical context in confirmations/errors, lowers trust in modal outcomes, and forces guesswork when message tails are lost.
+*   **Remediation**: Keep the modal box/header/footer centered, but wrap long body text to available modal width. Preserve centered rendering for short single-line body messages, and left-justify wrapped multi-line body blocks for readability.
+*   **Related**: `docs/SPECIFICATION.md` section 6.2 modal messages; `ROADMAP` Task 76 modal taxonomy/color routing.
+*   **Status**: Fixed.
 
 ### **BUG-12: Copy/Move/PathCopy Rename Prompt Missing Explicit `AS:` Label**
 *   **Description**: The first rename-target prompt in `Copy`, `Move`, and `PathCopy` can appear as `COPY: <source> <edited_target>` (and equivalents) without explicit `AS:` labeling, making source vs new-name intent ambiguous.
