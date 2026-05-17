@@ -21,13 +21,13 @@ static void MapModalWindow(ViewContext *ctx, char *header, char *prompt,
                            ModalSeverity severity);
 static void UnmapErrorWindow(ViewContext *ctx);
 static void PrintErrorLine(ViewContext *ctx, int y, char *str);
-static int GetWrappedChunk(char *segment, int segment_len, int line_start,
+static int GetWrappedChunk(const char *segment, int segment_len, int line_start,
                            int body_width, int *chunk_offset, int *chunk_len);
-static int CountWrappedSegmentLines(char *segment, int segment_len,
+static int CountWrappedSegmentLines(const char *segment, int segment_len,
                                     int body_width);
-static int CountWrappedBodyLines(char *msg, int body_width);
-static void DisplayMessage(ViewContext *ctx, char *msg);
-static int PrintMessage(ViewContext *ctx, char *msg);
+static int CountWrappedBodyLines(const char *msg, int body_width);
+static void DisplayMessage(ViewContext *ctx, const char *msg);
+static int PrintMessage(ViewContext *ctx, const char *msg);
 static void ClearStatusLineErrorLine(ViewContext *ctx);
 
 void UI_Beep(ViewContext *ctx, BOOL critical) {
@@ -243,7 +243,7 @@ static void PrintErrorLine(ViewContext *ctx, int y, char *str) {
   MvWAddStr(ctx->ctx_error_window, y, (ERROR_WINDOW_WIDTH - l) >> 1, str);
 }
 
-static int GetWrappedChunk(char *segment, int segment_len, int line_start,
+static int GetWrappedChunk(const char *segment, int segment_len, int line_start,
                            int body_width, int *chunk_offset, int *chunk_len) {
   int remaining, wrap_end, next_start;
 
@@ -287,7 +287,8 @@ static int GetWrappedChunk(char *segment, int segment_len, int line_start,
   return next_start;
 }
 
-static int CountWrappedSegmentLines(char *segment, int segment_len, int body_width) {
+static int CountWrappedSegmentLines(const char *segment, int segment_len,
+                                    int body_width) {
   int line_start, line_count;
   int chunk_offset, chunk_len;
 
@@ -309,7 +310,7 @@ static int CountWrappedSegmentLines(char *segment, int segment_len, int body_wid
   return line_count;
 }
 
-static int CountWrappedBodyLines(char *msg, int body_width) {
+static int CountWrappedBodyLines(const char *msg, int body_width) {
   int i, segment_len, line_count;
   char segment[MESSAGE_LENGTH + 1];
 
@@ -331,7 +332,7 @@ static int CountWrappedBodyLines(char *msg, int body_width) {
   return line_count;
 }
 
-static void DisplayMessage(ViewContext *ctx, char *msg) {
+static void DisplayMessage(ViewContext *ctx, const char *msg) {
   int y, i, segment_len, line_start, chunk_offset, chunk_len, next_start;
   int body_top, body_bottom, body_rows, body_width;
   int total_lines, rendered_lines;
@@ -396,7 +397,7 @@ static void DisplayMessage(ViewContext *ctx, char *msg) {
   }
 }
 
-static int PrintMessage(ViewContext *ctx, char *msg) {
+static int PrintMessage(ViewContext *ctx, const char *msg) {
   int c;
 
   DisplayMessage(ctx, msg);

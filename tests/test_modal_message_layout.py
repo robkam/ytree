@@ -6,7 +6,7 @@ def test_wrapping_prefers_word_boundaries_for_modal_body():
     error_source = _read_source("src/ui/error.c")
     wrap_block = _extract_function_block(
         error_source,
-        "static int GetWrappedChunk(char *segment, int segment_len, int line_start,\n"
+        "static int GetWrappedChunk(const char *segment, int segment_len, int line_start,\n"
         "                           int body_width, int *chunk_offset, int *chunk_len) {",
     )
 
@@ -22,7 +22,7 @@ def test_long_single_word_falls_back_to_safe_hard_break():
     error_source = _read_source("src/ui/error.c")
     wrap_block = _extract_function_block(
         error_source,
-        "static int GetWrappedChunk(char *segment, int segment_len, int line_start,\n"
+        "static int GetWrappedChunk(const char *segment, int segment_len, int line_start,\n"
         "                           int body_width, int *chunk_offset, int *chunk_len) {",
     )
 
@@ -47,7 +47,8 @@ def test_modal_header_and_prompt_center_contract_is_preserved():
     )
 
     display_block = _extract_function_block(
-        error_source, "static void DisplayMessage(ViewContext *ctx, char *msg) {"
+        error_source,
+        "static void DisplayMessage(ViewContext *ctx, const char *msg) {",
     )
     assert "center_body = (total_lines == 1);" in display_block
     assert "if (center_body)" in display_block
