@@ -156,7 +156,7 @@ FUZZ_BINS := $(FUZZ_STRING_UTILS_BIN) $(FUZZ_PATH_UTILS_BIN) $(FUZZ_FILTER_CORE_
 	test-v qa-clang qa-cppcheck qa-scan qa-valgrind qa-valgrind-interactive qa-valgrind-full \
 	qa-pytest qa-fileops-integrity qa-pytest-coverage qa-sanitize qa-unsafe-apis qa-module-boundaries qa-ai-config qa-code-quality qa-all \
 	ci-baseline mcp-doctor py-requirements \
-	qa-all-log
+	qa-all-log qa-deep
 
 all: $(MAIN_BIN) $(MANPAGE) $(if $(filter 1,$(QA_ON_BUILD)),qa-all)
 
@@ -396,6 +396,9 @@ qa-all: qa-clang qa-cppcheck qa-scan qa-valgrind qa-pytest qa-unsafe-apis qa-git
 qa-all-log:
 	@mkdir -p "$(dir $(QA_LOG))"
 	/bin/bash -o pipefail -c '$(MAKE_CMD) qa-all 2>&1 | tee "$(QA_LOG)"'
+
+qa-deep:
+	bash scripts/qa-deep.sh "$(CURDIR)"
 
 mcp-doctor:
 	python3 scripts/mcp_doctor.py $(if $(filter 1,$(FIX)),--fix,)
