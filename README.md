@@ -1,16 +1,18 @@
 # **ytree - The Unix File Logger**
----
+
+**Ytree** is a keyboard-first file manager for Linux and BSD with fast multi-volume logging and navigation.
+
 > [!IMPORTANT]
 > **STATUS: ALPHA (v3.0.0-alpha)**
 > `ytree` is in active alpha development. Expect rough edges, incomplete behaviour, and occasional regressions. Interfaces, key bindings, and configuration details may change before the first stable release.
 >
 > Before opening an issue or suggesting a feature, check [BUGS.md](docs/BUGS.md) and [ROADMAP.md](docs/ROADMAP.md) first, so as not to create a duplicate if it is already listed.
 
-Ytree gives you a fast, keyboard-first view of logged storage: a directory tree, a file list for the current directory, and Showall for all files in the current volume (plus Global across logged volumes). You can filter and tag files, then run normal file operations (copy, move, rename, delete, archive, edit) on single files or in bulk. It also includes built-in file preview, file/directory compare tools, split-screen workflows, and archive-as-directory support with archive creation plus in-archive write operations (copy/move/rename/delete/mkdir where supported).
+<p align="center">
+  <img src="docs/screenshots/split_archive_home.png" alt="Ytree F8 split screen: left panel browsing /home/rob/scripts.tar.gz, right panel showing the ~ tree with scripts inactive and its files in a small window." width="84%">
+</p>
 
----
-
-**Ytree** is a file manager for UNIX-like systems (Linux, BSD, etc.), optimized for speed and keyboard efficiency.
+Ytree logs filesystem hierarchies into memory, so you can work across whole volumes, not just one directory at a time. Use tree + file-list views, Showall/Global views, tagging, fast filtering, split-screen workflows, preview, and archive-as-directory operations (including in-archive copy/move/rename/delete/mkdir where supported).
 
 ## Background
 
@@ -47,25 +49,6 @@ v3.0.0-alpha is being published early so people can use the program, inspect the
 *   **Auto-Refresh:** Inotify integration for live directory updates.
 *   **External Viewers:** Associate specific file extensions with external programs (images, PDFs, etc.).
 *   **User Commands:** Bind keys to custom shell commands/scripts for infinite extensibility.
-
-## Screenshots
-
-<details>
-<summary>Click to view Gallery</summary>
-
-**1. The Classic Interface**
-Visualize and navigate your directory hierarchy instantly.
-![Main View](docs/screenshots/01_main.png)
-
-**2. Split Screen & Archives**
-Manage two independent panels. Here, browsing an ISO on the left and copying files directly to the Home Directory on the right.
-![Split Screen Archive](docs/screenshots/02_split_archive.png)
-
-**3. Integrated Preview**
-Inspect file contents without leaving the file manager. (Shown: Previewing a file *inside* an ISO archive).
-![Preview Mode](docs/screenshots/03_preview.png)
-
-</details>
 
 ## Installation
 
