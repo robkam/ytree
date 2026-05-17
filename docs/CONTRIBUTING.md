@@ -217,6 +217,7 @@ Use **[AUDIT.md](AUDIT.md)** as the single source of truth.
 - Normal development build: `make`
 - Full local QA gate (optional unless maintainer-requested): `make qa-all` (includes `pytest`, unsafe C API guard, module-boundary guard, and fuzz smoke)
 - Full local QA gate with captured log (optional unless maintainer-requested): `make qa-all-log` (writes `qa-all.log` in repo root; override with `QA_LOG=/path/to/file`)
+- Max-depth unattended QA sweep: `make qa-deep` (runs composite deep checks and writes structured logs to `${TMPDIR:-/tmp}/ytree-qa-deep/<timestamp>/`; override with `QA_DEEP_LOG_ROOT=/path`)
 - Optional strict mode: `make QA_ON_BUILD=1` (runs `qa-all` after build)
 - GitHub baseline CI (`.github/workflows/ci.yml`) runs `make ci-baseline` on PRs to `main` and pushes to `main`.
 - GitHub PR full QA CI (`.github/workflows/full-qa.yml`) runs `make qa-all` on PRs to `main` and is the required full pre-merge gate.
@@ -238,6 +239,7 @@ Individual gates:
 - `make qa-ai-config`
 - `make qa-code-quality` (runs `qa-unsafe-apis`, `qa-module-boundaries`, `qa-ai-config`)
 - `make qa-fuzz` (builds and runs all fuzz smoke targets)
+- `make qa-deep` (max-depth composite audit with per-step timing and AI-handoff artifacts)
 - `make fuzz` (builds all fuzz binaries under `build/fuzz/`)
 - `make fuzz-smoke` (runs bounded libFuzzer smoke passes for all harnesses)
 

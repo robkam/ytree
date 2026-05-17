@@ -210,6 +210,9 @@ static DirEntry *HandleDirCopyMove(ViewContext *ctx, DirEntry *dir_entry,
   if (EnsureDirectoryExists(ctx, dest_dir_path, ctx->active->vol->vol_stats.tree,
                             &created, &dest_dir_entry, &dir_create_mode,
                             (ChoiceCallback)UI_ChoiceResolver) == -1) {
+    /* The create-directory prompt can leave stale overlay artifacts. */
+    ReCreateWindows(ctx);
+    RefreshView(ctx, dir_entry);
     if (need_dsp_help)
       *need_dsp_help = TRUE;
     return dir_entry;
