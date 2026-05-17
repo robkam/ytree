@@ -426,19 +426,12 @@ void DirCompare_RunInternalDirectory(ViewContext *ctx, DirEntry *source_dir,
     }
   }
 
-  UI_Message(
-      ctx,
-      "Directory compare complete.*SOURCE: %s*TARGET: %s*BASIS: %s"
-      "*SOURCE ENTRIES: %lu"
-      "*RESULT COUNTS: different=%lu match=%lu newer=%lu older=%lu unique=%lu "
-      "type-mismatch=%lu error=%lu"
-      "*TAGGED (%s): %lu file(s) in active/source list.",
-      Path_LeafName(source_path), Path_LeafName(target_path),
-      UI_CompareBasisName(request->basis), summary.source_entries,
-      summary.different_count, summary.match_count, summary.newer_count,
-      summary.older_count, summary.unique_count, summary.type_mismatch_count,
-      summary.error_count, UI_CompareTagResultName(request->tag_result),
-      summary.tagged_count);
+  UI_Message(ctx,
+             "Directory compare complete.*BASIS: %s*TAGGED (%s): %lu file(s) "
+             "in active/source list.",
+             UI_CompareBasisName(request->basis),
+             UI_CompareTagResultName(request->tag_result),
+             summary.tagged_count);
 }
 
 static void RunInternalLoggedTreeCompareRecursive(
@@ -594,17 +587,9 @@ void DirCompare_RunInternalLoggedTree(ViewContext *ctx,
 
   UI_Message(
       ctx,
-      "Logged-tree compare complete.*SOURCE: %s*TARGET: %s*BASIS: %s"
-      "*SOURCE ENTRIES: %lu"
-      "*RESULT COUNTS: different=%lu match=%lu newer=%lu older=%lu unique=%lu "
-      "type-mismatch=%lu error=%lu"
-      "*SKIPPED UNLOGGED: source=%lu"
+      "Logged-tree compare complete.*BASIS: %s*SKIPPED UNLOGGED: source=%lu"
       "*TAGGED (%s): %lu file(s) in active/source list.",
-      Path_LeafName(source_path), Path_LeafName(target_path),
-      UI_CompareBasisName(request->basis), summary.source_entries,
-      summary.different_count, summary.match_count, summary.newer_count,
-      summary.older_count, summary.unique_count, summary.type_mismatch_count,
-      summary.error_count, summary.skipped_unlogged_source_dirs,
+      UI_CompareBasisName(request->basis), summary.skipped_unlogged_source_dirs,
       UI_CompareTagResultName(request->tag_result), summary.tagged_count);
 }
 
