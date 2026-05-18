@@ -12,6 +12,44 @@ Use this skill when the request is about code quality, clean-code enforcement, d
 - Detect concrete code-quality issues in the requested scope.
 - Prioritize fixes by impact, risk, and effort.
 - Offer implementation only after presenting findings and obtaining user approval.
+- Keep implementations lean and readable without introducing clever/opaque patterns.
+
+## Lean-Readable Contract (Mandatory)
+
+Apply these conventions for all code-quality remediation:
+
+1. Prefer the simplest clear implementation that preserves behavior and invariants.
+2. Fewer lines is good only when readability and diagnosability are equal or better.
+3. Avoid shorthand/clever constructs that reduce clarity (dense nested ternaries, implicit side effects, compressed control flow).
+4. Use explicit names for ownership and state transitions; avoid ambiguous abbreviations outside local loop indices.
+5. Keep control flow straightforward (guard clauses over deep nesting where practical).
+
+## Anti-Obfuscation Rules (Mandatory)
+
+Flag as smell (P1-P2 depending risk/context):
+
+- Dense expression chains that hide branching or side effects.
+- Flag-heavy APIs that multiplex unrelated behavior.
+- Hidden mutation through shared/global state without explicit contract.
+- Over-compressed helpers that trade maintainability for brevity.
+- Unnecessary indirection layers introduced without rule-of-three evidence.
+
+When suggesting a rewrite, include a short rationale: "why clearer" and "why safer to maintain."
+
+## Recursion Policy
+
+Recursion is allowed only when it is the clearest and safest representation of hierarchical traversal.
+
+Allowed patterns:
+- Bounded tree traversal with explicit base cases.
+- Recursive walk/cleanup routines with deterministic termination.
+
+Discouraged patterns:
+- Business-flow recursion where iterative control flow is clearer.
+- Recursion that obscures state transitions or makes error handling harder to follow.
+
+Review rule:
+- For any retained or introduced recursion, include a one-line justification and base-case/termination note.
 
 ## Workflow
 
@@ -125,6 +163,19 @@ Use this skill when the request is about code quality, clean-code enforcement, d
    - `Why`
 3. Recommendations (prioritized list)
 4. Explicit implementation question to the user
+
+## Recurring Burn-Down Cadence + Evidence Template
+
+For debt-burn-down missions (not one-off bugfixes), report measurable deltas:
+
+1. **Before hotspot table** (top N by size/complexity/smell impact in scope)
+2. **After hotspot table** (same rows, updated metrics)
+3. **Delta summary** (what reduced, what deferred, and why)
+4. **Risk note** (behavior-preservation checks and invariants touched)
+5. **Validation evidence** (commands run and outcomes)
+
+Default cadence guidance for maintainers:
+- Run a bounded burn-down pass periodically (for example every N feature merges or at milestone checkpoints), not only pre-release.
 
 ## ytree Guardrails
 
