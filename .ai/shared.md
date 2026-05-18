@@ -106,11 +106,13 @@ These instructions apply to all AI agents used in this repository.
 22. Hybrid PR quality workflow is mandatory:
     - Before first push, run a quick local gate (build plus targeted smoke/tests).
     - Open a draft PR early; red is allowed while iterating.
-    - While PR is red, prefix draft title with `WIP:` and do not request reviewers.
+    - Keep a durable PR title even while checks are red; do not use temporary `WIP:` title prefixes.
+    - While PR is red, keep the PR in draft and do not request reviewers.
     - Before merge to `main`, require green PR full-QA CI gate (`make qa-all` equivalent) and required audit-loop evidence; local `make qa-all` is optional unless the maintainer explicitly requests it.
     - Convert draft PR to ready only after posting full QA evidence in a PR comment.
     - Before merge, require green PR checks and reviewer signoff.
 23. Change-description durability is mandatory: commit subjects and PR titles/summaries MUST describe the concrete behavior/problem being changed, and MUST NOT rely on volatile tracker IDs alone (for example `BUG-14`, `TASK-7`) as the primary description.
+24. Agentic-loop autonomy and clarity are mandatory: worker completion notifications/events must trigger automatic loop progression without maintainer echo/re-send of worker completion text; maintainer-facing status wording must use only `active`, `completed`, or `blocked` and must not use ambiguous runtime labels such as `awaiting instruction`.
 
 ## Source Comment Contract
 

@@ -38,6 +38,7 @@ Relay autonomy policy tokens (required):
 Subagent autonomy rules (required):
 - Do not wait for maintainer nudges about agent state.
 - Treat any subagent completion notification as an immediate trigger.
+- Treat worker completion events/notifications as authoritative loop triggers; do not require or wait for the maintainer to resend worker completion lines.
 - On completion, immediately:
   1) read the report file,
   2) run required validation/checks,
@@ -46,6 +47,7 @@ Subagent autonomy rules (required):
   5) post a maintainer update.
 - Poll/wait on active agents proactively until they reach terminal status.
 - Never leave completed agents open unless explicitly instructed.
+- Status wording gate for maintainer-facing updates: use only `active`, `completed`, or `blocked`; do not relay ambiguous runtime phrasing such as `awaiting instruction`.
 Branch/process setup:
 1) Sync local main with GitHub main:
    - git checkout main
@@ -126,6 +128,7 @@ Update format to maintainer:
   3) `REPRO` (only when maintainer-run repro is needed)
   4) `EVIDENCE` (only new/changed file handles or command results)
 - Keep updates concise and facts-first.
+- Use unambiguous agent-state wording only (`active`, `completed`, `blocked`).
 - Do not emit `Model:` or `Reasoning level:` banners.
 - Do not ask the maintainer to extract internals from logs; provide concrete values directly.
 
