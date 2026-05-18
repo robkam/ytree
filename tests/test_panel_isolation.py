@@ -924,6 +924,227 @@ def test_volume_cycle_restores_prior_directory_selection(tmp_path, ytree_binary)
 
     tui.quit()
 
+
+def test_volume_cycle_leak_state_preserves_per_volume_file_selection(
+    tmp_path, ytree_binary
+):
+    root = tmp_path / "volume_cycle_leak_state_file_selection"
+    root.mkdir()
+    vol_a = root / "cycle_state_vol_a"
+    vol_b = root / "cycle_state_vol_b"
+    vol_a.mkdir()
+    vol_b.mkdir()
+
+    for i in range(4):
+        (vol_a / f"a_state_{i}.txt").write_text(f"a{i}\n", encoding="utf-8")
+    for i in range(3):
+        (vol_b / f"b_state_{i}.txt").write_text(f"b{i}\n", encoding="utf-8")
+
+    compare_target = root / "compare_target.txt"
+    compare_target.write_text("target\n", encoding="utf-8")
+    log_path = _configure_filediff_capture(root)
+
+    tui = YtreeTUI(
+        executable=ytree_binary,
+        cwd=str(root),
+        args=[str(vol_a), str(vol_b)],
+    )
+    time.sleep(1.0)
+
+    def active_volume_name():
+        header = tui.get_screen_dump()[0]
+        for name in ("cycle_state_vol_a", "cycle_state_vol_b"):
+            if name in header:
+                return name
+        return None
+
+    def run_compare_and_read_source():
+        if log_path.exists():
+            log_path.unlink()
+        tui.send_keystroke("J", wait=0.25)
+        assert tui.wait_for_content("COMPARE TARGET:", timeout=1.0), _screen_text(tui)
+        tui.send_keystroke(Keys.CTRL_U + str(compare_target) + Keys.ENTER, wait=0.6)
+        if tui.wait_for_content("Hit return to continue", timeout=1.0):
+            tui.send_keystroke(Keys.ENTER, wait=0.3)
+        assert _wait_for_file(log_path, timeout=2.0), "FILEDIFF helper did not run."
+        return log_path.read_text(encoding="utf-8").splitlines()[0]
+
+    for _ in range(8):
+        if active_volume_name() == "cycle_state_vol_a":
+            break
+        tui.send_keystroke(">", wait=0.3)
+    assert active_volume_name() == "cycle_state_vol_a", _screen_text(tui)
+
+    tui.send_keystroke(Keys.ENTER, wait=0.4)
+    assert "hex invert j compare" in _footer_text(tui), _screen_text(tui)
+    tui.send_keystroke(Keys.DOWN, wait=0.2)
+    tui.send_keystroke(Keys.DOWN, wait=0.2)
+    source_a_expected = run_compare_and_read_source()
+    assert source_a_expected.endswith("a_state_2.txt"), source_a_expected
+
+    tui.send_keystroke(">", wait=0.8)
+    assert active_volume_name() == "cycle_state_vol_b", _screen_text(tui)
+
+    if "hex invert j compare" not in _footer_text(tui):
+        tui.send_keystroke(Keys.ENTER, wait=0.4)
+    assert "hex invert j compare" in _footer_text(tui), _screen_text(tui)
+    tui.send_keystroke(Keys.DOWN, wait=0.2)
+    source_b_expected = run_compare_and_read_source()
+    assert source_b_expected.endswith("b_state_1.txt"), source_b_expected
+
+    tui.send_keystroke("<", wait=0.8)
+    assert active_volume_name() == "cycle_state_vol_a", _screen_text(tui)
+    if "hex invert j compare" not in _footer_text(tui):
+        tui.send_keystroke(Keys.ENTER, wait=0.4)
+    assert "hex invert j compare" in _footer_text(tui), _screen_text(tui)
+    source_a_after_cycle = run_compare_and_read_source()
+    assert source_a_after_cycle == source_a_expected, (
+        "Volume cycling leaked file selection state across volumes (A).\n"
+        f"Expected: {source_a_expected}\n"
+        f"Actual:   {source_a_after_cycle}\n{_screen_text(tui)}"
+    )
+
+    tui.send_keystroke(">", wait=0.8)
+    assert active_volume_name() == "cycle_state_vol_b", _screen_text(tui)
+    if "hex invert j compare" not in _footer_text(tui):
+        tui.send_keystroke(Keys.ENTER, wait=0.4)
+    assert "hex invert j compare" in _footer_text(tui), _screen_text(tui)
+    source_b_after_cycle = run_compare_and_read_source()
+    assert source_b_after_cycle == source_b_expected, (
+        "Volume cycling leaked file selection state across volumes (B).\n"
+        f"Expected: {source_b_expected}\n"
+        f"Actual:   {source_b_after_cycle}\n{_screen_text(tui)}"
+    )
+
+    tui.quit()
+
+
+def test_split_file_selection_preserves_panel_local_volume_cycle_state(
+    tmp_path, ytree_binary
+):
+    root = tmp_path / "split_preserves_panel_local_volume_cycle_state"
+    root.mkdir()
+    vol_a = root / "split_cycle_vol_a"
+    vol_b = root / "split_cycle_vol_b"
+    vol_a.mkdir()
+    vol_b.mkdir()
+
+    for i in range(4):
+        (vol_a / f"a_state_{i}.txt").write_text(f"a{i}\n", encoding="utf-8")
+    for i in range(2):
+        (vol_b / f"b_state_{i}.txt").write_text(f"b{i}\n", encoding="utf-8")
+
+    compare_target = root / "compare_target.txt"
+    compare_target.write_text("target\n", encoding="utf-8")
+    log_path = _configure_filediff_capture(root)
+
+    tui = YtreeTUI(
+        executable=ytree_binary,
+        cwd=str(root),
+        args=[str(vol_a), str(vol_b)],
+    )
+    time.sleep(1.0)
+
+    def active_volume_name():
+        header = tui.get_screen_dump()[0]
+        for name in ("split_cycle_vol_a", "split_cycle_vol_b"):
+            if name in header:
+                return name
+        return None
+
+    def run_compare_and_read_source():
+        if log_path.exists():
+            log_path.unlink()
+        tui.send_keystroke("J", wait=0.25)
+        assert tui.wait_for_content("COMPARE TARGET:", timeout=1.0), _screen_text(tui)
+        tui.send_keystroke(Keys.CTRL_U + str(compare_target) + Keys.ENTER, wait=0.6)
+        if tui.wait_for_content("Hit return to continue", timeout=1.0):
+            tui.send_keystroke(Keys.ENTER, wait=0.3)
+        assert _wait_for_file(log_path, timeout=2.0), "FILEDIFF helper did not run."
+        return log_path.read_text(encoding="utf-8").splitlines()[0]
+
+    try:
+        for _ in range(8):
+            if active_volume_name() == "split_cycle_vol_a":
+                break
+            tui.send_keystroke(">", wait=0.3)
+        assert active_volume_name() == "split_cycle_vol_a", _screen_text(tui)
+
+        tui.send_keystroke(Keys.ENTER, wait=0.4)
+        assert "hex invert j compare" in _footer_text(tui), _screen_text(tui)
+        tui.send_keystroke(Keys.DOWN, wait=0.2)
+        tui.send_keystroke(Keys.DOWN, wait=0.2)
+        source_left_expected = run_compare_and_read_source()
+        assert source_left_expected.endswith("a_state_2.txt"), source_left_expected
+
+        tui.send_keystroke(Keys.F8, wait=0.4)
+        tui.send_keystroke(Keys.TAB, wait=0.4)
+        assert "hex invert j compare" in _footer_text(tui), _screen_text(tui)
+        tui.send_keystroke(Keys.DOWN, wait=0.2)
+        source_right_expected = run_compare_and_read_source()
+        assert source_right_expected.endswith("a_state_3.txt"), source_right_expected
+
+        tui.send_keystroke(Keys.TAB, wait=0.4)
+        source_left_before_cycle = run_compare_and_read_source()
+        assert source_left_before_cycle == source_left_expected, (
+            "Split panel file selections should diverge per panel before cycling.\n"
+            f"Left expected:  {source_left_expected}\n"
+            f"Left observed:  {source_left_before_cycle}\n{_screen_text(tui)}"
+        )
+
+        tui.send_keystroke(">", wait=0.8)
+        assert active_volume_name() == "split_cycle_vol_b", _screen_text(tui)
+        if "hex invert j compare" not in _footer_text(tui):
+            tui.send_keystroke(Keys.ENTER, wait=0.4)
+        tui.send_keystroke("<", wait=0.8)
+        assert active_volume_name() == "split_cycle_vol_a", _screen_text(tui)
+        if "hex invert j compare" not in _footer_text(tui):
+            tui.send_keystroke(Keys.ENTER, wait=0.4)
+        source_left_after_cycle = run_compare_and_read_source()
+        assert source_left_after_cycle == source_left_expected, (
+            "Left split panel lost its own per-volume file selection.\n"
+            f"Expected: {source_left_expected}\n"
+            f"Actual:   {source_left_after_cycle}\n{_screen_text(tui)}"
+        )
+
+        tui.send_keystroke(Keys.TAB, wait=0.4)
+        if "hex invert j compare" not in _footer_text(tui):
+            tui.send_keystroke(Keys.ENTER, wait=0.4)
+        source_right_before_cycle = run_compare_and_read_source()
+        assert source_right_before_cycle == source_right_expected, (
+            "Cycling the left split panel leaked selection into right panel.\n"
+            f"Expected: {source_right_expected}\n"
+            f"Actual:   {source_right_before_cycle}\n{_screen_text(tui)}"
+        )
+
+        tui.send_keystroke(">", wait=0.8)
+        assert active_volume_name() == "split_cycle_vol_b", _screen_text(tui)
+        if "hex invert j compare" not in _footer_text(tui):
+            tui.send_keystroke(Keys.ENTER, wait=0.4)
+        tui.send_keystroke("<", wait=0.8)
+        assert active_volume_name() == "split_cycle_vol_a", _screen_text(tui)
+        if "hex invert j compare" not in _footer_text(tui):
+            tui.send_keystroke(Keys.ENTER, wait=0.4)
+        source_right_after_cycle = run_compare_and_read_source()
+        assert source_right_after_cycle == source_right_expected, (
+            "Right split panel lost its own per-volume file selection.\n"
+            f"Expected: {source_right_expected}\n"
+            f"Actual:   {source_right_after_cycle}\n{_screen_text(tui)}"
+        )
+
+        tui.send_keystroke(Keys.TAB, wait=0.4)
+        if "hex invert j compare" not in _footer_text(tui):
+            tui.send_keystroke(Keys.ENTER, wait=0.4)
+        source_left_after_right_cycle = run_compare_and_read_source()
+        assert source_left_after_right_cycle == source_left_expected, (
+            "Right-panel cycling leaked back into left panel selection.\n"
+            f"Expected: {source_left_expected}\n"
+            f"Actual:   {source_left_after_right_cycle}\n{_screen_text(tui)}"
+        )
+    finally:
+        tui.quit()
+
+
 def test_navigation_does_not_expand(tmp_path, ytree_binary):
     """
     BUG 2: Verifies that pressing DOWN arrow merely moves the cursor,
