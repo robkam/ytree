@@ -137,6 +137,17 @@ The Split-Screen architecture treats each panel as an independent instance of a 
 *   **State Persistence (Tab-Switch):** The `Tab` key is the bridge. Switching panels restores the exact state held when that panel last had focus.
 *   **Panel vs. Volume Rule:** Sharing a `Volume` only shares logged tree topology and file payload cache. It never shares panel-local tags, file-window anchors, cursor identity, or focus/mode state.
 
+#### 4.2.1 Split-Panel Ownership Map (Task 1 Guardrail)
+Split-transfer/switch code must classify each field before copying or restoring:
+
+| State Class | Owned By | Examples | Forbidden Cross-Panel Behavior |
+|---|---|---|---|
+| **Panel-Local** | `YtreePanel` | `cursor_pos`, `disp_begin_pos`, `start_file`, `file_cursor_pos`, `file_dir_entry`, `saved_focus`, `saved_big_file_view`, `file_selection_name`, `file_selection_dir_path`, `tagged_paths` | Active-only commands must not mutate the inactive panel's values. |
+| **Shared-Topology** | `Volume` (possibly referenced by both panels) | `vol_stats.tree`, `dir_entry_list`, directory expansion/logging topology | Panel code may mirror topology visibility updates, but must re-anchor each panel by identity/path and must not infer panel-local selection by shared index. |
+| **Global-Only** | `ViewContext` session scope | `is_split_screen`, `focused_window`, layout windows, session options (for example current global dotfile setting) | Global toggles must not be treated as panel-local transfer state; split hand-off code must not use them to overwrite inactive panel-local snapshots. |
+
+Boundary implementations in `src/ui/dir_ops.c` and `src/ui/ctrl_file_ops.c` reference this map in invariant comments and debug assertions.
+
 ### 4.3 Inter-Panel Operations (The Directional Rule)
 *   **Targeting:** Copy and Move operations occur directionally: **Source (Active Panel) to Destination (Inactive Panel)**.
 *   **Read-Only Bridge:** The active panel reads the path of the inactive panel to set a default destination without altering the inactive panel's state.

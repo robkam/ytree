@@ -23,6 +23,7 @@ Ordering policy (for all editors, including AI editors):
 *   **Remediation**: Enforce source-vs-destination state isolation in split mode so destination-side `mkdir`/`cd` and tree navigation cannot mutate source selection/tag state. Preserve source tagged/selection state by stable file identity across destination context changes, and apply deterministic fallback only when a selected source entry truly no longer exists.
 *   **Related**: `ROADMAP` Task 33 (split selection semantics/regression coverage).
 *   **Status**: Confirmed.
+*   **Task 1 Disposition (Split Ownership Map + Guardrail Gate)**: **Fixed path under guardrail.** Split transfer/switch boundaries now carry ownership invariants plus debug assertions; regression coverage is enforced in `tests/test_panel_isolation.py` (`split_from_file_keeps_inactive_file_selection_independent`, `split_tab_back_preserves_selected_file_index`, and related active-only mutation tests).
 
 
 ### **BUG-3: F8 Dotfiles Toggle Leaks Across Panels**
@@ -40,6 +41,7 @@ Ordering policy (for all editors, including AI editors):
 *   **Remediation**: Move dotfile-visibility ownership to panel-local split state and keep shared-tree updates limited to topology-only mirroring. Add split regression coverage for active-side dotfile toggles with inactive-panel state snapshots.
 *   **Tests/Gates**: Must have deterministic panel-isolation regression coverage under `tests/test_panel_isolation.py`; gate via `pytest` split-isolation subset and PR full-QA CI.
 *   **Status**: Confirmed.
+*   **Task 1 Disposition (Split Ownership Map + Guardrail Gate)**: **Blocker documented.** Ownership map classifies dotfile visibility as non-transfer state for split boundaries, but `hide_dot_files` is still session-global (`ViewContext`) and requires a dedicated ownership migration before BUG-3 can be closed.
 
 ### **BUG-4: F8 Dotfiles Toggle Causes Inactive Selection Jitter**
 *   **Description**: In split mode, toggling dotfiles in one panel can make the inactive panel’s selected directory move away and then return (transient cursor/selection drift).
@@ -57,6 +59,7 @@ Ordering policy (for all editors, including AI editors):
 *   **Remediation**: Re-anchor inactive selection strictly by stable directory identity/path during mirror updates; never re-resolve by transient index unless deterministic fallback is required.
 *   **Tests/Gates**: Add deterministic regression asserting no inactive selection movement on non-invalidating dotfile toggles.
 *   **Status**: Confirmed.
+*   **Task 1 Disposition (Split Ownership Map + Guardrail Gate)**: **Blocker documented.** Task 1 adds boundary invariants and debug cross-panel assertions for split transfer/switch paths, but BUG-4 remains coupled to the unresolved dotfile ownership model noted in BUG-3.
 
 ### **BUG-5: F8 + SMALLWINDOWSKIP=0 Tab Can Force Inactive Panel into Wrong Focus**
 *   **Description**: With `SMALLWINDOWSKIP=0`, when cursor is in the small file window on one panel, `Tab` to the other panel can show that inactive panel as file-focused/zoomed unexpectedly; tabbing back restores prior tree/small state.
@@ -74,6 +77,7 @@ Ordering policy (for all editors, including AI editors):
 *   **Remediation**: Harden switch-time state transfer so focus/view state is restored from panel-owned snapshots only; forbid cross-panel focus inheritance during `Tab` unless explicitly commanded by the active panel.
 *   **Tests/Gates**: Add/maintain deterministic regression for `SMALLWINDOWSKIP=0` split/tab focus retention in `tests/test_panel_isolation.py`.
 *   **Status**: Confirmed.
+*   **Task 1 Disposition (Split Ownership Map + Guardrail Gate)**: **Fixed path under guardrail.** Split `Tab` switch and split-toggle boundaries now include explicit ownership invariants and debug assertions that forbid inactive-panel focus/file-anchor mutation from active-side mode transitions.
 
 ### **BUG-6: F7 Preview Over-Restricts Command Availability**
 *   **Description**: `F7` mode is currently incomplete for inspect-and-act workflows. Too many common file actions are disabled, so users must leave preview to continue work.
