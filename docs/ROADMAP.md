@@ -34,8 +34,9 @@ Ordering policy (for all editors, including AI editors):
 *   Key boundary functions contain invariant comments describing allowed/forbidden state transfer.
 *   Regression coverage fails when inactive-panel state is mutated by active-only commands.
 *   All new/updated split-isolation tests pass locally and in PR full-QA CI evidence.
-*   Linked bugs (`BUG-2`, `BUG-3`, `BUG-4`, `BUG-5`) are either fixed or have explicit blocker notes tied to this task.
-*   - [ ] **Status:** Not Started.
+*   Linked split-panel bugs (`BUG-2`, `BUG-3`, `BUG-4`, `BUG-5`) are either fixed or have explicit blocker notes tied to this work.
+*   **Outcome:** Completed. Ownership map + boundary invariants/assertions are in place; split dotfile ownership migration remains follow-on work.
+*   - [x] **Status:** Completed.
 
 ### **Task 2: Remove Dead-History Comments + Add Anti-History Comment Gate**
 *   **Goal:** Remove comments that describe removed code/history and prevent their reintroduction.

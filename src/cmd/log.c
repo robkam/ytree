@@ -8,6 +8,136 @@
 #include "ytree_cmd.h"
 #include "ytree_fs.h"
 
+static PanelVolumeFileState *FindPanelVolumeFileState(YtreePanel *panel,
+                                                      int volume_id) {
+  PanelVolumeFileState *state;
+
+  if (!panel)
+    return NULL;
+
+  for (state = panel->volume_file_state; state; state = state->next) {
+    if (state->volume_id == volume_id)
+      return state;
+  }
+  return NULL;
+}
+
+static PanelVolumeFileState *GetPanelVolumeFileState(YtreePanel *panel,
+                                                     int volume_id) {
+  PanelVolumeFileState *state;
+
+  state = FindPanelVolumeFileState(panel, volume_id);
+  if (state)
+    return state;
+
+  state = (PanelVolumeFileState *)xcalloc(1, sizeof(PanelVolumeFileState));
+  state->volume_id = volume_id;
+  state->next = panel->volume_file_state;
+  panel->volume_file_state = state;
+  return state;
+}
+
+static void SavePanelFileSelection(YtreePanel *panel) {
+  PanelVolumeFileState *state;
+
+  if (!panel || !panel->vol)
+    return;
+
+  state = GetPanelVolumeFileState(panel, panel->vol->id);
+  state->saved_file_start = panel->start_file;
+  state->saved_file_cursor = panel->file_cursor_pos;
+
+  state->saved_file_dir_path[0] = '\0';
+  if (panel->file_dir_entry != NULL) {
+    GetPath(panel->file_dir_entry, state->saved_file_dir_path);
+    state->saved_file_dir_path[PATH_LENGTH] = '\0';
+  }
+
+  (void)snprintf(state->saved_file_selection_name,
+                 sizeof(state->saved_file_selection_name), "%s",
+                 panel->file_selection_name);
+  (void)snprintf(state->saved_file_selection_dir_path,
+                 sizeof(state->saved_file_selection_dir_path), "%s",
+                 panel->file_selection_dir_path);
+}
+
+static DirEntry *FindSavedDirInVolume(const struct Volume *vol,
+                                      const char *saved_path) {
+  int i;
+  size_t best_len = 0;
+  DirEntry *best = NULL;
+
+  if (!vol || !saved_path || saved_path[0] == '\0' || !vol->dir_entry_list ||
+      vol->total_dirs <= 0)
+    return NULL;
+
+  for (i = 0; i < vol->total_dirs; i++) {
+    DirEntry *candidate = vol->dir_entry_list[i].dir_entry;
+    char candidate_path[PATH_LENGTH + 1];
+    size_t candidate_len;
+
+    if (!candidate)
+      continue;
+
+    GetPath(candidate, candidate_path);
+    candidate_path[PATH_LENGTH] = '\0';
+
+    if (strcmp(candidate_path, saved_path) == 0)
+      return candidate;
+
+    candidate_len = strlen(candidate_path);
+    if (candidate_len == 0 || candidate_len > strlen(saved_path))
+      continue;
+    if (strncmp(saved_path, candidate_path, candidate_len) != 0)
+      continue;
+    if (saved_path[candidate_len] != '\0' &&
+        saved_path[candidate_len] != FILE_SEPARATOR_CHAR)
+      continue;
+    if (candidate_len > best_len) {
+      best_len = candidate_len;
+      best = candidate;
+    }
+  }
+
+  return best;
+}
+
+static void RestorePanelFileSelection(YtreePanel *panel) {
+  const struct Volume *vol;
+  const PanelVolumeFileState *state;
+  DirEntry *resolved_file_dir = NULL;
+
+  if (!panel || !panel->vol)
+    return;
+
+  vol = panel->vol;
+  state = FindPanelVolumeFileState(panel, vol->id);
+  panel->start_file = 0;
+  panel->file_cursor_pos = 0;
+  panel->file_selection_name[0] = '\0';
+  panel->file_selection_dir_path[0] = '\0';
+  panel->file_dir_entry = NULL;
+  if (!state)
+    return;
+
+  panel->start_file = state->saved_file_start;
+  panel->file_cursor_pos = state->saved_file_cursor;
+  if (panel->start_file < 0)
+    panel->start_file = 0;
+  if (panel->file_cursor_pos < 0)
+    panel->file_cursor_pos = 0;
+  (void)snprintf(panel->file_selection_name, sizeof(panel->file_selection_name),
+                 "%s", state->saved_file_selection_name);
+  (void)snprintf(panel->file_selection_dir_path,
+                 sizeof(panel->file_selection_dir_path), "%s",
+                 state->saved_file_selection_dir_path);
+
+  if (state->saved_file_dir_path[0] != '\0') {
+    resolved_file_dir = FindSavedDirInVolume(vol, state->saved_file_dir_path);
+    panel->file_dir_entry = resolved_file_dir;
+  }
+}
+
 static void SavePanelTreeSelection(YtreePanel *panel) {
   int selected_index;
 
@@ -122,6 +252,7 @@ int LogDisk(ViewContext *ctx, YtreePanel *panel, char *path) {
 
   /* Keep per-volume tree selection before switching away. */
   SavePanelTreeSelection(panel);
+  SavePanelFileSelection(panel);
 
   /* 1. Resolve Path (for UI searching/display purposes) */
   if (realpath(path, resolved_path) == NULL) {
@@ -195,6 +326,7 @@ int LogDisk(ViewContext *ctx, YtreePanel *panel, char *path) {
           ctx->hook_display_menu(ctx);
         if (ctx->hook_build_dir_entry_list)
           ctx->hook_build_dir_entry_list(ctx, panel->vol, &(int){0});
+        RestorePanelFileSelection(panel);
         RestorePanelTreeSelection(ctx, panel);
 
         if (ctx->hook_display_tree)
@@ -302,6 +434,7 @@ int LogDisk(ViewContext *ctx, YtreePanel *panel, char *path) {
         ctx->hook_display_menu(ctx);
       if (ctx->hook_build_dir_entry_list)
         ctx->hook_build_dir_entry_list(ctx, panel->vol, &(int){0});
+      RestorePanelFileSelection(panel);
       RestorePanelTreeSelection(ctx, panel);
 
       if (ctx->hook_display_tree)
@@ -345,6 +478,7 @@ int LogDisk(ViewContext *ctx, YtreePanel *panel, char *path) {
   /* Final Refresh */
   if (ctx->hook_build_dir_entry_list)
     ctx->hook_build_dir_entry_list(ctx, panel->vol, &(int){0});
+  RestorePanelFileSelection(panel);
   if (reload_requested) {
     panel->disp_begin_pos = 0;
     panel->cursor_pos = 0;

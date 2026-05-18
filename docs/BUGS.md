@@ -15,15 +15,14 @@ Ordering policy (for all editors, including AI editors):
 *   **Description**: Cycling logged volumes can cause dir/file window mode/state changes in one volume to appear in the other, instead of each volume retaining its own last-used state.
 *   **Impact**: Breaks per-volume navigation predictability and increases wrong-target risk during fast volume switching workflows.
 *   **Remediation**: Preserve and restore per-volume dir/file window state independently when cycling volumes. Add regression coverage for repeated `<`/`>` transitions across volumes with different view states.
-*   **Status**: Confirmed.
+*   **Status**: Fixed.
 
 ### **BUG-2: F8 Same-Volume Destination Navigation Can Lose Source Selection/Tagged Set**
 *   **Description**: In `F8` split mode on the same volume, navigating the destination side (including creating/changing directories during copy/move preparation) can cause the original source file selection/tagged set to disappear or be replaced by the destination-context file list.
 *   **Impact**: Breaks split-panel isolation and creates high wrong-target risk in copy/move workflows because source intent is lost while preparing destination paths.
 *   **Remediation**: Enforce source-vs-destination state isolation in split mode so destination-side `mkdir`/`cd` and tree navigation cannot mutate source selection/tag state. Preserve source tagged/selection state by stable file identity across destination context changes, and apply deterministic fallback only when a selected source entry truly no longer exists.
 *   **Related**: `ROADMAP` Task 33 (split selection semantics/regression coverage).
-*   **Status**: Confirmed.
-*   **Task 1 Disposition (Split Ownership Map + Guardrail Gate)**: **Fixed path under guardrail.** Split transfer/switch boundaries now carry ownership invariants plus debug assertions; regression coverage is enforced in `tests/test_panel_isolation.py` (`split_from_file_keeps_inactive_file_selection_independent`, `split_tab_back_preserves_selected_file_index`, and related active-only mutation tests).
+*   **Status**: Fixed.
 
 
 ### **BUG-3: F8 Dotfiles Toggle Leaks Across Panels**
@@ -41,7 +40,7 @@ Ordering policy (for all editors, including AI editors):
 *   **Remediation**: Move dotfile-visibility ownership to panel-local split state and keep shared-tree updates limited to topology-only mirroring. Add split regression coverage for active-side dotfile toggles with inactive-panel state snapshots.
 *   **Tests/Gates**: Must have deterministic panel-isolation regression coverage under `tests/test_panel_isolation.py`; gate via `pytest` split-isolation subset and PR full-QA CI.
 *   **Status**: Confirmed.
-*   **Task 1 Disposition (Split Ownership Map + Guardrail Gate)**: **Blocker documented.** Ownership map classifies dotfile visibility as non-transfer state for split boundaries, but `hide_dot_files` is still session-global (`ViewContext`) and requires a dedicated ownership migration before BUG-3 can be closed.
+*   **Ownership-map disposition**: **Blocker documented.** Dotfile visibility is classified as non-transfer split state, but `hide_dot_files` is still session-global (`ViewContext`) and needs a dedicated ownership migration before this bug can close.
 
 ### **BUG-4: F8 Dotfiles Toggle Causes Inactive Selection Jitter**
 *   **Description**: In split mode, toggling dotfiles in one panel can make the inactive panel’s selected directory move away and then return (transient cursor/selection drift).
@@ -59,7 +58,7 @@ Ordering policy (for all editors, including AI editors):
 *   **Remediation**: Re-anchor inactive selection strictly by stable directory identity/path during mirror updates; never re-resolve by transient index unless deterministic fallback is required.
 *   **Tests/Gates**: Add deterministic regression asserting no inactive selection movement on non-invalidating dotfile toggles.
 *   **Status**: Confirmed.
-*   **Task 1 Disposition (Split Ownership Map + Guardrail Gate)**: **Blocker documented.** Task 1 adds boundary invariants and debug cross-panel assertions for split transfer/switch paths, but BUG-4 remains coupled to the unresolved dotfile ownership model noted in BUG-3.
+*   **Ownership-map disposition**: **Blocker documented.** Split transfer/switch paths now have boundary invariants and debug cross-panel assertions, but this bug remains coupled to the unresolved dotfile ownership model noted above.
 
 ### **BUG-5: F8 + SMALLWINDOWSKIP=0 Tab Can Force Inactive Panel into Wrong Focus**
 *   **Description**: With `SMALLWINDOWSKIP=0`, when cursor is in the small file window on one panel, `Tab` to the other panel can show that inactive panel as file-focused/zoomed unexpectedly; tabbing back restores prior tree/small state.
@@ -76,8 +75,7 @@ Ordering policy (for all editors, including AI editors):
 *   **Impact**: Breaks trust in split focus separation and can trigger wrong-context commands.
 *   **Remediation**: Harden switch-time state transfer so focus/view state is restored from panel-owned snapshots only; forbid cross-panel focus inheritance during `Tab` unless explicitly commanded by the active panel.
 *   **Tests/Gates**: Add/maintain deterministic regression for `SMALLWINDOWSKIP=0` split/tab focus retention in `tests/test_panel_isolation.py`.
-*   **Status**: Confirmed.
-*   **Task 1 Disposition (Split Ownership Map + Guardrail Gate)**: **Fixed path under guardrail.** Split `Tab` switch and split-toggle boundaries now include explicit ownership invariants and debug assertions that forbid inactive-panel focus/file-anchor mutation from active-side mode transitions.
+*   **Status**: Fixed.
 
 ### **BUG-6: F7 Preview Over-Restricts Command Availability**
 *   **Description**: `F7` mode is currently incomplete for inspect-and-act workflows. Too many common file actions are disabled, so users must leave preview to continue work.
@@ -157,7 +155,7 @@ Ordering policy (for all editors, including AI editors):
     *   Small window can become empty instead of preserving the current context.
 *   **Impact**: Breaks predictable navigation flow and increases risk of accidental context loss.
 *   **Remediation**: Preserve active zoom/view state across parent-jump and view-toggle transitions; prevent empty-pane state in this flow.
-*   **Related**: File-View Focus Leak After Parent Jump (`\\`) (same focus/state-transition family).
+*   **Related**: `BUG-14` (same focus/state-transition family).
 *   **Status**: Confirmed.
 
 ### **BUG-16: Long Lines Wrap Instead of Truncate in List Views**

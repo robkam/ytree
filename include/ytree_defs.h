@@ -726,6 +726,16 @@ typedef struct _PathList {
   struct _PathList *next;
 } PathList;
 
+typedef struct _panel_volume_file_state {
+  int volume_id;
+  int saved_file_start;
+  int saved_file_cursor;
+  char saved_file_dir_path[PATH_LENGTH + 1];
+  char saved_file_selection_name[PATH_LENGTH + 1];
+  char saved_file_selection_dir_path[PATH_LENGTH + 1];
+  struct _panel_volume_file_state *next;
+} PanelVolumeFileState;
+
 typedef struct _ArchiveExpandedEntry {
   char *source_path;
   char *archive_path;
@@ -762,6 +772,7 @@ typedef struct {
   int file_cursor_pos;
   DirEntry *file_dir_entry;
   struct _PathList *tagged_paths;
+  PanelVolumeFileState *volume_file_state;
   char file_selection_name[PATH_LENGTH + 1];
   char file_selection_dir_path[PATH_LENGTH + 1];
   BOOL saved_big_file_view;
