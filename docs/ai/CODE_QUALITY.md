@@ -11,6 +11,19 @@ This doc is for AI-assisted sessions (architect/developer/code-auditor) when pro
 
 It is not runtime code and not read by the compiler; it guides how AI work is requested and executed.
 
+## Canonical Blueprint Location
+
+This file is a concise prompt/entry guide.
+
+The comprehensive execution blueprint lives in:
+- `.ai/skills/code-quality/SKILL.md`
+
+That skill file is the source of truth for:
+- smell taxonomy and prioritization,
+- lean-readable and anti-obfuscation contract,
+- recursion policy (allowed vs discouraged),
+- recurring burn-down cadence and evidence template.
+
 ## Prevention-first prompt template
 
 ```text
