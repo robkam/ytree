@@ -1479,7 +1479,7 @@ HandleDirWindowPanelAction(ViewContext *ctx, YtreeAction action,
     DebugLogSplitState("DirPanelAction:switch:before", ctx);
 #ifndef NDEBUG
     {
-      YtreePanel *previous_active = ctx->active;
+      const YtreePanel *previous_active = ctx->active;
       PanelIsolationSnapshot previous_active_snapshot;
 
       /*

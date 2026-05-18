@@ -653,7 +653,7 @@ BOOL handle_file_window_split_switch_action(
     DebugLogFileSplitState("FileAction:switch:before", ctx);
 #ifndef NDEBUG
     {
-      YtreePanel *target_panel =
+      const YtreePanel *target_panel =
           (ctx->active == ctx->left) ? ctx->right : ctx->left;
       FilePanelIsolationSnapshot target_panel_snapshot;
 
