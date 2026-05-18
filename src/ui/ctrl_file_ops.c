@@ -9,6 +9,8 @@
 #include "ytree_cmd.h"
 #include "ytree_fs.h"
 #include "ytree_ui.h"
+#include <assert.h>
+#include <string.h>
 #include <utime.h>
 
 static void ResetPreviewAfterNavigation(
@@ -20,6 +22,56 @@ static void ResetPreviewAfterNavigation(
   if (update_preview)
     update_preview(ctx, dir_entry);
 }
+
+#ifndef NDEBUG
+typedef struct {
+  int cursor_pos;
+  int disp_begin_pos;
+  int start_file;
+  int file_cursor_pos;
+  const DirEntry *file_dir_entry;
+  ViewFocus saved_focus;
+  BOOL saved_big_file_view;
+  char file_selection_name[PATH_LENGTH + 1];
+  char file_selection_dir_path[PATH_LENGTH + 1];
+} FilePanelIsolationSnapshot;
+
+static void CaptureFilePanelIsolationSnapshot(
+    const YtreePanel *panel, FilePanelIsolationSnapshot *snapshot) {
+  if (!panel || !snapshot)
+    return;
+
+  snapshot->cursor_pos = panel->cursor_pos;
+  snapshot->disp_begin_pos = panel->disp_begin_pos;
+  snapshot->start_file = panel->start_file;
+  snapshot->file_cursor_pos = panel->file_cursor_pos;
+  snapshot->file_dir_entry = panel->file_dir_entry;
+  snapshot->saved_focus = panel->saved_focus;
+  snapshot->saved_big_file_view = panel->saved_big_file_view;
+  (void)snprintf(snapshot->file_selection_name,
+                 sizeof(snapshot->file_selection_name), "%s",
+                 panel->file_selection_name);
+  (void)snprintf(snapshot->file_selection_dir_path,
+                 sizeof(snapshot->file_selection_dir_path), "%s",
+                 panel->file_selection_dir_path);
+}
+
+static void AssertFilePanelIsolationSnapshotUnchanged(
+    const YtreePanel *panel, const FilePanelIsolationSnapshot *snapshot) {
+  assert(panel != NULL);
+  assert(snapshot != NULL);
+  assert(panel->cursor_pos == snapshot->cursor_pos);
+  assert(panel->disp_begin_pos == snapshot->disp_begin_pos);
+  assert(panel->start_file == snapshot->start_file);
+  assert(panel->file_cursor_pos == snapshot->file_cursor_pos);
+  assert(panel->file_dir_entry == snapshot->file_dir_entry);
+  assert(panel->saved_focus == snapshot->saved_focus);
+  assert(panel->saved_big_file_view == snapshot->saved_big_file_view);
+  assert(strcmp(panel->file_selection_name, snapshot->file_selection_name) == 0);
+  assert(strcmp(panel->file_selection_dir_path,
+                snapshot->file_selection_dir_path) == 0);
+}
+#endif
 
 /* =========================================================================
  * Shared UI Helpers for Post-Action Refresh, Sync, and Render
@@ -529,6 +581,12 @@ BOOL handle_file_window_split_switch_action(
     CapturePanelSelectionAnchor(ctx, owner_panel, dir_entry);
 
     if (ctx->is_split_screen && ctx->active == ctx->right) {
+      /*
+       * Split ownership boundary (docs/ARCHITECTURE.md §4.2.1):
+       * Shared-topology tree linkage may move with the active panel when
+       * unsplitting, but file identity anchors remain panel-local and must be
+       * transferred by explicit name/path snapshots, never by row index.
+       */
       ctx->left->vol = ctx->right->vol;
       ctx->left->cursor_pos = ctx->right->cursor_pos;
       ctx->left->disp_begin_pos = ctx->right->disp_begin_pos;
@@ -551,6 +609,15 @@ BOOL handle_file_window_split_switch_action(
                        sizeof(ctx->left->file_selection_dir_path), "%s",
                        active_selected_dir);
       }
+#ifndef NDEBUG
+      if (active_selected_file) {
+        assert(strcmp(ctx->left->file_selection_name, active_selected_file->name) ==
+               0);
+      }
+      if (active_selected_dir[0] != '\0') {
+        assert(strcmp(ctx->left->file_selection_dir_path, active_selected_dir) == 0);
+      }
+#endif
       PanelTags_Copy(ctx->left, ctx->right);
       ctx->left->saved_focus = ctx->right->saved_focus;
       FreeFileEntryList(ctx->left);
@@ -584,6 +651,38 @@ BOOL handle_file_window_split_switch_action(
     if (!ctx->is_split_screen)
       return TRUE;
     DebugLogFileSplitState("FileAction:switch:before", ctx);
+#ifndef NDEBUG
+    {
+      YtreePanel *target_panel =
+          (ctx->active == ctx->left) ? ctx->right : ctx->left;
+      FilePanelIsolationSnapshot target_panel_snapshot;
+
+      /*
+       * Split ownership boundary (docs/ARCHITECTURE.md §4.2.1):
+       * Tab from file view may snapshot the active panel before hand-off, but
+       * must not mutate the destination panel before it becomes active.
+       */
+      CaptureFilePanelIsolationSnapshot(target_panel, &target_panel_snapshot);
+
+      owner_panel->file_dir_entry = dir_entry;
+      owner_panel->start_file = dir_entry->start_file;
+      owner_panel->file_cursor_pos = dir_entry->cursor_pos;
+      CapturePanelSelectionAnchor(ctx, owner_panel, dir_entry);
+      ctx->active->saved_focus = FOCUS_FILE;
+      *switched_panel_ptr = TRUE;
+      SwitchToSmallFileWindow(ctx);
+
+      if (ctx->active == ctx->left) {
+        ctx->active = ctx->right;
+      } else {
+        ctx->active = ctx->left;
+      }
+      ctx->focused_window = ctx->active->saved_focus;
+      *loop_action_ptr = ACTION_ESCAPE;
+      AssertFilePanelIsolationSnapshotUnchanged(target_panel,
+                                                &target_panel_snapshot);
+    }
+#else
     owner_panel->file_dir_entry = dir_entry;
     owner_panel->start_file = dir_entry->start_file;
     owner_panel->file_cursor_pos = dir_entry->cursor_pos;
@@ -599,6 +698,7 @@ BOOL handle_file_window_split_switch_action(
     }
     ctx->focused_window = ctx->active->saved_focus;
     *loop_action_ptr = ACTION_ESCAPE;
+#endif
     DebugLogFileSplitState("FileAction:switch:after", ctx);
     return TRUE;
 

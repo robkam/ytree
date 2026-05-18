@@ -10,6 +10,7 @@
 #include "ytree_cmd.h"
 #include "ytree_fs.h"
 #include "ytree_ui.h"
+#include <assert.h>
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
@@ -29,6 +30,70 @@ static void CaptureInactiveFallback(ViewContext *ctx, YtreePanel *p,
                                     YtreePanel **inactive_out,
                                     DirEntry **inactive_fallback_out);
 static void ReanchorPanelToDir(YtreePanel *panel, const DirEntry *target);
+
+#ifndef NDEBUG
+typedef struct {
+  int cursor_pos;
+  int disp_begin_pos;
+  int start_file;
+  int file_cursor_pos;
+  const DirEntry *file_dir_entry;
+  ViewFocus saved_focus;
+  BOOL saved_big_file_view;
+  char file_selection_name[PATH_LENGTH + 1];
+  char file_selection_dir_path[PATH_LENGTH + 1];
+} PanelIsolationSnapshot;
+
+static void CapturePanelIsolationSnapshot(const YtreePanel *panel,
+                                          PanelIsolationSnapshot *snapshot) {
+  if (!panel || !snapshot)
+    return;
+
+  snapshot->cursor_pos = panel->cursor_pos;
+  snapshot->disp_begin_pos = panel->disp_begin_pos;
+  snapshot->start_file = panel->start_file;
+  snapshot->file_cursor_pos = panel->file_cursor_pos;
+  snapshot->file_dir_entry = panel->file_dir_entry;
+  snapshot->saved_focus = panel->saved_focus;
+  snapshot->saved_big_file_view = panel->saved_big_file_view;
+  (void)snprintf(snapshot->file_selection_name,
+                 sizeof(snapshot->file_selection_name), "%s",
+                 panel->file_selection_name);
+  (void)snprintf(snapshot->file_selection_dir_path,
+                 sizeof(snapshot->file_selection_dir_path), "%s",
+                 panel->file_selection_dir_path);
+}
+
+static void AssertPanelIsolationSnapshotUnchanged(
+    const YtreePanel *panel, const PanelIsolationSnapshot *snapshot) {
+  assert(panel != NULL);
+  assert(snapshot != NULL);
+  assert(panel->cursor_pos == snapshot->cursor_pos);
+  assert(panel->disp_begin_pos == snapshot->disp_begin_pos);
+  assert(panel->start_file == snapshot->start_file);
+  assert(panel->file_cursor_pos == snapshot->file_cursor_pos);
+  assert(panel->file_dir_entry == snapshot->file_dir_entry);
+  assert(panel->saved_focus == snapshot->saved_focus);
+  assert(panel->saved_big_file_view == snapshot->saved_big_file_view);
+  assert(strcmp(panel->file_selection_name, snapshot->file_selection_name) == 0);
+  assert(strcmp(panel->file_selection_dir_path,
+                snapshot->file_selection_dir_path) == 0);
+}
+
+static void AssertPanelIsolationFileStateUnchanged(
+    const YtreePanel *panel, const PanelIsolationSnapshot *snapshot) {
+  assert(panel != NULL);
+  assert(snapshot != NULL);
+  assert(panel->start_file == snapshot->start_file);
+  assert(panel->file_cursor_pos == snapshot->file_cursor_pos);
+  assert(panel->file_dir_entry == snapshot->file_dir_entry);
+  assert(panel->saved_focus == snapshot->saved_focus);
+  assert(panel->saved_big_file_view == snapshot->saved_big_file_view);
+  assert(strcmp(panel->file_selection_name, snapshot->file_selection_name) == 0);
+  assert(strcmp(panel->file_selection_dir_path,
+                snapshot->file_selection_dir_path) == 0);
+}
+#endif
 
 static BOOL DirBelongsToVolume(const struct Volume *vol, const DirEntry *target) {
   int i;
@@ -1135,6 +1200,12 @@ static DirEntry *RestorePanelFileSelection(ViewContext *ctx, DirEntry *dir_entry
   if (!ctx || !dir_entry || !panel)
     return dir_entry;
 
+  /*
+   * Split ownership boundary (docs/ARCHITECTURE.md §4.2.1):
+   * This restore path may rebuild shared topology visibility, but it must
+   * resolve file anchors from panel-local identity (`file_selection_*` /
+   * `start_file` / `file_cursor_pos`) and never from the other panel's index.
+   */
   if (panel->saved_focus != FOCUS_FILE)
     return dir_entry;
 
@@ -1311,6 +1382,12 @@ HandleDirWindowPanelAction(ViewContext *ctx, YtreeAction action,
     DebugLogSplitState("DirPanelAction:split:before", ctx);
     if (ctx->is_split_screen && ctx->active == ctx->right && ctx->left &&
         ctx->right) {
+      /*
+       * Split ownership boundary (docs/ARCHITECTURE.md §4.2.1):
+       * - Shared-topology fields (`vol`, tree cursor window) may be mirrored.
+       * - Panel-local file/focus anchors must stay panel-owned; when unsplitting
+       *   from right while left is file-focused, left file anchor/focus wins.
+       */
       BOOL preserve_left_file_state =
           (ctx->left->saved_focus == FOCUS_FILE &&
            ctx->right->saved_focus != FOCUS_FILE);
@@ -1318,8 +1395,12 @@ HandleDirWindowPanelAction(ViewContext *ctx, YtreeAction action,
       int preserved_file_cursor = ctx->left->file_cursor_pos;
       DirEntry *preserved_file_dir_entry = ctx->left->file_dir_entry;
       BOOL preserved_big_file_view = ctx->left->saved_big_file_view;
+      ViewFocus preserved_saved_focus = ctx->left->saved_focus;
       char preserved_file_selection_name[PATH_LENGTH + 1];
       char preserved_file_selection_dir_path[PATH_LENGTH + 1];
+#ifndef NDEBUG
+      PanelIsolationSnapshot preserved_left_snapshot;
+#endif
 
       (void)snprintf(preserved_file_selection_name,
                      sizeof(preserved_file_selection_name), "%s",
@@ -1327,6 +1408,9 @@ HandleDirWindowPanelAction(ViewContext *ctx, YtreeAction action,
       (void)snprintf(preserved_file_selection_dir_path,
                      sizeof(preserved_file_selection_dir_path), "%s",
                      ctx->left->file_selection_dir_path);
+#ifndef NDEBUG
+      CapturePanelIsolationSnapshot(ctx->left, &preserved_left_snapshot);
+#endif
 
       ctx->left->vol = ctx->right->vol;
       ctx->left->cursor_pos = ctx->right->cursor_pos;
@@ -1347,12 +1431,17 @@ HandleDirWindowPanelAction(ViewContext *ctx, YtreeAction action,
         ctx->left->file_cursor_pos = preserved_file_cursor;
         ctx->left->file_dir_entry = preserved_file_dir_entry;
         ctx->left->saved_big_file_view = preserved_big_file_view;
+        ctx->left->saved_focus = preserved_saved_focus;
         (void)snprintf(ctx->left->file_selection_name,
                        sizeof(ctx->left->file_selection_name), "%s",
                        preserved_file_selection_name);
         (void)snprintf(ctx->left->file_selection_dir_path,
                        sizeof(ctx->left->file_selection_dir_path), "%s",
                        preserved_file_selection_dir_path);
+#ifndef NDEBUG
+        AssertPanelIsolationFileStateUnchanged(ctx->left,
+                                               &preserved_left_snapshot);
+#endif
       }
       FreeFileEntryList(ctx->left);
       ctx->active->vol = ctx->left->vol;
@@ -1388,7 +1477,83 @@ HandleDirWindowPanelAction(ViewContext *ctx, YtreeAction action,
     if (!ctx->is_split_screen)
       return DIR_WINDOW_DISPATCH_HANDLED;
     DebugLogSplitState("DirPanelAction:switch:before", ctx);
+#ifndef NDEBUG
+    {
+      YtreePanel *previous_active = ctx->active;
+      PanelIsolationSnapshot previous_active_snapshot;
 
+      /*
+       * Split ownership boundary (docs/ARCHITECTURE.md §4.2.1):
+       * Tab switch may change `ctx->active`/focused window only. The panel
+       * becoming inactive must keep its panel-local snapshot unchanged.
+       */
+      CapturePanelIsolationSnapshot(previous_active, &previous_active_snapshot);
+
+      if (ctx->active == ctx->left) {
+        ctx->active = ctx->right;
+      } else {
+        ctx->active = ctx->left;
+      }
+
+      ctx->focused_window = ctx->active->saved_focus;
+      *s_ptr = &ctx->active->vol->vol_stats;
+      PanelTags_ApplyToTree(ctx, ctx->active);
+      DEBUG_LOG("DirPanelAction:switch:post_toggle active_saved_focus=%d",
+                ctx->active->saved_focus);
+
+      if (ctx->active->vol->total_dirs > 0) {
+        if (ctx->active->disp_begin_pos + ctx->active->cursor_pos >=
+            ctx->active->vol->total_dirs) {
+          ctx->active->cursor_pos =
+              ctx->active->vol->total_dirs - 1 - ctx->active->disp_begin_pos;
+        }
+        *dir_entry_ptr = ResolveActiveDirEntry(ctx, *s_ptr);
+      } else {
+        *dir_entry_ptr = (*s_ptr)->tree;
+      }
+
+      if (*dir_entry_ptr) {
+        char switch_path[PATH_LENGTH + 1];
+        GetPath(*dir_entry_ptr, switch_path);
+        switch_path[PATH_LENGTH] = '\0';
+        DEBUG_LOG("DirPanelAction:switch:resolved_dir='%s'", switch_path);
+      } else {
+        DEBUG_LOG("DirPanelAction:switch:resolved_dir=<null>");
+      }
+
+      DEBUG_LOG("ACTION_SWITCH_PANEL: active panel is now %s with "
+                "cursor_pos=%d, dir_entry=%s",
+                ctx->active == ctx->left ? "LEFT" : "RIGHT",
+                ctx->active->cursor_pos,
+                *dir_entry_ptr ? (*dir_entry_ptr)->name : "NULL");
+
+      SyncActivePanelWindows(ctx);
+      DEBUG_LOG("DirPanelAction:switch:after_sync_windows");
+      *dir_entry_ptr =
+          RestorePanelFileSelection(ctx, *dir_entry_ptr, ctx->active);
+      if (!*dir_entry_ptr && *s_ptr) {
+        *dir_entry_ptr = (*s_ptr)->tree;
+        DEBUG_LOG("DirPanelAction:switch:restore returned null; fallback tree");
+      }
+      if (*dir_entry_ptr) {
+        DEBUG_LOG("DirPanelAction:switch:before_refresh dir='%s'",
+                  (*dir_entry_ptr)->name ? (*dir_entry_ptr)->name : "<nullname>");
+        RefreshView(ctx, *dir_entry_ptr);
+        DEBUG_LOG("DirPanelAction:switch:after_refresh");
+      } else {
+        DEBUG_LOG("DirPanelAction:switch:skip_refresh dir_entry null");
+        return DIR_WINDOW_DISPATCH_HANDLED;
+      }
+      *need_dsp_help_ptr = TRUE;
+      if (ctx->focused_window == FOCUS_FILE && *dir_entry_ptr &&
+          PanelHasVisibleFiles(ctx, ctx->active, *dir_entry_ptr)) {
+        *unput_char_ptr = CR;
+      }
+
+      AssertPanelIsolationSnapshotUnchanged(previous_active,
+                                            &previous_active_snapshot);
+    }
+#else
     if (ctx->active == ctx->left) {
       ctx->active = ctx->right;
     } else {
@@ -1448,6 +1613,7 @@ HandleDirWindowPanelAction(ViewContext *ctx, YtreeAction action,
         PanelHasVisibleFiles(ctx, ctx->active, *dir_entry_ptr)) {
       *unput_char_ptr = CR;
     }
+#endif
     DebugLogSplitState("DirPanelAction:switch:after", ctx);
     return DIR_WINDOW_DISPATCH_CONTINUE;
 
