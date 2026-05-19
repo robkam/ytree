@@ -1849,14 +1849,50 @@ HandleDirWindowLogAction(ViewContext *ctx, DirEntry **dir_entry_ptr,
 
 void ToggleDotFiles(ViewContext *ctx, YtreePanel *p) {
   DirEntry *target;
+  YtreePanel *inactive = NULL;
   int i, found_idx = -1;
   int win_height;
   const Statistic *s;
+  char inactive_anchor_path[PATH_LENGTH + 1];
+  BOOL has_inactive_anchor_path = FALSE;
 
-  if (!p || !p->vol)
+  if (!ctx || !p || !p->vol)
     return;
 
   s = &p->vol->vol_stats;
+  inactive_anchor_path[0] = '\0';
+
+  if (ctx->is_split_screen && ctx->left && ctx->right) {
+    if (p == ctx->left)
+      inactive = ctx->right;
+    else if (p == ctx->right)
+      inactive = ctx->left;
+  }
+
+  if (inactive && inactive->vol == p->vol && inactive->vol->dir_entry_list &&
+      inactive->vol->total_dirs > 0) {
+    int inactive_idx = inactive->disp_begin_pos + inactive->cursor_pos;
+    const DirEntry *inactive_anchor = NULL;
+
+    if (inactive->saved_focus == FOCUS_FILE &&
+        inactive->file_selection_dir_path[0] != '\0') {
+      (void)snprintf(inactive_anchor_path, sizeof(inactive_anchor_path), "%s",
+                     inactive->file_selection_dir_path);
+      has_inactive_anchor_path = TRUE;
+    } else {
+      if (inactive_idx < 0)
+        inactive_idx = 0;
+      if (inactive_idx >= inactive->vol->total_dirs)
+        inactive_idx = inactive->vol->total_dirs - 1;
+      inactive_anchor =
+          inactive->vol->dir_entry_list[inactive_idx].dir_entry;
+      if (inactive_anchor) {
+        GetPath((DirEntry *)inactive_anchor, inactive_anchor_path);
+        inactive_anchor_path[PATH_LENGTH] = '\0';
+        has_inactive_anchor_path = TRUE;
+      }
+    }
+  }
 
   /* Suspend clock to prevent signal handler interrupt corrupting UI during
    * rebuild */
@@ -1934,6 +1970,15 @@ void ToggleDotFiles(ViewContext *ctx, YtreePanel *p) {
     p->cursor_pos = (p->vol->total_dirs > 0)
                         ? (p->vol->total_dirs - 1 - p->disp_begin_pos)
                         : 0;
+  }
+
+  if (inactive && inactive->vol == p->vol && has_inactive_anchor_path) {
+    const DirEntry *inactive_target =
+        FindDirByPath(p->vol, inactive_anchor_path);
+    if (!inactive_target) {
+      inactive_target = FindDirByPathOrAncestor(p->vol, inactive_anchor_path);
+    }
+    ReanchorPanelToDir(inactive, inactive_target);
   }
 
   /* Refresh Directory Tree */

@@ -24,7 +24,6 @@ Ordering policy (for all editors, including AI editors):
 *   **Related**: `ROADMAP` Task 33 (split selection semantics/regression coverage).
 *   **Status**: Fixed.
 
-
 ### **BUG-3: F8 Dotfiles Toggle Leaks Across Panels**
 *   **Description**: In `F8` split mode, toggling dotfiles visibility (`` ` `` do/undo) in the active panel can apply the same visibility change to the inactive panel.
 *   **Repro (manual)**:
@@ -41,6 +40,7 @@ Ordering policy (for all editors, including AI editors):
 *   **Tests/Gates**: Must have deterministic panel-isolation regression coverage under `tests/test_panel_isolation.py`; gate via `pytest` split-isolation subset and PR full-QA CI.
 *   **Status**: Confirmed.
 *   **Ownership-map disposition**: **Blocker documented.** Dotfile visibility is classified as non-transfer split state, but `hide_dot_files` is still session-global (`ViewContext`) and needs a dedicated ownership migration before this bug can close.
+*   **Status**: Fixed.
 
 ### **BUG-4: F8 Dotfiles Toggle Causes Inactive Selection Jitter**
 *   **Description**: In split mode, toggling dotfiles in one panel can make the inactive panel’s selected directory move away and then return (transient cursor/selection drift).
@@ -59,6 +59,7 @@ Ordering policy (for all editors, including AI editors):
 *   **Tests/Gates**: Add deterministic regression asserting no inactive selection movement on non-invalidating dotfile toggles.
 *   **Status**: Confirmed.
 *   **Ownership-map disposition**: **Blocker documented.** Split transfer/switch paths now have boundary invariants and debug cross-panel assertions, but this bug remains coupled to the unresolved dotfile ownership model noted above.
+*   **Status**: Confirmed.
 
 ### **BUG-5: F8 + SMALLWINDOWSKIP=0 Tab Can Force Inactive Panel into Wrong Focus**
 *   **Description**: With `SMALLWINDOWSKIP=0`, when cursor is in the small file window on one panel, `Tab` to the other panel can show that inactive panel as file-focused/zoomed unexpectedly; tabbing back restores prior tree/small state.

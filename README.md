@@ -1,4 +1,4 @@
-# **ytree - The Unix File Logger**
+# **Ytree - The Unix File Logger**
 
 **Ytree** is a keyboard-first file manager for Linux and BSD with fast multi-volume logging and navigation.
 
@@ -20,7 +20,7 @@ Born from the lineage of [XTree&trade;](https://www.xtreefanpage.org/lowres/x10d
 
 Many file managers today function as "browsers"—they look at one directory at a time and rely on the OS to fetch files on demand. `Ytree` is different: it is a **Logger**. It scans ("logs") entire drive hierarchies into memory. This treats the filesystem as a database, allowing you to **Show All** files in a flat view, filter across thousands of subdirectories instantly, and perform bulk operations on tagged files regardless of their location.
 
-This v3.0 project focuses on feature completeness for Unix power users, including split-screen and integrated autoview. The move to a modular C99/POSIX architecture is a practical side effect of delivering those capabilities safely and maintainably.
+Forked in October 2025 from [Ytree](https://www.han.de/~werner/ytree.html) v2.10, created by Werner Bregulla and others. This v3.0 project focuses on feature completeness for Unix power users, including split-screen and integrated autoview. The move to a modular C99/POSIX architecture is a practical side effect of delivering those capabilities safely and maintainably.
 
 ## Development Methodology
 

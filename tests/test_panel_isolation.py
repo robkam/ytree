@@ -1441,6 +1441,86 @@ def test_bug_f_eight_mirrored_inactive_selection_identity_stable(tmp_path, ytree
     tui.quit()
 
 
+def test_bug_f_eight_dotfiles_toggle_keeps_inactive_selection_identity(
+    tmp_path, ytree_binary
+):
+    """
+    BUG-4 regression:
+    In split mode, toggling dotfiles from the active panel must not re-index
+    the inactive panel selection when the selected directory remains valid.
+    """
+    root = tmp_path / "bug_f_eight_dotfiles_inactive_identity"
+    root.mkdir()
+    (root / ".ytree").write_text(
+        "[GLOBAL]\nTREEDEPTH=1\nHIDEDOTFILES=1\n",
+        encoding="utf-8",
+    )
+
+    (root / ".dot_insert").mkdir()
+    (root / "active_dir").mkdir()
+    anchor_dir = root / "anchor_dir"
+    anchor_dir.mkdir()
+    tail_dir = root / "zzz_tail"
+    tail_dir.mkdir()
+
+    (anchor_dir / "anchor_file.txt").write_text("anchor\n", encoding="utf-8")
+    (tail_dir / "tail_file.txt").write_text("tail\n", encoding="utf-8")
+
+    def _active_path_contains(tui, marker):
+        screen = _screen_text(tui)
+        header = screen.splitlines()[0] if screen else ""
+        return marker in header
+
+    def _select_dir_by_marker(tui, marker):
+        for _ in range(40):
+            if _active_path_contains(tui, marker):
+                return
+            tui.send_keystroke(Keys.DOWN, wait=0.2)
+        raise AssertionError(
+            f"Could not select '{marker}' in tree view.\n{_screen_text(tui)}"
+        )
+
+    def _assert_right_panel_opens_tail_dir(tui, label):
+        tui.send_keystroke(Keys.TAB, wait=0.4)
+        _assert_dir_mode_footer(tui, f"{label}: expected right panel tree mode.")
+        tui.send_keystroke(Keys.ENTER, wait=0.5)
+        screen = _screen_text(tui)
+        assert "tail_file.txt" in screen, (
+            f"{label}: inactive selection drifted away from zzz_tail.\n{screen}"
+        )
+        assert "anchor_file.txt" not in screen, (
+            f"{label}: inactive panel entered anchor_dir after dotfiles toggle.\n{screen}"
+        )
+        tui.send_keystroke(Keys.ESC, wait=0.3)
+        _assert_dir_mode_footer(tui, f"{label}: expected right panel to return to tree mode.")
+        tui.send_keystroke(Keys.TAB, wait=0.4)
+
+    tui = YtreeTUI(executable=ytree_binary, cwd=str(root))
+    time.sleep(0.9)
+    try:
+        _select_dir_by_marker(tui, "active_dir")
+
+        tui.send_keystroke(Keys.F8, wait=0.4)
+        tui.send_keystroke(Keys.TAB, wait=0.4)
+        if "hex invert j compare" in _footer_text(tui):
+            tui.send_keystroke(Keys.ESC, wait=0.3)
+        _assert_dir_mode_footer(tui, "Expected right panel tree mode after split.")
+        _select_dir_by_marker(tui, "zzz_tail")
+
+        tui.send_keystroke(Keys.TAB, wait=0.4)
+        _assert_dir_mode_footer(tui, "Expected left panel tree mode before toggle.")
+
+        _assert_right_panel_opens_tail_dir(tui, "baseline")
+
+        tui.send_keystroke("`", wait=0.5)
+        _assert_right_panel_opens_tail_dir(tui, "dotfiles shown")
+
+        tui.send_keystroke("`", wait=0.5)
+        _assert_right_panel_opens_tail_dir(tui, "dotfiles hidden")
+    finally:
+        tui.quit()
+
+
 def test_bug_f_eight_source_selection_survives_destination_tree_prep(
     tmp_path, ytree_binary
 ):

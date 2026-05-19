@@ -1,4 +1,4 @@
-# Contributors to ytree
+# Contributors to Ytree
 
 **Original Development**
 
@@ -24,4 +24,4 @@ Originally developed by [Werner Bregulla](https://www.han.de/~werner/ytree.html)
 
 **v3.0 Modernization**
 
-* **Rob Kam** - Modernized and enhanced the project after decades of dormancy, making extensive use of LLMs for code generation and debugging.
+* **Rob Kam** - Forked in October 2025 from Ytree v2.10. Modernized and enhanced the project after decades of dormancy, making extensive use of LLMs for code generation and debugging.
