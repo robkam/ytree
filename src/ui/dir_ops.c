@@ -30,6 +30,12 @@ static void CaptureInactiveFallback(ViewContext *ctx, YtreePanel *p,
                                     YtreePanel **inactive_out,
                                     DirEntry **inactive_fallback_out);
 static void ReanchorPanelToDir(YtreePanel *panel, const DirEntry *target);
+typedef struct {
+  YtreePanel *panel;
+  char selected_path[PATH_LENGTH + 1];
+  char next_sibling_path[PATH_LENGTH + 1];
+  char prev_sibling_path[PATH_LENGTH + 1];
+} InactiveFallbackSnapshot;
 
 #ifndef NDEBUG
 typedef struct {
@@ -359,6 +365,23 @@ static DirEntry *FindDirByPath(const struct Volume *vol, const char *path) {
   return FindDirByPathInSubTree(vol->vol_stats.tree, path);
 }
 
+static DirEntry *FindVisibleDirByPath(const struct Volume *vol,
+                                      const char *path) {
+  DirEntry *candidate;
+
+  if (!vol || !path || !*path)
+    return NULL;
+
+  candidate = FindDirByPath(vol, path);
+  if (!candidate)
+    return NULL;
+
+  if (FindDirIndex(vol, candidate) < 0)
+    return NULL;
+
+  return candidate;
+}
+
 DirEntry *DirOps_FindDirEntryByPath(const ViewContext *ctx,
                                     const char *dir_path) {
   if (!ctx || !ctx->active || !ctx->active->vol || !dir_path ||
@@ -640,6 +663,112 @@ BOOL DirOps_SelectVisibleDirAndRefresh(ViewContext *ctx, YtreePanel *panel,
   return TRUE;
 }
 
+static DirEntry *GetPanelSelectedDir(const YtreePanel *panel) {
+  DirEntry *selected = NULL;
+
+  if (!panel || !panel->vol)
+    return NULL;
+
+  if (panel->vol->total_dirs > 0 && panel->vol->dir_entry_list) {
+    int idx = panel->disp_begin_pos + panel->cursor_pos;
+    if (idx < 0)
+      idx = 0;
+    if (idx >= panel->vol->total_dirs)
+      idx = panel->vol->total_dirs - 1;
+    selected = panel->vol->dir_entry_list[idx].dir_entry;
+  }
+
+  if (!selected && panel->file_selection_dir_path[0] != '\0')
+    selected = FindDirByPath(panel->vol, panel->file_selection_dir_path);
+  if (!selected)
+    selected = panel->file_dir_entry;
+  if (!selected)
+    selected = panel->vol->vol_stats.tree;
+
+  return selected;
+}
+
+static void CaptureInactiveFallbackSnapshot(ViewContext *ctx, YtreePanel *p,
+                                            InactiveFallbackSnapshot *snapshot) {
+  YtreePanel *inactive;
+  DirEntry *selected;
+
+  if (!snapshot)
+    return;
+
+  snapshot->panel = NULL;
+  snapshot->selected_path[0] = '\0';
+  snapshot->next_sibling_path[0] = '\0';
+  snapshot->prev_sibling_path[0] = '\0';
+
+  if (!ctx || !p || !ctx->is_split_screen)
+    return;
+
+  inactive = (p == ctx->left) ? ctx->right : ctx->left;
+  if (!inactive || inactive->vol != p->vol)
+    return;
+
+  selected = GetPanelSelectedDir(inactive);
+  if (!selected)
+    return;
+
+  snapshot->panel = inactive;
+  GetPath(selected, snapshot->selected_path);
+  snapshot->selected_path[PATH_LENGTH] = '\0';
+  if (selected->next) {
+    GetPath(selected->next, snapshot->next_sibling_path);
+    snapshot->next_sibling_path[PATH_LENGTH] = '\0';
+  }
+  if (selected->prev) {
+    GetPath(selected->prev, snapshot->prev_sibling_path);
+    snapshot->prev_sibling_path[PATH_LENGTH] = '\0';
+  }
+}
+
+static const DirEntry *ResolveInactiveFallbackTarget(
+    const InactiveFallbackSnapshot *snapshot) {
+  const struct Volume *vol;
+  DirEntry *target;
+  char root_path[PATH_LENGTH + 1];
+
+  if (!snapshot || !snapshot->panel || !snapshot->panel->vol)
+    return NULL;
+  vol = snapshot->panel->vol;
+
+  target = FindVisibleDirByPath(vol, snapshot->selected_path);
+  if (target)
+    return target;
+
+  root_path[0] = '\0';
+  if (vol->vol_stats.tree) {
+    GetPath(vol->vol_stats.tree, root_path);
+    root_path[PATH_LENGTH] = '\0';
+  }
+
+  target = FindDirByPathOrAncestor(vol, snapshot->selected_path);
+  while (target) {
+    char target_path[PATH_LENGTH + 1];
+
+    GetPath(target, target_path);
+    target_path[PATH_LENGTH] = '\0';
+    if (FindDirIndex(vol, target) >= 0 &&
+        (root_path[0] == '\0' || strcmp(target_path, root_path) != 0)) {
+      return target;
+    }
+    target = target->up_tree;
+  }
+
+  target = FindVisibleDirByPath(vol, snapshot->next_sibling_path);
+  if (target)
+    return target;
+
+  target = FindVisibleDirByPath(vol, snapshot->prev_sibling_path);
+  if (target)
+    return target;
+
+  return vol->vol_stats.tree;
+}
+
 static void CaptureInactiveFallback(ViewContext *ctx, YtreePanel *p,
                                     const DirEntry *dir_entry,
                                     YtreePanel **inactive_out,
@@ -659,22 +788,7 @@ static void CaptureInactiveFallback(ViewContext *ctx, YtreePanel *p,
   if (!inactive || inactive->vol != p->vol)
     return;
 
-  if (inactive->vol->total_dirs > 0) {
-    int inactive_idx = inactive->disp_begin_pos + inactive->cursor_pos;
-    if (inactive_idx < 0)
-      inactive_idx = 0;
-    if (inactive_idx >= inactive->vol->total_dirs)
-      inactive_idx = inactive->vol->total_dirs - 1;
-    inactive_de = inactive->vol->dir_entry_list[inactive_idx].dir_entry;
-  }
-  if (!inactive_de && inactive->file_selection_dir_path[0] != '\0') {
-    inactive_de = FindDirByPath(inactive->vol, inactive->file_selection_dir_path);
-  }
-  if (!inactive_de)
-    inactive_de = inactive->file_dir_entry;
-  if (!inactive_de) {
-    inactive_de = inactive->vol->vol_stats.tree;
-  }
+  inactive_de = GetPanelSelectedDir(inactive);
 
   inactive_fallback = inactive_de;
   if (dir_entry != NULL) {
@@ -927,6 +1041,10 @@ void HandleDirMakeDirectory(ViewContext *ctx, DirEntry *dir_entry,
 }
 
 DirEntry *HandleDirDeleteDirectory(ViewContext *ctx, DirEntry *dir_entry) {
+  InactiveFallbackSnapshot inactive_snapshot;
+
+  CaptureInactiveFallbackSnapshot(ctx, ctx->active, &inactive_snapshot);
+
   if (!DeleteDirectory(ctx, dir_entry, UI_ChoiceResolver)) {
     if (ctx->active->disp_begin_pos + ctx->active->cursor_pos > 0) {
       if (ctx->active->cursor_pos > 0)
@@ -937,6 +1055,12 @@ DirEntry *HandleDirDeleteDirectory(ViewContext *ctx, DirEntry *dir_entry) {
   }
 
   BuildDirEntryList(ctx, ctx->active->vol, &ctx->active->current_dir_entry);
+  if (inactive_snapshot.panel && inactive_snapshot.panel->vol == ctx->active->vol) {
+    const DirEntry *inactive_target =
+        ResolveInactiveFallbackTarget(&inactive_snapshot);
+    ReanchorPanelToDir(inactive_snapshot.panel, inactive_target);
+    BuildFileEntryList(ctx, inactive_snapshot.panel);
+  }
   dir_entry = ctx->active->vol
                   ->dir_entry_list[ctx->active->disp_begin_pos +
                                    ctx->active->cursor_pos]

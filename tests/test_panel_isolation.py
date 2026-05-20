@@ -1374,6 +1374,116 @@ def test_f8_inactive_selection_moves_to_parent_on_mirrored_collapse(tmp_path, yt
     tui.quit()
 
 
+def test_f8_inactive_selection_delete_falls_to_next_visible_sibling(
+    tmp_path, ytree_binary
+):
+    root = tmp_path / "f8_mirrored_delete_sibling_fallback"
+    root.mkdir()
+
+    before_dir = root / "aaa_before_dir"
+    target_dir = root / "bbb_target_dir"
+    after_dir = root / "ccc_after_dir"
+    before_dir.mkdir()
+    target_dir.mkdir()
+    after_dir.mkdir()
+    (before_dir / "before_marker.txt").write_text("before\n", encoding="utf-8")
+    (target_dir / "target_marker.txt").write_text("target\n", encoding="utf-8")
+    (after_dir / "after_marker.txt").write_text("after\n", encoding="utf-8")
+
+    tui = YtreeTUI(executable=ytree_binary, cwd=str(root))
+    time.sleep(1.0)
+
+    try:
+        tui.send_keystroke(Keys.DOWN, wait=0.3)
+        tui.send_keystroke(Keys.DOWN, wait=0.3)
+
+        tui.send_keystroke(Keys.F8, wait=0.4)
+        tui.send_keystroke(Keys.TAB, wait=0.4)
+        _assert_dir_mode_footer(
+            tui, "Expected right panel tree mode before mirrored delete."
+        )
+
+        tui.send_keystroke(Keys.TAB, wait=0.4)
+        tui.child.send(Keys.DELETE)
+        tui.child.expect(r"(Delete this directory|PRUNE)", timeout=2.0)
+        tui.child.send("Y")
+        tui.send_keystroke("", wait=0.9)
+
+        tui.send_keystroke(Keys.TAB, wait=0.5)
+        _assert_dir_mode_footer(
+            tui, "Expected right panel tree mode after mirrored delete."
+        )
+        tui.send_keystroke(Keys.ENTER, wait=0.6)
+
+        screen = _screen_text(tui)
+        header = screen.splitlines()[0] if screen else ""
+        assert "ccc_after_dir" in header and "bbb_target_dir" not in header, (
+            "Deleting the inactive-selected directory should fall forward to the "
+            "next visible sibling before root.\n"
+            f"{screen}"
+        )
+    finally:
+        tui.quit()
+
+
+def test_f8_inactive_selection_delete_falls_to_visible_ancestor(
+    tmp_path, ytree_binary
+):
+    root = tmp_path / "f8_mirrored_delete_ancestor_fallback"
+    root.mkdir()
+    (root / ".ytree").write_text("[GLOBAL]\nTREEDEPTH=1\n", encoding="utf-8")
+
+    grand_dir = root / "grand_dir"
+    deleted_ancestor = grand_dir / "ancestor_to_delete"
+    selected_dir = deleted_ancestor / "selected_leaf"
+    grand_dir.mkdir()
+    deleted_ancestor.mkdir()
+    selected_dir.mkdir()
+    (grand_dir / "grand_marker.txt").write_text("grand\n", encoding="utf-8")
+    (selected_dir / "selected_marker.txt").write_text("selected\n", encoding="utf-8")
+
+    tui = YtreeTUI(executable=ytree_binary, cwd=str(root))
+    time.sleep(1.0)
+
+    try:
+        tui.send_keystroke(Keys.DOWN, wait=0.3)
+        tui.send_keystroke(Keys.RIGHT, wait=0.5)
+        tui.send_keystroke(Keys.DOWN, wait=0.3)
+        tui.send_keystroke(Keys.RIGHT, wait=0.5)
+
+        tui.send_keystroke(Keys.F8, wait=0.4)
+        tui.send_keystroke(Keys.TAB, wait=0.4)
+        _assert_dir_mode_footer(
+            tui, "Expected right panel tree mode before ancestor delete."
+        )
+        tui.send_keystroke(Keys.DOWN, wait=0.3)
+
+        tui.send_keystroke(Keys.TAB, wait=0.4)
+        tui.child.send(Keys.DELETE)
+        tui.child.expect(r"(Delete this directory|PRUNE)", timeout=2.0)
+        tui.child.send("Y")
+        tui.send_keystroke("", wait=1.0)
+
+        tui.send_keystroke(Keys.TAB, wait=0.5)
+        _assert_dir_mode_footer(
+            tui, "Expected right panel tree mode after ancestor delete."
+        )
+        tui.send_keystroke(Keys.ENTER, wait=0.6)
+
+        screen = _screen_text(tui)
+        assert "grand_marker.txt" in screen, (
+            "Deleting an ancestor of the inactive selection should fall back to the "
+            "nearest surviving visible ancestor.\n"
+            f"{screen}"
+        )
+        assert "selected_marker.txt" not in screen, (
+            "Inactive panel still entered the deleted subtree after ancestor delete.\n"
+            f"{screen}"
+        )
+    finally:
+        tui.quit()
+
+
 def test_bug_f_eight_mirrored_inactive_selection_identity_stable(tmp_path, ytree_binary):
     """
     BUG-36 regression:
@@ -1439,6 +1549,77 @@ def test_bug_f_eight_mirrored_inactive_selection_identity_stable(tmp_path, ytree
         )
 
     tui.quit()
+
+
+def test_bug_f_eight_mkdir_additions_keep_inactive_selection_identity(
+    tmp_path, ytree_binary
+):
+    root = tmp_path / "bug_f_eight_mkdir_add_identity"
+    root.mkdir()
+    (root / ".ytree").write_text("[GLOBAL]\nTREEDEPTH=1\n", encoding="utf-8")
+
+    active_branch = root / "active_branch"
+    tail_dir = root / "zzz_tail"
+    active_branch.mkdir()
+    tail_dir.mkdir()
+    (active_branch / "branch_file.txt").write_text("branch\n", encoding="utf-8")
+    (active_branch / "child_existing").mkdir()
+    (tail_dir / "tail_file.txt").write_text("tail\n", encoding="utf-8")
+
+    def _active_path_contains(tui, marker):
+        screen = _screen_text(tui)
+        header = screen.splitlines()[0] if screen else ""
+        return marker in header
+
+    def _select_dir_by_marker(tui, marker):
+        for _ in range(40):
+            if _active_path_contains(tui, marker):
+                return
+            tui.send_keystroke(Keys.DOWN, wait=0.2)
+        raise AssertionError(
+            f"Could not select '{marker}' in tree view.\n{_screen_text(tui)}"
+        )
+
+    def _assert_right_panel_opens_tail_dir(tui, label):
+        tui.send_keystroke(Keys.TAB, wait=0.4)
+        _assert_dir_mode_footer(tui, f"{label}: expected right panel tree mode.")
+        tui.send_keystroke(Keys.ENTER, wait=0.5)
+        screen = _screen_text(tui)
+        header = screen.splitlines()[0] if screen else ""
+        assert "zzz_tail" in header and "active_branch" not in header, (
+            f"{label}: inactive selection drifted away from zzz_tail.\n{screen}"
+        )
+        tui.send_keystroke(Keys.ESC, wait=0.3)
+        _assert_dir_mode_footer(tui, f"{label}: expected right panel to return to tree mode.")
+        tui.send_keystroke(Keys.TAB, wait=0.4)
+
+    tui = YtreeTUI(executable=ytree_binary, cwd=str(root))
+    time.sleep(0.9)
+    try:
+        _select_dir_by_marker(tui, "active_branch")
+        tui.send_keystroke(Keys.F8, wait=0.4)
+        tui.send_keystroke(Keys.TAB, wait=0.4)
+        _assert_dir_mode_footer(tui, "Expected right panel tree mode after split.")
+        _select_dir_by_marker(tui, "zzz_tail")
+        tui.send_keystroke(Keys.TAB, wait=0.4)
+        _assert_dir_mode_footer(tui, "Expected left panel tree mode before mkdir flow.")
+
+        _assert_right_panel_opens_tail_dir(tui, "baseline")
+
+        tui.send_keystroke(Keys.HOME, wait=0.3)
+        tui.send_keystroke("M", wait=0.2)
+        assert tui.wait_for_content("MAKE DIRECTORY:", timeout=1.0), _screen_text(tui)
+        tui.send_keystroke("aaa_root_insert" + Keys.ENTER, wait=0.8)
+        _assert_right_panel_opens_tail_dir(tui, "after sibling add")
+
+        _select_dir_by_marker(tui, "active_branch")
+        tui.send_keystroke(Keys.RIGHT, wait=0.4)
+        tui.send_keystroke("M", wait=0.2)
+        assert tui.wait_for_content("MAKE DIRECTORY:", timeout=1.0), _screen_text(tui)
+        tui.send_keystroke("aaa_child_insert" + Keys.ENTER, wait=0.8)
+        _assert_right_panel_opens_tail_dir(tui, "after ancestor-branch add")
+    finally:
+        tui.quit()
 
 
 def test_bug_f_eight_dotfiles_toggle_keeps_inactive_selection_identity(
