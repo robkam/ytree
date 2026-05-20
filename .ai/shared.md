@@ -112,7 +112,7 @@ These instructions apply to all AI agents used in this repository.
     - Convert draft PR to ready only after posting full QA evidence in a PR comment.
     - Before merge, require green PR checks and reviewer signoff.
 23. Change-description durability is mandatory: commit subjects and PR titles/summaries MUST describe the concrete behavior/problem being changed, and MUST NOT rely on volatile tracker IDs alone (for example `BUG-14`, `TASK-7`) as the primary description.
-24. Agentic-loop autonomy and clarity are mandatory: worker completion notifications/events must trigger automatic loop progression without maintainer echo/re-send of worker completion text; maintainer-facing status wording must use only `active`, `completed`, or `blocked` and must not use ambiguous runtime labels such as `awaiting instruction`.
+24. Agentic-loop autonomy and clarity are mandatory: proactively poll/wait `active` workers to terminal `completed`/`blocked`; worker completion notifications/events are immediate triggers that must progress the loop without maintainer echo/re-send of worker completion text; on completion immediately read the completion report, run required validation checks, close the completed worker agent, proceed to the next planned step, and post a delta-only maintainer update; maintainer-facing status wording must use only `active`, `completed`, or `blocked` and must not use ambiguous runtime labels such as `awaiting instruction`.
 
 ## Source Comment Contract
 
