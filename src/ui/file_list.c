@@ -205,8 +205,12 @@ void DisplayFileWindow(ViewContext *ctx, YtreePanel *panel,
 
   BuildFileEntryList(ctx, panel);
 
-  render_start = dir_entry->start_file;
-  render_cursor = dir_entry->cursor_pos;
+  render_start = 0;
+  render_cursor = 0;
+  if (dir_entry) {
+    render_start = dir_entry->start_file;
+    render_cursor = dir_entry->cursor_pos;
+  }
   if (panel->file_count == 0) {
     render_start = 0;
     render_cursor = 0;

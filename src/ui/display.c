@@ -745,7 +745,7 @@ void RefreshView(ViewContext *ctx, DirEntry *dir_entry) {
     char path[PATH_LENGTH + 1];
     DirEntry *path_dir = dir_entry;
 
-    if (!ctx->preview_mode && ctx->focused_window == FOCUS_FILE &&
+    if (!ctx->preview_mode && dir_entry && ctx->focused_window == FOCUS_FILE &&
         ctx->active && ctx->active->file_entry_list &&
         ctx->active->file_count > 0) {
       int idx = dir_entry->start_file + dir_entry->cursor_pos;

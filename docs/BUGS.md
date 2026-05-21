@@ -15,14 +15,20 @@ Ordering policy (for all editors, including AI editors):
 *   **Description**: Cycling logged volumes can cause dir/file window mode/state changes in one volume to appear in the other, instead of each volume retaining its own last-used state.
 *   **Impact**: Breaks per-volume navigation predictability and increases wrong-target risk during fast volume switching workflows.
 *   **Remediation**: Preserve and restore per-volume dir/file window state independently when cycling volumes. Add regression coverage for repeated `<`/`>` transitions across volumes with different view states.
-*   **Status**: Fixed.
+*   **Regression notes (manual, 2026-05-21)**:
+    *   `F10` can fail with `Can't edit "/home/rob/.ytree"` after volume-cycle transitions, then succeeds again after cycling back.
+    *   With `SMALLWINDOWSKIP=0`, cycling away and back from a zoomed file window can return the same location in small-window non-zoom state.
+*   **Status**: Reopened (regression confirmed).
 
 ### **BUG-2: F8 Same-Volume Destination Navigation Can Lose Source Selection/Tagged Set**
 *   **Description**: In `F8` split mode on the same volume, navigating the destination side (including creating/changing directories during copy/move preparation) can cause the original source file selection/tagged set to disappear or be replaced by the destination-context file list.
 *   **Impact**: Breaks split-panel isolation and creates high wrong-target risk in copy/move workflows because source intent is lost while preparing destination paths.
 *   **Remediation**: Enforce source-vs-destination state isolation in split mode so destination-side `mkdir`/`cd` and tree navigation cannot mutate source selection/tag state. Preserve source tagged/selection state by stable file identity across destination context changes, and apply deterministic fallback only when a selected source entry truly no longer exists.
 *   **Related**: `ROADMAP` Task 33 (split selection semantics/regression coverage).
-*   **Status**: Fixed.
+*   **Regression notes (manual, 2026-05-21)**:
+    *   With `SMALLWINDOWSKIP=0`, `F8` can open with inactive/right panel wrongly zoomed to file window.
+    *   `Tab` can make the newly inactive side with tagged files flip into zoomed file-window state.
+*   **Status**: Reopened (regression confirmed).
 
 ### **BUG-3: F8 Dotfiles Toggle Leaks Across Panels**
 *   **Description**: In `F8` split mode, toggling dotfiles visibility (`` ` `` do/undo) in the active panel can apply the same visibility change to the inactive panel.
@@ -38,9 +44,10 @@ Ordering policy (for all editors, including AI editors):
 *   **Impact**: Breaks panel isolation and can silently alter the source/destination working view.
 *   **Remediation**: Move dotfile-visibility ownership to panel-local split state and keep shared-tree updates limited to topology-only mirroring. Add split regression coverage for active-side dotfile toggles with inactive-panel state snapshots.
 *   **Tests/Gates**: Must have deterministic panel-isolation regression coverage under `tests/test_panel_isolation.py`; gate via `pytest` split-isolation subset and PR full-QA CI.
-*   **Status**: Confirmed.
-*   **Ownership-map disposition**: **Blocker documented.** Dotfile visibility is classified as non-transfer split state, but `hide_dot_files` is still session-global (`ViewContext`) and needs a dedicated ownership migration before this bug can close.
-*   **Status**: Fixed.
+*   **Regression notes (manual, 2026-05-21)**:
+    *   In split mode, active-panel dotfile toggles still influence inactive-panel behavior after `Tab` transitions.
+    *   Toggling in active file window can still perturb inactive tree presentation.
+*   **Status**: Reopened (regression confirmed).
 
 ### **BUG-4: F8 Dotfiles Toggle Causes Inactive Selection Jitter**
 *   **Description**: In split mode, toggling dotfiles in one panel can make the inactive panel’s selected directory move away and then return (transient cursor/selection drift).
@@ -57,9 +64,7 @@ Ordering policy (for all editors, including AI editors):
 *   **Impact**: Indicates unstable cross-panel state restoration and increases risk of wrong-target operations after state churn.
 *   **Remediation**: Re-anchor inactive selection strictly by stable directory identity/path during mirror updates; never re-resolve by transient index unless deterministic fallback is required.
 *   **Tests/Gates**: Add deterministic regression asserting no inactive selection movement on non-invalidating dotfile toggles.
-*   **Status**: Confirmed.
-*   **Ownership-map disposition**: **Blocker documented.** Split transfer/switch paths now have boundary invariants and debug cross-panel assertions, but this bug remains coupled to the unresolved dotfile ownership model noted above.
-*   **Status**: Confirmed.
+*   **Status**: Fixed (manually re-verified 2026-05-21).
 
 ### **BUG-5: F8 + SMALLWINDOWSKIP=0 Tab Can Force Inactive Panel into Wrong Focus**
 *   **Description**: With `SMALLWINDOWSKIP=0`, when cursor is in the small file window on one panel, `Tab` to the other panel can show that inactive panel as file-focused/zoomed unexpectedly; tabbing back restores prior tree/small state.
@@ -76,7 +81,9 @@ Ordering policy (for all editors, including AI editors):
 *   **Impact**: Breaks trust in split focus separation and can trigger wrong-context commands.
 *   **Remediation**: Harden switch-time state transfer so focus/view state is restored from panel-owned snapshots only; forbid cross-panel focus inheritance during `Tab` unless explicitly commanded by the active panel.
 *   **Tests/Gates**: Add/maintain deterministic regression for `SMALLWINDOWSKIP=0` split/tab focus retention in `tests/test_panel_isolation.py`.
-*   **Status**: Fixed.
+*   **Regression notes (manual, 2026-05-21)**:
+    *   With `SMALLWINDOWSKIP=0`, `Tab` can still show the inactive panel in zoomed file-window focus until tabbing back.
+*   **Status**: Reopened (regression confirmed).
 
 ### **BUG-6: F7 Preview Over-Restricts Command Availability**
 *   **Description**: `F7` mode is currently incomplete for inspect-and-act workflows. Too many common file actions are disabled, so users must leave preview to continue work.
