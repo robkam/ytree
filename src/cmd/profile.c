@@ -93,6 +93,48 @@ static Profile profile[] = {
 static int Compare(const void *s1, const void *s2);
 static int ChCode(const char *s);
 
+void FreeProfileRuntimeData(ViewContext *ctx) {
+  size_t i;
+  Viewer *v, *next_v;
+  Filemenu *m, *next_m;
+  Dirmenu *d, *next_d;
+
+  (void)ctx;
+
+  for (i = 0; i < PROFILE_ENTRIES; ++i) {
+    if (profile[i].value != NULL) {
+      free(profile[i].value);
+      profile[i].value = NULL;
+    }
+  }
+
+  for (v = viewer.next; v != NULL; v = next_v) {
+    next_v = v->next;
+    if (v->ext != NULL)
+      free(v->ext);
+    if (v->cmd != NULL)
+      free(v->cmd);
+    free(v);
+  }
+  viewer.next = NULL;
+
+  for (m = filemenu.next; m != NULL; m = next_m) {
+    next_m = m->next;
+    if (m->cmd != NULL)
+      free(m->cmd);
+    free(m);
+  }
+  filemenu.next = NULL;
+
+  for (d = dirmenu.next; d != NULL; d = next_d) {
+    next_d = d->next;
+    if (d->cmd != NULL)
+      free(d->cmd);
+    free(d);
+  }
+  dirmenu.next = NULL;
+}
+
 int ReadProfile(ViewContext *ctx, const char *filename) {
   int result = -1;
   char buffer[1024], *old;
@@ -110,14 +152,12 @@ int ReadProfile(ViewContext *ctx, const char *filename) {
   ctx->dirmenu_list = &dirmenu;
   ctx->filemenu_list = &filemenu;
 
+  FreeProfileRuntimeData(ctx);
+
   section = NO_SECTION;
   v = (Viewer *)ctx->viewer_list;
   m = (Filemenu *)ctx->filemenu_list;
   d = (Dirmenu *)ctx->dirmenu_list;
-
-  v->next = NULL;
-  m->next = NULL;
-  d->next = NULL;
 
   if ((f = fopen(filename, "r")) == NULL) {
     return -1;
