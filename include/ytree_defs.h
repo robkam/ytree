@@ -922,6 +922,7 @@ extern int RemoveFile(ViewContext *ctx, FileEntry *fe_ptr, Statistic *s);
 extern int MakePath(const ViewContext *ctx, DirEntry *tree, char *dir_path,
                     DirEntry **dest_dir_entry);
 extern int ReadProfile(ViewContext *ctx, const char *filename);
+extern void FreeProfileRuntimeData(ViewContext *ctx);
 extern void ReadHistory(ViewContext *ctx, const char *Filename);
 extern int ReadPasswdEntries(void);
 extern int ReadGroupEntries(void);

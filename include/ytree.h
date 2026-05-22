@@ -196,6 +196,7 @@ extern char *xstrdup(const char *s);
 #include "watcher.h"
 
 extern int(ReadProfile)(ViewContext *ctx, const char *filename);
+extern void(FreeProfileRuntimeData)(ViewContext *ctx);
 extern void(ReadHistory)(ViewContext *ctx, const char *filename);
 extern void(SaveHistory)(ViewContext *ctx, const char *filename);
 extern void(InsHistory)(ViewContext *ctx, const char *NewHst, int type);

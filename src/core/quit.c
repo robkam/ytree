@@ -49,6 +49,7 @@ static void PerformQuit(ViewContext *ctx) {
       quit_ops->shutdown_terminal(ctx);
     if (quit_ops->cleanup_volume_tree != NULL)
       quit_ops->cleanup_volume_tree(ctx);
+    FreeProfileRuntimeData(ctx);
     /* Final safety net for terminal state */
     if (system("stty sane")) {
       ;
