@@ -46,12 +46,15 @@ static void SavePanelFileSelection(YtreePanel *panel) {
   state = GetPanelVolumeFileState(panel, panel->vol->id);
   state->saved_file_start = panel->start_file;
   state->saved_file_cursor = panel->file_cursor_pos;
+  state->saved_big_file_view = FALSE;
 
   state->saved_file_dir_path[0] = '\0';
   if (panel->file_dir_entry != NULL) {
     GetPath(panel->file_dir_entry, state->saved_file_dir_path);
     state->saved_file_dir_path[PATH_LENGTH] = '\0';
+    state->saved_big_file_view = panel->file_dir_entry->big_window;
   }
+  panel->saved_big_file_view = state->saved_big_file_view;
 
   (void)snprintf(state->saved_file_selection_name,
                  sizeof(state->saved_file_selection_name), "%s",
@@ -117,6 +120,7 @@ static void RestorePanelFileSelection(YtreePanel *panel) {
   panel->file_selection_name[0] = '\0';
   panel->file_selection_dir_path[0] = '\0';
   panel->file_dir_entry = NULL;
+  panel->saved_big_file_view = FALSE;
   if (!state)
     return;
 
@@ -135,7 +139,10 @@ static void RestorePanelFileSelection(YtreePanel *panel) {
   if (state->saved_file_dir_path[0] != '\0') {
     resolved_file_dir = FindSavedDirInVolume(vol, state->saved_file_dir_path);
     panel->file_dir_entry = resolved_file_dir;
+    if (resolved_file_dir)
+      resolved_file_dir->big_window = state->saved_big_file_view;
   }
+  panel->saved_big_file_view = state->saved_big_file_view;
 }
 
 static void SavePanelTreeSelection(YtreePanel *panel) {
@@ -208,17 +215,6 @@ static void Log_Progress(ViewContext *ctx, const void *data) {
     if (ctx->hook_refresh_ui)
       ctx->hook_refresh_ui();
   }
-}
-
-/* Helper function to clear big_window flag recursively */
-static void RecursiveClearBigWindow(DirEntry *d) {
-  if (!d)
-    return;
-  d->big_window = FALSE;
-  if (d->sub_tree)
-    RecursiveClearBigWindow(d->sub_tree);
-  if (d->next)
-    RecursiveClearBigWindow(d->next);
 }
 
 /*
@@ -642,8 +638,6 @@ int CycleLoadedVolume(ViewContext *ctx, YtreePanel *panel, int direction) {
     /* Use LogDisk to attempt the switch.
      * LogDisk handles validation, cleanup if inaccessible, and UI updates. */
     if (LogDisk(ctx, panel, target_path) == 0) {
-      /* Force UI reset to standard split view on cycle */
-      RecursiveClearBigWindow(panel->vol->vol_stats.tree);
       if (ctx->hook_recreate_windows)
         ctx->hook_recreate_windows(ctx);
       if (ctx->hook_clock_handler)
