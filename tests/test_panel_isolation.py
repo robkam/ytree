@@ -2398,6 +2398,152 @@ def test_bug_same_volume_home_mkdir_from_home_root_keeps_inactive_file_state(
         tui.quit()
 
 
+def test_bug2_copy_cancel_then_destination_mkdir_keeps_source_anchor(
+    tmp_path, ytree_binary
+):
+    """
+    BUG-2 regression (maintainer manual flow):
+    In source file mode, opening COPY and stepping into destination prompt before
+    split destination prep must not mutate source tagged/selection identity.
+    """
+    home = tmp_path / "home" / "user"
+    repo = home / "ytree"
+    repo.mkdir(parents=True)
+    (home / ".ytree").write_text(
+        "[GLOBAL]\n"
+        "AUTO_REFRESH=3\n"
+        "TREEDEPTH=2\n"
+        "FILEMODE=2\n"
+        "SMALLWINDOWSKIP=1\n"
+        "HIDEDOTFILES=1\n",
+        encoding="utf-8",
+    )
+
+    for name in ("go", "snap", "wikiteam3_utilities"):
+        (home / name).mkdir()
+    (home / "go" / "pkg").mkdir()
+    (home / "snap" / "glow").mkdir(parents=True)
+    (home / "wikiteam3_utilities" / "dumps").mkdir(parents=True)
+    (home / "wikiteam3_utilities" / "for later").mkdir(parents=True)
+
+    for name in ("docs", "include", "scripts", "src", "tests"):
+        (repo / name).mkdir()
+
+    cmd_dir = repo / "src" / "cmd"
+    cmd_dir.mkdir()
+    (cmd_dir / "a.c").write_text("a\n", encoding="utf-8")
+    (cmd_dir / "b.c").write_text("b\n", encoding="utf-8")
+    (cmd_dir / "c.c").write_text("c\n", encoding="utf-8")
+
+    tui = YtreeTUI(
+        executable=ytree_binary, cwd=str(home), env_extra={"HOME": str(home)}
+    )
+    time.sleep(0.9)
+
+    try:
+        found_ytree = False
+        for _ in range(200):
+            if _stats_current_dir_contains(tui.get_screen_dump(), "ytree"):
+                found_ytree = True
+                break
+            tui.send_keystroke(Keys.DOWN, wait=0.08)
+        assert found_ytree, _screen_text(tui)
+
+        tui.send_keystroke(Keys.RIGHT, wait=0.25)
+        found_src = False
+        for _ in range(200):
+            if _stats_current_dir_contains(tui.get_screen_dump(), "src"):
+                found_src = True
+                break
+            tui.send_keystroke(Keys.DOWN, wait=0.08)
+        assert found_src, _screen_text(tui)
+
+        tui.send_keystroke(Keys.RIGHT, wait=0.25)
+        found_cmd = False
+        for _ in range(200):
+            if _stats_current_dir_contains(tui.get_screen_dump(), "cmd"):
+                found_cmd = True
+                break
+            tui.send_keystroke(Keys.DOWN, wait=0.08)
+        assert found_cmd, _screen_text(tui)
+
+        tui.send_keystroke(Keys.RIGHT, wait=0.2)
+        tui.send_keystroke(Keys.ENTER, wait=0.45)
+        assert "hex invert j compare" in _footer_text(tui), _screen_text(tui)
+
+        for _ in range(3):
+            tui.send_keystroke("t", wait=0.2)
+        pre_screen = _screen_text(tui)
+        pre_tag_state = {}
+        for name in ("a.c", "b.c", "c.c"):
+            line = _find_line_with_text(tui, name)
+            assert line is not None, pre_screen
+            pre_tag_state[name] = _line_marks_file_as_tagged(line, name)
+        assert any(pre_tag_state.values()), (
+            "Precondition failed: no tagged source files before split flow.\n"
+            f"{pre_screen}"
+        )
+
+        tui.send_keystroke("c", wait=0.3)
+        assert tui.wait_for_content("COPY:", timeout=1.0), _screen_text(tui)
+        baseline_source = _current_copy_source(tui)
+        assert baseline_source is not None, _screen_text(tui)
+        tui.send_keystroke(Keys.ENTER, wait=0.3)
+        tui.send_keystroke(Keys.ESC, wait=0.25)
+        if "COPY:" in _screen_text(tui):
+            tui.send_keystroke(Keys.ESC, wait=0.2)
+
+        tui.send_keystroke(Keys.F8, wait=0.4)
+        tui.send_keystroke(Keys.TAB, wait=0.4)
+        tui.send_keystroke(Keys.ENTER, wait=0.35)
+        if "hex invert j compare" in _footer_text(tui):
+            tui.send_keystroke(Keys.ESC, wait=0.25)
+        _assert_dir_mode_footer(
+            tui, "Destination panel should be in tree mode after leaving file view."
+        )
+        tui.send_keystroke(Keys.HOME, wait=0.35)
+        tui.send_keystroke("M", wait=0.25)
+        assert tui.wait_for_content("MAKE DIRECTORY:", timeout=1.0), _screen_text(tui)
+        tui.send_keystroke("00" + Keys.ENTER, wait=0.8)
+
+        screen_right_active = _screen_text(tui)
+        for name in ("a.c", "b.c", "c.c"):
+            line = _find_line_with_text(tui, name)
+            assert line is not None, (
+                "Source panel lost file rows while destination prep was active.\n"
+                f"{screen_right_active}"
+            )
+            assert _line_marks_file_as_tagged(line, name) == pre_tag_state[name], (
+                "Source tagged state changed during destination prep.\n"
+                f"Expected tagged={pre_tag_state[name]} Row: {line}\n"
+                f"{screen_right_active}"
+            )
+
+        tui.send_keystroke(Keys.TAB, wait=0.5)
+        screen_after_tab = _screen_text(tui)
+        assert "hex invert j compare" in _footer_text(tui), screen_after_tab
+        for name in ("a.c", "b.c", "c.c"):
+            line = _find_line_with_text(tui, name)
+            assert line is not None, (
+                "Source panel did not resume cmd file rows after TAB.\n"
+                f"{screen_after_tab}"
+            )
+            assert _line_marks_file_as_tagged(line, name) == pre_tag_state[name], (
+                "Source tagged state changed after TAB back.\n"
+                f"Expected tagged={pre_tag_state[name]} Row: {line}\n"
+                f"{screen_after_tab}"
+            )
+
+        tui.send_keystroke("c", wait=0.3)
+        assert tui.wait_for_content(f"COPY: {baseline_source}", timeout=1.0), (
+            "Source selected-file identity changed after destination prep flow.\n"
+            f"{_screen_text(tui)}"
+        )
+        tui.send_keystroke(Keys.ESC, wait=0.2)
+    finally:
+        tui.quit()
+
+
 def test_source_tagged_selection_survives_destination_prep(tmp_path, ytree_binary):
     """
     BUG-36 regression:

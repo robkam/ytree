@@ -966,27 +966,31 @@ void HandleDirMakeDirectory(ViewContext *ctx, DirEntry *dir_entry,
   }
   if (inactive && inactive->vol == ctx->active->vol &&
       inactive->saved_focus == FOCUS_FILE) {
-    if (inactive->vol->total_dirs > 0) {
-      int inactive_idx = inactive->disp_begin_pos + inactive->cursor_pos;
-      DirEntry *inactive_dir = NULL;
-      if (inactive_idx < 0)
-        inactive_idx = 0;
-      if (inactive_idx >= inactive->vol->total_dirs)
-        inactive_idx = inactive->vol->total_dirs - 1;
-      inactive_dir = inactive->vol->dir_entry_list[inactive_idx].dir_entry;
-      if (!inactive_dir)
-        inactive_dir = inactive->file_dir_entry;
-      if (inactive_dir) {
-        inactive->file_dir_entry = inactive_dir;
-        CapturePanelSelectionAnchor(ctx, inactive, inactive_dir);
-      }
-    }
     inactive_start_file = inactive->start_file;
     inactive_file_cursor = inactive->file_cursor_pos;
     (void)snprintf(inactive_file_dir_path, sizeof(inactive_file_dir_path), "%s",
                    inactive->file_selection_dir_path);
     (void)snprintf(inactive_file_name, sizeof(inactive_file_name), "%s",
                    inactive->file_selection_name);
+    if (inactive_file_dir_path[0] == '\0' || inactive_file_name[0] == '\0') {
+      DirEntry *inactive_dir = inactive->file_dir_entry;
+      if (!inactive_dir && inactive->vol->total_dirs > 0) {
+        int inactive_idx = inactive->disp_begin_pos + inactive->cursor_pos;
+        if (inactive_idx < 0)
+          inactive_idx = 0;
+        if (inactive_idx >= inactive->vol->total_dirs)
+          inactive_idx = inactive->vol->total_dirs - 1;
+        inactive_dir = inactive->vol->dir_entry_list[inactive_idx].dir_entry;
+      }
+      if (inactive_dir) {
+        inactive->file_dir_entry = inactive_dir;
+        CapturePanelSelectionAnchor(ctx, inactive, inactive_dir);
+        (void)snprintf(inactive_file_dir_path, sizeof(inactive_file_dir_path),
+                       "%s", inactive->file_selection_dir_path);
+        (void)snprintf(inactive_file_name, sizeof(inactive_file_name), "%s",
+                       inactive->file_selection_name);
+      }
+    }
     CapturePanelTaggedSnapshot(inactive, &inactive_tagged_snapshot);
     restore_inactive_file_anchor = TRUE;
   }
