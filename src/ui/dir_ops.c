@@ -1154,10 +1154,14 @@ void HandleSwitchWindow(ViewContext *ctx, DirEntry *dir_entry,
     if (dir_entry->log_flag) {
       dir_entry->log_flag = FALSE;
     } else {
+      BOOL restore_saved_file_window =
+          (p->saved_focus == FOCUS_FILE && p->saved_big_file_view &&
+           p->file_dir_entry == dir_entry);
       dir_entry->global_flag = FALSE;
       dir_entry->global_all_volumes = FALSE;
       dir_entry->tagged_flag = FALSE;
-      dir_entry->big_window = ctx->bypass_small_window;
+      if (!restore_saved_file_window)
+        dir_entry->big_window = ctx->bypass_small_window;
       if (p->file_dir_entry == dir_entry) {
         dir_entry->start_file = p->start_file;
         dir_entry->cursor_pos = p->file_cursor_pos;
