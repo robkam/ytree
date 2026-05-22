@@ -30,6 +30,40 @@ Ordering policy (for all editors, including AI editors):
     *   `Tab` can make the newly inactive side with tagged files flip into zoomed file-window state.
 *   **Status**: Reopened (regression confirmed).
 
+### **BUG-2.3: Split `Tab` Transition Can Trigger Obvious Wrong-Surface Refresh**
+*   **Description**: During `F8` split copy-destination preparation, `Tab` can trigger a visibly incorrect/ugly window refresh where the UI redraw surface appears unstable even though source state remains intact.
+*   **Repro (manual, 2026-05-22)**:
+    *   In source panel file window, tag first files under `/home/rob/ytree/src/cmd`.
+    *   Start `c` copy flow, `Enter` into destination prompt, then cancel/return.
+    *   `F8`, `Tab`, `Enter` to leave file window, cycle destination tree, `Home`, `M 00`, select `00`.
+    *   Press `Tab` back.
+*   **Expected**: Stable panel redraw across `Tab` transitions with no obvious wrong-surface flash/churn.
+*   **Actual**: Very obvious ugly refresh happens at `Tab` transition.
+*   **Notes**:
+    *   In this flow, source selection/tag identity remained unchanged (so this is a redraw/render defect, not BUG-2 selection-loss itself).
+*   **Impact**: Degrades trust and usability in high-frequency split copy/move workflows.
+*   **Remediation**: Audit split redraw ownership/order around `Tab` transition and destination-prep mode switches; enforce deterministic repaint sequencing for active/inactive surfaces.
+*   **Status**: Confirmed.
+
+### **BUG-2.5: Volume Switch Can Lose Per-Volume File Context (`SMALLWINDOWSKIP=1`)**
+*   **Description**: With `SMALLWINDOWSKIP=1`, switching between logged volumes can lose previously selected deep file context and return to parent tree location instead.
+*   **Repro (manual, 2026-05-22)**:
+    *   `yt ~`
+    *   `log /home/rob/xtreefanpage`
+    *   Enter `/home/rob/xtreefanpage/download`, select `noans.zip`
+    *   `log /home/rob/ytree`
+    *   Enter `/home/rob/ytree/src/cmd`, select `rename.c`
+    *   On `~` select end dir, `k release ~`
+    *   Switch to `/home/rob/ytree`
+*   **Expected**: Return to prior file context (`/home/rob/ytree/src/cmd`, selected `rename.c`) for that volume.
+*   **Actual**: Selection returns in tree context with `/home/rob/ytree/src/cmd` moved to a different directory-row position (reported as second-from-bottom), not preserved file-context state.
+*   **Additional observation**:
+    *   After moving `/home/rob/ytree/src/cmd` to `/home/rob/ytree` and switching back to `/home/rob/xtreefanpage`, view no longer returns to `/home/rob/xtreefanpage/download`; lands at `/home/rob/xtreefanpage` dir view.
+    *   `SMALLWINDOWSKIP=0` not yet tried for this defect family.
+*   **Impact**: Breaks per-volume resume guarantees and creates wrong-target risk during cross-volume workflows.
+*   **Remediation**: Persist and restore per-volume file-context anchor (dir path + file selection + view mode) independently from transient tree-row position.
+*   **Status**: Confirmed.
+
 ### **BUG-3: F8 Dotfiles Toggle Leaks Across Panels**
 *   **Description**: In `F8` split mode, toggling dotfiles visibility (`` ` `` do/undo) in the active panel can apply the same visibility change to the inactive panel.
 *   **Repro (manual)**:

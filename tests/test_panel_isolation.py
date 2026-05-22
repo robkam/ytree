@@ -1894,6 +1894,98 @@ def test_source_selection_survives_destination_tree_prep_home_mkdir(
         tui.quit()
 
 
+def test_bug2_smallwindowskip_zero_source_selection_survives_destination_prep(
+    tmp_path, ytree_binary
+):
+    root = tmp_path / "bug2_smallwindowskip_zero_source_selection"
+    root.mkdir()
+    (root / ".ytree").write_text("[GLOBAL]\nSMALLWINDOWSKIP=0\n", encoding="utf-8")
+
+    source_dir = root / "source_dir"
+    source_dir.mkdir()
+    target_dir = root / "target_dir"
+    target_dir.mkdir()
+
+    (source_dir / "src_keep_0.txt").write_text("0\n", encoding="utf-8")
+    (source_dir / "src_keep_1.txt").write_text("1\n", encoding="utf-8")
+    (source_dir / "src_keep_2.txt").write_text("2\n", encoding="utf-8")
+    (target_dir / "dst_only_0.txt").write_text("0\n", encoding="utf-8")
+
+    tui = YtreeTUI(executable=ytree_binary, cwd=str(root))
+    time.sleep(0.9)
+
+    try:
+        tui.send_keystroke(Keys.DOWN, wait=0.2)
+        tui.send_keystroke(Keys.ENTER, wait=0.45)
+        if "src_keep_0.txt" not in _screen_text(tui):
+            tui.send_keystroke(Keys.ESC, wait=0.25)
+            tui.send_keystroke(Keys.UP, wait=0.2)
+            tui.send_keystroke(Keys.ENTER, wait=0.45)
+        assert "hex invert j compare" in _footer_text(tui), _screen_text(tui)
+        assert "src_keep_0.txt" in _screen_text(tui), _screen_text(tui)
+
+        tui.send_keystroke("t", wait=0.25)
+        source_line = _find_line_with_text(tui, "src_keep_0.txt")
+        assert source_line is not None, _screen_text(tui)
+        assert _line_marks_file_as_tagged(source_line, "src_keep_0.txt"), _screen_text(
+            tui
+        )
+
+        tui.send_keystroke("c", wait=0.3)
+        assert tui.wait_for_content("COPY:", timeout=1.0), _screen_text(tui)
+        baseline_source = _current_copy_source(tui)
+        assert baseline_source is not None, _screen_text(tui)
+        tui.send_keystroke(Keys.ESC, wait=0.2)
+
+        tui.send_keystroke(Keys.F8, wait=0.4)
+        tui.send_keystroke(Keys.TAB, wait=0.4)
+        if "hex invert j compare" in _footer_text(tui):
+            tui.send_keystroke(Keys.ESC, wait=0.3)
+        _assert_dir_mode_footer(tui, "Destination panel should be in tree view.")
+        tui.send_keystroke(Keys.HOME, wait=0.35)
+        tui.send_keystroke(Keys.ENTER, wait=0.4)
+        if "hex invert j compare" in _footer_text(tui):
+            tui.send_keystroke(Keys.ESC, wait=0.3)
+        _assert_dir_mode_footer(
+            tui, "Destination panel should return to tree view after ENTER prep."
+        )
+        tui.send_keystroke("M", wait=0.25)
+        assert tui.wait_for_content("MAKE DIRECTORY:", timeout=1.0), _screen_text(tui)
+        tui.send_keystroke("aa_dest_stage" + Keys.ENTER, wait=0.8)
+        tui.send_keystroke(Keys.ENTER, wait=0.45)
+
+        screen_right_active = _screen_text(tui)
+        assert "src_keep_0.txt" in screen_right_active and "src_keep_1.txt" in screen_right_active, (
+            "Source panel file list blanked or flipped during destination prep.\n"
+            f"{screen_right_active}"
+        )
+
+        tui.send_keystroke(Keys.TAB, wait=0.5)
+        screen_after_tab = _screen_text(tui)
+        assert "hex invert j compare" in _footer_text(tui), screen_after_tab
+        assert "src_keep_0.txt" in screen_after_tab and "src_keep_1.txt" in screen_after_tab, (
+            "Source panel file list changed after TAB back from destination prep.\n"
+            f"{screen_after_tab}"
+        )
+
+        source_line_after = _find_line_with_text(tui, "src_keep_0.txt")
+        assert source_line_after is not None, screen_after_tab
+        assert _line_marks_file_as_tagged(source_line_after, "src_keep_0.txt"), (
+            "Destination prep cleared source tagged file.\n"
+            f"Row: {source_line_after}\n{screen_after_tab}"
+        )
+
+        tui.send_keystroke("c", wait=0.3)
+        assert baseline_source is not None
+        assert tui.wait_for_content(f"COPY: {baseline_source}", timeout=1.0), (
+            "Destination prep changed source selected file identity.\n"
+            f"{_screen_text(tui)}"
+        )
+        tui.send_keystroke(Keys.ESC, wait=0.2)
+    finally:
+        tui.quit()
+
+
 def test_bug_same_volume_home_mkdir_keeps_inactive_source_dir(tmp_path, ytree_binary):
     """
     Repro from manual QA:
