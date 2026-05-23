@@ -1164,7 +1164,9 @@ void HandleSwitchWindow(ViewContext *ctx, DirEntry *dir_entry,
       dir_entry->global_flag = FALSE;
       dir_entry->global_all_volumes = FALSE;
       dir_entry->tagged_flag = FALSE;
-      if (!restore_saved_file_window)
+      if (restore_saved_file_window)
+        dir_entry->big_window = TRUE;
+      else
         dir_entry->big_window = ctx->bypass_small_window;
       if (p->file_dir_entry == dir_entry) {
         dir_entry->start_file = p->start_file;
@@ -1449,6 +1451,9 @@ static DirEntry *RestorePanelFileSelection(ViewContext *ctx, DirEntry *dir_entry
   panel->file_dir_entry = dir_entry;
   panel->start_file = dir_entry->start_file;
   panel->file_cursor_pos = dir_entry->cursor_pos;
+  if (!dir_entry->global_flag && !dir_entry->tagged_flag) {
+    dir_entry->big_window = panel->saved_big_file_view;
+  }
   if (dir_entry->start_file < 0)
     dir_entry->start_file = 0;
   if (dir_entry->cursor_pos < 0 && dir_entry->total_files > 0)

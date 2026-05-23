@@ -378,10 +378,12 @@ static BOOL ExitArchiveRootToParent(ViewContext *ctx, DirEntry **dir_entry_ptr,
     (*dir_entry_ptr)->cursor_pos = file_cursor;
     ctx->focused_window = FOCUS_FILE;
     ctx->active->saved_focus = FOCUS_FILE;
+    ctx->active->saved_big_file_view = FALSE;
   } else {
     (*dir_entry_ptr)->cursor_pos = -1;
     ctx->focused_window = FOCUS_TREE;
     ctx->active->saved_focus = FOCUS_TREE;
+    ctx->active->saved_big_file_view = FALSE;
   }
 
   ctx->active->file_dir_entry = *dir_entry_ptr;

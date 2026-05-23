@@ -424,6 +424,8 @@ void UnmapF2Window(ViewContext *ctx) {
 
 void RefreshWindow(WINDOW *win) { wnoutrefresh(win); }
 
+static BOOL IsPanelSavedBigFileMode(const YtreePanel *panel);
+
 static int FindPanelDirIndexByEntry(const YtreePanel *panel,
                                     const DirEntry *target) {
   int i;
@@ -598,7 +600,7 @@ void RenderInactivePanel(ViewContext *ctx, YtreePanel *panel) {
       render_cursor = 0;
     }
 
-    if (panel->saved_focus == FOCUS_FILE && panel->pan_big_file_window) {
+    if (IsPanelSavedBigFileMode(panel) && panel->pan_big_file_window) {
       DEBUG_LOG("RenderInactivePanel:file path='%s' start=%d cursor=%d count=%u",
                 panel->file_selection_dir_path[0] ? panel->file_selection_dir_path
                                                    : "<none>",
@@ -643,6 +645,13 @@ static BOOL IsActivePanelBigFileMode(const ViewContext *ctx,
 
   return (dir_entry->big_window || dir_entry->global_flag ||
           dir_entry->tagged_flag);
+}
+
+static BOOL IsPanelSavedBigFileMode(const YtreePanel *panel) {
+  if (!panel)
+    return FALSE;
+
+  return (panel->saved_focus == FOCUS_FILE && panel->saved_big_file_view);
 }
 
 static void DrawSplitSeparatorRow(ViewContext *ctx, BOOL left_big,
@@ -786,14 +795,20 @@ void RefreshView(ViewContext *ctx, DirEntry *dir_entry) {
 
       left_big_mode = (ctx->active == ctx->left)
                           ? active_big_mode
-                          : (ctx->left->saved_focus == FOCUS_FILE);
+                          : IsPanelSavedBigFileMode(ctx->left);
       right_big_mode = (ctx->active == ctx->right)
                            ? active_big_mode
-                           : (ctx->right->saved_focus == FOCUS_FILE);
+                           : IsPanelSavedBigFileMode(ctx->right);
 
-      ctx->active->pan_file_window = active_big_mode
-                                         ? ctx->active->pan_big_file_window
-                                         : ctx->active->pan_small_file_window;
+      ctx->left->pan_file_window =
+          left_big_mode ? ctx->left->pan_big_file_window
+                        : ctx->left->pan_small_file_window;
+      ctx->right->pan_file_window =
+          right_big_mode ? ctx->right->pan_big_file_window
+                         : ctx->right->pan_small_file_window;
+      ctx->active->pan_file_window =
+          active_big_mode ? ctx->active->pan_big_file_window
+                          : ctx->active->pan_small_file_window;
       ctx->ctx_file_window = ctx->active->pan_file_window;
 
       DrawSplitSeparatorRow(ctx, left_big_mode, right_big_mode);

@@ -175,6 +175,8 @@ Switching panels via `Tab` must restore the exact state held when that panel las
 *   **Compare Tagging Rule:** Compare workflows may report difference counts, but they do not implicitly mutate per-file tag state; tags change only through explicit tagging actions.
 *   **Filter (Filespec):** Independent search/filter strings.
 *   **Window/Mode Context:** Directory/File/Showall-style panel-local focus context.
+*   **File-Window Shape Context:** In split mode, each panel owns its own file-window shape (`tree`, `small file`, `big file`). `Tab` and `F8` transitions must restore that panel-local shape exactly on reactivation.
+*   **No Transient Fallback Rule:** Reactivating a panel must not briefly render a different shape (for example tree-first then file, or small-first then big) before correcting.
 
 ### 5.3 Shared Tree Topology Contract
 The split panels share one logged tree topology contract for a given logged volume:

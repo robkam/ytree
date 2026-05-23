@@ -258,6 +258,8 @@ int HandleFileWindow(ViewContext *ctx, DirEntry *dir_entry) {
   /* ADDED INSTRUCTION: Focus Unification */
   ctx->focused_window = FOCUS_FILE;
   ctx->active->saved_focus = FOCUS_FILE;
+  ctx->active->saved_big_file_view =
+      (dir_entry->big_window || dir_entry->global_flag || dir_entry->tagged_flag);
   if (tracked_file_dir == dir_entry) {
     dir_entry->start_file = ctx->active->start_file;
     dir_entry->cursor_pos = ctx->active->file_cursor_pos;
@@ -660,6 +662,7 @@ file_window_done:
 
   if (!switched_panel) {
     owner_panel->saved_focus = FOCUS_TREE;
+    owner_panel->saved_big_file_view = FALSE;
   }
   if (!volume_changed) {
     owner_panel->file_dir_entry = dir_entry;
@@ -677,6 +680,7 @@ file_window_done:
     owner_panel->file_dir_entry = NULL;
     owner_panel->start_file = 0;
     owner_panel->file_cursor_pos = 0;
+    owner_panel->saved_big_file_view = FALSE;
   }
 
   DEBUG_LOG("DEBUG: HandleFileWindow EXITING with %s",
