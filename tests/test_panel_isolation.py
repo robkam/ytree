@@ -190,6 +190,85 @@ def test_split_from_file_keeps_file_focus_on_tab(tmp_path, ytree_binary):
     tui.quit()
 
 
+def test_split_tab_from_small_file_does_not_expand_inactive_panel(tmp_path, ytree_binary):
+    root = tmp_path / "split_tab_small_file_inactive_shape"
+    root.mkdir()
+    (root / ".ytree").write_text("[GLOBAL]\nSMALLWINDOWSKIP=0\n", encoding="utf-8")
+    left = root / "left"
+    right = root / "right"
+    left.mkdir()
+    right.mkdir()
+    for idx in range(5):
+        (left / f"left{idx}.txt").write_text("left\n", encoding="utf-8")
+        (right / f"right{idx}.txt").write_text("right\n", encoding="utf-8")
+
+    tui = YtreeTUI(executable=ytree_binary, cwd=str(root))
+    time.sleep(0.8)
+
+    try:
+        tui.send_keystroke(Keys.F8, wait=0.4)
+        tui.send_keystroke(Keys.DOWN, wait=0.2)
+        tui.send_keystroke(Keys.ENTER, wait=0.4)
+
+        # Baseline: small-window file content is below the split separator.
+        before_tab = tui.get_screen_dump()
+        before_idx = next(
+            (idx for idx, line in enumerate(before_tab) if "left0.txt" in line), -1
+        )
+        assert before_idx >= 0, _screen_text(tui)
+        assert before_idx > 10, _screen_text(tui)
+
+        tui.send_keystroke(Keys.TAB, wait=0.5)
+        after_tab = tui.get_screen_dump()
+        after_idx = next(
+            (idx for idx, line in enumerate(after_tab) if "left0.txt" in line), -1
+        )
+        assert after_idx >= 0, _screen_text(tui)
+
+        # BUG-5: inactive panel must keep tree+small layout, not expand to big file.
+        assert after_idx > 10, (
+            "Tab from small file view expanded the inactive panel to big file mode "
+            "(file rows jumped into the top/tree area).\n"
+            f"{_screen_text(tui)}"
+        )
+    finally:
+        tui.quit()
+
+
+def test_split_from_big_file_keeps_inactive_panel_in_file_view(tmp_path, ytree_binary):
+    root = tmp_path / "split_from_big_file_inactive_file_view"
+    root.mkdir()
+    (root / ".ytree").write_text("[GLOBAL]\nSMALLWINDOWSKIP=1\n", encoding="utf-8")
+    left = root / "left"
+    right = root / "right"
+    left.mkdir()
+    right.mkdir()
+    for idx in range(3):
+        (left / f"left{idx}.txt").write_text("left\n", encoding="utf-8")
+        (right / f"right{idx}.txt").write_text("right\n", encoding="utf-8")
+
+    tui = YtreeTUI(executable=ytree_binary, cwd=str(root))
+    time.sleep(0.8)
+
+    try:
+        tui.send_keystroke(Keys.DOWN, wait=0.2)
+        tui.send_keystroke(Keys.ENTER, wait=0.4)
+        assert "hex invert j compare" in _footer_text(tui), _screen_text(tui)
+
+        tui.send_keystroke(Keys.F8, wait=0.5)
+        lines = tui.get_screen_dump()
+        split_col = _detect_split_column(lines)
+        assert split_col is not None, _screen_text(tui)
+
+        right_top = [line[split_col + 1 :] for line in lines[2:12]]
+        assert any("left0.txt" in segment for segment in right_top), (
+            "Splitting from big file view must keep inactive panel in file view.\n"
+            f"{_screen_text(tui)}"
+        )
+    finally:
+        tui.quit()
+
+
 def test_split_same_directory_file_tags_are_panel_local(tmp_path, ytree_binary):
     root = tmp_path / "split_same_dir_panel_local_tags"
     root.mkdir()

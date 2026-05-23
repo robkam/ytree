@@ -572,6 +572,8 @@ BOOL handle_file_window_split_switch_action(
         active_selected_dir[PATH_LENGTH] = '\0';
       }
     }
+    owner_panel->saved_big_file_view =
+        (dir_entry->big_window || dir_entry->global_flag || dir_entry->tagged_flag);
 
     if (!ctx->is_split_screen) {
       owner_panel->file_dir_entry = dir_entry;
@@ -634,6 +636,7 @@ BOOL handle_file_window_split_switch_action(
         ctx->right->file_cursor_pos = dir_entry->cursor_pos;
         ctx->right->file_dir_entry = dir_entry;
         ctx->right->saved_focus = ctx->left->saved_focus;
+        ctx->right->saved_big_file_view = ctx->left->saved_big_file_view;
         PanelTags_Copy(ctx->right, ctx->left);
         FreeFileEntryList(ctx->right);
       }
@@ -669,6 +672,9 @@ BOOL handle_file_window_split_switch_action(
       owner_panel->file_cursor_pos = dir_entry->cursor_pos;
       CapturePanelSelectionAnchor(ctx, owner_panel, dir_entry);
       ctx->active->saved_focus = FOCUS_FILE;
+      ctx->active->saved_big_file_view =
+          (dir_entry->big_window || dir_entry->global_flag ||
+           dir_entry->tagged_flag);
       *switched_panel_ptr = TRUE;
       SwitchToSmallFileWindow(ctx);
 
@@ -688,6 +694,9 @@ BOOL handle_file_window_split_switch_action(
     owner_panel->file_cursor_pos = dir_entry->cursor_pos;
     CapturePanelSelectionAnchor(ctx, owner_panel, dir_entry);
     ctx->active->saved_focus = FOCUS_FILE;
+    ctx->active->saved_big_file_view =
+        (dir_entry->big_window || dir_entry->global_flag ||
+         dir_entry->tagged_flag);
     *switched_panel_ptr = TRUE;
     SwitchToSmallFileWindow(ctx);
 

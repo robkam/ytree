@@ -116,6 +116,7 @@ Ordering policy (for all editors, including AI editors):
 
 ### **BUG-5: F8 + SMALLWINDOWSKIP=0 Tab Can Force Inactive Panel into Wrong Focus**
 *   **Description**: With `SMALLWINDOWSKIP=0`, when cursor is in the small file window on one panel, `Tab` to the other panel can show that inactive panel as file-focused/zoomed unexpectedly; tabbing back restores prior tree/small state.
+*   **Extension (manual, 2026-05-23)**: With `SMALLWINDOWSKIP=1`, splitting from file view (`Enter` then `F8`) could leave the inactive panel shown as tree/small until `Tab`, instead of immediately preserving file-view shape.
 *   **Repro (manual)**:
     *   `F10` config, set `SMALLWINDOWSKIP=0`.
     *   Enter split mode (`F8`), enter small file window in one panel.
@@ -128,10 +129,13 @@ Ordering policy (for all editors, including AI editors):
     *   `docs/SPECIFICATION.md` §5.2 **Freeze/Resume Rule**
 *   **Impact**: Breaks trust in split focus separation and can trigger wrong-context commands.
 *   **Remediation**: Harden switch-time state transfer so focus/view state is restored from panel-owned snapshots only; forbid cross-panel focus inheritance during `Tab` unless explicitly commanded by the active panel.
-*   **Tests/Gates**: Add/maintain deterministic regression for `SMALLWINDOWSKIP=0` split/tab focus retention in `tests/test_panel_isolation.py`.
-*   **Regression notes (manual, 2026-05-21)**:
-    *   With `SMALLWINDOWSKIP=0`, `Tab` can still show the inactive panel in zoomed file-window focus until tabbing back.
-*   **Status**: Reopened (regression confirmed).
+*   **Tests/Gates**:
+    *   `tests/test_panel_isolation.py::test_split_tab_from_small_file_does_not_expand_inactive_panel`
+    *   `tests/test_panel_isolation.py::test_split_from_big_file_keeps_inactive_panel_in_file_view`
+*   **Regression notes (manual)**:
+    *   2026-05-21: With `SMALLWINDOWSKIP=0`, `Tab` could show the inactive panel in zoomed file-window focus until tabbing back.
+    *   2026-05-23: With `SMALLWINDOWSKIP=1`, split from file view could keep inactive panel in tree/small until `Tab` flipped it to file view.
+*   **Status**: Fixed.
 
 ### **BUG-6: Dir Display Mode Resets After Context Switch (`^F`/Future `1..4`)**
 *   **Description**: Setting a directory display mode while focused in dir/tree context can be lost after entering file/small-window context and returning to dir/tree context.

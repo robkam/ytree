@@ -312,13 +312,14 @@ Use this when wrapping up a PROMPT_TEMPLATE-driven mission and returning the rep
     *   Manually exercise the changed behavior.
 2.  **Maintainer -> Architect/AI:** If manual checks find issues, report failures; architect dispatches a new developer/auditor unit and repeats the loop until manual checks are green.
 3.  **Architect/AI:** Clean stale task artifacts from the finished mission (prompt/report/temp workflow files).
+    *   Required before final commit: remove stale handoff artifacts from repo root (for example `<id>.txt`, `<id>.*.txt`, and any consumed prompt/report files) unless the maintainer explicitly asks to keep them.
 4.  **Architect/AI:** Run quick local checks only (build + targeted smoke/tests for touched scope).
 5.  **Architect/AI:** Stage intended changes only (exclude unrelated local edits and workflow artifacts).
 6.  **Architect/AI:** Suggest a Conventional Commit subject and request maintainer commit-message approval.
 7.  **Architect/AI:** Commit, push branch, and open/update a draft PR.
 8.  **Maintainer (GitHub):** Review draft PR scope and evidence.
-9.  **Maintainer (GitHub):** Wait for PR CI full gate; if any checks are red, report failures to architect/AI.
-10. **Architect/AI:** Fix CI failures root-cause-first, push updates, and repeat until required PR full-QA CI (`make qa-all` equivalent) is green.
+9.  **Architect/AI + Maintainer (GitHub):** Monitor PR CI full gate proactively (for example `gh pr checks <pr-number> --watch`). Do not wait passively for a separate reminder when checks change state.
+10. **Architect/AI:** If any checks are red, triage failing jobs immediately, fix CI failures root-cause-first, push updates, and repeat until required PR full-QA CI (`make qa-all` equivalent) is green.
 11. **Maintainer (GitHub):** Merge PR to `main` after checks are green and review is satisfied.
 12. **Maintainer (GitHub):** Delete remote branch:
     *   `git push origin --delete <branch>`
