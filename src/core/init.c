@@ -365,6 +365,7 @@ void InitView(ViewContext *ctx) {
   ctx->left->file_cursor_pos = 0;
   ctx->left->file_dir_entry = NULL;
   ctx->left->saved_big_file_view = FALSE;
+  ctx->left->hide_dot_files = FALSE;
 
   ctx->right = (YtreePanel *)calloc(1, sizeof(YtreePanel));
   if (ctx->right == NULL) {
@@ -379,6 +380,7 @@ void InitView(ViewContext *ctx) {
   ctx->right->file_cursor_pos = 0;
   ctx->right->file_dir_entry = NULL;
   ctx->right->saved_big_file_view = FALSE;
+  ctx->right->hide_dot_files = FALSE;
 
   ctx->active = ctx->left;
 
@@ -884,6 +886,8 @@ int Init(ViewContext *ctx, const char *configuration_file,
   ctx->hide_dot_files =
       (strtol(CoreInitGetProfileValue(ctx, "HIDEDOTFILES"), NULL, 0)) ? TRUE
                                                                        : FALSE;
+  ctx->left->hide_dot_files = ctx->hide_dot_files;
+  ctx->right->hide_dot_files = ctx->hide_dot_files;
   ctx->animation_method =
       strtol(CoreInitGetProfileValue(ctx, "ANIMATION"), NULL, 0);
   ctx->initial_directory = (char *)CoreInitGetProfileValue(ctx, "INITIALDIR");

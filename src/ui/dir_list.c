@@ -15,12 +15,6 @@ static void ReadDirList(ViewContext *ctx, DirEntry *dir_entry,
   static unsigned long indent = 0L;
 
   for (de_ptr = dir_entry; de_ptr; de_ptr = de_ptr->next) {
-    /* Check visibility. */
-    if (ctx->hide_dot_files && de_ptr->name[0] == '.') {
-      if (de_ptr != vol->vol_stats.tree)
-        continue;
-    }
-
     /* Bounds Checking & Dynamic Reallocation */
     if (*index_ptr >= (int)vol->dir_entry_list_capacity) {
       size_t new_capacity = vol->dir_entry_list_capacity * 2;
@@ -88,6 +82,71 @@ void BuildDirEntryList(ViewContext *ctx, struct Volume *vol, int *index_ptr) {
 #endif
 }
 
+BOOL PanelDirIsVisible(const YtreePanel *panel, const DirEntry *dir_entry) {
+  const DirEntry *ancestor;
+
+  if (!panel || !panel->vol || !dir_entry)
+    return FALSE;
+
+  if (!panel->hide_dot_files)
+    return TRUE;
+
+  if (dir_entry == panel->vol->vol_stats.tree)
+    return TRUE;
+
+  if (dir_entry->name[0] == '.')
+    return FALSE;
+
+  for (ancestor = dir_entry->up_tree;
+       ancestor && ancestor != panel->vol->vol_stats.tree;
+       ancestor = ancestor->up_tree) {
+    if (ancestor->name[0] == '.')
+      return FALSE;
+  }
+
+  return TRUE;
+}
+
+int PanelFindNextVisibleDirIndex(const YtreePanel *panel, int start_idx,
+                                 int direction) {
+  int idx;
+  int total_dirs;
+
+  if (!panel || !panel->vol || !panel->vol->dir_entry_list)
+    return -1;
+
+  total_dirs = panel->vol->total_dirs;
+  if (total_dirs <= 0)
+    return -1;
+
+  if (direction == 0)
+    direction = 1;
+  direction = (direction > 0) ? 1 : -1;
+
+  if (start_idx < 0)
+    start_idx = (direction > 0) ? 0 : total_dirs - 1;
+  if (start_idx >= total_dirs)
+    start_idx = (direction > 0) ? total_dirs - 1 : 0;
+
+  for (idx = start_idx; idx >= 0 && idx < total_dirs; idx += direction) {
+    const DirEntry *candidate = panel->vol->dir_entry_list[idx].dir_entry;
+    if (PanelDirIsVisible(panel, candidate))
+      return idx;
+  }
+
+  return -1;
+}
+
+int PanelFindFirstVisibleDirIndex(const YtreePanel *panel) {
+  return PanelFindNextVisibleDirIndex(panel, 0, 1);
+}
+
+int PanelFindLastVisibleDirIndex(const YtreePanel *panel) {
+  if (!panel || !panel->vol)
+    return -1;
+  return PanelFindNextVisibleDirIndex(panel, panel->vol->total_dirs - 1, -1);
+}
+
 /*
  * Frees the memory allocated for the dir_entry_list array of a volume.
  */
@@ -126,7 +185,11 @@ DirEntry *GetPanelDirEntry(YtreePanel *p) {
     if (idx >= p->vol->total_dirs)
       idx = p->vol->total_dirs - 1;
 
-    return p->vol->dir_entry_list[idx].dir_entry;
+    idx = PanelFindNextVisibleDirIndex(p, idx, 1);
+    if (idx < 0)
+      idx = PanelFindNextVisibleDirIndex(p, p->disp_begin_pos + p->cursor_pos, -1);
+    if (idx >= 0)
+      return p->vol->dir_entry_list[idx].dir_entry;
   }
   /* Fallback to root if list is empty/invalid */
   return p->vol->vol_stats.tree;
@@ -149,7 +212,14 @@ DirEntry *GetSelectedDirEntry(ViewContext *ctx, struct Volume *vol) {
     if (idx >= vol->total_dirs)
       idx = vol->total_dirs - 1;
 
-    return vol->dir_entry_list[idx].dir_entry;
+    idx = PanelFindNextVisibleDirIndex(ctx->active, idx, 1);
+    if (idx < 0)
+      idx = PanelFindNextVisibleDirIndex(ctx->active,
+                                         ctx->active->disp_begin_pos +
+                                             ctx->active->cursor_pos,
+                                         -1);
+    if (idx >= 0)
+      return vol->dir_entry_list[idx].dir_entry;
   }
   /* Fallback to root if list is empty/invalid */
   return vol->vol_stats.tree;

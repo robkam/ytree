@@ -46,6 +46,7 @@ typedef struct {
   const DirEntry *file_dir_entry;
   ViewFocus saved_focus;
   BOOL saved_big_file_view;
+  BOOL hide_dot_files;
   char file_selection_name[PATH_LENGTH + 1];
   char file_selection_dir_path[PATH_LENGTH + 1];
 } PanelIsolationSnapshot;
@@ -62,6 +63,7 @@ static void CapturePanelIsolationSnapshot(const YtreePanel *panel,
   snapshot->file_dir_entry = panel->file_dir_entry;
   snapshot->saved_focus = panel->saved_focus;
   snapshot->saved_big_file_view = panel->saved_big_file_view;
+  snapshot->hide_dot_files = panel->hide_dot_files;
   (void)snprintf(snapshot->file_selection_name,
                  sizeof(snapshot->file_selection_name), "%s",
                  panel->file_selection_name);
@@ -81,6 +83,7 @@ static void AssertPanelIsolationSnapshotUnchanged(
   assert(panel->file_dir_entry == snapshot->file_dir_entry);
   assert(panel->saved_focus == snapshot->saved_focus);
   assert(panel->saved_big_file_view == snapshot->saved_big_file_view);
+  assert(panel->hide_dot_files == snapshot->hide_dot_files);
   assert(strcmp(panel->file_selection_name, snapshot->file_selection_name) == 0);
   assert(strcmp(panel->file_selection_dir_path,
                 snapshot->file_selection_dir_path) == 0);
@@ -95,6 +98,7 @@ static void AssertPanelIsolationFileStateUnchanged(
   assert(panel->file_dir_entry == snapshot->file_dir_entry);
   assert(panel->saved_focus == snapshot->saved_focus);
   assert(panel->saved_big_file_view == snapshot->saved_big_file_view);
+  assert(panel->hide_dot_files == snapshot->hide_dot_files);
   assert(strcmp(panel->file_selection_name, snapshot->file_selection_name) == 0);
   assert(strcmp(panel->file_selection_dir_path,
                 snapshot->file_selection_dir_path) == 0);
@@ -571,6 +575,7 @@ static int CountPathSnapshot(const PathList *list) {
 
 static void PositionPanelAtIndex(YtreePanel *panel, int idx) {
   int height;
+  int visible_idx;
 
   if (!panel)
     return;
@@ -580,6 +585,18 @@ static void PositionPanelAtIndex(YtreePanel *panel, int idx) {
     panel->cursor_pos = 0;
     return;
   }
+
+  visible_idx = PanelFindNextVisibleDirIndex(panel, idx, 1);
+  if (visible_idx < 0)
+    visible_idx = PanelFindNextVisibleDirIndex(panel, idx, -1);
+  if (visible_idx < 0)
+    visible_idx = PanelFindFirstVisibleDirIndex(panel);
+  if (visible_idx < 0) {
+    panel->disp_begin_pos = 0;
+    panel->cursor_pos = 0;
+    return;
+  }
+  idx = visible_idx;
 
   height = (panel->pan_dir_window) ? getmaxy(panel->pan_dir_window) : 1;
   if (height < 1)
@@ -637,6 +654,11 @@ BOOL DirOps_SelectVisibleDirAndRefresh(ViewContext *ctx, YtreePanel *panel,
     return FALSE;
   if (!panel->vol->dir_entry_list || panel->vol->total_dirs <= 0)
     return FALSE;
+
+  while (target && !PanelDirIsVisible(panel, target))
+    target = target->up_tree;
+  if (!target)
+    target = panel->vol->vol_stats.tree;
 
   idx = FindDirIndex(panel->vol, target);
   if (idx < 0)
@@ -1233,6 +1255,7 @@ void SyncActivePanelWindows(ViewContext *ctx) {
   ctx->ctx_small_file_window = ctx->active->pan_small_file_window;
   ctx->ctx_big_file_window = ctx->active->pan_big_file_window;
   ctx->ctx_file_window = ctx->active->pan_file_window;
+  ctx->hide_dot_files = ctx->active->hide_dot_files;
 }
 
 DirEntry *ResolveActiveDirEntry(ViewContext *ctx, const Statistic *s) {
@@ -1532,6 +1555,7 @@ HandleDirWindowPanelAction(ViewContext *ctx, YtreeAction action,
       int preserved_file_cursor = ctx->left->file_cursor_pos;
       DirEntry *preserved_file_dir_entry = ctx->left->file_dir_entry;
       BOOL preserved_big_file_view = ctx->left->saved_big_file_view;
+      BOOL preserved_hide_dot_files = ctx->left->hide_dot_files;
       ViewFocus preserved_saved_focus = ctx->left->saved_focus;
       char preserved_file_selection_name[PATH_LENGTH + 1];
       char preserved_file_selection_dir_path[PATH_LENGTH + 1];
@@ -1562,12 +1586,14 @@ HandleDirWindowPanelAction(ViewContext *ctx, YtreeAction action,
                      sizeof(ctx->left->file_selection_dir_path), "%s",
                      ctx->right->file_selection_dir_path);
       ctx->left->saved_big_file_view = ctx->right->saved_big_file_view;
+      ctx->left->hide_dot_files = ctx->right->hide_dot_files;
       ctx->left->saved_focus = ctx->right->saved_focus;
       if (preserve_left_file_state) {
         ctx->left->start_file = preserved_start_file;
         ctx->left->file_cursor_pos = preserved_file_cursor;
         ctx->left->file_dir_entry = preserved_file_dir_entry;
         ctx->left->saved_big_file_view = preserved_big_file_view;
+        ctx->left->hide_dot_files = preserved_hide_dot_files;
         ctx->left->saved_focus = preserved_saved_focus;
         (void)snprintf(ctx->left->file_selection_name,
                        sizeof(ctx->left->file_selection_name), "%s",
@@ -1596,6 +1622,7 @@ HandleDirWindowPanelAction(ViewContext *ctx, YtreeAction action,
         ctx->right->file_cursor_pos = ctx->left->file_cursor_pos;
         ctx->right->file_dir_entry = ctx->left->file_dir_entry;
         ctx->right->saved_big_file_view = ctx->left->saved_big_file_view;
+        ctx->right->hide_dot_files = ctx->left->hide_dot_files;
         ctx->right->saved_focus = FOCUS_TREE;
         FreeFileEntryList(ctx->right);
       }
@@ -1605,6 +1632,7 @@ HandleDirWindowPanelAction(ViewContext *ctx, YtreeAction action,
     }
 
     ctx->focused_window = ctx->active->saved_focus;
+    ctx->hide_dot_files = ctx->active->hide_dot_files;
     RefreshView(ctx, *dir_entry_ptr);
     DebugLogSplitState("DirPanelAction:split:after", ctx);
     *need_dsp_help_ptr = TRUE;
@@ -2044,8 +2072,9 @@ void ToggleDotFiles(ViewContext *ctx, YtreePanel *p) {
     target = s->tree;
   }
 
-  /* 2. Toggle State and Recalculate Stats */
-  ctx->hide_dot_files = !ctx->hide_dot_files;
+  /* 2. Toggle active-panel state and synchronize context view filter. */
+  p->hide_dot_files = !p->hide_dot_files;
+  ctx->hide_dot_files = p->hide_dot_files;
   RecalculateSysStats(ctx, s);
 
   /* 3. Rebuild the linear list of visible directories */
@@ -2055,7 +2084,8 @@ void ToggleDotFiles(ViewContext *ctx, YtreePanel *p) {
   DirEntry *search = target;
   while (search != NULL && found_idx == -1) {
     for (i = 0; i < p->vol->total_dirs; i++) {
-      if (p->vol->dir_entry_list[i].dir_entry == search) {
+      if (p->vol->dir_entry_list[i].dir_entry == search &&
+          PanelDirIsVisible(p, search)) {
         found_idx = i;
         break;
       }

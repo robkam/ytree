@@ -1,4 +1,4 @@
-# **Ytree: a File Manager for Unix-like Systems**
+# **Ytree: A File Manager for Unix-like Systems**
 
 **Ytree** is a keyboard-first file manager for Linux and BSD with fast multi-volume logging and navigation.
 

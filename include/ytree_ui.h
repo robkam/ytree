@@ -103,6 +103,11 @@ extern DirEntry *GetSelectedDirEntry(ViewContext *ctx, struct Volume *vol);
 extern DirEntry *GetPanelDirEntry(YtreePanel *p);
 extern void BuildDirEntryList(ViewContext *ctx, struct Volume *vol,
                               int *index_ptr);
+extern BOOL PanelDirIsVisible(const YtreePanel *panel, const DirEntry *dir_entry);
+extern int PanelFindNextVisibleDirIndex(const YtreePanel *panel, int start_idx,
+                                        int direction);
+extern int PanelFindFirstVisibleDirIndex(const YtreePanel *panel);
+extern int PanelFindLastVisibleDirIndex(const YtreePanel *panel);
 extern void FreeDirEntryList(ViewContext *ctx);
 extern void FreeVolumeCache(struct Volume *vol);
 extern DirEntry *RefreshTreeSafe(ViewContext *ctx, YtreePanel *p,

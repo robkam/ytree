@@ -785,6 +785,7 @@ typedef struct {
   unsigned int max_visual_linkname_len;
   unsigned int max_visual_userview_len;
   BOOL reverse_sort;
+  BOOL hide_dot_files;
 } YtreePanel;
 
 typedef struct _history {
