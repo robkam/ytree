@@ -32,6 +32,7 @@ typedef struct {
   const DirEntry *file_dir_entry;
   ViewFocus saved_focus;
   BOOL saved_big_file_view;
+  BOOL hide_dot_files;
   char file_selection_name[PATH_LENGTH + 1];
   char file_selection_dir_path[PATH_LENGTH + 1];
 } FilePanelIsolationSnapshot;
@@ -48,6 +49,7 @@ static void CaptureFilePanelIsolationSnapshot(
   snapshot->file_dir_entry = panel->file_dir_entry;
   snapshot->saved_focus = panel->saved_focus;
   snapshot->saved_big_file_view = panel->saved_big_file_view;
+  snapshot->hide_dot_files = panel->hide_dot_files;
   (void)snprintf(snapshot->file_selection_name,
                  sizeof(snapshot->file_selection_name), "%s",
                  panel->file_selection_name);
@@ -67,6 +69,7 @@ static void AssertFilePanelIsolationSnapshotUnchanged(
   assert(panel->file_dir_entry == snapshot->file_dir_entry);
   assert(panel->saved_focus == snapshot->saved_focus);
   assert(panel->saved_big_file_view == snapshot->saved_big_file_view);
+  assert(panel->hide_dot_files == snapshot->hide_dot_files);
   assert(strcmp(panel->file_selection_name, snapshot->file_selection_name) == 0);
   assert(strcmp(panel->file_selection_dir_path,
                 snapshot->file_selection_dir_path) == 0);
@@ -595,6 +598,7 @@ BOOL handle_file_window_split_switch_action(
       ctx->left->start_file = ctx->right->start_file;
       ctx->left->file_cursor_pos = ctx->right->file_cursor_pos;
       ctx->left->file_dir_entry = ctx->right->file_dir_entry;
+      ctx->left->hide_dot_files = ctx->right->hide_dot_files;
       (void)snprintf(ctx->left->file_selection_name,
                      sizeof(ctx->left->file_selection_name), "%s",
                      ctx->right->file_selection_name);
@@ -635,6 +639,7 @@ BOOL handle_file_window_split_switch_action(
         ctx->right->start_file = dir_entry->start_file;
         ctx->right->file_cursor_pos = dir_entry->cursor_pos;
         ctx->right->file_dir_entry = dir_entry;
+        ctx->right->hide_dot_files = ctx->left->hide_dot_files;
         ctx->right->saved_focus = ctx->left->saved_focus;
         ctx->right->saved_big_file_view = ctx->left->saved_big_file_view;
         PanelTags_Copy(ctx->right, ctx->left);
@@ -644,6 +649,7 @@ BOOL handle_file_window_split_switch_action(
       FreeFileEntryList(ctx->right);
       ctx->active = ctx->left;
     }
+    ctx->hide_dot_files = ctx->active->hide_dot_files;
 
     DebugLogFileSplitState("FileAction:split:after", ctx);
 
@@ -683,6 +689,7 @@ BOOL handle_file_window_split_switch_action(
       } else {
         ctx->active = ctx->left;
       }
+      ctx->hide_dot_files = ctx->active->hide_dot_files;
       ctx->focused_window = ctx->active->saved_focus;
       *loop_action_ptr = ACTION_ESCAPE;
       AssertFilePanelIsolationSnapshotUnchanged(target_panel,
@@ -705,6 +712,7 @@ BOOL handle_file_window_split_switch_action(
     } else {
       ctx->active = ctx->left;
     }
+    ctx->hide_dot_files = ctx->active->hide_dot_files;
     ctx->focused_window = ctx->active->saved_focus;
     *loop_action_ptr = ACTION_ESCAPE;
 #endif

@@ -33,7 +33,7 @@ static void ReadFileList(ViewContext *ctx, YtreePanel *panel, BOOL tagged_only,
     if (fe_ptr->matching && (!tagged_only || fe_ptr->tagged)) {
       /* Ensure hidden dot files are skipped unless option is disabled.
          This applies to both FS mode and Archive mode. */
-      if (ctx->hide_dot_files && fe_ptr->name[0] == '.')
+      if (panel->hide_dot_files && fe_ptr->name[0] == '.')
         continue;
 
       /* Bounds check */
@@ -74,7 +74,7 @@ static void ReadGlobalFileListInternal(ViewContext *ctx, YtreePanel *panel,
   DirEntry *de_ptr;
 
   for (de_ptr = dir_entry; de_ptr; de_ptr = de_ptr->next) {
-    if (ctx->hide_dot_files && de_ptr->name[0] == '.')
+    if (panel->hide_dot_files && de_ptr->name[0] == '.')
       continue;
     if (de_ptr->sub_tree)
       ReadGlobalFileListInternal(ctx, panel, tagged_only, de_ptr->sub_tree);

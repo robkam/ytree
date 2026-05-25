@@ -1712,7 +1712,7 @@ def test_bug_f_eight_dotfiles_toggle_keeps_inactive_selection_identity(
     root = tmp_path / "bug_f_eight_dotfiles_inactive_identity"
     root.mkdir()
     (root / ".ytree").write_text(
-        "[GLOBAL]\nTREEDEPTH=1\nHIDEDOTFILES=1\n",
+        "[GLOBAL]\nTREEDEPTH=3\nHIDEDOTFILES=1\n",
         encoding="utf-8",
     )
 
@@ -1777,6 +1777,125 @@ def test_bug_f_eight_dotfiles_toggle_keeps_inactive_selection_identity(
 
         tui.send_keystroke("`", wait=0.5)
         _assert_right_panel_opens_tail_dir(tui, "dotfiles hidden")
+    finally:
+        tui.quit()
+
+
+def test_bug_f_eight_dotfiles_toggle_is_panel_local_visibility(
+    tmp_path, ytree_binary
+):
+    """
+    BUG-3 regression:
+    In split mode, dotfile visibility toggled on the active panel must not leak
+    into the inactive panel's file view.
+    """
+    root = tmp_path / "bug_f_eight_dotfiles_panel_local_visibility"
+    root.mkdir()
+    (root / ".ytree").write_text(
+        "[GLOBAL]\nTREEDEPTH=3\nHIDEDOTFILES=1\n",
+        encoding="utf-8",
+    )
+
+    active_dir = root / "active_dir"
+    active_dir.mkdir()
+    tail_dir = root / "zzz_tail"
+    tail_dir.mkdir()
+    hidden_parent = root / ".split_hidden_dir"
+    hidden_parent.mkdir()
+    (hidden_parent / "visible_child").mkdir()
+
+    (active_dir / "active_visible.txt").write_text("visible\n", encoding="utf-8")
+    (active_dir / ".active_hidden.txt").write_text("hidden\n", encoding="utf-8")
+    (tail_dir / "tail_visible.txt").write_text("visible\n", encoding="utf-8")
+    (tail_dir / ".tail_hidden.txt").write_text("hidden\n", encoding="utf-8")
+
+    def _active_path_contains(tui, marker):
+        screen = _screen_text(tui)
+        header = screen.splitlines()[0] if screen else ""
+        return marker in header
+
+    def _select_dir_by_marker(tui, marker):
+        for _ in range(40):
+            if _active_path_contains(tui, marker):
+                return
+            tui.send_keystroke(Keys.DOWN, wait=0.2)
+        raise AssertionError(
+            f"Could not select '{marker}' in tree view.\n{_screen_text(tui)}"
+        )
+
+    tui = YtreeTUI(executable=ytree_binary, cwd=str(root))
+    time.sleep(0.9)
+    try:
+        _select_dir_by_marker(tui, "active_dir")
+        tui.send_keystroke(Keys.F8, wait=0.4)
+
+        tui.send_keystroke(Keys.TAB, wait=0.4)
+        if "hex invert j compare" in _footer_text(tui):
+            tui.send_keystroke(Keys.ESC, wait=0.3)
+        _assert_dir_mode_footer(tui, "Expected right panel tree mode after split.")
+        _select_dir_by_marker(tui, "zzz_tail")
+
+        tui.send_keystroke(Keys.TAB, wait=0.4)
+        _assert_dir_mode_footer(
+            tui, "Expected left panel tree mode before active toggle."
+        )
+
+        tui.send_keystroke(Keys.ENTER, wait=0.4)
+        baseline_screen = _screen_text(tui)
+        assert "active_visible.txt" in baseline_screen, baseline_screen
+        assert ".active_hidden.txt" not in baseline_screen, baseline_screen
+
+        tui.send_keystroke(Keys.ESC, wait=0.3)
+        _assert_dir_mode_footer(
+            tui, "Expected left panel tree mode before split tree assertion."
+        )
+        left_tree_screen = _screen_text(tui)
+        assert ".split_hidden_dir" not in left_tree_screen, left_tree_screen
+        assert "visible_child" not in left_tree_screen, left_tree_screen
+
+        tui.send_keystroke("`", wait=0.5)
+        tui.send_keystroke(Keys.ENTER, wait=0.4)
+        toggled_screen = _screen_text(tui)
+        assert ".active_hidden.txt" in toggled_screen, toggled_screen
+        tui.send_keystroke(Keys.ESC, wait=0.3)
+        _assert_dir_mode_footer(
+            tui, "Expected left panel tree mode after active toggle."
+        )
+        left_tree_toggled = _screen_text(tui)
+        assert ".split_hidden_dir" in left_tree_toggled, left_tree_toggled
+
+        tui.send_keystroke(Keys.HOME, wait=0.2)
+        tui.send_keystroke(Keys.DOWN, wait=0.2)
+        tui.send_keystroke(Keys.RIGHT, wait=0.4)
+        left_tree_expanded = _screen_text(tui)
+        assert "visible_child" in left_tree_expanded, left_tree_expanded
+
+        tui.send_keystroke(Keys.TAB, wait=0.4)
+        _assert_dir_mode_footer(tui, "Expected right panel tree mode after Tab.")
+        left_seg, right_seg, screen = _split_segments_for_file(
+            tui, ".split_hidden_dir"
+        )
+        assert ".split_hidden_dir" in left_seg, screen
+        assert ".split_hidden_dir" not in right_seg, screen
+        assert "visible_child" not in right_seg, screen
+
+        tui.send_keystroke(Keys.TAB, wait=0.4)
+        _assert_dir_mode_footer(
+            tui, "Expected left panel tree mode before hiding expanded subtree."
+        )
+        tui.send_keystroke("`", wait=0.5)
+        hidden_again_screen = _screen_text(tui)
+        assert ".split_hidden_dir" not in hidden_again_screen, hidden_again_screen
+        assert "visible_child" not in hidden_again_screen, hidden_again_screen
+
+        tui.send_keystroke(Keys.TAB, wait=0.4)
+        _assert_dir_mode_footer(
+            tui, "Expected right panel tree mode after second Tab."
+        )
+        tui.send_keystroke(Keys.ENTER, wait=0.4)
+        right_screen = _screen_text(tui)
+        assert "tail_visible.txt" in right_screen, right_screen
+        assert ".tail_hidden.txt" not in right_screen, right_screen
     finally:
         tui.quit()
 

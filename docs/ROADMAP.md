@@ -150,7 +150,10 @@ Ordering policy (for all editors, including AI editors):
 *   **Rationale:** Allows the developer to maintain a simple local text-based workflow during heavy development, while ensuring that all tracking data can be synchronized to the public web interface when the project goes live.
 *   - [ ] **Status:** Not Started.
 
-### **Task 14: Config Source-of-Truth + Generation/Verification Gate**
+### **Task 14: Configuration Integrity and Persistence**
+*   **Goal:** Group configuration-source governance and config/history persistence hardening under one umbrella with ordered subtask delivery.
+
+#### **Task 14.1: Config Source-of-Truth + Generation/Verification Gate**
 *   **Goal:** Enforce one canonical editable default profile source and make generated artifacts deterministic and verifiable.
 *   **Source-of-Truth Policy:** `etc/ytree.conf` is the only human-edited default profile source; `src/core/default_profile_template.h` is generated-only and consumed by `--init`.
 *   **Mechanism:** Add a reproducible generator path (`etc/ytree.conf` -> `src/core/default_profile_template.h`) and a QA/CI check that fails when generated output is stale or hand-edited.
@@ -159,6 +162,22 @@ Ordering policy (for all editors, including AI editors):
 *   A single documented command regenerates the header deterministically.
 *   `make qa-all` (or dedicated gate) fails on source/generated drift.
 *   **Files to Modify:** `Makefile`, `scripts/*` (new/updated generator + verifier), `src/core/default_profile_template.h`, and contributor/docs references as needed.
+*   - [ ] **Status:** Not Started.
+
+#### **Task 14.2: Config/History Robustness Gate (Strict Parse, Validation, Atomic Persistence)**
+*   **Goal:** Harden config/history reliability and corruption resistance without changing user-facing feature semantics.
+*   **Scope:**
+*   Strict parse rules for config/history input.
+*   Value validation (type/range/enum/path sanity) with explicit diagnostics.
+*   Atomic write path for persisted files.
+*   **Mechanism (mandatory):**
+*   Writes must use `temp file -> fsync -> atomic rename` for config/history persistence paths.
+*   Parser must reject malformed lines deterministically and report actionable errors.
+*   Invalid values must not partially apply; fallback behavior must be explicit and logged/notified.
+*   **Acceptance Criteria:**
+*   Corrupted or malformed config/history input does not crash runtime and does not leave partial in-memory state.
+*   Persistence writes are crash-safe and do not produce truncated/half-written files.
+*   Regression tests cover malformed input, invalid value ranges, interrupted-write simulation, and recovery behavior.
 *   - [ ] **Status:** Not Started.
 
 ---
@@ -284,7 +303,10 @@ Ordering policy (for all editors, including AI editors):
 *   Add focused regression coverage for progress-state selection (indeterminate vs measurable) and completion/error transitions.
 *   - [ ] **Status:** Not Started.
 
-### **Task 24: Unify Stats + Main-Pane Frame Redraw Contract**
+### **Task 24: Redraw Coherence**
+*   **Goal:** Ensure all related redraw-synchronization work ships under one coherent umbrella with deterministic scope boundaries.
+
+#### **Task 24.1: Unify Stats + Main-Pane Frame Redraw Contract**
 *   **Goal:** Eliminate intermittent split-brain rendering where stats and main panes update on different redraw lifecycles.
 *   **Rationale:** UI trust depends on one coherent frame; partial redraw divergence creates stale/corrupted mixed states.
 *   **Scope Lock:** Rendering/invalidation pipeline and regression coverage only; no command/keybinding semantics changes.
@@ -293,6 +315,16 @@ Ordering policy (for all editors, including AI editors):
 *   Resize, mode-switch, and recoverable-error paths trigger deterministic full-surface invalidation and redraw.
 *   No persistent mixed state where stats is fresh while main panes are stale (or vice versa) after redraw-triggering actions.
 *   Add focused regression coverage for redraw coherence across resize/mode toggles and representative recovery paths.
+*   - [ ] **Status:** Not Started.
+
+#### **Task 24.2: Footer-Aware Redraw Synchronization Contract**
+*   **Goal:** Footer/help/prompt surfaces must participate in the same redraw contract as stats/path/dir/file panes.
+*   **Rationale:** Partial redraw of guidance surfaces creates trust loss even when content panes are correct.
+*   **Scope Lock:** Redraw ordering and invalidation only; no keybinding or command behavior changes.
+*   **Acceptance Criteria:**
+*   Footer/help/prompt are rendered from the same frame snapshot as content panes.
+*   Resize and mode transitions must not leave footer/help stale relative to active context.
+*   Focused regression coverage proves synchronized redraw across normal, split, and overlay transitions.
 *   - [ ] **Status:** Not Started.
 
 ### **Task 25: Clarify Internal `^V` Navigation for File vs Hit Traversal**
@@ -491,7 +523,28 @@ Ordering policy (for all editors, including AI editors):
     *   Reassemble the command string (prefix + completed token) before returning.
 *   - [ ] **Status:** Not Started.
 
-### **Task 43: Implement Responsive Adaptive Footer**
+### **Task 43: Responsive Adaptive Footer**
+*   **Goal:** Group footer auto-fit layout and width-tier behavior under one umbrella with explicit subtask sequencing.
+
+#### **Task 43.1: Footer Auto-Fit Line Layout (No Hardcoded Per-Line Bindings)**
+*   **Goal:** Footer command hints must auto-fit available width instead of relying on fixed hardcoded keybinding placement per line.
+*   **Rationale:** Improves discoverability and prevents truncation/clipping across terminal sizes without changing command behavior.
+*   **Scope:**
+    *   Build footer lines from the active command set at render time.
+    *   Pack/wrap hints by available columns (`COLS`) with stable ordering.
+    *   Keep two-line footer budget unless constrained terminal fallback requires compact mode.
+*   **Scope Lock (mandatory):**
+    *   No keybinding changes.
+    *   No command behavior changes.
+    *   No prompt/help semantic changes.
+*   **Acceptance Criteria:**
+    *   Footer content fits width deterministically at common sizes (80, 100, 120, 160 cols).
+    *   No clipped mid-token hints in supported sizes.
+    *   F1 remains visible in compact and standard footer variants.
+    *   Existing footer/F1 parity checks remain green.
+*   - [ ] **Status:** Not Started.
+
+#### **Task 43.2: Implement Responsive Adaptive Footer**
 *   **Goal:** Make the two-line command footer dynamic based on terminal width.
     *   **Compact (constrained dimensions):** Show all currently available actions as bound-key hints only (minimal/no labels), and always keep `(F1)` visible for full help.
     *   **Standard (80-120 cols):** Show the standard set (current behavior).
@@ -573,15 +626,26 @@ Ordering policy (for all editors, including AI editors):
     *   **Portability:** Guard everything with `#ifdef __linux__`. On other systems, these functions act as empty stubs.
 *   - [ ] **Status:** Not Started.
 
-#### **Task 50: Refactor Input Loop for Event Handling**
-*   **Task:** Modify `key_engine.c` to support non-blocking input handling.
-*   **Logic:**
-    *   Currently, `Getch()` blocks indefinitely waiting for a key.
-    *   **New Logic:** Use `select()` or `poll()` to wait on **two** file descriptors:
-        1.  `STDIN_FILENO` (The keyboard).
-        2.  `Watcher_GetFD()` (The inotify handle).
-    *   If the Watcher FD triggers, call `Watcher_CheckEvents()`. If it confirms a change, set a global flag `refresh_needed = TRUE`.
-    *   If STDIN triggers, proceed to `wgetch()`.
+### **Task 50: Input Loop Determinism and Event Handling**
+*   **Goal:** Group event-priority policy and multiplexing implementation under one umbrella to reduce recurring input-loop regressions.
+
+#### **Task 50.1: Input Loop Determinism and Event-Priority Contract**
+*   **Goal:** Make key handling deterministic across ESC sequences, resize events, watcher events, and prompt/overlay contexts.
+*   **Rationale:** Recurring regressions originate from event-order ambiguity, not raw key decoding alone.
+*   **Scope Lock:** Input/event ordering, dispatch priority, and regression coverage only; no keybinding changes.
+*   **Acceptance Criteria:**
+*   Event-priority order is explicit and enforced for: resize, watcher refresh, ESC-sequence normalization, and key dispatch.
+*   Prompt/overlay contexts must consume input according to innermost-active-context rules before base-mode dispatch.
+*   No double-processing or dropped-event regressions on rapid resize + key + watcher activity.
+*   Focused regression matrix covers ESC timing, resize storms, watcher bursts, and split/overlay transitions.
+*   - [ ] **Status:** Not Started.
+
+#### **Task 50.2: Non-Blocking FD Multiplexing Implementation**
+*   **Task:** Implement/maintain non-blocking input multiplexing (`select`/`poll`) for keyboard + watcher FDs as the concrete mechanism under Task 50.
+*   **Scope Lock:** Mechanism-level implementation only.
+*   **Acceptance Criteria:**
+*   Multiplex loop behavior conforms to Task 50 event-priority contract.
+*   Regression coverage confirms no blocking/starvation under mixed input/event load.
 *   - [ ] **Status:** Not Started.
 
 #### **Task 51: Implement Live Refresh Logic**
@@ -654,9 +718,41 @@ Ordering policy (for all editors, including AI editors):
 *   **Deliverables:** findings inventory with severity, owner, disposition (fix now vs tracked debt), and explicit residual-risk notes.
 *   - [ ] **Status:** Not Started.
 
-#### **Task 61: Expand Security Guard Coverage to Block Reintroduction**
+#### **Task 61: Runtime Execution Security Guardrail**
+*   **Goal:** Group runtime execution security hardening and guard expansion under one umbrella with mandatory staged completion.
+
+##### **Task 61.1: Expand Security Guard Coverage to Block Reintroduction**
 *   **Goal:** Ensure banned/legacy security-sensitive APIs and patterns are explicitly rejected by automated guard scripts.
 *   **Mechanism:** Extend guard checks for legacy unsafe escaping/runtime paths and other approved denylisted APIs/patterns.
+*   - [ ] **Status:** Not Started.
+
+##### **Task 61.2: Standardize Runtime Process Launch Hardening (`fork` + `execvp` + `waitpid`)**
+*   **Goal:** Make runtime command execution deterministic and secure by using one mandatory process-launch path in app runtime code.
+*   **Policy (mandatory):** Runtime launches **must** use `fork()` -> `execvp()` -> `waitpid()` only.
+*   **Non-Goal:** This task **must not** introduce `posix_spawn()`.
+*   **Rationale:** Remove mixed execution behavior (`system()`/`popen()` vs direct child-process execution), reduce shell-injection surface, and stabilize terminal restore behavior.
+
+*   **Scope:**
+    *   Add one shared launcher module for runtime child-process execution.
+    *   Migrate existing runtime call sites that currently use `system()`/`popen()` (including `system.c`, `print_ops.c`, `ctrl_file_ops.c`, and equivalent runtime paths).
+    *   Preserve existing UX flow: ytree remains active, launched command completes, control returns to ytree, curses state is restored.
+
+*   **Implementation Rules (mandatory):**
+    *   Parent process remains ytree; ytree **must not** replace itself.
+    *   Child process **must** execute target via `execvp()`.
+    *   Parent **must** reap child via `waitpid()` using an `EINTR`-safe wait loop.
+    *   No new runtime `system()` or `popen()` usage is permitted.
+    *   Any temporary migration shim/wrapper **must** be removed before task closure (see Task 78).
+
+*   **Acceptance Criteria:**
+    *   All runtime command-launch paths use the shared `fork`/`execvp`/`waitpid` implementation.
+    *   Zero runtime `system()`/`popen()` call sites remain in production runtime paths.
+    *   Regression coverage proves:
+        *   launched command runs and exits correctly,
+        *   ytree returns to interactive control after command completion,
+        *   terminal/curses state is restored correctly after command return.
+    *   QA guard fails CI if new runtime `system()`/`popen()` usage is introduced.
+    *   Shim cleanup is complete per Task 78.
 *   - [ ] **Status:** Not Started.
 
 #### **Task 62: Security Regression Gate in CI + Merge Workflow**
@@ -795,6 +891,19 @@ Ordering policy (for all editors, including AI editors):
 ## **Phase 8: Final Polish (Post-Alpha, Pre-v3.0.0)**
 *This phase focuses on release polish. Security, module-boundary, and quality gates remain continuous from earlier phases and are not deferred to this phase.*
 
+### **Task 78: Remove Temporary Compatibility Shims (Global Cleanup Gate)**
+*   **Goal:** Eliminate temporary compatibility shims introduced during staged migrations and prevent shim accumulation as permanent architecture debt.
+*   **Scope:** Applies to all migration tasks, including process-launch hardening and overlay/submode state unification.
+*   **Policy (mandatory):**
+    *   Temporary compatibility shims **must** be tagged at introduction with owner task ID and removal condition.
+    *   Temporary compatibility shims **must** be removed when migration acceptance criteria are met.
+    *   No temporary compatibility shim **may** remain in production paths after task completion.
+*   **Acceptance Criteria:**
+    *   A tracked shim inventory exists (file, symbol, owner task, removal condition).
+    *   All shims owned by completed tasks are removed.
+    *   CI/QA gate fails if orphaned/expired shim markers exist.
+*   - [ ] **Status:** Not Started.
+
 ### **Task 73: UI/UX Snappiness Polish (Targeted Optimization)**
 *   **Goal:** Improve perceived responsiveness in high-frequency flows using profiling-driven optimizations.
 *   **Rationale:** Premature optimization is avoided; final polish applies targeted improvements where bottlenecks are measured.
@@ -826,6 +935,42 @@ Ordering policy (for all editors, including AI editors):
 
 ## **Beta: Stabilization and Performance**
 *This phase follows alpha delivery phases and precedes wishlist work. Place stabilization tasks here: bug fixes, regressions, reliability, and performance. Defer non-essential feature work to wishlist phases.*
+
+### **Task 77: Stabilize and Unify Overlay/Submode State Model (Compatibility-First)**
+*   **Goal:** Make overlay/submode behavior deterministic by moving to one unified state model while preserving current user-visible behavior.
+*   **Why now (Beta):** Split/mode/node state is explicit and stable, but overlay/submode behavior is still distributed across flags/controller paths.
+*   **Precondition:** Current bug queue and planned current-delivery tasks are completed and green.
+
+*   **Scope:**
+    *   Add explicit enum-based `overlay_state` and `submode_state` fields to the authoritative runtime context.
+    *   Unify state handling for:
+        *   active overlay/context (normal/help/config/app-menu/autoview/fullview/diff/hexedit/destination-chooser),
+        *   command submode (regular/tag/alt),
+        *   overlay return/cancel chain behavior.
+    *   Use compatibility-first migration with temporary adapters while preserving behavior parity.
+    *   Migrate incrementally by context path; one-shot rewrite is out of scope.
+
+*   **Scope Lock (mandatory):**
+    *   No keybinding changes.
+    *   No command-surface changes.
+    *   No UX wording changes except correctness fixes required for parity.
+    *   No new features.
+
+*   **Post-migration Cleanup (mandatory):**
+    *   Temporary compatibility shims **must** be removed once migration acceptance criteria are met.
+    *   No compatibility shim may remain as permanent architecture.
+    *   Shim cleanup is mandatory per Task 78 before closure.
+
+*   **Acceptance Criteria:**
+    *   One authoritative overlay/submode state path exists in runtime logic.
+    *   Overlay entry/exit/cancel behavior is parity-validated for help, config, app menu, autoview, fullview, diff, hexedit, and destination chooser.
+    *   Split behavior (`F8`/`Tab`) and active/inactive panel isolation remain unchanged.
+    *   Existing split-panel/state-transition regression suites remain green.
+    *   New regression coverage exists for overlay/submode transitions and cancel-chain restoration.
+    *   Legacy overlay/submode flag/controller dispatch paths are removed from production paths.
+    *   Zero compatibility shims remain for overlay/submode dispatch in production paths.
+    *   `docs/ARCHITECTURE.md` is updated to document the unified model and migration endpoint.
+*   - [ ] **Status:** Not Started.
 
 ---
 

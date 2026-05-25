@@ -14,7 +14,7 @@ void HandleTagDir(ViewContext *ctx, DirEntry *dir_entry, BOOL value,
   FileEntry *fe_ptr;
   for (fe_ptr = dir_entry->file; fe_ptr; fe_ptr = fe_ptr->next) {
     /* Skip hidden dotfiles if the option is enabled */
-    if (ctx->hide_dot_files && fe_ptr->name[0] == '.')
+    if (p->hide_dot_files && fe_ptr->name[0] == '.')
       continue;
 
     if ((fe_ptr->matching) && (fe_ptr->tagged != value)) {
@@ -51,7 +51,7 @@ void HandleTagAllDirs(ViewContext *ctx, struct Volume *vol, DirEntry *dir_entry,
     for (fe_ptr = vol->dir_entry_list[i].dir_entry->file; fe_ptr;
          fe_ptr = fe_ptr->next) {
       /* Skip hidden dotfiles if the option is enabled */
-      if (ctx->hide_dot_files && fe_ptr->name[0] == '.')
+      if (p->hide_dot_files && fe_ptr->name[0] == '.')
         continue;
 
       if ((fe_ptr->matching) && (fe_ptr->tagged != value)) {
@@ -87,7 +87,7 @@ static void HandleInvertDirTags(ViewContext *ctx, DirEntry *dir_entry,
   FileEntry *fe_ptr;
 
   for (fe_ptr = dir_entry->file; fe_ptr; fe_ptr = fe_ptr->next) {
-    if (ctx->hide_dot_files && fe_ptr->name[0] == '.')
+    if (p->hide_dot_files && fe_ptr->name[0] == '.')
       continue;
 
     if (!fe_ptr->matching)

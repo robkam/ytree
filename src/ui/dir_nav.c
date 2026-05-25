@@ -8,11 +8,73 @@
 #include "ytree_fs.h"
 #include "ytree_ui.h"
 
+static void PositionPanelAtIndex(YtreePanel *p, int target_idx, int height) {
+  if (!p || !p->vol || p->vol->total_dirs <= 0)
+    return;
+
+  if (height < 1)
+    height = 1;
+
+  if (target_idx < 0)
+    target_idx = 0;
+  if (target_idx >= p->vol->total_dirs)
+    target_idx = p->vol->total_dirs - 1;
+
+  if (target_idx < p->disp_begin_pos) {
+    p->disp_begin_pos = target_idx;
+    p->cursor_pos = 0;
+    return;
+  }
+
+  if (target_idx >= p->disp_begin_pos + height) {
+    p->disp_begin_pos = target_idx - height + 1;
+    if (p->disp_begin_pos < 0)
+      p->disp_begin_pos = 0;
+    p->cursor_pos = target_idx - p->disp_begin_pos;
+    return;
+  }
+
+  p->cursor_pos = target_idx - p->disp_begin_pos;
+}
+
+static BOOL SyncPanelToVisibleSelection(const ViewContext *ctx, YtreePanel *p,
+                                        int direction_hint) {
+  int total_dirs;
+  int idx;
+  int visible_idx;
+
+  if (!ctx || !p || !p->vol || !p->vol->dir_entry_list)
+    return FALSE;
+
+  total_dirs = p->vol->total_dirs;
+  if (total_dirs <= 0)
+    return FALSE;
+
+  idx = p->disp_begin_pos + p->cursor_pos;
+  if (idx < 0)
+    idx = 0;
+  if (idx >= total_dirs)
+    idx = total_dirs - 1;
+
+  visible_idx = PanelFindNextVisibleDirIndex(p, idx, direction_hint);
+  if (visible_idx < 0)
+    visible_idx = PanelFindNextVisibleDirIndex(p, idx, -direction_hint);
+  if (visible_idx < 0)
+    visible_idx = PanelFindFirstVisibleDirIndex(p);
+  if (visible_idx < 0)
+    return FALSE;
+
+  PositionPanelAtIndex(p, visible_idx, ctx->layout.dir_win_height);
+  return TRUE;
+}
+
 void DirNav_Movedown(ViewContext *ctx, DirEntry **dir_entry, YtreePanel *p) {
   const Statistic *s = &p->vol->vol_stats;
 
   Nav_MoveDown(&p->cursor_pos, &p->disp_begin_pos, p->vol->total_dirs,
                ctx->layout.dir_win_height, 1);
+  if (!SyncPanelToVisibleSelection(ctx, p, 1))
+    return;
 
   *dir_entry =
       p->vol->dir_entry_list[p->disp_begin_pos + p->cursor_pos].dir_entry;
@@ -51,6 +113,8 @@ void DirNav_Moveup(ViewContext *ctx, DirEntry **dir_entry, YtreePanel *p) {
   const Statistic *s = &p->vol->vol_stats;
 
   Nav_MoveUp(&p->cursor_pos, &p->disp_begin_pos);
+  if (!SyncPanelToVisibleSelection(ctx, p, -1))
+    return;
 
   *dir_entry =
       p->vol->dir_entry_list[p->disp_begin_pos + p->cursor_pos].dir_entry;
@@ -85,6 +149,8 @@ void DirNav_Movenpage(ViewContext *ctx, DirEntry **dir_entry, YtreePanel *p) {
 
   Nav_PageDown(&p->cursor_pos, &p->disp_begin_pos, p->vol->total_dirs,
                ctx->layout.dir_win_height);
+  if (!SyncPanelToVisibleSelection(ctx, p, 1))
+    return;
 
   *dir_entry =
       p->vol->dir_entry_list[p->disp_begin_pos + p->cursor_pos].dir_entry;
@@ -118,6 +184,8 @@ void DirNav_Moveppage(ViewContext *ctx, DirEntry **dir_entry, YtreePanel *p) {
   const Statistic *s = &p->vol->vol_stats;
 
   Nav_PageUp(&p->cursor_pos, &p->disp_begin_pos, ctx->layout.dir_win_height);
+  if (!SyncPanelToVisibleSelection(ctx, p, -1))
+    return;
 
   *dir_entry =
       p->vol->dir_entry_list[p->disp_begin_pos + p->cursor_pos].dir_entry;
@@ -152,6 +220,13 @@ void DirNav_MoveEnd(ViewContext *ctx, DirEntry **dir_entry, YtreePanel *p) {
 
   Nav_End(&p->cursor_pos, &p->disp_begin_pos, p->vol->total_dirs,
           ctx->layout.dir_win_height);
+  {
+    int idx = PanelFindLastVisibleDirIndex(p);
+    if (idx >= 0)
+      PositionPanelAtIndex(p, idx, ctx->layout.dir_win_height);
+  }
+  if (!SyncPanelToVisibleSelection(ctx, p, -1))
+    return;
 
   *dir_entry =
       p->vol->dir_entry_list[p->disp_begin_pos + p->cursor_pos].dir_entry;
@@ -187,6 +262,13 @@ void DirNav_MoveHome(ViewContext *ctx, DirEntry **dir_entry, YtreePanel *p) {
   const Statistic *s = &p->vol->vol_stats;
 
   Nav_Home(&p->cursor_pos, &p->disp_begin_pos);
+  {
+    int idx = PanelFindFirstVisibleDirIndex(p);
+    if (idx >= 0)
+      PositionPanelAtIndex(p, idx, ctx->layout.dir_win_height);
+  }
+  if (!SyncPanelToVisibleSelection(ctx, p, 1))
+    return;
 
   *dir_entry =
       p->vol->dir_entry_list[p->disp_begin_pos + p->cursor_pos].dir_entry;

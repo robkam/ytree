@@ -95,7 +95,7 @@ Ordering policy (for all editors, including AI editors):
 *   **Regression notes (manual, 2026-05-21)**:
     *   In split mode, active-panel dotfile toggles still influence inactive-panel behavior after `Tab` transitions.
     *   Toggling in active file window can still perturb inactive tree presentation.
-*   **Status**: Reopened (regression confirmed).
+*   **Status**: Fixed.
 
 ### **BUG-4: F8 Dotfiles Toggle Causes Inactive Selection Jitter**
 *   **Description**: In split mode, toggling dotfiles in one panel can make the inactive panel’s selected directory move away and then return (transient cursor/selection drift).

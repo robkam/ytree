@@ -35,7 +35,7 @@ Creating a new file manager from scratch would have resulted in a loss of identi
 
 ### Why is this not written in Rust?
 
-The primary objective of this phase was the architectural cleanup and restoration of the existing C codebase.
+The primary objective of this phase was architectural cleanup and feature completion in the existing C codebase.
 
 Switching languages immediately would constitute a total rewrite rather than a modernization. However, now that the architecture has been simplified, legacy dependencies removed, and the project stabilized, a port to a modern memory-safe language like Rust is a possibility for a future version.
 
@@ -49,11 +49,11 @@ Ytree only needs fast, reliable text/line-box terminal UI for file and VFS brows
 
 ### Why modernize Ytree when UnixTree already exists?
 
-While both projects aim to provide a file manager inspired by [XTree&trade;](https://www.xtreefanpage.org/x10dirja.htm), they represent architectural solutions for different eras.
+While both projects aim to provide a file manager inspired by [XTree&trade;](https://www.xtreefanpage.org/x10dirja.htm), they represent solutions for different eras.
 
-`UnixTree` was designed for a time of fragmented, incompatible commercial Unix systems. To guarantee portability, it had to be a self-contained monolith, bundling and maintaining its own internal libraries.
+`UnixTree` was built for a time when Unix systems were far more inconsistent. To stay portable, it evolved a project-specific internal ecosystem (`libecurses`, `libtcap`, custom term files, and related adaptations). That approach made sense then, but those methods are less common in mainstream Unix development today and can increase long-term maintenance, audit, and packaging effort.
 
-The goal of modernizing Ytree is to create a tool native to the *current* landscape of open-source operating systems. By discarding the custom frameworks required in the past and leveraging standard system libraries, Ytree becomes a lean, POSIX-compliant utility that fits naturally into modern distributions, easier to package, audit, and maintain.
+The goal of modernizing Ytree is to build for today’s open-source Unix systems. By using common libraries (`ncurses`, `libarchive`, `readline`) and keeping modules focused, Ytree becomes a lean, POSIX-compliant utility that is easier for new maintainers to understand, test, extend, audit, and package.
 
 ### How do the architectures compare?
 

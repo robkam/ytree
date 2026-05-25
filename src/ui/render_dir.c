@@ -8,6 +8,22 @@
 #include "ytree_cmd.h"
 #include "ytree_ui.h"
 
+static const YtreePanel *ResolveDirRenderPanel(const ViewContext *ctx,
+                                               const struct Volume *vol,
+                                               const WINDOW *win) {
+  if (!ctx || !vol || !win)
+    return NULL;
+
+  if (ctx->left && ctx->left->vol == vol && ctx->left->pan_dir_window == win)
+    return ctx->left;
+  if (ctx->right && ctx->right->vol == vol && ctx->right->pan_dir_window == win)
+    return ctx->right;
+  if (ctx->active && ctx->active->vol == vol && ctx->ctx_dir_window == win)
+    return ctx->active;
+
+  return NULL;
+}
+
 /*
  * SetDirMode
  * Sets the display mode for directory entries.
@@ -273,7 +289,9 @@ void PrintDirEntry(ViewContext *ctx, struct Volume *vol, WINDOW *win,
 void DisplayTree(ViewContext *ctx, struct Volume *vol, WINDOW *win,
                  int start_entry_no, int hilight_no, BOOL is_active) {
   int i, y;
+  int list_idx;
   int height;
+  const YtreePanel *panel;
 
   if (!ctx || !vol || !win)
     return;
@@ -295,16 +313,29 @@ void DisplayTree(ViewContext *ctx, struct Volume *vol, WINDOW *win,
     box(win, 0, 0);
   }
 
-  for (i = 0; i < height; i++) {
-    if (start_entry_no + i >= vol->total_dirs)
+  panel = ResolveDirRenderPanel(ctx, vol, win);
+  list_idx = start_entry_no;
+
+  if (list_idx < 0)
+    list_idx = 0;
+
+  for (i = 0; i < height && list_idx < vol->total_dirs; i++) {
+    while (list_idx < vol->total_dirs) {
+      const DirEntry *candidate = vol->dir_entry_list[list_idx].dir_entry;
+      if (!panel || PanelDirIsVisible(panel, candidate))
+        break;
+      list_idx++;
+    }
+    if (list_idx >= vol->total_dirs)
       break;
 
-    if (start_entry_no + i != hilight_no)
-      PrintDirEntry(ctx, vol, win, start_entry_no + i, i, FALSE, is_active);
+    if (list_idx != hilight_no)
+      PrintDirEntry(ctx, vol, win, list_idx, i, FALSE, is_active);
     else
       y = i;
+    list_idx++;
   }
 
   if (y >= 0)
-    PrintDirEntry(ctx, vol, win, start_entry_no + y, y, TRUE, is_active);
+    PrintDirEntry(ctx, vol, win, hilight_no, y, TRUE, is_active);
 }

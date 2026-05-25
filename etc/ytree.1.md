@@ -8,7 +8,7 @@ date: "January 2026"
 
 # NAME
 
-ytree - A File Manager for UNIX-like systems
+ytree - a file manager for Unix-like systems
 
 # SYNOPSIS
 
