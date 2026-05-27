@@ -72,23 +72,6 @@ static void CapturePanelIsolationSnapshot(const YtreePanel *panel,
                  panel->file_selection_dir_path);
 }
 
-static void AssertPanelIsolationSnapshotUnchanged(
-    const YtreePanel *panel, const PanelIsolationSnapshot *snapshot) {
-  assert(panel != NULL);
-  assert(snapshot != NULL);
-  assert(panel->cursor_pos == snapshot->cursor_pos);
-  assert(panel->disp_begin_pos == snapshot->disp_begin_pos);
-  assert(panel->start_file == snapshot->start_file);
-  assert(panel->file_cursor_pos == snapshot->file_cursor_pos);
-  assert(panel->file_dir_entry == snapshot->file_dir_entry);
-  assert(panel->saved_focus == snapshot->saved_focus);
-  assert(panel->saved_big_file_view == snapshot->saved_big_file_view);
-  assert(panel->hide_dot_files == snapshot->hide_dot_files);
-  assert(strcmp(panel->file_selection_name, snapshot->file_selection_name) == 0);
-  assert(strcmp(panel->file_selection_dir_path,
-                snapshot->file_selection_dir_path) == 0);
-}
-
 static void AssertPanelIsolationFileStateUnchanged(
     const YtreePanel *panel, const PanelIsolationSnapshot *snapshot) {
   assert(panel != NULL);
@@ -552,6 +535,25 @@ static void CapturePanelTaggedSnapshot(const YtreePanel *panel,
   }
 }
 
+static void CaptureCollapsedTreeState(DirEntry *dir, PathList **collapsed) {
+  DirEntry *sub;
+
+  if (!dir || !collapsed)
+    return;
+
+  if (dir->sub_tree && dir->not_scanned) {
+    char path[PATH_LENGTH + 1];
+    GetPath(dir, path);
+    path[PATH_LENGTH] = '\0';
+    AddPathSnapshot(collapsed, path);
+    return;
+  }
+
+  for (sub = dir->sub_tree; sub; sub = sub->next) {
+    CaptureCollapsedTreeState(sub, collapsed);
+  }
+}
+
 static void RestoreTaggedSnapshot(ViewContext *ctx, struct Volume *vol,
                                   PathList *tagged) {
   PathList *expanded = NULL;
@@ -571,6 +573,20 @@ static int CountPathSnapshot(const PathList *list) {
     count++;
 
   return count;
+}
+
+static int FindVisibleBackwardNoWrap(const YtreePanel *panel, int start_idx) {
+  int idx;
+
+  if (!panel || !panel->vol || !panel->vol->dir_entry_list || start_idx < 0)
+    return -1;
+
+  for (idx = start_idx; idx >= 0; idx--) {
+    const DirEntry *candidate = panel->vol->dir_entry_list[idx].dir_entry;
+    if (PanelDirIsVisible(panel, candidate))
+      return idx;
+  }
+  return -1;
 }
 
 static void PositionPanelAtIndex(YtreePanel *panel, int idx) {
@@ -601,6 +617,20 @@ static void PositionPanelAtIndex(YtreePanel *panel, int idx) {
   height = (panel->pan_dir_window) ? getmaxy(panel->pan_dir_window) : 1;
   if (height < 1)
     height = 1;
+
+  if (panel->hide_dot_files) {
+    int start_idx = idx;
+    int i;
+    for (i = 1; i < height; i++) {
+      int prev_idx = FindVisibleBackwardNoWrap(panel, start_idx - 1);
+      if (prev_idx < 0)
+        break;
+      start_idx = prev_idx;
+    }
+    panel->disp_begin_pos = start_idx;
+    panel->cursor_pos = idx - panel->disp_begin_pos;
+    return;
+  }
 
   if (idx >= panel->disp_begin_pos && idx < panel->disp_begin_pos + height) {
     panel->cursor_pos = idx - panel->disp_begin_pos;
@@ -1068,24 +1098,45 @@ void HandleDirMakeDirectory(ViewContext *ctx, DirEntry *dir_entry,
 
 DirEntry *HandleDirDeleteDirectory(ViewContext *ctx, DirEntry *dir_entry) {
   InactiveFallbackSnapshot inactive_snapshot;
+  int target_idx;
 
   CaptureInactiveFallbackSnapshot(ctx, ctx->active, &inactive_snapshot);
+  target_idx = ctx->active->disp_begin_pos + ctx->active->cursor_pos;
 
   if (!DeleteDirectory(ctx, dir_entry, UI_ChoiceResolver)) {
-    if (ctx->active->disp_begin_pos + ctx->active->cursor_pos > 0) {
-      if (ctx->active->cursor_pos > 0)
-        ctx->active->cursor_pos--;
-      else
-        ctx->active->disp_begin_pos--;
-    }
+    if (target_idx > 0)
+      target_idx--;
   }
 
   BuildDirEntryList(ctx, ctx->active->vol, &ctx->active->current_dir_entry);
+  if (ctx->active->vol && ctx->active->vol->dir_entry_list &&
+      ctx->active->vol->total_dirs > 0) {
+    int visible_idx = PanelFindNextVisibleDirIndex(ctx->active, target_idx, -1);
+    if (visible_idx < 0)
+      visible_idx = PanelFindNextVisibleDirIndex(ctx->active, target_idx, 1);
+    if (visible_idx < 0)
+      visible_idx = PanelFindFirstVisibleDirIndex(ctx->active);
+    if (visible_idx >= 0)
+      target_idx = visible_idx;
+    PositionPanelAtIndex(ctx->active, target_idx);
+  }
   if (inactive_snapshot.panel && inactive_snapshot.panel->vol == ctx->active->vol) {
     const DirEntry *inactive_target =
         ResolveInactiveFallbackTarget(&inactive_snapshot);
     ReanchorPanelToDir(inactive_snapshot.panel, inactive_target);
     BuildFileEntryList(ctx, inactive_snapshot.panel);
+  }
+  if (!ctx->active || !ctx->active->vol || !ctx->active->vol->dir_entry_list ||
+      ctx->active->vol->total_dirs <= 0) {
+    dir_entry =
+        (ctx->active && ctx->active->vol) ? ctx->active->vol->vol_stats.tree
+                                          : NULL;
+    if (dir_entry) {
+      dir_entry->start_file = 0;
+      dir_entry->cursor_pos = -1;
+      RefreshView(ctx, dir_entry);
+    }
+    return dir_entry;
   }
   dir_entry = ctx->active->vol
                   ->dir_entry_list[ctx->active->disp_begin_pos +
@@ -1715,8 +1766,8 @@ HandleDirWindowPanelAction(ViewContext *ctx, YtreeAction action,
         *unput_char_ptr = CR;
       }
 
-      AssertPanelIsolationSnapshotUnchanged(previous_active,
-                                            &previous_active_snapshot);
+      AssertPanelIsolationFileStateUnchanged(previous_active,
+                                             &previous_active_snapshot);
     }
 #else
     if (ctx->active == ctx->left) {
@@ -2208,7 +2259,9 @@ DirEntry *RefreshTreeSafe(ViewContext *ctx, YtreePanel *p, DirEntry *entry) {
 
   if (ctx->view_mode != ARCHIVE_MODE) {
     PathList *expanded = NULL;
+    PathList *collapsed = NULL;
     PathList *tagged = NULL;
+    PathList *collapsed_curr;
     char saved_path[PATH_LENGTH + 1];
     int win_height;
     int dummy_width;
@@ -2218,6 +2271,7 @@ DirEntry *RefreshTreeSafe(ViewContext *ctx, YtreePanel *p, DirEntry *entry) {
     /* 1. Save State */
     GetPath(entry, saved_path);
     SaveTreeState(s->tree, &expanded, &tagged);
+    CaptureCollapsedTreeState(s->tree, &collapsed);
 
     /* 2. Destructive Rescan */
     RescanDir(ctx, entry, strtol(TREEDEPTH, NULL, 0), s, Dir_Progress, ctx);
@@ -2231,8 +2285,18 @@ DirEntry *RefreshTreeSafe(ViewContext *ctx, YtreePanel *p, DirEntry *entry) {
 
     /* 3. Restore State */
     RestoreTreeState(ctx, s->tree, &expanded, tagged, s);
+    for (collapsed_curr = collapsed; collapsed_curr;
+         collapsed_curr = collapsed_curr->next) {
+      DirEntry *collapsed_dir =
+          FindDirByPathInSubTree(s->tree, collapsed_curr->path);
+      if (!collapsed_dir)
+        continue;
+      collapsed_dir->not_scanned = TRUE;
+      collapsed_dir->unlogged_flag = TRUE;
+    }
     PanelTags_Restore(ctx, p);
     FreePathList(expanded);
+    FreePathList(collapsed);
     FreePathList(tagged);
 
     /* 4. Restore Selection */

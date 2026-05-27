@@ -174,10 +174,9 @@ static void ScanAndSaveState(DirEntry *dir, PathList **expanded,
   if (!dir)
     return;
 
-  /* If directory is scanned (has sub_tree or marked scanned) and NOT root */
-  /* Note: We check !not_scanned. Root is always scanned effectively. */
-  /* We save state if it has a sub_tree (meaning it was expanded) */
-  if (dir->sub_tree) {
+  /* Save only currently expanded directories. Collapsed nodes can still keep
+   * stale sub_tree pointers in memory and must not be restored as expanded. */
+  if (dir->sub_tree && !dir->not_scanned) {
     GetPath(dir, path);
     AddPathToList(expanded, path);
   }
@@ -190,7 +189,11 @@ static void ScanAndSaveState(DirEntry *dir, PathList **expanded,
     }
   }
 
-  /* Recurse into subdirectories */
+  /* Recurse only through expanded nodes so collapsed descendants stay
+   * collapsed across refreshes. */
+  if (dir->not_scanned)
+    return;
+
   for (sub = dir->sub_tree; sub; sub = sub->next) {
     ScanAndSaveState(sub, expanded, tagged);
   }

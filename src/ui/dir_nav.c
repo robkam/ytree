@@ -8,6 +8,8 @@
 #include "ytree_fs.h"
 #include "ytree_ui.h"
 
+static int FindVisibleBackwardNoWrap(const YtreePanel *p, int start_idx);
+
 static void PositionPanelAtIndex(YtreePanel *p, int target_idx, int height) {
   if (!p || !p->vol || p->vol->total_dirs <= 0)
     return;
@@ -19,6 +21,20 @@ static void PositionPanelAtIndex(YtreePanel *p, int target_idx, int height) {
     target_idx = 0;
   if (target_idx >= p->vol->total_dirs)
     target_idx = p->vol->total_dirs - 1;
+
+  if (p->hide_dot_files) {
+    int start_idx = target_idx;
+    int i;
+    for (i = 1; i < height; i++) {
+      int prev_idx = FindVisibleBackwardNoWrap(p, start_idx - 1);
+      if (prev_idx < 0)
+        break;
+      start_idx = prev_idx;
+    }
+    p->disp_begin_pos = start_idx;
+    p->cursor_pos = target_idx - p->disp_begin_pos;
+    return;
+  }
 
   if (target_idx < p->disp_begin_pos) {
     p->disp_begin_pos = target_idx;
@@ -68,11 +84,90 @@ static BOOL SyncPanelToVisibleSelection(const ViewContext *ctx, YtreePanel *p,
   return TRUE;
 }
 
+static int FindVisibleBackwardNoWrap(const YtreePanel *p, int start_idx) {
+  int idx;
+
+  if (!p || !p->vol || !p->vol->dir_entry_list || start_idx < 0)
+    return -1;
+
+  for (idx = start_idx; idx >= 0; idx--) {
+    const DirEntry *candidate = p->vol->dir_entry_list[idx].dir_entry;
+    if (PanelDirIsVisible(p, candidate))
+      return idx;
+  }
+  return -1;
+}
+
+static int GetCurrentVisiblePanelIndex(const YtreePanel *p) {
+  int total_dirs;
+  int idx;
+  const DirEntry *current;
+
+  if (!p || !p->vol || !p->vol->dir_entry_list)
+    return -1;
+
+  total_dirs = p->vol->total_dirs;
+  if (total_dirs <= 0)
+    return -1;
+
+  idx = p->disp_begin_pos + p->cursor_pos;
+  if (idx < 0)
+    idx = 0;
+  if (idx >= total_dirs)
+    idx = total_dirs - 1;
+
+  current = p->vol->dir_entry_list[idx].dir_entry;
+  if (PanelDirIsVisible(p, current))
+    return idx;
+
+  idx = PanelFindNextVisibleDirIndex(p, idx, 1);
+  if (idx < 0)
+    idx = PanelFindNextVisibleDirIndex(p, p->disp_begin_pos + p->cursor_pos, -1);
+  if (idx < 0)
+    idx = PanelFindFirstVisibleDirIndex(p);
+  return idx;
+}
+
+static BOOL MoveVisibleSelection(const ViewContext *ctx, YtreePanel *p,
+                                 int direction, int steps) {
+  int idx;
+  int i;
+  int total_dirs;
+
+  if (!ctx || !p)
+    return FALSE;
+  if (steps < 1)
+    steps = 1;
+  if (direction == 0)
+    direction = 1;
+  direction = (direction > 0) ? 1 : -1;
+
+  idx = GetCurrentVisiblePanelIndex(p);
+  if (idx < 0)
+    return FALSE;
+  total_dirs = p->vol ? p->vol->total_dirs : 0;
+  if (total_dirs <= 0)
+    return FALSE;
+
+  for (i = 0; i < steps; i++) {
+    int candidate_start = idx + direction;
+    if (candidate_start < 0 || candidate_start >= total_dirs)
+      break;
+    int next_idx = PanelFindNextVisibleDirIndex(p, candidate_start, direction);
+    if (next_idx < 0)
+      break;
+    idx = next_idx;
+  }
+
+  PositionPanelAtIndex(p, idx, ctx->layout.dir_win_height);
+  return TRUE;
+}
+
 void DirNav_Movedown(ViewContext *ctx, DirEntry **dir_entry, YtreePanel *p) {
   const Statistic *s = &p->vol->vol_stats;
 
-  Nav_MoveDown(&p->cursor_pos, &p->disp_begin_pos, p->vol->total_dirs,
-               ctx->layout.dir_win_height, 1);
+  if (!MoveVisibleSelection(ctx, p, 1, 1))
+    return;
   if (!SyncPanelToVisibleSelection(ctx, p, 1))
     return;
 
@@ -112,7 +207,8 @@ void DirNav_Movedown(ViewContext *ctx, DirEntry **dir_entry, YtreePanel *p) {
 void DirNav_Moveup(ViewContext *ctx, DirEntry **dir_entry, YtreePanel *p) {
   const Statistic *s = &p->vol->vol_stats;
 
-  Nav_MoveUp(&p->cursor_pos, &p->disp_begin_pos);
+  if (!MoveVisibleSelection(ctx, p, -1, 1))
+    return;
   if (!SyncPanelToVisibleSelection(ctx, p, -1))
     return;
 
@@ -147,8 +243,8 @@ void DirNav_Moveup(ViewContext *ctx, DirEntry **dir_entry, YtreePanel *p) {
 void DirNav_Movenpage(ViewContext *ctx, DirEntry **dir_entry, YtreePanel *p) {
   const Statistic *s = &p->vol->vol_stats;
 
-  Nav_PageDown(&p->cursor_pos, &p->disp_begin_pos, p->vol->total_dirs,
-               ctx->layout.dir_win_height);
+  if (!MoveVisibleSelection(ctx, p, 1, ctx->layout.dir_win_height))
+    return;
   if (!SyncPanelToVisibleSelection(ctx, p, 1))
     return;
 
@@ -183,7 +279,8 @@ void DirNav_Movenpage(ViewContext *ctx, DirEntry **dir_entry, YtreePanel *p) {
 void DirNav_Moveppage(ViewContext *ctx, DirEntry **dir_entry, YtreePanel *p) {
   const Statistic *s = &p->vol->vol_stats;
 
-  Nav_PageUp(&p->cursor_pos, &p->disp_begin_pos, ctx->layout.dir_win_height);
+  if (!MoveVisibleSelection(ctx, p, -1, ctx->layout.dir_win_height))
+    return;
   if (!SyncPanelToVisibleSelection(ctx, p, -1))
     return;
 

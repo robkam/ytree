@@ -42,7 +42,7 @@ Ordering policy (for all editors, including AI editors):
     *   In this flow, source selection/tag identity stayed unchanged (render/refresh defect, not BUG-2 selection-loss itself).
 *   **Impact**: Degrades trust and usability in high-frequency split copy/move workflows.
 *   **Remediation**: Audit split redraw ownership/order around `Tab` transition and destination-prep mode switches; enforce deterministic repaint sequencing for active/inactive surfaces.
-*   **Status**: Confirmed.
+*   **Status**: Fixed.
 
 ### **BUG-2.5: Volume Switch Can Lose Per-Volume File Context (`SMALLWINDOWSKIP=1`)**
 *   **Description**: With `SMALLWINDOWSKIP=1`, switching between logged volumes can lose previously selected deep file context and return to parent tree location instead.

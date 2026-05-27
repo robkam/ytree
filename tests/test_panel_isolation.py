@@ -225,7 +225,7 @@ def test_split_tab_from_small_file_does_not_expand_inactive_panel(tmp_path, ytre
         )
         assert after_idx >= 0, _screen_text(tui)
 
-        # BUG-5: inactive panel must keep tree+small layout, not expand to big file.
+        # Inactive panel must keep tree+small layout, not expand to big file.
         assert after_idx > 10, (
             "Tab from small file view expanded the inactive panel to big file mode "
             "(file rows jumped into the top/tree area).\n"
@@ -1253,6 +1253,216 @@ def test_navigation_does_not_expand(tmp_path, ytree_binary):
 
     tui.quit()
 
+
+def test_down_from_root_does_not_scroll_hidden_prefix(tmp_path, ytree_binary):
+    """
+    With HIDEDOTFILES=1, DOWN from root must move to the next visible sibling
+    without treating hidden-dot entries as scroll-driving rows.
+    """
+    root = tmp_path / "down_root_hidden_prefix"
+    root.mkdir()
+    (root / ".ytree").write_text(
+        "[GLOBAL]\nTREEDEPTH=1\nHIDEDOTFILES=1\n",
+        encoding="utf-8",
+    )
+
+    for i in range(40):
+        (root / f".hidden_{i:02d}").mkdir()
+
+    for name in ("go", "gone", "snap", "wikiteam3_utilities"):
+        d = root / name
+        d.mkdir()
+        (d / "child").mkdir()
+
+    tui = YtreeTUI(executable=ytree_binary, cwd=str(root))
+    time.sleep(1.0)
+    try:
+        before = _screen_text(tui)
+        before_lines = before.splitlines()
+        assert len(before_lines) > 2, before
+        assert "mq/" in before_lines[2], before
+
+        tui.send_keystroke(Keys.UP, wait=0.4)
+        after_up = _screen_text(tui)
+        after_up_lines = after_up.splitlines()
+        assert len(after_up_lines) > 2, after_up
+        assert "mq/" in after_up_lines[2], (
+            "UP at top wrapped selection to the bottom.\n"
+            f"Before:\n{before}\n\nAfter UP:\n{after_up}"
+        )
+
+        tui.send_keystroke(Keys.DOWN, wait=0.4)
+        after = _screen_text(tui)
+        after_lines = after.splitlines()
+        assert len(after_lines) > 2, after
+
+        assert "mq/" in after_lines[2], (
+            "DOWN from root scrolled the tree by hidden-dot index distance "
+            "instead of one visible row.\n"
+            f"Before:\n{before}\n\nAfter:\n{after}"
+        )
+    finally:
+        tui.quit()
+
+
+def test_mkdir_preserves_collapsed_children_after_left_enter(
+    tmp_path, ytree_binary
+):
+    """
+    Collapsing root descendants (LEFT then ENTER) must remain collapsed after
+    creating a new sibling directory at root.
+    """
+    root = tmp_path / "mkdir_collapse_preservation"
+    root.mkdir()
+    (root / ".ytree").write_text(
+        "[GLOBAL]\nTREEDEPTH=3\nHIDEDOTFILES=1\n",
+        encoding="utf-8",
+    )
+
+    for i in range(40):
+        (root / f".hidden_{i:02d}").mkdir()
+
+    for name, child in (
+        ("go", "pkg"),
+        ("gone", "home"),
+        ("snap", "glow"),
+        ("wikiteam3_utilities", "dumps"),
+        ("ytree", "docs"),
+    ):
+        d = root / name
+        d.mkdir()
+        (d / child).mkdir(parents=True)
+
+    tui = YtreeTUI(executable=ytree_binary, cwd=str(root))
+    time.sleep(1.0)
+    try:
+        tui.send_keystroke(Keys.LEFT, wait=0.3)
+        tui.send_keystroke(Keys.ENTER, wait=0.4)
+
+        collapsed = _screen_text(tui)
+        assert "go/" in collapsed, collapsed
+        assert "pkg" not in collapsed, collapsed
+
+        tui.send_keystroke("M", wait=0.2)
+        assert tui.wait_for_content("MAKE DIRECTORY:", timeout=1.0), _screen_text(
+            tui
+        )
+        tui.send_keystroke("00" + Keys.ENTER, wait=0.8)
+
+        after = _screen_text(tui)
+        assert "go/" in after, after
+        assert "pkg" not in after, (
+            "mkdir at root re-expanded previously collapsed descendants.\n"
+            f"{after}"
+        )
+    finally:
+        tui.quit()
+
+
+def test_split_peer_tree_keeps_root_visible_with_hidden_prefix(
+    tmp_path, ytree_binary
+):
+    """
+    Regression guard:
+    After mkdir + DOWN + split, the peer panel tree must keep root visible at the
+    top when HIDEDOTFILES hides a large hidden-prefix set.
+    """
+    root = tmp_path / "split_peer_root_visible"
+    root.mkdir()
+    (root / ".ytree").write_text(
+        "[GLOBAL]\nTREEDEPTH=3\nHIDEDOTFILES=1\nSMALLWINDOWSKIP=0\n",
+        encoding="utf-8",
+    )
+
+    for i in range(40):
+        (root / f".hidden_{i:02d}").mkdir()
+
+    for name, child in (
+        ("go", "pkg"),
+        ("gone", "home"),
+        ("snap", "glow"),
+        ("wikiteam3_utilities", "dumps"),
+        ("ytree", "docs"),
+    ):
+        d = root / name
+        d.mkdir()
+        (d / child).mkdir(parents=True)
+
+    tui = YtreeTUI(executable=ytree_binary, cwd=str(root))
+    time.sleep(1.0)
+    try:
+        tui.send_keystroke("M", wait=0.2)
+        assert tui.wait_for_content("MAKE DIRECTORY:", timeout=1.0), _screen_text(
+            tui
+        )
+        tui.send_keystroke("00" + Keys.ENTER, wait=0.7)
+        tui.send_keystroke(Keys.DOWN, wait=0.3)
+        tui.send_keystroke(Keys.F8, wait=0.5)
+
+        lines = tui.get_screen_dump()
+        split_col = _detect_split_column(lines)
+        assert split_col is not None, _screen_text(tui)
+
+        row = lines[2]
+        right_segment = row[split_col:]
+        assert "mq/" in right_segment, (
+            "Peer panel tree top row lost root after split despite available space.\n"
+            f"{_screen_text(tui)}"
+        )
+    finally:
+        tui.quit()
+
+
+def test_delete_first_visible_dir_keeps_visible_selection(
+    tmp_path, ytree_binary
+):
+    """
+    Regression guard:
+    Deleting the first visible (non-dot) child must not leave selection anchored
+    on a hidden-dot sibling, which makes the tree cursor disappear until movement.
+    """
+    root = tmp_path / "delete_first_visible"
+    home = root / "home" / "rob"
+    home.mkdir(parents=True)
+    (home / ".ytree").write_text(
+        "[GLOBAL]\nTREEDEPTH=2\nHIDEDOTFILES=1\n",
+        encoding="utf-8",
+    )
+
+    for name in (".hidden_a", ".hidden_b", ".hidden_c"):
+        (home / name).mkdir()
+    for name in ("00", "zzz"):
+        (home / name).mkdir()
+
+    tui = YtreeTUI(
+        executable=ytree_binary,
+        cwd=str(home),
+        env_extra={"HOME": str(home)},
+    )
+    time.sleep(1.0)
+    try:
+        tui.send_keystroke(Keys.HOME, wait=0.3)
+        tui.send_keystroke(Keys.DOWN, wait=0.3)
+        before_lines = tui.get_screen_dump()
+        assert _stats_current_dir_contains(before_lines, "00"), (
+            "Precondition failed: DOWN from root should select visible '00'.\n"
+            f"{_screen_text(tui)}"
+        )
+
+        tui.send_keystroke("d", wait=0.3)
+        if tui.wait_for_content("Delete this directory", timeout=0.4):
+            tui.send_keystroke("y", wait=0.8)
+
+        after_lines = tui.get_screen_dump()
+        assert _stats_current_dir_contains(after_lines, "rob"), (
+            "After deleting first visible child, selection left the visible tree "
+            "and anchored to a hidden-dot entry.\n"
+            f"{_screen_text(tui)}"
+        )
+    finally:
+        tui.quit()
+
+
 def test_header_path_clearing(dual_panel_sandbox, ytree_binary):
     """BUG 6: Header doesn't clear old long paths when moving to short paths."""
     tui = YtreeTUI(executable=ytree_binary, cwd=str(dual_panel_sandbox))
@@ -1565,7 +1775,7 @@ def test_f8_inactive_selection_delete_falls_to_visible_ancestor(
 
 def test_bug_f_eight_mirrored_inactive_selection_identity_stable(tmp_path, ytree_binary):
     """
-    BUG-36 regression:
+    Regression:
     In mirrored split mode, expanding a sibling branch in the active panel must not
     shift inactive panel selection by row index when the selected directory still
     exists.
@@ -1705,7 +1915,7 @@ def test_bug_f_eight_dotfiles_toggle_keeps_inactive_selection_identity(
     tmp_path, ytree_binary
 ):
     """
-    BUG-4 regression:
+    Regression:
     In split mode, toggling dotfiles from the active panel must not re-index
     the inactive panel selection when the selected directory remains valid.
     """
@@ -1785,7 +1995,7 @@ def test_bug_f_eight_dotfiles_toggle_is_panel_local_visibility(
     tmp_path, ytree_binary
 ):
     """
-    BUG-3 regression:
+    Regression:
     In split mode, dotfile visibility toggled on the active panel must not leak
     into the inactive panel's file view.
     """
@@ -1904,7 +2114,7 @@ def test_bug_f_eight_source_selection_survives_destination_tree_prep(
     tmp_path, ytree_binary
 ):
     """
-    BUG-36 regression:
+    Regression:
     In same-volume split mode, destination-side prep work (newfile + tree
     navigation + mkdir/cd) must not re-index source file selection.
     """
@@ -1979,7 +2189,7 @@ def test_source_selection_survives_destination_tree_prep_home_mkdir(
     tmp_path, ytree_binary
 ):
     """
-    BUG-36 regression:
+    Regression:
     Destination tree HOME+mkdir prep in same-volume split mode must not blank
     the source panel or mutate source tagged/selection identity.
     """
@@ -2600,7 +2810,7 @@ def test_bug2_copy_cancel_then_destination_mkdir_keeps_source_anchor(
     tmp_path, ytree_binary
 ):
     """
-    BUG-2 regression (maintainer manual flow):
+    Regression (maintainer manual flow):
     In source file mode, opening COPY and stepping into destination prompt before
     split destination prep must not mutate source tagged/selection identity.
     """
@@ -2744,7 +2954,7 @@ def test_bug2_copy_cancel_then_destination_mkdir_keeps_source_anchor(
 
 def test_source_tagged_selection_survives_destination_prep(tmp_path, ytree_binary):
     """
-    BUG-36 regression:
+    Regression:
     When split is closed from the right panel, source selection identity must
     stay with the active (right) file instead of restoring a stale left anchor.
     """

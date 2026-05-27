@@ -463,6 +463,21 @@ static int FindPanelDirIndexByPath(const YtreePanel *panel, const char *path) {
   return -1;
 }
 
+static int FindVisibleBackwardNoWrap(const YtreePanel *panel, int start_idx) {
+  int idx;
+
+  if (!panel || !panel->vol || !panel->vol->dir_entry_list || start_idx < 0)
+    return -1;
+
+  for (idx = start_idx; idx >= 0; idx--) {
+    const DirEntry *candidate = panel->vol->dir_entry_list[idx].dir_entry;
+    if (PanelDirIsVisible(panel, candidate))
+      return idx;
+  }
+
+  return -1;
+}
+
 static void PositionPanelAtDirIndex(YtreePanel *panel, int idx) {
   int height;
   int visible_idx;
@@ -488,6 +503,20 @@ static void PositionPanelAtDirIndex(YtreePanel *panel, int idx) {
   height = panel->pan_dir_window ? getmaxy(panel->pan_dir_window) : 1;
   if (height < 1)
     height = 1;
+
+  if (panel->hide_dot_files) {
+    int start_idx = idx;
+    int i;
+    for (i = 1; i < height; i++) {
+      int prev_idx = FindVisibleBackwardNoWrap(panel, start_idx - 1);
+      if (prev_idx < 0)
+        break;
+      start_idx = prev_idx;
+    }
+    panel->disp_begin_pos = start_idx;
+    panel->cursor_pos = idx - panel->disp_begin_pos;
+    return;
+  }
 
   if (idx >= panel->disp_begin_pos && idx < panel->disp_begin_pos + height) {
     panel->cursor_pos = idx - panel->disp_begin_pos;
