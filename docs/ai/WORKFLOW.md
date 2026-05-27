@@ -230,7 +230,7 @@ make qa-fuzz
     *   acceptance criteria,
     *   verification commands,
     *   blocker conditions,
-    *   expected completion report path (for example `/tmp/report<id>.txt`).
+    *   expected completion report path (for example `/home/rob/ytree/.agent/handoffs/report.<id>.<round>.txt`).
 4.  Architect status updates to maintainer must be delta-only and include concrete evidence handles.
 
 #### 3.1.4 Developer Pass (Single Unit)
@@ -312,7 +312,7 @@ Use this when wrapping up a PROMPT_TEMPLATE-driven mission and returning the rep
     *   Manually exercise the changed behavior.
 2.  **Maintainer -> Architect/AI:** If manual checks find issues, report failures; architect dispatches a new developer/auditor unit and repeats the loop until manual checks are green.
 3.  **Architect/AI:** Clean stale task artifacts from the finished mission (prompt/report/temp workflow files).
-    *   Required before final commit: remove stale handoff artifacts from repo root (for example `<id>.txt`, `<id>.*.txt`, and any consumed prompt/report files) unless the maintainer explicitly asks to keep them.
+    *   Required before final commit: remove stale handoff artifacts from `.agent/handoffs/` (for example `prompt.<id>.*.txt`, `report.<id>.*.txt`, and any consumed prompt/report files) unless the maintainer explicitly asks to keep them.
 4.  **Architect/AI:** Run quick local checks only (build + targeted smoke/tests for touched scope).
 5.  **Architect/AI:** Stage intended changes only (exclude unrelated local edits and workflow artifacts).
 6.  **Architect/AI:** Suggest a Conventional Commit subject and request maintainer commit-message approval.
