@@ -31,9 +31,9 @@ Use this skill when the active persona is `architect`.
 - UX Economy Criteria (for interactive flows)
 
 When generating a stateless developer handoff artifact, you MUST also require:
-- developer writes `/home/rob/ytree/task-<task-id>-report.txt`
+- developer writes `/home/rob/ytree/.agent/handoffs/report.<task-id>.txt`
 - developer completion reply is exactly one line:
-  `Task <task-id> completed, report in /home/rob/ytree/task-<task-id>-report.txt`
+  `Task <task-id> completed, report in /home/rob/ytree/.agent/handoffs/report.<task-id>.txt`
 
 ## Guardrails
 

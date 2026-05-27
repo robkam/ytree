@@ -64,13 +64,14 @@ Bug-first gate:
 - If the bug has current, sufficient evidence or can be proved with an automated regression first, proceed without repeated manual repro confirmation and state the evidence basis.
 - If not reproduced, stop implementation and report evidence for maintainer decision.
 
-Manual handoff artifact contract (repo root):
-- Architect control file: `<id>.txt`
-- Developer prompt/report files: `<id>.1.txt`, `<id>.1.report.txt`, then `<id>.3.txt`, `<id>.3.report.txt`, etc.
-- Code auditor prompt/report files: `<id>.2.txt`, `<id>.2.report.txt`, then `<id>.4.txt`, `<id>.4.report.txt`, etc.
+Manual handoff artifact contract (`/home/rob/ytree/.agent/handoffs/`):
+- Ensure the folder exists before writing artifacts: `mkdir -p /home/rob/ytree/.agent/handoffs`
+- Architect control file: `prompt.<id>.txt`
+- Developer prompt/report files: `prompt.<id>.<odd>.txt`, `report.<id>.<odd>.txt`
+- Code auditor prompt/report files: `prompt.<id>.<even>.txt`, `report.<id>.<even>.txt`
 - Do not use runtime run_id/idempotency/prompt-staging mechanics in this manual prompt flow.
 
-Architect control file (`<id>.txt`) must include:
+Architect control file (`prompt.<id>.txt`) must include:
 - Goal
 - Constraints and non-goals
 - Acceptance criteria checklist
@@ -82,21 +83,21 @@ Developer prompt requirements:
 - Strict scope and explicit non-goals
 - Acceptance criteria checklist
 - Exact verification commands, targeted first
-- Required report path: `/home/rob/ytree/<id>.<odd>.report.txt`
+- Required report path: `/home/rob/ytree/.agent/handoffs/report.<id>.<odd>.txt`
 - Completion reply must be exactly one line:
-  `BUG <id> completed, report in /home/rob/ytree/<id>.<odd>.report.txt`
+  `BUG <id> completed, report in /home/rob/ytree/.agent/handoffs/report.<id>.<odd>.txt`
   or
-  `TASK <id> completed, report in /home/rob/ytree/<id>.<odd>.report.txt`
+  `TASK <id> completed, report in /home/rob/ytree/.agent/handoffs/report.<id>.<odd>.txt`
 
 Code auditor prompt requirements:
 - Risk-first findings, severity ordered, with file/line references
 - Verify acceptance criteria and developer evidence
 - Clear pass/fail decision
-- Required report path: `/home/rob/ytree/<id>.<even>.report.txt`
+- Required report path: `/home/rob/ytree/.agent/handoffs/report.<id>.<even>.txt`
 - Completion reply must be exactly one line:
-  `BUG <id> completed, report in /home/rob/ytree/<id>.<even>.report.txt`
+  `BUG <id> completed, report in /home/rob/ytree/.agent/handoffs/report.<id>.<even>.txt`
   or
-  `TASK <id> completed, report in /home/rob/ytree/<id>.<even>.report.txt`
+  `TASK <id> completed, report in /home/rob/ytree/.agent/handoffs/report.<id>.<even>.txt`
 
 Validation:
 - Run required checks/QA autonomously; do not stop for routine checks approval.
@@ -133,5 +134,5 @@ Update format to maintainer:
 - Do not ask the maintainer to extract internals from logs; provide concrete values directly.
 
 Final completion line:
-- `BUG <id> completed, reports in /home/rob/ytree/<id>.txt and /home/rob/ytree/<id>.*.report.txt`
-- or `TASK <id> completed, reports in /home/rob/ytree/<id>.txt and /home/rob/ytree/<id>.*.report.txt`
+- `BUG <id> completed, reports in /home/rob/ytree/.agent/handoffs/prompt.<id>.txt and /home/rob/ytree/.agent/handoffs/report.<id>.*.txt`
+- or `TASK <id> completed, reports in /home/rob/ytree/.agent/handoffs/prompt.<id>.txt and /home/rob/ytree/.agent/handoffs/report.<id>.*.txt`
