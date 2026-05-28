@@ -598,6 +598,11 @@ extern int HandleDirWindow(ViewContext *ctx, const DirEntry *start_dir_entry) {
         dir_entry->start_file = 0;
       if (dir_entry->cursor_pos < 0 && dir_entry->total_files > 0)
         dir_entry->cursor_pos = 0;
+
+      ctx->active->file_dir_entry = dir_entry;
+      ctx->active->start_file = dir_entry->start_file;
+      ctx->active->file_cursor_pos = dir_entry->cursor_pos;
+      BuildFileEntryList(ctx, ctx->active);
     } else {
       dir_entry->start_file = 0;
       dir_entry->cursor_pos = -1;
@@ -614,10 +619,8 @@ extern int HandleDirWindow(ViewContext *ctx, const DirEntry *start_dir_entry) {
       unput_char = CR;
     }
   } else if (ctx->active && ctx->active->saved_focus == FOCUS_FILE &&
-             dir_entry->total_files > 0) {
-    BuildFileEntryList(ctx, ctx->active);
-    if (ctx->active->file_count > 0)
-      unput_char = CR;
+             ctx->active->file_count > 0 && dir_entry->total_files > 0) {
+    unput_char = CR;
   }
   do {
     /* Detect Global Volume Change (Split Brain Fix) */

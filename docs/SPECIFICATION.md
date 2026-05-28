@@ -174,6 +174,7 @@ Switching panels via `Tab` must restore the exact state held when that panel las
 *   **Selection:** Tags are specific to the panel session. Collapsing a directory (`Left` or `-`) or explicitly unreading/releasing it (`--`) discards saved tags beneath that directory; reloading it must not resurrect stale tags.
 *   **Compare Tagging Rule:** Compare workflows may report difference counts, but they do not implicitly mutate per-file tag state; tags change only through explicit tagging actions.
 *   **Filter (Filespec):** Independent search/filter strings.
+*   **Panel-Volume State Key Rule:** In split mode, panel-local restore state is keyed by `(panel, volume)`. On `Tab`/volume-cycle transitions, a panel restores its own snapshot for that volume and must not import state from the opposite panel.
 *   **Window/Mode Context:** Directory/File/Showall-style panel-local focus context.
 *   **File-Window Shape Context:** In split mode, each panel owns its own file-window shape (`tree`, `small file`, `big file`). `Tab` and `F8` transitions must restore that panel-local shape exactly on reactivation.
 *   **No Transient Fallback Rule:** Reactivating a panel must not briefly render a different shape (for example tree-first then file, or small-first then big) before correcting.
@@ -186,7 +187,9 @@ The split panels share one logged tree topology contract for a given logged volu
 *   **Selection Retention Rule:** Mirrored structural updates must not move the inactive panel's cursor/selection when its selected node remains visible/valid.
 *   **Non-Invalidating Changes Rule:** Adding siblings/ancestors, or changing sibling structure that does not invalidate the inactive selected node, must not move the inactive selection.
 *   **Frozen File-View Anchor Rule:** A panel left in file view is restored from its saved directory path and selected filename, not from the current flattened tree index. If shared-tree rebuilding leaves that directory as a visible but unloaded placeholder, the directory payload must be reloaded before the panel is rendered or resumed so the file window cannot degrade to an empty or unrelated listing.
+*   **Rebind-After-Rebuild Rule:** Restore paths must not persist raw `DirEntry*`/`FileEntry*` pointers across rebuild/rescan/volume-cycle boundaries. Persist stable identity keys (path/name) and re-resolve after rebuild.
 *   **Render Is Not Authority Rule:** Rendering may display the saved panel state, but it must not decide a new panel selection from whatever entry currently occupies the saved numeric index after a shared tree rebuild.
+*   **Restore Safety Guard Rule:** Before post-restore list/index dereference, validate volume/list presence and bounds. If invalid/empty, use deterministic fallback behavior rather than dereferencing transient state.
 *   **Deterministic Fallback Rule (When Selected Node Becomes Invalid):**
     *   Keep exact node if still visible/valid after mirror update.
     *   Else move to nearest visible ancestor of the previously selected node.

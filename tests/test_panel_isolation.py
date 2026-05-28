@@ -3,6 +3,7 @@ import shlex
 import tarfile
 import time
 import re
+from pathlib import Path
 from helpers_files import wait_for_file as _wait_for_file
 from helpers_stats import detect_stats_split_x as _detect_stats_split_x
 from helpers_ui import (
@@ -1002,6 +1003,368 @@ def test_volume_cycle_restores_prior_directory_selection(tmp_path, ytree_binary)
     )
 
     tui.quit()
+
+
+def test_smallwindowskip_volume_cycle_restores_deep_file_context(
+    tmp_path, ytree_binary
+):
+    root = tmp_path / "smallwindowskip_volume_cycle_deep_context"
+    root.mkdir()
+    vol_a = root / "smallskip_cycle_vol_a"
+    vol_b = root / "smallskip_cycle_vol_b"
+    home_vol = root / "smallskip_cycle_home"
+    deep_a = vol_a / "a_parent" / "a_deep"
+    deep_b = vol_b / "b_parent" / "b_deep"
+    release_anchor = home_vol / "zz_release_anchor"
+    deep_a.mkdir(parents=True)
+    deep_b.mkdir(parents=True)
+    release_anchor.mkdir(parents=True)
+
+    for i in range(3):
+        (deep_a / f"a_deep_{i}.txt").write_text(f"a{i}\n", encoding="utf-8")
+        (deep_b / f"b_deep_{i}.txt").write_text(f"b{i}\n", encoding="utf-8")
+
+    compare_target = root / "compare_target.txt"
+    compare_target.write_text("target\n", encoding="utf-8")
+    log_path = _configure_filediff_capture(root)
+    with (root / ".ytree").open("a", encoding="utf-8") as profile:
+        profile.write("TREEDEPTH=1\nSMALLWINDOWSKIP=1\n")
+
+    tui = YtreeTUI(
+        executable=ytree_binary,
+        cwd=str(root),
+        args=[str(home_vol), str(vol_a), str(vol_b)],
+    )
+    time.sleep(1.0)
+
+    def active_volume_name():
+        header = tui.get_screen_dump()[0]
+        for name in (
+            "smallskip_cycle_vol_a",
+            "smallskip_cycle_vol_b",
+            "smallskip_cycle_home",
+        ):
+            if name in header:
+                return name
+        return None
+
+    def cycle_to(volume_name, key=">"):
+        for _ in range(12):
+            if active_volume_name() == volume_name:
+                return
+            tui.send_keystroke(key, wait=0.4)
+        assert active_volume_name() == volume_name, _screen_text(tui)
+
+    def run_compare_and_read_source():
+        if log_path.exists():
+            log_path.unlink()
+        tui.send_keystroke("J", wait=0.25)
+        assert tui.wait_for_content("COMPARE TARGET:", timeout=1.0), _screen_text(tui)
+        tui.send_keystroke(Keys.CTRL_U + str(compare_target) + Keys.ENTER, wait=0.6)
+        if tui.wait_for_content("Hit return to continue", timeout=1.0):
+            tui.send_keystroke(Keys.ENTER, wait=0.3)
+        assert _wait_for_file(log_path, timeout=2.0), "FILEDIFF helper did not run."
+        return log_path.read_text(encoding="utf-8").splitlines()[0]
+
+    try:
+        cycle_to("smallskip_cycle_vol_a")
+
+        tui.send_keystroke(Keys.DOWN, wait=0.2)
+        tui.send_keystroke(Keys.ENTER, wait=0.5)
+        assert "hex invert j compare" not in _footer_text(tui), _screen_text(tui)
+        tui.send_keystroke(Keys.DOWN, wait=0.2)
+        tui.send_keystroke(Keys.ENTER, wait=0.5)
+        assert _stats_current_dir_contains(tui.get_screen_dump(), "a_deep"), _screen_text(
+            tui
+        )
+        tui.send_keystroke(Keys.ENTER, wait=0.5)
+        assert "hex invert j compare" in _footer_text(tui), _screen_text(tui)
+        assert "a_deep_0.txt" in _screen_text(tui), _screen_text(tui)
+        tui.send_keystroke(Keys.DOWN, wait=0.2)
+        source_a_expected = run_compare_and_read_source()
+        assert source_a_expected.endswith("a_deep_1.txt"), source_a_expected
+
+        cycle_to("smallskip_cycle_vol_b")
+        if "hex invert j compare" in _footer_text(tui):
+            tui.send_keystroke(Keys.ESC, wait=0.4)
+        tui.send_keystroke(Keys.DOWN, wait=0.2)
+        tui.send_keystroke(Keys.ENTER, wait=0.5)
+        assert "hex invert j compare" not in _footer_text(tui), _screen_text(tui)
+        tui.send_keystroke(Keys.DOWN, wait=0.2)
+        tui.send_keystroke(Keys.ENTER, wait=0.5)
+        assert _stats_current_dir_contains(tui.get_screen_dump(), "b_deep"), _screen_text(
+            tui
+        )
+        tui.send_keystroke(Keys.ENTER, wait=0.5)
+        assert "hex invert j compare" in _footer_text(tui), _screen_text(tui)
+        assert "b_deep_0.txt" in _screen_text(tui), _screen_text(tui)
+        tui.send_keystroke(Keys.DOWN, wait=0.2)
+        tui.send_keystroke(Keys.DOWN, wait=0.2)
+        source_b_expected = run_compare_and_read_source()
+        assert source_b_expected.endswith("b_deep_2.txt"), source_b_expected
+
+        cycle_to("smallskip_cycle_home")
+        if "hex invert j compare" in _footer_text(tui):
+            tui.send_keystroke(Keys.ESC, wait=0.4)
+        _assert_dir_mode_footer(tui, "Expected directory footer on release volume.")
+        tui.send_keystroke(Keys.DOWN, wait=0.2)
+        assert _stats_current_dir_contains(
+            tui.get_screen_dump(), "zz_release_anchor"
+        ), _screen_text(tui)
+        tui.send_keystroke("k", wait=0.4)
+        assert tui.wait_for_content("Select Volume", timeout=1.0), _screen_text(tui)
+        tui.send_keystroke("d", wait=0.3)
+        tui.send_keystroke("y", wait=0.8)
+        if tui.wait_for_content("Select Volume", timeout=0.4):
+            tui.send_keystroke(Keys.ESC, wait=0.5)
+
+        cycle_to("smallskip_cycle_vol_a")
+        assert "hex invert j compare" in _footer_text(tui), _screen_text(tui)
+
+        source_a_after_cycle = run_compare_and_read_source()
+        assert source_a_after_cycle == source_a_expected, (
+            "SMALLWINDOWSKIP=1 volume cycling lost deep per-volume file context for A.\n"
+            f"Expected: {source_a_expected}\n"
+            f"Actual:   {source_a_after_cycle}\n{_screen_text(tui)}"
+        )
+        tui.send_keystroke(Keys.ESC, wait=0.4)
+        _assert_dir_mode_footer(
+            tui, "Expected directory footer after leaving restored A file view."
+        )
+        assert _stats_current_dir_contains(tui.get_screen_dump(), "a_deep"), (
+            "Leaving restored file view returned to a parent/tree location.\n"
+            + _screen_text(tui)
+        )
+        tui.send_keystroke(Keys.ENTER, wait=0.5)
+        assert "hex invert j compare" in _footer_text(tui), _screen_text(tui)
+
+        tui.send_keystroke(">", wait=0.8)
+        assert active_volume_name() == "smallskip_cycle_vol_b", _screen_text(tui)
+        assert "hex invert j compare" in _footer_text(tui), _screen_text(tui)
+        source_b_after_cycle = run_compare_and_read_source()
+        assert source_b_after_cycle == source_b_expected, (
+            "SMALLWINDOWSKIP=1 volume cycling lost deep per-volume file context for B.\n"
+            f"Expected: {source_b_expected}\n"
+            f"Actual:   {source_b_after_cycle}\n{_screen_text(tui)}"
+        )
+    finally:
+        tui.quit()
+
+
+def test_smallwindowskip_release_active_volume_switch_keeps_stats_anchor_safe(
+    tmp_path, ytree_binary
+):
+    root = tmp_path / "smallwindowskip_release_active_volume_switch_safe"
+    root.mkdir()
+    (root / ".ytree").write_text(
+        "[GLOBAL]\nTREEDEPTH=1\nSMALLWINDOWSKIP=1\n",
+        encoding="utf-8",
+    )
+
+    home_vol = root / "aa_home_vol"
+    work_vol = root / "zz_work_vol"
+    (home_vol / "h_parent" / "h_deep").mkdir(parents=True)
+    (work_vol / "w_parent" / "w_deep").mkdir(parents=True)
+
+    for i in range(3):
+        (home_vol / "h_parent" / "h_deep" / f"h{i}.txt").write_text(
+            f"h{i}\n", encoding="utf-8"
+        )
+        (work_vol / "w_parent" / "w_deep" / f"w{i}.txt").write_text(
+            f"w{i}\n", encoding="utf-8"
+        )
+
+    tui = YtreeTUI(
+        executable=ytree_binary,
+        cwd=str(root),
+        args=[str(home_vol), str(work_vol)],
+    )
+    time.sleep(1.0)
+
+    def active_volume_name():
+        header = tui.get_screen_dump()[0]
+        if "aa_home_vol" in header:
+            return "aa_home_vol"
+        if "zz_work_vol" in header:
+            return "zz_work_vol"
+        return None
+
+    def cycle_to(volume_name, key):
+        for _ in range(12):
+            if active_volume_name() == volume_name:
+                return
+            tui.send_keystroke(key, wait=0.6)
+        assert active_volume_name() == volume_name, _screen_text(tui)
+
+    def enter_deep_file_view(prefix):
+        if "hex invert j compare" in _footer_text(tui):
+            tui.send_keystroke(Keys.ESC, wait=0.3)
+        _assert_dir_mode_footer(tui, f"Expected dir mode before entering {prefix}.")
+
+        tui.send_keystroke(Keys.DOWN, wait=0.2)
+        tui.send_keystroke(Keys.ENTER, wait=0.5)
+        tui.send_keystroke(Keys.DOWN, wait=0.2)
+        tui.send_keystroke(Keys.ENTER, wait=0.5)
+        tui.send_keystroke(Keys.ENTER, wait=0.5)
+        assert "hex invert j compare" in _footer_text(tui), _screen_text(tui)
+        assert f"{prefix}0.txt" in _screen_text(tui), _screen_text(tui)
+        tui.send_keystroke(Keys.DOWN, wait=0.2)
+
+    try:
+        cycle_to("aa_home_vol", ">")
+        enter_deep_file_view("h")
+
+        cycle_to("zz_work_vol", ">")
+        enter_deep_file_view("w")
+
+        cycle_to("aa_home_vol", "<")
+        if "hex invert j compare" in _footer_text(tui):
+            tui.send_keystroke(Keys.ESC, wait=0.4)
+        _assert_dir_mode_footer(tui, "Expected dir mode on releasable home volume.")
+
+        tui.send_keystroke("k", wait=0.4)
+        assert tui.wait_for_content("Select Volume", timeout=1.0), _screen_text(tui)
+        tui.send_keystroke("d", wait=0.3)
+        tui.send_keystroke("y", wait=1.0)
+        assert tui.wait_for_content("Select Volume", timeout=1.0), _screen_text(tui)
+
+        tui.send_keystroke(Keys.ENTER, wait=1.0)
+        assert active_volume_name() == "zz_work_vol", _screen_text(tui)
+
+        if "hex invert j compare" not in _footer_text(tui):
+            tui.send_keystroke(Keys.ENTER, wait=0.5)
+        assert "hex invert j compare" in _footer_text(tui), _screen_text(tui)
+
+        tui.send_keystroke(Keys.DOWN, wait=0.3)
+        screen = _screen_text(tui)
+        assert "w1.txt" in screen or "w2.txt" in screen, screen
+    finally:
+        tui.quit()
+
+
+def test_enter_repo_src_preserves_tree_viewport_anchor(ytree_binary):
+    repo_root = Path(__file__).resolve().parents[1]
+    home = repo_root.parent
+
+    tui = YtreeTUI(executable=ytree_binary, cwd=str(home))
+    time.sleep(1.0)
+
+    def move_to_stats_dir(marker, *, max_steps=120):
+        marker_token = f" {marker} "
+        for _ in range(max_steps):
+            if _stats_current_dir_contains(tui.get_screen_dump(), marker_token):
+                return
+            tui.send_keystroke(Keys.DOWN, wait=0.12)
+        pytest.fail(
+            f"Failed to move selection to stats marker '{marker}'.\n{_screen_text(tui)}"
+        )
+
+    def tree_pane_contains(lines, marker):
+        split_x = _detect_stats_split_x(lines)
+        for line in lines[2:-4]:
+            tree_segment = line[:split_x] if split_x is not None else line
+            if marker in tree_segment:
+                return True
+        return False
+
+    try:
+        move_to_stats_dir(repo_root.name)
+        tui.send_keystroke(Keys.RIGHT, wait=0.45)
+
+        move_to_stats_dir("src")
+        before_lines = tui.get_screen_dump()
+        before_screen = "\n".join(before_lines)
+        assert tree_pane_contains(before_lines, str(home)), before_screen
+
+        tui.send_keystroke(Keys.ENTER, wait=0.6)
+        _assert_dir_mode_footer(tui, "Expected tree mode after scanning deep tree node.")
+
+        after_lines = tui.get_screen_dump()
+        after_screen = "\n".join(after_lines)
+        assert _stats_current_dir_contains(after_lines, "src"), (
+            "ENTER moved active tree selection unexpectedly.\n"
+            f"{after_screen}"
+        )
+        assert tree_pane_contains(after_lines, str(home)), (
+            "ENTER recentered tree viewport to the selected subtree instead of "
+            "preserving the existing /home-anchored viewport.\n"
+            f"{after_screen}"
+        )
+        assert "build" in after_screen and "src" in after_screen, after_screen
+    finally:
+        tui.quit()
+
+
+def test_enter_repo_src_cmd_preserves_tree_viewport_anchor(ytree_binary):
+    repo_root = Path(__file__).resolve().parents[1]
+
+    tui = YtreeTUI(executable=ytree_binary, cwd=str(repo_root))
+    time.sleep(1.0)
+
+    def move_to_stats_dir(marker, *, max_steps=140):
+        marker_token = f" {marker} "
+        for _ in range(max_steps):
+            if _stats_current_dir_contains(tui.get_screen_dump(), marker_token):
+                return
+            tui.send_keystroke(Keys.DOWN, wait=0.12)
+        pytest.fail(
+            f"Failed to move selection to stats marker '{marker}'.\n{_screen_text(tui)}"
+        )
+
+    def tree_pane_contains(lines, marker):
+        split_x = _detect_stats_split_x(lines)
+        for line in lines[2:-4]:
+            tree_segment = line[:split_x] if split_x is not None else line
+            if marker in tree_segment:
+                return True
+        return False
+
+    try:
+        move_to_stats_dir("src")
+        before_src_lines = tui.get_screen_dump()
+        before_src_screen = "\n".join(before_src_lines)
+        assert tree_pane_contains(before_src_lines, str(repo_root)), before_src_screen
+
+        tui.send_keystroke(Keys.ENTER, wait=0.6)
+        _assert_dir_mode_footer(tui, "Expected tree mode after entering src subtree.")
+
+        after_src_lines = tui.get_screen_dump()
+        after_src_screen = "\n".join(after_src_lines)
+        assert _stats_current_dir_contains(after_src_lines, "src"), (
+            "ENTER moved selection away from src unexpectedly.\n"
+            f"{after_src_screen}"
+        )
+        assert tree_pane_contains(after_src_lines, str(repo_root)), (
+            "ENTER on src recentered tree viewport instead of preserving the "
+            "repo-root anchor.\n"
+            f"{after_src_screen}"
+        )
+
+        move_to_stats_dir("cmd")
+        before_cmd_lines = tui.get_screen_dump()
+        before_cmd_screen = "\n".join(before_cmd_lines)
+        assert tree_pane_contains(before_cmd_lines, str(repo_root)), before_cmd_screen
+
+        tui.send_keystroke(Keys.ENTER, wait=0.6)
+        assert "hex invert j compare" in _footer_text(tui), _screen_text(tui)
+        tui.send_keystroke(Keys.ESC, wait=0.4)
+        _assert_dir_mode_footer(
+            tui, "Expected tree mode after returning from src/cmd file view."
+        )
+
+        after_cmd_lines = tui.get_screen_dump()
+        after_cmd_screen = "\n".join(after_cmd_lines)
+        assert _stats_current_dir_contains(after_cmd_lines, "cmd"), (
+            "Returning from cmd file view moved selection unexpectedly.\n"
+            f"{after_cmd_screen}"
+        )
+        assert tree_pane_contains(after_cmd_lines, str(repo_root)), (
+            "Second ENTER on src/cmd recentered tree viewport after returning "
+            "from file view instead of preserving the repo-root anchor.\n"
+            f"{after_cmd_screen}"
+        )
+    finally:
+        tui.quit()
 
 
 def test_volume_cycle_leak_state_preserves_per_volume_file_selection(
@@ -3223,6 +3586,42 @@ def test_log_new_volume_from_file_view_resets_focus_and_selection(tmp_path, ytre
     )
 
     tui.quit()
+
+
+def test_log_current_volume_from_file_view_keeps_file_anchor_safe(tmp_path, ytree_binary):
+    root = tmp_path / "file_log_current_volume_anchor_safe"
+    root.mkdir()
+    (root / ".ytree").write_text("[GLOBAL]\nSMALLWINDOWSKIP=1\n", encoding="utf-8")
+    alpha = root / "alpha"
+    alpha.mkdir()
+
+    (alpha / "alpha_0.txt").write_text("0\n", encoding="utf-8")
+    (alpha / "alpha_1.txt").write_text("1\n", encoding="utf-8")
+    (alpha / "alpha_2.txt").write_text("2\n", encoding="utf-8")
+
+    tui = YtreeTUI(executable=ytree_binary, cwd=str(root))
+    time.sleep(0.8)
+
+    try:
+        tui.send_keystroke(Keys.DOWN, wait=0.2)
+        tui.send_keystroke(Keys.ENTER, wait=0.4)
+        tui.send_keystroke(Keys.DOWN, wait=0.2)
+        assert "hex invert j compare" in _footer_text(tui), _screen_text(tui)
+
+        tui.send_keystroke(Keys.LOG, wait=0.2)
+        tui.send_keystroke(Keys.CTRL_U + str(root) + Keys.ENTER, wait=0.9)
+
+        _assert_dir_mode_footer(
+            tui,
+            "Reloading the current volume from file view should return safely to dir mode.",
+        )
+
+        tui.send_keystroke(Keys.DOWN, wait=0.2)
+        tui.send_keystroke(Keys.ENTER, wait=0.5)
+        assert "hex invert j compare" in _footer_text(tui), _screen_text(tui)
+        assert _find_line_with_text(tui, "alpha_0.txt") is not None, _screen_text(tui)
+    finally:
+        tui.quit()
 
 
 def test_log_second_volume_from_file_view_keeps_tree_on_root(tmp_path, ytree_binary):

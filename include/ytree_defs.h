@@ -730,6 +730,7 @@ typedef struct _panel_volume_file_state {
   int volume_id;
   int saved_file_start;
   int saved_file_cursor;
+  ViewFocus saved_focus;
   BOOL saved_big_file_view;
   char saved_file_dir_path[PATH_LENGTH + 1];
   char saved_file_selection_name[PATH_LENGTH + 1];

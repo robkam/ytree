@@ -1259,6 +1259,10 @@ void HandleSwitchWindow(ViewContext *ctx, DirEntry *dir_entry,
       if (ctx->active->vol != start_vol)
         return;
 
+      dir_entry = GetPanelDirEntry(p);
+      if (!dir_entry)
+        return;
+
       p->file_dir_entry = dir_entry;
       p->start_file = dir_entry->start_file;
       p->file_cursor_pos = dir_entry->cursor_pos;
@@ -1284,9 +1288,11 @@ void HandleSwitchWindow(ViewContext *ctx, DirEntry *dir_entry,
     } else {
       /* ... existing LOG_ESC handling ... */
       BuildDirEntryList(ctx, p->vol, &p->current_dir_entry);
+      dir_entry = GetPanelDirEntry(p);
 
       /* Ensure visual consistency here too */
-      RefreshView(ctx, dir_entry);
+      if (dir_entry)
+        RefreshView(ctx, dir_entry);
 
       *ch = 'L';
     }
@@ -1583,9 +1589,9 @@ HandleDirWindowPanelAction(ViewContext *ctx, YtreeAction action,
       return DIR_WINDOW_DISPATCH_CONTINUE;
     }
 
+    *dir_entry_ptr = ResolveActiveDirEntry(ctx, *s_ptr);
     RefreshView(ctx, *dir_entry_ptr);
     *need_dsp_help_ptr = TRUE;
-    *dir_entry_ptr = ResolveActiveDirEntry(ctx, *s_ptr);
     return DIR_WINDOW_DISPATCH_HANDLED;
   }
 
@@ -1870,8 +1876,28 @@ HandleDirWindowEnterAction(ViewContext *ctx, DirEntry **dir_entry_ptr,
        ((*dir_entry_ptr)->not_scanned && (*dir_entry_ptr)->total_files == 0))) {
     DirEntry *child;
     char new_log_path[PATH_LENGTH + 1];
+    char saved_selected_path[PATH_LENGTH + 1];
+    char saved_top_path[PATH_LENGTH + 1];
+    int saved_disp_begin = ctx->active->disp_begin_pos;
+    int saved_cursor_pos = ctx->active->cursor_pos;
+    int i;
+    int selected_idx = -1;
+    int top_idx = -1;
+    int win_height;
+    int dummy_width;
+    int max_begin;
 
     new_log_path[0] = '\0';
+    saved_selected_path[0] = '\0';
+    saved_top_path[0] = '\0';
+    GetPath(*dir_entry_ptr, saved_selected_path);
+    if (ctx->active->vol->total_dirs > 0 && ctx->active->vol->dir_entry_list &&
+        saved_disp_begin >= 0 &&
+        saved_disp_begin < ctx->active->vol->total_dirs) {
+      GetPath(ctx->active->vol->dir_entry_list[saved_disp_begin].dir_entry,
+              saved_top_path);
+    }
+
     HandlePlus(ctx, *dir_entry_ptr, NULL, new_log_path, need_dsp_help_ptr,
                ctx->active);
     *dir_entry_ptr = ResolveActiveDirEntry(ctx, *s_ptr);
@@ -1882,15 +1908,69 @@ HandleDirWindowEnterAction(ViewContext *ctx, DirEntry **dir_entry_ptr,
         child->unlogged_flag = TRUE;
       }
       BuildDirEntryList(ctx, ctx->active->vol, &ctx->active->current_dir_entry);
+
+      GetMaxYX(ctx->active->pan_dir_window, &win_height, &dummy_width);
+      if (win_height < 1)
+        win_height = 1;
+      max_begin = MAXIMUM(0, ctx->active->vol->total_dirs - win_height);
+
+      for (i = 0; i < ctx->active->vol->total_dirs; i++) {
+        char path[PATH_LENGTH + 1];
+        GetPath(ctx->active->vol->dir_entry_list[i].dir_entry, path);
+        if (selected_idx < 0 && strcmp(path, saved_selected_path) == 0)
+          selected_idx = i;
+        if (top_idx < 0 && saved_top_path[0] != '\0' &&
+            strcmp(path, saved_top_path) == 0)
+          top_idx = i;
+        if (selected_idx >= 0 && (top_idx >= 0 || saved_top_path[0] == '\0'))
+          break;
+      }
+
+      if (selected_idx >= 0) {
+        int saved_selected_idx = saved_disp_begin + saved_cursor_pos;
+        int idx_delta = selected_idx - saved_selected_idx;
+        int next_disp_begin =
+            (top_idx >= 0) ? top_idx : MAXIMUM(0, saved_disp_begin);
+
+        if (next_disp_begin < 0)
+          next_disp_begin = 0;
+        if (next_disp_begin > max_begin)
+          next_disp_begin = max_begin;
+
+        ctx->active->disp_begin_pos = next_disp_begin;
+        ctx->active->cursor_pos = saved_cursor_pos + idx_delta;
+      } else {
+        int next_disp_begin =
+            (top_idx >= 0) ? top_idx : MAXIMUM(0, saved_disp_begin);
+        if (next_disp_begin < 0)
+          next_disp_begin = 0;
+        if (next_disp_begin > max_begin)
+          next_disp_begin = max_begin;
+        ctx->active->disp_begin_pos = next_disp_begin;
+        ctx->active->cursor_pos = saved_cursor_pos;
+      }
+
+      if (ctx->active->cursor_pos < 0)
+        ctx->active->cursor_pos = 0;
+      if (ctx->active->disp_begin_pos + ctx->active->cursor_pos >=
+          ctx->active->vol->total_dirs) {
+        ctx->active->cursor_pos =
+            ctx->active->vol->total_dirs - 1 - ctx->active->disp_begin_pos;
+      }
+      if (ctx->active->cursor_pos < 0)
+        ctx->active->cursor_pos = 0;
+      *dir_entry_ptr = ResolveActiveDirEntry(ctx, *s_ptr);
       RefreshView(ctx, *dir_entry_ptr);
     }
 
     ctx->focused_window = FOCUS_TREE;
+    *action_ptr = ACTION_NONE;
     return DIR_WINDOW_DISPATCH_HANDLED;
   }
 
   if (*dir_entry_ptr == NULL || (*dir_entry_ptr)->total_files == 0) {
     UI_Beep(ctx, FALSE);
+    *action_ptr = ACTION_NONE;
     return DIR_WINDOW_DISPATCH_HANDLED;
   }
 
@@ -1922,8 +2002,9 @@ HandleDirWindowEnterAction(ViewContext *ctx, DirEntry **dir_entry_ptr,
   if (ctx->active->vol != *start_vol_ptr)
     return DIR_WINDOW_DISPATCH_RETURN_ESC;
 
-  RefreshView(ctx, *dir_entry_ptr);
   *dir_entry_ptr = ResolveActiveDirEntry(ctx, *s_ptr);
+  RefreshView(ctx, *dir_entry_ptr);
+  *action_ptr = ACTION_NONE;
   return DIR_WINDOW_DISPATCH_HANDLED;
 }
 
@@ -2235,11 +2316,13 @@ void ToggleDotFiles(ViewContext *ctx, YtreePanel *p) {
  */
 DirEntry *RefreshTreeSafe(ViewContext *ctx, YtreePanel *p, DirEntry *entry) {
   const Statistic *s;
+  int saved_disp_begin;
 
   if (!p || !p->vol)
     return entry;
 
   s = &p->vol->vol_stats;
+  saved_disp_begin = p->disp_begin_pos;
 
   /* RescanDir destroys/recreates FileEntry nodes. Any panel cache on this
    * volume would otherwise keep dangling pointers until that panel becomes
@@ -2265,8 +2348,13 @@ DirEntry *RefreshTreeSafe(ViewContext *ctx, YtreePanel *p, DirEntry *entry) {
     char saved_path[PATH_LENGTH + 1];
     int win_height;
     int dummy_width;
+    int found_idx = -1;
+    int i;
+    int max_begin;
 
     GetMaxYX(p->pan_dir_window, &win_height, &dummy_width);
+    if (win_height < 1)
+      win_height = 1;
 
     /* 1. Save State */
     GetPath(entry, saved_path);
@@ -2303,8 +2391,6 @@ DirEntry *RefreshTreeSafe(ViewContext *ctx, YtreePanel *p, DirEntry *entry) {
     BuildDirEntryList(ctx, p->vol, &p->current_dir_entry);
 
     /* Try to find the directory we were on */
-    int found_idx = -1;
-    int i;
     char temp_path[PATH_LENGTH + 1];
     for (i = 0; i < p->vol->total_dirs; i++) {
       GetPath(p->vol->dir_entry_list[i].dir_entry, temp_path);
@@ -2313,21 +2399,33 @@ DirEntry *RefreshTreeSafe(ViewContext *ctx, YtreePanel *p, DirEntry *entry) {
         break;
       }
     }
+    max_begin = MAXIMUM(0, p->vol->total_dirs - win_height);
 
     if (found_idx != -1) {
-      /* Restore cursor */
-      if (found_idx >= p->disp_begin_pos &&
-          found_idx < p->disp_begin_pos + win_height) {
-        p->cursor_pos = found_idx - p->disp_begin_pos;
-      } else {
-        /* Move to ensure visibility */
-        p->disp_begin_pos = found_idx;
-        p->cursor_pos = 0;
-        if (p->disp_begin_pos + win_height > p->vol->total_dirs) {
-          p->disp_begin_pos = MAXIMUM(0, p->vol->total_dirs - win_height);
-          p->cursor_pos = found_idx - p->disp_begin_pos;
-        }
+      int next_disp_begin = saved_disp_begin;
+
+      if (next_disp_begin < 0)
+        next_disp_begin = 0;
+      if (next_disp_begin > max_begin)
+        next_disp_begin = max_begin;
+
+      if (found_idx < next_disp_begin) {
+        next_disp_begin = found_idx;
+      } else if (found_idx >= next_disp_begin + win_height) {
+        next_disp_begin = found_idx - (win_height - 1);
       }
+
+      if (next_disp_begin < 0)
+        next_disp_begin = 0;
+      if (next_disp_begin > max_begin)
+        next_disp_begin = max_begin;
+
+      p->disp_begin_pos = next_disp_begin;
+      p->cursor_pos = found_idx - p->disp_begin_pos;
+      if (p->cursor_pos < 0)
+        p->cursor_pos = 0;
+      if (p->cursor_pos >= win_height)
+        p->cursor_pos = win_height - 1;
       entry =
           p->vol->dir_entry_list[p->disp_begin_pos + p->cursor_pos].dir_entry;
     } else {

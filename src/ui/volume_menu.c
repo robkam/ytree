@@ -377,11 +377,17 @@ int SelectLoadedVolume(ViewContext *ctx, int *return_key) {
               break;
             }
 
-            ctx->active->vol = neighbor;
-            /* Renamed usage: ctx->active->vol->vol_stats.mode ->
-             * ctx->active->vol->vol_stats.log_mode */
-            ctx->view_mode =
-                ctx->active->vol->vol_stats.log_mode; // Sync global mode
+            {
+              char neighbor_path[PATH_LENGTH + 1];
+
+              (void)snprintf(neighbor_path, sizeof(neighbor_path), "%s",
+                             neighbor->vol_stats.log_path);
+              if (LogDisk(ctx, ctx->active, neighbor_path) != 0) {
+                restart_menu = TRUE;
+                menu_active = FALSE;
+                break;
+              }
+            }
           }
           /* Scenario B: Deleting Background Volume (or target_vol is now
            * ctx->active->vol's old self) */
