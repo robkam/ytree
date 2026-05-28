@@ -1304,7 +1304,13 @@ BOOL handle_file_window_misc_dispatch_action(
       (void)GetFileNamePath(fe_ptr, new_log_path);
       if (!GetNewLogPath(ctx, ctx->active, new_log_path)) {
         dir_entry->log_flag = TRUE;
-        (void)LogDisk(ctx, ctx->active, new_log_path);
+        if (LogDisk(ctx, ctx->active, new_log_path) == 0) {
+          dir_entry = GetPanelDirEntry(ctx->active);
+          if (!dir_entry) {
+            loop_action = ACTION_ESCAPE;
+            break;
+          }
+        }
         unput_char = ESC;
       }
       need_dsp_help = TRUE;

@@ -43,8 +43,9 @@ v3.0.0-alpha is being published early so people can use the program, inspect the
 *   **Split Screen Mode (F8):** Manage two independent file panels side-by-side.
 *   **File Preview (F7):** Instant view of file contents without launching external tools.
 *   **Multi-Volume Support:** Log multiple drives or archives simultaneously and switch instantly.
-*   **Archives as Directories:** Browse ZIP, TAR, GZ, and ISO files transparently using `libarchive`.
+*   **Archive Handling:** Read archives and, where supported, write/update archive contents via `libarchive`.
 *   **Advanced Filtering:** Filter by RegEx, Attribute, Date, and Size.
+*   **Configurable Color Themes:** Customize UI colors to match workflow preferences.
 *   **Modern Architecture:** Clean C99, strict context-passing design — no global mutable state. See [ARCHITECTURE.md](docs/ARCHITECTURE.md).
 *   **Auto-Refresh:** Inotify integration for live directory updates.
 *   **External Viewers:** Associate specific file extensions with external programs (images, PDFs, etc.).

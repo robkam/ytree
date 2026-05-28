@@ -60,7 +60,29 @@ Ordering policy (for all editors, including AI editors):
     *   After moving `/home/rob/ytree/src/cmd` to `/home/rob/ytree` and switching back to `/home/rob/xtreefanpage`, view no longer returns to `/home/rob/xtreefanpage/download`; lands at `/home/rob/xtreefanpage` dir view.
     *   `SMALLWINDOWSKIP=0` not yet tried for this defect family.
 *   **Impact**: Breaks per-volume resume guarantees and creates wrong-target risk during cross-volume workflows.
-*   **Remediation**: Persist and restore per-volume file-context anchor (dir path + file selection + view mode) independently from transient tree-row position.
+*   **Remediation**:
+    *   Persist a per-volume file-context anchor by stable identity (`dir path` + `selected file path/name` + `focus/view mode`), not by transient row position.
+    *   Do not persist raw `DirEntry*`/`FileEntry*` pointers across rebuild/rescan/volume-switch boundaries; re-resolve from stable keys after list rebuild.
+    *   Restore with deterministic fallback order: exact file match -> same directory anchor -> first visible entry.
+    *   Guard post-switch dereferences when lists are empty/missing (`vol`, `dir_entry_list`, `total_dirs`) so restore paths fail closed instead of reading invalid state.
+*   **Status**: Fixed.
+
+### **BUG-2.6: Tree Viewport Shifts Unexpectedly During Enter Navigation**
+*   **Description**: In normal tree/file navigation, `Enter` transitions can shift the tree viewport upward even when the selected node remains visible and no scroll is required.
+*   **Repro (manual, 2026-05-29)**:
+    *   `yt ~/ytree`
+    *   Move selection to `src/cmd`
+    *   Press `Enter`, then `Enter` again
+*   **Expected**: Tree viewport remains stable unless scroll is required to keep the active selection visible (for example selection moves below the visible viewport and the viewport must scroll).
+*   **Actual**: Tree content shifts upward unexpectedly while selection/context remains within what should be a stable viewport.
+*   **Spec Violations**:
+    *   `docs/SPECIFICATION.md` §3.1 **Navigation Stability**
+    *   `docs/SPECIFICATION.md` §5.2 **Window/Mode Context** persistence
+*   **Impact**: Breaks navigation predictability and reinforces perceived split/state fragility by causing unexpected visual movement during routine `Enter` flows.
+*   **Remediation**:
+    *   Enforce explicit viewport-anchor rules for tree rendering during `Enter`-driven mode transitions.
+    *   Disallow non-required viewport origin changes when selection remains visible/valid.
+    *   Use deterministic viewport adjustment only for visibility preservation, not as a side-effect of redraw/rebind paths.
 *   **Status**: Confirmed.
 
 ### **BUG-2.8: Split-Panel Filter State Leaks Across Panels on Volume Cycle**
@@ -75,7 +97,11 @@ Ordering policy (for all editors, including AI editors):
     *   `docs/SPECIFICATION.md` §5.1 **Active-Only Mutation Rule**
     *   `docs/SPECIFICATION.md` §5.2 **Filter (Filespec): Independent search/filter strings**
 *   **Impact**: Cross-panel state leakage can silently narrow file lists and increase wrong-target risk.
-*   **Remediation**: Make filter ownership panel-local in split state; restore filter from each panel’s own snapshot on `Tab`/volume-cycle transitions.
+*   **Remediation**:
+    *   Make filter ownership panel-local for split state (panel + volume context), not volume-global.
+    *   On `Tab` and volume-cycle transitions, restore filter from the target panel snapshot only; do not import from the opposite panel.
+    *   Remove shared-buffer/aliasing paths that let both panels read/write one filter instance.
+    *   Enforce active-only mutation and inactive freeze semantics for filter state.
 *   **Status**: Confirmed.
 
 ### **BUG-3: F8 Dotfiles Toggle Leaks Across Panels**

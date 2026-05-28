@@ -18,6 +18,14 @@ static void Volume_ClearPanelFileEntries(YtreePanel *panel) {
   }
 }
 
+static void Volume_ClearPanelFileAnchor(YtreePanel *panel) {
+  if (!panel)
+    return;
+  panel->file_dir_entry = NULL;
+  panel->start_file = 0;
+  panel->file_cursor_pos = 0;
+}
+
 static void Volume_ClearPanelTags(YtreePanel *panel) {
   if (!panel)
     return;
@@ -133,11 +141,13 @@ void Volume_Delete(ViewContext *ctx, struct Volume *vol) {
   /* Invalidate any panels using this volume to prevent stale references */
   if (ctx->left && ctx->left->vol == vol) {
     Volume_ClearPanelFileEntries(ctx->left);
+    Volume_ClearPanelFileAnchor(ctx->left);
     Volume_ClearPanelTags(ctx->left);
     ctx->left->vol = NULL;
   }
   if (ctx->right && ctx->right->vol == vol) {
     Volume_ClearPanelFileEntries(ctx->right);
+    Volume_ClearPanelFileAnchor(ctx->right);
     Volume_ClearPanelTags(ctx->right);
     ctx->right->vol = NULL;
   }
@@ -294,6 +304,14 @@ struct Volume *Volume_Load(ViewContext *ctx, const char *path,
   if (reuse_vol) {
     vol = reuse_vol;
     if (vol->vol_stats.tree) {
+      if (ctx->left && ctx->left->vol == vol) {
+        Volume_ClearPanelFileEntries(ctx->left);
+        Volume_ClearPanelFileAnchor(ctx->left);
+      }
+      if (ctx->right && ctx->right->vol == vol) {
+        Volume_ClearPanelFileEntries(ctx->right);
+        Volume_ClearPanelFileAnchor(ctx->right);
+      }
       Volume_DeleteTree(ctx, vol->vol_stats.tree);
       vol->vol_stats.tree = NULL;
     }
