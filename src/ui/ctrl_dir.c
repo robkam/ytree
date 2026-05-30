@@ -954,6 +954,7 @@ extern int HandleDirWindow(ViewContext *ctx, const DirEntry *start_dir_entry) {
 
     case ACTION_CMD_M:
       HandleDirMakeDirectory(ctx, dir_entry, s);
+      dir_entry = ResolveActiveDirEntry(ctx, s);
       need_dsp_help = TRUE;
       break;
     case ACTION_CMD_D:
