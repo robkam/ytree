@@ -1376,6 +1376,8 @@ static DirEntry *RestorePanelFileSelection(ViewContext *ctx, DirEntry *dir_entry
 
   if (!ctx || !dir_entry || !panel)
     return dir_entry;
+  if (panel->saved_focus != FOCUS_FILE)
+    return dir_entry;
 
   /*
    * Split ownership boundary (docs/ARCHITECTURE.md §4.2.1):

@@ -519,17 +519,10 @@ static DirEntry *ResolvePanelFileAnchor(const YtreePanel *panel) {
   return panel->vol->dir_entry_list[anchor_idx].dir_entry;
 }
 
-static DirEntry *EnsurePanelFileAnchorRenderable(ViewContext *ctx,
+static DirEntry *ResolvePanelFileAnchorForRender(ViewContext *ctx,
                                                  YtreePanel *panel) {
-  DirEntry *anchor;
-
   (void)ctx;
-  anchor = ResolvePanelFileAnchor(panel);
-  if (!anchor)
-    return NULL;
-
-  panel->file_dir_entry = anchor;
-  return anchor;
+  return ResolvePanelFileAnchor(panel);
 }
 
 void RenderInactivePanel(ViewContext *ctx, YtreePanel *panel) {
@@ -550,7 +543,7 @@ void RenderInactivePanel(ViewContext *ctx, YtreePanel *panel) {
     return;
 
   if (panel->saved_focus == FOCUS_FILE &&
-      EnsurePanelFileAnchorRenderable(ctx, panel)) {
+      ResolvePanelFileAnchorForRender(ctx, panel)) {
     begin = panel->disp_begin_pos;
     cursor = panel->cursor_pos;
   }
@@ -561,6 +554,7 @@ void RenderInactivePanel(ViewContext *ctx, YtreePanel *panel) {
     int render_begin = begin;
     int render_tree_cursor = cursor;
     int idx = selected_idx;
+    DirEntry *render_dir = NULL;
     const DirEntry *de = NULL;
 
     if (idx < 0 || idx >= total)
@@ -575,12 +569,24 @@ void RenderInactivePanel(ViewContext *ctx, YtreePanel *panel) {
 
     if (panel->saved_focus == FOCUS_FILE) {
       BOOL refresh_file_cache = FALSE;
+      char render_dir_path[PATH_LENGTH + 1];
 
-      DirOps_ReloadPanelFileAnchorIfMissing(ctx, panel, (DirEntry *)de);
-      if (panel->file_dir_entry != de || panel->file_entry_list == NULL) {
+      render_dir = ResolvePanelFileAnchorForRender(ctx, panel);
+
+      if (!render_dir)
+        render_dir = (DirEntry *)de;
+
+      GetPath(render_dir, render_dir_path);
+      render_dir_path[PATH_LENGTH] = '\0';
+
+      /* Inactive-panel rendering must not rewrite the frozen snapshot. Keep
+       * the anchor local and rebuild cache only when the saved directory is
+       * genuinely missing or stale. */
+      DirOps_ReloadPanelFileAnchorIfMissing(ctx, panel, render_dir);
+      if (panel->file_entry_list == NULL ||
+          strcmp(panel->file_selection_dir_path, render_dir_path) != 0) {
         refresh_file_cache = TRUE;
       }
-      panel->file_dir_entry = (DirEntry *)de;
       if (refresh_file_cache) {
         FreeFileEntryList(panel);
         BuildFileEntryList(ctx, panel);
@@ -589,8 +595,11 @@ void RenderInactivePanel(ViewContext *ctx, YtreePanel *panel) {
       BuildFileEntryList(ctx, panel);
     }
 
+    if (render_dir)
+      de = render_dir;
+
     render_cursor = de->cursor_pos;
-    if (panel->file_dir_entry == de) {
+    if (panel->saved_focus == FOCUS_FILE) {
       render_start = panel->start_file;
       render_cursor = panel->file_cursor_pos;
     }
