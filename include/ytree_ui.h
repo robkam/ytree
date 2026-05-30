@@ -109,6 +109,9 @@ extern int PanelFindNextVisibleDirIndex(const YtreePanel *panel, int start_idx,
                                         int direction);
 extern int PanelFindFirstVisibleDirIndex(const YtreePanel *panel);
 extern int PanelFindLastVisibleDirIndex(const YtreePanel *panel);
+extern BOOL PanelComputeViewportPosition(const YtreePanel *panel,
+                                         int target_idx, int height,
+                                         int *begin_io, int *cursor_io);
 extern void FreeDirEntryList(ViewContext *ctx);
 extern void FreeVolumeCache(struct Volume *vol);
 extern DirEntry *RefreshTreeSafe(ViewContext *ctx, YtreePanel *p,
@@ -227,7 +230,9 @@ extern BOOL handle_file_window_navigation_action(
     void (*update_preview)(ViewContext *, const DirEntry *),
     void (*list_jump)(ViewContext *, DirEntry *, char *));
 extern void CapturePanelSelectionAnchor(ViewContext *ctx, YtreePanel *panel,
-                                        const DirEntry *dir_entry);
+                                       const DirEntry *dir_entry);
+extern BOOL RebindActiveFilePanelSelection(YtreePanel *panel,
+                                           DirEntry **dir_entry_io);
 extern BOOL handle_file_window_split_switch_action(
     ViewContext *ctx, YtreeAction action, DirEntry *dir_entry,
     YtreePanel *owner_panel, BOOL *switched_panel_ptr,

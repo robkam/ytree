@@ -83,7 +83,7 @@ Ordering policy (for all editors, including AI editors):
     *   Enforce explicit viewport-anchor rules for tree rendering during `Enter`-driven mode transitions.
     *   Disallow non-required viewport origin changes when selection remains visible/valid.
     *   Use deterministic viewport adjustment only for visibility preservation, not as a side-effect of redraw/rebind paths.
-*   **Status**: Confirmed.
+*   **Status**: Fixed.
 
 ### **BUG-2.7: Mkdir Triggers Unnecessary Relog and Resets Tree State**
 *   **Description**: Creating a directory with `M` can force a relog-style tree rebuild that reanchors selection and resets the visible tree state, even though the parent tree is already valid and only an incremental redraw/update is needed.

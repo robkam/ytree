@@ -147,6 +147,130 @@ int PanelFindLastVisibleDirIndex(const YtreePanel *panel) {
   return PanelFindNextVisibleDirIndex(panel, panel->vol->total_dirs - 1, -1);
 }
 
+static BOOL PanelVisibleIndexWithinViewport(const YtreePanel *panel,
+                                            int begin_idx, int target_idx,
+                                            int height) {
+  int idx;
+  int visible_rows;
+
+  if (!panel || !panel->vol || !panel->vol->dir_entry_list || height < 1)
+    return FALSE;
+
+  if (begin_idx < 0)
+    begin_idx = 0;
+  if (begin_idx >= panel->vol->total_dirs)
+    begin_idx = panel->vol->total_dirs - 1;
+  if (target_idx < begin_idx)
+    return FALSE;
+
+  visible_rows = 0;
+  for (idx = begin_idx; idx < panel->vol->total_dirs; idx++) {
+    const DirEntry *candidate = panel->vol->dir_entry_list[idx].dir_entry;
+
+    if (!PanelDirIsVisible(panel, candidate))
+      continue;
+
+    if (idx == target_idx)
+      return TRUE;
+
+    visible_rows++;
+    if (visible_rows >= height)
+      break;
+  }
+
+  return FALSE;
+}
+
+static int PanelFindViewportStartForVisibleIndex(const YtreePanel *panel,
+                                                 int target_idx, int height) {
+  int start_idx;
+  int i;
+
+  if (!panel || !panel->vol || !panel->vol->dir_entry_list || height < 1)
+    return -1;
+
+  if (target_idx < 0)
+    target_idx = 0;
+  if (target_idx >= panel->vol->total_dirs)
+    target_idx = panel->vol->total_dirs - 1;
+
+  start_idx = target_idx;
+  for (i = 1; i < height; i++) {
+    int prev_idx = PanelFindNextVisibleDirIndex(panel, start_idx - 1, -1);
+    if (prev_idx < 0)
+      break;
+    start_idx = prev_idx;
+  }
+
+  return start_idx;
+}
+
+/*
+ * Preserve the current viewport when the target row is already visible;
+ * otherwise advance just enough visible rows to bring the target on screen.
+ */
+BOOL PanelComputeViewportPosition(const YtreePanel *panel, int target_idx,
+                                  int height, int *begin_io,
+                                  int *cursor_io) {
+  int begin;
+  int visible_idx;
+
+  if (!begin_io || !cursor_io)
+    return FALSE;
+
+  begin = *begin_io;
+
+  if (!panel || !panel->vol || !panel->vol->dir_entry_list ||
+      panel->vol->total_dirs <= 0) {
+    *begin_io = 0;
+    *cursor_io = 0;
+    return FALSE;
+  }
+
+  if (height < 1)
+    height = 1;
+
+  if (target_idx < 0)
+    target_idx = 0;
+  if (target_idx >= panel->vol->total_dirs)
+    target_idx = panel->vol->total_dirs - 1;
+
+  visible_idx = PanelFindNextVisibleDirIndex(panel, target_idx, 1);
+  if (visible_idx < 0)
+    visible_idx = PanelFindNextVisibleDirIndex(panel, target_idx, -1);
+  if (visible_idx < 0)
+    visible_idx = PanelFindFirstVisibleDirIndex(panel);
+  if (visible_idx < 0) {
+    *begin_io = 0;
+    *cursor_io = 0;
+    return FALSE;
+  }
+  target_idx = visible_idx;
+
+  if (PanelVisibleIndexWithinViewport(panel, begin, target_idx, height)) {
+    *begin_io = begin;
+    *cursor_io = target_idx - begin;
+    return TRUE;
+  }
+
+  if (target_idx < begin) {
+    *begin_io = target_idx;
+    *cursor_io = 0;
+    return TRUE;
+  }
+
+  begin = PanelFindViewportStartForVisibleIndex(panel, target_idx, height);
+  if (begin < 0) {
+    *begin_io = 0;
+    *cursor_io = 0;
+    return FALSE;
+  }
+
+  *begin_io = begin;
+  *cursor_io = target_idx - begin;
+  return TRUE;
+}
+
 int GetPanelVisibleSelectionIndex(const YtreePanel *p) {
   int idx;
 

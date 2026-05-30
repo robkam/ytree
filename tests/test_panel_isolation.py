@@ -117,6 +117,10 @@ def _first_tree_row_segment(lines, split_col=None):
     return None
 
 
+def _tree_segment_rows(lines, split_col):
+    return [line[:split_col].rstrip() for line in lines[2:-4]]
+
+
 def test_panel_switch_updates_small_window(dual_panel_sandbox, ytree_binary):
     """
     Verify that switching panels updates the content of the small file window.
@@ -1370,6 +1374,68 @@ def test_enter_repo_src_cmd_preserves_tree_viewport_anchor(ytree_binary):
             "Second ENTER on src/cmd recentered tree viewport after returning "
             "from file view instead of preserving the repo-root anchor.\n"
             f"{after_cmd_screen}"
+        )
+    finally:
+        tui.quit()
+
+
+def test_split_tab_end_home_preserves_left_tree_viewport(tmp_path, ytree_binary):
+    repo_root = Path(__file__).resolve().parents[1]
+    home = tmp_path / "split_tab_end_home_home"
+    home.mkdir()
+    (home / ".ytree").write_text(
+        "[GLOBAL]\nTREEDEPTH=3\nHIDEDOTFILES=1\nSMALLWINDOWSKIP=0\n",
+        encoding="utf-8",
+    )
+
+    tui = YtreeTUI(
+        executable=ytree_binary,
+        cwd=str(repo_root),
+        env_extra={"HOME": str(home)},
+    )
+    time.sleep(1.0)
+
+    def move_to_stats_dir(marker, *, max_steps=140):
+        marker_token = f" {marker} "
+        for _ in range(max_steps):
+            if _stats_current_dir_contains(tui.get_screen_dump(), marker_token):
+                return
+            tui.send_keystroke(Keys.DOWN, wait=0.12)
+        pytest.fail(
+            f"Failed to move selection to stats marker '{marker}'.\n{_screen_text(tui)}"
+        )
+
+    try:
+        move_to_stats_dir("src")
+        tui.send_keystroke(Keys.ENTER, wait=0.6)
+        _assert_dir_mode_footer(tui, "Expected tree mode after entering src subtree.")
+
+        move_to_stats_dir("cmd")
+        tui.send_keystroke(Keys.ENTER, wait=0.6)
+        assert "hex invert j compare" in _footer_text(tui), _screen_text(tui)
+
+        tui.send_keystroke(Keys.F8, wait=0.6)
+        tui.send_keystroke(Keys.TAB, wait=0.6)
+
+        split_lines = tui.get_screen_dump()
+        split_col = _detect_split_column(split_lines)
+        assert split_col is not None, _screen_text(tui)
+        left_rows_before = _tree_segment_rows(split_lines, split_col)
+
+        tui.send_keystroke("\033OF", wait=0.6)
+        tui.send_keystroke(Keys.HOME, wait=0.6)
+        tui.send_keystroke(Keys.TAB, wait=0.6)
+
+        after_lines = tui.get_screen_dump()
+        after_split_col = _detect_split_column(after_lines)
+        assert after_split_col is not None, _screen_text(tui)
+        left_rows_after = _tree_segment_rows(after_lines, after_split_col)
+
+        assert left_rows_after == left_rows_before, (
+            "Split/tab/end/home/tab should preserve the left panel tree "
+            "viewport exactly; the inactive tree pane shifted unexpectedly.\n"
+            f"Before: {left_rows_before}\nAfter:  {left_rows_after}\n"
+            f"{_screen_text(tui)}"
         )
     finally:
         tui.quit()

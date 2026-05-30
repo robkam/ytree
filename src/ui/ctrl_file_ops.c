@@ -132,6 +132,31 @@ void CapturePanelSelectionAnchor(ViewContext *ctx, YtreePanel *panel,
   panel->file_selection_dir_path[PATH_LENGTH] = '\0';
 }
 
+BOOL RebindActiveFilePanelSelection(YtreePanel *panel, DirEntry **dir_entry_io) {
+  DirEntry *panel_dir;
+
+  if (!panel || !dir_entry_io)
+    return FALSE;
+
+  panel_dir = panel->file_dir_entry;
+  if (!panel_dir)
+    panel_dir = GetPanelDirEntry(panel);
+  if (!panel_dir)
+    return FALSE;
+
+  /*
+   * File-panel ownership is panel-local. When the active file pane changes,
+   * re-seed the shared DirEntry from the newly active panel's saved cursor so
+   * the next keypress continues that panel's own selection instead of
+   * inheriting the last pane's row.
+   */
+  panel_dir->start_file = panel->start_file;
+  panel_dir->cursor_pos = panel->file_cursor_pos;
+  panel->file_dir_entry = panel_dir;
+  *dir_entry_io = panel_dir;
+  return TRUE;
+}
+
 static void DebugLogFilePanelState(const char *label, const YtreePanel *panel) {
   char tree_path[PATH_LENGTH + 1];
   char file_dir_path[PATH_LENGTH + 1];
@@ -636,15 +661,30 @@ BOOL handle_file_window_split_switch_action(
         ctx->right->vol = ctx->left->vol;
         ctx->right->cursor_pos = ctx->left->cursor_pos;
         ctx->right->disp_begin_pos = ctx->left->disp_begin_pos;
-        ctx->right->start_file = dir_entry->start_file;
-        ctx->right->file_cursor_pos = dir_entry->cursor_pos;
         ctx->right->file_dir_entry = dir_entry;
         ctx->right->hide_dot_files = ctx->left->hide_dot_files;
-        ctx->right->saved_focus = ctx->left->saved_focus;
+        /*
+         * Split ownership boundary: a file-view split must keep the original
+         * file panel active and seed the new peer from the same panel-local
+         * file cursor snapshot. The new split pane must not inherit tree
+         * focus or it will redraw as a tree panel and break per-panel file
+         * state on the first Tab.
+         */
+        ctx->right->saved_focus = FOCUS_FILE;
+        ctx->right->start_file = ctx->left->start_file;
+        ctx->right->file_cursor_pos = ctx->left->file_cursor_pos;
+        (void)snprintf(ctx->right->file_selection_name,
+                       sizeof(ctx->right->file_selection_name), "%s",
+                       ctx->left->file_selection_name);
+        (void)snprintf(ctx->right->file_selection_dir_path,
+                       sizeof(ctx->right->file_selection_dir_path), "%s",
+                       ctx->left->file_selection_dir_path);
         ctx->right->saved_big_file_view = ctx->left->saved_big_file_view;
         PanelTags_Copy(ctx->right, ctx->left);
         FreeFileEntryList(ctx->right);
       }
+      ctx->active = owner_panel;
+      ctx->focused_window = FOCUS_FILE;
     } else {
       FreeFileEntryList(ctx->right);
       ctx->active = ctx->left;
@@ -653,7 +693,12 @@ BOOL handle_file_window_split_switch_action(
 
     DebugLogFileSplitState("FileAction:split:after", ctx);
 
-    *return_esc_ptr = TRUE;
+    /*
+     * Split is a layout change, not a mode exit. Stay inside the file window
+     * loop so the active pane keeps receiving file commands after F8.
+     */
+    *loop_action_ptr = ACTION_NONE;
+    *return_esc_ptr = FALSE;
     return TRUE;
 
   case ACTION_SWITCH_PANEL:
@@ -691,7 +736,7 @@ BOOL handle_file_window_split_switch_action(
       }
       ctx->hide_dot_files = ctx->active->hide_dot_files;
       ctx->focused_window = ctx->active->saved_focus;
-      *loop_action_ptr = ACTION_ESCAPE;
+      *loop_action_ptr = ACTION_NONE;
       AssertFilePanelIsolationSnapshotUnchanged(target_panel,
                                                 &target_panel_snapshot);
     }
@@ -714,7 +759,7 @@ BOOL handle_file_window_split_switch_action(
     }
     ctx->hide_dot_files = ctx->active->hide_dot_files;
     ctx->focused_window = ctx->active->saved_focus;
-    *loop_action_ptr = ACTION_ESCAPE;
+    *loop_action_ptr = ACTION_NONE;
 #endif
     DebugLogFileSplitState("FileAction:switch:after", ctx);
     return TRUE;

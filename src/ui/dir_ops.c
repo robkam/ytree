@@ -575,23 +575,10 @@ static int CountPathSnapshot(const PathList *list) {
   return count;
 }
 
-static int FindVisibleBackwardNoWrap(const YtreePanel *panel, int start_idx) {
-  int idx;
-
-  if (!panel || !panel->vol || !panel->vol->dir_entry_list || start_idx < 0)
-    return -1;
-
-  for (idx = start_idx; idx >= 0; idx--) {
-    const DirEntry *candidate = panel->vol->dir_entry_list[idx].dir_entry;
-    if (PanelDirIsVisible(panel, candidate))
-      return idx;
-  }
-  return -1;
-}
-
 static void PositionPanelAtIndex(YtreePanel *panel, int idx) {
   int height;
-  int visible_idx;
+  int begin;
+  int cursor;
 
   if (!panel)
     return;
@@ -602,52 +589,19 @@ static void PositionPanelAtIndex(YtreePanel *panel, int idx) {
     return;
   }
 
-  visible_idx = PanelFindNextVisibleDirIndex(panel, idx, 1);
-  if (visible_idx < 0)
-    visible_idx = PanelFindNextVisibleDirIndex(panel, idx, -1);
-  if (visible_idx < 0)
-    visible_idx = PanelFindFirstVisibleDirIndex(panel);
-  if (visible_idx < 0) {
-    panel->disp_begin_pos = 0;
-    panel->cursor_pos = 0;
-    return;
-  }
-  idx = visible_idx;
-
   height = (panel->pan_dir_window) ? getmaxy(panel->pan_dir_window) : 1;
   if (height < 1)
     height = 1;
 
-  if (panel->hide_dot_files) {
-    int start_idx = idx;
-    int i;
-    for (i = 1; i < height; i++) {
-      int prev_idx = FindVisibleBackwardNoWrap(panel, start_idx - 1);
-      if (prev_idx < 0)
-        break;
-      start_idx = prev_idx;
-    }
-    panel->disp_begin_pos = start_idx;
-    panel->cursor_pos = idx - panel->disp_begin_pos;
+  begin = panel->disp_begin_pos;
+  cursor = panel->cursor_pos;
+  if (!PanelComputeViewportPosition(panel, idx, height, &begin, &cursor)) {
+    panel->disp_begin_pos = 0;
+    panel->cursor_pos = 0;
     return;
   }
-
-  if (idx >= panel->disp_begin_pos && idx < panel->disp_begin_pos + height) {
-    panel->cursor_pos = idx - panel->disp_begin_pos;
-  } else {
-    panel->disp_begin_pos = idx;
-    panel->cursor_pos = 0;
-
-    if (panel->disp_begin_pos + height > panel->vol->total_dirs) {
-      panel->disp_begin_pos = panel->vol->total_dirs - height;
-      if (panel->disp_begin_pos < 0)
-        panel->disp_begin_pos = 0;
-      panel->cursor_pos = idx - panel->disp_begin_pos;
-    }
-  }
-
-  if (panel->cursor_pos < 0)
-    panel->cursor_pos = 0;
+  panel->disp_begin_pos = begin;
+  panel->cursor_pos = cursor;
 }
 
 static void ReanchorPanelToDir(YtreePanel *panel, const DirEntry *target) {
@@ -1241,9 +1195,18 @@ void HandleSwitchWindow(ViewContext *ctx, DirEntry *dir_entry,
         dir_entry->big_window = TRUE;
       else
         dir_entry->big_window = ctx->bypass_small_window;
-      if (p->file_dir_entry == dir_entry) {
+      if (p->saved_focus == FOCUS_FILE && p->file_dir_entry == dir_entry) {
         dir_entry->start_file = p->start_file;
         dir_entry->cursor_pos = p->file_cursor_pos;
+      } else {
+        /*
+         * A fresh file-view entry should start at the top of the file list,
+         * not inherit the tree cursor position that happened to select the
+         * directory. Preserve the saved file cursor only for the directory
+         * that already owns a file-selection snapshot.
+         */
+        dir_entry->start_file = 0;
+        dir_entry->cursor_pos = 0;
       }
       /* Preserve per-directory file selection when returning to file view. */
       if (dir_entry->start_file < 0)
@@ -1319,11 +1282,11 @@ DirEntry *ResolveActiveDirEntry(ViewContext *ctx, const Statistic *s) {
   if (!ctx || !ctx->active || !ctx->active->vol)
     return NULL;
 
-  if (ctx->active->vol->total_dirs > 0) {
-    return ctx->active->vol
-        ->dir_entry_list[ctx->active->disp_begin_pos + ctx->active->cursor_pos]
-        .dir_entry;
-  }
+  /* Match the renderer's visible-selection handoff so panel switches keep
+   * each panel's own tree viewport anchored to the row that is actually
+   * visible. */
+  if (ctx->active->vol->total_dirs > 0)
+    return GetPanelDirEntry(ctx->active);
 
   if (!s)
     return NULL;
@@ -1418,9 +1381,11 @@ static DirEntry *RestorePanelFileSelection(ViewContext *ctx, DirEntry *dir_entry
    * Split ownership boundary (docs/ARCHITECTURE.md §4.2.1):
    * This restore path may rebuild shared topology visibility, but it must
    * resolve file anchors from panel-local identity (`file_selection_*` /
-   * `start_file` / `file_cursor_pos`) and never from the other panel's index.
+   * `start_file` / `file_cursor_pos`) without recentering the panel's stored
+   * tree viewport.
    */
-  if (panel->saved_focus != FOCUS_FILE)
+  if (panel->file_selection_dir_path[0] == '\0' ||
+      panel->file_selection_name[0] == '\0')
     return dir_entry;
 
   if (panel->file_selection_dir_path[0] != '\0' && panel->vol) {
@@ -1438,13 +1403,10 @@ static DirEntry *RestorePanelFileSelection(ViewContext *ctx, DirEntry *dir_entry
         resolved_dir =
             FindDirByPathOrAncestor(panel->vol, panel->file_selection_dir_path);
       }
-      if (resolved_dir) {
-        ReanchorPanelToDir(panel, resolved_dir);
+      if (resolved_dir)
         dir_entry = resolved_dir;
-      } else if (panel->vol && panel->vol->vol_stats.tree) {
-        ReanchorPanelToDir(panel, panel->vol->vol_stats.tree);
+      else if (panel->vol && panel->vol->vol_stats.tree)
         dir_entry = panel->vol->vol_stats.tree;
-      }
     }
   }
 
@@ -1531,6 +1493,7 @@ static DirEntry *RestorePanelFileSelection(ViewContext *ctx, DirEntry *dir_entry
   panel->file_dir_entry = dir_entry;
   panel->start_file = dir_entry->start_file;
   panel->file_cursor_pos = dir_entry->cursor_pos;
+  panel->saved_focus = FOCUS_FILE;
   if (!dir_entry->global_flag && !dir_entry->tagged_flag) {
     dir_entry->big_window = panel->saved_big_file_view;
   }
@@ -1701,13 +1664,14 @@ HandleDirWindowPanelAction(ViewContext *ctx, YtreeAction action,
     DebugLogSplitState("DirPanelAction:switch:before", ctx);
 #ifndef NDEBUG
     {
-      const YtreePanel *previous_active = ctx->active;
+      YtreePanel *previous_active = ctx->active;
       PanelIsolationSnapshot previous_active_snapshot;
 
       /*
        * Split ownership boundary (docs/ARCHITECTURE.md §4.2.1):
        * Tab switch may change `ctx->active`/focused window only. The panel
-       * becoming inactive must keep its panel-local snapshot unchanged.
+       * becoming inactive must keep its panel-local tree viewport unchanged;
+       * file-selection identity can be re-materialized on reactivation.
        */
       CapturePanelIsolationSnapshot(previous_active, &previous_active_snapshot);
 
@@ -1757,6 +1721,7 @@ HandleDirWindowPanelAction(ViewContext *ctx, YtreeAction action,
         *dir_entry_ptr = (*s_ptr)->tree;
         DEBUG_LOG("DirPanelAction:switch:restore returned null; fallback tree");
       }
+      ctx->focused_window = ctx->active->saved_focus;
       if (*dir_entry_ptr) {
         DEBUG_LOG("DirPanelAction:switch:before_refresh dir='%s'",
                   (*dir_entry_ptr)->name ? (*dir_entry_ptr)->name : "<nullname>");
@@ -1821,6 +1786,7 @@ HandleDirWindowPanelAction(ViewContext *ctx, YtreeAction action,
       *dir_entry_ptr = (*s_ptr)->tree;
       DEBUG_LOG("DirPanelAction:switch:restore returned null; fallback tree");
     }
+    ctx->focused_window = ctx->active->saved_focus;
     if (*dir_entry_ptr) {
       DEBUG_LOG("DirPanelAction:switch:before_refresh dir='%s'",
                 (*dir_entry_ptr)->name ? (*dir_entry_ptr)->name : "<nullname>");
@@ -1927,7 +1893,9 @@ HandleDirWindowEnterAction(ViewContext *ctx, DirEntry **dir_entry_ptr,
       }
 
       if (selected_idx >= 0) {
-        int saved_selected_idx = saved_disp_begin + saved_cursor_pos;
+        int saved_selected_idx = GetPanelVisibleSelectionIndex(ctx->active);
+        if (saved_selected_idx < 0)
+          saved_selected_idx = saved_disp_begin + saved_cursor_pos;
         int idx_delta = selected_idx - saved_selected_idx;
         int next_disp_begin =
             (top_idx >= 0) ? top_idx : MAXIMUM(0, saved_disp_begin);
