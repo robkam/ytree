@@ -25,6 +25,7 @@ static void PositionPanelAtIndex(YtreePanel *p, int target_idx, int height) {
   if (p->hide_dot_files) {
     int start_idx = target_idx;
     int i;
+
     for (i = 1; i < height; i++) {
       int prev_idx = FindVisibleBackwardNoWrap(p, start_idx - 1);
       if (prev_idx < 0)
@@ -55,22 +56,18 @@ static void PositionPanelAtIndex(YtreePanel *p, int target_idx, int height) {
 
 static BOOL SyncPanelToVisibleSelection(const ViewContext *ctx, YtreePanel *p,
                                         int direction_hint) {
-  int total_dirs;
   int idx;
   int visible_idx;
 
   if (!ctx || !p || !p->vol || !p->vol->dir_entry_list)
     return FALSE;
 
-  total_dirs = p->vol->total_dirs;
-  if (total_dirs <= 0)
-    return FALSE;
-
   idx = p->disp_begin_pos + p->cursor_pos;
   if (idx < 0)
     idx = 0;
-  if (idx >= total_dirs)
-    idx = total_dirs - 1;
+  if (idx >= p->vol->total_dirs)
+    idx = p->vol->total_dirs - 1;
+
 
   visible_idx = PanelFindNextVisibleDirIndex(p, idx, direction_hint);
   if (visible_idx < 0)
@@ -171,8 +168,7 @@ void DirNav_Movedown(ViewContext *ctx, DirEntry **dir_entry, YtreePanel *p) {
   if (!SyncPanelToVisibleSelection(ctx, p, 1))
     return;
 
-  *dir_entry =
-      p->vol->dir_entry_list[p->disp_begin_pos + p->cursor_pos].dir_entry;
+  *dir_entry = GetPanelDirEntry(p);
   if (*dir_entry == NULL)
     return;
 
@@ -186,7 +182,7 @@ void DirNav_Movedown(ViewContext *ctx, DirEntry **dir_entry, YtreePanel *p) {
     /* Re-sync *dir_entry to global stats which RefreshTreeSafe might have
      * adjusted */
     *dir_entry =
-        p->vol->dir_entry_list[p->disp_begin_pos + p->cursor_pos].dir_entry;
+        GetPanelDirEntry(p);
   }
 
   (*dir_entry)->start_file = 0;
@@ -212,8 +208,7 @@ void DirNav_Moveup(ViewContext *ctx, DirEntry **dir_entry, YtreePanel *p) {
   if (!SyncPanelToVisibleSelection(ctx, p, -1))
     return;
 
-  *dir_entry =
-      p->vol->dir_entry_list[p->disp_begin_pos + p->cursor_pos].dir_entry;
+  *dir_entry = GetPanelDirEntry(p);
   if (*dir_entry == NULL)
     return;
 
@@ -222,7 +217,7 @@ void DirNav_Moveup(ViewContext *ctx, DirEntry **dir_entry, YtreePanel *p) {
     /* Re-sync *dir_entry to global stats which RefreshTreeSafe might have
      * adjusted */
     *dir_entry =
-        p->vol->dir_entry_list[p->disp_begin_pos + p->cursor_pos].dir_entry;
+        GetPanelDirEntry(p);
   }
 
   (*dir_entry)->start_file = 0;
@@ -248,8 +243,7 @@ void DirNav_Movenpage(ViewContext *ctx, DirEntry **dir_entry, YtreePanel *p) {
   if (!SyncPanelToVisibleSelection(ctx, p, 1))
     return;
 
-  *dir_entry =
-      p->vol->dir_entry_list[p->disp_begin_pos + p->cursor_pos].dir_entry;
+  *dir_entry = GetPanelDirEntry(p);
   if (*dir_entry == NULL)
     return;
 
@@ -258,7 +252,7 @@ void DirNav_Movenpage(ViewContext *ctx, DirEntry **dir_entry, YtreePanel *p) {
     /* Re-sync *dir_entry to global stats which RefreshTreeSafe might have
      * adjusted */
     *dir_entry =
-        p->vol->dir_entry_list[p->disp_begin_pos + p->cursor_pos].dir_entry;
+        GetPanelDirEntry(p);
   }
 
   (*dir_entry)->start_file = 0;
@@ -284,8 +278,7 @@ void DirNav_Moveppage(ViewContext *ctx, DirEntry **dir_entry, YtreePanel *p) {
   if (!SyncPanelToVisibleSelection(ctx, p, -1))
     return;
 
-  *dir_entry =
-      p->vol->dir_entry_list[p->disp_begin_pos + p->cursor_pos].dir_entry;
+  *dir_entry = GetPanelDirEntry(p);
   if (*dir_entry == NULL)
     return;
 
@@ -294,7 +287,7 @@ void DirNav_Moveppage(ViewContext *ctx, DirEntry **dir_entry, YtreePanel *p) {
     /* Re-sync *dir_entry to global stats which RefreshTreeSafe might have
      * adjusted */
     *dir_entry =
-        p->vol->dir_entry_list[p->disp_begin_pos + p->cursor_pos].dir_entry;
+        GetPanelDirEntry(p);
   }
 
   (*dir_entry)->start_file = 0;
@@ -314,19 +307,23 @@ void DirNav_Moveppage(ViewContext *ctx, DirEntry **dir_entry, YtreePanel *p) {
 
 void DirNav_MoveEnd(ViewContext *ctx, DirEntry **dir_entry, YtreePanel *p) {
   const Statistic *s = &p->vol->vol_stats;
+  int idx;
 
-  Nav_End(&p->cursor_pos, &p->disp_begin_pos, p->vol->total_dirs,
-          ctx->layout.dir_win_height);
-  {
-    int idx = PanelFindLastVisibleDirIndex(p);
+  if (p->hide_dot_files) {
+    idx = PanelFindLastVisibleDirIndex(p);
+    if (idx >= 0)
+      PositionPanelAtIndex(p, idx, ctx->layout.dir_win_height);
+  } else {
+    Nav_End(&p->cursor_pos, &p->disp_begin_pos, p->vol->total_dirs,
+            ctx->layout.dir_win_height);
+    idx = PanelFindLastVisibleDirIndex(p);
     if (idx >= 0)
       PositionPanelAtIndex(p, idx, ctx->layout.dir_win_height);
   }
   if (!SyncPanelToVisibleSelection(ctx, p, -1))
     return;
 
-  *dir_entry =
-      p->vol->dir_entry_list[p->disp_begin_pos + p->cursor_pos].dir_entry;
+  *dir_entry = GetPanelDirEntry(p);
   if (*dir_entry == NULL)
     return;
 
@@ -335,7 +332,7 @@ void DirNav_MoveEnd(ViewContext *ctx, DirEntry **dir_entry, YtreePanel *p) {
     /* Re-sync *dir_entry to global stats which RefreshTreeSafe might have
      * adjusted */
     *dir_entry =
-        p->vol->dir_entry_list[p->disp_begin_pos + p->cursor_pos].dir_entry;
+        GetPanelDirEntry(p);
   }
 
   (*dir_entry)->start_file = 0;
@@ -367,8 +364,7 @@ void DirNav_MoveHome(ViewContext *ctx, DirEntry **dir_entry, YtreePanel *p) {
   if (!SyncPanelToVisibleSelection(ctx, p, 1))
     return;
 
-  *dir_entry =
-      p->vol->dir_entry_list[p->disp_begin_pos + p->cursor_pos].dir_entry;
+  *dir_entry = GetPanelDirEntry(p);
   if (*dir_entry == NULL)
     return;
 
@@ -377,7 +373,7 @@ void DirNav_MoveHome(ViewContext *ctx, DirEntry **dir_entry, YtreePanel *p) {
     /* Re-sync *dir_entry to global stats which RefreshTreeSafe might have
      * adjusted */
     *dir_entry =
-        p->vol->dir_entry_list[p->disp_begin_pos + p->cursor_pos].dir_entry;
+        GetPanelDirEntry(p);
   }
 
   (*dir_entry)->start_file = 0;

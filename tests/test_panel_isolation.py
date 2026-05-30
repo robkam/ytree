@@ -109,6 +109,14 @@ def _split_segments_for_file(tui, filename):
     raise AssertionError(f"Could not find {filename} in split screen.\n{screen}")
 
 
+def _first_tree_row_segment(lines, split_col=None):
+    for line in lines[2:-4]:
+        segment = line[:split_col] if split_col is not None else line
+        if segment.strip():
+            return segment.rstrip()
+    return None
+
+
 def test_panel_switch_updates_small_window(dual_panel_sandbox, ytree_binary):
     """
     Verify that switching panels updates the content of the small file window.
@@ -1771,6 +1779,93 @@ def test_split_peer_tree_keeps_root_visible_with_hidden_prefix(
         assert "mq/" in right_segment, (
             "Peer panel tree top row lost root after split despite available space.\n"
             f"{_screen_text(tui)}"
+        )
+    finally:
+        tui.quit()
+
+
+def test_end_preserves_tree_viewport_with_hidden_prefix(tmp_path, ytree_binary):
+    root = tmp_path / "end_hidden_prefix_viewport"
+    root.mkdir()
+    (root / ".ytree").write_text(
+        "[GLOBAL]\nTREEDEPTH=3\nHIDEDOTFILES=1\nSMALLWINDOWSKIP=0\n",
+        encoding="utf-8",
+    )
+
+    for i in range(40):
+        (root / f".hidden_{i:02d}").mkdir()
+
+    for name, child in (
+        ("go", "pkg"),
+        ("gone", "home"),
+        ("snap", "glow"),
+        ("wikiteam3_utilities", "dumps"),
+        ("ytree", "docs"),
+    ):
+        d = root / name
+        d.mkdir()
+        (d / child).mkdir(parents=True)
+
+    tui = YtreeTUI(executable=ytree_binary, cwd=str(root))
+    time.sleep(1.0)
+    try:
+        before = _first_tree_row_segment(tui.get_screen_dump())
+        assert before is not None, _screen_text(tui)
+
+        tui.send_keystroke("\033OF", wait=0.6)
+        after = _first_tree_row_segment(tui.get_screen_dump())
+        assert after == before, (
+            "End on a hidden-prefix tree should keep the visible viewport "
+            "anchored when the selected row still fits in view.\n"
+            f"Before: {before!r}\nAfter:  {after!r}\n{_screen_text(tui)}"
+        )
+    finally:
+        tui.quit()
+
+
+def test_split_tab_round_trip_preserves_tree_viewport_with_hidden_prefix(
+    tmp_path, ytree_binary
+):
+    root = tmp_path / "split_tab_hidden_prefix_viewport"
+    root.mkdir()
+    (root / ".ytree").write_text(
+        "[GLOBAL]\nTREEDEPTH=3\nHIDEDOTFILES=1\nSMALLWINDOWSKIP=0\n",
+        encoding="utf-8",
+    )
+
+    for i in range(40):
+        (root / f".hidden_{i:02d}").mkdir()
+
+    for name, child in (
+        ("go", "pkg"),
+        ("gone", "home"),
+        ("snap", "glow"),
+        ("wikiteam3_utilities", "dumps"),
+        ("ytree", "docs"),
+    ):
+        d = root / name
+        d.mkdir()
+        (d / child).mkdir(parents=True)
+
+    tui = YtreeTUI(executable=ytree_binary, cwd=str(root))
+    time.sleep(1.0)
+    try:
+        before = _first_tree_row_segment(tui.get_screen_dump())
+        assert before is not None, _screen_text(tui)
+
+        tui.send_keystroke(Keys.F8, wait=0.6)
+        tui.send_keystroke(Keys.TAB, wait=0.6)
+        tui.send_keystroke(Keys.TAB, wait=0.6)
+
+        lines = tui.get_screen_dump()
+        split_col = _detect_split_column(lines)
+        assert split_col is not None, _screen_text(tui)
+        after = _first_tree_row_segment(lines, split_col=split_col)
+        stable_width = min(split_col, 40)
+        assert before[:stable_width].rstrip() == after[:stable_width].rstrip(), (
+            "Split Tab round-trip should not reanchor the first panel's tree "
+            "viewport when the visible rows still fit.\n"
+            f"Before: {before!r}\nAfter:  {after!r}\n{_screen_text(tui)}"
         )
     finally:
         tui.quit()

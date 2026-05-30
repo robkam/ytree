@@ -85,7 +85,22 @@ Ordering policy (for all editors, including AI editors):
     *   Use deterministic viewport adjustment only for visibility preservation, not as a side-effect of redraw/rebind paths.
 *   **Status**: Confirmed.
 
-### **BUG-2.8: Split-Panel Filter State Leaks Across Panels on Volume Cycle**
+### **BUG-2.7: Mkdir Triggers Unnecessary Relog and Resets Tree State**
+*   **Description**: Creating a directory with `M` can force a relog-style tree rebuild that reanchors selection and resets the visible tree state, even though the parent tree is already valid and only an incremental redraw/update is needed.
+*   **Repro (manual, 2026-05-30)**:
+    *   `yt ~/ytree /mnt/c/Users/Henry/Desktop/`
+    *   Navigate to a tree location with a logged parent and stable viewport
+    *   Press `M 00`
+*   **Expected**: Directory creation updates the current tree in place, preserving the existing expansion/logging state and viewport origin when the current selection remains valid; no implicit relog or depth reset.
+*   **Actual**: The tree is relogged/reset one level and prior tree state is lost.
+*   **Spec Violations**:
+    *   `docs/SPECIFICATION.md` §3.3 **Directory Memory Commands (Structural Controls)**
+    *   `docs/SPECIFICATION.md` §5.2 **State Persistence**
+*   **Impact**: Breaks tree-state predictability and can silently discard user navigation context during ordinary directory creation.
+*   **Remediation**: Treat mkdir as an incremental tree mutation and restrict any repair to minimal bounds/selection clamping only when the current cursor or viewport offset would otherwise become invalid.
+*   **Status**: Confirmed.
+
+### **BUG-2.9: Split-Panel Filter State Leaks Across Panels on Volume Cycle**
 *   **Description**: In split mode, a filespec filter set in one panel can appear in the other panel after that panel cycles to the same logged volume, instead of preserving panel-local filter state.
 *   **Repro (manual, 2026-05-22)**:
     *   In left panel on volume 1, set a filter.
