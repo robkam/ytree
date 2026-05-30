@@ -320,10 +320,8 @@ void FreeDirEntryList(ViewContext *ctx) {
  * instead of shared Volume stats.
  */
 DirEntry *GetPanelDirEntry(YtreePanel *p) {
-  int idx;
-
   if (p->vol->dir_entry_list != NULL && p->vol->total_dirs > 0) {
-    idx = GetPanelVisibleSelectionIndex(p);
+    int idx = GetPanelVisibleSelectionIndex(p);
     if (idx >= 0)
       return p->vol->dir_entry_list[idx].dir_entry;
   }
@@ -335,7 +333,7 @@ DirEntry *GetPanelDirEntry(YtreePanel *p) {
  * Helper function to return the currently selected directory entry.
  * Now takes a Volume context.
  */
-DirEntry *GetSelectedDirEntry(ViewContext *ctx, struct Volume *vol) {
+DirEntry *GetSelectedDirEntry(const ViewContext *ctx, struct Volume *vol) {
   if (vol->dir_entry_list != NULL && vol->total_dirs > 0) {
     int idx;
 

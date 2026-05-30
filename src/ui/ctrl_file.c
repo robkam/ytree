@@ -247,6 +247,7 @@ int HandleFileWindow(ViewContext *ctx, DirEntry *dir_entry) {
   YtreeAction action = ACTION_NONE; /* Initialize action */
   BOOL jumped_to_owner_dir = FALSE;
   BOOL switched_panel = FALSE;
+  BOOL switched_to_tree_panel = FALSE;
   BOOL return_esc = FALSE;
   YtreePanel *owner_panel = ctx->active;
   DirEntry *tracked_file_dir = ctx->active->file_dir_entry;
@@ -337,6 +338,13 @@ int HandleFileWindow(ViewContext *ctx, DirEntry *dir_entry) {
     GetPath(dir_entry, watcher_path);
     Watcher_SetDir(ctx, watcher_path);
   }
+
+  /*
+   * Tree-to-file handoff must start from a clean input boundary. Keys that
+   * were already queued while the file pane was drawing belong to the tree
+   * session that just yielded focus, not to the new file session.
+   */
+  flushinp();
 
   do {
     /* Critical Safety: If volume was deleted (e.g. via K menu), abort
@@ -646,6 +654,11 @@ int HandleFileWindow(ViewContext *ctx, DirEntry *dir_entry) {
     }
 
     if (switched_panel && ctx->active != owner_panel) {
+      if (ctx->focused_window != FOCUS_FILE) {
+        switched_to_tree_panel = TRUE;
+        action = ACTION_ESCAPE;
+        goto file_window_done;
+      }
       owner_panel = ctx->active;
       start_vol = ctx->active->vol;
       s = &ctx->active->vol->vol_stats;
@@ -653,7 +666,6 @@ int HandleFileWindow(ViewContext *ctx, DirEntry *dir_entry) {
         action = ACTION_ESCAPE;
         goto file_window_done;
       }
-      tracked_file_dir = ctx->active->file_dir_entry;
       last_stats_dir = NULL;
       continue;
     }
@@ -682,26 +694,29 @@ file_window_done:
      * return */
   }
 
-  /*
-   * Leaving file mode always returns the active panel to tree focus. The
-   * inactive peer keeps its own saved_focus/file snapshot, so panel-local
-   * state survives a Tab handoff without the exiting panel pretending it is
-   * still file-focused.
-   */
-  owner_panel->saved_focus = FOCUS_TREE;
-  owner_panel->saved_big_file_view = FALSE;
+  if (!switched_to_tree_panel) {
+    /*
+     * A direct exit from file mode returns that panel to tree focus. A Tab
+     * handoff to a tree-focused peer is different: the previous file panel is
+     * now inactive and must keep its file-window shape frozen.
+     */
+    owner_panel->saved_focus = FOCUS_TREE;
+    owner_panel->saved_big_file_view = FALSE;
+  }
   if (!volume_changed) {
     owner_panel->file_dir_entry = dir_entry;
     owner_panel->start_file = dir_entry->start_file;
     owner_panel->file_cursor_pos = dir_entry->cursor_pos;
 
-    /* Ensure all mode flags are cleared when exiting back to the tree.
-     * This guarantees that RefreshView returns to small window
-     * ctx->layout. */
-    dir_entry->global_flag = FALSE;
-    dir_entry->global_all_volumes = FALSE;
-    dir_entry->tagged_flag = FALSE;
-    dir_entry->big_window = FALSE;
+    if (!switched_to_tree_panel) {
+      /* Ensure all mode flags are cleared when exiting back to the tree.
+       * This guarantees that RefreshView returns to small window
+       * ctx->layout. */
+      dir_entry->global_flag = FALSE;
+      dir_entry->global_all_volumes = FALSE;
+      dir_entry->tagged_flag = FALSE;
+      dir_entry->big_window = FALSE;
+    }
   } else {
     owner_panel->file_dir_entry = NULL;
     owner_panel->start_file = 0;

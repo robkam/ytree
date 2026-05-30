@@ -99,7 +99,7 @@ extern DirEntry *HandleDirDeleteDirectory(ViewContext *ctx,
                                           DirEntry *dir_entry);
 extern DirEntry *HandleDirRenameDirectory(ViewContext *ctx,
                                           DirEntry *dir_entry);
-extern DirEntry *GetSelectedDirEntry(ViewContext *ctx, struct Volume *vol);
+extern DirEntry *GetSelectedDirEntry(const ViewContext *ctx, struct Volume *vol);
 extern DirEntry *GetPanelDirEntry(YtreePanel *p);
 extern int GetPanelVisibleSelectionIndex(const YtreePanel *p);
 extern void BuildDirEntryList(ViewContext *ctx, struct Volume *vol,
@@ -344,7 +344,7 @@ HandleDirWindowEnterAction(ViewContext *ctx, DirEntry **dir_entry_ptr,
                            Statistic **s_ptr,
                            const struct Volume **start_vol_ptr,
                            BOOL *need_dsp_help_ptr, int *ch_ptr,
-                           int *unput_char_ptr, YtreeAction *action_ptr);
+                           const int *unput_char_ptr, YtreeAction *action_ptr);
 extern DirWindowDispatchResult
 HandleDirWindowVolumeAction(ViewContext *ctx, YtreeAction action,
                             DirEntry **dir_entry_ptr, Statistic **s_ptr,

@@ -10,6 +10,7 @@ int FindDirIndexByPathOrAncestor(const struct Volume *vol, const char *path);
 void PositionPanelAtIndex(YtreePanel *panel, int idx);
 void RestorePanelAnchorPath(const struct Volume *vol, YtreePanel *panel,
                             const char *anchor_path);
+void DonatePanelState(YtreePanel *dst, const YtreePanel *src);
 DirEntry *FindDirByPathInTree(DirEntry *entry, const char *path);
 void EnsurePanelAnchorVisible(ViewContext *ctx, const struct Volume *vol,
                               YtreePanel *panel, const char *label);

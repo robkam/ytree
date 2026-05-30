@@ -985,7 +985,7 @@ void HandleDirMakeDirectory(ViewContext *ctx, DirEntry *dir_entry,
                          ctx);
       BuildDirEntryList(ctx, ctx->active->vol, &ctx->active->current_dir_entry);
       if (active_anchor_path[0] != '\0') {
-        DirEntry *active_target =
+        const DirEntry *active_target =
             FindDirByPathOrAncestor(ctx->active->vol, active_anchor_path);
         ReanchorPanelToDir(ctx->active, active_target);
       }
@@ -1131,6 +1131,13 @@ void HandleShowAll(ViewContext *ctx, BOOL tagged_only, BOOL all_volumes,
       dir_entry->start_file = 0;
       dir_entry->cursor_pos = 0;
     }
+    /*
+     * Tree-to-file handoff must not replay queued tree keystrokes in the
+     * file pane. Flush pending input so the new file session starts from a
+     * clean event boundary instead of consuming stale keys from the tree
+     * controller.
+     */
+    flushinp();
     result = HandleFileWindow(ctx, dir_entry);
     ctx->focused_window = (result == '\\') ? FOCUS_FILE : FOCUS_TREE;
 
@@ -1161,22 +1168,30 @@ void HandleSwitchWindow(ViewContext *ctx, DirEntry *dir_entry,
   /* Critical Safety: Check for volume changes upon return from File Window */
   const struct Volume *start_vol = p->vol;
   const Statistic *s = &p->vol->vol_stats;
+  char current_dir_path[PATH_LENGTH + 1];
+  BOOL restore_saved_file_window = FALSE;
+
+  current_dir_path[0] = '\0';
+  GetPath(dir_entry, current_dir_path);
+  current_dir_path[PATH_LENGTH] = '\0';
+  if (p->file_dir_entry == dir_entry ||
+      (p->file_selection_dir_path[0] != '\0' &&
+       strcmp(current_dir_path, p->file_selection_dir_path) == 0)) {
+    restore_saved_file_window = TRUE;
+  }
 
   if (dir_entry->matching_files) {
     if (dir_entry->log_flag) {
       dir_entry->log_flag = FALSE;
     } else {
-      BOOL restore_saved_file_window =
-          (p->saved_focus == FOCUS_FILE && p->saved_big_file_view &&
-           p->file_dir_entry == dir_entry);
       dir_entry->global_flag = FALSE;
       dir_entry->global_all_volumes = FALSE;
       dir_entry->tagged_flag = FALSE;
-      if (restore_saved_file_window)
+      if (restore_saved_file_window && p->saved_big_file_view)
         dir_entry->big_window = TRUE;
       else
         dir_entry->big_window = ctx->bypass_small_window;
-      if (p->saved_focus == FOCUS_FILE && p->file_dir_entry == dir_entry) {
+      if (restore_saved_file_window) {
         dir_entry->start_file = p->start_file;
         dir_entry->cursor_pos = p->file_cursor_pos;
       } else {
@@ -1197,6 +1212,13 @@ void HandleSwitchWindow(ViewContext *ctx, DirEntry *dir_entry,
     }
     DEBUG_LOG("DEBUG: HandleSwitchWindow calling HandleFileWindow for %s",
               dir_entry->name);
+    /*
+     * Tree-to-file handoff must not replay queued tree keystrokes in the
+     * file pane. Flush any pending input so the newly focused mode starts from
+     * a clean event boundary instead of consuming stale keys from the prior
+     * tree session.
+     */
+    flushinp();
     if (HandleFileWindow(ctx, dir_entry) != LOG_ESC) {
       /* Safety Check: If volume was deleted in File Window (via
        * SelectLoadedVolume), abort */
@@ -1371,7 +1393,7 @@ static DirEntry *RestorePanelFileSelection(ViewContext *ctx, DirEntry *dir_entry
       panel->file_selection_name[0] == '\0')
     return dir_entry;
 
-  if (panel->file_selection_dir_path[0] != '\0' && panel->vol) {
+  if (panel->vol) {
     char current_dir_path[PATH_LENGTH + 1];
     DirEntry *resolved_dir = NULL;
     DirEntry *exact_dir = NULL;
@@ -1543,8 +1565,18 @@ HandleDirWindowPanelAction(ViewContext *ctx, YtreeAction action,
 
   case ACTION_SPLIT_SCREEN:
     DebugLogSplitState("DirPanelAction:split:before", ctx);
-    ctx->is_split_screen = !ctx->is_split_screen;
-    ReCreateWindows(ctx);
+    {
+      BOOL closing_split = ctx->is_split_screen;
+
+      ctx->active->saved_focus = FOCUS_TREE;
+      if (ctx->is_split_screen && ctx->active == ctx->right && ctx->left &&
+          ctx->right)
+        DonatePanelState(ctx->left, ctx->right);
+
+      ctx->is_split_screen = !ctx->is_split_screen;
+      if (closing_split)
+        ctx->active = ctx->left;
+      ReCreateWindows(ctx);
 
     if (ctx->is_split_screen) {
       if (ctx->right && ctx->left) {
@@ -1562,10 +1594,10 @@ HandleDirWindowPanelAction(ViewContext *ctx, YtreeAction action,
     } else {
       FreeFileEntryList(ctx->right);
       ctx->active = ctx->left;
-      RestorePanelAnchorPath(ctx->active->vol, ctx->active,
-                             ctx->active->file_selection_dir_path);
-      ctx->active->saved_focus = FOCUS_TREE;
       *dir_entry_ptr = GetPanelDirEntry(ctx->active);
+      *unput_char_ptr = '\0';
+      flushinp();
+    }
     }
 
     ctx->focused_window = ctx->active->saved_focus;
@@ -1712,11 +1744,11 @@ HandleDirWindowPanelAction(ViewContext *ctx, YtreeAction action,
     } else {
       DEBUG_LOG("DirPanelAction:switch:skip_refresh dir_entry null");
       return DIR_WINDOW_DISPATCH_HANDLED;
-    }
-    *need_dsp_help_ptr = TRUE;
-    if (ctx->focused_window == FOCUS_FILE && *dir_entry_ptr &&
-        PanelHasVisibleFiles(ctx, ctx->active, *dir_entry_ptr)) {
-      *unput_char_ptr = CR;
+      }
+      *need_dsp_help_ptr = TRUE;
+      if (ctx->active->saved_focus == FOCUS_FILE && *dir_entry_ptr &&
+          PanelHasVisibleFiles(ctx, ctx->active, *dir_entry_ptr)) {
+        *unput_char_ptr = CR;
     }
 #endif
     DebugLogSplitState("DirPanelAction:switch:after", ctx);
@@ -1734,7 +1766,7 @@ HandleDirWindowEnterAction(ViewContext *ctx, DirEntry **dir_entry_ptr,
                            Statistic **s_ptr,
                            const struct Volume **start_vol_ptr,
                            BOOL *need_dsp_help_ptr, int *ch_ptr,
-                           int *unput_char_ptr, YtreeAction *action_ptr) {
+                           const int *unput_char_ptr, YtreeAction *action_ptr) {
   const YtreePanel *saved_panel;
 
   if (!ctx || !ctx->active || !dir_entry_ptr || !*dir_entry_ptr || !s_ptr ||
@@ -1763,12 +1795,8 @@ HandleDirWindowEnterAction(ViewContext *ctx, DirEntry **dir_entry_ptr,
     char saved_top_path[PATH_LENGTH + 1];
     int saved_disp_begin = ctx->active->disp_begin_pos;
     int saved_cursor_pos = ctx->active->cursor_pos;
-    int i;
-    int selected_idx = -1;
-    int top_idx = -1;
     int win_height;
     int dummy_width;
-    int max_begin;
 
     new_log_path[0] = '\0';
     saved_selected_path[0] = '\0';
@@ -1795,44 +1823,50 @@ HandleDirWindowEnterAction(ViewContext *ctx, DirEntry **dir_entry_ptr,
       GetMaxYX(ctx->active->pan_dir_window, &win_height, &dummy_width);
       if (win_height < 1)
         win_height = 1;
-      max_begin = MAXIMUM(0, ctx->active->vol->total_dirs - win_height);
+      {
+        int i;
+        int selected_idx = -1;
+        int top_idx = -1;
+        int max_begin = MAXIMUM(0, ctx->active->vol->total_dirs - win_height);
 
-      for (i = 0; i < ctx->active->vol->total_dirs; i++) {
-        char path[PATH_LENGTH + 1];
-        GetPath(ctx->active->vol->dir_entry_list[i].dir_entry, path);
-        if (selected_idx < 0 && strcmp(path, saved_selected_path) == 0)
-          selected_idx = i;
-        if (top_idx < 0 && saved_top_path[0] != '\0' &&
-            strcmp(path, saved_top_path) == 0)
-          top_idx = i;
-        if (selected_idx >= 0 && (top_idx >= 0 || saved_top_path[0] == '\0'))
-          break;
-      }
+        for (i = 0; i < ctx->active->vol->total_dirs; i++) {
+          char path[PATH_LENGTH + 1];
+          GetPath(ctx->active->vol->dir_entry_list[i].dir_entry, path);
+          if (selected_idx < 0 && strcmp(path, saved_selected_path) == 0)
+            selected_idx = i;
+          if (top_idx < 0 && saved_top_path[0] != '\0' &&
+              strcmp(path, saved_top_path) == 0)
+            top_idx = i;
+          if (selected_idx >= 0 &&
+              (top_idx >= 0 || saved_top_path[0] == '\0'))
+            break;
+        }
 
-      if (selected_idx >= 0) {
-        int saved_selected_idx = GetPanelVisibleSelectionIndex(ctx->active);
-        if (saved_selected_idx < 0)
-          saved_selected_idx = saved_disp_begin + saved_cursor_pos;
-        int idx_delta = selected_idx - saved_selected_idx;
-        int next_disp_begin =
-            (top_idx >= 0) ? top_idx : MAXIMUM(0, saved_disp_begin);
+        if (selected_idx >= 0) {
+          int saved_selected_idx = GetPanelVisibleSelectionIndex(ctx->active);
+          if (saved_selected_idx < 0)
+            saved_selected_idx = saved_disp_begin + saved_cursor_pos;
+          int idx_delta = selected_idx - saved_selected_idx;
+          int next_disp_begin =
+              (top_idx >= 0) ? top_idx : MAXIMUM(0, saved_disp_begin);
 
-        if (next_disp_begin < 0)
-          next_disp_begin = 0;
-        if (next_disp_begin > max_begin)
-          next_disp_begin = max_begin;
+          if (next_disp_begin < 0)
+            next_disp_begin = 0;
+          if (next_disp_begin > max_begin)
+            next_disp_begin = max_begin;
 
-        ctx->active->disp_begin_pos = next_disp_begin;
-        ctx->active->cursor_pos = saved_cursor_pos + idx_delta;
-      } else {
-        int next_disp_begin =
-            (top_idx >= 0) ? top_idx : MAXIMUM(0, saved_disp_begin);
-        if (next_disp_begin < 0)
-          next_disp_begin = 0;
-        if (next_disp_begin > max_begin)
-          next_disp_begin = max_begin;
-        ctx->active->disp_begin_pos = next_disp_begin;
-        ctx->active->cursor_pos = saved_cursor_pos;
+          ctx->active->disp_begin_pos = next_disp_begin;
+          ctx->active->cursor_pos = saved_cursor_pos + idx_delta;
+        } else {
+          int next_disp_begin =
+              (top_idx >= 0) ? top_idx : MAXIMUM(0, saved_disp_begin);
+          if (next_disp_begin < 0)
+            next_disp_begin = 0;
+          if (next_disp_begin > max_begin)
+            next_disp_begin = max_begin;
+          ctx->active->disp_begin_pos = next_disp_begin;
+          ctx->active->cursor_pos = saved_cursor_pos;
+        }
       }
 
       if (ctx->active->cursor_pos < 0)
@@ -1861,6 +1895,7 @@ HandleDirWindowEnterAction(ViewContext *ctx, DirEntry **dir_entry_ptr,
 
   saved_panel = ctx->active;
   HandleSwitchWindow(ctx, *dir_entry_ptr, need_dsp_help_ptr, ch_ptr, ctx->active);
+  *ch_ptr = 0;
   ctx->focused_window = ctx->active->saved_focus;
 
   if (ctx->active != saved_panel) {
@@ -1877,7 +1912,7 @@ HandleDirWindowEnterAction(ViewContext *ctx, DirEntry **dir_entry_ptr,
     RefreshView(ctx, *dir_entry_ptr);
     *need_dsp_help_ptr = TRUE;
     *action_ptr = ACTION_NONE;
-    return DIR_WINDOW_DISPATCH_CONTINUE;
+    return DIR_WINDOW_DISPATCH_HANDLED;
   }
 
   if (ctx->active->vol != *start_vol_ptr)

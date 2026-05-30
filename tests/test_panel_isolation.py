@@ -808,6 +808,214 @@ def test_split_tab_back_preserves_selected_file_index(tmp_path, ytree_binary):
     tui.quit()
 
 
+def test_f8_close_from_active_file_panel_preserves_file_focus_and_selection(
+    tmp_path, ytree_binary
+):
+    root = tmp_path / "split_close_active_file"
+    root.mkdir()
+    alpha = root / "alpha"
+    alpha.mkdir()
+    for idx in range(3):
+        (alpha / f"alpha_{idx}.txt").write_text(f"{idx}\n", encoding="utf-8")
+    compare_target = root / "compare_target.txt"
+    compare_target.write_text("target\n", encoding="utf-8")
+    log_path = _configure_filediff_capture(root)
+
+    tui = YtreeTUI(executable=ytree_binary, cwd=str(root))
+    time.sleep(0.8)
+
+    try:
+        tui.send_keystroke(Keys.DOWN, wait=0.2)
+        tui.send_keystroke(Keys.ENTER, wait=0.4)
+        assert "hex invert j compare" in _footer_text(tui), _screen_text(tui)
+
+        tui.send_keystroke(Keys.DOWN, wait=0.2)
+        tui.send_keystroke(Keys.DOWN, wait=0.2)
+        tui.send_keystroke(Keys.F8, wait=0.4)
+        tui.send_keystroke(Keys.F8, wait=0.5)
+
+        assert "hex invert j compare" in _footer_text(tui), (
+            "Closing split from an active file panel must keep file focus.\n"
+            f"{_screen_text(tui)}"
+        )
+        assert "alpha_2.txt" in _screen_text(tui), _screen_text(tui)
+
+        tui.send_keystroke("J", wait=0.3)
+        assert tui.wait_for_content("COMPARE TARGET:", timeout=1.0), _screen_text(tui)
+        tui.send_keystroke(Keys.CTRL_U + str(compare_target) + Keys.ENTER, wait=0.6)
+        if tui.wait_for_content("Hit return to continue", timeout=1.0):
+            tui.send_keystroke(Keys.ENTER, wait=0.3)
+
+        assert _wait_for_file(log_path, timeout=2.0), "FILEDIFF helper did not run."
+        logged = log_path.read_text(encoding="utf-8").splitlines()
+        assert logged[0] == str(alpha / "alpha_2.txt"), (
+            "Closing split changed the selected file in the surviving panel.\n"
+            f"Expected source: {alpha / 'alpha_2.txt'}\nActual source: {logged[0]}"
+        )
+    finally:
+        tui.quit()
+
+
+def test_f8_close_from_active_right_file_panel_donates_selection(
+    tmp_path, ytree_binary
+):
+    root = tmp_path / "split_close_active_right_file"
+    root.mkdir()
+    vol_a = root / "split_close_vol_a"
+    vol_b = root / "split_close_vol_b"
+    vol_a.mkdir()
+    vol_b.mkdir()
+    for idx in range(3):
+        (vol_a / f"a_right_{idx}.txt").write_text(f"a{idx}\n", encoding="utf-8")
+    for idx in range(3):
+        (vol_b / f"b_right_{idx}.txt").write_text(f"b{idx}\n", encoding="utf-8")
+    compare_target = root / "compare_target.txt"
+    compare_target.write_text("target\n", encoding="utf-8")
+    log_path = _configure_filediff_capture(root)
+
+    tui = YtreeTUI(
+        executable=ytree_binary,
+        cwd=str(root),
+        args=[str(vol_a), str(vol_b)],
+    )
+    time.sleep(1.0)
+
+    def active_volume_name():
+        header = tui.get_screen_dump()[0]
+        for name in ("split_close_vol_a", "split_close_vol_b"):
+            if name in header:
+                return name
+        return None
+
+    def cycle_to(volume_name):
+        for key in (">", "<"):
+            for _ in range(8):
+                if active_volume_name() == volume_name:
+                    return
+                tui.send_keystroke(key, wait=0.45)
+        assert active_volume_name() == volume_name, _screen_text(tui)
+
+    def run_compare_and_read_source():
+        if log_path.exists():
+            log_path.unlink()
+        tui.send_keystroke("J", wait=0.25)
+        assert tui.wait_for_content("COMPARE TARGET:", timeout=1.0), _screen_text(tui)
+        tui.send_keystroke(Keys.CTRL_U + str(compare_target) + Keys.ENTER, wait=0.6)
+        if tui.wait_for_content("Hit return to continue", timeout=1.0):
+            tui.send_keystroke(Keys.ENTER, wait=0.3)
+        assert _wait_for_file(log_path, timeout=2.0), "FILEDIFF helper did not run."
+        return log_path.read_text(encoding="utf-8").splitlines()[0]
+
+    try:
+        cycle_to("split_close_vol_b")
+        if "hex invert j compare" not in _footer_text(tui):
+            tui.send_keystroke(Keys.ENTER, wait=0.4)
+        assert "hex invert j compare" in _footer_text(tui), _screen_text(tui)
+        source_left_b_expected = run_compare_and_read_source()
+        assert source_left_b_expected.endswith("b_right_0.txt"), source_left_b_expected
+
+        cycle_to("split_close_vol_a")
+        if "hex invert j compare" not in _footer_text(tui):
+            tui.send_keystroke(Keys.ENTER, wait=0.4)
+        assert "hex invert j compare" in _footer_text(tui), _screen_text(tui)
+
+        tui.send_keystroke(Keys.F8, wait=0.4)
+        tui.send_keystroke(Keys.TAB, wait=0.4)
+        assert "hex invert j compare" in _footer_text(tui), _screen_text(tui)
+
+        cycle_to("split_close_vol_b")
+        if "hex invert j compare" not in _footer_text(tui):
+            tui.send_keystroke(Keys.ENTER, wait=0.4)
+        assert "hex invert j compare" in _footer_text(tui), _screen_text(tui)
+        tui.send_keystroke(Keys.DOWN, wait=0.2)
+        source_right_b_expected = run_compare_and_read_source()
+        assert source_right_b_expected.endswith("b_right_1.txt"), source_right_b_expected
+
+        cycle_to("split_close_vol_a")
+        if "hex invert j compare" not in _footer_text(tui):
+            tui.send_keystroke(Keys.ENTER, wait=0.4)
+        assert "hex invert j compare" in _footer_text(tui), _screen_text(tui)
+        tui.send_keystroke(Keys.DOWN, wait=0.2)
+        tui.send_keystroke(Keys.F8, wait=0.5)
+
+        assert "hex invert j compare" in _footer_text(tui), (
+            "Closing split from active right file panel must keep file focus.\n"
+            f"{_screen_text(tui)}"
+        )
+        assert "a_right_1.txt" in _screen_text(tui), _screen_text(tui)
+
+        cycle_to("split_close_vol_b")
+        if "hex invert j compare" not in _footer_text(tui):
+            tui.send_keystroke(Keys.ENTER, wait=0.4)
+        assert "hex invert j compare" in _footer_text(tui), _screen_text(tui)
+        source_b_after_close = run_compare_and_read_source()
+        assert source_b_after_close == source_right_b_expected, (
+            "Right-panel split close did not donate per-volume file selection.\n"
+            f"Left stale source: {source_left_b_expected}\n"
+            f"Expected right source: {source_right_b_expected}\n"
+            f"Actual source:   {source_b_after_close}\n{_screen_text(tui)}"
+        )
+    finally:
+        tui.quit()
+
+
+def test_f8_close_from_active_right_tree_preserves_viewport(tmp_path, ytree_binary):
+    root = tmp_path / "split_close_right_tree_viewport"
+    root.mkdir()
+    for idx in range(45):
+        (root / f"dir_{idx:02d}_right_close").mkdir()
+
+    tui = YtreeTUI(executable=ytree_binary, cwd=str(root))
+    time.sleep(0.8)
+
+    def first_right_tree_row(lines, split_col):
+        for line in lines[2:-4]:
+            segment = line[split_col + 1 :].rstrip()
+            if "dir_" in segment:
+                match = re.search(r"dir_\d{2}_right_close\b", segment)
+                return match.group(0) if match else segment
+        return None
+
+    try:
+        tui.send_keystroke(Keys.F8, wait=0.4)
+        tui.send_keystroke(Keys.TAB, wait=0.4)
+        _assert_dir_mode_footer(tui, "Expected active right panel in tree mode.")
+
+        tui.send_keystroke("\033OF", wait=0.35)
+        assert tui.wait_for_content("dir_44_right_close", timeout=1.0), _screen_text(
+            tui
+        )
+        split_col = _detect_split_column(tui.get_screen_dump())
+        assert split_col is not None, _screen_text(tui)
+        before_top = first_right_tree_row(tui.get_screen_dump(), split_col)
+        assert before_top is not None, _screen_text(tui)
+
+        tui.send_keystroke(Keys.UP, wait=0.25)
+        assert "dir_43_right_close" in _screen_text(tui), _screen_text(tui)
+        tui.send_keystroke(Keys.F8, wait=0.5)
+
+        lines = tui.get_screen_dump()
+        screen = "\n".join(lines)
+        assert "FILTER" in lines[1], (
+            "F8 close should restore the single-panel stats layout.\n" f"{screen}"
+        )
+        assert "dir_43_right_close" in screen, (
+            "Closing split from active right tree lost the active selection.\n"
+            f"{screen}"
+        )
+        after_top_segment = _first_tree_row_segment(lines)
+        after_top_match = (
+            re.search(r"dir_\d{2}_right_close\b", after_top_segment or "")
+        )
+        after_top = after_top_match.group(0) if after_top_match else after_top_segment
+        assert after_top == before_top, (
+            "Closing split from active right tree changed the viewport origin.\n"
+            f"before_top={before_top!r}\n{screen}"
+        )
+    finally:
+        tui.quit()
+
+
 def test_inactive_panel_stays_file_focused_after_tab_away(tmp_path, ytree_binary):
     root = tmp_path / "inactive_panel_file_focus"
     root.mkdir()
@@ -1271,14 +1479,6 @@ def test_enter_repo_src_preserves_tree_viewport_anchor(ytree_binary):
             f"Failed to move selection to stats marker '{marker}'.\n{_screen_text(tui)}"
         )
 
-    def tree_pane_contains(lines, marker):
-        split_x = _detect_stats_split_x(lines)
-        for line in lines[2:-4]:
-            tree_segment = line[:split_x] if split_x is not None else line
-            if marker in tree_segment:
-                return True
-        return False
-
     try:
         move_to_stats_dir(repo_root.name)
         tui.send_keystroke(Keys.RIGHT, wait=0.45)
@@ -1286,7 +1486,10 @@ def test_enter_repo_src_preserves_tree_viewport_anchor(ytree_binary):
         move_to_stats_dir("src")
         before_lines = tui.get_screen_dump()
         before_screen = "\n".join(before_lines)
-        assert tree_pane_contains(before_lines, str(home)), before_screen
+        before_first_row = _first_tree_row_segment(
+            before_lines, _detect_stats_split_x(before_lines)
+        )
+        assert before_first_row is not None, before_screen
 
         tui.send_keystroke(Keys.ENTER, wait=0.6)
         _assert_dir_mode_footer(tui, "Expected tree mode after scanning deep tree node.")
@@ -1297,9 +1500,13 @@ def test_enter_repo_src_preserves_tree_viewport_anchor(ytree_binary):
             "ENTER moved active tree selection unexpectedly.\n"
             f"{after_screen}"
         )
-        assert tree_pane_contains(after_lines, str(home)), (
-            "ENTER recentered tree viewport to the selected subtree instead of "
-            "preserving the existing /home-anchored viewport.\n"
+        assert (
+            _first_tree_row_segment(after_lines, _detect_stats_split_x(after_lines))
+            == before_first_row
+        ), (
+            "ENTER recentered tree viewport instead of preserving the existing "
+            "viewport origin.\n"
+            f"before_first_row={before_first_row!r}\n"
             f"{after_screen}"
         )
         assert "build" in after_screen and "src" in after_screen, after_screen
@@ -1323,19 +1530,14 @@ def test_enter_repo_src_cmd_preserves_tree_viewport_anchor(ytree_binary):
             f"Failed to move selection to stats marker '{marker}'.\n{_screen_text(tui)}"
         )
 
-    def tree_pane_contains(lines, marker):
-        split_x = _detect_stats_split_x(lines)
-        for line in lines[2:-4]:
-            tree_segment = line[:split_x] if split_x is not None else line
-            if marker in tree_segment:
-                return True
-        return False
-
     try:
         move_to_stats_dir("src")
         before_src_lines = tui.get_screen_dump()
         before_src_screen = "\n".join(before_src_lines)
-        assert tree_pane_contains(before_src_lines, str(repo_root)), before_src_screen
+        before_src_first_row = _first_tree_row_segment(
+            before_src_lines, _detect_stats_split_x(before_src_lines)
+        )
+        assert before_src_first_row is not None, before_src_screen
 
         tui.send_keystroke(Keys.ENTER, wait=0.6)
         _assert_dir_mode_footer(tui, "Expected tree mode after entering src subtree.")
@@ -1346,16 +1548,25 @@ def test_enter_repo_src_cmd_preserves_tree_viewport_anchor(ytree_binary):
             "ENTER moved selection away from src unexpectedly.\n"
             f"{after_src_screen}"
         )
-        assert tree_pane_contains(after_src_lines, str(repo_root)), (
+        assert (
+            _first_tree_row_segment(
+                after_src_lines, _detect_stats_split_x(after_src_lines)
+            )
+            == before_src_first_row
+        ), (
             "ENTER on src recentered tree viewport instead of preserving the "
-            "repo-root anchor.\n"
+            "existing viewport origin.\n"
+            f"before_src_first_row={before_src_first_row!r}\n"
             f"{after_src_screen}"
         )
 
         move_to_stats_dir("cmd")
         before_cmd_lines = tui.get_screen_dump()
         before_cmd_screen = "\n".join(before_cmd_lines)
-        assert tree_pane_contains(before_cmd_lines, str(repo_root)), before_cmd_screen
+        before_cmd_first_row = _first_tree_row_segment(
+            before_cmd_lines, _detect_stats_split_x(before_cmd_lines)
+        )
+        assert before_cmd_first_row is not None, before_cmd_screen
 
         tui.send_keystroke(Keys.ENTER, wait=0.6)
         assert "hex invert j compare" in _footer_text(tui), _screen_text(tui)
@@ -1370,9 +1581,15 @@ def test_enter_repo_src_cmd_preserves_tree_viewport_anchor(ytree_binary):
             "Returning from cmd file view moved selection unexpectedly.\n"
             f"{after_cmd_screen}"
         )
-        assert tree_pane_contains(after_cmd_lines, str(repo_root)), (
+        assert (
+            _first_tree_row_segment(
+                after_cmd_lines, _detect_stats_split_x(after_cmd_lines)
+            )
+            == before_cmd_first_row
+        ), (
             "Second ENTER on src/cmd recentered tree viewport after returning "
-            "from file view instead of preserving the repo-root anchor.\n"
+            "from file view instead of preserving the existing viewport origin.\n"
+            f"before_cmd_first_row={before_cmd_first_row!r}\n"
             f"{after_cmd_screen}"
         )
     finally:

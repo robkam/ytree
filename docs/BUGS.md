@@ -67,20 +67,28 @@ Ordering policy (for all editors, including AI editors):
     *   Guard post-switch dereferences when lists are empty/missing (`vol`, `dir_entry_list`, `total_dirs`) so restore paths fail closed instead of reading invalid state.
 *   **Status**: Fixed.
 
-### **BUG-2.6: Tree Viewport Shifts Unexpectedly During Enter Navigation**
-*   **Description**: In normal tree/file navigation, `Enter` transitions can shift the tree viewport upward even when the selected node remains visible and no scroll is required.
-*   **Repro (manual, 2026-05-29)**:
+### **BUG-2.6: Tree Viewport Reanchors Unexpectedly During Navigation and Panel Reactivation**
+*   **Description**: Tree viewport origin must remain panel-local and stable whenever the active selection is still valid and visible. In practice, `Enter` transitions, `Tab` reactivation, and hidden-dotfile restore paths can still reanchor the tree and make it shift upward or downward even though no scroll is required.
+*   **Repro (manual, 2026-05-29 / 2026-05-31)**:
     *   `yt ~/ytree`
     *   Move selection to `src/cmd`
     *   Press `Enter`, then `Enter` again
-*   **Expected**: Tree viewport remains stable unless scroll is required to keep the active selection visible (for example selection moves below the visible viewport and the viewport must scroll).
-*   **Actual**: Tree content shifts upward unexpectedly while selection/context remains within what should be a stable viewport.
+    *   `HIDEDOTFILES=0 yt ~/ytree /mnt/c/Users/Henry/Desktop/`
+    *   Move to `/home/rob/ytree/src/cmd`
+    *   `F8`, `Tab`, `/`, select `/mnt/c/Users/Henry/Desktop/Wiki & electronics/Music studies`, then `Tab`
+*   **Expected**: The tree viewport remains stable unless scroll is required to keep the active selection visible (for example when selection moves beyond the visible viewport). Reactivating a panel must restore the same frozen tree state the panel had before losing focus, regardless of hidden-dotfile settings.
+*   **Actual**: Tree content shifts unexpectedly while selection/context remains within what should be a stable viewport, and the reactivated panel can jump to a different origin when `HIDEDOTFILES=0`.
 *   **Spec Violations**:
     *   `docs/SPECIFICATION.md` §3.1 **Navigation Stability**
+    *   `docs/SPECIFICATION.md` §3.4 **Tree Up/Down Edge-Scroll Rule**
+    *   `docs/SPECIFICATION.md` §3.4 **Tree Home/End Visibility Rule**
     *   `docs/SPECIFICATION.md` §5.2 **Window/Mode Context** persistence
-*   **Impact**: Breaks navigation predictability and reinforces perceived split/state fragility by causing unexpected visual movement during routine `Enter` flows.
+    *   `docs/SPECIFICATION.md` §5.1 **Freeze/Resume Rule**
+    *   `docs/SPECIFICATION.md` §5.3 **Render Is Not Authority Rule**
+    *   `docs/SPECIFICATION.md` §5.3 **Hidden-Prefix Selection Accounting Rule**
+*   **Impact**: Breaks navigation predictability and panel-reactivation trust by causing unexpected visual movement during routine navigation and split-state restore flows.
 *   **Remediation**:
-    *   Enforce explicit viewport-anchor rules for tree rendering during `Enter`-driven mode transitions.
+    *   Enforce explicit viewport-anchor rules for tree rendering during all panel restore and mode-transition paths.
     *   Disallow non-required viewport origin changes when selection remains visible/valid.
     *   Use deterministic viewport adjustment only for visibility preservation, not as a side-effect of redraw/rebind paths.
 *   **Status**: Fixed.
