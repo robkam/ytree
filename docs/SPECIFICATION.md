@@ -79,12 +79,16 @@ The behavior of the `Enter` key on a directory node is governed by the configura
 ### 3.3 Directory Memory Commands (Structural Controls)
 *   **`+` or `=` (Expand):** Expand using configured `TREEDEPTH` behavior for the node context. `=` is a convenience alias (unshifted `+` on most keyboard layouts).
 *   **`*` (Asterisk):** Deep Log. Recursively scans the entire branch.
+*   **`M` (Make Directory):** Directory creation updates the current tree in place. It must not implicitly relog, reset expansion depth, or reanchor the viewport when the current selection remains valid and visible; only minimal bounds correction is allowed if the mutation would otherwise leave the current cursor or viewport offset invalid.
 *   **`-` (Minus / Collapse):** Collapsing a directory node is a state reset for that node. When `-` collapses a currently expanded node, that subtree is released/unlogged. Re-expanding starts from normal configured depth behavior instead of restoring prior ad-hoc expansion history.
 
 ### 3.4 Arrow Key Navigation (Spatial Controls)
 Arrow keys provide spatial, cursor-oriented navigation through the tree. They are distinct from the structural `+`/`-`/`*` controls:
 *   **`→` (Right Arrow / Drill Down):** Progressive depth navigation. If the node is collapsed: expand one level. If already expanded: move cursor to the first child.
 *   **`←` (Left Arrow):** If the selected directory is expanded, collapse it. Otherwise, move selection to its parent directory. Collapsing with `Left` is a state reset for that node; after reset at filesystem/archive root, further `Left` is a no-op.
+*   **Tree Up/Down Edge-Scroll Rule:** `Up`/`Down` move the tree selection within the current visible viewport without changing the viewport origin while the target row is still visible. The tree scrolls by one visible row only when movement would pass above the top visible row or below the bottom visible row.
+*   **Tree Home/End Visibility Rule:** `Home`/`End` move to the first/last visible tree row, but they must preserve the current viewport origin whenever the target row is already visible; viewport movement is allowed only when needed to keep the target row visible. Hidden dotfile rows do not grant extra viewport shifts.
+*   **Hidden-Prefix Selection Accounting Rule:** When dotfiles are hidden, the panel's cursor position is interpreted against the visible tree rows. Any conversion back to a raw directory index must walk the visible rows from the current viewport origin instead of assuming `disp_begin_pos + cursor_pos` is the selected entry.
 
 ### 3.5 Preview Mode (`F7`) Contract
 `F7` is the primary inspect mode for viewing file contents while retaining list-oriented navigation.
@@ -186,6 +190,7 @@ The split panels share one logged tree topology contract for a given logged volu
 *   **Mirror Rule:** Structural tree changes triggered in the active panel must be reflected in the inactive panel immediately.
 *   **Selection Retention Rule:** Mirrored structural updates must not move the inactive panel's cursor/selection when its selected node remains visible/valid.
 *   **Non-Invalidating Changes Rule:** Adding siblings/ancestors, or changing sibling structure that does not invalidate the inactive selected node, must not move the inactive selection.
+*   **Render Stability Rule:** Inactive-panel rendering must not mutate the panel's stored tree viewport origin as a side effect of redraw; it may only compute a temporary render position.
 *   **Frozen File-View Anchor Rule:** A panel left in file view is restored from its saved directory path and selected filename, not from the current flattened tree index. If shared-tree rebuilding leaves that directory as a visible but unloaded placeholder, the directory payload must be reloaded before the panel is rendered or resumed so the file window cannot degrade to an empty or unrelated listing.
 *   **Rebind-After-Rebuild Rule:** Restore paths must not persist raw `DirEntry*`/`FileEntry*` pointers across rebuild/rescan/volume-cycle boundaries. Persist stable identity keys (path/name) and re-resolve after rebuild.
 *   **Render Is Not Authority Rule:** Rendering may display the saved panel state, but it must not decide a new panel selection from whatever entry currently occupies the saved numeric index after a shared tree rebuild.

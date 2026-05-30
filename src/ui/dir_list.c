@@ -147,6 +147,27 @@ int PanelFindLastVisibleDirIndex(const YtreePanel *panel) {
   return PanelFindNextVisibleDirIndex(panel, panel->vol->total_dirs - 1, -1);
 }
 
+int GetPanelVisibleSelectionIndex(const YtreePanel *p) {
+  int idx;
+
+  if (!p || !p->vol || !p->vol->dir_entry_list || p->vol->total_dirs <= 0)
+    return -1;
+
+  idx = p->disp_begin_pos + p->cursor_pos;
+  if (idx < 0)
+    idx = 0;
+  if (idx >= p->vol->total_dirs)
+    idx = p->vol->total_dirs - 1;
+
+  idx = PanelFindNextVisibleDirIndex(p, idx, 1);
+  if (idx < 0)
+    idx = PanelFindNextVisibleDirIndex(p, p->disp_begin_pos + p->cursor_pos,
+                                       -1);
+  if (idx < 0)
+    idx = PanelFindFirstVisibleDirIndex(p);
+  return idx;
+}
+
 /*
  * Frees the memory allocated for the dir_entry_list array of a volume.
  */
@@ -175,19 +196,10 @@ void FreeDirEntryList(ViewContext *ctx) {
  * instead of shared Volume stats.
  */
 DirEntry *GetPanelDirEntry(YtreePanel *p) {
+  int idx;
+
   if (p->vol->dir_entry_list != NULL && p->vol->total_dirs > 0) {
-    /* Use Panel state directly to avoid leakage via shared Volume stats */
-    int idx = p->disp_begin_pos + p->cursor_pos;
-
-    /* Safety bounds check */
-    if (idx < 0)
-      idx = 0;
-    if (idx >= p->vol->total_dirs)
-      idx = p->vol->total_dirs - 1;
-
-    idx = PanelFindNextVisibleDirIndex(p, idx, 1);
-    if (idx < 0)
-      idx = PanelFindNextVisibleDirIndex(p, p->disp_begin_pos + p->cursor_pos, -1);
+    idx = GetPanelVisibleSelectionIndex(p);
     if (idx >= 0)
       return p->vol->dir_entry_list[idx].dir_entry;
   }
@@ -201,23 +213,12 @@ DirEntry *GetPanelDirEntry(YtreePanel *p) {
  */
 DirEntry *GetSelectedDirEntry(ViewContext *ctx, struct Volume *vol) {
   if (vol->dir_entry_list != NULL && vol->total_dirs > 0) {
-    /* WARNING: Using ctx->active for 'selection' might be risky during
-     * async building, but we provide GetPanelDirEntry for explicit panel
-     * contexts. */
-    int idx = ctx->active->disp_begin_pos + ctx->active->cursor_pos;
+    int idx;
 
-    /* Safety bounds check */
-    if (idx < 0)
-      idx = 0;
-    if (idx >= vol->total_dirs)
-      idx = vol->total_dirs - 1;
-
-    idx = PanelFindNextVisibleDirIndex(ctx->active, idx, 1);
-    if (idx < 0)
-      idx = PanelFindNextVisibleDirIndex(ctx->active,
-                                         ctx->active->disp_begin_pos +
-                                             ctx->active->cursor_pos,
-                                         -1);
+    if (ctx && ctx->active)
+      idx = GetPanelVisibleSelectionIndex(ctx->active);
+    else
+      idx = -1;
     if (idx >= 0)
       return vol->dir_entry_list[idx].dir_entry;
   }

@@ -101,6 +101,7 @@ extern DirEntry *HandleDirRenameDirectory(ViewContext *ctx,
                                           DirEntry *dir_entry);
 extern DirEntry *GetSelectedDirEntry(ViewContext *ctx, struct Volume *vol);
 extern DirEntry *GetPanelDirEntry(YtreePanel *p);
+extern int GetPanelVisibleSelectionIndex(const YtreePanel *p);
 extern void BuildDirEntryList(ViewContext *ctx, struct Volume *vol,
                               int *index_ptr);
 extern BOOL PanelDirIsVisible(const YtreePanel *panel, const DirEntry *dir_entry);

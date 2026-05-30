@@ -274,6 +274,14 @@ static void RestorePanelTreeSelection(ViewContext *ctx, YtreePanel *panel) {
   if (win_height <= 0)
     win_height = 1;
 
+  if (panel->disp_begin_pos < 0)
+    panel->disp_begin_pos = 0;
+  if (selected_index >= panel->disp_begin_pos &&
+      selected_index < panel->disp_begin_pos + win_height) {
+    panel->cursor_pos = selected_index - panel->disp_begin_pos;
+    return;
+  }
+
   if (selected_index >= win_height) {
     panel->disp_begin_pos = selected_index - (win_height - 1);
     panel->cursor_pos = win_height - 1;

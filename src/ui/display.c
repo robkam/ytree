@@ -478,9 +478,17 @@ static int FindVisibleBackwardNoWrap(const YtreePanel *panel, int start_idx) {
   return -1;
 }
 
-static void PositionPanelAtDirIndex(YtreePanel *panel, int idx) {
+static void ComputePanelRenderPosition(const YtreePanel *panel, int idx,
+                                       int *begin_out, int *cursor_out) {
+  int begin;
+  int cursor;
   int height;
   int visible_idx;
+
+  if (!begin_out || !cursor_out)
+    return;
+  *begin_out = 0;
+  *cursor_out = 0;
 
   if (!panel || !panel->vol || !panel->vol->dir_entry_list ||
       panel->vol->total_dirs <= 0)
@@ -504,32 +512,40 @@ static void PositionPanelAtDirIndex(YtreePanel *panel, int idx) {
   if (height < 1)
     height = 1;
 
+  begin = panel->disp_begin_pos;
+  cursor = panel->cursor_pos;
+
   if (panel->hide_dot_files) {
     int start_idx = idx;
     int i;
+
     for (i = 1; i < height; i++) {
       int prev_idx = FindVisibleBackwardNoWrap(panel, start_idx - 1);
       if (prev_idx < 0)
         break;
       start_idx = prev_idx;
     }
-    panel->disp_begin_pos = start_idx;
-    panel->cursor_pos = idx - panel->disp_begin_pos;
-    return;
+
+    begin = start_idx;
+    cursor = idx - begin;
+  } else if (idx < begin) {
+    begin = idx;
+    cursor = 0;
+  } else if (idx >= begin + height) {
+    begin = idx;
+    cursor = 0;
+    if (begin + height > panel->vol->total_dirs) {
+      begin = panel->vol->total_dirs - height;
+      if (begin < 0)
+        begin = 0;
+      cursor = idx - begin;
+    }
+  } else {
+    cursor = idx - begin;
   }
 
-  if (idx >= panel->disp_begin_pos && idx < panel->disp_begin_pos + height) {
-    panel->cursor_pos = idx - panel->disp_begin_pos;
-  } else {
-    panel->disp_begin_pos = idx;
-    panel->cursor_pos = 0;
-    if (panel->disp_begin_pos + height > panel->vol->total_dirs) {
-      panel->disp_begin_pos = panel->vol->total_dirs - height;
-      if (panel->disp_begin_pos < 0)
-        panel->disp_begin_pos = 0;
-      panel->cursor_pos = idx - panel->disp_begin_pos;
-    }
-  }
+  *begin_out = begin;
+  *cursor_out = cursor;
 }
 
 static DirEntry *ResolvePanelFileAnchor(const YtreePanel *panel) {
@@ -557,7 +573,6 @@ static DirEntry *ResolvePanelFileAnchor(const YtreePanel *panel) {
   if (anchor_idx < 0)
     return NULL;
 
-  PositionPanelAtDirIndex(panel, anchor_idx);
   return panel->vol->dir_entry_list[anchor_idx].dir_entry;
 }
 
@@ -581,6 +596,7 @@ void RenderInactivePanel(ViewContext *ctx, YtreePanel *panel) {
   int total = panel->vol->total_dirs;
   int begin = panel->disp_begin_pos;
   int cursor = panel->cursor_pos;
+  int selected_idx = GetPanelVisibleSelectionIndex(panel);
 
   if (total > 0 && (begin + cursor >= total)) {
     begin = 0;
@@ -599,18 +615,16 @@ void RenderInactivePanel(ViewContext *ctx, YtreePanel *panel) {
   {
     int render_start = panel->start_file;
     int render_cursor = 0;
-    int idx;
+    int render_begin = begin;
+    int render_tree_cursor = cursor;
+    int idx = selected_idx;
     const DirEntry *de = NULL;
 
-    idx = begin + cursor;
-    idx = PanelFindNextVisibleDirIndex(panel, idx, 1);
-    if (idx < 0)
-      idx = PanelFindNextVisibleDirIndex(panel, begin + cursor, -1);
     if (idx < 0 || idx >= total)
       return;
-    PositionPanelAtDirIndex(panel, idx);
-    begin = panel->disp_begin_pos;
-    cursor = panel->cursor_pos;
+    ComputePanelRenderPosition(panel, idx, &render_begin, &render_tree_cursor);
+    begin = render_begin;
+    cursor = render_tree_cursor;
 
     de = panel->vol->dir_entry_list[idx].dir_entry;
     if (!de)
@@ -670,7 +684,7 @@ void RenderInactivePanel(ViewContext *ctx, YtreePanel *panel) {
     }
 
     if (panel->pan_dir_window) {
-      int tree_hilight = begin + cursor;
+      int tree_hilight = selected_idx;
       if (panel->saved_focus == FOCUS_FILE)
         tree_hilight = -1;
       DisplayTree(ctx, panel->vol, panel->pan_dir_window, begin, tree_hilight,
@@ -877,7 +891,7 @@ void RefreshView(ViewContext *ctx, DirEntry *dir_entry) {
         BOOL tree_highlight = (ctx->focused_window == FOCUS_TREE);
         DisplayTree(ctx, ctx->active->vol, ctx->active->pan_dir_window,
                     ctx->active->disp_begin_pos,
-                    ctx->active->disp_begin_pos + ctx->active->cursor_pos,
+                    GetPanelVisibleSelectionIndex(ctx->active),
                     tree_highlight);
         wnoutrefresh(ctx->active->pan_dir_window);
       }
@@ -893,7 +907,7 @@ void RefreshView(ViewContext *ctx, DirEntry *dir_entry) {
           BOOL tree_highlight = (ctx->focused_window == FOCUS_TREE);
           DisplayTree(ctx, ctx->active->vol, ctx->active->pan_dir_window,
                       ctx->active->disp_begin_pos,
-                      ctx->active->disp_begin_pos + ctx->active->cursor_pos,
+                      GetPanelVisibleSelectionIndex(ctx->active),
                       tree_highlight);
           wnoutrefresh(ctx->active->pan_dir_window);
         }
