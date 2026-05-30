@@ -614,6 +614,7 @@ def test_f8_tree_compare_uses_inactive_panel_logged_root_default(ytree_binary, t
     tui.send_keystroke(Keys.TAB, wait=0.35)
     tui.send_keystroke(Keys.DOWN, wait=0.2)  # main_dir
     tui.send_keystroke(Keys.ENTER, wait=0.35)
+    assert tui.wait_for_content("tree_diff.txt", timeout=1.0), _screen_text(tui)
     tui.send_keystroke(Keys.F8, wait=0.4)
     _assert_file_tag_state(tui, "tree_diff.txt", False)
 

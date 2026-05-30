@@ -150,6 +150,82 @@ void RestorePanelAnchorPath(const struct Volume *vol, YtreePanel *panel,
     panel->file_dir_entry = vol->dir_entry_list[idx].dir_entry;
 }
 
+static void FreePanelVolumeFileState(PanelVolumeFileState *state) {
+  PanelVolumeFileState *next;
+
+  while (state) {
+    next = state->next;
+    free(state);
+    state = next;
+  }
+}
+
+static PanelVolumeFileState *
+CopyPanelVolumeFileState(const PanelVolumeFileState *src) {
+  PanelVolumeFileState *head = NULL;
+  PanelVolumeFileState **tail = &head;
+
+  for (; src; src = src->next) {
+    PanelVolumeFileState *node;
+
+    node = (PanelVolumeFileState *)xcalloc(1, sizeof(PanelVolumeFileState));
+    *node = *src;
+    node->next = NULL;
+    *tail = node;
+    tail = &node->next;
+  }
+
+  return head;
+}
+
+void DonatePanelState(YtreePanel *dst, const YtreePanel *src) {
+  char file_dir_path[PATH_LENGTH + 1];
+  PanelVolumeFileState *volume_file_state;
+
+  if (!dst || !src || dst == src)
+    return;
+
+  volume_file_state = CopyPanelVolumeFileState(src->volume_file_state);
+
+  file_dir_path[0] = '\0';
+  if (src->saved_focus == FOCUS_FILE) {
+    if (src->file_selection_dir_path[0] != '\0') {
+      (void)snprintf(file_dir_path, sizeof(file_dir_path), "%s",
+                     src->file_selection_dir_path);
+    } else if (src->file_dir_entry) {
+      GetPath(src->file_dir_entry, file_dir_path);
+      file_dir_path[PATH_LENGTH] = '\0';
+    }
+  }
+
+  FreeFileEntryList(dst);
+  dst->vol = src->vol;
+  dst->cursor_pos = src->cursor_pos;
+  dst->disp_begin_pos = src->disp_begin_pos;
+  dst->start_file = src->start_file;
+  dst->file_cursor_pos = src->file_cursor_pos;
+  dst->file_dir_entry = src->file_dir_entry;
+  dst->file_mode = src->file_mode;
+  dst->max_column = src->max_column;
+  dst->current_dir_entry = src->current_dir_entry;
+  dst->saved_focus = src->saved_focus;
+  dst->saved_big_file_view = src->saved_big_file_view;
+  dst->max_visual_filename_len = src->max_visual_filename_len;
+  dst->max_visual_linkname_len = src->max_visual_linkname_len;
+  dst->max_visual_userview_len = src->max_visual_userview_len;
+  dst->reverse_sort = src->reverse_sort;
+  dst->hide_dot_files = src->hide_dot_files;
+  (void)snprintf(dst->file_selection_name, sizeof(dst->file_selection_name),
+                 "%s", src->file_selection_name);
+  (void)snprintf(dst->file_selection_dir_path,
+                 sizeof(dst->file_selection_dir_path), "%s",
+                 src->file_selection_dir_path);
+  FreePanelVolumeFileState(dst->volume_file_state);
+  dst->volume_file_state = volume_file_state;
+  PanelTags_Copy(dst, src);
+  RestorePanelAnchorPath(dst->vol, dst, file_dir_path);
+}
+
 DirEntry *FindDirByPathInTree(DirEntry *entry, const char *path) {
   char candidate_path[PATH_LENGTH + 1];
 

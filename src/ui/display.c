@@ -520,7 +520,7 @@ static DirEntry *ResolvePanelFileAnchor(const YtreePanel *panel) {
 }
 
 static DirEntry *ResolvePanelFileAnchorForRender(ViewContext *ctx,
-                                                 YtreePanel *panel) {
+                                                 const YtreePanel *panel) {
   (void)ctx;
   return ResolvePanelFileAnchor(panel);
 }
@@ -561,7 +561,6 @@ void RenderInactivePanel(ViewContext *ctx, YtreePanel *panel) {
       return;
     ComputePanelRenderPosition(panel, idx, &render_begin, &render_tree_cursor);
     begin = render_begin;
-    cursor = render_tree_cursor;
 
     de = panel->vol->dir_entry_list[idx].dir_entry;
     if (!de)

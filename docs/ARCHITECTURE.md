@@ -4,7 +4,7 @@
 ## **1. Core Quality Principles**
 To maintain architectural stability throughout the modernization, all changes must adhere to these foundational rules:
 
-*   **Code Quality (DRY):** All development should adhere to the "Don't Repeat Yourself" principle. Code should be modular, reusable, and free of redundancy.
+*   **Code Quality (DRY):** All development must adhere to the "Don't Repeat Yourself" principle. Code must be modular, reusable, and free of redundancy.
 *   **Architectural Integrity (Anti-Patching):** Do not apply superficial fixes for deep architectural problems. If a bug is caused by fragmented state or logic, **STOP**. Refactor the architecture to unify the logic before fixing the specific bug. It is better to break one thing to fix the system than to patch the system and break everything.
 *   **Single Responsibility (SRP):** Enforce strict modularity. Each file (module) must serve exactly one purpose. Maintain a hard separation between the **UI** (View), **File System** (Model), and **Commands** (Controller) to ensure the codebase remains testable and maintainable.
 *   **Use Established Libraries:** Prefer mature, well-supported libraries (e.g., `libarchive`) instead of creating custom replacements.
@@ -133,7 +133,7 @@ The application state is strictly hierarchical:
 The Split-Screen architecture treats each panel as an independent instance of a volume manager.
 
 *   **Active Panel:** Owns keyboard focus and initiates all operations.
-*   **Inactive Panel:** Strictly **DORMANT**. It does not update its display or change state in response to activity in the active panel.
+*   **Inactive Panel:** It does not process direct input and does not mutate panel-local frozen state in response to activity in the active panel. Shared-topology changes may still be mirrored and redrawn non-authoritatively.
 *   **State Persistence (Tab-Switch):** The `Tab` key is the bridge. Switching panels restores the exact state held when that panel last had focus.
 *   **Panel vs. Volume Rule:** Sharing a `Volume` only shares logged tree topology and file payload cache. It never shares panel-local tags, file-window anchors, cursor identity, or focus/mode state.
 
@@ -142,11 +142,43 @@ Split-transfer/switch code must classify each field before copying or restoring:
 
 | State Class | Owned By | Examples | Forbidden Cross-Panel Behavior |
 |---|---|---|---|
-| **Panel-Local** | `YtreePanel` | `cursor_pos`, `disp_begin_pos`, `start_file`, `file_cursor_pos`, `file_dir_entry`, `saved_focus`, `saved_big_file_view`, `file_selection_name`, `file_selection_dir_path`, `tagged_paths` | Active-only commands must not mutate the inactive panel's values. |
+| **Panel-Local** | `YtreePanel` | `cursor_pos`, `disp_begin_pos`, `start_file`, `file_cursor_pos`, `file_dir_entry`, `saved_focus`, `saved_big_file_view`, `file_selection_name`, `file_selection_dir_path`, `tagged_paths`, `hide_dot_files` | Active-only commands must not mutate the inactive panel's values. |
 | **Shared-Topology** | `Volume` (possibly referenced by both panels) | `vol_stats.tree`, `dir_entry_list`, directory expansion/logging topology | Panel code may mirror topology visibility updates, but must re-anchor each panel by identity/path and must not infer panel-local selection by shared index. |
-| **Global-Only** | `ViewContext` session scope | `is_split_screen`, `focused_window`, layout windows, session options (for example current global dotfile setting) | Global toggles must not be treated as panel-local transfer state; split hand-off code must not use them to overwrite inactive panel-local snapshots. |
+| **Global-Only** | `ViewContext` session scope | `is_split_screen`, `focused_window`, layout windows, session options other than panel-local visibility state | Global toggles must not be treated as panel-local transfer state; split hand-off code must not use them to overwrite inactive panel-local snapshots. |
 
 Boundary implementations in `src/ui/dir_ops.c` and `src/ui/ctrl_file_ops.c` reference this map in invariant comments and debug assertions.
+
+#### 4.2.2 Unified Window/Panel UI State Record
+The target architecture is not a greenfield rewrite. It is the canonicalization of the panel-owned state that already exists in `YtreePanel` and helper code: make one authoritative UI state record per window or panel, then route selection, viewport, and focus restore through that record instead of re-deriving them from visible rows or raw indices. Rendering is only a projection of that record.
+
+The record must capture, at minimum:
+*   **Identity and mode:** whether the container is a single-window session or a split-panel instance, plus the active focus shape.
+*   **Stable identity keys:** directory identity as a stable path-based key scoped to the current volume or archive, and file identity as a stable path/name key within that same scope.
+*   **Tree state:** selected directory identity, cursor position, viewport origin, and any stable tree anchor needed to restore the visible selection. Expand/collapse tree topology itself remains shared `Volume` state and must not be duplicated as panel-local expansion depth.
+*   **File state:** selected file identity, file-window cursor position, file-window anchor, and the last visible file selection.
+*   **Visibility state:** dotfile visibility and any other visibility filter that changes which rows are rendered.
+*   **Context state:** per-volume anchors, per-panel filter text, and any mode flag that affects how the same tree/file model is presented.
+
+Ownership rules:
+*   `YtreePanel` owns the live UI state record for its window/panel instance.
+*   `Volume` owns shared topology and payload cache only; it must not own panel-local selection or viewport state.
+*   `ViewContext` owns only session-wide routing and layout references, not derived tree selection.
+*   Any duplicate or shadow copy of the same state in `ViewContext` or helper paths must be either derived-only or removed; stable path-based identity is the restore key, not transient row indices or stale pointers.
+*   In split mode, restore snapshots are keyed by `(panel, volume)` so each panel restores its own volume-specific state and cannot import the opposite panel's snapshot.
+
+Update rules:
+*   User navigation mutates the owned record directly.
+*   Redraw/reflow paths may compute a temporary render projection from the record, but they must not replace the record with a new guess.
+*   Restore/reactivation paths must rehydrate from the saved record and use deterministic fallback only when the original identity is no longer valid.
+*   The invalid-selection fallback order is fixed: exact identity if still valid, then nearest visible ancestor, then next visible sibling, then previous visible sibling, then the root visible node.
+*   Restore code must not reconstruct selection from `disp_begin_pos + cursor_pos` or from stale `DirEntry*`/`FileEntry*` pointers.
+*   Reactivation must restore the recorded tree/small/big-file shape directly; it must not briefly render a different shape before converging.
+*   Restore invalidation is generation-based: any tree rebuild, visibility change, rename, move, symlink change, or mount remap that can invalidate a saved identity must advance the panel/volume restore generation before any snapshot is reused.
+*   Restore ordering is explicit: rebuild/mutation completes, generation updates, then restore helper re-resolves the saved identity or falls back deterministically. No helper may read selection from raw row math while a rebuild is in flight.
+*   There must be one canonical restore helper per container type; alternate code paths must not synthesize their own restore logic or bypass the helper.
+*   Verification is mandatory: regressions must prove no flicker, no reanchor, and no transient wrong-shape render on Enter/Tab/F8 and hidden-dotfile reactivation paths, including split-panel restore cases.
+
+This record is the implementation-side counterpart to the contract stated in `docs/SPECIFICATION.md`. Future stateless agents must treat it as the canonical UI state model.
 
 ### 4.3 Inter-Panel Operations (The Directional Rule)
 *   **Targeting:** Copy and Move operations occur directionally: **Source (Active Panel) to Destination (Inactive Panel)**.
@@ -161,7 +193,7 @@ Boundary implementations in `src/ui/dir_ops.c` and `src/ui/ctrl_file_ops.c` refe
 *   **Selection Memory (Breadcrumbs):** When returning from File Mode to Tree Mode and later re-entering the same directory, the panel restores the cursor to the last highlighted file.
 *   **Navigation Stability:** Moving through the Tree never automatically triggers a transition into File Mode.
 *   **Tag-View Scope Rule:** `i/I` (invert tags) and `o/O` (tagged-only file-list toggle) operate on the active panel's current file-list scope, regardless of whether focus is in tree or file window.
-*   **Root Boundary Rule:** `Left` at root is a no-op; root-content release uses `-` state-release semantics.
+*   **Root Boundary Rule:** `Left` on an expanded root performs the same node-local reset as `-` (collapse + release/unlog). Further `Left` on an already-unlogged root is a no-op.
 
 ### 5.2 Protocol B: Archive and Volume Lifecycle
 *   **Lifecycle Management:** The active panel handles Logging new volumes, Cycling through logged volumes, and Releasing (unlogging) volumes.
