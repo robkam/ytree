@@ -636,6 +636,28 @@ int HandleFileWindow(ViewContext *ctx, DirEntry *dir_entry) {
       break;
     } /* switch */
 
+    if (switched_panel) {
+      /*
+       * Panel handoff must not inherit a stale synthetic navigation key from
+       * the prior panel's tagging action. The next panel should begin at its
+       * own stored cursor, not one extra row down from the previous pane.
+       */
+      unput_char = '\0';
+    }
+
+    if (switched_panel && ctx->active != owner_panel) {
+      owner_panel = ctx->active;
+      start_vol = ctx->active->vol;
+      s = &ctx->active->vol->vol_stats;
+      if (!RebindActiveFilePanelSelection(ctx->active, &dir_entry)) {
+        action = ACTION_ESCAPE;
+        goto file_window_done;
+      }
+      tracked_file_dir = ctx->active->file_dir_entry;
+      last_stats_dir = NULL;
+      continue;
+    }
+
     if (ctx->active == owner_panel) {
       owner_panel->file_dir_entry = dir_entry;
       owner_panel->start_file = dir_entry->start_file;
@@ -660,10 +682,14 @@ file_window_done:
      * return */
   }
 
-  if (!switched_panel) {
-    owner_panel->saved_focus = FOCUS_TREE;
-    owner_panel->saved_big_file_view = FALSE;
-  }
+  /*
+   * Leaving file mode always returns the active panel to tree focus. The
+   * inactive peer keeps its own saved_focus/file snapshot, so panel-local
+   * state survives a Tab handoff without the exiting panel pretending it is
+   * still file-focused.
+   */
+  owner_panel->saved_focus = FOCUS_TREE;
+  owner_panel->saved_big_file_view = FALSE;
   if (!volume_changed) {
     owner_panel->file_dir_entry = dir_entry;
     owner_panel->start_file = dir_entry->start_file;

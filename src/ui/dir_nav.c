@@ -8,50 +8,25 @@
 #include "ytree_fs.h"
 #include "ytree_ui.h"
 
-static int FindVisibleBackwardNoWrap(const YtreePanel *p, int start_idx);
-
 static void PositionPanelAtIndex(YtreePanel *p, int target_idx, int height) {
+  int begin;
+  int cursor;
+
   if (!p || !p->vol || p->vol->total_dirs <= 0)
     return;
 
   if (height < 1)
     height = 1;
 
-  if (target_idx < 0)
-    target_idx = 0;
-  if (target_idx >= p->vol->total_dirs)
-    target_idx = p->vol->total_dirs - 1;
-
-  if (p->hide_dot_files) {
-    int start_idx = target_idx;
-    int i;
-
-    for (i = 1; i < height; i++) {
-      int prev_idx = FindVisibleBackwardNoWrap(p, start_idx - 1);
-      if (prev_idx < 0)
-        break;
-      start_idx = prev_idx;
-    }
-    p->disp_begin_pos = start_idx;
-    p->cursor_pos = target_idx - p->disp_begin_pos;
-    return;
-  }
-
-  if (target_idx < p->disp_begin_pos) {
-    p->disp_begin_pos = target_idx;
+  begin = p->disp_begin_pos;
+  cursor = p->cursor_pos;
+  if (!PanelComputeViewportPosition(p, target_idx, height, &begin, &cursor)) {
+    p->disp_begin_pos = 0;
     p->cursor_pos = 0;
     return;
   }
-
-  if (target_idx >= p->disp_begin_pos + height) {
-    p->disp_begin_pos = target_idx - height + 1;
-    if (p->disp_begin_pos < 0)
-      p->disp_begin_pos = 0;
-    p->cursor_pos = target_idx - p->disp_begin_pos;
-    return;
-  }
-
-  p->cursor_pos = target_idx - p->disp_begin_pos;
+  p->disp_begin_pos = begin;
+  p->cursor_pos = cursor;
 }
 
 static BOOL SyncPanelToVisibleSelection(const ViewContext *ctx, YtreePanel *p,
@@ -79,20 +54,6 @@ static BOOL SyncPanelToVisibleSelection(const ViewContext *ctx, YtreePanel *p,
 
   PositionPanelAtIndex(p, visible_idx, ctx->layout.dir_win_height);
   return TRUE;
-}
-
-static int FindVisibleBackwardNoWrap(const YtreePanel *p, int start_idx) {
-  int idx;
-
-  if (!p || !p->vol || !p->vol->dir_entry_list || start_idx < 0)
-    return -1;
-
-  for (idx = start_idx; idx >= 0; idx--) {
-    const DirEntry *candidate = p->vol->dir_entry_list[idx].dir_entry;
-    if (PanelDirIsVisible(p, candidate))
-      return idx;
-  }
-  return -1;
 }
 
 static int GetCurrentVisiblePanelIndex(const YtreePanel *p) {

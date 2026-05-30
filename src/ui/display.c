@@ -463,27 +463,9 @@ static int FindPanelDirIndexByPath(const YtreePanel *panel, const char *path) {
   return -1;
 }
 
-static int FindVisibleBackwardNoWrap(const YtreePanel *panel, int start_idx) {
-  int idx;
-
-  if (!panel || !panel->vol || !panel->vol->dir_entry_list || start_idx < 0)
-    return -1;
-
-  for (idx = start_idx; idx >= 0; idx--) {
-    const DirEntry *candidate = panel->vol->dir_entry_list[idx].dir_entry;
-    if (PanelDirIsVisible(panel, candidate))
-      return idx;
-  }
-
-  return -1;
-}
-
 static void ComputePanelRenderPosition(const YtreePanel *panel, int idx,
                                        int *begin_out, int *cursor_out) {
-  int begin;
-  int cursor;
   int height;
-  int visible_idx;
 
   if (!begin_out || !cursor_out)
     return;
@@ -499,53 +481,14 @@ static void ComputePanelRenderPosition(const YtreePanel *panel, int idx,
   if (idx >= panel->vol->total_dirs)
     idx = panel->vol->total_dirs - 1;
 
-  visible_idx = PanelFindNextVisibleDirIndex(panel, idx, 1);
-  if (visible_idx < 0)
-    visible_idx = PanelFindNextVisibleDirIndex(panel, idx, -1);
-  if (visible_idx < 0)
-    visible_idx = PanelFindFirstVisibleDirIndex(panel);
-  if (visible_idx < 0)
-    return;
-  idx = visible_idx;
-
   height = panel->pan_dir_window ? getmaxy(panel->pan_dir_window) : 1;
   if (height < 1)
     height = 1;
 
-  begin = panel->disp_begin_pos;
-  cursor = panel->cursor_pos;
-
-  if (panel->hide_dot_files) {
-    int start_idx = idx;
-    int i;
-
-    for (i = 1; i < height; i++) {
-      int prev_idx = FindVisibleBackwardNoWrap(panel, start_idx - 1);
-      if (prev_idx < 0)
-        break;
-      start_idx = prev_idx;
-    }
-
-    begin = start_idx;
-    cursor = idx - begin;
-  } else if (idx < begin) {
-    begin = idx;
-    cursor = 0;
-  } else if (idx >= begin + height) {
-    begin = idx;
-    cursor = 0;
-    if (begin + height > panel->vol->total_dirs) {
-      begin = panel->vol->total_dirs - height;
-      if (begin < 0)
-        begin = 0;
-      cursor = idx - begin;
-    }
-  } else {
-    cursor = idx - begin;
-  }
-
-  *begin_out = begin;
-  *cursor_out = cursor;
+  *begin_out = panel->disp_begin_pos;
+  *cursor_out = panel->cursor_pos;
+  if (!PanelComputeViewportPosition(panel, idx, height, begin_out, cursor_out))
+    return;
 }
 
 static DirEntry *ResolvePanelFileAnchor(const YtreePanel *panel) {

@@ -48,6 +48,11 @@ The screen is divided into non-overlapping zones. Geometry is calculated dynamic
 *   **Progress Surface Ownership Rule:** Progress/spinner updates MUST NOT overwrite or hide footer help, active prompt text, or F1 help surfaces. If layout is constrained, degrade to a compact indicator instead of replacing those surfaces.
 *   **Regression Guard:** No-wrap/truncate behavior is a required regression-test contract across normal and archive view modes.
 *   **Micro-Consistency:** UI state flags (e.g., `big_window`, `split_mode`) must be synchronized with the internal state machine before any call to `doupdate()`.
+*   **Viewport Ownership Rule:** Each panel owns its own tree viewport (`disp_begin_pos` and `cursor_pos`). Split, tab, and Home/End navigation MUST only mutate the active panel's viewport; the inactive panel's tree viewport must remain unchanged.
+    *   Panel handoffs and redraws MUST resolve the selected directory through the same visible-selection logic used by rendering.
+    *   Do not recompute or “correct” tree selection with a raw `disp_begin_pos + cursor_pos` index in callers.
+    *   Do not duplicate viewport-placement policy in multiple call sites; use the shared helper so hidden-dotfile trees and split-screen redraws follow one canonical scroll rule.
+    *   Hidden dot directories do not earn extra viewport shifts. If the target row is already visible, the panel must keep its current viewport origin.
 
 ### 2.4 Tree Status Column
 The first character column of the Tree View serves as the Memory State Indicator:
@@ -75,6 +80,9 @@ The behavior of the `Enter` key on a directory node is governed by the configura
 ### 3.2 Directory Protocols
 *   **Logging vs. Entry:** "Logging" is the act of scanning a directory branch. Any directory can be logged and exist in the Tree. However, **Entry** (transitioning focus from Tree to File View) is strictly prohibited if the directory contains zero files.
 *   **Selection Memory (Breadcrumbs):** When returning from File Mode to Tree Mode and later re-entering the same directory, the panel must restore the cursor to the **last highlighted file**.
+*   **Split-Panel File Ownership:** In split mode, each panel preserves its own file-view snapshot (`start_file`, `cursor_pos`, and file-selection anchors). `F8` seeds the new peer from the active panel's current file cursor, and `Tab` may switch panes without importing or resetting the inactive pane's file cursor.
+    *   Exiting file mode returns only the active panel to tree focus.
+    *   The inactive panel keeps its file snapshot intact for later reactivation.
 
 ### 3.3 Directory Memory Commands (Structural Controls)
 *   **`+` or `=` (Expand):** Expand using configured `TREEDEPTH` behavior for the node context. `=` is a convenience alias (unshifted `+` on most keyboard layouts).
