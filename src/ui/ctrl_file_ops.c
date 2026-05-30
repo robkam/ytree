@@ -580,26 +580,15 @@ BOOL handle_file_window_split_switch_action(
     ViewContext *ctx, YtreeAction action, DirEntry *dir_entry,
     YtreePanel *owner_panel, BOOL *switched_panel_ptr,
     YtreeAction *loop_action_ptr, BOOL *return_esc_ptr) {
-  const FileEntry *active_selected_file = NULL;
-  char active_selected_dir[PATH_LENGTH + 1];
-
   if (!ctx || !dir_entry || !owner_panel || !switched_panel_ptr ||
       !loop_action_ptr || !return_esc_ptr)
     return FALSE;
 
-  active_selected_dir[0] = '\0';
   *return_esc_ptr = FALSE;
 
   switch (action) {
   case ACTION_SPLIT_SCREEN:
     DebugLogFileSplitState("FileAction:split:before", ctx);
-    if (ctx->is_split_screen && ctx->active == owner_panel) {
-      active_selected_file = GetActivePanelSelectedFile(ctx, dir_entry);
-      if (active_selected_file) {
-        GetPath((DirEntry *)dir_entry, active_selected_dir);
-        active_selected_dir[PATH_LENGTH] = '\0';
-      }
-    }
     owner_panel->saved_big_file_view =
         (dir_entry->big_window || dir_entry->global_flag || dir_entry->tagged_flag);
 
@@ -613,45 +602,10 @@ BOOL handle_file_window_split_switch_action(
     if (ctx->is_split_screen && ctx->active == ctx->right) {
       /*
        * Split ownership boundary (docs/ARCHITECTURE.md §4.2.1):
-       * Shared-topology tree linkage may move with the active panel when
-       * unsplitting, but file identity anchors remain panel-local and must be
-       * transferred by explicit name/path snapshots, never by row index.
+       * When the split is removed, the surviving panel keeps its own tree
+       * viewport and file-selection anchor; the panel being removed is
+       * discarded rather than donated into the survivor.
        */
-      ctx->left->vol = ctx->right->vol;
-      ctx->left->cursor_pos = ctx->right->cursor_pos;
-      ctx->left->disp_begin_pos = ctx->right->disp_begin_pos;
-      ctx->left->start_file = ctx->right->start_file;
-      ctx->left->file_cursor_pos = ctx->right->file_cursor_pos;
-      ctx->left->file_dir_entry = ctx->right->file_dir_entry;
-      ctx->left->hide_dot_files = ctx->right->hide_dot_files;
-      (void)snprintf(ctx->left->file_selection_name,
-                     sizeof(ctx->left->file_selection_name), "%s",
-                     ctx->right->file_selection_name);
-      (void)snprintf(ctx->left->file_selection_dir_path,
-                     sizeof(ctx->left->file_selection_dir_path), "%s",
-                     ctx->right->file_selection_dir_path);
-      if (active_selected_file) {
-        (void)snprintf(ctx->left->file_selection_name,
-                       sizeof(ctx->left->file_selection_name), "%s",
-                       active_selected_file->name);
-      }
-      if (active_selected_dir[0] != '\0') {
-        (void)snprintf(ctx->left->file_selection_dir_path,
-                       sizeof(ctx->left->file_selection_dir_path), "%s",
-                       active_selected_dir);
-      }
-#ifndef NDEBUG
-      if (active_selected_file) {
-        assert(strcmp(ctx->left->file_selection_name, active_selected_file->name) ==
-               0);
-      }
-      if (active_selected_dir[0] != '\0') {
-        assert(strcmp(ctx->left->file_selection_dir_path, active_selected_dir) == 0);
-      }
-#endif
-      PanelTags_Copy(ctx->left, ctx->right);
-      ctx->left->saved_focus = ctx->right->saved_focus;
-      FreeFileEntryList(ctx->left);
     }
     ctx->is_split_screen = !ctx->is_split_screen;
     ReCreateWindows(ctx);
