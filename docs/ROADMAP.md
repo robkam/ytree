@@ -434,54 +434,15 @@ Ordering policy (for all editors, including AI editors):
 *   `etc/ytree.1.md` and generated `docs/USAGE.md` are updated when behavior lands.
 *   - [ ] **Status:** Not Started.
 
-### **Task 33: F8 Boundary Integrity Hardening**
-*   **Goal:** Make `F8` split enter/exit and split-state behavior deterministic and resilient so regressions do not repeatedly reappear during routine fixes.
-*   **Rationale:** Repeated fixes in the BUG-2..BUG-5 family and new viewport-drift defects indicate structural fragility in split boundary/state handling rather than isolated one-off defects.
-*   **Scope Lock:** Hardening and enforcement only for split-state ownership, transition integrity, and viewport/selection stability. No keybinding redesign and no unrelated feature additions.
-*   **Coverage Target:** This umbrella is the primary stabilization track for BUG-2 through BUG-5, BUG-2.6, and BUG-2.8.
-*   **Execution Order (mandatory):** Deliver as sequenced subtasks: **33.1 -> 33.2 -> 33.3 -> 33.4**. Task 33 closes only after all subtasks are complete.
-*   **Acceptance Criteria:**
-*   Split state has one explicit owner module/API; direct split/panel-mode state mutation outside that authority path is removed from production paths.
-*   F8 enter/exit transitions run through one deterministic transaction flow: snapshot -> compute -> validate invariants -> commit/rollback, with no partial state application.
-*   Rendering is read-only with respect to split ownership/state resolution; renderer paths do not decide or mutate authoritative split state.
-*   Invariant enforcement is mandatory after F8 transitions and split restore paths (active-only mutation, inactive freeze/resume, no cross-panel import, stable identity-based restore).
-*   Merge gate policy exists for F8/split-touching PRs: required invariant gate, required transition-matrix gate, and required no-direct-write split-authority check.
-
-#### **Task 33.1: Per-Window Filter State Ownership**
-*   **Goal:** Decouple file filter state (`file_spec`) from volume-global ownership and make it panel/view-local in split workflows.
-*   **Mechanism:** Move filter ownership into per-window/per-panel state so two split panels can hold independent filters on the same volume without cross-import.
-*   **Acceptance Criteria:**
-*   Split panels can hold independent filters for the same logged volume.
-*   `Tab` and volume-cycle paths restore filter state from the target panel snapshot only.
-*   No shared-buffer aliasing path remains that allows cross-panel filter leakage.
-*   - [ ] **Status:** Not Started.
-
-#### **Task 33.2: Deterministic Inactive-Panel Selection + Viewport Stability Semantics**
-*   **Goal:** Enforce deterministic inactive-panel restore behavior and prevent unexpected tree viewport drift during split-related transitions.
+### **Task 33: Lock Inactive Split-Panel Selection Semantics + Regression Coverage**
+*   **Goal:** Define and enforce deterministic inactive-panel cursor behavior under mirrored tree-structure changes in `F8` split mode.
+*   **Rationale:** Real-time mirrored tree updates are useful, but must stay predictable when parent/ancestor collapse, add, or delete operations change visibility.
+*   **Scope Lock:** Selection/cursor semantics and regression coverage only; no unrelated split-layout or keybinding redesign.
 *   **Acceptance Criteria:**
 *   Inactive selection remains unchanged when its selected node is still visible/valid after mirrored updates.
-*   When invalidated, fallback target follows deterministic order (nearest visible ancestor, then next/previous visible sibling, then root visible node).
-*   Tree viewport origin does not shift unless needed to keep the active selection visible.
-*   Add focused regression coverage for mirrored collapse, sibling/ancestor delete/add, and viewport-stability transitions.
+*   When invalidated, fallback target follows a deterministic order (nearest visible ancestor, then next/previous visible sibling, then root visible node).
+*   Add focused regression tests for mirrored collapse, sibling/ancestor delete, and sibling/ancestor add scenarios.
 *   Update `docs/SPECIFICATION.md` contract references if implementation details differ during delivery.
-*   - [ ] **Status:** Not Started.
-
-#### **Task 33.3: Single Split-State Authority + Transactional F8 Transition Engine**
-*   **Goal:** Centralize split ownership and make F8 enter/exit transitions atomic and deterministic.
-*   **Acceptance Criteria:**
-*   One explicit split-state owner module/API exists for split/panel-mode authoritative mutation.
-*   Direct split-state mutation outside the owner path is removed from production paths.
-*   F8 transitions use one transaction flow: snapshot -> compute -> validate invariants -> commit/rollback.
-*   No partial transition state is observable to runtime/render paths.
-*   - [ ] **Status:** Not Started.
-
-#### **Task 33.4: Render Read-Only Contract + Enforceable Merge Gates**
-*   **Goal:** Enforce architectural boundaries continuously so regressions are blocked before merge.
-*   **Acceptance Criteria:**
-*   Renderer paths are read-only for authoritative split ownership/state resolution.
-*   Mandatory invariant checks run for split restore/transition paths (active-only mutation, inactive freeze/resume, no cross-panel import, identity-based restore).
-*   CI/QA merge gate exists for F8/split-touching PRs: invariant gate, transition-matrix gate, and no-direct-write split-authority check.
-*   Task 33 closure requires green evidence for all Task 33 subtasks.
 *   - [ ] **Status:** Not Started.
 
 ### **Task 34: Enable Practical Command Subset in `F7` Preview (Keep `F8`/`Tab` Blocked)**
@@ -982,11 +943,6 @@ Ordering policy (for all editors, including AI editors):
 
 *   **Scope:**
     *   Add explicit enum-based `overlay_state` and `submode_state` fields to the authoritative runtime context.
-    *   Define and enforce an explicit ownership contract for overlay/submode-adjacent state classes:
-        *   **panel-local**,
-        *   **volume-local**,
-        *   **global-only**.
-    *   Default rule: no implicit cross-panel or cross-context state import; transfers must be explicit and parity-audited.
     *   Unify state handling for:
         *   active overlay/context (normal/help/config/app-menu/autoview/fullview/diff/hexedit/destination-chooser),
         *   command submode (regular/tag/alt),
@@ -1007,8 +963,6 @@ Ordering policy (for all editors, including AI editors):
 
 *   **Acceptance Criteria:**
     *   One authoritative overlay/submode state path exists in runtime logic.
-    *   No tree-owned or UI-owned transient pointers survive reload/release/switch boundaries; restore paths re-resolve from stable identity keys.
-    *   Active-only mutation is enforced across overlay/submode transitions; inactive panel/context state remains frozen unless explicitly switched active.
     *   Overlay entry/exit/cancel behavior is parity-validated for help, config, app menu, autoview, fullview, diff, hexedit, and destination chooser.
     *   Split behavior (`F8`/`Tab`) and active/inactive panel isolation remain unchanged.
     *   Existing split-panel/state-transition regression suites remain green.
@@ -1235,6 +1189,10 @@ Ordering policy (for all editors, including AI editors):
 *   The chooser shows only backend-valid create options; unavailable create types are omitted rather than advertised and rejected later.
 *   Read-only backends expose no `N Create` entry in footer/help.
 *   Symlink creation is available natively where supported, with explicit prompts and focused regression coverage for both selected-target and explicit-target flows.
+*   - [ ] **Status:** Not Started.
+
+### **Idea FE-21: Per-Window Filter State (Split Screen Prerequisite)**
+*   Decouple the file filter (`file_spec`) from the `Volume` structure and move it into a new `WindowView` context. This architecture is required to support F8 Split Screen, enabling two independent views of the same volume with different filters (e.g., `*.c` in the left panel versus `*.h` in the right).
 *   - [ ] **Status:** Not Started.
 
 ### **Idea FE-22: State Preservation on Reload (`^L`)**

@@ -1,30 +1,17 @@
 # **Functional Specification**
-> **Purpose:** This document defines the behavioral "Contract of Truth" for `ytree`. It specifies how the UI must respond to input, how the filesystem is represented, and the design philosophy that governs the user experience.
+> **Purpose:** This document defines the behavioral "Contract of Truth" for `ytree`. It specifies how the UI should respond to input, how the filesystem is represented, and the design philosophy that governs the user experience.
 > This specification defines behavior contracts only; detailed regression-test inventories and case matrices belong in roadmap/planning artifacts and the test suite, not in this file.
 
 ## **1. Design Philosophy**
 The `ytree` interface is built to make the power of the Unix filesystem accessible through a high-speed, intuitive terminal interface.
 
 *   **Unix-First Design:** Prioritize a user experience tailored for Unix power users, emphasizing shell integration, standard POSIX conventions, and scriptability.
-*   **Ytree makes filesystem work self-evident:** Users must not need command-line fluency or Unix jargon to succeed; core actions must be visible, named plainly, and understandable from the interface itself.
+*   **Ytree makes filesystem work self-evident:** Users should not need command-line fluency or Unix jargon to succeed; core actions must be visible, named plainly, and understandable from the interface itself.
 *   **Interaction Economy (Minimize Friction):** `ytree` is designed to minimize the distance between user intent and execution. Avoid unnecessary confirmations for safe operations and ensure the common path is always `key -> Enter -> result`.
-*   **Direct Access (No Menu Diving):** High-speed keyboard access is superior to hierarchical navigation. Core functionality must be accessible via single-key or simple combinations; UI depth must never exceed one level for primary actions.
-*   **No Hidden Features:** All functionality, especially syntax like the `{}` placeholder, must be explained in context within the UI (e.g., in help lines or prompts).
+*   **Direct Access (No Menu Diving):** High-speed keyboard access is superior to hierarchical navigation. Core functionality must be accessible via single-key or simple combinations; UI depth should never exceed one level for primary actions.
+*   **No Hidden Features:** All functionality, especially syntax like the `{}` placeholder, should be explained in context within the UI (e.g., in help lines or prompts).
 
 ## **2. The User Interface Architecture**
-
-### View-State Ownership Overview
-`ytree` uses one state model across both single-window mode and split-panel mode. When `F8` is off, the active container is a **window**; when `F8` is on, each side is a **panel**. `F8` changes the layout container, not the meaning of the stored state.
-
-Each window or panel owns its own frozen selection, viewport origin, focus shape, and dotfile visibility. Reactivation, redraw, and restore paths must reuse that frozen state; they must not re-derive selection or viewport from raw tree indices or visible-row assumptions.
-
-Hidden versus shown dotfiles is an orthogonal visibility setting. It may change which rows are visible, but it must not by itself cause re-anchoring, expansion changes, or viewport jumps unless the user explicitly navigates or the current selection is truly invalid.
-
-Directory and file identity must be defined by stable path-based keys scoped to the current volume or archive, not by transient row positions or pointer identity. Rename, move, symlink, and mount-remap operations may change whether an identity still resolves, but they must not change the restore contract: if the stored identity still resolves, restore it; if it does not, use the deterministic fallback order in §5.3.
-
-This section states the intended contract. Where current behavior differs, the contract is the target to converge on, not a description of the present implementation.
-
-The architectural state model that backs this contract is described in `docs/ARCHITECTURE.md` as the per-window / per-panel UI state record and its ownership rules.
 
 ### 2.1 Input Semantics
 
@@ -61,11 +48,6 @@ The screen is divided into non-overlapping zones. Geometry is calculated dynamic
 *   **Progress Surface Ownership Rule:** Progress/spinner updates MUST NOT overwrite or hide footer help, active prompt text, or F1 help surfaces. If layout is constrained, degrade to a compact indicator instead of replacing those surfaces.
 *   **Regression Guard:** No-wrap/truncate behavior is a required regression-test contract across normal and archive view modes.
 *   **Micro-Consistency:** UI state flags (e.g., `big_window`, `split_mode`) must be synchronized with the internal state machine before any call to `doupdate()`.
-*   **Viewport Ownership Rule:** Each panel owns its own tree viewport (`disp_begin_pos` and `cursor_pos`). Split, tab, and Home/End navigation MUST only mutate the active panel's viewport; the inactive panel's tree viewport must remain unchanged.
-    *   Panel handoffs and redraws MUST resolve the selected directory through the same visible-selection logic used by rendering.
-    *   Do not recompute or “correct” tree selection with a raw `disp_begin_pos + cursor_pos` index in callers.
-    *   Do not duplicate viewport-placement policy in multiple call sites; use the shared helper so hidden-dotfile trees and split-screen redraws follow one canonical scroll rule.
-    *   Hidden dot directories do not earn extra viewport shifts. If the target row is already visible, the panel must keep its current viewport origin.
 
 ### 2.4 Tree Status Column
 The first character column of the Tree View serves as the Memory State Indicator:
@@ -93,26 +75,16 @@ The behavior of the `Enter` key on a directory node is governed by the configura
 ### 3.2 Directory Protocols
 *   **Logging vs. Entry:** "Logging" is the act of scanning a directory branch. Any directory can be logged and exist in the Tree. However, **Entry** (transitioning focus from Tree to File View) is strictly prohibited if the directory contains zero files.
 *   **Selection Memory (Breadcrumbs):** When returning from File Mode to Tree Mode and later re-entering the same directory, the panel must restore the cursor to the **last highlighted file**.
-*   **Split-Panel File Ownership:** In split mode, each panel preserves its own file-view snapshot (`start_file`, `cursor_pos`, and file-selection anchors). `F8` seeds the new peer from the active panel's current file cursor, and `Tab` may switch panes without importing or resetting the inactive pane's file cursor.
-    *   Exiting file mode returns only the active panel to tree focus.
-    *   The inactive panel keeps its file snapshot intact for later reactivation.
 
 ### 3.3 Directory Memory Commands (Structural Controls)
 *   **`+` or `=` (Expand):** Expand using configured `TREEDEPTH` behavior for the node context. `=` is a convenience alias (unshifted `+` on most keyboard layouts).
 *   **`*` (Asterisk):** Deep Log. Recursively scans the entire branch.
-*   **`M` (Make Directory):** Directory creation updates the current tree in place. It must not implicitly relog, reset expansion depth, or reanchor the viewport when the current selection remains valid and visible; only minimal bounds correction is allowed if the mutation would otherwise leave the current cursor or viewport offset invalid.
 *   **`-` (Minus / Collapse):** Collapsing a directory node is a state reset for that node. When `-` collapses a currently expanded node, that subtree is released/unlogged. Re-expanding starts from normal configured depth behavior instead of restoring prior ad-hoc expansion history.
 
 ### 3.4 Arrow Key Navigation (Spatial Controls)
 Arrow keys provide spatial, cursor-oriented navigation through the tree. They are distinct from the structural `+`/`-`/`*` controls:
 *   **`→` (Right Arrow / Drill Down):** Progressive depth navigation. If the node is collapsed: expand one level. If already expanded: move cursor to the first child.
 *   **`←` (Left Arrow):** If the selected directory is expanded, collapse it. Otherwise, move selection to its parent directory. Collapsing with `Left` is a state reset for that node; after reset at filesystem/archive root, further `Left` is a no-op.
-*   **Tree Up/Down Edge-Scroll Rule:** `Up`/`Down` move the tree selection within the current visible viewport without changing the viewport origin while the target row is still visible. The tree scrolls by one visible row only when movement would pass above the top visible row or below the bottom visible row.
-*   **Tree Home/End Visibility Rule:** `Home`/`End` move to the first/last visible tree row, but they must preserve the current viewport origin whenever the target row is already visible; viewport movement is allowed only when needed to keep the target row visible. Hidden dotfile rows do not grant extra viewport shifts.
-*   **Enter/Restore Viewport Rule:** `Enter`, `Tab`, and other panel restore flows must preserve the current tree viewport origin whenever the active tree selection is already visible. They must reanchor the viewport only to preserve visibility, never as a redraw side effect.
-    *   When a split is closed or a panel is restored from a same-volume handoff, the surviving panel must re-resolve its own tree selection from its panel-local anchors; it must not inherit the opposite panel's cursor row if the preserved selection is still visible.
-    *   Split-close preserves the active panel's current focus and shape. If the right panel is active, its tree/file state is donated into the surviving left-side storage so single-panel mode continues from the same cursor, viewport, file selection, dotfile visibility, and tree/small-file/big-file focus.
-*   **Hidden-Prefix Selection Accounting Rule:** When dotfiles are hidden, the panel's cursor position is interpreted against the visible tree rows. Any conversion back to a raw directory index must walk the visible rows from the current viewport origin instead of assuming `disp_begin_pos + cursor_pos` is the selected entry.
 
 ### 3.5 Preview Mode (`F7`) Contract
 `F7` is the primary inspect mode for viewing file contents while retaining list-oriented navigation.
@@ -121,7 +93,7 @@ Arrow keys provide spatial, cursor-oriented navigation through the tree. They ar
 *   **List-First Navigation:** Standard list navigation changes selection in the list pane; preview content updates to the selected file.
 *   **Preview-Scroll Modifiers:** Shift-modified navigation keys (and configured equivalents such as `^P`/`^N`) scroll preview content without changing list selection.
 *   **Mode Safety Rule:** Split-navigation controls are not active while preview mode is active (for example `F8` and `Tab` must not perform split/layout switching from inside preview mode).
-*   **Command Availability Rule:** Preview mode must expose only a defined in-context command subset; unavailable commands must not trigger unintended mode/layout transitions.
+*   **Command Availability Rule:** Preview mode may expose a defined in-context command subset; unavailable commands must not trigger unintended mode/layout transitions.
 
 ---
 
@@ -202,10 +174,9 @@ Switching panels via `Tab` must restore the exact state held when that panel las
 *   **Selection:** Tags are specific to the panel session. Collapsing a directory (`Left` or `-`) or explicitly unreading/releasing it (`--`) discards saved tags beneath that directory; reloading it must not resurrect stale tags.
 *   **Compare Tagging Rule:** Compare workflows may report difference counts, but they do not implicitly mutate per-file tag state; tags change only through explicit tagging actions.
 *   **Filter (Filespec):** Independent search/filter strings.
-*   **Panel-Volume State Key Rule:** In split mode, panel-local restore state is keyed by `(panel, volume)`. On `Tab`/volume-cycle transitions, a panel restores its own snapshot for that volume and must not import state from the opposite panel.
 *   **Window/Mode Context:** Directory/File/Showall-style panel-local focus context.
 *   **File-Window Shape Context:** In split mode, each panel owns its own file-window shape (`tree`, `small file`, `big file`). `Tab` and `F8` transitions must restore that panel-local shape exactly on reactivation.
-*   **No Transient Fallback Rule:** Reactivating a panel must not briefly render a different shape (for example tree-first then file, or small-first then big) before correcting. The recorded shape must be restored directly.
+*   **No Transient Fallback Rule:** Reactivating a panel must not briefly render a different shape (for example tree-first then file, or small-first then big) before correcting.
 
 ### 5.3 Shared Tree Topology Contract
 The split panels share one logged tree topology contract for a given logged volume:
@@ -214,20 +185,14 @@ The split panels share one logged tree topology contract for a given logged volu
 *   **Mirror Rule:** Structural tree changes triggered in the active panel must be reflected in the inactive panel immediately.
 *   **Selection Retention Rule:** Mirrored structural updates must not move the inactive panel's cursor/selection when its selected node remains visible/valid.
 *   **Non-Invalidating Changes Rule:** Adding siblings/ancestors, or changing sibling structure that does not invalidate the inactive selected node, must not move the inactive selection.
-*   **Render Stability Rule:** Inactive-panel rendering must not mutate the panel's stored tree viewport origin as a side effect of redraw; it may only compute a temporary render position.
 *   **Frozen File-View Anchor Rule:** A panel left in file view is restored from its saved directory path and selected filename, not from the current flattened tree index. If shared-tree rebuilding leaves that directory as a visible but unloaded placeholder, the directory payload must be reloaded before the panel is rendered or resumed so the file window cannot degrade to an empty or unrelated listing.
-*   **Rebind-After-Rebuild Rule:** Restore paths must not persist raw `DirEntry*`/`FileEntry*` pointers across rebuild/rescan/volume-cycle boundaries. Persist stable identity keys (path/name) and re-resolve after rebuild.
 *   **Render Is Not Authority Rule:** Rendering may display the saved panel state, but it must not decide a new panel selection from whatever entry currently occupies the saved numeric index after a shared tree rebuild.
-*   **Restore Safety Guard Rule:** Before post-restore list/index dereference, validate volume/list presence and bounds. If invalid/empty, use deterministic fallback behavior rather than dereferencing transient state.
-*   **Restore Ordering Rule:** Any rebuild, rebind, or visibility transition that can invalidate a saved anchor must complete first; restore must run after the current topology and visibility state are settled. Restore must not race ahead of an in-progress rebuild or visibility mutation.
 *   **Deterministic Fallback Rule (When Selected Node Becomes Invalid):**
     *   Keep exact node if still visible/valid after mirror update.
     *   Else move to nearest visible ancestor of the previously selected node.
     *   Else move to next visible sibling in display order.
     *   Else move to previous visible sibling.
     *   Else move to the root visible node.
-    *   Raw `disp_begin_pos + cursor_pos` math is not a restore authority and must not be used to reconstruct selection when a helper can resolve visible selection by identity.
-*   **Generation Discipline Rule:** Restore snapshots must be accepted only against the current panel/volume generation. If the generation has changed because topology or visibility mutated, the snapshot must be re-resolved from stable identity keys before any state is applied.
 *   **No Surprise Parent-Jump Rule:** Collapsing a parent/grandparent in the active panel must not force the inactive selection to jump to parent unless the previously selected node is no longer visible/valid.
 
 ### 5.4 Modal Search Behavior
@@ -311,7 +276,7 @@ Current modal/dialog audit:
 *   **Signal Handling:** `SIGINT` and `SIGTERM` are trapped for graceful terminal restoration and VFS cleanup.
 *   **Memory Management:** Recursive scans for the Tree View respect the `TREEDEPTH` safety limit to prevent stack overflows or OOM (Out of Memory) conditions on massive filesystems.
 *   **Encapsulation:** Global state pointers are strictly forbidden. All logic must utilize the `ViewContext` structure passed explicitly through the call stack.
-*   **Destructive-Action Confirmation Rule:** Before destructive mutations (delete, overwrite, replace), ytree MUST show explicit confirmation with clear source/target context and a default-safe choice. Safe/non-destructive operations must remain confirmation-free.
+*   **Destructive-Action Confirmation Rule:** Before destructive mutations (delete, overwrite, replace), ytree MUST show explicit confirmation with clear source/target context and a default-safe choice. Safe/non-destructive operations should remain confirmation-free.
 
 ---
 
@@ -328,7 +293,7 @@ Every module (`.c`/`.h` pair) must reside in the directory corresponding to its 
 ### 10.2 Module Sizing & Cohesion
 - **Target Size:** 100-800 Lines of Code (LOC).
 - **Bloat Threshold:** Modules exceeding 1,000 LOC are candidates for decomposition.
-- **Fragmentation Threshold:** Modules under 50 LOC must be merged into cohesive units.
+- **Fragmentation Threshold:** Modules under 50 LOC should be merged into cohesive units.
 - **Single Responsibility:** Each module must have one clear purpose.
 
 ### 10.3 Naming Conventions
@@ -339,4 +304,4 @@ Every module (`.c`/`.h` pair) must reside in the directory corresponding to its 
 ### 10.4 Header Hygiene
 - **Layered Access:** Communication between layers must occur through designated layer headers (`ytree_fs.h`, `ytree_ui.h`).
 - **Decoupling:** Minimize cross-layer `#include` directives.
-- **Encapsulation:** Internal module state and helper functions must remain `static`. Only the necessary API must be exposed in the header.
+- **Encapsulation:** Internal module state and helper functions should remain `static`. Only the necessary API should be exposed in the header.
