@@ -7,6 +7,7 @@
 
 #include "interactions_panel_paths.h"
 #include "ytree_fs.h"
+#include <assert.h>
 
 YtreePanel *UI_GetInactivePanel(ViewContext *ctx) {
   if (!ctx || !ctx->is_split_screen || !ctx->active || !ctx->left ||
@@ -50,6 +51,7 @@ int UI_GetPanelSelectedFilePath(ViewContext *ctx, YtreePanel *panel,
                                     char *out_path) {
   const DirEntry *dir_entry = NULL;
   FileEntry *file_entry = NULL;
+  char dir_path[PATH_LENGTH + 1];
   int file_idx;
 
   if (!ctx || !panel || !panel->vol || !out_path)
@@ -69,7 +71,16 @@ int UI_GetPanelSelectedFilePath(ViewContext *ctx, YtreePanel *panel,
   if (!dir_entry)
     return -1;
 
-  if (panel->saved_focus == FOCUS_FILE && panel->file_dir_entry == dir_entry) {
+  GetPath((DirEntry *)dir_entry, dir_path);
+  dir_path[PATH_LENGTH] = '\0';
+
+  assert(panel->saved_focus != FOCUS_FILE ||
+         panel->file_selection_dir_path[0] != '\0');
+  if (panel->saved_focus == FOCUS_FILE) {
+    if (panel->file_selection_dir_path[0] == '\0')
+      return -1;
+    if (strcmp(dir_path, panel->file_selection_dir_path) != 0)
+      return -1;
     file_idx = panel->start_file + panel->file_cursor_pos;
   } else {
     file_idx = dir_entry->start_file + dir_entry->cursor_pos;

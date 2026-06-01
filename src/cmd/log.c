@@ -7,6 +7,7 @@
 
 #include "ytree_cmd.h"
 #include "ytree_fs.h"
+#include <assert.h>
 
 /* Runtime UI helpers used by volume-switch restore flow. */
 extern void FreeFileEntryList(YtreePanel *panel);
@@ -58,6 +59,8 @@ static void SavePanelFileSelection(YtreePanel *panel) {
 
   if (!panel || !panel->vol)
     return;
+  assert(panel->saved_focus != FOCUS_FILE ||
+         panel->file_selection_dir_path[0] != '\0');
 
   state = GetPanelVolumeFileState(panel, panel->vol->id);
   state->saved_file_start = panel->start_file;
@@ -66,11 +69,17 @@ static void SavePanelFileSelection(YtreePanel *panel) {
   state->saved_big_file_view = FALSE;
 
   state->saved_file_dir_path[0] = '\0';
-  if (panel->file_dir_entry != NULL) {
+  if (panel->file_selection_dir_path[0] != '\0') {
+    (void)snprintf(state->saved_file_dir_path,
+                   sizeof(state->saved_file_dir_path), "%s",
+                   panel->file_selection_dir_path);
+    state->saved_file_dir_path[PATH_LENGTH] = '\0';
+  } else if (panel->file_dir_entry != NULL) {
     GetPath(panel->file_dir_entry, state->saved_file_dir_path);
     state->saved_file_dir_path[PATH_LENGTH] = '\0';
-    state->saved_big_file_view = panel->file_dir_entry->big_window;
   }
+  if (panel->file_dir_entry != NULL)
+    state->saved_big_file_view = panel->file_dir_entry->big_window;
   panel->saved_big_file_view = state->saved_big_file_view;
 
   (void)snprintf(state->saved_file_selection_name,
@@ -212,10 +221,10 @@ static void RestorePanelFileSelection(ViewContext *ctx, YtreePanel *panel) {
                  sizeof(panel->file_selection_dir_path), "%s",
                  state->saved_file_selection_dir_path);
 
+  assert(state->saved_focus != FOCUS_FILE ||
+         state->saved_file_selection_dir_path[0] != '\0');
   if (state->saved_file_selection_dir_path[0] != '\0')
     file_dir_path = state->saved_file_selection_dir_path;
-  else if (state->saved_file_dir_path[0] != '\0')
-    file_dir_path = state->saved_file_dir_path;
 
   if (file_dir_path) {
     resolved_file_dir = FindSavedDirInVolume(vol, file_dir_path);
@@ -241,6 +250,7 @@ static void SavePanelTreeSelection(YtreePanel *panel) {
   if (!panel || !panel->vol)
     return;
 
+  /* Keep the per-volume breadcrumb aligned with the panel-local tree cursor. */
   selected_index = panel->disp_begin_pos + panel->cursor_pos;
   if (selected_index < 0)
     selected_index = 0;
@@ -276,6 +286,7 @@ static void RestorePanelTreeSelection(ViewContext *ctx, YtreePanel *panel) {
 
   if (panel->disp_begin_pos < 0)
     panel->disp_begin_pos = 0;
+  /* Rehydrate the panel-local tree viewport from the per-volume breadcrumb. */
   if (selected_index >= panel->disp_begin_pos &&
       selected_index < panel->disp_begin_pos + win_height) {
     panel->cursor_pos = selected_index - panel->disp_begin_pos;

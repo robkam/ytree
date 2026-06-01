@@ -653,8 +653,8 @@ typedef struct {
 
 struct Volume {
   int id;
-  int saved_tree_index;
-  int saved_focus;
+  int saved_tree_index; /* Per-volume restore breadcrumb, not topology authority. */
+  int saved_focus;       /* Derived restore mirror of the last focused panel mode. */
   Statistic vol_stats;
   Statistic vol_disk_stats;
   DirEntryList *dir_entry_list;
@@ -728,10 +728,10 @@ typedef struct _PathList {
 
 typedef struct _panel_volume_file_state {
   int volume_id;
-  int saved_file_start;
-  int saved_file_cursor;
-  ViewFocus saved_focus;
-  BOOL saved_big_file_view;
+  int saved_file_start;        /* Per-panel file viewport snapshot for this volume. */
+  int saved_file_cursor;       /* Per-panel file cursor snapshot for this volume. */
+  ViewFocus saved_focus;       /* Restored panel focus shape for this volume. */
+  BOOL saved_big_file_view;    /* Restored panel file-window shape for this volume. */
   char saved_file_dir_path[PATH_LENGTH + 1];
   char saved_file_selection_name[PATH_LENGTH + 1];
   char saved_file_selection_dir_path[PATH_LENGTH + 1];
@@ -777,7 +777,7 @@ typedef struct {
   PanelVolumeFileState *volume_file_state;
   char file_selection_name[PATH_LENGTH + 1];
   char file_selection_dir_path[PATH_LENGTH + 1];
-  BOOL saved_big_file_view;
+  BOOL saved_big_file_view; /* Panel-local file-window shape snapshot. */
   int file_mode;
   int max_column;
   int current_dir_entry;
@@ -786,7 +786,7 @@ typedef struct {
   unsigned int max_visual_linkname_len;
   unsigned int max_visual_userview_len;
   BOOL reverse_sort;
-  BOOL hide_dot_files;
+  BOOL hide_dot_files; /* Panel-local visibility; ViewContext keeps the active mirror. */
 } YtreePanel;
 
 typedef struct _history {
@@ -988,7 +988,7 @@ typedef struct _ViewContext {
   int cached_cols;  /* Last known COLS for resize detection */
   BOOL bypass_small_window;
   BOOL highlight_full_line;
-  BOOL hide_dot_files;
+  BOOL hide_dot_files; /* Active-panel mirror of panel-local dotfile visibility. */
   BOOL status_line_error_pending;
   char status_line_error_text[PATH_LENGTH + 1];
   char *initial_directory;

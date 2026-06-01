@@ -143,8 +143,9 @@ Split-transfer/switch code must classify each field before copying or restoring:
 | State Class | Owned By | Examples | Forbidden Cross-Panel Behavior |
 |---|---|---|---|
 | **Panel-Local** | `YtreePanel` | `cursor_pos`, `disp_begin_pos`, `start_file`, `file_cursor_pos`, `file_dir_entry`, `saved_focus`, `saved_big_file_view`, `file_selection_name`, `file_selection_dir_path`, `tagged_paths`, `hide_dot_files` | Active-only commands must not mutate the inactive panel's values. |
+| **Derived / Restore-Mirror** | `ViewContext` mirrors and `Volume` restore breadcrumbs | `ctx->hide_dot_files`, `saved_tree_index`, `saved_focus` | May shadow panel-local state for compatibility or restore, but must never become the authoritative source of truth when a panel-local copy exists. |
 | **Shared-Topology** | `Volume` (possibly referenced by both panels) | `vol_stats.tree`, `dir_entry_list`, directory expansion/logging topology | Panel code may mirror topology visibility updates, but must re-anchor each panel by identity/path and must not infer panel-local selection by shared index. |
-| **Global-Only** | `ViewContext` session scope | `is_split_screen`, `focused_window`, layout windows, session options other than panel-local visibility state | Global toggles must not be treated as panel-local transfer state; split hand-off code must not use them to overwrite inactive panel-local snapshots. |
+| **Session-Only** | `ViewContext` session scope | `is_split_screen`, `focused_window`, layout windows, session options other than panel-local visibility state | Session toggles must not be treated as panel-local transfer state; split hand-off code must not use them to overwrite inactive panel-local snapshots. |
 
 Boundary implementations in `src/ui/dir_ops.c` and `src/ui/ctrl_file_ops.c` reference this map in invariant comments and debug assertions.
 
@@ -161,9 +162,9 @@ The record must capture, at minimum:
 
 Ownership rules:
 *   `YtreePanel` owns the live UI state record for its window/panel instance.
-*   `Volume` owns shared topology and payload cache only; it must not own panel-local selection or viewport state.
-*   `ViewContext` owns only session-wide routing and layout references, not derived tree selection.
-*   Any duplicate or shadow copy of the same state in `ViewContext` or helper paths must be either derived-only or removed; stable path-based identity is the restore key, not transient row indices or stale pointers.
+*   `Volume` owns shared topology and payload cache; per-volume restore breadcrumbs may live there, but they are not shared-topology authority.
+*   `ViewContext` owns only session-wide routing and layout references plus derived mirrors required by legacy helpers, not authoritative tree or file selection.
+*   Any duplicate or shadow copy of the same state in `ViewContext` or helper paths must be either explicitly derived-only or removed; stable path-based identity is the restore key, not transient row indices or stale pointers.
 *   In split mode, restore snapshots are keyed by `(panel, volume)` so each panel restores its own volume-specific state and cannot import the opposite panel's snapshot.
 
 Update rules:

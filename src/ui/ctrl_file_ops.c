@@ -138,7 +138,19 @@ BOOL RebindActiveFilePanelSelection(YtreePanel *panel, DirEntry **dir_entry_io) 
   if (!panel || !dir_entry_io)
     return FALSE;
 
-  panel_dir = panel->file_dir_entry;
+  assert(panel->saved_focus != FOCUS_FILE ||
+         panel->file_selection_dir_path[0] != '\0');
+  panel_dir = NULL;
+  if (panel->file_selection_dir_path[0] != '\0' && panel->vol) {
+    int panel_dir_idx =
+        FindDirIndexByPath(panel->vol, panel->file_selection_dir_path);
+    if (panel_dir_idx < 0) {
+      panel_dir_idx = FindDirIndexByPathOrAncestor(
+          panel->vol, panel->file_selection_dir_path);
+    }
+    if (panel_dir_idx >= 0 && panel->vol->dir_entry_list)
+      panel_dir = panel->vol->dir_entry_list[panel_dir_idx].dir_entry;
+  }
   if (!panel_dir)
     panel_dir = GetPanelDirEntry(panel);
   if (!panel_dir)
@@ -617,7 +629,6 @@ BOOL handle_file_window_split_switch_action(
           ctx->right->vol = ctx->left->vol;
           ctx->right->cursor_pos = ctx->left->cursor_pos;
           ctx->right->disp_begin_pos = ctx->left->disp_begin_pos;
-          ctx->right->file_dir_entry = dir_entry;
           ctx->right->hide_dot_files = ctx->left->hide_dot_files;
           /*
            * Split ownership boundary: a file-view split must keep the original
@@ -646,6 +657,7 @@ BOOL handle_file_window_split_switch_action(
         ctx->active = ctx->left;
         ctx->active->saved_focus = preserved_focus;
         ctx->focused_window = preserved_focus;
+        /* Restore the session mirror from the newly active panel. */
         ctx->hide_dot_files = ctx->active->hide_dot_files;
         BuildFileEntryList(ctx, ctx->active);
         if (donate_active_state)
@@ -701,6 +713,7 @@ BOOL handle_file_window_split_switch_action(
       } else {
         ctx->active = ctx->left;
       }
+      /* Restore the session mirror from the newly active panel. */
       ctx->hide_dot_files = ctx->active->hide_dot_files;
       ctx->focused_window = ctx->active->saved_focus;
       *loop_action_ptr = ACTION_NONE;
@@ -724,6 +737,7 @@ BOOL handle_file_window_split_switch_action(
     } else {
       ctx->active = ctx->left;
     }
+    /* Restore the session mirror from the newly active panel. */
     ctx->hide_dot_files = ctx->active->hide_dot_files;
     ctx->focused_window = ctx->active->saved_focus;
     *loop_action_ptr = ACTION_NONE;

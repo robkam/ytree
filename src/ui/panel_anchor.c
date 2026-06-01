@@ -8,6 +8,7 @@
 #include "ytree_fs.h"
 #include "ytree_panel_anchor.h"
 #include "ytree_ui.h"
+#include <assert.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -20,12 +21,20 @@ BOOL CapturePanelAnchorPath(const YtreePanel *panel, const struct Volume *vol,
     return FALSE;
   out_path[0] = '\0';
 
-  if (!panel || !vol || panel->vol != vol)
+  if (!panel || !vol)
     return FALSE;
+  assert(!panel->vol || panel->vol == vol);
+  if (panel->vol != vol)
+    return FALSE;
+  assert(panel->saved_focus != FOCUS_FILE ||
+         panel->file_selection_dir_path[0] != '\0');
 
-  if (panel->saved_focus == FOCUS_FILE && panel->file_selection_dir_path[0]) {
-    (void)snprintf(out_path, out_path_size, "%s", panel->file_selection_dir_path);
-    return TRUE;
+  if (panel->saved_focus == FOCUS_FILE) {
+    if (panel->file_selection_dir_path[0]) {
+      (void)snprintf(out_path, out_path_size, "%s",
+                     panel->file_selection_dir_path);
+      return TRUE;
+    }
   }
 
   if (!vol->dir_entry_list || vol->total_dirs <= 0)
@@ -138,7 +147,10 @@ void RestorePanelAnchorPath(const struct Volume *vol, YtreePanel *panel,
                             const char *anchor_path) {
   int idx;
 
-  if (!vol || !panel || panel->vol != vol || !anchor_path || !*anchor_path)
+  if (!vol || !panel || !anchor_path || !*anchor_path)
+    return;
+  assert(!panel->vol || panel->vol == vol);
+  if (panel->vol && panel->vol != vol)
     return;
 
   idx = FindDirIndexByPathOrAncestor(vol, anchor_path);
@@ -184,18 +196,17 @@ void DonatePanelState(YtreePanel *dst, const YtreePanel *src) {
 
   if (!dst || !src || dst == src)
     return;
+  assert(!dst->vol || !src->vol || dst->vol == src->vol);
+  assert(src->saved_focus != FOCUS_FILE ||
+         src->file_selection_dir_path[0] != '\0');
 
   volume_file_state = CopyPanelVolumeFileState(src->volume_file_state);
 
   file_dir_path[0] = '\0';
-  if (src->saved_focus == FOCUS_FILE) {
-    if (src->file_selection_dir_path[0] != '\0') {
-      (void)snprintf(file_dir_path, sizeof(file_dir_path), "%s",
-                     src->file_selection_dir_path);
-    } else if (src->file_dir_entry) {
-      GetPath(src->file_dir_entry, file_dir_path);
-      file_dir_path[PATH_LENGTH] = '\0';
-    }
+  if (src->saved_focus == FOCUS_FILE &&
+      src->file_selection_dir_path[0] != '\0') {
+    (void)snprintf(file_dir_path, sizeof(file_dir_path), "%s",
+                   src->file_selection_dir_path);
   }
 
   FreeFileEntryList(dst);
@@ -220,6 +231,7 @@ void DonatePanelState(YtreePanel *dst, const YtreePanel *src) {
   (void)snprintf(dst->file_selection_dir_path,
                  sizeof(dst->file_selection_dir_path), "%s",
                  src->file_selection_dir_path);
+  dst->file_dir_entry = NULL;
   FreePanelVolumeFileState(dst->volume_file_state);
   dst->volume_file_state = volume_file_state;
   PanelTags_Copy(dst, src);
@@ -251,7 +263,10 @@ void EnsurePanelAnchorVisible(ViewContext *ctx, const struct Volume *vol,
   DirEntry *ancestor;
   BOOL changed = FALSE;
 
-  if (!ctx || !vol || !panel || panel->vol != vol)
+  if (!ctx || !vol || !panel)
+    return;
+  assert(!panel->vol || panel->vol == vol);
+  if (panel->vol && panel->vol != vol)
     return;
   if (panel->saved_focus != FOCUS_FILE ||
       panel->file_selection_dir_path[0] == '\0')
