@@ -20,17 +20,13 @@ Ordering policy (for all editors, including AI editors):
     *   With `SMALLWINDOWSKIP=0`, cycling away and back from a zoomed file window can return the same location in small-window non-zoom state.
 *   **Status**: Fixed.
 
-### **BUG-2: F8 Same-Volume Destination Navigation Can Lose Source Selection/Tagged Set**
-*   **Description**: In `F8` split mode on the same volume, navigating the destination side (including creating/changing directories during copy/move preparation) can cause the original source file selection/tagged set to disappear or be replaced by the destination-context file list.
-*   **Impact**: Breaks split-panel isolation and creates high wrong-target risk in copy/move workflows because source intent is lost while preparing destination paths.
-*   **Remediation**: Enforce source-vs-destination state isolation in split mode so destination-side `mkdir`/`cd` and tree navigation cannot mutate source selection/tag state. Preserve source tagged/selection state by stable file identity across destination context changes, and apply deterministic fallback only when a selected source entry truly no longer exists.
-*   **Related**: `ROADMAP` Task 33 (split selection semantics/regression coverage).
-*   **Regression notes (manual, 2026-05-21)**:
-    *   With `SMALLWINDOWSKIP=0`, `F8` can open with inactive/right panel wrongly zoomed to file window.
-    *   `Tab` can make the newly inactive side with tagged files flip into zoomed file-window state.
+### **BUG-2: Split-Panel State Isolation and Restore Authority Family**
+*   **Description**: BUG-2 is the root split-panel family. BUG-2.1 through BUG-2.5 are all visible effects of the same underlying F8 split-state architecture problem.
+*   **Family contract**: each panel must keep its own state record; restore must use stable identity and deterministic fallback; redraw must never become authority; split transitions must not import or guess state from the other panel.
+*   **Related**: `ROADMAP` Task 30 (split selection semantics/regression coverage).
 *   **Status**: Fixed.
 
-### **BUG-2.3: Split `Tab` Transition Can Trigger Obvious Wrong-Surface Refresh**
+### **BUG-2.1: Split `Tab` Transition Can Trigger Obvious Wrong-Surface Refresh**
 *   **Description**: During `F8` split copy-destination preparation, `Tab` can trigger a visibly incorrect/ugly window refresh where redraw surface ownership appears unstable even though source selection/tag state remains intact.
 *   **Repro (manual, 2026-05-22)**:
     *   Source flow: enter `/home/rob/ytree/src/cmd`, tag first files, start `c`, `Enter` into destination prompt, then cancel/return.
@@ -44,7 +40,7 @@ Ordering policy (for all editors, including AI editors):
 *   **Remediation**: Audit split redraw ownership/order around `Tab` transition and destination-prep mode switches; enforce deterministic repaint sequencing for active/inactive surfaces.
 *   **Status**: Fixed.
 
-### **BUG-2.5: Volume Switch Can Lose Per-Volume File Context (`SMALLWINDOWSKIP=1`)**
+### **BUG-2.2: Volume Switch Can Lose Per-Volume File Context (`SMALLWINDOWSKIP=1`)**
 *   **Description**: With `SMALLWINDOWSKIP=1`, switching between logged volumes can lose previously selected deep file context and return to parent tree location instead.
 *   **Repro (manual, 2026-05-22)**:
     *   `yt ~`
@@ -67,7 +63,7 @@ Ordering policy (for all editors, including AI editors):
     *   Guard post-switch dereferences when lists are empty/missing (`vol`, `dir_entry_list`, `total_dirs`) so restore paths fail closed instead of reading invalid state.
 *   **Status**: Fixed.
 
-### **BUG-2.6: Tree Viewport Reanchors Unexpectedly During Navigation and Panel Reactivation**
+### **BUG-2.3: Tree Viewport Reanchors Unexpectedly During Navigation and Panel Reactivation**
 *   **Description**: Tree viewport origin must remain panel-local and stable whenever the active selection is still valid and visible. In practice, `Enter` transitions, `Tab` reactivation, and hidden-dotfile restore paths can still reanchor the tree and make it shift upward or downward even though no scroll is required.
 *   **Repro (manual, 2026-05-29 / 2026-05-31)**:
     *   `yt ~/ytree`
@@ -93,7 +89,7 @@ Ordering policy (for all editors, including AI editors):
     *   Use deterministic viewport adjustment only for visibility preservation, not as a side-effect of redraw/rebind paths.
 *   **Status**: Fixed.
 
-### **BUG-2.7: Mkdir Triggers Unnecessary Relog and Resets Tree State**
+### **BUG-2.4: Mkdir Triggers Unnecessary Relog and Resets Tree State**
 *   **Description**: Creating a directory with `M` can force a relog-style tree rebuild that reanchors selection and resets the visible tree state, even though the parent tree is already valid and only an incremental redraw/update is needed.
 *   **Repro (manual, 2026-05-30)**:
     *   `yt ~/ytree /mnt/c/Users/Henry/Desktop/`
@@ -108,7 +104,7 @@ Ordering policy (for all editors, including AI editors):
 *   **Remediation**: Treat mkdir as an incremental tree mutation and restrict any repair to minimal bounds/selection clamping only when the current cursor or viewport offset would otherwise become invalid.
 *   **Status**: Confirmed.
 
-### **BUG-2.9: Split-Panel Filter State Leaks Across Panels on Volume Cycle**
+### **BUG-2.5: Split-Panel Filter State Leaks Across Panels on Volume Cycle**
 *   **Description**: In split mode, a filespec filter set in one panel can appear in the other panel after that panel cycles to the same logged volume, instead of preserving panel-local filter state.
 *   **Repro (manual, 2026-05-22)**:
     *   In left panel on volume 1, set a filter.
@@ -196,7 +192,7 @@ Ordering policy (for all editors, including AI editors):
 *   **Actual**: Dir display mode reverts/reset unexpectedly.
 *   **Impact**: Breaks context-local view-state persistence and makes display-mode controls feel unreliable.
 *   **Remediation**: Persist dir-context display mode independently across focus/context transitions, and preserve it when file-context display mode changes.
-*   **Related**: `ROADMAP` Task 47 (`1..0 FileInfo` ownership contract).
+*   **Related**: `ROADMAP` Task 44 (`1..0 FileInfo` ownership contract).
 *   **Status**: Confirmed.
 
 ### **BUG-7: F7 Preview Over-Restricts Command Availability**
@@ -217,48 +213,54 @@ Ordering policy (for all editors, including AI editors):
 *   **Remediation**: Define and enforce a context-valid option matrix for `Write`, expose only valid options in each mode, and keep prompt/help text explicit and non-jargon (including destination examples such as file output and printer-command output). Keep `SPECIFICATION`, `F1` help, and manpage/USAGE text synchronized with the same destination semantics.
 *   **Status**: Confirmed.
 
-### **BUG-9: Copy/Move Cancel (`Esc`) Can Leave Footer Blank**
+### **BUG-9: Footer/Help/Prompt Trust Family**
+*   **Description**: BUG-9 is the root footer/help/prompt trust family. BUG-9.1 through BUG-9.4 are visible effects of the same underlying discoverability problem.
+*   **Family contract**: footer, F1 help, and prompt text must report the same available actions and context; help surfaces must not imply unavailable actions; cancel/exit paths must restore the normal context footer; archive-specific messages must report the actual attempted shortcut; archive tree rendering must stay structurally honest.
+*   **Related**: `ROADMAP` Task 43 (footer/F1 context parity).
+*   **Status**: Fixed.
+
+### **BUG-9.1: Copy/Move Cancel (`Esc`) Can Leave Footer Blank**
 *   **Description**: In `Copy`/`Move` flows, canceling with `Esc` can leave footer/help lines blank instead of restoring the normal context footer.
 *   **Findings**:
     *   Deterministic repro under sanitizer gate (`make qa-sanitize`) on 2026-05-16: `tests/test_display_layout.py::test_dir_copy_to_missing_destination_prompts_create_and_no_restores_footer` fails with `AssertionError: Header/path row disappeared after canceling create prompt`.
     *   The failing path is directory copy to a missing destination where the create-directory prompt is canceled with `No`.
 *   **Impact**: Hides command discoverability immediately after a canceled mutation flow and makes the UI look partially broken.
 *   **Remediation**: On all `Copy`/`Move` cancel/exit paths (`Esc` and equivalent cancel keys), restore footer/help ownership deterministically to the active view context and force a full footer redraw before accepting the next command.
-*   **Related**: `BUG-24` (footer restore consistency during input flows), `ROADMAP` Task 46 (footer/F1 context parity).
+*   **Related**: `BUG-24` (footer restore consistency during input flows), `ROADMAP` Task 43 (footer/F1 context parity).
 *   **Status**: Confirmed.
 
-### **BUG-10: Prompt Footer/F1 Parity Can Hide Available Prompt Actions**
+### **BUG-9.2: Prompt Footer/F1 Parity Can Hide Available Prompt Actions**
 *   **Description**: In prompt-driven workflows, footer/F1 coverage can omit active prompt actions and semantics (for example completion/browse controls and compare/archive prompt meanings), leaving available behavior under-discoverable.
 *   **Impact**: Creates hidden-feature workflow confusion and high-friction issue reports during routine operations.
 *   **Remediation**: Enforce a prompt-context parity contract: footer shows currently available prompt actions; F1 may add concise semantics/examples for those same actions, but must not advertise unavailable actions.
-*   **Related**: `ROADMAP` Task 46 (footer/F1 context parity), `BUG-13` (archive unavailable-action messaging), `BUG-8` (prompt/help context mismatch).
+*   **Related**: `ROADMAP` Task 43 (footer/F1 context parity), `BUG-9.3` (archive unavailable-action messaging), `BUG-8` (prompt/help context mismatch).
+*   **Status**: Confirmed.
+
+### **BUG-9.3: Archive Unavailable-Action Message Reports Wrong Shortcut**
+*   **Description**: In archive mode, triggering `^W` can show an error message for a different shortcut (`^P is not available in archive mode`).
+*   **Impact**: Misleading feedback increases operator confusion and undermines trust in key/action hints.
+*   **Remediation**: Ensure unavailable-action messaging reports the actual attempted action/shortcut in archive context.
+*   **Status**: Confirmed.
+
+### **BUG-9.4: Single-Empty-Directory Archive Can Collapse Tree Rendering**
+*   **Description**: In archive mode, when the archive contains only one empty directory, ytree can skip normal tree-node rendering and show that directory identity as appended archive-name/path text instead.
+*   **Impact**: Obscures archive structure and creates high-friction navigation confusion in a common edge case.
+*   **Remediation**: Keep archive tree rendering consistent in this edge case: render a proper directory node in the tree and keep archive identity separate from child directory labels.
+*   **Related**: `BUG-9.3` (name-text rendering contamination), `ROADMAP` Task 13 (path/message formatting hygiene).
 *   **Status**: Confirmed.
 
 ### **BUG-11: Progress Spinner Can Overwrite Footer/Prompt Help Surfaces**
 *   **Description**: During long-running operations, spinner/progress rendering can overwrite footer/prompt help text instead of using a non-obtrusive status area.
 *   **Impact**: Hides available actions and makes active workflows look unstable or hung.
 *   **Remediation**: Preserve footer/prompt/F1 ownership during progress updates. Render progress in a dedicated non-obtrusive status surface, and degrade to a compact indicator when space is constrained rather than overwriting help text.
-*   **Related**: `ROADMAP` Task 23 (progress indicators), `ROADMAP` Task 46 (footer/F1 parity contract).
+*   **Related**: `ROADMAP` Task 20 (progress indicators), `ROADMAP` Task 43 (footer/F1 parity contract).
 *   **Status**: Confirmed.
 
 ### **BUG-12: Copy/Move/PathCopy Rename Prompt Missing Explicit `AS:` Label**
 *   **Description**: The first rename-target prompt in `Copy`, `Move`, and `PathCopy` can appear as `COPY: <source> <edited_target>` (and equivalents) without explicit `AS:` labeling, making source vs new-name intent ambiguous.
 *   **Impact**: Increases wrong-target risk and slows high-frequency copy/move workflows because users must infer prompt semantics from field behavior.
 *   **Remediation**: Make rename intent explicit in prompt text for all three flows (for example `COPY: <source> AS: <target>`), keep one-flow interaction depth, and keep destination-dir prompt behavior unchanged. Add focused regression coverage for prompt text/flow parity in `Copy`, `Move`, and `PathCopy`. Keep `F1` help, manpage/USAGE text, and specification wording synchronized with final prompt contract.
-*   **Related**: `ROADMAP` Task 45 (prompt/help clarity).
-*   **Status**: Confirmed.
-
-### **BUG-13: Archive Unavailable-Action Message Reports Wrong Shortcut**
-*   **Description**: In archive mode, triggering `^W` can show an error message for a different shortcut (`^P is not available in archive mode`).
-*   **Impact**: Misleading feedback increases operator confusion and undermines trust in key/action hints.
-*   **Remediation**: Ensure unavailable-action messaging reports the actual attempted action/shortcut in archive context.
-*   **Status**: Confirmed.
-
-### **BUG-14: Single-Empty-Directory Archive Can Collapse Tree Rendering**
-*   **Description**: In archive mode, when the archive contains only one empty directory, ytree can skip normal tree-node rendering and show that directory identity as appended archive-name/path text instead.
-*   **Impact**: Obscures archive structure and creates high-friction navigation confusion in a common edge case.
-*   **Remediation**: Keep archive tree rendering consistent in this edge case: render a proper directory node in the tree and keep archive identity separate from child directory labels.
-*   **Related**: `BUG-13` (name-text rendering contamination), `ROADMAP` Task 16 (path/message formatting hygiene).
+*   **Related**: `ROADMAP` Task 42 (prompt/help clarity).
 *   **Status**: Confirmed.
 
 ### **BUG-15: File-View Focus Leak After Parent Jump (`\\`)**
@@ -315,7 +317,7 @@ Ordering policy (for all editors, including AI editors):
 *   **Description**: In attributes/stat contexts, long file names can be truncated using a tail-only style (for example `...fy_xml_integrity.sh`) that hides too much distinguishing information and makes similarly named files harder to differentiate at a glance.
 *   **Impact**: Increases wrong-target risk during metadata workflows and slows navigation in dense directories with similar filenames.
 *   **Remediation**: Apply an identity-preserving truncation policy for filename-bearing attribute surfaces: keep static deterministic text (no marquee/auto-scroll), prefer `prefix…suffix` for plain filenames, and use suffix-focused clipping only where path-tail context is explicitly higher-value.
-*   **Related**: `BUG-17` (no-wrap/truncate contract), `ROADMAP` Task 21 (manual file-column width controls).
+*   **Related**: `BUG-17` (no-wrap/truncate contract), `ROADMAP` Task 18 (manual file-column width controls).
 *   **Status**: Confirmed.
 
 ### **BUG-23: Internal Preview Down-Scroll Can Pass EOF and Repeat Last Page**
@@ -380,5 +382,5 @@ Ordering policy (for all editors, including AI editors):
 *   **Description**: Intermittently, the stats box redraw state can diverge from the main UI surfaces (`path`, `dir`, and `file` windows), leaving one surface fresh while the other appears stale/corrupted.
 *   **Impact**: Creates a visibly broken UI state and undermines trust in navigation context during active workflows.
 *   **Remediation**: Unify frame redraw ownership so stats and main panes are rendered from one layout snapshot in one update cycle, and force full-surface invalidation/redraw on resize/recovery/error paths.
-*   **Related**: `ROADMAP` Task 24 (unified frame redraw contract).
+*   **Related**: `ROADMAP` Task 21 (unified frame redraw contract).
 *   **Status**: Confirmed (intermittent; no deterministic repro sequence yet).
