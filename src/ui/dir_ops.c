@@ -1174,9 +1174,10 @@ void HandleSwitchWindow(ViewContext *ctx, DirEntry *dir_entry,
   current_dir_path[0] = '\0';
   GetPath(dir_entry, current_dir_path);
   current_dir_path[PATH_LENGTH] = '\0';
-  if (p->file_dir_entry == dir_entry ||
-      (p->file_selection_dir_path[0] != '\0' &&
-       strcmp(current_dir_path, p->file_selection_dir_path) == 0)) {
+  assert(p->saved_focus != FOCUS_FILE || p->file_selection_dir_path[0] != '\0');
+  if (p->saved_focus == FOCUS_FILE &&
+      p->file_selection_dir_path[0] != '\0' &&
+      strcmp(current_dir_path, p->file_selection_dir_path) == 0) {
     restore_saved_file_window = TRUE;
   }
 
@@ -1278,6 +1279,7 @@ void SyncActivePanelWindows(ViewContext *ctx) {
   ctx->ctx_small_file_window = ctx->active->pan_small_file_window;
   ctx->ctx_big_file_window = ctx->active->pan_big_file_window;
   ctx->ctx_file_window = ctx->active->pan_file_window;
+  /* Keep the session mirror aligned with the active panel's local visibility. */
   ctx->hide_dot_files = ctx->active->hide_dot_files;
 }
 
@@ -1585,7 +1587,6 @@ HandleDirWindowPanelAction(ViewContext *ctx, YtreeAction action,
         ctx->right->disp_begin_pos = ctx->left->disp_begin_pos;
         ctx->right->start_file = ctx->left->start_file;
         ctx->right->file_cursor_pos = ctx->left->file_cursor_pos;
-        ctx->right->file_dir_entry = ctx->left->file_dir_entry;
         ctx->right->saved_big_file_view = ctx->left->saved_big_file_view;
         ctx->right->hide_dot_files = ctx->left->hide_dot_files;
         ctx->right->saved_focus = FOCUS_TREE;

@@ -9,6 +9,7 @@
 #include "../../include/ytree_cmd.h"
 #include "../../include/ytree_fs.h"
 #include "../../include/ytree_ui.h"
+#include <assert.h>
 
 /* PrintMenuLine is removed as its functionality for drawing the static stats
  * panel is no longer needed. The stats panel is now fully managed by stats.c.
@@ -497,13 +498,11 @@ static DirEntry *ResolvePanelFileAnchor(const YtreePanel *panel) {
 
   if (!panel || !panel->vol || panel->saved_focus != FOCUS_FILE)
     return NULL;
+  assert(panel->file_selection_dir_path[0] != '\0');
+  if (panel->file_selection_dir_path[0] == '\0')
+    return NULL;
 
-  if (panel->file_selection_dir_path[0] != '\0') {
-    anchor_idx = FindPanelDirIndexByPath(panel, panel->file_selection_dir_path);
-  }
-  if (anchor_idx < 0 && panel->file_dir_entry) {
-    anchor_idx = FindPanelDirIndexByEntry(panel, panel->file_dir_entry);
-  }
+  anchor_idx = FindPanelDirIndexByPath(panel, panel->file_selection_dir_path);
   if (anchor_idx < 0)
     return NULL;
 

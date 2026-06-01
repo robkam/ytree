@@ -14,6 +14,8 @@ Mandatory startup:
 1) Read ~/ytree/.ai/codex.md
 2) Read ~/ytree/.ai/shared.md
 3) Use MCP semantic tools only (serena + jcodemunch) for codebase exploration
+4) Read ~/ytree/docs/SPECIFICATION.md
+5) Read ~/ytree/docs/ARCHITECTURE.md
 
 Scope and split decision:
 1) Execute exactly one tracked work item, and confirm the resolved title from the tracked docs before implementation.

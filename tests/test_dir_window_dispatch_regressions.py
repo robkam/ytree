@@ -45,6 +45,68 @@ def _restore_panel_tree_selection_source():
     return source[func_start:next_func]
 
 
+def _capture_panel_anchor_source():
+    source = Path("src/ui/panel_anchor.c").read_text(encoding="utf-8")
+    func_start = source.find("BOOL CapturePanelAnchorPath(")
+    assert func_start >= 0, "Missing CapturePanelAnchorPath in src/ui/panel_anchor.c"
+
+    next_func = source.find("\nint FindDirIndexByPath(", func_start + 1)
+    assert next_func > func_start, (
+        "Could not isolate CapturePanelAnchorPath in src/ui/panel_anchor.c"
+    )
+    return source[func_start:next_func]
+
+
+def _resolve_panel_file_anchor_source():
+    source = Path("src/ui/display.c").read_text(encoding="utf-8")
+    func_start = source.find("static DirEntry *ResolvePanelFileAnchor(")
+    assert func_start >= 0, "Missing ResolvePanelFileAnchor in src/ui/display.c"
+
+    next_func = source.find(
+        "\nstatic DirEntry *ResolvePanelFileAnchorForRender(", func_start + 1
+    )
+    assert next_func > func_start, (
+        "Could not isolate ResolvePanelFileAnchor in src/ui/display.c"
+    )
+    return source[func_start:next_func]
+
+
+def _restore_panel_file_selection_source():
+    source = Path("src/cmd/log.c").read_text(encoding="utf-8")
+    func_start = source.find("static void RestorePanelFileSelection(")
+    assert func_start >= 0, "Missing RestorePanelFileSelection in src/cmd/log.c"
+
+    next_func = source.find("\nstatic void SavePanelTreeSelection(", func_start + 1)
+    assert next_func > func_start, (
+        "Could not isolate RestorePanelFileSelection in src/cmd/log.c"
+    )
+    return source[func_start:next_func]
+
+
+def _handle_switch_window_source():
+    source = Path("src/ui/dir_ops.c").read_text(encoding="utf-8")
+    func_start = source.find("void HandleSwitchWindow(")
+    assert func_start >= 0, "Missing HandleSwitchWindow in src/ui/dir_ops.c"
+
+    next_func = source.find("\nvoid SyncActivePanelWindows(", func_start + 1)
+    assert next_func > func_start, (
+        "Could not isolate HandleSwitchWindow in src/ui/dir_ops.c"
+    )
+    return source[func_start:next_func]
+
+
+def _panel_selected_file_path_source():
+    source = Path("src/ui/interactions_panel_paths.c").read_text(
+        encoding="utf-8"
+    )
+    func_start = source.find("int UI_GetPanelSelectedFilePath(")
+    assert func_start >= 0, (
+        "Missing UI_GetPanelSelectedFilePath in src/ui/interactions_panel_paths.c"
+    )
+
+    return source[func_start:]
+
+
 def test_tree_viewport_stable_restore_preserves_visible_selection():
     restore_source = _restore_panel_tree_selection_source()
     visible_guard = (
@@ -58,6 +120,45 @@ def test_tree_viewport_stable_restore_preserves_visible_selection():
         "RestorePanelTreeSelection must preserve disp_begin_pos when the saved "
         "tree selection is already visible; Enter/log round-trips should not "
         f"bottom-align an in-view row.\n{restore_source}"
+    )
+
+
+def test_panel_restore_paths_use_canonical_selection_identity_only():
+    capture_source = _capture_panel_anchor_source()
+    resolve_source = _resolve_panel_file_anchor_source()
+    restore_source = _restore_panel_file_selection_source()
+    switch_source = _handle_switch_window_source()
+    panel_file_path_source = _panel_selected_file_path_source()
+
+    assert "assert(!panel->vol || panel->vol == vol);" in capture_source, (
+        "CapturePanelAnchorPath must fail fast on non-owner volume access.\n"
+        f"{capture_source}"
+    )
+    assert "file_dir_entry" not in capture_source, (
+        "CapturePanelAnchorPath must not recover file anchor authority from a "
+        "raw file_dir_entry alias.\n"
+        f"{capture_source}"
+    )
+    assert "file_dir_entry" not in resolve_source, (
+        "ResolvePanelFileAnchor must use the canonical selection path, not the "
+        "raw file_dir_entry pointer, as its restore authority.\n"
+        f"{resolve_source}"
+    )
+    assert "saved_file_dir_path" not in restore_source, (
+        "RestorePanelFileSelection must not fall back to the pointer-derived "
+        "saved_file_dir_path breadcrumb when the canonical selection path is "
+        "available.\n"
+        f"{restore_source}"
+    )
+    assert "file_dir_entry == dir_entry" not in switch_source, (
+        "HandleSwitchWindow must key file-window restore off the canonical "
+        "selection path, not a file_dir_entry alias comparison.\n"
+        f"{switch_source}"
+    )
+    assert "file_dir_entry == dir_entry" not in panel_file_path_source, (
+        "UI_GetPanelSelectedFilePath must not infer file ownership from the "
+        "raw file_dir_entry pointer alias.\n"
+        f"{panel_file_path_source}"
     )
 
 
