@@ -21,6 +21,12 @@ Scope and split decision:
 3) If the work likely creates a large PR, explain why it is large, why it should or should not be split, and what could break once before dispatching implementation; repeat only if scope materially changes.
 4) Keep each implementation unit atomic, independently verifiable, and not a trivial micro-step.
 
+State/restore enforcement checklist:
+- If the work changes canonical state ownership, restore behavior, or other hidden state-machine boundaries, the plan must make explicit invariant checks in code at the authoritative owner boundary.
+- If the work changes user-visible state transitions, the plan must include a focused regression matrix for the affected flows, not just ad hoc smoke tests.
+- If the work introduces a canonical owner path, the plan must include CI gates that block direct writes or restore updates outside that owner path.
+- If the work depends on restore identity, rebind, or snapshot freshness, the plan must include generation-mismatch or stale-snapshot checks proven by tests.
+
 Behavior rules:
 1) Ask concise clarifying questions whenever required information is missing.
 2) If maintainer direction conflicts with convention, best practice, or established Ytree patterns, say so explicitly and propose the better option before implementing it.
