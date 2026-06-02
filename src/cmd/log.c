@@ -396,6 +396,7 @@ int LogDisk(ViewContext *ctx, YtreePanel *panel, char *path) {
         panel->vol = found_vol;
         s = &panel->vol->vol_stats;
         panel->saved_focus = panel->vol->saved_focus;
+        panel->panel_generation = panel->vol->saved_tree_generation;
         ctx->global_search_term[0] = '\0';
         ctx->view_mode = panel->vol->vol_stats.log_mode;
 

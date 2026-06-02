@@ -15,6 +15,7 @@
 #include "../../include/watcher.h"
 #include "../../include/ytree_cmd.h"
 #include "../../include/ytree_fs.h"
+#include "../../include/ytree_split_transition.h"
 #include "../../include/ytree_ui.h"
 #include <libgen.h>
 #include <stdlib.h>
@@ -302,6 +303,28 @@ int HandleFileWindow(ViewContext *ctx, DirEntry *dir_entry) {
   }
   ctx->active->start_file = dir_entry->start_file;
   ctx->active->file_cursor_pos = dir_entry->cursor_pos;
+  if (ctx->active->file_entry_list && ctx->active->file_count > 0) {
+    int selection_idx = ctx->active->start_file + ctx->active->file_cursor_pos;
+
+    if (selection_idx < 0)
+      selection_idx = 0;
+    if ((unsigned int)selection_idx >= ctx->active->file_count)
+      selection_idx = (int)ctx->active->file_count - 1;
+    if (selection_idx >= 0) {
+      const FileEntry *selected_file =
+          ctx->active->file_entry_list[selection_idx].file;
+
+      if (selected_file) {
+        ctx->active->file_selection_name[0] = '\0';
+        ctx->active->file_selection_dir_path[0] = '\0';
+        (void)snprintf(ctx->active->file_selection_name,
+                       sizeof(ctx->active->file_selection_name), "%s",
+                       selected_file->name);
+        GetPath(dir_entry, ctx->active->file_selection_dir_path);
+        ctx->active->file_selection_dir_path[PATH_LENGTH] = '\0';
+      }
+    }
+  }
 
   /* Initial Display using Centralized Function if applicable */
   if (ctx->preview_mode) {
@@ -505,9 +528,9 @@ int HandleFileWindow(ViewContext *ctx, DirEntry *dir_entry) {
 
     case ACTION_SPLIT_SCREEN:
     case ACTION_SWITCH_PANEL:
-      if (handle_file_window_split_switch_action(ctx, action, dir_entry,
-                                                 owner_panel, &switched_panel,
-                                                 &action, &return_esc)) {
+      if (SplitTransition_HandleFileWindowAction(
+              ctx, action, dir_entry, owner_panel, &switched_panel, &action,
+              &return_esc)) {
         if (return_esc)
           return ESC;
         break;

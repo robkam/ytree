@@ -24,58 +24,7 @@ static void ResetPreviewAfterNavigation(
     update_preview(ctx, dir_entry);
 }
 
-#ifndef NDEBUG
-typedef struct {
-  int cursor_pos;
-  int disp_begin_pos;
-  int start_file;
-  int file_cursor_pos;
-  const DirEntry *file_dir_entry;
-  ViewFocus saved_focus;
-  BOOL saved_big_file_view;
-  BOOL hide_dot_files;
-  char file_selection_name[PATH_LENGTH + 1];
-  char file_selection_dir_path[PATH_LENGTH + 1];
-} FilePanelIsolationSnapshot;
-
-static void CaptureFilePanelIsolationSnapshot(
-    const YtreePanel *panel, FilePanelIsolationSnapshot *snapshot) {
-  if (!panel || !snapshot)
-    return;
-
-  snapshot->cursor_pos = panel->cursor_pos;
-  snapshot->disp_begin_pos = panel->disp_begin_pos;
-  snapshot->start_file = panel->start_file;
-  snapshot->file_cursor_pos = panel->file_cursor_pos;
-  snapshot->file_dir_entry = panel->file_dir_entry;
-  snapshot->saved_focus = panel->saved_focus;
-  snapshot->saved_big_file_view = panel->saved_big_file_view;
-  snapshot->hide_dot_files = panel->hide_dot_files;
-  (void)snprintf(snapshot->file_selection_name,
-                 sizeof(snapshot->file_selection_name), "%s",
-                 panel->file_selection_name);
-  (void)snprintf(snapshot->file_selection_dir_path,
-                 sizeof(snapshot->file_selection_dir_path), "%s",
-                 panel->file_selection_dir_path);
-}
-
-static void AssertFilePanelIsolationSnapshotUnchanged(
-    const YtreePanel *panel, const FilePanelIsolationSnapshot *snapshot) {
-  assert(panel != NULL);
-  assert(snapshot != NULL);
-  assert(panel->cursor_pos == snapshot->cursor_pos);
-  assert(panel->disp_begin_pos == snapshot->disp_begin_pos);
-  assert(panel->start_file == snapshot->start_file);
-  assert(panel->file_cursor_pos == snapshot->file_cursor_pos);
-  assert(panel->file_dir_entry == snapshot->file_dir_entry);
-  assert(panel->saved_focus == snapshot->saved_focus);
-  assert(panel->saved_big_file_view == snapshot->saved_big_file_view);
-  assert(panel->hide_dot_files == snapshot->hide_dot_files);
-  assert(strcmp(panel->file_selection_name, snapshot->file_selection_name) == 0);
-  assert(strcmp(panel->file_selection_dir_path,
-                snapshot->file_selection_dir_path) == 0);
-}
-#endif
+static void DebugLogFilePanelState(const char *label, const YtreePanel *panel);
 
 /* =========================================================================
  * Shared UI Helpers for Post-Action Refresh, Sync, and Render
@@ -109,8 +58,16 @@ void CapturePanelSelectionAnchor(ViewContext *ctx, YtreePanel *panel,
 
   if (!panel->file_entry_list || panel->file_count == 0)
     BuildFileEntryList(ctx, panel);
-  if (!panel->file_entry_list || panel->file_count == 0)
+
+  panel->file_selection_dir_path[0] = '\0';
+  GetPath((DirEntry *)dir_entry, panel->file_selection_dir_path);
+  panel->file_selection_dir_path[PATH_LENGTH] = '\0';
+
+  if (!panel->file_entry_list || panel->file_count == 0) {
+    panel->file_selection_name[0] = '\0';
+    panel->panel_generation++;
     return;
+  }
 
   idx = panel->start_file + panel->file_cursor_pos;
   if (idx < 0)
@@ -118,20 +75,19 @@ void CapturePanelSelectionAnchor(ViewContext *ctx, YtreePanel *panel,
   if ((unsigned int)idx >= panel->file_count)
     idx = (int)panel->file_count - 1;
   if (idx < 0)
-    return;
+    idx = 0;
 
   selected_file = panel->file_entry_list[idx].file;
-  if (!selected_file)
-    return;
-
   panel->file_selection_name[0] = '\0';
-  panel->file_selection_dir_path[0] = '\0';
-  (void)snprintf(panel->file_selection_name, sizeof(panel->file_selection_name),
-                 "%s", selected_file->name);
-  GetPath((DirEntry *)dir_entry, panel->file_selection_dir_path);
-  panel->file_selection_dir_path[PATH_LENGTH] = '\0';
+  if (selected_file) {
+    (void)snprintf(panel->file_selection_name,
+                   sizeof(panel->file_selection_name), "%s",
+                   selected_file->name);
+  }
   panel->panel_generation++;
 }
+
+static void DebugLogFilePanelState(const char *label, const YtreePanel *panel);
 
 BOOL RebindActiveFilePanelSelection(YtreePanel *panel, DirEntry **dir_entry_io) {
   DirEntry *panel_dir;
@@ -159,92 +115,13 @@ BOOL RebindActiveFilePanelSelection(YtreePanel *panel, DirEntry **dir_entry_io) 
   panel_dir->cursor_pos = panel->file_cursor_pos;
   panel->file_dir_entry = panel_dir;
   *dir_entry_io = panel_dir;
+  DebugLogFilePanelState("RebindActiveFilePanelSelection", panel);
   return TRUE;
 }
 
 static void DebugLogFilePanelState(const char *label, const YtreePanel *panel) {
-  char tree_path[PATH_LENGTH + 1];
-  char file_dir_path[PATH_LENGTH + 1];
-  int idx = -1;
-  const DirEntry *tree_de = NULL;
-  const char *tree_text = "<none>";
-  const char *file_dir_text = "<none>";
-  const char *selection_dir_text = "<none>";
-  const char *selection_name_text = "<none>";
-
-  tree_path[0] = '\0';
-  file_dir_path[0] = '\0';
-
-  if (!panel) {
-    DEBUG_LOG("FILE_PANEL[%s] <null>", label ? label : "?");
-    return;
-  }
-
-  if (panel->vol && panel->vol->total_dirs > 0 && panel->vol->dir_entry_list) {
-    idx = panel->disp_begin_pos + panel->cursor_pos;
-    if (idx < 0)
-      idx = 0;
-    if (idx >= panel->vol->total_dirs)
-      idx = panel->vol->total_dirs - 1;
-    tree_de = panel->vol->dir_entry_list[idx].dir_entry;
-    if (tree_de) {
-      GetPath((DirEntry *)tree_de, tree_path);
-      tree_path[PATH_LENGTH] = '\0';
-      tree_text = tree_path;
-    }
-  }
-
-  if (panel->file_dir_entry && panel->vol && panel->vol->dir_entry_list &&
-      panel->vol->total_dirs > 0) {
-    BOOL in_volume = FALSE;
-    int j;
-    for (j = 0; j < panel->vol->total_dirs; j++) {
-      if (panel->vol->dir_entry_list[j].dir_entry == panel->file_dir_entry) {
-        in_volume = TRUE;
-        break;
-      }
-    }
-    if (in_volume) {
-      GetPath(panel->file_dir_entry, file_dir_path);
-      file_dir_path[PATH_LENGTH] = '\0';
-      file_dir_text = file_dir_path;
-    } else {
-      file_dir_text = "<stale>";
-    }
-  } else if (panel->file_dir_entry) {
-    file_dir_text = "<stale>";
-  }
-
-  if (panel->file_selection_dir_path[0] != '\0')
-    selection_dir_text = panel->file_selection_dir_path;
-  if (panel->file_selection_name[0] != '\0')
-    selection_name_text = panel->file_selection_name;
-
-  DEBUG_LOG(
-      "FILE_PANEL[%s] saved_focus=%d disp=%d cur=%d idx=%d start=%d fcur=%d "
-      "tree='%s' file_dir='%s' sel_dir='%s' sel_name='%s'",
-      label ? label : "?", panel->saved_focus, panel->disp_begin_pos,
-      panel->cursor_pos, idx, panel->start_file, panel->file_cursor_pos,
-      tree_text, file_dir_text, selection_dir_text, selection_name_text);
-}
-
-static void DebugLogFileSplitState(const char *label, const ViewContext *ctx) {
-  const char *active_side = "?";
-
-  if (!ctx) {
-    DEBUG_LOG("FILE_SPLIT[%s] <null>", label ? label : "?");
-    return;
-  }
-  if (ctx->active == ctx->left)
-    active_side = "LEFT";
-  else if (ctx->active == ctx->right)
-    active_side = "RIGHT";
-
-  DEBUG_LOG("FILE_SPLIT[%s] is_split=%d active=%s focused=%d",
-            label ? label : "?", ctx->is_split_screen, active_side,
-            ctx->focused_window);
-  DebugLogFilePanelState("LEFT", ctx->left);
-  DebugLogFilePanelState("RIGHT", ctx->right);
+  (void)label;
+  (void)panel;
 }
 
 static FileEntry *GetActivePanelSelectedFile(ViewContext *ctx,
@@ -574,168 +451,6 @@ BOOL handle_file_window_navigation_action(
     if (list_jump)
       list_jump(ctx, dir_entry, "");
     *need_dsp_help_ptr = TRUE;
-    return TRUE;
-
-  default:
-    return FALSE;
-  }
-}
-
-BOOL handle_file_window_split_switch_action(
-    ViewContext *ctx, YtreeAction action, DirEntry *dir_entry,
-    YtreePanel *owner_panel, BOOL *switched_panel_ptr,
-    YtreeAction *loop_action_ptr, BOOL *return_esc_ptr) {
-  if (!ctx || !dir_entry || !owner_panel || !switched_panel_ptr ||
-      !loop_action_ptr || !return_esc_ptr)
-    return FALSE;
-
-  *return_esc_ptr = FALSE;
-
-  switch (action) {
-  case ACTION_SPLIT_SCREEN:
-    DebugLogFileSplitState("FileAction:split:before", ctx);
-    owner_panel->saved_big_file_view =
-        (dir_entry->big_window || dir_entry->global_flag || dir_entry->tagged_flag);
-
-    if (!ctx->is_split_screen) {
-      owner_panel->file_dir_entry = dir_entry;
-      owner_panel->start_file = dir_entry->start_file;
-      owner_panel->file_cursor_pos = dir_entry->cursor_pos;
-    }
-    CapturePanelSelectionAnchor(ctx, owner_panel, dir_entry);
-
-    {
-      BOOL closing_split = ctx->is_split_screen;
-      BOOL donate_active_state = closing_split && owner_panel == ctx->right;
-      ViewFocus preserved_focus = ctx->focused_window;
-
-      if (donate_active_state && ctx->left && ctx->right)
-        DonatePanelState(ctx->left, ctx->right);
-
-      ctx->is_split_screen = !ctx->is_split_screen;
-      if (closing_split)
-        ctx->active = ctx->left;
-      ReCreateWindows(ctx);
-
-      if (ctx->is_split_screen) {
-        if (ctx->right && ctx->left) {
-          ctx->right->vol = ctx->left->vol;
-          ctx->right->cursor_pos = ctx->left->cursor_pos;
-          ctx->right->disp_begin_pos = ctx->left->disp_begin_pos;
-          ctx->right->hide_dot_files = ctx->left->hide_dot_files;
-          /*
-           * Split ownership boundary: a file-view split must keep the original
-           * file panel active and seed the new peer from the same panel-local
-           * file cursor snapshot. The new split pane must not inherit tree
-           * focus or it will redraw as a tree panel and break per-panel file
-           * state on the first Tab.
-           */
-          ctx->right->saved_focus = FOCUS_FILE;
-          ctx->right->start_file = ctx->left->start_file;
-          ctx->right->file_cursor_pos = ctx->left->file_cursor_pos;
-          (void)snprintf(ctx->right->file_selection_name,
-                         sizeof(ctx->right->file_selection_name), "%s",
-                         ctx->left->file_selection_name);
-          (void)snprintf(ctx->right->file_selection_dir_path,
-                         sizeof(ctx->right->file_selection_dir_path), "%s",
-                         ctx->left->file_selection_dir_path);
-          ctx->right->saved_big_file_view = ctx->left->saved_big_file_view;
-          PanelTags_Copy(ctx->right, ctx->left);
-          FreeFileEntryList(ctx->right);
-        }
-        ctx->active = owner_panel;
-        ctx->focused_window = FOCUS_FILE;
-      } else {
-        FreeFileEntryList(ctx->right);
-        ctx->active = ctx->left;
-        ctx->active->saved_focus = preserved_focus;
-        ctx->focused_window = preserved_focus;
-        /* Restore the session mirror from the newly active panel. */
-        ctx->hide_dot_files = ctx->active->hide_dot_files;
-        BuildFileEntryList(ctx, ctx->active);
-        if (donate_active_state)
-          *switched_panel_ptr = TRUE;
-        DebugLogFileSplitState("FileAction:split:after", ctx);
-        *loop_action_ptr =
-            (preserved_focus == FOCUS_FILE) ? ACTION_NONE : ACTION_ESCAPE;
-        *return_esc_ptr = FALSE;
-        return TRUE;
-      }
-
-      /*
-       * Split is a layout change, not a mode exit. Stay inside the file window
-       * loop so the active pane keeps receiving file commands after F8.
-       */
-      *loop_action_ptr = ACTION_NONE;
-      *return_esc_ptr = FALSE;
-      ctx->hide_dot_files = ctx->active->hide_dot_files;
-      DebugLogFileSplitState("FileAction:split:after", ctx);
-      return TRUE;
-    }
-
-  case ACTION_SWITCH_PANEL:
-    if (!ctx->is_split_screen)
-      return TRUE;
-    DebugLogFileSplitState("FileAction:switch:before", ctx);
-#ifndef NDEBUG
-    {
-      const YtreePanel *target_panel =
-          (ctx->active == ctx->left) ? ctx->right : ctx->left;
-      FilePanelIsolationSnapshot target_panel_snapshot;
-
-      /*
-       * Split ownership boundary (docs/ARCHITECTURE.md §4.2.1):
-       * Tab from file view may snapshot the active panel before hand-off, but
-       * must not mutate the destination panel before it becomes active.
-       */
-      CaptureFilePanelIsolationSnapshot(target_panel, &target_panel_snapshot);
-
-      owner_panel->file_dir_entry = dir_entry;
-      owner_panel->start_file = dir_entry->start_file;
-      owner_panel->file_cursor_pos = dir_entry->cursor_pos;
-      CapturePanelSelectionAnchor(ctx, owner_panel, dir_entry);
-      ctx->active->saved_focus = FOCUS_FILE;
-      ctx->active->saved_big_file_view =
-          (dir_entry->big_window || dir_entry->global_flag ||
-           dir_entry->tagged_flag);
-      *switched_panel_ptr = TRUE;
-      SwitchToSmallFileWindow(ctx);
-
-      if (ctx->active == ctx->left) {
-        ctx->active = ctx->right;
-      } else {
-        ctx->active = ctx->left;
-      }
-      /* Restore the session mirror from the newly active panel. */
-      ctx->hide_dot_files = ctx->active->hide_dot_files;
-      ctx->focused_window = ctx->active->saved_focus;
-      *loop_action_ptr = ACTION_NONE;
-      AssertFilePanelIsolationSnapshotUnchanged(target_panel,
-                                                &target_panel_snapshot);
-    }
-#else
-    owner_panel->file_dir_entry = dir_entry;
-    owner_panel->start_file = dir_entry->start_file;
-    owner_panel->file_cursor_pos = dir_entry->cursor_pos;
-    CapturePanelSelectionAnchor(ctx, owner_panel, dir_entry);
-    ctx->active->saved_focus = FOCUS_FILE;
-    ctx->active->saved_big_file_view =
-        (dir_entry->big_window || dir_entry->global_flag ||
-         dir_entry->tagged_flag);
-    *switched_panel_ptr = TRUE;
-    SwitchToSmallFileWindow(ctx);
-
-    if (ctx->active == ctx->left) {
-      ctx->active = ctx->right;
-    } else {
-      ctx->active = ctx->left;
-    }
-    /* Restore the session mirror from the newly active panel. */
-    ctx->hide_dot_files = ctx->active->hide_dot_files;
-    ctx->focused_window = ctx->active->saved_focus;
-    *loop_action_ptr = ACTION_NONE;
-#endif
-    DebugLogFileSplitState("FileAction:switch:after", ctx);
     return TRUE;
 
   default:

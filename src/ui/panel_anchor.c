@@ -294,7 +294,22 @@ CopyPanelVolumeFileState(const PanelVolumeFileState *src) {
 
 void DonatePanelState(YtreePanel *dst, const YtreePanel *src) {
   char file_dir_path[PATH_LENGTH + 1];
+  ViewFocus dst_saved_focus;
+  BOOL dst_saved_big_file_view;
+  int dst_cursor_pos;
+  int dst_disp_begin_pos;
+  int dst_start_file;
+  int dst_file_cursor_pos;
+  const DirEntry *dst_file_dir_entry;
+  int dst_current_dir_entry;
+  unsigned int dst_panel_generation;
+  char dst_file_selection_name[PATH_LENGTH + 1];
+  char dst_file_selection_dir_path[PATH_LENGTH + 1];
+  BOOL dst_has_file_snapshot;
+  const PanelVolumeFileState *dst_volume_state;
+  const PanelVolumeFileState *dst_current_volume_state;
   PanelVolumeFileState *volume_file_state;
+  BOOL source_is_file;
 
   if (!dst || !src || dst == src)
     return;
@@ -302,11 +317,43 @@ void DonatePanelState(YtreePanel *dst, const YtreePanel *src) {
   assert(src->saved_focus != FOCUS_FILE ||
          src->file_selection_dir_path[0] != '\0');
 
-  volume_file_state = CopyPanelVolumeFileState(src->volume_file_state);
+  source_is_file = (src->saved_focus == FOCUS_FILE);
+  dst_saved_focus = dst->saved_focus;
+  dst_saved_big_file_view = dst->saved_big_file_view;
+  dst_cursor_pos = dst->cursor_pos;
+  dst_disp_begin_pos = dst->disp_begin_pos;
+  dst_start_file = dst->start_file;
+  dst_file_cursor_pos = dst->file_cursor_pos;
+  dst_file_dir_entry = dst->file_dir_entry;
+  dst_current_dir_entry = dst->current_dir_entry;
+  dst_panel_generation = dst->panel_generation;
+  (void)snprintf(dst_file_selection_name, sizeof(dst_file_selection_name), "%s",
+                 dst->file_selection_name);
+  (void)snprintf(dst_file_selection_dir_path,
+                 sizeof(dst_file_selection_dir_path), "%s",
+                 dst->file_selection_dir_path);
+  dst_volume_state = dst->volume_file_state;
+  dst_current_volume_state = NULL;
+  if (dst->vol) {
+    for (; dst_volume_state; dst_volume_state = dst_volume_state->next) {
+      if (dst_volume_state->volume_id == dst->vol->id) {
+        dst_current_volume_state = dst_volume_state;
+        break;
+      }
+    }
+  }
+  dst_has_file_snapshot = (dst_saved_focus == FOCUS_FILE ||
+                           dst_file_dir_entry != NULL ||
+                           dst_file_selection_name[0] != '\0' ||
+                           dst_file_selection_dir_path[0] != '\0');
+  volume_file_state =
+      source_is_file ? CopyPanelVolumeFileState(src->volume_file_state) : NULL;
 
   file_dir_path[0] = '\0';
-  if (src->saved_focus == FOCUS_FILE &&
-      src->file_selection_dir_path[0] != '\0') {
+  if (dst_file_selection_dir_path[0] != '\0') {
+    (void)snprintf(file_dir_path, sizeof(file_dir_path), "%s",
+                   dst_file_selection_dir_path);
+  } else if (source_is_file && src->file_selection_dir_path[0] != '\0') {
     (void)snprintf(file_dir_path, sizeof(file_dir_path), "%s",
                    src->file_selection_dir_path);
   }
@@ -335,9 +382,41 @@ void DonatePanelState(YtreePanel *dst, const YtreePanel *src) {
                  sizeof(dst->file_selection_dir_path), "%s",
                  src->file_selection_dir_path);
   dst->file_dir_entry = NULL;
-  FreePanelVolumeFileState(dst->volume_file_state);
-  dst->volume_file_state = volume_file_state;
   PanelTags_Copy(dst, src);
+  if (!source_is_file) {
+    dst->cursor_pos = dst_cursor_pos;
+    dst->disp_begin_pos = dst_disp_begin_pos;
+    dst->current_dir_entry = dst_current_dir_entry;
+    dst->panel_generation = dst_panel_generation;
+    if (dst_current_volume_state &&
+        dst_current_volume_state->saved_file_selection_dir_path[0] != '\0') {
+      dst->saved_big_file_view = dst_current_volume_state->saved_big_file_view;
+      dst->start_file = dst_current_volume_state->saved_file_start;
+      dst->file_cursor_pos = dst_current_volume_state->saved_file_cursor;
+      (void)snprintf(dst->file_selection_name,
+                     sizeof(dst->file_selection_name), "%s",
+                     dst_current_volume_state->saved_file_selection_name);
+      (void)snprintf(dst->file_selection_dir_path,
+                     sizeof(dst->file_selection_dir_path), "%s",
+                     dst_current_volume_state->saved_file_selection_dir_path);
+    } else {
+      dst->saved_focus = FOCUS_FILE;
+      dst->saved_big_file_view = dst_saved_big_file_view;
+      dst->start_file = dst_start_file;
+      dst->file_cursor_pos = dst_file_cursor_pos;
+      dst->file_dir_entry = (DirEntry *)dst_file_dir_entry;
+      (void)snprintf(dst->file_selection_name,
+                     sizeof(dst->file_selection_name), "%s",
+                     dst_file_selection_name);
+      (void)snprintf(dst->file_selection_dir_path,
+                     sizeof(dst->file_selection_dir_path), "%s",
+                     dst_file_selection_dir_path);
+    }
+    dst->saved_focus = FOCUS_TREE;
+  } else {
+    FreePanelVolumeFileState(dst->volume_file_state);
+    dst->volume_file_state = volume_file_state;
+  }
   RestorePanelAnchorPath(dst->vol, dst, file_dir_path);
 }
 

@@ -10,6 +10,7 @@
 #include "ytree_cmd.h"
 #include "ytree_fs.h"
 #include "ytree_panel_anchor.h"
+#include "ytree_split_transition.h"
 #include "ytree_ui.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -379,6 +380,7 @@ static BOOL ExitArchiveRootToParent(ViewContext *ctx, DirEntry **dir_entry_ptr,
     ctx->focused_window = FOCUS_FILE;
     ctx->active->saved_focus = FOCUS_FILE;
     ctx->active->saved_big_file_view = FALSE;
+    CapturePanelSelectionAnchor(ctx, ctx->active, *dir_entry_ptr);
   } else {
     (*dir_entry_ptr)->cursor_pos = -1;
     ctx->focused_window = FOCUS_TREE;
@@ -452,6 +454,9 @@ extern int HandleDirWindow(ViewContext *ctx, const DirEntry *start_dir_entry) {
   char right_anchor_path[PATH_LENGTH + 1];
   BOOL has_left_anchor = FALSE;
   BOOL has_right_anchor = FALSE;
+  const struct Volume *active_vol = NULL;
+  BOOL left_panel_matches_active_vol = FALSE;
+  BOOL right_panel_matches_active_vol = FALSE;
 
   DEBUG_LOG("HandleDirWindow: Recalculating layout");
   Layout_Recalculate(ctx);
@@ -469,6 +474,11 @@ extern int HandleDirWindow(ViewContext *ctx, const DirEntry *start_dir_entry) {
 
   start_vol = ctx->active->vol;
   s = &ctx->active->vol->vol_stats;
+  active_vol = ctx->active->vol;
+  left_panel_matches_active_vol = (!ctx->left || !ctx->left->vol ||
+                                   ctx->left->vol == active_vol);
+  right_panel_matches_active_vol = (!ctx->right || !ctx->right->vol ||
+                                    ctx->right->vol == active_vol);
 
   if (ctx->active) {
     DEBUG_LOG("HandleDirWindow: Syncing panel state");
@@ -499,25 +509,31 @@ extern int HandleDirWindow(ViewContext *ctx, const DirEntry *start_dir_entry) {
   need_dsp_help = TRUE;
 
   DEBUG_LOG("HandleDirWindow: Building DirEntryList for vol=%p",
-            (void *)ctx->active->vol);
-  has_left_anchor = CapturePanelAnchorPath(ctx->left, ctx->active->vol,
-                                           left_anchor_path,
-                                           sizeof(left_anchor_path));
-  has_right_anchor = CapturePanelAnchorPath(ctx->right, ctx->active->vol,
-                                            right_anchor_path,
-                                            sizeof(right_anchor_path));
+            (void *)active_vol);
+  if (left_panel_matches_active_vol) {
+    has_left_anchor = CapturePanelAnchorPath(ctx->left, active_vol,
+                                             left_anchor_path,
+                                             sizeof(left_anchor_path));
+  }
+  if (right_panel_matches_active_vol) {
+    has_right_anchor = CapturePanelAnchorPath(ctx->right, active_vol,
+                                              right_anchor_path,
+                                              sizeof(right_anchor_path));
+  }
   if (has_left_anchor || has_right_anchor) {
     DEBUG_LOG("HandleDirWindow:anchors before rebuild left='%s' right='%s'",
               has_left_anchor ? left_anchor_path : "<none>",
               has_right_anchor ? right_anchor_path : "<none>");
   }
-  BuildDirEntryList(ctx, ctx->active->vol, &ctx->active->current_dir_entry);
-  if (has_left_anchor)
-    RestorePanelAnchorPath(ctx->active->vol, ctx->left, left_anchor_path);
-  if (has_right_anchor)
-    RestorePanelAnchorPath(ctx->active->vol, ctx->right, right_anchor_path);
-  EnsurePanelAnchorVisible(ctx, ctx->active->vol, ctx->left, "LEFT");
-  EnsurePanelAnchorVisible(ctx, ctx->active->vol, ctx->right, "RIGHT");
+  BuildDirEntryList(ctx, active_vol, &ctx->active->current_dir_entry);
+  if (has_left_anchor && left_panel_matches_active_vol)
+    RestorePanelAnchorPath(active_vol, ctx->left, left_anchor_path);
+  if (has_right_anchor && right_panel_matches_active_vol)
+    RestorePanelAnchorPath(active_vol, ctx->right, right_anchor_path);
+  if (left_panel_matches_active_vol)
+    EnsurePanelAnchorVisible(ctx, active_vol, ctx->left, "LEFT");
+  if (right_panel_matches_active_vol)
+    EnsurePanelAnchorVisible(ctx, active_vol, ctx->right, "RIGHT");
   if (ctx->initial_directory != NULL) {
     if (!strcmp(ctx->initial_directory, ".")) /* Entry just a single "." */
     {
@@ -638,7 +654,7 @@ extern int HandleDirWindow(ViewContext *ctx, const DirEntry *start_dir_entry) {
     if (ctx->is_split_screen) {
       YtreePanel *inactive =
           (ctx->active == ctx->left) ? ctx->right : ctx->left;
-      EnsurePanelAnchorVisible(ctx, ctx->active->vol, inactive, "INACTIVE");
+      EnsurePanelAnchorVisible(ctx, inactive->vol, inactive, "INACTIVE");
       RenderInactivePanel(ctx, inactive);
     }
 
@@ -692,9 +708,7 @@ extern int HandleDirWindow(ViewContext *ctx, const DirEntry *start_dir_entry) {
       ctx->resize_request = TRUE;
       break;
 
-    case ACTION_VIEW_PREVIEW:
-    case ACTION_SPLIT_SCREEN:
-    case ACTION_SWITCH_PANEL: {
+    case ACTION_VIEW_PREVIEW: {
       DirWindowDispatchResult panel_result =
           HandleDirWindowPanelAction(ctx, action, &dir_entry, &s, &start_vol,
                                      &need_dsp_help, &ch, &unput_char);
@@ -704,6 +718,15 @@ extern int HandleDirWindow(ViewContext *ctx, const DirEntry *start_dir_entry) {
         continue;
       break;
     }
+
+    case ACTION_SPLIT_SCREEN:
+    case ACTION_SWITCH_PANEL:
+      if (SplitTransition_HandleDirWindowAction(
+              ctx, action, &dir_entry, &s, &start_vol, &need_dsp_help, &ch,
+              &unput_char)) {
+        break;
+      }
+      break;
 
     case ACTION_NONE: /* -1 or unhandled keys */
       if (ch == -1)

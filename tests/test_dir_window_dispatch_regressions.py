@@ -2,6 +2,7 @@ from pathlib import Path
 import re
 import time
 
+from helpers_source import extract_function_block as _extract_function_block
 from helpers_ui import footer_text as _footer_text
 from helpers_ui import screen_text as _screen_text
 from tui_harness import YtreeTUI
@@ -22,15 +23,8 @@ def _dir_navigation_action_case_source(action_name):
     return source[case_start:next_case]
 
 
-def _split_screen_action_case_source():
-    source = Path("src/ui/dir_ops.c").read_text(encoding="utf-8")
-    case_start = source.find("case ACTION_SPLIT_SCREEN:")
-    case_end = source.find("case ACTION_SWITCH_PANEL:", case_start)
-    assert case_start >= 0 and case_end > case_start, (
-        "Could not isolate ACTION_SPLIT_SCREEN case in "
-        "HandleDirWindowPanelAction (src/ui/dir_ops.c)"
-    )
-    return source[case_start:case_end]
+def _split_transition_source():
+    return Path("src/ui/split_transition.c").read_text(encoding="utf-8")
 
 
 def _restore_panel_tree_selection_source():
@@ -439,15 +433,43 @@ def test_dir_window_compare_prompt_round_trip(ytree_binary, tmp_path):
     tui.quit()
 
 
-def test_dir_window_split_unsplit_branch_requires_peer_panel_guards():
-    case_source = _split_screen_action_case_source()
+def test_dir_window_split_transition_owner_path_is_canonical():
+    split_source = _split_transition_source()
+    dir_ops_source = Path("src/ui/dir_ops.c").read_text(encoding="utf-8")
+    ctrl_source = Path("src/ui/ctrl_dir.c").read_text(encoding="utf-8")
+    handle_block = _extract_function_block(
+        dir_ops_source, "DirWindowDispatchResult\nHandleDirWindowPanelAction("
+    )
+
+    assert "ACTION_SPLIT_SCREEN" not in handle_block, (
+        "HandleDirWindowPanelAction should no longer own split transitions.\n"
+        f"{handle_block}"
+    )
+    assert "ACTION_SWITCH_PANEL" not in handle_block, (
+        "HandleDirWindowPanelAction should no longer own panel switching.\n"
+        f"{handle_block}"
+    )
+    assert "SplitTransition_HandleDirWindowAction(" in ctrl_source, (
+        "HandleDirWindow must dispatch split transitions through the owner API.\n"
+        f"{ctrl_source}"
+    )
     assert re.search(
         r"if\s*\(\s*ctx->is_split_screen\s*&&\s*ctx->active\s*==\s*ctx->right"
         r"\s*&&\s*ctx->left\s*&&\s*ctx->right\s*\)",
-        case_source,
+        split_source,
     ), (
         "ACTION_SPLIT_SCREEN unsplit path must guard peer panels before state "
-        f"copy from right to left.\n{case_source}"
+        f"copy from right to left.\n{split_source}"
+    )
+    assert "DonatePanelState(ctx->left, ctx->right);" in split_source, (
+        "Split transition ownership must donate the right panel state before "
+        f"closing the split.\n{split_source}"
+    )
+    assert "RestorePanelFileSelection(ctx, *dir_entry_ptr, ctx->active);" in (
+        split_source
+    ), (
+        "Split transition ownership must rebind panel-local file selection "
+        f"through the canonical restore helper.\n{split_source}"
     )
 
 
