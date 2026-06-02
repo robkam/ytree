@@ -336,7 +336,7 @@ HandleDirWindowPanelAction(ViewContext *ctx, YtreeAction action,
                            DirEntry **dir_entry_ptr, Statistic **s_ptr,
                            const struct Volume **start_vol_ptr,
                            BOOL *need_dsp_help_ptr, int *ch_ptr,
-                           int *unput_char_ptr);
+                           const int *unput_char_ptr);
 extern DirWindowDispatchResult
 HandleDirWindowEnterAction(ViewContext *ctx, DirEntry **dir_entry_ptr,
                            Statistic **s_ptr,

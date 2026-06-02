@@ -176,8 +176,9 @@ static void SplitTransitionDebugLogFileState(const char *label,
   }
 
   DEBUG_LOG("FILE_SPLIT[%s] is_split=%d active=%s focused=%d",
-            label ? label : "?", ctx ? ctx->is_split_screen : -1,
-            active_side, ctx ? ctx->focused_window : -1);
+            label ? label : "?",
+            ctx ? (int)ctx->is_split_screen : -1, active_side,
+            ctx ? (int)ctx->focused_window : -1);
   if (ctx) {
     SplitTransitionDebugLogFilePanelState("LEFT", ctx->left);
     SplitTransitionDebugLogFilePanelState("RIGHT", ctx->right);
@@ -196,8 +197,8 @@ static void SplitTransitionDebugLogDirState(const char *label,
   }
 
   DEBUG_LOG("SPLIT[%s] is_split=%d active=%s focused=%d", label ? label : "?",
-            ctx ? ctx->is_split_screen : -1, active_side,
-            ctx ? ctx->focused_window : -1);
+            ctx ? (int)ctx->is_split_screen : -1, active_side,
+            ctx ? (int)ctx->focused_window : -1);
 }
 
 static BOOL PanelHasVisibleFiles(ViewContext *ctx, YtreePanel *panel,
@@ -238,13 +239,18 @@ BOOL SplitTransition_HandleFileWindowAction(ViewContext *ctx, YtreeAction action
 
     {
       BOOL closing_split = ctx->is_split_screen;
-      BOOL donate_active_state = FALSE;
+      BOOL preserve_peer_file_state =
+          ctx->left && ctx->left->file_selection_dir_path[0] != '\0' &&
+          ctx->left->file_selection_name[0] != '\0';
+      BOOL donate_active_state =
+          closing_split && ctx->active == ctx->right && ctx->left &&
+          ctx->right && !preserve_peer_file_state;
       ViewFocus preserved_focus = ctx->focused_window;
-      const YtreePanel *stable_panel = NULL;
 
 #ifndef NDEBUG
       const YtreePanel *target_panel =
           (ctx->active == ctx->left) ? ctx->right : ctx->left;
+      const YtreePanel *stable_panel;
       SplitFilePanelSnapshot stable_panel_snapshot;
 
       /*
@@ -255,7 +261,7 @@ BOOL SplitTransition_HandleFileWindowAction(ViewContext *ctx, YtreeAction action
        * opposite side.
        */
       if (closing_split) {
-        if (donate_active_state && ctx->left && ctx->right) {
+        if (donate_active_state) {
           stable_panel = owner_panel;
         } else {
           stable_panel = target_panel;
@@ -265,11 +271,6 @@ BOOL SplitTransition_HandleFileWindowAction(ViewContext *ctx, YtreeAction action
       }
       CaptureSplitFilePanelSnapshot(stable_panel, &stable_panel_snapshot);
 #endif
-
-      if (ctx->is_split_screen && ctx->active == ctx->right && ctx->left &&
-          ctx->right) {
-        donate_active_state = TRUE;
-      }
       if (donate_active_state && ctx->left && ctx->right)
         DonatePanelState(ctx->left, ctx->right);
 
@@ -415,7 +416,8 @@ BOOL SplitTransition_HandleDirWindowAction(ViewContext *ctx, YtreeAction action,
                                            DirEntry **dir_entry_ptr,
                                            Statistic **s_ptr,
                                            const struct Volume **start_vol_ptr,
-                                           BOOL *need_dsp_help_ptr, int *ch_ptr,
+                                           BOOL *need_dsp_help_ptr,
+                                           const int *ch_ptr,
                                            int *unput_char_ptr) {
   if (!ctx || !ctx->active || !dir_entry_ptr || !*dir_entry_ptr || !s_ptr ||
       !*s_ptr || !start_vol_ptr || !*start_vol_ptr || !need_dsp_help_ptr ||
@@ -428,20 +430,44 @@ BOOL SplitTransition_HandleDirWindowAction(ViewContext *ctx, YtreeAction action,
     SplitTransitionDebugLogDirState("DirPanelAction:split:before", ctx);
     {
       BOOL closing_split = ctx->is_split_screen;
-      BOOL donate_active_state = closing_split && ctx->active == ctx->right &&
-                                  ctx->left && ctx->right;
+      BOOL preserve_peer_file_state =
+          ctx->left && ctx->left->file_selection_dir_path[0] != '\0' &&
+          ctx->left->file_selection_name[0] != '\0';
+      BOOL donate_active_state = FALSE;
+      BOOL preserve_left_file_state =
+          ctx->left && ctx->left->file_selection_dir_path[0] != '\0' &&
+          ctx->left->file_selection_name[0] != '\0';
       int source_cursor_pos = ctx->right ? ctx->right->cursor_pos : 0;
       int source_disp_begin_pos = ctx->right ? ctx->right->disp_begin_pos : 0;
       int source_current_dir_entry =
           ctx->right ? ctx->right->current_dir_entry : 0;
       unsigned int source_panel_generation =
           ctx->right ? ctx->right->panel_generation : 0U;
+      int left_start_file = ctx->left ? ctx->left->start_file : 0;
+      int left_file_cursor_pos = ctx->left ? ctx->left->file_cursor_pos : 0;
+      char left_file_selection_name[PATH_LENGTH + 1];
+      char left_file_selection_dir_path[PATH_LENGTH + 1];
       ViewFocus preserved_focus = ctx->focused_window;
 
+      left_file_selection_name[0] = '\0';
+      left_file_selection_dir_path[0] = '\0';
+      if (preserve_left_file_state) {
+        (void)snprintf(left_file_selection_name,
+                       sizeof(left_file_selection_name), "%s",
+                       ctx->left->file_selection_name);
+        (void)snprintf(left_file_selection_dir_path,
+                       sizeof(left_file_selection_dir_path), "%s",
+                       ctx->left->file_selection_dir_path);
+      }
+
+      if (ctx->is_split_screen && ctx->active == ctx->right && ctx->left &&
+          ctx->right) {
+        donate_active_state = !preserve_peer_file_state;
+      }
+
       ctx->active->saved_focus = FOCUS_TREE;
-      if (donate_active_state)
+      if (donate_active_state && ctx->left && ctx->right) {
         DonatePanelState(ctx->left, ctx->right);
-      if (donate_active_state) {
         ctx->left->cursor_pos = source_cursor_pos;
         ctx->left->disp_begin_pos = source_disp_begin_pos;
         ctx->left->current_dir_entry = source_current_dir_entry;
@@ -471,6 +497,17 @@ BOOL SplitTransition_HandleDirWindowAction(ViewContext *ctx, YtreeAction action,
         FreeFileEntryList(ctx->right);
         ctx->active = ctx->left;
         *dir_entry_ptr = GetPanelDirEntry(ctx->active);
+        if (preserve_left_file_state && !donate_active_state) {
+          ctx->active->saved_focus = FOCUS_FILE;
+          ctx->active->start_file = left_start_file;
+          ctx->active->file_cursor_pos = left_file_cursor_pos;
+          (void)snprintf(ctx->active->file_selection_name,
+                         sizeof(ctx->active->file_selection_name), "%s",
+                         left_file_selection_name);
+          (void)snprintf(ctx->active->file_selection_dir_path,
+                         sizeof(ctx->active->file_selection_dir_path), "%s",
+                         left_file_selection_dir_path);
+        }
         if (ctx->active->saved_focus == FOCUS_FILE) {
           if (ctx->active->file_selection_dir_path[0] != '\0') {
             /*

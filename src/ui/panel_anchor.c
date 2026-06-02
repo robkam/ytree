@@ -294,7 +294,6 @@ CopyPanelVolumeFileState(const PanelVolumeFileState *src) {
 
 void DonatePanelState(YtreePanel *dst, const YtreePanel *src) {
   char file_dir_path[PATH_LENGTH + 1];
-  ViewFocus dst_saved_focus;
   BOOL dst_saved_big_file_view;
   int dst_cursor_pos;
   int dst_disp_begin_pos;
@@ -305,7 +304,6 @@ void DonatePanelState(YtreePanel *dst, const YtreePanel *src) {
   unsigned int dst_panel_generation;
   char dst_file_selection_name[PATH_LENGTH + 1];
   char dst_file_selection_dir_path[PATH_LENGTH + 1];
-  BOOL dst_has_file_snapshot;
   const PanelVolumeFileState *dst_volume_state;
   const PanelVolumeFileState *dst_current_volume_state;
   PanelVolumeFileState *volume_file_state;
@@ -318,7 +316,6 @@ void DonatePanelState(YtreePanel *dst, const YtreePanel *src) {
          src->file_selection_dir_path[0] != '\0');
 
   source_is_file = (src->saved_focus == FOCUS_FILE);
-  dst_saved_focus = dst->saved_focus;
   dst_saved_big_file_view = dst->saved_big_file_view;
   dst_cursor_pos = dst->cursor_pos;
   dst_disp_begin_pos = dst->disp_begin_pos;
@@ -342,10 +339,6 @@ void DonatePanelState(YtreePanel *dst, const YtreePanel *src) {
       }
     }
   }
-  dst_has_file_snapshot = (dst_saved_focus == FOCUS_FILE ||
-                           dst_file_dir_entry != NULL ||
-                           dst_file_selection_name[0] != '\0' ||
-                           dst_file_selection_dir_path[0] != '\0');
   volume_file_state =
       source_is_file ? CopyPanelVolumeFileState(src->volume_file_state) : NULL;
 
@@ -440,7 +433,6 @@ DirEntry *FindDirByPathInTree(DirEntry *entry, const char *path) {
 
 void EnsurePanelAnchorVisible(ViewContext *ctx, const struct Volume *vol,
                               YtreePanel *panel, const char *label) {
-  int idx;
   DirEntry *target;
   DirEntry *ancestor;
   BOOL changed = FALSE;
@@ -476,6 +468,7 @@ void EnsurePanelAnchorVisible(ViewContext *ctx, const struct Volume *vol,
   target = ResolvePanelAnchorTarget(panel, vol, panel->file_selection_dir_path);
   if (target) {
     char target_path[PATH_LENGTH + 1];
+    int idx;
 
     GetPath(target, target_path);
     target_path[PATH_LENGTH] = '\0';
