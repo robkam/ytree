@@ -16,7 +16,7 @@ The project uses seven QA layers with increasing depth and cost:
 
 | Layer | Command | What it checks | When to run |
 |---|---|---|---|
-| CI Gate | `git push` (automatic) | Draft-PR baseline confidence checks (`qa-code-quality` + `qa-fileops-integrity`, coverage pytest gate, fuzz gate) | Every push to `main` and every PR update targeting `main` (automatic) |
+| CI Gate | `git push` (automatic) | Draft-PR baseline confidence checks (`qa-code-quality` + `qa-fileops-integrity`, path-filtered `qa-split-panel-gates` for split-touching changes, coverage pytest gate, fuzz gate) | Every push to `main` and every PR update targeting `main` (automatic) |
 | PR Full QA CI (required) | `.github/workflows/full-qa.yml` (`make qa-all`) | clang-tidy, cppcheck, scan-build, Valgrind smoke (`--version`), full `pytest`, unsafe API guard, gitleaks, module-boundary guard, ai-config guard, fuzz guard | Must be green before merge to `main` |
 | Fileops Integrity Gate | `make qa-fileops-integrity` | Deterministic file/archive mutation integrity + security regression checks (copy/move/delete/rename/archive rewrite, cancel/failure safeguards, shell/tempfile hardening contracts) | Before merge and when touching file/archive mutation flows |
 | Sanitizer QA | `make qa-sanitize` | Main ytree build + `pytest` under AddressSanitizer/UndefinedBehaviorSanitizer | Before release, after memory/UB-sensitive changes, or when triaging suspicious crashes |
@@ -28,6 +28,7 @@ The project uses seven QA layers with increasing depth and cost:
 - **PR Full QA CI** (`.github/workflows/full-qa.yml`, `make qa-all` equivalent) is the standard pre-merge gate.
 - **Local QA** (`make qa-all`) is optional for faster local confidence and maintainer-requested deep preflight; avoid running it on every iteration by default.
 - **Fileops Integrity Gate** (`make qa-fileops-integrity`) is the dedicated regression wall for mutation integrity/security contracts; run it before merge and whenever file/archive mutation code or prompts change.
+- **Split Panel Regression Gate** (`make qa-split-panel-gates`) is the path-filtered regression wall for split-panel invariants, transition handoff, and split-authority source guards; split-touching PRs must satisfy it before merge.
 - **Deep Audit** (`make qa-valgrind-full`) is on-demand. It drives a scripted interactive ytree session under Valgrind and takes ~2-3 minutes. Run it:
   - Before tagging a release
   - After changes to memory management, allocation, or cleanup paths
@@ -65,7 +66,7 @@ Scope is strict: QA/check/test organization and efficiency only. Non-QA workflow
 | Tier | Owner | Trigger | Required checks | Non-overlap default intent |
 |---|---|---|---|---|
 | Tier A (local fast iteration) | Developer | During implementation before first push and between risky edits | `make`; targeted pytest for touched scope; targeted guards (`qa-unsafe-apis`, `qa-fileops-integrity`) when relevant | Keep iteration fast; avoid full-suite duplication unless local risk demands it |
-| Tier B (draft PR baseline CI) | CI + PR author | Every push while PR is draft | `ci-baseline` (`qa-code-quality` + `qa-fileops-integrity` + `qa-pytest-coverage` + `qa-fuzz`) | Provide baseline branch-protection signal (includes coverage by design); do not duplicate Tier C full local gate content |
+| Tier B (draft PR baseline CI) | CI + PR author | Every push while PR is draft | `ci-baseline` (`qa-code-quality` + `qa-fileops-integrity` + `qa-pytest-coverage` + `qa-fuzz`) plus path-filtered `qa-split-panel-gates` on split-touching PRs | Provide baseline branch-protection signal (includes coverage by design); do not duplicate Tier C full local gate content |
 | Tier C (pre-merge full gate) | CI + PR author | Before merge to `main` (or earlier only when explicitly requested) | Green PR full-QA CI (`.github/workflows/full-qa.yml`, `make qa-all` equivalent); optional local `make qa-all-log` evidence when maintainer-requested; plus explicit `qa-fileops-integrity` evidence when mutation workflows changed | Use CI as canonical full-gate signal; avoid duplicate local full-gate reruns during routine iteration |
 | Tier D (merge/release gate) | Maintainer + reviewer | Before merge and before release/tag cut | Branch-protection checks green; reviewer signoff; `qa-sanitize`; `qa-valgrind-full` for release-risk changes; `qa-valgrind-interactive` after major feature flows | Reserve deepest runtime checks for merge/release assurance to avoid slowing every draft iteration |
 
@@ -181,11 +182,13 @@ Local shortcut targets are available in the `Makefile`:
 - `make qa-sanitize`
 - `make qa-pytest`
 - `make qa-fileops-integrity`
+- `make qa-split-panel-gates`
 - `make qa-unsafe-apis`
 - `make qa-gitleaks`
 - `make qa-module-boundaries`
 - `make qa-ai-config`
 - `make qa-code-quality` (runs `qa-unsafe-apis`, `qa-module-boundaries`, `qa-ai-config`)
+- `make qa-split-panel-gates` (runs the split-panel invariants, transition-handoff, and split-authority regression subset)
 - `make qa-fuzz`
 - `make qa-all` (runs `qa-clang`, `qa-cppcheck`, `qa-scan`, `qa-valgrind`, `qa-pytest`, `qa-unsafe-apis`, `qa-gitleaks`, `qa-module-boundaries`, `qa-ai-config`, `qa-fuzz` in order; run `qa-fileops-integrity` separately when touching mutation flows)
 - `make qa-all-log` (same as `qa-all`, with full output captured to `qa-all.log` in repo root; override with `QA_LOG=/path/to/file`)
@@ -193,8 +196,9 @@ Local shortcut targets are available in the `Makefile`:
 
 For feature-sized/PR-scope changes, audit evidence must include a successful `make qa-module-boundaries` run so controller-slimming checks are explicitly validated.
 Audit evidence must also include `make qa-unsafe-apis` results as explicit enforcement evidence for the shared Security gate policy in `.ai/shared.md` Core Engineering Rules.
+Split-touching PRs must also include `make qa-split-panel-gates` evidence so panel isolation and split-authority contracts remain enforced in CI and audit notes.
 
-GitHub CI is a baseline gate (including `qa-fileops-integrity`, coverage pytest, and `qa-fuzz`) and does not replace the full local audit loop.
+GitHub CI is a baseline gate (including `qa-fileops-integrity`, path-filtered `qa-split-panel-gates` for split-touching changes, coverage pytest, and `qa-fuzz`) and does not replace the full local audit loop.
 
 ## 4. Continuous Audit Loop (Default)
 Run this loop for every non-trivial change and every PR.

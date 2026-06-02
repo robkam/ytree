@@ -238,7 +238,7 @@ BOOL SplitTransition_HandleFileWindowAction(ViewContext *ctx, YtreeAction action
 
     {
       BOOL closing_split = ctx->is_split_screen;
-      BOOL donate_active_state = closing_split && owner_panel == ctx->right;
+      BOOL donate_active_state = FALSE;
       ViewFocus preserved_focus = ctx->focused_window;
       const YtreePanel *stable_panel = NULL;
 
@@ -266,6 +266,10 @@ BOOL SplitTransition_HandleFileWindowAction(ViewContext *ctx, YtreeAction action
       CaptureSplitFilePanelSnapshot(stable_panel, &stable_panel_snapshot);
 #endif
 
+      if (ctx->is_split_screen && ctx->active == ctx->right && ctx->left &&
+          ctx->right) {
+        donate_active_state = TRUE;
+      }
       if (donate_active_state && ctx->left && ctx->right)
         DonatePanelState(ctx->left, ctx->right);
 
@@ -424,9 +428,26 @@ BOOL SplitTransition_HandleDirWindowAction(ViewContext *ctx, YtreeAction action,
     SplitTransitionDebugLogDirState("DirPanelAction:split:before", ctx);
     {
       BOOL closing_split = ctx->is_split_screen;
+      BOOL donate_active_state = closing_split && ctx->active == ctx->right &&
+                                  ctx->left && ctx->right;
+      int source_cursor_pos = ctx->right ? ctx->right->cursor_pos : 0;
+      int source_disp_begin_pos = ctx->right ? ctx->right->disp_begin_pos : 0;
+      int source_current_dir_entry =
+          ctx->right ? ctx->right->current_dir_entry : 0;
+      unsigned int source_panel_generation =
+          ctx->right ? ctx->right->panel_generation : 0U;
       ViewFocus preserved_focus = ctx->focused_window;
 
       ctx->active->saved_focus = FOCUS_TREE;
+      if (donate_active_state)
+        DonatePanelState(ctx->left, ctx->right);
+      if (donate_active_state) {
+        ctx->left->cursor_pos = source_cursor_pos;
+        ctx->left->disp_begin_pos = source_disp_begin_pos;
+        ctx->left->current_dir_entry = source_current_dir_entry;
+        ctx->left->panel_generation = source_panel_generation;
+        ctx->left->saved_focus = FOCUS_TREE;
+      }
       ctx->is_split_screen = !ctx->is_split_screen;
       if (closing_split)
         ctx->active = ctx->left;

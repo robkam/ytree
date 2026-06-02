@@ -154,7 +154,7 @@ FUZZ_BINS := $(FUZZ_STRING_UTILS_BIN) $(FUZZ_PATH_UTILS_BIN) $(FUZZ_FILTER_CORE_
 	git-aliases-install git-aliases-status test \
 	fuzz fuzz-smoke fuzz-string-utils fuzz-path-utils fuzz-filter-core qa-fuzz \
 	test-v qa-clang qa-cppcheck qa-scan qa-valgrind qa-valgrind-interactive qa-valgrind-full \
-	qa-pytest qa-fileops-integrity qa-pytest-coverage qa-sanitize qa-unsafe-apis qa-module-boundaries qa-ai-config qa-code-quality qa-all \
+	qa-pytest qa-fileops-integrity qa-split-panel-gates qa-pytest-coverage qa-sanitize qa-unsafe-apis qa-module-boundaries qa-ai-config qa-code-quality qa-all \
 	ci-baseline mcp-doctor py-requirements \
 	qa-all-log qa-deep
 
@@ -352,6 +352,18 @@ qa-fileops-integrity: $(MAIN_BIN)
 		tests/test_archive_ui.py::test_archive_create_overwrite_excludes_destination_from_payload \
 		tests/test_archive_ui.py::test_archive_create_exclusion_empty_payload_shows_status_and_aborts \
 		tests/test_archive_ui.py::test_archive_create_inside_source_round_trip_integrity
+
+# Focused split-panel regression gate: canonical eight-test split matrix plus source-level guards.
+qa-split-panel-gates: $(MAIN_BIN)
+	TERM=$${TERM:-xterm} $(PYTEST) -q -ra --tb=no \
+		tests/test_dir_window_dispatch_regressions.py::test_dir_window_split_transition_owner_path_is_canonical \
+		tests/test_dir_window_dispatch_regressions.py::test_split_tab_refresh_rejects_stale_file_restore_snapshot \
+		tests/test_file_window_dispatch_regressions.py::test_HandleFileWindow_delegates_split_transition_hotspot \
+		tests/test_file_window_dispatch_regressions.py::test_split_and_tab_dispatch_keeps_file_mode_footer \
+		tests/test_panel_isolation.py::test_split_from_file_keeps_file_focus_on_tab \
+		tests/test_panel_isolation.py::test_split_tab_from_small_file_does_not_expand_inactive_panel \
+		tests/test_panel_isolation.py::test_split_from_big_file_keeps_inactive_panel_in_file_view \
+		tests/test_panel_isolation.py::test_split_same_directory_file_tags_are_panel_local
 
 qa-pytest-coverage:
 	$(MAKE_CMD) DEBUG=0 COVERAGE=1 QA_ON_BUILD=0 clean

@@ -48,7 +48,7 @@ Based on understanding:
 ## 2. The "Hands-Off" Fix Mandate (The Agentic Loop)
 
 ### When to Use
-The mandatory focused procedure for **Antigravity** and agentic execution. It forces the agent to prove its understanding by writing a failing test *before* editing any code. See **[TESTING.md](TESTING.md)** for detailed test protocols and harness documentation.
+The mandatory focused procedure for agentic execution. It forces the agent to prove its understanding by writing a failing test *before* editing any code. See **[TESTING.md](TESTING.md)** for detailed test protocols and harness documentation.
 
 ### The Process
 
@@ -111,13 +111,13 @@ Identify root causes with specific line numbers and call chains. Provide evidenc
 ```
 
 #### Step 3: External Expert Consultation
-Use a **separate, fresh LLM instance** (e.g., Claude Opus) as a **Code Auditor** for architectural analysis. Provide a high-level map using **jCodeMunch** and relevant symbols via **Serena**.
+Use a **separate, fresh LLM instance** as a **Code Auditor** for architectural analysis. Provide a high-level map using **jCodeMunch** and relevant symbols via **Serena**.
 
 #### Step 4: Extract Surgical Fixes
 Review the expert's diagnosis and identify the minimal set of changes (target 3-5 surgical edits).
 
 #### Step 5: Sequential Implementation
-Implement fixes atomically using low-cost models (e.g., Gemini Flash) for mechanical edits. Compile and test once all related fixes are applied.
+Implement fixes atomically using a low-cost model for mechanical edits. Compile and test once all related fixes are applied.
 
 ---
 

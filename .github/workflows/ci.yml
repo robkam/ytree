@@ -18,11 +18,14 @@ jobs:
       pull-requests: read
     outputs:
       qa_relevant: ${{ steps.force.outputs.qa_relevant || steps.filter.outputs.qa_relevant }}
+      split_panel_relevant: ${{ steps.force.outputs.split_panel_relevant || steps.filter.outputs.split_panel_relevant }}
     steps:
     - name: Force QA on main pushes
       id: force
       if: github.event_name == 'push'
-      run: echo "qa_relevant=true" >> "$GITHUB_OUTPUT"
+      run: |
+        echo "qa_relevant=true" >> "$GITHUB_OUTPUT"
+        echo "split_panel_relevant=true" >> "$GITHUB_OUTPUT"
 
     - name: Detect PR file changes
       id: filter
@@ -37,6 +40,22 @@ jobs:
             - 'scripts/**'
             - 'Makefile'
             - '.github/workflows/**'
+          split_panel_relevant:
+            - 'docs/ARCHITECTURE.md'
+            - 'docs/AUDIT.md'
+            - 'docs/CONTRIBUTING.md'
+            - 'docs/SPECIFICATION.md'
+            - 'src/cmd/log.c'
+            - 'src/ui/panel_anchor.c'
+            - 'src/ui/split_transition.c'
+            - 'src/ui/ctrl_dir.c'
+            - 'src/ui/ctrl_file.c'
+            - 'src/ui/display.c'
+            - 'src/ui/dir_ops.c'
+            - 'src/ui/render_file.c'
+            - 'tests/test_panel_isolation.py'
+            - 'tests/test_file_window_dispatch_regressions.py'
+            - 'tests/test_dir_window_dispatch_regressions.py'
 
   guard-fuzz-sync:
     name: Guard fuzz harness sync
@@ -73,6 +92,58 @@ jobs:
           HEAD_SHA="$PUSH_HEAD_SHA"
         fi
         python3 scripts/check_fuzz_harness_sync.py --base "$BASE_SHA" --head "$HEAD_SHA"
+
+  qa-split-panel-gates:
+    name: Split panel regression gate
+    runs-on: ubuntu-latest
+    needs: changes
+    if: github.event_name == 'push' || needs.changes.outputs.split_panel_relevant == 'true'
+    env:
+      CC: ccache cc
+      CCACHE_DIR: ${{ github.workspace }}/.ccache
+      CCACHE_BASEDIR: ${{ github.workspace }}
+
+    steps:
+    - uses: actions/checkout@v6
+
+    - name: Install System Dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y ccache libncurses-dev libtinfo-dev libreadline-dev libarchive-dev
+
+    - name: Restore ccache
+      uses: actions/cache@v5
+      with:
+        path: ${{ github.workspace }}/.ccache
+        key: ${{ runner.os }}-ccache-${{ github.workflow }}-split-panel-${{ hashFiles('Makefile', '.github/workflows/ci.yml') }}
+        restore-keys: |
+          ${{ runner.os }}-ccache-${{ github.workflow }}-split-panel-
+          ${{ runner.os }}-ccache-${{ github.workflow }}-
+
+    - name: Set up Python 3
+      uses: actions/setup-python@v6
+      with:
+        python-version: "3.12"
+        cache: pip
+        cache-dependency-path: scripts/requirements.txt
+
+    - name: Install Python Dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r scripts/requirements.txt
+
+    - name: Configure compiler cache
+      run: |
+        ccache --set-config=max_size=700M
+        ccache --set-config=sloppiness=time_macros
+        ccache --zero-stats
+
+    - name: Run split panel regression gate
+      run: make qa-split-panel-gates
+
+    - name: Report ccache stats
+      if: always()
+      run: ccache --show-stats
 
   qa-fileops-integrity:
     name: File mutation integrity gate
