@@ -83,6 +83,36 @@ def _restore_panel_file_selection_source():
     return source[func_start:next_func]
 
 
+def _rebind_active_file_panel_selection_source():
+    source = Path("src/ui/ctrl_file_ops.c").read_text(encoding="utf-8")
+    func_start = source.find("BOOL RebindActiveFilePanelSelection(")
+    assert func_start >= 0, (
+        "Missing RebindActiveFilePanelSelection in src/ui/ctrl_file_ops.c"
+    )
+
+    next_func = source.find("\nstatic void DebugLogFilePanelState(", func_start + 1)
+    assert next_func > func_start, (
+        "Could not isolate RebindActiveFilePanelSelection in "
+        "src/ui/ctrl_file_ops.c"
+    )
+    return source[func_start:next_func]
+
+
+def _resolve_panel_anchor_target_source():
+    source = Path("src/ui/panel_anchor.c").read_text(encoding="utf-8")
+    func_start = source.find("static BOOL PanelAnchorTargetIsVisible(")
+    assert func_start >= 0, (
+        "Missing ResolvePanelAnchorTarget support helpers in "
+        "src/ui/panel_anchor.c"
+    )
+
+    next_func = source.find("\nDirEntry *FindDirByPathInTree(", func_start + 1)
+    assert next_func > func_start, (
+        "Could not isolate panel anchor restore helpers in src/ui/panel_anchor.c"
+    )
+    return source[func_start:next_func]
+
+
 def _handle_switch_window_source():
     source = Path("src/ui/dir_ops.c").read_text(encoding="utf-8")
     func_start = source.find("void HandleSwitchWindow(")
@@ -107,6 +137,22 @@ def _panel_selected_file_path_source():
     return source[func_start:]
 
 
+def _defs_source():
+    return Path("include/ytree_defs.h").read_text(encoding="utf-8")
+
+
+def _log_source():
+    return Path("src/cmd/log.c").read_text(encoding="utf-8")
+
+
+def _panel_anchor_file_source():
+    return Path("src/ui/panel_anchor.c").read_text(encoding="utf-8")
+
+
+def _dir_ops_source():
+    return Path("src/ui/dir_ops.c").read_text(encoding="utf-8")
+
+
 def test_tree_viewport_stable_restore_preserves_visible_selection():
     restore_source = _restore_panel_tree_selection_source()
     visible_guard = (
@@ -127,6 +173,7 @@ def test_panel_restore_paths_use_canonical_selection_identity_only():
     capture_source = _capture_panel_anchor_source()
     resolve_source = _resolve_panel_file_anchor_source()
     restore_source = _restore_panel_file_selection_source()
+    rebind_source = _rebind_active_file_panel_selection_source()
     switch_source = _handle_switch_window_source()
     panel_file_path_source = _panel_selected_file_path_source()
 
@@ -150,6 +197,21 @@ def test_panel_restore_paths_use_canonical_selection_identity_only():
         "available.\n"
         f"{restore_source}"
     )
+    assert "ResolvePanelAnchorTarget(panel, panel->vol," in rebind_source, (
+        "RebindActiveFilePanelSelection must resolve the active file panel by "
+        "canonical anchor path identity.\n"
+        f"{rebind_source}"
+    )
+    assert "panel->file_selection_dir_path" in rebind_source, (
+        "RebindActiveFilePanelSelection must resolve by the saved canonical "
+        "selection path.\n"
+        f"{rebind_source}"
+    )
+    assert "GetPanelDirEntry(panel)" not in rebind_source, (
+        "RebindActiveFilePanelSelection must not fall back to raw tree-row "
+        "authority when canonical anchor resolution fails.\n"
+        f"{rebind_source}"
+    )
     assert "file_dir_entry == dir_entry" not in switch_source, (
         "HandleSwitchWindow must key file-window restore off the canonical "
         "selection path, not a file_dir_entry alias comparison.\n"
@@ -159,6 +221,78 @@ def test_panel_restore_paths_use_canonical_selection_identity_only():
         "UI_GetPanelSelectedFilePath must not infer file ownership from the "
         "raw file_dir_entry pointer alias.\n"
         f"{panel_file_path_source}"
+    )
+
+
+def test_restore_snapshots_validate_generation_before_reuse():
+    defs_source = _defs_source()
+    log_source = _log_source()
+    panel_anchor_source = _panel_anchor_file_source()
+    dir_ops_source = _dir_ops_source()
+
+    for needle in (
+        "unsigned int saved_panel_generation;",
+        "unsigned int saved_volume_generation;",
+        "unsigned int saved_tree_generation;",
+        "unsigned int saved_tree_volume_generation;",
+        "unsigned int volume_generation;",
+        "unsigned int panel_generation;",
+    ):
+        assert needle in defs_source, (
+            f"Missing generation field declaration: {needle}\n{defs_source}"
+        )
+
+    assert "state->saved_panel_generation = panel->panel_generation;" in log_source
+    assert "state->saved_volume_generation = panel->vol->volume_generation;" in log_source
+    assert "state->saved_panel_generation != panel->panel_generation" in log_source
+    assert "state->saved_volume_generation != vol->volume_generation" in log_source
+    assert "panel->vol->saved_tree_generation = panel->panel_generation;" in log_source
+    assert (
+        "panel->vol->saved_tree_volume_generation = panel->vol->volume_generation;"
+        in log_source
+    )
+    assert "generation_valid =" in log_source
+    assert "saved_tree_volume_generation == panel->vol->volume_generation" in log_source
+    assert "saved_tree_generation == panel->panel_generation" in log_source
+
+    assert "panel->panel_generation++;" in panel_anchor_source, panel_anchor_source
+    assert "dst->panel_generation = src->panel_generation;" in panel_anchor_source
+
+    assert "p->panel_generation++;" in dir_ops_source, dir_ops_source
+    assert "p->vol->volume_generation++;" in dir_ops_source, dir_ops_source
+    assert "ctx->active->vol->volume_generation++;" in dir_ops_source, dir_ops_source
+
+
+def test_panel_anchor_restore_follows_exact_fallback_order():
+    source = _resolve_panel_anchor_target_source()
+
+    exact = source.find("FindDirByPathInTree(vol->vol_stats.tree, anchor_path)")
+    ancestor = source.find("FindDirByPathOrAncestor(vol, anchor_path)")
+    visible_ancestor = source.find("PanelAnchorFindVisibleAncestor(panel, vol, ancestor)")
+    sibling_helper = source.find("PanelAnchorFindVisibleSibling(panel, vol, sibling_base)")
+    root = source.find("return vol->vol_stats.tree;")
+
+    assert exact >= 0, f"ResolvePanelAnchorTarget must resolve exact identity first.\n{source}"
+    assert ancestor > exact, (
+        "ResolvePanelAnchorTarget must fall back to a visible ancestor after "
+        f"exact identity fails.\n{source}"
+    )
+    assert visible_ancestor > ancestor, (
+        "ResolvePanelAnchorTarget must check the visible-ancestor helper before "
+        f"trying sibling fallback.\n{source}"
+    )
+    assert sibling_helper > visible_ancestor, (
+        "ResolvePanelAnchorTarget must try visible siblings after ancestor "
+        f"fallback.\n{source}"
+    )
+    assert root > sibling_helper, (
+        "ResolvePanelAnchorTarget must end with the root visible node fallback.\n"
+        f"{source}"
+    )
+    assert "FindDirIndexByPathOrAncestor" not in source, (
+        "ResolvePanelAnchorTarget must not use the ancestor-only fallback helper "
+        "as its restore authority.\n"
+        f"{source}"
     )
 
 

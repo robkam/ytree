@@ -654,6 +654,9 @@ typedef struct {
 struct Volume {
   int id;
   int saved_tree_index; /* Per-volume restore breadcrumb, not topology authority. */
+  unsigned int saved_tree_generation;
+  unsigned int saved_tree_volume_generation;
+  unsigned int volume_generation;
   int saved_focus;       /* Derived restore mirror of the last focused panel mode. */
   Statistic vol_stats;
   Statistic vol_disk_stats;
@@ -730,6 +733,8 @@ typedef struct _panel_volume_file_state {
   int volume_id;
   int saved_file_start;        /* Per-panel file viewport snapshot for this volume. */
   int saved_file_cursor;       /* Per-panel file cursor snapshot for this volume. */
+  unsigned int saved_panel_generation;
+  unsigned int saved_volume_generation;
   ViewFocus saved_focus;       /* Restored panel focus shape for this volume. */
   BOOL saved_big_file_view;    /* Restored panel file-window shape for this volume. */
   char saved_file_dir_path[PATH_LENGTH + 1];
@@ -781,6 +786,7 @@ typedef struct {
   int file_mode;
   int max_column;
   int current_dir_entry;
+  unsigned int panel_generation;
   ViewFocus saved_focus;
   unsigned int max_visual_filename_len;
   unsigned int max_visual_linkname_len;

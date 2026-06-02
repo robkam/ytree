@@ -7,6 +7,7 @@
 
 #include "ytree_cmd.h"
 #include "ytree_fs.h"
+#include "ytree_panel_anchor.h"
 #include <assert.h>
 
 /* Runtime UI helpers used by volume-switch restore flow. */
@@ -65,6 +66,8 @@ static void SavePanelFileSelection(YtreePanel *panel) {
   state = GetPanelVolumeFileState(panel, panel->vol->id);
   state->saved_file_start = panel->start_file;
   state->saved_file_cursor = panel->file_cursor_pos;
+  state->saved_panel_generation = panel->panel_generation;
+  state->saved_volume_generation = panel->vol->volume_generation;
   state->saved_focus = panel->saved_focus;
   state->saved_big_file_view = FALSE;
 
@@ -133,47 +136,6 @@ static void PositionSavedFileSelection(ViewContext *ctx, YtreePanel *panel,
   dir_entry->cursor_pos = panel->file_cursor_pos;
 }
 
-static DirEntry *FindSavedDirInVolume(const struct Volume *vol,
-                                      const char *saved_path) {
-  int i;
-  size_t best_len = 0;
-  DirEntry *best = NULL;
-
-  if (!vol || !saved_path || saved_path[0] == '\0' || !vol->dir_entry_list ||
-      vol->total_dirs <= 0)
-    return NULL;
-
-  for (i = 0; i < vol->total_dirs; i++) {
-    DirEntry *candidate = vol->dir_entry_list[i].dir_entry;
-    char candidate_path[PATH_LENGTH + 1];
-    size_t candidate_len;
-
-    if (!candidate)
-      continue;
-
-    GetPath(candidate, candidate_path);
-    candidate_path[PATH_LENGTH] = '\0';
-
-    if (strcmp(candidate_path, saved_path) == 0)
-      return candidate;
-
-    candidate_len = strlen(candidate_path);
-    if (candidate_len == 0 || candidate_len > strlen(saved_path))
-      continue;
-    if (strncmp(saved_path, candidate_path, candidate_len) != 0)
-      continue;
-    if (saved_path[candidate_len] != '\0' &&
-        saved_path[candidate_len] != FILE_SEPARATOR_CHAR)
-      continue;
-    if (candidate_len > best_len) {
-      best_len = candidate_len;
-      best = candidate;
-    }
-  }
-
-  return best;
-}
-
 static int FindDirIndexInVolume(const struct Volume *vol,
                                 const DirEntry *dir_entry) {
   int i;
@@ -215,11 +177,16 @@ static void RestorePanelFileSelection(ViewContext *ctx, YtreePanel *panel) {
     panel->start_file = 0;
   if (panel->file_cursor_pos < 0)
     panel->file_cursor_pos = 0;
+  if (state->saved_panel_generation != panel->panel_generation ||
+      state->saved_volume_generation != vol->volume_generation) {
+    panel->start_file = 0;
+    panel->file_cursor_pos = 0;
+  }
   (void)snprintf(panel->file_selection_name, sizeof(panel->file_selection_name),
                  "%s", state->saved_file_selection_name);
   (void)snprintf(panel->file_selection_dir_path,
-                 sizeof(panel->file_selection_dir_path), "%s",
-                 state->saved_file_selection_dir_path);
+                  sizeof(panel->file_selection_dir_path), "%s",
+                  state->saved_file_selection_dir_path);
 
   assert(state->saved_focus != FOCUS_FILE ||
          state->saved_file_selection_dir_path[0] != '\0');
@@ -227,7 +194,7 @@ static void RestorePanelFileSelection(ViewContext *ctx, YtreePanel *panel) {
     file_dir_path = state->saved_file_selection_dir_path;
 
   if (file_dir_path) {
-    resolved_file_dir = FindSavedDirInVolume(vol, file_dir_path);
+    resolved_file_dir = ResolvePanelAnchorTarget(panel, vol, file_dir_path);
     panel->file_dir_entry = resolved_file_dir;
     if (resolved_file_dir) {
       int resolved_index;
@@ -255,12 +222,15 @@ static void SavePanelTreeSelection(YtreePanel *panel) {
   if (selected_index < 0)
     selected_index = 0;
   panel->vol->saved_tree_index = selected_index;
+  panel->vol->saved_tree_generation = panel->panel_generation;
+  panel->vol->saved_tree_volume_generation = panel->vol->volume_generation;
 }
 
 static void RestorePanelTreeSelection(ViewContext *ctx, YtreePanel *panel) {
   int selected_index;
   int total_dirs;
   int win_height;
+  BOOL generation_valid;
 
   if (!ctx || !panel || !panel->vol)
     return;
@@ -272,11 +242,18 @@ static void RestorePanelTreeSelection(ViewContext *ctx, YtreePanel *panel) {
     return;
   }
 
-  selected_index = panel->vol->saved_tree_index;
-  if (selected_index < 0)
+  generation_valid =
+      panel->vol->saved_tree_generation == panel->panel_generation &&
+      panel->vol->saved_tree_volume_generation == panel->vol->volume_generation;
+  if (generation_valid) {
+    selected_index = panel->vol->saved_tree_index;
+    if (selected_index < 0)
+      selected_index = 0;
+    if (selected_index >= total_dirs)
+      selected_index = total_dirs - 1;
+  } else {
     selected_index = 0;
-  if (selected_index >= total_dirs)
-    selected_index = total_dirs - 1;
+  }
 
   win_height = ctx->layout.dir_win_height;
   if (win_height <= 0 && ctx->ctx_dir_window)

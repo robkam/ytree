@@ -110,6 +110,9 @@ struct Volume *Volume_Create(ViewContext *ctx) {
   /* Assign a unique ID and increment the serial counter */
   new_vol->id = ctx->volume_serial++;
   new_vol->saved_tree_index = 0;
+  new_vol->saved_tree_generation = 0;
+  new_vol->saved_tree_volume_generation = 0;
+  new_vol->volume_generation = 0;
   new_vol->saved_focus = FOCUS_TREE;
 
   /* Add the new volume to the global hash table (ctx->volumes_head)

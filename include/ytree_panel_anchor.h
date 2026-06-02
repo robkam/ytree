@@ -7,6 +7,9 @@ BOOL CapturePanelAnchorPath(const YtreePanel *panel, const struct Volume *vol,
                             char *out_path, size_t out_path_size);
 int FindDirIndexByPath(const struct Volume *vol, const char *path);
 int FindDirIndexByPathOrAncestor(const struct Volume *vol, const char *path);
+DirEntry *ResolvePanelAnchorTarget(const YtreePanel *panel,
+                                   const struct Volume *vol,
+                                   const char *anchor_path);
 void PositionPanelAtIndex(YtreePanel *panel, int idx);
 void RestorePanelAnchorPath(const struct Volume *vol, YtreePanel *panel,
                             const char *anchor_path);

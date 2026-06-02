@@ -8,6 +8,7 @@
 #include "../../include/ytree.h"
 #include "../../include/ytree_cmd.h"
 #include "../../include/ytree_fs.h"
+#include "../../include/ytree_panel_anchor.h"
 #include "../../include/ytree_ui.h"
 #include <assert.h>
 
@@ -427,43 +428,6 @@ void RefreshWindow(WINDOW *win) { wnoutrefresh(win); }
 
 static BOOL IsPanelSavedBigFileMode(const YtreePanel *panel);
 
-static int FindPanelDirIndexByEntry(const YtreePanel *panel,
-                                    const DirEntry *target) {
-  int i;
-
-  if (!panel || !panel->vol || !target || !panel->vol->dir_entry_list ||
-      panel->vol->total_dirs <= 0)
-    return -1;
-
-  for (i = 0; i < panel->vol->total_dirs; i++) {
-    if (panel->vol->dir_entry_list[i].dir_entry == target)
-      return i;
-  }
-
-  return -1;
-}
-
-static int FindPanelDirIndexByPath(const YtreePanel *panel, const char *path) {
-  int i;
-  char candidate_path[PATH_LENGTH + 1];
-
-  if (!panel || !panel->vol || !path || !*path || !panel->vol->dir_entry_list ||
-      panel->vol->total_dirs <= 0)
-    return -1;
-
-  for (i = 0; i < panel->vol->total_dirs; i++) {
-    const DirEntry *candidate = panel->vol->dir_entry_list[i].dir_entry;
-    if (!candidate)
-      continue;
-    GetPath((DirEntry *)candidate, candidate_path);
-    candidate_path[PATH_LENGTH] = '\0';
-    if (strcmp(candidate_path, path) == 0)
-      return i;
-  }
-
-  return -1;
-}
-
 static void ComputePanelRenderPosition(const YtreePanel *panel, int idx,
                                        int *begin_out, int *cursor_out) {
   int height;
@@ -493,29 +457,14 @@ static void ComputePanelRenderPosition(const YtreePanel *panel, int idx,
 }
 
 static DirEntry *ResolvePanelFileAnchor(const YtreePanel *panel) {
-  const DirEntry *anchor = NULL;
-  int anchor_idx = -1;
-
   if (!panel || !panel->vol || panel->saved_focus != FOCUS_FILE)
     return NULL;
   assert(panel->file_selection_dir_path[0] != '\0');
   if (panel->file_selection_dir_path[0] == '\0')
     return NULL;
 
-  anchor_idx = FindPanelDirIndexByPath(panel, panel->file_selection_dir_path);
-  if (anchor_idx < 0)
-    return NULL;
-
-  anchor = panel->vol->dir_entry_list[anchor_idx].dir_entry;
-  while (anchor && !PanelDirIsVisible(panel, anchor))
-    anchor = anchor->up_tree;
-  if (!anchor)
-    return NULL;
-  anchor_idx = FindPanelDirIndexByEntry(panel, anchor);
-  if (anchor_idx < 0)
-    return NULL;
-
-  return panel->vol->dir_entry_list[anchor_idx].dir_entry;
+  return ResolvePanelAnchorTarget(panel, panel->vol,
+                                  panel->file_selection_dir_path);
 }
 
 static DirEntry *ResolvePanelFileAnchorForRender(ViewContext *ctx,
