@@ -2,8 +2,10 @@ from pathlib import Path
 import re
 import time
 
+from helpers_stats import detect_stats_split_x as _detect_stats_split_x
 from helpers_source import extract_function_block as _extract_function_block
 from helpers_ui import footer_text as _footer_text
+from helpers_ui import line_marks_file_as_tagged as _line_marks_file_as_tagged
 from helpers_ui import screen_text as _screen_text
 from tui_harness import YtreeTUI
 from ytree_keys import Keys
@@ -500,6 +502,149 @@ def test_dir_window_split_and_tab_keeps_file_focus(ytree_binary, tmp_path):
     )
 
     tui.quit()
+
+
+def test_split_tab_refresh_rejects_stale_file_restore_snapshot(
+    ytree_binary, tmp_path
+):
+    home = tmp_path / "home" / "user"
+    repo = home / "ytree"
+    repo.mkdir(parents=True)
+    (home / ".ytree").write_text(
+        "[GLOBAL]\n"
+        "AUTO_REFRESH=3\n"
+        "TREEDEPTH=2\n"
+        "FILEMODE=2\n"
+        "SMALLWINDOWSKIP=1\n"
+        "HIDEDOTFILES=1\n",
+        encoding="utf-8",
+    )
+
+    for name in (
+        "build",
+        "coverage",
+        "docs",
+        "etc",
+        "include",
+        "infra",
+        "src",
+        "tests",
+    ):
+        (repo / name).mkdir()
+    src_cmd = repo / "src" / "cmd"
+    src_cmd.mkdir()
+    tests_dir = repo / "tests"
+    (repo / "bak.sh").write_text("#!/bin/sh\n", encoding="utf-8")
+
+    for idx in range(3):
+        (src_cmd / f"src_file_{idx}.c").write_text("x\n", encoding="utf-8")
+    for idx in range(4):
+        (tests_dir / f"test_file_{idx}.py").write_text("y\n", encoding="utf-8")
+
+    tui = YtreeTUI(
+        executable=ytree_binary, cwd=str(repo), env_extra={"HOME": str(home)}
+    )
+    time.sleep(0.8)
+
+    try:
+        def stats_current_dir_contains(marker):
+            lines = tui.get_screen_dump()
+            split_x = _detect_stats_split_x(lines)
+            for i, line in enumerate(lines):
+                segment = line[split_x:] if split_x is not None else line
+                if "CURRENT DIR" not in segment:
+                    continue
+                for j in (1, 2):
+                    idx = i + j
+                    if idx >= len(lines):
+                        continue
+                    candidate = (
+                        lines[idx][split_x:] if split_x is not None else lines[idx]
+                    )
+                    if marker in candidate:
+                        return True
+            return False
+
+        found_src = False
+        for _ in range(80):
+            if stats_current_dir_contains("src"):
+                found_src = True
+                break
+            tui.send_keystroke(Keys.DOWN, wait=0.12)
+        assert found_src, _screen_text(tui)
+
+        tui.send_keystroke(Keys.RIGHT, wait=0.25)
+
+        found_cmd = False
+        for _ in range(80):
+            if stats_current_dir_contains("cmd"):
+                found_cmd = True
+                break
+            tui.send_keystroke(Keys.DOWN, wait=0.12)
+        assert found_cmd, _screen_text(tui)
+
+        tui.send_keystroke(Keys.RIGHT, wait=0.2)
+        tui.send_keystroke(Keys.ENTER, wait=0.45)
+        assert "hex invert j compare" in _footer_text(tui), _screen_text(tui)
+
+        tui.send_keystroke("t", wait=0.2)
+        tui.send_keystroke(Keys.DOWN, wait=0.2)
+        tui.send_keystroke("t", wait=0.2)
+        tui.send_keystroke(Keys.DOWN, wait=0.2)
+        tui.send_keystroke("t", wait=0.2)
+
+        selected_name = "src_file_2.c"
+        pre_screen = _screen_text(tui)
+        pre_tag_state = {}
+        for name in ("src_file_0.c", "src_file_1.c", "src_file_2.c"):
+            line = next((line for line in pre_screen.splitlines() if name in line), None)
+            assert line is not None, pre_screen
+            pre_tag_state[name] = _line_marks_file_as_tagged(line, name)
+        assert any(pre_tag_state.values()), (
+            "Precondition failed: no tagged source files before split flow.\n"
+            f"{pre_screen}"
+        )
+
+        tui.send_keystroke("c", wait=0.3)
+        assert tui.wait_for_content(f"COPY: {selected_name}", timeout=1.0), (
+            _screen_text(tui)
+        )
+        tui.send_keystroke(Keys.ESC, wait=0.2)
+
+        tui.send_keystroke(Keys.F8, wait=0.4)
+        tui.send_keystroke(Keys.TAB, wait=0.4)
+        tui.send_keystroke(Keys.ENTER, wait=0.35)
+        tui.send_keystroke(Keys.HOME, wait=0.35)
+        tui.send_keystroke("M", wait=0.2)
+        assert tui.wait_for_content("MAKE DIRECTORY:", timeout=1.0), _screen_text(tui)
+        tui.send_keystroke("00" + Keys.ENTER, wait=0.8)
+
+        tui.send_keystroke(Keys.TAB, wait=0.5)
+        if "hex invert j compare" not in _footer_text(tui):
+            tui.send_keystroke(Keys.ENTER, wait=0.4)
+
+        after_tab = _screen_text(tui)
+        assert "hex invert j compare" in _footer_text(tui), after_tab
+
+        tui.send_keystroke("c", wait=0.3)
+        assert tui.wait_for_content(f"COPY: {selected_name}", timeout=1.0), (
+            _screen_text(tui)
+        )
+        tui.send_keystroke(Keys.ESC, wait=0.2)
+
+        for name, expected_tagged in pre_tag_state.items():
+            line = next((line for line in after_tab.splitlines() if name in line), None)
+            assert line is not None, (
+                "Source panel lost file rows after split restore.\n"
+                f"{after_tab}"
+            )
+            assert _line_marks_file_as_tagged(line, name) == expected_tagged, (
+                "Source panel tag state changed after in-app generation bump.\n"
+                f"Expected tagged={expected_tagged} Row: {line}\n"
+                f"{after_tab}"
+            )
+    finally:
+        tui.quit()
 
 
 def test_dir_right_arrow_drills_into_first_child_when_already_expanded(

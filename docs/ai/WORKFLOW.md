@@ -337,7 +337,7 @@ Never allow the AI to "guess" the cause of a bug. Use one of the following objec
 ### 4.1 Summary of Methodologies (by Usefulness)
 
 1.  **Targeted Root Cause Analysis:** Lightweight, hypothesis-driven approach using semantic tools (**Serena**/**jCodeMunch**) to compare working vs. broken cases.
-2.  **The "Hands-Off" Fix Mandate (Testing):** The mandatory procedure for **Antigravity**. Prove understanding by writing a failing `pytest`/`pexpect` test *before* editing code.
+2.  **The "Hands-Off" Fix Mandate (Testing):** The mandatory procedure for agentic execution. Prove understanding by writing a failing `pytest`/`pexpect` test *before* editing code.
 3.  **Instrumentation (The Discovery Loop):** Add `fprintf(stderr, ...)` to trace state. Used primarily for exploratory research in **AI Studio**.
 4.  **External Expert Architecture Analysis:** High-reasoning audit for complex, multi-subsystem, or architectural bugs. Requires a fresh LLM context.
 

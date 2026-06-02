@@ -2,7 +2,7 @@
 # WSL2 to Windows Notification Bridge
 # Uses powershell.exe to send a Toast notification.
 
-TITLE="${1:-Antigravity}"
+TITLE="${1:-ytree}"
 MESSAGE="${2:-Task completed}"
 
 # Use PowerShell to trigger a simple system notification

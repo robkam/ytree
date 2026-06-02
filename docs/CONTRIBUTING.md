@@ -146,6 +146,7 @@ Configure GitHub branch protection on `main`:
 3. Select required checks from GitHub Actions:
    - `.github/workflows/ci.yml`: `Guard fuzz harness sync`.
    - `.github/workflows/ci.yml`: `File mutation integrity gate`.
+   - `.github/workflows/ci.yml`: `Split panel regression gate` for split-touching PRs.
    - `.github/workflows/ci.yml`: `Full coverage baseline gate`.
    - `.github/workflows/ci.yml`: `Fuzz baseline gate`.
    - `.github/workflows/pr-conflict-assistant.yml`: `Up To Date With Main`.
@@ -210,16 +211,19 @@ Use **[AUDIT.md](AUDIT.md)** as the single source of truth.
 
 - During implementation, run focused checks first (`make` + targeted tests for touched scope).
 - Before merge to `main`, require green PR full-QA CI (`.github/workflows/full-qa.yml`, `make qa-all` equivalent). Local full audit loop is optional unless explicitly requested.
+- Split-touching PRs must also pass the path-filtered `make qa-split-panel-gates` CI gate before merge.
 - Use the canonical tool order from `AUDIT.md`: `clang-tidy`, `cppcheck`, `scan-build`, `valgrind`, then `pytest` for regression verification.
 
 ### Local QA Commands
 
 - Normal development build: `make`
 - Full local QA gate (optional unless maintainer-requested): `make qa-all` (includes `pytest`, unsafe C API guard, module-boundary guard, and fuzz smoke)
+- Split panel regression gate (use when touching split-panel invariants, transition handoff, or split-authority code): `make qa-split-panel-gates`
 - Full local QA gate with captured log (optional unless maintainer-requested): `make qa-all-log` (writes `qa-all.log` in repo root; override with `QA_LOG=/path/to/file`)
 - Max-depth unattended QA sweep: `make qa-deep` (runs composite deep checks and writes structured logs to `${TMPDIR:-/tmp}/ytree-qa-deep/<timestamp>/`; override with `QA_DEEP_LOG_ROOT=/path`)
 - Optional strict mode: `make QA_ON_BUILD=1` (runs `qa-all` after build)
 - GitHub baseline CI (`.github/workflows/ci.yml`) runs `make ci-baseline` on PRs to `main` and pushes to `main`.
+- GitHub split panel regression CI (`.github/workflows/ci.yml`) runs `make qa-split-panel-gates` on PRs that touch split-panel paths.
 - GitHub PR full QA CI (`.github/workflows/full-qa.yml`) runs `make qa-all` on PRs to `main` and is the required full pre-merge gate.
 - GitHub PR sanitizer gate in `.github/workflows/full-qa.yml` runs only on manual dispatch or when PR label `qa-sanitize` is present.
 - GitHub nightly deep Valgrind CI (`.github/workflows/nightly-deep-valgrind.yml`) runs `make qa-valgrind-full` on schedule (and manual dispatch).

@@ -36,8 +36,8 @@ These instructions apply to all AI agents used in this repository.
 ## User Notification
 
 - When finishing a long-running mission or when explicitly requesting user review via `notify_user`, you SHOULD trigger a desktop notification on the Windows host.
-- Execute: `/home/rob/ytree/scripts/wsl-notify.sh "Antigravity" "<Context-specific message>"`
-- Example: `/home/rob/ytree/scripts/wsl-notify.sh "Antigravity" "Implementation complete, ready for review."`
+- Execute: `/home/rob/ytree/scripts/wsl-notify.sh "ytree" "<Context-specific message>"`
+- Example: `/home/rob/ytree/scripts/wsl-notify.sh "ytree" "Implementation complete, ready for review."`
 
 ## Persona Skill Auto-Load
 
