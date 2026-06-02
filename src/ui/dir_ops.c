@@ -211,6 +211,7 @@ void HandlePlus(ViewContext *ctx, DirEntry *dir_entry, DirEntry *de_ptr,
   if (!dir_entry->unlogged_flag &&
       (dir_entry->sub_tree != NULL || dir_entry->file != NULL)) {
     dir_entry->not_scanned = FALSE;
+    p->vol->volume_generation++;
     BuildDirEntryList(ctx, p->vol, &p->current_dir_entry);
     BuildDirEntryList(ctx, p->vol, &p->current_dir_entry);
     if (inactive && inactive->vol == p->vol) {
@@ -980,26 +981,29 @@ void HandleDirMakeDirectory(ViewContext *ctx, DirEntry *dir_entry,
                     HST_FILE) == CR) {
     DEBUG_LOG("HandleDirMakeDirectory:requested='%s'", dir_name);
     DebugLogSplitState("HandleDirMakeDirectory:before_make", ctx);
-    if (!MakeDirectory(ctx, ctx->active, dir_entry, dir_name, s)) {
+  if (!MakeDirectory(ctx, ctx->active, dir_entry, dir_name, s)) {
       DebugLogSplitState("HandleDirMakeDirectory:after_make_before_rebuild",
                          ctx);
+      ctx->active->vol->volume_generation++;
       BuildDirEntryList(ctx, ctx->active->vol, &ctx->active->current_dir_entry);
       if (active_anchor_path[0] != '\0') {
-        const DirEntry *active_target =
-            FindDirByPathOrAncestor(ctx->active->vol, active_anchor_path);
-        ReanchorPanelToDir(ctx->active, active_target);
+        ReanchorPanelToDir(
+            ctx->active,
+            ResolvePanelAnchorTarget(ctx->active, ctx->active->vol,
+                                     active_anchor_path));
       }
       if (inactive && inactive->vol == ctx->active->vol) {
         const DirEntry *inactive_target = inactive_fallback;
         if (has_inactive_path) {
-          DirEntry *resolved = FindDirByPath(ctx->active->vol, inactive_path);
-          if (resolved)
-            inactive_target = resolved;
+          inactive_target =
+              ResolvePanelAnchorTarget(inactive, ctx->active->vol,
+                                       inactive_path);
         }
         ReanchorPanelToDir(inactive, inactive_target);
         if (restore_inactive_file_anchor) {
           DirEntry *resolved_file_dir =
-              FindDirByPath(inactive->vol, inactive_file_dir_path);
+              ResolvePanelAnchorTarget(inactive, inactive->vol,
+                                       inactive_file_dir_path);
           if (resolved_file_dir)
             inactive->file_dir_entry = resolved_file_dir;
           inactive->start_file = inactive_start_file;
@@ -1039,6 +1043,7 @@ DirEntry *HandleDirDeleteDirectory(ViewContext *ctx, DirEntry *dir_entry) {
   target_idx = ctx->active->disp_begin_pos + ctx->active->cursor_pos;
 
   if (!DeleteDirectory(ctx, dir_entry, UI_ChoiceResolver)) {
+    ctx->active->vol->volume_generation++;
     if (target_idx > 0)
       target_idx--;
   }
@@ -1089,6 +1094,7 @@ DirEntry *HandleDirRenameDirectory(ViewContext *ctx, DirEntry *dir_entry) {
   if (!GetRenameParameter(ctx, dir_entry->name, new_name)) {
     int rename_result = RenameDirectory(ctx, dir_entry, new_name);
     if (!rename_result) {
+      ctx->active->vol->volume_generation++;
       BuildDirEntryList(ctx, ctx->active->vol, &ctx->active->current_dir_entry);
       dir_entry = ctx->active->vol
                       ->dir_entry_list[ctx->active->disp_begin_pos +
@@ -1362,7 +1368,8 @@ void DirOps_ReloadPanelFileAnchorIfMissing(ViewContext *ctx, YtreePanel *panel,
   FreePathList(panel_tagged);
 
   BuildDirEntryList(ctx, panel->vol, &panel->current_dir_entry);
-  ReanchorPanelToDir(panel, FindDirByPathOrAncestor(panel->vol, dir_path));
+  ReanchorPanelToDir(panel,
+                     ResolvePanelAnchorTarget(panel, panel->vol, dir_path));
 }
 
 static BOOL PanelHasVisibleFiles(ViewContext *ctx, YtreePanel *panel,
@@ -1404,12 +1411,10 @@ static DirEntry *RestorePanelFileSelection(ViewContext *ctx, DirEntry *dir_entry
     current_dir_path[PATH_LENGTH] = '\0';
     if (strcmp(current_dir_path, panel->file_selection_dir_path) != 0) {
       exact_dir = FindDirByPath(panel->vol, panel->file_selection_dir_path);
-      if (exact_dir && EnsureDirVisible(ctx, panel, exact_dir))
-        resolved_dir = exact_dir;
-      if (!resolved_dir) {
-        resolved_dir =
-            FindDirByPathOrAncestor(panel->vol, panel->file_selection_dir_path);
-      }
+      if (exact_dir)
+        (void)EnsureDirVisible(ctx, panel, exact_dir);
+      resolved_dir = ResolvePanelAnchorTarget(panel, panel->vol,
+                                              panel->file_selection_dir_path);
       if (resolved_dir)
         dir_entry = resolved_dir;
       else if (panel->vol && panel->vol->vol_stats.tree)
@@ -2124,6 +2129,8 @@ void ToggleDotFiles(ViewContext *ctx, YtreePanel *p) {
   /* 2. Toggle active-panel state and synchronize context view filter. */
   p->hide_dot_files = !p->hide_dot_files;
   ctx->hide_dot_files = p->hide_dot_files;
+  p->panel_generation++;
+  p->vol->volume_generation++;
   RecalculateSysStats(ctx, s);
 
   /* 3. Rebuild the linear list of visible directories */
@@ -2189,12 +2196,9 @@ void ToggleDotFiles(ViewContext *ctx, YtreePanel *p) {
   }
 
   if (inactive && inactive->vol == p->vol && has_inactive_anchor_path) {
-    const DirEntry *inactive_target =
-        FindDirByPath(p->vol, inactive_anchor_path);
-    if (!inactive_target) {
-      inactive_target = FindDirByPathOrAncestor(p->vol, inactive_anchor_path);
-    }
-    ReanchorPanelToDir(inactive, inactive_target);
+    ReanchorPanelToDir(inactive,
+                       ResolvePanelAnchorTarget(inactive, p->vol,
+                                                inactive_anchor_path));
   }
 
   /* Refresh Directory Tree */

@@ -130,6 +130,7 @@ void CapturePanelSelectionAnchor(ViewContext *ctx, YtreePanel *panel,
                  "%s", selected_file->name);
   GetPath((DirEntry *)dir_entry, panel->file_selection_dir_path);
   panel->file_selection_dir_path[PATH_LENGTH] = '\0';
+  panel->panel_generation++;
 }
 
 BOOL RebindActiveFilePanelSelection(YtreePanel *panel, DirEntry **dir_entry_io) {
@@ -140,19 +141,11 @@ BOOL RebindActiveFilePanelSelection(YtreePanel *panel, DirEntry **dir_entry_io) 
 
   assert(panel->saved_focus != FOCUS_FILE ||
          panel->file_selection_dir_path[0] != '\0');
-  panel_dir = NULL;
-  if (panel->file_selection_dir_path[0] != '\0' && panel->vol) {
-    int panel_dir_idx =
-        FindDirIndexByPath(panel->vol, panel->file_selection_dir_path);
-    if (panel_dir_idx < 0) {
-      panel_dir_idx = FindDirIndexByPathOrAncestor(
-          panel->vol, panel->file_selection_dir_path);
-    }
-    if (panel_dir_idx >= 0 && panel->vol->dir_entry_list)
-      panel_dir = panel->vol->dir_entry_list[panel_dir_idx].dir_entry;
-  }
-  if (!panel_dir)
-    panel_dir = GetPanelDirEntry(panel);
+  if (!panel->vol || panel->file_selection_dir_path[0] == '\0')
+    return FALSE;
+
+  panel_dir = ResolvePanelAnchorTarget(panel, panel->vol,
+                                       panel->file_selection_dir_path);
   if (!panel_dir)
     return FALSE;
 

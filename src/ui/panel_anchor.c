@@ -111,6 +111,99 @@ int FindDirIndexByPathOrAncestor(const struct Volume *vol, const char *path) {
   return -1;
 }
 
+DirEntry *FindDirByPathOrAncestor(const struct Volume *vol, const char *path) {
+  int idx;
+
+  idx = FindDirIndexByPathOrAncestor(vol, path);
+  if (idx < 0 || !vol || !vol->dir_entry_list || idx >= vol->total_dirs)
+    return NULL;
+
+  return vol->dir_entry_list[idx].dir_entry;
+}
+
+static BOOL PanelAnchorTargetIsVisible(const YtreePanel *panel,
+                                       const struct Volume *vol,
+                                       const DirEntry *entry) {
+  char candidate_path[PATH_LENGTH + 1];
+
+  if (!panel || !vol || !entry)
+    return FALSE;
+
+  GetPath((DirEntry *)entry, candidate_path);
+  candidate_path[PATH_LENGTH] = '\0';
+  if (FindDirIndexByPath(vol, candidate_path) < 0)
+    return FALSE;
+
+  return PanelDirIsVisible(panel, entry);
+}
+
+static DirEntry *PanelAnchorFindVisibleAncestor(const YtreePanel *panel,
+                                                const struct Volume *vol,
+                                                DirEntry *entry) {
+  while (entry) {
+    if (entry->up_tree && PanelAnchorTargetIsVisible(panel, vol, entry))
+      return entry;
+    entry = entry->up_tree;
+  }
+
+  return NULL;
+}
+
+static DirEntry *PanelAnchorFindVisibleSibling(const YtreePanel *panel,
+                                               const struct Volume *vol,
+                                               DirEntry *entry) {
+  DirEntry *sibling;
+
+  if (!entry)
+    return NULL;
+
+  for (sibling = entry->next; sibling; sibling = sibling->next) {
+    if (PanelAnchorTargetIsVisible(panel, vol, sibling))
+      return sibling;
+  }
+  for (sibling = entry->prev; sibling; sibling = sibling->prev) {
+    if (PanelAnchorTargetIsVisible(panel, vol, sibling))
+      return sibling;
+  }
+
+  return NULL;
+}
+
+/*
+ * Canonical restore authority stays path-based; the helper only rebinds to
+ * the current visible list using the fixed fallback order from the spec.
+ */
+DirEntry *ResolvePanelAnchorTarget(const YtreePanel *panel,
+                                   const struct Volume *vol,
+                                   const char *anchor_path) {
+  DirEntry *exact;
+  DirEntry *ancestor;
+  DirEntry *sibling_base;
+
+  if (!panel || !vol || !anchor_path || !*anchor_path ||
+      !vol->vol_stats.tree)
+    return NULL;
+
+  exact = FindDirByPathInTree(vol->vol_stats.tree, anchor_path);
+  if (PanelAnchorTargetIsVisible(panel, vol, exact))
+    return exact;
+
+  ancestor = exact ? exact->up_tree : FindDirByPathOrAncestor(vol, anchor_path);
+  ancestor = PanelAnchorFindVisibleAncestor(panel, vol, ancestor);
+  if (ancestor)
+    return ancestor;
+
+  sibling_base = exact ? exact : FindDirByPathOrAncestor(vol, anchor_path);
+  for (; sibling_base && sibling_base->up_tree; sibling_base = sibling_base->up_tree) {
+    DirEntry *sibling = PanelAnchorFindVisibleSibling(panel, vol, sibling_base);
+
+    if (sibling)
+      return sibling;
+  }
+
+  return vol->vol_stats.tree;
+}
+
 void PositionPanelAtIndex(YtreePanel *panel, int idx) {
   int height;
 
@@ -141,10 +234,13 @@ void PositionPanelAtIndex(YtreePanel *panel, int idx) {
         panel->cursor_pos = 0;
     }
   }
+  panel->panel_generation++;
 }
 
 void RestorePanelAnchorPath(const struct Volume *vol, YtreePanel *panel,
                             const char *anchor_path) {
+  DirEntry *target;
+  char target_path[PATH_LENGTH + 1];
   int idx;
 
   if (!vol || !panel || !anchor_path || !*anchor_path)
@@ -153,13 +249,19 @@ void RestorePanelAnchorPath(const struct Volume *vol, YtreePanel *panel,
   if (panel->vol && panel->vol != vol)
     return;
 
-  idx = FindDirIndexByPathOrAncestor(vol, anchor_path);
+  target = ResolvePanelAnchorTarget(panel, vol, anchor_path);
+  if (!target)
+    return;
+
+  GetPath(target, target_path);
+  target_path[PATH_LENGTH] = '\0';
+  idx = FindDirIndexByPath(vol, target_path);
   if (idx < 0)
     return;
 
   PositionPanelAtIndex(panel, idx);
   if (panel->saved_focus == FOCUS_FILE)
-    panel->file_dir_entry = vol->dir_entry_list[idx].dir_entry;
+    panel->file_dir_entry = target;
 }
 
 static void FreePanelVolumeFileState(PanelVolumeFileState *state) {
@@ -219,6 +321,7 @@ void DonatePanelState(YtreePanel *dst, const YtreePanel *src) {
   dst->file_mode = src->file_mode;
   dst->max_column = src->max_column;
   dst->current_dir_entry = src->current_dir_entry;
+  dst->panel_generation = src->panel_generation;
   dst->saved_focus = src->saved_focus;
   dst->saved_big_file_view = src->saved_big_file_view;
   dst->max_visual_filename_len = src->max_visual_filename_len;
@@ -272,15 +375,9 @@ void EnsurePanelAnchorVisible(ViewContext *ctx, const struct Volume *vol,
       panel->file_selection_dir_path[0] == '\0')
     return;
 
-  idx = FindDirIndexByPath(vol, panel->file_selection_dir_path);
-  if (idx >= 0) {
-    target = vol->dir_entry_list[idx].dir_entry;
-    PositionPanelAtIndex(panel, idx);
-    panel->file_dir_entry = target;
-    return;
-  }
-
   target = FindDirByPathInTree(vol->vol_stats.tree, panel->file_selection_dir_path);
+  if (!target)
+    target = FindDirByPathOrAncestor(vol, panel->file_selection_dir_path);
   if (!target)
     return;
 
@@ -297,10 +394,17 @@ void EnsurePanelAnchorVisible(ViewContext *ctx, const struct Volume *vol,
     BuildDirEntryList(ctx, panel->vol, &panel->current_dir_entry);
   }
 
-  idx = FindDirIndexByPathOrAncestor(vol, panel->file_selection_dir_path);
-  if (idx >= 0) {
-    PositionPanelAtIndex(panel, idx);
-    panel->file_dir_entry = vol->dir_entry_list[idx].dir_entry;
+  target = ResolvePanelAnchorTarget(panel, vol, panel->file_selection_dir_path);
+  if (target) {
+    char target_path[PATH_LENGTH + 1];
+
+    GetPath(target, target_path);
+    target_path[PATH_LENGTH] = '\0';
+    idx = FindDirIndexByPath(vol, target_path);
+    if (idx >= 0) {
+      PositionPanelAtIndex(panel, idx);
+      panel->file_dir_entry = target;
+    }
   }
 }
 
