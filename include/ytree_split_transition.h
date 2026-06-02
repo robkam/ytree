@@ -17,6 +17,6 @@ BOOL SplitTransition_HandleFileWindowAction(
 BOOL SplitTransition_HandleDirWindowAction(
     ViewContext *ctx, YtreeAction action, DirEntry **dir_entry_ptr,
     Statistic **s_ptr, const struct Volume **start_vol_ptr,
-    BOOL *need_dsp_help_ptr, int *ch_ptr, int *unput_char_ptr);
+    BOOL *need_dsp_help_ptr, const int *ch_ptr, int *unput_char_ptr);
 
 #endif /* YTREE_SPLIT_TRANSITION_H */

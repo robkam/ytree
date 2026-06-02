@@ -1487,7 +1487,7 @@ HandleDirWindowPanelAction(ViewContext *ctx, YtreeAction action,
                            DirEntry **dir_entry_ptr, Statistic **s_ptr,
                            const struct Volume **start_vol_ptr,
                            BOOL *need_dsp_help_ptr, int *ch_ptr,
-                           int *unput_char_ptr) {
+                           const int *unput_char_ptr) {
   if (!ctx || !ctx->active || !dir_entry_ptr || !*dir_entry_ptr || !s_ptr ||
       !*s_ptr || !start_vol_ptr || !*start_vol_ptr || !need_dsp_help_ptr ||
       !ch_ptr || !unput_char_ptr) {
@@ -1692,6 +1692,14 @@ HandleDirWindowEnterAction(ViewContext *ctx, DirEntry **dir_entry_ptr,
     return DIR_WINDOW_DISPATCH_RETURN_ESC;
 
   *dir_entry_ptr = ResolveActiveDirEntry(ctx, *s_ptr);
+  if (ctx->active->saved_focus == FOCUS_FILE &&
+      ctx->active->file_selection_dir_path[0] != '\0') {
+    RestorePanelAnchorPath(ctx->active->vol, ctx->active,
+                           ctx->active->file_selection_dir_path);
+    *dir_entry_ptr = GetPanelDirEntry(ctx->active);
+    *dir_entry_ptr = RestorePanelFileSelection(ctx, *dir_entry_ptr,
+                                               ctx->active);
+  }
   RefreshView(ctx, *dir_entry_ptr);
   *action_ptr = ACTION_NONE;
   return DIR_WINDOW_DISPATCH_HANDLED;
