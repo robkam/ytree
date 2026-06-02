@@ -105,6 +105,36 @@ def test_HandleFileWindow_delegates_misc_dispatch_hotspot():
     )
 
 
+def test_HandleFileWindow_delegates_split_transition_hotspot():
+    ctrl_source = _read_source("src/ui/ctrl_file.c")
+    split_source = _read_source("src/ui/split_transition.c")
+    handle_block = _extract_function_block(ctrl_source, "int HandleFileWindow(")
+    split_block = _extract_function_block(
+        split_source, "BOOL SplitTransition_HandleFileWindowAction("
+    )
+
+    assert "SplitTransition_HandleFileWindowAction(" in handle_block, (
+        "HandleFileWindow must delegate split handling to the owner API.\n"
+        f"{handle_block}"
+    )
+    assert "handle_file_window_split_switch_action(" not in handle_block, (
+        "HandleFileWindow must stop calling the removed split helper.\n"
+        f"{handle_block}"
+    )
+    assert "CaptureSplitFilePanelSnapshot(" in split_block, (
+        "Split transition owner API must snapshot peer panel state before the "
+        f"transaction commits.\n{split_block}"
+    )
+    assert "AssertSplitFilePanelSnapshotUnchanged(" in split_block, (
+        "Split transition owner API must validate the inactive panel after "
+        f"Tab handoff.\n{split_block}"
+    )
+    assert "ctx->is_split_screen = !ctx->is_split_screen;" in split_block, (
+        "Split transition owner API must commit the split toggle inside the "
+        f"transaction.\n{split_block}"
+    )
+
+
 def test_PrintFileEntry_uses_inactive_split_highlight_style():
     render_source = _read_source("src/ui/render_file.c")
     print_file_entry_block = _extract_function_block(

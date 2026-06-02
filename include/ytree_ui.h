@@ -119,6 +119,8 @@ extern DirEntry *RefreshTreeSafe(ViewContext *ctx, YtreePanel *p,
 extern void DirOps_ReloadPanelFileAnchorIfMissing(ViewContext *ctx,
                                                   YtreePanel *panel,
                                                   DirEntry *dir_entry);
+extern DirEntry *RestorePanelFileSelection(ViewContext *ctx, DirEntry *dir_entry,
+                                           YtreePanel *panel);
 extern void PanelTags_Clear(YtreePanel *panel);
 extern void PanelTags_Copy(YtreePanel *dst, const YtreePanel *src);
 extern void PanelTags_PruneUnderDir(YtreePanel *panel, DirEntry *dir_entry);
@@ -233,10 +235,6 @@ extern void CapturePanelSelectionAnchor(ViewContext *ctx, YtreePanel *panel,
                                        const DirEntry *dir_entry);
 extern BOOL RebindActiveFilePanelSelection(YtreePanel *panel,
                                            DirEntry **dir_entry_io);
-extern BOOL handle_file_window_split_switch_action(
-    ViewContext *ctx, YtreeAction action, DirEntry *dir_entry,
-    YtreePanel *owner_panel, BOOL *switched_panel_ptr,
-    YtreeAction *loop_action_ptr, BOOL *return_esc_ptr);
 extern BOOL handle_file_window_volume_action(ViewContext *ctx,
                                              YtreeAction action,
                                              const struct Volume *start_vol,
