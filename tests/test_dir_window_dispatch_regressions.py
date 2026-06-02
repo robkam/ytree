@@ -457,15 +457,19 @@ def test_dir_window_split_transition_owner_path_is_canonical():
     )
     assert re.search(
         r"if\s*\(\s*ctx->is_split_screen\s*&&\s*ctx->active\s*==\s*ctx->right"
-        r"\s*&&\s*ctx->left\s*&&\s*ctx->right\s*\)",
+        r"\s*&&\s*ctx->left\s*&&\s*ctx->right\s*&&\s*!preserve_left_file_state"
+        r"\s*\)",
         split_source,
     ), (
-        "ACTION_SPLIT_SCREEN unsplit path must guard peer panels before state "
-        f"copy from right to left.\n{split_source}"
+        "ACTION_SPLIT_SCREEN unsplit path must guard peer panels and avoid "
+        f"overwriting the surviving left file anchor.\n{split_source}"
     )
-    assert "DonatePanelState(ctx->left, ctx->right);" in split_source, (
-        "Split transition ownership must donate the right panel state before "
-        f"closing the split.\n{split_source}"
+    assert (
+        "CapturePanelSelectionAnchor(ctx, ctx->left, left_dir_entry);"
+        in split_source
+    ), (
+        "Split transition ownership must recapture the surviving left file "
+        f"anchor before closing the split.\n{split_source}"
     )
     assert "RestorePanelFileSelection(ctx, *dir_entry_ptr, ctx->active);" in (
         split_source

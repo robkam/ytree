@@ -239,13 +239,10 @@ BOOL SplitTransition_HandleFileWindowAction(ViewContext *ctx, YtreeAction action
 
     {
       BOOL closing_split = ctx->is_split_screen;
-      BOOL preserve_peer_file_state =
-          ctx->left && ctx->left->file_selection_dir_path[0] != '\0' &&
-          ctx->left->file_selection_name[0] != '\0';
+      ViewFocus preserved_focus = ctx->focused_window;
       BOOL donate_active_state =
           closing_split && ctx->active == ctx->right && ctx->left &&
-          ctx->right && !preserve_peer_file_state;
-      ViewFocus preserved_focus = ctx->focused_window;
+          ctx->right && preserved_focus == FOCUS_FILE;
 
 #ifndef NDEBUG
       const YtreePanel *target_panel =
@@ -429,10 +426,8 @@ BOOL SplitTransition_HandleDirWindowAction(ViewContext *ctx, YtreeAction action,
   case ACTION_SPLIT_SCREEN:
     SplitTransitionDebugLogDirState("DirPanelAction:split:before", ctx);
     {
+      YtreePanel *closing_active = ctx->active;
       BOOL closing_split = ctx->is_split_screen;
-      BOOL preserve_peer_file_state =
-          ctx->left && ctx->left->file_selection_dir_path[0] != '\0' &&
-          ctx->left->file_selection_name[0] != '\0';
       BOOL donate_active_state = FALSE;
       BOOL preserve_left_file_state =
           ctx->left && ctx->left->file_selection_dir_path[0] != '\0' &&
@@ -443,8 +438,6 @@ BOOL SplitTransition_HandleDirWindowAction(ViewContext *ctx, YtreeAction action,
           ctx->right ? ctx->right->current_dir_entry : 0;
       unsigned int source_panel_generation =
           ctx->right ? ctx->right->panel_generation : 0U;
-      int left_start_file = ctx->left ? ctx->left->start_file : 0;
-      int left_file_cursor_pos = ctx->left ? ctx->left->file_cursor_pos : 0;
       char left_file_selection_name[PATH_LENGTH + 1];
       char left_file_selection_dir_path[PATH_LENGTH + 1];
       ViewFocus preserved_focus = ctx->focused_window;
@@ -461,11 +454,9 @@ BOOL SplitTransition_HandleDirWindowAction(ViewContext *ctx, YtreeAction action,
       }
 
       if (ctx->is_split_screen && ctx->active == ctx->right && ctx->left &&
-          ctx->right) {
-        donate_active_state = !preserve_peer_file_state;
-      }
+          ctx->right && !preserve_left_file_state)
+        donate_active_state = TRUE;
 
-      ctx->active->saved_focus = FOCUS_TREE;
       if (donate_active_state && ctx->left && ctx->right) {
         DonatePanelState(ctx->left, ctx->right);
         ctx->left->cursor_pos = source_cursor_pos;
@@ -474,6 +465,14 @@ BOOL SplitTransition_HandleDirWindowAction(ViewContext *ctx, YtreeAction action,
         ctx->left->panel_generation = source_panel_generation;
         ctx->left->saved_focus = FOCUS_TREE;
       }
+      if (preserve_left_file_state && !donate_active_state && ctx->left &&
+          ctx->left->vol) {
+        const DirEntry *left_dir_entry = GetPanelDirEntry(ctx->left);
+        if (left_dir_entry)
+          CapturePanelSelectionAnchor(ctx, ctx->left, left_dir_entry);
+      }
+      if (closing_active)
+        closing_active->saved_focus = FOCUS_TREE;
       ctx->is_split_screen = !ctx->is_split_screen;
       if (closing_split)
         ctx->active = ctx->left;
@@ -497,17 +496,8 @@ BOOL SplitTransition_HandleDirWindowAction(ViewContext *ctx, YtreeAction action,
         FreeFileEntryList(ctx->right);
         ctx->active = ctx->left;
         *dir_entry_ptr = GetPanelDirEntry(ctx->active);
-        if (preserve_left_file_state && !donate_active_state) {
+        if (preserve_left_file_state && !donate_active_state)
           ctx->active->saved_focus = FOCUS_FILE;
-          ctx->active->start_file = left_start_file;
-          ctx->active->file_cursor_pos = left_file_cursor_pos;
-          (void)snprintf(ctx->active->file_selection_name,
-                         sizeof(ctx->active->file_selection_name), "%s",
-                         left_file_selection_name);
-          (void)snprintf(ctx->active->file_selection_dir_path,
-                         sizeof(ctx->active->file_selection_dir_path), "%s",
-                         left_file_selection_dir_path);
-        }
         if (ctx->active->saved_focus == FOCUS_FILE) {
           if (ctx->active->file_selection_dir_path[0] != '\0') {
             /*
