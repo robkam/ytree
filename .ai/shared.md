@@ -9,6 +9,8 @@ These instructions apply to all AI agents used in this repository.
 - Codebase language: C (C89/C99, POSIX.1-2008)
 - Testing: Python `pytest` and `pexpect` from the local `.venv`
 - For non-trivial missions, follow the stateless multi-AI workflow in `docs/ai/WORKFLOW.md`: architect plans one task at a time, developer executes one task at a time, with maintainer-approved per-task commits and QA-gated merge/cleanup.
+- For GitHub work, use the GitHub connector as the primary source for PR/issue metadata, comments, reviews, reactions, and check state; use `gh` only when the connector does not expose the needed Actions log/run detail.
+- The GitHub connector is mainly for remote PR/issue review and discussion inside ChatGPT/Codex; use the local checkout for editing and testing.
 
 ## Persona Routing
 
