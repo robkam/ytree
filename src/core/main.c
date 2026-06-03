@@ -7,6 +7,7 @@
 
 #include "ytree_defs.h"
 #include "default_profile_template.h"
+#include "ytree_key_record.h"
 #include <errno.h>
 #include <fcntl.h>
 #include <signal.h>
@@ -387,6 +388,8 @@ int main(int argc, char **argv) {
   ctx.core_main_ops.suspend_clock(
       &ctx); /* Stop SIGALRM (now no-op but kept for API consistency) before
                 touching curses/memory */
+
+  KeyRecord_Stop(&ctx);
 
   attrset(0);  /* Reset attributes */
   clear();     /* Clear internal buffer */

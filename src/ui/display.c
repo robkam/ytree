@@ -48,13 +48,13 @@ static char dir_help_disk_mode_1[] =
     "(Z) archive (/) jump (`) dotfiles";
 static char dir_help_nav[] =
     "Tree  (F1) help  (F5) refresh  (F6) stats  (F7) autoview  "
-    "(F8) split  (F10) config  (Esc) cancel";
+    "(F8) split  (F10) config  (F12) record  (Esc) cancel";
 static char dir_help_nav_archive_to_root[] =
     "Tree  (F1) help  (F5) refresh  (F6) stats  (F7) autoview  "
-    "(F8) split  (F10) config  (\\) root  (Esc) cancel";
+    "(F8) split  (F10) config  (F12) record  (\\) root  (Esc) cancel";
 static char dir_help_nav_archive_exit[] =
     "Tree  (F1) help  (F5) refresh  (F6) stats  (F7) autoview  "
-    "(F8) split  (F10) config  (\\) exit  (Esc) cancel";
+    "(F8) split  (F10) config  (F12) record  (\\) exit  (Esc) cancel";
 static char *dir_help[MAX_MODES][2] = {
     {/* DISK_MODE */
      dir_help_disk_mode_0, dir_help_disk_mode_1},
@@ -81,13 +81,13 @@ static char file_help_disk_mode_1[] =
     "(/) jump (`) dotfiles";
 static char file_help_nav[] =
     "Dir   (F1) help  (F5) refresh  (F6) stats  (F7) autoview  "
-    "(F8) split  (F10) config  (Esc) cancel";
+    "(F8) split  (F10) config  (F12) record  (Esc) cancel";
 static char file_help_nav_showall[] =
     "Dir   (F1) help  (F5) refresh  (F6) stats  (F7) autoview  "
-    "(F8) split  (F10) config  (\\) to dir  (Esc) cancel";
+    "(F8) split  (F10) config  (F12) record  (\\) to dir  (Esc) cancel";
 static char file_help_nav_global[] =
     "Dir   (F1) help  (F5) refresh  (F6) stats  (F7) autoview  "
-    "(F8) split  (F10) config  (\\) to dir  (Esc) cancel";
+    "(F8) split  (F10) config  (F12) record  (\\) to dir  (Esc) cancel";
 static char *file_help[MAX_MODES][2] = {
     {/* DISK_MODE */
      file_help_disk_mode_0, file_help_disk_mode_1},

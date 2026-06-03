@@ -369,6 +369,7 @@ typedef enum {
   ACTION_CMD_TAGGED_Y,
   ACTION_CMD_TAGGED_PRINT,
   ACTION_LIST_JUMP,
+  ACTION_RECORD_KEYS,
   ACTION_TO_DIR,
   ACTION_TOGGLE_TAGGED_MODE,
   ACTION_TOGGLE_STATS,
@@ -1000,6 +1001,10 @@ typedef struct _ViewContext {
   char *initial_directory;
   char *confirm_quit;
   void *file_color_rules_head;
+
+  /* Optional raw key stream capture for bug-report repro files. */
+  FILE *key_record_file;
+  BOOL key_record_pause;
 
   /* ctrl_file state */
   int ctrl_file_max_disp_files;

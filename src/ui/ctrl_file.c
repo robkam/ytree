@@ -14,6 +14,7 @@
 #include "../../include/sort.h"
 #include "../../include/watcher.h"
 #include "../../include/ytree_cmd.h"
+#include "../../include/ytree_key_record.h"
 #include "../../include/ytree_fs.h"
 #include "../../include/ytree_split_transition.h"
 #include "../../include/ytree_ui.h"
@@ -648,6 +649,11 @@ int HandleFileWindow(ViewContext *ctx, DirEntry *dir_entry) {
       (void)handle_file_window_navigation_action(
           ctx, action, dir_entry, &start_x, &need_dsp_help,
           &preview_line_offset, UpdatePreview, ListJump);
+      break;
+
+    case ACTION_RECORD_KEYS:
+      (void)KeyRecord_BeginPrompt(ctx);
+      need_dsp_help = TRUE;
       break;
 
     case ACTION_TO_DIR:

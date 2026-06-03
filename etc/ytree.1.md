@@ -84,8 +84,8 @@ Activated by **F7**. The screen layout changes to show the file list on the left
 
 **Note:** All keys are case insensitive unless otherwise noted. The symbol `^` denotes the **CTRL** key. For most commands, pressing **^key** (indicated in footer menus only where different) applies the action to all **tagged** files in the current scope.
 
-### Global Commands
-These commands work in most modes:
+### Function Keys
+These keys work in most modes:
 
 *   **F1**: Help (context-sensitive in prompts/dialogs).
 *   **F5**: Refresh (same as **^L**).
@@ -93,7 +93,12 @@ These commands work in most modes:
 *   **F7**: Toggle File Preview Pane.
 *   **F8**: Toggle Split Screen Mode.
 *   **F10**: Edit `~/.ytree` in `$EDITOR`. If the file does not exist yet, the editor opens a new buffer at that path; save to create it (or run `ytree --init` to generate defaults first).
-*   **/** (or **F12**): **Incremental Jump** (List Jump). Start typing to jump to the first matching entry in the current list (directory names in the Directory Window, filenames in the File Window). The selection updates immediately as you type. Press **Enter** to accept the current match, or **Esc** to cancel and restore the original selection.
+*   **F12**: Start key trace recording. You will be prompted for an output file, and subsequent key input is recorded until ytree exits.
+
+### Global Commands
+These commands work in most modes:
+
+*   **/**: **Incremental Jump** (List Jump). Start typing to jump to the first matching entry in the current list (directory names in the Directory Window, filenames in the File Window). The selection updates immediately as you type. Press **Enter** to accept the current match, or **Esc** to cancel and restore the original selection.
 *   **\\**: In **Showall**/**Global** file lists, exit that mode and jump to the selected file in its owner directory. In Archive-Dir mode, `\\` jumps to archive root when used below root, and exits to the parent physical directory when used at archive root. In normal filesystem dir/file windows and Archive-File mode, `\\` is a no-op.
 *   **B**: Toggle Brief (Compact) filename view in the File Window.
 *   **^L**: **Reload**. Re-read the contents of the current directory from disk and refresh the view.

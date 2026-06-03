@@ -7,6 +7,7 @@
  ***************************************************************************/
 
 #include "watcher.h"
+#include "ytree_key_record.h"
 #include "ytree_cmd.h"
 #include "ytree_ui.h"
 #include <ctype.h>
@@ -321,9 +322,11 @@ void HitReturnToContinue(void) {
 
 BOOL KeyPressed() {
   BOOL pressed = FALSE;
+  int c;
 
   nodelay(stdscr, TRUE);
-  int c = wgetch(stdscr);
+  c = wgetch(stdscr);
+
   if (c != ERR) {
     pressed = TRUE;
     ungetch(c);
@@ -340,7 +343,9 @@ BOOL EscapeKeyPressed(void) {
   BOOL pressed = FALSE;
 
   nodelay(stdscr, TRUE);
-  if ((c = wgetch(stdscr)) != ERR) {
+  c = wgetch(stdscr);
+
+  if (c != ERR) {
     DEBUG_KEYSTROKE_LOG("EscapeKeyPressed() saw: %3d ('%c')", c,
                         (c >= 32 && c <= 126) ? c : '.');
 
@@ -607,7 +612,7 @@ YtreeAction GetKeyAction(const ViewContext *ctx, int ch) {
 
 #ifdef KEY_F
   case KEY_F(12):
-    return ACTION_LIST_JUMP;
+    return ACTION_RECORD_KEYS;
   case KEY_F(8):
     return ACTION_SPLIT_SCREEN;
   case KEY_F(7):
@@ -693,35 +698,52 @@ int WGetch(ViewContext *ctx, WINDOW *win) {
   }
 #endif
 
+  if (ctx != NULL && c >= 0)
+    KeyRecord_Log(ctx, c);
+
   return (c);
 }
 
 int Getch(ViewContext *ctx) { return WGetch(ctx, stdscr); }
 
-static int NormalizeEscSequence(int ch) {
+static int NormalizeEscSequence(ViewContext *ctx, int ch) {
   int seq1;
   int seq2;
+  BOOL restore_pause = FALSE;
+  BOOL was_paused = FALSE;
 
   if (ch != ESC)
     return ch;
 
+  if (ctx != NULL) {
+    was_paused = ctx->key_record_pause;
+    KeyRecord_Pause(ctx, TRUE);
+    restore_pause = TRUE;
+  }
+
   nodelay(stdscr, TRUE);
-  seq1 = wgetch(stdscr);
+  seq1 = WGetch(ctx, stdscr);
   if (seq1 == ERR) {
     nodelay(stdscr, FALSE);
+    if (restore_pause)
+      KeyRecord_Pause(ctx, was_paused);
     return ESC;
   }
 
   if (seq1 != '[' && seq1 != 'O') {
     ungetch(seq1);
     nodelay(stdscr, FALSE);
+    if (restore_pause)
+      KeyRecord_Pause(ctx, was_paused);
     return ESC;
   }
 
-  seq2 = wgetch(stdscr);
+  seq2 = WGetch(ctx, stdscr);
   if (seq2 == ERR) {
     ungetch(seq1);
     nodelay(stdscr, FALSE);
+    if (restore_pause)
+      KeyRecord_Pause(ctx, was_paused);
     return ESC;
   }
 
@@ -748,7 +770,7 @@ static int NormalizeEscSequence(int ch) {
   case '4':
   case '7':
   case '8': {
-    int seq3 = wgetch(stdscr);
+    int seq3 = WGetch(ctx, stdscr);
     if (seq3 == '~') {
       ch = (seq2 == '1' || seq2 == '7') ? KEY_HOME : KEY_END;
     } else {
@@ -768,6 +790,8 @@ static int NormalizeEscSequence(int ch) {
   }
 
   nodelay(stdscr, FALSE);
+  if (restore_pause)
+    KeyRecord_Pause(ctx, was_paused);
   return ch;
 }
 
@@ -786,11 +810,18 @@ int GetEventOrKey(ViewContext *ctx) {
 
   /* Check if input is already available to avoid select delay */
   nodelay(stdscr, TRUE);
+  if (ctx != NULL)
+    KeyRecord_Pause(ctx, TRUE);
   ch = WGetch(ctx, stdscr);
+  if (ctx != NULL)
+    KeyRecord_Pause(ctx, FALSE);
   nodelay(stdscr, FALSE);
 
   if (ch != ERR) {
-    return NormalizeEscSequence(ch);
+    ch = NormalizeEscSequence(ctx, ch);
+    if (ctx != NULL && ch >= 0)
+      KeyRecord_Log(ctx, ch);
+    return ch;
   }
 
   if (ctx && ctx->resize_request)
@@ -829,10 +860,18 @@ int GetEventOrKey(ViewContext *ctx) {
           return 'q';
 
         nodelay(stdscr, TRUE);
+        if (ctx != NULL)
+          KeyRecord_Pause(ctx, TRUE);
         ch = WGetch(ctx, stdscr);
+        if (ctx != NULL)
+          KeyRecord_Pause(ctx, FALSE);
         nodelay(stdscr, FALSE);
-        if (ch != ERR)
-          return NormalizeEscSequence(ch);
+        if (ch != ERR) {
+          ch = NormalizeEscSequence(ctx, ch);
+          if (ctx != NULL && ch >= 0)
+            KeyRecord_Log(ctx, ch);
+          return ch;
+        }
         if (ctx && ctx->resize_request)
           return KEY_RESIZE;
 
@@ -850,7 +889,15 @@ int GetEventOrKey(ViewContext *ctx) {
 
     if (FD_ISSET(STDIN_FILENO, &fds)) {
       /* Input available, perform WGetch */
-      return NormalizeEscSequence(WGetch(ctx, stdscr));
+      if (ctx != NULL)
+        KeyRecord_Pause(ctx, TRUE);
+      ch = WGetch(ctx, stdscr);
+      if (ctx != NULL)
+        KeyRecord_Pause(ctx, FALSE);
+      ch = NormalizeEscSequence(ctx, ch);
+      if (ctx != NULL && ch >= 0)
+        KeyRecord_Log(ctx, ch);
+      return ch;
     }
   }
 }

@@ -25,6 +25,7 @@ class Keys:
     F5 = "\033[15~"
     F7 = "\033[18~"
     F8 = "\033[19~"
+    F12 = "\033[24~"
 
     # Core Commands
     ATTRIBUTE = "a"

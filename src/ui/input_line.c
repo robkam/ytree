@@ -9,6 +9,7 @@
  ***************************************************************************/
 
 #include "ytree_cmd.h"
+#include "ytree_key_record.h"
 #include "ytree_ui.h"
 #include <ctype.h>  /* For isalnum */
 #include <stdlib.h> /* For getenv */
@@ -85,16 +86,16 @@ static void format_mode_from_octal(const char *octal_digits, char mode_type,
   (void)snprintf(out, out_size, "%s", attrs);
 }
 
-static int normalize_prompt_escape_key(WINDOW *win, int ch) {
+static int normalize_prompt_escape_key(ViewContext *ctx, WINDOW *win, int ch) {
   int c1;
 
   if (!win || ch != ESC)
     return ch;
 
   nodelay(win, TRUE);
-  c1 = wgetch(win);
+  c1 = WGetch(ctx, win);
   if (c1 == '[' || c1 == 'O') {
-    int c2 = wgetch(win);
+    int c2 = WGetch(ctx, win);
     switch (c2) {
     case 'A':
       ch = KEY_UP;
@@ -272,17 +273,22 @@ static int UI_ReadStringInternal(ViewContext *ctx, YtreePanel *panel,
     wrefresh(win);
 
     curs_set(1); /* Ensure cursor is visible */
+    if (ctx != NULL)
+      KeyRecord_Pause(ctx, TRUE);
     ch = WGetch(ctx, win);
-    ch = normalize_prompt_escape_key(win, ch);
+    ch = normalize_prompt_escape_key(ctx, win, ch);
+    if (ctx != NULL)
+      KeyRecord_Pause(ctx, FALSE);
 
-
-    if (ch == ESC) {
-      break;
-    }
     if (ch == ERR) {
       /* Wait a tiny amount to prevent CPU hang on EOF/NonBlocking */
       napms(10);
       continue;
+    }
+    if (ctx != NULL && ch >= 0)
+      KeyRecord_Log(ctx, ch);
+    if (ch == ESC) {
+      break;
     }
     if (ch == '\n' || ch == '\r') {
       ch = CR; /* Standardize return */

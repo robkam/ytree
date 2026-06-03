@@ -174,7 +174,7 @@ The `ytree` input system follows a layered model designed for high-speed interac
 *   **`F8`**: split-screen toggle.
 *   **`F9`**: user menu (Macros).
 *   **`F10`**: configuration.
-*   **`F12`**: incremental jump (Legacy alias for `/`).
+*   **`F12`**: start key trace recording and prompt for an output file.
 
 ### 4.5 Prompt Interaction Standards
 When a text prompt is active, specialized conventions ensure a refined editing experience:

@@ -8,6 +8,7 @@
 #define NO_YTREE_MACROS
 #include "watcher.h"
 #include "ytree_cmd.h"
+#include "ytree_key_record.h"
 #include "ytree_fs.h"
 #include "ytree_panel_anchor.h"
 #include "ytree_split_transition.h"
@@ -903,6 +904,10 @@ extern int HandleDirWindow(ViewContext *ctx, const DirEntry *start_dir_entry) {
       break;
     case ACTION_LIST_JUMP:
       DirListJump(ctx, &dir_entry, s);
+      need_dsp_help = TRUE;
+      break;
+    case ACTION_RECORD_KEYS:
+      (void)KeyRecord_BeginPrompt(ctx);
       need_dsp_help = TRUE;
       break;
     case ACTION_TAG:
