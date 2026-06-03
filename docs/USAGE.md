@@ -145,8 +145,10 @@ These keys work in most modes:
 - **F10**: Edit `~/.ytree` in `$EDITOR`. If the file does not exist yet,
   the editor opens a new buffer at that path; save to create it (or run
   `ytree --init` to generate defaults first).
-- **F12**: Start key trace recording. You will be prompted for an output
-  file, and subsequent key input is recorded until ytree exits.
+- **F12**: Start/stop key trace recording. When inactive, ytree prompts
+  for an output file and pre-fills `ytree-keys-001.txt` or the next
+  available incremented name. When active, pressing **F12** stops
+  recording; recording also closes cleanly when ytree exits.
 
 ### Global Commands
 

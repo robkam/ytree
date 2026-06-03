@@ -8,6 +8,7 @@
 #include "../../include/ytree.h"
 #include "../../include/ytree_cmd.h"
 #include "../../include/ytree_fs.h"
+#include "../../include/ytree_key_record.h"
 #include "../../include/ytree_panel_anchor.h"
 #include "../../include/ytree_ui.h"
 #include <assert.h>
@@ -46,15 +47,6 @@ static char dir_help_disk_mode_1[] =
     "COMMANDS (O)nly tagged (P)ipe (Q)uit (R)ename (S)howall (T)ag (U)ntag mo(V)edir "
     "(W)rite e(X)ecute "
     "(Z) archive (/) jump (`) dotfiles";
-static char dir_help_nav[] =
-    "Tree  (F1) help  (F5) refresh  (F6) stats  (F7) autoview  "
-    "(F8) split  (F10) config  (F12) record  (Esc) cancel";
-static char dir_help_nav_archive_to_root[] =
-    "Tree  (F1) help  (F5) refresh  (F6) stats  (F7) autoview  "
-    "(F8) split  (F10) config  (F12) record  (\\) root  (Esc) cancel";
-static char dir_help_nav_archive_exit[] =
-    "Tree  (F1) help  (F5) refresh  (F6) stats  (F7) autoview  "
-    "(F8) split  (F10) config  (F12) record  (\\) exit  (Esc) cancel";
 static char *dir_help[MAX_MODES][2] = {
     {/* DISK_MODE */
      dir_help_disk_mode_0, dir_help_disk_mode_1},
@@ -79,15 +71,6 @@ static char file_help_disk_mode_1[] =
     "(P)ipe (Q)uit (R)ename (S)ort (W)rite e(X)ecute pathcop(Y) "
     "(Z) archive "
     "(/) jump (`) dotfiles";
-static char file_help_nav[] =
-    "Dir   (F1) help  (F5) refresh  (F6) stats  (F7) autoview  "
-    "(F8) split  (F10) config  (F12) record  (Esc) cancel";
-static char file_help_nav_showall[] =
-    "Dir   (F1) help  (F5) refresh  (F6) stats  (F7) autoview  "
-    "(F8) split  (F10) config  (F12) record  (\\) to dir  (Esc) cancel";
-static char file_help_nav_global[] =
-    "Dir   (F1) help  (F5) refresh  (F6) stats  (F7) autoview  "
-    "(F8) split  (F10) config  (F12) record  (\\) to dir  (Esc) cancel";
 static char *file_help[MAX_MODES][2] = {
     {/* DISK_MODE */
      file_help_disk_mode_0, file_help_disk_mode_1},
@@ -104,10 +87,65 @@ static char *file_help[MAX_MODES][2] = {
      file_help_disk_mode_0, /* Default unless changed by user prefs */
      file_help_disk_mode_1}};
 
+static const char *KeyRecordFooterLabel(const ViewContext *ctx) {
+  return KeyRecord_IsActive(ctx) ? "stop" : "record";
+}
+
+static void BuildDirNavLine(const ViewContext *ctx, const DirEntry *dir_entry,
+                            char *nav_line, size_t nav_line_size) {
+  const char *record_label = KeyRecordFooterLabel(ctx);
+
+  if (!nav_line || nav_line_size == 0)
+    return;
+
+  if (ctx->view_mode == ARCHIVE_MODE && dir_entry != NULL) {
+    if (dir_entry->up_tree != NULL) {
+      (void)snprintf(
+          nav_line, nav_line_size,
+          "Tree  (F1) help  (F5) refresh  (F6) stats  (F7) autoview  "
+          "(F8) split  (F10) config  (F12) %s  (\\) root  (Esc) cancel",
+          record_label);
+    } else {
+      (void)snprintf(
+          nav_line, nav_line_size,
+          "Tree  (F1) help  (F5) refresh  (F6) stats  (F7) autoview  "
+          "(F8) split  (F10) config  (F12) %s  (\\) exit  (Esc) cancel",
+          record_label);
+    }
+    return;
+  }
+
+  (void)snprintf(nav_line, nav_line_size,
+                 "Tree  (F1) help  (F5) refresh  (F6) stats  (F7) autoview  "
+                 "(F8) split  (F10) config  (F12) %s  (Esc) cancel",
+                 record_label);
+}
+
+static void BuildFileNavLine(const ViewContext *ctx, const DirEntry *dir_entry,
+                             char *nav_line, size_t nav_line_size) {
+  const char *record_label = KeyRecordFooterLabel(ctx);
+
+  if (!nav_line || nav_line_size == 0)
+    return;
+
+  if (dir_entry && dir_entry->global_flag) {
+    (void)snprintf(nav_line, nav_line_size,
+                   "Dir   (F1) help  (F5) refresh  (F6) stats  (F7) autoview  "
+                   "(F8) split  (F10) config  (F12) %s  (\\) to dir  (Esc) "
+                   "cancel",
+                   record_label);
+  } else {
+    (void)snprintf(nav_line, nav_line_size,
+                   "Dir   (F1) help  (F5) refresh  (F6) stats  (F7) autoview  "
+                   "(F8) split  (F10) config  (F12) %s  (Esc) cancel",
+                   record_label);
+  }
+}
+
 void DisplayDirHelp(ViewContext *ctx, const DirEntry *dir_entry) {
   int i;
   char *cptr;
-  const char *nav_line = dir_help_nav;
+  char nav_line[256];
 
   if (!ctx->ctx_menu_window)
     return;
@@ -124,10 +162,7 @@ void DisplayDirHelp(ViewContext *ctx, const DirEntry *dir_entry) {
   for (i = 0; i < 2; i++) {
     PrintOptions(ctx->ctx_menu_window, i, 0, dir_help[ctx->view_mode][i]);
   }
-  if (ctx->view_mode == ARCHIVE_MODE && dir_entry != NULL) {
-    nav_line = (dir_entry->up_tree != NULL) ? dir_help_nav_archive_to_root
-                                            : dir_help_nav_archive_exit;
-  }
+  BuildDirNavLine(ctx, dir_entry, nav_line, sizeof(nav_line));
   PrintNavLine(ctx->ctx_menu_window, 2, nav_line);
   UI_RenderStatusLineError(ctx);
   wnoutrefresh(ctx->ctx_menu_window);
@@ -136,7 +171,7 @@ void DisplayDirHelp(ViewContext *ctx, const DirEntry *dir_entry) {
 void DisplayFileHelp(ViewContext *ctx, const DirEntry *dir_entry) {
   int i;
   char *cptr;
-  const char *nav_line;
+  char nav_line[256];
 
   if (!ctx->ctx_menu_window)
     return;
@@ -153,12 +188,7 @@ void DisplayFileHelp(ViewContext *ctx, const DirEntry *dir_entry) {
   for (i = 0; i < 2; i++) {
     PrintOptions(ctx->ctx_menu_window, i, 0, file_help[ctx->view_mode][i]);
   }
-  if (dir_entry && dir_entry->global_flag) {
-    nav_line = dir_entry->global_all_volumes ? file_help_nav_global
-                                             : file_help_nav_showall;
-  } else {
-    nav_line = file_help_nav;
-  }
+  BuildFileNavLine(ctx, dir_entry, nav_line, sizeof(nav_line));
   PrintNavLine(ctx->ctx_menu_window, 2, nav_line);
   UI_RenderStatusLineError(ctx);
   wnoutrefresh(ctx->ctx_menu_window);

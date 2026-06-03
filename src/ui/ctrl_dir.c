@@ -907,7 +907,7 @@ extern int HandleDirWindow(ViewContext *ctx, const DirEntry *start_dir_entry) {
       need_dsp_help = TRUE;
       break;
     case ACTION_RECORD_KEYS:
-      (void)KeyRecord_BeginPrompt(ctx);
+      (void)KeyRecord_Toggle(ctx);
       need_dsp_help = TRUE;
       break;
     case ACTION_TAG:

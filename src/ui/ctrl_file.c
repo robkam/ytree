@@ -652,7 +652,7 @@ int HandleFileWindow(ViewContext *ctx, DirEntry *dir_entry) {
       break;
 
     case ACTION_RECORD_KEYS:
-      (void)KeyRecord_BeginPrompt(ctx);
+      (void)KeyRecord_Toggle(ctx);
       need_dsp_help = TRUE;
       break;
 

@@ -819,8 +819,6 @@ int GetEventOrKey(ViewContext *ctx) {
 
   if (ch != ERR) {
     ch = NormalizeEscSequence(ctx, ch);
-    if (ctx != NULL && ch >= 0)
-      KeyRecord_Log(ctx, ch);
     return ch;
   }
 
@@ -868,8 +866,6 @@ int GetEventOrKey(ViewContext *ctx) {
         nodelay(stdscr, FALSE);
         if (ch != ERR) {
           ch = NormalizeEscSequence(ctx, ch);
-          if (ctx != NULL && ch >= 0)
-            KeyRecord_Log(ctx, ch);
           return ch;
         }
         if (ctx && ctx->resize_request)
@@ -895,8 +891,6 @@ int GetEventOrKey(ViewContext *ctx) {
       if (ctx != NULL)
         KeyRecord_Pause(ctx, FALSE);
       ch = NormalizeEscSequence(ctx, ch);
-      if (ctx != NULL && ch >= 0)
-        KeyRecord_Log(ctx, ch);
       return ch;
     }
   }
