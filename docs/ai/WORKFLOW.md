@@ -330,6 +330,12 @@ Use this when wrapping up a PROMPT_TEMPLATE-driven mission and returning the rep
 14. **Maintainer (local):** Delete local feature branch:
     *   `git branch -d <branch>` (use `-D` only when needed)
 
+### GitHub Source Preference
+
+- For PRs, issues, comments, reviews, reactions, and check state, prefer the GitHub connector as the first source of truth.
+- Use `gh` for GitHub Actions log retrieval, job-level failure inspection, or other run details that the connector does not expose cleanly.
+- Treat the connector primarily as a remote PR/issue review and discussion surface inside ChatGPT/Codex; use the local checkout for code edits and tests.
+
 ## 4. Debugging Procedures
 
 Never allow the AI to "guess" the cause of a bug. Use one of the following objective methodologies, described in detail in **[DEBUGGING.md](DEBUGGING.md)**.
