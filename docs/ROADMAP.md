@@ -1349,10 +1349,9 @@ Ordering policy (for all editors, including AI editors):
 *   **Rationale:** Offers complex templating logic that goes beyond simple pipe/xargs, and critically allows the user to review/edit the generated script before execution for safety.
 *   - [ ] **Status:** Not Started.
 
-### **Idea FE-37: Implement Keyboard Macros (F12 Macros Submenu)**
-*   **Goal:** Add an `F12` macros submenu with explicit `Record` and `Playback` actions for keystroke recording and deterministic replay.
-*   **Rationale:** Allows automation of repetitive interaction sequences (for example "Tag, Move, Rename, Repeat") without creating shell command templates, while keeping the footer truthful and the common path simple.
-*   - [ ] **Status:** Not Started.
+### **Idea FE-37: Keyboard Macros**
+*   **Status:** Deferred.
+*   **Note:** Revisit only after a safe design exists that cannot turn traces into a secret-capturing scripting surface.
 
 ### **Idea FE-38: Enhance Built-In Viewer**
 *   **Goal:** Evolve ytree's internal viewer from a basic fallback inspector into a more capable built-in viewing tool for normal terminal workflows.

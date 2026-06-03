@@ -29,6 +29,10 @@ def test_f12_toggles_key_trace_recording_and_default_name(
 
     tui.send_keystroke(Keys.DOWN)
     tui.send_keystroke(Keys.UP)
+    tui.send_keystroke("/")
+    assert tui.wait_for_content("Jump to:"), "Jump prompt did not appear."
+    tui.send_keystroke("src")
+    tui.send_keystroke(Keys.ENTER)
 
     tui.send_keystroke(Keys.F12)
     assert tui.wait_for_content("F12 record"), "Record footer did not return."
@@ -52,19 +56,10 @@ def test_f12_toggles_key_trace_recording_and_default_name(
         if line.strip() and not line.startswith("#")
     ]
 
-    assert sum(line.endswith("KEY_DOWN") for line in recorded_lines) == 1, (
-        "Recording should stop after the first F12 toggle.\n"
-        f"Recorded lines: {recorded_lines}"
-    )
-    assert sum(line.endswith("KEY_UP") for line in recorded_lines) == 1, (
-        "Recording should stop after the first F12 toggle.\n"
-        f"Recorded lines: {recorded_lines}"
-    )
-    assert sum(line.endswith("KEY_F(12)") for line in recorded_lines) == 1, (
-        "Only the stop F12 press should be present in the trace.\n"
-        f"Recorded lines: {recorded_lines}"
-    )
-    assert sum(line.endswith("q") for line in recorded_lines) == 0, (
-        "Keys pressed after stopping should not be recorded.\n"
-        f"Recorded lines: {recorded_lines}"
-    )
+    assert recorded_lines == [
+        "key down",
+        "key up",
+        "key /",
+        "key enter",
+        "key f12",
+    ], f"Recorded lines did not use the human-readable trace format: {recorded_lines}"

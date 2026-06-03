@@ -1207,7 +1207,9 @@ static void DirListJump(ViewContext *ctx, DirEntry **dir_entry_ptr,
 
     DrawDirListJumpPrompt(ctx, jump_win, search_buf);
 
+    KeyRecord_Pause(ctx, TRUE);
     ch = Getch(ctx);
+    KeyRecord_Pause(ctx, FALSE);
     if (ch == -1)
       break;
 
@@ -1215,6 +1217,8 @@ static void DirListJump(ViewContext *ctx, DirEntry **dir_entry_ptr,
       ctx->active->disp_begin_pos = original_disp_begin_pos;
       ctx->active->cursor_pos = original_cursor_pos;
     } else if (ch == CR || ch == LF) {
+      if (ctx != NULL)
+        KeyRecord_Log(ctx, CR);
       break;
     } else if (ch == KEY_BACKSPACE || ch == 127 || ch == '\b' || ch == KEY_DC) {
       if (buf_len > 0) {

@@ -1017,7 +1017,9 @@ static void ListJump(ViewContext *ctx, DirEntry *dir_entry, char *str) {
 
     DrawFileListJumpPrompt(ctx, jump_win, search_buf);
 
+    KeyRecord_Pause(ctx, TRUE);
     ch = Getch(ctx);
+    KeyRecord_Pause(ctx, FALSE);
 
     /* Handle Resize or Error */
     if (ch == -1)
@@ -1034,6 +1036,8 @@ static void ListJump(ViewContext *ctx, DirEntry *dir_entry, char *str) {
     }
 
     if (ch == CR || ch == LF) {
+      if (ctx != NULL)
+        KeyRecord_Log(ctx, CR);
       /* Confirm: Keep new position */
       break;
     }

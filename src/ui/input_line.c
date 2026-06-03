@@ -56,6 +56,39 @@ static BOOL is_date_literal_char(int ch) {
   return (isdigit((unsigned char)ch) || ch == '-' || ch == ':' || ch == ' ');
 }
 
+static BOOL is_sensitive_prompt(const char *prompt) {
+  static const char *const sensitive_markers[] = {
+      "password",          "passphrase",      "passcode",
+      "secret",            "token",           "credential",
+      "verification code", "one-time code",   "otp",
+      "2fa",               "auth code",       "api key",
+  };
+  size_t i;
+
+  if (!prompt || *prompt == '\0')
+    return FALSE;
+
+  for (i = 0; i < sizeof(sensitive_markers) / sizeof(sensitive_markers[0]);
+       i++) {
+    const char *needle = sensitive_markers[i];
+    size_t needle_len = strlen(needle);
+    const char *hit = prompt;
+
+    while ((hit = strcasestr(hit, needle)) != NULL) {
+      int before = (hit == prompt) ? '\0' : (unsigned char)hit[-1];
+      int after = (unsigned char)hit[needle_len];
+
+      if ((before == '\0' || !isalnum((unsigned char)before)) &&
+          (after == '\0' || !isalnum((unsigned char)after))) {
+        return TRUE;
+      }
+      hit += needle_len;
+    }
+  }
+
+  return FALSE;
+}
+
 static void format_mode_from_octal(const char *octal_digits, char mode_type,
                                    char *out, size_t out_size) {
   mode_t mode_bits;
@@ -285,13 +318,15 @@ static int UI_ReadStringInternal(ViewContext *ctx, YtreePanel *panel,
       napms(10);
       continue;
     }
-    if (ctx != NULL && ch >= 0)
-      KeyRecord_Log(ctx, ch);
     if (ch == ESC) {
       break;
     }
     if (ch == '\n' || ch == '\r') {
       ch = CR; /* Standardize return */
+
+      if (ctx != NULL) {
+        KeyRecord_Log(ctx, ch);
+      }
 
       /* Handle Tilde Expansion on Enter */
       if (buffer[0] == '~') {
@@ -669,7 +704,7 @@ static int UI_ReadStringInternal(ViewContext *ctx, YtreePanel *panel,
   UI_Dialog_Close(ctx, win);
 
   /* Update History on success */
-  if (ch == CR && buffer[0] != '\0') {
+  if (ch == CR && buffer[0] != '\0' && !is_sensitive_prompt(prompt)) {
     InsHistory(ctx, buffer, history_type);
   }
 
