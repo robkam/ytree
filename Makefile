@@ -15,7 +15,6 @@ VERSIONDATE = April 2026
 # -------------------------------------------------------------------------
 SRC_DIR     = src
 INC_DIR     = include
-OBJ_DIR     = obj
 DOC_DIR     = docs
 BUILD_DIR   = build
 BIN_DIR     = .
@@ -91,10 +90,16 @@ endif
 # Run 'make DEBUG=1' for development (AddressSanitizer enabled)
 # Run 'make' for release (Optimized, no runtime dependency on ASan)
 # -------------------------------------------------------------------------
+BUILD_VARIANT ?= release
 ifeq ($(DEBUG),1)
+    BUILD_VARIANT = debug
     # Debug Build: Enable ASan, Debug Symbols, disable optimization
     CFLAGS  += -fsanitize=address -g -O1 -fno-omit-frame-pointer
     LDFLAGS += -fsanitize=address
+else ifeq ($(SANITIZE),1)
+    BUILD_VARIANT = sanitize
+else ifeq ($(COVERAGE),1)
+    BUILD_VARIANT = coverage
 else
     # Release Build: Standard Optimization.
     # Keep sanitizer builds at -O1 for better diagnostics and deterministic PTY timing.
@@ -102,6 +107,7 @@ else
         CFLAGS  += -O2
     endif
 endif
+OBJ_DIR     = obj/$(BUILD_VARIANT)
 
 # -------------------------------------------------------------------------
 # Files
@@ -247,7 +253,7 @@ git-aliases-status:
 
 # Clean build artifacts
 clean:
-	rm -rf $(OBJ_DIR) $(BUILD_DIR)
+	rm -rf obj $(BUILD_DIR)
 	rm -f core *~ *.orig *.bak
 	find $(SRC_DIR) -name "*.o" -o -name "*.d" -delete
 
