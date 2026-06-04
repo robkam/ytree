@@ -1596,6 +1596,54 @@ def test_enter_repo_src_cmd_preserves_tree_viewport_anchor(ytree_binary):
         tui.quit()
 
 
+def test_list_jump_preserves_visible_tree_viewport_with_hidden_prefix(
+    tmp_path, ytree_binary
+):
+    root = tmp_path / "list_jump_visible_viewport_hidden_prefix"
+    root.mkdir()
+    (root / ".ytree").write_text(
+        "[GLOBAL]\nTREEDEPTH=2\nHIDEDOTFILES=1\n",
+        encoding="utf-8",
+    )
+
+    for i in range(60):
+        (root / f".hidden_{i:02d}").mkdir()
+
+    for name in ("alpha", "src", "tests", "zeta"):
+        (root / name).mkdir()
+
+    tui = YtreeTUI(executable=ytree_binary, cwd=str(root))
+    time.sleep(1.0)
+
+    try:
+        before_lines = tui.get_screen_dump()
+        before_screen = "\n".join(before_lines)
+        before_first_row = _first_tree_row_segment(before_lines)
+        assert before_first_row is not None, before_screen
+        assert "src" in before_screen, before_screen
+
+        tui.send_keystroke("/", wait=0.2)
+        tui.send_keystroke("src", wait=0.3)
+        tui.send_keystroke(Keys.ENTER, wait=0.6)
+
+        after_lines = tui.get_screen_dump()
+        after_screen = "\n".join(after_lines)
+        after_first_row = _first_tree_row_segment(after_lines)
+
+        assert _stats_current_dir_contains(after_lines, "src"), (
+            "List-jump stopped on the wrong tree row.\n" f"{after_screen}"
+        )
+        assert after_first_row == before_first_row, (
+            "List-jump reanchored the tree viewport even though the target "
+            "directory was already visible.\n"
+            f"before_first_row={before_first_row!r}\n"
+            f"after_first_row={after_first_row!r}\n"
+            f"{after_screen}"
+        )
+    finally:
+        tui.quit()
+
+
 def test_split_tab_end_home_preserves_left_tree_viewport(tmp_path, ytree_binary):
     repo_root = Path(__file__).resolve().parents[1]
     home = tmp_path / "split_tab_end_home_home"

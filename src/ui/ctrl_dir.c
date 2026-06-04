@@ -1187,7 +1187,7 @@ static void DirListJump(ViewContext *ctx, DirEntry **dir_entry_ptr,
 
   height = getmaxy(ctx->ctx_dir_window);
   if (height <= 0)
-    return;
+    height = 1;
 
   original_disp_begin_pos = ctx->active->disp_begin_pos;
   original_cursor_pos = ctx->active->cursor_pos;
@@ -1230,22 +1230,8 @@ static void DirListJump(ViewContext *ctx, DirEntry **dir_entry_ptr,
             }
           }
 
-          if (found_idx != -1) {
-            if (found_idx >= ctx->active->disp_begin_pos &&
-                found_idx < ctx->active->disp_begin_pos + height) {
-              ctx->active->cursor_pos = found_idx - ctx->active->disp_begin_pos;
-            } else {
-              ctx->active->disp_begin_pos = found_idx;
-              ctx->active->cursor_pos = 0;
-              if (ctx->active->disp_begin_pos + height >
-                  ctx->active->vol->total_dirs) {
-                ctx->active->disp_begin_pos =
-                    MAXIMUM(0, ctx->active->vol->total_dirs - height);
-                ctx->active->cursor_pos =
-                    found_idx - ctx->active->disp_begin_pos;
-              }
-            }
-          }
+          if (found_idx != -1)
+            PositionPanelAtIndex(ctx->active, found_idx);
         }
       }
     } else if (isprint(ch)) {
@@ -1265,19 +1251,7 @@ static void DirListJump(ViewContext *ctx, DirEntry **dir_entry_ptr,
 
         if (found_idx != -1) {
           buf_len++;
-          if (found_idx >= ctx->active->disp_begin_pos &&
-              found_idx < ctx->active->disp_begin_pos + height) {
-            ctx->active->cursor_pos = found_idx - ctx->active->disp_begin_pos;
-          } else {
-            ctx->active->disp_begin_pos = found_idx;
-            ctx->active->cursor_pos = 0;
-            if (ctx->active->disp_begin_pos + height >
-                ctx->active->vol->total_dirs) {
-              ctx->active->disp_begin_pos =
-                  MAXIMUM(0, ctx->active->vol->total_dirs - height);
-              ctx->active->cursor_pos = found_idx - ctx->active->disp_begin_pos;
-            }
-          }
+          PositionPanelAtIndex(ctx->active, found_idx);
         } else {
           /* Sticky cursor: keep current selection when input has no match. */
           buf_len++;

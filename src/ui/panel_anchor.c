@@ -206,6 +206,8 @@ DirEntry *ResolvePanelAnchorTarget(const YtreePanel *panel,
 
 void PositionPanelAtIndex(YtreePanel *panel, int idx) {
   int height;
+  int begin;
+  int cursor;
 
   if (!panel || !panel->vol || !panel->vol->dir_entry_list ||
       panel->vol->total_dirs <= 0)
@@ -220,19 +222,14 @@ void PositionPanelAtIndex(YtreePanel *panel, int idx) {
   if (height < 1)
     height = 1;
 
-  if (idx >= panel->disp_begin_pos && idx < panel->disp_begin_pos + height) {
-    panel->cursor_pos = idx - panel->disp_begin_pos;
+  begin = panel->disp_begin_pos;
+  cursor = panel->cursor_pos;
+  if (PanelComputeViewportPosition(panel, idx, height, &begin, &cursor)) {
+    panel->disp_begin_pos = begin;
+    panel->cursor_pos = cursor;
   } else {
-    panel->disp_begin_pos = idx;
     panel->cursor_pos = 0;
-    if (panel->disp_begin_pos + height > panel->vol->total_dirs) {
-      panel->disp_begin_pos = panel->vol->total_dirs - height;
-      if (panel->disp_begin_pos < 0)
-        panel->disp_begin_pos = 0;
-      panel->cursor_pos = idx - panel->disp_begin_pos;
-      if (panel->cursor_pos < 0)
-        panel->cursor_pos = 0;
-    }
+    panel->disp_begin_pos = 0;
   }
   panel->panel_generation++;
 }
