@@ -775,6 +775,7 @@ typedef struct {
   int big_file_x, big_file_y, big_file_w, big_file_h;
   int cursor_pos;
   int disp_begin_pos;
+  char tree_viewport_top_dir_path[2][PATH_LENGTH + 1];
   int start_file;
   int file_cursor_pos;
   DirEntry *file_dir_entry;

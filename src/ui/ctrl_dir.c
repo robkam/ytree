@@ -1223,7 +1223,7 @@ static void DirListJump(ViewContext *ctx, DirEntry **dir_entry_ptr,
           found_idx = -1;
           for (i = 0; i < ctx->active->vol->total_dirs; i++) {
             DirEntry *candidate = ctx->active->vol->dir_entry_list[i].dir_entry;
-            if (candidate &&
+            if (candidate && PanelDirIsVisible(ctx->active, candidate) &&
                 strncasecmp(candidate->name, search_buf, buf_len) == 0) {
               found_idx = i;
               break;
@@ -1231,20 +1231,7 @@ static void DirListJump(ViewContext *ctx, DirEntry **dir_entry_ptr,
           }
 
           if (found_idx != -1) {
-            if (found_idx >= ctx->active->disp_begin_pos &&
-                found_idx < ctx->active->disp_begin_pos + height) {
-              ctx->active->cursor_pos = found_idx - ctx->active->disp_begin_pos;
-            } else {
-              ctx->active->disp_begin_pos = found_idx;
-              ctx->active->cursor_pos = 0;
-              if (ctx->active->disp_begin_pos + height >
-                  ctx->active->vol->total_dirs) {
-                ctx->active->disp_begin_pos =
-                    MAXIMUM(0, ctx->active->vol->total_dirs - height);
-                ctx->active->cursor_pos =
-                    found_idx - ctx->active->disp_begin_pos;
-              }
-            }
+            PositionPanelAtIndex(ctx->active, found_idx);
           }
         }
       }
@@ -1256,8 +1243,9 @@ static void DirListJump(ViewContext *ctx, DirEntry **dir_entry_ptr,
         found_idx = -1;
         for (i = 0; i < ctx->active->vol->total_dirs; i++) {
           DirEntry *candidate = ctx->active->vol->dir_entry_list[i].dir_entry;
-          if (candidate && strncasecmp(candidate->name, search_buf,
-                                       (size_t)buf_len + 1) == 0) {
+          if (candidate && PanelDirIsVisible(ctx->active, candidate) &&
+              strncasecmp(candidate->name, search_buf, (size_t)buf_len + 1) ==
+                  0) {
             found_idx = i;
             break;
           }
@@ -1265,19 +1253,7 @@ static void DirListJump(ViewContext *ctx, DirEntry **dir_entry_ptr,
 
         if (found_idx != -1) {
           buf_len++;
-          if (found_idx >= ctx->active->disp_begin_pos &&
-              found_idx < ctx->active->disp_begin_pos + height) {
-            ctx->active->cursor_pos = found_idx - ctx->active->disp_begin_pos;
-          } else {
-            ctx->active->disp_begin_pos = found_idx;
-            ctx->active->cursor_pos = 0;
-            if (ctx->active->disp_begin_pos + height >
-                ctx->active->vol->total_dirs) {
-              ctx->active->disp_begin_pos =
-                  MAXIMUM(0, ctx->active->vol->total_dirs - height);
-              ctx->active->cursor_pos = found_idx - ctx->active->disp_begin_pos;
-            }
-          }
+          PositionPanelAtIndex(ctx->active, found_idx);
         } else {
           /* Sticky cursor: keep current selection when input has no match. */
           buf_len++;
