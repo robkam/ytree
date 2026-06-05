@@ -528,24 +528,38 @@ static int CountPathSnapshot(const PathList *list) {
 }
 
 static void ReanchorPanelToDir(YtreePanel *panel, const DirEntry *target) {
-  int idx;
+  PanelViewportSnapshot snapshot;
 
   if (!panel)
     return;
   if (!panel->vol || panel->vol->total_dirs <= 0) {
     panel->disp_begin_pos = 0;
     panel->cursor_pos = 0;
+    RememberPanelViewportTop(panel);
     return;
   }
 
   if (!target)
     target = panel->vol->vol_stats.tree;
 
-  idx = FindDirIndex(panel->vol, target);
-  if (idx < 0)
-    idx = 0;
+  CapturePanelViewportSnapshot(panel, panel->vol, &snapshot);
+  if (target) {
+    char target_path[PATH_LENGTH + 1];
 
-  PositionPanelAtIndex(panel, idx);
+    GetPath((DirEntry *)target, target_path);
+    target_path[PATH_LENGTH] = '\0';
+    (void)snprintf(snapshot.selected_dir_path,
+                   sizeof(snapshot.selected_dir_path), "%s", target_path);
+    snapshot.selected_dir_path[PATH_LENGTH] = '\0';
+    snapshot.has_selected_dir_path = TRUE;
+  }
+  if (!RestorePanelViewportSnapshot(panel->vol, panel, &snapshot,
+                                    snapshot.top_dir_path)) {
+    int idx = FindDirIndex(panel->vol, target);
+    if (idx < 0)
+      idx = 0;
+    PositionPanelAtIndex(panel, idx);
+  }
 }
 
 BOOL DirOps_SelectVisibleDirAndRefresh(ViewContext *ctx, YtreePanel *panel,
@@ -987,28 +1001,23 @@ void HandleDirMakeDirectory(ViewContext *ctx, DirEntry *dir_entry,
 
 DirEntry *HandleDirDeleteDirectory(ViewContext *ctx, DirEntry *dir_entry) {
   InactiveFallbackSnapshot inactive_snapshot;
-  int target_idx;
+  PanelViewportSnapshot active_viewport;
 
   CaptureInactiveFallbackSnapshot(ctx, ctx->active, &inactive_snapshot);
-  target_idx = ctx->active->disp_begin_pos + ctx->active->cursor_pos;
+  CapturePanelViewportSnapshot(ctx->active, ctx->active->vol, &active_viewport);
 
   if (!DeleteDirectory(ctx, dir_entry, UI_ChoiceResolver)) {
     ctx->active->vol->volume_generation++;
-    if (target_idx > 0)
-      target_idx--;
   }
 
   BuildDirEntryList(ctx, ctx->active->vol, &ctx->active->current_dir_entry);
   if (ctx->active->vol && ctx->active->vol->dir_entry_list &&
       ctx->active->vol->total_dirs > 0) {
-    int visible_idx = PanelFindNextVisibleDirIndex(ctx->active, target_idx, -1);
-    if (visible_idx < 0)
-      visible_idx = PanelFindNextVisibleDirIndex(ctx->active, target_idx, 1);
-    if (visible_idx < 0)
-      visible_idx = PanelFindFirstVisibleDirIndex(ctx->active);
-    if (visible_idx >= 0)
-      target_idx = visible_idx;
-    PositionPanelAtIndex(ctx->active, target_idx);
+    if (!RestorePanelViewportSnapshot(ctx->active->vol, ctx->active,
+                                      &active_viewport,
+                                      active_viewport.top_dir_path)) {
+      PositionPanelAtIndex(ctx->active, 0);
+    }
   }
   if (inactive_snapshot.panel && inactive_snapshot.panel->vol == ctx->active->vol) {
     const DirEntry *inactive_target =
@@ -1844,17 +1853,18 @@ HandleDirWindowLogAction(ViewContext *ctx, DirEntry **dir_entry_ptr,
 void ToggleDotFiles(ViewContext *ctx, YtreePanel *p) {
   DirEntry *target;
   YtreePanel *inactive = NULL;
-  int i, found_idx = -1;
-  int win_height;
   const Statistic *s;
   char inactive_anchor_path[PATH_LENGTH + 1];
   BOOL has_inactive_anchor_path = FALSE;
+  PanelViewportSnapshot active_viewport;
+  const char *preferred_top_path = NULL;
 
   if (!ctx || !p || !p->vol)
     return;
 
   s = &p->vol->vol_stats;
   inactive_anchor_path[0] = '\0';
+  CapturePanelViewportSnapshot(p, p->vol, &active_viewport);
 
   if (ctx->is_split_screen && ctx->left && ctx->right) {
     if (p == ctx->left)
@@ -1892,82 +1902,22 @@ void ToggleDotFiles(ViewContext *ctx, YtreePanel *p) {
    * rebuild */
   SuspendClock(ctx);
 
-  /* 1. Identify the directory currently under the cursor */
-  if (p->vol->total_dirs > 0 &&
-      (p->disp_begin_pos + p->cursor_pos < p->vol->total_dirs)) {
-    target =
-        p->vol->dir_entry_list[p->disp_begin_pos + p->cursor_pos].dir_entry;
-  } else {
-    target = s->tree;
-  }
-
-  /* 2. Toggle active-panel state and synchronize context view filter. */
+  /* Toggle active-panel state and synchronize context view filter. */
   p->hide_dot_files = !p->hide_dot_files;
   ctx->hide_dot_files = p->hide_dot_files;
   p->panel_generation++;
   p->vol->volume_generation++;
   RecalculateSysStats(ctx, s);
 
-  /* 3. Rebuild the linear list of visible directories */
+  /* Rebuild the linear list of visible directories. */
   BuildDirEntryList(ctx, p->vol, &p->current_dir_entry);
 
-  /* 4. Search for the 'target' directory in the new list */
-  DirEntry *search = target;
-  while (search != NULL && found_idx == -1) {
-    for (i = 0; i < p->vol->total_dirs; i++) {
-      if (p->vol->dir_entry_list[i].dir_entry == search &&
-          PanelDirIsVisible(p, search)) {
-        found_idx = i;
-        break;
-      }
-    }
-    /* If the target directory is now hidden, walk up to its parent */
-    if (found_idx == -1)
-      search = search->up_tree;
-  }
-
-  /* 5. Smart Restore of Cursor Position */
-  win_height = getmaxy(p->pan_dir_window);
-
-  if (found_idx != -1) {
-    /* Check if the found directory is within the current visible page */
-    if (found_idx >= p->disp_begin_pos &&
-        found_idx < p->disp_begin_pos + win_height) {
-      /* It's still on screen. Just update the cursor, don't scroll/jump. */
-      p->cursor_pos = found_idx - p->disp_begin_pos;
-    } else {
-      /* It moved off page. Re-center or adjust slightly. */
-      if (found_idx < win_height) {
-        p->disp_begin_pos = 0;
-        p->cursor_pos = found_idx;
-      } else {
-        /* Center the item */
-        p->disp_begin_pos = found_idx - (win_height / 2);
-
-        /* Bounds check for display position */
-        if (p->disp_begin_pos > p->vol->total_dirs - win_height) {
-          p->disp_begin_pos = p->vol->total_dirs - win_height;
-        }
-        if (p->disp_begin_pos < 0)
-          p->disp_begin_pos = 0;
-
-        p->cursor_pos = found_idx - p->disp_begin_pos;
-      }
-    }
-  } else {
-    /* Fallback to root if everything went wrong */
-    p->disp_begin_pos = 0;
-    p->cursor_pos = 0;
-  }
-
-  /* Sanity check cursor limits */
-  if (p->cursor_pos >= win_height)
-    p->cursor_pos = win_height - 1;
-  if (p->disp_begin_pos + p->cursor_pos >= p->vol->total_dirs) {
-    /* Move cursor to last valid item */
-    p->cursor_pos = (p->vol->total_dirs > 0)
-                        ? (p->vol->total_dirs - 1 - p->disp_begin_pos)
-                        : 0;
+  preferred_top_path = p->tree_viewport_top_dir_path[p->hide_dot_files ? 1 : 0];
+  if (preferred_top_path[0] == '\0')
+    preferred_top_path = active_viewport.top_dir_path;
+  if (!RestorePanelViewportSnapshot(p->vol, p, &active_viewport,
+                                    preferred_top_path)) {
+    PositionPanelAtIndex(p, 0);
   }
 
   if (inactive && inactive->vol == p->vol && has_inactive_anchor_path) {
@@ -1984,8 +1934,10 @@ void ToggleDotFiles(ViewContext *ctx, YtreePanel *p) {
   /* Update current dir pointer using the new accessor function
   because ToggleDotFiles might have changed the list layout */
   if (p->vol->total_dirs > 0) {
-    target =
-        p->vol->dir_entry_list[p->disp_begin_pos + p->cursor_pos].dir_entry;
+    int selected_idx = GetPanelVisibleSelectionIndex(p);
+    if (selected_idx < 0)
+      selected_idx = 0;
+    target = p->vol->dir_entry_list[selected_idx].dir_entry;
   } else {
     target = s->tree;
   }
@@ -2013,12 +1965,14 @@ void ToggleDotFiles(ViewContext *ctx, YtreePanel *p) {
 DirEntry *RefreshTreeSafe(ViewContext *ctx, YtreePanel *p, DirEntry *entry) {
   const Statistic *s;
   int saved_disp_begin;
+  PanelViewportSnapshot viewport;
 
   if (!p || !p->vol)
     return entry;
 
   s = &p->vol->vol_stats;
   saved_disp_begin = p->disp_begin_pos;
+  CapturePanelViewportSnapshot(p, p->vol, &viewport);
 
   /* RescanDir destroys/recreates FileEntry nodes. Any panel cache on this
    * volume would otherwise keep dangling pointers until that panel becomes
@@ -2044,9 +1998,6 @@ DirEntry *RefreshTreeSafe(ViewContext *ctx, YtreePanel *p, DirEntry *entry) {
     char saved_path[PATH_LENGTH + 1];
     int win_height;
     int dummy_width;
-    int found_idx = -1;
-    int i;
-    int max_begin;
 
     GetMaxYX(p->pan_dir_window, &win_height, &dummy_width);
     if (win_height < 1)
@@ -2086,51 +2037,59 @@ DirEntry *RefreshTreeSafe(ViewContext *ctx, YtreePanel *p, DirEntry *entry) {
     /* 4. Restore Selection */
     BuildDirEntryList(ctx, p->vol, &p->current_dir_entry);
 
-    /* Try to find the directory we were on */
-    char temp_path[PATH_LENGTH + 1];
-    for (i = 0; i < p->vol->total_dirs; i++) {
-      GetPath(p->vol->dir_entry_list[i].dir_entry, temp_path);
-      if (strcmp(temp_path, saved_path) == 0) {
-        found_idx = i;
-        break;
-      }
-    }
-    max_begin = MAXIMUM(0, p->vol->total_dirs - win_height);
-
-    if (found_idx != -1) {
-      int next_disp_begin = saved_disp_begin;
-
-      if (next_disp_begin < 0)
-        next_disp_begin = 0;
-      if (next_disp_begin > max_begin)
-        next_disp_begin = max_begin;
-
-      if (found_idx < next_disp_begin) {
-        next_disp_begin = found_idx;
-      } else if (found_idx >= next_disp_begin + win_height) {
-        next_disp_begin = found_idx - (win_height - 1);
-      }
-
-      if (next_disp_begin < 0)
-        next_disp_begin = 0;
-      if (next_disp_begin > max_begin)
-        next_disp_begin = max_begin;
-
-      p->disp_begin_pos = next_disp_begin;
-      p->cursor_pos = found_idx - p->disp_begin_pos;
-      if (p->cursor_pos < 0)
-        p->cursor_pos = 0;
-      if (p->cursor_pos >= win_height)
-        p->cursor_pos = win_height - 1;
-      entry =
-          p->vol->dir_entry_list[p->disp_begin_pos + p->cursor_pos].dir_entry;
+    if (RestorePanelViewportSnapshot(p->vol, p, &viewport, viewport.top_dir_path)) {
+      entry = GetPanelDirEntry(p);
     } else {
-      /* Fallback to start if dir moved/deleted */
-      if (p->vol->total_dirs > 0 &&
-          (p->disp_begin_pos + p->cursor_pos >= p->vol->total_dirs)) {
-        p->disp_begin_pos = 0;
-        p->cursor_pos = 0;
-        entry = p->vol->dir_entry_list[0].dir_entry;
+      /* Try to find the directory we were on */
+      char temp_path[PATH_LENGTH + 1];
+      int found_idx = -1;
+      int i;
+      int max_begin;
+
+      for (i = 0; i < p->vol->total_dirs; i++) {
+        GetPath(p->vol->dir_entry_list[i].dir_entry, temp_path);
+        if (strcmp(temp_path, saved_path) == 0) {
+          found_idx = i;
+          break;
+        }
+      }
+      max_begin = MAXIMUM(0, p->vol->total_dirs - win_height);
+
+      if (found_idx != -1) {
+        int next_disp_begin = saved_disp_begin;
+
+        if (next_disp_begin < 0)
+          next_disp_begin = 0;
+        if (next_disp_begin > max_begin)
+          next_disp_begin = max_begin;
+
+        if (found_idx < next_disp_begin) {
+          next_disp_begin = found_idx;
+        } else if (found_idx >= next_disp_begin + win_height) {
+          next_disp_begin = found_idx - (win_height - 1);
+        }
+
+        if (next_disp_begin < 0)
+          next_disp_begin = 0;
+        if (next_disp_begin > max_begin)
+          next_disp_begin = max_begin;
+
+        p->disp_begin_pos = next_disp_begin;
+        p->cursor_pos = found_idx - p->disp_begin_pos;
+        if (p->cursor_pos < 0)
+          p->cursor_pos = 0;
+        if (p->cursor_pos >= win_height)
+          p->cursor_pos = win_height - 1;
+        entry =
+            p->vol->dir_entry_list[p->disp_begin_pos + p->cursor_pos].dir_entry;
+      } else {
+        /* Fallback to start if dir moved/deleted */
+        if (p->vol->total_dirs > 0 &&
+            (p->disp_begin_pos + p->cursor_pos >= p->vol->total_dirs)) {
+          p->disp_begin_pos = 0;
+          p->cursor_pos = 0;
+          entry = p->vol->dir_entry_list[0].dir_entry;
+        }
       }
     }
   } else {
@@ -2198,6 +2157,7 @@ int RefreshDirWindow(ViewContext *ctx, YtreePanel *p) {
   int result = -1;
   const Statistic *s;
   WINDOW *win;
+  PanelViewportSnapshot viewport;
 
   if (!p || !p->vol)
     return -1;
@@ -2205,8 +2165,27 @@ int RefreshDirWindow(ViewContext *ctx, YtreePanel *p) {
   s = &p->vol->vol_stats;
   win = p->pan_dir_window;
 
-  de_ptr = p->vol->dir_entry_list[p->disp_begin_pos + p->cursor_pos].dir_entry;
+  CapturePanelViewportSnapshot(p, p->vol, &viewport);
+  de_ptr = GetPanelDirEntry(p);
   BuildDirEntryList(ctx, p->vol, &p->current_dir_entry);
+
+  if (RestorePanelViewportSnapshot(p->vol, p, &viewport, viewport.top_dir_path)) {
+    de_ptr = GetPanelDirEntry(p);
+    if (!de_ptr)
+      return -1;
+    DisplayTree(ctx, p->vol, win, p->disp_begin_pos,
+                p->disp_begin_pos + p->cursor_pos, TRUE);
+    DisplayAvailBytes(ctx, s);
+    DisplayDiskStatistic(ctx, s);
+    UpdateStatsPanel(ctx, de_ptr, s);
+    DisplayFileWindow(ctx, p, de_ptr);
+    {
+      char path[PATH_LENGTH];
+      GetPath(de_ptr, path);
+      DisplayHeaderPath(ctx, path);
+    }
+    return 0;
+  }
 
   /* Search old entry */
   for (n = -1, i = 0; i < p->vol->total_dirs; i++) {

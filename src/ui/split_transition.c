@@ -283,6 +283,9 @@ BOOL SplitTransition_HandleFileWindowAction(ViewContext *ctx, YtreeAction action
           ctx->right->vol = ctx->left->vol;
           ctx->right->cursor_pos = ctx->left->cursor_pos;
           ctx->right->disp_begin_pos = ctx->left->disp_begin_pos;
+          memcpy(ctx->right->tree_viewport_top_dir_path,
+                 ctx->left->tree_viewport_top_dir_path,
+                 sizeof(ctx->right->tree_viewport_top_dir_path));
           ctx->right->hide_dot_files = ctx->left->hide_dot_files;
           /*
            * Split ownership boundary: a file-view split must keep the original
@@ -485,6 +488,9 @@ BOOL SplitTransition_HandleDirWindowAction(ViewContext *ctx, YtreeAction action,
           ctx->right->vol = ctx->left->vol;
           ctx->right->cursor_pos = ctx->left->cursor_pos;
           ctx->right->disp_begin_pos = ctx->left->disp_begin_pos;
+          memcpy(ctx->right->tree_viewport_top_dir_path,
+                 ctx->left->tree_viewport_top_dir_path,
+                 sizeof(ctx->right->tree_viewport_top_dir_path));
           ctx->right->start_file = ctx->left->start_file;
           ctx->right->file_cursor_pos = ctx->left->file_cursor_pos;
           ctx->right->saved_big_file_view = ctx->left->saved_big_file_view;

@@ -7,10 +7,13 @@ from pathlib import Path
 from helpers_files import wait_for_file as _wait_for_file
 from helpers_stats import detect_stats_split_x as _detect_stats_split_x
 from helpers_ui import (
+    assert_tree_viewport_origin_stable as _assert_tree_viewport_origin_stable,
     find_line_with_text as _find_line_with_text,
     footer_text as _footer_text,
     line_marks_file_as_tagged as _line_marks_file_as_tagged,
     screen_text as _screen_text,
+    tree_panel_selected_label as _tree_panel_selected_label,
+    tree_row_visible as _tree_row_visible,
 )
 from tui_harness import YtreeTUI
 from ytree_keys import Keys
@@ -119,6 +122,62 @@ def _first_tree_row_segment(lines, split_col=None):
 
 def _tree_segment_rows(lines, split_col):
     return [line[:split_col].rstrip() for line in lines[2:-4]]
+
+
+def _populate_hidden_prefix_viewport_tree(root):
+    root.mkdir(parents=True)
+    (root / ".ytree").write_text(
+        "[GLOBAL]\nTREEDEPTH=4\nHIDEDOTFILES=1\nSMALLWINDOWSKIP=0\n",
+        encoding="utf-8",
+    )
+
+    for i in range(40):
+        (root / f".hidden_{i:02d}").mkdir()
+
+    for name, child in (
+        ("go", "pkg"),
+        ("gone", "home"),
+        ("snap", "glow"),
+        ("wikiteam3_utilities", "for later"),
+        ("ytree", "docs"),
+    ):
+        d = root / name
+        d.mkdir()
+        (d / child).mkdir(parents=True)
+
+
+def _move_to_stats_dir(tui, marker, *, max_steps=160):
+    marker_token = f" {marker} "
+    for _ in range(max_steps):
+        if _stats_current_dir_contains(tui.get_screen_dump(), marker_token):
+            return
+        tui.send_keystroke(Keys.DOWN, wait=0.12)
+    pytest.fail(f"Failed to move selection to stats marker '{marker}'.\n{_screen_text(tui)}")
+
+
+def test_tree_viewport_helper_uses_current_row_and_exact_labels():
+    left_width = 60
+    lines = [
+        "Path: /work/wikiteam3_utilities/for later                                                    05-06-2026 20:46:55",
+        "l" + "q" * (left_width - 1) + "wqqqqq FILTER qqqqqk",
+        "x   mq/work".ljust(left_width) + "x           *       x",
+        "x     tqsnap".ljust(left_width) + "tqqq CURRENT DIR qqqu",
+        "x     tqgone".ljust(left_width) + "x for later         x",
+        "x     tqwikiteam3_utilities".ljust(left_width) + "x                   x",
+        "x     x mqfor later".ljust(left_width) + "x                   x",
+        "t" + "q" * left_width + "j                   x",
+        "x  No files".ljust(left_width) + "x                   x",
+        "m" + "q" * left_width + "vqqqqqqqqqqqqqqqqqqqj",
+        "DIR      Attributes Brief Copy Delete Filter Global Invert J compare Log Makedir Newfile",
+        "COMMANDS Only tagged Pipe Quit Rename Showall Tag Untag moVedir Write eXecute Z archive",
+        "←j Tree  F1 help  F5 refresh  F6 stats  F7 autoview  F8 split  F10 config  Esc cancel",
+    ]
+
+    assert _tree_panel_selected_label(lines) == "for later"
+    assert _tree_row_visible(lines, "for later")
+    assert not _tree_row_visible(lines, "for")
+    assert _tree_row_visible(lines, "gone")
+    assert not _tree_row_visible(lines, "go")
 
 
 def test_panel_switch_updates_small_window(dual_panel_sandbox, ytree_binary):
@@ -1534,10 +1593,10 @@ def test_enter_repo_src_cmd_preserves_tree_viewport_anchor(ytree_binary):
         move_to_stats_dir("src")
         before_src_lines = tui.get_screen_dump()
         before_src_screen = "\n".join(before_src_lines)
-        before_src_first_row = _first_tree_row_segment(
+        before_src_selected_label = _tree_panel_selected_label(
             before_src_lines, _detect_stats_split_x(before_src_lines)
         )
-        assert before_src_first_row is not None, before_src_screen
+        assert before_src_selected_label == "src", before_src_screen
 
         tui.send_keystroke(Keys.ENTER, wait=0.6)
         _assert_dir_mode_footer(tui, "Expected tree mode after entering src subtree.")
@@ -1548,25 +1607,25 @@ def test_enter_repo_src_cmd_preserves_tree_viewport_anchor(ytree_binary):
             "ENTER moved selection away from src unexpectedly.\n"
             f"{after_src_screen}"
         )
-        assert (
-            _first_tree_row_segment(
-                after_src_lines, _detect_stats_split_x(after_src_lines)
-            )
-            == before_src_first_row
-        ), (
-            "ENTER on src recentered tree viewport instead of preserving the "
-            "existing viewport origin.\n"
-            f"before_src_first_row={before_src_first_row!r}\n"
+        viewport = _assert_tree_viewport_origin_stable(
+            before_src_lines,
+            after_src_lines,
+            split_col=_detect_stats_split_x(after_src_lines),
+            label="ENTER on src",
+        )
+        assert viewport["selected_visible"], (
+            "ENTER on src should keep the selected tree row visible.\n"
             f"{after_src_screen}"
         )
+        assert "build" in after_src_screen and "src" in after_src_screen, after_src_screen
 
         move_to_stats_dir("cmd")
         before_cmd_lines = tui.get_screen_dump()
         before_cmd_screen = "\n".join(before_cmd_lines)
-        before_cmd_first_row = _first_tree_row_segment(
+        before_cmd_selected_label = _tree_panel_selected_label(
             before_cmd_lines, _detect_stats_split_x(before_cmd_lines)
         )
-        assert before_cmd_first_row is not None, before_cmd_screen
+        assert before_cmd_selected_label == "cmd", before_cmd_screen
 
         tui.send_keystroke(Keys.ENTER, wait=0.6)
         assert "hex invert j compare" in _footer_text(tui), _screen_text(tui)
@@ -1581,15 +1640,14 @@ def test_enter_repo_src_cmd_preserves_tree_viewport_anchor(ytree_binary):
             "Returning from cmd file view moved selection unexpectedly.\n"
             f"{after_cmd_screen}"
         )
-        assert (
-            _first_tree_row_segment(
-                after_cmd_lines, _detect_stats_split_x(after_cmd_lines)
-            )
-            == before_cmd_first_row
-        ), (
-            "Second ENTER on src/cmd recentered tree viewport after returning "
-            "from file view instead of preserving the existing viewport origin.\n"
-            f"before_cmd_first_row={before_cmd_first_row!r}\n"
+        viewport = _assert_tree_viewport_origin_stable(
+            before_cmd_lines,
+            after_cmd_lines,
+            split_col=_detect_stats_split_x(after_cmd_lines),
+            label="ENTER on src/cmd after file view",
+        )
+        assert viewport["selected_visible"], (
+            "Returning from cmd file view should keep the selected tree row visible.\n"
             f"{after_cmd_screen}"
         )
     finally:
@@ -1959,6 +2017,47 @@ def test_down_from_root_does_not_scroll_hidden_prefix(tmp_path, ytree_binary):
         tui.quit()
 
 
+def test_tree_jump_ignores_hidden_dot_prefix_descendants(tmp_path, ytree_binary):
+    root = tmp_path / "jump_hidden_prefix" / "home" / "rob"
+    root.mkdir(parents=True)
+    (root / ".ytree").write_text(
+        "[GLOBAL]\nTREEDEPTH=4\nHIDEDOTFILES=1\n",
+        encoding="utf-8",
+    )
+
+    hidden_src = root / ".local" / "src"
+    visible_src = root / "ytree" / "src"
+    hidden_src.mkdir(parents=True)
+    visible_src.mkdir(parents=True)
+    (hidden_src / "hidden_src_marker.txt").write_text("hidden\n", encoding="utf-8")
+    (visible_src / "visible_src_marker.txt").write_text("visible\n", encoding="utf-8")
+
+    tui = YtreeTUI(
+        executable=ytree_binary,
+        cwd=str(root),
+        env_extra={"HOME": str(root)},
+    )
+    time.sleep(1.0)
+    try:
+        tui.send_keystroke("/src" + Keys.ENTER, wait=0.8)
+
+        screen = _screen_text(tui)
+        assert "visible_src_marker.txt" in screen, (
+            "Visible tree jump should select the visible src directory.\n"
+            f"{screen}"
+        )
+        assert "hidden_src_marker.txt" not in screen, (
+            "Visible tree jump selected a hidden dot-directory descendant.\n"
+            f"{screen}"
+        )
+        assert "/.local/src" not in screen, (
+            "Visible tree jump resolved through a hidden dot-directory path.\n"
+            f"{screen}"
+        )
+    finally:
+        tui.quit()
+
+
 def test_mkdir_preserves_collapsed_children_after_left_enter(
     tmp_path, ytree_binary
 ):
@@ -2106,6 +2205,99 @@ def test_end_preserves_tree_viewport_with_hidden_prefix(tmp_path, ytree_binary):
         tui.quit()
 
 
+# Viewport-origin regression coverage notes:
+# - Dotfile reveal/conceal and visible-child delete exercise rebuild/mutation
+#   paths where selection remains visible and the top visible row must stay
+#   anchored.
+# - Mixed split-panel file/tree reactivation is covered by adjacent split
+#   viewport tests; these hidden-prefix fixtures stay filesystem-independent.
+def test_dotfiles_toggle_restores_tree_viewport_origin_with_hidden_prefix(
+    tmp_path, ytree_binary
+):
+    root = tmp_path / "dotfiles_toggle_hidden_prefix_viewport" / "home" / "rob"
+    _populate_hidden_prefix_viewport_tree(root)
+
+    tui = YtreeTUI(
+        executable=ytree_binary,
+        cwd=str(root),
+        env_extra={"HOME": str(root)},
+    )
+    time.sleep(1.0)
+    try:
+        _move_to_stats_dir(tui, "for later")
+        before_lines = tui.get_screen_dump()
+        before_screen = "\n".join(before_lines)
+        assert _tree_panel_selected_label(before_lines) == "for later", before_screen
+
+        tui.send_keystroke("`", wait=0.8)
+        assert _tree_panel_selected_label(tui.get_screen_dump()) == "for later", (
+            "Revealing dotfiles should preserve the selected directory.\n"
+            f"{_screen_text(tui)}"
+        )
+        tui.send_keystroke("`", wait=0.8)
+
+        after_lines = tui.get_screen_dump()
+        after_screen = "\n".join(after_lines)
+        assert _tree_panel_selected_label(after_lines) == "for later", after_screen
+        viewport = _assert_tree_viewport_origin_stable(
+            before_lines,
+            after_lines,
+            split_col=_detect_stats_split_x(after_lines),
+            label="dotfile reveal/conceal",
+        )
+        assert viewport["selected_visible"], (
+            "Dotfile reveal/conceal should keep the selected tree row visible.\n"
+            f"{after_screen}"
+        )
+    finally:
+        tui.quit()
+
+
+def test_delete_visible_child_restores_tree_viewport_origin_with_hidden_prefix(
+    tmp_path, ytree_binary
+):
+    root = tmp_path / "delete_hidden_prefix_viewport" / "home" / "rob"
+    _populate_hidden_prefix_viewport_tree(root)
+
+    tui = YtreeTUI(
+        executable=ytree_binary,
+        cwd=str(root),
+        env_extra={"HOME": str(root)},
+    )
+    time.sleep(1.0)
+    try:
+        _move_to_stats_dir(tui, "for later")
+        before_lines = tui.get_screen_dump()
+        before_screen = "\n".join(before_lines)
+        assert _tree_panel_selected_label(before_lines) == "for later", before_screen
+
+        tui.send_keystroke("d", wait=0.4)
+        assert tui.wait_for_content("Delete this directory", timeout=1.0), _screen_text(
+            tui
+        )
+        tui.send_keystroke("y", wait=1.2)
+
+        after_lines = tui.get_screen_dump()
+        after_screen = "\n".join(after_lines)
+        assert not (root / "wikiteam3_utilities" / "for later").exists()
+        assert _tree_panel_selected_label(after_lines) == "wikiteam3_utilities", (
+            after_screen
+        )
+        viewport = _assert_tree_viewport_origin_stable(
+            before_lines,
+            after_lines,
+            selected_label="wikiteam3_utilities",
+            split_col=_detect_stats_split_x(after_lines),
+            label="delete visible child",
+        )
+        assert viewport["selected_visible"], (
+            "Deleting a visible child should keep the parent tree row visible.\n"
+            f"{after_screen}"
+        )
+    finally:
+        tui.quit()
+
+
 def test_split_tab_round_trip_preserves_tree_viewport_with_hidden_prefix(
     tmp_path, ytree_binary
 ):
@@ -2133,23 +2325,31 @@ def test_split_tab_round_trip_preserves_tree_viewport_with_hidden_prefix(
     tui = YtreeTUI(executable=ytree_binary, cwd=str(root))
     time.sleep(1.0)
     try:
-        before = _first_tree_row_segment(tui.get_screen_dump())
-        assert before is not None, _screen_text(tui)
+        before_lines = tui.get_screen_dump()
+        before_selected_label = _tree_panel_selected_label(before_lines)
+        assert before_selected_label is not None, _screen_text(tui)
 
         tui.send_keystroke(Keys.F8, wait=0.6)
         tui.send_keystroke(Keys.TAB, wait=0.6)
         tui.send_keystroke(Keys.TAB, wait=0.6)
 
-        lines = tui.get_screen_dump()
-        split_col = _detect_split_column(lines)
-        assert split_col is not None, _screen_text(tui)
-        after = _first_tree_row_segment(lines, split_col=split_col)
-        stable_width = min(split_col, 40)
-        assert before[:stable_width].rstrip() == after[:stable_width].rstrip(), (
-            "Split Tab round-trip should not reanchor the first panel's tree "
-            "viewport when the visible rows still fit.\n"
-            f"Before: {before!r}\nAfter:  {after!r}\n{_screen_text(tui)}"
+        after_lines = tui.get_screen_dump()
+        viewport = _assert_tree_viewport_origin_stable(
+            before_lines,
+            after_lines,
+            split_col=_detect_split_column(after_lines),
+            label="Split Tab round-trip",
         )
+        if not viewport["selected_visible"]:
+            assert not _tree_row_visible(
+                after_lines,
+                viewport["selected_label"],
+                split_col=viewport["split_col"],
+                panel=viewport["panel"],
+            ), (
+                "Split Tab round-trip allowed the viewport to reanchor because the selected row is no longer visible.\n"
+                f"{_screen_text(tui)}"
+            )
     finally:
         tui.quit()
 

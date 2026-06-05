@@ -12,6 +12,49 @@
 #include <stdio.h>
 #include <string.h>
 
+static int PanelViewportSlot(const YtreePanel *panel) {
+  return (panel && panel->hide_dot_files) ? 1 : 0;
+}
+
+static int FindTopVisibleDirIndex(const YtreePanel *panel) {
+  int idx;
+
+  if (!panel || !panel->vol || !panel->vol->dir_entry_list ||
+      panel->vol->total_dirs <= 0)
+    return -1;
+
+  idx = panel->disp_begin_pos;
+  if (idx < 0)
+    idx = 0;
+  if (idx >= panel->vol->total_dirs)
+    idx = panel->vol->total_dirs - 1;
+
+  idx = PanelFindNextVisibleDirIndex(panel, idx, 1);
+  if (idx < 0)
+    idx = PanelFindFirstVisibleDirIndex(panel);
+
+  return idx;
+}
+
+void RememberPanelViewportTop(YtreePanel *panel) {
+  int idx;
+  int slot;
+
+  if (!panel)
+    return;
+
+  slot = PanelViewportSlot(panel);
+  panel->tree_viewport_top_dir_path[slot][0] = '\0';
+
+  idx = FindTopVisibleDirIndex(panel);
+  if (idx < 0)
+    return;
+
+  GetPath(panel->vol->dir_entry_list[idx].dir_entry,
+          panel->tree_viewport_top_dir_path[slot]);
+  panel->tree_viewport_top_dir_path[slot][PATH_LENGTH] = '\0';
+}
+
 BOOL CapturePanelAnchorPath(const YtreePanel *panel, const struct Volume *vol,
                             char *out_path, size_t out_path_size) {
   int idx;
@@ -40,11 +83,9 @@ BOOL CapturePanelAnchorPath(const YtreePanel *panel, const struct Volume *vol,
   if (!vol->dir_entry_list || vol->total_dirs <= 0)
     return FALSE;
 
-  idx = panel->disp_begin_pos + panel->cursor_pos;
+  idx = GetPanelVisibleSelectionIndex(panel);
   if (idx < 0)
-    idx = 0;
-  if (idx >= vol->total_dirs)
-    idx = vol->total_dirs - 1;
+    return FALSE;
   entry = vol->dir_entry_list[idx].dir_entry;
   if (!entry)
     return FALSE;
@@ -52,6 +93,36 @@ BOOL CapturePanelAnchorPath(const YtreePanel *panel, const struct Volume *vol,
   GetPath(entry, out_path);
   out_path[out_path_size - 1] = '\0';
   return TRUE;
+}
+
+void CapturePanelViewportSnapshot(YtreePanel *panel, const struct Volume *vol,
+                                  PanelViewportSnapshot *snapshot) {
+  int idx;
+
+  if (!snapshot)
+    return;
+
+  snapshot->selected_dir_path[0] = '\0';
+  snapshot->top_dir_path[0] = '\0';
+  snapshot->has_selected_dir_path = FALSE;
+  snapshot->has_top_dir_path = FALSE;
+
+  if (!panel || !vol || panel->vol != vol)
+    return;
+
+  RememberPanelViewportTop(panel);
+
+  if (CapturePanelAnchorPath(panel, vol, snapshot->selected_dir_path,
+                             sizeof(snapshot->selected_dir_path))) {
+    snapshot->has_selected_dir_path = TRUE;
+  }
+
+  idx = FindTopVisibleDirIndex(panel);
+  if (idx >= 0) {
+    GetPath(panel->vol->dir_entry_list[idx].dir_entry, snapshot->top_dir_path);
+    snapshot->top_dir_path[PATH_LENGTH] = '\0';
+    snapshot->has_top_dir_path = TRUE;
+  }
 }
 
 int FindDirIndexByPath(const struct Volume *vol, const char *path) {
@@ -206,6 +277,8 @@ DirEntry *ResolvePanelAnchorTarget(const YtreePanel *panel,
 
 void PositionPanelAtIndex(YtreePanel *panel, int idx) {
   int height;
+  int begin;
+  int cursor;
 
   if (!panel || !panel->vol || !panel->vol->dir_entry_list ||
       panel->vol->total_dirs <= 0)
@@ -220,25 +293,123 @@ void PositionPanelAtIndex(YtreePanel *panel, int idx) {
   if (height < 1)
     height = 1;
 
-  if (idx >= panel->disp_begin_pos && idx < panel->disp_begin_pos + height) {
-    panel->cursor_pos = idx - panel->disp_begin_pos;
-  } else {
-    panel->disp_begin_pos = idx;
-    panel->cursor_pos = 0;
-    if (panel->disp_begin_pos + height > panel->vol->total_dirs) {
-      panel->disp_begin_pos = panel->vol->total_dirs - height;
-      if (panel->disp_begin_pos < 0)
-        panel->disp_begin_pos = 0;
-      panel->cursor_pos = idx - panel->disp_begin_pos;
-      if (panel->cursor_pos < 0)
-        panel->cursor_pos = 0;
-    }
+  begin = panel->disp_begin_pos;
+  cursor = panel->cursor_pos;
+  if (!PanelComputeViewportPosition(panel, idx, height, &begin, &cursor)) {
+    begin = 0;
+    cursor = 0;
   }
+
+  panel->disp_begin_pos = begin;
+  panel->cursor_pos = cursor;
+  RememberPanelViewportTop(panel);
   panel->panel_generation++;
+}
+
+static BOOL VisibleIndexWithinTopPath(const struct Volume *vol,
+                                      const YtreePanel *panel,
+                                      const char *top_path, int selected_idx,
+                                      int height, int *top_idx_out) {
+  int top_idx;
+  int idx;
+  int visible_rows;
+
+  if (top_idx_out)
+    *top_idx_out = -1;
+
+  if (!vol || !panel || !top_path || !*top_path || selected_idx < 0 ||
+      height < 1)
+    return FALSE;
+
+  top_idx = FindDirIndexByPath(vol, top_path);
+  if (top_idx < 0)
+    return FALSE;
+  if (!PanelDirIsVisible(panel, vol->dir_entry_list[top_idx].dir_entry))
+    return FALSE;
+
+  visible_rows = 0;
+  for (idx = top_idx; idx < vol->total_dirs; idx++) {
+    const DirEntry *candidate = vol->dir_entry_list[idx].dir_entry;
+
+    if (!PanelDirIsVisible(panel, candidate))
+      continue;
+    if (idx == selected_idx) {
+      if (top_idx_out)
+        *top_idx_out = top_idx;
+      return visible_rows < height;
+    }
+    visible_rows++;
+    if (visible_rows >= height)
+      break;
+  }
+
+  return FALSE;
+}
+
+BOOL RestorePanelViewportSnapshot(const struct Volume *vol, YtreePanel *panel,
+                                  const PanelViewportSnapshot *snapshot,
+                                  const char *preferred_top_path) {
+  DirEntry *target;
+  char target_path[PATH_LENGTH + 1];
+  const char *top_path = NULL;
+  int target_idx;
+  int top_idx = -1;
+  int height;
+  int begin;
+  int cursor;
+
+  if (!vol || !panel || !snapshot)
+    return FALSE;
+  assert(!panel->vol || panel->vol == vol);
+  if (panel->vol && panel->vol != vol)
+    return FALSE;
+  if (!snapshot->has_selected_dir_path || !snapshot->selected_dir_path[0])
+    return FALSE;
+
+  target = ResolvePanelAnchorTarget(panel, vol, snapshot->selected_dir_path);
+  if (!target)
+    return FALSE;
+
+  GetPath(target, target_path);
+  target_path[PATH_LENGTH] = '\0';
+  target_idx = FindDirIndexByPath(vol, target_path);
+  if (target_idx < 0)
+    return FALSE;
+
+  height = panel->pan_dir_window ? getmaxy(panel->pan_dir_window) : 1;
+  if (height < 1)
+    height = 1;
+
+  if (preferred_top_path && preferred_top_path[0])
+    top_path = preferred_top_path;
+  else if (snapshot->has_top_dir_path && snapshot->top_dir_path[0])
+    top_path = snapshot->top_dir_path;
+
+  if (top_path &&
+      VisibleIndexWithinTopPath(vol, panel, top_path, target_idx, height,
+                                &top_idx)) {
+    panel->disp_begin_pos = top_idx;
+    panel->cursor_pos = target_idx - top_idx;
+  } else {
+    begin = panel->disp_begin_pos;
+    cursor = panel->cursor_pos;
+    if (!PanelComputeViewportPosition(panel, target_idx, height, &begin,
+                                      &cursor)) {
+      begin = target_idx;
+      cursor = 0;
+    }
+    panel->disp_begin_pos = begin;
+    panel->cursor_pos = cursor;
+  }
+
+  RememberPanelViewportTop(panel);
+  panel->panel_generation++;
+  return TRUE;
 }
 
 void RestorePanelAnchorPath(const struct Volume *vol, YtreePanel *panel,
                             const char *anchor_path) {
+  PanelViewportSnapshot snapshot;
   DirEntry *target;
   char target_path[PATH_LENGTH + 1];
   int idx;
@@ -248,6 +419,20 @@ void RestorePanelAnchorPath(const struct Volume *vol, YtreePanel *panel,
   assert(!panel->vol || panel->vol == vol);
   if (panel->vol && panel->vol != vol)
     return;
+
+  CapturePanelViewportSnapshot(panel, vol, &snapshot);
+  (void)snprintf(snapshot.selected_dir_path, sizeof(snapshot.selected_dir_path),
+                 "%s", anchor_path);
+  snapshot.selected_dir_path[PATH_LENGTH] = '\0';
+  snapshot.has_selected_dir_path = TRUE;
+  if (RestorePanelViewportSnapshot(vol, panel, &snapshot, snapshot.top_dir_path)) {
+    if (panel->saved_focus == FOCUS_FILE) {
+      target = ResolvePanelAnchorTarget(panel, vol, anchor_path);
+      if (target)
+        panel->file_dir_entry = target;
+    }
+    return;
+  }
 
   target = ResolvePanelAnchorTarget(panel, vol, anchor_path);
   if (!target)
@@ -355,6 +540,8 @@ void DonatePanelState(YtreePanel *dst, const YtreePanel *src) {
   dst->vol = src->vol;
   dst->cursor_pos = src->cursor_pos;
   dst->disp_begin_pos = src->disp_begin_pos;
+  memcpy(dst->tree_viewport_top_dir_path, src->tree_viewport_top_dir_path,
+         sizeof(dst->tree_viewport_top_dir_path));
   dst->start_file = src->start_file;
   dst->file_cursor_pos = src->file_cursor_pos;
   dst->file_dir_entry = src->file_dir_entry;
