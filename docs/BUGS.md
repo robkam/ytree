@@ -123,6 +123,17 @@ Ordering policy (for all editors, including AI editors):
     *   Enforce active-only mutation and inactive freeze semantics for filter state.
 *   **Status**: Confirmed.
 
+### **BUG-2.6: Hidden UI Entries Still Influence Visible-Tree State**
+*   **Description**: Entries that are hidden from the UI are not being fully excluded from navigation/state resolution. Hidden-dotfile and hidden-prefix paths can still influence visible-tree behavior, so the app can resolve or restore against a hidden ancestor or sibling path instead of treating the visible tree as authoritative.
+*   **Repro (manual, 2026-06-04)**:
+    *   Open a tree that contains both a visible target such as `src` and hidden-prefix content such as `./tmp/session.cast` or `~/.local/src`.
+    *   Perform a normal jump/search flow that should land on the visible target.
+*   **Expected**: Items hidden from the UI should not participate in ordinary visible-tree jumps, selection, or restore decisions.
+*   **Actual**: The jump resolves to a hidden-prefix path such as `/home/rob/.local/src` instead of the visible `~/ytree/src`.
+*   **Impact**: Demonstrates a broader architectural defect in hidden-item accounting and visible-tree authority, not just a one-off wrong row. It can misdirect routine navigation and make hidden entries behave as if they were still visible.
+*   **Remediation**: Make hidden-from-UI entries non-participants in the normal visible-tree resolver paths unless explicitly requested, and keep the visible-tree contract authoritative for jump, selection, and restore logic. Add regression coverage that distinguishes visible-tree targets from hidden-prefix matches.
+*   **Status**: Confirmed.
+
 ### **BUG-3: F8 Dotfiles Toggle Leaks Across Panels**
 *   **Description**: In `F8` split mode, toggling dotfiles visibility (`` ` `` do/undo) in the active panel can apply the same visibility change to the inactive panel.
 *   **Repro (manual)**:

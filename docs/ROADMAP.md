@@ -9,7 +9,10 @@ Ordering policy (for all editors, including AI editors):
 - In `Current Delivery Roadmap`, number `Task` items top-to-bottom in ascending order (`1` = highest priority).
 - In `Future Enhancements / Wishlist`, use `Idea FE-*` IDs in top-to-bottom ascending order (`FE-1` = highest priority in wishlist).
 - IDs are unstable labels and are likely to change often due to reprioritization/renumbering.
-- Roadmap is forward-looking (`planned`/`in-progress`). Completed items will be removed after landing; add only significant outcomes to `docs/CHANGES.md` and use git history as the full archive.
+- `docs/ROADMAP.md` is forward-looking only (`planned`/`in-progress`).
+- Completed items are removed after landing.
+- For shipped outcomes, see `docs/CHANGES.md`; it records only the most significant milestones, not every minor change.
+- Use git history as the full archive.
 
 ---
 
@@ -1349,10 +1352,11 @@ Ordering policy (for all editors, including AI editors):
 *   **Rationale:** Offers complex templating logic that goes beyond simple pipe/xargs, and critically allows the user to review/edit the generated script before execution for safety.
 *   - [ ] **Status:** Not Started.
 
-### **Idea FE-37: Implement Keyboard Macros (F12 Record/Playback)**
-*   **Goal:** Implement keystroke recording and replay. `F12` starts/stops recording command/input sequences for deterministic playback.
-*   **Rationale:** Allows automation of repetitive interaction sequences (for example "Tag, Move, Rename, Repeat") without creating shell command templates.
-*   - [ ] **Status:** Not Started.
+### **Idea FE-37: Keyboard Macros (F12 Record/Playback)**
+*   **Goal:** Record and replay simple keystroke sequences.
+*   **Rationale:** Useful for repeating safe, local interaction sequences.
+*   **Status:** Deferred.
+*   **Note:** Revisit only after a safe design exists that cannot turn traces into a secret-capturing scripting surface.
 
 ### **Idea FE-38: Enhance Built-In Viewer**
 *   **Goal:** Evolve ytree's internal viewer from a basic fallback inspector into a more capable built-in viewing tool for normal terminal workflows.
