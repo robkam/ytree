@@ -26,6 +26,8 @@ This section states the intended contract. Where current behavior differs, the c
 
 The architectural state model that backs this contract is described in `docs/ARCHITECTURE.md` as the per-window / per-panel UI state record and its ownership rules.
 
+The formal AppState transition contract is defined in `docs/ARCHITECTURE.md` §4.2.3 and backed by the machine-readable registries `docs/appstate_transition_matrix.json` and `docs/appstate_compat_shims.json`. This specification states user-visible behavior; transition ownership, write-set, generation, blocked-transition, render-projection, and compatibility-shim metadata belong to the architecture contract and must not be duplicated here.
+
 ### 2.1 Input Semantics
 
 ytree separates **view-state toggles** from **one-shot actions**:

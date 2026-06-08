@@ -154,7 +154,7 @@ FUZZ_BINS := $(FUZZ_STRING_UTILS_BIN) $(FUZZ_PATH_UTILS_BIN) $(FUZZ_FILTER_CORE_
 	git-aliases-install git-aliases-status test \
 	fuzz fuzz-smoke fuzz-string-utils fuzz-path-utils fuzz-filter-core qa-fuzz \
 	test-v qa-clang qa-cppcheck qa-scan qa-valgrind qa-valgrind-interactive qa-valgrind-full \
-	qa-pytest qa-fileops-integrity qa-split-panel-gates qa-pytest-coverage qa-sanitize qa-unsafe-apis qa-module-boundaries qa-ai-config qa-code-quality qa-all \
+	qa-pytest qa-fileops-integrity qa-split-panel-gates qa-pytest-coverage qa-sanitize qa-unsafe-apis qa-module-boundaries qa-appstate-contract qa-ai-config qa-code-quality qa-all \
 	ci-baseline mcp-doctor py-requirements \
 	qa-all-log qa-deep
 
@@ -394,16 +394,19 @@ qa-gitleaks:
 qa-module-boundaries:
 	python3 scripts/check_module_boundaries.py
 
+qa-appstate-contract:
+	python3 scripts/check_appstate_contract.py
+
 qa-ai-config:
 	python3 scripts/check_project_ai_config.py
 
-qa-code-quality: qa-unsafe-apis qa-module-boundaries qa-ai-config
+qa-code-quality: qa-unsafe-apis qa-module-boundaries qa-appstate-contract qa-ai-config
 
 ci-baseline: qa-code-quality qa-fileops-integrity qa-pytest-coverage qa-fuzz
 
 # Comprehensive local gate: static/runtime checks + full pytest once.
 # Run qa-fileops-integrity explicitly when file/archive mutation flows are touched.
-qa-all: qa-clang qa-cppcheck qa-scan qa-valgrind qa-pytest qa-unsafe-apis qa-gitleaks qa-module-boundaries qa-ai-config qa-fuzz
+qa-all: qa-clang qa-cppcheck qa-scan qa-valgrind qa-pytest qa-code-quality qa-gitleaks qa-fuzz
 
 qa-all-log:
 	@mkdir -p "$(dir $(QA_LOG))"

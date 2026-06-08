@@ -23,23 +23,56 @@ Ordering policy (for all editors, including AI editors):
 *This phase codifies architectural and coding-discipline guardrails early so regressions are blocked before they become backlog debt.*
 
 
-### **Task 1: Split-Panel State Ownership Map + Isolation Guardrail Gate**
-*   **Goal:** Make split-panel separation (`F8`/`Tab`) mechanically hard to break by codifying ownership boundaries and enforcing them with tests/assertions.
-*   **Rationale:** Repeated regressions show that “obvious local fixes” can violate hidden ownership hierarchy (panel-local vs shared topology state), re-linking active/inactive panels.
-*   **Scope:** Split-panel state-transfer boundaries only (focus/view/selection/filter/dotfile visibility ownership, restore paths, and mirror-update rules).
+### **Task 1: Unified AppState Transition Machine + Projection Contract**
+*   **Goal:** Move UI behavior from dispersed flags, redraw-side repair, and ad hoc restore paths to one explicit application state machine with authoritative ownership, validated transitions, and rendering as projection only.
+*   **Rationale:** Repeated split/tree/file/window/focus regressions show that local fixes can pass narrow tests while leaving competing state owners alive. The durable fix is to define the machine first: every visible behavior and input target must have exactly one owner, and every UI-affecting action/event must pass through one transition boundary before render.
+*   **Scope:** Application state ownership and transition architecture for split/single layout, panel focus, tree/file/small/big-file window shape, dotfile visibility, tagged/showall/global modes, viewport restore, command/modal state, footer/stats projection, and shared volume topology. This task is architectural and test-first; it must not become another symptom-specific split/F8 patch.
+*   **Definition:** “UI-affecting” means any input, event, rebuild, refresh, filesystem mutation, modal action, resize/reflow, volume operation, visibility/filter change, or render-invalidation path that can change selection, focus, viewport, layout, mode, visibility, restore identity, tags, file-list contents, footer/stats output, or panel/volume binding.
+*   **Target State Model:**
+    *   The target is a hierarchical statechart, not only a collection of state structs. The architecture must define root state, child regions, legal substates, events/actions, guards, allowed transitions, blocked transitions, entry/exit effects, declared write sets, and generation effects.
+    *   `AppState`: the single formal application-state root. During migration it must be explicitly mapped to the existing `ViewContext` root: either `ViewContext` is the storage representation of `AppState`, or `AppState` is embedded under `ViewContext`; there must not be two authoritative roots. Any legacy `ViewContext` mirror of AppState-owned fields is a compatibility shim subject to this task's shim rules.
+    *   `GlobalConfigState`: default visibility, file-display options, key/profile configuration, and view preferences.
+    *   `VolumeState[]`: shared directory tree model, logged/expanded topology, file payload cache, shared workflow state only where explicitly documented as non-panel-local, and generation/version counters. Panel-local tags, selection, focus, filters, and visibility must not be owned by `VolumeState`.
+    *   `PanelState[2]`: panel-local current volume, selected directory/file identity, tree viewport identity, file cursor/viewport identity, focus owner (`tree`, `small-file`, `big-file`, `preview`, `command`), dotfile visibility, filter state, panel-local tags/tagged-path state, and restore snapshots. A specific transition may project a documented shared/global view only without changing panel ownership.
+    *   `ModeState`: single/split layout, compare/copy/move/showall/global/archive modes, and modal ownership.
+    *   `RenderState`: derived layout, dirty regions, and last projected screen. Render caches may be used only for invalidation/diffing and must never feed selection, focus, identity, visibility, or restore.
+*   **Transition Contract:**
+    *   Input/event flow must be: `decode action/event -> validate AppState -> run one registered transition -> produce new AppState -> derive read-only RenderProjection -> render projection`.
+    *   Every UI-affecting input/event must have exactly one transition record: source state, event, guard, allowed/blocked result, target state, declared write set, generation changes, side effects, and render invalidation output.
+    *   Invalid transitions must resolve through a registered deterministic outcome: no-op, blocked diagnostic, modal prompt, or registered fallback transition. They must not mutate unrelated state.
+    *   Controllers dispatch actions; they must not repair state ad hoc or directly encode restore policy.
+    *   Render code displays resolved state; it must not mutate owners, re-anchor viewports, infer focus, or choose selection from raw rows.
+    *   Restore/rebind must use durable identity plus generation validation, never stale flat-list rows, stale pointers, footer text, or previous rendered shape.
+    *   Inactive panel state is frozen across active-only actions. Shared topology changes may be mirrored only through explicit transition rules that rebind each panel by its own identity.
+    *   Terminal resize/reflow is an explicit event. Previous screen geometry, rendered rows, and cached window shape must never be used as restore authority.
 *   **Mechanism:**
-    *   Produce one explicit ownership map of split state classes: **panel-local**, **shared-topology**, and **global-only**.
-    *   Add invariant comments only at key boundary functions that transfer or restore panel state.
-    *   Add focused runtime assertions in debug paths for illegal cross-panel mutations.
-    *   Expand panel-isolation regression matrix (including `SMALLWINDOWSKIP=0`, dotfile toggle isolation, and inactive-selection retention on non-invalidating updates).
+    *   Produce a concrete ownership map naming the single owner for each UI/state field: dotfile visibility, active panel, focus owner, tree viewport, file-window shape, tags, filters, showall/global state, footer/stats projection, and modal command state.
+    *   Inventory current competing owners and classify them as canonical, derived mirror, compatibility shim, or defect.
+    *   Introduce a transition boundary/API for all UI-affecting actions. High-risk actions (`F8`, `Tab`, `Enter`, `Esc`, refresh, dotfile toggle, delete/mkdir, search/jump, showall/global/tagged-only, volume cycling/release) are the first migration batch, not the only required coverage.
+    *   The transition matrix must include non-key UI-affecting events, including filesystem mutation results, live-refresh/watcher events, signal-flag handling such as resize/shutdown-visible cleanup, command completion/failure outcomes, and any rebuild/rebind callback that can affect visible state.
+    *   Define stable identity schemas and generation domains for volume, directory, file, panel, focus shape, modal target, visibility/filter state, topology, file payload, volume lifecycle, and layout/reflow.
+    *   Add debug invariant checks at owner boundaries: illegal inactive-panel mutation, render-side mutation, stale-generation restore, hidden-entry visible-navigation selection, and shared-state overwrite of panel-local state.
+    *   Add dynamic/state-sequence tests that generate or enumerate action sequences and assert invariants after every transition, not only final screen snapshots.
+    *   Add a transition-diff harness that snapshots state before/after every transition and render/reflow pass, then fails if any field outside the transition's declared write set changed.
+    *   Migrate restore/render paths incrementally only through QA-visible compatibility wrappers; every accepted wrapper must remove, disable, or quarantine at least one old authority path in the same change.
+    *   Compatibility shims must declare the old authority path they replace, whether they may read or write, the invariant checks protecting them, the owner, removal trigger, target replacement transition, and explicit follow-up roadmap task. Shims without those fields fail review/QA, and new bypasses around the transition boundary must fail QA.
 *   **Acceptance Criteria:**
-*   Ownership map is documented and referenced by affected modules.
-*   Key boundary functions contain invariant comments describing allowed/forbidden state transfer.
-*   Regression coverage fails when inactive-panel state is mutated by active-only commands.
-*   All new/updated split-isolation tests pass locally and in PR full-QA CI evidence.
-*   Linked split-panel bugs (`BUG-2`, `BUG-3`, `BUG-4`, `BUG-5`) are either fixed or have explicit blocker notes tied to this work.
-*   **Outcome:** Completed. Ownership map + boundary invariants/assertions are in place; split dotfile ownership migration remains follow-on work.
-*   - [x] **Status:** Completed.
+*   `docs/ARCHITECTURE.md` defines the AppState hierarchy, owner map, statechart contract, transition contract, blocked-transition semantics, and render-projection rule as the canonical target architecture.
+*   A complete action-transition matrix exists for all keybindings, menu actions, modal actions, refresh/rebuild operations, volume operations, and terminal resize/reflow events.
+*   The action-transition matrix is the canonical registry for UI-affecting actions, and QA fails if a keybinding/menu/modal/resize/rebuild event dispatches outside the registered transition boundary.
+*   The transition registry covers both user actions and non-key UI-affecting events: filesystem mutation results, watcher/live-refresh events, signal-flag events, rebuild/rebind callbacks, and command completion/failure outcomes.
+*   A state-transition test harness exists that can run scripted action sequences and check invariants after each step.
+*   Dynamic tests validate intermediate state after every action, not only the final rendered screen, and fail if any transition mutates state outside its declared owner.
+*   The invariant harness checks declared write sets after every transition and verifies render/reflow performs no owner-state mutation.
+*   Tests cover at least these invariants: inactive panel unchanged unless targeted; render does not mutate owner state; hidden entries cannot be selected through visible navigation; focus restoration is panel-local; viewport identity survives rebuild when still visible; global/shared state cannot overwrite panel-local state; stale snapshots fail closed through deterministic fallback.
+*   Blocked/invalid transitions are covered by tests and prove deterministic no-op/fallback behavior with no unrelated mutation.
+*   High-risk flows are covered in the first migration batch: `F8`, `Tab`, `Enter`, `Esc`, dotfile reveal/conceal, refresh, delete/mkdir, search/jump, showall/global/tagged-only, file small/big transitions, volume cycling/release, and split close/reopen.
+*   No UI-affecting action may mutate panel, volume, mode, focus, visibility, viewport, restore, or render-invalidation state except through the transition boundary, unless explicitly listed as a time-bounded compatibility shim.
+*   No compatibility shim is accepted unless it appears in a documented shim registry with owner, old authority path, read/write permission, invariant checks, removal trigger, replacement transition, follow-up task, and QA enforcement that fails unregistered bypasses.
+*   Existing split/viewport fixes are either routed through the transition boundary or explicitly marked as compatibility shims with removal tasks.
+*   `docs/SPECIFICATION.md` and `docs/ARCHITECTURE.md` are updated or cross-linked so existing restore/split contracts do not preserve a narrower `F8`/`Tab`-only transition model, stale task references, or conflicting ownership language.
+*   `make qa-all` / PR full-QA CI passes with the invariant test harness enabled.
+*   - [ ] **Status:** Not Started.
 
 ### **Task 2: Remove Dead-History Comments + Add Anti-History Comment Gate**
 *   **Goal:** Remove comments that describe removed code/history and prevent their reintroduction.
