@@ -616,7 +616,10 @@ static BOOL IsActivePanelBigFileMode(const ViewContext *ctx,
   if (!dir_entry)
     return FALSE;
 
-  return (dir_entry->big_window || dir_entry->global_flag ||
+  if (!ctx->active || ctx->active->saved_focus != FOCUS_FILE)
+    return FALSE;
+
+  return (ctx->active->saved_big_file_view || dir_entry->global_flag ||
           dir_entry->tagged_flag);
 }
 

@@ -15,6 +15,7 @@ UV_TOOL_DIR = "/tmp/codex-uv-tools"
 [mcp_servers.jcodemunch]
 command = "uvx"
 args = ["jcodemunch-mcp"]
+startup_timeout_sec = 45
 
 [mcp_servers.jcodemunch.env]
 UV_CACHE_DIR = "/tmp/codex-uv-cache"

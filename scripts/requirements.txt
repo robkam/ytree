@@ -16,12 +16,12 @@ cryptography==48.0.0
     # via google-auth
 google-ai-generativelanguage==0.6.15
     # via google-generativeai
-google-api-core[grpc]==2.30.3
+google-api-core[grpc]==2.31.0
     # via
     #   google-ai-generativelanguage
     #   google-api-python-client
     #   google-generativeai
-google-api-python-client==2.196.0
+google-api-python-client==2.197.0
     # via google-generativeai
 google-auth==2.53.0
     # via
@@ -38,7 +38,7 @@ googleapis-common-protos==1.75.0
     # via
     #   google-api-core
     #   grpcio-status
-grpcio==1.80.0
+grpcio==1.81.0
     # via
     #   google-api-core
     #   grpcio-status
@@ -48,7 +48,7 @@ httplib2==0.31.2
     # via
     #   google-api-python-client
     #   google-auth-httplib2
-idna==3.15
+idna==3.18
     # via requests
 iniconfig==2.3.0
     # via pytest
@@ -97,9 +97,9 @@ pytest==9.0.3
     # via -r scripts/requirements.in
 requests==2.34.2
     # via google-api-core
-temporalio==1.27.2
+temporalio==1.28.0
     # via -r scripts/requirements.in
-tqdm==4.67.3
+tqdm==4.68.1
     # via google-generativeai
 types-protobuf==6.32.1.20260221
     # via temporalio
@@ -118,7 +118,7 @@ uritemplate==4.2.0
     # via google-api-python-client
 urllib3==2.7.0
     # via requests
-wcwidth==0.7.0
+wcwidth==0.8.0
     # via
     #   prompt-toolkit
     #   pyte

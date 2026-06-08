@@ -107,12 +107,14 @@ BOOL RebindActiveFilePanelSelection(YtreePanel *panel, DirEntry **dir_entry_io) 
 
   /*
    * File-panel ownership is panel-local. When the active file pane changes,
-   * re-seed the shared DirEntry from the newly active panel's saved cursor so
-   * the next keypress continues that panel's own selection instead of
-   * inheriting the last pane's row.
+   * re-seed the shared DirEntry from the newly active panel's saved cursor and
+   * window shape so the next keypress continues that panel's own selection
+   * instead of inheriting the last pane's row or zoom state.
    */
   panel_dir->start_file = panel->start_file;
   panel_dir->cursor_pos = panel->file_cursor_pos;
+  if (!panel_dir->global_flag && !panel_dir->tagged_flag)
+    panel_dir->big_window = panel->saved_big_file_view;
   panel->file_dir_entry = panel_dir;
   *dir_entry_io = panel_dir;
   DebugLogFilePanelState("RebindActiveFilePanelSelection", panel);
@@ -1059,6 +1061,7 @@ BOOL handle_file_window_misc_dispatch_action(
     if (dir_entry->big_window)
       break;
     dir_entry->big_window = TRUE;
+    ctx->active->saved_big_file_view = TRUE;
     RefreshView(ctx, dir_entry);
     FileNav_RereadWindowSize(ctx, dir_entry);
     loop_action = ACTION_NONE;

@@ -307,6 +307,107 @@ def test_split_tab_from_small_file_does_not_expand_inactive_panel(tmp_path, ytre
         tui.quit()
 
 
+def test_split_tab_enter_tab_keeps_tree_panel_focus_local(tmp_path, ytree_binary):
+    root = tmp_path / "split_tab_enter_tab_tree_focus_local"
+    root.mkdir()
+    (root / ".ytree").write_text("[GLOBAL]\nSMALLWINDOWSKIP=1\n", encoding="utf-8")
+    for filename in (
+        "AGENTS.md",
+        "compile_commands.json",
+        "LICENSE.md",
+        "Makefile",
+        "README.md",
+        "SECURITY.md",
+        "todo.txt",
+        "update.txt",
+        "valgrind.log",
+    ):
+        (root / filename).write_text(f"{filename}\n", encoding="utf-8")
+    for name in ("build", "docs", "etc", "include", "obj", "scripts", "src"):
+        subdir = root / name
+        subdir.mkdir()
+        (subdir / f"{name}.txt").write_text(f"{name}\n", encoding="utf-8")
+
+    tui = YtreeTUI(executable=ytree_binary, cwd=str(root))
+    time.sleep(0.8)
+
+    try:
+        _assert_dir_mode_footer(tui, "Expected tree focus before split.")
+
+        tui.send_keystroke(Keys.F8, wait=0.4)
+        tui.send_keystroke(Keys.TAB, wait=0.4)
+        tui.send_keystroke(Keys.ENTER, wait=0.4)
+        assert "hex invert j compare" in _footer_text(tui), _screen_text(tui)
+
+        tui.send_keystroke(Keys.TAB, wait=0.5)
+        _assert_dir_mode_footer(
+            tui,
+            "Tree-focused panel imported file/small-window focus after "
+            "F8 -> Tab -> Enter -> Tab.",
+        )
+        lines = tui.get_screen_dump()
+        split_col = _detect_split_column(lines)
+        assert split_col is not None, _screen_text(tui)
+        left_top = [line[:split_col] for line in lines[2:12]]
+        assert any("build" in segment for segment in left_top) and not any(
+            "AGENTS.md" in segment for segment in left_top
+        ), (
+            "Tree-focused panel kept the tree footer but rendered the active "
+            "peer's big-file window shape after F8 -> Tab -> Enter -> Tab.\n"
+            f"{_screen_text(tui)}"
+        )
+    finally:
+        tui.quit()
+
+
+def test_split_tab_enter_tab_restores_small_file_shape_local(tmp_path, ytree_binary):
+    root = tmp_path / "split_tab_enter_tab_small_shape_local"
+    root.mkdir()
+    (root / ".ytree").write_text("[GLOBAL]\nSMALLWINDOWSKIP=0\n", encoding="utf-8")
+    (root / "root_file.txt").write_text("root\n", encoding="utf-8")
+    for name in ("alpha", "beta"):
+        subdir = root / name
+        subdir.mkdir()
+        (subdir / f"{name}.txt").write_text(f"{name}\n", encoding="utf-8")
+
+    tui = YtreeTUI(executable=ytree_binary, cwd=str(root))
+    time.sleep(0.8)
+
+    try:
+        tui.send_keystroke(Keys.ENTER, wait=0.4)
+        assert "hex invert j compare" in _footer_text(tui), _screen_text(tui)
+
+        tui.send_keystroke(Keys.F8, wait=0.4)
+        tui.send_keystroke(Keys.TAB, wait=0.4)
+        tui.send_keystroke(Keys.ENTER, wait=0.4)
+        assert "hex invert j compare" in _footer_text(tui), _screen_text(tui)
+
+        tui.send_keystroke(Keys.TAB, wait=0.5)
+        assert "hex invert j compare" in _footer_text(tui), _screen_text(tui)
+
+        lines = tui.get_screen_dump()
+        split_col = _detect_split_column(lines)
+        assert split_col is not None, _screen_text(tui)
+        left_top = [line[:split_col] for line in lines[2:12]]
+        left_file_idx = next(
+            (
+                idx
+                for idx, line in enumerate(lines)
+                if "root_file.txt" in line[:split_col]
+            ),
+            -1,
+        )
+        assert left_file_idx > 10 and not any(
+            "root_file.txt" in segment for segment in left_top
+        ), (
+            "Tab back imported the other panel's big-file shape instead of "
+            "restoring the left panel's saved small-file shape.\n"
+            f"{_screen_text(tui)}"
+        )
+    finally:
+        tui.quit()
+
+
 def test_split_from_big_file_keeps_inactive_panel_in_file_view(tmp_path, ytree_binary):
     root = tmp_path / "split_from_big_file_inactive_file_view"
     root.mkdir()
