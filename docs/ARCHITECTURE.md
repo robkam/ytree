@@ -183,6 +183,38 @@ This record is the implementation-side counterpart to the contract stated in `do
 
 Canonical restore boundary: `CapturePanelAnchorPath`, `FindDirIndexByPath`, `FindDirIndexByPathOrAncestor`, `PositionPanelAtIndex`, `RestorePanelAnchorPath`, and `EnsurePanelAnchorVisible` in `src/ui/panel_anchor.c` / `include/ytree_panel_anchor.h` are the intended restore helpers for this contract. Other modules may request restore through that API, but they must not invent alternate restore authority or re-derive panel-local selection/viewport state independently.
 
+#### 4.2.3 AppState Transition Contract
+`AppState` is the single formal application-state root for the transition contract. During migration, the runtime `ViewContext` remains the concrete carrier that maps to `AppState`: `ViewContext` owns session routing and layout references, `YtreePanel` owns panel-local UI state records, and `Volume` owns shared topology and payload cache. Runtime code must not introduce a second root or let render-derived values become state authority while this mapping is incomplete.
+
+The formal child regions are:
+*   **Session region:** active panel routing, split/single-window mode, modal state, command state, message state, and render invalidation flags. Owner: `ViewContext`.
+*   **Panel regions:** one region for each window/panel instance with stable identity keys, focus shape, tree/file cursor and viewport anchors, visibility/filter state, restore snapshot, and panel generation. Owner: the corresponding `YtreePanel`.
+*   **Volume regions:** logged volume/archive namespace, shared directory topology, payload cache, shared visibility/topology generation, and model statistics. Owner: `Volume`.
+*   **Modal/command subregions:** transient prompts, menus, confirmations, external command completion, and operation results. Owner: `ViewContext`, with writes to panel or volume state only through an allowed transition commit.
+*   **Render projection region:** dirty surfaces, layout geometry, and ncurses window handles. Owner: `ViewContext`; this region may project state but must not select new authoritative identities.
+
+Every transition record must declare its category, source state, event, guard, allowed and blocked results, target state, owner, write set, generation effect, side effects, render invalidation, migration boundary status, and follow-up notes. The machine-readable registry in `docs/appstate_transition_matrix.json` is the source for this metadata until runtime transition objects exist. Required categories include keybinding, menu action, modal action, refresh/rebuild, volume operation, terminal signal/resize, filesystem mutation result, command completion, rebuild/rebind callback, and render reflow.
+
+Transition execution follows this statechart contract:
+1.  Capture the current `AppState` region snapshots needed by the event.
+2.  Evaluate the transition guard before mutating any authoritative region.
+3.  If allowed, write only the declared owner/write-set fields.
+4.  Apply generation effects before restore or render consumers observe the change.
+5.  Rebind stale identities through the canonical restore helpers or use the deterministic fallback order.
+6.  Mark only the declared render surfaces dirty, then render from projection data.
+
+Blocked transitions are fail-closed. A blocked transition must leave authoritative panel and volume records unchanged, except for explicitly declared message/modal fields needed to communicate a user-visible constraint. It must not partially advance generations, mutate inactive panel snapshots, perform hidden filesystem side effects, or repair state by row-index guesses.
+
+Generation metadata is part of transition correctness:
+*   `panel_generation` advances when panel-local selection, viewport, focus shape, filter, visibility, or restore snapshot authority changes.
+*   `volume_generation` advances when shared topology, payload identity, logged/unlogged state, visibility set, or namespace mapping changes.
+*   A generation mismatch forces stable-identity re-resolution before any snapshot is applied.
+*   Rendering alone never advances either generation.
+
+Rendering is projection only. Render/reflow paths may compute temporary row positions and clipped viewports from settled `AppState`, but those temporary values are discarded after drawing. A renderer must not choose a new tree/file selection, overwrite a saved viewport, or synthesize focus shape from visible rows. If projection cannot be computed safely, rendering must degrade or skip while leaving authoritative state intact.
+
+Compatibility shims are temporary migration debt, not alternate authority. Each shim must be recorded in `docs/appstate_compat_shims.json` with an owner, legacy authority path, read permission, write permission, invariant checks, removal trigger, target transition, follow-up task, and QA enforcement. Shim writes are allowed only when synchronizing from the future authoritative owner during a transition commit; shim reads must not outrank stable path keys, generation checks, or panel-local state.
+
 ### 4.3 Inter-Panel Operations (The Directional Rule)
 *   **Targeting:** Copy and Move operations occur directionally: **Source (Active Panel) to Destination (Inactive Panel)**.
 *   **Read-Only Bridge:** The active panel reads the path of the inactive panel to set a default destination without altering the inactive panel's state.
