@@ -1,0 +1,200 @@
+{
+  "schema_version": 1,
+  "contract": "AppState transition-diff harness registry",
+  "notes": "Non-runtime registry for future before/after AppState snapshot and diff checks. Runtime behavior is unchanged.",
+  "diff_harness_checks": [
+    {
+      "harness_id": "harness.transition-before-after-snapshot",
+      "check_category": "transition_before_after_snapshot",
+      "snapshot_phases": ["before_guard", "after_allowed_or_blocked_result"],
+      "snapshot_regions": ["ctx/session state", "panel-local state", "volume/shared topology and payload state", "render/projection/invalidation state"],
+      "transition_ids": [
+        "transition.keybinding.navigate-tree",
+        "transition.refresh-rebuild.manual-refresh",
+        "transition.volume-operation.release-cycle",
+        "transition.filesystem-mutation-result.mkdir-copy-delete",
+        "transition.rebuild-rebind-callback.panel-anchor"
+      ],
+      "owner_field_refs": [
+        "ctx.active",
+        "ctx.volumes_head",
+        "panel.tree_selection_key",
+        "panel.file_selection_key",
+        "panel.restore_snapshot",
+        "panel.panel_generation",
+        "volume.dir_tree",
+        "volume.volume_generation"
+      ],
+      "invariant_ids": [
+        "invariant.inactive-panel-frozen",
+        "invariant.shared-state-panel-local-isolation",
+        "invariant.viewport-identity-rebind"
+      ],
+      "generation_domain_ids": [
+        "generation.panel.local-authority",
+        "generation.volume.shared-authority",
+        "identity.directory.stable-key",
+        "identity.file.stable-key"
+      ],
+      "expected_behavior": "A later dynamic harness snapshots every referenced AppState region before guard evaluation and after the transition result, then compares only authoritative state owned by the registered transition boundary.",
+      "failure_mode": "Any unclassified region change, stale snapshot reuse, or missing before/after phase is reported as a transition contract violation.",
+      "enforcement_status": "documented_foundation_only",
+      "migration_notes": [
+        "This registry entry defines the machine-readable coverage target; no runtime C runner exists in this unit."
+      ]
+    },
+    {
+      "harness_id": "harness.declared-write-set-diff",
+      "check_category": "declared_write_set_diff",
+      "snapshot_phases": ["before_transition", "after_transition_commit"],
+      "snapshot_regions": ["ctx/session state", "panel-local state", "volume/shared topology and payload state"],
+      "transition_ids": [
+        "transition.keybinding.navigate-tree",
+        "transition.menu-action.volume-select",
+        "transition.modal-action.dismiss",
+        "transition.command-completion.user-command"
+      ],
+      "owner_field_refs": [
+        "ctx.command_state",
+        "ctx.message_state",
+        "ctx.modal_state",
+        "ctx.pending_transition",
+        "panel.tree_selection_key",
+        "panel.tree_cursor_pos",
+        "panel.tree_viewport_origin",
+        "panel.focus_shape",
+        "panel.panel_generation"
+      ],
+      "invariant_ids": [
+        "invariant.panel-local-focus-restore",
+        "invariant.shared-state-panel-local-isolation"
+      ],
+      "generation_domain_ids": [
+        "generation.panel.local-authority",
+        "shape.panel.focus",
+        "target.modal-command.session"
+      ],
+      "expected_behavior": "The after snapshot may differ from the before snapshot only in owner fields named by the transition's declared_write_set or by an explicitly registered follow-up transition.",
+      "failure_mode": "A changed owner field outside the registered write set is rejected as an undeclared AppState mutation.",
+      "enforcement_status": "documented_foundation_only",
+      "migration_notes": [
+        "Runtime migration should derive concrete field comparisons from docs/appstate_transition_matrix.json declared_write_set records."
+      ]
+    },
+    {
+      "harness_id": "harness.render-projection-read-only-diff",
+      "check_category": "render_projection_read_only_diff",
+      "snapshot_phases": ["before_render_projection", "after_render_projection"],
+      "snapshot_regions": ["panel-local state", "volume/shared topology and payload state", "render/projection/invalidation state"],
+      "transition_ids": [
+        "transition.render-reflow.project-state"
+      ],
+      "owner_field_refs": [
+        "ctx.render_dirty_flags",
+        "ctx.window_handles",
+        "panel.tree_selection_key",
+        "panel.file_selection_key",
+        "panel.tree_viewport_origin",
+        "panel.file_viewport_origin",
+        "panel.focus_shape",
+        "panel.panel_generation",
+        "volume.volume_generation"
+      ],
+      "invariant_ids": [
+        "invariant.render-projection-read-only",
+        "invariant.inactive-panel-frozen"
+      ],
+      "generation_domain_ids": [
+        "reflow.layout.projection",
+        "generation.panel.local-authority",
+        "generation.volume.shared-authority"
+      ],
+      "expected_behavior": "Render/reflow projection may consume settled AppState and stage terminal output, but it must not mutate authoritative selection, identity, focus, or generation fields.",
+      "failure_mode": "Any authoritative owner or generation delta produced by render projection is rejected as render-state leakage into AppState authority.",
+      "enforcement_status": "documented_foundation_only",
+      "migration_notes": [
+        "Dirty-flag clearing and window-handle staging remain named so the future harness can distinguish projection bookkeeping from selection authority."
+      ]
+    },
+    {
+      "harness_id": "harness.generation-mismatch-check",
+      "check_category": "generation_mismatch_check",
+      "snapshot_phases": ["saved_snapshot", "current_authority", "restore_attempt_result"],
+      "snapshot_regions": ["panel-local state", "volume/shared topology and payload state"],
+      "transition_ids": [
+        "transition.refresh-rebuild.manual-refresh",
+        "transition.filesystem-mutation-result.mkdir-copy-delete",
+        "transition.rebuild-rebind-callback.panel-anchor",
+        "transition.terminal-signal-resize"
+      ],
+      "owner_field_refs": [
+        "panel.restore_snapshot",
+        "panel.tree_selection_key",
+        "panel.file_selection_key",
+        "panel.panel_generation",
+        "volume.dir_tree",
+        "volume.payload_cache",
+        "volume.volume_generation"
+      ],
+      "invariant_ids": [
+        "invariant.stale-snapshot-fail-closed",
+        "invariant.viewport-identity-rebind",
+        "invariant.hidden-entry-visible-navigation"
+      ],
+      "generation_domain_ids": [
+        "generation.panel.local-authority",
+        "generation.volume.shared-authority",
+        "identity.directory.stable-key",
+        "identity.file.stable-key",
+        "state.topology.volume",
+        "state.file-payload.volume"
+      ],
+      "expected_behavior": "Saved panel or volume snapshots whose generation markers mismatch current authority must be rejected or rebound through stable identity fallback before any restore commit.",
+      "failure_mode": "Reusing stale row, pointer, or payload identity after a generation mismatch is rejected as a fail-closed violation.",
+      "enforcement_status": "documented_foundation_only",
+      "migration_notes": [
+        "The future runner should seed mismatched saved/current generations to verify deterministic restore fallback."
+      ]
+    },
+    {
+      "harness_id": "harness.blocked-transition-no-unrelated-mutation",
+      "check_category": "blocked_transition_no_unrelated_mutation",
+      "snapshot_phases": ["before_guard", "after_blocked_result"],
+      "snapshot_regions": ["ctx/session state", "panel-local state", "volume/shared topology and payload state"],
+      "transition_ids": [
+        "transition.keybinding.navigate-tree",
+        "transition.modal-action.dismiss",
+        "transition.volume-operation.release-cycle",
+        "transition.filesystem-mutation-result.mkdir-copy-delete",
+        "transition.command-completion.user-command"
+      ],
+      "owner_field_refs": [
+        "ctx.message_state",
+        "ctx.modal_state",
+        "panel.volume_key",
+        "panel.tree_selection_key",
+        "panel.file_selection_key",
+        "panel.panel_generation",
+        "volume.dir_tree",
+        "volume.volume_generation"
+      ],
+      "invariant_ids": [
+        "invariant.blocked-transition-determinism",
+        "invariant.inactive-panel-frozen",
+        "invariant.shared-state-panel-local-isolation"
+      ],
+      "generation_domain_ids": [
+        "generation.panel.local-authority",
+        "generation.volume.shared-authority",
+        "lifecycle.volume.registry",
+        "target.modal-command.session"
+      ],
+      "expected_behavior": "A blocked transition may report only the registered user-visible failure state and must leave unrelated owner fields and all unaffected generations byte-for-byte unchanged.",
+      "failure_mode": "Any unrelated owner-field or generation delta after a blocked result is rejected as nondeterministic blocked-transition mutation.",
+      "enforcement_status": "documented_foundation_only",
+      "migration_notes": [
+        "Concrete blocked-result allowances should be derived from the target transition's blocked_result and declared_write_set records."
+      ]
+    }
+  ]
+}

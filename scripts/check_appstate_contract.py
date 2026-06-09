@@ -18,6 +18,7 @@ DEFAULT_OWNER_FIELDS = REPO_ROOT / "docs" / "appstate_owner_fields.json"
 DEFAULT_DISPATCH_SURFACES = REPO_ROOT / "docs" / "appstate_dispatch_surfaces.json"
 DEFAULT_INVARIANTS = REPO_ROOT / "docs" / "appstate_invariants.json"
 DEFAULT_GENERATION_DOMAINS = REPO_ROOT / "docs" / "appstate_generation_domains.json"
+DEFAULT_DIFF_HARNESS = REPO_ROOT / "docs" / "appstate_diff_harness.json"
 DEFAULT_ACTION_HEADER = REPO_ROOT / "include" / "ytree_defs.h"
 
 REQUIRED_TRANSITION_CATEGORIES = {
@@ -124,6 +125,14 @@ REQUIRED_GENERATION_DOMAIN_CATEGORIES = {
     "layout_reflow",
 }
 
+REQUIRED_DIFF_HARNESS_CATEGORIES = {
+    "transition_before_after_snapshot",
+    "declared_write_set_diff",
+    "render_projection_read_only_diff",
+    "generation_mismatch_check",
+    "blocked_transition_no_unrelated_mutation",
+}
+
 REQUIRED_DISPATCH_SURFACE_FIELDS = {
     "surface_id",
     "category",
@@ -185,6 +194,21 @@ REQUIRED_GENERATION_DOMAIN_FIELDS = {
     "migration_notes",
 }
 
+REQUIRED_DIFF_HARNESS_FIELDS = {
+    "harness_id",
+    "check_category",
+    "snapshot_phases",
+    "snapshot_regions",
+    "transition_ids",
+    "owner_field_refs",
+    "invariant_ids",
+    "generation_domain_ids",
+    "expected_behavior",
+    "failure_mode",
+    "enforcement_status",
+    "migration_notes",
+}
+
 LIST_FIELDS = {
     "declared_write_set",
     "side_effects",
@@ -200,6 +224,15 @@ INVARIANT_LIST_FIELDS = {
     "migration_notes",
 }
 GENERATION_DOMAIN_LIST_FIELDS = {"identity_fields", "migration_notes"}
+DIFF_HARNESS_LIST_FIELDS = {
+    "snapshot_phases",
+    "snapshot_regions",
+    "transition_ids",
+    "owner_field_refs",
+    "invariant_ids",
+    "generation_domain_ids",
+    "migration_notes",
+}
 GENERATION_FIELD_RE = re.compile(r"\b(?:[A-Za-z0-9_]+\.)?[A-Za-z0-9_]+_generation\b")
 
 
@@ -416,6 +449,112 @@ def _validate_allowed_direct_writes(
             failures.append(
                 f"{label}: allowed_direct_writes references unregistered owner field: {field}"
             )
+    return failures
+
+
+def _validate_appstate_diff_harness(
+    *,
+    diff_harness_doc: Any,
+    diff_harness_path: Path,
+    transition_ids: dict[str, dict[str, Any]],
+    registered_owner_fields: set[str],
+    invariant_ids: set[str],
+    generation_domain_ids: set[str],
+) -> list[str]:
+    failures: list[str] = []
+    if not isinstance(diff_harness_doc, dict):
+        failures.append(f"{diff_harness_path}: top-level value must be an object")
+        return failures
+
+    records = diff_harness_doc.get("diff_harness_checks")
+    if not isinstance(records, list) or not records:
+        failures.append(
+            f"{diff_harness_path}: diff_harness_checks must be a non-empty list"
+        )
+        records = []
+
+    harness_ids: set[str] = set()
+    covered_categories: set[str] = set()
+    for index, record in enumerate(records):
+        label = f"diff_harness_check[{index}]"
+        failures.extend(
+            _validate_required_fields(
+                record=record,
+                required_fields=REQUIRED_DIFF_HARNESS_FIELDS,
+                list_fields=DIFF_HARNESS_LIST_FIELDS,
+                label=label,
+            )
+        )
+        if not isinstance(record, dict):
+            continue
+
+        harness_id = record.get("harness_id")
+        if isinstance(harness_id, str) and harness_id.strip():
+            if harness_id in harness_ids:
+                failures.append(f"{label}: duplicate harness_id: {harness_id}")
+            harness_ids.add(harness_id)
+
+        check_category = record.get("check_category")
+        if isinstance(check_category, str) and check_category.strip():
+            covered_categories.add(check_category)
+            if check_category not in REQUIRED_DIFF_HARNESS_CATEGORIES:
+                failures.append(f"{label}: unknown check_category: {check_category}")
+
+        transition_refs = record.get("transition_ids")
+        if isinstance(transition_refs, list):
+            for transition_id in transition_refs:
+                if (
+                    isinstance(transition_id, str)
+                    and transition_id.strip()
+                    and transition_id not in transition_ids
+                ):
+                    failures.append(
+                        f"{label}: transition_ids references unknown transition id: {transition_id}"
+                    )
+
+        owner_field_refs = record.get("owner_field_refs")
+        if isinstance(owner_field_refs, list):
+            for field in owner_field_refs:
+                if (
+                    isinstance(field, str)
+                    and field.strip()
+                    and field not in registered_owner_fields
+                ):
+                    failures.append(
+                        f"{label}: owner_field_refs references unregistered owner field: {field}"
+                    )
+
+        invariant_refs = record.get("invariant_ids")
+        if isinstance(invariant_refs, list):
+            for invariant_id in invariant_refs:
+                if (
+                    isinstance(invariant_id, str)
+                    and invariant_id.strip()
+                    and invariant_id not in invariant_ids
+                ):
+                    failures.append(
+                        f"{label}: invariant_ids references unknown invariant id: {invariant_id}"
+                    )
+
+        generation_domain_refs = record.get("generation_domain_ids")
+        if isinstance(generation_domain_refs, list):
+            for domain_id in generation_domain_refs:
+                if (
+                    isinstance(domain_id, str)
+                    and domain_id.strip()
+                    and domain_id not in generation_domain_ids
+                ):
+                    failures.append(
+                        f"{label}: generation_domain_ids references unknown generation domain id: {domain_id}"
+                    )
+
+    missing_categories = sorted(REQUIRED_DIFF_HARNESS_CATEGORIES - covered_categories)
+    if missing_categories:
+        failures.append(
+            "diff harness missing required check_category/categories: "
+            + ", ".join(missing_categories)
+        )
+
     return failures
 
 
@@ -917,6 +1056,7 @@ def validate_contract(
     dispatch_surfaces_path: Path = DEFAULT_DISPATCH_SURFACES,
     invariants_path: Path = DEFAULT_INVARIANTS,
     generation_domains_path: Path = DEFAULT_GENERATION_DOMAINS,
+    diff_harness_path: Path = DEFAULT_DIFF_HARNESS,
 ) -> list[str]:
     failures: list[str] = []
     transitions_doc, transition_load_failures = _load_json(transitions_path)
@@ -931,6 +1071,7 @@ def validate_contract(
     generation_domains_doc, generation_domains_load_failures = _load_json(
         generation_domains_path
     )
+    diff_harness_doc, diff_harness_load_failures = _load_json(diff_harness_path)
     enum_actions, enum_failures = _parse_ytree_actions(actions_header_path)
     failures.extend(transition_load_failures)
     failures.extend(shim_load_failures)
@@ -940,6 +1081,7 @@ def validate_contract(
     failures.extend(dispatch_surfaces_load_failures)
     failures.extend(invariants_load_failures)
     failures.extend(generation_domains_load_failures)
+    failures.extend(diff_harness_load_failures)
     failures.extend(enum_failures)
     if failures:
         return failures
@@ -1140,6 +1282,26 @@ def validate_contract(
             dispatch_surface_ids=dispatch_surface_ids,
         )
     )
+    invariant_ids = _collect_string_ids(
+        invariants_doc,
+        collection_key="invariants",
+        id_field="invariant_id",
+    )
+    generation_domain_ids = _collect_string_ids(
+        generation_domains_doc,
+        collection_key="generation_domains",
+        id_field="domain_id",
+    )
+    failures.extend(
+        _validate_appstate_diff_harness(
+            diff_harness_doc=diff_harness_doc,
+            diff_harness_path=diff_harness_path,
+            transition_ids=transition_ids,
+            registered_owner_fields=registered_owner_fields,
+            invariant_ids=invariant_ids,
+            generation_domain_ids=generation_domain_ids,
+        )
+    )
 
     return failures
 
@@ -1158,6 +1320,7 @@ def main() -> int:
     parser.add_argument(
         "--generation-domains", type=Path, default=DEFAULT_GENERATION_DOMAINS
     )
+    parser.add_argument("--diff-harness", type=Path, default=DEFAULT_DIFF_HARNESS)
     parser.add_argument("--actions-header", type=Path, default=DEFAULT_ACTION_HEADER)
     args = parser.parse_args()
 
@@ -1171,6 +1334,7 @@ def main() -> int:
         args.dispatch_surfaces,
         args.invariants,
         args.generation_domains,
+        args.diff_harness,
     )
     if failures:
         for failure in failures:
