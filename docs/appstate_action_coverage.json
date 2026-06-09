@@ -260,19 +260,18 @@
     },
     {
       "action": "ACTION_ESCAPE",
-      "transition_id": "transition.keybinding.navigate-tree",
-      "category": "keybinding",
-      "owner": "YtreePanel(active)",
+      "transition_id": "transition.modal-action.dismiss",
+      "category": "modal_action",
+      "owner": "ViewContext.modal_region",
       "declared_write_set": [
-        "panel.tree_selection_key",
-        "panel.tree_cursor_pos",
-        "panel.tree_viewport_origin",
+        "ctx.modal_state",
+        "ctx.message_state",
         "panel.focus_shape",
         "panel.panel_generation"
       ],
       "boundary_status": "documented_foundation_only",
       "migration_notes": [
-        "Covered by the current keybinding foundation record until runtime transition objects are split per action."
+        "Esc dismissal for an active modal maps to the modal_action dismiss record; non-modal Esc no-op behavior remains a blocked keybinding outcome for later context-specific runtime coverage."
       ]
     },
     {

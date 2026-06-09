@@ -21,6 +21,7 @@ REQUIRED_GENERATION_DOMAIN_CATEGORIES = sorted(
     guard.REQUIRED_GENERATION_DOMAIN_CATEGORIES
 )
 REQUIRED_DIFF_HARNESS_CATEGORIES = sorted(guard.REQUIRED_DIFF_HARNESS_CATEGORIES)
+REQUIRED_SEQUENCE_FLOWS = sorted(guard.REQUIRED_SEQUENCE_FLOWS)
 FIXTURE_ACTIONS = ["ACTION_NONE", "ACTION_MOVE_UP", "ACTION_USER_CMD"]
 REQUIRED_LIST_FIELD_CASES = [
     ("action", "declared_write_set", "action[0]"),
@@ -43,6 +44,16 @@ REQUIRED_LIST_FIELD_CASES = [
     ("diff_harness", "invariant_ids", "diff_harness_check[0]"),
     ("diff_harness", "generation_domain_ids", "diff_harness_check[0]"),
     ("diff_harness", "migration_notes", "diff_harness_check[0]"),
+    (
+        "transition_sequence_step",
+        "invariant_ids",
+        "transition_sequence[0].step[0]",
+    ),
+    (
+        "transition_sequence_step",
+        "diff_harness_ids",
+        "transition_sequence[0].step[0]",
+    ),
     ("shim", "invariant_checks", "shim[0]"),
     ("shim", "migration_notes", "shim[0]"),
 ]
@@ -232,6 +243,64 @@ def _diff_harness(
     }
 
 
+def _transition_sequence(
+    flow: str,
+    *,
+    scenario_id: str | None = None,
+    category: str = "layout_split",
+    steps: list[dict[str, object]] | None = None,
+) -> dict[str, object]:
+    return {
+        "scenario_id": scenario_id or f"sequence.{flow}",
+        "category": category,
+        "flow": flow,
+        "description": "fixture transition sequence",
+        "steps": steps or [_sequence_step()],
+    }
+
+
+def _sequence_step(
+    *,
+    ordinal: int = 1,
+    transition_id: str = "transition.keybinding",
+    action_id: str = "ACTION_NONE",
+    event_id: str | None = None,
+    invariant_ids: list[str] | None = None,
+    diff_harness_ids: list[str] | None = None,
+    generation_domain_id: str = "domain.panel_generation",
+    expected_result: str = "allowed",
+) -> dict[str, object]:
+    stimulus: dict[str, object] = {"action_id": action_id}
+    if event_id is not None:
+        stimulus["event_id"] = event_id
+    return {
+        "ordinal": ordinal,
+        "step_id": f"step.{ordinal}",
+        "transition_id": transition_id,
+        "stimulus": stimulus,
+        "expected_result": expected_result,
+        "invariant_ids": invariant_ids or ["invariant.inactive_panel_frozen"],
+        "diff_harness_ids": diff_harness_ids
+        or ["harness.transition_before_after_snapshot"],
+        "generation_domain_expectations": [
+            {
+                "domain_id": generation_domain_id,
+                "expectation": "fixture expectation",
+            }
+        ],
+    }
+
+
+def _complete_transition_sequences() -> list[dict[str, object]]:
+    return [
+        _transition_sequence(
+            flow,
+            category="layout_split" if flow.startswith("split_") else "panel_navigation",
+        )
+        for flow in REQUIRED_SEQUENCE_FLOWS
+    ]
+
+
 def _owner_field(field: str = "field") -> dict[str, object]:
     return {
         "field": field,
@@ -256,9 +325,10 @@ def _write_fixture(
     invariants: list[dict[str, object]] | None = None,
     generation_domains: list[dict[str, object]] | None = None,
     diff_harness_checks: list[dict[str, object]] | None = None,
+    transition_sequences: list[dict[str, object]] | None = None,
     required_event_classes: list[str] | None = None,
     enum_actions: list[str] | None = None,
-) -> tuple[Path, Path, Path, Path, Path, Path, Path, Path, Path, Path]:
+) -> tuple[Path, Path, Path, Path, Path, Path, Path, Path, Path, Path, Path]:
     transitions_path = tmp_path / "transitions.json"
     shims_path = tmp_path / "shims.json"
     action_coverage_path = tmp_path / "action_coverage.json"
@@ -268,6 +338,7 @@ def _write_fixture(
     invariants_path = tmp_path / "invariants.json"
     generation_domains_path = tmp_path / "generation_domains.json"
     diff_harness_path = tmp_path / "diff_harness.json"
+    transition_sequences_path = tmp_path / "transition_sequences.json"
     actions_header_path = tmp_path / "ytree_defs.h"
     _write(transitions_path, _jsonish({"schema_version": 1, "transitions": transitions}))
     _write(shims_path, _jsonish({"schema_version": 1, "shims": shims or [_shim()]}))
@@ -324,6 +395,16 @@ def _write_fixture(
             }
         ),
     )
+    _write(
+        transition_sequences_path,
+        _jsonish(
+            {
+                "schema_version": 1,
+                "scenarios": transition_sequences
+                or _complete_transition_sequences(),
+            }
+        ),
+    )
     _write(actions_header_path, _enum_header(enum_actions or FIXTURE_ACTIONS))
     return (
         transitions_path,
@@ -336,6 +417,7 @@ def _write_fixture(
         invariants_path,
         generation_domains_path,
         diff_harness_path,
+        transition_sequences_path,
     )
 
 
@@ -403,14 +485,14 @@ def _complete_owner_fields() -> list[dict[str, object]]:
 
 
 def _validate(
-    paths: tuple[Path, Path, Path, Path, Path, Path, Path, Path, Path, Path],
+    paths: tuple[Path, Path, Path, Path, Path, Path, Path, Path, Path, Path, Path],
 ) -> list[str]:
     return guard.validate_contract(*paths)
 
 
 def _fixture_with_list_field_value(
     tmp_path: Path, record_type: str, field: str, value: object
-) -> tuple[Path, Path, Path, Path, Path, Path, Path, Path, Path, Path]:
+) -> tuple[Path, Path, Path, Path, Path, Path, Path, Path, Path, Path, Path]:
     transitions = _complete_transitions()
     shims = [_shim()]
     actions = _complete_actions()
@@ -420,6 +502,7 @@ def _fixture_with_list_field_value(
     invariants = _complete_invariants()
     generation_domains = _complete_generation_domains()
     diff_harness_checks = _complete_diff_harness_checks()
+    transition_sequences = _complete_transition_sequences()
     if record_type == "action":
         actions[0][field] = value
     elif record_type == "event":
@@ -438,6 +521,8 @@ def _fixture_with_list_field_value(
         invariants[0][field] = value
     elif record_type == "diff_harness":
         diff_harness_checks[0][field] = value
+    elif record_type == "transition_sequence_step":
+        transition_sequences[0]["steps"][0][field] = value
     else:
         raise AssertionError(f"unknown record type: {record_type}")
     return _write_fixture(
@@ -451,6 +536,7 @@ def _fixture_with_list_field_value(
         invariants=invariants,
         generation_domains=generation_domains,
         diff_harness_checks=diff_harness_checks,
+        transition_sequences=transition_sequences,
     )
 
 
@@ -549,6 +635,264 @@ def test_guard_accepts_diff_harness_registry_cli_override(tmp_path: Path) -> Non
     )
 
     assert run.returncode == 0, run.stdout + run.stderr
+
+
+def test_guard_accepts_transition_sequence_registry_cli_override(tmp_path: Path) -> None:
+    repo_root = Path(__file__).resolve().parents[1]
+    override_path = tmp_path / "appstate_transition_sequences.json"
+    override_path.write_text(
+        (repo_root / "docs" / "appstate_transition_sequences.json").read_text(
+            encoding="utf-8"
+        ),
+        encoding="utf-8",
+    )
+
+    run = subprocess.run(
+        [
+            "python3",
+            "scripts/check_appstate_contract.py",
+            "--transition-sequences",
+            str(override_path),
+        ],
+        cwd=repo_root,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+    assert run.returncode == 0, run.stdout + run.stderr
+
+
+def test_guard_fails_when_required_transition_sequence_field_is_missing(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    transition_sequences = _complete_transition_sequences()
+    transition_sequences[0].pop("description")
+    paths = _write_fixture(
+        tmp_path, transitions=transitions, transition_sequences=transition_sequences
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "transition_sequence[0]" in failure
+        and "missing required field" in failure
+        and "description" in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_on_duplicate_transition_sequence_ids(tmp_path: Path) -> None:
+    transitions = _complete_transitions()
+    transition_sequences = _complete_transition_sequences()
+    transition_sequences[1]["scenario_id"] = transition_sequences[0]["scenario_id"]
+    paths = _write_fixture(
+        tmp_path, transitions=transitions, transition_sequences=transition_sequences
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "transition_sequence[1]" in failure and "duplicate scenario_id" in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_when_transition_sequence_has_unknown_category(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    transition_sequences = _complete_transition_sequences()
+    transition_sequences[0]["category"] = "unknown_sequence_category"
+    paths = _write_fixture(
+        tmp_path, transitions=transitions, transition_sequences=transition_sequences
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "transition_sequence[0]" in failure
+        and "unknown category" in failure
+        and "unknown_sequence_category" in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_when_transition_sequence_has_unknown_flow(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    transition_sequences = _complete_transition_sequences()
+    transition_sequences[0]["flow"] = "unknown_sequence_flow"
+    paths = _write_fixture(
+        tmp_path, transitions=transitions, transition_sequences=transition_sequences
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "transition_sequence[0]" in failure
+        and "unknown flow" in failure
+        and "unknown_sequence_flow" in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_when_transition_sequence_steps_are_malformed(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    transition_sequences = _complete_transition_sequences()
+    transition_sequences[0]["steps"] = {}
+    paths = _write_fixture(
+        tmp_path, transitions=transitions, transition_sequences=transition_sequences
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "transition_sequence[0]" in failure
+        and "steps must be a non-empty list" in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_on_duplicate_transition_sequence_step_ordinal(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    duplicate_step = _sequence_step(ordinal=1)
+    transition_sequences = _complete_transition_sequences()
+    transition_sequences[0]["steps"] = [_sequence_step(ordinal=1), duplicate_step]
+    paths = _write_fixture(
+        tmp_path, transitions=transitions, transition_sequences=transition_sequences
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "transition_sequence[0].step[1]" in failure
+        and "duplicate ordinal" in failure
+        for failure in failures
+    )
+
+
+@pytest.mark.parametrize(
+    ("field", "value", "expected"),
+    (
+        ("transition_id", "transition.missing", "unknown transition id"),
+        ("stimulus", {"action_id": "ACTION_MISSING"}, "unknown action"),
+        ("stimulus", {"event_id": "event.missing"}, "unknown event id"),
+        ("invariant_ids", ["invariant.missing"], "unknown invariant id"),
+        ("diff_harness_ids", ["harness.missing"], "unknown diff harness id"),
+        (
+            "generation_domain_expectations",
+            [{"domain_id": "domain.missing", "expectation": "fixture"}],
+            "unknown generation domain id",
+        ),
+    ),
+)
+def test_guard_fails_on_unknown_transition_sequence_step_references(
+    tmp_path: Path, field: str, value: object, expected: str
+) -> None:
+    transitions = _complete_transitions()
+    transition_sequences = _complete_transition_sequences()
+    transition_sequences[0]["steps"][0][field] = value
+    paths = _write_fixture(
+        tmp_path, transitions=transitions, transition_sequences=transition_sequences
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "transition_sequence[0].step[0]" in failure and expected in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_when_transition_sequence_action_mismatches_transition(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    transition_sequences = _complete_transition_sequences()
+    transition_sequences[0]["steps"][0]["transition_id"] = "transition.refresh_rebuild"
+    paths = _write_fixture(
+        tmp_path, transitions=transitions, transition_sequences=transition_sequences
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "transition_sequence[0].step[0]" in failure
+        and "stimulus.action_id" in failure
+        and "transition.keybinding" in failure
+        and "transition.refresh_rebuild" in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_when_transition_sequence_event_mismatches_transition(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    transition_sequences = _complete_transition_sequences()
+    transition_sequences[0]["steps"][0]["transition_id"] = "transition.refresh_rebuild"
+    transition_sequences[0]["steps"][0]["stimulus"] = {
+        "event_id": "event.modal_completion"
+    }
+    paths = _write_fixture(
+        tmp_path, transitions=transitions, transition_sequences=transition_sequences
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "transition_sequence[0].step[0]" in failure
+        and "stimulus.event_id" in failure
+        and "transition.modal_action" in failure
+        and "transition.refresh_rebuild" in failure
+        for failure in failures
+    )
+
+
+@pytest.mark.parametrize("precondition", ("stale_snapshot", "generation_mismatch"))
+def test_guard_fails_when_transition_sequence_fallback_expectation_is_missing(
+    tmp_path: Path, precondition: str
+) -> None:
+    transitions = _complete_transitions()
+    transition_sequences = _complete_transition_sequences()
+    transition_sequences[0]["steps"][0]["precondition"] = precondition
+    paths = _write_fixture(
+        tmp_path, transitions=transitions, transition_sequences=transition_sequences
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "transition_sequence[0].step[0]" in failure
+        and "require deterministic_fallback" in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_when_blocked_transition_sequence_lacks_no_mutation_expectation(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    transition_sequences = _complete_transition_sequences()
+    transition_sequences[0]["steps"][0]["expected_result"] = "blocked"
+    paths = _write_fixture(
+        tmp_path, transitions=transitions, transition_sequences=transition_sequences
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "transition_sequence[0].step[0]" in failure
+        and "require no_unrelated_mutation" in failure
+        for failure in failures
+    )
 
 
 def test_guard_fails_when_required_diff_harness_field_is_missing(
