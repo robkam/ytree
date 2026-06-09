@@ -1,0 +1,271 @@
+{
+  "schema_version": 1,
+  "contract": "AppState owner/write-set field registry",
+  "notes": "Non-runtime registry for every declared_write_set field in the AppState transition, action, and event coverage registries.",
+  "owner_fields": [
+    {
+      "field": "ctx.active",
+      "owner_region": "ctx/session state",
+      "canonical_owner": "ViewContext.session routing",
+      "runtime_carrier": "ViewContext.active",
+      "mutation_rule": "May change only during an allowed panel-routing or volume/menu transition commit.",
+      "migration_status": "documented_foundation_only",
+      "invariant_checks": [
+        "Active panel changes must preserve inactive panel-local records.",
+        "Panel routing must resolve to an existing YtreePanel carrier before render projection."
+      ]
+    },
+    {
+      "field": "ctx.command_state",
+      "owner_region": "ctx/session state",
+      "canonical_owner": "ViewContext.command_region",
+      "runtime_carrier": "ViewContext command state fields",
+      "mutation_rule": "May change only through command start/completion/cancel transitions.",
+      "migration_status": "documented_foundation_only",
+      "invariant_checks": [
+        "Command completion must not mutate panel or volume fields outside the declared follow-up transition.",
+        "Command failure or cancellation must preserve authoritative panel and volume state."
+      ]
+    },
+    {
+      "field": "ctx.message_state",
+      "owner_region": "ctx/session state",
+      "canonical_owner": "ViewContext.message_region",
+      "runtime_carrier": "ViewContext message/footer state fields",
+      "mutation_rule": "May change only through transitions that declare user-visible outcome or constraint messaging.",
+      "migration_status": "documented_foundation_only",
+      "invariant_checks": [
+        "Blocked transitions may write message state only when needed for outcome clarity.",
+        "Message writes must not imply filesystem or panel state success."
+      ]
+    },
+    {
+      "field": "ctx.modal_state",
+      "owner_region": "ctx/session state",
+      "canonical_owner": "ViewContext.modal_region",
+      "runtime_carrier": "ViewContext modal/dialog state fields",
+      "mutation_rule": "May change only when entering, completing, or dismissing a registered modal transition.",
+      "migration_status": "documented_foundation_only",
+      "invariant_checks": [
+        "Modal dismissal must leave underlying panel and volume authority unchanged unless declared.",
+        "Destructive confirmations must remain explicit and default-safe."
+      ]
+    },
+    {
+      "field": "ctx.pending_transition",
+      "owner_region": "ctx/session state",
+      "canonical_owner": "ViewContext.transition_queue",
+      "runtime_carrier": "ViewContext pending transition marker",
+      "mutation_rule": "May be queued only by transitions that declare a deterministic follow-up boundary.",
+      "migration_status": "documented_foundation_only",
+      "invariant_checks": [
+        "Pending transitions must name a registered transition before later mutation.",
+        "Queueing a transition must not advance panel or volume generations by itself."
+      ]
+    },
+    {
+      "field": "ctx.volumes_head",
+      "owner_region": "volume/shared topology and payload state",
+      "canonical_owner": "ViewContext.volume_registry",
+      "runtime_carrier": "ViewContext.volumes_head",
+      "mutation_rule": "May change only through volume lifecycle transitions that validate panel bindings.",
+      "migration_status": "documented_foundation_only",
+      "invariant_checks": [
+        "Releasing a volume must not leave active or inactive panels with stale volume pointers.",
+        "Volume registry changes must rebind affected panels through stable identity or deterministic fallback."
+      ]
+    },
+    {
+      "field": "ctx.layout",
+      "owner_region": "render/projection/invalidation state",
+      "canonical_owner": "ViewContext.layout_region",
+      "runtime_carrier": "ViewContext layout geometry fields",
+      "mutation_rule": "May change only during resize/reflow transitions executed in the main loop.",
+      "migration_status": "documented_foundation_only",
+      "invariant_checks": [
+        "Resize handling must not choose a new authoritative selection from rendered rows.",
+        "Layout changes alone must not advance volume_generation."
+      ]
+    },
+    {
+      "field": "ctx.render_dirty_flags",
+      "owner_region": "render/projection/invalidation state",
+      "canonical_owner": "ViewContext.render_region",
+      "runtime_carrier": "ViewContext render invalidation fields",
+      "mutation_rule": "May change only when a transition marks or clears declared projection surfaces.",
+      "migration_status": "documented_foundation_only",
+      "invariant_checks": [
+        "Render invalidation writes must not mutate selection, focus, or identity state.",
+        "Render projection may clear only surfaces produced from settled AppState records."
+      ]
+    },
+    {
+      "field": "ctx.window_handles",
+      "owner_region": "render/projection/invalidation state",
+      "canonical_owner": "ViewContext ncurses window/layout handles",
+      "runtime_carrier": "ViewContext window handle fields",
+      "mutation_rule": "May change only during main-loop layout/reflow or render projection setup.",
+      "migration_status": "documented_foundation_only",
+      "invariant_checks": [
+        "Ncurses window recreation must happen outside signal handlers.",
+        "Window handles must not become restore authority for panel selection or viewport state."
+      ]
+    },
+    {
+      "field": "panel.file_selection_key",
+      "owner_region": "panel-local state",
+      "canonical_owner": "YtreePanel.file identity owner",
+      "runtime_carrier": "YtreePanel file selection identity fields",
+      "mutation_rule": "May change only for the targeted panel through navigation, restore, or rebind transitions.",
+      "migration_status": "documented_foundation_only",
+      "invariant_checks": [
+        "File selection identity must be path/name based, not a stale FileEntry pointer.",
+        "Inactive panel file selection must remain frozen across active-only actions."
+      ]
+    },
+    {
+      "field": "panel.file_viewport_origin",
+      "owner_region": "panel-local state",
+      "canonical_owner": "YtreePanel.file viewport owner",
+      "runtime_carrier": "YtreePanel file viewport fields",
+      "mutation_rule": "May change only for the targeted panel when navigation, bounds correction, or reflow declares it.",
+      "migration_status": "documented_foundation_only",
+      "invariant_checks": [
+        "File viewport correction must preserve the stored selection when it remains visible.",
+        "Render paths may compute temporary file projection without overwriting this origin."
+      ]
+    },
+    {
+      "field": "panel.focus_shape",
+      "owner_region": "panel-local state",
+      "canonical_owner": "YtreePanel.focus owner",
+      "runtime_carrier": "YtreePanel focus/window-shape fields",
+      "mutation_rule": "May change only during allowed focus, modal restore, split, or file/tree transition commits.",
+      "migration_status": "documented_foundation_only",
+      "invariant_checks": [
+        "Reactivation must restore the recorded tree/small-file/big-file shape directly.",
+        "Focus shape changes must not import the inactive panel's state."
+      ]
+    },
+    {
+      "field": "panel.panel_generation",
+      "owner_region": "panel-local state",
+      "canonical_owner": "YtreePanel.generation owner",
+      "runtime_carrier": "YtreePanel panel generation field",
+      "mutation_rule": "May increment only when panel-local restore authority changes.",
+      "migration_status": "documented_foundation_only",
+      "invariant_checks": [
+        "Render projection alone must not advance panel_generation.",
+        "Snapshot restore must compare panel_generation before applying saved state."
+      ]
+    },
+    {
+      "field": "panel.restore_snapshot",
+      "owner_region": "panel-local state",
+      "canonical_owner": "YtreePanel.restore snapshot owner",
+      "runtime_carrier": "YtreePanel restore snapshot fields",
+      "mutation_rule": "May change only through snapshot capture, rebind, fallback, or volume-binding transitions.",
+      "migration_status": "documented_foundation_only",
+      "invariant_checks": [
+        "Restore snapshots must use stable identities plus generation validation.",
+        "Stale snapshots must fail closed through the deterministic fallback order."
+      ]
+    },
+    {
+      "field": "panel.tree_cursor_pos",
+      "owner_region": "panel-local state",
+      "canonical_owner": "YtreePanel.tree cursor owner",
+      "runtime_carrier": "YtreePanel tree cursor field",
+      "mutation_rule": "May change only for the targeted panel during tree navigation or rebind/fallback transitions.",
+      "migration_status": "documented_foundation_only",
+      "invariant_checks": [
+        "Tree cursor position is interpreted against visible rows, not raw topology indices.",
+        "Inactive panel cursor must remain unchanged unless the transition explicitly targets that panel."
+      ]
+    },
+    {
+      "field": "panel.tree_selection_key",
+      "owner_region": "panel-local state",
+      "canonical_owner": "YtreePanel.tree selection owner",
+      "runtime_carrier": "YtreePanel tree selection identity fields",
+      "mutation_rule": "May change only through tree navigation, restore, or topology rebind transitions for the targeted panel.",
+      "migration_status": "documented_foundation_only",
+      "invariant_checks": [
+        "Tree selection identity must be stable and path based within the current volume namespace.",
+        "Selection restore must not derive authority from disp_begin_pos plus cursor_pos."
+      ]
+    },
+    {
+      "field": "panel.tree_viewport_origin",
+      "owner_region": "panel-local state",
+      "canonical_owner": "YtreePanel.tree viewport owner",
+      "runtime_carrier": "YtreePanel tree viewport fields",
+      "mutation_rule": "May change only when navigation, bounds correction, resize, or rebind declares viewport mutation.",
+      "migration_status": "documented_foundation_only",
+      "invariant_checks": [
+        "Hidden dotfile visibility must not cause extra viewport shifts when selection remains visible.",
+        "Render-side temporary placement must not overwrite the saved viewport origin."
+      ]
+    },
+    {
+      "field": "panel.volume_key",
+      "owner_region": "panel-local state",
+      "canonical_owner": "YtreePanel.volume binding owner",
+      "runtime_carrier": "YtreePanel volume binding fields",
+      "mutation_rule": "May change only through volume selection, cycle, release, or restore transitions.",
+      "migration_status": "documented_foundation_only",
+      "invariant_checks": [
+        "Panel volume binding must point to an existing volume/archive namespace or deterministic fallback.",
+        "A panel must not import the opposite panel's volume-specific snapshot."
+      ]
+    },
+    {
+      "field": "volume.dir_tree",
+      "owner_region": "volume/shared topology and payload state",
+      "canonical_owner": "Volume.topology owner",
+      "runtime_carrier": "Volume directory tree fields",
+      "mutation_rule": "May change only through logging, rebuild, refresh, release, or completed filesystem mutation transitions.",
+      "migration_status": "documented_foundation_only",
+      "invariant_checks": [
+        "Shared topology changes must re-anchor each panel by its own stable identity.",
+        "Topology mutation must advance volume_generation before restore consumers observe it."
+      ]
+    },
+    {
+      "field": "volume.logged_state",
+      "owner_region": "volume/shared topology and payload state",
+      "canonical_owner": "Volume.logged topology owner",
+      "runtime_carrier": "Volume logged/unlogged directory state",
+      "mutation_rule": "May change only through explicit log, relog, release, collapse, refresh, or rebuild transitions.",
+      "migration_status": "documented_foundation_only",
+      "invariant_checks": [
+        "Logged state is shared topology and must not store panel-local cursor or tag authority.",
+        "Unlogged placeholders must not degrade a frozen file-view anchor without rebind or payload reload."
+      ]
+    },
+    {
+      "field": "volume.payload_cache",
+      "owner_region": "volume/shared topology and payload state",
+      "canonical_owner": "Volume.payload cache owner",
+      "runtime_carrier": "Volume file payload/statistics cache fields",
+      "mutation_rule": "May change only through payload load, refresh, archive, or completed filesystem mutation transitions.",
+      "migration_status": "documented_foundation_only",
+      "invariant_checks": [
+        "Payload cache changes must not overwrite panel-local file selection identity.",
+        "Mutation-result commits must distinguish filesystem side effects from AppState metadata updates."
+      ]
+    },
+    {
+      "field": "volume.volume_generation",
+      "owner_region": "volume/shared topology and payload state",
+      "canonical_owner": "Volume.generation owner",
+      "runtime_carrier": "Volume topology/payload generation field",
+      "mutation_rule": "May increment only when shared topology, payload identity, logged state, or namespace mapping changes.",
+      "migration_status": "documented_foundation_only",
+      "invariant_checks": [
+        "Render projection alone must not advance volume_generation.",
+        "Generation mismatch must force stable-identity re-resolution before snapshot restore."
+      ]
+    }
+  ]
+}
