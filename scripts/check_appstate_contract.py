@@ -5,12 +5,15 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 from pathlib import Path
 from typing import Any
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_TRANSITIONS = REPO_ROOT / "docs" / "appstate_transition_matrix.json"
 DEFAULT_SHIMS = REPO_ROOT / "docs" / "appstate_compat_shims.json"
+DEFAULT_ACTION_COVERAGE = REPO_ROOT / "docs" / "appstate_action_coverage.json"
+DEFAULT_ACTION_HEADER = REPO_ROOT / "include" / "ytree_defs.h"
 
 REQUIRED_TRANSITION_CATEGORIES = {
     "keybinding",
@@ -56,10 +59,21 @@ REQUIRED_SHIM_FIELDS = {
     "qa_enforcement",
 }
 
+REQUIRED_ACTION_FIELDS = {
+    "action",
+    "transition_id",
+    "category",
+    "owner",
+    "declared_write_set",
+    "boundary_status",
+    "migration_notes",
+}
+
 LIST_FIELDS = {
     "declared_write_set",
     "side_effects",
     "invariant_checks",
+    "migration_notes",
 }
 
 
@@ -82,6 +96,18 @@ def _is_non_empty(value: Any) -> bool:
     return value is not None
 
 
+def _validate_list_field(*, value: Any, label: str, field: str) -> list[str]:
+    failures: list[str] = []
+    if not isinstance(value, list):
+        return [f"{label}: {field} must be a non-empty list"]
+    if not value:
+        failures.append(f"{label}: {field} must be non-empty")
+    for index, item in enumerate(value):
+        if not isinstance(item, str) or not item.strip():
+            failures.append(f"{label}: {field}[{index}] must be a non-empty string")
+    return failures
+
+
 def _validate_required_fields(
     *,
     record: Any,
@@ -97,22 +123,57 @@ def _validate_required_fields(
     if missing:
         failures.append(f"{label}: missing required field(s): {', '.join(missing)}")
 
-    for field in sorted(required_fields & set(record)):
+    for field in sorted((required_fields | list_fields) & set(record)):
         value = record[field]
-        if field in list_fields and not isinstance(value, list):
-            failures.append(f"{label}: {field} must be a non-empty list")
-        if not _is_non_empty(value):
+        if field in list_fields:
+            failures.extend(_validate_list_field(value=value, label=label, field=field))
+        elif not _is_non_empty(value):
             failures.append(f"{label}: {field} must be non-empty")
 
     return failures
 
 
-def validate_contract(transitions_path: Path, shims_path: Path) -> list[str]:
+def _parse_ytree_actions(header_path: Path) -> tuple[list[str], list[str]]:
+    try:
+        source = header_path.read_text(encoding="utf-8")
+    except OSError as exc:
+        return [], [f"{header_path}: failed to read: {exc}"]
+
+    match = re.search(r"typedef\s+enum\s*\{(?P<body>.*?)\}\s*YtreeAction\s*;", source, re.S)
+    if match is None:
+        return [], [f"{header_path}: failed to find YtreeAction enum"]
+
+    body = re.sub(r"/\*.*?\*/", "", match.group("body"), flags=re.S)
+    body = re.sub(r"//.*", "", body)
+    actions: list[str] = []
+    for item in body.split(","):
+        action = item.split("=", 1)[0].strip()
+        if not action:
+            continue
+        if not re.fullmatch(r"ACTION_[A-Z0-9_]+", action):
+            return [], [f"{header_path}: invalid YtreeAction enum member: {action}"]
+        actions.append(action)
+
+    if not actions:
+        return [], [f"{header_path}: YtreeAction enum must not be empty"]
+    return actions, []
+
+
+def validate_contract(
+    transitions_path: Path,
+    shims_path: Path,
+    action_coverage_path: Path,
+    actions_header_path: Path,
+) -> list[str]:
     failures: list[str] = []
     transitions_doc, transition_load_failures = _load_json(transitions_path)
     shims_doc, shim_load_failures = _load_json(shims_path)
+    action_coverage_doc, action_coverage_load_failures = _load_json(action_coverage_path)
+    enum_actions, enum_failures = _parse_ytree_actions(actions_header_path)
     failures.extend(transition_load_failures)
     failures.extend(shim_load_failures)
+    failures.extend(action_coverage_load_failures)
+    failures.extend(enum_failures)
     if failures:
         return failures
 
@@ -125,7 +186,7 @@ def validate_contract(transitions_path: Path, shims_path: Path) -> list[str]:
             failures.append(f"{transitions_path}: transitions must be a non-empty list")
             transitions = []
 
-    transition_ids: set[str] = set()
+    transition_ids: dict[str, dict[str, Any]] = {}
     categories: set[str] = set()
     for index, record in enumerate(transitions):
         label = f"transition[{index}]"
@@ -143,7 +204,7 @@ def validate_contract(transitions_path: Path, shims_path: Path) -> list[str]:
         if isinstance(transition_id, str) and transition_id.strip():
             if transition_id in transition_ids:
                 failures.append(f"{label}: duplicate id: {transition_id}")
-            transition_ids.add(transition_id)
+            transition_ids[transition_id] = record
         category = record.get("category")
         if isinstance(category, str) and category.strip():
             categories.add(category)
@@ -189,6 +250,65 @@ def validate_contract(transitions_path: Path, shims_path: Path) -> list[str]:
                     f"{label}: target_transition does not match a transition id: {target_transition}"
                 )
 
+    if not isinstance(action_coverage_doc, dict):
+        failures.append(f"{action_coverage_path}: top-level value must be an object")
+        action_records = []
+    else:
+        action_records = action_coverage_doc.get("actions")
+        if not isinstance(action_records, list) or not action_records:
+            failures.append(f"{action_coverage_path}: actions must be a non-empty list")
+            action_records = []
+
+    expected_actions = set(enum_actions)
+    covered_actions: set[str] = set()
+    for index, record in enumerate(action_records):
+        label = f"action[{index}]"
+        failures.extend(
+            _validate_required_fields(
+                record=record,
+                required_fields=REQUIRED_ACTION_FIELDS,
+                list_fields=LIST_FIELDS,
+                label=label,
+            )
+        )
+        if not isinstance(record, dict):
+            continue
+
+        action = record.get("action")
+        if isinstance(action, str) and action.strip():
+            if action in covered_actions:
+                failures.append(f"{label}: duplicate action: {action}")
+            covered_actions.add(action)
+            if action not in expected_actions:
+                failures.append(f"{label}: unknown YtreeAction enum member: {action}")
+
+        transition_id = record.get("transition_id")
+        transition_record = None
+        if isinstance(transition_id, str) and transition_id.strip():
+            transition_record = transition_ids.get(transition_id)
+            if transition_record is None:
+                failures.append(
+                    f"{label}: transition_id does not match a transition id: {transition_id}"
+                )
+
+        category = record.get("category")
+        if (
+            isinstance(category, str)
+            and category.strip()
+            and transition_record is not None
+            and category != transition_record.get("category")
+        ):
+            failures.append(
+                f"{label}: category does not match transition {transition_id}: {category}"
+            )
+
+    missing_actions = sorted(expected_actions - covered_actions)
+    if missing_actions:
+        failures.append(
+            "action coverage missing YtreeAction enum member(s): "
+            + ", ".join(missing_actions)
+        )
+
     return failures
 
 
@@ -196,9 +316,16 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--transitions", type=Path, default=DEFAULT_TRANSITIONS)
     parser.add_argument("--shims", type=Path, default=DEFAULT_SHIMS)
+    parser.add_argument("--action-coverage", type=Path, default=DEFAULT_ACTION_COVERAGE)
+    parser.add_argument("--actions-header", type=Path, default=DEFAULT_ACTION_HEADER)
     args = parser.parse_args()
 
-    failures = validate_contract(args.transitions, args.shims)
+    failures = validate_contract(
+        args.transitions,
+        args.shims,
+        args.action_coverage,
+        args.actions_header,
+    )
     if failures:
         for failure in failures:
             print(f"FAIL: {failure}")

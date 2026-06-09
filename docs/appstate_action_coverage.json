@@ -1,0 +1,1474 @@
+{
+  "schema_version": 1,
+  "contract": "YtreeAction AppState transition coverage",
+  "notes": "Non-runtime registry ensuring every YtreeAction enum member has AppState transition metadata coverage. Runtime behavior is unchanged.",
+  "actions": [
+    {
+      "action": "ACTION_NONE",
+      "transition_id": "transition.keybinding.navigate-tree",
+      "category": "keybinding",
+      "owner": "YtreePanel(active)",
+      "declared_write_set": [
+        "panel.tree_selection_key",
+        "panel.tree_cursor_pos",
+        "panel.tree_viewport_origin",
+        "panel.focus_shape",
+        "panel.panel_generation"
+      ],
+      "boundary_status": "documented_foundation_only",
+      "migration_notes": [
+        "Covered by the current keybinding foundation record until runtime transition objects are split per action."
+      ]
+    },
+    {
+      "action": "ACTION_MOVE_UP",
+      "transition_id": "transition.keybinding.navigate-tree",
+      "category": "keybinding",
+      "owner": "YtreePanel(active)",
+      "declared_write_set": [
+        "panel.tree_selection_key",
+        "panel.tree_cursor_pos",
+        "panel.tree_viewport_origin",
+        "panel.focus_shape",
+        "panel.panel_generation"
+      ],
+      "boundary_status": "documented_foundation_only",
+      "migration_notes": [
+        "Covered by the current keybinding foundation record until runtime transition objects are split per action."
+      ]
+    },
+    {
+      "action": "ACTION_MOVE_DOWN",
+      "transition_id": "transition.keybinding.navigate-tree",
+      "category": "keybinding",
+      "owner": "YtreePanel(active)",
+      "declared_write_set": [
+        "panel.tree_selection_key",
+        "panel.tree_cursor_pos",
+        "panel.tree_viewport_origin",
+        "panel.focus_shape",
+        "panel.panel_generation"
+      ],
+      "boundary_status": "documented_foundation_only",
+      "migration_notes": [
+        "Covered by the current keybinding foundation record until runtime transition objects are split per action."
+      ]
+    },
+    {
+      "action": "ACTION_MOVE_SIBLING_NEXT",
+      "transition_id": "transition.keybinding.navigate-tree",
+      "category": "keybinding",
+      "owner": "YtreePanel(active)",
+      "declared_write_set": [
+        "panel.tree_selection_key",
+        "panel.tree_cursor_pos",
+        "panel.tree_viewport_origin",
+        "panel.focus_shape",
+        "panel.panel_generation"
+      ],
+      "boundary_status": "documented_foundation_only",
+      "migration_notes": [
+        "Covered by the current keybinding foundation record until runtime transition objects are split per action."
+      ]
+    },
+    {
+      "action": "ACTION_MOVE_SIBLING_PREV",
+      "transition_id": "transition.keybinding.navigate-tree",
+      "category": "keybinding",
+      "owner": "YtreePanel(active)",
+      "declared_write_set": [
+        "panel.tree_selection_key",
+        "panel.tree_cursor_pos",
+        "panel.tree_viewport_origin",
+        "panel.focus_shape",
+        "panel.panel_generation"
+      ],
+      "boundary_status": "documented_foundation_only",
+      "migration_notes": [
+        "Covered by the current keybinding foundation record until runtime transition objects are split per action."
+      ]
+    },
+    {
+      "action": "ACTION_MOVE_LEFT",
+      "transition_id": "transition.keybinding.navigate-tree",
+      "category": "keybinding",
+      "owner": "YtreePanel(active)",
+      "declared_write_set": [
+        "panel.tree_selection_key",
+        "panel.tree_cursor_pos",
+        "panel.tree_viewport_origin",
+        "panel.focus_shape",
+        "panel.panel_generation"
+      ],
+      "boundary_status": "documented_foundation_only",
+      "migration_notes": [
+        "Covered by the current keybinding foundation record until runtime transition objects are split per action."
+      ]
+    },
+    {
+      "action": "ACTION_MOVE_RIGHT",
+      "transition_id": "transition.keybinding.navigate-tree",
+      "category": "keybinding",
+      "owner": "YtreePanel(active)",
+      "declared_write_set": [
+        "panel.tree_selection_key",
+        "panel.tree_cursor_pos",
+        "panel.tree_viewport_origin",
+        "panel.focus_shape",
+        "panel.panel_generation"
+      ],
+      "boundary_status": "documented_foundation_only",
+      "migration_notes": [
+        "Covered by the current keybinding foundation record until runtime transition objects are split per action."
+      ]
+    },
+    {
+      "action": "ACTION_PAGE_UP",
+      "transition_id": "transition.keybinding.navigate-tree",
+      "category": "keybinding",
+      "owner": "YtreePanel(active)",
+      "declared_write_set": [
+        "panel.tree_selection_key",
+        "panel.tree_cursor_pos",
+        "panel.tree_viewport_origin",
+        "panel.focus_shape",
+        "panel.panel_generation"
+      ],
+      "boundary_status": "documented_foundation_only",
+      "migration_notes": [
+        "Covered by the current keybinding foundation record until runtime transition objects are split per action."
+      ]
+    },
+    {
+      "action": "ACTION_PAGE_DOWN",
+      "transition_id": "transition.keybinding.navigate-tree",
+      "category": "keybinding",
+      "owner": "YtreePanel(active)",
+      "declared_write_set": [
+        "panel.tree_selection_key",
+        "panel.tree_cursor_pos",
+        "panel.tree_viewport_origin",
+        "panel.focus_shape",
+        "panel.panel_generation"
+      ],
+      "boundary_status": "documented_foundation_only",
+      "migration_notes": [
+        "Covered by the current keybinding foundation record until runtime transition objects are split per action."
+      ]
+    },
+    {
+      "action": "ACTION_HOME",
+      "transition_id": "transition.keybinding.navigate-tree",
+      "category": "keybinding",
+      "owner": "YtreePanel(active)",
+      "declared_write_set": [
+        "panel.tree_selection_key",
+        "panel.tree_cursor_pos",
+        "panel.tree_viewport_origin",
+        "panel.focus_shape",
+        "panel.panel_generation"
+      ],
+      "boundary_status": "documented_foundation_only",
+      "migration_notes": [
+        "Covered by the current keybinding foundation record until runtime transition objects are split per action."
+      ]
+    },
+    {
+      "action": "ACTION_END",
+      "transition_id": "transition.keybinding.navigate-tree",
+      "category": "keybinding",
+      "owner": "YtreePanel(active)",
+      "declared_write_set": [
+        "panel.tree_selection_key",
+        "panel.tree_cursor_pos",
+        "panel.tree_viewport_origin",
+        "panel.focus_shape",
+        "panel.panel_generation"
+      ],
+      "boundary_status": "documented_foundation_only",
+      "migration_notes": [
+        "Covered by the current keybinding foundation record until runtime transition objects are split per action."
+      ]
+    },
+    {
+      "action": "ACTION_TREE_EXPAND",
+      "transition_id": "transition.keybinding.navigate-tree",
+      "category": "keybinding",
+      "owner": "YtreePanel(active)",
+      "declared_write_set": [
+        "panel.tree_selection_key",
+        "panel.tree_cursor_pos",
+        "panel.tree_viewport_origin",
+        "panel.focus_shape",
+        "panel.panel_generation"
+      ],
+      "boundary_status": "documented_foundation_only",
+      "migration_notes": [
+        "Covered by the current keybinding foundation record until runtime transition objects are split per action."
+      ]
+    },
+    {
+      "action": "ACTION_TREE_COLLAPSE",
+      "transition_id": "transition.keybinding.navigate-tree",
+      "category": "keybinding",
+      "owner": "YtreePanel(active)",
+      "declared_write_set": [
+        "panel.tree_selection_key",
+        "panel.tree_cursor_pos",
+        "panel.tree_viewport_origin",
+        "panel.focus_shape",
+        "panel.panel_generation"
+      ],
+      "boundary_status": "documented_foundation_only",
+      "migration_notes": [
+        "Covered by the current keybinding foundation record until runtime transition objects are split per action."
+      ]
+    },
+    {
+      "action": "ACTION_TREE_EXPAND_ALL",
+      "transition_id": "transition.keybinding.navigate-tree",
+      "category": "keybinding",
+      "owner": "YtreePanel(active)",
+      "declared_write_set": [
+        "panel.tree_selection_key",
+        "panel.tree_cursor_pos",
+        "panel.tree_viewport_origin",
+        "panel.focus_shape",
+        "panel.panel_generation"
+      ],
+      "boundary_status": "documented_foundation_only",
+      "migration_notes": [
+        "Covered by the current keybinding foundation record until runtime transition objects are split per action."
+      ]
+    },
+    {
+      "action": "ACTION_ENTER",
+      "transition_id": "transition.keybinding.navigate-tree",
+      "category": "keybinding",
+      "owner": "YtreePanel(active)",
+      "declared_write_set": [
+        "panel.tree_selection_key",
+        "panel.tree_cursor_pos",
+        "panel.tree_viewport_origin",
+        "panel.focus_shape",
+        "panel.panel_generation"
+      ],
+      "boundary_status": "documented_foundation_only",
+      "migration_notes": [
+        "Covered by the current keybinding foundation record until runtime transition objects are split per action."
+      ]
+    },
+    {
+      "action": "ACTION_ESCAPE",
+      "transition_id": "transition.keybinding.navigate-tree",
+      "category": "keybinding",
+      "owner": "YtreePanel(active)",
+      "declared_write_set": [
+        "panel.tree_selection_key",
+        "panel.tree_cursor_pos",
+        "panel.tree_viewport_origin",
+        "panel.focus_shape",
+        "panel.panel_generation"
+      ],
+      "boundary_status": "documented_foundation_only",
+      "migration_notes": [
+        "Covered by the current keybinding foundation record until runtime transition objects are split per action."
+      ]
+    },
+    {
+      "action": "ACTION_LOG",
+      "transition_id": "transition.refresh-rebuild.manual-refresh",
+      "category": "refresh_rebuild",
+      "owner": "Volume(shared topology)",
+      "declared_write_set": [
+        "volume.dir_tree",
+        "volume.logged_state",
+        "volume.volume_generation",
+        "panel.restore_snapshot",
+        "panel.panel_generation"
+      ],
+      "boundary_status": "documented_foundation_only",
+      "migration_notes": [
+        "Covered by the refresh/rebuild foundation record until log, relog, and refresh actions receive dedicated runtime records."
+      ]
+    },
+    {
+      "action": "ACTION_QUIT",
+      "transition_id": "transition.command-completion.user-command",
+      "category": "command_completion",
+      "owner": "ViewContext.command_region",
+      "declared_write_set": [
+        "ctx.command_state",
+        "ctx.message_state",
+        "ctx.pending_transition",
+        "panel.panel_generation"
+      ],
+      "boundary_status": "documented_foundation_only",
+      "migration_notes": [
+        "Covered by the command completion foundation record until external and session command actions receive dedicated runtime records."
+      ]
+    },
+    {
+      "action": "ACTION_QUIT_DIR",
+      "transition_id": "transition.command-completion.user-command",
+      "category": "command_completion",
+      "owner": "ViewContext.command_region",
+      "declared_write_set": [
+        "ctx.command_state",
+        "ctx.message_state",
+        "ctx.pending_transition",
+        "panel.panel_generation"
+      ],
+      "boundary_status": "documented_foundation_only",
+      "migration_notes": [
+        "Covered by the command completion foundation record until external and session command actions receive dedicated runtime records."
+      ]
+    },
+    {
+      "action": "ACTION_TAG",
+      "transition_id": "transition.keybinding.navigate-tree",
+      "category": "keybinding",
+      "owner": "YtreePanel(active)",
+      "declared_write_set": [
+        "panel.tree_selection_key",
+        "panel.tree_cursor_pos",
+        "panel.tree_viewport_origin",
+        "panel.focus_shape",
+        "panel.panel_generation"
+      ],
+      "boundary_status": "documented_foundation_only",
+      "migration_notes": [
+        "Covered by the current keybinding foundation record until runtime transition objects are split per action."
+      ]
+    },
+    {
+      "action": "ACTION_UNTAG",
+      "transition_id": "transition.keybinding.navigate-tree",
+      "category": "keybinding",
+      "owner": "YtreePanel(active)",
+      "declared_write_set": [
+        "panel.tree_selection_key",
+        "panel.tree_cursor_pos",
+        "panel.tree_viewport_origin",
+        "panel.focus_shape",
+        "panel.panel_generation"
+      ],
+      "boundary_status": "documented_foundation_only",
+      "migration_notes": [
+        "Covered by the current keybinding foundation record until runtime transition objects are split per action."
+      ]
+    },
+    {
+      "action": "ACTION_TAG_ALL",
+      "transition_id": "transition.keybinding.navigate-tree",
+      "category": "keybinding",
+      "owner": "YtreePanel(active)",
+      "declared_write_set": [
+        "panel.tree_selection_key",
+        "panel.tree_cursor_pos",
+        "panel.tree_viewport_origin",
+        "panel.focus_shape",
+        "panel.panel_generation"
+      ],
+      "boundary_status": "documented_foundation_only",
+      "migration_notes": [
+        "Covered by the current keybinding foundation record until runtime transition objects are split per action."
+      ]
+    },
+    {
+      "action": "ACTION_UNTAG_ALL",
+      "transition_id": "transition.keybinding.navigate-tree",
+      "category": "keybinding",
+      "owner": "YtreePanel(active)",
+      "declared_write_set": [
+        "panel.tree_selection_key",
+        "panel.tree_cursor_pos",
+        "panel.tree_viewport_origin",
+        "panel.focus_shape",
+        "panel.panel_generation"
+      ],
+      "boundary_status": "documented_foundation_only",
+      "migration_notes": [
+        "Covered by the current keybinding foundation record until runtime transition objects are split per action."
+      ]
+    },
+    {
+      "action": "ACTION_TAG_REST",
+      "transition_id": "transition.keybinding.navigate-tree",
+      "category": "keybinding",
+      "owner": "YtreePanel(active)",
+      "declared_write_set": [
+        "panel.tree_selection_key",
+        "panel.tree_cursor_pos",
+        "panel.tree_viewport_origin",
+        "panel.focus_shape",
+        "panel.panel_generation"
+      ],
+      "boundary_status": "documented_foundation_only",
+      "migration_notes": [
+        "Covered by the current keybinding foundation record until runtime transition objects are split per action."
+      ]
+    },
+    {
+      "action": "ACTION_UNTAG_REST",
+      "transition_id": "transition.keybinding.navigate-tree",
+      "category": "keybinding",
+      "owner": "YtreePanel(active)",
+      "declared_write_set": [
+        "panel.tree_selection_key",
+        "panel.tree_cursor_pos",
+        "panel.tree_viewport_origin",
+        "panel.focus_shape",
+        "panel.panel_generation"
+      ],
+      "boundary_status": "documented_foundation_only",
+      "migration_notes": [
+        "Covered by the current keybinding foundation record until runtime transition objects are split per action."
+      ]
+    },
+    {
+      "action": "ACTION_FILTER",
+      "transition_id": "transition.keybinding.navigate-tree",
+      "category": "keybinding",
+      "owner": "YtreePanel(active)",
+      "declared_write_set": [
+        "panel.tree_selection_key",
+        "panel.tree_cursor_pos",
+        "panel.tree_viewport_origin",
+        "panel.focus_shape",
+        "panel.panel_generation"
+      ],
+      "boundary_status": "documented_foundation_only",
+      "migration_notes": [
+        "Covered by the current keybinding foundation record until runtime transition objects are split per action."
+      ]
+    },
+    {
+      "action": "ACTION_TOGGLE_MODE",
+      "transition_id": "transition.keybinding.navigate-tree",
+      "category": "keybinding",
+      "owner": "YtreePanel(active)",
+      "declared_write_set": [
+        "panel.tree_selection_key",
+        "panel.tree_cursor_pos",
+        "panel.tree_viewport_origin",
+        "panel.focus_shape",
+        "panel.panel_generation"
+      ],
+      "boundary_status": "documented_foundation_only",
+      "migration_notes": [
+        "Covered by the current keybinding foundation record until runtime transition objects are split per action."
+      ]
+    },
+    {
+      "action": "ACTION_REFRESH",
+      "transition_id": "transition.refresh-rebuild.manual-refresh",
+      "category": "refresh_rebuild",
+      "owner": "Volume(shared topology)",
+      "declared_write_set": [
+        "volume.dir_tree",
+        "volume.logged_state",
+        "volume.volume_generation",
+        "panel.restore_snapshot",
+        "panel.panel_generation"
+      ],
+      "boundary_status": "documented_foundation_only",
+      "migration_notes": [
+        "Covered by the refresh/rebuild foundation record until log, relog, and refresh actions receive dedicated runtime records."
+      ]
+    },
+    {
+      "action": "ACTION_RESIZE",
+      "transition_id": "transition.terminal-signal-resize",
+      "category": "terminal_signal_or_resize",
+      "owner": "ViewContext.layout_region",
+      "declared_write_set": [
+        "ctx.layout",
+        "ctx.window_handles",
+        "panel.tree_viewport_origin",
+        "panel.file_viewport_origin",
+        "panel.panel_generation"
+      ],
+      "boundary_status": "documented_foundation_only",
+      "migration_notes": [
+        "Covered by the terminal resize foundation record; signal handlers must only set flags before this transition commits."
+      ]
+    },
+    {
+      "action": "ACTION_VOL_MENU",
+      "transition_id": "transition.menu-action.volume-select",
+      "category": "menu_action",
+      "owner": "ViewContext(session routing) and YtreePanel(active)",
+      "declared_write_set": [
+        "ctx.active",
+        "panel.volume_key",
+        "panel.restore_snapshot",
+        "panel.panel_generation"
+      ],
+      "boundary_status": "documented_foundation_only",
+      "migration_notes": [
+        "Covered by the volume menu foundation record until menu selection has a runtime transition boundary."
+      ]
+    },
+    {
+      "action": "ACTION_VOL_PREV",
+      "transition_id": "transition.volume-operation.release-cycle",
+      "category": "volume_operation",
+      "owner": "ViewContext.volume_registry and YtreePanel(active)",
+      "declared_write_set": [
+        "ctx.volumes_head",
+        "panel.volume_key",
+        "panel.restore_snapshot",
+        "panel.panel_generation",
+        "volume.volume_generation"
+      ],
+      "boundary_status": "documented_foundation_only",
+      "migration_notes": [
+        "Covered by the volume operation foundation record until cycle/release actions receive dedicated runtime records."
+      ]
+    },
+    {
+      "action": "ACTION_VOL_NEXT",
+      "transition_id": "transition.volume-operation.release-cycle",
+      "category": "volume_operation",
+      "owner": "ViewContext.volume_registry and YtreePanel(active)",
+      "declared_write_set": [
+        "ctx.volumes_head",
+        "panel.volume_key",
+        "panel.restore_snapshot",
+        "panel.panel_generation",
+        "volume.volume_generation"
+      ],
+      "boundary_status": "documented_foundation_only",
+      "migration_notes": [
+        "Covered by the volume operation foundation record until cycle/release actions receive dedicated runtime records."
+      ]
+    },
+    {
+      "action": "ACTION_CMD_A",
+      "transition_id": "transition.filesystem-mutation-result.mkdir-copy-delete",
+      "category": "filesystem_mutation_result",
+      "owner": "Volume(shared topology) plus YtreePanel(active) for active selection",
+      "declared_write_set": [
+        "volume.dir_tree",
+        "volume.payload_cache",
+        "volume.volume_generation",
+        "panel.restore_snapshot",
+        "panel.panel_generation",
+        "ctx.message_state"
+      ],
+      "boundary_status": "documented_foundation_only",
+      "migration_notes": [
+        "Covered by the filesystem mutation result foundation record until command actions declare per-operation commit metadata."
+      ]
+    },
+    {
+      "action": "ACTION_CMD_B",
+      "transition_id": "transition.filesystem-mutation-result.mkdir-copy-delete",
+      "category": "filesystem_mutation_result",
+      "owner": "Volume(shared topology) plus YtreePanel(active) for active selection",
+      "declared_write_set": [
+        "volume.dir_tree",
+        "volume.payload_cache",
+        "volume.volume_generation",
+        "panel.restore_snapshot",
+        "panel.panel_generation",
+        "ctx.message_state"
+      ],
+      "boundary_status": "documented_foundation_only",
+      "migration_notes": [
+        "Covered by the filesystem mutation result foundation record until command actions declare per-operation commit metadata."
+      ]
+    },
+    {
+      "action": "ACTION_CMD_C",
+      "transition_id": "transition.filesystem-mutation-result.mkdir-copy-delete",
+      "category": "filesystem_mutation_result",
+      "owner": "Volume(shared topology) plus YtreePanel(active) for active selection",
+      "declared_write_set": [
+        "volume.dir_tree",
+        "volume.payload_cache",
+        "volume.volume_generation",
+        "panel.restore_snapshot",
+        "panel.panel_generation",
+        "ctx.message_state"
+      ],
+      "boundary_status": "documented_foundation_only",
+      "migration_notes": [
+        "Covered by the filesystem mutation result foundation record until command actions declare per-operation commit metadata."
+      ]
+    },
+    {
+      "action": "ACTION_CMD_D",
+      "transition_id": "transition.filesystem-mutation-result.mkdir-copy-delete",
+      "category": "filesystem_mutation_result",
+      "owner": "Volume(shared topology) plus YtreePanel(active) for active selection",
+      "declared_write_set": [
+        "volume.dir_tree",
+        "volume.payload_cache",
+        "volume.volume_generation",
+        "panel.restore_snapshot",
+        "panel.panel_generation",
+        "ctx.message_state"
+      ],
+      "boundary_status": "documented_foundation_only",
+      "migration_notes": [
+        "Covered by the filesystem mutation result foundation record until command actions declare per-operation commit metadata."
+      ]
+    },
+    {
+      "action": "ACTION_CMD_E",
+      "transition_id": "transition.filesystem-mutation-result.mkdir-copy-delete",
+      "category": "filesystem_mutation_result",
+      "owner": "Volume(shared topology) plus YtreePanel(active) for active selection",
+      "declared_write_set": [
+        "volume.dir_tree",
+        "volume.payload_cache",
+        "volume.volume_generation",
+        "panel.restore_snapshot",
+        "panel.panel_generation",
+        "ctx.message_state"
+      ],
+      "boundary_status": "documented_foundation_only",
+      "migration_notes": [
+        "Covered by the filesystem mutation result foundation record until command actions declare per-operation commit metadata."
+      ]
+    },
+    {
+      "action": "ACTION_CMD_G",
+      "transition_id": "transition.filesystem-mutation-result.mkdir-copy-delete",
+      "category": "filesystem_mutation_result",
+      "owner": "Volume(shared topology) plus YtreePanel(active) for active selection",
+      "declared_write_set": [
+        "volume.dir_tree",
+        "volume.payload_cache",
+        "volume.volume_generation",
+        "panel.restore_snapshot",
+        "panel.panel_generation",
+        "ctx.message_state"
+      ],
+      "boundary_status": "documented_foundation_only",
+      "migration_notes": [
+        "Covered by the filesystem mutation result foundation record until command actions declare per-operation commit metadata."
+      ]
+    },
+    {
+      "action": "ACTION_CMD_H",
+      "transition_id": "transition.filesystem-mutation-result.mkdir-copy-delete",
+      "category": "filesystem_mutation_result",
+      "owner": "Volume(shared topology) plus YtreePanel(active) for active selection",
+      "declared_write_set": [
+        "volume.dir_tree",
+        "volume.payload_cache",
+        "volume.volume_generation",
+        "panel.restore_snapshot",
+        "panel.panel_generation",
+        "ctx.message_state"
+      ],
+      "boundary_status": "documented_foundation_only",
+      "migration_notes": [
+        "Covered by the filesystem mutation result foundation record until command actions declare per-operation commit metadata."
+      ]
+    },
+    {
+      "action": "ACTION_CMD_I",
+      "transition_id": "transition.filesystem-mutation-result.mkdir-copy-delete",
+      "category": "filesystem_mutation_result",
+      "owner": "Volume(shared topology) plus YtreePanel(active) for active selection",
+      "declared_write_set": [
+        "volume.dir_tree",
+        "volume.payload_cache",
+        "volume.volume_generation",
+        "panel.restore_snapshot",
+        "panel.panel_generation",
+        "ctx.message_state"
+      ],
+      "boundary_status": "documented_foundation_only",
+      "migration_notes": [
+        "Covered by the filesystem mutation result foundation record until command actions declare per-operation commit metadata."
+      ]
+    },
+    {
+      "action": "ACTION_CMD_M",
+      "transition_id": "transition.filesystem-mutation-result.mkdir-copy-delete",
+      "category": "filesystem_mutation_result",
+      "owner": "Volume(shared topology) plus YtreePanel(active) for active selection",
+      "declared_write_set": [
+        "volume.dir_tree",
+        "volume.payload_cache",
+        "volume.volume_generation",
+        "panel.restore_snapshot",
+        "panel.panel_generation",
+        "ctx.message_state"
+      ],
+      "boundary_status": "documented_foundation_only",
+      "migration_notes": [
+        "Covered by the filesystem mutation result foundation record until command actions declare per-operation commit metadata."
+      ]
+    },
+    {
+      "action": "ACTION_CMD_O",
+      "transition_id": "transition.filesystem-mutation-result.mkdir-copy-delete",
+      "category": "filesystem_mutation_result",
+      "owner": "Volume(shared topology) plus YtreePanel(active) for active selection",
+      "declared_write_set": [
+        "volume.dir_tree",
+        "volume.payload_cache",
+        "volume.volume_generation",
+        "panel.restore_snapshot",
+        "panel.panel_generation",
+        "ctx.message_state"
+      ],
+      "boundary_status": "documented_foundation_only",
+      "migration_notes": [
+        "Covered by the filesystem mutation result foundation record until command actions declare per-operation commit metadata."
+      ]
+    },
+    {
+      "action": "ACTION_CMD_P",
+      "transition_id": "transition.filesystem-mutation-result.mkdir-copy-delete",
+      "category": "filesystem_mutation_result",
+      "owner": "Volume(shared topology) plus YtreePanel(active) for active selection",
+      "declared_write_set": [
+        "volume.dir_tree",
+        "volume.payload_cache",
+        "volume.volume_generation",
+        "panel.restore_snapshot",
+        "panel.panel_generation",
+        "ctx.message_state"
+      ],
+      "boundary_status": "documented_foundation_only",
+      "migration_notes": [
+        "Covered by the filesystem mutation result foundation record until command actions declare per-operation commit metadata."
+      ]
+    },
+    {
+      "action": "ACTION_CMD_R",
+      "transition_id": "transition.filesystem-mutation-result.mkdir-copy-delete",
+      "category": "filesystem_mutation_result",
+      "owner": "Volume(shared topology) plus YtreePanel(active) for active selection",
+      "declared_write_set": [
+        "volume.dir_tree",
+        "volume.payload_cache",
+        "volume.volume_generation",
+        "panel.restore_snapshot",
+        "panel.panel_generation",
+        "ctx.message_state"
+      ],
+      "boundary_status": "documented_foundation_only",
+      "migration_notes": [
+        "Covered by the filesystem mutation result foundation record until command actions declare per-operation commit metadata."
+      ]
+    },
+    {
+      "action": "ACTION_CMD_S",
+      "transition_id": "transition.filesystem-mutation-result.mkdir-copy-delete",
+      "category": "filesystem_mutation_result",
+      "owner": "Volume(shared topology) plus YtreePanel(active) for active selection",
+      "declared_write_set": [
+        "volume.dir_tree",
+        "volume.payload_cache",
+        "volume.volume_generation",
+        "panel.restore_snapshot",
+        "panel.panel_generation",
+        "ctx.message_state"
+      ],
+      "boundary_status": "documented_foundation_only",
+      "migration_notes": [
+        "Covered by the filesystem mutation result foundation record until command actions declare per-operation commit metadata."
+      ]
+    },
+    {
+      "action": "ACTION_CMD_V",
+      "transition_id": "transition.filesystem-mutation-result.mkdir-copy-delete",
+      "category": "filesystem_mutation_result",
+      "owner": "Volume(shared topology) plus YtreePanel(active) for active selection",
+      "declared_write_set": [
+        "volume.dir_tree",
+        "volume.payload_cache",
+        "volume.volume_generation",
+        "panel.restore_snapshot",
+        "panel.panel_generation",
+        "ctx.message_state"
+      ],
+      "boundary_status": "documented_foundation_only",
+      "migration_notes": [
+        "Covered by the filesystem mutation result foundation record until command actions declare per-operation commit metadata."
+      ]
+    },
+    {
+      "action": "ACTION_CMD_X",
+      "transition_id": "transition.filesystem-mutation-result.mkdir-copy-delete",
+      "category": "filesystem_mutation_result",
+      "owner": "Volume(shared topology) plus YtreePanel(active) for active selection",
+      "declared_write_set": [
+        "volume.dir_tree",
+        "volume.payload_cache",
+        "volume.volume_generation",
+        "panel.restore_snapshot",
+        "panel.panel_generation",
+        "ctx.message_state"
+      ],
+      "boundary_status": "documented_foundation_only",
+      "migration_notes": [
+        "Covered by the filesystem mutation result foundation record until command actions declare per-operation commit metadata."
+      ]
+    },
+    {
+      "action": "ACTION_CMD_Y",
+      "transition_id": "transition.filesystem-mutation-result.mkdir-copy-delete",
+      "category": "filesystem_mutation_result",
+      "owner": "Volume(shared topology) plus YtreePanel(active) for active selection",
+      "declared_write_set": [
+        "volume.dir_tree",
+        "volume.payload_cache",
+        "volume.volume_generation",
+        "panel.restore_snapshot",
+        "panel.panel_generation",
+        "ctx.message_state"
+      ],
+      "boundary_status": "documented_foundation_only",
+      "migration_notes": [
+        "Covered by the filesystem mutation result foundation record until command actions declare per-operation commit metadata."
+      ]
+    },
+    {
+      "action": "ACTION_CMD_PRINT",
+      "transition_id": "transition.command-completion.user-command",
+      "category": "command_completion",
+      "owner": "ViewContext.command_region",
+      "declared_write_set": [
+        "ctx.command_state",
+        "ctx.message_state",
+        "ctx.pending_transition",
+        "panel.panel_generation"
+      ],
+      "boundary_status": "documented_foundation_only",
+      "migration_notes": [
+        "Covered by the command completion foundation record until external and session command actions receive dedicated runtime records."
+      ]
+    },
+    {
+      "action": "ACTION_TOGGLE_HIDDEN",
+      "transition_id": "transition.keybinding.navigate-tree",
+      "category": "keybinding",
+      "owner": "YtreePanel(active)",
+      "declared_write_set": [
+        "panel.tree_selection_key",
+        "panel.tree_cursor_pos",
+        "panel.tree_viewport_origin",
+        "panel.focus_shape",
+        "panel.panel_generation"
+      ],
+      "boundary_status": "documented_foundation_only",
+      "migration_notes": [
+        "Covered by the current keybinding foundation record until runtime transition objects are split per action."
+      ]
+    },
+    {
+      "action": "ACTION_TOGGLE_COMPACT",
+      "transition_id": "transition.keybinding.navigate-tree",
+      "category": "keybinding",
+      "owner": "YtreePanel(active)",
+      "declared_write_set": [
+        "panel.tree_selection_key",
+        "panel.tree_cursor_pos",
+        "panel.tree_viewport_origin",
+        "panel.focus_shape",
+        "panel.panel_generation"
+      ],
+      "boundary_status": "documented_foundation_only",
+      "migration_notes": [
+        "Covered by the current keybinding foundation record until runtime transition objects are split per action."
+      ]
+    },
+    {
+      "action": "ACTION_CMD_MKFILE",
+      "transition_id": "transition.filesystem-mutation-result.mkdir-copy-delete",
+      "category": "filesystem_mutation_result",
+      "owner": "Volume(shared topology) plus YtreePanel(active) for active selection",
+      "declared_write_set": [
+        "volume.dir_tree",
+        "volume.payload_cache",
+        "volume.volume_generation",
+        "panel.restore_snapshot",
+        "panel.panel_generation",
+        "ctx.message_state"
+      ],
+      "boundary_status": "documented_foundation_only",
+      "migration_notes": [
+        "Covered by the filesystem mutation result foundation record until command actions declare per-operation commit metadata."
+      ]
+    },
+    {
+      "action": "ACTION_CMD_TAGGED_A",
+      "transition_id": "transition.filesystem-mutation-result.mkdir-copy-delete",
+      "category": "filesystem_mutation_result",
+      "owner": "Volume(shared topology) plus YtreePanel(active) for active selection",
+      "declared_write_set": [
+        "volume.dir_tree",
+        "volume.payload_cache",
+        "volume.volume_generation",
+        "panel.restore_snapshot",
+        "panel.panel_generation",
+        "ctx.message_state"
+      ],
+      "boundary_status": "documented_foundation_only",
+      "migration_notes": [
+        "Covered by the filesystem mutation result foundation record until command actions declare per-operation commit metadata."
+      ]
+    },
+    {
+      "action": "ACTION_CMD_TAGGED_C",
+      "transition_id": "transition.filesystem-mutation-result.mkdir-copy-delete",
+      "category": "filesystem_mutation_result",
+      "owner": "Volume(shared topology) plus YtreePanel(active) for active selection",
+      "declared_write_set": [
+        "volume.dir_tree",
+        "volume.payload_cache",
+        "volume.volume_generation",
+        "panel.restore_snapshot",
+        "panel.panel_generation",
+        "ctx.message_state"
+      ],
+      "boundary_status": "documented_foundation_only",
+      "migration_notes": [
+        "Covered by the filesystem mutation result foundation record until command actions declare per-operation commit metadata."
+      ]
+    },
+    {
+      "action": "ACTION_CMD_TAGGED_D",
+      "transition_id": "transition.filesystem-mutation-result.mkdir-copy-delete",
+      "category": "filesystem_mutation_result",
+      "owner": "Volume(shared topology) plus YtreePanel(active) for active selection",
+      "declared_write_set": [
+        "volume.dir_tree",
+        "volume.payload_cache",
+        "volume.volume_generation",
+        "panel.restore_snapshot",
+        "panel.panel_generation",
+        "ctx.message_state"
+      ],
+      "boundary_status": "documented_foundation_only",
+      "migration_notes": [
+        "Covered by the filesystem mutation result foundation record until command actions declare per-operation commit metadata."
+      ]
+    },
+    {
+      "action": "ACTION_CMD_TAGGED_G",
+      "transition_id": "transition.filesystem-mutation-result.mkdir-copy-delete",
+      "category": "filesystem_mutation_result",
+      "owner": "Volume(shared topology) plus YtreePanel(active) for active selection",
+      "declared_write_set": [
+        "volume.dir_tree",
+        "volume.payload_cache",
+        "volume.volume_generation",
+        "panel.restore_snapshot",
+        "panel.panel_generation",
+        "ctx.message_state"
+      ],
+      "boundary_status": "documented_foundation_only",
+      "migration_notes": [
+        "Covered by the filesystem mutation result foundation record until command actions declare per-operation commit metadata."
+      ]
+    },
+    {
+      "action": "ACTION_CMD_TAGGED_M",
+      "transition_id": "transition.filesystem-mutation-result.mkdir-copy-delete",
+      "category": "filesystem_mutation_result",
+      "owner": "Volume(shared topology) plus YtreePanel(active) for active selection",
+      "declared_write_set": [
+        "volume.dir_tree",
+        "volume.payload_cache",
+        "volume.volume_generation",
+        "panel.restore_snapshot",
+        "panel.panel_generation",
+        "ctx.message_state"
+      ],
+      "boundary_status": "documented_foundation_only",
+      "migration_notes": [
+        "Covered by the filesystem mutation result foundation record until command actions declare per-operation commit metadata."
+      ]
+    },
+    {
+      "action": "ACTION_CMD_TAGGED_O",
+      "transition_id": "transition.filesystem-mutation-result.mkdir-copy-delete",
+      "category": "filesystem_mutation_result",
+      "owner": "Volume(shared topology) plus YtreePanel(active) for active selection",
+      "declared_write_set": [
+        "volume.dir_tree",
+        "volume.payload_cache",
+        "volume.volume_generation",
+        "panel.restore_snapshot",
+        "panel.panel_generation",
+        "ctx.message_state"
+      ],
+      "boundary_status": "documented_foundation_only",
+      "migration_notes": [
+        "Covered by the filesystem mutation result foundation record until command actions declare per-operation commit metadata."
+      ]
+    },
+    {
+      "action": "ACTION_CMD_TAGGED_P",
+      "transition_id": "transition.filesystem-mutation-result.mkdir-copy-delete",
+      "category": "filesystem_mutation_result",
+      "owner": "Volume(shared topology) plus YtreePanel(active) for active selection",
+      "declared_write_set": [
+        "volume.dir_tree",
+        "volume.payload_cache",
+        "volume.volume_generation",
+        "panel.restore_snapshot",
+        "panel.panel_generation",
+        "ctx.message_state"
+      ],
+      "boundary_status": "documented_foundation_only",
+      "migration_notes": [
+        "Covered by the filesystem mutation result foundation record until command actions declare per-operation commit metadata."
+      ]
+    },
+    {
+      "action": "ACTION_CMD_TAGGED_R",
+      "transition_id": "transition.filesystem-mutation-result.mkdir-copy-delete",
+      "category": "filesystem_mutation_result",
+      "owner": "Volume(shared topology) plus YtreePanel(active) for active selection",
+      "declared_write_set": [
+        "volume.dir_tree",
+        "volume.payload_cache",
+        "volume.volume_generation",
+        "panel.restore_snapshot",
+        "panel.panel_generation",
+        "ctx.message_state"
+      ],
+      "boundary_status": "documented_foundation_only",
+      "migration_notes": [
+        "Covered by the filesystem mutation result foundation record until command actions declare per-operation commit metadata."
+      ]
+    },
+    {
+      "action": "ACTION_CMD_TAGGED_S",
+      "transition_id": "transition.filesystem-mutation-result.mkdir-copy-delete",
+      "category": "filesystem_mutation_result",
+      "owner": "Volume(shared topology) plus YtreePanel(active) for active selection",
+      "declared_write_set": [
+        "volume.dir_tree",
+        "volume.payload_cache",
+        "volume.volume_generation",
+        "panel.restore_snapshot",
+        "panel.panel_generation",
+        "ctx.message_state"
+      ],
+      "boundary_status": "documented_foundation_only",
+      "migration_notes": [
+        "Covered by the filesystem mutation result foundation record until command actions declare per-operation commit metadata."
+      ]
+    },
+    {
+      "action": "ACTION_CMD_TAGGED_V",
+      "transition_id": "transition.filesystem-mutation-result.mkdir-copy-delete",
+      "category": "filesystem_mutation_result",
+      "owner": "Volume(shared topology) plus YtreePanel(active) for active selection",
+      "declared_write_set": [
+        "volume.dir_tree",
+        "volume.payload_cache",
+        "volume.volume_generation",
+        "panel.restore_snapshot",
+        "panel.panel_generation",
+        "ctx.message_state"
+      ],
+      "boundary_status": "documented_foundation_only",
+      "migration_notes": [
+        "Covered by the filesystem mutation result foundation record until command actions declare per-operation commit metadata."
+      ]
+    },
+    {
+      "action": "ACTION_CMD_TAGGED_X",
+      "transition_id": "transition.filesystem-mutation-result.mkdir-copy-delete",
+      "category": "filesystem_mutation_result",
+      "owner": "Volume(shared topology) plus YtreePanel(active) for active selection",
+      "declared_write_set": [
+        "volume.dir_tree",
+        "volume.payload_cache",
+        "volume.volume_generation",
+        "panel.restore_snapshot",
+        "panel.panel_generation",
+        "ctx.message_state"
+      ],
+      "boundary_status": "documented_foundation_only",
+      "migration_notes": [
+        "Covered by the filesystem mutation result foundation record until command actions declare per-operation commit metadata."
+      ]
+    },
+    {
+      "action": "ACTION_CMD_TAGGED_Y",
+      "transition_id": "transition.filesystem-mutation-result.mkdir-copy-delete",
+      "category": "filesystem_mutation_result",
+      "owner": "Volume(shared topology) plus YtreePanel(active) for active selection",
+      "declared_write_set": [
+        "volume.dir_tree",
+        "volume.payload_cache",
+        "volume.volume_generation",
+        "panel.restore_snapshot",
+        "panel.panel_generation",
+        "ctx.message_state"
+      ],
+      "boundary_status": "documented_foundation_only",
+      "migration_notes": [
+        "Covered by the filesystem mutation result foundation record until command actions declare per-operation commit metadata."
+      ]
+    },
+    {
+      "action": "ACTION_CMD_TAGGED_PRINT",
+      "transition_id": "transition.command-completion.user-command",
+      "category": "command_completion",
+      "owner": "ViewContext.command_region",
+      "declared_write_set": [
+        "ctx.command_state",
+        "ctx.message_state",
+        "ctx.pending_transition",
+        "panel.panel_generation"
+      ],
+      "boundary_status": "documented_foundation_only",
+      "migration_notes": [
+        "Covered by the command completion foundation record until external and session command actions receive dedicated runtime records."
+      ]
+    },
+    {
+      "action": "ACTION_LIST_JUMP",
+      "transition_id": "transition.keybinding.navigate-tree",
+      "category": "keybinding",
+      "owner": "YtreePanel(active)",
+      "declared_write_set": [
+        "panel.tree_selection_key",
+        "panel.tree_cursor_pos",
+        "panel.tree_viewport_origin",
+        "panel.focus_shape",
+        "panel.panel_generation"
+      ],
+      "boundary_status": "documented_foundation_only",
+      "migration_notes": [
+        "Covered by the current keybinding foundation record until runtime transition objects are split per action."
+      ]
+    },
+    {
+      "action": "ACTION_TO_DIR",
+      "transition_id": "transition.keybinding.navigate-tree",
+      "category": "keybinding",
+      "owner": "YtreePanel(active)",
+      "declared_write_set": [
+        "panel.tree_selection_key",
+        "panel.tree_cursor_pos",
+        "panel.tree_viewport_origin",
+        "panel.focus_shape",
+        "panel.panel_generation"
+      ],
+      "boundary_status": "documented_foundation_only",
+      "migration_notes": [
+        "Covered by the current keybinding foundation record until runtime transition objects are split per action."
+      ]
+    },
+    {
+      "action": "ACTION_TOGGLE_TAGGED_MODE",
+      "transition_id": "transition.keybinding.navigate-tree",
+      "category": "keybinding",
+      "owner": "YtreePanel(active)",
+      "declared_write_set": [
+        "panel.tree_selection_key",
+        "panel.tree_cursor_pos",
+        "panel.tree_viewport_origin",
+        "panel.focus_shape",
+        "panel.panel_generation"
+      ],
+      "boundary_status": "documented_foundation_only",
+      "migration_notes": [
+        "Covered by the current keybinding foundation record until runtime transition objects are split per action."
+      ]
+    },
+    {
+      "action": "ACTION_TOGGLE_STATS",
+      "transition_id": "transition.keybinding.navigate-tree",
+      "category": "keybinding",
+      "owner": "YtreePanel(active)",
+      "declared_write_set": [
+        "panel.tree_selection_key",
+        "panel.tree_cursor_pos",
+        "panel.tree_viewport_origin",
+        "panel.focus_shape",
+        "panel.panel_generation"
+      ],
+      "boundary_status": "documented_foundation_only",
+      "migration_notes": [
+        "Covered by the current keybinding foundation record until runtime transition objects are split per action."
+      ]
+    },
+    {
+      "action": "ACTION_ASTERISK",
+      "transition_id": "transition.keybinding.navigate-tree",
+      "category": "keybinding",
+      "owner": "YtreePanel(active)",
+      "declared_write_set": [
+        "panel.tree_selection_key",
+        "panel.tree_cursor_pos",
+        "panel.tree_viewport_origin",
+        "panel.focus_shape",
+        "panel.panel_generation"
+      ],
+      "boundary_status": "documented_foundation_only",
+      "migration_notes": [
+        "Covered by the current keybinding foundation record until runtime transition objects are split per action."
+      ]
+    },
+    {
+      "action": "ACTION_INVERT",
+      "transition_id": "transition.keybinding.navigate-tree",
+      "category": "keybinding",
+      "owner": "YtreePanel(active)",
+      "declared_write_set": [
+        "panel.tree_selection_key",
+        "panel.tree_cursor_pos",
+        "panel.tree_viewport_origin",
+        "panel.focus_shape",
+        "panel.panel_generation"
+      ],
+      "boundary_status": "documented_foundation_only",
+      "migration_notes": [
+        "Covered by the current keybinding foundation record until runtime transition objects are split per action."
+      ]
+    },
+    {
+      "action": "ACTION_SPLIT_SCREEN",
+      "transition_id": "transition.keybinding.navigate-tree",
+      "category": "keybinding",
+      "owner": "YtreePanel(active)",
+      "declared_write_set": [
+        "panel.tree_selection_key",
+        "panel.tree_cursor_pos",
+        "panel.tree_viewport_origin",
+        "panel.focus_shape",
+        "panel.panel_generation"
+      ],
+      "boundary_status": "documented_foundation_only",
+      "migration_notes": [
+        "Covered by the current keybinding foundation record until runtime transition objects are split per action."
+      ]
+    },
+    {
+      "action": "ACTION_SWITCH_PANEL",
+      "transition_id": "transition.keybinding.navigate-tree",
+      "category": "keybinding",
+      "owner": "YtreePanel(active)",
+      "declared_write_set": [
+        "panel.tree_selection_key",
+        "panel.tree_cursor_pos",
+        "panel.tree_viewport_origin",
+        "panel.focus_shape",
+        "panel.panel_generation"
+      ],
+      "boundary_status": "documented_foundation_only",
+      "migration_notes": [
+        "Covered by the current keybinding foundation record until runtime transition objects are split per action."
+      ]
+    },
+    {
+      "action": "ACTION_VIEW_PREVIEW",
+      "transition_id": "transition.keybinding.navigate-tree",
+      "category": "keybinding",
+      "owner": "YtreePanel(active)",
+      "declared_write_set": [
+        "panel.tree_selection_key",
+        "panel.tree_cursor_pos",
+        "panel.tree_viewport_origin",
+        "panel.focus_shape",
+        "panel.panel_generation"
+      ],
+      "boundary_status": "documented_foundation_only",
+      "migration_notes": [
+        "Covered by the current keybinding foundation record until runtime transition objects are split per action."
+      ]
+    },
+    {
+      "action": "ACTION_PREVIEW_SCROLL_UP",
+      "transition_id": "transition.keybinding.navigate-tree",
+      "category": "keybinding",
+      "owner": "YtreePanel(active)",
+      "declared_write_set": [
+        "panel.tree_selection_key",
+        "panel.tree_cursor_pos",
+        "panel.tree_viewport_origin",
+        "panel.focus_shape",
+        "panel.panel_generation"
+      ],
+      "boundary_status": "documented_foundation_only",
+      "migration_notes": [
+        "Covered by the current keybinding foundation record until runtime transition objects are split per action."
+      ]
+    },
+    {
+      "action": "ACTION_PREVIEW_SCROLL_DOWN",
+      "transition_id": "transition.keybinding.navigate-tree",
+      "category": "keybinding",
+      "owner": "YtreePanel(active)",
+      "declared_write_set": [
+        "panel.tree_selection_key",
+        "panel.tree_cursor_pos",
+        "panel.tree_viewport_origin",
+        "panel.focus_shape",
+        "panel.panel_generation"
+      ],
+      "boundary_status": "documented_foundation_only",
+      "migration_notes": [
+        "Covered by the current keybinding foundation record until runtime transition objects are split per action."
+      ]
+    },
+    {
+      "action": "ACTION_PREVIEW_HOME",
+      "transition_id": "transition.keybinding.navigate-tree",
+      "category": "keybinding",
+      "owner": "YtreePanel(active)",
+      "declared_write_set": [
+        "panel.tree_selection_key",
+        "panel.tree_cursor_pos",
+        "panel.tree_viewport_origin",
+        "panel.focus_shape",
+        "panel.panel_generation"
+      ],
+      "boundary_status": "documented_foundation_only",
+      "migration_notes": [
+        "Covered by the current keybinding foundation record until runtime transition objects are split per action."
+      ]
+    },
+    {
+      "action": "ACTION_PREVIEW_END",
+      "transition_id": "transition.keybinding.navigate-tree",
+      "category": "keybinding",
+      "owner": "YtreePanel(active)",
+      "declared_write_set": [
+        "panel.tree_selection_key",
+        "panel.tree_cursor_pos",
+        "panel.tree_viewport_origin",
+        "panel.focus_shape",
+        "panel.panel_generation"
+      ],
+      "boundary_status": "documented_foundation_only",
+      "migration_notes": [
+        "Covered by the current keybinding foundation record until runtime transition objects are split per action."
+      ]
+    },
+    {
+      "action": "ACTION_PREVIEW_PAGE_UP",
+      "transition_id": "transition.keybinding.navigate-tree",
+      "category": "keybinding",
+      "owner": "YtreePanel(active)",
+      "declared_write_set": [
+        "panel.tree_selection_key",
+        "panel.tree_cursor_pos",
+        "panel.tree_viewport_origin",
+        "panel.focus_shape",
+        "panel.panel_generation"
+      ],
+      "boundary_status": "documented_foundation_only",
+      "migration_notes": [
+        "Covered by the current keybinding foundation record until runtime transition objects are split per action."
+      ]
+    },
+    {
+      "action": "ACTION_PREVIEW_PAGE_DOWN",
+      "transition_id": "transition.keybinding.navigate-tree",
+      "category": "keybinding",
+      "owner": "YtreePanel(active)",
+      "declared_write_set": [
+        "panel.tree_selection_key",
+        "panel.tree_cursor_pos",
+        "panel.tree_viewport_origin",
+        "panel.focus_shape",
+        "panel.panel_generation"
+      ],
+      "boundary_status": "documented_foundation_only",
+      "migration_notes": [
+        "Covered by the current keybinding foundation record until runtime transition objects are split per action."
+      ]
+    },
+    {
+      "action": "ACTION_COMPARE_FILE",
+      "transition_id": "transition.keybinding.navigate-tree",
+      "category": "keybinding",
+      "owner": "YtreePanel(active)",
+      "declared_write_set": [
+        "panel.tree_selection_key",
+        "panel.tree_cursor_pos",
+        "panel.tree_viewport_origin",
+        "panel.focus_shape",
+        "panel.panel_generation"
+      ],
+      "boundary_status": "documented_foundation_only",
+      "migration_notes": [
+        "Covered by the current keybinding foundation record until runtime transition objects are split per action."
+      ]
+    },
+    {
+      "action": "ACTION_COMPARE_DIR",
+      "transition_id": "transition.keybinding.navigate-tree",
+      "category": "keybinding",
+      "owner": "YtreePanel(active)",
+      "declared_write_set": [
+        "panel.tree_selection_key",
+        "panel.tree_cursor_pos",
+        "panel.tree_viewport_origin",
+        "panel.focus_shape",
+        "panel.panel_generation"
+      ],
+      "boundary_status": "documented_foundation_only",
+      "migration_notes": [
+        "Covered by the current keybinding foundation record until runtime transition objects are split per action."
+      ]
+    },
+    {
+      "action": "ACTION_COMPARE_TREE",
+      "transition_id": "transition.keybinding.navigate-tree",
+      "category": "keybinding",
+      "owner": "YtreePanel(active)",
+      "declared_write_set": [
+        "panel.tree_selection_key",
+        "panel.tree_cursor_pos",
+        "panel.tree_viewport_origin",
+        "panel.focus_shape",
+        "panel.panel_generation"
+      ],
+      "boundary_status": "documented_foundation_only",
+      "migration_notes": [
+        "Covered by the current keybinding foundation record until runtime transition objects are split per action."
+      ]
+    },
+    {
+      "action": "ACTION_EDIT_CONFIG",
+      "transition_id": "transition.command-completion.user-command",
+      "category": "command_completion",
+      "owner": "ViewContext.command_region",
+      "declared_write_set": [
+        "ctx.command_state",
+        "ctx.message_state",
+        "ctx.pending_transition",
+        "panel.panel_generation"
+      ],
+      "boundary_status": "documented_foundation_only",
+      "migration_notes": [
+        "Covered by the command completion foundation record until external and session command actions receive dedicated runtime records."
+      ]
+    },
+    {
+      "action": "ACTION_USER_CMD",
+      "transition_id": "transition.command-completion.user-command",
+      "category": "command_completion",
+      "owner": "ViewContext.command_region",
+      "declared_write_set": [
+        "ctx.command_state",
+        "ctx.message_state",
+        "ctx.pending_transition",
+        "panel.panel_generation"
+      ],
+      "boundary_status": "documented_foundation_only",
+      "migration_notes": [
+        "Covered by the command completion foundation record until external and session command actions receive dedicated runtime records."
+      ]
+    }
+  ]
+}
