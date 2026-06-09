@@ -1,0 +1,816 @@
+{
+  "schema_version": 1,
+  "scenarios": [
+    {
+      "scenario_id": "sequence.split-toggle-f8",
+      "category": "layout_split",
+      "flow": "split_toggle_f8",
+      "description": "Toggle split layout with F8 and prove inactive-panel and layout ownership after each transition.",
+      "steps": [
+        {
+          "ordinal": 1,
+          "step_id": "split-open",
+          "transition_id": "transition.keybinding.navigate-tree",
+          "stimulus": {
+            "action_id": "ACTION_SPLIT_SCREEN"
+          },
+          "expected_result": "allowed",
+          "invariant_ids": [
+            "invariant.inactive-panel-frozen",
+            "invariant.blocked-transition-determinism"
+          ],
+          "diff_harness_ids": [
+            "harness.transition-before-after-snapshot",
+            "harness.declared-write-set-diff"
+          ],
+          "generation_domain_expectations": [
+            {
+              "domain_id": "generation.panel.local-authority",
+              "expectation": "Validate panel generation before and after the step; advance only when the transition declares panel-local writes."
+            },
+            {
+              "domain_id": "shape.panel.focus",
+              "expectation": "Preserve or rebind focus shape only through the transition result."
+            },
+            {
+              "domain_id": "reflow.layout.projection",
+              "expectation": "Layout reflow generation is projection-only unless resize transition declares it."
+            }
+          ]
+        },
+        {
+          "ordinal": 2,
+          "step_id": "split-toggle-blocked-by-modal",
+          "transition_id": "transition.keybinding.navigate-tree",
+          "stimulus": {
+            "action_id": "ACTION_SPLIT_SCREEN"
+          },
+          "expected_result": "blocked",
+          "invariant_ids": [
+            "invariant.blocked-transition-determinism",
+            "invariant.inactive-panel-frozen"
+          ],
+          "diff_harness_ids": [
+            "harness.blocked-transition-no-unrelated-mutation"
+          ],
+          "generation_domain_expectations": [
+            {
+              "domain_id": "generation.panel.local-authority",
+              "expectation": "Validate panel generation before and after the step; advance only when the transition declares panel-local writes."
+            },
+            {
+              "domain_id": "reflow.layout.projection",
+              "expectation": "Layout reflow generation is projection-only unless resize transition declares it."
+            }
+          ],
+          "no_unrelated_mutation": {
+            "diff_harness_id": "harness.blocked-transition-no-unrelated-mutation",
+            "expectation": "The blocked/invalid result may update only the declared diagnostic or dirty state and must not mutate unrelated owner fields."
+          }
+        }
+      ]
+    },
+    {
+      "scenario_id": "sequence.tab-panel-switch",
+      "category": "panel_navigation",
+      "flow": "tab_panel_switch",
+      "description": "Switch active panel with Tab while preserving inactive-panel cursor, viewport, and focus snapshots.",
+      "steps": [
+        {
+          "ordinal": 1,
+          "step_id": "tab-to-inactive-panel",
+          "transition_id": "transition.keybinding.navigate-tree",
+          "stimulus": {
+            "action_id": "ACTION_SWITCH_PANEL"
+          },
+          "expected_result": "allowed",
+          "invariant_ids": [
+            "invariant.inactive-panel-frozen",
+            "invariant.panel-local-focus-restore",
+            "invariant.shared-state-panel-local-isolation"
+          ],
+          "diff_harness_ids": [
+            "harness.transition-before-after-snapshot",
+            "harness.declared-write-set-diff"
+          ],
+          "generation_domain_expectations": [
+            {
+              "domain_id": "generation.panel.local-authority",
+              "expectation": "Validate panel generation before and after the step; advance only when the transition declares panel-local writes."
+            },
+            {
+              "domain_id": "shape.panel.focus",
+              "expectation": "Preserve or rebind focus shape only through the transition result."
+            }
+          ]
+        },
+        {
+          "ordinal": 2,
+          "step_id": "tab-back-to-original-panel",
+          "transition_id": "transition.keybinding.navigate-tree",
+          "stimulus": {
+            "action_id": "ACTION_SWITCH_PANEL"
+          },
+          "expected_result": "allowed",
+          "invariant_ids": [
+            "invariant.inactive-panel-frozen",
+            "invariant.panel-local-focus-restore"
+          ],
+          "diff_harness_ids": [
+            "harness.transition-before-after-snapshot",
+            "harness.declared-write-set-diff"
+          ],
+          "generation_domain_expectations": [
+            {
+              "domain_id": "generation.panel.local-authority",
+              "expectation": "Validate panel generation before and after the step; advance only when the transition declares panel-local writes."
+            },
+            {
+              "domain_id": "shape.panel.focus",
+              "expectation": "Preserve or rebind focus shape only through the transition result."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "scenario_id": "sequence.enter-directory-file-transition",
+      "category": "directory_file_transition",
+      "flow": "enter_directory_file_transition",
+      "description": "Enter from tree/file targets and validate durable directory/file identity after each step.",
+      "steps": [
+        {
+          "ordinal": 1,
+          "step_id": "enter-directory",
+          "transition_id": "transition.keybinding.navigate-tree",
+          "stimulus": {
+            "action_id": "ACTION_ENTER"
+          },
+          "expected_result": "allowed",
+          "invariant_ids": [
+            "invariant.hidden-entry-visible-navigation",
+            "invariant.viewport-identity-rebind"
+          ],
+          "diff_harness_ids": [
+            "harness.transition-before-after-snapshot",
+            "harness.declared-write-set-diff"
+          ],
+          "generation_domain_expectations": [
+            {
+              "domain_id": "generation.panel.local-authority",
+              "expectation": "Validate panel generation before and after the step; advance only when the transition declares panel-local writes."
+            },
+            {
+              "domain_id": "identity.directory.stable-key",
+              "expectation": "Directory identity remains durable across rebuild/rebind."
+            },
+            {
+              "domain_id": "identity.file.stable-key",
+              "expectation": "File identity remains durable across payload or view-shape changes."
+            }
+          ]
+        },
+        {
+          "ordinal": 2,
+          "step_id": "enter-file-target",
+          "transition_id": "transition.keybinding.navigate-tree",
+          "stimulus": {
+            "action_id": "ACTION_TO_DIR"
+          },
+          "expected_result": "allowed",
+          "invariant_ids": [
+            "invariant.panel-local-focus-restore",
+            "invariant.viewport-identity-rebind"
+          ],
+          "diff_harness_ids": [
+            "harness.transition-before-after-snapshot",
+            "harness.declared-write-set-diff"
+          ],
+          "generation_domain_expectations": [
+            {
+              "domain_id": "generation.panel.local-authority",
+              "expectation": "Validate panel generation before and after the step; advance only when the transition declares panel-local writes."
+            },
+            {
+              "domain_id": "identity.directory.stable-key",
+              "expectation": "Directory identity remains durable across rebuild/rebind."
+            },
+            {
+              "domain_id": "identity.file.stable-key",
+              "expectation": "File identity remains durable across payload or view-shape changes."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "scenario_id": "sequence.esc-modal-dismissal",
+      "category": "modal_command",
+      "flow": "esc_modal_dismissal",
+      "description": "Dismiss command/modal ownership through the registered modal transition and preserve panel-local state.",
+      "steps": [
+        {
+          "ordinal": 1,
+          "step_id": "active-modal-escape-dismiss",
+          "transition_id": "transition.modal-action.dismiss",
+          "stimulus": {
+            "action_id": "ACTION_ESCAPE",
+            "event_id": "event.modal-completion"
+          },
+          "expected_result": "allowed",
+          "invariant_ids": [
+            "invariant.panel-local-focus-restore",
+            "invariant.blocked-transition-determinism"
+          ],
+          "diff_harness_ids": [
+            "harness.transition-before-after-snapshot",
+            "harness.declared-write-set-diff"
+          ],
+          "generation_domain_expectations": [
+            {
+              "domain_id": "target.modal-command.session",
+              "expectation": "Modal target generation validates before applying completion or dismissal."
+            },
+            {
+              "domain_id": "generation.panel.local-authority",
+              "expectation": "Validate panel generation before and after the step; advance only when the transition declares panel-local writes."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "scenario_id": "sequence.dotfile-reveal-conceal",
+      "category": "visibility_filter",
+      "flow": "dotfile_reveal_conceal",
+      "description": "Reveal and conceal dotfiles without letting hidden entries become visible-navigation selections.",
+      "steps": [
+        {
+          "ordinal": 1,
+          "step_id": "reveal-dotfiles",
+          "transition_id": "transition.keybinding.navigate-tree",
+          "stimulus": {
+            "action_id": "ACTION_TOGGLE_HIDDEN"
+          },
+          "expected_result": "allowed",
+          "invariant_ids": [
+            "invariant.hidden-entry-visible-navigation",
+            "invariant.panel-local-focus-restore"
+          ],
+          "diff_harness_ids": [
+            "harness.transition-before-after-snapshot",
+            "harness.declared-write-set-diff"
+          ],
+          "generation_domain_expectations": [
+            {
+              "domain_id": "generation.panel.local-authority",
+              "expectation": "Validate panel generation before and after the step; advance only when the transition declares panel-local writes."
+            },
+            {
+              "domain_id": "state.visibility-filter.panel-volume",
+              "expectation": "Visibility/filter generation matches the selected panel after the transition."
+            },
+            {
+              "domain_id": "identity.directory.stable-key",
+              "expectation": "Directory identity remains durable across rebuild/rebind."
+            }
+          ]
+        },
+        {
+          "ordinal": 2,
+          "step_id": "conceal-dotfiles",
+          "transition_id": "transition.keybinding.navigate-tree",
+          "stimulus": {
+            "action_id": "ACTION_TOGGLE_HIDDEN"
+          },
+          "expected_result": "allowed",
+          "invariant_ids": [
+            "invariant.hidden-entry-visible-navigation",
+            "invariant.viewport-identity-rebind"
+          ],
+          "diff_harness_ids": [
+            "harness.transition-before-after-snapshot",
+            "harness.declared-write-set-diff"
+          ],
+          "generation_domain_expectations": [
+            {
+              "domain_id": "generation.panel.local-authority",
+              "expectation": "Validate panel generation before and after the step; advance only when the transition declares panel-local writes."
+            },
+            {
+              "domain_id": "state.visibility-filter.panel-volume",
+              "expectation": "Visibility/filter generation matches the selected panel after the transition."
+            },
+            {
+              "domain_id": "identity.directory.stable-key",
+              "expectation": "Directory identity remains durable across rebuild/rebind."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "scenario_id": "sequence.refresh-rebuild",
+      "category": "refresh_rebuild",
+      "flow": "refresh_rebuild",
+      "description": "Refresh and rebuild with generation validation and deterministic stale-snapshot fail-closed behavior.",
+      "steps": [
+        {
+          "ordinal": 1,
+          "step_id": "manual-refresh",
+          "transition_id": "transition.refresh-rebuild.manual-refresh",
+          "stimulus": {
+            "action_id": "ACTION_REFRESH"
+          },
+          "expected_result": "allowed",
+          "invariant_ids": [
+            "invariant.viewport-identity-rebind",
+            "invariant.shared-state-panel-local-isolation"
+          ],
+          "diff_harness_ids": [
+            "harness.transition-before-after-snapshot",
+            "harness.generation-mismatch-check"
+          ],
+          "generation_domain_expectations": [
+            {
+              "domain_id": "generation.panel.local-authority",
+              "expectation": "Validate panel generation before and after the step; advance only when the transition declares panel-local writes."
+            },
+            {
+              "domain_id": "identity.directory.stable-key",
+              "expectation": "Directory identity remains durable across rebuild/rebind."
+            },
+            {
+              "domain_id": "identity.file.stable-key",
+              "expectation": "File identity remains durable across payload or view-shape changes."
+            },
+            {
+              "domain_id": "generation.volume.shared-authority",
+              "expectation": "Volume generation advances only for declared shared-volume mutations."
+            }
+          ]
+        },
+        {
+          "ordinal": 2,
+          "step_id": "stale-snapshot-rebind",
+          "transition_id": "transition.rebuild-rebind-callback.panel-anchor",
+          "stimulus": {
+            "event_id": "event.rebuild-rebind-callback"
+          },
+          "expected_result": "fallback",
+          "invariant_ids": [
+            "invariant.stale-snapshot-fail-closed",
+            "invariant.viewport-identity-rebind"
+          ],
+          "diff_harness_ids": [
+            "harness.generation-mismatch-check",
+            "harness.blocked-transition-no-unrelated-mutation"
+          ],
+          "generation_domain_expectations": [
+            {
+              "domain_id": "generation.panel.local-authority",
+              "expectation": "Validate panel generation before and after the step; advance only when the transition declares panel-local writes."
+            },
+            {
+              "domain_id": "identity.directory.stable-key",
+              "expectation": "Directory identity remains durable across rebuild/rebind."
+            },
+            {
+              "domain_id": "identity.file.stable-key",
+              "expectation": "File identity remains durable across payload or view-shape changes."
+            }
+          ],
+          "precondition": "stale_snapshot",
+          "deterministic_fallback": {
+            "outcome": "Fail closed to the nearest valid durable identity or preserve the prior valid selection without using stale rows.",
+            "allowed_mutation_scope": "Only the registered fallback/no-op result may run; unrelated owner fields remain unchanged."
+          }
+        }
+      ]
+    },
+    {
+      "scenario_id": "sequence.filesystem-mutation-result",
+      "category": "filesystem_mutation",
+      "flow": "filesystem_mutation_result",
+      "description": "Apply filesystem mutation results through the registered result transition and validate generation mismatch fallback.",
+      "steps": [
+        {
+          "ordinal": 1,
+          "step_id": "delete-or-mkdir-result",
+          "transition_id": "transition.filesystem-mutation-result.mkdir-copy-delete",
+          "stimulus": {
+            "event_id": "event.filesystem-mutation-result"
+          },
+          "expected_result": "allowed",
+          "invariant_ids": [
+            "invariant.viewport-identity-rebind",
+            "invariant.shared-state-panel-local-isolation"
+          ],
+          "diff_harness_ids": [
+            "harness.transition-before-after-snapshot",
+            "harness.generation-mismatch-check"
+          ],
+          "generation_domain_expectations": [
+            {
+              "domain_id": "generation.volume.shared-authority",
+              "expectation": "Volume generation advances only for declared shared-volume mutations."
+            },
+            {
+              "domain_id": "state.topology.volume",
+              "expectation": "Topology generation advances only for declared topology changes."
+            },
+            {
+              "domain_id": "state.file-payload.volume",
+              "expectation": "File payload generation advances only for declared payload rebuilds."
+            },
+            {
+              "domain_id": "identity.directory.stable-key",
+              "expectation": "Directory identity remains durable across rebuild/rebind."
+            }
+          ]
+        },
+        {
+          "ordinal": 2,
+          "step_id": "mutation-generation-mismatch",
+          "transition_id": "transition.filesystem-mutation-result.mkdir-copy-delete",
+          "stimulus": {
+            "action_id": "ACTION_CMD_D",
+            "event_id": "event.filesystem-mutation-result"
+          },
+          "expected_result": "fallback",
+          "invariant_ids": [
+            "invariant.stale-snapshot-fail-closed",
+            "invariant.blocked-transition-determinism"
+          ],
+          "diff_harness_ids": [
+            "harness.generation-mismatch-check",
+            "harness.blocked-transition-no-unrelated-mutation"
+          ],
+          "generation_domain_expectations": [
+            {
+              "domain_id": "generation.volume.shared-authority",
+              "expectation": "Volume generation advances only for declared shared-volume mutations."
+            },
+            {
+              "domain_id": "state.topology.volume",
+              "expectation": "Topology generation advances only for declared topology changes."
+            },
+            {
+              "domain_id": "state.file-payload.volume",
+              "expectation": "File payload generation advances only for declared payload rebuilds."
+            }
+          ],
+          "precondition": "generation_mismatch",
+          "deterministic_fallback": {
+            "outcome": "Reject stale mutation result, request a registered refresh/rebind, and keep unrelated panel state unchanged.",
+            "allowed_mutation_scope": "Only the registered fallback/no-op result may run; unrelated owner fields remain unchanged."
+          }
+        }
+      ]
+    },
+    {
+      "scenario_id": "sequence.search-jump",
+      "category": "search_jump",
+      "flow": "search_jump",
+      "description": "Search/list jump updates selection only through visible-navigation and focus ownership rules.",
+      "steps": [
+        {
+          "ordinal": 1,
+          "step_id": "list-jump-visible-target",
+          "transition_id": "transition.keybinding.navigate-tree",
+          "stimulus": {
+            "action_id": "ACTION_LIST_JUMP"
+          },
+          "expected_result": "allowed",
+          "invariant_ids": [
+            "invariant.hidden-entry-visible-navigation",
+            "invariant.panel-local-focus-restore"
+          ],
+          "diff_harness_ids": [
+            "harness.transition-before-after-snapshot",
+            "harness.declared-write-set-diff"
+          ],
+          "generation_domain_expectations": [
+            {
+              "domain_id": "generation.panel.local-authority",
+              "expectation": "Validate panel generation before and after the step; advance only when the transition declares panel-local writes."
+            },
+            {
+              "domain_id": "identity.directory.stable-key",
+              "expectation": "Directory identity remains durable across rebuild/rebind."
+            },
+            {
+              "domain_id": "identity.file.stable-key",
+              "expectation": "File identity remains durable across payload or view-shape changes."
+            }
+          ]
+        },
+        {
+          "ordinal": 2,
+          "step_id": "search-command-completion",
+          "transition_id": "transition.command-completion.user-command",
+          "stimulus": {
+            "event_id": "event.command-completion"
+          },
+          "expected_result": "allowed",
+          "invariant_ids": [
+            "invariant.panel-local-focus-restore",
+            "invariant.blocked-transition-determinism"
+          ],
+          "diff_harness_ids": [
+            "harness.transition-before-after-snapshot",
+            "harness.declared-write-set-diff"
+          ],
+          "generation_domain_expectations": [
+            {
+              "domain_id": "target.modal-command.session",
+              "expectation": "Modal target generation validates before applying completion or dismissal."
+            },
+            {
+              "domain_id": "generation.panel.local-authority",
+              "expectation": "Validate panel generation before and after the step; advance only when the transition declares panel-local writes."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "scenario_id": "sequence.showall-global-tagged-only",
+      "category": "display_mode",
+      "flow": "showall_global_tagged_only",
+      "description": "Toggle showall/global/tagged-only style filters without moving panel-local ownership into shared volume state.",
+      "steps": [
+        {
+          "ordinal": 1,
+          "step_id": "toggle-tagged-only",
+          "transition_id": "transition.keybinding.navigate-tree",
+          "stimulus": {
+            "action_id": "ACTION_TOGGLE_TAGGED_MODE"
+          },
+          "expected_result": "allowed",
+          "invariant_ids": [
+            "invariant.shared-state-panel-local-isolation",
+            "invariant.hidden-entry-visible-navigation"
+          ],
+          "diff_harness_ids": [
+            "harness.transition-before-after-snapshot",
+            "harness.declared-write-set-diff"
+          ],
+          "generation_domain_expectations": [
+            {
+              "domain_id": "generation.panel.local-authority",
+              "expectation": "Validate panel generation before and after the step; advance only when the transition declares panel-local writes."
+            },
+            {
+              "domain_id": "state.visibility-filter.panel-volume",
+              "expectation": "Visibility/filter generation matches the selected panel after the transition."
+            }
+          ]
+        },
+        {
+          "ordinal": 2,
+          "step_id": "toggle-showall-global-projection",
+          "transition_id": "transition.keybinding.navigate-tree",
+          "stimulus": {
+            "action_id": "ACTION_ASTERISK"
+          },
+          "expected_result": "allowed",
+          "invariant_ids": [
+            "invariant.shared-state-panel-local-isolation",
+            "invariant.render-projection-read-only"
+          ],
+          "diff_harness_ids": [
+            "harness.declared-write-set-diff",
+            "harness.render-projection-read-only-diff"
+          ],
+          "generation_domain_expectations": [
+            {
+              "domain_id": "generation.panel.local-authority",
+              "expectation": "Validate panel generation before and after the step; advance only when the transition declares panel-local writes."
+            },
+            {
+              "domain_id": "state.visibility-filter.panel-volume",
+              "expectation": "Visibility/filter generation matches the selected panel after the transition."
+            },
+            {
+              "domain_id": "generation.volume.shared-authority",
+              "expectation": "Volume generation advances only for declared shared-volume mutations."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "scenario_id": "sequence.file-small-big-transitions",
+      "category": "directory_file_transition",
+      "flow": "file_small_big_transitions",
+      "description": "Move between small-file, big-file, and preview-shaped views without render-side ownership repair.",
+      "steps": [
+        {
+          "ordinal": 1,
+          "step_id": "toggle-file-mode",
+          "transition_id": "transition.keybinding.navigate-tree",
+          "stimulus": {
+            "action_id": "ACTION_TOGGLE_MODE"
+          },
+          "expected_result": "allowed",
+          "invariant_ids": [
+            "invariant.panel-local-focus-restore",
+            "invariant.render-projection-read-only"
+          ],
+          "diff_harness_ids": [
+            "harness.declared-write-set-diff",
+            "harness.render-projection-read-only-diff"
+          ],
+          "generation_domain_expectations": [
+            {
+              "domain_id": "generation.panel.local-authority",
+              "expectation": "Validate panel generation before and after the step; advance only when the transition declares panel-local writes."
+            },
+            {
+              "domain_id": "identity.file.stable-key",
+              "expectation": "File identity remains durable across payload or view-shape changes."
+            },
+            {
+              "domain_id": "shape.panel.focus",
+              "expectation": "Preserve or rebind focus shape only through the transition result."
+            }
+          ]
+        },
+        {
+          "ordinal": 2,
+          "step_id": "view-preview-shape",
+          "transition_id": "transition.keybinding.navigate-tree",
+          "stimulus": {
+            "action_id": "ACTION_VIEW_PREVIEW"
+          },
+          "expected_result": "allowed",
+          "invariant_ids": [
+            "invariant.panel-local-focus-restore",
+            "invariant.render-projection-read-only"
+          ],
+          "diff_harness_ids": [
+            "harness.declared-write-set-diff",
+            "harness.render-projection-read-only-diff"
+          ],
+          "generation_domain_expectations": [
+            {
+              "domain_id": "generation.panel.local-authority",
+              "expectation": "Validate panel generation before and after the step; advance only when the transition declares panel-local writes."
+            },
+            {
+              "domain_id": "identity.file.stable-key",
+              "expectation": "File identity remains durable across payload or view-shape changes."
+            },
+            {
+              "domain_id": "reflow.layout.projection",
+              "expectation": "Layout reflow generation is projection-only unless resize transition declares it."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "scenario_id": "sequence.volume-cycling-release",
+      "category": "volume_lifecycle",
+      "flow": "volume_cycling_release",
+      "description": "Cycle and release volumes through shared lifecycle generation while each panel rebinds by identity.",
+      "steps": [
+        {
+          "ordinal": 1,
+          "step_id": "volume-next",
+          "transition_id": "transition.volume-operation.release-cycle",
+          "stimulus": {
+            "action_id": "ACTION_VOL_NEXT"
+          },
+          "expected_result": "allowed",
+          "invariant_ids": [
+            "invariant.shared-state-panel-local-isolation",
+            "invariant.viewport-identity-rebind"
+          ],
+          "diff_harness_ids": [
+            "harness.transition-before-after-snapshot",
+            "harness.declared-write-set-diff"
+          ],
+          "generation_domain_expectations": [
+            {
+              "domain_id": "generation.panel.local-authority",
+              "expectation": "Validate panel generation before and after the step; advance only when the transition declares panel-local writes."
+            },
+            {
+              "domain_id": "generation.volume.shared-authority",
+              "expectation": "Volume generation advances only for declared shared-volume mutations."
+            },
+            {
+              "domain_id": "lifecycle.volume.registry",
+              "expectation": "Volume lifecycle generation validates before rebinding panels."
+            }
+          ]
+        },
+        {
+          "ordinal": 2,
+          "step_id": "volume-release-event",
+          "transition_id": "transition.volume-operation.release-cycle",
+          "stimulus": {
+            "event_id": "event.volume-lifecycle"
+          },
+          "expected_result": "allowed",
+          "invariant_ids": [
+            "invariant.stale-snapshot-fail-closed",
+            "invariant.shared-state-panel-local-isolation"
+          ],
+          "diff_harness_ids": [
+            "harness.transition-before-after-snapshot",
+            "harness.generation-mismatch-check"
+          ],
+          "generation_domain_expectations": [
+            {
+              "domain_id": "generation.volume.shared-authority",
+              "expectation": "Volume generation advances only for declared shared-volume mutations."
+            },
+            {
+              "domain_id": "lifecycle.volume.registry",
+              "expectation": "Volume lifecycle generation validates before rebinding panels."
+            },
+            {
+              "domain_id": "state.topology.volume",
+              "expectation": "Topology generation advances only for declared topology changes."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "scenario_id": "sequence.split-close-reopen",
+      "category": "layout_split",
+      "flow": "split_close_reopen",
+      "description": "Close and reopen split layout and prove panel snapshots survive layout projection changes.",
+      "steps": [
+        {
+          "ordinal": 1,
+          "step_id": "split-close",
+          "transition_id": "transition.keybinding.navigate-tree",
+          "stimulus": {
+            "action_id": "ACTION_SPLIT_SCREEN"
+          },
+          "expected_result": "allowed",
+          "invariant_ids": [
+            "invariant.inactive-panel-frozen",
+            "invariant.panel-local-focus-restore",
+            "invariant.render-projection-read-only"
+          ],
+          "diff_harness_ids": [
+            "harness.declared-write-set-diff",
+            "harness.render-projection-read-only-diff"
+          ],
+          "generation_domain_expectations": [
+            {
+              "domain_id": "generation.panel.local-authority",
+              "expectation": "Validate panel generation before and after the step; advance only when the transition declares panel-local writes."
+            },
+            {
+              "domain_id": "shape.panel.focus",
+              "expectation": "Preserve or rebind focus shape only through the transition result."
+            },
+            {
+              "domain_id": "reflow.layout.projection",
+              "expectation": "Layout reflow generation is projection-only unless resize transition declares it."
+            }
+          ]
+        },
+        {
+          "ordinal": 2,
+          "step_id": "split-reopen",
+          "transition_id": "transition.keybinding.navigate-tree",
+          "stimulus": {
+            "action_id": "ACTION_SPLIT_SCREEN"
+          },
+          "expected_result": "allowed",
+          "invariant_ids": [
+            "invariant.inactive-panel-frozen",
+            "invariant.panel-local-focus-restore",
+            "invariant.viewport-identity-rebind"
+          ],
+          "diff_harness_ids": [
+            "harness.transition-before-after-snapshot",
+            "harness.declared-write-set-diff"
+          ],
+          "generation_domain_expectations": [
+            {
+              "domain_id": "generation.panel.local-authority",
+              "expectation": "Validate panel generation before and after the step; advance only when the transition declares panel-local writes."
+            },
+            {
+              "domain_id": "shape.panel.focus",
+              "expectation": "Preserve or rebind focus shape only through the transition result."
+            },
+            {
+              "domain_id": "reflow.layout.projection",
+              "expectation": "Layout reflow generation is projection-only unless resize transition declares it."
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

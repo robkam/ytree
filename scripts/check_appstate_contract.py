@@ -19,6 +19,7 @@ DEFAULT_DISPATCH_SURFACES = REPO_ROOT / "docs" / "appstate_dispatch_surfaces.jso
 DEFAULT_INVARIANTS = REPO_ROOT / "docs" / "appstate_invariants.json"
 DEFAULT_GENERATION_DOMAINS = REPO_ROOT / "docs" / "appstate_generation_domains.json"
 DEFAULT_DIFF_HARNESS = REPO_ROOT / "docs" / "appstate_diff_harness.json"
+DEFAULT_TRANSITION_SEQUENCES = REPO_ROOT / "docs" / "appstate_transition_sequences.json"
 DEFAULT_ACTION_HEADER = REPO_ROOT / "include" / "ytree_defs.h"
 
 REQUIRED_TRANSITION_CATEGORIES = {
@@ -133,6 +134,34 @@ REQUIRED_DIFF_HARNESS_CATEGORIES = {
     "blocked_transition_no_unrelated_mutation",
 }
 
+REQUIRED_SEQUENCE_CATEGORIES = {
+    "directory_file_transition",
+    "display_mode",
+    "filesystem_mutation",
+    "layout_split",
+    "modal_command",
+    "panel_navigation",
+    "refresh_rebuild",
+    "search_jump",
+    "visibility_filter",
+    "volume_lifecycle",
+}
+
+REQUIRED_SEQUENCE_FLOWS = {
+    "dotfile_reveal_conceal",
+    "enter_directory_file_transition",
+    "esc_modal_dismissal",
+    "file_small_big_transitions",
+    "filesystem_mutation_result",
+    "refresh_rebuild",
+    "search_jump",
+    "showall_global_tagged_only",
+    "split_close_reopen",
+    "split_toggle_f8",
+    "tab_panel_switch",
+    "volume_cycling_release",
+}
+
 REQUIRED_DISPATCH_SURFACE_FIELDS = {
     "surface_id",
     "category",
@@ -209,6 +238,40 @@ REQUIRED_DIFF_HARNESS_FIELDS = {
     "migration_notes",
 }
 
+REQUIRED_SEQUENCE_FIELDS = {
+    "scenario_id",
+    "category",
+    "flow",
+    "description",
+    "steps",
+}
+
+REQUIRED_SEQUENCE_STEP_FIELDS = {
+    "ordinal",
+    "step_id",
+    "transition_id",
+    "stimulus",
+    "expected_result",
+    "invariant_ids",
+    "diff_harness_ids",
+    "generation_domain_expectations",
+}
+
+REQUIRED_GENERATION_EXPECTATION_FIELDS = {
+    "domain_id",
+    "expectation",
+}
+
+REQUIRED_FALLBACK_FIELDS = {
+    "outcome",
+    "allowed_mutation_scope",
+}
+
+REQUIRED_NO_UNRELATED_MUTATION_FIELDS = {
+    "diff_harness_id",
+    "expectation",
+}
+
 LIST_FIELDS = {
     "declared_write_set",
     "side_effects",
@@ -232,6 +295,11 @@ DIFF_HARNESS_LIST_FIELDS = {
     "invariant_ids",
     "generation_domain_ids",
     "migration_notes",
+}
+SEQUENCE_LIST_FIELDS = {
+    "invariant_ids",
+    "diff_harness_ids",
+    "generation_domain_expectations",
 }
 GENERATION_FIELD_RE = re.compile(r"\b(?:[A-Za-z0-9_]+\.)?[A-Za-z0-9_]+_generation\b")
 
@@ -420,6 +488,31 @@ def _collect_string_ids(doc: Any, *, collection_key: str, id_field: str) -> set[
         for value in [record.get(id_field)]
         if isinstance(value, str) and value.strip()
     }
+
+
+def _collect_transition_ids_by_string_id(
+    doc: Any, *, collection_key: str, id_field: str
+) -> dict[str, str]:
+    if not isinstance(doc, dict):
+        return {}
+    records = doc.get(collection_key)
+    if not isinstance(records, list):
+        return {}
+
+    transition_ids: dict[str, str] = {}
+    for record in records:
+        if not isinstance(record, dict):
+            continue
+        value = record.get(id_field)
+        transition_id = record.get("transition_id")
+        if (
+            isinstance(value, str)
+            and value.strip()
+            and isinstance(transition_id, str)
+            and transition_id.strip()
+        ):
+            transition_ids[value] = transition_id
+    return transition_ids
 
 
 def _validate_allowed_direct_writes(
@@ -1046,6 +1139,331 @@ def _validate_event_coverage(
     return failures
 
 
+def _validate_step_stimulus(
+    *,
+    stimulus: Any,
+    label: str,
+    transition_id: Any,
+    action_ids: set[str],
+    action_transition_ids: dict[str, str],
+    event_ids: set[str],
+    event_transition_ids: dict[str, str],
+) -> list[str]:
+    if not isinstance(stimulus, dict) or not stimulus:
+        return [f"{label}: stimulus must be a non-empty object"]
+
+    failures: list[str] = []
+    action_id = stimulus.get("action_id")
+    event_id = stimulus.get("event_id")
+    if action_id is None and event_id is None:
+        failures.append(f"{label}: stimulus must include action_id or event_id")
+
+    if action_id is not None:
+        if not isinstance(action_id, str) or not action_id.strip():
+            failures.append(f"{label}: stimulus.action_id must be a non-empty string")
+        elif action_id not in action_ids:
+            failures.append(f"{label}: stimulus.action_id references unknown action: {action_id}")
+        elif isinstance(transition_id, str) and transition_id.strip():
+            action_transition_id = action_transition_ids.get(action_id)
+            if action_transition_id != transition_id:
+                failures.append(
+                    f"{label}: stimulus.action_id {action_id} maps to transition_id "
+                    f"{action_transition_id}, not step.transition_id {transition_id}"
+                )
+
+    if event_id is not None:
+        if not isinstance(event_id, str) or not event_id.strip():
+            failures.append(f"{label}: stimulus.event_id must be a non-empty string")
+        elif event_id not in event_ids:
+            failures.append(f"{label}: stimulus.event_id references unknown event id: {event_id}")
+        elif isinstance(transition_id, str) and transition_id.strip():
+            event_transition_id = event_transition_ids.get(event_id)
+            if event_transition_id != transition_id:
+                failures.append(
+                    f"{label}: stimulus.event_id {event_id} maps to transition_id "
+                    f"{event_transition_id}, not step.transition_id {transition_id}"
+                )
+
+    return failures
+
+
+def _validate_step_reference_list(
+    *,
+    value: Any,
+    valid_ids: set[str],
+    label: str,
+    field: str,
+    reference_label: str,
+) -> list[str]:
+    failures = _validate_list_field(value=value, label=label, field=field)
+    if failures:
+        return failures
+
+    assert isinstance(value, list)
+    seen: set[str] = set()
+    for index, item in enumerate(value):
+        assert isinstance(item, str)
+        if item in seen:
+            failures.append(f"{label}: duplicate {field}[{index}]: {item}")
+        seen.add(item)
+        if item not in valid_ids:
+            failures.append(f"{label}: {field} references unknown {reference_label}: {item}")
+    return failures
+
+
+def _validate_generation_expectations(
+    *,
+    value: Any,
+    label: str,
+    generation_domain_ids: set[str],
+) -> list[str]:
+    if not isinstance(value, list) or not value:
+        return [f"{label}: generation_domain_expectations must be a non-empty list"]
+
+    failures: list[str] = []
+    seen: set[str] = set()
+    for index, record in enumerate(value):
+        expectation_label = f"{label}.generation_domain_expectations[{index}]"
+        failures.extend(
+            _validate_required_fields(
+                record=record,
+                required_fields=REQUIRED_GENERATION_EXPECTATION_FIELDS,
+                list_fields=set(),
+                label=expectation_label,
+            )
+        )
+        if not isinstance(record, dict):
+            continue
+
+        domain_id = record.get("domain_id")
+        if isinstance(domain_id, str) and domain_id.strip():
+            if domain_id in seen:
+                failures.append(
+                    f"{expectation_label}: duplicate domain_id: {domain_id}"
+                )
+            seen.add(domain_id)
+            if domain_id not in generation_domain_ids:
+                failures.append(
+                    f"{expectation_label}: domain_id references unknown generation domain id: {domain_id}"
+                )
+
+    return failures
+
+
+def _requires_deterministic_fallback(record: dict[str, Any]) -> bool:
+    precondition = record.get("precondition")
+    expected_result = record.get("expected_result")
+    return (
+        precondition in {"generation_mismatch", "stale_snapshot"}
+        or expected_result == "fallback"
+    )
+
+
+def _validate_deterministic_fallback(
+    *,
+    record: dict[str, Any],
+    label: str,
+) -> list[str]:
+    fallback = record.get("deterministic_fallback")
+    if not isinstance(fallback, dict):
+        return [
+            f"{label}: stale-snapshot/generation-mismatch steps require deterministic_fallback"
+        ]
+    return _validate_required_fields(
+        record=fallback,
+        required_fields=REQUIRED_FALLBACK_FIELDS,
+        list_fields=set(),
+        label=f"{label}.deterministic_fallback",
+    )
+
+
+def _validate_no_unrelated_mutation(
+    *,
+    record: dict[str, Any],
+    label: str,
+    diff_harness_ids: set[str],
+) -> list[str]:
+    expectation = record.get("no_unrelated_mutation")
+    if not isinstance(expectation, dict):
+        return [
+            f"{label}: blocked/invalid steps require no_unrelated_mutation expectations"
+        ]
+
+    failures = _validate_required_fields(
+        record=expectation,
+        required_fields=REQUIRED_NO_UNRELATED_MUTATION_FIELDS,
+        list_fields=set(),
+        label=f"{label}.no_unrelated_mutation",
+    )
+    harness_id = expectation.get("diff_harness_id")
+    if isinstance(harness_id, str) and harness_id.strip() and harness_id not in diff_harness_ids:
+        failures.append(
+            f"{label}.no_unrelated_mutation: diff_harness_id references unknown diff harness id: {harness_id}"
+        )
+    return failures
+
+
+def _validate_appstate_transition_sequences(
+    *,
+    transition_sequences_doc: Any,
+    transition_sequences_path: Path,
+    transition_ids: dict[str, dict[str, Any]],
+    action_ids: set[str],
+    action_transition_ids: dict[str, str],
+    event_ids: set[str],
+    event_transition_ids: dict[str, str],
+    invariant_ids: set[str],
+    diff_harness_ids: set[str],
+    generation_domain_ids: set[str],
+) -> list[str]:
+    failures: list[str] = []
+    if not isinstance(transition_sequences_doc, dict):
+        failures.append(f"{transition_sequences_path}: top-level value must be an object")
+        return failures
+
+    records = transition_sequences_doc.get("scenarios")
+    if not isinstance(records, list) or not records:
+        failures.append(f"{transition_sequences_path}: scenarios must be a non-empty list")
+        records = []
+
+    scenario_ids: set[str] = set()
+    covered_flows: set[str] = set()
+    for scenario_index, record in enumerate(records):
+        scenario_label = f"transition_sequence[{scenario_index}]"
+        failures.extend(
+            _validate_required_fields(
+                record=record,
+                required_fields=REQUIRED_SEQUENCE_FIELDS,
+                list_fields=set(),
+                label=scenario_label,
+            )
+        )
+        if not isinstance(record, dict):
+            continue
+
+        scenario_id = record.get("scenario_id")
+        if isinstance(scenario_id, str) and scenario_id.strip():
+            if scenario_id in scenario_ids:
+                failures.append(f"{scenario_label}: duplicate scenario_id: {scenario_id}")
+            scenario_ids.add(scenario_id)
+
+        category = record.get("category")
+        if isinstance(category, str) and category.strip():
+            if category not in REQUIRED_SEQUENCE_CATEGORIES:
+                failures.append(f"{scenario_label}: unknown category: {category}")
+
+        flow = record.get("flow")
+        if isinstance(flow, str) and flow.strip():
+            covered_flows.add(flow)
+            if flow not in REQUIRED_SEQUENCE_FLOWS:
+                failures.append(f"{scenario_label}: unknown flow: {flow}")
+
+        steps = record.get("steps")
+        if not isinstance(steps, list) or not steps:
+            failures.append(f"{scenario_label}: steps must be a non-empty list")
+            continue
+
+        ordinals: set[int] = set()
+        previous_ordinal = 0
+        for step_index, step in enumerate(steps):
+            label = f"{scenario_label}.step[{step_index}]"
+            failures.extend(
+                _validate_required_fields(
+                    record=step,
+                    required_fields=REQUIRED_SEQUENCE_STEP_FIELDS,
+                    list_fields=SEQUENCE_LIST_FIELDS - {"generation_domain_expectations"},
+                    label=label,
+                )
+            )
+            if not isinstance(step, dict):
+                continue
+
+            ordinal = step.get("ordinal")
+            if not isinstance(ordinal, int) or ordinal < 1:
+                failures.append(f"{label}: ordinal must be a positive integer")
+            else:
+                if ordinal in ordinals:
+                    failures.append(f"{label}: duplicate ordinal: {ordinal}")
+                if ordinal <= previous_ordinal:
+                    failures.append(f"{label}: ordinal must be greater than previous step ordinal")
+                ordinals.add(ordinal)
+                previous_ordinal = ordinal
+
+            transition_id = step.get("transition_id")
+            if isinstance(transition_id, str) and transition_id.strip():
+                if transition_id not in transition_ids:
+                    failures.append(
+                        f"{label}: transition_id references unknown transition id: {transition_id}"
+                    )
+
+            failures.extend(
+                _validate_step_stimulus(
+                    stimulus=step.get("stimulus"),
+                    label=label,
+                    transition_id=transition_id,
+                    action_ids=action_ids,
+                    action_transition_ids=action_transition_ids,
+                    event_ids=event_ids,
+                    event_transition_ids=event_transition_ids,
+                )
+            )
+            failures.extend(
+                _validate_step_reference_list(
+                    value=step.get("invariant_ids"),
+                    valid_ids=invariant_ids,
+                    label=label,
+                    field="invariant_ids",
+                    reference_label="invariant id",
+                )
+            )
+            failures.extend(
+                _validate_step_reference_list(
+                    value=step.get("diff_harness_ids"),
+                    valid_ids=diff_harness_ids,
+                    label=label,
+                    field="diff_harness_ids",
+                    reference_label="diff harness id",
+                )
+            )
+            failures.extend(
+                _validate_generation_expectations(
+                    value=step.get("generation_domain_expectations"),
+                    label=label,
+                    generation_domain_ids=generation_domain_ids,
+                )
+            )
+
+            expected_result = step.get("expected_result")
+            if (
+                isinstance(expected_result, str)
+                and expected_result.strip()
+                and expected_result not in {"allowed", "blocked", "fallback", "invalid"}
+            ):
+                failures.append(f"{label}: unknown expected_result: {expected_result}")
+
+            if _requires_deterministic_fallback(step):
+                failures.extend(
+                    _validate_deterministic_fallback(record=step, label=label)
+                )
+
+            if expected_result in {"blocked", "invalid"}:
+                failures.extend(
+                    _validate_no_unrelated_mutation(
+                        record=step,
+                        label=label,
+                        diff_harness_ids=diff_harness_ids,
+                    )
+                )
+
+    missing_flows = sorted(REQUIRED_SEQUENCE_FLOWS - covered_flows)
+    if missing_flows:
+        failures.append(
+            "transition sequences missing required flow(s): " + ", ".join(missing_flows)
+        )
+
+    return failures
+
+
 def validate_contract(
     transitions_path: Path,
     shims_path: Path,
@@ -1057,6 +1475,7 @@ def validate_contract(
     invariants_path: Path = DEFAULT_INVARIANTS,
     generation_domains_path: Path = DEFAULT_GENERATION_DOMAINS,
     diff_harness_path: Path = DEFAULT_DIFF_HARNESS,
+    transition_sequences_path: Path = DEFAULT_TRANSITION_SEQUENCES,
 ) -> list[str]:
     failures: list[str] = []
     transitions_doc, transition_load_failures = _load_json(transitions_path)
@@ -1072,6 +1491,9 @@ def validate_contract(
         generation_domains_path
     )
     diff_harness_doc, diff_harness_load_failures = _load_json(diff_harness_path)
+    transition_sequences_doc, transition_sequences_load_failures = _load_json(
+        transition_sequences_path
+    )
     enum_actions, enum_failures = _parse_ytree_actions(actions_header_path)
     failures.extend(transition_load_failures)
     failures.extend(shim_load_failures)
@@ -1082,6 +1504,7 @@ def validate_contract(
     failures.extend(invariants_load_failures)
     failures.extend(generation_domains_load_failures)
     failures.extend(diff_harness_load_failures)
+    failures.extend(transition_sequences_load_failures)
     failures.extend(enum_failures)
     if failures:
         return failures
@@ -1292,6 +1715,11 @@ def validate_contract(
         collection_key="generation_domains",
         id_field="domain_id",
     )
+    diff_harness_ids = _collect_string_ids(
+        diff_harness_doc,
+        collection_key="diff_harness_checks",
+        id_field="harness_id",
+    )
     failures.extend(
         _validate_appstate_diff_harness(
             diff_harness_doc=diff_harness_doc,
@@ -1299,6 +1727,40 @@ def validate_contract(
             transition_ids=transition_ids,
             registered_owner_fields=registered_owner_fields,
             invariant_ids=invariant_ids,
+            generation_domain_ids=generation_domain_ids,
+        )
+    )
+    action_ids = _collect_string_ids(
+        action_coverage_doc,
+        collection_key="actions",
+        id_field="action",
+    )
+    action_transition_ids = _collect_transition_ids_by_string_id(
+        action_coverage_doc,
+        collection_key="actions",
+        id_field="action",
+    )
+    event_ids = _collect_string_ids(
+        event_coverage_doc,
+        collection_key="events",
+        id_field="event_id",
+    )
+    event_transition_ids = _collect_transition_ids_by_string_id(
+        event_coverage_doc,
+        collection_key="events",
+        id_field="event_id",
+    )
+    failures.extend(
+        _validate_appstate_transition_sequences(
+            transition_sequences_doc=transition_sequences_doc,
+            transition_sequences_path=transition_sequences_path,
+            transition_ids=transition_ids,
+            action_ids=action_ids,
+            action_transition_ids=action_transition_ids,
+            event_ids=event_ids,
+            event_transition_ids=event_transition_ids,
+            invariant_ids=invariant_ids,
+            diff_harness_ids=diff_harness_ids,
             generation_domain_ids=generation_domain_ids,
         )
     )
@@ -1321,6 +1783,9 @@ def main() -> int:
         "--generation-domains", type=Path, default=DEFAULT_GENERATION_DOMAINS
     )
     parser.add_argument("--diff-harness", type=Path, default=DEFAULT_DIFF_HARNESS)
+    parser.add_argument(
+        "--transition-sequences", type=Path, default=DEFAULT_TRANSITION_SEQUENCES
+    )
     parser.add_argument("--actions-header", type=Path, default=DEFAULT_ACTION_HEADER)
     args = parser.parse_args()
 
@@ -1335,6 +1800,7 @@ def main() -> int:
         args.invariants,
         args.generation_domains,
         args.diff_harness,
+        args.transition_sequences,
     )
     if failures:
         for failure in failures:
