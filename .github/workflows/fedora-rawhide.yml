@@ -1,0 +1,69 @@
+name: Fedora Rawhide GCC Smoke
+
+on:
+  pull_request:
+    paths:
+      - Makefile
+      - .github/workflows/fedora-rawhide.yml
+      - src/**
+      - include/**
+      - etc/ytree.1.md
+  push:
+    branches:
+      - main
+    paths:
+      - Makefile
+      - .github/workflows/fedora-rawhide.yml
+      - src/**
+      - include/**
+      - etc/ytree.1.md
+  workflow_dispatch:
+
+jobs:
+  fedora-rawhide-gcc:
+    name: Fedora Rawhide GCC build/install smoke
+    runs-on: ubuntu-latest
+    container: fedora:rawhide
+    continue-on-error: true
+
+    steps:
+      - name: Install build dependencies
+        run: |
+          dnf -y --setopt=install_weak_deps=False install \
+            gcc \
+            gzip \
+            findutils \
+            libarchive-devel \
+            make \
+            ncurses-devel \
+            pandoc \
+            python3 \
+            readline-devel
+
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Show toolchain versions
+        run: |
+          cat /etc/fedora-release
+          gcc --version
+          python3 --version
+          make --version
+
+      - name: Default GCC build
+        run: |
+          make clean
+          make CC=gcc
+
+      - name: Packaging CFLAGS GCC build
+        run: |
+          make clean
+          make CC=gcc CFLAGS="-O2 -g -Wall -Wextra"
+
+      - name: DESTDIR install smoke
+        run: |
+          rm -rf pkgroot
+          make DESTDIR="$PWD/pkgroot" PREFIX=/usr install
+          test -f pkgroot/usr/bin/ytree
+          test -f pkgroot/usr/share/man/man1/ytree.1.gz
+          find pkgroot -type f | sort
