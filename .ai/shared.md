@@ -109,11 +109,13 @@ These instructions apply to all AI agents used in this repository.
     - Before first push, run a quick local gate (build plus targeted smoke/tests).
     - Open a draft PR early; red is allowed while iterating.
     - Keep a durable PR title even while checks are red; do not use temporary `WIP:` title prefixes.
+    - PR title, summary, and validation text must describe the durable behavior or architecture aim of the atomic unit, not volatile tracker numbers or broader-roadmap labels.
+    - PR validation text must be concise local evidence only; do not duplicate self-evident CI/check output or paste full check transcripts into PR bodies or comments.
     - While PR is red, keep the PR in draft and do not request reviewers.
     - Before merge to `main`, require green PR full-QA CI gate (`make qa-all` equivalent) and required audit-loop evidence; local `make qa-all` is optional unless the maintainer explicitly requests it.
-    - Convert draft PR to ready only after posting full QA evidence in a PR comment.
+    - Convert draft PR to ready only after green PR evidence is available and maintainer direction allows it; do not trigger another long ready-conversion gate without explicit instruction.
     - Before merge, require green PR checks and reviewer signoff.
-23. Change-description durability is mandatory: commit subjects and PR titles/summaries MUST describe the concrete behavior/problem being changed, and MUST NOT rely on volatile tracker IDs alone (for example `BUG-14`, `TASK-7`) as the primary description.
+23. Change-description durability is mandatory: commit subjects and PR titles/summaries MUST describe the concrete behavior/problem being changed, and MUST NOT rely on volatile tracker IDs alone (for example `BUG-14`, `TASK-7`) as the primary description. For multi-unit roadmap work, describe the current atomic unit's durable aim rather than the broader tracker item; choose the Conventional Commit type for the unit (`chore` for registry/guard/process scaffolding, `test` for test-only changes, `refactor` only for behavior-preserving runtime restructuring).
 24. Agentic-loop autonomy and clarity are mandatory: proactively poll/wait `active` workers to terminal `completed`/`blocked`; worker completion notifications/events are immediate triggers that must progress the loop without maintainer echo/re-send of worker completion text; on completion immediately read the completion report, run required validation checks, close the completed worker agent, proceed to the next planned step, and post a delta-only maintainer update; maintainer-facing status wording must use only `active`, `completed`, or `blocked` and must not use ambiguous runtime labels such as `awaiting instruction`.
 
 ## Source Comment Contract

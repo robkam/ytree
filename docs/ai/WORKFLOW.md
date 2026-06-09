@@ -317,9 +317,12 @@ Use this when wrapping up a PROMPT_TEMPLATE-driven mission and returning the rep
 5.  **Architect/AI:** Stage intended changes only (exclude unrelated local edits and workflow artifacts).
 6.  **Architect/AI:** Suggest a Conventional Commit subject and request maintainer commit-message approval.
 7.  **Architect/AI:** Commit, push branch, and open/update a draft PR.
+    *   PR title must use Conventional Commit format and describe the current atomic unit's durable aim, not a volatile task/bug number or the whole roadmap initiative.
+    *   PR body should be concise: summary, scope, and local validation evidence. Do not duplicate obvious CI output or paste check transcripts into the body/comments.
 8.  **Maintainer (GitHub):** Review draft PR scope and evidence.
 9.  **Architect/AI + Maintainer (GitHub):** Monitor PR CI full gate proactively (for example `gh pr checks <pr-number> --watch`). Do not wait passively for a separate reminder when checks change state.
 10. **Architect/AI:** If any checks are red, triage failing jobs immediately, fix CI failures root-cause-first, push updates, and repeat until required PR full-QA CI (`make qa-all` equivalent) is green.
+    *   Do not convert a draft PR to ready, request reviewers, or otherwise trigger another long PR gate unless the maintainer explicitly instructs it.
 11. **Maintainer (GitHub):** Merge PR to `main` after checks are green and review is satisfied.
 12. **Maintainer (GitHub):** Delete remote branch:
     *   `git push origin --delete <branch>`
