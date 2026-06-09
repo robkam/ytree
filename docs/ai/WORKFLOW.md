@@ -268,9 +268,10 @@ make qa-fuzz
     *   if worker creation is policy-blocked, retry once with a reduced subagent-safe prompt profile (minimal technical payload only) and do not pause maintainer for that recoverable path.
 3.  Relay execution remains autonomous end-to-end; maintainer interruption is reserved strictly for `true_blocker_decision` and `commit_message_approval`.
     *   Workers must not be stopped/paused for routine process gating; stop/cancel is only for explicit maintainer stop requests or terminal failure recovery.
-    *   Architect MUST proactively poll/wait all `active` workers until each transitions to `completed` or `blocked`; do not idle passively or wait for maintainer echo/re-send.
+    *   Architect MUST record each spawned worker handle and proactively poll/wait all `active` workers until each transitions to `completed` or `blocked`; do not idle passively or wait for maintainer echo/re-send.
+    *   After dispatching a worker, architect may do only genuinely non-overlapping local work before waiting. If no such local work remains, architect MUST enter the wait/poll loop immediately rather than returning an idle status update.
     *   Worker completion events/notifications are authoritative immediate loop triggers; the architect MUST start completion handling as soon as the completion event is observed.
-    *   On each worker completion event, architect MUST immediately: read the completion report, run required validation checks, close the completed worker agent, proceed to the next step, and post a delta-only maintainer update using only `active|completed|blocked` status wording.
+    *   On each worker completion event, architect MUST immediately: read the completion report, run required validation checks, close the completed worker agent, proceed to the next step, and post a delta-only maintainer update using only `active|completed|blocked` status wording. Maintainer-pasted completion lines are fallback evidence only, not the expected trigger.
     *   When maintainer input is required, architect MUST emit exactly one standalone line:
         `ACTION NEEDED (maintainer): reply "<exact text to send>"`.
     *   When no maintainer input is required, architect MUST emit:
