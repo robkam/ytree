@@ -15,6 +15,7 @@ GUARD_SPEC.loader.exec_module(guard)
 
 REQUIRED_CATEGORIES = sorted(guard.REQUIRED_TRANSITION_CATEGORIES)
 REQUIRED_EVENT_CLASSES = sorted(guard.REQUIRED_EVENT_CLASSES)
+REQUIRED_DISPATCH_SURFACE_CATEGORIES = sorted(guard.REQUIRED_DISPATCH_SURFACE_CATEGORIES)
 FIXTURE_ACTIONS = ["ACTION_NONE", "ACTION_MOVE_UP", "ACTION_USER_CMD"]
 REQUIRED_LIST_FIELD_CASES = [
     ("action", "declared_write_set", "action[0]"),
@@ -117,6 +118,35 @@ def _event(
     }
 
 
+def _dispatch_surface(
+    category: str,
+    transition_id: str | None = None,
+    surface_id: str | None = None,
+) -> dict[str, object]:
+    transition_by_surface_category = {
+        "key_decode_input_dispatch": "transition.keybinding",
+        "directory_window_action_dispatch": "transition.keybinding",
+        "file_window_action_dispatch": "transition.keybinding",
+        "menu_modal_completion": "transition.modal_action",
+        "resize_signal_handling": "transition.terminal_signal_or_resize",
+        "refresh_rebuild_rebind": "transition.refresh_rebuild",
+        "filesystem_mutation_result": "transition.filesystem_mutation_result",
+        "volume_operation": "transition.volume_operation",
+        "watcher_live_refresh": "transition.refresh_rebuild",
+        "render_reflow_projection": "transition.render_reflow",
+    }
+    return {
+        "surface_id": surface_id or f"surface.{category}",
+        "category": category,
+        "source_path": "src/ui/key_engine.c",
+        "entry_symbol_or_path": "GetEventOrKey",
+        "transition_id": transition_id or transition_by_surface_category[category],
+        "boundary_status": "test",
+        "allowed_direct_writes": ["field"],
+        "migration_notes": ["fixture coverage"],
+    }
+
+
 def _owner_field(field: str = "field") -> dict[str, object]:
     return {
         "field": field,
@@ -137,14 +167,16 @@ def _write_fixture(
     actions: list[dict[str, object]] | None = None,
     events: list[dict[str, object]] | None = None,
     owner_fields: list[dict[str, object]] | None = None,
+    dispatch_surfaces: list[dict[str, object]] | None = None,
     required_event_classes: list[str] | None = None,
     enum_actions: list[str] | None = None,
-) -> tuple[Path, Path, Path, Path, Path, Path]:
+) -> tuple[Path, Path, Path, Path, Path, Path, Path]:
     transitions_path = tmp_path / "transitions.json"
     shims_path = tmp_path / "shims.json"
     action_coverage_path = tmp_path / "action_coverage.json"
     event_coverage_path = tmp_path / "event_coverage.json"
     owner_fields_path = tmp_path / "owner_fields.json"
+    dispatch_surfaces_path = tmp_path / "dispatch_surfaces.json"
     actions_header_path = tmp_path / "ytree_defs.h"
     _write(transitions_path, _jsonish({"schema_version": 1, "transitions": transitions}))
     _write(shims_path, _jsonish({"schema_version": 1, "shims": shims or [_shim()]}))
@@ -166,6 +198,15 @@ def _write_fixture(
         owner_fields_path,
         _jsonish({"schema_version": 1, "owner_fields": owner_fields or _complete_owner_fields()}),
     )
+    _write(
+        dispatch_surfaces_path,
+        _jsonish(
+            {
+                "schema_version": 1,
+                "dispatch_surfaces": dispatch_surfaces or _complete_dispatch_surfaces(),
+            }
+        ),
+    )
     _write(actions_header_path, _enum_header(enum_actions or FIXTURE_ACTIONS))
     return (
         transitions_path,
@@ -174,6 +215,7 @@ def _write_fixture(
         actions_header_path,
         event_coverage_path,
         owner_fields_path,
+        dispatch_surfaces_path,
     )
 
 
@@ -203,22 +245,30 @@ def _complete_events() -> list[dict[str, object]]:
     return [_event(event_class) for event_class in REQUIRED_EVENT_CLASSES]
 
 
+def _complete_dispatch_surfaces() -> list[dict[str, object]]:
+    return [
+        _dispatch_surface(category)
+        for category in REQUIRED_DISPATCH_SURFACE_CATEGORIES
+    ]
+
+
 def _complete_owner_fields() -> list[dict[str, object]]:
     return [_owner_field("field"), _owner_field("panel.tree_selection_key")]
 
 
-def _validate(paths: tuple[Path, Path, Path, Path, Path, Path]) -> list[str]:
+def _validate(paths: tuple[Path, Path, Path, Path, Path, Path, Path]) -> list[str]:
     return guard.validate_contract(*paths)
 
 
 def _fixture_with_list_field_value(
     tmp_path: Path, record_type: str, field: str, value: object
-) -> tuple[Path, Path, Path, Path, Path, Path]:
+) -> tuple[Path, Path, Path, Path, Path, Path, Path]:
     transitions = _complete_transitions()
     shims = [_shim()]
     actions = _complete_actions()
     events = _complete_events()
     owner_fields = _complete_owner_fields()
+    dispatch_surfaces = _complete_dispatch_surfaces()
     if record_type == "action":
         actions[0][field] = value
     elif record_type == "event":
@@ -229,6 +279,8 @@ def _fixture_with_list_field_value(
         transitions[0][field] = value
     elif record_type == "shim":
         shims[0][field] = value
+    elif record_type == "dispatch_surface":
+        dispatch_surfaces[0][field] = value
     else:
         raise AssertionError(f"unknown record type: {record_type}")
     return _write_fixture(
@@ -238,6 +290,7 @@ def _fixture_with_list_field_value(
         actions=actions,
         events=events,
         owner_fields=owner_fields,
+        dispatch_surfaces=dispatch_surfaces,
     )
 
 
@@ -256,6 +309,193 @@ def test_current_repository_appstate_contract_passes() -> None:
 def test_guard_passes_complete_temporary_fixtures(tmp_path: Path) -> None:
     transitions = _complete_transitions()
     paths = _write_fixture(tmp_path, transitions=transitions)
+
+    failures = _validate(paths)
+
+    assert failures == []
+
+
+def test_guard_fails_when_required_dispatch_surface_category_is_missing(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    dispatch_surfaces = [
+        surface
+        for surface in _complete_dispatch_surfaces()
+        if surface["category"] != "watcher_live_refresh"
+    ]
+    paths = _write_fixture(
+        tmp_path, transitions=transitions, dispatch_surfaces=dispatch_surfaces
+    )
+
+    failures = _validate(paths)
+
+    assert any("dispatch surfaces missing required category" in failure for failure in failures)
+    assert any("watcher_live_refresh" in failure for failure in failures)
+
+
+def test_guard_fails_when_required_dispatch_surface_field_is_missing(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    dispatch_surfaces = _complete_dispatch_surfaces()
+    dispatch_surfaces[0].pop("source_path")
+    paths = _write_fixture(
+        tmp_path, transitions=transitions, dispatch_surfaces=dispatch_surfaces
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "dispatch_surface[0]" in failure
+        and "missing required field" in failure
+        and "source_path" in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_on_duplicate_dispatch_surface_ids(tmp_path: Path) -> None:
+    transitions = _complete_transitions()
+    dispatch_surfaces = _complete_dispatch_surfaces()
+    dispatch_surfaces[1]["surface_id"] = dispatch_surfaces[0]["surface_id"]
+    paths = _write_fixture(
+        tmp_path, transitions=transitions, dispatch_surfaces=dispatch_surfaces
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "dispatch_surface[1]" in failure and "duplicate surface_id" in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_when_dispatch_surface_has_unknown_category(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    dispatch_surfaces = _complete_dispatch_surfaces()
+    dispatch_surfaces[0]["category"] = "unknown_dispatch_surface"
+    paths = _write_fixture(
+        tmp_path, transitions=transitions, dispatch_surfaces=dispatch_surfaces
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "dispatch_surface[0]" in failure
+        and "unknown category" in failure
+        and "unknown_dispatch_surface" in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_when_dispatch_surface_references_unknown_transition(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    dispatch_surfaces = _complete_dispatch_surfaces()
+    dispatch_surfaces[0]["transition_id"] = "transition.missing"
+    paths = _write_fixture(
+        tmp_path, transitions=transitions, dispatch_surfaces=dispatch_surfaces
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "dispatch_surface[0]" in failure
+        and "transition_id does not match a transition id" in failure
+        and "transition.missing" in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_on_malformed_dispatch_surface_source_path(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    dispatch_surfaces = _complete_dispatch_surfaces()
+    dispatch_surfaces[0]["source_path"] = "../src/ui/key_engine.c"
+    paths = _write_fixture(
+        tmp_path, transitions=transitions, dispatch_surfaces=dispatch_surfaces
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "dispatch_surface[0]" in failure
+        and "source_path must be a relative repository path" in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_on_malformed_dispatch_surface_entry_symbol_or_path(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    dispatch_surfaces = _complete_dispatch_surfaces()
+    dispatch_surfaces[0]["entry_symbol_or_path"] = "../GetEventOrKey"
+    paths = _write_fixture(
+        tmp_path, transitions=transitions, dispatch_surfaces=dispatch_surfaces
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "dispatch_surface[0]" in failure
+        and "entry_symbol_or_path is malformed" in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_when_dispatch_surface_allowed_writes_are_not_a_list(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    dispatch_surfaces = _complete_dispatch_surfaces()
+    dispatch_surfaces[0]["allowed_direct_writes"] = "field"
+    paths = _write_fixture(
+        tmp_path, transitions=transitions, dispatch_surfaces=dispatch_surfaces
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "dispatch_surface[0]" in failure
+        and "allowed_direct_writes must be a list" in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_when_dispatch_surface_allowed_write_is_unregistered(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    dispatch_surfaces = _complete_dispatch_surfaces()
+    dispatch_surfaces[0]["allowed_direct_writes"] = ["field.unknown"]
+    paths = _write_fixture(
+        tmp_path, transitions=transitions, dispatch_surfaces=dispatch_surfaces
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "dispatch_surface[0]" in failure
+        and "unregistered owner field" in failure
+        and "field.unknown" in failure
+        for failure in failures
+    )
+
+
+def test_guard_accepts_empty_dispatch_surface_allowed_writes(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    dispatch_surfaces = _complete_dispatch_surfaces()
+    dispatch_surfaces[0]["allowed_direct_writes"] = []
+    paths = _write_fixture(
+        tmp_path, transitions=transitions, dispatch_surfaces=dispatch_surfaces
+    )
 
     failures = _validate(paths)
 

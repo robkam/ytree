@@ -1,0 +1,163 @@
+{
+  "schema_version": 1,
+  "contract": "AppState UI-affecting dispatch-surface registry",
+  "notes": "Non-runtime registry for current UI-affecting dispatch surfaces before AppState runtime migration. Runtime behavior is unchanged.",
+  "dispatch_surfaces": [
+    {
+      "surface_id": "surface.key-decode-input-dispatch",
+      "category": "key_decode_input_dispatch",
+      "source_path": "src/ui/key_engine.c",
+      "entry_symbol_or_path": "GetEventOrKey",
+      "transition_id": "transition.keybinding.navigate-tree",
+      "boundary_status": "documented_foundation_only",
+      "allowed_direct_writes": [],
+      "migration_notes": [
+        "Current input polling and key normalization feed controller dispatch; AppState mutation remains in downstream handlers until runtime transition objects are introduced."
+      ]
+    },
+    {
+      "surface_id": "surface.directory-window-action-dispatch",
+      "category": "directory_window_action_dispatch",
+      "source_path": "src/ui/ctrl_dir.c",
+      "entry_symbol_or_path": "HandleDirWindow",
+      "transition_id": "transition.keybinding.navigate-tree",
+      "boundary_status": "documented_foundation_only",
+      "allowed_direct_writes": [
+        "panel.tree_selection_key",
+        "panel.tree_cursor_pos",
+        "panel.tree_viewport_origin",
+        "panel.focus_shape",
+        "panel.panel_generation"
+      ],
+      "migration_notes": [
+        "Current directory-window switch dispatch owns tree navigation and focus updates; later migration should route each action through canonical transition boundaries."
+      ]
+    },
+    {
+      "surface_id": "surface.file-window-action-dispatch",
+      "category": "file_window_action_dispatch",
+      "source_path": "src/ui/ctrl_file.c",
+      "entry_symbol_or_path": "HandleFileWindow",
+      "transition_id": "transition.keybinding.navigate-tree",
+      "boundary_status": "documented_foundation_only",
+      "allowed_direct_writes": [
+        "panel.file_selection_key",
+        "panel.file_viewport_origin",
+        "panel.focus_shape",
+        "panel.panel_generation"
+      ],
+      "migration_notes": [
+        "Current file-window switch dispatch updates file selection and viewport state under the broad keybinding foundation record until file-specific transitions are split out."
+      ]
+    },
+    {
+      "surface_id": "surface.menu-modal-completion",
+      "category": "menu_modal_completion",
+      "source_path": "src/ui/key_engine.c",
+      "entry_symbol_or_path": "InputChoice",
+      "transition_id": "transition.modal-action.dismiss",
+      "boundary_status": "documented_foundation_only",
+      "allowed_direct_writes": [],
+      "migration_notes": [
+        "Current menu and modal choice completion returns a selected key to callers; AppState modal writes remain with the caller until modal transition boundaries are introduced."
+      ]
+    },
+    {
+      "surface_id": "surface.resize-signal-handling",
+      "category": "resize_signal_handling",
+      "source_path": "src/ui/key_engine.c",
+      "entry_symbol_or_path": "GetEventOrKey",
+      "transition_id": "transition.terminal-signal-resize",
+      "boundary_status": "documented_foundation_only",
+      "allowed_direct_writes": [
+        "ctx.layout",
+        "ctx.window_handles",
+        "panel.tree_viewport_origin",
+        "panel.file_viewport_origin",
+        "panel.panel_generation"
+      ],
+      "migration_notes": [
+        "Current resize dispatch converts KEY_RESIZE and resize_request state into controller refresh handling; signal-safe work must remain outside asynchronous handlers."
+      ]
+    },
+    {
+      "surface_id": "surface.refresh-rebuild-rebind",
+      "category": "refresh_rebuild_rebind",
+      "source_path": "src/ui/dir_ops.c",
+      "entry_symbol_or_path": "RefreshTreeSafe",
+      "transition_id": "transition.refresh-rebuild.manual-refresh",
+      "boundary_status": "documented_foundation_only",
+      "allowed_direct_writes": [
+        "volume.dir_tree",
+        "volume.logged_state",
+        "volume.volume_generation",
+        "panel.restore_snapshot",
+        "panel.panel_generation"
+      ],
+      "migration_notes": [
+        "Current safe refresh saves state, rescans, restores, and rebinds panel anchors; migration must preserve that ordering at the transition boundary."
+      ]
+    },
+    {
+      "surface_id": "surface.filesystem-mutation-result",
+      "category": "filesystem_mutation_result",
+      "source_path": "src/ui/dir_ops.c",
+      "entry_symbol_or_path": "HandleDirMakeDirectory",
+      "transition_id": "transition.filesystem-mutation-result.mkdir-copy-delete",
+      "boundary_status": "documented_foundation_only",
+      "allowed_direct_writes": [
+        "volume.dir_tree",
+        "volume.payload_cache",
+        "volume.volume_generation",
+        "panel.restore_snapshot",
+        "panel.panel_generation",
+        "ctx.message_state"
+      ],
+      "migration_notes": [
+        "Current filesystem command handlers refresh and rebind after successful mutations; only completed mutation results should commit AppState metadata."
+      ]
+    },
+    {
+      "surface_id": "surface.volume-operation",
+      "category": "volume_operation",
+      "source_path": "src/ui/volume_menu.c",
+      "entry_symbol_or_path": "SelectLoadedVolume",
+      "transition_id": "transition.volume-operation.release-cycle",
+      "boundary_status": "documented_foundation_only",
+      "allowed_direct_writes": [
+        "ctx.volumes_head",
+        "panel.volume_key",
+        "panel.restore_snapshot",
+        "panel.panel_generation",
+        "volume.volume_generation"
+      ],
+      "migration_notes": [
+        "Current loaded-volume selection and cycling update panel bindings directly; migration must preserve inactive panel restore records."
+      ]
+    },
+    {
+      "surface_id": "surface.watcher-live-refresh",
+      "category": "watcher_live_refresh",
+      "source_path": "src/fs/watcher.c",
+      "entry_symbol_or_path": "Watcher_ProcessEvents",
+      "transition_id": "transition.refresh-rebuild.manual-refresh",
+      "boundary_status": "documented_foundation_only",
+      "allowed_direct_writes": [],
+      "migration_notes": [
+        "Current watcher processing reports settled filesystem activity to input dispatch; topology mutation remains mapped to the broad refresh/rebuild transition."
+      ]
+    },
+    {
+      "surface_id": "surface.render-reflow-projection",
+      "category": "render_reflow_projection",
+      "source_path": "src/ui/display.c",
+      "entry_symbol_or_path": "RefreshView",
+      "transition_id": "transition.render-reflow.project-state",
+      "boundary_status": "documented_foundation_only",
+      "allowed_direct_writes": [],
+      "migration_notes": [
+        "Current render refresh projects settled state to ncurses windows; projection must not become selection, viewport, or topology authority."
+      ]
+    }
+  ]
+}
