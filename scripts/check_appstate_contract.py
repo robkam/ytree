@@ -14,6 +14,7 @@ DEFAULT_TRANSITIONS = REPO_ROOT / "docs" / "appstate_transition_matrix.json"
 DEFAULT_SHIMS = REPO_ROOT / "docs" / "appstate_compat_shims.json"
 DEFAULT_ACTION_COVERAGE = REPO_ROOT / "docs" / "appstate_action_coverage.json"
 DEFAULT_EVENT_COVERAGE = REPO_ROOT / "docs" / "appstate_event_coverage.json"
+DEFAULT_OWNER_FIELDS = REPO_ROOT / "docs" / "appstate_owner_fields.json"
 DEFAULT_ACTION_HEADER = REPO_ROOT / "include" / "ytree_defs.h"
 
 REQUIRED_TRANSITION_CATEGORIES = {
@@ -93,6 +94,16 @@ REQUIRED_EVENT_FIELDS = {
     "boundary_status",
     "trigger_paths",
     "migration_notes",
+}
+
+REQUIRED_OWNER_FIELDS = {
+    "field",
+    "owner_region",
+    "canonical_owner",
+    "runtime_carrier",
+    "mutation_rule",
+    "migration_status",
+    "invariant_checks",
 }
 
 LIST_FIELDS = {
@@ -219,11 +230,69 @@ def _validate_required_string_list(
     return failures
 
 
+def _validate_owner_fields(
+    *,
+    owner_fields_doc: Any,
+    owner_fields_path: Path,
+) -> tuple[set[str], list[str]]:
+    failures: list[str] = []
+    registered_fields: set[str] = set()
+    if not isinstance(owner_fields_doc, dict):
+        failures.append(f"{owner_fields_path}: top-level value must be an object")
+        return registered_fields, failures
+
+    owner_records = owner_fields_doc.get("owner_fields")
+    if not isinstance(owner_records, list) or not owner_records:
+        failures.append(f"{owner_fields_path}: owner_fields must be a non-empty list")
+        owner_records = []
+
+    for index, record in enumerate(owner_records):
+        label = f"owner_field[{index}]"
+        failures.extend(
+            _validate_required_fields(
+                record=record,
+                required_fields=REQUIRED_OWNER_FIELDS,
+                list_fields={"invariant_checks"},
+                label=label,
+            )
+        )
+        if not isinstance(record, dict):
+            continue
+
+        field = record.get("field")
+        if isinstance(field, str) and field.strip():
+            if field in registered_fields:
+                failures.append(f"{label}: duplicate field: {field}")
+            registered_fields.add(field)
+
+    return registered_fields, failures
+
+
+def _validate_registered_write_set(
+    *,
+    record: dict[str, Any],
+    registered_fields: set[str],
+    label: str,
+) -> list[str]:
+    write_set = record.get("declared_write_set")
+    if not isinstance(write_set, list):
+        return []
+
+    failures: list[str] = []
+    for field in write_set:
+        if isinstance(field, str) and field.strip() and field not in registered_fields:
+            failures.append(
+                f"{label}: declared_write_set references unregistered owner field: {field}"
+            )
+    return failures
+
+
 def _validate_event_coverage(
     *,
     event_coverage_doc: Any,
     event_coverage_path: Path,
     transition_ids: dict[str, dict[str, Any]],
+    registered_owner_fields: set[str],
 ) -> list[str]:
     failures: list[str] = []
     if not isinstance(event_coverage_doc, dict):
@@ -259,6 +328,13 @@ def _validate_event_coverage(
         )
         if not isinstance(record, dict):
             continue
+        failures.extend(
+            _validate_registered_write_set(
+                record=record,
+                registered_fields=registered_owner_fields,
+                label=label,
+            )
+        )
 
         event_id = record.get("event_id")
         if isinstance(event_id, str) and event_id.strip():
@@ -310,20 +386,29 @@ def validate_contract(
     action_coverage_path: Path,
     actions_header_path: Path,
     event_coverage_path: Path = DEFAULT_EVENT_COVERAGE,
+    owner_fields_path: Path = DEFAULT_OWNER_FIELDS,
 ) -> list[str]:
     failures: list[str] = []
     transitions_doc, transition_load_failures = _load_json(transitions_path)
     shims_doc, shim_load_failures = _load_json(shims_path)
     action_coverage_doc, action_coverage_load_failures = _load_json(action_coverage_path)
     event_coverage_doc, event_coverage_load_failures = _load_json(event_coverage_path)
+    owner_fields_doc, owner_fields_load_failures = _load_json(owner_fields_path)
     enum_actions, enum_failures = _parse_ytree_actions(actions_header_path)
     failures.extend(transition_load_failures)
     failures.extend(shim_load_failures)
     failures.extend(action_coverage_load_failures)
     failures.extend(event_coverage_load_failures)
+    failures.extend(owner_fields_load_failures)
     failures.extend(enum_failures)
     if failures:
         return failures
+
+    registered_owner_fields, owner_field_failures = _validate_owner_fields(
+        owner_fields_doc=owner_fields_doc,
+        owner_fields_path=owner_fields_path,
+    )
+    failures.extend(owner_field_failures)
 
     if not isinstance(transitions_doc, dict):
         failures.append(f"{transitions_path}: top-level value must be an object")
@@ -348,6 +433,13 @@ def validate_contract(
         )
         if not isinstance(record, dict):
             continue
+        failures.extend(
+            _validate_registered_write_set(
+                record=record,
+                registered_fields=registered_owner_fields,
+                label=label,
+            )
+        )
         transition_id = record.get("id")
         if isinstance(transition_id, str) and transition_id.strip():
             if transition_id in transition_ids:
@@ -421,6 +513,13 @@ def validate_contract(
         )
         if not isinstance(record, dict):
             continue
+        failures.extend(
+            _validate_registered_write_set(
+                record=record,
+                registered_fields=registered_owner_fields,
+                label=label,
+            )
+        )
 
         action = record.get("action")
         if isinstance(action, str) and action.strip():
@@ -462,6 +561,7 @@ def validate_contract(
             event_coverage_doc=event_coverage_doc,
             event_coverage_path=event_coverage_path,
             transition_ids=transition_ids,
+            registered_owner_fields=registered_owner_fields,
         )
     )
 
@@ -474,6 +574,7 @@ def main() -> int:
     parser.add_argument("--shims", type=Path, default=DEFAULT_SHIMS)
     parser.add_argument("--action-coverage", type=Path, default=DEFAULT_ACTION_COVERAGE)
     parser.add_argument("--event-coverage", type=Path, default=DEFAULT_EVENT_COVERAGE)
+    parser.add_argument("--owner-fields", type=Path, default=DEFAULT_OWNER_FIELDS)
     parser.add_argument("--actions-header", type=Path, default=DEFAULT_ACTION_HEADER)
     args = parser.parse_args()
 
@@ -483,6 +584,7 @@ def main() -> int:
         args.action_coverage,
         args.actions_header,
         args.event_coverage,
+        args.owner_fields,
     )
     if failures:
         for failure in failures:

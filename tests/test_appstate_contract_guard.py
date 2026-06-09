@@ -24,6 +24,7 @@ REQUIRED_LIST_FIELD_CASES = [
     ("event", "trigger_paths", "event[0]"),
     ("transition", "declared_write_set", "transition[0]"),
     ("transition", "side_effects", "transition[0]"),
+    ("owner_field", "invariant_checks", "owner_field[0]"),
     ("shim", "invariant_checks", "shim[0]"),
     ("shim", "migration_notes", "shim[0]"),
 ]
@@ -116,6 +117,18 @@ def _event(
     }
 
 
+def _owner_field(field: str = "field") -> dict[str, object]:
+    return {
+        "field": field,
+        "owner_region": "panel-local state",
+        "canonical_owner": "YtreePanel(fixture)",
+        "runtime_carrier": "YtreePanel fixture carrier",
+        "mutation_rule": "Fixture transitions may mutate only declared fields.",
+        "migration_status": "test",
+        "invariant_checks": ["fixture invariant"],
+    }
+
+
 def _write_fixture(
     tmp_path: Path,
     *,
@@ -123,13 +136,15 @@ def _write_fixture(
     shims: list[dict[str, object]] | None = None,
     actions: list[dict[str, object]] | None = None,
     events: list[dict[str, object]] | None = None,
+    owner_fields: list[dict[str, object]] | None = None,
     required_event_classes: list[str] | None = None,
     enum_actions: list[str] | None = None,
-) -> tuple[Path, Path, Path, Path, Path]:
+) -> tuple[Path, Path, Path, Path, Path, Path]:
     transitions_path = tmp_path / "transitions.json"
     shims_path = tmp_path / "shims.json"
     action_coverage_path = tmp_path / "action_coverage.json"
     event_coverage_path = tmp_path / "event_coverage.json"
+    owner_fields_path = tmp_path / "owner_fields.json"
     actions_header_path = tmp_path / "ytree_defs.h"
     _write(transitions_path, _jsonish({"schema_version": 1, "transitions": transitions}))
     _write(shims_path, _jsonish({"schema_version": 1, "shims": shims or [_shim()]}))
@@ -147,8 +162,19 @@ def _write_fixture(
             }
         ),
     )
+    _write(
+        owner_fields_path,
+        _jsonish({"schema_version": 1, "owner_fields": owner_fields or _complete_owner_fields()}),
+    )
     _write(actions_header_path, _enum_header(enum_actions or FIXTURE_ACTIONS))
-    return transitions_path, shims_path, action_coverage_path, actions_header_path, event_coverage_path
+    return (
+        transitions_path,
+        shims_path,
+        action_coverage_path,
+        actions_header_path,
+        event_coverage_path,
+        owner_fields_path,
+    )
 
 
 def _jsonish(value: object) -> str:
@@ -177,21 +203,28 @@ def _complete_events() -> list[dict[str, object]]:
     return [_event(event_class) for event_class in REQUIRED_EVENT_CLASSES]
 
 
-def _validate(paths: tuple[Path, Path, Path, Path, Path]) -> list[str]:
+def _complete_owner_fields() -> list[dict[str, object]]:
+    return [_owner_field("field"), _owner_field("panel.tree_selection_key")]
+
+
+def _validate(paths: tuple[Path, Path, Path, Path, Path, Path]) -> list[str]:
     return guard.validate_contract(*paths)
 
 
 def _fixture_with_list_field_value(
     tmp_path: Path, record_type: str, field: str, value: object
-) -> tuple[Path, Path, Path, Path, Path]:
+) -> tuple[Path, Path, Path, Path, Path, Path]:
     transitions = _complete_transitions()
     shims = [_shim()]
     actions = _complete_actions()
     events = _complete_events()
+    owner_fields = _complete_owner_fields()
     if record_type == "action":
         actions[0][field] = value
     elif record_type == "event":
         events[0][field] = value
+    elif record_type == "owner_field":
+        owner_fields[0][field] = value
     elif record_type == "transition":
         transitions[0][field] = value
     elif record_type == "shim":
@@ -199,7 +232,12 @@ def _fixture_with_list_field_value(
     else:
         raise AssertionError(f"unknown record type: {record_type}")
     return _write_fixture(
-        tmp_path, transitions=transitions, shims=shims, actions=actions, events=events
+        tmp_path,
+        transitions=transitions,
+        shims=shims,
+        actions=actions,
+        events=events,
+        owner_fields=owner_fields,
     )
 
 
@@ -222,6 +260,98 @@ def test_guard_passes_complete_temporary_fixtures(tmp_path: Path) -> None:
     failures = _validate(paths)
 
     assert failures == []
+
+
+def test_guard_fails_on_duplicate_owner_field_records(tmp_path: Path) -> None:
+    transitions = _complete_transitions()
+    owner_fields = _complete_owner_fields()
+    owner_fields[1]["field"] = owner_fields[0]["field"]
+    paths = _write_fixture(tmp_path, transitions=transitions, owner_fields=owner_fields)
+
+    failures = _validate(paths)
+
+    assert any(
+        "owner_field[1]" in failure and "duplicate field" in failure for failure in failures
+    )
+
+
+def test_guard_fails_when_required_owner_metadata_is_missing(tmp_path: Path) -> None:
+    transitions = _complete_transitions()
+    owner_fields = _complete_owner_fields()
+    owner_fields[0].pop("canonical_owner")
+    paths = _write_fixture(tmp_path, transitions=transitions, owner_fields=owner_fields)
+
+    failures = _validate(paths)
+
+    assert any(
+        "owner_field[0]" in failure
+        and "missing required field" in failure
+        and "canonical_owner" in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_on_malformed_owner_invariant_checks(tmp_path: Path) -> None:
+    transitions = _complete_transitions()
+    owner_fields = _complete_owner_fields()
+    owner_fields[0]["invariant_checks"] = []
+    paths = _write_fixture(tmp_path, transitions=transitions, owner_fields=owner_fields)
+
+    failures = _validate(paths)
+
+    assert any(
+        "owner_field[0]" in failure
+        and "invariant_checks" in failure
+        and "must be non-empty" in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_on_unknown_transition_declared_write_set(tmp_path: Path) -> None:
+    transitions = _complete_transitions()
+    transitions[0]["declared_write_set"] = ["field.unknown"]
+    paths = _write_fixture(tmp_path, transitions=transitions)
+
+    failures = _validate(paths)
+
+    assert any(
+        "transition[0]" in failure
+        and "unregistered owner field" in failure
+        and "field.unknown" in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_on_unknown_action_declared_write_set(tmp_path: Path) -> None:
+    transitions = _complete_transitions()
+    actions = _complete_actions()
+    actions[0]["declared_write_set"] = ["field.unknown"]
+    paths = _write_fixture(tmp_path, transitions=transitions, actions=actions)
+
+    failures = _validate(paths)
+
+    assert any(
+        "action[0]" in failure
+        and "unregistered owner field" in failure
+        and "field.unknown" in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_on_unknown_event_declared_write_set(tmp_path: Path) -> None:
+    transitions = _complete_transitions()
+    events = _complete_events()
+    events[0]["declared_write_set"] = ["field.unknown"]
+    paths = _write_fixture(tmp_path, transitions=transitions, events=events)
+
+    failures = _validate(paths)
+
+    assert any(
+        "event[0]" in failure
+        and "unregistered owner field" in failure
+        and "field.unknown" in failure
+        for failure in failures
+    )
 
 
 def test_guard_fails_when_required_category_is_missing(tmp_path: Path) -> None:
