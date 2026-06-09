@@ -14,6 +14,7 @@ HEADER_LAYER = {
     "sort.h": "core",
     "watcher.h": "fs",
     "ytree.h": "core",
+    "ytree_appstate_actions.h": "core",
     "ytree_cmd.h": "cmd",
     "ytree_debug.h": "core",
     "ytree_defs.h": "core",

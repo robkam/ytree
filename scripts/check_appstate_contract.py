@@ -21,6 +21,7 @@ DEFAULT_GENERATION_DOMAINS = REPO_ROOT / "docs" / "appstate_generation_domains.j
 DEFAULT_DIFF_HARNESS = REPO_ROOT / "docs" / "appstate_diff_harness.json"
 DEFAULT_TRANSITION_SEQUENCES = REPO_ROOT / "docs" / "appstate_transition_sequences.json"
 DEFAULT_ACTION_HEADER = REPO_ROOT / "include" / "ytree_defs.h"
+DEFAULT_ACTION_RUNTIME = REPO_ROOT / "src" / "core" / "appstate_actions.c"
 
 REQUIRED_TRANSITION_CATEGORIES = {
     "keybinding",
@@ -384,6 +385,110 @@ def _parse_ytree_actions(header_path: Path) -> tuple[list[str], list[str]]:
     if not actions:
         return [], [f"{header_path}: YtreeAction enum must not be empty"]
     return actions, []
+
+
+def _parse_runtime_action_transitions(
+    runtime_path: Path,
+) -> tuple[list[dict[str, str]], list[str]]:
+    try:
+        source = runtime_path.read_text(encoding="utf-8")
+    except OSError as exc:
+        return [], [f"{runtime_path}: failed to read: {exc}"]
+
+    match = re.search(
+        r"kAppStateActionTransitions\s*\[[^\]]*\]\s*=\s*\{(?P<body>.*?)\};",
+        source,
+        re.S,
+    )
+    if match is None:
+        return [], [f"{runtime_path}: failed to find runtime action transition table"]
+
+    records: list[dict[str, str]] = []
+    row_re = re.compile(
+        r"\{\s*(ACTION_[A-Z0-9_]+)\s*,\s*\"([^\"]+)\"\s*,\s*\"([^\"]+)\"\s*\}"
+    )
+    for row_match in row_re.finditer(match.group("body")):
+        records.append(
+            {
+                "action": row_match.group(1),
+                "transition_id": row_match.group(2),
+                "category": row_match.group(3),
+            }
+        )
+
+    if not records:
+        return [], [f"{runtime_path}: runtime action transition table must not be empty"]
+    return records, []
+
+
+def _validate_runtime_action_lookup(
+    *,
+    runtime_records: list[dict[str, str]],
+    runtime_path: Path,
+    enum_actions: list[str],
+    action_coverage_by_action: dict[str, dict[str, Any]],
+    transition_ids: dict[str, dict[str, Any]],
+) -> list[str]:
+    failures: list[str] = []
+    expected_actions = set(enum_actions)
+    covered_actions: set[str] = set()
+
+    for index, record in enumerate(runtime_records):
+        label = f"runtime_action[{index}]"
+        action = record["action"]
+        if action in covered_actions:
+            failures.append(f"{label}: duplicate runtime action: {action}")
+        covered_actions.add(action)
+        if action not in expected_actions:
+            failures.append(f"{label}: unknown YtreeAction enum member: {action}")
+        elif index >= len(enum_actions) or action != enum_actions[index]:
+            expected = enum_actions[index] if index < len(enum_actions) else "<none>"
+            failures.append(
+                f"{label}: runtime row order does not match YtreeAction enum: "
+                f"expected {expected}, found {action}"
+            )
+
+        transition_id = record["transition_id"]
+        transition_record = transition_ids.get(transition_id)
+        if transition_record is None:
+            failures.append(
+                f"{label}: transition_id does not match a transition id: {transition_id}"
+            )
+
+        category = record["category"]
+        if (
+            transition_record is not None
+            and category != transition_record.get("category")
+        ):
+            failures.append(
+                f"{label}: category does not match transition {transition_id}: {category}"
+            )
+
+        coverage_record = action_coverage_by_action.get(action)
+        if coverage_record is None:
+            failures.append(
+                f"{label}: runtime action missing from action coverage: {action}"
+            )
+            continue
+        if transition_id != coverage_record.get("transition_id"):
+            failures.append(
+                f"{label}: runtime transition_id does not match action coverage "
+                f"for {action}: {transition_id}"
+            )
+        if category != coverage_record.get("category"):
+            failures.append(
+                f"{label}: runtime category does not match action coverage "
+                f"for {action}: {category}"
+            )
+
+    missing_actions = sorted(expected_actions - covered_actions)
+    if missing_actions:
+        failures.append(
+            f"{runtime_path}: runtime action lookup missing YtreeAction enum member(s): "
+            + ", ".join(missing_actions)
+        )
+
+    return failures
 
 
 def _validate_required_string_list(
@@ -1476,6 +1581,7 @@ def validate_contract(
     generation_domains_path: Path = DEFAULT_GENERATION_DOMAINS,
     diff_harness_path: Path = DEFAULT_DIFF_HARNESS,
     transition_sequences_path: Path = DEFAULT_TRANSITION_SEQUENCES,
+    action_runtime_path: Path = DEFAULT_ACTION_RUNTIME,
 ) -> list[str]:
     failures: list[str] = []
     transitions_doc, transition_load_failures = _load_json(transitions_path)
@@ -1495,6 +1601,9 @@ def validate_contract(
         transition_sequences_path
     )
     enum_actions, enum_failures = _parse_ytree_actions(actions_header_path)
+    runtime_action_records, runtime_action_failures = _parse_runtime_action_transitions(
+        action_runtime_path
+    )
     failures.extend(transition_load_failures)
     failures.extend(shim_load_failures)
     failures.extend(action_coverage_load_failures)
@@ -1506,6 +1615,7 @@ def validate_contract(
     failures.extend(diff_harness_load_failures)
     failures.extend(transition_sequences_load_failures)
     failures.extend(enum_failures)
+    failures.extend(runtime_action_failures)
     if failures:
         return failures
 
@@ -1620,6 +1730,7 @@ def validate_contract(
 
     expected_actions = set(enum_actions)
     covered_actions: set[str] = set()
+    action_coverage_by_action: dict[str, dict[str, Any]] = {}
     for index, record in enumerate(action_records):
         label = f"action[{index}]"
         failures.extend(
@@ -1644,6 +1755,8 @@ def validate_contract(
         if isinstance(action, str) and action.strip():
             if action in covered_actions:
                 failures.append(f"{label}: duplicate action: {action}")
+            else:
+                action_coverage_by_action[action] = record
             covered_actions.add(action)
             if action not in expected_actions:
                 failures.append(f"{label}: unknown YtreeAction enum member: {action}")
@@ -1674,6 +1787,15 @@ def validate_contract(
             "action coverage missing YtreeAction enum member(s): "
             + ", ".join(missing_actions)
         )
+    failures.extend(
+        _validate_runtime_action_lookup(
+            runtime_records=runtime_action_records,
+            runtime_path=action_runtime_path,
+            enum_actions=enum_actions,
+            action_coverage_by_action=action_coverage_by_action,
+            transition_ids=transition_ids,
+        )
+    )
 
     failures.extend(
         _validate_event_coverage(
@@ -1787,6 +1909,7 @@ def main() -> int:
         "--transition-sequences", type=Path, default=DEFAULT_TRANSITION_SEQUENCES
     )
     parser.add_argument("--actions-header", type=Path, default=DEFAULT_ACTION_HEADER)
+    parser.add_argument("--action-runtime", type=Path, default=DEFAULT_ACTION_RUNTIME)
     args = parser.parse_args()
 
     failures = validate_contract(
@@ -1801,6 +1924,7 @@ def main() -> int:
         args.generation_domains,
         args.diff_harness,
         args.transition_sequences,
+        args.action_runtime,
     )
     if failures:
         for failure in failures:

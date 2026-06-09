@@ -328,7 +328,8 @@ def _write_fixture(
     transition_sequences: list[dict[str, object]] | None = None,
     required_event_classes: list[str] | None = None,
     enum_actions: list[str] | None = None,
-) -> tuple[Path, Path, Path, Path, Path, Path, Path, Path, Path, Path, Path]:
+    runtime_actions: list[dict[str, object]] | None = None,
+) -> tuple[Path, Path, Path, Path, Path, Path, Path, Path, Path, Path, Path, Path]:
     transitions_path = tmp_path / "transitions.json"
     shims_path = tmp_path / "shims.json"
     action_coverage_path = tmp_path / "action_coverage.json"
@@ -340,6 +341,7 @@ def _write_fixture(
     diff_harness_path = tmp_path / "diff_harness.json"
     transition_sequences_path = tmp_path / "transition_sequences.json"
     actions_header_path = tmp_path / "ytree_defs.h"
+    action_runtime_path = tmp_path / "appstate_actions.c"
     _write(transitions_path, _jsonish({"schema_version": 1, "transitions": transitions}))
     _write(shims_path, _jsonish({"schema_version": 1, "shims": shims or [_shim()]}))
     _write(
@@ -406,6 +408,7 @@ def _write_fixture(
         ),
     )
     _write(actions_header_path, _enum_header(enum_actions or FIXTURE_ACTIONS))
+    _write(action_runtime_path, _runtime_source(runtime_actions or _complete_actions()))
     return (
         transitions_path,
         shims_path,
@@ -418,6 +421,7 @@ def _write_fixture(
         generation_domains_path,
         diff_harness_path,
         transition_sequences_path,
+        action_runtime_path,
     )
 
 
@@ -430,6 +434,19 @@ def _jsonish(value: object) -> str:
 def _enum_header(actions: list[str]) -> str:
     members = "\n".join(f"  {action}," for action in actions)
     return f"typedef enum {{\n{members}\n}} YtreeAction;\n"
+
+
+def _runtime_source(actions: list[dict[str, object]]) -> str:
+    rows = "\n".join(
+        f'  {{{record["action"]}, "{record["transition_id"]}", "{record["category"]}"}},'
+        for record in actions
+    )
+    return (
+        "static const AppStateActionTransitionMetadata\n"
+        "    kAppStateActionTransitions[APPSTATE_ACTION_TRANSITION_COUNT] = {\n"
+        f"{rows}\n"
+        "};\n"
+    )
 
 
 def _complete_transitions() -> list[dict[str, object]]:
@@ -485,14 +502,14 @@ def _complete_owner_fields() -> list[dict[str, object]]:
 
 
 def _validate(
-    paths: tuple[Path, Path, Path, Path, Path, Path, Path, Path, Path, Path, Path],
+    paths: tuple[Path, Path, Path, Path, Path, Path, Path, Path, Path, Path, Path, Path],
 ) -> list[str]:
     return guard.validate_contract(*paths)
 
 
 def _fixture_with_list_field_value(
     tmp_path: Path, record_type: str, field: str, value: object
-) -> tuple[Path, Path, Path, Path, Path, Path, Path, Path, Path, Path, Path]:
+) -> tuple[Path, Path, Path, Path, Path, Path, Path, Path, Path, Path, Path, Path]:
     transitions = _complete_transitions()
     shims = [_shim()]
     actions = _complete_actions()
@@ -2096,5 +2113,80 @@ def test_guard_catches_enum_drift_from_temporary_header(tmp_path: Path) -> None:
     assert any(
         "action coverage missing YtreeAction enum member" in failure
         and "ACTION_NEW_DRIFT" in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_when_runtime_action_lookup_is_missing_enum_action(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    runtime_actions = [_action("ACTION_NONE"), _action("ACTION_USER_CMD")]
+    paths = _write_fixture(
+        tmp_path, transitions=transitions, runtime_actions=runtime_actions
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "runtime action lookup missing YtreeAction enum member" in failure
+        and "ACTION_MOVE_UP" in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_when_runtime_action_lookup_has_unknown_action(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    runtime_actions = _complete_actions() + [_action("ACTION_NOT_IN_ENUM")]
+    paths = _write_fixture(
+        tmp_path, transitions=transitions, runtime_actions=runtime_actions
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "unknown YtreeAction enum member" in failure and "ACTION_NOT_IN_ENUM" in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_when_runtime_action_lookup_uses_unknown_transition(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    runtime_actions = _complete_actions()
+    runtime_actions[0] = _action("ACTION_NONE", transition_id="transition.missing")
+    paths = _write_fixture(
+        tmp_path, transitions=transitions, runtime_actions=runtime_actions
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "runtime_action[0]" in failure
+        and "transition_id does not match a transition id" in failure
+        and "transition.missing" in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_when_runtime_action_lookup_mismatches_action_coverage(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    runtime_actions = _complete_actions()
+    runtime_actions[0] = _action("ACTION_NONE", category="render_reflow")
+    paths = _write_fixture(
+        tmp_path, transitions=transitions, runtime_actions=runtime_actions
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "runtime category does not match action coverage" in failure
+        and "ACTION_NONE" in failure
+        and "render_reflow" in failure
         for failure in failures
     )
