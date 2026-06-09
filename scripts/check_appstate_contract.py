@@ -13,6 +13,7 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_TRANSITIONS = REPO_ROOT / "docs" / "appstate_transition_matrix.json"
 DEFAULT_SHIMS = REPO_ROOT / "docs" / "appstate_compat_shims.json"
 DEFAULT_ACTION_COVERAGE = REPO_ROOT / "docs" / "appstate_action_coverage.json"
+DEFAULT_EVENT_COVERAGE = REPO_ROOT / "docs" / "appstate_event_coverage.json"
 DEFAULT_ACTION_HEADER = REPO_ROOT / "include" / "ytree_defs.h"
 
 REQUIRED_TRANSITION_CATEGORIES = {
@@ -69,12 +70,39 @@ REQUIRED_ACTION_FIELDS = {
     "migration_notes",
 }
 
+REQUIRED_EVENT_CLASSES = {
+    "terminal_resize_signal",
+    "refresh_rebuild",
+    "rebuild_rebind_callback",
+    "filesystem_mutation_result",
+    "watcher_live_refresh",
+    "command_completion",
+    "modal_completion",
+    "volume_lifecycle",
+    "render_reflow",
+}
+
+REQUIRED_EVENT_FIELDS = {
+    "event_id",
+    "event_class",
+    "transition_id",
+    "category",
+    "source",
+    "owner",
+    "declared_write_set",
+    "boundary_status",
+    "trigger_paths",
+    "migration_notes",
+}
+
 LIST_FIELDS = {
     "declared_write_set",
     "side_effects",
     "invariant_checks",
     "migration_notes",
 }
+
+EVENT_LIST_FIELDS = LIST_FIELDS | {"trigger_paths"}
 
 
 def _load_json(path: Path) -> tuple[Any | None, list[str]]:
@@ -159,20 +187,140 @@ def _parse_ytree_actions(header_path: Path) -> tuple[list[str], list[str]]:
     return actions, []
 
 
+def _validate_required_string_list(
+    *,
+    value: Any,
+    required_values: set[str],
+    label: str,
+    item_label: str,
+) -> list[str]:
+    failures = _validate_list_field(value=value, label=label, field=item_label)
+    if failures:
+        return failures
+
+    seen: set[str] = set()
+    declared = set()
+    assert isinstance(value, list)
+    for index, item in enumerate(value):
+        assert isinstance(item, str)
+        if item in seen:
+            failures.append(f"{label}: duplicate {item_label}[{index}]: {item}")
+        seen.add(item)
+        declared.add(item)
+
+    missing_values = sorted(required_values - declared)
+    if missing_values:
+        failures.append(f"{label}: missing required value(s): {', '.join(missing_values)}")
+
+    unknown_values = sorted(declared - required_values)
+    if unknown_values:
+        failures.append(f"{label}: unknown value(s): {', '.join(unknown_values)}")
+
+    return failures
+
+
+def _validate_event_coverage(
+    *,
+    event_coverage_doc: Any,
+    event_coverage_path: Path,
+    transition_ids: dict[str, dict[str, Any]],
+) -> list[str]:
+    failures: list[str] = []
+    if not isinstance(event_coverage_doc, dict):
+        failures.append(f"{event_coverage_path}: top-level value must be an object")
+        return failures
+
+    required_event_classes = event_coverage_doc.get("required_event_classes")
+    failures.extend(
+        _validate_required_string_list(
+            value=required_event_classes,
+            required_values=REQUIRED_EVENT_CLASSES,
+            label="event coverage required_event_classes",
+            item_label="required_event_classes",
+        )
+    )
+
+    event_records = event_coverage_doc.get("events")
+    if not isinstance(event_records, list) or not event_records:
+        failures.append(f"{event_coverage_path}: events must be a non-empty list")
+        event_records = []
+
+    event_ids: set[str] = set()
+    covered_event_classes: set[str] = set()
+    for index, record in enumerate(event_records):
+        label = f"event[{index}]"
+        failures.extend(
+            _validate_required_fields(
+                record=record,
+                required_fields=REQUIRED_EVENT_FIELDS,
+                list_fields=EVENT_LIST_FIELDS,
+                label=label,
+            )
+        )
+        if not isinstance(record, dict):
+            continue
+
+        event_id = record.get("event_id")
+        if isinstance(event_id, str) and event_id.strip():
+            if event_id in event_ids:
+                failures.append(f"{label}: duplicate event_id: {event_id}")
+            event_ids.add(event_id)
+
+        event_class = record.get("event_class")
+        if isinstance(event_class, str) and event_class.strip():
+            if event_class in covered_event_classes:
+                failures.append(f"{label}: duplicate event_class: {event_class}")
+            covered_event_classes.add(event_class)
+            if event_class not in REQUIRED_EVENT_CLASSES:
+                failures.append(f"{label}: unknown event_class: {event_class}")
+
+        transition_id = record.get("transition_id")
+        transition_record = None
+        if isinstance(transition_id, str) and transition_id.strip():
+            transition_record = transition_ids.get(transition_id)
+            if transition_record is None:
+                failures.append(
+                    f"{label}: transition_id does not match a transition id: {transition_id}"
+                )
+
+        category = record.get("category")
+        if (
+            isinstance(category, str)
+            and category.strip()
+            and transition_record is not None
+            and category != transition_record.get("category")
+        ):
+            failures.append(
+                f"{label}: category does not match transition {transition_id}: {category}"
+            )
+
+    missing_event_classes = sorted(REQUIRED_EVENT_CLASSES - covered_event_classes)
+    if missing_event_classes:
+        failures.append(
+            "event coverage missing required event_class(es): "
+            + ", ".join(missing_event_classes)
+        )
+
+    return failures
+
+
 def validate_contract(
     transitions_path: Path,
     shims_path: Path,
     action_coverage_path: Path,
     actions_header_path: Path,
+    event_coverage_path: Path = DEFAULT_EVENT_COVERAGE,
 ) -> list[str]:
     failures: list[str] = []
     transitions_doc, transition_load_failures = _load_json(transitions_path)
     shims_doc, shim_load_failures = _load_json(shims_path)
     action_coverage_doc, action_coverage_load_failures = _load_json(action_coverage_path)
+    event_coverage_doc, event_coverage_load_failures = _load_json(event_coverage_path)
     enum_actions, enum_failures = _parse_ytree_actions(actions_header_path)
     failures.extend(transition_load_failures)
     failures.extend(shim_load_failures)
     failures.extend(action_coverage_load_failures)
+    failures.extend(event_coverage_load_failures)
     failures.extend(enum_failures)
     if failures:
         return failures
@@ -309,6 +457,14 @@ def validate_contract(
             + ", ".join(missing_actions)
         )
 
+    failures.extend(
+        _validate_event_coverage(
+            event_coverage_doc=event_coverage_doc,
+            event_coverage_path=event_coverage_path,
+            transition_ids=transition_ids,
+        )
+    )
+
     return failures
 
 
@@ -317,6 +473,7 @@ def main() -> int:
     parser.add_argument("--transitions", type=Path, default=DEFAULT_TRANSITIONS)
     parser.add_argument("--shims", type=Path, default=DEFAULT_SHIMS)
     parser.add_argument("--action-coverage", type=Path, default=DEFAULT_ACTION_COVERAGE)
+    parser.add_argument("--event-coverage", type=Path, default=DEFAULT_EVENT_COVERAGE)
     parser.add_argument("--actions-header", type=Path, default=DEFAULT_ACTION_HEADER)
     args = parser.parse_args()
 
@@ -325,6 +482,7 @@ def main() -> int:
         args.shims,
         args.action_coverage,
         args.actions_header,
+        args.event_coverage,
     )
     if failures:
         for failure in failures:
