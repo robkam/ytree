@@ -6,6 +6,7 @@
  ***************************************************************************/
 
 #include "ytree_defs.h"
+#include "ytree_appstate_actions.h"
 #include "default_profile_template.h"
 #include <errno.h>
 #include <fcntl.h>
@@ -24,6 +25,20 @@ static int CoreMainOpsReady(const CoreMainOps *ops) {
          ops->recalculate_sys_stats != NULL && ops->handle_dir_window != NULL &&
          ops->suspend_clock != NULL && ops->shutdown_curses != NULL &&
          ops->volume_free_all != NULL;
+}
+
+static int AppStateActionTransitionsReady(void) {
+  size_t index;
+
+  if (AppStateActionTransitionCount() != (size_t)ACTION_USER_CMD + 1)
+    return 0;
+
+  for (index = 0; index < AppStateActionTransitionCount(); index++) {
+    if (AppStateActionTransitionLookup((YtreeAction)index) == NULL)
+      return 0;
+  }
+
+  return 1;
 }
 
 static void SigIntHandler(int sig) {
@@ -97,8 +112,9 @@ int main(int argc, char **argv) {
 
   memset(&ctx, 0, sizeof(ViewContext));
   CoreMainOps_Register(&ctx);
-  if (!CoreMainOpsReady(&ctx.core_main_ops)) {
-    fprintf(stderr, "EXIT: CoreMainOps not configured\n");
+  if (!CoreMainOpsReady(&ctx.core_main_ops) ||
+      !AppStateActionTransitionsReady()) {
+    fprintf(stderr, "EXIT: startup invariants not configured\n");
     exit(1);
   }
 
