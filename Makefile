@@ -62,28 +62,32 @@ READLINE    = -DREADLINE_SUPPORT
 WARNINGS    = -Wall -Wextra -Wno-unused-parameter
 
 # Standard Flags
+# External CPPFLAGS/CFLAGS/LDFLAGS/LDLIBS are packager-owned and are
+# intentionally kept separate from project-required build flags.
 # -I$(INC_DIR): Look for headers in the include/ directory
 # -MMD -MP:     Auto-generate dependency files (.d) to track header changes
 # -DVERSION, -DVERSIONDATE: Version info from Makefile variables
-CFLAGS      += -D_GNU_SOURCE -DHAVE_LIBARCHIVE -DWITH_UTF8 \
-               -DVERSION='"$(VERSION)"' -DVERSIONDATE='"$(VERSIONDATE)"' \
-               $(COLOR) $(CLOCK) $(READLINE) $(ADD_CFLAGS) \
-               -I$(INC_DIR) -MMD -MP $(WARNINGS)
-
-LDFLAGS     += -lncursesw -ltinfo -lreadline -larchive -lm
+PROJECT_CPPFLAGS = -D_GNU_SOURCE -DHAVE_LIBARCHIVE -DWITH_UTF8 \
+                   -DVERSION='"$(VERSION)"' -DVERSIONDATE='"$(VERSIONDATE)"' \
+                   $(COLOR) $(CLOCK) $(READLINE) \
+                   -I$(INC_DIR) -MMD -MP
+PROJECT_CFLAGS   = $(WARNINGS) $(ADD_CFLAGS)
+PROJECT_LDFLAGS  =
+PROJECT_LDLIBS   = -lncursesw -ltinfo -lreadline -larchive -lm
+PROJECT_OPTFLAGS ?= -O2
 
 # Coverage build switch (for gcov/lcov-driven C coverage reports).
 COVERAGE    ?= 0
 ifeq ($(COVERAGE),1)
-    CFLAGS  += --coverage
-    LDFLAGS += --coverage
+    PROJECT_CFLAGS  += --coverage
+    PROJECT_LDFLAGS += --coverage
 endif
 
 # Sanitizer build switch (for dedicated ASan/UBSan QA runs).
 SANITIZE    ?= 0
 ifeq ($(SANITIZE),1)
-    CFLAGS  += -fsanitize=address,undefined -fno-omit-frame-pointer -g -O1
-    LDFLAGS += -fsanitize=address,undefined
+    PROJECT_CFLAGS  += -fsanitize=address,undefined -fno-omit-frame-pointer -g -O1
+    PROJECT_LDFLAGS += -fsanitize=address,undefined
 endif
 
 # -------------------------------------------------------------------------
@@ -93,13 +97,15 @@ endif
 # -------------------------------------------------------------------------
 ifeq ($(DEBUG),1)
     # Debug Build: Enable ASan, Debug Symbols, disable optimization
-    CFLAGS  += -fsanitize=address -g -O1 -fno-omit-frame-pointer
-    LDFLAGS += -fsanitize=address
+    PROJECT_CFLAGS  += -fsanitize=address -g -O1 -fno-omit-frame-pointer
+    PROJECT_LDFLAGS += -fsanitize=address
 else
-    # Release Build: Standard Optimization.
+    # Release Build: Standard Optimization when no external CFLAGS were supplied.
     # Keep sanitizer builds at -O1 for better diagnostics and deterministic PTY timing.
-    ifneq ($(SANITIZE),1)
-        CFLAGS  += -O2
+    ifeq ($(SANITIZE),0)
+        ifeq ($(origin CFLAGS),undefined)
+            PROJECT_CFLAGS += $(PROJECT_OPTFLAGS)
+        endif
     endif
 endif
 
@@ -162,13 +168,13 @@ all: $(MAIN_BIN) $(MANPAGE) $(if $(filter 1,$(QA_ON_BUILD)),qa-all)
 
 # Link the executable
 $(MAIN_BIN): $(OBJS) | $(BUILD_DIR)
-	$(CC) $(CFLAGS) -o $@ $(OBJS) $(LDFLAGS)
+	$(CC) $(CFLAGS) $(PROJECT_CFLAGS) $(LDFLAGS) $(PROJECT_LDFLAGS) -o $@ $(OBJS) $(LDLIBS) $(PROJECT_LDLIBS)
 
 # Compile source files into object files
 # Ensure the specific subdirectory exists in obj/ before compiling
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.c
 	@mkdir -p $(dir $@)
-	$(CC) $(CFLAGS) -c $< -o $@
+	$(CC) $(CPPFLAGS) $(PROJECT_CPPFLAGS) $(CFLAGS) $(PROJECT_CFLAGS) -c $< -o $@
 
 # Create the build directory
 $(BUILD_DIR):
