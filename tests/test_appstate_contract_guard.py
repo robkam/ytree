@@ -14,10 +14,14 @@ GUARD_SPEC.loader.exec_module(guard)
 
 
 REQUIRED_CATEGORIES = sorted(guard.REQUIRED_TRANSITION_CATEGORIES)
+REQUIRED_EVENT_CLASSES = sorted(guard.REQUIRED_EVENT_CLASSES)
 FIXTURE_ACTIONS = ["ACTION_NONE", "ACTION_MOVE_UP", "ACTION_USER_CMD"]
 REQUIRED_LIST_FIELD_CASES = [
     ("action", "declared_write_set", "action[0]"),
     ("action", "migration_notes", "action[0]"),
+    ("event", "declared_write_set", "event[0]"),
+    ("event", "migration_notes", "event[0]"),
+    ("event", "trigger_paths", "event[0]"),
     ("transition", "declared_write_set", "transition[0]"),
     ("transition", "side_effects", "transition[0]"),
     ("shim", "invariant_checks", "shim[0]"),
@@ -81,17 +85,51 @@ def _action(
     }
 
 
+def _event(
+    event_class: str,
+    transition_id: str | None = None,
+    category: str | None = None,
+) -> dict[str, object]:
+    event_categories = {
+        "terminal_resize_signal": "terminal_signal_or_resize",
+        "refresh_rebuild": "refresh_rebuild",
+        "rebuild_rebind_callback": "rebuild_rebind_callback",
+        "filesystem_mutation_result": "filesystem_mutation_result",
+        "watcher_live_refresh": "refresh_rebuild",
+        "command_completion": "command_completion",
+        "modal_completion": "modal_action",
+        "volume_lifecycle": "volume_operation",
+        "render_reflow": "render_reflow",
+    }
+    resolved_category = category or event_categories.get(event_class, "refresh_rebuild")
+    return {
+        "event_id": f"event.{event_class}",
+        "event_class": event_class,
+        "transition_id": transition_id or f"transition.{resolved_category}",
+        "category": resolved_category,
+        "source": "fixture source",
+        "owner": "fixture owner",
+        "declared_write_set": ["field"],
+        "boundary_status": "test",
+        "trigger_paths": ["fixture trigger"],
+        "migration_notes": ["fixture coverage"],
+    }
+
+
 def _write_fixture(
     tmp_path: Path,
     *,
     transitions: list[dict[str, object]],
     shims: list[dict[str, object]] | None = None,
     actions: list[dict[str, object]] | None = None,
+    events: list[dict[str, object]] | None = None,
+    required_event_classes: list[str] | None = None,
     enum_actions: list[str] | None = None,
-) -> tuple[Path, Path, Path, Path]:
+) -> tuple[Path, Path, Path, Path, Path]:
     transitions_path = tmp_path / "transitions.json"
     shims_path = tmp_path / "shims.json"
     action_coverage_path = tmp_path / "action_coverage.json"
+    event_coverage_path = tmp_path / "event_coverage.json"
     actions_header_path = tmp_path / "ytree_defs.h"
     _write(transitions_path, _jsonish({"schema_version": 1, "transitions": transitions}))
     _write(shims_path, _jsonish({"schema_version": 1, "shims": shims or [_shim()]}))
@@ -99,8 +137,18 @@ def _write_fixture(
         action_coverage_path,
         _jsonish({"schema_version": 1, "actions": actions or _complete_actions()}),
     )
+    _write(
+        event_coverage_path,
+        _jsonish(
+            {
+                "schema_version": 1,
+                "required_event_classes": required_event_classes or REQUIRED_EVENT_CLASSES,
+                "events": events or _complete_events(),
+            }
+        ),
+    )
     _write(actions_header_path, _enum_header(enum_actions or FIXTURE_ACTIONS))
-    return transitions_path, shims_path, action_coverage_path, actions_header_path
+    return transitions_path, shims_path, action_coverage_path, actions_header_path, event_coverage_path
 
 
 def _jsonish(value: object) -> str:
@@ -125,25 +173,34 @@ def _complete_actions() -> list[dict[str, object]]:
     return [_action(action) for action in FIXTURE_ACTIONS]
 
 
-def _validate(paths: tuple[Path, Path, Path, Path]) -> list[str]:
+def _complete_events() -> list[dict[str, object]]:
+    return [_event(event_class) for event_class in REQUIRED_EVENT_CLASSES]
+
+
+def _validate(paths: tuple[Path, Path, Path, Path, Path]) -> list[str]:
     return guard.validate_contract(*paths)
 
 
 def _fixture_with_list_field_value(
     tmp_path: Path, record_type: str, field: str, value: object
-) -> tuple[Path, Path, Path, Path]:
+) -> tuple[Path, Path, Path, Path, Path]:
     transitions = _complete_transitions()
     shims = [_shim()]
     actions = _complete_actions()
+    events = _complete_events()
     if record_type == "action":
         actions[0][field] = value
+    elif record_type == "event":
+        events[0][field] = value
     elif record_type == "transition":
         transitions[0][field] = value
     elif record_type == "shim":
         shims[0][field] = value
     else:
         raise AssertionError(f"unknown record type: {record_type}")
-    return _write_fixture(tmp_path, transitions=transitions, shims=shims, actions=actions)
+    return _write_fixture(
+        tmp_path, transitions=transitions, shims=shims, actions=actions, events=events
+    )
 
 
 def test_current_repository_appstate_contract_passes() -> None:
@@ -219,6 +276,54 @@ def test_guard_fails_when_required_action_field_is_missing(tmp_path: Path) -> No
     )
 
 
+def test_guard_fails_when_required_event_class_is_missing(tmp_path: Path) -> None:
+    transitions = _complete_transitions()
+    events = [
+        event for event in _complete_events() if event["event_class"] != "render_reflow"
+    ]
+    paths = _write_fixture(tmp_path, transitions=transitions, events=events)
+
+    failures = _validate(paths)
+
+    assert any("event coverage missing required event_class" in failure for failure in failures)
+    assert any("render_reflow" in failure for failure in failures)
+
+
+def test_guard_fails_when_event_has_unknown_class(tmp_path: Path) -> None:
+    transitions = _complete_transitions()
+    events = _complete_events() + [_event("unknown_event_class")]
+    paths = _write_fixture(tmp_path, transitions=transitions, events=events)
+
+    failures = _validate(paths)
+
+    assert any("unknown event_class" in failure and "unknown_event_class" in failure for failure in failures)
+
+
+def test_guard_fails_when_event_class_is_duplicated(tmp_path: Path) -> None:
+    transitions = _complete_transitions()
+    events = _complete_events()
+    events[1]["event_class"] = events[0]["event_class"]
+    paths = _write_fixture(tmp_path, transitions=transitions, events=events)
+
+    failures = _validate(paths)
+
+    assert any("event[1]" in failure and "duplicate event_class" in failure for failure in failures)
+
+
+def test_guard_fails_when_required_event_field_is_missing(tmp_path: Path) -> None:
+    transitions = _complete_transitions()
+    events = _complete_events()
+    events[0].pop("source")
+    paths = _write_fixture(tmp_path, transitions=transitions, events=events)
+
+    failures = _validate(paths)
+
+    assert any(
+        "event[0]" in failure and "missing required field" in failure and "source" in failure
+        for failure in failures
+    )
+
+
 def test_guard_fails_on_duplicate_transition_and_shim_ids(tmp_path: Path) -> None:
     transitions = _complete_transitions()
     transitions[1]["id"] = transitions[0]["id"]
@@ -246,6 +351,17 @@ def test_guard_fails_on_duplicate_action_records(tmp_path: Path) -> None:
     assert any("action[1]" in failure and "duplicate action" in failure for failure in failures)
 
 
+def test_guard_fails_on_duplicate_event_ids(tmp_path: Path) -> None:
+    transitions = _complete_transitions()
+    events = _complete_events()
+    events[1]["event_id"] = events[0]["event_id"]
+    paths = _write_fixture(tmp_path, transitions=transitions, events=events)
+
+    failures = _validate(paths)
+
+    assert any("event[1]" in failure and "duplicate event_id" in failure for failure in failures)
+
+
 def test_guard_fails_on_empty_required_list_fields(tmp_path: Path) -> None:
     transitions = _complete_transitions()
     transitions[0]["declared_write_set"] = []
@@ -253,7 +369,11 @@ def test_guard_fails_on_empty_required_list_fields(tmp_path: Path) -> None:
     shim["invariant_checks"] = []
     actions = _complete_actions()
     actions[0]["declared_write_set"] = []
-    paths = _write_fixture(tmp_path, transitions=transitions, shims=[shim], actions=actions)
+    events = _complete_events()
+    events[0]["trigger_paths"] = []
+    paths = _write_fixture(
+        tmp_path, transitions=transitions, shims=[shim], actions=actions, events=events
+    )
 
     failures = _validate(paths)
 
@@ -275,6 +395,12 @@ def test_guard_fails_on_empty_required_list_fields(tmp_path: Path) -> None:
         and "must be non-empty" in failure
         for failure in failures
     )
+    assert any(
+        "event[0]" in failure
+        and "trigger_paths" in failure
+        and "must be non-empty" in failure
+        for failure in failures
+    )
 
 
 def test_guard_fails_on_non_list_required_list_fields(tmp_path: Path) -> None:
@@ -284,7 +410,11 @@ def test_guard_fails_on_non_list_required_list_fields(tmp_path: Path) -> None:
     shim["invariant_checks"] = "invariant"
     actions = _complete_actions()
     actions[0]["migration_notes"] = "note"
-    paths = _write_fixture(tmp_path, transitions=transitions, shims=[shim], actions=actions)
+    events = _complete_events()
+    events[0]["declared_write_set"] = "field"
+    paths = _write_fixture(
+        tmp_path, transitions=transitions, shims=[shim], actions=actions, events=events
+    )
 
     failures = _validate(paths)
 
@@ -303,6 +433,12 @@ def test_guard_fails_on_non_list_required_list_fields(tmp_path: Path) -> None:
     assert any(
         "action[0]" in failure
         and "migration_notes" in failure
+        and "must be a non-empty list" in failure
+        for failure in failures
+    )
+    assert any(
+        "event[0]" in failure
+        and "declared_write_set" in failure
         and "must be a non-empty list" in failure
         for failure in failures
     )
@@ -401,6 +537,22 @@ def test_guard_fails_when_action_references_unknown_transition(tmp_path: Path) -
     )
 
 
+def test_guard_fails_when_event_references_unknown_transition(tmp_path: Path) -> None:
+    transitions = _complete_transitions()
+    events = _complete_events()
+    events[0]["transition_id"] = "transition.missing"
+    paths = _write_fixture(tmp_path, transitions=transitions, events=events)
+
+    failures = _validate(paths)
+
+    assert any(
+        "event[0]" in failure
+        and "transition_id does not match a transition id" in failure
+        and "transition.missing" in failure
+        for failure in failures
+    )
+
+
 def test_guard_fails_when_action_category_does_not_match_transition(tmp_path: Path) -> None:
     transitions = _complete_transitions()
     actions = _complete_actions()
@@ -411,6 +563,22 @@ def test_guard_fails_when_action_category_does_not_match_transition(tmp_path: Pa
 
     assert any(
         "category does not match transition" in failure and "render_reflow" in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_when_event_category_does_not_match_transition(tmp_path: Path) -> None:
+    transitions = _complete_transitions()
+    events = _complete_events()
+    events[0]["category"] = "render_reflow"
+    paths = _write_fixture(tmp_path, transitions=transitions, events=events)
+
+    failures = _validate(paths)
+
+    assert any(
+        "event[0]" in failure
+        and "category does not match transition" in failure
+        and "render_reflow" in failure
         for failure in failures
     )
 
