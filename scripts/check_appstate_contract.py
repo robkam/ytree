@@ -17,6 +17,7 @@ DEFAULT_EVENT_COVERAGE = REPO_ROOT / "docs" / "appstate_event_coverage.json"
 DEFAULT_OWNER_FIELDS = REPO_ROOT / "docs" / "appstate_owner_fields.json"
 DEFAULT_DISPATCH_SURFACES = REPO_ROOT / "docs" / "appstate_dispatch_surfaces.json"
 DEFAULT_INVARIANTS = REPO_ROOT / "docs" / "appstate_invariants.json"
+DEFAULT_GENERATION_DOMAINS = REPO_ROOT / "docs" / "appstate_generation_domains.json"
 DEFAULT_ACTION_HEADER = REPO_ROOT / "include" / "ytree_defs.h"
 
 REQUIRED_TRANSITION_CATEGORIES = {
@@ -109,6 +110,20 @@ REQUIRED_INVARIANT_CATEGORIES = {
     "blocked_transition_determinism",
 }
 
+REQUIRED_GENERATION_DOMAIN_CATEGORIES = {
+    "panel_generation",
+    "volume_generation",
+    "directory_identity",
+    "file_identity",
+    "focus_shape",
+    "modal_command_target",
+    "visibility_filter_state",
+    "topology_state",
+    "file_payload_state",
+    "volume_lifecycle",
+    "layout_reflow",
+}
+
 REQUIRED_DISPATCH_SURFACE_FIELDS = {
     "surface_id",
     "category",
@@ -156,6 +171,20 @@ REQUIRED_INVARIANT_FIELDS = {
     "migration_notes",
 }
 
+REQUIRED_GENERATION_DOMAIN_FIELDS = {
+    "domain_id",
+    "category",
+    "owner_region",
+    "generation_owner_field",
+    "identity_fields",
+    "advances_on_transition_ids",
+    "stale_snapshot_policy",
+    "fail_closed_fallback",
+    "restore_boundary",
+    "enforcement_status",
+    "migration_notes",
+}
+
 LIST_FIELDS = {
     "declared_write_set",
     "side_effects",
@@ -170,6 +199,8 @@ INVARIANT_LIST_FIELDS = {
     "transition_ids",
     "migration_notes",
 }
+GENERATION_DOMAIN_LIST_FIELDS = {"identity_fields", "migration_notes"}
+GENERATION_FIELD_RE = re.compile(r"\b(?:[A-Za-z0-9_]+\.)?[A-Za-z0-9_]+_generation\b")
 
 
 def _load_json(path: Path) -> tuple[Any | None, list[str]]:
@@ -624,6 +655,165 @@ def _validate_invariants(
     return failures
 
 
+def _validate_generation_transition_refs(
+    *,
+    value: Any,
+    label: str,
+    transition_ids: dict[str, dict[str, Any]],
+    migration_notes: Any,
+) -> list[str]:
+    failures: list[str] = []
+    field = "advances_on_transition_ids"
+    if not isinstance(value, list):
+        return [f"{label}: {field} must be a list"]
+
+    for index, transition_id in enumerate(value):
+        if not isinstance(transition_id, str) or not transition_id.strip():
+            failures.append(f"{label}: {field}[{index}] must be a non-empty string")
+            continue
+        if transition_id not in transition_ids:
+            failures.append(
+                f"{label}: {field} references unknown transition id: {transition_id}"
+            )
+
+    if not value:
+        has_projection_note = (
+            isinstance(migration_notes, list)
+            and any(
+                isinstance(note, str)
+                and (
+                    "read-only" in note.lower()
+                    or "projection-only" in note.lower()
+                )
+                for note in migration_notes
+            )
+        )
+        if not has_projection_note:
+            failures.append(
+                f"{label}: empty {field} requires a read-only/projection-only migration_notes explanation"
+            )
+
+    return failures
+
+
+def _validate_generation_domains(
+    *,
+    generation_domains_doc: Any,
+    generation_domains_path: Path,
+    transition_ids: dict[str, dict[str, Any]],
+    registered_owner_fields: set[str],
+) -> tuple[set[str], list[str]]:
+    failures: list[str] = []
+    generation_owner_fields: set[str] = set()
+    if not isinstance(generation_domains_doc, dict):
+        failures.append(f"{generation_domains_path}: top-level value must be an object")
+        return generation_owner_fields, failures
+
+    domain_records = generation_domains_doc.get("generation_domains")
+    if not isinstance(domain_records, list) or not domain_records:
+        failures.append(
+            f"{generation_domains_path}: generation_domains must be a non-empty list"
+        )
+        domain_records = []
+
+    domain_ids: set[str] = set()
+    covered_categories: set[str] = set()
+    for index, record in enumerate(domain_records):
+        label = f"generation_domain[{index}]"
+        failures.extend(
+            _validate_required_fields(
+                record=record,
+                required_fields=REQUIRED_GENERATION_DOMAIN_FIELDS
+                - {"advances_on_transition_ids"},
+                list_fields=GENERATION_DOMAIN_LIST_FIELDS,
+                label=label,
+            )
+        )
+        if not isinstance(record, dict):
+            continue
+
+        if "advances_on_transition_ids" not in record:
+            failures.append(
+                f"{label}: missing required field(s): advances_on_transition_ids"
+            )
+        else:
+            failures.extend(
+                _validate_generation_transition_refs(
+                    value=record.get("advances_on_transition_ids"),
+                    label=label,
+                    transition_ids=transition_ids,
+                    migration_notes=record.get("migration_notes"),
+                )
+            )
+
+        domain_id = record.get("domain_id")
+        if isinstance(domain_id, str) and domain_id.strip():
+            if domain_id in domain_ids:
+                failures.append(f"{label}: duplicate domain_id: {domain_id}")
+            domain_ids.add(domain_id)
+
+        category = record.get("category")
+        if isinstance(category, str) and category.strip():
+            covered_categories.add(category)
+            if category not in REQUIRED_GENERATION_DOMAIN_CATEGORIES:
+                failures.append(f"{label}: unknown category: {category}")
+
+        generation_owner_field = record.get("generation_owner_field")
+        if isinstance(generation_owner_field, str) and generation_owner_field.strip():
+            generation_owner_fields.add(generation_owner_field)
+            if generation_owner_field not in registered_owner_fields:
+                failures.append(
+                    f"{label}: generation_owner_field references unregistered owner field: {generation_owner_field}"
+                )
+
+        identity_fields = record.get("identity_fields")
+        if isinstance(identity_fields, list):
+            for field in identity_fields:
+                if (
+                    isinstance(field, str)
+                    and field.strip()
+                    and field not in registered_owner_fields
+                ):
+                    failures.append(
+                        f"{label}: identity_fields references unregistered owner field: {field}"
+                    )
+
+    missing_categories = sorted(
+        REQUIRED_GENERATION_DOMAIN_CATEGORIES - covered_categories
+    )
+    if missing_categories:
+        failures.append(
+            "generation domains missing required category/categories: "
+            + ", ".join(missing_categories)
+        )
+
+    return generation_owner_fields, failures
+
+
+def _validate_transition_generation_effects(
+    *,
+    transitions: list[Any],
+    generation_owner_fields: set[str],
+) -> list[str]:
+    failures: list[str] = []
+    registered_names = set(generation_owner_fields)
+    registered_names.update(field.rsplit(".", 1)[-1] for field in generation_owner_fields)
+
+    for index, record in enumerate(transitions):
+        if not isinstance(record, dict):
+            continue
+        effect = record.get("generation_effect")
+        if not isinstance(effect, str):
+            continue
+        for field in sorted(set(GENERATION_FIELD_RE.findall(effect))):
+            if field not in registered_names:
+                failures.append(
+                    f"transition[{index}]: generation_effect names unregistered generation field: {field}"
+                )
+
+    return failures
+
+
 def _validate_event_coverage(
     *,
     event_coverage_doc: Any,
@@ -726,6 +916,7 @@ def validate_contract(
     owner_fields_path: Path = DEFAULT_OWNER_FIELDS,
     dispatch_surfaces_path: Path = DEFAULT_DISPATCH_SURFACES,
     invariants_path: Path = DEFAULT_INVARIANTS,
+    generation_domains_path: Path = DEFAULT_GENERATION_DOMAINS,
 ) -> list[str]:
     failures: list[str] = []
     transitions_doc, transition_load_failures = _load_json(transitions_path)
@@ -737,6 +928,9 @@ def validate_contract(
         dispatch_surfaces_path
     )
     invariants_doc, invariants_load_failures = _load_json(invariants_path)
+    generation_domains_doc, generation_domains_load_failures = _load_json(
+        generation_domains_path
+    )
     enum_actions, enum_failures = _parse_ytree_actions(actions_header_path)
     failures.extend(transition_load_failures)
     failures.extend(shim_load_failures)
@@ -745,6 +939,7 @@ def validate_contract(
     failures.extend(owner_fields_load_failures)
     failures.extend(dispatch_surfaces_load_failures)
     failures.extend(invariants_load_failures)
+    failures.extend(generation_domains_load_failures)
     failures.extend(enum_failures)
     if failures:
         return failures
@@ -800,6 +995,20 @@ def validate_contract(
             "transition matrix missing required category/categories: "
             + ", ".join(missing_categories)
         )
+
+    generation_owner_fields, generation_domain_failures = _validate_generation_domains(
+        generation_domains_doc=generation_domains_doc,
+        generation_domains_path=generation_domains_path,
+        transition_ids=transition_ids,
+        registered_owner_fields=registered_owner_fields,
+    )
+    failures.extend(generation_domain_failures)
+    failures.extend(
+        _validate_transition_generation_effects(
+            transitions=transitions,
+            generation_owner_fields=generation_owner_fields,
+        )
+    )
 
     if not isinstance(shims_doc, dict):
         failures.append(f"{shims_path}: top-level value must be an object")
@@ -946,6 +1155,9 @@ def main() -> int:
         "--dispatch-surfaces", type=Path, default=DEFAULT_DISPATCH_SURFACES
     )
     parser.add_argument("--invariants", type=Path, default=DEFAULT_INVARIANTS)
+    parser.add_argument(
+        "--generation-domains", type=Path, default=DEFAULT_GENERATION_DOMAINS
+    )
     parser.add_argument("--actions-header", type=Path, default=DEFAULT_ACTION_HEADER)
     args = parser.parse_args()
 
@@ -958,6 +1170,7 @@ def main() -> int:
         args.owner_fields,
         args.dispatch_surfaces,
         args.invariants,
+        args.generation_domains,
     )
     if failures:
         for failure in failures:

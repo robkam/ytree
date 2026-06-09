@@ -17,6 +17,9 @@ REQUIRED_CATEGORIES = sorted(guard.REQUIRED_TRANSITION_CATEGORIES)
 REQUIRED_EVENT_CLASSES = sorted(guard.REQUIRED_EVENT_CLASSES)
 REQUIRED_DISPATCH_SURFACE_CATEGORIES = sorted(guard.REQUIRED_DISPATCH_SURFACE_CATEGORIES)
 REQUIRED_INVARIANT_CATEGORIES = sorted(guard.REQUIRED_INVARIANT_CATEGORIES)
+REQUIRED_GENERATION_DOMAIN_CATEGORIES = sorted(
+    guard.REQUIRED_GENERATION_DOMAIN_CATEGORIES
+)
 FIXTURE_ACTIONS = ["ACTION_NONE", "ACTION_MOVE_UP", "ACTION_USER_CMD"]
 REQUIRED_LIST_FIELD_CASES = [
     ("action", "declared_write_set", "action[0]"),
@@ -27,6 +30,8 @@ REQUIRED_LIST_FIELD_CASES = [
     ("transition", "declared_write_set", "transition[0]"),
     ("transition", "side_effects", "transition[0]"),
     ("owner_field", "invariant_checks", "owner_field[0]"),
+    ("generation_domain", "identity_fields", "generation_domain[0]"),
+    ("generation_domain", "migration_notes", "generation_domain[0]"),
     ("invariant", "protected_fields", "invariant[0]"),
     ("invariant", "transition_ids", "invariant[0]"),
     ("invariant", "migration_notes", "invariant[0]"),
@@ -173,6 +178,28 @@ def _invariant(
     }
 
 
+def _generation_domain(
+    category: str,
+    domain_id: str | None = None,
+    advances_on_transition_ids: list[str] | None = None,
+) -> dict[str, object]:
+    return {
+        "domain_id": domain_id or f"domain.{category}",
+        "category": category,
+        "owner_region": "panel-local state",
+        "generation_owner_field": "field",
+        "identity_fields": ["field"],
+        "advances_on_transition_ids": (
+            advances_on_transition_ids or ["transition.keybinding"]
+        ),
+        "stale_snapshot_policy": "fixture stale snapshot policy",
+        "fail_closed_fallback": "fixture fail-closed fallback",
+        "restore_boundary": "fixture restore boundary",
+        "enforcement_status": "documented_foundation_only",
+        "migration_notes": ["fixture coverage"],
+    }
+
+
 def _owner_field(field: str = "field") -> dict[str, object]:
     return {
         "field": field,
@@ -195,9 +222,10 @@ def _write_fixture(
     owner_fields: list[dict[str, object]] | None = None,
     dispatch_surfaces: list[dict[str, object]] | None = None,
     invariants: list[dict[str, object]] | None = None,
+    generation_domains: list[dict[str, object]] | None = None,
     required_event_classes: list[str] | None = None,
     enum_actions: list[str] | None = None,
-) -> tuple[Path, Path, Path, Path, Path, Path, Path, Path]:
+) -> tuple[Path, Path, Path, Path, Path, Path, Path, Path, Path]:
     transitions_path = tmp_path / "transitions.json"
     shims_path = tmp_path / "shims.json"
     action_coverage_path = tmp_path / "action_coverage.json"
@@ -205,6 +233,7 @@ def _write_fixture(
     owner_fields_path = tmp_path / "owner_fields.json"
     dispatch_surfaces_path = tmp_path / "dispatch_surfaces.json"
     invariants_path = tmp_path / "invariants.json"
+    generation_domains_path = tmp_path / "generation_domains.json"
     actions_header_path = tmp_path / "ytree_defs.h"
     _write(transitions_path, _jsonish({"schema_version": 1, "transitions": transitions}))
     _write(shims_path, _jsonish({"schema_version": 1, "shims": shims or [_shim()]}))
@@ -239,6 +268,17 @@ def _write_fixture(
         invariants_path,
         _jsonish({"schema_version": 1, "invariants": invariants or _complete_invariants()}),
     )
+    _write(
+        generation_domains_path,
+        _jsonish(
+            {
+                "schema_version": 1,
+                "generation_domains": (
+                    generation_domains or _complete_generation_domains()
+                ),
+            }
+        ),
+    )
     _write(actions_header_path, _enum_header(enum_actions or FIXTURE_ACTIONS))
     return (
         transitions_path,
@@ -249,6 +289,7 @@ def _write_fixture(
         owner_fields_path,
         dispatch_surfaces_path,
         invariants_path,
+        generation_domains_path,
     )
 
 
@@ -289,17 +330,29 @@ def _complete_invariants() -> list[dict[str, object]]:
     return [_invariant(category) for category in REQUIRED_INVARIANT_CATEGORIES]
 
 
+def _complete_generation_domains() -> list[dict[str, object]]:
+    return [
+        _generation_domain(
+            category,
+            "domain.panel_generation" if category == "panel_generation" else None,
+        )
+        for category in REQUIRED_GENERATION_DOMAIN_CATEGORIES
+    ]
+
+
 def _complete_owner_fields() -> list[dict[str, object]]:
     return [_owner_field("field"), _owner_field("panel.tree_selection_key")]
 
 
-def _validate(paths: tuple[Path, Path, Path, Path, Path, Path, Path, Path]) -> list[str]:
+def _validate(
+    paths: tuple[Path, Path, Path, Path, Path, Path, Path, Path, Path],
+) -> list[str]:
     return guard.validate_contract(*paths)
 
 
 def _fixture_with_list_field_value(
     tmp_path: Path, record_type: str, field: str, value: object
-) -> tuple[Path, Path, Path, Path, Path, Path, Path, Path]:
+) -> tuple[Path, Path, Path, Path, Path, Path, Path, Path, Path]:
     transitions = _complete_transitions()
     shims = [_shim()]
     actions = _complete_actions()
@@ -307,12 +360,15 @@ def _fixture_with_list_field_value(
     owner_fields = _complete_owner_fields()
     dispatch_surfaces = _complete_dispatch_surfaces()
     invariants = _complete_invariants()
+    generation_domains = _complete_generation_domains()
     if record_type == "action":
         actions[0][field] = value
     elif record_type == "event":
         events[0][field] = value
     elif record_type == "owner_field":
         owner_fields[0][field] = value
+    elif record_type == "generation_domain":
+        generation_domains[0][field] = value
     elif record_type == "transition":
         transitions[0][field] = value
     elif record_type == "shim":
@@ -332,6 +388,7 @@ def _fixture_with_list_field_value(
         owner_fields=owner_fields,
         dispatch_surfaces=dispatch_surfaces,
         invariants=invariants,
+        generation_domains=generation_domains,
     )
 
 
@@ -378,6 +435,263 @@ def test_guard_accepts_invariant_registry_cli_override(tmp_path: Path) -> None:
     )
 
     assert run.returncode == 0, run.stdout + run.stderr
+
+
+def test_guard_accepts_generation_domain_registry_cli_override(tmp_path: Path) -> None:
+    repo_root = Path(__file__).resolve().parents[1]
+    override_path = tmp_path / "appstate_generation_domains.json"
+    override_path.write_text(
+        (repo_root / "docs" / "appstate_generation_domains.json").read_text(
+            encoding="utf-8"
+        ),
+        encoding="utf-8",
+    )
+
+    run = subprocess.run(
+        [
+            "python3",
+            "scripts/check_appstate_contract.py",
+            "--generation-domains",
+            str(override_path),
+        ],
+        cwd=repo_root,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+    assert run.returncode == 0, run.stdout + run.stderr
+
+
+def test_guard_fails_when_required_generation_domain_category_is_missing(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    generation_domains = [
+        domain
+        for domain in _complete_generation_domains()
+        if domain["category"] != "layout_reflow"
+    ]
+    paths = _write_fixture(
+        tmp_path, transitions=transitions, generation_domains=generation_domains
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "generation domains missing required category" in failure
+        for failure in failures
+    )
+    assert any("layout_reflow" in failure for failure in failures)
+
+
+def test_guard_fails_when_required_generation_domain_field_is_missing(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    generation_domains = _complete_generation_domains()
+    generation_domains[0].pop("restore_boundary")
+    paths = _write_fixture(
+        tmp_path, transitions=transitions, generation_domains=generation_domains
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "generation_domain[0]" in failure
+        and "missing required field" in failure
+        and "restore_boundary" in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_on_duplicate_generation_domain_ids(tmp_path: Path) -> None:
+    transitions = _complete_transitions()
+    generation_domains = _complete_generation_domains()
+    generation_domains[1]["domain_id"] = generation_domains[0]["domain_id"]
+    paths = _write_fixture(
+        tmp_path, transitions=transitions, generation_domains=generation_domains
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "generation_domain[1]" in failure and "duplicate domain_id" in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_when_generation_domain_has_unknown_category(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    generation_domains = _complete_generation_domains()
+    generation_domains[0]["category"] = "unknown_generation_domain"
+    paths = _write_fixture(
+        tmp_path, transitions=transitions, generation_domains=generation_domains
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "generation_domain[0]" in failure
+        and "unknown category" in failure
+        and "unknown_generation_domain" in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_when_generation_domain_owner_field_is_unknown(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    generation_domains = _complete_generation_domains()
+    generation_domains[0]["generation_owner_field"] = "field.unknown"
+    paths = _write_fixture(
+        tmp_path, transitions=transitions, generation_domains=generation_domains
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "generation_domain[0]" in failure
+        and "generation_owner_field references unregistered owner field" in failure
+        and "field.unknown" in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_when_generation_domain_identity_field_is_unknown(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    generation_domains = _complete_generation_domains()
+    generation_domains[0]["identity_fields"] = ["field.unknown"]
+    paths = _write_fixture(
+        tmp_path, transitions=transitions, generation_domains=generation_domains
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "generation_domain[0]" in failure
+        and "identity_fields references unregistered owner field" in failure
+        and "field.unknown" in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_when_generation_domain_transition_is_unknown(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    generation_domains = _complete_generation_domains()
+    generation_domains[0]["advances_on_transition_ids"] = ["transition.missing"]
+    paths = _write_fixture(
+        tmp_path, transitions=transitions, generation_domains=generation_domains
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "generation_domain[0]" in failure
+        and "advances_on_transition_ids references unknown transition id" in failure
+        and "transition.missing" in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_when_generation_domain_advances_is_not_a_list(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    generation_domains = _complete_generation_domains()
+    generation_domains[0]["advances_on_transition_ids"] = "transition.keybinding"
+    paths = _write_fixture(
+        tmp_path, transitions=transitions, generation_domains=generation_domains
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "generation_domain[0]" in failure
+        and "advances_on_transition_ids must be a list" in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_when_generation_domain_advances_element_is_malformed(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    generation_domains = _complete_generation_domains()
+    generation_domains[0]["advances_on_transition_ids"] = [123]
+    paths = _write_fixture(
+        tmp_path, transitions=transitions, generation_domains=generation_domains
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "generation_domain[0]" in failure
+        and "advances_on_transition_ids[0]" in failure
+        and "must be a non-empty string" in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_when_empty_generation_domain_advances_lack_projection_note(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    generation_domains = _complete_generation_domains()
+    generation_domains[0]["advances_on_transition_ids"] = []
+    paths = _write_fixture(
+        tmp_path, transitions=transitions, generation_domains=generation_domains
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "generation_domain[0]" in failure
+        and "empty advances_on_transition_ids requires" in failure
+        for failure in failures
+    )
+
+
+def test_guard_accepts_empty_generation_domain_advances_with_projection_note(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    generation_domains = _complete_generation_domains()
+    generation_domains[0]["advances_on_transition_ids"] = []
+    generation_domains[0]["migration_notes"] = [
+        "read-only/projection-only fixture domain"
+    ]
+    paths = _write_fixture(
+        tmp_path, transitions=transitions, generation_domains=generation_domains
+    )
+
+    failures = _validate(paths)
+
+    assert failures == []
+
+
+def test_guard_fails_when_generation_effect_names_unregistered_generation_field(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    transitions[0]["generation_effect"] = "Increment missing_generation."
+    paths = _write_fixture(tmp_path, transitions=transitions)
+
+    failures = _validate(paths)
+
+    assert any(
+        "transition[0]" in failure
+        and "generation_effect names unregistered generation field" in failure
+        and "missing_generation" in failure
+        for failure in failures
+    )
 
 
 def test_guard_fails_when_required_invariant_category_is_missing(
