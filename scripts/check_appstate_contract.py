@@ -15,6 +15,7 @@ DEFAULT_SHIMS = REPO_ROOT / "docs" / "appstate_compat_shims.json"
 DEFAULT_ACTION_COVERAGE = REPO_ROOT / "docs" / "appstate_action_coverage.json"
 DEFAULT_EVENT_COVERAGE = REPO_ROOT / "docs" / "appstate_event_coverage.json"
 DEFAULT_OWNER_FIELDS = REPO_ROOT / "docs" / "appstate_owner_fields.json"
+DEFAULT_DISPATCH_SURFACES = REPO_ROOT / "docs" / "appstate_dispatch_surfaces.json"
 DEFAULT_ACTION_HEADER = REPO_ROOT / "include" / "ytree_defs.h"
 
 REQUIRED_TRANSITION_CATEGORIES = {
@@ -83,6 +84,30 @@ REQUIRED_EVENT_CLASSES = {
     "render_reflow",
 }
 
+REQUIRED_DISPATCH_SURFACE_CATEGORIES = {
+    "key_decode_input_dispatch",
+    "directory_window_action_dispatch",
+    "file_window_action_dispatch",
+    "menu_modal_completion",
+    "resize_signal_handling",
+    "refresh_rebuild_rebind",
+    "filesystem_mutation_result",
+    "volume_operation",
+    "watcher_live_refresh",
+    "render_reflow_projection",
+}
+
+REQUIRED_DISPATCH_SURFACE_FIELDS = {
+    "surface_id",
+    "category",
+    "source_path",
+    "entry_symbol_or_path",
+    "transition_id",
+    "boundary_status",
+    "allowed_direct_writes",
+    "migration_notes",
+}
+
 REQUIRED_EVENT_FIELDS = {
     "event_id",
     "event_class",
@@ -114,6 +139,7 @@ LIST_FIELDS = {
 }
 
 EVENT_LIST_FIELDS = LIST_FIELDS | {"trigger_paths"}
+DISPATCH_LIST_FIELDS = {"migration_notes"}
 
 
 def _load_json(path: Path) -> tuple[Any | None, list[str]]:
@@ -287,6 +313,153 @@ def _validate_registered_write_set(
     return failures
 
 
+def _validate_allowed_direct_writes(
+    *,
+    record: dict[str, Any],
+    registered_fields: set[str],
+    label: str,
+) -> list[str]:
+    writes = record.get("allowed_direct_writes")
+    if not isinstance(writes, list):
+        return [f"{label}: allowed_direct_writes must be a list"]
+
+    failures: list[str] = []
+    seen: set[str] = set()
+    for index, field in enumerate(writes):
+        if not isinstance(field, str) or not field.strip():
+            failures.append(
+                f"{label}: allowed_direct_writes[{index}] must be a non-empty string"
+            )
+            continue
+        if field in seen:
+            failures.append(
+                f"{label}: duplicate allowed_direct_writes[{index}]: {field}"
+            )
+        seen.add(field)
+        if field not in registered_fields:
+            failures.append(
+                f"{label}: allowed_direct_writes references unregistered owner field: {field}"
+            )
+    return failures
+
+
+def _validate_source_path(value: Any, *, label: str) -> list[str]:
+    if not isinstance(value, str) or not value.strip():
+        return [f"{label}: source_path must be a non-empty string"]
+
+    source_path = value.strip()
+    path = Path(source_path)
+    if (
+        path.is_absolute()
+        or "\\" in source_path
+        or any(part == ".." for part in path.parts)
+    ):
+        return [f"{label}: source_path must be a relative repository path"]
+
+    if not (REPO_ROOT / source_path).is_file():
+        return [f"{label}: source_path does not exist: {source_path}"]
+    return []
+
+
+def _validate_entry_symbol_or_path(value: Any, *, label: str) -> list[str]:
+    if not isinstance(value, str) or not value.strip():
+        return [f"{label}: entry_symbol_or_path must be a non-empty string"]
+
+    entry = value.strip()
+    path = Path(entry)
+    if (
+        path.is_absolute()
+        or "\\" in entry
+        or any(part == ".." for part in path.parts)
+        or re.search(r"\s", entry)
+    ):
+        return [f"{label}: entry_symbol_or_path is malformed: {entry}"]
+    return []
+
+
+def _validate_dispatch_surfaces(
+    *,
+    dispatch_surfaces_doc: Any,
+    dispatch_surfaces_path: Path,
+    transition_ids: dict[str, dict[str, Any]],
+    registered_owner_fields: set[str],
+) -> list[str]:
+    failures: list[str] = []
+    if not isinstance(dispatch_surfaces_doc, dict):
+        failures.append(f"{dispatch_surfaces_path}: top-level value must be an object")
+        return failures
+
+    surface_records = dispatch_surfaces_doc.get("dispatch_surfaces")
+    if not isinstance(surface_records, list) or not surface_records:
+        failures.append(
+            f"{dispatch_surfaces_path}: dispatch_surfaces must be a non-empty list"
+        )
+        surface_records = []
+
+    surface_ids: set[str] = set()
+    covered_categories: set[str] = set()
+    for index, record in enumerate(surface_records):
+        label = f"dispatch_surface[{index}]"
+        failures.extend(
+            _validate_required_fields(
+                record=record,
+                required_fields=REQUIRED_DISPATCH_SURFACE_FIELDS
+                - {"allowed_direct_writes"},
+                list_fields=DISPATCH_LIST_FIELDS,
+                label=label,
+            )
+        )
+        if not isinstance(record, dict):
+            continue
+        if "allowed_direct_writes" not in record:
+            failures.append(f"{label}: missing required field(s): allowed_direct_writes")
+        else:
+            failures.extend(
+                _validate_allowed_direct_writes(
+                    record=record,
+                    registered_fields=registered_owner_fields,
+                    label=label,
+                )
+            )
+
+        surface_id = record.get("surface_id")
+        if isinstance(surface_id, str) and surface_id.strip():
+            if surface_id in surface_ids:
+                failures.append(f"{label}: duplicate surface_id: {surface_id}")
+            surface_ids.add(surface_id)
+
+        category = record.get("category")
+        if isinstance(category, str) and category.strip():
+            covered_categories.add(category)
+            if category not in REQUIRED_DISPATCH_SURFACE_CATEGORIES:
+                failures.append(f"{label}: unknown category: {category}")
+
+        transition_id = record.get("transition_id")
+        if isinstance(transition_id, str) and transition_id.strip():
+            if transition_id not in transition_ids:
+                failures.append(
+                    f"{label}: transition_id does not match a transition id: {transition_id}"
+                )
+
+        failures.extend(_validate_source_path(record.get("source_path"), label=label))
+        failures.extend(
+            _validate_entry_symbol_or_path(
+                record.get("entry_symbol_or_path"), label=label
+            )
+        )
+
+    missing_categories = sorted(
+        REQUIRED_DISPATCH_SURFACE_CATEGORIES - covered_categories
+    )
+    if missing_categories:
+        failures.append(
+            "dispatch surfaces missing required category/categories: "
+            + ", ".join(missing_categories)
+        )
+
+    return failures
+
+
 def _validate_event_coverage(
     *,
     event_coverage_doc: Any,
@@ -387,6 +560,7 @@ def validate_contract(
     actions_header_path: Path,
     event_coverage_path: Path = DEFAULT_EVENT_COVERAGE,
     owner_fields_path: Path = DEFAULT_OWNER_FIELDS,
+    dispatch_surfaces_path: Path = DEFAULT_DISPATCH_SURFACES,
 ) -> list[str]:
     failures: list[str] = []
     transitions_doc, transition_load_failures = _load_json(transitions_path)
@@ -394,12 +568,16 @@ def validate_contract(
     action_coverage_doc, action_coverage_load_failures = _load_json(action_coverage_path)
     event_coverage_doc, event_coverage_load_failures = _load_json(event_coverage_path)
     owner_fields_doc, owner_fields_load_failures = _load_json(owner_fields_path)
+    dispatch_surfaces_doc, dispatch_surfaces_load_failures = _load_json(
+        dispatch_surfaces_path
+    )
     enum_actions, enum_failures = _parse_ytree_actions(actions_header_path)
     failures.extend(transition_load_failures)
     failures.extend(shim_load_failures)
     failures.extend(action_coverage_load_failures)
     failures.extend(event_coverage_load_failures)
     failures.extend(owner_fields_load_failures)
+    failures.extend(dispatch_surfaces_load_failures)
     failures.extend(enum_failures)
     if failures:
         return failures
@@ -564,6 +742,14 @@ def validate_contract(
             registered_owner_fields=registered_owner_fields,
         )
     )
+    failures.extend(
+        _validate_dispatch_surfaces(
+            dispatch_surfaces_doc=dispatch_surfaces_doc,
+            dispatch_surfaces_path=dispatch_surfaces_path,
+            transition_ids=transition_ids,
+            registered_owner_fields=registered_owner_fields,
+        )
+    )
 
     return failures
 
@@ -575,6 +761,9 @@ def main() -> int:
     parser.add_argument("--action-coverage", type=Path, default=DEFAULT_ACTION_COVERAGE)
     parser.add_argument("--event-coverage", type=Path, default=DEFAULT_EVENT_COVERAGE)
     parser.add_argument("--owner-fields", type=Path, default=DEFAULT_OWNER_FIELDS)
+    parser.add_argument(
+        "--dispatch-surfaces", type=Path, default=DEFAULT_DISPATCH_SURFACES
+    )
     parser.add_argument("--actions-header", type=Path, default=DEFAULT_ACTION_HEADER)
     args = parser.parse_args()
 
@@ -585,6 +774,7 @@ def main() -> int:
         args.actions_header,
         args.event_coverage,
         args.owner_fields,
+        args.dispatch_surfaces,
     )
     if failures:
         for failure in failures:
