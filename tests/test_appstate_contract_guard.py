@@ -20,6 +20,7 @@ REQUIRED_INVARIANT_CATEGORIES = sorted(guard.REQUIRED_INVARIANT_CATEGORIES)
 REQUIRED_GENERATION_DOMAIN_CATEGORIES = sorted(
     guard.REQUIRED_GENERATION_DOMAIN_CATEGORIES
 )
+REQUIRED_DIFF_HARNESS_CATEGORIES = sorted(guard.REQUIRED_DIFF_HARNESS_CATEGORIES)
 FIXTURE_ACTIONS = ["ACTION_NONE", "ACTION_MOVE_UP", "ACTION_USER_CMD"]
 REQUIRED_LIST_FIELD_CASES = [
     ("action", "declared_write_set", "action[0]"),
@@ -35,6 +36,13 @@ REQUIRED_LIST_FIELD_CASES = [
     ("invariant", "protected_fields", "invariant[0]"),
     ("invariant", "transition_ids", "invariant[0]"),
     ("invariant", "migration_notes", "invariant[0]"),
+    ("diff_harness", "snapshot_phases", "diff_harness_check[0]"),
+    ("diff_harness", "snapshot_regions", "diff_harness_check[0]"),
+    ("diff_harness", "transition_ids", "diff_harness_check[0]"),
+    ("diff_harness", "owner_field_refs", "diff_harness_check[0]"),
+    ("diff_harness", "invariant_ids", "diff_harness_check[0]"),
+    ("diff_harness", "generation_domain_ids", "diff_harness_check[0]"),
+    ("diff_harness", "migration_notes", "diff_harness_check[0]"),
     ("shim", "invariant_checks", "shim[0]"),
     ("shim", "migration_notes", "shim[0]"),
 ]
@@ -200,6 +208,30 @@ def _generation_domain(
     }
 
 
+def _diff_harness(
+    category: str,
+    harness_id: str | None = None,
+    transition_ids: list[str] | None = None,
+    owner_field_refs: list[str] | None = None,
+    invariant_ids: list[str] | None = None,
+    generation_domain_ids: list[str] | None = None,
+) -> dict[str, object]:
+    return {
+        "harness_id": harness_id or f"harness.{category}",
+        "check_category": category,
+        "snapshot_phases": ["before", "after"],
+        "snapshot_regions": ["panel-local state"],
+        "transition_ids": transition_ids or ["transition.keybinding"],
+        "owner_field_refs": owner_field_refs or ["field"],
+        "invariant_ids": invariant_ids or ["invariant.inactive_panel_frozen"],
+        "generation_domain_ids": generation_domain_ids or ["domain.panel_generation"],
+        "expected_behavior": "fixture expected behavior",
+        "failure_mode": "fixture failure mode",
+        "enforcement_status": "documented_foundation_only",
+        "migration_notes": ["fixture coverage"],
+    }
+
+
 def _owner_field(field: str = "field") -> dict[str, object]:
     return {
         "field": field,
@@ -223,9 +255,10 @@ def _write_fixture(
     dispatch_surfaces: list[dict[str, object]] | None = None,
     invariants: list[dict[str, object]] | None = None,
     generation_domains: list[dict[str, object]] | None = None,
+    diff_harness_checks: list[dict[str, object]] | None = None,
     required_event_classes: list[str] | None = None,
     enum_actions: list[str] | None = None,
-) -> tuple[Path, Path, Path, Path, Path, Path, Path, Path, Path]:
+) -> tuple[Path, Path, Path, Path, Path, Path, Path, Path, Path, Path]:
     transitions_path = tmp_path / "transitions.json"
     shims_path = tmp_path / "shims.json"
     action_coverage_path = tmp_path / "action_coverage.json"
@@ -234,6 +267,7 @@ def _write_fixture(
     dispatch_surfaces_path = tmp_path / "dispatch_surfaces.json"
     invariants_path = tmp_path / "invariants.json"
     generation_domains_path = tmp_path / "generation_domains.json"
+    diff_harness_path = tmp_path / "diff_harness.json"
     actions_header_path = tmp_path / "ytree_defs.h"
     _write(transitions_path, _jsonish({"schema_version": 1, "transitions": transitions}))
     _write(shims_path, _jsonish({"schema_version": 1, "shims": shims or [_shim()]}))
@@ -279,6 +313,17 @@ def _write_fixture(
             }
         ),
     )
+    _write(
+        diff_harness_path,
+        _jsonish(
+            {
+                "schema_version": 1,
+                "diff_harness_checks": (
+                    diff_harness_checks or _complete_diff_harness_checks()
+                ),
+            }
+        ),
+    )
     _write(actions_header_path, _enum_header(enum_actions or FIXTURE_ACTIONS))
     return (
         transitions_path,
@@ -290,6 +335,7 @@ def _write_fixture(
         dispatch_surfaces_path,
         invariants_path,
         generation_domains_path,
+        diff_harness_path,
     )
 
 
@@ -340,19 +386,31 @@ def _complete_generation_domains() -> list[dict[str, object]]:
     ]
 
 
+def _complete_diff_harness_checks() -> list[dict[str, object]]:
+    return [
+        _diff_harness(
+            category,
+            "harness.transition_before_after_snapshot"
+            if category == "transition_before_after_snapshot"
+            else None,
+        )
+        for category in REQUIRED_DIFF_HARNESS_CATEGORIES
+    ]
+
+
 def _complete_owner_fields() -> list[dict[str, object]]:
     return [_owner_field("field"), _owner_field("panel.tree_selection_key")]
 
 
 def _validate(
-    paths: tuple[Path, Path, Path, Path, Path, Path, Path, Path, Path],
+    paths: tuple[Path, Path, Path, Path, Path, Path, Path, Path, Path, Path],
 ) -> list[str]:
     return guard.validate_contract(*paths)
 
 
 def _fixture_with_list_field_value(
     tmp_path: Path, record_type: str, field: str, value: object
-) -> tuple[Path, Path, Path, Path, Path, Path, Path, Path, Path]:
+) -> tuple[Path, Path, Path, Path, Path, Path, Path, Path, Path, Path]:
     transitions = _complete_transitions()
     shims = [_shim()]
     actions = _complete_actions()
@@ -361,6 +419,7 @@ def _fixture_with_list_field_value(
     dispatch_surfaces = _complete_dispatch_surfaces()
     invariants = _complete_invariants()
     generation_domains = _complete_generation_domains()
+    diff_harness_checks = _complete_diff_harness_checks()
     if record_type == "action":
         actions[0][field] = value
     elif record_type == "event":
@@ -377,6 +436,8 @@ def _fixture_with_list_field_value(
         dispatch_surfaces[0][field] = value
     elif record_type == "invariant":
         invariants[0][field] = value
+    elif record_type == "diff_harness":
+        diff_harness_checks[0][field] = value
     else:
         raise AssertionError(f"unknown record type: {record_type}")
     return _write_fixture(
@@ -389,6 +450,7 @@ def _fixture_with_list_field_value(
         dispatch_surfaces=dispatch_surfaces,
         invariants=invariants,
         generation_domains=generation_domains,
+        diff_harness_checks=diff_harness_checks,
     )
 
 
@@ -461,6 +523,164 @@ def test_guard_accepts_generation_domain_registry_cli_override(tmp_path: Path) -
     )
 
     assert run.returncode == 0, run.stdout + run.stderr
+
+
+def test_guard_accepts_diff_harness_registry_cli_override(tmp_path: Path) -> None:
+    repo_root = Path(__file__).resolve().parents[1]
+    override_path = tmp_path / "appstate_diff_harness.json"
+    override_path.write_text(
+        (repo_root / "docs" / "appstate_diff_harness.json").read_text(
+            encoding="utf-8"
+        ),
+        encoding="utf-8",
+    )
+
+    run = subprocess.run(
+        [
+            "python3",
+            "scripts/check_appstate_contract.py",
+            "--diff-harness",
+            str(override_path),
+        ],
+        cwd=repo_root,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+    assert run.returncode == 0, run.stdout + run.stderr
+
+
+def test_guard_fails_when_required_diff_harness_field_is_missing(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    diff_harness_checks = _complete_diff_harness_checks()
+    diff_harness_checks[0].pop("failure_mode")
+    paths = _write_fixture(
+        tmp_path, transitions=transitions, diff_harness_checks=diff_harness_checks
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "diff_harness_check[0]" in failure
+        and "missing required field(s): failure_mode" in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_on_duplicate_diff_harness_ids(tmp_path: Path) -> None:
+    transitions = _complete_transitions()
+    diff_harness_checks = _complete_diff_harness_checks()
+    diff_harness_checks[1]["harness_id"] = diff_harness_checks[0]["harness_id"]
+    paths = _write_fixture(
+        tmp_path, transitions=transitions, diff_harness_checks=diff_harness_checks
+    )
+
+    failures = _validate(paths)
+
+    assert any("duplicate harness_id" in failure for failure in failures)
+
+
+def test_guard_fails_when_diff_harness_has_unknown_check_category(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    diff_harness_checks = _complete_diff_harness_checks()
+    diff_harness_checks[0]["check_category"] = "unknown_diff_harness_check"
+    paths = _write_fixture(
+        tmp_path, transitions=transitions, diff_harness_checks=diff_harness_checks
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "diff_harness_check[0]" in failure
+        and "unknown check_category" in failure
+        and "unknown_diff_harness_check" in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_when_diff_harness_references_unknown_transition(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    diff_harness_checks = _complete_diff_harness_checks()
+    diff_harness_checks[0]["transition_ids"] = ["transition.missing"]
+    paths = _write_fixture(
+        tmp_path, transitions=transitions, diff_harness_checks=diff_harness_checks
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "diff_harness_check[0]" in failure
+        and "transition_ids references unknown transition id" in failure
+        and "transition.missing" in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_when_diff_harness_references_unknown_owner_field(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    diff_harness_checks = _complete_diff_harness_checks()
+    diff_harness_checks[0]["owner_field_refs"] = ["field.unknown"]
+    paths = _write_fixture(
+        tmp_path, transitions=transitions, diff_harness_checks=diff_harness_checks
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "diff_harness_check[0]" in failure
+        and "owner_field_refs references unregistered owner field" in failure
+        and "field.unknown" in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_when_diff_harness_references_unknown_invariant(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    diff_harness_checks = _complete_diff_harness_checks()
+    diff_harness_checks[0]["invariant_ids"] = ["invariant.missing"]
+    paths = _write_fixture(
+        tmp_path, transitions=transitions, diff_harness_checks=diff_harness_checks
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "diff_harness_check[0]" in failure
+        and "invariant_ids references unknown invariant id" in failure
+        and "invariant.missing" in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_when_diff_harness_references_unknown_generation_domain(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    diff_harness_checks = _complete_diff_harness_checks()
+    diff_harness_checks[0]["generation_domain_ids"] = ["domain.missing"]
+    paths = _write_fixture(
+        tmp_path, transitions=transitions, diff_harness_checks=diff_harness_checks
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "diff_harness_check[0]" in failure
+        and "generation_domain_ids references unknown generation domain id" in failure
+        and "domain.missing" in failure
+        for failure in failures
+    )
 
 
 def test_guard_fails_when_required_generation_domain_category_is_missing(
