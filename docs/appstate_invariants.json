@@ -1,0 +1,292 @@
+{
+  "schema_version": 1,
+  "contract": "AppState transition invariant registry",
+  "notes": "Non-runtime registry for invariants that future state-sequence tests must enforce at AppState transition boundaries. Runtime behavior is unchanged.",
+  "invariants": [
+    {
+      "invariant_id": "invariant.inactive-panel-frozen",
+      "category": "inactive_panel_frozen",
+      "owner_region": "panel-local state",
+      "protected_fields": [
+        "ctx.active",
+        "panel.volume_key",
+        "panel.tree_selection_key",
+        "panel.tree_cursor_pos",
+        "panel.tree_viewport_origin",
+        "panel.file_selection_key",
+        "panel.file_viewport_origin",
+        "panel.focus_shape",
+        "panel.restore_snapshot",
+        "panel.panel_generation"
+      ],
+      "transition_ids": [
+        "transition.keybinding.navigate-tree",
+        "transition.menu-action.volume-select",
+        "transition.modal-action.dismiss",
+        "transition.refresh-rebuild.manual-refresh",
+        "transition.volume-operation.release-cycle",
+        "transition.terminal-signal-resize"
+      ],
+      "dispatch_surface_ids": [
+        "surface.directory-window-action-dispatch",
+        "surface.file-window-action-dispatch",
+        "surface.menu-modal-completion",
+        "surface.refresh-rebuild-rebind",
+        "surface.volume-operation",
+        "surface.resize-signal-handling"
+      ],
+      "failure_mode": "Fail if an active-only transition mutates inactive panel-local identity, viewport, focus, restore, or generation fields outside an explicitly targeted transition.",
+      "enforcement_status": "documented_foundation_only",
+      "test_strategy": "State-sequence harness snapshots both panels before each active-panel transition and compares inactive panel fields after allowed and blocked outcomes.",
+      "migration_notes": [
+        "Future dynamic tests should distinguish shared topology mirroring from inactive panel-local mutation."
+      ]
+    },
+    {
+      "invariant_id": "invariant.render-projection-read-only",
+      "category": "render_projection_read_only",
+      "owner_region": "render/projection/invalidation state",
+      "protected_fields": [
+        "ctx.layout",
+        "ctx.render_dirty_flags",
+        "ctx.window_handles",
+        "panel.tree_selection_key",
+        "panel.file_selection_key",
+        "panel.tree_viewport_origin",
+        "panel.file_viewport_origin",
+        "panel.focus_shape",
+        "panel.panel_generation",
+        "volume.volume_generation"
+      ],
+      "transition_ids": [
+        "transition.render-reflow.project-state",
+        "transition.terminal-signal-resize"
+      ],
+      "dispatch_surface_ids": [
+        "surface.render-reflow-projection",
+        "surface.resize-signal-handling"
+      ],
+      "failure_mode": "Fail if render or reflow chooses new authoritative selection, focus, viewport, panel generation, or volume generation from projected rows or window geometry.",
+      "enforcement_status": "documented_foundation_only",
+      "test_strategy": "Transition-diff harness runs render/reflow passes after settled transitions and verifies only declared render projection fields change.",
+      "migration_notes": [
+        "Runtime migration must keep ncurses drawing and temporary row calculations from becoming restore authority."
+      ]
+    },
+    {
+      "invariant_id": "invariant.hidden-entry-visible-navigation",
+      "category": "hidden_entry_visible_navigation",
+      "owner_region": "panel-local state",
+      "protected_fields": [
+        "panel.tree_selection_key",
+        "panel.tree_cursor_pos",
+        "panel.tree_viewport_origin",
+        "panel.restore_snapshot",
+        "panel.panel_generation",
+        "volume.dir_tree",
+        "volume.logged_state",
+        "volume.volume_generation"
+      ],
+      "transition_ids": [
+        "transition.keybinding.navigate-tree",
+        "transition.refresh-rebuild.manual-refresh",
+        "transition.rebuild-rebind-callback.panel-anchor"
+      ],
+      "dispatch_surface_ids": [
+        "surface.directory-window-action-dispatch",
+        "surface.refresh-rebuild-rebind",
+        "surface.watcher-live-refresh"
+      ],
+      "failure_mode": "Fail if visible navigation lands on a hidden entry or resurrects a concealed identity after visibility/topology changes.",
+      "enforcement_status": "documented_foundation_only",
+      "test_strategy": "Generated navigation sequences toggle visibility, rebuild, and move through visible rows while asserting the selected identity remains visible or falls back deterministically.",
+      "migration_notes": [
+        "Hidden-entry checks must use stable identity and visibility metadata rather than stale row positions."
+      ]
+    },
+    {
+      "invariant_id": "invariant.panel-local-focus-restore",
+      "category": "panel_local_focus_restore",
+      "owner_region": "panel-local state",
+      "protected_fields": [
+        "ctx.modal_state",
+        "panel.focus_shape",
+        "panel.tree_selection_key",
+        "panel.file_selection_key",
+        "panel.tree_viewport_origin",
+        "panel.file_viewport_origin",
+        "panel.restore_snapshot",
+        "panel.panel_generation"
+      ],
+      "transition_ids": [
+        "transition.keybinding.navigate-tree",
+        "transition.menu-action.volume-select",
+        "transition.modal-action.dismiss",
+        "transition.rebuild-rebind-callback.panel-anchor"
+      ],
+      "dispatch_surface_ids": [
+        "surface.directory-window-action-dispatch",
+        "surface.file-window-action-dispatch",
+        "surface.menu-modal-completion",
+        "surface.volume-operation"
+      ],
+      "failure_mode": "Fail if focus restoration imports another panel's shape, briefly renders a different shape, or restores focus from session mirrors instead of panel-local records.",
+      "enforcement_status": "documented_foundation_only",
+      "test_strategy": "Sequence tests alternate modal dismissal, Tab/F8-style routing, and file/tree transitions while asserting each panel restores its own recorded focus shape.",
+      "migration_notes": [
+        "Compatibility session mirrors may shadow focus only after the panel-local owner has committed the transition."
+      ]
+    },
+    {
+      "invariant_id": "invariant.viewport-identity-rebind",
+      "category": "viewport_identity_rebind",
+      "owner_region": "panel-local state",
+      "protected_fields": [
+        "panel.tree_selection_key",
+        "panel.file_selection_key",
+        "panel.tree_viewport_origin",
+        "panel.file_viewport_origin",
+        "panel.restore_snapshot",
+        "panel.panel_generation",
+        "volume.dir_tree",
+        "volume.volume_generation"
+      ],
+      "transition_ids": [
+        "transition.refresh-rebuild.manual-refresh",
+        "transition.terminal-signal-resize",
+        "transition.filesystem-mutation-result.mkdir-copy-delete",
+        "transition.rebuild-rebind-callback.panel-anchor"
+      ],
+      "dispatch_surface_ids": [
+        "surface.refresh-rebuild-rebind",
+        "surface.resize-signal-handling",
+        "surface.filesystem-mutation-result",
+        "surface.watcher-live-refresh"
+      ],
+      "failure_mode": "Fail if rebuild, mutation, or resize restores viewport from raw rows when the stable identity is still visible or before deterministic fallback order is exhausted.",
+      "enforcement_status": "documented_foundation_only",
+      "test_strategy": "Snapshot/diff tests rebuild or resize around stable directory and file identities, then assert exact rebind when visible and deterministic fallback otherwise.",
+      "migration_notes": [
+        "Canonical restore helpers must remain the only authority for rebind after topology or layout invalidation."
+      ]
+    },
+    {
+      "invariant_id": "invariant.shared-state-panel-local-isolation",
+      "category": "shared_state_panel_local_isolation",
+      "owner_region": "volume/shared topology and payload state",
+      "protected_fields": [
+        "ctx.active",
+        "ctx.volumes_head",
+        "panel.volume_key",
+        "panel.tree_selection_key",
+        "panel.file_selection_key",
+        "panel.focus_shape",
+        "panel.restore_snapshot",
+        "panel.panel_generation",
+        "volume.dir_tree",
+        "volume.logged_state",
+        "volume.payload_cache",
+        "volume.volume_generation"
+      ],
+      "transition_ids": [
+        "transition.menu-action.volume-select",
+        "transition.refresh-rebuild.manual-refresh",
+        "transition.volume-operation.release-cycle",
+        "transition.filesystem-mutation-result.mkdir-copy-delete"
+      ],
+      "dispatch_surface_ids": [
+        "surface.volume-operation",
+        "surface.refresh-rebuild-rebind",
+        "surface.filesystem-mutation-result",
+        "surface.watcher-live-refresh"
+      ],
+      "failure_mode": "Fail if shared volume topology or registry changes overwrite panel-local selection, focus, tags, viewport, or restore snapshots by shared index or pointer aliasing.",
+      "enforcement_status": "documented_foundation_only",
+      "test_strategy": "Split-panel sequences share a volume, mutate shared topology, and verify each panel rebinds through its own identity without cross-panel field drift.",
+      "migration_notes": [
+        "Shared topology mirroring must be followed by panel-local rebind rather than copying active panel state into inactive panels."
+      ]
+    },
+    {
+      "invariant_id": "invariant.stale-snapshot-fail-closed",
+      "category": "stale_snapshot_fail_closed",
+      "owner_region": "panel-local state",
+      "protected_fields": [
+        "panel.tree_selection_key",
+        "panel.file_selection_key",
+        "panel.tree_viewport_origin",
+        "panel.file_viewport_origin",
+        "panel.restore_snapshot",
+        "panel.panel_generation",
+        "volume.dir_tree",
+        "volume.volume_generation"
+      ],
+      "transition_ids": [
+        "transition.refresh-rebuild.manual-refresh",
+        "transition.volume-operation.release-cycle",
+        "transition.filesystem-mutation-result.mkdir-copy-delete",
+        "transition.rebuild-rebind-callback.panel-anchor"
+      ],
+      "dispatch_surface_ids": [
+        "surface.refresh-rebuild-rebind",
+        "surface.volume-operation",
+        "surface.filesystem-mutation-result",
+        "surface.watcher-live-refresh"
+      ],
+      "failure_mode": "Fail if a generation mismatch reuses stale DirEntry/FileEntry pointers, stale flat-list rows, or stale snapshot payloads instead of exact rebind or deterministic fallback.",
+      "enforcement_status": "documented_foundation_only",
+      "test_strategy": "Harness corrupts or invalidates saved generations around rebuild/mutation transitions and asserts stale snapshots fail closed without unrelated mutation.",
+      "migration_notes": [
+        "Generation validation must happen before any restore snapshot is applied to a panel record."
+      ]
+    },
+    {
+      "invariant_id": "invariant.blocked-transition-determinism",
+      "category": "blocked_transition_determinism",
+      "owner_region": "ctx/session state",
+      "protected_fields": [
+        "ctx.command_state",
+        "ctx.message_state",
+        "ctx.modal_state",
+        "ctx.pending_transition",
+        "panel.tree_selection_key",
+        "panel.file_selection_key",
+        "panel.restore_snapshot",
+        "panel.panel_generation",
+        "volume.dir_tree",
+        "volume.payload_cache",
+        "volume.volume_generation"
+      ],
+      "transition_ids": [
+        "transition.keybinding.navigate-tree",
+        "transition.menu-action.volume-select",
+        "transition.modal-action.dismiss",
+        "transition.refresh-rebuild.manual-refresh",
+        "transition.volume-operation.release-cycle",
+        "transition.terminal-signal-resize",
+        "transition.filesystem-mutation-result.mkdir-copy-delete",
+        "transition.command-completion.user-command",
+        "transition.rebuild-rebind-callback.panel-anchor",
+        "transition.render-reflow.project-state"
+      ],
+      "dispatch_surface_ids": [
+        "surface.key-decode-input-dispatch",
+        "surface.directory-window-action-dispatch",
+        "surface.file-window-action-dispatch",
+        "surface.menu-modal-completion",
+        "surface.resize-signal-handling",
+        "surface.refresh-rebuild-rebind",
+        "surface.filesystem-mutation-result",
+        "surface.volume-operation",
+        "surface.watcher-live-refresh",
+        "surface.render-reflow-projection"
+      ],
+      "failure_mode": "Fail if a blocked or invalid transition partially mutates authoritative panel/volume state, advances generations, performs hidden side effects, or chooses a non-deterministic fallback.",
+      "enforcement_status": "documented_foundation_only",
+      "test_strategy": "Negative state-sequence tests force guard failures and unavailable targets, then assert no unrelated owner fields differ and any message/modal output is declared.",
+      "migration_notes": [
+        "Blocked outcomes are cross-cutting across all registered transition and dispatch surfaces but are listed explicitly here for guard traceability."
+      ]
+    }
+  ]
+}
