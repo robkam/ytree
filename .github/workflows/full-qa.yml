@@ -3,7 +3,7 @@ name: C/C++ Full QA
 on:
   pull_request:
     branches: [ "main" ]
-    types: [opened, synchronize, reopened, ready_for_review, labeled, unlabeled]
+    types: [opened, synchronize, reopened, labeled, unlabeled]
   workflow_dispatch:
 
 permissions:

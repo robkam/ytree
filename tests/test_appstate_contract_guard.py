@@ -16,6 +16,7 @@ GUARD_SPEC.loader.exec_module(guard)
 REQUIRED_CATEGORIES = sorted(guard.REQUIRED_TRANSITION_CATEGORIES)
 REQUIRED_EVENT_CLASSES = sorted(guard.REQUIRED_EVENT_CLASSES)
 REQUIRED_DISPATCH_SURFACE_CATEGORIES = sorted(guard.REQUIRED_DISPATCH_SURFACE_CATEGORIES)
+REQUIRED_INVARIANT_CATEGORIES = sorted(guard.REQUIRED_INVARIANT_CATEGORIES)
 FIXTURE_ACTIONS = ["ACTION_NONE", "ACTION_MOVE_UP", "ACTION_USER_CMD"]
 REQUIRED_LIST_FIELD_CASES = [
     ("action", "declared_write_set", "action[0]"),
@@ -26,6 +27,9 @@ REQUIRED_LIST_FIELD_CASES = [
     ("transition", "declared_write_set", "transition[0]"),
     ("transition", "side_effects", "transition[0]"),
     ("owner_field", "invariant_checks", "owner_field[0]"),
+    ("invariant", "protected_fields", "invariant[0]"),
+    ("invariant", "transition_ids", "invariant[0]"),
+    ("invariant", "migration_notes", "invariant[0]"),
     ("shim", "invariant_checks", "shim[0]"),
     ("shim", "migration_notes", "shim[0]"),
 ]
@@ -147,6 +151,28 @@ def _dispatch_surface(
     }
 
 
+def _invariant(
+    category: str,
+    invariant_id: str | None = None,
+    transition_ids: list[str] | None = None,
+    dispatch_surface_ids: list[str] | None = None,
+) -> dict[str, object]:
+    return {
+        "invariant_id": invariant_id or f"invariant.{category}",
+        "category": category,
+        "owner_region": "panel-local state",
+        "protected_fields": ["field", "panel.tree_selection_key"],
+        "transition_ids": transition_ids or ["transition.keybinding"],
+        "dispatch_surface_ids": (
+            dispatch_surface_ids or ["surface.key_decode_input_dispatch"]
+        ),
+        "failure_mode": "fixture failure mode",
+        "enforcement_status": "documented_foundation_only",
+        "test_strategy": "fixture state-sequence coverage",
+        "migration_notes": ["fixture coverage"],
+    }
+
+
 def _owner_field(field: str = "field") -> dict[str, object]:
     return {
         "field": field,
@@ -168,15 +194,17 @@ def _write_fixture(
     events: list[dict[str, object]] | None = None,
     owner_fields: list[dict[str, object]] | None = None,
     dispatch_surfaces: list[dict[str, object]] | None = None,
+    invariants: list[dict[str, object]] | None = None,
     required_event_classes: list[str] | None = None,
     enum_actions: list[str] | None = None,
-) -> tuple[Path, Path, Path, Path, Path, Path, Path]:
+) -> tuple[Path, Path, Path, Path, Path, Path, Path, Path]:
     transitions_path = tmp_path / "transitions.json"
     shims_path = tmp_path / "shims.json"
     action_coverage_path = tmp_path / "action_coverage.json"
     event_coverage_path = tmp_path / "event_coverage.json"
     owner_fields_path = tmp_path / "owner_fields.json"
     dispatch_surfaces_path = tmp_path / "dispatch_surfaces.json"
+    invariants_path = tmp_path / "invariants.json"
     actions_header_path = tmp_path / "ytree_defs.h"
     _write(transitions_path, _jsonish({"schema_version": 1, "transitions": transitions}))
     _write(shims_path, _jsonish({"schema_version": 1, "shims": shims or [_shim()]}))
@@ -207,6 +235,10 @@ def _write_fixture(
             }
         ),
     )
+    _write(
+        invariants_path,
+        _jsonish({"schema_version": 1, "invariants": invariants or _complete_invariants()}),
+    )
     _write(actions_header_path, _enum_header(enum_actions or FIXTURE_ACTIONS))
     return (
         transitions_path,
@@ -216,6 +248,7 @@ def _write_fixture(
         event_coverage_path,
         owner_fields_path,
         dispatch_surfaces_path,
+        invariants_path,
     )
 
 
@@ -252,23 +285,28 @@ def _complete_dispatch_surfaces() -> list[dict[str, object]]:
     ]
 
 
+def _complete_invariants() -> list[dict[str, object]]:
+    return [_invariant(category) for category in REQUIRED_INVARIANT_CATEGORIES]
+
+
 def _complete_owner_fields() -> list[dict[str, object]]:
     return [_owner_field("field"), _owner_field("panel.tree_selection_key")]
 
 
-def _validate(paths: tuple[Path, Path, Path, Path, Path, Path, Path]) -> list[str]:
+def _validate(paths: tuple[Path, Path, Path, Path, Path, Path, Path, Path]) -> list[str]:
     return guard.validate_contract(*paths)
 
 
 def _fixture_with_list_field_value(
     tmp_path: Path, record_type: str, field: str, value: object
-) -> tuple[Path, Path, Path, Path, Path, Path, Path]:
+) -> tuple[Path, Path, Path, Path, Path, Path, Path, Path]:
     transitions = _complete_transitions()
     shims = [_shim()]
     actions = _complete_actions()
     events = _complete_events()
     owner_fields = _complete_owner_fields()
     dispatch_surfaces = _complete_dispatch_surfaces()
+    invariants = _complete_invariants()
     if record_type == "action":
         actions[0][field] = value
     elif record_type == "event":
@@ -281,6 +319,8 @@ def _fixture_with_list_field_value(
         shims[0][field] = value
     elif record_type == "dispatch_surface":
         dispatch_surfaces[0][field] = value
+    elif record_type == "invariant":
+        invariants[0][field] = value
     else:
         raise AssertionError(f"unknown record type: {record_type}")
     return _write_fixture(
@@ -291,6 +331,7 @@ def _fixture_with_list_field_value(
         events=events,
         owner_fields=owner_fields,
         dispatch_surfaces=dispatch_surfaces,
+        invariants=invariants,
     )
 
 
@@ -309,6 +350,217 @@ def test_current_repository_appstate_contract_passes() -> None:
 def test_guard_passes_complete_temporary_fixtures(tmp_path: Path) -> None:
     transitions = _complete_transitions()
     paths = _write_fixture(tmp_path, transitions=transitions)
+
+    failures = _validate(paths)
+
+    assert failures == []
+
+
+def test_guard_accepts_invariant_registry_cli_override(tmp_path: Path) -> None:
+    repo_root = Path(__file__).resolve().parents[1]
+    override_path = tmp_path / "appstate_invariants.json"
+    override_path.write_text(
+        (repo_root / "docs" / "appstate_invariants.json").read_text(encoding="utf-8"),
+        encoding="utf-8",
+    )
+
+    run = subprocess.run(
+        [
+            "python3",
+            "scripts/check_appstate_contract.py",
+            "--invariants",
+            str(override_path),
+        ],
+        cwd=repo_root,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+    assert run.returncode == 0, run.stdout + run.stderr
+
+
+def test_guard_fails_when_required_invariant_category_is_missing(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    invariants = [
+        invariant
+        for invariant in _complete_invariants()
+        if invariant["category"] != "stale_snapshot_fail_closed"
+    ]
+    paths = _write_fixture(tmp_path, transitions=transitions, invariants=invariants)
+
+    failures = _validate(paths)
+
+    assert any("invariants missing required category" in failure for failure in failures)
+    assert any("stale_snapshot_fail_closed" in failure for failure in failures)
+
+
+def test_guard_fails_when_required_invariant_field_is_missing(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    invariants = _complete_invariants()
+    invariants[0].pop("failure_mode")
+    paths = _write_fixture(tmp_path, transitions=transitions, invariants=invariants)
+
+    failures = _validate(paths)
+
+    assert any(
+        "invariant[0]" in failure
+        and "missing required field" in failure
+        and "failure_mode" in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_on_duplicate_invariant_ids(tmp_path: Path) -> None:
+    transitions = _complete_transitions()
+    invariants = _complete_invariants()
+    invariants[1]["invariant_id"] = invariants[0]["invariant_id"]
+    paths = _write_fixture(tmp_path, transitions=transitions, invariants=invariants)
+
+    failures = _validate(paths)
+
+    assert any(
+        "invariant[1]" in failure and "duplicate invariant_id" in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_when_invariant_has_unknown_category(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    invariants = _complete_invariants()
+    invariants[0]["category"] = "unknown_invariant"
+    paths = _write_fixture(tmp_path, transitions=transitions, invariants=invariants)
+
+    failures = _validate(paths)
+
+    assert any(
+        "invariant[0]" in failure
+        and "unknown category" in failure
+        and "unknown_invariant" in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_when_invariant_references_unknown_owner_field(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    invariants = _complete_invariants()
+    invariants[0]["protected_fields"] = ["field.unknown"]
+    paths = _write_fixture(tmp_path, transitions=transitions, invariants=invariants)
+
+    failures = _validate(paths)
+
+    assert any(
+        "invariant[0]" in failure
+        and "protected_fields references unregistered owner field" in failure
+        and "field.unknown" in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_when_invariant_references_unknown_transition(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    invariants = _complete_invariants()
+    invariants[0]["transition_ids"] = ["transition.missing"]
+    paths = _write_fixture(tmp_path, transitions=transitions, invariants=invariants)
+
+    failures = _validate(paths)
+
+    assert any(
+        "invariant[0]" in failure
+        and "transition_ids references unknown transition id" in failure
+        and "transition.missing" in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_when_invariant_references_unknown_dispatch_surface(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    invariants = _complete_invariants()
+    invariants[0]["dispatch_surface_ids"] = ["surface.missing"]
+    paths = _write_fixture(tmp_path, transitions=transitions, invariants=invariants)
+
+    failures = _validate(paths)
+
+    assert any(
+        "invariant[0]" in failure
+        and "dispatch_surface_ids references unknown dispatch surface id" in failure
+        and "surface.missing" in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_when_invariant_dispatch_surfaces_are_not_a_list(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    invariants = _complete_invariants()
+    invariants[0]["dispatch_surface_ids"] = "surface.key_decode_input_dispatch"
+    paths = _write_fixture(tmp_path, transitions=transitions, invariants=invariants)
+
+    failures = _validate(paths)
+
+    assert any(
+        "invariant[0]" in failure
+        and "dispatch_surface_ids must be a list" in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_when_invariant_dispatch_surface_element_is_malformed(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    invariants = _complete_invariants()
+    invariants[0]["dispatch_surface_ids"] = [123]
+    paths = _write_fixture(tmp_path, transitions=transitions, invariants=invariants)
+
+    failures = _validate(paths)
+
+    assert any(
+        "invariant[0]" in failure
+        and "dispatch_surface_ids[0]" in failure
+        and "must be a non-empty string" in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_when_empty_invariant_dispatch_surfaces_lack_cross_cutting_note(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    invariants = _complete_invariants()
+    invariants[0]["dispatch_surface_ids"] = []
+    paths = _write_fixture(tmp_path, transitions=transitions, invariants=invariants)
+
+    failures = _validate(paths)
+
+    assert any(
+        "invariant[0]" in failure
+        and "empty dispatch_surface_ids requires a cross-cutting" in failure
+        for failure in failures
+    )
+
+
+def test_guard_accepts_empty_invariant_dispatch_surfaces_with_cross_cutting_note(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    invariants = _complete_invariants()
+    invariants[0]["dispatch_surface_ids"] = []
+    invariants[0]["migration_notes"] = ["cross-cutting fixture invariant"]
+    paths = _write_fixture(tmp_path, transitions=transitions, invariants=invariants)
 
     failures = _validate(paths)
 

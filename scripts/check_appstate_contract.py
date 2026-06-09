@@ -16,6 +16,7 @@ DEFAULT_ACTION_COVERAGE = REPO_ROOT / "docs" / "appstate_action_coverage.json"
 DEFAULT_EVENT_COVERAGE = REPO_ROOT / "docs" / "appstate_event_coverage.json"
 DEFAULT_OWNER_FIELDS = REPO_ROOT / "docs" / "appstate_owner_fields.json"
 DEFAULT_DISPATCH_SURFACES = REPO_ROOT / "docs" / "appstate_dispatch_surfaces.json"
+DEFAULT_INVARIANTS = REPO_ROOT / "docs" / "appstate_invariants.json"
 DEFAULT_ACTION_HEADER = REPO_ROOT / "include" / "ytree_defs.h"
 
 REQUIRED_TRANSITION_CATEGORIES = {
@@ -97,6 +98,17 @@ REQUIRED_DISPATCH_SURFACE_CATEGORIES = {
     "render_reflow_projection",
 }
 
+REQUIRED_INVARIANT_CATEGORIES = {
+    "inactive_panel_frozen",
+    "render_projection_read_only",
+    "hidden_entry_visible_navigation",
+    "panel_local_focus_restore",
+    "viewport_identity_rebind",
+    "shared_state_panel_local_isolation",
+    "stale_snapshot_fail_closed",
+    "blocked_transition_determinism",
+}
+
 REQUIRED_DISPATCH_SURFACE_FIELDS = {
     "surface_id",
     "category",
@@ -131,6 +143,19 @@ REQUIRED_OWNER_FIELDS = {
     "invariant_checks",
 }
 
+REQUIRED_INVARIANT_FIELDS = {
+    "invariant_id",
+    "category",
+    "owner_region",
+    "protected_fields",
+    "transition_ids",
+    "dispatch_surface_ids",
+    "failure_mode",
+    "enforcement_status",
+    "test_strategy",
+    "migration_notes",
+}
+
 LIST_FIELDS = {
     "declared_write_set",
     "side_effects",
@@ -140,6 +165,11 @@ LIST_FIELDS = {
 
 EVENT_LIST_FIELDS = LIST_FIELDS | {"trigger_paths"}
 DISPATCH_LIST_FIELDS = {"migration_notes"}
+INVARIANT_LIST_FIELDS = {
+    "protected_fields",
+    "transition_ids",
+    "migration_notes",
+}
 
 
 def _load_json(path: Path) -> tuple[Any | None, list[str]]:
@@ -313,6 +343,21 @@ def _validate_registered_write_set(
     return failures
 
 
+def _collect_string_ids(doc: Any, *, collection_key: str, id_field: str) -> set[str]:
+    if not isinstance(doc, dict):
+        return set()
+    records = doc.get(collection_key)
+    if not isinstance(records, list):
+        return set()
+    return {
+        value
+        for record in records
+        if isinstance(record, dict)
+        for value in [record.get(id_field)]
+        if isinstance(value, str) and value.strip()
+    }
+
+
 def _validate_allowed_direct_writes(
     *,
     record: dict[str, Any],
@@ -460,6 +505,125 @@ def _validate_dispatch_surfaces(
     return failures
 
 
+def _validate_invariants(
+    *,
+    invariants_doc: Any,
+    invariants_path: Path,
+    transition_ids: dict[str, dict[str, Any]],
+    registered_owner_fields: set[str],
+    dispatch_surface_ids: set[str],
+) -> list[str]:
+    failures: list[str] = []
+    if not isinstance(invariants_doc, dict):
+        failures.append(f"{invariants_path}: top-level value must be an object")
+        return failures
+
+    invariant_records = invariants_doc.get("invariants")
+    if not isinstance(invariant_records, list) or not invariant_records:
+        failures.append(f"{invariants_path}: invariants must be a non-empty list")
+        invariant_records = []
+
+    invariant_ids: set[str] = set()
+    covered_categories: set[str] = set()
+    for index, record in enumerate(invariant_records):
+        label = f"invariant[{index}]"
+        failures.extend(
+            _validate_required_fields(
+                record=record,
+                required_fields=REQUIRED_INVARIANT_FIELDS - {"dispatch_surface_ids"},
+                list_fields=INVARIANT_LIST_FIELDS,
+                label=label,
+            )
+        )
+        if not isinstance(record, dict):
+            continue
+        if "dispatch_surface_ids" not in record:
+            failures.append(f"{label}: missing required field(s): dispatch_surface_ids")
+        else:
+            surface_refs_value = record.get("dispatch_surface_ids")
+            if not isinstance(surface_refs_value, list):
+                failures.append(
+                    f"{label}: dispatch_surface_ids must be a list"
+                )
+            else:
+                for surface_index, surface_id in enumerate(surface_refs_value):
+                    if not isinstance(surface_id, str) or not surface_id.strip():
+                        failures.append(
+                            f"{label}: dispatch_surface_ids[{surface_index}] must be a non-empty string"
+                        )
+
+        invariant_id = record.get("invariant_id")
+        if isinstance(invariant_id, str) and invariant_id.strip():
+            if invariant_id in invariant_ids:
+                failures.append(f"{label}: duplicate invariant_id: {invariant_id}")
+            invariant_ids.add(invariant_id)
+
+        category = record.get("category")
+        if isinstance(category, str) and category.strip():
+            covered_categories.add(category)
+            if category not in REQUIRED_INVARIANT_CATEGORIES:
+                failures.append(f"{label}: unknown category: {category}")
+
+        protected_fields = record.get("protected_fields")
+        if isinstance(protected_fields, list):
+            for field in protected_fields:
+                if (
+                    isinstance(field, str)
+                    and field.strip()
+                    and field not in registered_owner_fields
+                ):
+                    failures.append(
+                        f"{label}: protected_fields references unregistered owner field: {field}"
+                    )
+
+        transition_refs = record.get("transition_ids")
+        if isinstance(transition_refs, list):
+            for transition_id in transition_refs:
+                if (
+                    isinstance(transition_id, str)
+                    and transition_id.strip()
+                    and transition_id not in transition_ids
+                ):
+                    failures.append(
+                        f"{label}: transition_ids references unknown transition id: {transition_id}"
+                    )
+
+        surface_refs = record.get("dispatch_surface_ids")
+        if isinstance(surface_refs, list):
+            if not surface_refs:
+                migration_notes = record.get("migration_notes")
+                has_cross_cutting_note = (
+                    isinstance(migration_notes, list)
+                    and any(
+                        isinstance(note, str)
+                        and "cross-cutting" in note.lower()
+                        for note in migration_notes
+                    )
+                )
+                if not has_cross_cutting_note:
+                    failures.append(
+                        f"{label}: empty dispatch_surface_ids requires a cross-cutting migration_notes explanation"
+                    )
+            for surface_id in surface_refs:
+                if (
+                    isinstance(surface_id, str)
+                    and surface_id.strip()
+                    and surface_id not in dispatch_surface_ids
+                ):
+                    failures.append(
+                        f"{label}: dispatch_surface_ids references unknown dispatch surface id: {surface_id}"
+                    )
+
+    missing_categories = sorted(REQUIRED_INVARIANT_CATEGORIES - covered_categories)
+    if missing_categories:
+        failures.append(
+            "invariants missing required category/categories: "
+            + ", ".join(missing_categories)
+        )
+
+    return failures
+
+
 def _validate_event_coverage(
     *,
     event_coverage_doc: Any,
@@ -561,6 +725,7 @@ def validate_contract(
     event_coverage_path: Path = DEFAULT_EVENT_COVERAGE,
     owner_fields_path: Path = DEFAULT_OWNER_FIELDS,
     dispatch_surfaces_path: Path = DEFAULT_DISPATCH_SURFACES,
+    invariants_path: Path = DEFAULT_INVARIANTS,
 ) -> list[str]:
     failures: list[str] = []
     transitions_doc, transition_load_failures = _load_json(transitions_path)
@@ -571,6 +736,7 @@ def validate_contract(
     dispatch_surfaces_doc, dispatch_surfaces_load_failures = _load_json(
         dispatch_surfaces_path
     )
+    invariants_doc, invariants_load_failures = _load_json(invariants_path)
     enum_actions, enum_failures = _parse_ytree_actions(actions_header_path)
     failures.extend(transition_load_failures)
     failures.extend(shim_load_failures)
@@ -578,6 +744,7 @@ def validate_contract(
     failures.extend(event_coverage_load_failures)
     failures.extend(owner_fields_load_failures)
     failures.extend(dispatch_surfaces_load_failures)
+    failures.extend(invariants_load_failures)
     failures.extend(enum_failures)
     if failures:
         return failures
@@ -750,6 +917,20 @@ def validate_contract(
             registered_owner_fields=registered_owner_fields,
         )
     )
+    dispatch_surface_ids = _collect_string_ids(
+        dispatch_surfaces_doc,
+        collection_key="dispatch_surfaces",
+        id_field="surface_id",
+    )
+    failures.extend(
+        _validate_invariants(
+            invariants_doc=invariants_doc,
+            invariants_path=invariants_path,
+            transition_ids=transition_ids,
+            registered_owner_fields=registered_owner_fields,
+            dispatch_surface_ids=dispatch_surface_ids,
+        )
+    )
 
     return failures
 
@@ -764,6 +945,7 @@ def main() -> int:
     parser.add_argument(
         "--dispatch-surfaces", type=Path, default=DEFAULT_DISPATCH_SURFACES
     )
+    parser.add_argument("--invariants", type=Path, default=DEFAULT_INVARIANTS)
     parser.add_argument("--actions-header", type=Path, default=DEFAULT_ACTION_HEADER)
     args = parser.parse_args()
 
@@ -775,6 +957,7 @@ def main() -> int:
         args.event_coverage,
         args.owner_fields,
         args.dispatch_surfaces,
+        args.invariants,
     )
     if failures:
         for failure in failures:
