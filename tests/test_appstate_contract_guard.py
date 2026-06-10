@@ -331,6 +331,7 @@ def _write_fixture(
     runtime_actions: list[dict[str, object]] | None = None,
     runtime_transitions: list[dict[str, object]] | None = None,
     runtime_shims: list[dict[str, object]] | None = None,
+    runtime_invariants: list[dict[str, object]] | None = None,
 ) -> tuple[Path, Path, Path, Path, Path, Path, Path, Path, Path, Path, Path, Path]:
     transitions_path = tmp_path / "transitions.json"
     shims_path = tmp_path / "shims.json"
@@ -418,6 +419,9 @@ def _write_fixture(
             runtime_shims
             if runtime_shims is not None
             else (shims if shims is not None else [_shim()]),
+            runtime_invariants
+            if runtime_invariants is not None
+            else (invariants if invariants is not None else _complete_invariants()),
         ),
     )
     return (
@@ -451,6 +455,7 @@ def _runtime_source(
     actions: list[dict[str, object]],
     transitions: list[dict[str, object]],
     shims: list[dict[str, object]],
+    invariants: list[dict[str, object]],
 ) -> str:
     transition_write_sets = []
     transition_rows = []
@@ -498,6 +503,46 @@ def _runtime_source(
             f'"{record.get("follow_up_task", "")}", '
             f'"{record.get("qa_enforcement", "")}"}},'
         )
+    invariant_arrays = []
+    invariant_rows = []
+    invariant_list_fields = (
+        ("protected_fields", "ProtectedFields"),
+        ("transition_ids", "TransitionIds"),
+        ("dispatch_surface_ids", "DispatchSurfaceIds"),
+        ("migration_notes", "MigrationNotes"),
+    )
+    for index, record in enumerate(invariants):
+        for field, prefix in invariant_list_fields:
+            values = record.get(field)
+            if not isinstance(values, list):
+                values = []
+            rows = "\n".join(
+                f'  "{value}",' for value in values if isinstance(value, str)
+            )
+            invariant_arrays.append(
+                f"static const char *const kAppStateInvariant{prefix}{index}[] "
+                f"= {{\n{rows}\n}};\n"
+            )
+        invariant_rows.append(
+            f'  {{"{record.get("invariant_id", "")}", '
+            f'"{record.get("category", "")}", '
+            f'"{record.get("owner_region", "")}", '
+            f"kAppStateInvariantProtectedFields{index}, "
+            f"sizeof(kAppStateInvariantProtectedFields{index}) / "
+            f"sizeof(kAppStateInvariantProtectedFields{index}[0]), "
+            f"kAppStateInvariantTransitionIds{index}, "
+            f"sizeof(kAppStateInvariantTransitionIds{index}) / "
+            f"sizeof(kAppStateInvariantTransitionIds{index}[0]), "
+            f"kAppStateInvariantDispatchSurfaceIds{index}, "
+            f"sizeof(kAppStateInvariantDispatchSurfaceIds{index}) / "
+            f"sizeof(kAppStateInvariantDispatchSurfaceIds{index}[0]), "
+            f'"{record.get("failure_mode", "")}", '
+            f'"{record.get("enforcement_status", "")}", '
+            f'"{record.get("test_strategy", "")}", '
+            f"kAppStateInvariantMigrationNotes{index}, "
+            f"sizeof(kAppStateInvariantMigrationNotes{index}) / "
+            f"sizeof(kAppStateInvariantMigrationNotes{index}[0])}},"
+        )
     action_rows = "\n".join(
         f'  {{{record["action"]}, "{record["transition_id"]}", "{record["category"]}"}},'
         for record in actions
@@ -505,12 +550,16 @@ def _runtime_source(
     return (
         "".join(transition_write_sets)
         + "".join(shim_invariants)
+        + "".join(invariant_arrays)
         + "static const AppStateTransitionMetadata kAppStateTransitions[] = {\n"
         + "\n".join(transition_rows)
         + "\n};\n"
         "static const AppStateCompatibilityShimMetadata "
         "kAppStateCompatibilityShims[] = {\n"
         + "\n".join(shim_rows)
+        + "\n};\n"
+        "static const AppStateInvariantMetadata kAppStateInvariants[] = {\n"
+        + "\n".join(invariant_rows)
         + "\n};\n"
         "static const AppStateActionTransitionMetadata\n"
         "    kAppStateActionTransitions[APPSTATE_ACTION_TRANSITION_COUNT] = {\n"
@@ -2201,6 +2250,197 @@ def test_guard_fails_when_runtime_shim_target_transition_is_not_runtime_register
     assert any(
         "runtime_shim[0]" in failure
         and "target_transition does not match runtime transition registry" in failure
+        and "transition.keybinding" in failure
+        for failure in failures
+    )
+
+def test_guard_fails_when_runtime_invariant_metadata_drifts(tmp_path: Path) -> None:
+    transitions = _complete_transitions()
+    runtime_invariants = _complete_invariants()
+    runtime_invariants[0]["protected_fields"] = ["field"]
+    runtime_invariants[1]["migration_notes"] = ["different note"]
+    paths = _write_fixture(
+        tmp_path,
+        transitions=transitions,
+        runtime_invariants=runtime_invariants,
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "runtime_invariant[0]" in failure
+        and "runtime protected_fields does not match invariant" in failure
+        for failure in failures
+    )
+    assert any(
+        "runtime_invariant[1]" in failure
+        and "runtime migration_notes does not match invariant" in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_when_runtime_invariant_id_is_missing(tmp_path: Path) -> None:
+    transitions = _complete_transitions()
+    invariants = _complete_invariants()
+    missing_id = invariants[-1]["invariant_id"]
+    paths = _write_fixture(
+        tmp_path,
+        transitions=transitions,
+        runtime_invariants=invariants[:-1],
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "runtime invariant registry missing invariant id" in failure
+        and missing_id in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_when_runtime_invariant_id_is_extra(tmp_path: Path) -> None:
+    transitions = _complete_transitions()
+    extra_invariant = _invariant("inactive_panel_frozen", "invariant.extra")
+    paths = _write_fixture(
+        tmp_path,
+        transitions=transitions,
+        runtime_invariants=_complete_invariants() + [extra_invariant],
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "runtime_invariant" in failure
+        and "invariant_id does not match an invariant id" in failure
+        and "invariant.extra" in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_when_runtime_invariant_row_is_malformed(
+    tmp_path: Path,
+) -> None:
+    paths = _write_fixture(tmp_path, transitions=_complete_transitions())
+    runtime_path = paths[-1]
+    source = runtime_path.read_text(encoding="utf-8")
+    malformed_row = (
+        '  {NULL, "inactive_panel_frozen", "YtreePanel(inactive)", '
+        "kAppStateInvariantProtectedFields0, "
+        "sizeof(kAppStateInvariantProtectedFields0) / "
+        "sizeof(kAppStateInvariantProtectedFields0[0]), "
+        "kAppStateInvariantTransitionIds0, "
+        "sizeof(kAppStateInvariantTransitionIds0) / "
+        "sizeof(kAppStateInvariantTransitionIds0[0]), "
+        "kAppStateInvariantDispatchSurfaceIds0, "
+        "sizeof(kAppStateInvariantDispatchSurfaceIds0) / "
+        "sizeof(kAppStateInvariantDispatchSurfaceIds0[0]), "
+        '"stale selection", "guard", "contract guard", '
+        "kAppStateInvariantMigrationNotes0, "
+        "sizeof(kAppStateInvariantMigrationNotes0) / "
+        "sizeof(kAppStateInvariantMigrationNotes0[0])},"
+    )
+    marker = "\n};\nstatic const AppStateActionTransitionMetadata"
+    runtime_path.write_text(
+        source.replace(marker, f"\n{malformed_row}{marker}", 1),
+        encoding="utf-8",
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "runtime_invariant[" in failure
+        and "malformed runtime invariant registry row" in failure
+        and "NULL" in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_when_runtime_invariant_list_entry_is_malformed(
+    tmp_path: Path,
+) -> None:
+    paths = _write_fixture(tmp_path, transitions=_complete_transitions())
+    runtime_path = paths[-1]
+    source = runtime_path.read_text(encoding="utf-8")
+    marker = (
+        "static const char *const kAppStateInvariantProtectedFields0[] = {\n"
+        '  "field",'
+    )
+    mutated_marker = marker.replace('  "field",', '  NULL,\n  "field",')
+    runtime_path.write_text(
+        source.replace(marker, mutated_marker, 1),
+        encoding="utf-8",
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "kAppStateInvariantProtectedFields0[0]" in failure
+        and "malformed string literal entry" in failure
+        and "NULL" in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_when_runtime_invariant_id_is_duplicated(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    runtime_invariants = _complete_invariants()
+    runtime_invariants[1]["invariant_id"] = runtime_invariants[0]["invariant_id"]
+    paths = _write_fixture(
+        tmp_path,
+        transitions=transitions,
+        runtime_invariants=runtime_invariants,
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "runtime_invariant[1]" in failure
+        and "duplicate runtime invariant id" in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_when_runtime_invariant_transition_ids_are_missing(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    runtime_invariants = _complete_invariants()
+    runtime_invariants[0]["transition_ids"] = []
+    paths = _write_fixture(
+        tmp_path,
+        transitions=transitions,
+        runtime_invariants=runtime_invariants,
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "runtime_invariant[0]" in failure
+        and "transition_ids must be non-empty" in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_when_runtime_invariant_transition_is_not_runtime_registered(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    runtime_transitions = [
+        record for record in transitions if record["id"] != "transition.keybinding"
+    ]
+    paths = _write_fixture(
+        tmp_path,
+        transitions=transitions,
+        runtime_transitions=runtime_transitions,
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "runtime_invariant[0]" in failure
+        and "transition_ids does not match runtime transition registry" in failure
         and "transition.keybinding" in failure
         for failure in failures
     )

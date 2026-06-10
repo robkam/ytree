@@ -106,6 +106,406 @@ static const char *const kAppStateCompatibilityShimInvariantChecks3[] = {
   "Temporary row math is discarded after draw",
 };
 
+static const char *const kAppStateInvariantProtectedFields0[] = {
+  "ctx.active",
+  "panel.volume_key",
+  "panel.tree_selection_key",
+  "panel.tree_cursor_pos",
+  "panel.tree_viewport_origin",
+  "panel.file_selection_key",
+  "panel.file_viewport_origin",
+  "panel.focus_shape",
+  "panel.restore_snapshot",
+  "panel.panel_generation",
+};
+
+static const char *const kAppStateInvariantTransitionIds0[] = {
+  "transition.keybinding.navigate-tree",
+  "transition.menu-action.volume-select",
+  "transition.modal-action.dismiss",
+  "transition.refresh-rebuild.manual-refresh",
+  "transition.volume-operation.release-cycle",
+  "transition.terminal-signal-resize",
+};
+
+static const char *const kAppStateInvariantDispatchSurfaceIds0[] = {
+  "surface.directory-window-action-dispatch",
+  "surface.file-window-action-dispatch",
+  "surface.menu-modal-completion",
+  "surface.refresh-rebuild-rebind",
+  "surface.volume-operation",
+  "surface.resize-signal-handling",
+};
+
+static const char *const kAppStateInvariantMigrationNotes0[] = {
+  "Future dynamic tests should distinguish shared topology mirroring from inactive panel-local mutation.",
+};
+
+static const char *const kAppStateInvariantProtectedFields1[] = {
+  "ctx.layout",
+  "ctx.render_dirty_flags",
+  "ctx.window_handles",
+  "panel.tree_selection_key",
+  "panel.file_selection_key",
+  "panel.tree_viewport_origin",
+  "panel.file_viewport_origin",
+  "panel.focus_shape",
+  "panel.panel_generation",
+  "volume.volume_generation",
+};
+
+static const char *const kAppStateInvariantTransitionIds1[] = {
+  "transition.render-reflow.project-state",
+  "transition.terminal-signal-resize",
+};
+
+static const char *const kAppStateInvariantDispatchSurfaceIds1[] = {
+  "surface.render-reflow-projection",
+  "surface.resize-signal-handling",
+};
+
+static const char *const kAppStateInvariantMigrationNotes1[] = {
+  "Runtime migration must keep ncurses drawing and temporary row calculations from becoming restore authority.",
+};
+
+static const char *const kAppStateInvariantProtectedFields2[] = {
+  "panel.tree_selection_key",
+  "panel.tree_cursor_pos",
+  "panel.tree_viewport_origin",
+  "panel.restore_snapshot",
+  "panel.panel_generation",
+  "volume.dir_tree",
+  "volume.logged_state",
+  "volume.volume_generation",
+};
+
+static const char *const kAppStateInvariantTransitionIds2[] = {
+  "transition.keybinding.navigate-tree",
+  "transition.refresh-rebuild.manual-refresh",
+  "transition.rebuild-rebind-callback.panel-anchor",
+};
+
+static const char *const kAppStateInvariantDispatchSurfaceIds2[] = {
+  "surface.directory-window-action-dispatch",
+  "surface.refresh-rebuild-rebind",
+  "surface.watcher-live-refresh",
+};
+
+static const char *const kAppStateInvariantMigrationNotes2[] = {
+  "Hidden-entry checks must use stable identity and visibility metadata rather than stale row positions.",
+};
+
+static const char *const kAppStateInvariantProtectedFields3[] = {
+  "ctx.modal_state",
+  "panel.focus_shape",
+  "panel.tree_selection_key",
+  "panel.file_selection_key",
+  "panel.tree_viewport_origin",
+  "panel.file_viewport_origin",
+  "panel.restore_snapshot",
+  "panel.panel_generation",
+};
+
+static const char *const kAppStateInvariantTransitionIds3[] = {
+  "transition.keybinding.navigate-tree",
+  "transition.menu-action.volume-select",
+  "transition.modal-action.dismiss",
+  "transition.rebuild-rebind-callback.panel-anchor",
+};
+
+static const char *const kAppStateInvariantDispatchSurfaceIds3[] = {
+  "surface.directory-window-action-dispatch",
+  "surface.file-window-action-dispatch",
+  "surface.menu-modal-completion",
+  "surface.volume-operation",
+};
+
+static const char *const kAppStateInvariantMigrationNotes3[] = {
+  "Compatibility session mirrors may shadow focus only after the panel-local owner has committed the transition.",
+};
+
+static const char *const kAppStateInvariantProtectedFields4[] = {
+  "panel.tree_selection_key",
+  "panel.file_selection_key",
+  "panel.tree_viewport_origin",
+  "panel.file_viewport_origin",
+  "panel.restore_snapshot",
+  "panel.panel_generation",
+  "volume.dir_tree",
+  "volume.volume_generation",
+};
+
+static const char *const kAppStateInvariantTransitionIds4[] = {
+  "transition.refresh-rebuild.manual-refresh",
+  "transition.terminal-signal-resize",
+  "transition.filesystem-mutation-result.mkdir-copy-delete",
+  "transition.rebuild-rebind-callback.panel-anchor",
+};
+
+static const char *const kAppStateInvariantDispatchSurfaceIds4[] = {
+  "surface.refresh-rebuild-rebind",
+  "surface.resize-signal-handling",
+  "surface.filesystem-mutation-result",
+  "surface.watcher-live-refresh",
+};
+
+static const char *const kAppStateInvariantMigrationNotes4[] = {
+  "Canonical restore helpers must remain the only authority for rebind after topology or layout invalidation.",
+};
+
+static const char *const kAppStateInvariantProtectedFields5[] = {
+  "ctx.active",
+  "ctx.volumes_head",
+  "panel.volume_key",
+  "panel.tree_selection_key",
+  "panel.file_selection_key",
+  "panel.focus_shape",
+  "panel.restore_snapshot",
+  "panel.panel_generation",
+  "volume.dir_tree",
+  "volume.logged_state",
+  "volume.payload_cache",
+  "volume.volume_generation",
+};
+
+static const char *const kAppStateInvariantTransitionIds5[] = {
+  "transition.menu-action.volume-select",
+  "transition.refresh-rebuild.manual-refresh",
+  "transition.volume-operation.release-cycle",
+  "transition.filesystem-mutation-result.mkdir-copy-delete",
+};
+
+static const char *const kAppStateInvariantDispatchSurfaceIds5[] = {
+  "surface.volume-operation",
+  "surface.refresh-rebuild-rebind",
+  "surface.filesystem-mutation-result",
+  "surface.watcher-live-refresh",
+};
+
+static const char *const kAppStateInvariantMigrationNotes5[] = {
+  "Shared topology mirroring must be followed by panel-local rebind rather than copying active panel state into inactive panels.",
+};
+
+static const char *const kAppStateInvariantProtectedFields6[] = {
+  "panel.tree_selection_key",
+  "panel.file_selection_key",
+  "panel.tree_viewport_origin",
+  "panel.file_viewport_origin",
+  "panel.restore_snapshot",
+  "panel.panel_generation",
+  "volume.dir_tree",
+  "volume.volume_generation",
+};
+
+static const char *const kAppStateInvariantTransitionIds6[] = {
+  "transition.refresh-rebuild.manual-refresh",
+  "transition.volume-operation.release-cycle",
+  "transition.filesystem-mutation-result.mkdir-copy-delete",
+  "transition.rebuild-rebind-callback.panel-anchor",
+};
+
+static const char *const kAppStateInvariantDispatchSurfaceIds6[] = {
+  "surface.refresh-rebuild-rebind",
+  "surface.volume-operation",
+  "surface.filesystem-mutation-result",
+  "surface.watcher-live-refresh",
+};
+
+static const char *const kAppStateInvariantMigrationNotes6[] = {
+  "Generation validation must happen before any restore snapshot is applied to a panel record.",
+};
+
+static const char *const kAppStateInvariantProtectedFields7[] = {
+  "ctx.command_state",
+  "ctx.message_state",
+  "ctx.modal_state",
+  "ctx.pending_transition",
+  "panel.tree_selection_key",
+  "panel.file_selection_key",
+  "panel.restore_snapshot",
+  "panel.panel_generation",
+  "volume.dir_tree",
+  "volume.payload_cache",
+  "volume.volume_generation",
+};
+
+static const char *const kAppStateInvariantTransitionIds7[] = {
+  "transition.keybinding.navigate-tree",
+  "transition.menu-action.volume-select",
+  "transition.modal-action.dismiss",
+  "transition.refresh-rebuild.manual-refresh",
+  "transition.volume-operation.release-cycle",
+  "transition.terminal-signal-resize",
+  "transition.filesystem-mutation-result.mkdir-copy-delete",
+  "transition.command-completion.user-command",
+  "transition.rebuild-rebind-callback.panel-anchor",
+  "transition.render-reflow.project-state",
+};
+
+static const char *const kAppStateInvariantDispatchSurfaceIds7[] = {
+  "surface.key-decode-input-dispatch",
+  "surface.directory-window-action-dispatch",
+  "surface.file-window-action-dispatch",
+  "surface.menu-modal-completion",
+  "surface.resize-signal-handling",
+  "surface.refresh-rebuild-rebind",
+  "surface.filesystem-mutation-result",
+  "surface.volume-operation",
+  "surface.watcher-live-refresh",
+  "surface.render-reflow-projection",
+};
+
+static const char *const kAppStateInvariantMigrationNotes7[] = {
+  "Blocked outcomes are cross-cutting across all registered transition and dispatch surfaces but are listed explicitly here for guard traceability.",
+};
+
+static const AppStateInvariantMetadata kAppStateInvariants[] = {
+  {"invariant.inactive-panel-frozen",
+   "inactive_panel_frozen",
+   "panel-local state",
+   kAppStateInvariantProtectedFields0,
+   sizeof(kAppStateInvariantProtectedFields0) /
+       sizeof(kAppStateInvariantProtectedFields0[0]),
+   kAppStateInvariantTransitionIds0,
+   sizeof(kAppStateInvariantTransitionIds0) /
+       sizeof(kAppStateInvariantTransitionIds0[0]),
+   kAppStateInvariantDispatchSurfaceIds0,
+   sizeof(kAppStateInvariantDispatchSurfaceIds0) /
+       sizeof(kAppStateInvariantDispatchSurfaceIds0[0]),
+   "Fail if an active-only transition mutates inactive panel-local identity, viewport, focus, restore, or generation fields outside an explicitly targeted transition.",
+   "documented_foundation_only",
+   "State-sequence harness snapshots both panels before each active-panel transition and compares inactive panel fields after allowed and blocked outcomes.",
+   kAppStateInvariantMigrationNotes0,
+   sizeof(kAppStateInvariantMigrationNotes0) /
+       sizeof(kAppStateInvariantMigrationNotes0[0])},
+  {"invariant.render-projection-read-only",
+   "render_projection_read_only",
+   "render/projection/invalidation state",
+   kAppStateInvariantProtectedFields1,
+   sizeof(kAppStateInvariantProtectedFields1) /
+       sizeof(kAppStateInvariantProtectedFields1[0]),
+   kAppStateInvariantTransitionIds1,
+   sizeof(kAppStateInvariantTransitionIds1) /
+       sizeof(kAppStateInvariantTransitionIds1[0]),
+   kAppStateInvariantDispatchSurfaceIds1,
+   sizeof(kAppStateInvariantDispatchSurfaceIds1) /
+       sizeof(kAppStateInvariantDispatchSurfaceIds1[0]),
+   "Fail if render or reflow chooses new authoritative selection, focus, viewport, panel generation, or volume generation from projected rows or window geometry.",
+   "documented_foundation_only",
+   "Transition-diff harness runs render/reflow passes after settled transitions and verifies only declared render projection fields change.",
+   kAppStateInvariantMigrationNotes1,
+   sizeof(kAppStateInvariantMigrationNotes1) /
+       sizeof(kAppStateInvariantMigrationNotes1[0])},
+  {"invariant.hidden-entry-visible-navigation",
+   "hidden_entry_visible_navigation",
+   "panel-local state",
+   kAppStateInvariantProtectedFields2,
+   sizeof(kAppStateInvariantProtectedFields2) /
+       sizeof(kAppStateInvariantProtectedFields2[0]),
+   kAppStateInvariantTransitionIds2,
+   sizeof(kAppStateInvariantTransitionIds2) /
+       sizeof(kAppStateInvariantTransitionIds2[0]),
+   kAppStateInvariantDispatchSurfaceIds2,
+   sizeof(kAppStateInvariantDispatchSurfaceIds2) /
+       sizeof(kAppStateInvariantDispatchSurfaceIds2[0]),
+   "Fail if visible navigation lands on a hidden entry or resurrects a concealed identity after visibility/topology changes.",
+   "documented_foundation_only",
+   "Generated navigation sequences toggle visibility, rebuild, and move through visible rows while asserting the selected identity remains visible or falls back deterministically.",
+   kAppStateInvariantMigrationNotes2,
+   sizeof(kAppStateInvariantMigrationNotes2) /
+       sizeof(kAppStateInvariantMigrationNotes2[0])},
+  {"invariant.panel-local-focus-restore",
+   "panel_local_focus_restore",
+   "panel-local state",
+   kAppStateInvariantProtectedFields3,
+   sizeof(kAppStateInvariantProtectedFields3) /
+       sizeof(kAppStateInvariantProtectedFields3[0]),
+   kAppStateInvariantTransitionIds3,
+   sizeof(kAppStateInvariantTransitionIds3) /
+       sizeof(kAppStateInvariantTransitionIds3[0]),
+   kAppStateInvariantDispatchSurfaceIds3,
+   sizeof(kAppStateInvariantDispatchSurfaceIds3) /
+       sizeof(kAppStateInvariantDispatchSurfaceIds3[0]),
+   "Fail if focus restoration imports another panel's shape, briefly renders a different shape, or restores focus from session mirrors instead of panel-local records.",
+   "documented_foundation_only",
+   "Sequence tests alternate modal dismissal, Tab/F8-style routing, and file/tree transitions while asserting each panel restores its own recorded focus shape.",
+   kAppStateInvariantMigrationNotes3,
+   sizeof(kAppStateInvariantMigrationNotes3) /
+       sizeof(kAppStateInvariantMigrationNotes3[0])},
+  {"invariant.viewport-identity-rebind",
+   "viewport_identity_rebind",
+   "panel-local state",
+   kAppStateInvariantProtectedFields4,
+   sizeof(kAppStateInvariantProtectedFields4) /
+       sizeof(kAppStateInvariantProtectedFields4[0]),
+   kAppStateInvariantTransitionIds4,
+   sizeof(kAppStateInvariantTransitionIds4) /
+       sizeof(kAppStateInvariantTransitionIds4[0]),
+   kAppStateInvariantDispatchSurfaceIds4,
+   sizeof(kAppStateInvariantDispatchSurfaceIds4) /
+       sizeof(kAppStateInvariantDispatchSurfaceIds4[0]),
+   "Fail if rebuild, mutation, or resize restores viewport from raw rows when the stable identity is still visible or before deterministic fallback order is exhausted.",
+   "documented_foundation_only",
+   "Snapshot/diff tests rebuild or resize around stable directory and file identities, then assert exact rebind when visible and deterministic fallback otherwise.",
+   kAppStateInvariantMigrationNotes4,
+   sizeof(kAppStateInvariantMigrationNotes4) /
+       sizeof(kAppStateInvariantMigrationNotes4[0])},
+  {"invariant.shared-state-panel-local-isolation",
+   "shared_state_panel_local_isolation",
+   "volume/shared topology and payload state",
+   kAppStateInvariantProtectedFields5,
+   sizeof(kAppStateInvariantProtectedFields5) /
+       sizeof(kAppStateInvariantProtectedFields5[0]),
+   kAppStateInvariantTransitionIds5,
+   sizeof(kAppStateInvariantTransitionIds5) /
+       sizeof(kAppStateInvariantTransitionIds5[0]),
+   kAppStateInvariantDispatchSurfaceIds5,
+   sizeof(kAppStateInvariantDispatchSurfaceIds5) /
+       sizeof(kAppStateInvariantDispatchSurfaceIds5[0]),
+   "Fail if shared volume topology or registry changes overwrite panel-local selection, focus, tags, viewport, or restore snapshots by shared index or pointer aliasing.",
+   "documented_foundation_only",
+   "Split-panel sequences share a volume, mutate shared topology, and verify each panel rebinds through its own identity without cross-panel field drift.",
+   kAppStateInvariantMigrationNotes5,
+   sizeof(kAppStateInvariantMigrationNotes5) /
+       sizeof(kAppStateInvariantMigrationNotes5[0])},
+  {"invariant.stale-snapshot-fail-closed",
+   "stale_snapshot_fail_closed",
+   "panel-local state",
+   kAppStateInvariantProtectedFields6,
+   sizeof(kAppStateInvariantProtectedFields6) /
+       sizeof(kAppStateInvariantProtectedFields6[0]),
+   kAppStateInvariantTransitionIds6,
+   sizeof(kAppStateInvariantTransitionIds6) /
+       sizeof(kAppStateInvariantTransitionIds6[0]),
+   kAppStateInvariantDispatchSurfaceIds6,
+   sizeof(kAppStateInvariantDispatchSurfaceIds6) /
+       sizeof(kAppStateInvariantDispatchSurfaceIds6[0]),
+   "Fail if a generation mismatch reuses stale DirEntry/FileEntry pointers, stale flat-list rows, or stale snapshot payloads instead of exact rebind or deterministic fallback.",
+   "documented_foundation_only",
+   "Harness corrupts or invalidates saved generations around rebuild/mutation transitions and asserts stale snapshots fail closed without unrelated mutation.",
+   kAppStateInvariantMigrationNotes6,
+   sizeof(kAppStateInvariantMigrationNotes6) /
+       sizeof(kAppStateInvariantMigrationNotes6[0])},
+  {"invariant.blocked-transition-determinism",
+   "blocked_transition_determinism",
+   "ctx/session state",
+   kAppStateInvariantProtectedFields7,
+   sizeof(kAppStateInvariantProtectedFields7) /
+       sizeof(kAppStateInvariantProtectedFields7[0]),
+   kAppStateInvariantTransitionIds7,
+   sizeof(kAppStateInvariantTransitionIds7) /
+       sizeof(kAppStateInvariantTransitionIds7[0]),
+   kAppStateInvariantDispatchSurfaceIds7,
+   sizeof(kAppStateInvariantDispatchSurfaceIds7) /
+       sizeof(kAppStateInvariantDispatchSurfaceIds7[0]),
+   "Fail if a blocked or invalid transition partially mutates authoritative panel/volume state, advances generations, performs hidden side effects, or chooses a non-deterministic fallback.",
+   "documented_foundation_only",
+   "Negative state-sequence tests force guard failures and unavailable targets, then assert no unrelated owner fields differ and any message/modal output is declared.",
+   kAppStateInvariantMigrationNotes7,
+   sizeof(kAppStateInvariantMigrationNotes7) /
+       sizeof(kAppStateInvariantMigrationNotes7[0])},
+};
+
 static const AppStateTransitionMetadata kAppStateTransitions[] = {
   {"transition.keybinding.navigate-tree",
    "keybinding",
@@ -376,6 +776,10 @@ size_t AppStateCompatibilityShimCount(void) {
          sizeof(kAppStateCompatibilityShims[0]);
 }
 
+size_t AppStateInvariantCount(void) {
+  return sizeof(kAppStateInvariants) / sizeof(kAppStateInvariants[0]);
+}
+
 const AppStateTransitionMetadata *AppStateTransitionAt(size_t index) {
   if (index >= AppStateTransitionCount())
     return NULL;
@@ -389,6 +793,13 @@ AppStateCompatibilityShimAt(size_t index) {
     return NULL;
 
   return &kAppStateCompatibilityShims[index];
+}
+
+const AppStateInvariantMetadata *AppStateInvariantAt(size_t index) {
+  if (index >= AppStateInvariantCount())
+    return NULL;
+
+  return &kAppStateInvariants[index];
 }
 
 const AppStateTransitionMetadata *
@@ -416,6 +827,21 @@ AppStateCompatibilityShimLookup(const char *shim_id) {
   for (index = 0; index < AppStateCompatibilityShimCount(); index++) {
     if (!strcmp(kAppStateCompatibilityShims[index].id, shim_id))
       return &kAppStateCompatibilityShims[index];
+  }
+
+  return NULL;
+}
+
+const AppStateInvariantMetadata *
+AppStateInvariantLookup(const char *invariant_id) {
+  size_t index;
+
+  if (invariant_id == NULL || invariant_id[0] == '\0')
+    return NULL;
+
+  for (index = 0; index < AppStateInvariantCount(); index++) {
+    if (!strcmp(kAppStateInvariants[index].invariant_id, invariant_id))
+      return &kAppStateInvariants[index];
   }
 
   return NULL;

@@ -387,6 +387,147 @@ def _parse_ytree_actions(header_path: Path) -> tuple[list[str], list[str]]:
     return actions, []
 
 
+def _compact_initializer_snippet(row: str) -> str:
+    snippet = re.sub(r"\s+", " ", row).strip()
+    if len(snippet) > 160:
+        return snippet[:157] + "..."
+    return snippet
+
+
+def _split_top_level_initializer_rows(
+    body: str,
+    label: str,
+) -> tuple[list[str], list[str]]:
+    rows: list[str] = []
+    failures: list[str] = []
+    index = 0
+    while index < len(body):
+        while index < len(body) and body[index] in " \t\r\n,":
+            index += 1
+        if index >= len(body):
+            break
+        if body[index] != "{":
+            start = index
+            while index < len(body) and body[index] not in ",\n":
+                index += 1
+            failures.append(
+                f"{label}: unexpected content outside initializer row: "
+                f"{_compact_initializer_snippet(body[start:index])}"
+            )
+            continue
+
+        start = index
+        depth = 0
+        in_string = False
+        escaped = False
+        while index < len(body):
+            char = body[index]
+            if in_string:
+                if escaped:
+                    escaped = False
+                elif char == "\\":
+                    escaped = True
+                elif char == '"':
+                    in_string = False
+            else:
+                if char == '"':
+                    in_string = True
+                elif char == "{":
+                    depth += 1
+                elif char == "}":
+                    depth -= 1
+                    if depth == 0:
+                        index += 1
+                        rows.append(body[start:index])
+                        break
+            index += 1
+        else:
+            failures.append(
+                f"{label}[{len(rows)}]: unterminated initializer row: "
+                f"{_compact_initializer_snippet(body[start:])}"
+            )
+            break
+
+    return rows, failures
+
+
+def _parse_string_initializer_array(
+    body: str,
+    table_name: str,
+) -> tuple[list[str], list[str]]:
+    values: list[str] = []
+    failures: list[str] = []
+    index = 0
+    entry_index = 0
+    while index < len(body):
+        while index < len(body) and body[index] in " \t\r\n":
+            index += 1
+        if index >= len(body):
+            break
+
+        start = index
+        if body[index] == ",":
+            failures.append(
+                f"{table_name}[{entry_index}]: malformed string literal entry: "
+                f"{_compact_initializer_snippet(body[start:index + 1])}"
+            )
+            index += 1
+            entry_index += 1
+            continue
+        if body[index] != '"':
+            while index < len(body) and body[index] != ",":
+                index += 1
+            failures.append(
+                f"{table_name}[{entry_index}]: malformed string literal entry: "
+                f"{_compact_initializer_snippet(body[start:index])}"
+            )
+            if index < len(body) and body[index] == ",":
+                index += 1
+            entry_index += 1
+            continue
+
+        index += 1
+        value_start = index
+        escaped = False
+        while index < len(body):
+            char = body[index]
+            if escaped:
+                escaped = False
+            elif char == "\\":
+                escaped = True
+            elif char == '"':
+                break
+            index += 1
+        else:
+            failures.append(
+                f"{table_name}[{entry_index}]: unterminated string literal entry: "
+                f"{_compact_initializer_snippet(body[start:])}"
+            )
+            break
+
+        value = body[value_start:index]
+        index += 1
+        while index < len(body) and body[index] in " \t\r\n":
+            index += 1
+        if index < len(body) and body[index] != ",":
+            while index < len(body) and body[index] not in ",\n":
+                index += 1
+            failures.append(
+                f"{table_name}[{entry_index}]: malformed string literal entry: "
+                f"{_compact_initializer_snippet(body[start:index])}"
+            )
+            if index < len(body) and body[index] == ",":
+                index += 1
+            entry_index += 1
+            continue
+        if index < len(body) and body[index] == ",":
+            index += 1
+        values.append(value)
+        entry_index += 1
+
+    return values, failures
+
+
 def _parse_runtime_action_transitions(
     runtime_path: Path,
 ) -> tuple[list[dict[str, str]], list[str]]:
@@ -475,6 +616,105 @@ def _parse_runtime_transition_registry(
 
     if not records:
         failures.append(f"{runtime_path}: runtime transition registry must not be empty")
+    return records, failures
+
+
+def _parse_runtime_invariant_registry(
+    runtime_path: Path,
+) -> tuple[list[dict[str, Any]], list[str]]:
+    try:
+        source = runtime_path.read_text(encoding="utf-8")
+    except OSError as exc:
+        return [], [f"{runtime_path}: failed to read: {exc}"]
+
+    array_fields = {
+        "ProtectedFields": "protected_fields",
+        "TransitionIds": "transition_ids",
+        "DispatchSurfaceIds": "dispatch_surface_ids",
+        "MigrationNotes": "migration_notes",
+    }
+    arrays: dict[str, list[str]] = {}
+    failures: list[str] = []
+    for table_prefix in array_fields:
+        array_re = re.compile(
+            r"static\s+const\s+char\s+\*const\s+"
+            rf"(kAppStateInvariant{table_prefix}[0-9]+)\[\]\s*=\s*\{{"
+            r"(?P<body>.*?)\};",
+            re.S,
+        )
+        for array_match in array_re.finditer(source):
+            table_name = array_match.group(1)
+            values, array_failures = _parse_string_initializer_array(
+                array_match.group("body"),
+                table_name,
+            )
+            arrays[table_name] = values
+            failures.extend(array_failures)
+
+    match = re.search(
+        r"kAppStateInvariants\s*\[\]\s*=\s*\{(?P<body>.*?)\};",
+        source,
+        re.S,
+    )
+    if match is None:
+        return [], [f"{runtime_path}: failed to find runtime invariant registry"]
+
+    records: list[dict[str, Any]] = []
+    row_re = re.compile(
+        r"\{\s*\"(?P<invariant_id>[^\"]*)\"\s*,"
+        r"\s*\"(?P<category>[^\"]*)\"\s*,"
+        r"\s*\"(?P<owner_region>[^\"]*)\"\s*,"
+        r"\s*(?P<protected_fields>kAppStateInvariantProtectedFields[0-9]+)\s*,"
+        r"\s*sizeof\((?P=protected_fields)\)\s*/"
+        r"\s*sizeof\((?P=protected_fields)\[0\]\)\s*,"
+        r"\s*(?P<transition_ids>kAppStateInvariantTransitionIds[0-9]+)\s*,"
+        r"\s*sizeof\((?P=transition_ids)\)\s*/"
+        r"\s*sizeof\((?P=transition_ids)\[0\]\)\s*,"
+        r"\s*(?P<dispatch_surface_ids>kAppStateInvariantDispatchSurfaceIds[0-9]+)\s*,"
+        r"\s*sizeof\((?P=dispatch_surface_ids)\)\s*/"
+        r"\s*sizeof\((?P=dispatch_surface_ids)\[0\]\)\s*,"
+        r"\s*\"(?P<failure_mode>[^\"]*)\"\s*,"
+        r"\s*\"(?P<enforcement_status>[^\"]*)\"\s*,"
+        r"\s*\"(?P<test_strategy>[^\"]*)\"\s*,"
+        r"\s*(?P<migration_notes>kAppStateInvariantMigrationNotes[0-9]+)\s*,"
+        r"\s*sizeof\((?P=migration_notes)\)\s*/"
+        r"\s*sizeof\((?P=migration_notes)\[0\]\)\s*\}",
+        re.S,
+    )
+    rows, row_failures = _split_top_level_initializer_rows(
+        match.group("body"),
+        "runtime_invariant",
+    )
+    failures.extend(row_failures)
+    for index, row in enumerate(rows):
+        row_match = row_re.fullmatch(row.strip())
+        if row_match is None:
+            failures.append(
+                f"runtime_invariant[{index}]: malformed runtime invariant "
+                f"registry row: {_compact_initializer_snippet(row)}"
+            )
+            continue
+        record: dict[str, Any] = {
+            "invariant_id": row_match.group("invariant_id"),
+            "category": row_match.group("category"),
+            "owner_region": row_match.group("owner_region"),
+            "failure_mode": row_match.group("failure_mode"),
+            "enforcement_status": row_match.group("enforcement_status"),
+            "test_strategy": row_match.group("test_strategy"),
+        }
+        for table_prefix, field in array_fields.items():
+            table_name = row_match.group(field)
+            values = arrays.get(table_name)
+            if values is None:
+                failures.append(
+                    f"runtime_invariant[{index}]: unknown {field} table: {table_name}"
+                )
+                values = []
+            record[field] = values
+        records.append(record)
+
+    if not records:
+        failures.append(f"{runtime_path}: runtime invariant registry must not be empty")
     return records, failures
 
 
@@ -669,6 +909,114 @@ def _validate_runtime_transition_registry(
     if missing_ids:
         failures.append(
             f"{runtime_path}: runtime transition registry missing transition id(s): "
+            + ", ".join(missing_ids)
+        )
+
+    return failures
+
+
+def _validate_runtime_invariant_registry(
+    *,
+    runtime_records: list[dict[str, Any]],
+    runtime_path: Path,
+    invariant_records: list[Any],
+    runtime_transition_ids: set[str],
+    dispatch_surface_ids: set[str],
+) -> list[str]:
+    failures: list[str] = []
+    expected_invariants = {
+        record["invariant_id"]: record
+        for record in invariant_records
+        if isinstance(record, dict)
+        and isinstance(record.get("invariant_id"), str)
+        and record["invariant_id"].strip()
+    }
+    expected_ids = set(expected_invariants)
+    covered_ids: set[str] = set()
+
+    for index, record in enumerate(runtime_records):
+        label = f"runtime_invariant[{index}]"
+        runtime_id = record["invariant_id"]
+        if runtime_id in covered_ids:
+            failures.append(f"{label}: duplicate runtime invariant id: {runtime_id}")
+        covered_ids.add(runtime_id)
+
+        invariant_record = expected_invariants.get(runtime_id)
+        if invariant_record is None:
+            failures.append(f"{label}: invariant_id does not match an invariant id: {runtime_id}")
+        else:
+            for field in (
+                "category",
+                "owner_region",
+                "protected_fields",
+                "transition_ids",
+                "dispatch_surface_ids",
+                "failure_mode",
+                "enforcement_status",
+                "test_strategy",
+                "migration_notes",
+            ):
+                if record.get(field) != invariant_record.get(field):
+                    failures.append(
+                        f"{label}: runtime {field} does not match invariant "
+                        f"{runtime_id}: {record.get(field)}"
+                    )
+
+        for field in (
+            "protected_fields",
+            "transition_ids",
+            "migration_notes",
+        ):
+            values = record.get(field)
+            if not isinstance(values, list) or not values:
+                failures.append(f"{label}: {field} must be non-empty")
+
+        runtime_surface_refs = record.get("dispatch_surface_ids")
+        if not isinstance(runtime_surface_refs, list):
+            failures.append(f"{label}: dispatch_surface_ids must be non-empty")
+        elif not runtime_surface_refs:
+            migration_notes = record.get("migration_notes")
+            has_cross_cutting_note = (
+                isinstance(migration_notes, list)
+                and any(
+                    isinstance(note, str)
+                    and "cross-cutting" in note.lower()
+                    for note in migration_notes
+                )
+            )
+            if not has_cross_cutting_note:
+                failures.append(f"{label}: dispatch_surface_ids must be non-empty")
+
+        transition_refs = record.get("transition_ids")
+        if isinstance(transition_refs, list):
+            for transition_id in transition_refs:
+                if (
+                    isinstance(transition_id, str)
+                    and transition_id.strip()
+                    and transition_id not in runtime_transition_ids
+                ):
+                    failures.append(
+                        f"{label}: transition_ids does not match runtime transition "
+                        f"registry: {transition_id}"
+                    )
+
+        surface_refs = record.get("dispatch_surface_ids")
+        if isinstance(surface_refs, list):
+            for surface_id in surface_refs:
+                if (
+                    isinstance(surface_id, str)
+                    and surface_id.strip()
+                    and surface_id not in dispatch_surface_ids
+                ):
+                    failures.append(
+                        f"{label}: dispatch_surface_ids references unknown dispatch "
+                        f"surface id: {surface_id}"
+                    )
+
+    missing_ids = sorted(expected_ids - covered_ids)
+    if missing_ids:
+        failures.append(
+            f"{runtime_path}: runtime invariant registry missing invariant id(s): "
             + ", ".join(missing_ids)
         )
 
@@ -1865,6 +2213,9 @@ def validate_contract(
     runtime_shim_records, runtime_shim_failures = _parse_runtime_shim_registry(
         action_runtime_path
     )
+    runtime_invariant_records, runtime_invariant_failures = (
+        _parse_runtime_invariant_registry(action_runtime_path)
+    )
     failures.extend(transition_load_failures)
     failures.extend(shim_load_failures)
     failures.extend(action_coverage_load_failures)
@@ -1879,6 +2230,7 @@ def validate_contract(
     failures.extend(runtime_action_failures)
     failures.extend(runtime_transition_failures)
     failures.extend(runtime_shim_failures)
+    failures.extend(runtime_invariant_failures)
     if failures:
         return failures
 
@@ -2106,6 +2458,21 @@ def validate_contract(
             invariants_path=invariants_path,
             transition_ids=transition_ids,
             registered_owner_fields=registered_owner_fields,
+            dispatch_surface_ids=dispatch_surface_ids,
+        )
+    )
+    if isinstance(invariants_doc, dict) and isinstance(
+        invariants_doc.get("invariants"), list
+    ):
+        invariant_records = invariants_doc["invariants"]
+    else:
+        invariant_records = []
+    failures.extend(
+        _validate_runtime_invariant_registry(
+            runtime_records=runtime_invariant_records,
+            runtime_path=action_runtime_path,
+            invariant_records=invariant_records,
+            runtime_transition_ids={record["id"] for record in runtime_transition_records},
             dispatch_surface_ids=dispatch_surface_ids,
         )
     )

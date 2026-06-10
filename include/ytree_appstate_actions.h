@@ -39,6 +39,23 @@ typedef struct {
   const char *qa_enforcement;
 } AppStateCompatibilityShimMetadata;
 
+typedef struct {
+  const char *invariant_id;
+  const char *category;
+  const char *owner_region;
+  const char *const *protected_fields;
+  size_t protected_field_count;
+  const char *const *transition_ids;
+  size_t transition_id_count;
+  const char *const *dispatch_surface_ids;
+  size_t dispatch_surface_id_count;
+  const char *failure_mode;
+  const char *enforcement_status;
+  const char *test_strategy;
+  const char *const *migration_notes;
+  size_t migration_note_count;
+} AppStateInvariantMetadata;
+
 const AppStateActionTransitionMetadata *
 AppStateActionTransitionLookup(YtreeAction action);
 size_t AppStateActionTransitionCount(void);
@@ -51,5 +68,9 @@ AppStateCompatibilityShimLookup(const char *shim_id);
 const AppStateCompatibilityShimMetadata *
 AppStateCompatibilityShimAt(size_t index);
 size_t AppStateCompatibilityShimCount(void);
+const AppStateInvariantMetadata *
+AppStateInvariantLookup(const char *invariant_id);
+const AppStateInvariantMetadata *AppStateInvariantAt(size_t index);
+size_t AppStateInvariantCount(void);
 
 #endif /* YTREE_APPSTATE_ACTIONS_H */
