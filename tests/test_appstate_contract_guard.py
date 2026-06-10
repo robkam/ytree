@@ -330,6 +330,7 @@ def _write_fixture(
     enum_actions: list[str] | None = None,
     runtime_actions: list[dict[str, object]] | None = None,
     runtime_transitions: list[dict[str, object]] | None = None,
+    runtime_shims: list[dict[str, object]] | None = None,
 ) -> tuple[Path, Path, Path, Path, Path, Path, Path, Path, Path, Path, Path, Path]:
     transitions_path = tmp_path / "transitions.json"
     shims_path = tmp_path / "shims.json"
@@ -414,6 +415,9 @@ def _write_fixture(
         _runtime_source(
             runtime_actions or _complete_actions(),
             runtime_transitions if runtime_transitions is not None else transitions,
+            runtime_shims
+            if runtime_shims is not None
+            else (shims if shims is not None else [_shim()]),
         ),
     )
     return (
@@ -444,7 +448,9 @@ def _enum_header(actions: list[str]) -> str:
 
 
 def _runtime_source(
-    actions: list[dict[str, object]], transitions: list[dict[str, object]]
+    actions: list[dict[str, object]],
+    transitions: list[dict[str, object]],
+    shims: list[dict[str, object]],
 ) -> str:
     transition_write_sets = []
     transition_rows = []
@@ -466,14 +472,45 @@ def _runtime_source(
             f"sizeof(kAppStateTransitionWriteSet{index}) / "
             f"sizeof(kAppStateTransitionWriteSet{index}[0])}},"
         )
+    shim_invariants = []
+    shim_rows = []
+    for index, record in enumerate(shims):
+        invariant_checks = record.get("invariant_checks")
+        if not isinstance(invariant_checks, list):
+            invariant_checks = []
+        invariant_rows = "\n".join(
+            f'  "{check}",' for check in invariant_checks if isinstance(check, str)
+        )
+        shim_invariants.append(
+            "static const char *const kAppStateCompatibilityShimInvariantChecks"
+            f"{index}[] = {{\n{invariant_rows}\n}};\n"
+        )
+        shim_rows.append(
+            f'  {{"{record.get("id", "")}", "{record.get("owner", "")}", '
+            f'"{record.get("old_authority_path", "")}", '
+            f'"{record.get("read_permission", "")}", '
+            f'"{record.get("write_permission", "")}", '
+            f"kAppStateCompatibilityShimInvariantChecks{index}, "
+            f"sizeof(kAppStateCompatibilityShimInvariantChecks{index}) / "
+            f"sizeof(kAppStateCompatibilityShimInvariantChecks{index}[0]), "
+            f'"{record.get("removal_trigger", "")}", '
+            f'"{record.get("target_transition", "")}", '
+            f'"{record.get("follow_up_task", "")}", '
+            f'"{record.get("qa_enforcement", "")}"}},'
+        )
     action_rows = "\n".join(
         f'  {{{record["action"]}, "{record["transition_id"]}", "{record["category"]}"}},'
         for record in actions
     )
     return (
         "".join(transition_write_sets)
+        + "".join(shim_invariants)
         + "static const AppStateTransitionMetadata kAppStateTransitions[] = {\n"
         + "\n".join(transition_rows)
+        + "\n};\n"
+        "static const AppStateCompatibilityShimMetadata "
+        "kAppStateCompatibilityShims[] = {\n"
+        + "\n".join(shim_rows)
         + "\n};\n"
         "static const AppStateActionTransitionMetadata\n"
         "    kAppStateActionTransitions[APPSTATE_ACTION_TRANSITION_COUNT] = {\n"
@@ -2041,6 +2078,130 @@ def test_guard_fails_when_shim_targets_unknown_transition(tmp_path: Path) -> Non
     assert any(
         "target_transition does not match a transition id" in failure
         and "transition.missing" in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_when_runtime_shim_metadata_drifts(tmp_path: Path) -> None:
+    transitions = _complete_transitions()
+    runtime_shims = [_shim()]
+    runtime_shims[0]["owner"] = "different owner"
+    paths = _write_fixture(
+        tmp_path,
+        transitions=transitions,
+        runtime_shims=runtime_shims,
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "runtime_shim[0]" in failure
+        and "runtime owner does not match shim" in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_when_runtime_shim_id_is_missing(tmp_path: Path) -> None:
+    transitions = _complete_transitions()
+    second_shim = _shim()
+    second_shim["id"] = "shim.second"
+    paths = _write_fixture(
+        tmp_path,
+        transitions=transitions,
+        shims=[_shim(), second_shim],
+        runtime_shims=[_shim()],
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "runtime compatibility shim registry missing shim id" in failure
+        and "shim.second" in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_when_runtime_shim_id_is_extra(tmp_path: Path) -> None:
+    transitions = _complete_transitions()
+    extra_shim = _shim()
+    extra_shim["id"] = "shim.extra"
+    paths = _write_fixture(
+        tmp_path,
+        transitions=transitions,
+        runtime_shims=[_shim(), extra_shim],
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "runtime_shim[1]" in failure
+        and "id does not match a shim id" in failure
+        and "shim.extra" in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_when_runtime_shim_target_transition_drifts(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    runtime_shims = [_shim(target_transition="transition.render_reflow")]
+    paths = _write_fixture(
+        tmp_path,
+        transitions=transitions,
+        runtime_shims=runtime_shims,
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "runtime_shim[0]" in failure
+        and "runtime target_transition does not match shim" in failure
+        and "transition.render_reflow" in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_when_runtime_shim_invariant_checks_are_missing(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    runtime_shims = [_shim()]
+    runtime_shims[0]["invariant_checks"] = []
+    paths = _write_fixture(
+        tmp_path,
+        transitions=transitions,
+        runtime_shims=runtime_shims,
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "runtime_shim[0]" in failure
+        and "invariant_checks must be non-empty" in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_when_runtime_shim_target_transition_is_not_runtime_registered(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    runtime_transitions = [
+        record for record in transitions if record["id"] != "transition.keybinding"
+    ]
+    paths = _write_fixture(
+        tmp_path,
+        transitions=transitions,
+        runtime_transitions=runtime_transitions,
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "runtime_shim[0]" in failure
+        and "target_transition does not match runtime transition registry" in failure
+        and "transition.keybinding" in failure
         for failure in failures
     )
 

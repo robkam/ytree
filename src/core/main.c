@@ -27,6 +27,10 @@ static int CoreMainOpsReady(const CoreMainOps *ops) {
          ops->volume_free_all != NULL;
 }
 
+static int NonEmptyString(const char *value) {
+  return value != NULL && value[0] != '\0';
+}
+
 static int AppStateTransitionRegistryReady(void) {
   size_t index;
 
@@ -37,9 +41,9 @@ static int AppStateTransitionRegistryReady(void) {
     const AppStateTransitionMetadata *metadata = AppStateTransitionAt(index);
     size_t write_index;
 
-    if (metadata == NULL || metadata->id == NULL || metadata->id[0] == '\0' ||
-        metadata->category == NULL || metadata->category[0] == '\0' ||
-        metadata->owner == NULL || metadata->owner[0] == '\0' ||
+    if (metadata == NULL || !NonEmptyString(metadata->id) ||
+        !NonEmptyString(metadata->category) ||
+        !NonEmptyString(metadata->owner) ||
         metadata->declared_write_set == NULL ||
         metadata->declared_write_set_count == 0)
       return 0;
@@ -50,12 +54,59 @@ static int AppStateTransitionRegistryReady(void) {
          write_index++) {
       const char *field = metadata->declared_write_set[write_index];
 
-      if (field == NULL || field[0] == '\0')
+      if (!NonEmptyString(field))
         return 0;
     }
   }
 
   if (AppStateTransitionLookup("transition.__ytree_unknown__") != NULL)
+    return 0;
+
+  return 1;
+}
+
+static int AppStateCompatibilityShimsReady(void) {
+  size_t index;
+
+  if (AppStateCompatibilityShimCount() == 0)
+    return 0;
+
+  for (index = 0; index < AppStateCompatibilityShimCount(); index++) {
+    const AppStateCompatibilityShimMetadata *metadata =
+        AppStateCompatibilityShimAt(index);
+    size_t invariant_index;
+
+    if (metadata == NULL || !NonEmptyString(metadata->id) ||
+        !NonEmptyString(metadata->owner) ||
+        !NonEmptyString(metadata->old_authority_path) ||
+        !NonEmptyString(metadata->read_permission) ||
+        !NonEmptyString(metadata->write_permission) ||
+        metadata->invariant_checks == NULL ||
+        metadata->invariant_check_count == 0 ||
+        !NonEmptyString(metadata->removal_trigger) ||
+        !NonEmptyString(metadata->target_transition) ||
+        !NonEmptyString(metadata->follow_up_task) ||
+        !NonEmptyString(metadata->qa_enforcement))
+      return 0;
+    if (AppStateCompatibilityShimLookup(metadata->id) != metadata)
+      return 0;
+    if (AppStateTransitionLookup(metadata->target_transition) == NULL)
+      return 0;
+
+    for (invariant_index = 0;
+         invariant_index < metadata->invariant_check_count; invariant_index++) {
+      if (!NonEmptyString(metadata->invariant_checks[invariant_index]))
+        return 0;
+    }
+  }
+
+  if (AppStateCompatibilityShimAt(AppStateCompatibilityShimCount()) != NULL)
+    return 0;
+  if (AppStateCompatibilityShimLookup(NULL) != NULL)
+    return 0;
+  if (AppStateCompatibilityShimLookup("") != NULL)
+    return 0;
+  if (AppStateCompatibilityShimLookup("shim.__ytree_unknown__") != NULL)
     return 0;
 
   return 1;
@@ -72,9 +123,9 @@ static int AppStateActionTransitionsReady(void) {
     const AppStateTransitionMetadata *transition_metadata;
 
     action_metadata = AppStateActionTransitionLookup((YtreeAction)index);
-    if (action_metadata == NULL || action_metadata->transition_id == NULL ||
-        action_metadata->transition_id[0] == '\0' ||
-        action_metadata->category == NULL || action_metadata->category[0] == '\0')
+    if (action_metadata == NULL ||
+        !NonEmptyString(action_metadata->transition_id) ||
+        !NonEmptyString(action_metadata->category))
       return 0;
 
     transition_metadata =
@@ -161,6 +212,7 @@ int main(int argc, char **argv) {
   CoreMainOps_Register(&ctx);
   if (!CoreMainOpsReady(&ctx.core_main_ops) ||
       !AppStateTransitionRegistryReady() ||
+      !AppStateCompatibilityShimsReady() ||
       !AppStateActionTransitionsReady()) {
     fprintf(stderr, "EXIT: startup invariants not configured\n");
     exit(1);

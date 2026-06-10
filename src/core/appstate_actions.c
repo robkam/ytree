@@ -86,6 +86,26 @@ static const char *const kAppStateTransitionWriteSet9[] = {
   "ctx.window_handles",
 };
 
+static const char *const kAppStateCompatibilityShimInvariantChecks0[] = {
+  "YtreePanel(active).dotfile_visibility is authoritative",
+  "Inactive panel visibility is never overwritten from the mirror",
+};
+
+static const char *const kAppStateCompatibilityShimInvariantChecks1[] = {
+  "Raw index is never used while a stable identity key resolves",
+  "Generation mismatch forces rebind before dereference",
+};
+
+static const char *const kAppStateCompatibilityShimInvariantChecks2[] = {
+  "Panel focus_shape remains the restore authority",
+  "Session flag must not overwrite inactive panel shape",
+};
+
+static const char *const kAppStateCompatibilityShimInvariantChecks3[] = {
+  "Render projection is not restore authority",
+  "Temporary row math is discarded after draw",
+};
+
 static const AppStateTransitionMetadata kAppStateTransitions[] = {
   {"transition.keybinding.navigate-tree",
    "keybinding",
@@ -292,6 +312,57 @@ static const AppStateActionTransitionMetadata
   {ACTION_USER_CMD, "transition.command-completion.user-command", "command_completion"},
 };
 
+static const AppStateCompatibilityShimMetadata kAppStateCompatibilityShims[] = {
+  {"shim.viewcontext-hide-dot-files",
+   "ViewContext derived mirror",
+   "ViewContext.hide_dot_files",
+   "Allowed only as a derived compatibility mirror for helpers that have not yet accepted YtreePanel dotfile visibility.",
+   "Write only when synchronizing from the active panel's authoritative dotfile_visibility during transition commit.",
+   kAppStateCompatibilityShimInvariantChecks0,
+   sizeof(kAppStateCompatibilityShimInvariantChecks0) /
+       sizeof(kAppStateCompatibilityShimInvariantChecks0[0]),
+   "All visibility and restore helpers consume panel-local dotfile_visibility directly.",
+   "transition.keybinding.navigate-tree",
+   "Runtime migration of visibility toggles and restore helpers to AppState panel records.",
+   "check_appstate_contract.py requires this shim to declare permissions, invariants, target transition, and removal trigger."},
+  {"shim.volume-saved-tree-index",
+   "Volume restore breadcrumb",
+   "Volume.saved_tree_index",
+   "Allowed only as a fallback breadcrumb when a stable path key has already failed to resolve.",
+   "Do not write as primary restore authority; future writes must update stable identity keys and generation metadata first.",
+   kAppStateCompatibilityShimInvariantChecks1,
+   sizeof(kAppStateCompatibilityShimInvariantChecks1) /
+       sizeof(kAppStateCompatibilityShimInvariantChecks1[0]),
+   "Volume restore breadcrumbs are path-keyed and generation-checked across rebuild/relog paths.",
+   "transition.rebuild-rebind-callback.panel-anchor",
+   "Replace index breadcrumbs with path-scoped restore snapshots in the canonical panel state record.",
+   "check_appstate_contract.py keeps this debt visible until runtime migration removes the shim."},
+  {"shim.focused-window-session-flag",
+   "ViewContext session routing",
+   "ViewContext.focused_window",
+   "Allowed for layout routing and footer context selection while AppState focus_shape migration is incomplete.",
+   "Write only from transition commit after the active panel focus_shape has been updated.",
+   kAppStateCompatibilityShimInvariantChecks2,
+   sizeof(kAppStateCompatibilityShimInvariantChecks2) /
+       sizeof(kAppStateCompatibilityShimInvariantChecks2[0]),
+   "All Enter, Tab, and F8 paths route through the canonical AppState transition entry point.",
+   "transition.keybinding.navigate-tree",
+   "Move focus-shape authority from session mirrors into panel-local transition records.",
+   "check_appstate_contract.py validates shim coverage and links it to an existing transition id."},
+  {"shim-render-derived-row-position",
+   "Render projection temporary",
+   "disp_begin_pos + cursor_pos render-derived lookup",
+   "Allowed only inside render projection or bounds-correction code after identity restore has run.",
+   "Never write authoritative selection from this calculation.",
+   kAppStateCompatibilityShimInvariantChecks3,
+   sizeof(kAppStateCompatibilityShimInvariantChecks3) /
+       sizeof(kAppStateCompatibilityShimInvariantChecks3[0]),
+   "Render paths accept explicit projection inputs and no longer inspect restore authority fields directly.",
+   "transition.render-reflow.project-state",
+   "Audit render/reflow call sites for projection-only behavior during runtime migration.",
+   "check_appstate_contract.py requires render shims to declare no-write authority and target transition linkage."},
+};
+
 size_t AppStateActionTransitionCount(void) {
   return sizeof(kAppStateActionTransitions) / sizeof(kAppStateActionTransitions[0]);
 }
@@ -300,11 +371,24 @@ size_t AppStateTransitionCount(void) {
   return sizeof(kAppStateTransitions) / sizeof(kAppStateTransitions[0]);
 }
 
+size_t AppStateCompatibilityShimCount(void) {
+  return sizeof(kAppStateCompatibilityShims) /
+         sizeof(kAppStateCompatibilityShims[0]);
+}
+
 const AppStateTransitionMetadata *AppStateTransitionAt(size_t index) {
   if (index >= AppStateTransitionCount())
     return NULL;
 
   return &kAppStateTransitions[index];
+}
+
+const AppStateCompatibilityShimMetadata *
+AppStateCompatibilityShimAt(size_t index) {
+  if (index >= AppStateCompatibilityShimCount())
+    return NULL;
+
+  return &kAppStateCompatibilityShims[index];
 }
 
 const AppStateTransitionMetadata *
@@ -317,6 +401,21 @@ AppStateTransitionLookup(const char *transition_id) {
   for (index = 0; index < AppStateTransitionCount(); index++) {
     if (!strcmp(kAppStateTransitions[index].id, transition_id))
       return &kAppStateTransitions[index];
+  }
+
+  return NULL;
+}
+
+const AppStateCompatibilityShimMetadata *
+AppStateCompatibilityShimLookup(const char *shim_id) {
+  size_t index;
+
+  if (shim_id == NULL || shim_id[0] == '\0')
+    return NULL;
+
+  for (index = 0; index < AppStateCompatibilityShimCount(); index++) {
+    if (!strcmp(kAppStateCompatibilityShims[index].id, shim_id))
+      return &kAppStateCompatibilityShims[index];
   }
 
   return NULL;
