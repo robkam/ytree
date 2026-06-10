@@ -977,7 +977,7 @@ Ordering policy (for all editors, including AI editors):
 
 ---
 
-## **Phase 8: Final Polish (Post-Alpha, Pre-v3.0.0)**
+## **Phase 8: Final Polish (Post-Alpha, Pre-v1.0.0)**
 *This phase focuses on release polish. Security, module-boundary, and quality gates remain continuous from earlier phases and are not deferred to this phase.*
 
 ### **Task 62: Remove Temporary Compatibility Shims (Global Cleanup Gate)**
@@ -999,7 +999,7 @@ Ordering policy (for all editors, including AI editors):
 *   - [ ] **Status:** Not Started.
 
 ### **Task 64: Source Comment Hygiene Pass**
-*   **Goal:** Tidy comments for clarity and maintainability before v3.0.0.
+*   **Goal:** Tidy comments for clarity and maintainability before v1.0.0.
 *   **Policy:** Keep comments for invariants and design rationale; remove redundant narration of obvious control flow.
 *   **Check:** Verify banner comments are only used where they add design/invariant context.
 *   **Targeted K/A/R audit list (banner comments):**
@@ -1015,7 +1015,7 @@ Ordering policy (for all editors, including AI editors):
 *   - [ ] **Status:** Not Started.
 
 ### **Task 66: Multi-Round Adversarial Security Review**
-*   **Goal:** Perform a pre-v3.0.0 multi-round security review using adversarial and AppSec perspectives.
+*   **Goal:** Perform a pre-v1.0.0 multi-round security review using adversarial and AppSec perspectives.
 *   **Examples:** Senior AppSec reviewer, penetration-tester mindset, and insider-knowledge threat modeling.
 *   **Rationale:** Final pre-release pressure test on top of continuous Phase 2 security gates.
 *   - [ ] **Status:** Not Started.
