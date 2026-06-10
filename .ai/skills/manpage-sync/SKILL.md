@@ -1,6 +1,6 @@
 ---
 name: manpage-sync
-description: Keep ytree manpage and usage docs synchronized by editing etc/ytree.1.md as source and regenerating derived outputs.
+description: Keep ytnova manpage and usage docs synchronized by editing etc/ytnova.1.md as source and regenerating derived outputs.
 ---
 
 # Manpage Sync
@@ -9,16 +9,16 @@ Use this skill when commands, options, keybindings, or user-facing behavior docs
 
 ## Source of Truth
 
-- Edit `etc/ytree.1.md`.
+- Edit `etc/ytnova.1.md`.
 - Treat `docs/USAGE.md` as generated output.
 
 ## Sync Workflow
 
-1. Apply documentation edits in `etc/ytree.1.md`.
+1. Apply documentation edits in `etc/ytnova.1.md`.
 2. Regenerate usage doc:
    - `make docs`
 3. If needed, regenerate man page artifact:
-   - `make build/ytree.1`
+   - `make build/ytnova.1`
 4. Verify generated docs reflect current behavior.
 
 ## Checks

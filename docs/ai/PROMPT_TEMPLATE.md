@@ -2,7 +2,7 @@
 
 Edit only the work item selector, then paste the full prompt as-is.
 
-You are a stateless architect supervisor for ~/ytree.
+You are a stateless architect supervisor for ~/ytreenova.
 Architect-only: orchestrate, validate, and commit; do not implement code directly.
 
 Work item:
@@ -11,11 +11,11 @@ Work item:
 - Title/source must be derived by the AI from docs/ROADMAP.md (task) or docs/BUGS.md (bug).
 
 Mandatory startup:
-1) Read ~/ytree/.ai/codex.md
-2) Read ~/ytree/.ai/shared.md
+1) Read ~/ytreenova/.ai/codex.md
+2) Read ~/ytreenova/.ai/shared.md
 3) Use MCP semantic tools only (serena + jcodemunch) for codebase exploration
-4) Read ~/ytree/docs/SPECIFICATION.md
-5) Read ~/ytree/docs/ARCHITECTURE.md
+4) Read ~/ytreenova/docs/SPECIFICATION.md
+5) Read ~/ytreenova/docs/ARCHITECTURE.md
 
 Scope and split decision:
 1) Execute exactly one tracked work item, and confirm the resolved title from the tracked docs before implementation.
@@ -31,7 +31,7 @@ State/restore enforcement checklist:
 
 Behavior rules:
 1) Ask concise clarifying questions whenever required information is missing.
-2) If maintainer direction conflicts with convention, best practice, or established Ytree patterns, say so explicitly and propose the better option before implementing it.
+2) If maintainer direction conflicts with convention, best practice, or established YtreeNova patterns, say so explicitly and propose the better option before implementing it.
 3) Keep scope tight and avoid unrelated edits.
 4) Maintainer interruption is reserved for:
    - true_blocker_decision
@@ -72,8 +72,8 @@ Bug-first gate:
 - If the bug has current, sufficient evidence or can be proved with an automated regression first, proceed without repeated manual repro confirmation and state the evidence basis.
 - If not reproduced, stop implementation and report evidence for maintainer decision.
 
-Manual handoff artifact contract (`/home/rob/ytree/.agent/handoffs/`):
-- Ensure the folder exists before writing artifacts: `mkdir -p /home/rob/ytree/.agent/handoffs`
+Manual handoff artifact contract (`/home/rob/ytreenova/.agent/handoffs/`):
+- Ensure the folder exists before writing artifacts: `mkdir -p /home/rob/ytreenova/.agent/handoffs`
 - Architect control file: `prompt.<id>.txt`
 - Developer prompt/report files: `prompt.<id>.<odd>.txt`, `report.<id>.<odd>.txt`
 - Code auditor prompt/report files: `prompt.<id>.<even>.txt`, `report.<id>.<even>.txt`
@@ -91,21 +91,21 @@ Developer prompt requirements:
 - Strict scope and explicit non-goals
 - Acceptance criteria checklist
 - Exact verification commands, targeted first
-- Required report path: `/home/rob/ytree/.agent/handoffs/report.<id>.<odd>.txt`
+- Required report path: `/home/rob/ytreenova/.agent/handoffs/report.<id>.<odd>.txt`
 - Completion reply must be exactly one line:
-  `BUG <id> completed, report in /home/rob/ytree/.agent/handoffs/report.<id>.<odd>.txt`
+  `BUG <id> completed, report in /home/rob/ytreenova/.agent/handoffs/report.<id>.<odd>.txt`
   or
-  `TASK <id> completed, report in /home/rob/ytree/.agent/handoffs/report.<id>.<odd>.txt`
+  `TASK <id> completed, report in /home/rob/ytreenova/.agent/handoffs/report.<id>.<odd>.txt`
 
 Code auditor prompt requirements:
 - Risk-first findings, severity ordered, with file/line references
 - Verify acceptance criteria and developer evidence
 - Clear pass/fail decision
-- Required report path: `/home/rob/ytree/.agent/handoffs/report.<id>.<even>.txt`
+- Required report path: `/home/rob/ytreenova/.agent/handoffs/report.<id>.<even>.txt`
 - Completion reply must be exactly one line:
-  `BUG <id> completed, report in /home/rob/ytree/.agent/handoffs/report.<id>.<even>.txt`
+  `BUG <id> completed, report in /home/rob/ytreenova/.agent/handoffs/report.<id>.<even>.txt`
   or
-  `TASK <id> completed, report in /home/rob/ytree/.agent/handoffs/report.<id>.<even>.txt`
+  `TASK <id> completed, report in /home/rob/ytreenova/.agent/handoffs/report.<id>.<even>.txt`
 
 Validation:
 - Run required checks/QA autonomously; do not stop for routine checks approval.
@@ -142,5 +142,5 @@ Update format to maintainer:
 - Do not ask the maintainer to extract internals from logs; provide concrete values directly.
 
 Final completion line:
-- `BUG <id> completed, reports in /home/rob/ytree/.agent/handoffs/prompt.<id>.txt and /home/rob/ytree/.agent/handoffs/report.<id>.*.txt`
-- or `TASK <id> completed, reports in /home/rob/ytree/.agent/handoffs/prompt.<id>.txt and /home/rob/ytree/.agent/handoffs/report.<id>.*.txt`
+- `BUG <id> completed, reports in /home/rob/ytreenova/.agent/handoffs/prompt.<id>.txt and /home/rob/ytreenova/.agent/handoffs/report.<id>.*.txt`
+- or `TASK <id> completed, reports in /home/rob/ytreenova/.agent/handoffs/prompt.<id>.txt and /home/rob/ytreenova/.agent/handoffs/report.<id>.*.txt`

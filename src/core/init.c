@@ -8,8 +8,8 @@
  *
  ***************************************************************************/
 
-#include "ytree_defs.h"
-#include "ytree_debug.h"
+#include "ytnova_defs.h"
+#include "ytnova_debug.h"
 #include "default_profile_template.h"
 #include <fcntl.h>
 #include <string.h>
@@ -52,7 +52,7 @@ extern int RuntimePort_MainInit(ViewContext *ctx, const char *configuration_file
                                 const char *history_file);
 extern void RuntimePort_MainSetProfileValue(const ViewContext *ctx, char *name,
                                             const char *value);
-extern int RuntimePort_MainLogDisk(ViewContext *ctx, YtreePanel *panel,
+extern int RuntimePort_MainLogDisk(ViewContext *ctx, YtreeNovaPanel *panel,
                                    char *path);
 extern int RuntimePort_MainSetFilter(const char *filter_spec, Statistic *s);
 extern void RuntimePort_MainRecalculateSysStats(ViewContext *ctx, Statistic *s);
@@ -76,7 +76,7 @@ static int CoreInitWriteAll(int fd, const char *buf, size_t len) {
 }
 
 static int CoreInitLoadDefaultProfileTemplate(ViewContext *ctx) {
-  char template_path[] = "/tmp/ytree-default-profile-XXXXXX";
+  char template_path[] = "/tmp/ytnova-default-profile-XXXXXX";
   int fd;
   size_t template_len;
   int result = -1;
@@ -102,7 +102,7 @@ static int CoreInitLoadDefaultProfileTemplate(ViewContext *ctx) {
 }
 
 #ifdef XCURSES
-char *XCursesProgramName = "ytree";
+char *XCursesProgramName = "ytnova";
 #endif
 
 static void RegisterCoreInitOps(ViewContext *ctx) {
@@ -354,7 +354,7 @@ void InitView(ViewContext *ctx) {
   ctx->focused_window = FOCUS_TREE;
 
   /* Initialize Panels */
-  ctx->left = (YtreePanel *)calloc(1, sizeof(YtreePanel));
+  ctx->left = (YtreeNovaPanel *)calloc(1, sizeof(YtreeNovaPanel));
   if (ctx->left == NULL) {
     fprintf(stderr, "InitView: failed to allocate left panel\n");
     exit(1);
@@ -367,7 +367,7 @@ void InitView(ViewContext *ctx) {
   ctx->left->saved_big_file_view = FALSE;
   ctx->left->hide_dot_files = FALSE;
 
-  ctx->right = (YtreePanel *)calloc(1, sizeof(YtreePanel));
+  ctx->right = (YtreeNovaPanel *)calloc(1, sizeof(YtreeNovaPanel));
   if (ctx->right == NULL) {
     fprintf(stderr, "InitView: failed to allocate right panel\n");
     free(ctx->left);
@@ -497,7 +497,7 @@ void ReCreateWindows(ViewContext *ctx) {
   }
 
   /* 3. Create Primary Panel Windows (Always Created) */
-  YtreePanel *primary = (ctx->preview_mode) ? ctx->active : ctx->left;
+  YtreeNovaPanel *primary = (ctx->preview_mode) ? ctx->active : ctx->left;
 
   primary->pan_dir_window = Subwin(stdscr, primary->dir_h, primary->dir_w,
                                    primary->dir_y, primary->dir_x);

@@ -13,8 +13,8 @@ These tests verify:
 import pytest
 import time
 import re
-from tui_harness import YtreeTUI
-from ytree_keys import Keys
+from tui_harness import YtreeNovaTUI
+from ytnova_keys import Keys
 
 
 @pytest.fixture
@@ -31,12 +31,12 @@ def test_dir_with_files(tmp_path):
     return test_root
 
 
-def test_stats_show_current_file_on_entry(test_dir_with_files, ytree_binary):
+def test_stats_show_current_file_on_entry(test_dir_with_files, ytnova_binary):
     """
     BUG: Stats panel shows "CURRENT DIR" instead of "CURRENT FILE" when entering file window.
     EXPECTED: Stats should immediately show "CURRENT FILE" with file metadata.
     """
-    tui = YtreeTUI(executable=ytree_binary, cwd=str(test_dir_with_files))
+    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(test_dir_with_files))
     time.sleep(1.0)
 
     # Enter file window (small)
@@ -55,12 +55,12 @@ def test_stats_show_current_file_on_entry(test_dir_with_files, ytree_binary):
     tui.quit()
 
 
-def test_attributes_section_appears_on_entry(test_dir_with_files, ytree_binary):
+def test_attributes_section_appears_on_entry(test_dir_with_files, ytnova_binary):
     """
     BUG: Attributes section (bottom of stats panel) is blank until first DOWN press.
     EXPECTED: Attributes (Size, Perm, Mod time) should appear immediately.
     """
-    tui = YtreeTUI(executable=ytree_binary, cwd=str(test_dir_with_files))
+    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(test_dir_with_files))
     time.sleep(1.0)
 
     # Enter file window
@@ -80,12 +80,12 @@ def test_attributes_section_appears_on_entry(test_dir_with_files, ytree_binary):
     tui.quit()
 
 
-def test_stats_synchronize_with_cursor_movement(test_dir_with_files, ytree_binary):
+def test_stats_synchronize_with_cursor_movement(test_dir_with_files, ytnova_binary):
     """
     BUG: Stats display is "one behind" - shows previous file when cursor moves.
     EXPECTED: Stats should update to show currently selected file immediately.
     """
-    tui = YtreeTUI(executable=ytree_binary, cwd=str(test_dir_with_files))
+    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(test_dir_with_files))
     time.sleep(1.0)
 
     # Enter file window - should select file1.txt
@@ -129,15 +129,15 @@ def test_stats_synchronize_with_cursor_movement(test_dir_with_files, ytree_binar
     tui.quit()
 
 
-def test_stats_in_big_window_mode(test_dir_with_files, ytree_binary):
+def test_stats_in_big_window_mode(test_dir_with_files, ytnova_binary):
     """
     BUG: Stats still show "CURRENT DIR" when entering file window.
     EXPECTED: Stats should show "CURRENT FILE" in file window (big or small mode).
 
-    NOTE: ytree enters file window in big mode by default (bypass_small_window=TRUE),
+    NOTE: ytnova enters file window in big mode by default (bypass_small_window=TRUE),
     so we only need one ENTER to get into big window mode.
     """
-    tui = YtreeTUI(executable=ytree_binary, cwd=str(test_dir_with_files))
+    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(test_dir_with_files))
     time.sleep(1.0)
 
     # Enter file window (enters big mode by default)
@@ -155,12 +155,12 @@ def test_stats_in_big_window_mode(test_dir_with_files, ytree_binary):
     tui.quit()
 
 
-def test_lowercase_l_key_triggers_log(test_dir_with_files, ytree_binary):
+def test_lowercase_l_key_triggers_log(test_dir_with_files, ytnova_binary):
     """
     BUG: Lowercase 'l' key does nothing, only uppercase 'L' works.
     EXPECTED: Both 'l' and 'L' should trigger Log prompt.
     """
-    tui = YtreeTUI(executable=ytree_binary, cwd=str(test_dir_with_files))
+    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(test_dir_with_files))
     time.sleep(1.0)
 
     # Press lowercase 'l'
@@ -177,7 +177,7 @@ def test_lowercase_l_key_triggers_log(test_dir_with_files, ytree_binary):
     tui.quit()
 
 
-def test_lowercase_k_key_opens_volume_menu(test_dir_with_files, ytree_binary):
+def test_lowercase_k_key_opens_volume_menu(test_dir_with_files, ytnova_binary):
     """
     BUG: Lowercase 'k' should open volume menu (case-insensitive).
     EXPECTED: Both 'k' and 'K' should open volume menu.
@@ -185,7 +185,7 @@ def test_lowercase_k_key_opens_volume_menu(test_dir_with_files, ytree_binary):
     NOTE: VI keys are runtime-configurable (`VI_KEYS=0/1` in profile). With
     default `VI_KEYS=0`, lowercase bindings remain case-insensitive.
     """
-    tui = YtreeTUI(executable=ytree_binary, cwd=str(test_dir_with_files))
+    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(test_dir_with_files))
     time.sleep(1.0)
 
     # Press lowercase 'k' (should work with VI keys disabled)
@@ -202,7 +202,7 @@ def test_lowercase_k_key_opens_volume_menu(test_dir_with_files, ytree_binary):
     tui.quit()
 
 
-def test_case_insensitive_tag_untag(test_dir_with_files, ytree_binary):
+def test_case_insensitive_tag_untag(test_dir_with_files, ytnova_binary):
     """
     BUG: 'T' tags all instead of single file, 'U' untags all instead of single.
     EXPECTED:
@@ -211,7 +211,7 @@ def test_case_insensitive_tag_untag(test_dir_with_files, ytree_binary):
       - Ctrl+T = tag all
       - Ctrl+U = untag all
     """
-    tui = YtreeTUI(executable=ytree_binary, cwd=str(test_dir_with_files))
+    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(test_dir_with_files))
     time.sleep(1.0)
 
     # Enter file window
@@ -257,11 +257,11 @@ def test_case_insensitive_tag_untag(test_dir_with_files, ytree_binary):
     tui.quit()
 
 
-def test_ctrl_t_tags_all(test_dir_with_files, ytree_binary):
+def test_ctrl_t_tags_all(test_dir_with_files, ytnova_binary):
     """
     Verify Ctrl+T tags all files (not just uppercase T).
     """
-    tui = YtreeTUI(executable=ytree_binary, cwd=str(test_dir_with_files))
+    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(test_dir_with_files))
     time.sleep(1.0)
 
     # Enter file window
@@ -282,12 +282,12 @@ def test_ctrl_t_tags_all(test_dir_with_files, ytree_binary):
     tui.quit()
 
 
-def test_ctrl_u_untags_all(test_dir_with_files, ytree_binary):
+def test_ctrl_u_untags_all(test_dir_with_files, ytnova_binary):
     """
     BUG: Ctrl+U moves cursor up instead of untagging all.
     EXPECTED: Ctrl+U should untag all files.
     """
-    tui = YtreeTUI(executable=ytree_binary, cwd=str(test_dir_with_files))
+    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(test_dir_with_files))
     time.sleep(1.0)
 
     # Enter file window and tag all
@@ -318,12 +318,12 @@ def test_ctrl_u_untags_all(test_dir_with_files, ytree_binary):
     tui.quit()
 
 
-def test_footer_shows_brief_command(test_dir_with_files, ytree_binary):
+def test_footer_shows_brief_command(test_dir_with_files, ytnova_binary):
     """
     BUG: Footer shows "aBout" which no longer exists, missing "B (Brief)".
     EXPECTED: Footer should show "B Brief" command.
     """
-    tui = YtreeTUI(executable=ytree_binary, cwd=str(test_dir_with_files))
+    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(test_dir_with_files))
     time.sleep(1.0)
 
     # Enter file window
@@ -347,12 +347,12 @@ def test_footer_shows_brief_command(test_dir_with_files, ytree_binary):
     tui.quit()
 
 
-def test_footer_after_execute_escape(test_dir_with_files, ytree_binary):
+def test_footer_after_execute_escape(test_dir_with_files, ytnova_binary):
     """
     BUG: After pressing 'x' (execute) then ESC, second footer line shows only 'C'.
     EXPECTED: Footer should be fully restored after canceling command.
     """
-    tui = YtreeTUI(executable=ytree_binary, cwd=str(test_dir_with_files))
+    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(test_dir_with_files))
     time.sleep(1.0)
 
     # Enter file window
@@ -385,12 +385,12 @@ def test_footer_after_execute_escape(test_dir_with_files, ytree_binary):
     tui.quit()
 
 
-def test_footer_visible_in_big_window(test_dir_with_files, ytree_binary):
+def test_footer_visible_in_big_window(test_dir_with_files, ytnova_binary):
     """
     BUG (FIXED?): Footer was blank in big window mode.
     EXPECTED: Footer menu should be visible when zoomed.
     """
-    tui = YtreeTUI(executable=ytree_binary, cwd=str(test_dir_with_files))
+    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(test_dir_with_files))
     time.sleep(1.0)
 
     # Enter file window and zoom
@@ -409,41 +409,41 @@ def test_footer_visible_in_big_window(test_dir_with_files, ytree_binary):
 
         tui.quit()
 
-def test_pipe_command_in_big_file_window(test_dir_with_files, ytree_binary):
+def test_pipe_command_in_big_file_window(test_dir_with_files, ytnova_binary):
     """
     BUG E: The Pipe ('p') command is non-responsive in the big file window.
     EXPECTED: Pressing 'p' prompts the user for a Pipe command.
     """
     # Start with SMALLWINDOWSKIP=0
-    ytree_cfg = test_dir_with_files.parent / ".ytree"
-    ytree_cfg.write_text("SMALLWINDOWSKIP=0\n")
+    ytnova_cfg = test_dir_with_files.parent / ".ytnova"
+    ytnova_cfg.write_text("SMALLWINDOWSKIP=0\n")
 
-    tui = YtreeTUI(
-        executable=ytree_binary, 
+    tui = YtreeNovaTUI(
+        executable=ytnova_binary,
         cwd=str(test_dir_with_files.parent)
     )
     time.sleep(1.0)
     # Move down to highlight test_dir_with_files
     tui.send_keystroke(Keys.DOWN)
     time.sleep(0.5)
-    
+
     # Enter small file window
     tui.send_keystroke(Keys.ENTER)
     time.sleep(0.5)
     # Enter big file window
     tui.send_keystroke(Keys.ENTER)
     time.sleep(0.5)
-    
+
     # Press 'p' for Pipe
     tui.send_keystroke('p')
     time.sleep(0.5)
-    
+
     screen = "\n".join(tui.get_screen_dump()).lower()
-    
+
     # Assert that the Pipe prompt appears. Look for "PIPE" or "Pipe" on a single line with ":"
     # "Pipe" in the footer is not the prompt. The prompt row usually looks like "pipe-command:"
     prompt_found = "pipe-command" in screen
-            
+
     if not prompt_found:
         pytest.fail(f"BUG: Pipe command ('p') did nothing in big file window. Prompt not found.\nScreen dump:\n{screen}")
     tui.quit()

@@ -3,8 +3,8 @@ import tarfile
 import time
 from pathlib import Path
 
-from ytree_control import YtreeController
-from ytree_keys import Keys
+from ytnova_control import YtreeNovaController
+from ytnova_keys import Keys
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -19,7 +19,7 @@ def _snapshot_tree(root: Path) -> dict[str, str]:
     for path in sorted(root.rglob("*")):
         if path.is_file():
             relpath = str(path.relative_to(root))
-            if relpath.startswith(".ytree"):
+            if relpath.startswith(".ytnova"):
                 continue
             snapshot[relpath] = _sha256_file(path)
     return snapshot
@@ -37,7 +37,7 @@ def _snapshot_archive(path: Path) -> dict[str, str]:
     return snapshot
 
 
-def _copy_selected_file(controller: YtreeController, source_name: str, new_name: str, to_dir: Path) -> None:
+def _copy_selected_file(controller: YtreeNovaController, source_name: str, new_name: str, to_dir: Path) -> None:
     controller.select_file(source_name)
     controller.child.send(Keys.COPY)
     controller.child.expect("COPY")
@@ -47,7 +47,7 @@ def _copy_selected_file(controller: YtreeController, source_name: str, new_name:
     time.sleep(0.7)
 
 
-def _move_selected_file(controller: YtreeController, source_name: str, new_name: str, to_dir: Path) -> None:
+def _move_selected_file(controller: YtreeNovaController, source_name: str, new_name: str, to_dir: Path) -> None:
     controller.select_file(source_name)
     controller.child.send(Keys.MOVE)
     controller.child.expect("MOVE")
@@ -57,7 +57,7 @@ def _move_selected_file(controller: YtreeController, source_name: str, new_name:
     time.sleep(0.7)
 
 
-def _rename_selected_file(controller: YtreeController, source_name: str, new_name: str) -> None:
+def _rename_selected_file(controller: YtreeNovaController, source_name: str, new_name: str) -> None:
     controller.select_file(source_name)
     controller.child.send(Keys.RENAME)
     controller.child.expect("RENAME")
@@ -65,7 +65,7 @@ def _rename_selected_file(controller: YtreeController, source_name: str, new_nam
     time.sleep(0.6)
 
 
-def _delete_selected_file(controller: YtreeController, source_name: str) -> None:
+def _delete_selected_file(controller: YtreeNovaController, source_name: str) -> None:
     controller.select_file(source_name)
     controller.child.send(Keys.DELETE)
     controller.child.expect("Delete this file")
@@ -77,7 +77,7 @@ def _read(relpath: str) -> str:
     return (REPO_ROOT / relpath).read_text(encoding="utf-8")
 
 
-def test_copy_mutation_updates_only_destination_hashes(ytree_binary, tmp_path):
+def test_copy_mutation_updates_only_destination_hashes(ytnova_binary, tmp_path):
     root = tmp_path / "copy_integrity"
     source = root / "source"
     dest = root / "dest"
@@ -87,7 +87,7 @@ def test_copy_mutation_updates_only_destination_hashes(ytree_binary, tmp_path):
 
     before = _snapshot_tree(root)
 
-    controller = YtreeController(ytree_binary, str(root))
+    controller = YtreeNovaController(ytnova_binary, str(root))
     try:
         controller.wait_for_startup()
         _copy_selected_file(controller, "alpha.txt", "alpha_copy.txt", dest)
@@ -99,7 +99,7 @@ def test_copy_mutation_updates_only_destination_hashes(ytree_binary, tmp_path):
     assert _snapshot_tree(root) == expected
 
 
-def test_move_mutation_rehomes_hash_without_corrupting_payload(ytree_binary, tmp_path):
+def test_move_mutation_rehomes_hash_without_corrupting_payload(ytnova_binary, tmp_path):
     root = tmp_path / "move_integrity"
     source = root / "source"
     dest = root / "dest"
@@ -109,7 +109,7 @@ def test_move_mutation_rehomes_hash_without_corrupting_payload(ytree_binary, tmp
 
     before = _snapshot_tree(root)
 
-    controller = YtreeController(ytree_binary, str(root))
+    controller = YtreeNovaController(ytnova_binary, str(root))
     try:
         controller.wait_for_startup()
         _move_selected_file(controller, "beta.txt", "beta_moved.txt", dest)
@@ -122,14 +122,14 @@ def test_move_mutation_rehomes_hash_without_corrupting_payload(ytree_binary, tmp
     assert _snapshot_tree(root) == expected
 
 
-def test_rename_mutation_preserves_file_hash(ytree_binary, tmp_path):
+def test_rename_mutation_preserves_file_hash(ytnova_binary, tmp_path):
     root = tmp_path / "rename_integrity"
     root.mkdir()
     (root / "gamma.txt").write_text("gamma payload", encoding="utf-8")
 
     before = _snapshot_tree(root)
 
-    controller = YtreeController(ytree_binary, str(root))
+    controller = YtreeNovaController(ytnova_binary, str(root))
     try:
         controller.wait_for_startup()
         _rename_selected_file(controller, "gamma.txt", "gamma_renamed.txt")
@@ -140,7 +140,7 @@ def test_rename_mutation_preserves_file_hash(ytree_binary, tmp_path):
     assert _snapshot_tree(root) == expected
 
 
-def test_delete_mutation_removes_only_selected_file(ytree_binary, tmp_path):
+def test_delete_mutation_removes_only_selected_file(ytnova_binary, tmp_path):
     root = tmp_path / "delete_integrity"
     root.mkdir()
     (root / "keep.txt").write_text("keep", encoding="utf-8")
@@ -148,7 +148,7 @@ def test_delete_mutation_removes_only_selected_file(ytree_binary, tmp_path):
 
     before = _snapshot_tree(root)
 
-    controller = YtreeController(ytree_binary, str(root))
+    controller = YtreeNovaController(ytnova_binary, str(root))
     try:
         controller.wait_for_startup()
         _delete_selected_file(controller, "remove.txt")
@@ -160,14 +160,14 @@ def test_delete_mutation_removes_only_selected_file(ytree_binary, tmp_path):
     assert _snapshot_tree(root) == expected
 
 
-def test_copy_prompt_cancel_keeps_tree_snapshot_identical(ytree_binary, tmp_path):
+def test_copy_prompt_cancel_keeps_tree_snapshot_identical(ytnova_binary, tmp_path):
     root = tmp_path / "copy_cancel_integrity"
     root.mkdir()
     (root / "cancel.txt").write_text("cancel payload", encoding="utf-8")
 
     before = _snapshot_tree(root)
 
-    controller = YtreeController(ytree_binary, str(root))
+    controller = YtreeNovaController(ytnova_binary, str(root))
     try:
         controller.wait_for_startup()
         controller.select_file("cancel.txt")
@@ -183,14 +183,14 @@ def test_copy_prompt_cancel_keeps_tree_snapshot_identical(ytree_binary, tmp_path
     assert _snapshot_tree(root) == before
 
 
-def test_same_path_copy_rejection_keeps_tree_snapshot_identical(ytree_binary, tmp_path):
+def test_same_path_copy_rejection_keeps_tree_snapshot_identical(ytnova_binary, tmp_path):
     root = tmp_path / "same_path_copy_integrity"
     root.mkdir()
     (root / "same.txt").write_text("same payload", encoding="utf-8")
 
     before = _snapshot_tree(root)
 
-    controller = YtreeController(ytree_binary, str(root))
+    controller = YtreeNovaController(ytnova_binary, str(root))
     try:
         controller.wait_for_startup()
         controller.select_file("same.txt")
@@ -206,7 +206,7 @@ def test_same_path_copy_rejection_keeps_tree_snapshot_identical(ytree_binary, tm
     assert _snapshot_tree(root) == before
 
 
-def test_archive_copy_rewrite_updates_member_hashes_deterministically(ytree_binary, tmp_path):
+def test_archive_copy_rewrite_updates_member_hashes_deterministically(ytnova_binary, tmp_path):
     import io
 
     root = tmp_path / "archive_rewrite_integrity"
@@ -225,7 +225,7 @@ def test_archive_copy_rewrite_updates_member_hashes_deterministically(ytree_bina
 
     before_members = _snapshot_archive(archive_path)
 
-    controller = YtreeController(ytree_binary, str(root))
+    controller = YtreeNovaController(ytnova_binary, str(root))
     try:
         controller.wait_for_startup()
         controller.child.send(Keys.LOG)

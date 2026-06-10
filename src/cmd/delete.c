@@ -5,12 +5,12 @@
  *
  ***************************************************************************/
 
-#ifndef YTREE_H
-#include "../../include/ytree.h"
+#ifndef YTNOVA_H
+#include "../../include/ytnova.h"
 #endif
 
-#include "../../include/ytree_cmd.h"
-#include "../../include/ytree_fs.h"
+#include "../../include/ytnova_cmd.h"
+#include "../../include/ytnova_fs.h"
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>

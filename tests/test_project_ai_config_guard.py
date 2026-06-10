@@ -83,7 +83,7 @@ def test_check_config_accepts_absolute_model_instructions_file(tmp_path: Path) -
         config,
         textwrap.dedent(
             """\
-            model_instructions_file = "/home/rob/ytree/.ai/codex.md"
+            model_instructions_file = "/home/rob/ytreenova/.ai/codex.md"
 
             [mcp_servers.serena]
             command = "uvx"

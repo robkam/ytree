@@ -36,7 +36,7 @@ def test_prompt_and_volume_dialogs_use_neutral_dialog_palette():
     input_source = _read_source("src/ui/input_line.c")
     input_block = _extract_function_block(
         input_source,
-        "static int UI_ReadStringInternal(ViewContext *ctx, YtreePanel *panel,",
+        "static int UI_ReadStringInternal(ViewContext *ctx, YtreeNovaPanel *panel,",
     )
     assert "WbkgdSet(ctx, win, COLOR_PAIR(CPAIR_DIALOG));" in input_block
     assert "PrintMenuOptions(win, hints_row, 1, (char *)hints, CPAIR_DIALOG," in input_block

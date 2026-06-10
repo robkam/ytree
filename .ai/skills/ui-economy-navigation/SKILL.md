@@ -1,6 +1,6 @@
 ---
 name: ui-economy-navigation
-description: Design ytree interactions to minimize menu depth and cognitive load using shallow, high-signal choice flows.
+description: Design ytnova interactions to minimize menu depth and cognitive load using shallow, high-signal choice flows.
 ---
 
 # UI Economy Navigation

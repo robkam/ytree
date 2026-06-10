@@ -1,4 +1,4 @@
-# Top-level Python dependencies for ytree scripts and tests.
+# Top-level Python dependencies for ytnova scripts and tests.
 pytest
 pexpect
 pyte

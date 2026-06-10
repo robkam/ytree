@@ -1,9 +1,9 @@
 import pytest
 import os
 import time
-from tui_harness import YtreeTUI
+from tui_harness import YtreeNovaTUI
 
-def test_ui_layout_box_drawing(ytree_binary, tmp_path):
+def test_ui_layout_box_drawing(ytnova_binary, tmp_path):
     """
     REGRESSION: Verify that box-drawing is active and uses Ncurses graphics (ACS or Unicode).
     We check for the presence of drawing components like borders and tree connectors.
@@ -15,8 +15,8 @@ def test_ui_layout_box_drawing(ytree_binary, tmp_path):
     test_dir.mkdir()
     (test_dir / "new_dir").mkdir()
     
-    # Launch ytree using the TUI harness
-    tui = YtreeTUI(executable=ytree_binary, cwd=str(test_dir))
+    # Launch ytnova using the TUI harness
+    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(test_dir))
     
     # Wait for the screen to stabilize and ensure content is loaded
     assert tui.wait_for_content("new_dir", timeout=5.0), "Directory 'new_dir' not found on screen after scan"
@@ -52,14 +52,14 @@ def test_ui_layout_box_drawing(ytree_binary, tmp_path):
 
     tui.quit()
 
-def test_ui_layout_dynamic_resizing(ytree_binary, tmp_path):
+def test_ui_layout_dynamic_resizing(ytnova_binary, tmp_path):
     """
     Verifies that the UI remains stable during terminal resize.
     """
     test_dir = tmp_path / "resize_test"
     test_dir.mkdir()
     
-    tui = YtreeTUI(executable=ytree_binary, cwd=str(test_dir))
+    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(test_dir))
     assert tui.wait_for_content("resize_test", timeout=5.0), "Test directory not found on screen"
     
     # Resize to something different
@@ -67,7 +67,7 @@ def test_ui_layout_dynamic_resizing(ytree_binary, tmp_path):
     tui.child.setwinsize(new_lines, new_cols)
     tui.screen.resize(new_lines, new_cols)
     
-    # Wait for ytree to handle SIGWINCH and redraw
+    # Wait for ytnova to handle SIGWINCH and redraw
     time.sleep(1.0)
     
     screen = tui.get_screen_dump()

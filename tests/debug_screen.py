@@ -1,15 +1,15 @@
 import time
 import os
-from tui_harness import YtreeTUI
-from ytree_keys import Keys
+from tui_harness import YtreeNovaTUI
+from ytnova_keys import Keys
 
-YTREE_BIN = os.path.abspath("./build/ytree")
+YTNOVA_BIN = os.path.abspath("./build/ytnova")
 
 def debug_run():
     # Make a dummy file to copy
     os.system("touch /tmp/dummy_test_file.txt")
     
-    tui = YtreeTUI(executable=YTREE_BIN, cwd="/tmp")
+    tui = YtreeNovaTUI(executable=YTNOVA_BIN, cwd="/tmp")
     time.sleep(1.0)
     
     # Enter file view

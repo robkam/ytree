@@ -1,11 +1,11 @@
 /***************************************************************************
  *
  * src/core/appstate_actions.c
- * Runtime lookup table for YtreeAction AppState transition metadata.
+ * Runtime lookup table for YtreeNovaAction AppState transition metadata.
  *
  ***************************************************************************/
 
-#include "ytree_appstate_actions.h"
+#include "ytnova_appstate_actions.h"
 #include <string.h>
 
 enum { APPSTATE_ACTION_TRANSITION_COUNT = ACTION_USER_CMD + 1 };
@@ -87,7 +87,7 @@ static const char *const kAppStateTransitionWriteSet9[] = {
 };
 
 static const char *const kAppStateCompatibilityShimInvariantChecks0[] = {
-  "YtreePanel(active).dotfile_visibility is authoritative",
+  "YtreeNovaPanel(active).dotfile_visibility is authoritative",
   "Inactive panel visibility is never overwritten from the mirror",
 };
 
@@ -509,12 +509,12 @@ static const AppStateInvariantMetadata kAppStateInvariants[] = {
 static const AppStateTransitionMetadata kAppStateTransitions[] = {
   {"transition.keybinding.navigate-tree",
    "keybinding",
-   "YtreePanel(active)",
+   "YtreeNovaPanel(active)",
    kAppStateTransitionWriteSet0,
    sizeof(kAppStateTransitionWriteSet0) / sizeof(kAppStateTransitionWriteSet0[0])},
   {"transition.menu-action.volume-select",
    "menu_action",
-   "ViewContext(session routing) and YtreePanel(active)",
+   "ViewContext(session routing) and YtreeNovaPanel(active)",
    kAppStateTransitionWriteSet1,
    sizeof(kAppStateTransitionWriteSet1) / sizeof(kAppStateTransitionWriteSet1[0])},
   {"transition.modal-action.dismiss",
@@ -529,7 +529,7 @@ static const AppStateTransitionMetadata kAppStateTransitions[] = {
    sizeof(kAppStateTransitionWriteSet3) / sizeof(kAppStateTransitionWriteSet3[0])},
   {"transition.volume-operation.release-cycle",
    "volume_operation",
-   "ViewContext.volume_registry and YtreePanel(active)",
+   "ViewContext.volume_registry and YtreeNovaPanel(active)",
    kAppStateTransitionWriteSet4,
    sizeof(kAppStateTransitionWriteSet4) / sizeof(kAppStateTransitionWriteSet4[0])},
   {"transition.terminal-signal-resize",
@@ -539,7 +539,7 @@ static const AppStateTransitionMetadata kAppStateTransitions[] = {
    sizeof(kAppStateTransitionWriteSet5) / sizeof(kAppStateTransitionWriteSet5[0])},
   {"transition.filesystem-mutation-result.mkdir-copy-delete",
    "filesystem_mutation_result",
-   "Volume(shared topology) plus YtreePanel(active) for active selection",
+   "Volume(shared topology) plus YtreeNovaPanel(active) for active selection",
    kAppStateTransitionWriteSet6,
    sizeof(kAppStateTransitionWriteSet6) / sizeof(kAppStateTransitionWriteSet6[0])},
   {"transition.command-completion.user-command",
@@ -549,7 +549,7 @@ static const AppStateTransitionMetadata kAppStateTransitions[] = {
    sizeof(kAppStateTransitionWriteSet7) / sizeof(kAppStateTransitionWriteSet7[0])},
   {"transition.rebuild-rebind-callback.panel-anchor",
    "rebuild_rebind_callback",
-   "YtreePanel(affected) and Volume(current)",
+   "YtreeNovaPanel(affected) and Volume(current)",
    kAppStateTransitionWriteSet8,
    sizeof(kAppStateTransitionWriteSet8) / sizeof(kAppStateTransitionWriteSet8[0])},
   {"transition.render-reflow.project-state",
@@ -716,7 +716,7 @@ static const AppStateCompatibilityShimMetadata kAppStateCompatibilityShims[] = {
   {"shim.viewcontext-hide-dot-files",
    "ViewContext derived mirror",
    "ViewContext.hide_dot_files",
-   "Allowed only as a derived compatibility mirror for helpers that have not yet accepted YtreePanel dotfile visibility.",
+   "Allowed only as a derived compatibility mirror for helpers that have not yet accepted YtreeNovaPanel dotfile visibility.",
    "Write only when synchronizing from the active panel's authoritative dotfile_visibility during transition commit.",
    kAppStateCompatibilityShimInvariantChecks0,
    sizeof(kAppStateCompatibilityShimInvariantChecks0) /
@@ -848,7 +848,7 @@ AppStateInvariantLookup(const char *invariant_id) {
 }
 
 const AppStateActionTransitionMetadata *
-AppStateActionTransitionLookup(YtreeAction action) {
+AppStateActionTransitionLookup(YtreeNovaAction action) {
   const AppStateActionTransitionMetadata *metadata;
 
   if ((int)action < 0 || (size_t)action >= AppStateActionTransitionCount())

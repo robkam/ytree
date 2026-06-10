@@ -5,8 +5,8 @@
  *
  ***************************************************************************/
 
-#include "ytree_defs.h"
-#include "ytree_appstate_actions.h"
+#include "ytnova_defs.h"
+#include "ytnova_appstate_actions.h"
 #include "default_profile_template.h"
 #include <errno.h>
 #include <fcntl.h>
@@ -17,7 +17,7 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
-volatile sig_atomic_t ytree_shutdown_flag = 0;
+volatile sig_atomic_t ytnova_shutdown_flag = 0;
 
 static int CoreMainOpsReady(const CoreMainOps *ops) {
   return ops != NULL && ops->init != NULL && ops->set_profile_value != NULL &&
@@ -92,7 +92,7 @@ static int AppStateTransitionRegistryReady(void) {
     }
   }
 
-  if (AppStateTransitionLookup("transition.__ytree_unknown__") != NULL)
+  if (AppStateTransitionLookup("transition.__ytnova_unknown__") != NULL)
     return 0;
 
   return 1;
@@ -139,7 +139,7 @@ static int AppStateInvariantRegistryReady(void) {
     return 0;
   if (AppStateInvariantLookup("") != NULL)
     return 0;
-  if (AppStateInvariantLookup("invariant.__ytree_unknown__") != NULL)
+  if (AppStateInvariantLookup("invariant.__ytnova_unknown__") != NULL)
     return 0;
 
   return 1;
@@ -186,7 +186,7 @@ static int AppStateCompatibilityShimsReady(void) {
     return 0;
   if (AppStateCompatibilityShimLookup("") != NULL)
     return 0;
-  if (AppStateCompatibilityShimLookup("shim.__ytree_unknown__") != NULL)
+  if (AppStateCompatibilityShimLookup("shim.__ytnova_unknown__") != NULL)
     return 0;
 
   return 1;
@@ -202,7 +202,7 @@ static int AppStateActionTransitionsReady(void) {
     const AppStateActionTransitionMetadata *action_metadata;
     const AppStateTransitionMetadata *transition_metadata;
 
-    action_metadata = AppStateActionTransitionLookup((YtreeAction)index);
+    action_metadata = AppStateActionTransitionLookup((YtreeNovaAction)index);
     if (action_metadata == NULL ||
         !NonEmptyString(action_metadata->transition_id) ||
         !NonEmptyString(action_metadata->category))
@@ -221,7 +221,7 @@ static int AppStateActionTransitionsReady(void) {
 
 static void SigIntHandler(int sig) {
   (void)sig;
-  ytree_shutdown_flag = 1;
+  ytnova_shutdown_flag = 1;
 }
 
 static int GetDefaultProfilePath(char *path, size_t path_size) {
@@ -315,7 +315,7 @@ int main(int argc, char **argv) {
   for (argi = 1; argi < argc; argi++) {
     if (!strcmp(argv[argi], "-v") || !strcmp(argv[argi], "-V") ||
         !strcmp(argv[argi], "--version")) {
-      fprintf(stdout, "ytree %s (%s)\n", VERSION, VERSIONDATE);
+      fprintf(stdout, "ytnova %s (%s)\n", VERSION, VERSIONDATE);
       return 0;
     }
     if (!strcmp(argv[argi], "--init")) {
@@ -575,7 +575,7 @@ int main(int argc, char **argv) {
     }
     /* Also break if shutdown flag was set by SIGINT handler but not caught
      * inside HandleDirWindow yet */
-    if (ytree_shutdown_flag) {
+    if (ytnova_shutdown_flag) {
       break;
     }
   }

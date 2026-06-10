@@ -5,19 +5,19 @@
  *
  ***************************************************************************/
 
-#define NO_YTREE_MACROS
+#define NO_YTNOVA_MACROS
 #include "watcher.h"
-#include "ytree_cmd.h"
-#include "ytree_fs.h"
-#include "ytree_panel_anchor.h"
-#include "ytree_split_transition.h"
-#include "ytree_ui.h"
+#include "ytnova_cmd.h"
+#include "ytnova_fs.h"
+#include "ytnova_panel_anchor.h"
+#include "ytnova_split_transition.h"
+#include "ytnova_ui.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
 
-/* TREEDEPTH uses GetProfileValue which is 2-arg in NO_YTREE_MACROS context */
+/* TREEDEPTH uses GetProfileValue which is 2-arg in NO_YTNOVA_MACROS context */
 #undef TREEDEPTH
 #define TREEDEPTH (GetProfileValue)(ctx, "TREEDEPTH")
 
@@ -26,16 +26,16 @@
 
 /* dir_ops.c */
 void HandlePlus(ViewContext *ctx, DirEntry *dir_entry, DirEntry *de_ptr,
-                char *new_log_path, BOOL *need_dsp_help, YtreePanel *p);
+                char *new_log_path, BOOL *need_dsp_help, YtreeNovaPanel *p);
 void HandleReadSubTree(ViewContext *ctx, DirEntry *dir_entry,
-                       BOOL *need_dsp_help, YtreePanel *p);
+                       BOOL *need_dsp_help, YtreeNovaPanel *p);
 void HandleCollapseSubTree(ViewContext *ctx, DirEntry *dir_entry,
-                           BOOL *need_dsp_help, YtreePanel *p);
+                           BOOL *need_dsp_help, YtreeNovaPanel *p);
 void HandleUnreadSubTree(ViewContext *ctx, DirEntry *dir_entry,
-                         DirEntry *de_ptr, BOOL *need_dsp_help, YtreePanel *p);
+                         DirEntry *de_ptr, BOOL *need_dsp_help, YtreeNovaPanel *p);
 
 void HandleSwitchWindow(ViewContext *ctx, DirEntry *dir_entry,
-                        BOOL *need_dsp_help, int *ch, YtreePanel *p);
+                        BOOL *need_dsp_help, int *ch, YtreeNovaPanel *p);
 static void DirListJump(ViewContext *ctx, DirEntry **dir_entry_ptr,
                         const Statistic *s);
 static void DrawDirListJumpPrompt(ViewContext *ctx, WINDOW *win,
@@ -318,7 +318,7 @@ static BOOL ExitArchiveRootToParent(ViewContext *ctx, DirEntry **dir_entry_ptr,
   if (!retain_archive_volume) {
     BOOL vol_in_use = FALSE;
     if (ctx->is_split_screen) {
-      const YtreePanel *other =
+      const YtreeNovaPanel *other =
           (ctx->active == ctx->left) ? ctx->right : ctx->left;
       if (other && other->vol == old_vol)
         vol_in_use = TRUE;
@@ -445,7 +445,7 @@ extern int HandleDirWindow(ViewContext *ctx, const DirEntry *start_dir_entry) {
   int ch, unput_char;
   BOOL need_dsp_help;
   char new_log_path[PATH_LENGTH + 1];
-  YtreeAction action; /* Declare YtreeAction variable */
+  YtreeNovaAction action; /* Declare YtreeNovaAction variable */
   const struct Volume *start_vol = NULL;
   Statistic *s = NULL;
   int height;
@@ -652,7 +652,7 @@ extern int HandleDirWindow(ViewContext *ctx, const DirEntry *start_dir_entry) {
     RefreshWindow(ctx->ctx_dir_window);
 
     if (ctx->is_split_screen) {
-      YtreePanel *inactive =
+      YtreeNovaPanel *inactive =
           (ctx->active == ctx->left) ? ctx->right : ctx->left;
       EnsurePanelAnchorVisible(ctx, inactive->vol, inactive, "INACTIVE");
       RenderInactivePanel(ctx, inactive);
@@ -688,7 +688,7 @@ extern int HandleDirWindow(ViewContext *ctx, const DirEntry *start_dir_entry) {
       ctx->resize_request = FALSE;
     }
 
-    action = GetKeyAction(ctx, ch); /* Translate raw input to YtreeAction */
+    action = GetKeyAction(ctx, ch); /* Translate raw input to YtreeNovaAction */
     DebugLogDirLoopState("before_dispatch", ctx, dir_entry, ch, action,
                          unput_char);
 

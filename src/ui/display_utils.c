@@ -5,8 +5,8 @@
  *
  ***************************************************************************/
 
-#include "ytree_cmd.h"
-#include "ytree_ui.h"
+#include "ytnova_cmd.h"
+#include "ytnova_ui.h"
 #include <ctype.h>
 #include <stdio.h>  /* Added for snprintf, etc. */
 #include <stdlib.h> /* Added for free, exit */

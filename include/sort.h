@@ -8,8 +8,8 @@
 #ifndef CORE_SORT_H
 #define CORE_SORT_H
 
-#include "ytree_defs.h"
+#include "ytnova_defs.h"
 
-void Panel_Sort(YtreePanel *panel, int method);
+void Panel_Sort(YtreeNovaPanel *panel, int method);
 
 #endif /* CORE_SORT_H */

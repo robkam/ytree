@@ -4,7 +4,7 @@ These instructions apply to all AI agents used in this repository.
 
 ## Project Context
 
-- Repository: `ytree`
+- Repository: `ytreenova`
 - Domain: terminal file manager for UNIX-like systems
 - Codebase language: C (C89/C99, POSIX.1-2008)
 - Testing: Python `pytest` and `pexpect` from the local `.venv`
@@ -38,8 +38,8 @@ These instructions apply to all AI agents used in this repository.
 ## User Notification
 
 - When finishing a long-running mission or when explicitly requesting user review via `notify_user`, you SHOULD trigger a desktop notification on the Windows host.
-- Execute: `/home/rob/ytree/scripts/wsl-notify.sh "ytree" "<Context-specific message>"`
-- Example: `/home/rob/ytree/scripts/wsl-notify.sh "ytree" "Implementation complete, ready for review."`
+- Execute: `/home/rob/ytreenova/scripts/wsl-notify.sh "ytnova" "<Context-specific message>"`
+- Example: `/home/rob/ytreenova/scripts/wsl-notify.sh "ytnova" "Implementation complete, ready for review."`
 
 ## Persona Skill Auto-Load
 
@@ -93,7 +93,7 @@ These instructions apply to all AI agents used in this repository.
 7. You MUST use the `serena` and `jcodemunch` MCP semantic/navigation tools (symbol search, outlines, references) for all codebase search and discovery. Do not use generic system tools (e.g., `grep_search`, `find`, or `find_by_name`) unless semantic tools completely fail.
 8. All commit messages MUST follow Conventional Commits with subject format `<type>(<scope>): <description>` (scope optional), using one of: `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`, `chore`, `revert` (e.g., `feat(ui): ...`, `fix(tests): ...`, `docs(ai): ...`). Commit wording MUST describe durable intent/outcome, MUST NOT use workflow labels (`task`, `step`), and MUST NOT include digits unless an explicit maintainer-approved exception is required. This is enforced by `.githooks/commit-msg`.
 9. You MUST amend (`git commit --amend --no-edit`) for all follow-up corrections to the same task. You MUST NOT create trivial sequential bugfix commits. Use a new commit only when the correction is materially distinct.
-10. Treat user instructions as authoritative on goals, not automatically on exact wording, labels, keybindings, menu structure, or UX details. If a requested detail does not follow convention, established Ytree patterns, or best practices, say so explicitly and recommend the better option before implementing it.
+10. Treat user instructions as authoritative on goals, not automatically on exact wording, labels, keybindings, menu structure, or UX details. If a requested detail does not follow convention, established YtreeNova patterns, or best practices, say so explicitly and recommend the better option before implementing it.
 11. For every bug fix, follow strict red-green: write/adjust a regression test first and demonstrate it fails on current code before changing implementation; then implement the architectural fix and re-run to green. A test added only after the fix is not sufficient evidence.
 12. Focused-first audit cadence is mandatory: use targeted build/test checks during implementation; rely on PR full-QA CI (`make qa-all` equivalent) as the required pre-merge gate, and run local `make qa-all` only on explicit maintainer request or when extra local confidence is needed.
 13. UX economy gate is mandatory for interactive flows: common path MUST be `key -> Enter -> result` with at most one submenu. Any flow requiring more than one submenu must include explicit justification and an equivalent fast path.

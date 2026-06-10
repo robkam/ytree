@@ -1,14 +1,14 @@
 import pytest
 import time
-from tui_harness import YtreeTUI
-from ytree_keys import Keys
+from tui_harness import YtreeNovaTUI
+from ytnova_keys import Keys
 
-def test_state_collision_cursor_pos(dual_panel_sandbox, ytree_binary):
+def test_state_collision_cursor_pos(dual_panel_sandbox, ytnova_binary):
     """
     Demonstrates state collision for cursor_pos/current_dir_entry in split screen.
     If state is global, moving the cursor in one panel will affect the other.
     """
-    tui = YtreeTUI(executable=ytree_binary, cwd=str(dual_panel_sandbox))
+    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(dual_panel_sandbox))
     # Constructor already waited for the tree to be ready.
 
     # Structure:

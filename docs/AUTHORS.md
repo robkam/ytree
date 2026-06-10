@@ -1,4 +1,4 @@
-# Contributors to Ytree
+# Contributors to YtreeNova
 
 **Original Development**
 

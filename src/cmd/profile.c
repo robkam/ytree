@@ -6,7 +6,7 @@
  ***************************************************************************/
 
 #include "config.h"
-#include "ytree_cmd.h"
+#include "ytnova_cmd.h"
 
 #define NO_SECTION 0
 #define GLOBAL_SECTION 1

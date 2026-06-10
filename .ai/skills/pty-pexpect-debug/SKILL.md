@@ -1,6 +1,6 @@
 ---
 name: pty-pexpect-debug
-description: Debug flaky PTY/pexpect tests in ytree with deterministic synchronization and minimal timeout use.
+description: Debug flaky PTY/pexpect tests in ytnova with deterministic synchronization and minimal timeout use.
 ---
 
 # PTY Pexpect Debug

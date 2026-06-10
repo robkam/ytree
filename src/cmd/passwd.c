@@ -6,7 +6,7 @@
  *
  ***************************************************************************/
 
-#include "ytree_defs.h"
+#include "ytnova_defs.h"
 #include <pwd.h>
 #include <sys/types.h>
 
@@ -63,7 +63,7 @@ static char *TruncateDisplayOwnerName(char *dest, const char *src,
 /*
  * GetDisplayPasswdName
  * Returns a formatted/truncated username for display.
- * Uses a static buffer (not thread safe, but safe for ytree TUI).
+ * Uses a static buffer (not thread safe, but safe for ytnova TUI).
  */
 char *GetDisplayPasswdName(unsigned int uid)
 {

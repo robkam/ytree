@@ -3,21 +3,21 @@ import time
 import os
 import shutil
 import tempfile
-from tui_harness import YtreeTUI
-from ytree_keys import Keys
+from tui_harness import YtreeNovaTUI
+from ytnova_keys import Keys
 
 @pytest.fixture
-def filter_env(ytree_binary):
-    test_base_dir = tempfile.mkdtemp(prefix="ytree_filter_")
+def filter_env(ytnova_binary):
+    test_base_dir = tempfile.mkdtemp(prefix="ytnova_filter_")
     for f in ["file1.c", "file2.c", "file3.txt"]:
         with open(os.path.join(test_base_dir, f), "w") as fd:
             fd.write("test")
-    yield test_base_dir, ytree_binary
+    yield test_base_dir, ytnova_binary
     shutil.rmtree(test_base_dir)
 
 def test_filter_stats_recalculation(filter_env):
     cwd, binary = filter_env
-    tui = YtreeTUI(executable=binary, cwd=cwd)
+    tui = YtreeNovaTUI(executable=binary, cwd=cwd)
     time.sleep(1.0) # Wait for scan
     
     # Check initial match 3
@@ -50,7 +50,7 @@ def test_filter_stats_recalculation(filter_env):
 
 def test_show_all_no_matching_files(filter_env):
     cwd, binary = filter_env
-    tui = YtreeTUI(executable=binary, cwd=cwd)
+    tui = YtreeNovaTUI(executable=binary, cwd=cwd)
     time.sleep(1.0)
     
     # Filter for non-existent
@@ -74,7 +74,7 @@ def test_show_all_no_matching_files(filter_env):
     
     tui.quit()
 
-def test_multi_pattern_filter(ytree_binary, tmp_path):
+def test_multi_pattern_filter(ytnova_binary, tmp_path):
     """
     REGRESSION: Filter with multiple patterns (e.g. *.c,*.h) fails.
     """
@@ -84,7 +84,7 @@ def test_multi_pattern_filter(ytree_binary, tmp_path):
     (d / "file2.h").write_text("h")
     (d / "file3.txt").write_text("txt")
 
-    tui = YtreeTUI(executable=ytree_binary, cwd=str(d))
+    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(d))
     time.sleep(1.0) # Wait for scan
 
     # Apply multi-filter

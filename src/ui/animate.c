@@ -5,7 +5,7 @@
  *
  ***************************************************************************/
 
-#include "ytree_ui.h"
+#include "ytnova_ui.h"
 
 #define WARP_STARS 50
 

@@ -1,14 +1,14 @@
 /***************************************************************************
- * include/ytree_dialog.h
+ * include/ytnova_dialog.h
  * UI Dialog Management Header
  *
  * Contains declarations for the UI dialog stack and core API.
  ***************************************************************************/
 
-#ifndef YTREE_DIALOG_H
-#define YTREE_DIALOG_H
+#ifndef YTNOVA_DIALOG_H
+#define YTNOVA_DIALOG_H
 
-#include "ytree_defs.h"
+#include "ytnova_defs.h"
 #include <ncurses.h>
 
 /* Dialog stack limits */
@@ -35,4 +35,4 @@ int UI_Dialog_Pop(const WINDOW *win);
 void UI_Dialog_RefreshAll(ViewContext *ctx);
 void UI_Dialog_Close(ViewContext *ctx, WINDOW *win);
 
-#endif /* YTREE_DIALOG_H */
+#endif /* YTNOVA_DIALOG_H */

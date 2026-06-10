@@ -1,6 +1,6 @@
 #!/bin/bash
 # setup_dev.sh
-# Sets up the development environment for ytree (Python venv + dependencies)
+# Sets up the development environment for ytnova (Python venv + dependencies)
 
 set -e  # Exit immediately if a command exits with a non-zero status
 

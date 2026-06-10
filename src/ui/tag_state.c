@@ -1,5 +1,5 @@
-#include "ytree_fs.h"
-#include "ytree_ui.h"
+#include "ytnova_fs.h"
+#include "ytnova_ui.h"
 #include <stdlib.h>
 #include <string.h>
 
@@ -20,7 +20,7 @@ static int PathListCount(const PathList *list) {
   return count;
 }
 
-static void AddTaggedPath(YtreePanel *panel, const char *path) {
+static void AddTaggedPath(YtreeNovaPanel *panel, const char *path) {
   PathList *node;
 
   if (!panel || !path || !*path || PathListContains(panel->tagged_paths, path))
@@ -32,7 +32,7 @@ static void AddTaggedPath(YtreePanel *panel, const char *path) {
   panel->tagged_paths = node;
 }
 
-static void RemoveTaggedPath(YtreePanel *panel, const char *path) {
+static void RemoveTaggedPath(YtreeNovaPanel *panel, const char *path) {
   PathList **link;
 
   if (!panel || !path || !*path)
@@ -78,7 +78,7 @@ static void GetTaggedFilePath(FileEntry *file_entry, char *path,
   path[path_size - 1] = '\0';
 }
 
-void PanelTags_Clear(YtreePanel *panel) {
+void PanelTags_Clear(YtreeNovaPanel *panel) {
   if (!panel)
     return;
 
@@ -86,7 +86,7 @@ void PanelTags_Clear(YtreePanel *panel) {
   panel->tagged_paths = NULL;
 }
 
-void PanelTags_Copy(YtreePanel *dst, const YtreePanel *src) {
+void PanelTags_Copy(YtreeNovaPanel *dst, const YtreeNovaPanel *src) {
   const PathList *node;
 
   if (!dst || !src || dst == src)
@@ -97,7 +97,7 @@ void PanelTags_Copy(YtreePanel *dst, const YtreePanel *src) {
     AddTaggedPath(dst, node->path);
 }
 
-void PanelTags_PruneUnderDir(YtreePanel *panel, DirEntry *dir_entry) {
+void PanelTags_PruneUnderDir(YtreeNovaPanel *panel, DirEntry *dir_entry) {
   char dir_path[PATH_LENGTH + 1];
   PathList **link;
 
@@ -120,7 +120,7 @@ void PanelTags_PruneUnderDir(YtreePanel *panel, DirEntry *dir_entry) {
   }
 }
 
-BOOL PanelTags_FileIsTagged(const YtreePanel *panel, FileEntry *file_entry) {
+BOOL PanelTags_FileIsTagged(const YtreeNovaPanel *panel, FileEntry *file_entry) {
   char path[PATH_LENGTH + 1];
 
   if (!panel || !file_entry)
@@ -130,7 +130,7 @@ BOOL PanelTags_FileIsTagged(const YtreePanel *panel, FileEntry *file_entry) {
   return PathListContains(panel->tagged_paths, path) ? TRUE : FALSE;
 }
 
-void PanelTags_RecordFileState(YtreePanel *panel, FileEntry *file_entry,
+void PanelTags_RecordFileState(YtreeNovaPanel *panel, FileEntry *file_entry,
                                BOOL tagged) {
   char path[PATH_LENGTH + 1];
 
@@ -147,7 +147,7 @@ void PanelTags_RecordFileState(YtreePanel *panel, FileEntry *file_entry,
     RemoveTaggedPath(panel, path);
 }
 
-static void ApplyPanelTagsToDir(const YtreePanel *panel, DirEntry *dir_entry,
+static void ApplyPanelTagsToDir(const YtreeNovaPanel *panel, DirEntry *dir_entry,
                                 Statistic *stats) {
   FileEntry *file_entry;
 
@@ -167,7 +167,7 @@ static void ApplyPanelTagsToDir(const YtreePanel *panel, DirEntry *dir_entry,
   }
 }
 
-static void ApplyPanelTagsToTree(YtreePanel *panel, DirEntry *dir_entry,
+static void ApplyPanelTagsToTree(YtreeNovaPanel *panel, DirEntry *dir_entry,
                                  Statistic *stats) {
   for (; dir_entry; dir_entry = dir_entry->next) {
     ApplyPanelTagsToDir(panel, dir_entry, stats);
@@ -176,7 +176,7 @@ static void ApplyPanelTagsToTree(YtreePanel *panel, DirEntry *dir_entry,
   }
 }
 
-void PanelTags_ApplyToTree(ViewContext *ctx, YtreePanel *panel) {
+void PanelTags_ApplyToTree(ViewContext *ctx, YtreeNovaPanel *panel) {
   Statistic *stats;
 
   (void)ctx;
@@ -189,7 +189,7 @@ void PanelTags_ApplyToTree(ViewContext *ctx, YtreePanel *panel) {
   ApplyPanelTagsToTree(panel, stats->tree, stats);
 }
 
-void PanelTags_Restore(ViewContext *ctx, YtreePanel *panel) {
+void PanelTags_Restore(ViewContext *ctx, YtreeNovaPanel *panel) {
   PathList *expanded = NULL;
 
   if (!ctx || !panel || !panel->vol || !panel->vol->vol_stats.tree)

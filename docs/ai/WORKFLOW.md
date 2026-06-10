@@ -1,6 +1,6 @@
 # AI-Assisted Development Workflow
 
-This document defines the standards and processes for using AI agents to maintain and modernize the `ytree` codebase. These rules ensure architectural integrity and prevent "hallucination debt."
+This document defines the standards and processes for using AI agents to maintain and modernize the `ytnova` codebase. These rules ensure architectural integrity and prevent "hallucination debt."
 For canonical governance file ownership and edit targets, see [GOVERNANCE.md](GOVERNANCE.md).
 
 ---
@@ -30,7 +30,7 @@ The development process is strictly hierarchical. The Spec is the "Contract of T
     *   **New Perspective:** Rephrasing prevents the model from staying stuck in a loop of bad assumptions.
     *   **Clean Implementation:** It ensures the final code is the result of a single, clean logical flow rather than a series of ad-hoc patches.
 7.  **Minor Step Corrections Should Amend:** If the immediately preceding step only needs a small correction and should remain the same logical history unit, update it with `git commit --amend --no-edit` rather than adding a trivial follow-up fix commit. Create a new commit only when the correction is meaningfully distinct, delayed enough to matter historically, or worth preserving separately in the project history.
-8.  **Intent Over Literal Wording:** Treat the human maintainer as authoritative on goals, but not automatically on exact UI wording, naming, key choices, menu structure, or workflow details. If a requested detail does not follow convention or best practices, or conflicts with existing Ytree patterns, the AI must say so explicitly and recommend the stronger conventional approach before implementing it.
+8.  **Intent Over Literal Wording:** Treat the human maintainer as authoritative on goals, but not automatically on exact UI wording, naming, key choices, menu structure, or workflow details. If a requested detail does not follow convention or best practices, or conflicts with existing YtreeNova patterns, the AI must say so explicitly and recommend the stronger conventional approach before implementing it.
 
 ### 1.3 Convention & Best-Practice Check
 
@@ -38,7 +38,7 @@ The maintainer may sometimes provide a very specific interaction detail while st
 
 When a prompt includes concrete UI or workflow instructions, explicitly evaluate them against:
 
-1.  **Established Ytree behavior:** You MUST NOT break local consistency without explicit, strong justification.
+1.  **Established YtreeNova behavior:** You MUST NOT break local consistency without explicit, strong justification.
 2.  **Lineage expectations:** Preserve XTree/ZTree muscle memory where that is clearly part of the feature intent.
 3.  **Broader convention:** You MUST follow Linux/TUI conventions and common user expectations for prompts, menus, help, and key behavior.
 4.  **Best practices:** Favor clarity, safety, and maintainability over clever but nonstandard interaction ideas.
@@ -230,7 +230,7 @@ make qa-fuzz
     *   acceptance criteria,
     *   verification commands,
     *   blocker conditions,
-    *   expected completion report path (for example `/home/rob/ytree/.agent/handoffs/report.<id>.<round>.txt`).
+    *   expected completion report path (for example `/home/rob/ytreenova/.agent/handoffs/report.<id>.<round>.txt`).
 4.  Architect status updates to maintainer must be delta-only and include concrete evidence handles.
 
 #### 3.1.4 Developer Pass (Single Unit)
@@ -309,7 +309,7 @@ Use this when wrapping up a PROMPT_TEMPLATE-driven mission and returning the rep
 
 1.  **Maintainer (local):** Run manual verification of the latest change first. Typical flow:
     *   `clear; make clean; sudo make uninstall; make; sudo make install`
-    *   `ytree ~`
+    *   `ytnova ~`
     *   Manually exercise the changed behavior.
 2.  **Maintainer -> Architect/AI:** If manual checks find issues, report failures; architect dispatches a new developer/auditor unit and repeats the loop until manual checks are green.
 3.  **Architect/AI:** Clean stale task artifacts from the finished mission (prompt/report/temp workflow files).

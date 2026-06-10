@@ -4,8 +4,8 @@ import shutil
 
 from helpers_ui import footer_text as _footer_text
 from helpers_ui import screen_text as _screen_text
-from tui_harness import YtreeTUI
-from ytree_keys import Keys
+from tui_harness import YtreeNovaTUI
+from ytnova_keys import Keys
 
 
 def _create_archive(root, archive_name="sample.tar"):
@@ -20,7 +20,7 @@ def _create_archive(root, archive_name="sample.tar"):
     return archive_path
 
 
-def test_external_viewer_return_restores_full_ui_frame(tmp_path, ytree_binary):
+def test_external_viewer_return_restores_full_ui_frame(tmp_path, ytnova_binary):
     root = tmp_path / "external_viewer_return"
     root.mkdir()
     (root / "alpha.txt").write_text("alpha", encoding="utf-8")
@@ -33,11 +33,11 @@ def test_external_viewer_return_restores_full_ui_frame(tmp_path, ytree_binary):
         encoding="utf-8",
     )
     pager_script.chmod(0o755)
-    (root / ".ytree").write_text(
+    (root / ".ytnova").write_text(
         f"[GLOBAL]\nPAGER={pager_script}\n", encoding="utf-8"
     )
 
-    tui = YtreeTUI(executable=ytree_binary, cwd=str(root))
+    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
     time.sleep(0.8)
 
     try:
@@ -56,12 +56,12 @@ def test_external_viewer_return_restores_full_ui_frame(tmp_path, ytree_binary):
         tui.quit()
 
 
-def test_internal_viewer_return_restores_full_ui_frame(tmp_path, ytree_binary):
+def test_internal_viewer_return_restores_full_ui_frame(tmp_path, ytnova_binary):
     root = tmp_path / "internal_viewer_return"
     root.mkdir()
     (root / "alpha.txt").write_text("alpha", encoding="utf-8")
 
-    tui = YtreeTUI(executable=ytree_binary, cwd=str(root))
+    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
     time.sleep(0.8)
 
     try:
@@ -83,13 +83,13 @@ def test_internal_viewer_return_restores_full_ui_frame(tmp_path, ytree_binary):
 
 
 def test_internal_viewer_return_in_archive_mode_restores_full_ui_frame(
-    tmp_path, ytree_binary
+    tmp_path, ytnova_binary
 ):
     root = tmp_path / "internal_viewer_archive_return"
     root.mkdir()
     _create_archive(root, "archive.tar")
 
-    tui = YtreeTUI(executable=ytree_binary, cwd=str(root))
+    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
     time.sleep(0.8)
 
     try:

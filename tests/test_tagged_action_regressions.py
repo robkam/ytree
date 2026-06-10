@@ -6,22 +6,22 @@ from helpers_source import read_repo_source
 from helpers_ui import assert_file_tag_state as _assert_file_tag_state
 from helpers_ui import footer_text as _footer_text
 from helpers_ui import screen_text as _screen_text
-from tui_harness import YtreeTUI
-from ytree_keys import Keys
+from tui_harness import YtreeNovaTUI
+from ytnova_keys import Keys
 
 
 def _read_ctrl_file_ops_source():
     return read_repo_source("src/ui/ctrl_file_ops.c")
 
 
-def test_invert_tags_i_and_upper_i_on_mixed_set(ytree_binary, tmp_path):
+def test_invert_tags_i_and_upper_i_on_mixed_set(ytnova_binary, tmp_path):
     work_dir = tmp_path / "tagged_invert_mixed"
     work_dir.mkdir()
     (work_dir / "alpha.txt").write_text("alpha", encoding="utf-8")
     (work_dir / "beta.txt").write_text("beta", encoding="utf-8")
     (work_dir / "gamma.txt").write_text("gamma", encoding="utf-8")
 
-    tui = YtreeTUI(executable=ytree_binary, cwd=str(work_dir))
+    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(work_dir))
     time.sleep(0.5)
 
     try:
@@ -49,13 +49,13 @@ def test_invert_tags_i_and_upper_i_on_mixed_set(ytree_binary, tmp_path):
         tui.quit()
 
 
-def test_invert_tags_i_and_upper_i_in_directory_window(ytree_binary, tmp_path):
+def test_invert_tags_i_and_upper_i_in_directory_window(ytnova_binary, tmp_path):
     work_dir = tmp_path / "dir_window_invert_tags"
     work_dir.mkdir()
     (work_dir / "alpha.txt").write_text("alpha", encoding="utf-8")
     (work_dir / "beta.txt").write_text("beta", encoding="utf-8")
 
-    tui = YtreeTUI(executable=ytree_binary, cwd=str(work_dir))
+    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(work_dir))
     time.sleep(0.5)
 
     try:
@@ -78,15 +78,15 @@ def test_invert_tags_i_and_upper_i_in_directory_window(ytree_binary, tmp_path):
 
 
 def test_invert_tags_i_and_upper_i_in_archive_directory_window(
-    ytree_binary, tmp_path
+    ytnova_binary, tmp_path
 ):
     archive_path = tmp_path / "invert_archive.zip"
     with zipfile.ZipFile(archive_path, "w") as zf:
         zf.writestr("alpha.txt", "alpha")
         zf.writestr("beta.txt", "beta")
 
-    tui = YtreeTUI(
-        executable=ytree_binary, cwd=str(tmp_path), args=[str(archive_path)]
+    tui = YtreeNovaTUI(
+        executable=ytnova_binary, cwd=str(tmp_path), args=[str(archive_path)]
     )
     time.sleep(0.6)
 
@@ -106,14 +106,14 @@ def test_invert_tags_i_and_upper_i_in_archive_directory_window(
         tui.quit()
 
 
-def test_only_tagged_toggle_o_from_directory_window(ytree_binary, tmp_path):
+def test_only_tagged_toggle_o_from_directory_window(ytnova_binary, tmp_path):
     work_dir = tmp_path / "dir_window_only_tagged"
     work_dir.mkdir()
     (work_dir / "alpha.txt").write_text("alpha", encoding="utf-8")
     (work_dir / "beta.txt").write_text("beta", encoding="utf-8")
     (work_dir / "gamma.txt").write_text("gamma", encoding="utf-8")
 
-    tui = YtreeTUI(executable=ytree_binary, cwd=str(work_dir))
+    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(work_dir))
     time.sleep(0.5)
 
     try:
@@ -179,13 +179,13 @@ def test_handle_tag_file_action_delegates_file_op_hotspot():
     )
 
 
-def test_tagged_copy_prompt_cancel_preserves_tagged_state(ytree_binary, tmp_path):
+def test_tagged_copy_prompt_cancel_preserves_tagged_state(ytnova_binary, tmp_path):
     work_dir = tmp_path / "tagged_copy_prompt"
     work_dir.mkdir()
     (work_dir / "alpha.txt").write_text("alpha", encoding="utf-8")
     (work_dir / "beta.txt").write_text("beta", encoding="utf-8")
 
-    tui = YtreeTUI(executable=ytree_binary, cwd=str(work_dir))
+    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(work_dir))
     time.sleep(0.5)
 
     try:
@@ -204,13 +204,13 @@ def test_tagged_copy_prompt_cancel_preserves_tagged_state(ytree_binary, tmp_path
         tui.quit()
 
 
-def test_tagged_move_prompt_cancel_preserves_tagged_state(ytree_binary, tmp_path):
+def test_tagged_move_prompt_cancel_preserves_tagged_state(ytnova_binary, tmp_path):
     work_dir = tmp_path / "tagged_move_prompt"
     work_dir.mkdir()
     (work_dir / "alpha.txt").write_text("alpha", encoding="utf-8")
     (work_dir / "beta.txt").write_text("beta", encoding="utf-8")
 
-    tui = YtreeTUI(executable=ytree_binary, cwd=str(work_dir))
+    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(work_dir))
     time.sleep(0.5)
 
     try:

@@ -1,10 +1,10 @@
 import pytest
 import os
 import time
-from tui_harness import YtreeTUI
-from ytree_keys import Keys
+from tui_harness import YtreeNovaTUI
+from ytnova_keys import Keys
 
-YTREE_BIN = os.path.abspath("./build/ytree")
+YTNOVA_BIN = os.path.abspath("./build/ytnova")
 
 def get_screen_text(tui):
     return "\n".join(tui.get_screen_dump())
@@ -22,8 +22,8 @@ def test_f2_log_and_cycle_volumes(tmp_path):
     dir_b.mkdir()
     (dir_b / "file_b.txt").touch()
 
-    # Start ytree in the base path
-    tui = YtreeTUI(executable=YTREE_BIN, cwd=str(tmp_path))
+    # Start ytnova in the base path
+    tui = YtreeNovaTUI(executable=YTNOVA_BIN, cwd=str(tmp_path))
     
     try:
         # Give it a moment to startup
@@ -59,7 +59,7 @@ def test_f2_log_and_cycle_volumes(tmp_path):
         time.sleep(1.0)
 
         # The copy likely succeeded or failed, but the side effect is we now have volume_a logged!
-        # Wait, if we accept it, ytree performs the copy and returns to the main view.
+        # Wait, if we accept it, ytnova performs the copy and returns to the main view.
         # But we want to test cycling! Let's just enter another copy prompt and cycle!
         
         tui.send_keystroke('c')

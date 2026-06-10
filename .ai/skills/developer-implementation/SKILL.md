@@ -1,6 +1,6 @@
 ---
 name: developer-implementation
-description: Implement approved ytree tasks in C with minimal coherent edits, architectural safety, and terminal-verified proof.
+description: Implement approved ytnova tasks in C with minimal coherent edits, architectural safety, and terminal-verified proof.
 ---
 
 # Developer Implementation

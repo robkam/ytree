@@ -5,7 +5,7 @@
  *
  ***************************************************************************/
 
-#include "ytree_ui.h"
+#include "ytnova_ui.h"
 
 /* Internal recursive helper for BuildDirEntryList */
 static void ReadDirList(ViewContext *ctx, DirEntry *dir_entry,
@@ -82,7 +82,7 @@ void BuildDirEntryList(ViewContext *ctx, struct Volume *vol, int *index_ptr) {
 #endif
 }
 
-BOOL PanelDirIsVisible(const YtreePanel *panel, const DirEntry *dir_entry) {
+BOOL PanelDirIsVisible(const YtreeNovaPanel *panel, const DirEntry *dir_entry) {
   const DirEntry *ancestor;
 
   if (!panel || !panel->vol || !dir_entry)
@@ -107,7 +107,7 @@ BOOL PanelDirIsVisible(const YtreePanel *panel, const DirEntry *dir_entry) {
   return TRUE;
 }
 
-int PanelFindNextVisibleDirIndex(const YtreePanel *panel, int start_idx,
+int PanelFindNextVisibleDirIndex(const YtreeNovaPanel *panel, int start_idx,
                                  int direction) {
   int idx;
   int total_dirs;
@@ -137,17 +137,17 @@ int PanelFindNextVisibleDirIndex(const YtreePanel *panel, int start_idx,
   return -1;
 }
 
-int PanelFindFirstVisibleDirIndex(const YtreePanel *panel) {
+int PanelFindFirstVisibleDirIndex(const YtreeNovaPanel *panel) {
   return PanelFindNextVisibleDirIndex(panel, 0, 1);
 }
 
-int PanelFindLastVisibleDirIndex(const YtreePanel *panel) {
+int PanelFindLastVisibleDirIndex(const YtreeNovaPanel *panel) {
   if (!panel || !panel->vol)
     return -1;
   return PanelFindNextVisibleDirIndex(panel, panel->vol->total_dirs - 1, -1);
 }
 
-static BOOL PanelVisibleIndexWithinViewport(const YtreePanel *panel,
+static BOOL PanelVisibleIndexWithinViewport(const YtreeNovaPanel *panel,
                                             int begin_idx, int target_idx,
                                             int height) {
   int idx;
@@ -181,7 +181,7 @@ static BOOL PanelVisibleIndexWithinViewport(const YtreePanel *panel,
   return FALSE;
 }
 
-static int PanelFindViewportStartForVisibleIndex(const YtreePanel *panel,
+static int PanelFindViewportStartForVisibleIndex(const YtreeNovaPanel *panel,
                                                  int target_idx, int height) {
   int start_idx;
   int i;
@@ -209,7 +209,7 @@ static int PanelFindViewportStartForVisibleIndex(const YtreePanel *panel,
  * Preserve the current viewport when the target row is already visible;
  * otherwise advance just enough visible rows to bring the target on screen.
  */
-BOOL PanelComputeViewportPosition(const YtreePanel *panel, int target_idx,
+BOOL PanelComputeViewportPosition(const YtreeNovaPanel *panel, int target_idx,
                                   int height, int *begin_io,
                                   int *cursor_io) {
   int begin;
@@ -271,7 +271,7 @@ BOOL PanelComputeViewportPosition(const YtreePanel *panel, int target_idx,
   return TRUE;
 }
 
-int GetPanelVisibleSelectionIndex(const YtreePanel *p) {
+int GetPanelVisibleSelectionIndex(const YtreeNovaPanel *p) {
   int idx;
 
   if (!p || !p->vol || !p->vol->dir_entry_list || p->vol->total_dirs <= 0)
@@ -319,7 +319,7 @@ void FreeDirEntryList(ViewContext *ctx) {
  * specific panel. Uses the panel's ViewContext (cursor_pos, disp_begin_pos)
  * instead of shared Volume stats.
  */
-DirEntry *GetPanelDirEntry(YtreePanel *p) {
+DirEntry *GetPanelDirEntry(YtreeNovaPanel *p) {
   if (p->vol->dir_entry_list != NULL && p->vol->total_dirs > 0) {
     int idx = GetPanelVisibleSelectionIndex(p);
     if (idx >= 0)

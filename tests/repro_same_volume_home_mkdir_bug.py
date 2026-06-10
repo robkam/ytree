@@ -17,8 +17,8 @@ from tempfile import TemporaryDirectory
 from helpers_stats import detect_stats_split_x as _detect_stats_split_x
 from helpers_ui import footer_text as _footer_text
 from helpers_ui import screen_text as _screen_text
-from tui_harness import YtreeTUI
-from ytree_keys import Keys
+from tui_harness import YtreeNovaTUI
+from ytnova_keys import Keys
 
 
 def _stats_current_dir_contains(lines, marker):
@@ -151,7 +151,7 @@ def _run_sequence_b(tui, home):
 
     screen = _screen_text(tui)
     path_line = screen.splitlines()[0] if screen else ""
-    repo_root_jump = ("Path: " in path_line and path_line.rstrip().endswith("/ytree"))
+    repo_root_jump = ("Path: " in path_line and path_line.rstrip().endswith("/ytreenova"))
     root_file_window = "bak.sh" in screen
     jumped_to_tests = ("/tests" in screen) or ("test_file_0.py" in screen)
     bug = jumped_to_tests or (repo_root_jump and root_file_window)
@@ -161,15 +161,15 @@ def _run_sequence_b(tui, home):
 
 
 def main():
-    exe = os.environ.get("YTREE_REPRO_BIN", "/usr/local/bin/ytree")
+    exe = os.environ.get("YTNOVA_REPRO_BIN", "/usr/local/bin/ytnova")
 
-    with TemporaryDirectory(prefix="ytree-repro-") as td:
+    with TemporaryDirectory(prefix="ytnova-repro-") as td:
         tmp = Path(td)
         home = tmp / "home" / "user"
-        repo = home / "ytree"
+        repo = home / "ytnova"
         repo.mkdir(parents=True)
 
-        (home / ".ytree").write_text(
+        (home / ".ytnova").write_text(
             "[GLOBAL]\n"
             "AUTO_REFRESH=3\n"
             "TREEDEPTH=2\n"
@@ -194,7 +194,7 @@ def main():
             ("A", lambda t: _run_sequence_a(t)),
             ("B", lambda t: _run_sequence_b(t, home)),
         ):
-            tui = YtreeTUI(executable=exe, cwd=str(repo), env_extra={"HOME": str(home)})
+            tui = YtreeNovaTUI(executable=exe, cwd=str(repo), env_extra={"HOME": str(home)})
             time.sleep(0.9)
             try:
                 code, msg, screen = runner(tui)

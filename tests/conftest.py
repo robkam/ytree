@@ -1,22 +1,22 @@
 import pytest
 import os
 import tarfile
-from ytree_control import YtreeController
+from ytnova_control import YtreeNovaController
 
 @pytest.fixture(scope="session")
-def ytree_binary():
-    """Locates the ytree binary in build/ or current directory."""
-    override = os.environ.get("YTREE_TEST_BIN")
+def ytnova_binary():
+    """Locates the ytnova binary in build/ or current directory."""
+    override = os.environ.get("YTNOVA_TEST_BIN")
     if override:
         if os.path.exists(override) and os.access(override, os.X_OK):
             return os.path.abspath(override)
-        pytest.fail(f"YTREE_TEST_BIN is not executable: {override}")
+        pytest.fail(f"YTNOVA_TEST_BIN is not executable: {override}")
 
-    paths = ["build/ytree", "./ytree"]
+    paths = ["build/ytnova", "./ytnova"]
     for p in paths:
         if os.path.exists(p) and os.access(p, os.X_OK):
             return os.path.abspath(p)
-    pytest.fail("ytree binary not found. Please run 'make'.")
+    pytest.fail("ytnova binary not found. Please run 'make'.")
 
 @pytest.fixture
 def sandbox(tmp_path):
@@ -68,11 +68,11 @@ def dual_panel_sandbox(tmp_path):
     return root
 
 @pytest.fixture
-def controller(ytree_binary, sandbox):
+def controller(ytnova_binary, sandbox):
     """
-    Factory fixture to create a YtreeController instance.
+    Factory fixture to create a YtreeNovaController instance.
     """
     def _create(cwd=None):
         work_dir = cwd if cwd else str(sandbox)
-        return YtreeController(ytree_binary, work_dir)
+        return YtreeNovaController(ytnova_binary, work_dir)
     return _create

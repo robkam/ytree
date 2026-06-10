@@ -4,7 +4,7 @@
 
 ### How can I trust a file manager written with AI assistance on my filesystem?
 
-Ytree performs standard file operations (rename, move, copy, delete) through normal OS APIs, just like other file managers.
+YtreeNova performs standard file operations (rename, move, copy, delete) through normal OS APIs, just like other file managers.
 
 This is the same trust model you should use for any file manager: do not assume zero risk, verify behavior, keep backups, and, at first, try it out in a non-critical directory.
 
@@ -29,7 +29,7 @@ In short: the project is usable now, but not stable yet. Expect rough edges, occ
 
 ### Why refactor the existing code instead of writing a new one from scratch?
 
-The decision was made to modernize the existing codebase because Ytree is a known application with an established look and feel.
+The decision was made to modernize the existing codebase because YtreeNova is a known application with an established look and feel.
 
 Creating a new file manager from scratch would have resulted in a loss of identity and name recognition. By refactoring, we preserve the specific behavior and interface style of the original application while significantly enhancing the user experience and replacing the underlying architecture. This approach revitalizes the project without discarding its history.
 
@@ -41,19 +41,19 @@ Switching languages immediately would constitute a total rewrite rather than a m
 
 ### Why ncurses, why not termbox2 or notcurses?
 
-Ytree only needs fast, reliable text/line-box terminal UI for file and VFS browsing, and ncurses already provides that cleanly, while switching to termbox2 or notcurses would add backend complexity for features outside ytree’s core scope (like richer in-app media rendering) that are better handled by external helper programs.
+YtreeNova only needs fast, reliable text/line-box terminal UI for file and VFS browsing, and ncurses already provides that cleanly, while switching to termbox2 or notcurses would add backend complexity for features outside ytnova’s core scope (like richer in-app media rendering) that are better handled by external helper programs.
 
 ---
 
 ## Project Philosophy
 
-### Why modernize Ytree when UnixTree already exists?
+### Why modernize YtreeNova when UnixTree already exists?
 
 While both projects aim to provide a file manager inspired by [XTree&trade;](https://www.xtreefanpage.org/x10dirja.htm), they represent solutions for different eras.
 
 `UnixTree` was built for a time when Unix systems were far more inconsistent. To stay portable, it evolved a project-specific internal ecosystem (`libecurses`, `libtcap`, custom term files, and related adaptations). That approach made sense then, but those methods are less common in mainstream Unix development today and can increase long-term maintenance, audit, and packaging effort.
 
-The goal of modernizing Ytree is to build for today’s open-source Unix systems. By using common libraries (`ncurses`, `libarchive`, `readline`) and keeping modules focused, Ytree becomes a lean, POSIX-compliant utility that is easier for new maintainers to understand, test, extend, audit, and package.
+The goal of modernizing YtreeNova is to build for today’s open-source Unix systems. By using common libraries (`ncurses`, `libarchive`, `readline`) and keeping modules focused, YtreeNova becomes a lean, POSIX-compliant utility that is easier for new maintainers to understand, test, extend, audit, and package.
 
 ### How do the architectures compare?
 
@@ -64,7 +64,7 @@ The difference lies in how they handle system dependencies:
 *   **Approach:** Bundles heavily modified internal libraries (like `libecurses`) to ensure it runs the same everywhere.
 *   **Trade-off:** High consistency on legacy systems, but increased code size, complex build requirements, and high maintenance overhead.
 
-**2. Ytree: The Modern Approach**
+**2. YtreeNova: The Modern Approach**
 *   **Context:** Built for standardized **POSIX-compliant Unix** systems (Linux, *BSD, macOS).
 *   **Approach:** Offloads functionality to shared, well-maintained system libraries:
     *   **Terminal:** `ncurses` (Industry standard).
@@ -85,7 +85,7 @@ Yes. While graphical file managers are standard for desktop users, TUI (Text Use
 
 ### Who is the target audience?
 
-Ytree specifically targets:
+YtreeNova specifically targets:
 1.  **XTree&trade; Veterans:** Users who developed "muscle memory" for the XTree&trade; layout and keybindings in the DOS era and find the Midnight Commander style unintuitive.
 2.  **Terminal Power Users:** Developers and Admins who want a fast, lightweight file manager that integrates seamlessly with their shell history and standard CLI tools.
 3.  **Open Source Archivists:** Those interested in keeping classic Unix tools alive, compilable, and secure on modern hardware.

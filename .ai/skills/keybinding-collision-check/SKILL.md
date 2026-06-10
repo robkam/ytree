@@ -1,6 +1,6 @@
 ---
 name: keybinding-collision-check
-description: Validate ytree keybinding changes for ASCII/control-key collisions and keep menus/help/tests synchronized.
+description: Validate ytnova keybinding changes for ASCII/control-key collisions and keep menus/help/tests synchronized.
 ---
 
 # Keybinding Collision Check

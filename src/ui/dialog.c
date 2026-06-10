@@ -5,8 +5,8 @@
  *
  ***************************************************************************/
 
-#include "ytree_dialog.h"
-#include "ytree_ui.h"
+#include "ytnova_dialog.h"
+#include "ytnova_ui.h"
 
 static DialogCtx dialog_stack[MAX_DIALOG_STACK];
 static int dialog_count = 0;

@@ -6,8 +6,8 @@
  ***************************************************************************/
 
 #include "interactions_panel_paths.h"
-#include "ytree_fs.h"
-#include "ytree_ui.h"
+#include "ytnova_fs.h"
+#include "ytnova_ui.h"
 #include <ctype.h>
 #include <string.h>
 
@@ -450,7 +450,7 @@ int UI_SelectCompareMenuChoice(ViewContext *ctx, CompareMenuChoice *choice) {
 
 int UI_BuildFileCompareRequest(ViewContext *ctx, FileEntry *source_file,
                                CompareRequest *request) {
-  YtreePanel *inactive = NULL;
+  YtreeNovaPanel *inactive = NULL;
   const char *default_target = NULL;
 
   if (!ctx || !source_file || !request)
@@ -488,7 +488,7 @@ static int BuildDirectoryCompareRequestInternal(ViewContext *ctx,
                                                 CompareFlowType flow_type,
                                                 CompareRequest *request,
                                                 BOOL include_compare_prompts) {
-  YtreePanel *inactive = NULL;
+  YtreeNovaPanel *inactive = NULL;
   const char *default_target = NULL;
 
   if (!ctx || !request)

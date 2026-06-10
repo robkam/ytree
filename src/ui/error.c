@@ -5,7 +5,7 @@
  *
  ***************************************************************************/
 
-#include "ytree_ui.h"
+#include "ytnova_ui.h"
 
 #include <stdarg.h>
 #include <ctype.h>
@@ -149,9 +149,9 @@ void AboutBox(ViewContext *ctx) {
 
   (void)snprintf(version, sizeof(version),
 #ifdef WITH_UTF8
-                 "ytree (UTF8) Version %s %s*",
+                 "ytnova (UTF8) Version %s %s*",
 #else
-                 "ytree Version %s %s*",
+                 "ytnova Version %s %s*",
 #endif
                  VERSION, VERSIONDATE);
 

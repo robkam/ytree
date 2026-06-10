@@ -1,7 +1,7 @@
 class Keys:
     """
     Centralized mapping of Logical Actions to Key Characters.
-    Based on standard ytree defaults and xterm sequences.
+    Based on standard ytnova defaults and xterm sequences.
     """
     # Navigation (Application Keypad Mode strings used by ncurses)
     UP = "\033OA"

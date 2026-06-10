@@ -5,11 +5,11 @@
  *
  ***************************************************************************/
 
-#include "ytree_cmd.h"
-#include "ytree_fs.h"
-#include "ytree_ui.h"
+#include "ytnova_cmd.h"
+#include "ytnova_fs.h"
+#include "ytnova_ui.h"
 
-static void NormalizePanelCursorForVolume(YtreePanel *panel) {
+static void NormalizePanelCursorForVolume(YtreeNovaPanel *panel) {
   if (!panel || !panel->vol) {
     return;
   }

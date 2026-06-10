@@ -5,18 +5,18 @@
  *
  ***************************************************************************/
 
-#include "ytree_fs.h"
-#include "ytree_panel_anchor.h"
-#include "ytree_ui.h"
+#include "ytnova_fs.h"
+#include "ytnova_panel_anchor.h"
+#include "ytnova_ui.h"
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>
 
-static int PanelViewportSlot(const YtreePanel *panel) {
+static int PanelViewportSlot(const YtreeNovaPanel *panel) {
   return (panel && panel->hide_dot_files) ? 1 : 0;
 }
 
-static int FindTopVisibleDirIndex(const YtreePanel *panel) {
+static int FindTopVisibleDirIndex(const YtreeNovaPanel *panel) {
   int idx;
 
   if (!panel || !panel->vol || !panel->vol->dir_entry_list ||
@@ -36,7 +36,7 @@ static int FindTopVisibleDirIndex(const YtreePanel *panel) {
   return idx;
 }
 
-void RememberPanelViewportTop(YtreePanel *panel) {
+void RememberPanelViewportTop(YtreeNovaPanel *panel) {
   int idx;
   int slot;
 
@@ -55,7 +55,7 @@ void RememberPanelViewportTop(YtreePanel *panel) {
   panel->tree_viewport_top_dir_path[slot][PATH_LENGTH] = '\0';
 }
 
-BOOL CapturePanelAnchorPath(const YtreePanel *panel, const struct Volume *vol,
+BOOL CapturePanelAnchorPath(const YtreeNovaPanel *panel, const struct Volume *vol,
                             char *out_path, size_t out_path_size) {
   int idx;
   DirEntry *entry;
@@ -95,7 +95,7 @@ BOOL CapturePanelAnchorPath(const YtreePanel *panel, const struct Volume *vol,
   return TRUE;
 }
 
-void CapturePanelViewportSnapshot(YtreePanel *panel, const struct Volume *vol,
+void CapturePanelViewportSnapshot(YtreeNovaPanel *panel, const struct Volume *vol,
                                   PanelViewportSnapshot *snapshot) {
   int idx;
 
@@ -192,7 +192,7 @@ DirEntry *FindDirByPathOrAncestor(const struct Volume *vol, const char *path) {
   return vol->dir_entry_list[idx].dir_entry;
 }
 
-static BOOL PanelAnchorTargetIsVisible(const YtreePanel *panel,
+static BOOL PanelAnchorTargetIsVisible(const YtreeNovaPanel *panel,
                                        const struct Volume *vol,
                                        const DirEntry *entry) {
   char candidate_path[PATH_LENGTH + 1];
@@ -208,7 +208,7 @@ static BOOL PanelAnchorTargetIsVisible(const YtreePanel *panel,
   return PanelDirIsVisible(panel, entry);
 }
 
-static DirEntry *PanelAnchorFindVisibleAncestor(const YtreePanel *panel,
+static DirEntry *PanelAnchorFindVisibleAncestor(const YtreeNovaPanel *panel,
                                                 const struct Volume *vol,
                                                 DirEntry *entry) {
   while (entry) {
@@ -220,7 +220,7 @@ static DirEntry *PanelAnchorFindVisibleAncestor(const YtreePanel *panel,
   return NULL;
 }
 
-static DirEntry *PanelAnchorFindVisibleSibling(const YtreePanel *panel,
+static DirEntry *PanelAnchorFindVisibleSibling(const YtreeNovaPanel *panel,
                                                const struct Volume *vol,
                                                DirEntry *entry) {
   DirEntry *sibling;
@@ -244,7 +244,7 @@ static DirEntry *PanelAnchorFindVisibleSibling(const YtreePanel *panel,
  * Canonical restore authority stays path-based; the helper only rebinds to
  * the current visible list using the fixed fallback order from the spec.
  */
-DirEntry *ResolvePanelAnchorTarget(const YtreePanel *panel,
+DirEntry *ResolvePanelAnchorTarget(const YtreeNovaPanel *panel,
                                    const struct Volume *vol,
                                    const char *anchor_path) {
   DirEntry *exact;
@@ -275,7 +275,7 @@ DirEntry *ResolvePanelAnchorTarget(const YtreePanel *panel,
   return vol->vol_stats.tree;
 }
 
-void PositionPanelAtIndex(YtreePanel *panel, int idx) {
+void PositionPanelAtIndex(YtreeNovaPanel *panel, int idx) {
   int height;
   int begin;
   int cursor;
@@ -307,7 +307,7 @@ void PositionPanelAtIndex(YtreePanel *panel, int idx) {
 }
 
 static BOOL VisibleIndexWithinTopPath(const struct Volume *vol,
-                                      const YtreePanel *panel,
+                                      const YtreeNovaPanel *panel,
                                       const char *top_path, int selected_idx,
                                       int height, int *top_idx_out) {
   int top_idx;
@@ -346,7 +346,7 @@ static BOOL VisibleIndexWithinTopPath(const struct Volume *vol,
   return FALSE;
 }
 
-BOOL RestorePanelViewportSnapshot(const struct Volume *vol, YtreePanel *panel,
+BOOL RestorePanelViewportSnapshot(const struct Volume *vol, YtreeNovaPanel *panel,
                                   const PanelViewportSnapshot *snapshot,
                                   const char *preferred_top_path) {
   DirEntry *target;
@@ -407,7 +407,7 @@ BOOL RestorePanelViewportSnapshot(const struct Volume *vol, YtreePanel *panel,
   return TRUE;
 }
 
-void RestorePanelAnchorPath(const struct Volume *vol, YtreePanel *panel,
+void RestorePanelAnchorPath(const struct Volume *vol, YtreeNovaPanel *panel,
                             const char *anchor_path) {
   PanelViewportSnapshot snapshot;
   DirEntry *target;
@@ -477,7 +477,7 @@ CopyPanelVolumeFileState(const PanelVolumeFileState *src) {
   return head;
 }
 
-void DonatePanelState(YtreePanel *dst, const YtreePanel *src) {
+void DonatePanelState(YtreeNovaPanel *dst, const YtreeNovaPanel *src) {
   char file_dir_path[PATH_LENGTH + 1];
   BOOL dst_saved_big_file_view;
   int dst_cursor_pos;
@@ -619,7 +619,7 @@ DirEntry *FindDirByPathInTree(DirEntry *entry, const char *path) {
 }
 
 void EnsurePanelAnchorVisible(ViewContext *ctx, const struct Volume *vol,
-                              YtreePanel *panel, const char *label) {
+                              YtreeNovaPanel *panel, const char *label) {
   DirEntry *target;
   DirEntry *ancestor;
   BOOL changed = FALSE;
@@ -668,7 +668,7 @@ void EnsurePanelAnchorVisible(ViewContext *ctx, const struct Volume *vol,
 }
 
 void DebugLogDirLoopState(const char *label, const ViewContext *ctx,
-                          const DirEntry *dir_entry, int ch, YtreeAction action,
+                          const DirEntry *dir_entry, int ch, YtreeNovaAction action,
                           int unput_char) {
   char dir_path[PATH_LENGTH + 1];
   const char *active_side = "?";

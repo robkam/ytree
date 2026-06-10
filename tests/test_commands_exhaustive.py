@@ -3,8 +3,8 @@ import time
 import os
 import re
 from pathlib import Path
-from tui_harness import YtreeTUI
-from ytree_keys import Keys
+from tui_harness import YtreeNovaTUI
+from ytnova_keys import Keys
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
@@ -12,11 +12,11 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 def _read_source(relpath: str) -> str:
     return (REPO_ROOT / relpath).read_text(encoding="utf-8")
 
-def test_mkdir_command(ytree_binary, tmp_path):
+def test_mkdir_command(ytnova_binary, tmp_path):
     """Verifies (M)ake Directory command."""
     d = tmp_path / "mkdir_test"
     d.mkdir()
-    tui = YtreeTUI(executable=ytree_binary, cwd=str(d))
+    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(d))
     time.sleep(1.0)
     
     tui.send_keystroke("M")
@@ -33,11 +33,11 @@ def test_mkdir_command(ytree_binary, tmp_path):
     
     tui.quit()
 
-def test_mkfile_command(ytree_binary, tmp_path):
+def test_mkfile_command(ytnova_binary, tmp_path):
     """Verifies (n) - Touch/Make File command."""
     d = tmp_path / "mkfile_test"
     d.mkdir()
-    tui = YtreeTUI(executable=ytree_binary, cwd=str(d))
+    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(d))
     time.sleep(1.0)
     
     tui.send_keystroke("n") # Touch is 'n'
@@ -50,14 +50,14 @@ def test_mkfile_command(ytree_binary, tmp_path):
     
     tui.quit()
 
-def test_delete_file_command(ytree_binary, tmp_path):
+def test_delete_file_command(ytnova_binary, tmp_path):
     """Verifies (d)elete file command."""
     d = tmp_path / "delete_test"
     d.mkdir()
     target = d / "to_delete.txt"
     target.write_text("junk")
     
-    tui = YtreeTUI(executable=ytree_binary, cwd=str(d))
+    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(d))
     time.sleep(1.0)
     
     # Enter file window
@@ -75,14 +75,14 @@ def test_delete_file_command(ytree_binary, tmp_path):
     
     tui.quit()
 
-def test_delete_dir_command(ytree_binary, tmp_path):
+def test_delete_dir_command(ytnova_binary, tmp_path):
     """Verifies (D)elete directory command (Shift-D)."""
     d = tmp_path / "delete_dir_test"
     d.mkdir()
     target = d / "subdir"
     target.mkdir()
     
-    tui = YtreeTUI(executable=ytree_binary, cwd=str(d))
+    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(d))
     time.sleep(1.0)
     
     # Navigate to subdir
@@ -100,7 +100,7 @@ def test_delete_dir_command(ytree_binary, tmp_path):
     
     tui.quit()
 
-def test_chmod_command(ytree_binary, tmp_path):
+def test_chmod_command(ytnova_binary, tmp_path):
     """Verifies (a) - attribute/chmod command."""
     d = tmp_path / "chmod_test"
     d.mkdir()
@@ -109,7 +109,7 @@ def test_chmod_command(ytree_binary, tmp_path):
     # Set to something known
     os.chmod(target, 0o644)
     
-    tui = YtreeTUI(executable=ytree_binary, cwd=str(d))
+    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(d))
     time.sleep(1.0)
     
     # Enter file window
@@ -133,7 +133,7 @@ def test_chmod_command(ytree_binary, tmp_path):
     
     tui.quit()
 
-def test_chmod_4digit_octal_command(ytree_binary, tmp_path):
+def test_chmod_4digit_octal_command(ytnova_binary, tmp_path):
     """Verifies 4-digit octal mode input via attributes submenu."""
     d = tmp_path / "chmod_4digit_test"
     d.mkdir()
@@ -141,7 +141,7 @@ def test_chmod_4digit_octal_command(ytree_binary, tmp_path):
     target.write_text("#!/bin/sh\necho ok\n")
     os.chmod(target, 0o644)
 
-    tui = YtreeTUI(executable=ytree_binary, cwd=str(d))
+    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(d))
     time.sleep(1.0)
 
     tui.send_keystroke(Keys.ENTER)
@@ -161,7 +161,7 @@ def test_chmod_4digit_octal_command(ytree_binary, tmp_path):
 
     tui.quit()
 
-def test_chown_command(ytree_binary, tmp_path):
+def test_chown_command(ytnova_binary, tmp_path):
     """Verifies owner change via attributes submenu (A -> O)."""
     # Note: chown might fail if not root, but we can try to "change" to current user.
     d = tmp_path / "chown_test"
@@ -169,7 +169,7 @@ def test_chown_command(ytree_binary, tmp_path):
     target = d / "test.txt"
     target.write_text("junk")
     
-    tui = YtreeTUI(executable=ytree_binary, cwd=str(d))
+    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(d))
     time.sleep(1.0)
     
     # Enter file window
@@ -192,13 +192,13 @@ def test_chown_command(ytree_binary, tmp_path):
     
     tui.quit()
 
-def test_dir_date_change_no_footer_artifact(ytree_binary, tmp_path):
+def test_dir_date_change_no_footer_artifact(ytnova_binary, tmp_path):
     """Verifies dir date change does not leave a stray footer character."""
     d = tmp_path / "dir_date_footer_test"
     d.mkdir()
     (d / "subdir").mkdir()
 
-    tui = YtreeTUI(executable=ytree_binary, cwd=str(d))
+    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(d))
     time.sleep(1.0)
 
     # Try to move off the current root entry so we exercise a real dir entry path.
@@ -233,13 +233,13 @@ def test_dir_date_change_no_footer_artifact(ytree_binary, tmp_path):
     tui.quit()
 
 
-def test_dir_mkdir_cancel_no_footer_artifact(ytree_binary, tmp_path):
+def test_dir_mkdir_cancel_no_footer_artifact(ytnova_binary, tmp_path):
     """Verifies cancelling mkdir from dir mode does not corrupt footer lines."""
     d = tmp_path / "dir_mkdir_cancel_footer_test"
     d.mkdir()
     (d / "subdir").mkdir()
 
-    tui = YtreeTUI(executable=ytree_binary, cwd=str(d))
+    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(d))
     time.sleep(1.0)
 
     # Move to a real directory entry if present.
@@ -271,7 +271,7 @@ def test_dir_mkdir_cancel_no_footer_artifact(ytree_binary, tmp_path):
     tui.quit()
 
 
-def test_file_date_change_modified_updates_mtime(ytree_binary, tmp_path):
+def test_file_date_change_modified_updates_mtime(ytnova_binary, tmp_path):
     """Verifies file attributes date->modified updates the file mtime."""
     d = tmp_path / "file_date_change_test"
     d.mkdir()
@@ -282,7 +282,7 @@ def test_file_date_change_modified_updates_mtime(ytree_binary, tmp_path):
     old_epoch = 946684800  # 2000-01-01 00:00:00 UTC
     os.utime(target, (old_epoch, old_epoch))
 
-    tui = YtreeTUI(executable=ytree_binary, cwd=str(d))
+    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(d))
     time.sleep(1.0)
 
     # Enter file window and trigger Attributes -> Date -> Modified.
@@ -312,20 +312,20 @@ def test_file_date_change_modified_updates_mtime(ytree_binary, tmp_path):
 
 def test_archive_execute_tempfile_cleanup_present() -> None:
     src = _read_source("src/cmd/execute.c")
-    assert "Path_CreateTempFile(temp_path, sizeof(temp_path), \"ytree_execute_\"" in src
+    assert "Path_CreateTempFile(temp_path, sizeof(temp_path), \"ytnova_execute_\"" in src
     assert "if (fd_tmp != -1)" in src
     assert "unlink(temp_path);" in src
 
 
 def test_archive_view_tempfile_cleanup_present() -> None:
     src = _read_source("src/cmd/view.c")
-    assert "Path_CreateTempFile(temp_filename, sizeof(temp_filename), \"ytree_view_\"" in src
+    assert "Path_CreateTempFile(temp_filename, sizeof(temp_filename), \"ytnova_view_\"" in src
     assert "if (fd != -1)" in src
     assert "unlink(temp_filename);" in src
 
 
 def test_archive_hex_tempfile_cleanup_present() -> None:
     src = _read_source("src/cmd/hex.c")
-    assert "Path_CreateTempFile(temp_filename, sizeof(temp_filename), \"ytree_hex_\"" in src
+    assert "Path_CreateTempFile(temp_filename, sizeof(temp_filename), \"ytnova_hex_\"" in src
     assert "if (fd != -1)" in src
     assert "unlink(temp_filename);" in src

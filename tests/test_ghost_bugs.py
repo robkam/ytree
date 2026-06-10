@@ -1,13 +1,13 @@
 import time
 import pytest
-from tui_harness import YtreeTUI
-from ytree_keys import Keys
+from tui_harness import YtreeNovaTUI
+from ytnova_keys import Keys
 
-def test_screen_wipe_after_error(ytree_binary, tmp_path):
+def test_screen_wipe_after_error(ytnova_binary, tmp_path):
     """
     BUG: After an error message (e.g., bad filter), the UI borders/stats vanish.
     """
-    tui = YtreeTUI(executable=ytree_binary, cwd=str(tmp_path))
+    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(tmp_path))
     time.sleep(1.0)
 
     # 1. Open Filter (f)
@@ -29,11 +29,11 @@ def test_screen_wipe_after_error(ytree_binary, tmp_path):
     # ASSERTION: The borders (VT100 'q' or ASCII '-') must exist
     assert "qqq" in screen or "---" in screen, "Borders wiped out after error dialog!"
 
-def test_l_key_binding(ytree_binary, tmp_path):
+def test_l_key_binding(ytnova_binary, tmp_path):
     """
     BUG: 'L' key moves cursor down (Vi-keys) instead of opening Log/Volume menu.
     """
-    tui = YtreeTUI(executable=ytree_binary, cwd=str(tmp_path))
+    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(tmp_path))
     time.sleep(1.0)
 
     # 1. Press 'L' (Shift+l)
@@ -46,11 +46,11 @@ def test_l_key_binding(ytree_binary, tmp_path):
     # If the Volume Menu opens, it usually lists volumes like "A:" or "/"
     assert "Volume" in screen or "Log" in screen or "Select" in screen, "'L' key did not trigger Volume/Log menu!"
 
-def test_split_screen_garbage(dual_panel_sandbox, ytree_binary):
+def test_split_screen_garbage(dual_panel_sandbox, ytnova_binary):
     """
     BUG: Inactive panel shows '*?^X' garbage when Active panel is used.
     """
-    tui = YtreeTUI(executable=ytree_binary, cwd=str(dual_panel_sandbox))
+    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(dual_panel_sandbox))
     time.sleep(1.0)
 
     # 1. Split Screen
@@ -71,14 +71,14 @@ def test_split_screen_garbage(dual_panel_sandbox, ytree_binary):
     assert "*?" not in screen, "Found garbage memory artifacts in UI!"
     assert "^X" not in screen, "Found garbage memory artifacts in UI!"
 
-def test_hex_view_esc_corruption(tmp_path, ytree_binary):
+def test_hex_view_esc_corruption(tmp_path, ytnova_binary):
     """
     BUG C: Exiting hex view with ESC vanishes ncurses attributes and shows "CURRENT DIR" instead of "CURRENT FILE".
     EXPECTED: ESC from hex view restores the file list and "CURRENT FILE" stats.
     """
     (tmp_path / "hex_test.txt").write_text("dummy binary content")
     
-    tui = YtreeTUI(executable=ytree_binary, cwd=str(tmp_path))
+    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(tmp_path))
     time.sleep(1.0)
     # Enter file window
     tui.send_keystroke(Keys.ENTER)

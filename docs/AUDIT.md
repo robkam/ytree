@@ -1,7 +1,7 @@
 # AUDIT.md
 
 ## 1. Purpose
-This document defines the mandatory quality process for the Ytree modernization project. Auditing is an ongoing process that starts during implementation and continues through merge and release. The release gate is the final checkpoint.
+This document defines the mandatory quality process for the YtreeNova modernization project. Auditing is an ongoing process that starts during implementation and continues through merge and release. The release gate is the final checkpoint.
 
 ## 1.1 Cadence
 - Use focused checks during feature-sized change or PR iteration.
@@ -19,17 +19,17 @@ The project uses seven QA layers with increasing depth and cost:
 | CI Gate | `git push` (automatic) | Draft-PR baseline confidence checks (`qa-code-quality` + `qa-fileops-integrity`, path-filtered `qa-split-panel-gates` for split-touching changes, coverage pytest gate, fuzz gate) | Every push to `main` and every PR update targeting `main` (automatic) |
 | PR Full QA CI (required) | `.github/workflows/full-qa.yml` (`make qa-all`) | clang-tidy, cppcheck, scan-build, Valgrind smoke (`--version`), full `pytest`, unsafe API guard, gitleaks, module-boundary guard, ai-config guard, fuzz guard | Must be green before merge to `main` |
 | Fileops Integrity Gate | `make qa-fileops-integrity` | Deterministic file/archive mutation integrity + security regression checks (copy/move/delete/rename/archive rewrite, cancel/failure safeguards, shell/tempfile hardening contracts) | Before merge and when touching file/archive mutation flows |
-| Sanitizer QA | `make qa-sanitize` | Main ytree build + `pytest` under AddressSanitizer/UndefinedBehaviorSanitizer | Before release, after memory/UB-sensitive changes, or when triaging suspicious crashes |
+| Sanitizer QA | `make qa-sanitize` | Main ytnova build + `pytest` under AddressSanitizer/UndefinedBehaviorSanitizer | Before release, after memory/UB-sensitive changes, or when triaging suspicious crashes |
 | Deep Audit | `make qa-valgrind-full` | Automated interactive Valgrind Memcheck session (leak, uninit, FD, use-after-free checks) | Before release, after major refactoring, or periodically |
 | Max-Depth Composite Audit | `make qa-deep` | Runs `qa-all`, `qa-pytest-coverage`, `qa-sanitize`, and `qa-valgrind-full`; captures per-step timing, pytest duration artifacts, and AI-handoff triage files into timestamped temp logs | Periodic deep health checks, pre-release confidence sweeps, and unattended overnight runs |
-| Manual Feature Audit | `make qa-valgrind-interactive` | You manually drive ytree under Valgrind to exercise new feature code paths | After adding a major new feature |
+| Manual Feature Audit | `make qa-valgrind-interactive` | You manually drive ytnova under Valgrind to exercise new feature code paths | After adding a major new feature |
 
 - **CI Gate** runs automatically on push via GitHub Actions. No developer action needed.
 - **PR Full QA CI** (`.github/workflows/full-qa.yml`, `make qa-all` equivalent) is the standard pre-merge gate.
 - **Local QA** (`make qa-all`) is optional for faster local confidence and maintainer-requested deep preflight; avoid running it on every iteration by default.
 - **Fileops Integrity Gate** (`make qa-fileops-integrity`) is the dedicated regression wall for mutation integrity/security contracts; run it before merge and whenever file/archive mutation code or prompts change.
 - **Split Panel Regression Gate** (`make qa-split-panel-gates`) is the path-filtered regression wall for split-panel invariants, transition handoff, and split-authority source guards; split-touching PRs must satisfy it before merge.
-- **Deep Audit** (`make qa-valgrind-full`) is on-demand. It drives a scripted interactive ytree session under Valgrind and takes ~2-3 minutes. Run it:
+- **Deep Audit** (`make qa-valgrind-full`) is on-demand. It drives a scripted interactive ytnova session under Valgrind and takes ~2-3 minutes. Run it:
   - Before tagging a release
   - After changes to memory management, allocation, or cleanup paths
   - After major refactoring sessions
@@ -39,8 +39,8 @@ The project uses seven QA layers with increasing depth and cost:
   - After touching pointer arithmetic, allocation/free paths, or integer-heavy logic
   - When triaging intermittent or environment-sensitive crashes
   - Before alpha/release candidates as an extra memory/UB gate
-- **Max-Depth Composite Audit** (`make qa-deep`) is on-demand and unattended. It composes static, dynamic, sanitizer, coverage, and deep Valgrind checks in one run and writes structured triage output (summary, failures, timing, handoff prompt) under `${TMPDIR:-/tmp}/ytree-qa-deep/<timestamp>/` by default.
-- **Manual Feature Audit** (`make qa-valgrind-interactive`) launches ytree under Valgrind for you to drive manually. Use it after adding a major feature to exercise the new code paths specifically. Exit cleanly, then inspect `valgrind.txt`.
+- **Max-Depth Composite Audit** (`make qa-deep`) is on-demand and unattended. It composes static, dynamic, sanitizer, coverage, and deep Valgrind checks in one run and writes structured triage output (summary, failures, timing, handoff prompt) under `${TMPDIR:-/tmp}/ytnova-qa-deep/<timestamp>/` by default.
+- **Manual Feature Audit** (`make qa-valgrind-interactive`) launches ytnova under Valgrind for you to drive manually. Use it after adding a major feature to exercise the new code paths specifically. Exit cleanly, then inspect `valgrind.txt`.
 
 ## 1.3 Gate Organization & Efficiency
 
@@ -166,7 +166,7 @@ Run these commands in this order to generate evidence-based findings.
 1. **Linting & Modernization:** `clang-tidy $(rg --files src -g '*.c') -p .`
 2. **Static Analysis:** `cppcheck --enable=all --inconclusive --force --std=c99 -I include --error-exitcode=1 --suppressions-list=.cppcheck-suppressions.txt src include`
 3. **Logic Path Analysis:** `make clean && scan-build --status-bugs make`
-4. **Memory/Runtime Analysis:** `valgrind --leak-check=full --show-leak-kinds=all --track-origins=yes --error-exitcode=1 --log-file=valgrind.txt ./build/ytree .` (then exit ytree cleanly). For automated interactive runs, use `make qa-valgrind-full` which drives a scripted pexpect session.
+4. **Memory/Runtime Analysis:** `valgrind --leak-check=full --show-leak-kinds=all --track-origins=yes --error-exitcode=1 --log-file=valgrind.txt ./build/ytnova .` (then exit ytnova cleanly). For automated interactive runs, use `make qa-valgrind-full` which drives a scripted pexpect session.
 5. **Regression Tests:** `source .venv/bin/activate && pytest`
 6. **Secret Scanning:** `gitleaks detect --source . --redact --exit-code 1` (or `gitleaks dir --redact --exit-code 1 .` on newer CLI variants)
 
@@ -192,7 +192,7 @@ Local shortcut targets are available in the `Makefile`:
 - `make qa-fuzz`
 - `make qa-all` (runs `qa-clang`, `qa-cppcheck`, `qa-scan`, `qa-valgrind`, `qa-pytest`, `qa-unsafe-apis`, `qa-gitleaks`, `qa-module-boundaries`, `qa-ai-config`, `qa-fuzz` in order; run `qa-fileops-integrity` separately when touching mutation flows)
 - `make qa-all-log` (same as `qa-all`, with full output captured to `qa-all.log` in repo root; override with `QA_LOG=/path/to/file`)
-- `make qa-deep` (max-depth unattended composite run; default logs in `${TMPDIR:-/tmp}/ytree-qa-deep`; override root with `QA_DEEP_LOG_ROOT=/path`)
+- `make qa-deep` (max-depth unattended composite run; default logs in `${TMPDIR:-/tmp}/ytnova-qa-deep`; override root with `QA_DEEP_LOG_ROOT=/path`)
 
 For feature-sized/PR-scope changes, audit evidence must include a successful `make qa-module-boundaries` run so controller-slimming checks are explicitly validated.
 Audit evidence must also include `make qa-unsafe-apis` results as explicit enforcement evidence for the shared Security gate policy in `.ai/shared.md` Core Engineering Rules.
@@ -219,7 +219,7 @@ Run this loop for every non-trivial change and every PR.
 - **Tracking Rule:** Medium/Low findings must be either fixed in the PR or explicitly tracked with rationale.
 
 ### Phase D: Verify (Tester)
-- **Memory Gate:** Run `valgrind --leak-check=full --show-leak-kinds=all --track-origins=yes --error-exitcode=1 --log-file=valgrind.txt ./build/ytree .` and exit cleanly.
+- **Memory Gate:** Run `valgrind --leak-check=full --show-leak-kinds=all --track-origins=yes --error-exitcode=1 --log-file=valgrind.txt ./build/ytnova .` and exit cleanly.
 - **Dynamic Gate:** Run relevant `pytest` suites for the touched scope (or full `pytest` when scope is broad).
 - **Criteria:** Failure occurs if any test fails or if Valgrind returns a non-zero exit code.
 
@@ -247,7 +247,7 @@ Before merge and before release, keep short notes:
 - **Residual Risk:** List any remaining Low/Medium items.
 - **Status:** PASS or FAIL.
 
-## 7. Ytree-Specific Priorities
+## 7. YtreeNova-Specific Priorities
 - **Stability Over Novelty:** Features must not compromise the database-logger tree integrity.
 - **MVC Integrity:** Maintain context-passing; avoid global variables.
 - **ncurses Hygiene:** Every `newwin` or `derwin` must have a matching `delwin`.

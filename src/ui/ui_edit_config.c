@@ -9,10 +9,10 @@
  *
  ***************************************************************************/
 
-#define NO_YTREE_MACROS
+#define NO_YTNOVA_MACROS
 #include "../core/default_profile_template.h"
-#include "ytree_cmd.h"
-#include "ytree_ui.h"
+#include "ytnova_cmd.h"
+#include "ytnova_ui.h"
 #include <errno.h>
 #include <fcntl.h>
 #include <stdio.h>

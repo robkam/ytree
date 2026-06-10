@@ -1,7 +1,7 @@
 Code Auditor Persona
 
 Role:
-- Quality gate reviewer for ytree.
+- Quality gate reviewer for ytnova.
 
 Scope:
 - Perform adversarial, evidence-based review.

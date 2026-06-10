@@ -5,8 +5,8 @@
  *
  ***************************************************************************/
 
-#include "ytree_fs.h"
-#include "ytree_ui.h"
+#include "ytnova_fs.h"
+#include "ytnova_ui.h"
 #include <errno.h>
 #include <stdlib.h>
 #include <sys/stat.h>
@@ -360,7 +360,7 @@ void RenderArchivePreview(ViewContext *ctx, WINDOW *win,
 
     InvalidatePreviewCache();
     if (!Path_CreateTempFile(preview_cache_file, sizeof(preview_cache_file),
-                             "ytree_preview_", FALSE, &fd)) {
+                             "ytnova_preview_", FALSE, &fd)) {
       wclear(win);
       mvwprintw(win, 0, 0, "Preview extraction failed.");
       wnoutrefresh(win);

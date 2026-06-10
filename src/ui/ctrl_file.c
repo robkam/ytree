@@ -5,18 +5,18 @@
  *
  ***************************************************************************/
 
-#define NO_YTREE_MACROS
+#define NO_YTNOVA_MACROS
 
-#ifndef YTREE_H
-#include "../../include/ytree.h"
+#ifndef YTNOVA_H
+#include "../../include/ytnova.h"
 #endif
 
 #include "../../include/sort.h"
 #include "../../include/watcher.h"
-#include "../../include/ytree_cmd.h"
-#include "../../include/ytree_fs.h"
-#include "../../include/ytree_split_transition.h"
-#include "../../include/ytree_ui.h"
+#include "../../include/ytnova_cmd.h"
+#include "../../include/ytnova_fs.h"
+#include "../../include/ytnova_split_transition.h"
+#include "../../include/ytnova_ui.h"
 #include <libgen.h>
 #include <stdlib.h>
 
@@ -44,7 +44,7 @@ static void PositionOwnerFileCursor(ViewContext *ctx, DirEntry *owner_dir,
 static BOOL JumpToOwnerDirectory(ViewContext *ctx,
                                  const DirEntry *global_dir_entry);
 
-static YtreeAction FilterPreviewAction(YtreeAction action) {
+static YtreeNovaAction FilterPreviewAction(YtreeNovaAction action) {
   switch (action) {
   case ACTION_NONE:
   case ACTION_ESCAPE:
@@ -245,12 +245,12 @@ int HandleFileWindow(ViewContext *ctx, DirEntry *dir_entry) {
   BOOL need_dsp_help;
   BOOL maybe_change_x_step;
   BOOL volume_changed = FALSE;
-  YtreeAction action = ACTION_NONE; /* Initialize action */
+  YtreeNovaAction action = ACTION_NONE; /* Initialize action */
   BOOL jumped_to_owner_dir = FALSE;
   BOOL switched_panel = FALSE;
   BOOL switched_to_tree_panel = FALSE;
   BOOL return_esc = FALSE;
-  YtreePanel *owner_panel = ctx->active;
+  YtreeNovaPanel *owner_panel = ctx->active;
   DirEntry *tracked_file_dir = ctx->active->file_dir_entry;
   const DirEntry *last_stats_dir = NULL; /* Track context changes */
   struct Volume *start_vol = ctx->active->vol; /* Safety Check Variable */
@@ -876,7 +876,7 @@ static void PositionOwnerFileCursor(ViewContext *ctx, DirEntry *owner_dir,
 
 static BOOL JumpToOwnerDirectory(ViewContext *ctx,
                                  const DirEntry *global_dir_entry) {
-  YtreePanel *panel;
+  YtreeNovaPanel *panel;
   int selected_idx;
   FileEntry *selected_file;
   DirEntry *owner_dir;

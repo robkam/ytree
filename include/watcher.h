@@ -11,7 +11,7 @@
 #ifndef WATCHER_H
 #define WATCHER_H
 
-#include "ytree_defs.h"
+#include "ytnova_defs.h"
 
 void Watcher_Init(ViewContext *ctx);
 void Watcher_SetDir(ViewContext *ctx, const char *path);

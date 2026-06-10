@@ -5,8 +5,8 @@
  *
  ***************************************************************************/
 
-#include "ytree_cmd.h"
-#include "ytree_ui.h"
+#include "ytnova_cmd.h"
+#include "ytnova_ui.h"
 #include <errno.h>
 #include <sys/stat.h>
 #include <unistd.h>

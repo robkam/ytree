@@ -5,8 +5,8 @@ import pexpect
 from helpers_stats import current_file_from_stats as _current_file_from_stats
 from helpers_stats import detect_stats_split_x as _detect_stats_split_x
 from helpers_ui import footer_text as _footer_text
-from ytree_keys import Keys
-from tui_harness import YtreeTUI
+from ytnova_keys import Keys
+from tui_harness import YtreeNovaTUI
 
 def get_clean_screen(yt):
     try:
@@ -21,7 +21,7 @@ def get_clean_screen(yt):
 def sync_state(yt):
     yt.child.expect(r'20\d{2}')
 
-def test_multi_column_rendering_metrics(ytree_binary, tmp_path):
+def test_multi_column_rendering_metrics(ytnova_binary, tmp_path):
     """
     REGRESSION: Columns overlap when metrics (max_filename_len) are not initialized correctly.
     Verifies that the file window correctly calculates columns even on first entry.
@@ -32,7 +32,7 @@ def test_multi_column_rendering_metrics(ytree_binary, tmp_path):
     for i in range(50):
         (d / f"file_{i:02d}.txt").write_text("test")
 
-    tui = YtreeTUI(executable=ytree_binary, cwd=str(d))
+    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(d))
 
     # Enter file window via 'S' (Global Mode)
     tui.send_keystroke(Keys.SHOWALL, wait=0.35)
@@ -107,7 +107,7 @@ def _detect_panel_split_x(lines):
     return max(counts, key=counts.get)
 
 
-def test_file_window_column_stride_sync_after_hidden_toggle(ytree_binary, tmp_path):
+def test_file_window_column_stride_sync_after_hidden_toggle(ytnova_binary, tmp_path):
     """
     REGRESSION:
     When file-list width/metrics change without a mode switch, RIGHT/LEFT must
@@ -126,7 +126,7 @@ def test_file_window_column_stride_sync_after_hidden_toggle(ytree_binary, tmp_pa
     long_hidden = "." + ("L" * 120) + ".txt"
     (test_dir / long_hidden).write_text("x", encoding="utf-8")
 
-    tui = YtreeTUI(executable=ytree_binary, cwd=str(test_dir))
+    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(test_dir))
 
     # Make the window wide enough for multi-column rendering of short names.
     tui.child.setwinsize(36, 160)
@@ -181,7 +181,7 @@ def test_file_window_column_stride_sync_after_hidden_toggle(ytree_binary, tmp_pa
     tui.quit()
 
 
-def test_split_file_details_do_not_wrap_neighbor_rows_at_120x36(ytree_binary, tmp_path):
+def test_split_file_details_do_not_wrap_neighbor_rows_at_120x36(ytnova_binary, tmp_path):
     """
     Regression:
     At 120x36 in split file view, Ctrl-F detail modes must clip per-row output.
@@ -196,7 +196,7 @@ def test_split_file_details_do_not_wrap_neighbor_rows_at_120x36(ytree_binary, tm
             "x", encoding="utf-8"
         )
 
-    tui = YtreeTUI(executable=ytree_binary, cwd=str(d))
+    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(d))
     tui.child.setwinsize(36, 120)
     tui.screen.resize(36, 120)
     time.sleep(1.0)
@@ -227,7 +227,7 @@ def test_split_file_details_do_not_wrap_neighbor_rows_at_120x36(ytree_binary, tm
     tui.quit()
 
 
-def test_file_window_left_right_edge_no_wrap(ytree_binary, tmp_path):
+def test_file_window_left_right_edge_no_wrap(ytnova_binary, tmp_path):
     """
     REGRESSION:
     LEFT/RIGHT must keep row semantics. At horizontal edges with no same-row
@@ -239,7 +239,7 @@ def test_file_window_left_right_edge_no_wrap(ytree_binary, tmp_path):
     for i in range(total_files):
         (test_dir / f"a{i:03d}.txt").write_text("x", encoding="utf-8")
 
-    tui = YtreeTUI(executable=ytree_binary, cwd=str(test_dir))
+    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(test_dir))
     tui.child.setwinsize(48, 160)
     tui.screen.resize(48, 160)
     time.sleep(1.0)
@@ -301,7 +301,7 @@ def test_file_window_left_right_edge_no_wrap(ytree_binary, tmp_path):
     tui.quit()
 
 
-def test_file_detail_rows_do_not_wrap_attributes_into_next_line(ytree_binary, tmp_path):
+def test_file_detail_rows_do_not_wrap_attributes_into_next_line(ytnova_binary, tmp_path):
     """
     Regression guard:
     In narrow layouts, file-detail modes must clip row content instead of
@@ -312,7 +312,7 @@ def test_file_detail_rows_do_not_wrap_attributes_into_next_line(ytree_binary, tm
     for i in range(12):
         (d / f"f{i:03d}.txt").write_text("x", encoding="utf-8")
 
-    tui = YtreeTUI(executable=ytree_binary, cwd=str(d))
+    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(d))
     tui.child.setwinsize(32, 84)
     tui.screen.resize(32, 84)
     time.sleep(1.0)
@@ -345,7 +345,7 @@ def test_file_detail_rows_do_not_wrap_attributes_into_next_line(ytree_binary, tm
     tui.quit()
 
 
-def test_file_window_one_column_edges_preserve_row(ytree_binary, tmp_path):
+def test_file_window_one_column_edges_preserve_row(ytnova_binary, tmp_path):
     """
     REGRESSION:
     In one-column (long-name) mode, LEFT/RIGHT page navigation must preserve
@@ -361,7 +361,7 @@ def test_file_window_one_column_edges_preserve_row(ytree_binary, tmp_path):
     long_hidden = "." + ("L" * 120) + ".txt"
     (test_dir / long_hidden).write_text("x", encoding="utf-8")
 
-    tui = YtreeTUI(executable=ytree_binary, cwd=str(test_dir))
+    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(test_dir))
     tui.child.setwinsize(36, 160)
     tui.screen.resize(36, 160)
     time.sleep(1.0)
@@ -420,13 +420,13 @@ def test_file_window_one_column_edges_preserve_row(ytree_binary, tmp_path):
     tui.quit()
 
 
-def test_global_repeat_key_is_noop_in_global_view(ytree_binary, tmp_path):
+def test_global_repeat_key_is_noop_in_global_view(ytnova_binary, tmp_path):
     root = tmp_path / "global_toggle_repeat"
     root.mkdir()
     (root / "a.txt").write_text("a", encoding="utf-8")
     (root / "b.txt").write_text("b", encoding="utf-8")
 
-    tui = YtreeTUI(executable=ytree_binary, cwd=str(root))
+    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
     time.sleep(0.6)
 
     tui.send_keystroke("g", wait=0.5)
@@ -445,13 +445,13 @@ def test_global_repeat_key_is_noop_in_global_view(ytree_binary, tmp_path):
     tui.quit()
 
 
-def test_showall_repeat_key_sorts_in_showall_view(ytree_binary, tmp_path):
+def test_showall_repeat_key_sorts_in_showall_view(ytnova_binary, tmp_path):
     root = tmp_path / "showall_toggle_repeat"
     root.mkdir()
     (root / "a.txt").write_text("a", encoding="utf-8")
     (root / "b.txt").write_text("b", encoding="utf-8")
 
-    tui = YtreeTUI(executable=ytree_binary, cwd=str(root))
+    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
     time.sleep(0.6)
 
     tui.send_keystroke(Keys.SHOWALL, wait=0.5)
@@ -473,11 +473,11 @@ def test_showall_repeat_key_sorts_in_showall_view(ytree_binary, tmp_path):
     tui.quit()
 
 
-def test_mutating_action_repeat_is_not_undo(ytree_binary, tmp_path):
+def test_mutating_action_repeat_is_not_undo(ytnova_binary, tmp_path):
     root = tmp_path / "mkdir_repeat_action"
     root.mkdir()
 
-    tui = YtreeTUI(executable=ytree_binary, cwd=str(root))
+    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
     time.sleep(0.6)
 
     tui.send_keystroke("M", wait=0.25)
@@ -494,7 +494,7 @@ def test_mutating_action_repeat_is_not_undo(ytree_binary, tmp_path):
     )
 
 
-def test_showall_repeat_stays_in_showall_context(ytree_binary, tmp_path):
+def test_showall_repeat_stays_in_showall_context(ytnova_binary, tmp_path):
     root = tmp_path / "showall_repeat_start_dir"
     root.mkdir()
     alpha = root / "alpha"
@@ -504,7 +504,7 @@ def test_showall_repeat_stays_in_showall_context(ytree_binary, tmp_path):
     (alpha / "alpha_only.txt").write_text("a", encoding="utf-8")
     (beta / "beta_only.txt").write_text("b", encoding="utf-8")
 
-    tui = YtreeTUI(executable=ytree_binary, cwd=str(root))
+    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
     time.sleep(0.6)
 
     # Move from root to alpha in tree mode and remember this start context.
@@ -527,7 +527,7 @@ def test_showall_repeat_stays_in_showall_context(ytree_binary, tmp_path):
     tui.quit()
 
 
-def test_global_repeat_stays_in_global_context(ytree_binary, tmp_path):
+def test_global_repeat_stays_in_global_context(ytnova_binary, tmp_path):
     root = tmp_path / "global_repeat_start_dir"
     root.mkdir()
     alpha = root / "alpha"
@@ -537,7 +537,7 @@ def test_global_repeat_stays_in_global_context(ytree_binary, tmp_path):
     (alpha / "alpha_only.txt").write_text("a", encoding="utf-8")
     (beta / "beta_only.txt").write_text("b", encoding="utf-8")
 
-    tui = YtreeTUI(executable=ytree_binary, cwd=str(root))
+    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
     time.sleep(0.6)
 
     # Move from root to alpha in tree mode and remember this start context.
@@ -558,7 +558,7 @@ def test_global_repeat_stays_in_global_context(ytree_binary, tmp_path):
 
 
 @pytest.mark.parametrize("mode_key", [Keys.SHOWALL, "g"])
-def test_backslash_to_dir_in_showall_and_global(ytree_binary, tmp_path, mode_key):
+def test_backslash_to_dir_in_showall_and_global(ytnova_binary, tmp_path, mode_key):
     """
     REGRESSION:
     In Show All / Global file list modes, '\\' exits the mode and re-anchors
@@ -574,7 +574,7 @@ def test_backslash_to_dir_in_showall_and_global(ytree_binary, tmp_path, mode_key
     (owner_dir / target_name).write_text("x", encoding="utf-8")
     (other_dir / "other_file.txt").write_text("x", encoding="utf-8")
 
-    tui = YtreeTUI(executable=ytree_binary, cwd=str(root))
+    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
     tui.child.setwinsize(36, 140)
     tui.screen.resize(36, 140)
     time.sleep(1.0)
@@ -605,7 +605,7 @@ def test_backslash_to_dir_in_showall_and_global(ytree_binary, tmp_path, mode_key
     tui.quit()
 
 
-def test_footer_fkeys_render_as_text_in_dir_and_showall(ytree_binary, tmp_path):
+def test_footer_fkeys_render_as_text_in_dir_and_showall(ytnova_binary, tmp_path):
     """
     REGRESSION:
     Footer command rows must render function key labels as text (F7/F8/F10/F1),
@@ -615,7 +615,7 @@ def test_footer_fkeys_render_as_text_in_dir_and_showall(ytree_binary, tmp_path):
     d.mkdir()
     (d / "a.txt").write_text("x", encoding="utf-8")
 
-    tui = YtreeTUI(executable=ytree_binary, cwd=str(d))
+    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(d))
     tui.child.setwinsize(36, 140)
     tui.screen.resize(36, 140)
     time.sleep(1.0)
@@ -642,7 +642,7 @@ def test_footer_fkeys_render_as_text_in_dir_and_showall(ytree_binary, tmp_path):
     tui.quit()
 
 
-def test_sort_prompt_uses_full_footer_without_bleed(ytree_binary, tmp_path):
+def test_sort_prompt_uses_full_footer_without_bleed(ytnova_binary, tmp_path):
     """
     REGRESSION:
     Sort prompt must fully occupy the footer area in file mode. The previous
@@ -653,7 +653,7 @@ def test_sort_prompt_uses_full_footer_without_bleed(ytree_binary, tmp_path):
     (d / "b.txt").write_text("x", encoding="utf-8")
     (d / "a.txt").write_text("x", encoding="utf-8")
 
-    tui = YtreeTUI(executable=ytree_binary, cwd=str(d))
+    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(d))
     tui.child.setwinsize(36, 140)
     tui.screen.resize(36, 140)
     time.sleep(1.0)
@@ -684,7 +684,7 @@ def test_sort_prompt_uses_full_footer_without_bleed(ytree_binary, tmp_path):
     ],
 )
 def test_dir_copy_move_keeps_full_frame_after_command(
-    ytree_binary, tmp_path, action_key, new_name, confirm_text
+    ytnova_binary, tmp_path, action_key, new_name, confirm_text
 ):
     root = tmp_path / "dir_ops_frame"
     root.mkdir()
@@ -693,7 +693,7 @@ def test_dir_copy_move_keeps_full_frame_after_command(
     (src / "nested").mkdir()
     (src / "nested" / "payload.txt").write_text("x", encoding="utf-8")
 
-    tui = YtreeTUI(executable=ytree_binary, cwd=str(root))
+    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
     tui.child.setwinsize(36, 140)
     tui.screen.resize(36, 140)
     time.sleep(1.0)
@@ -729,7 +729,7 @@ def test_dir_copy_move_keeps_full_frame_after_command(
 
 
 def test_dir_copy_to_missing_destination_prompts_create_and_no_restores_footer(
-    ytree_binary, tmp_path
+    ytnova_binary, tmp_path
 ):
     root = tmp_path / "dir_copy_missing_dest_no"
     root.mkdir()
@@ -738,7 +738,7 @@ def test_dir_copy_to_missing_destination_prompts_create_and_no_restores_footer(
     (src / "nested").mkdir()
     (src / "nested" / "payload.txt").write_text("x", encoding="utf-8")
 
-    tui = YtreeTUI(executable=ytree_binary, cwd=str(root))
+    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
     tui.child.setwinsize(36, 140)
     tui.screen.resize(36, 140)
     time.sleep(1.0)
@@ -771,7 +771,7 @@ def test_dir_copy_to_missing_destination_prompts_create_and_no_restores_footer(
 
 
 def test_dir_copy_to_missing_destination_create_yes_copies_and_restores_frame(
-    ytree_binary, tmp_path
+    ytnova_binary, tmp_path
 ):
     root = tmp_path / "dir_copy_missing_dest_yes"
     root.mkdir()
@@ -780,7 +780,7 @@ def test_dir_copy_to_missing_destination_create_yes_copies_and_restores_frame(
     (src / "nested").mkdir()
     (src / "nested" / "payload.txt").write_text("x", encoding="utf-8")
 
-    tui = YtreeTUI(executable=ytree_binary, cwd=str(root))
+    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
     tui.child.setwinsize(36, 140)
     tui.screen.resize(36, 140)
     time.sleep(1.0)
@@ -814,13 +814,13 @@ def test_dir_copy_to_missing_destination_create_yes_copies_and_restores_frame(
     tui.quit()
 
 
-def test_dir_copy_prompt_shows_source_and_as_target(ytree_binary, tmp_path):
+def test_dir_copy_prompt_shows_source_and_as_target(ytnova_binary, tmp_path):
     root = tmp_path / "dir_copy_prompt_as"
     root.mkdir()
     src = root / "src_dir"
     src.mkdir()
 
-    tui = YtreeTUI(executable=ytree_binary, cwd=str(root))
+    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
     tui.child.setwinsize(36, 140)
     tui.screen.resize(36, 140)
     time.sleep(1.0)
@@ -834,10 +834,10 @@ def test_dir_copy_prompt_shows_source_and_as_target(ytree_binary, tmp_path):
     tui.quit()
 
 
-def test_dir_copy_refreshes_destination_branch_without_relog(ytree_binary, tmp_path):
+def test_dir_copy_refreshes_destination_branch_without_relog(ytnova_binary, tmp_path):
     root = tmp_path / "dir_copy_cross_branch_refresh"
     root.mkdir()
-    (root / ".ytree").write_text("[GLOBAL]\nTREEDEPTH=1\n", encoding="utf-8")
+    (root / ".ytnova").write_text("[GLOBAL]\nTREEDEPTH=1\n", encoding="utf-8")
     source_bucket = root / "source_bucket"
     target_bucket = root / "target_bucket"
     source_bucket.mkdir()
@@ -847,7 +847,7 @@ def test_dir_copy_refreshes_destination_branch_without_relog(ytree_binary, tmp_p
     (src / "nested").mkdir()
     (src / "nested" / "payload.txt").write_text("x", encoding="utf-8")
 
-    tui = YtreeTUI(executable=ytree_binary, cwd=str(root))
+    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
     tui.child.setwinsize(36, 140)
     tui.screen.resize(36, 140)
     time.sleep(1.0)
@@ -905,10 +905,10 @@ def test_dir_copy_refreshes_destination_branch_without_relog(ytree_binary, tmp_p
     tui.quit()
 
 
-def test_dir_copy_delete_created_destination_updates_in_session(ytree_binary, tmp_path):
+def test_dir_copy_delete_created_destination_updates_in_session(ytnova_binary, tmp_path):
     root = tmp_path / "dir_copy_delete_created_destination"
     root.mkdir()
-    (root / ".ytree").write_text("[GLOBAL]\nTREEDEPTH=1\n", encoding="utf-8")
+    (root / ".ytnova").write_text("[GLOBAL]\nTREEDEPTH=1\n", encoding="utf-8")
     source_bucket = root / "source_bucket"
     target_bucket = root / "target_bucket"
     source_bucket.mkdir()
@@ -918,7 +918,7 @@ def test_dir_copy_delete_created_destination_updates_in_session(ytree_binary, tm
     (src / "nested").mkdir()
     (src / "nested" / "payload.txt").write_text("x", encoding="utf-8")
 
-    tui = YtreeTUI(executable=ytree_binary, cwd=str(root))
+    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
     tui.child.setwinsize(36, 140)
     tui.screen.resize(36, 140)
     time.sleep(1.0)
@@ -972,10 +972,10 @@ def test_dir_copy_delete_created_destination_updates_in_session(ytree_binary, tm
     tui.quit()
 
 
-def test_dir_copy_absolute_destination_refreshes_without_relog(ytree_binary, tmp_path):
+def test_dir_copy_absolute_destination_refreshes_without_relog(ytnova_binary, tmp_path):
     root = tmp_path / "dir_copy_absolute_destination_refresh"
     root.mkdir()
-    (root / ".ytree").write_text("[GLOBAL]\nTREEDEPTH=1\n", encoding="utf-8")
+    (root / ".ytnova").write_text("[GLOBAL]\nTREEDEPTH=1\n", encoding="utf-8")
     source_bucket = root / "source_bucket"
     target_bucket = root / "target_bucket"
     source_bucket.mkdir()
@@ -985,7 +985,7 @@ def test_dir_copy_absolute_destination_refreshes_without_relog(ytree_binary, tmp
     (src / "nested").mkdir()
     (src / "nested" / "payload.txt").write_text("x", encoding="utf-8")
 
-    tui = YtreeTUI(executable=ytree_binary, cwd=str(root))
+    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
     tui.child.setwinsize(36, 140)
     tui.screen.resize(36, 140)
     time.sleep(1.0)
@@ -1026,7 +1026,7 @@ def test_dir_copy_absolute_destination_refreshes_without_relog(ytree_binary, tmp
     tui.quit()
 
 
-def test_jump_prompt_uses_footer_without_bleed(ytree_binary, tmp_path):
+def test_jump_prompt_uses_footer_without_bleed(ytnova_binary, tmp_path):
     """
     REGRESSION:
     List-jump prompt ('/') must render in the footer area without stale file
@@ -1037,7 +1037,7 @@ def test_jump_prompt_uses_footer_without_bleed(ytree_binary, tmp_path):
     (d / "alpha.txt").write_text("x", encoding="utf-8")
     (d / "beta.txt").write_text("x", encoding="utf-8")
 
-    tui = YtreeTUI(executable=ytree_binary, cwd=str(d))
+    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(d))
     tui.child.setwinsize(36, 140)
     tui.screen.resize(36, 140)
     time.sleep(1.0)

@@ -5,8 +5,8 @@ import time
 from helpers_ui import footer_lines as _footer_lines
 from helpers_ui import footer_text as _footer_text
 from helpers_ui import screen_text as _screen_text
-from tui_harness import YtreeTUI
-from ytree_keys import Keys
+from tui_harness import YtreeNovaTUI
+from ytnova_keys import Keys
 
 
 def _send_left_arrow(tui, wait=0.4):
@@ -73,7 +73,7 @@ def _has_tree_row_for_dir(screen_rows, dir_name):
     return False
 
 
-def test_archive_left_at_root_collapses_once_then_noop(tmp_path, ytree_binary):
+def test_archive_left_at_root_collapses_once_then_noop(tmp_path, ytnova_binary):
     """At archive root: first LEFT collapses children, second LEFT is a no-op."""
     root = tmp_path / "archive_exit_root"
     root.mkdir()
@@ -82,7 +82,7 @@ def test_archive_left_at_root_collapses_once_then_noop(tmp_path, ytree_binary):
     (root / "beta.txt").write_text("beta", encoding="utf-8")
     _create_archive(root, "Absolutely MAD.tar")
 
-    tui = YtreeTUI(executable=ytree_binary, cwd=str(root))
+    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
     time.sleep(0.8)
 
     # Enter file view and log selected archive file.
@@ -125,14 +125,14 @@ def test_archive_left_at_root_collapses_once_then_noop(tmp_path, ytree_binary):
     tui.quit()
 
 
-def test_minus_on_leaf_unlogs_directory_state(tmp_path, ytree_binary):
+def test_minus_on_leaf_unlogs_directory_state(tmp_path, ytnova_binary):
     root = tmp_path / "minus_leaf_unlog"
     root.mkdir()
     leaf = root / "leaf_dir"
     leaf.mkdir()
     (leaf / "leaf_file.txt").write_text("leaf", encoding="utf-8")
 
-    tui = YtreeTUI(executable=ytree_binary, cwd=str(root))
+    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
     time.sleep(0.8)
 
     tui.send_keystroke(Keys.DOWN, wait=0.3)
@@ -153,14 +153,14 @@ def test_minus_on_leaf_unlogs_directory_state(tmp_path, ytree_binary):
     tui.quit()
 
 
-def test_archive_left_non_root_does_not_exit_immediately(tmp_path, ytree_binary):
+def test_archive_left_non_root_does_not_exit_immediately(tmp_path, ytnova_binary):
     root = tmp_path / "a_left"
     root.mkdir()
     (root / "alpha.txt").write_text("alpha", encoding="utf-8")
     (root / "beta.txt").write_text("beta", encoding="utf-8")
     archive_path = _create_archive(root, "l.tar")
 
-    tui = YtreeTUI(executable=ytree_binary, cwd=str(root))
+    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
     time.sleep(0.8)
 
     tui.send_keystroke(Keys.ENTER, wait=0.4)
@@ -188,13 +188,13 @@ def test_archive_left_non_root_does_not_exit_immediately(tmp_path, ytree_binary)
     tui.quit()
 
 
-def test_fs_left_at_root_collapses_once_then_noop(tmp_path, ytree_binary):
+def test_fs_left_at_root_collapses_once_then_noop(tmp_path, ytnova_binary):
     root = tmp_path / "fs_left_root_collapse_once"
     root.mkdir()
     (root / "child_a").mkdir()
     (root / "child_b").mkdir()
 
-    tui = YtreeTUI(executable=ytree_binary, cwd=str(root))
+    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
     time.sleep(0.8)
 
     try:
@@ -225,13 +225,13 @@ def test_fs_left_at_root_collapses_once_then_noop(tmp_path, ytree_binary):
         tui.quit()
 
 
-def test_fs_root_left_then_right_does_not_restore_deep_state(tmp_path, ytree_binary):
+def test_fs_root_left_then_right_does_not_restore_deep_state(tmp_path, ytnova_binary):
     root = tmp_path / "fs_root_left_right_reset"
     root.mkdir()
-    (root / ".ytree").write_text("[GLOBAL]\nTREEDEPTH=1\n", encoding="utf-8")
+    (root / ".ytnova").write_text("[GLOBAL]\nTREEDEPTH=1\n", encoding="utf-8")
     (root / "alpha" / "child" / "grand").mkdir(parents=True)
 
-    tui = YtreeTUI(executable=ytree_binary, cwd=str(root))
+    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
     time.sleep(0.8)
 
     try:
@@ -270,13 +270,13 @@ def test_fs_root_left_then_right_does_not_restore_deep_state(tmp_path, ytree_bin
 
 
 def test_archive_root_unlogged_right_does_not_show_permission_denied(
-    tmp_path, ytree_binary
+    tmp_path, ytnova_binary
 ):
     root = tmp_path / "archive_root_unlogged_right"
     root.mkdir()
     _create_archive(root, "roundtrip.tar")
 
-    tui = YtreeTUI(executable=ytree_binary, cwd=str(root))
+    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
     time.sleep(0.8)
 
     try:
@@ -302,14 +302,14 @@ def test_archive_root_unlogged_right_does_not_show_permission_denied(
         tui.quit()
 
 
-def test_archive_root_backslash_exits_to_parent_file_focus(tmp_path, ytree_binary):
+def test_archive_root_backslash_exits_to_parent_file_focus(tmp_path, ytnova_binary):
     root = tmp_path / "a_bs"
     root.mkdir()
     (root / "alpha.txt").write_text("alpha", encoding="utf-8")
     (root / "beta.txt").write_text("beta", encoding="utf-8")
     archive_path = _create_archive(root, "b.tar")
 
-    tui = YtreeTUI(executable=ytree_binary, cwd=str(root))
+    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
     time.sleep(0.8)
 
     tui.send_keystroke(Keys.ENTER, wait=0.4)
@@ -334,12 +334,12 @@ def test_archive_root_backslash_exits_to_parent_file_focus(tmp_path, ytree_binar
     tui.quit()
 
 
-def test_archive_non_root_backslash_jumps_to_archive_root(tmp_path, ytree_binary):
+def test_archive_non_root_backslash_jumps_to_archive_root(tmp_path, ytnova_binary):
     root = tmp_path / "archive_non_root_bs_noop"
     root.mkdir()
     _create_archive(root, "noop.tar")
 
-    tui = YtreeTUI(executable=ytree_binary, cwd=str(root))
+    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
     time.sleep(0.8)
 
     tui.send_keystroke(Keys.ENTER, wait=0.3)
@@ -375,12 +375,12 @@ def test_archive_non_root_backslash_jumps_to_archive_root(tmp_path, ytree_binary
     tui.quit()
 
 
-def test_archive_file_backslash_is_silent_noop(tmp_path, ytree_binary):
+def test_archive_file_backslash_is_silent_noop(tmp_path, ytnova_binary):
     root = tmp_path / "archive_file_bs_noop"
     root.mkdir()
     _create_archive(root, "archive_file_noop.tar")
 
-    tui = YtreeTUI(executable=ytree_binary, cwd=str(root))
+    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
     time.sleep(0.8)
 
     tui.send_keystroke(Keys.ENTER, wait=0.3)
@@ -405,13 +405,13 @@ def test_archive_file_backslash_is_silent_noop(tmp_path, ytree_binary):
     tui.quit()
 
 
-def test_backslash_in_fs_dir_and_file_windows_is_silent_noop(tmp_path, ytree_binary):
+def test_backslash_in_fs_dir_and_file_windows_is_silent_noop(tmp_path, ytnova_binary):
     root = tmp_path / "fs_backslash_noop"
     root.mkdir()
     (root / "alpha.txt").write_text("alpha", encoding="utf-8")
     (root / "beta.txt").write_text("beta", encoding="utf-8")
 
-    tui = YtreeTUI(executable=ytree_binary, cwd=str(root))
+    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
     time.sleep(0.8)
 
     dir_before = _screen_text(tui)
@@ -438,14 +438,14 @@ def test_backslash_in_fs_dir_and_file_windows_is_silent_noop(tmp_path, ytree_bin
     tui.quit()
 
 
-def test_unlogged_tree_shows_plus_marker_and_plus_relogs(tmp_path, ytree_binary):
+def test_unlogged_tree_shows_plus_marker_and_plus_relogs(tmp_path, ytnova_binary):
     root = tmp_path / "unlogged_plus_marker"
     root.mkdir()
     node = root / "node"
     node.mkdir()
     (node / "child.txt").write_text("payload", encoding="utf-8")
 
-    tui = YtreeTUI(executable=ytree_binary, cwd=str(root))
+    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
     time.sleep(0.8)
 
     tui.send_keystroke(Keys.DOWN, wait=0.3)
@@ -466,7 +466,7 @@ def test_unlogged_tree_shows_plus_marker_and_plus_relogs(tmp_path, ytree_binary)
 
 
 def test_enter_on_unlogged_dir_relogs_and_reveals_first_level_only(
-    tmp_path, ytree_binary
+    tmp_path, ytnova_binary
 ):
     root = tmp_path / "unlogged_enter_relogs_first_level"
     root.mkdir()
@@ -476,7 +476,7 @@ def test_enter_on_unlogged_dir_relogs_and_reveals_first_level_only(
     (node / "child_b").mkdir()
     (node / "child_a" / "nested.txt").write_text("payload", encoding="utf-8")
 
-    tui = YtreeTUI(executable=ytree_binary, cwd=str(root))
+    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
     time.sleep(0.8)
 
     try:
@@ -511,7 +511,7 @@ def test_enter_on_unlogged_dir_relogs_and_reveals_first_level_only(
 
 
 def test_unlogged_directory_with_subdirs_shows_slash_suffix(
-    tmp_path, ytree_binary
+    tmp_path, ytnova_binary
 ):
     root = tmp_path / "unlogged_slash_suffix"
     root.mkdir()
@@ -519,7 +519,7 @@ def test_unlogged_directory_with_subdirs_shows_slash_suffix(
     top.mkdir()
     (top / "child").mkdir()
 
-    tui = YtreeTUI(executable=ytree_binary, cwd=str(root))
+    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
     time.sleep(0.8)
 
     try:
@@ -533,16 +533,16 @@ def test_unlogged_directory_with_subdirs_shows_slash_suffix(
 
 
 def test_unlogged_placeholder_with_subdirs_shows_slash_suffix(
-    tmp_path, ytree_binary
+    tmp_path, ytnova_binary
 ):
     root = tmp_path / "unlogged_placeholder_slash_suffix"
     root.mkdir()
-    (root / ".ytree").write_text("[GLOBAL]\nTREEDEPTH=1\n", encoding="utf-8")
+    (root / ".ytnova").write_text("[GLOBAL]\nTREEDEPTH=1\n", encoding="utf-8")
     top = root / "top"
     top.mkdir()
     (top / "child").mkdir()
 
-    tui = YtreeTUI(executable=ytree_binary, cwd=str(root))
+    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
     time.sleep(0.8)
 
     try:
@@ -553,11 +553,11 @@ def test_unlogged_placeholder_with_subdirs_shows_slash_suffix(
 
 
 def test_enter_on_placeholder_dir_logs_and_reveals_first_level_only(
-    tmp_path, ytree_binary
+    tmp_path, ytnova_binary
 ):
     root = tmp_path / "placeholder_enter_reveals_first_level"
     root.mkdir()
-    (root / ".ytree").write_text("[GLOBAL]\nTREEDEPTH=1\n", encoding="utf-8")
+    (root / ".ytnova").write_text("[GLOBAL]\nTREEDEPTH=1\n", encoding="utf-8")
     src = root / "src"
     src.mkdir()
     (src / "cmd").mkdir()
@@ -565,7 +565,7 @@ def test_enter_on_placeholder_dir_logs_and_reveals_first_level_only(
     (src / "cmd" / "main.c").write_text("int main(void){return 0;}\n",
                                          encoding="utf-8")
 
-    tui = YtreeTUI(executable=ytree_binary, cwd=str(root))
+    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
     time.sleep(0.8)
 
     try:
@@ -598,11 +598,11 @@ def test_enter_on_placeholder_dir_logs_and_reveals_first_level_only(
 
 
 def test_root_left_resets_tree_and_right_relogs_to_profile_depth(
-    tmp_path, ytree_binary
+    tmp_path, ytnova_binary
 ):
     root = tmp_path / "root_minus_right_profile_depth"
     root.mkdir()
-    (root / ".ytree").write_text("[GLOBAL]\nTREEDEPTH=1\n", encoding="utf-8")
+    (root / ".ytnova").write_text("[GLOBAL]\nTREEDEPTH=1\n", encoding="utf-8")
     src = root / "src"
     src.mkdir()
     cmd = src / "cmd"
@@ -611,7 +611,7 @@ def test_root_left_resets_tree_and_right_relogs_to_profile_depth(
     deep.mkdir()
     (deep / "leaf.txt").write_text("payload", encoding="utf-8")
 
-    tui = YtreeTUI(executable=ytree_binary, cwd=str(root))
+    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
     time.sleep(0.8)
 
     try:
@@ -659,11 +659,11 @@ def test_root_left_resets_tree_and_right_relogs_to_profile_depth(
 
 
 def test_enter_on_placeholder_dir_is_consistent_with_smallwindowskip_one(
-    tmp_path, ytree_binary
+    tmp_path, ytnova_binary
 ):
     root = tmp_path / "placeholder_enter_smallwindowskip_one"
     root.mkdir()
-    (root / ".ytree").write_text(
+    (root / ".ytnova").write_text(
         "[GLOBAL]\nTREEDEPTH=1\nSMALLWINDOWSKIP=1\n", encoding="utf-8"
     )
 
@@ -672,7 +672,7 @@ def test_enter_on_placeholder_dir_is_consistent_with_smallwindowskip_one(
     (src / "cmd").mkdir()
     (src / "ui").mkdir()
 
-    tui = YtreeTUI(executable=ytree_binary, cwd=str(root))
+    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
     time.sleep(0.8)
 
     try:
@@ -706,11 +706,11 @@ def test_enter_on_placeholder_dir_is_consistent_with_smallwindowskip_one(
 
 
 def test_enter_on_placeholder_dir_is_consistent_with_smallwindowskip_zero(
-    tmp_path, ytree_binary
+    tmp_path, ytnova_binary
 ):
     root = tmp_path / "placeholder_enter_smallwindowskip_zero"
     root.mkdir()
-    (root / ".ytree").write_text(
+    (root / ".ytnova").write_text(
         "[GLOBAL]\nTREEDEPTH=1\nSMALLWINDOWSKIP=0\n", encoding="utf-8"
     )
 
@@ -719,7 +719,7 @@ def test_enter_on_placeholder_dir_is_consistent_with_smallwindowskip_zero(
     (src / "cmd").mkdir()
     (src / "ui").mkdir()
 
-    tui = YtreeTUI(executable=ytree_binary, cwd=str(root))
+    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
     time.sleep(0.8)
 
     try:
@@ -753,18 +753,18 @@ def test_enter_on_placeholder_dir_is_consistent_with_smallwindowskip_zero(
 
 
 def test_smallwindowskip_negative_value_falls_back_to_staged_navigation(
-    tmp_path, ytree_binary
+    tmp_path, ytnova_binary
 ):
     root = tmp_path / "smallwindowskip_negative_value"
     root.mkdir()
     target = root / "target"
     target.mkdir()
     (target / "file0.txt").write_text("x", encoding="utf-8")
-    (root / ".ytree").write_text(
+    (root / ".ytnova").write_text(
         "[GLOBAL]\nSMALLWINDOWSKIP=-1\n", encoding="utf-8"
     )
 
-    tui = YtreeTUI(executable=ytree_binary, cwd=str(root))
+    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
     time.sleep(0.8)
 
     try:
@@ -782,18 +782,18 @@ def test_smallwindowskip_negative_value_falls_back_to_staged_navigation(
 
 
 def test_smallwindowskip_trailing_junk_value_falls_back_to_staged_navigation(
-    tmp_path, ytree_binary
+    tmp_path, ytnova_binary
 ):
     root = tmp_path / "smallwindowskip_trailing_junk_value"
     root.mkdir()
     target = root / "target"
     target.mkdir()
     (target / "file0.txt").write_text("x", encoding="utf-8")
-    (root / ".ytree").write_text(
+    (root / ".ytnova").write_text(
         "[GLOBAL]\nSMALLWINDOWSKIP=1junk\n", encoding="utf-8"
     )
 
-    tui = YtreeTUI(executable=ytree_binary, cwd=str(root))
+    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
     time.sleep(0.8)
 
     try:
@@ -811,7 +811,7 @@ def test_smallwindowskip_trailing_junk_value_falls_back_to_staged_navigation(
 
 
 def test_smallwindowskip_config_edit_applies_immediately_in_session(
-    tmp_path, ytree_binary
+    tmp_path, ytnova_binary
 ):
     root = tmp_path / "smallwindowskip_live_apply"
     root.mkdir()
@@ -832,14 +832,14 @@ def test_smallwindowskip_config_edit_applies_immediately_in_session(
     )
     toggle_editor.chmod(0o755)
 
-    (root / ".ytree").write_text(
+    (root / ".ytnova").write_text(
         "[GLOBAL]\n"
         "SMALLWINDOWSKIP=0\n"
         f"EDITOR={toggle_editor}\n",
         encoding="utf-8",
     )
 
-    tui = YtreeTUI(executable=ytree_binary, cwd=str(root))
+    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
     time.sleep(0.8)
 
     try:
@@ -857,7 +857,7 @@ def test_smallwindowskip_config_edit_applies_immediately_in_session(
 
         # Edit config via F10 and let the configured editor switch value to 1.
         tui.send_keystroke("\x1b[21~", wait=0.9)
-        assert "SMALLWINDOWSKIP=1" in (root / ".ytree").read_text(
+        assert "SMALLWINDOWSKIP=1" in (root / ".ytnova").read_text(
             encoding="utf-8"
         ), "Config edit flow did not update SMALLWINDOWSKIP in profile file."
 
@@ -879,7 +879,7 @@ def test_smallwindowskip_config_edit_applies_immediately_in_session(
         tui.quit()
 
 
-def test_missing_profile_f10_no_save_does_not_create_profile(tmp_path, ytree_binary):
+def test_missing_profile_f10_no_save_does_not_create_profile(tmp_path, ytnova_binary):
     root = tmp_path / "missing_profile_f10_no_save"
     root.mkdir()
     target = root / "target"
@@ -897,11 +897,11 @@ def test_missing_profile_f10_no_save_does_not_create_profile(tmp_path, ytree_bin
     )
     noop_editor.chmod(0o755)
 
-    profile_path = root / ".ytree"
+    profile_path = root / ".ytnova"
     assert not profile_path.exists()
 
-    tui = YtreeTUI(
-        executable=ytree_binary,
+    tui = YtreeNovaTUI(
+        executable=ytnova_binary,
         cwd=str(root),
         env_extra={"EDITOR": str(noop_editor)},
     )
@@ -916,19 +916,19 @@ def test_missing_profile_f10_no_save_does_not_create_profile(tmp_path, ytree_bin
                 break
             time.sleep(0.1)
         assert editor_capture.exists(), (
-            "F10 on missing ~/.ytree must open an editable default profile buffer."
+            "F10 on missing ~/.ytnova must open an editable default profile buffer."
         )
         assert "[GLOBAL]" in editor_capture.read_text(encoding="utf-8"), (
             "Default profile buffer should include [GLOBAL] section header."
         )
         assert not profile_path.exists(), (
-            "Exiting config edit without save must not create ~/.ytree."
+            "Exiting config edit without save must not create ~/.ytnova."
         )
     finally:
         tui.quit()
 
 
-def test_missing_profile_f10_save_creates_profile(tmp_path, ytree_binary):
+def test_missing_profile_f10_save_creates_profile(tmp_path, ytnova_binary):
     root = tmp_path / "missing_profile_f10_save"
     root.mkdir()
     target = root / "target"
@@ -947,11 +947,11 @@ def test_missing_profile_f10_save_creates_profile(tmp_path, ytree_binary):
     )
     save_editor.chmod(0o755)
 
-    profile_path = root / ".ytree"
+    profile_path = root / ".ytnova"
     assert not profile_path.exists()
 
-    tui = YtreeTUI(
-        executable=ytree_binary,
+    tui = YtreeNovaTUI(
+        executable=ytnova_binary,
         cwd=str(root),
         env_extra={"EDITOR": str(save_editor)},
     )
@@ -966,18 +966,18 @@ def test_missing_profile_f10_save_creates_profile(tmp_path, ytree_binary):
                 break
             time.sleep(0.1)
         assert editor_capture.exists(), (
-            "F10 on missing ~/.ytree must open an editable default profile buffer."
+            "F10 on missing ~/.ytnova must open an editable default profile buffer."
         )
-        assert profile_path.exists(), "Saving config edit must create ~/.ytree."
+        assert profile_path.exists(), "Saving config edit must create ~/.ytnova."
         assert "SMALLWINDOWSKIP=1" in profile_path.read_text(encoding="utf-8"), (
-            "Saved missing-profile edit must persist into ~/.ytree."
+            "Saved missing-profile edit must persist into ~/.ytnova."
         )
     finally:
         tui.quit()
 
 
 def test_smallwindowskip_zero_enter_chain_is_small_then_big_then_tree(
-    tmp_path, ytree_binary
+    tmp_path, ytnova_binary
 ):
     root = tmp_path / "smallwindowskip_zero_enter_chain"
     root.mkdir()
@@ -985,9 +985,9 @@ def test_smallwindowskip_zero_enter_chain_is_small_then_big_then_tree(
     target.mkdir()
     (target / "file0.txt").write_text("x", encoding="utf-8")
     (target / "file1.txt").write_text("x", encoding="utf-8")
-    (root / ".ytree").write_text("[GLOBAL]\nSMALLWINDOWSKIP=0\n", encoding="utf-8")
+    (root / ".ytnova").write_text("[GLOBAL]\nSMALLWINDOWSKIP=0\n", encoding="utf-8")
 
-    tui = YtreeTUI(executable=ytree_binary, cwd=str(root))
+    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
     time.sleep(0.8)
 
     try:
@@ -1036,14 +1036,14 @@ def test_smallwindowskip_zero_enter_chain_is_small_then_big_then_tree(
         tui.quit()
 
 
-def test_logged_empty_vs_unlogged_labels(tmp_path, ytree_binary):
+def test_logged_empty_vs_unlogged_labels(tmp_path, ytnova_binary):
     root = tmp_path / "empty_vs_unlogged_labels"
     root.mkdir()
     empty = root / "emptydir"
     empty.mkdir()
     (root / "probe.txt").write_text("probe", encoding="utf-8")
 
-    tui = YtreeTUI(executable=ytree_binary, cwd=str(root))
+    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
     time.sleep(0.8)
 
     root_screen = tui.get_screen_dump()
@@ -1084,7 +1084,7 @@ def test_logged_empty_vs_unlogged_labels(tmp_path, ytree_binary):
 
 
 def test_small_window_tagged_symlink_and_empty_labels_share_name_column(
-    tmp_path, ytree_binary
+    tmp_path, ytnova_binary
 ):
     root = tmp_path / "small_window_symlink_alignment"
     root.mkdir()
@@ -1092,7 +1092,7 @@ def test_small_window_tagged_symlink_and_empty_labels_share_name_column(
     target.write_text("payload", encoding="utf-8")
     (root / "current").symlink_to(target.name)
 
-    tui = YtreeTUI(executable=ytree_binary, cwd=str(root))
+    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
     time.sleep(0.8)
 
     try:
@@ -1142,17 +1142,17 @@ def test_small_window_tagged_symlink_and_empty_labels_share_name_column(
         tui.quit()
 
 
-def test_placeholder_dir_shows_unlogged_not_no_files(tmp_path, ytree_binary):
+def test_placeholder_dir_shows_unlogged_not_no_files(tmp_path, ytnova_binary):
     root = tmp_path / "placeholder_shows_unlogged"
     root.mkdir()
-    (root / ".ytree").write_text("[GLOBAL]\nTREEDEPTH=1\n", encoding="utf-8")
+    (root / ".ytnova").write_text("[GLOBAL]\nTREEDEPTH=1\n", encoding="utf-8")
     src = root / "src"
     src.mkdir()
     (src / "cmd").mkdir()
     (src / "cmd" / "main.c").write_text("int main(void){return 0;}\n",
                                          encoding="utf-8")
 
-    tui = YtreeTUI(executable=ytree_binary, cwd=str(root))
+    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
     time.sleep(0.8)
 
     try:
@@ -1171,7 +1171,7 @@ def test_placeholder_dir_shows_unlogged_not_no_files(tmp_path, ytree_binary):
 
 
 def test_volume_menu_enter_on_current_volume_preserves_existing_state(
-    tmp_path, ytree_binary
+    tmp_path, ytnova_binary
 ):
     root = tmp_path / "volume_menu_preserve_current_state"
     root.mkdir()
@@ -1180,7 +1180,7 @@ def test_volume_menu_enter_on_current_volume_preserves_existing_state(
     active_dir.mkdir()
     stale_dir.mkdir()
 
-    tui = YtreeTUI(executable=ytree_binary, cwd=str(root))
+    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
     time.sleep(0.8)
 
     try:
@@ -1219,7 +1219,7 @@ def test_volume_menu_enter_on_current_volume_preserves_existing_state(
 
 
 def test_log_command_on_current_volume_reloads_tree_state(
-    tmp_path, ytree_binary
+    tmp_path, ytnova_binary
 ):
     root = tmp_path / "log_current_volume_refresh"
     root.mkdir()
@@ -1228,7 +1228,7 @@ def test_log_command_on_current_volume_reloads_tree_state(
     active_dir.mkdir()
     stale_dir.mkdir()
 
-    tui = YtreeTUI(executable=ytree_binary, cwd=str(root))
+    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
     time.sleep(0.8)
 
     try:
@@ -1271,7 +1271,7 @@ def test_log_command_on_current_volume_reloads_tree_state(
         tui.quit()
 
 
-def test_depth_limited_placeholder_plus_loads_leaf_files(tmp_path, ytree_binary):
+def test_depth_limited_placeholder_plus_loads_leaf_files(tmp_path, ytnova_binary):
     root = tmp_path / "depth_limited_placeholder"
     root.mkdir()
     docs = root / "docs"
@@ -1282,7 +1282,7 @@ def test_depth_limited_placeholder_plus_loads_leaf_files(tmp_path, ytree_binary)
     (ai / "DEBUGGING.md").write_text("debug", encoding="utf-8")
     (ai / "WORKFLOW.md").write_text("workflow", encoding="utf-8")
 
-    tui = YtreeTUI(executable=ytree_binary, cwd=str(root))
+    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
     time.sleep(0.8)
 
     # root -> docs -> expand docs -> select docs/ai
@@ -1310,7 +1310,7 @@ def test_depth_limited_placeholder_plus_loads_leaf_files(tmp_path, ytree_binary)
     tui.quit()
 
 
-def test_archive_file_footer_uses_full_labels_and_shows_compare(tmp_path, ytree_binary):
+def test_archive_file_footer_uses_full_labels_and_shows_compare(tmp_path, ytnova_binary):
     root = tmp_path / "archive_footer_labels"
     root.mkdir()
 
@@ -1323,7 +1323,7 @@ def test_archive_file_footer_uses_full_labels_and_shows_compare(tmp_path, ytree_
         tf.add(archive_source, arcname="inside_dir")
     shutil.rmtree(archive_source)
 
-    tui = YtreeTUI(executable=ytree_binary, cwd=str(root))
+    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
     time.sleep(0.8)
 
     # Enter file view first, then log the selected archive file.
@@ -1353,7 +1353,7 @@ def test_archive_file_footer_uses_full_labels_and_shows_compare(tmp_path, ytree_
     tui.quit()
 
 
-def test_archive_dir_footer_uses_compare_and_dirmode_before_global(tmp_path, ytree_binary):
+def test_archive_dir_footer_uses_compare_and_dirmode_before_global(tmp_path, ytnova_binary):
     root = tmp_path / "archive_dir_footer_compare"
     root.mkdir()
 
@@ -1366,7 +1366,7 @@ def test_archive_dir_footer_uses_compare_and_dirmode_before_global(tmp_path, ytr
         tf.add(archive_source, arcname="inside_dir")
     shutil.rmtree(archive_source)
 
-    tui = YtreeTUI(executable=ytree_binary, cwd=str(root))
+    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
     time.sleep(0.8)
 
     # Enter file view first, then log the selected archive file.

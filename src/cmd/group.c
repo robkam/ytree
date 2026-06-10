@@ -6,7 +6,7 @@
  *
  ***************************************************************************/
 
-#include "ytree_defs.h"
+#include "ytnova_defs.h"
 #include <grp.h>
 #include <sys/types.h>
 
@@ -63,7 +63,7 @@ static char *TruncateDisplayGroupName(char *dest, const char *src,
 /*
  * GetDisplayGroupName
  * Returns a formatted/truncated group name for display.
- * Uses a static buffer (not thread safe, but safe for ytree TUI).
+ * Uses a static buffer (not thread safe, but safe for ytnova TUI).
  */
 char *GetDisplayGroupName(unsigned int gid)
 {

@@ -4,8 +4,8 @@ import pexpect
 import tarfile
 import time
 
-from ytree_control import YtreeController
-from ytree_keys import Keys
+from ytnova_control import YtreeNovaController
+from ytnova_keys import Keys
 
 
 def _create_archive(path, entries):
@@ -107,14 +107,14 @@ def _enter_archive_member_list_dismissing_unsafe_warnings(controller, anchor_mem
     controller.child.expect(anchor_member)
 
 
-def test_archive_copy_matrix_fs_to_vfs(ytree_binary, tmp_path):
+def test_archive_copy_matrix_fs_to_vfs(ytnova_binary, tmp_path):
     root = tmp_path / "copy_fs_to_vfs"
     root.mkdir()
     (root / "fs_source.txt").write_text("fs payload", encoding="utf-8")
     dst_archive = root / "dst.tar"
     _create_archive(dst_archive, {})
 
-    yt = YtreeController(ytree_binary, str(root))
+    yt = YtreeNovaController(ytnova_binary, str(root))
     yt.wait_for_startup()
     _log_archive(yt, dst_archive)
     _exit_archive_keep_volume(yt)
@@ -130,7 +130,7 @@ def test_archive_copy_matrix_fs_to_vfs(ytree_binary, tmp_path):
     yt.quit()
 
 
-def test_archive_copy_matrix_vfs_to_fs(ytree_binary, tmp_path):
+def test_archive_copy_matrix_vfs_to_fs(ytnova_binary, tmp_path):
     root = tmp_path / "copy_vfs_to_fs"
     root.mkdir()
     out_dir = root / "out"
@@ -138,7 +138,7 @@ def test_archive_copy_matrix_vfs_to_fs(ytree_binary, tmp_path):
     src_archive = root / "src.tar"
     _create_archive(src_archive, {"src.txt": "from archive"})
 
-    yt = YtreeController(ytree_binary, str(root))
+    yt = YtreeNovaController(ytnova_binary, str(root))
     yt.wait_for_startup()
     _log_archive(yt, src_archive)
     yt.child.send(Keys.ENTER)
@@ -155,7 +155,7 @@ def test_archive_copy_matrix_vfs_to_fs(ytree_binary, tmp_path):
 
 
 def test_archive_traversal_rejection_copy_vfs_to_fs_never_writes_outside_destination(
-    ytree_binary, tmp_path
+    ytnova_binary, tmp_path
 ):
     root = tmp_path / "copy_vfs_to_fs_traversal_rejection"
     root.mkdir()
@@ -165,7 +165,7 @@ def test_archive_traversal_rejection_copy_vfs_to_fs_never_writes_outside_destina
     token = str(time.time_ns())
     dotdot_escape_name = f"escape_dotdot_{token}.txt"
     dotdot_escape_path = root / dotdot_escape_name
-    absolute_escape_path = Path("/tmp") / f"ytree_archive_abs_escape_{token}.txt"
+    absolute_escape_path = Path("/tmp") / f"ytnova_archive_abs_escape_{token}.txt"
 
     src_archive = root / "src.tar"
     _create_archive(
@@ -179,7 +179,7 @@ def test_archive_traversal_rejection_copy_vfs_to_fs_never_writes_outside_destina
         },
     )
 
-    yt = YtreeController(ytree_binary, str(root))
+    yt = YtreeNovaController(ytnova_binary, str(root))
     try:
         yt.wait_for_startup()
         _log_archive_dismissing_unsafe_warnings(yt, src_archive)
@@ -197,7 +197,7 @@ def test_archive_traversal_rejection_copy_vfs_to_fs_never_writes_outside_destina
         yt.quit()
 
 
-def test_archive_copy_matrix_vfs_to_vfs(ytree_binary, tmp_path):
+def test_archive_copy_matrix_vfs_to_vfs(ytnova_binary, tmp_path):
     root = tmp_path / "copy_vfs_to_vfs"
     root.mkdir()
     src_archive = root / "src.tar"
@@ -205,7 +205,7 @@ def test_archive_copy_matrix_vfs_to_vfs(ytree_binary, tmp_path):
     _create_archive(src_archive, {"src.txt": "vfs payload"})
     _create_archive(dst_archive, {"keep.txt": "keep"})
 
-    yt = YtreeController(ytree_binary, str(root))
+    yt = YtreeNovaController(ytnova_binary, str(root))
     yt.wait_for_startup()
     _log_archive(yt, dst_archive)
     _exit_archive_keep_volume(yt)
@@ -225,14 +225,14 @@ def test_archive_copy_matrix_vfs_to_vfs(ytree_binary, tmp_path):
     yt.quit()
 
 
-def test_archive_move_matrix_fs_to_vfs(ytree_binary, tmp_path):
+def test_archive_move_matrix_fs_to_vfs(ytnova_binary, tmp_path):
     root = tmp_path / "move_fs_to_vfs"
     root.mkdir()
     (root / "fs_source.txt").write_text("fs move payload", encoding="utf-8")
     dst_archive = root / "dst.tar"
     _create_archive(dst_archive, {})
 
-    yt = YtreeController(ytree_binary, str(root))
+    yt = YtreeNovaController(ytnova_binary, str(root))
     yt.wait_for_startup()
     _log_archive(yt, dst_archive)
     _exit_archive_keep_volume(yt)
@@ -249,7 +249,7 @@ def test_archive_move_matrix_fs_to_vfs(ytree_binary, tmp_path):
     yt.quit()
 
 
-def test_archive_move_matrix_vfs_to_fs(ytree_binary, tmp_path):
+def test_archive_move_matrix_vfs_to_fs(ytnova_binary, tmp_path):
     root = tmp_path / "move_vfs_to_fs"
     root.mkdir()
     out_dir = root / "out"
@@ -257,7 +257,7 @@ def test_archive_move_matrix_vfs_to_fs(ytree_binary, tmp_path):
     src_archive = root / "src.tar"
     _create_archive(src_archive, {"src.txt": "archive move payload"})
 
-    yt = YtreeController(ytree_binary, str(root))
+    yt = YtreeNovaController(ytnova_binary, str(root))
     yt.wait_for_startup()
     _log_archive(yt, src_archive)
     yt.child.send(Keys.ENTER)
@@ -274,7 +274,7 @@ def test_archive_move_matrix_vfs_to_fs(ytree_binary, tmp_path):
     yt.quit()
 
 
-def test_archive_move_matrix_vfs_to_vfs(ytree_binary, tmp_path):
+def test_archive_move_matrix_vfs_to_vfs(ytnova_binary, tmp_path):
     root = tmp_path / "move_vfs_to_vfs"
     root.mkdir()
     src_archive = root / "src.tar"
@@ -282,7 +282,7 @@ def test_archive_move_matrix_vfs_to_vfs(ytree_binary, tmp_path):
     _create_archive(src_archive, {"src.txt": "archive move"})
     _create_archive(dst_archive, {"keep.txt": "keep"})
 
-    yt = YtreeController(ytree_binary, str(root))
+    yt = YtreeNovaController(ytnova_binary, str(root))
     yt.wait_for_startup()
     _log_archive(yt, dst_archive)
     _exit_archive_keep_volume(yt)
@@ -302,13 +302,13 @@ def test_archive_move_matrix_vfs_to_vfs(ytree_binary, tmp_path):
     yt.quit()
 
 
-def test_archive_create_rename_parity(ytree_binary, tmp_path):
+def test_archive_create_rename_parity(ytnova_binary, tmp_path):
     root = tmp_path / "create_rename"
     root.mkdir()
     archive_path = root / "ops.tar"
     _create_archive(archive_path, {"old.txt": "old payload"})
 
-    yt = YtreeController(ytree_binary, str(root))
+    yt = YtreeNovaController(ytnova_binary, str(root))
     yt.wait_for_startup()
     _log_archive(yt, archive_path)
 
@@ -333,13 +333,13 @@ def test_archive_create_rename_parity(ytree_binary, tmp_path):
     yt.quit()
 
 
-def test_archive_delete_parity(ytree_binary, tmp_path):
+def test_archive_delete_parity(ytnova_binary, tmp_path):
     root = tmp_path / "archive_delete"
     root.mkdir()
     archive_path = root / "ops.tar"
     _create_archive(archive_path, {"delete_me.txt": "payload"})
 
-    yt = YtreeController(ytree_binary, str(root))
+    yt = YtreeNovaController(ytnova_binary, str(root))
     yt.wait_for_startup()
     _log_archive(yt, archive_path)
 

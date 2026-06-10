@@ -20,7 +20,7 @@ DEFAULT_INVARIANTS = REPO_ROOT / "docs" / "appstate_invariants.json"
 DEFAULT_GENERATION_DOMAINS = REPO_ROOT / "docs" / "appstate_generation_domains.json"
 DEFAULT_DIFF_HARNESS = REPO_ROOT / "docs" / "appstate_diff_harness.json"
 DEFAULT_TRANSITION_SEQUENCES = REPO_ROOT / "docs" / "appstate_transition_sequences.json"
-DEFAULT_ACTION_HEADER = REPO_ROOT / "include" / "ytree_defs.h"
+DEFAULT_ACTION_HEADER = REPO_ROOT / "include" / "ytnova_defs.h"
 DEFAULT_ACTION_RUNTIME = REPO_ROOT / "src" / "core" / "appstate_actions.c"
 
 REQUIRED_TRANSITION_CATEGORIES = {
@@ -361,15 +361,15 @@ def _validate_required_fields(
     return failures
 
 
-def _parse_ytree_actions(header_path: Path) -> tuple[list[str], list[str]]:
+def _parse_ytnova_actions(header_path: Path) -> tuple[list[str], list[str]]:
     try:
         source = header_path.read_text(encoding="utf-8")
     except OSError as exc:
         return [], [f"{header_path}: failed to read: {exc}"]
 
-    match = re.search(r"typedef\s+enum\s*\{(?P<body>.*?)\}\s*YtreeAction\s*;", source, re.S)
+    match = re.search(r"typedef\s+enum\s*\{(?P<body>.*?)\}\s*YtreeNovaAction\s*;", source, re.S)
     if match is None:
-        return [], [f"{header_path}: failed to find YtreeAction enum"]
+        return [], [f"{header_path}: failed to find YtreeNovaAction enum"]
 
     body = re.sub(r"/\*.*?\*/", "", match.group("body"), flags=re.S)
     body = re.sub(r"//.*", "", body)
@@ -379,11 +379,11 @@ def _parse_ytree_actions(header_path: Path) -> tuple[list[str], list[str]]:
         if not action:
             continue
         if not re.fullmatch(r"ACTION_[A-Z0-9_]+", action):
-            return [], [f"{header_path}: invalid YtreeAction enum member: {action}"]
+            return [], [f"{header_path}: invalid YtreeNovaAction enum member: {action}"]
         actions.append(action)
 
     if not actions:
-        return [], [f"{header_path}: YtreeAction enum must not be empty"]
+        return [], [f"{header_path}: YtreeNovaAction enum must not be empty"]
     return actions, []
 
 
@@ -810,11 +810,11 @@ def _validate_runtime_action_lookup(
             failures.append(f"{label}: duplicate runtime action: {action}")
         covered_actions.add(action)
         if action not in expected_actions:
-            failures.append(f"{label}: unknown YtreeAction enum member: {action}")
+            failures.append(f"{label}: unknown YtreeNovaAction enum member: {action}")
         elif index >= len(enum_actions) or action != enum_actions[index]:
             expected = enum_actions[index] if index < len(enum_actions) else "<none>"
             failures.append(
-                f"{label}: runtime row order does not match YtreeAction enum: "
+                f"{label}: runtime row order does not match YtreeNovaAction enum: "
                 f"expected {expected}, found {action}"
             )
 
@@ -859,7 +859,7 @@ def _validate_runtime_action_lookup(
     missing_actions = sorted(expected_actions - covered_actions)
     if missing_actions:
         failures.append(
-            f"{runtime_path}: runtime action lookup missing YtreeAction enum member(s): "
+            f"{runtime_path}: runtime action lookup missing YtreeNovaAction enum member(s): "
             + ", ".join(missing_actions)
         )
 
@@ -2203,7 +2203,7 @@ def validate_contract(
     transition_sequences_doc, transition_sequences_load_failures = _load_json(
         transition_sequences_path
     )
-    enum_actions, enum_failures = _parse_ytree_actions(actions_header_path)
+    enum_actions, enum_failures = _parse_ytnova_actions(actions_header_path)
     runtime_action_records, runtime_action_failures = _parse_runtime_action_transitions(
         action_runtime_path
     )
@@ -2392,7 +2392,7 @@ def validate_contract(
                 action_coverage_by_action[action] = record
             covered_actions.add(action)
             if action not in expected_actions:
-                failures.append(f"{label}: unknown YtreeAction enum member: {action}")
+                failures.append(f"{label}: unknown YtreeNovaAction enum member: {action}")
 
         transition_id = record.get("transition_id")
         transition_record = None
@@ -2417,7 +2417,7 @@ def validate_contract(
     missing_actions = sorted(expected_actions - covered_actions)
     if missing_actions:
         failures.append(
-            "action coverage missing YtreeAction enum member(s): "
+            "action coverage missing YtreeNovaAction enum member(s): "
             + ", ".join(missing_actions)
         )
     failures.extend(

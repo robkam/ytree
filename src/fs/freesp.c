@@ -5,7 +5,7 @@
  *
  ***************************************************************************/
 
-#include "ytree_defs.h"
+#include "ytnova_defs.h"
 #include <unistd.h>
 
 /* Removed #include <dos.h> and #include <hurd/hurd_types.h> */
@@ -32,7 +32,7 @@ int GetDiskParameter(char *path, char *volume_name, long long *avail_bytes,
 #ifdef WIN32
   if ((result = _getdiskfree(0, &diskspace)) == 0)
 #else
-  /* Use the STATFS macro defined in ytree.h which resolves to statvfs */
+  /* Use the STATFS macro defined in ytnova.h which resolves to statvfs */
   if ((result = STATFS(path, &statfs_struct, 0, 0)) == 0)
 #endif /* WIN32 */
   {

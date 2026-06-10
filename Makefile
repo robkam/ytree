@@ -1,6 +1,6 @@
 ############################################################################
 #
-# Makefile for ytree
+# Makefile for ytnova
 #
 ############################################################################
 
@@ -112,10 +112,10 @@ endif
 # -------------------------------------------------------------------------
 # Files
 # -------------------------------------------------------------------------
-MAIN        = ytree
+MAIN        = ytnova
 MAIN_BIN    = $(BUILD_DIR)/$(MAIN)
-MANSRC      = etc/ytree.1.md
-MANPAGE     = $(BUILD_DIR)/ytree.1
+MANSRC      = etc/ytnova.1.md
+MANPAGE     = $(BUILD_DIR)/ytnova.1
 
 # Automatically find all .c files in src/ and subdirectories
 SRCS        = $(wildcard $(SRC_DIR)/*.c $(SRC_DIR)/*/*.c)
@@ -183,7 +183,7 @@ $(BUILD_DIR):
 # Generate USAGE.md from the man page source
 docs:
 	$(PANDOC) -f markdown-tex_math_dollars -t gfm \
-		--metadata title="Ytree Usage" \
+		--metadata title="YtreeNova Usage" \
 		$(MANSRC) -o $(DOC_DIR)/USAGE.md
 
 # Generate the roff man page
@@ -192,7 +192,7 @@ $(MANPAGE): $(MANSRC) | $(BUILD_DIR)
 
 # Install binary, man page, and documentation
 install: $(MAIN_BIN) $(MANPAGE) docs
-	@echo "Installing ytree $(VERSION) to $(PREFIX)..."
+	@echo "Installing ytnova $(VERSION) to $(PREFIX)..."
 	install -d -m 755 $(BINDEST)
 	install -m 755 $(MAIN_BIN) $(BINDEST)/$(MAIN)
 	install -d -m 755 $(MANDEST)
@@ -205,7 +205,7 @@ install: $(MAIN_BIN) $(MANPAGE) docs
 
 # Uninstall all installed files
 uninstall:
-	@echo "Uninstalling ytree from $(PREFIX)..."
+	@echo "Uninstalling ytnova from $(PREFIX)..."
 	rm -f $(BINDEST)/$(MAIN)
 	rm -f $(MANDEST)/$(MAIN).1.gz
 	-rmdir $(MANDEST) 2>/dev/null || true
@@ -244,8 +244,8 @@ hooks-status:
 	$(MAKE_CMD) git-aliases-status
 
 git-aliases-install:
-	git config --local alias.push-fast '!f(){ YTREE_PRE_PUSH_FAST=1 git push "$$@"; }; f'
-	git config --local alias.push-fast-up '!f(){ branch=$$(git rev-parse --abbrev-ref HEAD); YTREE_PRE_PUSH_FAST=1 git push -u origin "$$branch" "$$@"; }; f'
+	git config --local alias.push-fast '!f(){ YTNOVA_PRE_PUSH_FAST=1 git push "$$@"; }; f'
+	git config --local alias.push-fast-up '!f(){ branch=$$(git rev-parse --abbrev-ref HEAD); YTNOVA_PRE_PUSH_FAST=1 git push -u origin "$$branch" "$$@"; }; f'
 
 git-aliases-status:
 	@echo "alias.push-fast=$$(git config --local --get alias.push-fast || echo '<not set>')"
@@ -325,13 +325,13 @@ qa-valgrind:
 	$(MAKE_CMD) QA_ON_BUILD=0 clean
 	$(MAKE_CMD) QA_ON_BUILD=0 all
 	@echo "Running non-interactive valgrind smoke check (output in valgrind.log)."
-	valgrind --leak-check=full --show-leak-kinds=all --track-origins=yes --error-exitcode=1 --log-file=valgrind.log ./build/ytree --version >/dev/null
+	valgrind --leak-check=full --show-leak-kinds=all --track-origins=yes --error-exitcode=1 --log-file=valgrind.log ./build/ytnova --version >/dev/null
 
 qa-valgrind-interactive:
 	$(MAKE_CMD) QA_ON_BUILD=0 clean
 	$(MAKE_CMD) QA_ON_BUILD=0 all
-	@echo "Interactive valgrind run: exit ytree cleanly to finish."
-	valgrind --leak-check=full --show-leak-kinds=all --track-origins=yes --error-exitcode=1 --log-file=valgrind.log ./build/ytree .
+	@echo "Interactive valgrind run: exit ytnova cleanly to finish."
+	valgrind --leak-check=full --show-leak-kinds=all --track-origins=yes --error-exitcode=1 --log-file=valgrind.log ./build/ytnova .
 
 qa-valgrind-full:
 	$(MAKE_CMD) DEBUG=0 QA_ON_BUILD=0 clean
@@ -386,7 +386,7 @@ qa-pytest-coverage:
 qa-sanitize:
 	$(MAKE_CMD) DEBUG=0 SANITIZE=1 QA_ON_BUILD=0 clean
 	$(MAKE_CMD) DEBUG=0 SANITIZE=1 QA_ON_BUILD=0 all
-	YTREE_TUI_TIME_SCALE=$(SANITIZE_PYTEST_TIME_SCALE) \
+	YTNOVA_TUI_TIME_SCALE=$(SANITIZE_PYTEST_TIME_SCALE) \
 	ASAN_OPTIONS=detect_leaks=1:abort_on_error=1 \
 	UBSAN_OPTIONS=halt_on_error=1 \
 	TERM=$${TERM:-xterm} $(PYTEST)

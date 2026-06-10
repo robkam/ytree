@@ -5,10 +5,10 @@
  *
  ***************************************************************************/
 
-#include "ytree_fs.h"
-#include "ytree_ui.h"
+#include "ytnova_fs.h"
+#include "ytnova_ui.h"
 
-static void PositionPanelAtIndex(YtreePanel *p, int target_idx, int height) {
+static void PositionPanelAtIndex(YtreeNovaPanel *p, int target_idx, int height) {
   int begin;
   int cursor;
 
@@ -29,7 +29,7 @@ static void PositionPanelAtIndex(YtreePanel *p, int target_idx, int height) {
   p->cursor_pos = cursor;
 }
 
-static BOOL SyncPanelToVisibleSelection(const ViewContext *ctx, YtreePanel *p,
+static BOOL SyncPanelToVisibleSelection(const ViewContext *ctx, YtreeNovaPanel *p,
                                         int direction_hint) {
   int idx;
   int visible_idx;
@@ -56,7 +56,7 @@ static BOOL SyncPanelToVisibleSelection(const ViewContext *ctx, YtreePanel *p,
   return TRUE;
 }
 
-static int GetCurrentVisiblePanelIndex(const YtreePanel *p) {
+static int GetCurrentVisiblePanelIndex(const YtreeNovaPanel *p) {
   int total_dirs;
   int idx;
   const DirEntry *current;
@@ -86,7 +86,7 @@ static int GetCurrentVisiblePanelIndex(const YtreePanel *p) {
   return idx;
 }
 
-static BOOL MoveVisibleSelection(const ViewContext *ctx, YtreePanel *p,
+static BOOL MoveVisibleSelection(const ViewContext *ctx, YtreeNovaPanel *p,
                                  int direction, int steps) {
   int idx;
   int i;
@@ -121,7 +121,7 @@ static BOOL MoveVisibleSelection(const ViewContext *ctx, YtreePanel *p,
   return TRUE;
 }
 
-void DirNav_Movedown(ViewContext *ctx, DirEntry **dir_entry, YtreePanel *p) {
+void DirNav_Movedown(ViewContext *ctx, DirEntry **dir_entry, YtreeNovaPanel *p) {
   const Statistic *s = &p->vol->vol_stats;
 
   if (!MoveVisibleSelection(ctx, p, 1, 1))
@@ -161,7 +161,7 @@ void DirNav_Movedown(ViewContext *ctx, DirEntry **dir_entry, YtreePanel *p) {
   }
 }
 
-void DirNav_Moveup(ViewContext *ctx, DirEntry **dir_entry, YtreePanel *p) {
+void DirNav_Moveup(ViewContext *ctx, DirEntry **dir_entry, YtreeNovaPanel *p) {
   const Statistic *s = &p->vol->vol_stats;
 
   if (!MoveVisibleSelection(ctx, p, -1, 1))
@@ -196,7 +196,7 @@ void DirNav_Moveup(ViewContext *ctx, DirEntry **dir_entry, YtreePanel *p) {
   }
 }
 
-void DirNav_Movenpage(ViewContext *ctx, DirEntry **dir_entry, YtreePanel *p) {
+void DirNav_Movenpage(ViewContext *ctx, DirEntry **dir_entry, YtreeNovaPanel *p) {
   const Statistic *s = &p->vol->vol_stats;
 
   if (!MoveVisibleSelection(ctx, p, 1, ctx->layout.dir_win_height))
@@ -231,7 +231,7 @@ void DirNav_Movenpage(ViewContext *ctx, DirEntry **dir_entry, YtreePanel *p) {
   }
 }
 
-void DirNav_Moveppage(ViewContext *ctx, DirEntry **dir_entry, YtreePanel *p) {
+void DirNav_Moveppage(ViewContext *ctx, DirEntry **dir_entry, YtreeNovaPanel *p) {
   const Statistic *s = &p->vol->vol_stats;
 
   if (!MoveVisibleSelection(ctx, p, -1, ctx->layout.dir_win_height))
@@ -266,7 +266,7 @@ void DirNav_Moveppage(ViewContext *ctx, DirEntry **dir_entry, YtreePanel *p) {
   }
 }
 
-void DirNav_MoveEnd(ViewContext *ctx, DirEntry **dir_entry, YtreePanel *p) {
+void DirNav_MoveEnd(ViewContext *ctx, DirEntry **dir_entry, YtreeNovaPanel *p) {
   const Statistic *s = &p->vol->vol_stats;
   int idx;
 
@@ -313,7 +313,7 @@ void DirNav_MoveEnd(ViewContext *ctx, DirEntry **dir_entry, YtreePanel *p) {
   return;
 }
 
-void DirNav_MoveHome(ViewContext *ctx, DirEntry **dir_entry, YtreePanel *p) {
+void DirNav_MoveHome(ViewContext *ctx, DirEntry **dir_entry, YtreeNovaPanel *p) {
   const Statistic *s = &p->vol->vol_stats;
 
   Nav_Home(&p->cursor_pos, &p->disp_begin_pos);

@@ -1,7 +1,7 @@
 Tester Persona
 
 Role:
-- Test engineer for ytree.
+- Test engineer for ytnova.
 
 Scope:
 - Design and implement deterministic automated tests.

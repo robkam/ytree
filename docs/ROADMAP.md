@@ -191,10 +191,10 @@ Ordering policy (for all editors, including AI editors):
 
 #### **Task 11.1: Config Source-of-Truth + Generation/Verification Gate**
 *   **Goal:** Enforce one canonical editable default profile source and make generated artifacts deterministic and verifiable.
-*   **Source-of-Truth Policy:** `etc/ytree.conf` is the only human-edited default profile source; `src/core/default_profile_template.h` is generated-only and consumed by `--init`.
-*   **Mechanism:** Add a reproducible generator path (`etc/ytree.conf` -> `src/core/default_profile_template.h`) and a QA/CI check that fails when generated output is stale or hand-edited.
+*   **Source-of-Truth Policy:** `etc/ytnova.conf` is the only human-edited default profile source; `src/core/default_profile_template.h` is generated-only and consumed by `--init`.
+*   **Mechanism:** Add a reproducible generator path (`etc/ytnova.conf` -> `src/core/default_profile_template.h`) and a QA/CI check that fails when generated output is stale or hand-edited.
 *   **Acceptance Criteria:**
-*   `ytree --init` output remains byte-equivalent to the canonical template semantics.
+*   `ytnova --init` output remains byte-equivalent to the canonical template semantics.
 *   A single documented command regenerates the header deterministically.
 *   `make qa-all` (or dedicated gate) fails on source/generated drift.
 *   **Files to Modify:** `Makefile`, `scripts/*` (new/updated generator + verifier), `src/core/default_profile_template.h`, and contributor/docs references as needed.
@@ -255,7 +255,7 @@ Ordering policy (for all editors, including AI editors):
 *   `F2` destination-directory picker behavior remains unchanged.
 *   Rendering stays concise and non-repetitive: single-line summary with deterministic clipping (middle truncation) when width is constrained.
 *   Add focused regression tests for preview correctness and resulting destination path in representative filesystem scenarios (including nested roots and absolute destination input).
-*   Update `docs/SPECIFICATION.md`, `etc/ytree.1.md`, generated `docs/USAGE.md`, and F1/context help text so include-path root/relative/result contract and `[`/`]` controls are explicit and consistent.
+*   Update `docs/SPECIFICATION.md`, `etc/ytnova.1.md`, generated `docs/USAGE.md`, and F1/context help text so include-path root/relative/result contract and `[`/`]` controls are explicit and consistent.
 *   - [ ] **Status:** Not Started.
 
 ### **Task 15: Proactive Missing-Destination Directory Creation Prompt**
@@ -268,7 +268,7 @@ Ordering policy (for all editors, including AI editors):
 *   Choosing `N`/`Esc` leaves filesystem state unchanged and returns control to destination input flow.
 *   On creation failure (permissions/path errors), show a precise actionable error and do not continue the mutation command.
 *   Add focused regression coverage for `yes`, `no/cancel`, and failure-path behavior.
-*   Update `etc/ytree.1.md` and regenerate `docs/USAGE.md` (`make docs`) when behavior lands.
+*   Update `etc/ytnova.1.md` and regenerate `docs/USAGE.md` (`make docs`) when behavior lands.
 *   - [ ] **Status:** Not Started.
 
 ### **Task 16: Add Inline `Shift+N` Create-Link Flow (Symlink/Hardlink)**
@@ -285,7 +285,7 @@ Ordering policy (for all editors, including AI editors):
 *   Destination resolution in showall/global targets the owner directory of the highlighted entry (not unrelated tree cursor state).
 *   Existing `n`/`N` newfile behavior is remapped to preserve intuitive command grouping while keeping help/footer truthfully synchronized.
 *   Add focused regression coverage for: symlink create, hardlink create, cancel/no-op behavior, showall/global owner-directory resolution, split-panel isolation, and error-path messaging.
-*   Update `etc/ytree.1.md` and regenerate `docs/USAGE.md` (`make docs`) when behavior lands.
+*   Update `etc/ytnova.1.md` and regenerate `docs/USAGE.md` (`make docs`) when behavior lands.
 *   - [ ] **Status:** Not Started.
 
 ### **Task 17: F7 Top Path Line Must Preserve Full `filename.ext`**
@@ -297,7 +297,7 @@ Ordering policy (for all editors, including AI editors):
 *   When width is insufficient, truncate middle of path segment; keep full selected `filename.ext` visible.
 *   The same identity-preservation rule applies in filesystem and archive preview contexts.
 *   Add focused regression tests for F7 top-line truncation/identity behavior.
-*   Update `etc/ytree.1.md` and regenerate `docs/USAGE.md` (`make docs`) when behavior lands.
+*   Update `etc/ytnova.1.md` and regenerate `docs/USAGE.md` (`make docs`) when behavior lands.
 *   - [ ] **Status:** Not Started.
 
 ### **Task 18: Manual File-Column Width Controls (`[` Narrower, `]` Wider, `{` / `}` Reset)**
@@ -371,7 +371,7 @@ Ordering policy (for all editors, including AI editors):
 *   Keep `n/p` for next/previous file.
 *   Keep `Space` and page keys as page movement only.
 *   Add hit navigation within current file set as `/` next-hit and `?` previous-hit.
-*   In `TAGGEDVIEWER=external` mode, hit traversal remains pager-native (for example `less` keys) and is not remapped by ytree.
+*   In `TAGGEDVIEWER=external` mode, hit traversal remains pager-native (for example `less` keys) and is not remapped by ytnova.
 *   Footer and F1 help in internal `^V` mode explicitly show file-nav keys and hit-nav keys.
 *   `^S` remains the tagged-list search/filter action outside viewer mode and is documented distinctly.
 *   Add focused regression coverage for key behavior and help discoverability in this mode.
@@ -402,7 +402,7 @@ Ordering policy (for all editors, including AI editors):
 *   Regression tests verify option visibility/behavior parity across at least filesystem + archive contexts.
 *   Regression tests verify destination semantics (plain filename file-output default, command destination behavior, and no-crash error paths).
 *   F1/help text stays synchronized with the same matrix contract.
-*   `docs/SPECIFICATION.md`, `etc/ytree.1.md`, and generated `docs/USAGE.md` are updated in the same delivery so docs match runtime behavior.
+*   `docs/SPECIFICATION.md`, `etc/ytnova.1.md`, and generated `docs/USAGE.md` are updated in the same delivery so docs match runtime behavior.
 *   - [ ] **Status:** Not Started.
 
 ### **Task 25: Add `Catalog` Output Mode to `Write`**
@@ -455,7 +455,7 @@ Ordering policy (for all editors, including AI editors):
 *   Persist last-used compare options across restart; config values seed defaults and runtime usage updates remembered defaults.
 *   Default behavior remains unchanged when quick/preset config is absent.
 *   Add focused regression coverage for compare behavior and split-panel isolation.
-*   Update compare docs/help text in `etc/ytree.1.md` and regenerate `docs/USAGE.md`.
+*   Update compare docs/help text in `etc/ytnova.1.md` and regenerate `docs/USAGE.md`.
 *   - [ ] **Status:** Not Started.
 
 ### **Task 29: Add Recursive Directory Compare in `J` Flow**
@@ -467,7 +467,7 @@ Ordering policy (for all editors, including AI editors):
 *   Recursive and non-recursive directory compare are both available from the same `J`-entry compare flow.
 *   The recursive choice is explicit and discoverable in compare prompts/help.
 *   Compare target confirmation and split-panel isolation behavior remain unchanged.
-*   `etc/ytree.1.md` and generated `docs/USAGE.md` are updated when behavior lands.
+*   `etc/ytnova.1.md` and generated `docs/USAGE.md` are updated when behavior lands.
 *   - [ ] **Status:** Not Started.
 
 ### **Task 30: Unified Split-Panel State/Restore Architecture**
@@ -545,7 +545,7 @@ Ordering policy (for all editors, including AI editors):
 *   `F8` and `Tab` are explicit no-ops in `F7` mode.
 *   Footer/F1 help in `F7` accurately reflects allowed actions and blocked keys.
 *   Add focused regression tests for allowed-command execution in `F7` and blocked-key enforcement (`F8`, `Tab`).
-*   Update `etc/ytree.1.md` and regenerate `docs/USAGE.md` when behavior lands.
+*   Update `etc/ytnova.1.md` and regenerate `docs/USAGE.md` when behavior lands.
 *   - [ ] **Status:** Not Started.
 
 ### **Phase Follow-On Work**
@@ -663,10 +663,10 @@ Ordering policy (for all editors, including AI editors):
 *   For each supported context, every footer command appears in the matching F1 help set with concise wording and no essay-style descriptions.
 *   For active prompt contexts, footer lists currently available prompt actions; F1 may add brief semantics/examples for those same actions but must not introduce actions unavailable at runtime.
 *   First-pass required contexts: FS dir, FS file, VFS dir, VFS file, F7, F8, Showall, Global, tagged flows, `VI_KEYS=1` variants, and Ctrl-held footer variant.
-*   Context-sensitive actions keep short in-app summaries while full semantics remain in `etc/ytree.1.md`/`docs/USAGE.md` (for example compare `J` modes, compare basis/tag/hash meaning, and compress format/extension behavior).
+*   Context-sensitive actions keep short in-app summaries while full semantics remain in `etc/ytnova.1.md`/`docs/USAGE.md` (for example compare `J` modes, compare basis/tag/hash meaning, and compress format/extension behavior).
 *   Help text paths are structured for gettext extraction/reuse (no duplicated ad-hoc strings per view path).
 *   Add regression checks that detect footer/F1 parity drift in covered contexts.
-*   Add a keybinding parity audit gate that verifies active runtime keybindings remain consistently documented across footer, `F1`, and `etc/ytree.1.md`/`docs/USAGE.md`.
+*   Add a keybinding parity audit gate that verifies active runtime keybindings remain consistently documented across footer, `F1`, and `etc/ytnova.1.md`/`docs/USAGE.md`.
 *   - [ ] **Status:** Not Started.
 
 ### **Task 44: Replace `^F` Mode Cycling with Unified Numeric `FileInfo` Band (`1..9`, `0`)**
@@ -693,7 +693,7 @@ Ordering policy (for all editors, including AI editors):
 *   Add `FILE_SIZE_UNITS=binary|human-readable` profile setting (default `binary`) as the seed for `5`.
 *   **Keybinding Policy:** Remove `^F` from runtime behavior and help/manpage docs. This task is the explicit keybinding-change exception referenced by Task 39 scope lock.
 *   **UX/Help Policy:** Footer stays concise (`1..0 FileInfo`); full key semantics live in F1 help/manpage.
-*   **Spec/Docs Sync Policy:** When delivered, update `docs/SPECIFICATION.md` and `etc/ytree.1.md` (and regenerated `docs/USAGE.md`) with the same grouped ownership contract.
+*   **Spec/Docs Sync Policy:** When delivered, update `docs/SPECIFICATION.md` and `etc/ytnova.1.md` (and regenerated `docs/USAGE.md`) with the same grouped ownership contract.
 *   - [ ] **Status:** Not Started.
 
 ### **Task 45: Add Case-Sensitive Sort Toggle + Profile Default**
@@ -755,7 +755,7 @@ Ordering policy (for all editors, including AI editors):
 *   **Logic:**
     *   In `dirwin.c`: Whenever the user moves the cursor to a new directory (UP/DOWN), update the watcher.
     *   *Optimization:** Only update the watcher if the user *enters* the File Window (Enter) or stays on a directory for > X milliseconds?
-    *   *Decision:* For `ytree`, the "Active Context" is the directory under the cursor in the Directory Window, OR the directory being viewed in the File Window. In user-facing terms, auto-refresh should follow the current working view.
+    *   *Decision:* For `ytnova`, the "Active Context" is the directory under the cursor in the Directory Window, OR the directory being viewed in the File Window. In user-facing terms, auto-refresh should follow the current working view.
     *   **Implementation:** Call `Watcher_SetDir(dir_entry->name)` inside `HandleDirWindow` navigation logic (possibly debounced) and definitely inside `HandleFileWindow`.
 *   - [ ] **Status:** Not Started.
 
@@ -824,10 +824,10 @@ Ordering policy (for all editors, including AI editors):
 *   **Scope:**
     *   Add one shared launcher module for runtime child-process execution.
     *   Migrate existing runtime call sites that currently use `system()`/`popen()` (including `system.c`, `print_ops.c`, `ctrl_file_ops.c`, and equivalent runtime paths).
-    *   Preserve existing UX flow: ytree remains active, launched command completes, control returns to ytree, curses state is restored.
+    *   Preserve existing UX flow: ytnova remains active, launched command completes, control returns to ytnova, curses state is restored.
 
 *   **Implementation Rules (mandatory):**
-    *   Parent process remains ytree; ytree **must not** replace itself.
+    *   Parent process remains ytnova; ytnova **must not** replace itself.
     *   Child process **must** execute target via `execvp()`.
     *   Parent **must** reap child via `waitpid()` using an `EINTR`-safe wait loop.
     *   No new runtime `system()` or `popen()` usage is permitted.
@@ -838,7 +838,7 @@ Ordering policy (for all editors, including AI editors):
     *   Zero runtime `system()`/`popen()` call sites remain in production runtime paths.
     *   Regression coverage proves:
         *   launched command runs and exits correctly,
-        *   ytree returns to interactive control after command completion,
+        *   ytnova returns to interactive control after command completion,
         *   terminal/curses state is restored correctly after command return.
     *   QA guard fails CI if new runtime `system()`/`popen()` usage is introduced.
     *   Shim cleanup is complete per Task 62.
@@ -865,7 +865,7 @@ Ordering policy (for all editors, including AI editors):
 *This phase is still current-delivery scope and contains implementation work that is planned to land.*
 
 ### **Task 53: Implement Advanced Batch Rename**
-*   **Goal:** Add a ytree-native batch rename flow for tagged files with numbering support, casing changes (`Tab`), substring replacement, and pattern-based keep/remove operations.
+*   **Goal:** Add a ytnova-native batch rename flow for tagged files with numbering support, casing changes (`Tab`), substring replacement, and pattern-based keep/remove operations.
 *   **Rationale:** Essential power-user feature for managing large file sets without forcing one-by-one rename loops.
 *   **Preview/Apply Contract:** Batch rename is preview-first. Show `old -> new` results before mutation and support per-item apply controls: `y` (apply current), `n` (skip current), `a` (apply all remaining), `Esc` (cancel remaining).
 *   - [ ] **Status:** Not Started.
@@ -878,7 +878,7 @@ Ordering policy (for all editors, including AI editors):
     *   **Preserve ancestor paths (option):** Uses the same copy selection as `Copy`, but destination path preserves ancestor-relative path from the operation base root (logged/selected source root, never `/`).
     *   **Dir-footer sync entry:** In directory context, `Y` opens sync flow with explicit source/destination, preview-first execution, and clear completion outcomes.
     *   **Mirror / one-way synchronize:** Treat the selected files or source tree as the source of truth. Copy new files, replace changed files, and optionally delete destination files that do not exist in the source selection.
-    *   **Execution model:** Where practical, delegate recursive synchronize/update work to `rsync` rather than reimplementing tree-sync logic inside ytree.
+    *   **Execution model:** Where practical, delegate recursive synchronize/update work to `rsync` rather than reimplementing tree-sync logic inside ytnova.
     *   **Source-scope policy:** Unlogged directories are excluded from copy source scope by default unless explicitly selected/logged by the user.
 *   **Rationale:** Users need one coherent copy model (source-type-based semantics) plus a reliable repeat-backup workflow; rsync-backed execution reduces reinvention risk.
 *   **Acceptance Criteria:**
@@ -889,7 +889,7 @@ Ordering policy (for all editors, including AI editors):
     *   Source and destination roles are explicit; this is one-way synchronization, not bidirectional merge logic.
     *   Deletion of destination-only files is opt-in and clearly confirmed.
     *   Unlogged-directory default-exclusion behavior is explicit and documented.
-    *   The synchronize path prefers `rsync` for plain filesystem paths and does not require ytree to own a new recursive sync engine.
+    *   The synchronize path prefers `rsync` for plain filesystem paths and does not require ytnova to own a new recursive sync engine.
 *   - [ ] **Status:** Not Started.
 
 ### **Task 55: Promote Applications Menu (`F9`) with Safe Default Presets**
@@ -911,7 +911,7 @@ Ordering policy (for all editors, including AI editors):
 ### **Task 56: Define Extension Surface Contract (`F9` Apps + `F7` Preview Plugins)**
 *   **Goal:** Define one explicit extension contract for external-tool integrations so command apps (`F9`) and preview plugins (`F7`) follow the same safety, UX, and fallback rules.
 *   **Scope:** Contract/spec-only delivery for external execution surfaces (`X`, `P`, `W`, `FILEDIFF`, `F9`, and `F7` preview-helper boundary).
-*   **Rationale:** ytree should reuse mature external tools without accumulating ad-hoc one-off behavior per feature.
+*   **Rationale:** ytnova should reuse mature external tools without accumulating ad-hoc one-off behavior per feature.
 *   **Acceptance Criteria:**
     *   Contract defines provider types (`app`, `preview`) and shared lifecycle semantics.
     *   Contract defines placeholder/token policy, argument safety rules, and bounded command construction.
@@ -944,7 +944,7 @@ Ordering policy (for all editors, including AI editors):
 *   **Goal:** Deliver the beta-scope F7 helper pipeline with strict fallback guarantees.
 *   **Baseline Contract:** `BINARY` (internal preview, no helpers) and `RENDER` (helper-rendered output with guaranteed fallback to `BINARY` on failure).
 *   **Scope Lock:** Ship the baseline safety/fallback pipeline now; defer optional advanced renderer ergonomics until later phases.
-*   **Rationale:** This provides practical plugin-like preview extensibility while keeping ytree's internal preview as the reliability floor.
+*   **Rationale:** This provides practical plugin-like preview extensibility while keeping ytnova's internal preview as the reliability floor.
 *   **Acceptance Criteria:**
     *   `F7` supports deterministic `BINARY` <-> `RENDER` mode toggling with stable footer labeling.
     *   Helper execution is bounded and safe (argv-first execution, timeout, output cap, failure fallback).
@@ -959,8 +959,8 @@ Ordering policy (for all editors, including AI editors):
 
 ### **Task 60: Externalize UI Strings with GNU gettext (i18n Foundation)**
 *   **Description:** Replace hardcoded user-facing strings with gettext-backed message lookups (`gettext`/`_()`), initialize locale/domain at startup, and add a standard catalog workflow (`.pot` -> `.po` -> compiled catalogs). Keep default locale as English while enabling translation packs.
-*   **Documentation i18n split:** Use `po4a` for manpage/doc translation workflow (source: `etc/ytree.1.md`; generated docs stay derived artifacts). Use gettext for runtime UI surfaces (`F1`, footer labels/help, prompts, status/error/info text).
-*   **Translation path policy:** Define default translation discovery paths for system and user installs (for example system locale catalogs under `/usr/share/locale/.../LC_MESSAGES/ytree.mo` with a user-level override path), and document contributor workflow for adding a language.
+*   **Documentation i18n split:** Use `po4a` for manpage/doc translation workflow (source: `etc/ytnova.1.md`; generated docs stay derived artifacts). Use gettext for runtime UI surfaces (`F1`, footer labels/help, prompts, status/error/info text).
+*   **Translation path policy:** Define default translation discovery paths for system and user installs (for example system locale catalogs under `/usr/share/locale/.../LC_MESSAGES/ytnova.mo` with a user-level override path), and document contributor workflow for adding a language.
 *   **Pilot locale:** Ship one non-English reference locale (for example German) as a contributor template proving end-to-end UI + manpage translation workflow.
 *   **Rationale:** For C/POSIX terminal software, GNU gettext is the most conventional and broadly understood approach. It has mature tooling, standard translator workflow, and broad ecosystem familiarity; a custom loadable language-file system would add avoidable maintenance and onboarding cost.
 *   - [ ] **Status:** Not Started.
@@ -968,7 +968,7 @@ Ordering policy (for all editors, including AI editors):
 ### **Task 61: Implement Configurable Keymap**
 *   **Description:** Abstract all hardcoded key commands (e.g., 'm', '^N') into a configurable keymap loaded from a separate keymap profile file. The core application logic will respond to command identifiers (e.g., `CMD_MOVE`), not raw characters. This will allow users to customize their workflow and resolve keybinding conflicts.
 *   **Sequencing dependency:** Implement after Task 45 (Ctrl-held footer signaling + footer wording cleanup). Prefer completing Task 46 parity gate first so keymap work lands on a stable footer/F1 contract.
-*   **Config contract:** Select profile via `ytree.conf` (opt-in), keeping a stable default keymap for existing users.
+*   **Config contract:** Select profile via `ytnova.conf` (opt-in), keeping a stable default keymap for existing users.
 *   **Display contract:** Footer/help text must render active key + localized command label together (for example active binding `C` + translated `Copy` -> `(C)opy`) so runtime hints always match active bindings.
 *   **Canonicalization/validation contract:** Normalize terminal byte aliases during keymap load (`^M`=`Enter`/`CR`, `^J`=`LF`/newline enter path, `^I`=`Tab`, `^[`=`Esc`) and reject profiles that map alias-equivalent inputs to different commands. Alias-equivalent inputs mapping to the same command are valid.
 *   **Portability fallback contract:** Require workflow-level fallback for core actions (reachable without fragile terminal-specific modifiers). This is not a per-key duplication mandate; tagged/single-item variants may share menu/mode-driven paths when direct keyspace is exhausted.
@@ -1071,7 +1071,7 @@ Ordering policy (for all editors, including AI editors):
 
 ### **Idea FE-1: Optional Hidden-Child Restore on Re-Expand (`RESTORE_HIDDEN_CHILD=0|1`)**
 *   **Goal:** Add an opt-in tree-navigation behavior that can restore the previously selected hidden child when a collapsed parent is re-expanded.
-*   **Config Direction (`ytree.conf`):** `RESTORE_HIDDEN_CHILD=0|1` (default `0`).
+*   **Config Direction (`ytnova.conf`):** `RESTORE_HIDDEN_CHILD=0|1` (default `0`).
 *   **Behavior Contract:**
     *   When `0` (default), keep current deterministic behavior: collapse invalidates child selection and selection remains at the fallback target (typically parent) after re-expand.
     *   When `1`, re-expand restores the last hidden child only if it still exists and is visible/valid; otherwise use deterministic fallback order (nearest ancestor, next/previous sibling, root visible node).
@@ -1081,7 +1081,7 @@ Ordering policy (for all editors, including AI editors):
 
 ### **Idea FE-2: Optional Re-log Destructive Warning Guard (`RELOG_WARN=0|1`)**
 *   **Goal:** Keep default Unix-style relog behavior (execute immediately, no forced prompt) while adding an opt-in safety guard for users who want interruption before destructive relog resets.
-*   **Config Direction (`ytree.conf`):** `RELOG_WARN=0|1` (default `0`).
+*   **Config Direction (`ytnova.conf`):** `RELOG_WARN=0|1` (default `0`).
 *   **Behavior Contract:**
     *   When `0` (default), current behavior remains unchanged: relog proceeds immediately and resets to the default view/state.
     *   When `1`, relog of an already-logged volume/path requires one explicit warning confirmation before execution.
@@ -1102,8 +1102,8 @@ Ordering policy (for all editors, including AI editors):
 *   **Rationale:** Terminal UI is not automatically accessible; explicit mode-level contracts are needed to avoid redraw/cursor noise regressions.
 *   - [ ] **Status:** Not Started.
 
-### **Idea FE-4: Portable Keyboard Capability Probe + `.ytree` Key Workarounds**
-*   **Goal:** Add startup-time terminal key-capability probing and user-configurable key overrides/workarounds in `~/.ytree`.
+### **Idea FE-4: Portable Keyboard Capability Probe + `.ytnova` Key Workarounds**
+*   **Goal:** Add startup-time terminal key-capability probing and user-configurable key overrides/workarounds in `~/.ytnova`.
 *   **Behavior Direction:**
     *   Probe optional key availability once at startup (cache results; no per-keystroke probing overhead).
     *   Add explicit config overrides for problematic terminals/layouts so users can remap missing/ambiguous keys without code changes.
@@ -1121,7 +1121,7 @@ Ordering policy (for all editors, including AI editors):
 
 ### **Idea FE-6: Configurable VCS Provider for `0` FileInfo Band**
 *   **Goal:** Keep `0` as one stable VCS info band while allowing users to choose which backend powers it.
-*   **Config Direction (`ytree.conf`):** Add a single-provider selector (for example `VCS_PROVIDER=off|git|hg|svn|fossil|auto`).
+*   **Config Direction (`ytnova.conf`):** Add a single-provider selector (for example `VCS_PROVIDER=off|git|hg|svn|fossil|auto`).
 *   **Behavior Contract:**
     *   Only one VCS provider is active at a time for `0`; no mixed multi-provider rendering in one view.
     *   Default remains off for performance/noise control.
@@ -1145,7 +1145,7 @@ Ordering policy (for all editors, including AI editors):
 *   **UX/Help Direction:**
     *   Keep `FILTER:` prompt flow unchanged (`key -> Enter -> result`).
     *   Add lightweight inline hint text only (for example `glob(default) | re: | fz:`), without using `?` (reserved for backward search).
-    *   Put full syntax/examples in `F1` help and manpage source (`etc/ytree.1.md`).
+    *   Put full syntax/examples in `F1` help and manpage source (`etc/ytnova.1.md`).
 *   **Rationale:** Adds regex/fuzzy power in a Unix-style, scriptable format without breaking existing wildcard workflows or adding submenu friction.
 *   - [ ] **Status:** Not Started.
 
@@ -1171,7 +1171,7 @@ Ordering policy (for all editors, including AI editors):
 *   - [ ] **Status:** Not Started.
 
 ### **Idea FE-11: Implement In-App Configuration Editor (F10)**
-*   **Goal:** Implement a user-friendly configuration editor (activated by `F10`) that supports guided editing for common options in `~/.ytree` (e.g., `CONFIRMQUIT`, colors), while retaining an expert raw-text path.
+*   **Goal:** Implement a user-friendly configuration editor (activated by `F10`) that supports guided editing for common options in `~/.ytnova` (e.g., `CONFIRMQUIT`, colors), while retaining an expert raw-text path.
 *   **Rationale:** Reduces configuration friction for most users without removing power-user flexibility.
 *   - [ ] **Status:** Not Started.
 
@@ -1245,7 +1245,7 @@ Ordering policy (for all editors, including AI editors):
     *   Entering or leaving preview on one panel must not unexpectedly reset scroll position, selection, or return-state on the other panel.
     *   The design must keep panel ownership obvious so users can still tell which side is active, which side is in preview, and what `Enter`/`Tab`/`F7` will affect next.
 *   **Rationale:** Active-panel-only preview is useful, but independent per-panel preview would make split review/compare workflows more powerful for users who want to inspect both sides without repeatedly toggling state back and forth.
-*   **Scope Lock:** This is an advanced split/preview state feature only. It does not require a broader orthodox-style layout redesign and should preserve ytree's existing xtree/unixtree/ztree-derived interaction style.
+*   **Scope Lock:** This is an advanced split/preview state feature only. It does not require a broader orthodox-style layout redesign and should preserve ytnova's existing xtree/unixtree/ztree-derived interaction style.
 *   **Acceptance Criteria:**
 *   Both panels can hold independent preview/list state without leaking state across panels.
 *   `Tab`, `F7`, and return-to-list behavior are deterministic and documented in footer/F1/manpage text.
@@ -1313,16 +1313,16 @@ Ordering policy (for all editors, including AI editors):
 ### **Future Phase 3: Long-Horizon Experiments**
 
 ### **Idea FE-27: Implement VFS Abstraction Layer** (Use the Architect persona here)
-*   **Goal:** Replace hardcoded filesystem logic with a driver-based architecture. This allows `ytree` to treat any data source (Local FS, Archive, SSH, SQL) uniformly as a `Volume`.
+*   **Goal:** Replace hardcoded filesystem logic with a driver-based architecture. This allows `ytnova` to treat any data source (Local FS, Archive, SSH, SQL) uniformly as a `Volume`.
 *   **Context:** Currently, `log.c` decides between "Disk" and "Archive". We will change this so `log.c` asks a Registry: "Who can handle this path?"
 *   **Follow-on Direction:** Include remote logging backends under this VFS model (FTP/SFTP candidates), with final protocol choice deferred until security and maintenance review.
 
 ### **Idea FE-28: Define VFS Interface & Volume Integration** (Use the Architect persona here)
 *   **Goal:** Define the `VFS_Driver` contract (struct of function pointers) and update the `Volume` struct to hold a pointer to its active driver.
 *   **Mechanism:**
-    *   Create `include/ytree_vfs.h`.
+    *   Create `include/ytnova_vfs.h`.
     *   Define function pointers: `scan`, `stat`, `lstat`, `extract`, `get_path` (for internal addressing).
-    *   Update `include/ytree_defs.h` to add `const VFS_Driver *driver` and `void *driver_data` to `struct Volume`.
+    *   Update `include/ytnova_defs.h` to add `const VFS_Driver *driver` and `void *driver_data` to `struct Volume`.
 
 ### **Idea FE-29: Implement VFS Registry** (Use the Architect persona here)
 *   **Goal:** Create the core logic to register drivers and probe paths.
@@ -1359,7 +1359,7 @@ Ordering policy (for all editors, including AI editors):
     *   Replace specific calls with `vol->driver->extract(...)` or `vol->driver->stat(...)`.
 
 ### **Idea FE-34: Database Browsing and Editing via Virtual Filesystem Drivers**
-*   **Goal:** After the driver-based VFS abstraction exists, allow ytree to browse supported database formats as navigable virtual filesystems and eventually edit them through driver-defined operations.
+*   **Goal:** After the driver-based VFS abstraction exists, allow ytnova to browse supported database formats as navigable virtual filesystems and eventually edit them through driver-defined operations.
 *   **User-Facing Direction:** Treat a database as a structured volume (for example database -> tables -> rows/records or exported views) rather than as one opaque file blob.
 *   **Rationale:** This is a specialized extension of the VFS model, not a core file-manager requirement. Keep it as a future experiment until a clear driver design and real use-case exist.
 *   - [ ] **Status:** Not Started.
@@ -1392,25 +1392,25 @@ Ordering policy (for all editors, including AI editors):
 *   **Note:** Revisit only after a safe design exists that cannot turn traces into a secret-capturing scripting surface.
 
 ### **Idea FE-38: Enhance Built-In Viewer**
-*   **Goal:** Evolve ytree's internal viewer from a basic fallback inspector into a more capable built-in viewing tool for normal terminal workflows.
+*   **Goal:** Evolve ytnova's internal viewer from a basic fallback inspector into a more capable built-in viewing tool for normal terminal workflows.
 *   **Builds On:** Current-delivery viewer work such as `Add Configurable Bypass for External Viewers` and `Standardize Internal Viewer Layout`.
 *   **Candidate Scope:**
     *   Stronger text viewing modes such as plain text, wrapped text, and hex/dump mode with consistent navigation.
     *   Better in-view search, jump-to-offset or jump-to-line behavior, and clearer file identity/status in the header/footer.
     *   Improved parity between single-file view, tagged-file view, and `F7` preview behavior where that makes sense.
     *   Optional lightweight conveniences such as line numbers, bookmarks, or simple gather/copy/export behavior if someone later proves the use-case.
-*   **Non-Goal:** Do not turn ytree into a native all-format viewer for images, PDFs, office files, multimedia, or GUI-centric content. External helper programs remain the preferred Unix-style answer for those cases.
-*   **Rationale:** A stronger built-in viewer would make ytree more self-contained for terminal inspection work, while still keeping the project focused on file management rather than format-specific rendering.
+*   **Non-Goal:** Do not turn ytnova into a native all-format viewer for images, PDFs, office files, multimedia, or GUI-centric content. External helper programs remain the preferred Unix-style answer for those cases.
+*   **Rationale:** A stronger built-in viewer would make ytnova more self-contained for terminal inspection work, while still keeping the project focused on file management rather than format-specific rendering.
 *   - [ ] **Status:** Not Started.
 
 
 ### **Idea FE-39: Terminal-Independent TUI Runtime (ncurses-Decoupling Investigation)**
-*   **Goal:** Investigate a runtime path where ytree's TUI is not tightly coupled to ncurses.
-*   **Rationale:** This is a platform/input architecture effort intended to evaluate whether backend decoupling can reduce current control-key handling constraints (including limitations around mappings like `^M`) while preserving ytree interaction semantics.
+*   **Goal:** Investigate a runtime path where ytnova's TUI is not tightly coupled to ncurses.
+*   **Rationale:** This is a platform/input architecture effort intended to evaluate whether backend decoupling can reduce current control-key handling constraints (including limitations around mappings like `^M`) while preserving ytnova interaction semantics.
 *   - [ ] **Status:** Not Started.
 
 ### **Idea FE-40: Implement "Safe Delete" (Trash Can)**
 *   **Goal:** Add optional trash-backed delete where the active filesystem/backend supports it.
-*   **Config:** Add a `ytree.conf` switch for trash-delete with default `1` (enabled).
+*   **Config:** Add a `ytnova.conf` switch for trash-delete with default `1` (enabled).
 *   **Fallback:** If trash-delete is disabled or unsupported for the active backend, use permanent delete with explicit confirmation.
 *   - [ ] **Status:** Not Started.

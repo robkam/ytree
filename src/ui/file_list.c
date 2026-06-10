@@ -6,9 +6,9 @@
  ***************************************************************************/
 
 #include "sort.h"
-#include "ytree_cmd.h"
-#include "ytree_fs.h"
-#include "ytree_ui.h"
+#include "ytnova_cmd.h"
+#include "ytnova_fs.h"
+#include "ytnova_ui.h"
 
 #define MAX(a, b) (((a) > (b)) ? (a) : (b))
 
@@ -19,7 +19,7 @@ static unsigned max_visual_userview_len;
 static unsigned global_max_visual_filename_len;
 static unsigned global_max_visual_linkname_len;
 
-static void ReadFileList(ViewContext *ctx, YtreePanel *panel, BOOL tagged_only,
+static void ReadFileList(ViewContext *ctx, YtreeNovaPanel *panel, BOOL tagged_only,
                          DirEntry *dir_entry) {
   FileEntry *fe_ptr;
   unsigned int name_len;
@@ -69,7 +69,7 @@ static void ReadFileList(ViewContext *ctx, YtreePanel *panel, BOOL tagged_only,
   }
 }
 
-static void ReadGlobalFileListInternal(ViewContext *ctx, YtreePanel *panel,
+static void ReadGlobalFileListInternal(ViewContext *ctx, YtreeNovaPanel *panel,
                                        BOOL tagged_only, DirEntry *dir_entry) {
   DirEntry *de_ptr;
 
@@ -86,7 +86,7 @@ static void ReadGlobalFileListInternal(ViewContext *ctx, YtreePanel *panel,
   }
 }
 
-static void ReadGlobalFileList(ViewContext *ctx, YtreePanel *panel,
+static void ReadGlobalFileList(ViewContext *ctx, YtreeNovaPanel *panel,
                                BOOL tagged_only, DirEntry *dir_entry) {
   global_max_visual_filename_len = 0;
   global_max_visual_linkname_len = 0;
@@ -95,7 +95,7 @@ static void ReadGlobalFileList(ViewContext *ctx, YtreePanel *panel,
   max_visual_linkname_len = global_max_visual_linkname_len;
 }
 
-static void ReadAllVolumesGlobalFileList(ViewContext *ctx, YtreePanel *panel,
+static void ReadAllVolumesGlobalFileList(ViewContext *ctx, YtreeNovaPanel *panel,
                                          BOOL tagged_only) {
   struct Volume *vol_iter;
   struct Volume *vol_tmp;
@@ -178,7 +178,7 @@ void FileList_ChangeFileEntry(ViewContext *ctx) {
   SetPanelFileMode(ctx, ctx->active, GetPanelFileMode(ctx->active));
 }
 
-void FreeFileEntryList(YtreePanel *panel) {
+void FreeFileEntryList(YtreeNovaPanel *panel) {
   if (panel && panel->file_entry_list) {
     free(panel->file_entry_list);
     panel->file_entry_list = NULL;
@@ -194,7 +194,7 @@ void InvalidateVolumePanels(ViewContext *ctx, const struct Volume *vol) {
     FreeFileEntryList(ctx->right);
 }
 
-void DisplayFileWindow(ViewContext *ctx, YtreePanel *panel,
+void DisplayFileWindow(ViewContext *ctx, YtreeNovaPanel *panel,
                        const DirEntry *dir_entry) {
   int render_start;
   int render_cursor;
@@ -246,7 +246,7 @@ void DisplayFileWindow(ViewContext *ctx, YtreePanel *panel,
                panel->pan_file_window);
 }
 
-void BuildFileEntryList(ViewContext *ctx, YtreePanel *panel) {
+void BuildFileEntryList(ViewContext *ctx, YtreeNovaPanel *panel) {
   DirEntry *dir_entry;
   if (!panel || !panel->vol || panel->vol->total_dirs == 0)
     return;

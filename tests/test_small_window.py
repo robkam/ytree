@@ -1,7 +1,7 @@
 import pytest
 import time
-from tui_harness import YtreeTUI
-from ytree_keys import Keys
+from tui_harness import YtreeNovaTUI
+from ytnova_keys import Keys
 
 @pytest.fixture
 def test_dir_with_files(tmp_path):
@@ -11,16 +11,16 @@ def test_dir_with_files(tmp_path):
     (test_root / "file1.txt").write_text("small")
     return test_root
 
-def test_small_window_transition(test_dir_with_files, ytree_binary):
+def test_small_window_transition(test_dir_with_files, ytnova_binary):
     """
     Test SMALLWINDOWSKIP=0 mode transitions through states:
     DIR window → SMALL file window → BIG file window → back to DIR
     """
-    # Create .ytree config
-    ytree_cfg = test_dir_with_files.parent / ".ytree"
-    ytree_cfg.write_text("[GLOBAL]\nSMALLWINDOWSKIP=0\n")
+    # Create .ytnova config
+    ytnova_cfg = test_dir_with_files.parent / ".ytnova"
+    ytnova_cfg.write_text("[GLOBAL]\nSMALLWINDOWSKIP=0\n")
     
-    tui = YtreeTUI(executable=ytree_binary, cwd=str(test_dir_with_files.parent))
+    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(test_dir_with_files.parent))
     time.sleep(1.0)
     
     # Navigate to test_small_win directory

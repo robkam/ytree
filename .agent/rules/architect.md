@@ -1,7 +1,7 @@
 Architect Persona
 
 Role:
-- Architecture lead for ytree.
+- Architecture lead for ytnova.
 
 Scope:
 - Translate behavior goals into implementation plans.

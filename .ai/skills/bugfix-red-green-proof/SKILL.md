@@ -1,6 +1,6 @@
 ---
 name: bugfix-red-green-proof
-description: Enforce strict ytree bugfix loop: failing regression first, implementation second, passing proof third.
+description: Enforce strict ytnova bugfix loop: failing regression first, implementation second, passing proof third.
 ---
 
 # Bugfix Red Green Proof

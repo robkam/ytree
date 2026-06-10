@@ -1,6 +1,6 @@
 ---
 name: code-auditor-gate
-description: Perform adversarial ytree code review with severity-ranked findings, concrete fixes, and pass-fail gate decision.
+description: Perform adversarial ytnova code review with severity-ranked findings, concrete fixes, and pass-fail gate decision.
 ---
 
 # Code Auditor Gate

@@ -8,14 +8,14 @@ These tests detect specific regressions that were not caught by the original tes
 import time
 import pytest
 from pathlib import Path
-from tui_harness import YtreeTUI
-from ytree_keys import Keys
+from tui_harness import YtreeNovaTUI
+from ytnova_keys import Keys
 
 
 @pytest.fixture
-def ytree_binary():
-    """Path to ytree executable."""
-    return str(Path(__file__).parent.parent / "build" / "ytree")
+def ytnova_binary():
+    """Path to ytnova executable."""
+    return str(Path(__file__).parent.parent / "build" / "ytnova")
 
 
 @pytest.fixture
@@ -35,12 +35,12 @@ def test_dir_with_files(tmp_path):
 class TestDirectoryAttributesDisplay:
     """Tests for ATTRIBUTES section visibility and synchronization."""
 
-    def test_attributes_appear_on_startup(self, test_dir_with_files, ytree_binary):
+    def test_attributes_appear_on_startup(self, test_dir_with_files, ytnova_binary):
         """
         BUG: ATTRIBUTES section missing on startup in directory mode.
         EXPECTED: ATTRIBUTES section appears immediately on startup.
         """
-        tui = YtreeTUI(executable=ytree_binary, cwd=str(test_dir_with_files))
+        tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(test_dir_with_files))
         time.sleep(1.0)
 
         screen = "\n".join(tui.get_screen_dump())
@@ -50,7 +50,7 @@ class TestDirectoryAttributesDisplay:
 
         tui.quit()
 
-    def test_attributes_sync_with_cursor_movement(self, test_dir_with_files, ytree_binary):
+    def test_attributes_sync_with_cursor_movement(self, test_dir_with_files, ytnova_binary):
         """
         BUG: Directory attributes show previous dir when navigating.
         EXPECTED: Attributes update immediately to reflect current directory.
@@ -64,7 +64,7 @@ class TestDirectoryAttributesDisplay:
         dir2.mkdir(exist_ok=True)
         dir3.mkdir(exist_ok=True)
 
-        tui = YtreeTUI(executable=ytree_binary, cwd=str(parent))
+        tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(parent))
         time.sleep(1.0)
 
         # Move down one directory
@@ -93,9 +93,9 @@ class TestDirectoryAttributesDisplay:
 class TestFooterVisibility:
     """Tests for footer display stability across all UI modes."""
 
-    def test_footer_visible_in_directory_mode(self, test_dir_with_files, ytree_binary):
+    def test_footer_visible_in_directory_mode(self, test_dir_with_files, ytnova_binary):
         """Footer should always be visible and non-blank in directory mode."""
-        tui = YtreeTUI(executable=ytree_binary, cwd=str(test_dir_with_files))
+        tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(test_dir_with_files))
         time.sleep(1.0)
 
         screen = "\n".join(tui.get_screen_dump())
@@ -107,12 +107,12 @@ class TestFooterVisibility:
 
         tui.quit()
 
-    def test_footer_no_flicker_entering_small_window(self, test_dir_with_files, ytree_binary):
+    def test_footer_no_flicker_entering_small_window(self, test_dir_with_files, ytnova_binary):
         """
         BUG: Footer momentarily disappears when entering file window.
         EXPECTED: Footer remains visible during transition to small file window.
         """
-        tui = YtreeTUI(executable=ytree_binary, cwd=str(test_dir_with_files))
+        tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(test_dir_with_files))
         time.sleep(1.0)
 
         # Enter file window (small window mode)
@@ -127,7 +127,7 @@ class TestFooterVisibility:
 
         tui.quit()
 
-    def test_footer_no_flicker_entering_big_window(self, test_dir_with_files, ytree_binary):
+    def test_footer_no_flicker_entering_big_window(self, test_dir_with_files, ytnova_binary):
         """
         BUG: Footer momentarily disappears when entering big window mode (ENTER ENTER).
         EXPECTED: Footer remains visible during transition to big file window.
@@ -135,7 +135,7 @@ class TestFooterVisibility:
         User report: "enter enter, dir to big window, footer still momentarily gone,
                       unexpected and disconcerting"
         """
-        tui = YtreeTUI(executable=ytree_binary, cwd=str(test_dir_with_files))
+        tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(test_dir_with_files))
         time.sleep(1.0)
 
         # Enter big window mode (ENTER twice) and sample screen multiple times
@@ -175,9 +175,9 @@ class TestFooterVisibility:
 
         tui.quit()
 
-    def test_footer_visible_after_escape_from_file_window(self, test_dir_with_files, ytree_binary):
+    def test_footer_visible_after_escape_from_file_window(self, test_dir_with_files, ytnova_binary):
         """Footer should remain visible when exiting file window back to directory."""
-        tui = YtreeTUI(executable=ytree_binary, cwd=str(test_dir_with_files))
+        tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(test_dir_with_files))
         time.sleep(1.0)
 
         # Enter and exit file window
@@ -194,17 +194,17 @@ class TestFooterVisibility:
 
         tui.quit()
 
-    def test_footer_blank_on_big_window_entry(self, test_dir_with_files, ytree_binary):
+    def test_footer_blank_on_big_window_entry(self, test_dir_with_files, ytnova_binary):
         """
         BUG A: Footer is blank upon initially entering the big file window via the small window.
         EXPECTED: The footer menu with command text should be visible.
         """
         # Start with SMALLWINDOWSKIP=0
-        ytree_cfg = test_dir_with_files.parent / ".ytree"
-        ytree_cfg.write_text("SMALLWINDOWSKIP=0\n")
+        ytnova_cfg = test_dir_with_files.parent / ".ytnova"
+        ytnova_cfg.write_text("SMALLWINDOWSKIP=0\n")
 
-        tui = YtreeTUI(
-            executable=ytree_binary, 
+        tui = YtreeNovaTUI(
+            executable=ytnova_binary,
             cwd=str(test_dir_with_files.parent)
         )
         time.sleep(1.0)
@@ -217,37 +217,37 @@ class TestFooterVisibility:
         # Enter big file window
         tui.send_keystroke(Keys.ENTER)
         time.sleep(0.5)
-        
+
         screen = "\n".join(tui.get_screen_dump())
         lines = screen.split('\n')
-        
+
         # Grab the bottom three lines where the footer resides
         footer = '\n'.join(lines[-3:]).lower()
-        
+
         # Assert that footer command text is present. If blank, this will fail.
-        # We check specifically for the command row text. 
-        # In ytree, this is usually at the very bottom or second from bottom.
+        # We check specifically for the command row text.
+        # In ytnova, this is usually at the very bottom or second from bottom.
         missing_commands = []
         for cmd in ["Attribute", "Delete", "Filter"]:
             if cmd.lower() not in footer:
                 missing_commands.append(cmd)
-        
+
         # We'll check if the combined text of the last 3 lines is just whitespace/borders
         footer_clean = footer.replace('x', '').replace('q', '').replace(' ', '').replace('\n', '').replace('m', '')
         if len(footer_clean) < 5:
             pytest.fail(f"BUG: Footer is blank on big window entry.\nFooter snapshot:\n{footer}")
-            
+
         if missing_commands:
             pytest.fail(f"BUG: Footer is missing expected commands: {missing_commands}\nFooter snapshot:\n{footer}")
         tui.quit()
 
-    def test_rename_prompt_no_footer_bleed(self, test_dir_with_files, ytree_binary):
+    def test_rename_prompt_no_footer_bleed(self, test_dir_with_files, ytnova_binary):
         """
         BUG B: Footer text bleeds through under the rename prompt in big window mode.
         EXPECTED: The prompt row should cleanly show the rename prompt without footer text mixing in.
         """
-        tui = YtreeTUI(
-            executable=ytree_binary, 
+        tui = YtreeNovaTUI(
+            executable=ytnova_binary,
             cwd=str(test_dir_with_files),
             env_extra={"SMALLWINDOWSKIP": "1"}
         )
@@ -259,20 +259,20 @@ class TestFooterVisibility:
         tui.send_keystroke('r')
         time.sleep(0.5)
         screen = tui.get_screen_dump()
-        
+
         # Find the row containing the rename prompt
         prompt_row_idx = -1
         for i, line in enumerate(screen):
             if "RENAME TO:" in line or "Rename to:" in line:
                 prompt_row_idx = i
                 break
-                
+
         if prompt_row_idx == -1:
             pytest.fail(f"BUG: Could not find the Rename prompt. It may be non-responsive in big window.\nScreen:\n{screen}")
-            
+
         prompt_line = screen[prompt_row_idx]
         line_above_prompt = screen[prompt_row_idx - 1] if prompt_row_idx > 0 else ""
-        
+
         # Assert that footer text is NOT present on the line above the prompt
         # In a bug-free UI, the rename prompt clears the entire footer area
         footer_keywords = ["Attribute", "Brief", "Delete", "Execute", "Filter"]

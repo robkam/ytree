@@ -7,17 +7,17 @@
  ***************************************************************************/
 
 #include "watcher.h"
-#include "ytree_cmd.h"
-#include "ytree_fs.h"
-#include "ytree_panel_anchor.h"
-#include "ytree_split_transition.h"
-#include "ytree_ui.h"
+#include "ytnova_cmd.h"
+#include "ytnova_fs.h"
+#include "ytnova_panel_anchor.h"
+#include "ytnova_split_transition.h"
+#include "ytnova_ui.h"
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
 
-/* TREEDEPTH uses GetProfileValue which is 2-arg in NO_YTREE_MACROS context */
+/* TREEDEPTH uses GetProfileValue which is 2-arg in NO_YTNOVA_MACROS context */
 #undef TREEDEPTH
 #define TREEDEPTH (GetProfileValue)(ctx, "TREEDEPTH")
 
@@ -27,13 +27,13 @@ static void Dir_Progress(ViewContext *ctx, void *data) {
   DrawSpinner(ctx);
 }
 
-static void CaptureInactiveFallback(ViewContext *ctx, YtreePanel *p,
+static void CaptureInactiveFallback(ViewContext *ctx, YtreeNovaPanel *p,
                                     const DirEntry *dir_entry,
-                                    YtreePanel **inactive_out,
+                                    YtreeNovaPanel **inactive_out,
                                     DirEntry **inactive_fallback_out);
-static void ReanchorPanelToDir(YtreePanel *panel, const DirEntry *target);
+static void ReanchorPanelToDir(YtreeNovaPanel *panel, const DirEntry *target);
 typedef struct {
-  YtreePanel *panel;
+  YtreeNovaPanel *panel;
   char selected_path[PATH_LENGTH + 1];
   char next_sibling_path[PATH_LENGTH + 1];
   char prev_sibling_path[PATH_LENGTH + 1];
@@ -53,7 +53,7 @@ static BOOL DirBelongsToVolume(const struct Volume *vol, const DirEntry *target)
   return FALSE;
 }
 
-static void DebugLogPanelState(const char *label, const YtreePanel *panel) {
+static void DebugLogPanelState(const char *label, const YtreeNovaPanel *panel) {
   char tree_path[PATH_LENGTH + 1];
   char file_dir_path[PATH_LENGTH + 1];
   int idx = -1;
@@ -126,9 +126,9 @@ static void DebugLogSplitState(const char *label, const ViewContext *ctx) {
 }
 
 void HandlePlus(ViewContext *ctx, DirEntry *dir_entry, DirEntry *de_ptr,
-                char *new_log_path, BOOL *need_dsp_help, YtreePanel *p) {
+                char *new_log_path, BOOL *need_dsp_help, YtreeNovaPanel *p) {
   Statistic *s = &p->vol->vol_stats;
-  YtreePanel *inactive = NULL;
+  YtreeNovaPanel *inactive = NULL;
   DirEntry *inactive_target = NULL;
   (void)de_ptr;
 
@@ -211,9 +211,9 @@ void HandlePlus(ViewContext *ctx, DirEntry *dir_entry, DirEntry *de_ptr,
 }
 
 void HandleReadSubTree(ViewContext *ctx, DirEntry *dir_entry,
-                       BOOL *need_dsp_help, YtreePanel *p) {
+                       BOOL *need_dsp_help, YtreeNovaPanel *p) {
   const Statistic *s = &p->vol->vol_stats;
-  YtreePanel *inactive = NULL;
+  YtreeNovaPanel *inactive = NULL;
   DirEntry *inactive_target = NULL;
 
   CaptureInactiveFallback(ctx, p, NULL, &inactive, &inactive_target);
@@ -381,7 +381,7 @@ DirEntry *DirOps_ResolveCopyMoveRefreshAnchor(ViewContext *ctx,
   return tree;
 }
 
-static BOOL EnsureDirVisible(ViewContext *ctx, YtreePanel *panel, DirEntry *target) {
+static BOOL EnsureDirVisible(ViewContext *ctx, YtreeNovaPanel *panel, DirEntry *target) {
   BOOL changed = FALSE;
   DirEntry *ancestor;
 
@@ -457,7 +457,7 @@ static void AddPathSnapshot(PathList **list, const char *path) {
   *list = node;
 }
 
-static void CapturePanelTaggedSnapshot(const YtreePanel *panel,
+static void CapturePanelTaggedSnapshot(const YtreeNovaPanel *panel,
                                        PathList **tagged) {
   char path[PATH_LENGTH + 1];
   unsigned int i;
@@ -527,7 +527,7 @@ static int CountPathSnapshot(const PathList *list) {
   return count;
 }
 
-static void ReanchorPanelToDir(YtreePanel *panel, const DirEntry *target) {
+static void ReanchorPanelToDir(YtreeNovaPanel *panel, const DirEntry *target) {
   PanelViewportSnapshot snapshot;
 
   if (!panel)
@@ -562,7 +562,7 @@ static void ReanchorPanelToDir(YtreePanel *panel, const DirEntry *target) {
   }
 }
 
-BOOL DirOps_SelectVisibleDirAndRefresh(ViewContext *ctx, YtreePanel *panel,
+BOOL DirOps_SelectVisibleDirAndRefresh(ViewContext *ctx, YtreeNovaPanel *panel,
                                        const DirEntry *target,
                                        DirEntry **dir_entry_ptr) {
   const Statistic *s;
@@ -606,7 +606,7 @@ BOOL DirOps_SelectVisibleDirAndRefresh(ViewContext *ctx, YtreePanel *panel,
   return TRUE;
 }
 
-static DirEntry *GetPanelSelectedDir(const YtreePanel *panel) {
+static DirEntry *GetPanelSelectedDir(const YtreeNovaPanel *panel) {
   DirEntry *selected = NULL;
 
   if (!panel || !panel->vol)
@@ -631,9 +631,9 @@ static DirEntry *GetPanelSelectedDir(const YtreePanel *panel) {
   return selected;
 }
 
-static void CaptureInactiveFallbackSnapshot(ViewContext *ctx, YtreePanel *p,
+static void CaptureInactiveFallbackSnapshot(ViewContext *ctx, YtreeNovaPanel *p,
                                             InactiveFallbackSnapshot *snapshot) {
-  YtreePanel *inactive;
+  YtreeNovaPanel *inactive;
   DirEntry *selected;
 
   if (!snapshot)
@@ -712,11 +712,11 @@ static const DirEntry *ResolveInactiveFallbackTarget(
   return vol->vol_stats.tree;
 }
 
-static void CaptureInactiveFallback(ViewContext *ctx, YtreePanel *p,
+static void CaptureInactiveFallback(ViewContext *ctx, YtreeNovaPanel *p,
                                     const DirEntry *dir_entry,
-                                    YtreePanel **inactive_out,
+                                    YtreeNovaPanel **inactive_out,
                                     DirEntry **inactive_fallback_out) {
-  YtreePanel *inactive = NULL;
+  YtreeNovaPanel *inactive = NULL;
   DirEntry *inactive_de = NULL;
   DirEntry *inactive_fallback = NULL;
 
@@ -750,9 +750,9 @@ static void CaptureInactiveFallback(ViewContext *ctx, YtreePanel *p,
 }
 
 void HandleCollapseSubTree(ViewContext *ctx, DirEntry *dir_entry,
-                           BOOL *need_dsp_help, YtreePanel *p) {
+                           BOOL *need_dsp_help, YtreeNovaPanel *p) {
   Statistic *s = &p->vol->vol_stats;
-  YtreePanel *inactive = NULL;
+  YtreeNovaPanel *inactive = NULL;
   DirEntry *inactive_fallback = NULL;
   DirEntry *de_ptr;
   FileEntry *fe_ptr, *next_fe_ptr;
@@ -795,9 +795,9 @@ void HandleCollapseSubTree(ViewContext *ctx, DirEntry *dir_entry,
 }
 
 void HandleUnreadSubTree(ViewContext *ctx, DirEntry *dir_entry,
-                         DirEntry *de_ptr, BOOL *need_dsp_help, YtreePanel *p) {
+                         DirEntry *de_ptr, BOOL *need_dsp_help, YtreeNovaPanel *p) {
   Statistic *s = &p->vol->vol_stats;
-  YtreePanel *inactive = NULL;
+  YtreeNovaPanel *inactive = NULL;
   DirEntry *inactive_fallback = NULL;
   FileEntry *fe_ptr, *next_fe_ptr;
 
@@ -876,7 +876,7 @@ void HandleDirMakeDirectory(ViewContext *ctx, DirEntry *dir_entry,
                             Statistic *s) {
   char dir_name[PATH_LENGTH * 2 + 1];
   char active_anchor_path[PATH_LENGTH + 1];
-  YtreePanel *inactive = NULL;
+  YtreeNovaPanel *inactive = NULL;
   DirEntry *inactive_fallback = NULL;
   char inactive_path[PATH_LENGTH + 1];
   BOOL has_inactive_path = FALSE;
@@ -1068,7 +1068,7 @@ DirEntry *HandleDirRenameDirectory(ViewContext *ctx, DirEntry *dir_entry) {
 
 void HandleShowAll(ViewContext *ctx, BOOL tagged_only, BOOL all_volumes,
                    DirEntry *dir_entry, BOOL *need_dsp_help, int *ch,
-                   YtreePanel *p) {
+                   YtreeNovaPanel *p) {
   Statistic *s = &p->vol->vol_stats;
   long long visible_count = 0;
   struct Volume *vol_iter;
@@ -1129,7 +1129,7 @@ void HandleShowAll(ViewContext *ctx, BOOL tagged_only, BOOL all_volumes,
 }
 
 void HandleSwitchWindow(ViewContext *ctx, DirEntry *dir_entry,
-                        BOOL *need_dsp_help, int *ch, YtreePanel *p) {
+                        BOOL *need_dsp_help, int *ch, YtreeNovaPanel *p) {
   /* Critical Safety: Check for volume changes upon return from File Window */
   const struct Volume *start_vol = p->vol;
   const Statistic *s = &p->vol->vol_stats;
@@ -1300,7 +1300,7 @@ void RefreshVolumeSwitchViews(ViewContext *ctx, DirEntry *dir_entry,
 
 
 
-void DirOps_ReloadPanelFileAnchorIfMissing(ViewContext *ctx, YtreePanel *panel,
+void DirOps_ReloadPanelFileAnchorIfMissing(ViewContext *ctx, YtreeNovaPanel *panel,
                                            DirEntry *dir_entry) {
   char dir_path[PATH_LENGTH + 1];
   Statistic *stats;
@@ -1350,7 +1350,7 @@ void DirOps_ReloadPanelFileAnchorIfMissing(ViewContext *ctx, YtreePanel *panel,
 }
 
 DirEntry *RestorePanelFileSelection(ViewContext *ctx, DirEntry *dir_entry,
-                                    YtreePanel *panel) {
+                                    YtreeNovaPanel *panel) {
   int selected_idx = -1;
   unsigned int file_count = 0;
 
@@ -1492,7 +1492,7 @@ DirEntry *RestorePanelFileSelection(ViewContext *ctx, DirEntry *dir_entry,
 }
 
 DirWindowDispatchResult
-HandleDirWindowPanelAction(ViewContext *ctx, YtreeAction action,
+HandleDirWindowPanelAction(ViewContext *ctx, YtreeNovaAction action,
                            DirEntry **dir_entry_ptr, Statistic **s_ptr,
                            const struct Volume **start_vol_ptr,
                            BOOL *need_dsp_help_ptr, int *ch_ptr,
@@ -1505,7 +1505,7 @@ HandleDirWindowPanelAction(ViewContext *ctx, YtreeAction action,
 
   switch (action) {
   case ACTION_VIEW_PREVIEW: {
-    const YtreePanel *saved_panel = ctx->active;
+    const YtreeNovaPanel *saved_panel = ctx->active;
 
     ctx->preview_return_panel = ctx->active;
     ctx->preview_return_focus = ctx->focused_window;
@@ -1548,8 +1548,8 @@ HandleDirWindowEnterAction(ViewContext *ctx, DirEntry **dir_entry_ptr,
                            Statistic **s_ptr,
                            const struct Volume **start_vol_ptr,
                            BOOL *need_dsp_help_ptr, int *ch_ptr,
-                           const int *unput_char_ptr, YtreeAction *action_ptr) {
-  const YtreePanel *saved_panel;
+                           const int *unput_char_ptr, YtreeNovaAction *action_ptr) {
+  const YtreeNovaPanel *saved_panel;
 
   if (!ctx || !ctx->active || !dir_entry_ptr || !*dir_entry_ptr || !s_ptr ||
       !*s_ptr || !start_vol_ptr || !*start_vol_ptr || !need_dsp_help_ptr ||
@@ -1715,7 +1715,7 @@ HandleDirWindowEnterAction(ViewContext *ctx, DirEntry **dir_entry_ptr,
 }
 
 DirWindowDispatchResult
-HandleDirWindowVolumeAction(ViewContext *ctx, YtreeAction action,
+HandleDirWindowVolumeAction(ViewContext *ctx, YtreeNovaAction action,
                             DirEntry **dir_entry_ptr, Statistic **s_ptr,
                             const struct Volume *start_vol,
                             BOOL *need_dsp_help_ptr) {
@@ -1850,9 +1850,9 @@ HandleDirWindowLogAction(ViewContext *ctx, DirEntry **dir_entry_ptr,
   return DIR_WINDOW_DISPATCH_HANDLED;
 }
 
-void ToggleDotFiles(ViewContext *ctx, YtreePanel *p) {
+void ToggleDotFiles(ViewContext *ctx, YtreeNovaPanel *p) {
   DirEntry *target;
-  YtreePanel *inactive = NULL;
+  YtreeNovaPanel *inactive = NULL;
   const Statistic *s;
   char inactive_anchor_path[PATH_LENGTH + 1];
   BOOL has_inactive_anchor_path = FALSE;
@@ -1962,7 +1962,7 @@ void ToggleDotFiles(ViewContext *ctx, YtreePanel *p) {
  * Saves expansion state and tags, rescans from disk, restores state, and
  * refreshes the UI. Can be called from both Directory Window and File Window.
  */
-DirEntry *RefreshTreeSafe(ViewContext *ctx, YtreePanel *p, DirEntry *entry) {
+DirEntry *RefreshTreeSafe(ViewContext *ctx, YtreeNovaPanel *p, DirEntry *entry) {
   const Statistic *s;
   int saved_disp_begin;
   PanelViewportSnapshot viewport;
@@ -2151,7 +2151,7 @@ int ScanSubTree(ViewContext *ctx, DirEntry *dir_entry, Statistic *s) {
   return (0);
 }
 
-int RefreshDirWindow(ViewContext *ctx, YtreePanel *p) {
+int RefreshDirWindow(ViewContext *ctx, YtreeNovaPanel *p) {
   DirEntry *de_ptr;
   int i, n;
   int result = -1;

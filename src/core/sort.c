@@ -24,7 +24,7 @@ static int SortByOwner(const void *p1, const void *p2, void *arg);
 static int SortByGroup(const void *p1, const void *p2, void *arg);
 static int SortByExtension(const void *p1, const void *p2, void *arg);
 
-void Panel_Sort(YtreePanel *panel, int method) {
+void Panel_Sort(YtreeNovaPanel *panel, int method) {
   int aux;
   int (*compare)(const void *, const void *, void *);
   SortContext sctx;

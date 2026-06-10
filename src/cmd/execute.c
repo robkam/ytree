@@ -5,8 +5,8 @@
  *
  ***************************************************************************/
 
-#include "ytree_cmd.h"
-#include "ytree_fs.h"
+#include "ytnova_cmd.h"
+#include "ytnova_fs.h"
 #include <errno.h>
 #include <fcntl.h>
 #include <stdio.h>
@@ -31,7 +31,7 @@ static int ExecuteArchiveFile(ViewContext *ctx, DirEntry *dir_entry,
 
   temp_path[0] = '\0';
 
-  if (!Path_CreateTempFile(temp_path, sizeof(temp_path), "ytree_execute_",
+  if (!Path_CreateTempFile(temp_path, sizeof(temp_path), "ytnova_execute_",
                            FALSE, &fd_tmp)) {
     return -1;
   }

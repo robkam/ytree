@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # WSL2 to Windows Notification Bridge
 
-TITLE="${1:-ytree}"
+TITLE="${1:-ytnova}"
 MESSAGE="${2:-Task completed}"
 
 powershell_script=$(cat <<'POWERSHELL'
@@ -9,7 +9,7 @@ $ErrorActionPreference = 'Stop'
 
 $title = $env:WSL_NOTIFY_TITLE
 $message = $env:WSL_NOTIFY_MESSAGE
-$appId = 'ytree.codex.notifications'
+$appId = 'ytnova.codex.notifications'
 
 function Show-WinRtToast {
     param(
@@ -31,7 +31,7 @@ function Show-WinRtToast {
         $textNodes.Item(1).AppendChild($xml.CreateTextNode($Message)) | Out-Null
 
         $toast = [Windows.UI.Notifications.ToastNotification]::new($xml)
-        $toast.Group = 'ytree'
+        $toast.Group = 'ytnova'
         $toast.Tag = 'codex-notification'
 
         [Windows.UI.Notifications.ToastNotificationManager]::CreateToastNotifier($AppId).Show($toast)

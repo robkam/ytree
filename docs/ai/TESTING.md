@@ -1,6 +1,6 @@
 # Testing Guide
 
-This document is the canonical reference for test naming, structure, workflow, and infrastructure standards for the `ytree` project.
+This document is the canonical reference for test naming, structure, workflow, and infrastructure standards for the `ytnova` project.
 
 ## 1. Naming & Documentation
 
@@ -9,7 +9,7 @@ Test names and structures must describe **what behavior is being tested**, compl
 *   **Files:** `test_<feature_area>.py` (e.g., `test_stats_display.py`)
 *   **Classes:** `Test<ComponentName><Aspect>` (e.g., `TestFooterVisibility`)
 *   **Methods:** `test_<component>_<behavior>_<context>` (e.g., `test_footer_remains_visible_during_transition`)
-*   **Fixtures:** `lowercase_with_underscores` (e.g., `ytree_binary`)
+*   **Fixtures:** `lowercase_with_underscores` (e.g., `ytnova_binary`)
 
 ### The "Good vs. Bad" Standard
 
@@ -121,8 +121,8 @@ The test suite uses `pytest` and `pexpect` to simulate user interaction with the
 | File | Purpose |
 |:---|:---|
 | `tests/conftest.py` | Pytest fixtures for setup and teardown (sandbox directories, binary path). |
-| `tests/ytree_control.py` | The PTY controller that drives `ytree`, handling input clearing, screen reading, and timeouts. |
-| `tests/ytree_keys.py` | Centralized `Keys` class defining all key commands (e.g., `Keys.COPY`, `Keys.DELETE`). |
+| `tests/ytnova_control.py` | The PTY controller that drives `ytnova`, handling input clearing, screen reading, and timeouts. |
+| `tests/ytnova_keys.py` | Centralized `Keys` class defining all key commands (e.g., `Keys.COPY`, `Keys.DELETE`). |
 | `tests/test_core.py` | Main regression tests for core features (Copy, Move, Rename). |
 
 ---
@@ -138,7 +138,7 @@ Never hardcode keystrokes (e.g., sending `'c'`) inside a test function. Always u
 Never use absolute paths like `/home/user` or `/mnt/p`. Always use the `sandbox` fixture to generate temporary directories (`/tmp/pytest-of-user/...`). Tests must run on Linux, WSL, and macOS without modification.
 
 ### Fail-Fast Timeouts
-`ytree` is a highly optimized, single-threaded C application that responds to keystrokes instantly. If `pexpect` times out, it means the test's state machine is out of sync — not that the application is "processing."
+`ytnova` is a highly optimized, single-threaded C application that responds to keystrokes instantly. If `pexpect` times out, it means the test's state machine is out of sync — not that the application is "processing."
 
 *   **Always** use short, aggressive timeouts (1–2 seconds maximum).
 *   **Never** use long timeouts or looping `try/except` blocks hoping the UI will catch up.

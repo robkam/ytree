@@ -1,6 +1,6 @@
 # Debugging Methodologies
 
-This document defines the objective methodologies for debugging the `ytree` codebase. These methods prioritize evidence over guesswork and ensure that fixes address root causes rather than symptoms.
+This document defines the objective methodologies for debugging the `ytnova` codebase. These methods prioritize evidence over guesswork and ensure that fixes address root causes rather than symptoms.
 
 ---
 

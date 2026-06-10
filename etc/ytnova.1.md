@@ -1,22 +1,22 @@
 ---
-title: YTREE
+title: YTNOVA
 section: 1
 header: "User Commands"
-footer: "ytree 3.0.0"
+footer: "ytnova 3.0.0"
 date: "January 2026"
 ---
 
 # NAME
 
-ytree - a file manager for Unix-like systems
+ytnova - a file manager for Unix-like systems
 
 # SYNOPSIS
 
-`ytree` [`--init`] [`-v`|`-V`|`--version`] [`-p` *config_file*] [`-h` *history_file*] [`-d` *depth*] [`-f` *filter*] [*directory*|*archive*]...
+`ytnova` [`--init`] [`-v`|`-V`|`--version`] [`-p` *config_file*] [`-h` *history_file*] [`-d` *depth*] [`-f` *filter*] [*directory*|*archive*]...
 
 # DESCRIPTION
 
-**ytree** is a file manager for UNIX-like systems (Linux, BSD, etc.). It is inspired by the DOS file manager **XTree&trade;**, offering a text-based user interface (TUI) that is fast, lightweight, and keyboard-driven.
+**ytnova** is a file manager for UNIX-like systems (Linux, BSD, etc.). It is inspired by the DOS file manager **XTree&trade;**, offering a text-based user interface (TUI) that is fast, lightweight, and keyboard-driven.
 
 This version is a modern refactor of the original **ytree** by Werner Bregulla, incorporating features from XTree&trade; and ZTreeWin, using modern C standards (C99/POSIX), and integrating robust libraries like `libarchive`.
 
@@ -25,11 +25,11 @@ If no command line arguments are provided, the current directory will be logged.
 # OPTIONS
 
 *   **-d** *depth*: Override the default scan depth (TREEDEPTH). Supports numeric values or keywords: **min**/**root** (0), **max**/**all** (100).
-*   **-f** *filter*: Specify an initial file filter (filespec) on startup. Supports patterns (e.g., `*.c`), exclusions (`-*.o`), and combinations (e.g., `*.c,*.h`). Use quotes to prevent shell expansion (e.g., `ytree -f "*.c"`).
-*   **-h** *history_file*: Use *history_file* instead of the default `~/.ytree-hst`.
-*   **--init**: Create a starter profile file and exit. By default this creates `~/.ytree` only if it does not already exist. Use `-p` to target a different file.
-*   **-p** *config_file*: Use *config_file* instead of the default `~/.ytree`.
-*   **-v**, **-V**, **--version**: Print ytree version information and exit.
+*   **-f** *filter*: Specify an initial file filter (filespec) on startup. Supports patterns (e.g., `*.c`), exclusions (`-*.o`), and combinations (e.g., `*.c,*.h`). Use quotes to prevent shell expansion (e.g., `ytnova -f "*.c"`).
+*   **-h** *history_file*: Use *history_file* instead of the default `~/.ytnova-hst`.
+*   **--init**: Create a starter profile file and exit. By default this creates `~/.ytnova` only if it does not already exist. Use `-p` to target a different file.
+*   **-p** *config_file*: Use *config_file* instead of the default `~/.ytnova`.
+*   **-v**, **-V**, **--version**: Print ytnova version information and exit.
 *   *directory*|*archive*: One or more directories or archive files to log on startup. If multiple paths are provided, they are all loaded as separate volumes. The first path specified becomes the active view.
 
 # CONCEPTS
@@ -38,16 +38,16 @@ If no command line arguments are provided, the current directory will be logged.
 The screen is divided into three panes plus a footer help line: the **Directory Tree** (upper-left), the **File Window** (below the tree), and the **Statistics/Info** pane (right, spanning both left panes). The footer shows context-sensitive keybinding hints.
 
 ### Logging
-Unlike file managers that rescan directories on demand, ytree "logs" (scans) directory structures into memory. This allows instant navigation and searching without disk lag. Use the **l** command to log new paths or archives.
+Unlike file managers that rescan directories on demand, ytnova "logs" (scans) directory structures into memory. This allows instant navigation and searching without disk lag. Use the **l** command to log new paths or archives.
 
 ### Auto-Refresh
-ytree monitors the **currently selected directory** for changes (created/deleted/modified files) and updates the file list automatically.
+ytnova monitors the **currently selected directory** for changes (created/deleted/modified files) and updates the file list automatically.
 
 **Note:** This monitoring is **active only for the current directory**. Changes occurring in parent or sibling directories while they are not selected will not be detected automatically. Use **^L** (Reload) or **F5** to refresh the view when navigating back to previously modified areas. Additionally, auto-refresh relies on kernel notifications. It may not function on network shares (NFS, SMB) or non-native mounts (e.g., WSL Windows drives) where the operating system does not propagate change events.
 
 # MODES AND NAVIGATION
 
-**ytree** operates in distinct modes. The active mode determines available commands.
+**ytnova** operates in distinct modes. The active mode determines available commands.
 
 **Directory Mode**
 Focus is on the directory hierarchy tree. Navigation keys allow moving between folders. Typing alphanumeric characters triggers a directory mode command (key bindings).
@@ -66,7 +66,7 @@ Toggle file-list mode for all files across all logged volumes.
 *   **Action:** Press **Esc** to return to the previously selected directory. Press **\\** to jump to the owner directory of the selected file.
 
 **Archive Mode**
-When entering a supported archive (ZIP, TAR, GZ), ytree treats it as a virtual filesystem with archive-aware write operations (copy/move/delete/rename/mkdir paths where supported). It behaves similarly to Directory/File modes with archive-specific navigation and safety semantics.
+When entering a supported archive (ZIP, TAR, GZ), ytnova treats it as a virtual filesystem with archive-aware write operations (copy/move/delete/rename/mkdir paths where supported). It behaves similarly to Directory/File modes with archive-specific navigation and safety semantics.
 
 **Split Screen Mode**
 Activated by **F8**. The screen is divided vertically into two independent file manager panels.
@@ -92,18 +92,18 @@ These commands work in most modes:
 *   **F6**: Toggle Statistics Panel (Wide Mode).
 *   **F7**: Toggle File Preview Pane.
 *   **F8**: Toggle Split Screen Mode.
-*   **F10**: Edit `~/.ytree` in `$EDITOR`. If the file does not exist yet, the editor opens a new buffer at that path; save to create it (or run `ytree --init` to generate defaults first).
+*   **F10**: Edit `~/.ytnova` in `$EDITOR`. If the file does not exist yet, the editor opens a new buffer at that path; save to create it (or run `ytnova --init` to generate defaults first).
 *   **/** (or **F12**): **Incremental Jump** (List Jump). Start typing to jump to the first matching entry in the current list (directory names in the Directory Window, filenames in the File Window). The selection updates immediately as you type. Press **Enter** to accept the current match, or **Esc** to cancel and restore the original selection.
 *   **\\**: In **Showall**/**Global** file lists, exit that mode and jump to the selected file in its owner directory. In Archive-Dir mode, `\\` jumps to archive root when used below root, and exits to the parent physical directory when used at archive root. In normal filesystem dir/file windows and Archive-File mode, `\\` is a no-op.
 *   **B**: Toggle Brief (Compact) filename view in the File Window.
 *   **^L**: **Reload**. Re-read the contents of the current directory from disk and refresh the view.
 *   **K**: **Volume Menu**. Show a list of all currently logged volumes (drives/paths). Select a volume to switch context instantly. Selecting the already-active volume preserves its current in-memory state (no implicit relog). Press `Delete` (or `D`) in the menu to release (unlog) a volume. *(With `VI_KEYS=1`, use uppercase `K`; lowercase `k` is navigation.)*
 *   **<** / **>** (or **,** / **.**): **Cycle Volumes**. Switch to the previous or next logged volume instantly.
-*   **^Q**: **Quit to Directory**. If you exit ytree with ^Q, the last selected directory becomes your current working directory. See shell wrapper function below.
-*   **Q**: **Quit**. Exit ytree.
+*   **^Q**: **Quit to Directory**. If you exit ytnova with ^Q, the last selected directory becomes your current working directory. See shell wrapper function below.
+*   **Q**: **Quit**. Exit ytnova.
 
 ### VI Keys Mode (Profile Option)
-When `VI_KEYS=1` in `[GLOBAL]`, ytree reserves lowercase vi navigation keys:
+When `VI_KEYS=1` in `[GLOBAL]`, ytnova reserves lowercase vi navigation keys:
 `h/j/k/l` and `^D/^U` (page down/up). To avoid collisions:
 
 *   Use **H/L/K/J** for **Hex/Log/Volume Menu/Compare**.
@@ -135,7 +135,7 @@ Active when browsing the directory tree window.
 *   **V** (MoveDir): Move the selected directory branch.
 *   **W** (Write): Export files in the selected directory to a command or file using a formatting dialog (Raw, Framed, Page Break).
 *   **X** (eXecute): Execute a shell command. The `{}` placeholder is replaced by the current directory path.
-*   **Z** (archive): Create an archive from the current selection. If one or more files are tagged, ytree archives the tagged files. If nothing is tagged, ytree archives the selected file or selected directory. Directory sources are archived recursively. Supported destination suffixes: `.tar`, `.tar.gz`/`.tgz`, `.tar.bz2`/`.tbz2`, `.tar.xz`/`.txz`, `.zip`.
+*   **Z** (archive): Create an archive from the current selection. If one or more files are tagged, ytnova archives the tagged files. If nothing is tagged, ytnova archives the selected file or selected directory. Directory sources are archived recursively. Supported destination suffixes: `.tar`, `.tar.gz`/`.tgz`, `.tar.bz2`/`.tbz2`, `.tar.xz`/`.txz`, `.zip`.
 *   **`** (Backtick): Toggle visibility of hidden dot-files and directories.
 *   **^F** (Dir Mode): Cycle directory display modes (Filenames only -> Attributes -> Inode/Owner -> Times).
 *   **Enter**: On logged directories, switch to File Mode (focus the file window). On unlogged/not-yet-scanned directories, perform one-level log/reveal (same behavior as `+`) and stay in Directory Mode.
@@ -175,7 +175,7 @@ Active when the file window is focused.
     for this action.)*
 *   **^U**: Untag all displayed files. *(With `VI_KEYS=1`, `^U` is page-up
     navigation and uppercase `U` becomes Untag All.)*
-*   **V** (View): View file with the pager defined in `~/.ytree` (default: less).
+*   **V** (View): View file with the pager defined in `~/.ytnova` (default: less).
 *   **^V**: **View Tagged**. View all tagged files sequentially.
 *   **W** (Write): Export the selected file to a command or file using a formatting dialog (Raw, Framed, Page Break).
 *   **X** (eXecute): Execute a shell command. `{}` is replaced by the filename.
@@ -190,7 +190,7 @@ Active when the file window is focused.
 *   **Date Changes:** Date actions change Accessed time, Modified time, or both (POSIX does not allow setting creation/birth time here).
 
 ### Archive Mode
-When browsing an archive (ZIP, TAR, ISO, etc.), ytree behaves like a virtual file system with archive-aware operations and distinct root/non-root navigation rules.
+When browsing an archive (ZIP, TAR, ISO, etc.), ytnova behaves like a virtual file system with archive-aware operations and distinct root/non-root navigation rules.
 
 **Archive-Dir Mode**
 
@@ -249,8 +249,8 @@ Archive file-window status text:
 
 # COMPARE
 
-*   **File compare (`J` in File Mode):** Compare the selected file against a target file. ytree can use an external file-diff helper if configured.
-    *   `FILEDIFF` may use `%1` (source) and `%2` (target) placeholders; when omitted, ytree appends source and target paths to the helper command.
+*   **File compare (`J` in File Mode):** Compare the selected file against a target file. ytnova can use an external file-diff helper if configured.
+    *   `FILEDIFF` may use `%1` (source) and `%2` (target) placeholders; when omitted, ytnova appends source and target paths to the helper command.
 *   **Directory compare (`J` in Directory Mode):**
     *   `D`: compare the current directory.
     *   `T`: compare the current logged tree.
@@ -283,12 +283,12 @@ These keys apply while prompt dialogs are active (for example: Log, Copy, Move).
 
 # CONFIGURATION
 
-ytree reads configuration from `~/.ytree` by default, or from `-p` *config_file*
+ytnova reads configuration from `~/.ytnova` by default, or from `-p` *config_file*
 when provided.
 
-Use `ytree --init` to create `~/.ytree` when it is missing. Existing files are
+Use `ytnova --init` to create `~/.ytnova` when it is missing. Existing files are
 never overwritten by `--init`.
-Example: `ytree --init`
+Example: `ytnova --init`
 
 The file created by `--init` is a fully annotated profile template.
 
@@ -298,8 +298,8 @@ To allow `^Q` to change your shell's working directory, add this shell wrapper f
 
 ```bash
 yt() {
-    ytree "$@"
-    local tmpfile="$HOME/.ytree-$$.chdir"
+    ytnova "$@"
+    local tmpfile="$HOME/.ytnova-$$.chdir"
     if [ -f "$tmpfile" ]; then
         source "$tmpfile"
         rm "$tmpfile"
@@ -309,17 +309,17 @@ yt() {
 
 # FILES
 
-*   `~/.ytree`: Configuration file.
-*   `~/.ytree-hst`: Command line history.
+*   `~/.ytnova`: Configuration file.
+*   `~/.ytnova-hst`: Command line history.
 
 ### Reporting problems
 
-If you find anything amiss, you can report it using [GitHub Issues](https://github.com/robkam/ytree/issues).
+If you find anything amiss, you can report it using [GitHub Issues](https://github.com/robkam/ytreenova/issues).
 
 It will help us to address the issue if you include the following:
 
 *   **OS & Configuration:** (Distro, Terminal type, etc.)
-*   **Ytree Version:**
+*   **YtreeNova Version:**
 *   **Steps to Reproduce:**
 *   **Expected Behavior:**
 *   **Actual Behavior:**

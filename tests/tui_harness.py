@@ -3,8 +3,8 @@ import pyte
 import time
 import os
 
-class YtreeTUI:
-    def __init__(self, executable="./build/ytree", cwd=None, env_extra=None, args=None):
+class YtreeNovaTUI:
+    def __init__(self, executable="./build/ytnova", cwd=None, env_extra=None, args=None):
         self.time_scale = self._read_time_scale()
         env = {
             "TERM": "xterm",
@@ -14,7 +14,7 @@ class YtreeTUI:
         if env_extra:
             env.update(env_extra)
         
-        # Launch ytree in a headless PTY with specific dimensions
+        # Launch ytnova in a headless PTY with specific dimensions
         self.child = pexpect.spawn(
             executable,
             args=args or [],
@@ -38,7 +38,7 @@ class YtreeTUI:
 
     @staticmethod
     def _read_time_scale():
-        raw = os.getenv("YTREE_TUI_TIME_SCALE", "1.0")
+        raw = os.getenv("YTNOVA_TUI_TIME_SCALE", "1.0")
         try:
             scale = float(raw)
         except (TypeError, ValueError):

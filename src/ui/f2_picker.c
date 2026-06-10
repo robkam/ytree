@@ -5,11 +5,11 @@
  *
  ***************************************************************************/
 
-#include "ytree_cmd.h"
-#include "ytree_fs.h"
-#include "ytree_ui.h"
+#include "ytnova_cmd.h"
+#include "ytnova_fs.h"
+#include "ytnova_ui.h"
 
-int KeyF2Get(ViewContext *ctx, YtreePanel *panel, char *path) {
+int KeyF2Get(ViewContext *ctx, YtreeNovaPanel *panel, char *path) {
   struct Volume *original_vol; /* Declare first */
   int result = -1;
   int win_width, win_height;
@@ -22,7 +22,7 @@ int KeyF2Get(ViewContext *ctx, YtreePanel *panel, char *path) {
 
   int local_disp_begin_pos = panel->disp_begin_pos;
   int local_cursor_pos = panel->cursor_pos;
-  YtreeAction action; /* Declare YtreeAction variable */
+  YtreeNovaAction action; /* Declare YtreeNovaAction variable */
   char new_log_path[PATH_LENGTH + 1];
 
   original_vol = ctx->active->vol;
@@ -91,7 +91,7 @@ int KeyF2Get(ViewContext *ctx, YtreePanel *panel, char *path) {
              &win_width); /* Maybe changed... */
     /* LF to CR normalization is now handled by GetKeyAction */
 
-    action = GetKeyAction(ctx, ch); /* Translate raw input to YtreeAction */
+    action = GetKeyAction(ctx, ch); /* Translate raw input to YtreeNovaAction */
 
     switch (action) {
     case ACTION_NONE:

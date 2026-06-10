@@ -8,8 +8,8 @@
  *
  ***************************************************************************/
 
-#include "ytree_cmd.h"
-#include "ytree_ui.h"
+#include "ytnova_cmd.h"
+#include "ytnova_ui.h"
 #include <ctype.h>  /* For isalnum */
 #include <stdlib.h> /* For getenv */
 
@@ -137,7 +137,7 @@ static int normalize_prompt_escape_key(WINDOW *win, int ch) {
  *
  * Returns: The terminating key (CR or ESC).
  */
-static int UI_ReadStringInternal(ViewContext *ctx, YtreePanel *panel,
+static int UI_ReadStringInternal(ViewContext *ctx, YtreeNovaPanel *panel,
                                  const char *prompt, char *buffer, int max_len,
                                  int history_type,
                                  const char *hints_override,
@@ -674,13 +674,13 @@ static int UI_ReadStringInternal(ViewContext *ctx, YtreePanel *panel,
   return ch;
 }
 
-int UI_ReadString(ViewContext *ctx, YtreePanel *panel, const char *prompt,
+int UI_ReadString(ViewContext *ctx, YtreeNovaPanel *panel, const char *prompt,
                   char *buffer, int max_len, int history_type) {
   return UI_ReadStringInternal(ctx, panel, prompt, buffer, max_len,
                                history_type, NULL, NULL, NULL);
 }
 
-int UI_ReadStringWithHelp(ViewContext *ctx, YtreePanel *panel,
+int UI_ReadStringWithHelp(ViewContext *ctx, YtreeNovaPanel *panel,
                           const char *prompt, char *buffer, int max_len,
                           int history_type, const char *hints_override,
                           int (*help_callback)(ViewContext *, void *),

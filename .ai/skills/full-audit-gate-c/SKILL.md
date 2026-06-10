@@ -1,6 +1,6 @@
 ---
 name: full-audit-gate-c
-description: Run ytree C quality gate for feature-sized changes using build, static analysis, valgrind, and pytest per docs/AUDIT.md.
+description: Run ytnova C quality gate for feature-sized changes using build, static analysis, valgrind, and pytest per docs/AUDIT.md.
 ---
 
 # Full Audit Gate C

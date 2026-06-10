@@ -1,11 +1,11 @@
 /***************************************************************************
  *
  * src/core/quit.c
- * Exiting ytree
+ * Exiting ytnova
  *
  ***************************************************************************/
 
-#include "ytree.h"
+#include "ytnova.h"
 #include <stdlib.h>
 
 /*
@@ -23,7 +23,7 @@ static void PerformQuit(ViewContext *ctx) {
 
   if (ctx->confirm_quit && strtol(ctx->confirm_quit, NULL, 0) != 0) {
     if (quit_ops->confirm_quit != NULL) {
-      term = quit_ops->confirm_quit(ctx, "quit ytree (Y/N) ?", "YNQq\r\033");
+      term = quit_ops->confirm_quit(ctx, "quit ytnova (Y/N) ?", "YNQq\r\033");
     } else {
       term = 'Y';
     }
@@ -86,7 +86,7 @@ void QuitTo(ViewContext *ctx, DirEntry *dir_entry) {
   home_dir = getenv("HOME");
   if (home_dir != NULL) {
     FILE *fp;
-    snprintf(qfilename, sizeof(qfilename), "%s/.ytree-%d.chdir", home_dir,
+    snprintf(qfilename, sizeof(qfilename), "%s/.ytnova-%d.chdir", home_dir,
              (int)getppid());
 
     /* 4. Write (Simple): */
@@ -97,12 +97,12 @@ void QuitTo(ViewContext *ctx, DirEntry *dir_entry) {
       fclose(fp);
     } else {
       /* Handle fopen error, but do not prevent quitting. */
-      WARNING(ctx, "Failed to open .ytree-PID.chdir file for writing.");
+      WARNING(ctx, "Failed to open .ytnova-PID.chdir file for writing.");
     }
   } else {
     /* Handle HOME not found, but do not prevent quitting. */
     WARNING(ctx, "HOME environment variable not set. Cannot write "
-                 ".ytree-PID.chdir file.");
+                 ".ytnova-PID.chdir file.");
   }
 
   /* 5. Cleanup & Exit: */

@@ -5,7 +5,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 DEFAULT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 ROOT="${1:-$DEFAULT_ROOT}"
 
-LOG_ROOT="${QA_DEEP_LOG_ROOT:-${TMPDIR:-/tmp}/ytree-qa-deep}"
+LOG_ROOT="${QA_DEEP_LOG_ROOT:-${TMPDIR:-/tmp}/ytnova-qa-deep}"
 RETENTION_DAYS="${QA_DEEP_RETENTION_DAYS:-14}"
 RUN_ID="$(date +%F_%H-%M-%S)"
 RUN_DIR="$LOG_ROOT/$RUN_ID"

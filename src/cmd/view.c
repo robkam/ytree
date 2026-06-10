@@ -5,8 +5,8 @@
  *
  ***************************************************************************/
 
-#include "ytree_cmd.h"
-#include "ytree_fs.h"
+#include "ytnova_cmd.h"
+#include "ytnova_fs.h"
 
 #include <errno.h>
 #include <stdio.h>
@@ -64,7 +64,7 @@ static int ViewArchiveFile(ViewContext *ctx, char *file_path) {
 
   temp_filename[0] = '\0';
 
-  if (!Path_CreateTempFile(temp_filename, sizeof(temp_filename), "ytree_view_",
+  if (!Path_CreateTempFile(temp_filename, sizeof(temp_filename), "ytnova_view_",
                            FALSE, &fd)) {
     MESSAGE(ctx, "Could not create temporary file for viewing");
     goto cleanup;

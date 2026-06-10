@@ -3,8 +3,8 @@ import tarfile
 import zipfile
 
 from helpers_ui import footer_lines as _footer_lines
-from tui_harness import YtreeTUI
-from ytree_keys import Keys
+from tui_harness import YtreeNovaTUI
+from ytnova_keys import Keys
 
 
 def _create_zip(path, entries):
@@ -45,13 +45,13 @@ def _enter_archive_from_selected_file(tui):
             break
 
 
-def test_archive_dir_footer_pipe_action_visible(ytree_binary, tmp_path):
+def test_archive_dir_footer_pipe_action_visible(ytnova_binary, tmp_path):
     root = tmp_path / "archive_dir_footer_pipe"
     root.mkdir()
     archive_path = root / "footer_pipe.tar"
     _create_tar(archive_path, {"inside_dir/inside.txt": "inside payload"})
 
-    tui = YtreeTUI(executable=ytree_binary, cwd=str(root))
+    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
     try:
         _enter_archive_from_selected_file(tui)
         assert tui.wait_for_content("ARCHIVE", timeout=2.0)
@@ -69,13 +69,13 @@ def test_archive_dir_footer_pipe_action_visible(ytree_binary, tmp_path):
         tui.quit()
 
 
-def test_archive_pipe_return_restores_ui_surfaces(ytree_binary, tmp_path):
+def test_archive_pipe_return_restores_ui_surfaces(ytnova_binary, tmp_path):
     root = tmp_path / "archive_pipe_return"
     root.mkdir()
     archive_path = root / "pipe_return.tar"
     _create_tar(archive_path, {"inside_dir/inside.txt": "inside payload"})
 
-    tui = YtreeTUI(executable=ytree_binary, cwd=str(root))
+    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
     try:
         _enter_archive_from_selected_file(tui)
         assert tui.wait_for_content("ARCHIVE", timeout=2.0)
@@ -127,7 +127,7 @@ def test_archive_pipe_return_restores_ui_surfaces(ytree_binary, tmp_path):
 
 
 def test_archive_internal_path_trust_rejects_unsafe_members(
-    ytree_binary, tmp_path
+    ytnova_binary, tmp_path
 ):
     root = tmp_path / "archive_internal_path_trust_rejects"
     root.mkdir()
@@ -144,7 +144,7 @@ def test_archive_internal_path_trust_rejects_unsafe_members(
         },
     )
 
-    tui = YtreeTUI(executable=ytree_binary, cwd=str(root))
+    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
     try:
         _enter_archive_from_selected_file(tui)
         assert tui.wait_for_content("safe_member.txt", timeout=3.0)
@@ -164,7 +164,7 @@ def test_archive_internal_path_trust_rejects_unsafe_members(
 
 
 def test_archive_traversal_rejection_tree_load_filters_unsafe_variants(
-    ytree_binary, tmp_path
+    ytnova_binary, tmp_path
 ):
     root = tmp_path / "archive_traversal_tree_filters"
     root.mkdir()
@@ -181,7 +181,7 @@ def test_archive_traversal_rejection_tree_load_filters_unsafe_variants(
         },
     )
 
-    tui = YtreeTUI(executable=ytree_binary, cwd=str(root))
+    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
     try:
         _enter_archive_from_selected_file(tui)
         assert tui.wait_for_content("safe_member.txt", timeout=3.0)
@@ -201,7 +201,7 @@ def test_archive_traversal_rejection_tree_load_filters_unsafe_variants(
 
 
 def test_archive_internal_path_trust_safe_member_still_viewable(
-    ytree_binary, tmp_path
+    ytnova_binary, tmp_path
 ):
     root = tmp_path / "archive_internal_path_trust_safe"
     root.mkdir()
@@ -214,7 +214,7 @@ def test_archive_internal_path_trust_safe_member_still_viewable(
         },
     )
 
-    tui = YtreeTUI(executable=ytree_binary, cwd=str(root))
+    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
     try:
         _enter_archive_from_selected_file(tui)
         assert tui.wait_for_content("safe_member.txt", timeout=3.0)
@@ -224,7 +224,7 @@ def test_archive_internal_path_trust_safe_member_still_viewable(
 
 
 def test_archive_internal_path_trust_trailing_slash_empty_dir_visible(
-    ytree_binary, tmp_path
+    ytnova_binary, tmp_path
 ):
     root = tmp_path / "archive_internal_path_trust_trailing_dir"
     root.mkdir()
@@ -242,7 +242,7 @@ def test_archive_internal_path_trust_trailing_slash_empty_dir_visible(
         file_info.mode = 0o644
         tf.addfile(file_info, io.BytesIO(payload))
 
-    tui = YtreeTUI(executable=ytree_binary, cwd=str(root))
+    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
     try:
         _enter_archive_from_selected_file(tui)
         assert tui.wait_for_content("safe_anchor.txt", timeout=3.0)
@@ -252,7 +252,7 @@ def test_archive_internal_path_trust_trailing_slash_empty_dir_visible(
         tui.quit()
 
 
-def test_archive_root_dot_member_is_ignored_without_warning(ytree_binary, tmp_path):
+def test_archive_root_dot_member_is_ignored_without_warning(ytnova_binary, tmp_path):
     root = tmp_path / "archive_root_dot_member"
     root.mkdir()
     archive_path = root / "dot_root.tar"
@@ -269,7 +269,7 @@ def test_archive_root_dot_member_is_ignored_without_warning(ytree_binary, tmp_pa
         file_info.mode = 0o644
         tf.addfile(file_info, io.BytesIO(payload))
 
-    tui = YtreeTUI(executable=ytree_binary, cwd=str(root))
+    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
     try:
         tui.send_keystroke(Keys.ENTER, wait=0.5)
         tui.send_keystroke(Keys.LOG, wait=0.3)
@@ -281,13 +281,13 @@ def test_archive_root_dot_member_is_ignored_without_warning(ytree_binary, tmp_pa
         tui.quit()
 
 
-def test_archive_f7_preview_renders_member_content(ytree_binary, tmp_path):
+def test_archive_f7_preview_renders_member_content(ytnova_binary, tmp_path):
     root = tmp_path / "archive_f7_preview"
     root.mkdir()
     archive_path = root / "preview.tar"
     _create_tar(archive_path, {"safe_member.txt": "safe payload"})
 
-    tui = YtreeTUI(executable=ytree_binary, cwd=str(root))
+    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
     try:
         _enter_archive_from_selected_file(tui)
         assert tui.wait_for_content("safe_member.txt", timeout=3.0)
@@ -300,7 +300,7 @@ def test_archive_f7_preview_renders_member_content(ytree_binary, tmp_path):
 
 
 def test_archive_traversal_rejection_view_flow_ignores_unsafe_members(
-    ytree_binary, tmp_path
+    ytnova_binary, tmp_path
 ):
     root = tmp_path / "archive_traversal_view_flow"
     root.mkdir()
@@ -315,7 +315,7 @@ def test_archive_traversal_rejection_view_flow_ignores_unsafe_members(
         },
     )
 
-    tui = YtreeTUI(executable=ytree_binary, cwd=str(root))
+    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
     try:
         _enter_archive_from_selected_file(tui)
         assert tui.wait_for_content("safe_member.txt", timeout=3.0)
@@ -333,7 +333,7 @@ def test_archive_traversal_rejection_view_flow_ignores_unsafe_members(
         tui.quit()
 
 
-def test_archive_create_overwrite_prompt_respects_no_then_yes(ytree_binary, tmp_path):
+def test_archive_create_overwrite_prompt_respects_no_then_yes(ytnova_binary, tmp_path):
     root = tmp_path / "overwrite_prompt"
     root.mkdir()
     source_file = root / "0_source.txt"
@@ -341,7 +341,7 @@ def test_archive_create_overwrite_prompt_respects_no_then_yes(ytree_binary, tmp_
     archive_path = root / "z_existing.zip"
     _create_zip(archive_path, {"existing.txt": "old payload"})
 
-    tui = YtreeTUI(executable=ytree_binary, cwd=str(root))
+    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
     try:
         tui.send_keystroke(Keys.ENTER, wait=0.4)
         assert tui.wait_for_content("0_source.txt", timeout=3.0)
@@ -367,14 +367,14 @@ def test_archive_create_overwrite_prompt_respects_no_then_yes(ytree_binary, tmp_
         tui.quit()
 
 
-def test_archive_create_ctrl_o_triggers_archive_prompt(ytree_binary, tmp_path):
+def test_archive_create_ctrl_o_triggers_archive_prompt(ytnova_binary, tmp_path):
     root = tmp_path / "ctrl_o_archive"
     root.mkdir()
     source_file = root / "source.txt"
     source_file.write_text("payload", encoding="utf-8")
     archive_path = root / "out.zip"
 
-    tui = YtreeTUI(executable=ytree_binary, cwd=str(root))
+    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
     try:
         tui.send_keystroke(Keys.ENTER, wait=0.4)
         assert tui.wait_for_content("source.txt", timeout=3.0)
@@ -390,7 +390,7 @@ def test_archive_create_ctrl_o_triggers_archive_prompt(ytree_binary, tmp_path):
         tui.quit()
 
 
-def test_archive_create_inside_source_directory_is_allowed(ytree_binary, tmp_path):
+def test_archive_create_inside_source_directory_is_allowed(ytnova_binary, tmp_path):
     root = tmp_path / "inside_source_allowed"
     root.mkdir()
     child = root / "child"
@@ -398,7 +398,7 @@ def test_archive_create_inside_source_directory_is_allowed(ytree_binary, tmp_pat
     (child / "nested.txt").write_text("payload", encoding="utf-8")
     destination = child / "out.zip"
 
-    tui = YtreeTUI(executable=ytree_binary, cwd=str(root))
+    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
     try:
         tui.send_keystroke("Z", wait=0.2)
         assert tui.wait_for_content("Recursive? (Y/n)", timeout=3.0)
@@ -414,7 +414,7 @@ def test_archive_create_inside_source_directory_is_allowed(ytree_binary, tmp_pat
 
 
 def test_archive_create_overwrite_excludes_destination_from_payload(
-    ytree_binary, tmp_path
+    ytnova_binary, tmp_path
 ):
     root = tmp_path / "overwrite_excludes_dest"
     root.mkdir()
@@ -425,7 +425,7 @@ def test_archive_create_overwrite_excludes_destination_from_payload(
     destination = child / "out.zip"
     _create_zip(destination, {"stale.txt": "stale"})
 
-    tui = YtreeTUI(executable=ytree_binary, cwd=str(root))
+    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
     try:
         tui.send_keystroke("Z", wait=0.2)
         assert tui.wait_for_content("Recursive? (Y/n)", timeout=3.0)
@@ -445,14 +445,14 @@ def test_archive_create_overwrite_excludes_destination_from_payload(
 
 
 def test_archive_create_exclusion_empty_payload_shows_status_and_aborts(
-    ytree_binary, tmp_path
+    ytnova_binary, tmp_path
 ):
     root = tmp_path / "empty_after_exclusion"
     root.mkdir()
     destination = root / "only.zip"
     _create_zip(destination, {"keep.txt": "keep"})
 
-    tui = YtreeTUI(executable=ytree_binary, cwd=str(root))
+    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
     try:
         tui.send_keystroke(Keys.ENTER, wait=0.4)
         assert tui.wait_for_content("only.zip", timeout=3.0)
@@ -473,7 +473,7 @@ def test_archive_create_exclusion_empty_payload_shows_status_and_aborts(
         tui.quit()
 
 
-def test_archive_create_inside_source_round_trip_integrity(ytree_binary, tmp_path):
+def test_archive_create_inside_source_round_trip_integrity(ytnova_binary, tmp_path):
     root = tmp_path / "round_trip_integrity"
     root.mkdir()
     source = root / "source"
@@ -486,7 +486,7 @@ def test_archive_create_inside_source_round_trip_integrity(ytree_binary, tmp_pat
     extract_root = root / "extracted"
     extract_root.mkdir()
 
-    tui = YtreeTUI(executable=ytree_binary, cwd=str(root))
+    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
     try:
         tui.send_keystroke("Z", wait=0.2)
         assert tui.wait_for_content("Recursive? (Y/n)", timeout=3.0)
@@ -516,14 +516,14 @@ def test_archive_create_inside_source_round_trip_integrity(ytree_binary, tmp_pat
 
 
 def test_archive_create_unsupported_format_shows_and_clears_status_error(
-    ytree_binary, tmp_path
+    ytnova_binary, tmp_path
 ):
     root = tmp_path / "unsupported"
     root.mkdir()
     (root / "source.txt").write_text("payload", encoding="utf-8")
     destination = root / "out.7z"
 
-    tui = YtreeTUI(executable=ytree_binary, cwd=str(root))
+    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
     try:
         tui.send_keystroke(Keys.ENTER, wait=0.4)
         assert tui.wait_for_content("source.txt", timeout=3.0)

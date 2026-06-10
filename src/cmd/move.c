@@ -5,8 +5,8 @@
  *
  ***************************************************************************/
 
-#include "ytree_cmd.h"
-#include "ytree_fs.h"
+#include "ytnova_cmd.h"
+#include "ytnova_fs.h"
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -293,7 +293,7 @@ FNC_XIT:
 it? For now just keep but comment out UI calls or leave it since it will be in
 ctrl_file soon. Actually get_move_parameter should be in the UI. We can comment
 it out here or leave it. Wait, if it uses UI_ReadString, it might still need
-ytree_ui.h, which we removed. Let's comment out the whole GetMoveParameter
+ytnova_ui.h, which we removed. Let's comment out the whole GetMoveParameter
 function because it belongs in UI */
 
 static int Move(ViewContext *ctx, char *to_path, char *from_path) {

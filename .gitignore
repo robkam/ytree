@@ -43,16 +43,16 @@ TAGS
 cscope.*
 
 # Project Specific Binaries and Outputs
-ytree
-ytree.1
-ytree.1.gz
-ytree.1.*.gz
+ytnova
+ytnova.1
+ytnova.1.gz
+ytnova.1.*.gz
 
 # Project Specific History/Config
 .history
 .history/
-.ytree-hst
-.ytree-*.chdir
+.ytnova-hst
+.ytnova-*.chdir
 .serena/
 
 # Secrets and Local Environment
@@ -73,3 +73,6 @@ __pycache__/
 *.sh
 !scripts/**/*.sh
 !scripts/**/*.txt
+
+# Rebrand task deliverable
+!REBRAND_SUMMARY.txt

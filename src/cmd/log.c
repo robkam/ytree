@@ -5,17 +5,17 @@
  *
  ***************************************************************************/
 
-#include "ytree_cmd.h"
-#include "ytree_fs.h"
-#include "ytree_panel_anchor.h"
+#include "ytnova_cmd.h"
+#include "ytnova_fs.h"
+#include "ytnova_panel_anchor.h"
 #include <assert.h>
 
 /* Runtime UI helpers used by volume-switch restore flow. */
-extern void FreeFileEntryList(YtreePanel *panel);
-extern void BuildFileEntryList(ViewContext *ctx, YtreePanel *panel);
+extern void FreeFileEntryList(YtreeNovaPanel *panel);
+extern void BuildFileEntryList(ViewContext *ctx, YtreeNovaPanel *panel);
 extern int FileNav_GetMaxDispFiles(const ViewContext *ctx);
 
-static PanelVolumeFileState *FindPanelVolumeFileState(YtreePanel *panel,
+static PanelVolumeFileState *FindPanelVolumeFileState(YtreeNovaPanel *panel,
                                                       int volume_id) {
   PanelVolumeFileState *state;
 
@@ -29,7 +29,7 @@ static PanelVolumeFileState *FindPanelVolumeFileState(YtreePanel *panel,
   return NULL;
 }
 
-static PanelVolumeFileState *GetPanelVolumeFileState(YtreePanel *panel,
+static PanelVolumeFileState *GetPanelVolumeFileState(YtreeNovaPanel *panel,
                                                      int volume_id) {
   PanelVolumeFileState *state;
 
@@ -44,7 +44,7 @@ static PanelVolumeFileState *GetPanelVolumeFileState(YtreePanel *panel,
   return state;
 }
 
-static void ResetPanelFileContext(YtreePanel *panel) {
+static void ResetPanelFileContext(YtreeNovaPanel *panel) {
   if (!panel)
     return;
 
@@ -55,7 +55,7 @@ static void ResetPanelFileContext(YtreePanel *panel) {
   panel->saved_big_file_view = FALSE;
 }
 
-static void SavePanelFileSelection(YtreePanel *panel) {
+static void SavePanelFileSelection(YtreeNovaPanel *panel) {
   PanelVolumeFileState *state;
 
   if (!panel || !panel->vol)
@@ -93,7 +93,7 @@ static void SavePanelFileSelection(YtreePanel *panel) {
                  panel->file_selection_dir_path);
 }
 
-static void PositionSavedFileSelection(ViewContext *ctx, YtreePanel *panel,
+static void PositionSavedFileSelection(ViewContext *ctx, YtreeNovaPanel *panel,
                                        DirEntry *dir_entry,
                                        const char *file_name) {
   int i;
@@ -150,7 +150,7 @@ static int FindDirIndexInVolume(const struct Volume *vol,
   return -1;
 }
 
-static void RestorePanelFileSelection(ViewContext *ctx, YtreePanel *panel) {
+static void RestorePanelFileSelection(ViewContext *ctx, YtreeNovaPanel *panel) {
   struct Volume *vol;
   const PanelVolumeFileState *state;
   DirEntry *resolved_file_dir = NULL;
@@ -211,7 +211,7 @@ static void RestorePanelFileSelection(ViewContext *ctx, YtreePanel *panel) {
   panel->saved_big_file_view = state->saved_big_file_view;
 }
 
-static void SavePanelTreeSelection(YtreePanel *panel) {
+static void SavePanelTreeSelection(YtreeNovaPanel *panel) {
   int selected_index;
 
   if (!panel || !panel->vol)
@@ -226,7 +226,7 @@ static void SavePanelTreeSelection(YtreePanel *panel) {
   panel->vol->saved_tree_volume_generation = panel->vol->volume_generation;
 }
 
-static void RestorePanelTreeSelection(ViewContext *ctx, YtreePanel *panel) {
+static void RestorePanelTreeSelection(ViewContext *ctx, YtreeNovaPanel *panel) {
   int selected_index;
   int total_dirs;
   int win_height;
@@ -311,7 +311,7 @@ static void Log_Progress(ViewContext *ctx, const void *data) {
  * -1 on error
  * 0  on successfully reading a new tree or switching to an existing one
  */
-int LogDisk(ViewContext *ctx, YtreePanel *panel, char *path) {
+int LogDisk(ViewContext *ctx, YtreeNovaPanel *panel, char *path) {
   char saved_filter[FILE_SPEC_LENGTH + 1];
   char resolved_path[PATH_LENGTH + 1];
   struct Volume *s_vol, *tmp;
@@ -585,7 +585,7 @@ int LogDisk(ViewContext *ctx, YtreePanel *panel, char *path) {
   return 0;
 }
 
-int GetNewLogPath(ViewContext *ctx, YtreePanel *panel, char *path) {
+int GetNewLogPath(ViewContext *ctx, YtreeNovaPanel *panel, char *path) {
   int result;
   int copied_len;
   char user_input[PATH_LENGTH * 2 + 1] = "";
@@ -662,7 +662,7 @@ int GetNewLogPath(ViewContext *ctx, YtreePanel *panel, char *path) {
  * direction: -1 for previous, 1 for next.
  * Returns 0 on successful switch, -1 if no switch occurred or on error.
  */
-int CycleLoadedVolume(ViewContext *ctx, YtreePanel *panel, int direction) {
+int CycleLoadedVolume(ViewContext *ctx, YtreeNovaPanel *panel, int direction) {
   struct Volume *s, *tmp;
   struct Volume **vol_array = NULL;
   int num_volumes = 0;

@@ -17,14 +17,14 @@ if [ ! -d "$SYSTEMD_USER_DIR" ]; then
 fi
 
 # Define Service File Path
-SERVICE_FILE="$SYSTEMD_USER_DIR/ytree-autofetch.service"
-TIMER_FILE="$SYSTEMD_USER_DIR/ytree-autofetch.timer"
+SERVICE_FILE="$SYSTEMD_USER_DIR/ytnova-autofetch.service"
+TIMER_FILE="$SYSTEMD_USER_DIR/ytnova-autofetch.timer"
 
 # Create Service File
 echo "Creating service file at $SERVICE_FILE..."
 cat <<EOF > "$SERVICE_FILE"
 [Unit]
-Description=Fetch git remotes for ytree
+Description=Fetch git remotes for ytnova
 After=network.target
 
 [Service]
@@ -37,12 +37,12 @@ EOF
 echo "Creating timer file at $TIMER_FILE..."
 cat <<EOF > "$TIMER_FILE"
 [Unit]
-Description=Run ytree git fetch every 5 minutes
+Description=Run ytnova git fetch every 5 minutes
 
 [Timer]
 OnBootSec=5min
 OnUnitActiveSec=5min
-Unit=ytree-autofetch.service
+Unit=ytnova-autofetch.service
 
 [Install]
 WantedBy=timers.target
@@ -53,9 +53,9 @@ echo "Reloading systemd daemon..."
 systemctl --user daemon-reload
 
 echo "Enabling and starting timer..."
-systemctl --user enable --now ytree-autofetch.timer
+systemctl --user enable --now ytnova-autofetch.timer
 
 echo "Checking status..."
-systemctl --user list-timers --all | grep ytree
+systemctl --user list-timers --all | grep ytnova
 
 echo ">>> Setup Complete! Git fetch will run every 5 minutes in background."

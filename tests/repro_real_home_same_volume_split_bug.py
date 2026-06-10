@@ -2,9 +2,9 @@
 """
 Automation-only repro for the real HOME workflow reported by user.
 
-This drives /usr/local/bin/ytree against the caller's real HOME tree:
-  ytree ~
-  -> ytree/src/cmd file mode
+This drives /usr/local/bin/ytnova against the caller's real HOME tree:
+  ytnova ~
+  -> ytreenova/src/cmd file mode
   -> tag three files (t,down x3)
   -> F8 TAB ENTER HOME mkdir a temporary unique directory
   -> assert source pane still shows file list and unchanged tag state after TAB back
@@ -25,8 +25,8 @@ from helpers_stats import detect_stats_split_x as _detect_stats_split_x
 from helpers_ui import footer_text as _footer_text
 from helpers_ui import line_marks_file_as_tagged as _line_marks_file_as_tagged
 from helpers_ui import screen_text as _screen_text
-from tui_harness import YtreeTUI
-from ytree_keys import Keys
+from tui_harness import YtreeNovaTUI
+from ytnova_keys import Keys
 
 
 def _stats_current_dir_contains(lines, marker):
@@ -80,26 +80,26 @@ def main():
         print("SETUP_FAIL: HOME missing")
         return 2
 
-    exe = os.environ.get("YTREE_REPRO_BIN", "/usr/local/bin/ytree")
+    exe = os.environ.get("YTNOVA_REPRO_BIN", "/usr/local/bin/ytnova")
     if not Path(exe).exists():
         print(f"SETUP_FAIL: binary missing: {exe}")
         return 2
 
-    mkdir_name = f"ytree-repro-mkdir-{os.getpid()}"
+    mkdir_name = f"ytnova-repro-mkdir-{os.getpid()}"
     created_paths = [
         home / mkdir_name,
-        home / "ytree" / "src" / "cmd" / mkdir_name,
+        home / "ytnova" / "src" / "cmd" / mkdir_name,
     ]
-    tui = YtreeTUI(executable=exe, cwd=str(home), env_extra={"HOME": str(home)})
+    tui = YtreeNovaTUI(executable=exe, cwd=str(home), env_extra={"HOME": str(home)})
     time.sleep(0.9)
     try:
-        if not _goto_marker(tui, "ytree"):
-            print("SETUP_FAIL: ytree dir not found in HOME listing")
+        if not _goto_marker(tui, "ytnova"):
+            print("SETUP_FAIL: ytnova dir not found in HOME listing")
             print(_screen_text(tui))
             return 2
         tui.send_keystroke(Keys.RIGHT, wait=0.25)
         if not _goto_marker(tui, "src"):
-            print("SETUP_FAIL: src not found under ytree")
+            print("SETUP_FAIL: src not found under ytnova")
             print(_screen_text(tui))
             return 2
         tui.send_keystroke(Keys.RIGHT, wait=0.25)

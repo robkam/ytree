@@ -1,15 +1,15 @@
 /***************************************************************************
  *
- * ytree_fs.h
+ * ytnova_fs.h
  * Filesystem interaction and archive handling prototypes
  *
  ***************************************************************************/
-#ifndef YTREE_FS_H
-#define YTREE_FS_H
+#ifndef YTNOVA_FS_H
+#define YTNOVA_FS_H
 
-#include "ytree_defs.h"
+#include "ytnova_defs.h"
 
-/* ARCHIVE_STATUS_* and ARCHIVE_CB_* moved to ytree_defs.h */
+/* ARCHIVE_STATUS_* and ARCHIVE_CB_* moved to ytnova_defs.h */
 #define UNSUPPORTED_FORMAT_ERROR -2
 
 /* Define the progress callback type for Scans */
@@ -141,4 +141,4 @@ extern void FreePathList(PathList *list);
 extern BOOL FsMatchFilter(FileEntry *fe, const Statistic *s);
 extern void FsApplyFilter(DirEntry *dir_entry, const Statistic *s);
 
-#endif /* YTREE_FS_H */
+#endif /* YTNOVA_FS_H */

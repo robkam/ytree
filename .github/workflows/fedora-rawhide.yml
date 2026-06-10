@@ -10,7 +10,7 @@ on:
       - .github/workflows/fedora-rawhide.yml
       - src/**
       - include/**
-      - etc/ytree.1.md
+      - etc/ytnova.1.md
   push:
     branches:
       - main
@@ -19,7 +19,7 @@ on:
       - .github/workflows/fedora-rawhide.yml
       - src/**
       - include/**
-      - etc/ytree.1.md
+      - etc/ytnova.1.md
   workflow_dispatch:
 
 jobs:
@@ -67,6 +67,6 @@ jobs:
         run: |
           rm -rf pkgroot
           make DESTDIR="$PWD/pkgroot" PREFIX=/usr install
-          test -f pkgroot/usr/bin/ytree
-          test -f pkgroot/usr/share/man/man1/ytree.1.gz
+          test -f pkgroot/usr/bin/ytnova
+          test -f pkgroot/usr/share/man/man1/ytnova.1.gz
           find pkgroot -type f | sort
