@@ -478,6 +478,78 @@ def _parse_runtime_transition_registry(
     return records, failures
 
 
+def _parse_runtime_shim_registry(
+    runtime_path: Path,
+) -> tuple[list[dict[str, Any]], list[str]]:
+    try:
+        source = runtime_path.read_text(encoding="utf-8")
+    except OSError as exc:
+        return [], [f"{runtime_path}: failed to read: {exc}"]
+
+    invariant_tables: dict[str, list[str]] = {}
+    invariant_re = re.compile(
+        r"static\s+const\s+char\s+\*const\s+"
+        r"(kAppStateCompatibilityShimInvariantChecks[0-9]+)\[\]\s*=\s*\{"
+        r"(?P<body>.*?)\};",
+        re.S,
+    )
+    for invariant_match in invariant_re.finditer(source):
+        invariant_tables[invariant_match.group(1)] = re.findall(
+            r'"([^"]+)"', invariant_match.group("body")
+        )
+
+    match = re.search(
+        r"kAppStateCompatibilityShims\s*\[\]\s*=\s*\{(?P<body>.*?)\};",
+        source,
+        re.S,
+    )
+    if match is None:
+        return [], [f"{runtime_path}: failed to find runtime compatibility shim registry"]
+
+    records: list[dict[str, Any]] = []
+    failures: list[str] = []
+    row_re = re.compile(
+        r"\{\s*\"(?P<id>[^\"]*)\"\s*,\s*\"(?P<owner>[^\"]*)\"\s*,"
+        r"\s*\"(?P<old_authority_path>[^\"]*)\"\s*,"
+        r"\s*\"(?P<read_permission>[^\"]*)\"\s*,"
+        r"\s*\"(?P<write_permission>[^\"]*)\"\s*,"
+        r"\s*(?P<invariants>kAppStateCompatibilityShimInvariantChecks[0-9]+)\s*,"
+        r"\s*sizeof\((?P=invariants)\)\s*/"
+        r"\s*sizeof\((?P=invariants)\[0\]\)\s*,"
+        r"\s*\"(?P<removal_trigger>[^\"]*)\"\s*,"
+        r"\s*\"(?P<target_transition>[^\"]*)\"\s*,"
+        r"\s*\"(?P<follow_up_task>[^\"]*)\"\s*,"
+        r"\s*\"(?P<qa_enforcement>[^\"]*)\"\s*\}",
+        re.S,
+    )
+    for index, row_match in enumerate(row_re.finditer(match.group("body"))):
+        invariant_table_name = row_match.group("invariants")
+        invariant_checks = invariant_tables.get(invariant_table_name)
+        if invariant_checks is None:
+            failures.append(
+                f"runtime_shim[{index}]: unknown invariant-check table: {invariant_table_name}"
+            )
+            invariant_checks = []
+        records.append(
+            {
+                "id": row_match.group("id"),
+                "owner": row_match.group("owner"),
+                "old_authority_path": row_match.group("old_authority_path"),
+                "read_permission": row_match.group("read_permission"),
+                "write_permission": row_match.group("write_permission"),
+                "invariant_checks": invariant_checks,
+                "removal_trigger": row_match.group("removal_trigger"),
+                "target_transition": row_match.group("target_transition"),
+                "follow_up_task": row_match.group("follow_up_task"),
+                "qa_enforcement": row_match.group("qa_enforcement"),
+            }
+        )
+
+    if not records:
+        failures.append(f"{runtime_path}: runtime compatibility shim registry must not be empty")
+    return records, failures
+
+
 def _validate_runtime_action_lookup(
     *,
     runtime_records: list[dict[str, str]],
@@ -597,6 +669,77 @@ def _validate_runtime_transition_registry(
     if missing_ids:
         failures.append(
             f"{runtime_path}: runtime transition registry missing transition id(s): "
+            + ", ".join(missing_ids)
+        )
+
+    return failures
+
+
+def _validate_runtime_shim_registry(
+    *,
+    runtime_records: list[dict[str, Any]],
+    runtime_path: Path,
+    shim_records: list[Any],
+    runtime_transition_ids: set[str],
+) -> list[str]:
+    failures: list[str] = []
+    expected_shims = {
+        record["id"]: record
+        for record in shim_records
+        if isinstance(record, dict)
+        and isinstance(record.get("id"), str)
+        and record["id"].strip()
+    }
+    expected_ids = set(expected_shims)
+    covered_ids: set[str] = set()
+
+    for index, record in enumerate(runtime_records):
+        label = f"runtime_shim[{index}]"
+        runtime_id = record["id"]
+        if runtime_id in covered_ids:
+            failures.append(f"{label}: duplicate runtime shim id: {runtime_id}")
+        covered_ids.add(runtime_id)
+
+        shim_record = expected_shims.get(runtime_id)
+        if shim_record is None:
+            failures.append(f"{label}: id does not match a shim id: {runtime_id}")
+        else:
+            for field in (
+                "owner",
+                "old_authority_path",
+                "read_permission",
+                "write_permission",
+                "invariant_checks",
+                "removal_trigger",
+                "target_transition",
+                "follow_up_task",
+                "qa_enforcement",
+            ):
+                if record.get(field) != shim_record.get(field):
+                    failures.append(
+                        f"{label}: runtime {field} does not match shim "
+                        f"{runtime_id}: {record.get(field)}"
+                    )
+
+        invariant_checks = record.get("invariant_checks")
+        if not isinstance(invariant_checks, list) or not invariant_checks:
+            failures.append(f"{label}: invariant_checks must be non-empty")
+
+        target_transition = record.get("target_transition")
+        if (
+            isinstance(target_transition, str)
+            and target_transition.strip()
+            and target_transition not in runtime_transition_ids
+        ):
+            failures.append(
+                f"{label}: target_transition does not match runtime transition "
+                f"registry: {target_transition}"
+            )
+
+    missing_ids = sorted(expected_ids - covered_ids)
+    if missing_ids:
+        failures.append(
+            f"{runtime_path}: runtime compatibility shim registry missing shim id(s): "
             + ", ".join(missing_ids)
         )
 
@@ -1719,6 +1862,9 @@ def validate_contract(
     runtime_transition_records, runtime_transition_failures = (
         _parse_runtime_transition_registry(action_runtime_path)
     )
+    runtime_shim_records, runtime_shim_failures = _parse_runtime_shim_registry(
+        action_runtime_path
+    )
     failures.extend(transition_load_failures)
     failures.extend(shim_load_failures)
     failures.extend(action_coverage_load_failures)
@@ -1732,6 +1878,7 @@ def validate_contract(
     failures.extend(enum_failures)
     failures.extend(runtime_action_failures)
     failures.extend(runtime_transition_failures)
+    failures.extend(runtime_shim_failures)
     if failures:
         return failures
 
@@ -1842,6 +1989,16 @@ def validate_contract(
                 failures.append(
                     f"{label}: target_transition does not match a transition id: {target_transition}"
                 )
+    failures.extend(
+        _validate_runtime_shim_registry(
+            runtime_records=runtime_shim_records,
+            runtime_path=action_runtime_path,
+            shim_records=shims,
+            runtime_transition_ids={
+                record["id"] for record in runtime_transition_records
+            },
+        )
+    )
 
     if not isinstance(action_coverage_doc, dict):
         failures.append(f"{action_coverage_path}: top-level value must be an object")
