@@ -16,15 +16,15 @@ YtreeNova logs filesystem hierarchies into memory, so you can work across whole 
 
 ## Background
 
-Born from the lineage of [XTree&trade;](https://www.xtreefanpage.org/lowres/x10dirja.htm) (DOS), `ytnova` was intended to be the definitive tree-based file manager for Unix. While it has been maintained for compatibility over the decades, its feature set remained largely frozen in the late 1990s, leaving **Unix power users** without a true equivalent to the powerful "log and tag" workflow.
+YtreeNova is an independent fork of [Ytree](https://www.han.de/~werner/ytree.html) v2.10, created by Werner Bregulla and others. The fork began in October 2025 and now has its own name, release line, command (`ytnova`), and repository.
 
-Many file managers today function as "browsers"—they look at one directory at a time and rely on the OS to fetch files on demand. `YtreeNova` is different: it is a logger. It scans ("logs") entire drive hierarchies into memory. This treats the filesystem as a database, allowing you to **Show All** files in a flat view, filter across thousands of subdirectories instantly, and perform bulk operations on tagged files regardless of their location.
+It remains in the [XTree&trade;](https://www.xtreefanpage.org/lowres/x10dirja.htm)/Ytree family of full-tree logging and tagging file managers: scan a hierarchy first, then navigate, filter, tag, view, and operate across the logged set as a whole. The YtreeNova line focuses on feature completeness for Unix power users, adding split-screen work, integrated preview/autoview, archive-as-directory operations, and modernized internals.
 
-Forked in October 2025 from [Ytree](https://www.han.de/~werner/ytree.html) v2.10, created by Werner Bregulla and others. The YtreeNova alpha line focuses on feature completeness for Unix power users, including split-screen and integrated autoview. The move to a modular C99/POSIX architecture is a practical side effect of delivering those capabilities safely and maintainably.
+Many file managers today function as "browsers"—they look at one directory at a time and rely on the OS to fetch files on demand. YtreeNova keeps the logger model: it scans ("logs") entire drive hierarchies into memory. This treats the filesystem as a database, allowing you to **Show All** files in a flat view, filter across thousands of subdirectories instantly, and perform bulk operations on tagged files regardless of their location.
 
 ## Development Methodology
 
-This refactor is an experiment in AI-assisted systems engineering. The codebase was not simply "ported"; it was systematically disassembled and re-architected toward feature completeness and maintainability.
+This modernization is an experiment in AI-assisted systems engineering. The codebase was not simply "ported"; it was systematically disassembled and re-architected toward feature completeness and maintainability.
 
 In practice, the human maintains design ownership and quality control, while AI is used as an implementation assistant. This requires substantial iteration, verification, and architectural guardrails for each meaningful change. The goal is to show that LLM-assisted development can still meet normal project standards when the process is disciplined, specification-driven, and strongly validated.
 
