@@ -31,6 +31,39 @@ static int NonEmptyString(const char *value) {
   return value != NULL && value[0] != '\0';
 }
 
+static int NonEmptyStringList(const char *const *values, size_t count) {
+  size_t index;
+
+  if (values == NULL || count == 0)
+    return 0;
+
+  for (index = 0; index < count; index++) {
+    if (!NonEmptyString(values[index]))
+      return 0;
+  }
+
+  return 1;
+}
+
+static int AppStateInvariantDispatchSurfacesReady(
+    const AppStateInvariantMetadata *metadata) {
+  size_t note_index;
+
+  if (metadata->dispatch_surface_ids == NULL)
+    return 0;
+  if (metadata->dispatch_surface_id_count > 0)
+    return NonEmptyStringList(metadata->dispatch_surface_ids,
+                              metadata->dispatch_surface_id_count);
+
+  for (note_index = 0; note_index < metadata->migration_note_count;
+       note_index++) {
+    if (strstr(metadata->migration_notes[note_index], "cross-cutting") != NULL)
+      return 1;
+  }
+
+  return 0;
+}
+
 static int AppStateTransitionRegistryReady(void) {
   size_t index;
 
@@ -60,6 +93,53 @@ static int AppStateTransitionRegistryReady(void) {
   }
 
   if (AppStateTransitionLookup("transition.__ytree_unknown__") != NULL)
+    return 0;
+
+  return 1;
+}
+
+static int AppStateInvariantRegistryReady(void) {
+  size_t index;
+
+  if (AppStateInvariantCount() == 0)
+    return 0;
+
+  for (index = 0; index < AppStateInvariantCount(); index++) {
+    const AppStateInvariantMetadata *metadata = AppStateInvariantAt(index);
+    size_t transition_index;
+
+    if (metadata == NULL || !NonEmptyString(metadata->invariant_id) ||
+        !NonEmptyString(metadata->category) ||
+        !NonEmptyString(metadata->owner_region) ||
+        !NonEmptyString(metadata->failure_mode) ||
+        !NonEmptyString(metadata->enforcement_status) ||
+        !NonEmptyString(metadata->test_strategy) ||
+        !NonEmptyStringList(metadata->protected_fields,
+                            metadata->protected_field_count) ||
+        !NonEmptyStringList(metadata->transition_ids,
+                            metadata->transition_id_count) ||
+        !NonEmptyStringList(metadata->migration_notes,
+                            metadata->migration_note_count) ||
+        !AppStateInvariantDispatchSurfacesReady(metadata))
+      return 0;
+    if (AppStateInvariantLookup(metadata->invariant_id) != metadata)
+      return 0;
+
+    for (transition_index = 0;
+         transition_index < metadata->transition_id_count; transition_index++) {
+      if (AppStateTransitionLookup(metadata->transition_ids[transition_index]) ==
+          NULL)
+        return 0;
+    }
+  }
+
+  if (AppStateInvariantAt(AppStateInvariantCount()) != NULL)
+    return 0;
+  if (AppStateInvariantLookup(NULL) != NULL)
+    return 0;
+  if (AppStateInvariantLookup("") != NULL)
+    return 0;
+  if (AppStateInvariantLookup("invariant.__ytree_unknown__") != NULL)
     return 0;
 
   return 1;
@@ -212,6 +292,7 @@ int main(int argc, char **argv) {
   CoreMainOps_Register(&ctx);
   if (!CoreMainOpsReady(&ctx.core_main_ops) ||
       !AppStateTransitionRegistryReady() ||
+      !AppStateInvariantRegistryReady() ||
       !AppStateCompatibilityShimsReady() ||
       !AppStateActionTransitionsReady()) {
     fprintf(stderr, "EXIT: startup invariants not configured\n");
