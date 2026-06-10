@@ -421,6 +421,63 @@ def _parse_runtime_action_transitions(
     return records, []
 
 
+def _parse_runtime_transition_registry(
+    runtime_path: Path,
+) -> tuple[list[dict[str, Any]], list[str]]:
+    try:
+        source = runtime_path.read_text(encoding="utf-8")
+    except OSError as exc:
+        return [], [f"{runtime_path}: failed to read: {exc}"]
+
+    write_sets: dict[str, list[str]] = {}
+    write_set_re = re.compile(
+        r"static\s+const\s+char\s+\*const\s+"
+        r"(kAppStateTransitionWriteSet[0-9]+)\[\]\s*=\s*\{(?P<body>.*?)\};",
+        re.S,
+    )
+    for write_set_match in write_set_re.finditer(source):
+        write_sets[write_set_match.group(1)] = re.findall(
+            r'"([^"]+)"', write_set_match.group("body")
+        )
+
+    match = re.search(
+        r"kAppStateTransitions\s*\[\]\s*=\s*\{(?P<body>.*?)\};",
+        source,
+        re.S,
+    )
+    if match is None:
+        return [], [f"{runtime_path}: failed to find runtime transition registry"]
+
+    records: list[dict[str, Any]] = []
+    failures: list[str] = []
+    row_re = re.compile(
+        r"\{\s*\"([^\"]+)\"\s*,\s*\"([^\"]+)\"\s*,\s*\"([^\"]+)\"\s*,"
+        r"\s*(?P<write_set>kAppStateTransitionWriteSet[0-9]+)\s*,"
+        r"\s*sizeof\((?P=write_set)\)\s*/\s*sizeof\((?P=write_set)\[0\]\)\s*\}",
+        re.S,
+    )
+    for index, row_match in enumerate(row_re.finditer(match.group("body"))):
+        write_set_name = row_match.group("write_set")
+        declared_write_set = write_sets.get(write_set_name)
+        if declared_write_set is None:
+            failures.append(
+                f"runtime_transition[{index}]: unknown write-set table: {write_set_name}"
+            )
+            declared_write_set = []
+        records.append(
+            {
+                "id": row_match.group(1),
+                "category": row_match.group(2),
+                "owner": row_match.group(3),
+                "declared_write_set": declared_write_set,
+            }
+        )
+
+    if not records:
+        failures.append(f"{runtime_path}: runtime transition registry must not be empty")
+    return records, failures
+
+
 def _validate_runtime_action_lookup(
     *,
     runtime_records: list[dict[str, str]],
@@ -428,6 +485,7 @@ def _validate_runtime_action_lookup(
     enum_actions: list[str],
     action_coverage_by_action: dict[str, dict[str, Any]],
     transition_ids: dict[str, dict[str, Any]],
+    runtime_transition_ids: set[str],
 ) -> list[str]:
     failures: list[str] = []
     expected_actions = set(enum_actions)
@@ -453,6 +511,11 @@ def _validate_runtime_action_lookup(
         if transition_record is None:
             failures.append(
                 f"{label}: transition_id does not match a transition id: {transition_id}"
+            )
+        if transition_id not in runtime_transition_ids:
+            failures.append(
+                f"{label}: transition_id does not match runtime transition "
+                f"registry: {transition_id}"
             )
 
         category = record["category"]
@@ -486,6 +549,55 @@ def _validate_runtime_action_lookup(
         failures.append(
             f"{runtime_path}: runtime action lookup missing YtreeAction enum member(s): "
             + ", ".join(missing_actions)
+        )
+
+    return failures
+
+
+def _validate_runtime_transition_registry(
+    *,
+    runtime_records: list[dict[str, Any]],
+    runtime_path: Path,
+    transition_ids: dict[str, dict[str, Any]],
+    registered_owner_fields: set[str],
+) -> list[str]:
+    failures: list[str] = []
+    expected_ids = set(transition_ids)
+    covered_ids: set[str] = set()
+
+    for index, record in enumerate(runtime_records):
+        label = f"runtime_transition[{index}]"
+        runtime_id = record["id"]
+        if runtime_id in covered_ids:
+            failures.append(f"{label}: duplicate runtime transition id: {runtime_id}")
+        covered_ids.add(runtime_id)
+
+        matrix_record = transition_ids.get(runtime_id)
+        if matrix_record is None:
+            failures.append(
+                f"{label}: id does not match a transition matrix id: {runtime_id}"
+            )
+        else:
+            for field in ("category", "owner", "declared_write_set"):
+                if record.get(field) != matrix_record.get(field):
+                    failures.append(
+                        f"{label}: runtime {field} does not match transition "
+                        f"{runtime_id}: {record.get(field)}"
+                    )
+
+        failures.extend(
+            _validate_registered_write_set(
+                record=record,
+                registered_fields=registered_owner_fields,
+                label=label,
+            )
+        )
+
+    missing_ids = sorted(expected_ids - covered_ids)
+    if missing_ids:
+        failures.append(
+            f"{runtime_path}: runtime transition registry missing transition id(s): "
+            + ", ".join(missing_ids)
         )
 
     return failures
@@ -1604,6 +1716,9 @@ def validate_contract(
     runtime_action_records, runtime_action_failures = _parse_runtime_action_transitions(
         action_runtime_path
     )
+    runtime_transition_records, runtime_transition_failures = (
+        _parse_runtime_transition_registry(action_runtime_path)
+    )
     failures.extend(transition_load_failures)
     failures.extend(shim_load_failures)
     failures.extend(action_coverage_load_failures)
@@ -1616,6 +1731,7 @@ def validate_contract(
     failures.extend(transition_sequences_load_failures)
     failures.extend(enum_failures)
     failures.extend(runtime_action_failures)
+    failures.extend(runtime_transition_failures)
     if failures:
         return failures
 
@@ -1670,6 +1786,14 @@ def validate_contract(
             "transition matrix missing required category/categories: "
             + ", ".join(missing_categories)
         )
+    failures.extend(
+        _validate_runtime_transition_registry(
+            runtime_records=runtime_transition_records,
+            runtime_path=action_runtime_path,
+            transition_ids=transition_ids,
+            registered_owner_fields=registered_owner_fields,
+        )
+    )
 
     generation_owner_fields, generation_domain_failures = _validate_generation_domains(
         generation_domains_doc=generation_domains_doc,
@@ -1794,6 +1918,7 @@ def validate_contract(
             enum_actions=enum_actions,
             action_coverage_by_action=action_coverage_by_action,
             transition_ids=transition_ids,
+            runtime_transition_ids={record["id"] for record in runtime_transition_records},
         )
     )
 

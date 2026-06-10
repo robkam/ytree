@@ -27,6 +27,40 @@ static int CoreMainOpsReady(const CoreMainOps *ops) {
          ops->volume_free_all != NULL;
 }
 
+static int AppStateTransitionRegistryReady(void) {
+  size_t index;
+
+  if (AppStateTransitionCount() == 0)
+    return 0;
+
+  for (index = 0; index < AppStateTransitionCount(); index++) {
+    const AppStateTransitionMetadata *metadata = AppStateTransitionAt(index);
+    size_t write_index;
+
+    if (metadata == NULL || metadata->id == NULL || metadata->id[0] == '\0' ||
+        metadata->category == NULL || metadata->category[0] == '\0' ||
+        metadata->owner == NULL || metadata->owner[0] == '\0' ||
+        metadata->declared_write_set == NULL ||
+        metadata->declared_write_set_count == 0)
+      return 0;
+    if (AppStateTransitionLookup(metadata->id) != metadata)
+      return 0;
+
+    for (write_index = 0; write_index < metadata->declared_write_set_count;
+         write_index++) {
+      const char *field = metadata->declared_write_set[write_index];
+
+      if (field == NULL || field[0] == '\0')
+        return 0;
+    }
+  }
+
+  if (AppStateTransitionLookup("transition.__ytree_unknown__") != NULL)
+    return 0;
+
+  return 1;
+}
+
 static int AppStateActionTransitionsReady(void) {
   size_t index;
 
@@ -34,7 +68,20 @@ static int AppStateActionTransitionsReady(void) {
     return 0;
 
   for (index = 0; index < AppStateActionTransitionCount(); index++) {
-    if (AppStateActionTransitionLookup((YtreeAction)index) == NULL)
+    const AppStateActionTransitionMetadata *action_metadata;
+    const AppStateTransitionMetadata *transition_metadata;
+
+    action_metadata = AppStateActionTransitionLookup((YtreeAction)index);
+    if (action_metadata == NULL || action_metadata->transition_id == NULL ||
+        action_metadata->transition_id[0] == '\0' ||
+        action_metadata->category == NULL || action_metadata->category[0] == '\0')
+      return 0;
+
+    transition_metadata =
+        AppStateTransitionLookup(action_metadata->transition_id);
+    if (transition_metadata == NULL)
+      return 0;
+    if (strcmp(action_metadata->category, transition_metadata->category) != 0)
       return 0;
   }
 
@@ -113,6 +160,7 @@ int main(int argc, char **argv) {
   memset(&ctx, 0, sizeof(ViewContext));
   CoreMainOps_Register(&ctx);
   if (!CoreMainOpsReady(&ctx.core_main_ops) ||
+      !AppStateTransitionRegistryReady() ||
       !AppStateActionTransitionsReady()) {
     fprintf(stderr, "EXIT: startup invariants not configured\n");
     exit(1);

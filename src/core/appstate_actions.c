@@ -6,8 +6,138 @@
  ***************************************************************************/
 
 #include "ytree_appstate_actions.h"
+#include <string.h>
 
 enum { APPSTATE_ACTION_TRANSITION_COUNT = ACTION_USER_CMD + 1 };
+
+static const char *const kAppStateTransitionWriteSet0[] = {
+  "panel.tree_selection_key",
+  "panel.tree_cursor_pos",
+  "panel.tree_viewport_origin",
+  "panel.focus_shape",
+  "panel.panel_generation",
+};
+
+static const char *const kAppStateTransitionWriteSet1[] = {
+  "ctx.active",
+  "panel.volume_key",
+  "panel.restore_snapshot",
+  "panel.panel_generation",
+};
+
+static const char *const kAppStateTransitionWriteSet2[] = {
+  "ctx.modal_state",
+  "ctx.message_state",
+  "panel.focus_shape",
+  "panel.panel_generation",
+};
+
+static const char *const kAppStateTransitionWriteSet3[] = {
+  "volume.dir_tree",
+  "volume.logged_state",
+  "volume.volume_generation",
+  "panel.restore_snapshot",
+  "panel.panel_generation",
+};
+
+static const char *const kAppStateTransitionWriteSet4[] = {
+  "ctx.volumes_head",
+  "panel.volume_key",
+  "panel.restore_snapshot",
+  "panel.panel_generation",
+  "volume.volume_generation",
+};
+
+static const char *const kAppStateTransitionWriteSet5[] = {
+  "ctx.layout",
+  "ctx.window_handles",
+  "panel.tree_viewport_origin",
+  "panel.file_viewport_origin",
+  "panel.panel_generation",
+};
+
+static const char *const kAppStateTransitionWriteSet6[] = {
+  "volume.dir_tree",
+  "volume.payload_cache",
+  "volume.volume_generation",
+  "panel.restore_snapshot",
+  "panel.panel_generation",
+  "ctx.message_state",
+};
+
+static const char *const kAppStateTransitionWriteSet7[] = {
+  "ctx.command_state",
+  "ctx.message_state",
+  "ctx.pending_transition",
+  "panel.panel_generation",
+};
+
+static const char *const kAppStateTransitionWriteSet8[] = {
+  "panel.tree_selection_key",
+  "panel.file_selection_key",
+  "panel.tree_cursor_pos",
+  "panel.tree_viewport_origin",
+  "panel.file_viewport_origin",
+  "panel.panel_generation",
+};
+
+static const char *const kAppStateTransitionWriteSet9[] = {
+  "ctx.render_dirty_flags",
+  "ctx.window_handles",
+};
+
+static const AppStateTransitionMetadata kAppStateTransitions[] = {
+  {"transition.keybinding.navigate-tree",
+   "keybinding",
+   "YtreePanel(active)",
+   kAppStateTransitionWriteSet0,
+   sizeof(kAppStateTransitionWriteSet0) / sizeof(kAppStateTransitionWriteSet0[0])},
+  {"transition.menu-action.volume-select",
+   "menu_action",
+   "ViewContext(session routing) and YtreePanel(active)",
+   kAppStateTransitionWriteSet1,
+   sizeof(kAppStateTransitionWriteSet1) / sizeof(kAppStateTransitionWriteSet1[0])},
+  {"transition.modal-action.dismiss",
+   "modal_action",
+   "ViewContext.modal_region",
+   kAppStateTransitionWriteSet2,
+   sizeof(kAppStateTransitionWriteSet2) / sizeof(kAppStateTransitionWriteSet2[0])},
+  {"transition.refresh-rebuild.manual-refresh",
+   "refresh_rebuild",
+   "Volume(shared topology)",
+   kAppStateTransitionWriteSet3,
+   sizeof(kAppStateTransitionWriteSet3) / sizeof(kAppStateTransitionWriteSet3[0])},
+  {"transition.volume-operation.release-cycle",
+   "volume_operation",
+   "ViewContext.volume_registry and YtreePanel(active)",
+   kAppStateTransitionWriteSet4,
+   sizeof(kAppStateTransitionWriteSet4) / sizeof(kAppStateTransitionWriteSet4[0])},
+  {"transition.terminal-signal-resize",
+   "terminal_signal_or_resize",
+   "ViewContext.layout_region",
+   kAppStateTransitionWriteSet5,
+   sizeof(kAppStateTransitionWriteSet5) / sizeof(kAppStateTransitionWriteSet5[0])},
+  {"transition.filesystem-mutation-result.mkdir-copy-delete",
+   "filesystem_mutation_result",
+   "Volume(shared topology) plus YtreePanel(active) for active selection",
+   kAppStateTransitionWriteSet6,
+   sizeof(kAppStateTransitionWriteSet6) / sizeof(kAppStateTransitionWriteSet6[0])},
+  {"transition.command-completion.user-command",
+   "command_completion",
+   "ViewContext.command_region",
+   kAppStateTransitionWriteSet7,
+   sizeof(kAppStateTransitionWriteSet7) / sizeof(kAppStateTransitionWriteSet7[0])},
+  {"transition.rebuild-rebind-callback.panel-anchor",
+   "rebuild_rebind_callback",
+   "YtreePanel(affected) and Volume(current)",
+   kAppStateTransitionWriteSet8,
+   sizeof(kAppStateTransitionWriteSet8) / sizeof(kAppStateTransitionWriteSet8[0])},
+  {"transition.render-reflow.project-state",
+   "render_reflow",
+   "ViewContext.render_region",
+   kAppStateTransitionWriteSet9,
+   sizeof(kAppStateTransitionWriteSet9) / sizeof(kAppStateTransitionWriteSet9[0])},
+};
 
 static const AppStateActionTransitionMetadata
     kAppStateActionTransitions[APPSTATE_ACTION_TRANSITION_COUNT] = {
@@ -164,6 +294,32 @@ static const AppStateActionTransitionMetadata
 
 size_t AppStateActionTransitionCount(void) {
   return sizeof(kAppStateActionTransitions) / sizeof(kAppStateActionTransitions[0]);
+}
+
+size_t AppStateTransitionCount(void) {
+  return sizeof(kAppStateTransitions) / sizeof(kAppStateTransitions[0]);
+}
+
+const AppStateTransitionMetadata *AppStateTransitionAt(size_t index) {
+  if (index >= AppStateTransitionCount())
+    return NULL;
+
+  return &kAppStateTransitions[index];
+}
+
+const AppStateTransitionMetadata *
+AppStateTransitionLookup(const char *transition_id) {
+  size_t index;
+
+  if (transition_id == NULL || transition_id[0] == '\0')
+    return NULL;
+
+  for (index = 0; index < AppStateTransitionCount(); index++) {
+    if (!strcmp(kAppStateTransitions[index].id, transition_id))
+      return &kAppStateTransitions[index];
+  }
+
+  return NULL;
 }
 
 const AppStateActionTransitionMetadata *

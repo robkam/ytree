@@ -329,6 +329,7 @@ def _write_fixture(
     required_event_classes: list[str] | None = None,
     enum_actions: list[str] | None = None,
     runtime_actions: list[dict[str, object]] | None = None,
+    runtime_transitions: list[dict[str, object]] | None = None,
 ) -> tuple[Path, Path, Path, Path, Path, Path, Path, Path, Path, Path, Path, Path]:
     transitions_path = tmp_path / "transitions.json"
     shims_path = tmp_path / "shims.json"
@@ -408,7 +409,13 @@ def _write_fixture(
         ),
     )
     _write(actions_header_path, _enum_header(enum_actions or FIXTURE_ACTIONS))
-    _write(action_runtime_path, _runtime_source(runtime_actions or _complete_actions()))
+    _write(
+        action_runtime_path,
+        _runtime_source(
+            runtime_actions or _complete_actions(),
+            runtime_transitions if runtime_transitions is not None else transitions,
+        ),
+    )
     return (
         transitions_path,
         shims_path,
@@ -436,15 +443,41 @@ def _enum_header(actions: list[str]) -> str:
     return f"typedef enum {{\n{members}\n}} YtreeAction;\n"
 
 
-def _runtime_source(actions: list[dict[str, object]]) -> str:
-    rows = "\n".join(
+def _runtime_source(
+    actions: list[dict[str, object]], transitions: list[dict[str, object]]
+) -> str:
+    transition_write_sets = []
+    transition_rows = []
+    for index, record in enumerate(transitions):
+        declared_write_set = record.get("declared_write_set")
+        if not isinstance(declared_write_set, list):
+            declared_write_set = []
+        write_set_rows = "\n".join(
+            f'  "{field}",' for field in declared_write_set if isinstance(field, str)
+        )
+        transition_write_sets.append(
+            "static const char *const kAppStateTransitionWriteSet"
+            f"{index}[] = {{\n{write_set_rows}\n}};\n"
+        )
+        transition_rows.append(
+            f'  {{"{record.get("id", "")}", "{record.get("category", "")}", '
+            f'"{record.get("owner", "")}", '
+            f"kAppStateTransitionWriteSet{index}, "
+            f"sizeof(kAppStateTransitionWriteSet{index}) / "
+            f"sizeof(kAppStateTransitionWriteSet{index}[0])}},"
+        )
+    action_rows = "\n".join(
         f'  {{{record["action"]}, "{record["transition_id"]}", "{record["category"]}"}},'
         for record in actions
     )
     return (
+        "".join(transition_write_sets)
+        + "static const AppStateTransitionMetadata kAppStateTransitions[] = {\n"
+        + "\n".join(transition_rows)
+        + "\n};\n"
         "static const AppStateActionTransitionMetadata\n"
         "    kAppStateActionTransitions[APPSTATE_ACTION_TRANSITION_COUNT] = {\n"
-        f"{rows}\n"
+        f"{action_rows}\n"
         "};\n"
     )
 
@@ -2035,6 +2068,123 @@ def test_guard_fails_when_action_coverage_has_extra_unknown_action(tmp_path: Pat
 
     assert any(
         "unknown YtreeAction enum member" in failure and "ACTION_NOT_IN_ENUM" in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_when_runtime_transition_registry_is_missing_matrix_id(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    paths = _write_fixture(
+        tmp_path,
+        transitions=transitions,
+        runtime_transitions=transitions[:-1],
+    )
+
+    failures = _validate(paths)
+
+    missing_id = transitions[-1]["id"]
+    assert any(
+        "runtime transition registry missing transition id" in failure
+        and missing_id in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_when_runtime_action_lookup_references_missing_runtime_transition(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    runtime_transitions = [
+        record for record in transitions if record["id"] != "transition.keybinding"
+    ]
+    paths = _write_fixture(
+        tmp_path,
+        transitions=transitions,
+        runtime_transitions=runtime_transitions,
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "runtime_action[0]" in failure
+        and "transition_id does not match runtime transition registry" in failure
+        and "transition.keybinding" in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_when_runtime_transition_registry_has_extra_id(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    runtime_transitions = transitions + [
+        _transition("keybinding", "transition.runtime.extra")
+    ]
+    paths = _write_fixture(
+        tmp_path,
+        transitions=transitions,
+        runtime_transitions=runtime_transitions,
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "runtime_transition" in failure
+        and "id does not match a transition matrix id" in failure
+        and "transition.runtime.extra" in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_when_runtime_transition_registry_mismatches_matrix(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    runtime_transitions = [dict(record) for record in transitions]
+    runtime_transitions[0]["category"] = "render_reflow"
+    runtime_transitions[1]["owner"] = "different owner"
+    runtime_transitions[2]["declared_write_set"] = ["panel.tree_selection_key"]
+    paths = _write_fixture(
+        tmp_path,
+        transitions=transitions,
+        runtime_transitions=runtime_transitions,
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "runtime category does not match transition" in failure
+        for failure in failures
+    )
+    assert any(
+        "runtime owner does not match transition" in failure for failure in failures
+    )
+    assert any(
+        "runtime declared_write_set does not match transition" in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_when_runtime_transition_registry_uses_unknown_write_field(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    runtime_transitions = [dict(record) for record in transitions]
+    runtime_transitions[0]["declared_write_set"] = ["field.not_registered"]
+    paths = _write_fixture(
+        tmp_path,
+        transitions=transitions,
+        runtime_transitions=runtime_transitions,
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "runtime_transition[0]" in failure
+        and "declared_write_set references unregistered owner field" in failure
+        and "field.not_registered" in failure
         for failure in failures
     )
 
