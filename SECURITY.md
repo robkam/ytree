@@ -10,7 +10,7 @@ Please do not open a public GitHub Issue or Pull Request for security-sensitive 
 Email: robkam at gmx dot com
 
 Include:
-- ytree version/commit (`ytree --version`)
+- ytnova version/commit (`ytnova --version`)
 - OS / distro / terminal
 - Steps to reproduce (and a PoC if possible).
 - Impact (crash, info leak, command execution, archive traversal, etc.)
@@ -19,6 +19,6 @@ Include:
 I'll attempt a fix as soon as I can. There is no bug bounty.
 
 ## Non-Security Bugs
-For non-security bugs and feature requests, use [GitHub Issues](https://github.com/robkam/ytree/issues).
+For non-security bugs and feature requests, use [GitHub Issues](https://github.com/robkam/ytreenova/issues).
 
 For trust/safety claims and evidence links, see `docs/TRUST.md`.

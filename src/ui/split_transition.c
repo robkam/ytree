@@ -5,12 +5,12 @@
  *
  ***************************************************************************/
 
-#define NO_YTREE_MACROS
+#define NO_YTNOVA_MACROS
 
-#include "ytree_fs.h"
-#include "ytree_panel_anchor.h"
-#include "ytree_split_transition.h"
-#include "ytree_ui.h"
+#include "ytnova_fs.h"
+#include "ytnova_panel_anchor.h"
+#include "ytnova_split_transition.h"
+#include "ytnova_ui.h"
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>
@@ -42,7 +42,7 @@ typedef struct {
   char file_selection_dir_path[PATH_LENGTH + 1];
 } SplitDirPanelSnapshot;
 
-static void CaptureSplitFilePanelSnapshot(const YtreePanel *panel,
+static void CaptureSplitFilePanelSnapshot(const YtreeNovaPanel *panel,
                                           SplitFilePanelSnapshot *snapshot) {
   if (!panel || !snapshot)
     return;
@@ -64,12 +64,12 @@ static void CaptureSplitFilePanelSnapshot(const YtreePanel *panel,
 }
 
 static void AssertSplitFilePanelSnapshotUnchanged(
-    const YtreePanel *panel, const SplitFilePanelSnapshot *snapshot) {
+    const YtreeNovaPanel *panel, const SplitFilePanelSnapshot *snapshot) {
   (void)panel;
   (void)snapshot;
 }
 
-static void CaptureSplitDirPanelSnapshot(const YtreePanel *panel,
+static void CaptureSplitDirPanelSnapshot(const YtreeNovaPanel *panel,
                                          SplitDirPanelSnapshot *snapshot) {
   if (!panel || !snapshot)
     return;
@@ -91,14 +91,14 @@ static void CaptureSplitDirPanelSnapshot(const YtreePanel *panel,
 }
 
 static void AssertSplitDirPanelFileStateUnchanged(
-    const YtreePanel *panel, const SplitDirPanelSnapshot *snapshot) {
+    const YtreeNovaPanel *panel, const SplitDirPanelSnapshot *snapshot) {
   (void)panel;
   (void)snapshot;
 }
 #endif
 
 static void SplitTransitionDebugLogFilePanelState(const char *label,
-                                                  const YtreePanel *panel) {
+                                                  const YtreeNovaPanel *panel) {
   char tree_path[PATH_LENGTH + 1];
   char file_dir_path[PATH_LENGTH + 1];
   int idx = -1;
@@ -201,7 +201,7 @@ static void SplitTransitionDebugLogDirState(const char *label,
             ctx ? (int)ctx->focused_window : -1);
 }
 
-static BOOL PanelHasVisibleFiles(ViewContext *ctx, YtreePanel *panel,
+static BOOL PanelHasVisibleFiles(ViewContext *ctx, YtreeNovaPanel *panel,
                                  DirEntry *dir_entry) {
   if (!ctx || !panel || !dir_entry)
     return FALSE;
@@ -210,11 +210,11 @@ static BOOL PanelHasVisibleFiles(ViewContext *ctx, YtreePanel *panel,
   return panel->file_count > 0;
 }
 
-BOOL SplitTransition_HandleFileWindowAction(ViewContext *ctx, YtreeAction action,
+BOOL SplitTransition_HandleFileWindowAction(ViewContext *ctx, YtreeNovaAction action,
                                             DirEntry *dir_entry,
-                                            YtreePanel *owner_panel,
+                                            YtreeNovaPanel *owner_panel,
                                             BOOL *switched_panel_ptr,
-                                            YtreeAction *loop_action_ptr,
+                                            YtreeNovaAction *loop_action_ptr,
                                             BOOL *return_esc_ptr) {
   if (!ctx || !dir_entry || !owner_panel || !switched_panel_ptr ||
       !loop_action_ptr || !return_esc_ptr) {
@@ -245,9 +245,9 @@ BOOL SplitTransition_HandleFileWindowAction(ViewContext *ctx, YtreeAction action
           ctx->right && preserved_focus == FOCUS_FILE;
 
 #ifndef NDEBUG
-      const YtreePanel *target_panel =
+      const YtreeNovaPanel *target_panel =
           (ctx->active == ctx->left) ? ctx->right : ctx->left;
-      const YtreePanel *stable_panel;
+      const YtreeNovaPanel *stable_panel;
       SplitFilePanelSnapshot stable_panel_snapshot;
 
       /*
@@ -353,7 +353,7 @@ BOOL SplitTransition_HandleFileWindowAction(ViewContext *ctx, YtreeAction action
     SplitTransitionDebugLogFileState("FileAction:switch:before", ctx);
 #ifndef NDEBUG
     {
-      const YtreePanel *target_panel =
+      const YtreeNovaPanel *target_panel =
           (ctx->active == ctx->left) ? ctx->right : ctx->left;
       SplitFilePanelSnapshot target_panel_snapshot;
 
@@ -412,7 +412,7 @@ BOOL SplitTransition_HandleFileWindowAction(ViewContext *ctx, YtreeAction action
   }
 }
 
-BOOL SplitTransition_HandleDirWindowAction(ViewContext *ctx, YtreeAction action,
+BOOL SplitTransition_HandleDirWindowAction(ViewContext *ctx, YtreeNovaAction action,
                                            DirEntry **dir_entry_ptr,
                                            Statistic **s_ptr,
                                            const struct Volume **start_vol_ptr,
@@ -429,7 +429,7 @@ BOOL SplitTransition_HandleDirWindowAction(ViewContext *ctx, YtreeAction action,
   case ACTION_SPLIT_SCREEN:
     SplitTransitionDebugLogDirState("DirPanelAction:split:before", ctx);
     {
-      YtreePanel *closing_active = ctx->active;
+      YtreeNovaPanel *closing_active = ctx->active;
       BOOL closing_split = ctx->is_split_screen;
       BOOL donate_active_state = FALSE;
       BOOL preserve_left_file_state =
@@ -539,7 +539,7 @@ BOOL SplitTransition_HandleDirWindowAction(ViewContext *ctx, YtreeAction action,
     SplitTransitionDebugLogDirState("DirPanelAction:switch:before", ctx);
 #ifndef NDEBUG
     {
-      const YtreePanel *previous_active = ctx->active;
+      const YtreeNovaPanel *previous_active = ctx->active;
       SplitDirPanelSnapshot previous_active_snapshot;
 
       /*

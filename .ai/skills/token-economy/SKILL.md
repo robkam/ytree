@@ -19,7 +19,7 @@ Whenever you warn the user about a high-usage action, you **MUST** simultaneousl
 If you have warned the user and suggested an alternative, but the user explicitly instructs you to proceed with the expensive action anyway, you **MUST NOT** prevent them. Execute their explicit command.
 
 ## 4. Strict Semantic Tool Mandate
-For the `ytree` codebase, you **MUST** ALWAYS default to specialized MCP semantic tools (**jCodeMunch** or **Serena**) over generic bash tools to save usage allowance. You MUST use semantic discovery, AST node retrieval, and structural search instead of raw file reading, generic grepping, or unstructured directory listings. 
+For the `ytnova` codebase, you **MUST** ALWAYS default to specialized MCP semantic tools (**jCodeMunch** or **Serena**) over generic bash tools to save usage allowance. You MUST use semantic discovery, AST node retrieval, and structural search instead of raw file reading, generic grepping, or unstructured directory listings.
 
 ## 5. Pruning and Pagination
 You **MUST** paginate lists and searches unless explicitly instructed otherwise. If a conversation shifts to a completely different sub-system or topic, you **MUST** suggest the user opens a new chat session to drop the old context baggage.

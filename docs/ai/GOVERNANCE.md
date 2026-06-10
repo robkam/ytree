@@ -2,7 +2,7 @@
 
 ## Scope and Intent
 
-This page is the canonical navigation map for AI-governance documentation in `ytree`: what each file governs, where to edit, and how to avoid policy drift across duplicate copies.
+This page is the canonical navigation map for AI-governance documentation in `ytnova`: what each file governs, where to edit, and how to avoid policy drift across duplicate copies.
 
 ## Root Discovery Stubs (Repository Root)
 

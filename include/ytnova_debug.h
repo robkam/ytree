@@ -1,47 +1,47 @@
 /***************************************************************************
  *
- * ytree_debug.h
+ * ytnova_debug.h
  * Debug logging helpers
  *
  ***************************************************************************/
 
-#ifndef YTREE_DEBUG_H
-#define YTREE_DEBUG_H
+#ifndef YTNOVA_DEBUG_H
+#define YTNOVA_DEBUG_H
 
 #include <stdio.h>
 #include <stdlib.h>
 
-#define YTREE_DEBUG_LOG_PATH_ENV "YTREE_DEBUG_LOG_PATH"
-#define YTREE_DEBUG_LOG_PATH_LIMIT 4096U
+#define YTNOVA_DEBUG_LOG_PATH_ENV "YTNOVA_DEBUG_LOG_PATH"
+#define YTNOVA_DEBUG_LOG_PATH_LIMIT 4096U
 
-#ifndef YTREE_ENABLE_KEYSTROKE_DEBUG_LOG
-#define YTREE_ENABLE_KEYSTROKE_DEBUG_LOG 0
+#ifndef YTNOVA_ENABLE_KEYSTROKE_DEBUG_LOG
+#define YTNOVA_ENABLE_KEYSTROKE_DEBUG_LOG 0
 #endif
 
 #define DEBUG_LOG(fmt, ...)                                                     \
   do {                                                                           \
-    const char *ytree_debug_log_path = getenv(YTREE_DEBUG_LOG_PATH_ENV);         \
-    size_t ytree_debug_log_len = 0U;                                             \
-    int ytree_debug_log_path_valid = 0;                                          \
+    const char *ytnova_debug_log_path = getenv(YTNOVA_DEBUG_LOG_PATH_ENV);         \
+    size_t ytnova_debug_log_len = 0U;                                             \
+    int ytnova_debug_log_path_valid = 0;                                          \
     FILE *fp = NULL;                                                             \
-    if (ytree_debug_log_path != NULL && ytree_debug_log_path[0] != '\0') {      \
-      ytree_debug_log_path_valid = 1;                                            \
-      while (ytree_debug_log_len < YTREE_DEBUG_LOG_PATH_LIMIT &&                 \
-             ytree_debug_log_path[ytree_debug_log_len] != '\0') {                \
-        unsigned char ytree_debug_ch =                                           \
-            (unsigned char)ytree_debug_log_path[ytree_debug_log_len];            \
-        if (ytree_debug_ch < 32U || ytree_debug_ch == 127U) {                    \
-          ytree_debug_log_path_valid = 0;                                        \
+    if (ytnova_debug_log_path != NULL && ytnova_debug_log_path[0] != '\0') {      \
+      ytnova_debug_log_path_valid = 1;                                            \
+      while (ytnova_debug_log_len < YTNOVA_DEBUG_LOG_PATH_LIMIT &&                 \
+             ytnova_debug_log_path[ytnova_debug_log_len] != '\0') {                \
+        unsigned char ytnova_debug_ch =                                           \
+            (unsigned char)ytnova_debug_log_path[ytnova_debug_log_len];            \
+        if (ytnova_debug_ch < 32U || ytnova_debug_ch == 127U) {                    \
+          ytnova_debug_log_path_valid = 0;                                        \
           break;                                                                 \
         }                                                                        \
-        ++ytree_debug_log_len;                                                   \
+        ++ytnova_debug_log_len;                                                   \
       }                                                                          \
-      if (ytree_debug_log_len == YTREE_DEBUG_LOG_PATH_LIMIT) {                   \
-        ytree_debug_log_path_valid = 0;                                          \
+      if (ytnova_debug_log_len == YTNOVA_DEBUG_LOG_PATH_LIMIT) {                   \
+        ytnova_debug_log_path_valid = 0;                                          \
       }                                                                          \
     }                                                                            \
-    if (ytree_debug_log_path_valid) {                                            \
-      fp = fopen(ytree_debug_log_path, "a");                                     \
+    if (ytnova_debug_log_path_valid) {                                            \
+      fp = fopen(ytnova_debug_log_path, "a");                                     \
     }                                                                            \
     if (fp != NULL) {                                                            \
       fprintf(fp, fmt "\n", ##__VA_ARGS__);                                      \
@@ -50,7 +50,7 @@
     }                                                                            \
   } while (0)
 
-#if YTREE_ENABLE_KEYSTROKE_DEBUG_LOG
+#if YTNOVA_ENABLE_KEYSTROKE_DEBUG_LOG
 #define DEBUG_KEYSTROKE_LOG(fmt, ...) DEBUG_LOG(fmt, ##__VA_ARGS__)
 #else
 #define DEBUG_KEYSTROKE_LOG(fmt, ...)                                            \
@@ -58,4 +58,4 @@
   } while (0)
 #endif
 
-#endif /* YTREE_DEBUG_H */
+#endif /* YTNOVA_DEBUG_H */

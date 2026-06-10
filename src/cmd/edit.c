@@ -5,8 +5,8 @@
  *
  ***************************************************************************/
 
-#include "ytree_cmd.h"
-#include "ytree_fs.h"
+#include "ytnova_cmd.h"
+#include "ytnova_fs.h"
 #include <errno.h>
 #include <fcntl.h>
 #include <stdio.h>
@@ -63,7 +63,7 @@ int Edit(ViewContext *ctx, DirEntry *dir_entry, char *file_path) {
 
   /*  result = SystemCall(command_line);
     --crb3 29apr02: perhaps finally eliminate the problem with jstar writing new
-    files to the ytree starting cwd. new code grabbed from execute.c.
+    files to the ytnova starting cwd. new code grabbed from execute.c.
     --crb3 01oct02: move getcwd operation within the IF DISKMODE stuff.
   */
 

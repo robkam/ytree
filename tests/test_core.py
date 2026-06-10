@@ -5,7 +5,7 @@ import pexpect
 import shutil
 import subprocess
 from pathlib import Path
-from ytree_keys import Keys
+from ytnova_keys import Keys
 
 
 @pytest.fixture(scope="session")
@@ -313,7 +313,7 @@ def test_path_copy(controller, sandbox):
     yt.input_text(str(dest_path))
 
     # 6. Handle "Create Directory?" Prompt
-    # ytree might ask to create the structure.
+    # ytnova might ask to create the structure.
     try:
         # Check for "Create" prompt or timeout if it proceeds automatically
         index = yt.child.expect([r"[Cc]reate", pexpect.TIMEOUT], timeout=1.0)

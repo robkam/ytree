@@ -5,11 +5,11 @@
  *
  ***************************************************************************/
 
-#include "../../include/ytree.h"
-#include "../../include/ytree_cmd.h"
-#include "../../include/ytree_fs.h"
-#include "../../include/ytree_panel_anchor.h"
-#include "../../include/ytree_ui.h"
+#include "../../include/ytnova.h"
+#include "../../include/ytnova_cmd.h"
+#include "../../include/ytnova_fs.h"
+#include "../../include/ytnova_panel_anchor.h"
+#include "../../include/ytnova_ui.h"
 #include <assert.h>
 
 /* PrintMenuLine is removed as its functionality for drawing the static stats
@@ -426,9 +426,9 @@ void UnmapF2Window(ViewContext *ctx) {
 
 void RefreshWindow(WINDOW *win) { wnoutrefresh(win); }
 
-static BOOL IsPanelSavedBigFileMode(const YtreePanel *panel);
+static BOOL IsPanelSavedBigFileMode(const YtreeNovaPanel *panel);
 
-static void ComputePanelRenderPosition(const YtreePanel *panel, int idx,
+static void ComputePanelRenderPosition(const YtreeNovaPanel *panel, int idx,
                                        int *begin_out, int *cursor_out) {
   int height;
 
@@ -456,7 +456,7 @@ static void ComputePanelRenderPosition(const YtreePanel *panel, int idx,
     return;
 }
 
-static DirEntry *ResolvePanelFileAnchor(const YtreePanel *panel) {
+static DirEntry *ResolvePanelFileAnchor(const YtreeNovaPanel *panel) {
   if (!panel || !panel->vol || panel->saved_focus != FOCUS_FILE)
     return NULL;
   assert(panel->file_selection_dir_path[0] != '\0');
@@ -468,12 +468,12 @@ static DirEntry *ResolvePanelFileAnchor(const YtreePanel *panel) {
 }
 
 static DirEntry *ResolvePanelFileAnchorForRender(ViewContext *ctx,
-                                                 const YtreePanel *panel) {
+                                                 const YtreeNovaPanel *panel) {
   (void)ctx;
   return ResolvePanelFileAnchor(panel);
 }
 
-void RenderInactivePanel(ViewContext *ctx, YtreePanel *panel) {
+void RenderInactivePanel(ViewContext *ctx, YtreeNovaPanel *panel) {
   if (!panel || !panel->vol || !panel->pan_dir_window)
     return;
 
@@ -623,7 +623,7 @@ static BOOL IsActivePanelBigFileMode(const ViewContext *ctx,
           dir_entry->tagged_flag);
 }
 
-static BOOL IsPanelSavedBigFileMode(const YtreePanel *panel) {
+static BOOL IsPanelSavedBigFileMode(const YtreeNovaPanel *panel) {
   if (!panel)
     return FALSE;
 
@@ -765,7 +765,7 @@ void RefreshView(ViewContext *ctx, DirEntry *dir_entry) {
     if (ctx->is_split_screen && ctx->left && ctx->right && ctx->active) {
       BOOL left_big_mode;
       BOOL right_big_mode;
-      YtreePanel *inactive;
+      YtreeNovaPanel *inactive;
 
       inactive = (ctx->active == ctx->left) ? ctx->right : ctx->left;
 

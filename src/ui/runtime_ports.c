@@ -5,9 +5,9 @@
  *
  ***************************************************************************/
 
-#include "ytree_cmd.h"
-#include "ytree_fs.h"
-#include "ytree_ui.h"
+#include "ytnova_cmd.h"
+#include "ytnova_fs.h"
+#include "ytnova_ui.h"
 
 static void CoreInit_StartColors(ViewContext *ctx) {
 #ifdef COLOR_SUPPORT
@@ -27,7 +27,7 @@ static void CoreInit_ReinitColorPairs(ViewContext *ctx) {
 #endif
 }
 
-static void CoreInit_SetPanelFileMode(ViewContext *ctx, YtreePanel *panel,
+static void CoreInit_SetPanelFileMode(ViewContext *ctx, YtreeNovaPanel *panel,
                                       int new_file_mode) {
   SetPanelFileMode(ctx, panel, new_file_mode);
 }
@@ -130,7 +130,7 @@ void RuntimePort_MainSetProfileValue(const ViewContext *ctx, char *name,
   SetProfileValue(ctx, name, value);
 }
 
-int RuntimePort_MainLogDisk(ViewContext *ctx, YtreePanel *panel, char *path) {
+int RuntimePort_MainLogDisk(ViewContext *ctx, YtreeNovaPanel *panel, char *path) {
   return LogDisk(ctx, panel, path);
 }
 

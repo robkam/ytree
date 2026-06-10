@@ -5,9 +5,9 @@
  *
  ***************************************************************************/
 
-#include "ytree_cmd.h"
-#include "ytree_fs.h"
-#include "ytree_ui.h"
+#include "ytnova_cmd.h"
+#include "ytnova_fs.h"
+#include "ytnova_ui.h"
 #include <errno.h>
 #include <stdlib.h>
 #include <string.h>
@@ -221,7 +221,7 @@ static BOOL ShouldTagComparedFile(CompareTagResult tag_result, BOOL is_error,
   }
 }
 
-static void TagComparedFile(YtreePanel *panel, FileEntry *source_file,
+static void TagComparedFile(YtreeNovaPanel *panel, FileEntry *source_file,
                             Statistic *stats, unsigned long *tagged_count) {
   DirEntry *owner_dir;
   long long file_size;
@@ -618,7 +618,7 @@ void DirCompare_LaunchExternal(ViewContext *ctx, DirEntry *source_dir,
   helper_key =
       (flow_type == COMPARE_FLOW_LOGGED_TREE) ? "TREEDIFF/DIRDIFF" : "DIRDIFF";
   if (!String_HasNonWhitespace(helper)) {
-    UI_Message(ctx, "%s helper is not configured.*Set %s in ~/.ytree.",
+    UI_Message(ctx, "%s helper is not configured.*Set %s in ~/.ytnova.",
                UI_CompareFlowTypeName(flow_type), helper_key);
     return;
   }
@@ -656,7 +656,7 @@ void DirCompare_LaunchExternal(ViewContext *ctx, DirEntry *source_dir,
 
   if (Path_BuildCompareCommandLine(helper, source_path, target_path,
                                    command_line, sizeof(command_line)) != 0) {
-    UI_Message(ctx, "%s command is invalid or too long.*Check %s in ~/.ytree.",
+    UI_Message(ctx, "%s command is invalid or too long.*Check %s in ~/.ytnova.",
                helper_key, helper_key);
     return;
   }
@@ -682,7 +682,7 @@ void DirCompare_LaunchExternal(ViewContext *ctx, DirEntry *source_dir,
   close(start_dir_fd);
 
   if (result == -1) {
-    UI_Message(ctx, "Failed to launch compare helper.*Check %s in ~/.ytree.",
+    UI_Message(ctx, "Failed to launch compare helper.*Check %s in ~/.ytnova.",
                helper_key);
     return;
   }
@@ -694,7 +694,7 @@ void DirCompare_LaunchExternal(ViewContext *ctx, DirEntry *source_dir,
       String_GetCommandDisplayName(helper, command_name, sizeof(command_name));
       UI_Message(ctx,
                  "Compare helper not available:*\"%s\"*"
-                 "Install it or update %s in ~/.ytree.",
+                 "Install it or update %s in ~/.ytnova.",
                  command_name[0] ? command_name : helper, helper_key);
     }
   }

@@ -1,18 +1,18 @@
 /***************************************************************************
  *
- * ytree_appstate_actions.h
+ * ytnova_appstate_actions.h
  * Runtime AppState transition metadata for canonical actions.
  *
  ***************************************************************************/
 
-#ifndef YTREE_APPSTATE_ACTIONS_H
-#define YTREE_APPSTATE_ACTIONS_H
+#ifndef YTNOVA_APPSTATE_ACTIONS_H
+#define YTNOVA_APPSTATE_ACTIONS_H
 
-#include "ytree_defs.h"
+#include "ytnova_defs.h"
 #include <stddef.h>
 
 typedef struct {
-  YtreeAction action;
+  YtreeNovaAction action;
   const char *transition_id;
   const char *category;
 } AppStateActionTransitionMetadata;
@@ -57,7 +57,7 @@ typedef struct {
 } AppStateInvariantMetadata;
 
 const AppStateActionTransitionMetadata *
-AppStateActionTransitionLookup(YtreeAction action);
+AppStateActionTransitionLookup(YtreeNovaAction action);
 size_t AppStateActionTransitionCount(void);
 const AppStateTransitionMetadata *
 AppStateTransitionLookup(const char *transition_id);
@@ -73,4 +73,4 @@ AppStateInvariantLookup(const char *invariant_id);
 const AppStateInvariantMetadata *AppStateInvariantAt(size_t index);
 size_t AppStateInvariantCount(void);
 
-#endif /* YTREE_APPSTATE_ACTIONS_H */
+#endif /* YTNOVA_APPSTATE_ACTIONS_H */

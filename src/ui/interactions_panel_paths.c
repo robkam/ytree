@@ -6,17 +6,17 @@
  ***************************************************************************/
 
 #include "interactions_panel_paths.h"
-#include "ytree_fs.h"
+#include "ytnova_fs.h"
 #include <assert.h>
 
-YtreePanel *UI_GetInactivePanel(ViewContext *ctx) {
+YtreeNovaPanel *UI_GetInactivePanel(ViewContext *ctx) {
   if (!ctx || !ctx->is_split_screen || !ctx->active || !ctx->left ||
       !ctx->right)
     return NULL;
   return (ctx->active == ctx->left) ? ctx->right : ctx->left;
 }
 
-int UI_GetPanelSelectedDirPath(ViewContext *ctx, YtreePanel *panel,
+int UI_GetPanelSelectedDirPath(ViewContext *ctx, YtreeNovaPanel *panel,
                                    char *out_path) {
   DirEntry *dir_entry = NULL;
 
@@ -38,7 +38,7 @@ int UI_GetPanelSelectedDirPath(ViewContext *ctx, YtreePanel *panel,
   return 0;
 }
 
-int UI_GetPanelLoggedRootPath(YtreePanel *panel, char *out_path) {
+int UI_GetPanelLoggedRootPath(YtreeNovaPanel *panel, char *out_path) {
   if (!panel || !panel->vol || !panel->vol->vol_stats.tree || !out_path)
     return -1;
 
@@ -47,7 +47,7 @@ int UI_GetPanelLoggedRootPath(YtreePanel *panel, char *out_path) {
   return 0;
 }
 
-int UI_GetPanelSelectedFilePath(ViewContext *ctx, YtreePanel *panel,
+int UI_GetPanelSelectedFilePath(ViewContext *ctx, YtreeNovaPanel *panel,
                                     char *out_path) {
   const DirEntry *dir_entry = NULL;
   FileEntry *file_entry = NULL;

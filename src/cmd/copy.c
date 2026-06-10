@@ -5,8 +5,8 @@
  *
  ***************************************************************************/
 
-#include "ytree_cmd.h"
-#include "ytree_fs.h"
+#include "ytnova_cmd.h"
+#include "ytnova_fs.h"
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -368,7 +368,7 @@ int CopyFile(ViewContext *ctx, Statistic *statistic_ptr, FileEntry *fe_ptr,
           statistic_ptr->log_mode != USER_MODE) {
         int fd_tmp;
         int tmp_len = snprintf(extracted_path, sizeof(extracted_path),
-                               "/tmp/ytree_copy_XXXXXX");
+                               "/tmp/ytnova_copy_XXXXXX");
         if (tmp_len < 0 || (size_t)tmp_len >= sizeof(extracted_path)) {
           return -1;
         }

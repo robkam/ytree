@@ -1,5 +1,5 @@
-#include "ytree_cmd.h"
-#include "ytree_fs.h"
+#include "ytnova_cmd.h"
+#include "ytnova_fs.h"
 
 #include <stdarg.h>
 #include <stdio.h>
@@ -42,7 +42,7 @@ int SystemCall(ViewContext *ctx, const char *command_line, Statistic *s) {
 
 int main(int argc, char **argv) {
   ViewContext ctx;
-  YtreePanel panel;
+  YtreeNovaPanel panel;
   struct Volume vol;
   char dir_entry_storage[sizeof(DirEntry) + 2];
   DirEntry *dir_entry = (DirEntry *)dir_entry_storage;

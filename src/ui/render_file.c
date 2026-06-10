@@ -5,13 +5,13 @@
  *
  ***************************************************************************/
 
-#include "ytree_cmd.h"
-#include "ytree_ui.h"
+#include "ytnova_cmd.h"
+#include "ytnova_ui.h"
 
 #define MAX(a, b) (((a) > (b)) ? (a) : (b))
 
 static char GetTypeOfFile(struct stat fst);
-static int GetVisualFileEntryLength(ViewContext *ctx, YtreePanel *p);
+static int GetVisualFileEntryLength(ViewContext *ctx, YtreeNovaPanel *p);
 static void BuildFileRowLabel(char *buffer, size_t buffer_size,
                               const FileEntry *fe_ptr, char type_of_file);
 
@@ -30,7 +30,7 @@ static void AddClippedAtCursor(WINDOW *win, const char *text, int width) {
   waddnstr(win, text, remaining);
 }
 
-void SetFileRenderingMetrics(YtreePanel *p, unsigned max_filename,
+void SetFileRenderingMetrics(YtreeNovaPanel *p, unsigned max_filename,
                              unsigned max_linkname, unsigned max_userview) {
   if (!p)
     return;
@@ -42,25 +42,25 @@ void SetFileRenderingMetrics(YtreePanel *p, unsigned max_filename,
     p->max_visual_userview_len = max_userview;
 }
 
-void SetRenderSortOrder(YtreePanel *p, BOOL reverse) {
+void SetRenderSortOrder(YtreeNovaPanel *p, BOOL reverse) {
   if (!p)
     return;
   p->reverse_sort = reverse;
 }
 
-int GetPanelFileMode(const YtreePanel *p) {
+int GetPanelFileMode(const YtreeNovaPanel *p) {
   if (!p)
     return MODE_1;
   return p->file_mode;
 }
 
-int GetPanelMaxColumn(const YtreePanel *p) {
+int GetPanelMaxColumn(const YtreeNovaPanel *p) {
   if (!p)
     return 1;
   return p->max_column;
 }
 
-void SetPanelFileMode(ViewContext *ctx, YtreePanel *p, int new_file_mode) {
+void SetPanelFileMode(ViewContext *ctx, YtreeNovaPanel *p, int new_file_mode) {
   int width;
 
   if (!p)
@@ -89,7 +89,7 @@ void SetPanelFileMode(ViewContext *ctx, YtreePanel *p, int new_file_mode) {
     p->max_column = 1;
 }
 
-void RotatePanelFileMode(ViewContext *ctx, YtreePanel *p) {
+void RotatePanelFileMode(ViewContext *ctx, YtreeNovaPanel *p) {
   if (!p)
     return;
 
@@ -119,7 +119,7 @@ void RotatePanelFileMode(ViewContext *ctx, YtreePanel *p) {
   }
 }
 
-static int GetVisualFileEntryLength(ViewContext *ctx, YtreePanel *p) {
+static int GetVisualFileEntryLength(ViewContext *ctx, YtreeNovaPanel *p) {
   int filename_len = p->max_visual_filename_len;
   if (filename_len == 0 &&
       !strcmp((GetProfileValue)(ctx, "USERVIEW"), ""))
@@ -205,7 +205,7 @@ static void BuildFileRowLabel(char *buffer, size_t buffer_size,
   }
 }
 
-void PrintFileEntry(ViewContext *ctx, YtreePanel *panel, int entry_no, int y,
+void PrintFileEntry(ViewContext *ctx, YtreeNovaPanel *panel, int entry_no, int y,
                     int x, unsigned char hilight, int start_x, WINDOW *win) {
   char attributes[11];
 
@@ -712,7 +712,7 @@ void PrintFileEntry(ViewContext *ctx, YtreePanel *panel, int entry_no, int y,
   wattroff(win, COLOR_PAIR(base_color_pair));
 }
 
-void DisplayFiles(ViewContext *ctx, YtreePanel *panel, const DirEntry *de_ptr,
+void DisplayFiles(ViewContext *ctx, YtreeNovaPanel *panel, const DirEntry *de_ptr,
                   int start_file_no, int hilight_no, int start_x, WINDOW *win) {
   int x, y, p_x, p_y, j;
   BOOL show_empty_label;

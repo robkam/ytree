@@ -9,8 +9,8 @@ from helpers_ui import (
     footer_text as _footer_text,
     screen_text as _screen_text,
 )
-from tui_harness import YtreeTUI
-from ytree_keys import Keys
+from tui_harness import YtreeNovaTUI
+from ytnova_keys import Keys
 
 
 def _has_border_glyphs(tui):
@@ -48,7 +48,7 @@ def _configure_filediff_capture(tmp_dir, use_placeholders=False):
     if use_placeholders:
         filediff_cmd = f"{filediff_cmd} %1 %2"
 
-    (tmp_dir / ".ytree").write_text(
+    (tmp_dir / ".ytnova").write_text(
         f"[GLOBAL]\nFILEDIFF={filediff_cmd}\n",
         encoding="utf-8",
     )
@@ -65,7 +65,7 @@ def _configure_dirdiff_capture(tmp_dir):
     )
     helper_path.chmod(0o755)
 
-    (tmp_dir / ".ytree").write_text(
+    (tmp_dir / ".ytnova").write_text(
         f"[GLOBAL]\nDIRDIFF={helper_path}\nTREEDIFF={helper_path}\n",
         encoding="utf-8",
     )
@@ -82,7 +82,7 @@ def _configure_dirdiff_only_capture(tmp_dir):
     )
     helper_path.chmod(0o755)
 
-    (tmp_dir / ".ytree").write_text(
+    (tmp_dir / ".ytnova").write_text(
         f"[GLOBAL]\nDIRDIFF={helper_path}\n",
         encoding="utf-8",
     )
@@ -97,13 +97,13 @@ def _run_file_compare(tui, target=None, wait=0.5):
     tui.send_keystroke(Keys.ENTER, wait=0.35)  # HitReturnToContinue after helper exits
 
 
-def test_compare_footer_entries_by_view(ytree_binary, tmp_path):
+def test_compare_footer_entries_by_view(ytnova_binary, tmp_path):
     d = tmp_path / "compare_footer"
     d.mkdir()
     (d / "a.txt").write_text("a", encoding="utf-8")
     (d / "b.txt").write_text("b", encoding="utf-8")
 
-    tui = YtreeTUI(executable=ytree_binary, cwd=str(d))
+    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(d))
     time.sleep(0.5)
 
     tui.send_keystroke("J", wait=0.25)
@@ -122,12 +122,12 @@ def test_compare_footer_entries_by_view(ytree_binary, tmp_path):
     tui.quit()
 
 
-def test_c_opens_compare_submenu(ytree_binary, tmp_path):
+def test_c_opens_compare_submenu(ytnova_binary, tmp_path):
     d = tmp_path / "compare_submenu_open"
     d.mkdir()
     (d / "child").mkdir()
 
-    tui = YtreeTUI(executable=ytree_binary, cwd=str(d))
+    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(d))
     time.sleep(0.5)
 
     tui.send_keystroke("J", wait=0.25)
@@ -138,13 +138,13 @@ def test_c_opens_compare_submenu(ytree_binary, tmp_path):
     tui.quit()
 
 
-def test_compare_submenu_d_and_t_choices_prompt_expected_targets(ytree_binary, tmp_path):
+def test_compare_submenu_d_and_t_choices_prompt_expected_targets(ytnova_binary, tmp_path):
     d = tmp_path / "compare_submenu_choices"
     d.mkdir()
     (d / "left").mkdir()
     (d / "right").mkdir()
 
-    tui = YtreeTUI(executable=ytree_binary, cwd=str(d))
+    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(d))
     time.sleep(0.6)
 
     tui.send_keystroke("J", wait=0.2)
@@ -163,7 +163,7 @@ def test_compare_submenu_d_and_t_choices_prompt_expected_targets(ytree_binary, t
 
 
 def test_compare_submenu_x_launches_external_dirdiff_without_tag_prompt(
-    ytree_binary, tmp_path
+    ytnova_binary, tmp_path
 ):
     d = tmp_path / "compare_submenu_external"
     d.mkdir()
@@ -175,7 +175,7 @@ def test_compare_submenu_x_launches_external_dirdiff_without_tag_prompt(
     (beta / "b.txt").write_text("b", encoding="utf-8")
     log_path = _configure_dirdiff_capture(d)
 
-    tui = YtreeTUI(executable=ytree_binary, cwd=str(d))
+    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(d))
     time.sleep(0.6)
     tui.send_keystroke(Keys.DOWN, wait=0.2)  # alpha
 
@@ -205,7 +205,7 @@ def test_compare_submenu_x_launches_external_dirdiff_without_tag_prompt(
 
 
 def test_compare_submenu_x_t_launches_external_treediff_without_tag_prompt(
-    ytree_binary, tmp_path
+    ytnova_binary, tmp_path
 ):
     source_root = tmp_path / "compare_submenu_external_tree_source"
     target_root = tmp_path / "compare_submenu_external_tree_target"
@@ -215,7 +215,7 @@ def test_compare_submenu_x_t_launches_external_treediff_without_tag_prompt(
     (target_root / "left.txt").write_text("right", encoding="utf-8")
     log_path = _configure_dirdiff_capture(source_root)
 
-    tui = YtreeTUI(executable=ytree_binary, cwd=str(source_root))
+    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(source_root))
     time.sleep(0.6)
 
     tui.send_keystroke("J", wait=0.2)
@@ -243,7 +243,7 @@ def test_compare_submenu_x_t_launches_external_treediff_without_tag_prompt(
     tui.quit()
 
 
-def test_external_dirdiff_return_restores_full_ncurses_frame(ytree_binary, tmp_path):
+def test_external_dirdiff_return_restores_full_ncurses_frame(ytnova_binary, tmp_path):
     d = tmp_path / "compare_submenu_external_redraw"
     d.mkdir()
     alpha = d / "alpha"
@@ -252,12 +252,12 @@ def test_external_dirdiff_return_restores_full_ncurses_frame(ytree_binary, tmp_p
     beta.mkdir()
     (alpha / "only_left.txt").write_text("left\n", encoding="utf-8")
     (beta / "only_right.txt").write_text("right\n", encoding="utf-8")
-    (d / ".ytree").write_text(
+    (d / ".ytnova").write_text(
         "[GLOBAL]\nDIRDIFF=diff -ru\nTREEDIFF=diff -ru\n",
         encoding="utf-8",
     )
 
-    tui = YtreeTUI(executable=ytree_binary, cwd=str(d))
+    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(d))
     time.sleep(0.6)
     tui.send_keystroke(Keys.DOWN, wait=0.2)  # alpha
 
@@ -283,13 +283,13 @@ def test_external_dirdiff_return_restores_full_ncurses_frame(ytree_binary, tmp_p
     tui.quit()
 
 
-def test_non_f8_compare_target_prompting_for_file_dir_tree(ytree_binary, tmp_path):
+def test_non_f8_compare_target_prompting_for_file_dir_tree(ytnova_binary, tmp_path):
     d = tmp_path / "compare_non_f8_prompt"
     d.mkdir()
     (d / "file1.txt").write_text("x", encoding="utf-8")
     (d / "dir_a").mkdir()
 
-    tui = YtreeTUI(executable=ytree_binary, cwd=str(d))
+    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(d))
     time.sleep(0.5)
 
     tui.send_keystroke(Keys.ENTER, wait=0.4)
@@ -314,7 +314,7 @@ def test_non_f8_compare_target_prompting_for_file_dir_tree(ytree_binary, tmp_pat
     tui.quit()
 
 
-def test_compare_target_prompt_reuses_shared_edit_navigation_behavior(ytree_binary, tmp_path):
+def test_compare_target_prompt_reuses_shared_edit_navigation_behavior(ytnova_binary, tmp_path):
     d = tmp_path / "compare_prompt_history"
     d.mkdir()
     (d / "a.txt").write_text("a", encoding="utf-8")
@@ -323,7 +323,7 @@ def test_compare_target_prompt_reuses_shared_edit_navigation_behavior(ytree_bina
     (d / "remembered_target.txt").write_text("remembered", encoding="utf-8")
     log_path = _configure_filediff_capture(d)
 
-    tui = YtreeTUI(executable=ytree_binary, cwd=str(d))
+    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(d))
     time.sleep(0.5)
     tui.send_keystroke(Keys.ENTER, wait=0.4)
 
@@ -345,7 +345,7 @@ def test_compare_target_prompt_reuses_shared_edit_navigation_behavior(ytree_bina
     tui.quit()
 
 
-def test_f8_file_compare_uses_inactive_panel_default_target(ytree_binary, tmp_path):
+def test_f8_file_compare_uses_inactive_panel_default_target(ytnova_binary, tmp_path):
     d = tmp_path / "compare_f8_file_default"
     d.mkdir()
     left_dir = d / "left"
@@ -357,7 +357,7 @@ def test_f8_file_compare_uses_inactive_panel_default_target(ytree_binary, tmp_pa
     right_file.write_text("right", encoding="utf-8")
     log_path = _configure_filediff_capture(d)
 
-    tui = YtreeTUI(executable=ytree_binary, cwd=str(d))
+    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(d))
     time.sleep(0.7)
 
     tui.send_keystroke(Keys.DOWN, wait=0.2)
@@ -385,7 +385,7 @@ def test_f8_file_compare_uses_inactive_panel_default_target(ytree_binary, tmp_pa
     tui.quit()
 
 
-def test_file_compare_placeholder_expansion_passes_source_and_target(ytree_binary, tmp_path):
+def test_file_compare_placeholder_expansion_passes_source_and_target(ytnova_binary, tmp_path):
     d = tmp_path / "compare_placeholder_expansion"
     d.mkdir()
     source = d / "source.txt"
@@ -394,7 +394,7 @@ def test_file_compare_placeholder_expansion_passes_source_and_target(ytree_binar
     target.write_text("right", encoding="utf-8")
     log_path = _configure_filediff_capture(d, use_placeholders=True)
 
-    tui = YtreeTUI(executable=ytree_binary, cwd=str(d))
+    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(d))
     time.sleep(0.6)
     tui.send_keystroke(Keys.ENTER, wait=0.35)
     tui.send_keystroke("J", wait=0.25)
@@ -412,7 +412,7 @@ def test_file_compare_placeholder_expansion_passes_source_and_target(ytree_binar
 
 
 def test_log_then_cycle_back_preserves_file_selection_across_two_volumes(
-    ytree_binary, tmp_path
+    ytnova_binary, tmp_path
 ):
     root = tmp_path / "compare_two_volume_file_selection"
     root.mkdir()
@@ -430,8 +430,8 @@ def test_log_then_cycle_back_preserves_file_selection_across_two_volumes(
     compare_target.write_text("target\n", encoding="utf-8")
     log_path = _configure_filediff_capture(root)
 
-    tui = YtreeTUI(
-        executable=ytree_binary,
+    tui = YtreeNovaTUI(
+        executable=ytnova_binary,
         cwd=str(root),
         args=[str(vol_a), str(vol_b)],
     )
@@ -501,7 +501,7 @@ def test_log_then_cycle_back_preserves_file_selection_across_two_volumes(
     tui.quit()
 
 
-def test_f8_directory_compare_uses_inactive_panel_default_target(ytree_binary, tmp_path):
+def test_f8_directory_compare_uses_inactive_panel_default_target(ytnova_binary, tmp_path):
     d = tmp_path / "compare_f8_dir_default"
     d.mkdir()
     alpha = d / "alpha"
@@ -530,7 +530,7 @@ def test_f8_directory_compare_uses_inactive_panel_default_target(ytree_binary, t
     os.utime(alpha_diff, (newer_time, newer_time))
     os.utime(beta_diff, (newer_time, newer_time))
 
-    tui = YtreeTUI(executable=ytree_binary, cwd=str(d))
+    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(d))
     time.sleep(0.7)
 
     tui.send_keystroke(Keys.DOWN, wait=0.2)  # alpha
@@ -568,7 +568,7 @@ def test_f8_directory_compare_uses_inactive_panel_default_target(ytree_binary, t
     tui.quit()
 
 
-def test_f8_tree_compare_uses_inactive_panel_logged_root_default(ytree_binary, tmp_path):
+def test_f8_tree_compare_uses_inactive_panel_logged_root_default(ytnova_binary, tmp_path):
     main_root = tmp_path / "compare_f8_tree_main"
     other_root = tmp_path / "compare_f8_tree_other"
     main_root.mkdir()
@@ -578,7 +578,7 @@ def test_f8_tree_compare_uses_inactive_panel_logged_root_default(ytree_binary, t
     (main_root / "main_dir" / "tree_diff.txt").write_text("left-tree", encoding="utf-8")
     (other_root / "main_dir" / "tree_diff.txt").write_text("right-tree", encoding="utf-8")
 
-    tui = YtreeTUI(executable=ytree_binary, cwd=str(main_root))
+    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(main_root))
     time.sleep(0.8)
 
     tui.send_keystroke(Keys.F8, wait=0.4)
@@ -622,14 +622,14 @@ def test_f8_tree_compare_uses_inactive_panel_logged_root_default(ytree_binary, t
 
 
 def test_tree_compare_logged_only_relative_path_and_skipped_unlogged_reporting(
-    ytree_binary, tmp_path
+    ytnova_binary, tmp_path
 ):
     source_root = tmp_path / "compare_tree_logged_only_source"
     target_root = tmp_path / "compare_tree_logged_only_target"
     source_root.mkdir()
     target_root.mkdir()
-    (source_root / ".ytree").write_text("[GLOBAL]\nTREEDEPTH=1\n", encoding="utf-8")
-    (target_root / ".ytree").write_text("[GLOBAL]\nTREEDEPTH=1\n", encoding="utf-8")
+    (source_root / ".ytnova").write_text("[GLOBAL]\nTREEDEPTH=1\n", encoding="utf-8")
+    (target_root / ".ytnova").write_text("[GLOBAL]\nTREEDEPTH=1\n", encoding="utf-8")
     (source_root / "top").mkdir()
     (target_root / "top").mkdir()
     (source_root / "top" / "deep").mkdir()
@@ -646,7 +646,7 @@ def test_tree_compare_logged_only_relative_path_and_skipped_unlogged_reporting(
     (source_root / "top" / "deep" / "unlogged_diff.txt").write_text("source", encoding="utf-8")
     (target_root / "top" / "deep" / "unlogged_diff.txt").write_text("target-change", encoding="utf-8")
 
-    tui = YtreeTUI(executable=ytree_binary, cwd=str(source_root))
+    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(source_root))
     time.sleep(0.8)
 
     tui.send_keystroke("J", wait=0.2)
@@ -673,12 +673,12 @@ def test_tree_compare_logged_only_relative_path_and_skipped_unlogged_reporting(
     tui.quit()
 
 
-def test_compare_flow_cancel_is_safe_and_footer_remains_clean(ytree_binary, tmp_path):
+def test_compare_flow_cancel_is_safe_and_footer_remains_clean(ytnova_binary, tmp_path):
     d = tmp_path / "compare_cancel_safety"
     d.mkdir()
     (d / "x").mkdir()
 
-    tui = YtreeTUI(executable=ytree_binary, cwd=str(d))
+    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(d))
     time.sleep(0.6)
 
     tui.send_keystroke("J", wait=0.2)
@@ -733,13 +733,13 @@ def test_compare_flow_cancel_is_safe_and_footer_remains_clean(ytree_binary, tmp_
     tui.quit()
 
 
-def test_file_compare_cancel_path_is_safe(ytree_binary, tmp_path):
+def test_file_compare_cancel_path_is_safe(ytnova_binary, tmp_path):
     d = tmp_path / "compare_file_cancel_safe"
     d.mkdir()
     (d / "alpha.txt").write_text("a", encoding="utf-8")
     log_path = _configure_filediff_capture(d)
 
-    tui = YtreeTUI(executable=ytree_binary, cwd=str(d))
+    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(d))
     time.sleep(0.5)
     tui.send_keystroke(Keys.ENTER, wait=0.35)
     tui.send_keystroke("J", wait=0.25)
@@ -751,13 +751,13 @@ def test_file_compare_cancel_path_is_safe(ytree_binary, tmp_path):
     tui.quit()
 
 
-def test_file_compare_rejects_same_file_target(ytree_binary, tmp_path):
+def test_file_compare_rejects_same_file_target(ytnova_binary, tmp_path):
     d = tmp_path / "compare_same_file_reject"
     d.mkdir()
     (d / "same.txt").write_text("x", encoding="utf-8")
     log_path = _configure_filediff_capture(d)
 
-    tui = YtreeTUI(executable=ytree_binary, cwd=str(d))
+    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(d))
     time.sleep(0.5)
     tui.send_keystroke(Keys.ENTER, wait=0.35)
     tui.send_keystroke("J", wait=0.25)
@@ -773,12 +773,12 @@ def test_file_compare_rejects_same_file_target(ytree_binary, tmp_path):
     tui.quit()
 
 
-def test_compare_prompt_labels_and_result_text(ytree_binary, tmp_path):
+def test_compare_prompt_labels_and_result_text(ytnova_binary, tmp_path):
     d = tmp_path / "compare_prompt_labels"
     d.mkdir()
     (d / "alpha").mkdir()
 
-    tui = YtreeTUI(executable=ytree_binary, cwd=str(d))
+    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(d))
     time.sleep(0.6)
 
     tui.send_keystroke("J", wait=0.2)
@@ -807,12 +807,12 @@ def test_compare_prompt_labels_and_result_text(ytree_binary, tmp_path):
     tui.quit()
 
 
-def test_compare_help_f1_open_close_and_prompt_restore(ytree_binary, tmp_path):
+def test_compare_help_f1_open_close_and_prompt_restore(ytnova_binary, tmp_path):
     d = tmp_path / "compare_help_cycle"
     d.mkdir()
     (d / "alpha").mkdir()
 
-    tui = YtreeTUI(executable=ytree_binary, cwd=str(d))
+    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(d))
     time.sleep(0.6)
 
     tui.send_keystroke("J", wait=0.2)
@@ -865,13 +865,13 @@ def test_compare_help_f1_open_close_and_prompt_restore(ytree_binary, tmp_path):
     tui.quit()
 
 
-def test_split_filemode_toggle_truncates_footer_without_wrapping(ytree_binary, tmp_path):
+def test_split_filemode_toggle_truncates_footer_without_wrapping(ytnova_binary, tmp_path):
     d = tmp_path / "split_footer_clip_filemode"
     d.mkdir()
     (d / "a.txt").write_text("a", encoding="utf-8")
     (d / "b.txt").write_text("b", encoding="utf-8")
 
-    tui = YtreeTUI(executable=ytree_binary, cwd=str(d))
+    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(d))
     time.sleep(0.6)
 
     tui.send_keystroke(Keys.ENTER, wait=0.4)
@@ -903,14 +903,14 @@ def test_split_filemode_toggle_truncates_footer_without_wrapping(ytree_binary, t
 
 
 def test_file_compare_target_help_is_file_specific_and_f2_browse_keeps_footer_clean(
-    ytree_binary, tmp_path
+    ytnova_binary, tmp_path
 ):
     d = tmp_path / "compare_file_target_help"
     d.mkdir()
     (d / "alpha.txt").write_text("a", encoding="utf-8")
     (d / "browse_here").mkdir()
 
-    tui = YtreeTUI(executable=ytree_binary, cwd=str(d))
+    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(d))
     time.sleep(0.6)
 
     tui.send_keystroke(Keys.ENTER, wait=0.3)
@@ -935,13 +935,13 @@ def test_file_compare_target_help_is_file_specific_and_f2_browse_keeps_footer_cl
     tui.quit()
 
 
-def test_file_view_ctrl_k_remains_tagged_copy(ytree_binary, tmp_path):
+def test_file_view_ctrl_k_remains_tagged_copy(ytnova_binary, tmp_path):
     d = tmp_path / "compare_ctrl_k"
     d.mkdir()
     (d / "f1.txt").write_text("x", encoding="utf-8")
     (d / "f2.txt").write_text("y", encoding="utf-8")
 
-    tui = YtreeTUI(executable=ytree_binary, cwd=str(d))
+    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(d))
     time.sleep(0.5)
     tui.send_keystroke(Keys.ENTER, wait=0.4)
 
@@ -956,7 +956,7 @@ def test_file_view_ctrl_k_remains_tagged_copy(ytree_binary, tmp_path):
 
 
 def test_file_compare_j_flow_uses_current_file_source_and_prompt_behavior(
-    ytree_binary, tmp_path
+    ytnova_binary, tmp_path
 ):
     d = tmp_path / "compare_j_current_file_source"
     d.mkdir()
@@ -968,7 +968,7 @@ def test_file_compare_j_flow_uses_current_file_source_and_prompt_behavior(
     target.write_text("target", encoding="utf-8")
     log_path = _configure_filediff_capture(d)
 
-    tui = YtreeTUI(executable=ytree_binary, cwd=str(d))
+    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(d))
     time.sleep(0.6)
     tui.send_keystroke(Keys.ENTER, wait=0.35)
     tui.send_keystroke(Keys.DOWN, wait=0.2)  # b_source.txt
@@ -991,7 +991,7 @@ def test_file_compare_j_flow_uses_current_file_source_and_prompt_behavior(
 
 
 def test_compare_submenu_x_t_falls_back_to_dirdiff_when_treediff_unset(
-    ytree_binary, tmp_path
+    ytnova_binary, tmp_path
 ):
     source_root = tmp_path / "compare_external_tree_fallback_source"
     target_root = tmp_path / "compare_external_tree_fallback_target"
@@ -1001,7 +1001,7 @@ def test_compare_submenu_x_t_falls_back_to_dirdiff_when_treediff_unset(
     (target_root / "left.txt").write_text("right", encoding="utf-8")
     log_path = _configure_dirdiff_only_capture(source_root)
 
-    tui = YtreeTUI(executable=ytree_binary, cwd=str(source_root))
+    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(source_root))
     time.sleep(0.6)
 
     tui.send_keystroke("J", wait=0.2)
@@ -1029,7 +1029,7 @@ def test_compare_submenu_x_t_falls_back_to_dirdiff_when_treediff_unset(
     tui.quit()
 
 
-def test_external_compare_launch_does_not_modify_file_tag_state(ytree_binary, tmp_path):
+def test_external_compare_launch_does_not_modify_file_tag_state(ytnova_binary, tmp_path):
     d = tmp_path / "compare_external_no_tag_mutation"
     d.mkdir()
     alpha = d / "alpha"
@@ -1043,7 +1043,7 @@ def test_external_compare_launch_does_not_modify_file_tag_state(ytree_binary, tm
     beta_diff.write_text("right", encoding="utf-8")
     log_path = _configure_dirdiff_capture(d)
 
-    tui = YtreeTUI(executable=ytree_binary, cwd=str(d))
+    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(d))
     time.sleep(0.6)
     tui.send_keystroke(Keys.DOWN, wait=0.2)  # alpha
 
@@ -1070,13 +1070,13 @@ def test_external_compare_launch_does_not_modify_file_tag_state(ytree_binary, tm
 
 
 def test_compare_help_close_with_f1_and_esc_returns_to_same_prompt(
-    ytree_binary, tmp_path
+    ytnova_binary, tmp_path
 ):
     d = tmp_path / "compare_help_f1_esc_roundtrip"
     d.mkdir()
     (d / "alpha").mkdir()
 
-    tui = YtreeTUI(executable=ytree_binary, cwd=str(d))
+    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(d))
     time.sleep(0.6)
 
     tui.send_keystroke("J", wait=0.2)

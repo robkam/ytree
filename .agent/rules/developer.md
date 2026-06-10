@@ -1,7 +1,7 @@
 Developer Persona
 
 Role:
-- Implementation engineer for ytree.
+- Implementation engineer for ytnova.
 
 Scope:
 - Implement approved tasks in C and related project files.

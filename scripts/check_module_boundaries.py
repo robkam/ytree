@@ -13,14 +13,14 @@ HEADER_LAYER = {
     "default_profile_template.h": "core",
     "sort.h": "core",
     "watcher.h": "fs",
-    "ytree.h": "core",
-    "ytree_appstate_actions.h": "core",
-    "ytree_cmd.h": "cmd",
-    "ytree_debug.h": "core",
-    "ytree_defs.h": "core",
-    "ytree_dialog.h": "ui",
-    "ytree_fs.h": "fs",
-    "ytree_ui.h": "ui",
+    "ytnova.h": "core",
+    "ytnova_appstate_actions.h": "core",
+    "ytnova_cmd.h": "cmd",
+    "ytnova_debug.h": "core",
+    "ytnova_defs.h": "core",
+    "ytnova_dialog.h": "ui",
+    "ytnova_fs.h": "fs",
+    "ytnova_ui.h": "ui",
 }
 
 # Target per-directory policy. New violations are blocked by default.

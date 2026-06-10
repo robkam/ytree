@@ -5,9 +5,9 @@
  *
  ***************************************************************************/
 
-#include "ytree_cmd.h"
-#include "ytree_fs.h"
-#include "ytree_ui.h"
+#include "ytnova_cmd.h"
+#include "ytnova_fs.h"
+#include "ytnova_ui.h"
 #include <errno.h>
 #include <stdlib.h>
 #include <string.h>
@@ -111,8 +111,8 @@ void FileCompare_LaunchExternal(ViewContext *ctx, FileEntry *source_file) {
   filediff = UI_GetCompareHelperCommand(ctx, COMPARE_FLOW_FILE);
   if (!String_HasNonWhitespace(filediff)) {
     UI_Message(ctx,
-               "FILEDIFF helper is not configured.*Set FILEDIFF in ~/.ytree "
-               "(or .ytree).");
+               "FILEDIFF helper is not configured.*Set FILEDIFF in ~/.ytnova "
+               "(or .ytnova).");
     return;
   }
 
@@ -166,7 +166,7 @@ void FileCompare_LaunchExternal(ViewContext *ctx, FileEntry *source_file) {
                                    command_line, sizeof(command_line)) != 0) {
     UI_Message(
         ctx,
-        "FILEDIFF command is invalid or too long.*Check FILEDIFF in ~/.ytree.");
+        "FILEDIFF command is invalid or too long.*Check FILEDIFF in ~/.ytnova.");
     return;
   }
 
@@ -193,7 +193,7 @@ void FileCompare_LaunchExternal(ViewContext *ctx, FileEntry *source_file) {
   if (result == -1) {
     UI_Message(
         ctx, "Failed to launch FILEDIFF helper.*Install/configure FILEDIFF in "
-             "~/.ytree.");
+             "~/.ytnova.");
     return;
   }
 
@@ -205,7 +205,7 @@ void FileCompare_LaunchExternal(ViewContext *ctx, FileEntry *source_file) {
                                    sizeof(command_name));
       UI_Message(ctx,
                  "FILEDIFF helper not available:*\"%s\"*"
-                 "Install it or update FILEDIFF in ~/.ytree.",
+                 "Install it or update FILEDIFF in ~/.ytnova.",
                  command_name[0] ? command_name : filediff);
     }
   }

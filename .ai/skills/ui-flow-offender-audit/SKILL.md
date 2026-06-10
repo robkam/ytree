@@ -1,6 +1,6 @@
 ---
 name: ui-flow-offender-audit
-description: Detect prompt-chain offenders in ytree UI flows and produce ranked compression plans that enforce the UX economy gate.
+description: Detect prompt-chain offenders in ytnova UI flows and produce ranked compression plans that enforce the UX economy gate.
 ---
 
 # UI Flow Offender Audit

@@ -1,11 +1,11 @@
 /***************************************************************************
  *
- * ytree_defs.h
+ * ytnova_defs.h
  * Global data structures and type definitions
  *
  ***************************************************************************/
-#ifndef YTREE_DEFS_H
-#define YTREE_DEFS_H
+#ifndef YTNOVA_DEFS_H
+#define YTNOVA_DEFS_H
 
 typedef struct _ViewContext ViewContext;
 
@@ -17,7 +17,7 @@ typedef struct _ViewContext ViewContext;
 #include <locale.h>
 #include <math.h>
 #include <stdio.h>
-#include "ytree_debug.h"
+#include "ytnova_debug.h"
 
 #ifdef XCURSES
 #include <xcurses.h>
@@ -209,8 +209,8 @@ typedef struct _ViewContext ViewContext;
 #define FILE_SEPARATOR_CHAR '/'
 #define FILE_SEPARATOR_STRING "/"
 #define TAGGED_SYMBOL '*'
-#define PROFILE_FILENAME ".ytree"
-#define HISTORY_FILENAME ".ytree-hst"
+#define PROFILE_FILENAME ".ytnova"
+#define HISTORY_FILENAME ".ytnova-hst"
 #define CLOCK_INTERVAL 1
 #define DEFAULT_FILE_SPEC "*"
 
@@ -388,7 +388,7 @@ typedef enum {
   ACTION_COMPARE_TREE,
   ACTION_EDIT_CONFIG,
   ACTION_USER_CMD
-} YtreeAction;
+} YtreeNovaAction;
 
 typedef enum { FOCUS_TREE, FOCUS_FILE } ViewFocus;
 
@@ -495,7 +495,7 @@ typedef struct {
   int prompt_y;
   int status_y;
   int bottom_border_y;
-} YtreeLayout;
+} YtreeNovaLayout;
 
 #ifdef HAVE_LIBARCHIVE
 #define AR_KEEP 0
@@ -575,7 +575,7 @@ typedef struct {
   int bg;
 } UIColor;
 
-extern volatile sig_atomic_t ytree_shutdown_flag;
+extern volatile sig_atomic_t ytnova_shutdown_flag;
 
 typedef struct _file_color_rule {
   char *pattern;
@@ -688,8 +688,8 @@ typedef union {
     BOOL confirm;
     int dir_create_mode;
     int overwrite_mode;
-    void *conflict_cb; /* ConflictCallback from ytree_cmd.h */
-    void *choice_cb;   /* ChoiceCallback from ytree_cmd.h */
+    void *conflict_cb; /* ConflictCallback from ytnova_cmd.h */
+    void *choice_cb;   /* ChoiceCallback from ytnova_cmd.h */
   } copy;
   struct {
     char *new_name;
@@ -702,8 +702,8 @@ typedef union {
     BOOL confirm;
     int dir_create_mode;
     int overwrite_mode;
-    void *conflict_cb; /* ConflictCallback from ytree_cmd.h */
-    void *choice_cb;   /* ChoiceCallback from ytree_cmd.h */
+    void *conflict_cb; /* ConflictCallback from ytnova_cmd.h */
+    void *choice_cb;   /* ChoiceCallback from ytnova_cmd.h */
   } mv;
   struct {
     FILE *pipe_file;
@@ -755,7 +755,7 @@ typedef struct {
 } ArchivePayload;
 
 typedef struct {
-#ifdef YTREE_TUI
+#ifdef YTNOVA_TUI
   WINDOW *pan_dir_window;
   WINDOW *pan_small_file_window;
   WINDOW *pan_big_file_window;
@@ -794,7 +794,7 @@ typedef struct {
   unsigned int max_visual_userview_len;
   BOOL reverse_sort;
   BOOL hide_dot_files; /* Panel-local visibility; ViewContext keeps the active mirror. */
-} YtreePanel;
+} YtreeNovaPanel;
 
 typedef struct _history {
   char *hst;
@@ -867,7 +867,7 @@ typedef struct {
   void (*start_colors)(ViewContext *ctx);
   void (*dialog_init)(void);
   void (*reinit_color_pairs)(ViewContext *ctx);
-  void (*set_panel_file_mode)(ViewContext *ctx, YtreePanel *panel,
+  void (*set_panel_file_mode)(ViewContext *ctx, YtreeNovaPanel *panel,
                               int new_file_mode);
   void (*wbkgd_set)(const ViewContext *ctx, WINDOW *win, chtype c);
   int (*ui_notice)(ViewContext *ctx, const char *msg);
@@ -883,7 +883,7 @@ typedef struct {
               const char *history_file);
   void (*set_profile_value)(const ViewContext *ctx, char *name,
                             const char *value);
-  int (*log_disk)(ViewContext *ctx, YtreePanel *panel, char *path);
+  int (*log_disk)(ViewContext *ctx, YtreeNovaPanel *panel, char *path);
   int (*set_filter)(const char *filter_spec, Statistic *s);
   void (*recalculate_sys_stats)(ViewContext *ctx, Statistic *s);
   int (*handle_dir_window)(ViewContext *ctx, const DirEntry *start_dir_entry);
@@ -935,7 +935,7 @@ extern void FreeProfileRuntimeData(ViewContext *ctx);
 extern void ReadHistory(ViewContext *ctx, const char *Filename);
 extern int ReadPasswdEntries(void);
 extern int ReadGroupEntries(void);
-extern void SetPanelFileMode(ViewContext *ctx, YtreePanel *p,
+extern void SetPanelFileMode(ViewContext *ctx, YtreeNovaPanel *p,
                              int new_file_mode);
 extern void InitClock(ViewContext *ctx);
 extern struct Volume *Volume_Create(ViewContext *ctx);
@@ -957,10 +957,10 @@ typedef struct _ViewContext {
   WINDOW *ctx_matches_window;
   WINDOW *ctx_f2_window;
 
-  YtreePanel *left;
-  YtreePanel *right;
-  YtreePanel *active;
-  YtreeLayout layout;
+  YtreeNovaPanel *left;
+  YtreeNovaPanel *right;
+  YtreeNovaPanel *active;
+  YtreeNovaLayout layout;
 
   int view_mode;
   int dir_mode;
@@ -971,7 +971,7 @@ typedef struct _ViewContext {
   int refresh_mode;
   ViewFocus focused_window;
   ViewFocus preview_entry_focus;
-  YtreePanel *preview_return_panel;
+  YtreeNovaPanel *preview_return_panel;
   ViewFocus preview_return_focus;
 
   ViewerState viewer;
@@ -1056,7 +1056,7 @@ typedef struct _ViewContext {
   void (*hook_switch_to_small_file_window)(ViewContext *ctx);
   void (*hook_clear_help)(ViewContext *ctx);
   int (*hook_mv_add_str)(int y, int x, char *str);
-  int (*hook_read_string)(ViewContext *ctx, YtreePanel *panel,
+  int (*hook_read_string)(ViewContext *ctx, YtreeNovaPanel *panel,
                           const char *prompt, char *buffer, int max_len,
                           int history_type);
   void (*hook_recreate_windows)(ViewContext *ctx);
@@ -1104,4 +1104,4 @@ typedef struct _ViewContext {
 
 } ViewContext;
 
-#endif /* YTREE_DEFS_H */
+#endif /* YTNOVA_DEFS_H */

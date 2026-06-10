@@ -5,7 +5,7 @@
  *
  ***************************************************************************/
 
-#include "ytree_defs.h"
+#include "ytnova_defs.h"
 #include <libgen.h>
 #include <errno.h>
 #include <stdio.h>
@@ -602,7 +602,7 @@ void Fnsplit(char *path, char *dir, char *name) {
   if (len >= PATH_LENGTH) {
     strncpy(name, bname, PATH_LENGTH - 1);
     name[PATH_LENGTH - 1] = '\0';
-    fprintf(stderr, "ytree: warning: filename too long, truncating: %s\n",
+    fprintf(stderr, "ytnova: warning: filename too long, truncating: %s\n",
             processed_path);
   } else {
     (void)snprintf(name, PATH_LENGTH + 1, "%s", bname);

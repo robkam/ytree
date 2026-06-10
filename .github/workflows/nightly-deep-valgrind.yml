@@ -13,7 +13,7 @@ concurrency:
 jobs:
   deep-valgrind:
     name: Deep scripted Valgrind gate (qa-valgrind-full)
-    if: github.repository == 'robkam/ytree'
+    if: github.repository == 'robkam/ytreenova'
     runs-on: ubuntu-latest
     timeout-minutes: 90
 

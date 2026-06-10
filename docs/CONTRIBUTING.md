@@ -1,5 +1,5 @@
-# **Contributing to ytree**
-> Thank you for your interest in contributing to ytree! This document provides guidelines for setting up your development environment, running tests, and submitting your changes.
+# **Contributing to ytnova**
+> Thank you for your interest in contributing to ytnova! This document provides guidelines for setting up your development environment, running tests, and submitting your changes.
 >
 > See **[ARCHITECTURE.md](ARCHITECTURE.md)** for technical design principles (how the code is built).
 > See **[SPECIFICATION.md](SPECIFICATION.md)** for behavioral requirements (how the UI behaves).
@@ -106,7 +106,7 @@ This installs a tracked pre-push gate:
 - Pushes with codebase changes (`src/`, `include/`, `tests/`, `scripts/`, `.githooks/`, `Makefile`): run `make qa-code-quality`.
 - Pushes that also update `main` run `make ci-baseline` after `qa-code-quality`.
 - Pushes without codebase changes (for example docs-only updates): skip the local pre-push quality gate.
-- Set `YTREE_PRE_PUSH_FORCE=1` to force `make qa-code-quality`.
+- Set `YTNOVA_PRE_PUSH_FORCE=1` to force `make qa-code-quality`.
 
 `make hooks-install` also installs repo-local git aliases so fast push is available as native git subcommands in this clone:
 - `git push-fast-up` -> fast push with `-u origin <current-branch>` for first push of a new branch.
@@ -220,7 +220,7 @@ Use **[AUDIT.md](AUDIT.md)** as the single source of truth.
 - Full local QA gate (optional unless maintainer-requested): `make qa-all` (includes `pytest`, unsafe C API guard, module-boundary guard, and fuzz smoke)
 - Split panel regression gate (use when touching split-panel invariants, transition handoff, or split-authority code): `make qa-split-panel-gates`
 - Full local QA gate with captured log (optional unless maintainer-requested): `make qa-all-log` (writes `qa-all.log` in repo root; override with `QA_LOG=/path/to/file`)
-- Max-depth unattended QA sweep: `make qa-deep` (runs composite deep checks and writes structured logs to `${TMPDIR:-/tmp}/ytree-qa-deep/<timestamp>/`; override with `QA_DEEP_LOG_ROOT=/path`)
+- Max-depth unattended QA sweep: `make qa-deep` (runs composite deep checks and writes structured logs to `${TMPDIR:-/tmp}/ytnova-qa-deep/<timestamp>/`; override with `QA_DEEP_LOG_ROOT=/path`)
 - Optional strict mode: `make QA_ON_BUILD=1` (runs `qa-all` after build)
 - GitHub baseline CI (`.github/workflows/ci.yml`) runs `make ci-baseline` on PRs to `main` and pushes to `main`.
 - GitHub split panel regression CI (`.github/workflows/ci.yml`) runs `make qa-split-panel-gates` on PRs that touch split-panel paths.
@@ -233,7 +233,7 @@ Individual gates:
 - `make qa-clang`
 - `make qa-cppcheck`
 - `make qa-scan`
-- `make qa-valgrind` (non-interactive Valgrind smoke on `ytree --version`)
+- `make qa-valgrind` (non-interactive Valgrind smoke on `ytnova --version`)
 - `make qa-valgrind-interactive` (manual interactive Valgrind session)
 - `make qa-valgrind-full` (scripted deep Valgrind session)
 - `make qa-pytest`
@@ -269,7 +269,7 @@ The project enforces strict architectural constraints (single-threaded event loo
     - `docs(ai): clarify planner/executor packet handoff rules`
     - `test(pytest): add regression for split-panel redraw ordering`
 4.  **Push your branch** to your fork (`git push origin feature/my-new-feature`).
-5.  **Open a Pull Request** against the `main` branch of the upstream ytree repository.
+5.  **Open a Pull Request** against the `main` branch of the upstream ytnova repository.
 
 ### Bugfix Gate (Red -> Green)
 

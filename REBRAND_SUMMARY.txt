@@ -1,0 +1,43 @@
+YtreeNova rebrand summary
+=========================
+
+Changed project branding from Ytree to YtreeNova while keeping the CLI/manpage
+name as ytnova/ytnova(1).
+
+Key changes:
+- Build output is now build/ytnova and the generated manpage is build/ytnova.1.
+- Manpage source moved to etc/ytnova.1.md; docs/USAGE.md was regenerated from it.
+- Default runtime files now use the clean YtreeNova names:
+  - ~/.ytnova
+  - ~/.ytnova-hst
+  - ~/.ytnova-<pid>.chdir
+- Default profile source moved to etc/ytnova.conf and generated template text now names YtreeNova/ytnova.
+- Public docs, AI/tooling docs, tests, scripts, workflows, issue links, and build/install instructions now point to YtreeNova/ytnova and the ytreenova repository slug.
+- Header/test helper filenames were renamed from ytree* to ytnova* where they represent project-local interfaces.
+- Historical references to the upstream original Ytree project were intentionally preserved in README, AUTHORS, and the manpage.
+
+Compatibility notes:
+- Legacy ~/.ytree, ~/.ytree-hst, and ~/.ytree-<pid>.chdir are not used after this rebrand; this is an intentional clean separation.
+- No ytree command wrapper/symlink was added; the executable is ytnova.
+- GitHub redirects from the old repository URL currently resolve to https://github.com/robkam/ytreenova.
+
+Validation performed:
+- make docs
+- source .venv/bin/activate && make clean && make
+- source .venv/bin/activate && make qa-code-quality
+- source .venv/bin/activate && pytest -q tests/test_project_ai_config_guard.py tests/test_cli_version_flags.py tests/test_panel_isolation.py::test_enter_repo_src_preserves_tree_viewport_anchor tests/test_panel_isolation.py::test_enter_repo_src_cmd_preserves_tree_viewport_anchor
+- source .venv/bin/activate && pytest -q
+  - First full run exposed one timing-sensitive F10 config test failure; that test passed when rerun alone and with its neighboring F10 test.
+  - A second full run passed: 557 passed in 1499.88s.
+
+Completed repo/remote/local rename steps:
+- Renamed GitHub repository robkam/ytree to robkam/ytreenova with gh API.
+- Updated local origin to https://github.com/robkam/ytreenova.git.
+- Verified remote fetch with git ls-remote --heads origin main.
+- Verified dry-run push to origin (no actual push performed before this PR branch).
+- Renamed local checkout directory from /home/rob/ytree to /home/rob/ytreenova.
+- Updated .codex/config.toml to /home/rob/ytreenova/.ai/codex.md after the directory existed.
+
+Remaining manual steps:
+- If you have shell aliases, wrappers, bookmarks, or editor workspace paths pointing at /home/rob/ytree or the ytree command, update them manually.
+- If any external CI/secrets/integrations reference robkam/ytree explicitly, update them to robkam/ytreenova.

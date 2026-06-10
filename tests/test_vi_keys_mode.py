@@ -2,23 +2,23 @@ import time
 
 import pytest
 
-from tui_harness import YtreeTUI
-from ytree_keys import Keys
+from tui_harness import YtreeNovaTUI
+from ytnova_keys import Keys
 
 
 @pytest.fixture
 def vi_mode_test_dir(tmp_path):
     root = tmp_path / "vi_mode_keys"
     root.mkdir()
-    (root / ".ytree").write_text("[GLOBAL]\nVI_KEYS=1\n", encoding="utf-8")
+    (root / ".ytnova").write_text("[GLOBAL]\nVI_KEYS=1\n", encoding="utf-8")
     (root / "a.txt").write_text("a", encoding="utf-8")
     (root / "b.txt").write_text("b", encoding="utf-8")
     (root / "c.txt").write_text("c", encoding="utf-8")
     return root
 
 
-def test_vi_uppercase_u_untags_all(ytree_binary, vi_mode_test_dir):
-    tui = YtreeTUI(executable=ytree_binary, cwd=str(vi_mode_test_dir))
+def test_vi_uppercase_u_untags_all(ytnova_binary, vi_mode_test_dir):
+    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(vi_mode_test_dir))
     time.sleep(1.0)
 
     tui.send_keystroke(Keys.ENTER)
@@ -43,8 +43,8 @@ def test_vi_uppercase_u_untags_all(ytree_binary, vi_mode_test_dir):
     tui.quit()
 
 
-def test_vi_uppercase_d_deletes_tagged(ytree_binary, vi_mode_test_dir):
-    tui = YtreeTUI(executable=ytree_binary, cwd=str(vi_mode_test_dir))
+def test_vi_uppercase_d_deletes_tagged(ytnova_binary, vi_mode_test_dir):
+    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(vi_mode_test_dir))
     time.sleep(1.0)
 
     tui.send_keystroke(Keys.ENTER)

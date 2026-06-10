@@ -1,6 +1,6 @@
 import pytest
-from tui_harness import YtreeTUI
-from ytree_keys import Keys
+from tui_harness import YtreeNovaTUI
+from ytnova_keys import Keys
 
 
 VERTICAL_CHARS = {"x", "|"}
@@ -69,11 +69,11 @@ def _detect_preview_separator_column(lines):
     return best_col, counts
 
 
-def _launch_preview(ytree_binary, sandbox_info):
+def _launch_preview(ytnova_binary, sandbox_info):
     """
     Enter F7 preview from tree mode using project-standard keystrokes.
     """
-    tui = YtreeTUI(executable=ytree_binary, cwd=str(sandbox_info["root"]))
+    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(sandbox_info["root"]))
 
     tui.send_keystroke(Keys.EXPAND_ALL, wait=0.25)
     tui.send_keystroke(Keys.DOWN, wait=0.25)
@@ -92,12 +92,12 @@ def _launch_preview(ytree_binary, sandbox_info):
     return tui
 
 
-def test_f7_vertical_separator_visibility(f7_preview_sandbox, ytree_binary):
+def test_f7_vertical_separator_visibility(f7_preview_sandbox, ytnova_binary):
     """
     Required test 1:
     The interior divider between file list and preview pane must remain visible.
     """
-    tui = _launch_preview(ytree_binary, f7_preview_sandbox)
+    tui = _launch_preview(ytnova_binary, f7_preview_sandbox)
     lines = tui.get_screen_dump()
 
     separator_col, counts = _detect_preview_separator_column(lines)
@@ -112,12 +112,12 @@ def test_f7_vertical_separator_visibility(f7_preview_sandbox, ytree_binary):
     tui.quit()
 
 
-def test_f7_footer_menu_persistence(f7_preview_sandbox, ytree_binary):
+def test_f7_footer_menu_persistence(f7_preview_sandbox, ytnova_binary):
     """
     Required test 2:
     Footer command help must remain visible in preview mode.
     """
-    tui = _launch_preview(ytree_binary, f7_preview_sandbox)
+    tui = _launch_preview(ytnova_binary, f7_preview_sandbox)
     lines = tui.get_screen_dump()
     footer = "\n".join(lines[-3:]).upper()
 
@@ -132,13 +132,13 @@ def test_f7_footer_menu_persistence(f7_preview_sandbox, ytree_binary):
     tui.quit()
 
 
-def test_f7_modal_input_blocking(f7_preview_sandbox, ytree_binary):
+def test_f7_modal_input_blocking(f7_preview_sandbox, ytnova_binary):
     """
     Required test 3:
     Preview acts as a modal state. F8, Attribute, and Copy should not trigger
     their normal actions while preview is active.
     """
-    tui = _launch_preview(ytree_binary, f7_preview_sandbox)
+    tui = _launch_preview(ytnova_binary, f7_preview_sandbox)
 
     tui.send_keystroke(Keys.F8, wait=0.25)
     tui.send_keystroke(Keys.ATTRIBUTE, wait=0.25)
@@ -172,12 +172,12 @@ def test_f7_modal_input_blocking(f7_preview_sandbox, ytree_binary):
     tui.quit()
 
 
-def test_f7_file_name_clipping_at_boundaries(f7_preview_sandbox, ytree_binary):
+def test_f7_file_name_clipping_at_boundaries(f7_preview_sandbox, ytnova_binary):
     """
     Required test 4:
     Very long filenames must be clipped to the file-list pane boundary.
     """
-    tui = _launch_preview(ytree_binary, f7_preview_sandbox)
+    tui = _launch_preview(ytnova_binary, f7_preview_sandbox)
     lines = tui.get_screen_dump()
     screen = _screen_text(lines)
 
@@ -238,12 +238,12 @@ def test_f7_file_name_clipping_at_boundaries(f7_preview_sandbox, ytree_binary):
     tui.quit()
 
 
-def test_f7_window_border_integrity(f7_preview_sandbox, ytree_binary):
+def test_f7_window_border_integrity(f7_preview_sandbox, ytnova_binary):
     """
     Required test 5:
     Outer window frame must remain intact with no gaps while in preview.
     """
-    tui = _launch_preview(ytree_binary, f7_preview_sandbox)
+    tui = _launch_preview(ytnova_binary, f7_preview_sandbox)
     lines = tui.get_screen_dump()
     width = len(lines[0])
 

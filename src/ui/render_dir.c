@@ -5,10 +5,10 @@
  *
  ***************************************************************************/
 
-#include "ytree_cmd.h"
-#include "ytree_ui.h"
+#include "ytnova_cmd.h"
+#include "ytnova_ui.h"
 
-static const YtreePanel *ResolveDirRenderPanel(const ViewContext *ctx,
+static const YtreeNovaPanel *ResolveDirRenderPanel(const ViewContext *ctx,
                                                const struct Volume *vol,
                                                const WINDOW *win) {
   if (!ctx || !vol || !win)
@@ -291,7 +291,7 @@ void DisplayTree(ViewContext *ctx, struct Volume *vol, WINDOW *win,
   int i, y;
   int list_idx;
   int height;
-  const YtreePanel *panel;
+  const YtreeNovaPanel *panel;
 
   if (!ctx || !vol || !win)
     return;

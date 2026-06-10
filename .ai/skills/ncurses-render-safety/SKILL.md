@@ -1,6 +1,6 @@
 ---
 name: ncurses-render-safety
-description: Apply safe ncurses rendering patterns in ytree to prevent flicker, color bleed, and redraw regressions.
+description: Apply safe ncurses rendering patterns in ytnova to prevent flicker, color bleed, and redraw regressions.
 ---
 
 # Ncurses Render Safety

@@ -7,9 +7,9 @@
 
 #include "sort.h"
 #include "watcher.h"
-#include "ytree_cmd.h"
-#include "ytree_fs.h"
-#include "ytree_ui.h"
+#include "ytnova_cmd.h"
+#include "ytnova_fs.h"
+#include "ytnova_ui.h"
 #include "interactions_panel_paths.h"
 #include <ctype.h>
 #include <dirent.h>
@@ -136,7 +136,7 @@ int GetMoveParameter(ViewContext *ctx, const char *from_file, char *to_file,
     move_prompt_as[PATH_LENGTH] = '\0';
 
     if (ctx->is_split_screen && ctx->active) {
-      YtreePanel *target = (ctx->active == ctx->left) ? ctx->right : ctx->left;
+      YtreeNovaPanel *target = (ctx->active == ctx->left) ? ctx->right : ctx->left;
       if (target && target->vol && target->vol->total_dirs > 0) {
         int idx = target->disp_begin_pos + target->cursor_pos;
         /* Safety bounds check */
@@ -185,7 +185,7 @@ int GetCopyParameter(ViewContext *ctx, const char *from_file, BOOL path_copy,
   if (UI_ReadString(ctx, ctx->active, prompt_header, to_file, PATH_LENGTH,
                     HST_FILE) == CR) {
     if (ctx->is_split_screen && ctx->active) {
-      YtreePanel *target = (ctx->active == ctx->left) ? ctx->right : ctx->left;
+      YtreeNovaPanel *target = (ctx->active == ctx->left) ? ctx->right : ctx->left;
       if (target && target->vol && target->vol->total_dirs > 0) {
         int idx = target->disp_begin_pos + target->cursor_pos;
         /* Safety bounds check */

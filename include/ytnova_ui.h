@@ -1,15 +1,15 @@
 /***************************************************************************
  *
- * ytree_ui.h
+ * ytnova_ui.h
  * User Interface (Ncurses) rendering and input handling
  *
  ***************************************************************************/
 
-#ifndef YTREE_UI_H
-#define YTREE_UI_H
+#ifndef YTNOVA_UI_H
+#define YTNOVA_UI_H
 
-#include "ytree_defs.h"
-#include "ytree_dialog.h"
+#include "ytnova_defs.h"
+#include "ytnova_dialog.h"
 
 #ifdef WITH_UTF8
 /* In UTF-8 mode, let ncurses handle bytes directly. */
@@ -88,10 +88,10 @@ extern int GetFileTypeColor(const ViewContext *ctx, const FileEntry *fe_ptr);
 
 /* dirwin.c */
 extern int HandleDirWindow(ViewContext *ctx, const DirEntry *start_dir_entry);
-extern int KeyF2Get(ViewContext *ctx, YtreePanel *panel, char *path);
-extern int RefreshDirWindow(ViewContext *ctx, YtreePanel *p);
+extern int KeyF2Get(ViewContext *ctx, YtreeNovaPanel *panel, char *path);
+extern int RefreshDirWindow(ViewContext *ctx, YtreeNovaPanel *p);
 extern int ScanSubTree(ViewContext *ctx, DirEntry *dir_entry, Statistic *s);
-extern void ToggleDotFiles(ViewContext *ctx, YtreePanel *p);
+extern void ToggleDotFiles(ViewContext *ctx, YtreeNovaPanel *p);
 extern BOOL HandleDirMakeFile(ViewContext *ctx, DirEntry *dir_entry);
 extern void HandleDirMakeDirectory(ViewContext *ctx, DirEntry *dir_entry,
                                    Statistic *s);
@@ -100,38 +100,38 @@ extern DirEntry *HandleDirDeleteDirectory(ViewContext *ctx,
 extern DirEntry *HandleDirRenameDirectory(ViewContext *ctx,
                                           DirEntry *dir_entry);
 extern DirEntry *GetSelectedDirEntry(const ViewContext *ctx, struct Volume *vol);
-extern DirEntry *GetPanelDirEntry(YtreePanel *p);
-extern int GetPanelVisibleSelectionIndex(const YtreePanel *p);
+extern DirEntry *GetPanelDirEntry(YtreeNovaPanel *p);
+extern int GetPanelVisibleSelectionIndex(const YtreeNovaPanel *p);
 extern void BuildDirEntryList(ViewContext *ctx, struct Volume *vol,
                               int *index_ptr);
-extern BOOL PanelDirIsVisible(const YtreePanel *panel, const DirEntry *dir_entry);
-extern int PanelFindNextVisibleDirIndex(const YtreePanel *panel, int start_idx,
+extern BOOL PanelDirIsVisible(const YtreeNovaPanel *panel, const DirEntry *dir_entry);
+extern int PanelFindNextVisibleDirIndex(const YtreeNovaPanel *panel, int start_idx,
                                         int direction);
-extern int PanelFindFirstVisibleDirIndex(const YtreePanel *panel);
-extern int PanelFindLastVisibleDirIndex(const YtreePanel *panel);
-extern BOOL PanelComputeViewportPosition(const YtreePanel *panel,
+extern int PanelFindFirstVisibleDirIndex(const YtreeNovaPanel *panel);
+extern int PanelFindLastVisibleDirIndex(const YtreeNovaPanel *panel);
+extern BOOL PanelComputeViewportPosition(const YtreeNovaPanel *panel,
                                          int target_idx, int height,
                                          int *begin_io, int *cursor_io);
 extern void FreeDirEntryList(ViewContext *ctx);
 extern void FreeVolumeCache(struct Volume *vol);
-extern DirEntry *RefreshTreeSafe(ViewContext *ctx, YtreePanel *p,
+extern DirEntry *RefreshTreeSafe(ViewContext *ctx, YtreeNovaPanel *p,
                                  DirEntry *entry);
 extern void DirOps_ReloadPanelFileAnchorIfMissing(ViewContext *ctx,
-                                                  YtreePanel *panel,
+                                                  YtreeNovaPanel *panel,
                                                   DirEntry *dir_entry);
 extern DirEntry *RestorePanelFileSelection(ViewContext *ctx, DirEntry *dir_entry,
-                                           YtreePanel *panel);
-extern void PanelTags_Clear(YtreePanel *panel);
-extern void PanelTags_Copy(YtreePanel *dst, const YtreePanel *src);
-extern void PanelTags_PruneUnderDir(YtreePanel *panel, DirEntry *dir_entry);
-extern BOOL PanelTags_FileIsTagged(const YtreePanel *panel,
+                                           YtreeNovaPanel *panel);
+extern void PanelTags_Clear(YtreeNovaPanel *panel);
+extern void PanelTags_Copy(YtreeNovaPanel *dst, const YtreeNovaPanel *src);
+extern void PanelTags_PruneUnderDir(YtreeNovaPanel *panel, DirEntry *dir_entry);
+extern BOOL PanelTags_FileIsTagged(const YtreeNovaPanel *panel,
                                    FileEntry *file_entry);
-extern void PanelTags_RecordFileState(YtreePanel *panel, FileEntry *file_entry,
+extern void PanelTags_RecordFileState(YtreeNovaPanel *panel, FileEntry *file_entry,
                                       BOOL tagged);
-extern void PanelTags_ApplyToTree(ViewContext *ctx, YtreePanel *panel);
-extern void PanelTags_Restore(ViewContext *ctx, YtreePanel *panel);
+extern void PanelTags_ApplyToTree(ViewContext *ctx, YtreeNovaPanel *panel);
+extern void PanelTags_Restore(ViewContext *ctx, YtreeNovaPanel *panel);
 extern BOOL DirOps_SelectVisibleDirAndRefresh(ViewContext *ctx,
-                                              YtreePanel *panel,
+                                              YtreeNovaPanel *panel,
                                               const DirEntry *target,
                                               DirEntry **dir_entry_ptr);
 extern DirEntry *DirOps_FindDirEntryByPath(const ViewContext *ctx,
@@ -161,7 +161,7 @@ extern void SwitchToBigFileWindow(ViewContext *ctx);
 extern void SwitchToSmallFileWindow(ViewContext *ctx);
 extern void UnmapF2Window(ViewContext *ctx);
 extern void DisplayHeaderPath(ViewContext *ctx, const char *path);
-extern void RenderInactivePanel(ViewContext *ctx, YtreePanel *panel);
+extern void RenderInactivePanel(ViewContext *ctx, YtreeNovaPanel *panel);
 extern void RefreshView(ViewContext *ctx, DirEntry *dir_entry);
 extern void DisplayPreviewHelp(ViewContext *ctx);
 extern void DisplayHistoryHelp(ViewContext *ctx);
@@ -200,10 +200,10 @@ extern void UI_RenderStatusLineError(ViewContext *ctx);
 extern void UI_ClearStatusLineError(ViewContext *ctx);
 
 /* filewin.c / ctrl_file.c / ctrl_file_ops.c */
-extern void FreeFileEntryList(YtreePanel *panel);
+extern void FreeFileEntryList(YtreeNovaPanel *panel);
 extern void InvalidateVolumePanels(ViewContext *ctx, const struct Volume *vol);
-extern void BuildFileEntryList(ViewContext *ctx, YtreePanel *panel);
-extern void DisplayFileWindow(ViewContext *ctx, YtreePanel *panel,
+extern void BuildFileEntryList(ViewContext *ctx, YtreeNovaPanel *panel);
+extern void DisplayFileWindow(ViewContext *ctx, YtreeNovaPanel *panel,
                               const DirEntry *dir_entry);
 extern int HandleFileWindow(ViewContext *ctx, DirEntry *dir_entry);
 extern DirEntry *RefreshFileView(ViewContext *ctx, DirEntry *dir_entry);
@@ -211,32 +211,32 @@ extern void UI_RefreshSyncPanels(ViewContext *ctx, DirEntry *dir_entry);
 extern void UI_RenderFilePanel(ViewContext *ctx, const DirEntry *dir_entry,
                                int start_x);
 extern BOOL handle_file_window_command_action(
-    ViewContext *ctx, YtreeAction action, DirEntry **dir_entry_ptr,
+    ViewContext *ctx, YtreeNovaAction action, DirEntry **dir_entry_ptr,
     BOOL *need_dsp_help_ptr, BOOL *maybe_change_x_step_ptr, Statistic *s);
 extern BOOL handle_file_window_misc_dispatch_action(
-    ViewContext *ctx, YtreeAction action, DirEntry **dir_entry_ptr,
-    YtreeAction *loop_action_ptr, int *unput_char_ptr,
+    ViewContext *ctx, YtreeNovaAction action, DirEntry **dir_entry_ptr,
+    YtreeNovaAction *loop_action_ptr, int *unput_char_ptr,
     const int *start_x_ptr,
     BOOL *need_dsp_help_ptr, BOOL *maybe_change_x_step_ptr, Statistic *s,
     long *preview_line_offset_ptr,
     void (*update_preview)(ViewContext *, const DirEntry *));
 extern BOOL handle_file_window_preview_action(
-    ViewContext *ctx, YtreeAction action, DirEntry **dir_entry_ptr,
-    YtreeAction *loop_action_ptr, Statistic **stats_ptr,
+    ViewContext *ctx, YtreeNovaAction action, DirEntry **dir_entry_ptr,
+    YtreeNovaAction *loop_action_ptr, Statistic **stats_ptr,
     struct Volume **start_vol_ptr, BOOL *need_dsp_help_ptr,
     long *preview_line_offset_ptr, int *saved_fixed_width_ptr,
     void (*update_preview)(ViewContext *, const DirEntry *));
 extern BOOL handle_file_window_navigation_action(
-    ViewContext *ctx, YtreeAction action, DirEntry *dir_entry, int *start_x_ptr,
+    ViewContext *ctx, YtreeNovaAction action, DirEntry *dir_entry, int *start_x_ptr,
     BOOL *need_dsp_help_ptr, long *preview_line_offset_ptr,
     void (*update_preview)(ViewContext *, const DirEntry *),
     void (*list_jump)(ViewContext *, DirEntry *, char *));
-extern void CapturePanelSelectionAnchor(ViewContext *ctx, YtreePanel *panel,
+extern void CapturePanelSelectionAnchor(ViewContext *ctx, YtreeNovaPanel *panel,
                                        const DirEntry *dir_entry);
-extern BOOL RebindActiveFilePanelSelection(YtreePanel *panel,
+extern BOOL RebindActiveFilePanelSelection(YtreeNovaPanel *panel,
                                            DirEntry **dir_entry_io);
 extern BOOL handle_file_window_volume_action(ViewContext *ctx,
-                                             YtreeAction action,
+                                             YtreeNovaAction action,
                                              const struct Volume *start_vol,
                                              int *unput_char_ptr,
                                              BOOL *return_esc_ptr);
@@ -246,19 +246,19 @@ extern BOOL handle_tag_file_action(ViewContext *ctx, int action,
                                    Statistic *s, BOOL *maybe_change_x_step_ptr);
 
 /* render_file.c */
-extern void SetPanelFileMode(ViewContext *ctx, YtreePanel *p,
+extern void SetPanelFileMode(ViewContext *ctx, YtreeNovaPanel *p,
                              int new_file_mode);
-extern int GetPanelFileMode(const YtreePanel *p);
-extern void RotatePanelFileMode(ViewContext *ctx, YtreePanel *p);
-extern int GetPanelMaxColumn(const YtreePanel *p);
-extern void SetFileRenderingMetrics(YtreePanel *p, unsigned max_filename,
+extern int GetPanelFileMode(const YtreeNovaPanel *p);
+extern void RotatePanelFileMode(ViewContext *ctx, YtreeNovaPanel *p);
+extern int GetPanelMaxColumn(const YtreeNovaPanel *p);
+extern void SetFileRenderingMetrics(YtreeNovaPanel *p, unsigned max_filename,
                                     unsigned max_linkname,
                                     unsigned max_userview);
-extern void SetRenderSortOrder(YtreePanel *p, BOOL reverse);
-extern void DisplayFiles(ViewContext *ctx, YtreePanel *panel,
+extern void SetRenderSortOrder(YtreeNovaPanel *p, BOOL reverse);
+extern void DisplayFiles(ViewContext *ctx, YtreeNovaPanel *panel,
                          const DirEntry *de_ptr, int start_file_no,
                          int hilight_no, int start_x, WINDOW *win);
-extern void PrintFileEntry(ViewContext *ctx, YtreePanel *panel, int entry_no,
+extern void PrintFileEntry(ViewContext *ctx, YtreeNovaPanel *panel, int entry_no,
                            int y, int x, unsigned char hilight, int start_x,
                            WINDOW *win);
 
@@ -272,10 +272,10 @@ extern int UI_AskConflict(ViewContext *ctx, const char *src_path,
                           const char *dst_path, int *mode_flags);
 
 /* input_line.c */
-extern int UI_ReadString(ViewContext *ctx, YtreePanel *panel,
+extern int UI_ReadString(ViewContext *ctx, YtreeNovaPanel *panel,
                          const char *prompt, char *buffer, int max_len,
                          int history_type);
-extern int UI_ReadStringWithHelp(ViewContext *ctx, YtreePanel *panel,
+extern int UI_ReadStringWithHelp(ViewContext *ctx, YtreeNovaPanel *panel,
                                  const char *prompt, char *buffer, int max_len,
                                  int history_type, const char *hints_override,
                                  int (*help_callback)(ViewContext *, void *),
@@ -291,7 +291,7 @@ extern int ViKey(int ch);
 extern int NormalizeViKey(const ViewContext *ctx, int ch);
 extern int VisualPositionToBytePosition(const char *str, int visual_pos);
 extern int WGetch(ViewContext *ctx, WINDOW *win);
-extern YtreeAction GetKeyAction(const ViewContext *ctx, int ch);
+extern YtreeNovaAction GetKeyAction(const ViewContext *ctx, int ch);
 extern int GetEventOrKey(ViewContext *ctx);
 
 /* stats.c */
@@ -323,7 +323,7 @@ typedef enum {
 /* ctrl_dir.c / dir_tags.c */
 extern void HandleShowAll(ViewContext *ctx, BOOL tagged_only, BOOL all_volumes,
                           DirEntry *dir_entry, BOOL *need_dsp_help, int *ch,
-                          YtreePanel *p);
+                          YtreeNovaPanel *p);
 extern BOOL HandleDirTagActions(ViewContext *ctx, int action,
                                 DirEntry **dir_entry_ptr, BOOL *need_dsp_help,
                                 int *ch);
@@ -332,7 +332,7 @@ extern DirEntry *ResolveActiveDirEntry(ViewContext *ctx, const Statistic *s);
 extern void RefreshVolumeSwitchViews(ViewContext *ctx, DirEntry *dir_entry,
                                      const Statistic *s);
 extern DirWindowDispatchResult
-HandleDirWindowPanelAction(ViewContext *ctx, YtreeAction action,
+HandleDirWindowPanelAction(ViewContext *ctx, YtreeNovaAction action,
                            DirEntry **dir_entry_ptr, Statistic **s_ptr,
                            const struct Volume **start_vol_ptr,
                            BOOL *need_dsp_help_ptr, int *ch_ptr,
@@ -342,9 +342,9 @@ HandleDirWindowEnterAction(ViewContext *ctx, DirEntry **dir_entry_ptr,
                            Statistic **s_ptr,
                            const struct Volume **start_vol_ptr,
                            BOOL *need_dsp_help_ptr, int *ch_ptr,
-                           const int *unput_char_ptr, YtreeAction *action_ptr);
+                           const int *unput_char_ptr, YtreeNovaAction *action_ptr);
 extern DirWindowDispatchResult
-HandleDirWindowVolumeAction(ViewContext *ctx, YtreeAction action,
+HandleDirWindowVolumeAction(ViewContext *ctx, YtreeNovaAction action,
                             DirEntry **dir_entry_ptr, Statistic **s_ptr,
                             const struct Volume *start_vol,
                             BOOL *need_dsp_help_ptr);
@@ -360,17 +360,17 @@ extern void UI_OpenConfigProfile(ViewContext *ctx, DirEntry *dir_entry);
 
 /* dir_nav.c */
 extern void DirNav_Movedown(ViewContext *ctx, DirEntry **dir_entry,
-                            YtreePanel *p);
+                            YtreeNovaPanel *p);
 extern void DirNav_Moveup(ViewContext *ctx, DirEntry **dir_entry,
-                          YtreePanel *p);
+                          YtreeNovaPanel *p);
 extern void DirNav_Movenpage(ViewContext *ctx, DirEntry **dir_entry,
-                             YtreePanel *p);
+                             YtreeNovaPanel *p);
 extern void DirNav_Moveppage(ViewContext *ctx, DirEntry **dir_entry,
-                             YtreePanel *p);
+                             YtreeNovaPanel *p);
 extern void DirNav_MoveEnd(ViewContext *ctx, DirEntry **dir_entry,
-                           YtreePanel *p);
+                           YtreeNovaPanel *p);
 extern void DirNav_MoveHome(ViewContext *ctx, DirEntry **dir_entry,
-                            YtreePanel *p);
+                            YtreeNovaPanel *p);
 
 /* file_nav.c */
 extern void FileNav_MoveDown(ViewContext *ctx, DirEntry *dir_entry,
@@ -519,4 +519,4 @@ extern BOOL Progress_Update(ViewContext *ctx, long long bytes_done,
 extern void Progress_Finish(ViewContext *ctx);
 extern void Progress_Render(ViewContext *ctx);
 
-#endif /* YTREE_UI_H */
+#endif /* YTNOVA_UI_H */

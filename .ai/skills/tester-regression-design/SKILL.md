@@ -1,6 +1,6 @@
 ---
 name: tester-regression-design
-description: Design deterministic pytest/pexpect regression tests for ytree behavior, including fail-first evidence and clear diagnostics.
+description: Design deterministic pytest/pexpect regression tests for ytnova behavior, including fail-first evidence and clear diagnostics.
 ---
 
 # Tester Regression Design

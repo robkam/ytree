@@ -5,22 +5,22 @@ from helpers_source import read_repo_source as _read_source
 from helpers_stats import current_file_from_stats
 from helpers_ui import footer_text as _footer_text
 from helpers_ui import screen_text as _screen_text
-from tui_harness import YtreeTUI
-from ytree_keys import Keys
+from tui_harness import YtreeNovaTUI
+from ytnova_keys import Keys
 
 
 def _current_file_from_stats(tui):
     return current_file_from_stats(tui.get_screen_dump())
 
 
-def test_navigation_dispatch_updates_current_file_stats(ytree_binary, tmp_path):
+def test_navigation_dispatch_updates_current_file_stats(ytnova_binary, tmp_path):
     root = tmp_path / "dispatch_navigation_stats"
     root.mkdir()
     (root / "aa_one.txt").write_text("one\n", encoding="utf-8")
     (root / "bb_two.txt").write_text("two\n", encoding="utf-8")
     (root / "cc_three.txt").write_text("three\n", encoding="utf-8")
 
-    tui = YtreeTUI(executable=ytree_binary, cwd=str(root))
+    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
     time.sleep(0.8)
 
     try:
@@ -40,12 +40,12 @@ def test_navigation_dispatch_updates_current_file_stats(ytree_binary, tmp_path):
         tui.quit()
 
 
-def test_make_file_prompt_dispatch_creates_file(ytree_binary, tmp_path):
+def test_make_file_prompt_dispatch_creates_file(ytnova_binary, tmp_path):
     root = tmp_path / "dispatch_make_file_prompt"
     root.mkdir()
     (root / "seed.txt").write_text("seed\n", encoding="utf-8")
 
-    tui = YtreeTUI(executable=ytree_binary, cwd=str(root))
+    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
     time.sleep(0.8)
 
     try:
@@ -59,13 +59,13 @@ def test_make_file_prompt_dispatch_creates_file(ytree_binary, tmp_path):
         tui.quit()
 
 
-def test_split_and_tab_dispatch_keeps_file_mode_footer(ytree_binary, tmp_path):
+def test_split_and_tab_dispatch_keeps_file_mode_footer(ytnova_binary, tmp_path):
     root = tmp_path / "dispatch_split_switch_footer"
     root.mkdir()
     (root / "left.txt").write_text("left\n", encoding="utf-8")
     (root / "right.txt").write_text("right\n", encoding="utf-8")
 
-    tui = YtreeTUI(executable=ytree_binary, cwd=str(root))
+    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
     time.sleep(0.8)
 
     try:

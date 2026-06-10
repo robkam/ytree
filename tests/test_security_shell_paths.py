@@ -3,8 +3,8 @@ import time
 
 from helpers_files import wait_for_file as _wait_for_file
 from helpers_source import read_repo_source
-from tui_harness import YtreeTUI
-from ytree_keys import Keys
+from tui_harness import YtreeNovaTUI
+from ytnova_keys import Keys
 
 
 def _configure_capture_helper(tmp_dir, log_name):
@@ -23,7 +23,7 @@ def _write_global_profile(tmp_dir, entries):
     body = ["[GLOBAL]"]
     for key, value in entries:
         body.append(f"{key}={value}")
-    (tmp_dir / ".ytree").write_text("\n".join(body) + "\n", encoding="utf-8")
+    (tmp_dir / ".ytnova").write_text("\n".join(body) + "\n", encoding="utf-8")
 
 
 def _read_ctrl_file_ops_source():
@@ -104,7 +104,7 @@ def test_tagged_execute_normalization_uses_command_line_length_contract():
 
 
 def test_compare_placeholder_expansion_preserves_metacharacter_paths(
-    ytree_binary, tmp_path
+    ytnova_binary, tmp_path
 ):
     source_root = tmp_path / "compare_shell_literal_source"
     target_root = tmp_path / "compare_shell_literal_target"
@@ -121,7 +121,7 @@ def test_compare_placeholder_expansion_preserves_metacharacter_paths(
     helper_path, log_path = _configure_capture_helper(source_root, "filediff_args.log")
     _write_global_profile(source_root, [("FILEDIFF", f"{helper_path} %1 %2")])
 
-    tui = YtreeTUI(executable=ytree_binary, cwd=str(source_root))
+    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(source_root))
     time.sleep(0.6)
     tui.send_keystroke(Keys.ENTER, wait=0.35)  # tree -> file view
     tui.send_keystroke("J", wait=0.25)
@@ -141,7 +141,7 @@ def test_compare_placeholder_expansion_preserves_metacharacter_paths(
 
 
 def test_view_launch_passes_metacharacter_path_as_single_literal_argument(
-    ytree_binary, tmp_path
+    ytnova_binary, tmp_path
 ):
     root = tmp_path / "view_shell_literal_path"
     root.mkdir()
@@ -153,7 +153,7 @@ def test_view_launch_passes_metacharacter_path_as_single_literal_argument(
     helper_path, log_path = _configure_capture_helper(root, "view_args.log")
     _write_global_profile(root, [("PAGER", str(helper_path))])
 
-    tui = YtreeTUI(executable=ytree_binary, cwd=str(root))
+    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
     time.sleep(0.6)
     tui.send_keystroke(Keys.ENTER, wait=0.35)  # tree -> file view
     tui.send_keystroke("v", wait=0.55)
@@ -169,7 +169,7 @@ def test_view_launch_passes_metacharacter_path_as_single_literal_argument(
 
 
 def test_execute_command_placeholder_preserves_metacharacter_filename_literal(
-    ytree_binary, tmp_path
+    ytnova_binary, tmp_path
 ):
     root = tmp_path / "execute_shell_literal_path"
     root.mkdir()
@@ -180,7 +180,7 @@ def test_execute_command_placeholder_preserves_metacharacter_filename_literal(
 
     helper_path, log_path = _configure_capture_helper(root, "exec_args.log")
 
-    tui = YtreeTUI(executable=ytree_binary, cwd=str(root))
+    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
     time.sleep(0.6)
     tui.send_keystroke(Keys.ENTER, wait=0.35)  # tree -> file view
     tui.send_keystroke("x", wait=0.35)
@@ -202,7 +202,7 @@ def test_execute_command_placeholder_preserves_metacharacter_filename_literal(
 
 
 def test_execute_placeholder_in_user_quotes_does_not_enable_shell_injection(
-    ytree_binary, tmp_path
+    ytnova_binary, tmp_path
 ):
     root = tmp_path / "execute_shell_quote_injection_guard"
     root.mkdir()
@@ -215,7 +215,7 @@ def test_execute_placeholder_in_user_quotes_does_not_enable_shell_injection(
 
     helper_path, log_path = _configure_capture_helper(root, "exec_quoted_placeholder.log")
 
-    tui = YtreeTUI(executable=ytree_binary, cwd=str(root))
+    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
     time.sleep(0.6)
     tui.send_keystroke(Keys.ENTER, wait=0.35)  # tree -> file view
     tui.send_keystroke("x", wait=0.35)

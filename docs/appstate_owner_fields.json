@@ -12,7 +12,7 @@
       "migration_status": "documented_foundation_only",
       "invariant_checks": [
         "Active panel changes must preserve inactive panel-local records.",
-        "Panel routing must resolve to an existing YtreePanel carrier before render projection."
+        "Panel routing must resolve to an existing YtreeNovaPanel carrier before render projection."
       ]
     },
     {
@@ -114,8 +114,8 @@
     {
       "field": "panel.file_selection_key",
       "owner_region": "panel-local state",
-      "canonical_owner": "YtreePanel.file identity owner",
-      "runtime_carrier": "YtreePanel file selection identity fields",
+      "canonical_owner": "YtreeNovaPanel.file identity owner",
+      "runtime_carrier": "YtreeNovaPanel file selection identity fields",
       "mutation_rule": "May change only for the targeted panel through navigation, restore, or rebind transitions.",
       "migration_status": "documented_foundation_only",
       "invariant_checks": [
@@ -126,8 +126,8 @@
     {
       "field": "panel.file_viewport_origin",
       "owner_region": "panel-local state",
-      "canonical_owner": "YtreePanel.file viewport owner",
-      "runtime_carrier": "YtreePanel file viewport fields",
+      "canonical_owner": "YtreeNovaPanel.file viewport owner",
+      "runtime_carrier": "YtreeNovaPanel file viewport fields",
       "mutation_rule": "May change only for the targeted panel when navigation, bounds correction, or reflow declares it.",
       "migration_status": "documented_foundation_only",
       "invariant_checks": [
@@ -138,8 +138,8 @@
     {
       "field": "panel.focus_shape",
       "owner_region": "panel-local state",
-      "canonical_owner": "YtreePanel.focus owner",
-      "runtime_carrier": "YtreePanel focus/window-shape fields",
+      "canonical_owner": "YtreeNovaPanel.focus owner",
+      "runtime_carrier": "YtreeNovaPanel focus/window-shape fields",
       "mutation_rule": "May change only during allowed focus, modal restore, split, or file/tree transition commits.",
       "migration_status": "documented_foundation_only",
       "invariant_checks": [
@@ -150,8 +150,8 @@
     {
       "field": "panel.panel_generation",
       "owner_region": "panel-local state",
-      "canonical_owner": "YtreePanel.generation owner",
-      "runtime_carrier": "YtreePanel panel generation field",
+      "canonical_owner": "YtreeNovaPanel.generation owner",
+      "runtime_carrier": "YtreeNovaPanel panel generation field",
       "mutation_rule": "May increment only when panel-local restore authority changes.",
       "migration_status": "documented_foundation_only",
       "invariant_checks": [
@@ -162,8 +162,8 @@
     {
       "field": "panel.restore_snapshot",
       "owner_region": "panel-local state",
-      "canonical_owner": "YtreePanel.restore snapshot owner",
-      "runtime_carrier": "YtreePanel restore snapshot fields",
+      "canonical_owner": "YtreeNovaPanel.restore snapshot owner",
+      "runtime_carrier": "YtreeNovaPanel restore snapshot fields",
       "mutation_rule": "May change only through snapshot capture, rebind, fallback, or volume-binding transitions.",
       "migration_status": "documented_foundation_only",
       "invariant_checks": [
@@ -174,8 +174,8 @@
     {
       "field": "panel.tree_cursor_pos",
       "owner_region": "panel-local state",
-      "canonical_owner": "YtreePanel.tree cursor owner",
-      "runtime_carrier": "YtreePanel tree cursor field",
+      "canonical_owner": "YtreeNovaPanel.tree cursor owner",
+      "runtime_carrier": "YtreeNovaPanel tree cursor field",
       "mutation_rule": "May change only for the targeted panel during tree navigation or rebind/fallback transitions.",
       "migration_status": "documented_foundation_only",
       "invariant_checks": [
@@ -186,8 +186,8 @@
     {
       "field": "panel.tree_selection_key",
       "owner_region": "panel-local state",
-      "canonical_owner": "YtreePanel.tree selection owner",
-      "runtime_carrier": "YtreePanel tree selection identity fields",
+      "canonical_owner": "YtreeNovaPanel.tree selection owner",
+      "runtime_carrier": "YtreeNovaPanel tree selection identity fields",
       "mutation_rule": "May change only through tree navigation, restore, or topology rebind transitions for the targeted panel.",
       "migration_status": "documented_foundation_only",
       "invariant_checks": [
@@ -198,8 +198,8 @@
     {
       "field": "panel.tree_viewport_origin",
       "owner_region": "panel-local state",
-      "canonical_owner": "YtreePanel.tree viewport owner",
-      "runtime_carrier": "YtreePanel tree viewport fields",
+      "canonical_owner": "YtreeNovaPanel.tree viewport owner",
+      "runtime_carrier": "YtreeNovaPanel tree viewport fields",
       "mutation_rule": "May change only when navigation, bounds correction, resize, or rebind declares viewport mutation.",
       "migration_status": "documented_foundation_only",
       "invariant_checks": [
@@ -210,8 +210,8 @@
     {
       "field": "panel.volume_key",
       "owner_region": "panel-local state",
-      "canonical_owner": "YtreePanel.volume binding owner",
-      "runtime_carrier": "YtreePanel volume binding fields",
+      "canonical_owner": "YtreeNovaPanel.volume binding owner",
+      "runtime_carrier": "YtreeNovaPanel volume binding fields",
       "mutation_rule": "May change only through volume selection, cycle, release, or restore transitions.",
       "migration_status": "documented_foundation_only",
       "invariant_checks": [

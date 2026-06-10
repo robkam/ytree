@@ -108,7 +108,7 @@ def _action(
         "action": action,
         "transition_id": transition_id,
         "category": category,
-        "owner": "YtreePanel(active)",
+        "owner": "YtreeNovaPanel(active)",
         "declared_write_set": ["panel.tree_selection_key"],
         "boundary_status": "test",
         "migration_notes": ["fixture coverage"],
@@ -305,8 +305,8 @@ def _owner_field(field: str = "field") -> dict[str, object]:
     return {
         "field": field,
         "owner_region": "panel-local state",
-        "canonical_owner": "YtreePanel(fixture)",
-        "runtime_carrier": "YtreePanel fixture carrier",
+        "canonical_owner": "YtreeNovaPanel(fixture)",
+        "runtime_carrier": "YtreeNovaPanel fixture carrier",
         "mutation_rule": "Fixture transitions may mutate only declared fields.",
         "migration_status": "test",
         "invariant_checks": ["fixture invariant"],
@@ -343,7 +343,7 @@ def _write_fixture(
     generation_domains_path = tmp_path / "generation_domains.json"
     diff_harness_path = tmp_path / "diff_harness.json"
     transition_sequences_path = tmp_path / "transition_sequences.json"
-    actions_header_path = tmp_path / "ytree_defs.h"
+    actions_header_path = tmp_path / "ytnova_defs.h"
     action_runtime_path = tmp_path / "appstate_actions.c"
     _write(transitions_path, _jsonish({"schema_version": 1, "transitions": transitions}))
     _write(shims_path, _jsonish({"schema_version": 1, "shims": shims or [_shim()]}))
@@ -448,7 +448,7 @@ def _jsonish(value: object) -> str:
 
 def _enum_header(actions: list[str]) -> str:
     members = "\n".join(f"  {action}," for action in actions)
-    return f"typedef enum {{\n{members}\n}} YtreeAction;\n"
+    return f"typedef enum {{\n{members}\n}} YtreeNovaAction;\n"
 
 
 def _runtime_source(
@@ -2324,7 +2324,7 @@ def test_guard_fails_when_runtime_invariant_row_is_malformed(
     runtime_path = paths[-1]
     source = runtime_path.read_text(encoding="utf-8")
     malformed_row = (
-        '  {NULL, "inactive_panel_frozen", "YtreePanel(inactive)", '
+        '  {NULL, "inactive_panel_frozen", "YtreeNovaPanel(inactive)", '
         "kAppStateInvariantProtectedFields0, "
         "sizeof(kAppStateInvariantProtectedFields0) / "
         "sizeof(kAppStateInvariantProtectedFields0[0]), "
@@ -2454,7 +2454,7 @@ def test_guard_fails_when_action_coverage_is_missing_enum_action(tmp_path: Path)
     failures = _validate(paths)
 
     assert any(
-        "action coverage missing YtreeAction enum member" in failure
+        "action coverage missing YtreeNovaAction enum member" in failure
         and "ACTION_MOVE_UP" in failure
         for failure in failures
     )
@@ -2468,7 +2468,7 @@ def test_guard_fails_when_action_coverage_has_extra_unknown_action(tmp_path: Pat
     failures = _validate(paths)
 
     assert any(
-        "unknown YtreeAction enum member" in failure and "ACTION_NOT_IN_ENUM" in failure
+        "unknown YtreeNovaAction enum member" in failure and "ACTION_NOT_IN_ENUM" in failure
         for failure in failures
     )
 
@@ -2662,7 +2662,7 @@ def test_guard_catches_enum_drift_from_temporary_header(tmp_path: Path) -> None:
     failures = _validate(paths)
 
     assert any(
-        "action coverage missing YtreeAction enum member" in failure
+        "action coverage missing YtreeNovaAction enum member" in failure
         and "ACTION_NEW_DRIFT" in failure
         for failure in failures
     )
@@ -2680,7 +2680,7 @@ def test_guard_fails_when_runtime_action_lookup_is_missing_enum_action(
     failures = _validate(paths)
 
     assert any(
-        "runtime action lookup missing YtreeAction enum member" in failure
+        "runtime action lookup missing YtreeNovaAction enum member" in failure
         and "ACTION_MOVE_UP" in failure
         for failure in failures
     )
@@ -2698,7 +2698,7 @@ def test_guard_fails_when_runtime_action_lookup_has_unknown_action(
     failures = _validate(paths)
 
     assert any(
-        "unknown YtreeAction enum member" in failure and "ACTION_NOT_IN_ENUM" in failure
+        "unknown YtreeNovaAction enum member" in failure and "ACTION_NOT_IN_ENUM" in failure
         for failure in failures
     )
 

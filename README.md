@@ -1,24 +1,24 @@
-# **Ytree: A File Manager for Unix-like Systems**
+# **YtreeNova: A File Manager for Unix-like Systems**
 
-**Ytree** is a keyboard-first file manager for Linux and BSD with fast multi-volume logging and navigation.
+**YtreeNova** is a keyboard-first file manager for Linux and BSD with fast multi-volume logging and navigation.
 
 > [!IMPORTANT]
 > **STATUS: ALPHA (v3.0.0-alpha)**
-> `ytree` is in active alpha development. It is stable and usable, but expect rough edges, incomplete behaviour, and occasional regressions. Interfaces, key bindings, and configuration details may change before the first stable release.
+> `ytnova` is in active alpha development. It is stable and usable, but expect rough edges, incomplete behaviour, and occasional regressions. Interfaces, key bindings, and configuration details may change before the first stable release.
 >
 > Before opening an issue or suggesting a feature, please check [BUGS.md](docs/BUGS.md) and [ROADMAP.md](docs/ROADMAP.md) first, so as not to create a duplicate if it is already listed.
 
 <p align="center">
-  <img src="docs/screenshots/split_archive_home.png" alt="Ytree F8 split screen: left panel browsing /home/rob/scripts.tar.gz, right panel showing the ~ tree with scripts inactive and its files in a small window." width="84%">
+  <img src="docs/screenshots/split_archive_home.png" alt="YtreeNova F8 split screen: left panel browsing /home/rob/scripts.tar.gz, right panel showing the ~ tree with scripts inactive and its files in a small window." width="84%">
 </p>
 
-Ytree logs filesystem hierarchies into memory, so you can work across whole volumes, not just one directory at a time. Use tree + file-list views, Showall/Global views, tagging, fast filtering, split-screen workflows, preview, and archive-as-directory operations (including in-archive copy/move/rename/delete/mkdir where supported).
+YtreeNova logs filesystem hierarchies into memory, so you can work across whole volumes, not just one directory at a time. Use tree + file-list views, Showall/Global views, tagging, fast filtering, split-screen workflows, preview, and archive-as-directory operations (including in-archive copy/move/rename/delete/mkdir where supported).
 
 ## Background
 
-Born from the lineage of [XTree&trade;](https://www.xtreefanpage.org/lowres/x10dirja.htm) (DOS), `ytree` was intended to be the definitive tree-based file manager for Unix. While it has been maintained for compatibility over the decades, its feature set remained largely frozen in the late 1990s, leaving **Unix power users** without a true equivalent to the powerful "log and tag" workflow.
+Born from the lineage of [XTree&trade;](https://www.xtreefanpage.org/lowres/x10dirja.htm) (DOS), `ytnova` was intended to be the definitive tree-based file manager for Unix. While it has been maintained for compatibility over the decades, its feature set remained largely frozen in the late 1990s, leaving **Unix power users** without a true equivalent to the powerful "log and tag" workflow.
 
-Many file managers today function as "browsers"—they look at one directory at a time and rely on the OS to fetch files on demand. `Ytree` is different: it is a logger. It scans ("logs") entire drive hierarchies into memory. This treats the filesystem as a database, allowing you to **Show All** files in a flat view, filter across thousands of subdirectories instantly, and perform bulk operations on tagged files regardless of their location.
+Many file managers today function as "browsers"—they look at one directory at a time and rely on the OS to fetch files on demand. `YtreeNova` is different: it is a logger. It scans ("logs") entire drive hierarchies into memory. This treats the filesystem as a database, allowing you to **Show All** files in a flat view, filter across thousands of subdirectories instantly, and perform bulk operations on tagged files regardless of their location.
 
 Forked in October 2025 from [Ytree](https://www.han.de/~werner/ytree.html) v2.10, created by Werner Bregulla and others. This v3.0 project focuses on feature completeness for Unix power users, including split-screen and integrated autoview. The move to a modular C99/POSIX architecture is a practical side effect of delivering those capabilities safely and maintainably.
 
@@ -66,8 +66,8 @@ v3.0.0-alpha is being published early so people can use the program, inspect the
 
 ```bash
 # Clone the repository
-git clone https://github.com/robkam/ytree.git
-cd ytree
+git clone https://github.com/robkam/ytreenova.git
+cd ytreenova
 
 # Compile (Optimized Release Build)
 make
@@ -87,7 +87,7 @@ The project documentation is split into several focused files.
 
 | Document | Purpose |
 | :--- | :--- |
-| **[USAGE.md](docs/USAGE.md)** | **User Guide**: How to navigate, tag, and use command keys. (Generated from `ytree.1.md`). |
+| **[USAGE.md](docs/USAGE.md)** | **User Guide**: How to navigate, tag, and use command keys. (Generated from `ytnova.1.md`). |
 | **[BUGS.md](docs/BUGS.md)** | **Known Issues**: Current defects, reproductions, and fix status. |
 | **[CONTRIBUTING.md](docs/CONTRIBUTING.md)** | **Developer Setup**: How to set up the environment, run tests, and submit code. |
 | **[PR_GATE.md](docs/PR_GATE.md)** | **PR Governance**: Required PR gate checks and triage rules needed for merge readiness. |
@@ -101,7 +101,7 @@ The project documentation is split into several focused files.
 ## Project Structure
 
 ```text
-ytree/
+ytreenova/
 ├── src/                 C source files
 ├── include/             C headers
 ├── tests/               pytest/pexpect test suite
@@ -120,7 +120,7 @@ ytree/
 
 ## Reporting Issues
 
-If you find anything amiss, you can report it using [GitHub Issues](https://github.com/robkam/ytree/issues).
+If you find anything amiss, you can report it using [GitHub Issues](https://github.com/robkam/ytreenova/issues).
 
 For security-sensitive bugs, report privately via [SECURITY.md](SECURITY.md).
 
@@ -128,7 +128,7 @@ Feature requests and enhancement ideas are welcome too. Suggestions are apprecia
 
 It will help us to address the issue if you include the following:
 *   **OS & Configuration:** (Distro, Terminal type, etc.)
-*   **Ytree version:**
+*   **YtreeNova version:**
 *   **Steps to Reproduce:**
 *   **Expected Behavior:**
 *   **Actual Behavior:**
@@ -140,7 +140,7 @@ Contributions do not need to be low-level C internals: bug reports, documentatio
 
 ## License
 
-Ytree is free software distributed under the GPL. See the [LICENSE.md](LICENSE.md) file for details.
+YtreeNova is free software distributed under the GPL. See the [LICENSE.md](LICENSE.md) file for details.
 
 ## Contributors
 

@@ -1,6 +1,6 @@
 #include "fuzz_common.h"
 
-#include "ytree_fs.h"
+#include "ytnova_fs.h"
 
 #include <stdio.h>
 #include <stdlib.h>

@@ -26,7 +26,7 @@ while read -r local_ref local_sha remote_ref remote_sha; do
       updates_main=1
     fi
 
-    if [[ "${YTREE_PRE_PUSH_FORCE:-0}" == "1" ]]; then
+    if [[ "${YTNOVA_PRE_PUSH_FORCE:-0}" == "1" ]]; then
       codebase_changed=1
       continue
     fi
@@ -56,7 +56,7 @@ fi
 
 if [[ "$codebase_changed" != "1" ]]; then
   echo "[pre-push] Push without codebase changes: skipping local quality gate."
-  echo "[pre-push] Set YTREE_PRE_PUSH_FORCE=1 to force make qa-code-quality."
+  echo "[pre-push] Set YTNOVA_PRE_PUSH_FORCE=1 to force make qa-code-quality."
   exit 0
 fi
 

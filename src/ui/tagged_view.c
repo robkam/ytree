@@ -5,9 +5,9 @@
  *
  ***************************************************************************/
 
-#include "ytree_cmd.h"
-#include "ytree_fs.h"
-#include "ytree_ui.h"
+#include "ytnova_cmd.h"
+#include "ytnova_fs.h"
+#include "ytnova_ui.h"
 #include <dirent.h>
 #include <errno.h>
 #include <libgen.h>
@@ -374,13 +374,13 @@ int UI_ViewTaggedFiles(ViewContext *ctx, DirEntry *dir_entry) {
   if (tagged_viewer &&
       (!strcasecmp(tagged_viewer, "internal") ||
        !strcasecmp(tagged_viewer, "builtin") ||
-       !strcasecmp(tagged_viewer, "ytree") || !strcmp(tagged_viewer, "1"))) {
+       !strcasecmp(tagged_viewer, "ytnova") || !strcmp(tagged_viewer, "1"))) {
     use_internal_view = TRUE;
   }
 
   if (s->log_mode == ARCHIVE_MODE) {
     if (!Path_BuildTempTemplate(temp_dir_template, sizeof(temp_dir_template),
-                                "ytree_view_")) {
+                                "ytnova_view_")) {
       UI_Error(ctx, __FILE__, __LINE__,
                "Could not prepare temp dir template for viewing");
       return -1;

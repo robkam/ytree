@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Automated interactive Valgrind Memcheck session for ytree QA."""
+"""Automated interactive Valgrind Memcheck session for ytnova QA."""
 
 from __future__ import annotations
 
@@ -15,7 +15,7 @@ from pathlib import Path
 import pexpect
 
 
-# Key constants (from tests/ytree_keys.py)
+# Key constants (from tests/ytnova_keys.py)
 DOWN = "\033OB"
 ENTER = "\r"
 COPY = "c"
@@ -26,7 +26,7 @@ CTRL_U = "\x15"
 
 def create_sandbox() -> Path:
     """Create temporary sandbox directory with test files."""
-    sandbox = Path(tempfile.mkdtemp(prefix="ytree_valgrind_"))
+    sandbox = Path(tempfile.mkdtemp(prefix="ytnova_valgrind_"))
 
     source = sandbox / "source"
     source.mkdir()
@@ -111,12 +111,12 @@ def parse_valgrind_log(log_path: Path) -> dict[str, int | list[str]]:
 
 
 def run_valgrind_session() -> int:
-    """Drive ytree under Valgrind and return exit code (0=pass, 1=fail)."""
+    """Drive ytnova under Valgrind and return exit code (0=pass, 1=fail)."""
     repo_root = Path(__file__).resolve().parent.parent
-    ytree_binary = repo_root / "build" / "ytree"
+    ytnova_binary = repo_root / "build" / "ytnova"
 
-    if not ytree_binary.exists():
-        print("ERROR: ytree binary not found. Run 'make clean && make' first.", file=sys.stderr)
+    if not ytnova_binary.exists():
+        print("ERROR: ytnova binary not found. Run 'make clean && make' first.", file=sys.stderr)
         return 1
 
     sandbox = None
@@ -136,15 +136,15 @@ def run_valgrind_session() -> int:
             "--track-fds=yes",
             "--error-exitcode=42",
             f"--log-file={valgrind_log}",
-            str(ytree_binary),
+            str(ytnova_binary),
             str(sandbox),
         ]
 
-        print(f"Spawning ytree under Valgrind in {sandbox}")
+        print(f"Spawning ytnova under Valgrind in {sandbox}")
         print(f"Valgrind log: {valgrind_log}")
         print("This will take 30-60 seconds due to Valgrind overhead...")
 
-        # Spawn with pexpect (matching tests/ytree_control.py patterns)
+        # Spawn with pexpect (matching tests/ytnova_control.py patterns)
         debug_log = repo_root / "valgrind_pexpect_debug.log"
         child = pexpect.spawn(
             valgrind_cmd[0],
@@ -158,17 +158,17 @@ def run_valgrind_session() -> int:
         child.logfile = open(debug_log, "w", encoding="utf-8")
 
         # Wait for startup (expect Path: or COMMANDS or ANSI escape)
-        print("Waiting for ytree startup...")
+        print("Waiting for ytnova startup...")
         idx = child.expect(
             [r"Path:", r"COMMANDS", r"\x1b\[[0-9;?]*[A-Za-z]", pexpect.TIMEOUT],
             timeout=60,
         )
         if idx == 3:
-            print("ERROR: Startup timeout. ytree did not start.", file=sys.stderr)
+            print("ERROR: Startup timeout. ytnova did not start.", file=sys.stderr)
             child.kill(signal.SIGKILL)
             return 1
 
-        print("ytree started. Driving session...")
+        print("ytnova started. Driving session...")
 
         # Navigate down a few times (with longer sleeps under Valgrind)
         time.sleep(2.0)
@@ -217,7 +217,7 @@ def run_valgrind_session() -> int:
         time.sleep(1.0)
 
         # Quit cleanly
-        print("Quitting ytree...")
+        print("Quitting ytnova...")
         child.send(QUIT)
         time.sleep(3.0)
         child.send(CONFIRM_YES)
@@ -228,12 +228,12 @@ def run_valgrind_session() -> int:
         try:
             child.expect(pexpect.EOF, timeout=120)
         except pexpect.TIMEOUT:
-            print("WARNING: ytree did not exit within 120s, sending SIGTERM...", file=sys.stderr)
+            print("WARNING: ytnova did not exit within 120s, sending SIGTERM...", file=sys.stderr)
             forced_termination = True
             child.kill(signal.SIGTERM)
             time.sleep(5.0)
             if child.isalive():
-                print("WARNING: ytree still alive after SIGTERM, sending SIGKILL...", file=sys.stderr)
+                print("WARNING: ytnova still alive after SIGTERM, sending SIGKILL...", file=sys.stderr)
                 child.kill(signal.SIGKILL)
                 time.sleep(2.0)
 
@@ -246,9 +246,9 @@ def run_valgrind_session() -> int:
         exit_status = child.exitstatus
         signal_status = child.signalstatus
 
-        print(f"ytree exited with status: {exit_status}")
+        print(f"ytnova exited with status: {exit_status}")
         if signal_status is not None:
-            print(f"ytree terminated by signal: {signal_status}")
+            print(f"ytnova terminated by signal: {signal_status}")
 
         # Parse Valgrind log
         print(f"\nParsing Valgrind log: {valgrind_log}")

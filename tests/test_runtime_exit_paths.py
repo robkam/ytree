@@ -99,10 +99,10 @@ def test_normpath_strdup_failure_returns_control(runtime_exit_normpath_driver):
     assert "NORMPATH_EMPTY" in completed.stdout
 
 
-def test_startup_log_missing_path_exits_without_segv(ytree_binary, tmp_path):
+def test_startup_log_missing_path_exits_without_segv(ytnova_binary, tmp_path):
     missing_path = tmp_path / "does-not-exist"
     child = pexpect.spawn(
-        ytree_binary,
+        ytnova_binary,
         args=[str(missing_path)],
         cwd=str(tmp_path),
         env={"TERM": "xterm", "LC_ALL": "C.UTF-8", "HOME": str(tmp_path)},

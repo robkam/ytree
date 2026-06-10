@@ -5,8 +5,8 @@
  *
  ***************************************************************************/
 
-#include "ytree_ui.h"
-#include "ytree_fs.h"
+#include "ytnova_ui.h"
+#include "ytnova_fs.h"
 
 static int GetSafeMaxDispFiles(const ViewContext *ctx) {
   if (!ctx || ctx->ctrl_file_max_disp_files < 1)

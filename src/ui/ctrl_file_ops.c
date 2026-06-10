@@ -5,11 +5,11 @@
  *
  ***************************************************************************/
 
-#define NO_YTREE_MACROS
-#include "ytree_cmd.h"
-#include "ytree_fs.h"
-#include "ytree_panel_anchor.h"
-#include "ytree_ui.h"
+#define NO_YTNOVA_MACROS
+#include "ytnova_cmd.h"
+#include "ytnova_fs.h"
+#include "ytnova_panel_anchor.h"
+#include "ytnova_ui.h"
 #include <assert.h>
 #include <string.h>
 #include <utime.h>
@@ -24,7 +24,7 @@ static void ResetPreviewAfterNavigation(
     update_preview(ctx, dir_entry);
 }
 
-static void DebugLogFilePanelState(const char *label, const YtreePanel *panel);
+static void DebugLogFilePanelState(const char *label, const YtreeNovaPanel *panel);
 
 /* =========================================================================
  * Shared UI Helpers for Post-Action Refresh, Sync, and Render
@@ -45,7 +45,7 @@ void UI_RenderFilePanel(ViewContext *ctx, const DirEntry *dir_entry,
                ctx->ctx_file_window);
 }
 
-void CapturePanelSelectionAnchor(ViewContext *ctx, YtreePanel *panel,
+void CapturePanelSelectionAnchor(ViewContext *ctx, YtreeNovaPanel *panel,
                                  const DirEntry *dir_entry) {
   int idx;
   const FileEntry *selected_file;
@@ -87,9 +87,9 @@ void CapturePanelSelectionAnchor(ViewContext *ctx, YtreePanel *panel,
   panel->panel_generation++;
 }
 
-static void DebugLogFilePanelState(const char *label, const YtreePanel *panel);
+static void DebugLogFilePanelState(const char *label, const YtreeNovaPanel *panel);
 
-BOOL RebindActiveFilePanelSelection(YtreePanel *panel, DirEntry **dir_entry_io) {
+BOOL RebindActiveFilePanelSelection(YtreeNovaPanel *panel, DirEntry **dir_entry_io) {
   DirEntry *panel_dir;
 
   if (!panel || !dir_entry_io)
@@ -121,7 +121,7 @@ BOOL RebindActiveFilePanelSelection(YtreePanel *panel, DirEntry **dir_entry_io) 
   return TRUE;
 }
 
-static void DebugLogFilePanelState(const char *label, const YtreePanel *panel) {
+static void DebugLogFilePanelState(const char *label, const YtreeNovaPanel *panel) {
   (void)label;
   (void)panel;
 }
@@ -245,8 +245,8 @@ static void NormalizeQuotedExecPlaceholders(char *command_template,
 }
 
 BOOL handle_file_window_preview_action(
-    ViewContext *ctx, YtreeAction action, DirEntry **dir_entry_ptr,
-    YtreeAction *loop_action_ptr, Statistic **stats_ptr,
+    ViewContext *ctx, YtreeNovaAction action, DirEntry **dir_entry_ptr,
+    YtreeNovaAction *loop_action_ptr, Statistic **stats_ptr,
     struct Volume **start_vol_ptr, BOOL *need_dsp_help_ptr,
     long *preview_line_offset_ptr, int *saved_fixed_width_ptr,
     void (*update_preview)(ViewContext *, const DirEntry *)) {
@@ -376,7 +376,7 @@ BOOL handle_file_window_preview_action(
 }
 
 BOOL handle_file_window_navigation_action(
-    ViewContext *ctx, YtreeAction action, DirEntry *dir_entry, int *start_x_ptr,
+    ViewContext *ctx, YtreeNovaAction action, DirEntry *dir_entry, int *start_x_ptr,
     BOOL *need_dsp_help_ptr, long *preview_line_offset_ptr,
     void (*update_preview)(ViewContext *, const DirEntry *),
     void (*list_jump)(ViewContext *, DirEntry *, char *)) {
@@ -460,7 +460,7 @@ BOOL handle_file_window_navigation_action(
   }
 }
 
-BOOL handle_file_window_volume_action(ViewContext *ctx, YtreeAction action,
+BOOL handle_file_window_volume_action(ViewContext *ctx, YtreeNovaAction action,
                                       const struct Volume *start_vol,
                                       int *unput_char_ptr,
                                       BOOL *return_esc_ptr) {
@@ -507,7 +507,7 @@ BOOL handle_file_window_volume_action(ViewContext *ctx, YtreeAction action,
   }
 }
 
-BOOL handle_file_window_command_action(ViewContext *ctx, YtreeAction action,
+BOOL handle_file_window_command_action(ViewContext *ctx, YtreeNovaAction action,
                                        DirEntry **dir_entry_ptr,
                                        BOOL *need_dsp_help_ptr,
                                        BOOL *maybe_change_x_step_ptr,
@@ -837,8 +837,8 @@ BOOL handle_file_window_command_action(ViewContext *ctx, YtreeAction action,
 }
 
 BOOL handle_file_window_misc_dispatch_action(
-    ViewContext *ctx, YtreeAction action, DirEntry **dir_entry_ptr,
-    YtreeAction *loop_action_ptr, int *unput_char_ptr,
+    ViewContext *ctx, YtreeNovaAction action, DirEntry **dir_entry_ptr,
+    YtreeNovaAction *loop_action_ptr, int *unput_char_ptr,
     const int *start_x_ptr,
     BOOL *need_dsp_help_ptr, BOOL *maybe_change_x_step_ptr, Statistic *s,
     long *preview_line_offset_ptr,
@@ -1639,7 +1639,7 @@ static void UpdateTaggedActionStatistics(ViewContext *ctx,
   DisplayDirStatistic(ctx, dir_entry, NULL, s);
 }
 
-static void SetFileTaggedState(YtreePanel *panel, FileEntry *fe_ptr,
+static void SetFileTaggedState(YtreeNovaPanel *panel, FileEntry *fe_ptr,
                                Statistic *s, BOOL tagged) {
   DirEntry *de_ptr = NULL;
   off_t file_size = 0;

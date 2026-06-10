@@ -1,10 +1,10 @@
 import os
 import time
-from tui_harness import YtreeTUI
-from ytree_keys import Keys
+from tui_harness import YtreeNovaTUI
+from ytnova_keys import Keys
 
 def _time_scale():
-    raw = os.getenv("YTREE_TUI_TIME_SCALE", "1.0")
+    raw = os.getenv("YTNOVA_TUI_TIME_SCALE", "1.0")
     try:
         return max(1.0, float(raw))
     except (TypeError, ValueError):
@@ -38,14 +38,14 @@ def wait_for_dir_window(tui, timeout=2.0):
         time.sleep(0.1)
     return False
 
-def test_exit_on_delete(ytree_binary, tmp_path):
+def test_exit_on_delete(ytnova_binary, tmp_path):
     """
     TEST 1 — test_exit_on_delete:
     1. Create tmp dir with one file
-    2. Launch YtreeTUI pointed at that dir
+    2. Launch YtreeNovaTUI pointed at that dir
     3. Enter file window (Keys.ENTER), wait for file to appear
     4. Delete file: send 'd', wait for "Delete" prompt, send 'y'
-    5. After deletion, the dir has no files — ytree should auto-return to directory window
+    5. After deletion, the dir has no files — ytnova should auto-return to directory window
     6. Assert footer shows "dir" (not "file")
     7. Quit
     """
@@ -54,7 +54,7 @@ def test_exit_on_delete(ytree_binary, tmp_path):
     test_file = test_dir / "file1.txt"
     test_file.write_text("test content")
 
-    tui = YtreeTUI(executable=ytree_binary, cwd=str(test_dir))
+    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(test_dir))
     
     # Enter file window
     tui.send_keystroke(Keys.ENTER)
@@ -66,7 +66,7 @@ def test_exit_on_delete(ytree_binary, tmp_path):
     assert tui.wait_for_content("Delete"), "Delete prompt should appear"
     tui.send_keystroke(Keys.CONFIRM_YES)
     
-    # Wait for ytree to return to directory window
+    # Wait for ytnova to return to directory window
     # We poll is_dir_window since it's an automatic transition
     success = wait_for_dir_window(tui, timeout=2.0)
 
@@ -75,15 +75,15 @@ def test_exit_on_delete(ytree_binary, tmp_path):
     
     tui.quit()
 
-def test_exit_on_move(ytree_binary, tmp_path):
+def test_exit_on_move(ytnova_binary, tmp_path):
     """
     TEST 2 — test_exit_on_move:
     1. Create src/ and dst/ dirs, put one file in src/
-    2. Launch YtreeTUI pointed at src/
+    2. Launch YtreeNovaTUI pointed at src/
     3. Enter file window (Keys.ENTER)
     4. Move file: send 'm', wait for MOVE prompt, send Enter (accept default name), 
        wait for "To Directory:" prompt, send dst path + Enter
-    5. After move, src/ is empty — ytree should auto-return to directory window
+    5. After move, src/ is empty — ytnova should auto-return to directory window
     6. Assert footer shows "dir" (not "file")
     7. Quit
     """
@@ -95,7 +95,7 @@ def test_exit_on_move(ytree_binary, tmp_path):
     test_file = src_dir / "file1.txt"
     test_file.write_text("test content")
 
-    tui = YtreeTUI(executable=ytree_binary, cwd=str(src_dir))
+    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(src_dir))
     
     # Enter file window
     tui.send_keystroke(Keys.ENTER)
@@ -110,7 +110,7 @@ def test_exit_on_move(ytree_binary, tmp_path):
     assert tui.wait_for_content("To Directory:"), "Destination prompt should appear"
     tui.send_keystroke(str(dst_dir) + Keys.ENTER)
     
-    # Wait for ytree to return to directory window
+    # Wait for ytnova to return to directory window
     success = wait_for_dir_window(tui, timeout=2.0)
 
     assert success, "Should auto-return to directory window after last file is moved"

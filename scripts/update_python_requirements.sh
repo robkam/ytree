@@ -11,7 +11,7 @@ if ! command -v pip-compile >/dev/null 2>&1; then
   pip install pip-tools
 fi
 
-export PIP_TOOLS_CACHE_DIR="${PIP_TOOLS_CACHE_DIR:-/tmp/ytree-pip-tools-cache}"
+export PIP_TOOLS_CACHE_DIR="${PIP_TOOLS_CACHE_DIR:-/tmp/ytnova-pip-tools-cache}"
 mkdir -p "$PIP_TOOLS_CACHE_DIR"
 
 pip-compile --upgrade -o scripts/requirements.txt scripts/requirements.in

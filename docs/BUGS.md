@@ -16,7 +16,7 @@ Ordering policy (for all editors, including AI editors):
 *   **Impact**: Breaks per-volume navigation predictability and increases wrong-target risk during fast volume switching workflows.
 *   **Remediation**: Preserve and restore per-volume dir/file window state independently when cycling volumes. Add regression coverage for repeated `<`/`>` transitions across volumes with different view states.
 *   **Regression notes (manual, 2026-05-21)**:
-    *   `F10` can fail with `Can't edit "/home/rob/.ytree"` after volume-cycle transitions, then succeeds again after cycling back.
+    *   `F10` can fail with `Can't edit "/home/rob/.ytnova"` after volume-cycle transitions, then succeeds again after cycling back.
     *   With `SMALLWINDOWSKIP=0`, cycling away and back from a zoomed file window can return the same location in small-window non-zoom state.
 *   **Status**: Fixed.
 
@@ -29,7 +29,7 @@ Ordering policy (for all editors, including AI editors):
 ### **BUG-2.1: Split `Tab` Transition Can Trigger Obvious Wrong-Surface Refresh**
 *   **Description**: During `F8` split copy-destination preparation, `Tab` can trigger a visibly incorrect/ugly window refresh where redraw surface ownership appears unstable even though source selection/tag state remains intact.
 *   **Repro (manual, 2026-05-22)**:
-    *   Source flow: enter `/home/rob/ytree/src/cmd`, tag first files, start `c`, `Enter` into destination prompt, then cancel/return.
+    *   Source flow: enter `/home/rob/ytreenova/src/cmd`, tag first files, start `c`, `Enter` into destination prompt, then cancel/return.
     *   Split flow: `F8`, `Tab`, `Enter` to leave file window, cycle destination tree, `Home`, `M 00`, select `00`.
     *   Press `Tab` back.
 *   **Expected**: Stable panel redraw across `Tab` transitions with no obvious wrong-surface flash/churn.
@@ -46,14 +46,14 @@ Ordering policy (for all editors, including AI editors):
     *   `yt ~`
     *   `log /home/rob/xtreefanpage`
     *   Enter `/home/rob/xtreefanpage/download`, select `noans.zip`
-    *   `log /home/rob/ytree`
-    *   Enter `/home/rob/ytree/src/cmd`, select `rename.c`
+    *   `log /home/rob/ytreenova`
+    *   Enter `/home/rob/ytreenova/src/cmd`, select `rename.c`
     *   On `~` select end dir, `k release ~`
-    *   Switch to `/home/rob/ytree`
-*   **Expected**: Return to prior file context (`/home/rob/ytree/src/cmd`, selected `rename.c`) for that volume.
-*   **Actual**: Selection returns in tree context with `/home/rob/ytree/src/cmd` moved to a different directory-row position (reported as second-from-bottom), not preserved file-context state.
+    *   Switch to `/home/rob/ytreenova`
+*   **Expected**: Return to prior file context (`/home/rob/ytreenova/src/cmd`, selected `rename.c`) for that volume.
+*   **Actual**: Selection returns in tree context with `/home/rob/ytreenova/src/cmd` moved to a different directory-row position (reported as second-from-bottom), not preserved file-context state.
 *   **Additional observation**:
-    *   After moving `/home/rob/ytree/src/cmd` to `/home/rob/ytree` and switching back to `/home/rob/xtreefanpage`, view no longer returns to `/home/rob/xtreefanpage/download`; lands at `/home/rob/xtreefanpage` dir view.
+    *   After moving `/home/rob/ytreenova/src/cmd` to `/home/rob/ytreenova` and switching back to `/home/rob/xtreefanpage`, view no longer returns to `/home/rob/xtreefanpage/download`; lands at `/home/rob/xtreefanpage` dir view.
     *   `SMALLWINDOWSKIP=0` not yet tried for this defect family.
 *   **Impact**: Breaks per-volume resume guarantees and creates wrong-target risk during cross-volume workflows.
 *   **Remediation**:
@@ -66,11 +66,11 @@ Ordering policy (for all editors, including AI editors):
 ### **BUG-2.3: Tree Viewport Reanchors Unexpectedly During Navigation and Panel Reactivation**
 *   **Description**: Tree viewport origin must remain panel-local and stable whenever the active selection is still valid and visible. In practice, `Enter` transitions, `Tab` reactivation, and hidden-dotfile restore paths can still reanchor the tree and make it shift upward or downward even though no scroll is required.
 *   **Repro (manual, 2026-05-29 / 2026-05-31)**:
-    *   `yt ~/ytree`
+    *   `yt ~/ytreenova`
     *   Move selection to `src/cmd`
     *   Press `Enter`, then `Enter` again
-    *   `HIDEDOTFILES=0 yt ~/ytree /mnt/c/Users/Henry/Desktop/`
-    *   Move to `/home/rob/ytree/src/cmd`
+    *   `HIDEDOTFILES=0 yt ~/ytreenova /mnt/c/Users/Henry/Desktop/`
+    *   Move to `/home/rob/ytreenova/src/cmd`
     *   `F8`, `Tab`, `/`, select `/mnt/c/Users/Henry/Desktop/Wiki & electronics/Music studies`, then `Tab`
 *   **Expected**: The tree viewport remains stable unless scroll is required to keep the active selection visible (for example when selection moves beyond the visible viewport). Reactivating a panel must restore the same frozen tree state the panel had before losing focus, regardless of hidden-dotfile settings.
 *   **Actual**: Tree content shifts unexpectedly while selection/context remains within what should be a stable viewport, and the reactivated panel can jump to a different origin when `HIDEDOTFILES=0`.
@@ -92,7 +92,7 @@ Ordering policy (for all editors, including AI editors):
 ### **BUG-2.4: Mkdir Triggers Unnecessary Relog and Resets Tree State**
 *   **Description**: Creating a directory with `M` can force a relog-style tree rebuild that reanchors selection and resets the visible tree state, even though the parent tree is already valid and only an incremental redraw/update is needed.
 *   **Repro (manual, 2026-05-30)**:
-    *   `yt ~/ytree /mnt/c/Users/Henry/Desktop/`
+    *   `yt ~/ytreenova /mnt/c/Users/Henry/Desktop/`
     *   Navigate to a tree location with a logged parent and stable viewport
     *   Press `M 00`
 *   **Expected**: Directory creation updates the current tree in place, preserving the existing expansion/logging state and viewport origin when the current selection remains valid; no implicit relog or depth reset.
@@ -129,7 +129,7 @@ Ordering policy (for all editors, including AI editors):
     *   Open a tree that contains both a visible target such as `src` and hidden-prefix content such as `./tmp/session.cast` or `~/.local/src`.
     *   Perform a normal jump/search flow that should land on the visible target.
 *   **Expected**: Items hidden from the UI should not participate in ordinary visible-tree jumps, selection, or restore decisions.
-*   **Actual**: The jump resolves to a hidden-prefix path such as `/home/rob/.local/src` instead of the visible `~/ytree/src`.
+*   **Actual**: The jump resolves to a hidden-prefix path such as `/home/rob/.local/src` instead of the visible `~/ytreenova/src`.
 *   **Impact**: Demonstrates a broader architectural defect in hidden-item accounting and visible-tree authority, not just a one-off wrong row. It can misdirect routine navigation and make hidden entries behave as if they were still visible.
 *   **Remediation**: Make hidden-from-UI entries non-participants in the normal visible-tree resolver paths unless explicitly requested, and keep the visible-tree contract authoritative for jump, selection, and restore logic. Add regression coverage that distinguishes visible-tree targets from hidden-prefix matches.
 *   **Status**: Confirmed.
@@ -254,7 +254,7 @@ Ordering policy (for all editors, including AI editors):
 *   **Status**: Confirmed.
 
 ### **BUG-9.4: Single-Empty-Directory Archive Can Collapse Tree Rendering**
-*   **Description**: In archive mode, when the archive contains only one empty directory, ytree can skip normal tree-node rendering and show that directory identity as appended archive-name/path text instead.
+*   **Description**: In archive mode, when the archive contains only one empty directory, ytnova can skip normal tree-node rendering and show that directory identity as appended archive-name/path text instead.
 *   **Impact**: Obscures archive structure and creates high-friction navigation confusion in a common edge case.
 *   **Remediation**: Keep archive tree rendering consistent in this edge case: render a proper directory node in the tree and keep archive identity separate from child directory labels.
 *   **Related**: `BUG-9.3` (name-text rendering contamination), `ROADMAP` Task 13 (path/message formatting hygiene).
@@ -356,10 +356,10 @@ Ordering policy (for all editors, including AI editors):
 *   **Description**: Discrepancy in default visibility and documentation for `VI_KEYS`.
 *   **Findings**:
     *   `default_profile_template.h` uses `VI_KEYS=0`.
-    *   `etc/ytree.conf` uses `VI_KEYS=0`.
-    *   User scratchpad reports `ytree.conf` had `1`.
+    *   `etc/ytnova.conf` uses `VI_KEYS=0`.
+    *   User scratchpad reports `ytnova.conf` had `1`.
 *   **Impact**: Users may experience "magic" behavior changes if the disk-based config diverges from the internal template.
-*   **Remediation**: Ensure the `ytree --init` generation path strictly matches the `etc/ytree.conf` provided in the distribution.
+*   **Remediation**: Ensure the `ytnova --init` generation path strictly matches the `etc/ytnova.conf` provided in the distribution.
 *   **Status**: Confirmed.
 
 ### **BUG-27: VI Mode Key Ambiguity and Collisions**
@@ -379,7 +379,7 @@ Ordering policy (for all editors, including AI editors):
 *   **Status**: Confirmed.
 
 ### **BUG-29: Misleading Tree Expansion Action Names**
-*   **Description**: The internal `YtreeAction` names for tree expansion are swapped relative to their behavior and documentation.
+*   **Description**: The internal `YtreeNovaAction` names for tree expansion are swapped relative to their behavior and documentation.
 *   **Findings**:
     *   `+` key maps to `ACTION_TREE_EXPAND_ALL`, but only expands **one level**.
     *   `*` key maps to `ACTION_ASTERISK`, and expands **recursively**.

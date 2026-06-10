@@ -7,8 +7,8 @@
  ***************************************************************************/
 
 #include "watcher.h"
-#include "ytree_cmd.h"
-#include "ytree_ui.h"
+#include "ytnova_cmd.h"
+#include "ytnova_ui.h"
 #include <ctype.h>
 #include <curses.h>
 #include <errno.h>
@@ -408,7 +408,7 @@ int NormalizeViKey(const ViewContext *ctx, int ch) {
   return ch;
 }
 
-YtreeAction GetKeyAction(const ViewContext *ctx, int ch) {
+YtreeNovaAction GetKeyAction(const ViewContext *ctx, int ch) {
   BOOL vi_keys_enabled = IsViKeysEnabled(ctx);
   if (vi_keys_enabled)
     ch = ViKey(ch);
@@ -781,7 +781,7 @@ int GetEventOrKey(ViewContext *ctx) {
     return KEY_RESIZE;
 
   /* Before the select loop, check the shutdown flag */
-  if (ytree_shutdown_flag)
+  if (ytnova_shutdown_flag)
     return 'q';
 
   /* Check if input is already available to avoid select delay */
@@ -825,7 +825,7 @@ int GetEventOrKey(ViewContext *ctx) {
 
     if (result == -1) {
       if (errno == EINTR) {
-        if (ytree_shutdown_flag)
+        if (ytnova_shutdown_flag)
           return 'q';
 
         nodelay(stdscr, TRUE);

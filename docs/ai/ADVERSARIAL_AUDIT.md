@@ -8,7 +8,7 @@ Use `code_auditor` when the goal is to hunt for serious defects, fragility, slop
 :at code_auditor
 use skill code-quality
 
-Audit ytree as if you were actively trying to prove it is unsafe, fragile, or sloppily engineered.
+Audit ytnova as if you were actively trying to prove it is unsafe, fragile, or sloppily engineered.
 
 Be adversarial, but stay evidence-based:
 - prioritize real defects over style nits

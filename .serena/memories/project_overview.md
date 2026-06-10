@@ -1,7 +1,7 @@
 # Project Overview
 
-ytree is a modern C99 refactor of the classic ytree file manager for UNIX-like systems.
-Unlike traditional file browsers, ytree is a "Logger" that scans the entire drive hierarchy into memory, allowing for flat views, instant filtering across subdirectories, and bulk operations.
+ytnova is a modern C99 refactor of the classic ytnova file manager for UNIX-like systems.
+Unlike traditional file browsers, ytnova is a "Logger" that scans the entire drive hierarchy into memory, allowing for flat views, instant filtering across subdirectories, and bulk operations.
 It features Multi-Volume support, Split-Screen workflows, and transparent archive browsing.
 
 ## Tech Stack

@@ -2,13 +2,13 @@ import pexpect
 import threading
 import time
 
-from ytree_keys import Keys
+from ytnova_keys import Keys
 
 
 def test_refresh_handles_deleted_entries_quietly(controller, sandbox):
     """
     Regression:
-    If files disappear while a refresh scan is running, ytree must not block on
+    If files disappear while a refresh scan is running, ytnova must not block on
     "Stat failed on ... IGNORED" dialogs.
     """
     source_dir = sandbox / "source"

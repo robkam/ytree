@@ -5,11 +5,11 @@
  *
  ***************************************************************************/
 
-#include "ytree_defs.h"
+#include "ytnova_defs.h"
 
 extern void FreePathList(PathList *list);
 
-static void Volume_ClearPanelFileEntries(YtreePanel *panel) {
+static void Volume_ClearPanelFileEntries(YtreeNovaPanel *panel) {
   if (panel && panel->file_entry_list) {
     free(panel->file_entry_list);
     panel->file_entry_list = NULL;
@@ -18,7 +18,7 @@ static void Volume_ClearPanelFileEntries(YtreePanel *panel) {
   }
 }
 
-static void Volume_ClearPanelFileAnchor(YtreePanel *panel) {
+static void Volume_ClearPanelFileAnchor(YtreeNovaPanel *panel) {
   if (!panel)
     return;
   panel->file_dir_entry = NULL;
@@ -26,7 +26,7 @@ static void Volume_ClearPanelFileAnchor(YtreePanel *panel) {
   panel->file_cursor_pos = 0;
 }
 
-static void Volume_ClearPanelTags(YtreePanel *panel) {
+static void Volume_ClearPanelTags(YtreeNovaPanel *panel) {
   if (!panel)
     return;
   FreePathList(panel->tagged_paths);
@@ -297,7 +297,7 @@ struct Volume *Volume_Load(ViewContext *ctx, const char *path,
     }
 #else
     MESSAGE(ctx,
-            "Cannot open file as archive*ytree not compiled with*libarchive "
+            "Cannot open file as archive*ytnova not compiled with*libarchive "
             "support");
     return NULL;
 #endif
@@ -350,7 +350,7 @@ struct Volume *Volume_Load(ViewContext *ctx, const char *path,
 
   /* 6. Mode Detection */
   if (!S_ISDIR(stat_struct.st_mode)) {
-    /* "root" node is always a directory structure for Ytree, even for archives
+    /* "root" node is always a directory structure for YtreeNova, even for archives
      */
     memset(&s->tree->stat_struct, 0, sizeof(struct stat));
     s->tree->stat_struct.st_mode = S_IFDIR;

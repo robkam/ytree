@@ -8,13 +8,13 @@
 #ifndef INTERACTIONS_PANEL_PATHS_H
 #define INTERACTIONS_PANEL_PATHS_H
 
-#include "ytree_ui.h"
+#include "ytnova_ui.h"
 
-extern YtreePanel *UI_GetInactivePanel(ViewContext *ctx);
-extern int UI_GetPanelSelectedDirPath(ViewContext *ctx, YtreePanel *panel,
+extern YtreeNovaPanel *UI_GetInactivePanel(ViewContext *ctx);
+extern int UI_GetPanelSelectedDirPath(ViewContext *ctx, YtreeNovaPanel *panel,
                                       char *out_path);
-extern int UI_GetPanelLoggedRootPath(YtreePanel *panel, char *out_path);
-extern int UI_GetPanelSelectedFilePath(ViewContext *ctx, YtreePanel *panel,
+extern int UI_GetPanelLoggedRootPath(YtreeNovaPanel *panel, char *out_path);
+extern int UI_GetPanelSelectedFilePath(ViewContext *ctx, YtreeNovaPanel *panel,
                                        char *out_path);
 
 #endif

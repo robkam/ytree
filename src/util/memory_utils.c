@@ -5,7 +5,7 @@
  * Fails fast on allocation errors.
  *
  ***************************************************************************/
-#include "ytree_defs.h"
+#include "ytnova_defs.h"
 
 void *xmalloc(size_t size) {
   void *ptr = malloc(size);

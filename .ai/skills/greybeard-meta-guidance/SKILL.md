@@ -1,6 +1,6 @@
 ---
 name: greybeard-meta-guidance
-description: Provide practical conventions and process guidance for ytree and OSS C/TUI workflows, including personas, skills, review standards, and developer expectations.
+description: Provide practical conventions and process guidance for ytnova and OSS C/TUI workflows, including personas, skills, review standards, and developer expectations.
 ---
 
 # Greybeard Meta Guidance

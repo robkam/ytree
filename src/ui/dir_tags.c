@@ -5,10 +5,10 @@
  *
  ***************************************************************************/
 
-#include "ytree_ui.h"
+#include "ytnova_ui.h"
 
 void HandleTagDir(ViewContext *ctx, DirEntry *dir_entry, BOOL value,
-                  YtreePanel *p) {
+                  YtreeNovaPanel *p) {
   Statistic *s = &p->vol->vol_stats;
 
   FileEntry *fe_ptr;
@@ -43,7 +43,7 @@ void HandleTagDir(ViewContext *ctx, DirEntry *dir_entry, BOOL value,
 }
 
 void HandleTagAllDirs(ViewContext *ctx, struct Volume *vol, DirEntry *dir_entry,
-                      BOOL value, YtreePanel *p) {
+                      BOOL value, YtreeNovaPanel *p) {
   Statistic *s = &vol->vol_stats;
   FileEntry *fe_ptr;
   long i;
@@ -82,7 +82,7 @@ void HandleTagAllDirs(ViewContext *ctx, struct Volume *vol, DirEntry *dir_entry,
 }
 
 static void HandleInvertDirTags(ViewContext *ctx, DirEntry *dir_entry,
-                                YtreePanel *p) {
+                                YtreeNovaPanel *p) {
   Statistic *s = &p->vol->vol_stats;
   FileEntry *fe_ptr;
 
@@ -117,7 +117,7 @@ static void HandleInvertDirTags(ViewContext *ctx, DirEntry *dir_entry,
 }
 
 static void HandleDirTaggedOnlyToggle(ViewContext *ctx, DirEntry *dir_entry,
-                                      YtreePanel *p) {
+                                      YtreeNovaPanel *p) {
   if (dir_entry->tagged_files)
     dir_entry->tagged_flag = !dir_entry->tagged_flag;
   else

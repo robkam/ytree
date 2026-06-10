@@ -1,5 +1,5 @@
 # **System Architecture**
-> **Purpose:** This document defines the internal design of `ytree`. It serves as the authoritative guide for maintaining the codebase's structural integrity.
+> **Purpose:** This document defines the internal design of `ytnova`. It serves as the authoritative guide for maintaining the codebase's structural integrity.
 
 ## **1. Core Quality Principles**
 To maintain architectural stability throughout the modernization, all changes must adhere to these foundational rules:
@@ -46,30 +46,30 @@ Canonical ownership test:
 This does **not** replace architecture review. It is a fitness function: mechanical checks that fail fast when structure drifts.
 
 ## **2. Architectural Overview**
-This document outlines the architectural design of `ytree`. The codebase utilizes a modular, context-oriented C99 design.
+This document outlines the architectural design of `ytnova`. The codebase utilizes a modular, context-oriented C99 design.
 
 The primary objective is to maintain a **predictable, high-integrity state machine**. Every component is designed to uphold the **Focus vs. Freeze** logic and the specific hierarchy of modal priorities inherited from the XTree&trade; lineage.
 
 ---
 
 ## 2. Execution & Concurrency Model
-`ytree` is strictly **SINGLE-THREADED**. This ensures deterministic state transitions and prevents race conditions within the Ncurses rendering pipeline.
+`ytnova` is strictly **SINGLE-THREADED**. This ensures deterministic state transitions and prevents race conditions within the Ncurses rendering pipeline.
 
 *   **Sequential Logic:** All application logic, filesystem I/O, and UI rendering execute sequentially in the main thread.
 *   **Signal Handling:** Signals (e.g., `SIGINT`, `SIGWINCH`) set atomic flags. No complex logic, I/O, or Ncurses calls are permitted inside signal handlers.
-*   **Context-Passing Design:** All functions receive explicit context pointers (`ViewContext *ctx`, `YtreePanel *`, or `Volume *`) as their first argument. Global mutable state is prohibited. See **Section 3** for detailed rules and exemptions.
+*   **Context-Passing Design:** All functions receive explicit context pointers (`ViewContext *ctx`, `YtreeNovaPanel *`, or `Volume *`) as their first argument. Global mutable state is prohibited. See **Section 3** for detailed rules and exemptions.
 
 ---
 
 ## 3. Context-Passing Architecture
 
-`ytree` follows a strict **context-passing** (also called "context-oriented") architecture. This is the most important structural property of the codebase — it governs how every function accesses application state.
+`ytnova` follows a strict **context-passing** (also called "context-oriented") architecture. This is the most important structural property of the codebase — it governs how every function accesses application state.
 
 ### 3.1 The Rule
 
 > **Every function receives the state it operates on as an explicit parameter. No function may read or write application state through global variables.**
 
-In practice, this means every function signature begins with `ViewContext *ctx` (or a more specific context like `YtreePanel *` or `Volume *`). The `ViewContext` is the root session object; it is allocated once in `main()`, passed by pointer into every call chain, and owns all application state through its member hierarchy.
+In practice, this means every function signature begins with `ViewContext *ctx` (or a more specific context like `YtreeNovaPanel *` or `Volume *`). The `ViewContext` is the root session object; it is allocated once in `main()`, passed by pointer into every call chain, and owns all application state through its member hierarchy.
 
 This pattern provides:
 *   **Testability** — Functions can be called with synthetic contexts.
@@ -79,12 +79,12 @@ This pattern provides:
 
 ### 3.2 `ViewContext` — The Session Root
 
-The `ViewContext` struct (defined in `include/ytree_defs.h`) is the root of all application state:
+The `ViewContext` struct (defined in `include/ytnova_defs.h`) is the root of all application state:
 
 ```
 ViewContext (The Session)
-├── left   → YtreePanel (Panel: cursor, scroll, window state, tags)
-├── right  → YtreePanel (Panel: cursor, scroll, window state, tags)
+├── left   → YtreeNovaPanel (Panel: cursor, scroll, window state, tags)
+├── right  → YtreeNovaPanel (Panel: cursor, scroll, window state, tags)
 ├── active → points to left or right
 ├── volumes_head → Volume linked list (Model: shared DirEntry trees, statistics)
 └── viewer, layout, mode flags, etc.
@@ -100,13 +100,13 @@ Exactly **three** global variables exist in the codebase. Each has a specific te
 |---|---|---|---|
 | `ui_colors[]` | `UIColor[]` | `src/ui/color.c` | Color palette table — written once during config parsing at startup, read-only thereafter. Shared across all UI code as immutable configuration. |
 | `NUM_UI_COLORS` | `int` | `src/ui/color.c` | Derived from `sizeof(ui_colors)` — effectively a compile-time constant. |
-| `ytree_shutdown_flag` | `volatile sig_atomic_t` | `src/core/main.c` | Set by the `SIGTERM`/`SIGINT` signal handler. POSIX signal handlers cannot receive context pointers; an atomic global flag is the mandated pattern for signal-to-mainloop communication. |
+| `ytnova_shutdown_flag` | `volatile sig_atomic_t` | `src/core/main.c` | Set by the `SIGTERM`/`SIGINT` signal handler. POSIX signal handlers cannot receive context pointers; an atomic global flag is the mandated pattern for signal-to-mainloop communication. |
 
-> **For contributors:** Adding new global variables is not permitted. If you need shared state, add a member to `ViewContext` (or `YtreePanel` / `Volume` as appropriate) and pass it through the call chain.
+> **For contributors:** Adding new global variables is not permitted. If you need shared state, add a member to `ViewContext` (or `YtreeNovaPanel` / `Volume` as appropriate) and pass it through the call chain.
 
 ### 3.4 Historical Note
 
-The original `ytree` codebase used pervasive global state (`CurrentVolume`, `statistic`, `dir_entry_list`, etc.) and functions with `void` parameter lists that silently operated on globals. Between 2024–2025, all 228+ function signatures were refactored to receive explicit context pointers, all global state was migrated into `ViewContext`, and the compatibility bridge (`GlobalView` pointer) was subsequently removed.
+The original `ytnova` codebase used pervasive global state (`CurrentVolume`, `statistic`, `dir_entry_list`, etc.) and functions with `void` parameter lists that silently operated on globals. Between 2024–2025, all 228+ function signatures were refactored to receive explicit context pointers, all global state was migrated into `ViewContext`, and the compatibility bridge (`GlobalView` pointer) was subsequently removed.
 
 ## 4. Core Architectural Data Hierarchy
 
@@ -118,7 +118,7 @@ The application state is strictly hierarchical:
     *   Owns pointers to `left` and `right` panels and the `active` panel focus pointer.
     *   Owns the `volumes_head` registry of all loaded volumes.
 
-2.  **`YtreePanel` (The View):**
+2.  **`YtreeNovaPanel` (The View):**
     *   Represents a single UI panel.
     *   Owns **Panel-Local State**: cursor position, scroll offset, file-view anchor, focus/window mode, filespec/filter, and selected/tagged files for that panel.
     *   Holds a reference to a `Volume`.
@@ -142,7 +142,7 @@ Split-transfer/switch code must classify each field before copying or restoring:
 
 | State Class | Owned By | Examples | Forbidden Cross-Panel Behavior |
 |---|---|---|---|
-| **Panel-Local** | `YtreePanel` | `cursor_pos`, `disp_begin_pos`, `start_file`, `file_cursor_pos`, `file_dir_entry`, `saved_focus`, `saved_big_file_view`, `file_selection_name`, `file_selection_dir_path`, `tagged_paths`, `hide_dot_files` | Active-only commands must not mutate the inactive panel's values. |
+| **Panel-Local** | `YtreeNovaPanel` | `cursor_pos`, `disp_begin_pos`, `start_file`, `file_cursor_pos`, `file_dir_entry`, `saved_focus`, `saved_big_file_view`, `file_selection_name`, `file_selection_dir_path`, `tagged_paths`, `hide_dot_files` | Active-only commands must not mutate the inactive panel's values. |
 | **Derived / Restore-Mirror** | `ViewContext` mirrors and `Volume` restore breadcrumbs | `ctx->hide_dot_files`, `saved_tree_index`, `saved_focus` | May shadow panel-local state for compatibility or restore, but must never become the authoritative source of truth when a panel-local copy exists. |
 | **Shared-Topology** | `Volume` (possibly referenced by both panels) | `vol_stats.tree`, `dir_entry_list`, directory expansion/logging topology | Panel code may mirror topology visibility updates, but must re-anchor each panel by identity/path and must not infer panel-local selection by shared index. |
 | **Session-Only** | `ViewContext` session scope | `is_split_screen`, `focused_window`, layout windows, session options other than panel-local visibility state | Session toggles must not be treated as panel-local transfer state; split hand-off code must not use them to overwrite inactive panel-local snapshots. |
@@ -150,7 +150,7 @@ Split-transfer/switch code must classify each field before copying or restoring:
 Boundary implementations in `src/ui/dir_ops.c` and `src/ui/ctrl_file_ops.c` reference this map in invariant comments and debug assertions.
 
 #### 4.2.2 Unified Window/Panel UI State Record
-The target architecture is not a greenfield rewrite. It is the canonicalization of the panel-owned state that already exists in `YtreePanel` and helper code: make one authoritative UI state record per window or panel, then route selection, viewport, and focus restore through that record instead of re-deriving them from visible rows or raw indices. Rendering is only a projection of that record.
+The target architecture is not a greenfield rewrite. It is the canonicalization of the panel-owned state that already exists in `YtreeNovaPanel` and helper code: make one authoritative UI state record per window or panel, then route selection, viewport, and focus restore through that record instead of re-deriving them from visible rows or raw indices. Rendering is only a projection of that record.
 
 The record must capture, at minimum:
 *   **Identity and mode:** whether the container is a single-window session or a split-panel instance, plus the active focus shape.
@@ -161,7 +161,7 @@ The record must capture, at minimum:
 *   **Context state:** per-volume anchors, per-panel filter text, and any mode flag that affects how the same tree/file model is presented.
 
 Ownership rules:
-*   `YtreePanel` owns the live UI state record for its window/panel instance.
+*   `YtreeNovaPanel` owns the live UI state record for its window/panel instance.
 *   `Volume` owns shared topology and payload cache; per-volume restore breadcrumbs may live there, but they are not shared-topology authority.
 *   `ViewContext` owns only session-wide routing and layout references plus derived mirrors required by legacy helpers, not authoritative tree or file selection.
 *   Any duplicate or shadow copy of the same state in `ViewContext` or helper paths must be either explicitly derived-only or removed; stable path-based identity is the restore key, not transient row indices or stale pointers.
@@ -181,14 +181,14 @@ Update rules:
 
 This record is the implementation-side counterpart to the contract stated in `docs/SPECIFICATION.md`. Future stateless agents must treat it as the canonical UI state model.
 
-Canonical restore boundary: `CapturePanelAnchorPath`, `FindDirIndexByPath`, `FindDirIndexByPathOrAncestor`, `PositionPanelAtIndex`, `RestorePanelAnchorPath`, and `EnsurePanelAnchorVisible` in `src/ui/panel_anchor.c` / `include/ytree_panel_anchor.h` are the intended restore helpers for this contract. Other modules may request restore through that API, but they must not invent alternate restore authority or re-derive panel-local selection/viewport state independently.
+Canonical restore boundary: `CapturePanelAnchorPath`, `FindDirIndexByPath`, `FindDirIndexByPathOrAncestor`, `PositionPanelAtIndex`, `RestorePanelAnchorPath`, and `EnsurePanelAnchorVisible` in `src/ui/panel_anchor.c` / `include/ytnova_panel_anchor.h` are the intended restore helpers for this contract. Other modules may request restore through that API, but they must not invent alternate restore authority or re-derive panel-local selection/viewport state independently.
 
 #### 4.2.3 AppState Transition Contract
-`AppState` is the single formal application-state root for the transition contract. During migration, the runtime `ViewContext` remains the concrete carrier that maps to `AppState`: `ViewContext` owns session routing and layout references, `YtreePanel` owns panel-local UI state records, and `Volume` owns shared topology and payload cache. Runtime code must not introduce a second root or let render-derived values become state authority while this mapping is incomplete.
+`AppState` is the single formal application-state root for the transition contract. During migration, the runtime `ViewContext` remains the concrete carrier that maps to `AppState`: `ViewContext` owns session routing and layout references, `YtreeNovaPanel` owns panel-local UI state records, and `Volume` owns shared topology and payload cache. Runtime code must not introduce a second root or let render-derived values become state authority while this mapping is incomplete.
 
 The formal child regions are:
 *   **Session region:** active panel routing, split/single-window mode, modal state, command state, message state, and render invalidation flags. Owner: `ViewContext`.
-*   **Panel regions:** one region for each window/panel instance with stable identity keys, focus shape, tree/file cursor and viewport anchors, visibility/filter state, restore snapshot, and panel generation. Owner: the corresponding `YtreePanel`.
+*   **Panel regions:** one region for each window/panel instance with stable identity keys, focus shape, tree/file cursor and viewport anchors, visibility/filter state, restore snapshot, and panel generation. Owner: the corresponding `YtreeNovaPanel`.
 *   **Volume regions:** logged volume/archive namespace, shared directory topology, payload cache, shared visibility/topology generation, and model statistics. Owner: `Volume`.
 *   **Modal/command subregions:** transient prompts, menus, confirmations, external command completion, and operation results. Owner: `ViewContext`, with writes to panel or volume state only through an allowed transition commit.
 *   **Render projection region:** dirty surfaces, layout geometry, and ncurses window handles. Owner: `ViewContext`; this region may project state but must not select new authoritative identities.

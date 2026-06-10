@@ -1,22 +1,22 @@
 /***************************************************************************
  *
- * ytree.h
- * Header file for YTREE
+ * ytnova.h
+ * Header file for YTNOVA
  *
  ***************************************************************************/
 
-#ifndef YTREE_H
-#define YTREE_H
+#ifndef YTNOVA_H
+#define YTNOVA_H
 
-#include "ytree_defs.h"
-#include "ytree_fs.h"
+#include "ytnova_defs.h"
+#include "ytnova_fs.h"
 #include <stdarg.h>
 
 /* Some handy macros... */
 
 /* Cast to size_t to silence signed/unsigned comparison warnings when 'b' is
  * sizeof/strlen */
-/* MINIMUM/MAXIMUM Moved to ytree_defs.h */
+/* MINIMUM/MAXIMUM Moved to ytnova_defs.h */
 
 #include "config.h"
 
@@ -124,7 +124,7 @@ extern char *getenv(const char *);
 /* ************************************************************************* */
 
 /* ctrl_file.c */
-extern void FreeFileEntryList(YtreePanel *panel);
+extern void FreeFileEntryList(YtreeNovaPanel *panel);
 extern void InvalidateVolumePanels(ViewContext *ctx, const struct Volume *vol);
 
 /* volume.c */
@@ -138,7 +138,7 @@ extern struct Volume *Volume_Load(ViewContext *ctx, const char *path,
 extern void SetKindOfSort(int kind_of_sort, Statistic *s);
 
 /* main.c */
-extern int ytree(int argc, char *argv[]);
+extern int ytnova(int argc, char *argv[]);
 
 /* clock.c */
 extern void ClockHandler(ViewContext *ctx, int sig);
@@ -202,4 +202,4 @@ extern void(SaveHistory)(ViewContext *ctx, const char *filename);
 extern void(InsHistory)(ViewContext *ctx, const char *NewHst, int type);
 extern char *(GetHistory)(ViewContext * ctx, int type);
 
-#endif /* YTREE_H */
+#endif /* YTNOVA_H */

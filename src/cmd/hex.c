@@ -5,8 +5,8 @@
  *
  ***************************************************************************/
 
-#include "ytree_cmd.h"
-#include "ytree_fs.h"
+#include "ytnova_cmd.h"
+#include "ytnova_fs.h"
 
 #include <errno.h>
 #include <stdlib.h>
@@ -65,7 +65,7 @@ static int ViewHexArchiveFile(ViewContext *ctx, char *file_path) {
 
   temp_filename[0] = '\0';
 
-  if (!Path_CreateTempFile(temp_filename, sizeof(temp_filename), "ytree_hex_",
+  if (!Path_CreateTempFile(temp_filename, sizeof(temp_filename), "ytnova_hex_",
                            FALSE, &fd)) {
     UI_Error(ctx, __FILE__, __LINE__,
              "Could not create temporary file for hex view");

@@ -5,8 +5,8 @@
  *
  ***************************************************************************/
 
-#include "ytree_cmd.h"
-#include "ytree_fs.h"
+#include "ytnova_cmd.h"
+#include "ytnova_fs.h"
 #include <dirent.h>
 #include <errno.h>
 #include <stdio.h>
@@ -25,7 +25,7 @@
 #define ARCHIVE_MODE 2
 #define USER_MODE 3
 
-static DirEntry *MakeDirEntry(const ViewContext *ctx, YtreePanel *panel,
+static DirEntry *MakeDirEntry(const ViewContext *ctx, YtreeNovaPanel *panel,
                               DirEntry *father_dir_entry, const char *dir_name,
                               Statistic *s);
 
@@ -38,7 +38,7 @@ static int ArchiveUICallback(int status, const char *msg, void *user_data) {
   return ARCHIVE_CB_CONTINUE;
 }
 
-int MakeDirectory(const ViewContext *ctx, YtreePanel *panel,
+int MakeDirectory(const ViewContext *ctx, YtreeNovaPanel *panel,
                   DirEntry *father_dir_entry, const char *dir_name,
                   Statistic *s) {
   int result = -1;
@@ -53,7 +53,7 @@ int MakeDirectory(const ViewContext *ctx, YtreePanel *panel,
   return (result);
 }
 
-static DirEntry *MakeDirEntry(const ViewContext *ctx, YtreePanel *panel,
+static DirEntry *MakeDirEntry(const ViewContext *ctx, YtreeNovaPanel *panel,
                               DirEntry *father_dir_entry, const char *dir_name,
                               Statistic *s) {
   DirEntry *den_ptr = NULL, *des_ptr;

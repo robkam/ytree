@@ -1,6 +1,6 @@
 ---
 name: architect-planning
-description: Plan ytree changes from behavior to implementation tasks with files, risks, invariants, and acceptance criteria. Use for design and technical-approach questions.
+description: Plan ytnova changes from behavior to implementation tasks with files, risks, invariants, and acceptance criteria. Use for design and technical-approach questions.
 ---
 
 # Architect Planning
@@ -31,9 +31,9 @@ Use this skill when the active persona is `architect`.
 - UX Economy Criteria (for interactive flows)
 
 When generating a stateless developer handoff artifact, you MUST also require:
-- developer writes `/home/rob/ytree/.agent/handoffs/report.<task-id>.txt`
+- developer writes `/home/rob/ytreenova/.agent/handoffs/report.<task-id>.txt`
 - developer completion reply is exactly one line:
-  `Task <task-id> completed, report in /home/rob/ytree/.agent/handoffs/report.<task-id>.txt`
+  `Task <task-id> completed, report in /home/rob/ytreenova/.agent/handoffs/report.<task-id>.txt`
 
 ## Guardrails
 

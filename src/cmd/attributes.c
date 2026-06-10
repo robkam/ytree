@@ -2,11 +2,11 @@
  * src/cmd/attributes.c
  * Attributes Command Implementation
  *
- * Implements the change group, owner, and mode functionality for ytree.
+ * Implements the change group, owner, and mode functionality for ytnova.
  ***************************************************************************/
 
-#include "ytree_cmd.h"
-#include "ytree_fs.h"
+#include "ytnova_cmd.h"
+#include "ytnova_fs.h"
 #include <string.h>
 #include <sys/stat.h>
 #include <unistd.h>

@@ -1,20 +1,20 @@
 # **Functional Specification**
-> **Purpose:** This document defines the behavioral "Contract of Truth" for `ytree`. It specifies how the UI must respond to input, how the filesystem is represented, and the design philosophy that governs the user experience.
+> **Purpose:** This document defines the behavioral "Contract of Truth" for `ytnova`. It specifies how the UI must respond to input, how the filesystem is represented, and the design philosophy that governs the user experience.
 > This specification defines behavior contracts only; detailed regression-test inventories and case matrices belong in roadmap/planning artifacts and the test suite, not in this file.
 
 ## **1. Design Philosophy**
-The `ytree` interface is built to make the power of the Unix filesystem accessible through a high-speed, intuitive terminal interface.
+The `ytnova` interface is built to make the power of the Unix filesystem accessible through a high-speed, intuitive terminal interface.
 
 *   **Unix-First Design:** Prioritize a user experience tailored for Unix power users, emphasizing shell integration, standard POSIX conventions, and scriptability.
-*   **Ytree makes filesystem work self-evident:** Users must not need command-line fluency or Unix jargon to succeed; core actions must be visible, named plainly, and understandable from the interface itself.
-*   **Interaction Economy (Minimize Friction):** `ytree` is designed to minimize the distance between user intent and execution. Avoid unnecessary confirmations for safe operations and ensure the common path is always `key -> Enter -> result`.
+*   **YtreeNova makes filesystem work self-evident:** Users must not need command-line fluency or Unix jargon to succeed; core actions must be visible, named plainly, and understandable from the interface itself.
+*   **Interaction Economy (Minimize Friction):** `ytnova` is designed to minimize the distance between user intent and execution. Avoid unnecessary confirmations for safe operations and ensure the common path is always `key -> Enter -> result`.
 *   **Direct Access (No Menu Diving):** High-speed keyboard access is superior to hierarchical navigation. Core functionality must be accessible via single-key or simple combinations; UI depth must never exceed one level for primary actions.
 *   **No Hidden Features:** All functionality, especially syntax like the `{}` placeholder, must be explained in context within the UI (e.g., in help lines or prompts).
 
 ## **2. The User Interface Architecture**
 
 ### View-State Ownership Overview
-`ytree` uses one state model across both single-window mode and split-panel mode. When `F8` is off, the active container is a **window**; when `F8` is on, each side is a **panel**. `F8` changes the layout container, not the meaning of the stored state.
+`ytnova` uses one state model across both single-window mode and split-panel mode. When `F8` is off, the active container is a **window**; when `F8` is on, each side is a **panel**. `F8` changes the layout container, not the meaning of the stored state.
 
 Each window or panel owns its own frozen selection, viewport origin, focus shape, and dotfile visibility. Reactivation, redraw, and restore paths must reuse that frozen state; they must not re-derive selection or viewport from raw tree indices or visible-row assumptions.
 
@@ -30,7 +30,7 @@ The formal AppState transition contract is defined in `docs/ARCHITECTURE.md` §4
 
 ### 2.1 Input Semantics
 
-ytree separates **view-state toggles** from **one-shot actions**:
+ytnova separates **view-state toggles** from **one-shot actions**:
 
 *   **`Enter` toggles Tree/File focus states** in normal navigation flow.
 *   **`F7`/`F8` are toggle view modes:** Preview and Split Screen are stateful layout modes toggled by repeating the same key.
@@ -129,14 +129,14 @@ Arrow keys provide spatial, cursor-oriented navigation through the tree. They ar
 
 ## 4. Keyboard Interaction Taxonomy
 
-The `ytree` input system follows a layered model designed for high-speed interaction and contextual efficiency.
+The `ytnova` input system follows a layered model designed for high-speed interaction and contextual efficiency.
 
 ### 4.1 Input Principles
 *   **Case-Sensitivity:** Keys are **case-insensitive** by default. Lowercase notation is used for letter-based commands (e.g., `c` for copy). The Ctrl key is shown by the `^` symbol.
 *   **Standard Conventions**: Function keys use the `F1`-`F12` (uppercase prefix) notation. Control keys use the `^key` (e.g., `^l`) lowercase notation.
 *   **Alt-Key Portability Rule:** `Alt`/Meta key sequences are terminal-dependent and are not part of supported key contracts. Core workflows must use non-`Alt` bindings.
 *   **Control-Alias Canonicalization Rule:** Terminal-equivalent aliases (`^M`/Enter/CR, `^J`/LF enter path, `^I`/Tab, `^[`/Esc) are a single canonical input for binding and validation; mapping alias forms to different commands is invalid.
-*   **Keyboard Portability Baseline:** ytree keyboard semantics follow curses `getch`/`KEY_*` behavior with terminfo capability mapping (practical references: [`curs_getch(3x)`](https://man7.org/linux/man-pages/man3/curs_getch.3x.html) and [`terminfo(5)`](https://man7.org/linux/man-pages/man5/terminfo.5.html)).
+*   **Keyboard Portability Baseline:** ytnova keyboard semantics follow curses `getch`/`KEY_*` behavior with terminfo capability mapping (practical references: [`curs_getch(3x)`](https://man7.org/linux/man-pages/man3/curs_getch.3x.html) and [`terminfo(5)`](https://man7.org/linux/man-pages/man5/terminfo.5.html)).
 *   **Contextual Logic:** The effect of a key depends on whether focus is on the Tree View or File View.
 
 ### 4.2 Interaction Layers
@@ -165,7 +165,7 @@ The `ytree` input system follows a layered model designed for high-speed interac
 *   **Numeric FileInfo Band (`1..9`, `0`):** Number keys are the canonical file-display controls in normal list contexts (not active in `F7` preview). These controls apply to file-display rendering for the active panel whether focus is currently in the tree/dir window or file window.
 *   **Vi-Key Collision Policy:** When `VI_KEYS=1`, lowercase `h/j/k/l` are reserved for navigation. Uppercase `H/K/L/J` are used for commands (Hex, Volume, Log, Compare).
 *   **Tagged Actions**: `^u` (Untag All) and `^d` (Delete All Tagged) provide batch operations across the visible scope.
-*   **Quit to Directory (`^q`):** Exits `ytree` to the currently highlighted directory (requires shell-level support to finalize the shell path).
+*   **Quit to Directory (`^q`):** Exits `ytnova` to the currently highlighted directory (requires shell-level support to finalize the shell path).
 
 ### 4.4 Function Key Blueprint (F1-F12)
 *   **`F1`**: help.
@@ -281,7 +281,7 @@ Restore snapshots are valid only while both the saved `panel_generation` and `vo
 #### 5.5.4 Restore Entry Point and Transition Entry Point
 The implementation must expose one canonical restore path and one canonical split-transition path.
 
-*   All restore requests must route through the canonical panel-anchor restore helpers in `src/ui/panel_anchor.c` and `include/ytree_panel_anchor.h`; other modules may call these helpers, but they must not synthesize their own restore authority.
+*   All restore requests must route through the canonical panel-anchor restore helpers in `src/ui/panel_anchor.c` and `include/ytnova_panel_anchor.h`; other modules may call these helpers, but they must not synthesize their own restore authority.
 *   All `F8`/`Tab` split transitions must use one deterministic transaction flow: snapshot -> compute -> validate invariants -> commit/rollback.
 *   Rendering is projection only. Redraw paths may compute a temporary render position, but they must not pick a new authoritative selection or viewport origin.
 
@@ -320,12 +320,12 @@ These flows may differ in user-facing action, but they must not use different re
 ---
 
 ## 6. Notification & Messaging Tiers
-`ytree` distinguishes between three primary locations for communication:
+`ytnova` distinguishes between three primary locations for communication:
 
 ### 6.1 Footer Messages (Command Area)
 *   **Transient:** Non-critical status (e.g., "File copied"). Appears in the Message row. Disappears on the next keystroke.
 *   **Sticky/Warning:** Requires acknowledgment or input (e.g., "Delete file? Y/N" or "Path not found"). Stays in the footer until the user responds or hits a key to clear the warning.
-*   **Outcome Clarity Rule:** Successful commands may remain quiet, but ytree MUST NOT appear successful while doing nothing. No-op/skip/error outcomes must be explicit and user-visible.
+*   **Outcome Clarity Rule:** Successful commands may remain quiet, but ytnova MUST NOT appear successful while doing nothing. No-op/skip/error outcomes must be explicit and user-visible.
 *   **Modifier-Held Shortcut Footer:** While `Ctrl` is physically held, the footer MUST switch to the `Ctrl` shortcut help set and remain visible for the full hold duration. On `Ctrl` release, the footer MUST immediately return to the normal context help. This is transient key-state behavior, not a toggle.
 
 ### 6.2 Modal Messages (Centered Box)
@@ -336,18 +336,18 @@ A bordered pop-up box that overlays the center of the screen, used for:
 *   **Constraint:** Modals must be dismissed with `Esc` or `Enter` before any other navigation can occur.
 
 ### 6.3 Audible Feedback Policy
-`ytree` interaction is completely silent. Navigation boundaries, unsupported keys, and input validation must remain silent. If an event is expected during ordinary workflow, it must not trigger an audible cue.
+`ytnova` interaction is completely silent. Navigation boundaries, unsupported keys, and input validation must remain silent. If an event is expected during ordinary workflow, it must not trigger an audible cue.
 
 ### 6.4 Context Help Contract (Footer <-> F1)
 *   **Parity Rule:** For any active context, commands shown in footer help MUST appear in that context's F1 help set. Missing footer commands in F1 are defects.
-*   **Concision Rule:** F1 content is concise and contextual. Detailed semantics and examples belong in `etc/ytree.1.md` and generated `docs/USAGE.md`.
+*   **Concision Rule:** F1 content is concise and contextual. Detailed semantics and examples belong in `etc/ytnova.1.md` and generated `docs/USAGE.md`.
 *   **Coverage Rule (Required):** Contract coverage includes filesystem and archive contexts (directory/file), `F7`, `F8`, `Showall`, `Global`, and tagged workflows.
 *   **Variant Rule:** Help rendering must stay correct for `VI_KEYS=1` variants and Ctrl-held footer variants.
 *   **i18n Readiness Rule:** Footer/F1 text must be structured for gettext extraction and reuse to avoid duplicated, drifting message strings across contexts.
 *   **Progress Coexistence Rule:** Long-operation progress rendering must coexist with footer/prompt/F1 guidance and must not seize ownership of those help surfaces.
 
 ### 6.5 Modal/Dialog Color Taxonomy Contract
-`ytree` modal and dialog surfaces are split into two classes:
+`ytnova` modal and dialog surfaces are split into two classes:
 *   **Severity class (`info`, `warn`, `error`):** Outcome/diagnostic overlays that communicate informational notices, warnings, or errors and require acknowledgment.
 *   **Neutral interaction class:** Selection/picker/help/history/volume/prompt-like interaction surfaces used to collect or browse input.
 
@@ -393,7 +393,7 @@ Current modal/dialog audit:
 *   **Signal Handling:** `SIGINT` and `SIGTERM` are trapped for graceful terminal restoration and VFS cleanup.
 *   **Memory Management:** Recursive scans for the Tree View respect the `TREEDEPTH` safety limit to prevent stack overflows or OOM (Out of Memory) conditions on massive filesystems.
 *   **Encapsulation:** Global state pointers are strictly forbidden. All logic must utilize the `ViewContext` structure passed explicitly through the call stack.
-*   **Destructive-Action Confirmation Rule:** Before destructive mutations (delete, overwrite, replace), ytree MUST show explicit confirmation with clear source/target context and a default-safe choice. Safe/non-destructive operations must remain confirmation-free.
+*   **Destructive-Action Confirmation Rule:** Before destructive mutations (delete, overwrite, replace), ytnova MUST show explicit confirmation with clear source/target context and a default-safe choice. Safe/non-destructive operations must remain confirmation-free.
 
 ---
 
@@ -419,6 +419,6 @@ Every module (`.c`/`.h` pair) must reside in the directory corresponding to its 
 - **Generic Plural:** Use for stateless utility collections (e.g., `path_utils.c`).
 
 ### 10.4 Header Hygiene
-- **Layered Access:** Communication between layers must occur through designated layer headers (`ytree_fs.h`, `ytree_ui.h`).
+- **Layered Access:** Communication between layers must occur through designated layer headers (`ytnova_fs.h`, `ytnova_ui.h`).
 - **Decoupling:** Minimize cross-layer `#include` directives.
 - **Encapsulation:** Internal module state and helper functions must remain `static`. Only the necessary API must be exposed in the header.

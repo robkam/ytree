@@ -7,8 +7,8 @@ from helpers_source import extract_function_block as _extract_function_block
 from helpers_ui import footer_text as _footer_text
 from helpers_ui import line_marks_file_as_tagged as _line_marks_file_as_tagged
 from helpers_ui import screen_text as _screen_text
-from tui_harness import YtreeTUI
-from ytree_keys import Keys
+from tui_harness import YtreeNovaTUI
+from ytnova_keys import Keys
 
 
 def _dir_navigation_action_case_source(action_name):
@@ -134,7 +134,7 @@ def _panel_selected_file_path_source():
 
 
 def _defs_source():
-    return Path("include/ytree_defs.h").read_text(encoding="utf-8")
+    return Path("include/ytnova_defs.h").read_text(encoding="utf-8")
 
 
 def _log_source():
@@ -303,14 +303,14 @@ def _first_visible_edge_tree_row(tui):
 
 
 def test_tree_viewport_edge_scroll_after_end_up_keeps_top_visible_row(
-    ytree_binary, tmp_path
+    ytnova_binary, tmp_path
 ):
     root = tmp_path / "dir_dispatch_edge_scroll"
     root.mkdir()
     for idx in range(45):
         (root / f"dir_{idx:02d}_edge_scroll").mkdir()
 
-    tui = YtreeTUI(executable=ytree_binary, cwd=str(root))
+    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
     time.sleep(0.8)
 
     tui.send_keystroke("\033OF", wait=0.35)
@@ -382,7 +382,7 @@ def test_dir_window_sibling_navigation_sets_help_refresh_flag():
         )
 
 
-def test_dir_window_navigation_selects_expected_directory(ytree_binary, tmp_path):
+def test_dir_window_navigation_selects_expected_directory(ytnova_binary, tmp_path):
     root = tmp_path / "dir_dispatch_nav"
     root.mkdir()
     alpha = root / "alpha_dir_dispatch"
@@ -392,7 +392,7 @@ def test_dir_window_navigation_selects_expected_directory(ytree_binary, tmp_path
     (alpha / "alpha_only_file.txt").write_text("alpha\n", encoding="utf-8")
     (beta / "beta_only_file.txt").write_text("beta\n", encoding="utf-8")
 
-    tui = YtreeTUI(executable=ytree_binary, cwd=str(root))
+    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
     time.sleep(0.8)
 
     tui.send_keystroke(Keys.DOWN, wait=0.25)
@@ -413,13 +413,13 @@ def test_dir_window_navigation_selects_expected_directory(ytree_binary, tmp_path
     tui.quit()
 
 
-def test_dir_window_compare_prompt_round_trip(ytree_binary, tmp_path):
+def test_dir_window_compare_prompt_round_trip(ytnova_binary, tmp_path):
     root = tmp_path / "dir_dispatch_compare_prompt"
     root.mkdir()
     (root / "left").mkdir()
     (root / "right").mkdir()
 
-    tui = YtreeTUI(executable=ytree_binary, cwd=str(root))
+    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
     time.sleep(0.6)
 
     tui.send_keystroke("J", wait=0.25)
@@ -479,7 +479,7 @@ def test_dir_window_split_transition_owner_path_is_canonical():
     )
 
 
-def test_dir_window_split_and_tab_keeps_file_focus(ytree_binary, tmp_path):
+def test_dir_window_split_and_tab_keeps_file_focus(ytnova_binary, tmp_path):
     root = tmp_path / "dir_dispatch_split_tab"
     root.mkdir()
     alpha = root / "alpha"
@@ -489,7 +489,7 @@ def test_dir_window_split_and_tab_keeps_file_focus(ytree_binary, tmp_path):
     (alpha / "alpha_split_focus.txt").write_text("alpha\n", encoding="utf-8")
     (beta / "beta_split_focus.txt").write_text("beta\n", encoding="utf-8")
 
-    tui = YtreeTUI(executable=ytree_binary, cwd=str(root))
+    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
     time.sleep(0.8)
 
     tui.send_keystroke(Keys.DOWN, wait=0.25)
@@ -509,12 +509,12 @@ def test_dir_window_split_and_tab_keeps_file_focus(ytree_binary, tmp_path):
 
 
 def test_split_tab_refresh_rejects_stale_file_restore_snapshot(
-    ytree_binary, tmp_path
+    ytnova_binary, tmp_path
 ):
     home = tmp_path / "home" / "user"
-    repo = home / "ytree"
+    repo = home / "ytnova"
     repo.mkdir(parents=True)
-    (home / ".ytree").write_text(
+    (home / ".ytnova").write_text(
         "[GLOBAL]\n"
         "AUTO_REFRESH=3\n"
         "TREEDEPTH=2\n"
@@ -545,8 +545,8 @@ def test_split_tab_refresh_rejects_stale_file_restore_snapshot(
     for idx in range(4):
         (tests_dir / f"test_file_{idx}.py").write_text("y\n", encoding="utf-8")
 
-    tui = YtreeTUI(
-        executable=ytree_binary, cwd=str(repo), env_extra={"HOME": str(home)}
+    tui = YtreeNovaTUI(
+        executable=ytnova_binary, cwd=str(repo), env_extra={"HOME": str(home)}
     )
     time.sleep(0.8)
 
@@ -652,7 +652,7 @@ def test_split_tab_refresh_rejects_stale_file_restore_snapshot(
 
 
 def test_dir_right_arrow_drills_into_first_child_when_already_expanded(
-    ytree_binary, tmp_path
+    ytnova_binary, tmp_path
 ):
     root = tmp_path / "dir_dispatch_right_drill"
     root.mkdir()
@@ -661,7 +661,7 @@ def test_dir_right_arrow_drills_into_first_child_when_already_expanded(
     child.mkdir(parents=True)
     (child / "child_only_marker.txt").write_text("child\n", encoding="utf-8")
 
-    tui = YtreeTUI(executable=ytree_binary, cwd=str(root))
+    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(root))
     time.sleep(0.8)
 
     tui.send_keystroke(Keys.DOWN, wait=0.25)  # select parent_dir_dispatch

@@ -69,7 +69,7 @@ Review rule:
 7. Ask whether to implement all, some, or none of the recommended changes.
 8. If implementation is approved, execute minimal coherent edits and run relevant validation.
 
-## Comprehensive ytree-Specific Smell Checklist
+## Comprehensive ytnova-Specific Smell Checklist
 
 ### 1) Architecture and Module Boundaries
 
@@ -177,7 +177,7 @@ For debt-burn-down missions (not one-off bugfixes), report measurable deltas:
 Default cadence guidance for maintainers:
 - Run a bounded burn-down pass periodically (for example every N feature merges or at milestone checkpoints), not only pre-release.
 
-## ytree Guardrails
+## ytnova Guardrails
 
 - Do not introduce speculative abstractions before a clear rule-of-three signal.
 - Prefer root-cause fixes over cosmetic rewrites.

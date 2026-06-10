@@ -61,7 +61,7 @@ Minor/trivial fixes are tracked in git history.
 - **Controller Hotspot Decomposition**: Broke up high-risk controller "god function" paths into smaller, cohesive units to reduce regression blast radius and improve maintainability.
 - **Permanent Security Regression Gates**: Added durable security/file-operation integrity checks so previously fixed exploitability classes are continuously guarded in QA/CI.
 - **QA Cadence Optimization**: Reorganized QA gate cadence and overlap to improve iteration feedback speed while preserving strict pre-merge and release assurance depth.
-- **Build System**: Updated Makefile for dependency tracking and unified documentation sourcing (`docs/USAGE.md` and `ytree.1.md` are now generated from a single `etc/ytree.1.md` source).
+- **Build System**: Updated Makefile for dependency tracking and unified documentation sourcing (`docs/USAGE.md` and `ytnova.1.md` are now generated from a single `etc/ytnova.1.md` source).
 - **Silent Refresh-Scan Handling**: Suppressed transient `stat` errors during directory refreshes to prevent non-fatal race conditions.
 - **Overwrite-All Conflict Hardening**: Unified COPY/MOVE overwrite-all behavior so selecting `A` on the first conflict suppresses repeated prompts across remaining tagged-file conflicts.
 - **AI Governance framework**: Established a formal AI orchestration system using persona routing and automation "skills" to maintain architectural consistency.
@@ -81,7 +81,7 @@ Minor/trivial fixes are tracked in git history.
 
 ## [2.07]
 - Removed -O compiler switch due to problems with UTF_8 code.
-- Added workaround when resizing ytree window during string input.
+- Added workaround when resizing ytnova window during string input.
 
 ## [2.06]
 - Fixed compile error in input.c (UTF_8 only).
@@ -185,7 +185,7 @@ Minor/trivial fixes are tracked in git history.
 - Libreadline support optional. Changed license from GPL 1 to GPL 2 due to use of libreadline.
 
 ## [1.78-cbf]
-- Securityfix: ~/.ytree-hst now honors umask.
+- Securityfix: ~/.ytnova-hst now honors umask.
 - Bugfix: some window sizes and layout adjustments.
 - New builtin hexdump with some code to do the editing of hex files.
 - Readline integration into InputString including tilde expansion.
@@ -264,6 +264,6 @@ Minor/trivial fixes are tracked in git history.
 - Color support.
 - Command line history.
 - Visual directory selection.
-- Helper-Applications now configurable in ~/.ytree.
+- Helper-Applications now configurable in ~/.ytnova.
 - Force removing of non-empty directories.
 - Dynamic directory scanning.

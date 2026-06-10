@@ -2,7 +2,7 @@ from helpers_source import read_repo_source as _read_source
 
 
 def test_dialog_color_key_is_defined_in_runtime_palette():
-    defs_source = _read_source("include/ytree_defs.h")
+    defs_source = _read_source("include/ytnova_defs.h")
     color_source = _read_source("src/ui/color.c")
 
     assert "CPAIR_DIALOG" in defs_source
@@ -11,7 +11,7 @@ def test_dialog_color_key_is_defined_in_runtime_palette():
 
 
 def test_dialog_color_key_is_documented_in_config_templates():
-    conf_source = _read_source("etc/ytree.conf")
+    conf_source = _read_source("etc/ytnova.conf")
     template_source = _read_source("src/core/default_profile_template.h")
 
     assert conf_source.count("DIALOG_COLOR=") >= 2
@@ -19,7 +19,7 @@ def test_dialog_color_key_is_documented_in_config_templates():
 
 
 def test_modal_severity_comment_lines_include_non_bright_equivalents():
-    conf_source = _read_source("etc/ytree.conf")
+    conf_source = _read_source("etc/ytnova.conf")
     template_source = _read_source("src/core/default_profile_template.h")
 
     info_comment = "# INFO_COLOR=15,4     # Bright White on Blue (non-bright: 7,4)"

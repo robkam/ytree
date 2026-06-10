@@ -1,13 +1,13 @@
 {
   "schema_version": 1,
-  "contract": "YtreeAction AppState transition coverage",
-  "notes": "Non-runtime registry ensuring every YtreeAction enum member has AppState transition metadata coverage. Runtime behavior is unchanged.",
+  "contract": "YtreeNovaAction AppState transition coverage",
+  "notes": "Non-runtime registry ensuring every YtreeNovaAction enum member has AppState transition metadata coverage. Runtime behavior is unchanged.",
   "actions": [
     {
       "action": "ACTION_NONE",
       "transition_id": "transition.keybinding.navigate-tree",
       "category": "keybinding",
-      "owner": "YtreePanel(active)",
+      "owner": "YtreeNovaPanel(active)",
       "declared_write_set": [
         "panel.tree_selection_key",
         "panel.tree_cursor_pos",
@@ -24,7 +24,7 @@
       "action": "ACTION_MOVE_UP",
       "transition_id": "transition.keybinding.navigate-tree",
       "category": "keybinding",
-      "owner": "YtreePanel(active)",
+      "owner": "YtreeNovaPanel(active)",
       "declared_write_set": [
         "panel.tree_selection_key",
         "panel.tree_cursor_pos",
@@ -41,7 +41,7 @@
       "action": "ACTION_MOVE_DOWN",
       "transition_id": "transition.keybinding.navigate-tree",
       "category": "keybinding",
-      "owner": "YtreePanel(active)",
+      "owner": "YtreeNovaPanel(active)",
       "declared_write_set": [
         "panel.tree_selection_key",
         "panel.tree_cursor_pos",
@@ -58,7 +58,7 @@
       "action": "ACTION_MOVE_SIBLING_NEXT",
       "transition_id": "transition.keybinding.navigate-tree",
       "category": "keybinding",
-      "owner": "YtreePanel(active)",
+      "owner": "YtreeNovaPanel(active)",
       "declared_write_set": [
         "panel.tree_selection_key",
         "panel.tree_cursor_pos",
@@ -75,7 +75,7 @@
       "action": "ACTION_MOVE_SIBLING_PREV",
       "transition_id": "transition.keybinding.navigate-tree",
       "category": "keybinding",
-      "owner": "YtreePanel(active)",
+      "owner": "YtreeNovaPanel(active)",
       "declared_write_set": [
         "panel.tree_selection_key",
         "panel.tree_cursor_pos",
@@ -92,7 +92,7 @@
       "action": "ACTION_MOVE_LEFT",
       "transition_id": "transition.keybinding.navigate-tree",
       "category": "keybinding",
-      "owner": "YtreePanel(active)",
+      "owner": "YtreeNovaPanel(active)",
       "declared_write_set": [
         "panel.tree_selection_key",
         "panel.tree_cursor_pos",
@@ -109,7 +109,7 @@
       "action": "ACTION_MOVE_RIGHT",
       "transition_id": "transition.keybinding.navigate-tree",
       "category": "keybinding",
-      "owner": "YtreePanel(active)",
+      "owner": "YtreeNovaPanel(active)",
       "declared_write_set": [
         "panel.tree_selection_key",
         "panel.tree_cursor_pos",
@@ -126,7 +126,7 @@
       "action": "ACTION_PAGE_UP",
       "transition_id": "transition.keybinding.navigate-tree",
       "category": "keybinding",
-      "owner": "YtreePanel(active)",
+      "owner": "YtreeNovaPanel(active)",
       "declared_write_set": [
         "panel.tree_selection_key",
         "panel.tree_cursor_pos",
@@ -143,7 +143,7 @@
       "action": "ACTION_PAGE_DOWN",
       "transition_id": "transition.keybinding.navigate-tree",
       "category": "keybinding",
-      "owner": "YtreePanel(active)",
+      "owner": "YtreeNovaPanel(active)",
       "declared_write_set": [
         "panel.tree_selection_key",
         "panel.tree_cursor_pos",
@@ -160,7 +160,7 @@
       "action": "ACTION_HOME",
       "transition_id": "transition.keybinding.navigate-tree",
       "category": "keybinding",
-      "owner": "YtreePanel(active)",
+      "owner": "YtreeNovaPanel(active)",
       "declared_write_set": [
         "panel.tree_selection_key",
         "panel.tree_cursor_pos",
@@ -177,7 +177,7 @@
       "action": "ACTION_END",
       "transition_id": "transition.keybinding.navigate-tree",
       "category": "keybinding",
-      "owner": "YtreePanel(active)",
+      "owner": "YtreeNovaPanel(active)",
       "declared_write_set": [
         "panel.tree_selection_key",
         "panel.tree_cursor_pos",
@@ -194,7 +194,7 @@
       "action": "ACTION_TREE_EXPAND",
       "transition_id": "transition.keybinding.navigate-tree",
       "category": "keybinding",
-      "owner": "YtreePanel(active)",
+      "owner": "YtreeNovaPanel(active)",
       "declared_write_set": [
         "panel.tree_selection_key",
         "panel.tree_cursor_pos",
@@ -211,7 +211,7 @@
       "action": "ACTION_TREE_COLLAPSE",
       "transition_id": "transition.keybinding.navigate-tree",
       "category": "keybinding",
-      "owner": "YtreePanel(active)",
+      "owner": "YtreeNovaPanel(active)",
       "declared_write_set": [
         "panel.tree_selection_key",
         "panel.tree_cursor_pos",
@@ -228,7 +228,7 @@
       "action": "ACTION_TREE_EXPAND_ALL",
       "transition_id": "transition.keybinding.navigate-tree",
       "category": "keybinding",
-      "owner": "YtreePanel(active)",
+      "owner": "YtreeNovaPanel(active)",
       "declared_write_set": [
         "panel.tree_selection_key",
         "panel.tree_cursor_pos",
@@ -245,7 +245,7 @@
       "action": "ACTION_ENTER",
       "transition_id": "transition.keybinding.navigate-tree",
       "category": "keybinding",
-      "owner": "YtreePanel(active)",
+      "owner": "YtreeNovaPanel(active)",
       "declared_write_set": [
         "panel.tree_selection_key",
         "panel.tree_cursor_pos",
@@ -327,7 +327,7 @@
       "action": "ACTION_TAG",
       "transition_id": "transition.keybinding.navigate-tree",
       "category": "keybinding",
-      "owner": "YtreePanel(active)",
+      "owner": "YtreeNovaPanel(active)",
       "declared_write_set": [
         "panel.tree_selection_key",
         "panel.tree_cursor_pos",
@@ -344,7 +344,7 @@
       "action": "ACTION_UNTAG",
       "transition_id": "transition.keybinding.navigate-tree",
       "category": "keybinding",
-      "owner": "YtreePanel(active)",
+      "owner": "YtreeNovaPanel(active)",
       "declared_write_set": [
         "panel.tree_selection_key",
         "panel.tree_cursor_pos",
@@ -361,7 +361,7 @@
       "action": "ACTION_TAG_ALL",
       "transition_id": "transition.keybinding.navigate-tree",
       "category": "keybinding",
-      "owner": "YtreePanel(active)",
+      "owner": "YtreeNovaPanel(active)",
       "declared_write_set": [
         "panel.tree_selection_key",
         "panel.tree_cursor_pos",
@@ -378,7 +378,7 @@
       "action": "ACTION_UNTAG_ALL",
       "transition_id": "transition.keybinding.navigate-tree",
       "category": "keybinding",
-      "owner": "YtreePanel(active)",
+      "owner": "YtreeNovaPanel(active)",
       "declared_write_set": [
         "panel.tree_selection_key",
         "panel.tree_cursor_pos",
@@ -395,7 +395,7 @@
       "action": "ACTION_TAG_REST",
       "transition_id": "transition.keybinding.navigate-tree",
       "category": "keybinding",
-      "owner": "YtreePanel(active)",
+      "owner": "YtreeNovaPanel(active)",
       "declared_write_set": [
         "panel.tree_selection_key",
         "panel.tree_cursor_pos",
@@ -412,7 +412,7 @@
       "action": "ACTION_UNTAG_REST",
       "transition_id": "transition.keybinding.navigate-tree",
       "category": "keybinding",
-      "owner": "YtreePanel(active)",
+      "owner": "YtreeNovaPanel(active)",
       "declared_write_set": [
         "panel.tree_selection_key",
         "panel.tree_cursor_pos",
@@ -429,7 +429,7 @@
       "action": "ACTION_FILTER",
       "transition_id": "transition.keybinding.navigate-tree",
       "category": "keybinding",
-      "owner": "YtreePanel(active)",
+      "owner": "YtreeNovaPanel(active)",
       "declared_write_set": [
         "panel.tree_selection_key",
         "panel.tree_cursor_pos",
@@ -446,7 +446,7 @@
       "action": "ACTION_TOGGLE_MODE",
       "transition_id": "transition.keybinding.navigate-tree",
       "category": "keybinding",
-      "owner": "YtreePanel(active)",
+      "owner": "YtreeNovaPanel(active)",
       "declared_write_set": [
         "panel.tree_selection_key",
         "panel.tree_cursor_pos",
@@ -497,7 +497,7 @@
       "action": "ACTION_VOL_MENU",
       "transition_id": "transition.menu-action.volume-select",
       "category": "menu_action",
-      "owner": "ViewContext(session routing) and YtreePanel(active)",
+      "owner": "ViewContext(session routing) and YtreeNovaPanel(active)",
       "declared_write_set": [
         "ctx.active",
         "panel.volume_key",
@@ -513,7 +513,7 @@
       "action": "ACTION_VOL_PREV",
       "transition_id": "transition.volume-operation.release-cycle",
       "category": "volume_operation",
-      "owner": "ViewContext.volume_registry and YtreePanel(active)",
+      "owner": "ViewContext.volume_registry and YtreeNovaPanel(active)",
       "declared_write_set": [
         "ctx.volumes_head",
         "panel.volume_key",
@@ -530,7 +530,7 @@
       "action": "ACTION_VOL_NEXT",
       "transition_id": "transition.volume-operation.release-cycle",
       "category": "volume_operation",
-      "owner": "ViewContext.volume_registry and YtreePanel(active)",
+      "owner": "ViewContext.volume_registry and YtreeNovaPanel(active)",
       "declared_write_set": [
         "ctx.volumes_head",
         "panel.volume_key",
@@ -547,7 +547,7 @@
       "action": "ACTION_CMD_A",
       "transition_id": "transition.filesystem-mutation-result.mkdir-copy-delete",
       "category": "filesystem_mutation_result",
-      "owner": "Volume(shared topology) plus YtreePanel(active) for active selection",
+      "owner": "Volume(shared topology) plus YtreeNovaPanel(active) for active selection",
       "declared_write_set": [
         "volume.dir_tree",
         "volume.payload_cache",
@@ -565,7 +565,7 @@
       "action": "ACTION_CMD_B",
       "transition_id": "transition.filesystem-mutation-result.mkdir-copy-delete",
       "category": "filesystem_mutation_result",
-      "owner": "Volume(shared topology) plus YtreePanel(active) for active selection",
+      "owner": "Volume(shared topology) plus YtreeNovaPanel(active) for active selection",
       "declared_write_set": [
         "volume.dir_tree",
         "volume.payload_cache",
@@ -583,7 +583,7 @@
       "action": "ACTION_CMD_C",
       "transition_id": "transition.filesystem-mutation-result.mkdir-copy-delete",
       "category": "filesystem_mutation_result",
-      "owner": "Volume(shared topology) plus YtreePanel(active) for active selection",
+      "owner": "Volume(shared topology) plus YtreeNovaPanel(active) for active selection",
       "declared_write_set": [
         "volume.dir_tree",
         "volume.payload_cache",
@@ -601,7 +601,7 @@
       "action": "ACTION_CMD_D",
       "transition_id": "transition.filesystem-mutation-result.mkdir-copy-delete",
       "category": "filesystem_mutation_result",
-      "owner": "Volume(shared topology) plus YtreePanel(active) for active selection",
+      "owner": "Volume(shared topology) plus YtreeNovaPanel(active) for active selection",
       "declared_write_set": [
         "volume.dir_tree",
         "volume.payload_cache",
@@ -619,7 +619,7 @@
       "action": "ACTION_CMD_E",
       "transition_id": "transition.filesystem-mutation-result.mkdir-copy-delete",
       "category": "filesystem_mutation_result",
-      "owner": "Volume(shared topology) plus YtreePanel(active) for active selection",
+      "owner": "Volume(shared topology) plus YtreeNovaPanel(active) for active selection",
       "declared_write_set": [
         "volume.dir_tree",
         "volume.payload_cache",
@@ -637,7 +637,7 @@
       "action": "ACTION_CMD_G",
       "transition_id": "transition.filesystem-mutation-result.mkdir-copy-delete",
       "category": "filesystem_mutation_result",
-      "owner": "Volume(shared topology) plus YtreePanel(active) for active selection",
+      "owner": "Volume(shared topology) plus YtreeNovaPanel(active) for active selection",
       "declared_write_set": [
         "volume.dir_tree",
         "volume.payload_cache",
@@ -655,7 +655,7 @@
       "action": "ACTION_CMD_H",
       "transition_id": "transition.filesystem-mutation-result.mkdir-copy-delete",
       "category": "filesystem_mutation_result",
-      "owner": "Volume(shared topology) plus YtreePanel(active) for active selection",
+      "owner": "Volume(shared topology) plus YtreeNovaPanel(active) for active selection",
       "declared_write_set": [
         "volume.dir_tree",
         "volume.payload_cache",
@@ -673,7 +673,7 @@
       "action": "ACTION_CMD_I",
       "transition_id": "transition.filesystem-mutation-result.mkdir-copy-delete",
       "category": "filesystem_mutation_result",
-      "owner": "Volume(shared topology) plus YtreePanel(active) for active selection",
+      "owner": "Volume(shared topology) plus YtreeNovaPanel(active) for active selection",
       "declared_write_set": [
         "volume.dir_tree",
         "volume.payload_cache",
@@ -691,7 +691,7 @@
       "action": "ACTION_CMD_M",
       "transition_id": "transition.filesystem-mutation-result.mkdir-copy-delete",
       "category": "filesystem_mutation_result",
-      "owner": "Volume(shared topology) plus YtreePanel(active) for active selection",
+      "owner": "Volume(shared topology) plus YtreeNovaPanel(active) for active selection",
       "declared_write_set": [
         "volume.dir_tree",
         "volume.payload_cache",
@@ -709,7 +709,7 @@
       "action": "ACTION_CMD_O",
       "transition_id": "transition.filesystem-mutation-result.mkdir-copy-delete",
       "category": "filesystem_mutation_result",
-      "owner": "Volume(shared topology) plus YtreePanel(active) for active selection",
+      "owner": "Volume(shared topology) plus YtreeNovaPanel(active) for active selection",
       "declared_write_set": [
         "volume.dir_tree",
         "volume.payload_cache",
@@ -727,7 +727,7 @@
       "action": "ACTION_CMD_P",
       "transition_id": "transition.filesystem-mutation-result.mkdir-copy-delete",
       "category": "filesystem_mutation_result",
-      "owner": "Volume(shared topology) plus YtreePanel(active) for active selection",
+      "owner": "Volume(shared topology) plus YtreeNovaPanel(active) for active selection",
       "declared_write_set": [
         "volume.dir_tree",
         "volume.payload_cache",
@@ -745,7 +745,7 @@
       "action": "ACTION_CMD_R",
       "transition_id": "transition.filesystem-mutation-result.mkdir-copy-delete",
       "category": "filesystem_mutation_result",
-      "owner": "Volume(shared topology) plus YtreePanel(active) for active selection",
+      "owner": "Volume(shared topology) plus YtreeNovaPanel(active) for active selection",
       "declared_write_set": [
         "volume.dir_tree",
         "volume.payload_cache",
@@ -763,7 +763,7 @@
       "action": "ACTION_CMD_S",
       "transition_id": "transition.filesystem-mutation-result.mkdir-copy-delete",
       "category": "filesystem_mutation_result",
-      "owner": "Volume(shared topology) plus YtreePanel(active) for active selection",
+      "owner": "Volume(shared topology) plus YtreeNovaPanel(active) for active selection",
       "declared_write_set": [
         "volume.dir_tree",
         "volume.payload_cache",
@@ -781,7 +781,7 @@
       "action": "ACTION_CMD_V",
       "transition_id": "transition.filesystem-mutation-result.mkdir-copy-delete",
       "category": "filesystem_mutation_result",
-      "owner": "Volume(shared topology) plus YtreePanel(active) for active selection",
+      "owner": "Volume(shared topology) plus YtreeNovaPanel(active) for active selection",
       "declared_write_set": [
         "volume.dir_tree",
         "volume.payload_cache",
@@ -799,7 +799,7 @@
       "action": "ACTION_CMD_X",
       "transition_id": "transition.filesystem-mutation-result.mkdir-copy-delete",
       "category": "filesystem_mutation_result",
-      "owner": "Volume(shared topology) plus YtreePanel(active) for active selection",
+      "owner": "Volume(shared topology) plus YtreeNovaPanel(active) for active selection",
       "declared_write_set": [
         "volume.dir_tree",
         "volume.payload_cache",
@@ -817,7 +817,7 @@
       "action": "ACTION_CMD_Y",
       "transition_id": "transition.filesystem-mutation-result.mkdir-copy-delete",
       "category": "filesystem_mutation_result",
-      "owner": "Volume(shared topology) plus YtreePanel(active) for active selection",
+      "owner": "Volume(shared topology) plus YtreeNovaPanel(active) for active selection",
       "declared_write_set": [
         "volume.dir_tree",
         "volume.payload_cache",
@@ -851,7 +851,7 @@
       "action": "ACTION_TOGGLE_HIDDEN",
       "transition_id": "transition.keybinding.navigate-tree",
       "category": "keybinding",
-      "owner": "YtreePanel(active)",
+      "owner": "YtreeNovaPanel(active)",
       "declared_write_set": [
         "panel.tree_selection_key",
         "panel.tree_cursor_pos",
@@ -868,7 +868,7 @@
       "action": "ACTION_TOGGLE_COMPACT",
       "transition_id": "transition.keybinding.navigate-tree",
       "category": "keybinding",
-      "owner": "YtreePanel(active)",
+      "owner": "YtreeNovaPanel(active)",
       "declared_write_set": [
         "panel.tree_selection_key",
         "panel.tree_cursor_pos",
@@ -885,7 +885,7 @@
       "action": "ACTION_CMD_MKFILE",
       "transition_id": "transition.filesystem-mutation-result.mkdir-copy-delete",
       "category": "filesystem_mutation_result",
-      "owner": "Volume(shared topology) plus YtreePanel(active) for active selection",
+      "owner": "Volume(shared topology) plus YtreeNovaPanel(active) for active selection",
       "declared_write_set": [
         "volume.dir_tree",
         "volume.payload_cache",
@@ -903,7 +903,7 @@
       "action": "ACTION_CMD_TAGGED_A",
       "transition_id": "transition.filesystem-mutation-result.mkdir-copy-delete",
       "category": "filesystem_mutation_result",
-      "owner": "Volume(shared topology) plus YtreePanel(active) for active selection",
+      "owner": "Volume(shared topology) plus YtreeNovaPanel(active) for active selection",
       "declared_write_set": [
         "volume.dir_tree",
         "volume.payload_cache",
@@ -921,7 +921,7 @@
       "action": "ACTION_CMD_TAGGED_C",
       "transition_id": "transition.filesystem-mutation-result.mkdir-copy-delete",
       "category": "filesystem_mutation_result",
-      "owner": "Volume(shared topology) plus YtreePanel(active) for active selection",
+      "owner": "Volume(shared topology) plus YtreeNovaPanel(active) for active selection",
       "declared_write_set": [
         "volume.dir_tree",
         "volume.payload_cache",
@@ -939,7 +939,7 @@
       "action": "ACTION_CMD_TAGGED_D",
       "transition_id": "transition.filesystem-mutation-result.mkdir-copy-delete",
       "category": "filesystem_mutation_result",
-      "owner": "Volume(shared topology) plus YtreePanel(active) for active selection",
+      "owner": "Volume(shared topology) plus YtreeNovaPanel(active) for active selection",
       "declared_write_set": [
         "volume.dir_tree",
         "volume.payload_cache",
@@ -957,7 +957,7 @@
       "action": "ACTION_CMD_TAGGED_G",
       "transition_id": "transition.filesystem-mutation-result.mkdir-copy-delete",
       "category": "filesystem_mutation_result",
-      "owner": "Volume(shared topology) plus YtreePanel(active) for active selection",
+      "owner": "Volume(shared topology) plus YtreeNovaPanel(active) for active selection",
       "declared_write_set": [
         "volume.dir_tree",
         "volume.payload_cache",
@@ -975,7 +975,7 @@
       "action": "ACTION_CMD_TAGGED_M",
       "transition_id": "transition.filesystem-mutation-result.mkdir-copy-delete",
       "category": "filesystem_mutation_result",
-      "owner": "Volume(shared topology) plus YtreePanel(active) for active selection",
+      "owner": "Volume(shared topology) plus YtreeNovaPanel(active) for active selection",
       "declared_write_set": [
         "volume.dir_tree",
         "volume.payload_cache",
@@ -993,7 +993,7 @@
       "action": "ACTION_CMD_TAGGED_O",
       "transition_id": "transition.filesystem-mutation-result.mkdir-copy-delete",
       "category": "filesystem_mutation_result",
-      "owner": "Volume(shared topology) plus YtreePanel(active) for active selection",
+      "owner": "Volume(shared topology) plus YtreeNovaPanel(active) for active selection",
       "declared_write_set": [
         "volume.dir_tree",
         "volume.payload_cache",
@@ -1011,7 +1011,7 @@
       "action": "ACTION_CMD_TAGGED_P",
       "transition_id": "transition.filesystem-mutation-result.mkdir-copy-delete",
       "category": "filesystem_mutation_result",
-      "owner": "Volume(shared topology) plus YtreePanel(active) for active selection",
+      "owner": "Volume(shared topology) plus YtreeNovaPanel(active) for active selection",
       "declared_write_set": [
         "volume.dir_tree",
         "volume.payload_cache",
@@ -1029,7 +1029,7 @@
       "action": "ACTION_CMD_TAGGED_R",
       "transition_id": "transition.filesystem-mutation-result.mkdir-copy-delete",
       "category": "filesystem_mutation_result",
-      "owner": "Volume(shared topology) plus YtreePanel(active) for active selection",
+      "owner": "Volume(shared topology) plus YtreeNovaPanel(active) for active selection",
       "declared_write_set": [
         "volume.dir_tree",
         "volume.payload_cache",
@@ -1047,7 +1047,7 @@
       "action": "ACTION_CMD_TAGGED_S",
       "transition_id": "transition.filesystem-mutation-result.mkdir-copy-delete",
       "category": "filesystem_mutation_result",
-      "owner": "Volume(shared topology) plus YtreePanel(active) for active selection",
+      "owner": "Volume(shared topology) plus YtreeNovaPanel(active) for active selection",
       "declared_write_set": [
         "volume.dir_tree",
         "volume.payload_cache",
@@ -1065,7 +1065,7 @@
       "action": "ACTION_CMD_TAGGED_V",
       "transition_id": "transition.filesystem-mutation-result.mkdir-copy-delete",
       "category": "filesystem_mutation_result",
-      "owner": "Volume(shared topology) plus YtreePanel(active) for active selection",
+      "owner": "Volume(shared topology) plus YtreeNovaPanel(active) for active selection",
       "declared_write_set": [
         "volume.dir_tree",
         "volume.payload_cache",
@@ -1083,7 +1083,7 @@
       "action": "ACTION_CMD_TAGGED_X",
       "transition_id": "transition.filesystem-mutation-result.mkdir-copy-delete",
       "category": "filesystem_mutation_result",
-      "owner": "Volume(shared topology) plus YtreePanel(active) for active selection",
+      "owner": "Volume(shared topology) plus YtreeNovaPanel(active) for active selection",
       "declared_write_set": [
         "volume.dir_tree",
         "volume.payload_cache",
@@ -1101,7 +1101,7 @@
       "action": "ACTION_CMD_TAGGED_Y",
       "transition_id": "transition.filesystem-mutation-result.mkdir-copy-delete",
       "category": "filesystem_mutation_result",
-      "owner": "Volume(shared topology) plus YtreePanel(active) for active selection",
+      "owner": "Volume(shared topology) plus YtreeNovaPanel(active) for active selection",
       "declared_write_set": [
         "volume.dir_tree",
         "volume.payload_cache",
@@ -1135,7 +1135,7 @@
       "action": "ACTION_LIST_JUMP",
       "transition_id": "transition.keybinding.navigate-tree",
       "category": "keybinding",
-      "owner": "YtreePanel(active)",
+      "owner": "YtreeNovaPanel(active)",
       "declared_write_set": [
         "panel.tree_selection_key",
         "panel.tree_cursor_pos",
@@ -1152,7 +1152,7 @@
       "action": "ACTION_TO_DIR",
       "transition_id": "transition.keybinding.navigate-tree",
       "category": "keybinding",
-      "owner": "YtreePanel(active)",
+      "owner": "YtreeNovaPanel(active)",
       "declared_write_set": [
         "panel.tree_selection_key",
         "panel.tree_cursor_pos",
@@ -1169,7 +1169,7 @@
       "action": "ACTION_TOGGLE_TAGGED_MODE",
       "transition_id": "transition.keybinding.navigate-tree",
       "category": "keybinding",
-      "owner": "YtreePanel(active)",
+      "owner": "YtreeNovaPanel(active)",
       "declared_write_set": [
         "panel.tree_selection_key",
         "panel.tree_cursor_pos",
@@ -1186,7 +1186,7 @@
       "action": "ACTION_TOGGLE_STATS",
       "transition_id": "transition.keybinding.navigate-tree",
       "category": "keybinding",
-      "owner": "YtreePanel(active)",
+      "owner": "YtreeNovaPanel(active)",
       "declared_write_set": [
         "panel.tree_selection_key",
         "panel.tree_cursor_pos",
@@ -1203,7 +1203,7 @@
       "action": "ACTION_ASTERISK",
       "transition_id": "transition.keybinding.navigate-tree",
       "category": "keybinding",
-      "owner": "YtreePanel(active)",
+      "owner": "YtreeNovaPanel(active)",
       "declared_write_set": [
         "panel.tree_selection_key",
         "panel.tree_cursor_pos",
@@ -1220,7 +1220,7 @@
       "action": "ACTION_INVERT",
       "transition_id": "transition.keybinding.navigate-tree",
       "category": "keybinding",
-      "owner": "YtreePanel(active)",
+      "owner": "YtreeNovaPanel(active)",
       "declared_write_set": [
         "panel.tree_selection_key",
         "panel.tree_cursor_pos",
@@ -1237,7 +1237,7 @@
       "action": "ACTION_SPLIT_SCREEN",
       "transition_id": "transition.keybinding.navigate-tree",
       "category": "keybinding",
-      "owner": "YtreePanel(active)",
+      "owner": "YtreeNovaPanel(active)",
       "declared_write_set": [
         "panel.tree_selection_key",
         "panel.tree_cursor_pos",
@@ -1254,7 +1254,7 @@
       "action": "ACTION_SWITCH_PANEL",
       "transition_id": "transition.keybinding.navigate-tree",
       "category": "keybinding",
-      "owner": "YtreePanel(active)",
+      "owner": "YtreeNovaPanel(active)",
       "declared_write_set": [
         "panel.tree_selection_key",
         "panel.tree_cursor_pos",
@@ -1271,7 +1271,7 @@
       "action": "ACTION_VIEW_PREVIEW",
       "transition_id": "transition.keybinding.navigate-tree",
       "category": "keybinding",
-      "owner": "YtreePanel(active)",
+      "owner": "YtreeNovaPanel(active)",
       "declared_write_set": [
         "panel.tree_selection_key",
         "panel.tree_cursor_pos",
@@ -1288,7 +1288,7 @@
       "action": "ACTION_PREVIEW_SCROLL_UP",
       "transition_id": "transition.keybinding.navigate-tree",
       "category": "keybinding",
-      "owner": "YtreePanel(active)",
+      "owner": "YtreeNovaPanel(active)",
       "declared_write_set": [
         "panel.tree_selection_key",
         "panel.tree_cursor_pos",
@@ -1305,7 +1305,7 @@
       "action": "ACTION_PREVIEW_SCROLL_DOWN",
       "transition_id": "transition.keybinding.navigate-tree",
       "category": "keybinding",
-      "owner": "YtreePanel(active)",
+      "owner": "YtreeNovaPanel(active)",
       "declared_write_set": [
         "panel.tree_selection_key",
         "panel.tree_cursor_pos",
@@ -1322,7 +1322,7 @@
       "action": "ACTION_PREVIEW_HOME",
       "transition_id": "transition.keybinding.navigate-tree",
       "category": "keybinding",
-      "owner": "YtreePanel(active)",
+      "owner": "YtreeNovaPanel(active)",
       "declared_write_set": [
         "panel.tree_selection_key",
         "panel.tree_cursor_pos",
@@ -1339,7 +1339,7 @@
       "action": "ACTION_PREVIEW_END",
       "transition_id": "transition.keybinding.navigate-tree",
       "category": "keybinding",
-      "owner": "YtreePanel(active)",
+      "owner": "YtreeNovaPanel(active)",
       "declared_write_set": [
         "panel.tree_selection_key",
         "panel.tree_cursor_pos",
@@ -1356,7 +1356,7 @@
       "action": "ACTION_PREVIEW_PAGE_UP",
       "transition_id": "transition.keybinding.navigate-tree",
       "category": "keybinding",
-      "owner": "YtreePanel(active)",
+      "owner": "YtreeNovaPanel(active)",
       "declared_write_set": [
         "panel.tree_selection_key",
         "panel.tree_cursor_pos",
@@ -1373,7 +1373,7 @@
       "action": "ACTION_PREVIEW_PAGE_DOWN",
       "transition_id": "transition.keybinding.navigate-tree",
       "category": "keybinding",
-      "owner": "YtreePanel(active)",
+      "owner": "YtreeNovaPanel(active)",
       "declared_write_set": [
         "panel.tree_selection_key",
         "panel.tree_cursor_pos",
@@ -1390,7 +1390,7 @@
       "action": "ACTION_COMPARE_FILE",
       "transition_id": "transition.keybinding.navigate-tree",
       "category": "keybinding",
-      "owner": "YtreePanel(active)",
+      "owner": "YtreeNovaPanel(active)",
       "declared_write_set": [
         "panel.tree_selection_key",
         "panel.tree_cursor_pos",
@@ -1407,7 +1407,7 @@
       "action": "ACTION_COMPARE_DIR",
       "transition_id": "transition.keybinding.navigate-tree",
       "category": "keybinding",
-      "owner": "YtreePanel(active)",
+      "owner": "YtreeNovaPanel(active)",
       "declared_write_set": [
         "panel.tree_selection_key",
         "panel.tree_cursor_pos",
@@ -1424,7 +1424,7 @@
       "action": "ACTION_COMPARE_TREE",
       "transition_id": "transition.keybinding.navigate-tree",
       "category": "keybinding",
-      "owner": "YtreePanel(active)",
+      "owner": "YtreeNovaPanel(active)",
       "declared_write_set": [
         "panel.tree_selection_key",
         "panel.tree_cursor_pos",

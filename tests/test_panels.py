@@ -3,7 +3,7 @@ import time
 import re
 import os
 import pexpect
-from ytree_keys import Keys
+from ytnova_keys import Keys
 
 def get_clean_screen(yt):
     """
@@ -33,7 +33,7 @@ def sync_state(yt):
 def detect_and_fix_auto_enter(yt):
     """
     Handles the spurious mode transition bug.
-    If ytree auto-entered a dir on F8, we Esc back to the Tree.
+    If ytnova auto-entered a dir on F8, we Esc back to the Tree.
     """
     sync_state(yt)
     screen = get_clean_screen(yt)
@@ -72,7 +72,7 @@ def test_f8_split_memory_corruption_bug(controller, dual_panel_sandbox):
     sync_state(yt)
 
     # 5. Trigger the bug: Collapse the parent directory from the right panel
-    # In ytree, pressing LEFT on a directory usually collapses it or moves to parent.
+    # In ytnova, pressing LEFT on a directory usually collapses it or moves to parent.
     yt.child.send("-")
     sync_state(yt)
 
@@ -167,16 +167,16 @@ def test_f7_header_shows_directory_only(controller, dual_panel_sandbox):
 
     yt.quit()
 
-def test_f7_visual_layout(ytree_binary, dual_panel_sandbox):
+def test_f7_visual_layout(ytnova_binary, dual_panel_sandbox):
     """
     Test that the visual layout of the Autoview (F7) is correct in a 120x36 grid.
     Asserts no overlapping text and proper header alignments.
     """
-    from tui_harness import YtreeTUI
-    from ytree_keys import Keys
+    from tui_harness import YtreeNovaTUI
+    from ytnova_keys import Keys
     import time
 
-    tui = YtreeTUI(executable=ytree_binary, cwd=str(dual_panel_sandbox))
+    tui = YtreeNovaTUI(executable=ytnova_binary, cwd=str(dual_panel_sandbox))
 
     # Expand all
     tui.send_keystroke(Keys.EXPAND_ALL)

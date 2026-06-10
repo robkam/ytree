@@ -1,13 +1,13 @@
 /***************************************************************************
  *
- * ytree_cmd.h
+ * ytnova_cmd.h
  * User commands and action handler prototypes
  *
  ***************************************************************************/
-#ifndef YTREE_CMD_H
-#define YTREE_CMD_H
+#ifndef YTNOVA_CMD_H
+#define YTNOVA_CMD_H
 
-#include "ytree_defs.h"
+#include "ytnova_defs.h"
 
 /* Conflict Resolution Codes */
 #define CONFLICT_SKIP 0
@@ -76,13 +76,13 @@ extern BOOL Match(FileEntry *fe, const Statistic *s);
 /* log.c */
 extern int Log(DirEntry *dir_entry, Statistic *s);
 extern int SetLogFile(char *filename);
-extern int LogDisk(ViewContext *ctx, YtreePanel *panel, char *path);
-extern int CycleLoadedVolume(ViewContext *ctx, YtreePanel *panel,
+extern int LogDisk(ViewContext *ctx, YtreeNovaPanel *panel, char *path);
+extern int CycleLoadedVolume(ViewContext *ctx, YtreeNovaPanel *panel,
                              int direction);
-extern int GetNewLogPath(ViewContext *ctx, YtreePanel *panel, char *path);
+extern int GetNewLogPath(ViewContext *ctx, YtreeNovaPanel *panel, char *path);
 
 /* mkdir.c */
-extern int MakeDirectory(const ViewContext *ctx, YtreePanel *panel,
+extern int MakeDirectory(const ViewContext *ctx, YtreeNovaPanel *panel,
                          DirEntry *father_dir_entry, const char *dir_name,
                          Statistic *s);
 extern int MakePath(const ViewContext *ctx, DirEntry *tree, char *dir_path,
@@ -222,4 +222,4 @@ extern int GetCommandLine(ViewContext *ctx, char *command_line);
 extern int GetSearchCommandLine(ViewContext *ctx, char *command_line,
                                 char *raw_pattern);
 
-#endif /* YTREE_CMD_H */
+#endif /* YTNOVA_CMD_H */
