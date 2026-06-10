@@ -2,8 +2,8 @@
 title: YTNOVA
 section: 1
 header: "User Commands"
-footer: "ytnova 3.0.0"
-date: "January 2026"
+footer: "ytnova 1.0.0-alpha"
+date: "June 2026"
 ---
 
 # NAME

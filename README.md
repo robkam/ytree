@@ -3,7 +3,7 @@
 **YtreeNova** is a keyboard-first file manager for Linux and BSD with fast multi-volume logging and navigation.
 
 > [!IMPORTANT]
-> **STATUS: ALPHA (v3.0.0-alpha)**
+> **STATUS: ALPHA (v1.0.0-alpha)**
 > `ytnova` is in active alpha development. It is stable and usable, but expect rough edges, incomplete behaviour, and occasional regressions. Interfaces, key bindings, and configuration details may change before the first stable release.
 >
 > Before opening an issue or suggesting a feature, please check [BUGS.md](docs/BUGS.md) and [ROADMAP.md](docs/ROADMAP.md) first, so as not to create a duplicate if it is already listed.
@@ -20,7 +20,7 @@ Born from the lineage of [XTree&trade;](https://www.xtreefanpage.org/lowres/x10d
 
 Many file managers today function as "browsers"—they look at one directory at a time and rely on the OS to fetch files on demand. `YtreeNova` is different: it is a logger. It scans ("logs") entire drive hierarchies into memory. This treats the filesystem as a database, allowing you to **Show All** files in a flat view, filter across thousands of subdirectories instantly, and perform bulk operations on tagged files regardless of their location.
 
-Forked in October 2025 from [Ytree](https://www.han.de/~werner/ytree.html) v2.10, created by Werner Bregulla and others. This v3.0 project focuses on feature completeness for Unix power users, including split-screen and integrated autoview. The move to a modular C99/POSIX architecture is a practical side effect of delivering those capabilities safely and maintainably.
+Forked in October 2025 from [Ytree](https://www.han.de/~werner/ytree.html) v2.10, created by Werner Bregulla and others. The YtreeNova alpha line focuses on feature completeness for Unix power users, including split-screen and integrated autoview. The move to a modular C99/POSIX architecture is a practical side effect of delivering those capabilities safely and maintainably.
 
 ## Development Methodology
 
@@ -35,9 +35,9 @@ Quality claims are backed by repository-visible gates and documentation:
 
 ## Why release alpha now?
 
-v3.0.0-alpha is being published early so people can use the program, inspect the code, and evaluate the direction before beta. It is usable today, but still in active development: expect rough edges, occasional UX/workflow bugs, and ongoing refinement of some features.
+v1.0.0-alpha is being published early so people can use the program, inspect the code, and evaluate the direction before beta. It is usable today, but still in active development: expect rough edges, occasional UX/workflow bugs, and ongoing refinement of some features.
 
-## Features (v3.0.0-alpha)
+## Features (v1.0.0-alpha)
 
 *   **Classic XTree&trade; Interface:** Directory Tree + File List layout.
 *   **Split Screen Mode (F8):** Manage two independent file panels side-by-side.
@@ -96,7 +96,7 @@ The project documentation is split into several focused files.
 | **[ARCHITECTURE.md](docs/ARCHITECTURE.md)** | **System Design**: Core technical principles (DRY, SRP, Context-passing) and data hierarchy. |
 | **[TRUST.md](docs/TRUST.md)** | **Trust & Safety**: Safety claims and where to verify them in the codebase. |
 | **[ROADMAP.md](docs/ROADMAP.md)** | **Future Plans**: Pending milestones and prioritized delivery backlog. |
-| **[CHANGES.md](docs/CHANGES.md)** | **Changelog**: Detailed history of v3.0 feature delivery, architecture work, and updates. |
+| **[CHANGES.md](docs/CHANGES.md)** | **Changelog**: Detailed history of YtreeNova feature delivery, architecture work, and updates. |
 
 ## Project Structure
 

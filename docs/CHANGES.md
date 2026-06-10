@@ -8,9 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 Scope policy: `docs/CHANGES.md` records shipped, already implemented, major user-visible or project-level milestones only.
 Minor/trivial fixes are tracked in git history.
 
-## [3.0.0-alpha] - 2026-04-29
+## [1.0.0-alpha] - 2026-06-10
 
-*Modernization Project initiated 30 Oct 2025. This release represents a comprehensive architectural refactor from the legacy 2.10 codebase to modern C99/POSIX standards, introducing significant power-user features, enhanced safety, and robust quality assurance.*
+*YtreeNova alpha release line starts here after the project rebrand. Modernization Project initiated 30 Oct 2025. This release represents a comprehensive architectural refactor from the legacy 2.10 codebase to modern C99/POSIX standards, introducing significant power-user features, enhanced safety, and robust quality assurance.*
 
 ### Core Architecture & Modernization
 - **Refactoring & Standardization**: Ported legacy C89 code to modern C99/POSIX standards.
