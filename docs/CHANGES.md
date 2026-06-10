@@ -10,23 +10,30 @@ Minor/trivial fixes are tracked in git history.
 
 ## [1.0.0-alpha] - 2026-06-10
 
-*YtreeNova alpha release line starts here after the project rebrand. Modernization Project initiated 30 Oct 2025. This release represents a comprehensive architectural refactor from the legacy 2.10 codebase to modern C99/POSIX standards, introducing significant power-user features, enhanced safety, and robust quality assurance.*
+*YtreeNova alpha release line starts here after the project rebrand. Modernization Project initiated 30 Oct 2025 from Ytree v2.10. This release represents an independent fork and comprehensive architectural modernization to C99/POSIX standards, introducing significant power-user features, enhanced safety, and robust quality assurance.*
+
+### Lineage
+- YtreeNova is an independent fork of [Ytree](https://www.han.de/~werner/ytree.html) v2.10, created by Werner Bregulla and others, with its own name and release line to keep the projects distinct.
 
 ### Core Architecture & Modernization
-- **Refactoring & Standardization**: Ported legacy C89 code to modern C99/POSIX standards.
-- **SRP & SoC Enforcement**: Deep-dive refactor to decouple the Filesystem Model (Model) from the UI (View), eradicating global objects and implicit state leakage.
+- **Refactoring & Standardization**: Modernized the original C89-oriented codebase to C99/POSIX standards.
+- **Context-Passing Architecture**: Replaced implicit cross-module state access with explicit context parameters and ownership boundaries.
+- **Global State Removal**: Drove major mutable application state out of file-scope globals and into structured runtime state.
+- **Volume Architecture**: Reworked logged roots, physical directories, and archive contexts into explicit volume contexts so multi-volume and archive workflows share a common model.
+- **AppState Contracts**: Documented and enforced AppState transition boundaries so controller and UI code can preserve selected-panel, viewport, and active-volume invariants.
+- **SRP & SoC Enforcement**: Deep-dive refactor to decouple the Filesystem Model (Model) from the UI (View), replacing implicit state access with explicit ownership and context passing.
 - **Global State Encapsulation**: Refactored the core engine to encapsulate previously global variables, improving reentrancy and modularity.
 - **Source Normalization**: Reorganized the source tree into semantic layers (`core`, `ui`, `fs`, `cmd`, `util`) with modular header decomposition.
-- **Identifier Normalization**: Anglicised the source code by replacing legacy German identifiers with English equivalents.
-- **Signal Safety & Precision**: Replaced hazardous `SIGALRM` based clock handlers with event-loop integration and enforced strict signal-safety for application shutdown.
-- **Clock & Date Localization**: Stabilized the real-time clock and date handlers, resolving the "beta" state from v2.10.
+- **Identifier Normalization**: Anglicised source identifiers for consistency in the YtreeNova fork.
+- **Signal Safety & Precision**: Moved clock handling to event-loop integration and enforced strict signal-safety for application shutdown.
+- **Clock & Date Localization**: Stabilized the real-time clock and date handlers for the YtreeNova runtime.
 - **Dynamic Layout Engine**: Eliminated layout "magic numbers" in favor of a runtime geometry engine that supports responsive resizing.
 - **UTF-8 Support**: Full wide-character support (`ncursesw`) for correct display of Unicode filenames.
 
 ### Multi-Volume & Archive Management
 - **Multi-Volume Architecture**: Support for logging multiple drives, directories, or archives simultaneously.
 - **Volume Navigation**: New Volume Menu (`K`) and cycling (`<`, `>`) to switch between loaded contexts (including integrated release/unlog via `D`).
-- **Universal Archive Engine**: Fully integrated `libarchive` as the primary engine for robust browsing and extraction (ZIP, TAR, 7Z, ISO, etc.), replacing dozens of external utilities.
+- **Universal Archive Engine**: Fully integrated `libarchive` as the primary engine for robust browsing and extraction (ZIP, TAR, 7Z, ISO, etc.).
 - **Full Archive Creation**: Added the `O` action to the TUI flow for creating new archives, with automatic format inference from extensions (ZIP, TAR, GZ, BZ2, XZ).
 - **Atomic Archive Modification**: Implemented a "Stream Rewrite" engine allowing for atomic entry addition, deletion, and renaming within compressed containers.
 - **Transparent Navigation**: Seamlessly traverse nested archives and exit archive contexts back to the physical filesystem using intuitive navigation logic.

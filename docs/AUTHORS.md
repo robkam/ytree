@@ -24,4 +24,4 @@ Originally developed by [Werner Bregulla](https://www.han.de/~werner/ytree.html)
 
 **YtreeNova Modernization**
 
-* **Rob Kam** - Forked in October 2025 from Ytree v2.10. Modernized and enhanced the project after decades of dormancy, making extensive use of LLMs for code generation and debugging.
+* **Rob Kam** - Forked YtreeNova in October 2025 from Ytree v2.10. Modernized and extended the fork while making extensive use of LLMs for code generation and debugging.

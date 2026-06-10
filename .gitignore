@@ -75,4 +75,3 @@ __pycache__/
 !scripts/**/*.txt
 
 # Rebrand task deliverable
-!REBRAND_SUMMARY.txt
