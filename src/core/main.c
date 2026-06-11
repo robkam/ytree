@@ -45,6 +45,327 @@ static int NonEmptyStringList(const char *const *values, size_t count) {
   return 1;
 }
 
+static const struct {
+  const char *action_id;
+  YtreeNovaAction action;
+} kAppStateActionIds[] = {
+  {"ACTION_NONE", ACTION_NONE},
+  {"ACTION_MOVE_UP", ACTION_MOVE_UP},
+  {"ACTION_MOVE_DOWN", ACTION_MOVE_DOWN},
+  {"ACTION_MOVE_SIBLING_NEXT", ACTION_MOVE_SIBLING_NEXT},
+  {"ACTION_MOVE_SIBLING_PREV", ACTION_MOVE_SIBLING_PREV},
+  {"ACTION_MOVE_LEFT", ACTION_MOVE_LEFT},
+  {"ACTION_MOVE_RIGHT", ACTION_MOVE_RIGHT},
+  {"ACTION_PAGE_UP", ACTION_PAGE_UP},
+  {"ACTION_PAGE_DOWN", ACTION_PAGE_DOWN},
+  {"ACTION_HOME", ACTION_HOME},
+  {"ACTION_END", ACTION_END},
+  {"ACTION_TREE_EXPAND", ACTION_TREE_EXPAND},
+  {"ACTION_TREE_COLLAPSE", ACTION_TREE_COLLAPSE},
+  {"ACTION_TREE_EXPAND_ALL", ACTION_TREE_EXPAND_ALL},
+  {"ACTION_ENTER", ACTION_ENTER},
+  {"ACTION_ESCAPE", ACTION_ESCAPE},
+  {"ACTION_LOG", ACTION_LOG},
+  {"ACTION_QUIT", ACTION_QUIT},
+  {"ACTION_QUIT_DIR", ACTION_QUIT_DIR},
+  {"ACTION_TAG", ACTION_TAG},
+  {"ACTION_UNTAG", ACTION_UNTAG},
+  {"ACTION_TAG_ALL", ACTION_TAG_ALL},
+  {"ACTION_UNTAG_ALL", ACTION_UNTAG_ALL},
+  {"ACTION_TAG_REST", ACTION_TAG_REST},
+  {"ACTION_UNTAG_REST", ACTION_UNTAG_REST},
+  {"ACTION_FILTER", ACTION_FILTER},
+  {"ACTION_TOGGLE_MODE", ACTION_TOGGLE_MODE},
+  {"ACTION_REFRESH", ACTION_REFRESH},
+  {"ACTION_RESIZE", ACTION_RESIZE},
+  {"ACTION_VOL_MENU", ACTION_VOL_MENU},
+  {"ACTION_VOL_PREV", ACTION_VOL_PREV},
+  {"ACTION_VOL_NEXT", ACTION_VOL_NEXT},
+  {"ACTION_CMD_A", ACTION_CMD_A},
+  {"ACTION_CMD_B", ACTION_CMD_B},
+  {"ACTION_CMD_C", ACTION_CMD_C},
+  {"ACTION_CMD_D", ACTION_CMD_D},
+  {"ACTION_CMD_E", ACTION_CMD_E},
+  {"ACTION_CMD_G", ACTION_CMD_G},
+  {"ACTION_CMD_H", ACTION_CMD_H},
+  {"ACTION_CMD_I", ACTION_CMD_I},
+  {"ACTION_CMD_M", ACTION_CMD_M},
+  {"ACTION_CMD_O", ACTION_CMD_O},
+  {"ACTION_CMD_P", ACTION_CMD_P},
+  {"ACTION_CMD_R", ACTION_CMD_R},
+  {"ACTION_CMD_S", ACTION_CMD_S},
+  {"ACTION_CMD_V", ACTION_CMD_V},
+  {"ACTION_CMD_X", ACTION_CMD_X},
+  {"ACTION_CMD_Y", ACTION_CMD_Y},
+  {"ACTION_CMD_PRINT", ACTION_CMD_PRINT},
+  {"ACTION_TOGGLE_HIDDEN", ACTION_TOGGLE_HIDDEN},
+  {"ACTION_TOGGLE_COMPACT", ACTION_TOGGLE_COMPACT},
+  {"ACTION_CMD_MKFILE", ACTION_CMD_MKFILE},
+  {"ACTION_CMD_TAGGED_A", ACTION_CMD_TAGGED_A},
+  {"ACTION_CMD_TAGGED_C", ACTION_CMD_TAGGED_C},
+  {"ACTION_CMD_TAGGED_D", ACTION_CMD_TAGGED_D},
+  {"ACTION_CMD_TAGGED_G", ACTION_CMD_TAGGED_G},
+  {"ACTION_CMD_TAGGED_M", ACTION_CMD_TAGGED_M},
+  {"ACTION_CMD_TAGGED_O", ACTION_CMD_TAGGED_O},
+  {"ACTION_CMD_TAGGED_P", ACTION_CMD_TAGGED_P},
+  {"ACTION_CMD_TAGGED_R", ACTION_CMD_TAGGED_R},
+  {"ACTION_CMD_TAGGED_S", ACTION_CMD_TAGGED_S},
+  {"ACTION_CMD_TAGGED_V", ACTION_CMD_TAGGED_V},
+  {"ACTION_CMD_TAGGED_X", ACTION_CMD_TAGGED_X},
+  {"ACTION_CMD_TAGGED_Y", ACTION_CMD_TAGGED_Y},
+  {"ACTION_CMD_TAGGED_PRINT", ACTION_CMD_TAGGED_PRINT},
+  {"ACTION_LIST_JUMP", ACTION_LIST_JUMP},
+  {"ACTION_TO_DIR", ACTION_TO_DIR},
+  {"ACTION_TOGGLE_TAGGED_MODE", ACTION_TOGGLE_TAGGED_MODE},
+  {"ACTION_TOGGLE_STATS", ACTION_TOGGLE_STATS},
+  {"ACTION_ASTERISK", ACTION_ASTERISK},
+  {"ACTION_INVERT", ACTION_INVERT},
+  {"ACTION_SPLIT_SCREEN", ACTION_SPLIT_SCREEN},
+  {"ACTION_SWITCH_PANEL", ACTION_SWITCH_PANEL},
+  {"ACTION_VIEW_PREVIEW", ACTION_VIEW_PREVIEW},
+  {"ACTION_PREVIEW_SCROLL_UP", ACTION_PREVIEW_SCROLL_UP},
+  {"ACTION_PREVIEW_SCROLL_DOWN", ACTION_PREVIEW_SCROLL_DOWN},
+  {"ACTION_PREVIEW_HOME", ACTION_PREVIEW_HOME},
+  {"ACTION_PREVIEW_END", ACTION_PREVIEW_END},
+  {"ACTION_PREVIEW_PAGE_UP", ACTION_PREVIEW_PAGE_UP},
+  {"ACTION_PREVIEW_PAGE_DOWN", ACTION_PREVIEW_PAGE_DOWN},
+  {"ACTION_COMPARE_FILE", ACTION_COMPARE_FILE},
+  {"ACTION_COMPARE_DIR", ACTION_COMPARE_DIR},
+  {"ACTION_COMPARE_TREE", ACTION_COMPARE_TREE},
+  {"ACTION_EDIT_CONFIG", ACTION_EDIT_CONFIG},
+  {"ACTION_USER_CMD", ACTION_USER_CMD},
+};
+
+static const struct {
+  const char *event_id;
+  const char *transition_id;
+} kAppStateEventTransitionIds[] = {
+  {"event.terminal-resize-signal", "transition.terminal-signal-resize" },
+  {"event.refresh-rebuild", "transition.refresh-rebuild.manual-refresh" },
+  {"event.rebuild-rebind-callback", "transition.rebuild-rebind-callback.panel-anchor" },
+  {"event.filesystem-mutation-result", "transition.filesystem-mutation-result.mkdir-copy-delete" },
+  {"event.watcher-live-refresh", "transition.refresh-rebuild.manual-refresh" },
+  {"event.command-completion", "transition.command-completion.user-command" },
+  {"event.modal-completion", "transition.modal-action.dismiss" },
+  {"event.volume-lifecycle", "transition.volume-operation.release-cycle" },
+  {"event.render-reflow", "transition.render-reflow.project-state" },
+};
+
+
+static int StringListContains(const char *const *values, size_t count,
+                              const char *value) {
+  size_t index;
+
+  if (!NonEmptyString(value))
+    return 0;
+
+  for (index = 0; index < count; index++) {
+    if (NonEmptyString(values[index]) && strcmp(values[index], value) == 0)
+      return 1;
+  }
+
+  return 0;
+}
+
+static int AppStateExpectedResultValid(const char *expected_result) {
+  return strcmp(expected_result, "allowed") == 0 ||
+         strcmp(expected_result, "blocked") == 0 ||
+         strcmp(expected_result, "fallback") == 0 ||
+         strcmp(expected_result, "invalid") == 0;
+}
+
+static const AppStateActionTransitionMetadata *
+AppStateActionIdLookup(const char *action_id) {
+  size_t index;
+
+  if (!NonEmptyString(action_id))
+    return NULL;
+
+  for (index = 0; index < sizeof(kAppStateActionIds) / sizeof(kAppStateActionIds[0]);
+       index++) {
+    if (strcmp(kAppStateActionIds[index].action_id, action_id) == 0)
+      return AppStateActionTransitionLookup(kAppStateActionIds[index].action);
+  }
+
+  return NULL;
+}
+
+static const char *AppStateEventTransitionLookup(const char *event_id) {
+  size_t index;
+
+  if (!NonEmptyString(event_id))
+    return NULL;
+
+  for (index = 0;
+       index < sizeof(kAppStateEventTransitionIds) /
+                   sizeof(kAppStateEventTransitionIds[0]);
+       index++) {
+    if (strcmp(kAppStateEventTransitionIds[index].event_id, event_id) == 0)
+      return kAppStateEventTransitionIds[index].transition_id;
+  }
+
+  return NULL;
+}
+
+static int AppStateFallbackPreconditionValid(const char *precondition) {
+  if (precondition == NULL)
+    return 1;
+  if (!NonEmptyString(precondition))
+    return 0;
+  return strcmp(precondition, "generation_mismatch") == 0 ||
+         strcmp(precondition, "stale_snapshot") == 0;
+}
+
+static int AppStateTransitionSequenceStepReady(
+    const AppStateTransitionSequenceMetadata *sequence,
+    const AppStateTransitionSequenceStepMetadata *step, size_t step_index,
+    size_t previous_ordinal) {
+  size_t ref_index;
+
+  if (step == NULL || step->ordinal == 0 || step->ordinal <= previous_ordinal ||
+      !NonEmptyString(step->step_id) || !NonEmptyString(step->transition_id) ||
+      !NonEmptyString(step->expected_result) ||
+      !AppStateExpectedResultValid(step->expected_result) ||
+      AppStateTransitionLookup(step->transition_id) == NULL ||
+      !NonEmptyStringList(step->invariant_ids, step->invariant_id_count) ||
+      !NonEmptyStringList(step->diff_harness_ids, step->diff_harness_id_count) ||
+      step->generation_domain_expectations == NULL ||
+      step->generation_domain_expectation_count == 0 ||
+      !AppStateFallbackPreconditionValid(step->precondition))
+    return 0;
+
+  for (ref_index = 0; ref_index < step_index; ref_index++) {
+    if (strcmp(sequence->steps[ref_index].step_id, step->step_id) == 0)
+      return 0;
+  }
+
+  if (step->stimulus_action_id == NULL && step->stimulus_event_id == NULL)
+    return 0;
+  if (step->stimulus_action_id != NULL) {
+    const AppStateActionTransitionMetadata *action_metadata =
+        AppStateActionIdLookup(step->stimulus_action_id);
+
+    if (action_metadata == NULL ||
+        strcmp(action_metadata->transition_id, step->transition_id) != 0)
+      return 0;
+  }
+  if (step->stimulus_event_id != NULL) {
+    const char *event_transition =
+        AppStateEventTransitionLookup(step->stimulus_event_id);
+
+    if (event_transition == NULL || strcmp(event_transition, step->transition_id) != 0)
+      return 0;
+  }
+
+  for (ref_index = 0; ref_index < step->invariant_id_count; ref_index++) {
+    if (AppStateInvariantLookup(step->invariant_ids[ref_index]) == NULL)
+      return 0;
+    if (StringListContains(step->invariant_ids, ref_index,
+                           step->invariant_ids[ref_index]))
+      return 0;
+  }
+  for (ref_index = 0; ref_index < step->diff_harness_id_count; ref_index++) {
+    if (AppStateDiffHarnessLookup(step->diff_harness_ids[ref_index]) == NULL)
+      return 0;
+    if (StringListContains(step->diff_harness_ids, ref_index,
+                           step->diff_harness_ids[ref_index]))
+      return 0;
+  }
+  for (ref_index = 0; ref_index < step->generation_domain_expectation_count;
+       ref_index++) {
+    const AppStateTransitionSequenceGenerationExpectationMetadata *expectation =
+        &step->generation_domain_expectations[ref_index];
+    size_t previous_index;
+
+    if (!NonEmptyString(expectation->domain_id) ||
+        !NonEmptyString(expectation->expectation) ||
+        AppStateGenerationDomainLookup(expectation->domain_id) == NULL)
+      return 0;
+    for (previous_index = 0; previous_index < ref_index; previous_index++) {
+      if (strcmp(step->generation_domain_expectations[previous_index].domain_id,
+                 expectation->domain_id) == 0)
+        return 0;
+    }
+  }
+
+  if (strcmp(step->expected_result, "blocked") == 0 ||
+      strcmp(step->expected_result, "invalid") == 0) {
+    if (step->no_unrelated_mutation == NULL)
+      return 0;
+  }
+  if (step->no_unrelated_mutation != NULL) {
+    if (!NonEmptyString(step->no_unrelated_mutation->diff_harness_id) ||
+        !NonEmptyString(step->no_unrelated_mutation->expectation) ||
+        AppStateDiffHarnessLookup(step->no_unrelated_mutation->diff_harness_id) ==
+            NULL)
+      return 0;
+  }
+
+  if (step->precondition != NULL || strcmp(step->expected_result, "fallback") == 0) {
+    if (step->deterministic_fallback == NULL)
+      return 0;
+  }
+  if (step->deterministic_fallback != NULL) {
+    if (!NonEmptyString(step->deterministic_fallback->outcome) ||
+        !NonEmptyString(step->deterministic_fallback->allowed_mutation_scope))
+      return 0;
+  }
+
+  return 1;
+}
+
+static int AppStateTransitionSequencesReady(void) {
+  size_t index;
+
+  if (AppStateTransitionSequenceCount() == 0)
+    return 0;
+
+  for (index = 0; index < AppStateTransitionSequenceCount(); index++) {
+    const AppStateTransitionSequenceMetadata *sequence =
+        AppStateTransitionSequenceAt(index);
+    size_t previous_index;
+    size_t step_index;
+    size_t previous_ordinal = 0;
+
+    if (sequence == NULL || !NonEmptyString(sequence->scenario_id) ||
+        !NonEmptyString(sequence->category) || !NonEmptyString(sequence->flow) ||
+        !NonEmptyString(sequence->description) || sequence->steps == NULL ||
+        sequence->step_count == 0)
+      return 0;
+    if (AppStateTransitionSequenceLookup(sequence->scenario_id) != sequence)
+      return 0;
+    for (previous_index = 0; previous_index < index; previous_index++) {
+      const AppStateTransitionSequenceMetadata *previous =
+          AppStateTransitionSequenceAt(previous_index);
+
+      if (previous == NULL ||
+          strcmp(previous->scenario_id, sequence->scenario_id) == 0)
+        return 0;
+    }
+
+    for (step_index = 0; step_index < sequence->step_count; step_index++) {
+      const AppStateTransitionSequenceStepMetadata *step =
+          &sequence->steps[step_index];
+
+      if (!AppStateTransitionSequenceStepReady(sequence, step, step_index,
+                                               previous_ordinal))
+        return 0;
+      previous_ordinal = step->ordinal;
+    }
+  }
+
+  if (AppStateTransitionSequenceAt(AppStateTransitionSequenceCount()) != NULL)
+    return 0;
+  if (AppStateTransitionSequenceLookup(NULL) != NULL)
+    return 0;
+  if (AppStateTransitionSequenceLookup("") != NULL)
+    return 0;
+  if (AppStateTransitionSequenceLookup("sequence.__ytnova_unknown__") != NULL)
+    return 0;
+
+  return 1;
+}
+
 static int AppStateInvariantDispatchSurfacesReady(
     const AppStateInvariantMetadata *metadata) {
   size_t note_index;
@@ -516,6 +837,7 @@ int main(int argc, char **argv) {
       !AppStateInvariantRegistryReady() ||
       !AppStateCompatibilityShimsReady() ||
       !AppStateDiffHarnessRegistryReady() ||
+      !AppStateTransitionSequencesReady() ||
       !AppStateActionTransitionsReady()) {
     fprintf(stderr, "EXIT: startup invariants not configured\n");
     exit(1);

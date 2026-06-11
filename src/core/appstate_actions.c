@@ -1063,6 +1063,834 @@ static const AppStateDiffHarnessMetadata kAppStateDiffHarnesses[] = {
    kAppStateDiffHarnessMigrationNotes4,
    sizeof(kAppStateDiffHarnessMigrationNotes4) / sizeof(kAppStateDiffHarnessMigrationNotes4[0])},
 };
+
+static const char *const kAppStateTransitionSequenceStepInvariantIds0_0[] = {
+  "invariant.inactive-panel-frozen",
+  "invariant.blocked-transition-determinism",
+};
+
+static const char *const kAppStateTransitionSequenceStepDiffHarnessIds0_0[] = {
+  "harness.transition-before-after-snapshot",
+  "harness.declared-write-set-diff",
+};
+
+static const AppStateTransitionSequenceGenerationExpectationMetadata kAppStateTransitionSequenceStepGenerationExpectations0_0[] = {
+  {"generation.panel.local-authority", "Validate panel generation before and after the step; advance only when the transition declares panel-local writes."},
+  {"shape.panel.focus", "Preserve or rebind focus shape only through the transition result."},
+  {"reflow.layout.projection", "Layout reflow generation is projection-only unless resize transition declares it."},
+};
+
+static const char *const kAppStateTransitionSequenceStepInvariantIds0_1[] = {
+  "invariant.blocked-transition-determinism",
+  "invariant.inactive-panel-frozen",
+};
+
+static const char *const kAppStateTransitionSequenceStepDiffHarnessIds0_1[] = {
+  "harness.blocked-transition-no-unrelated-mutation",
+};
+
+static const AppStateTransitionSequenceGenerationExpectationMetadata kAppStateTransitionSequenceStepGenerationExpectations0_1[] = {
+  {"generation.panel.local-authority", "Validate panel generation before and after the step; advance only when the transition declares panel-local writes."},
+  {"reflow.layout.projection", "Layout reflow generation is projection-only unless resize transition declares it."},
+};
+
+static const AppStateTransitionSequenceNoUnrelatedMutationMetadata kAppStateTransitionSequenceStepNoUnrelatedMutation0_1 = {"harness.blocked-transition-no-unrelated-mutation", "The blocked/invalid result may update only the declared diagnostic or dirty state and must not mutate unrelated owner fields."};
+
+static const AppStateTransitionSequenceStepMetadata kAppStateTransitionSequenceSteps0[] = {
+  {1,
+   "split-open",
+   "transition.keybinding.navigate-tree",
+   "ACTION_SPLIT_SCREEN",
+   NULL,
+   "allowed",
+   kAppStateTransitionSequenceStepInvariantIds0_0,
+   sizeof(kAppStateTransitionSequenceStepInvariantIds0_0) / sizeof(kAppStateTransitionSequenceStepInvariantIds0_0[0]),
+   kAppStateTransitionSequenceStepDiffHarnessIds0_0,
+   sizeof(kAppStateTransitionSequenceStepDiffHarnessIds0_0) / sizeof(kAppStateTransitionSequenceStepDiffHarnessIds0_0[0]),
+   kAppStateTransitionSequenceStepGenerationExpectations0_0,
+   sizeof(kAppStateTransitionSequenceStepGenerationExpectations0_0) / sizeof(kAppStateTransitionSequenceStepGenerationExpectations0_0[0]),
+   NULL,
+   NULL,
+   NULL},
+  {2,
+   "split-toggle-blocked-by-modal",
+   "transition.keybinding.navigate-tree",
+   "ACTION_SPLIT_SCREEN",
+   NULL,
+   "blocked",
+   kAppStateTransitionSequenceStepInvariantIds0_1,
+   sizeof(kAppStateTransitionSequenceStepInvariantIds0_1) / sizeof(kAppStateTransitionSequenceStepInvariantIds0_1[0]),
+   kAppStateTransitionSequenceStepDiffHarnessIds0_1,
+   sizeof(kAppStateTransitionSequenceStepDiffHarnessIds0_1) / sizeof(kAppStateTransitionSequenceStepDiffHarnessIds0_1[0]),
+   kAppStateTransitionSequenceStepGenerationExpectations0_1,
+   sizeof(kAppStateTransitionSequenceStepGenerationExpectations0_1) / sizeof(kAppStateTransitionSequenceStepGenerationExpectations0_1[0]),
+   &kAppStateTransitionSequenceStepNoUnrelatedMutation0_1,
+   NULL,
+   NULL},
+};
+
+static const char *const kAppStateTransitionSequenceStepInvariantIds1_0[] = {
+  "invariant.inactive-panel-frozen",
+  "invariant.panel-local-focus-restore",
+  "invariant.shared-state-panel-local-isolation",
+};
+
+static const char *const kAppStateTransitionSequenceStepDiffHarnessIds1_0[] = {
+  "harness.transition-before-after-snapshot",
+  "harness.declared-write-set-diff",
+};
+
+static const AppStateTransitionSequenceGenerationExpectationMetadata kAppStateTransitionSequenceStepGenerationExpectations1_0[] = {
+  {"generation.panel.local-authority", "Validate panel generation before and after the step; advance only when the transition declares panel-local writes."},
+  {"shape.panel.focus", "Preserve or rebind focus shape only through the transition result."},
+};
+
+static const char *const kAppStateTransitionSequenceStepInvariantIds1_1[] = {
+  "invariant.inactive-panel-frozen",
+  "invariant.panel-local-focus-restore",
+};
+
+static const char *const kAppStateTransitionSequenceStepDiffHarnessIds1_1[] = {
+  "harness.transition-before-after-snapshot",
+  "harness.declared-write-set-diff",
+};
+
+static const AppStateTransitionSequenceGenerationExpectationMetadata kAppStateTransitionSequenceStepGenerationExpectations1_1[] = {
+  {"generation.panel.local-authority", "Validate panel generation before and after the step; advance only when the transition declares panel-local writes."},
+  {"shape.panel.focus", "Preserve or rebind focus shape only through the transition result."},
+};
+
+static const AppStateTransitionSequenceStepMetadata kAppStateTransitionSequenceSteps1[] = {
+  {1,
+   "tab-to-inactive-panel",
+   "transition.keybinding.navigate-tree",
+   "ACTION_SWITCH_PANEL",
+   NULL,
+   "allowed",
+   kAppStateTransitionSequenceStepInvariantIds1_0,
+   sizeof(kAppStateTransitionSequenceStepInvariantIds1_0) / sizeof(kAppStateTransitionSequenceStepInvariantIds1_0[0]),
+   kAppStateTransitionSequenceStepDiffHarnessIds1_0,
+   sizeof(kAppStateTransitionSequenceStepDiffHarnessIds1_0) / sizeof(kAppStateTransitionSequenceStepDiffHarnessIds1_0[0]),
+   kAppStateTransitionSequenceStepGenerationExpectations1_0,
+   sizeof(kAppStateTransitionSequenceStepGenerationExpectations1_0) / sizeof(kAppStateTransitionSequenceStepGenerationExpectations1_0[0]),
+   NULL,
+   NULL,
+   NULL},
+  {2,
+   "tab-back-to-original-panel",
+   "transition.keybinding.navigate-tree",
+   "ACTION_SWITCH_PANEL",
+   NULL,
+   "allowed",
+   kAppStateTransitionSequenceStepInvariantIds1_1,
+   sizeof(kAppStateTransitionSequenceStepInvariantIds1_1) / sizeof(kAppStateTransitionSequenceStepInvariantIds1_1[0]),
+   kAppStateTransitionSequenceStepDiffHarnessIds1_1,
+   sizeof(kAppStateTransitionSequenceStepDiffHarnessIds1_1) / sizeof(kAppStateTransitionSequenceStepDiffHarnessIds1_1[0]),
+   kAppStateTransitionSequenceStepGenerationExpectations1_1,
+   sizeof(kAppStateTransitionSequenceStepGenerationExpectations1_1) / sizeof(kAppStateTransitionSequenceStepGenerationExpectations1_1[0]),
+   NULL,
+   NULL,
+   NULL},
+};
+
+static const char *const kAppStateTransitionSequenceStepInvariantIds2_0[] = {
+  "invariant.hidden-entry-visible-navigation",
+  "invariant.viewport-identity-rebind",
+};
+
+static const char *const kAppStateTransitionSequenceStepDiffHarnessIds2_0[] = {
+  "harness.transition-before-after-snapshot",
+  "harness.declared-write-set-diff",
+};
+
+static const AppStateTransitionSequenceGenerationExpectationMetadata kAppStateTransitionSequenceStepGenerationExpectations2_0[] = {
+  {"generation.panel.local-authority", "Validate panel generation before and after the step; advance only when the transition declares panel-local writes."},
+  {"identity.directory.stable-key", "Directory identity remains durable across rebuild/rebind."},
+  {"identity.file.stable-key", "File identity remains durable across payload or view-shape changes."},
+};
+
+static const char *const kAppStateTransitionSequenceStepInvariantIds2_1[] = {
+  "invariant.panel-local-focus-restore",
+  "invariant.viewport-identity-rebind",
+};
+
+static const char *const kAppStateTransitionSequenceStepDiffHarnessIds2_1[] = {
+  "harness.transition-before-after-snapshot",
+  "harness.declared-write-set-diff",
+};
+
+static const AppStateTransitionSequenceGenerationExpectationMetadata kAppStateTransitionSequenceStepGenerationExpectations2_1[] = {
+  {"generation.panel.local-authority", "Validate panel generation before and after the step; advance only when the transition declares panel-local writes."},
+  {"identity.directory.stable-key", "Directory identity remains durable across rebuild/rebind."},
+  {"identity.file.stable-key", "File identity remains durable across payload or view-shape changes."},
+};
+
+static const AppStateTransitionSequenceStepMetadata kAppStateTransitionSequenceSteps2[] = {
+  {1,
+   "enter-directory",
+   "transition.keybinding.navigate-tree",
+   "ACTION_ENTER",
+   NULL,
+   "allowed",
+   kAppStateTransitionSequenceStepInvariantIds2_0,
+   sizeof(kAppStateTransitionSequenceStepInvariantIds2_0) / sizeof(kAppStateTransitionSequenceStepInvariantIds2_0[0]),
+   kAppStateTransitionSequenceStepDiffHarnessIds2_0,
+   sizeof(kAppStateTransitionSequenceStepDiffHarnessIds2_0) / sizeof(kAppStateTransitionSequenceStepDiffHarnessIds2_0[0]),
+   kAppStateTransitionSequenceStepGenerationExpectations2_0,
+   sizeof(kAppStateTransitionSequenceStepGenerationExpectations2_0) / sizeof(kAppStateTransitionSequenceStepGenerationExpectations2_0[0]),
+   NULL,
+   NULL,
+   NULL},
+  {2,
+   "enter-file-target",
+   "transition.keybinding.navigate-tree",
+   "ACTION_TO_DIR",
+   NULL,
+   "allowed",
+   kAppStateTransitionSequenceStepInvariantIds2_1,
+   sizeof(kAppStateTransitionSequenceStepInvariantIds2_1) / sizeof(kAppStateTransitionSequenceStepInvariantIds2_1[0]),
+   kAppStateTransitionSequenceStepDiffHarnessIds2_1,
+   sizeof(kAppStateTransitionSequenceStepDiffHarnessIds2_1) / sizeof(kAppStateTransitionSequenceStepDiffHarnessIds2_1[0]),
+   kAppStateTransitionSequenceStepGenerationExpectations2_1,
+   sizeof(kAppStateTransitionSequenceStepGenerationExpectations2_1) / sizeof(kAppStateTransitionSequenceStepGenerationExpectations2_1[0]),
+   NULL,
+   NULL,
+   NULL},
+};
+
+static const char *const kAppStateTransitionSequenceStepInvariantIds3_0[] = {
+  "invariant.panel-local-focus-restore",
+  "invariant.blocked-transition-determinism",
+};
+
+static const char *const kAppStateTransitionSequenceStepDiffHarnessIds3_0[] = {
+  "harness.transition-before-after-snapshot",
+  "harness.declared-write-set-diff",
+};
+
+static const AppStateTransitionSequenceGenerationExpectationMetadata kAppStateTransitionSequenceStepGenerationExpectations3_0[] = {
+  {"target.modal-command.session", "Modal target generation validates before applying completion or dismissal."},
+  {"generation.panel.local-authority", "Validate panel generation before and after the step; advance only when the transition declares panel-local writes."},
+};
+
+static const AppStateTransitionSequenceStepMetadata kAppStateTransitionSequenceSteps3[] = {
+  {1,
+   "active-modal-escape-dismiss",
+   "transition.modal-action.dismiss",
+   "ACTION_ESCAPE",
+   "event.modal-completion",
+   "allowed",
+   kAppStateTransitionSequenceStepInvariantIds3_0,
+   sizeof(kAppStateTransitionSequenceStepInvariantIds3_0) / sizeof(kAppStateTransitionSequenceStepInvariantIds3_0[0]),
+   kAppStateTransitionSequenceStepDiffHarnessIds3_0,
+   sizeof(kAppStateTransitionSequenceStepDiffHarnessIds3_0) / sizeof(kAppStateTransitionSequenceStepDiffHarnessIds3_0[0]),
+   kAppStateTransitionSequenceStepGenerationExpectations3_0,
+   sizeof(kAppStateTransitionSequenceStepGenerationExpectations3_0) / sizeof(kAppStateTransitionSequenceStepGenerationExpectations3_0[0]),
+   NULL,
+   NULL,
+   NULL},
+};
+
+static const char *const kAppStateTransitionSequenceStepInvariantIds4_0[] = {
+  "invariant.hidden-entry-visible-navigation",
+  "invariant.panel-local-focus-restore",
+};
+
+static const char *const kAppStateTransitionSequenceStepDiffHarnessIds4_0[] = {
+  "harness.transition-before-after-snapshot",
+  "harness.declared-write-set-diff",
+};
+
+static const AppStateTransitionSequenceGenerationExpectationMetadata kAppStateTransitionSequenceStepGenerationExpectations4_0[] = {
+  {"generation.panel.local-authority", "Validate panel generation before and after the step; advance only when the transition declares panel-local writes."},
+  {"state.visibility-filter.panel-volume", "Visibility/filter generation matches the selected panel after the transition."},
+  {"identity.directory.stable-key", "Directory identity remains durable across rebuild/rebind."},
+};
+
+static const char *const kAppStateTransitionSequenceStepInvariantIds4_1[] = {
+  "invariant.hidden-entry-visible-navigation",
+  "invariant.viewport-identity-rebind",
+};
+
+static const char *const kAppStateTransitionSequenceStepDiffHarnessIds4_1[] = {
+  "harness.transition-before-after-snapshot",
+  "harness.declared-write-set-diff",
+};
+
+static const AppStateTransitionSequenceGenerationExpectationMetadata kAppStateTransitionSequenceStepGenerationExpectations4_1[] = {
+  {"generation.panel.local-authority", "Validate panel generation before and after the step; advance only when the transition declares panel-local writes."},
+  {"state.visibility-filter.panel-volume", "Visibility/filter generation matches the selected panel after the transition."},
+  {"identity.directory.stable-key", "Directory identity remains durable across rebuild/rebind."},
+};
+
+static const AppStateTransitionSequenceStepMetadata kAppStateTransitionSequenceSteps4[] = {
+  {1,
+   "reveal-dotfiles",
+   "transition.keybinding.navigate-tree",
+   "ACTION_TOGGLE_HIDDEN",
+   NULL,
+   "allowed",
+   kAppStateTransitionSequenceStepInvariantIds4_0,
+   sizeof(kAppStateTransitionSequenceStepInvariantIds4_0) / sizeof(kAppStateTransitionSequenceStepInvariantIds4_0[0]),
+   kAppStateTransitionSequenceStepDiffHarnessIds4_0,
+   sizeof(kAppStateTransitionSequenceStepDiffHarnessIds4_0) / sizeof(kAppStateTransitionSequenceStepDiffHarnessIds4_0[0]),
+   kAppStateTransitionSequenceStepGenerationExpectations4_0,
+   sizeof(kAppStateTransitionSequenceStepGenerationExpectations4_0) / sizeof(kAppStateTransitionSequenceStepGenerationExpectations4_0[0]),
+   NULL,
+   NULL,
+   NULL},
+  {2,
+   "conceal-dotfiles",
+   "transition.keybinding.navigate-tree",
+   "ACTION_TOGGLE_HIDDEN",
+   NULL,
+   "allowed",
+   kAppStateTransitionSequenceStepInvariantIds4_1,
+   sizeof(kAppStateTransitionSequenceStepInvariantIds4_1) / sizeof(kAppStateTransitionSequenceStepInvariantIds4_1[0]),
+   kAppStateTransitionSequenceStepDiffHarnessIds4_1,
+   sizeof(kAppStateTransitionSequenceStepDiffHarnessIds4_1) / sizeof(kAppStateTransitionSequenceStepDiffHarnessIds4_1[0]),
+   kAppStateTransitionSequenceStepGenerationExpectations4_1,
+   sizeof(kAppStateTransitionSequenceStepGenerationExpectations4_1) / sizeof(kAppStateTransitionSequenceStepGenerationExpectations4_1[0]),
+   NULL,
+   NULL,
+   NULL},
+};
+
+static const char *const kAppStateTransitionSequenceStepInvariantIds5_0[] = {
+  "invariant.viewport-identity-rebind",
+  "invariant.shared-state-panel-local-isolation",
+};
+
+static const char *const kAppStateTransitionSequenceStepDiffHarnessIds5_0[] = {
+  "harness.transition-before-after-snapshot",
+  "harness.generation-mismatch-check",
+};
+
+static const AppStateTransitionSequenceGenerationExpectationMetadata kAppStateTransitionSequenceStepGenerationExpectations5_0[] = {
+  {"generation.panel.local-authority", "Validate panel generation before and after the step; advance only when the transition declares panel-local writes."},
+  {"identity.directory.stable-key", "Directory identity remains durable across rebuild/rebind."},
+  {"identity.file.stable-key", "File identity remains durable across payload or view-shape changes."},
+  {"generation.volume.shared-authority", "Volume generation advances only for declared shared-volume mutations."},
+};
+
+static const char *const kAppStateTransitionSequenceStepInvariantIds5_1[] = {
+  "invariant.stale-snapshot-fail-closed",
+  "invariant.viewport-identity-rebind",
+};
+
+static const char *const kAppStateTransitionSequenceStepDiffHarnessIds5_1[] = {
+  "harness.generation-mismatch-check",
+  "harness.blocked-transition-no-unrelated-mutation",
+};
+
+static const AppStateTransitionSequenceGenerationExpectationMetadata kAppStateTransitionSequenceStepGenerationExpectations5_1[] = {
+  {"generation.panel.local-authority", "Validate panel generation before and after the step; advance only when the transition declares panel-local writes."},
+  {"identity.directory.stable-key", "Directory identity remains durable across rebuild/rebind."},
+  {"identity.file.stable-key", "File identity remains durable across payload or view-shape changes."},
+};
+
+static const AppStateTransitionSequenceDeterministicFallbackMetadata kAppStateTransitionSequenceStepDeterministicFallback5_1 = {"Fail closed to the nearest valid durable identity or preserve the prior valid selection without using stale rows.", "Only the registered fallback/no-op result may run; unrelated owner fields remain unchanged."};
+
+static const AppStateTransitionSequenceStepMetadata kAppStateTransitionSequenceSteps5[] = {
+  {1,
+   "manual-refresh",
+   "transition.refresh-rebuild.manual-refresh",
+   "ACTION_REFRESH",
+   NULL,
+   "allowed",
+   kAppStateTransitionSequenceStepInvariantIds5_0,
+   sizeof(kAppStateTransitionSequenceStepInvariantIds5_0) / sizeof(kAppStateTransitionSequenceStepInvariantIds5_0[0]),
+   kAppStateTransitionSequenceStepDiffHarnessIds5_0,
+   sizeof(kAppStateTransitionSequenceStepDiffHarnessIds5_0) / sizeof(kAppStateTransitionSequenceStepDiffHarnessIds5_0[0]),
+   kAppStateTransitionSequenceStepGenerationExpectations5_0,
+   sizeof(kAppStateTransitionSequenceStepGenerationExpectations5_0) / sizeof(kAppStateTransitionSequenceStepGenerationExpectations5_0[0]),
+   NULL,
+   NULL,
+   NULL},
+  {2,
+   "stale-snapshot-rebind",
+   "transition.rebuild-rebind-callback.panel-anchor",
+   NULL,
+   "event.rebuild-rebind-callback",
+   "fallback",
+   kAppStateTransitionSequenceStepInvariantIds5_1,
+   sizeof(kAppStateTransitionSequenceStepInvariantIds5_1) / sizeof(kAppStateTransitionSequenceStepInvariantIds5_1[0]),
+   kAppStateTransitionSequenceStepDiffHarnessIds5_1,
+   sizeof(kAppStateTransitionSequenceStepDiffHarnessIds5_1) / sizeof(kAppStateTransitionSequenceStepDiffHarnessIds5_1[0]),
+   kAppStateTransitionSequenceStepGenerationExpectations5_1,
+   sizeof(kAppStateTransitionSequenceStepGenerationExpectations5_1) / sizeof(kAppStateTransitionSequenceStepGenerationExpectations5_1[0]),
+   NULL,
+   "stale_snapshot",
+   &kAppStateTransitionSequenceStepDeterministicFallback5_1},
+};
+
+static const char *const kAppStateTransitionSequenceStepInvariantIds6_0[] = {
+  "invariant.viewport-identity-rebind",
+  "invariant.shared-state-panel-local-isolation",
+};
+
+static const char *const kAppStateTransitionSequenceStepDiffHarnessIds6_0[] = {
+  "harness.transition-before-after-snapshot",
+  "harness.generation-mismatch-check",
+};
+
+static const AppStateTransitionSequenceGenerationExpectationMetadata kAppStateTransitionSequenceStepGenerationExpectations6_0[] = {
+  {"generation.volume.shared-authority", "Volume generation advances only for declared shared-volume mutations."},
+  {"state.topology.volume", "Topology generation advances only for declared topology changes."},
+  {"state.file-payload.volume", "File payload generation advances only for declared payload rebuilds."},
+  {"identity.directory.stable-key", "Directory identity remains durable across rebuild/rebind."},
+};
+
+static const char *const kAppStateTransitionSequenceStepInvariantIds6_1[] = {
+  "invariant.stale-snapshot-fail-closed",
+  "invariant.blocked-transition-determinism",
+};
+
+static const char *const kAppStateTransitionSequenceStepDiffHarnessIds6_1[] = {
+  "harness.generation-mismatch-check",
+  "harness.blocked-transition-no-unrelated-mutation",
+};
+
+static const AppStateTransitionSequenceGenerationExpectationMetadata kAppStateTransitionSequenceStepGenerationExpectations6_1[] = {
+  {"generation.volume.shared-authority", "Volume generation advances only for declared shared-volume mutations."},
+  {"state.topology.volume", "Topology generation advances only for declared topology changes."},
+  {"state.file-payload.volume", "File payload generation advances only for declared payload rebuilds."},
+};
+
+static const AppStateTransitionSequenceDeterministicFallbackMetadata kAppStateTransitionSequenceStepDeterministicFallback6_1 = {"Reject stale mutation result, request a registered refresh/rebind, and keep unrelated panel state unchanged.", "Only the registered fallback/no-op result may run; unrelated owner fields remain unchanged."};
+
+static const AppStateTransitionSequenceStepMetadata kAppStateTransitionSequenceSteps6[] = {
+  {1,
+   "delete-or-mkdir-result",
+   "transition.filesystem-mutation-result.mkdir-copy-delete",
+   NULL,
+   "event.filesystem-mutation-result",
+   "allowed",
+   kAppStateTransitionSequenceStepInvariantIds6_0,
+   sizeof(kAppStateTransitionSequenceStepInvariantIds6_0) / sizeof(kAppStateTransitionSequenceStepInvariantIds6_0[0]),
+   kAppStateTransitionSequenceStepDiffHarnessIds6_0,
+   sizeof(kAppStateTransitionSequenceStepDiffHarnessIds6_0) / sizeof(kAppStateTransitionSequenceStepDiffHarnessIds6_0[0]),
+   kAppStateTransitionSequenceStepGenerationExpectations6_0,
+   sizeof(kAppStateTransitionSequenceStepGenerationExpectations6_0) / sizeof(kAppStateTransitionSequenceStepGenerationExpectations6_0[0]),
+   NULL,
+   NULL,
+   NULL},
+  {2,
+   "mutation-generation-mismatch",
+   "transition.filesystem-mutation-result.mkdir-copy-delete",
+   "ACTION_CMD_D",
+   "event.filesystem-mutation-result",
+   "fallback",
+   kAppStateTransitionSequenceStepInvariantIds6_1,
+   sizeof(kAppStateTransitionSequenceStepInvariantIds6_1) / sizeof(kAppStateTransitionSequenceStepInvariantIds6_1[0]),
+   kAppStateTransitionSequenceStepDiffHarnessIds6_1,
+   sizeof(kAppStateTransitionSequenceStepDiffHarnessIds6_1) / sizeof(kAppStateTransitionSequenceStepDiffHarnessIds6_1[0]),
+   kAppStateTransitionSequenceStepGenerationExpectations6_1,
+   sizeof(kAppStateTransitionSequenceStepGenerationExpectations6_1) / sizeof(kAppStateTransitionSequenceStepGenerationExpectations6_1[0]),
+   NULL,
+   "generation_mismatch",
+   &kAppStateTransitionSequenceStepDeterministicFallback6_1},
+};
+
+static const char *const kAppStateTransitionSequenceStepInvariantIds7_0[] = {
+  "invariant.hidden-entry-visible-navigation",
+  "invariant.panel-local-focus-restore",
+};
+
+static const char *const kAppStateTransitionSequenceStepDiffHarnessIds7_0[] = {
+  "harness.transition-before-after-snapshot",
+  "harness.declared-write-set-diff",
+};
+
+static const AppStateTransitionSequenceGenerationExpectationMetadata kAppStateTransitionSequenceStepGenerationExpectations7_0[] = {
+  {"generation.panel.local-authority", "Validate panel generation before and after the step; advance only when the transition declares panel-local writes."},
+  {"identity.directory.stable-key", "Directory identity remains durable across rebuild/rebind."},
+  {"identity.file.stable-key", "File identity remains durable across payload or view-shape changes."},
+};
+
+static const char *const kAppStateTransitionSequenceStepInvariantIds7_1[] = {
+  "invariant.panel-local-focus-restore",
+  "invariant.blocked-transition-determinism",
+};
+
+static const char *const kAppStateTransitionSequenceStepDiffHarnessIds7_1[] = {
+  "harness.transition-before-after-snapshot",
+  "harness.declared-write-set-diff",
+};
+
+static const AppStateTransitionSequenceGenerationExpectationMetadata kAppStateTransitionSequenceStepGenerationExpectations7_1[] = {
+  {"target.modal-command.session", "Modal target generation validates before applying completion or dismissal."},
+  {"generation.panel.local-authority", "Validate panel generation before and after the step; advance only when the transition declares panel-local writes."},
+};
+
+static const AppStateTransitionSequenceStepMetadata kAppStateTransitionSequenceSteps7[] = {
+  {1,
+   "list-jump-visible-target",
+   "transition.keybinding.navigate-tree",
+   "ACTION_LIST_JUMP",
+   NULL,
+   "allowed",
+   kAppStateTransitionSequenceStepInvariantIds7_0,
+   sizeof(kAppStateTransitionSequenceStepInvariantIds7_0) / sizeof(kAppStateTransitionSequenceStepInvariantIds7_0[0]),
+   kAppStateTransitionSequenceStepDiffHarnessIds7_0,
+   sizeof(kAppStateTransitionSequenceStepDiffHarnessIds7_0) / sizeof(kAppStateTransitionSequenceStepDiffHarnessIds7_0[0]),
+   kAppStateTransitionSequenceStepGenerationExpectations7_0,
+   sizeof(kAppStateTransitionSequenceStepGenerationExpectations7_0) / sizeof(kAppStateTransitionSequenceStepGenerationExpectations7_0[0]),
+   NULL,
+   NULL,
+   NULL},
+  {2,
+   "search-command-completion",
+   "transition.command-completion.user-command",
+   NULL,
+   "event.command-completion",
+   "allowed",
+   kAppStateTransitionSequenceStepInvariantIds7_1,
+   sizeof(kAppStateTransitionSequenceStepInvariantIds7_1) / sizeof(kAppStateTransitionSequenceStepInvariantIds7_1[0]),
+   kAppStateTransitionSequenceStepDiffHarnessIds7_1,
+   sizeof(kAppStateTransitionSequenceStepDiffHarnessIds7_1) / sizeof(kAppStateTransitionSequenceStepDiffHarnessIds7_1[0]),
+   kAppStateTransitionSequenceStepGenerationExpectations7_1,
+   sizeof(kAppStateTransitionSequenceStepGenerationExpectations7_1) / sizeof(kAppStateTransitionSequenceStepGenerationExpectations7_1[0]),
+   NULL,
+   NULL,
+   NULL},
+};
+
+static const char *const kAppStateTransitionSequenceStepInvariantIds8_0[] = {
+  "invariant.shared-state-panel-local-isolation",
+  "invariant.hidden-entry-visible-navigation",
+};
+
+static const char *const kAppStateTransitionSequenceStepDiffHarnessIds8_0[] = {
+  "harness.transition-before-after-snapshot",
+  "harness.declared-write-set-diff",
+};
+
+static const AppStateTransitionSequenceGenerationExpectationMetadata kAppStateTransitionSequenceStepGenerationExpectations8_0[] = {
+  {"generation.panel.local-authority", "Validate panel generation before and after the step; advance only when the transition declares panel-local writes."},
+  {"state.visibility-filter.panel-volume", "Visibility/filter generation matches the selected panel after the transition."},
+};
+
+static const char *const kAppStateTransitionSequenceStepInvariantIds8_1[] = {
+  "invariant.shared-state-panel-local-isolation",
+  "invariant.render-projection-read-only",
+};
+
+static const char *const kAppStateTransitionSequenceStepDiffHarnessIds8_1[] = {
+  "harness.declared-write-set-diff",
+  "harness.render-projection-read-only-diff",
+};
+
+static const AppStateTransitionSequenceGenerationExpectationMetadata kAppStateTransitionSequenceStepGenerationExpectations8_1[] = {
+  {"generation.panel.local-authority", "Validate panel generation before and after the step; advance only when the transition declares panel-local writes."},
+  {"state.visibility-filter.panel-volume", "Visibility/filter generation matches the selected panel after the transition."},
+  {"generation.volume.shared-authority", "Volume generation advances only for declared shared-volume mutations."},
+};
+
+static const AppStateTransitionSequenceStepMetadata kAppStateTransitionSequenceSteps8[] = {
+  {1,
+   "toggle-tagged-only",
+   "transition.keybinding.navigate-tree",
+   "ACTION_TOGGLE_TAGGED_MODE",
+   NULL,
+   "allowed",
+   kAppStateTransitionSequenceStepInvariantIds8_0,
+   sizeof(kAppStateTransitionSequenceStepInvariantIds8_0) / sizeof(kAppStateTransitionSequenceStepInvariantIds8_0[0]),
+   kAppStateTransitionSequenceStepDiffHarnessIds8_0,
+   sizeof(kAppStateTransitionSequenceStepDiffHarnessIds8_0) / sizeof(kAppStateTransitionSequenceStepDiffHarnessIds8_0[0]),
+   kAppStateTransitionSequenceStepGenerationExpectations8_0,
+   sizeof(kAppStateTransitionSequenceStepGenerationExpectations8_0) / sizeof(kAppStateTransitionSequenceStepGenerationExpectations8_0[0]),
+   NULL,
+   NULL,
+   NULL},
+  {2,
+   "toggle-showall-global-projection",
+   "transition.keybinding.navigate-tree",
+   "ACTION_ASTERISK",
+   NULL,
+   "allowed",
+   kAppStateTransitionSequenceStepInvariantIds8_1,
+   sizeof(kAppStateTransitionSequenceStepInvariantIds8_1) / sizeof(kAppStateTransitionSequenceStepInvariantIds8_1[0]),
+   kAppStateTransitionSequenceStepDiffHarnessIds8_1,
+   sizeof(kAppStateTransitionSequenceStepDiffHarnessIds8_1) / sizeof(kAppStateTransitionSequenceStepDiffHarnessIds8_1[0]),
+   kAppStateTransitionSequenceStepGenerationExpectations8_1,
+   sizeof(kAppStateTransitionSequenceStepGenerationExpectations8_1) / sizeof(kAppStateTransitionSequenceStepGenerationExpectations8_1[0]),
+   NULL,
+   NULL,
+   NULL},
+};
+
+static const char *const kAppStateTransitionSequenceStepInvariantIds9_0[] = {
+  "invariant.panel-local-focus-restore",
+  "invariant.render-projection-read-only",
+};
+
+static const char *const kAppStateTransitionSequenceStepDiffHarnessIds9_0[] = {
+  "harness.declared-write-set-diff",
+  "harness.render-projection-read-only-diff",
+};
+
+static const AppStateTransitionSequenceGenerationExpectationMetadata kAppStateTransitionSequenceStepGenerationExpectations9_0[] = {
+  {"generation.panel.local-authority", "Validate panel generation before and after the step; advance only when the transition declares panel-local writes."},
+  {"identity.file.stable-key", "File identity remains durable across payload or view-shape changes."},
+  {"shape.panel.focus", "Preserve or rebind focus shape only through the transition result."},
+};
+
+static const char *const kAppStateTransitionSequenceStepInvariantIds9_1[] = {
+  "invariant.panel-local-focus-restore",
+  "invariant.render-projection-read-only",
+};
+
+static const char *const kAppStateTransitionSequenceStepDiffHarnessIds9_1[] = {
+  "harness.declared-write-set-diff",
+  "harness.render-projection-read-only-diff",
+};
+
+static const AppStateTransitionSequenceGenerationExpectationMetadata kAppStateTransitionSequenceStepGenerationExpectations9_1[] = {
+  {"generation.panel.local-authority", "Validate panel generation before and after the step; advance only when the transition declares panel-local writes."},
+  {"identity.file.stable-key", "File identity remains durable across payload or view-shape changes."},
+  {"reflow.layout.projection", "Layout reflow generation is projection-only unless resize transition declares it."},
+};
+
+static const AppStateTransitionSequenceStepMetadata kAppStateTransitionSequenceSteps9[] = {
+  {1,
+   "toggle-file-mode",
+   "transition.keybinding.navigate-tree",
+   "ACTION_TOGGLE_MODE",
+   NULL,
+   "allowed",
+   kAppStateTransitionSequenceStepInvariantIds9_0,
+   sizeof(kAppStateTransitionSequenceStepInvariantIds9_0) / sizeof(kAppStateTransitionSequenceStepInvariantIds9_0[0]),
+   kAppStateTransitionSequenceStepDiffHarnessIds9_0,
+   sizeof(kAppStateTransitionSequenceStepDiffHarnessIds9_0) / sizeof(kAppStateTransitionSequenceStepDiffHarnessIds9_0[0]),
+   kAppStateTransitionSequenceStepGenerationExpectations9_0,
+   sizeof(kAppStateTransitionSequenceStepGenerationExpectations9_0) / sizeof(kAppStateTransitionSequenceStepGenerationExpectations9_0[0]),
+   NULL,
+   NULL,
+   NULL},
+  {2,
+   "view-preview-shape",
+   "transition.keybinding.navigate-tree",
+   "ACTION_VIEW_PREVIEW",
+   NULL,
+   "allowed",
+   kAppStateTransitionSequenceStepInvariantIds9_1,
+   sizeof(kAppStateTransitionSequenceStepInvariantIds9_1) / sizeof(kAppStateTransitionSequenceStepInvariantIds9_1[0]),
+   kAppStateTransitionSequenceStepDiffHarnessIds9_1,
+   sizeof(kAppStateTransitionSequenceStepDiffHarnessIds9_1) / sizeof(kAppStateTransitionSequenceStepDiffHarnessIds9_1[0]),
+   kAppStateTransitionSequenceStepGenerationExpectations9_1,
+   sizeof(kAppStateTransitionSequenceStepGenerationExpectations9_1) / sizeof(kAppStateTransitionSequenceStepGenerationExpectations9_1[0]),
+   NULL,
+   NULL,
+   NULL},
+};
+
+static const char *const kAppStateTransitionSequenceStepInvariantIds10_0[] = {
+  "invariant.shared-state-panel-local-isolation",
+  "invariant.viewport-identity-rebind",
+};
+
+static const char *const kAppStateTransitionSequenceStepDiffHarnessIds10_0[] = {
+  "harness.transition-before-after-snapshot",
+  "harness.declared-write-set-diff",
+};
+
+static const AppStateTransitionSequenceGenerationExpectationMetadata kAppStateTransitionSequenceStepGenerationExpectations10_0[] = {
+  {"generation.panel.local-authority", "Validate panel generation before and after the step; advance only when the transition declares panel-local writes."},
+  {"generation.volume.shared-authority", "Volume generation advances only for declared shared-volume mutations."},
+  {"lifecycle.volume.registry", "Volume lifecycle generation validates before rebinding panels."},
+};
+
+static const char *const kAppStateTransitionSequenceStepInvariantIds10_1[] = {
+  "invariant.stale-snapshot-fail-closed",
+  "invariant.shared-state-panel-local-isolation",
+};
+
+static const char *const kAppStateTransitionSequenceStepDiffHarnessIds10_1[] = {
+  "harness.transition-before-after-snapshot",
+  "harness.generation-mismatch-check",
+};
+
+static const AppStateTransitionSequenceGenerationExpectationMetadata kAppStateTransitionSequenceStepGenerationExpectations10_1[] = {
+  {"generation.volume.shared-authority", "Volume generation advances only for declared shared-volume mutations."},
+  {"lifecycle.volume.registry", "Volume lifecycle generation validates before rebinding panels."},
+  {"state.topology.volume", "Topology generation advances only for declared topology changes."},
+};
+
+static const AppStateTransitionSequenceStepMetadata kAppStateTransitionSequenceSteps10[] = {
+  {1,
+   "volume-next",
+   "transition.volume-operation.release-cycle",
+   "ACTION_VOL_NEXT",
+   NULL,
+   "allowed",
+   kAppStateTransitionSequenceStepInvariantIds10_0,
+   sizeof(kAppStateTransitionSequenceStepInvariantIds10_0) / sizeof(kAppStateTransitionSequenceStepInvariantIds10_0[0]),
+   kAppStateTransitionSequenceStepDiffHarnessIds10_0,
+   sizeof(kAppStateTransitionSequenceStepDiffHarnessIds10_0) / sizeof(kAppStateTransitionSequenceStepDiffHarnessIds10_0[0]),
+   kAppStateTransitionSequenceStepGenerationExpectations10_0,
+   sizeof(kAppStateTransitionSequenceStepGenerationExpectations10_0) / sizeof(kAppStateTransitionSequenceStepGenerationExpectations10_0[0]),
+   NULL,
+   NULL,
+   NULL},
+  {2,
+   "volume-release-event",
+   "transition.volume-operation.release-cycle",
+   NULL,
+   "event.volume-lifecycle",
+   "allowed",
+   kAppStateTransitionSequenceStepInvariantIds10_1,
+   sizeof(kAppStateTransitionSequenceStepInvariantIds10_1) / sizeof(kAppStateTransitionSequenceStepInvariantIds10_1[0]),
+   kAppStateTransitionSequenceStepDiffHarnessIds10_1,
+   sizeof(kAppStateTransitionSequenceStepDiffHarnessIds10_1) / sizeof(kAppStateTransitionSequenceStepDiffHarnessIds10_1[0]),
+   kAppStateTransitionSequenceStepGenerationExpectations10_1,
+   sizeof(kAppStateTransitionSequenceStepGenerationExpectations10_1) / sizeof(kAppStateTransitionSequenceStepGenerationExpectations10_1[0]),
+   NULL,
+   NULL,
+   NULL},
+};
+
+static const char *const kAppStateTransitionSequenceStepInvariantIds11_0[] = {
+  "invariant.inactive-panel-frozen",
+  "invariant.panel-local-focus-restore",
+  "invariant.render-projection-read-only",
+};
+
+static const char *const kAppStateTransitionSequenceStepDiffHarnessIds11_0[] = {
+  "harness.declared-write-set-diff",
+  "harness.render-projection-read-only-diff",
+};
+
+static const AppStateTransitionSequenceGenerationExpectationMetadata kAppStateTransitionSequenceStepGenerationExpectations11_0[] = {
+  {"generation.panel.local-authority", "Validate panel generation before and after the step; advance only when the transition declares panel-local writes."},
+  {"shape.panel.focus", "Preserve or rebind focus shape only through the transition result."},
+  {"reflow.layout.projection", "Layout reflow generation is projection-only unless resize transition declares it."},
+};
+
+static const char *const kAppStateTransitionSequenceStepInvariantIds11_1[] = {
+  "invariant.inactive-panel-frozen",
+  "invariant.panel-local-focus-restore",
+  "invariant.viewport-identity-rebind",
+};
+
+static const char *const kAppStateTransitionSequenceStepDiffHarnessIds11_1[] = {
+  "harness.transition-before-after-snapshot",
+  "harness.declared-write-set-diff",
+};
+
+static const AppStateTransitionSequenceGenerationExpectationMetadata kAppStateTransitionSequenceStepGenerationExpectations11_1[] = {
+  {"generation.panel.local-authority", "Validate panel generation before and after the step; advance only when the transition declares panel-local writes."},
+  {"shape.panel.focus", "Preserve or rebind focus shape only through the transition result."},
+  {"reflow.layout.projection", "Layout reflow generation is projection-only unless resize transition declares it."},
+};
+
+static const AppStateTransitionSequenceStepMetadata kAppStateTransitionSequenceSteps11[] = {
+  {1,
+   "split-close",
+   "transition.keybinding.navigate-tree",
+   "ACTION_SPLIT_SCREEN",
+   NULL,
+   "allowed",
+   kAppStateTransitionSequenceStepInvariantIds11_0,
+   sizeof(kAppStateTransitionSequenceStepInvariantIds11_0) / sizeof(kAppStateTransitionSequenceStepInvariantIds11_0[0]),
+   kAppStateTransitionSequenceStepDiffHarnessIds11_0,
+   sizeof(kAppStateTransitionSequenceStepDiffHarnessIds11_0) / sizeof(kAppStateTransitionSequenceStepDiffHarnessIds11_0[0]),
+   kAppStateTransitionSequenceStepGenerationExpectations11_0,
+   sizeof(kAppStateTransitionSequenceStepGenerationExpectations11_0) / sizeof(kAppStateTransitionSequenceStepGenerationExpectations11_0[0]),
+   NULL,
+   NULL,
+   NULL},
+  {2,
+   "split-reopen",
+   "transition.keybinding.navigate-tree",
+   "ACTION_SPLIT_SCREEN",
+   NULL,
+   "allowed",
+   kAppStateTransitionSequenceStepInvariantIds11_1,
+   sizeof(kAppStateTransitionSequenceStepInvariantIds11_1) / sizeof(kAppStateTransitionSequenceStepInvariantIds11_1[0]),
+   kAppStateTransitionSequenceStepDiffHarnessIds11_1,
+   sizeof(kAppStateTransitionSequenceStepDiffHarnessIds11_1) / sizeof(kAppStateTransitionSequenceStepDiffHarnessIds11_1[0]),
+   kAppStateTransitionSequenceStepGenerationExpectations11_1,
+   sizeof(kAppStateTransitionSequenceStepGenerationExpectations11_1) / sizeof(kAppStateTransitionSequenceStepGenerationExpectations11_1[0]),
+   NULL,
+   NULL,
+   NULL},
+};
+
+static const AppStateTransitionSequenceMetadata kAppStateTransitionSequences[] = {
+  {"sequence.split-toggle-f8",
+   "layout_split",
+   "split_toggle_f8",
+   "Toggle split layout with F8 and prove inactive-panel and layout ownership after each transition.",
+   kAppStateTransitionSequenceSteps0,
+   sizeof(kAppStateTransitionSequenceSteps0) / sizeof(kAppStateTransitionSequenceSteps0[0])},
+  {"sequence.tab-panel-switch",
+   "panel_navigation",
+   "tab_panel_switch",
+   "Switch active panel with Tab while preserving inactive-panel cursor, viewport, and focus snapshots.",
+   kAppStateTransitionSequenceSteps1,
+   sizeof(kAppStateTransitionSequenceSteps1) / sizeof(kAppStateTransitionSequenceSteps1[0])},
+  {"sequence.enter-directory-file-transition",
+   "directory_file_transition",
+   "enter_directory_file_transition",
+   "Enter from tree/file targets and validate durable directory/file identity after each step.",
+   kAppStateTransitionSequenceSteps2,
+   sizeof(kAppStateTransitionSequenceSteps2) / sizeof(kAppStateTransitionSequenceSteps2[0])},
+  {"sequence.esc-modal-dismissal",
+   "modal_command",
+   "esc_modal_dismissal",
+   "Dismiss command/modal ownership through the registered modal transition and preserve panel-local state.",
+   kAppStateTransitionSequenceSteps3,
+   sizeof(kAppStateTransitionSequenceSteps3) / sizeof(kAppStateTransitionSequenceSteps3[0])},
+  {"sequence.dotfile-reveal-conceal",
+   "visibility_filter",
+   "dotfile_reveal_conceal",
+   "Reveal and conceal dotfiles without letting hidden entries become visible-navigation selections.",
+   kAppStateTransitionSequenceSteps4,
+   sizeof(kAppStateTransitionSequenceSteps4) / sizeof(kAppStateTransitionSequenceSteps4[0])},
+  {"sequence.refresh-rebuild",
+   "refresh_rebuild",
+   "refresh_rebuild",
+   "Refresh and rebuild with generation validation and deterministic stale-snapshot fail-closed behavior.",
+   kAppStateTransitionSequenceSteps5,
+   sizeof(kAppStateTransitionSequenceSteps5) / sizeof(kAppStateTransitionSequenceSteps5[0])},
+  {"sequence.filesystem-mutation-result",
+   "filesystem_mutation",
+   "filesystem_mutation_result",
+   "Apply filesystem mutation results through the registered result transition and validate generation mismatch fallback.",
+   kAppStateTransitionSequenceSteps6,
+   sizeof(kAppStateTransitionSequenceSteps6) / sizeof(kAppStateTransitionSequenceSteps6[0])},
+  {"sequence.search-jump",
+   "search_jump",
+   "search_jump",
+   "Search/list jump updates selection only through visible-navigation and focus ownership rules.",
+   kAppStateTransitionSequenceSteps7,
+   sizeof(kAppStateTransitionSequenceSteps7) / sizeof(kAppStateTransitionSequenceSteps7[0])},
+  {"sequence.showall-global-tagged-only",
+   "display_mode",
+   "showall_global_tagged_only",
+   "Toggle showall/global/tagged-only style filters without moving panel-local ownership into shared volume state.",
+   kAppStateTransitionSequenceSteps8,
+   sizeof(kAppStateTransitionSequenceSteps8) / sizeof(kAppStateTransitionSequenceSteps8[0])},
+  {"sequence.file-small-big-transitions",
+   "directory_file_transition",
+   "file_small_big_transitions",
+   "Move between small-file, big-file, and preview-shaped views without render-side ownership repair.",
+   kAppStateTransitionSequenceSteps9,
+   sizeof(kAppStateTransitionSequenceSteps9) / sizeof(kAppStateTransitionSequenceSteps9[0])},
+  {"sequence.volume-cycling-release",
+   "volume_lifecycle",
+   "volume_cycling_release",
+   "Cycle and release volumes through shared lifecycle generation while each panel rebinds by identity.",
+   kAppStateTransitionSequenceSteps10,
+   sizeof(kAppStateTransitionSequenceSteps10) / sizeof(kAppStateTransitionSequenceSteps10[0])},
+  {"sequence.split-close-reopen",
+   "layout_split",
+   "split_close_reopen",
+   "Close and reopen split layout and prove panel snapshots survive layout projection changes.",
+   kAppStateTransitionSequenceSteps11,
+   sizeof(kAppStateTransitionSequenceSteps11) / sizeof(kAppStateTransitionSequenceSteps11[0])},
+};
 static const char *const kAppStateDispatchSurfaceMigrationNotes0[] = {
   "Current input polling and key normalization feed controller dispatch; AppState mutation remains in downstream handlers until runtime transition objects are introduced.",
 };
@@ -1969,6 +2797,11 @@ size_t AppStateDiffHarnessCount(void) {
   return sizeof(kAppStateDiffHarnesses) / sizeof(kAppStateDiffHarnesses[0]);
 }
 
+size_t AppStateTransitionSequenceCount(void) {
+  return sizeof(kAppStateTransitionSequences) /
+         sizeof(kAppStateTransitionSequences[0]);
+}
+
 const AppStateOwnerFieldMetadata *AppStateOwnerFieldAt(size_t index) {
   if (index >= AppStateOwnerFieldCount())
     return NULL;
@@ -1989,6 +2822,14 @@ const AppStateDiffHarnessMetadata *AppStateDiffHarnessAt(size_t index) {
     return NULL;
 
   return &kAppStateDiffHarnesses[index];
+}
+
+const AppStateTransitionSequenceMetadata *
+AppStateTransitionSequenceAt(size_t index) {
+  if (index >= AppStateTransitionSequenceCount())
+    return NULL;
+
+  return &kAppStateTransitionSequences[index];
 }
 
 const AppStateTransitionMetadata *AppStateTransitionAt(size_t index) {
@@ -2060,6 +2901,21 @@ AppStateDiffHarnessLookup(const char *harness_id) {
   for (index = 0; index < AppStateDiffHarnessCount(); index++) {
     if (!strcmp(kAppStateDiffHarnesses[index].harness_id, harness_id))
       return &kAppStateDiffHarnesses[index];
+  }
+
+  return NULL;
+}
+
+const AppStateTransitionSequenceMetadata *
+AppStateTransitionSequenceLookup(const char *scenario_id) {
+  size_t index;
+
+  if (scenario_id == NULL || scenario_id[0] == '\0')
+    return NULL;
+
+  for (index = 0; index < AppStateTransitionSequenceCount(); index++) {
+    if (!strcmp(kAppStateTransitionSequences[index].scenario_id, scenario_id))
+      return &kAppStateTransitionSequences[index];
   }
 
   return NULL;
