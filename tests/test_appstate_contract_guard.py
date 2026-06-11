@@ -333,6 +333,7 @@ def _write_fixture(
     runtime_dispatch_surfaces: list[dict[str, object]] | None = None,
     runtime_shims: list[dict[str, object]] | None = None,
     runtime_invariants: list[dict[str, object]] | None = None,
+    runtime_owner_fields: list[dict[str, object]] | None = None,
 ) -> tuple[Path, Path, Path, Path, Path, Path, Path, Path, Path, Path, Path, Path]:
     transitions_path = tmp_path / "transitions.json"
     shims_path = tmp_path / "shims.json"
@@ -417,6 +418,13 @@ def _write_fixture(
         _runtime_source(
             runtime_actions or _complete_actions(),
             runtime_transitions if runtime_transitions is not None else transitions,
+            runtime_owner_fields
+            if runtime_owner_fields is not None
+            else (
+                owner_fields
+                if owner_fields is not None
+                else _complete_owner_fields()
+            ),
             runtime_dispatch_surfaces
             if runtime_dispatch_surfaces is not None
             else (
@@ -462,6 +470,7 @@ def _enum_header(actions: list[str]) -> str:
 def _runtime_source(
     actions: list[dict[str, object]],
     transitions: list[dict[str, object]],
+    owner_fields: list[dict[str, object]],
     dispatch_surfaces: list[dict[str, object]],
     shims: list[dict[str, object]],
     invariants: list[dict[str, object]],
@@ -485,6 +494,29 @@ def _runtime_source(
             f"kAppStateTransitionWriteSet{index}, "
             f"sizeof(kAppStateTransitionWriteSet{index}) / "
             f"sizeof(kAppStateTransitionWriteSet{index}[0])}},"
+        )
+    owner_field_arrays = []
+    owner_field_rows = []
+    for index, record in enumerate(owner_fields):
+        invariant_checks = record.get("invariant_checks")
+        if not isinstance(invariant_checks, list):
+            invariant_checks = []
+        invariant_rows = "\n".join(
+            f'  "{check}",' for check in invariant_checks if isinstance(check, str)
+        )
+        checks_table = f"kAppStateOwnerFieldInvariantChecks{index}"
+        owner_field_arrays.append(
+            f"static const char *const {checks_table}[] = "
+            f"{{\n{invariant_rows}\n}};\n"
+        )
+        owner_field_rows.append(
+            f'  {{"{record.get("field", "")}", '
+            f'"{record.get("owner_region", "")}", '
+            f'"{record.get("canonical_owner", "")}", '
+            f'"{record.get("runtime_carrier", "")}", '
+            f'"{record.get("mutation_rule", "")}", '
+            f'"{record.get("migration_status", "")}", '
+            f"{checks_table}, sizeof({checks_table}) / sizeof({checks_table}[0])}},"
         )
     dispatch_surface_arrays = []
     dispatch_surface_rows = []
@@ -602,11 +634,15 @@ def _runtime_source(
     )
     return (
         "".join(transition_write_sets)
+        + "".join(owner_field_arrays)
         + "".join(dispatch_surface_arrays)
         + "".join(shim_invariants)
         + "".join(invariant_arrays)
         + "static const AppStateTransitionMetadata kAppStateTransitions[] = {\n"
         + "\n".join(transition_rows)
+        + "\n};\n"
+        "static const AppStateOwnerFieldMetadata kAppStateOwnerFields[] = {\n"
+        + "\n".join(owner_field_rows)
         + "\n};\n"
         "static const AppStateDispatchSurfaceMetadata "
         "kAppStateDispatchSurfaces[] = {\n"
@@ -1998,6 +2034,155 @@ def test_guard_fails_on_malformed_owner_invariant_checks(tmp_path: Path) -> None
         "owner_field[0]" in failure
         and "invariant_checks" in failure
         and "must be non-empty" in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_when_owner_field_record_is_malformed(tmp_path: Path) -> None:
+    transitions = _complete_transitions()
+    owner_fields = _complete_owner_fields()
+    malformed_owner_fields: list[object] = [123, owner_fields[1]]
+    paths = _write_fixture(
+        tmp_path,
+        transitions=transitions,
+        owner_fields=malformed_owner_fields,  # type: ignore[arg-type]
+        runtime_owner_fields=_complete_owner_fields(),
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "owner_field[0]" in failure and "record must be an object" in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_when_runtime_owner_field_metadata_drifts(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    runtime_owner_fields = _complete_owner_fields()
+    runtime_owner_fields[0]["canonical_owner"] = "runtime drift"
+    paths = _write_fixture(
+        tmp_path,
+        transitions=transitions,
+        runtime_owner_fields=runtime_owner_fields,
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "runtime_owner_field[0]" in failure
+        and "runtime canonical_owner does not match owner field" in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_when_runtime_owner_field_is_missing(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    owner_fields = _complete_owner_fields()
+    paths = _write_fixture(
+        tmp_path,
+        transitions=transitions,
+        runtime_owner_fields=owner_fields[1:],
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "runtime owner field registry missing field" in failure
+        and owner_fields[0]["field"] in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_when_runtime_owner_field_is_extra(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    extra = _owner_field("field.extra")
+    paths = _write_fixture(
+        tmp_path,
+        transitions=transitions,
+        runtime_owner_fields=_complete_owner_fields() + [extra],
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "runtime_owner_field" in failure
+        and "field does not match an owner field: field.extra" in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_when_runtime_owner_field_is_duplicated(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    runtime_owner_fields = _complete_owner_fields()
+    runtime_owner_fields[1]["field"] = runtime_owner_fields[0]["field"]
+    paths = _write_fixture(
+        tmp_path,
+        transitions=transitions,
+        runtime_owner_fields=runtime_owner_fields,
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "runtime_owner_field[1]" in failure
+        and "duplicate runtime owner field" in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_when_runtime_owner_field_row_is_malformed(
+    tmp_path: Path,
+) -> None:
+    paths = _write_fixture(tmp_path, transitions=_complete_transitions())
+    runtime_path = paths[-1]
+    source = runtime_path.read_text(encoding="utf-8")
+    runtime_path.write_text(
+        source.replace('{"field",', "{NULL,", 1),
+        encoding="utf-8",
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "runtime_owner_field[0]" in failure
+        and "malformed runtime owner field registry row" in failure
+        and "NULL" in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_when_runtime_owner_field_list_entry_is_malformed(
+    tmp_path: Path,
+) -> None:
+    paths = _write_fixture(tmp_path, transitions=_complete_transitions())
+    runtime_path = paths[-1]
+    source = runtime_path.read_text(encoding="utf-8")
+    runtime_path.write_text(
+        source.replace(
+            'static const char *const kAppStateOwnerFieldInvariantChecks0[] = {\n'
+            '  "fixture invariant",',
+            "static const char *const kAppStateOwnerFieldInvariantChecks0[] = {\n"
+            "  NULL,",
+            1,
+        ),
+        encoding="utf-8",
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "kAppStateOwnerFieldInvariantChecks0[0]" in failure
+        and "malformed string literal entry" in failure
+        and "NULL" in failure
         for failure in failures
     )
 

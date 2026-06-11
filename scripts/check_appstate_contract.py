@@ -619,6 +619,91 @@ def _parse_runtime_transition_registry(
     return records, failures
 
 
+def _parse_runtime_owner_field_registry(
+    runtime_path: Path,
+) -> tuple[list[dict[str, Any]], list[str]]:
+    try:
+        source = runtime_path.read_text(encoding="utf-8")
+    except OSError as exc:
+        return [], [f"{runtime_path}: failed to read: {exc}"]
+
+    invariant_tables: dict[str, list[str]] = {}
+    failures: list[str] = []
+    invariant_re = re.compile(
+        r"static\s+const\s+char\s+\*const\s+"
+        r"(kAppStateOwnerFieldInvariantChecks[0-9]+)\[\]\s*=\s*\{"
+        r"(?P<body>.*?)\};",
+        re.S,
+    )
+    for invariant_match in invariant_re.finditer(source):
+        table_name = invariant_match.group(1)
+        values, array_failures = _parse_string_initializer_array(
+            invariant_match.group("body"),
+            table_name,
+        )
+        invariant_tables[table_name] = values
+        failures.extend(array_failures)
+
+    match = re.search(
+        r"kAppStateOwnerFields\s*\[\]\s*=\s*\{(?P<body>.*?)\};",
+        source,
+        re.S,
+    )
+    if match is None:
+        return [], [f"{runtime_path}: failed to find runtime owner field registry"]
+
+    records: list[dict[str, Any]] = []
+    row_re = re.compile(
+        r"\{\s*\"(?P<field>[^\"]*)\"\s*,"
+        r"\s*\"(?P<owner_region>[^\"]*)\"\s*,"
+        r"\s*\"(?P<canonical_owner>[^\"]*)\"\s*,"
+        r"\s*\"(?P<runtime_carrier>[^\"]*)\"\s*,"
+        r"\s*\"(?P<mutation_rule>[^\"]*)\"\s*,"
+        r"\s*\"(?P<migration_status>[^\"]*)\"\s*,"
+        r"\s*(?P<invariant_checks>kAppStateOwnerFieldInvariantChecks[0-9]+)\s*,"
+        r"\s*sizeof\((?P=invariant_checks)\)\s*/"
+        r"\s*sizeof\((?P=invariant_checks)\[0\]\)\s*\}",
+        re.S,
+    )
+    rows, row_failures = _split_top_level_initializer_rows(
+        match.group("body"),
+        "runtime_owner_field",
+    )
+    failures.extend(row_failures)
+    for index, row in enumerate(rows):
+        row_match = row_re.fullmatch(row.strip())
+        if row_match is None:
+            failures.append(
+                f"runtime_owner_field[{index}]: malformed runtime owner field "
+                f"registry row: {_compact_initializer_snippet(row)}"
+            )
+            continue
+
+        table_name = row_match.group("invariant_checks")
+        invariant_checks = invariant_tables.get(table_name)
+        if invariant_checks is None:
+            failures.append(
+                f"runtime_owner_field[{index}]: unknown invariant_checks "
+                f"table: {table_name}"
+            )
+            invariant_checks = []
+        records.append(
+            {
+                "field": row_match.group("field"),
+                "owner_region": row_match.group("owner_region"),
+                "canonical_owner": row_match.group("canonical_owner"),
+                "runtime_carrier": row_match.group("runtime_carrier"),
+                "mutation_rule": row_match.group("mutation_rule"),
+                "migration_status": row_match.group("migration_status"),
+                "invariant_checks": invariant_checks,
+            }
+        )
+
+    if not records:
+        failures.append(f"{runtime_path}: runtime owner field registry must not be empty")
+    return records, failures
+
+
 def _parse_runtime_dispatch_surface_registry(
     runtime_path: Path,
 ) -> tuple[list[dict[str, Any]], list[str]]:
@@ -1014,6 +1099,69 @@ def _validate_runtime_transition_registry(
         failures.append(
             f"{runtime_path}: runtime transition registry missing transition id(s): "
             + ", ".join(missing_ids)
+        )
+
+    return failures
+
+
+def _validate_runtime_owner_field_registry(
+    *,
+    runtime_records: list[dict[str, Any]],
+    runtime_path: Path,
+    owner_field_records: list[Any],
+) -> list[str]:
+    failures: list[str] = []
+    expected_owner_fields = {
+        record["field"]: record
+        for record in owner_field_records
+        if isinstance(record, dict)
+        and isinstance(record.get("field"), str)
+        and record["field"].strip()
+    }
+    expected_fields = set(expected_owner_fields)
+    covered_fields: set[str] = set()
+
+    for index, record in enumerate(runtime_records):
+        label = f"runtime_owner_field[{index}]"
+        runtime_field = record["field"]
+        if runtime_field in covered_fields:
+            failures.append(f"{label}: duplicate runtime owner field: {runtime_field}")
+        covered_fields.add(runtime_field)
+
+        owner_field_record = expected_owner_fields.get(runtime_field)
+        if owner_field_record is None:
+            failures.append(
+                f"{label}: field does not match an owner field: {runtime_field}"
+            )
+        else:
+            for field in REQUIRED_OWNER_FIELDS:
+                if record.get(field) != owner_field_record.get(field):
+                    failures.append(
+                        f"{label}: runtime {field} does not match owner field "
+                        f"{runtime_field}: {record.get(field)}"
+                    )
+
+        for field in sorted(REQUIRED_OWNER_FIELDS - {"invariant_checks"}):
+            value = record.get(field)
+            if not isinstance(value, str) or not value.strip():
+                failures.append(f"{label}: {field} must be a non-empty string")
+
+        invariant_checks = record.get("invariant_checks")
+        if not isinstance(invariant_checks, list) or not invariant_checks:
+            failures.append(f"{label}: invariant_checks must be non-empty")
+        else:
+            for check_index, check in enumerate(invariant_checks):
+                if not isinstance(check, str) or not check.strip():
+                    failures.append(
+                        f"{label}: invariant_checks[{check_index}] "
+                        "must be a non-empty string"
+                    )
+
+    missing_fields = sorted(expected_fields - covered_fields)
+    if missing_fields:
+        failures.append(
+            f"{runtime_path}: runtime owner field registry missing field(s): "
+            + ", ".join(missing_fields)
         )
 
     return failures
@@ -2398,6 +2546,9 @@ def validate_contract(
     runtime_transition_records, runtime_transition_failures = (
         _parse_runtime_transition_registry(action_runtime_path)
     )
+    runtime_owner_field_records, runtime_owner_field_failures = (
+        _parse_runtime_owner_field_registry(action_runtime_path)
+    )
     runtime_dispatch_surface_records, runtime_dispatch_surface_failures = (
         _parse_runtime_dispatch_surface_registry(action_runtime_path)
     )
@@ -2420,6 +2571,7 @@ def validate_contract(
     failures.extend(enum_failures)
     failures.extend(runtime_action_failures)
     failures.extend(runtime_transition_failures)
+    failures.extend(runtime_owner_field_failures)
     failures.extend(runtime_dispatch_surface_failures)
     failures.extend(runtime_shim_failures)
     failures.extend(runtime_invariant_failures)
@@ -2431,6 +2583,19 @@ def validate_contract(
         owner_fields_path=owner_fields_path,
     )
     failures.extend(owner_field_failures)
+    if isinstance(owner_fields_doc, dict) and isinstance(
+        owner_fields_doc.get("owner_fields"), list
+    ):
+        owner_field_records = owner_fields_doc["owner_fields"]
+    else:
+        owner_field_records = []
+    failures.extend(
+        _validate_runtime_owner_field_registry(
+            runtime_records=runtime_owner_field_records,
+            runtime_path=action_runtime_path,
+            owner_field_records=owner_field_records,
+        )
+    )
 
     if not isinstance(transitions_doc, dict):
         failures.append(f"{transitions_path}: top-level value must be an object")
