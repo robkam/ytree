@@ -69,6 +69,17 @@ typedef struct {
   size_t migration_note_count;
 } AppStateInvariantMetadata;
 
+typedef struct {
+  const char *field;
+  const char *owner_region;
+  const char *canonical_owner;
+  const char *runtime_carrier;
+  const char *mutation_rule;
+  const char *migration_status;
+  const char *const *invariant_checks;
+  size_t invariant_check_count;
+} AppStateOwnerFieldMetadata;
+
 const AppStateActionTransitionMetadata *
 AppStateActionTransitionLookup(YtreeNovaAction action);
 size_t AppStateActionTransitionCount(void);
@@ -89,5 +100,8 @@ const AppStateInvariantMetadata *
 AppStateInvariantLookup(const char *invariant_id);
 const AppStateInvariantMetadata *AppStateInvariantAt(size_t index);
 size_t AppStateInvariantCount(void);
+const AppStateOwnerFieldMetadata *AppStateOwnerFieldLookup(const char *field);
+const AppStateOwnerFieldMetadata *AppStateOwnerFieldAt(size_t index);
+size_t AppStateOwnerFieldCount(void);
 
 #endif /* YTNOVA_APPSTATE_ACTIONS_H */

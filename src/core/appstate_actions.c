@@ -86,6 +86,274 @@ static const char *const kAppStateTransitionWriteSet9[] = {
   "ctx.window_handles",
 };
 
+static const char *const kAppStateOwnerFieldInvariantChecks0[] = {
+  "Active panel changes must preserve inactive panel-local records.",
+  "Panel routing must resolve to an existing YtreeNovaPanel carrier before render projection.",
+};
+static const char *const kAppStateOwnerFieldInvariantChecks1[] = {
+  "Command completion must not mutate panel or volume fields outside the declared follow-up transition.",
+  "Command failure or cancellation must preserve authoritative panel and volume state.",
+};
+static const char *const kAppStateOwnerFieldInvariantChecks2[] = {
+  "Blocked transitions may write message state only when needed for outcome clarity.",
+  "Message writes must not imply filesystem or panel state success.",
+};
+static const char *const kAppStateOwnerFieldInvariantChecks3[] = {
+  "Modal dismissal must leave underlying panel and volume authority unchanged unless declared.",
+  "Destructive confirmations must remain explicit and default-safe.",
+};
+static const char *const kAppStateOwnerFieldInvariantChecks4[] = {
+  "Pending transitions must name a registered transition before later mutation.",
+  "Queueing a transition must not advance panel or volume generations by itself.",
+};
+static const char *const kAppStateOwnerFieldInvariantChecks5[] = {
+  "Releasing a volume must not leave active or inactive panels with stale volume pointers.",
+  "Volume registry changes must rebind affected panels through stable identity or deterministic fallback.",
+};
+static const char *const kAppStateOwnerFieldInvariantChecks6[] = {
+  "Resize handling must not choose a new authoritative selection from rendered rows.",
+  "Layout changes alone must not advance volume_generation.",
+};
+static const char *const kAppStateOwnerFieldInvariantChecks7[] = {
+  "Render invalidation writes must not mutate selection, focus, or identity state.",
+  "Render projection may clear only surfaces produced from settled AppState records.",
+};
+static const char *const kAppStateOwnerFieldInvariantChecks8[] = {
+  "Ncurses window recreation must happen outside signal handlers.",
+  "Window handles must not become restore authority for panel selection or viewport state.",
+};
+static const char *const kAppStateOwnerFieldInvariantChecks9[] = {
+  "File selection identity must be path/name based, not a stale FileEntry pointer.",
+  "Inactive panel file selection must remain frozen across active-only actions.",
+};
+static const char *const kAppStateOwnerFieldInvariantChecks10[] = {
+  "File viewport correction must preserve the stored selection when it remains visible.",
+  "Render paths may compute temporary file projection without overwriting this origin.",
+};
+static const char *const kAppStateOwnerFieldInvariantChecks11[] = {
+  "Reactivation must restore the recorded tree/small-file/big-file shape directly.",
+  "Focus shape changes must not import the inactive panel's state.",
+};
+static const char *const kAppStateOwnerFieldInvariantChecks12[] = {
+  "Render projection alone must not advance panel_generation.",
+  "Snapshot restore must compare panel_generation before applying saved state.",
+};
+static const char *const kAppStateOwnerFieldInvariantChecks13[] = {
+  "Restore snapshots must use stable identities plus generation validation.",
+  "Stale snapshots must fail closed through the deterministic fallback order.",
+};
+static const char *const kAppStateOwnerFieldInvariantChecks14[] = {
+  "Tree cursor position is interpreted against visible rows, not raw topology indices.",
+  "Inactive panel cursor must remain unchanged unless the transition explicitly targets that panel.",
+};
+static const char *const kAppStateOwnerFieldInvariantChecks15[] = {
+  "Tree selection identity must be stable and path based within the current volume namespace.",
+  "Selection restore must not derive authority from disp_begin_pos plus cursor_pos.",
+};
+static const char *const kAppStateOwnerFieldInvariantChecks16[] = {
+  "Hidden dotfile visibility must not cause extra viewport shifts when selection remains visible.",
+  "Render-side temporary placement must not overwrite the saved viewport origin.",
+};
+static const char *const kAppStateOwnerFieldInvariantChecks17[] = {
+  "Panel volume binding must point to an existing volume/archive namespace or deterministic fallback.",
+  "A panel must not import the opposite panel's volume-specific snapshot.",
+};
+static const char *const kAppStateOwnerFieldInvariantChecks18[] = {
+  "Shared topology changes must re-anchor each panel by its own stable identity.",
+  "Topology mutation must advance volume_generation before restore consumers observe it.",
+};
+static const char *const kAppStateOwnerFieldInvariantChecks19[] = {
+  "Logged state is shared topology and must not store panel-local cursor or tag authority.",
+  "Unlogged placeholders must not degrade a frozen file-view anchor without rebind or payload reload.",
+};
+static const char *const kAppStateOwnerFieldInvariantChecks20[] = {
+  "Payload cache changes must not overwrite panel-local file selection identity.",
+  "Mutation-result commits must distinguish filesystem side effects from AppState metadata updates.",
+};
+static const char *const kAppStateOwnerFieldInvariantChecks21[] = {
+  "Render projection alone must not advance volume_generation.",
+  "Generation mismatch must force stable-identity re-resolution before snapshot restore.",
+};
+
+static const AppStateOwnerFieldMetadata kAppStateOwnerFields[] = {
+  {"ctx.active",
+   "ctx/session state",
+   "ViewContext.session routing",
+   "ViewContext.active",
+   "May change only during an allowed panel-routing or volume/menu transition commit.",
+   "documented_foundation_only",
+   kAppStateOwnerFieldInvariantChecks0,
+   sizeof(kAppStateOwnerFieldInvariantChecks0) / sizeof(kAppStateOwnerFieldInvariantChecks0[0])},
+  {"ctx.command_state",
+   "ctx/session state",
+   "ViewContext.command_region",
+   "ViewContext command state fields",
+   "May change only through command start/completion/cancel transitions.",
+   "documented_foundation_only",
+   kAppStateOwnerFieldInvariantChecks1,
+   sizeof(kAppStateOwnerFieldInvariantChecks1) / sizeof(kAppStateOwnerFieldInvariantChecks1[0])},
+  {"ctx.message_state",
+   "ctx/session state",
+   "ViewContext.message_region",
+   "ViewContext message/footer state fields",
+   "May change only through transitions that declare user-visible outcome or constraint messaging.",
+   "documented_foundation_only",
+   kAppStateOwnerFieldInvariantChecks2,
+   sizeof(kAppStateOwnerFieldInvariantChecks2) / sizeof(kAppStateOwnerFieldInvariantChecks2[0])},
+  {"ctx.modal_state",
+   "ctx/session state",
+   "ViewContext.modal_region",
+   "ViewContext modal/dialog state fields",
+   "May change only when entering, completing, or dismissing a registered modal transition.",
+   "documented_foundation_only",
+   kAppStateOwnerFieldInvariantChecks3,
+   sizeof(kAppStateOwnerFieldInvariantChecks3) / sizeof(kAppStateOwnerFieldInvariantChecks3[0])},
+  {"ctx.pending_transition",
+   "ctx/session state",
+   "ViewContext.transition_queue",
+   "ViewContext pending transition marker",
+   "May be queued only by transitions that declare a deterministic follow-up boundary.",
+   "documented_foundation_only",
+   kAppStateOwnerFieldInvariantChecks4,
+   sizeof(kAppStateOwnerFieldInvariantChecks4) / sizeof(kAppStateOwnerFieldInvariantChecks4[0])},
+  {"ctx.volumes_head",
+   "volume/shared topology and payload state",
+   "ViewContext.volume_registry",
+   "ViewContext.volumes_head",
+   "May change only through volume lifecycle transitions that validate panel bindings.",
+   "documented_foundation_only",
+   kAppStateOwnerFieldInvariantChecks5,
+   sizeof(kAppStateOwnerFieldInvariantChecks5) / sizeof(kAppStateOwnerFieldInvariantChecks5[0])},
+  {"ctx.layout",
+   "render/projection/invalidation state",
+   "ViewContext.layout_region",
+   "ViewContext layout geometry fields",
+   "May change only during resize/reflow transitions executed in the main loop.",
+   "documented_foundation_only",
+   kAppStateOwnerFieldInvariantChecks6,
+   sizeof(kAppStateOwnerFieldInvariantChecks6) / sizeof(kAppStateOwnerFieldInvariantChecks6[0])},
+  {"ctx.render_dirty_flags",
+   "render/projection/invalidation state",
+   "ViewContext.render_region",
+   "ViewContext render invalidation fields",
+   "May change only when a transition marks or clears declared projection surfaces.",
+   "documented_foundation_only",
+   kAppStateOwnerFieldInvariantChecks7,
+   sizeof(kAppStateOwnerFieldInvariantChecks7) / sizeof(kAppStateOwnerFieldInvariantChecks7[0])},
+  {"ctx.window_handles",
+   "render/projection/invalidation state",
+   "ViewContext ncurses window/layout handles",
+   "ViewContext window handle fields",
+   "May change only during main-loop layout/reflow or render projection setup.",
+   "documented_foundation_only",
+   kAppStateOwnerFieldInvariantChecks8,
+   sizeof(kAppStateOwnerFieldInvariantChecks8) / sizeof(kAppStateOwnerFieldInvariantChecks8[0])},
+  {"panel.file_selection_key",
+   "panel-local state",
+   "YtreeNovaPanel.file identity owner",
+   "YtreeNovaPanel file selection identity fields",
+   "May change only for the targeted panel through navigation, restore, or rebind transitions.",
+   "documented_foundation_only",
+   kAppStateOwnerFieldInvariantChecks9,
+   sizeof(kAppStateOwnerFieldInvariantChecks9) / sizeof(kAppStateOwnerFieldInvariantChecks9[0])},
+  {"panel.file_viewport_origin",
+   "panel-local state",
+   "YtreeNovaPanel.file viewport owner",
+   "YtreeNovaPanel file viewport fields",
+   "May change only for the targeted panel when navigation, bounds correction, or reflow declares it.",
+   "documented_foundation_only",
+   kAppStateOwnerFieldInvariantChecks10,
+   sizeof(kAppStateOwnerFieldInvariantChecks10) / sizeof(kAppStateOwnerFieldInvariantChecks10[0])},
+  {"panel.focus_shape",
+   "panel-local state",
+   "YtreeNovaPanel.focus owner",
+   "YtreeNovaPanel focus/window-shape fields",
+   "May change only during allowed focus, modal restore, split, or file/tree transition commits.",
+   "documented_foundation_only",
+   kAppStateOwnerFieldInvariantChecks11,
+   sizeof(kAppStateOwnerFieldInvariantChecks11) / sizeof(kAppStateOwnerFieldInvariantChecks11[0])},
+  {"panel.panel_generation",
+   "panel-local state",
+   "YtreeNovaPanel.generation owner",
+   "YtreeNovaPanel panel generation field",
+   "May increment only when panel-local restore authority changes.",
+   "documented_foundation_only",
+   kAppStateOwnerFieldInvariantChecks12,
+   sizeof(kAppStateOwnerFieldInvariantChecks12) / sizeof(kAppStateOwnerFieldInvariantChecks12[0])},
+  {"panel.restore_snapshot",
+   "panel-local state",
+   "YtreeNovaPanel.restore snapshot owner",
+   "YtreeNovaPanel restore snapshot fields",
+   "May change only through snapshot capture, rebind, fallback, or volume-binding transitions.",
+   "documented_foundation_only",
+   kAppStateOwnerFieldInvariantChecks13,
+   sizeof(kAppStateOwnerFieldInvariantChecks13) / sizeof(kAppStateOwnerFieldInvariantChecks13[0])},
+  {"panel.tree_cursor_pos",
+   "panel-local state",
+   "YtreeNovaPanel.tree cursor owner",
+   "YtreeNovaPanel tree cursor field",
+   "May change only for the targeted panel during tree navigation or rebind/fallback transitions.",
+   "documented_foundation_only",
+   kAppStateOwnerFieldInvariantChecks14,
+   sizeof(kAppStateOwnerFieldInvariantChecks14) / sizeof(kAppStateOwnerFieldInvariantChecks14[0])},
+  {"panel.tree_selection_key",
+   "panel-local state",
+   "YtreeNovaPanel.tree selection owner",
+   "YtreeNovaPanel tree selection identity fields",
+   "May change only through tree navigation, restore, or topology rebind transitions for the targeted panel.",
+   "documented_foundation_only",
+   kAppStateOwnerFieldInvariantChecks15,
+   sizeof(kAppStateOwnerFieldInvariantChecks15) / sizeof(kAppStateOwnerFieldInvariantChecks15[0])},
+  {"panel.tree_viewport_origin",
+   "panel-local state",
+   "YtreeNovaPanel.tree viewport owner",
+   "YtreeNovaPanel tree viewport fields",
+   "May change only when navigation, bounds correction, resize, or rebind declares viewport mutation.",
+   "documented_foundation_only",
+   kAppStateOwnerFieldInvariantChecks16,
+   sizeof(kAppStateOwnerFieldInvariantChecks16) / sizeof(kAppStateOwnerFieldInvariantChecks16[0])},
+  {"panel.volume_key",
+   "panel-local state",
+   "YtreeNovaPanel.volume binding owner",
+   "YtreeNovaPanel volume binding fields",
+   "May change only through volume selection, cycle, release, or restore transitions.",
+   "documented_foundation_only",
+   kAppStateOwnerFieldInvariantChecks17,
+   sizeof(kAppStateOwnerFieldInvariantChecks17) / sizeof(kAppStateOwnerFieldInvariantChecks17[0])},
+  {"volume.dir_tree",
+   "volume/shared topology and payload state",
+   "Volume.topology owner",
+   "Volume directory tree fields",
+   "May change only through logging, rebuild, refresh, release, or completed filesystem mutation transitions.",
+   "documented_foundation_only",
+   kAppStateOwnerFieldInvariantChecks18,
+   sizeof(kAppStateOwnerFieldInvariantChecks18) / sizeof(kAppStateOwnerFieldInvariantChecks18[0])},
+  {"volume.logged_state",
+   "volume/shared topology and payload state",
+   "Volume.logged topology owner",
+   "Volume logged/unlogged directory state",
+   "May change only through explicit log, relog, release, collapse, refresh, or rebuild transitions.",
+   "documented_foundation_only",
+   kAppStateOwnerFieldInvariantChecks19,
+   sizeof(kAppStateOwnerFieldInvariantChecks19) / sizeof(kAppStateOwnerFieldInvariantChecks19[0])},
+  {"volume.payload_cache",
+   "volume/shared topology and payload state",
+   "Volume.payload cache owner",
+   "Volume file payload/statistics cache fields",
+   "May change only through payload load, refresh, archive, or completed filesystem mutation transitions.",
+   "documented_foundation_only",
+   kAppStateOwnerFieldInvariantChecks20,
+   sizeof(kAppStateOwnerFieldInvariantChecks20) / sizeof(kAppStateOwnerFieldInvariantChecks20[0])},
+  {"volume.volume_generation",
+   "volume/shared topology and payload state",
+   "Volume.generation owner",
+   "Volume topology/payload generation field",
+   "May increment only when shared topology, payload identity, logged state, or namespace mapping changes.",
+   "documented_foundation_only",
+   kAppStateOwnerFieldInvariantChecks21,
+   sizeof(kAppStateOwnerFieldInvariantChecks21) / sizeof(kAppStateOwnerFieldInvariantChecks21[0])},
+};
+
 static const char *const kAppStateDispatchSurfaceMigrationNotes0[] = {
   "Current input polling and key normalization feed controller dispatch; AppState mutation remains in downstream handlers until runtime transition objects are introduced.",
 };
@@ -980,6 +1248,17 @@ size_t AppStateInvariantCount(void) {
   return sizeof(kAppStateInvariants) / sizeof(kAppStateInvariants[0]);
 }
 
+size_t AppStateOwnerFieldCount(void) {
+  return sizeof(kAppStateOwnerFields) / sizeof(kAppStateOwnerFields[0]);
+}
+
+const AppStateOwnerFieldMetadata *AppStateOwnerFieldAt(size_t index) {
+  if (index >= AppStateOwnerFieldCount())
+    return NULL;
+
+  return &kAppStateOwnerFields[index];
+}
+
 const AppStateTransitionMetadata *AppStateTransitionAt(size_t index) {
   if (index >= AppStateTransitionCount())
     return NULL;
@@ -1007,6 +1286,21 @@ const AppStateInvariantMetadata *AppStateInvariantAt(size_t index) {
     return NULL;
 
   return &kAppStateInvariants[index];
+}
+
+const AppStateOwnerFieldMetadata *
+AppStateOwnerFieldLookup(const char *field) {
+  size_t index;
+
+  if (field == NULL || field[0] == '\0')
+    return NULL;
+
+  for (index = 0; index < AppStateOwnerFieldCount(); index++) {
+    if (!strcmp(kAppStateOwnerFields[index].field, field))
+      return &kAppStateOwnerFields[index];
+  }
+
+  return NULL;
 }
 
 const AppStateTransitionMetadata *

@@ -64,6 +64,40 @@ static int AppStateInvariantDispatchSurfacesReady(
   return 0;
 }
 
+static int AppStateOwnerFieldsReady(void) {
+  size_t index;
+
+  if (AppStateOwnerFieldCount() == 0)
+    return 0;
+
+  for (index = 0; index < AppStateOwnerFieldCount(); index++) {
+    const AppStateOwnerFieldMetadata *metadata = AppStateOwnerFieldAt(index);
+
+    if (metadata == NULL || !NonEmptyString(metadata->field) ||
+        !NonEmptyString(metadata->owner_region) ||
+        !NonEmptyString(metadata->canonical_owner) ||
+        !NonEmptyString(metadata->runtime_carrier) ||
+        !NonEmptyString(metadata->mutation_rule) ||
+        !NonEmptyString(metadata->migration_status) ||
+        !NonEmptyStringList(metadata->invariant_checks,
+                            metadata->invariant_check_count))
+      return 0;
+    if (AppStateOwnerFieldLookup(metadata->field) != metadata)
+      return 0;
+  }
+
+  if (AppStateOwnerFieldAt(AppStateOwnerFieldCount()) != NULL)
+    return 0;
+  if (AppStateOwnerFieldLookup(NULL) != NULL)
+    return 0;
+  if (AppStateOwnerFieldLookup("") != NULL)
+    return 0;
+  if (AppStateOwnerFieldLookup("field.__ytnova_unknown__") != NULL)
+    return 0;
+
+  return 1;
+}
+
 static int AppStateTransitionRegistryReady(void) {
   size_t index;
 
@@ -345,6 +379,7 @@ int main(int argc, char **argv) {
   memset(&ctx, 0, sizeof(ViewContext));
   CoreMainOps_Register(&ctx);
   if (!CoreMainOpsReady(&ctx.core_main_ops) ||
+      !AppStateOwnerFieldsReady() ||
       !AppStateTransitionRegistryReady() ||
       !AppStateDispatchSurfacesReady() ||
       !AppStateInvariantRegistryReady() ||
