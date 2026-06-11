@@ -86,6 +86,202 @@ static const char *const kAppStateTransitionWriteSet9[] = {
   "ctx.window_handles",
 };
 
+static const char *const kAppStateDispatchSurfaceMigrationNotes0[] = {
+  "Current input polling and key normalization feed controller dispatch; AppState mutation remains in downstream handlers until runtime transition objects are introduced.",
+};
+
+static const char *const kAppStateDispatchSurfaceAllowedDirectWrites1[] = {
+  "panel.tree_selection_key",
+  "panel.tree_cursor_pos",
+  "panel.tree_viewport_origin",
+  "panel.focus_shape",
+  "panel.panel_generation",
+};
+
+static const char *const kAppStateDispatchSurfaceMigrationNotes1[] = {
+  "Current directory-window switch dispatch owns tree navigation and focus updates; later migration should route each action through canonical transition boundaries.",
+};
+
+static const char *const kAppStateDispatchSurfaceAllowedDirectWrites2[] = {
+  "panel.file_selection_key",
+  "panel.file_viewport_origin",
+  "panel.focus_shape",
+  "panel.panel_generation",
+};
+
+static const char *const kAppStateDispatchSurfaceMigrationNotes2[] = {
+  "Current file-window switch dispatch updates file selection and viewport state under the broad keybinding foundation record until file-specific transitions are split out.",
+};
+
+static const char *const kAppStateDispatchSurfaceMigrationNotes3[] = {
+  "Current menu and modal choice completion returns a selected key to callers; AppState modal writes remain with the caller until modal transition boundaries are introduced.",
+};
+
+static const char *const kAppStateDispatchSurfaceAllowedDirectWrites4[] = {
+  "ctx.layout",
+  "ctx.window_handles",
+  "panel.tree_viewport_origin",
+  "panel.file_viewport_origin",
+  "panel.panel_generation",
+};
+
+static const char *const kAppStateDispatchSurfaceMigrationNotes4[] = {
+  "Current resize dispatch converts KEY_RESIZE and resize_request state into controller refresh handling; signal-safe work must remain outside asynchronous handlers.",
+};
+
+static const char *const kAppStateDispatchSurfaceAllowedDirectWrites5[] = {
+  "volume.dir_tree",
+  "volume.logged_state",
+  "volume.volume_generation",
+  "panel.restore_snapshot",
+  "panel.panel_generation",
+};
+
+static const char *const kAppStateDispatchSurfaceMigrationNotes5[] = {
+  "Current safe refresh saves state, rescans, restores, and rebinds panel anchors; migration must preserve that ordering at the transition boundary.",
+};
+
+static const char *const kAppStateDispatchSurfaceAllowedDirectWrites6[] = {
+  "volume.dir_tree",
+  "volume.payload_cache",
+  "volume.volume_generation",
+  "panel.restore_snapshot",
+  "panel.panel_generation",
+  "ctx.message_state",
+};
+
+static const char *const kAppStateDispatchSurfaceMigrationNotes6[] = {
+  "Current filesystem command handlers refresh and rebind after successful mutations; only completed mutation results should commit AppState metadata.",
+};
+
+static const char *const kAppStateDispatchSurfaceAllowedDirectWrites7[] = {
+  "ctx.volumes_head",
+  "panel.volume_key",
+  "panel.restore_snapshot",
+  "panel.panel_generation",
+  "volume.volume_generation",
+};
+
+static const char *const kAppStateDispatchSurfaceMigrationNotes7[] = {
+  "Current loaded-volume selection and cycling update panel bindings directly; migration must preserve inactive panel restore records.",
+};
+
+static const char *const kAppStateDispatchSurfaceMigrationNotes8[] = {
+  "Current watcher processing reports settled filesystem activity to input dispatch; topology mutation remains mapped to the broad refresh/rebuild transition.",
+};
+
+static const char *const kAppStateDispatchSurfaceMigrationNotes9[] = {
+  "Current render refresh projects settled state to ncurses windows; projection must not become selection, viewport, or topology authority.",
+};
+
+static const AppStateDispatchSurfaceMetadata kAppStateDispatchSurfaces[] = {
+  {"surface.key-decode-input-dispatch",
+   "key_decode_input_dispatch",
+   "src/ui/key_engine.c",
+   "GetEventOrKey",
+   "transition.keybinding.navigate-tree",
+   "documented_foundation_only",
+   NULL,
+   0,
+   kAppStateDispatchSurfaceMigrationNotes0,
+   sizeof(kAppStateDispatchSurfaceMigrationNotes0) / sizeof(kAppStateDispatchSurfaceMigrationNotes0[0])},
+  {"surface.directory-window-action-dispatch",
+   "directory_window_action_dispatch",
+   "src/ui/ctrl_dir.c",
+   "HandleDirWindow",
+   "transition.keybinding.navigate-tree",
+   "documented_foundation_only",
+   kAppStateDispatchSurfaceAllowedDirectWrites1,
+   sizeof(kAppStateDispatchSurfaceAllowedDirectWrites1) /
+       sizeof(kAppStateDispatchSurfaceAllowedDirectWrites1[0]),
+   kAppStateDispatchSurfaceMigrationNotes1,
+   sizeof(kAppStateDispatchSurfaceMigrationNotes1) / sizeof(kAppStateDispatchSurfaceMigrationNotes1[0])},
+  {"surface.file-window-action-dispatch",
+   "file_window_action_dispatch",
+   "src/ui/ctrl_file.c",
+   "HandleFileWindow",
+   "transition.keybinding.navigate-tree",
+   "documented_foundation_only",
+   kAppStateDispatchSurfaceAllowedDirectWrites2,
+   sizeof(kAppStateDispatchSurfaceAllowedDirectWrites2) /
+       sizeof(kAppStateDispatchSurfaceAllowedDirectWrites2[0]),
+   kAppStateDispatchSurfaceMigrationNotes2,
+   sizeof(kAppStateDispatchSurfaceMigrationNotes2) / sizeof(kAppStateDispatchSurfaceMigrationNotes2[0])},
+  {"surface.menu-modal-completion",
+   "menu_modal_completion",
+   "src/ui/key_engine.c",
+   "InputChoice",
+   "transition.modal-action.dismiss",
+   "documented_foundation_only",
+   NULL,
+   0,
+   kAppStateDispatchSurfaceMigrationNotes3,
+   sizeof(kAppStateDispatchSurfaceMigrationNotes3) / sizeof(kAppStateDispatchSurfaceMigrationNotes3[0])},
+  {"surface.resize-signal-handling",
+   "resize_signal_handling",
+   "src/ui/key_engine.c",
+   "GetEventOrKey",
+   "transition.terminal-signal-resize",
+   "documented_foundation_only",
+   kAppStateDispatchSurfaceAllowedDirectWrites4,
+   sizeof(kAppStateDispatchSurfaceAllowedDirectWrites4) /
+       sizeof(kAppStateDispatchSurfaceAllowedDirectWrites4[0]),
+   kAppStateDispatchSurfaceMigrationNotes4,
+   sizeof(kAppStateDispatchSurfaceMigrationNotes4) / sizeof(kAppStateDispatchSurfaceMigrationNotes4[0])},
+  {"surface.refresh-rebuild-rebind",
+   "refresh_rebuild_rebind",
+   "src/ui/dir_ops.c",
+   "RefreshTreeSafe",
+   "transition.refresh-rebuild.manual-refresh",
+   "documented_foundation_only",
+   kAppStateDispatchSurfaceAllowedDirectWrites5,
+   sizeof(kAppStateDispatchSurfaceAllowedDirectWrites5) /
+       sizeof(kAppStateDispatchSurfaceAllowedDirectWrites5[0]),
+   kAppStateDispatchSurfaceMigrationNotes5,
+   sizeof(kAppStateDispatchSurfaceMigrationNotes5) / sizeof(kAppStateDispatchSurfaceMigrationNotes5[0])},
+  {"surface.filesystem-mutation-result",
+   "filesystem_mutation_result",
+   "src/ui/dir_ops.c",
+   "HandleDirMakeDirectory",
+   "transition.filesystem-mutation-result.mkdir-copy-delete",
+   "documented_foundation_only",
+   kAppStateDispatchSurfaceAllowedDirectWrites6,
+   sizeof(kAppStateDispatchSurfaceAllowedDirectWrites6) /
+       sizeof(kAppStateDispatchSurfaceAllowedDirectWrites6[0]),
+   kAppStateDispatchSurfaceMigrationNotes6,
+   sizeof(kAppStateDispatchSurfaceMigrationNotes6) / sizeof(kAppStateDispatchSurfaceMigrationNotes6[0])},
+  {"surface.volume-operation",
+   "volume_operation",
+   "src/ui/volume_menu.c",
+   "SelectLoadedVolume",
+   "transition.volume-operation.release-cycle",
+   "documented_foundation_only",
+   kAppStateDispatchSurfaceAllowedDirectWrites7,
+   sizeof(kAppStateDispatchSurfaceAllowedDirectWrites7) /
+       sizeof(kAppStateDispatchSurfaceAllowedDirectWrites7[0]),
+   kAppStateDispatchSurfaceMigrationNotes7,
+   sizeof(kAppStateDispatchSurfaceMigrationNotes7) / sizeof(kAppStateDispatchSurfaceMigrationNotes7[0])},
+  {"surface.watcher-live-refresh",
+   "watcher_live_refresh",
+   "src/fs/watcher.c",
+   "Watcher_ProcessEvents",
+   "transition.refresh-rebuild.manual-refresh",
+   "documented_foundation_only",
+   NULL,
+   0,
+   kAppStateDispatchSurfaceMigrationNotes8,
+   sizeof(kAppStateDispatchSurfaceMigrationNotes8) / sizeof(kAppStateDispatchSurfaceMigrationNotes8[0])},
+  {"surface.render-reflow-projection",
+   "render_reflow_projection",
+   "src/ui/display.c",
+   "RefreshView",
+   "transition.render-reflow.project-state",
+   "documented_foundation_only",
+   NULL,
+   0,
+   kAppStateDispatchSurfaceMigrationNotes9,
+   sizeof(kAppStateDispatchSurfaceMigrationNotes9) / sizeof(kAppStateDispatchSurfaceMigrationNotes9[0])},
+};
 static const char *const kAppStateCompatibilityShimInvariantChecks0[] = {
   "YtreeNovaPanel(active).dotfile_visibility is authoritative",
   "Inactive panel visibility is never overwritten from the mirror",
@@ -771,6 +967,10 @@ size_t AppStateTransitionCount(void) {
   return sizeof(kAppStateTransitions) / sizeof(kAppStateTransitions[0]);
 }
 
+size_t AppStateDispatchSurfaceCount(void) {
+  return sizeof(kAppStateDispatchSurfaces) / sizeof(kAppStateDispatchSurfaces[0]);
+}
+
 size_t AppStateCompatibilityShimCount(void) {
   return sizeof(kAppStateCompatibilityShims) /
          sizeof(kAppStateCompatibilityShims[0]);
@@ -785,6 +985,13 @@ const AppStateTransitionMetadata *AppStateTransitionAt(size_t index) {
     return NULL;
 
   return &kAppStateTransitions[index];
+}
+
+const AppStateDispatchSurfaceMetadata *AppStateDispatchSurfaceAt(size_t index) {
+  if (index >= AppStateDispatchSurfaceCount())
+    return NULL;
+
+  return &kAppStateDispatchSurfaces[index];
 }
 
 const AppStateCompatibilityShimMetadata *
@@ -812,6 +1019,21 @@ AppStateTransitionLookup(const char *transition_id) {
   for (index = 0; index < AppStateTransitionCount(); index++) {
     if (!strcmp(kAppStateTransitions[index].id, transition_id))
       return &kAppStateTransitions[index];
+  }
+
+  return NULL;
+}
+
+const AppStateDispatchSurfaceMetadata *
+AppStateDispatchSurfaceLookup(const char *surface_id) {
+  size_t index;
+
+  if (surface_id == NULL || surface_id[0] == '\0')
+    return NULL;
+
+  for (index = 0; index < AppStateDispatchSurfaceCount(); index++) {
+    if (!strcmp(kAppStateDispatchSurfaces[index].surface_id, surface_id))
+      return &kAppStateDispatchSurfaces[index];
   }
 
   return NULL;

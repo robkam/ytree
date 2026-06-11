@@ -73,5 +73,3 @@ __pycache__/
 *.sh
 !scripts/**/*.sh
 !scripts/**/*.txt
-
-# Rebrand task deliverable

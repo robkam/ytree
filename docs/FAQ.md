@@ -27,11 +27,13 @@ The alpha is published early so users and contributors can inspect the code, tes
 
 In short: the project is usable now, but not stable yet. Expect rough edges, occasional regressions, and evolving UX details until beta and then stable release.
 
-### Why refactor the existing code instead of writing a new one from scratch?
+### Why fork Ytree v2.10 instead of starting from scratch?
 
-The decision was made to modernize the existing codebase because YtreeNova is a known application with an established look and feel.
+YtreeNova began as a fork of Werner Bregulla’s Ytree v2.10. The original intention was to develop a major enhanced line from that codebase, but the project was renamed to YtreeNova to avoid confusion with Werner’s continuing Ytree 2.x work. The name keeps the Ytree lineage visible while the Nova suffix marks it as a separate enhanced fork rather than the next official Ytree release.
 
-Creating a new file manager from scratch would have resulted in a loss of identity and name recognition. By refactoring, we preserve the specific behavior and interface style of the original application while significantly enhancing the user experience and replacing the underlying architecture. This approach revitalizes the project without discarding its history.
+A clean-slate implementation could have copied the same UI/UX, but it would still have meant rebuilding existing behaviour before adding the missing features. Starting from Ytree preserved the working baseline and made it possible to focus on extending the program with split-screen workflows, integrated preview/autoview, archive-as-directory operations, and a more modular C99/POSIX codebase.
+
+Werner’s Ytree continues to value portability across a broad range of Unix systems, including older environments. YtreeNova currently targets contemporary POSIX-style Unix systems and, so far, has mainly been tested only on a small number of recent Linux distributions.
 
 ### Why is this not written in Rust?
 
@@ -47,15 +49,11 @@ YtreeNova only needs fast, reliable text/line-box terminal UI for file and VFS b
 
 ## Project Philosophy
 
-### Why modernize YtreeNova when UnixTree already exists?
+### How is YtreeNova different from UnixTree?
 
-While both projects aim to provide a file manager inspired by [XTree&trade;](https://www.xtreefanpage.org/x10dirja.htm), they represent solutions for different eras.
+YtreeNova and UnixTree are separate XTree&trade;-inspired projects with different histories, codebases, and design choices. They overlap in several user-facing goals, including logged-tree navigation, tagging, split-screen operation, preview/autoview, and archive handling, but they differ substantially in architecture and maintenance approach.
 
-`UnixTree` was built for a time when Unix systems were far more inconsistent. To stay portable, it evolved a project-specific internal ecosystem (`libecurses`, `libtcap`, custom term files, and related adaptations). That approach made sense then, but those methods are less common in mainstream Unix development today and can increase long-term maintenance, audit, and packaging effort.
-
-The goal of modernizing YtreeNova is to build for today’s open-source Unix systems. By using common libraries (`ncurses`, `libarchive`, `readline`) and keeping modules focused, YtreeNova becomes a lean, POSIX-compliant utility that is easier for new maintainers to understand, test, extend, audit, and package.
-
-### How do the architectures compare?
+#### How do the YtreeNova and UnixTree architectures compare?
 
 The difference lies in how they handle system dependencies:
 
