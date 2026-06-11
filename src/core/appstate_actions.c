@@ -354,6 +354,388 @@ static const AppStateOwnerFieldMetadata kAppStateOwnerFields[] = {
    sizeof(kAppStateOwnerFieldInvariantChecks21) / sizeof(kAppStateOwnerFieldInvariantChecks21[0])},
 };
 
+static const char *const kAppStateGenerationDomainIdentityFields0[] = {
+  "panel.tree_selection_key",
+  "panel.file_selection_key",
+  "panel.tree_viewport_origin",
+  "panel.file_viewport_origin",
+  "panel.focus_shape",
+  "panel.restore_snapshot",
+};
+
+static const char *const kAppStateGenerationDomainAdvancesOnTransitionIds0[] = {
+  "transition.keybinding.navigate-tree",
+  "transition.menu-action.volume-select",
+  "transition.modal-action.dismiss",
+  "transition.refresh-rebuild.manual-refresh",
+  "transition.volume-operation.release-cycle",
+  "transition.terminal-signal-resize",
+  "transition.filesystem-mutation-result.mkdir-copy-delete",
+  "transition.rebuild-rebind-callback.panel-anchor",
+};
+
+static const char *const kAppStateGenerationDomainMigrationNotes0[] = {
+  "Runtime panel_generation is still documented foundation; later runtime migration must wire this field to the canonical panel UI state record.",
+};
+
+static const char *const kAppStateGenerationDomainIdentityFields1[] = {
+  "ctx.volumes_head",
+  "volume.dir_tree",
+  "volume.logged_state",
+  "volume.payload_cache",
+  "panel.volume_key",
+};
+
+static const char *const kAppStateGenerationDomainAdvancesOnTransitionIds1[] = {
+  "transition.refresh-rebuild.manual-refresh",
+  "transition.volume-operation.release-cycle",
+  "transition.filesystem-mutation-result.mkdir-copy-delete",
+};
+
+static const char *const kAppStateGenerationDomainMigrationNotes1[] = {
+  "Runtime volume_generation is still documented foundation; later runtime migration must attach it to Volume topology and payload commits.",
+};
+
+static const char *const kAppStateGenerationDomainIdentityFields2[] = {
+  "panel.tree_selection_key",
+  "panel.tree_cursor_pos",
+  "panel.tree_viewport_origin",
+  "volume.dir_tree",
+  "volume.logged_state",
+};
+
+static const char *const kAppStateGenerationDomainAdvancesOnTransitionIds2[] = {
+  "transition.refresh-rebuild.manual-refresh",
+  "transition.filesystem-mutation-result.mkdir-copy-delete",
+  "transition.volume-operation.release-cycle",
+  "transition.rebuild-rebind-callback.panel-anchor",
+};
+
+static const char *const kAppStateGenerationDomainMigrationNotes2[] = {
+  "Directory identity has no dedicated runtime generation counter yet; volume.volume_generation is the closest authoritative invalidation owner for topology changes.",
+};
+
+static const char *const kAppStateGenerationDomainIdentityFields3[] = {
+  "panel.file_selection_key",
+  "panel.file_viewport_origin",
+  "volume.payload_cache",
+  "volume.dir_tree",
+};
+
+static const char *const kAppStateGenerationDomainAdvancesOnTransitionIds3[] = {
+  "transition.refresh-rebuild.manual-refresh",
+  "transition.filesystem-mutation-result.mkdir-copy-delete",
+  "transition.rebuild-rebind-callback.panel-anchor",
+};
+
+static const char *const kAppStateGenerationDomainMigrationNotes3[] = {
+  "File identity has no dedicated runtime generation counter yet; volume.volume_generation is the closest authoritative owner for payload and namespace invalidation.",
+};
+
+static const char *const kAppStateGenerationDomainIdentityFields4[] = {
+  "panel.focus_shape",
+  "panel.restore_snapshot",
+};
+
+static const char *const kAppStateGenerationDomainAdvancesOnTransitionIds4[] = {
+  "transition.keybinding.navigate-tree",
+  "transition.modal-action.dismiss",
+  "transition.menu-action.volume-select",
+  "transition.rebuild-rebind-callback.panel-anchor",
+};
+
+static const char *const kAppStateGenerationDomainMigrationNotes4[] = {
+  "Focus-shape invalidation is represented by panel.panel_generation until a narrower runtime focus-shape generation exists.",
+};
+
+static const char *const kAppStateGenerationDomainIdentityFields5[] = {
+  "ctx.modal_state",
+  "ctx.command_state",
+  "ctx.pending_transition",
+  "ctx.message_state",
+};
+
+static const char *const kAppStateGenerationDomainAdvancesOnTransitionIds5[] = {
+  "transition.modal-action.dismiss",
+  "transition.command-completion.user-command",
+};
+
+static const char *const kAppStateGenerationDomainMigrationNotes5[] = {
+  "No dedicated ctx command/modal generation exists yet; panel.panel_generation is the closest guard for command paths that restore focus or queue panel-local follow-up work.",
+};
+
+static const char *const kAppStateGenerationDomainIdentityFields6[] = {
+  "panel.tree_selection_key",
+  "panel.tree_viewport_origin",
+  "panel.file_selection_key",
+  "panel.file_viewport_origin",
+  "volume.logged_state",
+};
+
+static const char *const kAppStateGenerationDomainAdvancesOnTransitionIds6[] = {
+  "transition.refresh-rebuild.manual-refresh",
+  "transition.keybinding.navigate-tree",
+  "transition.rebuild-rebind-callback.panel-anchor",
+};
+
+static const char *const kAppStateGenerationDomainMigrationNotes6[] = {
+  "Dedicated filter and dotfile visibility owner fields are not registered yet; panel.panel_generation is the closest panel-local invalidation owner.",
+};
+
+static const char *const kAppStateGenerationDomainIdentityFields7[] = {
+  "volume.dir_tree",
+  "volume.logged_state",
+  "ctx.volumes_head",
+};
+
+static const char *const kAppStateGenerationDomainAdvancesOnTransitionIds7[] = {
+  "transition.refresh-rebuild.manual-refresh",
+  "transition.volume-operation.release-cycle",
+  "transition.filesystem-mutation-result.mkdir-copy-delete",
+};
+
+static const char *const kAppStateGenerationDomainMigrationNotes7[] = {
+  "Topology generation is represented by volume.volume_generation until runtime Volume commit hooks are migrated.",
+};
+
+static const char *const kAppStateGenerationDomainIdentityFields8[] = {
+  "volume.payload_cache",
+  "panel.file_selection_key",
+  "panel.file_viewport_origin",
+};
+
+static const char *const kAppStateGenerationDomainAdvancesOnTransitionIds8[] = {
+  "transition.refresh-rebuild.manual-refresh",
+  "transition.filesystem-mutation-result.mkdir-copy-delete",
+  "transition.rebuild-rebind-callback.panel-anchor",
+};
+
+static const char *const kAppStateGenerationDomainMigrationNotes8[] = {
+  "File payload invalidation uses volume.volume_generation until a narrower payload generation field is registered.",
+};
+
+static const char *const kAppStateGenerationDomainIdentityFields9[] = {
+  "ctx.volumes_head",
+  "panel.volume_key",
+  "panel.restore_snapshot",
+  "volume.logged_state",
+};
+
+static const char *const kAppStateGenerationDomainAdvancesOnTransitionIds9[] = {
+  "transition.volume-operation.release-cycle",
+  "transition.menu-action.volume-select",
+  "transition.refresh-rebuild.manual-refresh",
+};
+
+static const char *const kAppStateGenerationDomainMigrationNotes9[] = {
+  "Volume lifecycle has no separate registry generation yet; volume.volume_generation is the closest shared invalidation owner while ctx.volumes_head remains the registry identity field.",
+};
+
+static const char *const kAppStateGenerationDomainIdentityFields10[] = {
+  "ctx.layout",
+  "ctx.window_handles",
+  "ctx.render_dirty_flags",
+  "panel.tree_viewport_origin",
+  "panel.file_viewport_origin",
+};
+
+static const char *const kAppStateGenerationDomainAdvancesOnTransitionIds10[] = {
+  "transition.terminal-signal-resize",
+};
+
+static const char *const kAppStateGenerationDomainMigrationNotes10[] = {
+  "Render projection itself is read-only/projection-only and does not advance generations; terminal resize uses panel.panel_generation only when saved viewport origins are corrected.",
+};
+
+static const AppStateGenerationDomainMetadata kAppStateGenerationDomains[] = {
+  {"generation.panel.local-authority",
+   "panel_generation",
+   "panel-local state",
+   "panel.panel_generation",
+   kAppStateGenerationDomainIdentityFields0,
+   sizeof(kAppStateGenerationDomainIdentityFields0) /
+       sizeof(kAppStateGenerationDomainIdentityFields0[0]),
+   kAppStateGenerationDomainAdvancesOnTransitionIds0,
+   sizeof(kAppStateGenerationDomainAdvancesOnTransitionIds0) /
+       sizeof(kAppStateGenerationDomainAdvancesOnTransitionIds0[0]),
+   "Reject snapshots whose saved panel_generation does not match the panel-local generation marker before restore authority is applied.",
+   "Re-resolve by stable identity, then nearest visible ancestor, next visible sibling, previous visible sibling, and finally root visible node.",
+   "Canonical panel-anchor restore helpers commit panel-local selection, viewport, focus shape, and snapshot generation together.",
+   "documented_foundation_only",
+   kAppStateGenerationDomainMigrationNotes0,
+   sizeof(kAppStateGenerationDomainMigrationNotes0) /
+       sizeof(kAppStateGenerationDomainMigrationNotes0[0])},
+  {"generation.volume.shared-authority",
+   "volume_generation",
+   "volume/shared topology and payload state",
+   "volume.volume_generation",
+   kAppStateGenerationDomainIdentityFields1,
+   sizeof(kAppStateGenerationDomainIdentityFields1) /
+       sizeof(kAppStateGenerationDomainIdentityFields1[0]),
+   kAppStateGenerationDomainAdvancesOnTransitionIds1,
+   sizeof(kAppStateGenerationDomainAdvancesOnTransitionIds1) /
+       sizeof(kAppStateGenerationDomainAdvancesOnTransitionIds1[0]),
+   "Treat any saved volume_generation mismatch as stale and require topology/payload identity re-resolution before panel snapshots are reused.",
+   "Keep the previous settled topology on blocked transitions; after invalidation, rebind panels through stable identities or fall back to root visible node.",
+   "Refresh/rebuild and mutation-result commits advance volume generation before panel restore consumers can observe the changed volume.",
+   "documented_foundation_only",
+   kAppStateGenerationDomainMigrationNotes1,
+   sizeof(kAppStateGenerationDomainMigrationNotes1) /
+       sizeof(kAppStateGenerationDomainMigrationNotes1[0])},
+  {"identity.directory.stable-key",
+   "directory_identity",
+   "panel-local state plus volume/shared topology and payload state",
+   "volume.volume_generation",
+   kAppStateGenerationDomainIdentityFields2,
+   sizeof(kAppStateGenerationDomainIdentityFields2) /
+       sizeof(kAppStateGenerationDomainIdentityFields2[0]),
+   kAppStateGenerationDomainAdvancesOnTransitionIds2,
+   sizeof(kAppStateGenerationDomainAdvancesOnTransitionIds2) /
+       sizeof(kAppStateGenerationDomainAdvancesOnTransitionIds2[0]),
+   "Directory snapshots must compare stable path identity against the current volume generation before row or cursor state is trusted.",
+   "Exact directory identity, nearest visible ancestor, next visible sibling, previous visible sibling, then root visible node.",
+   "Directory rebind runs through panel-anchor helpers after the shared topology generation has settled.",
+   "documented_foundation_only",
+   kAppStateGenerationDomainMigrationNotes2,
+   sizeof(kAppStateGenerationDomainMigrationNotes2) /
+       sizeof(kAppStateGenerationDomainMigrationNotes2[0])},
+  {"identity.file.stable-key",
+   "file_identity",
+   "panel-local state plus volume/shared topology and payload state",
+   "volume.volume_generation",
+   kAppStateGenerationDomainIdentityFields3,
+   sizeof(kAppStateGenerationDomainIdentityFields3) /
+       sizeof(kAppStateGenerationDomainIdentityFields3[0]),
+   kAppStateGenerationDomainAdvancesOnTransitionIds3,
+   sizeof(kAppStateGenerationDomainAdvancesOnTransitionIds3) /
+       sizeof(kAppStateGenerationDomainAdvancesOnTransitionIds3[0]),
+   "File snapshots must revalidate path/name identity and payload membership when volume generation changes.",
+   "Preserve the directory anchor when possible and choose a valid visible file only after exact file identity is unavailable.",
+   "File identity restore is committed with the panel snapshot after topology or payload mutation has settled.",
+   "documented_foundation_only",
+   kAppStateGenerationDomainMigrationNotes3,
+   sizeof(kAppStateGenerationDomainMigrationNotes3) /
+       sizeof(kAppStateGenerationDomainMigrationNotes3[0])},
+  {"shape.panel.focus",
+   "focus_shape",
+   "panel-local state",
+   "panel.panel_generation",
+   kAppStateGenerationDomainIdentityFields4,
+   sizeof(kAppStateGenerationDomainIdentityFields4) /
+       sizeof(kAppStateGenerationDomainIdentityFields4[0]),
+   kAppStateGenerationDomainAdvancesOnTransitionIds4,
+   sizeof(kAppStateGenerationDomainAdvancesOnTransitionIds4) /
+       sizeof(kAppStateGenerationDomainAdvancesOnTransitionIds4[0]),
+   "Saved focus shape is stale when panel_generation differs and must not be restored by transient render shape.",
+   "Restore the recorded panel shape directly or keep the current settled shape without rendering an intermediate guess.",
+   "Modal dismissal, panel reactivation, and rebind callbacks commit focus shape only through panel-local state.",
+   "documented_foundation_only",
+   kAppStateGenerationDomainMigrationNotes4,
+   sizeof(kAppStateGenerationDomainMigrationNotes4) /
+       sizeof(kAppStateGenerationDomainMigrationNotes4[0])},
+  {"target.modal-command.session",
+   "modal_command_target",
+   "ctx/session state",
+   "panel.panel_generation",
+   kAppStateGenerationDomainIdentityFields5,
+   sizeof(kAppStateGenerationDomainIdentityFields5) /
+       sizeof(kAppStateGenerationDomainIdentityFields5[0]),
+   kAppStateGenerationDomainAdvancesOnTransitionIds5,
+   sizeof(kAppStateGenerationDomainAdvancesOnTransitionIds5) /
+       sizeof(kAppStateGenerationDomainAdvancesOnTransitionIds5[0]),
+   "Modal and command targets may write panel or volume state only through a declared follow-up transition boundary.",
+   "On blocked or failed command completion, preserve authoritative panel and volume state and write only declared message/modal fields.",
+   "Modal dismissal and command completion settle session state before any panel restore or refresh follow-up observes the result.",
+   "documented_foundation_only",
+   kAppStateGenerationDomainMigrationNotes5,
+   sizeof(kAppStateGenerationDomainMigrationNotes5) /
+       sizeof(kAppStateGenerationDomainMigrationNotes5[0])},
+  {"state.visibility-filter.panel-volume",
+   "visibility_filter_state",
+   "panel-local state plus volume/shared topology and payload state",
+   "panel.panel_generation",
+   kAppStateGenerationDomainIdentityFields6,
+   sizeof(kAppStateGenerationDomainIdentityFields6) /
+       sizeof(kAppStateGenerationDomainIdentityFields6[0]),
+   kAppStateGenerationDomainAdvancesOnTransitionIds6,
+   sizeof(kAppStateGenerationDomainAdvancesOnTransitionIds6) /
+       sizeof(kAppStateGenerationDomainAdvancesOnTransitionIds6[0]),
+   "Visibility/filter changes that alter rendered rows invalidate saved panel anchors before any snapshot can be reused.",
+   "Rebind visible identity through the deterministic fallback order rather than deriving from hidden or filtered row indexes.",
+   "Visibility-filter commits update panel generation before rebind and render projection.",
+   "documented_foundation_only",
+   kAppStateGenerationDomainMigrationNotes6,
+   sizeof(kAppStateGenerationDomainMigrationNotes6) /
+       sizeof(kAppStateGenerationDomainMigrationNotes6[0])},
+  {"state.topology.volume",
+   "topology_state",
+   "volume/shared topology and payload state",
+   "volume.volume_generation",
+   kAppStateGenerationDomainIdentityFields7,
+   sizeof(kAppStateGenerationDomainIdentityFields7) /
+       sizeof(kAppStateGenerationDomainIdentityFields7[0]),
+   kAppStateGenerationDomainAdvancesOnTransitionIds7,
+   sizeof(kAppStateGenerationDomainAdvancesOnTransitionIds7) /
+       sizeof(kAppStateGenerationDomainAdvancesOnTransitionIds7[0]),
+   "Topology snapshots are invalid after any volume_generation advance and must be rebuilt or rebound by identity.",
+   "Blocked topology changes retain the previous settled tree; completed invalidation falls back panel anchors only after exact identity fails.",
+   "Topology rebuild commits settle volume.dir_tree and volume.logged_state before panel rebind callbacks run.",
+   "documented_foundation_only",
+   kAppStateGenerationDomainMigrationNotes7,
+   sizeof(kAppStateGenerationDomainMigrationNotes7) /
+       sizeof(kAppStateGenerationDomainMigrationNotes7[0])},
+  {"state.file-payload.volume",
+   "file_payload_state",
+   "volume/shared topology and payload state",
+   "volume.volume_generation",
+   kAppStateGenerationDomainIdentityFields8,
+   sizeof(kAppStateGenerationDomainIdentityFields8) /
+       sizeof(kAppStateGenerationDomainIdentityFields8[0]),
+   kAppStateGenerationDomainAdvancesOnTransitionIds8,
+   sizeof(kAppStateGenerationDomainAdvancesOnTransitionIds8) /
+       sizeof(kAppStateGenerationDomainAdvancesOnTransitionIds8[0]),
+   "Payload cache identity must be revalidated on generation mismatch before saved file selection is restored.",
+   "If payload cannot be loaded safely, preserve directory selection and leave file authority unchanged or empty according to current AppState.",
+   "Payload changes settle in Volume before panel file anchors are rebound.",
+   "documented_foundation_only",
+   kAppStateGenerationDomainMigrationNotes8,
+   sizeof(kAppStateGenerationDomainMigrationNotes8) /
+       sizeof(kAppStateGenerationDomainMigrationNotes8[0])},
+  {"lifecycle.volume.registry",
+   "volume_lifecycle",
+   "ctx/session state plus volume/shared topology and payload state",
+   "volume.volume_generation",
+   kAppStateGenerationDomainIdentityFields9,
+   sizeof(kAppStateGenerationDomainIdentityFields9) /
+       sizeof(kAppStateGenerationDomainIdentityFields9[0]),
+   kAppStateGenerationDomainAdvancesOnTransitionIds9,
+   sizeof(kAppStateGenerationDomainAdvancesOnTransitionIds9) /
+       sizeof(kAppStateGenerationDomainAdvancesOnTransitionIds9[0]),
+   "Panel volume bindings must resolve to an existing volume identity before per-volume snapshots can be restored.",
+   "Do not orphan panel bindings; use deterministic volume fallback and then panel identity fallback after release or cycle invalidation.",
+   "Volume lifecycle transitions update registry/binding state before panel-local restore snapshots are applied.",
+   "documented_foundation_only",
+   kAppStateGenerationDomainMigrationNotes9,
+   sizeof(kAppStateGenerationDomainMigrationNotes9) /
+       sizeof(kAppStateGenerationDomainMigrationNotes9[0])},
+  {"reflow.layout.projection",
+   "layout_reflow",
+   "render/projection/invalidation state",
+   "panel.panel_generation",
+   kAppStateGenerationDomainIdentityFields10,
+   sizeof(kAppStateGenerationDomainIdentityFields10) /
+       sizeof(kAppStateGenerationDomainIdentityFields10[0]),
+   kAppStateGenerationDomainAdvancesOnTransitionIds10,
+   sizeof(kAppStateGenerationDomainAdvancesOnTransitionIds10) /
+       sizeof(kAppStateGenerationDomainAdvancesOnTransitionIds10[0]),
+   "Layout reflow must project from settled AppState and may advance panel generation only for viewport bounds correction.",
+   "If safe projection cannot be computed, degrade or skip render without choosing new authoritative identities.",
+   "Resize handling runs in the main loop and commits any viewport correction before render projection.",
+   "documented_foundation_only",
+   kAppStateGenerationDomainMigrationNotes10,
+   sizeof(kAppStateGenerationDomainMigrationNotes10) /
+       sizeof(kAppStateGenerationDomainMigrationNotes10[0])},
+};
 static const char *const kAppStateDispatchSurfaceMigrationNotes0[] = {
   "Current input polling and key normalization feed controller dispatch; AppState mutation remains in downstream handlers until runtime transition objects are introduced.",
 };
@@ -1252,11 +1634,23 @@ size_t AppStateOwnerFieldCount(void) {
   return sizeof(kAppStateOwnerFields) / sizeof(kAppStateOwnerFields[0]);
 }
 
+size_t AppStateGenerationDomainCount(void) {
+  return sizeof(kAppStateGenerationDomains) / sizeof(kAppStateGenerationDomains[0]);
+}
+
 const AppStateOwnerFieldMetadata *AppStateOwnerFieldAt(size_t index) {
   if (index >= AppStateOwnerFieldCount())
     return NULL;
 
   return &kAppStateOwnerFields[index];
+}
+
+const AppStateGenerationDomainMetadata *
+AppStateGenerationDomainAt(size_t index) {
+  if (index >= AppStateGenerationDomainCount())
+    return NULL;
+
+  return &kAppStateGenerationDomains[index];
 }
 
 const AppStateTransitionMetadata *AppStateTransitionAt(size_t index) {
@@ -1298,6 +1692,21 @@ AppStateOwnerFieldLookup(const char *field) {
   for (index = 0; index < AppStateOwnerFieldCount(); index++) {
     if (!strcmp(kAppStateOwnerFields[index].field, field))
       return &kAppStateOwnerFields[index];
+  }
+
+  return NULL;
+}
+
+const AppStateGenerationDomainMetadata *
+AppStateGenerationDomainLookup(const char *domain_id) {
+  size_t index;
+
+  if (domain_id == NULL || domain_id[0] == '\0')
+    return NULL;
+
+  for (index = 0; index < AppStateGenerationDomainCount(); index++) {
+    if (!strcmp(kAppStateGenerationDomains[index].domain_id, domain_id))
+      return &kAppStateGenerationDomains[index];
   }
 
   return NULL;

@@ -334,6 +334,7 @@ def _write_fixture(
     runtime_shims: list[dict[str, object]] | None = None,
     runtime_invariants: list[dict[str, object]] | None = None,
     runtime_owner_fields: list[dict[str, object]] | None = None,
+    runtime_generation_domains: list[dict[str, object]] | None = None,
 ) -> tuple[Path, Path, Path, Path, Path, Path, Path, Path, Path, Path, Path, Path]:
     transitions_path = tmp_path / "transitions.json"
     shims_path = tmp_path / "shims.json"
@@ -438,6 +439,13 @@ def _write_fixture(
             runtime_invariants
             if runtime_invariants is not None
             else (invariants if invariants is not None else _complete_invariants()),
+            runtime_generation_domains
+            if runtime_generation_domains is not None
+            else (
+                generation_domains
+                if generation_domains is not None
+                else _complete_generation_domains()
+            ),
         ),
     )
     return (
@@ -474,6 +482,7 @@ def _runtime_source(
     dispatch_surfaces: list[dict[str, object]],
     shims: list[dict[str, object]],
     invariants: list[dict[str, object]],
+    generation_domains: list[dict[str, object]],
 ) -> str:
     transition_write_sets = []
     transition_rows = []
@@ -628,6 +637,44 @@ def _runtime_source(
             f"sizeof(kAppStateInvariantMigrationNotes{index}) / "
             f"sizeof(kAppStateInvariantMigrationNotes{index}[0])}},"
         )
+    generation_domain_arrays = []
+    generation_domain_rows = []
+    generation_domain_list_fields = (
+        ("identity_fields", "IdentityFields"),
+        ("advances_on_transition_ids", "AdvancesOnTransitionIds"),
+        ("migration_notes", "MigrationNotes"),
+    )
+    for index, record in enumerate(generation_domains):
+        for field, prefix in generation_domain_list_fields:
+            values = record.get(field)
+            if not isinstance(values, list):
+                values = []
+            rows = "\n".join(
+                f'  "{value}",' for value in values if isinstance(value, str)
+            )
+            generation_domain_arrays.append(
+                f"static const char *const kAppStateGenerationDomain{prefix}{index}[] "
+                f"= {{\n{rows}\n}};\n"
+            )
+        generation_domain_rows.append(
+            f'  {{"{record.get("domain_id", "")}", '
+            f'"{record.get("category", "")}", '
+            f'"{record.get("owner_region", "")}", '
+            f'"{record.get("generation_owner_field", "")}", '
+            f"kAppStateGenerationDomainIdentityFields{index}, "
+            f"sizeof(kAppStateGenerationDomainIdentityFields{index}) / "
+            f"sizeof(kAppStateGenerationDomainIdentityFields{index}[0]), "
+            f"kAppStateGenerationDomainAdvancesOnTransitionIds{index}, "
+            f"sizeof(kAppStateGenerationDomainAdvancesOnTransitionIds{index}) / "
+            f"sizeof(kAppStateGenerationDomainAdvancesOnTransitionIds{index}[0]), "
+            f'"{record.get("stale_snapshot_policy", "")}", '
+            f'"{record.get("fail_closed_fallback", "")}", '
+            f'"{record.get("restore_boundary", "")}", '
+            f'"{record.get("enforcement_status", "")}", '
+            f"kAppStateGenerationDomainMigrationNotes{index}, "
+            f"sizeof(kAppStateGenerationDomainMigrationNotes{index}) / "
+            f"sizeof(kAppStateGenerationDomainMigrationNotes{index}[0])}},"
+        )
     action_rows = "\n".join(
         f'  {{{record["action"]}, "{record["transition_id"]}", "{record["category"]}"}},'
         for record in actions
@@ -638,6 +685,7 @@ def _runtime_source(
         + "".join(dispatch_surface_arrays)
         + "".join(shim_invariants)
         + "".join(invariant_arrays)
+        + "".join(generation_domain_arrays)
         + "static const AppStateTransitionMetadata kAppStateTransitions[] = {\n"
         + "\n".join(transition_rows)
         + "\n};\n"
@@ -651,6 +699,10 @@ def _runtime_source(
         "static const AppStateCompatibilityShimMetadata "
         "kAppStateCompatibilityShims[] = {\n"
         + "\n".join(shim_rows)
+        + "\n};\n"
+        "static const AppStateGenerationDomainMetadata "
+        "kAppStateGenerationDomains[] = {\n"
+        + "\n".join(generation_domain_rows)
         + "\n};\n"
         "static const AppStateInvariantMetadata kAppStateInvariants[] = {\n"
         + "\n".join(invariant_rows)
@@ -1469,6 +1521,209 @@ def test_guard_accepts_empty_generation_domain_advances_with_projection_note(
     failures = _validate(paths)
 
     assert failures == []
+
+
+def test_guard_fails_when_runtime_generation_domain_is_missing(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    runtime_generation_domains = _complete_generation_domains()[1:]
+    missing_domain_id = _complete_generation_domains()[0]["domain_id"]
+    paths = _write_fixture(
+        tmp_path,
+        transitions=transitions,
+        runtime_generation_domains=runtime_generation_domains,
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "runtime generation domain registry missing domain id(s)" in failure
+        and missing_domain_id in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_when_runtime_generation_domain_is_extra(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    runtime_generation_domains = _complete_generation_domains()
+    runtime_generation_domains.append(
+        _generation_domain("panel_generation", "domain.extra")
+    )
+    paths = _write_fixture(
+        tmp_path,
+        transitions=transitions,
+        runtime_generation_domains=runtime_generation_domains,
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "runtime_generation_domain" in failure
+        and "domain_id does not match a generation domain id" in failure
+        and "domain.extra" in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_when_runtime_generation_domain_is_duplicate(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    runtime_generation_domains = _complete_generation_domains()
+    runtime_generation_domains[1]["domain_id"] = runtime_generation_domains[0][
+        "domain_id"
+    ]
+    paths = _write_fixture(
+        tmp_path,
+        transitions=transitions,
+        runtime_generation_domains=runtime_generation_domains,
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "runtime_generation_domain[1]" in failure
+        and "duplicate runtime generation domain id" in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_when_runtime_generation_domain_row_is_malformed(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    paths = _write_fixture(tmp_path, transitions=transitions)
+    runtime_path = paths[-1]
+    runtime_path.write_text(
+        runtime_path.read_text(encoding="utf-8").replace(
+            "static const AppStateGenerationDomainMetadata "
+            "kAppStateGenerationDomains[] = {\n",
+            "static const AppStateGenerationDomainMetadata "
+            "kAppStateGenerationDomains[] = {\n"
+            '  {"domain.malformed"},\n',
+            1,
+        ),
+        encoding="utf-8",
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "runtime_generation_domain[0]" in failure
+        and "malformed runtime generation domain registry row" in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_when_runtime_generation_domain_list_entry_is_malformed(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    paths = _write_fixture(tmp_path, transitions=transitions)
+    runtime_path = paths[-1]
+    runtime_path.write_text(
+        runtime_path.read_text(encoding="utf-8").replace(
+            'static const char *const kAppStateGenerationDomainIdentityFields0[] '
+            '= {\n  "field",\n};',
+            "static const char *const kAppStateGenerationDomainIdentityFields0[] "
+            "= {\n  123,\n};",
+            1,
+        ),
+        encoding="utf-8",
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "kAppStateGenerationDomainIdentityFields0[0]" in failure
+        and "malformed string literal entry" in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_when_runtime_generation_domain_owner_link_is_invalid(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    runtime_generation_domains = _complete_generation_domains()
+    runtime_generation_domains[0]["generation_owner_field"] = "field.missing"
+    paths = _write_fixture(
+        tmp_path,
+        transitions=transitions,
+        runtime_generation_domains=runtime_generation_domains,
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "runtime_generation_domain[0]" in failure
+        and "generation_owner_field does not match runtime owner field registry"
+        in failure
+        and "field.missing" in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_when_runtime_generation_domain_transition_link_is_invalid(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    runtime_generation_domains = _complete_generation_domains()
+    runtime_generation_domains[0]["advances_on_transition_ids"] = [
+        "transition.missing"
+    ]
+    paths = _write_fixture(
+        tmp_path,
+        transitions=transitions,
+        runtime_generation_domains=runtime_generation_domains,
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "runtime_generation_domain[0]" in failure
+        and "advances_on_transition_ids does not match runtime transition registry"
+        in failure
+        and "transition.missing" in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_when_runtime_generation_domain_stale_boundary_fields_drift(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    runtime_generation_domains = _complete_generation_domains()
+    runtime_generation_domains[0]["stale_snapshot_policy"] = "changed stale policy"
+    runtime_generation_domains[0]["fail_closed_fallback"] = "changed fallback"
+    runtime_generation_domains[0]["restore_boundary"] = "changed boundary"
+    paths = _write_fixture(
+        tmp_path,
+        transitions=transitions,
+        runtime_generation_domains=runtime_generation_domains,
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "runtime_generation_domain[0]" in failure
+        and "runtime stale_snapshot_policy does not match generation domain"
+        in failure
+        for failure in failures
+    )
+    assert any(
+        "runtime_generation_domain[0]" in failure
+        and "runtime fail_closed_fallback does not match generation domain" in failure
+        for failure in failures
+    )
+    assert any(
+        "runtime_generation_domain[0]" in failure
+        and "runtime restore_boundary does not match generation domain" in failure
+        for failure in failures
+    )
 
 
 def test_guard_fails_when_generation_effect_names_unregistered_generation_field(

@@ -907,6 +907,107 @@ def _parse_runtime_invariant_registry(
     return records, failures
 
 
+def _parse_runtime_generation_domain_registry(
+    runtime_path: Path,
+) -> tuple[list[dict[str, Any]], list[str]]:
+    try:
+        source = runtime_path.read_text(encoding="utf-8")
+    except OSError as exc:
+        return [], [f"{runtime_path}: failed to read: {exc}"]
+
+    array_fields = {
+        "IdentityFields": "identity_fields",
+        "AdvancesOnTransitionIds": "advances_on_transition_ids",
+        "MigrationNotes": "migration_notes",
+    }
+    arrays: dict[str, list[str]] = {}
+    failures: list[str] = []
+    for table_prefix in array_fields:
+        array_re = re.compile(
+            r"static\s+const\s+char\s+\*const\s+"
+            rf"(kAppStateGenerationDomain{table_prefix}[0-9]+)\[\]\s*=\s*\{{"
+            r"(?P<body>.*?)\};",
+            re.S,
+        )
+        for array_match in array_re.finditer(source):
+            table_name = array_match.group(1)
+            values, array_failures = _parse_string_initializer_array(
+                array_match.group("body"),
+                table_name,
+            )
+            arrays[table_name] = values
+            failures.extend(array_failures)
+
+    match = re.search(
+        r"kAppStateGenerationDomains\s*\[\]\s*=\s*\{(?P<body>.*?)\};",
+        source,
+        re.S,
+    )
+    if match is None:
+        return [], [f"{runtime_path}: failed to find runtime generation domain registry"]
+
+    records: list[dict[str, Any]] = []
+    row_re = re.compile(
+        r"\{\s*\"(?P<domain_id>[^\"]*)\"\s*,"
+        r"\s*\"(?P<category>[^\"]*)\"\s*,"
+        r"\s*\"(?P<owner_region>[^\"]*)\"\s*,"
+        r"\s*\"(?P<generation_owner_field>[^\"]*)\"\s*,"
+        r"\s*(?P<identity_fields>kAppStateGenerationDomainIdentityFields[0-9]+)\s*,"
+        r"\s*sizeof\((?P=identity_fields)\)\s*/"
+        r"\s*sizeof\((?P=identity_fields)\[0\]\)\s*,"
+        r"\s*(?P<advances_on_transition_ids>"
+        r"kAppStateGenerationDomainAdvancesOnTransitionIds[0-9]+)\s*,"
+        r"\s*sizeof\((?P=advances_on_transition_ids)\)\s*/"
+        r"\s*sizeof\((?P=advances_on_transition_ids)\[0\]\)\s*,"
+        r"\s*\"(?P<stale_snapshot_policy>[^\"]*)\"\s*,"
+        r"\s*\"(?P<fail_closed_fallback>[^\"]*)\"\s*,"
+        r"\s*\"(?P<restore_boundary>[^\"]*)\"\s*,"
+        r"\s*\"(?P<enforcement_status>[^\"]*)\"\s*,"
+        r"\s*(?P<migration_notes>kAppStateGenerationDomainMigrationNotes[0-9]+)\s*,"
+        r"\s*sizeof\((?P=migration_notes)\)\s*/"
+        r"\s*sizeof\((?P=migration_notes)\[0\]\)\s*\}",
+        re.S,
+    )
+    rows, row_failures = _split_top_level_initializer_rows(
+        match.group("body"),
+        "runtime_generation_domain",
+    )
+    failures.extend(row_failures)
+    for index, row in enumerate(rows):
+        row_match = row_re.fullmatch(row.strip())
+        if row_match is None:
+            failures.append(
+                f"runtime_generation_domain[{index}]: malformed runtime generation "
+                f"domain registry row: {_compact_initializer_snippet(row)}"
+            )
+            continue
+        record: dict[str, Any] = {
+            "domain_id": row_match.group("domain_id"),
+            "category": row_match.group("category"),
+            "owner_region": row_match.group("owner_region"),
+            "generation_owner_field": row_match.group("generation_owner_field"),
+            "stale_snapshot_policy": row_match.group("stale_snapshot_policy"),
+            "fail_closed_fallback": row_match.group("fail_closed_fallback"),
+            "restore_boundary": row_match.group("restore_boundary"),
+            "enforcement_status": row_match.group("enforcement_status"),
+        }
+        for table_prefix, field in array_fields.items():
+            table_name = row_match.group(field)
+            values = arrays.get(table_name)
+            if values is None:
+                failures.append(
+                    f"runtime_generation_domain[{index}]: unknown {field} "
+                    f"table: {table_name}"
+                )
+                values = []
+            record[field] = values
+        records.append(record)
+
+    if not records:
+        failures.append(f"{runtime_path}: runtime generation domain registry must not be empty")
+    return records, failures
+
+
 def _parse_runtime_shim_registry(
     runtime_path: Path,
 ) -> tuple[list[dict[str, Any]], list[str]]:
@@ -1354,6 +1455,140 @@ def _validate_runtime_invariant_registry(
         failures.append(
             f"{runtime_path}: runtime invariant registry missing invariant id(s): "
             + ", ".join(missing_ids)
+        )
+
+    return failures
+
+
+def _validate_runtime_generation_domain_registry(
+    *,
+    runtime_records: list[dict[str, Any]],
+    runtime_path: Path,
+    generation_domain_records: list[Any],
+    runtime_owner_fields: set[str],
+    runtime_transition_ids: set[str],
+) -> list[str]:
+    failures: list[str] = []
+    expected_domains = {
+        record["domain_id"]: record
+        for record in generation_domain_records
+        if isinstance(record, dict)
+        and isinstance(record.get("domain_id"), str)
+        and record["domain_id"].strip()
+    }
+    expected_ids = set(expected_domains)
+    covered_ids: set[str] = set()
+
+    for index, record in enumerate(runtime_records):
+        label = f"runtime_generation_domain[{index}]"
+        runtime_id = record["domain_id"]
+        if runtime_id in covered_ids:
+            failures.append(
+                f"{label}: duplicate runtime generation domain id: {runtime_id}"
+            )
+        covered_ids.add(runtime_id)
+
+        domain_record = expected_domains.get(runtime_id)
+        if domain_record is None:
+            failures.append(
+                f"{label}: domain_id does not match a generation domain id: {runtime_id}"
+            )
+        else:
+            for field in (
+                "category",
+                "owner_region",
+                "generation_owner_field",
+                "identity_fields",
+                "advances_on_transition_ids",
+                "stale_snapshot_policy",
+                "fail_closed_fallback",
+                "restore_boundary",
+                "enforcement_status",
+                "migration_notes",
+            ):
+                if record.get(field) != domain_record.get(field):
+                    failures.append(
+                        f"{label}: runtime {field} does not match generation "
+                        f"domain {runtime_id}: {record.get(field)}"
+                    )
+
+        for field in (
+            "domain_id",
+            "category",
+            "owner_region",
+            "generation_owner_field",
+            "stale_snapshot_policy",
+            "fail_closed_fallback",
+            "restore_boundary",
+            "enforcement_status",
+        ):
+            value = record.get(field)
+            if not isinstance(value, str) or not value.strip():
+                failures.append(f"{label}: {field} must be a non-empty string")
+
+        for field in ("identity_fields", "migration_notes"):
+            values = record.get(field)
+            if not isinstance(values, list) or not values:
+                failures.append(f"{label}: {field} must be non-empty")
+                continue
+            for value_index, value in enumerate(values):
+                if not isinstance(value, str) or not value.strip():
+                    failures.append(
+                        f"{label}: {field}[{value_index}] must be a non-empty string"
+                    )
+
+        transition_refs = record.get("advances_on_transition_ids")
+        if not isinstance(transition_refs, list):
+            failures.append(f"{label}: advances_on_transition_ids must be a list")
+        else:
+            for transition_index, transition_id in enumerate(transition_refs):
+                if not isinstance(transition_id, str) or not transition_id.strip():
+                    failures.append(
+                        f"{label}: advances_on_transition_ids[{transition_index}] "
+                        "must be a non-empty string"
+                    )
+
+        generation_owner_field = record.get("generation_owner_field")
+        if (
+            isinstance(generation_owner_field, str)
+            and generation_owner_field.strip()
+            and generation_owner_field not in runtime_owner_fields
+        ):
+            failures.append(
+                f"{label}: generation_owner_field does not match runtime owner "
+                f"field registry: {generation_owner_field}"
+            )
+
+        identity_fields = record.get("identity_fields")
+        if isinstance(identity_fields, list):
+            for field in identity_fields:
+                if (
+                    isinstance(field, str)
+                    and field.strip()
+                    and field not in runtime_owner_fields
+                ):
+                    failures.append(
+                        f"{label}: identity_fields does not match runtime owner "
+                        f"field registry: {field}"
+                    )
+
+        if isinstance(transition_refs, list):
+            for transition_id in transition_refs:
+                if (
+                    isinstance(transition_id, str)
+                    and transition_id.strip()
+                    and transition_id not in runtime_transition_ids
+                ):
+                    failures.append(
+                        f"{label}: advances_on_transition_ids does not match "
+                        f"runtime transition registry: {transition_id}"
+                    )
+
+    missing_ids = sorted(expected_ids - covered_ids)
+    if missing_ids:
+        failures.append(
+            f"{runtime_path}: runtime generation domain registry missing "
+            "domain id(s): " + ", ".join(missing_ids)
         )
 
     return failures
@@ -2558,6 +2793,9 @@ def validate_contract(
     runtime_invariant_records, runtime_invariant_failures = (
         _parse_runtime_invariant_registry(action_runtime_path)
     )
+    runtime_generation_domain_records, runtime_generation_domain_failures = (
+        _parse_runtime_generation_domain_registry(action_runtime_path)
+    )
     failures.extend(transition_load_failures)
     failures.extend(shim_load_failures)
     failures.extend(action_coverage_load_failures)
@@ -2575,6 +2813,7 @@ def validate_contract(
     failures.extend(runtime_dispatch_surface_failures)
     failures.extend(runtime_shim_failures)
     failures.extend(runtime_invariant_failures)
+    failures.extend(runtime_generation_domain_failures)
     if failures:
         return failures
 
@@ -2658,6 +2897,25 @@ def validate_contract(
         registered_owner_fields=registered_owner_fields,
     )
     failures.extend(generation_domain_failures)
+    if isinstance(generation_domains_doc, dict) and isinstance(
+        generation_domains_doc.get("generation_domains"), list
+    ):
+        generation_domain_records = generation_domains_doc["generation_domains"]
+    else:
+        generation_domain_records = []
+    failures.extend(
+        _validate_runtime_generation_domain_registry(
+            runtime_records=runtime_generation_domain_records,
+            runtime_path=action_runtime_path,
+            generation_domain_records=generation_domain_records,
+            runtime_owner_fields={
+                record["field"] for record in runtime_owner_field_records
+            },
+            runtime_transition_ids={
+                record["id"] for record in runtime_transition_records
+            },
+        )
+    )
     failures.extend(
         _validate_transition_generation_effects(
             transitions=transitions,
