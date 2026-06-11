@@ -98,6 +98,53 @@ static int AppStateTransitionRegistryReady(void) {
   return 1;
 }
 
+static int AppStateDispatchSurfaceWritesReady(
+    const AppStateDispatchSurfaceMetadata *metadata) {
+  if (metadata->allowed_direct_write_count == 0)
+    return metadata->allowed_direct_writes == NULL;
+
+  return NonEmptyStringList(metadata->allowed_direct_writes,
+                            metadata->allowed_direct_write_count);
+}
+
+static int AppStateDispatchSurfacesReady(void) {
+  size_t index;
+
+  if (AppStateDispatchSurfaceCount() == 0)
+    return 0;
+
+  for (index = 0; index < AppStateDispatchSurfaceCount(); index++) {
+    const AppStateDispatchSurfaceMetadata *metadata =
+        AppStateDispatchSurfaceAt(index);
+
+    if (metadata == NULL || !NonEmptyString(metadata->surface_id) ||
+        !NonEmptyString(metadata->category) ||
+        !NonEmptyString(metadata->source_path) ||
+        !NonEmptyString(metadata->entry_symbol_or_path) ||
+        !NonEmptyString(metadata->transition_id) ||
+        !NonEmptyString(metadata->boundary_status) ||
+        !AppStateDispatchSurfaceWritesReady(metadata) ||
+        !NonEmptyStringList(metadata->migration_notes,
+                            metadata->migration_note_count))
+      return 0;
+    if (AppStateDispatchSurfaceLookup(metadata->surface_id) != metadata)
+      return 0;
+    if (AppStateTransitionLookup(metadata->transition_id) == NULL)
+      return 0;
+  }
+
+  if (AppStateDispatchSurfaceAt(AppStateDispatchSurfaceCount()) != NULL)
+    return 0;
+  if (AppStateDispatchSurfaceLookup(NULL) != NULL)
+    return 0;
+  if (AppStateDispatchSurfaceLookup("") != NULL)
+    return 0;
+  if (AppStateDispatchSurfaceLookup("surface.__ytnova_unknown__") != NULL)
+    return 0;
+
+  return 1;
+}
+
 static int AppStateInvariantRegistryReady(void) {
   size_t index;
 
@@ -129,6 +176,13 @@ static int AppStateInvariantRegistryReady(void) {
          transition_index < metadata->transition_id_count; transition_index++) {
       if (AppStateTransitionLookup(metadata->transition_ids[transition_index]) ==
           NULL)
+        return 0;
+    }
+    for (transition_index = 0;
+         transition_index < metadata->dispatch_surface_id_count;
+         transition_index++) {
+      if (AppStateDispatchSurfaceLookup(
+              metadata->dispatch_surface_ids[transition_index]) == NULL)
         return 0;
     }
   }
@@ -292,6 +346,7 @@ int main(int argc, char **argv) {
   CoreMainOps_Register(&ctx);
   if (!CoreMainOpsReady(&ctx.core_main_ops) ||
       !AppStateTransitionRegistryReady() ||
+      !AppStateDispatchSurfacesReady() ||
       !AppStateInvariantRegistryReady() ||
       !AppStateCompatibilityShimsReady() ||
       !AppStateActionTransitionsReady()) {

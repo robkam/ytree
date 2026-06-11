@@ -619,6 +619,110 @@ def _parse_runtime_transition_registry(
     return records, failures
 
 
+def _parse_runtime_dispatch_surface_registry(
+    runtime_path: Path,
+) -> tuple[list[dict[str, Any]], list[str]]:
+    try:
+        source = runtime_path.read_text(encoding="utf-8")
+    except OSError as exc:
+        return [], [f"{runtime_path}: failed to read: {exc}"]
+
+    array_fields = {
+        "AllowedDirectWrites": "allowed_direct_writes",
+        "MigrationNotes": "migration_notes",
+    }
+    arrays: dict[str, list[str]] = {}
+    failures: list[str] = []
+    for table_prefix in array_fields:
+        array_re = re.compile(
+            r"static\s+const\s+char\s+\*const\s+"
+            rf"(kAppStateDispatchSurface{table_prefix}[0-9]+)\[\]\s*=\s*\{{"
+            r"(?P<body>.*?)\};",
+            re.S,
+        )
+        for array_match in array_re.finditer(source):
+            table_name = array_match.group(1)
+            values, array_failures = _parse_string_initializer_array(
+                array_match.group("body"),
+                table_name,
+            )
+            arrays[table_name] = values
+            failures.extend(array_failures)
+
+    match = re.search(
+        r"kAppStateDispatchSurfaces\s*\[\]\s*=\s*\{(?P<body>.*?)\};",
+        source,
+        re.S,
+    )
+    if match is None:
+        return [], [f"{runtime_path}: failed to find runtime dispatch surface registry"]
+
+    records: list[dict[str, Any]] = []
+    row_re = re.compile(
+        r"\{\s*\"(?P<surface_id>[^\"]*)\"\s*,"
+        r"\s*\"(?P<category>[^\"]*)\"\s*,"
+        r"\s*\"(?P<source_path>[^\"]*)\"\s*,"
+        r"\s*\"(?P<entry_symbol_or_path>[^\"]*)\"\s*,"
+        r"\s*\"(?P<transition_id>[^\"]*)\"\s*,"
+        r"\s*\"(?P<boundary_status>[^\"]*)\"\s*,"
+        r"\s*(?P<allowed_direct_writes>"
+        r"kAppStateDispatchSurfaceAllowedDirectWrites[0-9]+|NULL)\s*,"
+        r"\s*(?:(?P<allowed_direct_write_zero>0)|"
+        r"sizeof\((?P=allowed_direct_writes)\)\s*/"
+        r"\s*sizeof\((?P=allowed_direct_writes)\[0\]\))\s*,"
+        r"\s*(?P<migration_notes>kAppStateDispatchSurfaceMigrationNotes[0-9]+)\s*,"
+        r"\s*sizeof\((?P=migration_notes)\)\s*/"
+        r"\s*sizeof\((?P=migration_notes)\[0\]\)\s*\}",
+        re.S,
+    )
+    rows, row_failures = _split_top_level_initializer_rows(
+        match.group("body"),
+        "runtime_dispatch_surface",
+    )
+    failures.extend(row_failures)
+    for index, row in enumerate(rows):
+        row_match = row_re.fullmatch(row.strip())
+        if row_match is None:
+            failures.append(
+                f"runtime_dispatch_surface[{index}]: malformed runtime dispatch "
+                f"surface registry row: {_compact_initializer_snippet(row)}"
+            )
+            continue
+        record: dict[str, Any] = {
+            "surface_id": row_match.group("surface_id"),
+            "category": row_match.group("category"),
+            "source_path": row_match.group("source_path"),
+            "entry_symbol_or_path": row_match.group("entry_symbol_or_path"),
+            "transition_id": row_match.group("transition_id"),
+            "boundary_status": row_match.group("boundary_status"),
+        }
+        for field in ("allowed_direct_writes", "migration_notes"):
+            table_name = row_match.group(field)
+            if table_name == "NULL":
+                values = []
+            else:
+                values = arrays.get(table_name)
+                if values is None:
+                    failures.append(
+                        f"runtime_dispatch_surface[{index}]: unknown {field} "
+                        f"table: {table_name}"
+                    )
+                    values = []
+            record[field] = values
+        if row_match.group("allowed_direct_writes") == "NULL" and not row_match.group(
+            "allowed_direct_write_zero"
+        ):
+            failures.append(
+                f"runtime_dispatch_surface[{index}]: NULL allowed_direct_writes "
+                "must have zero count"
+            )
+        records.append(record)
+
+    if not records:
+        failures.append(f"{runtime_path}: runtime dispatch surface registry must not be empty")
+    return records, failures
+
+
 def _parse_runtime_invariant_registry(
     runtime_path: Path,
 ) -> tuple[list[dict[str, Any]], list[str]]:
@@ -910,6 +1014,90 @@ def _validate_runtime_transition_registry(
         failures.append(
             f"{runtime_path}: runtime transition registry missing transition id(s): "
             + ", ".join(missing_ids)
+        )
+
+    return failures
+
+
+def _validate_runtime_dispatch_surface_registry(
+    *,
+    runtime_records: list[dict[str, Any]],
+    runtime_path: Path,
+    dispatch_surface_records: list[Any],
+    runtime_transition_ids: set[str],
+) -> list[str]:
+    failures: list[str] = []
+    expected_surfaces = {
+        record["surface_id"]: record
+        for record in dispatch_surface_records
+        if isinstance(record, dict)
+        and isinstance(record.get("surface_id"), str)
+        and record["surface_id"].strip()
+    }
+    expected_ids = set(expected_surfaces)
+    covered_ids: set[str] = set()
+
+    for index, record in enumerate(runtime_records):
+        label = f"runtime_dispatch_surface[{index}]"
+        runtime_id = record["surface_id"]
+        if runtime_id in covered_ids:
+            failures.append(f"{label}: duplicate runtime dispatch surface id: {runtime_id}")
+        covered_ids.add(runtime_id)
+
+        surface_record = expected_surfaces.get(runtime_id)
+        if surface_record is None:
+            failures.append(
+                f"{label}: surface_id does not match a dispatch surface id: {runtime_id}"
+            )
+        else:
+            for field in (
+                "category",
+                "source_path",
+                "entry_symbol_or_path",
+                "transition_id",
+                "boundary_status",
+                "allowed_direct_writes",
+                "migration_notes",
+            ):
+                if record.get(field) != surface_record.get(field):
+                    failures.append(
+                        f"{label}: runtime {field} does not match dispatch "
+                        f"surface {runtime_id}: {record.get(field)}"
+                    )
+
+        writes = record.get("allowed_direct_writes")
+        if not isinstance(writes, list):
+            failures.append(f"{label}: allowed_direct_writes must be a list")
+        else:
+            for write_index, write in enumerate(writes):
+                if not isinstance(write, str) or not write.strip():
+                    failures.append(
+                        f"{label}: allowed_direct_writes[{write_index}] "
+                        "must be a non-empty string"
+                    )
+
+        notes = record.get("migration_notes")
+        if not isinstance(notes, list) or not notes:
+            failures.append(f"{label}: migration_notes must be non-empty")
+        elif any(not isinstance(note, str) or not note.strip() for note in notes):
+            failures.append(f"{label}: migration_notes must contain non-empty strings")
+
+        transition_id = record.get("transition_id")
+        if (
+            isinstance(transition_id, str)
+            and transition_id.strip()
+            and transition_id not in runtime_transition_ids
+        ):
+            failures.append(
+                f"{label}: transition_id does not match runtime transition "
+                f"registry: {transition_id}"
+            )
+
+    missing_ids = sorted(expected_ids - covered_ids)
+    if missing_ids:
+        failures.append(
+            f"{runtime_path}: runtime dispatch surface registry missing "
+            "surface id(s): " + ", ".join(missing_ids)
         )
 
     return failures
@@ -2210,6 +2398,9 @@ def validate_contract(
     runtime_transition_records, runtime_transition_failures = (
         _parse_runtime_transition_registry(action_runtime_path)
     )
+    runtime_dispatch_surface_records, runtime_dispatch_surface_failures = (
+        _parse_runtime_dispatch_surface_registry(action_runtime_path)
+    )
     runtime_shim_records, runtime_shim_failures = _parse_runtime_shim_registry(
         action_runtime_path
     )
@@ -2229,6 +2420,7 @@ def validate_contract(
     failures.extend(enum_failures)
     failures.extend(runtime_action_failures)
     failures.extend(runtime_transition_failures)
+    failures.extend(runtime_dispatch_surface_failures)
     failures.extend(runtime_shim_failures)
     failures.extend(runtime_invariant_failures)
     if failures:
@@ -2447,11 +2639,28 @@ def validate_contract(
             registered_owner_fields=registered_owner_fields,
         )
     )
+    if isinstance(dispatch_surfaces_doc, dict) and isinstance(
+        dispatch_surfaces_doc.get("dispatch_surfaces"), list
+    ):
+        dispatch_surface_records = dispatch_surfaces_doc["dispatch_surfaces"]
+    else:
+        dispatch_surface_records = []
+    failures.extend(
+        _validate_runtime_dispatch_surface_registry(
+            runtime_records=runtime_dispatch_surface_records,
+            runtime_path=action_runtime_path,
+            dispatch_surface_records=dispatch_surface_records,
+            runtime_transition_ids={record["id"] for record in runtime_transition_records},
+        )
+    )
     dispatch_surface_ids = _collect_string_ids(
         dispatch_surfaces_doc,
         collection_key="dispatch_surfaces",
         id_field="surface_id",
     )
+    runtime_dispatch_surface_ids = {
+        record["surface_id"] for record in runtime_dispatch_surface_records
+    }
     failures.extend(
         _validate_invariants(
             invariants_doc=invariants_doc,
@@ -2473,7 +2682,7 @@ def validate_contract(
             runtime_path=action_runtime_path,
             invariant_records=invariant_records,
             runtime_transition_ids={record["id"] for record in runtime_transition_records},
-            dispatch_surface_ids=dispatch_surface_ids,
+            dispatch_surface_ids=runtime_dispatch_surface_ids,
         )
     )
     invariant_ids = _collect_string_ids(

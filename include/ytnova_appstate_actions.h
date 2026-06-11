@@ -26,6 +26,19 @@ typedef struct {
 } AppStateTransitionMetadata;
 
 typedef struct {
+  const char *surface_id;
+  const char *category;
+  const char *source_path;
+  const char *entry_symbol_or_path;
+  const char *transition_id;
+  const char *boundary_status;
+  const char *const *allowed_direct_writes;
+  size_t allowed_direct_write_count;
+  const char *const *migration_notes;
+  size_t migration_note_count;
+} AppStateDispatchSurfaceMetadata;
+
+typedef struct {
   const char *id;
   const char *owner;
   const char *old_authority_path;
@@ -63,6 +76,10 @@ const AppStateTransitionMetadata *
 AppStateTransitionLookup(const char *transition_id);
 const AppStateTransitionMetadata *AppStateTransitionAt(size_t index);
 size_t AppStateTransitionCount(void);
+const AppStateDispatchSurfaceMetadata *
+AppStateDispatchSurfaceLookup(const char *surface_id);
+const AppStateDispatchSurfaceMetadata *AppStateDispatchSurfaceAt(size_t index);
+size_t AppStateDispatchSurfaceCount(void);
 const AppStateCompatibilityShimMetadata *
 AppStateCompatibilityShimLookup(const char *shim_id);
 const AppStateCompatibilityShimMetadata *

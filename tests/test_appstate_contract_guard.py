@@ -330,6 +330,7 @@ def _write_fixture(
     enum_actions: list[str] | None = None,
     runtime_actions: list[dict[str, object]] | None = None,
     runtime_transitions: list[dict[str, object]] | None = None,
+    runtime_dispatch_surfaces: list[dict[str, object]] | None = None,
     runtime_shims: list[dict[str, object]] | None = None,
     runtime_invariants: list[dict[str, object]] | None = None,
 ) -> tuple[Path, Path, Path, Path, Path, Path, Path, Path, Path, Path, Path, Path]:
@@ -416,6 +417,13 @@ def _write_fixture(
         _runtime_source(
             runtime_actions or _complete_actions(),
             runtime_transitions if runtime_transitions is not None else transitions,
+            runtime_dispatch_surfaces
+            if runtime_dispatch_surfaces is not None
+            else (
+                dispatch_surfaces
+                if dispatch_surfaces is not None
+                else _complete_dispatch_surfaces()
+            ),
             runtime_shims
             if runtime_shims is not None
             else (shims if shims is not None else [_shim()]),
@@ -454,6 +462,7 @@ def _enum_header(actions: list[str]) -> str:
 def _runtime_source(
     actions: list[dict[str, object]],
     transitions: list[dict[str, object]],
+    dispatch_surfaces: list[dict[str, object]],
     shims: list[dict[str, object]],
     invariants: list[dict[str, object]],
 ) -> str:
@@ -476,6 +485,50 @@ def _runtime_source(
             f"kAppStateTransitionWriteSet{index}, "
             f"sizeof(kAppStateTransitionWriteSet{index}) / "
             f"sizeof(kAppStateTransitionWriteSet{index}[0])}},"
+        )
+    dispatch_surface_arrays = []
+    dispatch_surface_rows = []
+    for index, record in enumerate(dispatch_surfaces):
+        allowed_direct_writes = record.get("allowed_direct_writes")
+        if isinstance(allowed_direct_writes, list) and allowed_direct_writes:
+            write_rows = "\n".join(
+                f'  "{field}",'
+                for field in allowed_direct_writes
+                if isinstance(field, str)
+            )
+            dispatch_surface_arrays.append(
+                "static const char *const "
+                f"kAppStateDispatchSurfaceAllowedDirectWrites{index}[] = "
+                f"{{\n{write_rows}\n}};\n"
+            )
+            writes_table = f"kAppStateDispatchSurfaceAllowedDirectWrites{index}"
+            writes_count = (
+                f"sizeof({writes_table}) / "
+                f"sizeof({writes_table}[0])"
+            )
+        else:
+            writes_table = "NULL"
+            writes_count = "0"
+        migration_notes = record.get("migration_notes")
+        if not isinstance(migration_notes, list):
+            migration_notes = []
+        note_rows = "\n".join(
+            f'  "{note}",' for note in migration_notes if isinstance(note, str)
+        )
+        notes_table = f"kAppStateDispatchSurfaceMigrationNotes{index}"
+        dispatch_surface_arrays.append(
+            f"static const char *const {notes_table}[] = "
+            f"{{\n{note_rows}\n}};\n"
+        )
+        dispatch_surface_rows.append(
+            f'  {{"{record.get("surface_id", "")}", '
+            f'"{record.get("category", "")}", '
+            f'"{record.get("source_path", "")}", '
+            f'"{record.get("entry_symbol_or_path", "")}", '
+            f'"{record.get("transition_id", "")}", '
+            f'"{record.get("boundary_status", "")}", '
+            f"{writes_table}, {writes_count}, "
+            f"{notes_table}, sizeof({notes_table}) / sizeof({notes_table}[0])}},"
         )
     shim_invariants = []
     shim_rows = []
@@ -549,10 +602,15 @@ def _runtime_source(
     )
     return (
         "".join(transition_write_sets)
+        + "".join(dispatch_surface_arrays)
         + "".join(shim_invariants)
         + "".join(invariant_arrays)
         + "static const AppStateTransitionMetadata kAppStateTransitions[] = {\n"
         + "\n".join(transition_rows)
+        + "\n};\n"
+        "static const AppStateDispatchSurfaceMetadata "
+        "kAppStateDispatchSurfaces[] = {\n"
+        + "\n".join(dispatch_surface_rows)
         + "\n};\n"
         "static const AppStateCompatibilityShimMetadata "
         "kAppStateCompatibilityShims[] = {\n"
@@ -1766,6 +1824,137 @@ def test_guard_accepts_empty_dispatch_surface_allowed_writes(
     failures = _validate(paths)
 
     assert failures == []
+
+
+def test_guard_fails_when_runtime_dispatch_surface_metadata_drifts(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    runtime_dispatch_surfaces = _complete_dispatch_surfaces()
+    runtime_dispatch_surfaces[0]["category"] = "runtime_drift"
+    paths = _write_fixture(
+        tmp_path,
+        transitions=transitions,
+        runtime_dispatch_surfaces=runtime_dispatch_surfaces,
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "runtime_dispatch_surface[0]" in failure
+        and "runtime category does not match dispatch surface" in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_when_runtime_dispatch_surface_id_is_missing(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    runtime_dispatch_surfaces = _complete_dispatch_surfaces()[1:]
+    paths = _write_fixture(
+        tmp_path,
+        transitions=transitions,
+        runtime_dispatch_surfaces=runtime_dispatch_surfaces,
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "runtime dispatch surface registry missing surface id(s)" in failure
+        and "surface.directory_window_action_dispatch" in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_when_runtime_dispatch_surface_id_is_extra(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    runtime_dispatch_surfaces = _complete_dispatch_surfaces()
+    extra = dict(runtime_dispatch_surfaces[0])
+    extra["surface_id"] = "surface.extra"
+    runtime_dispatch_surfaces.append(extra)
+    paths = _write_fixture(
+        tmp_path,
+        transitions=transitions,
+        runtime_dispatch_surfaces=runtime_dispatch_surfaces,
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "runtime_dispatch_surface" in failure
+        and "does not match a dispatch surface id: surface.extra" in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_when_runtime_dispatch_surface_row_is_malformed(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    paths = _write_fixture(tmp_path, transitions=transitions)
+    runtime_path = paths[-1]
+    source = runtime_path.read_text(encoding="utf-8")
+    runtime_path.write_text(
+        source.replace('{"surface.key_decode_input_dispatch"', "{123", 1),
+        encoding="utf-8",
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "runtime_dispatch_surface[3]" in failure
+        and "malformed runtime dispatch surface registry row" in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_when_runtime_dispatch_surface_list_entry_is_malformed(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    paths = _write_fixture(tmp_path, transitions=transitions)
+    runtime_path = paths[-1]
+    source = runtime_path.read_text(encoding="utf-8")
+    runtime_path.write_text(
+        source.replace(
+            '"fixture coverage",',
+            "123,",
+            1,
+        ),
+        encoding="utf-8",
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "kAppStateDispatchSurfaceMigrationNotes0" in failure
+        and "malformed string literal entry" in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_when_runtime_dispatch_surface_transition_is_not_registered(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    runtime_dispatch_surfaces = _complete_dispatch_surfaces()
+    runtime_dispatch_surfaces[0]["transition_id"] = "transition.missing"
+    paths = _write_fixture(
+        tmp_path,
+        transitions=transitions,
+        runtime_dispatch_surfaces=runtime_dispatch_surfaces,
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "runtime_dispatch_surface[0]" in failure
+        and "transition_id does not match runtime transition registry" in failure
+        for failure in failures
+    )
 
 
 def test_guard_fails_on_duplicate_owner_field_records(tmp_path: Path) -> None:
