@@ -335,6 +335,7 @@ def _write_fixture(
     runtime_invariants: list[dict[str, object]] | None = None,
     runtime_owner_fields: list[dict[str, object]] | None = None,
     runtime_generation_domains: list[dict[str, object]] | None = None,
+    runtime_diff_harness_checks: list[dict[str, object]] | None = None,
 ) -> tuple[Path, Path, Path, Path, Path, Path, Path, Path, Path, Path, Path, Path]:
     transitions_path = tmp_path / "transitions.json"
     shims_path = tmp_path / "shims.json"
@@ -446,6 +447,13 @@ def _write_fixture(
                 if generation_domains is not None
                 else _complete_generation_domains()
             ),
+            runtime_diff_harness_checks
+            if runtime_diff_harness_checks is not None
+            else (
+                diff_harness_checks
+                if diff_harness_checks is not None
+                else _complete_diff_harness_checks()
+            ),
         ),
     )
     return (
@@ -483,6 +491,7 @@ def _runtime_source(
     shims: list[dict[str, object]],
     invariants: list[dict[str, object]],
     generation_domains: list[dict[str, object]],
+    diff_harness_checks: list[dict[str, object]],
 ) -> str:
     transition_write_sets = []
     transition_rows = []
@@ -675,6 +684,57 @@ def _runtime_source(
             f"sizeof(kAppStateGenerationDomainMigrationNotes{index}) / "
             f"sizeof(kAppStateGenerationDomainMigrationNotes{index}[0])}},"
         )
+    diff_harness_arrays = []
+    diff_harness_rows = []
+    diff_harness_list_fields = (
+        ("snapshot_phases", "SnapshotPhases"),
+        ("snapshot_regions", "SnapshotRegions"),
+        ("transition_ids", "TransitionIds"),
+        ("owner_field_refs", "OwnerFieldRefs"),
+        ("invariant_ids", "InvariantIds"),
+        ("generation_domain_ids", "GenerationDomainIds"),
+        ("migration_notes", "MigrationNotes"),
+    )
+    for index, record in enumerate(diff_harness_checks):
+        for field, prefix in diff_harness_list_fields:
+            values = record.get(field)
+            if not isinstance(values, list):
+                values = []
+            rows = "\n".join(
+                f'  "{value}",' for value in values if isinstance(value, str)
+            )
+            diff_harness_arrays.append(
+                f"static const char *const kAppStateDiffHarness{prefix}{index}[] "
+                f"= {{\n{rows}\n}};\n"
+            )
+        diff_harness_rows.append(
+            f'  {{"{record.get("harness_id", "")}", '
+            f'"{record.get("check_category", "")}", '
+            f"kAppStateDiffHarnessSnapshotPhases{index}, "
+            f"sizeof(kAppStateDiffHarnessSnapshotPhases{index}) / "
+            f"sizeof(kAppStateDiffHarnessSnapshotPhases{index}[0]), "
+            f"kAppStateDiffHarnessSnapshotRegions{index}, "
+            f"sizeof(kAppStateDiffHarnessSnapshotRegions{index}) / "
+            f"sizeof(kAppStateDiffHarnessSnapshotRegions{index}[0]), "
+            f"kAppStateDiffHarnessTransitionIds{index}, "
+            f"sizeof(kAppStateDiffHarnessTransitionIds{index}) / "
+            f"sizeof(kAppStateDiffHarnessTransitionIds{index}[0]), "
+            f"kAppStateDiffHarnessOwnerFieldRefs{index}, "
+            f"sizeof(kAppStateDiffHarnessOwnerFieldRefs{index}) / "
+            f"sizeof(kAppStateDiffHarnessOwnerFieldRefs{index}[0]), "
+            f"kAppStateDiffHarnessInvariantIds{index}, "
+            f"sizeof(kAppStateDiffHarnessInvariantIds{index}) / "
+            f"sizeof(kAppStateDiffHarnessInvariantIds{index}[0]), "
+            f"kAppStateDiffHarnessGenerationDomainIds{index}, "
+            f"sizeof(kAppStateDiffHarnessGenerationDomainIds{index}) / "
+            f"sizeof(kAppStateDiffHarnessGenerationDomainIds{index}[0]), "
+            f'"{record.get("expected_behavior", "")}", '
+            f'"{record.get("failure_mode", "")}", '
+            f'"{record.get("enforcement_status", "")}", '
+            f"kAppStateDiffHarnessMigrationNotes{index}, "
+            f"sizeof(kAppStateDiffHarnessMigrationNotes{index}) / "
+            f"sizeof(kAppStateDiffHarnessMigrationNotes{index}[0])}},"
+        )
     action_rows = "\n".join(
         f'  {{{record["action"]}, "{record["transition_id"]}", "{record["category"]}"}},'
         for record in actions
@@ -686,6 +746,7 @@ def _runtime_source(
         + "".join(shim_invariants)
         + "".join(invariant_arrays)
         + "".join(generation_domain_arrays)
+        + "".join(diff_harness_arrays)
         + "static const AppStateTransitionMetadata kAppStateTransitions[] = {\n"
         + "\n".join(transition_rows)
         + "\n};\n"
@@ -703,6 +764,9 @@ def _runtime_source(
         "static const AppStateGenerationDomainMetadata "
         "kAppStateGenerationDomains[] = {\n"
         + "\n".join(generation_domain_rows)
+        + "\n};\n"
+        "static const AppStateDiffHarnessMetadata kAppStateDiffHarnesses[] = {\n"
+        + "\n".join(diff_harness_rows)
         + "\n};\n"
         "static const AppStateInvariantMetadata kAppStateInvariants[] = {\n"
         + "\n".join(invariant_rows)
@@ -1307,6 +1371,241 @@ def test_guard_fails_when_diff_harness_references_unknown_generation_domain(
         and "domain.missing" in failure
         for failure in failures
     )
+
+
+def test_guard_fails_when_runtime_diff_harness_is_missing(tmp_path: Path) -> None:
+    transitions = _complete_transitions()
+    runtime_diff_harness_checks = _complete_diff_harness_checks()[1:]
+    paths = _write_fixture(
+        tmp_path,
+        transitions=transitions,
+        runtime_diff_harness_checks=runtime_diff_harness_checks,
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "runtime diff harness registry missing harness id(s)" in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_when_runtime_diff_harness_is_extra(tmp_path: Path) -> None:
+    transitions = _complete_transitions()
+    runtime_diff_harness_checks = _complete_diff_harness_checks()
+    extra = dict(runtime_diff_harness_checks[0])
+    extra["harness_id"] = "harness.extra"
+    runtime_diff_harness_checks.append(extra)
+    paths = _write_fixture(
+        tmp_path,
+        transitions=transitions,
+        runtime_diff_harness_checks=runtime_diff_harness_checks,
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "runtime_diff_harness" in failure
+        and "harness_id does not match a diff harness id" in failure
+        and "harness.extra" in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_when_runtime_diff_harness_is_duplicate(tmp_path: Path) -> None:
+    transitions = _complete_transitions()
+    runtime_diff_harness_checks = _complete_diff_harness_checks()
+    runtime_diff_harness_checks[1]["harness_id"] = runtime_diff_harness_checks[0][
+        "harness_id"
+    ]
+    paths = _write_fixture(
+        tmp_path,
+        transitions=transitions,
+        runtime_diff_harness_checks=runtime_diff_harness_checks,
+    )
+
+    failures = _validate(paths)
+
+    assert any("duplicate runtime diff harness id" in failure for failure in failures)
+
+
+def test_guard_fails_when_runtime_diff_harness_drifts_from_docs(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    runtime_diff_harness_checks = _complete_diff_harness_checks()
+    runtime_diff_harness_checks[0]["expected_behavior"] = "runtime drift"
+    paths = _write_fixture(
+        tmp_path,
+        transitions=transitions,
+        runtime_diff_harness_checks=runtime_diff_harness_checks,
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "runtime_diff_harness[0]" in failure
+        and "runtime expected_behavior does not match diff harness" in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_when_runtime_diff_harness_row_is_malformed(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    paths = _write_fixture(tmp_path, transitions=transitions)
+    runtime_path = paths[-1]
+    runtime_path.write_text(
+        runtime_path.read_text(encoding="utf-8").replace(
+            '"blocked_transition_no_unrelated_mutation", '
+            "kAppStateDiffHarnessSnapshotPhases0",
+            '"blocked_transition_no_unrelated_mutation", '
+            "kAppStateDiffHarnessMissing0",
+            1,
+        ),
+        encoding="utf-8",
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "runtime_diff_harness[0]" in failure
+        and "malformed runtime diff harness registry row" in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_when_runtime_diff_harness_list_entry_is_malformed(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    paths = _write_fixture(tmp_path, transitions=transitions)
+    runtime_path = paths[-1]
+    runtime_path.write_text(
+        runtime_path.read_text(encoding="utf-8").replace(
+            'static const char *const kAppStateDiffHarnessSnapshotPhases0[] '
+            '= {\n  "before",',
+            'static const char *const kAppStateDiffHarnessSnapshotPhases0[] '
+            '= {\n  ,',
+            1,
+        ),
+        encoding="utf-8",
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "kAppStateDiffHarnessSnapshotPhases0[0]" in failure
+        and "malformed string literal entry" in failure
+        for failure in failures
+    )
+
+
+@pytest.mark.parametrize(
+    ("field", "value", "expected"),
+    (
+        (
+            "transition_ids",
+            ["transition.missing"],
+            "transition_ids does not match runtime transition registry",
+        ),
+        (
+            "owner_field_refs",
+            ["field.missing"],
+            "owner_field_refs does not match runtime owner field registry",
+        ),
+        (
+            "invariant_ids",
+            ["invariant.missing"],
+            "invariant_ids does not match runtime invariant registry",
+        ),
+        (
+            "generation_domain_ids",
+            ["domain.missing"],
+            "generation_domain_ids does not match runtime generation domain registry",
+        ),
+    ),
+)
+def test_guard_fails_on_runtime_diff_harness_invalid_linkage(
+    tmp_path: Path, field: str, value: list[str], expected: str
+) -> None:
+    transitions = _complete_transitions()
+    runtime_diff_harness_checks = _complete_diff_harness_checks()
+    runtime_diff_harness_checks[0][field] = value
+    paths = _write_fixture(
+        tmp_path,
+        transitions=transitions,
+        runtime_diff_harness_checks=runtime_diff_harness_checks,
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "runtime_diff_harness[0]" in failure
+        and expected in failure
+        and value[0] in failure
+        for failure in failures
+    )
+
+
+def test_runtime_diff_harness_lookup_fails_closed(tmp_path: Path) -> None:
+    repo_root = Path(__file__).resolve().parents[1]
+    probe = tmp_path / "diff_harness_lookup_probe.c"
+    binary = tmp_path / "diff_harness_lookup_probe"
+    probe.write_text(
+        """
+#include "ytnova_appstate_actions.h"
+
+int main(void) {
+  const AppStateDiffHarnessMetadata *metadata;
+
+  if (AppStateDiffHarnessCount() == 0)
+    return 1;
+  if (AppStateDiffHarnessAt(AppStateDiffHarnessCount()) != 0)
+    return 2;
+  if (AppStateDiffHarnessLookup(0) != 0)
+    return 3;
+  if (AppStateDiffHarnessLookup("") != 0)
+    return 4;
+  if (AppStateDiffHarnessLookup("harness.__ytnova_unknown__") != 0)
+    return 5;
+
+  metadata = AppStateDiffHarnessAt(0);
+  if (metadata == 0)
+    return 6;
+  if (AppStateDiffHarnessLookup(metadata->harness_id) != metadata)
+    return 7;
+  return 0;
+}
+""",
+        encoding="utf-8",
+    )
+
+    build = subprocess.run(
+        [
+            "gcc",
+            "-std=c99",
+            "-Iinclude",
+            str(probe),
+            "src/core/appstate_actions.c",
+            "-o",
+            str(binary),
+        ],
+        cwd=repo_root,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert build.returncode == 0, build.stdout + build.stderr
+    run = subprocess.run(
+        [str(binary)],
+        cwd=repo_root,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert run.returncode == 0, run.stdout + run.stderr
 
 
 def test_guard_fails_when_required_generation_domain_category_is_missing(

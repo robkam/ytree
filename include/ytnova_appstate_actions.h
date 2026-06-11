@@ -97,6 +97,28 @@ typedef struct {
   size_t migration_note_count;
 } AppStateGenerationDomainMetadata;
 
+typedef struct {
+  const char *harness_id;
+  const char *check_category;
+  const char *const *snapshot_phases;
+  size_t snapshot_phase_count;
+  const char *const *snapshot_regions;
+  size_t snapshot_region_count;
+  const char *const *transition_ids;
+  size_t transition_id_count;
+  const char *const *owner_field_refs;
+  size_t owner_field_ref_count;
+  const char *const *invariant_ids;
+  size_t invariant_id_count;
+  const char *const *generation_domain_ids;
+  size_t generation_domain_id_count;
+  const char *expected_behavior;
+  const char *failure_mode;
+  const char *enforcement_status;
+  const char *const *migration_notes;
+  size_t migration_note_count;
+} AppStateDiffHarnessMetadata;
+
 const AppStateActionTransitionMetadata *
 AppStateActionTransitionLookup(YtreeNovaAction action);
 size_t AppStateActionTransitionCount(void);
@@ -124,5 +146,9 @@ const AppStateGenerationDomainMetadata *
 AppStateGenerationDomainLookup(const char *domain_id);
 const AppStateGenerationDomainMetadata *AppStateGenerationDomainAt(size_t index);
 size_t AppStateGenerationDomainCount(void);
+const AppStateDiffHarnessMetadata *
+AppStateDiffHarnessLookup(const char *harness_id);
+const AppStateDiffHarnessMetadata *AppStateDiffHarnessAt(size_t index);
+size_t AppStateDiffHarnessCount(void);
 
 #endif /* YTNOVA_APPSTATE_ACTIONS_H */
