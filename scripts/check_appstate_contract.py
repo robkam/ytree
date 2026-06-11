@@ -1119,6 +1119,271 @@ def _parse_runtime_diff_harness_registry(
     return records, failures
 
 
+
+def _parse_runtime_nullable_string(value: str) -> str | None:
+    value = value.strip()
+    if value == "NULL":
+        return None
+    if len(value) >= 2 and value[0] == '"' and value[-1] == '"':
+        return value[1:-1]
+    return None
+
+
+def _parse_runtime_transition_sequence_registry(
+    runtime_path: Path,
+) -> tuple[list[dict[str, Any]], list[str]]:
+    try:
+        source = runtime_path.read_text(encoding="utf-8")
+    except OSError as exc:
+        return [], [f"{runtime_path}: failed to read: {exc}"]
+
+    failures: list[str] = []
+    string_arrays: dict[str, list[str]] = {}
+    string_array_re = re.compile(
+        r"static\s+const\s+char\s+\*const\s+"
+        r"(kAppStateTransitionSequenceStep(?:InvariantIds|DiffHarnessIds)[0-9]+_[0-9]+)"
+        r"\[\]\s*=\s*\{(?P<body>.*?)\};",
+        re.S,
+    )
+    for array_match in string_array_re.finditer(source):
+        table_name = array_match.group(1)
+        values, array_failures = _parse_string_initializer_array(
+            array_match.group("body"),
+            table_name,
+        )
+        string_arrays[table_name] = values
+        failures.extend(array_failures)
+
+    generation_expectations: dict[str, list[dict[str, str]]] = {}
+    generation_re = re.compile(
+        r"static\s+const\s+AppStateTransitionSequenceGenerationExpectationMetadata\s+"
+        r"(kAppStateTransitionSequenceStepGenerationExpectations[0-9]+_[0-9]+)"
+        r"\[\]\s*=\s*\{(?P<body>.*?)\};",
+        re.S,
+    )
+    generation_row_re = re.compile(
+        r"\{\s*\"(?P<domain_id>[^\"]*)\"\s*,\s*\"(?P<expectation>[^\"]*)\"\s*\}",
+        re.S,
+    )
+    for generation_match in generation_re.finditer(source):
+        table_name = generation_match.group(1)
+        rows, row_failures = _split_top_level_initializer_rows(
+            generation_match.group("body"),
+            table_name,
+        )
+        failures.extend(row_failures)
+        values: list[dict[str, str]] = []
+        for index, row in enumerate(rows):
+            row_match = generation_row_re.fullmatch(row.strip())
+            if row_match is None:
+                failures.append(
+                    f"{table_name}[{index}]: malformed generation expectation row: "
+                    f"{_compact_initializer_snippet(row)}"
+                )
+                continue
+            values.append(
+                {
+                    "domain_id": row_match.group("domain_id"),
+                    "expectation": row_match.group("expectation"),
+                }
+            )
+        generation_expectations[table_name] = values
+
+    no_unrelated_mutations: dict[str, dict[str, str]] = {}
+    no_unrelated_re = re.compile(
+        r"static\s+const\s+AppStateTransitionSequenceNoUnrelatedMutationMetadata\s+"
+        r"(kAppStateTransitionSequenceStepNoUnrelatedMutation[0-9]+_[0-9]+)"
+        r"\s*=\s*\{\s*\"(?P<diff_harness_id>[^\"]*)\"\s*,\s*"
+        r"\"(?P<expectation>[^\"]*)\"\s*\};",
+        re.S,
+    )
+    for no_unrelated_match in no_unrelated_re.finditer(source):
+        no_unrelated_mutations[no_unrelated_match.group(1)] = {
+            "diff_harness_id": no_unrelated_match.group("diff_harness_id"),
+            "expectation": no_unrelated_match.group("expectation"),
+        }
+
+    deterministic_fallbacks: dict[str, dict[str, str]] = {}
+    fallback_re = re.compile(
+        r"static\s+const\s+AppStateTransitionSequenceDeterministicFallbackMetadata\s+"
+        r"(kAppStateTransitionSequenceStepDeterministicFallback[0-9]+_[0-9]+)"
+        r"\s*=\s*\{\s*\"(?P<outcome>[^\"]*)\"\s*,\s*"
+        r"\"(?P<allowed_mutation_scope>[^\"]*)\"\s*\};",
+        re.S,
+    )
+    for fallback_match in fallback_re.finditer(source):
+        deterministic_fallbacks[fallback_match.group(1)] = {
+            "outcome": fallback_match.group("outcome"),
+            "allowed_mutation_scope": fallback_match.group("allowed_mutation_scope"),
+        }
+
+    step_arrays: dict[str, list[dict[str, Any]]] = {}
+    step_array_re = re.compile(
+        r"static\s+const\s+AppStateTransitionSequenceStepMetadata\s+"
+        r"(kAppStateTransitionSequenceSteps[0-9]+)\[\]\s*=\s*\{(?P<body>.*?)\};",
+        re.S,
+    )
+    step_row_re = re.compile(
+        r"\{\s*(?P<ordinal>[0-9]+)\s*,"
+        r"\s*\"(?P<step_id>[^\"]*)\"\s*,"
+        r"\s*\"(?P<transition_id>[^\"]*)\"\s*,"
+        r"\s*(?P<stimulus_action_id>NULL|\"[^\"]*\")\s*,"
+        r"\s*(?P<stimulus_event_id>NULL|\"[^\"]*\")\s*,"
+        r"\s*\"(?P<expected_result>[^\"]*)\"\s*,"
+        r"\s*(?P<invariant_ids>kAppStateTransitionSequenceStepInvariantIds[0-9]+_[0-9]+)\s*,"
+        r"\s*sizeof\((?P=invariant_ids)\)\s*/\s*sizeof\((?P=invariant_ids)\[0\]\)\s*,"
+        r"\s*(?P<diff_harness_ids>kAppStateTransitionSequenceStepDiffHarnessIds[0-9]+_[0-9]+)\s*,"
+        r"\s*sizeof\((?P=diff_harness_ids)\)\s*/\s*sizeof\((?P=diff_harness_ids)\[0\]\)\s*,"
+        r"\s*(?P<generation_domain_expectations>"
+        r"kAppStateTransitionSequenceStepGenerationExpectations[0-9]+_[0-9]+)\s*,"
+        r"\s*sizeof\((?P=generation_domain_expectations)\)\s*/"
+        r"\s*sizeof\((?P=generation_domain_expectations)\[0\]\)\s*,"
+        r"\s*(?P<no_unrelated_mutation>NULL|&?kAppStateTransitionSequenceStepNoUnrelatedMutation[0-9]+_[0-9]+)\s*,"
+        r"\s*(?P<precondition>NULL|\"[^\"]*\")\s*,"
+        r"\s*(?P<deterministic_fallback>NULL|&?kAppStateTransitionSequenceStepDeterministicFallback[0-9]+_[0-9]+)\s*\}",
+        re.S,
+    )
+    for step_array_match in step_array_re.finditer(source):
+        table_name = step_array_match.group(1)
+        rows, row_failures = _split_top_level_initializer_rows(
+            step_array_match.group("body"),
+            f"runtime_transition_sequence_step_array.{table_name}",
+        )
+        failures.extend(row_failures)
+        steps: list[dict[str, Any]] = []
+        for index, row in enumerate(rows):
+            row_match = step_row_re.fullmatch(row.strip())
+            if row_match is None:
+                failures.append(
+                    f"runtime_transition_sequence_step[{table_name}][{index}]: "
+                    f"malformed runtime transition sequence step row: "
+                    f"{_compact_initializer_snippet(row)}"
+                )
+                continue
+
+            invariant_table = row_match.group("invariant_ids")
+            diff_harness_table = row_match.group("diff_harness_ids")
+            generation_table = row_match.group("generation_domain_expectations")
+            no_unrelated_table = row_match.group("no_unrelated_mutation").lstrip("&")
+            fallback_table = row_match.group("deterministic_fallback").lstrip("&")
+
+            if invariant_table not in string_arrays:
+                failures.append(
+                    f"runtime_transition_sequence_step[{table_name}][{index}]: "
+                    f"unknown invariant_ids table: {invariant_table}"
+                )
+            if diff_harness_table not in string_arrays:
+                failures.append(
+                    f"runtime_transition_sequence_step[{table_name}][{index}]: "
+                    f"unknown diff_harness_ids table: {diff_harness_table}"
+                )
+            if generation_table not in generation_expectations:
+                failures.append(
+                    f"runtime_transition_sequence_step[{table_name}][{index}]: "
+                    "unknown generation_domain_expectations table: "
+                    f"{generation_table}"
+                )
+
+            no_unrelated = None
+            if no_unrelated_table != "NULL":
+                no_unrelated = no_unrelated_mutations.get(no_unrelated_table)
+                if no_unrelated is None:
+                    failures.append(
+                        f"runtime_transition_sequence_step[{table_name}][{index}]: "
+                        "unknown no_unrelated_mutation table: "
+                        f"{no_unrelated_table}"
+                    )
+            deterministic_fallback = None
+            if fallback_table != "NULL":
+                deterministic_fallback = deterministic_fallbacks.get(fallback_table)
+                if deterministic_fallback is None:
+                    failures.append(
+                        f"runtime_transition_sequence_step[{table_name}][{index}]: "
+                        "unknown deterministic_fallback table: "
+                        f"{fallback_table}"
+                    )
+
+            steps.append(
+                {
+                    "ordinal": int(row_match.group("ordinal")),
+                    "step_id": row_match.group("step_id"),
+                    "transition_id": row_match.group("transition_id"),
+                    "stimulus_action_id": _parse_runtime_nullable_string(
+                        row_match.group("stimulus_action_id")
+                    ),
+                    "stimulus_event_id": _parse_runtime_nullable_string(
+                        row_match.group("stimulus_event_id")
+                    ),
+                    "expected_result": row_match.group("expected_result"),
+                    "invariant_ids": string_arrays.get(invariant_table, []),
+                    "diff_harness_ids": string_arrays.get(diff_harness_table, []),
+                    "generation_domain_expectations": generation_expectations.get(
+                        generation_table,
+                        [],
+                    ),
+                    "no_unrelated_mutation": no_unrelated,
+                    "precondition": _parse_runtime_nullable_string(
+                        row_match.group("precondition")
+                    ),
+                    "deterministic_fallback": deterministic_fallback,
+                }
+            )
+        step_arrays[table_name] = steps
+
+    match = re.search(
+        r"kAppStateTransitionSequences\s*\[\]\s*=\s*\{(?P<body>.*?)\};",
+        source,
+        re.S,
+    )
+    if match is None:
+        return [], [f"{runtime_path}: failed to find runtime transition sequence registry"]
+
+    records: list[dict[str, Any]] = []
+    row_re = re.compile(
+        r"\{\s*\"(?P<scenario_id>[^\"]*)\"\s*,"
+        r"\s*\"(?P<category>[^\"]*)\"\s*,"
+        r"\s*\"(?P<flow>[^\"]*)\"\s*,"
+        r"\s*\"(?P<description>[^\"]*)\"\s*,"
+        r"\s*(?P<steps>kAppStateTransitionSequenceSteps[0-9]+)\s*,"
+        r"\s*sizeof\((?P=steps)\)\s*/\s*sizeof\((?P=steps)\[0\]\)\s*\}",
+        re.S,
+    )
+    rows, row_failures = _split_top_level_initializer_rows(
+        match.group("body"),
+        "runtime_transition_sequence",
+    )
+    failures.extend(row_failures)
+    for index, row in enumerate(rows):
+        row_match = row_re.fullmatch(row.strip())
+        if row_match is None:
+            failures.append(
+                f"runtime_transition_sequence[{index}]: malformed runtime transition "
+                f"sequence registry row: {_compact_initializer_snippet(row)}"
+            )
+            continue
+        steps_table = row_match.group("steps")
+        steps = step_arrays.get(steps_table)
+        if steps is None:
+            failures.append(
+                f"runtime_transition_sequence[{index}]: unknown steps table: {steps_table}"
+            )
+            steps = []
+        records.append(
+            {
+                "scenario_id": row_match.group("scenario_id"),
+                "category": row_match.group("category"),
+                "flow": row_match.group("flow"),
+                "description": row_match.group("description"),
+                "steps": steps,
+            }
+        )
+
+    if not records:
+        failures.append(
+            f"{runtime_path}: runtime transition sequence registry must not be empty"
+        )
+    return records, failures
+
 def _parse_runtime_shim_registry(
     runtime_path: Path,
 ) -> tuple[list[dict[str, Any]], list[str]]:
@@ -2979,6 +3244,260 @@ def _validate_appstate_transition_sequences(
     return failures
 
 
+
+def _normalize_transition_sequence_records(records: list[Any]) -> dict[str, dict[str, Any]]:
+    normalized: dict[str, dict[str, Any]] = {}
+    for record in records:
+        if not isinstance(record, dict):
+            continue
+        scenario_id = record.get("scenario_id")
+        if not isinstance(scenario_id, str) or not scenario_id.strip():
+            continue
+        steps: list[dict[str, Any]] = []
+        for step in record.get("steps", []):
+            if not isinstance(step, dict):
+                continue
+            stimulus = step.get("stimulus")
+            if not isinstance(stimulus, dict):
+                stimulus = {}
+            steps.append(
+                {
+                    "ordinal": step.get("ordinal"),
+                    "step_id": step.get("step_id"),
+                    "transition_id": step.get("transition_id"),
+                    "stimulus_action_id": stimulus.get("action_id"),
+                    "stimulus_event_id": stimulus.get("event_id"),
+                    "expected_result": step.get("expected_result"),
+                    "invariant_ids": step.get("invariant_ids"),
+                    "diff_harness_ids": step.get("diff_harness_ids"),
+                    "generation_domain_expectations": step.get(
+                        "generation_domain_expectations"
+                    ),
+                    "no_unrelated_mutation": step.get("no_unrelated_mutation"),
+                    "precondition": step.get("precondition"),
+                    "deterministic_fallback": step.get("deterministic_fallback"),
+                }
+            )
+        normalized[scenario_id] = {
+            "scenario_id": scenario_id,
+            "category": record.get("category"),
+            "flow": record.get("flow"),
+            "description": record.get("description"),
+            "steps": steps,
+        }
+    return normalized
+
+
+def _validate_runtime_transition_sequence_registry(
+    *,
+    runtime_records: list[dict[str, Any]],
+    runtime_path: Path,
+    transition_sequence_records: list[Any],
+    runtime_transition_ids: set[str],
+    action_ids: set[str],
+    action_transition_ids: dict[str, str],
+    event_ids: set[str],
+    event_transition_ids: dict[str, str],
+    runtime_invariant_ids: set[str],
+    runtime_diff_harness_ids: set[str],
+    runtime_generation_domain_ids: set[str],
+) -> list[str]:
+    failures: list[str] = []
+    expected_sequences = _normalize_transition_sequence_records(
+        transition_sequence_records
+    )
+    expected_ids = set(expected_sequences)
+    covered_ids: set[str] = set()
+
+    for index, record in enumerate(runtime_records):
+        label = f"runtime_transition_sequence[{index}]"
+        runtime_id = record.get("scenario_id")
+        if not isinstance(runtime_id, str) or not runtime_id.strip():
+            failures.append(f"{label}: scenario_id must be a non-empty string")
+            continue
+        if runtime_id in covered_ids:
+            failures.append(
+                f"{label}: duplicate runtime transition sequence scenario_id: {runtime_id}"
+            )
+        covered_ids.add(runtime_id)
+
+        expected_record = expected_sequences.get(runtime_id)
+        if expected_record is None:
+            failures.append(
+                f"{label}: scenario_id does not match a transition sequence: {runtime_id}"
+            )
+        else:
+            for field in ("category", "flow", "description", "steps"):
+                if record.get(field) != expected_record.get(field):
+                    failures.append(
+                        f"{label}: runtime {field} does not match transition "
+                        f"sequence {runtime_id}: {record.get(field)}"
+                    )
+
+        for field in ("category", "flow", "description"):
+            value = record.get(field)
+            if not isinstance(value, str) or not value.strip():
+                failures.append(f"{label}: {field} must be a non-empty string")
+
+        steps = record.get("steps")
+        if not isinstance(steps, list) or not steps:
+            failures.append(f"{label}: steps must be non-empty")
+            continue
+
+        previous_ordinal = 0
+        step_ids: set[str] = set()
+        ordinals: set[int] = set()
+        for step_index, step in enumerate(steps):
+            step_label = f"{label}.step[{step_index}]"
+            if not isinstance(step, dict):
+                failures.append(f"{step_label}: record must be an object")
+                continue
+
+            ordinal = step.get("ordinal")
+            if not isinstance(ordinal, int) or ordinal < 1:
+                failures.append(f"{step_label}: ordinal must be a positive integer")
+            else:
+                if ordinal in ordinals:
+                    failures.append(f"{step_label}: duplicate ordinal: {ordinal}")
+                if ordinal <= previous_ordinal:
+                    failures.append(
+                        f"{step_label}: ordinal must be greater than previous step ordinal"
+                    )
+                ordinals.add(ordinal)
+                previous_ordinal = ordinal
+
+            step_id = step.get("step_id")
+            if not isinstance(step_id, str) or not step_id.strip():
+                failures.append(f"{step_label}: step_id must be a non-empty string")
+            else:
+                if step_id in step_ids:
+                    failures.append(f"{step_label}: duplicate step_id: {step_id}")
+                step_ids.add(step_id)
+
+            transition_id = step.get("transition_id")
+            if not isinstance(transition_id, str) or not transition_id.strip():
+                failures.append(
+                    f"{step_label}: transition_id must be a non-empty string"
+                )
+            elif transition_id not in runtime_transition_ids:
+                failures.append(
+                    f"{step_label}: transition_id does not match runtime transition "
+                    f"registry: {transition_id}"
+                )
+
+            action_id = step.get("stimulus_action_id")
+            event_id = step.get("stimulus_event_id")
+            if action_id is None and event_id is None:
+                failures.append(
+                    f"{step_label}: stimulus must include action_id or event_id"
+                )
+            if action_id is not None:
+                if not isinstance(action_id, str) or not action_id.strip():
+                    failures.append(
+                        f"{step_label}: stimulus_action_id must be a non-empty string"
+                    )
+                elif action_id not in action_ids:
+                    failures.append(
+                        f"{step_label}: stimulus_action_id references unknown action: "
+                        f"{action_id}"
+                    )
+                elif isinstance(transition_id, str) and transition_id.strip():
+                    action_transition_id = action_transition_ids.get(action_id)
+                    if action_transition_id != transition_id:
+                        failures.append(
+                            f"{step_label}: stimulus_action_id {action_id} maps to "
+                            f"transition_id {action_transition_id}, not "
+                            f"step.transition_id {transition_id}"
+                        )
+            if event_id is not None:
+                if not isinstance(event_id, str) or not event_id.strip():
+                    failures.append(
+                        f"{step_label}: stimulus_event_id must be a non-empty string"
+                    )
+                elif event_id not in event_ids:
+                    failures.append(
+                        f"{step_label}: stimulus_event_id references unknown event id: "
+                        f"{event_id}"
+                    )
+                elif isinstance(transition_id, str) and transition_id.strip():
+                    event_transition_id = event_transition_ids.get(event_id)
+                    if event_transition_id != transition_id:
+                        failures.append(
+                            f"{step_label}: stimulus_event_id {event_id} maps to "
+                            f"transition_id {event_transition_id}, not "
+                            f"step.transition_id {transition_id}"
+                        )
+
+            for field, valid_ids, reference_label in (
+                ("invariant_ids", runtime_invariant_ids, "runtime invariant id"),
+                ("diff_harness_ids", runtime_diff_harness_ids, "runtime diff harness id"),
+            ):
+                values = step.get(field)
+                failures.extend(
+                    _validate_step_reference_list(
+                        value=values,
+                        valid_ids=valid_ids,
+                        label=step_label,
+                        field=field,
+                        reference_label=reference_label,
+                    )
+                )
+
+            failures.extend(
+                _validate_generation_expectations(
+                    value=step.get("generation_domain_expectations"),
+                    label=step_label,
+                    generation_domain_ids=runtime_generation_domain_ids,
+                )
+            )
+
+            expected_result = step.get("expected_result")
+            if not isinstance(expected_result, str) or not expected_result.strip():
+                failures.append(
+                    f"{step_label}: expected_result must be a non-empty string"
+                )
+            elif expected_result not in {"allowed", "blocked", "fallback", "invalid"}:
+                failures.append(
+                    f"{step_label}: unknown expected_result: {expected_result}"
+                )
+
+            precondition = step.get("precondition")
+            if precondition is not None and (
+                not isinstance(precondition, str) or not precondition.strip()
+            ):
+                failures.append(f"{step_label}: precondition must be non-empty")
+
+            if isinstance(step, dict) and _requires_deterministic_fallback(step):
+                failures.extend(
+                    _validate_deterministic_fallback(record=step, label=step_label)
+                )
+            fallback = step.get("deterministic_fallback")
+            if fallback is not None and not isinstance(fallback, dict):
+                failures.append(
+                    f"{step_label}: deterministic_fallback must be an object"
+                )
+
+            if expected_result in {"blocked", "invalid"}:
+                failures.extend(
+                    _validate_no_unrelated_mutation(
+                        record=step,
+                        label=step_label,
+                        diff_harness_ids=runtime_diff_harness_ids,
+                    )
+                )
+            no_unrelated = step.get("no_unrelated_mutation")
+            if no_unrelated is not None and not isinstance(no_unrelated, dict):
+                failures.append(f"{step_label}: no_unrelated_mutation must be an object")
+
+    missing_ids = sorted(expected_ids - covered_ids)
+    if missing_ids:
+        failures.append(
+            f"{runtime_path}: runtime transition sequence registry missing "
+            "scenario id(s): " + ", ".join(missing_ids)
+        )
+
+    return failures
+
 def validate_contract(
     transitions_path: Path,
     shims_path: Path,
@@ -3035,6 +3554,9 @@ def validate_contract(
     runtime_diff_harness_records, runtime_diff_harness_failures = (
         _parse_runtime_diff_harness_registry(action_runtime_path)
     )
+    runtime_transition_sequence_records, runtime_transition_sequence_failures = (
+        _parse_runtime_transition_sequence_registry(action_runtime_path)
+    )
     failures.extend(transition_load_failures)
     failures.extend(shim_load_failures)
     failures.extend(action_coverage_load_failures)
@@ -3054,6 +3576,7 @@ def validate_contract(
     failures.extend(runtime_invariant_failures)
     failures.extend(runtime_generation_domain_failures)
     failures.extend(runtime_diff_harness_failures)
+    failures.extend(runtime_transition_sequence_failures)
     if failures:
         return failures
 
@@ -3430,6 +3953,35 @@ def validate_contract(
             invariant_ids=invariant_ids,
             diff_harness_ids=diff_harness_ids,
             generation_domain_ids=generation_domain_ids,
+        )
+    )
+    if isinstance(transition_sequences_doc, dict) and isinstance(
+        transition_sequences_doc.get("scenarios"), list
+    ):
+        transition_sequence_records = transition_sequences_doc["scenarios"]
+    else:
+        transition_sequence_records = []
+    failures.extend(
+        _validate_runtime_transition_sequence_registry(
+            runtime_records=runtime_transition_sequence_records,
+            runtime_path=action_runtime_path,
+            transition_sequence_records=transition_sequence_records,
+            runtime_transition_ids={
+                record["id"] for record in runtime_transition_records
+            },
+            action_ids=action_ids,
+            action_transition_ids=action_transition_ids,
+            event_ids=event_ids,
+            event_transition_ids=event_transition_ids,
+            runtime_invariant_ids={
+                record["invariant_id"] for record in runtime_invariant_records
+            },
+            runtime_diff_harness_ids={
+                record["harness_id"] for record in runtime_diff_harness_records
+            },
+            runtime_generation_domain_ids={
+                record["domain_id"] for record in runtime_generation_domain_records
+            },
         )
     )
 

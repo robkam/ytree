@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import copy
 import importlib.util
 import subprocess
 from pathlib import Path
@@ -336,6 +337,7 @@ def _write_fixture(
     runtime_owner_fields: list[dict[str, object]] | None = None,
     runtime_generation_domains: list[dict[str, object]] | None = None,
     runtime_diff_harness_checks: list[dict[str, object]] | None = None,
+    runtime_transition_sequences: list[dict[str, object]] | None = None,
 ) -> tuple[Path, Path, Path, Path, Path, Path, Path, Path, Path, Path, Path, Path]:
     transitions_path = tmp_path / "transitions.json"
     shims_path = tmp_path / "shims.json"
@@ -454,6 +456,13 @@ def _write_fixture(
                 if diff_harness_checks is not None
                 else _complete_diff_harness_checks()
             ),
+            runtime_transition_sequences
+            if runtime_transition_sequences is not None
+            else (
+                transition_sequences
+                if transition_sequences is not None
+                else _complete_transition_sequences()
+            ),
         ),
     )
     return (
@@ -492,6 +501,7 @@ def _runtime_source(
     invariants: list[dict[str, object]],
     generation_domains: list[dict[str, object]],
     diff_harness_checks: list[dict[str, object]],
+    transition_sequences: list[dict[str, object]],
 ) -> str:
     transition_write_sets = []
     transition_rows = []
@@ -735,6 +745,128 @@ def _runtime_source(
             f"sizeof(kAppStateDiffHarnessMigrationNotes{index}) / "
             f"sizeof(kAppStateDiffHarnessMigrationNotes{index}[0])}},"
         )
+    transition_sequence_arrays = []
+    transition_sequence_rows = []
+    for sequence_index, record in enumerate(transition_sequences):
+        steps = record.get("steps")
+        if not isinstance(steps, list):
+            steps = []
+        step_rows = []
+        for step_index, step in enumerate(steps):
+            if not isinstance(step, dict):
+                continue
+            invariant_ids = step.get("invariant_ids")
+            if not isinstance(invariant_ids, list):
+                invariant_ids = []
+            sequence_invariant_rows = "\n".join(
+                f'  "{value}",' for value in invariant_ids if isinstance(value, str)
+            )
+            invariant_table = (
+                "kAppStateTransitionSequenceStepInvariantIds"
+                f"{sequence_index}_{step_index}"
+            )
+            transition_sequence_arrays.append(
+                f"static const char *const {invariant_table}[] = "
+                f"{{\n{sequence_invariant_rows}\n}};\n"
+            )
+            diff_harness_ids = step.get("diff_harness_ids")
+            if not isinstance(diff_harness_ids, list):
+                diff_harness_ids = []
+            diff_rows = "\n".join(
+                f'  "{value}",' for value in diff_harness_ids if isinstance(value, str)
+            )
+            diff_table = (
+                "kAppStateTransitionSequenceStepDiffHarnessIds"
+                f"{sequence_index}_{step_index}"
+            )
+            transition_sequence_arrays.append(
+                f"static const char *const {diff_table}[] = "
+                f"{{\n{diff_rows}\n}};\n"
+            )
+            expectations = step.get("generation_domain_expectations")
+            if not isinstance(expectations, list):
+                expectations = []
+            expectation_rows = "\n".join(
+                f'  {{"{expectation.get("domain_id", "")}", '
+                f'"{expectation.get("expectation", "")}"}},'
+                for expectation in expectations
+                if isinstance(expectation, dict)
+            )
+            expectation_table = (
+                "kAppStateTransitionSequenceStepGenerationExpectations"
+                f"{sequence_index}_{step_index}"
+            )
+            transition_sequence_arrays.append(
+                "static const "
+                "AppStateTransitionSequenceGenerationExpectationMetadata "
+                f"{expectation_table}[] = {{\n{expectation_rows}\n}};\n"
+            )
+            no_unrelated = step.get("no_unrelated_mutation")
+            if isinstance(no_unrelated, dict):
+                no_unrelated_table = (
+                    "kAppStateTransitionSequenceStepNoUnrelatedMutation"
+                    f"{sequence_index}_{step_index}"
+                )
+                transition_sequence_arrays.append(
+                    "static const "
+                    "AppStateTransitionSequenceNoUnrelatedMutationMetadata "
+                    f'{no_unrelated_table} = '
+                    f'{{"{no_unrelated.get("diff_harness_id", "")}", '
+                    f'"{no_unrelated.get("expectation", "")}"}};\n'
+                )
+                no_unrelated_ref = f"&{no_unrelated_table}"
+            else:
+                no_unrelated_ref = "NULL"
+            fallback = step.get("deterministic_fallback")
+            if isinstance(fallback, dict):
+                fallback_table = (
+                    "kAppStateTransitionSequenceStepDeterministicFallback"
+                    f"{sequence_index}_{step_index}"
+                )
+                transition_sequence_arrays.append(
+                    "static const "
+                    "AppStateTransitionSequenceDeterministicFallbackMetadata "
+                    f'{fallback_table} = '
+                    f'{{"{fallback.get("outcome", "")}", '
+                    f'"{fallback.get("allowed_mutation_scope", "")}"}};\n'
+                )
+                fallback_ref = f"&{fallback_table}"
+            else:
+                fallback_ref = "NULL"
+            stimulus = step.get("stimulus")
+            if not isinstance(stimulus, dict):
+                stimulus = {}
+            action_id = stimulus.get("action_id")
+            event_id = stimulus.get("event_id")
+            action_expr = f'"{action_id}"' if isinstance(action_id, str) else "NULL"
+            event_expr = f'"{event_id}"' if isinstance(event_id, str) else "NULL"
+            precondition = step.get("precondition")
+            precondition_expr = (
+                f'"{precondition}"' if isinstance(precondition, str) else "NULL"
+            )
+            step_rows.append(
+                f'  {{{step.get("ordinal", 0)}, "{step.get("step_id", "")}", '
+                f'"{step.get("transition_id", "")}", {action_expr}, {event_expr}, '
+                f'"{step.get("expected_result", "")}", '
+                f"{invariant_table}, sizeof({invariant_table}) / "
+                f"sizeof({invariant_table}[0]), "
+                f"{diff_table}, sizeof({diff_table}) / sizeof({diff_table}[0]), "
+                f"{expectation_table}, sizeof({expectation_table}) / "
+                f"sizeof({expectation_table}[0]), "
+                f"{no_unrelated_ref}, {precondition_expr}, {fallback_ref}}},"
+            )
+        steps_table = f"kAppStateTransitionSequenceSteps{sequence_index}"
+        transition_sequence_arrays.append(
+            "static const AppStateTransitionSequenceStepMetadata "
+            f"{steps_table}[] = {{\n" + "\n".join(step_rows) + "\n};\n"
+        )
+        transition_sequence_rows.append(
+            f'  {{"{record.get("scenario_id", "")}", '
+            f'"{record.get("category", "")}", '
+            f'"{record.get("flow", "")}", '
+            f'"{record.get("description", "")}", '
+            f"{steps_table}, sizeof({steps_table}) / sizeof({steps_table}[0])}},"
+        )
     action_rows = "\n".join(
         f'  {{{record["action"]}, "{record["transition_id"]}", "{record["category"]}"}},'
         for record in actions
@@ -770,6 +902,11 @@ def _runtime_source(
         + "\n};\n"
         "static const AppStateInvariantMetadata kAppStateInvariants[] = {\n"
         + "\n".join(invariant_rows)
+        + "\n};\n"
+        + "".join(transition_sequence_arrays)
+        + "static const AppStateTransitionSequenceMetadata "
+        "kAppStateTransitionSequences[] = {\n"
+        + "\n".join(transition_sequence_rows)
         + "\n};\n"
         "static const AppStateActionTransitionMetadata\n"
         "    kAppStateActionTransitions[APPSTATE_ACTION_TRANSITION_COUNT] = {\n"
@@ -1239,6 +1376,237 @@ def test_guard_fails_when_blocked_transition_sequence_lacks_no_mutation_expectat
         and "require no_unrelated_mutation" in failure
         for failure in failures
     )
+
+
+def test_guard_fails_when_runtime_transition_sequence_is_missing(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    transition_sequences = _complete_transition_sequences()
+    missing_id = transition_sequences[-1]["scenario_id"]
+    paths = _write_fixture(
+        tmp_path,
+        transitions=transitions,
+        runtime_transition_sequences=transition_sequences[:-1],
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "runtime transition sequence registry missing scenario id" in failure
+        and missing_id in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_when_runtime_transition_sequence_is_extra(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    runtime_transition_sequences = _complete_transition_sequences() + [
+        _transition_sequence("split_toggle_f8", scenario_id="sequence.extra")
+    ]
+    paths = _write_fixture(
+        tmp_path,
+        transitions=transitions,
+        runtime_transition_sequences=runtime_transition_sequences,
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "runtime_transition_sequence" in failure
+        and "scenario_id does not match a transition sequence" in failure
+        and "sequence.extra" in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_when_runtime_transition_sequence_is_duplicate(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    runtime_transition_sequences = _complete_transition_sequences()
+    runtime_transition_sequences[1]["scenario_id"] = runtime_transition_sequences[0][
+        "scenario_id"
+    ]
+    paths = _write_fixture(
+        tmp_path,
+        transitions=transitions,
+        runtime_transition_sequences=runtime_transition_sequences,
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "runtime_transition_sequence[1]" in failure
+        and "duplicate runtime transition sequence scenario_id" in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_when_runtime_transition_sequence_top_level_row_is_malformed(
+    tmp_path: Path,
+) -> None:
+    paths = _write_fixture(tmp_path, transitions=_complete_transitions())
+    runtime_path = paths[-1]
+    runtime_path.write_text(
+        runtime_path.read_text(encoding="utf-8").replace(
+            "static const AppStateTransitionSequenceMetadata "
+            "kAppStateTransitionSequences[] = {\n",
+            "static const AppStateTransitionSequenceMetadata "
+            "kAppStateTransitionSequences[] = {\n"
+            '  {"sequence.malformed"},\n',
+            1,
+        ),
+        encoding="utf-8",
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "runtime_transition_sequence[0]" in failure
+        and "malformed runtime transition sequence registry row" in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_when_runtime_transition_sequence_step_row_is_malformed(
+    tmp_path: Path,
+) -> None:
+    paths = _write_fixture(tmp_path, transitions=_complete_transitions())
+    runtime_path = paths[-1]
+    runtime_path.write_text(
+        runtime_path.read_text(encoding="utf-8").replace(
+            "static const AppStateTransitionSequenceStepMetadata "
+            "kAppStateTransitionSequenceSteps0[] = {\n",
+            "static const AppStateTransitionSequenceStepMetadata "
+            "kAppStateTransitionSequenceSteps0[] = {\n"
+            '  {"step.malformed"},\n',
+            1,
+        ),
+        encoding="utf-8",
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "runtime_transition_sequence_step[kAppStateTransitionSequenceSteps0][0]"
+        in failure
+        and "malformed runtime transition sequence step row" in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_when_runtime_transition_sequence_list_entry_is_malformed(
+    tmp_path: Path,
+) -> None:
+    paths = _write_fixture(tmp_path, transitions=_complete_transitions())
+    runtime_path = paths[-1]
+    runtime_path.write_text(
+        runtime_path.read_text(encoding="utf-8").replace(
+            "static const char *const kAppStateTransitionSequenceStepInvariantIds0_0[] = {\n"
+            '  "invariant.inactive_panel_frozen",',
+            "static const char *const kAppStateTransitionSequenceStepInvariantIds0_0[] = {\n"
+            "  NULL,\n"
+            '  "invariant.inactive_panel_frozen",',
+            1,
+        ),
+        encoding="utf-8",
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "kAppStateTransitionSequenceStepInvariantIds0_0[0]" in failure
+        and "malformed string literal entry" in failure
+        for failure in failures
+    )
+
+
+@pytest.mark.parametrize(
+    ("field", "value", "expected"),
+    (
+        ("transition_id", "transition.missing", "runtime transition registry"),
+        ("stimulus", {"action_id": "ACTION_MISSING"}, "unknown action"),
+        ("stimulus", {"event_id": "event.missing"}, "unknown event id"),
+        ("invariant_ids", ["invariant.missing"], "runtime invariant id"),
+        ("diff_harness_ids", ["harness.missing"], "runtime diff harness id"),
+        (
+            "generation_domain_expectations",
+            [{"domain_id": "domain.missing", "expectation": "fixture"}],
+            "unknown generation domain id",
+        ),
+    ),
+)
+def test_guard_fails_on_runtime_transition_sequence_invalid_links(
+    tmp_path: Path, field: str, value: object, expected: str
+) -> None:
+    transitions = _complete_transitions()
+    runtime_transition_sequences = _complete_transition_sequences()
+    runtime_transition_sequences[0]["steps"][0][field] = value
+    paths = _write_fixture(
+        tmp_path,
+        transitions=transitions,
+        runtime_transition_sequences=runtime_transition_sequences,
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "runtime_transition_sequence[0].step[0]" in failure
+        and expected in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_when_runtime_transition_sequence_fallback_drifts(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    transition_sequences = _complete_transition_sequences()
+    step = transition_sequences[0]["steps"][0]
+    step["precondition"] = "stale_snapshot"
+    step["expected_result"] = "fallback"
+    step["deterministic_fallback"] = {
+        "outcome": "restore stable identity",
+        "allowed_mutation_scope": "declared transition fields only",
+    }
+    runtime_transition_sequences = copy.deepcopy(transition_sequences)
+    runtime_transition_sequences[0]["steps"][0]["deterministic_fallback"][
+        "outcome"
+    ] = "different outcome"
+    paths = _write_fixture(
+        tmp_path,
+        transitions=transitions,
+        transition_sequences=transition_sequences,
+        runtime_transition_sequences=runtime_transition_sequences,
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "runtime_transition_sequence[0]" in failure
+        and "runtime steps does not match transition sequence" in failure
+        and "different outcome" in failure
+        for failure in failures
+    )
+
+
+def test_runtime_transition_sequence_lookup_fails_closed_in_startup_guard() -> None:
+    repo_root = Path(__file__).resolve().parents[1]
+    header = (repo_root / "include" / "ytnova_appstate_actions.h").read_text(
+        encoding="utf-8"
+    )
+    source = (repo_root / "src" / "core" / "main.c").read_text(encoding="utf-8")
+
+    assert "AppStateTransitionSequenceCount(void)" in header
+    assert "AppStateTransitionSequenceAt(size_t index)" in header
+    assert "AppStateTransitionSequenceLookup(const char *scenario_id)" in header
+    assert "AppStateTransitionSequenceAt(AppStateTransitionSequenceCount())" in source
+    assert "AppStateTransitionSequenceLookup(NULL)" in source
+    assert 'AppStateTransitionSequenceLookup("")' in source
+    assert 'AppStateTransitionSequenceLookup("sequence.__ytnova_unknown__")' in source
 
 
 def test_guard_fails_when_required_diff_harness_field_is_missing(
@@ -3267,7 +3635,10 @@ def test_guard_fails_when_runtime_invariant_row_is_malformed(
         "sizeof(kAppStateInvariantMigrationNotes0) / "
         "sizeof(kAppStateInvariantMigrationNotes0[0])},"
     )
-    marker = "\n};\nstatic const AppStateActionTransitionMetadata"
+    marker = (
+        "\n};\n"
+        "static const char *const kAppStateTransitionSequenceStepInvariantIds0_0"
+    )
     runtime_path.write_text(
         source.replace(marker, f"\n{malformed_row}{marker}", 1),
         encoding="utf-8",

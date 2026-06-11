@@ -119,6 +119,51 @@ typedef struct {
   size_t migration_note_count;
 } AppStateDiffHarnessMetadata;
 
+typedef struct {
+  const char *domain_id;
+  const char *expectation;
+} AppStateTransitionSequenceGenerationExpectationMetadata;
+
+typedef struct {
+  const char *diff_harness_id;
+  const char *expectation;
+} AppStateTransitionSequenceNoUnrelatedMutationMetadata;
+
+typedef struct {
+  const char *outcome;
+  const char *allowed_mutation_scope;
+} AppStateTransitionSequenceDeterministicFallbackMetadata;
+
+typedef struct {
+  size_t ordinal;
+  const char *step_id;
+  const char *transition_id;
+  const char *stimulus_action_id;
+  const char *stimulus_event_id;
+  const char *expected_result;
+  const char *const *invariant_ids;
+  size_t invariant_id_count;
+  const char *const *diff_harness_ids;
+  size_t diff_harness_id_count;
+  const AppStateTransitionSequenceGenerationExpectationMetadata
+      *generation_domain_expectations;
+  size_t generation_domain_expectation_count;
+  const AppStateTransitionSequenceNoUnrelatedMutationMetadata
+      *no_unrelated_mutation;
+  const char *precondition;
+  const AppStateTransitionSequenceDeterministicFallbackMetadata
+      *deterministic_fallback;
+} AppStateTransitionSequenceStepMetadata;
+
+typedef struct {
+  const char *scenario_id;
+  const char *category;
+  const char *flow;
+  const char *description;
+  const AppStateTransitionSequenceStepMetadata *steps;
+  size_t step_count;
+} AppStateTransitionSequenceMetadata;
+
 const AppStateActionTransitionMetadata *
 AppStateActionTransitionLookup(YtreeNovaAction action);
 size_t AppStateActionTransitionCount(void);
@@ -150,5 +195,10 @@ const AppStateDiffHarnessMetadata *
 AppStateDiffHarnessLookup(const char *harness_id);
 const AppStateDiffHarnessMetadata *AppStateDiffHarnessAt(size_t index);
 size_t AppStateDiffHarnessCount(void);
+const AppStateTransitionSequenceMetadata *
+AppStateTransitionSequenceLookup(const char *scenario_id);
+const AppStateTransitionSequenceMetadata *
+AppStateTransitionSequenceAt(size_t index);
+size_t AppStateTransitionSequenceCount(void);
 
 #endif /* YTNOVA_APPSTATE_ACTIONS_H */
