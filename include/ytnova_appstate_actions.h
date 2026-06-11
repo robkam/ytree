@@ -80,6 +80,23 @@ typedef struct {
   size_t invariant_check_count;
 } AppStateOwnerFieldMetadata;
 
+typedef struct {
+  const char *domain_id;
+  const char *category;
+  const char *owner_region;
+  const char *generation_owner_field;
+  const char *const *identity_fields;
+  size_t identity_field_count;
+  const char *const *advances_on_transition_ids;
+  size_t advances_on_transition_id_count;
+  const char *stale_snapshot_policy;
+  const char *fail_closed_fallback;
+  const char *restore_boundary;
+  const char *enforcement_status;
+  const char *const *migration_notes;
+  size_t migration_note_count;
+} AppStateGenerationDomainMetadata;
+
 const AppStateActionTransitionMetadata *
 AppStateActionTransitionLookup(YtreeNovaAction action);
 size_t AppStateActionTransitionCount(void);
@@ -103,5 +120,9 @@ size_t AppStateInvariantCount(void);
 const AppStateOwnerFieldMetadata *AppStateOwnerFieldLookup(const char *field);
 const AppStateOwnerFieldMetadata *AppStateOwnerFieldAt(size_t index);
 size_t AppStateOwnerFieldCount(void);
+const AppStateGenerationDomainMetadata *
+AppStateGenerationDomainLookup(const char *domain_id);
+const AppStateGenerationDomainMetadata *AppStateGenerationDomainAt(size_t index);
+size_t AppStateGenerationDomainCount(void);
 
 #endif /* YTNOVA_APPSTATE_ACTIONS_H */

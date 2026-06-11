@@ -132,6 +132,65 @@ static int AppStateTransitionRegistryReady(void) {
   return 1;
 }
 
+static int AppStateGenerationDomainsReady(void) {
+  size_t index;
+
+  if (AppStateGenerationDomainCount() == 0)
+    return 0;
+
+  for (index = 0; index < AppStateGenerationDomainCount(); index++) {
+    const AppStateGenerationDomainMetadata *metadata =
+        AppStateGenerationDomainAt(index);
+    size_t field_index;
+    size_t transition_index;
+
+    if (metadata == NULL || !NonEmptyString(metadata->domain_id) ||
+        !NonEmptyString(metadata->category) ||
+        !NonEmptyString(metadata->owner_region) ||
+        !NonEmptyString(metadata->generation_owner_field) ||
+        !NonEmptyString(metadata->stale_snapshot_policy) ||
+        !NonEmptyString(metadata->fail_closed_fallback) ||
+        !NonEmptyString(metadata->restore_boundary) ||
+        !NonEmptyString(metadata->enforcement_status) ||
+        !NonEmptyStringList(metadata->identity_fields,
+                            metadata->identity_field_count) ||
+        !NonEmptyStringList(metadata->advances_on_transition_ids,
+                            metadata->advances_on_transition_id_count) ||
+        !NonEmptyStringList(metadata->migration_notes,
+                            metadata->migration_note_count))
+      return 0;
+    if (AppStateGenerationDomainLookup(metadata->domain_id) != metadata)
+      return 0;
+    if (AppStateOwnerFieldLookup(metadata->generation_owner_field) == NULL)
+      return 0;
+
+    for (field_index = 0; field_index < metadata->identity_field_count;
+         field_index++) {
+      if (AppStateOwnerFieldLookup(metadata->identity_fields[field_index]) ==
+          NULL)
+        return 0;
+    }
+    for (transition_index = 0;
+         transition_index < metadata->advances_on_transition_id_count;
+         transition_index++) {
+      if (AppStateTransitionLookup(
+              metadata->advances_on_transition_ids[transition_index]) == NULL)
+        return 0;
+    }
+  }
+
+  if (AppStateGenerationDomainAt(AppStateGenerationDomainCount()) != NULL)
+    return 0;
+  if (AppStateGenerationDomainLookup(NULL) != NULL)
+    return 0;
+  if (AppStateGenerationDomainLookup("") != NULL)
+    return 0;
+  if (AppStateGenerationDomainLookup("generation.__ytnova_unknown__") != NULL)
+    return 0;
+
+  return 1;
+}
+
 static int AppStateDispatchSurfaceWritesReady(
     const AppStateDispatchSurfaceMetadata *metadata) {
   if (metadata->allowed_direct_write_count == 0)
@@ -381,6 +440,7 @@ int main(int argc, char **argv) {
   if (!CoreMainOpsReady(&ctx.core_main_ops) ||
       !AppStateOwnerFieldsReady() ||
       !AppStateTransitionRegistryReady() ||
+      !AppStateGenerationDomainsReady() ||
       !AppStateDispatchSurfacesReady() ||
       !AppStateInvariantRegistryReady() ||
       !AppStateCompatibilityShimsReady() ||
