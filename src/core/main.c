@@ -366,6 +366,77 @@ static int AppStateActionTransitionsReady(void) {
   return 1;
 }
 
+static int AppStateDiffHarnessRegistryReady(void) {
+  size_t index;
+
+  if (AppStateDiffHarnessCount() == 0)
+    return 0;
+
+  for (index = 0; index < AppStateDiffHarnessCount(); index++) {
+    const AppStateDiffHarnessMetadata *metadata =
+        AppStateDiffHarnessAt(index);
+    size_t ref_index;
+
+    if (metadata == NULL || !NonEmptyString(metadata->harness_id) ||
+        !NonEmptyString(metadata->check_category) ||
+        !NonEmptyStringList(metadata->snapshot_phases,
+                            metadata->snapshot_phase_count) ||
+        !NonEmptyStringList(metadata->snapshot_regions,
+                            metadata->snapshot_region_count) ||
+        !NonEmptyStringList(metadata->transition_ids,
+                            metadata->transition_id_count) ||
+        !NonEmptyStringList(metadata->owner_field_refs,
+                            metadata->owner_field_ref_count) ||
+        !NonEmptyStringList(metadata->invariant_ids,
+                            metadata->invariant_id_count) ||
+        !NonEmptyStringList(metadata->generation_domain_ids,
+                            metadata->generation_domain_id_count) ||
+        !NonEmptyString(metadata->expected_behavior) ||
+        !NonEmptyString(metadata->failure_mode) ||
+        !NonEmptyString(metadata->enforcement_status) ||
+        !NonEmptyStringList(metadata->migration_notes,
+                            metadata->migration_note_count))
+      return 0;
+    if (AppStateDiffHarnessLookup(metadata->harness_id) != metadata)
+      return 0;
+
+    for (ref_index = 0; ref_index < metadata->transition_id_count;
+         ref_index++) {
+      if (AppStateTransitionLookup(metadata->transition_ids[ref_index]) ==
+          NULL)
+        return 0;
+    }
+    for (ref_index = 0; ref_index < metadata->owner_field_ref_count;
+         ref_index++) {
+      if (AppStateOwnerFieldLookup(metadata->owner_field_refs[ref_index]) ==
+          NULL)
+        return 0;
+    }
+    for (ref_index = 0; ref_index < metadata->invariant_id_count;
+         ref_index++) {
+      if (AppStateInvariantLookup(metadata->invariant_ids[ref_index]) == NULL)
+        return 0;
+    }
+    for (ref_index = 0; ref_index < metadata->generation_domain_id_count;
+         ref_index++) {
+      if (AppStateGenerationDomainLookup(
+              metadata->generation_domain_ids[ref_index]) == NULL)
+        return 0;
+    }
+  }
+
+  if (AppStateDiffHarnessAt(AppStateDiffHarnessCount()) != NULL)
+    return 0;
+  if (AppStateDiffHarnessLookup(NULL) != NULL)
+    return 0;
+  if (AppStateDiffHarnessLookup("") != NULL)
+    return 0;
+  if (AppStateDiffHarnessLookup("harness.__ytnova_unknown__") != NULL)
+    return 0;
+
+  return 1;
+}
+
 static void SigIntHandler(int sig) {
   (void)sig;
   ytnova_shutdown_flag = 1;
@@ -444,6 +515,7 @@ int main(int argc, char **argv) {
       !AppStateDispatchSurfacesReady() ||
       !AppStateInvariantRegistryReady() ||
       !AppStateCompatibilityShimsReady() ||
+      !AppStateDiffHarnessRegistryReady() ||
       !AppStateActionTransitionsReady()) {
     fprintf(stderr, "EXIT: startup invariants not configured\n");
     exit(1);

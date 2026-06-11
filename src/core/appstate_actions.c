@@ -736,6 +736,333 @@ static const AppStateGenerationDomainMetadata kAppStateGenerationDomains[] = {
    sizeof(kAppStateGenerationDomainMigrationNotes10) /
        sizeof(kAppStateGenerationDomainMigrationNotes10[0])},
 };
+
+static const char *const kAppStateDiffHarnessSnapshotPhases0[] = {
+  "before_guard",
+  "after_allowed_or_blocked_result",
+};
+
+static const char *const kAppStateDiffHarnessSnapshotRegions0[] = {
+  "ctx/session state",
+  "panel-local state",
+  "volume/shared topology and payload state",
+  "render/projection/invalidation state",
+};
+
+static const char *const kAppStateDiffHarnessTransitionIds0[] = {
+  "transition.keybinding.navigate-tree",
+  "transition.refresh-rebuild.manual-refresh",
+  "transition.volume-operation.release-cycle",
+  "transition.filesystem-mutation-result.mkdir-copy-delete",
+  "transition.rebuild-rebind-callback.panel-anchor",
+};
+
+static const char *const kAppStateDiffHarnessOwnerFieldRefs0[] = {
+  "ctx.active",
+  "ctx.volumes_head",
+  "panel.tree_selection_key",
+  "panel.file_selection_key",
+  "panel.restore_snapshot",
+  "panel.panel_generation",
+  "volume.dir_tree",
+  "volume.volume_generation",
+};
+
+static const char *const kAppStateDiffHarnessInvariantIds0[] = {
+  "invariant.inactive-panel-frozen",
+  "invariant.shared-state-panel-local-isolation",
+  "invariant.viewport-identity-rebind",
+};
+
+static const char *const kAppStateDiffHarnessGenerationDomainIds0[] = {
+  "generation.panel.local-authority",
+  "generation.volume.shared-authority",
+  "identity.directory.stable-key",
+  "identity.file.stable-key",
+};
+
+static const char *const kAppStateDiffHarnessMigrationNotes0[] = {
+  "This registry entry defines the machine-readable coverage target; no runtime C runner exists in this unit.",
+};
+
+static const char *const kAppStateDiffHarnessSnapshotPhases1[] = {
+  "before_transition",
+  "after_transition_commit",
+};
+
+static const char *const kAppStateDiffHarnessSnapshotRegions1[] = {
+  "ctx/session state",
+  "panel-local state",
+  "volume/shared topology and payload state",
+};
+
+static const char *const kAppStateDiffHarnessTransitionIds1[] = {
+  "transition.keybinding.navigate-tree",
+  "transition.menu-action.volume-select",
+  "transition.modal-action.dismiss",
+  "transition.command-completion.user-command",
+};
+
+static const char *const kAppStateDiffHarnessOwnerFieldRefs1[] = {
+  "ctx.command_state",
+  "ctx.message_state",
+  "ctx.modal_state",
+  "ctx.pending_transition",
+  "panel.tree_selection_key",
+  "panel.tree_cursor_pos",
+  "panel.tree_viewport_origin",
+  "panel.focus_shape",
+  "panel.panel_generation",
+};
+
+static const char *const kAppStateDiffHarnessInvariantIds1[] = {
+  "invariant.panel-local-focus-restore",
+  "invariant.shared-state-panel-local-isolation",
+};
+
+static const char *const kAppStateDiffHarnessGenerationDomainIds1[] = {
+  "generation.panel.local-authority",
+  "shape.panel.focus",
+  "target.modal-command.session",
+};
+
+static const char *const kAppStateDiffHarnessMigrationNotes1[] = {
+  "Runtime migration should derive concrete field comparisons from docs/appstate_transition_matrix.json declared_write_set records.",
+};
+
+static const char *const kAppStateDiffHarnessSnapshotPhases2[] = {
+  "before_render_projection",
+  "after_render_projection",
+};
+
+static const char *const kAppStateDiffHarnessSnapshotRegions2[] = {
+  "panel-local state",
+  "volume/shared topology and payload state",
+  "render/projection/invalidation state",
+};
+
+static const char *const kAppStateDiffHarnessTransitionIds2[] = {
+  "transition.render-reflow.project-state",
+};
+
+static const char *const kAppStateDiffHarnessOwnerFieldRefs2[] = {
+  "ctx.render_dirty_flags",
+  "ctx.window_handles",
+  "panel.tree_selection_key",
+  "panel.file_selection_key",
+  "panel.tree_viewport_origin",
+  "panel.file_viewport_origin",
+  "panel.focus_shape",
+  "panel.panel_generation",
+  "volume.volume_generation",
+};
+
+static const char *const kAppStateDiffHarnessInvariantIds2[] = {
+  "invariant.render-projection-read-only",
+  "invariant.inactive-panel-frozen",
+};
+
+static const char *const kAppStateDiffHarnessGenerationDomainIds2[] = {
+  "reflow.layout.projection",
+  "generation.panel.local-authority",
+  "generation.volume.shared-authority",
+};
+
+static const char *const kAppStateDiffHarnessMigrationNotes2[] = {
+  "Dirty-flag clearing and window-handle staging remain named so the future harness can distinguish projection bookkeeping from selection authority.",
+};
+
+static const char *const kAppStateDiffHarnessSnapshotPhases3[] = {
+  "saved_snapshot",
+  "current_authority",
+  "restore_attempt_result",
+};
+
+static const char *const kAppStateDiffHarnessSnapshotRegions3[] = {
+  "panel-local state",
+  "volume/shared topology and payload state",
+};
+
+static const char *const kAppStateDiffHarnessTransitionIds3[] = {
+  "transition.refresh-rebuild.manual-refresh",
+  "transition.filesystem-mutation-result.mkdir-copy-delete",
+  "transition.rebuild-rebind-callback.panel-anchor",
+  "transition.terminal-signal-resize",
+};
+
+static const char *const kAppStateDiffHarnessOwnerFieldRefs3[] = {
+  "panel.restore_snapshot",
+  "panel.tree_selection_key",
+  "panel.file_selection_key",
+  "panel.panel_generation",
+  "volume.dir_tree",
+  "volume.payload_cache",
+  "volume.volume_generation",
+};
+
+static const char *const kAppStateDiffHarnessInvariantIds3[] = {
+  "invariant.stale-snapshot-fail-closed",
+  "invariant.viewport-identity-rebind",
+  "invariant.hidden-entry-visible-navigation",
+};
+
+static const char *const kAppStateDiffHarnessGenerationDomainIds3[] = {
+  "generation.panel.local-authority",
+  "generation.volume.shared-authority",
+  "identity.directory.stable-key",
+  "identity.file.stable-key",
+  "state.topology.volume",
+  "state.file-payload.volume",
+};
+
+static const char *const kAppStateDiffHarnessMigrationNotes3[] = {
+  "The future runner should seed mismatched saved/current generations to verify deterministic restore fallback.",
+};
+
+static const char *const kAppStateDiffHarnessSnapshotPhases4[] = {
+  "before_guard",
+  "after_blocked_result",
+};
+
+static const char *const kAppStateDiffHarnessSnapshotRegions4[] = {
+  "ctx/session state",
+  "panel-local state",
+  "volume/shared topology and payload state",
+};
+
+static const char *const kAppStateDiffHarnessTransitionIds4[] = {
+  "transition.keybinding.navigate-tree",
+  "transition.modal-action.dismiss",
+  "transition.volume-operation.release-cycle",
+  "transition.filesystem-mutation-result.mkdir-copy-delete",
+  "transition.command-completion.user-command",
+};
+
+static const char *const kAppStateDiffHarnessOwnerFieldRefs4[] = {
+  "ctx.message_state",
+  "ctx.modal_state",
+  "panel.volume_key",
+  "panel.tree_selection_key",
+  "panel.file_selection_key",
+  "panel.panel_generation",
+  "volume.dir_tree",
+  "volume.volume_generation",
+};
+
+static const char *const kAppStateDiffHarnessInvariantIds4[] = {
+  "invariant.blocked-transition-determinism",
+  "invariant.inactive-panel-frozen",
+  "invariant.shared-state-panel-local-isolation",
+};
+
+static const char *const kAppStateDiffHarnessGenerationDomainIds4[] = {
+  "generation.panel.local-authority",
+  "generation.volume.shared-authority",
+  "lifecycle.volume.registry",
+  "target.modal-command.session",
+};
+
+static const char *const kAppStateDiffHarnessMigrationNotes4[] = {
+  "Concrete blocked-result allowances should be derived from the target transition's blocked_result and declared_write_set records.",
+};
+
+static const AppStateDiffHarnessMetadata kAppStateDiffHarnesses[] = {
+  {"harness.transition-before-after-snapshot",
+   "transition_before_after_snapshot",
+   kAppStateDiffHarnessSnapshotPhases0,
+   sizeof(kAppStateDiffHarnessSnapshotPhases0) / sizeof(kAppStateDiffHarnessSnapshotPhases0[0]),
+   kAppStateDiffHarnessSnapshotRegions0,
+   sizeof(kAppStateDiffHarnessSnapshotRegions0) / sizeof(kAppStateDiffHarnessSnapshotRegions0[0]),
+   kAppStateDiffHarnessTransitionIds0,
+   sizeof(kAppStateDiffHarnessTransitionIds0) / sizeof(kAppStateDiffHarnessTransitionIds0[0]),
+   kAppStateDiffHarnessOwnerFieldRefs0,
+   sizeof(kAppStateDiffHarnessOwnerFieldRefs0) / sizeof(kAppStateDiffHarnessOwnerFieldRefs0[0]),
+   kAppStateDiffHarnessInvariantIds0,
+   sizeof(kAppStateDiffHarnessInvariantIds0) / sizeof(kAppStateDiffHarnessInvariantIds0[0]),
+   kAppStateDiffHarnessGenerationDomainIds0,
+   sizeof(kAppStateDiffHarnessGenerationDomainIds0) / sizeof(kAppStateDiffHarnessGenerationDomainIds0[0]),
+   "A later dynamic harness snapshots every referenced AppState region before guard evaluation and after the transition result, then compares only authoritative state owned by the registered transition boundary.",
+   "Any unclassified region change, stale snapshot reuse, or missing before/after phase is reported as a transition contract violation.",
+   "documented_foundation_only",
+   kAppStateDiffHarnessMigrationNotes0,
+   sizeof(kAppStateDiffHarnessMigrationNotes0) / sizeof(kAppStateDiffHarnessMigrationNotes0[0])},
+  {"harness.declared-write-set-diff",
+   "declared_write_set_diff",
+   kAppStateDiffHarnessSnapshotPhases1,
+   sizeof(kAppStateDiffHarnessSnapshotPhases1) / sizeof(kAppStateDiffHarnessSnapshotPhases1[0]),
+   kAppStateDiffHarnessSnapshotRegions1,
+   sizeof(kAppStateDiffHarnessSnapshotRegions1) / sizeof(kAppStateDiffHarnessSnapshotRegions1[0]),
+   kAppStateDiffHarnessTransitionIds1,
+   sizeof(kAppStateDiffHarnessTransitionIds1) / sizeof(kAppStateDiffHarnessTransitionIds1[0]),
+   kAppStateDiffHarnessOwnerFieldRefs1,
+   sizeof(kAppStateDiffHarnessOwnerFieldRefs1) / sizeof(kAppStateDiffHarnessOwnerFieldRefs1[0]),
+   kAppStateDiffHarnessInvariantIds1,
+   sizeof(kAppStateDiffHarnessInvariantIds1) / sizeof(kAppStateDiffHarnessInvariantIds1[0]),
+   kAppStateDiffHarnessGenerationDomainIds1,
+   sizeof(kAppStateDiffHarnessGenerationDomainIds1) / sizeof(kAppStateDiffHarnessGenerationDomainIds1[0]),
+   "The after snapshot may differ from the before snapshot only in owner fields named by the transition's declared_write_set or by an explicitly registered follow-up transition.",
+   "A changed owner field outside the registered write set is rejected as an undeclared AppState mutation.",
+   "documented_foundation_only",
+   kAppStateDiffHarnessMigrationNotes1,
+   sizeof(kAppStateDiffHarnessMigrationNotes1) / sizeof(kAppStateDiffHarnessMigrationNotes1[0])},
+  {"harness.render-projection-read-only-diff",
+   "render_projection_read_only_diff",
+   kAppStateDiffHarnessSnapshotPhases2,
+   sizeof(kAppStateDiffHarnessSnapshotPhases2) / sizeof(kAppStateDiffHarnessSnapshotPhases2[0]),
+   kAppStateDiffHarnessSnapshotRegions2,
+   sizeof(kAppStateDiffHarnessSnapshotRegions2) / sizeof(kAppStateDiffHarnessSnapshotRegions2[0]),
+   kAppStateDiffHarnessTransitionIds2,
+   sizeof(kAppStateDiffHarnessTransitionIds2) / sizeof(kAppStateDiffHarnessTransitionIds2[0]),
+   kAppStateDiffHarnessOwnerFieldRefs2,
+   sizeof(kAppStateDiffHarnessOwnerFieldRefs2) / sizeof(kAppStateDiffHarnessOwnerFieldRefs2[0]),
+   kAppStateDiffHarnessInvariantIds2,
+   sizeof(kAppStateDiffHarnessInvariantIds2) / sizeof(kAppStateDiffHarnessInvariantIds2[0]),
+   kAppStateDiffHarnessGenerationDomainIds2,
+   sizeof(kAppStateDiffHarnessGenerationDomainIds2) / sizeof(kAppStateDiffHarnessGenerationDomainIds2[0]),
+   "Render/reflow projection may consume settled AppState and stage terminal output, but it must not mutate authoritative selection, identity, focus, or generation fields.",
+   "Any authoritative owner or generation delta produced by render projection is rejected as render-state leakage into AppState authority.",
+   "documented_foundation_only",
+   kAppStateDiffHarnessMigrationNotes2,
+   sizeof(kAppStateDiffHarnessMigrationNotes2) / sizeof(kAppStateDiffHarnessMigrationNotes2[0])},
+  {"harness.generation-mismatch-check",
+   "generation_mismatch_check",
+   kAppStateDiffHarnessSnapshotPhases3,
+   sizeof(kAppStateDiffHarnessSnapshotPhases3) / sizeof(kAppStateDiffHarnessSnapshotPhases3[0]),
+   kAppStateDiffHarnessSnapshotRegions3,
+   sizeof(kAppStateDiffHarnessSnapshotRegions3) / sizeof(kAppStateDiffHarnessSnapshotRegions3[0]),
+   kAppStateDiffHarnessTransitionIds3,
+   sizeof(kAppStateDiffHarnessTransitionIds3) / sizeof(kAppStateDiffHarnessTransitionIds3[0]),
+   kAppStateDiffHarnessOwnerFieldRefs3,
+   sizeof(kAppStateDiffHarnessOwnerFieldRefs3) / sizeof(kAppStateDiffHarnessOwnerFieldRefs3[0]),
+   kAppStateDiffHarnessInvariantIds3,
+   sizeof(kAppStateDiffHarnessInvariantIds3) / sizeof(kAppStateDiffHarnessInvariantIds3[0]),
+   kAppStateDiffHarnessGenerationDomainIds3,
+   sizeof(kAppStateDiffHarnessGenerationDomainIds3) / sizeof(kAppStateDiffHarnessGenerationDomainIds3[0]),
+   "Saved panel or volume snapshots whose generation markers mismatch current authority must be rejected or rebound through stable identity fallback before any restore commit.",
+   "Reusing stale row, pointer, or payload identity after a generation mismatch is rejected as a fail-closed violation.",
+   "documented_foundation_only",
+   kAppStateDiffHarnessMigrationNotes3,
+   sizeof(kAppStateDiffHarnessMigrationNotes3) / sizeof(kAppStateDiffHarnessMigrationNotes3[0])},
+  {"harness.blocked-transition-no-unrelated-mutation",
+   "blocked_transition_no_unrelated_mutation",
+   kAppStateDiffHarnessSnapshotPhases4,
+   sizeof(kAppStateDiffHarnessSnapshotPhases4) / sizeof(kAppStateDiffHarnessSnapshotPhases4[0]),
+   kAppStateDiffHarnessSnapshotRegions4,
+   sizeof(kAppStateDiffHarnessSnapshotRegions4) / sizeof(kAppStateDiffHarnessSnapshotRegions4[0]),
+   kAppStateDiffHarnessTransitionIds4,
+   sizeof(kAppStateDiffHarnessTransitionIds4) / sizeof(kAppStateDiffHarnessTransitionIds4[0]),
+   kAppStateDiffHarnessOwnerFieldRefs4,
+   sizeof(kAppStateDiffHarnessOwnerFieldRefs4) / sizeof(kAppStateDiffHarnessOwnerFieldRefs4[0]),
+   kAppStateDiffHarnessInvariantIds4,
+   sizeof(kAppStateDiffHarnessInvariantIds4) / sizeof(kAppStateDiffHarnessInvariantIds4[0]),
+   kAppStateDiffHarnessGenerationDomainIds4,
+   sizeof(kAppStateDiffHarnessGenerationDomainIds4) / sizeof(kAppStateDiffHarnessGenerationDomainIds4[0]),
+   "A blocked transition may report only the registered user-visible failure state and must leave unrelated owner fields and all unaffected generations byte-for-byte unchanged.",
+   "Any unrelated owner-field or generation delta after a blocked result is rejected as nondeterministic blocked-transition mutation.",
+   "documented_foundation_only",
+   kAppStateDiffHarnessMigrationNotes4,
+   sizeof(kAppStateDiffHarnessMigrationNotes4) / sizeof(kAppStateDiffHarnessMigrationNotes4[0])},
+};
 static const char *const kAppStateDispatchSurfaceMigrationNotes0[] = {
   "Current input polling and key normalization feed controller dispatch; AppState mutation remains in downstream handlers until runtime transition objects are introduced.",
 };
@@ -1638,6 +1965,10 @@ size_t AppStateGenerationDomainCount(void) {
   return sizeof(kAppStateGenerationDomains) / sizeof(kAppStateGenerationDomains[0]);
 }
 
+size_t AppStateDiffHarnessCount(void) {
+  return sizeof(kAppStateDiffHarnesses) / sizeof(kAppStateDiffHarnesses[0]);
+}
+
 const AppStateOwnerFieldMetadata *AppStateOwnerFieldAt(size_t index) {
   if (index >= AppStateOwnerFieldCount())
     return NULL;
@@ -1651,6 +1982,13 @@ AppStateGenerationDomainAt(size_t index) {
     return NULL;
 
   return &kAppStateGenerationDomains[index];
+}
+
+const AppStateDiffHarnessMetadata *AppStateDiffHarnessAt(size_t index) {
+  if (index >= AppStateDiffHarnessCount())
+    return NULL;
+
+  return &kAppStateDiffHarnesses[index];
 }
 
 const AppStateTransitionMetadata *AppStateTransitionAt(size_t index) {
@@ -1707,6 +2045,21 @@ AppStateGenerationDomainLookup(const char *domain_id) {
   for (index = 0; index < AppStateGenerationDomainCount(); index++) {
     if (!strcmp(kAppStateGenerationDomains[index].domain_id, domain_id))
       return &kAppStateGenerationDomains[index];
+  }
+
+  return NULL;
+}
+
+const AppStateDiffHarnessMetadata *
+AppStateDiffHarnessLookup(const char *harness_id) {
+  size_t index;
+
+  if (harness_id == NULL || harness_id[0] == '\0')
+    return NULL;
+
+  for (index = 0; index < AppStateDiffHarnessCount(); index++) {
+    if (!strcmp(kAppStateDiffHarnesses[index].harness_id, harness_id))
+      return &kAppStateDiffHarnesses[index];
   }
 
   return NULL;

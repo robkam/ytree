@@ -1008,6 +1008,117 @@ def _parse_runtime_generation_domain_registry(
     return records, failures
 
 
+def _parse_runtime_diff_harness_registry(
+    runtime_path: Path,
+) -> tuple[list[dict[str, Any]], list[str]]:
+    try:
+        source = runtime_path.read_text(encoding="utf-8")
+    except OSError as exc:
+        return [], [f"{runtime_path}: failed to read: {exc}"]
+
+    array_fields = {
+        "SnapshotPhases": "snapshot_phases",
+        "SnapshotRegions": "snapshot_regions",
+        "TransitionIds": "transition_ids",
+        "OwnerFieldRefs": "owner_field_refs",
+        "InvariantIds": "invariant_ids",
+        "GenerationDomainIds": "generation_domain_ids",
+        "MigrationNotes": "migration_notes",
+    }
+    arrays: dict[str, list[str]] = {}
+    failures: list[str] = []
+    for table_prefix in array_fields:
+        array_re = re.compile(
+            r"static\s+const\s+char\s+\*const\s+"
+            rf"(kAppStateDiffHarness{table_prefix}[0-9]+)\[\]\s*=\s*\{{"
+            r"(?P<body>.*?)\};",
+            re.S,
+        )
+        for array_match in array_re.finditer(source):
+            table_name = array_match.group(1)
+            values, array_failures = _parse_string_initializer_array(
+                array_match.group("body"),
+                table_name,
+            )
+            arrays[table_name] = values
+            failures.extend(array_failures)
+
+    match = re.search(
+        r"kAppStateDiffHarnesses\s*\[\]\s*=\s*\{(?P<body>.*?)\};",
+        source,
+        re.S,
+    )
+    if match is None:
+        return [], [f"{runtime_path}: failed to find runtime diff harness registry"]
+
+    records: list[dict[str, Any]] = []
+    row_re = re.compile(
+        r"\{\s*\"(?P<harness_id>[^\"]*)\"\s*,"
+        r"\s*\"(?P<check_category>[^\"]*)\"\s*,"
+        r"\s*(?P<snapshot_phases>kAppStateDiffHarnessSnapshotPhases[0-9]+)\s*,"
+        r"\s*sizeof\((?P=snapshot_phases)\)\s*/"
+        r"\s*sizeof\((?P=snapshot_phases)\[0\]\)\s*,"
+        r"\s*(?P<snapshot_regions>kAppStateDiffHarnessSnapshotRegions[0-9]+)\s*,"
+        r"\s*sizeof\((?P=snapshot_regions)\)\s*/"
+        r"\s*sizeof\((?P=snapshot_regions)\[0\]\)\s*,"
+        r"\s*(?P<transition_ids>kAppStateDiffHarnessTransitionIds[0-9]+)\s*,"
+        r"\s*sizeof\((?P=transition_ids)\)\s*/"
+        r"\s*sizeof\((?P=transition_ids)\[0\]\)\s*,"
+        r"\s*(?P<owner_field_refs>kAppStateDiffHarnessOwnerFieldRefs[0-9]+)\s*,"
+        r"\s*sizeof\((?P=owner_field_refs)\)\s*/"
+        r"\s*sizeof\((?P=owner_field_refs)\[0\]\)\s*,"
+        r"\s*(?P<invariant_ids>kAppStateDiffHarnessInvariantIds[0-9]+)\s*,"
+        r"\s*sizeof\((?P=invariant_ids)\)\s*/"
+        r"\s*sizeof\((?P=invariant_ids)\[0\]\)\s*,"
+        r"\s*(?P<generation_domain_ids>"
+        r"kAppStateDiffHarnessGenerationDomainIds[0-9]+)\s*,"
+        r"\s*sizeof\((?P=generation_domain_ids)\)\s*/"
+        r"\s*sizeof\((?P=generation_domain_ids)\[0\]\)\s*,"
+        r"\s*\"(?P<expected_behavior>[^\"]*)\"\s*,"
+        r"\s*\"(?P<failure_mode>[^\"]*)\"\s*,"
+        r"\s*\"(?P<enforcement_status>[^\"]*)\"\s*,"
+        r"\s*(?P<migration_notes>kAppStateDiffHarnessMigrationNotes[0-9]+)\s*,"
+        r"\s*sizeof\((?P=migration_notes)\)\s*/"
+        r"\s*sizeof\((?P=migration_notes)\[0\]\)\s*\}",
+        re.S,
+    )
+    rows, row_failures = _split_top_level_initializer_rows(
+        match.group("body"),
+        "runtime_diff_harness",
+    )
+    failures.extend(row_failures)
+    for index, row in enumerate(rows):
+        row_match = row_re.fullmatch(row.strip())
+        if row_match is None:
+            failures.append(
+                f"runtime_diff_harness[{index}]: malformed runtime diff harness "
+                f"registry row: {_compact_initializer_snippet(row)}"
+            )
+            continue
+        record: dict[str, Any] = {
+            "harness_id": row_match.group("harness_id"),
+            "check_category": row_match.group("check_category"),
+            "expected_behavior": row_match.group("expected_behavior"),
+            "failure_mode": row_match.group("failure_mode"),
+            "enforcement_status": row_match.group("enforcement_status"),
+        }
+        for table_prefix, field in array_fields.items():
+            table_name = row_match.group(field)
+            values = arrays.get(table_name)
+            if values is None:
+                failures.append(
+                    f"runtime_diff_harness[{index}]: unknown {field} "
+                    f"table: {table_name}"
+                )
+                values = []
+            record[field] = values
+        records.append(record)
+
+    if not records:
+        failures.append(f"{runtime_path}: runtime diff harness registry must not be empty")
+    return records, failures
+
+
 def _parse_runtime_shim_registry(
     runtime_path: Path,
 ) -> tuple[list[dict[str, Any]], list[str]]:
@@ -1589,6 +1700,131 @@ def _validate_runtime_generation_domain_registry(
         failures.append(
             f"{runtime_path}: runtime generation domain registry missing "
             "domain id(s): " + ", ".join(missing_ids)
+        )
+
+    return failures
+
+
+def _validate_runtime_diff_harness_registry(
+    *,
+    runtime_records: list[dict[str, Any]],
+    runtime_path: Path,
+    diff_harness_records: list[Any],
+    runtime_transition_ids: set[str],
+    runtime_owner_fields: set[str],
+    runtime_invariant_ids: set[str],
+    runtime_generation_domain_ids: set[str],
+) -> list[str]:
+    failures: list[str] = []
+    expected_harnesses = {
+        record["harness_id"]: record
+        for record in diff_harness_records
+        if isinstance(record, dict)
+        and isinstance(record.get("harness_id"), str)
+        and record["harness_id"].strip()
+    }
+    expected_ids = set(expected_harnesses)
+    covered_ids: set[str] = set()
+
+    for index, record in enumerate(runtime_records):
+        label = f"runtime_diff_harness[{index}]"
+        runtime_id = record["harness_id"]
+        if runtime_id in covered_ids:
+            failures.append(f"{label}: duplicate runtime diff harness id: {runtime_id}")
+        covered_ids.add(runtime_id)
+
+        harness_record = expected_harnesses.get(runtime_id)
+        if harness_record is None:
+            failures.append(
+                f"{label}: harness_id does not match a diff harness id: {runtime_id}"
+            )
+        else:
+            for field in REQUIRED_DIFF_HARNESS_FIELDS:
+                if record.get(field) != harness_record.get(field):
+                    failures.append(
+                        f"{label}: runtime {field} does not match diff harness "
+                        f"{runtime_id}: {record.get(field)}"
+                    )
+
+        for field in (
+            "harness_id",
+            "check_category",
+            "expected_behavior",
+            "failure_mode",
+            "enforcement_status",
+        ):
+            value = record.get(field)
+            if not isinstance(value, str) or not value.strip():
+                failures.append(f"{label}: {field} must be a non-empty string")
+
+        for field in DIFF_HARNESS_LIST_FIELDS:
+            values = record.get(field)
+            if not isinstance(values, list) or not values:
+                failures.append(f"{label}: {field} must be non-empty")
+                continue
+            for value_index, value in enumerate(values):
+                if not isinstance(value, str) or not value.strip():
+                    failures.append(
+                        f"{label}: {field}[{value_index}] must be a non-empty string"
+                    )
+
+        transition_refs = record.get("transition_ids")
+        if isinstance(transition_refs, list):
+            for transition_id in transition_refs:
+                if (
+                    isinstance(transition_id, str)
+                    and transition_id.strip()
+                    and transition_id not in runtime_transition_ids
+                ):
+                    failures.append(
+                        f"{label}: transition_ids does not match runtime transition "
+                        f"registry: {transition_id}"
+                    )
+
+        owner_field_refs = record.get("owner_field_refs")
+        if isinstance(owner_field_refs, list):
+            for field in owner_field_refs:
+                if (
+                    isinstance(field, str)
+                    and field.strip()
+                    and field not in runtime_owner_fields
+                ):
+                    failures.append(
+                        f"{label}: owner_field_refs does not match runtime owner "
+                        f"field registry: {field}"
+                    )
+
+        invariant_refs = record.get("invariant_ids")
+        if isinstance(invariant_refs, list):
+            for invariant_id in invariant_refs:
+                if (
+                    isinstance(invariant_id, str)
+                    and invariant_id.strip()
+                    and invariant_id not in runtime_invariant_ids
+                ):
+                    failures.append(
+                        f"{label}: invariant_ids does not match runtime invariant "
+                        f"registry: {invariant_id}"
+                    )
+
+        generation_domain_refs = record.get("generation_domain_ids")
+        if isinstance(generation_domain_refs, list):
+            for domain_id in generation_domain_refs:
+                if (
+                    isinstance(domain_id, str)
+                    and domain_id.strip()
+                    and domain_id not in runtime_generation_domain_ids
+                ):
+                    failures.append(
+                        f"{label}: generation_domain_ids does not match runtime "
+                        f"generation domain registry: {domain_id}"
+                    )
+
+    missing_ids = sorted(expected_ids - covered_ids)
+    if missing_ids:
+        failures.append(
+            f"{runtime_path}: runtime diff harness registry missing harness id(s): "
+            + ", ".join(missing_ids)
         )
 
     return failures
@@ -2796,6 +3032,9 @@ def validate_contract(
     runtime_generation_domain_records, runtime_generation_domain_failures = (
         _parse_runtime_generation_domain_registry(action_runtime_path)
     )
+    runtime_diff_harness_records, runtime_diff_harness_failures = (
+        _parse_runtime_diff_harness_registry(action_runtime_path)
+    )
     failures.extend(transition_load_failures)
     failures.extend(shim_load_failures)
     failures.extend(action_coverage_load_failures)
@@ -2814,6 +3053,7 @@ def validate_contract(
     failures.extend(runtime_shim_failures)
     failures.extend(runtime_invariant_failures)
     failures.extend(runtime_generation_domain_failures)
+    failures.extend(runtime_diff_harness_failures)
     if failures:
         return failures
 
@@ -3131,6 +3371,31 @@ def validate_contract(
             registered_owner_fields=registered_owner_fields,
             invariant_ids=invariant_ids,
             generation_domain_ids=generation_domain_ids,
+        )
+    )
+    if isinstance(diff_harness_doc, dict) and isinstance(
+        diff_harness_doc.get("diff_harness_checks"), list
+    ):
+        diff_harness_records = diff_harness_doc["diff_harness_checks"]
+    else:
+        diff_harness_records = []
+    failures.extend(
+        _validate_runtime_diff_harness_registry(
+            runtime_records=runtime_diff_harness_records,
+            runtime_path=action_runtime_path,
+            diff_harness_records=diff_harness_records,
+            runtime_transition_ids={
+                record["id"] for record in runtime_transition_records
+            },
+            runtime_owner_fields={
+                record["field"] for record in runtime_owner_field_records
+            },
+            runtime_invariant_ids={
+                record["invariant_id"] for record in runtime_invariant_records
+            },
+            runtime_generation_domain_ids={
+                record["domain_id"] for record in runtime_generation_domain_records
+            },
         )
     )
     action_ids = _collect_string_ids(
