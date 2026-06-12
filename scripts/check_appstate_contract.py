@@ -562,6 +562,119 @@ def _parse_runtime_action_transitions(
     return records, []
 
 
+def _parse_runtime_action_coverage_registry(
+    runtime_path: Path,
+) -> tuple[list[dict[str, Any]], list[str]]:
+    try:
+        source = runtime_path.read_text(encoding="utf-8")
+    except OSError as exc:
+        return [], [f"{runtime_path}: failed to read: {exc}"]
+
+    failures: list[str] = []
+    write_sets: dict[str, list[str]] = {}
+    write_set_re = re.compile(
+        r"static\s+const\s+char\s+\*const\s+"
+        r"(kAppState(?:TransitionWriteSet|ActionCoverageWriteSet)[0-9]+)"
+        r"\[\]\s*=\s*\{(?P<body>.*?)\};",
+        re.S,
+    )
+    for write_set_match in write_set_re.finditer(source):
+        table_name = write_set_match.group(1)
+        values, array_failures = _parse_string_initializer_array(
+            write_set_match.group("body"),
+            table_name,
+        )
+        write_sets[table_name] = values
+        failures.extend(array_failures)
+
+    migration_notes: dict[str, list[str]] = {}
+    migration_notes_re = re.compile(
+        r"static\s+const\s+char\s+\*const\s+"
+        r"(kAppStateActionCoverageMigrationNotes[0-9]+)"
+        r"\[\]\s*=\s*\{(?P<body>.*?)\};",
+        re.S,
+    )
+    for notes_match in migration_notes_re.finditer(source):
+        table_name = notes_match.group(1)
+        values, array_failures = _parse_string_initializer_array(
+            notes_match.group("body"),
+            table_name,
+        )
+        migration_notes[table_name] = values
+        failures.extend(array_failures)
+
+    match = re.search(
+        r"kAppStateActionCoverages\s*\[[^\]]*\]\s*=\s*\{(?P<body>.*?)\};",
+        source,
+        re.S,
+    )
+    if match is None:
+        return [], [f"{runtime_path}: failed to find runtime action coverage registry"]
+
+    records: list[dict[str, Any]] = []
+    row_re = re.compile(
+        r"\{\s*(?P<action>ACTION_[A-Z0-9_]+)\s*,"
+        r"\s*\"(?P<action_name>[^\"]*)\"\s*,"
+        r"\s*\"(?P<transition_id>[^\"]*)\"\s*,"
+        r"\s*\"(?P<category>[^\"]*)\"\s*,"
+        r"\s*\"(?P<owner>[^\"]*)\"\s*,"
+        r"\s*(?P<write_set>kAppState(?:TransitionWriteSet|ActionCoverageWriteSet)[0-9]+)\s*,"
+        r"\s*sizeof\((?P=write_set)\)\s*/\s*sizeof\((?P=write_set)\[0\]\)\s*,"
+        r"\s*\"(?P<boundary_status>[^\"]*)\"\s*,"
+        r"\s*(?P<migration_notes>kAppStateActionCoverageMigrationNotes[0-9]+)\s*,"
+        r"\s*sizeof\((?P=migration_notes)\)\s*/"
+        r"\s*sizeof\((?P=migration_notes)\[0\]\)\s*\}",
+        re.S,
+    )
+    rows, row_failures = _split_top_level_initializer_rows(
+        match.group("body"),
+        "runtime_action_coverage",
+    )
+    failures.extend(row_failures)
+    for index, row in enumerate(rows):
+        row_match = row_re.fullmatch(row.strip())
+        if row_match is None:
+            failures.append(
+                f"runtime_action_coverage[{index}]: malformed runtime action "
+                f"coverage row: {_compact_initializer_snippet(row)}"
+            )
+            continue
+        write_set_name = row_match.group("write_set")
+        declared_write_set = write_sets.get(write_set_name)
+        if declared_write_set is None:
+            failures.append(
+                f"runtime_action_coverage[{index}]: unknown declared-write-set "
+                f"table: {write_set_name}"
+            )
+            declared_write_set = []
+        notes_name = row_match.group("migration_notes")
+        notes = migration_notes.get(notes_name)
+        if notes is None:
+            failures.append(
+                f"runtime_action_coverage[{index}]: unknown migration-notes "
+                f"table: {notes_name}"
+            )
+            notes = []
+        records.append(
+            {
+                "action": row_match.group("action"),
+                "action_name": row_match.group("action_name"),
+                "transition_id": row_match.group("transition_id"),
+                "category": row_match.group("category"),
+                "owner": row_match.group("owner"),
+                "declared_write_set": declared_write_set,
+                "boundary_status": row_match.group("boundary_status"),
+                "migration_notes": notes,
+            }
+        )
+
+    if not records:
+        failures.append(
+            f"{runtime_path}: runtime action coverage registry must not be empty"
+        )
+    return records, failures
+
+
 def _parse_runtime_transition_registry(
     runtime_path: Path,
 ) -> tuple[list[dict[str, Any]], list[str]]:
@@ -1527,6 +1640,140 @@ def _validate_runtime_action_lookup(
         failures.append(
             f"{runtime_path}: runtime action lookup missing YtreeNovaAction enum member(s): "
             + ", ".join(missing_actions)
+        )
+
+    return failures
+
+
+def _validate_runtime_action_coverage_registry(
+    *,
+    runtime_records: list[dict[str, Any]],
+    runtime_path: Path,
+    enum_actions: list[str],
+    action_coverage_by_action: dict[str, dict[str, Any]],
+    transition_ids: dict[str, dict[str, Any]],
+    runtime_transition_ids: set[str],
+    runtime_action_transitions: list[dict[str, str]],
+    registered_owner_fields: set[str],
+) -> list[str]:
+    failures: list[str] = []
+    expected_actions = set(enum_actions)
+    covered_actions: set[str] = set()
+    runtime_action_by_action = {
+        record["action"]: record for record in runtime_action_transitions
+    }
+
+    for index, record in enumerate(runtime_records):
+        label = f"runtime_action_coverage[{index}]"
+        failures.extend(
+            _validate_required_fields(
+                record=record,
+                required_fields=REQUIRED_ACTION_FIELDS,
+                list_fields=LIST_FIELDS,
+                label=label,
+            )
+        )
+        if not isinstance(record, dict):
+            continue
+        action_name = record.get("action_name")
+        if not isinstance(action_name, str) or not action_name.strip():
+            failures.append(f"{label}: action_name must be non-empty")
+
+        action = record.get("action")
+        if isinstance(action, str) and action.strip():
+            if action in covered_actions:
+                failures.append(f"{label}: duplicate runtime action coverage: {action}")
+            else:
+                covered_actions.add(action)
+            if action not in expected_actions:
+                failures.append(f"{label}: unknown YtreeNovaAction enum member: {action}")
+            elif index >= len(enum_actions) or action != enum_actions[index]:
+                expected = enum_actions[index] if index < len(enum_actions) else "<none>"
+                failures.append(
+                    f"{label}: runtime row order does not match YtreeNovaAction "
+                    f"enum: expected {expected}, found {action}"
+                )
+            if isinstance(action_name, str) and action_name.strip() and action_name != action:
+                failures.append(
+                    f"{label}: action_name does not match action: {action_name}"
+                )
+
+        failures.extend(
+            _validate_registered_write_set(
+                record=record,
+                registered_fields=registered_owner_fields,
+                label=label,
+            )
+        )
+
+        transition_id = record.get("transition_id")
+        transition_record = None
+        if isinstance(transition_id, str) and transition_id.strip():
+            transition_record = transition_ids.get(transition_id)
+            if transition_record is None:
+                failures.append(
+                    f"{label}: transition_id does not match a transition id: {transition_id}"
+                )
+            if transition_id not in runtime_transition_ids:
+                failures.append(
+                    f"{label}: transition_id does not match runtime transition "
+                    f"registry: {transition_id}"
+                )
+
+        category = record.get("category")
+        if (
+            isinstance(category, str)
+            and category.strip()
+            and transition_record is not None
+            and category != transition_record.get("category")
+        ):
+            failures.append(
+                f"{label}: category does not match transition {transition_id}: {category}"
+            )
+
+        if isinstance(action, str) and action.strip():
+            coverage_record = action_coverage_by_action.get(action)
+            if coverage_record is None:
+                failures.append(
+                    f"{label}: runtime action coverage missing from docs: {action}"
+                )
+            else:
+                for field in (
+                    "transition_id",
+                    "category",
+                    "owner",
+                    "declared_write_set",
+                    "boundary_status",
+                    "migration_notes",
+                ):
+                    if record.get(field) != coverage_record.get(field):
+                        failures.append(
+                            f"{label}: runtime {field} does not match action "
+                            f"coverage for {action}: {record.get(field)!r}"
+                        )
+
+            action_transition = runtime_action_by_action.get(action)
+            if action_transition is None:
+                failures.append(
+                    f"{label}: action missing from runtime action transition table: {action}"
+                )
+            else:
+                if transition_id != action_transition.get("transition_id"):
+                    failures.append(
+                        f"{label}: transition_id does not match runtime action "
+                        f"transition table for {action}: {transition_id}"
+                    )
+                if category != action_transition.get("category"):
+                    failures.append(
+                        f"{label}: category does not match runtime action "
+                        f"transition table for {action}: {category}"
+                    )
+
+    missing_actions = sorted(expected_actions - covered_actions)
+    if missing_actions:
+        failures.append(
+            f"{runtime_path}: runtime action coverage missing YtreeNovaAction "
+            f"enum member(s): {', '.join(missing_actions)}"
         )
 
     return failures
@@ -3533,6 +3780,9 @@ def validate_contract(
     runtime_action_records, runtime_action_failures = _parse_runtime_action_transitions(
         action_runtime_path
     )
+    runtime_action_coverage_records, runtime_action_coverage_failures = (
+        _parse_runtime_action_coverage_registry(action_runtime_path)
+    )
     runtime_transition_records, runtime_transition_failures = (
         _parse_runtime_transition_registry(action_runtime_path)
     )
@@ -3569,6 +3819,7 @@ def validate_contract(
     failures.extend(transition_sequences_load_failures)
     failures.extend(enum_failures)
     failures.extend(runtime_action_failures)
+    failures.extend(runtime_action_coverage_failures)
     failures.extend(runtime_transition_failures)
     failures.extend(runtime_owner_field_failures)
     failures.extend(runtime_dispatch_surface_failures)
@@ -3806,6 +4057,20 @@ def validate_contract(
             action_coverage_by_action=action_coverage_by_action,
             transition_ids=transition_ids,
             runtime_transition_ids={record["id"] for record in runtime_transition_records},
+        )
+    )
+    failures.extend(
+        _validate_runtime_action_coverage_registry(
+            runtime_records=runtime_action_coverage_records,
+            runtime_path=action_runtime_path,
+            enum_actions=enum_actions,
+            action_coverage_by_action=action_coverage_by_action,
+            transition_ids=transition_ids,
+            runtime_transition_ids={
+                record["id"] for record in runtime_transition_records
+            },
+            runtime_action_transitions=runtime_action_records,
+            registered_owner_fields=registered_owner_fields,
         )
     )
 

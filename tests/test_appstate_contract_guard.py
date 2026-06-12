@@ -112,7 +112,7 @@ def _action(
         "owner": "YtreeNovaPanel(active)",
         "declared_write_set": ["panel.tree_selection_key"],
         "boundary_status": "test",
-        "migration_notes": ["fixture coverage"],
+        "migration_notes": ["fixture action coverage"],
     }
 
 
@@ -330,6 +330,7 @@ def _write_fixture(
     required_event_classes: list[str] | None = None,
     enum_actions: list[str] | None = None,
     runtime_actions: list[dict[str, object]] | None = None,
+    runtime_action_coverages: list[dict[str, object]] | None = None,
     runtime_transitions: list[dict[str, object]] | None = None,
     runtime_dispatch_surfaces: list[dict[str, object]] | None = None,
     runtime_shims: list[dict[str, object]] | None = None,
@@ -420,7 +421,10 @@ def _write_fixture(
     _write(
         action_runtime_path,
         _runtime_source(
-            runtime_actions or _complete_actions(),
+            runtime_actions if runtime_actions is not None else _complete_actions(),
+            runtime_action_coverages
+            if runtime_action_coverages is not None
+            else (actions if actions is not None else _complete_actions()),
             runtime_transitions if runtime_transitions is not None else transitions,
             runtime_owner_fields
             if runtime_owner_fields is not None
@@ -494,6 +498,7 @@ def _enum_header(actions: list[str]) -> str:
 
 def _runtime_source(
     actions: list[dict[str, object]],
+    action_coverages: list[dict[str, object]],
     transitions: list[dict[str, object]],
     owner_fields: list[dict[str, object]],
     dispatch_surfaces: list[dict[str, object]],
@@ -522,6 +527,40 @@ def _runtime_source(
             f"kAppStateTransitionWriteSet{index}, "
             f"sizeof(kAppStateTransitionWriteSet{index}) / "
             f"sizeof(kAppStateTransitionWriteSet{index}[0])}},"
+        )
+    action_coverage_arrays = []
+    action_coverage_rows = []
+    for index, record in enumerate(action_coverages):
+        declared_write_set = record.get("declared_write_set")
+        if not isinstance(declared_write_set, list):
+            declared_write_set = []
+        write_set_rows = "\n".join(
+            f'  "{field}",' for field in declared_write_set if isinstance(field, str)
+        )
+        write_set_table = f"kAppStateActionCoverageWriteSet{index}"
+        action_coverage_arrays.append(
+            f"static const char *const {write_set_table}[] = "
+            f"{{\n{write_set_rows}\n}};\n"
+        )
+        migration_notes = record.get("migration_notes")
+        if not isinstance(migration_notes, list):
+            migration_notes = []
+        note_rows = "\n".join(
+            f'  "{note}",' for note in migration_notes if isinstance(note, str)
+        )
+        notes_table = f"kAppStateActionCoverageMigrationNotes{index}"
+        action_coverage_arrays.append(
+            f"static const char *const {notes_table}[] = "
+            f"{{\n{note_rows}\n}};\n"
+        )
+        action = record.get("action", "")
+        action_coverage_rows.append(
+            f'  {{{action}, "{action}", "{record.get("transition_id", "")}", '
+            f'"{record.get("category", "")}", "{record.get("owner", "")}", '
+            f"{write_set_table}, sizeof({write_set_table}) / "
+            f"sizeof({write_set_table}[0]), "
+            f'"{record.get("boundary_status", "")}", '
+            f"{notes_table}, sizeof({notes_table}) / sizeof({notes_table}[0])}},"
         )
     owner_field_arrays = []
     owner_field_rows = []
@@ -873,6 +912,7 @@ def _runtime_source(
     )
     return (
         "".join(transition_write_sets)
+        + "".join(action_coverage_arrays)
         + "".join(owner_field_arrays)
         + "".join(dispatch_surface_arrays)
         + "".join(shim_invariants)
@@ -912,6 +952,10 @@ def _runtime_source(
         "    kAppStateActionTransitions[APPSTATE_ACTION_TRANSITION_COUNT] = {\n"
         f"{action_rows}\n"
         "};\n"
+        "static const AppStateActionCoverageMetadata\n"
+        "    kAppStateActionCoverages[APPSTATE_ACTION_COVERAGE_COUNT] = {\n"
+        + "\n".join(action_coverage_rows)
+        + "\n};\n"
     )
 
 
@@ -1603,10 +1647,19 @@ def test_runtime_transition_sequence_lookup_fails_closed_in_startup_guard() -> N
     assert "AppStateTransitionSequenceCount(void)" in header
     assert "AppStateTransitionSequenceAt(size_t index)" in header
     assert "AppStateTransitionSequenceLookup(const char *scenario_id)" in header
+    assert "AppStateActionCoverageCount(void)" in header
+    assert "AppStateActionCoverageAt(size_t index)" in header
+    assert "AppStateActionCoverageLookup(YtreeNovaAction action)" in header
     assert "AppStateTransitionSequenceAt(AppStateTransitionSequenceCount())" in source
     assert "AppStateTransitionSequenceLookup(NULL)" in source
     assert 'AppStateTransitionSequenceLookup("")' in source
     assert 'AppStateTransitionSequenceLookup("sequence.__ytnova_unknown__")' in source
+    assert "AppStateActionCoverageAt(AppStateActionCoverageCount())" in source
+    assert "AppStateActionCoverageLookup((YtreeNovaAction)-1)" in source
+    assert (
+        "AppStateActionCoverageLookup((YtreeNovaAction)(ACTION_USER_CMD + 1))"
+        in source
+    )
 
 
 def test_guard_fails_when_required_diff_harness_field_is_missing(
@@ -1944,6 +1997,71 @@ int main(void) {
     return 6;
   if (AppStateDiffHarnessLookup(metadata->harness_id) != metadata)
     return 7;
+  return 0;
+}
+""",
+        encoding="utf-8",
+    )
+
+    build = subprocess.run(
+        [
+            "gcc",
+            "-std=c99",
+            "-Iinclude",
+            str(probe),
+            "src/core/appstate_actions.c",
+            "-o",
+            str(binary),
+        ],
+        cwd=repo_root,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert build.returncode == 0, build.stdout + build.stderr
+    run = subprocess.run(
+        [str(binary)],
+        cwd=repo_root,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert run.returncode == 0, run.stdout + run.stderr
+
+
+def test_runtime_action_coverage_lookup_fails_closed(tmp_path: Path) -> None:
+    repo_root = Path(__file__).resolve().parents[1]
+    probe = tmp_path / "action_coverage_lookup_probe.c"
+    binary = tmp_path / "action_coverage_lookup_probe"
+    probe.write_text(
+        """
+#include "ytnova_appstate_actions.h"
+
+int main(void) {
+  const AppStateActionCoverageMetadata *metadata;
+
+  if (AppStateActionCoverageCount() == 0)
+    return 1;
+  if (AppStateActionCoverageAt(AppStateActionCoverageCount()) != 0)
+    return 2;
+  if (AppStateActionCoverageLookup((YtreeNovaAction)-1) != 0)
+    return 3;
+  if (AppStateActionCoverageLookup((YtreeNovaAction)(ACTION_USER_CMD + 1)) != 0)
+    return 4;
+
+  metadata = AppStateActionCoverageLookup(ACTION_NONE);
+  if (metadata == 0)
+    return 5;
+  if (metadata != AppStateActionCoverageAt((size_t)ACTION_NONE))
+    return 6;
+  if (metadata->action != ACTION_NONE)
+    return 7;
+  if (metadata->action_name == 0 || metadata->action_name[0] == '\\0')
+    return 8;
+  if (metadata->declared_write_set == 0 || metadata->declared_write_set_count == 0)
+    return 9;
+  if (metadata->migration_notes == 0 || metadata->migration_note_count == 0)
+    return 10;
   return 0;
 }
 """,
@@ -4038,5 +4156,139 @@ def test_guard_fails_when_runtime_action_lookup_mismatches_action_coverage(
         "runtime category does not match action coverage" in failure
         and "ACTION_NONE" in failure
         and "render_reflow" in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_when_runtime_action_coverage_is_missing_enum_action(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    runtime_action_coverages = [_action("ACTION_NONE"), _action("ACTION_USER_CMD")]
+    paths = _write_fixture(
+        tmp_path,
+        transitions=transitions,
+        runtime_action_coverages=runtime_action_coverages,
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "runtime action coverage missing YtreeNovaAction enum member" in failure
+        and "ACTION_MOVE_UP" in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_when_runtime_action_coverage_has_malformed_row(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    paths = _write_fixture(tmp_path, transitions=transitions)
+    runtime_path = paths[-1]
+    source = runtime_path.read_text(encoding="utf-8")
+    runtime_path.write_text(
+        source.replace(
+            '{ACTION_NONE, "ACTION_NONE",',
+            '{ACTION_NONE /* malformed */, "ACTION_NONE",',
+            1,
+        ),
+        encoding="utf-8",
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "runtime_action_coverage[0]" in failure
+        and "malformed runtime action coverage row" in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_when_runtime_action_coverage_write_set_is_malformed(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    paths = _write_fixture(tmp_path, transitions=transitions)
+    runtime_path = paths[-1]
+    source = runtime_path.read_text(encoding="utf-8")
+    runtime_path.write_text(
+        source.replace('"panel.tree_selection_key",', "panel.tree_selection_key,", 1),
+        encoding="utf-8",
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "kAppStateActionCoverageWriteSet0[0]" in failure
+        and "malformed string literal entry" in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_when_runtime_action_coverage_migration_notes_are_malformed(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    paths = _write_fixture(tmp_path, transitions=transitions)
+    runtime_path = paths[-1]
+    source = runtime_path.read_text(encoding="utf-8")
+    runtime_path.write_text(
+        source.replace('"fixture action coverage",', "fixture action coverage,", 1),
+        encoding="utf-8",
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "kAppStateActionCoverageMigrationNotes0[0]" in failure
+        and "malformed string literal entry" in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_when_runtime_action_coverage_uses_unknown_transition(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    runtime_action_coverages = _complete_actions()
+    runtime_action_coverages[0] = _action(
+        "ACTION_NONE", transition_id="transition.missing"
+    )
+    paths = _write_fixture(
+        tmp_path,
+        transitions=transitions,
+        runtime_action_coverages=runtime_action_coverages,
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "runtime_action_coverage[0]" in failure
+        and "transition_id does not match a transition id" in failure
+        and "transition.missing" in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_when_action_transition_table_drifts_from_coverage(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    runtime_actions = _complete_actions()
+    runtime_actions[0] = _action("ACTION_NONE", category="render_reflow")
+    paths = _write_fixture(
+        tmp_path,
+        transitions=transitions,
+        runtime_actions=runtime_actions,
+        runtime_action_coverages=_complete_actions(),
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "runtime_action_coverage[0]" in failure
+        and "category does not match runtime action transition table" in failure
+        and "ACTION_NONE" in failure
         for failure in failures
     )
