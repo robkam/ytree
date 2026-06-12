@@ -191,6 +191,14 @@ static const char *const kAppStateRequiredInvariantIds[] = {
   "invariant.blocked-transition-determinism",
 };
 
+static const char *const kAppStateRequiredDiffHarnessIds[] = {
+  "harness.transition-before-after-snapshot",
+  "harness.declared-write-set-diff",
+  "harness.render-projection-read-only-diff",
+  "harness.generation-mismatch-check",
+  "harness.blocked-transition-no-unrelated-mutation",
+};
+
 static int StringListContains(const char *const *values, size_t count,
                               const char *value) {
   size_t index;
@@ -967,14 +975,18 @@ static int AppStateActionCoverageReady(void) {
 
 static int AppStateDiffHarnessRegistryReady(void) {
   size_t index;
+  size_t required_diff_harness_id_count =
+      sizeof(kAppStateRequiredDiffHarnessIds) /
+      sizeof(kAppStateRequiredDiffHarnessIds[0]);
 
-  if (AppStateDiffHarnessCount() == 0)
+  if (AppStateDiffHarnessCount() != required_diff_harness_id_count)
     return 0;
 
   for (index = 0; index < AppStateDiffHarnessCount(); index++) {
     const AppStateDiffHarnessMetadata *metadata =
         AppStateDiffHarnessAt(index);
     size_t ref_index;
+    size_t previous_index;
 
     if (metadata == NULL || !NonEmptyString(metadata->harness_id) ||
         !NonEmptyString(metadata->check_category) ||
@@ -999,6 +1011,15 @@ static int AppStateDiffHarnessRegistryReady(void) {
     if (AppStateDiffHarnessLookup(metadata->harness_id) != metadata)
       return 0;
 
+    for (previous_index = 0; previous_index < index; previous_index++) {
+      const AppStateDiffHarnessMetadata *previous =
+          AppStateDiffHarnessAt(previous_index);
+
+      if (previous == NULL ||
+          strcmp(previous->harness_id, metadata->harness_id) == 0)
+        return 0;
+    }
+
     for (ref_index = 0; ref_index < metadata->transition_id_count;
          ref_index++) {
       if (AppStateTransitionLookup(metadata->transition_ids[ref_index]) ==
@@ -1022,6 +1043,12 @@ static int AppStateDiffHarnessRegistryReady(void) {
               metadata->generation_domain_ids[ref_index]) == NULL)
         return 0;
     }
+  }
+
+  for (index = 0; index < required_diff_harness_id_count; index++) {
+    if (AppStateDiffHarnessLookup(kAppStateRequiredDiffHarnessIds[index]) ==
+        NULL)
+      return 0;
   }
 
   if (AppStateDiffHarnessAt(AppStateDiffHarnessCount()) != NULL)

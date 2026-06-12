@@ -4687,3 +4687,55 @@ def test_runtime_shim_startup_requires_documented_shim_ids() -> None:
         source,
         re.S,
     )
+
+
+def test_runtime_diff_harness_startup_checks_fail_closed() -> None:
+    source = Path("src/core/main.c").read_text(encoding="utf-8")
+
+    assert "AppStateDiffHarnessAt(AppStateDiffHarnessCount()) != NULL" in source
+    assert 'AppStateDiffHarnessLookup("harness.__ytnova_unknown__") != NULL' in source
+    assert "AppStateDiffHarnessLookup(NULL) != NULL" in source
+    assert 'AppStateDiffHarnessLookup("") != NULL' in source
+    assert "AppStateDiffHarnessCount() != required_diff_harness_id_count" in source
+    assert "previous_index < index" in source
+    assert "strcmp(previous->harness_id, metadata->harness_id) == 0" in source
+    assert "AppStateTransitionLookup(metadata->transition_ids[ref_index])" in source
+    assert "AppStateOwnerFieldLookup(metadata->owner_field_refs[ref_index])" in source
+    assert "AppStateInvariantLookup(metadata->invariant_ids[ref_index])" in source
+    assert (
+        "AppStateGenerationDomainLookup(\n"
+        "              metadata->generation_domain_ids[ref_index])"
+        in source
+    )
+    assert "!AppStateDiffHarnessRegistryReady()" in source
+
+
+def test_runtime_diff_harness_startup_requires_documented_harness_ids() -> None:
+    source = Path("src/core/main.c").read_text(encoding="utf-8")
+    diff_doc, diff_failures = guard._load_json(guard.DEFAULT_DIFF_HARNESS)
+    required_ids = guard._collect_string_ids(
+        diff_doc,
+        collection_key="diff_harness_checks",
+        id_field="harness_id",
+    )
+    required_table = re.search(
+        r"static\s+const\s+char\s+\*const\s+"
+        r"kAppStateRequiredDiffHarnessIds\[\]\s*=\s*\{(?P<body>.*?)\};",
+        source,
+        re.S,
+    )
+
+    assert diff_failures == []
+    assert required_table is not None
+    table_ids, table_failures = guard._parse_string_initializer_array(
+        required_table.group("body"),
+        "kAppStateRequiredDiffHarnessIds",
+    )
+    assert table_failures == []
+    assert set(table_ids) == required_ids
+    assert re.search(
+        r"AppStateDiffHarnessLookup\(\s*"
+        r"kAppStateRequiredDiffHarnessIds\[index\]\s*\)",
+        source,
+        re.S,
+    )
