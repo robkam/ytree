@@ -4555,3 +4555,45 @@ def test_runtime_event_coverage_startup_requires_documented_event_ids() -> None:
     assert table_failures == []
     assert set(table_ids) == required_ids
     assert "AppStateRequiredEventIdCovered(kAppStateRequiredEventIds[index])" in source
+
+
+def test_runtime_dispatch_surface_startup_checks_fail_closed() -> None:
+    source = Path("src/core/main.c").read_text(encoding="utf-8")
+
+    assert "AppStateDispatchSurfaceAt(AppStateDispatchSurfaceCount()) != NULL" in source
+    assert 'AppStateDispatchSurfaceLookup("surface.__ytnova_unknown__") != NULL' in source
+    assert "AppStateDispatchSurfaceCount() != required_surface_id_count" in source
+    assert "previous_index < index" in source
+    assert "strcmp(previous->surface_id, metadata->surface_id) == 0" in source
+    assert "!AppStateDispatchSurfacesReady()" in source
+
+
+def test_runtime_dispatch_surface_startup_requires_documented_surface_ids() -> None:
+    source = Path("src/core/main.c").read_text(encoding="utf-8")
+    dispatch_doc, dispatch_failures = guard._load_json(guard.DEFAULT_DISPATCH_SURFACES)
+    required_ids = guard._collect_string_ids(
+        dispatch_doc,
+        collection_key="dispatch_surfaces",
+        id_field="surface_id",
+    )
+    required_table = re.search(
+        r"static\s+const\s+char\s+\*const\s+"
+        r"kAppStateRequiredDispatchSurfaceIds\[\]\s*=\s*\{(?P<body>.*?)\};",
+        source,
+        re.S,
+    )
+
+    assert dispatch_failures == []
+    assert required_table is not None
+    table_ids, table_failures = guard._parse_string_initializer_array(
+        required_table.group("body"),
+        "kAppStateRequiredDispatchSurfaceIds",
+    )
+    assert table_failures == []
+    assert set(table_ids) == required_ids
+    assert re.search(
+        r"AppStateDispatchSurfaceLookup\(\s*"
+        r"kAppStateRequiredDispatchSurfaceIds\[index\]\s*\)",
+        source,
+        re.S,
+    )
