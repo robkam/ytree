@@ -302,6 +302,8 @@ SEQUENCE_LIST_FIELDS = {
     "diff_harness_ids",
     "generation_domain_expectations",
 }
+DISPATCH_SURFACE_SOURCE_ROOT = REPO_ROOT / "src"
+ENTRY_SYMBOL_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
 GENERATION_FIELD_RE = re.compile(r"\b(?:[A-Za-z0-9_]+\.)?[A-Za-z0-9_]+_generation\b")
 
 
@@ -2795,7 +2797,14 @@ def _validate_source_path(value: Any, *, label: str) -> list[str]:
     ):
         return [f"{label}: source_path must be a relative repository path"]
 
-    if not (REPO_ROOT / source_path).is_file():
+    source_file = (REPO_ROOT / source_path).resolve()
+    source_root = DISPATCH_SURFACE_SOURCE_ROOT.resolve()
+    try:
+        source_file.relative_to(source_root)
+    except ValueError:
+        return [f"{label}: source_path must point inside src/: {source_path}"]
+
+    if not source_file.is_file():
         return [f"{label}: source_path does not exist: {source_path}"]
     return []
 
@@ -2813,6 +2822,36 @@ def _validate_entry_symbol_or_path(value: Any, *, label: str) -> list[str]:
         or re.search(r"\s", entry)
     ):
         return [f"{label}: entry_symbol_or_path is malformed: {entry}"]
+    return []
+
+
+def _entry_symbol_or_path_is_anchored(source: str, entry: str) -> bool:
+    if ENTRY_SYMBOL_RE.fullmatch(entry):
+        return (
+            re.search(
+                rf"(?<![A-Za-z0-9_]){re.escape(entry)}\s*\(",
+                source,
+            )
+            is not None
+        )
+    return entry in source
+
+
+def _validate_dispatch_surface_source_anchor(
+    *, source_path: str, entry_symbol_or_path: str, label: str
+) -> list[str]:
+    source_file = REPO_ROOT / source_path.strip()
+    entry = entry_symbol_or_path.strip()
+    try:
+        source = source_file.read_text(encoding="utf-8")
+    except OSError as exc:
+        return [f"{label}: source_path could not be read: {source_path}: {exc}"]
+
+    if not _entry_symbol_or_path_is_anchored(source, entry):
+        return [
+            f"{label}: entry_symbol_or_path not found in source_path "
+            f"{source_path}: {entry}"
+        ]
     return []
 
 
@@ -2880,12 +2919,27 @@ def _validate_dispatch_surfaces(
                     f"{label}: transition_id does not match a transition id: {transition_id}"
                 )
 
-        failures.extend(_validate_source_path(record.get("source_path"), label=label))
-        failures.extend(
-            _validate_entry_symbol_or_path(
-                record.get("entry_symbol_or_path"), label=label
-            )
+        source_path = record.get("source_path")
+        entry_symbol_or_path = record.get("entry_symbol_or_path")
+        source_failures = _validate_source_path(source_path, label=label)
+        entry_failures = _validate_entry_symbol_or_path(
+            entry_symbol_or_path, label=label
         )
+        failures.extend(source_failures)
+        failures.extend(entry_failures)
+        if (
+            not source_failures
+            and not entry_failures
+            and isinstance(source_path, str)
+            and isinstance(entry_symbol_or_path, str)
+        ):
+            failures.extend(
+                _validate_dispatch_surface_source_anchor(
+                    source_path=source_path,
+                    entry_symbol_or_path=entry_symbol_or_path,
+                    label=label,
+                )
+            )
 
     missing_categories = sorted(
         REQUIRED_DISPATCH_SURFACE_CATEGORIES - covered_categories
