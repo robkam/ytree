@@ -4639,3 +4639,51 @@ def test_runtime_invariant_startup_requires_documented_invariant_ids() -> None:
         source,
         re.S,
     )
+
+
+def test_runtime_shim_startup_checks_fail_closed() -> None:
+    source = Path("src/core/main.c").read_text(encoding="utf-8")
+
+    assert (
+        "AppStateCompatibilityShimAt(AppStateCompatibilityShimCount()) != NULL"
+        in source
+    )
+    assert (
+        'AppStateCompatibilityShimLookup("shim.__ytnova_unknown__") != NULL'
+        in source
+    )
+    assert "AppStateCompatibilityShimCount() != required_shim_id_count" in source
+    assert "previous_index < index" in source
+    assert "strcmp(previous->id, metadata->id) == 0" in source
+    assert "!AppStateCompatibilityShimsReady()" in source
+
+
+def test_runtime_shim_startup_requires_documented_shim_ids() -> None:
+    source = Path("src/core/main.c").read_text(encoding="utf-8")
+    shim_doc, shim_failures = guard._load_json(guard.DEFAULT_SHIMS)
+    required_ids = guard._collect_string_ids(
+        shim_doc,
+        collection_key="shims",
+        id_field="id",
+    )
+    required_table = re.search(
+        r"static\s+const\s+char\s+\*const\s+"
+        r"kAppStateRequiredShimIds\[\]\s*=\s*\{(?P<body>.*?)\};",
+        source,
+        re.S,
+    )
+
+    assert shim_failures == []
+    assert required_table is not None
+    table_ids, table_failures = guard._parse_string_initializer_array(
+        required_table.group("body"),
+        "kAppStateRequiredShimIds",
+    )
+    assert table_failures == []
+    assert set(table_ids) == required_ids
+    assert re.search(
+        r"AppStateCompatibilityShimLookup\(\s*"
+        r"kAppStateRequiredShimIds\[index\]\s*\)",
+        source,
+        re.S,
+    )
