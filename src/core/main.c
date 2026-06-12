@@ -173,6 +173,13 @@ static const char *const kAppStateRequiredDispatchSurfaceIds[] = {
   "surface.render-reflow-projection",
 };
 
+static const char *const kAppStateRequiredShimIds[] = {
+  "shim.viewcontext-hide-dot-files",
+  "shim.volume-saved-tree-index",
+  "shim.focused-window-session-flag",
+  "shim-render-derived-row-position",
+};
+
 static const char *const kAppStateRequiredInvariantIds[] = {
   "invariant.inactive-panel-frozen",
   "invariant.render-projection-read-only",
@@ -676,14 +683,17 @@ static int AppStateInvariantRegistryReady(void) {
 
 static int AppStateCompatibilityShimsReady(void) {
   size_t index;
+  size_t required_shim_id_count =
+      sizeof(kAppStateRequiredShimIds) / sizeof(kAppStateRequiredShimIds[0]);
 
-  if (AppStateCompatibilityShimCount() == 0)
+  if (AppStateCompatibilityShimCount() != required_shim_id_count)
     return 0;
 
   for (index = 0; index < AppStateCompatibilityShimCount(); index++) {
     const AppStateCompatibilityShimMetadata *metadata =
         AppStateCompatibilityShimAt(index);
     size_t invariant_index;
+    size_t previous_index;
 
     if (metadata == NULL || !NonEmptyString(metadata->id) ||
         !NonEmptyString(metadata->owner) ||
@@ -702,11 +712,25 @@ static int AppStateCompatibilityShimsReady(void) {
     if (AppStateTransitionLookup(metadata->target_transition) == NULL)
       return 0;
 
+    for (previous_index = 0; previous_index < index; previous_index++) {
+      const AppStateCompatibilityShimMetadata *previous =
+          AppStateCompatibilityShimAt(previous_index);
+
+      if (previous == NULL || strcmp(previous->id, metadata->id) == 0)
+        return 0;
+    }
+
     for (invariant_index = 0;
          invariant_index < metadata->invariant_check_count; invariant_index++) {
       if (!NonEmptyString(metadata->invariant_checks[invariant_index]))
         return 0;
     }
+  }
+
+  for (index = 0; index < required_shim_id_count; index++) {
+    if (AppStateCompatibilityShimLookup(kAppStateRequiredShimIds[index]) ==
+        NULL)
+      return 0;
   }
 
   if (AppStateCompatibilityShimAt(AppStateCompatibilityShimCount()) != NULL)
