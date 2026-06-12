@@ -136,21 +136,29 @@ static const struct {
   {"ACTION_USER_CMD", ACTION_USER_CMD},
 };
 
-static const struct {
-  const char *event_id;
-  const char *transition_id;
-} kAppStateEventTransitionIds[] = {
-  {"event.terminal-resize-signal", "transition.terminal-signal-resize" },
-  {"event.refresh-rebuild", "transition.refresh-rebuild.manual-refresh" },
-  {"event.rebuild-rebind-callback", "transition.rebuild-rebind-callback.panel-anchor" },
-  {"event.filesystem-mutation-result", "transition.filesystem-mutation-result.mkdir-copy-delete" },
-  {"event.watcher-live-refresh", "transition.refresh-rebuild.manual-refresh" },
-  {"event.command-completion", "transition.command-completion.user-command" },
-  {"event.modal-completion", "transition.modal-action.dismiss" },
-  {"event.volume-lifecycle", "transition.volume-operation.release-cycle" },
-  {"event.render-reflow", "transition.render-reflow.project-state" },
+static const char *const kAppStateRequiredEventClasses[] = {
+  "terminal_resize_signal",
+  "refresh_rebuild",
+  "rebuild_rebind_callback",
+  "filesystem_mutation_result",
+  "watcher_live_refresh",
+  "command_completion",
+  "modal_completion",
+  "volume_lifecycle",
+  "render_reflow",
 };
 
+static const char *const kAppStateRequiredEventIds[] = {
+  "event.terminal-resize-signal",
+  "event.refresh-rebuild",
+  "event.rebuild-rebind-callback",
+  "event.filesystem-mutation-result",
+  "event.watcher-live-refresh",
+  "event.command-completion",
+  "event.modal-completion",
+  "event.volume-lifecycle",
+  "event.render-reflow",
+};
 
 static int StringListContains(const char *const *values, size_t count,
                               const char *value) {
@@ -191,20 +199,13 @@ AppStateActionIdLookup(const char *action_id) {
 }
 
 static const char *AppStateEventTransitionLookup(const char *event_id) {
-  size_t index;
+  const AppStateEventCoverageMetadata *coverage =
+      AppStateEventCoverageLookup(event_id);
 
-  if (!NonEmptyString(event_id))
+  if (coverage == NULL)
     return NULL;
 
-  for (index = 0;
-       index < sizeof(kAppStateEventTransitionIds) /
-                   sizeof(kAppStateEventTransitionIds[0]);
-       index++) {
-    if (strcmp(kAppStateEventTransitionIds[index].event_id, event_id) == 0)
-      return kAppStateEventTransitionIds[index].transition_id;
-  }
-
-  return NULL;
+  return coverage->transition_id;
 }
 
 static int AppStateFallbackPreconditionValid(const char *precondition) {
@@ -704,6 +705,115 @@ static int AppStateActionCoverageWriteSetMatches(
   return 1;
 }
 
+static int AppStateEventCoverageWriteSetMatches(
+    const AppStateEventCoverageMetadata *coverage,
+    const AppStateTransitionMetadata *transition) {
+  size_t index;
+
+  if (coverage->declared_write_set_count != transition->declared_write_set_count)
+    return 0;
+
+  for (index = 0; index < coverage->declared_write_set_count; index++) {
+    if (strcmp(coverage->declared_write_set[index],
+               transition->declared_write_set[index]) != 0)
+      return 0;
+  }
+
+  return 1;
+}
+
+static int AppStateRequiredEventClassCovered(const char *event_class) {
+  size_t index;
+
+  for (index = 0; index < AppStateEventCoverageCount(); index++) {
+    const AppStateEventCoverageMetadata *coverage = AppStateEventCoverageAt(index);
+
+    if (coverage != NULL && strcmp(coverage->event_class, event_class) == 0)
+      return 1;
+  }
+
+  return 0;
+}
+
+static int AppStateRequiredEventIdCovered(const char *event_id) {
+  return AppStateEventCoverageLookup(event_id) != NULL;
+}
+
+static int AppStateEventCoverageReady(void) {
+  size_t index;
+  size_t required_class_count =
+      sizeof(kAppStateRequiredEventClasses) /
+      sizeof(kAppStateRequiredEventClasses[0]);
+  size_t required_event_id_count =
+      sizeof(kAppStateRequiredEventIds) / sizeof(kAppStateRequiredEventIds[0]);
+
+  if (AppStateEventCoverageCount() != required_class_count ||
+      AppStateEventCoverageCount() != required_event_id_count)
+    return 0;
+
+  for (index = 0; index < AppStateEventCoverageCount(); index++) {
+    const AppStateEventCoverageMetadata *coverage;
+    const AppStateTransitionMetadata *transition;
+    size_t previous_index;
+
+    coverage = AppStateEventCoverageAt(index);
+    if (coverage == NULL || !NonEmptyString(coverage->event_id) ||
+        !NonEmptyString(coverage->event_class) ||
+        !NonEmptyString(coverage->transition_id) ||
+        !NonEmptyString(coverage->category) || !NonEmptyString(coverage->source) ||
+        !NonEmptyString(coverage->owner) ||
+        !NonEmptyString(coverage->boundary_status) ||
+        !NonEmptyStringList(coverage->declared_write_set,
+                            coverage->declared_write_set_count) ||
+        !NonEmptyStringList(coverage->trigger_paths,
+                            coverage->trigger_path_count) ||
+        !NonEmptyStringList(coverage->migration_notes,
+                            coverage->migration_note_count))
+      return 0;
+    if (AppStateEventCoverageLookup(coverage->event_id) != coverage)
+      return 0;
+
+    for (previous_index = 0; previous_index < index; previous_index++) {
+      const AppStateEventCoverageMetadata *previous =
+          AppStateEventCoverageAt(previous_index);
+
+      if (previous == NULL ||
+          strcmp(previous->event_id, coverage->event_id) == 0 ||
+          strcmp(previous->event_class, coverage->event_class) == 0)
+        return 0;
+    }
+
+    transition = AppStateTransitionLookup(coverage->transition_id);
+    if (transition == NULL)
+      return 0;
+    if (strcmp(coverage->category, transition->category) != 0)
+      return 0;
+    if (!AppStateEventCoverageWriteSetMatches(coverage, transition))
+      return 0;
+  }
+
+  for (index = 0; index < required_class_count; index++) {
+    if (!AppStateRequiredEventClassCovered(kAppStateRequiredEventClasses[index]))
+      return 0;
+  }
+
+  for (index = 0; index < required_event_id_count; index++) {
+    if (!AppStateRequiredEventIdCovered(kAppStateRequiredEventIds[index]))
+      return 0;
+  }
+
+  if (AppStateEventCoverageAt(AppStateEventCoverageCount()) != NULL)
+    return 0;
+  if (AppStateEventCoverageLookup(NULL) != NULL)
+    return 0;
+  if (AppStateEventCoverageLookup("") != NULL)
+    return 0;
+  if (AppStateEventCoverageLookup("event.__ytnova_unknown__") != NULL)
+    return 0;
+
+  return 1;
+}
+
 static int AppStateActionCoverageReady(void) {
   size_t index;
   size_t action_id_count =
@@ -923,6 +1033,7 @@ int main(int argc, char **argv) {
       !AppStateDiffHarnessRegistryReady() ||
       !AppStateTransitionSequencesReady() ||
       !AppStateActionCoverageReady() ||
+      !AppStateEventCoverageReady() ||
       !AppStateActionTransitionsReady()) {
     fprintf(stderr, "EXIT: startup invariants not configured\n");
     exit(1);

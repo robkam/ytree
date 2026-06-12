@@ -31,6 +31,22 @@ typedef struct {
 } AppStateActionCoverageMetadata;
 
 typedef struct {
+  const char *event_id;
+  const char *event_class;
+  const char *transition_id;
+  const char *category;
+  const char *source;
+  const char *owner;
+  const char *const *declared_write_set;
+  size_t declared_write_set_count;
+  const char *boundary_status;
+  const char *const *trigger_paths;
+  size_t trigger_path_count;
+  const char *const *migration_notes;
+  size_t migration_note_count;
+} AppStateEventCoverageMetadata;
+
+typedef struct {
   const char *id;
   const char *category;
   const char *owner;
@@ -184,6 +200,10 @@ const AppStateActionCoverageMetadata *
 AppStateActionCoverageLookup(YtreeNovaAction action);
 const AppStateActionCoverageMetadata *AppStateActionCoverageAt(size_t index);
 size_t AppStateActionCoverageCount(void);
+const AppStateEventCoverageMetadata *
+AppStateEventCoverageLookup(const char *event_id);
+const AppStateEventCoverageMetadata *AppStateEventCoverageAt(size_t index);
+size_t AppStateEventCoverageCount(void);
 const AppStateTransitionMetadata *
 AppStateTransitionLookup(const char *transition_id);
 const AppStateTransitionMetadata *AppStateTransitionAt(size_t index);
