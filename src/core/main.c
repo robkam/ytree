@@ -160,6 +160,19 @@ static const char *const kAppStateRequiredEventIds[] = {
   "event.render-reflow",
 };
 
+static const char *const kAppStateRequiredTransitionIds[] = {
+  "transition.keybinding.navigate-tree",
+  "transition.menu-action.volume-select",
+  "transition.modal-action.dismiss",
+  "transition.refresh-rebuild.manual-refresh",
+  "transition.volume-operation.release-cycle",
+  "transition.terminal-signal-resize",
+  "transition.filesystem-mutation-result.mkdir-copy-delete",
+  "transition.command-completion.user-command",
+  "transition.rebuild-rebind-callback.panel-anchor",
+  "transition.render-reflow.project-state",
+};
+
 static const char *const kAppStateRequiredOwnerFieldIds[] = {
   "ctx.active",
   "ctx.command_state",
@@ -527,12 +540,16 @@ static int AppStateOwnerFieldsReady(void) {
 
 static int AppStateTransitionRegistryReady(void) {
   size_t index;
+  size_t required_transition_id_count =
+      sizeof(kAppStateRequiredTransitionIds) /
+      sizeof(kAppStateRequiredTransitionIds[0]);
 
-  if (AppStateTransitionCount() == 0)
+  if (AppStateTransitionCount() != required_transition_id_count)
     return 0;
 
   for (index = 0; index < AppStateTransitionCount(); index++) {
     const AppStateTransitionMetadata *metadata = AppStateTransitionAt(index);
+    size_t previous_index;
     size_t write_index;
 
     if (metadata == NULL || !NonEmptyString(metadata->id) ||
@@ -544,6 +561,14 @@ static int AppStateTransitionRegistryReady(void) {
     if (AppStateTransitionLookup(metadata->id) != metadata)
       return 0;
 
+    for (previous_index = 0; previous_index < index; previous_index++) {
+      const AppStateTransitionMetadata *previous =
+          AppStateTransitionAt(previous_index);
+
+      if (previous == NULL || strcmp(previous->id, metadata->id) == 0)
+        return 0;
+    }
+
     for (write_index = 0; write_index < metadata->declared_write_set_count;
          write_index++) {
       const char *field = metadata->declared_write_set[write_index];
@@ -553,6 +578,17 @@ static int AppStateTransitionRegistryReady(void) {
     }
   }
 
+  for (index = 0; index < required_transition_id_count; index++) {
+    if (AppStateTransitionLookup(kAppStateRequiredTransitionIds[index]) == NULL)
+      return 0;
+  }
+
+  if (AppStateTransitionAt(AppStateTransitionCount()) != NULL)
+    return 0;
+  if (AppStateTransitionLookup(NULL) != NULL)
+    return 0;
+  if (AppStateTransitionLookup("") != NULL)
+    return 0;
   if (AppStateTransitionLookup("transition.__ytnova_unknown__") != NULL)
     return 0;
 

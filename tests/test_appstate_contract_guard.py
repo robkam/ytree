@@ -1785,6 +1785,59 @@ def test_runtime_transition_sequence_startup_requires_documented_scenario_ids() 
     )
 
 
+def test_runtime_transition_registry_startup_checks_fail_closed() -> None:
+    source = Path("src/core/main.c").read_text(encoding="utf-8")
+
+    assert "AppStateTransitionAt(AppStateTransitionCount()) != NULL" in source
+    assert "AppStateTransitionLookup(NULL) != NULL" in source
+    assert 'AppStateTransitionLookup("") != NULL' in source
+    assert 'AppStateTransitionLookup("transition.__ytnova_unknown__") != NULL' in source
+    assert "AppStateTransitionCount() != required_transition_id_count" in source
+    assert "metadata == NULL || !NonEmptyString(metadata->id)" in source
+    assert "metadata->declared_write_set == NULL" in source
+    assert "metadata->declared_write_set_count == 0" in source
+    assert "previous_index < index" in source
+    assert "strcmp(previous->id, metadata->id) == 0" in source
+    assert "if (!NonEmptyString(field))" in source
+    assert "AppStateTransitionLookup(kAppStateRequiredTransitionIds[index])" in source
+    assert "!AppStateTransitionRegistryReady()" in source
+
+
+def test_runtime_transition_registry_startup_requires_documented_transition_ids() -> None:
+    source = Path("src/core/main.c").read_text(encoding="utf-8")
+    transition_doc, transition_failures = guard._load_json(guard.DEFAULT_TRANSITIONS)
+    required_ids = guard._collect_string_ids(
+        transition_doc,
+        collection_key="transitions",
+        id_field="id",
+    )
+    required_table = re.search(
+        r"static\s+const\s+char\s+\*const\s+"
+        r"kAppStateRequiredTransitionIds\[\]\s*=\s*\{(?P<body>.*?)\};",
+        source,
+        re.S,
+    )
+
+    assert transition_failures == []
+    assert required_table is not None
+    table_ids, table_failures = guard._parse_string_initializer_array(
+        required_table.group("body"),
+        "kAppStateRequiredTransitionIds",
+    )
+    assert table_failures == []
+    assert table_ids == [
+        transition["id"] for transition in transition_doc["transitions"]
+    ]
+    assert set(table_ids) == required_ids
+    assert len(table_ids) == len(required_ids)
+    assert re.search(
+        r"AppStateTransitionLookup\(\s*"
+        r"kAppStateRequiredTransitionIds\[index\]\s*\)",
+        source,
+        re.S,
+    )
+
+
 def test_guard_fails_when_required_diff_harness_field_is_missing(
     tmp_path: Path,
 ) -> None:
