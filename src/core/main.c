@@ -160,6 +160,31 @@ static const char *const kAppStateRequiredEventIds[] = {
   "event.render-reflow",
 };
 
+static const char *const kAppStateRequiredOwnerFieldIds[] = {
+  "ctx.active",
+  "ctx.command_state",
+  "ctx.message_state",
+  "ctx.modal_state",
+  "ctx.pending_transition",
+  "ctx.volumes_head",
+  "ctx.layout",
+  "ctx.render_dirty_flags",
+  "ctx.window_handles",
+  "panel.file_selection_key",
+  "panel.file_viewport_origin",
+  "panel.focus_shape",
+  "panel.panel_generation",
+  "panel.restore_snapshot",
+  "panel.tree_cursor_pos",
+  "panel.tree_selection_key",
+  "panel.tree_viewport_origin",
+  "panel.volume_key",
+  "volume.dir_tree",
+  "volume.logged_state",
+  "volume.payload_cache",
+  "volume.volume_generation",
+};
+
 static const char *const kAppStateRequiredDispatchSurfaceIds[] = {
   "surface.key-decode-input-dispatch",
   "surface.directory-window-action-dispatch",
@@ -451,12 +476,16 @@ static int AppStateInvariantDispatchSurfacesReady(
 
 static int AppStateOwnerFieldsReady(void) {
   size_t index;
+  size_t required_owner_field_id_count =
+      sizeof(kAppStateRequiredOwnerFieldIds) /
+      sizeof(kAppStateRequiredOwnerFieldIds[0]);
 
-  if (AppStateOwnerFieldCount() == 0)
+  if (AppStateOwnerFieldCount() != required_owner_field_id_count)
     return 0;
 
   for (index = 0; index < AppStateOwnerFieldCount(); index++) {
     const AppStateOwnerFieldMetadata *metadata = AppStateOwnerFieldAt(index);
+    size_t previous_index;
 
     if (metadata == NULL || !NonEmptyString(metadata->field) ||
         !NonEmptyString(metadata->owner_region) ||
@@ -468,6 +497,19 @@ static int AppStateOwnerFieldsReady(void) {
                             metadata->invariant_check_count))
       return 0;
     if (AppStateOwnerFieldLookup(metadata->field) != metadata)
+      return 0;
+
+    for (previous_index = 0; previous_index < index; previous_index++) {
+      const AppStateOwnerFieldMetadata *previous =
+          AppStateOwnerFieldAt(previous_index);
+
+      if (previous == NULL || strcmp(previous->field, metadata->field) == 0)
+        return 0;
+    }
+  }
+
+  for (index = 0; index < required_owner_field_id_count; index++) {
+    if (AppStateOwnerFieldLookup(kAppStateRequiredOwnerFieldIds[index]) == NULL)
       return 0;
   }
 
