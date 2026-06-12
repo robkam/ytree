@@ -173,6 +173,17 @@ static const char *const kAppStateRequiredDispatchSurfaceIds[] = {
   "surface.render-reflow-projection",
 };
 
+static const char *const kAppStateRequiredInvariantIds[] = {
+  "invariant.inactive-panel-frozen",
+  "invariant.render-projection-read-only",
+  "invariant.hidden-entry-visible-navigation",
+  "invariant.panel-local-focus-restore",
+  "invariant.viewport-identity-rebind",
+  "invariant.shared-state-panel-local-isolation",
+  "invariant.stale-snapshot-fail-closed",
+  "invariant.blocked-transition-determinism",
+};
+
 static int StringListContains(const char *const *values, size_t count,
                               const char *value) {
   size_t index;
@@ -594,13 +605,16 @@ static int AppStateDispatchSurfacesReady(void) {
 
 static int AppStateInvariantRegistryReady(void) {
   size_t index;
+  size_t required_invariant_id_count = sizeof(kAppStateRequiredInvariantIds) /
+                                       sizeof(kAppStateRequiredInvariantIds[0]);
 
-  if (AppStateInvariantCount() == 0)
+  if (AppStateInvariantCount() != required_invariant_id_count)
     return 0;
 
   for (index = 0; index < AppStateInvariantCount(); index++) {
     const AppStateInvariantMetadata *metadata = AppStateInvariantAt(index);
     size_t transition_index;
+    size_t previous_index;
 
     if (metadata == NULL || !NonEmptyString(metadata->invariant_id) ||
         !NonEmptyString(metadata->category) ||
@@ -619,6 +633,15 @@ static int AppStateInvariantRegistryReady(void) {
     if (AppStateInvariantLookup(metadata->invariant_id) != metadata)
       return 0;
 
+    for (previous_index = 0; previous_index < index; previous_index++) {
+      const AppStateInvariantMetadata *previous =
+          AppStateInvariantAt(previous_index);
+
+      if (previous == NULL ||
+          strcmp(previous->invariant_id, metadata->invariant_id) == 0)
+        return 0;
+    }
+
     for (transition_index = 0;
          transition_index < metadata->transition_id_count; transition_index++) {
       if (AppStateTransitionLookup(metadata->transition_ids[transition_index]) ==
@@ -632,6 +655,11 @@ static int AppStateInvariantRegistryReady(void) {
               metadata->dispatch_surface_ids[transition_index]) == NULL)
         return 0;
     }
+  }
+
+  for (index = 0; index < required_invariant_id_count; index++) {
+    if (AppStateInvariantLookup(kAppStateRequiredInvariantIds[index]) == NULL)
+      return 0;
   }
 
   if (AppStateInvariantAt(AppStateInvariantCount()) != NULL)

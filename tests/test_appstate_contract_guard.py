@@ -4597,3 +4597,45 @@ def test_runtime_dispatch_surface_startup_requires_documented_surface_ids() -> N
         source,
         re.S,
     )
+
+
+def test_runtime_invariant_startup_checks_fail_closed() -> None:
+    source = Path("src/core/main.c").read_text(encoding="utf-8")
+
+    assert "AppStateInvariantAt(AppStateInvariantCount()) != NULL" in source
+    assert 'AppStateInvariantLookup("invariant.__ytnova_unknown__") != NULL' in source
+    assert "AppStateInvariantCount() != required_invariant_id_count" in source
+    assert "previous_index < index" in source
+    assert "strcmp(previous->invariant_id, metadata->invariant_id) == 0" in source
+    assert "!AppStateInvariantRegistryReady()" in source
+
+
+def test_runtime_invariant_startup_requires_documented_invariant_ids() -> None:
+    source = Path("src/core/main.c").read_text(encoding="utf-8")
+    invariant_doc, invariant_failures = guard._load_json(guard.DEFAULT_INVARIANTS)
+    required_ids = guard._collect_string_ids(
+        invariant_doc,
+        collection_key="invariants",
+        id_field="invariant_id",
+    )
+    required_table = re.search(
+        r"static\s+const\s+char\s+\*const\s+"
+        r"kAppStateRequiredInvariantIds\[\]\s*=\s*\{(?P<body>.*?)\};",
+        source,
+        re.S,
+    )
+
+    assert invariant_failures == []
+    assert required_table is not None
+    table_ids, table_failures = guard._parse_string_initializer_array(
+        required_table.group("body"),
+        "kAppStateRequiredInvariantIds",
+    )
+    assert table_failures == []
+    assert set(table_ids) == required_ids
+    assert re.search(
+        r"AppStateInvariantLookup\(\s*"
+        r"kAppStateRequiredInvariantIds\[index\]\s*\)",
+        source,
+        re.S,
+    )
