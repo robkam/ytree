@@ -687,6 +687,90 @@ static int AppStateActionTransitionsReady(void) {
   return 1;
 }
 
+static int AppStateActionCoverageWriteSetMatches(
+    const AppStateActionCoverageMetadata *coverage,
+    const AppStateTransitionMetadata *transition) {
+  size_t index;
+
+  if (coverage->declared_write_set_count != transition->declared_write_set_count)
+    return 0;
+
+  for (index = 0; index < coverage->declared_write_set_count; index++) {
+    if (strcmp(coverage->declared_write_set[index],
+               transition->declared_write_set[index]) != 0)
+      return 0;
+  }
+
+  return 1;
+}
+
+static int AppStateActionCoverageReady(void) {
+  size_t index;
+  size_t action_id_count =
+      sizeof(kAppStateActionIds) / sizeof(kAppStateActionIds[0]);
+
+  if (AppStateActionCoverageCount() != (size_t)ACTION_USER_CMD + 1)
+    return 0;
+  if (AppStateActionCoverageCount() != action_id_count)
+    return 0;
+
+  for (index = 0; index < AppStateActionCoverageCount(); index++) {
+    const AppStateActionCoverageMetadata *coverage;
+    const AppStateActionTransitionMetadata *action_transition;
+    const AppStateTransitionMetadata *transition;
+    size_t previous_index;
+
+    coverage = AppStateActionCoverageAt(index);
+    if (coverage == NULL || coverage->action != (YtreeNovaAction)index ||
+        !NonEmptyString(coverage->action_name) ||
+        strcmp(coverage->action_name, kAppStateActionIds[index].action_id) != 0 ||
+        !NonEmptyString(coverage->transition_id) ||
+        !NonEmptyString(coverage->category) || !NonEmptyString(coverage->owner) ||
+        !NonEmptyString(coverage->boundary_status) ||
+        !NonEmptyStringList(coverage->declared_write_set,
+                            coverage->declared_write_set_count) ||
+        !NonEmptyStringList(coverage->migration_notes,
+                            coverage->migration_note_count))
+      return 0;
+    if (AppStateActionCoverageLookup((YtreeNovaAction)index) != coverage)
+      return 0;
+
+    for (previous_index = 0; previous_index < index; previous_index++) {
+      const AppStateActionCoverageMetadata *previous =
+          AppStateActionCoverageAt(previous_index);
+
+      if (previous == NULL || previous->action == coverage->action)
+        return 0;
+    }
+
+    transition = AppStateTransitionLookup(coverage->transition_id);
+    if (transition == NULL)
+      return 0;
+    if (strcmp(coverage->category, transition->category) != 0)
+      return 0;
+    if (!AppStateActionCoverageWriteSetMatches(coverage, transition))
+      return 0;
+
+    action_transition = AppStateActionTransitionLookup(coverage->action);
+    if (action_transition == NULL)
+      return 0;
+    if (strcmp(coverage->transition_id, action_transition->transition_id) != 0)
+      return 0;
+    if (strcmp(coverage->category, action_transition->category) != 0)
+      return 0;
+  }
+
+  if (AppStateActionCoverageAt(AppStateActionCoverageCount()) != NULL)
+    return 0;
+  if (AppStateActionCoverageLookup((YtreeNovaAction)-1) != NULL)
+    return 0;
+  if (AppStateActionCoverageLookup((YtreeNovaAction)(ACTION_USER_CMD + 1)) !=
+      NULL)
+    return 0;
+
+  return 1;
+}
+
 static int AppStateDiffHarnessRegistryReady(void) {
   size_t index;
 
@@ -838,6 +922,7 @@ int main(int argc, char **argv) {
       !AppStateCompatibilityShimsReady() ||
       !AppStateDiffHarnessRegistryReady() ||
       !AppStateTransitionSequencesReady() ||
+      !AppStateActionCoverageReady() ||
       !AppStateActionTransitionsReady()) {
     fprintf(stderr, "EXIT: startup invariants not configured\n");
     exit(1);
