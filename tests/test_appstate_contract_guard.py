@@ -4629,6 +4629,53 @@ def test_runtime_event_coverage_startup_requires_documented_event_ids() -> None:
     assert "AppStateRequiredEventIdCovered(kAppStateRequiredEventIds[index])" in source
 
 
+def test_runtime_owner_field_startup_checks_fail_closed() -> None:
+    source = Path("src/core/main.c").read_text(encoding="utf-8")
+
+    assert "AppStateOwnerFieldAt(AppStateOwnerFieldCount()) != NULL" in source
+    assert "AppStateOwnerFieldLookup(NULL) != NULL" in source
+    assert 'AppStateOwnerFieldLookup("") != NULL' in source
+    assert 'AppStateOwnerFieldLookup("field.__ytnova_unknown__") != NULL' in source
+    assert "AppStateOwnerFieldCount() != required_owner_field_id_count" in source
+    assert "metadata == NULL || !NonEmptyString(metadata->field)" in source
+    assert "previous_index < index" in source
+    assert "strcmp(previous->field, metadata->field) == 0" in source
+    assert "AppStateOwnerFieldLookup(kAppStateRequiredOwnerFieldIds[index])" in source
+    assert "!AppStateOwnerFieldsReady()" in source
+
+
+def test_runtime_owner_field_startup_requires_documented_field_ids() -> None:
+    source = Path("src/core/main.c").read_text(encoding="utf-8")
+    owner_doc, owner_failures = guard._load_json(guard.DEFAULT_OWNER_FIELDS)
+    required_ids = guard._collect_string_ids(
+        owner_doc,
+        collection_key="owner_fields",
+        id_field="field",
+    )
+    required_table = re.search(
+        r"static\s+const\s+char\s+\*const\s+"
+        r"kAppStateRequiredOwnerFieldIds\[\]\s*=\s*\{(?P<body>.*?)\};",
+        source,
+        re.S,
+    )
+
+    assert owner_failures == []
+    assert required_table is not None
+    table_ids, table_failures = guard._parse_string_initializer_array(
+        required_table.group("body"),
+        "kAppStateRequiredOwnerFieldIds",
+    )
+    assert table_failures == []
+    assert set(table_ids) == required_ids
+    assert len(table_ids) == len(required_ids)
+    assert re.search(
+        r"AppStateOwnerFieldLookup\(\s*"
+        r"kAppStateRequiredOwnerFieldIds\[index\]\s*\)",
+        source,
+        re.S,
+    )
+
+
 def test_runtime_dispatch_surface_startup_checks_fail_closed() -> None:
     source = Path("src/core/main.c").read_text(encoding="utf-8")
 
