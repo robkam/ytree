@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import copy
 import importlib.util
+import re
 import subprocess
 from pathlib import Path
 
@@ -143,7 +144,7 @@ def _event(
         "declared_write_set": ["field"],
         "boundary_status": "test",
         "trigger_paths": ["fixture trigger"],
-        "migration_notes": ["fixture coverage"],
+        "migration_notes": ["fixture event coverage"],
     }
 
 
@@ -331,6 +332,7 @@ def _write_fixture(
     enum_actions: list[str] | None = None,
     runtime_actions: list[dict[str, object]] | None = None,
     runtime_action_coverages: list[dict[str, object]] | None = None,
+    runtime_events: list[dict[str, object]] | None = None,
     runtime_transitions: list[dict[str, object]] | None = None,
     runtime_dispatch_surfaces: list[dict[str, object]] | None = None,
     runtime_shims: list[dict[str, object]] | None = None,
@@ -425,6 +427,9 @@ def _write_fixture(
             runtime_action_coverages
             if runtime_action_coverages is not None
             else (actions if actions is not None else _complete_actions()),
+            runtime_events
+            if runtime_events is not None
+            else (events if events is not None else _complete_events()),
             runtime_transitions if runtime_transitions is not None else transitions,
             runtime_owner_fields
             if runtime_owner_fields is not None
@@ -499,6 +504,7 @@ def _enum_header(actions: list[str]) -> str:
 def _runtime_source(
     actions: list[dict[str, object]],
     action_coverages: list[dict[str, object]],
+    events: list[dict[str, object]],
     transitions: list[dict[str, object]],
     owner_fields: list[dict[str, object]],
     dispatch_surfaces: list[dict[str, object]],
@@ -560,6 +566,46 @@ def _runtime_source(
             f"{write_set_table}, sizeof({write_set_table}) / "
             f"sizeof({write_set_table}[0]), "
             f'"{record.get("boundary_status", "")}", '
+            f"{notes_table}, sizeof({notes_table}) / sizeof({notes_table}[0])}},"
+        )
+    event_coverage_arrays = []
+    event_coverage_rows = []
+    transition_index_by_id = {
+        str(record.get("id", "")): index for index, record in enumerate(transitions)
+    }
+    for index, record in enumerate(events):
+        trigger_paths = record.get("trigger_paths")
+        if not isinstance(trigger_paths, list):
+            trigger_paths = []
+        trigger_rows = "\n".join(
+            f'  "{trigger}",' for trigger in trigger_paths if isinstance(trigger, str)
+        )
+        trigger_table = f"kAppStateEventCoverageTriggerPaths{index}"
+        event_coverage_arrays.append(
+            f"static const char *const {trigger_table}[] = "
+            f"{{\n{trigger_rows}\n}};\n"
+        )
+        migration_notes = record.get("migration_notes")
+        if not isinstance(migration_notes, list):
+            migration_notes = []
+        note_rows = "\n".join(
+            f'  "{note}",' for note in migration_notes if isinstance(note, str)
+        )
+        notes_table = f"kAppStateEventCoverageMigrationNotes{index}"
+        event_coverage_arrays.append(
+            f"static const char *const {notes_table}[] = "
+            f"{{\n{note_rows}\n}};\n"
+        )
+        transition_index = transition_index_by_id.get(str(record.get("transition_id", "")), 0)
+        write_set_table = f"kAppStateTransitionWriteSet{transition_index}"
+        event_coverage_rows.append(
+            f'  {{"{record.get("event_id", "")}", "{record.get("event_class", "")}", '
+            f'"{record.get("transition_id", "")}", "{record.get("category", "")}", '
+            f'"{record.get("source", "")}", "{record.get("owner", "")}", '
+            f"{write_set_table}, sizeof({write_set_table}) / "
+            f"sizeof({write_set_table}[0]), "
+            f'"{record.get("boundary_status", "")}", '
+            f"{trigger_table}, sizeof({trigger_table}) / sizeof({trigger_table}[0]), "
             f"{notes_table}, sizeof({notes_table}) / sizeof({notes_table}[0])}},"
         )
     owner_field_arrays = []
@@ -913,6 +959,7 @@ def _runtime_source(
     return (
         "".join(transition_write_sets)
         + "".join(action_coverage_arrays)
+        + "".join(event_coverage_arrays)
         + "".join(owner_field_arrays)
         + "".join(dispatch_surface_arrays)
         + "".join(shim_invariants)
@@ -955,6 +1002,10 @@ def _runtime_source(
         "static const AppStateActionCoverageMetadata\n"
         "    kAppStateActionCoverages[APPSTATE_ACTION_COVERAGE_COUNT] = {\n"
         + "\n".join(action_coverage_rows)
+        + "\n};\n"
+        "static const AppStateEventCoverageMetadata\n"
+        "    kAppStateEventCoverages[APPSTATE_EVENT_COVERAGE_COUNT] = {\n"
+        + "\n".join(event_coverage_rows)
         + "\n};\n"
     )
 
@@ -4292,3 +4343,154 @@ def test_guard_fails_when_action_transition_table_drifts_from_coverage(
         and "ACTION_NONE" in failure
         for failure in failures
     )
+
+
+def _event_runtime_records_and_failures(runtime_path: Path = guard.DEFAULT_ACTION_RUNTIME):
+    return guard._parse_runtime_event_coverage_registry(runtime_path)
+
+
+def _event_runtime_validation_failures(runtime_path: Path) -> list[str]:
+    transitions_doc, transition_failures = guard._load_json(guard.DEFAULT_TRANSITIONS)
+    event_doc, event_failures = guard._load_json(guard.DEFAULT_EVENT_COVERAGE)
+    runtime_transitions, runtime_transition_failures = guard._parse_runtime_transition_registry(
+        runtime_path
+    )
+    runtime_events, runtime_event_failures = guard._parse_runtime_event_coverage_registry(
+        runtime_path
+    )
+    transition_ids = {
+        record["id"]: record for record in transitions_doc.get("transitions", [])
+    }
+    return (
+        transition_failures
+        + event_failures
+        + runtime_transition_failures
+        + runtime_event_failures
+        + guard._validate_runtime_event_coverage_registry(
+            runtime_records=runtime_events,
+            runtime_path=runtime_path,
+            event_coverage_doc=event_doc,
+            transition_ids=transition_ids,
+            runtime_transition_ids={record["id"] for record in runtime_transitions},
+        )
+    )
+
+
+def _mutated_event_runtime(tmp_path: Path, old: str, new: str) -> Path:
+    runtime_path = tmp_path / "appstate_actions.c"
+    source = guard.DEFAULT_ACTION_RUNTIME.read_text(encoding="utf-8")
+    assert old in source
+    runtime_path.write_text(source.replace(old, new, 1), encoding="utf-8")
+    return runtime_path
+
+
+def test_runtime_event_coverage_registry_matches_docs() -> None:
+    records, parse_failures = _event_runtime_records_and_failures()
+
+    assert parse_failures == []
+    assert {record["event_id"] for record in records} == guard._collect_string_ids(
+        guard._load_json(guard.DEFAULT_EVENT_COVERAGE)[0],
+        collection_key="events",
+        id_field="event_id",
+    )
+    assert _event_runtime_validation_failures(guard.DEFAULT_ACTION_RUNTIME) == []
+
+
+def test_runtime_event_coverage_detects_doc_drift(tmp_path: Path) -> None:
+    runtime_path = _mutated_event_runtime(
+        tmp_path,
+        '"event.render-reflow",\n   "render_reflow"',
+        '"event.render-reflow-runtime",\n   "render_reflow"',
+    )
+
+    failures = _event_runtime_validation_failures(runtime_path)
+
+    assert any("runtime event coverage missing from docs" in failure for failure in failures)
+    assert any("runtime event coverage missing event id(s)" in failure for failure in failures)
+
+
+def test_runtime_event_coverage_detects_duplicate_and_missing_classes(
+    tmp_path: Path,
+) -> None:
+    runtime_path = _mutated_event_runtime(
+        tmp_path,
+        '"event.render-reflow",\n   "render_reflow"',
+        '"event.render-reflow",\n   "modal_completion"',
+    )
+
+    failures = _event_runtime_validation_failures(runtime_path)
+
+    assert any("duplicate event_class: modal_completion" in failure for failure in failures)
+    assert any("missing event_class(es): render_reflow" in failure for failure in failures)
+
+
+def test_runtime_event_coverage_detects_invalid_transition_linkage(
+    tmp_path: Path,
+) -> None:
+    runtime_path = _mutated_event_runtime(
+        tmp_path,
+        '"event.render-reflow",\n   "render_reflow",\n   "transition.render-reflow.project-state"',
+        '"event.render-reflow",\n   "render_reflow",\n   "transition.render-reflow.unknown"',
+    )
+
+    failures = _event_runtime_validation_failures(runtime_path)
+
+    assert any("transition_id does not match a transition id" in failure for failure in failures)
+
+
+def test_runtime_event_coverage_detects_write_set_drift(tmp_path: Path) -> None:
+    runtime_path = _mutated_event_runtime(
+        tmp_path,
+        "   kAppStateTransitionWriteSet9,\n   sizeof(kAppStateTransitionWriteSet9) / sizeof(kAppStateTransitionWriteSet9[0]),\n   \"covered_by_transition_record\",\n   kAppStateEventCoverageTriggerPaths8",
+        "   kAppStateTransitionWriteSet0,\n   sizeof(kAppStateTransitionWriteSet0) / sizeof(kAppStateTransitionWriteSet0[0]),\n   \"covered_by_transition_record\",\n   kAppStateEventCoverageTriggerPaths8",
+    )
+
+    failures = _event_runtime_validation_failures(runtime_path)
+
+    assert any("declared_write_set does not match transition" in failure for failure in failures)
+
+
+def test_runtime_event_coverage_detects_malformed_lists(tmp_path: Path) -> None:
+    runtime_path = _mutated_event_runtime(
+        tmp_path,
+        '"Signal flag set outside curses work",',
+        '"",',
+    )
+
+    failures = _event_runtime_validation_failures(runtime_path)
+
+    assert any("trigger_paths" in failure for failure in failures)
+
+
+def test_runtime_event_coverage_startup_checks_fail_closed() -> None:
+    source = Path("src/core/main.c").read_text(encoding="utf-8")
+
+    assert "AppStateEventCoverageAt(AppStateEventCoverageCount()) != NULL" in source
+    assert 'AppStateEventCoverageLookup("event.__ytnova_unknown__") != NULL' in source
+    assert "!AppStateEventCoverageReady()" in source
+
+
+def test_runtime_event_coverage_startup_requires_documented_event_ids() -> None:
+    source = Path("src/core/main.c").read_text(encoding="utf-8")
+    event_doc, event_failures = guard._load_json(guard.DEFAULT_EVENT_COVERAGE)
+    required_ids = guard._collect_string_ids(
+        event_doc,
+        collection_key="events",
+        id_field="event_id",
+    )
+    required_table = re.search(
+        r"static\s+const\s+char\s+\*const\s+"
+        r"kAppStateRequiredEventIds\[\]\s*=\s*\{(?P<body>.*?)\};",
+        source,
+        re.S,
+    )
+
+    assert event_failures == []
+    assert required_table is not None
+    table_ids, table_failures = guard._parse_string_initializer_array(
+        required_table.group("body"),
+        "kAppStateRequiredEventIds",
+    )
+    assert table_failures == []
+    assert set(table_ids) == required_ids
+    assert "AppStateRequiredEventIdCovered(kAppStateRequiredEventIds[index])" in source

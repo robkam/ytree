@@ -10,7 +10,8 @@
 
 enum {
   APPSTATE_ACTION_TRANSITION_COUNT = ACTION_USER_CMD + 1,
-  APPSTATE_ACTION_COVERAGE_COUNT = ACTION_USER_CMD + 1
+  APPSTATE_ACTION_COVERAGE_COUNT = ACTION_USER_CMD + 1,
+  APPSTATE_EVENT_COVERAGE_COUNT = 9
 };
 
 static const char *const kAppStateTransitionWriteSet0[] = {
@@ -2715,6 +2716,198 @@ static const AppStateActionTransitionMetadata
    "command_completion"},
   {ACTION_USER_CMD, "transition.command-completion.user-command", "command_completion"},
 };
+static const char *const kAppStateEventCoverageTriggerPaths0[] = {
+  "Signal flag set outside curses work",
+  "Main-loop resize/reflow handling",
+};
+static const char *const kAppStateEventCoverageMigrationNotes0[] = {
+  "Signal handlers may only set flags; resize commits through the main-loop transition boundary.",
+};
+static const char *const kAppStateEventCoverageTriggerPaths1[] = {
+  "Manual refresh command",
+  "Explicit relog of the current path",
+};
+static const char *const kAppStateEventCoverageMigrationNotes1[] = {
+  "Rebuild must settle topology, advance generation, then rebind panels by stable identity.",
+};
+static const char *const kAppStateEventCoverageTriggerPaths2[] = {
+  "Post-refresh restore",
+  "Post-mutation restore",
+  "Visibility or topology generation mismatch rebind",
+};
+static const char *const kAppStateEventCoverageMigrationNotes2[] = {
+  "Callback coverage points to the existing rebuild/rebind transition rather than inventing a separate runtime event.",
+};
+static const char *const kAppStateEventCoverageTriggerPaths3[] = {
+  "Create directory result",
+  "Copy or move result",
+  "Delete or chmod-like result",
+};
+static const char *const kAppStateEventCoverageMigrationNotes3[] = {
+  "Command side effects remain outside AppState commit; only completed results may update AppState metadata.",
+};
+static const char *const kAppStateEventCoverageTriggerPaths4[] = {
+  "Watcher notification",
+  "Live refresh scheduling",
+  "Settled topology refresh",
+};
+static const char *const kAppStateEventCoverageMigrationNotes4[] = {
+  "Watcher/live-refresh intentionally maps to the broad refresh_rebuild transition until a dedicated watcher runtime boundary exists.",
+};
+static const char *const kAppStateEventCoverageTriggerPaths5[] = {
+  "External command completion",
+  "User command menu completion",
+  "Command failure or cancellation outcome",
+};
+static const char *const kAppStateEventCoverageMigrationNotes5[] = {
+  "Command completion may schedule refresh only when the command contract declares filesystem impact.",
+};
+static const char *const kAppStateEventCoverageTriggerPaths6[] = {
+  "Modal Enter completion",
+  "Modal Esc cancellation",
+  "Neutral dialog dismissal",
+};
+static const char *const kAppStateEventCoverageMigrationNotes6[] = {
+  "Modal completion maps to the modal_action dismiss record while destructive confirmations remain governed by their own command transitions.",
+};
+static const char *const kAppStateEventCoverageTriggerPaths7[] = {
+  "Cycle loaded volume",
+  "Release volume",
+  "Bind active panel to selected volume",
+};
+static const char *const kAppStateEventCoverageMigrationNotes7[] = {
+  "Lifecycle coverage keeps inactive panels from inheriting stale volume pointers during migration.",
+};
+static const char *const kAppStateEventCoverageTriggerPaths8[] = {
+  "Render dirty flag projection",
+  "Layout reflow projection",
+  "doupdate-ready render tick",
+};
+static const char *const kAppStateEventCoverageMigrationNotes8[] = {
+  "Render/reflow is projection-only and must not become restore authority.",
+};
+
+static const AppStateEventCoverageMetadata
+    kAppStateEventCoverages[APPSTATE_EVENT_COVERAGE_COUNT] = {
+  {"event.terminal-resize-signal",
+   "terminal_resize_signal",
+   "transition.terminal-signal-resize",
+   "terminal_signal_or_resize",
+   "SIGWINCH flag handling and resize polling in the main loop",
+   "ViewContext.layout_region",
+   kAppStateTransitionWriteSet5,
+   sizeof(kAppStateTransitionWriteSet5) / sizeof(kAppStateTransitionWriteSet5[0]),
+   "covered_by_transition_record",
+   kAppStateEventCoverageTriggerPaths0,
+   sizeof(kAppStateEventCoverageTriggerPaths0) / sizeof(kAppStateEventCoverageTriggerPaths0[0]),
+   kAppStateEventCoverageMigrationNotes0,
+   sizeof(kAppStateEventCoverageMigrationNotes0) / sizeof(kAppStateEventCoverageMigrationNotes0[0])},
+  {"event.refresh-rebuild",
+   "refresh_rebuild",
+   "transition.refresh-rebuild.manual-refresh",
+   "refresh_rebuild",
+   "Manual refresh, explicit relog, or declared refresh boundary",
+   "Volume(shared topology)",
+   kAppStateTransitionWriteSet3,
+   sizeof(kAppStateTransitionWriteSet3) / sizeof(kAppStateTransitionWriteSet3[0]),
+   "covered_by_transition_record",
+   kAppStateEventCoverageTriggerPaths1,
+   sizeof(kAppStateEventCoverageTriggerPaths1) / sizeof(kAppStateEventCoverageTriggerPaths1[0]),
+   kAppStateEventCoverageMigrationNotes1,
+   sizeof(kAppStateEventCoverageMigrationNotes1) / sizeof(kAppStateEventCoverageMigrationNotes1[0])},
+  {"event.rebuild-rebind-callback",
+   "rebuild_rebind_callback",
+   "transition.rebuild-rebind-callback.panel-anchor",
+   "rebuild_rebind_callback",
+   "Post-rebuild panel anchor re-resolution callback",
+   "YtreeNovaPanel(affected) and Volume(current)",
+   kAppStateTransitionWriteSet8,
+   sizeof(kAppStateTransitionWriteSet8) / sizeof(kAppStateTransitionWriteSet8[0]),
+   "covered_by_transition_record",
+   kAppStateEventCoverageTriggerPaths2,
+   sizeof(kAppStateEventCoverageTriggerPaths2) / sizeof(kAppStateEventCoverageTriggerPaths2[0]),
+   kAppStateEventCoverageMigrationNotes2,
+   sizeof(kAppStateEventCoverageMigrationNotes2) / sizeof(kAppStateEventCoverageMigrationNotes2[0])},
+  {"event.filesystem-mutation-result",
+   "filesystem_mutation_result",
+   "transition.filesystem-mutation-result.mkdir-copy-delete",
+   "filesystem_mutation_result",
+   "Completed filesystem mutation command result",
+   "Volume(shared topology) plus YtreeNovaPanel(active) for active selection",
+   kAppStateTransitionWriteSet6,
+   sizeof(kAppStateTransitionWriteSet6) / sizeof(kAppStateTransitionWriteSet6[0]),
+   "covered_by_transition_record",
+   kAppStateEventCoverageTriggerPaths3,
+   sizeof(kAppStateEventCoverageTriggerPaths3) / sizeof(kAppStateEventCoverageTriggerPaths3[0]),
+   kAppStateEventCoverageMigrationNotes3,
+   sizeof(kAppStateEventCoverageMigrationNotes3) / sizeof(kAppStateEventCoverageMigrationNotes3[0])},
+  {"event.watcher-live-refresh",
+   "watcher_live_refresh",
+   "transition.refresh-rebuild.manual-refresh",
+   "refresh_rebuild",
+   "Filesystem watcher or live-refresh notification after debounce/settle",
+   "Volume(shared topology)",
+   kAppStateTransitionWriteSet3,
+   sizeof(kAppStateTransitionWriteSet3) / sizeof(kAppStateTransitionWriteSet3[0]),
+   "mapped_to_existing_broad_transition",
+   kAppStateEventCoverageTriggerPaths4,
+   sizeof(kAppStateEventCoverageTriggerPaths4) / sizeof(kAppStateEventCoverageTriggerPaths4[0]),
+   kAppStateEventCoverageMigrationNotes4,
+   sizeof(kAppStateEventCoverageMigrationNotes4) / sizeof(kAppStateEventCoverageMigrationNotes4[0])},
+  {"event.command-completion",
+   "command_completion",
+   "transition.command-completion.user-command",
+   "command_completion",
+   "External or user command exit-status completion",
+   "ViewContext.command_region",
+   kAppStateTransitionWriteSet7,
+   sizeof(kAppStateTransitionWriteSet7) / sizeof(kAppStateTransitionWriteSet7[0]),
+   "covered_by_transition_record",
+   kAppStateEventCoverageTriggerPaths5,
+   sizeof(kAppStateEventCoverageTriggerPaths5) / sizeof(kAppStateEventCoverageTriggerPaths5[0]),
+   kAppStateEventCoverageMigrationNotes5,
+   sizeof(kAppStateEventCoverageMigrationNotes5) / sizeof(kAppStateEventCoverageMigrationNotes5[0])},
+  {"event.modal-completion",
+   "modal_completion",
+   "transition.modal-action.dismiss",
+   "modal_action",
+   "Modal prompt, menu, or dialog completion",
+   "ViewContext.modal_region",
+   kAppStateTransitionWriteSet2,
+   sizeof(kAppStateTransitionWriteSet2) / sizeof(kAppStateTransitionWriteSet2[0]),
+   "mapped_to_existing_broad_transition",
+   kAppStateEventCoverageTriggerPaths6,
+   sizeof(kAppStateEventCoverageTriggerPaths6) / sizeof(kAppStateEventCoverageTriggerPaths6[0]),
+   kAppStateEventCoverageMigrationNotes6,
+   sizeof(kAppStateEventCoverageMigrationNotes6) / sizeof(kAppStateEventCoverageMigrationNotes6[0])},
+  {"event.volume-lifecycle",
+   "volume_lifecycle",
+   "transition.volume-operation.release-cycle",
+   "volume_operation",
+   "Volume cycle, release, or loaded-volume selection lifecycle event",
+   "ViewContext.volume_registry and YtreeNovaPanel(active)",
+   kAppStateTransitionWriteSet4,
+   sizeof(kAppStateTransitionWriteSet4) / sizeof(kAppStateTransitionWriteSet4[0]),
+   "covered_by_transition_record",
+   kAppStateEventCoverageTriggerPaths7,
+   sizeof(kAppStateEventCoverageTriggerPaths7) / sizeof(kAppStateEventCoverageTriggerPaths7[0]),
+   kAppStateEventCoverageMigrationNotes7,
+   sizeof(kAppStateEventCoverageMigrationNotes7) / sizeof(kAppStateEventCoverageMigrationNotes7[0])},
+  {"event.render-reflow",
+   "render_reflow",
+   "transition.render-reflow.project-state",
+   "render_reflow",
+   "Render invalidation projection and doupdate-ready reflow",
+   "ViewContext.render_region",
+   kAppStateTransitionWriteSet9,
+   sizeof(kAppStateTransitionWriteSet9) / sizeof(kAppStateTransitionWriteSet9[0]),
+   "covered_by_transition_record",
+   kAppStateEventCoverageTriggerPaths8,
+   sizeof(kAppStateEventCoverageTriggerPaths8) / sizeof(kAppStateEventCoverageTriggerPaths8[0]),
+   kAppStateEventCoverageMigrationNotes8,
+   sizeof(kAppStateEventCoverageMigrationNotes8) / sizeof(kAppStateEventCoverageMigrationNotes8[0])},
+};
+
 static const char *const kAppStateActionCoverageMigrationNotes0[] = {
   "Covered by the current keybinding foundation record until runtime transition objects are split per action.",
 };
@@ -3654,6 +3847,10 @@ size_t AppStateActionCoverageCount(void) {
   return sizeof(kAppStateActionCoverages) / sizeof(kAppStateActionCoverages[0]);
 }
 
+size_t AppStateEventCoverageCount(void) {
+  return sizeof(kAppStateEventCoverages) / sizeof(kAppStateEventCoverages[0]);
+}
+
 size_t AppStateTransitionCount(void) {
   return sizeof(kAppStateTransitions) / sizeof(kAppStateTransitions[0]);
 }
@@ -3723,6 +3920,13 @@ const AppStateActionCoverageMetadata *AppStateActionCoverageAt(size_t index) {
     return NULL;
 
   return &kAppStateActionCoverages[index];
+}
+
+const AppStateEventCoverageMetadata *AppStateEventCoverageAt(size_t index) {
+  if (index >= AppStateEventCoverageCount())
+    return NULL;
+
+  return &kAppStateEventCoverages[index];
 }
 
 const AppStateTransitionMetadata *AppStateTransitionAt(size_t index) {
@@ -3900,4 +4104,19 @@ AppStateActionCoverageLookup(YtreeNovaAction action) {
     return NULL;
 
   return metadata;
+}
+
+const AppStateEventCoverageMetadata *
+AppStateEventCoverageLookup(const char *event_id) {
+  size_t index;
+
+  if (event_id == NULL || event_id[0] == '\0')
+    return NULL;
+
+  for (index = 0; index < AppStateEventCoverageCount(); index++) {
+    if (!strcmp(kAppStateEventCoverages[index].event_id, event_id))
+      return &kAppStateEventCoverages[index];
+  }
+
+  return NULL;
 }

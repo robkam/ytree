@@ -675,6 +675,110 @@ def _parse_runtime_action_coverage_registry(
     return records, failures
 
 
+def _parse_runtime_event_coverage_registry(
+    runtime_path: Path,
+) -> tuple[list[dict[str, Any]], list[str]]:
+    try:
+        source = runtime_path.read_text(encoding="utf-8")
+    except OSError as exc:
+        return [], [f"{runtime_path}: failed to read: {exc}"]
+
+    failures: list[str] = []
+    arrays: dict[str, list[str]] = {}
+    array_re = re.compile(
+        r"static\s+const\s+char\s+\*const\s+"
+        r"(kAppState(?:TransitionWriteSet|EventCoverageTriggerPaths|EventCoverageMigrationNotes)[0-9]+)"
+        r"\[\]\s*=\s*\{(?P<body>.*?)\};",
+        re.S,
+    )
+    for array_match in array_re.finditer(source):
+        table_name = array_match.group(1)
+        values, array_failures = _parse_string_initializer_array(
+            array_match.group("body"),
+            table_name,
+        )
+        arrays[table_name] = values
+        failures.extend(array_failures)
+
+    match = re.search(
+        r"kAppStateEventCoverages\s*\[[^\]]*\]\s*=\s*\{(?P<body>.*?)\};",
+        source,
+        re.S,
+    )
+    if match is None:
+        return [], [f"{runtime_path}: failed to find runtime event coverage registry"]
+
+    records: list[dict[str, Any]] = []
+    row_re = re.compile(
+        r"\{\s*\"(?P<event_id>[^\"]*)\"\s*,"
+        r"\s*\"(?P<event_class>[^\"]*)\"\s*,"
+        r"\s*\"(?P<transition_id>[^\"]*)\"\s*,"
+        r"\s*\"(?P<category>[^\"]*)\"\s*,"
+        r"\s*\"(?P<source>[^\"]*)\"\s*,"
+        r"\s*\"(?P<owner>[^\"]*)\"\s*,"
+        r"\s*(?P<write_set>kAppStateTransitionWriteSet[0-9]+)\s*,"
+        r"\s*sizeof\((?P=write_set)\)\s*/\s*sizeof\((?P=write_set)\[0\]\)\s*,"
+        r"\s*\"(?P<boundary_status>[^\"]*)\"\s*,"
+        r"\s*(?P<trigger_paths>kAppStateEventCoverageTriggerPaths[0-9]+)\s*,"
+        r"\s*sizeof\((?P=trigger_paths)\)\s*/\s*sizeof\((?P=trigger_paths)\[0\]\)\s*,"
+        r"\s*(?P<migration_notes>kAppStateEventCoverageMigrationNotes[0-9]+)\s*,"
+        r"\s*sizeof\((?P=migration_notes)\)\s*/\s*sizeof\((?P=migration_notes)\[0\]\)\s*\}",
+        re.S,
+    )
+    rows, row_failures = _split_top_level_initializer_rows(
+        match.group("body"),
+        "runtime_event_coverage",
+    )
+    failures.extend(row_failures)
+    for index, row in enumerate(rows):
+        row_match = row_re.fullmatch(row.strip())
+        if row_match is None:
+            failures.append(
+                f"runtime_event_coverage[{index}]: malformed runtime event "
+                f"coverage row: {_compact_initializer_snippet(row)}"
+            )
+            continue
+        write_set = arrays.get(row_match.group("write_set"))
+        trigger_paths = arrays.get(row_match.group("trigger_paths"))
+        migration_notes = arrays.get(row_match.group("migration_notes"))
+        if write_set is None:
+            failures.append(
+                f"runtime_event_coverage[{index}]: unknown declared-write-set table: "
+                f"{row_match.group('write_set')}"
+            )
+            write_set = []
+        if trigger_paths is None:
+            failures.append(
+                f"runtime_event_coverage[{index}]: unknown trigger-paths table: "
+                f"{row_match.group('trigger_paths')}"
+            )
+            trigger_paths = []
+        if migration_notes is None:
+            failures.append(
+                f"runtime_event_coverage[{index}]: unknown migration-notes table: "
+                f"{row_match.group('migration_notes')}"
+            )
+            migration_notes = []
+        records.append(
+            {
+                "event_id": row_match.group("event_id"),
+                "event_class": row_match.group("event_class"),
+                "transition_id": row_match.group("transition_id"),
+                "category": row_match.group("category"),
+                "source": row_match.group("source"),
+                "owner": row_match.group("owner"),
+                "declared_write_set": write_set,
+                "boundary_status": row_match.group("boundary_status"),
+                "trigger_paths": trigger_paths,
+                "migration_notes": migration_notes,
+            }
+        )
+
+    if not records:
+        failures.append(f"{runtime_path}: runtime event coverage registry must not be empty")
+    return records, failures
+
+
 def _parse_runtime_transition_registry(
     runtime_path: Path,
 ) -> tuple[list[dict[str, Any]], list[str]]:
@@ -3073,6 +3177,81 @@ def _validate_transition_generation_effects(
     return failures
 
 
+def _validate_runtime_event_coverage_registry(
+    *,
+    runtime_records: list[dict[str, Any]],
+    runtime_path: Path,
+    event_coverage_doc: Any,
+    transition_ids: dict[str, dict[str, Any]],
+    runtime_transition_ids: set[str],
+) -> list[str]:
+    failures: list[str] = []
+    doc_records = event_coverage_doc.get("events") if isinstance(event_coverage_doc, dict) else []
+    event_by_id = {
+        record.get("event_id"): record
+        for record in doc_records
+        if isinstance(record, dict) and isinstance(record.get("event_id"), str)
+    }
+    expected_ids = set(event_by_id)
+    covered_ids: set[str] = set()
+    covered_classes: set[str] = set()
+
+    for index, record in enumerate(runtime_records):
+        label = f"runtime_event_coverage[{index}]"
+        failures.extend(
+            _validate_required_fields(
+                record=record,
+                required_fields=REQUIRED_EVENT_FIELDS,
+                list_fields=EVENT_LIST_FIELDS,
+                label=label,
+            )
+        )
+        event_id = record.get("event_id")
+        if isinstance(event_id, str) and event_id.strip():
+            if event_id in covered_ids:
+                failures.append(f"{label}: duplicate event_id: {event_id}")
+            covered_ids.add(event_id)
+            doc_record = event_by_id.get(event_id)
+            if doc_record is None:
+                failures.append(f"{label}: runtime event coverage missing from docs: {event_id}")
+            else:
+                for field in REQUIRED_EVENT_FIELDS:
+                    if record.get(field) != doc_record.get(field):
+                        failures.append(f"{label}: {field} does not match docs for {event_id}")
+        event_class = record.get("event_class")
+        if isinstance(event_class, str) and event_class.strip():
+            if event_class in covered_classes:
+                failures.append(f"{label}: duplicate event_class: {event_class}")
+            covered_classes.add(event_class)
+            if event_class not in REQUIRED_EVENT_CLASSES:
+                failures.append(f"{label}: unknown event_class: {event_class}")
+        transition_id = record.get("transition_id")
+        transition_record = transition_ids.get(transition_id) if isinstance(transition_id, str) else None
+        if transition_record is None:
+            failures.append(f"{label}: transition_id does not match a transition id: {transition_id}")
+        elif transition_id not in runtime_transition_ids:
+            failures.append(f"{label}: transition_id missing from runtime transition registry: {transition_id}")
+        else:
+            if record.get("category") != transition_record.get("category"):
+                failures.append(f"{label}: category does not match transition {transition_id}: {record.get('category')}")
+            if record.get("declared_write_set") != transition_record.get("declared_write_set"):
+                failures.append(f"{label}: declared_write_set does not match transition {transition_id}")
+
+    missing_ids = sorted(expected_ids - covered_ids)
+    if missing_ids:
+        failures.append(
+            f"{runtime_path}: runtime event coverage missing event id(s): "
+            + ", ".join(missing_ids)
+        )
+    missing_classes = sorted(REQUIRED_EVENT_CLASSES - covered_classes)
+    if missing_classes:
+        failures.append(
+            f"{runtime_path}: runtime event coverage missing event_class(es): "
+            + ", ".join(missing_classes)
+        )
+    return failures
+
+
 def _validate_event_coverage(
     *,
     event_coverage_doc: Any,
@@ -3783,6 +3962,9 @@ def validate_contract(
     runtime_action_coverage_records, runtime_action_coverage_failures = (
         _parse_runtime_action_coverage_registry(action_runtime_path)
     )
+    runtime_event_coverage_records, runtime_event_coverage_failures = (
+        _parse_runtime_event_coverage_registry(action_runtime_path)
+    )
     runtime_transition_records, runtime_transition_failures = (
         _parse_runtime_transition_registry(action_runtime_path)
     )
@@ -3820,6 +4002,7 @@ def validate_contract(
     failures.extend(enum_failures)
     failures.extend(runtime_action_failures)
     failures.extend(runtime_action_coverage_failures)
+    failures.extend(runtime_event_coverage_failures)
     failures.extend(runtime_transition_failures)
     failures.extend(runtime_owner_field_failures)
     failures.extend(runtime_dispatch_surface_failures)
@@ -4080,6 +4263,15 @@ def validate_contract(
             event_coverage_path=event_coverage_path,
             transition_ids=transition_ids,
             registered_owner_fields=registered_owner_fields,
+        )
+    )
+    failures.extend(
+        _validate_runtime_event_coverage_registry(
+            runtime_records=runtime_event_coverage_records,
+            runtime_path=action_runtime_path,
+            event_coverage_doc=event_coverage_doc,
+            transition_ids=transition_ids,
+            runtime_transition_ids={record["id"] for record in runtime_transition_records},
         )
     )
     failures.extend(
