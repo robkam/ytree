@@ -2880,6 +2880,47 @@ def test_guard_fails_on_malformed_dispatch_surface_source_path(
     )
 
 
+def test_guard_fails_when_dispatch_surface_source_path_is_missing(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    dispatch_surfaces = _complete_dispatch_surfaces()
+    dispatch_surfaces[0]["source_path"] = "src/ui/missing_dispatch_surface.c"
+    paths = _write_fixture(
+        tmp_path, transitions=transitions, dispatch_surfaces=dispatch_surfaces
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "dispatch_surface[0]" in failure
+        and "source_path does not exist" in failure
+        and "src/ui/missing_dispatch_surface.c" in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_when_dispatch_surface_source_path_is_outside_src(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    dispatch_surfaces = _complete_dispatch_surfaces()
+    dispatch_surfaces[0]["source_path"] = "scripts/check_appstate_contract.py"
+    dispatch_surfaces[0]["entry_symbol_or_path"] = "validate_contract"
+    paths = _write_fixture(
+        tmp_path, transitions=transitions, dispatch_surfaces=dispatch_surfaces
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "dispatch_surface[0]" in failure
+        and "source_path must point inside src/" in failure
+        and "scripts/check_appstate_contract.py" in failure
+        for failure in failures
+    )
+
+
 def test_guard_fails_on_malformed_dispatch_surface_entry_symbol_or_path(
     tmp_path: Path,
 ) -> None:
@@ -2895,6 +2936,26 @@ def test_guard_fails_on_malformed_dispatch_surface_entry_symbol_or_path(
     assert any(
         "dispatch_surface[0]" in failure
         and "entry_symbol_or_path is malformed" in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_when_dispatch_surface_entry_symbol_is_not_in_source(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    dispatch_surfaces = _complete_dispatch_surfaces()
+    dispatch_surfaces[0]["entry_symbol_or_path"] = "MissingDispatchSurfaceEntry"
+    paths = _write_fixture(
+        tmp_path, transitions=transitions, dispatch_surfaces=dispatch_surfaces
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "dispatch_surface[0]" in failure
+        and "entry_symbol_or_path not found in source_path" in failure
+        and "MissingDispatchSurfaceEntry" in failure
         for failure in failures
     )
 
