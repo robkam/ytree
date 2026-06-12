@@ -1713,6 +1713,78 @@ def test_runtime_transition_sequence_lookup_fails_closed_in_startup_guard() -> N
     )
 
 
+def test_runtime_transition_sequence_startup_checks_fail_closed() -> None:
+    source = Path("src/core/main.c").read_text(encoding="utf-8")
+
+    assert "AppStateTransitionSequenceCount() != required_sequence_id_count" in source
+    assert "sequence == NULL || !NonEmptyString(sequence->scenario_id)" in source
+    assert (
+        "!NonEmptyString(sequence->category) || !NonEmptyString(sequence->flow)"
+        in source
+    )
+    assert "sequence->steps == NULL" in source
+    assert "sequence->step_count == 0" in source
+    assert (
+        "AppStateTransitionSequenceLookup(sequence->scenario_id) != sequence"
+        in source
+    )
+    assert "previous_index < index" in source
+    assert "strcmp(previous->scenario_id, sequence->scenario_id) == 0" in source
+    assert (
+        "AppStateTransitionSequenceAt(AppStateTransitionSequenceCount()) != NULL"
+        in source
+    )
+    assert "AppStateTransitionSequenceLookup(NULL) != NULL" in source
+    assert 'AppStateTransitionSequenceLookup("") != NULL' in source
+    assert (
+        'AppStateTransitionSequenceLookup("sequence.__ytnova_unknown__") != NULL'
+        in source
+    )
+    assert "!AppStateTransitionSequenceStepReady(sequence, step, step_index," in source
+    assert "AppStateTransitionLookup(step->transition_id) == NULL" in source
+    assert "AppStateInvariantLookup(step->invariant_ids[ref_index]) == NULL" in source
+    assert (
+        "AppStateDiffHarnessLookup(step->diff_harness_ids[ref_index]) == NULL"
+        in source
+    )
+    assert "AppStateGenerationDomainLookup(expectation->domain_id) == NULL" in source
+    assert "!AppStateTransitionSequencesReady()" in source
+
+
+def test_runtime_transition_sequence_startup_requires_documented_scenario_ids() -> None:
+    source = Path("src/core/main.c").read_text(encoding="utf-8")
+    sequence_doc, sequence_failures = guard._load_json(
+        guard.DEFAULT_TRANSITION_SEQUENCES
+    )
+    required_ids = guard._collect_string_ids(
+        sequence_doc,
+        collection_key="scenarios",
+        id_field="scenario_id",
+    )
+    required_table = re.search(
+        r"static\s+const\s+char\s+\*const\s+"
+        r"kAppStateRequiredTransitionSequenceScenarioIds\[\]\s*=\s*"
+        r"\{(?P<body>.*?)\};",
+        source,
+        re.S,
+    )
+
+    assert sequence_failures == []
+    assert required_table is not None
+    table_ids, table_failures = guard._parse_string_initializer_array(
+        required_table.group("body"),
+        "kAppStateRequiredTransitionSequenceScenarioIds",
+    )
+    assert table_failures == []
+    assert set(table_ids) == required_ids
+    assert re.search(
+        r"AppStateTransitionSequenceLookup\(\s*"
+        r"kAppStateRequiredTransitionSequenceScenarioIds\[index\]\s*\)",
+        source,
+        re.S,
+    )
+
+
 def test_guard_fails_when_required_diff_harness_field_is_missing(
     tmp_path: Path,
 ) -> None:
