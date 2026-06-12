@@ -160,6 +160,19 @@ static const char *const kAppStateRequiredEventIds[] = {
   "event.render-reflow",
 };
 
+static const char *const kAppStateRequiredDispatchSurfaceIds[] = {
+  "surface.key-decode-input-dispatch",
+  "surface.directory-window-action-dispatch",
+  "surface.file-window-action-dispatch",
+  "surface.menu-modal-completion",
+  "surface.resize-signal-handling",
+  "surface.refresh-rebuild-rebind",
+  "surface.filesystem-mutation-result",
+  "surface.volume-operation",
+  "surface.watcher-live-refresh",
+  "surface.render-reflow-projection",
+};
+
 static int StringListContains(const char *const *values, size_t count,
                               const char *value) {
   size_t index;
@@ -524,13 +537,17 @@ static int AppStateDispatchSurfaceWritesReady(
 
 static int AppStateDispatchSurfacesReady(void) {
   size_t index;
+  size_t required_surface_id_count =
+      sizeof(kAppStateRequiredDispatchSurfaceIds) /
+      sizeof(kAppStateRequiredDispatchSurfaceIds[0]);
 
-  if (AppStateDispatchSurfaceCount() == 0)
+  if (AppStateDispatchSurfaceCount() != required_surface_id_count)
     return 0;
 
   for (index = 0; index < AppStateDispatchSurfaceCount(); index++) {
     const AppStateDispatchSurfaceMetadata *metadata =
         AppStateDispatchSurfaceAt(index);
+    size_t previous_index;
 
     if (metadata == NULL || !NonEmptyString(metadata->surface_id) ||
         !NonEmptyString(metadata->category) ||
@@ -545,6 +562,21 @@ static int AppStateDispatchSurfacesReady(void) {
     if (AppStateDispatchSurfaceLookup(metadata->surface_id) != metadata)
       return 0;
     if (AppStateTransitionLookup(metadata->transition_id) == NULL)
+      return 0;
+
+    for (previous_index = 0; previous_index < index; previous_index++) {
+      const AppStateDispatchSurfaceMetadata *previous =
+          AppStateDispatchSurfaceAt(previous_index);
+
+      if (previous == NULL ||
+          strcmp(previous->surface_id, metadata->surface_id) == 0)
+        return 0;
+    }
+  }
+
+  for (index = 0; index < required_surface_id_count; index++) {
+    if (AppStateDispatchSurfaceLookup(
+            kAppStateRequiredDispatchSurfaceIds[index]) == NULL)
       return 0;
   }
 
