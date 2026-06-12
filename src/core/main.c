@@ -199,6 +199,21 @@ static const char *const kAppStateRequiredDiffHarnessIds[] = {
   "harness.blocked-transition-no-unrelated-mutation",
 };
 
+static const char *const kAppStateRequiredTransitionSequenceScenarioIds[] = {
+  "sequence.split-toggle-f8",
+  "sequence.tab-panel-switch",
+  "sequence.enter-directory-file-transition",
+  "sequence.esc-modal-dismissal",
+  "sequence.dotfile-reveal-conceal",
+  "sequence.refresh-rebuild",
+  "sequence.filesystem-mutation-result",
+  "sequence.search-jump",
+  "sequence.showall-global-tagged-only",
+  "sequence.file-small-big-transitions",
+  "sequence.volume-cycling-release",
+  "sequence.split-close-reopen",
+};
+
 static int StringListContains(const char *const *values, size_t count,
                               const char *value) {
   size_t index;
@@ -356,8 +371,11 @@ static int AppStateTransitionSequenceStepReady(
 
 static int AppStateTransitionSequencesReady(void) {
   size_t index;
+  size_t required_sequence_id_count =
+      sizeof(kAppStateRequiredTransitionSequenceScenarioIds) /
+      sizeof(kAppStateRequiredTransitionSequenceScenarioIds[0]);
 
-  if (AppStateTransitionSequenceCount() == 0)
+  if (AppStateTransitionSequenceCount() != required_sequence_id_count)
     return 0;
 
   for (index = 0; index < AppStateTransitionSequenceCount(); index++) {
@@ -392,6 +410,12 @@ static int AppStateTransitionSequencesReady(void) {
         return 0;
       previous_ordinal = step->ordinal;
     }
+  }
+
+  for (index = 0; index < required_sequence_id_count; index++) {
+    if (AppStateTransitionSequenceLookup(
+            kAppStateRequiredTransitionSequenceScenarioIds[index]) == NULL)
+      return 0;
   }
 
   if (AppStateTransitionSequenceAt(AppStateTransitionSequenceCount()) != NULL)
