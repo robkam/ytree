@@ -323,6 +323,28 @@ static int AppStateFallbackPreconditionValid(const char *precondition) {
          strcmp(precondition, "stale_snapshot") == 0;
 }
 
+static int AppStateTransitionSequenceStepDiffHarnessCoversTransition(
+    const AppStateTransitionSequenceStepMetadata *step) {
+  size_t ref_index;
+
+  if (step == NULL || !NonEmptyString(step->transition_id) ||
+      !NonEmptyStringList(step->diff_harness_ids, step->diff_harness_id_count))
+    return 0;
+
+  for (ref_index = 0; ref_index < step->diff_harness_id_count; ref_index++) {
+    const AppStateDiffHarnessMetadata *harness =
+        AppStateDiffHarnessLookup(step->diff_harness_ids[ref_index]);
+
+    if (harness == NULL || harness->transition_ids == NULL)
+      return 0;
+    if (StringListContains(harness->transition_ids, harness->transition_id_count,
+                           step->transition_id))
+      return 1;
+  }
+
+  return 0;
+}
+
 static int AppStateTransitionSequenceStepReady(
     const AppStateTransitionSequenceMetadata *sequence,
     const AppStateTransitionSequenceStepMetadata *step, size_t step_index,
@@ -378,6 +400,9 @@ static int AppStateTransitionSequenceStepReady(
                            step->diff_harness_ids[ref_index]))
       return 0;
   }
+  if (!AppStateTransitionSequenceStepDiffHarnessCoversTransition(step))
+    return 0;
+
   for (ref_index = 0; ref_index < step->generation_domain_expectation_count;
        ref_index++) {
     const AppStateTransitionSequenceGenerationExpectationMetadata *expectation =

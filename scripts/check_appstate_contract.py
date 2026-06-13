@@ -3669,6 +3669,51 @@ def _validate_step_reference_list(
     return failures
 
 
+def _diff_harness_transition_ids_by_harness(
+    diff_harness_records: list[Any],
+) -> dict[str, set[str]]:
+    transition_ids_by_harness: dict[str, set[str]] = {}
+    for record in diff_harness_records:
+        if not isinstance(record, dict):
+            continue
+        harness_id = record.get("harness_id")
+        transition_ids = record.get("transition_ids")
+        if not isinstance(harness_id, str) or not harness_id.strip():
+            continue
+        if not isinstance(transition_ids, list):
+            continue
+        transition_ids_by_harness[harness_id] = {
+            transition_id
+            for transition_id in transition_ids
+            if isinstance(transition_id, str) and transition_id.strip()
+        }
+    return transition_ids_by_harness
+
+
+def _validate_step_diff_harness_transition_alignment(
+    *,
+    diff_harness_refs: Any,
+    transition_id: Any,
+    diff_harness_transition_ids: dict[str, set[str]],
+    label: str,
+) -> list[str]:
+    if not isinstance(transition_id, str) or not transition_id.strip():
+        return []
+    if not isinstance(diff_harness_refs, list):
+        return []
+
+    for harness_id in diff_harness_refs:
+        if not isinstance(harness_id, str) or not harness_id.strip():
+            continue
+        if transition_id in diff_harness_transition_ids.get(harness_id, set()):
+            return []
+
+    return [
+        f"{label}: diff_harness_ids must include at least one diff harness "
+        f"covering transition_id {transition_id}"
+    ]
+
+
 def _validate_generation_expectations(
     *,
     value: Any,
@@ -3772,6 +3817,7 @@ def _validate_appstate_transition_sequences(
     event_transition_ids: dict[str, str],
     invariant_ids: set[str],
     diff_harness_ids: set[str],
+    diff_harness_transition_ids: dict[str, set[str]],
     generation_domain_ids: set[str],
 ) -> list[str]:
     failures: list[str] = []
@@ -3884,6 +3930,14 @@ def _validate_appstate_transition_sequences(
                 )
             )
             failures.extend(
+                _validate_step_diff_harness_transition_alignment(
+                    diff_harness_refs=step.get("diff_harness_ids"),
+                    transition_id=transition_id,
+                    diff_harness_transition_ids=diff_harness_transition_ids,
+                    label=label,
+                )
+            )
+            failures.extend(
                 _validate_generation_expectations(
                     value=step.get("generation_domain_expectations"),
                     label=label,
@@ -3978,6 +4032,7 @@ def _validate_runtime_transition_sequence_registry(
     event_transition_ids: dict[str, str],
     runtime_invariant_ids: set[str],
     runtime_diff_harness_ids: set[str],
+    runtime_diff_harness_transition_ids: dict[str, set[str]],
     runtime_generation_domain_ids: set[str],
 ) -> list[str]:
     failures: list[str] = []
@@ -4120,6 +4175,14 @@ def _validate_runtime_transition_sequence_registry(
                         reference_label=reference_label,
                     )
                 )
+            failures.extend(
+                _validate_step_diff_harness_transition_alignment(
+                    diff_harness_refs=step.get("diff_harness_ids"),
+                    transition_id=transition_id,
+                    diff_harness_transition_ids=runtime_diff_harness_transition_ids,
+                    label=step_label,
+                )
+            )
 
             failures.extend(
                 _validate_generation_expectations(
@@ -4713,6 +4776,9 @@ def validate_contract(
             event_transition_ids=event_transition_ids,
             invariant_ids=invariant_ids,
             diff_harness_ids=diff_harness_ids,
+            diff_harness_transition_ids=_diff_harness_transition_ids_by_harness(
+                diff_harness_records
+            ),
             generation_domain_ids=generation_domain_ids,
         )
     )
@@ -4740,6 +4806,9 @@ def validate_contract(
             runtime_diff_harness_ids={
                 record["harness_id"] for record in runtime_diff_harness_records
             },
+            runtime_diff_harness_transition_ids=_diff_harness_transition_ids_by_harness(
+                runtime_diff_harness_records
+            ),
             runtime_generation_domain_ids={
                 record["domain_id"] for record in runtime_generation_domain_records
             },

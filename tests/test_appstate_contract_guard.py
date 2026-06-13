@@ -1395,6 +1395,33 @@ def test_guard_fails_on_unknown_transition_sequence_step_references(
     )
 
 
+def test_guard_fails_when_transition_sequence_diff_harness_misses_step_transition(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    diff_harness_checks = _complete_diff_harness_checks()
+    diff_harness_checks[0]["transition_ids"] = ["transition.refresh_rebuild"]
+    transition_sequences = _complete_transition_sequences()
+    transition_sequences[0]["steps"][0]["diff_harness_ids"] = [
+        diff_harness_checks[0]["harness_id"]
+    ]
+    paths = _write_fixture(
+        tmp_path,
+        transitions=transitions,
+        diff_harness_checks=diff_harness_checks,
+        transition_sequences=transition_sequences,
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "transition_sequence[0].step[0]" in failure
+        and "diff_harness_ids must include at least one diff harness" in failure
+        and "transition.keybinding" in failure
+        for failure in failures
+    )
+
+
 def test_guard_fails_when_transition_sequence_action_mismatches_transition(
     tmp_path: Path,
 ) -> None:
@@ -1661,6 +1688,33 @@ def test_guard_fails_on_runtime_transition_sequence_invalid_links(
     )
 
 
+def test_guard_fails_when_runtime_transition_sequence_diff_harness_misses_step_transition(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    runtime_diff_harness_checks = _complete_diff_harness_checks()
+    runtime_diff_harness_checks[0]["transition_ids"] = ["transition.refresh_rebuild"]
+    runtime_transition_sequences = _complete_transition_sequences()
+    runtime_transition_sequences[0]["steps"][0]["diff_harness_ids"] = [
+        runtime_diff_harness_checks[0]["harness_id"]
+    ]
+    paths = _write_fixture(
+        tmp_path,
+        transitions=transitions,
+        runtime_diff_harness_checks=runtime_diff_harness_checks,
+        runtime_transition_sequences=runtime_transition_sequences,
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "runtime_transition_sequence[0].step[0]" in failure
+        and "diff_harness_ids must include at least one diff harness" in failure
+        and "transition.keybinding" in failure
+        for failure in failures
+    )
+
+
 def test_guard_fails_when_runtime_transition_sequence_fallback_drifts(
     tmp_path: Path,
 ) -> None:
@@ -1753,6 +1807,8 @@ def test_runtime_transition_sequence_startup_checks_fail_closed() -> None:
         "AppStateDiffHarnessLookup(step->diff_harness_ids[ref_index]) == NULL"
         in source
     )
+    assert "AppStateTransitionSequenceStepDiffHarnessCoversTransition" in source
+    assert "!AppStateTransitionSequenceStepDiffHarnessCoversTransition(step)" in source
     assert "AppStateGenerationDomainLookup(expectation->domain_id) == NULL" in source
     assert "!AppStateTransitionSequencesReady()" in source
 
