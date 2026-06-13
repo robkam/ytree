@@ -512,6 +512,7 @@ static int AppStateOwnerFieldsReady(void) {
 
   for (index = 0; index < AppStateOwnerFieldCount(); index++) {
     const AppStateOwnerFieldMetadata *metadata = AppStateOwnerFieldAt(index);
+    size_t invariant_index;
     size_t previous_index;
 
     if (metadata == NULL || !NonEmptyString(metadata->field) ||
@@ -525,6 +526,13 @@ static int AppStateOwnerFieldsReady(void) {
       return 0;
     if (AppStateOwnerFieldLookup(metadata->field) != metadata)
       return 0;
+
+    for (invariant_index = 0;
+         invariant_index < metadata->invariant_check_count; invariant_index++) {
+      if (AppStateInvariantLookup(metadata->invariant_checks[invariant_index]) ==
+          NULL)
+        return 0;
+    }
 
     for (previous_index = 0; previous_index < index; previous_index++) {
       const AppStateOwnerFieldMetadata *previous =
@@ -1044,6 +1052,8 @@ static int AppStateEventCoverageReady(void) {
       return 0;
     if (strcmp(coverage->category, transition->category) != 0)
       return 0;
+    if (strcmp(coverage->owner, transition->owner) != 0)
+      return 0;
     if (!AppStateEventCoverageWriteSetMatches(coverage, transition))
       return 0;
   }
@@ -1113,6 +1123,8 @@ static int AppStateActionCoverageReady(void) {
     if (transition == NULL)
       return 0;
     if (strcmp(coverage->category, transition->category) != 0)
+      return 0;
+    if (strcmp(coverage->owner, transition->owner) != 0)
       return 0;
     if (!AppStateActionCoverageWriteSetMatches(coverage, transition))
       return 0;

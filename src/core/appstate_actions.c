@@ -91,92 +91,92 @@ static const char *const kAppStateTransitionWriteSet9[] = {
 };
 
 static const char *const kAppStateOwnerFieldInvariantChecks0[] = {
-  "Active panel changes must preserve inactive panel-local records.",
-  "Panel routing must resolve to an existing YtreeNovaPanel carrier before render projection.",
+  "invariant.inactive-panel-frozen",
+  "invariant.shared-state-panel-local-isolation",
 };
 static const char *const kAppStateOwnerFieldInvariantChecks1[] = {
-  "Command completion must not mutate panel or volume fields outside the declared follow-up transition.",
-  "Command failure or cancellation must preserve authoritative panel and volume state.",
+  "invariant.blocked-transition-determinism",
+  "invariant.shared-state-panel-local-isolation",
 };
 static const char *const kAppStateOwnerFieldInvariantChecks2[] = {
-  "Blocked transitions may write message state only when needed for outcome clarity.",
-  "Message writes must not imply filesystem or panel state success.",
+  "invariant.blocked-transition-determinism",
+  "invariant.render-projection-read-only",
 };
 static const char *const kAppStateOwnerFieldInvariantChecks3[] = {
-  "Modal dismissal must leave underlying panel and volume authority unchanged unless declared.",
-  "Destructive confirmations must remain explicit and default-safe.",
+  "invariant.panel-local-focus-restore",
+  "invariant.blocked-transition-determinism",
 };
 static const char *const kAppStateOwnerFieldInvariantChecks4[] = {
-  "Pending transitions must name a registered transition before later mutation.",
-  "Queueing a transition must not advance panel or volume generations by itself.",
+  "invariant.blocked-transition-determinism",
+  "invariant.stale-snapshot-fail-closed",
 };
 static const char *const kAppStateOwnerFieldInvariantChecks5[] = {
-  "Releasing a volume must not leave active or inactive panels with stale volume pointers.",
-  "Volume registry changes must rebind affected panels through stable identity or deterministic fallback.",
+  "invariant.shared-state-panel-local-isolation",
+  "invariant.viewport-identity-rebind",
 };
 static const char *const kAppStateOwnerFieldInvariantChecks6[] = {
-  "Resize handling must not choose a new authoritative selection from rendered rows.",
-  "Layout changes alone must not advance volume_generation.",
+  "invariant.render-projection-read-only",
+  "invariant.viewport-identity-rebind",
 };
 static const char *const kAppStateOwnerFieldInvariantChecks7[] = {
-  "Render invalidation writes must not mutate selection, focus, or identity state.",
-  "Render projection may clear only surfaces produced from settled AppState records.",
+  "invariant.render-projection-read-only",
+  "invariant.blocked-transition-determinism",
 };
 static const char *const kAppStateOwnerFieldInvariantChecks8[] = {
-  "Ncurses window recreation must happen outside signal handlers.",
-  "Window handles must not become restore authority for panel selection or viewport state.",
+  "invariant.render-projection-read-only",
+  "invariant.panel-local-focus-restore",
 };
 static const char *const kAppStateOwnerFieldInvariantChecks9[] = {
-  "File selection identity must be path/name based, not a stale FileEntry pointer.",
-  "Inactive panel file selection must remain frozen across active-only actions.",
+  "invariant.viewport-identity-rebind",
+  "invariant.inactive-panel-frozen",
 };
 static const char *const kAppStateOwnerFieldInvariantChecks10[] = {
-  "File viewport correction must preserve the stored selection when it remains visible.",
-  "Render paths may compute temporary file projection without overwriting this origin.",
+  "invariant.viewport-identity-rebind",
+  "invariant.render-projection-read-only",
 };
 static const char *const kAppStateOwnerFieldInvariantChecks11[] = {
-  "Reactivation must restore the recorded tree/small-file/big-file shape directly.",
-  "Focus shape changes must not import the inactive panel's state.",
+  "invariant.panel-local-focus-restore",
+  "invariant.shared-state-panel-local-isolation",
 };
 static const char *const kAppStateOwnerFieldInvariantChecks12[] = {
-  "Render projection alone must not advance panel_generation.",
-  "Snapshot restore must compare panel_generation before applying saved state.",
+  "invariant.render-projection-read-only",
+  "invariant.stale-snapshot-fail-closed",
 };
 static const char *const kAppStateOwnerFieldInvariantChecks13[] = {
-  "Restore snapshots must use stable identities plus generation validation.",
-  "Stale snapshots must fail closed through the deterministic fallback order.",
+  "invariant.viewport-identity-rebind",
+  "invariant.stale-snapshot-fail-closed",
 };
 static const char *const kAppStateOwnerFieldInvariantChecks14[] = {
-  "Tree cursor position is interpreted against visible rows, not raw topology indices.",
-  "Inactive panel cursor must remain unchanged unless the transition explicitly targets that panel.",
+  "invariant.hidden-entry-visible-navigation",
+  "invariant.inactive-panel-frozen",
 };
 static const char *const kAppStateOwnerFieldInvariantChecks15[] = {
-  "Tree selection identity must be stable and path based within the current volume namespace.",
-  "Selection restore must not derive authority from disp_begin_pos plus cursor_pos.",
+  "invariant.viewport-identity-rebind",
+  "invariant.stale-snapshot-fail-closed",
 };
 static const char *const kAppStateOwnerFieldInvariantChecks16[] = {
-  "Hidden dotfile visibility must not cause extra viewport shifts when selection remains visible.",
-  "Render-side temporary placement must not overwrite the saved viewport origin.",
+  "invariant.hidden-entry-visible-navigation",
+  "invariant.render-projection-read-only",
 };
 static const char *const kAppStateOwnerFieldInvariantChecks17[] = {
-  "Panel volume binding must point to an existing volume/archive namespace or deterministic fallback.",
-  "A panel must not import the opposite panel's volume-specific snapshot.",
+  "invariant.stale-snapshot-fail-closed",
+  "invariant.shared-state-panel-local-isolation",
 };
 static const char *const kAppStateOwnerFieldInvariantChecks18[] = {
-  "Shared topology changes must re-anchor each panel by its own stable identity.",
-  "Topology mutation must advance volume_generation before restore consumers observe it.",
+  "invariant.shared-state-panel-local-isolation",
+  "invariant.stale-snapshot-fail-closed",
 };
 static const char *const kAppStateOwnerFieldInvariantChecks19[] = {
-  "Logged state is shared topology and must not store panel-local cursor or tag authority.",
-  "Unlogged placeholders must not degrade a frozen file-view anchor without rebind or payload reload.",
+  "invariant.shared-state-panel-local-isolation",
+  "invariant.viewport-identity-rebind",
 };
 static const char *const kAppStateOwnerFieldInvariantChecks20[] = {
-  "Payload cache changes must not overwrite panel-local file selection identity.",
-  "Mutation-result commits must distinguish filesystem side effects from AppState metadata updates.",
+  "invariant.shared-state-panel-local-isolation",
+  "invariant.blocked-transition-determinism",
 };
 static const char *const kAppStateOwnerFieldInvariantChecks21[] = {
-  "Render projection alone must not advance volume_generation.",
-  "Generation mismatch must force stable-identity re-resolution before snapshot restore.",
+  "invariant.render-projection-read-only",
+  "invariant.stale-snapshot-fail-closed",
 };
 
 static const AppStateOwnerFieldMetadata kAppStateOwnerFields[] = {

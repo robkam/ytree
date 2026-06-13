@@ -1840,6 +1840,16 @@ def _validate_runtime_action_coverage_registry(
             failures.append(
                 f"{label}: category does not match transition {transition_id}: {category}"
             )
+        owner = record.get("owner")
+        if (
+            isinstance(owner, str)
+            and owner.strip()
+            and transition_record is not None
+            and owner != transition_record.get("owner")
+        ):
+            failures.append(
+                f"{label}: owner does not match transition {transition_id}: {owner}"
+            )
 
         if isinstance(action, str) and action.strip():
             coverage_record = action_coverage_by_action.get(action)
@@ -1943,6 +1953,7 @@ def _validate_runtime_owner_field_registry(
     runtime_records: list[dict[str, Any]],
     runtime_path: Path,
     owner_field_records: list[Any],
+    runtime_invariant_ids: set[str],
 ) -> list[str]:
     failures: list[str] = []
     expected_owner_fields = {
@@ -1990,6 +2001,13 @@ def _validate_runtime_owner_field_registry(
                         f"{label}: invariant_checks[{check_index}] "
                         "must be a non-empty string"
                     )
+            failures.extend(
+                _validate_invariant_check_refs(
+                    invariant_checks=invariant_checks,
+                    runtime_invariant_ids=runtime_invariant_ids,
+                    label=label,
+                )
+            )
 
     missing_fields = sorted(expected_fields - covered_fields)
     if missing_fields:
@@ -2568,6 +2586,7 @@ def _validate_owner_fields(
     *,
     owner_fields_doc: Any,
     owner_fields_path: Path,
+    runtime_invariant_ids: set[str],
 ) -> tuple[set[str], list[str]]:
     failures: list[str] = []
     registered_fields: set[str] = set()
@@ -2598,6 +2617,13 @@ def _validate_owner_fields(
             if field in registered_fields:
                 failures.append(f"{label}: duplicate field: {field}")
             registered_fields.add(field)
+        failures.extend(
+            _validate_invariant_check_refs(
+                invariant_checks=record.get("invariant_checks"),
+                runtime_invariant_ids=runtime_invariant_ids,
+                label=label,
+            )
+        )
 
     return registered_fields, failures
 
@@ -3323,9 +3349,20 @@ def _validate_runtime_event_coverage_registry(
             failures.append(f"{label}: transition_id missing from runtime transition registry: {transition_id}")
         else:
             if record.get("category") != transition_record.get("category"):
-                failures.append(f"{label}: category does not match transition {transition_id}: {record.get('category')}")
+                failures.append(
+                    f"{label}: category does not match transition "
+                    f"{transition_id}: {record.get('category')}"
+                )
+            if record.get("owner") != transition_record.get("owner"):
+                failures.append(
+                    f"{label}: owner does not match transition "
+                    f"{transition_id}: {record.get('owner')}"
+                )
             if record.get("declared_write_set") != transition_record.get("declared_write_set"):
-                failures.append(f"{label}: declared_write_set does not match transition {transition_id}")
+                failures.append(
+                    f"{label}: declared_write_set does not match "
+                    f"transition {transition_id}"
+                )
 
     missing_ids = sorted(expected_ids - covered_ids)
     if missing_ids:
@@ -3423,6 +3460,16 @@ def _validate_event_coverage(
         ):
             failures.append(
                 f"{label}: category does not match transition {transition_id}: {category}"
+            )
+        owner = record.get("owner")
+        if (
+            isinstance(owner, str)
+            and owner.strip()
+            and transition_record is not None
+            and owner != transition_record.get("owner")
+        ):
+            failures.append(
+                f"{label}: owner does not match transition {transition_id}: {owner}"
             )
 
     missing_event_classes = sorted(REQUIRED_EVENT_CLASSES - covered_event_classes)
@@ -4104,9 +4151,14 @@ def validate_contract(
     if failures:
         return failures
 
+    runtime_invariant_ids = {
+        record["invariant_id"] for record in runtime_invariant_records
+    }
+
     registered_owner_fields, owner_field_failures = _validate_owner_fields(
         owner_fields_doc=owner_fields_doc,
         owner_fields_path=owner_fields_path,
+        runtime_invariant_ids=runtime_invariant_ids,
     )
     failures.extend(owner_field_failures)
     if isinstance(owner_fields_doc, dict) and isinstance(
@@ -4120,6 +4172,7 @@ def validate_contract(
             runtime_records=runtime_owner_field_records,
             runtime_path=action_runtime_path,
             owner_field_records=owner_field_records,
+            runtime_invariant_ids=runtime_invariant_ids,
         )
     )
 
@@ -4209,10 +4262,6 @@ def validate_contract(
             generation_owner_fields=generation_owner_fields,
         )
     )
-
-    runtime_invariant_ids = {
-        record["invariant_id"] for record in runtime_invariant_records
-    }
 
     if not isinstance(shims_doc, dict):
         failures.append(f"{shims_path}: top-level value must be an object")
@@ -4326,6 +4375,16 @@ def validate_contract(
         ):
             failures.append(
                 f"{label}: category does not match transition {transition_id}: {category}"
+            )
+        owner = record.get("owner")
+        if (
+            isinstance(owner, str)
+            and owner.strip()
+            and transition_record is not None
+            and owner != transition_record.get("owner")
+        ):
+            failures.append(
+                f"{label}: owner does not match transition {transition_id}: {owner}"
             )
 
     missing_actions = sorted(expected_actions - covered_actions)

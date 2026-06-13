@@ -110,7 +110,7 @@ def _action(
         "action": action,
         "transition_id": transition_id,
         "category": category,
-        "owner": "YtreeNovaPanel(active)",
+        "owner": "owner",
         "declared_write_set": ["panel.tree_selection_key"],
         "boundary_status": "test",
         "migration_notes": ["fixture action coverage"],
@@ -140,7 +140,7 @@ def _event(
         "transition_id": transition_id or f"transition.{resolved_category}",
         "category": resolved_category,
         "source": "fixture source",
-        "owner": "fixture owner",
+        "owner": "owner",
         "declared_write_set": ["field"],
         "boundary_status": "test",
         "trigger_paths": ["fixture trigger"],
@@ -311,7 +311,7 @@ def _owner_field(field: str = "field") -> dict[str, object]:
         "runtime_carrier": "YtreeNovaPanel fixture carrier",
         "mutation_rule": "Fixture transitions may mutate only declared fields.",
         "migration_status": "test",
-        "invariant_checks": ["fixture invariant"],
+        "invariant_checks": ["invariant.inactive_panel_frozen"],
     }
 
 
@@ -3329,6 +3329,27 @@ def test_guard_fails_on_malformed_owner_invariant_checks(tmp_path: Path) -> None
     )
 
 
+def test_guard_fails_on_unknown_owner_field_invariant_id(tmp_path: Path) -> None:
+    transitions = _complete_transitions()
+    owner_fields = _complete_owner_fields()
+    owner_fields[0]["invariant_checks"] = ["invariant.missing"]
+    paths = _write_fixture(
+        tmp_path,
+        transitions=transitions,
+        owner_fields=owner_fields,
+        runtime_owner_fields=_complete_owner_fields(),
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "owner_field[0]" in failure
+        and "invariant_checks[0] does not match runtime invariant registry"
+        and "invariant.missing" in failure
+        for failure in failures
+    )
+
+
 def test_guard_fails_when_owner_field_record_is_malformed(tmp_path: Path) -> None:
     transitions = _complete_transitions()
     owner_fields = _complete_owner_fields()
@@ -3365,6 +3386,28 @@ def test_guard_fails_when_runtime_owner_field_metadata_drifts(
     assert any(
         "runtime_owner_field[0]" in failure
         and "runtime canonical_owner does not match owner field" in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_when_runtime_owner_field_invariant_id_is_unknown(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    runtime_owner_fields = _complete_owner_fields()
+    runtime_owner_fields[0]["invariant_checks"] = ["invariant.missing"]
+    paths = _write_fixture(
+        tmp_path,
+        transitions=transitions,
+        runtime_owner_fields=runtime_owner_fields,
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "runtime_owner_field[0]" in failure
+        and "invariant_checks[0] does not match runtime invariant registry"
+        and "invariant.missing" in failure
         for failure in failures
     )
 
@@ -3460,7 +3503,7 @@ def test_guard_fails_when_runtime_owner_field_list_entry_is_malformed(
     runtime_path.write_text(
         source.replace(
             'static const char *const kAppStateOwnerFieldInvariantChecks0[] = {\n'
-            '  "fixture invariant",',
+            '  "invariant.inactive_panel_frozen",',
             "static const char *const kAppStateOwnerFieldInvariantChecks0[] = {\n"
             "  NULL,",
             1,
@@ -4366,6 +4409,92 @@ def test_guard_fails_when_event_category_does_not_match_transition(tmp_path: Pat
     )
 
 
+def test_guard_fails_when_action_coverage_owner_does_not_match_transition(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    actions = _complete_actions()
+    actions[0]["owner"] = "different owner"
+    paths = _write_fixture(tmp_path, transitions=transitions, actions=actions)
+
+    failures = _validate(paths)
+
+    assert any(
+        "action[0]" in failure
+        and "owner does not match transition" in failure
+        and "different owner" in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_when_event_coverage_owner_does_not_match_transition(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    events = _complete_events()
+    events[0]["owner"] = "different owner"
+    paths = _write_fixture(tmp_path, transitions=transitions, events=events)
+
+    failures = _validate(paths)
+
+    assert any(
+        "event[0]" in failure
+        and "owner does not match transition" in failure
+        and "different owner" in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_when_runtime_action_coverage_owner_does_not_match_transition(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    actions = _complete_actions()
+    runtime_action_coverages = _complete_actions()
+    actions[0]["owner"] = "different owner"
+    runtime_action_coverages[0]["owner"] = "different owner"
+    paths = _write_fixture(
+        tmp_path,
+        transitions=transitions,
+        actions=actions,
+        runtime_action_coverages=runtime_action_coverages,
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "runtime_action_coverage[0]" in failure
+        and "owner does not match transition" in failure
+        and "different owner" in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_when_runtime_event_coverage_owner_does_not_match_transition(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    events = _complete_events()
+    runtime_events = _complete_events()
+    events[0]["owner"] = "different owner"
+    runtime_events[0]["owner"] = "different owner"
+    paths = _write_fixture(
+        tmp_path,
+        transitions=transitions,
+        events=events,
+        runtime_events=runtime_events,
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "runtime_event_coverage[0]" in failure
+        and "owner does not match transition" in failure
+        and "different owner" in failure
+        for failure in failures
+    )
+
+
 def test_guard_catches_enum_drift_from_temporary_header(tmp_path: Path) -> None:
     transitions = _complete_transitions()
     paths = _write_fixture(
@@ -4717,6 +4846,22 @@ def test_runtime_event_coverage_startup_checks_fail_closed() -> None:
     assert "!AppStateEventCoverageReady()" in source
 
 
+def test_runtime_coverage_startup_validates_owner_alignment() -> None:
+    source = Path("src/core/main.c").read_text(encoding="utf-8")
+
+    event_start = source.index("static int AppStateEventCoverageReady(void)")
+    action_start = source.index("static int AppStateActionCoverageReady(void)")
+    diff_harness_start = source.index(
+        "static int AppStateDiffHarnessRegistryReady(void)"
+    )
+
+    event_body = source[event_start:action_start]
+    action_body = source[action_start:diff_harness_start]
+
+    assert "strcmp(coverage->owner, transition->owner) != 0" in action_body
+    assert "strcmp(coverage->owner, transition->owner) != 0" in event_body
+
+
 def test_runtime_event_coverage_startup_requires_documented_event_ids() -> None:
     source = Path("src/core/main.c").read_text(encoding="utf-8")
     event_doc, event_failures = guard._load_json(guard.DEFAULT_EVENT_COVERAGE)
@@ -4756,6 +4901,21 @@ def test_runtime_owner_field_startup_checks_fail_closed() -> None:
     assert "strcmp(previous->field, metadata->field) == 0" in source
     assert "AppStateOwnerFieldLookup(kAppStateRequiredOwnerFieldIds[index])" in source
     assert "!AppStateOwnerFieldsReady()" in source
+
+
+def test_runtime_owner_field_startup_validates_invariant_checks_against_registry() -> None:
+    source = Path("src/core/main.c").read_text(encoding="utf-8")
+
+    assert re.search(
+        r"for \(invariant_index = 0;\s*"
+        r"invariant_index < metadata->invariant_check_count;\s*"
+        r"invariant_index\+\+\) \{\s*"
+        r"if \(AppStateInvariantLookup\("
+        r"metadata->invariant_checks\[invariant_index\]\)\s*==\s*NULL\)\s*"
+        r"return 0;",
+        source,
+        re.S,
+    )
 
 
 def test_runtime_owner_field_startup_requires_documented_field_ids() -> None:
