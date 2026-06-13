@@ -1395,6 +1395,29 @@ def test_guard_fails_on_unknown_transition_sequence_step_references(
     )
 
 
+def test_guard_fails_when_transition_sequence_invariants_do_not_cover_step(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    unrelated_transition_id = next(
+        record["id"] for record in transitions if record["id"] != "transition.keybinding"
+    )
+    invariants = _complete_invariants()
+    for invariant in invariants:
+        if invariant["invariant_id"] == "invariant.inactive_panel_frozen":
+            invariant["transition_ids"] = [unrelated_transition_id]
+    paths = _write_fixture(tmp_path, transitions=transitions, invariants=invariants)
+
+    failures = _validate(paths)
+
+    assert any(
+        "transition_sequence[0].step[0]" in failure
+        and "invariant_ids must include at least one invariant covering transition_id transition.keybinding"
+        in failure
+        for failure in failures
+    )
+
+
 def test_guard_fails_when_transition_sequence_diff_harness_misses_step_transition(
     tmp_path: Path,
 ) -> None:
@@ -1784,6 +1807,33 @@ def test_guard_fails_on_runtime_transition_sequence_invalid_links(
     )
 
 
+def test_guard_fails_when_runtime_transition_sequence_invariants_do_not_cover_step(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    unrelated_transition_id = next(
+        record["id"] for record in transitions if record["id"] != "transition.keybinding"
+    )
+    runtime_invariants = _complete_invariants()
+    for invariant in runtime_invariants:
+        if invariant["invariant_id"] == "invariant.inactive_panel_frozen":
+            invariant["transition_ids"] = [unrelated_transition_id]
+    paths = _write_fixture(
+        tmp_path,
+        transitions=transitions,
+        runtime_invariants=runtime_invariants,
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "runtime_transition_sequence[0].step[0]" in failure
+        and "invariant_ids must include at least one invariant covering transition_id transition.keybinding"
+        in failure
+        for failure in failures
+    )
+
+
 def test_guard_fails_when_runtime_transition_sequence_diff_harness_misses_step_transition(
     tmp_path: Path,
 ) -> None:
@@ -2007,6 +2057,9 @@ def test_runtime_transition_sequence_startup_checks_fail_closed() -> None:
     assert "!AppStateTransitionSequenceStepReady(sequence, step, step_index," in source
     assert "AppStateTransitionLookup(step->transition_id) == NULL" in source
     assert "AppStateInvariantLookup(step->invariant_ids[ref_index]) == NULL" in source
+    assert "AppStateTransitionSequenceStepInvariantCoversTransition(step)" in source
+    assert "invariant->transition_ids" in source
+    assert "invariant->transition_id_count" in source
     assert (
         "AppStateDiffHarnessLookup(step->diff_harness_ids[ref_index]) == NULL"
         in source

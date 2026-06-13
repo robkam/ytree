@@ -585,6 +585,7 @@
           "expected_result": "allowed",
           "invariant_ids": [
             "invariant.shared-state-panel-local-isolation",
+            "invariant.hidden-entry-visible-navigation",
             "invariant.render-projection-read-only"
           ],
           "diff_harness_ids": [

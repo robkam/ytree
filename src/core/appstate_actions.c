@@ -1593,6 +1593,7 @@ static const AppStateTransitionSequenceGenerationExpectationMetadata kAppStateTr
 
 static const char *const kAppStateTransitionSequenceStepInvariantIds8_1[] = {
   "invariant.shared-state-panel-local-isolation",
+  "invariant.hidden-entry-visible-navigation",
   "invariant.render-projection-read-only",
 };
 

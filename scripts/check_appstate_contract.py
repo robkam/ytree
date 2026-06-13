@@ -3690,6 +3690,51 @@ def _diff_harness_transition_ids_by_harness(
     return transition_ids_by_harness
 
 
+def _invariant_transition_ids_by_invariant(
+    invariant_records: list[Any],
+) -> dict[str, set[str]]:
+    transition_ids_by_invariant: dict[str, set[str]] = {}
+    for record in invariant_records:
+        if not isinstance(record, dict):
+            continue
+        invariant_id = record.get("invariant_id")
+        transition_ids = record.get("transition_ids")
+        if not isinstance(invariant_id, str) or not invariant_id.strip():
+            continue
+        if not isinstance(transition_ids, list):
+            continue
+        transition_ids_by_invariant[invariant_id] = {
+            transition_id
+            for transition_id in transition_ids
+            if isinstance(transition_id, str) and transition_id.strip()
+        }
+    return transition_ids_by_invariant
+
+
+def _validate_step_invariant_transition_alignment(
+    *,
+    invariant_refs: Any,
+    transition_id: Any,
+    invariant_transition_ids: dict[str, set[str]],
+    label: str,
+) -> list[str]:
+    if not isinstance(transition_id, str) or not transition_id.strip():
+        return []
+    if not isinstance(invariant_refs, list):
+        return []
+
+    for invariant_id in invariant_refs:
+        if not isinstance(invariant_id, str) or not invariant_id.strip():
+            continue
+        if transition_id in invariant_transition_ids.get(invariant_id, set()):
+            return []
+
+    return [
+        f"{label}: invariant_ids must include at least one invariant "
+        f"covering transition_id {transition_id}"
+    ]
+
+
 def _validate_step_diff_harness_transition_alignment(
     *,
     diff_harness_refs: Any,
@@ -3848,6 +3893,7 @@ def _validate_appstate_transition_sequences(
     event_ids: set[str],
     event_transition_ids: dict[str, str],
     invariant_ids: set[str],
+    invariant_transition_ids: dict[str, set[str]],
     diff_harness_ids: set[str],
     diff_harness_transition_ids: dict[str, set[str]],
     generation_domain_ids: set[str],
@@ -3962,6 +4008,14 @@ def _validate_appstate_transition_sequences(
                 )
             )
             failures.extend(
+                _validate_step_invariant_transition_alignment(
+                    invariant_refs=step.get("invariant_ids"),
+                    transition_id=transition_id,
+                    invariant_transition_ids=invariant_transition_ids,
+                    label=label,
+                )
+            )
+            failures.extend(
                 _validate_step_diff_harness_transition_alignment(
                     diff_harness_refs=step.get("diff_harness_ids"),
                     transition_id=transition_id,
@@ -4068,6 +4122,7 @@ def _validate_runtime_transition_sequence_registry(
     event_ids: set[str],
     event_transition_ids: dict[str, str],
     runtime_invariant_ids: set[str],
+    runtime_invariant_transition_ids: dict[str, set[str]],
     runtime_diff_harness_ids: set[str],
     runtime_diff_harness_transition_ids: dict[str, set[str]],
     runtime_generation_domain_ids: set[str],
@@ -4212,6 +4267,14 @@ def _validate_runtime_transition_sequence_registry(
                         reference_label=reference_label,
                     )
                 )
+            failures.extend(
+                _validate_step_invariant_transition_alignment(
+                    invariant_refs=step.get("invariant_ids"),
+                    transition_id=transition_id,
+                    invariant_transition_ids=runtime_invariant_transition_ids,
+                    label=step_label,
+                )
+            )
             failures.extend(
                 _validate_step_diff_harness_transition_alignment(
                     diff_harness_refs=step.get("diff_harness_ids"),
@@ -4817,6 +4880,9 @@ def validate_contract(
             event_ids=event_ids,
             event_transition_ids=event_transition_ids,
             invariant_ids=invariant_ids,
+            invariant_transition_ids=_invariant_transition_ids_by_invariant(
+                invariant_records
+            ),
             diff_harness_ids=diff_harness_ids,
             diff_harness_transition_ids=_diff_harness_transition_ids_by_harness(
                 diff_harness_records
@@ -4845,6 +4911,9 @@ def validate_contract(
             runtime_invariant_ids={
                 record["invariant_id"] for record in runtime_invariant_records
             },
+            runtime_invariant_transition_ids=_invariant_transition_ids_by_invariant(
+                runtime_invariant_records
+            ),
             runtime_diff_harness_ids={
                 record["harness_id"] for record in runtime_diff_harness_records
             },
