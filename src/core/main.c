@@ -198,6 +198,20 @@ static const char *const kAppStateRequiredOwnerFieldIds[] = {
   "volume.volume_generation",
 };
 
+static const char *const kAppStateRequiredGenerationDomainIds[] = {
+  "generation.panel.local-authority",
+  "generation.volume.shared-authority",
+  "identity.directory.stable-key",
+  "identity.file.stable-key",
+  "shape.panel.focus",
+  "target.modal-command.session",
+  "state.visibility-filter.panel-volume",
+  "state.topology.volume",
+  "state.file-payload.volume",
+  "lifecycle.volume.registry",
+  "reflow.layout.projection",
+};
+
 static const char *const kAppStateRequiredDispatchSurfaceIds[] = {
   "surface.key-decode-input-dispatch",
   "surface.directory-window-action-dispatch",
@@ -597,14 +611,18 @@ static int AppStateTransitionRegistryReady(void) {
 
 static int AppStateGenerationDomainsReady(void) {
   size_t index;
+  size_t required_generation_domain_id_count =
+      sizeof(kAppStateRequiredGenerationDomainIds) /
+      sizeof(kAppStateRequiredGenerationDomainIds[0]);
 
-  if (AppStateGenerationDomainCount() == 0)
+  if (AppStateGenerationDomainCount() != required_generation_domain_id_count)
     return 0;
 
   for (index = 0; index < AppStateGenerationDomainCount(); index++) {
     const AppStateGenerationDomainMetadata *metadata =
         AppStateGenerationDomainAt(index);
     size_t field_index;
+    size_t previous_index;
     size_t transition_index;
 
     if (metadata == NULL || !NonEmptyString(metadata->domain_id) ||
@@ -627,6 +645,15 @@ static int AppStateGenerationDomainsReady(void) {
     if (AppStateOwnerFieldLookup(metadata->generation_owner_field) == NULL)
       return 0;
 
+    for (previous_index = 0; previous_index < index; previous_index++) {
+      const AppStateGenerationDomainMetadata *previous =
+          AppStateGenerationDomainAt(previous_index);
+
+      if (previous == NULL ||
+          strcmp(previous->domain_id, metadata->domain_id) == 0)
+        return 0;
+    }
+
     for (field_index = 0; field_index < metadata->identity_field_count;
          field_index++) {
       if (AppStateOwnerFieldLookup(metadata->identity_fields[field_index]) ==
@@ -640,6 +667,12 @@ static int AppStateGenerationDomainsReady(void) {
               metadata->advances_on_transition_ids[transition_index]) == NULL)
         return 0;
     }
+  }
+
+  for (index = 0; index < required_generation_domain_id_count; index++) {
+    if (AppStateGenerationDomainLookup(
+            kAppStateRequiredGenerationDomainIds[index]) == NULL)
+      return 0;
   }
 
   if (AppStateGenerationDomainAt(AppStateGenerationDomainCount()) != NULL)
