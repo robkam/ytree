@@ -110,7 +110,7 @@ def _action(
         "action": action,
         "transition_id": transition_id,
         "category": category,
-        "owner": "YtreeNovaPanel(active)",
+        "owner": "owner",
         "declared_write_set": ["panel.tree_selection_key"],
         "boundary_status": "test",
         "migration_notes": ["fixture action coverage"],
@@ -140,7 +140,7 @@ def _event(
         "transition_id": transition_id or f"transition.{resolved_category}",
         "category": resolved_category,
         "source": "fixture source",
-        "owner": "fixture owner",
+        "owner": "owner",
         "declared_write_set": ["field"],
         "boundary_status": "test",
         "trigger_paths": ["fixture trigger"],
@@ -4409,6 +4409,92 @@ def test_guard_fails_when_event_category_does_not_match_transition(tmp_path: Pat
     )
 
 
+def test_guard_fails_when_action_coverage_owner_does_not_match_transition(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    actions = _complete_actions()
+    actions[0]["owner"] = "different owner"
+    paths = _write_fixture(tmp_path, transitions=transitions, actions=actions)
+
+    failures = _validate(paths)
+
+    assert any(
+        "action[0]" in failure
+        and "owner does not match transition" in failure
+        and "different owner" in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_when_event_coverage_owner_does_not_match_transition(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    events = _complete_events()
+    events[0]["owner"] = "different owner"
+    paths = _write_fixture(tmp_path, transitions=transitions, events=events)
+
+    failures = _validate(paths)
+
+    assert any(
+        "event[0]" in failure
+        and "owner does not match transition" in failure
+        and "different owner" in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_when_runtime_action_coverage_owner_does_not_match_transition(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    actions = _complete_actions()
+    runtime_action_coverages = _complete_actions()
+    actions[0]["owner"] = "different owner"
+    runtime_action_coverages[0]["owner"] = "different owner"
+    paths = _write_fixture(
+        tmp_path,
+        transitions=transitions,
+        actions=actions,
+        runtime_action_coverages=runtime_action_coverages,
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "runtime_action_coverage[0]" in failure
+        and "owner does not match transition" in failure
+        and "different owner" in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_when_runtime_event_coverage_owner_does_not_match_transition(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    events = _complete_events()
+    runtime_events = _complete_events()
+    events[0]["owner"] = "different owner"
+    runtime_events[0]["owner"] = "different owner"
+    paths = _write_fixture(
+        tmp_path,
+        transitions=transitions,
+        events=events,
+        runtime_events=runtime_events,
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "runtime_event_coverage[0]" in failure
+        and "owner does not match transition" in failure
+        and "different owner" in failure
+        for failure in failures
+    )
+
+
 def test_guard_catches_enum_drift_from_temporary_header(tmp_path: Path) -> None:
     transitions = _complete_transitions()
     paths = _write_fixture(
@@ -4758,6 +4844,22 @@ def test_runtime_event_coverage_startup_checks_fail_closed() -> None:
     assert "AppStateEventCoverageAt(AppStateEventCoverageCount()) != NULL" in source
     assert 'AppStateEventCoverageLookup("event.__ytnova_unknown__") != NULL' in source
     assert "!AppStateEventCoverageReady()" in source
+
+
+def test_runtime_coverage_startup_validates_owner_alignment() -> None:
+    source = Path("src/core/main.c").read_text(encoding="utf-8")
+
+    event_start = source.index("static int AppStateEventCoverageReady(void)")
+    action_start = source.index("static int AppStateActionCoverageReady(void)")
+    diff_harness_start = source.index(
+        "static int AppStateDiffHarnessRegistryReady(void)"
+    )
+
+    event_body = source[event_start:action_start]
+    action_body = source[action_start:diff_harness_start]
+
+    assert "strcmp(coverage->owner, transition->owner) != 0" in action_body
+    assert "strcmp(coverage->owner, transition->owner) != 0" in event_body
 
 
 def test_runtime_event_coverage_startup_requires_documented_event_ids() -> None:

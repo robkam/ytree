@@ -1052,6 +1052,8 @@ static int AppStateEventCoverageReady(void) {
       return 0;
     if (strcmp(coverage->category, transition->category) != 0)
       return 0;
+    if (strcmp(coverage->owner, transition->owner) != 0)
+      return 0;
     if (!AppStateEventCoverageWriteSetMatches(coverage, transition))
       return 0;
   }
@@ -1121,6 +1123,8 @@ static int AppStateActionCoverageReady(void) {
     if (transition == NULL)
       return 0;
     if (strcmp(coverage->category, transition->category) != 0)
+      return 0;
+    if (strcmp(coverage->owner, transition->owner) != 0)
       return 0;
     if (!AppStateActionCoverageWriteSetMatches(coverage, transition))
       return 0;

@@ -1840,6 +1840,16 @@ def _validate_runtime_action_coverage_registry(
             failures.append(
                 f"{label}: category does not match transition {transition_id}: {category}"
             )
+        owner = record.get("owner")
+        if (
+            isinstance(owner, str)
+            and owner.strip()
+            and transition_record is not None
+            and owner != transition_record.get("owner")
+        ):
+            failures.append(
+                f"{label}: owner does not match transition {transition_id}: {owner}"
+            )
 
         if isinstance(action, str) and action.strip():
             coverage_record = action_coverage_by_action.get(action)
@@ -3339,9 +3349,20 @@ def _validate_runtime_event_coverage_registry(
             failures.append(f"{label}: transition_id missing from runtime transition registry: {transition_id}")
         else:
             if record.get("category") != transition_record.get("category"):
-                failures.append(f"{label}: category does not match transition {transition_id}: {record.get('category')}")
+                failures.append(
+                    f"{label}: category does not match transition "
+                    f"{transition_id}: {record.get('category')}"
+                )
+            if record.get("owner") != transition_record.get("owner"):
+                failures.append(
+                    f"{label}: owner does not match transition "
+                    f"{transition_id}: {record.get('owner')}"
+                )
             if record.get("declared_write_set") != transition_record.get("declared_write_set"):
-                failures.append(f"{label}: declared_write_set does not match transition {transition_id}")
+                failures.append(
+                    f"{label}: declared_write_set does not match "
+                    f"transition {transition_id}"
+                )
 
     missing_ids = sorted(expected_ids - covered_ids)
     if missing_ids:
@@ -3439,6 +3460,16 @@ def _validate_event_coverage(
         ):
             failures.append(
                 f"{label}: category does not match transition {transition_id}: {category}"
+            )
+        owner = record.get("owner")
+        if (
+            isinstance(owner, str)
+            and owner.strip()
+            and transition_record is not None
+            and owner != transition_record.get("owner")
+        ):
+            failures.append(
+                f"{label}: owner does not match transition {transition_id}: {owner}"
             )
 
     missing_event_classes = sorted(REQUIRED_EVENT_CLASSES - covered_event_classes)
@@ -4344,6 +4375,16 @@ def validate_contract(
         ):
             failures.append(
                 f"{label}: category does not match transition {transition_id}: {category}"
+            )
+        owner = record.get("owner")
+        if (
+            isinstance(owner, str)
+            and owner.strip()
+            and transition_record is not None
+            and owner != transition_record.get("owner")
+        ):
+            failures.append(
+                f"{label}: owner does not match transition {transition_id}: {owner}"
             )
 
     missing_actions = sorted(expected_actions - covered_actions)
