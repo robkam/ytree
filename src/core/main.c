@@ -706,6 +706,35 @@ static int AppStateGenerationWriteCovered(const char *owner_field,
   return !generation_owner_seen;
 }
 
+static int AppStateTransitionWriteHasInvariantCoverage(
+    const char *transition_id, const char *field) {
+  size_t invariant_index;
+
+  if (!NonEmptyString(transition_id) || !NonEmptyString(field))
+    return 0;
+
+  for (invariant_index = 0; invariant_index < AppStateInvariantCount();
+       invariant_index++) {
+    const AppStateInvariantMetadata *invariant =
+        AppStateInvariantAt(invariant_index);
+
+    if (invariant == NULL)
+      continue;
+    if (!NonEmptyStringList(invariant->transition_ids,
+                            invariant->transition_id_count) ||
+        !NonEmptyStringList(invariant->protected_fields,
+                            invariant->protected_field_count))
+      continue;
+    if (StringListContains(invariant->transition_ids,
+                           invariant->transition_id_count, transition_id) &&
+        StringListContains(invariant->protected_fields,
+                           invariant->protected_field_count, field))
+      return 1;
+  }
+
+  return 0;
+}
+
 static int AppStateTransitionRegistryReady(void) {
   size_t index;
   size_t required_transition_id_count =
@@ -746,6 +775,8 @@ static int AppStateTransitionRegistryReady(void) {
       if (AppStateOwnerFieldLookup(field) == NULL)
         return 0;
       if (!AppStateGenerationWriteCovered(field, metadata->id))
+        return 0;
+      if (!AppStateTransitionWriteHasInvariantCoverage(metadata->id, field))
         return 0;
     }
   }

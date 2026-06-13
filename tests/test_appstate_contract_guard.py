@@ -1122,6 +1122,27 @@ def _split_dispatch_surface_invariant_coverage(
     invariants[1]["protected_fields"] = ["field"]
 
 
+def _split_transition_invariant_coverage(
+    invariants: list[dict[str, object]],
+    transition_id: str,
+    fallback_transition_id: str,
+    field: str = "field",
+) -> None:
+    alternate_field = "panel.tree_selection_key" if field == "field" else "field"
+    for invariant in invariants:
+        transition_refs = invariant.get("transition_ids")
+        if not isinstance(transition_refs, list):
+            invariant["transition_ids"] = [fallback_transition_id]
+            continue
+        remaining_refs = [ref for ref in transition_refs if ref != transition_id]
+        invariant["transition_ids"] = remaining_refs or [fallback_transition_id]
+
+    invariants[0]["transition_ids"] = [transition_id]
+    invariants[0]["protected_fields"] = [alternate_field]
+    invariants[1]["transition_ids"] = [fallback_transition_id]
+    invariants[1]["protected_fields"] = [field]
+
+
 def _complete_owner_fields() -> list[dict[str, object]]:
     return [_owner_field("field"), _owner_field("panel.tree_selection_key")]
 
@@ -2282,6 +2303,32 @@ def test_runtime_transition_registry_startup_validates_write_set_owner_fields() 
         r"if \(AppStateOwnerFieldLookup\(field\) == NULL\)\s*return 0;",
         source,
         re.S,
+    )
+
+
+def test_runtime_transition_registry_startup_requires_invariant_write_coverage() -> None:
+    source = Path("src/core/main.c").read_text(encoding="utf-8")
+    helper_start = source.index("static int AppStateTransitionWriteHasInvariantCoverage(")
+    transition_start = source.index("static int AppStateTransitionRegistryReady(void)")
+    generation_start = source.index("static int AppStateGenerationDomainsReady(void)")
+    helper_body = source[helper_start:transition_start]
+    transition_body = source[transition_start:generation_start]
+
+    assert "AppStateInvariantAt(invariant_index)" in helper_body
+    assert re.search(
+        r"StringListContains\(invariant->transition_ids,\s*"
+        r"invariant->transition_id_count, transition_id\)",
+        helper_body,
+        re.S,
+    )
+    assert re.search(
+        r"StringListContains\(invariant->protected_fields,\s*"
+        r"invariant->protected_field_count, field\)",
+        helper_body,
+        re.S,
+    )
+    assert "!AppStateTransitionWriteHasInvariantCoverage(metadata->id, field)" in (
+        transition_body
     )
 
 
@@ -3870,6 +3917,41 @@ def test_guard_fails_when_dispatch_surface_allowed_write_splits_invariant_covera
     )
 
 
+def test_guard_fails_when_transition_write_splits_invariant_coverage(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    target_index = next(
+        index
+        for index, record in enumerate(transitions)
+        if record["id"] != "transition.keybinding"
+    )
+    transition_id = str(transitions[target_index]["id"])
+    fallback_transition_id = next(
+        str(record["id"]) for record in transitions if record["id"] != transition_id
+    )
+    invariants = _complete_invariants()
+    _split_transition_invariant_coverage(
+        invariants, transition_id, fallback_transition_id
+    )
+    paths = _write_fixture(
+        tmp_path,
+        transitions=transitions,
+        invariants=invariants,
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        f"transition[{target_index}]" in failure
+        and "declared_write_set[0]" in failure
+        and transition_id in failure
+        and "field" in failure
+        and "lacks same-transition invariant coverage" in failure
+        for failure in failures
+    )
+
+
 def test_guard_accepts_empty_dispatch_surface_allowed_writes(
     tmp_path: Path,
 ) -> None:
@@ -4078,6 +4160,51 @@ def test_guard_fails_when_runtime_dispatch_surface_allowed_write_splits_invarian
         and "allowed_direct_writes[0]" in failure
         and "field" in failure
         and "lacks same-surface invariant coverage" in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_when_runtime_transition_write_splits_invariant_coverage(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    runtime_transitions = [dict(record) for record in transitions]
+    target_index = next(
+        index
+        for index, record in enumerate(runtime_transitions)
+        if record["id"] != "transition.keybinding"
+    )
+    transition_id = str(runtime_transitions[target_index]["id"])
+    fallback_transition_id = next(
+        str(record["id"])
+        for record in runtime_transitions
+        if record["id"] != transition_id
+    )
+    runtime_transitions[target_index]["declared_write_set"] = [
+        "panel.tree_selection_key"
+    ]
+    runtime_invariants = _complete_invariants()
+    _split_transition_invariant_coverage(
+        runtime_invariants,
+        transition_id,
+        fallback_transition_id,
+        field="panel.tree_selection_key",
+    )
+    paths = _write_fixture(
+        tmp_path,
+        transitions=transitions,
+        runtime_transitions=runtime_transitions,
+        runtime_invariants=runtime_invariants,
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        f"runtime_transition[{target_index}]" in failure
+        and "declared_write_set[0]" in failure
+        and transition_id in failure
+        and "panel.tree_selection_key" in failure
+        and "lacks same-transition invariant coverage" in failure
         for failure in failures
     )
 

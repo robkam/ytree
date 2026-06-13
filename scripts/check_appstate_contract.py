@@ -1905,6 +1905,7 @@ def _validate_runtime_transition_registry(
     runtime_path: Path,
     transition_ids: dict[str, dict[str, Any]],
     registered_owner_fields: set[str],
+    runtime_invariant_protected_fields_by_transition: dict[str, set[str]],
 ) -> list[str]:
     failures: list[str] = []
     expected_ids = set(transition_ids)
@@ -1934,6 +1935,15 @@ def _validate_runtime_transition_registry(
             _validate_registered_write_set(
                 record=record,
                 registered_fields=registered_owner_fields,
+                label=label,
+            )
+        )
+        failures.extend(
+            _validate_transition_write_set_has_invariant_coverage(
+                record=record,
+                protected_fields_by_transition=(
+                    runtime_invariant_protected_fields_by_transition
+                ),
                 label=label,
             )
         )
@@ -3949,6 +3959,35 @@ def _invariant_protected_fields_by_dispatch_surface(
     return protected_fields_by_surface
 
 
+def _invariant_protected_fields_by_transition(
+    invariant_records: list[Any],
+) -> dict[str, set[str]]:
+    protected_fields_by_transition: dict[str, set[str]] = {}
+    for record in invariant_records:
+        if not isinstance(record, dict):
+            continue
+        transition_refs = record.get("transition_ids")
+        protected_fields = record.get("protected_fields")
+        if not isinstance(transition_refs, list) or not isinstance(
+            protected_fields, list
+        ):
+            continue
+        valid_fields = {
+            field
+            for field in protected_fields
+            if isinstance(field, str) and field.strip()
+        }
+        if not valid_fields:
+            continue
+        for transition_id in transition_refs:
+            if not isinstance(transition_id, str) or not transition_id.strip():
+                continue
+            protected_fields_by_transition.setdefault(transition_id, set()).update(
+                valid_fields
+            )
+    return protected_fields_by_transition
+
+
 def _validate_allowed_direct_writes_have_invariant_coverage(
     *,
     record: dict[str, Any],
@@ -3971,6 +4010,33 @@ def _validate_allowed_direct_writes_have_invariant_coverage(
             failures.append(
                 f"{label}: {surface_id} allowed_direct_writes[{index}] "
                 f"lacks same-surface invariant coverage for owner field: {field}"
+            )
+    return failures
+
+
+def _validate_transition_write_set_has_invariant_coverage(
+    *,
+    record: dict[str, Any],
+    protected_fields_by_transition: dict[str, set[str]],
+    label: str,
+) -> list[str]:
+    transition_id = record.get("id")
+    write_set = record.get("declared_write_set")
+    if not isinstance(transition_id, str) or not transition_id.strip():
+        return []
+    if not isinstance(write_set, list):
+        return []
+
+    protected_fields = protected_fields_by_transition.get(transition_id, set())
+    failures: list[str] = []
+    for index, field in enumerate(write_set):
+        if not isinstance(field, str) or not field.strip():
+            continue
+        if field not in protected_fields:
+            failures.append(
+                f"{label}: declared_write_set[{index}] lacks same-transition "
+                f"invariant coverage for transition {transition_id} "
+                f"owner field: {field}"
             )
     return failures
 
@@ -4767,6 +4833,9 @@ def validate_contract(
             runtime_invariant_records
         )
     )
+    runtime_invariant_protected_fields_by_transition = (
+        _invariant_protected_fields_by_transition(runtime_invariant_records)
+    )
     if isinstance(invariants_doc, dict) and isinstance(
         invariants_doc.get("invariants"), list
     ):
@@ -4778,6 +4847,9 @@ def validate_contract(
     )
     invariant_protected_fields_by_surface = (
         _invariant_protected_fields_by_dispatch_surface(invariant_records)
+    )
+    invariant_protected_fields_by_transition = (
+        _invariant_protected_fields_by_transition(invariant_records)
     )
 
     registered_owner_fields, owner_field_failures = _validate_owner_fields(
@@ -4833,6 +4905,13 @@ def validate_contract(
                 label=label,
             )
         )
+        failures.extend(
+            _validate_transition_write_set_has_invariant_coverage(
+                record=record,
+                protected_fields_by_transition=invariant_protected_fields_by_transition,
+                label=label,
+            )
+        )
         transition_id = record.get("id")
         if isinstance(transition_id, str) and transition_id.strip():
             if transition_id in transition_ids:
@@ -4854,6 +4933,9 @@ def validate_contract(
             runtime_path=action_runtime_path,
             transition_ids=transition_ids,
             registered_owner_fields=registered_owner_fields,
+            runtime_invariant_protected_fields_by_transition=(
+                runtime_invariant_protected_fields_by_transition
+            ),
         )
     )
 
