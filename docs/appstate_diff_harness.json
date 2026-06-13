@@ -38,7 +38,11 @@
         "generation.panel.local-authority",
         "generation.volume.shared-authority",
         "identity.directory.stable-key",
-        "identity.file.stable-key"
+        "identity.file.stable-key",
+        "shape.panel.focus",
+        "state.visibility-filter.panel-volume",
+        "state.topology.volume",
+        "lifecycle.volume.registry"
       ],
       "expected_behavior": "A later dynamic harness snapshots every referenced AppState region before guard evaluation and after the transition result, then compares only authoritative state owned by the registered transition boundary.",
       "failure_mode": "Any unclassified region change, stale snapshot reuse, or missing before/after phase is reported as a transition contract violation.",
@@ -80,7 +84,8 @@
       "generation_domain_ids": [
         "generation.panel.local-authority",
         "shape.panel.focus",
-        "target.modal-command.session"
+        "target.modal-command.session",
+        "lifecycle.volume.registry"
       ],
       "expected_behavior": "The after snapshot may differ from the before snapshot only in owner fields named by the transition's declared_write_set or by an explicitly registered follow-up transition.",
       "failure_mode": "A changed owner field outside the registered write set is rejected as an undeclared AppState mutation.",
@@ -160,7 +165,8 @@
         "identity.directory.stable-key",
         "identity.file.stable-key",
         "state.topology.volume",
-        "state.file-payload.volume"
+        "state.file-payload.volume",
+        "reflow.layout.projection"
       ],
       "expected_behavior": "Saved panel or volume snapshots whose generation markers mismatch current authority must be rejected or rebound through stable identity fallback before any restore commit.",
       "failure_mode": "Reusing stale row, pointer, or payload identity after a generation mismatch is rejected as a fail-closed violation.",

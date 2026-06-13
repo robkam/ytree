@@ -787,6 +787,10 @@ static const char *const kAppStateDiffHarnessGenerationDomainIds0[] = {
   "generation.volume.shared-authority",
   "identity.directory.stable-key",
   "identity.file.stable-key",
+  "shape.panel.focus",
+  "state.visibility-filter.panel-volume",
+  "state.topology.volume",
+  "lifecycle.volume.registry",
 };
 
 static const char *const kAppStateDiffHarnessMigrationNotes0[] = {
@@ -836,6 +840,7 @@ static const char *const kAppStateDiffHarnessGenerationDomainIds1[] = {
   "generation.panel.local-authority",
   "shape.panel.focus",
   "target.modal-command.session",
+  "lifecycle.volume.registry",
 };
 
 static const char *const kAppStateDiffHarnessMigrationNotes1[] = {
@@ -930,6 +935,7 @@ static const char *const kAppStateDiffHarnessGenerationDomainIds3[] = {
   "identity.file.stable-key",
   "state.topology.volume",
   "state.file-payload.volume",
+  "reflow.layout.projection",
 };
 
 static const char *const kAppStateDiffHarnessMigrationNotes3[] = {

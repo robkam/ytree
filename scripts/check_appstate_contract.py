@@ -2063,6 +2063,65 @@ def _validate_diff_harness_write_coverage(
     return failures
 
 
+def _diff_harness_generation_coverage_by_domain(
+    diff_harness_records: list[Any],
+) -> dict[str, set[str]]:
+    coverage: dict[str, set[str]] = {}
+    for record in diff_harness_records:
+        if not isinstance(record, dict):
+            continue
+        domain_refs = record.get("generation_domain_ids")
+        transition_refs = record.get("transition_ids")
+        if not isinstance(domain_refs, list) or not isinstance(
+            transition_refs, list
+        ):
+            continue
+        for domain_id in domain_refs:
+            if not isinstance(domain_id, str) or not domain_id.strip():
+                continue
+            domain_coverage = coverage.setdefault(domain_id, set())
+            for transition_id in transition_refs:
+                if isinstance(transition_id, str) and transition_id.strip():
+                    domain_coverage.add(transition_id)
+    return coverage
+
+
+def _validate_generation_diff_harness_coverage(
+    *,
+    generation_domain_records: list[Any],
+    diff_harness_records: list[Any],
+    label_prefix: str,
+) -> list[str]:
+    failures: list[str] = []
+    coverage_by_domain = _diff_harness_generation_coverage_by_domain(
+        diff_harness_records
+    )
+
+    for index, record in enumerate(generation_domain_records):
+        if not isinstance(record, dict):
+            continue
+        domain_id = record.get("domain_id")
+        transition_refs = record.get("advances_on_transition_ids")
+        if not isinstance(domain_id, str) or not domain_id.strip():
+            continue
+        if not isinstance(transition_refs, list):
+            continue
+
+        covered_transitions = coverage_by_domain.get(domain_id, set())
+        for transition_id in transition_refs:
+            if not isinstance(transition_id, str) or not transition_id.strip():
+                continue
+            if transition_id not in covered_transitions:
+                failures.append(
+                    f"{label_prefix}[{index}] {domain_id}: "
+                    "advances_on_transition_ids lacks same-domain/same-transition "
+                    "diff harness coverage for transition "
+                    f"{transition_id}"
+                )
+
+    return failures
+
+
 def _validate_runtime_owner_field_registry(
     *,
     runtime_records: list[dict[str, Any]],
@@ -4975,6 +5034,13 @@ def validate_contract(
     else:
         diff_harness_records = []
     failures.extend(
+        _validate_generation_diff_harness_coverage(
+            generation_domain_records=generation_domain_records,
+            diff_harness_records=diff_harness_records,
+            label_prefix="generation_domain",
+        )
+    )
+    failures.extend(
         _validate_runtime_diff_harness_registry(
             runtime_records=runtime_diff_harness_records,
             runtime_path=action_runtime_path,
@@ -4994,6 +5060,13 @@ def validate_contract(
             runtime_generation_domain_ids={
                 record["domain_id"] for record in runtime_generation_domain_records
             },
+        )
+    )
+    failures.extend(
+        _validate_generation_diff_harness_coverage(
+            generation_domain_records=runtime_generation_domain_records,
+            diff_harness_records=runtime_diff_harness_records,
+            label_prefix="runtime_generation_domain",
         )
     )
     failures.extend(

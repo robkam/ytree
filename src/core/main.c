@@ -1352,6 +1352,50 @@ static int AppStateDiffHarnessWriteCovered(const char *owner_field,
   return 0;
 }
 
+static int AppStateGenerationAdvanceHasDiffHarnessCoverage(
+    const char *domain_id, const char *transition_id) {
+  size_t harness_index;
+
+  if (!NonEmptyString(domain_id) || !NonEmptyString(transition_id))
+    return 0;
+
+  for (harness_index = 0; harness_index < AppStateDiffHarnessCount();
+       harness_index++) {
+    const AppStateDiffHarnessMetadata *harness =
+        AppStateDiffHarnessAt(harness_index);
+    size_t ref_index;
+    int domain_seen = 0;
+    int transition_seen = 0;
+
+    if (harness == NULL || harness->generation_domain_ids == NULL ||
+        harness->transition_ids == NULL)
+      return 0;
+
+    for (ref_index = 0; ref_index < harness->generation_domain_id_count;
+         ref_index++) {
+      const char *harness_domain_id = harness->generation_domain_ids[ref_index];
+
+      if (!NonEmptyString(harness_domain_id))
+        return 0;
+      if (strcmp(harness_domain_id, domain_id) == 0)
+        domain_seen = 1;
+    }
+    for (ref_index = 0; ref_index < harness->transition_id_count;
+         ref_index++) {
+      const char *harness_transition_id = harness->transition_ids[ref_index];
+
+      if (!NonEmptyString(harness_transition_id))
+        return 0;
+      if (strcmp(harness_transition_id, transition_id) == 0)
+        transition_seen = 1;
+    }
+    if (domain_seen && transition_seen)
+      return 1;
+  }
+
+  return 0;
+}
+
 static int AppStateDiffHarnessInvariantCoversTransition(
     const AppStateDiffHarnessMetadata *metadata, const char *transition_id) {
   size_t ref_index;
@@ -1375,6 +1419,7 @@ static int AppStateDiffHarnessInvariantCoversTransition(
 }
 
 static int AppStateDiffHarnessRegistryReady(void) {
+  size_t generation_index;
   size_t index;
   size_t required_diff_harness_id_count =
       sizeof(kAppStateRequiredDiffHarnessIds) /
@@ -1453,6 +1498,25 @@ static int AppStateDiffHarnessRegistryReady(void) {
     if (AppStateDiffHarnessLookup(kAppStateRequiredDiffHarnessIds[index]) ==
         NULL)
       return 0;
+  }
+
+  for (generation_index = 0; generation_index < AppStateGenerationDomainCount();
+       generation_index++) {
+    const AppStateGenerationDomainMetadata *domain =
+        AppStateGenerationDomainAt(generation_index);
+    size_t transition_index;
+
+    if (domain == NULL || !NonEmptyString(domain->domain_id) ||
+        domain->advances_on_transition_ids == NULL)
+      return 0;
+    for (transition_index = 0;
+         transition_index < domain->advances_on_transition_id_count;
+         transition_index++) {
+      if (!AppStateGenerationAdvanceHasDiffHarnessCoverage(
+              domain->domain_id,
+              domain->advances_on_transition_ids[transition_index]))
+        return 0;
+    }
   }
 
   for (index = 0; index < AppStateTransitionCount(); index++) {
