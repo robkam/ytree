@@ -883,6 +883,9 @@ static int AppStateCompatibilityShimsReady(void) {
          invariant_index < metadata->invariant_check_count; invariant_index++) {
       if (!NonEmptyString(metadata->invariant_checks[invariant_index]))
         return 0;
+      if (AppStateInvariantLookup(metadata->invariant_checks[invariant_index]) ==
+          NULL)
+        return 0;
     }
   }
 
