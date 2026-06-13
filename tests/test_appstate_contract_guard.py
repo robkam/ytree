@@ -235,7 +235,7 @@ def _diff_harness(
         "snapshot_phases": ["before", "after"],
         "snapshot_regions": ["panel-local state"],
         "transition_ids": transition_ids or ["transition.keybinding"],
-        "owner_field_refs": owner_field_refs or ["field"],
+        "owner_field_refs": owner_field_refs or ["field", "panel.tree_selection_key"],
         "invariant_ids": invariant_ids or ["invariant.inactive_panel_frozen"],
         "generation_domain_ids": generation_domain_ids or ["domain.panel_generation"],
         "expected_behavior": "fixture expected behavior",
@@ -2459,6 +2459,28 @@ def test_guard_fails_when_diff_harness_references_unknown_owner_field(
     )
 
 
+def test_guard_fails_when_invariant_protected_field_lacks_diff_harness_owner_ref(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    diff_harness_checks = _complete_diff_harness_checks()
+    for harness in diff_harness_checks:
+        harness["owner_field_refs"] = ["field"]
+    paths = _write_fixture(
+        tmp_path, transitions=transitions, diff_harness_checks=diff_harness_checks
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "invariant[" in failure
+        and "protected field lacks diff harness owner_field_refs coverage" in failure
+        and "invariant." in failure
+        and "panel.tree_selection_key" in failure
+        for failure in failures
+    )
+
+
 def test_guard_fails_when_diff_harness_references_unknown_invariant(
     tmp_path: Path,
 ) -> None:
@@ -2759,6 +2781,39 @@ def test_guard_fails_when_runtime_diff_harness_write_coverage_is_missing(
         and "lacks diff harness coverage" in failure
         and missing_transition_id in failure
         and "field" in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_when_runtime_invariant_field_lacks_diff_harness_owner_ref(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    runtime_invariants = copy.deepcopy(_complete_invariants())
+    missing_owner_field_ref = "panel.tree_selection_key"
+    runtime_diff_harness_checks = _complete_diff_harness_checks()
+    for harness in runtime_diff_harness_checks:
+        owner_field_refs = harness["owner_field_refs"]
+        assert isinstance(owner_field_refs, list)
+        harness["owner_field_refs"] = [
+            owner_field_ref
+            for owner_field_ref in owner_field_refs
+            if owner_field_ref != missing_owner_field_ref
+        ]
+    paths = _write_fixture(
+        tmp_path,
+        transitions=transitions,
+        runtime_invariants=runtime_invariants,
+        runtime_diff_harness_checks=runtime_diff_harness_checks,
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "runtime_invariant[0]" in failure
+        and "protected field lacks runtime diff harness owner_field_refs coverage" in failure
+        and str(runtime_invariants[0]["invariant_id"]) in failure
+        and missing_owner_field_ref in failure
         for failure in failures
     )
 
@@ -6223,6 +6278,18 @@ def test_runtime_invariant_startup_validates_protected_fields_against_owner_regi
         r"const char \*field = "
         r"metadata->protected_fields\[protected_field_index\];\s*"
         r"if \(AppStateOwnerFieldLookup\(field\) == NULL\)\s*return 0;",
+        source,
+        re.S,
+    )
+
+
+def test_runtime_invariant_startup_requires_diff_harness_owner_field_coverage() -> None:
+    source = Path("src/core/main.c").read_text(encoding="utf-8")
+
+    assert "AppStateDiffHarnessOwnerFieldCovered" in source
+    assert re.search(
+        r"if \(AppStateOwnerFieldLookup\(field\) == NULL\)\s*return 0;\s*"
+        r"if \(!AppStateDiffHarnessOwnerFieldCovered\(field\)\)\s*return 0;",
         source,
         re.S,
     )
