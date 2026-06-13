@@ -2209,6 +2209,7 @@ def _validate_runtime_dispatch_surface_registry(
     dispatch_surface_records: list[Any],
     runtime_transition_records: dict[str, dict[str, Any]],
     runtime_transition_ids: set[str],
+    runtime_invariant_protected_fields_by_surface: dict[str, set[str]],
 ) -> list[str]:
     failures: list[str] = []
     expected_surfaces = {
@@ -2280,6 +2281,13 @@ def _validate_runtime_dispatch_surface_registry(
             _validate_allowed_direct_writes_within_transition(
                 record=record,
                 transition_records=runtime_transition_records,
+                label=label,
+            )
+        )
+        failures.extend(
+            _validate_allowed_direct_writes_have_invariant_coverage(
+                record=record,
+                protected_fields_by_surface=runtime_invariant_protected_fields_by_surface,
                 label=label,
             )
         )
@@ -3203,6 +3211,7 @@ def _validate_dispatch_surfaces(
     dispatch_surfaces_path: Path,
     transition_ids: dict[str, dict[str, Any]],
     registered_owner_fields: set[str],
+    invariant_protected_fields_by_surface: dict[str, set[str]],
 ) -> list[str]:
     failures: list[str] = []
     if not isinstance(dispatch_surfaces_doc, dict):
@@ -3264,6 +3273,13 @@ def _validate_dispatch_surfaces(
                 _validate_allowed_direct_writes_within_transition(
                     record=record,
                     transition_records=transition_ids,
+                    label=label,
+                )
+            )
+            failures.extend(
+                _validate_allowed_direct_writes_have_invariant_coverage(
+                    record=record,
+                    protected_fields_by_surface=invariant_protected_fields_by_surface,
                     label=label,
                 )
             )
@@ -3902,6 +3918,61 @@ def _invariant_protected_fields_by_invariant(
             if isinstance(field, str) and field.strip()
         }
     return protected_fields_by_invariant
+
+
+def _invariant_protected_fields_by_dispatch_surface(
+    invariant_records: list[Any],
+) -> dict[str, set[str]]:
+    protected_fields_by_surface: dict[str, set[str]] = {}
+    for record in invariant_records:
+        if not isinstance(record, dict):
+            continue
+        surface_refs = record.get("dispatch_surface_ids")
+        protected_fields = record.get("protected_fields")
+        if not isinstance(surface_refs, list) or not isinstance(
+            protected_fields, list
+        ):
+            continue
+        valid_fields = {
+            field
+            for field in protected_fields
+            if isinstance(field, str) and field.strip()
+        }
+        if not valid_fields:
+            continue
+        for surface_id in surface_refs:
+            if not isinstance(surface_id, str) or not surface_id.strip():
+                continue
+            protected_fields_by_surface.setdefault(surface_id, set()).update(
+                valid_fields
+            )
+    return protected_fields_by_surface
+
+
+def _validate_allowed_direct_writes_have_invariant_coverage(
+    *,
+    record: dict[str, Any],
+    protected_fields_by_surface: dict[str, set[str]],
+    label: str,
+) -> list[str]:
+    surface_id = record.get("surface_id")
+    writes = record.get("allowed_direct_writes")
+    if not isinstance(surface_id, str) or not surface_id.strip():
+        return []
+    if not isinstance(writes, list):
+        return []
+
+    protected_fields = protected_fields_by_surface.get(surface_id, set())
+    failures: list[str] = []
+    for index, field in enumerate(writes):
+        if not isinstance(field, str) or not field.strip():
+            continue
+        if field not in protected_fields:
+            failures.append(
+                f"{label}: {surface_id} allowed_direct_writes[{index}] "
+                f"lacks same-surface invariant coverage for owner field: {field}"
+            )
+    return failures
 
 
 def _validate_owner_field_invariant_alignment(
@@ -4691,6 +4762,11 @@ def validate_contract(
     runtime_invariant_protected_fields = _invariant_protected_fields_by_invariant(
         runtime_invariant_records
     )
+    runtime_invariant_protected_fields_by_surface = (
+        _invariant_protected_fields_by_dispatch_surface(
+            runtime_invariant_records
+        )
+    )
     if isinstance(invariants_doc, dict) and isinstance(
         invariants_doc.get("invariants"), list
     ):
@@ -4699,6 +4775,9 @@ def validate_contract(
         invariant_records = []
     invariant_protected_fields = _invariant_protected_fields_by_invariant(
         invariant_records
+    )
+    invariant_protected_fields_by_surface = (
+        _invariant_protected_fields_by_dispatch_surface(invariant_records)
     )
 
     registered_owner_fields, owner_field_failures = _validate_owner_fields(
@@ -5019,6 +5098,7 @@ def validate_contract(
             dispatch_surfaces_path=dispatch_surfaces_path,
             transition_ids=transition_ids,
             registered_owner_fields=registered_owner_fields,
+            invariant_protected_fields_by_surface=invariant_protected_fields_by_surface,
         )
     )
     if isinstance(dispatch_surfaces_doc, dict) and isinstance(
@@ -5036,6 +5116,9 @@ def validate_contract(
                 record["id"]: record for record in runtime_transition_records
             },
             runtime_transition_ids={record["id"] for record in runtime_transition_records},
+            runtime_invariant_protected_fields_by_surface=(
+                runtime_invariant_protected_fields_by_surface
+            ),
         )
     )
     dispatch_surface_ids = _collect_string_ids(

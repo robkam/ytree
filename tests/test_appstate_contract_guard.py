@@ -1036,7 +1036,21 @@ def _complete_dispatch_surfaces() -> list[dict[str, object]]:
     ]
 
 
+def _complete_invariant_dispatch_surface_ids() -> dict[str, list[str]]:
+    categories = REQUIRED_INVARIANT_CATEGORIES
+    surface_ids = [str(record["surface_id"]) for record in _complete_dispatch_surfaces()]
+    return {
+        category: [
+            surface_id
+            for surface_index, surface_id in enumerate(surface_ids)
+            if surface_index % len(categories) == category_index
+        ]
+        for category_index, category in enumerate(categories)
+    }
+
+
 def _complete_invariants() -> list[dict[str, object]]:
+    dispatch_surface_ids_by_category = _complete_invariant_dispatch_surface_ids()
     return [
         _invariant(
             category,
@@ -1045,6 +1059,7 @@ def _complete_invariants() -> list[dict[str, object]]:
                 if category == "blocked_transition_determinism"
                 else None
             ),
+            dispatch_surface_ids=dispatch_surface_ids_by_category[category],
         )
         for category in REQUIRED_INVARIANT_CATEGORIES
     ]
@@ -1078,6 +1093,33 @@ def _complete_diff_harness_checks() -> list[dict[str, object]]:
         )
         for category in REQUIRED_DIFF_HARNESS_CATEGORIES
     ]
+
+
+def _remove_dispatch_surface_id(
+    invariant: dict[str, object],
+    surface_id: str,
+    fallback_surface_id: str,
+) -> None:
+    refs = invariant.get("dispatch_surface_ids")
+    if not isinstance(refs, list):
+        invariant["dispatch_surface_ids"] = [fallback_surface_id]
+        return
+    remaining_refs = [ref for ref in refs if ref != surface_id]
+    invariant["dispatch_surface_ids"] = remaining_refs or [fallback_surface_id]
+
+
+def _split_dispatch_surface_invariant_coverage(
+    invariants: list[dict[str, object]],
+    surface_id: str,
+    fallback_surface_id: str,
+) -> None:
+    for invariant in invariants:
+        _remove_dispatch_surface_id(invariant, surface_id, fallback_surface_id)
+
+    invariants[0]["dispatch_surface_ids"] = [surface_id]
+    invariants[0]["protected_fields"] = ["panel.tree_selection_key"]
+    invariants[1]["dispatch_surface_ids"] = [fallback_surface_id]
+    invariants[1]["protected_fields"] = ["field"]
 
 
 def _complete_owner_fields() -> list[dict[str, object]]:
@@ -3502,6 +3544,10 @@ def test_guard_accepts_empty_invariant_dispatch_surfaces_with_cross_cutting_note
 ) -> None:
     transitions = _complete_transitions()
     invariants = _complete_invariants()
+    moved_surface_ids = list(invariants[0]["dispatch_surface_ids"])
+    invariants[1]["dispatch_surface_ids"] = list(
+        dict.fromkeys(invariants[1]["dispatch_surface_ids"] + moved_surface_ids)
+    )
     invariants[0]["dispatch_surface_ids"] = []
     invariants[0]["migration_notes"] = ["cross-cutting fixture invariant"]
     paths = _write_fixture(tmp_path, transitions=transitions, invariants=invariants)
@@ -3765,6 +3811,65 @@ def test_guard_fails_when_dispatch_surface_allowed_write_exceeds_transition_cont
     )
 
 
+def test_guard_fails_when_dispatch_surface_allowed_write_lacks_invariant_coverage(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    dispatch_surfaces = _complete_dispatch_surfaces()
+    surface_id = str(dispatch_surfaces[0]["surface_id"])
+    fallback_surface_id = str(dispatch_surfaces[1]["surface_id"])
+    invariants = _complete_invariants()
+    for invariant in invariants:
+        _remove_dispatch_surface_id(invariant, surface_id, fallback_surface_id)
+    paths = _write_fixture(
+        tmp_path,
+        transitions=transitions,
+        dispatch_surfaces=dispatch_surfaces,
+        invariants=invariants,
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "dispatch_surface[0]" in failure
+        and surface_id in failure
+        and "allowed_direct_writes[0]" in failure
+        and "field" in failure
+        and "lacks same-surface invariant coverage" in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_when_dispatch_surface_allowed_write_splits_invariant_coverage(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    dispatch_surfaces = _complete_dispatch_surfaces()
+    surface_id = str(dispatch_surfaces[0]["surface_id"])
+    fallback_surface_id = str(dispatch_surfaces[1]["surface_id"])
+    invariants = _complete_invariants()
+    _split_dispatch_surface_invariant_coverage(
+        invariants, surface_id, fallback_surface_id
+    )
+    paths = _write_fixture(
+        tmp_path,
+        transitions=transitions,
+        dispatch_surfaces=dispatch_surfaces,
+        invariants=invariants,
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "dispatch_surface[0]" in failure
+        and surface_id in failure
+        and "allowed_direct_writes[0]" in failure
+        and "field" in failure
+        and "lacks same-surface invariant coverage" in failure
+        for failure in failures
+    )
+
+
 def test_guard_accepts_empty_dispatch_surface_allowed_writes(
     tmp_path: Path,
 ) -> None:
@@ -3910,6 +4015,69 @@ def test_guard_fails_when_runtime_dispatch_surface_allowed_write_exceeds_transit
         and "allowed_direct_writes[0]" in failure
         and "outside transition declared_write_set" in failure
         and "panel.tree_selection_key" in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_when_runtime_dispatch_surface_allowed_write_lacks_invariant_coverage(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    dispatch_surfaces = _complete_dispatch_surfaces()
+    runtime_dispatch_surfaces = copy.deepcopy(dispatch_surfaces)
+    surface_id = str(runtime_dispatch_surfaces[0]["surface_id"])
+    fallback_surface_id = str(runtime_dispatch_surfaces[1]["surface_id"])
+    runtime_invariants = _complete_invariants()
+    for invariant in runtime_invariants:
+        _remove_dispatch_surface_id(invariant, surface_id, fallback_surface_id)
+    paths = _write_fixture(
+        tmp_path,
+        transitions=transitions,
+        dispatch_surfaces=dispatch_surfaces,
+        runtime_dispatch_surfaces=runtime_dispatch_surfaces,
+        runtime_invariants=runtime_invariants,
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "runtime_dispatch_surface[0]" in failure
+        and surface_id in failure
+        and "allowed_direct_writes[0]" in failure
+        and "field" in failure
+        and "lacks same-surface invariant coverage" in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_when_runtime_dispatch_surface_allowed_write_splits_invariant_coverage(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    dispatch_surfaces = _complete_dispatch_surfaces()
+    runtime_dispatch_surfaces = copy.deepcopy(dispatch_surfaces)
+    surface_id = str(runtime_dispatch_surfaces[0]["surface_id"])
+    fallback_surface_id = str(runtime_dispatch_surfaces[1]["surface_id"])
+    runtime_invariants = _complete_invariants()
+    _split_dispatch_surface_invariant_coverage(
+        runtime_invariants, surface_id, fallback_surface_id
+    )
+    paths = _write_fixture(
+        tmp_path,
+        transitions=transitions,
+        dispatch_surfaces=dispatch_surfaces,
+        runtime_dispatch_surfaces=runtime_dispatch_surfaces,
+        runtime_invariants=runtime_invariants,
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "runtime_dispatch_surface[0]" in failure
+        and surface_id in failure
+        and "allowed_direct_writes[0]" in failure
+        and "field" in failure
+        and "lacks same-surface invariant coverage" in failure
         for failure in failures
     )
 
@@ -5849,6 +6017,28 @@ def test_runtime_dispatch_surface_startup_validates_allowed_write_contract() -> 
         r"StringListContains\(transition->declared_write_set,\s*"
         r"transition->declared_write_set_count, field\)",
         helper_body,
+        re.S,
+    )
+
+
+def test_runtime_dispatch_surface_startup_requires_invariant_coverage() -> None:
+    source = Path("src/core/main.c").read_text(encoding="utf-8")
+    helper_start = source.index("static int AppStateDispatchSurfaceWritesReady(")
+    dispatch_start = source.index("static int AppStateDispatchSurfacesReady(void)")
+    helper_body = source[helper_start:dispatch_start]
+
+    assert "AppStateDispatchSurfaceWriteHasInvariantCoverage(" in helper_body
+    assert "AppStateInvariantAt(invariant_index)" in source
+    assert re.search(
+        r"StringListContains\(invariant->dispatch_surface_ids,\s*"
+        r"invariant->dispatch_surface_id_count, surface_id\)",
+        source,
+        re.S,
+    )
+    assert re.search(
+        r"StringListContains\(invariant->protected_fields,\s*"
+        r"invariant->protected_field_count, field\)",
+        source,
         re.S,
     )
 
