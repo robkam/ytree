@@ -589,6 +589,8 @@ static int AppStateTransitionRegistryReady(void) {
 
       if (!NonEmptyString(field))
         return 0;
+      if (AppStateOwnerFieldLookup(field) == NULL)
+        return 0;
     }
   }
 
