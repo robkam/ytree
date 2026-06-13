@@ -19,10 +19,14 @@
         "ctx.active",
         "ctx.volumes_head",
         "panel.tree_selection_key",
+        "panel.tree_cursor_pos",
+        "panel.tree_viewport_origin",
         "panel.file_selection_key",
+        "panel.file_viewport_origin",
         "panel.restore_snapshot",
         "panel.panel_generation",
         "volume.dir_tree",
+        "volume.logged_state",
         "volume.volume_generation"
       ],
       "invariant_ids": [
@@ -55,14 +59,17 @@
         "transition.command-completion.user-command"
       ],
       "owner_field_refs": [
+        "ctx.active",
         "ctx.command_state",
         "ctx.message_state",
         "ctx.modal_state",
         "ctx.pending_transition",
+        "panel.volume_key",
         "panel.tree_selection_key",
         "panel.tree_cursor_pos",
         "panel.tree_viewport_origin",
         "panel.focus_shape",
+        "panel.restore_snapshot",
         "panel.panel_generation"
       ],
       "invariant_ids": [
@@ -128,9 +135,14 @@
         "transition.terminal-signal-resize"
       ],
       "owner_field_refs": [
+        "ctx.layout",
+        "ctx.window_handles",
         "panel.restore_snapshot",
         "panel.tree_selection_key",
+        "panel.tree_cursor_pos",
+        "panel.tree_viewport_origin",
         "panel.file_selection_key",
+        "panel.file_viewport_origin",
         "panel.panel_generation",
         "volume.dir_tree",
         "volume.payload_cache",

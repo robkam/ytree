@@ -765,10 +765,14 @@ static const char *const kAppStateDiffHarnessOwnerFieldRefs0[] = {
   "ctx.active",
   "ctx.volumes_head",
   "panel.tree_selection_key",
+  "panel.tree_cursor_pos",
+  "panel.tree_viewport_origin",
   "panel.file_selection_key",
+  "panel.file_viewport_origin",
   "panel.restore_snapshot",
   "panel.panel_generation",
   "volume.dir_tree",
+  "volume.logged_state",
   "volume.volume_generation",
 };
 
@@ -808,14 +812,17 @@ static const char *const kAppStateDiffHarnessTransitionIds1[] = {
 };
 
 static const char *const kAppStateDiffHarnessOwnerFieldRefs1[] = {
+  "ctx.active",
   "ctx.command_state",
   "ctx.message_state",
   "ctx.modal_state",
   "ctx.pending_transition",
+  "panel.volume_key",
   "panel.tree_selection_key",
   "panel.tree_cursor_pos",
   "panel.tree_viewport_origin",
   "panel.focus_shape",
+  "panel.restore_snapshot",
   "panel.panel_generation",
 };
 
@@ -895,9 +902,14 @@ static const char *const kAppStateDiffHarnessTransitionIds3[] = {
 };
 
 static const char *const kAppStateDiffHarnessOwnerFieldRefs3[] = {
+  "ctx.layout",
+  "ctx.window_handles",
   "panel.restore_snapshot",
   "panel.tree_selection_key",
+  "panel.tree_cursor_pos",
+  "panel.tree_viewport_origin",
   "panel.file_selection_key",
+  "panel.file_viewport_origin",
   "panel.panel_generation",
   "volume.dir_tree",
   "volume.payload_cache",

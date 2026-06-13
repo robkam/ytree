@@ -1189,6 +1189,50 @@ static int AppStateActionCoverageReady(void) {
   return 1;
 }
 
+static int AppStateDiffHarnessWriteCovered(const char *owner_field,
+                                           const char *transition_id) {
+  size_t harness_index;
+
+  if (!NonEmptyString(owner_field) || !NonEmptyString(transition_id))
+    return 0;
+
+  for (harness_index = 0; harness_index < AppStateDiffHarnessCount();
+       harness_index++) {
+    const AppStateDiffHarnessMetadata *harness =
+        AppStateDiffHarnessAt(harness_index);
+    size_t ref_index;
+    int transition_seen = 0;
+    int owner_field_seen = 0;
+
+    if (harness == NULL || harness->transition_ids == NULL ||
+        harness->owner_field_refs == NULL)
+      return 0;
+
+    for (ref_index = 0; ref_index < harness->transition_id_count;
+         ref_index++) {
+      const char *harness_transition_id = harness->transition_ids[ref_index];
+
+      if (!NonEmptyString(harness_transition_id))
+        return 0;
+      if (strcmp(harness_transition_id, transition_id) == 0)
+        transition_seen = 1;
+    }
+    for (ref_index = 0; ref_index < harness->owner_field_ref_count;
+         ref_index++) {
+      const char *harness_owner_field = harness->owner_field_refs[ref_index];
+
+      if (!NonEmptyString(harness_owner_field))
+        return 0;
+      if (strcmp(harness_owner_field, owner_field) == 0)
+        owner_field_seen = 1;
+    }
+    if (transition_seen && owner_field_seen)
+      return 1;
+  }
+
+  return 0;
+}
+
 static int AppStateDiffHarnessRegistryReady(void) {
   size_t index;
   size_t required_diff_harness_id_count =
@@ -1265,6 +1309,22 @@ static int AppStateDiffHarnessRegistryReady(void) {
     if (AppStateDiffHarnessLookup(kAppStateRequiredDiffHarnessIds[index]) ==
         NULL)
       return 0;
+  }
+
+  for (index = 0; index < AppStateTransitionCount(); index++) {
+    const AppStateTransitionMetadata *transition = AppStateTransitionAt(index);
+    size_t write_index;
+
+    if (transition == NULL || !NonEmptyString(transition->id) ||
+        transition->declared_write_set == NULL)
+      return 0;
+    for (write_index = 0; write_index < transition->declared_write_set_count;
+         write_index++) {
+      const char *field = transition->declared_write_set[write_index];
+
+      if (!AppStateDiffHarnessWriteCovered(field, transition->id))
+        return 0;
+    }
   }
 
   if (AppStateDiffHarnessAt(AppStateDiffHarnessCount()) != NULL)

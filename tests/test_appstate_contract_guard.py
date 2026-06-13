@@ -1058,6 +1058,7 @@ def _complete_diff_harness_checks() -> list[dict[str, object]]:
             "harness.transition_before_after_snapshot"
             if category == "transition_before_after_snapshot"
             else None,
+            _complete_transition_ids(),
         )
         for category in REQUIRED_DIFF_HARNESS_CATEGORIES
     ]
@@ -1989,6 +1990,33 @@ def test_guard_fails_when_diff_harness_references_unknown_generation_domain(
     )
 
 
+def test_guard_fails_when_diff_harness_write_coverage_is_missing(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    missing_transition_id = str(transitions[0]["id"])
+    diff_harness_checks = _complete_diff_harness_checks()
+    for harness in diff_harness_checks:
+        harness["transition_ids"] = [
+            transition_id
+            for transition_id in _complete_transition_ids()
+            if transition_id != missing_transition_id
+        ]
+    paths = _write_fixture(
+        tmp_path, transitions=transitions, diff_harness_checks=diff_harness_checks
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "transition[0]" in failure
+        and "lacks diff harness coverage" in failure
+        and missing_transition_id in failure
+        and "field" in failure
+        for failure in failures
+    )
+
+
 def test_guard_fails_when_runtime_diff_harness_is_missing(tmp_path: Path) -> None:
     transitions = _complete_transitions()
     runtime_diff_harness_checks = _complete_diff_harness_checks()[1:]
@@ -2161,6 +2189,35 @@ def test_guard_fails_on_runtime_diff_harness_invalid_linkage(
         "runtime_diff_harness[0]" in failure
         and expected in failure
         and value[0] in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_when_runtime_diff_harness_write_coverage_is_missing(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    missing_transition_id = str(transitions[0]["id"])
+    runtime_diff_harness_checks = _complete_diff_harness_checks()
+    for harness in runtime_diff_harness_checks:
+        harness["transition_ids"] = [
+            transition_id
+            for transition_id in _complete_transition_ids()
+            if transition_id != missing_transition_id
+        ]
+    paths = _write_fixture(
+        tmp_path,
+        transitions=transitions,
+        runtime_diff_harness_checks=runtime_diff_harness_checks,
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "runtime_transition[0]" in failure
+        and "lacks diff harness coverage" in failure
+        and missing_transition_id in failure
+        and "field" in failure
         for failure in failures
     )
 
@@ -5311,6 +5368,21 @@ def test_runtime_diff_harness_startup_checks_fail_closed() -> None:
         in source
     )
     assert "!AppStateDiffHarnessRegistryReady()" in source
+
+
+def test_runtime_diff_harness_write_coverage_startup_checks_fail_closed() -> None:
+    source = Path("src/core/main.c").read_text(encoding="utf-8")
+
+    assert "AppStateDiffHarnessWriteCovered" in source
+    assert re.search(
+        r"for \(write_index = 0; write_index < "
+        r"transition->declared_write_set_count;\s*write_index\+\+\) \{\s*"
+        r"const char \*field = transition->declared_write_set\[write_index\];\s*"
+        r"if \(!AppStateDiffHarnessWriteCovered\(field, transition->id\)\)\s*"
+        r"return 0;",
+        source,
+        re.S,
+    )
 
 
 def test_runtime_diff_harness_startup_requires_documented_harness_ids() -> None:

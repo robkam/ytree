@@ -2005,6 +2005,64 @@ def _validate_generation_write_coverage(
     return failures
 
 
+def _diff_harness_write_coverage_by_transition(
+    diff_harness_records: list[Any],
+) -> dict[str, set[str]]:
+    coverage: dict[str, set[str]] = {}
+    for record in diff_harness_records:
+        if not isinstance(record, dict):
+            continue
+        transition_refs = record.get("transition_ids")
+        owner_field_refs = record.get("owner_field_refs")
+        if not isinstance(transition_refs, list) or not isinstance(
+            owner_field_refs, list
+        ):
+            continue
+        for transition_id in transition_refs:
+            if not isinstance(transition_id, str) or not transition_id.strip():
+                continue
+            transition_coverage = coverage.setdefault(transition_id, set())
+            for owner_field in owner_field_refs:
+                if isinstance(owner_field, str) and owner_field.strip():
+                    transition_coverage.add(owner_field)
+    return coverage
+
+
+def _validate_diff_harness_write_coverage(
+    *,
+    transitions: list[Any],
+    diff_harness_records: list[Any],
+    label_prefix: str,
+) -> list[str]:
+    failures: list[str] = []
+    coverage_by_transition = _diff_harness_write_coverage_by_transition(
+        diff_harness_records
+    )
+
+    for index, record in enumerate(transitions):
+        if not isinstance(record, dict):
+            continue
+        transition_id = record.get("id")
+        write_set = record.get("declared_write_set")
+        if not isinstance(transition_id, str) or not transition_id.strip():
+            continue
+        if not isinstance(write_set, list):
+            continue
+
+        covered_fields = coverage_by_transition.get(transition_id, set())
+        for write_index, field in enumerate(write_set):
+            if not isinstance(field, str) or not field.strip():
+                continue
+            if field not in covered_fields:
+                failures.append(
+                    f"{label_prefix}[{index}]: declared_write_set[{write_index}] "
+                    "lacks diff harness coverage for transition "
+                    f"{transition_id}: {field}"
+                )
+
+    return failures
+
+
 def _validate_runtime_owner_field_registry(
     *,
     runtime_records: list[dict[str, Any]],
@@ -4608,6 +4666,20 @@ def validate_contract(
             runtime_generation_domain_ids={
                 record["domain_id"] for record in runtime_generation_domain_records
             },
+        )
+    )
+    failures.extend(
+        _validate_diff_harness_write_coverage(
+            transitions=transitions,
+            diff_harness_records=diff_harness_records,
+            label_prefix="transition",
+        )
+    )
+    failures.extend(
+        _validate_diff_harness_write_coverage(
+            transitions=runtime_transition_records,
+            diff_harness_records=runtime_diff_harness_records,
+            label_prefix="runtime_transition",
         )
     )
     action_ids = _collect_string_ids(
