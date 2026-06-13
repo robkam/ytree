@@ -1061,6 +1061,10 @@ def _complete_generation_domains() -> list[dict[str, object]]:
     ]
 
 
+def _complete_generation_domain_ids() -> list[str]:
+    return [str(record["domain_id"]) for record in _complete_generation_domains()]
+
+
 def _complete_diff_harness_checks() -> list[dict[str, object]]:
     return [
         _diff_harness(
@@ -1070,6 +1074,7 @@ def _complete_diff_harness_checks() -> list[dict[str, object]]:
             else None,
             _complete_transition_ids(),
             invariant_ids=["invariant.blocked_transition_determinism"],
+            generation_domain_ids=_complete_generation_domain_ids(),
         )
         for category in REQUIRED_DIFF_HARNESS_CATEGORIES
     ]
@@ -2405,6 +2410,38 @@ def test_guard_fails_when_diff_harness_references_unknown_generation_domain(
     )
 
 
+def test_guard_fails_when_generation_domain_lacks_diff_harness_transition_coverage(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    generation_domains = _complete_generation_domains()
+    missing_domain_id = str(generation_domains[0]["domain_id"])
+    missing_transition_id = str(generation_domains[0]["advances_on_transition_ids"][0])
+    diff_harness_checks = _complete_diff_harness_checks()
+    for harness in diff_harness_checks:
+        harness["generation_domain_ids"] = [
+            domain_id
+            for domain_id in _complete_generation_domain_ids()
+            if domain_id != missing_domain_id
+        ]
+    paths = _write_fixture(
+        tmp_path,
+        transitions=transitions,
+        generation_domains=generation_domains,
+        diff_harness_checks=diff_harness_checks,
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "generation_domain[0]" in failure
+        and missing_domain_id in failure
+        and "same-domain/same-transition diff harness coverage" in failure
+        and missing_transition_id in failure
+        for failure in failures
+    )
+
+
 def test_guard_fails_when_diff_harness_write_coverage_is_missing(
     tmp_path: Path,
 ) -> None:
@@ -2633,6 +2670,40 @@ def test_guard_fails_when_runtime_diff_harness_write_coverage_is_missing(
         and "lacks diff harness coverage" in failure
         and missing_transition_id in failure
         and "field" in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_when_runtime_generation_domain_lacks_diff_harness_transition_coverage(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    runtime_generation_domains = _complete_generation_domains()
+    missing_domain_id = str(runtime_generation_domains[0]["domain_id"])
+    missing_transition_id = str(
+        runtime_generation_domains[0]["advances_on_transition_ids"][0]
+    )
+    runtime_diff_harness_checks = _complete_diff_harness_checks()
+    for harness in runtime_diff_harness_checks:
+        harness["generation_domain_ids"] = [
+            domain_id
+            for domain_id in _complete_generation_domain_ids()
+            if domain_id != missing_domain_id
+        ]
+    paths = _write_fixture(
+        tmp_path,
+        transitions=transitions,
+        runtime_generation_domains=runtime_generation_domains,
+        runtime_diff_harness_checks=runtime_diff_harness_checks,
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "runtime_generation_domain[0]" in failure
+        and missing_domain_id in failure
+        and "same-domain/same-transition diff harness coverage" in failure
+        and missing_transition_id in failure
         for failure in failures
     )
 
@@ -5931,6 +6002,33 @@ def test_runtime_diff_harness_write_coverage_startup_checks_fail_closed() -> Non
         r"if \(!AppStateDiffHarnessWriteCovered\(field, transition->id\)\)\s*"
         r"return 0;",
         source,
+        re.S,
+    )
+
+
+def test_runtime_generation_harness_startup_checks_fail_closed() -> None:
+    source = Path("src/core/main.c").read_text(encoding="utf-8")
+    helper_start = source.index(
+        "static int AppStateGenerationAdvanceHasDiffHarnessCoverage("
+    )
+    invariant_start = source.index(
+        "static int AppStateDiffHarnessInvariantCoversTransition("
+    )
+    ready_start = source.index("static int AppStateDiffHarnessRegistryReady(void)")
+    signal_start = source.index("static void SigIntHandler(int sig)")
+    helper_body = source[helper_start:invariant_start]
+    ready_body = source[ready_start:signal_start]
+
+    assert "harness->generation_domain_ids" in helper_body
+    assert "harness->transition_ids" in helper_body
+    assert "domain_seen && transition_seen" in helper_body
+    assert "AppStateGenerationDomainCount()" in ready_body
+    assert "domain->advances_on_transition_ids" in ready_body
+    assert re.search(
+        r"!AppStateGenerationAdvanceHasDiffHarnessCoverage\(\s*"
+        r"domain->domain_id,\s*"
+        r"domain->advances_on_transition_ids\[transition_index\]\)",
+        ready_body,
         re.S,
     )
 
