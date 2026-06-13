@@ -4836,6 +4836,21 @@ def test_runtime_dispatch_surface_startup_checks_fail_closed() -> None:
     assert "!AppStateDispatchSurfacesReady()" in source
 
 
+def test_runtime_dispatch_surface_startup_validates_allowed_write_owner_fields() -> None:
+    source = Path("src/core/main.c").read_text(encoding="utf-8")
+
+    assert re.search(
+        r"if \(metadata->allowed_direct_writes == NULL\)\s*return 0;\s*"
+        r"for \(write_index = 0; write_index < "
+        r"metadata->allowed_direct_write_count;\s*write_index\+\+\) \{\s*"
+        r"const char \*field = metadata->allowed_direct_writes\[write_index\];\s*"
+        r"if \(!NonEmptyString\(field\)\)\s*return 0;\s*"
+        r"if \(AppStateOwnerFieldLookup\(field\) == NULL\)\s*return 0;",
+        source,
+        re.S,
+    )
+
+
 def test_runtime_dispatch_surface_startup_requires_documented_surface_ids() -> None:
     source = Path("src/core/main.c").read_text(encoding="utf-8")
     dispatch_doc, dispatch_failures = guard._load_json(guard.DEFAULT_DISPATCH_SURFACES)

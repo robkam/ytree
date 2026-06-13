@@ -691,11 +691,25 @@ static int AppStateGenerationDomainsReady(void) {
 
 static int AppStateDispatchSurfaceWritesReady(
     const AppStateDispatchSurfaceMetadata *metadata) {
+  size_t write_index;
+
   if (metadata->allowed_direct_write_count == 0)
     return metadata->allowed_direct_writes == NULL;
 
-  return NonEmptyStringList(metadata->allowed_direct_writes,
-                            metadata->allowed_direct_write_count);
+  if (metadata->allowed_direct_writes == NULL)
+    return 0;
+
+  for (write_index = 0; write_index < metadata->allowed_direct_write_count;
+       write_index++) {
+    const char *field = metadata->allowed_direct_writes[write_index];
+
+    if (!NonEmptyString(field))
+      return 0;
+    if (AppStateOwnerFieldLookup(field) == NULL)
+      return 0;
+  }
+
+  return 1;
 }
 
 static int AppStateDispatchSurfacesReady(void) {
