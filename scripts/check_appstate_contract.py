@@ -2139,6 +2139,7 @@ def _validate_runtime_dispatch_surface_registry(
     runtime_records: list[dict[str, Any]],
     runtime_path: Path,
     dispatch_surface_records: list[Any],
+    runtime_transition_records: dict[str, dict[str, Any]],
     runtime_transition_ids: set[str],
 ) -> list[str]:
     failures: list[str] = []
@@ -2207,6 +2208,13 @@ def _validate_runtime_dispatch_surface_registry(
                 f"{label}: transition_id does not match runtime transition "
                 f"registry: {transition_id}"
             )
+        failures.extend(
+            _validate_allowed_direct_writes_within_transition(
+                record=record,
+                transition_records=runtime_transition_records,
+                label=label,
+            )
+        )
 
     missing_ids = sorted(expected_ids - covered_ids)
     if missing_ids:
@@ -2855,6 +2863,44 @@ def _validate_allowed_direct_writes(
     return failures
 
 
+def _validate_allowed_direct_writes_within_transition(
+    *,
+    record: dict[str, Any],
+    transition_records: dict[str, dict[str, Any]],
+    label: str,
+) -> list[str]:
+    writes = record.get("allowed_direct_writes")
+    transition_id = record.get("transition_id")
+    if not isinstance(writes, list):
+        return []
+    if not isinstance(transition_id, str) or not transition_id.strip():
+        return []
+
+    transition_record = transition_records.get(transition_id)
+    if transition_record is None:
+        return []
+
+    declared_write_set = transition_record.get("declared_write_set")
+    if not isinstance(declared_write_set, list):
+        return []
+
+    declared_fields = {
+        field
+        for field in declared_write_set
+        if isinstance(field, str) and field.strip()
+    }
+    failures: list[str] = []
+    for index, field in enumerate(writes):
+        if not isinstance(field, str) or not field.strip():
+            continue
+        if field not in declared_fields:
+            failures.append(
+                f"{label}: allowed_direct_writes[{index}] outside transition "
+                f"declared_write_set for {transition_id}: {field}"
+            )
+    return failures
+
+
 def _validate_appstate_diff_harness(
     *,
     diff_harness_doc: Any,
@@ -3095,6 +3141,13 @@ def _validate_dispatch_surfaces(
                 failures.append(
                     f"{label}: transition_id does not match a transition id: {transition_id}"
                 )
+            failures.extend(
+                _validate_allowed_direct_writes_within_transition(
+                    record=record,
+                    transition_records=transition_ids,
+                    label=label,
+                )
+            )
 
         source_path = record.get("source_path")
         entry_symbol_or_path = record.get("entry_symbol_or_path")
@@ -3690,6 +3743,51 @@ def _diff_harness_transition_ids_by_harness(
     return transition_ids_by_harness
 
 
+def _invariant_transition_ids_by_invariant(
+    invariant_records: list[Any],
+) -> dict[str, set[str]]:
+    transition_ids_by_invariant: dict[str, set[str]] = {}
+    for record in invariant_records:
+        if not isinstance(record, dict):
+            continue
+        invariant_id = record.get("invariant_id")
+        transition_ids = record.get("transition_ids")
+        if not isinstance(invariant_id, str) or not invariant_id.strip():
+            continue
+        if not isinstance(transition_ids, list):
+            continue
+        transition_ids_by_invariant[invariant_id] = {
+            transition_id
+            for transition_id in transition_ids
+            if isinstance(transition_id, str) and transition_id.strip()
+        }
+    return transition_ids_by_invariant
+
+
+def _validate_step_invariant_transition_alignment(
+    *,
+    invariant_refs: Any,
+    transition_id: Any,
+    invariant_transition_ids: dict[str, set[str]],
+    label: str,
+) -> list[str]:
+    if not isinstance(transition_id, str) or not transition_id.strip():
+        return []
+    if not isinstance(invariant_refs, list):
+        return []
+
+    for invariant_id in invariant_refs:
+        if not isinstance(invariant_id, str) or not invariant_id.strip():
+            continue
+        if transition_id in invariant_transition_ids.get(invariant_id, set()):
+            return []
+
+    return [
+        f"{label}: invariant_ids must include at least one invariant "
+        f"covering transition_id {transition_id}"
+    ]
+
+
 def _validate_step_diff_harness_transition_alignment(
     *,
     diff_harness_refs: Any,
@@ -3762,6 +3860,15 @@ def _requires_deterministic_fallback(record: dict[str, Any]) -> bool:
     )
 
 
+def _requires_no_unrelated_mutation(record: dict[str, Any]) -> bool:
+    precondition = record.get("precondition")
+    expected_result = record.get("expected_result")
+    return (
+        precondition in {"generation_mismatch", "stale_snapshot"}
+        or expected_result in {"blocked", "fallback", "invalid"}
+    )
+
+
 def _validate_deterministic_fallback(
     *,
     record: dict[str, Any],
@@ -3785,11 +3892,17 @@ def _validate_no_unrelated_mutation(
     record: dict[str, Any],
     label: str,
     diff_harness_ids: set[str],
+    step_diff_harness_refs: Any,
+    transition_id: Any,
+    diff_harness_transition_ids: dict[str, set[str]],
+    required: bool,
 ) -> list[str]:
     expectation = record.get("no_unrelated_mutation")
     if not isinstance(expectation, dict):
+        if not required:
+            return []
         return [
-            f"{label}: blocked/invalid steps require no_unrelated_mutation expectations"
+            f"{label}: blocked/invalid/fallback steps require no_unrelated_mutation expectations"
         ]
 
     failures = _validate_required_fields(
@@ -3803,6 +3916,23 @@ def _validate_no_unrelated_mutation(
         failures.append(
             f"{label}.no_unrelated_mutation: diff_harness_id references unknown diff harness id: {harness_id}"
         )
+    if isinstance(harness_id, str) and harness_id.strip():
+        if not isinstance(step_diff_harness_refs, list) or harness_id not in {
+            value
+            for value in step_diff_harness_refs
+            if isinstance(value, str) and value.strip()
+        }:
+            failures.append(
+                f"{label}.no_unrelated_mutation: diff_harness_id must be listed in step diff_harness_ids: {harness_id}"
+            )
+        if (
+            isinstance(transition_id, str)
+            and transition_id.strip()
+            and transition_id not in diff_harness_transition_ids.get(harness_id, set())
+        ):
+            failures.append(
+                f"{label}.no_unrelated_mutation: diff_harness_id must cover transition_id {transition_id}: {harness_id}"
+            )
     return failures
 
 
@@ -3816,6 +3946,7 @@ def _validate_appstate_transition_sequences(
     event_ids: set[str],
     event_transition_ids: dict[str, str],
     invariant_ids: set[str],
+    invariant_transition_ids: dict[str, set[str]],
     diff_harness_ids: set[str],
     diff_harness_transition_ids: dict[str, set[str]],
     generation_domain_ids: set[str],
@@ -3930,6 +4061,14 @@ def _validate_appstate_transition_sequences(
                 )
             )
             failures.extend(
+                _validate_step_invariant_transition_alignment(
+                    invariant_refs=step.get("invariant_ids"),
+                    transition_id=transition_id,
+                    invariant_transition_ids=invariant_transition_ids,
+                    label=label,
+                )
+            )
+            failures.extend(
                 _validate_step_diff_harness_transition_alignment(
                     diff_harness_refs=step.get("diff_harness_ids"),
                     transition_id=transition_id,
@@ -3958,12 +4097,17 @@ def _validate_appstate_transition_sequences(
                     _validate_deterministic_fallback(record=step, label=label)
                 )
 
-            if expected_result in {"blocked", "invalid"}:
+            no_unrelated_required = _requires_no_unrelated_mutation(step)
+            if no_unrelated_required or step.get("no_unrelated_mutation") is not None:
                 failures.extend(
                     _validate_no_unrelated_mutation(
                         record=step,
                         label=label,
                         diff_harness_ids=diff_harness_ids,
+                        step_diff_harness_refs=step.get("diff_harness_ids"),
+                        transition_id=transition_id,
+                        diff_harness_transition_ids=diff_harness_transition_ids,
+                        required=no_unrelated_required,
                     )
                 )
 
@@ -4031,6 +4175,7 @@ def _validate_runtime_transition_sequence_registry(
     event_ids: set[str],
     event_transition_ids: dict[str, str],
     runtime_invariant_ids: set[str],
+    runtime_invariant_transition_ids: dict[str, set[str]],
     runtime_diff_harness_ids: set[str],
     runtime_diff_harness_transition_ids: dict[str, set[str]],
     runtime_generation_domain_ids: set[str],
@@ -4176,6 +4321,14 @@ def _validate_runtime_transition_sequence_registry(
                     )
                 )
             failures.extend(
+                _validate_step_invariant_transition_alignment(
+                    invariant_refs=step.get("invariant_ids"),
+                    transition_id=transition_id,
+                    invariant_transition_ids=runtime_invariant_transition_ids,
+                    label=step_label,
+                )
+            )
+            failures.extend(
                 _validate_step_diff_harness_transition_alignment(
                     diff_harness_refs=step.get("diff_harness_ids"),
                     transition_id=transition_id,
@@ -4218,12 +4371,17 @@ def _validate_runtime_transition_sequence_registry(
                     f"{step_label}: deterministic_fallback must be an object"
                 )
 
-            if expected_result in {"blocked", "invalid"}:
+            no_unrelated_required = _requires_no_unrelated_mutation(step)
+            if no_unrelated_required or step.get("no_unrelated_mutation") is not None:
                 failures.extend(
                     _validate_no_unrelated_mutation(
                         record=step,
                         label=step_label,
                         diff_harness_ids=runtime_diff_harness_ids,
+                        step_diff_harness_refs=step.get("diff_harness_ids"),
+                        transition_id=transition_id,
+                        diff_harness_transition_ids=runtime_diff_harness_transition_ids,
+                        required=no_unrelated_required,
                     )
                 )
             no_unrelated = step.get("no_unrelated_mutation")
@@ -4646,6 +4804,9 @@ def validate_contract(
             runtime_records=runtime_dispatch_surface_records,
             runtime_path=action_runtime_path,
             dispatch_surface_records=dispatch_surface_records,
+            runtime_transition_records={
+                record["id"]: record for record in runtime_transition_records
+            },
             runtime_transition_ids={record["id"] for record in runtime_transition_records},
         )
     )
@@ -4775,6 +4936,9 @@ def validate_contract(
             event_ids=event_ids,
             event_transition_ids=event_transition_ids,
             invariant_ids=invariant_ids,
+            invariant_transition_ids=_invariant_transition_ids_by_invariant(
+                invariant_records
+            ),
             diff_harness_ids=diff_harness_ids,
             diff_harness_transition_ids=_diff_harness_transition_ids_by_harness(
                 diff_harness_records
@@ -4803,6 +4967,9 @@ def validate_contract(
             runtime_invariant_ids={
                 record["invariant_id"] for record in runtime_invariant_records
             },
+            runtime_invariant_transition_ids=_invariant_transition_ids_by_invariant(
+                runtime_invariant_records
+            ),
             runtime_diff_harness_ids={
                 record["harness_id"] for record in runtime_diff_harness_records
             },

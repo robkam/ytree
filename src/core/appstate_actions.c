@@ -1405,6 +1405,8 @@ static const AppStateTransitionSequenceGenerationExpectationMetadata kAppStateTr
   {"identity.file.stable-key", "File identity remains durable across payload or view-shape changes."},
 };
 
+static const AppStateTransitionSequenceNoUnrelatedMutationMetadata kAppStateTransitionSequenceStepNoUnrelatedMutation5_1 = {"harness.generation-mismatch-check", "Fallback/stale-snapshot/generation-mismatch handling may mutate only the declared transition fields and must leave unrelated owner fields unchanged."};
+
 static const AppStateTransitionSequenceDeterministicFallbackMetadata kAppStateTransitionSequenceStepDeterministicFallback5_1 = {"Fail closed to the nearest valid durable identity or preserve the prior valid selection without using stale rows.", "Only the registered fallback/no-op result may run; unrelated owner fields remain unchanged."};
 
 static const AppStateTransitionSequenceStepMetadata kAppStateTransitionSequenceSteps5[] = {
@@ -1435,7 +1437,7 @@ static const AppStateTransitionSequenceStepMetadata kAppStateTransitionSequenceS
    sizeof(kAppStateTransitionSequenceStepDiffHarnessIds5_1) / sizeof(kAppStateTransitionSequenceStepDiffHarnessIds5_1[0]),
    kAppStateTransitionSequenceStepGenerationExpectations5_1,
    sizeof(kAppStateTransitionSequenceStepGenerationExpectations5_1) / sizeof(kAppStateTransitionSequenceStepGenerationExpectations5_1[0]),
-   NULL,
+   &kAppStateTransitionSequenceStepNoUnrelatedMutation5_1,
    "stale_snapshot",
    &kAppStateTransitionSequenceStepDeterministicFallback5_1},
 };
@@ -1473,6 +1475,8 @@ static const AppStateTransitionSequenceGenerationExpectationMetadata kAppStateTr
   {"state.file-payload.volume", "File payload generation advances only for declared payload rebuilds."},
 };
 
+static const AppStateTransitionSequenceNoUnrelatedMutationMetadata kAppStateTransitionSequenceStepNoUnrelatedMutation6_1 = {"harness.generation-mismatch-check", "Fallback/stale-snapshot/generation-mismatch handling may mutate only the declared transition fields and must leave unrelated owner fields unchanged."};
+
 static const AppStateTransitionSequenceDeterministicFallbackMetadata kAppStateTransitionSequenceStepDeterministicFallback6_1 = {"Reject stale mutation result, request a registered refresh/rebind, and keep unrelated panel state unchanged.", "Only the registered fallback/no-op result may run; unrelated owner fields remain unchanged."};
 
 static const AppStateTransitionSequenceStepMetadata kAppStateTransitionSequenceSteps6[] = {
@@ -1503,7 +1507,7 @@ static const AppStateTransitionSequenceStepMetadata kAppStateTransitionSequenceS
    sizeof(kAppStateTransitionSequenceStepDiffHarnessIds6_1) / sizeof(kAppStateTransitionSequenceStepDiffHarnessIds6_1[0]),
    kAppStateTransitionSequenceStepGenerationExpectations6_1,
    sizeof(kAppStateTransitionSequenceStepGenerationExpectations6_1) / sizeof(kAppStateTransitionSequenceStepGenerationExpectations6_1[0]),
-   NULL,
+   &kAppStateTransitionSequenceStepNoUnrelatedMutation6_1,
    "generation_mismatch",
    &kAppStateTransitionSequenceStepDeterministicFallback6_1},
 };
@@ -1589,6 +1593,7 @@ static const AppStateTransitionSequenceGenerationExpectationMetadata kAppStateTr
 
 static const char *const kAppStateTransitionSequenceStepInvariantIds8_1[] = {
   "invariant.shared-state-panel-local-isolation",
+  "invariant.hidden-entry-visible-navigation",
   "invariant.render-projection-read-only",
 };
 
@@ -1924,14 +1929,12 @@ static const char *const kAppStateDispatchSurfaceMigrationNotes1[] = {
 };
 
 static const char *const kAppStateDispatchSurfaceAllowedDirectWrites2[] = {
-  "panel.file_selection_key",
-  "panel.file_viewport_origin",
   "panel.focus_shape",
   "panel.panel_generation",
 };
 
 static const char *const kAppStateDispatchSurfaceMigrationNotes2[] = {
-  "Current file-window switch dispatch updates file selection and viewport state under the broad keybinding foundation record until file-specific transitions are split out.",
+  "Current file-window dispatch remains under the broad keybinding foundation; only writes shared with the navigate-tree contract stay authorized until file-specific transitions are split out.",
 };
 
 static const char *const kAppStateDispatchSurfaceMigrationNotes3[] = {

@@ -380,6 +380,10 @@
               "expectation": "File identity remains durable across payload or view-shape changes."
             }
           ],
+          "no_unrelated_mutation": {
+            "diff_harness_id": "harness.generation-mismatch-check",
+            "expectation": "Fallback/stale-snapshot/generation-mismatch handling may mutate only the declared transition fields and must leave unrelated owner fields unchanged."
+          },
           "precondition": "stale_snapshot",
           "deterministic_fallback": {
             "outcome": "Fail closed to the nearest valid durable identity or preserve the prior valid selection without using stale rows.",
@@ -460,6 +464,10 @@
               "expectation": "File payload generation advances only for declared payload rebuilds."
             }
           ],
+          "no_unrelated_mutation": {
+            "diff_harness_id": "harness.generation-mismatch-check",
+            "expectation": "Fallback/stale-snapshot/generation-mismatch handling may mutate only the declared transition fields and must leave unrelated owner fields unchanged."
+          },
           "precondition": "generation_mismatch",
           "deterministic_fallback": {
             "outcome": "Reject stale mutation result, request a registered refresh/rebind, and keep unrelated panel state unchanged.",
@@ -577,6 +585,7 @@
           "expected_result": "allowed",
           "invariant_ids": [
             "invariant.shared-state-panel-local-isolation",
+            "invariant.hidden-entry-visible-navigation",
             "invariant.render-projection-read-only"
           ],
           "diff_harness_ids": [
