@@ -1948,6 +1948,63 @@ def _validate_runtime_transition_registry(
     return failures
 
 
+def _generation_write_coverage_by_owner_field(
+    generation_domain_records: list[Any],
+) -> dict[str, set[str]]:
+    coverage: dict[str, set[str]] = {}
+    for record in generation_domain_records:
+        if not isinstance(record, dict):
+            continue
+        owner_field = record.get("generation_owner_field")
+        transition_refs = record.get("advances_on_transition_ids")
+        if not isinstance(owner_field, str) or not owner_field.strip():
+            continue
+        if not isinstance(transition_refs, list):
+            continue
+        owner_coverage = coverage.setdefault(owner_field, set())
+        for transition_id in transition_refs:
+            if isinstance(transition_id, str) and transition_id.strip():
+                owner_coverage.add(transition_id)
+    return coverage
+
+
+def _validate_generation_write_coverage(
+    *,
+    transitions: list[Any],
+    generation_domain_records: list[Any],
+    label_prefix: str,
+) -> list[str]:
+    failures: list[str] = []
+    coverage_by_owner = _generation_write_coverage_by_owner_field(
+        generation_domain_records
+    )
+
+    for index, record in enumerate(transitions):
+        if not isinstance(record, dict):
+            continue
+        transition_id = record.get("id")
+        write_set = record.get("declared_write_set")
+        if not isinstance(transition_id, str) or not transition_id.strip():
+            continue
+        if not isinstance(write_set, list):
+            continue
+
+        for write_index, field in enumerate(write_set):
+            if not isinstance(field, str) or not field.strip():
+                continue
+            covered_transitions = coverage_by_owner.get(field)
+            if covered_transitions is None:
+                continue
+            if transition_id not in covered_transitions:
+                failures.append(
+                    f"{label_prefix}[{index}]: declared_write_set[{write_index}] "
+                    "writes generation owner field without generation domain "
+                    f"coverage for transition {transition_id}: {field}"
+                )
+
+    return failures
+
+
 def _validate_runtime_owner_field_registry(
     *,
     runtime_records: list[dict[str, Any]],
@@ -4260,6 +4317,20 @@ def validate_contract(
         _validate_transition_generation_effects(
             transitions=transitions,
             generation_owner_fields=generation_owner_fields,
+        )
+    )
+    failures.extend(
+        _validate_generation_write_coverage(
+            transitions=transitions,
+            generation_domain_records=generation_domain_records,
+            label_prefix="transition",
+        )
+    )
+    failures.extend(
+        _validate_generation_write_coverage(
+            transitions=runtime_transition_records,
+            generation_domain_records=runtime_generation_domain_records,
+            label_prefix="runtime_transition",
         )
     )
 

@@ -1017,6 +1017,10 @@ def _complete_transitions() -> list[dict[str, object]]:
     ]
 
 
+def _complete_transition_ids() -> list[str]:
+    return [str(record["id"]) for record in _complete_transitions()]
+
+
 def _complete_actions() -> list[dict[str, object]]:
     return [_action(action) for action in FIXTURE_ACTIONS]
 
@@ -1041,6 +1045,7 @@ def _complete_generation_domains() -> list[dict[str, object]]:
         _generation_domain(
             category,
             "domain.panel_generation" if category == "panel_generation" else None,
+            _complete_transition_ids(),
         )
         for category in REQUIRED_GENERATION_DOMAIN_CATEGORIES
     ]
@@ -2422,6 +2427,34 @@ def test_guard_fails_when_generation_domain_transition_is_unknown(
     )
 
 
+def test_guard_fails_when_generation_write_lacks_domain_transition_coverage(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    transition_id = str(transitions[0]["id"])
+    generation_domains = _complete_generation_domains()
+    for domain in generation_domains:
+        domain["advances_on_transition_ids"] = [
+            candidate
+            for candidate in _complete_transition_ids()
+            if candidate != transition_id
+        ]
+    paths = _write_fixture(
+        tmp_path, transitions=transitions, generation_domains=generation_domains
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "transition[0]" in failure
+        and "writes generation owner field without generation domain coverage"
+        in failure
+        and transition_id in failure
+        and "field" in failure
+        for failure in failures
+    )
+
+
 def test_guard_fails_when_generation_domain_advances_is_not_a_list(
     tmp_path: Path,
 ) -> None:
@@ -2663,6 +2696,36 @@ def test_guard_fails_when_runtime_generation_domain_transition_link_is_invalid(
         and "advances_on_transition_ids does not match runtime transition registry"
         in failure
         and "transition.missing" in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_when_runtime_generation_write_lacks_domain_transition_coverage(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    transition_id = str(transitions[0]["id"])
+    runtime_generation_domains = _complete_generation_domains()
+    for domain in runtime_generation_domains:
+        domain["advances_on_transition_ids"] = [
+            candidate
+            for candidate in _complete_transition_ids()
+            if candidate != transition_id
+        ]
+    paths = _write_fixture(
+        tmp_path,
+        transitions=transitions,
+        runtime_generation_domains=runtime_generation_domains,
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "runtime_transition[0]" in failure
+        and "writes generation owner field without generation domain coverage"
+        in failure
+        and transition_id in failure
+        and "field" in failure
         for failure in failures
     )
 
@@ -4992,6 +5055,23 @@ def test_runtime_generation_domain_startup_checks_fail_closed() -> None:
         in source
     )
     assert "!AppStateGenerationDomainsReady()" in source
+
+
+def test_runtime_generation_write_startup_validates_runtime_metadata() -> None:
+    source = Path("src/core/main.c").read_text(encoding="utf-8")
+
+    helper_start = source.index("static int AppStateGenerationWriteCovered(")
+    transition_start = source.index("static int AppStateTransitionRegistryReady(void)")
+    generation_start = source.index("static int AppStateGenerationDomainsReady(void)")
+    helper_body = source[helper_start:transition_start]
+    transition_body = source[transition_start:generation_start]
+
+    assert "AppStateGenerationDomainCount()" in helper_body
+    assert "AppStateGenerationDomainAt(domain_index)" in helper_body
+    assert "domain->generation_owner_field" in helper_body
+    assert "domain->advances_on_transition_ids" in helper_body
+    assert "strcmp(domain_transition_id, transition_id) == 0" in helper_body
+    assert "!AppStateGenerationWriteCovered(field, metadata->id)" in transition_body
 
 
 def test_runtime_generation_domain_startup_requires_documented_domain_ids() -> None:

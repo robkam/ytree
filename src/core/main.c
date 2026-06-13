@@ -560,6 +560,44 @@ static int AppStateOwnerFieldsReady(void) {
   return 1;
 }
 
+static int AppStateGenerationWriteCovered(const char *owner_field,
+                                          const char *transition_id) {
+  size_t domain_index;
+  int generation_owner_seen = 0;
+
+  if (!NonEmptyString(owner_field) || !NonEmptyString(transition_id))
+    return 0;
+
+  for (domain_index = 0; domain_index < AppStateGenerationDomainCount();
+       domain_index++) {
+    const AppStateGenerationDomainMetadata *domain =
+        AppStateGenerationDomainAt(domain_index);
+    size_t transition_index;
+
+    if (domain == NULL || !NonEmptyString(domain->generation_owner_field))
+      return 0;
+    if (strcmp(domain->generation_owner_field, owner_field) != 0)
+      continue;
+
+    generation_owner_seen = 1;
+    if (domain->advances_on_transition_ids == NULL)
+      return 0;
+    for (transition_index = 0;
+         transition_index < domain->advances_on_transition_id_count;
+         transition_index++) {
+      const char *domain_transition_id =
+          domain->advances_on_transition_ids[transition_index];
+
+      if (!NonEmptyString(domain_transition_id))
+        return 0;
+      if (strcmp(domain_transition_id, transition_id) == 0)
+        return 1;
+    }
+  }
+
+  return !generation_owner_seen;
+}
+
 static int AppStateTransitionRegistryReady(void) {
   size_t index;
   size_t required_transition_id_count =
@@ -598,6 +636,8 @@ static int AppStateTransitionRegistryReady(void) {
       if (!NonEmptyString(field))
         return 0;
       if (AppStateOwnerFieldLookup(field) == NULL)
+        return 0;
+      if (!AppStateGenerationWriteCovered(field, metadata->id))
         return 0;
     }
   }
