@@ -2128,6 +2128,7 @@ def _validate_runtime_owner_field_registry(
     runtime_path: Path,
     owner_field_records: list[Any],
     runtime_invariant_ids: set[str],
+    runtime_invariant_protected_fields: dict[str, set[str]],
 ) -> list[str]:
     failures: list[str] = []
     expected_owner_fields = {
@@ -2179,6 +2180,14 @@ def _validate_runtime_owner_field_registry(
                 _validate_invariant_check_refs(
                     invariant_checks=invariant_checks,
                     runtime_invariant_ids=runtime_invariant_ids,
+                    label=label,
+                )
+            )
+            failures.extend(
+                _validate_owner_field_invariant_alignment(
+                    invariant_checks=invariant_checks,
+                    owner_field=runtime_field,
+                    invariant_protected_fields=runtime_invariant_protected_fields,
                     label=label,
                 )
             )
@@ -2795,6 +2804,7 @@ def _validate_owner_fields(
     owner_fields_doc: Any,
     owner_fields_path: Path,
     runtime_invariant_ids: set[str],
+    invariant_protected_fields: dict[str, set[str]],
 ) -> tuple[set[str], list[str]]:
     failures: list[str] = []
     registered_fields: set[str] = set()
@@ -2829,6 +2839,14 @@ def _validate_owner_fields(
             _validate_invariant_check_refs(
                 invariant_checks=record.get("invariant_checks"),
                 runtime_invariant_ids=runtime_invariant_ids,
+                label=label,
+            )
+        )
+        failures.extend(
+            _validate_owner_field_invariant_alignment(
+                invariant_checks=record.get("invariant_checks"),
+                owner_field=field,
+                invariant_protected_fields=invariant_protected_fields,
                 label=label,
             )
         )
@@ -3865,6 +3883,51 @@ def _invariant_transition_ids_by_invariant(
     return transition_ids_by_invariant
 
 
+def _invariant_protected_fields_by_invariant(
+    invariant_records: list[Any],
+) -> dict[str, set[str]]:
+    protected_fields_by_invariant: dict[str, set[str]] = {}
+    for record in invariant_records:
+        if not isinstance(record, dict):
+            continue
+        invariant_id = record.get("invariant_id")
+        protected_fields = record.get("protected_fields")
+        if not isinstance(invariant_id, str) or not invariant_id.strip():
+            continue
+        if not isinstance(protected_fields, list):
+            continue
+        protected_fields_by_invariant[invariant_id] = {
+            field
+            for field in protected_fields
+            if isinstance(field, str) and field.strip()
+        }
+    return protected_fields_by_invariant
+
+
+def _validate_owner_field_invariant_alignment(
+    *,
+    invariant_checks: Any,
+    owner_field: Any,
+    invariant_protected_fields: dict[str, set[str]],
+    label: str,
+) -> list[str]:
+    if not isinstance(owner_field, str) or not owner_field.strip():
+        return []
+    if not isinstance(invariant_checks, list):
+        return []
+
+    for invariant_id in invariant_checks:
+        if not isinstance(invariant_id, str) or not invariant_id.strip():
+            continue
+        if owner_field in invariant_protected_fields.get(invariant_id, set()):
+            return []
+
+    return [
+        f"{label}: invariant_checks must include at least one invariant "
+        f"protecting owner field {owner_field}"
+    ]
+
+
 def _invariant_refs_cover_transition(
     *,
     invariant_refs: list[str],
@@ -4625,11 +4688,24 @@ def validate_contract(
     runtime_invariant_ids = {
         record["invariant_id"] for record in runtime_invariant_records
     }
+    runtime_invariant_protected_fields = _invariant_protected_fields_by_invariant(
+        runtime_invariant_records
+    )
+    if isinstance(invariants_doc, dict) and isinstance(
+        invariants_doc.get("invariants"), list
+    ):
+        invariant_records = invariants_doc["invariants"]
+    else:
+        invariant_records = []
+    invariant_protected_fields = _invariant_protected_fields_by_invariant(
+        invariant_records
+    )
 
     registered_owner_fields, owner_field_failures = _validate_owner_fields(
         owner_fields_doc=owner_fields_doc,
         owner_fields_path=owner_fields_path,
         runtime_invariant_ids=runtime_invariant_ids,
+        invariant_protected_fields=invariant_protected_fields,
     )
     failures.extend(owner_field_failures)
     if isinstance(owner_fields_doc, dict) and isinstance(
@@ -4644,6 +4720,7 @@ def validate_contract(
             runtime_path=action_runtime_path,
             owner_field_records=owner_field_records,
             runtime_invariant_ids=runtime_invariant_ids,
+            runtime_invariant_protected_fields=runtime_invariant_protected_fields,
         )
     )
 
@@ -4757,12 +4834,6 @@ def validate_contract(
             failures.append(f"{shims_path}: shims must be a non-empty list")
             shims = []
 
-    if isinstance(invariants_doc, dict) and isinstance(
-        invariants_doc.get("invariants"), list
-    ):
-        invariant_records = invariants_doc["invariants"]
-    else:
-        invariant_records = []
     invariant_transition_ids = _invariant_transition_ids_by_invariant(
         invariant_records
     )

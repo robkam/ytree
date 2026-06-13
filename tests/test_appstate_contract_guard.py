@@ -4020,6 +4020,34 @@ def test_guard_fails_when_owner_field_record_is_malformed(tmp_path: Path) -> Non
     )
 
 
+def test_guard_fails_when_owner_field_invariant_does_not_protect_field(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    owner_fields = _complete_owner_fields()
+    invariants = _complete_invariants()
+    for invariant in invariants:
+        if invariant["invariant_id"] == "invariant.inactive_panel_frozen":
+            invariant["protected_fields"] = ["panel.tree_selection_key"]
+    paths = _write_fixture(
+        tmp_path,
+        transitions=transitions,
+        owner_fields=owner_fields,
+        invariants=invariants,
+        runtime_owner_fields=_complete_owner_fields(),
+        runtime_invariants=_complete_invariants(),
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "owner_field[0]" in failure
+        and "invariant_checks must include at least one invariant"
+        and "owner field field" in failure
+        for failure in failures
+    )
+
+
 def test_guard_fails_when_runtime_owner_field_metadata_drifts(
     tmp_path: Path,
 ) -> None:
@@ -4059,6 +4087,30 @@ def test_guard_fails_when_runtime_owner_field_invariant_id_is_unknown(
         "runtime_owner_field[0]" in failure
         and "invariant_checks[0] does not match runtime invariant registry"
         and "invariant.missing" in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_when_runtime_owner_field_invariant_does_not_protect_field(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    runtime_invariants = _complete_invariants()
+    for invariant in runtime_invariants:
+        if invariant["invariant_id"] == "invariant.inactive_panel_frozen":
+            invariant["protected_fields"] = ["panel.tree_selection_key"]
+    paths = _write_fixture(
+        tmp_path,
+        transitions=transitions,
+        runtime_invariants=runtime_invariants,
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "runtime_owner_field[0]" in failure
+        and "invariant_checks must include at least one invariant"
+        and "owner field field" in failure
         for failure in failures
     )
 
@@ -5602,6 +5654,16 @@ def test_runtime_owner_field_startup_validates_invariant_checks_against_registry
     source = Path("src/core/main.c").read_text(encoding="utf-8")
 
     assert re.search(
+        r"static int AppStateInvariantProtectsField\(.*?"
+        r"metadata = AppStateInvariantLookup\(invariant_id\);\s*"
+        r"if \(metadata == NULL\)\s*return 0;\s*"
+        r"if \(!NonEmptyStringList\(metadata->protected_fields,\s*"
+        r"metadata->protected_field_count\)\)\s*return 0;\s*"
+        r"return StringListContains\(metadata->protected_fields,",
+        source,
+        re.S,
+    )
+    assert re.search(
         r"for \(invariant_index = 0;\s*"
         r"invariant_index < metadata->invariant_check_count;\s*"
         r"invariant_index\+\+\) \{\s*"
@@ -5611,6 +5673,8 @@ def test_runtime_owner_field_startup_validates_invariant_checks_against_registry
         source,
         re.S,
     )
+    assert "field_protected = 1" in source
+    assert re.search(r"if \(!field_protected\)\s*return 0;", source, re.S)
 
 
 def test_runtime_owner_field_startup_requires_documented_field_ids() -> None:
