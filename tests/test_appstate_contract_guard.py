@@ -1803,6 +1803,20 @@ def test_runtime_transition_registry_startup_checks_fail_closed() -> None:
     assert "!AppStateTransitionRegistryReady()" in source
 
 
+def test_runtime_transition_registry_startup_validates_write_set_owner_fields() -> None:
+    source = Path("src/core/main.c").read_text(encoding="utf-8")
+
+    assert re.search(
+        r"for \(write_index = 0; write_index < "
+        r"metadata->declared_write_set_count;\s*write_index\+\+\) \{\s*"
+        r"const char \*field = metadata->declared_write_set\[write_index\];\s*"
+        r"if \(!NonEmptyString\(field\)\)\s*return 0;\s*"
+        r"if \(AppStateOwnerFieldLookup\(field\) == NULL\)\s*return 0;",
+        source,
+        re.S,
+    )
+
+
 def test_runtime_transition_registry_startup_requires_documented_transition_ids() -> None:
     source = Path("src/core/main.c").read_text(encoding="utf-8")
     transition_doc, transition_failures = guard._load_json(guard.DEFAULT_TRANSITIONS)
