@@ -779,6 +779,7 @@ static int AppStateInvariantRegistryReady(void) {
 
   for (index = 0; index < AppStateInvariantCount(); index++) {
     const AppStateInvariantMetadata *metadata = AppStateInvariantAt(index);
+    size_t protected_field_index;
     size_t transition_index;
     size_t previous_index;
 
@@ -805,6 +806,15 @@ static int AppStateInvariantRegistryReady(void) {
 
       if (previous == NULL ||
           strcmp(previous->invariant_id, metadata->invariant_id) == 0)
+        return 0;
+    }
+
+    for (protected_field_index = 0;
+         protected_field_index < metadata->protected_field_count;
+         protected_field_index++) {
+      const char *field = metadata->protected_fields[protected_field_index];
+
+      if (AppStateOwnerFieldLookup(field) == NULL)
         return 0;
     }
 
