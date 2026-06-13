@@ -2139,6 +2139,7 @@ def _validate_runtime_dispatch_surface_registry(
     runtime_records: list[dict[str, Any]],
     runtime_path: Path,
     dispatch_surface_records: list[Any],
+    runtime_transition_records: dict[str, dict[str, Any]],
     runtime_transition_ids: set[str],
 ) -> list[str]:
     failures: list[str] = []
@@ -2207,6 +2208,13 @@ def _validate_runtime_dispatch_surface_registry(
                 f"{label}: transition_id does not match runtime transition "
                 f"registry: {transition_id}"
             )
+        failures.extend(
+            _validate_allowed_direct_writes_within_transition(
+                record=record,
+                transition_records=runtime_transition_records,
+                label=label,
+            )
+        )
 
     missing_ids = sorted(expected_ids - covered_ids)
     if missing_ids:
@@ -2855,6 +2863,44 @@ def _validate_allowed_direct_writes(
     return failures
 
 
+def _validate_allowed_direct_writes_within_transition(
+    *,
+    record: dict[str, Any],
+    transition_records: dict[str, dict[str, Any]],
+    label: str,
+) -> list[str]:
+    writes = record.get("allowed_direct_writes")
+    transition_id = record.get("transition_id")
+    if not isinstance(writes, list):
+        return []
+    if not isinstance(transition_id, str) or not transition_id.strip():
+        return []
+
+    transition_record = transition_records.get(transition_id)
+    if transition_record is None:
+        return []
+
+    declared_write_set = transition_record.get("declared_write_set")
+    if not isinstance(declared_write_set, list):
+        return []
+
+    declared_fields = {
+        field
+        for field in declared_write_set
+        if isinstance(field, str) and field.strip()
+    }
+    failures: list[str] = []
+    for index, field in enumerate(writes):
+        if not isinstance(field, str) or not field.strip():
+            continue
+        if field not in declared_fields:
+            failures.append(
+                f"{label}: allowed_direct_writes[{index}] outside transition "
+                f"declared_write_set for {transition_id}: {field}"
+            )
+    return failures
+
+
 def _validate_appstate_diff_harness(
     *,
     diff_harness_doc: Any,
@@ -3095,6 +3141,13 @@ def _validate_dispatch_surfaces(
                 failures.append(
                     f"{label}: transition_id does not match a transition id: {transition_id}"
                 )
+            failures.extend(
+                _validate_allowed_direct_writes_within_transition(
+                    record=record,
+                    transition_records=transition_ids,
+                    label=label,
+                )
+            )
 
         source_path = record.get("source_path")
         entry_symbol_or_path = record.get("entry_symbol_or_path")
@@ -4751,6 +4804,9 @@ def validate_contract(
             runtime_records=runtime_dispatch_surface_records,
             runtime_path=action_runtime_path,
             dispatch_surface_records=dispatch_surface_records,
+            runtime_transition_records={
+                record["id"]: record for record in runtime_transition_records
+            },
             runtime_transition_ids={record["id"] for record in runtime_transition_records},
         )
     )

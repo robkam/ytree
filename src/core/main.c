@@ -823,7 +823,12 @@ static int AppStateGenerationDomainsReady(void) {
 
 static int AppStateDispatchSurfaceWritesReady(
     const AppStateDispatchSurfaceMetadata *metadata) {
+  const AppStateTransitionMetadata *transition =
+      AppStateTransitionLookup(metadata->transition_id);
   size_t write_index;
+
+  if (transition == NULL)
+    return 0;
 
   if (metadata->allowed_direct_write_count == 0)
     return metadata->allowed_direct_writes == NULL;
@@ -838,6 +843,9 @@ static int AppStateDispatchSurfaceWritesReady(
     if (!NonEmptyString(field))
       return 0;
     if (AppStateOwnerFieldLookup(field) == NULL)
+      return 0;
+    if (!StringListContains(transition->declared_write_set,
+                            transition->declared_write_set_count, field))
       return 0;
   }
 

@@ -1929,14 +1929,12 @@ static const char *const kAppStateDispatchSurfaceMigrationNotes1[] = {
 };
 
 static const char *const kAppStateDispatchSurfaceAllowedDirectWrites2[] = {
-  "panel.file_selection_key",
-  "panel.file_viewport_origin",
   "panel.focus_shape",
   "panel.panel_generation",
 };
 
 static const char *const kAppStateDispatchSurfaceMigrationNotes2[] = {
-  "Current file-window switch dispatch updates file selection and viewport state under the broad keybinding foundation record until file-specific transitions are split out.",
+  "Current file-window dispatch remains under the broad keybinding foundation; only writes shared with the navigate-tree contract stay authorized until file-specific transitions are split out.",
 };
 
 static const char *const kAppStateDispatchSurfaceMigrationNotes3[] = {

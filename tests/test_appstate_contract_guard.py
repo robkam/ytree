@@ -3592,6 +3592,27 @@ def test_guard_fails_when_dispatch_surface_allowed_write_is_unregistered(
     )
 
 
+def test_guard_fails_when_dispatch_surface_allowed_write_exceeds_transition_contract(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    dispatch_surfaces = _complete_dispatch_surfaces()
+    dispatch_surfaces[0]["allowed_direct_writes"] = ["panel.tree_selection_key"]
+    paths = _write_fixture(
+        tmp_path, transitions=transitions, dispatch_surfaces=dispatch_surfaces
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "dispatch_surface[0]" in failure
+        and "allowed_direct_writes[0]" in failure
+        and "outside transition declared_write_set" in failure
+        and "panel.tree_selection_key" in failure
+        for failure in failures
+    )
+
+
 def test_guard_accepts_empty_dispatch_surface_allowed_writes(
     tmp_path: Path,
 ) -> None:
@@ -3713,6 +3734,30 @@ def test_guard_fails_when_runtime_dispatch_surface_list_entry_is_malformed(
     assert any(
         "kAppStateDispatchSurfaceMigrationNotes0" in failure
         and "malformed string literal entry" in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_when_runtime_dispatch_surface_allowed_write_exceeds_transition_contract(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    dispatch_surfaces = _complete_dispatch_surfaces()
+    dispatch_surfaces[0]["allowed_direct_writes"] = ["panel.tree_selection_key"]
+    paths = _write_fixture(
+        tmp_path,
+        transitions=transitions,
+        dispatch_surfaces=dispatch_surfaces,
+        runtime_dispatch_surfaces=copy.deepcopy(dispatch_surfaces),
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "runtime_dispatch_surface[0]" in failure
+        and "allowed_direct_writes[0]" in failure
+        and "outside transition declared_write_set" in failure
+        and "panel.tree_selection_key" in failure
         for failure in failures
     )
 
@@ -5525,6 +5570,25 @@ def test_runtime_dispatch_surface_startup_validates_allowed_write_owner_fields()
         r"if \(!NonEmptyString\(field\)\)\s*return 0;\s*"
         r"if \(AppStateOwnerFieldLookup\(field\) == NULL\)\s*return 0;",
         source,
+        re.S,
+    )
+
+
+def test_runtime_dispatch_surface_startup_validates_allowed_write_contract() -> None:
+    source = Path("src/core/main.c").read_text(encoding="utf-8")
+    helper_start = source.index("static int AppStateDispatchSurfaceWritesReady(")
+    dispatch_start = source.index("static int AppStateDispatchSurfacesReady(void)")
+    helper_body = source[helper_start:dispatch_start]
+
+    assert (
+        "const AppStateTransitionMetadata *transition =\n"
+        "      AppStateTransitionLookup(metadata->transition_id);"
+    ) in helper_body
+    assert "transition == NULL" in helper_body
+    assert re.search(
+        r"StringListContains\(transition->declared_write_set,\s*"
+        r"transition->declared_write_set_count, field\)",
+        helper_body,
         re.S,
     )
 
