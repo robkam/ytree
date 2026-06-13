@@ -74,7 +74,8 @@
       ],
       "invariant_ids": [
         "invariant.panel-local-focus-restore",
-        "invariant.shared-state-panel-local-isolation"
+        "invariant.shared-state-panel-local-isolation",
+        "invariant.blocked-transition-determinism"
       ],
       "generation_domain_ids": [
         "generation.panel.local-authority",

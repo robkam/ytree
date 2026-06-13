@@ -990,6 +990,31 @@ static int AppStateInvariantRegistryReady(void) {
   return 1;
 }
 
+static int AppStateCompatibilityShimInvariantCoversTransition(
+    const AppStateCompatibilityShimMetadata *metadata) {
+  size_t invariant_index;
+
+  if (metadata == NULL || !NonEmptyString(metadata->target_transition) ||
+      !NonEmptyStringList(metadata->invariant_checks,
+                          metadata->invariant_check_count))
+    return 0;
+
+  for (invariant_index = 0; invariant_index < metadata->invariant_check_count;
+       invariant_index++) {
+    const AppStateInvariantMetadata *invariant =
+        AppStateInvariantLookup(metadata->invariant_checks[invariant_index]);
+
+    if (invariant == NULL || invariant->transition_ids == NULL)
+      return 0;
+    if (StringListContains(invariant->transition_ids,
+                           invariant->transition_id_count,
+                           metadata->target_transition))
+      return 1;
+  }
+
+  return 0;
+}
+
 static int AppStateCompatibilityShimsReady(void) {
   size_t index;
   size_t required_shim_id_count =
@@ -1037,6 +1062,8 @@ static int AppStateCompatibilityShimsReady(void) {
           NULL)
         return 0;
     }
+    if (!AppStateCompatibilityShimInvariantCoversTransition(metadata))
+      return 0;
   }
 
   for (index = 0; index < required_shim_id_count; index++) {
@@ -1325,6 +1352,28 @@ static int AppStateDiffHarnessWriteCovered(const char *owner_field,
   return 0;
 }
 
+static int AppStateDiffHarnessInvariantCoversTransition(
+    const AppStateDiffHarnessMetadata *metadata, const char *transition_id) {
+  size_t ref_index;
+
+  if (metadata == NULL || !NonEmptyString(transition_id) ||
+      !NonEmptyStringList(metadata->invariant_ids, metadata->invariant_id_count))
+    return 0;
+
+  for (ref_index = 0; ref_index < metadata->invariant_id_count; ref_index++) {
+    const AppStateInvariantMetadata *invariant =
+        AppStateInvariantLookup(metadata->invariant_ids[ref_index]);
+
+    if (invariant == NULL || invariant->transition_ids == NULL)
+      return 0;
+    if (StringListContains(invariant->transition_ids,
+                           invariant->transition_id_count, transition_id))
+      return 1;
+  }
+
+  return 0;
+}
+
 static int AppStateDiffHarnessRegistryReady(void) {
   size_t index;
   size_t required_diff_harness_id_count =
@@ -1376,6 +1425,9 @@ static int AppStateDiffHarnessRegistryReady(void) {
          ref_index++) {
       if (AppStateTransitionLookup(metadata->transition_ids[ref_index]) ==
           NULL)
+        return 0;
+      if (!AppStateDiffHarnessInvariantCoversTransition(
+              metadata, metadata->transition_ids[ref_index]))
         return 0;
     }
     for (ref_index = 0; ref_index < metadata->owner_field_ref_count;
