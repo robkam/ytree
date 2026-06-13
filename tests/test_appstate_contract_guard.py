@@ -93,7 +93,7 @@ def _shim(target_transition: str = "transition.keybinding") -> dict[str, object]
         "old_authority_path": "legacy.path",
         "read_permission": "read",
         "write_permission": "write",
-        "invariant_checks": ["invariant"],
+        "invariant_checks": ["invariant.inactive_panel_frozen"],
         "removal_trigger": "trigger",
         "target_transition": target_transition,
         "follow_up_task": "task",
@@ -3796,6 +3796,25 @@ def test_guard_fails_when_shim_targets_unknown_transition(tmp_path: Path) -> Non
     )
 
 
+def test_guard_fails_when_shim_invariant_check_is_not_runtime_registered(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    shim = _shim()
+    shim["invariant_checks"] = ["invariant.not_runtime_registered"]
+    paths = _write_fixture(tmp_path, transitions=transitions, shims=[shim])
+
+    failures = _validate(paths)
+
+    assert any(
+        "shim[0]" in failure
+        and "invariant_checks" in failure
+        and "runtime invariant registry" in failure
+        and "invariant.not_runtime_registered" in failure
+        for failure in failures
+    )
+
+
 def test_guard_fails_when_runtime_shim_metadata_drifts(tmp_path: Path) -> None:
     transitions = _complete_transitions()
     runtime_shims = [_shim()]
@@ -3893,6 +3912,34 @@ def test_guard_fails_when_runtime_shim_invariant_checks_are_missing(
     assert any(
         "runtime_shim[0]" in failure
         and "invariant_checks must be non-empty" in failure
+        for failure in failures
+    )
+
+
+def test_guard_preserves_runtime_shim_invariant_array_parse_failures(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    paths = _write_fixture(tmp_path, transitions=transitions)
+    runtime_path = paths[-1]
+    source = runtime_path.read_text(encoding="utf-8")
+    runtime_path.write_text(
+        source.replace(
+            'static const char *const kAppStateCompatibilityShimInvariantChecks0[] = {\n'
+            '  "invariant.inactive_panel_frozen",',
+            "static const char *const kAppStateCompatibilityShimInvariantChecks0[] = {\n"
+            "  NULL,",
+            1,
+        ),
+        encoding="utf-8",
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "kAppStateCompatibilityShimInvariantChecks0[0]" in failure
+        and "malformed string literal entry" in failure
+        and "NULL" in failure
         for failure in failures
     )
 
@@ -4939,6 +4986,23 @@ def test_runtime_shim_startup_checks_fail_closed() -> None:
     assert "previous_index < index" in source
     assert "strcmp(previous->id, metadata->id) == 0" in source
     assert "!AppStateCompatibilityShimsReady()" in source
+
+
+def test_runtime_shim_startup_validates_invariant_checks_against_registry() -> None:
+    source = Path("src/core/main.c").read_text(encoding="utf-8")
+
+    assert re.search(
+        r"for \(invariant_index = 0;\s*"
+        r"invariant_index < metadata->invariant_check_count;\s*"
+        r"invariant_index\+\+\) \{\s*"
+        r"if \(!NonEmptyString\(metadata->invariant_checks\[invariant_index\]\)\)\s*"
+        r"return 0;\s*"
+        r"if \(AppStateInvariantLookup\("
+        r"metadata->invariant_checks\[invariant_index\]\)\s*==\s*NULL\)\s*"
+        r"return 0;",
+        source,
+        re.S,
+    )
 
 
 def test_runtime_shim_startup_requires_documented_shim_ids() -> None:

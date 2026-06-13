@@ -2092,23 +2092,23 @@ static const AppStateDispatchSurfaceMetadata kAppStateDispatchSurfaces[] = {
    sizeof(kAppStateDispatchSurfaceMigrationNotes9) / sizeof(kAppStateDispatchSurfaceMigrationNotes9[0])},
 };
 static const char *const kAppStateCompatibilityShimInvariantChecks0[] = {
-  "YtreeNovaPanel(active).dotfile_visibility is authoritative",
-  "Inactive panel visibility is never overwritten from the mirror",
+  "invariant.hidden-entry-visible-navigation",
+  "invariant.shared-state-panel-local-isolation",
 };
 
 static const char *const kAppStateCompatibilityShimInvariantChecks1[] = {
-  "Raw index is never used while a stable identity key resolves",
-  "Generation mismatch forces rebind before dereference",
+  "invariant.viewport-identity-rebind",
+  "invariant.stale-snapshot-fail-closed",
 };
 
 static const char *const kAppStateCompatibilityShimInvariantChecks2[] = {
-  "Panel focus_shape remains the restore authority",
-  "Session flag must not overwrite inactive panel shape",
+  "invariant.panel-local-focus-restore",
+  "invariant.inactive-panel-frozen",
 };
 
 static const char *const kAppStateCompatibilityShimInvariantChecks3[] = {
-  "Render projection is not restore authority",
-  "Temporary row math is discarded after draw",
+  "invariant.render-projection-read-only",
+  "invariant.viewport-identity-rebind",
 };
 
 static const char *const kAppStateInvariantProtectedFields0[] = {

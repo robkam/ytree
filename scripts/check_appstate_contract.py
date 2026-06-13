@@ -1612,6 +1612,7 @@ def _parse_runtime_shim_registry(
         return [], [f"{runtime_path}: failed to read: {exc}"]
 
     invariant_tables: dict[str, list[str]] = {}
+    failures: list[str] = []
     invariant_re = re.compile(
         r"static\s+const\s+char\s+\*const\s+"
         r"(kAppStateCompatibilityShimInvariantChecks[0-9]+)\[\]\s*=\s*\{"
@@ -1619,9 +1620,13 @@ def _parse_runtime_shim_registry(
         re.S,
     )
     for invariant_match in invariant_re.finditer(source):
-        invariant_tables[invariant_match.group(1)] = re.findall(
-            r'"([^"]+)"', invariant_match.group("body")
+        table_name = invariant_match.group(1)
+        values, array_failures = _parse_string_initializer_array(
+            invariant_match.group("body"),
+            table_name,
         )
+        invariant_tables[table_name] = values
+        failures.extend(array_failures)
 
     match = re.search(
         r"kAppStateCompatibilityShims\s*\[\]\s*=\s*\{(?P<body>.*?)\};",
@@ -1632,7 +1637,6 @@ def _parse_runtime_shim_registry(
         return [], [f"{runtime_path}: failed to find runtime compatibility shim registry"]
 
     records: list[dict[str, Any]] = []
-    failures: list[str] = []
     row_re = re.compile(
         r"\{\s*\"(?P<id>[^\"]*)\"\s*,\s*\"(?P<owner>[^\"]*)\"\s*,"
         r"\s*\"(?P<old_authority_path>[^\"]*)\"\s*,"
@@ -2454,6 +2458,7 @@ def _validate_runtime_shim_registry(
     runtime_path: Path,
     shim_records: list[Any],
     runtime_transition_ids: set[str],
+    runtime_invariant_ids: set[str],
 ) -> list[str]:
     failures: list[str] = []
     expected_shims = {
@@ -2497,6 +2502,14 @@ def _validate_runtime_shim_registry(
         invariant_checks = record.get("invariant_checks")
         if not isinstance(invariant_checks, list) or not invariant_checks:
             failures.append(f"{label}: invariant_checks must be non-empty")
+        else:
+            failures.extend(
+                _validate_invariant_check_refs(
+                    invariant_checks=invariant_checks,
+                    runtime_invariant_ids=runtime_invariant_ids,
+                    label=label,
+                )
+            )
 
         target_transition = record.get("target_transition")
         if (
@@ -2646,6 +2659,29 @@ def _collect_transition_ids_by_string_id(
         ):
             transition_ids[value] = transition_id
     return transition_ids
+
+
+def _validate_invariant_check_refs(
+    *,
+    invariant_checks: Any,
+    runtime_invariant_ids: set[str],
+    label: str,
+) -> list[str]:
+    if not isinstance(invariant_checks, list):
+        return []
+
+    failures: list[str] = []
+    for check_index, invariant_id in enumerate(invariant_checks):
+        if (
+            isinstance(invariant_id, str)
+            and invariant_id.strip()
+            and invariant_id not in runtime_invariant_ids
+        ):
+            failures.append(
+                f"{label}: invariant_checks[{check_index}] does not match "
+                f"runtime invariant registry: {invariant_id}"
+            )
+    return failures
 
 
 def _validate_allowed_direct_writes(
@@ -4174,6 +4210,10 @@ def validate_contract(
         )
     )
 
+    runtime_invariant_ids = {
+        record["invariant_id"] for record in runtime_invariant_records
+    }
+
     if not isinstance(shims_doc, dict):
         failures.append(f"{shims_path}: top-level value must be an object")
         shims = []
@@ -4207,6 +4247,13 @@ def validate_contract(
                 failures.append(
                     f"{label}: target_transition does not match a transition id: {target_transition}"
                 )
+        failures.extend(
+            _validate_invariant_check_refs(
+                invariant_checks=record.get("invariant_checks"),
+                runtime_invariant_ids=runtime_invariant_ids,
+                label=label,
+            )
+        )
     failures.extend(
         _validate_runtime_shim_registry(
             runtime_records=runtime_shim_records,
@@ -4215,6 +4262,7 @@ def validate_contract(
             runtime_transition_ids={
                 record["id"] for record in runtime_transition_records
             },
+            runtime_invariant_ids=runtime_invariant_ids,
         )
     )
 
