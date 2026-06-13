@@ -4940,6 +4940,22 @@ def test_runtime_invariant_startup_checks_fail_closed() -> None:
     assert "!AppStateInvariantRegistryReady()" in source
 
 
+def test_runtime_invariant_startup_validates_protected_fields_against_owner_registry() -> None:
+    source = Path("src/core/main.c").read_text(encoding="utf-8")
+
+    assert "NonEmptyStringList(metadata->protected_fields" in source
+    assert re.search(
+        r"for \(protected_field_index = 0;\s*"
+        r"protected_field_index < metadata->protected_field_count;\s*"
+        r"protected_field_index\+\+\) \{\s*"
+        r"const char \*field = "
+        r"metadata->protected_fields\[protected_field_index\];\s*"
+        r"if \(AppStateOwnerFieldLookup\(field\) == NULL\)\s*return 0;",
+        source,
+        re.S,
+    )
+
+
 def test_runtime_invariant_startup_requires_documented_invariant_ids() -> None:
     source = Path("src/core/main.c").read_text(encoding="utf-8")
     invariant_doc, invariant_failures = guard._load_json(guard.DEFAULT_INVARIANTS)
