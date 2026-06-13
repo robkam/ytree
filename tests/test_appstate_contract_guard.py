@@ -4729,6 +4729,88 @@ def test_runtime_owner_field_startup_requires_documented_field_ids() -> None:
     )
 
 
+def test_runtime_generation_domain_startup_checks_fail_closed() -> None:
+    source = Path("src/core/main.c").read_text(encoding="utf-8")
+
+    assert (
+        "AppStateGenerationDomainAt(AppStateGenerationDomainCount()) != NULL"
+        in source
+    )
+    assert "AppStateGenerationDomainLookup(NULL) != NULL" in source
+    assert 'AppStateGenerationDomainLookup("") != NULL' in source
+    assert (
+        'AppStateGenerationDomainLookup("generation.__ytnova_unknown__") != NULL'
+        in source
+    )
+    assert (
+        "AppStateGenerationDomainCount() != "
+        "required_generation_domain_id_count"
+        in source
+    )
+    assert "metadata == NULL || !NonEmptyString(metadata->domain_id)" in source
+    assert "!NonEmptyString(metadata->category)" in source
+    assert "!NonEmptyString(metadata->generation_owner_field)" in source
+    assert "!NonEmptyString(metadata->stale_snapshot_policy)" in source
+    assert "!NonEmptyString(metadata->fail_closed_fallback)" in source
+    assert "!NonEmptyString(metadata->restore_boundary)" in source
+    assert "!NonEmptyString(metadata->enforcement_status)" in source
+    assert "NonEmptyStringList(metadata->identity_fields" in source
+    assert "NonEmptyStringList(metadata->advances_on_transition_ids" in source
+    assert "NonEmptyStringList(metadata->migration_notes" in source
+    assert "previous_index < index" in source
+    assert "strcmp(previous->domain_id, metadata->domain_id) == 0" in source
+    assert "AppStateOwnerFieldLookup(metadata->generation_owner_field) == NULL" in source
+    assert "AppStateOwnerFieldLookup(metadata->identity_fields[field_index])" in source
+    assert (
+        "AppStateTransitionLookup(\n"
+        "              metadata->advances_on_transition_ids[transition_index])"
+        in source
+    )
+    assert (
+        "kAppStateRequiredGenerationDomainIds[index]) == NULL"
+        in source
+    )
+    assert "!AppStateGenerationDomainsReady()" in source
+
+
+def test_runtime_generation_domain_startup_requires_documented_domain_ids() -> None:
+    source = Path("src/core/main.c").read_text(encoding="utf-8")
+    generation_doc, generation_failures = guard._load_json(
+        guard.DEFAULT_GENERATION_DOMAINS
+    )
+    required_ids = guard._collect_string_ids(
+        generation_doc,
+        collection_key="generation_domains",
+        id_field="domain_id",
+    )
+    required_table = re.search(
+        r"static\s+const\s+char\s+\*const\s+"
+        r"kAppStateRequiredGenerationDomainIds\[\]\s*=\s*"
+        r"\{(?P<body>.*?)\};",
+        source,
+        re.S,
+    )
+
+    assert generation_failures == []
+    assert required_table is not None
+    table_ids, table_failures = guard._parse_string_initializer_array(
+        required_table.group("body"),
+        "kAppStateRequiredGenerationDomainIds",
+    )
+    assert table_failures == []
+    assert table_ids == [
+        domain["domain_id"] for domain in generation_doc["generation_domains"]
+    ]
+    assert set(table_ids) == required_ids
+    assert len(table_ids) == len(required_ids)
+    assert re.search(
+        r"AppStateGenerationDomainLookup\(\s*"
+        r"kAppStateRequiredGenerationDomainIds\[index\]\s*\)",
+        source,
+        re.S,
+    )
+
+
 def test_runtime_dispatch_surface_startup_checks_fail_closed() -> None:
     source = Path("src/core/main.c").read_text(encoding="utf-8")
 
