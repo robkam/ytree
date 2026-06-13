@@ -1506,6 +1506,102 @@ def test_guard_fails_when_blocked_transition_sequence_lacks_no_mutation_expectat
     )
 
 
+@pytest.mark.parametrize("precondition", ("stale_snapshot", "generation_mismatch"))
+def test_guard_fallback_steps_require_no_unrelated_mutation_expectation(
+    tmp_path: Path, precondition: str
+) -> None:
+    transitions = _complete_transitions()
+    transition_sequences = _complete_transition_sequences()
+    step = transition_sequences[0]["steps"][0]
+    step["precondition"] = precondition
+    step["expected_result"] = "fallback"
+    step["deterministic_fallback"] = {
+        "outcome": "restore stable identity",
+        "allowed_mutation_scope": "declared transition fields only",
+    }
+    paths = _write_fixture(
+        tmp_path, transitions=transitions, transition_sequences=transition_sequences
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "transition_sequence[0].step[0]" in failure
+        and "require no_unrelated_mutation" in failure
+        for failure in failures
+    )
+
+
+def test_guard_fallback_no_unrelated_diff_harness_must_be_listed_on_step(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    transition_sequences = _complete_transition_sequences()
+    step = transition_sequences[0]["steps"][0]
+    step["precondition"] = "stale_snapshot"
+    step["expected_result"] = "fallback"
+    step["deterministic_fallback"] = {
+        "outcome": "restore stable identity",
+        "allowed_mutation_scope": "declared transition fields only",
+    }
+    step["no_unrelated_mutation"] = {
+        "diff_harness_id": "harness.blocked-transition-no-unrelated-mutation",
+        "expectation": "no unrelated owner fields change",
+    }
+    paths = _write_fixture(
+        tmp_path, transitions=transitions, transition_sequences=transition_sequences
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "transition_sequence[0].step[0].no_unrelated_mutation" in failure
+        and "diff_harness_id must be listed in step diff_harness_ids" in failure
+        for failure in failures
+    )
+
+
+def test_guard_fallback_no_unrelated_diff_harness_must_cover_step_transition(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    diff_harness_checks = _complete_diff_harness_checks()
+    for harness in diff_harness_checks:
+        if harness["harness_id"] == "harness.blocked-transition-no-unrelated-mutation":
+            harness["transition_ids"] = ["transition.refresh_rebuild"]
+    transition_sequences = _complete_transition_sequences()
+    step = transition_sequences[0]["steps"][0]
+    step["precondition"] = "generation_mismatch"
+    step["expected_result"] = "fallback"
+    step["diff_harness_ids"] = [
+        "harness.transition_before_after_snapshot",
+        "harness.blocked-transition-no-unrelated-mutation",
+    ]
+    step["deterministic_fallback"] = {
+        "outcome": "restore stable identity",
+        "allowed_mutation_scope": "declared transition fields only",
+    }
+    step["no_unrelated_mutation"] = {
+        "diff_harness_id": "harness.blocked-transition-no-unrelated-mutation",
+        "expectation": "no unrelated owner fields change",
+    }
+    paths = _write_fixture(
+        tmp_path,
+        transitions=transitions,
+        diff_harness_checks=diff_harness_checks,
+        transition_sequences=transition_sequences,
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "transition_sequence[0].step[0].no_unrelated_mutation" in failure
+        and "diff_harness_id must cover transition_id transition.keybinding"
+        in failure
+        for failure in failures
+    )
+
+
 def test_guard_fails_when_runtime_transition_sequence_is_missing(
     tmp_path: Path,
 ) -> None:
@@ -1715,6 +1811,114 @@ def test_guard_fails_when_runtime_transition_sequence_diff_harness_misses_step_t
     )
 
 
+def test_guard_runtime_fallback_steps_require_no_unrelated_mutation_expectation(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    transition_sequences = _complete_transition_sequences()
+    runtime_transition_sequences = copy.deepcopy(transition_sequences)
+    for sequences in (transition_sequences, runtime_transition_sequences):
+        step = sequences[0]["steps"][0]
+        step["precondition"] = "stale_snapshot"
+        step["expected_result"] = "fallback"
+        step["deterministic_fallback"] = {
+            "outcome": "restore stable identity",
+            "allowed_mutation_scope": "declared transition fields only",
+        }
+    paths = _write_fixture(
+        tmp_path,
+        transitions=transitions,
+        transition_sequences=transition_sequences,
+        runtime_transition_sequences=runtime_transition_sequences,
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "runtime_transition_sequence[0].step[0]" in failure
+        and "require no_unrelated_mutation" in failure
+        for failure in failures
+    )
+
+
+def test_guard_runtime_fallback_no_unrelated_diff_harness_must_be_listed_on_step(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    transition_sequences = _complete_transition_sequences()
+    runtime_transition_sequences = copy.deepcopy(transition_sequences)
+    for sequences in (transition_sequences, runtime_transition_sequences):
+        step = sequences[0]["steps"][0]
+        step["precondition"] = "generation_mismatch"
+        step["expected_result"] = "fallback"
+        step["deterministic_fallback"] = {
+            "outcome": "restore stable identity",
+            "allowed_mutation_scope": "declared transition fields only",
+        }
+        step["no_unrelated_mutation"] = {
+            "diff_harness_id": "harness.blocked-transition-no-unrelated-mutation",
+            "expectation": "no unrelated owner fields change",
+        }
+    paths = _write_fixture(
+        tmp_path,
+        transitions=transitions,
+        transition_sequences=transition_sequences,
+        runtime_transition_sequences=runtime_transition_sequences,
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "runtime_transition_sequence[0].step[0].no_unrelated_mutation" in failure
+        and "diff_harness_id must be listed in step diff_harness_ids" in failure
+        for failure in failures
+    )
+
+
+def test_guard_runtime_fallback_no_unrelated_diff_harness_must_cover_step_transition(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    runtime_diff_harness_checks = _complete_diff_harness_checks()
+    for harness in runtime_diff_harness_checks:
+        if harness["harness_id"] == "harness.blocked-transition-no-unrelated-mutation":
+            harness["transition_ids"] = ["transition.refresh_rebuild"]
+    transition_sequences = _complete_transition_sequences()
+    runtime_transition_sequences = copy.deepcopy(transition_sequences)
+    for sequences in (transition_sequences, runtime_transition_sequences):
+        step = sequences[0]["steps"][0]
+        step["precondition"] = "stale_snapshot"
+        step["expected_result"] = "fallback"
+        step["diff_harness_ids"] = [
+            "harness.transition_before_after_snapshot",
+            "harness.blocked-transition-no-unrelated-mutation",
+        ]
+        step["deterministic_fallback"] = {
+            "outcome": "restore stable identity",
+            "allowed_mutation_scope": "declared transition fields only",
+        }
+        step["no_unrelated_mutation"] = {
+            "diff_harness_id": "harness.blocked-transition-no-unrelated-mutation",
+            "expectation": "no unrelated owner fields change",
+        }
+    paths = _write_fixture(
+        tmp_path,
+        transitions=transitions,
+        transition_sequences=transition_sequences,
+        runtime_diff_harness_checks=runtime_diff_harness_checks,
+        runtime_transition_sequences=runtime_transition_sequences,
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "runtime_transition_sequence[0].step[0].no_unrelated_mutation" in failure
+        and "diff_harness_id must cover transition_id transition.keybinding"
+        in failure
+        for failure in failures
+    )
+
+
 def test_guard_fails_when_runtime_transition_sequence_fallback_drifts(
     tmp_path: Path,
 ) -> None:
@@ -1811,6 +2015,27 @@ def test_runtime_transition_sequence_startup_checks_fail_closed() -> None:
     assert "!AppStateTransitionSequenceStepDiffHarnessCoversTransition(step)" in source
     assert "AppStateGenerationDomainLookup(expectation->domain_id) == NULL" in source
     assert "!AppStateTransitionSequencesReady()" in source
+
+
+def test_runtime_transition_sequence_startup_validates_fallback_no_unrelated_shape() -> None:
+    source = Path("src/core/main.c").read_text(encoding="utf-8")
+
+    assert "AppStateTransitionSequenceStepNoUnrelatedMutationReady" in source
+    assert 'strcmp(step->expected_result, "fallback") == 0' in source
+    assert "step->precondition != NULL" in source
+    assert (
+        "StringListContains(step->diff_harness_ids, step->diff_harness_id_count,"
+        in source
+    )
+    assert (
+        "step->no_unrelated_mutation->diff_harness_id)"
+        in source
+    )
+    assert (
+        "StringListContains(harness->transition_ids, harness->transition_id_count,"
+        in source
+    )
+    assert "step->transition_id)" in source
 
 
 def test_runtime_transition_sequence_startup_requires_documented_scenario_ids() -> None:

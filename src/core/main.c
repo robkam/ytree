@@ -345,6 +345,43 @@ static int AppStateTransitionSequenceStepDiffHarnessCoversTransition(
   return 0;
 }
 
+static int AppStateTransitionSequenceStepRequiresNoUnrelatedMutation(
+    const AppStateTransitionSequenceStepMetadata *step) {
+  if (step == NULL || !NonEmptyString(step->expected_result))
+    return 0;
+  return strcmp(step->expected_result, "blocked") == 0 ||
+         strcmp(step->expected_result, "fallback") == 0 ||
+         strcmp(step->expected_result, "invalid") == 0 ||
+         step->precondition != NULL;
+}
+
+static int AppStateTransitionSequenceStepNoUnrelatedMutationReady(
+    const AppStateTransitionSequenceStepMetadata *step) {
+  const AppStateDiffHarnessMetadata *harness;
+
+  if (step == NULL)
+    return 1;
+  if (!AppStateTransitionSequenceStepRequiresNoUnrelatedMutation(step) &&
+      step->no_unrelated_mutation == NULL)
+    return 1;
+  if (step->no_unrelated_mutation == NULL)
+    return 0;
+  if (!NonEmptyString(step->no_unrelated_mutation->diff_harness_id) ||
+      !NonEmptyString(step->no_unrelated_mutation->expectation))
+    return 0;
+  if (!StringListContains(step->diff_harness_ids, step->diff_harness_id_count,
+                          step->no_unrelated_mutation->diff_harness_id))
+    return 0;
+
+  harness = AppStateDiffHarnessLookup(step->no_unrelated_mutation->diff_harness_id);
+  if (harness == NULL || harness->transition_ids == NULL ||
+      !StringListContains(harness->transition_ids, harness->transition_id_count,
+                          step->transition_id))
+    return 0;
+
+  return 1;
+}
+
 static int AppStateTransitionSequenceStepReady(
     const AppStateTransitionSequenceMetadata *sequence,
     const AppStateTransitionSequenceStepMetadata *step, size_t step_index,
@@ -420,11 +457,8 @@ static int AppStateTransitionSequenceStepReady(
     }
   }
 
-  if (strcmp(step->expected_result, "blocked") == 0 ||
-      strcmp(step->expected_result, "invalid") == 0) {
-    if (step->no_unrelated_mutation == NULL)
-      return 0;
-  }
+  if (!AppStateTransitionSequenceStepNoUnrelatedMutationReady(step))
+    return 0;
   if (step->no_unrelated_mutation != NULL) {
     if (!NonEmptyString(step->no_unrelated_mutation->diff_harness_id) ||
         !NonEmptyString(step->no_unrelated_mutation->expectation) ||

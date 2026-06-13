@@ -3762,6 +3762,15 @@ def _requires_deterministic_fallback(record: dict[str, Any]) -> bool:
     )
 
 
+def _requires_no_unrelated_mutation(record: dict[str, Any]) -> bool:
+    precondition = record.get("precondition")
+    expected_result = record.get("expected_result")
+    return (
+        precondition in {"generation_mismatch", "stale_snapshot"}
+        or expected_result in {"blocked", "fallback", "invalid"}
+    )
+
+
 def _validate_deterministic_fallback(
     *,
     record: dict[str, Any],
@@ -3785,11 +3794,17 @@ def _validate_no_unrelated_mutation(
     record: dict[str, Any],
     label: str,
     diff_harness_ids: set[str],
+    step_diff_harness_refs: Any,
+    transition_id: Any,
+    diff_harness_transition_ids: dict[str, set[str]],
+    required: bool,
 ) -> list[str]:
     expectation = record.get("no_unrelated_mutation")
     if not isinstance(expectation, dict):
+        if not required:
+            return []
         return [
-            f"{label}: blocked/invalid steps require no_unrelated_mutation expectations"
+            f"{label}: blocked/invalid/fallback steps require no_unrelated_mutation expectations"
         ]
 
     failures = _validate_required_fields(
@@ -3803,6 +3818,23 @@ def _validate_no_unrelated_mutation(
         failures.append(
             f"{label}.no_unrelated_mutation: diff_harness_id references unknown diff harness id: {harness_id}"
         )
+    if isinstance(harness_id, str) and harness_id.strip():
+        if not isinstance(step_diff_harness_refs, list) or harness_id not in {
+            value
+            for value in step_diff_harness_refs
+            if isinstance(value, str) and value.strip()
+        }:
+            failures.append(
+                f"{label}.no_unrelated_mutation: diff_harness_id must be listed in step diff_harness_ids: {harness_id}"
+            )
+        if (
+            isinstance(transition_id, str)
+            and transition_id.strip()
+            and transition_id not in diff_harness_transition_ids.get(harness_id, set())
+        ):
+            failures.append(
+                f"{label}.no_unrelated_mutation: diff_harness_id must cover transition_id {transition_id}: {harness_id}"
+            )
     return failures
 
 
@@ -3958,12 +3990,17 @@ def _validate_appstate_transition_sequences(
                     _validate_deterministic_fallback(record=step, label=label)
                 )
 
-            if expected_result in {"blocked", "invalid"}:
+            no_unrelated_required = _requires_no_unrelated_mutation(step)
+            if no_unrelated_required or step.get("no_unrelated_mutation") is not None:
                 failures.extend(
                     _validate_no_unrelated_mutation(
                         record=step,
                         label=label,
                         diff_harness_ids=diff_harness_ids,
+                        step_diff_harness_refs=step.get("diff_harness_ids"),
+                        transition_id=transition_id,
+                        diff_harness_transition_ids=diff_harness_transition_ids,
+                        required=no_unrelated_required,
                     )
                 )
 
@@ -4218,12 +4255,17 @@ def _validate_runtime_transition_sequence_registry(
                     f"{step_label}: deterministic_fallback must be an object"
                 )
 
-            if expected_result in {"blocked", "invalid"}:
+            no_unrelated_required = _requires_no_unrelated_mutation(step)
+            if no_unrelated_required or step.get("no_unrelated_mutation") is not None:
                 failures.extend(
                     _validate_no_unrelated_mutation(
                         record=step,
                         label=step_label,
                         diff_harness_ids=runtime_diff_harness_ids,
+                        step_diff_harness_refs=step.get("diff_harness_ids"),
+                        transition_id=transition_id,
+                        diff_harness_transition_ids=runtime_diff_harness_transition_ids,
+                        required=no_unrelated_required,
                     )
                 )
             no_unrelated = step.get("no_unrelated_mutation")
