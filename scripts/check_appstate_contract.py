@@ -1948,6 +1948,121 @@ def _validate_runtime_transition_registry(
     return failures
 
 
+def _generation_write_coverage_by_owner_field(
+    generation_domain_records: list[Any],
+) -> dict[str, set[str]]:
+    coverage: dict[str, set[str]] = {}
+    for record in generation_domain_records:
+        if not isinstance(record, dict):
+            continue
+        owner_field = record.get("generation_owner_field")
+        transition_refs = record.get("advances_on_transition_ids")
+        if not isinstance(owner_field, str) or not owner_field.strip():
+            continue
+        if not isinstance(transition_refs, list):
+            continue
+        owner_coverage = coverage.setdefault(owner_field, set())
+        for transition_id in transition_refs:
+            if isinstance(transition_id, str) and transition_id.strip():
+                owner_coverage.add(transition_id)
+    return coverage
+
+
+def _validate_generation_write_coverage(
+    *,
+    transitions: list[Any],
+    generation_domain_records: list[Any],
+    label_prefix: str,
+) -> list[str]:
+    failures: list[str] = []
+    coverage_by_owner = _generation_write_coverage_by_owner_field(
+        generation_domain_records
+    )
+
+    for index, record in enumerate(transitions):
+        if not isinstance(record, dict):
+            continue
+        transition_id = record.get("id")
+        write_set = record.get("declared_write_set")
+        if not isinstance(transition_id, str) or not transition_id.strip():
+            continue
+        if not isinstance(write_set, list):
+            continue
+
+        for write_index, field in enumerate(write_set):
+            if not isinstance(field, str) or not field.strip():
+                continue
+            covered_transitions = coverage_by_owner.get(field)
+            if covered_transitions is None:
+                continue
+            if transition_id not in covered_transitions:
+                failures.append(
+                    f"{label_prefix}[{index}]: declared_write_set[{write_index}] "
+                    "writes generation owner field without generation domain "
+                    f"coverage for transition {transition_id}: {field}"
+                )
+
+    return failures
+
+
+def _diff_harness_write_coverage_by_transition(
+    diff_harness_records: list[Any],
+) -> dict[str, set[str]]:
+    coverage: dict[str, set[str]] = {}
+    for record in diff_harness_records:
+        if not isinstance(record, dict):
+            continue
+        transition_refs = record.get("transition_ids")
+        owner_field_refs = record.get("owner_field_refs")
+        if not isinstance(transition_refs, list) or not isinstance(
+            owner_field_refs, list
+        ):
+            continue
+        for transition_id in transition_refs:
+            if not isinstance(transition_id, str) or not transition_id.strip():
+                continue
+            transition_coverage = coverage.setdefault(transition_id, set())
+            for owner_field in owner_field_refs:
+                if isinstance(owner_field, str) and owner_field.strip():
+                    transition_coverage.add(owner_field)
+    return coverage
+
+
+def _validate_diff_harness_write_coverage(
+    *,
+    transitions: list[Any],
+    diff_harness_records: list[Any],
+    label_prefix: str,
+) -> list[str]:
+    failures: list[str] = []
+    coverage_by_transition = _diff_harness_write_coverage_by_transition(
+        diff_harness_records
+    )
+
+    for index, record in enumerate(transitions):
+        if not isinstance(record, dict):
+            continue
+        transition_id = record.get("id")
+        write_set = record.get("declared_write_set")
+        if not isinstance(transition_id, str) or not transition_id.strip():
+            continue
+        if not isinstance(write_set, list):
+            continue
+
+        covered_fields = coverage_by_transition.get(transition_id, set())
+        for write_index, field in enumerate(write_set):
+            if not isinstance(field, str) or not field.strip():
+                continue
+            if field not in covered_fields:
+                failures.append(
+                    f"{label_prefix}[{index}]: declared_write_set[{write_index}] "
+                    "lacks diff harness coverage for transition "
+                    f"{transition_id}: {field}"
+                )
+
+    return failures
+
+
 def _validate_runtime_owner_field_registry(
     *,
     runtime_records: list[dict[str, Any]],
@@ -3554,6 +3669,51 @@ def _validate_step_reference_list(
     return failures
 
 
+def _diff_harness_transition_ids_by_harness(
+    diff_harness_records: list[Any],
+) -> dict[str, set[str]]:
+    transition_ids_by_harness: dict[str, set[str]] = {}
+    for record in diff_harness_records:
+        if not isinstance(record, dict):
+            continue
+        harness_id = record.get("harness_id")
+        transition_ids = record.get("transition_ids")
+        if not isinstance(harness_id, str) or not harness_id.strip():
+            continue
+        if not isinstance(transition_ids, list):
+            continue
+        transition_ids_by_harness[harness_id] = {
+            transition_id
+            for transition_id in transition_ids
+            if isinstance(transition_id, str) and transition_id.strip()
+        }
+    return transition_ids_by_harness
+
+
+def _validate_step_diff_harness_transition_alignment(
+    *,
+    diff_harness_refs: Any,
+    transition_id: Any,
+    diff_harness_transition_ids: dict[str, set[str]],
+    label: str,
+) -> list[str]:
+    if not isinstance(transition_id, str) or not transition_id.strip():
+        return []
+    if not isinstance(diff_harness_refs, list):
+        return []
+
+    for harness_id in diff_harness_refs:
+        if not isinstance(harness_id, str) or not harness_id.strip():
+            continue
+        if transition_id in diff_harness_transition_ids.get(harness_id, set()):
+            return []
+
+    return [
+        f"{label}: diff_harness_ids must include at least one diff harness "
+        f"covering transition_id {transition_id}"
+    ]
+
+
 def _validate_generation_expectations(
     *,
     value: Any,
@@ -3657,6 +3817,7 @@ def _validate_appstate_transition_sequences(
     event_transition_ids: dict[str, str],
     invariant_ids: set[str],
     diff_harness_ids: set[str],
+    diff_harness_transition_ids: dict[str, set[str]],
     generation_domain_ids: set[str],
 ) -> list[str]:
     failures: list[str] = []
@@ -3769,6 +3930,14 @@ def _validate_appstate_transition_sequences(
                 )
             )
             failures.extend(
+                _validate_step_diff_harness_transition_alignment(
+                    diff_harness_refs=step.get("diff_harness_ids"),
+                    transition_id=transition_id,
+                    diff_harness_transition_ids=diff_harness_transition_ids,
+                    label=label,
+                )
+            )
+            failures.extend(
                 _validate_generation_expectations(
                     value=step.get("generation_domain_expectations"),
                     label=label,
@@ -3863,6 +4032,7 @@ def _validate_runtime_transition_sequence_registry(
     event_transition_ids: dict[str, str],
     runtime_invariant_ids: set[str],
     runtime_diff_harness_ids: set[str],
+    runtime_diff_harness_transition_ids: dict[str, set[str]],
     runtime_generation_domain_ids: set[str],
 ) -> list[str]:
     failures: list[str] = []
@@ -4005,6 +4175,14 @@ def _validate_runtime_transition_sequence_registry(
                         reference_label=reference_label,
                     )
                 )
+            failures.extend(
+                _validate_step_diff_harness_transition_alignment(
+                    diff_harness_refs=step.get("diff_harness_ids"),
+                    transition_id=transition_id,
+                    diff_harness_transition_ids=runtime_diff_harness_transition_ids,
+                    label=step_label,
+                )
+            )
 
             failures.extend(
                 _validate_generation_expectations(
@@ -4260,6 +4438,20 @@ def validate_contract(
         _validate_transition_generation_effects(
             transitions=transitions,
             generation_owner_fields=generation_owner_fields,
+        )
+    )
+    failures.extend(
+        _validate_generation_write_coverage(
+            transitions=transitions,
+            generation_domain_records=generation_domain_records,
+            label_prefix="transition",
+        )
+    )
+    failures.extend(
+        _validate_generation_write_coverage(
+            transitions=runtime_transition_records,
+            generation_domain_records=runtime_generation_domain_records,
+            label_prefix="runtime_transition",
         )
     )
 
@@ -4539,6 +4731,20 @@ def validate_contract(
             },
         )
     )
+    failures.extend(
+        _validate_diff_harness_write_coverage(
+            transitions=transitions,
+            diff_harness_records=diff_harness_records,
+            label_prefix="transition",
+        )
+    )
+    failures.extend(
+        _validate_diff_harness_write_coverage(
+            transitions=runtime_transition_records,
+            diff_harness_records=runtime_diff_harness_records,
+            label_prefix="runtime_transition",
+        )
+    )
     action_ids = _collect_string_ids(
         action_coverage_doc,
         collection_key="actions",
@@ -4570,6 +4776,9 @@ def validate_contract(
             event_transition_ids=event_transition_ids,
             invariant_ids=invariant_ids,
             diff_harness_ids=diff_harness_ids,
+            diff_harness_transition_ids=_diff_harness_transition_ids_by_harness(
+                diff_harness_records
+            ),
             generation_domain_ids=generation_domain_ids,
         )
     )
@@ -4597,6 +4806,9 @@ def validate_contract(
             runtime_diff_harness_ids={
                 record["harness_id"] for record in runtime_diff_harness_records
             },
+            runtime_diff_harness_transition_ids=_diff_harness_transition_ids_by_harness(
+                runtime_diff_harness_records
+            ),
             runtime_generation_domain_ids={
                 record["domain_id"] for record in runtime_generation_domain_records
             },
