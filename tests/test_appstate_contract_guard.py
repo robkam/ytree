@@ -4357,6 +4357,26 @@ def test_guard_fails_when_shim_invariant_check_is_not_runtime_registered(
     )
 
 
+def test_guard_fails_when_shim_invariant_checks_do_not_cover_target_transition(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    shim = _shim(target_transition="transition.render_reflow")
+    paths = _write_fixture(tmp_path, transitions=transitions, shims=[shim])
+
+    failures = _validate(paths)
+
+    assert any(
+        "shim[0]" in failure
+        and (
+            "invariant_checks must include at least one invariant covering "
+            "target_transition transition.render_reflow"
+        )
+        in failure
+        for failure in failures
+    )
+
+
 def test_guard_fails_when_runtime_shim_metadata_drifts(tmp_path: Path) -> None:
     transitions = _complete_transitions()
     runtime_shims = [_shim()]
@@ -4433,6 +4453,30 @@ def test_guard_fails_when_runtime_shim_target_transition_drifts(
         "runtime_shim[0]" in failure
         and "runtime target_transition does not match shim" in failure
         and "transition.render_reflow" in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_when_runtime_shim_invariant_checks_do_not_cover_target_transition(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    runtime_shims = [_shim(target_transition="transition.render_reflow")]
+    paths = _write_fixture(
+        tmp_path,
+        transitions=transitions,
+        runtime_shims=runtime_shims,
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "runtime_shim[0]" in failure
+        and (
+            "invariant_checks must include at least one invariant covering "
+            "target_transition transition.render_reflow"
+        )
+        in failure
         for failure in failures
     )
 
@@ -5714,6 +5758,26 @@ def test_runtime_shim_startup_validates_invariant_checks_against_registry() -> N
         source,
         re.S,
     )
+
+
+def test_runtime_shim_startup_requires_invariant_to_cover_target_transition() -> None:
+    source = Path("src/core/main.c").read_text(encoding="utf-8")
+    helper_start = source.index(
+        "static int AppStateCompatibilityShimInvariantCoversTransition("
+    )
+    ready_start = source.index("static int AppStateCompatibilityShimsReady(void)")
+    action_start = source.index("static int AppStateActionTransitionsReady(void)")
+    helper_body = source[helper_start:ready_start]
+    ready_body = source[ready_start:action_start]
+
+    assert "metadata->target_transition" in helper_body
+    assert (
+        "AppStateInvariantLookup(metadata->invariant_checks[invariant_index])"
+        in helper_body
+    )
+    assert "invariant->transition_ids" in helper_body
+    assert "invariant->transition_id_count" in helper_body
+    assert "!AppStateCompatibilityShimInvariantCoversTransition(metadata)" in ready_body
 
 
 def test_runtime_shim_startup_requires_documented_shim_ids() -> None:

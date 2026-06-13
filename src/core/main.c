@@ -990,6 +990,31 @@ static int AppStateInvariantRegistryReady(void) {
   return 1;
 }
 
+static int AppStateCompatibilityShimInvariantCoversTransition(
+    const AppStateCompatibilityShimMetadata *metadata) {
+  size_t invariant_index;
+
+  if (metadata == NULL || !NonEmptyString(metadata->target_transition) ||
+      !NonEmptyStringList(metadata->invariant_checks,
+                          metadata->invariant_check_count))
+    return 0;
+
+  for (invariant_index = 0; invariant_index < metadata->invariant_check_count;
+       invariant_index++) {
+    const AppStateInvariantMetadata *invariant =
+        AppStateInvariantLookup(metadata->invariant_checks[invariant_index]);
+
+    if (invariant == NULL || invariant->transition_ids == NULL)
+      return 0;
+    if (StringListContains(invariant->transition_ids,
+                           invariant->transition_id_count,
+                           metadata->target_transition))
+      return 1;
+  }
+
+  return 0;
+}
+
 static int AppStateCompatibilityShimsReady(void) {
   size_t index;
   size_t required_shim_id_count =
@@ -1037,6 +1062,8 @@ static int AppStateCompatibilityShimsReady(void) {
           NULL)
         return 0;
     }
+    if (!AppStateCompatibilityShimInvariantCoversTransition(metadata))
+      return 0;
   }
 
   for (index = 0; index < required_shim_id_count; index++) {

@@ -2600,6 +2600,7 @@ def _validate_runtime_shim_registry(
     shim_records: list[Any],
     runtime_transition_ids: set[str],
     runtime_invariant_ids: set[str],
+    runtime_invariant_transition_ids: dict[str, set[str]],
 ) -> list[str]:
     failures: list[str] = []
     expected_shims = {
@@ -2662,6 +2663,16 @@ def _validate_runtime_shim_registry(
                 f"{label}: target_transition does not match runtime transition "
                 f"registry: {target_transition}"
             )
+        failures.extend(
+            _validate_invariant_transition_alignment(
+                invariant_refs=invariant_checks,
+                transition_id=target_transition,
+                invariant_transition_ids=runtime_invariant_transition_ids,
+                label=label,
+                invariant_field="invariant_checks",
+                transition_field="target_transition",
+            )
+        )
 
     missing_ids = sorted(expected_ids - covered_ids)
     if missing_ids:
@@ -3764,6 +3775,47 @@ def _invariant_transition_ids_by_invariant(
     return transition_ids_by_invariant
 
 
+def _invariant_refs_cover_transition(
+    *,
+    invariant_refs: list[str],
+    transition_id: str,
+    invariant_transition_ids: dict[str, set[str]],
+) -> bool:
+    for invariant_id in invariant_refs:
+        if not isinstance(invariant_id, str) or not invariant_id.strip():
+            continue
+        if transition_id in invariant_transition_ids.get(invariant_id, set()):
+            return True
+    return False
+
+
+def _validate_invariant_transition_alignment(
+    *,
+    invariant_refs: Any,
+    transition_id: Any,
+    invariant_transition_ids: dict[str, set[str]],
+    label: str,
+    invariant_field: str,
+    transition_field: str,
+) -> list[str]:
+    if not isinstance(transition_id, str) or not transition_id.strip():
+        return []
+    if not isinstance(invariant_refs, list):
+        return []
+
+    if _invariant_refs_cover_transition(
+        invariant_refs=invariant_refs,
+        transition_id=transition_id,
+        invariant_transition_ids=invariant_transition_ids,
+    ):
+        return []
+
+    return [
+        f"{label}: {invariant_field} must include at least one invariant "
+        f"covering {transition_field} {transition_id}"
+    ]
+
+
 def _validate_step_invariant_transition_alignment(
     *,
     invariant_refs: Any,
@@ -3771,21 +3823,14 @@ def _validate_step_invariant_transition_alignment(
     invariant_transition_ids: dict[str, set[str]],
     label: str,
 ) -> list[str]:
-    if not isinstance(transition_id, str) or not transition_id.strip():
-        return []
-    if not isinstance(invariant_refs, list):
-        return []
-
-    for invariant_id in invariant_refs:
-        if not isinstance(invariant_id, str) or not invariant_id.strip():
-            continue
-        if transition_id in invariant_transition_ids.get(invariant_id, set()):
-            return []
-
-    return [
-        f"{label}: invariant_ids must include at least one invariant "
-        f"covering transition_id {transition_id}"
-    ]
+    return _validate_invariant_transition_alignment(
+        invariant_refs=invariant_refs,
+        transition_id=transition_id,
+        invariant_transition_ids=invariant_transition_ids,
+        label=label,
+        invariant_field="invariant_ids",
+        transition_field="transition_id",
+    )
 
 
 def _validate_step_diff_harness_transition_alignment(
@@ -4622,6 +4667,15 @@ def validate_contract(
             failures.append(f"{shims_path}: shims must be a non-empty list")
             shims = []
 
+    if isinstance(invariants_doc, dict) and isinstance(
+        invariants_doc.get("invariants"), list
+    ):
+        invariant_records = invariants_doc["invariants"]
+    else:
+        invariant_records = []
+    invariant_transition_ids = _invariant_transition_ids_by_invariant(
+        invariant_records
+    )
     shim_ids: set[str] = set()
     for index, record in enumerate(shims):
         label = f"shim[{index}]"
@@ -4653,6 +4707,16 @@ def validate_contract(
                 label=label,
             )
         )
+        failures.extend(
+            _validate_invariant_transition_alignment(
+                invariant_refs=record.get("invariant_checks"),
+                transition_id=target_transition,
+                invariant_transition_ids=invariant_transition_ids,
+                label=label,
+                invariant_field="invariant_checks",
+                transition_field="target_transition",
+            )
+        )
     failures.extend(
         _validate_runtime_shim_registry(
             runtime_records=runtime_shim_records,
@@ -4662,6 +4726,9 @@ def validate_contract(
                 record["id"] for record in runtime_transition_records
             },
             runtime_invariant_ids=runtime_invariant_ids,
+            runtime_invariant_transition_ids=_invariant_transition_ids_by_invariant(
+                runtime_invariant_records
+            ),
         )
     )
 
