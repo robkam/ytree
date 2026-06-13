@@ -829,6 +829,7 @@ static const char *const kAppStateDiffHarnessOwnerFieldRefs1[] = {
 static const char *const kAppStateDiffHarnessInvariantIds1[] = {
   "invariant.panel-local-focus-restore",
   "invariant.shared-state-panel-local-isolation",
+  "invariant.blocked-transition-determinism",
 };
 
 static const char *const kAppStateDiffHarnessGenerationDomainIds1[] = {

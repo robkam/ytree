@@ -1037,7 +1037,17 @@ def _complete_dispatch_surfaces() -> list[dict[str, object]]:
 
 
 def _complete_invariants() -> list[dict[str, object]]:
-    return [_invariant(category) for category in REQUIRED_INVARIANT_CATEGORIES]
+    return [
+        _invariant(
+            category,
+            transition_ids=(
+                _complete_transition_ids()
+                if category == "blocked_transition_determinism"
+                else None
+            ),
+        )
+        for category in REQUIRED_INVARIANT_CATEGORIES
+    ]
 
 
 def _complete_generation_domains() -> list[dict[str, object]]:
@@ -1059,6 +1069,7 @@ def _complete_diff_harness_checks() -> list[dict[str, object]]:
             if category == "transition_before_after_snapshot"
             else None,
             _complete_transition_ids(),
+            invariant_ids=["invariant.blocked_transition_determinism"],
         )
         for category in REQUIRED_DIFF_HARNESS_CATEGORIES
     ]
@@ -1412,6 +1423,42 @@ def test_guard_fails_when_transition_sequence_invariants_do_not_cover_step(
 
     assert any(
         "transition_sequence[0].step[0]" in failure
+        and "invariant_ids must include at least one invariant covering transition_id transition.keybinding"
+        in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_when_diff_harness_transition_lacks_same_harness_invariant(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    diff_harness_checks = _complete_diff_harness_checks()
+    harness = next(
+        record
+        for record in diff_harness_checks
+        if record["harness_id"] == "harness.transition_before_after_snapshot"
+    )
+    harness["transition_ids"] = ["transition.keybinding"]
+    harness["invariant_ids"] = ["invariant.inactive_panel_frozen"]
+    invariants = _complete_invariants()
+    for invariant in invariants:
+        if invariant["invariant_id"] == "invariant.inactive_panel_frozen":
+            invariant["transition_ids"] = ["transition.refresh_rebuild"]
+    paths = _write_fixture(
+        tmp_path,
+        transitions=transitions,
+        invariants=invariants,
+        diff_harness_checks=diff_harness_checks,
+        runtime_invariants=_complete_invariants(),
+        runtime_diff_harness_checks=_complete_diff_harness_checks(),
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "diff_harness_check" in failure
+        and "harness.transition_before_after_snapshot" in failure
         and "invariant_ids must include at least one invariant covering transition_id transition.keybinding"
         in failure
         for failure in failures
@@ -1828,6 +1875,40 @@ def test_guard_fails_when_runtime_transition_sequence_invariants_do_not_cover_st
 
     assert any(
         "runtime_transition_sequence[0].step[0]" in failure
+        and "invariant_ids must include at least one invariant covering transition_id transition.keybinding"
+        in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_when_runtime_diff_harness_transition_lacks_same_harness_invariant(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    runtime_diff_harness_checks = _complete_diff_harness_checks()
+    harness = next(
+        record
+        for record in runtime_diff_harness_checks
+        if record["harness_id"] == "harness.transition_before_after_snapshot"
+    )
+    harness["transition_ids"] = ["transition.keybinding"]
+    harness["invariant_ids"] = ["invariant.inactive_panel_frozen"]
+    runtime_invariants = _complete_invariants()
+    for invariant in runtime_invariants:
+        if invariant["invariant_id"] == "invariant.inactive_panel_frozen":
+            invariant["transition_ids"] = ["transition.refresh_rebuild"]
+    paths = _write_fixture(
+        tmp_path,
+        transitions=transitions,
+        runtime_invariants=runtime_invariants,
+        runtime_diff_harness_checks=runtime_diff_harness_checks,
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "runtime_diff_harness" in failure
+        and "harness.transition_before_after_snapshot" in failure
         and "invariant_ids must include at least one invariant covering transition_id transition.keybinding"
         in failure
         for failure in failures
@@ -5814,6 +5895,7 @@ def test_runtime_shim_startup_requires_documented_shim_ids() -> None:
 def test_runtime_diff_harness_startup_checks_fail_closed() -> None:
     source = Path("src/core/main.c").read_text(encoding="utf-8")
 
+    assert "AppStateDiffHarnessInvariantCoversTransition" in source
     assert "AppStateDiffHarnessAt(AppStateDiffHarnessCount()) != NULL" in source
     assert 'AppStateDiffHarnessLookup("harness.__ytnova_unknown__") != NULL' in source
     assert "AppStateDiffHarnessLookup(NULL) != NULL" in source
@@ -5824,6 +5906,12 @@ def test_runtime_diff_harness_startup_checks_fail_closed() -> None:
     assert "AppStateTransitionLookup(metadata->transition_ids[ref_index])" in source
     assert "AppStateOwnerFieldLookup(metadata->owner_field_refs[ref_index])" in source
     assert "AppStateInvariantLookup(metadata->invariant_ids[ref_index])" in source
+    assert re.search(
+        r"!AppStateDiffHarnessInvariantCoversTransition\(\s*"
+        r"metadata,\s*metadata->transition_ids\[ref_index\]\)",
+        source,
+        re.S,
+    )
     assert (
         "AppStateGenerationDomainLookup(\n"
         "              metadata->generation_domain_ids[ref_index])"

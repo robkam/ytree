@@ -2476,6 +2476,7 @@ def _validate_runtime_diff_harness_registry(
     runtime_transition_ids: set[str],
     runtime_owner_fields: set[str],
     runtime_invariant_ids: set[str],
+    runtime_invariant_transition_ids: dict[str, set[str]],
     runtime_generation_domain_ids: set[str],
 ) -> list[str]:
     failures: list[str] = []
@@ -2492,6 +2493,7 @@ def _validate_runtime_diff_harness_registry(
     for index, record in enumerate(runtime_records):
         label = f"runtime_diff_harness[{index}]"
         runtime_id = record["harness_id"]
+        harness_label = f"{label} {runtime_id}" if runtime_id else label
         if runtime_id in covered_ids:
             failures.append(f"{label}: duplicate runtime diff harness id: {runtime_id}")
         covered_ids.add(runtime_id)
@@ -2569,6 +2571,19 @@ def _validate_runtime_diff_harness_registry(
                         f"{label}: invariant_ids does not match runtime invariant "
                         f"registry: {invariant_id}"
                     )
+
+        if isinstance(transition_refs, list):
+            for transition_id in transition_refs:
+                failures.extend(
+                    _validate_invariant_transition_alignment(
+                        invariant_refs=invariant_refs,
+                        transition_id=transition_id,
+                        invariant_transition_ids=runtime_invariant_transition_ids,
+                        label=harness_label,
+                        invariant_field="invariant_ids",
+                        transition_field="transition_id",
+                    )
+                )
 
         generation_domain_refs = record.get("generation_domain_ids")
         if isinstance(generation_domain_refs, list):
@@ -2919,6 +2934,7 @@ def _validate_appstate_diff_harness(
     transition_ids: dict[str, dict[str, Any]],
     registered_owner_fields: set[str],
     invariant_ids: set[str],
+    invariant_transition_ids: dict[str, set[str]],
     generation_domain_ids: set[str],
 ) -> list[str]:
     failures: list[str] = []
@@ -2949,7 +2965,9 @@ def _validate_appstate_diff_harness(
             continue
 
         harness_id = record.get("harness_id")
+        harness_label = label
         if isinstance(harness_id, str) and harness_id.strip():
+            harness_label = f"{label} {harness_id}"
             if harness_id in harness_ids:
                 failures.append(f"{label}: duplicate harness_id: {harness_id}")
             harness_ids.add(harness_id)
@@ -2995,6 +3013,19 @@ def _validate_appstate_diff_harness(
                     failures.append(
                         f"{label}: invariant_ids references unknown invariant id: {invariant_id}"
                     )
+
+        if isinstance(transition_refs, list):
+            for transition_id in transition_refs:
+                failures.extend(
+                    _validate_invariant_transition_alignment(
+                        invariant_refs=invariant_refs,
+                        transition_id=transition_id,
+                        invariant_transition_ids=invariant_transition_ids,
+                        label=harness_label,
+                        invariant_field="invariant_ids",
+                        transition_field="transition_id",
+                    )
+                )
 
         generation_domain_refs = record.get("generation_domain_ids")
         if isinstance(generation_domain_refs, list):
@@ -4931,6 +4962,9 @@ def validate_contract(
             transition_ids=transition_ids,
             registered_owner_fields=registered_owner_fields,
             invariant_ids=invariant_ids,
+            invariant_transition_ids=_invariant_transition_ids_by_invariant(
+                invariant_records
+            ),
             generation_domain_ids=generation_domain_ids,
         )
     )
@@ -4954,6 +4988,9 @@ def validate_contract(
             runtime_invariant_ids={
                 record["invariant_id"] for record in runtime_invariant_records
             },
+            runtime_invariant_transition_ids=_invariant_transition_ids_by_invariant(
+                runtime_invariant_records
+            ),
             runtime_generation_domain_ids={
                 record["domain_id"] for record in runtime_generation_domain_records
             },
