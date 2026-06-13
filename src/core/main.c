@@ -585,6 +585,24 @@ static int AppStateInvariantDispatchSurfacesReady(
   return 0;
 }
 
+static int AppStateInvariantProtectsField(const char *invariant_id,
+                                          const char *field) {
+  const AppStateInvariantMetadata *metadata;
+
+  if (!NonEmptyString(invariant_id) || !NonEmptyString(field))
+    return 0;
+
+  metadata = AppStateInvariantLookup(invariant_id);
+  if (metadata == NULL)
+    return 0;
+  if (!NonEmptyStringList(metadata->protected_fields,
+                          metadata->protected_field_count))
+    return 0;
+
+  return StringListContains(metadata->protected_fields,
+                            metadata->protected_field_count, field);
+}
+
 static int AppStateOwnerFieldsReady(void) {
   size_t index;
   size_t required_owner_field_id_count =
@@ -596,6 +614,7 @@ static int AppStateOwnerFieldsReady(void) {
 
   for (index = 0; index < AppStateOwnerFieldCount(); index++) {
     const AppStateOwnerFieldMetadata *metadata = AppStateOwnerFieldAt(index);
+    int field_protected = 0;
     size_t invariant_index;
     size_t previous_index;
 
@@ -616,7 +635,12 @@ static int AppStateOwnerFieldsReady(void) {
       if (AppStateInvariantLookup(metadata->invariant_checks[invariant_index]) ==
           NULL)
         return 0;
+      if (AppStateInvariantProtectsField(
+              metadata->invariant_checks[invariant_index], metadata->field))
+        field_protected = 1;
     }
+    if (!field_protected)
+      return 0;
 
     for (previous_index = 0; previous_index < index; previous_index++) {
       const AppStateOwnerFieldMetadata *previous =
