@@ -311,7 +311,7 @@ def _owner_field(field: str = "field") -> dict[str, object]:
         "runtime_carrier": "YtreeNovaPanel fixture carrier",
         "mutation_rule": "Fixture transitions may mutate only declared fields.",
         "migration_status": "test",
-        "invariant_checks": ["fixture invariant"],
+        "invariant_checks": ["invariant.inactive_panel_frozen"],
     }
 
 
@@ -3329,6 +3329,27 @@ def test_guard_fails_on_malformed_owner_invariant_checks(tmp_path: Path) -> None
     )
 
 
+def test_guard_fails_on_unknown_owner_field_invariant_id(tmp_path: Path) -> None:
+    transitions = _complete_transitions()
+    owner_fields = _complete_owner_fields()
+    owner_fields[0]["invariant_checks"] = ["invariant.missing"]
+    paths = _write_fixture(
+        tmp_path,
+        transitions=transitions,
+        owner_fields=owner_fields,
+        runtime_owner_fields=_complete_owner_fields(),
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "owner_field[0]" in failure
+        and "invariant_checks[0] does not match runtime invariant registry"
+        and "invariant.missing" in failure
+        for failure in failures
+    )
+
+
 def test_guard_fails_when_owner_field_record_is_malformed(tmp_path: Path) -> None:
     transitions = _complete_transitions()
     owner_fields = _complete_owner_fields()
@@ -3365,6 +3386,28 @@ def test_guard_fails_when_runtime_owner_field_metadata_drifts(
     assert any(
         "runtime_owner_field[0]" in failure
         and "runtime canonical_owner does not match owner field" in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_when_runtime_owner_field_invariant_id_is_unknown(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    runtime_owner_fields = _complete_owner_fields()
+    runtime_owner_fields[0]["invariant_checks"] = ["invariant.missing"]
+    paths = _write_fixture(
+        tmp_path,
+        transitions=transitions,
+        runtime_owner_fields=runtime_owner_fields,
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "runtime_owner_field[0]" in failure
+        and "invariant_checks[0] does not match runtime invariant registry"
+        and "invariant.missing" in failure
         for failure in failures
     )
 
@@ -3460,7 +3503,7 @@ def test_guard_fails_when_runtime_owner_field_list_entry_is_malformed(
     runtime_path.write_text(
         source.replace(
             'static const char *const kAppStateOwnerFieldInvariantChecks0[] = {\n'
-            '  "fixture invariant",',
+            '  "invariant.inactive_panel_frozen",',
             "static const char *const kAppStateOwnerFieldInvariantChecks0[] = {\n"
             "  NULL,",
             1,
@@ -4756,6 +4799,21 @@ def test_runtime_owner_field_startup_checks_fail_closed() -> None:
     assert "strcmp(previous->field, metadata->field) == 0" in source
     assert "AppStateOwnerFieldLookup(kAppStateRequiredOwnerFieldIds[index])" in source
     assert "!AppStateOwnerFieldsReady()" in source
+
+
+def test_runtime_owner_field_startup_validates_invariant_checks_against_registry() -> None:
+    source = Path("src/core/main.c").read_text(encoding="utf-8")
+
+    assert re.search(
+        r"for \(invariant_index = 0;\s*"
+        r"invariant_index < metadata->invariant_check_count;\s*"
+        r"invariant_index\+\+\) \{\s*"
+        r"if \(AppStateInvariantLookup\("
+        r"metadata->invariant_checks\[invariant_index\]\)\s*==\s*NULL\)\s*"
+        r"return 0;",
+        source,
+        re.S,
+    )
 
 
 def test_runtime_owner_field_startup_requires_documented_field_ids() -> None:

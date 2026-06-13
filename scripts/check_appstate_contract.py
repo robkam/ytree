@@ -1943,6 +1943,7 @@ def _validate_runtime_owner_field_registry(
     runtime_records: list[dict[str, Any]],
     runtime_path: Path,
     owner_field_records: list[Any],
+    runtime_invariant_ids: set[str],
 ) -> list[str]:
     failures: list[str] = []
     expected_owner_fields = {
@@ -1990,6 +1991,13 @@ def _validate_runtime_owner_field_registry(
                         f"{label}: invariant_checks[{check_index}] "
                         "must be a non-empty string"
                     )
+            failures.extend(
+                _validate_invariant_check_refs(
+                    invariant_checks=invariant_checks,
+                    runtime_invariant_ids=runtime_invariant_ids,
+                    label=label,
+                )
+            )
 
     missing_fields = sorted(expected_fields - covered_fields)
     if missing_fields:
@@ -2568,6 +2576,7 @@ def _validate_owner_fields(
     *,
     owner_fields_doc: Any,
     owner_fields_path: Path,
+    runtime_invariant_ids: set[str],
 ) -> tuple[set[str], list[str]]:
     failures: list[str] = []
     registered_fields: set[str] = set()
@@ -2598,6 +2607,13 @@ def _validate_owner_fields(
             if field in registered_fields:
                 failures.append(f"{label}: duplicate field: {field}")
             registered_fields.add(field)
+        failures.extend(
+            _validate_invariant_check_refs(
+                invariant_checks=record.get("invariant_checks"),
+                runtime_invariant_ids=runtime_invariant_ids,
+                label=label,
+            )
+        )
 
     return registered_fields, failures
 
@@ -4104,9 +4120,14 @@ def validate_contract(
     if failures:
         return failures
 
+    runtime_invariant_ids = {
+        record["invariant_id"] for record in runtime_invariant_records
+    }
+
     registered_owner_fields, owner_field_failures = _validate_owner_fields(
         owner_fields_doc=owner_fields_doc,
         owner_fields_path=owner_fields_path,
+        runtime_invariant_ids=runtime_invariant_ids,
     )
     failures.extend(owner_field_failures)
     if isinstance(owner_fields_doc, dict) and isinstance(
@@ -4120,6 +4141,7 @@ def validate_contract(
             runtime_records=runtime_owner_field_records,
             runtime_path=action_runtime_path,
             owner_field_records=owner_field_records,
+            runtime_invariant_ids=runtime_invariant_ids,
         )
     )
 
@@ -4209,10 +4231,6 @@ def validate_contract(
             generation_owner_fields=generation_owner_fields,
         )
     )
-
-    runtime_invariant_ids = {
-        record["invariant_id"] for record in runtime_invariant_records
-    }
 
     if not isinstance(shims_doc, dict):
         failures.append(f"{shims_path}: top-level value must be an object")
