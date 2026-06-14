@@ -12,7 +12,7 @@
       "write_capability": "write_capable",
       "invariant_checks": [
         "invariant.hidden-entry-visible-navigation",
-        "invariant.shared-state-panel-local-isolation"
+        "invariant.inactive-panel-frozen"
       ],
       "removal_trigger": "All visibility and restore helpers consume panel-local dotfile_visibility directly.",
       "target_transition": "transition.keybinding.navigate-tree",
@@ -21,6 +21,11 @@
       "owner_field_refs": [
         "panel.tree_viewport_origin",
         "panel.panel_generation"
+      ],
+      "generation_domain_refs": [
+        "generation.panel.local-authority",
+        "identity.directory.stable-key",
+        "state.visibility-filter.panel-volume"
       ]
     },
     {
@@ -43,6 +48,13 @@
         "panel.tree_cursor_pos",
         "panel.tree_viewport_origin",
         "panel.panel_generation"
+      ],
+      "generation_domain_refs": [
+        "generation.panel.local-authority",
+        "generation.volume.shared-authority",
+        "identity.directory.stable-key",
+        "state.topology.volume",
+        "lifecycle.volume.registry"
       ]
     },
     {
@@ -63,6 +75,10 @@
       "owner_field_refs": [
         "panel.focus_shape",
         "panel.panel_generation"
+      ],
+      "generation_domain_refs": [
+        "generation.panel.local-authority",
+        "shape.panel.focus"
       ]
     },
     {
@@ -74,7 +90,7 @@
       "write_capability": "read_only_projection",
       "invariant_checks": [
         "invariant.render-projection-read-only",
-        "invariant.viewport-identity-rebind"
+        "invariant.blocked-transition-determinism"
       ],
       "removal_trigger": "Render paths accept explicit projection inputs and no longer inspect restore authority fields directly.",
       "target_transition": "transition.render-reflow.project-state",
@@ -84,6 +100,12 @@
         "panel.tree_cursor_pos",
         "panel.tree_viewport_origin",
         "panel.file_viewport_origin"
+      ],
+      "generation_domain_refs": [
+        "generation.panel.local-authority",
+        "identity.directory.stable-key",
+        "identity.file.stable-key",
+        "reflow.layout.projection"
       ]
     }
   ]

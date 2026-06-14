@@ -78,6 +78,8 @@ typedef struct {
   size_t invariant_check_count;
   const char *const *owner_field_refs;
   size_t owner_field_ref_count;
+  const char *const *generation_domain_refs;
+  size_t generation_domain_ref_count;
   const char *removal_trigger;
   const char *target_transition;
   const char *follow_up_task;
