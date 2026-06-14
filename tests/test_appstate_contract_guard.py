@@ -1533,6 +1533,44 @@ def test_guard_fails_when_diff_harness_transition_lacks_same_harness_invariant(
     )
 
 
+def test_guard_fails_when_diff_harness_owner_field_lacks_same_harness_invariant(
+    tmp_path: Path,
+) -> None:
+    diff_harness_checks = _complete_diff_harness_checks()
+    harness = next(
+        record
+        for record in diff_harness_checks
+        if record["harness_id"] == "harness.transition_before_after_snapshot"
+    )
+    harness["owner_field_refs"] = ["panel.tree_selection_key"]
+    harness["invariant_ids"] = ["invariant.inactive_panel_frozen"]
+    invariants = _complete_invariants()
+    for invariant in invariants:
+        if invariant["invariant_id"] == "invariant.inactive_panel_frozen":
+            invariant["protected_fields"] = ["field"]
+    paths = _write_fixture(
+        tmp_path,
+        transitions=_complete_transitions(),
+        invariants=invariants,
+        diff_harness_checks=diff_harness_checks,
+        runtime_invariants=_complete_invariants(),
+        runtime_diff_harness_checks=_complete_diff_harness_checks(),
+    )
+
+    failures = _validate(paths)
+
+    expected = (
+        "invariant_ids must include at least one invariant protecting "
+        "owner_field_refs field panel.tree_selection_key"
+    )
+    assert any(
+        "diff_harness_check" in failure
+        and "harness.transition_before_after_snapshot" in failure
+        and expected in failure
+        for failure in failures
+    )
+
+
 def test_guard_fails_when_transition_sequence_diff_harness_misses_step_transition(
     tmp_path: Path,
 ) -> None:
@@ -1979,6 +2017,42 @@ def test_guard_fails_when_runtime_diff_harness_transition_lacks_same_harness_inv
         and "harness.transition_before_after_snapshot" in failure
         and "invariant_ids must include at least one invariant covering transition_id transition.keybinding"
         in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_when_runtime_diff_harness_owner_field_lacks_same_harness_invariant(
+    tmp_path: Path,
+) -> None:
+    runtime_diff_harness_checks = _complete_diff_harness_checks()
+    harness = next(
+        record
+        for record in runtime_diff_harness_checks
+        if record["harness_id"] == "harness.transition_before_after_snapshot"
+    )
+    harness["owner_field_refs"] = ["panel.tree_selection_key"]
+    harness["invariant_ids"] = ["invariant.inactive_panel_frozen"]
+    runtime_invariants = _complete_invariants()
+    for invariant in runtime_invariants:
+        if invariant["invariant_id"] == "invariant.inactive_panel_frozen":
+            invariant["protected_fields"] = ["field"]
+    paths = _write_fixture(
+        tmp_path,
+        transitions=_complete_transitions(),
+        runtime_invariants=runtime_invariants,
+        runtime_diff_harness_checks=runtime_diff_harness_checks,
+    )
+
+    failures = _validate(paths)
+
+    expected = (
+        "invariant_ids must include at least one invariant protecting "
+        "owner_field_refs field panel.tree_selection_key"
+    )
+    assert any(
+        "runtime_diff_harness" in failure
+        and "harness.transition_before_after_snapshot" in failure
+        and expected in failure
         for failure in failures
     )
 
@@ -6437,6 +6511,54 @@ def test_runtime_diff_harness_startup_checks_fail_closed() -> None:
         in source
     )
     assert "!AppStateDiffHarnessRegistryReady()" in source
+
+
+def test_runtime_diff_harness_startup_requires_owner_field_invariant() -> None:
+    source = Path("src/core/main.c").read_text(encoding="utf-8")
+    helper_start = source.index(
+        "static int AppStateDiffHarnessInvariantProtectsOwnerField("
+    )
+    ready_start = source.index("static int AppStateDiffHarnessRegistryReady(void)")
+    signal_start = source.index("static void SigIntHandler(int sig)")
+    helper_body = source[helper_start:ready_start]
+    ready_body = source[ready_start:signal_start]
+
+    assert re.search(
+        r"if \(metadata == NULL \|\| !NonEmptyString\(owner_field\) \|\|\s*"
+        r"!NonEmptyStringList\(metadata->invariant_ids,\s*"
+        r"metadata->invariant_id_count\)\)\s*"
+        r"return 0;\s*"
+        r"for \(ref_index = 0; "
+        r"ref_index < metadata->invariant_id_count; ref_index\+\+\) \{\s*"
+        r"if \(AppStateInvariantProtectsField\("
+        r"metadata->invariant_ids\[ref_index\],\s*owner_field\)\)\s*"
+        r"return 1;",
+        helper_body,
+        re.S,
+    )
+    assert re.search(
+        r"!NonEmptyStringList\(metadata->owner_field_refs,\s*"
+        r"metadata->owner_field_ref_count\).*?"
+        r"!NonEmptyStringList\(metadata->invariant_ids,\s*"
+        r"metadata->invariant_id_count\).*?"
+        r"for \(ref_index = 0; ref_index < metadata->owner_field_ref_count;\s*"
+        r"ref_index\+\+\) \{\s*"
+        r"if \(AppStateOwnerFieldLookup\("
+        r"metadata->owner_field_refs\[ref_index\]\) ==\s*NULL\)\s*"
+        r"return 0;\s*\}\s*"
+        r"for \(ref_index = 0; ref_index < metadata->invariant_id_count;\s*"
+        r"ref_index\+\+\) \{\s*"
+        r"if \(AppStateInvariantLookup\("
+        r"metadata->invariant_ids\[ref_index\]\) == NULL\)\s*"
+        r"return 0;\s*\}\s*"
+        r"for \(ref_index = 0; ref_index < metadata->owner_field_ref_count;\s*"
+        r"ref_index\+\+\) \{\s*"
+        r"if \(!AppStateDiffHarnessInvariantProtectsOwnerField\(\s*"
+        r"metadata,\s*metadata->owner_field_refs\[ref_index\]\)\)\s*"
+        r"return 0;",
+        ready_body,
+        re.S,
+    )
 
 
 def test_runtime_diff_harness_write_coverage_startup_checks_fail_closed() -> None:

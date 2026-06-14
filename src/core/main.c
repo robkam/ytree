@@ -1536,6 +1536,24 @@ static int AppStateDiffHarnessInvariantCoversTransition(
   return 0;
 }
 
+static int AppStateDiffHarnessInvariantProtectsOwnerField(
+    const AppStateDiffHarnessMetadata *metadata, const char *owner_field) {
+  size_t ref_index;
+
+  if (metadata == NULL || !NonEmptyString(owner_field) ||
+      !NonEmptyStringList(metadata->invariant_ids,
+                          metadata->invariant_id_count))
+    return 0;
+
+  for (ref_index = 0; ref_index < metadata->invariant_id_count; ref_index++) {
+    if (AppStateInvariantProtectsField(metadata->invariant_ids[ref_index],
+                                       owner_field))
+      return 1;
+  }
+
+  return 0;
+}
+
 static int AppStateDiffHarnessRegistryReady(void) {
   size_t generation_index;
   size_t index;
@@ -1602,6 +1620,12 @@ static int AppStateDiffHarnessRegistryReady(void) {
     for (ref_index = 0; ref_index < metadata->invariant_id_count;
          ref_index++) {
       if (AppStateInvariantLookup(metadata->invariant_ids[ref_index]) == NULL)
+        return 0;
+    }
+    for (ref_index = 0; ref_index < metadata->owner_field_ref_count;
+         ref_index++) {
+      if (!AppStateDiffHarnessInvariantProtectsOwnerField(
+              metadata, metadata->owner_field_refs[ref_index]))
         return 0;
     }
     for (ref_index = 0; ref_index < metadata->generation_domain_id_count;

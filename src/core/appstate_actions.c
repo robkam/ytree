@@ -834,6 +834,7 @@ static const char *const kAppStateDiffHarnessInvariantIds1[] = {
   "invariant.panel-local-focus-restore",
   "invariant.shared-state-panel-local-isolation",
   "invariant.blocked-transition-determinism",
+  "invariant.inactive-panel-frozen",
 };
 
 static const char *const kAppStateDiffHarnessGenerationDomainIds1[] = {
@@ -926,6 +927,8 @@ static const char *const kAppStateDiffHarnessInvariantIds3[] = {
   "invariant.stale-snapshot-fail-closed",
   "invariant.viewport-identity-rebind",
   "invariant.hidden-entry-visible-navigation",
+  "invariant.render-projection-read-only",
+  "invariant.shared-state-panel-local-isolation",
 };
 
 static const char *const kAppStateDiffHarnessGenerationDomainIds3[] = {
