@@ -57,6 +57,8 @@ REQUIRED_LIST_FIELD_CASES = [
         "transition_sequence[0].step[0]",
     ),
     ("shim", "invariant_checks", "shim[0]"),
+    ("shim", "owner_field_refs", "shim[0]"),
+    ("shim", "generation_domain_refs", "shim[0]"),
     ("shim", "migration_notes", "shim[0]"),
 ]
 
@@ -86,14 +88,21 @@ def _transition(category: str, transition_id: str | None = None) -> dict[str, ob
     }
 
 
-def _shim(target_transition: str = "transition.keybinding") -> dict[str, object]:
+def _shim(
+    target_transition: str = "transition.keybinding",
+    owner_field_refs: list[str] | None = None,
+    generation_domain_refs: list[str] | None = None,
+) -> dict[str, object]:
     return {
         "id": "shim.test",
         "owner": "owner",
         "old_authority_path": "legacy.path",
         "read_permission": "read",
         "write_permission": "write",
+        "write_capability": "write_capable",
         "invariant_checks": ["invariant.inactive_panel_frozen"],
+        "owner_field_refs": owner_field_refs or ["field"],
+        "generation_domain_refs": generation_domain_refs or ["domain.panel_generation"],
         "removal_trigger": "trigger",
         "target_transition": target_transition,
         "follow_up_task": "task",
@@ -676,6 +685,8 @@ def _runtime_source(
             f"{notes_table}, sizeof({notes_table}) / sizeof({notes_table}[0])}},"
         )
     shim_invariants = []
+    shim_owner_field_refs = []
+    shim_generation_domain_refs = []
     shim_rows = []
     for index, record in enumerate(shims):
         invariant_checks = record.get("invariant_checks")
@@ -688,14 +699,43 @@ def _runtime_source(
             "static const char *const kAppStateCompatibilityShimInvariantChecks"
             f"{index}[] = {{\n{invariant_rows}\n}};\n"
         )
+        owner_field_refs = record.get("owner_field_refs")
+        if not isinstance(owner_field_refs, list):
+            owner_field_refs = []
+        owner_ref_rows = "\n".join(
+            f'  "{field}",' for field in owner_field_refs if isinstance(field, str)
+        )
+        shim_owner_field_refs.append(
+            "static const char *const kAppStateCompatibilityShimOwnerFieldRefs"
+            f"{index}[] = {{\n{owner_ref_rows}\n}};\n"
+        )
+        generation_domain_refs = record.get("generation_domain_refs")
+        if not isinstance(generation_domain_refs, list):
+            generation_domain_refs = []
+        generation_ref_rows = "\n".join(
+            f'  "{domain_id}",'
+            for domain_id in generation_domain_refs
+            if isinstance(domain_id, str)
+        )
+        shim_generation_domain_refs.append(
+            "static const char *const kAppStateCompatibilityShimGenerationDomainRefs"
+            f"{index}[] = {{\n{generation_ref_rows}\n}};\n"
+        )
         shim_rows.append(
             f'  {{"{record.get("id", "")}", "{record.get("owner", "")}", '
             f'"{record.get("old_authority_path", "")}", '
             f'"{record.get("read_permission", "")}", '
             f'"{record.get("write_permission", "")}", '
+            f'"{record.get("write_capability", "")}", '
             f"kAppStateCompatibilityShimInvariantChecks{index}, "
             f"sizeof(kAppStateCompatibilityShimInvariantChecks{index}) / "
             f"sizeof(kAppStateCompatibilityShimInvariantChecks{index}[0]), "
+            f"kAppStateCompatibilityShimOwnerFieldRefs{index}, "
+            f"sizeof(kAppStateCompatibilityShimOwnerFieldRefs{index}) / "
+            f"sizeof(kAppStateCompatibilityShimOwnerFieldRefs{index}[0]), "
+            f"kAppStateCompatibilityShimGenerationDomainRefs{index}, "
+            f"sizeof(kAppStateCompatibilityShimGenerationDomainRefs{index}) / "
+            f"sizeof(kAppStateCompatibilityShimGenerationDomainRefs{index}[0]), "
             f'"{record.get("removal_trigger", "")}", '
             f'"{record.get("target_transition", "")}", '
             f'"{record.get("follow_up_task", "")}", '
@@ -963,6 +1003,8 @@ def _runtime_source(
         + "".join(owner_field_arrays)
         + "".join(dispatch_surface_arrays)
         + "".join(shim_invariants)
+        + "".join(shim_owner_field_refs)
+        + "".join(shim_generation_domain_refs)
         + "".join(invariant_arrays)
         + "".join(generation_domain_arrays)
         + "".join(diff_harness_arrays)
@@ -4733,6 +4775,42 @@ def test_guard_fails_when_required_shim_field_is_missing(tmp_path: Path) -> None
     )
 
 
+def test_guard_fails_when_required_shim_owner_field_refs_are_missing(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    shim = _shim()
+    shim.pop("owner_field_refs")
+    paths = _write_fixture(tmp_path, transitions=transitions, shims=[shim])
+
+    failures = _validate(paths)
+
+    assert any(
+        "shim[0]" in failure
+        and "missing required field" in failure
+        and "owner_field_refs" in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_when_required_shim_generation_domain_refs_are_missing(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    shim = _shim()
+    shim.pop("generation_domain_refs")
+    paths = _write_fixture(tmp_path, transitions=transitions, shims=[shim])
+
+    failures = _validate(paths)
+
+    assert any(
+        "shim[0]" in failure
+        and "missing required field" in failure
+        and "generation_domain_refs" in failure
+        for failure in failures
+    )
+
+
 def test_guard_fails_when_required_action_field_is_missing(tmp_path: Path) -> None:
     transitions = _complete_transitions()
     actions = _complete_actions()
@@ -5005,6 +5083,254 @@ def test_guard_fails_when_shim_invariant_checks_do_not_cover_target_transition(
     )
 
 
+def test_guard_fails_when_each_shim_invariant_check_lacks_generation_target_coverage(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    shim = _shim()
+    shim["invariant_checks"] = [
+        "invariant.inactive_panel_frozen",
+        "invariant.render_projection_read_only",
+    ]
+    invariants = _complete_invariants()
+    for invariant in invariants:
+        if invariant["invariant_id"] == "invariant.render_projection_read_only":
+            invariant["transition_ids"] = ["transition.render_reflow"]
+    paths = _write_fixture(
+        tmp_path,
+        transitions=transitions,
+        shims=[shim],
+        invariants=invariants,
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "shim[0]" in failure
+        and "invariant_checks[1] must cover target_transition transition.keybinding"
+        in failure
+        and "invariant.render_projection_read_only" in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_when_shim_generation_domain_ref_is_unknown(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    shim = _shim(generation_domain_refs=["domain.unknown"])
+    paths = _write_fixture(tmp_path, transitions=transitions, shims=[shim])
+
+    failures = _validate(paths)
+
+    assert any(
+        "shim[0]" in failure
+        and "generation_domain_refs does not match generation-domain registry"
+        in failure
+        and "domain.unknown" in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_when_shim_generation_domain_ref_is_duplicated(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    shim = _shim(
+        generation_domain_refs=["domain.panel_generation", "domain.panel_generation"]
+    )
+    paths = _write_fixture(tmp_path, transitions=transitions, shims=[shim])
+
+    failures = _validate(paths)
+
+    assert any(
+        "shim[0]" in failure
+        and "duplicate generation_domain_refs[1]" in failure
+        and "domain.panel_generation" in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_when_shim_generation_owner_ref_lacks_matching_domain(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    transitions[0]["declared_write_set"] = ["field", "panel.panel_generation"]
+    owner_fields = _complete_owner_fields() + [_owner_field("panel.panel_generation")]
+    generation_domains = _complete_generation_domains()
+    generation_domains[0]["generation_owner_field"] = "panel.panel_generation"
+    generation_domains[0]["identity_fields"] = ["panel.panel_generation"]
+    shim = _shim(
+        owner_field_refs=["panel.panel_generation"],
+        generation_domain_refs=["domain.volume_generation"],
+    )
+    paths = _write_fixture(
+        tmp_path,
+        transitions=transitions,
+        owner_fields=owner_fields,
+        generation_domains=generation_domains,
+        shims=[shim],
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "shim[0]" in failure
+        and "generation_domain_refs must include a domain whose "
+        "generation_owner_field is panel.panel_generation" in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_when_shim_owner_field_ref_is_unknown(tmp_path: Path) -> None:
+    transitions = _complete_transitions()
+    shim = _shim(owner_field_refs=["field.unknown"])
+    paths = _write_fixture(tmp_path, transitions=transitions, shims=[shim])
+
+    failures = _validate(paths)
+
+    assert any(
+        "shim[0]" in failure
+        and "owner_field_refs does not match owner-field registry" in failure
+        and "field.unknown" in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_when_shim_owner_field_ref_is_duplicated(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    shim = _shim(owner_field_refs=["field", "field"])
+    paths = _write_fixture(tmp_path, transitions=transitions, shims=[shim])
+
+    failures = _validate(paths)
+
+    assert any(
+        "shim[0]" in failure
+        and "duplicate owner_field_refs[1]" in failure
+        and "field" in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_when_write_capable_shim_owner_field_is_outside_write_set(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    shim = _shim(owner_field_refs=["panel.tree_selection_key"])
+    paths = _write_fixture(tmp_path, transitions=transitions, shims=[shim])
+
+    failures = _validate(paths)
+
+    assert any(
+        "shim[0]" in failure
+        and "owner_field_refs must be declared by target_transition write set"
+        in failure
+        and "panel.tree_selection_key" in failure
+        for failure in failures
+    )
+
+
+@pytest.mark.parametrize(
+    "write_permission",
+    (
+        "Do not write stale mirror directly; write only from transition commit after canonical state changes.",
+        "No write should happen before transition commit; write the compatibility mirror after canonical state changes.",
+        "Never write before canonical state changes; write during the transition commit.",
+        "Read-only before commit; write the compatibility mirror after canonical state changes.",
+    ),
+)
+def test_guard_treats_explicit_write_capability_as_authoritative_over_prose(
+    tmp_path: Path, write_permission: str
+) -> None:
+    transitions = _complete_transitions()
+    shim = _shim(owner_field_refs=["panel.tree_selection_key"])
+    shim["write_permission"] = write_permission
+    shim["write_capability"] = "write_capable"
+    paths = _write_fixture(tmp_path, transitions=transitions, shims=[shim])
+
+    failures = _validate(paths)
+
+    assert any(
+        "shim[0]" in failure
+        and "owner_field_refs must be declared by target_transition write set"
+        in failure
+        and "panel.tree_selection_key" in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_when_shim_write_capability_is_missing(tmp_path: Path) -> None:
+    transitions = _complete_transitions()
+    shim = _shim()
+    shim.pop("write_capability")
+    paths = _write_fixture(tmp_path, transitions=transitions, shims=[shim])
+
+    failures = _validate(paths)
+
+    assert any(
+        "shim[0]" in failure
+        and "write_capability" in failure
+        and "missing required field" in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_when_shim_write_capability_is_unknown(tmp_path: Path) -> None:
+    transitions = _complete_transitions()
+    shim = _shim()
+    shim["write_capability"] = "sometimes"
+    paths = _write_fixture(tmp_path, transitions=transitions, shims=[shim])
+
+    failures = _validate(paths)
+
+    assert any(
+        "shim[0]" in failure
+        and "write_capability must be one of" in failure
+        and "sometimes" in failure
+        for failure in failures
+    )
+
+
+def test_guard_allows_no_write_shim_owner_field_outside_write_set(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    shim = _shim(owner_field_refs=["panel.tree_selection_key"])
+    shim["write_permission"] = "Never write authoritative selection from this projection."
+    shim["write_capability"] = "no_write"
+    paths = _write_fixture(tmp_path, transitions=transitions, shims=[shim])
+
+    failures = _validate(paths)
+
+    assert not any(
+        "shim[0]" in failure
+        and "owner_field_refs must be declared by target_transition write set"
+        in failure
+        for failure in failures
+    )
+
+
+def test_guard_allows_read_only_projection_shim_owner_field_outside_write_set(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    shim = _shim(owner_field_refs=["panel.tree_selection_key"])
+    shim["write_permission"] = "Read-only projection for render calculations."
+    shim["write_capability"] = "read_only_projection"
+    paths = _write_fixture(tmp_path, transitions=transitions, shims=[shim])
+
+    failures = _validate(paths)
+
+    assert not any(
+        "shim[0]" in failure
+        and "owner_field_refs must be declared by target_transition write set"
+        in failure
+        for failure in failures
+    )
+
+
 def test_guard_fails_when_runtime_shim_metadata_drifts(tmp_path: Path) -> None:
     transitions = _complete_transitions()
     runtime_shims = [_shim()]
@@ -5020,6 +5346,272 @@ def test_guard_fails_when_runtime_shim_metadata_drifts(tmp_path: Path) -> None:
     assert any(
         "runtime_shim[0]" in failure
         and "runtime owner does not match shim" in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_when_runtime_shim_owner_field_refs_drift(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    runtime_shims = [_shim(owner_field_refs=["panel.tree_selection_key"])]
+    paths = _write_fixture(
+        tmp_path,
+        transitions=transitions,
+        runtime_shims=runtime_shims,
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "runtime_shim[0]" in failure
+        and "runtime owner_field_refs does not match shim" in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_when_runtime_shim_generation_domain_refs_drift(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    runtime_shims = [
+        _shim(generation_domain_refs=["domain.panel_generation", "domain.volume_generation"])
+    ]
+    paths = _write_fixture(
+        tmp_path,
+        transitions=transitions,
+        runtime_shims=runtime_shims,
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "runtime_shim[0]" in failure
+        and "runtime generation_domain_refs does not match shim" in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_when_runtime_shim_generation_domain_refs_are_missing(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    runtime_shims = [_shim()]
+    runtime_shims[0].pop("generation_domain_refs")
+    paths = _write_fixture(
+        tmp_path,
+        transitions=transitions,
+        runtime_shims=runtime_shims,
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "runtime_shim[0]" in failure
+        and "generation_domain_refs must be non-empty" in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_when_runtime_shim_generation_domain_ref_is_unknown(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    runtime_shims = [_shim(generation_domain_refs=["domain.unknown"])]
+    paths = _write_fixture(
+        tmp_path,
+        transitions=transitions,
+        runtime_shims=runtime_shims,
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "runtime_shim[0]" in failure
+        and "generation_domain_refs does not match runtime generation domain registry"
+        in failure
+        and "domain.unknown" in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_when_runtime_shim_generation_domain_ref_is_duplicated(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    runtime_shims = [
+        _shim(
+            generation_domain_refs=[
+                "domain.panel_generation",
+                "domain.panel_generation",
+            ]
+        )
+    ]
+    paths = _write_fixture(
+        tmp_path,
+        transitions=transitions,
+        runtime_shims=runtime_shims,
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "runtime_shim[0]" in failure
+        and "duplicate generation_domain_refs[1]" in failure
+        and "domain.panel_generation" in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_when_runtime_shim_generation_owner_ref_lacks_matching_domain(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    transitions[0]["declared_write_set"] = ["field", "panel.panel_generation"]
+    owner_fields = _complete_owner_fields() + [_owner_field("panel.panel_generation")]
+    generation_domains = _complete_generation_domains()
+    generation_domains[0]["generation_owner_field"] = "panel.panel_generation"
+    generation_domains[0]["identity_fields"] = ["panel.panel_generation"]
+    runtime_shims = [
+        _shim(
+            owner_field_refs=["panel.panel_generation"],
+            generation_domain_refs=["domain.volume_generation"],
+        )
+    ]
+    paths = _write_fixture(
+        tmp_path,
+        transitions=transitions,
+        owner_fields=owner_fields,
+        generation_domains=generation_domains,
+        runtime_shims=runtime_shims,
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "runtime_shim[0]" in failure
+        and "generation_domain_refs must include a domain whose "
+        "generation_owner_field is panel.panel_generation" in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_when_runtime_shim_owner_field_ref_is_unknown(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    runtime_shims = [_shim(owner_field_refs=["field.unknown"])]
+    paths = _write_fixture(
+        tmp_path,
+        transitions=transitions,
+        runtime_shims=runtime_shims,
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "runtime_shim[0]" in failure
+        and "owner_field_refs does not match runtime owner field registry"
+        in failure
+        and "field.unknown" in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_when_runtime_shim_write_capability_is_missing(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    runtime_shims = [_shim()]
+    runtime_shims[0]["write_capability"] = ""
+    paths = _write_fixture(
+        tmp_path,
+        transitions=transitions,
+        runtime_shims=runtime_shims,
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "runtime_shim[0]" in failure
+        and "write_capability must be one of" in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_when_runtime_shim_write_capability_is_unknown(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    runtime_shims = [_shim()]
+    runtime_shims[0]["write_capability"] = "sometimes"
+    paths = _write_fixture(
+        tmp_path,
+        transitions=transitions,
+        runtime_shims=runtime_shims,
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "runtime_shim[0]" in failure
+        and "write_capability must be one of" in failure
+        and "sometimes" in failure
+        for failure in failures
+    )
+
+
+@pytest.mark.parametrize(
+    "write_permission",
+    (
+        "Do not write stale mirror directly; write only from transition commit after canonical state changes.",
+        "No write should happen before transition commit; write the compatibility mirror after canonical state changes.",
+        "Never write before canonical state changes; write during the transition commit.",
+        "Read-only before commit; write the compatibility mirror after canonical state changes.",
+    ),
+)
+def test_guard_runtime_treats_explicit_write_capability_as_authoritative_over_prose(
+    tmp_path: Path, write_permission: str
+) -> None:
+    transitions = _complete_transitions()
+    runtime_shims = [_shim(owner_field_refs=["panel.tree_selection_key"])]
+    runtime_shims[0]["write_permission"] = write_permission
+    runtime_shims[0]["write_capability"] = "write_capable"
+    paths = _write_fixture(
+        tmp_path,
+        transitions=transitions,
+        runtime_shims=runtime_shims,
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "runtime_shim[0]" in failure
+        and "owner_field_refs must be declared by target_transition write set"
+        in failure
+        and "panel.tree_selection_key" in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_when_runtime_write_capable_shim_owner_field_is_outside_write_set(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    runtime_shims = [_shim(owner_field_refs=["panel.tree_selection_key"])]
+    paths = _write_fixture(
+        tmp_path,
+        transitions=transitions,
+        runtime_shims=runtime_shims,
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "runtime_shim[0]" in failure
+        and "owner_field_refs must be declared by target_transition write set"
+        in failure
+        and "panel.tree_selection_key" in failure
         for failure in failures
     )
 
@@ -5109,6 +5701,37 @@ def test_guard_fails_when_runtime_shim_invariant_checks_do_not_cover_target_tran
     )
 
 
+def test_guard_fails_when_each_runtime_shim_invariant_check_lacks_generation_target_coverage(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    runtime_shims = [_shim()]
+    runtime_shims[0]["invariant_checks"] = [
+        "invariant.inactive_panel_frozen",
+        "invariant.render_projection_read_only",
+    ]
+    invariants = _complete_invariants()
+    for invariant in invariants:
+        if invariant["invariant_id"] == "invariant.render_projection_read_only":
+            invariant["transition_ids"] = ["transition.render_reflow"]
+    paths = _write_fixture(
+        tmp_path,
+        transitions=transitions,
+        runtime_shims=runtime_shims,
+        invariants=invariants,
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "runtime_shim[0]" in failure
+        and "invariant_checks[1] must cover target_transition transition.keybinding"
+        in failure
+        and "invariant.render_projection_read_only" in failure
+        for failure in failures
+    )
+
+
 def test_guard_fails_when_runtime_shim_invariant_checks_are_missing(
     tmp_path: Path,
 ) -> None:
@@ -5152,6 +5775,34 @@ def test_guard_preserves_runtime_shim_invariant_array_parse_failures(
 
     assert any(
         "kAppStateCompatibilityShimInvariantChecks0[0]" in failure
+        and "malformed string literal entry" in failure
+        and "NULL" in failure
+        for failure in failures
+    )
+
+
+def test_guard_preserves_runtime_shim_generation_domain_array_parse_failures(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    paths = _write_fixture(tmp_path, transitions=transitions)
+    runtime_path = paths[-1]
+    source = runtime_path.read_text(encoding="utf-8")
+    runtime_path.write_text(
+        source.replace(
+            'static const char *const kAppStateCompatibilityShimGenerationDomainRefs0[] = {\n'
+            '  "domain.panel_generation",',
+            "static const char *const kAppStateCompatibilityShimGenerationDomainRefs0[] = {\n"
+            "  NULL,",
+            1,
+        ),
+        encoding="utf-8",
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "kAppStateCompatibilityShimGenerationDomainRefs0[0]" in failure
         and "malformed string literal entry" in failure
         and "NULL" in failure
         for failure in failures
@@ -6451,7 +7102,91 @@ def test_runtime_shim_startup_requires_invariant_to_cover_target_transition() ->
     )
     assert "invariant->transition_ids" in helper_body
     assert "invariant->transition_id_count" in helper_body
+    assert "!StringListContains(invariant->transition_ids" in helper_body
     assert "!AppStateCompatibilityShimInvariantCoversTransition(metadata)" in ready_body
+
+
+def test_runtime_shim_startup_requires_owner_field_refs() -> None:
+    source = Path("src/core/main.c").read_text(encoding="utf-8")
+    ready_start = source.index("static int AppStateCompatibilityShimsReady(void)")
+    action_start = source.index("static int AppStateActionTransitionsReady(void)")
+    ready_body = source[ready_start:action_start]
+
+    assert "metadata->owner_field_refs" in ready_body
+    assert "metadata->owner_field_ref_count" in ready_body
+    assert "AppStateOwnerFieldLookup(metadata->owner_field_refs[ref_index])" in ready_body
+    assert re.search(
+        r"StringListContains\(metadata->owner_field_refs,\s*"
+        r"ref_index,\s*metadata->owner_field_refs\[ref_index\]\)",
+        ready_body,
+        re.S,
+    )
+
+
+def test_runtime_shim_startup_requires_generation_domain_refs() -> None:
+    source = Path("src/core/main.c").read_text(encoding="utf-8")
+    ready_start = source.index("static int AppStateCompatibilityShimsReady(void)")
+    action_start = source.index("static int AppStateActionTransitionsReady(void)")
+    ready_body = source[ready_start:action_start]
+
+    assert "metadata->generation_domain_refs" in ready_body
+    assert "metadata->generation_domain_ref_count" in ready_body
+    assert "AppStateGenerationDomainLookup(" in ready_body
+    assert re.search(
+        r"StringListContains\(metadata->generation_domain_refs,\s*"
+        r"generation_index,\s*"
+        r"metadata->generation_domain_refs\[generation_index\]\)",
+        ready_body,
+        re.S,
+    )
+
+
+def test_runtime_shim_startup_requires_generation_owner_refs_to_match_domains() -> None:
+    source = Path("src/core/main.c").read_text(encoding="utf-8")
+    owner_helper_start = source.index(
+        "static int AppStateGenerationOwnerFieldRegistered("
+    )
+    ready_start = source.index("static int AppStateCompatibilityShimsReady(void)")
+    action_start = source.index("static int AppStateActionTransitionsReady(void)")
+    helper_body = source[owner_helper_start:ready_start]
+    ready_body = source[ready_start:action_start]
+
+    assert "AppStateGenerationDomainAt(domain_index)" in helper_body
+    assert "domain->generation_owner_field" in helper_body
+    assert "AppStateCompatibilityShimGenerationDomainCoversOwnerField(" in helper_body
+    assert "AppStateGenerationDomainLookup(" in helper_body
+    assert "metadata->generation_domain_refs[ref_index]" in helper_body
+    assert "AppStateGenerationOwnerFieldRegistered(" in ready_body
+    assert "AppStateCompatibilityShimGenerationDomainCoversOwnerField(" in ready_body
+
+
+def test_runtime_shim_startup_requires_write_refs_to_match_target_write_set() -> None:
+    source = Path("src/core/main.c").read_text(encoding="utf-8")
+    helper_start = source.index("static int AppStateCompatibilityShimWriteCapable(")
+    invariant_start = source.index(
+        "static int AppStateCompatibilityShimInvariantCoversTransition("
+    )
+    ready_start = source.index("static int AppStateCompatibilityShimsReady(void)")
+    action_start = source.index("static int AppStateActionTransitionsReady(void)")
+    helper_body = source[helper_start:invariant_start]
+    ready_body = source[ready_start:action_start]
+
+    assert "metadata->write_capability" in helper_body
+    assert 'strcmp(metadata->write_capability, "write_capable") == 0' in helper_body
+    assert "strstr" not in helper_body
+    assert "write_permission" not in helper_body
+    assert "AppStateCompatibilityShimWriteCapabilityKnown(metadata)" in ready_body
+    assert '"read_only_projection"' in helper_body
+    assert '"no_write"' in helper_body
+    assert "const AppStateTransitionMetadata *transition" in ready_body
+    assert re.search(
+        r"AppStateCompatibilityShimWriteCapable\(metadata\).*?"
+        r"!StringListContains\(transition->declared_write_set,\s*"
+        r"transition->declared_write_set_count,\s*"
+        r"metadata->owner_field_refs\[ref_index\]\)",
+        ready_body,
+        re.S,
+    )
 
 
 def test_runtime_shim_startup_requires_documented_shim_ids() -> None:

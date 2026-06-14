@@ -60,7 +60,10 @@ REQUIRED_SHIM_FIELDS = {
     "old_authority_path",
     "read_permission",
     "write_permission",
+    "write_capability",
     "invariant_checks",
+    "owner_field_refs",
+    "generation_domain_refs",
     "removal_trigger",
     "target_transition",
     "follow_up_task",
@@ -281,6 +284,12 @@ LIST_FIELDS = {
 }
 
 EVENT_LIST_FIELDS = LIST_FIELDS | {"trigger_paths"}
+SHIM_LIST_FIELDS = LIST_FIELDS | {"owner_field_refs", "generation_domain_refs"}
+VALID_SHIM_WRITE_CAPABILITIES = {
+    "write_capable",
+    "read_only_projection",
+    "no_write",
+}
 DISPATCH_LIST_FIELDS = {"migration_notes"}
 INVARIANT_LIST_FIELDS = {
     "protected_fields",
@@ -1612,6 +1621,8 @@ def _parse_runtime_shim_registry(
         return [], [f"{runtime_path}: failed to read: {exc}"]
 
     invariant_tables: dict[str, list[str]] = {}
+    owner_ref_tables: dict[str, list[str]] = {}
+    generation_domain_ref_tables: dict[str, list[str]] = {}
     failures: list[str] = []
     invariant_re = re.compile(
         r"static\s+const\s+char\s+\*const\s+"
@@ -1628,6 +1639,36 @@ def _parse_runtime_shim_registry(
         invariant_tables[table_name] = values
         failures.extend(array_failures)
 
+    owner_ref_re = re.compile(
+        r"static\s+const\s+char\s+\*const\s+"
+        r"(kAppStateCompatibilityShimOwnerFieldRefs[0-9]+)\[\]\s*=\s*\{"
+        r"(?P<body>.*?)\};",
+        re.S,
+    )
+    for owner_ref_match in owner_ref_re.finditer(source):
+        table_name = owner_ref_match.group(1)
+        values, array_failures = _parse_string_initializer_array(
+            owner_ref_match.group("body"),
+            table_name,
+        )
+        owner_ref_tables[table_name] = values
+        failures.extend(array_failures)
+
+    generation_domain_ref_re = re.compile(
+        r"static\s+const\s+char\s+\*const\s+"
+        r"(kAppStateCompatibilityShimGenerationDomainRefs[0-9]+)\[\]\s*=\s*\{"
+        r"(?P<body>.*?)\};",
+        re.S,
+    )
+    for generation_domain_ref_match in generation_domain_ref_re.finditer(source):
+        table_name = generation_domain_ref_match.group(1)
+        values, array_failures = _parse_string_initializer_array(
+            generation_domain_ref_match.group("body"),
+            table_name,
+        )
+        generation_domain_ref_tables[table_name] = values
+        failures.extend(array_failures)
+
     match = re.search(
         r"kAppStateCompatibilityShims\s*\[\]\s*=\s*\{(?P<body>.*?)\};",
         source,
@@ -1642,9 +1683,16 @@ def _parse_runtime_shim_registry(
         r"\s*\"(?P<old_authority_path>[^\"]*)\"\s*,"
         r"\s*\"(?P<read_permission>[^\"]*)\"\s*,"
         r"\s*\"(?P<write_permission>[^\"]*)\"\s*,"
+        r"\s*\"(?P<write_capability>[^\"]*)\"\s*,"
         r"\s*(?P<invariants>kAppStateCompatibilityShimInvariantChecks[0-9]+)\s*,"
         r"\s*sizeof\((?P=invariants)\)\s*/"
         r"\s*sizeof\((?P=invariants)\[0\]\)\s*,"
+        r"\s*(?P<owner_refs>kAppStateCompatibilityShimOwnerFieldRefs[0-9]+)\s*,"
+        r"\s*sizeof\((?P=owner_refs)\)\s*/"
+        r"\s*sizeof\((?P=owner_refs)\[0\]\)\s*,"
+        r"\s*(?P<generation_refs>kAppStateCompatibilityShimGenerationDomainRefs[0-9]+)\s*,"
+        r"\s*sizeof\((?P=generation_refs)\)\s*/"
+        r"\s*sizeof\((?P=generation_refs)\[0\]\)\s*,"
         r"\s*\"(?P<removal_trigger>[^\"]*)\"\s*,"
         r"\s*\"(?P<target_transition>[^\"]*)\"\s*,"
         r"\s*\"(?P<follow_up_task>[^\"]*)\"\s*,"
@@ -1659,6 +1707,22 @@ def _parse_runtime_shim_registry(
                 f"runtime_shim[{index}]: unknown invariant-check table: {invariant_table_name}"
             )
             invariant_checks = []
+        owner_ref_table_name = row_match.group("owner_refs")
+        owner_field_refs = owner_ref_tables.get(owner_ref_table_name)
+        if owner_field_refs is None:
+            failures.append(
+                f"runtime_shim[{index}]: unknown owner-field-ref table: {owner_ref_table_name}"
+            )
+            owner_field_refs = []
+        generation_ref_table_name = row_match.group("generation_refs")
+        generation_domain_refs = generation_domain_ref_tables.get(
+            generation_ref_table_name
+        )
+        if generation_domain_refs is None:
+            failures.append(
+                f"runtime_shim[{index}]: unknown generation-domain-ref table: {generation_ref_table_name}"
+            )
+            generation_domain_refs = []
         records.append(
             {
                 "id": row_match.group("id"),
@@ -1666,7 +1730,10 @@ def _parse_runtime_shim_registry(
                 "old_authority_path": row_match.group("old_authority_path"),
                 "read_permission": row_match.group("read_permission"),
                 "write_permission": row_match.group("write_permission"),
+                "write_capability": row_match.group("write_capability"),
                 "invariant_checks": invariant_checks,
+                "owner_field_refs": owner_field_refs,
+                "generation_domain_refs": generation_domain_refs,
                 "removal_trigger": row_match.group("removal_trigger"),
                 "target_transition": row_match.group("target_transition"),
                 "follow_up_task": row_match.group("follow_up_task"),
@@ -2723,9 +2790,11 @@ def _validate_runtime_shim_registry(
     runtime_records: list[dict[str, Any]],
     runtime_path: Path,
     shim_records: list[Any],
-    runtime_transition_ids: set[str],
+    runtime_transition_ids: dict[str, dict[str, Any]],
+    runtime_owner_fields: set[str],
     runtime_invariant_ids: set[str],
     runtime_invariant_transition_ids: dict[str, set[str]],
+    runtime_generation_domain_owner_fields: dict[str, str],
 ) -> list[str]:
     failures: list[str] = []
     expected_shims = {
@@ -2754,7 +2823,10 @@ def _validate_runtime_shim_registry(
                 "old_authority_path",
                 "read_permission",
                 "write_permission",
+                "write_capability",
                 "invariant_checks",
+                "owner_field_refs",
+                "generation_domain_refs",
                 "removal_trigger",
                 "target_transition",
                 "follow_up_task",
@@ -2765,6 +2837,8 @@ def _validate_runtime_shim_registry(
                         f"{label}: runtime {field} does not match shim "
                         f"{runtime_id}: {record.get(field)}"
                     )
+
+        failures.extend(_validate_shim_write_capability(record, label))
 
         invariant_checks = record.get("invariant_checks")
         if not isinstance(invariant_checks, list) or not invariant_checks:
@@ -2789,6 +2863,15 @@ def _validate_runtime_shim_registry(
                 f"registry: {target_transition}"
             )
         failures.extend(
+            _validate_shim_owner_field_refs(
+                record=record,
+                registered_fields=runtime_owner_fields,
+                transition_ids=runtime_transition_ids,
+                label=label,
+                registry_label="runtime owner field registry",
+            )
+        )
+        failures.extend(
             _validate_invariant_transition_alignment(
                 invariant_refs=invariant_checks,
                 transition_id=target_transition,
@@ -2796,6 +2879,22 @@ def _validate_runtime_shim_registry(
                 label=label,
                 invariant_field="invariant_checks",
                 transition_field="target_transition",
+            )
+        )
+        failures.extend(
+            _validate_each_shim_invariant_covers_transition(
+                invariant_refs=invariant_checks,
+                transition_id=target_transition,
+                invariant_transition_ids=runtime_invariant_transition_ids,
+                label=label,
+            )
+        )
+        failures.extend(
+            _validate_shim_generation_domain_refs(
+                record=record,
+                generation_domain_owner_fields=runtime_generation_domain_owner_fields,
+                label=label,
+                registry_label="runtime generation domain registry",
             )
         )
 
@@ -2837,6 +2936,176 @@ def _validate_required_string_list(
     unknown_values = sorted(declared - required_values)
     if unknown_values:
         failures.append(f"{label}: unknown value(s): {', '.join(unknown_values)}")
+
+    return failures
+
+
+def _validate_shim_write_capability(record: dict[str, Any], label: str) -> list[str]:
+    value = record.get("write_capability")
+    if isinstance(value, str) and value in VALID_SHIM_WRITE_CAPABILITIES:
+        return []
+
+    allowed = ", ".join(sorted(VALID_SHIM_WRITE_CAPABILITIES))
+    return [f"{label}: write_capability must be one of {allowed}: {value}"]
+
+
+def _shim_write_capable(write_capability: Any) -> bool:
+    return write_capability == "write_capable"
+
+
+def _validate_owner_field_ref_list(
+    *,
+    refs: Any,
+    registered_fields: set[str],
+    label: str,
+    registry_label: str,
+) -> list[str]:
+    failures = _validate_list_field(
+        value=refs,
+        label=label,
+        field="owner_field_refs",
+    )
+    if failures:
+        return failures
+
+    seen: set[str] = set()
+    assert isinstance(refs, list)
+    for index, ref in enumerate(refs):
+        assert isinstance(ref, str)
+        if ref in seen:
+            failures.append(f"{label}: duplicate owner_field_refs[{index}]: {ref}")
+        seen.add(ref)
+        if ref not in registered_fields:
+            failures.append(
+                f"{label}: owner_field_refs does not match {registry_label}: {ref}"
+            )
+
+    return failures
+
+
+def _validate_shim_owner_field_refs(
+    *,
+    record: dict[str, Any],
+    registered_fields: set[str],
+    transition_ids: dict[str, dict[str, Any]],
+    label: str,
+    registry_label: str,
+) -> list[str]:
+    failures = _validate_owner_field_ref_list(
+        refs=record.get("owner_field_refs"),
+        registered_fields=registered_fields,
+        label=label,
+        registry_label=registry_label,
+    )
+    if failures:
+        return failures
+
+    if not _shim_write_capable(record.get("write_capability")):
+        return failures
+
+    target_transition = record.get("target_transition")
+    transition = (
+        transition_ids.get(target_transition)
+        if isinstance(target_transition, str)
+        else None
+    )
+    if transition is None:
+        return failures
+
+    declared_write_set = transition.get("declared_write_set")
+    if not isinstance(declared_write_set, list):
+        return failures
+    declared_writes = {
+        field
+        for field in declared_write_set
+        if isinstance(field, str) and field.strip()
+    }
+    owner_refs = record.get("owner_field_refs")
+    assert isinstance(owner_refs, list)
+    for owner_ref in owner_refs:
+        if owner_ref not in declared_writes:
+            failures.append(
+                f"{label}: owner_field_refs must be declared by "
+                f"target_transition write set {target_transition}: {owner_ref}"
+            )
+
+    return failures
+
+
+def _validate_shim_generation_domain_refs(
+    *,
+    record: dict[str, Any],
+    generation_domain_owner_fields: dict[str, str],
+    label: str,
+    registry_label: str,
+) -> list[str]:
+    failures = _validate_list_field(
+        value=record.get("generation_domain_refs"),
+        label=label,
+        field="generation_domain_refs",
+    )
+    if failures:
+        return failures
+
+    generation_domain_refs = record.get("generation_domain_refs")
+    owner_field_refs = record.get("owner_field_refs")
+    assert isinstance(generation_domain_refs, list)
+    seen: set[str] = set()
+    covered_generation_owner_fields: set[str] = set()
+    for index, ref in enumerate(generation_domain_refs):
+        assert isinstance(ref, str)
+        if ref in seen:
+            failures.append(f"{label}: duplicate generation_domain_refs[{index}]: {ref}")
+        seen.add(ref)
+        generation_owner_field = generation_domain_owner_fields.get(ref)
+        if generation_owner_field is None:
+            failures.append(
+                f"{label}: generation_domain_refs does not match {registry_label}: {ref}"
+            )
+        else:
+            covered_generation_owner_fields.add(generation_owner_field)
+
+    if (
+        _shim_write_capable(record.get("write_capability"))
+        and isinstance(owner_field_refs, list)
+        and not failures
+    ):
+        known_generation_owner_fields = set(generation_domain_owner_fields.values())
+        for owner_ref in owner_field_refs:
+            if (
+                isinstance(owner_ref, str)
+                and owner_ref in known_generation_owner_fields
+                and owner_ref not in covered_generation_owner_fields
+            ):
+                failures.append(
+                    f"{label}: generation_domain_refs must include a domain "
+                    f"whose generation_owner_field is {owner_ref}"
+                )
+
+    return failures
+
+
+def _validate_each_shim_invariant_covers_transition(
+    *,
+    invariant_refs: Any,
+    transition_id: Any,
+    invariant_transition_ids: dict[str, set[str]],
+    label: str,
+) -> list[str]:
+    if not isinstance(transition_id, str) or not transition_id.strip():
+        return []
+    if not isinstance(invariant_refs, list):
+        return []
+
+    failures: list[str] = []
+    for index, invariant_ref in enumerate(invariant_refs):
+        if not isinstance(invariant_ref, str) or not invariant_ref.strip():
+            continue
+        if transition_id not in invariant_transition_ids.get(invariant_ref, set()):
+            failures.append(
+                f"{label}: invariant_checks[{index}] must cover "
+                f"target_transition {transition_id}: {invariant_ref}"
+            )
 
     return failures
 
@@ -5078,6 +5347,24 @@ def validate_contract(
         generation_domain_records = generation_domains_doc["generation_domains"]
     else:
         generation_domain_records = []
+    generation_domain_owner_fields = {
+        record["domain_id"]: record["generation_owner_field"]
+        for record in generation_domain_records
+        if isinstance(record, dict)
+        and isinstance(record.get("domain_id"), str)
+        and record["domain_id"].strip()
+        and isinstance(record.get("generation_owner_field"), str)
+        and record["generation_owner_field"].strip()
+    }
+    runtime_generation_domain_owner_fields = {
+        record["domain_id"]: record["generation_owner_field"]
+        for record in runtime_generation_domain_records
+        if isinstance(record, dict)
+        and isinstance(record.get("domain_id"), str)
+        and record["domain_id"].strip()
+        and isinstance(record.get("generation_owner_field"), str)
+        and record["generation_owner_field"].strip()
+    }
     failures.extend(
         _validate_runtime_generation_domain_registry(
             runtime_records=runtime_generation_domain_records,
@@ -5131,7 +5418,7 @@ def validate_contract(
             _validate_required_fields(
                 record=record,
                 required_fields=REQUIRED_SHIM_FIELDS,
-                list_fields=LIST_FIELDS,
+                list_fields=SHIM_LIST_FIELDS,
                 label=label,
             )
         )
@@ -5148,6 +5435,7 @@ def validate_contract(
                 failures.append(
                     f"{label}: target_transition does not match a transition id: {target_transition}"
                 )
+        failures.extend(_validate_shim_write_capability(record, label))
         failures.extend(
             _validate_invariant_check_refs(
                 invariant_checks=record.get("invariant_checks"),
@@ -5165,18 +5453,47 @@ def validate_contract(
                 transition_field="target_transition",
             )
         )
+        failures.extend(
+            _validate_each_shim_invariant_covers_transition(
+                invariant_refs=record.get("invariant_checks"),
+                transition_id=target_transition,
+                invariant_transition_ids=invariant_transition_ids,
+                label=label,
+            )
+        )
+        failures.extend(
+            _validate_shim_owner_field_refs(
+                record=record,
+                registered_fields=registered_owner_fields,
+                transition_ids=transition_ids,
+                label=label,
+                registry_label="owner-field registry",
+            )
+        )
+        failures.extend(
+            _validate_shim_generation_domain_refs(
+                record=record,
+                generation_domain_owner_fields=generation_domain_owner_fields,
+                label=label,
+                registry_label="generation-domain registry",
+            )
+        )
     failures.extend(
         _validate_runtime_shim_registry(
             runtime_records=runtime_shim_records,
             runtime_path=action_runtime_path,
             shim_records=shims,
             runtime_transition_ids={
-                record["id"] for record in runtime_transition_records
+                record["id"]: record for record in runtime_transition_records
+            },
+            runtime_owner_fields={
+                record["field"] for record in runtime_owner_field_records
             },
             runtime_invariant_ids=runtime_invariant_ids,
             runtime_invariant_transition_ids=_invariant_transition_ids_by_invariant(
                 runtime_invariant_records
             ),
+            runtime_generation_domain_owner_fields=runtime_generation_domain_owner_fields,
         )
     )
 

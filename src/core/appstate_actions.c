@@ -2118,7 +2118,7 @@ static const AppStateDispatchSurfaceMetadata kAppStateDispatchSurfaces[] = {
 };
 static const char *const kAppStateCompatibilityShimInvariantChecks0[] = {
   "invariant.hidden-entry-visible-navigation",
-  "invariant.shared-state-panel-local-isolation",
+  "invariant.inactive-panel-frozen",
 };
 
 static const char *const kAppStateCompatibilityShimInvariantChecks1[] = {
@@ -2133,7 +2133,56 @@ static const char *const kAppStateCompatibilityShimInvariantChecks2[] = {
 
 static const char *const kAppStateCompatibilityShimInvariantChecks3[] = {
   "invariant.render-projection-read-only",
-  "invariant.viewport-identity-rebind",
+  "invariant.blocked-transition-determinism",
+};
+
+static const char *const kAppStateCompatibilityShimOwnerFieldRefs0[] = {
+  "panel.tree_viewport_origin",
+  "panel.panel_generation",
+};
+
+static const char *const kAppStateCompatibilityShimOwnerFieldRefs1[] = {
+  "panel.tree_selection_key",
+  "panel.tree_cursor_pos",
+  "panel.tree_viewport_origin",
+  "panel.panel_generation",
+};
+
+static const char *const kAppStateCompatibilityShimOwnerFieldRefs2[] = {
+  "panel.focus_shape",
+  "panel.panel_generation",
+};
+
+static const char *const kAppStateCompatibilityShimOwnerFieldRefs3[] = {
+  "panel.tree_cursor_pos",
+  "panel.tree_viewport_origin",
+  "panel.file_viewport_origin",
+};
+
+static const char *const kAppStateCompatibilityShimGenerationDomainRefs0[] = {
+  "generation.panel.local-authority",
+  "identity.directory.stable-key",
+  "state.visibility-filter.panel-volume",
+};
+
+static const char *const kAppStateCompatibilityShimGenerationDomainRefs1[] = {
+  "generation.panel.local-authority",
+  "generation.volume.shared-authority",
+  "identity.directory.stable-key",
+  "state.topology.volume",
+  "lifecycle.volume.registry",
+};
+
+static const char *const kAppStateCompatibilityShimGenerationDomainRefs2[] = {
+  "generation.panel.local-authority",
+  "shape.panel.focus",
+};
+
+static const char *const kAppStateCompatibilityShimGenerationDomainRefs3[] = {
+  "generation.panel.local-authority",
+  "identity.directory.stable-key",
+  "identity.file.stable-key",
+  "reflow.layout.projection",
 };
 
 static const char *const kAppStateInvariantProtectedFields0[] = {
@@ -3819,9 +3868,16 @@ static const AppStateCompatibilityShimMetadata kAppStateCompatibilityShims[] = {
    "ViewContext.hide_dot_files",
    "Allowed only as a derived compatibility mirror for helpers that have not yet accepted YtreeNovaPanel dotfile visibility.",
    "Write only when synchronizing from the active panel's authoritative dotfile_visibility during transition commit.",
+   "write_capable",
    kAppStateCompatibilityShimInvariantChecks0,
    sizeof(kAppStateCompatibilityShimInvariantChecks0) /
        sizeof(kAppStateCompatibilityShimInvariantChecks0[0]),
+   kAppStateCompatibilityShimOwnerFieldRefs0,
+   sizeof(kAppStateCompatibilityShimOwnerFieldRefs0) /
+       sizeof(kAppStateCompatibilityShimOwnerFieldRefs0[0]),
+   kAppStateCompatibilityShimGenerationDomainRefs0,
+   sizeof(kAppStateCompatibilityShimGenerationDomainRefs0) /
+       sizeof(kAppStateCompatibilityShimGenerationDomainRefs0[0]),
    "All visibility and restore helpers consume panel-local dotfile_visibility directly.",
    "transition.keybinding.navigate-tree",
    "Runtime migration of visibility toggles and restore helpers to AppState panel records.",
@@ -3831,9 +3887,16 @@ static const AppStateCompatibilityShimMetadata kAppStateCompatibilityShims[] = {
    "Volume.saved_tree_index",
    "Allowed only as a fallback breadcrumb when a stable path key has already failed to resolve.",
    "Do not write as primary restore authority; future writes must update stable identity keys and generation metadata first.",
+   "write_capable",
    kAppStateCompatibilityShimInvariantChecks1,
    sizeof(kAppStateCompatibilityShimInvariantChecks1) /
        sizeof(kAppStateCompatibilityShimInvariantChecks1[0]),
+   kAppStateCompatibilityShimOwnerFieldRefs1,
+   sizeof(kAppStateCompatibilityShimOwnerFieldRefs1) /
+       sizeof(kAppStateCompatibilityShimOwnerFieldRefs1[0]),
+   kAppStateCompatibilityShimGenerationDomainRefs1,
+   sizeof(kAppStateCompatibilityShimGenerationDomainRefs1) /
+       sizeof(kAppStateCompatibilityShimGenerationDomainRefs1[0]),
    "Volume restore breadcrumbs are path-keyed and generation-checked across rebuild/relog paths.",
    "transition.rebuild-rebind-callback.panel-anchor",
    "Replace index breadcrumbs with path-scoped restore snapshots in the canonical panel state record.",
@@ -3843,9 +3906,16 @@ static const AppStateCompatibilityShimMetadata kAppStateCompatibilityShims[] = {
    "ViewContext.focused_window",
    "Allowed for layout routing and footer context selection while AppState focus_shape migration is incomplete.",
    "Write only from transition commit after the active panel focus_shape has been updated.",
+   "write_capable",
    kAppStateCompatibilityShimInvariantChecks2,
    sizeof(kAppStateCompatibilityShimInvariantChecks2) /
        sizeof(kAppStateCompatibilityShimInvariantChecks2[0]),
+   kAppStateCompatibilityShimOwnerFieldRefs2,
+   sizeof(kAppStateCompatibilityShimOwnerFieldRefs2) /
+       sizeof(kAppStateCompatibilityShimOwnerFieldRefs2[0]),
+   kAppStateCompatibilityShimGenerationDomainRefs2,
+   sizeof(kAppStateCompatibilityShimGenerationDomainRefs2) /
+       sizeof(kAppStateCompatibilityShimGenerationDomainRefs2[0]),
    "All Enter, Tab, and F8 paths route through the canonical AppState transition entry point.",
    "transition.keybinding.navigate-tree",
    "Move focus-shape authority from session mirrors into panel-local transition records.",
@@ -3855,9 +3925,16 @@ static const AppStateCompatibilityShimMetadata kAppStateCompatibilityShims[] = {
    "disp_begin_pos + cursor_pos render-derived lookup",
    "Allowed only inside render projection or bounds-correction code after identity restore has run.",
    "Never write authoritative selection from this calculation.",
+   "read_only_projection",
    kAppStateCompatibilityShimInvariantChecks3,
    sizeof(kAppStateCompatibilityShimInvariantChecks3) /
        sizeof(kAppStateCompatibilityShimInvariantChecks3[0]),
+   kAppStateCompatibilityShimOwnerFieldRefs3,
+   sizeof(kAppStateCompatibilityShimOwnerFieldRefs3) /
+       sizeof(kAppStateCompatibilityShimOwnerFieldRefs3[0]),
+   kAppStateCompatibilityShimGenerationDomainRefs3,
+   sizeof(kAppStateCompatibilityShimGenerationDomainRefs3) /
+       sizeof(kAppStateCompatibilityShimGenerationDomainRefs3[0]),
    "Render paths accept explicit projection inputs and no longer inspect restore authority fields directly.",
    "transition.render-reflow.project-state",
    "Audit render/reflow call sites for projection-only behavior during runtime migration.",

@@ -1108,6 +1108,22 @@ static int AppStateInvariantRegistryReady(void) {
   return 1;
 }
 
+static int AppStateCompatibilityShimWriteCapable(
+    const AppStateCompatibilityShimMetadata *metadata) {
+  return metadata != NULL && metadata->write_capability != NULL &&
+         strcmp(metadata->write_capability, "write_capable") == 0;
+}
+
+static int AppStateCompatibilityShimWriteCapabilityKnown(
+    const AppStateCompatibilityShimMetadata *metadata) {
+  if (metadata == NULL || !NonEmptyString(metadata->write_capability))
+    return 0;
+
+  return strcmp(metadata->write_capability, "write_capable") == 0 ||
+         strcmp(metadata->write_capability, "read_only_projection") == 0 ||
+         strcmp(metadata->write_capability, "no_write") == 0;
+}
+
 static int AppStateCompatibilityShimInvariantCoversTransition(
     const AppStateCompatibilityShimMetadata *metadata) {
   size_t invariant_index;
@@ -1124,9 +1140,53 @@ static int AppStateCompatibilityShimInvariantCoversTransition(
 
     if (invariant == NULL || invariant->transition_ids == NULL)
       return 0;
-    if (StringListContains(invariant->transition_ids,
-                           invariant->transition_id_count,
-                           metadata->target_transition))
+    if (!StringListContains(invariant->transition_ids,
+                            invariant->transition_id_count,
+                            metadata->target_transition))
+      return 0;
+  }
+
+  return 1;
+}
+
+static int AppStateGenerationOwnerFieldRegistered(const char *owner_field) {
+  size_t domain_index;
+
+  if (!NonEmptyString(owner_field))
+    return 0;
+
+  for (domain_index = 0; domain_index < AppStateGenerationDomainCount();
+       domain_index++) {
+    const AppStateGenerationDomainMetadata *domain =
+        AppStateGenerationDomainAt(domain_index);
+
+    if (domain == NULL || !NonEmptyString(domain->generation_owner_field))
+      return 0;
+    if (strcmp(domain->generation_owner_field, owner_field) == 0)
+      return 1;
+  }
+
+  return 0;
+}
+
+static int AppStateCompatibilityShimGenerationDomainCoversOwnerField(
+    const AppStateCompatibilityShimMetadata *metadata,
+    const char *owner_field) {
+  size_t ref_index;
+
+  if (metadata == NULL || !NonEmptyString(owner_field) ||
+      metadata->generation_domain_refs == NULL)
+    return 0;
+
+  for (ref_index = 0; ref_index < metadata->generation_domain_ref_count;
+       ref_index++) {
+    const AppStateGenerationDomainMetadata *domain =
+        AppStateGenerationDomainLookup(
+            metadata->generation_domain_refs[ref_index]);
+
+    if (domain == NULL || !NonEmptyString(domain->generation_owner_field))
+      return 0;
+    if (strcmp(domain->generation_owner_field, owner_field) == 0)
       return 1;
   }
 
@@ -1145,15 +1205,23 @@ static int AppStateCompatibilityShimsReady(void) {
     const AppStateCompatibilityShimMetadata *metadata =
         AppStateCompatibilityShimAt(index);
     size_t invariant_index;
+    size_t generation_index;
     size_t previous_index;
+    size_t ref_index;
+    const AppStateTransitionMetadata *transition;
 
     if (metadata == NULL || !NonEmptyString(metadata->id) ||
         !NonEmptyString(metadata->owner) ||
         !NonEmptyString(metadata->old_authority_path) ||
         !NonEmptyString(metadata->read_permission) ||
         !NonEmptyString(metadata->write_permission) ||
+        !AppStateCompatibilityShimWriteCapabilityKnown(metadata) ||
         metadata->invariant_checks == NULL ||
         metadata->invariant_check_count == 0 ||
+        !NonEmptyStringList(metadata->owner_field_refs,
+                            metadata->owner_field_ref_count) ||
+        !NonEmptyStringList(metadata->generation_domain_refs,
+                            metadata->generation_domain_ref_count) ||
         !NonEmptyString(metadata->removal_trigger) ||
         !NonEmptyString(metadata->target_transition) ||
         !NonEmptyString(metadata->follow_up_task) ||
@@ -1163,6 +1231,7 @@ static int AppStateCompatibilityShimsReady(void) {
       return 0;
     if (AppStateTransitionLookup(metadata->target_transition) == NULL)
       return 0;
+    transition = AppStateTransitionLookup(metadata->target_transition);
 
     for (previous_index = 0; previous_index < index; previous_index++) {
       const AppStateCompatibilityShimMetadata *previous =
@@ -1178,6 +1247,36 @@ static int AppStateCompatibilityShimsReady(void) {
         return 0;
       if (AppStateInvariantLookup(metadata->invariant_checks[invariant_index]) ==
           NULL)
+        return 0;
+    }
+    for (generation_index = 0;
+         generation_index < metadata->generation_domain_ref_count;
+         generation_index++) {
+      if (AppStateGenerationDomainLookup(
+              metadata->generation_domain_refs[generation_index]) == NULL)
+        return 0;
+      if (StringListContains(metadata->generation_domain_refs, generation_index,
+                             metadata->generation_domain_refs[generation_index]))
+        return 0;
+    }
+    for (ref_index = 0; ref_index < metadata->owner_field_ref_count;
+         ref_index++) {
+      if (AppStateOwnerFieldLookup(metadata->owner_field_refs[ref_index]) ==
+          NULL)
+        return 0;
+      if (StringListContains(metadata->owner_field_refs, ref_index,
+                             metadata->owner_field_refs[ref_index]))
+        return 0;
+      if (AppStateCompatibilityShimWriteCapable(metadata) &&
+          !StringListContains(transition->declared_write_set,
+                              transition->declared_write_set_count,
+                              metadata->owner_field_refs[ref_index]))
+        return 0;
+      if (AppStateCompatibilityShimWriteCapable(metadata) &&
+          AppStateGenerationOwnerFieldRegistered(
+              metadata->owner_field_refs[ref_index]) &&
+          !AppStateCompatibilityShimGenerationDomainCoversOwnerField(
+              metadata, metadata->owner_field_refs[ref_index]))
         return 0;
     }
     if (!AppStateCompatibilityShimInvariantCoversTransition(metadata))
