@@ -264,6 +264,8 @@ static const char *const kAppStateRequiredTransitionSequenceScenarioIds[] = {
   "sequence.file-small-big-transitions",
   "sequence.volume-cycling-release",
   "sequence.split-close-reopen",
+  "sequence.terminal-resize-reflow",
+  "sequence.render-reflow-projection",
 };
 
 static int StringListContains(const char *const *values, size_t count,
@@ -934,6 +936,129 @@ static int AppStateDispatchSurfaceWriteHasInvariantCoverage(
   return 0;
 }
 
+static int AppStateTransitionSequenceStepDiffHarnessCoversField(
+    const AppStateTransitionSequenceStepMetadata *step, const char *field) {
+  size_t harness_index;
+
+  if (step == NULL || !NonEmptyString(field) ||
+      !NonEmptyStringList(step->diff_harness_ids, step->diff_harness_id_count))
+    return 0;
+
+  for (harness_index = 0; harness_index < step->diff_harness_id_count;
+       harness_index++) {
+    const AppStateDiffHarnessMetadata *harness =
+        AppStateDiffHarnessLookup(step->diff_harness_ids[harness_index]);
+
+    if (harness == NULL ||
+        !NonEmptyStringList(harness->owner_field_refs,
+                            harness->owner_field_ref_count))
+      return 0;
+    if (StringListContains(harness->owner_field_refs,
+                           harness->owner_field_ref_count, field))
+      return 1;
+  }
+
+  return 0;
+}
+
+static int AppStateTransitionSequenceStepInvariantCoversField(
+    const AppStateTransitionSequenceStepMetadata *step, const char *field) {
+  size_t invariant_index;
+
+  if (step == NULL || !NonEmptyString(field) ||
+      !NonEmptyStringList(step->invariant_ids, step->invariant_id_count))
+    return 0;
+
+  for (invariant_index = 0; invariant_index < step->invariant_id_count;
+       invariant_index++) {
+    const AppStateInvariantMetadata *invariant =
+        AppStateInvariantLookup(step->invariant_ids[invariant_index]);
+
+    if (invariant == NULL ||
+        !NonEmptyStringList(invariant->protected_fields,
+                            invariant->protected_field_count))
+      return 0;
+    if (StringListContains(invariant->protected_fields,
+                           invariant->protected_field_count, field))
+      return 1;
+  }
+
+  return 0;
+}
+
+static int AppStateDispatchSurfaceSequenceRefsReady(
+    const AppStateDispatchSurfaceMetadata *metadata) {
+  size_t ref_index;
+  int transition_step_found = 0;
+
+  if (metadata == NULL ||
+      !NonEmptyStringList(metadata->transition_sequence_refs,
+                          metadata->transition_sequence_ref_count))
+    return 0;
+
+  for (ref_index = 0; ref_index < metadata->transition_sequence_ref_count;
+       ref_index++) {
+    const AppStateTransitionSequenceMetadata *sequence =
+        AppStateTransitionSequenceLookup(metadata->transition_sequence_refs[ref_index]);
+    size_t previous_index;
+    size_t step_index;
+
+    if (sequence == NULL)
+      return 0;
+    for (previous_index = 0; previous_index < ref_index; previous_index++) {
+      if (strcmp(metadata->transition_sequence_refs[previous_index],
+                 metadata->transition_sequence_refs[ref_index]) == 0)
+        return 0;
+    }
+    for (step_index = 0; step_index < sequence->step_count; step_index++) {
+      const AppStateTransitionSequenceStepMetadata *step =
+          &sequence->steps[step_index];
+
+      if (!NonEmptyString(step->transition_id))
+        return 0;
+      if (strcmp(step->transition_id, metadata->transition_id) == 0)
+        transition_step_found = 1;
+    }
+  }
+
+  return transition_step_found;
+}
+
+static int AppStateDispatchSurfaceSequenceRefsCoverField(
+    const AppStateDispatchSurfaceMetadata *metadata, const char *field) {
+  size_t ref_index;
+  int diff_covered = 0;
+  int invariant_covered = 0;
+
+  if (metadata == NULL || !NonEmptyString(field))
+    return 0;
+
+  for (ref_index = 0; ref_index < metadata->transition_sequence_ref_count;
+       ref_index++) {
+    const AppStateTransitionSequenceMetadata *sequence =
+        AppStateTransitionSequenceLookup(metadata->transition_sequence_refs[ref_index]);
+    size_t step_index;
+
+    if (sequence == NULL)
+      return 0;
+    for (step_index = 0; step_index < sequence->step_count; step_index++) {
+      const AppStateTransitionSequenceStepMetadata *step =
+          &sequence->steps[step_index];
+
+      if (!NonEmptyString(step->transition_id))
+        return 0;
+      if (strcmp(step->transition_id, metadata->transition_id) != 0)
+        continue;
+      if (AppStateTransitionSequenceStepDiffHarnessCoversField(step, field))
+        diff_covered = 1;
+      if (AppStateTransitionSequenceStepInvariantCoversField(step, field))
+        invariant_covered = 1;
+    }
+  }
+
+  return diff_covered && invariant_covered;
+}
+
 static int AppStateDispatchSurfaceWritesReady(
     const AppStateDispatchSurfaceMetadata *metadata) {
   const AppStateTransitionMetadata *transition =
@@ -963,6 +1088,8 @@ static int AppStateDispatchSurfaceWritesReady(
     if (!AppStateDispatchSurfaceWriteHasInvariantCoverage(metadata->surface_id,
                                                           field))
       return 0;
+    if (!AppStateDispatchSurfaceSequenceRefsCoverField(metadata, field))
+      return 0;
   }
 
   return 1;
@@ -988,6 +1115,7 @@ static int AppStateDispatchSurfacesReady(void) {
         !NonEmptyString(metadata->entry_symbol_or_path) ||
         !NonEmptyString(metadata->transition_id) ||
         !NonEmptyString(metadata->boundary_status) ||
+        !AppStateDispatchSurfaceSequenceRefsReady(metadata) ||
         !AppStateDispatchSurfaceWritesReady(metadata) ||
         !NonEmptyStringList(metadata->migration_notes,
                             metadata->migration_note_count))

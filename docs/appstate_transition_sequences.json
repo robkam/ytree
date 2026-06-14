@@ -820,6 +820,86 @@
           ]
         }
       ]
+    },
+    {
+      "scenario_id": "sequence.terminal-resize-reflow",
+      "category": "terminal_resize",
+      "flow": "terminal_resize_reflow",
+      "description": "Handle terminal resize events with layout, window-handle, viewport, and generation coverage.",
+      "steps": [
+        {
+          "ordinal": 1,
+          "step_id": "terminal-resize-event",
+          "transition_id": "transition.terminal-signal-resize",
+          "stimulus": {
+            "event_id": "event.terminal-resize-signal"
+          },
+          "expected_result": "allowed",
+          "invariant_ids": [
+            "invariant.render-projection-read-only",
+            "invariant.viewport-identity-rebind"
+          ],
+          "diff_harness_ids": [
+            "harness.generation-mismatch-check"
+          ],
+          "generation_domain_expectations": [
+            {
+              "domain_id": "reflow.layout.projection",
+              "expectation": "Layout reflow generation changes only through the resize transition."
+            },
+            {
+              "domain_id": "generation.panel.local-authority",
+              "expectation": "Panel generation validates before viewport rebind after resize."
+            },
+            {
+              "domain_id": "identity.directory.stable-key",
+              "expectation": "Directory identity remains durable while viewport geometry is rebound."
+            },
+            {
+              "domain_id": "identity.file.stable-key",
+              "expectation": "File identity remains durable while viewport geometry is rebound."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "scenario_id": "sequence.render-reflow-projection",
+      "category": "render_reflow",
+      "flow": "render_reflow_projection",
+      "description": "Project settled AppState to render output without mutating authoritative owner fields.",
+      "steps": [
+        {
+          "ordinal": 1,
+          "step_id": "render-reflow-event",
+          "transition_id": "transition.render-reflow.project-state",
+          "stimulus": {
+            "event_id": "event.render-reflow"
+          },
+          "expected_result": "allowed",
+          "invariant_ids": [
+            "invariant.render-projection-read-only",
+            "invariant.blocked-transition-determinism"
+          ],
+          "diff_harness_ids": [
+            "harness.render-projection-read-only-diff"
+          ],
+          "generation_domain_expectations": [
+            {
+              "domain_id": "reflow.layout.projection",
+              "expectation": "Render projection consumes layout reflow state without claiming owner authority."
+            },
+            {
+              "domain_id": "generation.panel.local-authority",
+              "expectation": "Panel generation remains an input to projection, not a render-owned mutation."
+            },
+            {
+              "domain_id": "generation.volume.shared-authority",
+              "expectation": "Volume generation remains an input to projection, not a render-owned mutation."
+            }
+          ]
+        }
+      ]
     }
   ]
 }

@@ -147,7 +147,9 @@ REQUIRED_SEQUENCE_CATEGORIES = {
     "modal_command",
     "panel_navigation",
     "refresh_rebuild",
+    "render_reflow",
     "search_jump",
+    "terminal_resize",
     "visibility_filter",
     "volume_lifecycle",
 }
@@ -159,11 +161,13 @@ REQUIRED_SEQUENCE_FLOWS = {
     "file_small_big_transitions",
     "filesystem_mutation_result",
     "refresh_rebuild",
+    "render_reflow_projection",
     "search_jump",
     "showall_global_tagged_only",
     "split_close_reopen",
     "split_toggle_f8",
     "tab_panel_switch",
+    "terminal_resize_reflow",
     "volume_cycling_release",
 }
 
@@ -173,6 +177,7 @@ REQUIRED_DISPATCH_SURFACE_FIELDS = {
     "source_path",
     "entry_symbol_or_path",
     "transition_id",
+    "transition_sequence_refs",
     "boundary_status",
     "allowed_direct_writes",
     "migration_notes",
@@ -295,7 +300,7 @@ VALID_SHIM_WRITE_CAPABILITIES = {
     "read_only_projection",
     "no_write",
 }
-DISPATCH_LIST_FIELDS = {"migration_notes"}
+DISPATCH_LIST_FIELDS = {"migration_notes", "transition_sequence_refs"}
 INVARIANT_LIST_FIELDS = {
     "protected_fields",
     "transition_ids",
@@ -947,6 +952,7 @@ def _parse_runtime_dispatch_surface_registry(
 
     array_fields = {
         "AllowedDirectWrites": "allowed_direct_writes",
+        "TransitionSequenceRefs": "transition_sequence_refs",
         "MigrationNotes": "migration_notes",
     }
     arrays: dict[str, list[str]] = {}
@@ -988,6 +994,10 @@ def _parse_runtime_dispatch_surface_registry(
         r"\s*(?:(?P<allowed_direct_write_zero>0)|"
         r"sizeof\((?P=allowed_direct_writes)\)\s*/"
         r"\s*sizeof\((?P=allowed_direct_writes)\[0\]\))\s*,"
+        r"\s*(?P<transition_sequence_refs>"
+        r"kAppStateDispatchSurfaceTransitionSequenceRefs[0-9]+)\s*,"
+        r"\s*sizeof\((?P=transition_sequence_refs)\)\s*/"
+        r"\s*sizeof\((?P=transition_sequence_refs)\[0\]\)\s*,"
         r"\s*(?P<migration_notes>kAppStateDispatchSurfaceMigrationNotes[0-9]+)\s*,"
         r"\s*sizeof\((?P=migration_notes)\)\s*/"
         r"\s*sizeof\((?P=migration_notes)\[0\]\)\s*\}",
@@ -1014,7 +1024,11 @@ def _parse_runtime_dispatch_surface_registry(
             "transition_id": row_match.group("transition_id"),
             "boundary_status": row_match.group("boundary_status"),
         }
-        for field in ("allowed_direct_writes", "migration_notes"):
+        for field in (
+            "allowed_direct_writes",
+            "transition_sequence_refs",
+            "migration_notes",
+        ):
             table_name = row_match.group(field)
             if table_name == "NULL":
                 values = []
@@ -2319,6 +2333,9 @@ def _validate_runtime_dispatch_surface_registry(
     runtime_transition_records: dict[str, dict[str, Any]],
     runtime_transition_ids: set[str],
     runtime_invariant_protected_fields_by_surface: dict[str, set[str]],
+    runtime_transition_sequence_records: list[Any],
+    runtime_diff_harness_owner_field_refs: dict[str, set[str]],
+    runtime_invariant_protected_fields: dict[str, set[str]],
 ) -> list[str]:
     failures: list[str] = []
     expected_surfaces = {
@@ -2351,6 +2368,7 @@ def _validate_runtime_dispatch_surface_registry(
                 "transition_id",
                 "boundary_status",
                 "allowed_direct_writes",
+                "transition_sequence_refs",
                 "migration_notes",
             ):
                 if record.get(field) != surface_record.get(field):
@@ -2375,6 +2393,16 @@ def _validate_runtime_dispatch_surface_registry(
             failures.append(f"{label}: migration_notes must be non-empty")
         elif any(not isinstance(note, str) or not note.strip() for note in notes):
             failures.append(f"{label}: migration_notes must contain non-empty strings")
+
+        failures.extend(
+            _validate_dispatch_surface_transition_sequence_coverage(
+                record=record,
+                transition_sequence_records=runtime_transition_sequence_records,
+                diff_harness_owner_field_refs=runtime_diff_harness_owner_field_refs,
+                invariant_protected_fields=runtime_invariant_protected_fields,
+                label=label,
+            )
+        )
 
         transition_id = record.get("transition_id")
         if (
@@ -3477,6 +3505,104 @@ def _validate_allowed_direct_writes_within_transition(
     return failures
 
 
+def _validate_dispatch_surface_transition_sequence_coverage(
+    *,
+    record: dict[str, Any],
+    transition_sequence_records: list[Any],
+    diff_harness_owner_field_refs: dict[str, set[str]],
+    invariant_protected_fields: dict[str, set[str]],
+    label: str,
+) -> list[str]:
+    refs = record.get("transition_sequence_refs")
+    transition_id = record.get("transition_id")
+    writes = record.get("allowed_direct_writes")
+    if not isinstance(refs, list):
+        return [f"{label}: transition_sequence_refs must be a non-empty list"]
+
+    sequences: dict[str, dict[str, Any]] = {
+        sequence["scenario_id"]: sequence
+        for sequence in transition_sequence_records
+        if isinstance(sequence, dict)
+        and isinstance(sequence.get("scenario_id"), str)
+        and sequence["scenario_id"].strip()
+    }
+    failures: list[str] = []
+    seen: set[str] = set()
+    matching_steps: list[dict[str, Any]] = []
+
+    for index, sequence_ref in enumerate(refs):
+        if not isinstance(sequence_ref, str) or not sequence_ref.strip():
+            failures.append(
+                f"{label}: transition_sequence_refs[{index}] must be a non-empty string"
+            )
+            continue
+        if sequence_ref in seen:
+            failures.append(
+                f"{label}: duplicate transition_sequence_refs[{index}]: {sequence_ref}"
+            )
+        seen.add(sequence_ref)
+        sequence = sequences.get(sequence_ref)
+        if sequence is None:
+            failures.append(
+                f"{label}: transition_sequence_refs references unknown transition "
+                f"sequence: {sequence_ref}"
+            )
+            continue
+        steps = sequence.get("steps")
+        if not isinstance(steps, list):
+            continue
+        if not isinstance(transition_id, str) or not transition_id.strip():
+            continue
+        matching_steps.extend(
+            step
+            for step in steps
+            if isinstance(step, dict) and step.get("transition_id") == transition_id
+        )
+
+    if isinstance(transition_id, str) and transition_id.strip() and not matching_steps:
+        failures.append(
+            f"{label}: transition_sequence_refs must include at least one step "
+            f"covering transition_id {transition_id}"
+        )
+
+    if not isinstance(writes, list):
+        return failures
+
+    diff_covered_fields: set[str] = set()
+    invariant_covered_fields: set[str] = set()
+    for step in matching_steps:
+        diff_harness_ids = step.get("diff_harness_ids")
+        if isinstance(diff_harness_ids, list):
+            for harness_id in diff_harness_ids:
+                if isinstance(harness_id, str) and harness_id.strip():
+                    diff_covered_fields.update(
+                        diff_harness_owner_field_refs.get(harness_id, set())
+                    )
+        invariant_ids = step.get("invariant_ids")
+        if isinstance(invariant_ids, list):
+            for invariant_id in invariant_ids:
+                if isinstance(invariant_id, str) and invariant_id.strip():
+                    invariant_covered_fields.update(
+                        invariant_protected_fields.get(invariant_id, set())
+                    )
+
+    for write_index, field in enumerate(writes):
+        if not isinstance(field, str) or not field.strip():
+            continue
+        if field not in diff_covered_fields:
+            failures.append(
+                f"{label}: allowed_direct_writes[{write_index}] lacks "
+                f"transition-sequence diff harness coverage for owner field: {field}"
+            )
+        if field not in invariant_covered_fields:
+            failures.append(
+                f"{label}: allowed_direct_writes[{write_index}] lacks "
+                f"transition-sequence invariant coverage for owner field: {field}"
+            )
+
+    return failures
+
+
 def _validate_appstate_diff_harness(
     *,
     diff_harness_doc: Any,
@@ -3690,6 +3816,9 @@ def _validate_dispatch_surfaces(
     transition_ids: dict[str, dict[str, Any]],
     registered_owner_fields: set[str],
     invariant_protected_fields_by_surface: dict[str, set[str]],
+    transition_sequence_records: list[Any],
+    diff_harness_owner_field_refs: dict[str, set[str]],
+    invariant_protected_fields: dict[str, set[str]],
 ) -> list[str]:
     failures: list[str] = []
     if not isinstance(dispatch_surfaces_doc, dict):
@@ -3761,6 +3890,15 @@ def _validate_dispatch_surfaces(
                     label=label,
                 )
             )
+        failures.extend(
+            _validate_dispatch_surface_transition_sequence_coverage(
+                record=record,
+                transition_sequence_records=transition_sequence_records,
+                diff_harness_owner_field_refs=diff_harness_owner_field_refs,
+                invariant_protected_fields=invariant_protected_fields,
+                label=label,
+            )
+        )
 
         source_path = record.get("source_path")
         entry_symbol_or_path = record.get("entry_symbol_or_path")
@@ -5895,6 +6033,14 @@ def validate_contract(
             transition_ids=transition_ids,
             registered_owner_fields=registered_owner_fields,
             invariant_protected_fields_by_surface=invariant_protected_fields_by_surface,
+            transition_sequence_records=(
+                transition_sequences_doc["scenarios"]
+                if isinstance(transition_sequences_doc, dict)
+                and isinstance(transition_sequences_doc.get("scenarios"), list)
+                else []
+            ),
+            diff_harness_owner_field_refs=diff_harness_owner_field_refs_by_harness,
+            invariant_protected_fields=invariant_protected_fields,
         )
     )
     if isinstance(dispatch_surfaces_doc, dict) and isinstance(
@@ -5915,6 +6061,11 @@ def validate_contract(
             runtime_invariant_protected_fields_by_surface=(
                 runtime_invariant_protected_fields_by_surface
             ),
+            runtime_transition_sequence_records=runtime_transition_sequence_records,
+            runtime_diff_harness_owner_field_refs=(
+                runtime_diff_harness_owner_field_refs_by_harness
+            ),
+            runtime_invariant_protected_fields=runtime_invariant_protected_fields,
         )
     )
     dispatch_surface_ids = _collect_string_ids(
