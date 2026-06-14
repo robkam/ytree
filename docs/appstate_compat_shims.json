@@ -9,6 +9,7 @@
       "old_authority_path": "ViewContext.hide_dot_files",
       "read_permission": "Allowed only as a derived compatibility mirror for helpers that have not yet accepted YtreeNovaPanel dotfile visibility.",
       "write_permission": "Write only when synchronizing from the active panel's authoritative dotfile_visibility during transition commit.",
+      "write_capability": "write_capable",
       "invariant_checks": [
         "invariant.hidden-entry-visible-navigation",
         "invariant.shared-state-panel-local-isolation"
@@ -16,7 +17,11 @@
       "removal_trigger": "All visibility and restore helpers consume panel-local dotfile_visibility directly.",
       "target_transition": "transition.keybinding.navigate-tree",
       "follow_up_task": "Runtime migration of visibility toggles and restore helpers to AppState panel records.",
-      "qa_enforcement": "check_appstate_contract.py requires this shim to declare permissions, invariants, target transition, and removal trigger."
+      "qa_enforcement": "check_appstate_contract.py requires this shim to declare permissions, invariants, target transition, and removal trigger.",
+      "owner_field_refs": [
+        "panel.tree_viewport_origin",
+        "panel.panel_generation"
+      ]
     },
     {
       "id": "shim.volume-saved-tree-index",
@@ -24,6 +29,7 @@
       "old_authority_path": "Volume.saved_tree_index",
       "read_permission": "Allowed only as a fallback breadcrumb when a stable path key has already failed to resolve.",
       "write_permission": "Do not write as primary restore authority; future writes must update stable identity keys and generation metadata first.",
+      "write_capability": "write_capable",
       "invariant_checks": [
         "invariant.viewport-identity-rebind",
         "invariant.stale-snapshot-fail-closed"
@@ -31,7 +37,13 @@
       "removal_trigger": "Volume restore breadcrumbs are path-keyed and generation-checked across rebuild/relog paths.",
       "target_transition": "transition.rebuild-rebind-callback.panel-anchor",
       "follow_up_task": "Replace index breadcrumbs with path-scoped restore snapshots in the canonical panel state record.",
-      "qa_enforcement": "check_appstate_contract.py keeps this debt visible until runtime migration removes the shim."
+      "qa_enforcement": "check_appstate_contract.py keeps this debt visible until runtime migration removes the shim.",
+      "owner_field_refs": [
+        "panel.tree_selection_key",
+        "panel.tree_cursor_pos",
+        "panel.tree_viewport_origin",
+        "panel.panel_generation"
+      ]
     },
     {
       "id": "shim.focused-window-session-flag",
@@ -39,6 +51,7 @@
       "old_authority_path": "ViewContext.focused_window",
       "read_permission": "Allowed for layout routing and footer context selection while AppState focus_shape migration is incomplete.",
       "write_permission": "Write only from transition commit after the active panel focus_shape has been updated.",
+      "write_capability": "write_capable",
       "invariant_checks": [
         "invariant.panel-local-focus-restore",
         "invariant.inactive-panel-frozen"
@@ -46,7 +59,11 @@
       "removal_trigger": "All Enter, Tab, and F8 paths route through the canonical AppState transition entry point.",
       "target_transition": "transition.keybinding.navigate-tree",
       "follow_up_task": "Move focus-shape authority from session mirrors into panel-local transition records.",
-      "qa_enforcement": "check_appstate_contract.py validates shim coverage and links it to an existing transition id."
+      "qa_enforcement": "check_appstate_contract.py validates shim coverage and links it to an existing transition id.",
+      "owner_field_refs": [
+        "panel.focus_shape",
+        "panel.panel_generation"
+      ]
     },
     {
       "id": "shim-render-derived-row-position",
@@ -54,6 +71,7 @@
       "old_authority_path": "disp_begin_pos + cursor_pos render-derived lookup",
       "read_permission": "Allowed only inside render projection or bounds-correction code after identity restore has run.",
       "write_permission": "Never write authoritative selection from this calculation.",
+      "write_capability": "read_only_projection",
       "invariant_checks": [
         "invariant.render-projection-read-only",
         "invariant.viewport-identity-rebind"
@@ -61,7 +79,12 @@
       "removal_trigger": "Render paths accept explicit projection inputs and no longer inspect restore authority fields directly.",
       "target_transition": "transition.render-reflow.project-state",
       "follow_up_task": "Audit render/reflow call sites for projection-only behavior during runtime migration.",
-      "qa_enforcement": "check_appstate_contract.py requires render shims to declare no-write authority and target transition linkage."
+      "qa_enforcement": "check_appstate_contract.py requires render shims to declare no-write authority and target transition linkage.",
+      "owner_field_refs": [
+        "panel.tree_cursor_pos",
+        "panel.tree_viewport_origin",
+        "panel.file_viewport_origin"
+      ]
     }
   ]
 }

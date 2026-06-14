@@ -73,8 +73,11 @@ typedef struct {
   const char *old_authority_path;
   const char *read_permission;
   const char *write_permission;
+  const char *write_capability;
   const char *const *invariant_checks;
   size_t invariant_check_count;
+  const char *const *owner_field_refs;
+  size_t owner_field_ref_count;
   const char *removal_trigger;
   const char *target_transition;
   const char *follow_up_task;
