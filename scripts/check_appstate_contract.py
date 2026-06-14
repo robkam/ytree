@@ -77,6 +77,7 @@ REQUIRED_ACTION_FIELDS = {
     "category",
     "owner",
     "declared_write_set",
+    "transition_sequence_refs",
     "boundary_status",
     "migration_notes",
 }
@@ -144,6 +145,7 @@ REQUIRED_SEQUENCE_CATEGORIES = {
     "display_mode",
     "filesystem_mutation",
     "layout_split",
+    "menu_action",
     "modal_command",
     "panel_navigation",
     "refresh_rebuild",
@@ -160,6 +162,7 @@ REQUIRED_SEQUENCE_FLOWS = {
     "esc_modal_dismissal",
     "file_small_big_transitions",
     "filesystem_mutation_result",
+    "volume_menu_select",
     "refresh_rebuild",
     "render_reflow_projection",
     "search_jump",
@@ -191,6 +194,7 @@ REQUIRED_EVENT_FIELDS = {
     "source",
     "owner",
     "declared_write_set",
+    "transition_sequence_refs",
     "boundary_status",
     "trigger_paths",
     "migration_notes",
@@ -289,7 +293,8 @@ LIST_FIELDS = {
     "migration_notes",
 }
 
-EVENT_LIST_FIELDS = LIST_FIELDS | {"trigger_paths"}
+ACTION_LIST_FIELDS = LIST_FIELDS | {"transition_sequence_refs"}
+EVENT_LIST_FIELDS = LIST_FIELDS | {"trigger_paths", "transition_sequence_refs"}
 SHIM_LIST_FIELDS = LIST_FIELDS | {
     "owner_field_refs",
     "generation_domain_refs",
@@ -608,20 +613,20 @@ def _parse_runtime_action_coverage_registry(
         write_sets[table_name] = values
         failures.extend(array_failures)
 
-    migration_notes: dict[str, list[str]] = {}
-    migration_notes_re = re.compile(
+    arrays: dict[str, list[str]] = {}
+    array_re = re.compile(
         r"static\s+const\s+char\s+\*const\s+"
-        r"(kAppStateActionCoverageMigrationNotes[0-9]+)"
+        r"(kAppStateActionCoverage(?:TransitionSequenceRefs|MigrationNotes)[0-9]+)"
         r"\[\]\s*=\s*\{(?P<body>.*?)\};",
         re.S,
     )
-    for notes_match in migration_notes_re.finditer(source):
-        table_name = notes_match.group(1)
+    for array_match in array_re.finditer(source):
+        table_name = array_match.group(1)
         values, array_failures = _parse_string_initializer_array(
-            notes_match.group("body"),
+            array_match.group("body"),
             table_name,
         )
-        migration_notes[table_name] = values
+        arrays[table_name] = values
         failures.extend(array_failures)
 
     match = re.search(
@@ -641,6 +646,9 @@ def _parse_runtime_action_coverage_registry(
         r"\s*\"(?P<owner>[^\"]*)\"\s*,"
         r"\s*(?P<write_set>kAppState(?:TransitionWriteSet|ActionCoverageWriteSet)[0-9]+)\s*,"
         r"\s*sizeof\((?P=write_set)\)\s*/\s*sizeof\((?P=write_set)\[0\]\)\s*,"
+        r"\s*(?P<transition_sequence_refs>kAppStateActionCoverageTransitionSequenceRefs[0-9]+)\s*,"
+        r"\s*sizeof\((?P=transition_sequence_refs)\)\s*/"
+        r"\s*sizeof\((?P=transition_sequence_refs)\[0\]\)\s*,"
         r"\s*\"(?P<boundary_status>[^\"]*)\"\s*,"
         r"\s*(?P<migration_notes>kAppStateActionCoverageMigrationNotes[0-9]+)\s*,"
         r"\s*sizeof\((?P=migration_notes)\)\s*/"
@@ -668,8 +676,16 @@ def _parse_runtime_action_coverage_registry(
                 f"table: {write_set_name}"
             )
             declared_write_set = []
+        sequence_refs_name = row_match.group("transition_sequence_refs")
+        sequence_refs = arrays.get(sequence_refs_name)
+        if sequence_refs is None:
+            failures.append(
+                f"runtime_action_coverage[{index}]: unknown transition-sequence-refs "
+                f"table: {sequence_refs_name}"
+            )
+            sequence_refs = []
         notes_name = row_match.group("migration_notes")
-        notes = migration_notes.get(notes_name)
+        notes = arrays.get(notes_name)
         if notes is None:
             failures.append(
                 f"runtime_action_coverage[{index}]: unknown migration-notes "
@@ -684,6 +700,7 @@ def _parse_runtime_action_coverage_registry(
                 "category": row_match.group("category"),
                 "owner": row_match.group("owner"),
                 "declared_write_set": declared_write_set,
+                "transition_sequence_refs": sequence_refs,
                 "boundary_status": row_match.group("boundary_status"),
                 "migration_notes": notes,
             }
@@ -708,7 +725,7 @@ def _parse_runtime_event_coverage_registry(
     arrays: dict[str, list[str]] = {}
     array_re = re.compile(
         r"static\s+const\s+char\s+\*const\s+"
-        r"(kAppState(?:TransitionWriteSet|EventCoverageTriggerPaths|EventCoverageMigrationNotes)[0-9]+)"
+        r"(kAppState(?:TransitionWriteSet|EventCoverageTriggerPaths|EventCoverageTransitionSequenceRefs|EventCoverageMigrationNotes)[0-9]+)"
         r"\[\]\s*=\s*\{(?P<body>.*?)\};",
         re.S,
     )
@@ -742,6 +759,8 @@ def _parse_runtime_event_coverage_registry(
         r"\s*\"(?P<boundary_status>[^\"]*)\"\s*,"
         r"\s*(?P<trigger_paths>kAppStateEventCoverageTriggerPaths[0-9]+)\s*,"
         r"\s*sizeof\((?P=trigger_paths)\)\s*/\s*sizeof\((?P=trigger_paths)\[0\]\)\s*,"
+        r"\s*(?P<transition_sequence_refs>kAppStateEventCoverageTransitionSequenceRefs[0-9]+)\s*,"
+        r"\s*sizeof\((?P=transition_sequence_refs)\)\s*/\s*sizeof\((?P=transition_sequence_refs)\[0\]\)\s*,"
         r"\s*(?P<migration_notes>kAppStateEventCoverageMigrationNotes[0-9]+)\s*,"
         r"\s*sizeof\((?P=migration_notes)\)\s*/\s*sizeof\((?P=migration_notes)\[0\]\)\s*\}",
         re.S,
@@ -761,6 +780,7 @@ def _parse_runtime_event_coverage_registry(
             continue
         write_set = arrays.get(row_match.group("write_set"))
         trigger_paths = arrays.get(row_match.group("trigger_paths"))
+        transition_sequence_refs = arrays.get(row_match.group("transition_sequence_refs"))
         migration_notes = arrays.get(row_match.group("migration_notes"))
         if write_set is None:
             failures.append(
@@ -774,6 +794,12 @@ def _parse_runtime_event_coverage_registry(
                 f"{row_match.group('trigger_paths')}"
             )
             trigger_paths = []
+        if transition_sequence_refs is None:
+            failures.append(
+                f"runtime_event_coverage[{index}]: unknown transition-sequence-refs table: "
+                f"{row_match.group('transition_sequence_refs')}"
+            )
+            transition_sequence_refs = []
         if migration_notes is None:
             failures.append(
                 f"runtime_event_coverage[{index}]: unknown migration-notes table: "
@@ -791,6 +817,7 @@ def _parse_runtime_event_coverage_registry(
                 "declared_write_set": write_set,
                 "boundary_status": row_match.group("boundary_status"),
                 "trigger_paths": trigger_paths,
+                "transition_sequence_refs": transition_sequence_refs,
                 "migration_notes": migration_notes,
             }
         )
@@ -1875,7 +1902,9 @@ def _validate_runtime_action_coverage_registry(
     enum_actions: list[str],
     action_coverage_by_action: dict[str, dict[str, Any]],
     transition_ids: dict[str, dict[str, Any]],
+    transition_sequence_records: list[Any],
     runtime_transition_ids: set[str],
+    runtime_transition_sequence_records: list[Any],
     runtime_action_transitions: list[dict[str, str]],
     registered_owner_fields: set[str],
 ) -> list[str]:
@@ -1892,7 +1921,7 @@ def _validate_runtime_action_coverage_registry(
             _validate_required_fields(
                 record=record,
                 required_fields=REQUIRED_ACTION_FIELDS,
-                list_fields=LIST_FIELDS,
+                list_fields=ACTION_LIST_FIELDS,
                 label=label,
             )
         )
@@ -1927,6 +1956,13 @@ def _validate_runtime_action_coverage_registry(
                 registered_fields=registered_owner_fields,
                 label=label,
             )
+        )
+        failures.extend(
+            _validate_transition_sequence_refs(
+                record=record,
+                transition_sequence_records=runtime_transition_sequence_records,
+                label=label,
+            )[0]
         )
 
         transition_id = record.get("transition_id")
@@ -1976,6 +2012,7 @@ def _validate_runtime_action_coverage_registry(
                     "category",
                     "owner",
                     "declared_write_set",
+                    "transition_sequence_refs",
                     "boundary_status",
                     "migration_notes",
                 ):
@@ -1984,6 +2021,16 @@ def _validate_runtime_action_coverage_registry(
                             f"{label}: runtime {field} does not match action "
                             f"coverage for {action}: {record.get(field)!r}"
                         )
+                if record.get("transition_sequence_refs") != coverage_record.get(
+                    "transition_sequence_refs"
+                ):
+                    failures.extend(
+                        _validate_transition_sequence_refs(
+                            record=coverage_record,
+                            transition_sequence_records=transition_sequence_records,
+                            label=f"action coverage for {action}",
+                        )[0]
+                    )
 
             action_transition = runtime_action_by_action.get(action)
             if action_transition is None:
@@ -3505,19 +3552,16 @@ def _validate_allowed_direct_writes_within_transition(
     return failures
 
 
-def _validate_dispatch_surface_transition_sequence_coverage(
+def _validate_transition_sequence_refs(
     *,
     record: dict[str, Any],
     transition_sequence_records: list[Any],
-    diff_harness_owner_field_refs: dict[str, set[str]],
-    invariant_protected_fields: dict[str, set[str]],
     label: str,
-) -> list[str]:
+) -> tuple[list[str], list[dict[str, Any]]]:
     refs = record.get("transition_sequence_refs")
     transition_id = record.get("transition_id")
-    writes = record.get("allowed_direct_writes")
-    if not isinstance(refs, list):
-        return [f"{label}: transition_sequence_refs must be a non-empty list"]
+    if not isinstance(refs, list) or not refs:
+        return [f"{label}: transition_sequence_refs must be a non-empty list"], []
 
     sequences: dict[str, dict[str, Any]] = {
         sequence["scenario_id"]: sequence
@@ -3548,16 +3592,25 @@ def _validate_dispatch_surface_transition_sequence_coverage(
                 f"sequence: {sequence_ref}"
             )
             continue
-        steps = sequence.get("steps")
-        if not isinstance(steps, list):
-            continue
         if not isinstance(transition_id, str) or not transition_id.strip():
             continue
-        matching_steps.extend(
-            step
-            for step in steps
-            if isinstance(step, dict) and step.get("transition_id") == transition_id
+        steps = sequence.get("steps")
+        sequence_matching_steps = (
+            [
+                step
+                for step in steps
+                if isinstance(step, dict) and step.get("transition_id") == transition_id
+            ]
+            if isinstance(steps, list)
+            else []
         )
+        if not sequence_matching_steps:
+            failures.append(
+                f"{label}: transition_sequence_refs must include at least one step "
+                f"covering transition_id {transition_id} in "
+                f"transition_sequence_refs[{index}]: {sequence_ref}"
+            )
+        matching_steps.extend(sequence_matching_steps)
 
     if isinstance(transition_id, str) and transition_id.strip() and not matching_steps:
         failures.append(
@@ -3565,6 +3618,23 @@ def _validate_dispatch_surface_transition_sequence_coverage(
             f"covering transition_id {transition_id}"
         )
 
+    return failures, matching_steps
+
+
+def _validate_dispatch_surface_transition_sequence_coverage(
+    *,
+    record: dict[str, Any],
+    transition_sequence_records: list[Any],
+    diff_harness_owner_field_refs: dict[str, set[str]],
+    invariant_protected_fields: dict[str, set[str]],
+    label: str,
+) -> list[str]:
+    failures, matching_steps = _validate_transition_sequence_refs(
+        record=record,
+        transition_sequence_records=transition_sequence_records,
+        label=label,
+    )
+    writes = record.get("allowed_direct_writes")
     if not isinstance(writes, list):
         return failures
 
@@ -4229,6 +4299,7 @@ def _validate_runtime_event_coverage_registry(
     runtime_path: Path,
     event_coverage_doc: Any,
     transition_ids: dict[str, dict[str, Any]],
+    runtime_transition_sequence_records: list[Any],
     runtime_transition_ids: set[str],
 ) -> list[str]:
     failures: list[str] = []
@@ -4251,6 +4322,13 @@ def _validate_runtime_event_coverage_registry(
                 list_fields=EVENT_LIST_FIELDS,
                 label=label,
             )
+        )
+        failures.extend(
+            _validate_transition_sequence_refs(
+                record=record,
+                transition_sequence_records=runtime_transition_sequence_records,
+                label=label,
+            )[0]
         )
         event_id = record.get("event_id")
         if isinstance(event_id, str) and event_id.strip():
@@ -4314,6 +4392,7 @@ def _validate_event_coverage(
     event_coverage_doc: Any,
     event_coverage_path: Path,
     transition_ids: dict[str, dict[str, Any]],
+    transition_sequence_records: list[Any],
     registered_owner_fields: set[str],
 ) -> list[str]:
     failures: list[str] = []
@@ -4356,6 +4435,13 @@ def _validate_event_coverage(
                 registered_fields=registered_owner_fields,
                 label=label,
             )
+        )
+        failures.extend(
+            _validate_transition_sequence_refs(
+                record=record,
+                transition_sequence_records=transition_sequence_records,
+                label=label,
+            )[0]
         )
 
         event_id = record.get("event_id")
@@ -5924,7 +6010,7 @@ def validate_contract(
             _validate_required_fields(
                 record=record,
                 required_fields=REQUIRED_ACTION_FIELDS,
-                list_fields=LIST_FIELDS,
+                list_fields=ACTION_LIST_FIELDS,
                 label=label,
             )
         )
@@ -5936,6 +6022,18 @@ def validate_contract(
                 registered_fields=registered_owner_fields,
                 label=label,
             )
+        )
+        failures.extend(
+            _validate_transition_sequence_refs(
+                record=record,
+                transition_sequence_records=(
+                    transition_sequences_doc["scenarios"]
+                    if isinstance(transition_sequences_doc, dict)
+                    and isinstance(transition_sequences_doc.get("scenarios"), list)
+                    else []
+                ),
+                label=label,
+            )[0]
         )
 
         action = record.get("action")
@@ -6001,9 +6099,16 @@ def validate_contract(
             enum_actions=enum_actions,
             action_coverage_by_action=action_coverage_by_action,
             transition_ids=transition_ids,
+            transition_sequence_records=(
+                transition_sequences_doc["scenarios"]
+                if isinstance(transition_sequences_doc, dict)
+                and isinstance(transition_sequences_doc.get("scenarios"), list)
+                else []
+            ),
             runtime_transition_ids={
                 record["id"] for record in runtime_transition_records
             },
+            runtime_transition_sequence_records=runtime_transition_sequence_records,
             runtime_action_transitions=runtime_action_records,
             registered_owner_fields=registered_owner_fields,
         )
@@ -6014,6 +6119,12 @@ def validate_contract(
             event_coverage_doc=event_coverage_doc,
             event_coverage_path=event_coverage_path,
             transition_ids=transition_ids,
+            transition_sequence_records=(
+                transition_sequences_doc["scenarios"]
+                if isinstance(transition_sequences_doc, dict)
+                and isinstance(transition_sequences_doc.get("scenarios"), list)
+                else []
+            ),
             registered_owner_fields=registered_owner_fields,
         )
     )
@@ -6023,6 +6134,7 @@ def validate_contract(
             runtime_path=action_runtime_path,
             event_coverage_doc=event_coverage_doc,
             transition_ids=transition_ids,
+            runtime_transition_sequence_records=runtime_transition_sequence_records,
             runtime_transition_ids={record["id"] for record in runtime_transition_records},
         )
     )

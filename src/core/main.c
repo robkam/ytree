@@ -263,6 +263,7 @@ static const char *const kAppStateRequiredTransitionSequenceScenarioIds[] = {
   "sequence.showall-global-tagged-only",
   "sequence.file-small-big-transitions",
   "sequence.volume-cycling-release",
+  "sequence.volume-menu-select",
   "sequence.split-close-reopen",
   "sequence.terminal-resize-reflow",
   "sequence.render-reflow-projection",
@@ -986,28 +987,25 @@ static int AppStateTransitionSequenceStepInvariantCoversField(
   return 0;
 }
 
-static int AppStateDispatchSurfaceSequenceRefsReady(
-    const AppStateDispatchSurfaceMetadata *metadata) {
+static int AppStateTransitionSequenceRefsReady(const char *const *refs,
+                                               size_t ref_count,
+                                               const char *transition_id) {
   size_t ref_index;
-  int transition_step_found = 0;
 
-  if (metadata == NULL ||
-      !NonEmptyStringList(metadata->transition_sequence_refs,
-                          metadata->transition_sequence_ref_count))
+  if (!NonEmptyString(transition_id) || !NonEmptyStringList(refs, ref_count))
     return 0;
 
-  for (ref_index = 0; ref_index < metadata->transition_sequence_ref_count;
-       ref_index++) {
+  for (ref_index = 0; ref_index < ref_count; ref_index++) {
     const AppStateTransitionSequenceMetadata *sequence =
-        AppStateTransitionSequenceLookup(metadata->transition_sequence_refs[ref_index]);
+        AppStateTransitionSequenceLookup(refs[ref_index]);
+    int transition_step_found = 0;
     size_t previous_index;
     size_t step_index;
 
     if (sequence == NULL)
       return 0;
     for (previous_index = 0; previous_index < ref_index; previous_index++) {
-      if (strcmp(metadata->transition_sequence_refs[previous_index],
-                 metadata->transition_sequence_refs[ref_index]) == 0)
+      if (strcmp(refs[previous_index], refs[ref_index]) == 0)
         return 0;
     }
     for (step_index = 0; step_index < sequence->step_count; step_index++) {
@@ -1016,12 +1014,24 @@ static int AppStateDispatchSurfaceSequenceRefsReady(
 
       if (!NonEmptyString(step->transition_id))
         return 0;
-      if (strcmp(step->transition_id, metadata->transition_id) == 0)
+      if (strcmp(step->transition_id, transition_id) == 0)
         transition_step_found = 1;
     }
+    if (!transition_step_found)
+      return 0;
   }
 
-  return transition_step_found;
+  return 1;
+}
+
+static int AppStateDispatchSurfaceSequenceRefsReady(
+    const AppStateDispatchSurfaceMetadata *metadata) {
+  if (metadata == NULL)
+    return 0;
+
+  return AppStateTransitionSequenceRefsReady(
+      metadata->transition_sequence_refs, metadata->transition_sequence_ref_count,
+      metadata->transition_id);
 }
 
 static int AppStateDispatchSurfaceSequenceRefsCoverField(
@@ -1658,6 +1668,9 @@ static int AppStateEventCoverageReady(void) {
                             coverage->declared_write_set_count) ||
         !NonEmptyStringList(coverage->trigger_paths,
                             coverage->trigger_path_count) ||
+        !AppStateTransitionSequenceRefsReady(
+            coverage->transition_sequence_refs,
+            coverage->transition_sequence_ref_count, coverage->transition_id) ||
         !NonEmptyStringList(coverage->migration_notes,
                             coverage->migration_note_count))
       return 0;
@@ -1732,6 +1745,9 @@ static int AppStateActionCoverageReady(void) {
         !NonEmptyString(coverage->boundary_status) ||
         !NonEmptyStringList(coverage->declared_write_set,
                             coverage->declared_write_set_count) ||
+        !AppStateTransitionSequenceRefsReady(
+            coverage->transition_sequence_refs,
+            coverage->transition_sequence_ref_count, coverage->transition_id) ||
         !NonEmptyStringList(coverage->migration_notes,
                             coverage->migration_note_count))
       return 0;

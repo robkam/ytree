@@ -900,6 +900,45 @@
           ]
         }
       ]
+    },
+    {
+      "scenario_id": "sequence.volume-menu-select",
+      "category": "menu_action",
+      "flow": "volume_menu_select",
+      "description": "Select a loaded volume from the volume menu while preserving panel-local restore authority.",
+      "steps": [
+        {
+          "ordinal": 1,
+          "step_id": "select-loaded-volume",
+          "transition_id": "transition.menu-action.volume-select",
+          "stimulus": {
+            "action_id": "ACTION_VOL_MENU"
+          },
+          "expected_result": "allowed",
+          "invariant_ids": [
+            "invariant.inactive-panel-frozen",
+            "invariant.panel-local-focus-restore",
+            "invariant.shared-state-panel-local-isolation"
+          ],
+          "diff_harness_ids": [
+            "harness.declared-write-set-diff"
+          ],
+          "generation_domain_expectations": [
+            {
+              "domain_id": "generation.panel.local-authority",
+              "expectation": "Advance panel generation only when the selected loaded volume changes the active panel binding."
+            },
+            {
+              "domain_id": "shape.panel.focus",
+              "expectation": "Restore focus shape from the selected volume's panel-local snapshot instead of cross-panel state."
+            },
+            {
+              "domain_id": "lifecycle.volume.registry",
+              "expectation": "Read the loaded-volume registry without advancing volume generation during selection."
+            }
+          ]
+        }
+      ]
     }
   ]
 }
