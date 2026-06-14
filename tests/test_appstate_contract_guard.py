@@ -39,6 +39,7 @@ REQUIRED_LIST_FIELD_CASES = [
     ("invariant", "protected_fields", "invariant[0]"),
     ("invariant", "transition_ids", "invariant[0]"),
     ("invariant", "migration_notes", "invariant[0]"),
+    ("dispatch_surface", "transition_sequence_refs", "dispatch_surface[0]"),
     ("diff_harness", "snapshot_phases", "diff_harness_check[0]"),
     ("diff_harness", "snapshot_regions", "diff_harness_check[0]"),
     ("diff_harness", "transition_ids", "diff_harness_check[0]"),
@@ -178,6 +179,18 @@ def _dispatch_surface(
         "watcher_live_refresh": "transition.refresh_rebuild",
         "render_reflow_projection": "transition.render_reflow",
     }
+    sequence_by_surface_category = {
+        "key_decode_input_dispatch": "sequence.split_toggle_f8",
+        "directory_window_action_dispatch": "sequence.split_toggle_f8",
+        "file_window_action_dispatch": "sequence.file_small_big_transitions",
+        "menu_modal_completion": "sequence.esc_modal_dismissal",
+        "resize_signal_handling": "sequence.terminal_resize_reflow",
+        "refresh_rebuild_rebind": "sequence.refresh_rebuild",
+        "filesystem_mutation_result": "sequence.filesystem_mutation_result",
+        "volume_operation": "sequence.volume_cycling_release",
+        "watcher_live_refresh": "sequence.refresh_rebuild",
+        "render_reflow_projection": "sequence.render_reflow_projection",
+    }
     return {
         "surface_id": surface_id or f"surface.{category}",
         "category": category,
@@ -186,6 +199,7 @@ def _dispatch_surface(
         "transition_id": transition_id or transition_by_surface_category[category],
         "boundary_status": "test",
         "allowed_direct_writes": ["field"],
+        "transition_sequence_refs": [sequence_by_surface_category[category]],
         "migration_notes": ["fixture coverage"],
     }
 
@@ -278,14 +292,16 @@ def _sequence_step(
     *,
     ordinal: int = 1,
     transition_id: str = "transition.keybinding",
-    action_id: str = "ACTION_NONE",
+    action_id: str | None = "ACTION_NONE",
     event_id: str | None = None,
     invariant_ids: list[str] | None = None,
     diff_harness_ids: list[str] | None = None,
     generation_domain_id: str = "domain.panel_generation",
     expected_result: str = "allowed",
 ) -> dict[str, object]:
-    stimulus: dict[str, object] = {"action_id": action_id}
+    stimulus: dict[str, object] = {}
+    if action_id is not None:
+        stimulus["action_id"] = action_id
     if event_id is not None:
         stimulus["event_id"] = event_id
     return {
@@ -307,10 +323,60 @@ def _sequence_step(
 
 
 def _complete_transition_sequences() -> list[dict[str, object]]:
+    category_by_flow = {
+        "esc_modal_dismissal": "modal_command",
+        "filesystem_mutation_result": "filesystem_mutation",
+        "refresh_rebuild": "refresh_rebuild",
+        "render_reflow_projection": "render_reflow",
+        "terminal_resize_reflow": "terminal_resize",
+        "volume_cycling_release": "volume_lifecycle",
+    }
+    step_by_flow = {
+        "esc_modal_dismissal": _sequence_step(
+            transition_id="transition.modal_action",
+            action_id=None,
+            event_id="event.modal_completion",
+            invariant_ids=["invariant.blocked_transition_determinism"],
+        ),
+        "filesystem_mutation_result": _sequence_step(
+            transition_id="transition.filesystem_mutation_result",
+            action_id=None,
+            event_id="event.filesystem_mutation_result",
+            invariant_ids=["invariant.blocked_transition_determinism"],
+        ),
+        "refresh_rebuild": _sequence_step(
+            transition_id="transition.refresh_rebuild",
+            action_id=None,
+            event_id="event.refresh_rebuild",
+            invariant_ids=["invariant.blocked_transition_determinism"],
+        ),
+        "render_reflow_projection": _sequence_step(
+            transition_id="transition.render_reflow",
+            action_id=None,
+            event_id="event.render_reflow",
+            invariant_ids=["invariant.blocked_transition_determinism"],
+        ),
+        "terminal_resize_reflow": _sequence_step(
+            transition_id="transition.terminal_signal_or_resize",
+            action_id=None,
+            event_id="event.terminal_resize_signal",
+            invariant_ids=["invariant.blocked_transition_determinism"],
+        ),
+        "volume_cycling_release": _sequence_step(
+            transition_id="transition.volume_operation",
+            action_id=None,
+            event_id="event.volume_lifecycle",
+            invariant_ids=["invariant.blocked_transition_determinism"],
+        ),
+    }
     return [
         _transition_sequence(
             flow,
-            category="layout_split" if flow.startswith("split_") else "panel_navigation",
+            category=category_by_flow.get(
+                flow,
+                "layout_split" if flow.startswith("split_") else "panel_navigation",
+            ),
+            steps=[copy.deepcopy(step_by_flow.get(flow, _sequence_step()))],
         )
         for flow in REQUIRED_SEQUENCE_FLOWS
     ]
@@ -667,6 +733,17 @@ def _runtime_source(
         else:
             writes_table = "NULL"
             writes_count = "0"
+        transition_sequence_refs = record.get("transition_sequence_refs")
+        if not isinstance(transition_sequence_refs, list):
+            transition_sequence_refs = []
+        sequence_ref_rows = "\n".join(
+            f'  "{ref}",' for ref in transition_sequence_refs if isinstance(ref, str)
+        )
+        sequence_refs_table = f"kAppStateDispatchSurfaceTransitionSequenceRefs{index}"
+        dispatch_surface_arrays.append(
+            f"static const char *const {sequence_refs_table}[] = "
+            f"{{\n{sequence_ref_rows}\n}};\n"
+        )
         migration_notes = record.get("migration_notes")
         if not isinstance(migration_notes, list):
             migration_notes = []
@@ -686,6 +763,8 @@ def _runtime_source(
             f'"{record.get("transition_id", "")}", '
             f'"{record.get("boundary_status", "")}", '
             f"{writes_table}, {writes_count}, "
+            f"{sequence_refs_table}, sizeof({sequence_refs_table}) / "
+            f"sizeof({sequence_refs_table}[0]), "
             f"{notes_table}, sizeof({notes_table}) / sizeof({notes_table}[0])}},"
         )
     shim_invariants = []
@@ -4112,6 +4191,126 @@ def test_guard_fails_when_dispatch_surface_allowed_write_splits_invariant_covera
     )
 
 
+def test_guard_fails_when_dispatch_surface_sequence_refs_are_missing(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    dispatch_surfaces = _complete_dispatch_surfaces()
+    dispatch_surfaces[0].pop("transition_sequence_refs")
+    paths = _write_fixture(
+        tmp_path, transitions=transitions, dispatch_surfaces=dispatch_surfaces
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "dispatch_surface[0]" in failure
+        and "missing required field" in failure
+        and "transition_sequence_refs" in failure
+        for failure in failures
+    )
+
+
+@pytest.mark.parametrize(
+    ("refs", "expected"),
+    [
+        (["sequence.missing"], "references unknown transition sequence"),
+        (["sequence.split_toggle_f8", "sequence.split_toggle_f8"], "duplicate transition_sequence_refs"),
+        ([123], "transition_sequence_refs[0] must be a non-empty string"),
+    ],
+)
+def test_guard_fails_on_malformed_dispatch_surface_sequence_refs(
+    tmp_path: Path, refs: list[object], expected: str
+) -> None:
+    transitions = _complete_transitions()
+    dispatch_surfaces = _complete_dispatch_surfaces()
+    dispatch_surfaces[0]["transition_sequence_refs"] = refs
+    paths = _write_fixture(
+        tmp_path, transitions=transitions, dispatch_surfaces=dispatch_surfaces
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "dispatch_surface[0]" in failure and expected in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_when_dispatch_surface_sequence_misses_transition(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    dispatch_surfaces = _complete_dispatch_surfaces()
+    dispatch_surfaces[0]["transition_sequence_refs"] = ["sequence.refresh_rebuild"]
+    paths = _write_fixture(
+        tmp_path, transitions=transitions, dispatch_surfaces=dispatch_surfaces
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "dispatch_surface[0]" in failure
+        and "must include at least one step covering transition_id transition.keybinding"
+        in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_when_dispatch_surface_sequence_lacks_diff_coverage(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    diff_harness_checks = _complete_diff_harness_checks()
+    transition_harness = next(
+        harness
+        for harness in diff_harness_checks
+        if harness["harness_id"] == "harness.transition_before_after_snapshot"
+    )
+    transition_harness["owner_field_refs"] = ["panel.tree_selection_key"]
+    paths = _write_fixture(
+        tmp_path,
+        transitions=transitions,
+        diff_harness_checks=diff_harness_checks,
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "dispatch_surface[0]" in failure
+        and "lacks transition-sequence diff harness coverage" in failure
+        and "field" in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_when_dispatch_surface_sequence_lacks_invariant_coverage(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    invariants = _complete_invariants()
+    inactive_invariant = next(
+        invariant
+        for invariant in invariants
+        if invariant["invariant_id"] == "invariant.inactive_panel_frozen"
+    )
+    inactive_invariant["protected_fields"] = ["panel.tree_selection_key"]
+    paths = _write_fixture(
+        tmp_path,
+        transitions=transitions,
+        invariants=invariants,
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "dispatch_surface[0]" in failure
+        and "lacks transition-sequence invariant coverage" in failure
+        and "field" in failure
+        for failure in failures
+    )
+
+
 def test_guard_fails_when_transition_write_splits_invariant_coverage(
     tmp_path: Path,
 ) -> None:
@@ -4179,6 +4378,30 @@ def test_guard_fails_when_runtime_dispatch_surface_metadata_drifts(
     assert any(
         "runtime_dispatch_surface[0]" in failure
         and "runtime category does not match dispatch surface" in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_when_runtime_dispatch_surface_sequence_refs_drift(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    runtime_dispatch_surfaces = _complete_dispatch_surfaces()
+    runtime_dispatch_surfaces[0]["transition_sequence_refs"] = [
+        "sequence.tab_panel_switch"
+    ]
+    paths = _write_fixture(
+        tmp_path,
+        transitions=transitions,
+        runtime_dispatch_surfaces=runtime_dispatch_surfaces,
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "runtime_dispatch_surface[0]" in failure
+        and "runtime transition_sequence_refs does not match dispatch surface"
+        in failure
         for failure in failures
     )
 
@@ -7195,6 +7418,13 @@ def test_runtime_dispatch_surface_startup_checks_fail_closed() -> None:
     assert "AppStateDispatchSurfaceCount() != required_surface_id_count" in source
     assert "previous_index < index" in source
     assert "strcmp(previous->surface_id, metadata->surface_id) == 0" in source
+    assert "AppStateDispatchSurfaceSequenceRefsReady(metadata)" in source
+    assert "metadata->transition_sequence_ref_count" in source
+    assert "AppStateTransitionSequenceLookup(metadata->transition_sequence_refs[ref_index])" in source
+    assert (
+        "strcmp(metadata->transition_sequence_refs[previous_index],\n"
+        "                 metadata->transition_sequence_refs[ref_index]) == 0"
+    ) in source
     assert "!AppStateDispatchSurfacesReady()" in source
 
 
@@ -7243,6 +7473,29 @@ def test_runtime_dispatch_surface_startup_requires_invariant_coverage() -> None:
     assert re.search(
         r"StringListContains\(invariant->dispatch_surface_ids,\s*"
         r"invariant->dispatch_surface_id_count, surface_id\)",
+        source,
+        re.S,
+    )
+    assert re.search(
+        r"StringListContains\(invariant->protected_fields,\s*"
+        r"invariant->protected_field_count, field\)",
+        source,
+        re.S,
+    )
+
+
+def test_runtime_dispatch_surface_startup_requires_sequence_field_coverage() -> None:
+    source = Path("src/core/main.c").read_text(encoding="utf-8")
+    helper_start = source.index("static int AppStateDispatchSurfaceWritesReady(")
+    dispatch_start = source.index("static int AppStateDispatchSurfacesReady(void)")
+    helper_body = source[helper_start:dispatch_start]
+
+    assert "AppStateDispatchSurfaceSequenceRefsCoverField(metadata, field)" in helper_body
+    assert "AppStateTransitionSequenceStepDiffHarnessCoversField(" in source
+    assert "AppStateTransitionSequenceStepInvariantCoversField(" in source
+    assert re.search(
+        r"StringListContains\(harness->owner_field_refs,\s*"
+        r"harness->owner_field_ref_count, field\)",
         source,
         re.S,
     )

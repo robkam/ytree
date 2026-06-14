@@ -13,6 +13,9 @@
       "allowed_direct_writes": [],
       "migration_notes": [
         "Current input polling and key normalization feed controller dispatch; AppState mutation remains in downstream handlers until runtime transition objects are introduced."
+      ],
+      "transition_sequence_refs": [
+        "sequence.split-toggle-f8"
       ]
     },
     {
@@ -31,6 +34,9 @@
       ],
       "migration_notes": [
         "Current directory-window switch dispatch owns tree navigation and focus updates; later migration should route each action through canonical transition boundaries."
+      ],
+      "transition_sequence_refs": [
+        "sequence.split-toggle-f8"
       ]
     },
     {
@@ -46,6 +52,9 @@
       ],
       "migration_notes": [
         "Current file-window dispatch remains under the broad keybinding foundation; only writes shared with the navigate-tree contract stay authorized until file-specific transitions are split out."
+      ],
+      "transition_sequence_refs": [
+        "sequence.file-small-big-transitions"
       ]
     },
     {
@@ -58,6 +67,9 @@
       "allowed_direct_writes": [],
       "migration_notes": [
         "Current menu and modal choice completion returns a selected key to callers; AppState modal writes remain with the caller until modal transition boundaries are introduced."
+      ],
+      "transition_sequence_refs": [
+        "sequence.esc-modal-dismissal"
       ]
     },
     {
@@ -76,6 +88,9 @@
       ],
       "migration_notes": [
         "Current resize dispatch converts KEY_RESIZE and resize_request state into controller refresh handling; signal-safe work must remain outside asynchronous handlers."
+      ],
+      "transition_sequence_refs": [
+        "sequence.terminal-resize-reflow"
       ]
     },
     {
@@ -94,6 +109,9 @@
       ],
       "migration_notes": [
         "Current safe refresh saves state, rescans, restores, and rebinds panel anchors; migration must preserve that ordering at the transition boundary."
+      ],
+      "transition_sequence_refs": [
+        "sequence.refresh-rebuild"
       ]
     },
     {
@@ -113,6 +131,9 @@
       ],
       "migration_notes": [
         "Current filesystem command handlers refresh and rebind after successful mutations; only completed mutation results should commit AppState metadata."
+      ],
+      "transition_sequence_refs": [
+        "sequence.filesystem-mutation-result"
       ]
     },
     {
@@ -131,6 +152,9 @@
       ],
       "migration_notes": [
         "Current loaded-volume selection and cycling update panel bindings directly; migration must preserve inactive panel restore records."
+      ],
+      "transition_sequence_refs": [
+        "sequence.volume-cycling-release"
       ]
     },
     {
@@ -143,6 +167,9 @@
       "allowed_direct_writes": [],
       "migration_notes": [
         "Current watcher processing reports settled filesystem activity to input dispatch; topology mutation remains mapped to the broad refresh/rebuild transition."
+      ],
+      "transition_sequence_refs": [
+        "sequence.refresh-rebuild"
       ]
     },
     {
@@ -155,6 +182,9 @@
       "allowed_direct_writes": [],
       "migration_notes": [
         "Current render refresh projects settled state to ncurses windows; projection must not become selection, viewport, or topology authority."
+      ],
+      "transition_sequence_refs": [
+        "sequence.render-reflow-projection"
       ]
     }
   ]
