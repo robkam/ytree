@@ -80,6 +80,8 @@ typedef struct {
   size_t owner_field_ref_count;
   const char *const *generation_domain_refs;
   size_t generation_domain_ref_count;
+  const char *const *diff_harness_refs;
+  size_t diff_harness_ref_count;
   const char *removal_trigger;
   const char *target_transition;
   const char *follow_up_task;

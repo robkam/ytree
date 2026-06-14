@@ -1193,6 +1193,106 @@ static int AppStateCompatibilityShimGenerationDomainCoversOwnerField(
   return 0;
 }
 
+static int AppStateCompatibilityShimDiffHarnessCoversTransition(
+    const AppStateCompatibilityShimMetadata *metadata) {
+  size_t ref_index;
+
+  if (metadata == NULL || !NonEmptyString(metadata->target_transition) ||
+      !NonEmptyStringList(metadata->diff_harness_refs,
+                          metadata->diff_harness_ref_count))
+    return 0;
+
+  for (ref_index = 0; ref_index < metadata->diff_harness_ref_count;
+       ref_index++) {
+    const AppStateDiffHarnessMetadata *harness =
+        AppStateDiffHarnessLookup(metadata->diff_harness_refs[ref_index]);
+
+    if (harness == NULL || harness->transition_ids == NULL)
+      return 0;
+    if (StringListContains(harness->transition_ids,
+                           harness->transition_id_count,
+                           metadata->target_transition))
+      return 1;
+  }
+
+  return 0;
+}
+
+static int AppStateCompatibilityShimDiffHarnessCoversOwnerField(
+    const AppStateCompatibilityShimMetadata *metadata,
+    const char *owner_field) {
+  size_t ref_index;
+
+  if (metadata == NULL || !NonEmptyString(owner_field) ||
+      !NonEmptyStringList(metadata->diff_harness_refs,
+                          metadata->diff_harness_ref_count))
+    return 0;
+
+  for (ref_index = 0; ref_index < metadata->diff_harness_ref_count;
+       ref_index++) {
+    const AppStateDiffHarnessMetadata *harness =
+        AppStateDiffHarnessLookup(metadata->diff_harness_refs[ref_index]);
+
+    if (harness == NULL || harness->owner_field_refs == NULL)
+      return 0;
+    if (StringListContains(harness->owner_field_refs,
+                           harness->owner_field_ref_count, owner_field))
+      return 1;
+  }
+
+  return 0;
+}
+
+static int AppStateCompatibilityShimDiffHarnessCoversInvariant(
+    const AppStateCompatibilityShimMetadata *metadata,
+    const char *invariant_id) {
+  size_t ref_index;
+
+  if (metadata == NULL || !NonEmptyString(invariant_id) ||
+      !NonEmptyStringList(metadata->diff_harness_refs,
+                          metadata->diff_harness_ref_count))
+    return 0;
+
+  for (ref_index = 0; ref_index < metadata->diff_harness_ref_count;
+       ref_index++) {
+    const AppStateDiffHarnessMetadata *harness =
+        AppStateDiffHarnessLookup(metadata->diff_harness_refs[ref_index]);
+
+    if (harness == NULL || harness->invariant_ids == NULL)
+      return 0;
+    if (StringListContains(harness->invariant_ids,
+                           harness->invariant_id_count, invariant_id))
+      return 1;
+  }
+
+  return 0;
+}
+
+static int AppStateCompatibilityShimDiffHarnessCoversGenerationDomain(
+    const AppStateCompatibilityShimMetadata *metadata,
+    const char *domain_id) {
+  size_t ref_index;
+
+  if (metadata == NULL || !NonEmptyString(domain_id) ||
+      !NonEmptyStringList(metadata->diff_harness_refs,
+                          metadata->diff_harness_ref_count))
+    return 0;
+
+  for (ref_index = 0; ref_index < metadata->diff_harness_ref_count;
+       ref_index++) {
+    const AppStateDiffHarnessMetadata *harness =
+        AppStateDiffHarnessLookup(metadata->diff_harness_refs[ref_index]);
+
+    if (harness == NULL || harness->generation_domain_ids == NULL)
+      return 0;
+    if (StringListContains(harness->generation_domain_ids,
+                           harness->generation_domain_id_count, domain_id))
+      return 1;
+  }
+
+  return 0;
+}
+
 static int AppStateCompatibilityShimsReady(void) {
   size_t index;
   size_t required_shim_id_count =
@@ -1205,6 +1305,7 @@ static int AppStateCompatibilityShimsReady(void) {
     const AppStateCompatibilityShimMetadata *metadata =
         AppStateCompatibilityShimAt(index);
     size_t invariant_index;
+    size_t diff_index;
     size_t generation_index;
     size_t previous_index;
     size_t ref_index;
@@ -1222,6 +1323,8 @@ static int AppStateCompatibilityShimsReady(void) {
                             metadata->owner_field_ref_count) ||
         !NonEmptyStringList(metadata->generation_domain_refs,
                             metadata->generation_domain_ref_count) ||
+        !NonEmptyStringList(metadata->diff_harness_refs,
+                            metadata->diff_harness_ref_count) ||
         !NonEmptyString(metadata->removal_trigger) ||
         !NonEmptyString(metadata->target_transition) ||
         !NonEmptyString(metadata->follow_up_task) ||
@@ -1248,6 +1351,18 @@ static int AppStateCompatibilityShimsReady(void) {
       if (AppStateInvariantLookup(metadata->invariant_checks[invariant_index]) ==
           NULL)
         return 0;
+      if (!AppStateCompatibilityShimDiffHarnessCoversInvariant(
+              metadata, metadata->invariant_checks[invariant_index]))
+        return 0;
+    }
+    for (diff_index = 0; diff_index < metadata->diff_harness_ref_count;
+         diff_index++) {
+      if (AppStateDiffHarnessLookup(metadata->diff_harness_refs[diff_index]) ==
+          NULL)
+        return 0;
+      if (StringListContains(metadata->diff_harness_refs, diff_index,
+                             metadata->diff_harness_refs[diff_index]))
+        return 0;
     }
     for (generation_index = 0;
          generation_index < metadata->generation_domain_ref_count;
@@ -1257,6 +1372,9 @@ static int AppStateCompatibilityShimsReady(void) {
         return 0;
       if (StringListContains(metadata->generation_domain_refs, generation_index,
                              metadata->generation_domain_refs[generation_index]))
+        return 0;
+      if (!AppStateCompatibilityShimDiffHarnessCoversGenerationDomain(
+              metadata, metadata->generation_domain_refs[generation_index]))
         return 0;
     }
     for (ref_index = 0; ref_index < metadata->owner_field_ref_count;
@@ -1278,8 +1396,13 @@ static int AppStateCompatibilityShimsReady(void) {
           !AppStateCompatibilityShimGenerationDomainCoversOwnerField(
               metadata, metadata->owner_field_refs[ref_index]))
         return 0;
+      if (!AppStateCompatibilityShimDiffHarnessCoversOwnerField(
+              metadata, metadata->owner_field_refs[ref_index]))
+        return 0;
     }
     if (!AppStateCompatibilityShimInvariantCoversTransition(metadata))
+      return 0;
+    if (!AppStateCompatibilityShimDiffHarnessCoversTransition(metadata))
       return 0;
   }
 
