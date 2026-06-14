@@ -24,7 +24,12 @@ REQUIRED_GENERATION_DOMAIN_CATEGORIES = sorted(
 )
 REQUIRED_DIFF_HARNESS_CATEGORIES = sorted(guard.REQUIRED_DIFF_HARNESS_CATEGORIES)
 REQUIRED_SEQUENCE_FLOWS = sorted(guard.REQUIRED_SEQUENCE_FLOWS)
-FIXTURE_ACTIONS = ["ACTION_NONE", "ACTION_MOVE_UP", "ACTION_USER_CMD"]
+FIXTURE_ACTIONS = [
+    "ACTION_NONE",
+    "ACTION_MOVE_UP",
+    "ACTION_VOL_MENU",
+    "ACTION_USER_CMD",
+]
 REQUIRED_LIST_FIELD_CASES = [
     ("action", "declared_write_set", "action[0]"),
     ("action", "migration_notes", "action[0]"),
@@ -120,12 +125,16 @@ def _action(
     transition_id: str = "transition.keybinding",
     category: str = "keybinding",
 ) -> dict[str, object]:
+    if action == "ACTION_VOL_MENU" and transition_id == "transition.keybinding":
+        transition_id = "transition.menu_action"
+        category = "menu_action"
     return {
         "action": action,
         "transition_id": transition_id,
         "category": category,
         "owner": "owner",
         "declared_write_set": ["panel.tree_selection_key"],
+        "transition_sequence_refs": _sequence_refs_for_transition(transition_id),
         "boundary_status": "test",
         "migration_notes": ["fixture action coverage"],
     }
@@ -156,10 +165,30 @@ def _event(
         "source": "fixture source",
         "owner": "owner",
         "declared_write_set": ["field"],
+        "transition_sequence_refs": _sequence_refs_for_transition(
+            transition_id or f"transition.{resolved_category}"
+        ),
         "boundary_status": "test",
         "trigger_paths": ["fixture trigger"],
         "migration_notes": ["fixture event coverage"],
     }
+
+
+def _sequence_refs_for_transition(transition_id: str) -> list[str]:
+    return {
+        "transition.command_completion": ["sequence.search_jump"],
+        "transition.filesystem_mutation_result": [
+            "sequence.filesystem_mutation_result"
+        ],
+        "transition.keybinding": ["sequence.split_toggle_f8"],
+        "transition.menu_action": ["sequence.volume_menu_select"],
+        "transition.modal_action": ["sequence.esc_modal_dismissal"],
+        "transition.rebuild_rebind_callback": ["sequence.refresh_rebuild"],
+        "transition.refresh_rebuild": ["sequence.refresh_rebuild"],
+        "transition.render_reflow": ["sequence.render_reflow_projection"],
+        "transition.terminal_signal_or_resize": ["sequence.terminal_resize_reflow"],
+        "transition.volume_operation": ["sequence.volume_cycling_release"],
+    }.get(transition_id, ["sequence.split_toggle_f8"])
 
 
 def _dispatch_surface(
@@ -326,6 +355,7 @@ def _complete_transition_sequences() -> list[dict[str, object]]:
     category_by_flow = {
         "esc_modal_dismissal": "modal_command",
         "filesystem_mutation_result": "filesystem_mutation",
+        "volume_menu_select": "menu_action",
         "refresh_rebuild": "refresh_rebuild",
         "render_reflow_projection": "render_reflow",
         "terminal_resize_reflow": "terminal_resize",
@@ -344,10 +374,28 @@ def _complete_transition_sequences() -> list[dict[str, object]]:
             event_id="event.filesystem_mutation_result",
             invariant_ids=["invariant.blocked_transition_determinism"],
         ),
+        "search_jump": _sequence_step(
+            transition_id="transition.command_completion",
+            action_id=None,
+            event_id="event.command_completion",
+            invariant_ids=["invariant.blocked_transition_determinism"],
+        ),
+        "volume_menu_select": _sequence_step(
+            transition_id="transition.menu_action",
+            action_id="ACTION_VOL_MENU",
+            invariant_ids=["invariant.blocked_transition_determinism"],
+        ),
         "refresh_rebuild": _sequence_step(
             transition_id="transition.refresh_rebuild",
             action_id=None,
             event_id="event.refresh_rebuild",
+            invariant_ids=["invariant.blocked_transition_determinism"],
+        ),
+        "rebuild_rebind_callback": _sequence_step(
+            ordinal=2,
+            transition_id="transition.rebuild_rebind_callback",
+            action_id=None,
+            event_id="event.rebuild_rebind_callback",
             invariant_ids=["invariant.blocked_transition_determinism"],
         ),
         "render_reflow_projection": _sequence_step(
@@ -376,7 +424,14 @@ def _complete_transition_sequences() -> list[dict[str, object]]:
                 flow,
                 "layout_split" if flow.startswith("split_") else "panel_navigation",
             ),
-            steps=[copy.deepcopy(step_by_flow.get(flow, _sequence_step()))],
+            steps=(
+                [
+                    copy.deepcopy(step_by_flow["refresh_rebuild"]),
+                    copy.deepcopy(step_by_flow["rebuild_rebind_callback"]),
+                ]
+                if flow == "refresh_rebuild"
+                else [copy.deepcopy(step_by_flow.get(flow, _sequence_step()))]
+            ),
         )
         for flow in REQUIRED_SEQUENCE_FLOWS
     ]
@@ -638,12 +693,25 @@ def _runtime_source(
             f"static const char *const {notes_table}[] = "
             f"{{\n{note_rows}\n}};\n"
         )
+        transition_sequence_refs = record.get("transition_sequence_refs")
+        if not isinstance(transition_sequence_refs, list):
+            transition_sequence_refs = []
+        sequence_ref_rows = "\n".join(
+            f'  "{ref}",' for ref in transition_sequence_refs if isinstance(ref, str)
+        )
+        sequence_refs_table = f"kAppStateActionCoverageTransitionSequenceRefs{index}"
+        action_coverage_arrays.append(
+            f"static const char *const {sequence_refs_table}[] = "
+            f"{{\n{sequence_ref_rows}\n}};\n"
+        )
         action = record.get("action", "")
         action_coverage_rows.append(
             f'  {{{action}, "{action}", "{record.get("transition_id", "")}", '
             f'"{record.get("category", "")}", "{record.get("owner", "")}", '
             f"{write_set_table}, sizeof({write_set_table}) / "
             f"sizeof({write_set_table}[0]), "
+            f"{sequence_refs_table}, sizeof({sequence_refs_table}) / "
+            f"sizeof({sequence_refs_table}[0]), "
             f'"{record.get("boundary_status", "")}", '
             f"{notes_table}, sizeof({notes_table}) / sizeof({notes_table}[0])}},"
         )
@@ -675,6 +743,17 @@ def _runtime_source(
             f"static const char *const {notes_table}[] = "
             f"{{\n{note_rows}\n}};\n"
         )
+        transition_sequence_refs = record.get("transition_sequence_refs")
+        if not isinstance(transition_sequence_refs, list):
+            transition_sequence_refs = []
+        sequence_ref_rows = "\n".join(
+            f'  "{ref}",' for ref in transition_sequence_refs if isinstance(ref, str)
+        )
+        sequence_refs_table = f"kAppStateEventCoverageTransitionSequenceRefs{index}"
+        event_coverage_arrays.append(
+            f"static const char *const {sequence_refs_table}[] = "
+            f"{{\n{sequence_ref_rows}\n}};\n"
+        )
         transition_index = transition_index_by_id.get(str(record.get("transition_id", "")), 0)
         write_set_table = f"kAppStateTransitionWriteSet{transition_index}"
         event_coverage_rows.append(
@@ -685,6 +764,8 @@ def _runtime_source(
             f"sizeof({write_set_table}[0]), "
             f'"{record.get("boundary_status", "")}", '
             f"{trigger_table}, sizeof({trigger_table}) / sizeof({trigger_table}[0]), "
+            f"{sequence_refs_table}, sizeof({sequence_refs_table}) / "
+            f"sizeof({sequence_refs_table}[0]), "
             f"{notes_table}, sizeof({notes_table}) / sizeof({notes_table}[0])}},"
         )
     owner_field_arrays = []
@@ -6776,6 +6857,43 @@ def test_guard_fails_when_action_coverage_owner_does_not_match_transition(
     )
 
 
+@pytest.mark.parametrize(
+    ("refs", "expected"),
+    [
+        ([], "transition_sequence_refs must be a non-empty list"),
+        ("sequence.split_toggle_f8", "transition_sequence_refs must be a non-empty list"),
+        ([123], "transition_sequence_refs[0] must be a non-empty string"),
+        (
+            ["sequence.split_toggle_f8", "sequence.split_toggle_f8"],
+            "duplicate transition_sequence_refs[1]",
+        ),
+        (
+            ["sequence.__missing__"],
+            "transition_sequence_refs references unknown transition sequence",
+        ),
+        (
+            ["sequence.refresh_rebuild"],
+            "transition_sequence_refs must include at least one step covering transition_id transition.keybinding",
+        ),
+        (
+            ["sequence.split_toggle_f8", "sequence.refresh_rebuild"],
+            "transition_sequence_refs[1]",
+        ),
+    ],
+)
+def test_guard_fails_when_action_coverage_sequence_refs_are_invalid(
+    tmp_path: Path, refs: object, expected: str
+) -> None:
+    transitions = _complete_transitions()
+    actions = _complete_actions()
+    actions[0]["transition_sequence_refs"] = refs
+    paths = _write_fixture(tmp_path, transitions=transitions, actions=actions)
+
+    failures = _validate(paths)
+
+    assert any("action[0]" in failure and expected in failure for failure in failures)
+
+
 def test_guard_fails_when_event_coverage_owner_does_not_match_transition(
     tmp_path: Path,
 ) -> None:
@@ -6791,6 +6909,45 @@ def test_guard_fails_when_event_coverage_owner_does_not_match_transition(
         and "owner does not match transition" in failure
         and "different owner" in failure
         for failure in failures
+    )
+
+
+@pytest.mark.parametrize(
+    ("refs", "expected_fragment"),
+    [
+        ([], "transition_sequence_refs must be a non-empty list"),
+        ("sequence.refresh_rebuild", "transition_sequence_refs must be a non-empty list"),
+        ([123], "transition_sequence_refs[0] must be a non-empty string"),
+        (
+            ["sequence.refresh_rebuild", "sequence.refresh_rebuild"],
+            "duplicate transition_sequence_refs[1]",
+        ),
+        (
+            ["sequence.__missing__"],
+            "transition_sequence_refs references unknown transition sequence",
+        ),
+        (
+            ["sequence.split_toggle_f8"],
+            "transition_sequence_refs must include at least one step covering transition_id",
+        ),
+        (
+            ["sequence.search_jump", "sequence.split_toggle_f8"],
+            "transition_sequence_refs[1]",
+        ),
+    ],
+)
+def test_guard_fails_when_event_coverage_sequence_refs_are_invalid(
+    tmp_path: Path, refs: object, expected_fragment: str
+) -> None:
+    transitions = _complete_transitions()
+    events = _complete_events()
+    events[0]["transition_sequence_refs"] = refs
+    paths = _write_fixture(tmp_path, transitions=transitions, events=events)
+
+    failures = _validate(paths)
+
+    assert any(
+        "event[0]" in failure and expected_fragment in failure for failure in failures
     )
 
 
@@ -6815,6 +6972,56 @@ def test_guard_fails_when_runtime_action_coverage_owner_does_not_match_transitio
         "runtime_action_coverage[0]" in failure
         and "owner does not match transition" in failure
         and "different owner" in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_when_runtime_action_coverage_sequence_refs_drift(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    runtime_action_coverages = _complete_actions()
+    runtime_action_coverages[0]["transition_sequence_refs"] = [
+        "sequence.refresh_rebuild"
+    ]
+    paths = _write_fixture(
+        tmp_path,
+        transitions=transitions,
+        runtime_action_coverages=runtime_action_coverages,
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "runtime_action_coverage[0]" in failure
+        and "runtime transition_sequence_refs does not match action coverage"
+        in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_when_runtime_action_coverage_sequence_refs_are_mixed(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    actions = _complete_actions()
+    actions[0]["transition_sequence_refs"] = [
+        "sequence.split_toggle_f8",
+        "sequence.refresh_rebuild",
+    ]
+    runtime_action_coverages = copy.deepcopy(actions)
+    paths = _write_fixture(
+        tmp_path,
+        transitions=transitions,
+        actions=actions,
+        runtime_action_coverages=runtime_action_coverages,
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "runtime_action_coverage[0]" in failure
+        and "transition_sequence_refs[1]" in failure
         for failure in failures
     )
 
@@ -6912,6 +7119,53 @@ def test_guard_fails_when_runtime_action_lookup_uses_unknown_transition(
         "runtime_action[0]" in failure
         and "transition_id does not match a transition id" in failure
         and "transition.missing" in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_when_runtime_event_coverage_sequence_refs_drift(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    runtime_events = _complete_events()
+    runtime_events[0]["transition_sequence_refs"] = ["sequence.split_toggle_f8"]
+    paths = _write_fixture(
+        tmp_path,
+        transitions=transitions,
+        runtime_events=runtime_events,
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "runtime_event_coverage[0]" in failure
+        and "transition_sequence_refs does not match docs" in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_when_runtime_event_coverage_sequence_refs_are_mixed(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    events = _complete_events()
+    events[0]["transition_sequence_refs"] = [
+        "sequence.search_jump",
+        "sequence.split_toggle_f8",
+    ]
+    runtime_events = copy.deepcopy(events)
+    paths = _write_fixture(
+        tmp_path,
+        transitions=transitions,
+        events=events,
+        runtime_events=runtime_events,
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "runtime_event_coverage[0]" in failure
+        and "transition_sequence_refs[1]" in failure
         for failure in failures
     )
 
@@ -7083,6 +7337,9 @@ def _event_runtime_validation_failures(runtime_path: Path) -> list[str]:
     runtime_events, runtime_event_failures = guard._parse_runtime_event_coverage_registry(
         runtime_path
     )
+    runtime_sequences, runtime_sequence_failures = (
+        guard._parse_runtime_transition_sequence_registry(runtime_path)
+    )
     transition_ids = {
         record["id"]: record for record in transitions_doc.get("transitions", [])
     }
@@ -7091,11 +7348,13 @@ def _event_runtime_validation_failures(runtime_path: Path) -> list[str]:
         + event_failures
         + runtime_transition_failures
         + runtime_event_failures
+        + runtime_sequence_failures
         + guard._validate_runtime_event_coverage_registry(
             runtime_records=runtime_events,
             runtime_path=runtime_path,
             event_coverage_doc=event_doc,
             transition_ids=transition_ids,
+            runtime_transition_sequence_records=runtime_sequences,
             runtime_transition_ids={record["id"] for record in runtime_transitions},
         )
     )
@@ -7192,6 +7451,8 @@ def test_runtime_event_coverage_startup_checks_fail_closed() -> None:
 
     assert "AppStateEventCoverageAt(AppStateEventCoverageCount()) != NULL" in source
     assert 'AppStateEventCoverageLookup("event.__ytnova_unknown__") != NULL' in source
+    assert "coverage->transition_sequence_refs" in source
+    assert "coverage->transition_sequence_ref_count" in source
     assert "!AppStateEventCoverageReady()" in source
 
 
@@ -7419,13 +7680,58 @@ def test_runtime_dispatch_surface_startup_checks_fail_closed() -> None:
     assert "previous_index < index" in source
     assert "strcmp(previous->surface_id, metadata->surface_id) == 0" in source
     assert "AppStateDispatchSurfaceSequenceRefsReady(metadata)" in source
+    assert "AppStateTransitionSequenceRefsReady(" in source
     assert "metadata->transition_sequence_ref_count" in source
-    assert "AppStateTransitionSequenceLookup(metadata->transition_sequence_refs[ref_index])" in source
+    assert "AppStateTransitionSequenceLookup(refs[ref_index])" in source
     assert (
-        "strcmp(metadata->transition_sequence_refs[previous_index],\n"
-        "                 metadata->transition_sequence_refs[ref_index]) == 0"
+        "strcmp(refs[previous_index], refs[ref_index]) == 0"
     ) in source
     assert "!AppStateDispatchSurfacesReady()" in source
+
+
+def test_runtime_action_coverage_startup_validates_sequence_refs() -> None:
+    source = Path("src/core/main.c").read_text(encoding="utf-8")
+    action_start = source.index("static int AppStateActionCoverageReady(void)")
+    diff_harness_start = source.index(
+        "static int AppStateDiffHarnessWriteCovered"
+    )
+    action_body = source[action_start:diff_harness_start]
+
+    assert "coverage->transition_sequence_refs" in action_body
+    assert "coverage->transition_sequence_ref_count" in action_body
+    assert "AppStateTransitionSequenceRefsReady(" in action_body
+
+
+def test_runtime_action_coverage_startup_rejects_mixed_sequence_refs() -> None:
+    source = Path("src/core/main.c").read_text(encoding="utf-8")
+    helper_start = source.index("static int AppStateTransitionSequenceRefsReady(")
+    dispatch_start = source.index("static int AppStateDispatchSurfaceSequenceRefsReady(")
+    helper_body = source[helper_start:dispatch_start]
+
+    assert re.search(
+        r"for \(ref_index = 0; ref_index < ref_count; ref_index\+\+\) \{\s*"
+        r"const AppStateTransitionSequenceMetadata \*sequence =\s*"
+        r"AppStateTransitionSequenceLookup\(refs\[ref_index\]\);\s*"
+        r"int transition_step_found = 0;",
+        helper_body,
+        re.S,
+    )
+    assert re.search(
+        r"if \(!transition_step_found\)\s*return 0;",
+        helper_body,
+        re.S,
+    )
+
+
+def test_runtime_event_coverage_startup_rejects_mixed_sequence_refs() -> None:
+    source = Path("src/core/main.c").read_text(encoding="utf-8")
+    event_start = source.index("static int AppStateEventCoverageReady(void)")
+    action_start = source.index("static int AppStateActionCoverageReady(void)")
+    event_body = source[event_start:action_start]
+
+    assert "coverage->transition_sequence_refs" in event_body
+    assert "coverage->transition_sequence_ref_count" in event_body
+    assert "AppStateTransitionSequenceRefsReady(" in event_body
 
 
 def test_runtime_dispatch_surface_startup_validates_allowed_write_owner_fields() -> None:

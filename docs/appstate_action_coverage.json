@@ -18,6 +18,16 @@
       "boundary_status": "documented_foundation_only",
       "migration_notes": [
         "Covered by the current keybinding foundation record until runtime transition objects are split per action."
+      ],
+      "transition_sequence_refs": [
+        "sequence.dotfile-reveal-conceal",
+        "sequence.enter-directory-file-transition",
+        "sequence.file-small-big-transitions",
+        "sequence.search-jump",
+        "sequence.showall-global-tagged-only",
+        "sequence.split-close-reopen",
+        "sequence.split-toggle-f8",
+        "sequence.tab-panel-switch"
       ]
     },
     {
@@ -35,6 +45,16 @@
       "boundary_status": "documented_foundation_only",
       "migration_notes": [
         "Covered by the current keybinding foundation record until runtime transition objects are split per action."
+      ],
+      "transition_sequence_refs": [
+        "sequence.dotfile-reveal-conceal",
+        "sequence.enter-directory-file-transition",
+        "sequence.file-small-big-transitions",
+        "sequence.search-jump",
+        "sequence.showall-global-tagged-only",
+        "sequence.split-close-reopen",
+        "sequence.split-toggle-f8",
+        "sequence.tab-panel-switch"
       ]
     },
     {
@@ -52,6 +72,16 @@
       "boundary_status": "documented_foundation_only",
       "migration_notes": [
         "Covered by the current keybinding foundation record until runtime transition objects are split per action."
+      ],
+      "transition_sequence_refs": [
+        "sequence.dotfile-reveal-conceal",
+        "sequence.enter-directory-file-transition",
+        "sequence.file-small-big-transitions",
+        "sequence.search-jump",
+        "sequence.showall-global-tagged-only",
+        "sequence.split-close-reopen",
+        "sequence.split-toggle-f8",
+        "sequence.tab-panel-switch"
       ]
     },
     {
@@ -69,6 +99,16 @@
       "boundary_status": "documented_foundation_only",
       "migration_notes": [
         "Covered by the current keybinding foundation record until runtime transition objects are split per action."
+      ],
+      "transition_sequence_refs": [
+        "sequence.dotfile-reveal-conceal",
+        "sequence.enter-directory-file-transition",
+        "sequence.file-small-big-transitions",
+        "sequence.search-jump",
+        "sequence.showall-global-tagged-only",
+        "sequence.split-close-reopen",
+        "sequence.split-toggle-f8",
+        "sequence.tab-panel-switch"
       ]
     },
     {
@@ -86,6 +126,16 @@
       "boundary_status": "documented_foundation_only",
       "migration_notes": [
         "Covered by the current keybinding foundation record until runtime transition objects are split per action."
+      ],
+      "transition_sequence_refs": [
+        "sequence.dotfile-reveal-conceal",
+        "sequence.enter-directory-file-transition",
+        "sequence.file-small-big-transitions",
+        "sequence.search-jump",
+        "sequence.showall-global-tagged-only",
+        "sequence.split-close-reopen",
+        "sequence.split-toggle-f8",
+        "sequence.tab-panel-switch"
       ]
     },
     {
@@ -103,6 +153,16 @@
       "boundary_status": "documented_foundation_only",
       "migration_notes": [
         "Covered by the current keybinding foundation record until runtime transition objects are split per action."
+      ],
+      "transition_sequence_refs": [
+        "sequence.dotfile-reveal-conceal",
+        "sequence.enter-directory-file-transition",
+        "sequence.file-small-big-transitions",
+        "sequence.search-jump",
+        "sequence.showall-global-tagged-only",
+        "sequence.split-close-reopen",
+        "sequence.split-toggle-f8",
+        "sequence.tab-panel-switch"
       ]
     },
     {
@@ -120,6 +180,16 @@
       "boundary_status": "documented_foundation_only",
       "migration_notes": [
         "Covered by the current keybinding foundation record until runtime transition objects are split per action."
+      ],
+      "transition_sequence_refs": [
+        "sequence.dotfile-reveal-conceal",
+        "sequence.enter-directory-file-transition",
+        "sequence.file-small-big-transitions",
+        "sequence.search-jump",
+        "sequence.showall-global-tagged-only",
+        "sequence.split-close-reopen",
+        "sequence.split-toggle-f8",
+        "sequence.tab-panel-switch"
       ]
     },
     {
@@ -137,6 +207,16 @@
       "boundary_status": "documented_foundation_only",
       "migration_notes": [
         "Covered by the current keybinding foundation record until runtime transition objects are split per action."
+      ],
+      "transition_sequence_refs": [
+        "sequence.dotfile-reveal-conceal",
+        "sequence.enter-directory-file-transition",
+        "sequence.file-small-big-transitions",
+        "sequence.search-jump",
+        "sequence.showall-global-tagged-only",
+        "sequence.split-close-reopen",
+        "sequence.split-toggle-f8",
+        "sequence.tab-panel-switch"
       ]
     },
     {
@@ -154,6 +234,16 @@
       "boundary_status": "documented_foundation_only",
       "migration_notes": [
         "Covered by the current keybinding foundation record until runtime transition objects are split per action."
+      ],
+      "transition_sequence_refs": [
+        "sequence.dotfile-reveal-conceal",
+        "sequence.enter-directory-file-transition",
+        "sequence.file-small-big-transitions",
+        "sequence.search-jump",
+        "sequence.showall-global-tagged-only",
+        "sequence.split-close-reopen",
+        "sequence.split-toggle-f8",
+        "sequence.tab-panel-switch"
       ]
     },
     {
@@ -171,6 +261,16 @@
       "boundary_status": "documented_foundation_only",
       "migration_notes": [
         "Covered by the current keybinding foundation record until runtime transition objects are split per action."
+      ],
+      "transition_sequence_refs": [
+        "sequence.dotfile-reveal-conceal",
+        "sequence.enter-directory-file-transition",
+        "sequence.file-small-big-transitions",
+        "sequence.search-jump",
+        "sequence.showall-global-tagged-only",
+        "sequence.split-close-reopen",
+        "sequence.split-toggle-f8",
+        "sequence.tab-panel-switch"
       ]
     },
     {
@@ -188,6 +288,16 @@
       "boundary_status": "documented_foundation_only",
       "migration_notes": [
         "Covered by the current keybinding foundation record until runtime transition objects are split per action."
+      ],
+      "transition_sequence_refs": [
+        "sequence.dotfile-reveal-conceal",
+        "sequence.enter-directory-file-transition",
+        "sequence.file-small-big-transitions",
+        "sequence.search-jump",
+        "sequence.showall-global-tagged-only",
+        "sequence.split-close-reopen",
+        "sequence.split-toggle-f8",
+        "sequence.tab-panel-switch"
       ]
     },
     {
@@ -205,6 +315,16 @@
       "boundary_status": "documented_foundation_only",
       "migration_notes": [
         "Covered by the current keybinding foundation record until runtime transition objects are split per action."
+      ],
+      "transition_sequence_refs": [
+        "sequence.dotfile-reveal-conceal",
+        "sequence.enter-directory-file-transition",
+        "sequence.file-small-big-transitions",
+        "sequence.search-jump",
+        "sequence.showall-global-tagged-only",
+        "sequence.split-close-reopen",
+        "sequence.split-toggle-f8",
+        "sequence.tab-panel-switch"
       ]
     },
     {
@@ -222,6 +342,16 @@
       "boundary_status": "documented_foundation_only",
       "migration_notes": [
         "Covered by the current keybinding foundation record until runtime transition objects are split per action."
+      ],
+      "transition_sequence_refs": [
+        "sequence.dotfile-reveal-conceal",
+        "sequence.enter-directory-file-transition",
+        "sequence.file-small-big-transitions",
+        "sequence.search-jump",
+        "sequence.showall-global-tagged-only",
+        "sequence.split-close-reopen",
+        "sequence.split-toggle-f8",
+        "sequence.tab-panel-switch"
       ]
     },
     {
@@ -239,6 +369,16 @@
       "boundary_status": "documented_foundation_only",
       "migration_notes": [
         "Covered by the current keybinding foundation record until runtime transition objects are split per action."
+      ],
+      "transition_sequence_refs": [
+        "sequence.dotfile-reveal-conceal",
+        "sequence.enter-directory-file-transition",
+        "sequence.file-small-big-transitions",
+        "sequence.search-jump",
+        "sequence.showall-global-tagged-only",
+        "sequence.split-close-reopen",
+        "sequence.split-toggle-f8",
+        "sequence.tab-panel-switch"
       ]
     },
     {
@@ -256,6 +396,16 @@
       "boundary_status": "documented_foundation_only",
       "migration_notes": [
         "Covered by the current keybinding foundation record until runtime transition objects are split per action."
+      ],
+      "transition_sequence_refs": [
+        "sequence.dotfile-reveal-conceal",
+        "sequence.enter-directory-file-transition",
+        "sequence.file-small-big-transitions",
+        "sequence.search-jump",
+        "sequence.showall-global-tagged-only",
+        "sequence.split-close-reopen",
+        "sequence.split-toggle-f8",
+        "sequence.tab-panel-switch"
       ]
     },
     {
@@ -272,6 +422,9 @@
       "boundary_status": "documented_foundation_only",
       "migration_notes": [
         "Esc dismissal for an active modal maps to the modal_action dismiss record; non-modal Esc no-op behavior remains a blocked keybinding outcome for later context-specific runtime coverage."
+      ],
+      "transition_sequence_refs": [
+        "sequence.esc-modal-dismissal"
       ]
     },
     {
@@ -289,6 +442,9 @@
       "boundary_status": "documented_foundation_only",
       "migration_notes": [
         "Covered by the refresh/rebuild foundation record until log, relog, and refresh actions receive dedicated runtime records."
+      ],
+      "transition_sequence_refs": [
+        "sequence.refresh-rebuild"
       ]
     },
     {
@@ -305,6 +461,9 @@
       "boundary_status": "documented_foundation_only",
       "migration_notes": [
         "Covered by the command completion foundation record until external and session command actions receive dedicated runtime records."
+      ],
+      "transition_sequence_refs": [
+        "sequence.search-jump"
       ]
     },
     {
@@ -321,6 +480,9 @@
       "boundary_status": "documented_foundation_only",
       "migration_notes": [
         "Covered by the command completion foundation record until external and session command actions receive dedicated runtime records."
+      ],
+      "transition_sequence_refs": [
+        "sequence.search-jump"
       ]
     },
     {
@@ -338,6 +500,16 @@
       "boundary_status": "documented_foundation_only",
       "migration_notes": [
         "Covered by the current keybinding foundation record until runtime transition objects are split per action."
+      ],
+      "transition_sequence_refs": [
+        "sequence.dotfile-reveal-conceal",
+        "sequence.enter-directory-file-transition",
+        "sequence.file-small-big-transitions",
+        "sequence.search-jump",
+        "sequence.showall-global-tagged-only",
+        "sequence.split-close-reopen",
+        "sequence.split-toggle-f8",
+        "sequence.tab-panel-switch"
       ]
     },
     {
@@ -355,6 +527,16 @@
       "boundary_status": "documented_foundation_only",
       "migration_notes": [
         "Covered by the current keybinding foundation record until runtime transition objects are split per action."
+      ],
+      "transition_sequence_refs": [
+        "sequence.dotfile-reveal-conceal",
+        "sequence.enter-directory-file-transition",
+        "sequence.file-small-big-transitions",
+        "sequence.search-jump",
+        "sequence.showall-global-tagged-only",
+        "sequence.split-close-reopen",
+        "sequence.split-toggle-f8",
+        "sequence.tab-panel-switch"
       ]
     },
     {
@@ -372,6 +554,16 @@
       "boundary_status": "documented_foundation_only",
       "migration_notes": [
         "Covered by the current keybinding foundation record until runtime transition objects are split per action."
+      ],
+      "transition_sequence_refs": [
+        "sequence.dotfile-reveal-conceal",
+        "sequence.enter-directory-file-transition",
+        "sequence.file-small-big-transitions",
+        "sequence.search-jump",
+        "sequence.showall-global-tagged-only",
+        "sequence.split-close-reopen",
+        "sequence.split-toggle-f8",
+        "sequence.tab-panel-switch"
       ]
     },
     {
@@ -389,6 +581,16 @@
       "boundary_status": "documented_foundation_only",
       "migration_notes": [
         "Covered by the current keybinding foundation record until runtime transition objects are split per action."
+      ],
+      "transition_sequence_refs": [
+        "sequence.dotfile-reveal-conceal",
+        "sequence.enter-directory-file-transition",
+        "sequence.file-small-big-transitions",
+        "sequence.search-jump",
+        "sequence.showall-global-tagged-only",
+        "sequence.split-close-reopen",
+        "sequence.split-toggle-f8",
+        "sequence.tab-panel-switch"
       ]
     },
     {
@@ -406,6 +608,16 @@
       "boundary_status": "documented_foundation_only",
       "migration_notes": [
         "Covered by the current keybinding foundation record until runtime transition objects are split per action."
+      ],
+      "transition_sequence_refs": [
+        "sequence.dotfile-reveal-conceal",
+        "sequence.enter-directory-file-transition",
+        "sequence.file-small-big-transitions",
+        "sequence.search-jump",
+        "sequence.showall-global-tagged-only",
+        "sequence.split-close-reopen",
+        "sequence.split-toggle-f8",
+        "sequence.tab-panel-switch"
       ]
     },
     {
@@ -423,6 +635,16 @@
       "boundary_status": "documented_foundation_only",
       "migration_notes": [
         "Covered by the current keybinding foundation record until runtime transition objects are split per action."
+      ],
+      "transition_sequence_refs": [
+        "sequence.dotfile-reveal-conceal",
+        "sequence.enter-directory-file-transition",
+        "sequence.file-small-big-transitions",
+        "sequence.search-jump",
+        "sequence.showall-global-tagged-only",
+        "sequence.split-close-reopen",
+        "sequence.split-toggle-f8",
+        "sequence.tab-panel-switch"
       ]
     },
     {
@@ -440,6 +662,16 @@
       "boundary_status": "documented_foundation_only",
       "migration_notes": [
         "Covered by the current keybinding foundation record until runtime transition objects are split per action."
+      ],
+      "transition_sequence_refs": [
+        "sequence.dotfile-reveal-conceal",
+        "sequence.enter-directory-file-transition",
+        "sequence.file-small-big-transitions",
+        "sequence.search-jump",
+        "sequence.showall-global-tagged-only",
+        "sequence.split-close-reopen",
+        "sequence.split-toggle-f8",
+        "sequence.tab-panel-switch"
       ]
     },
     {
@@ -457,6 +689,16 @@
       "boundary_status": "documented_foundation_only",
       "migration_notes": [
         "Covered by the current keybinding foundation record until runtime transition objects are split per action."
+      ],
+      "transition_sequence_refs": [
+        "sequence.dotfile-reveal-conceal",
+        "sequence.enter-directory-file-transition",
+        "sequence.file-small-big-transitions",
+        "sequence.search-jump",
+        "sequence.showall-global-tagged-only",
+        "sequence.split-close-reopen",
+        "sequence.split-toggle-f8",
+        "sequence.tab-panel-switch"
       ]
     },
     {
@@ -474,6 +716,9 @@
       "boundary_status": "documented_foundation_only",
       "migration_notes": [
         "Covered by the refresh/rebuild foundation record until log, relog, and refresh actions receive dedicated runtime records."
+      ],
+      "transition_sequence_refs": [
+        "sequence.refresh-rebuild"
       ]
     },
     {
@@ -491,6 +736,9 @@
       "boundary_status": "documented_foundation_only",
       "migration_notes": [
         "Covered by the terminal resize foundation record; signal handlers must only set flags before this transition commits."
+      ],
+      "transition_sequence_refs": [
+        "sequence.terminal-resize-reflow"
       ]
     },
     {
@@ -507,6 +755,9 @@
       "boundary_status": "documented_foundation_only",
       "migration_notes": [
         "Covered by the volume menu foundation record until menu selection has a runtime transition boundary."
+      ],
+      "transition_sequence_refs": [
+        "sequence.volume-menu-select"
       ]
     },
     {
@@ -524,6 +775,9 @@
       "boundary_status": "documented_foundation_only",
       "migration_notes": [
         "Covered by the volume operation foundation record until cycle/release actions receive dedicated runtime records."
+      ],
+      "transition_sequence_refs": [
+        "sequence.volume-cycling-release"
       ]
     },
     {
@@ -541,6 +795,9 @@
       "boundary_status": "documented_foundation_only",
       "migration_notes": [
         "Covered by the volume operation foundation record until cycle/release actions receive dedicated runtime records."
+      ],
+      "transition_sequence_refs": [
+        "sequence.volume-cycling-release"
       ]
     },
     {
@@ -559,6 +816,9 @@
       "boundary_status": "documented_foundation_only",
       "migration_notes": [
         "Covered by the filesystem mutation result foundation record until command actions declare per-operation commit metadata."
+      ],
+      "transition_sequence_refs": [
+        "sequence.filesystem-mutation-result"
       ]
     },
     {
@@ -577,6 +837,9 @@
       "boundary_status": "documented_foundation_only",
       "migration_notes": [
         "Covered by the filesystem mutation result foundation record until command actions declare per-operation commit metadata."
+      ],
+      "transition_sequence_refs": [
+        "sequence.filesystem-mutation-result"
       ]
     },
     {
@@ -595,6 +858,9 @@
       "boundary_status": "documented_foundation_only",
       "migration_notes": [
         "Covered by the filesystem mutation result foundation record until command actions declare per-operation commit metadata."
+      ],
+      "transition_sequence_refs": [
+        "sequence.filesystem-mutation-result"
       ]
     },
     {
@@ -613,6 +879,9 @@
       "boundary_status": "documented_foundation_only",
       "migration_notes": [
         "Covered by the filesystem mutation result foundation record until command actions declare per-operation commit metadata."
+      ],
+      "transition_sequence_refs": [
+        "sequence.filesystem-mutation-result"
       ]
     },
     {
@@ -631,6 +900,9 @@
       "boundary_status": "documented_foundation_only",
       "migration_notes": [
         "Covered by the filesystem mutation result foundation record until command actions declare per-operation commit metadata."
+      ],
+      "transition_sequence_refs": [
+        "sequence.filesystem-mutation-result"
       ]
     },
     {
@@ -649,6 +921,9 @@
       "boundary_status": "documented_foundation_only",
       "migration_notes": [
         "Covered by the filesystem mutation result foundation record until command actions declare per-operation commit metadata."
+      ],
+      "transition_sequence_refs": [
+        "sequence.filesystem-mutation-result"
       ]
     },
     {
@@ -667,6 +942,9 @@
       "boundary_status": "documented_foundation_only",
       "migration_notes": [
         "Covered by the filesystem mutation result foundation record until command actions declare per-operation commit metadata."
+      ],
+      "transition_sequence_refs": [
+        "sequence.filesystem-mutation-result"
       ]
     },
     {
@@ -685,6 +963,9 @@
       "boundary_status": "documented_foundation_only",
       "migration_notes": [
         "Covered by the filesystem mutation result foundation record until command actions declare per-operation commit metadata."
+      ],
+      "transition_sequence_refs": [
+        "sequence.filesystem-mutation-result"
       ]
     },
     {
@@ -703,6 +984,9 @@
       "boundary_status": "documented_foundation_only",
       "migration_notes": [
         "Covered by the filesystem mutation result foundation record until command actions declare per-operation commit metadata."
+      ],
+      "transition_sequence_refs": [
+        "sequence.filesystem-mutation-result"
       ]
     },
     {
@@ -721,6 +1005,9 @@
       "boundary_status": "documented_foundation_only",
       "migration_notes": [
         "Covered by the filesystem mutation result foundation record until command actions declare per-operation commit metadata."
+      ],
+      "transition_sequence_refs": [
+        "sequence.filesystem-mutation-result"
       ]
     },
     {
@@ -739,6 +1026,9 @@
       "boundary_status": "documented_foundation_only",
       "migration_notes": [
         "Covered by the filesystem mutation result foundation record until command actions declare per-operation commit metadata."
+      ],
+      "transition_sequence_refs": [
+        "sequence.filesystem-mutation-result"
       ]
     },
     {
@@ -757,6 +1047,9 @@
       "boundary_status": "documented_foundation_only",
       "migration_notes": [
         "Covered by the filesystem mutation result foundation record until command actions declare per-operation commit metadata."
+      ],
+      "transition_sequence_refs": [
+        "sequence.filesystem-mutation-result"
       ]
     },
     {
@@ -775,6 +1068,9 @@
       "boundary_status": "documented_foundation_only",
       "migration_notes": [
         "Covered by the filesystem mutation result foundation record until command actions declare per-operation commit metadata."
+      ],
+      "transition_sequence_refs": [
+        "sequence.filesystem-mutation-result"
       ]
     },
     {
@@ -793,6 +1089,9 @@
       "boundary_status": "documented_foundation_only",
       "migration_notes": [
         "Covered by the filesystem mutation result foundation record until command actions declare per-operation commit metadata."
+      ],
+      "transition_sequence_refs": [
+        "sequence.filesystem-mutation-result"
       ]
     },
     {
@@ -811,6 +1110,9 @@
       "boundary_status": "documented_foundation_only",
       "migration_notes": [
         "Covered by the filesystem mutation result foundation record until command actions declare per-operation commit metadata."
+      ],
+      "transition_sequence_refs": [
+        "sequence.filesystem-mutation-result"
       ]
     },
     {
@@ -829,6 +1131,9 @@
       "boundary_status": "documented_foundation_only",
       "migration_notes": [
         "Covered by the filesystem mutation result foundation record until command actions declare per-operation commit metadata."
+      ],
+      "transition_sequence_refs": [
+        "sequence.filesystem-mutation-result"
       ]
     },
     {
@@ -845,6 +1150,9 @@
       "boundary_status": "documented_foundation_only",
       "migration_notes": [
         "Covered by the command completion foundation record until external and session command actions receive dedicated runtime records."
+      ],
+      "transition_sequence_refs": [
+        "sequence.search-jump"
       ]
     },
     {
@@ -862,6 +1170,16 @@
       "boundary_status": "documented_foundation_only",
       "migration_notes": [
         "Covered by the current keybinding foundation record until runtime transition objects are split per action."
+      ],
+      "transition_sequence_refs": [
+        "sequence.dotfile-reveal-conceal",
+        "sequence.enter-directory-file-transition",
+        "sequence.file-small-big-transitions",
+        "sequence.search-jump",
+        "sequence.showall-global-tagged-only",
+        "sequence.split-close-reopen",
+        "sequence.split-toggle-f8",
+        "sequence.tab-panel-switch"
       ]
     },
     {
@@ -879,6 +1197,16 @@
       "boundary_status": "documented_foundation_only",
       "migration_notes": [
         "Covered by the current keybinding foundation record until runtime transition objects are split per action."
+      ],
+      "transition_sequence_refs": [
+        "sequence.dotfile-reveal-conceal",
+        "sequence.enter-directory-file-transition",
+        "sequence.file-small-big-transitions",
+        "sequence.search-jump",
+        "sequence.showall-global-tagged-only",
+        "sequence.split-close-reopen",
+        "sequence.split-toggle-f8",
+        "sequence.tab-panel-switch"
       ]
     },
     {
@@ -897,6 +1225,9 @@
       "boundary_status": "documented_foundation_only",
       "migration_notes": [
         "Covered by the filesystem mutation result foundation record until command actions declare per-operation commit metadata."
+      ],
+      "transition_sequence_refs": [
+        "sequence.filesystem-mutation-result"
       ]
     },
     {
@@ -915,6 +1246,9 @@
       "boundary_status": "documented_foundation_only",
       "migration_notes": [
         "Covered by the filesystem mutation result foundation record until command actions declare per-operation commit metadata."
+      ],
+      "transition_sequence_refs": [
+        "sequence.filesystem-mutation-result"
       ]
     },
     {
@@ -933,6 +1267,9 @@
       "boundary_status": "documented_foundation_only",
       "migration_notes": [
         "Covered by the filesystem mutation result foundation record until command actions declare per-operation commit metadata."
+      ],
+      "transition_sequence_refs": [
+        "sequence.filesystem-mutation-result"
       ]
     },
     {
@@ -951,6 +1288,9 @@
       "boundary_status": "documented_foundation_only",
       "migration_notes": [
         "Covered by the filesystem mutation result foundation record until command actions declare per-operation commit metadata."
+      ],
+      "transition_sequence_refs": [
+        "sequence.filesystem-mutation-result"
       ]
     },
     {
@@ -969,6 +1309,9 @@
       "boundary_status": "documented_foundation_only",
       "migration_notes": [
         "Covered by the filesystem mutation result foundation record until command actions declare per-operation commit metadata."
+      ],
+      "transition_sequence_refs": [
+        "sequence.filesystem-mutation-result"
       ]
     },
     {
@@ -987,6 +1330,9 @@
       "boundary_status": "documented_foundation_only",
       "migration_notes": [
         "Covered by the filesystem mutation result foundation record until command actions declare per-operation commit metadata."
+      ],
+      "transition_sequence_refs": [
+        "sequence.filesystem-mutation-result"
       ]
     },
     {
@@ -1005,6 +1351,9 @@
       "boundary_status": "documented_foundation_only",
       "migration_notes": [
         "Covered by the filesystem mutation result foundation record until command actions declare per-operation commit metadata."
+      ],
+      "transition_sequence_refs": [
+        "sequence.filesystem-mutation-result"
       ]
     },
     {
@@ -1023,6 +1372,9 @@
       "boundary_status": "documented_foundation_only",
       "migration_notes": [
         "Covered by the filesystem mutation result foundation record until command actions declare per-operation commit metadata."
+      ],
+      "transition_sequence_refs": [
+        "sequence.filesystem-mutation-result"
       ]
     },
     {
@@ -1041,6 +1393,9 @@
       "boundary_status": "documented_foundation_only",
       "migration_notes": [
         "Covered by the filesystem mutation result foundation record until command actions declare per-operation commit metadata."
+      ],
+      "transition_sequence_refs": [
+        "sequence.filesystem-mutation-result"
       ]
     },
     {
@@ -1059,6 +1414,9 @@
       "boundary_status": "documented_foundation_only",
       "migration_notes": [
         "Covered by the filesystem mutation result foundation record until command actions declare per-operation commit metadata."
+      ],
+      "transition_sequence_refs": [
+        "sequence.filesystem-mutation-result"
       ]
     },
     {
@@ -1077,6 +1435,9 @@
       "boundary_status": "documented_foundation_only",
       "migration_notes": [
         "Covered by the filesystem mutation result foundation record until command actions declare per-operation commit metadata."
+      ],
+      "transition_sequence_refs": [
+        "sequence.filesystem-mutation-result"
       ]
     },
     {
@@ -1095,6 +1456,9 @@
       "boundary_status": "documented_foundation_only",
       "migration_notes": [
         "Covered by the filesystem mutation result foundation record until command actions declare per-operation commit metadata."
+      ],
+      "transition_sequence_refs": [
+        "sequence.filesystem-mutation-result"
       ]
     },
     {
@@ -1113,6 +1477,9 @@
       "boundary_status": "documented_foundation_only",
       "migration_notes": [
         "Covered by the filesystem mutation result foundation record until command actions declare per-operation commit metadata."
+      ],
+      "transition_sequence_refs": [
+        "sequence.filesystem-mutation-result"
       ]
     },
     {
@@ -1129,6 +1496,9 @@
       "boundary_status": "documented_foundation_only",
       "migration_notes": [
         "Covered by the command completion foundation record until external and session command actions receive dedicated runtime records."
+      ],
+      "transition_sequence_refs": [
+        "sequence.search-jump"
       ]
     },
     {
@@ -1146,6 +1516,16 @@
       "boundary_status": "documented_foundation_only",
       "migration_notes": [
         "Covered by the current keybinding foundation record until runtime transition objects are split per action."
+      ],
+      "transition_sequence_refs": [
+        "sequence.dotfile-reveal-conceal",
+        "sequence.enter-directory-file-transition",
+        "sequence.file-small-big-transitions",
+        "sequence.search-jump",
+        "sequence.showall-global-tagged-only",
+        "sequence.split-close-reopen",
+        "sequence.split-toggle-f8",
+        "sequence.tab-panel-switch"
       ]
     },
     {
@@ -1163,6 +1543,16 @@
       "boundary_status": "documented_foundation_only",
       "migration_notes": [
         "Covered by the current keybinding foundation record until runtime transition objects are split per action."
+      ],
+      "transition_sequence_refs": [
+        "sequence.dotfile-reveal-conceal",
+        "sequence.enter-directory-file-transition",
+        "sequence.file-small-big-transitions",
+        "sequence.search-jump",
+        "sequence.showall-global-tagged-only",
+        "sequence.split-close-reopen",
+        "sequence.split-toggle-f8",
+        "sequence.tab-panel-switch"
       ]
     },
     {
@@ -1180,6 +1570,16 @@
       "boundary_status": "documented_foundation_only",
       "migration_notes": [
         "Covered by the current keybinding foundation record until runtime transition objects are split per action."
+      ],
+      "transition_sequence_refs": [
+        "sequence.dotfile-reveal-conceal",
+        "sequence.enter-directory-file-transition",
+        "sequence.file-small-big-transitions",
+        "sequence.search-jump",
+        "sequence.showall-global-tagged-only",
+        "sequence.split-close-reopen",
+        "sequence.split-toggle-f8",
+        "sequence.tab-panel-switch"
       ]
     },
     {
@@ -1197,6 +1597,16 @@
       "boundary_status": "documented_foundation_only",
       "migration_notes": [
         "Covered by the current keybinding foundation record until runtime transition objects are split per action."
+      ],
+      "transition_sequence_refs": [
+        "sequence.dotfile-reveal-conceal",
+        "sequence.enter-directory-file-transition",
+        "sequence.file-small-big-transitions",
+        "sequence.search-jump",
+        "sequence.showall-global-tagged-only",
+        "sequence.split-close-reopen",
+        "sequence.split-toggle-f8",
+        "sequence.tab-panel-switch"
       ]
     },
     {
@@ -1214,6 +1624,16 @@
       "boundary_status": "documented_foundation_only",
       "migration_notes": [
         "Covered by the current keybinding foundation record until runtime transition objects are split per action."
+      ],
+      "transition_sequence_refs": [
+        "sequence.dotfile-reveal-conceal",
+        "sequence.enter-directory-file-transition",
+        "sequence.file-small-big-transitions",
+        "sequence.search-jump",
+        "sequence.showall-global-tagged-only",
+        "sequence.split-close-reopen",
+        "sequence.split-toggle-f8",
+        "sequence.tab-panel-switch"
       ]
     },
     {
@@ -1231,6 +1651,16 @@
       "boundary_status": "documented_foundation_only",
       "migration_notes": [
         "Covered by the current keybinding foundation record until runtime transition objects are split per action."
+      ],
+      "transition_sequence_refs": [
+        "sequence.dotfile-reveal-conceal",
+        "sequence.enter-directory-file-transition",
+        "sequence.file-small-big-transitions",
+        "sequence.search-jump",
+        "sequence.showall-global-tagged-only",
+        "sequence.split-close-reopen",
+        "sequence.split-toggle-f8",
+        "sequence.tab-panel-switch"
       ]
     },
     {
@@ -1248,6 +1678,16 @@
       "boundary_status": "documented_foundation_only",
       "migration_notes": [
         "Covered by the current keybinding foundation record until runtime transition objects are split per action."
+      ],
+      "transition_sequence_refs": [
+        "sequence.dotfile-reveal-conceal",
+        "sequence.enter-directory-file-transition",
+        "sequence.file-small-big-transitions",
+        "sequence.search-jump",
+        "sequence.showall-global-tagged-only",
+        "sequence.split-close-reopen",
+        "sequence.split-toggle-f8",
+        "sequence.tab-panel-switch"
       ]
     },
     {
@@ -1265,6 +1705,16 @@
       "boundary_status": "documented_foundation_only",
       "migration_notes": [
         "Covered by the current keybinding foundation record until runtime transition objects are split per action."
+      ],
+      "transition_sequence_refs": [
+        "sequence.dotfile-reveal-conceal",
+        "sequence.enter-directory-file-transition",
+        "sequence.file-small-big-transitions",
+        "sequence.search-jump",
+        "sequence.showall-global-tagged-only",
+        "sequence.split-close-reopen",
+        "sequence.split-toggle-f8",
+        "sequence.tab-panel-switch"
       ]
     },
     {
@@ -1282,6 +1732,16 @@
       "boundary_status": "documented_foundation_only",
       "migration_notes": [
         "Covered by the current keybinding foundation record until runtime transition objects are split per action."
+      ],
+      "transition_sequence_refs": [
+        "sequence.dotfile-reveal-conceal",
+        "sequence.enter-directory-file-transition",
+        "sequence.file-small-big-transitions",
+        "sequence.search-jump",
+        "sequence.showall-global-tagged-only",
+        "sequence.split-close-reopen",
+        "sequence.split-toggle-f8",
+        "sequence.tab-panel-switch"
       ]
     },
     {
@@ -1299,6 +1759,16 @@
       "boundary_status": "documented_foundation_only",
       "migration_notes": [
         "Covered by the current keybinding foundation record until runtime transition objects are split per action."
+      ],
+      "transition_sequence_refs": [
+        "sequence.dotfile-reveal-conceal",
+        "sequence.enter-directory-file-transition",
+        "sequence.file-small-big-transitions",
+        "sequence.search-jump",
+        "sequence.showall-global-tagged-only",
+        "sequence.split-close-reopen",
+        "sequence.split-toggle-f8",
+        "sequence.tab-panel-switch"
       ]
     },
     {
@@ -1316,6 +1786,16 @@
       "boundary_status": "documented_foundation_only",
       "migration_notes": [
         "Covered by the current keybinding foundation record until runtime transition objects are split per action."
+      ],
+      "transition_sequence_refs": [
+        "sequence.dotfile-reveal-conceal",
+        "sequence.enter-directory-file-transition",
+        "sequence.file-small-big-transitions",
+        "sequence.search-jump",
+        "sequence.showall-global-tagged-only",
+        "sequence.split-close-reopen",
+        "sequence.split-toggle-f8",
+        "sequence.tab-panel-switch"
       ]
     },
     {
@@ -1333,6 +1813,16 @@
       "boundary_status": "documented_foundation_only",
       "migration_notes": [
         "Covered by the current keybinding foundation record until runtime transition objects are split per action."
+      ],
+      "transition_sequence_refs": [
+        "sequence.dotfile-reveal-conceal",
+        "sequence.enter-directory-file-transition",
+        "sequence.file-small-big-transitions",
+        "sequence.search-jump",
+        "sequence.showall-global-tagged-only",
+        "sequence.split-close-reopen",
+        "sequence.split-toggle-f8",
+        "sequence.tab-panel-switch"
       ]
     },
     {
@@ -1350,6 +1840,16 @@
       "boundary_status": "documented_foundation_only",
       "migration_notes": [
         "Covered by the current keybinding foundation record until runtime transition objects are split per action."
+      ],
+      "transition_sequence_refs": [
+        "sequence.dotfile-reveal-conceal",
+        "sequence.enter-directory-file-transition",
+        "sequence.file-small-big-transitions",
+        "sequence.search-jump",
+        "sequence.showall-global-tagged-only",
+        "sequence.split-close-reopen",
+        "sequence.split-toggle-f8",
+        "sequence.tab-panel-switch"
       ]
     },
     {
@@ -1367,6 +1867,16 @@
       "boundary_status": "documented_foundation_only",
       "migration_notes": [
         "Covered by the current keybinding foundation record until runtime transition objects are split per action."
+      ],
+      "transition_sequence_refs": [
+        "sequence.dotfile-reveal-conceal",
+        "sequence.enter-directory-file-transition",
+        "sequence.file-small-big-transitions",
+        "sequence.search-jump",
+        "sequence.showall-global-tagged-only",
+        "sequence.split-close-reopen",
+        "sequence.split-toggle-f8",
+        "sequence.tab-panel-switch"
       ]
     },
     {
@@ -1384,6 +1894,16 @@
       "boundary_status": "documented_foundation_only",
       "migration_notes": [
         "Covered by the current keybinding foundation record until runtime transition objects are split per action."
+      ],
+      "transition_sequence_refs": [
+        "sequence.dotfile-reveal-conceal",
+        "sequence.enter-directory-file-transition",
+        "sequence.file-small-big-transitions",
+        "sequence.search-jump",
+        "sequence.showall-global-tagged-only",
+        "sequence.split-close-reopen",
+        "sequence.split-toggle-f8",
+        "sequence.tab-panel-switch"
       ]
     },
     {
@@ -1401,6 +1921,16 @@
       "boundary_status": "documented_foundation_only",
       "migration_notes": [
         "Covered by the current keybinding foundation record until runtime transition objects are split per action."
+      ],
+      "transition_sequence_refs": [
+        "sequence.dotfile-reveal-conceal",
+        "sequence.enter-directory-file-transition",
+        "sequence.file-small-big-transitions",
+        "sequence.search-jump",
+        "sequence.showall-global-tagged-only",
+        "sequence.split-close-reopen",
+        "sequence.split-toggle-f8",
+        "sequence.tab-panel-switch"
       ]
     },
     {
@@ -1418,6 +1948,16 @@
       "boundary_status": "documented_foundation_only",
       "migration_notes": [
         "Covered by the current keybinding foundation record until runtime transition objects are split per action."
+      ],
+      "transition_sequence_refs": [
+        "sequence.dotfile-reveal-conceal",
+        "sequence.enter-directory-file-transition",
+        "sequence.file-small-big-transitions",
+        "sequence.search-jump",
+        "sequence.showall-global-tagged-only",
+        "sequence.split-close-reopen",
+        "sequence.split-toggle-f8",
+        "sequence.tab-panel-switch"
       ]
     },
     {
@@ -1435,6 +1975,16 @@
       "boundary_status": "documented_foundation_only",
       "migration_notes": [
         "Covered by the current keybinding foundation record until runtime transition objects are split per action."
+      ],
+      "transition_sequence_refs": [
+        "sequence.dotfile-reveal-conceal",
+        "sequence.enter-directory-file-transition",
+        "sequence.file-small-big-transitions",
+        "sequence.search-jump",
+        "sequence.showall-global-tagged-only",
+        "sequence.split-close-reopen",
+        "sequence.split-toggle-f8",
+        "sequence.tab-panel-switch"
       ]
     },
     {
@@ -1451,6 +2001,9 @@
       "boundary_status": "documented_foundation_only",
       "migration_notes": [
         "Covered by the command completion foundation record until external and session command actions receive dedicated runtime records."
+      ],
+      "transition_sequence_refs": [
+        "sequence.search-jump"
       ]
     },
     {
@@ -1467,6 +2020,9 @@
       "boundary_status": "documented_foundation_only",
       "migration_notes": [
         "Covered by the command completion foundation record until external and session command actions receive dedicated runtime records."
+      ],
+      "transition_sequence_refs": [
+        "sequence.search-jump"
       ]
     }
   ]

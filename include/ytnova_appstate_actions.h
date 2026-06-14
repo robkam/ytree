@@ -25,6 +25,8 @@ typedef struct {
   const char *owner;
   const char *const *declared_write_set;
   size_t declared_write_set_count;
+  const char *const *transition_sequence_refs;
+  size_t transition_sequence_ref_count;
   const char *boundary_status;
   const char *const *migration_notes;
   size_t migration_note_count;
@@ -42,6 +44,8 @@ typedef struct {
   const char *boundary_status;
   const char *const *trigger_paths;
   size_t trigger_path_count;
+  const char *const *transition_sequence_refs;
+  size_t transition_sequence_ref_count;
   const char *const *migration_notes;
   size_t migration_note_count;
 } AppStateEventCoverageMetadata;

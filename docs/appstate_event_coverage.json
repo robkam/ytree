@@ -21,10 +21,24 @@
       "category": "terminal_signal_or_resize",
       "source": "SIGWINCH flag handling and resize polling in the main loop",
       "owner": "ViewContext.layout_region",
-      "declared_write_set": ["ctx.layout", "ctx.window_handles", "panel.tree_viewport_origin", "panel.file_viewport_origin", "panel.panel_generation"],
+      "declared_write_set": [
+        "ctx.layout",
+        "ctx.window_handles",
+        "panel.tree_viewport_origin",
+        "panel.file_viewport_origin",
+        "panel.panel_generation"
+      ],
       "boundary_status": "covered_by_transition_record",
-      "trigger_paths": ["Signal flag set outside curses work", "Main-loop resize/reflow handling"],
-      "migration_notes": ["Signal handlers may only set flags; resize commits through the main-loop transition boundary."]
+      "trigger_paths": [
+        "Signal flag set outside curses work",
+        "Main-loop resize/reflow handling"
+      ],
+      "migration_notes": [
+        "Signal handlers may only set flags; resize commits through the main-loop transition boundary."
+      ],
+      "transition_sequence_refs": [
+        "sequence.terminal-resize-reflow"
+      ]
     },
     {
       "event_id": "event.refresh-rebuild",
@@ -33,10 +47,24 @@
       "category": "refresh_rebuild",
       "source": "Manual refresh, explicit relog, or declared refresh boundary",
       "owner": "Volume(shared topology)",
-      "declared_write_set": ["volume.dir_tree", "volume.logged_state", "volume.volume_generation", "panel.restore_snapshot", "panel.panel_generation"],
+      "declared_write_set": [
+        "volume.dir_tree",
+        "volume.logged_state",
+        "volume.volume_generation",
+        "panel.restore_snapshot",
+        "panel.panel_generation"
+      ],
       "boundary_status": "covered_by_transition_record",
-      "trigger_paths": ["Manual refresh command", "Explicit relog of the current path"],
-      "migration_notes": ["Rebuild must settle topology, advance generation, then rebind panels by stable identity."]
+      "trigger_paths": [
+        "Manual refresh command",
+        "Explicit relog of the current path"
+      ],
+      "migration_notes": [
+        "Rebuild must settle topology, advance generation, then rebind panels by stable identity."
+      ],
+      "transition_sequence_refs": [
+        "sequence.refresh-rebuild"
+      ]
     },
     {
       "event_id": "event.rebuild-rebind-callback",
@@ -45,10 +73,26 @@
       "category": "rebuild_rebind_callback",
       "source": "Post-rebuild panel anchor re-resolution callback",
       "owner": "YtreeNovaPanel(affected) and Volume(current)",
-      "declared_write_set": ["panel.tree_selection_key", "panel.file_selection_key", "panel.tree_cursor_pos", "panel.tree_viewport_origin", "panel.file_viewport_origin", "panel.panel_generation"],
+      "declared_write_set": [
+        "panel.tree_selection_key",
+        "panel.file_selection_key",
+        "panel.tree_cursor_pos",
+        "panel.tree_viewport_origin",
+        "panel.file_viewport_origin",
+        "panel.panel_generation"
+      ],
       "boundary_status": "covered_by_transition_record",
-      "trigger_paths": ["Post-refresh restore", "Post-mutation restore", "Visibility or topology generation mismatch rebind"],
-      "migration_notes": ["Callback coverage points to the existing rebuild/rebind transition rather than inventing a separate runtime event."]
+      "trigger_paths": [
+        "Post-refresh restore",
+        "Post-mutation restore",
+        "Visibility or topology generation mismatch rebind"
+      ],
+      "migration_notes": [
+        "Callback coverage points to the existing rebuild/rebind transition rather than inventing a separate runtime event."
+      ],
+      "transition_sequence_refs": [
+        "sequence.refresh-rebuild"
+      ]
     },
     {
       "event_id": "event.filesystem-mutation-result",
@@ -57,10 +101,26 @@
       "category": "filesystem_mutation_result",
       "source": "Completed filesystem mutation command result",
       "owner": "Volume(shared topology) plus YtreeNovaPanel(active) for active selection",
-      "declared_write_set": ["volume.dir_tree", "volume.payload_cache", "volume.volume_generation", "panel.restore_snapshot", "panel.panel_generation", "ctx.message_state"],
+      "declared_write_set": [
+        "volume.dir_tree",
+        "volume.payload_cache",
+        "volume.volume_generation",
+        "panel.restore_snapshot",
+        "panel.panel_generation",
+        "ctx.message_state"
+      ],
       "boundary_status": "covered_by_transition_record",
-      "trigger_paths": ["Create directory result", "Copy or move result", "Delete or chmod-like result"],
-      "migration_notes": ["Command side effects remain outside AppState commit; only completed results may update AppState metadata."]
+      "trigger_paths": [
+        "Create directory result",
+        "Copy or move result",
+        "Delete or chmod-like result"
+      ],
+      "migration_notes": [
+        "Command side effects remain outside AppState commit; only completed results may update AppState metadata."
+      ],
+      "transition_sequence_refs": [
+        "sequence.filesystem-mutation-result"
+      ]
     },
     {
       "event_id": "event.watcher-live-refresh",
@@ -69,10 +129,25 @@
       "category": "refresh_rebuild",
       "source": "Filesystem watcher or live-refresh notification after debounce/settle",
       "owner": "Volume(shared topology)",
-      "declared_write_set": ["volume.dir_tree", "volume.logged_state", "volume.volume_generation", "panel.restore_snapshot", "panel.panel_generation"],
+      "declared_write_set": [
+        "volume.dir_tree",
+        "volume.logged_state",
+        "volume.volume_generation",
+        "panel.restore_snapshot",
+        "panel.panel_generation"
+      ],
       "boundary_status": "mapped_to_existing_broad_transition",
-      "trigger_paths": ["Watcher notification", "Live refresh scheduling", "Settled topology refresh"],
-      "migration_notes": ["Watcher/live-refresh intentionally maps to the broad refresh_rebuild transition until a dedicated watcher runtime boundary exists."]
+      "trigger_paths": [
+        "Watcher notification",
+        "Live refresh scheduling",
+        "Settled topology refresh"
+      ],
+      "migration_notes": [
+        "Watcher/live-refresh intentionally maps to the broad refresh_rebuild transition until a dedicated watcher runtime boundary exists."
+      ],
+      "transition_sequence_refs": [
+        "sequence.refresh-rebuild"
+      ]
     },
     {
       "event_id": "event.command-completion",
@@ -81,10 +156,24 @@
       "category": "command_completion",
       "source": "External or user command exit-status completion",
       "owner": "ViewContext.command_region",
-      "declared_write_set": ["ctx.command_state", "ctx.message_state", "ctx.pending_transition", "panel.panel_generation"],
+      "declared_write_set": [
+        "ctx.command_state",
+        "ctx.message_state",
+        "ctx.pending_transition",
+        "panel.panel_generation"
+      ],
       "boundary_status": "covered_by_transition_record",
-      "trigger_paths": ["External command completion", "User command menu completion", "Command failure or cancellation outcome"],
-      "migration_notes": ["Command completion may schedule refresh only when the command contract declares filesystem impact."]
+      "trigger_paths": [
+        "External command completion",
+        "User command menu completion",
+        "Command failure or cancellation outcome"
+      ],
+      "migration_notes": [
+        "Command completion may schedule refresh only when the command contract declares filesystem impact."
+      ],
+      "transition_sequence_refs": [
+        "sequence.search-jump"
+      ]
     },
     {
       "event_id": "event.modal-completion",
@@ -93,10 +182,24 @@
       "category": "modal_action",
       "source": "Modal prompt, menu, or dialog completion",
       "owner": "ViewContext.modal_region",
-      "declared_write_set": ["ctx.modal_state", "ctx.message_state", "panel.focus_shape", "panel.panel_generation"],
+      "declared_write_set": [
+        "ctx.modal_state",
+        "ctx.message_state",
+        "panel.focus_shape",
+        "panel.panel_generation"
+      ],
       "boundary_status": "mapped_to_existing_broad_transition",
-      "trigger_paths": ["Modal Enter completion", "Modal Esc cancellation", "Neutral dialog dismissal"],
-      "migration_notes": ["Modal completion maps to the modal_action dismiss record while destructive confirmations remain governed by their own command transitions."]
+      "trigger_paths": [
+        "Modal Enter completion",
+        "Modal Esc cancellation",
+        "Neutral dialog dismissal"
+      ],
+      "migration_notes": [
+        "Modal completion maps to the modal_action dismiss record while destructive confirmations remain governed by their own command transitions."
+      ],
+      "transition_sequence_refs": [
+        "sequence.esc-modal-dismissal"
+      ]
     },
     {
       "event_id": "event.volume-lifecycle",
@@ -105,10 +208,25 @@
       "category": "volume_operation",
       "source": "Volume cycle, release, or loaded-volume selection lifecycle event",
       "owner": "ViewContext.volume_registry and YtreeNovaPanel(active)",
-      "declared_write_set": ["ctx.volumes_head", "panel.volume_key", "panel.restore_snapshot", "panel.panel_generation", "volume.volume_generation"],
+      "declared_write_set": [
+        "ctx.volumes_head",
+        "panel.volume_key",
+        "panel.restore_snapshot",
+        "panel.panel_generation",
+        "volume.volume_generation"
+      ],
       "boundary_status": "covered_by_transition_record",
-      "trigger_paths": ["Cycle loaded volume", "Release volume", "Bind active panel to selected volume"],
-      "migration_notes": ["Lifecycle coverage keeps inactive panels from inheriting stale volume pointers during migration."]
+      "trigger_paths": [
+        "Cycle loaded volume",
+        "Release volume",
+        "Bind active panel to selected volume"
+      ],
+      "migration_notes": [
+        "Lifecycle coverage keeps inactive panels from inheriting stale volume pointers during migration."
+      ],
+      "transition_sequence_refs": [
+        "sequence.volume-cycling-release"
+      ]
     },
     {
       "event_id": "event.render-reflow",
@@ -117,10 +235,22 @@
       "category": "render_reflow",
       "source": "Render invalidation projection and doupdate-ready reflow",
       "owner": "ViewContext.render_region",
-      "declared_write_set": ["ctx.render_dirty_flags", "ctx.window_handles"],
+      "declared_write_set": [
+        "ctx.render_dirty_flags",
+        "ctx.window_handles"
+      ],
       "boundary_status": "covered_by_transition_record",
-      "trigger_paths": ["Render dirty flag projection", "Layout reflow projection", "doupdate-ready render tick"],
-      "migration_notes": ["Render/reflow is projection-only and must not become restore authority."]
+      "trigger_paths": [
+        "Render dirty flag projection",
+        "Layout reflow projection",
+        "doupdate-ready render tick"
+      ],
+      "migration_notes": [
+        "Render/reflow is projection-only and must not become restore authority."
+      ],
+      "transition_sequence_refs": [
+        "sequence.render-reflow-projection"
+      ]
     }
   ]
 }
