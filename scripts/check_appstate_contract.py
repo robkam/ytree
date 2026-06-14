@@ -2574,6 +2574,7 @@ def _validate_runtime_diff_harness_registry(
     runtime_owner_fields: set[str],
     runtime_invariant_ids: set[str],
     runtime_invariant_transition_ids: dict[str, set[str]],
+    runtime_invariant_protected_fields: dict[str, set[str]],
     runtime_generation_domain_ids: set[str],
 ) -> list[str]:
     failures: list[str] = []
@@ -2681,6 +2682,18 @@ def _validate_runtime_diff_harness_registry(
                         transition_field="transition_id",
                     )
                 )
+
+        if isinstance(owner_field_refs, list):
+            failures.extend(
+                _validate_diff_harness_owner_field_invariant_alignment(
+                    owner_field_refs=owner_field_refs,
+                    invariant_refs=invariant_refs,
+                    invariant_protected_fields=runtime_invariant_protected_fields,
+                    valid_owner_fields=runtime_owner_fields,
+                    valid_invariant_ids=runtime_invariant_ids,
+                    label=harness_label,
+                )
+            )
 
         generation_domain_refs = record.get("generation_domain_ids")
         if isinstance(generation_domain_refs, list):
@@ -3041,6 +3054,7 @@ def _validate_appstate_diff_harness(
     registered_owner_fields: set[str],
     invariant_ids: set[str],
     invariant_transition_ids: dict[str, set[str]],
+    invariant_protected_fields: dict[str, set[str]],
     generation_domain_ids: set[str],
 ) -> list[str]:
     failures: list[str] = []
@@ -3132,6 +3146,18 @@ def _validate_appstate_diff_harness(
                         transition_field="transition_id",
                     )
                 )
+
+        if isinstance(owner_field_refs, list):
+            failures.extend(
+                _validate_diff_harness_owner_field_invariant_alignment(
+                    owner_field_refs=owner_field_refs,
+                    invariant_refs=invariant_refs,
+                    invariant_protected_fields=invariant_protected_fields,
+                    valid_owner_fields=registered_owner_fields,
+                    valid_invariant_ids=invariant_ids,
+                    label=harness_label,
+                )
+            )
 
         generation_domain_refs = record.get("generation_domain_ids")
         if isinstance(generation_domain_refs, list):
@@ -4127,6 +4153,42 @@ def _validate_owner_field_invariant_alignment(
         f"{label}: invariant_checks must include at least one invariant "
         f"protecting owner field {owner_field}"
     ]
+
+
+def _validate_diff_harness_owner_field_invariant_alignment(
+    *,
+    owner_field_refs: Any,
+    invariant_refs: Any,
+    invariant_protected_fields: dict[str, set[str]],
+    valid_owner_fields: set[str],
+    valid_invariant_ids: set[str],
+    label: str,
+) -> list[str]:
+    if not isinstance(owner_field_refs, list):
+        return []
+    if not isinstance(invariant_refs, list):
+        return []
+
+    protected_fields: set[str] = set()
+    for invariant_id in invariant_refs:
+        if not isinstance(invariant_id, str) or not invariant_id.strip():
+            continue
+        if invariant_id not in valid_invariant_ids:
+            continue
+        protected_fields.update(invariant_protected_fields.get(invariant_id, set()))
+
+    failures: list[str] = []
+    for field in owner_field_refs:
+        if not isinstance(field, str) or not field.strip():
+            continue
+        if field not in valid_owner_fields:
+            continue
+        if field not in protected_fields:
+            failures.append(
+                f"{label}: invariant_ids must include at least one invariant "
+                f"protecting owner_field_refs field {field}"
+            )
+    return failures
 
 
 def _invariant_refs_cover_transition(
@@ -5340,6 +5402,9 @@ def validate_contract(
             invariant_transition_ids=_invariant_transition_ids_by_invariant(
                 invariant_records
             ),
+            invariant_protected_fields=_invariant_protected_fields_by_invariant(
+                invariant_records
+            ),
             generation_domain_ids=generation_domain_ids,
         )
     )
@@ -5365,6 +5430,9 @@ def validate_contract(
                 record["invariant_id"] for record in runtime_invariant_records
             },
             runtime_invariant_transition_ids=_invariant_transition_ids_by_invariant(
+                runtime_invariant_records
+            ),
+            runtime_invariant_protected_fields=_invariant_protected_fields_by_invariant(
                 runtime_invariant_records
             ),
             runtime_generation_domain_ids={

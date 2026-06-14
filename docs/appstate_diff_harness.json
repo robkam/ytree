@@ -79,7 +79,8 @@
       "invariant_ids": [
         "invariant.panel-local-focus-restore",
         "invariant.shared-state-panel-local-isolation",
-        "invariant.blocked-transition-determinism"
+        "invariant.blocked-transition-determinism",
+        "invariant.inactive-panel-frozen"
       ],
       "generation_domain_ids": [
         "generation.panel.local-authority",
@@ -157,7 +158,9 @@
       "invariant_ids": [
         "invariant.stale-snapshot-fail-closed",
         "invariant.viewport-identity-rebind",
-        "invariant.hidden-entry-visible-navigation"
+        "invariant.hidden-entry-visible-navigation",
+        "invariant.render-projection-read-only",
+        "invariant.shared-state-panel-local-isolation"
       ],
       "generation_domain_ids": [
         "generation.panel.local-authority",
