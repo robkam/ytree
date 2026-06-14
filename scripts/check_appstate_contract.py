@@ -2319,6 +2319,7 @@ def _validate_runtime_invariant_registry(
     invariant_records: list[Any],
     runtime_transition_ids: set[str],
     dispatch_surface_ids: set[str],
+    runtime_diff_harness_owner_field_refs: set[str],
 ) -> list[str]:
     failures: list[str] = []
     expected_invariants = {
@@ -2367,6 +2368,16 @@ def _validate_runtime_invariant_registry(
             values = record.get(field)
             if not isinstance(values, list) or not values:
                 failures.append(f"{label}: {field} must be non-empty")
+
+        failures.extend(
+            _validate_invariant_diff_harness_owner_field_coverage(
+                protected_fields=record.get("protected_fields"),
+                invariant_id=runtime_id,
+                diff_harness_owner_field_refs=runtime_diff_harness_owner_field_refs,
+                label=label,
+                coverage_label="runtime diff harness",
+            )
+        )
 
         runtime_surface_refs = record.get("dispatch_surface_ids")
         if not isinstance(runtime_surface_refs, list):
@@ -3335,6 +3346,7 @@ def _validate_invariants(
     transition_ids: dict[str, dict[str, Any]],
     registered_owner_fields: set[str],
     dispatch_surface_ids: set[str],
+    diff_harness_owner_field_refs: set[str],
 ) -> list[str]:
     failures: list[str] = []
     if not isinstance(invariants_doc, dict):
@@ -3398,6 +3410,16 @@ def _validate_invariants(
                     failures.append(
                         f"{label}: protected_fields references unregistered owner field: {field}"
                     )
+        failures.extend(
+            _validate_invariant_diff_harness_owner_field_coverage(
+                protected_fields=protected_fields,
+                invariant_id=invariant_id,
+                diff_harness_owner_field_refs=diff_harness_owner_field_refs,
+                label=label,
+                coverage_label="diff harness",
+                registered_owner_fields=registered_owner_fields,
+            )
+        )
 
         transition_refs = record.get("transition_ids")
         if isinstance(transition_refs, list):
@@ -3928,6 +3950,48 @@ def _invariant_protected_fields_by_invariant(
             if isinstance(field, str) and field.strip()
         }
     return protected_fields_by_invariant
+
+
+def _diff_harness_owner_field_refs(diff_harness_records: list[Any]) -> set[str]:
+    owner_field_refs: set[str] = set()
+    for record in diff_harness_records:
+        if not isinstance(record, dict):
+            continue
+        refs = record.get("owner_field_refs")
+        if not isinstance(refs, list):
+            continue
+        owner_field_refs.update(
+            field for field in refs if isinstance(field, str) and field.strip()
+        )
+    return owner_field_refs
+
+
+def _validate_invariant_diff_harness_owner_field_coverage(
+    *,
+    protected_fields: Any,
+    invariant_id: Any,
+    diff_harness_owner_field_refs: set[str],
+    label: str,
+    coverage_label: str,
+    registered_owner_fields: set[str] | None = None,
+) -> list[str]:
+    if not isinstance(invariant_id, str) or not invariant_id.strip():
+        return []
+    if not isinstance(protected_fields, list):
+        return []
+
+    failures: list[str] = []
+    for field in protected_fields:
+        if not isinstance(field, str) or not field.strip():
+            continue
+        if registered_owner_fields is not None and field not in registered_owner_fields:
+            continue
+        if field not in diff_harness_owner_field_refs:
+            failures.append(
+                f"{label}: invariant {invariant_id} protected field lacks "
+                f"{coverage_label} owner_field_refs coverage: {field}"
+            )
+    return failures
 
 
 def _invariant_protected_fields_by_dispatch_surface(
@@ -5211,6 +5275,18 @@ def validate_contract(
     runtime_dispatch_surface_ids = {
         record["surface_id"] for record in runtime_dispatch_surface_records
     }
+    if isinstance(diff_harness_doc, dict) and isinstance(
+        diff_harness_doc.get("diff_harness_checks"), list
+    ):
+        diff_harness_records = diff_harness_doc["diff_harness_checks"]
+    else:
+        diff_harness_records = []
+    diff_harness_owner_field_refs = _diff_harness_owner_field_refs(
+        diff_harness_records
+    )
+    runtime_diff_harness_owner_field_refs = _diff_harness_owner_field_refs(
+        runtime_diff_harness_records
+    )
     failures.extend(
         _validate_invariants(
             invariants_doc=invariants_doc,
@@ -5218,6 +5294,7 @@ def validate_contract(
             transition_ids=transition_ids,
             registered_owner_fields=registered_owner_fields,
             dispatch_surface_ids=dispatch_surface_ids,
+            diff_harness_owner_field_refs=diff_harness_owner_field_refs,
         )
     )
     if isinstance(invariants_doc, dict) and isinstance(
@@ -5233,6 +5310,9 @@ def validate_contract(
             invariant_records=invariant_records,
             runtime_transition_ids={record["id"] for record in runtime_transition_records},
             dispatch_surface_ids=runtime_dispatch_surface_ids,
+            runtime_diff_harness_owner_field_refs=(
+                runtime_diff_harness_owner_field_refs
+            ),
         )
     )
     invariant_ids = _collect_string_ids(
@@ -5263,12 +5343,6 @@ def validate_contract(
             generation_domain_ids=generation_domain_ids,
         )
     )
-    if isinstance(diff_harness_doc, dict) and isinstance(
-        diff_harness_doc.get("diff_harness_checks"), list
-    ):
-        diff_harness_records = diff_harness_doc["diff_harness_checks"]
-    else:
-        diff_harness_records = []
     failures.extend(
         _validate_generation_diff_harness_coverage(
             generation_domain_records=generation_domain_records,

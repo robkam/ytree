@@ -603,6 +603,35 @@ static int AppStateInvariantProtectsField(const char *invariant_id,
                             metadata->protected_field_count, field);
 }
 
+static int AppStateDiffHarnessOwnerFieldCovered(const char *owner_field) {
+  size_t harness_index;
+
+  if (!NonEmptyString(owner_field))
+    return 0;
+
+  for (harness_index = 0; harness_index < AppStateDiffHarnessCount();
+       harness_index++) {
+    const AppStateDiffHarnessMetadata *harness =
+        AppStateDiffHarnessAt(harness_index);
+    size_t ref_index;
+
+    if (harness == NULL || harness->owner_field_refs == NULL)
+      return 0;
+
+    for (ref_index = 0; ref_index < harness->owner_field_ref_count;
+         ref_index++) {
+      const char *harness_owner_field = harness->owner_field_refs[ref_index];
+
+      if (!NonEmptyString(harness_owner_field))
+        return 0;
+      if (strcmp(harness_owner_field, owner_field) == 0)
+        return 1;
+    }
+  }
+
+  return 0;
+}
+
 static int AppStateOwnerFieldsReady(void) {
   size_t index;
   size_t required_owner_field_id_count =
@@ -1042,6 +1071,8 @@ static int AppStateInvariantRegistryReady(void) {
       const char *field = metadata->protected_fields[protected_field_index];
 
       if (AppStateOwnerFieldLookup(field) == NULL)
+        return 0;
+      if (!AppStateDiffHarnessOwnerFieldCovered(field))
         return 0;
     }
 
