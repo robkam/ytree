@@ -2185,6 +2185,26 @@ static const char *const kAppStateCompatibilityShimGenerationDomainRefs3[] = {
   "reflow.layout.projection",
 };
 
+static const char *const kAppStateCompatibilityShimDiffHarnessRefs0[] = {
+  "harness.transition-before-after-snapshot",
+  "harness.generation-mismatch-check",
+};
+
+static const char *const kAppStateCompatibilityShimDiffHarnessRefs1[] = {
+  "harness.transition-before-after-snapshot",
+  "harness.generation-mismatch-check",
+};
+
+static const char *const kAppStateCompatibilityShimDiffHarnessRefs2[] = {
+  "harness.declared-write-set-diff",
+};
+
+static const char *const kAppStateCompatibilityShimDiffHarnessRefs3[] = {
+  "harness.render-projection-read-only-diff",
+  "harness.generation-mismatch-check",
+  "harness.blocked-transition-no-unrelated-mutation",
+};
+
 static const char *const kAppStateInvariantProtectedFields0[] = {
   "ctx.active",
   "panel.volume_key",
@@ -3878,6 +3898,9 @@ static const AppStateCompatibilityShimMetadata kAppStateCompatibilityShims[] = {
    kAppStateCompatibilityShimGenerationDomainRefs0,
    sizeof(kAppStateCompatibilityShimGenerationDomainRefs0) /
        sizeof(kAppStateCompatibilityShimGenerationDomainRefs0[0]),
+   kAppStateCompatibilityShimDiffHarnessRefs0,
+   sizeof(kAppStateCompatibilityShimDiffHarnessRefs0) /
+       sizeof(kAppStateCompatibilityShimDiffHarnessRefs0[0]),
    "All visibility and restore helpers consume panel-local dotfile_visibility directly.",
    "transition.keybinding.navigate-tree",
    "Runtime migration of visibility toggles and restore helpers to AppState panel records.",
@@ -3897,6 +3920,9 @@ static const AppStateCompatibilityShimMetadata kAppStateCompatibilityShims[] = {
    kAppStateCompatibilityShimGenerationDomainRefs1,
    sizeof(kAppStateCompatibilityShimGenerationDomainRefs1) /
        sizeof(kAppStateCompatibilityShimGenerationDomainRefs1[0]),
+   kAppStateCompatibilityShimDiffHarnessRefs1,
+   sizeof(kAppStateCompatibilityShimDiffHarnessRefs1) /
+       sizeof(kAppStateCompatibilityShimDiffHarnessRefs1[0]),
    "Volume restore breadcrumbs are path-keyed and generation-checked across rebuild/relog paths.",
    "transition.rebuild-rebind-callback.panel-anchor",
    "Replace index breadcrumbs with path-scoped restore snapshots in the canonical panel state record.",
@@ -3916,6 +3942,9 @@ static const AppStateCompatibilityShimMetadata kAppStateCompatibilityShims[] = {
    kAppStateCompatibilityShimGenerationDomainRefs2,
    sizeof(kAppStateCompatibilityShimGenerationDomainRefs2) /
        sizeof(kAppStateCompatibilityShimGenerationDomainRefs2[0]),
+   kAppStateCompatibilityShimDiffHarnessRefs2,
+   sizeof(kAppStateCompatibilityShimDiffHarnessRefs2) /
+       sizeof(kAppStateCompatibilityShimDiffHarnessRefs2[0]),
    "All Enter, Tab, and F8 paths route through the canonical AppState transition entry point.",
    "transition.keybinding.navigate-tree",
    "Move focus-shape authority from session mirrors into panel-local transition records.",
@@ -3935,6 +3964,9 @@ static const AppStateCompatibilityShimMetadata kAppStateCompatibilityShims[] = {
    kAppStateCompatibilityShimGenerationDomainRefs3,
    sizeof(kAppStateCompatibilityShimGenerationDomainRefs3) /
        sizeof(kAppStateCompatibilityShimGenerationDomainRefs3[0]),
+   kAppStateCompatibilityShimDiffHarnessRefs3,
+   sizeof(kAppStateCompatibilityShimDiffHarnessRefs3) /
+       sizeof(kAppStateCompatibilityShimDiffHarnessRefs3[0]),
    "Render paths accept explicit projection inputs and no longer inspect restore authority fields directly.",
    "transition.render-reflow.project-state",
    "Audit render/reflow call sites for projection-only behavior during runtime migration.",

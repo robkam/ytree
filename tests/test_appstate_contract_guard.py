@@ -59,6 +59,7 @@ REQUIRED_LIST_FIELD_CASES = [
     ("shim", "invariant_checks", "shim[0]"),
     ("shim", "owner_field_refs", "shim[0]"),
     ("shim", "generation_domain_refs", "shim[0]"),
+    ("shim", "diff_harness_refs", "shim[0]"),
     ("shim", "migration_notes", "shim[0]"),
 ]
 
@@ -92,6 +93,7 @@ def _shim(
     target_transition: str = "transition.keybinding",
     owner_field_refs: list[str] | None = None,
     generation_domain_refs: list[str] | None = None,
+    diff_harness_refs: list[str] | None = None,
 ) -> dict[str, object]:
     return {
         "id": "shim.test",
@@ -103,6 +105,8 @@ def _shim(
         "invariant_checks": ["invariant.inactive_panel_frozen"],
         "owner_field_refs": owner_field_refs or ["field"],
         "generation_domain_refs": generation_domain_refs or ["domain.panel_generation"],
+        "diff_harness_refs": diff_harness_refs
+        or ["harness.transition_before_after_snapshot"],
         "removal_trigger": "trigger",
         "target_transition": target_transition,
         "follow_up_task": "task",
@@ -687,6 +691,7 @@ def _runtime_source(
     shim_invariants = []
     shim_owner_field_refs = []
     shim_generation_domain_refs = []
+    shim_diff_harness_refs = []
     shim_rows = []
     for index, record in enumerate(shims):
         invariant_checks = record.get("invariant_checks")
@@ -721,6 +726,18 @@ def _runtime_source(
             "static const char *const kAppStateCompatibilityShimGenerationDomainRefs"
             f"{index}[] = {{\n{generation_ref_rows}\n}};\n"
         )
+        diff_harness_refs = record.get("diff_harness_refs")
+        if not isinstance(diff_harness_refs, list):
+            diff_harness_refs = []
+        diff_ref_rows = "\n".join(
+            f'  "{harness_id}",'
+            for harness_id in diff_harness_refs
+            if isinstance(harness_id, str)
+        )
+        shim_diff_harness_refs.append(
+            "static const char *const kAppStateCompatibilityShimDiffHarnessRefs"
+            f"{index}[] = {{\n{diff_ref_rows}\n}};\n"
+        )
         shim_rows.append(
             f'  {{"{record.get("id", "")}", "{record.get("owner", "")}", '
             f'"{record.get("old_authority_path", "")}", '
@@ -736,6 +753,9 @@ def _runtime_source(
             f"kAppStateCompatibilityShimGenerationDomainRefs{index}, "
             f"sizeof(kAppStateCompatibilityShimGenerationDomainRefs{index}) / "
             f"sizeof(kAppStateCompatibilityShimGenerationDomainRefs{index}[0]), "
+            f"kAppStateCompatibilityShimDiffHarnessRefs{index}, "
+            f"sizeof(kAppStateCompatibilityShimDiffHarnessRefs{index}) / "
+            f"sizeof(kAppStateCompatibilityShimDiffHarnessRefs{index}[0]), "
             f'"{record.get("removal_trigger", "")}", '
             f'"{record.get("target_transition", "")}", '
             f'"{record.get("follow_up_task", "")}", '
@@ -1005,6 +1025,7 @@ def _runtime_source(
         + "".join(shim_invariants)
         + "".join(shim_owner_field_refs)
         + "".join(shim_generation_domain_refs)
+        + "".join(shim_diff_harness_refs)
         + "".join(invariant_arrays)
         + "".join(generation_domain_arrays)
         + "".join(diff_harness_arrays)
@@ -1130,7 +1151,10 @@ def _complete_diff_harness_checks() -> list[dict[str, object]]:
             if category == "transition_before_after_snapshot"
             else None,
             _complete_transition_ids(),
-            invariant_ids=["invariant.blocked_transition_determinism"],
+            invariant_ids=[
+                "invariant.blocked_transition_determinism",
+                "invariant.inactive_panel_frozen",
+            ],
             generation_domain_ids=_complete_generation_domain_ids(),
         )
         for category in REQUIRED_DIFF_HARNESS_CATEGORIES
@@ -4811,6 +4835,24 @@ def test_guard_fails_when_required_shim_generation_domain_refs_are_missing(
     )
 
 
+def test_guard_fails_when_required_shim_diff_harness_refs_are_missing(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    shim = _shim()
+    shim.pop("diff_harness_refs")
+    paths = _write_fixture(tmp_path, transitions=transitions, shims=[shim])
+
+    failures = _validate(paths)
+
+    assert any(
+        "shim[0]" in failure
+        and "missing required field" in failure
+        and "diff_harness_refs" in failure
+        for failure in failures
+    )
+
+
 def test_guard_fails_when_required_action_field_is_missing(tmp_path: Path) -> None:
     transitions = _complete_transitions()
     actions = _complete_actions()
@@ -5214,6 +5256,108 @@ def test_guard_fails_when_shim_owner_field_ref_is_duplicated(
     )
 
 
+def test_guard_fails_when_shim_diff_harness_ref_is_unknown(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    shim = _shim(diff_harness_refs=["harness.unknown"])
+    paths = _write_fixture(tmp_path, transitions=transitions, shims=[shim])
+
+    failures = _validate(paths)
+
+    assert any(
+        "shim[0]" in failure
+        and "diff_harness_refs references unknown diff harness id" in failure
+        and "harness.unknown" in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_when_shim_diff_harness_ref_is_duplicated(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    shim = _shim(
+        diff_harness_refs=[
+            "harness.transition_before_after_snapshot",
+            "harness.transition_before_after_snapshot",
+        ]
+    )
+    paths = _write_fixture(tmp_path, transitions=transitions, shims=[shim])
+
+    failures = _validate(paths)
+
+    assert any(
+        "shim[0]" in failure
+        and "duplicate diff_harness_refs[1]" in failure
+        and "harness.transition_before_after_snapshot" in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_when_shim_diff_harness_lacks_target_transition(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    diff_harness_checks = _complete_diff_harness_checks()
+    for harness in diff_harness_checks:
+        harness["transition_ids"] = ["transition.render_reflow"]
+    paths = _write_fixture(
+        tmp_path,
+        transitions=transitions,
+        diff_harness_checks=diff_harness_checks,
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "shim[0]" in failure
+        and "diff_harness_refs must include at least one diff harness covering"
+        in failure
+        and "transition.keybinding" in failure
+        for failure in failures
+    )
+
+
+@pytest.mark.parametrize(
+    ("field", "replacement", "expected_ref"),
+    (
+        ("owner_field_refs", ["panel.tree_selection_key"], "field"),
+        (
+            "invariant_ids",
+            ["invariant.blocked_transition_determinism"],
+            "invariant.inactive_panel_frozen",
+        ),
+        ("generation_domain_ids", ["domain.volume_generation"], "domain.panel_generation"),
+    ),
+)
+def test_guard_fails_when_shim_diff_harness_union_lacks_declared_coverage(
+    tmp_path: Path,
+    field: str,
+    replacement: list[str],
+    expected_ref: str,
+) -> None:
+    transitions = _complete_transitions()
+    diff_harness_checks = _complete_diff_harness_checks()
+    for harness in diff_harness_checks:
+        if harness["harness_id"] == "harness.transition_before_after_snapshot":
+            harness[field] = replacement
+    paths = _write_fixture(
+        tmp_path,
+        transitions=transitions,
+        diff_harness_checks=diff_harness_checks,
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "shim[0]" in failure
+        and "lacks referenced diff_harness_refs coverage" in failure
+        and expected_ref in failure
+        for failure in failures
+    )
+
+
 def test_guard_fails_when_write_capable_shim_owner_field_is_outside_write_set(
     tmp_path: Path,
 ) -> None:
@@ -5388,6 +5532,166 @@ def test_guard_fails_when_runtime_shim_generation_domain_refs_drift(
     assert any(
         "runtime_shim[0]" in failure
         and "runtime generation_domain_refs does not match shim" in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_when_runtime_shim_diff_harness_refs_drift(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    runtime_shims = [
+        _shim(
+            diff_harness_refs=[
+                "harness.transition_before_after_snapshot",
+                "harness.declared_write_set_diff",
+            ]
+        )
+    ]
+    paths = _write_fixture(
+        tmp_path,
+        transitions=transitions,
+        runtime_shims=runtime_shims,
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "runtime_shim[0]" in failure
+        and "runtime diff_harness_refs does not match shim" in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_when_runtime_shim_diff_harness_refs_are_missing(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    runtime_shims = [_shim()]
+    runtime_shims[0].pop("diff_harness_refs")
+    paths = _write_fixture(
+        tmp_path,
+        transitions=transitions,
+        runtime_shims=runtime_shims,
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "runtime_shim[0]" in failure
+        and "diff_harness_refs must be non-empty" in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_when_runtime_shim_diff_harness_ref_is_unknown(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    runtime_shims = [_shim(diff_harness_refs=["harness.unknown"])]
+    paths = _write_fixture(
+        tmp_path,
+        transitions=transitions,
+        runtime_shims=runtime_shims,
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "runtime_shim[0]" in failure
+        and "diff_harness_refs references unknown diff harness id" in failure
+        and "harness.unknown" in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_when_runtime_shim_diff_harness_ref_is_duplicated(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    runtime_shims = [
+        _shim(
+            diff_harness_refs=[
+                "harness.transition_before_after_snapshot",
+                "harness.transition_before_after_snapshot",
+            ]
+        )
+    ]
+    paths = _write_fixture(
+        tmp_path,
+        transitions=transitions,
+        runtime_shims=runtime_shims,
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "runtime_shim[0]" in failure
+        and "duplicate diff_harness_refs[1]" in failure
+        and "harness.transition_before_after_snapshot" in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_when_runtime_shim_diff_harness_lacks_target_transition(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    runtime_diff_harness_checks = _complete_diff_harness_checks()
+    for harness in runtime_diff_harness_checks:
+        harness["transition_ids"] = ["transition.render_reflow"]
+    paths = _write_fixture(
+        tmp_path,
+        transitions=transitions,
+        runtime_diff_harness_checks=runtime_diff_harness_checks,
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "runtime_shim[0]" in failure
+        and "diff_harness_refs must include at least one diff harness covering"
+        in failure
+        and "transition.keybinding" in failure
+        for failure in failures
+    )
+
+
+@pytest.mark.parametrize(
+    ("field", "replacement", "expected_ref"),
+    (
+        ("owner_field_refs", ["panel.tree_selection_key"], "field"),
+        (
+            "invariant_ids",
+            ["invariant.blocked_transition_determinism"],
+            "invariant.inactive_panel_frozen",
+        ),
+        ("generation_domain_ids", ["domain.volume_generation"], "domain.panel_generation"),
+    ),
+)
+def test_guard_fails_when_runtime_shim_diff_harness_union_lacks_declared_coverage(
+    tmp_path: Path,
+    field: str,
+    replacement: list[str],
+    expected_ref: str,
+) -> None:
+    transitions = _complete_transitions()
+    runtime_diff_harness_checks = _complete_diff_harness_checks()
+    for harness in runtime_diff_harness_checks:
+        if harness["harness_id"] == "harness.transition_before_after_snapshot":
+            harness[field] = replacement
+    paths = _write_fixture(
+        tmp_path,
+        transitions=transitions,
+        runtime_diff_harness_checks=runtime_diff_harness_checks,
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "runtime_shim[0]" in failure
+        and "lacks referenced diff_harness_refs coverage" in failure
+        and expected_ref in failure
         for failure in failures
     )
 
@@ -7138,6 +7442,52 @@ def test_runtime_shim_startup_requires_generation_domain_refs() -> None:
         r"metadata->generation_domain_refs\[generation_index\]\)",
         ready_body,
         re.S,
+    )
+
+
+def test_runtime_shim_startup_requires_diff_harness_refs() -> None:
+    source = Path("src/core/main.c").read_text(encoding="utf-8")
+    ready_start = source.index("static int AppStateCompatibilityShimsReady(void)")
+    action_start = source.index("static int AppStateActionTransitionsReady(void)")
+    ready_body = source[ready_start:action_start]
+
+    assert "metadata->diff_harness_refs" in ready_body
+    assert "metadata->diff_harness_ref_count" in ready_body
+    assert "AppStateDiffHarnessLookup(metadata->diff_harness_refs[diff_index])" in ready_body
+    assert re.search(
+        r"StringListContains\(metadata->diff_harness_refs,\s*"
+        r"diff_index,\s*metadata->diff_harness_refs\[diff_index\]\)",
+        ready_body,
+        re.S,
+    )
+
+
+def test_runtime_shim_startup_requires_diff_harness_union_coverage() -> None:
+    source = Path("src/core/main.c").read_text(encoding="utf-8")
+    helper_start = source.index(
+        "static int AppStateCompatibilityShimDiffHarnessCoversTransition("
+    )
+    ready_start = source.index("static int AppStateCompatibilityShimsReady(void)")
+    action_start = source.index("static int AppStateActionTransitionsReady(void)")
+    helper_body = source[helper_start:ready_start]
+    ready_body = source[ready_start:action_start]
+
+    assert "AppStateCompatibilityShimDiffHarnessCoversOwnerField(" in helper_body
+    assert "AppStateCompatibilityShimDiffHarnessCoversInvariant(" in helper_body
+    assert (
+        "AppStateCompatibilityShimDiffHarnessCoversGenerationDomain("
+        in helper_body
+    )
+    assert "harness->transition_ids" in helper_body
+    assert "harness->owner_field_refs" in helper_body
+    assert "harness->invariant_ids" in helper_body
+    assert "harness->generation_domain_ids" in helper_body
+    assert "AppStateCompatibilityShimDiffHarnessCoversTransition(metadata)" in ready_body
+    assert "AppStateCompatibilityShimDiffHarnessCoversOwnerField(" in ready_body
+    assert "AppStateCompatibilityShimDiffHarnessCoversInvariant(" in ready_body
+    assert (
+        "AppStateCompatibilityShimDiffHarnessCoversGenerationDomain("
+        in ready_body
     )
 
 

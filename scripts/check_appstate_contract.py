@@ -64,6 +64,7 @@ REQUIRED_SHIM_FIELDS = {
     "invariant_checks",
     "owner_field_refs",
     "generation_domain_refs",
+    "diff_harness_refs",
     "removal_trigger",
     "target_transition",
     "follow_up_task",
@@ -284,7 +285,11 @@ LIST_FIELDS = {
 }
 
 EVENT_LIST_FIELDS = LIST_FIELDS | {"trigger_paths"}
-SHIM_LIST_FIELDS = LIST_FIELDS | {"owner_field_refs", "generation_domain_refs"}
+SHIM_LIST_FIELDS = LIST_FIELDS | {
+    "owner_field_refs",
+    "generation_domain_refs",
+    "diff_harness_refs",
+}
 VALID_SHIM_WRITE_CAPABILITIES = {
     "write_capable",
     "read_only_projection",
@@ -1623,6 +1628,7 @@ def _parse_runtime_shim_registry(
     invariant_tables: dict[str, list[str]] = {}
     owner_ref_tables: dict[str, list[str]] = {}
     generation_domain_ref_tables: dict[str, list[str]] = {}
+    diff_harness_ref_tables: dict[str, list[str]] = {}
     failures: list[str] = []
     invariant_re = re.compile(
         r"static\s+const\s+char\s+\*const\s+"
@@ -1669,6 +1675,21 @@ def _parse_runtime_shim_registry(
         generation_domain_ref_tables[table_name] = values
         failures.extend(array_failures)
 
+    diff_harness_ref_re = re.compile(
+        r"static\s+const\s+char\s+\*const\s+"
+        r"(kAppStateCompatibilityShimDiffHarnessRefs[0-9]+)\[\]\s*=\s*\{"
+        r"(?P<body>.*?)\};",
+        re.S,
+    )
+    for diff_harness_ref_match in diff_harness_ref_re.finditer(source):
+        table_name = diff_harness_ref_match.group(1)
+        values, array_failures = _parse_string_initializer_array(
+            diff_harness_ref_match.group("body"),
+            table_name,
+        )
+        diff_harness_ref_tables[table_name] = values
+        failures.extend(array_failures)
+
     match = re.search(
         r"kAppStateCompatibilityShims\s*\[\]\s*=\s*\{(?P<body>.*?)\};",
         source,
@@ -1693,6 +1714,9 @@ def _parse_runtime_shim_registry(
         r"\s*(?P<generation_refs>kAppStateCompatibilityShimGenerationDomainRefs[0-9]+)\s*,"
         r"\s*sizeof\((?P=generation_refs)\)\s*/"
         r"\s*sizeof\((?P=generation_refs)\[0\]\)\s*,"
+        r"\s*(?P<diff_refs>kAppStateCompatibilityShimDiffHarnessRefs[0-9]+)\s*,"
+        r"\s*sizeof\((?P=diff_refs)\)\s*/"
+        r"\s*sizeof\((?P=diff_refs)\[0\]\)\s*,"
         r"\s*\"(?P<removal_trigger>[^\"]*)\"\s*,"
         r"\s*\"(?P<target_transition>[^\"]*)\"\s*,"
         r"\s*\"(?P<follow_up_task>[^\"]*)\"\s*,"
@@ -1723,6 +1747,13 @@ def _parse_runtime_shim_registry(
                 f"runtime_shim[{index}]: unknown generation-domain-ref table: {generation_ref_table_name}"
             )
             generation_domain_refs = []
+        diff_ref_table_name = row_match.group("diff_refs")
+        diff_harness_refs = diff_harness_ref_tables.get(diff_ref_table_name)
+        if diff_harness_refs is None:
+            failures.append(
+                f"runtime_shim[{index}]: unknown diff-harness-ref table: {diff_ref_table_name}"
+            )
+            diff_harness_refs = []
         records.append(
             {
                 "id": row_match.group("id"),
@@ -1734,6 +1765,7 @@ def _parse_runtime_shim_registry(
                 "invariant_checks": invariant_checks,
                 "owner_field_refs": owner_field_refs,
                 "generation_domain_refs": generation_domain_refs,
+                "diff_harness_refs": diff_harness_refs,
                 "removal_trigger": row_match.group("removal_trigger"),
                 "target_transition": row_match.group("target_transition"),
                 "follow_up_task": row_match.group("follow_up_task"),
@@ -2795,6 +2827,11 @@ def _validate_runtime_shim_registry(
     runtime_invariant_ids: set[str],
     runtime_invariant_transition_ids: dict[str, set[str]],
     runtime_generation_domain_owner_fields: dict[str, str],
+    runtime_diff_harness_ids: set[str],
+    runtime_diff_harness_transition_ids: dict[str, set[str]],
+    runtime_diff_harness_owner_field_refs: dict[str, set[str]],
+    runtime_diff_harness_invariant_ids: dict[str, set[str]],
+    runtime_diff_harness_generation_domain_ids: dict[str, set[str]],
 ) -> list[str]:
     failures: list[str] = []
     expected_shims = {
@@ -2827,6 +2864,7 @@ def _validate_runtime_shim_registry(
                 "invariant_checks",
                 "owner_field_refs",
                 "generation_domain_refs",
+                "diff_harness_refs",
                 "removal_trigger",
                 "target_transition",
                 "follow_up_task",
@@ -2895,6 +2933,32 @@ def _validate_runtime_shim_registry(
                 generation_domain_owner_fields=runtime_generation_domain_owner_fields,
                 label=label,
                 registry_label="runtime generation domain registry",
+            )
+        )
+        failures.extend(
+            _validate_shim_diff_harness_refs(
+                refs=record.get("diff_harness_refs"),
+                diff_harness_ids=runtime_diff_harness_ids,
+                label=label,
+            )
+        )
+        failures.extend(
+            _validate_shim_diff_harness_transition_coverage(
+                diff_harness_refs=record.get("diff_harness_refs"),
+                transition_id=target_transition,
+                diff_harness_transition_ids=runtime_diff_harness_transition_ids,
+                label=label,
+            )
+        )
+        failures.extend(
+            _validate_shim_diff_harness_union_coverage(
+                record=record,
+                diff_harness_owner_field_refs=runtime_diff_harness_owner_field_refs,
+                diff_harness_invariant_ids=runtime_diff_harness_invariant_ids,
+                diff_harness_generation_domain_ids=(
+                    runtime_diff_harness_generation_domain_ids
+                ),
+                label=label,
             )
         )
 
@@ -3080,6 +3144,104 @@ def _validate_shim_generation_domain_refs(
                 failures.append(
                     f"{label}: generation_domain_refs must include a domain "
                     f"whose generation_owner_field is {owner_ref}"
+                )
+
+    return failures
+
+
+def _validate_shim_diff_harness_refs(
+    *,
+    refs: Any,
+    diff_harness_ids: set[str],
+    label: str,
+) -> list[str]:
+    failures = _validate_list_field(
+        value=refs,
+        label=label,
+        field="diff_harness_refs",
+    )
+    if failures:
+        return failures
+
+    seen: set[str] = set()
+    assert isinstance(refs, list)
+    for index, ref in enumerate(refs):
+        assert isinstance(ref, str)
+        if ref in seen:
+            failures.append(f"{label}: duplicate diff_harness_refs[{index}]: {ref}")
+        seen.add(ref)
+        if ref not in diff_harness_ids:
+            failures.append(
+                f"{label}: diff_harness_refs references unknown diff harness id: {ref}"
+            )
+
+    return failures
+
+
+def _validate_shim_diff_harness_transition_coverage(
+    *,
+    diff_harness_refs: Any,
+    transition_id: Any,
+    diff_harness_transition_ids: dict[str, set[str]],
+    label: str,
+) -> list[str]:
+    if not isinstance(transition_id, str) or not transition_id.strip():
+        return []
+    if not isinstance(diff_harness_refs, list):
+        return []
+
+    for harness_id in diff_harness_refs:
+        if not isinstance(harness_id, str) or not harness_id.strip():
+            continue
+        if transition_id in diff_harness_transition_ids.get(harness_id, set()):
+            return []
+
+    return [
+        f"{label}: diff_harness_refs must include at least one diff harness "
+        f"covering target_transition {transition_id}"
+    ]
+
+
+def _validate_shim_diff_harness_union_coverage(
+    *,
+    record: dict[str, Any],
+    diff_harness_owner_field_refs: dict[str, set[str]],
+    diff_harness_invariant_ids: dict[str, set[str]],
+    diff_harness_generation_domain_ids: dict[str, set[str]],
+    label: str,
+) -> list[str]:
+    diff_harness_refs = record.get("diff_harness_refs")
+    if not isinstance(diff_harness_refs, list):
+        return []
+
+    covered_owner_fields: set[str] = set()
+    covered_invariants: set[str] = set()
+    covered_generation_domains: set[str] = set()
+    for harness_id in diff_harness_refs:
+        if not isinstance(harness_id, str) or not harness_id.strip():
+            continue
+        covered_owner_fields.update(diff_harness_owner_field_refs.get(harness_id, set()))
+        covered_invariants.update(diff_harness_invariant_ids.get(harness_id, set()))
+        covered_generation_domains.update(
+            diff_harness_generation_domain_ids.get(harness_id, set())
+        )
+
+    failures: list[str] = []
+    for field_name, covered_refs in (
+        ("owner_field_refs", covered_owner_fields),
+        ("invariant_checks", covered_invariants),
+        ("generation_domain_refs", covered_generation_domains),
+    ):
+        refs = record.get(field_name)
+        if not isinstance(refs, list):
+            continue
+        for index, ref in enumerate(refs):
+            if not isinstance(ref, str) or not ref.strip():
+                continue
+            if ref not in covered_refs:
+                failures.append(
+                    f"{label}: {field_name}[{index}] lacks referenced "
+                    f"diff_harness_refs coverage: {ref}"
                 )
 
     return failures
@@ -4203,6 +4365,26 @@ def _diff_harness_transition_ids_by_harness(
             if isinstance(transition_id, str) and transition_id.strip()
         }
     return transition_ids_by_harness
+
+
+def _diff_harness_string_refs_by_harness(
+    diff_harness_records: list[Any],
+    field: str,
+) -> dict[str, set[str]]:
+    refs_by_harness: dict[str, set[str]] = {}
+    for record in diff_harness_records:
+        if not isinstance(record, dict):
+            continue
+        harness_id = record.get("harness_id")
+        refs = record.get(field)
+        if not isinstance(harness_id, str) or not harness_id.strip():
+            continue
+        if not isinstance(refs, list):
+            continue
+        refs_by_harness[harness_id] = {
+            ref for ref in refs if isinstance(ref, str) and ref.strip()
+        }
+    return refs_by_harness
 
 
 def _invariant_transition_ids_by_invariant(
@@ -5399,6 +5581,56 @@ def validate_contract(
         )
     )
 
+    if isinstance(diff_harness_doc, dict) and isinstance(
+        diff_harness_doc.get("diff_harness_checks"), list
+    ):
+        diff_harness_records = diff_harness_doc["diff_harness_checks"]
+    else:
+        diff_harness_records = []
+    diff_harness_ids = _collect_string_ids(
+        diff_harness_doc,
+        collection_key="diff_harness_checks",
+        id_field="harness_id",
+    )
+    diff_harness_transition_ids = _diff_harness_transition_ids_by_harness(
+        diff_harness_records
+    )
+    diff_harness_owner_field_refs_by_harness = _diff_harness_string_refs_by_harness(
+        diff_harness_records,
+        "owner_field_refs",
+    )
+    diff_harness_invariant_ids_by_harness = _diff_harness_string_refs_by_harness(
+        diff_harness_records,
+        "invariant_ids",
+    )
+    diff_harness_generation_domain_ids_by_harness = (
+        _diff_harness_string_refs_by_harness(
+            diff_harness_records,
+            "generation_domain_ids",
+        )
+    )
+    runtime_diff_harness_transition_ids = _diff_harness_transition_ids_by_harness(
+        runtime_diff_harness_records
+    )
+    runtime_diff_harness_owner_field_refs_by_harness = (
+        _diff_harness_string_refs_by_harness(
+            runtime_diff_harness_records,
+            "owner_field_refs",
+        )
+    )
+    runtime_diff_harness_invariant_ids_by_harness = (
+        _diff_harness_string_refs_by_harness(
+            runtime_diff_harness_records,
+            "invariant_ids",
+        )
+    )
+    runtime_diff_harness_generation_domain_ids_by_harness = (
+        _diff_harness_string_refs_by_harness(
+            runtime_diff_harness_records,
+            "generation_domain_ids",
+        )
+    )
+
     if not isinstance(shims_doc, dict):
         failures.append(f"{shims_path}: top-level value must be an object")
         shims = []
@@ -5478,6 +5710,32 @@ def validate_contract(
                 registry_label="generation-domain registry",
             )
         )
+        failures.extend(
+            _validate_shim_diff_harness_refs(
+                refs=record.get("diff_harness_refs"),
+                diff_harness_ids=diff_harness_ids,
+                label=label,
+            )
+        )
+        failures.extend(
+            _validate_shim_diff_harness_transition_coverage(
+                diff_harness_refs=record.get("diff_harness_refs"),
+                transition_id=target_transition,
+                diff_harness_transition_ids=diff_harness_transition_ids,
+                label=label,
+            )
+        )
+        failures.extend(
+            _validate_shim_diff_harness_union_coverage(
+                record=record,
+                diff_harness_owner_field_refs=diff_harness_owner_field_refs_by_harness,
+                diff_harness_invariant_ids=diff_harness_invariant_ids_by_harness,
+                diff_harness_generation_domain_ids=(
+                    diff_harness_generation_domain_ids_by_harness
+                ),
+                label=label,
+            )
+        )
     failures.extend(
         _validate_runtime_shim_registry(
             runtime_records=runtime_shim_records,
@@ -5494,6 +5752,19 @@ def validate_contract(
                 runtime_invariant_records
             ),
             runtime_generation_domain_owner_fields=runtime_generation_domain_owner_fields,
+            runtime_diff_harness_ids={
+                record["harness_id"] for record in runtime_diff_harness_records
+            },
+            runtime_diff_harness_transition_ids=runtime_diff_harness_transition_ids,
+            runtime_diff_harness_owner_field_refs=(
+                runtime_diff_harness_owner_field_refs_by_harness
+            ),
+            runtime_diff_harness_invariant_ids=(
+                runtime_diff_harness_invariant_ids_by_harness
+            ),
+            runtime_diff_harness_generation_domain_ids=(
+                runtime_diff_harness_generation_domain_ids_by_harness
+            ),
         )
     )
 
