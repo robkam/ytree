@@ -223,6 +223,9 @@ static const char *const kAppStateRequiredDispatchSurfaceIds[] = {
   "surface.volume-operation",
   "surface.watcher-live-refresh",
   "surface.render-reflow-projection",
+  "surface.command-completion-dispatch",
+  "surface.volume-menu-selection",
+  "surface.panel-anchor-rebind",
 };
 
 static const char *const kAppStateRequiredShimIds[] = {
@@ -1024,6 +1027,33 @@ static int AppStateTransitionSequenceRefsReady(const char *const *refs,
   return 1;
 }
 
+static int AppStateDispatchSurfaceRefsReady(const char *const *refs,
+                                            size_t ref_count,
+                                            const char *transition_id) {
+  size_t ref_index;
+
+  if (!NonEmptyString(transition_id) || !NonEmptyStringList(refs, ref_count))
+    return 0;
+
+  for (ref_index = 0; ref_index < ref_count; ref_index++) {
+    const AppStateDispatchSurfaceMetadata *surface =
+        AppStateDispatchSurfaceLookup(refs[ref_index]);
+    size_t previous_index;
+
+    if (surface == NULL)
+      return 0;
+    if (!NonEmptyString(surface->transition_id) ||
+        strcmp(surface->transition_id, transition_id) != 0)
+      return 0;
+    for (previous_index = 0; previous_index < ref_index; previous_index++) {
+      if (strcmp(refs[previous_index], refs[ref_index]) == 0)
+        return 0;
+    }
+  }
+
+  return 1;
+}
+
 static int AppStateDispatchSurfaceSequenceRefsReady(
     const AppStateDispatchSurfaceMetadata *metadata) {
   if (metadata == NULL)
@@ -1671,6 +1701,9 @@ static int AppStateEventCoverageReady(void) {
         !AppStateTransitionSequenceRefsReady(
             coverage->transition_sequence_refs,
             coverage->transition_sequence_ref_count, coverage->transition_id) ||
+        !AppStateDispatchSurfaceRefsReady(coverage->dispatch_surface_refs,
+                                         coverage->dispatch_surface_ref_count,
+                                         coverage->transition_id) ||
         !NonEmptyStringList(coverage->migration_notes,
                             coverage->migration_note_count))
       return 0;
@@ -1748,6 +1781,9 @@ static int AppStateActionCoverageReady(void) {
         !AppStateTransitionSequenceRefsReady(
             coverage->transition_sequence_refs,
             coverage->transition_sequence_ref_count, coverage->transition_id) ||
+        !AppStateDispatchSurfaceRefsReady(coverage->dispatch_surface_refs,
+                                         coverage->dispatch_surface_ref_count,
+                                         coverage->transition_id) ||
         !NonEmptyStringList(coverage->migration_notes,
                             coverage->migration_note_count))
       return 0;

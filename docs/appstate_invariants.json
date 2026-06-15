@@ -30,6 +30,7 @@
       "dispatch_surface_ids": [
         "surface.directory-window-action-dispatch",
         "surface.file-window-action-dispatch",
+        "surface.volume-menu-selection",
         "surface.menu-modal-completion",
         "surface.refresh-rebuild-rebind",
         "surface.volume-operation",
@@ -95,6 +96,7 @@
       "dispatch_surface_ids": [
         "surface.directory-window-action-dispatch",
         "surface.refresh-rebuild-rebind",
+        "surface.panel-anchor-rebind",
         "surface.watcher-live-refresh"
       ],
       "failure_mode": "Fail if visible navigation lands on a hidden entry or resurrects a concealed identity after visibility/topology changes.",
@@ -161,6 +163,7 @@
         "surface.refresh-rebuild-rebind",
         "surface.resize-signal-handling",
         "surface.filesystem-mutation-result",
+        "surface.panel-anchor-rebind",
         "surface.watcher-live-refresh"
       ],
       "failure_mode": "Fail if rebuild, mutation, or resize restores viewport from raw rows when the stable identity is still visible or before deterministic fallback order is exhausted.",
@@ -195,6 +198,7 @@
         "transition.filesystem-mutation-result.mkdir-copy-delete"
       ],
       "dispatch_surface_ids": [
+        "surface.volume-menu-selection",
         "surface.volume-operation",
         "surface.refresh-rebuild-rebind",
         "surface.filesystem-mutation-result",
@@ -231,6 +235,7 @@
         "surface.refresh-rebuild-rebind",
         "surface.volume-operation",
         "surface.filesystem-mutation-result",
+        "surface.panel-anchor-rebind",
         "surface.watcher-live-refresh"
       ],
       "failure_mode": "Fail if a generation mismatch reuses stale DirEntry/FileEntry pointers, stale flat-list rows, or stale snapshot payloads instead of exact rebind or deterministic fallback.",

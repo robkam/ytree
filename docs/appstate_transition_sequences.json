@@ -360,6 +360,7 @@
           "expected_result": "fallback",
           "invariant_ids": [
             "invariant.stale-snapshot-fail-closed",
+            "invariant.hidden-entry-visible-navigation",
             "invariant.viewport-identity-rebind"
           ],
           "diff_harness_ids": [
