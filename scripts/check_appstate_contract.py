@@ -77,6 +77,7 @@ REQUIRED_ACTION_FIELDS = {
     "category",
     "owner",
     "declared_write_set",
+    "owner_field_refs",
     "transition_sequence_refs",
     "dispatch_surface_refs",
     "generation_domain_refs",
@@ -200,6 +201,7 @@ REQUIRED_EVENT_FIELDS = {
     "source",
     "owner",
     "declared_write_set",
+    "owner_field_refs",
     "transition_sequence_refs",
     "dispatch_surface_refs",
     "generation_domain_refs",
@@ -304,6 +306,7 @@ LIST_FIELDS = {
 }
 
 ACTION_LIST_FIELDS = LIST_FIELDS | {
+    "owner_field_refs",
     "transition_sequence_refs",
     "dispatch_surface_refs",
     "generation_domain_refs",
@@ -311,6 +314,7 @@ ACTION_LIST_FIELDS = LIST_FIELDS | {
 }
 EVENT_LIST_FIELDS = LIST_FIELDS | {
     "trigger_paths",
+    "owner_field_refs",
     "transition_sequence_refs",
     "dispatch_surface_refs",
     "generation_domain_refs",
@@ -641,7 +645,7 @@ def _parse_runtime_action_coverage_registry(
     arrays: dict[str, list[str]] = {}
     array_re = re.compile(
         r"static\s+const\s+char\s+\*const\s+"
-        r"(kAppStateActionCoverage(?:TransitionSequenceRefs|DispatchSurfaceRefs|InvariantRefs|GenerationDomainRefs|MigrationNotes)[0-9]+)"
+        r"(kAppStateActionCoverage(?:OwnerFieldRefs|TransitionSequenceRefs|DispatchSurfaceRefs|InvariantRefs|GenerationDomainRefs|MigrationNotes)[0-9]+)"
         r"\[\]\s*=\s*\{(?P<body>.*?)\};",
         re.S,
     )
@@ -671,6 +675,9 @@ def _parse_runtime_action_coverage_registry(
         r"\s*\"(?P<owner>[^\"]*)\"\s*,"
         r"\s*(?P<write_set>kAppState(?:TransitionWriteSet|ActionCoverageWriteSet)[0-9]+)\s*,"
         r"\s*sizeof\((?P=write_set)\)\s*/\s*sizeof\((?P=write_set)\[0\]\)\s*,"
+        r"\s*(?P<owner_field_refs>kAppStateActionCoverageOwnerFieldRefs[0-9]+)\s*,"
+        r"\s*sizeof\((?P=owner_field_refs)\)\s*/"
+        r"\s*sizeof\((?P=owner_field_refs)\[0\]\)\s*,"
         r"\s*(?P<transition_sequence_refs>kAppStateActionCoverageTransitionSequenceRefs[0-9]+)\s*,"
         r"\s*sizeof\((?P=transition_sequence_refs)\)\s*/"
         r"\s*sizeof\((?P=transition_sequence_refs)\[0\]\)\s*,"
@@ -710,6 +717,14 @@ def _parse_runtime_action_coverage_registry(
                 f"table: {write_set_name}"
             )
             declared_write_set = []
+        owner_field_refs_name = row_match.group("owner_field_refs")
+        owner_field_refs = arrays.get(owner_field_refs_name)
+        if owner_field_refs is None:
+            failures.append(
+                f"runtime_action_coverage[{index}]: unknown owner-field-refs "
+                f"table: {owner_field_refs_name}"
+            )
+            owner_field_refs = []
         sequence_refs_name = row_match.group("transition_sequence_refs")
         sequence_refs = arrays.get(sequence_refs_name)
         if sequence_refs is None:
@@ -758,6 +773,7 @@ def _parse_runtime_action_coverage_registry(
                 "category": row_match.group("category"),
                 "owner": row_match.group("owner"),
                 "declared_write_set": declared_write_set,
+                "owner_field_refs": owner_field_refs,
                 "transition_sequence_refs": sequence_refs,
                 "dispatch_surface_refs": dispatch_surface_refs,
                 "invariant_refs": invariant_refs,
@@ -786,7 +802,7 @@ def _parse_runtime_event_coverage_registry(
     arrays: dict[str, list[str]] = {}
     array_re = re.compile(
         r"static\s+const\s+char\s+\*const\s+"
-        r"(kAppState(?:TransitionWriteSet|EventCoverageTriggerPaths|EventCoverageTransitionSequenceRefs|EventCoverageDispatchSurfaceRefs|EventCoverageInvariantRefs|EventCoverageGenerationDomainRefs|EventCoverageMigrationNotes)[0-9]+)"
+        r"(kAppState(?:TransitionWriteSet|EventCoverageOwnerFieldRefs|EventCoverageTriggerPaths|EventCoverageTransitionSequenceRefs|EventCoverageDispatchSurfaceRefs|EventCoverageInvariantRefs|EventCoverageGenerationDomainRefs|EventCoverageMigrationNotes)[0-9]+)"
         r"\[\]\s*=\s*\{(?P<body>.*?)\};",
         re.S,
     )
@@ -817,6 +833,9 @@ def _parse_runtime_event_coverage_registry(
         r"\s*\"(?P<owner>[^\"]*)\"\s*,"
         r"\s*(?P<write_set>kAppStateTransitionWriteSet[0-9]+)\s*,"
         r"\s*sizeof\((?P=write_set)\)\s*/\s*sizeof\((?P=write_set)\[0\]\)\s*,"
+        r"\s*(?P<owner_field_refs>kAppStateEventCoverageOwnerFieldRefs[0-9]+)\s*,"
+        r"\s*sizeof\((?P=owner_field_refs)\)\s*/"
+        r"\s*sizeof\((?P=owner_field_refs)\[0\]\)\s*,"
         r"\s*\"(?P<boundary_status>[^\"]*)\"\s*,"
         r"\s*(?P<trigger_paths>kAppStateEventCoverageTriggerPaths[0-9]+)\s*,"
         r"\s*sizeof\((?P=trigger_paths)\)\s*/\s*sizeof\((?P=trigger_paths)\[0\]\)\s*,"
@@ -846,6 +865,7 @@ def _parse_runtime_event_coverage_registry(
             )
             continue
         write_set = arrays.get(row_match.group("write_set"))
+        owner_field_refs = arrays.get(row_match.group("owner_field_refs"))
         trigger_paths = arrays.get(row_match.group("trigger_paths"))
         transition_sequence_refs = arrays.get(row_match.group("transition_sequence_refs"))
         migration_notes = arrays.get(row_match.group("migration_notes"))
@@ -855,6 +875,12 @@ def _parse_runtime_event_coverage_registry(
                 f"{row_match.group('write_set')}"
             )
             write_set = []
+        if owner_field_refs is None:
+            failures.append(
+                f"runtime_event_coverage[{index}]: unknown owner-field-refs table: "
+                f"{row_match.group('owner_field_refs')}"
+            )
+            owner_field_refs = []
         if trigger_paths is None:
             failures.append(
                 f"runtime_event_coverage[{index}]: unknown trigger-paths table: "
@@ -903,6 +929,7 @@ def _parse_runtime_event_coverage_registry(
                 "source": row_match.group("source"),
                 "owner": row_match.group("owner"),
                 "declared_write_set": write_set,
+                "owner_field_refs": owner_field_refs,
                 "boundary_status": row_match.group("boundary_status"),
                 "trigger_paths": trigger_paths,
                 "transition_sequence_refs": transition_sequence_refs,
@@ -2059,6 +2086,14 @@ def _validate_runtime_action_coverage_registry(
             )
         )
         failures.extend(
+            _validate_owner_field_coverage_refs(
+                record=record,
+                registered_fields=registered_owner_fields,
+                label=label,
+                registry_label="owner-field registry",
+            )
+        )
+        failures.extend(
             _validate_transition_sequence_refs(
                 record=record,
                 transition_sequence_records=runtime_transition_sequence_records,
@@ -2139,6 +2174,7 @@ def _validate_runtime_action_coverage_registry(
                     "category",
                     "owner",
                     "declared_write_set",
+                    "owner_field_refs",
                     "transition_sequence_refs",
                     "dispatch_surface_refs",
                     "generation_domain_refs",
@@ -3251,12 +3287,18 @@ def _validate_owner_field_ref_list(
     registered_fields: set[str],
     label: str,
     registry_label: str,
+    allow_empty: bool = False,
 ) -> list[str]:
-    failures = _validate_list_field(
-        value=refs,
-        label=label,
-        field="owner_field_refs",
-    )
+    if not isinstance(refs, list):
+        return [f"{label}: owner_field_refs must be a non-empty list"]
+    failures: list[str] = []
+    if not refs and not allow_empty:
+        failures.append(f"{label}: owner_field_refs must be non-empty")
+    for index, ref in enumerate(refs):
+        if not isinstance(ref, str) or not ref.strip():
+            failures.append(
+                f"{label}: owner_field_refs[{index}] must be a non-empty string"
+            )
     if failures:
         return failures
 
@@ -3571,6 +3613,73 @@ def _validate_registered_write_set(
             failures.append(
                 f"{label}: declared_write_set references unregistered owner field: {field}"
             )
+    return failures
+
+
+def _has_empty_write_set_owner_field_rationale(record: dict[str, Any]) -> bool:
+    migration_notes = record.get("migration_notes")
+    if not isinstance(migration_notes, list):
+        return False
+    return any(
+        isinstance(note, str)
+        and (
+            "empty write set" in note.lower()
+            or "read-only" in note.lower()
+            or "projection-only" in note.lower()
+            or "no-write" in note.lower()
+        )
+        for note in migration_notes
+    )
+
+
+def _validate_owner_field_coverage_refs(
+    *,
+    record: dict[str, Any],
+    registered_fields: set[str],
+    label: str,
+    registry_label: str,
+) -> list[str]:
+    refs = record.get("owner_field_refs")
+    failures = _validate_owner_field_ref_list(
+        refs=refs,
+        registered_fields=registered_fields,
+        label=label,
+        registry_label=registry_label,
+        allow_empty=True,
+    )
+    if not isinstance(refs, list):
+        return failures
+
+    write_set = record.get("declared_write_set")
+    if not isinstance(write_set, list):
+        return failures
+
+    declared_writes = [
+        field for field in write_set if isinstance(field, str) and field.strip()
+    ]
+    owner_refs = [ref for ref in refs if isinstance(ref, str) and ref.strip()]
+    if not declared_writes and not owner_refs:
+        if not _has_empty_write_set_owner_field_rationale(record):
+            failures.append(
+                f"{label}: empty declared_write_set requires an owner_field_refs "
+                "rationale in migration_notes"
+            )
+        return failures
+
+    for ref_index, ref in enumerate(owner_refs):
+        if ref not in declared_writes:
+            failures.append(
+                f"{label}: owner_field_refs[{ref_index}] must be declared by "
+                f"declared_write_set: {ref}"
+            )
+
+    for write_index, field in enumerate(declared_writes):
+        if field not in owner_refs:
+            failures.append(
+                f"{label}: owner_field_refs missing declared_write_set[{write_index}]: "
+                f"{field}"
+            )
+
     return failures
 
 
@@ -4677,6 +4786,7 @@ def _validate_runtime_event_coverage_registry(
     runtime_transition_sequence_records: list[Any],
     runtime_dispatch_surface_records: list[Any],
     runtime_generation_domain_records: list[Any],
+    registered_owner_fields: set[str],
     runtime_transition_ids: set[str],
     runtime_invariant_ids: set[str],
     runtime_invariant_transition_ids: dict[str, set[str]],
@@ -4701,6 +4811,14 @@ def _validate_runtime_event_coverage_registry(
                 required_fields=REQUIRED_EVENT_FIELDS,
                 list_fields=EVENT_LIST_FIELDS,
                 label=label,
+            )
+        )
+        failures.extend(
+            _validate_owner_field_coverage_refs(
+                record=record,
+                registered_fields=registered_owner_fields,
+                label=label,
+                registry_label="owner-field registry",
             )
         )
         failures.extend(
@@ -4845,6 +4963,14 @@ def _validate_event_coverage(
                 record=record,
                 registered_fields=registered_owner_fields,
                 label=label,
+            )
+        )
+        failures.extend(
+            _validate_owner_field_coverage_refs(
+                record=record,
+                registered_fields=registered_owner_fields,
+                label=label,
+                registry_label="owner-field registry",
             )
         )
         failures.extend(
@@ -6475,6 +6601,14 @@ def validate_contract(
             )
         )
         failures.extend(
+            _validate_owner_field_coverage_refs(
+                record=record,
+                registered_fields=registered_owner_fields,
+                label=label,
+                registry_label="owner-field registry",
+            )
+        )
+        failures.extend(
             _validate_transition_sequence_refs(
                 record=record,
                 transition_sequence_records=(
@@ -6624,6 +6758,7 @@ def validate_contract(
             runtime_transition_sequence_records=runtime_transition_sequence_records,
             runtime_dispatch_surface_records=runtime_dispatch_surface_records,
             runtime_generation_domain_records=runtime_generation_domain_records,
+            registered_owner_fields=registered_owner_fields,
             runtime_transition_ids={record["id"] for record in runtime_transition_records},
             runtime_invariant_ids=runtime_invariant_ids,
             runtime_invariant_transition_ids=runtime_invariant_transition_ids,

@@ -1745,6 +1745,37 @@ static int AppStateEventCoverageWriteSetMatches(
   return 1;
 }
 
+static int AppStateCoverageOwnerFieldRefsReady(
+    const char *const *owner_field_refs, size_t owner_field_ref_count,
+    const char *const *declared_write_set, size_t declared_write_set_count) {
+  size_t ref_index;
+  size_t write_index;
+
+  if (!NonEmptyStringList(owner_field_refs, owner_field_ref_count) ||
+      !NonEmptyStringList(declared_write_set, declared_write_set_count))
+    return 0;
+
+  for (ref_index = 0; ref_index < owner_field_ref_count; ref_index++) {
+    const char *owner_field = owner_field_refs[ref_index];
+
+    if (AppStateOwnerFieldLookup(owner_field) == NULL)
+      return 0;
+    if (StringListContains(owner_field_refs, ref_index, owner_field))
+      return 0;
+    if (!StringListContains(declared_write_set, declared_write_set_count,
+                            owner_field))
+      return 0;
+  }
+
+  for (write_index = 0; write_index < declared_write_set_count; write_index++) {
+    if (!StringListContains(owner_field_refs, owner_field_ref_count,
+                            declared_write_set[write_index]))
+      return 0;
+  }
+
+  return 1;
+}
+
 static int AppStateRequiredEventClassCovered(const char *event_class) {
   size_t index;
 
@@ -1788,6 +1819,9 @@ static int AppStateEventCoverageReady(void) {
         !NonEmptyString(coverage->boundary_status) ||
         !NonEmptyStringList(coverage->declared_write_set,
                             coverage->declared_write_set_count) ||
+        !AppStateCoverageOwnerFieldRefsReady(
+            coverage->owner_field_refs, coverage->owner_field_ref_count,
+            coverage->declared_write_set, coverage->declared_write_set_count) ||
         !NonEmptyStringList(coverage->trigger_paths,
                             coverage->trigger_path_count) ||
         !AppStateTransitionSequenceRefsReady(
@@ -1878,6 +1912,9 @@ static int AppStateActionCoverageReady(void) {
         !NonEmptyString(coverage->boundary_status) ||
         !NonEmptyStringList(coverage->declared_write_set,
                             coverage->declared_write_set_count) ||
+        !AppStateCoverageOwnerFieldRefsReady(
+            coverage->owner_field_refs, coverage->owner_field_ref_count,
+            coverage->declared_write_set, coverage->declared_write_set_count) ||
         !AppStateTransitionSequenceRefsReady(
             coverage->transition_sequence_refs,
             coverage->transition_sequence_ref_count, coverage->transition_id) ||
