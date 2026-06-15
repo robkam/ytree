@@ -1793,6 +1793,116 @@ static int AppStateRequiredEventIdCovered(const char *event_id) {
   return AppStateEventCoverageLookup(event_id) != NULL;
 }
 
+static int AppStateDiffHarnessRefsReady(
+    const char *const *diff_harness_refs, size_t diff_harness_ref_count,
+    const char *transition_id, const char *const *owner_field_refs,
+    size_t owner_field_ref_count, const char *const *invariant_refs,
+    size_t invariant_ref_count, const char *const *generation_domain_refs,
+    size_t generation_domain_ref_count) {
+  size_t ref_index;
+
+  if (!NonEmptyString(transition_id) ||
+      !NonEmptyStringList(diff_harness_refs, diff_harness_ref_count) ||
+      !NonEmptyStringList(owner_field_refs, owner_field_ref_count) ||
+      !NonEmptyStringList(invariant_refs, invariant_ref_count) ||
+      !NonEmptyStringList(generation_domain_refs,
+                          generation_domain_ref_count))
+    return 0;
+
+  for (ref_index = 0; ref_index < diff_harness_ref_count; ref_index++) {
+    const AppStateDiffHarnessMetadata *harness =
+        AppStateDiffHarnessLookup(diff_harness_refs[ref_index]);
+    size_t previous_index;
+
+    if (harness == NULL ||
+        !NonEmptyStringList(harness->transition_ids,
+                            harness->transition_id_count) ||
+        !NonEmptyStringList(harness->owner_field_refs,
+                            harness->owner_field_ref_count) ||
+        !NonEmptyStringList(harness->invariant_ids,
+                            harness->invariant_id_count) ||
+        !NonEmptyStringList(harness->generation_domain_ids,
+                            harness->generation_domain_id_count))
+      return 0;
+    if (!StringListContains(harness->transition_ids,
+                            harness->transition_id_count, transition_id))
+      return 0;
+    for (previous_index = 0; previous_index < ref_index; previous_index++) {
+      if (strcmp(diff_harness_refs[previous_index],
+                 diff_harness_refs[ref_index]) == 0)
+        return 0;
+    }
+  }
+
+  for (ref_index = 0; ref_index < owner_field_ref_count; ref_index++) {
+    size_t harness_index;
+    int ref_covered = 0;
+
+    for (harness_index = 0; harness_index < diff_harness_ref_count;
+         harness_index++) {
+      const AppStateDiffHarnessMetadata *harness =
+          AppStateDiffHarnessLookup(diff_harness_refs[harness_index]);
+
+      if (harness == NULL)
+        return 0;
+      if (StringListContains(harness->owner_field_refs,
+                             harness->owner_field_ref_count,
+                             owner_field_refs[ref_index])) {
+        ref_covered = 1;
+        break;
+      }
+    }
+    if (!ref_covered)
+      return 0;
+  }
+
+  for (ref_index = 0; ref_index < invariant_ref_count; ref_index++) {
+    size_t harness_index;
+    int ref_covered = 0;
+
+    for (harness_index = 0; harness_index < diff_harness_ref_count;
+         harness_index++) {
+      const AppStateDiffHarnessMetadata *harness =
+          AppStateDiffHarnessLookup(diff_harness_refs[harness_index]);
+
+      if (harness == NULL)
+        return 0;
+      if (StringListContains(harness->invariant_ids,
+                             harness->invariant_id_count,
+                             invariant_refs[ref_index])) {
+        ref_covered = 1;
+        break;
+      }
+    }
+    if (!ref_covered)
+      return 0;
+  }
+
+  for (ref_index = 0; ref_index < generation_domain_ref_count; ref_index++) {
+    size_t harness_index;
+    int ref_covered = 0;
+
+    for (harness_index = 0; harness_index < diff_harness_ref_count;
+         harness_index++) {
+      const AppStateDiffHarnessMetadata *harness =
+          AppStateDiffHarnessLookup(diff_harness_refs[harness_index]);
+
+      if (harness == NULL)
+        return 0;
+      if (StringListContains(harness->generation_domain_ids,
+                             harness->generation_domain_id_count,
+                             generation_domain_refs[ref_index])) {
+        ref_covered = 1;
+        break;
+      }
+    }
+    if (!ref_covered)
+      return 0;
+  }
+
+  return 1;
+}
+
 static int AppStateEventCoverageReady(void) {
   size_t index;
   size_t required_class_count =
@@ -1838,6 +1948,12 @@ static int AppStateEventCoverageReady(void) {
                                     coverage->transition_id,
                                     coverage->declared_write_set,
                                     coverage->declared_write_set_count) ||
+        !AppStateDiffHarnessRefsReady(
+            coverage->diff_harness_refs, coverage->diff_harness_ref_count,
+            coverage->transition_id, coverage->owner_field_refs,
+            coverage->owner_field_ref_count, coverage->invariant_refs,
+            coverage->invariant_ref_count, coverage->generation_domain_refs,
+            coverage->generation_domain_ref_count) ||
         !NonEmptyStringList(coverage->migration_notes,
                             coverage->migration_note_count))
       return 0;
@@ -1929,6 +2045,12 @@ static int AppStateActionCoverageReady(void) {
                                     coverage->transition_id,
                                     coverage->declared_write_set,
                                     coverage->declared_write_set_count) ||
+        !AppStateDiffHarnessRefsReady(
+            coverage->diff_harness_refs, coverage->diff_harness_ref_count,
+            coverage->transition_id, coverage->owner_field_refs,
+            coverage->owner_field_ref_count, coverage->invariant_refs,
+            coverage->invariant_ref_count, coverage->generation_domain_refs,
+            coverage->generation_domain_ref_count) ||
         !NonEmptyStringList(coverage->migration_notes,
                             coverage->migration_note_count))
       return 0;

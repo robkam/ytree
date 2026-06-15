@@ -35,6 +35,8 @@ typedef struct {
   size_t invariant_ref_count;
   const char *const *generation_domain_refs;
   size_t generation_domain_ref_count;
+  const char *const *diff_harness_refs;
+  size_t diff_harness_ref_count;
   const char *boundary_status;
   const char *const *migration_notes;
   size_t migration_note_count;
@@ -62,6 +64,8 @@ typedef struct {
   size_t invariant_ref_count;
   const char *const *generation_domain_refs;
   size_t generation_domain_ref_count;
+  const char *const *diff_harness_refs;
+  size_t diff_harness_ref_count;
   const char *const *migration_notes;
   size_t migration_note_count;
 } AppStateEventCoverageMetadata;

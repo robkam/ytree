@@ -49,11 +49,13 @@ REQUIRED_LIST_FIELD_CASES = [
     ("action", "declared_write_set", "action[0]"),
     ("action", "owner_field_refs", "action[0]"),
     ("action", "generation_domain_refs", "action[0]"),
+    ("action", "diff_harness_refs", "action[0]"),
     ("action", "invariant_refs", "action[0]"),
     ("action", "migration_notes", "action[0]"),
     ("event", "declared_write_set", "event[0]"),
     ("event", "owner_field_refs", "event[0]"),
     ("event", "generation_domain_refs", "event[0]"),
+    ("event", "diff_harness_refs", "event[0]"),
     ("event", "invariant_refs", "event[0]"),
     ("event", "migration_notes", "event[0]"),
     ("event", "trigger_paths", "event[0]"),
@@ -168,6 +170,7 @@ def _action(
         "generation_domain_refs": _generation_domain_refs_for_transition(
             transition_id
         ),
+        "diff_harness_refs": _diff_harness_refs_for_transition(transition_id),
         "invariant_refs": _invariant_refs_for_transition(transition_id),
         "boundary_status": "test",
         "migration_notes": ["fixture action coverage"],
@@ -212,6 +215,9 @@ def _event(
             event_id=f"event.{event_class}",
         ),
         "generation_domain_refs": _generation_domain_refs_for_transition(
+            resolved_transition_id
+        ),
+        "diff_harness_refs": _diff_harness_refs_for_transition(
             resolved_transition_id
         ),
         "invariant_refs": _invariant_refs_for_transition(
@@ -354,6 +360,71 @@ def _generation_domain_refs_for_transition(transition_id: str) -> list[str]:
             "domain.volume_lifecycle",
         ],
     }.get(transition_id, ["domain.panel_generation"])
+
+
+def _diff_harness_refs_for_transition(transition_id: str) -> list[str]:
+    return {
+        "transition.command_completion": [
+            "harness.declared_write_set_diff",
+            "harness.blocked_transition_no_unrelated_mutation",
+        ],
+        "transition.filesystem_mutation_result": [
+            "harness.transition_before_after_snapshot",
+            "harness.generation_mismatch_check",
+            "harness.blocked_transition_no_unrelated_mutation",
+        ],
+        "transition.keybinding": [
+            "harness.transition_before_after_snapshot",
+            "harness.declared_write_set_diff",
+            "harness.blocked_transition_no_unrelated_mutation",
+        ],
+        "transition.menu_action": ["harness.declared_write_set_diff"],
+        "transition.modal_action": [
+            "harness.declared_write_set_diff",
+            "harness.blocked_transition_no_unrelated_mutation",
+        ],
+        "transition.rebuild_rebind_callback": [
+            "harness.transition_before_after_snapshot",
+            "harness.generation_mismatch_check",
+        ],
+        "transition.refresh_rebuild": [
+            "harness.transition_before_after_snapshot",
+            "harness.generation_mismatch_check",
+        ],
+        "transition.render_reflow": ["harness.render_projection_read_only_diff"],
+        "transition.terminal_signal_or_resize": [
+            "harness.generation_mismatch_check"
+        ],
+        "transition.volume_operation": [
+            "harness.transition_before_after_snapshot",
+            "harness.blocked_transition_no_unrelated_mutation",
+        ],
+    }.get(transition_id, ["harness.transition_before_after_snapshot"])
+
+
+def _wrong_diff_harness_ref(transition_id: str) -> str:
+    valid_refs = set(_diff_harness_refs_for_transition(transition_id))
+    for harness in _complete_diff_harness_checks():
+        harness_id = str(harness["harness_id"])
+        if harness_id not in valid_refs:
+            return harness_id
+    raise AssertionError(f"missing mismatched diff harness fixture for {transition_id}")
+
+
+def _diff_harness_checks_with_transition_mismatch(
+    harness_id: str, transition_id: str
+) -> list[dict[str, object]]:
+    diff_harness_checks = _complete_diff_harness_checks()
+    fallback_transition_id = next(
+        candidate
+        for candidate in _complete_transition_ids()
+        if candidate != transition_id
+    )
+    for harness in diff_harness_checks:
+        if harness["harness_id"] == harness_id:
+            harness["transition_ids"] = [fallback_transition_id]
+            return diff_harness_checks
+    raise AssertionError(f"missing diff harness fixture for {harness_id}")
 
 
 def _wrong_generation_domain_ref(transition_id: str) -> str:
@@ -950,6 +1021,17 @@ def _runtime_source(
             f"static const char *const {generation_domain_refs_table}[] = "
             f"{{\n{generation_domain_ref_rows}\n}};\n"
         )
+        diff_harness_refs = record.get("diff_harness_refs")
+        if not isinstance(diff_harness_refs, list):
+            diff_harness_refs = []
+        diff_harness_ref_rows = "\n".join(
+            f'  "{ref}",' for ref in diff_harness_refs if isinstance(ref, str)
+        )
+        diff_harness_refs_table = f"kAppStateActionCoverageDiffHarnessRefs{index}"
+        action_coverage_arrays.append(
+            f"static const char *const {diff_harness_refs_table}[] = "
+            f"{{\n{diff_harness_ref_rows}\n}};\n"
+        )
         action = record.get("action", "")
         action_coverage_rows.append(
             f'  {{{action}, "{action}", "{record.get("transition_id", "")}", '
@@ -967,6 +1049,9 @@ def _runtime_source(
             f"{generation_domain_refs_table}, "
             f"sizeof({generation_domain_refs_table}) / "
             f"sizeof({generation_domain_refs_table}[0]), "
+            f"{diff_harness_refs_table}, "
+            f"sizeof({diff_harness_refs_table}) / "
+            f"sizeof({diff_harness_refs_table}[0]), "
             f'"{record.get("boundary_status", "")}", '
             f"{notes_table}, sizeof({notes_table}) / sizeof({notes_table}[0])}},"
         )
@@ -1048,6 +1133,17 @@ def _runtime_source(
             f"static const char *const {generation_domain_refs_table}[] = "
             f"{{\n{generation_domain_ref_rows}\n}};\n"
         )
+        diff_harness_refs = record.get("diff_harness_refs")
+        if not isinstance(diff_harness_refs, list):
+            diff_harness_refs = []
+        diff_harness_ref_rows = "\n".join(
+            f'  "{ref}",' for ref in diff_harness_refs if isinstance(ref, str)
+        )
+        diff_harness_refs_table = f"kAppStateEventCoverageDiffHarnessRefs{index}"
+        event_coverage_arrays.append(
+            f"static const char *const {diff_harness_refs_table}[] = "
+            f"{{\n{diff_harness_ref_rows}\n}};\n"
+        )
         owner_field_refs = record.get("owner_field_refs")
         if not isinstance(owner_field_refs, list):
             owner_field_refs = []
@@ -1080,6 +1176,9 @@ def _runtime_source(
             f"{generation_domain_refs_table}, "
             f"sizeof({generation_domain_refs_table}) / "
             f"sizeof({generation_domain_refs_table}[0]), "
+            f"{diff_harness_refs_table}, "
+            f"sizeof({diff_harness_refs_table}) / "
+            f"sizeof({diff_harness_refs_table}[0]), "
             f"{notes_table}, sizeof({notes_table}) / sizeof({notes_table}[0])}},"
         )
     owner_field_arrays = []
@@ -1761,6 +1860,11 @@ def _complete_diff_harness_checks() -> list[dict[str, object]]:
             invariant_ids=[
                 "invariant.blocked_transition_determinism",
                 "invariant.inactive_panel_frozen",
+                "invariant.hidden_entry_visible_navigation",
+                "invariant.panel_local_focus_restore",
+                "invariant.render_projection_read_only",
+                "invariant.shared_state_panel_local_isolation",
+                "invariant.viewport_identity_rebind",
             ],
             generation_domain_ids=_complete_generation_domain_ids(),
         )
@@ -7930,6 +8034,177 @@ def test_guard_fails_when_event_coverage_dispatch_surface_refs_mix_valid_and_wro
     )
 
 
+@pytest.mark.parametrize(
+    ("record_type", "refs", "expected_fragment"),
+    [
+        ("action", [], "diff_harness_refs must be non-empty"),
+        ("action", "harness.transition_before_after_snapshot", "diff_harness_refs must be a non-empty list"),
+        ("action", [123], "diff_harness_refs[0] must be a non-empty string"),
+        (
+            "action",
+            [
+                "harness.transition_before_after_snapshot",
+                "harness.transition_before_after_snapshot",
+            ],
+            "duplicate diff_harness_refs[1]",
+        ),
+        ("action", ["harness.__missing__"], "references unknown diff harness id"),
+        ("action", ["harness.render_projection_read_only_diff"], "transition_id does not match"),
+        ("event", [], "diff_harness_refs must be non-empty"),
+        ("event", "harness.generation_mismatch_check", "diff_harness_refs must be a non-empty list"),
+        ("event", [123], "diff_harness_refs[0] must be a non-empty string"),
+        (
+            "event",
+            ["harness.generation_mismatch_check", "harness.generation_mismatch_check"],
+            "duplicate diff_harness_refs[1]",
+        ),
+        ("event", ["harness.__missing__"], "references unknown diff harness id"),
+        ("event", ["harness.render_projection_read_only_diff"], "transition_id does not match"),
+    ],
+)
+def test_guard_fails_when_coverage_diff_harness_refs_are_invalid(
+    tmp_path: Path, record_type: str, refs: object, expected_fragment: str
+) -> None:
+    transitions = _complete_transitions()
+    actions = _complete_actions()
+    events = _complete_events()
+    if record_type == "action":
+        actions[0]["diff_harness_refs"] = refs
+    else:
+        events[0]["diff_harness_refs"] = refs
+    diff_harness_checks = None
+    if (
+        isinstance(refs, list)
+        and len(refs) == 1
+        and refs[0] == "harness.render_projection_read_only_diff"
+    ):
+        record = actions[0] if record_type == "action" else events[0]
+        diff_harness_checks = _diff_harness_checks_with_transition_mismatch(
+            str(refs[0]), str(record["transition_id"])
+        )
+    paths = _write_fixture(
+        tmp_path,
+        transitions=transitions,
+        actions=actions,
+        events=events,
+        diff_harness_checks=diff_harness_checks,
+    )
+
+    failures = _validate(paths)
+
+    label = "action[0]" if record_type == "action" else "event[0]"
+    assert any(
+        label in failure and expected_fragment in failure for failure in failures
+    )
+
+
+@pytest.mark.parametrize("record_type", ["action", "event"])
+def test_guard_fails_when_coverage_diff_harness_refs_mix_valid_and_wrong_transition(
+    tmp_path: Path, record_type: str
+) -> None:
+    transitions = _complete_transitions()
+    actions = _complete_actions()
+    events = _complete_events()
+    record = actions[0] if record_type == "action" else events[0]
+    transition_id = str(record["transition_id"])
+    valid_ref = str(record["diff_harness_refs"][0])
+    wrong_ref = _wrong_diff_harness_ref(transition_id)
+    record["diff_harness_refs"] = [valid_ref, wrong_ref]
+    diff_harness_checks = _diff_harness_checks_with_transition_mismatch(
+        wrong_ref, transition_id
+    )
+    paths = _write_fixture(
+        tmp_path,
+        transitions=transitions,
+        actions=actions,
+        events=events,
+        diff_harness_checks=diff_harness_checks,
+    )
+
+    failures = _validate(paths)
+
+    label = "action[0]" if record_type == "action" else "event[0]"
+    assert any(
+        label in failure
+        and f"diff_harness_refs[1] transition_id does not match {transition_id}: {wrong_ref}"
+        in failure
+        for failure in failures
+    )
+
+
+@pytest.mark.parametrize(
+    ("field_name", "expected_fragment"),
+    [
+        (
+            "owner_field_refs",
+            "owner_field_refs[0] lacks referenced diff_harness_refs coverage",
+        ),
+        (
+            "invariant_ids",
+            "invariant_refs[0] lacks referenced diff_harness_refs coverage",
+        ),
+        (
+            "generation_domain_ids",
+            "generation_domain_refs[0] lacks referenced diff_harness_refs coverage",
+        ),
+    ],
+)
+@pytest.mark.parametrize("record_type", ["action", "event"])
+def test_guard_fails_when_coverage_diff_harness_refs_lack_overlap_coverage(
+    tmp_path: Path,
+    record_type: str,
+    field_name: str,
+    expected_fragment: str,
+) -> None:
+    transitions = _complete_transitions()
+    actions = _complete_actions()
+    events = _complete_events()
+    record = actions[0] if record_type == "action" else events[0]
+    record_field = {
+        "owner_field_refs": "owner_field_refs",
+        "invariant_ids": "invariant_refs",
+        "generation_domain_ids": "generation_domain_refs",
+    }[field_name]
+    record_refs = {str(ref) for ref in record[record_field]}
+    replacement = [
+        candidate
+        for candidate in {
+            "owner_field_refs": ["field", "panel.tree_selection_key"],
+            "invariant_ids": [
+                "invariant.blocked_transition_determinism",
+                "invariant.inactive_panel_frozen",
+                "invariant.render_projection_read_only",
+            ],
+            "generation_domain_ids": [
+                "domain.panel_generation",
+                "domain.layout_reflow",
+                "domain.volume_generation",
+            ],
+        }[field_name]
+        if candidate not in record_refs
+    ][:1]
+    assert replacement
+    referenced_harnesses = set(record["diff_harness_refs"])
+    diff_harness_checks = _complete_diff_harness_checks()
+    for harness in diff_harness_checks:
+        if harness["harness_id"] in referenced_harnesses:
+            harness[field_name] = replacement
+    paths = _write_fixture(
+        tmp_path,
+        transitions=transitions,
+        actions=actions,
+        events=events,
+        diff_harness_checks=diff_harness_checks,
+    )
+
+    failures = _validate(paths)
+
+    label = "action[0]" if record_type == "action" else "event[0]"
+    assert any(
+        label in failure and expected_fragment in failure for failure in failures
+    )
+
+
 def test_guard_fails_when_runtime_action_coverage_owner_does_not_match_transition(
     tmp_path: Path,
 ) -> None:
@@ -8184,6 +8459,58 @@ def test_guard_fails_when_runtime_action_coverage_generation_domain_refs_mix_val
     assert any(
         "runtime_action_coverage[0]" in failure
         and f"generation_domain_refs[1] transition_id does not match {transition_id}: {wrong_ref}"
+        in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_when_runtime_action_coverage_diff_harness_refs_drift(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    runtime_action_coverages = _complete_actions()
+    runtime_action_coverages[0]["diff_harness_refs"] = [
+        str(runtime_action_coverages[0]["diff_harness_refs"][0])
+    ]
+    paths = _write_fixture(
+        tmp_path,
+        transitions=transitions,
+        runtime_action_coverages=runtime_action_coverages,
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "runtime_action_coverage[0]" in failure
+        and "diff_harness_refs does not match action coverage" in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_when_runtime_action_coverage_diff_harness_refs_mix_valid_and_wrong_transition(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    runtime_action_coverages = _complete_actions()
+    transition_id = str(runtime_action_coverages[0]["transition_id"])
+    valid_ref = str(runtime_action_coverages[0]["diff_harness_refs"][0])
+    wrong_ref = _wrong_diff_harness_ref(transition_id)
+    runtime_action_coverages[0]["diff_harness_refs"] = [valid_ref, wrong_ref]
+    runtime_diff_harness_checks = _diff_harness_checks_with_transition_mismatch(
+        wrong_ref, transition_id
+    )
+    paths = _write_fixture(
+        tmp_path,
+        transitions=transitions,
+        runtime_action_coverages=runtime_action_coverages,
+        runtime_diff_harness_checks=runtime_diff_harness_checks,
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "runtime_action_coverage[0]" in failure
+        and f"diff_harness_refs[1] transition_id does not match {transition_id}: {wrong_ref}"
         in failure
         for failure in failures
     )
@@ -8444,6 +8771,58 @@ def test_guard_fails_when_runtime_event_coverage_generation_domain_refs_mix_vali
     assert any(
         "runtime_event_coverage[0]" in failure
         and f"generation_domain_refs[1] transition_id does not match {transition_id}: {wrong_ref}"
+        in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_when_runtime_event_coverage_diff_harness_refs_drift(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    runtime_events = _complete_events()
+    runtime_events[0]["diff_harness_refs"] = [
+        str(runtime_events[0]["diff_harness_refs"][0])
+    ]
+    paths = _write_fixture(
+        tmp_path,
+        transitions=transitions,
+        runtime_events=runtime_events,
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "runtime_event_coverage[0]" in failure
+        and "diff_harness_refs does not match docs" in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_when_runtime_event_coverage_diff_harness_refs_mix_valid_and_wrong_transition(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    runtime_events = _complete_events()
+    transition_id = str(runtime_events[0]["transition_id"])
+    valid_ref = str(runtime_events[0]["diff_harness_refs"][0])
+    wrong_ref = _wrong_diff_harness_ref(transition_id)
+    runtime_events[0]["diff_harness_refs"] = [valid_ref, wrong_ref]
+    runtime_diff_harness_checks = _diff_harness_checks_with_transition_mismatch(
+        wrong_ref, transition_id
+    )
+    paths = _write_fixture(
+        tmp_path,
+        transitions=transitions,
+        runtime_events=runtime_events,
+        runtime_diff_harness_checks=runtime_diff_harness_checks,
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "runtime_event_coverage[0]" in failure
+        and f"diff_harness_refs[1] transition_id does not match {transition_id}: {wrong_ref}"
         in failure
         for failure in failures
     )
@@ -8797,6 +9176,9 @@ def _event_runtime_validation_failures(runtime_path: Path) -> list[str]:
     runtime_invariants, runtime_invariant_failures = (
         guard._parse_runtime_invariant_registry(runtime_path)
     )
+    runtime_diff_harnesses, runtime_diff_harness_failures = (
+        guard._parse_runtime_diff_harness_registry(runtime_path)
+    )
     transition_ids = {
         record["id"]: record for record in transitions_doc.get("transitions", [])
     }
@@ -8811,6 +9193,7 @@ def _event_runtime_validation_failures(runtime_path: Path) -> list[str]:
         + runtime_sequence_failures
         + runtime_generation_domain_failures
         + runtime_invariant_failures
+        + runtime_diff_harness_failures
         + guard._validate_runtime_event_coverage_registry(
             runtime_records=runtime_events,
             runtime_path=runtime_path,
@@ -8831,6 +9214,24 @@ def _event_runtime_validation_failures(runtime_path: Path) -> list[str]:
             ),
             runtime_invariant_protected_fields=guard._invariant_protected_fields_by_invariant(
                 runtime_invariants
+            ),
+            runtime_diff_harness_ids={
+                record["harness_id"] for record in runtime_diff_harnesses
+            },
+            runtime_diff_harness_transition_ids=guard._diff_harness_transition_ids_by_harness(
+                runtime_diff_harnesses
+            ),
+            runtime_diff_harness_owner_field_refs=guard._diff_harness_string_refs_by_harness(
+                runtime_diff_harnesses,
+                "owner_field_refs",
+            ),
+            runtime_diff_harness_invariant_ids=guard._diff_harness_string_refs_by_harness(
+                runtime_diff_harnesses,
+                "invariant_ids",
+            ),
+            runtime_diff_harness_generation_domain_ids=guard._diff_harness_string_refs_by_harness(
+                runtime_diff_harnesses,
+                "generation_domain_ids",
             ),
         )
     )
@@ -8950,6 +9351,9 @@ def test_runtime_event_coverage_startup_checks_fail_closed() -> None:
     assert "AppStateCoverageOwnerFieldRefsReady(" in source
     assert "coverage->invariant_refs" in source
     assert "coverage->invariant_ref_count" in source
+    assert "coverage->diff_harness_refs" in source
+    assert "coverage->diff_harness_ref_count" in source
+    assert "AppStateDiffHarnessRefsReady(" in source
     assert "!AppStateEventCoverageReady()" in source
 
 
@@ -8973,6 +9377,8 @@ def test_runtime_coverage_startup_validates_owner_alignment() -> None:
     assert "AppStateCoverageOwnerFieldRefsReady(" in event_body
     assert "AppStateInvariantRefsReady(coverage->invariant_refs" in action_body
     assert "AppStateInvariantRefsReady(coverage->invariant_refs" in event_body
+    assert "AppStateDiffHarnessRefsReady(" in action_body
+    assert "AppStateDiffHarnessRefsReady(" in event_body
 
 
 def test_runtime_coverage_startup_rejects_owner_field_ref_mismatch() -> None:
@@ -8999,6 +9405,30 @@ def test_runtime_coverage_startup_rejects_owner_field_ref_mismatch() -> None:
         helper_body,
         re.S,
     )
+
+
+def test_runtime_coverage_startup_rejects_bad_diff_harness_refs() -> None:
+    source = Path("src/core/main.c").read_text(encoding="utf-8")
+    helper_start = source.index("static int AppStateDiffHarnessRefsReady(")
+    event_start = source.index("static int AppStateEventCoverageReady(void)")
+    helper_body = source[helper_start:event_start]
+
+    assert "AppStateDiffHarnessLookup(diff_harness_refs[ref_index])" in helper_body
+    assert re.search(
+        r"StringListContains\(harness->transition_ids,\s*"
+        r"harness->transition_id_count,\s*transition_id\)",
+        helper_body,
+        re.S,
+    )
+    assert re.search(
+        r"strcmp\(diff_harness_refs\[previous_index\],\s*"
+        r"diff_harness_refs\[ref_index\]\) == 0",
+        helper_body,
+        re.S,
+    )
+    assert "harness->owner_field_refs" in helper_body
+    assert "harness->invariant_ids" in helper_body
+    assert "harness->generation_domain_ids" in helper_body
 
 
 def test_runtime_event_coverage_startup_requires_documented_event_ids() -> None:
@@ -9249,6 +9679,8 @@ def test_runtime_action_coverage_startup_validates_sequence_refs() -> None:
     assert "coverage->transition_sequence_refs" in action_body
     assert "coverage->transition_sequence_ref_count" in action_body
     assert "AppStateTransitionSequenceRefsReady(" in action_body
+    assert "coverage->diff_harness_refs" in action_body
+    assert "coverage->diff_harness_ref_count" in action_body
 
 
 def test_runtime_action_coverage_startup_rejects_mixed_sequence_refs() -> None:

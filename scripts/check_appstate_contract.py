@@ -81,6 +81,7 @@ REQUIRED_ACTION_FIELDS = {
     "transition_sequence_refs",
     "dispatch_surface_refs",
     "generation_domain_refs",
+    "diff_harness_refs",
     "invariant_refs",
     "boundary_status",
     "migration_notes",
@@ -205,6 +206,7 @@ REQUIRED_EVENT_FIELDS = {
     "transition_sequence_refs",
     "dispatch_surface_refs",
     "generation_domain_refs",
+    "diff_harness_refs",
     "invariant_refs",
     "boundary_status",
     "trigger_paths",
@@ -310,6 +312,7 @@ ACTION_LIST_FIELDS = LIST_FIELDS | {
     "transition_sequence_refs",
     "dispatch_surface_refs",
     "generation_domain_refs",
+    "diff_harness_refs",
     "invariant_refs",
 }
 EVENT_LIST_FIELDS = LIST_FIELDS | {
@@ -318,6 +321,7 @@ EVENT_LIST_FIELDS = LIST_FIELDS | {
     "transition_sequence_refs",
     "dispatch_surface_refs",
     "generation_domain_refs",
+    "diff_harness_refs",
     "invariant_refs",
 }
 SHIM_LIST_FIELDS = LIST_FIELDS | {
@@ -645,7 +649,7 @@ def _parse_runtime_action_coverage_registry(
     arrays: dict[str, list[str]] = {}
     array_re = re.compile(
         r"static\s+const\s+char\s+\*const\s+"
-        r"(kAppStateActionCoverage(?:OwnerFieldRefs|TransitionSequenceRefs|DispatchSurfaceRefs|InvariantRefs|GenerationDomainRefs|MigrationNotes)[0-9]+)"
+        r"(kAppStateActionCoverage(?:OwnerFieldRefs|TransitionSequenceRefs|DispatchSurfaceRefs|InvariantRefs|GenerationDomainRefs|DiffHarnessRefs|MigrationNotes)[0-9]+)"
         r"\[\]\s*=\s*\{(?P<body>.*?)\};",
         re.S,
     )
@@ -690,6 +694,9 @@ def _parse_runtime_action_coverage_registry(
         r"\s*(?P<generation_domain_refs>kAppStateActionCoverageGenerationDomainRefs[0-9]+)\s*,"
         r"\s*sizeof\((?P=generation_domain_refs)\)\s*/"
         r"\s*sizeof\((?P=generation_domain_refs)\[0\]\)\s*,"
+        r"\s*(?P<diff_harness_refs>kAppStateActionCoverageDiffHarnessRefs[0-9]+)\s*,"
+        r"\s*sizeof\((?P=diff_harness_refs)\)\s*/"
+        r"\s*sizeof\((?P=diff_harness_refs)\[0\]\)\s*,"
         r"\s*\"(?P<boundary_status>[^\"]*)\"\s*,"
         r"\s*(?P<migration_notes>kAppStateActionCoverageMigrationNotes[0-9]+)\s*,"
         r"\s*sizeof\((?P=migration_notes)\)\s*/"
@@ -757,6 +764,14 @@ def _parse_runtime_action_coverage_registry(
                 f"table: {generation_domain_refs_name}"
             )
             generation_domain_refs = []
+        diff_harness_refs_name = row_match.group("diff_harness_refs")
+        diff_harness_refs = arrays.get(diff_harness_refs_name)
+        if diff_harness_refs is None:
+            failures.append(
+                f"runtime_action_coverage[{index}]: unknown diff-harness-refs "
+                f"table: {diff_harness_refs_name}"
+            )
+            diff_harness_refs = []
         notes_name = row_match.group("migration_notes")
         notes = arrays.get(notes_name)
         if notes is None:
@@ -778,6 +793,7 @@ def _parse_runtime_action_coverage_registry(
                 "dispatch_surface_refs": dispatch_surface_refs,
                 "invariant_refs": invariant_refs,
                 "generation_domain_refs": generation_domain_refs,
+                "diff_harness_refs": diff_harness_refs,
                 "boundary_status": row_match.group("boundary_status"),
                 "migration_notes": notes,
             }
@@ -802,7 +818,7 @@ def _parse_runtime_event_coverage_registry(
     arrays: dict[str, list[str]] = {}
     array_re = re.compile(
         r"static\s+const\s+char\s+\*const\s+"
-        r"(kAppState(?:TransitionWriteSet|EventCoverageOwnerFieldRefs|EventCoverageTriggerPaths|EventCoverageTransitionSequenceRefs|EventCoverageDispatchSurfaceRefs|EventCoverageInvariantRefs|EventCoverageGenerationDomainRefs|EventCoverageMigrationNotes)[0-9]+)"
+        r"(kAppState(?:TransitionWriteSet|EventCoverageOwnerFieldRefs|EventCoverageTriggerPaths|EventCoverageTransitionSequenceRefs|EventCoverageDispatchSurfaceRefs|EventCoverageInvariantRefs|EventCoverageGenerationDomainRefs|EventCoverageDiffHarnessRefs|EventCoverageMigrationNotes)[0-9]+)"
         r"\[\]\s*=\s*\{(?P<body>.*?)\};",
         re.S,
     )
@@ -847,6 +863,8 @@ def _parse_runtime_event_coverage_registry(
         r"\s*sizeof\((?P=invariant_refs)\)\s*/\s*sizeof\((?P=invariant_refs)\[0\]\)\s*,"
         r"\s*(?P<generation_domain_refs>kAppStateEventCoverageGenerationDomainRefs[0-9]+)\s*,"
         r"\s*sizeof\((?P=generation_domain_refs)\)\s*/\s*sizeof\((?P=generation_domain_refs)\[0\]\)\s*,"
+        r"\s*(?P<diff_harness_refs>kAppStateEventCoverageDiffHarnessRefs[0-9]+)\s*,"
+        r"\s*sizeof\((?P=diff_harness_refs)\)\s*/\s*sizeof\((?P=diff_harness_refs)\[0\]\)\s*,"
         r"\s*(?P<migration_notes>kAppStateEventCoverageMigrationNotes[0-9]+)\s*,"
         r"\s*sizeof\((?P=migration_notes)\)\s*/\s*sizeof\((?P=migration_notes)\[0\]\)\s*\}",
         re.S,
@@ -914,6 +932,13 @@ def _parse_runtime_event_coverage_registry(
                 f"{row_match.group('generation_domain_refs')}"
             )
             generation_domain_refs = []
+        diff_harness_refs = arrays.get(row_match.group("diff_harness_refs"))
+        if diff_harness_refs is None:
+            failures.append(
+                f"runtime_event_coverage[{index}]: unknown diff-harness-refs table: "
+                f"{row_match.group('diff_harness_refs')}"
+            )
+            diff_harness_refs = []
         if migration_notes is None:
             failures.append(
                 f"runtime_event_coverage[{index}]: unknown migration-notes table: "
@@ -936,6 +961,7 @@ def _parse_runtime_event_coverage_registry(
                 "dispatch_surface_refs": dispatch_surface_refs,
                 "invariant_refs": invariant_refs,
                 "generation_domain_refs": generation_domain_refs,
+                "diff_harness_refs": diff_harness_refs,
                 "migration_notes": migration_notes,
             }
         )
@@ -2035,6 +2061,11 @@ def _validate_runtime_action_coverage_registry(
     runtime_invariant_ids: set[str],
     runtime_invariant_transition_ids: dict[str, set[str]],
     runtime_invariant_protected_fields: dict[str, set[str]],
+    runtime_diff_harness_ids: set[str],
+    runtime_diff_harness_transition_ids: dict[str, set[str]],
+    runtime_diff_harness_owner_field_refs: dict[str, set[str]],
+    runtime_diff_harness_invariant_ids: dict[str, set[str]],
+    runtime_diff_harness_generation_domain_ids: dict[str, set[str]],
 ) -> list[str]:
     failures: list[str] = []
     expected_actions = set(enum_actions)
@@ -2126,6 +2157,21 @@ def _validate_runtime_action_coverage_registry(
                 label=label,
             )
         )
+        failures.extend(
+            _validate_coverage_diff_harness_refs(
+                record=record,
+                diff_harness_ids=runtime_diff_harness_ids,
+                diff_harness_transition_ids=runtime_diff_harness_transition_ids,
+                diff_harness_owner_field_refs=(
+                    runtime_diff_harness_owner_field_refs
+                ),
+                diff_harness_invariant_ids=runtime_diff_harness_invariant_ids,
+                diff_harness_generation_domain_ids=(
+                    runtime_diff_harness_generation_domain_ids
+                ),
+                label=label,
+            )
+        )
 
         transition_id = record.get("transition_id")
         transition_record = None
@@ -2178,6 +2224,7 @@ def _validate_runtime_action_coverage_registry(
                     "transition_sequence_refs",
                     "dispatch_surface_refs",
                     "generation_domain_refs",
+                    "diff_harness_refs",
                     "invariant_refs",
                     "boundary_status",
                     "migration_notes",
@@ -3517,6 +3564,77 @@ def _validate_shim_diff_harness_union_coverage(
     return failures
 
 
+def _validate_coverage_diff_harness_refs(
+    *,
+    record: dict[str, Any],
+    diff_harness_ids: set[str],
+    diff_harness_transition_ids: dict[str, set[str]],
+    diff_harness_owner_field_refs: dict[str, set[str]],
+    diff_harness_invariant_ids: dict[str, set[str]],
+    diff_harness_generation_domain_ids: dict[str, set[str]],
+    label: str,
+) -> list[str]:
+    refs = record.get("diff_harness_refs")
+    failures = _validate_list_field(
+        value=refs,
+        label=label,
+        field="diff_harness_refs",
+    )
+    if failures:
+        return failures
+
+    assert isinstance(refs, list)
+    transition_id = record.get("transition_id")
+    seen: set[str] = set()
+    covered_owner_fields: set[str] = set()
+    covered_invariants: set[str] = set()
+    covered_generation_domains: set[str] = set()
+
+    for index, ref in enumerate(refs):
+        assert isinstance(ref, str)
+        if ref in seen:
+            failures.append(f"{label}: duplicate diff_harness_refs[{index}]: {ref}")
+        seen.add(ref)
+        if ref not in diff_harness_ids:
+            failures.append(
+                f"{label}: diff_harness_refs references unknown diff harness id: {ref}"
+            )
+            continue
+        if (
+            isinstance(transition_id, str)
+            and transition_id.strip()
+            and transition_id not in diff_harness_transition_ids.get(ref, set())
+        ):
+            failures.append(
+                f"{label}: diff_harness_refs[{index}] transition_id does not match "
+                f"{transition_id}: {ref}"
+            )
+        covered_owner_fields.update(diff_harness_owner_field_refs.get(ref, set()))
+        covered_invariants.update(diff_harness_invariant_ids.get(ref, set()))
+        covered_generation_domains.update(
+            diff_harness_generation_domain_ids.get(ref, set())
+        )
+
+    for field_name, covered_refs in (
+        ("owner_field_refs", covered_owner_fields),
+        ("invariant_refs", covered_invariants),
+        ("generation_domain_refs", covered_generation_domains),
+    ):
+        record_refs = record.get(field_name)
+        if not isinstance(record_refs, list):
+            continue
+        for index, ref in enumerate(record_refs):
+            if not isinstance(ref, str) or not ref.strip():
+                continue
+            if ref not in covered_refs:
+                failures.append(
+                    f"{label}: {field_name}[{index}] lacks referenced "
+                    f"diff_harness_refs coverage: {ref}"
+                )
+
+    return failures
+
+
 def _validate_each_shim_invariant_covers_transition(
     *,
     invariant_refs: Any,
@@ -4791,6 +4909,11 @@ def _validate_runtime_event_coverage_registry(
     runtime_invariant_ids: set[str],
     runtime_invariant_transition_ids: dict[str, set[str]],
     runtime_invariant_protected_fields: dict[str, set[str]],
+    runtime_diff_harness_ids: set[str],
+    runtime_diff_harness_transition_ids: dict[str, set[str]],
+    runtime_diff_harness_owner_field_refs: dict[str, set[str]],
+    runtime_diff_harness_invariant_ids: dict[str, set[str]],
+    runtime_diff_harness_generation_domain_ids: dict[str, set[str]],
 ) -> list[str]:
     failures: list[str] = []
     doc_records = event_coverage_doc.get("events") if isinstance(event_coverage_doc, dict) else []
@@ -4851,6 +4974,21 @@ def _validate_runtime_event_coverage_registry(
                 invariant_protected_fields=runtime_invariant_protected_fields,
                 transition_id=record.get("transition_id"),
                 declared_write_set=record.get("declared_write_set"),
+                label=label,
+            )
+        )
+        failures.extend(
+            _validate_coverage_diff_harness_refs(
+                record=record,
+                diff_harness_ids=runtime_diff_harness_ids,
+                diff_harness_transition_ids=runtime_diff_harness_transition_ids,
+                diff_harness_owner_field_refs=(
+                    runtime_diff_harness_owner_field_refs
+                ),
+                diff_harness_invariant_ids=runtime_diff_harness_invariant_ids,
+                diff_harness_generation_domain_ids=(
+                    runtime_diff_harness_generation_domain_ids
+                ),
                 label=label,
             )
         )
@@ -4923,6 +5061,11 @@ def _validate_event_coverage(
     invariant_ids: set[str],
     invariant_transition_ids: dict[str, set[str]],
     invariant_protected_fields: dict[str, set[str]],
+    diff_harness_ids: set[str],
+    diff_harness_transition_ids: dict[str, set[str]],
+    diff_harness_owner_field_refs: dict[str, set[str]],
+    diff_harness_invariant_ids: dict[str, set[str]],
+    diff_harness_generation_domain_ids: dict[str, set[str]],
 ) -> list[str]:
     failures: list[str] = []
     if not isinstance(event_coverage_doc, dict):
@@ -5003,6 +5146,19 @@ def _validate_event_coverage(
                 invariant_protected_fields=invariant_protected_fields,
                 transition_id=record.get("transition_id"),
                 declared_write_set=record.get("declared_write_set"),
+                label=label,
+            )
+        )
+        failures.extend(
+            _validate_coverage_diff_harness_refs(
+                record=record,
+                diff_harness_ids=diff_harness_ids,
+                diff_harness_transition_ids=diff_harness_transition_ids,
+                diff_harness_owner_field_refs=diff_harness_owner_field_refs,
+                diff_harness_invariant_ids=diff_harness_invariant_ids,
+                diff_harness_generation_domain_ids=(
+                    diff_harness_generation_domain_ids
+                ),
                 label=label,
             )
         )
@@ -6646,6 +6802,19 @@ def validate_contract(
                 label=label,
             )
         )
+        failures.extend(
+            _validate_coverage_diff_harness_refs(
+                record=record,
+                diff_harness_ids=diff_harness_ids,
+                diff_harness_transition_ids=diff_harness_transition_ids,
+                diff_harness_owner_field_refs=diff_harness_owner_field_refs_by_harness,
+                diff_harness_invariant_ids=diff_harness_invariant_ids_by_harness,
+                diff_harness_generation_domain_ids=(
+                    diff_harness_generation_domain_ids_by_harness
+                ),
+                label=label,
+            )
+        )
 
         action = record.get("action")
         if isinstance(action, str) and action.strip():
@@ -6727,6 +6896,19 @@ def validate_contract(
             runtime_invariant_ids=runtime_invariant_ids,
             runtime_invariant_transition_ids=runtime_invariant_transition_ids,
             runtime_invariant_protected_fields=runtime_invariant_protected_fields,
+            runtime_diff_harness_ids={
+                record["harness_id"] for record in runtime_diff_harness_records
+            },
+            runtime_diff_harness_transition_ids=runtime_diff_harness_transition_ids,
+            runtime_diff_harness_owner_field_refs=(
+                runtime_diff_harness_owner_field_refs_by_harness
+            ),
+            runtime_diff_harness_invariant_ids=(
+                runtime_diff_harness_invariant_ids_by_harness
+            ),
+            runtime_diff_harness_generation_domain_ids=(
+                runtime_diff_harness_generation_domain_ids_by_harness
+            ),
         )
     )
 
@@ -6747,6 +6929,13 @@ def validate_contract(
             invariant_ids=invariant_ids,
             invariant_transition_ids=invariant_transition_ids,
             invariant_protected_fields=invariant_protected_fields,
+            diff_harness_ids=diff_harness_ids,
+            diff_harness_transition_ids=diff_harness_transition_ids,
+            diff_harness_owner_field_refs=diff_harness_owner_field_refs_by_harness,
+            diff_harness_invariant_ids=diff_harness_invariant_ids_by_harness,
+            diff_harness_generation_domain_ids=(
+                diff_harness_generation_domain_ids_by_harness
+            ),
         )
     )
     failures.extend(
@@ -6763,6 +6952,19 @@ def validate_contract(
             runtime_invariant_ids=runtime_invariant_ids,
             runtime_invariant_transition_ids=runtime_invariant_transition_ids,
             runtime_invariant_protected_fields=runtime_invariant_protected_fields,
+            runtime_diff_harness_ids={
+                record["harness_id"] for record in runtime_diff_harness_records
+            },
+            runtime_diff_harness_transition_ids=runtime_diff_harness_transition_ids,
+            runtime_diff_harness_owner_field_refs=(
+                runtime_diff_harness_owner_field_refs_by_harness
+            ),
+            runtime_diff_harness_invariant_ids=(
+                runtime_diff_harness_invariant_ids_by_harness
+            ),
+            runtime_diff_harness_generation_domain_ids=(
+                runtime_diff_harness_generation_domain_ids_by_harness
+            ),
         )
     )
     failures.extend(
