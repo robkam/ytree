@@ -55,6 +55,9 @@
       "generation_domain_refs": [
         "generation.panel.local-authority",
         "reflow.layout.projection"
+      ],
+      "diff_harness_refs": [
+        "harness.generation-mismatch-check"
       ]
     },
     {
@@ -104,6 +107,10 @@
         "state.topology.volume",
         "state.file-payload.volume",
         "lifecycle.volume.registry"
+      ],
+      "diff_harness_refs": [
+        "harness.transition-before-after-snapshot",
+        "harness.generation-mismatch-check"
       ]
     },
     {
@@ -155,6 +162,10 @@
         "shape.panel.focus",
         "state.visibility-filter.panel-volume",
         "state.file-payload.volume"
+      ],
+      "diff_harness_refs": [
+        "harness.transition-before-after-snapshot",
+        "harness.generation-mismatch-check"
       ]
     },
     {
@@ -205,6 +216,11 @@
         "identity.file.stable-key",
         "state.topology.volume",
         "state.file-payload.volume"
+      ],
+      "diff_harness_refs": [
+        "harness.transition-before-after-snapshot",
+        "harness.generation-mismatch-check",
+        "harness.blocked-transition-no-unrelated-mutation"
       ]
     },
     {
@@ -255,6 +271,10 @@
         "state.topology.volume",
         "state.file-payload.volume",
         "lifecycle.volume.registry"
+      ],
+      "diff_harness_refs": [
+        "harness.transition-before-after-snapshot",
+        "harness.generation-mismatch-check"
       ]
     },
     {
@@ -296,6 +316,10 @@
       ],
       "generation_domain_refs": [
         "target.modal-command.session"
+      ],
+      "diff_harness_refs": [
+        "harness.declared-write-set-diff",
+        "harness.blocked-transition-no-unrelated-mutation"
       ]
     },
     {
@@ -340,6 +364,10 @@
         "generation.panel.local-authority",
         "shape.panel.focus",
         "target.modal-command.session"
+      ],
+      "diff_harness_refs": [
+        "harness.declared-write-set-diff",
+        "harness.blocked-transition-no-unrelated-mutation"
       ]
     },
     {
@@ -387,6 +415,10 @@
         "identity.directory.stable-key",
         "state.topology.volume",
         "lifecycle.volume.registry"
+      ],
+      "diff_harness_refs": [
+        "harness.transition-before-after-snapshot",
+        "harness.blocked-transition-no-unrelated-mutation"
       ]
     },
     {
@@ -424,6 +456,9 @@
       ],
       "generation_domain_refs": [
         "reflow.layout.projection"
+      ],
+      "diff_harness_refs": [
+        "harness.render-projection-read-only-diff"
       ]
     }
   ]
