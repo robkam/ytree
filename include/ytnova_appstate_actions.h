@@ -31,6 +31,8 @@ typedef struct {
   size_t dispatch_surface_ref_count;
   const char *const *invariant_refs;
   size_t invariant_ref_count;
+  const char *const *generation_domain_refs;
+  size_t generation_domain_ref_count;
   const char *boundary_status;
   const char *const *migration_notes;
   size_t migration_note_count;
@@ -54,6 +56,8 @@ typedef struct {
   size_t dispatch_surface_ref_count;
   const char *const *invariant_refs;
   size_t invariant_ref_count;
+  const char *const *generation_domain_refs;
+  size_t generation_domain_ref_count;
   const char *const *migration_notes;
   size_t migration_note_count;
 } AppStateEventCoverageMetadata;
@@ -137,6 +141,8 @@ typedef struct {
   const char *generation_owner_field;
   const char *const *identity_fields;
   size_t identity_field_count;
+  const char *const *coverage_transition_ids;
+  size_t coverage_transition_id_count;
   const char *const *advances_on_transition_ids;
   size_t advances_on_transition_id_count;
   const char *stale_snapshot_policy;

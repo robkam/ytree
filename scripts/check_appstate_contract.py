@@ -79,6 +79,7 @@ REQUIRED_ACTION_FIELDS = {
     "declared_write_set",
     "transition_sequence_refs",
     "dispatch_surface_refs",
+    "generation_domain_refs",
     "invariant_refs",
     "boundary_status",
     "migration_notes",
@@ -201,6 +202,7 @@ REQUIRED_EVENT_FIELDS = {
     "declared_write_set",
     "transition_sequence_refs",
     "dispatch_surface_refs",
+    "generation_domain_refs",
     "invariant_refs",
     "boundary_status",
     "trigger_paths",
@@ -236,6 +238,7 @@ REQUIRED_GENERATION_DOMAIN_FIELDS = {
     "owner_region",
     "generation_owner_field",
     "identity_fields",
+    "coverage_transition_ids",
     "advances_on_transition_ids",
     "stale_snapshot_policy",
     "fail_closed_fallback",
@@ -303,12 +306,14 @@ LIST_FIELDS = {
 ACTION_LIST_FIELDS = LIST_FIELDS | {
     "transition_sequence_refs",
     "dispatch_surface_refs",
+    "generation_domain_refs",
     "invariant_refs",
 }
 EVENT_LIST_FIELDS = LIST_FIELDS | {
     "trigger_paths",
     "transition_sequence_refs",
     "dispatch_surface_refs",
+    "generation_domain_refs",
     "invariant_refs",
 }
 SHIM_LIST_FIELDS = LIST_FIELDS | {
@@ -327,7 +332,11 @@ INVARIANT_LIST_FIELDS = {
     "transition_ids",
     "migration_notes",
 }
-GENERATION_DOMAIN_LIST_FIELDS = {"identity_fields", "migration_notes"}
+GENERATION_DOMAIN_LIST_FIELDS = {
+    "identity_fields",
+    "coverage_transition_ids",
+    "migration_notes",
+}
 DIFF_HARNESS_LIST_FIELDS = {
     "snapshot_phases",
     "snapshot_regions",
@@ -632,7 +641,7 @@ def _parse_runtime_action_coverage_registry(
     arrays: dict[str, list[str]] = {}
     array_re = re.compile(
         r"static\s+const\s+char\s+\*const\s+"
-        r"(kAppStateActionCoverage(?:TransitionSequenceRefs|DispatchSurfaceRefs|InvariantRefs|MigrationNotes)[0-9]+)"
+        r"(kAppStateActionCoverage(?:TransitionSequenceRefs|DispatchSurfaceRefs|InvariantRefs|GenerationDomainRefs|MigrationNotes)[0-9]+)"
         r"\[\]\s*=\s*\{(?P<body>.*?)\};",
         re.S,
     )
@@ -671,6 +680,9 @@ def _parse_runtime_action_coverage_registry(
         r"\s*(?P<invariant_refs>kAppStateActionCoverageInvariantRefs[0-9]+)\s*,"
         r"\s*sizeof\((?P=invariant_refs)\)\s*/"
         r"\s*sizeof\((?P=invariant_refs)\[0\]\)\s*,"
+        r"\s*(?P<generation_domain_refs>kAppStateActionCoverageGenerationDomainRefs[0-9]+)\s*,"
+        r"\s*sizeof\((?P=generation_domain_refs)\)\s*/"
+        r"\s*sizeof\((?P=generation_domain_refs)\[0\]\)\s*,"
         r"\s*\"(?P<boundary_status>[^\"]*)\"\s*,"
         r"\s*(?P<migration_notes>kAppStateActionCoverageMigrationNotes[0-9]+)\s*,"
         r"\s*sizeof\((?P=migration_notes)\)\s*/"
@@ -722,6 +734,14 @@ def _parse_runtime_action_coverage_registry(
                 f"table: {invariant_refs_name}"
             )
             invariant_refs = []
+        generation_domain_refs_name = row_match.group("generation_domain_refs")
+        generation_domain_refs = arrays.get(generation_domain_refs_name)
+        if generation_domain_refs is None:
+            failures.append(
+                f"runtime_action_coverage[{index}]: unknown generation-domain-refs "
+                f"table: {generation_domain_refs_name}"
+            )
+            generation_domain_refs = []
         notes_name = row_match.group("migration_notes")
         notes = arrays.get(notes_name)
         if notes is None:
@@ -741,6 +761,7 @@ def _parse_runtime_action_coverage_registry(
                 "transition_sequence_refs": sequence_refs,
                 "dispatch_surface_refs": dispatch_surface_refs,
                 "invariant_refs": invariant_refs,
+                "generation_domain_refs": generation_domain_refs,
                 "boundary_status": row_match.group("boundary_status"),
                 "migration_notes": notes,
             }
@@ -765,7 +786,7 @@ def _parse_runtime_event_coverage_registry(
     arrays: dict[str, list[str]] = {}
     array_re = re.compile(
         r"static\s+const\s+char\s+\*const\s+"
-        r"(kAppState(?:TransitionWriteSet|EventCoverageTriggerPaths|EventCoverageTransitionSequenceRefs|EventCoverageDispatchSurfaceRefs|EventCoverageInvariantRefs|EventCoverageMigrationNotes)[0-9]+)"
+        r"(kAppState(?:TransitionWriteSet|EventCoverageTriggerPaths|EventCoverageTransitionSequenceRefs|EventCoverageDispatchSurfaceRefs|EventCoverageInvariantRefs|EventCoverageGenerationDomainRefs|EventCoverageMigrationNotes)[0-9]+)"
         r"\[\]\s*=\s*\{(?P<body>.*?)\};",
         re.S,
     )
@@ -805,6 +826,8 @@ def _parse_runtime_event_coverage_registry(
         r"\s*sizeof\((?P=dispatch_surface_refs)\)\s*/\s*sizeof\((?P=dispatch_surface_refs)\[0\]\)\s*,"
         r"\s*(?P<invariant_refs>kAppStateEventCoverageInvariantRefs[0-9]+)\s*,"
         r"\s*sizeof\((?P=invariant_refs)\)\s*/\s*sizeof\((?P=invariant_refs)\[0\]\)\s*,"
+        r"\s*(?P<generation_domain_refs>kAppStateEventCoverageGenerationDomainRefs[0-9]+)\s*,"
+        r"\s*sizeof\((?P=generation_domain_refs)\)\s*/\s*sizeof\((?P=generation_domain_refs)\[0\]\)\s*,"
         r"\s*(?P<migration_notes>kAppStateEventCoverageMigrationNotes[0-9]+)\s*,"
         r"\s*sizeof\((?P=migration_notes)\)\s*/\s*sizeof\((?P=migration_notes)\[0\]\)\s*\}",
         re.S,
@@ -858,6 +881,13 @@ def _parse_runtime_event_coverage_registry(
                 f"{row_match.group('invariant_refs')}"
             )
             invariant_refs = []
+        generation_domain_refs = arrays.get(row_match.group("generation_domain_refs"))
+        if generation_domain_refs is None:
+            failures.append(
+                f"runtime_event_coverage[{index}]: unknown generation-domain-refs table: "
+                f"{row_match.group('generation_domain_refs')}"
+            )
+            generation_domain_refs = []
         if migration_notes is None:
             failures.append(
                 f"runtime_event_coverage[{index}]: unknown migration-notes table: "
@@ -878,6 +908,7 @@ def _parse_runtime_event_coverage_registry(
                 "transition_sequence_refs": transition_sequence_refs,
                 "dispatch_surface_refs": dispatch_surface_refs,
                 "invariant_refs": invariant_refs,
+                "generation_domain_refs": generation_domain_refs,
                 "migration_notes": migration_notes,
             }
         )
@@ -1251,6 +1282,7 @@ def _parse_runtime_generation_domain_registry(
 
     array_fields = {
         "IdentityFields": "identity_fields",
+        "CoverageTransitionIds": "coverage_transition_ids",
         "AdvancesOnTransitionIds": "advances_on_transition_ids",
         "MigrationNotes": "migration_notes",
     }
@@ -1289,6 +1321,10 @@ def _parse_runtime_generation_domain_registry(
         r"\s*(?P<identity_fields>kAppStateGenerationDomainIdentityFields[0-9]+)\s*,"
         r"\s*sizeof\((?P=identity_fields)\)\s*/"
         r"\s*sizeof\((?P=identity_fields)\[0\]\)\s*,"
+        r"\s*(?P<coverage_transition_ids>"
+        r"kAppStateGenerationDomainCoverageTransitionIds[0-9]+)\s*,"
+        r"\s*sizeof\((?P=coverage_transition_ids)\)\s*/"
+        r"\s*sizeof\((?P=coverage_transition_ids)\[0\]\)\s*,"
         r"\s*(?P<advances_on_transition_ids>"
         r"kAppStateGenerationDomainAdvancesOnTransitionIds[0-9]+)\s*,"
         r"\s*sizeof\((?P=advances_on_transition_ids)\)\s*/"
@@ -1967,6 +2003,7 @@ def _validate_runtime_action_coverage_registry(
     runtime_transition_sequence_records: list[Any],
     runtime_action_transitions: list[dict[str, str]],
     runtime_dispatch_surface_records: list[Any],
+    runtime_generation_domain_records: list[Any],
     registered_owner_fields: set[str],
     runtime_invariant_ids: set[str],
     runtime_invariant_transition_ids: dict[str, set[str]],
@@ -2036,6 +2073,14 @@ def _validate_runtime_action_coverage_registry(
             )
         )
         failures.extend(
+            _validate_generation_domain_refs(
+                generation_domain_refs=record.get("generation_domain_refs"),
+                generation_domain_records=runtime_generation_domain_records,
+                transition_id=record.get("transition_id"),
+                label=label,
+            )
+        )
+        failures.extend(
             _validate_record_invariant_refs(
                 invariant_refs=record.get("invariant_refs"),
                 invariant_ids=runtime_invariant_ids,
@@ -2096,6 +2141,7 @@ def _validate_runtime_action_coverage_registry(
                     "declared_write_set",
                     "transition_sequence_refs",
                     "dispatch_surface_refs",
+                    "generation_domain_refs",
                     "invariant_refs",
                     "boundary_status",
                     "migration_notes",
@@ -2728,6 +2774,7 @@ def _validate_runtime_generation_domain_registry(
                 "owner_region",
                 "generation_owner_field",
                 "identity_fields",
+                "coverage_transition_ids",
                 "advances_on_transition_ids",
                 "stale_snapshot_policy",
                 "fail_closed_fallback",
@@ -2755,7 +2802,7 @@ def _validate_runtime_generation_domain_registry(
             if not isinstance(value, str) or not value.strip():
                 failures.append(f"{label}: {field} must be a non-empty string")
 
-        for field in ("identity_fields", "migration_notes"):
+        for field in ("identity_fields", "coverage_transition_ids", "migration_notes"):
             values = record.get(field)
             if not isinstance(values, list) or not values:
                 failures.append(f"{label}: {field} must be non-empty")
@@ -2766,17 +2813,51 @@ def _validate_runtime_generation_domain_registry(
                         f"{label}: {field}[{value_index}] must be a non-empty string"
                     )
 
-        transition_refs = record.get("advances_on_transition_ids")
-        if not isinstance(transition_refs, list):
-            failures.append(f"{label}: advances_on_transition_ids must be a list")
-        else:
+        for transition_field in (
+            "coverage_transition_ids",
+            "advances_on_transition_ids",
+        ):
+            transition_refs = record.get(transition_field)
+            if not isinstance(transition_refs, list):
+                failures.append(f"{label}: {transition_field} must be a list")
+                continue
             for transition_index, transition_id in enumerate(transition_refs):
                 if not isinstance(transition_id, str) or not transition_id.strip():
                     failures.append(
-                        f"{label}: advances_on_transition_ids[{transition_index}] "
+                        f"{label}: {transition_field}[{transition_index}] "
                         "must be a non-empty string"
                     )
+            for transition_id in transition_refs:
+                if (
+                    isinstance(transition_id, str)
+                    and transition_id.strip()
+                    and transition_id not in runtime_transition_ids
+                ):
+                    failures.append(
+                        f"{label}: {transition_field} does not match "
+                        f"runtime transition registry: {transition_id}"
+                    )
 
+        coverage_transition_refs = record.get("coverage_transition_ids")
+        transition_refs = record.get("advances_on_transition_ids")
+        if isinstance(coverage_transition_refs, list) and isinstance(
+            transition_refs, list
+        ):
+            declared_coverage = {
+                transition_id
+                for transition_id in coverage_transition_refs
+                if isinstance(transition_id, str) and transition_id.strip()
+            }
+            for transition_id in transition_refs:
+                if (
+                    isinstance(transition_id, str)
+                    and transition_id.strip()
+                    and transition_id not in declared_coverage
+                ):
+                    failures.append(
+                        f"{label}: advances_on_transition_ids must be covered by "
+                        f"coverage_transition_ids: {transition_id}"
+                    )
         generation_owner_field = record.get("generation_owner_field")
         if (
             isinstance(generation_owner_field, str)
@@ -2799,18 +2880,6 @@ def _validate_runtime_generation_domain_registry(
                     failures.append(
                         f"{label}: identity_fields does not match runtime owner "
                         f"field registry: {field}"
-                    )
-
-        if isinstance(transition_refs, list):
-            for transition_id in transition_refs:
-                if (
-                    isinstance(transition_id, str)
-                    and transition_id.strip()
-                    and transition_id not in runtime_transition_ids
-                ):
-                    failures.append(
-                        f"{label}: advances_on_transition_ids does not match "
-                        f"runtime transition registry: {transition_id}"
                     )
 
     missing_ids = sorted(expected_ids - covered_ids)
@@ -3774,6 +3843,75 @@ def _dispatch_surfaces_by_id(
     }
 
 
+def _generation_domains_by_id(
+    generation_domain_records: list[Any],
+) -> dict[str, dict[str, Any]]:
+    return {
+        domain["domain_id"]: domain
+        for domain in generation_domain_records
+        if isinstance(domain, dict)
+        and isinstance(domain.get("domain_id"), str)
+        and domain["domain_id"].strip()
+    }
+
+
+def _generation_domain_covers_transition(
+    domain: dict[str, Any], transition_id: Any
+) -> bool:
+    coverage_transition_ids = domain.get("coverage_transition_ids")
+    return (
+        isinstance(transition_id, str)
+        and transition_id.strip()
+        and isinstance(coverage_transition_ids, list)
+        and transition_id in coverage_transition_ids
+    )
+
+
+def _validate_generation_domain_refs(
+    *,
+    generation_domain_refs: Any,
+    generation_domain_records: list[Any],
+    transition_id: Any,
+    label: str,
+) -> list[str]:
+    failures = _validate_list_field(
+        value=generation_domain_refs,
+        label=label,
+        field="generation_domain_refs",
+    )
+    if failures:
+        return failures
+
+    assert isinstance(generation_domain_refs, list)
+    domains = _generation_domains_by_id(generation_domain_records)
+    seen: set[str] = set()
+
+    for index, domain_id in enumerate(generation_domain_refs):
+        if not isinstance(domain_id, str) or not domain_id.strip():
+            failures.append(
+                f"{label}: generation_domain_refs[{index}] must be a non-empty string"
+            )
+            continue
+        if domain_id in seen:
+            failures.append(
+                f"{label}: duplicate generation_domain_refs[{index}]: {domain_id}"
+            )
+        seen.add(domain_id)
+        domain = domains.get(domain_id)
+        if domain is None:
+            failures.append(
+                f"{label}: generation_domain_refs references unknown generation domain: {domain_id}"
+            )
+            continue
+        if not _generation_domain_covers_transition(domain, transition_id):
+            failures.append(
+                f"{label}: generation_domain_refs[{index}] transition_id does not match "
+                f"{transition_id}: {domain_id}"
+            )
+
+    return failures
+
+
 def _validate_dispatch_surface_refs(
     *,
     record: dict[str, Any],
@@ -4340,9 +4478,9 @@ def _validate_generation_transition_refs(
     label: str,
     transition_ids: dict[str, dict[str, Any]],
     migration_notes: Any,
+    field: str,
 ) -> list[str]:
     failures: list[str] = []
-    field = "advances_on_transition_ids"
     if not isinstance(value, list):
         return [f"{label}: {field} must be a list"]
 
@@ -4355,7 +4493,7 @@ def _validate_generation_transition_refs(
                 f"{label}: {field} references unknown transition id: {transition_id}"
             )
 
-    if not value:
+    if field == "advances_on_transition_ids" and not value:
         has_projection_note = (
             isinstance(migration_notes, list)
             and any(
@@ -4422,6 +4560,22 @@ def _validate_generation_domains(
                     label=label,
                     transition_ids=transition_ids,
                     migration_notes=record.get("migration_notes"),
+                    field="advances_on_transition_ids",
+                )
+            )
+
+        if "coverage_transition_ids" not in record:
+            failures.append(
+                f"{label}: missing required field(s): coverage_transition_ids"
+            )
+        else:
+            failures.extend(
+                _validate_generation_transition_refs(
+                    value=record.get("coverage_transition_ids"),
+                    label=label,
+                    transition_ids=transition_ids,
+                    migration_notes=record.get("migration_notes"),
+                    field="coverage_transition_ids",
                 )
             )
 
@@ -4455,6 +4609,27 @@ def _validate_generation_domains(
                 ):
                     failures.append(
                         f"{label}: identity_fields references unregistered owner field: {field}"
+                    )
+
+        coverage_transition_ids = record.get("coverage_transition_ids")
+        advances_on_transition_ids = record.get("advances_on_transition_ids")
+        if isinstance(coverage_transition_ids, list) and isinstance(
+            advances_on_transition_ids, list
+        ):
+            declared_coverage = {
+                transition_id
+                for transition_id in coverage_transition_ids
+                if isinstance(transition_id, str) and transition_id.strip()
+            }
+            for transition_id in advances_on_transition_ids:
+                if (
+                    isinstance(transition_id, str)
+                    and transition_id.strip()
+                    and transition_id not in declared_coverage
+                ):
+                    failures.append(
+                        f"{label}: advances_on_transition_ids must be covered by "
+                        f"coverage_transition_ids: {transition_id}"
                     )
 
     missing_categories = sorted(
@@ -4501,6 +4676,7 @@ def _validate_runtime_event_coverage_registry(
     transition_ids: dict[str, dict[str, Any]],
     runtime_transition_sequence_records: list[Any],
     runtime_dispatch_surface_records: list[Any],
+    runtime_generation_domain_records: list[Any],
     runtime_transition_ids: set[str],
     runtime_invariant_ids: set[str],
     runtime_invariant_transition_ids: dict[str, set[str]],
@@ -4538,6 +4714,14 @@ def _validate_runtime_event_coverage_registry(
             _validate_dispatch_surface_refs(
                 record=record,
                 dispatch_surface_records=runtime_dispatch_surface_records,
+                label=label,
+            )
+        )
+        failures.extend(
+            _validate_generation_domain_refs(
+                generation_domain_refs=record.get("generation_domain_refs"),
+                generation_domain_records=runtime_generation_domain_records,
+                transition_id=record.get("transition_id"),
                 label=label,
             )
         )
@@ -4616,6 +4800,7 @@ def _validate_event_coverage(
     transition_ids: dict[str, dict[str, Any]],
     transition_sequence_records: list[Any],
     dispatch_surface_records: list[Any],
+    generation_domain_records: list[Any],
     registered_owner_fields: set[str],
     invariant_ids: set[str],
     invariant_transition_ids: dict[str, set[str]],
@@ -4673,6 +4858,14 @@ def _validate_event_coverage(
             _validate_dispatch_surface_refs(
                 record=record,
                 dispatch_surface_records=dispatch_surface_records,
+                label=label,
+            )
+        )
+        failures.extend(
+            _validate_generation_domain_refs(
+                generation_domain_refs=record.get("generation_domain_refs"),
+                generation_domain_records=generation_domain_records,
+                transition_id=record.get("transition_id"),
                 label=label,
             )
         )
@@ -6301,6 +6494,14 @@ def validate_contract(
             )
         )
         failures.extend(
+            _validate_generation_domain_refs(
+                generation_domain_refs=record.get("generation_domain_refs"),
+                generation_domain_records=generation_domain_records,
+                transition_id=record.get("transition_id"),
+                label=label,
+            )
+        )
+        failures.extend(
             _validate_record_invariant_refs(
                 invariant_refs=record.get("invariant_refs"),
                 invariant_ids=invariant_ids,
@@ -6387,6 +6588,7 @@ def validate_contract(
             runtime_transition_sequence_records=runtime_transition_sequence_records,
             runtime_action_transitions=runtime_action_records,
             runtime_dispatch_surface_records=runtime_dispatch_surface_records,
+            runtime_generation_domain_records=runtime_generation_domain_records,
             registered_owner_fields=registered_owner_fields,
             runtime_invariant_ids=runtime_invariant_ids,
             runtime_invariant_transition_ids=runtime_invariant_transition_ids,
@@ -6406,6 +6608,7 @@ def validate_contract(
                 else []
             ),
             dispatch_surface_records=dispatch_surface_records,
+            generation_domain_records=generation_domain_records,
             registered_owner_fields=registered_owner_fields,
             invariant_ids=invariant_ids,
             invariant_transition_ids=invariant_transition_ids,
@@ -6420,6 +6623,7 @@ def validate_contract(
             transition_ids=transition_ids,
             runtime_transition_sequence_records=runtime_transition_sequence_records,
             runtime_dispatch_surface_records=runtime_dispatch_surface_records,
+            runtime_generation_domain_records=runtime_generation_domain_records,
             runtime_transition_ids={record["id"] for record in runtime_transition_records},
             runtime_invariant_ids=runtime_invariant_ids,
             runtime_invariant_transition_ids=runtime_invariant_transition_ids,

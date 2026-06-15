@@ -44,6 +44,10 @@
       ],
       "invariant_refs": [
         "invariant.render-projection-read-only"
+      ],
+      "generation_domain_refs": [
+        "generation.panel.local-authority",
+        "reflow.layout.projection"
       ]
     },
     {
@@ -76,6 +80,16 @@
       ],
       "invariant_refs": [
         "invariant.hidden-entry-visible-navigation"
+      ],
+      "generation_domain_refs": [
+        "generation.panel.local-authority",
+        "generation.volume.shared-authority",
+        "identity.directory.stable-key",
+        "identity.file.stable-key",
+        "state.visibility-filter.panel-volume",
+        "state.topology.volume",
+        "state.file-payload.volume",
+        "lifecycle.volume.registry"
       ]
     },
     {
@@ -111,6 +125,14 @@
       "invariant_refs": [
         "invariant.hidden-entry-visible-navigation",
         "invariant.viewport-identity-rebind"
+      ],
+      "generation_domain_refs": [
+        "generation.panel.local-authority",
+        "identity.directory.stable-key",
+        "identity.file.stable-key",
+        "shape.panel.focus",
+        "state.visibility-filter.panel-volume",
+        "state.file-payload.volume"
       ]
     },
     {
@@ -145,6 +167,14 @@
       ],
       "invariant_refs": [
         "invariant.blocked-transition-determinism"
+      ],
+      "generation_domain_refs": [
+        "generation.panel.local-authority",
+        "generation.volume.shared-authority",
+        "identity.directory.stable-key",
+        "identity.file.stable-key",
+        "state.topology.volume",
+        "state.file-payload.volume"
       ]
     },
     {
@@ -178,6 +208,16 @@
       ],
       "invariant_refs": [
         "invariant.hidden-entry-visible-navigation"
+      ],
+      "generation_domain_refs": [
+        "generation.panel.local-authority",
+        "generation.volume.shared-authority",
+        "identity.directory.stable-key",
+        "identity.file.stable-key",
+        "state.visibility-filter.panel-volume",
+        "state.topology.volume",
+        "state.file-payload.volume",
+        "lifecycle.volume.registry"
       ]
     },
     {
@@ -210,6 +250,9 @@
       ],
       "invariant_refs": [
         "invariant.blocked-transition-determinism"
+      ],
+      "generation_domain_refs": [
+        "target.modal-command.session"
       ]
     },
     {
@@ -243,6 +286,11 @@
       "invariant_refs": [
         "invariant.panel-local-focus-restore",
         "invariant.blocked-transition-determinism"
+      ],
+      "generation_domain_refs": [
+        "generation.panel.local-authority",
+        "shape.panel.focus",
+        "target.modal-command.session"
       ]
     },
     {
@@ -276,6 +324,13 @@
       ],
       "invariant_refs": [
         "invariant.shared-state-panel-local-isolation"
+      ],
+      "generation_domain_refs": [
+        "generation.panel.local-authority",
+        "generation.volume.shared-authority",
+        "identity.directory.stable-key",
+        "state.topology.volume",
+        "lifecycle.volume.registry"
       ]
     },
     {
@@ -306,6 +361,9 @@
       ],
       "invariant_refs": [
         "invariant.render-projection-read-only"
+      ],
+      "generation_domain_refs": [
+        "reflow.layout.projection"
       ]
     }
   ]
