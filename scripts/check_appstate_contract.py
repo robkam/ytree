@@ -79,6 +79,7 @@ REQUIRED_ACTION_FIELDS = {
     "declared_write_set",
     "transition_sequence_refs",
     "dispatch_surface_refs",
+    "invariant_refs",
     "boundary_status",
     "migration_notes",
 }
@@ -200,6 +201,7 @@ REQUIRED_EVENT_FIELDS = {
     "declared_write_set",
     "transition_sequence_refs",
     "dispatch_surface_refs",
+    "invariant_refs",
     "boundary_status",
     "trigger_paths",
     "migration_notes",
@@ -298,11 +300,16 @@ LIST_FIELDS = {
     "migration_notes",
 }
 
-ACTION_LIST_FIELDS = LIST_FIELDS | {"transition_sequence_refs", "dispatch_surface_refs"}
+ACTION_LIST_FIELDS = LIST_FIELDS | {
+    "transition_sequence_refs",
+    "dispatch_surface_refs",
+    "invariant_refs",
+}
 EVENT_LIST_FIELDS = LIST_FIELDS | {
     "trigger_paths",
     "transition_sequence_refs",
     "dispatch_surface_refs",
+    "invariant_refs",
 }
 SHIM_LIST_FIELDS = LIST_FIELDS | {
     "owner_field_refs",
@@ -625,7 +632,7 @@ def _parse_runtime_action_coverage_registry(
     arrays: dict[str, list[str]] = {}
     array_re = re.compile(
         r"static\s+const\s+char\s+\*const\s+"
-        r"(kAppStateActionCoverage(?:TransitionSequenceRefs|DispatchSurfaceRefs|MigrationNotes)[0-9]+)"
+        r"(kAppStateActionCoverage(?:TransitionSequenceRefs|DispatchSurfaceRefs|InvariantRefs|MigrationNotes)[0-9]+)"
         r"\[\]\s*=\s*\{(?P<body>.*?)\};",
         re.S,
     )
@@ -661,6 +668,9 @@ def _parse_runtime_action_coverage_registry(
         r"\s*(?P<dispatch_surface_refs>kAppStateActionCoverageDispatchSurfaceRefs[0-9]+)\s*,"
         r"\s*sizeof\((?P=dispatch_surface_refs)\)\s*/"
         r"\s*sizeof\((?P=dispatch_surface_refs)\[0\]\)\s*,"
+        r"\s*(?P<invariant_refs>kAppStateActionCoverageInvariantRefs[0-9]+)\s*,"
+        r"\s*sizeof\((?P=invariant_refs)\)\s*/"
+        r"\s*sizeof\((?P=invariant_refs)\[0\]\)\s*,"
         r"\s*\"(?P<boundary_status>[^\"]*)\"\s*,"
         r"\s*(?P<migration_notes>kAppStateActionCoverageMigrationNotes[0-9]+)\s*,"
         r"\s*sizeof\((?P=migration_notes)\)\s*/"
@@ -704,6 +714,14 @@ def _parse_runtime_action_coverage_registry(
                 f"table: {dispatch_surface_refs_name}"
             )
             dispatch_surface_refs = []
+        invariant_refs_name = row_match.group("invariant_refs")
+        invariant_refs = arrays.get(invariant_refs_name)
+        if invariant_refs is None:
+            failures.append(
+                f"runtime_action_coverage[{index}]: unknown invariant-refs "
+                f"table: {invariant_refs_name}"
+            )
+            invariant_refs = []
         notes_name = row_match.group("migration_notes")
         notes = arrays.get(notes_name)
         if notes is None:
@@ -722,6 +740,7 @@ def _parse_runtime_action_coverage_registry(
                 "declared_write_set": declared_write_set,
                 "transition_sequence_refs": sequence_refs,
                 "dispatch_surface_refs": dispatch_surface_refs,
+                "invariant_refs": invariant_refs,
                 "boundary_status": row_match.group("boundary_status"),
                 "migration_notes": notes,
             }
@@ -746,7 +765,7 @@ def _parse_runtime_event_coverage_registry(
     arrays: dict[str, list[str]] = {}
     array_re = re.compile(
         r"static\s+const\s+char\s+\*const\s+"
-        r"(kAppState(?:TransitionWriteSet|EventCoverageTriggerPaths|EventCoverageTransitionSequenceRefs|EventCoverageDispatchSurfaceRefs|EventCoverageMigrationNotes)[0-9]+)"
+        r"(kAppState(?:TransitionWriteSet|EventCoverageTriggerPaths|EventCoverageTransitionSequenceRefs|EventCoverageDispatchSurfaceRefs|EventCoverageInvariantRefs|EventCoverageMigrationNotes)[0-9]+)"
         r"\[\]\s*=\s*\{(?P<body>.*?)\};",
         re.S,
     )
@@ -784,6 +803,8 @@ def _parse_runtime_event_coverage_registry(
         r"\s*sizeof\((?P=transition_sequence_refs)\)\s*/\s*sizeof\((?P=transition_sequence_refs)\[0\]\)\s*,"
         r"\s*(?P<dispatch_surface_refs>kAppStateEventCoverageDispatchSurfaceRefs[0-9]+)\s*,"
         r"\s*sizeof\((?P=dispatch_surface_refs)\)\s*/\s*sizeof\((?P=dispatch_surface_refs)\[0\]\)\s*,"
+        r"\s*(?P<invariant_refs>kAppStateEventCoverageInvariantRefs[0-9]+)\s*,"
+        r"\s*sizeof\((?P=invariant_refs)\)\s*/\s*sizeof\((?P=invariant_refs)\[0\]\)\s*,"
         r"\s*(?P<migration_notes>kAppStateEventCoverageMigrationNotes[0-9]+)\s*,"
         r"\s*sizeof\((?P=migration_notes)\)\s*/\s*sizeof\((?P=migration_notes)\[0\]\)\s*\}",
         re.S,
@@ -830,6 +851,13 @@ def _parse_runtime_event_coverage_registry(
                 f"{row_match.group('dispatch_surface_refs')}"
             )
             dispatch_surface_refs = []
+        invariant_refs = arrays.get(row_match.group("invariant_refs"))
+        if invariant_refs is None:
+            failures.append(
+                f"runtime_event_coverage[{index}]: unknown invariant-refs table: "
+                f"{row_match.group('invariant_refs')}"
+            )
+            invariant_refs = []
         if migration_notes is None:
             failures.append(
                 f"runtime_event_coverage[{index}]: unknown migration-notes table: "
@@ -849,6 +877,7 @@ def _parse_runtime_event_coverage_registry(
                 "trigger_paths": trigger_paths,
                 "transition_sequence_refs": transition_sequence_refs,
                 "dispatch_surface_refs": dispatch_surface_refs,
+                "invariant_refs": invariant_refs,
                 "migration_notes": migration_notes,
             }
         )
@@ -1939,6 +1968,9 @@ def _validate_runtime_action_coverage_registry(
     runtime_action_transitions: list[dict[str, str]],
     runtime_dispatch_surface_records: list[Any],
     registered_owner_fields: set[str],
+    runtime_invariant_ids: set[str],
+    runtime_invariant_transition_ids: dict[str, set[str]],
+    runtime_invariant_protected_fields: dict[str, set[str]],
 ) -> list[str]:
     failures: list[str] = []
     expected_actions = set(enum_actions)
@@ -2003,6 +2035,17 @@ def _validate_runtime_action_coverage_registry(
                 label=label,
             )
         )
+        failures.extend(
+            _validate_record_invariant_refs(
+                invariant_refs=record.get("invariant_refs"),
+                invariant_ids=runtime_invariant_ids,
+                invariant_transition_ids=runtime_invariant_transition_ids,
+                invariant_protected_fields=runtime_invariant_protected_fields,
+                transition_id=record.get("transition_id"),
+                declared_write_set=record.get("declared_write_set"),
+                label=label,
+            )
+        )
 
         transition_id = record.get("transition_id")
         transition_record = None
@@ -2053,6 +2096,7 @@ def _validate_runtime_action_coverage_registry(
                     "declared_write_set",
                     "transition_sequence_refs",
                     "dispatch_surface_refs",
+                    "invariant_refs",
                     "boundary_status",
                     "migration_notes",
                 ):
@@ -3524,6 +3568,63 @@ def _validate_invariant_check_refs(
     return failures
 
 
+def _validate_record_invariant_refs(
+    *,
+    invariant_refs: Any,
+    invariant_ids: set[str],
+    invariant_transition_ids: dict[str, set[str]],
+    invariant_protected_fields: dict[str, set[str]],
+    transition_id: Any,
+    declared_write_set: Any,
+    label: str,
+) -> list[str]:
+    if not isinstance(invariant_refs, list):
+        return []
+
+    failures: list[str] = []
+    seen: set[str] = set()
+    protected_fields: set[str] = set()
+    has_transition_id = isinstance(transition_id, str) and bool(transition_id.strip())
+
+    for index, invariant_id in enumerate(invariant_refs):
+        if not isinstance(invariant_id, str) or not invariant_id.strip():
+            continue
+        if invariant_id in seen:
+            failures.append(f"{label}: invariant_refs[{index}] duplicates {invariant_id}")
+            continue
+        seen.add(invariant_id)
+        if invariant_id not in invariant_ids:
+            failures.append(
+                f"{label}: invariant_refs[{index}] does not match invariant registry: "
+                f"{invariant_id}"
+            )
+            continue
+        if (
+            has_transition_id
+            and transition_id not in invariant_transition_ids.get(invariant_id, set())
+        ):
+            failures.append(
+                f"{label}: invariant_refs[{index}] transition_id does not match "
+                f"{transition_id}: {invariant_id}"
+            )
+            continue
+        protected_fields.update(invariant_protected_fields.get(invariant_id, set()))
+
+    if not isinstance(declared_write_set, list):
+        return failures
+
+    for index, field in enumerate(declared_write_set):
+        if not isinstance(field, str) or not field.strip():
+            continue
+        if field not in protected_fields:
+            failures.append(
+                f"{label}: invariant_refs lack collective coverage for "
+                f"declared_write_set[{index}] owner field: {field}"
+            )
+
+    return failures
+
+
 def _validate_allowed_direct_writes(
     *,
     record: dict[str, Any],
@@ -4401,6 +4502,9 @@ def _validate_runtime_event_coverage_registry(
     runtime_transition_sequence_records: list[Any],
     runtime_dispatch_surface_records: list[Any],
     runtime_transition_ids: set[str],
+    runtime_invariant_ids: set[str],
+    runtime_invariant_transition_ids: dict[str, set[str]],
+    runtime_invariant_protected_fields: dict[str, set[str]],
 ) -> list[str]:
     failures: list[str] = []
     doc_records = event_coverage_doc.get("events") if isinstance(event_coverage_doc, dict) else []
@@ -4434,6 +4538,17 @@ def _validate_runtime_event_coverage_registry(
             _validate_dispatch_surface_refs(
                 record=record,
                 dispatch_surface_records=runtime_dispatch_surface_records,
+                label=label,
+            )
+        )
+        failures.extend(
+            _validate_record_invariant_refs(
+                invariant_refs=record.get("invariant_refs"),
+                invariant_ids=runtime_invariant_ids,
+                invariant_transition_ids=runtime_invariant_transition_ids,
+                invariant_protected_fields=runtime_invariant_protected_fields,
+                transition_id=record.get("transition_id"),
+                declared_write_set=record.get("declared_write_set"),
                 label=label,
             )
         )
@@ -4502,6 +4617,9 @@ def _validate_event_coverage(
     transition_sequence_records: list[Any],
     dispatch_surface_records: list[Any],
     registered_owner_fields: set[str],
+    invariant_ids: set[str],
+    invariant_transition_ids: dict[str, set[str]],
+    invariant_protected_fields: dict[str, set[str]],
 ) -> list[str]:
     failures: list[str] = []
     if not isinstance(event_coverage_doc, dict):
@@ -4555,6 +4673,17 @@ def _validate_event_coverage(
             _validate_dispatch_surface_refs(
                 record=record,
                 dispatch_surface_records=dispatch_surface_records,
+                label=label,
+            )
+        )
+        failures.extend(
+            _validate_record_invariant_refs(
+                invariant_refs=record.get("invariant_refs"),
+                invariant_ids=invariant_ids,
+                invariant_transition_ids=invariant_transition_ids,
+                invariant_protected_fields=invariant_protected_fields,
+                transition_id=record.get("transition_id"),
+                declared_write_set=record.get("declared_write_set"),
                 label=label,
             )
         )
@@ -5741,6 +5870,9 @@ def validate_contract(
     runtime_invariant_ids = {
         record["invariant_id"] for record in runtime_invariant_records
     }
+    runtime_invariant_transition_ids = _invariant_transition_ids_by_invariant(
+        runtime_invariant_records
+    )
     runtime_invariant_protected_fields = _invariant_protected_fields_by_invariant(
         runtime_invariant_records
     )
@@ -5758,6 +5890,14 @@ def validate_contract(
         invariant_records = invariants_doc["invariants"]
     else:
         invariant_records = []
+    invariant_ids = _collect_string_ids(
+        invariants_doc,
+        collection_key="invariants",
+        id_field="invariant_id",
+    )
+    invariant_transition_ids = _invariant_transition_ids_by_invariant(
+        invariant_records
+    )
     invariant_protected_fields = _invariant_protected_fields_by_invariant(
         invariant_records
     )
@@ -5979,9 +6119,6 @@ def validate_contract(
             failures.append(f"{shims_path}: shims must be a non-empty list")
             shims = []
 
-    invariant_transition_ids = _invariant_transition_ids_by_invariant(
-        invariant_records
-    )
     shim_ids: set[str] = set()
     for index, record in enumerate(shims):
         label = f"shim[{index}]"
@@ -6163,6 +6300,17 @@ def validate_contract(
                 label=label,
             )
         )
+        failures.extend(
+            _validate_record_invariant_refs(
+                invariant_refs=record.get("invariant_refs"),
+                invariant_ids=invariant_ids,
+                invariant_transition_ids=invariant_transition_ids,
+                invariant_protected_fields=invariant_protected_fields,
+                transition_id=record.get("transition_id"),
+                declared_write_set=record.get("declared_write_set"),
+                label=label,
+            )
+        )
 
         action = record.get("action")
         if isinstance(action, str) and action.strip():
@@ -6240,6 +6388,9 @@ def validate_contract(
             runtime_action_transitions=runtime_action_records,
             runtime_dispatch_surface_records=runtime_dispatch_surface_records,
             registered_owner_fields=registered_owner_fields,
+            runtime_invariant_ids=runtime_invariant_ids,
+            runtime_invariant_transition_ids=runtime_invariant_transition_ids,
+            runtime_invariant_protected_fields=runtime_invariant_protected_fields,
         )
     )
 
@@ -6256,6 +6407,9 @@ def validate_contract(
             ),
             dispatch_surface_records=dispatch_surface_records,
             registered_owner_fields=registered_owner_fields,
+            invariant_ids=invariant_ids,
+            invariant_transition_ids=invariant_transition_ids,
+            invariant_protected_fields=invariant_protected_fields,
         )
     )
     failures.extend(
@@ -6267,6 +6421,9 @@ def validate_contract(
             runtime_transition_sequence_records=runtime_transition_sequence_records,
             runtime_dispatch_surface_records=runtime_dispatch_surface_records,
             runtime_transition_ids={record["id"] for record in runtime_transition_records},
+            runtime_invariant_ids=runtime_invariant_ids,
+            runtime_invariant_transition_ids=runtime_invariant_transition_ids,
+            runtime_invariant_protected_fields=runtime_invariant_protected_fields,
         )
     )
     failures.extend(
@@ -6352,11 +6509,6 @@ def validate_contract(
                 runtime_diff_harness_owner_field_refs
             ),
         )
-    )
-    invariant_ids = _collect_string_ids(
-        invariants_doc,
-        collection_key="invariants",
-        id_field="invariant_id",
     )
     generation_domain_ids = _collect_string_ids(
         generation_domains_doc,

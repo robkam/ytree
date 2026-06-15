@@ -41,6 +41,9 @@
       ],
       "dispatch_surface_refs": [
         "surface.resize-signal-handling"
+      ],
+      "invariant_refs": [
+        "invariant.render-projection-read-only"
       ]
     },
     {
@@ -70,6 +73,9 @@
       ],
       "dispatch_surface_refs": [
         "surface.refresh-rebuild-rebind"
+      ],
+      "invariant_refs": [
+        "invariant.hidden-entry-visible-navigation"
       ]
     },
     {
@@ -101,6 +107,10 @@
       ],
       "dispatch_surface_refs": [
         "surface.panel-anchor-rebind"
+      ],
+      "invariant_refs": [
+        "invariant.hidden-entry-visible-navigation",
+        "invariant.viewport-identity-rebind"
       ]
     },
     {
@@ -132,6 +142,9 @@
       ],
       "dispatch_surface_refs": [
         "surface.filesystem-mutation-result"
+      ],
+      "invariant_refs": [
+        "invariant.blocked-transition-determinism"
       ]
     },
     {
@@ -162,6 +175,9 @@
       ],
       "dispatch_surface_refs": [
         "surface.watcher-live-refresh"
+      ],
+      "invariant_refs": [
+        "invariant.hidden-entry-visible-navigation"
       ]
     },
     {
@@ -191,6 +207,9 @@
       ],
       "dispatch_surface_refs": [
         "surface.command-completion-dispatch"
+      ],
+      "invariant_refs": [
+        "invariant.blocked-transition-determinism"
       ]
     },
     {
@@ -220,6 +239,10 @@
       ],
       "dispatch_surface_refs": [
         "surface.menu-modal-completion"
+      ],
+      "invariant_refs": [
+        "invariant.panel-local-focus-restore",
+        "invariant.blocked-transition-determinism"
       ]
     },
     {
@@ -250,6 +273,9 @@
       ],
       "dispatch_surface_refs": [
         "surface.volume-operation"
+      ],
+      "invariant_refs": [
+        "invariant.shared-state-panel-local-isolation"
       ]
     },
     {
@@ -277,6 +303,9 @@
       ],
       "dispatch_surface_refs": [
         "surface.render-reflow-projection"
+      ],
+      "invariant_refs": [
+        "invariant.render-projection-read-only"
       ]
     }
   ]

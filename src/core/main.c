@@ -1592,6 +1592,54 @@ static int AppStateCompatibilityShimsReady(void) {
   return 1;
 }
 
+static int AppStateInvariantRefsReady(const char *const *refs, size_t ref_count,
+                                      const char *transition_id,
+                                      const char *const *declared_write_set,
+                                      size_t declared_write_set_count) {
+  size_t ref_index;
+  size_t write_index;
+
+  if (!NonEmptyString(transition_id) || !NonEmptyStringList(refs, ref_count) ||
+      !NonEmptyStringList(declared_write_set, declared_write_set_count))
+    return 0;
+
+  for (ref_index = 0; ref_index < ref_count; ref_index++) {
+    const AppStateInvariantMetadata *invariant =
+        AppStateInvariantLookup(refs[ref_index]);
+    size_t previous_index;
+
+    if (invariant == NULL)
+      return 0;
+    if (!NonEmptyStringList(invariant->transition_ids,
+                            invariant->transition_id_count) ||
+        !NonEmptyStringList(invariant->protected_fields,
+                            invariant->protected_field_count))
+      return 0;
+    if (!StringListContains(invariant->transition_ids,
+                            invariant->transition_id_count, transition_id))
+      return 0;
+    for (previous_index = 0; previous_index < ref_index; previous_index++) {
+      if (strcmp(refs[previous_index], refs[ref_index]) == 0)
+        return 0;
+    }
+  }
+
+  for (write_index = 0; write_index < declared_write_set_count; write_index++) {
+    if (!AppStateTransitionWriteHasInvariantCoverage(transition_id,
+                                                     declared_write_set[write_index]))
+      return 0;
+    for (ref_index = 0; ref_index < ref_count; ref_index++) {
+      if (AppStateInvariantProtectsField(refs[ref_index],
+                                         declared_write_set[write_index]))
+        break;
+    }
+    if (ref_index == ref_count)
+      return 0;
+  }
+
+  return 1;
+}
+
 static int AppStateActionTransitionsReady(void) {
   size_t index;
 
@@ -1704,6 +1752,11 @@ static int AppStateEventCoverageReady(void) {
         !AppStateDispatchSurfaceRefsReady(coverage->dispatch_surface_refs,
                                          coverage->dispatch_surface_ref_count,
                                          coverage->transition_id) ||
+        !AppStateInvariantRefsReady(coverage->invariant_refs,
+                                    coverage->invariant_ref_count,
+                                    coverage->transition_id,
+                                    coverage->declared_write_set,
+                                    coverage->declared_write_set_count) ||
         !NonEmptyStringList(coverage->migration_notes,
                             coverage->migration_note_count))
       return 0;
@@ -1784,6 +1837,11 @@ static int AppStateActionCoverageReady(void) {
         !AppStateDispatchSurfaceRefsReady(coverage->dispatch_surface_refs,
                                          coverage->dispatch_surface_ref_count,
                                          coverage->transition_id) ||
+        !AppStateInvariantRefsReady(coverage->invariant_refs,
+                                    coverage->invariant_ref_count,
+                                    coverage->transition_id,
+                                    coverage->declared_write_set,
+                                    coverage->declared_write_set_count) ||
         !NonEmptyStringList(coverage->migration_notes,
                             coverage->migration_note_count))
       return 0;
