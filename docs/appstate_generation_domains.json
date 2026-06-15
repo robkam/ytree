@@ -16,6 +16,16 @@
         "panel.focus_shape",
         "panel.restore_snapshot"
       ],
+      "coverage_transition_ids": [
+        "transition.keybinding.navigate-tree",
+        "transition.menu-action.volume-select",
+        "transition.modal-action.dismiss",
+        "transition.refresh-rebuild.manual-refresh",
+        "transition.volume-operation.release-cycle",
+        "transition.terminal-signal-resize",
+        "transition.filesystem-mutation-result.mkdir-copy-delete",
+        "transition.rebuild-rebind-callback.panel-anchor"
+      ],
       "advances_on_transition_ids": [
         "transition.keybinding.navigate-tree",
         "transition.menu-action.volume-select",
@@ -46,6 +56,11 @@
         "volume.payload_cache",
         "panel.volume_key"
       ],
+      "coverage_transition_ids": [
+        "transition.refresh-rebuild.manual-refresh",
+        "transition.volume-operation.release-cycle",
+        "transition.filesystem-mutation-result.mkdir-copy-delete"
+      ],
       "advances_on_transition_ids": [
         "transition.refresh-rebuild.manual-refresh",
         "transition.volume-operation.release-cycle",
@@ -70,6 +85,12 @@
         "panel.tree_viewport_origin",
         "volume.dir_tree",
         "volume.logged_state"
+      ],
+      "coverage_transition_ids": [
+        "transition.refresh-rebuild.manual-refresh",
+        "transition.filesystem-mutation-result.mkdir-copy-delete",
+        "transition.volume-operation.release-cycle",
+        "transition.rebuild-rebind-callback.panel-anchor"
       ],
       "advances_on_transition_ids": [
         "transition.refresh-rebuild.manual-refresh",
@@ -96,6 +117,11 @@
         "volume.payload_cache",
         "volume.dir_tree"
       ],
+      "coverage_transition_ids": [
+        "transition.refresh-rebuild.manual-refresh",
+        "transition.filesystem-mutation-result.mkdir-copy-delete",
+        "transition.rebuild-rebind-callback.panel-anchor"
+      ],
       "advances_on_transition_ids": [
         "transition.refresh-rebuild.manual-refresh",
         "transition.filesystem-mutation-result.mkdir-copy-delete",
@@ -117,6 +143,12 @@
       "identity_fields": [
         "panel.focus_shape",
         "panel.restore_snapshot"
+      ],
+      "coverage_transition_ids": [
+        "transition.keybinding.navigate-tree",
+        "transition.modal-action.dismiss",
+        "transition.menu-action.volume-select",
+        "transition.rebuild-rebind-callback.panel-anchor"
       ],
       "advances_on_transition_ids": [
         "transition.keybinding.navigate-tree",
@@ -143,6 +175,10 @@
         "ctx.pending_transition",
         "ctx.message_state"
       ],
+      "coverage_transition_ids": [
+        "transition.modal-action.dismiss",
+        "transition.command-completion.user-command"
+      ],
       "advances_on_transition_ids": [
         "transition.modal-action.dismiss",
         "transition.command-completion.user-command"
@@ -167,6 +203,11 @@
         "panel.file_viewport_origin",
         "volume.logged_state"
       ],
+      "coverage_transition_ids": [
+        "transition.refresh-rebuild.manual-refresh",
+        "transition.keybinding.navigate-tree",
+        "transition.rebuild-rebind-callback.panel-anchor"
+      ],
       "advances_on_transition_ids": [
         "transition.refresh-rebuild.manual-refresh",
         "transition.keybinding.navigate-tree",
@@ -189,6 +230,11 @@
         "volume.dir_tree",
         "volume.logged_state",
         "ctx.volumes_head"
+      ],
+      "coverage_transition_ids": [
+        "transition.refresh-rebuild.manual-refresh",
+        "transition.volume-operation.release-cycle",
+        "transition.filesystem-mutation-result.mkdir-copy-delete"
       ],
       "advances_on_transition_ids": [
         "transition.refresh-rebuild.manual-refresh",
@@ -213,6 +259,11 @@
         "panel.file_selection_key",
         "panel.file_viewport_origin"
       ],
+      "coverage_transition_ids": [
+        "transition.refresh-rebuild.manual-refresh",
+        "transition.filesystem-mutation-result.mkdir-copy-delete",
+        "transition.rebuild-rebind-callback.panel-anchor"
+      ],
       "advances_on_transition_ids": [
         "transition.refresh-rebuild.manual-refresh",
         "transition.filesystem-mutation-result.mkdir-copy-delete",
@@ -236,6 +287,11 @@
         "panel.volume_key",
         "panel.restore_snapshot",
         "volume.logged_state"
+      ],
+      "coverage_transition_ids": [
+        "transition.volume-operation.release-cycle",
+        "transition.menu-action.volume-select",
+        "transition.refresh-rebuild.manual-refresh"
       ],
       "advances_on_transition_ids": [
         "transition.volume-operation.release-cycle",
@@ -262,6 +318,10 @@
         "panel.tree_viewport_origin",
         "panel.file_viewport_origin"
       ],
+      "coverage_transition_ids": [
+        "transition.terminal-signal-resize",
+        "transition.render-reflow.project-state"
+      ],
       "advances_on_transition_ids": [
         "transition.terminal-signal-resize"
       ],
@@ -270,7 +330,8 @@
       "restore_boundary": "Resize handling runs in the main loop and commits any viewport correction before render projection.",
       "enforcement_status": "documented_foundation_only",
       "migration_notes": [
-        "Render projection itself is read-only/projection-only and does not advance generations; terminal resize uses panel.panel_generation only when saved viewport origins are corrected."
+        "Render projection itself is read-only/projection-only and does not advance generations; terminal resize uses panel.panel_generation only when saved viewport origins are corrected.",
+        "Render projection-only coverage is explicit here even when no generation counter advances."
       ]
     }
   ]

@@ -859,8 +859,11 @@ static int AppStateGenerationDomainsReady(void) {
         !NonEmptyString(metadata->enforcement_status) ||
         !NonEmptyStringList(metadata->identity_fields,
                             metadata->identity_field_count) ||
-        !NonEmptyStringList(metadata->advances_on_transition_ids,
-                            metadata->advances_on_transition_id_count) ||
+        !NonEmptyStringList(metadata->coverage_transition_ids,
+                            metadata->coverage_transition_id_count) ||
+        (metadata->advances_on_transition_id_count > 0 &&
+         !NonEmptyStringList(metadata->advances_on_transition_ids,
+                             metadata->advances_on_transition_id_count)) ||
         !NonEmptyStringList(metadata->migration_notes,
                             metadata->migration_note_count))
       return 0;
@@ -885,10 +888,22 @@ static int AppStateGenerationDomainsReady(void) {
         return 0;
     }
     for (transition_index = 0;
+         transition_index < metadata->coverage_transition_id_count;
+         transition_index++) {
+      if (AppStateTransitionLookup(
+              metadata->coverage_transition_ids[transition_index]) == NULL)
+        return 0;
+    }
+    for (transition_index = 0;
          transition_index < metadata->advances_on_transition_id_count;
          transition_index++) {
       if (AppStateTransitionLookup(
               metadata->advances_on_transition_ids[transition_index]) == NULL)
+        return 0;
+      if (!StringListContains(metadata->coverage_transition_ids,
+                              metadata->coverage_transition_id_count,
+                              metadata->advances_on_transition_ids
+                                  [transition_index]))
         return 0;
     }
   }
@@ -1640,6 +1655,35 @@ static int AppStateInvariantRefsReady(const char *const *refs, size_t ref_count,
   return 1;
 }
 
+static int AppStateGenerationDomainRefsReady(const char *const *refs,
+                                             size_t ref_count,
+                                             const char *transition_id) {
+  size_t ref_index;
+
+  if (!NonEmptyString(transition_id) || !NonEmptyStringList(refs, ref_count))
+    return 0;
+
+  for (ref_index = 0; ref_index < ref_count; ref_index++) {
+    const AppStateGenerationDomainMetadata *domain =
+        AppStateGenerationDomainLookup(refs[ref_index]);
+    size_t previous_index;
+
+    if (domain == NULL || !NonEmptyStringList(domain->coverage_transition_ids,
+                                              domain->coverage_transition_id_count))
+      return 0;
+    if (!StringListContains(domain->coverage_transition_ids,
+                            domain->coverage_transition_id_count,
+                            transition_id))
+      return 0;
+    for (previous_index = 0; previous_index < ref_index; previous_index++) {
+      if (strcmp(refs[previous_index], refs[ref_index]) == 0)
+        return 0;
+    }
+  }
+
+  return 1;
+}
+
 static int AppStateActionTransitionsReady(void) {
   size_t index;
 
@@ -1752,6 +1796,9 @@ static int AppStateEventCoverageReady(void) {
         !AppStateDispatchSurfaceRefsReady(coverage->dispatch_surface_refs,
                                          coverage->dispatch_surface_ref_count,
                                          coverage->transition_id) ||
+        !AppStateGenerationDomainRefsReady(
+            coverage->generation_domain_refs,
+            coverage->generation_domain_ref_count, coverage->transition_id) ||
         !AppStateInvariantRefsReady(coverage->invariant_refs,
                                     coverage->invariant_ref_count,
                                     coverage->transition_id,
@@ -1837,6 +1884,9 @@ static int AppStateActionCoverageReady(void) {
         !AppStateDispatchSurfaceRefsReady(coverage->dispatch_surface_refs,
                                          coverage->dispatch_surface_ref_count,
                                          coverage->transition_id) ||
+        !AppStateGenerationDomainRefsReady(
+            coverage->generation_domain_refs,
+            coverage->generation_domain_ref_count, coverage->transition_id) ||
         !AppStateInvariantRefsReady(coverage->invariant_refs,
                                     coverage->invariant_ref_count,
                                     coverage->transition_id,

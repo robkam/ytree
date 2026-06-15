@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import copy
 import importlib.util
+import json
 import re
 import subprocess
 from pathlib import Path
@@ -46,9 +47,11 @@ FIXTURE_ACTIONS = [
 ]
 REQUIRED_LIST_FIELD_CASES = [
     ("action", "declared_write_set", "action[0]"),
+    ("action", "generation_domain_refs", "action[0]"),
     ("action", "invariant_refs", "action[0]"),
     ("action", "migration_notes", "action[0]"),
     ("event", "declared_write_set", "event[0]"),
+    ("event", "generation_domain_refs", "event[0]"),
     ("event", "invariant_refs", "event[0]"),
     ("event", "migration_notes", "event[0]"),
     ("event", "trigger_paths", "event[0]"),
@@ -92,6 +95,11 @@ def _write(path: Path, content: str) -> None:
 
 
 def _transition(category: str, transition_id: str | None = None) -> dict[str, object]:
+    declared_write_set = ["field"]
+    generation_effect = "generation"
+    if category == "render_reflow":
+        declared_write_set = ["panel.tree_selection_key"]
+        generation_effect = "projection_only"
     return {
         "id": transition_id or f"transition.{category}",
         "category": category,
@@ -102,8 +110,8 @@ def _transition(category: str, transition_id: str | None = None) -> dict[str, ob
         "blocked_result": "blocked",
         "target_state": "AppState.target",
         "owner": "owner",
-        "declared_write_set": ["field"],
-        "generation_effect": "generation",
+        "declared_write_set": declared_write_set,
+        "generation_effect": generation_effect,
         "side_effects": ["none"],
         "render_invalidation": "view",
         "boundary_status": "test",
@@ -154,6 +162,9 @@ def _action(
         "dispatch_surface_refs": _dispatch_surface_refs_for_transition(
             transition_id, action=action
         ),
+        "generation_domain_refs": _generation_domain_refs_for_transition(
+            transition_id
+        ),
         "invariant_refs": _invariant_refs_for_transition(transition_id),
         "boundary_status": "test",
         "migration_notes": ["fixture action coverage"],
@@ -177,23 +188,30 @@ def _event(
         "render_reflow": "render_reflow",
     }
     resolved_category = category or event_categories.get(event_class, "refresh_rebuild")
+    resolved_transition_id = transition_id or f"transition.{resolved_category}"
+    declared_write_set = ["field"]
+    if resolved_category == "render_reflow":
+        declared_write_set = ["panel.tree_selection_key"]
     return {
         "event_id": f"event.{event_class}",
         "event_class": event_class,
-        "transition_id": transition_id or f"transition.{resolved_category}",
+        "transition_id": resolved_transition_id,
         "category": resolved_category,
         "source": "fixture source",
         "owner": "owner",
-        "declared_write_set": ["field"],
+        "declared_write_set": declared_write_set,
         "transition_sequence_refs": _sequence_refs_for_transition(
-            transition_id or f"transition.{resolved_category}"
+            resolved_transition_id
         ),
         "dispatch_surface_refs": _dispatch_surface_refs_for_transition(
-            transition_id or f"transition.{resolved_category}",
+            resolved_transition_id,
             event_id=f"event.{event_class}",
         ),
+        "generation_domain_refs": _generation_domain_refs_for_transition(
+            resolved_transition_id
+        ),
         "invariant_refs": _invariant_refs_for_transition(
-            transition_id or f"transition.{resolved_category}"
+            resolved_transition_id
         ),
         "boundary_status": "test",
         "trigger_paths": ["fixture trigger"],
@@ -276,6 +294,75 @@ def _invariant_refs_for_transition(transition_id: str) -> list[str]:
     }.get(transition_id, ["invariant.inactive_panel_frozen"])
 
 
+def _generation_domain_refs_for_transition(transition_id: str) -> list[str]:
+    return {
+        "transition.command_completion": ["domain.modal_command_target"],
+        "transition.filesystem_mutation_result": [
+            "domain.panel_generation",
+            "domain.volume_generation",
+            "domain.directory_identity",
+            "domain.file_identity",
+            "domain.topology_state",
+            "domain.file_payload_state",
+        ],
+        "transition.keybinding": [
+            "domain.panel_generation",
+            "domain.focus_shape",
+            "domain.visibility_filter_state",
+        ],
+        "transition.menu_action": [
+            "domain.panel_generation",
+            "domain.focus_shape",
+            "domain.volume_lifecycle",
+        ],
+        "transition.modal_action": [
+            "domain.panel_generation",
+            "domain.focus_shape",
+            "domain.modal_command_target",
+        ],
+        "transition.rebuild_rebind_callback": [
+            "domain.panel_generation",
+            "domain.directory_identity",
+            "domain.file_identity",
+            "domain.focus_shape",
+            "domain.visibility_filter_state",
+            "domain.file_payload_state",
+        ],
+        "transition.refresh_rebuild": [
+            "domain.panel_generation",
+            "domain.volume_generation",
+            "domain.directory_identity",
+            "domain.file_identity",
+            "domain.visibility_filter_state",
+            "domain.topology_state",
+            "domain.file_payload_state",
+            "domain.volume_lifecycle",
+        ],
+        "transition.render_reflow": ["domain.layout_reflow"],
+        "transition.terminal_signal_or_resize": [
+            "domain.panel_generation",
+            "domain.layout_reflow",
+        ],
+        "transition.volume_operation": [
+            "domain.panel_generation",
+            "domain.volume_generation",
+            "domain.directory_identity",
+            "domain.volume_lifecycle",
+        ],
+    }.get(transition_id, ["domain.panel_generation"])
+
+
+def _wrong_generation_domain_ref(transition_id: str) -> str:
+    valid_refs = set(_generation_domain_refs_for_transition(transition_id))
+    for domain in _complete_generation_domains():
+        domain_id = str(domain["domain_id"])
+        if domain_id not in valid_refs:
+            return domain_id
+    raise AssertionError(
+        f"missing mismatched generation domain fixture for {transition_id}"
+    )
+
+
 def _dispatch_surface(
     category: str,
     transition_id: str | None = None,
@@ -311,14 +398,18 @@ def _dispatch_surface(
         "volume_menu_selection": "sequence.volume_menu_select",
         "rebuild_rebind_callback": "sequence.refresh_rebuild",
     }
+    resolved_transition_id = transition_id or transition_by_surface_category[category]
+    allowed_direct_writes = ["field"]
+    if resolved_transition_id == "transition.render_reflow":
+        allowed_direct_writes = ["panel.tree_selection_key"]
     return {
         "surface_id": surface_id or f"surface.{category}",
         "category": category,
         "source_path": "src/ui/key_engine.c",
         "entry_symbol_or_path": "GetEventOrKey",
-        "transition_id": transition_id or transition_by_surface_category[category],
+        "transition_id": resolved_transition_id,
         "boundary_status": "test",
-        "allowed_direct_writes": ["field"],
+        "allowed_direct_writes": allowed_direct_writes,
         "transition_sequence_refs": [sequence_by_surface_category[category]],
         "migration_notes": ["fixture coverage"],
     }
@@ -349,17 +440,27 @@ def _invariant(
 def _generation_domain(
     category: str,
     domain_id: str | None = None,
+    coverage_transition_ids: list[str] | None = None,
     advances_on_transition_ids: list[str] | None = None,
 ) -> dict[str, object]:
+    resolved_coverage_transition_ids = (
+        coverage_transition_ids
+        if coverage_transition_ids is not None
+        else ["transition.keybinding"]
+    )
+    resolved_advances_on_transition_ids = (
+        advances_on_transition_ids
+        if advances_on_transition_ids is not None
+        else ["transition.keybinding"]
+    )
     return {
         "domain_id": domain_id or f"domain.{category}",
         "category": category,
         "owner_region": "panel-local state",
         "generation_owner_field": "field",
         "identity_fields": ["field"],
-        "advances_on_transition_ids": (
-            advances_on_transition_ids or ["transition.keybinding"]
-        ),
+        "coverage_transition_ids": resolved_coverage_transition_ids,
+        "advances_on_transition_ids": resolved_advances_on_transition_ids,
         "stale_snapshot_policy": "fixture stale snapshot policy",
         "fail_closed_fallback": "fixture fail-closed fallback",
         "restore_boundary": "fixture restore boundary",
@@ -819,6 +920,21 @@ def _runtime_source(
             f"static const char *const {invariant_refs_table}[] = "
             f"{{\n{invariant_ref_rows}\n}};\n"
         )
+        generation_domain_refs = record.get("generation_domain_refs")
+        if not isinstance(generation_domain_refs, list):
+            generation_domain_refs = []
+        generation_domain_ref_rows = "\n".join(
+            f'  "{ref}",'
+            for ref in generation_domain_refs
+            if isinstance(ref, str)
+        )
+        generation_domain_refs_table = (
+            f"kAppStateActionCoverageGenerationDomainRefs{index}"
+        )
+        action_coverage_arrays.append(
+            f"static const char *const {generation_domain_refs_table}[] = "
+            f"{{\n{generation_domain_ref_rows}\n}};\n"
+        )
         action = record.get("action", "")
         action_coverage_rows.append(
             f'  {{{action}, "{action}", "{record.get("transition_id", "")}", '
@@ -831,6 +947,9 @@ def _runtime_source(
             f"sizeof({dispatch_surface_refs_table}[0]), "
             f"{invariant_refs_table}, sizeof({invariant_refs_table}) / "
             f"sizeof({invariant_refs_table}[0]), "
+            f"{generation_domain_refs_table}, "
+            f"sizeof({generation_domain_refs_table}) / "
+            f"sizeof({generation_domain_refs_table}[0]), "
             f'"{record.get("boundary_status", "")}", '
             f"{notes_table}, sizeof({notes_table}) / sizeof({notes_table}[0])}},"
         )
@@ -897,6 +1016,21 @@ def _runtime_source(
             f"static const char *const {invariant_refs_table}[] = "
             f"{{\n{invariant_ref_rows}\n}};\n"
         )
+        generation_domain_refs = record.get("generation_domain_refs")
+        if not isinstance(generation_domain_refs, list):
+            generation_domain_refs = []
+        generation_domain_ref_rows = "\n".join(
+            f'  "{ref}",'
+            for ref in generation_domain_refs
+            if isinstance(ref, str)
+        )
+        generation_domain_refs_table = (
+            f"kAppStateEventCoverageGenerationDomainRefs{index}"
+        )
+        event_coverage_arrays.append(
+            f"static const char *const {generation_domain_refs_table}[] = "
+            f"{{\n{generation_domain_ref_rows}\n}};\n"
+        )
         transition_index = transition_index_by_id.get(str(record.get("transition_id", "")), 0)
         write_set_table = f"kAppStateTransitionWriteSet{transition_index}"
         event_coverage_rows.append(
@@ -913,6 +1047,9 @@ def _runtime_source(
             f"sizeof({dispatch_surface_refs_table}[0]), "
             f"{invariant_refs_table}, sizeof({invariant_refs_table}) / "
             f"sizeof({invariant_refs_table}[0]), "
+            f"{generation_domain_refs_table}, "
+            f"sizeof({generation_domain_refs_table}) / "
+            f"sizeof({generation_domain_refs_table}[0]), "
             f"{notes_table}, sizeof({notes_table}) / sizeof({notes_table}[0])}},"
         )
     owner_field_arrays = []
@@ -1112,6 +1249,7 @@ def _runtime_source(
     generation_domain_rows = []
     generation_domain_list_fields = (
         ("identity_fields", "IdentityFields"),
+        ("coverage_transition_ids", "CoverageTransitionIds"),
         ("advances_on_transition_ids", "AdvancesOnTransitionIds"),
         ("migration_notes", "MigrationNotes"),
     )
@@ -1135,6 +1273,9 @@ def _runtime_source(
             f"kAppStateGenerationDomainIdentityFields{index}, "
             f"sizeof(kAppStateGenerationDomainIdentityFields{index}) / "
             f"sizeof(kAppStateGenerationDomainIdentityFields{index}[0]), "
+            f"kAppStateGenerationDomainCoverageTransitionIds{index}, "
+            f"sizeof(kAppStateGenerationDomainCoverageTransitionIds{index}) / "
+            f"sizeof(kAppStateGenerationDomainCoverageTransitionIds{index}[0]), "
             f"kAppStateGenerationDomainAdvancesOnTransitionIds{index}, "
             f"sizeof(kAppStateGenerationDomainAdvancesOnTransitionIds{index}) / "
             f"sizeof(kAppStateGenerationDomainAdvancesOnTransitionIds{index}[0]), "
@@ -1498,11 +1639,78 @@ def _complete_invariants() -> list[dict[str, object]]:
 
 
 def _complete_generation_domains() -> list[dict[str, object]]:
+    coverage_transition_ids_by_category = {
+        "panel_generation": [
+            "transition.keybinding",
+            "transition.menu_action",
+            "transition.modal_action",
+            "transition.refresh_rebuild",
+            "transition.volume_operation",
+            "transition.terminal_signal_or_resize",
+            "transition.rebuild_rebind_callback",
+            "transition.filesystem_mutation_result",
+        ],
+        "volume_generation": [
+            "transition.refresh_rebuild",
+            "transition.volume_operation",
+            "transition.filesystem_mutation_result",
+        ],
+        "directory_identity": [
+            "transition.refresh_rebuild",
+            "transition.volume_operation",
+            "transition.filesystem_mutation_result",
+            "transition.rebuild_rebind_callback",
+        ],
+        "file_identity": [
+            "transition.refresh_rebuild",
+            "transition.filesystem_mutation_result",
+            "transition.rebuild_rebind_callback",
+        ],
+        "focus_shape": [
+            "transition.keybinding",
+            "transition.menu_action",
+            "transition.modal_action",
+            "transition.rebuild_rebind_callback",
+        ],
+        "modal_command_target": [
+            "transition.modal_action",
+            "transition.command_completion",
+        ],
+        "visibility_filter_state": [
+            "transition.keybinding",
+            "transition.refresh_rebuild",
+            "transition.rebuild_rebind_callback",
+        ],
+        "topology_state": [
+            "transition.refresh_rebuild",
+            "transition.volume_operation",
+            "transition.filesystem_mutation_result",
+        ],
+        "file_payload_state": [
+            "transition.refresh_rebuild",
+            "transition.filesystem_mutation_result",
+            "transition.rebuild_rebind_callback",
+        ],
+        "volume_lifecycle": [
+            "transition.menu_action",
+            "transition.refresh_rebuild",
+            "transition.volume_operation",
+        ],
+        "layout_reflow": [
+            "transition.terminal_signal_or_resize",
+            "transition.render_reflow",
+        ],
+    }
+    advances_on_transition_ids_by_category = {
+        **coverage_transition_ids_by_category,
+        "layout_reflow": ["transition.terminal_signal_or_resize"],
+    }
     return [
         _generation_domain(
             category,
             "domain.panel_generation" if category == "panel_generation" else None,
-            _complete_transition_ids(),
+            coverage_transition_ids_by_category[category],
+            advances_on_transition_ids_by_category[category],
         )
         for category in REQUIRED_GENERATION_DOMAIN_CATEGORIES
     ]
@@ -1657,6 +1865,35 @@ def test_guard_passes_complete_temporary_fixtures(tmp_path: Path) -> None:
     failures = _validate(paths)
 
     assert failures == []
+
+
+def test_current_generation_domain_docs_keep_projection_transitions_out_of_advances() -> None:
+    generation_domains = json.loads(
+        Path("docs/appstate_generation_domains.json").read_text(encoding="utf-8")
+    )["generation_domains"]
+    projection_domain = next(
+        record
+        for record in generation_domains
+        if record["domain_id"] == "reflow.layout.projection"
+    )
+
+    assert "transition.render-reflow.project-state" not in projection_domain[
+        "advances_on_transition_ids"
+    ]
+    assert "transition.render-reflow.project-state" in projection_domain[
+        "coverage_transition_ids"
+    ]
+
+
+def test_runtime_generation_domain_ref_readiness_uses_coverage_transitions() -> None:
+    source = Path("src/core/main.c").read_text(encoding="utf-8")
+    helper_start = source.index("static int AppStateGenerationDomainRefsReady(")
+    action_start = source.index("static int AppStateActionTransitionsReady(void)")
+    helper_body = source[helper_start:action_start]
+
+    assert "domain->coverage_transition_ids" in helper_body
+    assert "domain->coverage_transition_id_count" in helper_body
+    assert "domain->advances_on_transition_ids" not in helper_body
 
 
 def test_guard_accepts_invariant_registry_cli_override(tmp_path: Path) -> None:
@@ -3716,12 +3953,46 @@ def test_guard_accepts_empty_generation_domain_advances_with_projection_note(
 ) -> None:
     transitions = _complete_transitions()
     generation_domains = _complete_generation_domains()
-    generation_domains[0]["advances_on_transition_ids"] = []
-    generation_domains[0]["migration_notes"] = [
+    generation_domains.append(
+        _generation_domain(
+            "layout_reflow",
+            "domain.projection_only_unused",
+            ["transition.render_reflow"],
+            [],
+        )
+    )
+    generation_domains[-1]["migration_notes"] = [
         "read-only/projection-only fixture domain"
     ]
     paths = _write_fixture(
         tmp_path, transitions=transitions, generation_domains=generation_domains
+    )
+
+    failures = _validate(paths)
+
+    assert failures == []
+
+
+def test_guard_accepts_projection_only_generation_domain_refs_with_split_coverage(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    events = _complete_events()
+    generation_domains = _complete_generation_domains()
+    render_domain = next(
+        record
+        for record in generation_domains
+        if record["domain_id"] == "domain.layout_reflow"
+    )
+
+    assert "transition.render_reflow" in render_domain["coverage_transition_ids"]
+    assert "transition.render_reflow" not in render_domain["advances_on_transition_ids"]
+
+    paths = _write_fixture(
+        tmp_path,
+        transitions=transitions,
+        events=events,
+        generation_domains=generation_domains,
     )
 
     failures = _validate(paths)
@@ -7606,6 +7877,122 @@ def test_guard_fails_when_runtime_action_coverage_dispatch_surface_refs_mix_vali
     )
 
 
+def test_guard_fails_when_action_coverage_generation_domain_refs_are_missing(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    actions = _complete_actions()
+    actions[0].pop("generation_domain_refs")
+    paths = _write_fixture(tmp_path, transitions=transitions, actions=actions)
+
+    failures = _validate(paths)
+
+    assert any(
+        "action[0]" in failure
+        and "missing required field" in failure
+        and "generation_domain_refs" in failure
+        for failure in failures
+    )
+
+
+@pytest.mark.parametrize(
+    ("refs", "expected_fragment"),
+    [
+        ([], "generation_domain_refs must be non-empty"),
+        ("domain.panel_generation", "generation_domain_refs must be a non-empty list"),
+        ([123], "generation_domain_refs[0] must be a non-empty string"),
+        (
+            ["domain.panel_generation", "domain.panel_generation"],
+            "duplicate generation_domain_refs[1]",
+        ),
+        (["domain.__missing__"], "references unknown generation domain"),
+        (["domain.modal_command_target"], "transition_id does not match"),
+    ],
+)
+def test_guard_fails_when_action_coverage_generation_domain_refs_are_invalid(
+    tmp_path: Path, refs: object, expected_fragment: str
+) -> None:
+    transitions = _complete_transitions()
+    actions = _complete_actions()
+    actions[0]["generation_domain_refs"] = refs
+    paths = _write_fixture(tmp_path, transitions=transitions, actions=actions)
+
+    failures = _validate(paths)
+
+    assert any(
+        "action[0]" in failure and expected_fragment in failure for failure in failures
+    )
+
+
+def test_guard_fails_when_action_coverage_generation_domain_refs_mix_valid_and_wrong_transition(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    actions = _complete_actions()
+    transition_id = str(actions[0]["transition_id"])
+    valid_ref = str(actions[0]["generation_domain_refs"][0])
+    wrong_ref = _wrong_generation_domain_ref(transition_id)
+    actions[0]["generation_domain_refs"] = [valid_ref, wrong_ref]
+    paths = _write_fixture(tmp_path, transitions=transitions, actions=actions)
+
+    failures = _validate(paths)
+
+    assert any(
+        "action[0]" in failure
+        and f"generation_domain_refs[1] transition_id does not match {transition_id}: {wrong_ref}"
+        in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_when_runtime_action_coverage_generation_domain_refs_drift(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    runtime_action_coverages = _complete_actions()
+    runtime_action_coverages[0]["generation_domain_refs"] = [
+        str(runtime_action_coverages[0]["generation_domain_refs"][0])
+    ]
+    paths = _write_fixture(
+        tmp_path,
+        transitions=transitions,
+        runtime_action_coverages=runtime_action_coverages,
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "runtime_action_coverage[0]" in failure
+        and "generation_domain_refs does not match action coverage" in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_when_runtime_action_coverage_generation_domain_refs_mix_valid_and_wrong_transition(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    runtime_action_coverages = _complete_actions()
+    transition_id = str(runtime_action_coverages[0]["transition_id"])
+    valid_ref = str(runtime_action_coverages[0]["generation_domain_refs"][0])
+    wrong_ref = _wrong_generation_domain_ref(transition_id)
+    runtime_action_coverages[0]["generation_domain_refs"] = [valid_ref, wrong_ref]
+    paths = _write_fixture(
+        tmp_path,
+        transitions=transitions,
+        runtime_action_coverages=runtime_action_coverages,
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "runtime_action_coverage[0]" in failure
+        and f"generation_domain_refs[1] transition_id does not match {transition_id}: {wrong_ref}"
+        in failure
+        for failure in failures
+    )
+
+
 def test_guard_fails_when_runtime_action_coverage_invariant_refs_drift(
     tmp_path: Path,
 ) -> None:
@@ -7720,6 +8107,125 @@ def test_guard_fails_when_runtime_event_coverage_dispatch_surface_refs_mix_valid
     assert any(
         "runtime_event_coverage[0]" in failure
         and f"dispatch_surface_refs[1] transition_id does not match {transition_id}: {wrong_ref}"
+        in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_when_event_coverage_generation_domain_refs_are_missing(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    events = _complete_events()
+    events[0].pop("generation_domain_refs")
+    paths = _write_fixture(tmp_path, transitions=transitions, events=events)
+
+    failures = _validate(paths)
+
+    assert any(
+        "event[0]" in failure
+        and "missing required field" in failure
+        and "generation_domain_refs" in failure
+        for failure in failures
+    )
+
+
+@pytest.mark.parametrize(
+    ("refs", "expected_fragment"),
+    [
+        ([], "generation_domain_refs must be non-empty"),
+        ("domain.panel_generation", "generation_domain_refs must be a non-empty list"),
+        ([123], "generation_domain_refs[0] must be a non-empty string"),
+        (
+            ["domain.panel_generation", "domain.panel_generation"],
+            "duplicate generation_domain_refs[1]",
+        ),
+        (["domain.__missing__"], "references unknown generation domain"),
+        (["domain.modal_command_target"], "transition_id does not match"),
+    ],
+)
+def test_guard_fails_when_event_coverage_generation_domain_refs_are_invalid(
+    tmp_path: Path, refs: object, expected_fragment: str
+) -> None:
+    transitions = _complete_transitions()
+    events = _complete_events()
+    if refs == ["domain.modal_command_target"]:
+        refs = [_wrong_generation_domain_ref(str(events[0]["transition_id"]))]
+    events[0]["generation_domain_refs"] = refs
+    paths = _write_fixture(tmp_path, transitions=transitions, events=events)
+
+    failures = _validate(paths)
+
+    assert any(
+        "event[0]" in failure and expected_fragment in failure for failure in failures
+    )
+
+
+def test_guard_fails_when_event_coverage_generation_domain_refs_mix_valid_and_wrong_transition(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    events = _complete_events()
+    transition_id = str(events[0]["transition_id"])
+    valid_ref = str(events[0]["generation_domain_refs"][0])
+    wrong_ref = _wrong_generation_domain_ref(transition_id)
+    events[0]["generation_domain_refs"] = [valid_ref, wrong_ref]
+    paths = _write_fixture(tmp_path, transitions=transitions, events=events)
+
+    failures = _validate(paths)
+
+    assert any(
+        "event[0]" in failure
+        and f"generation_domain_refs[1] transition_id does not match {transition_id}: {wrong_ref}"
+        in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_when_runtime_event_coverage_generation_domain_refs_drift(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    runtime_events = _complete_events()
+    event_index = _event_index("event.terminal_resize_signal")
+    runtime_events[event_index]["generation_domain_refs"] = [
+        str(runtime_events[event_index]["generation_domain_refs"][0])
+    ]
+    paths = _write_fixture(
+        tmp_path,
+        transitions=transitions,
+        runtime_events=runtime_events,
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        f"runtime_event_coverage[{event_index}]" in failure
+        and "generation_domain_refs does not match docs" in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_when_runtime_event_coverage_generation_domain_refs_mix_valid_and_wrong_transition(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    runtime_events = _complete_events()
+    transition_id = str(runtime_events[0]["transition_id"])
+    valid_ref = str(runtime_events[0]["generation_domain_refs"][0])
+    wrong_ref = _wrong_generation_domain_ref(transition_id)
+    runtime_events[0]["generation_domain_refs"] = [valid_ref, wrong_ref]
+    paths = _write_fixture(
+        tmp_path,
+        transitions=transitions,
+        runtime_events=runtime_events,
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "runtime_event_coverage[0]" in failure
+        and f"generation_domain_refs[1] transition_id does not match {transition_id}: {wrong_ref}"
         in failure
         for failure in failures
     )
@@ -7972,7 +8478,7 @@ def test_guard_fails_when_runtime_action_coverage_write_set_is_malformed(
     failures = _validate(paths)
 
     assert any(
-        "kAppStateActionCoverageWriteSet0[0]" in failure
+        "WriteSet" in failure
         and "malformed string literal entry" in failure
         for failure in failures
     )
@@ -8066,6 +8572,9 @@ def _event_runtime_validation_failures(runtime_path: Path) -> list[str]:
     runtime_sequences, runtime_sequence_failures = (
         guard._parse_runtime_transition_sequence_registry(runtime_path)
     )
+    runtime_generation_domains, runtime_generation_domain_failures = (
+        guard._parse_runtime_generation_domain_registry(runtime_path)
+    )
     runtime_invariants, runtime_invariant_failures = (
         guard._parse_runtime_invariant_registry(runtime_path)
     )
@@ -8080,6 +8589,7 @@ def _event_runtime_validation_failures(runtime_path: Path) -> list[str]:
         + runtime_dispatch_surface_failures
         + runtime_event_failures
         + runtime_sequence_failures
+        + runtime_generation_domain_failures
         + runtime_invariant_failures
         + guard._validate_runtime_event_coverage_registry(
             runtime_records=runtime_events,
@@ -8088,6 +8598,7 @@ def _event_runtime_validation_failures(runtime_path: Path) -> list[str]:
             transition_ids=transition_ids,
             runtime_transition_sequence_records=runtime_sequences,
             runtime_dispatch_surface_records=runtime_dispatch_surfaces,
+            runtime_generation_domain_records=runtime_generation_domains,
             runtime_transition_ids={record["id"] for record in runtime_transitions},
             runtime_invariant_ids={
                 record["invariant_id"] for record in runtime_invariants
@@ -8431,6 +8942,26 @@ def test_runtime_generation_domain_startup_requires_documented_domain_ids() -> N
         r"AppStateGenerationDomainLookup\(\s*"
         r"kAppStateRequiredGenerationDomainIds\[index\]\s*\)",
         source,
+        re.S,
+    )
+
+
+def test_runtime_generation_domain_startup_separates_coverage_from_advances() -> None:
+    source = Path("src/core/main.c").read_text(encoding="utf-8")
+    generation_start = source.index("static int AppStateGenerationDomainsReady(void)")
+    dispatch_start = source.index(
+        "static int AppStateDispatchSurfaceWriteHasInvariantCoverage("
+    )
+    ready_body = source[generation_start:dispatch_start]
+
+    assert "metadata->coverage_transition_ids" in ready_body
+    assert "metadata->coverage_transition_id_count" in ready_body
+    assert "metadata->advances_on_transition_ids" in ready_body
+    assert re.search(
+        r"StringListContains\(metadata->coverage_transition_ids,\s*"
+        r"metadata->coverage_transition_id_count,\s*"
+        r"metadata->advances_on_transition_ids\s*\[transition_index\]\)",
+        ready_body,
         re.S,
     )
 
