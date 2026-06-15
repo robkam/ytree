@@ -78,6 +78,7 @@ REQUIRED_ACTION_FIELDS = {
     "owner",
     "declared_write_set",
     "transition_sequence_refs",
+    "dispatch_surface_refs",
     "boundary_status",
     "migration_notes",
 }
@@ -105,6 +106,9 @@ REQUIRED_DISPATCH_SURFACE_CATEGORIES = {
     "volume_operation",
     "watcher_live_refresh",
     "render_reflow_projection",
+    "command_completion_dispatch",
+    "volume_menu_selection",
+    "rebuild_rebind_callback",
 }
 
 REQUIRED_INVARIANT_CATEGORIES = {
@@ -195,6 +199,7 @@ REQUIRED_EVENT_FIELDS = {
     "owner",
     "declared_write_set",
     "transition_sequence_refs",
+    "dispatch_surface_refs",
     "boundary_status",
     "trigger_paths",
     "migration_notes",
@@ -293,8 +298,12 @@ LIST_FIELDS = {
     "migration_notes",
 }
 
-ACTION_LIST_FIELDS = LIST_FIELDS | {"transition_sequence_refs"}
-EVENT_LIST_FIELDS = LIST_FIELDS | {"trigger_paths", "transition_sequence_refs"}
+ACTION_LIST_FIELDS = LIST_FIELDS | {"transition_sequence_refs", "dispatch_surface_refs"}
+EVENT_LIST_FIELDS = LIST_FIELDS | {
+    "trigger_paths",
+    "transition_sequence_refs",
+    "dispatch_surface_refs",
+}
 SHIM_LIST_FIELDS = LIST_FIELDS | {
     "owner_field_refs",
     "generation_domain_refs",
@@ -616,7 +625,7 @@ def _parse_runtime_action_coverage_registry(
     arrays: dict[str, list[str]] = {}
     array_re = re.compile(
         r"static\s+const\s+char\s+\*const\s+"
-        r"(kAppStateActionCoverage(?:TransitionSequenceRefs|MigrationNotes)[0-9]+)"
+        r"(kAppStateActionCoverage(?:TransitionSequenceRefs|DispatchSurfaceRefs|MigrationNotes)[0-9]+)"
         r"\[\]\s*=\s*\{(?P<body>.*?)\};",
         re.S,
     )
@@ -649,6 +658,9 @@ def _parse_runtime_action_coverage_registry(
         r"\s*(?P<transition_sequence_refs>kAppStateActionCoverageTransitionSequenceRefs[0-9]+)\s*,"
         r"\s*sizeof\((?P=transition_sequence_refs)\)\s*/"
         r"\s*sizeof\((?P=transition_sequence_refs)\[0\]\)\s*,"
+        r"\s*(?P<dispatch_surface_refs>kAppStateActionCoverageDispatchSurfaceRefs[0-9]+)\s*,"
+        r"\s*sizeof\((?P=dispatch_surface_refs)\)\s*/"
+        r"\s*sizeof\((?P=dispatch_surface_refs)\[0\]\)\s*,"
         r"\s*\"(?P<boundary_status>[^\"]*)\"\s*,"
         r"\s*(?P<migration_notes>kAppStateActionCoverageMigrationNotes[0-9]+)\s*,"
         r"\s*sizeof\((?P=migration_notes)\)\s*/"
@@ -684,6 +696,14 @@ def _parse_runtime_action_coverage_registry(
                 f"table: {sequence_refs_name}"
             )
             sequence_refs = []
+        dispatch_surface_refs_name = row_match.group("dispatch_surface_refs")
+        dispatch_surface_refs = arrays.get(dispatch_surface_refs_name)
+        if dispatch_surface_refs is None:
+            failures.append(
+                f"runtime_action_coverage[{index}]: unknown dispatch-surface-refs "
+                f"table: {dispatch_surface_refs_name}"
+            )
+            dispatch_surface_refs = []
         notes_name = row_match.group("migration_notes")
         notes = arrays.get(notes_name)
         if notes is None:
@@ -701,6 +721,7 @@ def _parse_runtime_action_coverage_registry(
                 "owner": row_match.group("owner"),
                 "declared_write_set": declared_write_set,
                 "transition_sequence_refs": sequence_refs,
+                "dispatch_surface_refs": dispatch_surface_refs,
                 "boundary_status": row_match.group("boundary_status"),
                 "migration_notes": notes,
             }
@@ -725,7 +746,7 @@ def _parse_runtime_event_coverage_registry(
     arrays: dict[str, list[str]] = {}
     array_re = re.compile(
         r"static\s+const\s+char\s+\*const\s+"
-        r"(kAppState(?:TransitionWriteSet|EventCoverageTriggerPaths|EventCoverageTransitionSequenceRefs|EventCoverageMigrationNotes)[0-9]+)"
+        r"(kAppState(?:TransitionWriteSet|EventCoverageTriggerPaths|EventCoverageTransitionSequenceRefs|EventCoverageDispatchSurfaceRefs|EventCoverageMigrationNotes)[0-9]+)"
         r"\[\]\s*=\s*\{(?P<body>.*?)\};",
         re.S,
     )
@@ -761,6 +782,8 @@ def _parse_runtime_event_coverage_registry(
         r"\s*sizeof\((?P=trigger_paths)\)\s*/\s*sizeof\((?P=trigger_paths)\[0\]\)\s*,"
         r"\s*(?P<transition_sequence_refs>kAppStateEventCoverageTransitionSequenceRefs[0-9]+)\s*,"
         r"\s*sizeof\((?P=transition_sequence_refs)\)\s*/\s*sizeof\((?P=transition_sequence_refs)\[0\]\)\s*,"
+        r"\s*(?P<dispatch_surface_refs>kAppStateEventCoverageDispatchSurfaceRefs[0-9]+)\s*,"
+        r"\s*sizeof\((?P=dispatch_surface_refs)\)\s*/\s*sizeof\((?P=dispatch_surface_refs)\[0\]\)\s*,"
         r"\s*(?P<migration_notes>kAppStateEventCoverageMigrationNotes[0-9]+)\s*,"
         r"\s*sizeof\((?P=migration_notes)\)\s*/\s*sizeof\((?P=migration_notes)\[0\]\)\s*\}",
         re.S,
@@ -800,6 +823,13 @@ def _parse_runtime_event_coverage_registry(
                 f"{row_match.group('transition_sequence_refs')}"
             )
             transition_sequence_refs = []
+        dispatch_surface_refs = arrays.get(row_match.group("dispatch_surface_refs"))
+        if dispatch_surface_refs is None:
+            failures.append(
+                f"runtime_event_coverage[{index}]: unknown dispatch-surface-refs table: "
+                f"{row_match.group('dispatch_surface_refs')}"
+            )
+            dispatch_surface_refs = []
         if migration_notes is None:
             failures.append(
                 f"runtime_event_coverage[{index}]: unknown migration-notes table: "
@@ -818,6 +848,7 @@ def _parse_runtime_event_coverage_registry(
                 "boundary_status": row_match.group("boundary_status"),
                 "trigger_paths": trigger_paths,
                 "transition_sequence_refs": transition_sequence_refs,
+                "dispatch_surface_refs": dispatch_surface_refs,
                 "migration_notes": migration_notes,
             }
         )
@@ -1906,6 +1937,7 @@ def _validate_runtime_action_coverage_registry(
     runtime_transition_ids: set[str],
     runtime_transition_sequence_records: list[Any],
     runtime_action_transitions: list[dict[str, str]],
+    runtime_dispatch_surface_records: list[Any],
     registered_owner_fields: set[str],
 ) -> list[str]:
     failures: list[str] = []
@@ -1964,6 +1996,13 @@ def _validate_runtime_action_coverage_registry(
                 label=label,
             )[0]
         )
+        failures.extend(
+            _validate_dispatch_surface_refs(
+                record=record,
+                dispatch_surface_records=runtime_dispatch_surface_records,
+                label=label,
+            )
+        )
 
         transition_id = record.get("transition_id")
         transition_record = None
@@ -2013,6 +2052,7 @@ def _validate_runtime_action_coverage_registry(
                     "owner",
                     "declared_write_set",
                     "transition_sequence_refs",
+                    "dispatch_surface_refs",
                     "boundary_status",
                     "migration_notes",
                 ):
@@ -3621,6 +3661,65 @@ def _validate_transition_sequence_refs(
     return failures, matching_steps
 
 
+def _dispatch_surfaces_by_id(
+    dispatch_surface_records: list[Any],
+) -> dict[str, dict[str, Any]]:
+    return {
+        surface["surface_id"]: surface
+        for surface in dispatch_surface_records
+        if isinstance(surface, dict)
+        and isinstance(surface.get("surface_id"), str)
+        and surface["surface_id"].strip()
+    }
+
+
+def _validate_dispatch_surface_refs(
+    *,
+    record: dict[str, Any],
+    dispatch_surface_records: list[Any],
+    label: str,
+) -> list[str]:
+    refs = record.get("dispatch_surface_refs")
+    transition_id = record.get("transition_id")
+    failures = _validate_list_field(
+        value=refs,
+        label=label,
+        field="dispatch_surface_refs",
+    )
+    if failures:
+        return failures
+
+    assert isinstance(refs, list)
+    surfaces = _dispatch_surfaces_by_id(dispatch_surface_records)
+    seen: set[str] = set()
+    for index, surface_id in enumerate(refs):
+        if not isinstance(surface_id, str) or not surface_id.strip():
+            failures.append(
+                f"{label}: dispatch_surface_refs[{index}] must be a non-empty string"
+            )
+            continue
+        if surface_id in seen:
+            failures.append(f"{label}: duplicate dispatch_surface_refs[{index}]: {surface_id}")
+        seen.add(surface_id)
+        surface = surfaces.get(surface_id)
+        if surface is None:
+            failures.append(
+                f"{label}: dispatch_surface_refs references unknown dispatch surface: {surface_id}"
+            )
+            continue
+        if (
+            isinstance(transition_id, str)
+            and transition_id.strip()
+            and surface.get("transition_id") != transition_id
+        ):
+            failures.append(
+                f"{label}: dispatch_surface_refs[{index}] transition_id does not match "
+                f"{transition_id}: {surface_id}"
+            )
+
+    return failures
+
+
 def _validate_dispatch_surface_transition_sequence_coverage(
     *,
     record: dict[str, Any],
@@ -4300,6 +4399,7 @@ def _validate_runtime_event_coverage_registry(
     event_coverage_doc: Any,
     transition_ids: dict[str, dict[str, Any]],
     runtime_transition_sequence_records: list[Any],
+    runtime_dispatch_surface_records: list[Any],
     runtime_transition_ids: set[str],
 ) -> list[str]:
     failures: list[str] = []
@@ -4329,6 +4429,13 @@ def _validate_runtime_event_coverage_registry(
                 transition_sequence_records=runtime_transition_sequence_records,
                 label=label,
             )[0]
+        )
+        failures.extend(
+            _validate_dispatch_surface_refs(
+                record=record,
+                dispatch_surface_records=runtime_dispatch_surface_records,
+                label=label,
+            )
         )
         event_id = record.get("event_id")
         if isinstance(event_id, str) and event_id.strip():
@@ -4393,6 +4500,7 @@ def _validate_event_coverage(
     event_coverage_path: Path,
     transition_ids: dict[str, dict[str, Any]],
     transition_sequence_records: list[Any],
+    dispatch_surface_records: list[Any],
     registered_owner_fields: set[str],
 ) -> list[str]:
     failures: list[str] = []
@@ -4442,6 +4550,13 @@ def _validate_event_coverage(
                 transition_sequence_records=transition_sequence_records,
                 label=label,
             )[0]
+        )
+        failures.extend(
+            _validate_dispatch_surface_refs(
+                record=record,
+                dispatch_surface_records=dispatch_surface_records,
+                label=label,
+            )
         )
 
         event_id = record.get("event_id")
@@ -6000,6 +6115,12 @@ def validate_contract(
         if not isinstance(action_records, list) or not action_records:
             failures.append(f"{action_coverage_path}: actions must be a non-empty list")
             action_records = []
+    if isinstance(dispatch_surfaces_doc, dict) and isinstance(
+        dispatch_surfaces_doc.get("dispatch_surfaces"), list
+    ):
+        dispatch_surface_records = dispatch_surfaces_doc["dispatch_surfaces"]
+    else:
+        dispatch_surface_records = []
 
     expected_actions = set(enum_actions)
     covered_actions: set[str] = set()
@@ -6034,6 +6155,13 @@ def validate_contract(
                 ),
                 label=label,
             )[0]
+        )
+        failures.extend(
+            _validate_dispatch_surface_refs(
+                record=record,
+                dispatch_surface_records=dispatch_surface_records,
+                label=label,
+            )
         )
 
         action = record.get("action")
@@ -6110,6 +6238,7 @@ def validate_contract(
             },
             runtime_transition_sequence_records=runtime_transition_sequence_records,
             runtime_action_transitions=runtime_action_records,
+            runtime_dispatch_surface_records=runtime_dispatch_surface_records,
             registered_owner_fields=registered_owner_fields,
         )
     )
@@ -6125,6 +6254,7 @@ def validate_contract(
                 and isinstance(transition_sequences_doc.get("scenarios"), list)
                 else []
             ),
+            dispatch_surface_records=dispatch_surface_records,
             registered_owner_fields=registered_owner_fields,
         )
     )
@@ -6135,6 +6265,7 @@ def validate_contract(
             event_coverage_doc=event_coverage_doc,
             transition_ids=transition_ids,
             runtime_transition_sequence_records=runtime_transition_sequence_records,
+            runtime_dispatch_surface_records=runtime_dispatch_surface_records,
             runtime_transition_ids={record["id"] for record in runtime_transition_records},
         )
     )
@@ -6155,12 +6286,6 @@ def validate_contract(
             invariant_protected_fields=invariant_protected_fields,
         )
     )
-    if isinstance(dispatch_surfaces_doc, dict) and isinstance(
-        dispatch_surfaces_doc.get("dispatch_surfaces"), list
-    ):
-        dispatch_surface_records = dispatch_surfaces_doc["dispatch_surfaces"]
-    else:
-        dispatch_surface_records = []
     failures.extend(
         _validate_runtime_dispatch_surface_registry(
             runtime_records=runtime_dispatch_surface_records,

@@ -38,6 +38,9 @@
       ],
       "transition_sequence_refs": [
         "sequence.terminal-resize-reflow"
+      ],
+      "dispatch_surface_refs": [
+        "surface.resize-signal-handling"
       ]
     },
     {
@@ -64,6 +67,9 @@
       ],
       "transition_sequence_refs": [
         "sequence.refresh-rebuild"
+      ],
+      "dispatch_surface_refs": [
+        "surface.refresh-rebuild-rebind"
       ]
     },
     {
@@ -92,6 +98,9 @@
       ],
       "transition_sequence_refs": [
         "sequence.refresh-rebuild"
+      ],
+      "dispatch_surface_refs": [
+        "surface.panel-anchor-rebind"
       ]
     },
     {
@@ -120,6 +129,9 @@
       ],
       "transition_sequence_refs": [
         "sequence.filesystem-mutation-result"
+      ],
+      "dispatch_surface_refs": [
+        "surface.filesystem-mutation-result"
       ]
     },
     {
@@ -147,6 +159,9 @@
       ],
       "transition_sequence_refs": [
         "sequence.refresh-rebuild"
+      ],
+      "dispatch_surface_refs": [
+        "surface.watcher-live-refresh"
       ]
     },
     {
@@ -173,6 +188,9 @@
       ],
       "transition_sequence_refs": [
         "sequence.search-jump"
+      ],
+      "dispatch_surface_refs": [
+        "surface.command-completion-dispatch"
       ]
     },
     {
@@ -199,6 +217,9 @@
       ],
       "transition_sequence_refs": [
         "sequence.esc-modal-dismissal"
+      ],
+      "dispatch_surface_refs": [
+        "surface.menu-modal-completion"
       ]
     },
     {
@@ -226,6 +247,9 @@
       ],
       "transition_sequence_refs": [
         "sequence.volume-cycling-release"
+      ],
+      "dispatch_surface_refs": [
+        "surface.volume-operation"
       ]
     },
     {
@@ -250,6 +274,9 @@
       ],
       "transition_sequence_refs": [
         "sequence.render-reflow-projection"
+      ],
+      "dispatch_surface_refs": [
+        "surface.render-reflow-projection"
       ]
     }
   ]

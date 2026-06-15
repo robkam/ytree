@@ -28,6 +28,11 @@
         "sequence.split-close-reopen",
         "sequence.split-toggle-f8",
         "sequence.tab-panel-switch"
+      ],
+      "dispatch_surface_refs": [
+        "surface.key-decode-input-dispatch",
+        "surface.directory-window-action-dispatch",
+        "surface.file-window-action-dispatch"
       ]
     },
     {
@@ -55,6 +60,11 @@
         "sequence.split-close-reopen",
         "sequence.split-toggle-f8",
         "sequence.tab-panel-switch"
+      ],
+      "dispatch_surface_refs": [
+        "surface.key-decode-input-dispatch",
+        "surface.directory-window-action-dispatch",
+        "surface.file-window-action-dispatch"
       ]
     },
     {
@@ -82,6 +92,11 @@
         "sequence.split-close-reopen",
         "sequence.split-toggle-f8",
         "sequence.tab-panel-switch"
+      ],
+      "dispatch_surface_refs": [
+        "surface.key-decode-input-dispatch",
+        "surface.directory-window-action-dispatch",
+        "surface.file-window-action-dispatch"
       ]
     },
     {
@@ -109,6 +124,11 @@
         "sequence.split-close-reopen",
         "sequence.split-toggle-f8",
         "sequence.tab-panel-switch"
+      ],
+      "dispatch_surface_refs": [
+        "surface.key-decode-input-dispatch",
+        "surface.directory-window-action-dispatch",
+        "surface.file-window-action-dispatch"
       ]
     },
     {
@@ -136,6 +156,11 @@
         "sequence.split-close-reopen",
         "sequence.split-toggle-f8",
         "sequence.tab-panel-switch"
+      ],
+      "dispatch_surface_refs": [
+        "surface.key-decode-input-dispatch",
+        "surface.directory-window-action-dispatch",
+        "surface.file-window-action-dispatch"
       ]
     },
     {
@@ -163,6 +188,11 @@
         "sequence.split-close-reopen",
         "sequence.split-toggle-f8",
         "sequence.tab-panel-switch"
+      ],
+      "dispatch_surface_refs": [
+        "surface.key-decode-input-dispatch",
+        "surface.directory-window-action-dispatch",
+        "surface.file-window-action-dispatch"
       ]
     },
     {
@@ -190,6 +220,11 @@
         "sequence.split-close-reopen",
         "sequence.split-toggle-f8",
         "sequence.tab-panel-switch"
+      ],
+      "dispatch_surface_refs": [
+        "surface.key-decode-input-dispatch",
+        "surface.directory-window-action-dispatch",
+        "surface.file-window-action-dispatch"
       ]
     },
     {
@@ -217,6 +252,11 @@
         "sequence.split-close-reopen",
         "sequence.split-toggle-f8",
         "sequence.tab-panel-switch"
+      ],
+      "dispatch_surface_refs": [
+        "surface.key-decode-input-dispatch",
+        "surface.directory-window-action-dispatch",
+        "surface.file-window-action-dispatch"
       ]
     },
     {
@@ -244,6 +284,11 @@
         "sequence.split-close-reopen",
         "sequence.split-toggle-f8",
         "sequence.tab-panel-switch"
+      ],
+      "dispatch_surface_refs": [
+        "surface.key-decode-input-dispatch",
+        "surface.directory-window-action-dispatch",
+        "surface.file-window-action-dispatch"
       ]
     },
     {
@@ -271,6 +316,11 @@
         "sequence.split-close-reopen",
         "sequence.split-toggle-f8",
         "sequence.tab-panel-switch"
+      ],
+      "dispatch_surface_refs": [
+        "surface.key-decode-input-dispatch",
+        "surface.directory-window-action-dispatch",
+        "surface.file-window-action-dispatch"
       ]
     },
     {
@@ -298,6 +348,11 @@
         "sequence.split-close-reopen",
         "sequence.split-toggle-f8",
         "sequence.tab-panel-switch"
+      ],
+      "dispatch_surface_refs": [
+        "surface.key-decode-input-dispatch",
+        "surface.directory-window-action-dispatch",
+        "surface.file-window-action-dispatch"
       ]
     },
     {
@@ -325,6 +380,11 @@
         "sequence.split-close-reopen",
         "sequence.split-toggle-f8",
         "sequence.tab-panel-switch"
+      ],
+      "dispatch_surface_refs": [
+        "surface.key-decode-input-dispatch",
+        "surface.directory-window-action-dispatch",
+        "surface.file-window-action-dispatch"
       ]
     },
     {
@@ -352,6 +412,11 @@
         "sequence.split-close-reopen",
         "sequence.split-toggle-f8",
         "sequence.tab-panel-switch"
+      ],
+      "dispatch_surface_refs": [
+        "surface.key-decode-input-dispatch",
+        "surface.directory-window-action-dispatch",
+        "surface.file-window-action-dispatch"
       ]
     },
     {
@@ -379,6 +444,11 @@
         "sequence.split-close-reopen",
         "sequence.split-toggle-f8",
         "sequence.tab-panel-switch"
+      ],
+      "dispatch_surface_refs": [
+        "surface.key-decode-input-dispatch",
+        "surface.directory-window-action-dispatch",
+        "surface.file-window-action-dispatch"
       ]
     },
     {
@@ -406,6 +476,11 @@
         "sequence.split-close-reopen",
         "sequence.split-toggle-f8",
         "sequence.tab-panel-switch"
+      ],
+      "dispatch_surface_refs": [
+        "surface.key-decode-input-dispatch",
+        "surface.directory-window-action-dispatch",
+        "surface.file-window-action-dispatch"
       ]
     },
     {
@@ -425,6 +500,9 @@
       ],
       "transition_sequence_refs": [
         "sequence.esc-modal-dismissal"
+      ],
+      "dispatch_surface_refs": [
+        "surface.menu-modal-completion"
       ]
     },
     {
@@ -445,6 +523,9 @@
       ],
       "transition_sequence_refs": [
         "sequence.refresh-rebuild"
+      ],
+      "dispatch_surface_refs": [
+        "surface.refresh-rebuild-rebind"
       ]
     },
     {
@@ -464,6 +545,9 @@
       ],
       "transition_sequence_refs": [
         "sequence.search-jump"
+      ],
+      "dispatch_surface_refs": [
+        "surface.command-completion-dispatch"
       ]
     },
     {
@@ -483,6 +567,9 @@
       ],
       "transition_sequence_refs": [
         "sequence.search-jump"
+      ],
+      "dispatch_surface_refs": [
+        "surface.command-completion-dispatch"
       ]
     },
     {
@@ -510,6 +597,11 @@
         "sequence.split-close-reopen",
         "sequence.split-toggle-f8",
         "sequence.tab-panel-switch"
+      ],
+      "dispatch_surface_refs": [
+        "surface.key-decode-input-dispatch",
+        "surface.directory-window-action-dispatch",
+        "surface.file-window-action-dispatch"
       ]
     },
     {
@@ -537,6 +629,11 @@
         "sequence.split-close-reopen",
         "sequence.split-toggle-f8",
         "sequence.tab-panel-switch"
+      ],
+      "dispatch_surface_refs": [
+        "surface.key-decode-input-dispatch",
+        "surface.directory-window-action-dispatch",
+        "surface.file-window-action-dispatch"
       ]
     },
     {
@@ -564,6 +661,11 @@
         "sequence.split-close-reopen",
         "sequence.split-toggle-f8",
         "sequence.tab-panel-switch"
+      ],
+      "dispatch_surface_refs": [
+        "surface.key-decode-input-dispatch",
+        "surface.directory-window-action-dispatch",
+        "surface.file-window-action-dispatch"
       ]
     },
     {
@@ -591,6 +693,11 @@
         "sequence.split-close-reopen",
         "sequence.split-toggle-f8",
         "sequence.tab-panel-switch"
+      ],
+      "dispatch_surface_refs": [
+        "surface.key-decode-input-dispatch",
+        "surface.directory-window-action-dispatch",
+        "surface.file-window-action-dispatch"
       ]
     },
     {
@@ -618,6 +725,11 @@
         "sequence.split-close-reopen",
         "sequence.split-toggle-f8",
         "sequence.tab-panel-switch"
+      ],
+      "dispatch_surface_refs": [
+        "surface.key-decode-input-dispatch",
+        "surface.directory-window-action-dispatch",
+        "surface.file-window-action-dispatch"
       ]
     },
     {
@@ -645,6 +757,11 @@
         "sequence.split-close-reopen",
         "sequence.split-toggle-f8",
         "sequence.tab-panel-switch"
+      ],
+      "dispatch_surface_refs": [
+        "surface.key-decode-input-dispatch",
+        "surface.directory-window-action-dispatch",
+        "surface.file-window-action-dispatch"
       ]
     },
     {
@@ -672,6 +789,11 @@
         "sequence.split-close-reopen",
         "sequence.split-toggle-f8",
         "sequence.tab-panel-switch"
+      ],
+      "dispatch_surface_refs": [
+        "surface.key-decode-input-dispatch",
+        "surface.directory-window-action-dispatch",
+        "surface.file-window-action-dispatch"
       ]
     },
     {
@@ -699,6 +821,11 @@
         "sequence.split-close-reopen",
         "sequence.split-toggle-f8",
         "sequence.tab-panel-switch"
+      ],
+      "dispatch_surface_refs": [
+        "surface.key-decode-input-dispatch",
+        "surface.directory-window-action-dispatch",
+        "surface.file-window-action-dispatch"
       ]
     },
     {
@@ -719,6 +846,9 @@
       ],
       "transition_sequence_refs": [
         "sequence.refresh-rebuild"
+      ],
+      "dispatch_surface_refs": [
+        "surface.refresh-rebuild-rebind"
       ]
     },
     {
@@ -739,6 +869,9 @@
       ],
       "transition_sequence_refs": [
         "sequence.terminal-resize-reflow"
+      ],
+      "dispatch_surface_refs": [
+        "surface.resize-signal-handling"
       ]
     },
     {
@@ -758,6 +891,9 @@
       ],
       "transition_sequence_refs": [
         "sequence.volume-menu-select"
+      ],
+      "dispatch_surface_refs": [
+        "surface.volume-menu-selection"
       ]
     },
     {
@@ -778,6 +914,9 @@
       ],
       "transition_sequence_refs": [
         "sequence.volume-cycling-release"
+      ],
+      "dispatch_surface_refs": [
+        "surface.volume-operation"
       ]
     },
     {
@@ -798,6 +937,9 @@
       ],
       "transition_sequence_refs": [
         "sequence.volume-cycling-release"
+      ],
+      "dispatch_surface_refs": [
+        "surface.volume-operation"
       ]
     },
     {
@@ -819,6 +961,9 @@
       ],
       "transition_sequence_refs": [
         "sequence.filesystem-mutation-result"
+      ],
+      "dispatch_surface_refs": [
+        "surface.filesystem-mutation-result"
       ]
     },
     {
@@ -840,6 +985,9 @@
       ],
       "transition_sequence_refs": [
         "sequence.filesystem-mutation-result"
+      ],
+      "dispatch_surface_refs": [
+        "surface.filesystem-mutation-result"
       ]
     },
     {
@@ -861,6 +1009,9 @@
       ],
       "transition_sequence_refs": [
         "sequence.filesystem-mutation-result"
+      ],
+      "dispatch_surface_refs": [
+        "surface.filesystem-mutation-result"
       ]
     },
     {
@@ -882,6 +1033,9 @@
       ],
       "transition_sequence_refs": [
         "sequence.filesystem-mutation-result"
+      ],
+      "dispatch_surface_refs": [
+        "surface.filesystem-mutation-result"
       ]
     },
     {
@@ -903,6 +1057,9 @@
       ],
       "transition_sequence_refs": [
         "sequence.filesystem-mutation-result"
+      ],
+      "dispatch_surface_refs": [
+        "surface.filesystem-mutation-result"
       ]
     },
     {
@@ -924,6 +1081,9 @@
       ],
       "transition_sequence_refs": [
         "sequence.filesystem-mutation-result"
+      ],
+      "dispatch_surface_refs": [
+        "surface.filesystem-mutation-result"
       ]
     },
     {
@@ -945,6 +1105,9 @@
       ],
       "transition_sequence_refs": [
         "sequence.filesystem-mutation-result"
+      ],
+      "dispatch_surface_refs": [
+        "surface.filesystem-mutation-result"
       ]
     },
     {
@@ -966,6 +1129,9 @@
       ],
       "transition_sequence_refs": [
         "sequence.filesystem-mutation-result"
+      ],
+      "dispatch_surface_refs": [
+        "surface.filesystem-mutation-result"
       ]
     },
     {
@@ -987,6 +1153,9 @@
       ],
       "transition_sequence_refs": [
         "sequence.filesystem-mutation-result"
+      ],
+      "dispatch_surface_refs": [
+        "surface.filesystem-mutation-result"
       ]
     },
     {
@@ -1008,6 +1177,9 @@
       ],
       "transition_sequence_refs": [
         "sequence.filesystem-mutation-result"
+      ],
+      "dispatch_surface_refs": [
+        "surface.filesystem-mutation-result"
       ]
     },
     {
@@ -1029,6 +1201,9 @@
       ],
       "transition_sequence_refs": [
         "sequence.filesystem-mutation-result"
+      ],
+      "dispatch_surface_refs": [
+        "surface.filesystem-mutation-result"
       ]
     },
     {
@@ -1050,6 +1225,9 @@
       ],
       "transition_sequence_refs": [
         "sequence.filesystem-mutation-result"
+      ],
+      "dispatch_surface_refs": [
+        "surface.filesystem-mutation-result"
       ]
     },
     {
@@ -1071,6 +1249,9 @@
       ],
       "transition_sequence_refs": [
         "sequence.filesystem-mutation-result"
+      ],
+      "dispatch_surface_refs": [
+        "surface.filesystem-mutation-result"
       ]
     },
     {
@@ -1092,6 +1273,9 @@
       ],
       "transition_sequence_refs": [
         "sequence.filesystem-mutation-result"
+      ],
+      "dispatch_surface_refs": [
+        "surface.filesystem-mutation-result"
       ]
     },
     {
@@ -1113,6 +1297,9 @@
       ],
       "transition_sequence_refs": [
         "sequence.filesystem-mutation-result"
+      ],
+      "dispatch_surface_refs": [
+        "surface.filesystem-mutation-result"
       ]
     },
     {
@@ -1134,6 +1321,9 @@
       ],
       "transition_sequence_refs": [
         "sequence.filesystem-mutation-result"
+      ],
+      "dispatch_surface_refs": [
+        "surface.filesystem-mutation-result"
       ]
     },
     {
@@ -1153,6 +1343,9 @@
       ],
       "transition_sequence_refs": [
         "sequence.search-jump"
+      ],
+      "dispatch_surface_refs": [
+        "surface.command-completion-dispatch"
       ]
     },
     {
@@ -1180,6 +1373,11 @@
         "sequence.split-close-reopen",
         "sequence.split-toggle-f8",
         "sequence.tab-panel-switch"
+      ],
+      "dispatch_surface_refs": [
+        "surface.key-decode-input-dispatch",
+        "surface.directory-window-action-dispatch",
+        "surface.file-window-action-dispatch"
       ]
     },
     {
@@ -1207,6 +1405,11 @@
         "sequence.split-close-reopen",
         "sequence.split-toggle-f8",
         "sequence.tab-panel-switch"
+      ],
+      "dispatch_surface_refs": [
+        "surface.key-decode-input-dispatch",
+        "surface.directory-window-action-dispatch",
+        "surface.file-window-action-dispatch"
       ]
     },
     {
@@ -1228,6 +1431,9 @@
       ],
       "transition_sequence_refs": [
         "sequence.filesystem-mutation-result"
+      ],
+      "dispatch_surface_refs": [
+        "surface.filesystem-mutation-result"
       ]
     },
     {
@@ -1249,6 +1455,9 @@
       ],
       "transition_sequence_refs": [
         "sequence.filesystem-mutation-result"
+      ],
+      "dispatch_surface_refs": [
+        "surface.filesystem-mutation-result"
       ]
     },
     {
@@ -1270,6 +1479,9 @@
       ],
       "transition_sequence_refs": [
         "sequence.filesystem-mutation-result"
+      ],
+      "dispatch_surface_refs": [
+        "surface.filesystem-mutation-result"
       ]
     },
     {
@@ -1291,6 +1503,9 @@
       ],
       "transition_sequence_refs": [
         "sequence.filesystem-mutation-result"
+      ],
+      "dispatch_surface_refs": [
+        "surface.filesystem-mutation-result"
       ]
     },
     {
@@ -1312,6 +1527,9 @@
       ],
       "transition_sequence_refs": [
         "sequence.filesystem-mutation-result"
+      ],
+      "dispatch_surface_refs": [
+        "surface.filesystem-mutation-result"
       ]
     },
     {
@@ -1333,6 +1551,9 @@
       ],
       "transition_sequence_refs": [
         "sequence.filesystem-mutation-result"
+      ],
+      "dispatch_surface_refs": [
+        "surface.filesystem-mutation-result"
       ]
     },
     {
@@ -1354,6 +1575,9 @@
       ],
       "transition_sequence_refs": [
         "sequence.filesystem-mutation-result"
+      ],
+      "dispatch_surface_refs": [
+        "surface.filesystem-mutation-result"
       ]
     },
     {
@@ -1375,6 +1599,9 @@
       ],
       "transition_sequence_refs": [
         "sequence.filesystem-mutation-result"
+      ],
+      "dispatch_surface_refs": [
+        "surface.filesystem-mutation-result"
       ]
     },
     {
@@ -1396,6 +1623,9 @@
       ],
       "transition_sequence_refs": [
         "sequence.filesystem-mutation-result"
+      ],
+      "dispatch_surface_refs": [
+        "surface.filesystem-mutation-result"
       ]
     },
     {
@@ -1417,6 +1647,9 @@
       ],
       "transition_sequence_refs": [
         "sequence.filesystem-mutation-result"
+      ],
+      "dispatch_surface_refs": [
+        "surface.filesystem-mutation-result"
       ]
     },
     {
@@ -1438,6 +1671,9 @@
       ],
       "transition_sequence_refs": [
         "sequence.filesystem-mutation-result"
+      ],
+      "dispatch_surface_refs": [
+        "surface.filesystem-mutation-result"
       ]
     },
     {
@@ -1459,6 +1695,9 @@
       ],
       "transition_sequence_refs": [
         "sequence.filesystem-mutation-result"
+      ],
+      "dispatch_surface_refs": [
+        "surface.filesystem-mutation-result"
       ]
     },
     {
@@ -1480,6 +1719,9 @@
       ],
       "transition_sequence_refs": [
         "sequence.filesystem-mutation-result"
+      ],
+      "dispatch_surface_refs": [
+        "surface.filesystem-mutation-result"
       ]
     },
     {
@@ -1499,6 +1741,9 @@
       ],
       "transition_sequence_refs": [
         "sequence.search-jump"
+      ],
+      "dispatch_surface_refs": [
+        "surface.command-completion-dispatch"
       ]
     },
     {
@@ -1526,6 +1771,11 @@
         "sequence.split-close-reopen",
         "sequence.split-toggle-f8",
         "sequence.tab-panel-switch"
+      ],
+      "dispatch_surface_refs": [
+        "surface.key-decode-input-dispatch",
+        "surface.directory-window-action-dispatch",
+        "surface.file-window-action-dispatch"
       ]
     },
     {
@@ -1553,6 +1803,11 @@
         "sequence.split-close-reopen",
         "sequence.split-toggle-f8",
         "sequence.tab-panel-switch"
+      ],
+      "dispatch_surface_refs": [
+        "surface.key-decode-input-dispatch",
+        "surface.directory-window-action-dispatch",
+        "surface.file-window-action-dispatch"
       ]
     },
     {
@@ -1580,6 +1835,11 @@
         "sequence.split-close-reopen",
         "sequence.split-toggle-f8",
         "sequence.tab-panel-switch"
+      ],
+      "dispatch_surface_refs": [
+        "surface.key-decode-input-dispatch",
+        "surface.directory-window-action-dispatch",
+        "surface.file-window-action-dispatch"
       ]
     },
     {
@@ -1607,6 +1867,11 @@
         "sequence.split-close-reopen",
         "sequence.split-toggle-f8",
         "sequence.tab-panel-switch"
+      ],
+      "dispatch_surface_refs": [
+        "surface.key-decode-input-dispatch",
+        "surface.directory-window-action-dispatch",
+        "surface.file-window-action-dispatch"
       ]
     },
     {
@@ -1634,6 +1899,11 @@
         "sequence.split-close-reopen",
         "sequence.split-toggle-f8",
         "sequence.tab-panel-switch"
+      ],
+      "dispatch_surface_refs": [
+        "surface.key-decode-input-dispatch",
+        "surface.directory-window-action-dispatch",
+        "surface.file-window-action-dispatch"
       ]
     },
     {
@@ -1661,6 +1931,11 @@
         "sequence.split-close-reopen",
         "sequence.split-toggle-f8",
         "sequence.tab-panel-switch"
+      ],
+      "dispatch_surface_refs": [
+        "surface.key-decode-input-dispatch",
+        "surface.directory-window-action-dispatch",
+        "surface.file-window-action-dispatch"
       ]
     },
     {
@@ -1688,6 +1963,11 @@
         "sequence.split-close-reopen",
         "sequence.split-toggle-f8",
         "sequence.tab-panel-switch"
+      ],
+      "dispatch_surface_refs": [
+        "surface.key-decode-input-dispatch",
+        "surface.directory-window-action-dispatch",
+        "surface.file-window-action-dispatch"
       ]
     },
     {
@@ -1715,6 +1995,11 @@
         "sequence.split-close-reopen",
         "sequence.split-toggle-f8",
         "sequence.tab-panel-switch"
+      ],
+      "dispatch_surface_refs": [
+        "surface.key-decode-input-dispatch",
+        "surface.directory-window-action-dispatch",
+        "surface.file-window-action-dispatch"
       ]
     },
     {
@@ -1742,6 +2027,11 @@
         "sequence.split-close-reopen",
         "sequence.split-toggle-f8",
         "sequence.tab-panel-switch"
+      ],
+      "dispatch_surface_refs": [
+        "surface.key-decode-input-dispatch",
+        "surface.directory-window-action-dispatch",
+        "surface.file-window-action-dispatch"
       ]
     },
     {
@@ -1769,6 +2059,11 @@
         "sequence.split-close-reopen",
         "sequence.split-toggle-f8",
         "sequence.tab-panel-switch"
+      ],
+      "dispatch_surface_refs": [
+        "surface.key-decode-input-dispatch",
+        "surface.directory-window-action-dispatch",
+        "surface.file-window-action-dispatch"
       ]
     },
     {
@@ -1796,6 +2091,11 @@
         "sequence.split-close-reopen",
         "sequence.split-toggle-f8",
         "sequence.tab-panel-switch"
+      ],
+      "dispatch_surface_refs": [
+        "surface.key-decode-input-dispatch",
+        "surface.directory-window-action-dispatch",
+        "surface.file-window-action-dispatch"
       ]
     },
     {
@@ -1823,6 +2123,11 @@
         "sequence.split-close-reopen",
         "sequence.split-toggle-f8",
         "sequence.tab-panel-switch"
+      ],
+      "dispatch_surface_refs": [
+        "surface.key-decode-input-dispatch",
+        "surface.directory-window-action-dispatch",
+        "surface.file-window-action-dispatch"
       ]
     },
     {
@@ -1850,6 +2155,11 @@
         "sequence.split-close-reopen",
         "sequence.split-toggle-f8",
         "sequence.tab-panel-switch"
+      ],
+      "dispatch_surface_refs": [
+        "surface.key-decode-input-dispatch",
+        "surface.directory-window-action-dispatch",
+        "surface.file-window-action-dispatch"
       ]
     },
     {
@@ -1877,6 +2187,11 @@
         "sequence.split-close-reopen",
         "sequence.split-toggle-f8",
         "sequence.tab-panel-switch"
+      ],
+      "dispatch_surface_refs": [
+        "surface.key-decode-input-dispatch",
+        "surface.directory-window-action-dispatch",
+        "surface.file-window-action-dispatch"
       ]
     },
     {
@@ -1904,6 +2219,11 @@
         "sequence.split-close-reopen",
         "sequence.split-toggle-f8",
         "sequence.tab-panel-switch"
+      ],
+      "dispatch_surface_refs": [
+        "surface.key-decode-input-dispatch",
+        "surface.directory-window-action-dispatch",
+        "surface.file-window-action-dispatch"
       ]
     },
     {
@@ -1931,6 +2251,11 @@
         "sequence.split-close-reopen",
         "sequence.split-toggle-f8",
         "sequence.tab-panel-switch"
+      ],
+      "dispatch_surface_refs": [
+        "surface.key-decode-input-dispatch",
+        "surface.directory-window-action-dispatch",
+        "surface.file-window-action-dispatch"
       ]
     },
     {
@@ -1958,6 +2283,11 @@
         "sequence.split-close-reopen",
         "sequence.split-toggle-f8",
         "sequence.tab-panel-switch"
+      ],
+      "dispatch_surface_refs": [
+        "surface.key-decode-input-dispatch",
+        "surface.directory-window-action-dispatch",
+        "surface.file-window-action-dispatch"
       ]
     },
     {
@@ -1985,6 +2315,11 @@
         "sequence.split-close-reopen",
         "sequence.split-toggle-f8",
         "sequence.tab-panel-switch"
+      ],
+      "dispatch_surface_refs": [
+        "surface.key-decode-input-dispatch",
+        "surface.directory-window-action-dispatch",
+        "surface.file-window-action-dispatch"
       ]
     },
     {
@@ -2004,6 +2339,9 @@
       ],
       "transition_sequence_refs": [
         "sequence.search-jump"
+      ],
+      "dispatch_surface_refs": [
+        "surface.command-completion-dispatch"
       ]
     },
     {
@@ -2023,6 +2361,9 @@
       ],
       "transition_sequence_refs": [
         "sequence.search-jump"
+      ],
+      "dispatch_surface_refs": [
+        "surface.command-completion-dispatch"
       ]
     }
   ]

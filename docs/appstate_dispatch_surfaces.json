@@ -186,6 +186,63 @@
       "transition_sequence_refs": [
         "sequence.render-reflow-projection"
       ]
+    },
+    {
+      "surface_id": "surface.command-completion-dispatch",
+      "category": "command_completion_dispatch",
+      "source_path": "src/ui/ctrl_file_ops.c",
+      "entry_symbol_or_path": "handle_file_window_command_action",
+      "transition_id": "transition.command-completion.user-command",
+      "boundary_status": "documented_foundation_only",
+      "allowed_direct_writes": [],
+      "migration_notes": [
+        "Current command handlers settle completion state after external or user-command execution returns; runtime migration should lift that completion boundary without broadening write authority here."
+      ],
+      "transition_sequence_refs": [
+        "sequence.search-jump"
+      ]
+    },
+    {
+      "surface_id": "surface.volume-menu-selection",
+      "category": "volume_menu_selection",
+      "source_path": "src/ui/volume_menu.c",
+      "entry_symbol_or_path": "SelectLoadedVolume",
+      "transition_id": "transition.menu-action.volume-select",
+      "boundary_status": "documented_foundation_only",
+      "allowed_direct_writes": [
+        "ctx.active",
+        "panel.volume_key",
+        "panel.restore_snapshot",
+        "panel.panel_generation"
+      ],
+      "migration_notes": [
+        "Current loaded-volume menu selection remains the existing selection boundary for active-panel volume binding until dedicated runtime transition objects replace menu-coupled control flow."
+      ],
+      "transition_sequence_refs": [
+        "sequence.volume-menu-select"
+      ]
+    },
+    {
+      "surface_id": "surface.panel-anchor-rebind",
+      "category": "rebuild_rebind_callback",
+      "source_path": "src/ui/panel_anchor.c",
+      "entry_symbol_or_path": "RestorePanelViewportSnapshot",
+      "transition_id": "transition.rebuild-rebind-callback.panel-anchor",
+      "boundary_status": "documented_foundation_only",
+      "allowed_direct_writes": [
+        "panel.tree_selection_key",
+        "panel.file_selection_key",
+        "panel.tree_cursor_pos",
+        "panel.tree_viewport_origin",
+        "panel.file_viewport_origin",
+        "panel.panel_generation"
+      ],
+      "migration_notes": [
+        "Current panel-anchor restore helpers remain the canonical callback surface for post-rebuild re-resolution; migration should keep fallback ordering anchored here."
+      ],
+      "transition_sequence_refs": [
+        "sequence.refresh-rebuild"
+      ]
     }
   ]
 }

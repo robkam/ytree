@@ -1401,6 +1401,7 @@ static const AppStateTransitionSequenceGenerationExpectationMetadata kAppStateTr
 
 static const char *const kAppStateTransitionSequenceStepInvariantIds5_1[] = {
   "invariant.stale-snapshot-fail-closed",
+  "invariant.hidden-entry-visible-navigation",
   "invariant.viewport-identity-rebind",
 };
 
@@ -2169,6 +2170,39 @@ static const char *const kAppStateDispatchSurfaceMigrationNotes9[] = {
   "Current render refresh projects settled state to ncurses windows; projection must not become selection, viewport, or topology authority.",
 };
 
+static const char *const kAppStateDispatchSurfaceTransitionSequenceRefs10[] = {
+  "sequence.search-jump",
+};
+static const char *const kAppStateDispatchSurfaceMigrationNotes10[] = {
+  "Current command handlers settle completion state after external or user-command execution returns; runtime migration should lift that completion boundary without broadening write authority here.",
+};
+static const char *const kAppStateDispatchSurfaceAllowedDirectWrites11[] = {
+  "ctx.active",
+  "panel.volume_key",
+  "panel.restore_snapshot",
+  "panel.panel_generation",
+};
+static const char *const kAppStateDispatchSurfaceTransitionSequenceRefs11[] = {
+  "sequence.volume-menu-select",
+};
+static const char *const kAppStateDispatchSurfaceMigrationNotes11[] = {
+  "Current loaded-volume menu selection remains the existing selection boundary for active-panel volume binding until dedicated runtime transition objects replace menu-coupled control flow.",
+};
+static const char *const kAppStateDispatchSurfaceAllowedDirectWrites12[] = {
+  "panel.tree_selection_key",
+  "panel.file_selection_key",
+  "panel.tree_cursor_pos",
+  "panel.tree_viewport_origin",
+  "panel.file_viewport_origin",
+  "panel.panel_generation",
+};
+static const char *const kAppStateDispatchSurfaceTransitionSequenceRefs12[] = {
+  "sequence.refresh-rebuild",
+};
+static const char *const kAppStateDispatchSurfaceMigrationNotes12[] = {
+  "Current panel-anchor restore helpers remain the canonical callback surface for post-rebuild re-resolution; migration should keep fallback ordering anchored here.",
+};
+
 static const AppStateDispatchSurfaceMetadata kAppStateDispatchSurfaces[] = {
   {"surface.key-decode-input-dispatch",
    "key_decode_input_dispatch",
@@ -2306,6 +2340,47 @@ static const AppStateDispatchSurfaceMetadata kAppStateDispatchSurfaces[] = {
        sizeof(kAppStateDispatchSurfaceTransitionSequenceRefs9[0]),
    kAppStateDispatchSurfaceMigrationNotes9,
    sizeof(kAppStateDispatchSurfaceMigrationNotes9) / sizeof(kAppStateDispatchSurfaceMigrationNotes9[0])},
+  {"surface.command-completion-dispatch",
+   "command_completion_dispatch",
+   "src/ui/ctrl_file_ops.c",
+   "handle_file_window_command_action",
+   "transition.command-completion.user-command",
+   "documented_foundation_only",
+   NULL,
+   0,
+   kAppStateDispatchSurfaceTransitionSequenceRefs10,
+   sizeof(kAppStateDispatchSurfaceTransitionSequenceRefs10) /
+       sizeof(kAppStateDispatchSurfaceTransitionSequenceRefs10[0]),
+   kAppStateDispatchSurfaceMigrationNotes10,
+   sizeof(kAppStateDispatchSurfaceMigrationNotes10) / sizeof(kAppStateDispatchSurfaceMigrationNotes10[0])},
+  {"surface.volume-menu-selection",
+   "volume_menu_selection",
+   "src/ui/volume_menu.c",
+   "SelectLoadedVolume",
+   "transition.menu-action.volume-select",
+   "documented_foundation_only",
+   kAppStateDispatchSurfaceAllowedDirectWrites11,
+   sizeof(kAppStateDispatchSurfaceAllowedDirectWrites11) /
+       sizeof(kAppStateDispatchSurfaceAllowedDirectWrites11[0]),
+   kAppStateDispatchSurfaceTransitionSequenceRefs11,
+   sizeof(kAppStateDispatchSurfaceTransitionSequenceRefs11) /
+       sizeof(kAppStateDispatchSurfaceTransitionSequenceRefs11[0]),
+   kAppStateDispatchSurfaceMigrationNotes11,
+   sizeof(kAppStateDispatchSurfaceMigrationNotes11) / sizeof(kAppStateDispatchSurfaceMigrationNotes11[0])},
+  {"surface.panel-anchor-rebind",
+   "rebuild_rebind_callback",
+   "src/ui/panel_anchor.c",
+   "RestorePanelViewportSnapshot",
+   "transition.rebuild-rebind-callback.panel-anchor",
+   "documented_foundation_only",
+   kAppStateDispatchSurfaceAllowedDirectWrites12,
+   sizeof(kAppStateDispatchSurfaceAllowedDirectWrites12) /
+       sizeof(kAppStateDispatchSurfaceAllowedDirectWrites12[0]),
+   kAppStateDispatchSurfaceTransitionSequenceRefs12,
+   sizeof(kAppStateDispatchSurfaceTransitionSequenceRefs12) /
+       sizeof(kAppStateDispatchSurfaceTransitionSequenceRefs12[0]),
+   kAppStateDispatchSurfaceMigrationNotes12,
+   sizeof(kAppStateDispatchSurfaceMigrationNotes12) / sizeof(kAppStateDispatchSurfaceMigrationNotes12[0])},
 };
 static const char *const kAppStateCompatibilityShimInvariantChecks0[] = {
   "invariant.hidden-entry-visible-navigation",
@@ -2421,6 +2496,7 @@ static const char *const kAppStateInvariantTransitionIds0[] = {
 static const char *const kAppStateInvariantDispatchSurfaceIds0[] = {
   "surface.directory-window-action-dispatch",
   "surface.file-window-action-dispatch",
+  "surface.volume-menu-selection",
   "surface.menu-modal-completion",
   "surface.refresh-rebuild-rebind",
   "surface.volume-operation",
@@ -2478,6 +2554,7 @@ static const char *const kAppStateInvariantTransitionIds2[] = {
 static const char *const kAppStateInvariantDispatchSurfaceIds2[] = {
   "surface.directory-window-action-dispatch",
   "surface.refresh-rebuild-rebind",
+  "surface.panel-anchor-rebind",
   "surface.watcher-live-refresh",
 };
 
@@ -2536,6 +2613,7 @@ static const char *const kAppStateInvariantDispatchSurfaceIds4[] = {
   "surface.refresh-rebuild-rebind",
   "surface.resize-signal-handling",
   "surface.filesystem-mutation-result",
+  "surface.panel-anchor-rebind",
   "surface.watcher-live-refresh",
 };
 
@@ -2566,6 +2644,7 @@ static const char *const kAppStateInvariantTransitionIds5[] = {
 };
 
 static const char *const kAppStateInvariantDispatchSurfaceIds5[] = {
+  "surface.volume-menu-selection",
   "surface.volume-operation",
   "surface.refresh-rebuild-rebind",
   "surface.filesystem-mutation-result",
@@ -2598,6 +2677,7 @@ static const char *const kAppStateInvariantDispatchSurfaceIds6[] = {
   "surface.refresh-rebuild-rebind",
   "surface.volume-operation",
   "surface.filesystem-mutation-result",
+  "surface.panel-anchor-rebind",
   "surface.watcher-live-refresh",
 };
 
@@ -3011,6 +3091,9 @@ static const char *const kAppStateEventCoverageTransitionSequenceRefs0[] = {
 static const char *const kAppStateEventCoverageMigrationNotes0[] = {
   "Signal handlers may only set flags; resize commits through the main-loop transition boundary.",
 };
+static const char *const kAppStateEventCoverageDispatchSurfaceRefs0[] = {
+  "surface.resize-signal-handling",
+};
 static const char *const kAppStateEventCoverageTriggerPaths1[] = {
   "Manual refresh command",
   "Explicit relog of the current path",
@@ -3020,6 +3103,9 @@ static const char *const kAppStateEventCoverageTransitionSequenceRefs1[] = {
 };
 static const char *const kAppStateEventCoverageMigrationNotes1[] = {
   "Rebuild must settle topology, advance generation, then rebind panels by stable identity.",
+};
+static const char *const kAppStateEventCoverageDispatchSurfaceRefs1[] = {
+  "surface.refresh-rebuild-rebind",
 };
 static const char *const kAppStateEventCoverageTriggerPaths2[] = {
   "Post-refresh restore",
@@ -3032,6 +3118,9 @@ static const char *const kAppStateEventCoverageTransitionSequenceRefs2[] = {
 static const char *const kAppStateEventCoverageMigrationNotes2[] = {
   "Callback coverage points to the existing rebuild/rebind transition rather than inventing a separate runtime event.",
 };
+static const char *const kAppStateEventCoverageDispatchSurfaceRefs2[] = {
+  "surface.panel-anchor-rebind",
+};
 static const char *const kAppStateEventCoverageTriggerPaths3[] = {
   "Create directory result",
   "Copy or move result",
@@ -3042,6 +3131,9 @@ static const char *const kAppStateEventCoverageTransitionSequenceRefs3[] = {
 };
 static const char *const kAppStateEventCoverageMigrationNotes3[] = {
   "Command side effects remain outside AppState commit; only completed results may update AppState metadata.",
+};
+static const char *const kAppStateEventCoverageDispatchSurfaceRefs3[] = {
+  "surface.filesystem-mutation-result",
 };
 static const char *const kAppStateEventCoverageTriggerPaths4[] = {
   "Watcher notification",
@@ -3054,6 +3146,9 @@ static const char *const kAppStateEventCoverageTransitionSequenceRefs4[] = {
 static const char *const kAppStateEventCoverageMigrationNotes4[] = {
   "Watcher/live-refresh intentionally maps to the broad refresh_rebuild transition until a dedicated watcher runtime boundary exists.",
 };
+static const char *const kAppStateEventCoverageDispatchSurfaceRefs4[] = {
+  "surface.watcher-live-refresh",
+};
 static const char *const kAppStateEventCoverageTriggerPaths5[] = {
   "External command completion",
   "User command menu completion",
@@ -3064,6 +3159,9 @@ static const char *const kAppStateEventCoverageTransitionSequenceRefs5[] = {
 };
 static const char *const kAppStateEventCoverageMigrationNotes5[] = {
   "Command completion may schedule refresh only when the command contract declares filesystem impact.",
+};
+static const char *const kAppStateEventCoverageDispatchSurfaceRefs5[] = {
+  "surface.command-completion-dispatch",
 };
 static const char *const kAppStateEventCoverageTriggerPaths6[] = {
   "Modal Enter completion",
@@ -3076,6 +3174,9 @@ static const char *const kAppStateEventCoverageTransitionSequenceRefs6[] = {
 static const char *const kAppStateEventCoverageMigrationNotes6[] = {
   "Modal completion maps to the modal_action dismiss record while destructive confirmations remain governed by their own command transitions.",
 };
+static const char *const kAppStateEventCoverageDispatchSurfaceRefs6[] = {
+  "surface.menu-modal-completion",
+};
 static const char *const kAppStateEventCoverageTriggerPaths7[] = {
   "Cycle loaded volume",
   "Release volume",
@@ -3087,6 +3188,9 @@ static const char *const kAppStateEventCoverageTransitionSequenceRefs7[] = {
 static const char *const kAppStateEventCoverageMigrationNotes7[] = {
   "Lifecycle coverage keeps inactive panels from inheriting stale volume pointers during migration.",
 };
+static const char *const kAppStateEventCoverageDispatchSurfaceRefs7[] = {
+  "surface.volume-operation",
+};
 static const char *const kAppStateEventCoverageTriggerPaths8[] = {
   "Render dirty flag projection",
   "Layout reflow projection",
@@ -3097,6 +3201,9 @@ static const char *const kAppStateEventCoverageTransitionSequenceRefs8[] = {
 };
 static const char *const kAppStateEventCoverageMigrationNotes8[] = {
   "Render/reflow is projection-only and must not become restore authority.",
+};
+static const char *const kAppStateEventCoverageDispatchSurfaceRefs8[] = {
+  "surface.render-reflow-projection",
 };
 
 static const AppStateEventCoverageMetadata
@@ -3114,6 +3221,8 @@ static const AppStateEventCoverageMetadata
    sizeof(kAppStateEventCoverageTriggerPaths0) / sizeof(kAppStateEventCoverageTriggerPaths0[0]),
    kAppStateEventCoverageTransitionSequenceRefs0,
    sizeof(kAppStateEventCoverageTransitionSequenceRefs0) / sizeof(kAppStateEventCoverageTransitionSequenceRefs0[0]),
+   kAppStateEventCoverageDispatchSurfaceRefs0,
+   sizeof(kAppStateEventCoverageDispatchSurfaceRefs0) / sizeof(kAppStateEventCoverageDispatchSurfaceRefs0[0]),
    kAppStateEventCoverageMigrationNotes0,
    sizeof(kAppStateEventCoverageMigrationNotes0) / sizeof(kAppStateEventCoverageMigrationNotes0[0])},
   {"event.refresh-rebuild",
@@ -3129,6 +3238,8 @@ static const AppStateEventCoverageMetadata
    sizeof(kAppStateEventCoverageTriggerPaths1) / sizeof(kAppStateEventCoverageTriggerPaths1[0]),
    kAppStateEventCoverageTransitionSequenceRefs1,
    sizeof(kAppStateEventCoverageTransitionSequenceRefs1) / sizeof(kAppStateEventCoverageTransitionSequenceRefs1[0]),
+   kAppStateEventCoverageDispatchSurfaceRefs1,
+   sizeof(kAppStateEventCoverageDispatchSurfaceRefs1) / sizeof(kAppStateEventCoverageDispatchSurfaceRefs1[0]),
    kAppStateEventCoverageMigrationNotes1,
    sizeof(kAppStateEventCoverageMigrationNotes1) / sizeof(kAppStateEventCoverageMigrationNotes1[0])},
   {"event.rebuild-rebind-callback",
@@ -3144,6 +3255,8 @@ static const AppStateEventCoverageMetadata
    sizeof(kAppStateEventCoverageTriggerPaths2) / sizeof(kAppStateEventCoverageTriggerPaths2[0]),
    kAppStateEventCoverageTransitionSequenceRefs2,
    sizeof(kAppStateEventCoverageTransitionSequenceRefs2) / sizeof(kAppStateEventCoverageTransitionSequenceRefs2[0]),
+   kAppStateEventCoverageDispatchSurfaceRefs2,
+   sizeof(kAppStateEventCoverageDispatchSurfaceRefs2) / sizeof(kAppStateEventCoverageDispatchSurfaceRefs2[0]),
    kAppStateEventCoverageMigrationNotes2,
    sizeof(kAppStateEventCoverageMigrationNotes2) / sizeof(kAppStateEventCoverageMigrationNotes2[0])},
   {"event.filesystem-mutation-result",
@@ -3159,6 +3272,8 @@ static const AppStateEventCoverageMetadata
    sizeof(kAppStateEventCoverageTriggerPaths3) / sizeof(kAppStateEventCoverageTriggerPaths3[0]),
    kAppStateEventCoverageTransitionSequenceRefs3,
    sizeof(kAppStateEventCoverageTransitionSequenceRefs3) / sizeof(kAppStateEventCoverageTransitionSequenceRefs3[0]),
+   kAppStateEventCoverageDispatchSurfaceRefs3,
+   sizeof(kAppStateEventCoverageDispatchSurfaceRefs3) / sizeof(kAppStateEventCoverageDispatchSurfaceRefs3[0]),
    kAppStateEventCoverageMigrationNotes3,
    sizeof(kAppStateEventCoverageMigrationNotes3) / sizeof(kAppStateEventCoverageMigrationNotes3[0])},
   {"event.watcher-live-refresh",
@@ -3174,6 +3289,8 @@ static const AppStateEventCoverageMetadata
    sizeof(kAppStateEventCoverageTriggerPaths4) / sizeof(kAppStateEventCoverageTriggerPaths4[0]),
    kAppStateEventCoverageTransitionSequenceRefs4,
    sizeof(kAppStateEventCoverageTransitionSequenceRefs4) / sizeof(kAppStateEventCoverageTransitionSequenceRefs4[0]),
+   kAppStateEventCoverageDispatchSurfaceRefs4,
+   sizeof(kAppStateEventCoverageDispatchSurfaceRefs4) / sizeof(kAppStateEventCoverageDispatchSurfaceRefs4[0]),
    kAppStateEventCoverageMigrationNotes4,
    sizeof(kAppStateEventCoverageMigrationNotes4) / sizeof(kAppStateEventCoverageMigrationNotes4[0])},
   {"event.command-completion",
@@ -3189,6 +3306,8 @@ static const AppStateEventCoverageMetadata
    sizeof(kAppStateEventCoverageTriggerPaths5) / sizeof(kAppStateEventCoverageTriggerPaths5[0]),
    kAppStateEventCoverageTransitionSequenceRefs5,
    sizeof(kAppStateEventCoverageTransitionSequenceRefs5) / sizeof(kAppStateEventCoverageTransitionSequenceRefs5[0]),
+   kAppStateEventCoverageDispatchSurfaceRefs5,
+   sizeof(kAppStateEventCoverageDispatchSurfaceRefs5) / sizeof(kAppStateEventCoverageDispatchSurfaceRefs5[0]),
    kAppStateEventCoverageMigrationNotes5,
    sizeof(kAppStateEventCoverageMigrationNotes5) / sizeof(kAppStateEventCoverageMigrationNotes5[0])},
   {"event.modal-completion",
@@ -3204,6 +3323,8 @@ static const AppStateEventCoverageMetadata
    sizeof(kAppStateEventCoverageTriggerPaths6) / sizeof(kAppStateEventCoverageTriggerPaths6[0]),
    kAppStateEventCoverageTransitionSequenceRefs6,
    sizeof(kAppStateEventCoverageTransitionSequenceRefs6) / sizeof(kAppStateEventCoverageTransitionSequenceRefs6[0]),
+   kAppStateEventCoverageDispatchSurfaceRefs6,
+   sizeof(kAppStateEventCoverageDispatchSurfaceRefs6) / sizeof(kAppStateEventCoverageDispatchSurfaceRefs6[0]),
    kAppStateEventCoverageMigrationNotes6,
    sizeof(kAppStateEventCoverageMigrationNotes6) / sizeof(kAppStateEventCoverageMigrationNotes6[0])},
   {"event.volume-lifecycle",
@@ -3219,6 +3340,8 @@ static const AppStateEventCoverageMetadata
    sizeof(kAppStateEventCoverageTriggerPaths7) / sizeof(kAppStateEventCoverageTriggerPaths7[0]),
    kAppStateEventCoverageTransitionSequenceRefs7,
    sizeof(kAppStateEventCoverageTransitionSequenceRefs7) / sizeof(kAppStateEventCoverageTransitionSequenceRefs7[0]),
+   kAppStateEventCoverageDispatchSurfaceRefs7,
+   sizeof(kAppStateEventCoverageDispatchSurfaceRefs7) / sizeof(kAppStateEventCoverageDispatchSurfaceRefs7[0]),
    kAppStateEventCoverageMigrationNotes7,
    sizeof(kAppStateEventCoverageMigrationNotes7) / sizeof(kAppStateEventCoverageMigrationNotes7[0])},
   {"event.render-reflow",
@@ -3234,6 +3357,8 @@ static const AppStateEventCoverageMetadata
    sizeof(kAppStateEventCoverageTriggerPaths8) / sizeof(kAppStateEventCoverageTriggerPaths8[0]),
    kAppStateEventCoverageTransitionSequenceRefs8,
    sizeof(kAppStateEventCoverageTransitionSequenceRefs8) / sizeof(kAppStateEventCoverageTransitionSequenceRefs8[0]),
+   kAppStateEventCoverageDispatchSurfaceRefs8,
+   sizeof(kAppStateEventCoverageDispatchSurfaceRefs8) / sizeof(kAppStateEventCoverageDispatchSurfaceRefs8[0]),
    kAppStateEventCoverageMigrationNotes8,
    sizeof(kAppStateEventCoverageMigrationNotes8) / sizeof(kAppStateEventCoverageMigrationNotes8[0])},
 };
@@ -3251,11 +3376,19 @@ static const char *const kAppStateActionCoverageTransitionSequenceRefs0[] = {
   "sequence.split-toggle-f8",
   "sequence.tab-panel-switch",
 };
+static const char *const kAppStateActionCoverageDispatchSurfaceRefs0[] = {
+  "surface.key-decode-input-dispatch",
+  "surface.directory-window-action-dispatch",
+  "surface.file-window-action-dispatch",
+};
 static const char *const kAppStateActionCoverageMigrationNotes1[] = {
   "Esc dismissal for an active modal maps to the modal_action dismiss record; non-modal Esc no-op behavior remains a blocked keybinding outcome for later context-specific runtime coverage.",
 };
 static const char *const kAppStateActionCoverageTransitionSequenceRefs1[] = {
   "sequence.esc-modal-dismissal",
+};
+static const char *const kAppStateActionCoverageDispatchSurfaceRefs1[] = {
+  "surface.menu-modal-completion",
 };
 static const char *const kAppStateActionCoverageMigrationNotes2[] = {
   "Covered by the refresh/rebuild foundation record until log, relog, and refresh actions receive dedicated runtime records.",
@@ -3263,11 +3396,17 @@ static const char *const kAppStateActionCoverageMigrationNotes2[] = {
 static const char *const kAppStateActionCoverageTransitionSequenceRefs2[] = {
   "sequence.refresh-rebuild",
 };
+static const char *const kAppStateActionCoverageDispatchSurfaceRefs2[] = {
+  "surface.refresh-rebuild-rebind",
+};
 static const char *const kAppStateActionCoverageMigrationNotes3[] = {
   "Covered by the command completion foundation record until external and session command actions receive dedicated runtime records.",
 };
 static const char *const kAppStateActionCoverageTransitionSequenceRefs3[] = {
   "sequence.search-jump",
+};
+static const char *const kAppStateActionCoverageDispatchSurfaceRefs3[] = {
+  "surface.command-completion-dispatch",
 };
 static const char *const kAppStateActionCoverageMigrationNotes4[] = {
   "Covered by the terminal resize foundation record; signal handlers must only set flags before this transition commits.",
@@ -3275,11 +3414,17 @@ static const char *const kAppStateActionCoverageMigrationNotes4[] = {
 static const char *const kAppStateActionCoverageTransitionSequenceRefs4[] = {
   "sequence.terminal-resize-reflow",
 };
+static const char *const kAppStateActionCoverageDispatchSurfaceRefs4[] = {
+  "surface.resize-signal-handling",
+};
 static const char *const kAppStateActionCoverageMigrationNotes5[] = {
   "Covered by the volume menu foundation record until menu selection has a runtime transition boundary.",
 };
 static const char *const kAppStateActionCoverageTransitionSequenceRefs5[] = {
   "sequence.volume-menu-select",
+};
+static const char *const kAppStateActionCoverageDispatchSurfaceRefs5[] = {
+  "surface.volume-menu-selection",
 };
 static const char *const kAppStateActionCoverageMigrationNotes6[] = {
   "Covered by the volume operation foundation record until cycle/release actions receive dedicated runtime records.",
@@ -3287,11 +3432,17 @@ static const char *const kAppStateActionCoverageMigrationNotes6[] = {
 static const char *const kAppStateActionCoverageTransitionSequenceRefs6[] = {
   "sequence.volume-cycling-release",
 };
+static const char *const kAppStateActionCoverageDispatchSurfaceRefs6[] = {
+  "surface.volume-operation",
+};
 static const char *const kAppStateActionCoverageMigrationNotes7[] = {
   "Covered by the filesystem mutation result foundation record until command actions declare per-operation commit metadata.",
 };
 static const char *const kAppStateActionCoverageTransitionSequenceRefs7[] = {
   "sequence.filesystem-mutation-result",
+};
+static const char *const kAppStateActionCoverageDispatchSurfaceRefs7[] = {
+  "surface.filesystem-mutation-result",
 };
 
 static const AppStateActionCoverageMetadata
@@ -3305,6 +3456,8 @@ static const AppStateActionCoverageMetadata
    sizeof(kAppStateTransitionWriteSet0) / sizeof(kAppStateTransitionWriteSet0[0]),
    kAppStateActionCoverageTransitionSequenceRefs0,
    sizeof(kAppStateActionCoverageTransitionSequenceRefs0) / sizeof(kAppStateActionCoverageTransitionSequenceRefs0[0]),
+   kAppStateActionCoverageDispatchSurfaceRefs0,
+   sizeof(kAppStateActionCoverageDispatchSurfaceRefs0) / sizeof(kAppStateActionCoverageDispatchSurfaceRefs0[0]),
    "documented_foundation_only",
    kAppStateActionCoverageMigrationNotes0,
    sizeof(kAppStateActionCoverageMigrationNotes0) / sizeof(kAppStateActionCoverageMigrationNotes0[0])},
@@ -3317,6 +3470,8 @@ static const AppStateActionCoverageMetadata
    sizeof(kAppStateTransitionWriteSet0) / sizeof(kAppStateTransitionWriteSet0[0]),
    kAppStateActionCoverageTransitionSequenceRefs0,
    sizeof(kAppStateActionCoverageTransitionSequenceRefs0) / sizeof(kAppStateActionCoverageTransitionSequenceRefs0[0]),
+   kAppStateActionCoverageDispatchSurfaceRefs0,
+   sizeof(kAppStateActionCoverageDispatchSurfaceRefs0) / sizeof(kAppStateActionCoverageDispatchSurfaceRefs0[0]),
    "documented_foundation_only",
    kAppStateActionCoverageMigrationNotes0,
    sizeof(kAppStateActionCoverageMigrationNotes0) / sizeof(kAppStateActionCoverageMigrationNotes0[0])},
@@ -3329,6 +3484,8 @@ static const AppStateActionCoverageMetadata
    sizeof(kAppStateTransitionWriteSet0) / sizeof(kAppStateTransitionWriteSet0[0]),
    kAppStateActionCoverageTransitionSequenceRefs0,
    sizeof(kAppStateActionCoverageTransitionSequenceRefs0) / sizeof(kAppStateActionCoverageTransitionSequenceRefs0[0]),
+   kAppStateActionCoverageDispatchSurfaceRefs0,
+   sizeof(kAppStateActionCoverageDispatchSurfaceRefs0) / sizeof(kAppStateActionCoverageDispatchSurfaceRefs0[0]),
    "documented_foundation_only",
    kAppStateActionCoverageMigrationNotes0,
    sizeof(kAppStateActionCoverageMigrationNotes0) / sizeof(kAppStateActionCoverageMigrationNotes0[0])},
@@ -3341,6 +3498,8 @@ static const AppStateActionCoverageMetadata
    sizeof(kAppStateTransitionWriteSet0) / sizeof(kAppStateTransitionWriteSet0[0]),
    kAppStateActionCoverageTransitionSequenceRefs0,
    sizeof(kAppStateActionCoverageTransitionSequenceRefs0) / sizeof(kAppStateActionCoverageTransitionSequenceRefs0[0]),
+   kAppStateActionCoverageDispatchSurfaceRefs0,
+   sizeof(kAppStateActionCoverageDispatchSurfaceRefs0) / sizeof(kAppStateActionCoverageDispatchSurfaceRefs0[0]),
    "documented_foundation_only",
    kAppStateActionCoverageMigrationNotes0,
    sizeof(kAppStateActionCoverageMigrationNotes0) / sizeof(kAppStateActionCoverageMigrationNotes0[0])},
@@ -3353,6 +3512,8 @@ static const AppStateActionCoverageMetadata
    sizeof(kAppStateTransitionWriteSet0) / sizeof(kAppStateTransitionWriteSet0[0]),
    kAppStateActionCoverageTransitionSequenceRefs0,
    sizeof(kAppStateActionCoverageTransitionSequenceRefs0) / sizeof(kAppStateActionCoverageTransitionSequenceRefs0[0]),
+   kAppStateActionCoverageDispatchSurfaceRefs0,
+   sizeof(kAppStateActionCoverageDispatchSurfaceRefs0) / sizeof(kAppStateActionCoverageDispatchSurfaceRefs0[0]),
    "documented_foundation_only",
    kAppStateActionCoverageMigrationNotes0,
    sizeof(kAppStateActionCoverageMigrationNotes0) / sizeof(kAppStateActionCoverageMigrationNotes0[0])},
@@ -3365,6 +3526,8 @@ static const AppStateActionCoverageMetadata
    sizeof(kAppStateTransitionWriteSet0) / sizeof(kAppStateTransitionWriteSet0[0]),
    kAppStateActionCoverageTransitionSequenceRefs0,
    sizeof(kAppStateActionCoverageTransitionSequenceRefs0) / sizeof(kAppStateActionCoverageTransitionSequenceRefs0[0]),
+   kAppStateActionCoverageDispatchSurfaceRefs0,
+   sizeof(kAppStateActionCoverageDispatchSurfaceRefs0) / sizeof(kAppStateActionCoverageDispatchSurfaceRefs0[0]),
    "documented_foundation_only",
    kAppStateActionCoverageMigrationNotes0,
    sizeof(kAppStateActionCoverageMigrationNotes0) / sizeof(kAppStateActionCoverageMigrationNotes0[0])},
@@ -3377,6 +3540,8 @@ static const AppStateActionCoverageMetadata
    sizeof(kAppStateTransitionWriteSet0) / sizeof(kAppStateTransitionWriteSet0[0]),
    kAppStateActionCoverageTransitionSequenceRefs0,
    sizeof(kAppStateActionCoverageTransitionSequenceRefs0) / sizeof(kAppStateActionCoverageTransitionSequenceRefs0[0]),
+   kAppStateActionCoverageDispatchSurfaceRefs0,
+   sizeof(kAppStateActionCoverageDispatchSurfaceRefs0) / sizeof(kAppStateActionCoverageDispatchSurfaceRefs0[0]),
    "documented_foundation_only",
    kAppStateActionCoverageMigrationNotes0,
    sizeof(kAppStateActionCoverageMigrationNotes0) / sizeof(kAppStateActionCoverageMigrationNotes0[0])},
@@ -3389,6 +3554,8 @@ static const AppStateActionCoverageMetadata
    sizeof(kAppStateTransitionWriteSet0) / sizeof(kAppStateTransitionWriteSet0[0]),
    kAppStateActionCoverageTransitionSequenceRefs0,
    sizeof(kAppStateActionCoverageTransitionSequenceRefs0) / sizeof(kAppStateActionCoverageTransitionSequenceRefs0[0]),
+   kAppStateActionCoverageDispatchSurfaceRefs0,
+   sizeof(kAppStateActionCoverageDispatchSurfaceRefs0) / sizeof(kAppStateActionCoverageDispatchSurfaceRefs0[0]),
    "documented_foundation_only",
    kAppStateActionCoverageMigrationNotes0,
    sizeof(kAppStateActionCoverageMigrationNotes0) / sizeof(kAppStateActionCoverageMigrationNotes0[0])},
@@ -3401,6 +3568,8 @@ static const AppStateActionCoverageMetadata
    sizeof(kAppStateTransitionWriteSet0) / sizeof(kAppStateTransitionWriteSet0[0]),
    kAppStateActionCoverageTransitionSequenceRefs0,
    sizeof(kAppStateActionCoverageTransitionSequenceRefs0) / sizeof(kAppStateActionCoverageTransitionSequenceRefs0[0]),
+   kAppStateActionCoverageDispatchSurfaceRefs0,
+   sizeof(kAppStateActionCoverageDispatchSurfaceRefs0) / sizeof(kAppStateActionCoverageDispatchSurfaceRefs0[0]),
    "documented_foundation_only",
    kAppStateActionCoverageMigrationNotes0,
    sizeof(kAppStateActionCoverageMigrationNotes0) / sizeof(kAppStateActionCoverageMigrationNotes0[0])},
@@ -3413,6 +3582,8 @@ static const AppStateActionCoverageMetadata
    sizeof(kAppStateTransitionWriteSet0) / sizeof(kAppStateTransitionWriteSet0[0]),
    kAppStateActionCoverageTransitionSequenceRefs0,
    sizeof(kAppStateActionCoverageTransitionSequenceRefs0) / sizeof(kAppStateActionCoverageTransitionSequenceRefs0[0]),
+   kAppStateActionCoverageDispatchSurfaceRefs0,
+   sizeof(kAppStateActionCoverageDispatchSurfaceRefs0) / sizeof(kAppStateActionCoverageDispatchSurfaceRefs0[0]),
    "documented_foundation_only",
    kAppStateActionCoverageMigrationNotes0,
    sizeof(kAppStateActionCoverageMigrationNotes0) / sizeof(kAppStateActionCoverageMigrationNotes0[0])},
@@ -3425,6 +3596,8 @@ static const AppStateActionCoverageMetadata
    sizeof(kAppStateTransitionWriteSet0) / sizeof(kAppStateTransitionWriteSet0[0]),
    kAppStateActionCoverageTransitionSequenceRefs0,
    sizeof(kAppStateActionCoverageTransitionSequenceRefs0) / sizeof(kAppStateActionCoverageTransitionSequenceRefs0[0]),
+   kAppStateActionCoverageDispatchSurfaceRefs0,
+   sizeof(kAppStateActionCoverageDispatchSurfaceRefs0) / sizeof(kAppStateActionCoverageDispatchSurfaceRefs0[0]),
    "documented_foundation_only",
    kAppStateActionCoverageMigrationNotes0,
    sizeof(kAppStateActionCoverageMigrationNotes0) / sizeof(kAppStateActionCoverageMigrationNotes0[0])},
@@ -3437,6 +3610,8 @@ static const AppStateActionCoverageMetadata
    sizeof(kAppStateTransitionWriteSet0) / sizeof(kAppStateTransitionWriteSet0[0]),
    kAppStateActionCoverageTransitionSequenceRefs0,
    sizeof(kAppStateActionCoverageTransitionSequenceRefs0) / sizeof(kAppStateActionCoverageTransitionSequenceRefs0[0]),
+   kAppStateActionCoverageDispatchSurfaceRefs0,
+   sizeof(kAppStateActionCoverageDispatchSurfaceRefs0) / sizeof(kAppStateActionCoverageDispatchSurfaceRefs0[0]),
    "documented_foundation_only",
    kAppStateActionCoverageMigrationNotes0,
    sizeof(kAppStateActionCoverageMigrationNotes0) / sizeof(kAppStateActionCoverageMigrationNotes0[0])},
@@ -3449,6 +3624,8 @@ static const AppStateActionCoverageMetadata
    sizeof(kAppStateTransitionWriteSet0) / sizeof(kAppStateTransitionWriteSet0[0]),
    kAppStateActionCoverageTransitionSequenceRefs0,
    sizeof(kAppStateActionCoverageTransitionSequenceRefs0) / sizeof(kAppStateActionCoverageTransitionSequenceRefs0[0]),
+   kAppStateActionCoverageDispatchSurfaceRefs0,
+   sizeof(kAppStateActionCoverageDispatchSurfaceRefs0) / sizeof(kAppStateActionCoverageDispatchSurfaceRefs0[0]),
    "documented_foundation_only",
    kAppStateActionCoverageMigrationNotes0,
    sizeof(kAppStateActionCoverageMigrationNotes0) / sizeof(kAppStateActionCoverageMigrationNotes0[0])},
@@ -3461,6 +3638,8 @@ static const AppStateActionCoverageMetadata
    sizeof(kAppStateTransitionWriteSet0) / sizeof(kAppStateTransitionWriteSet0[0]),
    kAppStateActionCoverageTransitionSequenceRefs0,
    sizeof(kAppStateActionCoverageTransitionSequenceRefs0) / sizeof(kAppStateActionCoverageTransitionSequenceRefs0[0]),
+   kAppStateActionCoverageDispatchSurfaceRefs0,
+   sizeof(kAppStateActionCoverageDispatchSurfaceRefs0) / sizeof(kAppStateActionCoverageDispatchSurfaceRefs0[0]),
    "documented_foundation_only",
    kAppStateActionCoverageMigrationNotes0,
    sizeof(kAppStateActionCoverageMigrationNotes0) / sizeof(kAppStateActionCoverageMigrationNotes0[0])},
@@ -3473,6 +3652,8 @@ static const AppStateActionCoverageMetadata
    sizeof(kAppStateTransitionWriteSet0) / sizeof(kAppStateTransitionWriteSet0[0]),
    kAppStateActionCoverageTransitionSequenceRefs0,
    sizeof(kAppStateActionCoverageTransitionSequenceRefs0) / sizeof(kAppStateActionCoverageTransitionSequenceRefs0[0]),
+   kAppStateActionCoverageDispatchSurfaceRefs0,
+   sizeof(kAppStateActionCoverageDispatchSurfaceRefs0) / sizeof(kAppStateActionCoverageDispatchSurfaceRefs0[0]),
    "documented_foundation_only",
    kAppStateActionCoverageMigrationNotes0,
    sizeof(kAppStateActionCoverageMigrationNotes0) / sizeof(kAppStateActionCoverageMigrationNotes0[0])},
@@ -3485,6 +3666,8 @@ static const AppStateActionCoverageMetadata
    sizeof(kAppStateTransitionWriteSet2) / sizeof(kAppStateTransitionWriteSet2[0]),
    kAppStateActionCoverageTransitionSequenceRefs1,
    sizeof(kAppStateActionCoverageTransitionSequenceRefs1) / sizeof(kAppStateActionCoverageTransitionSequenceRefs1[0]),
+   kAppStateActionCoverageDispatchSurfaceRefs1,
+   sizeof(kAppStateActionCoverageDispatchSurfaceRefs1) / sizeof(kAppStateActionCoverageDispatchSurfaceRefs1[0]),
    "documented_foundation_only",
    kAppStateActionCoverageMigrationNotes1,
    sizeof(kAppStateActionCoverageMigrationNotes1) / sizeof(kAppStateActionCoverageMigrationNotes1[0])},
@@ -3497,6 +3680,8 @@ static const AppStateActionCoverageMetadata
    sizeof(kAppStateTransitionWriteSet3) / sizeof(kAppStateTransitionWriteSet3[0]),
    kAppStateActionCoverageTransitionSequenceRefs2,
    sizeof(kAppStateActionCoverageTransitionSequenceRefs2) / sizeof(kAppStateActionCoverageTransitionSequenceRefs2[0]),
+   kAppStateActionCoverageDispatchSurfaceRefs2,
+   sizeof(kAppStateActionCoverageDispatchSurfaceRefs2) / sizeof(kAppStateActionCoverageDispatchSurfaceRefs2[0]),
    "documented_foundation_only",
    kAppStateActionCoverageMigrationNotes2,
    sizeof(kAppStateActionCoverageMigrationNotes2) / sizeof(kAppStateActionCoverageMigrationNotes2[0])},
@@ -3509,6 +3694,8 @@ static const AppStateActionCoverageMetadata
    sizeof(kAppStateTransitionWriteSet7) / sizeof(kAppStateTransitionWriteSet7[0]),
    kAppStateActionCoverageTransitionSequenceRefs3,
    sizeof(kAppStateActionCoverageTransitionSequenceRefs3) / sizeof(kAppStateActionCoverageTransitionSequenceRefs3[0]),
+   kAppStateActionCoverageDispatchSurfaceRefs3,
+   sizeof(kAppStateActionCoverageDispatchSurfaceRefs3) / sizeof(kAppStateActionCoverageDispatchSurfaceRefs3[0]),
    "documented_foundation_only",
    kAppStateActionCoverageMigrationNotes3,
    sizeof(kAppStateActionCoverageMigrationNotes3) / sizeof(kAppStateActionCoverageMigrationNotes3[0])},
@@ -3521,6 +3708,8 @@ static const AppStateActionCoverageMetadata
    sizeof(kAppStateTransitionWriteSet7) / sizeof(kAppStateTransitionWriteSet7[0]),
    kAppStateActionCoverageTransitionSequenceRefs3,
    sizeof(kAppStateActionCoverageTransitionSequenceRefs3) / sizeof(kAppStateActionCoverageTransitionSequenceRefs3[0]),
+   kAppStateActionCoverageDispatchSurfaceRefs3,
+   sizeof(kAppStateActionCoverageDispatchSurfaceRefs3) / sizeof(kAppStateActionCoverageDispatchSurfaceRefs3[0]),
    "documented_foundation_only",
    kAppStateActionCoverageMigrationNotes3,
    sizeof(kAppStateActionCoverageMigrationNotes3) / sizeof(kAppStateActionCoverageMigrationNotes3[0])},
@@ -3533,6 +3722,8 @@ static const AppStateActionCoverageMetadata
    sizeof(kAppStateTransitionWriteSet0) / sizeof(kAppStateTransitionWriteSet0[0]),
    kAppStateActionCoverageTransitionSequenceRefs0,
    sizeof(kAppStateActionCoverageTransitionSequenceRefs0) / sizeof(kAppStateActionCoverageTransitionSequenceRefs0[0]),
+   kAppStateActionCoverageDispatchSurfaceRefs0,
+   sizeof(kAppStateActionCoverageDispatchSurfaceRefs0) / sizeof(kAppStateActionCoverageDispatchSurfaceRefs0[0]),
    "documented_foundation_only",
    kAppStateActionCoverageMigrationNotes0,
    sizeof(kAppStateActionCoverageMigrationNotes0) / sizeof(kAppStateActionCoverageMigrationNotes0[0])},
@@ -3545,6 +3736,8 @@ static const AppStateActionCoverageMetadata
    sizeof(kAppStateTransitionWriteSet0) / sizeof(kAppStateTransitionWriteSet0[0]),
    kAppStateActionCoverageTransitionSequenceRefs0,
    sizeof(kAppStateActionCoverageTransitionSequenceRefs0) / sizeof(kAppStateActionCoverageTransitionSequenceRefs0[0]),
+   kAppStateActionCoverageDispatchSurfaceRefs0,
+   sizeof(kAppStateActionCoverageDispatchSurfaceRefs0) / sizeof(kAppStateActionCoverageDispatchSurfaceRefs0[0]),
    "documented_foundation_only",
    kAppStateActionCoverageMigrationNotes0,
    sizeof(kAppStateActionCoverageMigrationNotes0) / sizeof(kAppStateActionCoverageMigrationNotes0[0])},
@@ -3557,6 +3750,8 @@ static const AppStateActionCoverageMetadata
    sizeof(kAppStateTransitionWriteSet0) / sizeof(kAppStateTransitionWriteSet0[0]),
    kAppStateActionCoverageTransitionSequenceRefs0,
    sizeof(kAppStateActionCoverageTransitionSequenceRefs0) / sizeof(kAppStateActionCoverageTransitionSequenceRefs0[0]),
+   kAppStateActionCoverageDispatchSurfaceRefs0,
+   sizeof(kAppStateActionCoverageDispatchSurfaceRefs0) / sizeof(kAppStateActionCoverageDispatchSurfaceRefs0[0]),
    "documented_foundation_only",
    kAppStateActionCoverageMigrationNotes0,
    sizeof(kAppStateActionCoverageMigrationNotes0) / sizeof(kAppStateActionCoverageMigrationNotes0[0])},
@@ -3569,6 +3764,8 @@ static const AppStateActionCoverageMetadata
    sizeof(kAppStateTransitionWriteSet0) / sizeof(kAppStateTransitionWriteSet0[0]),
    kAppStateActionCoverageTransitionSequenceRefs0,
    sizeof(kAppStateActionCoverageTransitionSequenceRefs0) / sizeof(kAppStateActionCoverageTransitionSequenceRefs0[0]),
+   kAppStateActionCoverageDispatchSurfaceRefs0,
+   sizeof(kAppStateActionCoverageDispatchSurfaceRefs0) / sizeof(kAppStateActionCoverageDispatchSurfaceRefs0[0]),
    "documented_foundation_only",
    kAppStateActionCoverageMigrationNotes0,
    sizeof(kAppStateActionCoverageMigrationNotes0) / sizeof(kAppStateActionCoverageMigrationNotes0[0])},
@@ -3581,6 +3778,8 @@ static const AppStateActionCoverageMetadata
    sizeof(kAppStateTransitionWriteSet0) / sizeof(kAppStateTransitionWriteSet0[0]),
    kAppStateActionCoverageTransitionSequenceRefs0,
    sizeof(kAppStateActionCoverageTransitionSequenceRefs0) / sizeof(kAppStateActionCoverageTransitionSequenceRefs0[0]),
+   kAppStateActionCoverageDispatchSurfaceRefs0,
+   sizeof(kAppStateActionCoverageDispatchSurfaceRefs0) / sizeof(kAppStateActionCoverageDispatchSurfaceRefs0[0]),
    "documented_foundation_only",
    kAppStateActionCoverageMigrationNotes0,
    sizeof(kAppStateActionCoverageMigrationNotes0) / sizeof(kAppStateActionCoverageMigrationNotes0[0])},
@@ -3593,6 +3792,8 @@ static const AppStateActionCoverageMetadata
    sizeof(kAppStateTransitionWriteSet0) / sizeof(kAppStateTransitionWriteSet0[0]),
    kAppStateActionCoverageTransitionSequenceRefs0,
    sizeof(kAppStateActionCoverageTransitionSequenceRefs0) / sizeof(kAppStateActionCoverageTransitionSequenceRefs0[0]),
+   kAppStateActionCoverageDispatchSurfaceRefs0,
+   sizeof(kAppStateActionCoverageDispatchSurfaceRefs0) / sizeof(kAppStateActionCoverageDispatchSurfaceRefs0[0]),
    "documented_foundation_only",
    kAppStateActionCoverageMigrationNotes0,
    sizeof(kAppStateActionCoverageMigrationNotes0) / sizeof(kAppStateActionCoverageMigrationNotes0[0])},
@@ -3605,6 +3806,8 @@ static const AppStateActionCoverageMetadata
    sizeof(kAppStateTransitionWriteSet0) / sizeof(kAppStateTransitionWriteSet0[0]),
    kAppStateActionCoverageTransitionSequenceRefs0,
    sizeof(kAppStateActionCoverageTransitionSequenceRefs0) / sizeof(kAppStateActionCoverageTransitionSequenceRefs0[0]),
+   kAppStateActionCoverageDispatchSurfaceRefs0,
+   sizeof(kAppStateActionCoverageDispatchSurfaceRefs0) / sizeof(kAppStateActionCoverageDispatchSurfaceRefs0[0]),
    "documented_foundation_only",
    kAppStateActionCoverageMigrationNotes0,
    sizeof(kAppStateActionCoverageMigrationNotes0) / sizeof(kAppStateActionCoverageMigrationNotes0[0])},
@@ -3617,6 +3820,8 @@ static const AppStateActionCoverageMetadata
    sizeof(kAppStateTransitionWriteSet0) / sizeof(kAppStateTransitionWriteSet0[0]),
    kAppStateActionCoverageTransitionSequenceRefs0,
    sizeof(kAppStateActionCoverageTransitionSequenceRefs0) / sizeof(kAppStateActionCoverageTransitionSequenceRefs0[0]),
+   kAppStateActionCoverageDispatchSurfaceRefs0,
+   sizeof(kAppStateActionCoverageDispatchSurfaceRefs0) / sizeof(kAppStateActionCoverageDispatchSurfaceRefs0[0]),
    "documented_foundation_only",
    kAppStateActionCoverageMigrationNotes0,
    sizeof(kAppStateActionCoverageMigrationNotes0) / sizeof(kAppStateActionCoverageMigrationNotes0[0])},
@@ -3629,6 +3834,8 @@ static const AppStateActionCoverageMetadata
    sizeof(kAppStateTransitionWriteSet3) / sizeof(kAppStateTransitionWriteSet3[0]),
    kAppStateActionCoverageTransitionSequenceRefs2,
    sizeof(kAppStateActionCoverageTransitionSequenceRefs2) / sizeof(kAppStateActionCoverageTransitionSequenceRefs2[0]),
+   kAppStateActionCoverageDispatchSurfaceRefs2,
+   sizeof(kAppStateActionCoverageDispatchSurfaceRefs2) / sizeof(kAppStateActionCoverageDispatchSurfaceRefs2[0]),
    "documented_foundation_only",
    kAppStateActionCoverageMigrationNotes2,
    sizeof(kAppStateActionCoverageMigrationNotes2) / sizeof(kAppStateActionCoverageMigrationNotes2[0])},
@@ -3641,6 +3848,8 @@ static const AppStateActionCoverageMetadata
    sizeof(kAppStateTransitionWriteSet5) / sizeof(kAppStateTransitionWriteSet5[0]),
    kAppStateActionCoverageTransitionSequenceRefs4,
    sizeof(kAppStateActionCoverageTransitionSequenceRefs4) / sizeof(kAppStateActionCoverageTransitionSequenceRefs4[0]),
+   kAppStateActionCoverageDispatchSurfaceRefs4,
+   sizeof(kAppStateActionCoverageDispatchSurfaceRefs4) / sizeof(kAppStateActionCoverageDispatchSurfaceRefs4[0]),
    "documented_foundation_only",
    kAppStateActionCoverageMigrationNotes4,
    sizeof(kAppStateActionCoverageMigrationNotes4) / sizeof(kAppStateActionCoverageMigrationNotes4[0])},
@@ -3653,6 +3862,8 @@ static const AppStateActionCoverageMetadata
    sizeof(kAppStateTransitionWriteSet1) / sizeof(kAppStateTransitionWriteSet1[0]),
    kAppStateActionCoverageTransitionSequenceRefs5,
    sizeof(kAppStateActionCoverageTransitionSequenceRefs5) / sizeof(kAppStateActionCoverageTransitionSequenceRefs5[0]),
+   kAppStateActionCoverageDispatchSurfaceRefs5,
+   sizeof(kAppStateActionCoverageDispatchSurfaceRefs5) / sizeof(kAppStateActionCoverageDispatchSurfaceRefs5[0]),
    "documented_foundation_only",
    kAppStateActionCoverageMigrationNotes5,
    sizeof(kAppStateActionCoverageMigrationNotes5) / sizeof(kAppStateActionCoverageMigrationNotes5[0])},
@@ -3665,6 +3876,8 @@ static const AppStateActionCoverageMetadata
    sizeof(kAppStateTransitionWriteSet4) / sizeof(kAppStateTransitionWriteSet4[0]),
    kAppStateActionCoverageTransitionSequenceRefs6,
    sizeof(kAppStateActionCoverageTransitionSequenceRefs6) / sizeof(kAppStateActionCoverageTransitionSequenceRefs6[0]),
+   kAppStateActionCoverageDispatchSurfaceRefs6,
+   sizeof(kAppStateActionCoverageDispatchSurfaceRefs6) / sizeof(kAppStateActionCoverageDispatchSurfaceRefs6[0]),
    "documented_foundation_only",
    kAppStateActionCoverageMigrationNotes6,
    sizeof(kAppStateActionCoverageMigrationNotes6) / sizeof(kAppStateActionCoverageMigrationNotes6[0])},
@@ -3677,6 +3890,8 @@ static const AppStateActionCoverageMetadata
    sizeof(kAppStateTransitionWriteSet4) / sizeof(kAppStateTransitionWriteSet4[0]),
    kAppStateActionCoverageTransitionSequenceRefs6,
    sizeof(kAppStateActionCoverageTransitionSequenceRefs6) / sizeof(kAppStateActionCoverageTransitionSequenceRefs6[0]),
+   kAppStateActionCoverageDispatchSurfaceRefs6,
+   sizeof(kAppStateActionCoverageDispatchSurfaceRefs6) / sizeof(kAppStateActionCoverageDispatchSurfaceRefs6[0]),
    "documented_foundation_only",
    kAppStateActionCoverageMigrationNotes6,
    sizeof(kAppStateActionCoverageMigrationNotes6) / sizeof(kAppStateActionCoverageMigrationNotes6[0])},
@@ -3689,6 +3904,8 @@ static const AppStateActionCoverageMetadata
    sizeof(kAppStateTransitionWriteSet6) / sizeof(kAppStateTransitionWriteSet6[0]),
    kAppStateActionCoverageTransitionSequenceRefs7,
    sizeof(kAppStateActionCoverageTransitionSequenceRefs7) / sizeof(kAppStateActionCoverageTransitionSequenceRefs7[0]),
+   kAppStateActionCoverageDispatchSurfaceRefs7,
+   sizeof(kAppStateActionCoverageDispatchSurfaceRefs7) / sizeof(kAppStateActionCoverageDispatchSurfaceRefs7[0]),
    "documented_foundation_only",
    kAppStateActionCoverageMigrationNotes7,
    sizeof(kAppStateActionCoverageMigrationNotes7) / sizeof(kAppStateActionCoverageMigrationNotes7[0])},
@@ -3701,6 +3918,8 @@ static const AppStateActionCoverageMetadata
    sizeof(kAppStateTransitionWriteSet6) / sizeof(kAppStateTransitionWriteSet6[0]),
    kAppStateActionCoverageTransitionSequenceRefs7,
    sizeof(kAppStateActionCoverageTransitionSequenceRefs7) / sizeof(kAppStateActionCoverageTransitionSequenceRefs7[0]),
+   kAppStateActionCoverageDispatchSurfaceRefs7,
+   sizeof(kAppStateActionCoverageDispatchSurfaceRefs7) / sizeof(kAppStateActionCoverageDispatchSurfaceRefs7[0]),
    "documented_foundation_only",
    kAppStateActionCoverageMigrationNotes7,
    sizeof(kAppStateActionCoverageMigrationNotes7) / sizeof(kAppStateActionCoverageMigrationNotes7[0])},
@@ -3713,6 +3932,8 @@ static const AppStateActionCoverageMetadata
    sizeof(kAppStateTransitionWriteSet6) / sizeof(kAppStateTransitionWriteSet6[0]),
    kAppStateActionCoverageTransitionSequenceRefs7,
    sizeof(kAppStateActionCoverageTransitionSequenceRefs7) / sizeof(kAppStateActionCoverageTransitionSequenceRefs7[0]),
+   kAppStateActionCoverageDispatchSurfaceRefs7,
+   sizeof(kAppStateActionCoverageDispatchSurfaceRefs7) / sizeof(kAppStateActionCoverageDispatchSurfaceRefs7[0]),
    "documented_foundation_only",
    kAppStateActionCoverageMigrationNotes7,
    sizeof(kAppStateActionCoverageMigrationNotes7) / sizeof(kAppStateActionCoverageMigrationNotes7[0])},
@@ -3725,6 +3946,8 @@ static const AppStateActionCoverageMetadata
    sizeof(kAppStateTransitionWriteSet6) / sizeof(kAppStateTransitionWriteSet6[0]),
    kAppStateActionCoverageTransitionSequenceRefs7,
    sizeof(kAppStateActionCoverageTransitionSequenceRefs7) / sizeof(kAppStateActionCoverageTransitionSequenceRefs7[0]),
+   kAppStateActionCoverageDispatchSurfaceRefs7,
+   sizeof(kAppStateActionCoverageDispatchSurfaceRefs7) / sizeof(kAppStateActionCoverageDispatchSurfaceRefs7[0]),
    "documented_foundation_only",
    kAppStateActionCoverageMigrationNotes7,
    sizeof(kAppStateActionCoverageMigrationNotes7) / sizeof(kAppStateActionCoverageMigrationNotes7[0])},
@@ -3737,6 +3960,8 @@ static const AppStateActionCoverageMetadata
    sizeof(kAppStateTransitionWriteSet6) / sizeof(kAppStateTransitionWriteSet6[0]),
    kAppStateActionCoverageTransitionSequenceRefs7,
    sizeof(kAppStateActionCoverageTransitionSequenceRefs7) / sizeof(kAppStateActionCoverageTransitionSequenceRefs7[0]),
+   kAppStateActionCoverageDispatchSurfaceRefs7,
+   sizeof(kAppStateActionCoverageDispatchSurfaceRefs7) / sizeof(kAppStateActionCoverageDispatchSurfaceRefs7[0]),
    "documented_foundation_only",
    kAppStateActionCoverageMigrationNotes7,
    sizeof(kAppStateActionCoverageMigrationNotes7) / sizeof(kAppStateActionCoverageMigrationNotes7[0])},
@@ -3749,6 +3974,8 @@ static const AppStateActionCoverageMetadata
    sizeof(kAppStateTransitionWriteSet6) / sizeof(kAppStateTransitionWriteSet6[0]),
    kAppStateActionCoverageTransitionSequenceRefs7,
    sizeof(kAppStateActionCoverageTransitionSequenceRefs7) / sizeof(kAppStateActionCoverageTransitionSequenceRefs7[0]),
+   kAppStateActionCoverageDispatchSurfaceRefs7,
+   sizeof(kAppStateActionCoverageDispatchSurfaceRefs7) / sizeof(kAppStateActionCoverageDispatchSurfaceRefs7[0]),
    "documented_foundation_only",
    kAppStateActionCoverageMigrationNotes7,
    sizeof(kAppStateActionCoverageMigrationNotes7) / sizeof(kAppStateActionCoverageMigrationNotes7[0])},
@@ -3761,6 +3988,8 @@ static const AppStateActionCoverageMetadata
    sizeof(kAppStateTransitionWriteSet6) / sizeof(kAppStateTransitionWriteSet6[0]),
    kAppStateActionCoverageTransitionSequenceRefs7,
    sizeof(kAppStateActionCoverageTransitionSequenceRefs7) / sizeof(kAppStateActionCoverageTransitionSequenceRefs7[0]),
+   kAppStateActionCoverageDispatchSurfaceRefs7,
+   sizeof(kAppStateActionCoverageDispatchSurfaceRefs7) / sizeof(kAppStateActionCoverageDispatchSurfaceRefs7[0]),
    "documented_foundation_only",
    kAppStateActionCoverageMigrationNotes7,
    sizeof(kAppStateActionCoverageMigrationNotes7) / sizeof(kAppStateActionCoverageMigrationNotes7[0])},
@@ -3773,6 +4002,8 @@ static const AppStateActionCoverageMetadata
    sizeof(kAppStateTransitionWriteSet6) / sizeof(kAppStateTransitionWriteSet6[0]),
    kAppStateActionCoverageTransitionSequenceRefs7,
    sizeof(kAppStateActionCoverageTransitionSequenceRefs7) / sizeof(kAppStateActionCoverageTransitionSequenceRefs7[0]),
+   kAppStateActionCoverageDispatchSurfaceRefs7,
+   sizeof(kAppStateActionCoverageDispatchSurfaceRefs7) / sizeof(kAppStateActionCoverageDispatchSurfaceRefs7[0]),
    "documented_foundation_only",
    kAppStateActionCoverageMigrationNotes7,
    sizeof(kAppStateActionCoverageMigrationNotes7) / sizeof(kAppStateActionCoverageMigrationNotes7[0])},
@@ -3785,6 +4016,8 @@ static const AppStateActionCoverageMetadata
    sizeof(kAppStateTransitionWriteSet6) / sizeof(kAppStateTransitionWriteSet6[0]),
    kAppStateActionCoverageTransitionSequenceRefs7,
    sizeof(kAppStateActionCoverageTransitionSequenceRefs7) / sizeof(kAppStateActionCoverageTransitionSequenceRefs7[0]),
+   kAppStateActionCoverageDispatchSurfaceRefs7,
+   sizeof(kAppStateActionCoverageDispatchSurfaceRefs7) / sizeof(kAppStateActionCoverageDispatchSurfaceRefs7[0]),
    "documented_foundation_only",
    kAppStateActionCoverageMigrationNotes7,
    sizeof(kAppStateActionCoverageMigrationNotes7) / sizeof(kAppStateActionCoverageMigrationNotes7[0])},
@@ -3797,6 +4030,8 @@ static const AppStateActionCoverageMetadata
    sizeof(kAppStateTransitionWriteSet6) / sizeof(kAppStateTransitionWriteSet6[0]),
    kAppStateActionCoverageTransitionSequenceRefs7,
    sizeof(kAppStateActionCoverageTransitionSequenceRefs7) / sizeof(kAppStateActionCoverageTransitionSequenceRefs7[0]),
+   kAppStateActionCoverageDispatchSurfaceRefs7,
+   sizeof(kAppStateActionCoverageDispatchSurfaceRefs7) / sizeof(kAppStateActionCoverageDispatchSurfaceRefs7[0]),
    "documented_foundation_only",
    kAppStateActionCoverageMigrationNotes7,
    sizeof(kAppStateActionCoverageMigrationNotes7) / sizeof(kAppStateActionCoverageMigrationNotes7[0])},
@@ -3809,6 +4044,8 @@ static const AppStateActionCoverageMetadata
    sizeof(kAppStateTransitionWriteSet6) / sizeof(kAppStateTransitionWriteSet6[0]),
    kAppStateActionCoverageTransitionSequenceRefs7,
    sizeof(kAppStateActionCoverageTransitionSequenceRefs7) / sizeof(kAppStateActionCoverageTransitionSequenceRefs7[0]),
+   kAppStateActionCoverageDispatchSurfaceRefs7,
+   sizeof(kAppStateActionCoverageDispatchSurfaceRefs7) / sizeof(kAppStateActionCoverageDispatchSurfaceRefs7[0]),
    "documented_foundation_only",
    kAppStateActionCoverageMigrationNotes7,
    sizeof(kAppStateActionCoverageMigrationNotes7) / sizeof(kAppStateActionCoverageMigrationNotes7[0])},
@@ -3821,6 +4058,8 @@ static const AppStateActionCoverageMetadata
    sizeof(kAppStateTransitionWriteSet6) / sizeof(kAppStateTransitionWriteSet6[0]),
    kAppStateActionCoverageTransitionSequenceRefs7,
    sizeof(kAppStateActionCoverageTransitionSequenceRefs7) / sizeof(kAppStateActionCoverageTransitionSequenceRefs7[0]),
+   kAppStateActionCoverageDispatchSurfaceRefs7,
+   sizeof(kAppStateActionCoverageDispatchSurfaceRefs7) / sizeof(kAppStateActionCoverageDispatchSurfaceRefs7[0]),
    "documented_foundation_only",
    kAppStateActionCoverageMigrationNotes7,
    sizeof(kAppStateActionCoverageMigrationNotes7) / sizeof(kAppStateActionCoverageMigrationNotes7[0])},
@@ -3833,6 +4072,8 @@ static const AppStateActionCoverageMetadata
    sizeof(kAppStateTransitionWriteSet6) / sizeof(kAppStateTransitionWriteSet6[0]),
    kAppStateActionCoverageTransitionSequenceRefs7,
    sizeof(kAppStateActionCoverageTransitionSequenceRefs7) / sizeof(kAppStateActionCoverageTransitionSequenceRefs7[0]),
+   kAppStateActionCoverageDispatchSurfaceRefs7,
+   sizeof(kAppStateActionCoverageDispatchSurfaceRefs7) / sizeof(kAppStateActionCoverageDispatchSurfaceRefs7[0]),
    "documented_foundation_only",
    kAppStateActionCoverageMigrationNotes7,
    sizeof(kAppStateActionCoverageMigrationNotes7) / sizeof(kAppStateActionCoverageMigrationNotes7[0])},
@@ -3845,6 +4086,8 @@ static const AppStateActionCoverageMetadata
    sizeof(kAppStateTransitionWriteSet6) / sizeof(kAppStateTransitionWriteSet6[0]),
    kAppStateActionCoverageTransitionSequenceRefs7,
    sizeof(kAppStateActionCoverageTransitionSequenceRefs7) / sizeof(kAppStateActionCoverageTransitionSequenceRefs7[0]),
+   kAppStateActionCoverageDispatchSurfaceRefs7,
+   sizeof(kAppStateActionCoverageDispatchSurfaceRefs7) / sizeof(kAppStateActionCoverageDispatchSurfaceRefs7[0]),
    "documented_foundation_only",
    kAppStateActionCoverageMigrationNotes7,
    sizeof(kAppStateActionCoverageMigrationNotes7) / sizeof(kAppStateActionCoverageMigrationNotes7[0])},
@@ -3857,6 +4100,8 @@ static const AppStateActionCoverageMetadata
    sizeof(kAppStateTransitionWriteSet6) / sizeof(kAppStateTransitionWriteSet6[0]),
    kAppStateActionCoverageTransitionSequenceRefs7,
    sizeof(kAppStateActionCoverageTransitionSequenceRefs7) / sizeof(kAppStateActionCoverageTransitionSequenceRefs7[0]),
+   kAppStateActionCoverageDispatchSurfaceRefs7,
+   sizeof(kAppStateActionCoverageDispatchSurfaceRefs7) / sizeof(kAppStateActionCoverageDispatchSurfaceRefs7[0]),
    "documented_foundation_only",
    kAppStateActionCoverageMigrationNotes7,
    sizeof(kAppStateActionCoverageMigrationNotes7) / sizeof(kAppStateActionCoverageMigrationNotes7[0])},
@@ -3869,6 +4114,8 @@ static const AppStateActionCoverageMetadata
    sizeof(kAppStateTransitionWriteSet6) / sizeof(kAppStateTransitionWriteSet6[0]),
    kAppStateActionCoverageTransitionSequenceRefs7,
    sizeof(kAppStateActionCoverageTransitionSequenceRefs7) / sizeof(kAppStateActionCoverageTransitionSequenceRefs7[0]),
+   kAppStateActionCoverageDispatchSurfaceRefs7,
+   sizeof(kAppStateActionCoverageDispatchSurfaceRefs7) / sizeof(kAppStateActionCoverageDispatchSurfaceRefs7[0]),
    "documented_foundation_only",
    kAppStateActionCoverageMigrationNotes7,
    sizeof(kAppStateActionCoverageMigrationNotes7) / sizeof(kAppStateActionCoverageMigrationNotes7[0])},
@@ -3881,6 +4128,8 @@ static const AppStateActionCoverageMetadata
    sizeof(kAppStateTransitionWriteSet7) / sizeof(kAppStateTransitionWriteSet7[0]),
    kAppStateActionCoverageTransitionSequenceRefs3,
    sizeof(kAppStateActionCoverageTransitionSequenceRefs3) / sizeof(kAppStateActionCoverageTransitionSequenceRefs3[0]),
+   kAppStateActionCoverageDispatchSurfaceRefs3,
+   sizeof(kAppStateActionCoverageDispatchSurfaceRefs3) / sizeof(kAppStateActionCoverageDispatchSurfaceRefs3[0]),
    "documented_foundation_only",
    kAppStateActionCoverageMigrationNotes3,
    sizeof(kAppStateActionCoverageMigrationNotes3) / sizeof(kAppStateActionCoverageMigrationNotes3[0])},
@@ -3893,6 +4142,8 @@ static const AppStateActionCoverageMetadata
    sizeof(kAppStateTransitionWriteSet0) / sizeof(kAppStateTransitionWriteSet0[0]),
    kAppStateActionCoverageTransitionSequenceRefs0,
    sizeof(kAppStateActionCoverageTransitionSequenceRefs0) / sizeof(kAppStateActionCoverageTransitionSequenceRefs0[0]),
+   kAppStateActionCoverageDispatchSurfaceRefs0,
+   sizeof(kAppStateActionCoverageDispatchSurfaceRefs0) / sizeof(kAppStateActionCoverageDispatchSurfaceRefs0[0]),
    "documented_foundation_only",
    kAppStateActionCoverageMigrationNotes0,
    sizeof(kAppStateActionCoverageMigrationNotes0) / sizeof(kAppStateActionCoverageMigrationNotes0[0])},
@@ -3905,6 +4156,8 @@ static const AppStateActionCoverageMetadata
    sizeof(kAppStateTransitionWriteSet0) / sizeof(kAppStateTransitionWriteSet0[0]),
    kAppStateActionCoverageTransitionSequenceRefs0,
    sizeof(kAppStateActionCoverageTransitionSequenceRefs0) / sizeof(kAppStateActionCoverageTransitionSequenceRefs0[0]),
+   kAppStateActionCoverageDispatchSurfaceRefs0,
+   sizeof(kAppStateActionCoverageDispatchSurfaceRefs0) / sizeof(kAppStateActionCoverageDispatchSurfaceRefs0[0]),
    "documented_foundation_only",
    kAppStateActionCoverageMigrationNotes0,
    sizeof(kAppStateActionCoverageMigrationNotes0) / sizeof(kAppStateActionCoverageMigrationNotes0[0])},
@@ -3917,6 +4170,8 @@ static const AppStateActionCoverageMetadata
    sizeof(kAppStateTransitionWriteSet6) / sizeof(kAppStateTransitionWriteSet6[0]),
    kAppStateActionCoverageTransitionSequenceRefs7,
    sizeof(kAppStateActionCoverageTransitionSequenceRefs7) / sizeof(kAppStateActionCoverageTransitionSequenceRefs7[0]),
+   kAppStateActionCoverageDispatchSurfaceRefs7,
+   sizeof(kAppStateActionCoverageDispatchSurfaceRefs7) / sizeof(kAppStateActionCoverageDispatchSurfaceRefs7[0]),
    "documented_foundation_only",
    kAppStateActionCoverageMigrationNotes7,
    sizeof(kAppStateActionCoverageMigrationNotes7) / sizeof(kAppStateActionCoverageMigrationNotes7[0])},
@@ -3929,6 +4184,8 @@ static const AppStateActionCoverageMetadata
    sizeof(kAppStateTransitionWriteSet6) / sizeof(kAppStateTransitionWriteSet6[0]),
    kAppStateActionCoverageTransitionSequenceRefs7,
    sizeof(kAppStateActionCoverageTransitionSequenceRefs7) / sizeof(kAppStateActionCoverageTransitionSequenceRefs7[0]),
+   kAppStateActionCoverageDispatchSurfaceRefs7,
+   sizeof(kAppStateActionCoverageDispatchSurfaceRefs7) / sizeof(kAppStateActionCoverageDispatchSurfaceRefs7[0]),
    "documented_foundation_only",
    kAppStateActionCoverageMigrationNotes7,
    sizeof(kAppStateActionCoverageMigrationNotes7) / sizeof(kAppStateActionCoverageMigrationNotes7[0])},
@@ -3941,6 +4198,8 @@ static const AppStateActionCoverageMetadata
    sizeof(kAppStateTransitionWriteSet6) / sizeof(kAppStateTransitionWriteSet6[0]),
    kAppStateActionCoverageTransitionSequenceRefs7,
    sizeof(kAppStateActionCoverageTransitionSequenceRefs7) / sizeof(kAppStateActionCoverageTransitionSequenceRefs7[0]),
+   kAppStateActionCoverageDispatchSurfaceRefs7,
+   sizeof(kAppStateActionCoverageDispatchSurfaceRefs7) / sizeof(kAppStateActionCoverageDispatchSurfaceRefs7[0]),
    "documented_foundation_only",
    kAppStateActionCoverageMigrationNotes7,
    sizeof(kAppStateActionCoverageMigrationNotes7) / sizeof(kAppStateActionCoverageMigrationNotes7[0])},
@@ -3953,6 +4212,8 @@ static const AppStateActionCoverageMetadata
    sizeof(kAppStateTransitionWriteSet6) / sizeof(kAppStateTransitionWriteSet6[0]),
    kAppStateActionCoverageTransitionSequenceRefs7,
    sizeof(kAppStateActionCoverageTransitionSequenceRefs7) / sizeof(kAppStateActionCoverageTransitionSequenceRefs7[0]),
+   kAppStateActionCoverageDispatchSurfaceRefs7,
+   sizeof(kAppStateActionCoverageDispatchSurfaceRefs7) / sizeof(kAppStateActionCoverageDispatchSurfaceRefs7[0]),
    "documented_foundation_only",
    kAppStateActionCoverageMigrationNotes7,
    sizeof(kAppStateActionCoverageMigrationNotes7) / sizeof(kAppStateActionCoverageMigrationNotes7[0])},
@@ -3965,6 +4226,8 @@ static const AppStateActionCoverageMetadata
    sizeof(kAppStateTransitionWriteSet6) / sizeof(kAppStateTransitionWriteSet6[0]),
    kAppStateActionCoverageTransitionSequenceRefs7,
    sizeof(kAppStateActionCoverageTransitionSequenceRefs7) / sizeof(kAppStateActionCoverageTransitionSequenceRefs7[0]),
+   kAppStateActionCoverageDispatchSurfaceRefs7,
+   sizeof(kAppStateActionCoverageDispatchSurfaceRefs7) / sizeof(kAppStateActionCoverageDispatchSurfaceRefs7[0]),
    "documented_foundation_only",
    kAppStateActionCoverageMigrationNotes7,
    sizeof(kAppStateActionCoverageMigrationNotes7) / sizeof(kAppStateActionCoverageMigrationNotes7[0])},
@@ -3977,6 +4240,8 @@ static const AppStateActionCoverageMetadata
    sizeof(kAppStateTransitionWriteSet6) / sizeof(kAppStateTransitionWriteSet6[0]),
    kAppStateActionCoverageTransitionSequenceRefs7,
    sizeof(kAppStateActionCoverageTransitionSequenceRefs7) / sizeof(kAppStateActionCoverageTransitionSequenceRefs7[0]),
+   kAppStateActionCoverageDispatchSurfaceRefs7,
+   sizeof(kAppStateActionCoverageDispatchSurfaceRefs7) / sizeof(kAppStateActionCoverageDispatchSurfaceRefs7[0]),
    "documented_foundation_only",
    kAppStateActionCoverageMigrationNotes7,
    sizeof(kAppStateActionCoverageMigrationNotes7) / sizeof(kAppStateActionCoverageMigrationNotes7[0])},
@@ -3989,6 +4254,8 @@ static const AppStateActionCoverageMetadata
    sizeof(kAppStateTransitionWriteSet6) / sizeof(kAppStateTransitionWriteSet6[0]),
    kAppStateActionCoverageTransitionSequenceRefs7,
    sizeof(kAppStateActionCoverageTransitionSequenceRefs7) / sizeof(kAppStateActionCoverageTransitionSequenceRefs7[0]),
+   kAppStateActionCoverageDispatchSurfaceRefs7,
+   sizeof(kAppStateActionCoverageDispatchSurfaceRefs7) / sizeof(kAppStateActionCoverageDispatchSurfaceRefs7[0]),
    "documented_foundation_only",
    kAppStateActionCoverageMigrationNotes7,
    sizeof(kAppStateActionCoverageMigrationNotes7) / sizeof(kAppStateActionCoverageMigrationNotes7[0])},
@@ -4001,6 +4268,8 @@ static const AppStateActionCoverageMetadata
    sizeof(kAppStateTransitionWriteSet6) / sizeof(kAppStateTransitionWriteSet6[0]),
    kAppStateActionCoverageTransitionSequenceRefs7,
    sizeof(kAppStateActionCoverageTransitionSequenceRefs7) / sizeof(kAppStateActionCoverageTransitionSequenceRefs7[0]),
+   kAppStateActionCoverageDispatchSurfaceRefs7,
+   sizeof(kAppStateActionCoverageDispatchSurfaceRefs7) / sizeof(kAppStateActionCoverageDispatchSurfaceRefs7[0]),
    "documented_foundation_only",
    kAppStateActionCoverageMigrationNotes7,
    sizeof(kAppStateActionCoverageMigrationNotes7) / sizeof(kAppStateActionCoverageMigrationNotes7[0])},
@@ -4013,6 +4282,8 @@ static const AppStateActionCoverageMetadata
    sizeof(kAppStateTransitionWriteSet6) / sizeof(kAppStateTransitionWriteSet6[0]),
    kAppStateActionCoverageTransitionSequenceRefs7,
    sizeof(kAppStateActionCoverageTransitionSequenceRefs7) / sizeof(kAppStateActionCoverageTransitionSequenceRefs7[0]),
+   kAppStateActionCoverageDispatchSurfaceRefs7,
+   sizeof(kAppStateActionCoverageDispatchSurfaceRefs7) / sizeof(kAppStateActionCoverageDispatchSurfaceRefs7[0]),
    "documented_foundation_only",
    kAppStateActionCoverageMigrationNotes7,
    sizeof(kAppStateActionCoverageMigrationNotes7) / sizeof(kAppStateActionCoverageMigrationNotes7[0])},
@@ -4025,6 +4296,8 @@ static const AppStateActionCoverageMetadata
    sizeof(kAppStateTransitionWriteSet6) / sizeof(kAppStateTransitionWriteSet6[0]),
    kAppStateActionCoverageTransitionSequenceRefs7,
    sizeof(kAppStateActionCoverageTransitionSequenceRefs7) / sizeof(kAppStateActionCoverageTransitionSequenceRefs7[0]),
+   kAppStateActionCoverageDispatchSurfaceRefs7,
+   sizeof(kAppStateActionCoverageDispatchSurfaceRefs7) / sizeof(kAppStateActionCoverageDispatchSurfaceRefs7[0]),
    "documented_foundation_only",
    kAppStateActionCoverageMigrationNotes7,
    sizeof(kAppStateActionCoverageMigrationNotes7) / sizeof(kAppStateActionCoverageMigrationNotes7[0])},
@@ -4037,6 +4310,8 @@ static const AppStateActionCoverageMetadata
    sizeof(kAppStateTransitionWriteSet6) / sizeof(kAppStateTransitionWriteSet6[0]),
    kAppStateActionCoverageTransitionSequenceRefs7,
    sizeof(kAppStateActionCoverageTransitionSequenceRefs7) / sizeof(kAppStateActionCoverageTransitionSequenceRefs7[0]),
+   kAppStateActionCoverageDispatchSurfaceRefs7,
+   sizeof(kAppStateActionCoverageDispatchSurfaceRefs7) / sizeof(kAppStateActionCoverageDispatchSurfaceRefs7[0]),
    "documented_foundation_only",
    kAppStateActionCoverageMigrationNotes7,
    sizeof(kAppStateActionCoverageMigrationNotes7) / sizeof(kAppStateActionCoverageMigrationNotes7[0])},
@@ -4049,6 +4324,8 @@ static const AppStateActionCoverageMetadata
    sizeof(kAppStateTransitionWriteSet6) / sizeof(kAppStateTransitionWriteSet6[0]),
    kAppStateActionCoverageTransitionSequenceRefs7,
    sizeof(kAppStateActionCoverageTransitionSequenceRefs7) / sizeof(kAppStateActionCoverageTransitionSequenceRefs7[0]),
+   kAppStateActionCoverageDispatchSurfaceRefs7,
+   sizeof(kAppStateActionCoverageDispatchSurfaceRefs7) / sizeof(kAppStateActionCoverageDispatchSurfaceRefs7[0]),
    "documented_foundation_only",
    kAppStateActionCoverageMigrationNotes7,
    sizeof(kAppStateActionCoverageMigrationNotes7) / sizeof(kAppStateActionCoverageMigrationNotes7[0])},
@@ -4061,6 +4338,8 @@ static const AppStateActionCoverageMetadata
    sizeof(kAppStateTransitionWriteSet6) / sizeof(kAppStateTransitionWriteSet6[0]),
    kAppStateActionCoverageTransitionSequenceRefs7,
    sizeof(kAppStateActionCoverageTransitionSequenceRefs7) / sizeof(kAppStateActionCoverageTransitionSequenceRefs7[0]),
+   kAppStateActionCoverageDispatchSurfaceRefs7,
+   sizeof(kAppStateActionCoverageDispatchSurfaceRefs7) / sizeof(kAppStateActionCoverageDispatchSurfaceRefs7[0]),
    "documented_foundation_only",
    kAppStateActionCoverageMigrationNotes7,
    sizeof(kAppStateActionCoverageMigrationNotes7) / sizeof(kAppStateActionCoverageMigrationNotes7[0])},
@@ -4073,6 +4352,8 @@ static const AppStateActionCoverageMetadata
    sizeof(kAppStateTransitionWriteSet7) / sizeof(kAppStateTransitionWriteSet7[0]),
    kAppStateActionCoverageTransitionSequenceRefs3,
    sizeof(kAppStateActionCoverageTransitionSequenceRefs3) / sizeof(kAppStateActionCoverageTransitionSequenceRefs3[0]),
+   kAppStateActionCoverageDispatchSurfaceRefs3,
+   sizeof(kAppStateActionCoverageDispatchSurfaceRefs3) / sizeof(kAppStateActionCoverageDispatchSurfaceRefs3[0]),
    "documented_foundation_only",
    kAppStateActionCoverageMigrationNotes3,
    sizeof(kAppStateActionCoverageMigrationNotes3) / sizeof(kAppStateActionCoverageMigrationNotes3[0])},
@@ -4085,6 +4366,8 @@ static const AppStateActionCoverageMetadata
    sizeof(kAppStateTransitionWriteSet0) / sizeof(kAppStateTransitionWriteSet0[0]),
    kAppStateActionCoverageTransitionSequenceRefs0,
    sizeof(kAppStateActionCoverageTransitionSequenceRefs0) / sizeof(kAppStateActionCoverageTransitionSequenceRefs0[0]),
+   kAppStateActionCoverageDispatchSurfaceRefs0,
+   sizeof(kAppStateActionCoverageDispatchSurfaceRefs0) / sizeof(kAppStateActionCoverageDispatchSurfaceRefs0[0]),
    "documented_foundation_only",
    kAppStateActionCoverageMigrationNotes0,
    sizeof(kAppStateActionCoverageMigrationNotes0) / sizeof(kAppStateActionCoverageMigrationNotes0[0])},
@@ -4097,6 +4380,8 @@ static const AppStateActionCoverageMetadata
    sizeof(kAppStateTransitionWriteSet0) / sizeof(kAppStateTransitionWriteSet0[0]),
    kAppStateActionCoverageTransitionSequenceRefs0,
    sizeof(kAppStateActionCoverageTransitionSequenceRefs0) / sizeof(kAppStateActionCoverageTransitionSequenceRefs0[0]),
+   kAppStateActionCoverageDispatchSurfaceRefs0,
+   sizeof(kAppStateActionCoverageDispatchSurfaceRefs0) / sizeof(kAppStateActionCoverageDispatchSurfaceRefs0[0]),
    "documented_foundation_only",
    kAppStateActionCoverageMigrationNotes0,
    sizeof(kAppStateActionCoverageMigrationNotes0) / sizeof(kAppStateActionCoverageMigrationNotes0[0])},
@@ -4109,6 +4394,8 @@ static const AppStateActionCoverageMetadata
    sizeof(kAppStateTransitionWriteSet0) / sizeof(kAppStateTransitionWriteSet0[0]),
    kAppStateActionCoverageTransitionSequenceRefs0,
    sizeof(kAppStateActionCoverageTransitionSequenceRefs0) / sizeof(kAppStateActionCoverageTransitionSequenceRefs0[0]),
+   kAppStateActionCoverageDispatchSurfaceRefs0,
+   sizeof(kAppStateActionCoverageDispatchSurfaceRefs0) / sizeof(kAppStateActionCoverageDispatchSurfaceRefs0[0]),
    "documented_foundation_only",
    kAppStateActionCoverageMigrationNotes0,
    sizeof(kAppStateActionCoverageMigrationNotes0) / sizeof(kAppStateActionCoverageMigrationNotes0[0])},
@@ -4121,6 +4408,8 @@ static const AppStateActionCoverageMetadata
    sizeof(kAppStateTransitionWriteSet0) / sizeof(kAppStateTransitionWriteSet0[0]),
    kAppStateActionCoverageTransitionSequenceRefs0,
    sizeof(kAppStateActionCoverageTransitionSequenceRefs0) / sizeof(kAppStateActionCoverageTransitionSequenceRefs0[0]),
+   kAppStateActionCoverageDispatchSurfaceRefs0,
+   sizeof(kAppStateActionCoverageDispatchSurfaceRefs0) / sizeof(kAppStateActionCoverageDispatchSurfaceRefs0[0]),
    "documented_foundation_only",
    kAppStateActionCoverageMigrationNotes0,
    sizeof(kAppStateActionCoverageMigrationNotes0) / sizeof(kAppStateActionCoverageMigrationNotes0[0])},
@@ -4133,6 +4422,8 @@ static const AppStateActionCoverageMetadata
    sizeof(kAppStateTransitionWriteSet0) / sizeof(kAppStateTransitionWriteSet0[0]),
    kAppStateActionCoverageTransitionSequenceRefs0,
    sizeof(kAppStateActionCoverageTransitionSequenceRefs0) / sizeof(kAppStateActionCoverageTransitionSequenceRefs0[0]),
+   kAppStateActionCoverageDispatchSurfaceRefs0,
+   sizeof(kAppStateActionCoverageDispatchSurfaceRefs0) / sizeof(kAppStateActionCoverageDispatchSurfaceRefs0[0]),
    "documented_foundation_only",
    kAppStateActionCoverageMigrationNotes0,
    sizeof(kAppStateActionCoverageMigrationNotes0) / sizeof(kAppStateActionCoverageMigrationNotes0[0])},
@@ -4145,6 +4436,8 @@ static const AppStateActionCoverageMetadata
    sizeof(kAppStateTransitionWriteSet0) / sizeof(kAppStateTransitionWriteSet0[0]),
    kAppStateActionCoverageTransitionSequenceRefs0,
    sizeof(kAppStateActionCoverageTransitionSequenceRefs0) / sizeof(kAppStateActionCoverageTransitionSequenceRefs0[0]),
+   kAppStateActionCoverageDispatchSurfaceRefs0,
+   sizeof(kAppStateActionCoverageDispatchSurfaceRefs0) / sizeof(kAppStateActionCoverageDispatchSurfaceRefs0[0]),
    "documented_foundation_only",
    kAppStateActionCoverageMigrationNotes0,
    sizeof(kAppStateActionCoverageMigrationNotes0) / sizeof(kAppStateActionCoverageMigrationNotes0[0])},
@@ -4157,6 +4450,8 @@ static const AppStateActionCoverageMetadata
    sizeof(kAppStateTransitionWriteSet0) / sizeof(kAppStateTransitionWriteSet0[0]),
    kAppStateActionCoverageTransitionSequenceRefs0,
    sizeof(kAppStateActionCoverageTransitionSequenceRefs0) / sizeof(kAppStateActionCoverageTransitionSequenceRefs0[0]),
+   kAppStateActionCoverageDispatchSurfaceRefs0,
+   sizeof(kAppStateActionCoverageDispatchSurfaceRefs0) / sizeof(kAppStateActionCoverageDispatchSurfaceRefs0[0]),
    "documented_foundation_only",
    kAppStateActionCoverageMigrationNotes0,
    sizeof(kAppStateActionCoverageMigrationNotes0) / sizeof(kAppStateActionCoverageMigrationNotes0[0])},
@@ -4169,6 +4464,8 @@ static const AppStateActionCoverageMetadata
    sizeof(kAppStateTransitionWriteSet0) / sizeof(kAppStateTransitionWriteSet0[0]),
    kAppStateActionCoverageTransitionSequenceRefs0,
    sizeof(kAppStateActionCoverageTransitionSequenceRefs0) / sizeof(kAppStateActionCoverageTransitionSequenceRefs0[0]),
+   kAppStateActionCoverageDispatchSurfaceRefs0,
+   sizeof(kAppStateActionCoverageDispatchSurfaceRefs0) / sizeof(kAppStateActionCoverageDispatchSurfaceRefs0[0]),
    "documented_foundation_only",
    kAppStateActionCoverageMigrationNotes0,
    sizeof(kAppStateActionCoverageMigrationNotes0) / sizeof(kAppStateActionCoverageMigrationNotes0[0])},
@@ -4181,6 +4478,8 @@ static const AppStateActionCoverageMetadata
    sizeof(kAppStateTransitionWriteSet0) / sizeof(kAppStateTransitionWriteSet0[0]),
    kAppStateActionCoverageTransitionSequenceRefs0,
    sizeof(kAppStateActionCoverageTransitionSequenceRefs0) / sizeof(kAppStateActionCoverageTransitionSequenceRefs0[0]),
+   kAppStateActionCoverageDispatchSurfaceRefs0,
+   sizeof(kAppStateActionCoverageDispatchSurfaceRefs0) / sizeof(kAppStateActionCoverageDispatchSurfaceRefs0[0]),
    "documented_foundation_only",
    kAppStateActionCoverageMigrationNotes0,
    sizeof(kAppStateActionCoverageMigrationNotes0) / sizeof(kAppStateActionCoverageMigrationNotes0[0])},
@@ -4193,6 +4492,8 @@ static const AppStateActionCoverageMetadata
    sizeof(kAppStateTransitionWriteSet0) / sizeof(kAppStateTransitionWriteSet0[0]),
    kAppStateActionCoverageTransitionSequenceRefs0,
    sizeof(kAppStateActionCoverageTransitionSequenceRefs0) / sizeof(kAppStateActionCoverageTransitionSequenceRefs0[0]),
+   kAppStateActionCoverageDispatchSurfaceRefs0,
+   sizeof(kAppStateActionCoverageDispatchSurfaceRefs0) / sizeof(kAppStateActionCoverageDispatchSurfaceRefs0[0]),
    "documented_foundation_only",
    kAppStateActionCoverageMigrationNotes0,
    sizeof(kAppStateActionCoverageMigrationNotes0) / sizeof(kAppStateActionCoverageMigrationNotes0[0])},
@@ -4205,6 +4506,8 @@ static const AppStateActionCoverageMetadata
    sizeof(kAppStateTransitionWriteSet0) / sizeof(kAppStateTransitionWriteSet0[0]),
    kAppStateActionCoverageTransitionSequenceRefs0,
    sizeof(kAppStateActionCoverageTransitionSequenceRefs0) / sizeof(kAppStateActionCoverageTransitionSequenceRefs0[0]),
+   kAppStateActionCoverageDispatchSurfaceRefs0,
+   sizeof(kAppStateActionCoverageDispatchSurfaceRefs0) / sizeof(kAppStateActionCoverageDispatchSurfaceRefs0[0]),
    "documented_foundation_only",
    kAppStateActionCoverageMigrationNotes0,
    sizeof(kAppStateActionCoverageMigrationNotes0) / sizeof(kAppStateActionCoverageMigrationNotes0[0])},
@@ -4217,6 +4520,8 @@ static const AppStateActionCoverageMetadata
    sizeof(kAppStateTransitionWriteSet0) / sizeof(kAppStateTransitionWriteSet0[0]),
    kAppStateActionCoverageTransitionSequenceRefs0,
    sizeof(kAppStateActionCoverageTransitionSequenceRefs0) / sizeof(kAppStateActionCoverageTransitionSequenceRefs0[0]),
+   kAppStateActionCoverageDispatchSurfaceRefs0,
+   sizeof(kAppStateActionCoverageDispatchSurfaceRefs0) / sizeof(kAppStateActionCoverageDispatchSurfaceRefs0[0]),
    "documented_foundation_only",
    kAppStateActionCoverageMigrationNotes0,
    sizeof(kAppStateActionCoverageMigrationNotes0) / sizeof(kAppStateActionCoverageMigrationNotes0[0])},
@@ -4229,6 +4534,8 @@ static const AppStateActionCoverageMetadata
    sizeof(kAppStateTransitionWriteSet0) / sizeof(kAppStateTransitionWriteSet0[0]),
    kAppStateActionCoverageTransitionSequenceRefs0,
    sizeof(kAppStateActionCoverageTransitionSequenceRefs0) / sizeof(kAppStateActionCoverageTransitionSequenceRefs0[0]),
+   kAppStateActionCoverageDispatchSurfaceRefs0,
+   sizeof(kAppStateActionCoverageDispatchSurfaceRefs0) / sizeof(kAppStateActionCoverageDispatchSurfaceRefs0[0]),
    "documented_foundation_only",
    kAppStateActionCoverageMigrationNotes0,
    sizeof(kAppStateActionCoverageMigrationNotes0) / sizeof(kAppStateActionCoverageMigrationNotes0[0])},
@@ -4241,6 +4548,8 @@ static const AppStateActionCoverageMetadata
    sizeof(kAppStateTransitionWriteSet0) / sizeof(kAppStateTransitionWriteSet0[0]),
    kAppStateActionCoverageTransitionSequenceRefs0,
    sizeof(kAppStateActionCoverageTransitionSequenceRefs0) / sizeof(kAppStateActionCoverageTransitionSequenceRefs0[0]),
+   kAppStateActionCoverageDispatchSurfaceRefs0,
+   sizeof(kAppStateActionCoverageDispatchSurfaceRefs0) / sizeof(kAppStateActionCoverageDispatchSurfaceRefs0[0]),
    "documented_foundation_only",
    kAppStateActionCoverageMigrationNotes0,
    sizeof(kAppStateActionCoverageMigrationNotes0) / sizeof(kAppStateActionCoverageMigrationNotes0[0])},
@@ -4253,6 +4562,8 @@ static const AppStateActionCoverageMetadata
    sizeof(kAppStateTransitionWriteSet0) / sizeof(kAppStateTransitionWriteSet0[0]),
    kAppStateActionCoverageTransitionSequenceRefs0,
    sizeof(kAppStateActionCoverageTransitionSequenceRefs0) / sizeof(kAppStateActionCoverageTransitionSequenceRefs0[0]),
+   kAppStateActionCoverageDispatchSurfaceRefs0,
+   sizeof(kAppStateActionCoverageDispatchSurfaceRefs0) / sizeof(kAppStateActionCoverageDispatchSurfaceRefs0[0]),
    "documented_foundation_only",
    kAppStateActionCoverageMigrationNotes0,
    sizeof(kAppStateActionCoverageMigrationNotes0) / sizeof(kAppStateActionCoverageMigrationNotes0[0])},
@@ -4265,6 +4576,8 @@ static const AppStateActionCoverageMetadata
    sizeof(kAppStateTransitionWriteSet0) / sizeof(kAppStateTransitionWriteSet0[0]),
    kAppStateActionCoverageTransitionSequenceRefs0,
    sizeof(kAppStateActionCoverageTransitionSequenceRefs0) / sizeof(kAppStateActionCoverageTransitionSequenceRefs0[0]),
+   kAppStateActionCoverageDispatchSurfaceRefs0,
+   sizeof(kAppStateActionCoverageDispatchSurfaceRefs0) / sizeof(kAppStateActionCoverageDispatchSurfaceRefs0[0]),
    "documented_foundation_only",
    kAppStateActionCoverageMigrationNotes0,
    sizeof(kAppStateActionCoverageMigrationNotes0) / sizeof(kAppStateActionCoverageMigrationNotes0[0])},
@@ -4277,6 +4590,8 @@ static const AppStateActionCoverageMetadata
    sizeof(kAppStateTransitionWriteSet0) / sizeof(kAppStateTransitionWriteSet0[0]),
    kAppStateActionCoverageTransitionSequenceRefs0,
    sizeof(kAppStateActionCoverageTransitionSequenceRefs0) / sizeof(kAppStateActionCoverageTransitionSequenceRefs0[0]),
+   kAppStateActionCoverageDispatchSurfaceRefs0,
+   sizeof(kAppStateActionCoverageDispatchSurfaceRefs0) / sizeof(kAppStateActionCoverageDispatchSurfaceRefs0[0]),
    "documented_foundation_only",
    kAppStateActionCoverageMigrationNotes0,
    sizeof(kAppStateActionCoverageMigrationNotes0) / sizeof(kAppStateActionCoverageMigrationNotes0[0])},
@@ -4289,6 +4604,8 @@ static const AppStateActionCoverageMetadata
    sizeof(kAppStateTransitionWriteSet0) / sizeof(kAppStateTransitionWriteSet0[0]),
    kAppStateActionCoverageTransitionSequenceRefs0,
    sizeof(kAppStateActionCoverageTransitionSequenceRefs0) / sizeof(kAppStateActionCoverageTransitionSequenceRefs0[0]),
+   kAppStateActionCoverageDispatchSurfaceRefs0,
+   sizeof(kAppStateActionCoverageDispatchSurfaceRefs0) / sizeof(kAppStateActionCoverageDispatchSurfaceRefs0[0]),
    "documented_foundation_only",
    kAppStateActionCoverageMigrationNotes0,
    sizeof(kAppStateActionCoverageMigrationNotes0) / sizeof(kAppStateActionCoverageMigrationNotes0[0])},
@@ -4301,6 +4618,8 @@ static const AppStateActionCoverageMetadata
    sizeof(kAppStateTransitionWriteSet7) / sizeof(kAppStateTransitionWriteSet7[0]),
    kAppStateActionCoverageTransitionSequenceRefs3,
    sizeof(kAppStateActionCoverageTransitionSequenceRefs3) / sizeof(kAppStateActionCoverageTransitionSequenceRefs3[0]),
+   kAppStateActionCoverageDispatchSurfaceRefs3,
+   sizeof(kAppStateActionCoverageDispatchSurfaceRefs3) / sizeof(kAppStateActionCoverageDispatchSurfaceRefs3[0]),
    "documented_foundation_only",
    kAppStateActionCoverageMigrationNotes3,
    sizeof(kAppStateActionCoverageMigrationNotes3) / sizeof(kAppStateActionCoverageMigrationNotes3[0])},
@@ -4313,6 +4632,8 @@ static const AppStateActionCoverageMetadata
    sizeof(kAppStateTransitionWriteSet7) / sizeof(kAppStateTransitionWriteSet7[0]),
    kAppStateActionCoverageTransitionSequenceRefs3,
    sizeof(kAppStateActionCoverageTransitionSequenceRefs3) / sizeof(kAppStateActionCoverageTransitionSequenceRefs3[0]),
+   kAppStateActionCoverageDispatchSurfaceRefs3,
+   sizeof(kAppStateActionCoverageDispatchSurfaceRefs3) / sizeof(kAppStateActionCoverageDispatchSurfaceRefs3[0]),
    "documented_foundation_only",
    kAppStateActionCoverageMigrationNotes3,
    sizeof(kAppStateActionCoverageMigrationNotes3) / sizeof(kAppStateActionCoverageMigrationNotes3[0])},

@@ -17,7 +17,21 @@ GUARD_SPEC.loader.exec_module(guard)
 
 REQUIRED_CATEGORIES = sorted(guard.REQUIRED_TRANSITION_CATEGORIES)
 REQUIRED_EVENT_CLASSES = sorted(guard.REQUIRED_EVENT_CLASSES)
-REQUIRED_DISPATCH_SURFACE_CATEGORIES = sorted(guard.REQUIRED_DISPATCH_SURFACE_CATEGORIES)
+REQUIRED_DISPATCH_SURFACE_CATEGORIES = [
+    "key_decode_input_dispatch",
+    "directory_window_action_dispatch",
+    "file_window_action_dispatch",
+    "menu_modal_completion",
+    "resize_signal_handling",
+    "refresh_rebuild_rebind",
+    "filesystem_mutation_result",
+    "volume_operation",
+    "watcher_live_refresh",
+    "render_reflow_projection",
+    "command_completion_dispatch",
+    "volume_menu_selection",
+    "rebuild_rebind_callback",
+]
 REQUIRED_INVARIANT_CATEGORIES = sorted(guard.REQUIRED_INVARIANT_CATEGORIES)
 REQUIRED_GENERATION_DOMAIN_CATEGORIES = sorted(
     guard.REQUIRED_GENERATION_DOMAIN_CATEGORIES
@@ -135,6 +149,9 @@ def _action(
         "owner": "owner",
         "declared_write_set": ["panel.tree_selection_key"],
         "transition_sequence_refs": _sequence_refs_for_transition(transition_id),
+        "dispatch_surface_refs": _dispatch_surface_refs_for_transition(
+            transition_id, action=action
+        ),
         "boundary_status": "test",
         "migration_notes": ["fixture action coverage"],
     }
@@ -168,6 +185,10 @@ def _event(
         "transition_sequence_refs": _sequence_refs_for_transition(
             transition_id or f"transition.{resolved_category}"
         ),
+        "dispatch_surface_refs": _dispatch_surface_refs_for_transition(
+            transition_id or f"transition.{resolved_category}",
+            event_id=f"event.{event_class}",
+        ),
         "boundary_status": "test",
         "trigger_paths": ["fixture trigger"],
         "migration_notes": ["fixture event coverage"],
@@ -191,6 +212,37 @@ def _sequence_refs_for_transition(transition_id: str) -> list[str]:
     }.get(transition_id, ["sequence.split_toggle_f8"])
 
 
+def _dispatch_surface_refs_for_transition(
+    transition_id: str,
+    *,
+    action: str | None = None,
+    event_id: str | None = None,
+) -> list[str]:
+    if transition_id == "transition.keybinding":
+        return [
+            "surface.key_decode_input_dispatch",
+            "surface.directory_window_action_dispatch",
+            "surface.file_window_action_dispatch",
+        ]
+    if transition_id == "transition.refresh_rebuild":
+        if event_id == "event.watcher_live_refresh":
+            return ["surface.watcher_live_refresh"]
+        return ["surface.refresh_rebuild_rebind"]
+    if transition_id == "transition.rebuild_rebind_callback":
+        return ["surface.rebuild_rebind_callback"]
+    if transition_id == "transition.command_completion":
+        return ["surface.command_completion_dispatch"]
+    if transition_id == "transition.menu_action" and action == "ACTION_VOL_MENU":
+        return ["surface.volume_menu_selection"]
+    return {
+        "transition.filesystem_mutation_result": ["surface.filesystem_mutation_result"],
+        "transition.modal_action": ["surface.menu_modal_completion"],
+        "transition.render_reflow": ["surface.render_reflow_projection"],
+        "transition.terminal_signal_or_resize": ["surface.resize_signal_handling"],
+        "transition.volume_operation": ["surface.volume_operation"],
+    }.get(transition_id, ["surface.key_decode_input_dispatch"])
+
+
 def _dispatch_surface(
     category: str,
     transition_id: str | None = None,
@@ -207,6 +259,9 @@ def _dispatch_surface(
         "volume_operation": "transition.volume_operation",
         "watcher_live_refresh": "transition.refresh_rebuild",
         "render_reflow_projection": "transition.render_reflow",
+        "command_completion_dispatch": "transition.command_completion",
+        "volume_menu_selection": "transition.menu_action",
+        "rebuild_rebind_callback": "transition.rebuild_rebind_callback",
     }
     sequence_by_surface_category = {
         "key_decode_input_dispatch": "sequence.split_toggle_f8",
@@ -219,6 +274,9 @@ def _dispatch_surface(
         "volume_operation": "sequence.volume_cycling_release",
         "watcher_live_refresh": "sequence.refresh_rebuild",
         "render_reflow_projection": "sequence.render_reflow_projection",
+        "command_completion_dispatch": "sequence.search_jump",
+        "volume_menu_selection": "sequence.volume_menu_select",
+        "rebuild_rebind_callback": "sequence.refresh_rebuild",
     }
     return {
         "surface_id": surface_id or f"surface.{category}",
@@ -704,6 +762,19 @@ def _runtime_source(
             f"static const char *const {sequence_refs_table}[] = "
             f"{{\n{sequence_ref_rows}\n}};\n"
         )
+        dispatch_surface_refs = record.get("dispatch_surface_refs")
+        if not isinstance(dispatch_surface_refs, list):
+            dispatch_surface_refs = []
+        dispatch_surface_ref_rows = "\n".join(
+            f'  "{ref}",' for ref in dispatch_surface_refs if isinstance(ref, str)
+        )
+        dispatch_surface_refs_table = (
+            f"kAppStateActionCoverageDispatchSurfaceRefs{index}"
+        )
+        action_coverage_arrays.append(
+            f"static const char *const {dispatch_surface_refs_table}[] = "
+            f"{{\n{dispatch_surface_ref_rows}\n}};\n"
+        )
         action = record.get("action", "")
         action_coverage_rows.append(
             f'  {{{action}, "{action}", "{record.get("transition_id", "")}", '
@@ -712,6 +783,8 @@ def _runtime_source(
             f"sizeof({write_set_table}[0]), "
             f"{sequence_refs_table}, sizeof({sequence_refs_table}) / "
             f"sizeof({sequence_refs_table}[0]), "
+            f"{dispatch_surface_refs_table}, sizeof({dispatch_surface_refs_table}) / "
+            f"sizeof({dispatch_surface_refs_table}[0]), "
             f'"{record.get("boundary_status", "")}", '
             f"{notes_table}, sizeof({notes_table}) / sizeof({notes_table}[0])}},"
         )
@@ -754,6 +827,19 @@ def _runtime_source(
             f"static const char *const {sequence_refs_table}[] = "
             f"{{\n{sequence_ref_rows}\n}};\n"
         )
+        dispatch_surface_refs = record.get("dispatch_surface_refs")
+        if not isinstance(dispatch_surface_refs, list):
+            dispatch_surface_refs = []
+        dispatch_surface_ref_rows = "\n".join(
+            f'  "{ref}",' for ref in dispatch_surface_refs if isinstance(ref, str)
+        )
+        dispatch_surface_refs_table = (
+            f"kAppStateEventCoverageDispatchSurfaceRefs{index}"
+        )
+        event_coverage_arrays.append(
+            f"static const char *const {dispatch_surface_refs_table}[] = "
+            f"{{\n{dispatch_surface_ref_rows}\n}};\n"
+        )
         transition_index = transition_index_by_id.get(str(record.get("transition_id", "")), 0)
         write_set_table = f"kAppStateTransitionWriteSet{transition_index}"
         event_coverage_rows.append(
@@ -766,6 +852,8 @@ def _runtime_source(
             f"{trigger_table}, sizeof({trigger_table}) / sizeof({trigger_table}[0]), "
             f"{sequence_refs_table}, sizeof({sequence_refs_table}) / "
             f"sizeof({sequence_refs_table}[0]), "
+            f"{dispatch_surface_refs_table}, sizeof({dispatch_surface_refs_table}) / "
+            f"sizeof({dispatch_surface_refs_table}[0]), "
             f"{notes_table}, sizeof({notes_table}) / sizeof({notes_table}[0])}},"
         )
     owner_field_arrays = []
@@ -1257,6 +1345,14 @@ def _complete_dispatch_surfaces() -> list[dict[str, object]]:
         _dispatch_surface(category)
         for category in REQUIRED_DISPATCH_SURFACE_CATEGORIES
     ]
+
+
+def _wrong_dispatch_surface_ref(transition_id: str) -> str:
+    for surface in _complete_dispatch_surfaces():
+        surface_transition_id = str(surface["transition_id"])
+        if surface_transition_id != transition_id:
+            return str(surface["surface_id"])
+    raise AssertionError(f"missing mismatched dispatch surface fixture for {transition_id}")
 
 
 def _complete_invariant_dispatch_surface_ids() -> dict[str, list[str]]:
@@ -3242,8 +3338,10 @@ int main(void) {
     return 8;
   if (metadata->declared_write_set == 0 || metadata->declared_write_set_count == 0)
     return 9;
-  if (metadata->migration_notes == 0 || metadata->migration_note_count == 0)
+  if (metadata->dispatch_surface_refs == 0 || metadata->dispatch_surface_ref_count == 0)
     return 10;
+  if (metadata->migration_notes == 0 || metadata->migration_note_count == 0)
+    return 11;
   return 0;
 }
 """,
@@ -4442,6 +4540,41 @@ def test_guard_accepts_empty_dispatch_surface_allowed_writes(
     assert failures == []
 
 
+def test_dispatch_surface_records_document_new_write_authority() -> None:
+    dispatch_doc, doc_failures = guard._load_json(guard.DEFAULT_DISPATCH_SURFACES)
+    runtime_records, runtime_failures = guard._parse_runtime_dispatch_surface_registry(
+        guard.DEFAULT_ACTION_RUNTIME
+    )
+
+    assert doc_failures == []
+    assert runtime_failures == []
+
+    expected_writes = {
+        "surface.volume-menu-selection": [
+            "ctx.active",
+            "panel.volume_key",
+            "panel.restore_snapshot",
+            "panel.panel_generation",
+        ],
+        "surface.panel-anchor-rebind": [
+            "panel.tree_selection_key",
+            "panel.file_selection_key",
+            "panel.tree_cursor_pos",
+            "panel.tree_viewport_origin",
+            "panel.file_viewport_origin",
+            "panel.panel_generation",
+        ],
+    }
+    docs_by_id = {
+        record["surface_id"]: record for record in dispatch_doc["dispatch_surfaces"]
+    }
+    runtime_by_id = {record["surface_id"]: record for record in runtime_records}
+
+    for surface_id, writes in expected_writes.items():
+        assert docs_by_id[surface_id]["allowed_direct_writes"] == writes
+        assert runtime_by_id[surface_id]["allowed_direct_writes"] == writes
+
+
 def test_guard_fails_when_runtime_dispatch_surface_metadata_drifts(
     tmp_path: Path,
 ) -> None:
@@ -4502,7 +4635,7 @@ def test_guard_fails_when_runtime_dispatch_surface_id_is_missing(
 
     assert any(
         "runtime dispatch surface registry missing surface id(s)" in failure
-        and "surface.directory_window_action_dispatch" in failure
+        and "surface.key_decode_input_dispatch" in failure
         for failure in failures
     )
 
@@ -4545,7 +4678,7 @@ def test_guard_fails_when_runtime_dispatch_surface_row_is_malformed(
     failures = _validate(paths)
 
     assert any(
-        "runtime_dispatch_surface[3]" in failure
+        "runtime_dispatch_surface[0]" in failure
         and "malformed runtime dispatch surface registry row" in failure
         for failure in failures
     )
@@ -6894,6 +7027,72 @@ def test_guard_fails_when_action_coverage_sequence_refs_are_invalid(
     assert any("action[0]" in failure and expected in failure for failure in failures)
 
 
+def test_guard_fails_when_action_coverage_dispatch_surface_refs_are_missing(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    actions = _complete_actions()
+    actions[0].pop("dispatch_surface_refs")
+    paths = _write_fixture(tmp_path, transitions=transitions, actions=actions)
+
+    failures = _validate(paths)
+
+    assert any(
+        "action[0]" in failure
+        and "missing required field" in failure
+        and "dispatch_surface_refs" in failure
+        for failure in failures
+    )
+
+
+@pytest.mark.parametrize(
+    ("refs", "expected"),
+    [
+        ([], "dispatch_surface_refs must be non-empty"),
+        ("surface.key_decode_input_dispatch", "dispatch_surface_refs must be a non-empty list"),
+        ([123], "dispatch_surface_refs[0] must be a non-empty string"),
+        (
+            ["surface.key_decode_input_dispatch", "surface.key_decode_input_dispatch"],
+            "duplicate dispatch_surface_refs[1]",
+        ),
+        (["surface.__missing__"], "references unknown dispatch surface"),
+        (["surface.menu_modal_completion"], "transition_id does not match"),
+    ],
+)
+def test_guard_fails_when_action_coverage_dispatch_surface_refs_are_invalid(
+    tmp_path: Path, refs: object, expected: str
+) -> None:
+    transitions = _complete_transitions()
+    actions = _complete_actions()
+    actions[0]["dispatch_surface_refs"] = refs
+    paths = _write_fixture(tmp_path, transitions=transitions, actions=actions)
+
+    failures = _validate(paths)
+
+    assert any("action[0]" in failure and expected in failure for failure in failures)
+
+
+def test_guard_fails_when_action_coverage_dispatch_surface_refs_mix_valid_and_wrong_transition(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    actions = _complete_actions()
+    transition_id = str(actions[0]["transition_id"])
+    valid_ref = str(actions[0]["dispatch_surface_refs"][0])
+    wrong_ref = _wrong_dispatch_surface_ref(transition_id)
+    actions[0]["dispatch_surface_refs"] = [valid_ref, wrong_ref]
+    paths = _write_fixture(tmp_path, transitions=transitions, actions=actions)
+
+    failures = _validate(paths)
+
+    assert any(
+        "action[0]" in failure
+        and f"dispatch_surface_refs[1] transition_id does not match {transition_id}: {wrong_ref}"
+        in failure
+        for failure in failures
+    )
+
+
 def test_guard_fails_when_event_coverage_owner_does_not_match_transition(
     tmp_path: Path,
 ) -> None:
@@ -6948,6 +7147,74 @@ def test_guard_fails_when_event_coverage_sequence_refs_are_invalid(
 
     assert any(
         "event[0]" in failure and expected_fragment in failure for failure in failures
+    )
+
+
+def test_guard_fails_when_event_coverage_dispatch_surface_refs_are_missing(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    events = _complete_events()
+    events[0].pop("dispatch_surface_refs")
+    paths = _write_fixture(tmp_path, transitions=transitions, events=events)
+
+    failures = _validate(paths)
+
+    assert any(
+        "event[0]" in failure
+        and "missing required field" in failure
+        and "dispatch_surface_refs" in failure
+        for failure in failures
+    )
+
+
+@pytest.mark.parametrize(
+    ("refs", "expected_fragment"),
+    [
+        ([], "dispatch_surface_refs must be non-empty"),
+        ("surface.resize_signal_handling", "dispatch_surface_refs must be a non-empty list"),
+        ([123], "dispatch_surface_refs[0] must be a non-empty string"),
+        (
+            ["surface.resize_signal_handling", "surface.resize_signal_handling"],
+            "duplicate dispatch_surface_refs[1]",
+        ),
+        (["surface.__missing__"], "references unknown dispatch surface"),
+        (["surface.menu_modal_completion"], "transition_id does not match"),
+    ],
+)
+def test_guard_fails_when_event_coverage_dispatch_surface_refs_are_invalid(
+    tmp_path: Path, refs: object, expected_fragment: str
+) -> None:
+    transitions = _complete_transitions()
+    events = _complete_events()
+    events[0]["dispatch_surface_refs"] = refs
+    paths = _write_fixture(tmp_path, transitions=transitions, events=events)
+
+    failures = _validate(paths)
+
+    assert any(
+        "event[0]" in failure and expected_fragment in failure for failure in failures
+    )
+
+
+def test_guard_fails_when_event_coverage_dispatch_surface_refs_mix_valid_and_wrong_transition(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    events = _complete_events()
+    transition_id = str(events[0]["transition_id"])
+    valid_ref = str(events[0]["dispatch_surface_refs"][0])
+    wrong_ref = _wrong_dispatch_surface_ref(transition_id)
+    events[0]["dispatch_surface_refs"] = [valid_ref, wrong_ref]
+    paths = _write_fixture(tmp_path, transitions=transitions, events=events)
+
+    failures = _validate(paths)
+
+    assert any(
+        "event[0]" in failure
+        and f"dispatch_surface_refs[1] transition_id does not match {transition_id}: {wrong_ref}"
+        in failure
+        for failure in failures
     )
 
 
@@ -7026,6 +7293,52 @@ def test_guard_fails_when_runtime_action_coverage_sequence_refs_are_mixed(
     )
 
 
+def test_guard_fails_when_runtime_action_coverage_dispatch_surface_refs_drift(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    runtime_action_coverages = _complete_actions()
+    runtime_action_coverages[0]["dispatch_surface_refs"] = ["surface.menu_modal_completion"]
+    paths = _write_fixture(
+        tmp_path,
+        transitions=transitions,
+        runtime_action_coverages=runtime_action_coverages,
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "runtime_action_coverage[0]" in failure
+        and "dispatch_surface_refs does not match action coverage" in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_when_runtime_action_coverage_dispatch_surface_refs_mix_valid_and_wrong_transition(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    runtime_action_coverages = _complete_actions()
+    transition_id = str(runtime_action_coverages[0]["transition_id"])
+    valid_ref = str(runtime_action_coverages[0]["dispatch_surface_refs"][0])
+    wrong_ref = _wrong_dispatch_surface_ref(transition_id)
+    runtime_action_coverages[0]["dispatch_surface_refs"] = [valid_ref, wrong_ref]
+    paths = _write_fixture(
+        tmp_path,
+        transitions=transitions,
+        runtime_action_coverages=runtime_action_coverages,
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "runtime_action_coverage[0]" in failure
+        and f"dispatch_surface_refs[1] transition_id does not match {transition_id}: {wrong_ref}"
+        in failure
+        for failure in failures
+    )
+
+
 def test_guard_fails_when_runtime_event_coverage_owner_does_not_match_transition(
     tmp_path: Path,
 ) -> None:
@@ -7047,6 +7360,52 @@ def test_guard_fails_when_runtime_event_coverage_owner_does_not_match_transition
         "runtime_event_coverage[0]" in failure
         and "owner does not match transition" in failure
         and "different owner" in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_when_runtime_event_coverage_dispatch_surface_refs_drift(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    runtime_events = _complete_events()
+    runtime_events[0]["dispatch_surface_refs"] = ["surface.menu_modal_completion"]
+    paths = _write_fixture(
+        tmp_path,
+        transitions=transitions,
+        runtime_events=runtime_events,
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "runtime_event_coverage[0]" in failure
+        and "dispatch_surface_refs does not match docs" in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_when_runtime_event_coverage_dispatch_surface_refs_mix_valid_and_wrong_transition(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    runtime_events = _complete_events()
+    transition_id = str(runtime_events[0]["transition_id"])
+    valid_ref = str(runtime_events[0]["dispatch_surface_refs"][0])
+    wrong_ref = _wrong_dispatch_surface_ref(transition_id)
+    runtime_events[0]["dispatch_surface_refs"] = [valid_ref, wrong_ref]
+    paths = _write_fixture(
+        tmp_path,
+        transitions=transitions,
+        runtime_events=runtime_events,
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "runtime_event_coverage[0]" in failure
+        and f"dispatch_surface_refs[1] transition_id does not match {transition_id}: {wrong_ref}"
+        in failure
         for failure in failures
     )
 
@@ -7334,6 +7693,9 @@ def _event_runtime_validation_failures(runtime_path: Path) -> list[str]:
     runtime_transitions, runtime_transition_failures = guard._parse_runtime_transition_registry(
         runtime_path
     )
+    runtime_dispatch_surfaces, runtime_dispatch_surface_failures = (
+        guard._parse_runtime_dispatch_surface_registry(runtime_path)
+    )
     runtime_events, runtime_event_failures = guard._parse_runtime_event_coverage_registry(
         runtime_path
     )
@@ -7347,6 +7709,7 @@ def _event_runtime_validation_failures(runtime_path: Path) -> list[str]:
         transition_failures
         + event_failures
         + runtime_transition_failures
+        + runtime_dispatch_surface_failures
         + runtime_event_failures
         + runtime_sequence_failures
         + guard._validate_runtime_event_coverage_registry(
@@ -7355,6 +7718,7 @@ def _event_runtime_validation_failures(runtime_path: Path) -> list[str]:
             event_coverage_doc=event_doc,
             transition_ids=transition_ids,
             runtime_transition_sequence_records=runtime_sequences,
+            runtime_dispatch_surface_records=runtime_dispatch_surfaces,
             runtime_transition_ids={record["id"] for record in runtime_transitions},
         )
     )
@@ -7434,6 +7798,20 @@ def test_runtime_event_coverage_detects_write_set_drift(tmp_path: Path) -> None:
     assert any("declared_write_set does not match transition" in failure for failure in failures)
 
 
+def test_runtime_event_coverage_detects_dispatch_surface_ref_drift(
+    tmp_path: Path,
+) -> None:
+    runtime_path = _mutated_event_runtime(
+        tmp_path,
+        'static const char *const kAppStateEventCoverageDispatchSurfaceRefs8[] = {\n  "surface.render-reflow-projection",',
+        'static const char *const kAppStateEventCoverageDispatchSurfaceRefs8[] = {\n  "surface.menu-modal-completion",',
+    )
+
+    failures = _event_runtime_validation_failures(runtime_path)
+
+    assert any("dispatch_surface_refs does not match docs" in failure for failure in failures)
+
+
 def test_runtime_event_coverage_detects_malformed_lists(tmp_path: Path) -> None:
     runtime_path = _mutated_event_runtime(
         tmp_path,
@@ -7453,6 +7831,8 @@ def test_runtime_event_coverage_startup_checks_fail_closed() -> None:
     assert 'AppStateEventCoverageLookup("event.__ytnova_unknown__") != NULL' in source
     assert "coverage->transition_sequence_refs" in source
     assert "coverage->transition_sequence_ref_count" in source
+    assert "coverage->dispatch_surface_refs" in source
+    assert "coverage->dispatch_surface_ref_count" in source
     assert "!AppStateEventCoverageReady()" in source
 
 
@@ -7470,6 +7850,8 @@ def test_runtime_coverage_startup_validates_owner_alignment() -> None:
 
     assert "strcmp(coverage->owner, transition->owner) != 0" in action_body
     assert "strcmp(coverage->owner, transition->owner) != 0" in event_body
+    assert "AppStateDispatchSurfaceRefsReady(coverage->dispatch_surface_refs" in action_body
+    assert "AppStateDispatchSurfaceRefsReady(coverage->dispatch_surface_refs" in event_body
 
 
 def test_runtime_event_coverage_startup_requires_documented_event_ids() -> None:
@@ -7723,6 +8105,34 @@ def test_runtime_action_coverage_startup_rejects_mixed_sequence_refs() -> None:
     )
 
 
+def test_runtime_action_coverage_startup_rejects_mixed_dispatch_surface_refs() -> None:
+    source = Path("src/core/main.c").read_text(encoding="utf-8")
+    action_start = source.index("static int AppStateActionCoverageReady(void)")
+    diff_harness_start = source.index(
+        "static int AppStateDiffHarnessWriteCovered"
+    )
+    helper_start = source.index("static int AppStateDispatchSurfaceRefsReady(")
+    helper_end = source.index("static int AppStateDispatchSurfaceSequenceRefsReady(")
+    action_body = source[action_start:diff_harness_start]
+    helper_body = source[helper_start:helper_end]
+
+    assert "coverage->dispatch_surface_refs" in action_body
+    assert "coverage->dispatch_surface_ref_count" in action_body
+    assert re.search(
+        r"for \(ref_index = 0; ref_index < ref_count; ref_index\+\+\) \{\s*"
+        r"const AppStateDispatchSurfaceMetadata \*surface =\s*"
+        r"AppStateDispatchSurfaceLookup\(refs\[ref_index\]\);",
+        helper_body,
+        re.S,
+    )
+    assert re.search(
+        r"if \(!NonEmptyString\(surface->transition_id\) \|\|\s*"
+        r"strcmp\(surface->transition_id, transition_id\) != 0\)\s*return 0;",
+        helper_body,
+        re.S,
+    )
+
+
 def test_runtime_event_coverage_startup_rejects_mixed_sequence_refs() -> None:
     source = Path("src/core/main.c").read_text(encoding="utf-8")
     event_start = source.index("static int AppStateEventCoverageReady(void)")
@@ -7732,6 +8142,32 @@ def test_runtime_event_coverage_startup_rejects_mixed_sequence_refs() -> None:
     assert "coverage->transition_sequence_refs" in event_body
     assert "coverage->transition_sequence_ref_count" in event_body
     assert "AppStateTransitionSequenceRefsReady(" in event_body
+
+
+def test_runtime_event_coverage_startup_rejects_mixed_dispatch_surface_refs() -> None:
+    source = Path("src/core/main.c").read_text(encoding="utf-8")
+    event_start = source.index("static int AppStateEventCoverageReady(void)")
+    action_start = source.index("static int AppStateActionCoverageReady(void)")
+    helper_start = source.index("static int AppStateDispatchSurfaceRefsReady(")
+    helper_end = source.index("static int AppStateDispatchSurfaceSequenceRefsReady(")
+    event_body = source[event_start:action_start]
+    helper_body = source[helper_start:helper_end]
+
+    assert "coverage->dispatch_surface_refs" in event_body
+    assert "coverage->dispatch_surface_ref_count" in event_body
+    assert re.search(
+        r"for \(ref_index = 0; ref_index < ref_count; ref_index\+\+\) \{\s*"
+        r"const AppStateDispatchSurfaceMetadata \*surface =\s*"
+        r"AppStateDispatchSurfaceLookup\(refs\[ref_index\]\);",
+        helper_body,
+        re.S,
+    )
+    assert re.search(
+        r"if \(!NonEmptyString\(surface->transition_id\) \|\|\s*"
+        r"strcmp\(surface->transition_id, transition_id\) != 0\)\s*return 0;",
+        helper_body,
+        re.S,
+    )
 
 
 def test_runtime_dispatch_surface_startup_validates_allowed_write_owner_fields() -> None:
