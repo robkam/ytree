@@ -46,8 +46,10 @@ FIXTURE_ACTIONS = [
 ]
 REQUIRED_LIST_FIELD_CASES = [
     ("action", "declared_write_set", "action[0]"),
+    ("action", "invariant_refs", "action[0]"),
     ("action", "migration_notes", "action[0]"),
     ("event", "declared_write_set", "event[0]"),
+    ("event", "invariant_refs", "event[0]"),
     ("event", "migration_notes", "event[0]"),
     ("event", "trigger_paths", "event[0]"),
     ("transition", "declared_write_set", "transition[0]"),
@@ -152,6 +154,7 @@ def _action(
         "dispatch_surface_refs": _dispatch_surface_refs_for_transition(
             transition_id, action=action
         ),
+        "invariant_refs": _invariant_refs_for_transition(transition_id),
         "boundary_status": "test",
         "migration_notes": ["fixture action coverage"],
     }
@@ -188,6 +191,9 @@ def _event(
         "dispatch_surface_refs": _dispatch_surface_refs_for_transition(
             transition_id or f"transition.{resolved_category}",
             event_id=f"event.{event_class}",
+        ),
+        "invariant_refs": _invariant_refs_for_transition(
+            transition_id or f"transition.{resolved_category}"
         ),
         "boundary_status": "test",
         "trigger_paths": ["fixture trigger"],
@@ -241,6 +247,33 @@ def _dispatch_surface_refs_for_transition(
         "transition.terminal_signal_or_resize": ["surface.resize_signal_handling"],
         "transition.volume_operation": ["surface.volume_operation"],
     }.get(transition_id, ["surface.key_decode_input_dispatch"])
+
+
+def _invariant_refs_for_transition(transition_id: str) -> list[str]:
+    return {
+        "transition.command_completion": ["invariant.blocked_transition_determinism"],
+        "transition.filesystem_mutation_result": [
+            "invariant.blocked_transition_determinism"
+        ],
+        "transition.keybinding": ["invariant.inactive_panel_frozen"],
+        "transition.menu_action": ["invariant.shared_state_panel_local_isolation"],
+        "transition.modal_action": [
+            "invariant.panel_local_focus_restore",
+            "invariant.blocked_transition_determinism",
+        ],
+        "transition.rebuild_rebind_callback": [
+            "invariant.hidden_entry_visible_navigation",
+            "invariant.viewport_identity_rebind",
+        ],
+        "transition.refresh_rebuild": ["invariant.hidden_entry_visible_navigation"],
+        "transition.render_reflow": ["invariant.render_projection_read_only"],
+        "transition.terminal_signal_or_resize": [
+            "invariant.render_projection_read_only"
+        ],
+        "transition.volume_operation": [
+            "invariant.shared_state_panel_local_isolation"
+        ],
+    }.get(transition_id, ["invariant.inactive_panel_frozen"])
 
 
 def _dispatch_surface(
@@ -775,6 +808,17 @@ def _runtime_source(
             f"static const char *const {dispatch_surface_refs_table}[] = "
             f"{{\n{dispatch_surface_ref_rows}\n}};\n"
         )
+        invariant_refs = record.get("invariant_refs")
+        if not isinstance(invariant_refs, list):
+            invariant_refs = []
+        invariant_ref_rows = "\n".join(
+            f'  "{ref}",' for ref in invariant_refs if isinstance(ref, str)
+        )
+        invariant_refs_table = f"kAppStateActionCoverageInvariantRefs{index}"
+        action_coverage_arrays.append(
+            f"static const char *const {invariant_refs_table}[] = "
+            f"{{\n{invariant_ref_rows}\n}};\n"
+        )
         action = record.get("action", "")
         action_coverage_rows.append(
             f'  {{{action}, "{action}", "{record.get("transition_id", "")}", '
@@ -785,6 +829,8 @@ def _runtime_source(
             f"sizeof({sequence_refs_table}[0]), "
             f"{dispatch_surface_refs_table}, sizeof({dispatch_surface_refs_table}) / "
             f"sizeof({dispatch_surface_refs_table}[0]), "
+            f"{invariant_refs_table}, sizeof({invariant_refs_table}) / "
+            f"sizeof({invariant_refs_table}[0]), "
             f'"{record.get("boundary_status", "")}", '
             f"{notes_table}, sizeof({notes_table}) / sizeof({notes_table}[0])}},"
         )
@@ -840,6 +886,17 @@ def _runtime_source(
             f"static const char *const {dispatch_surface_refs_table}[] = "
             f"{{\n{dispatch_surface_ref_rows}\n}};\n"
         )
+        invariant_refs = record.get("invariant_refs")
+        if not isinstance(invariant_refs, list):
+            invariant_refs = []
+        invariant_ref_rows = "\n".join(
+            f'  "{ref}",' for ref in invariant_refs if isinstance(ref, str)
+        )
+        invariant_refs_table = f"kAppStateEventCoverageInvariantRefs{index}"
+        event_coverage_arrays.append(
+            f"static const char *const {invariant_refs_table}[] = "
+            f"{{\n{invariant_ref_rows}\n}};\n"
+        )
         transition_index = transition_index_by_id.get(str(record.get("transition_id", "")), 0)
         write_set_table = f"kAppStateTransitionWriteSet{transition_index}"
         event_coverage_rows.append(
@@ -854,6 +911,8 @@ def _runtime_source(
             f"sizeof({sequence_refs_table}[0]), "
             f"{dispatch_surface_refs_table}, sizeof({dispatch_surface_refs_table}) / "
             f"sizeof({dispatch_surface_refs_table}[0]), "
+            f"{invariant_refs_table}, sizeof({invariant_refs_table}) / "
+            f"sizeof({invariant_refs_table}[0]), "
             f"{notes_table}, sizeof({notes_table}) / sizeof({notes_table}[0])}},"
         )
     owner_field_arrays = []
@@ -1355,6 +1414,21 @@ def _wrong_dispatch_surface_ref(transition_id: str) -> str:
     raise AssertionError(f"missing mismatched dispatch surface fixture for {transition_id}")
 
 
+def _wrong_invariant_ref(transition_id: str) -> str:
+    for invariant in _complete_invariants():
+        transition_ids = invariant.get("transition_ids")
+        if isinstance(transition_ids, list) and transition_id not in transition_ids:
+            return str(invariant["invariant_id"])
+    raise AssertionError(f"missing mismatched invariant fixture for {transition_id}")
+
+
+def _event_index(event_id: str) -> int:
+    for index, event in enumerate(_complete_events()):
+        if event["event_id"] == event_id:
+            return index
+    raise AssertionError(f"missing fixture event {event_id}")
+
+
 def _complete_invariant_dispatch_surface_ids() -> dict[str, list[str]]:
     categories = REQUIRED_INVARIANT_CATEGORIES
     surface_ids = [str(record["surface_id"]) for record in _complete_dispatch_surfaces()]
@@ -1370,14 +1444,53 @@ def _complete_invariant_dispatch_surface_ids() -> dict[str, list[str]]:
 
 def _complete_invariants() -> list[dict[str, object]]:
     dispatch_surface_ids_by_category = _complete_invariant_dispatch_surface_ids()
+    transition_ids_by_category = {
+        "inactive_panel_frozen": [
+            "transition.keybinding",
+            "transition.menu_action",
+            "transition.modal_action",
+            "transition.refresh_rebuild",
+            "transition.terminal_signal_or_resize",
+        ],
+        "render_projection_read_only": [
+            "transition.render_reflow",
+            "transition.terminal_signal_or_resize",
+        ],
+        "hidden_entry_visible_navigation": [
+            "transition.keybinding",
+            "transition.refresh_rebuild",
+            "transition.rebuild_rebind_callback",
+        ],
+        "panel_local_focus_restore": [
+            "transition.keybinding",
+            "transition.menu_action",
+            "transition.modal_action",
+            "transition.rebuild_rebind_callback",
+        ],
+        "viewport_identity_rebind": [
+            "transition.refresh_rebuild",
+            "transition.terminal_signal_or_resize",
+            "transition.filesystem_mutation_result",
+            "transition.rebuild_rebind_callback",
+        ],
+        "shared_state_panel_local_isolation": [
+            "transition.menu_action",
+            "transition.refresh_rebuild",
+            "transition.volume_operation",
+            "transition.filesystem_mutation_result",
+        ],
+        "stale_snapshot_fail_closed": [
+            "transition.refresh_rebuild",
+            "transition.volume_operation",
+            "transition.filesystem_mutation_result",
+            "transition.rebuild_rebind_callback",
+        ],
+        "blocked_transition_determinism": _complete_transition_ids(),
+    }
     return [
         _invariant(
             category,
-            transition_ids=(
-                _complete_transition_ids()
-                if category == "blocked_transition_determinism"
-                else None
-            ),
+            transition_ids=transition_ids_by_category[category],
             dispatch_surface_ids=dispatch_surface_ids_by_category[category],
         )
         for category in REQUIRED_INVARIANT_CATEGORIES
@@ -7093,6 +7206,77 @@ def test_guard_fails_when_action_coverage_dispatch_surface_refs_mix_valid_and_wr
     )
 
 
+@pytest.mark.parametrize(
+    ("refs", "expected"),
+    [
+        ([], "invariant_refs must be non-empty"),
+        ("invariant.inactive_panel_frozen", "invariant_refs must be a non-empty list"),
+        ([123], "invariant_refs[0] must be a non-empty string"),
+        (
+            ["invariant.inactive_panel_frozen", "invariant.inactive_panel_frozen"],
+            "invariant_refs[1] duplicates invariant.inactive_panel_frozen",
+        ),
+        (["invariant.__missing__"], "invariant_refs[0] does not match invariant registry"),
+        (["invariant.render_projection_read_only"], "transition_id does not match"),
+    ],
+)
+def test_guard_fails_when_action_coverage_invariant_refs_are_invalid(
+    tmp_path: Path, refs: object, expected: str
+) -> None:
+    transitions = _complete_transitions()
+    actions = _complete_actions()
+    actions[0]["invariant_refs"] = refs
+    paths = _write_fixture(tmp_path, transitions=transitions, actions=actions)
+
+    failures = _validate(paths)
+
+    assert any("action[0]" in failure and expected in failure for failure in failures)
+
+
+def test_guard_fails_when_action_coverage_invariant_refs_mix_valid_and_wrong_transition(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    actions = _complete_actions()
+    transition_id = str(actions[0]["transition_id"])
+    valid_ref = str(actions[0]["invariant_refs"][0])
+    wrong_ref = _wrong_invariant_ref(transition_id)
+    actions[0]["invariant_refs"] = [valid_ref, wrong_ref]
+    paths = _write_fixture(tmp_path, transitions=transitions, actions=actions)
+
+    failures = _validate(paths)
+
+    assert any(
+        "action[0]" in failure
+        and f"invariant_refs[1] transition_id does not match {transition_id}: {wrong_ref}"
+        in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_when_action_coverage_invariant_refs_do_not_cover_declared_writes(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    invariants = _complete_invariants()
+    _split_transition_invariant_coverage(
+        invariants,
+        "transition.keybinding",
+        "transition.refresh_rebuild",
+        "panel.tree_selection_key",
+    )
+    paths = _write_fixture(tmp_path, transitions=transitions, invariants=invariants)
+
+    failures = _validate(paths)
+
+    assert any(
+        "action[0]" in failure
+        and "invariant_refs lack collective coverage" in failure
+        and "panel.tree_selection_key" in failure
+        for failure in failures
+    )
+
+
 def test_guard_fails_when_event_coverage_owner_does_not_match_transition(
     tmp_path: Path,
 ) -> None:
@@ -7147,6 +7331,89 @@ def test_guard_fails_when_event_coverage_sequence_refs_are_invalid(
 
     assert any(
         "event[0]" in failure and expected_fragment in failure for failure in failures
+    )
+
+
+@pytest.mark.parametrize(
+    ("refs", "expected"),
+    [
+        ([], "invariant_refs must be non-empty"),
+        ("invariant.inactive_panel_frozen", "invariant_refs must be a non-empty list"),
+        ([123], "invariant_refs[0] must be a non-empty string"),
+        (
+            ["invariant.render_projection_read_only", "invariant.render_projection_read_only"],
+            "invariant_refs[1] duplicates invariant.render_projection_read_only",
+        ),
+        (["invariant.__missing__"], "invariant_refs[0] does not match invariant registry"),
+        (["invariant.inactive_panel_frozen"], "transition_id does not match"),
+    ],
+)
+def test_guard_fails_when_event_coverage_invariant_refs_are_invalid(
+    tmp_path: Path, refs: object, expected: str
+) -> None:
+    transitions = _complete_transitions()
+    events = _complete_events()
+    event_index = _event_index("event.render_reflow")
+    events[event_index]["invariant_refs"] = refs
+    paths = _write_fixture(tmp_path, transitions=transitions, events=events)
+
+    failures = _validate(paths)
+
+    assert any(
+        f"event[{event_index}]" in failure and expected in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_when_event_coverage_invariant_refs_mix_valid_and_wrong_transition(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    events = _complete_events()
+    event_index = _event_index("event.render_reflow")
+    transition_id = str(events[event_index]["transition_id"])
+    valid_ref = str(events[event_index]["invariant_refs"][0])
+    wrong_ref = _wrong_invariant_ref(transition_id)
+    events[event_index]["invariant_refs"] = [valid_ref, wrong_ref]
+    paths = _write_fixture(tmp_path, transitions=transitions, events=events)
+
+    failures = _validate(paths)
+
+    assert any(
+        f"event[{event_index}]" in failure
+        and f"invariant_refs[1] transition_id does not match {transition_id}: {wrong_ref}"
+        in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_when_event_coverage_invariant_refs_do_not_cover_declared_writes(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    events = _complete_events()
+    event_index = _event_index("event.render_reflow")
+    invariants = _complete_invariants()
+    _split_transition_invariant_coverage(
+        invariants,
+        "transition.render_reflow",
+        "transition.keybinding",
+        "field",
+    )
+    paths = _write_fixture(
+        tmp_path,
+        transitions=transitions,
+        events=events,
+        invariants=invariants,
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        f"event[{event_index}]" in failure
+        and "invariant_refs lack collective coverage" in failure
+        and "field" in failure
+        for failure in failures
     )
 
 
@@ -7339,6 +7606,54 @@ def test_guard_fails_when_runtime_action_coverage_dispatch_surface_refs_mix_vali
     )
 
 
+def test_guard_fails_when_runtime_action_coverage_invariant_refs_drift(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    runtime_action_coverages = _complete_actions()
+    runtime_action_coverages[0]["invariant_refs"] = [
+        "invariant.blocked_transition_determinism"
+    ]
+    paths = _write_fixture(
+        tmp_path,
+        transitions=transitions,
+        runtime_action_coverages=runtime_action_coverages,
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "runtime_action_coverage[0]" in failure
+        and "runtime invariant_refs does not match action coverage" in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_when_runtime_action_coverage_invariant_refs_mix_valid_and_wrong_transition(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    runtime_action_coverages = _complete_actions()
+    transition_id = str(runtime_action_coverages[0]["transition_id"])
+    valid_ref = str(runtime_action_coverages[0]["invariant_refs"][0])
+    wrong_ref = _wrong_invariant_ref(transition_id)
+    runtime_action_coverages[0]["invariant_refs"] = [valid_ref, wrong_ref]
+    paths = _write_fixture(
+        tmp_path,
+        transitions=transitions,
+        runtime_action_coverages=runtime_action_coverages,
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "runtime_action_coverage[0]" in failure
+        and f"invariant_refs[1] transition_id does not match {transition_id}: {wrong_ref}"
+        in failure
+        for failure in failures
+    )
+
+
 def test_guard_fails_when_runtime_event_coverage_owner_does_not_match_transition(
     tmp_path: Path,
 ) -> None:
@@ -7405,6 +7720,54 @@ def test_guard_fails_when_runtime_event_coverage_dispatch_surface_refs_mix_valid
     assert any(
         "runtime_event_coverage[0]" in failure
         and f"dispatch_surface_refs[1] transition_id does not match {transition_id}: {wrong_ref}"
+        in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_when_runtime_event_coverage_invariant_refs_drift(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    runtime_events = _complete_events()
+    event_index = _event_index("event.render_reflow")
+    runtime_events[event_index]["invariant_refs"] = ["invariant.inactive_panel_frozen"]
+    paths = _write_fixture(
+        tmp_path,
+        transitions=transitions,
+        runtime_events=runtime_events,
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        f"runtime_event_coverage[{event_index}]" in failure
+        and "invariant_refs does not match docs" in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_when_runtime_event_coverage_invariant_refs_mix_valid_and_wrong_transition(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    runtime_events = _complete_events()
+    event_index = _event_index("event.render_reflow")
+    transition_id = str(runtime_events[event_index]["transition_id"])
+    valid_ref = str(runtime_events[event_index]["invariant_refs"][0])
+    wrong_ref = _wrong_invariant_ref(transition_id)
+    runtime_events[event_index]["invariant_refs"] = [valid_ref, wrong_ref]
+    paths = _write_fixture(
+        tmp_path,
+        transitions=transitions,
+        runtime_events=runtime_events,
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        f"runtime_event_coverage[{event_index}]" in failure
+        and f"invariant_refs[1] transition_id does not match {transition_id}: {wrong_ref}"
         in failure
         for failure in failures
     )
@@ -7690,6 +8053,7 @@ def _event_runtime_records_and_failures(runtime_path: Path = guard.DEFAULT_ACTIO
 def _event_runtime_validation_failures(runtime_path: Path) -> list[str]:
     transitions_doc, transition_failures = guard._load_json(guard.DEFAULT_TRANSITIONS)
     event_doc, event_failures = guard._load_json(guard.DEFAULT_EVENT_COVERAGE)
+    invariant_doc, invariant_failures = guard._load_json(guard.DEFAULT_INVARIANTS)
     runtime_transitions, runtime_transition_failures = guard._parse_runtime_transition_registry(
         runtime_path
     )
@@ -7702,16 +8066,21 @@ def _event_runtime_validation_failures(runtime_path: Path) -> list[str]:
     runtime_sequences, runtime_sequence_failures = (
         guard._parse_runtime_transition_sequence_registry(runtime_path)
     )
+    runtime_invariants, runtime_invariant_failures = (
+        guard._parse_runtime_invariant_registry(runtime_path)
+    )
     transition_ids = {
         record["id"]: record for record in transitions_doc.get("transitions", [])
     }
     return (
         transition_failures
         + event_failures
+        + invariant_failures
         + runtime_transition_failures
         + runtime_dispatch_surface_failures
         + runtime_event_failures
         + runtime_sequence_failures
+        + runtime_invariant_failures
         + guard._validate_runtime_event_coverage_registry(
             runtime_records=runtime_events,
             runtime_path=runtime_path,
@@ -7720,6 +8089,15 @@ def _event_runtime_validation_failures(runtime_path: Path) -> list[str]:
             runtime_transition_sequence_records=runtime_sequences,
             runtime_dispatch_surface_records=runtime_dispatch_surfaces,
             runtime_transition_ids={record["id"] for record in runtime_transitions},
+            runtime_invariant_ids={
+                record["invariant_id"] for record in runtime_invariants
+            },
+            runtime_invariant_transition_ids=guard._invariant_transition_ids_by_invariant(
+                runtime_invariants
+            ),
+            runtime_invariant_protected_fields=guard._invariant_protected_fields_by_invariant(
+                runtime_invariants
+            ),
         )
     )
 
@@ -7833,6 +8211,8 @@ def test_runtime_event_coverage_startup_checks_fail_closed() -> None:
     assert "coverage->transition_sequence_ref_count" in source
     assert "coverage->dispatch_surface_refs" in source
     assert "coverage->dispatch_surface_ref_count" in source
+    assert "coverage->invariant_refs" in source
+    assert "coverage->invariant_ref_count" in source
     assert "!AppStateEventCoverageReady()" in source
 
 
@@ -7852,6 +8232,8 @@ def test_runtime_coverage_startup_validates_owner_alignment() -> None:
     assert "strcmp(coverage->owner, transition->owner) != 0" in event_body
     assert "AppStateDispatchSurfaceRefsReady(coverage->dispatch_surface_refs" in action_body
     assert "AppStateDispatchSurfaceRefsReady(coverage->dispatch_surface_refs" in event_body
+    assert "AppStateInvariantRefsReady(coverage->invariant_refs" in action_body
+    assert "AppStateInvariantRefsReady(coverage->invariant_refs" in event_body
 
 
 def test_runtime_event_coverage_startup_requires_documented_event_ids() -> None:
