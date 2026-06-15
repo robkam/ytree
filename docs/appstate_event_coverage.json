@@ -28,6 +28,13 @@
         "panel.file_viewport_origin",
         "panel.panel_generation"
       ],
+      "owner_field_refs": [
+        "ctx.layout",
+        "ctx.window_handles",
+        "panel.tree_viewport_origin",
+        "panel.file_viewport_origin",
+        "panel.panel_generation"
+      ],
       "boundary_status": "covered_by_transition_record",
       "trigger_paths": [
         "Signal flag set outside curses work",
@@ -58,6 +65,13 @@
       "source": "Manual refresh, explicit relog, or declared refresh boundary",
       "owner": "Volume(shared topology)",
       "declared_write_set": [
+        "volume.dir_tree",
+        "volume.logged_state",
+        "volume.volume_generation",
+        "panel.restore_snapshot",
+        "panel.panel_generation"
+      ],
+      "owner_field_refs": [
         "volume.dir_tree",
         "volume.logged_state",
         "volume.volume_generation",
@@ -100,6 +114,14 @@
       "source": "Post-rebuild panel anchor re-resolution callback",
       "owner": "YtreeNovaPanel(affected) and Volume(current)",
       "declared_write_set": [
+        "panel.tree_selection_key",
+        "panel.file_selection_key",
+        "panel.tree_cursor_pos",
+        "panel.tree_viewport_origin",
+        "panel.file_viewport_origin",
+        "panel.panel_generation"
+      ],
+      "owner_field_refs": [
         "panel.tree_selection_key",
         "panel.file_selection_key",
         "panel.tree_cursor_pos",
@@ -150,6 +172,14 @@
         "panel.panel_generation",
         "ctx.message_state"
       ],
+      "owner_field_refs": [
+        "volume.dir_tree",
+        "volume.payload_cache",
+        "volume.volume_generation",
+        "panel.restore_snapshot",
+        "panel.panel_generation",
+        "ctx.message_state"
+      ],
       "boundary_status": "covered_by_transition_record",
       "trigger_paths": [
         "Create directory result",
@@ -185,6 +215,13 @@
       "source": "Filesystem watcher or live-refresh notification after debounce/settle",
       "owner": "Volume(shared topology)",
       "declared_write_set": [
+        "volume.dir_tree",
+        "volume.logged_state",
+        "volume.volume_generation",
+        "panel.restore_snapshot",
+        "panel.panel_generation"
+      ],
+      "owner_field_refs": [
         "volume.dir_tree",
         "volume.logged_state",
         "volume.volume_generation",
@@ -233,6 +270,12 @@
         "ctx.pending_transition",
         "panel.panel_generation"
       ],
+      "owner_field_refs": [
+        "ctx.command_state",
+        "ctx.message_state",
+        "ctx.pending_transition",
+        "panel.panel_generation"
+      ],
       "boundary_status": "covered_by_transition_record",
       "trigger_paths": [
         "External command completion",
@@ -263,6 +306,12 @@
       "source": "Modal prompt, menu, or dialog completion",
       "owner": "ViewContext.modal_region",
       "declared_write_set": [
+        "ctx.modal_state",
+        "ctx.message_state",
+        "panel.focus_shape",
+        "panel.panel_generation"
+      ],
+      "owner_field_refs": [
         "ctx.modal_state",
         "ctx.message_state",
         "panel.focus_shape",
@@ -307,6 +356,13 @@
         "panel.panel_generation",
         "volume.volume_generation"
       ],
+      "owner_field_refs": [
+        "ctx.volumes_head",
+        "panel.volume_key",
+        "panel.restore_snapshot",
+        "panel.panel_generation",
+        "volume.volume_generation"
+      ],
       "boundary_status": "covered_by_transition_record",
       "trigger_paths": [
         "Cycle loaded volume",
@@ -341,6 +397,10 @@
       "source": "Render invalidation projection and doupdate-ready reflow",
       "owner": "ViewContext.render_region",
       "declared_write_set": [
+        "ctx.render_dirty_flags",
+        "ctx.window_handles"
+      ],
+      "owner_field_refs": [
         "ctx.render_dirty_flags",
         "ctx.window_handles"
       ],

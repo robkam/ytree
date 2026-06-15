@@ -47,10 +47,12 @@ FIXTURE_ACTIONS = [
 ]
 REQUIRED_LIST_FIELD_CASES = [
     ("action", "declared_write_set", "action[0]"),
+    ("action", "owner_field_refs", "action[0]"),
     ("action", "generation_domain_refs", "action[0]"),
     ("action", "invariant_refs", "action[0]"),
     ("action", "migration_notes", "action[0]"),
     ("event", "declared_write_set", "event[0]"),
+    ("event", "owner_field_refs", "event[0]"),
     ("event", "generation_domain_refs", "event[0]"),
     ("event", "invariant_refs", "event[0]"),
     ("event", "migration_notes", "event[0]"),
@@ -158,6 +160,7 @@ def _action(
         "category": category,
         "owner": "owner",
         "declared_write_set": ["panel.tree_selection_key"],
+        "owner_field_refs": ["panel.tree_selection_key"],
         "transition_sequence_refs": _sequence_refs_for_transition(transition_id),
         "dispatch_surface_refs": _dispatch_surface_refs_for_transition(
             transition_id, action=action
@@ -200,6 +203,7 @@ def _event(
         "source": "fixture source",
         "owner": "owner",
         "declared_write_set": declared_write_set,
+        "owner_field_refs": list(declared_write_set),
         "transition_sequence_refs": _sequence_refs_for_transition(
             resolved_transition_id
         ),
@@ -874,6 +878,17 @@ def _runtime_source(
             f"static const char *const {write_set_table}[] = "
             f"{{\n{write_set_rows}\n}};\n"
         )
+        owner_field_refs = record.get("owner_field_refs")
+        if not isinstance(owner_field_refs, list):
+            owner_field_refs = []
+        owner_ref_rows = "\n".join(
+            f'  "{field}",' for field in owner_field_refs if isinstance(field, str)
+        )
+        owner_refs_table = f"kAppStateActionCoverageOwnerFieldRefs{index}"
+        action_coverage_arrays.append(
+            f"static const char *const {owner_refs_table}[] = "
+            f"{{\n{owner_ref_rows}\n}};\n"
+        )
         migration_notes = record.get("migration_notes")
         if not isinstance(migration_notes, list):
             migration_notes = []
@@ -941,6 +956,8 @@ def _runtime_source(
             f'"{record.get("category", "")}", "{record.get("owner", "")}", '
             f"{write_set_table}, sizeof({write_set_table}) / "
             f"sizeof({write_set_table}[0]), "
+            f"{owner_refs_table}, sizeof({owner_refs_table}) / "
+            f"sizeof({owner_refs_table}[0]), "
             f"{sequence_refs_table}, sizeof({sequence_refs_table}) / "
             f"sizeof({sequence_refs_table}[0]), "
             f"{dispatch_surface_refs_table}, sizeof({dispatch_surface_refs_table}) / "
@@ -1031,6 +1048,17 @@ def _runtime_source(
             f"static const char *const {generation_domain_refs_table}[] = "
             f"{{\n{generation_domain_ref_rows}\n}};\n"
         )
+        owner_field_refs = record.get("owner_field_refs")
+        if not isinstance(owner_field_refs, list):
+            owner_field_refs = []
+        owner_ref_rows = "\n".join(
+            f'  "{field}",' for field in owner_field_refs if isinstance(field, str)
+        )
+        owner_refs_table = f"kAppStateEventCoverageOwnerFieldRefs{index}"
+        event_coverage_arrays.append(
+            f"static const char *const {owner_refs_table}[] = "
+            f"{{\n{owner_ref_rows}\n}};\n"
+        )
         transition_index = transition_index_by_id.get(str(record.get("transition_id", "")), 0)
         write_set_table = f"kAppStateTransitionWriteSet{transition_index}"
         event_coverage_rows.append(
@@ -1039,6 +1067,8 @@ def _runtime_source(
             f'"{record.get("source", "")}", "{record.get("owner", "")}", '
             f"{write_set_table}, sizeof({write_set_table}) / "
             f"sizeof({write_set_table}[0]), "
+            f"{owner_refs_table}, sizeof({owner_refs_table}) / "
+            f"sizeof({owner_refs_table}[0]), "
             f'"{record.get("boundary_status", "")}", '
             f"{trigger_table}, sizeof({trigger_table}) / sizeof({trigger_table}[0]), "
             f"{sequence_refs_table}, sizeof({sequence_refs_table}) / "
@@ -3688,10 +3718,12 @@ int main(void) {
     return 8;
   if (metadata->declared_write_set == 0 || metadata->declared_write_set_count == 0)
     return 9;
-  if (metadata->dispatch_surface_refs == 0 || metadata->dispatch_surface_ref_count == 0)
+  if (metadata->owner_field_refs == 0 || metadata->owner_field_ref_count == 0)
     return 10;
-  if (metadata->migration_notes == 0 || metadata->migration_note_count == 0)
+  if (metadata->dispatch_surface_refs == 0 || metadata->dispatch_surface_ref_count == 0)
     return 11;
+  if (metadata->migration_notes == 0 || metadata->migration_note_count == 0)
+    return 12;
   return 0;
 }
 """,
@@ -7356,6 +7388,66 @@ def test_guard_fails_when_event_category_does_not_match_transition(tmp_path: Pat
     )
 
 
+@pytest.mark.parametrize(
+    ("refs", "expected"),
+    [
+        ([], "owner_field_refs must be non-empty"),
+        ("field", "owner_field_refs must be a non-empty list"),
+        ([123], "owner_field_refs[0] must be a non-empty string"),
+        (["field", "field"], "duplicate owner_field_refs[1]"),
+        (["field.unknown"], "owner_field_refs does not match owner-field registry"),
+        (["panel.tree_selection_key"], "must be declared by declared_write_set"),
+    ],
+)
+def test_guard_fails_when_event_coverage_owner_field_refs_are_invalid(
+    tmp_path: Path, refs: object, expected: str
+) -> None:
+    transitions = _complete_transitions()
+    events = _complete_events()
+    events[0]["owner_field_refs"] = refs
+    paths = _write_fixture(tmp_path, transitions=transitions, events=events)
+
+    failures = _validate(paths)
+
+    assert any("event[0]" in failure and expected in failure for failure in failures)
+
+
+def test_guard_fails_when_event_coverage_owner_field_refs_are_missing(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    events = _complete_events()
+    events[0].pop("owner_field_refs")
+    paths = _write_fixture(tmp_path, transitions=transitions, events=events)
+
+    failures = _validate(paths)
+
+    assert any(
+        "event[0]" in failure
+        and "missing required field" in failure
+        and "owner_field_refs" in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_when_event_coverage_owner_field_refs_mix_valid_and_wrong_write(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    events = _complete_events()
+    events[0]["owner_field_refs"] = ["field", "panel.tree_selection_key"]
+    paths = _write_fixture(tmp_path, transitions=transitions, events=events)
+
+    failures = _validate(paths)
+
+    assert any(
+        "event[0]" in failure
+        and "owner_field_refs[1] must be declared by declared_write_set: panel.tree_selection_key"
+        in failure
+        for failure in failures
+    )
+
+
 def test_guard_fails_when_action_coverage_owner_does_not_match_transition(
     tmp_path: Path,
 ) -> None:
@@ -7370,6 +7462,88 @@ def test_guard_fails_when_action_coverage_owner_does_not_match_transition(
         "action[0]" in failure
         and "owner does not match transition" in failure
         and "different owner" in failure
+        for failure in failures
+    )
+
+
+@pytest.mark.parametrize(
+    ("refs", "expected"),
+    [
+        ([], "owner_field_refs must be non-empty"),
+        ("panel.tree_selection_key", "owner_field_refs must be a non-empty list"),
+        ([123], "owner_field_refs[0] must be a non-empty string"),
+        (
+            ["panel.tree_selection_key", "panel.tree_selection_key"],
+            "duplicate owner_field_refs[1]",
+        ),
+        (["field.unknown"], "owner_field_refs does not match owner-field registry"),
+        (["field"], "must be declared by declared_write_set"),
+    ],
+)
+def test_guard_fails_when_action_coverage_owner_field_refs_are_invalid(
+    tmp_path: Path, refs: object, expected: str
+) -> None:
+    transitions = _complete_transitions()
+    actions = _complete_actions()
+    actions[0]["owner_field_refs"] = refs
+    paths = _write_fixture(tmp_path, transitions=transitions, actions=actions)
+
+    failures = _validate(paths)
+
+    assert any("action[0]" in failure and expected in failure for failure in failures)
+
+
+def test_guard_fails_when_action_coverage_owner_field_refs_are_missing(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    actions = _complete_actions()
+    actions[0].pop("owner_field_refs")
+    paths = _write_fixture(tmp_path, transitions=transitions, actions=actions)
+
+    failures = _validate(paths)
+
+    assert any(
+        "action[0]" in failure
+        and "missing required field" in failure
+        and "owner_field_refs" in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_when_action_coverage_owner_field_refs_miss_declared_write(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    actions = _complete_actions()
+    actions[0]["owner_field_refs"] = ["field", "panel.tree_selection_key"]
+    paths = _write_fixture(tmp_path, transitions=transitions, actions=actions)
+
+    failures = _validate(paths)
+
+    assert any(
+        "action[0]" in failure
+        and "owner_field_refs[0] must be declared by declared_write_set: field"
+        in failure
+        for failure in failures
+    )
+
+
+def test_guard_requires_empty_action_write_set_owner_field_rationale(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    actions = _complete_actions()
+    actions[0]["declared_write_set"] = []
+    actions[0]["owner_field_refs"] = []
+    paths = _write_fixture(tmp_path, transitions=transitions, actions=actions)
+
+    failures = _validate(paths)
+
+    assert any(
+        "action[0]" in failure
+        and "empty declared_write_set requires an owner_field_refs rationale"
+        in failure
         for failure in failures
     )
 
@@ -7781,6 +7955,28 @@ def test_guard_fails_when_runtime_action_coverage_owner_does_not_match_transitio
     )
 
 
+def test_guard_fails_when_runtime_action_coverage_owner_field_refs_drift(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    runtime_action_coverages = _complete_actions()
+    runtime_action_coverages[0]["owner_field_refs"] = ["field"]
+    paths = _write_fixture(
+        tmp_path,
+        transitions=transitions,
+        runtime_action_coverages=runtime_action_coverages,
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "runtime_action_coverage[0]" in failure
+        and "owner_field_refs does not match action coverage"
+        in failure
+        for failure in failures
+    )
+
+
 def test_guard_fails_when_runtime_action_coverage_sequence_refs_drift(
     tmp_path: Path,
 ) -> None:
@@ -8062,6 +8258,28 @@ def test_guard_fails_when_runtime_event_coverage_owner_does_not_match_transition
         "runtime_event_coverage[0]" in failure
         and "owner does not match transition" in failure
         and "different owner" in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_when_runtime_event_coverage_owner_field_refs_drift(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    runtime_events = _complete_events()
+    runtime_events[0]["owner_field_refs"] = ["panel.tree_selection_key"]
+    paths = _write_fixture(
+        tmp_path,
+        transitions=transitions,
+        runtime_events=runtime_events,
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "runtime_event_coverage[0]" in failure
+        and "owner_field_refs does not match docs"
+        in failure
         for failure in failures
     )
 
@@ -8559,6 +8777,7 @@ def _event_runtime_records_and_failures(runtime_path: Path = guard.DEFAULT_ACTIO
 def _event_runtime_validation_failures(runtime_path: Path) -> list[str]:
     transitions_doc, transition_failures = guard._load_json(guard.DEFAULT_TRANSITIONS)
     event_doc, event_failures = guard._load_json(guard.DEFAULT_EVENT_COVERAGE)
+    owner_doc, owner_failures = guard._load_json(guard.DEFAULT_OWNER_FIELDS)
     invariant_doc, invariant_failures = guard._load_json(guard.DEFAULT_INVARIANTS)
     runtime_transitions, runtime_transition_failures = guard._parse_runtime_transition_registry(
         runtime_path
@@ -8584,6 +8803,7 @@ def _event_runtime_validation_failures(runtime_path: Path) -> list[str]:
     return (
         transition_failures
         + event_failures
+        + owner_failures
         + invariant_failures
         + runtime_transition_failures
         + runtime_dispatch_surface_failures
@@ -8599,6 +8819,9 @@ def _event_runtime_validation_failures(runtime_path: Path) -> list[str]:
             runtime_transition_sequence_records=runtime_sequences,
             runtime_dispatch_surface_records=runtime_dispatch_surfaces,
             runtime_generation_domain_records=runtime_generation_domains,
+            registered_owner_fields=guard._collect_string_ids(
+                owner_doc, collection_key="owner_fields", id_field="field"
+            ),
             runtime_transition_ids={record["id"] for record in runtime_transitions},
             runtime_invariant_ids={
                 record["invariant_id"] for record in runtime_invariants
@@ -8678,8 +8901,8 @@ def test_runtime_event_coverage_detects_invalid_transition_linkage(
 def test_runtime_event_coverage_detects_write_set_drift(tmp_path: Path) -> None:
     runtime_path = _mutated_event_runtime(
         tmp_path,
-        "   kAppStateTransitionWriteSet9,\n   sizeof(kAppStateTransitionWriteSet9) / sizeof(kAppStateTransitionWriteSet9[0]),\n   \"covered_by_transition_record\",\n   kAppStateEventCoverageTriggerPaths8",
-        "   kAppStateTransitionWriteSet0,\n   sizeof(kAppStateTransitionWriteSet0) / sizeof(kAppStateTransitionWriteSet0[0]),\n   \"covered_by_transition_record\",\n   kAppStateEventCoverageTriggerPaths8",
+        "   kAppStateTransitionWriteSet9,\n   sizeof(kAppStateTransitionWriteSet9) / sizeof(kAppStateTransitionWriteSet9[0]),\n   kAppStateEventCoverageOwnerFieldRefs7,\n   sizeof(kAppStateEventCoverageOwnerFieldRefs7) / sizeof(kAppStateEventCoverageOwnerFieldRefs7[0]),\n   \"covered_by_transition_record\",\n   kAppStateEventCoverageTriggerPaths8",
+        "   kAppStateTransitionWriteSet0,\n   sizeof(kAppStateTransitionWriteSet0) / sizeof(kAppStateTransitionWriteSet0[0]),\n   kAppStateEventCoverageOwnerFieldRefs7,\n   sizeof(kAppStateEventCoverageOwnerFieldRefs7) / sizeof(kAppStateEventCoverageOwnerFieldRefs7[0]),\n   \"covered_by_transition_record\",\n   kAppStateEventCoverageTriggerPaths8",
     )
 
     failures = _event_runtime_validation_failures(runtime_path)
@@ -8722,6 +8945,9 @@ def test_runtime_event_coverage_startup_checks_fail_closed() -> None:
     assert "coverage->transition_sequence_ref_count" in source
     assert "coverage->dispatch_surface_refs" in source
     assert "coverage->dispatch_surface_ref_count" in source
+    assert "coverage->owner_field_refs" in source
+    assert "coverage->owner_field_ref_count" in source
+    assert "AppStateCoverageOwnerFieldRefsReady(" in source
     assert "coverage->invariant_refs" in source
     assert "coverage->invariant_ref_count" in source
     assert "!AppStateEventCoverageReady()" in source
@@ -8743,8 +8969,36 @@ def test_runtime_coverage_startup_validates_owner_alignment() -> None:
     assert "strcmp(coverage->owner, transition->owner) != 0" in event_body
     assert "AppStateDispatchSurfaceRefsReady(coverage->dispatch_surface_refs" in action_body
     assert "AppStateDispatchSurfaceRefsReady(coverage->dispatch_surface_refs" in event_body
+    assert "AppStateCoverageOwnerFieldRefsReady(" in action_body
+    assert "AppStateCoverageOwnerFieldRefsReady(" in event_body
     assert "AppStateInvariantRefsReady(coverage->invariant_refs" in action_body
     assert "AppStateInvariantRefsReady(coverage->invariant_refs" in event_body
+
+
+def test_runtime_coverage_startup_rejects_owner_field_ref_mismatch() -> None:
+    source = Path("src/core/main.c").read_text(encoding="utf-8")
+    helper_start = source.index("static int AppStateCoverageOwnerFieldRefsReady(")
+    required_event_start = source.index("static int AppStateRequiredEventClassCovered(")
+    helper_body = source[helper_start:required_event_start]
+
+    assert "AppStateOwnerFieldLookup(owner_field) == NULL" in helper_body
+    assert re.search(
+        r"StringListContains\(owner_field_refs,\s*ref_index,\s*owner_field\)",
+        helper_body,
+        re.S,
+    )
+    assert re.search(
+        r"!StringListContains\(declared_write_set,\s*"
+        r"declared_write_set_count,\s*owner_field\)",
+        helper_body,
+        re.S,
+    )
+    assert re.search(
+        r"!StringListContains\(owner_field_refs,\s*"
+        r"owner_field_ref_count,\s*declared_write_set\[write_index\]\)",
+        helper_body,
+        re.S,
+    )
 
 
 def test_runtime_event_coverage_startup_requires_documented_event_ids() -> None:
