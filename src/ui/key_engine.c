@@ -411,6 +411,9 @@ int NormalizeViKey(const ViewContext *ctx, int ch) {
 
 YtreeNovaAction GetKeyAction(const ViewContext *ctx, int ch) {
   BOOL vi_keys_enabled = IsViKeysEnabled(ctx);
+  if (!AppStateValidatedDispatchSurface("surface.key-decode-input-dispatch"))
+    return ACTION_NONE;
+
   if (vi_keys_enabled)
     ch = ViKey(ch);
 

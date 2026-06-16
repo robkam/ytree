@@ -6329,6 +6329,24 @@ int AppStateValidatedEvent(const char *event_id) {
                                        AppStateEventCoverageLookup(event_id));
 }
 
+static int AppStateValidateDispatchSurface(
+    const char *surface_id, const AppStateDispatchSurfaceMetadata *metadata) {
+  if (surface_id == NULL || surface_id[0] == '\0')
+    return 0;
+  if (metadata == NULL || metadata->surface_id == NULL ||
+      strcmp(metadata->surface_id, surface_id))
+    return 0;
+  if (AppStateTransitionLookup(metadata->transition_id) == NULL)
+    return 0;
+
+  return 1;
+}
+
+int AppStateValidatedDispatchSurface(const char *surface_id) {
+  return AppStateValidateDispatchSurface(
+      surface_id, AppStateDispatchSurfaceLookup(surface_id));
+}
+
 const AppStateEventCoverageMetadata *
 AppStateEventCoverageLookup(const char *event_id) {
   size_t index;
