@@ -22,9 +22,6 @@
 
 #define MAX(a, b) (((a) > (b)) ? (a) : (b))
 
-#if !defined(__NeXT__) && !defined(ultrix)
-#endif /* __NeXT__ ultrix */
-
 static long preview_line_offset = 0;
 static int saved_fixed_width = 0;
 

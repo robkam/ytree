@@ -4370,6 +4370,101 @@ def test_get_key_action_routes_decoded_actions_through_appstate_boundary() -> No
     assert not re.search(r"return\s+ACTION_", body)
 
 
+def test_runtime_event_boundary_validation_requires_coverage_and_transition(
+    tmp_path: Path,
+) -> None:
+    repo_root = Path(__file__).resolve().parents[1]
+    probe = tmp_path / "event_validation_probe.c"
+    binary = tmp_path / "event_validation_probe"
+    probe.write_text(
+        """
+#include "src/core/appstate_actions.c"
+
+int main(void) {
+  AppStateEventCoverageMetadata mismatched_event;
+  AppStateEventCoverageMetadata missing_transition;
+
+  if (!AppStateValidatedEvent("event.terminal-resize-signal"))
+    return 1;
+  if (!AppStateValidatedEvent("event.watcher-live-refresh"))
+    return 2;
+  if (AppStateValidatedEvent(NULL))
+    return 3;
+  if (AppStateValidatedEvent(""))
+    return 4;
+  if (AppStateValidatedEvent("event.__ytnova_missing__"))
+    return 5;
+
+  mismatched_event =
+      *AppStateEventCoverageLookup("event.terminal-resize-signal");
+  mismatched_event.event_id = "event.__ytnova_mismatch__";
+  if (AppStateValidateEventCoverage("event.terminal-resize-signal",
+                                    &mismatched_event))
+    return 6;
+
+  missing_transition =
+      *AppStateEventCoverageLookup("event.terminal-resize-signal");
+  missing_transition.transition_id = "transition.__ytnova_missing__";
+  if (AppStateValidateEventCoverage("event.terminal-resize-signal",
+                                    &missing_transition))
+    return 7;
+
+  return 0;
+}
+""",
+        encoding="utf-8",
+    )
+
+    build = subprocess.run(
+        [
+            "gcc",
+            "-std=c99",
+            "-I.",
+            "-Iinclude",
+            str(probe),
+            "-o",
+            str(binary),
+        ],
+        cwd=repo_root,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert build.returncode == 0, build.stdout + build.stderr
+    run = subprocess.run(
+        [str(binary)],
+        cwd=repo_root,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert run.returncode == 0, run.stdout + run.stderr
+
+
+def test_get_event_or_key_event_boundary_routes_synthetic_events() -> None:
+    source = Path("src/ui/key_engine.c").read_text(encoding="utf-8")
+    start = source.index("int GetEventOrKey(")
+    end = source.index("\nint UI_AskConflict(", start)
+    body = source[start:end]
+
+    resize_blocks = re.findall(
+        r'if \(ctx && ctx->resize_request\) \{\n(?P<body>.*?\n  })',
+        body,
+        flags=re.S,
+    )
+    assert len(resize_blocks) == 3
+    for block in resize_blocks:
+        assert 'AppStateValidatedEvent("event.terminal-resize-signal")' in block
+        assert block.index("return ERR;") < block.index("return KEY_RESIZE;")
+
+    assert re.search(
+        r'if \(Watcher_ProcessEvents\(ctx\)\) \{\s+'
+        r'if \(!AppStateValidatedEvent\("event\.watcher-live-refresh"\)\)\s+'
+        r"return ERR;\s+return KEY_F\(5\);",
+        body,
+    )
+
+
 def test_guard_fails_when_required_generation_domain_category_is_missing(
     tmp_path: Path,
 ) -> None:
