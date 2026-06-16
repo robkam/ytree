@@ -592,6 +592,8 @@ def _sequence_step(
     event_id: str | None = None,
     invariant_ids: list[str] | None = None,
     diff_harness_ids: list[str] | None = None,
+    action_coverage_refs: list[str] | None = None,
+    event_coverage_refs: list[str] | None = None,
     generation_domain_id: str = "domain.panel_generation",
     expected_result: str = "allowed",
 ) -> dict[str, object]:
@@ -605,6 +607,16 @@ def _sequence_step(
         "step_id": f"step.{ordinal}",
         "transition_id": transition_id,
         "stimulus": stimulus,
+        "action_coverage_refs": (
+            action_coverage_refs
+            if action_coverage_refs is not None
+            else ([action_id] if action_id is not None else [])
+        ),
+        "event_coverage_refs": (
+            event_coverage_refs
+            if event_coverage_refs is not None
+            else ([event_id] if event_id is not None else [])
+        ),
         "expected_result": expected_result,
         "invariant_ids": invariant_ids or ["invariant.inactive_panel_frozen"],
         "diff_harness_ids": diff_harness_ids
@@ -634,6 +646,7 @@ def _complete_transition_sequences() -> list[dict[str, object]]:
             action_id=None,
             event_id="event.modal_completion",
             invariant_ids=["invariant.blocked_transition_determinism"],
+            diff_harness_ids=["harness.declared_write_set_diff"],
         ),
         "filesystem_mutation_result": _sequence_step(
             transition_id="transition.filesystem_mutation_result",
@@ -646,42 +659,55 @@ def _complete_transition_sequences() -> list[dict[str, object]]:
             action_id=None,
             event_id="event.command_completion",
             invariant_ids=["invariant.blocked_transition_determinism"],
+            diff_harness_ids=["harness.declared_write_set_diff"],
+            generation_domain_id="domain.modal_command_target",
         ),
         "volume_menu_select": _sequence_step(
             transition_id="transition.menu_action",
             action_id="ACTION_VOL_MENU",
-            invariant_ids=["invariant.blocked_transition_determinism"],
+            invariant_ids=["invariant.shared_state_panel_local_isolation"],
+            diff_harness_ids=["harness.declared_write_set_diff"],
         ),
         "refresh_rebuild": _sequence_step(
             transition_id="transition.refresh_rebuild",
             action_id=None,
             event_id="event.refresh_rebuild",
-            invariant_ids=["invariant.blocked_transition_determinism"],
+            invariant_ids=[
+                "invariant.blocked_transition_determinism",
+                "invariant.hidden_entry_visible_navigation",
+            ],
         ),
         "rebuild_rebind_callback": _sequence_step(
             ordinal=2,
             transition_id="transition.rebuild_rebind_callback",
             action_id=None,
             event_id="event.rebuild_rebind_callback",
-            invariant_ids=["invariant.blocked_transition_determinism"],
+            invariant_ids=[
+                "invariant.blocked_transition_determinism",
+                "invariant.hidden_entry_visible_navigation",
+            ],
         ),
         "render_reflow_projection": _sequence_step(
             transition_id="transition.render_reflow",
             action_id=None,
             event_id="event.render_reflow",
-            invariant_ids=["invariant.blocked_transition_determinism"],
+            invariant_ids=["invariant.render_projection_read_only"],
+            diff_harness_ids=["harness.render_projection_read_only_diff"],
+            generation_domain_id="domain.layout_reflow",
         ),
         "terminal_resize_reflow": _sequence_step(
             transition_id="transition.terminal_signal_or_resize",
             action_id=None,
             event_id="event.terminal_resize_signal",
-            invariant_ids=["invariant.blocked_transition_determinism"],
+            invariant_ids=["invariant.render_projection_read_only"],
+            diff_harness_ids=["harness.generation_mismatch_check"],
+            generation_domain_id="domain.layout_reflow",
         ),
         "volume_cycling_release": _sequence_step(
             transition_id="transition.volume_operation",
             action_id=None,
             event_id="event.volume_lifecycle",
-            invariant_ids=["invariant.blocked_transition_determinism"],
+            invariant_ids=["invariant.shared_state_panel_local_isolation"],
         ),
     }
     return [
@@ -1562,6 +1588,48 @@ def _runtime_source(
             event_id = stimulus.get("event_id")
             action_expr = f'"{action_id}"' if isinstance(action_id, str) else "NULL"
             event_expr = f'"{event_id}"' if isinstance(event_id, str) else "NULL"
+            action_coverage_refs = step.get("action_coverage_refs")
+            if isinstance(action_coverage_refs, list) and action_coverage_refs:
+                action_sequence_ref_rows = "\n".join(
+                    f'  "{ref}",'
+                    for ref in action_coverage_refs
+                    if isinstance(ref, str)
+                )
+                action_coverage_table = (
+                    "kAppStateTransitionSequenceStepActionCoverageRefs"
+                    f"{sequence_index}_{step_index}"
+                )
+                transition_sequence_arrays.append(
+                    f"static const char *const {action_coverage_table}[] = "
+                    f"{{\n{action_sequence_ref_rows}\n}};\n"
+                )
+                action_coverage_ref_expr = (
+                    f"{action_coverage_table}, sizeof({action_coverage_table}) / "
+                    f"sizeof({action_coverage_table}[0])"
+                )
+            else:
+                action_coverage_ref_expr = "NULL, 0"
+            event_coverage_refs = step.get("event_coverage_refs")
+            if isinstance(event_coverage_refs, list) and event_coverage_refs:
+                event_sequence_ref_rows = "\n".join(
+                    f'  "{ref}",'
+                    for ref in event_coverage_refs
+                    if isinstance(ref, str)
+                )
+                event_coverage_table = (
+                    "kAppStateTransitionSequenceStepEventCoverageRefs"
+                    f"{sequence_index}_{step_index}"
+                )
+                transition_sequence_arrays.append(
+                    f"static const char *const {event_coverage_table}[] = "
+                    f"{{\n{event_sequence_ref_rows}\n}};\n"
+                )
+                event_coverage_ref_expr = (
+                    f"{event_coverage_table}, sizeof({event_coverage_table}) / "
+                    f"sizeof({event_coverage_table}[0])"
+                )
+            else:
+                event_coverage_ref_expr = "NULL, 0"
             precondition = step.get("precondition")
             precondition_expr = (
                 f'"{precondition}"' if isinstance(precondition, str) else "NULL"
@@ -1569,6 +1637,7 @@ def _runtime_source(
             step_rows.append(
                 f'  {{{step.get("ordinal", 0)}, "{step.get("step_id", "")}", '
                 f'"{step.get("transition_id", "")}", {action_expr}, {event_expr}, '
+                f"{action_coverage_ref_expr}, {event_coverage_ref_expr}, "
                 f'"{step.get("expected_result", "")}", '
                 f"{invariant_table}, sizeof({invariant_table}) / "
                 f"sizeof({invariant_table}[0]), "
@@ -2449,6 +2518,238 @@ def test_guard_fails_when_transition_sequence_event_mismatches_transition(
     )
 
 
+@pytest.mark.parametrize(
+    ("mutation", "expected"),
+    (
+        ("missing_action", "action_coverage_refs must be a list"),
+        ("malformed_action", "action_coverage_refs must be a list"),
+        ("duplicate_action", "duplicate action_coverage_refs"),
+        ("unknown_action", "unknown action coverage record"),
+        ("wrong_kind_action", "event_coverage_refs must be empty"),
+        ("stimulus_mismatch_action", "does not match stimulus ACTION_NONE"),
+        ("mixed_action", "does not match stimulus ACTION_NONE"),
+        ("missing_event", "event_coverage_refs must be a list"),
+        ("malformed_event", "event_coverage_refs must be a list"),
+        ("duplicate_event", "duplicate event_coverage_refs"),
+        ("unknown_event", "unknown event coverage record"),
+        ("wrong_kind_event", "action_coverage_refs must be empty"),
+        ("stimulus_mismatch_event", "does not match stimulus event.modal_completion"),
+        ("mixed_event", "does not match stimulus event.modal_completion"),
+    ),
+)
+def test_guard_fails_on_transition_sequence_step_coverage_refs(
+    tmp_path: Path, mutation: str, expected: str
+) -> None:
+    transitions = _complete_transitions()
+    transition_sequences = _complete_transition_sequences()
+    action_step = transition_sequences[0]["steps"][0]
+    event_step = transition_sequences[0]["steps"][0] = _sequence_step(
+        transition_id="transition.modal_action",
+        action_id=None,
+        event_id="event.modal_completion",
+        invariant_ids=["invariant.blocked_transition_determinism"],
+    )
+    target_step = action_step
+
+    if mutation == "missing_action":
+        action_step.pop("action_coverage_refs")
+        target_step = action_step
+    elif mutation == "malformed_action":
+        action_step["action_coverage_refs"] = "ACTION_NONE"
+        target_step = action_step
+    elif mutation == "duplicate_action":
+        action_step["action_coverage_refs"] = ["ACTION_NONE", "ACTION_NONE"]
+        target_step = action_step
+    elif mutation == "unknown_action":
+        action_step["action_coverage_refs"] = ["ACTION_MISSING"]
+        target_step = action_step
+    elif mutation == "wrong_kind_action":
+        action_step["event_coverage_refs"] = ["event.modal_completion"]
+        target_step = action_step
+    elif mutation == "stimulus_mismatch_action":
+        action_step["action_coverage_refs"] = ["ACTION_VOL_MENU"]
+        target_step = action_step
+    elif mutation == "mixed_action":
+        action_step["action_coverage_refs"] = ["ACTION_NONE", "ACTION_VOL_MENU"]
+        target_step = action_step
+    elif mutation == "missing_event":
+        event_step.pop("event_coverage_refs")
+    elif mutation == "malformed_event":
+        event_step["event_coverage_refs"] = "event.modal_completion"
+    elif mutation == "duplicate_event":
+        event_step["event_coverage_refs"] = [
+            "event.modal_completion",
+            "event.modal_completion",
+        ]
+    elif mutation == "unknown_event":
+        event_step["event_coverage_refs"] = ["event.missing"]
+    elif mutation == "wrong_kind_event":
+        event_step["action_coverage_refs"] = ["ACTION_NONE"]
+    elif mutation == "stimulus_mismatch_event":
+        event_step["event_coverage_refs"] = ["event.refresh_rebuild"]
+    elif mutation == "mixed_event":
+        event_step["event_coverage_refs"] = [
+            "event.modal_completion",
+            "event.refresh_rebuild",
+        ]
+    else:
+        raise AssertionError(mutation)
+
+    if mutation.endswith("action"):
+        transition_sequences[0]["steps"][0] = target_step
+
+    paths = _write_fixture(
+        tmp_path, transitions=transitions, transition_sequences=transition_sequences
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "transition_sequence[0].step[0]" in failure and expected in failure
+        for failure in failures
+    )
+
+
+@pytest.mark.parametrize(
+    ("record_type", "expected"),
+    (
+        ("action", "action_coverage_refs[0] transition_id does not match"),
+        ("event", "event_coverage_refs[0] transition_id does not match"),
+    ),
+)
+def test_guard_fails_when_sequence_step_coverage_ref_transition_mismatches(
+    tmp_path: Path, record_type: str, expected: str
+) -> None:
+    transitions = _complete_transitions()
+    transition_sequences = _complete_transition_sequences()
+    actions = _complete_actions()
+    events = _complete_events()
+    if record_type == "action":
+        for action in actions:
+            if action["action"] == "ACTION_NONE":
+                action["transition_id"] = "transition.refresh_rebuild"
+                break
+    else:
+        transition_sequences[0]["steps"][0] = _sequence_step(
+            transition_id="transition.modal_action",
+            action_id=None,
+            event_id="event.modal_completion",
+            invariant_ids=["invariant.blocked_transition_determinism"],
+        )
+        for event in events:
+            if event["event_id"] == "event.modal_completion":
+                event["transition_id"] = "transition.refresh_rebuild"
+                break
+    paths = _write_fixture(
+        tmp_path,
+        transitions=transitions,
+        actions=actions,
+        events=events,
+        transition_sequences=transition_sequences,
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "transition_sequence[0].step[0]" in failure and expected in failure
+        for failure in failures
+    )
+
+
+@pytest.mark.parametrize(
+    ("coverage_field", "replacement_refs", "expected"),
+    (
+        (
+            "invariant_refs",
+            ["invariant.blocked_transition_determinism"],
+            "invariant_refs must overlap step invariant_ids",
+        ),
+        (
+            "diff_harness_refs",
+            ["harness.generation_mismatch_check"],
+            "diff_harness_refs must overlap step diff_harness_ids",
+        ),
+        (
+            "generation_domain_refs",
+            ["domain.focus_shape"],
+            "generation_domain_refs must overlap step generation_domain_expectations",
+        ),
+    ),
+)
+def test_guard_fails_when_sequence_step_action_coverage_lacks_semantic_overlap(
+    tmp_path: Path,
+    coverage_field: str,
+    replacement_refs: list[str],
+    expected: str,
+) -> None:
+    transitions = _complete_transitions()
+    actions = _complete_actions()
+    for action in actions:
+        if action["action"] == "ACTION_NONE":
+            action[coverage_field] = replacement_refs
+            break
+    paths = _write_fixture(
+        tmp_path,
+        transitions=transitions,
+        actions=actions,
+        transition_sequences=_complete_transition_sequences(),
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "transition_sequence[0].step[0]" in failure
+        and "action_coverage_refs[0] ACTION_NONE" in failure
+        and expected in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_when_mixed_sequence_step_coverage_lacks_semantic_overlap(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    actions = _complete_actions()
+    for action in actions:
+        if action["action"] == "ACTION_NONE":
+            action["transition_id"] = "transition.modal_action"
+            action["category"] = "modal_action"
+            action["invariant_refs"] = ["invariant.blocked_transition_determinism"]
+            action["diff_harness_refs"] = ["harness.declared_write_set_diff"]
+            action["generation_domain_refs"] = ["domain.panel_generation"]
+            break
+    events = _complete_events()
+    for event in events:
+        if event["event_id"] == "event.modal_completion":
+            event["invariant_refs"] = ["invariant.inactive_panel_frozen"]
+            break
+    transition_sequences = _complete_transition_sequences()
+    transition_sequences[0]["steps"][0] = _sequence_step(
+        transition_id="transition.modal_action",
+        action_id="ACTION_NONE",
+        event_id="event.modal_completion",
+        invariant_ids=["invariant.blocked_transition_determinism"],
+        diff_harness_ids=["harness.declared_write_set_diff"],
+        generation_domain_id="domain.panel_generation",
+    )
+    paths = _write_fixture(
+        tmp_path,
+        transitions=transitions,
+        actions=actions,
+        events=events,
+        transition_sequences=transition_sequences,
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "transition_sequence[0].step[0]" in failure
+        and "event_coverage_refs[0] event.modal_completion" in failure
+        and "invariant_refs must overlap step invariant_ids" in failure
+        for failure in failures
+    )
+
+
 @pytest.mark.parametrize("precondition", ("stale_snapshot", "generation_mismatch"))
 def test_guard_fails_when_transition_sequence_fallback_expectation_is_missing(
     tmp_path: Path, precondition: str
@@ -2761,6 +3062,128 @@ def test_guard_fails_on_runtime_transition_sequence_invalid_links(
 
     assert any(
         "runtime_transition_sequence[0].step[0]" in failure
+        and expected in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_when_runtime_transition_sequence_coverage_refs_drift(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    transition_sequences = _complete_transition_sequences()
+    runtime_transition_sequences = copy.deepcopy(transition_sequences)
+    runtime_transition_sequences[0]["steps"][0]["action_coverage_refs"] = [
+        "ACTION_VOL_MENU"
+    ]
+    paths = _write_fixture(
+        tmp_path,
+        transitions=transitions,
+        transition_sequences=transition_sequences,
+        runtime_transition_sequences=runtime_transition_sequences,
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "runtime_transition_sequence[0]" in failure
+        and "runtime steps does not match transition sequence" in failure
+        and "ACTION_VOL_MENU" in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_when_runtime_transition_sequence_coverage_ref_is_malformed(
+    tmp_path: Path,
+) -> None:
+    paths = _write_fixture(tmp_path, transitions=_complete_transitions())
+    runtime_path = paths[-1]
+    runtime_path.write_text(
+        runtime_path.read_text(encoding="utf-8").replace(
+            'static const char *const kAppStateTransitionSequenceStepActionCoverageRefs0_0[] = {\n'
+            '  "ACTION_NONE",',
+            'static const char *const kAppStateTransitionSequenceStepActionCoverageRefs0_0[] = {\n'
+            "  NULL,\n"
+            '  "ACTION_NONE",',
+            1,
+        ),
+        encoding="utf-8",
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "kAppStateTransitionSequenceStepActionCoverageRefs0_0[0]" in failure
+        and "malformed string literal entry" in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_when_runtime_transition_sequence_coverage_ref_mismatches_stimulus(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    transition_sequences = _complete_transition_sequences()
+    runtime_transition_sequences = copy.deepcopy(transition_sequences)
+    for sequences in (transition_sequences, runtime_transition_sequences):
+        sequences[0]["steps"][0]["action_coverage_refs"] = ["ACTION_VOL_MENU"]
+    paths = _write_fixture(
+        tmp_path,
+        transitions=transitions,
+        transition_sequences=transition_sequences,
+        runtime_transition_sequences=runtime_transition_sequences,
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "runtime_transition_sequence[0].step[0]" in failure
+        and "action_coverage_refs[0] ACTION_VOL_MENU does not match stimulus ACTION_NONE"
+        in failure
+        for failure in failures
+    )
+
+
+@pytest.mark.parametrize(
+    ("field", "value", "expected"),
+    (
+        (
+            "invariant_ids",
+            ["invariant.blocked_transition_determinism"],
+            "invariant_refs must overlap step invariant_ids",
+        ),
+        (
+            "diff_harness_ids",
+            ["harness.generation_mismatch_check"],
+            "diff_harness_refs must overlap step diff_harness_ids",
+        ),
+        (
+            "generation_domain_expectations",
+            [{"domain_id": "domain.modal_command_target", "expectation": "fixture"}],
+            "generation_domain_refs must overlap step generation_domain_expectations",
+        ),
+    ),
+)
+def test_guard_fails_when_runtime_transition_sequence_coverage_lacks_semantic_overlap(
+    tmp_path: Path, field: str, value: object, expected: str
+) -> None:
+    transitions = _complete_transitions()
+    transition_sequences = _complete_transition_sequences()
+    runtime_transition_sequences = copy.deepcopy(transition_sequences)
+    for sequences in (transition_sequences, runtime_transition_sequences):
+        sequences[0]["steps"][0][field] = value
+    paths = _write_fixture(
+        tmp_path,
+        transitions=transitions,
+        transition_sequences=transition_sequences,
+        runtime_transition_sequences=runtime_transition_sequences,
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "runtime_transition_sequence[0].step[0]" in failure
+        and "action_coverage_refs[0] ACTION_NONE" in failure
         and expected in failure
         for failure in failures
     )
@@ -3096,6 +3519,23 @@ def test_runtime_transition_sequence_startup_checks_fail_closed() -> None:
     assert "AppStateTransitionSequenceStepDiffHarnessCoversTransition" in source
     assert "!AppStateTransitionSequenceStepDiffHarnessCoversTransition(step)" in source
     assert "AppStateGenerationDomainLookup(expectation->domain_id) == NULL" in source
+    assert "AppStateActionCoverageIdLookup(step->action_coverage_refs[ref_index])" in source
+    assert "AppStateEventCoverageLookup(step->event_coverage_refs[ref_index])" in source
+    assert "AppStateTransitionSequenceStepCoverageOverlaps" in source
+    assert "StringListsOverlap(step->invariant_ids, step->invariant_id_count" in source
+    assert "StringListsOverlap(step->diff_harness_ids, step->diff_harness_id_count" in source
+    assert "AppStateTransitionSequenceStepGenerationDomainOverlaps" in source
+    assert "coverage->generation_domain_refs" in source
+    assert "step->action_coverage_ref_count" in source
+    assert "step->event_coverage_ref_count" in source
+    assert (
+        "step->action_coverage_refs != NULL ||\n"
+        "             step->action_coverage_ref_count != 0"
+    ) in source
+    assert (
+        "step->event_coverage_refs != NULL ||\n"
+        "             step->event_coverage_ref_count != 0"
+    ) in source
     assert "!AppStateTransitionSequencesReady()" in source
 
 

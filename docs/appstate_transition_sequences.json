@@ -14,6 +14,10 @@
           "stimulus": {
             "action_id": "ACTION_SPLIT_SCREEN"
           },
+          "action_coverage_refs": [
+            "ACTION_SPLIT_SCREEN"
+          ],
+          "event_coverage_refs": [],
           "expected_result": "allowed",
           "invariant_ids": [
             "invariant.inactive-panel-frozen",
@@ -45,6 +49,10 @@
           "stimulus": {
             "action_id": "ACTION_SPLIT_SCREEN"
           },
+          "action_coverage_refs": [
+            "ACTION_SPLIT_SCREEN"
+          ],
+          "event_coverage_refs": [],
           "expected_result": "blocked",
           "invariant_ids": [
             "invariant.blocked-transition-determinism",
@@ -83,6 +91,10 @@
           "stimulus": {
             "action_id": "ACTION_SWITCH_PANEL"
           },
+          "action_coverage_refs": [
+            "ACTION_SWITCH_PANEL"
+          ],
+          "event_coverage_refs": [],
           "expected_result": "allowed",
           "invariant_ids": [
             "invariant.inactive-panel-frozen",
@@ -111,6 +123,10 @@
           "stimulus": {
             "action_id": "ACTION_SWITCH_PANEL"
           },
+          "action_coverage_refs": [
+            "ACTION_SWITCH_PANEL"
+          ],
+          "event_coverage_refs": [],
           "expected_result": "allowed",
           "invariant_ids": [
             "invariant.inactive-panel-frozen",
@@ -146,8 +162,13 @@
           "stimulus": {
             "action_id": "ACTION_ENTER"
           },
+          "action_coverage_refs": [
+            "ACTION_ENTER"
+          ],
+          "event_coverage_refs": [],
           "expected_result": "allowed",
           "invariant_ids": [
+            "invariant.inactive-panel-frozen",
             "invariant.hidden-entry-visible-navigation",
             "invariant.viewport-identity-rebind"
           ],
@@ -177,8 +198,13 @@
           "stimulus": {
             "action_id": "ACTION_TO_DIR"
           },
+          "action_coverage_refs": [
+            "ACTION_TO_DIR"
+          ],
+          "event_coverage_refs": [],
           "expected_result": "allowed",
           "invariant_ids": [
+            "invariant.inactive-panel-frozen",
             "invariant.panel-local-focus-restore",
             "invariant.viewport-identity-rebind"
           ],
@@ -217,6 +243,12 @@
             "action_id": "ACTION_ESCAPE",
             "event_id": "event.modal-completion"
           },
+          "action_coverage_refs": [
+            "ACTION_ESCAPE"
+          ],
+          "event_coverage_refs": [
+            "event.modal-completion"
+          ],
           "expected_result": "allowed",
           "invariant_ids": [
             "invariant.panel-local-focus-restore",
@@ -252,8 +284,13 @@
           "stimulus": {
             "action_id": "ACTION_TOGGLE_HIDDEN"
           },
+          "action_coverage_refs": [
+            "ACTION_TOGGLE_HIDDEN"
+          ],
+          "event_coverage_refs": [],
           "expected_result": "allowed",
           "invariant_ids": [
+            "invariant.inactive-panel-frozen",
             "invariant.hidden-entry-visible-navigation",
             "invariant.panel-local-focus-restore"
           ],
@@ -283,8 +320,13 @@
           "stimulus": {
             "action_id": "ACTION_TOGGLE_HIDDEN"
           },
+          "action_coverage_refs": [
+            "ACTION_TOGGLE_HIDDEN"
+          ],
+          "event_coverage_refs": [],
           "expected_result": "allowed",
           "invariant_ids": [
+            "invariant.inactive-panel-frozen",
             "invariant.hidden-entry-visible-navigation",
             "invariant.viewport-identity-rebind"
           ],
@@ -322,8 +364,13 @@
           "stimulus": {
             "action_id": "ACTION_REFRESH"
           },
+          "action_coverage_refs": [
+            "ACTION_REFRESH"
+          ],
+          "event_coverage_refs": [],
           "expected_result": "allowed",
           "invariant_ids": [
+            "invariant.hidden-entry-visible-navigation",
             "invariant.viewport-identity-rebind",
             "invariant.shared-state-panel-local-isolation"
           ],
@@ -357,6 +404,10 @@
           "stimulus": {
             "event_id": "event.rebuild-rebind-callback"
           },
+          "action_coverage_refs": [],
+          "event_coverage_refs": [
+            "event.rebuild-rebind-callback"
+          ],
           "expected_result": "fallback",
           "invariant_ids": [
             "invariant.stale-snapshot-fail-closed",
@@ -406,8 +457,13 @@
           "stimulus": {
             "event_id": "event.filesystem-mutation-result"
           },
+          "action_coverage_refs": [],
+          "event_coverage_refs": [
+            "event.filesystem-mutation-result"
+          ],
           "expected_result": "allowed",
           "invariant_ids": [
+            "invariant.blocked-transition-determinism",
             "invariant.viewport-identity-rebind",
             "invariant.shared-state-panel-local-isolation"
           ],
@@ -442,6 +498,12 @@
             "action_id": "ACTION_CMD_D",
             "event_id": "event.filesystem-mutation-result"
           },
+          "action_coverage_refs": [
+            "ACTION_CMD_D"
+          ],
+          "event_coverage_refs": [
+            "event.filesystem-mutation-result"
+          ],
           "expected_result": "fallback",
           "invariant_ids": [
             "invariant.stale-snapshot-fail-closed",
@@ -490,8 +552,13 @@
           "stimulus": {
             "action_id": "ACTION_LIST_JUMP"
           },
+          "action_coverage_refs": [
+            "ACTION_LIST_JUMP"
+          ],
+          "event_coverage_refs": [],
           "expected_result": "allowed",
           "invariant_ids": [
+            "invariant.inactive-panel-frozen",
             "invariant.hidden-entry-visible-navigation",
             "invariant.panel-local-focus-restore"
           ],
@@ -521,6 +588,10 @@
           "stimulus": {
             "event_id": "event.command-completion"
           },
+          "action_coverage_refs": [],
+          "event_coverage_refs": [
+            "event.command-completion"
+          ],
           "expected_result": "allowed",
           "invariant_ids": [
             "invariant.panel-local-focus-restore",
@@ -556,8 +627,13 @@
           "stimulus": {
             "action_id": "ACTION_TOGGLE_TAGGED_MODE"
           },
+          "action_coverage_refs": [
+            "ACTION_TOGGLE_TAGGED_MODE"
+          ],
+          "event_coverage_refs": [],
           "expected_result": "allowed",
           "invariant_ids": [
+            "invariant.inactive-panel-frozen",
             "invariant.shared-state-panel-local-isolation",
             "invariant.hidden-entry-visible-navigation"
           ],
@@ -583,8 +659,13 @@
           "stimulus": {
             "action_id": "ACTION_ASTERISK"
           },
+          "action_coverage_refs": [
+            "ACTION_ASTERISK"
+          ],
+          "event_coverage_refs": [],
           "expected_result": "allowed",
           "invariant_ids": [
+            "invariant.inactive-panel-frozen",
             "invariant.shared-state-panel-local-isolation",
             "invariant.hidden-entry-visible-navigation",
             "invariant.render-projection-read-only"
@@ -623,8 +704,13 @@
           "stimulus": {
             "action_id": "ACTION_TOGGLE_MODE"
           },
+          "action_coverage_refs": [
+            "ACTION_TOGGLE_MODE"
+          ],
+          "event_coverage_refs": [],
           "expected_result": "allowed",
           "invariant_ids": [
+            "invariant.inactive-panel-frozen",
             "invariant.panel-local-focus-restore",
             "invariant.render-projection-read-only"
           ],
@@ -654,8 +740,13 @@
           "stimulus": {
             "action_id": "ACTION_VIEW_PREVIEW"
           },
+          "action_coverage_refs": [
+            "ACTION_VIEW_PREVIEW"
+          ],
+          "event_coverage_refs": [],
           "expected_result": "allowed",
           "invariant_ids": [
+            "invariant.inactive-panel-frozen",
             "invariant.panel-local-focus-restore",
             "invariant.render-projection-read-only"
           ],
@@ -693,6 +784,10 @@
           "stimulus": {
             "action_id": "ACTION_VOL_NEXT"
           },
+          "action_coverage_refs": [
+            "ACTION_VOL_NEXT"
+          ],
+          "event_coverage_refs": [],
           "expected_result": "allowed",
           "invariant_ids": [
             "invariant.shared-state-panel-local-isolation",
@@ -724,6 +819,10 @@
           "stimulus": {
             "event_id": "event.volume-lifecycle"
           },
+          "action_coverage_refs": [],
+          "event_coverage_refs": [
+            "event.volume-lifecycle"
+          ],
           "expected_result": "allowed",
           "invariant_ids": [
             "invariant.stale-snapshot-fail-closed",
@@ -763,6 +862,10 @@
           "stimulus": {
             "action_id": "ACTION_SPLIT_SCREEN"
           },
+          "action_coverage_refs": [
+            "ACTION_SPLIT_SCREEN"
+          ],
+          "event_coverage_refs": [],
           "expected_result": "allowed",
           "invariant_ids": [
             "invariant.inactive-panel-frozen",
@@ -795,6 +898,10 @@
           "stimulus": {
             "action_id": "ACTION_SPLIT_SCREEN"
           },
+          "action_coverage_refs": [
+            "ACTION_SPLIT_SCREEN"
+          ],
+          "event_coverage_refs": [],
           "expected_result": "allowed",
           "invariant_ids": [
             "invariant.inactive-panel-frozen",
@@ -835,6 +942,10 @@
           "stimulus": {
             "event_id": "event.terminal-resize-signal"
           },
+          "action_coverage_refs": [],
+          "event_coverage_refs": [
+            "event.terminal-resize-signal"
+          ],
           "expected_result": "allowed",
           "invariant_ids": [
             "invariant.render-projection-read-only",
@@ -877,6 +988,10 @@
           "stimulus": {
             "event_id": "event.render-reflow"
           },
+          "action_coverage_refs": [],
+          "event_coverage_refs": [
+            "event.render-reflow"
+          ],
           "expected_result": "allowed",
           "invariant_ids": [
             "invariant.render-projection-read-only",
@@ -915,6 +1030,10 @@
           "stimulus": {
             "action_id": "ACTION_VOL_MENU"
           },
+          "action_coverage_refs": [
+            "ACTION_VOL_MENU"
+          ],
+          "event_coverage_refs": [],
           "expected_result": "allowed",
           "invariant_ids": [
             "invariant.inactive-panel-frozen",

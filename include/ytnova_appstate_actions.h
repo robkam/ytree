@@ -204,6 +204,10 @@ typedef struct {
   const char *transition_id;
   const char *stimulus_action_id;
   const char *stimulus_event_id;
+  const char *const *action_coverage_refs;
+  size_t action_coverage_ref_count;
+  const char *const *event_coverage_refs;
+  size_t event_coverage_ref_count;
   const char *expected_result;
   const char *const *invariant_ids;
   size_t invariant_id_count;

@@ -287,6 +287,22 @@ static int StringListContains(const char *const *values, size_t count,
   return 0;
 }
 
+static int StringListsOverlap(const char *const *left, size_t left_count,
+                              const char *const *right, size_t right_count) {
+  size_t index;
+
+  if (!NonEmptyStringList(left, left_count) ||
+      !NonEmptyStringList(right, right_count))
+    return 0;
+
+  for (index = 0; index < left_count; index++) {
+    if (StringListContains(right, right_count, left[index]))
+      return 1;
+  }
+
+  return 0;
+}
+
 static int AppStateExpectedResultValid(const char *expected_result) {
   return strcmp(expected_result, "allowed") == 0 ||
          strcmp(expected_result, "blocked") == 0 ||
@@ -318,6 +334,22 @@ static const char *AppStateEventTransitionLookup(const char *event_id) {
     return NULL;
 
   return coverage->transition_id;
+}
+
+static const AppStateActionCoverageMetadata *
+AppStateActionCoverageIdLookup(const char *action_id) {
+  size_t index;
+
+  if (!NonEmptyString(action_id))
+    return NULL;
+
+  for (index = 0; index < sizeof(kAppStateActionIds) / sizeof(kAppStateActionIds[0]);
+       index++) {
+    if (strcmp(kAppStateActionIds[index].action_id, action_id) == 0)
+      return AppStateActionCoverageLookup(kAppStateActionIds[index].action);
+  }
+
+  return NULL;
 }
 
 static int AppStateFallbackPreconditionValid(const char *precondition) {
@@ -372,6 +404,56 @@ static int AppStateTransitionSequenceStepInvariantCoversTransition(
   }
 
   return 0;
+}
+
+static int AppStateTransitionSequenceStepGenerationDomainOverlaps(
+    const AppStateTransitionSequenceStepMetadata *step,
+    const char *const *coverage_domain_refs, size_t coverage_domain_ref_count) {
+  size_t ref_index;
+
+  if (step == NULL || step->generation_domain_expectations == NULL ||
+      step->generation_domain_expectation_count == 0 ||
+      !NonEmptyStringList(coverage_domain_refs, coverage_domain_ref_count))
+    return 0;
+
+  for (ref_index = 0; ref_index < step->generation_domain_expectation_count;
+       ref_index++) {
+    const AppStateTransitionSequenceGenerationExpectationMetadata *expectation =
+        &step->generation_domain_expectations[ref_index];
+
+    if (!NonEmptyString(expectation->domain_id))
+      return 0;
+    if (StringListContains(coverage_domain_refs, coverage_domain_ref_count,
+                           expectation->domain_id))
+      return 1;
+  }
+
+  return 0;
+}
+
+static int AppStateTransitionSequenceStepCoverageOverlaps(
+    const AppStateTransitionSequenceStepMetadata *step,
+    const char *const *coverage_invariant_refs, size_t coverage_invariant_ref_count,
+    const char *const *coverage_diff_harness_refs,
+    size_t coverage_diff_harness_ref_count,
+    const char *const *coverage_generation_domain_refs,
+    size_t coverage_generation_domain_ref_count) {
+  if (step == NULL)
+    return 0;
+  if (!StringListsOverlap(step->invariant_ids, step->invariant_id_count,
+                          coverage_invariant_refs,
+                          coverage_invariant_ref_count))
+    return 0;
+  if (!StringListsOverlap(step->diff_harness_ids, step->diff_harness_id_count,
+                          coverage_diff_harness_refs,
+                          coverage_diff_harness_ref_count))
+    return 0;
+  if (!AppStateTransitionSequenceStepGenerationDomainOverlaps(
+          step, coverage_generation_domain_refs,
+          coverage_generation_domain_ref_count))
+    return 0;
+
+  return 1;
 }
 
 static int AppStateTransitionSequenceStepRequiresNoUnrelatedMutation(
@@ -443,12 +525,63 @@ static int AppStateTransitionSequenceStepReady(
     if (action_metadata == NULL ||
         strcmp(action_metadata->transition_id, step->transition_id) != 0)
       return 0;
+    if (!NonEmptyStringList(step->action_coverage_refs,
+                            step->action_coverage_ref_count))
+      return 0;
+  } else if (step->action_coverage_refs != NULL ||
+             step->action_coverage_ref_count != 0) {
+    return 0;
   }
   if (step->stimulus_event_id != NULL) {
     const char *event_transition =
         AppStateEventTransitionLookup(step->stimulus_event_id);
 
     if (event_transition == NULL || strcmp(event_transition, step->transition_id) != 0)
+      return 0;
+    if (!NonEmptyStringList(step->event_coverage_refs,
+                            step->event_coverage_ref_count))
+      return 0;
+  } else if (step->event_coverage_refs != NULL ||
+             step->event_coverage_ref_count != 0) {
+    return 0;
+  }
+
+  for (ref_index = 0; ref_index < step->action_coverage_ref_count; ref_index++) {
+    const AppStateActionCoverageMetadata *coverage =
+        AppStateActionCoverageIdLookup(step->action_coverage_refs[ref_index]);
+
+    if (coverage == NULL ||
+        strcmp(step->action_coverage_refs[ref_index],
+               step->stimulus_action_id) != 0 ||
+        strcmp(coverage->transition_id, step->transition_id) != 0)
+      return 0;
+    if (!AppStateTransitionSequenceStepCoverageOverlaps(
+            step, coverage->invariant_refs, coverage->invariant_ref_count,
+            coverage->diff_harness_refs, coverage->diff_harness_ref_count,
+            coverage->generation_domain_refs,
+            coverage->generation_domain_ref_count))
+      return 0;
+    if (StringListContains(step->action_coverage_refs, ref_index,
+                           step->action_coverage_refs[ref_index]))
+      return 0;
+  }
+  for (ref_index = 0; ref_index < step->event_coverage_ref_count; ref_index++) {
+    const AppStateEventCoverageMetadata *coverage =
+        AppStateEventCoverageLookup(step->event_coverage_refs[ref_index]);
+
+    if (coverage == NULL ||
+        strcmp(step->event_coverage_refs[ref_index], step->stimulus_event_id) !=
+            0 ||
+        strcmp(coverage->transition_id, step->transition_id) != 0)
+      return 0;
+    if (!AppStateTransitionSequenceStepCoverageOverlaps(
+            step, coverage->invariant_refs, coverage->invariant_ref_count,
+            coverage->diff_harness_refs, coverage->diff_harness_ref_count,
+            coverage->generation_domain_refs,
+            coverage->generation_domain_ref_count))
+      return 0;
+    if (StringListContains(step->event_coverage_refs, ref_index,
+                           step->event_coverage_refs[ref_index]))
       return 0;
   }
 

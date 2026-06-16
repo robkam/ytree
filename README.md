@@ -81,6 +81,16 @@ sudo make uninstall
 
 *Note: Developers can compile with AddressSanitizer enabled by running `make DEBUG=1`.*
 
+## Compiles and Runs On
+
+> **Note on Development:**
+> YtreeNova is developed using **VScodium** with the **Codex extension**, targeting **WSL Ubuntu 24.04.4 LTS** and **GCC 13.3.0**.
+
+**Verified Platforms (via WSL):**
+- Arch Linux, GCC 16.1.1
+- Fedora Linux 45 (WSL Prerelease), GCC 16.1.1
+- Ubuntu 26.04 LTS, GCC 15.2.0
+
 ## Documentation Guide
 
 The project documentation is split into several focused files.
