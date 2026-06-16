@@ -355,6 +355,8 @@ DIFF_HARNESS_LIST_FIELDS = {
     "migration_notes",
 }
 SEQUENCE_LIST_FIELDS = {
+    "action_coverage_refs",
+    "event_coverage_refs",
     "invariant_ids",
     "diff_harness_ids",
     "generation_domain_expectations",
@@ -1564,7 +1566,7 @@ def _parse_runtime_transition_sequence_registry(
     string_arrays: dict[str, list[str]] = {}
     string_array_re = re.compile(
         r"static\s+const\s+char\s+\*const\s+"
-        r"(kAppStateTransitionSequenceStep(?:InvariantIds|DiffHarnessIds)[0-9]+_[0-9]+)"
+        r"(kAppStateTransitionSequenceStep(?:ActionCoverageRefs|EventCoverageRefs|InvariantIds|DiffHarnessIds)[0-9]+_[0-9]+)"
         r"\[\]\s*=\s*\{(?P<body>.*?)\};",
         re.S,
     )
@@ -1652,6 +1654,10 @@ def _parse_runtime_transition_sequence_registry(
         r"\s*\"(?P<transition_id>[^\"]*)\"\s*,"
         r"\s*(?P<stimulus_action_id>NULL|\"[^\"]*\")\s*,"
         r"\s*(?P<stimulus_event_id>NULL|\"[^\"]*\")\s*,"
+        r"\s*(?P<action_coverage_refs>NULL|kAppStateTransitionSequenceStepActionCoverageRefs[0-9]+_[0-9]+)\s*,"
+        r"\s*(?P<action_coverage_ref_count>0|sizeof\((?P=action_coverage_refs)\)\s*/\s*sizeof\((?P=action_coverage_refs)\[0\]\))\s*,"
+        r"\s*(?P<event_coverage_refs>NULL|kAppStateTransitionSequenceStepEventCoverageRefs[0-9]+_[0-9]+)\s*,"
+        r"\s*(?P<event_coverage_ref_count>0|sizeof\((?P=event_coverage_refs)\)\s*/\s*sizeof\((?P=event_coverage_refs)\[0\]\))\s*,"
         r"\s*\"(?P<expected_result>[^\"]*)\"\s*,"
         r"\s*(?P<invariant_ids>kAppStateTransitionSequenceStepInvariantIds[0-9]+_[0-9]+)\s*,"
         r"\s*sizeof\((?P=invariant_ids)\)\s*/\s*sizeof\((?P=invariant_ids)\[0\]\)\s*,"
@@ -1686,10 +1692,22 @@ def _parse_runtime_transition_sequence_registry(
 
             invariant_table = row_match.group("invariant_ids")
             diff_harness_table = row_match.group("diff_harness_ids")
+            action_coverage_table = row_match.group("action_coverage_refs")
+            event_coverage_table = row_match.group("event_coverage_refs")
             generation_table = row_match.group("generation_domain_expectations")
             no_unrelated_table = row_match.group("no_unrelated_mutation").lstrip("&")
             fallback_table = row_match.group("deterministic_fallback").lstrip("&")
 
+            if action_coverage_table != "NULL" and action_coverage_table not in string_arrays:
+                failures.append(
+                    f"runtime_transition_sequence_step[{table_name}][{index}]: "
+                    f"unknown action_coverage_refs table: {action_coverage_table}"
+                )
+            if event_coverage_table != "NULL" and event_coverage_table not in string_arrays:
+                failures.append(
+                    f"runtime_transition_sequence_step[{table_name}][{index}]: "
+                    f"unknown event_coverage_refs table: {event_coverage_table}"
+                )
             if invariant_table not in string_arrays:
                 failures.append(
                     f"runtime_transition_sequence_step[{table_name}][{index}]: "
@@ -1736,6 +1754,12 @@ def _parse_runtime_transition_sequence_registry(
                     ),
                     "stimulus_event_id": _parse_runtime_nullable_string(
                         row_match.group("stimulus_event_id")
+                    ),
+                    "action_coverage_refs": string_arrays.get(
+                        action_coverage_table, []
+                    ),
+                    "event_coverage_refs": string_arrays.get(
+                        event_coverage_table, []
                     ),
                     "expected_result": row_match.group("expected_result"),
                     "invariant_ids": string_arrays.get(invariant_table, []),
@@ -5289,6 +5313,155 @@ def _validate_step_reference_list(
     return failures
 
 
+def _non_empty_string_set(value: Any) -> set[str] | None:
+    if not isinstance(value, list):
+        return None
+    refs: set[str] = set()
+    for item in value:
+        if not isinstance(item, str) or not item.strip():
+            return None
+        refs.add(item)
+    return refs
+
+
+def _step_generation_domain_ids(value: Any) -> set[str] | None:
+    if not isinstance(value, list):
+        return None
+    domain_ids: set[str] = set()
+    for record in value:
+        if not isinstance(record, dict):
+            return None
+        domain_id = record.get("domain_id")
+        if not isinstance(domain_id, str) or not domain_id.strip():
+            return None
+        domain_ids.add(domain_id)
+    return domain_ids
+
+
+def _validate_step_coverage_ref_overlap(
+    *,
+    label: str,
+    field: str,
+    index: int,
+    ref: str,
+    coverage_record: dict[str, Any],
+    step_invariant_ids: Any,
+    step_diff_harness_ids: Any,
+    step_generation_domain_expectations: Any,
+) -> list[str]:
+    failures: list[str] = []
+    overlap_checks = (
+        (
+            "invariant_refs",
+            _non_empty_string_set(step_invariant_ids),
+            _non_empty_string_set(coverage_record.get("invariant_refs")),
+            "step invariant_ids",
+        ),
+        (
+            "diff_harness_refs",
+            _non_empty_string_set(step_diff_harness_ids),
+            _non_empty_string_set(coverage_record.get("diff_harness_refs")),
+            "step diff_harness_ids",
+        ),
+        (
+            "generation_domain_refs",
+            _step_generation_domain_ids(step_generation_domain_expectations),
+            _non_empty_string_set(coverage_record.get("generation_domain_refs")),
+            "step generation_domain_expectations",
+        ),
+    )
+    for coverage_field, step_refs, coverage_refs, step_field in overlap_checks:
+        if step_refs is None or coverage_refs is None:
+            continue
+        if not step_refs or not coverage_refs or not step_refs.intersection(coverage_refs):
+            failures.append(
+                f"{label}: {field}[{index}] {ref} {coverage_field} must overlap "
+                f"{step_field}"
+            )
+    return failures
+
+
+def _validate_step_coverage_refs(
+    *,
+    value: Any,
+    valid_ids: set[str],
+    coverage_records_by_id: dict[str, dict[str, Any]],
+    label: str,
+    field: str,
+    reference_label: str,
+    stimulus_id: Any,
+    transition_id: Any,
+    step_invariant_ids: Any,
+    step_diff_harness_ids: Any,
+    step_generation_domain_expectations: Any,
+) -> list[str]:
+    if not isinstance(value, list):
+        return [f"{label}: {field} must be a list"]
+
+    failures: list[str] = []
+    seen: set[str] = set()
+    for index, item in enumerate(value):
+        if not isinstance(item, str) or not item.strip():
+            failures.append(f"{label}: {field}[{index}] must be a non-empty string")
+            continue
+        if item in seen:
+            failures.append(f"{label}: duplicate {field}[{index}]: {item}")
+        seen.add(item)
+        if item not in valid_ids:
+            failures.append(
+                f"{label}: {field} references unknown {reference_label}: {item}"
+            )
+    if not isinstance(stimulus_id, str) or not stimulus_id.strip():
+        if value:
+            failures.append(
+                f"{label}: {field} must be empty when the step has no matching stimulus"
+            )
+        return failures
+    if failures:
+        return failures
+
+    if not value:
+        failures.append(
+            f"{label}: {field} must include coverage for stimulus {stimulus_id}"
+        )
+        return failures
+
+    for index, ref in enumerate(value):
+        assert isinstance(ref, str)
+        if ref != stimulus_id:
+            failures.append(
+                f"{label}: {field}[{index}] {ref} does not match stimulus {stimulus_id}"
+            )
+            continue
+        coverage_record = coverage_records_by_id.get(ref)
+        if coverage_record is None:
+            continue
+        coverage_transition_id = coverage_record.get("transition_id")
+        if (
+            isinstance(transition_id, str)
+            and transition_id.strip()
+            and coverage_transition_id != transition_id
+        ):
+            failures.append(
+                f"{label}: {field}[{index}] transition_id does not match "
+                f"step.transition_id {transition_id}: {coverage_transition_id}"
+            )
+        failures.extend(
+            _validate_step_coverage_ref_overlap(
+                label=label,
+                field=field,
+                index=index,
+                ref=ref,
+                coverage_record=coverage_record,
+                step_invariant_ids=step_invariant_ids,
+                step_diff_harness_ids=step_diff_harness_ids,
+                step_generation_domain_expectations=step_generation_domain_expectations,
+            )
+        )
+
+    return failures
+
+
 def _diff_harness_transition_ids_by_harness(
     diff_harness_records: list[Any],
 ) -> dict[str, set[str]]:
@@ -5798,8 +5971,10 @@ def _validate_appstate_transition_sequences(
     transition_ids: dict[str, dict[str, Any]],
     action_ids: set[str],
     action_transition_ids: dict[str, str],
+    action_coverage_by_action: dict[str, dict[str, Any]],
     event_ids: set[str],
     event_transition_ids: dict[str, str],
+    event_coverage_by_event_id: dict[str, dict[str, Any]],
     invariant_ids: set[str],
     invariant_transition_ids: dict[str, set[str]],
     diff_harness_ids: set[str],
@@ -5861,7 +6036,12 @@ def _validate_appstate_transition_sequences(
                 _validate_required_fields(
                     record=step,
                     required_fields=REQUIRED_SEQUENCE_STEP_FIELDS,
-                    list_fields=SEQUENCE_LIST_FIELDS - {"generation_domain_expectations"},
+                    list_fields=SEQUENCE_LIST_FIELDS
+                    - {
+                        "action_coverage_refs",
+                        "event_coverage_refs",
+                        "generation_domain_expectations",
+                    },
                     label=label,
                 )
             )
@@ -5895,6 +6075,43 @@ def _validate_appstate_transition_sequences(
                     action_transition_ids=action_transition_ids,
                     event_ids=event_ids,
                     event_transition_ids=event_transition_ids,
+                )
+            )
+            stimulus = step.get("stimulus")
+            if not isinstance(stimulus, dict):
+                stimulus = {}
+            failures.extend(
+                _validate_step_coverage_refs(
+                    value=step.get("action_coverage_refs"),
+                    valid_ids=action_ids,
+                    coverage_records_by_id=action_coverage_by_action,
+                    label=label,
+                    field="action_coverage_refs",
+                    reference_label="action coverage record",
+                    stimulus_id=stimulus.get("action_id"),
+                    transition_id=transition_id,
+                    step_invariant_ids=step.get("invariant_ids"),
+                    step_diff_harness_ids=step.get("diff_harness_ids"),
+                    step_generation_domain_expectations=step.get(
+                        "generation_domain_expectations"
+                    ),
+                )
+            )
+            failures.extend(
+                _validate_step_coverage_refs(
+                    value=step.get("event_coverage_refs"),
+                    valid_ids=event_ids,
+                    coverage_records_by_id=event_coverage_by_event_id,
+                    label=label,
+                    field="event_coverage_refs",
+                    reference_label="event coverage record",
+                    stimulus_id=stimulus.get("event_id"),
+                    transition_id=transition_id,
+                    step_invariant_ids=step.get("invariant_ids"),
+                    step_diff_harness_ids=step.get("diff_harness_ids"),
+                    step_generation_domain_expectations=step.get(
+                        "generation_domain_expectations"
+                    ),
                 )
             )
             failures.extend(
@@ -5998,6 +6215,8 @@ def _normalize_transition_sequence_records(records: list[Any]) -> dict[str, dict
                     "transition_id": step.get("transition_id"),
                     "stimulus_action_id": stimulus.get("action_id"),
                     "stimulus_event_id": stimulus.get("event_id"),
+                    "action_coverage_refs": step.get("action_coverage_refs"),
+                    "event_coverage_refs": step.get("event_coverage_refs"),
                     "expected_result": step.get("expected_result"),
                     "invariant_ids": step.get("invariant_ids"),
                     "diff_harness_ids": step.get("diff_harness_ids"),
@@ -6027,8 +6246,10 @@ def _validate_runtime_transition_sequence_registry(
     runtime_transition_ids: set[str],
     action_ids: set[str],
     action_transition_ids: dict[str, str],
+    action_coverage_by_action: dict[str, dict[str, Any]],
     event_ids: set[str],
     event_transition_ids: dict[str, str],
+    event_coverage_by_event_id: dict[str, dict[str, Any]],
     runtime_invariant_ids: set[str],
     runtime_invariant_transition_ids: dict[str, set[str]],
     runtime_diff_harness_ids: set[str],
@@ -6160,6 +6381,41 @@ def _validate_runtime_transition_sequence_registry(
                             f"transition_id {event_transition_id}, not "
                             f"step.transition_id {transition_id}"
                         )
+
+            failures.extend(
+                _validate_step_coverage_refs(
+                    value=step.get("action_coverage_refs"),
+                    valid_ids=action_ids,
+                    coverage_records_by_id=action_coverage_by_action,
+                    label=step_label,
+                    field="action_coverage_refs",
+                    reference_label="action coverage record",
+                    stimulus_id=action_id,
+                    transition_id=transition_id,
+                    step_invariant_ids=step.get("invariant_ids"),
+                    step_diff_harness_ids=step.get("diff_harness_ids"),
+                    step_generation_domain_expectations=step.get(
+                        "generation_domain_expectations"
+                    ),
+                )
+            )
+            failures.extend(
+                _validate_step_coverage_refs(
+                    value=step.get("event_coverage_refs"),
+                    valid_ids=event_ids,
+                    coverage_records_by_id=event_coverage_by_event_id,
+                    label=step_label,
+                    field="event_coverage_refs",
+                    reference_label="event coverage record",
+                    stimulus_id=event_id,
+                    transition_id=transition_id,
+                    step_invariant_ids=step.get("invariant_ids"),
+                    step_diff_harness_ids=step.get("diff_harness_ids"),
+                    step_generation_domain_expectations=step.get(
+                        "generation_domain_expectations"
+                    ),
+                )
+            )
 
             for field, valid_ids, reference_label in (
                 ("invariant_ids", runtime_invariant_ids, "runtime invariant id"),
@@ -7150,6 +7406,18 @@ def validate_contract(
         collection_key="events",
         id_field="event_id",
     )
+    if isinstance(event_coverage_doc, dict) and isinstance(
+        event_coverage_doc.get("events"), list
+    ):
+        event_coverage_by_event_id = {
+            record["event_id"]: record
+            for record in event_coverage_doc["events"]
+            if isinstance(record, dict)
+            and isinstance(record.get("event_id"), str)
+            and record["event_id"].strip()
+        }
+    else:
+        event_coverage_by_event_id = {}
     failures.extend(
         _validate_appstate_transition_sequences(
             transition_sequences_doc=transition_sequences_doc,
@@ -7157,8 +7425,10 @@ def validate_contract(
             transition_ids=transition_ids,
             action_ids=action_ids,
             action_transition_ids=action_transition_ids,
+            action_coverage_by_action=action_coverage_by_action,
             event_ids=event_ids,
             event_transition_ids=event_transition_ids,
+            event_coverage_by_event_id=event_coverage_by_event_id,
             invariant_ids=invariant_ids,
             invariant_transition_ids=_invariant_transition_ids_by_invariant(
                 invariant_records
@@ -7186,8 +7456,10 @@ def validate_contract(
             },
             action_ids=action_ids,
             action_transition_ids=action_transition_ids,
+            action_coverage_by_action=action_coverage_by_action,
             event_ids=event_ids,
             event_transition_ids=event_transition_ids,
+            event_coverage_by_event_id=event_coverage_by_event_id,
             runtime_invariant_ids={
                 record["invariant_id"] for record in runtime_invariant_records
             },
