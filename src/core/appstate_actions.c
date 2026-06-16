@@ -6293,6 +6293,23 @@ AppStateActionCoverageLookup(YtreeNovaAction action) {
   return metadata;
 }
 
+static YtreeNovaAction AppStateValidateKeyActionCoverage(
+    YtreeNovaAction action, const AppStateActionCoverageMetadata *coverage) {
+  if (action == ACTION_NONE)
+    return ACTION_NONE;
+  if (coverage == NULL || coverage->action != action)
+    return ACTION_NONE;
+  if (AppStateTransitionLookup(coverage->transition_id) == NULL)
+    return ACTION_NONE;
+
+  return action;
+}
+
+YtreeNovaAction AppStateValidatedKeyAction(YtreeNovaAction action) {
+  return AppStateValidateKeyActionCoverage(action,
+                                           AppStateActionCoverageLookup(action));
+}
+
 const AppStateEventCoverageMetadata *
 AppStateEventCoverageLookup(const char *event_id) {
   size_t index;

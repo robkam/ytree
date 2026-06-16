@@ -4300,6 +4300,76 @@ int main(void) {
     assert run.returncode == 0, run.stdout + run.stderr
 
 
+def test_runtime_key_action_validation_requires_coverage_and_transition(
+    tmp_path: Path,
+) -> None:
+    repo_root = Path(__file__).resolve().parents[1]
+    probe = tmp_path / "key_action_validation_probe.c"
+    binary = tmp_path / "key_action_validation_probe"
+    probe.write_text(
+        """
+#include "src/core/appstate_actions.c"
+
+int main(void) {
+  AppStateActionCoverageMetadata missing_transition;
+
+  if (AppStateValidatedKeyAction(ACTION_ENTER) != ACTION_ENTER)
+    return 1;
+  if (AppStateValidatedKeyAction(ACTION_NONE) != ACTION_NONE)
+    return 2;
+  if (AppStateValidatedKeyAction((YtreeNovaAction)(ACTION_USER_CMD + 1)) !=
+      ACTION_NONE)
+    return 3;
+
+  missing_transition = *AppStateActionCoverageLookup(ACTION_ENTER);
+  missing_transition.transition_id = "transition.__ytnova_missing__";
+  if (AppStateValidateKeyActionCoverage(ACTION_ENTER, &missing_transition) !=
+      ACTION_NONE)
+    return 4;
+
+  return 0;
+}
+""",
+        encoding="utf-8",
+    )
+
+    build = subprocess.run(
+        [
+            "gcc",
+            "-std=c99",
+            "-I.",
+            "-Iinclude",
+            str(probe),
+            "-o",
+            str(binary),
+        ],
+        cwd=repo_root,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert build.returncode == 0, build.stdout + build.stderr
+    run = subprocess.run(
+        [str(binary)],
+        cwd=repo_root,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert run.returncode == 0, run.stdout + run.stderr
+
+
+def test_get_key_action_routes_decoded_actions_through_appstate_boundary() -> None:
+    source = Path("src/ui/key_engine.c").read_text(encoding="utf-8")
+    start = source.index("YtreeNovaAction GetKeyAction(")
+    end = source.index("\nint WGetch(", start)
+    body = source[start:end]
+
+    assert 'include "ytnova_appstate_actions.h"' in source
+    assert "AppStateValidatedKeyAction(" in body
+    assert not re.search(r"return\s+ACTION_", body)
+
+
 def test_guard_fails_when_required_generation_domain_category_is_missing(
     tmp_path: Path,
 ) -> None:
