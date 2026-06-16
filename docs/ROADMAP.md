@@ -1414,3 +1414,10 @@ Ordering policy (for all editors, including AI editors):
 *   **Config:** Add a `ytnova.conf` switch for trash-delete with default `1` (enabled).
 *   **Fallback:** If trash-delete is disabled or unsupported for the active backend, use permanent delete with explicit confirmation.
 *   - [ ] **Status:** Not Started.
+
+### **Idea FE-41: Port to other platforms**
+*   **Validation:** Currently practical via WSL and QEMU
+*   **Possible:** OmniOS (illumos)
+*   **Possible but impractical for maintainers right now:**  macOS, AIX, OpenVMS, Solaris
+*   **Out of scope:** Windows (ZTreeWin exists), legacy UNIXes including HP-UX
+*   - [ ] **Status:** Not Started.
