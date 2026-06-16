@@ -6310,6 +6310,25 @@ YtreeNovaAction AppStateValidatedKeyAction(YtreeNovaAction action) {
                                            AppStateActionCoverageLookup(action));
 }
 
+static int
+AppStateValidateEventCoverage(const char *event_id,
+                              const AppStateEventCoverageMetadata *coverage) {
+  if (event_id == NULL || event_id[0] == '\0')
+    return 0;
+  if (coverage == NULL || coverage->event_id == NULL ||
+      strcmp(coverage->event_id, event_id))
+    return 0;
+  if (AppStateTransitionLookup(coverage->transition_id) == NULL)
+    return 0;
+
+  return 1;
+}
+
+int AppStateValidatedEvent(const char *event_id) {
+  return AppStateValidateEventCoverage(event_id,
+                                       AppStateEventCoverageLookup(event_id));
+}
+
 const AppStateEventCoverageMetadata *
 AppStateEventCoverageLookup(const char *event_id) {
   size_t index;

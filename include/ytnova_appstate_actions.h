@@ -240,6 +240,7 @@ AppStateActionCoverageLookup(YtreeNovaAction action);
 YtreeNovaAction AppStateValidatedKeyAction(YtreeNovaAction action);
 const AppStateActionCoverageMetadata *AppStateActionCoverageAt(size_t index);
 size_t AppStateActionCoverageCount(void);
+int AppStateValidatedEvent(const char *event_id);
 const AppStateEventCoverageMetadata *
 AppStateEventCoverageLookup(const char *event_id);
 const AppStateEventCoverageMetadata *AppStateEventCoverageAt(size_t index);

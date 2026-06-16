@@ -779,8 +779,11 @@ int GetEventOrKey(ViewContext *ctx) {
   fd_set fds;
   struct timeval tv;
 
-  if (ctx && ctx->resize_request)
+  if (ctx && ctx->resize_request) {
+    if (!AppStateValidatedEvent("event.terminal-resize-signal"))
+      return ERR;
     return KEY_RESIZE;
+  }
 
   /* Before the select loop, check the shutdown flag */
   if (ytnova_shutdown_flag)
@@ -795,8 +798,11 @@ int GetEventOrKey(ViewContext *ctx) {
     return NormalizeEscSequence(ch);
   }
 
-  if (ctx && ctx->resize_request)
+  if (ctx && ctx->resize_request) {
+    if (!AppStateValidatedEvent("event.terminal-resize-signal"))
+      return ERR;
     return KEY_RESIZE;
+  }
 
   while (1) {
     int max_fd;
@@ -835,8 +841,11 @@ int GetEventOrKey(ViewContext *ctx) {
         nodelay(stdscr, FALSE);
         if (ch != ERR)
           return NormalizeEscSequence(ch);
-        if (ctx && ctx->resize_request)
+        if (ctx && ctx->resize_request) {
+          if (!AppStateValidatedEvent("event.terminal-resize-signal"))
+            return ERR;
           return KEY_RESIZE;
+        }
 
         continue;
       }
@@ -846,6 +855,8 @@ int GetEventOrKey(ViewContext *ctx) {
     if (ctx && (ctx->refresh_mode & REFRESH_WATCHER) && w_fd >= 0 &&
         FD_ISSET(w_fd, &fds)) {
       if (Watcher_ProcessEvents(ctx)) {
+        if (!AppStateValidatedEvent("event.watcher-live-refresh"))
+          return ERR;
         return KEY_F(5);
       }
     }
