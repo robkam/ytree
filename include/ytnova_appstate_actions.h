@@ -251,6 +251,7 @@ const AppStateTransitionMetadata *AppStateTransitionAt(size_t index);
 size_t AppStateTransitionCount(void);
 const AppStateDispatchSurfaceMetadata *
 AppStateDispatchSurfaceLookup(const char *surface_id);
+int AppStateValidatedDispatchSurface(const char *surface_id);
 const AppStateDispatchSurfaceMetadata *AppStateDispatchSurfaceAt(size_t index);
 size_t AppStateDispatchSurfaceCount(void);
 const AppStateCompatibilityShimMetadata *

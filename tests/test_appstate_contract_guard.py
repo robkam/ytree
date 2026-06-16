@@ -4359,6 +4359,75 @@ int main(void) {
     assert run.returncode == 0, run.stdout + run.stderr
 
 
+def test_runtime_dispatch_surface_validation_requires_registry_and_transition(
+    tmp_path: Path,
+) -> None:
+    repo_root = Path(__file__).resolve().parents[1]
+    probe = tmp_path / "dispatch_surface_validation_probe.c"
+    binary = tmp_path / "dispatch_surface_validation_probe"
+    probe.write_text(
+        """
+#include "src/core/appstate_actions.c"
+
+int main(void) {
+  AppStateDispatchSurfaceMetadata mismatched_surface;
+  AppStateDispatchSurfaceMetadata missing_transition;
+
+  if (!AppStateValidatedDispatchSurface("surface.key-decode-input-dispatch"))
+    return 1;
+  if (AppStateValidatedDispatchSurface(NULL))
+    return 2;
+  if (AppStateValidatedDispatchSurface(""))
+    return 3;
+  if (AppStateValidatedDispatchSurface("surface.__ytnova_missing__"))
+    return 4;
+
+  mismatched_surface =
+      *AppStateDispatchSurfaceLookup("surface.key-decode-input-dispatch");
+  mismatched_surface.surface_id = "surface.__ytnova_mismatch__";
+  if (AppStateValidateDispatchSurface("surface.key-decode-input-dispatch",
+                                      &mismatched_surface))
+    return 5;
+
+  missing_transition =
+      *AppStateDispatchSurfaceLookup("surface.key-decode-input-dispatch");
+  missing_transition.transition_id = "transition.__ytnova_missing__";
+  if (AppStateValidateDispatchSurface("surface.key-decode-input-dispatch",
+                                      &missing_transition))
+    return 6;
+
+  return 0;
+}
+""",
+        encoding="utf-8",
+    )
+
+    build = subprocess.run(
+        [
+            "gcc",
+            "-std=c99",
+            "-I.",
+            "-Iinclude",
+            str(probe),
+            "-o",
+            str(binary),
+        ],
+        cwd=repo_root,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert build.returncode == 0, build.stdout + build.stderr
+    run = subprocess.run(
+        [str(binary)],
+        cwd=repo_root,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert run.returncode == 0, run.stdout + run.stderr
+
+
 def test_get_key_action_routes_decoded_actions_through_appstate_boundary() -> None:
     source = Path("src/ui/key_engine.c").read_text(encoding="utf-8")
     start = source.index("YtreeNovaAction GetKeyAction(")
@@ -4366,8 +4435,14 @@ def test_get_key_action_routes_decoded_actions_through_appstate_boundary() -> No
     body = source[start:end]
 
     assert 'include "ytnova_appstate_actions.h"' in source
+    assert (
+        'if (!AppStateValidatedDispatchSurface("surface.key-decode-input-dispatch"))'
+        in body
+    )
+    assert body.count("return ACTION_NONE;") == 1
+    assert body.index("return ACTION_NONE;") < body.index("switch (ch)")
     assert "AppStateValidatedKeyAction(" in body
-    assert not re.search(r"return\s+ACTION_", body)
+    assert not re.search(r"return\s+ACTION_(?!NONE;)", body)
 
 
 def test_runtime_event_boundary_validation_requires_coverage_and_transition(
