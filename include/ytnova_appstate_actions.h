@@ -237,6 +237,7 @@ AppStateActionTransitionLookup(YtreeNovaAction action);
 size_t AppStateActionTransitionCount(void);
 const AppStateActionCoverageMetadata *
 AppStateActionCoverageLookup(YtreeNovaAction action);
+YtreeNovaAction AppStateValidatedKeyAction(YtreeNovaAction action);
 const AppStateActionCoverageMetadata *AppStateActionCoverageAt(size_t index);
 size_t AppStateActionCoverageCount(void);
 const AppStateEventCoverageMetadata *

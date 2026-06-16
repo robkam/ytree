@@ -7,6 +7,7 @@
  ***************************************************************************/
 
 #include "watcher.h"
+#include "ytnova_appstate_actions.h"
 #include "ytnova_cmd.h"
 #include "ytnova_ui.h"
 #include <ctype.h>
@@ -415,259 +416,260 @@ YtreeNovaAction GetKeyAction(const ViewContext *ctx, int ch) {
 
   switch (ch) {
   case KEY_UP:
-    return ACTION_MOVE_UP;
+    return AppStateValidatedKeyAction(ACTION_MOVE_UP);
   case KEY_DOWN:
-    return ACTION_MOVE_DOWN;
+    return AppStateValidatedKeyAction(ACTION_MOVE_DOWN);
   case KEY_LEFT:
-    return ACTION_MOVE_LEFT;
+    return AppStateValidatedKeyAction(ACTION_MOVE_LEFT);
   case KEY_RIGHT:
-    return ACTION_MOVE_RIGHT;
+    return AppStateValidatedKeyAction(ACTION_MOVE_RIGHT);
   case KEY_PPAGE:
-    return ACTION_PAGE_UP;
+    return AppStateValidatedKeyAction(ACTION_PAGE_UP);
   case KEY_NPAGE:
-    return ACTION_PAGE_DOWN;
+    return AppStateValidatedKeyAction(ACTION_PAGE_DOWN);
   case KEY_HOME:
-    return ACTION_HOME;
+    return AppStateValidatedKeyAction(ACTION_HOME);
   case KEY_END:
-    return ACTION_END;
+    return AppStateValidatedKeyAction(ACTION_END);
 
   case '\t':
-    return (ctx && ctx->is_split_screen) ? ACTION_SWITCH_PANEL
-                                         : ACTION_MOVE_SIBLING_NEXT;
+    return AppStateValidatedKeyAction(
+        (ctx && ctx->is_split_screen) ? ACTION_SWITCH_PANEL
+                                      : ACTION_MOVE_SIBLING_NEXT);
   case '*':
-    return ACTION_ASTERISK;
+    return AppStateValidatedKeyAction(ACTION_ASTERISK);
   case 'i':
   case 'I':
-    return ACTION_INVERT;
+    return AppStateValidatedKeyAction(ACTION_INVERT);
   case KEY_BTAB:
-    return ACTION_MOVE_SIBLING_PREV;
+    return AppStateValidatedKeyAction(ACTION_MOVE_SIBLING_PREV);
   case '-':
-    return ACTION_TREE_COLLAPSE;
+    return AppStateValidatedKeyAction(ACTION_TREE_COLLAPSE);
   case '+':
-    return ACTION_TREE_EXPAND_ALL;
+    return AppStateValidatedKeyAction(ACTION_TREE_EXPAND_ALL);
   case '/':
-    return ACTION_LIST_JUMP;
+    return AppStateValidatedKeyAction(ACTION_LIST_JUMP);
   case '\\':
-    return ACTION_TO_DIR;
+    return AppStateValidatedKeyAction(ACTION_TO_DIR);
 
   case CR:
   case LF:
-    return ACTION_ENTER;
+    return AppStateValidatedKeyAction(ACTION_ENTER);
   case ESC:
-    return ACTION_ESCAPE;
+    return AppStateValidatedKeyAction(ACTION_ESCAPE);
   case 'l':
   case 'L':
-    return ACTION_LOG;
+    return AppStateValidatedKeyAction(ACTION_LOG);
   case 'q':
   case 'Q':
-    return ACTION_QUIT;
+    return AppStateValidatedKeyAction(ACTION_QUIT);
   case 0x11:
-    return ACTION_QUIT_DIR;
+    return AppStateValidatedKeyAction(ACTION_QUIT_DIR);
   case 't':
   case 'T':
-    return ACTION_TAG;
+    return AppStateValidatedKeyAction(ACTION_TAG);
   case 'u':
-    return ACTION_UNTAG;
+    return AppStateValidatedKeyAction(ACTION_UNTAG);
   case 'U':
     /* In vi-key mode, Ctrl-U is reserved for page-up navigation.
      * Use uppercase U as the file-window "untag all" command key.
      */
     if (vi_keys_enabled && ctx && ctx->focused_window == FOCUS_FILE)
-      return ACTION_UNTAG_ALL;
-    return ACTION_UNTAG;
+      return AppStateValidatedKeyAction(ACTION_UNTAG_ALL);
+    return AppStateValidatedKeyAction(ACTION_UNTAG);
   case 0x14: /* Ctrl+T */
-    return ACTION_TAG_ALL;
+    return AppStateValidatedKeyAction(ACTION_TAG_ALL);
   case 0x15: /* Ctrl+U */
-    return ACTION_UNTAG_ALL;
+    return AppStateValidatedKeyAction(ACTION_UNTAG_ALL);
   case ';':
-    return ACTION_TAG_REST;
+    return AppStateValidatedKeyAction(ACTION_TAG_REST);
   case ':':
-    return ACTION_UNTAG_REST;
+    return AppStateValidatedKeyAction(ACTION_UNTAG_REST);
   case 'f':
   case 'F':
-    return ACTION_FILTER;
+    return AppStateValidatedKeyAction(ACTION_FILTER);
   case 0x06:
-    return ACTION_TOGGLE_MODE;
+    return AppStateValidatedKeyAction(ACTION_TOGGLE_MODE);
   case 0x0C:
-    return ACTION_REFRESH;
+    return AppStateValidatedKeyAction(ACTION_REFRESH);
   case KEY_RESIZE:
-    return ACTION_RESIZE;
+    return AppStateValidatedKeyAction(ACTION_RESIZE);
 
   case 'k': /* Note: lowercase 'k' is KEY_UP when VI_KEYS profile is enabled */
   case 'K':
-    return ACTION_VOL_MENU;
+    return AppStateValidatedKeyAction(ACTION_VOL_MENU);
   case ',':
   case '<':
-    return ACTION_VOL_PREV;
+    return AppStateValidatedKeyAction(ACTION_VOL_PREV);
   case '.':
   case '>':
-    return ACTION_VOL_NEXT;
+    return AppStateValidatedKeyAction(ACTION_VOL_NEXT);
 
   case 'a':
   case 'A':
-    return ACTION_CMD_A;
+    return AppStateValidatedKeyAction(ACTION_CMD_A);
   case 'b':
   case 'B':
-    return ACTION_TOGGLE_COMPACT;
+    return AppStateValidatedKeyAction(ACTION_TOGGLE_COMPACT);
   case 'c':
   case 'C':
-    return ACTION_CMD_C;
+    return AppStateValidatedKeyAction(ACTION_CMD_C);
   case 'd':
-    return ACTION_CMD_D;
+    return AppStateValidatedKeyAction(ACTION_CMD_D);
   case 'D':
     /* In vi-key mode, Ctrl-D is reserved for page-down navigation.
      * Use uppercase D as the file-window "delete tagged" command key.
      */
     if (vi_keys_enabled && ctx && ctx->focused_window == FOCUS_FILE)
-      return ACTION_CMD_TAGGED_D;
-    return ACTION_CMD_D;
+      return AppStateValidatedKeyAction(ACTION_CMD_TAGGED_D);
+    return AppStateValidatedKeyAction(ACTION_CMD_D);
   case KEY_DC:
-    return ACTION_CMD_D;
+    return AppStateValidatedKeyAction(ACTION_CMD_D);
   case 'e':
   case 'E':
-    return ACTION_CMD_E;
+    return AppStateValidatedKeyAction(ACTION_CMD_E);
   case 'g':
   case 'G':
     if (IsGlobalAllVolumesFileView(ctx))
-      return ACTION_NONE;
-    return ACTION_CMD_G;
+      return AppStateValidatedKeyAction(ACTION_NONE);
+    return AppStateValidatedKeyAction(ACTION_CMD_G);
   case 'h':
   case 'H':
-    return ACTION_CMD_H;
+    return AppStateValidatedKeyAction(ACTION_CMD_H);
   case 'm':
   case 'M':
-    return ACTION_CMD_M;
+    return AppStateValidatedKeyAction(ACTION_CMD_M);
   case 'n':
   case 'N':
-    return ACTION_CMD_MKFILE;
+    return AppStateValidatedKeyAction(ACTION_CMD_MKFILE);
   case 'o':
   case 'O':
-    return ACTION_TOGGLE_TAGGED_MODE;
+    return AppStateValidatedKeyAction(ACTION_TOGGLE_TAGGED_MODE);
   case 'p':
   case 'P':
-    return ACTION_CMD_P;
+    return AppStateValidatedKeyAction(ACTION_CMD_P);
   case 'r':
   case 'R':
-    return ACTION_CMD_R;
+    return AppStateValidatedKeyAction(ACTION_CMD_R);
   case 's':
   case 'S':
-    return ACTION_CMD_S;
+    return AppStateValidatedKeyAction(ACTION_CMD_S);
   case 'v':
   case 'V':
-    return ACTION_CMD_V;
+    return AppStateValidatedKeyAction(ACTION_CMD_V);
   case 'w':
   case 'W':
-    return ACTION_CMD_PRINT;
+    return AppStateValidatedKeyAction(ACTION_CMD_PRINT);
   case 'x':
   case 'X':
-    return ACTION_CMD_X;
+    return AppStateValidatedKeyAction(ACTION_CMD_X);
   case 'y':
   case 'Y':
-    return ACTION_CMD_Y;
+    return AppStateValidatedKeyAction(ACTION_CMD_Y);
   case 'z':
   case 'Z':
-    return ACTION_CMD_I;
+    return AppStateValidatedKeyAction(ACTION_CMD_I);
   case '`':
-    return ACTION_TOGGLE_HIDDEN;
+    return AppStateValidatedKeyAction(ACTION_TOGGLE_HIDDEN);
 
   case 0x01:
-    return ACTION_CMD_TAGGED_A;
+    return AppStateValidatedKeyAction(ACTION_CMD_TAGGED_A);
   case 0x03:
-    return ACTION_CMD_TAGGED_C;
+    return AppStateValidatedKeyAction(ACTION_CMD_TAGGED_C);
   case 0x0B:
-    return ACTION_CMD_TAGGED_C;
+    return AppStateValidatedKeyAction(ACTION_CMD_TAGGED_C);
   case 0x04:
-    return ACTION_CMD_TAGGED_D;
+    return AppStateValidatedKeyAction(ACTION_CMD_TAGGED_D);
   case 0x07:
-    return ACTION_NONE;
+    return AppStateValidatedKeyAction(ACTION_NONE);
   case 0x0E:
     if (ctx && ctx->preview_mode)
-      return ACTION_PREVIEW_SCROLL_DOWN;
-    return ACTION_CMD_TAGGED_M;
+      return AppStateValidatedKeyAction(ACTION_PREVIEW_SCROLL_DOWN);
+    return AppStateValidatedKeyAction(ACTION_CMD_TAGGED_M);
   case 0x0F:
-    return ACTION_CMD_I;
+    return AppStateValidatedKeyAction(ACTION_CMD_I);
   case 0x10:
     if (ctx && ctx->preview_mode)
-      return ACTION_PREVIEW_SCROLL_UP;
-    return ACTION_CMD_TAGGED_P;
+      return AppStateValidatedKeyAction(ACTION_PREVIEW_SCROLL_UP);
+    return AppStateValidatedKeyAction(ACTION_CMD_TAGGED_P);
   case 0x12:
-    return ACTION_CMD_TAGGED_R;
+    return AppStateValidatedKeyAction(ACTION_CMD_TAGGED_R);
   case 0x13:
-    return ACTION_CMD_TAGGED_S;
+    return AppStateValidatedKeyAction(ACTION_CMD_TAGGED_S);
   case 0x16:
-    return ACTION_CMD_TAGGED_V;
+    return AppStateValidatedKeyAction(ACTION_CMD_TAGGED_V);
   case 0x17:
-    return ACTION_CMD_TAGGED_PRINT;
+    return AppStateValidatedKeyAction(ACTION_CMD_TAGGED_PRINT);
   case 0x18:
-    return ACTION_CMD_TAGGED_X;
+    return AppStateValidatedKeyAction(ACTION_CMD_TAGGED_X);
   case 0x19:
-    return ACTION_CMD_TAGGED_Y;
+    return AppStateValidatedKeyAction(ACTION_CMD_TAGGED_Y);
   case 0x1C:
-    return ACTION_CMD_TAGGED_P;
+    return AppStateValidatedKeyAction(ACTION_CMD_TAGGED_P);
 
 #ifdef KEY_F
   case KEY_F(12):
-    return ACTION_LIST_JUMP;
+    return AppStateValidatedKeyAction(ACTION_LIST_JUMP);
   case KEY_F(8):
-    return ACTION_SPLIT_SCREEN;
+    return AppStateValidatedKeyAction(ACTION_SPLIT_SCREEN);
   case KEY_F(7):
-    return ACTION_VIEW_PREVIEW;
+    return AppStateValidatedKeyAction(ACTION_VIEW_PREVIEW);
   case KEY_F(6):
-    return ACTION_TOGGLE_STATS;
+    return AppStateValidatedKeyAction(ACTION_TOGGLE_STATS);
   case KEY_F(5):
-    return ACTION_REFRESH;
+    return AppStateValidatedKeyAction(ACTION_REFRESH);
   case KEY_F(10):
-    return ACTION_EDIT_CONFIG;
+    return AppStateValidatedKeyAction(ACTION_EDIT_CONFIG);
   case KEY_F(28):
-    return ACTION_TOGGLE_TAGGED_MODE;
+    return AppStateValidatedKeyAction(ACTION_TOGGLE_TAGGED_MODE);
   case KEY_F(16):
-    return ACTION_TOGGLE_TAGGED_MODE;
+    return AppStateValidatedKeyAction(ACTION_TOGGLE_TAGGED_MODE);
 #endif
 
   case 'j':
     if (!vi_keys_enabled && ctx) {
       if (ctx->focused_window == FOCUS_TREE)
-        return ACTION_COMPARE_DIR;
+        return AppStateValidatedKeyAction(ACTION_COMPARE_DIR);
       if (ctx->focused_window == FOCUS_FILE)
-        return ACTION_COMPARE_FILE;
+        return AppStateValidatedKeyAction(ACTION_COMPARE_FILE);
     }
-    return ACTION_NONE;
+    return AppStateValidatedKeyAction(ACTION_NONE);
   case 'J':
     if (ctx) {
       if (ctx->focused_window == FOCUS_TREE)
-        return ACTION_COMPARE_DIR;
+        return AppStateValidatedKeyAction(ACTION_COMPARE_DIR);
       if (ctx->focused_window == FOCUS_FILE)
-        return ACTION_COMPARE_FILE;
+        return AppStateValidatedKeyAction(ACTION_COMPARE_FILE);
     }
-    return ACTION_NONE;
+    return AppStateValidatedKeyAction(ACTION_NONE);
 
 #ifdef KEY_SF
   case KEY_SF:
-    return ACTION_PREVIEW_SCROLL_DOWN;
+    return AppStateValidatedKeyAction(ACTION_PREVIEW_SCROLL_DOWN);
 #endif
 #ifdef KEY_SR
   case KEY_SR:
-    return ACTION_PREVIEW_SCROLL_UP;
+    return AppStateValidatedKeyAction(ACTION_PREVIEW_SCROLL_UP);
 #endif
 #ifdef KEY_SHOME
   case KEY_SHOME:
-    return ACTION_PREVIEW_HOME;
+    return AppStateValidatedKeyAction(ACTION_PREVIEW_HOME);
 #endif
 #ifdef KEY_SEND
   case KEY_SEND:
-    return ACTION_PREVIEW_END;
+    return AppStateValidatedKeyAction(ACTION_PREVIEW_END);
 #endif
 #ifdef KEY_SPREVIOUS
   case KEY_SPREVIOUS:
-    return ACTION_PREVIEW_PAGE_UP;
+    return AppStateValidatedKeyAction(ACTION_PREVIEW_PAGE_UP);
 #endif
 #ifdef KEY_SNEXT
   case KEY_SNEXT:
-    return ACTION_PREVIEW_PAGE_DOWN;
+    return AppStateValidatedKeyAction(ACTION_PREVIEW_PAGE_DOWN);
 #endif
 
   default:
-    return ACTION_NONE;
+    return AppStateValidatedKeyAction(ACTION_NONE);
   }
 }
 
