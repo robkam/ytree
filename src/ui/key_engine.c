@@ -231,6 +231,9 @@ int VisualPositionToBytePosition(const char *str, int visual_pos) {
 int InputChoice(ViewContext *ctx, const char *msg, const char *term) {
   int c;
 
+  if (!AppStateValidatedDispatchSurface("surface.menu-modal-completion"))
+    return ERR;
+
   ClearHelp(ctx);
 
   curs_set(1);
@@ -261,6 +264,9 @@ int InputChoice(ViewContext *ctx, const char *msg, const char *term) {
 
 int InputChoiceLiteral(ViewContext *ctx, const char *msg, const char *term) {
   int c;
+
+  if (!AppStateValidatedDispatchSurface("surface.menu-modal-completion"))
+    return ERR;
 
   ClearHelp(ctx);
 

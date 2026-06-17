@@ -4375,26 +4375,28 @@ int main(void) {
 
   if (!AppStateValidatedDispatchSurface("surface.key-decode-input-dispatch"))
     return 1;
-  if (AppStateValidatedDispatchSurface(NULL))
+  if (!AppStateValidatedDispatchSurface("surface.menu-modal-completion"))
     return 2;
-  if (AppStateValidatedDispatchSurface(""))
+  if (AppStateValidatedDispatchSurface(NULL))
     return 3;
-  if (AppStateValidatedDispatchSurface("surface.__ytnova_missing__"))
+  if (AppStateValidatedDispatchSurface(""))
     return 4;
+  if (AppStateValidatedDispatchSurface("surface.__ytnova_missing__"))
+    return 5;
 
   mismatched_surface =
       *AppStateDispatchSurfaceLookup("surface.key-decode-input-dispatch");
   mismatched_surface.surface_id = "surface.__ytnova_mismatch__";
   if (AppStateValidateDispatchSurface("surface.key-decode-input-dispatch",
                                       &mismatched_surface))
-    return 5;
+    return 6;
 
   missing_transition =
       *AppStateDispatchSurfaceLookup("surface.key-decode-input-dispatch");
   missing_transition.transition_id = "transition.__ytnova_missing__";
   if (AppStateValidateDispatchSurface("surface.key-decode-input-dispatch",
                                       &missing_transition))
-    return 6;
+    return 7;
 
   return 0;
 }
@@ -4426,6 +4428,25 @@ int main(void) {
         check=False,
     )
     assert run.returncode == 0, run.stdout + run.stderr
+
+
+def test_input_choice_modal_completion_fails_closed_on_invalid_surface() -> None:
+    source = Path("src/ui/key_engine.c").read_text(encoding="utf-8")
+
+    assert 'include "ytnova_appstate_actions.h"' in source
+    for function_name in ("InputChoice", "InputChoiceLiteral"):
+        start = source.index(f"int {function_name}(")
+        next_function = source.index("\nint ", start + 1)
+        body = source[start:next_function]
+        validation = (
+            'if (!AppStateValidatedDispatchSurface("surface.menu-modal-completion"))'
+        )
+
+        assert validation in body
+        assert "return ERR;" in body
+        assert body.index(validation) < body.index("ClearHelp(ctx);")
+        assert body.index("return ERR;") < body.index("ClearHelp(ctx);")
+        assert body.index(validation) < body.index("WGetch(")
 
 
 def test_get_key_action_routes_decoded_actions_through_appstate_boundary() -> None:
