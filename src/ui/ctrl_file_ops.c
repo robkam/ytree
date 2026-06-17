@@ -6,6 +6,7 @@
  ***************************************************************************/
 
 #define NO_YTNOVA_MACROS
+#include "ytnova_appstate_actions.h"
 #include "ytnova_cmd.h"
 #include "ytnova_fs.h"
 #include "ytnova_panel_anchor.h"
@@ -516,7 +517,7 @@ BOOL handle_file_window_command_action(ViewContext *ctx, YtreeNovaAction action,
   FileEntry *new_fe_ptr = NULL;
   DirEntry *de_ptr = NULL;
   DirEntry *dest_dir_entry = NULL;
-  DirEntry *dir_entry = *dir_entry_ptr;
+  DirEntry *dir_entry = NULL;
   BOOL path_copy = FALSE;
   int term = 0;
   int get_dir_ret = 0;
@@ -527,6 +528,11 @@ BOOL handle_file_window_command_action(ViewContext *ctx, YtreeNovaAction action,
 
 #define need_dsp_help (*need_dsp_help_ptr)
 #define maybe_change_x_step (*maybe_change_x_step_ptr)
+
+  if (!AppStateValidatedDispatchSurface("surface.command-completion-dispatch"))
+    return FALSE;
+
+  dir_entry = *dir_entry_ptr;
 
   switch (action) {
   case ACTION_CMD_Y:

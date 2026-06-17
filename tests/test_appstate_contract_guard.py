@@ -4377,6 +4377,8 @@ int main(void) {
     return 1;
   if (!AppStateValidatedDispatchSurface("surface.menu-modal-completion"))
     return 2;
+  if (!AppStateValidatedDispatchSurface("surface.command-completion-dispatch"))
+    return 8;
   if (AppStateValidatedDispatchSurface(NULL))
     return 3;
   if (AppStateValidatedDispatchSurface(""))
@@ -4464,6 +4466,39 @@ def test_get_key_action_routes_decoded_actions_through_appstate_boundary() -> No
     assert body.index("return ACTION_NONE;") < body.index("switch (ch)")
     assert "AppStateValidatedKeyAction(" in body
     assert not re.search(r"return\s+ACTION_(?!NONE;)", body)
+
+
+def test_command_completion_dispatch_fails_closed_before_command_work() -> None:
+    source = Path("src/ui/ctrl_file_ops.c").read_text(encoding="utf-8")
+    start = source.index("BOOL handle_file_window_command_action(")
+    end = source.index("\nBOOL handle_file_window_misc_dispatch_action(", start)
+    body = source[start:end]
+    validation = (
+        'if (!AppStateValidatedDispatchSurface("surface.command-completion-dispatch"))'
+    )
+    early_return = "return FALSE;"
+    boundary_calls = [
+        "switch (action)",
+        "GetActivePanelSelectedFile(",
+        "GetCopyParameter(",
+        "GetMoveParameter(",
+        "InputChoice(",
+        "CopyFile(",
+        "MoveFile(",
+        "DeleteFile(",
+        "RenameFile(",
+        "GetPipeCommand(",
+        "GetCommandLine(",
+        "*dir_entry_ptr =",
+    ]
+
+    assert 'include "ytnova_appstate_actions.h"' in source
+    assert validation in body
+    assert early_return in body
+    assert body.index(validation) < body.index(early_return)
+    assert body.index(early_return) < body.index("switch (action)")
+    for call in boundary_calls:
+        assert body.index(validation) < body.index(call)
 
 
 def test_runtime_event_boundary_validation_requires_coverage_and_transition(
