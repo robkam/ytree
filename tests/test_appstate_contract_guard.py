@@ -4379,6 +4379,8 @@ int main(void) {
     return 2;
   if (!AppStateValidatedDispatchSurface("surface.command-completion-dispatch"))
     return 8;
+  if (!AppStateValidatedDispatchSurface("surface.render-reflow-projection"))
+    return 9;
   if (AppStateValidatedDispatchSurface(NULL))
     return 3;
   if (AppStateValidatedDispatchSurface(""))
@@ -4499,6 +4501,38 @@ def test_command_completion_dispatch_fails_closed_before_command_work() -> None:
     assert body.index(early_return) < body.index("switch (action)")
     for call in boundary_calls:
         assert body.index(validation) < body.index(call)
+
+
+def test_refresh_view_render_reflow_projection_fails_closed_before_render_work() -> None:
+    source = Path("src/ui/display.c").read_text(encoding="utf-8")
+    start = source.index("void RefreshView(")
+    body = source[start:]
+    validation = (
+        'if (!AppStateValidatedDispatchSurface("surface.render-reflow-projection"))'
+    )
+    early_return = "return;"
+    boundary_calls = [
+        "Layout_Recalculate(",
+        "ReCreateWindows(",
+        "DisplayMenu(",
+        "DisplayDiskStatistic(",
+        "UpdateStatsPanel(",
+        "DisplayHeaderPath(",
+        "DisplayTree(",
+        "DisplayFileWindow(",
+        "RenderInactivePanel(",
+        "UI_Dialog_RefreshAll(",
+        "ClockHandler(",
+        "doupdate(",
+    ]
+
+    assert 'include "ytnova_appstate_actions.h"' in source
+    assert validation in body
+    assert body.index(validation) < body.index(early_return)
+    assert body.index(early_return) < body.index("&ctx->active->vol->vol_stats")
+    for call in boundary_calls:
+        assert body.index(validation) < body.index(call)
+        assert body.index(early_return) < body.index(call)
 
 
 def test_runtime_event_boundary_validation_requires_coverage_and_transition(
