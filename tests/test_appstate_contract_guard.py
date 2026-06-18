@@ -4381,6 +4381,10 @@ int main(void) {
     return 8;
   if (!AppStateValidatedDispatchSurface("surface.render-reflow-projection"))
     return 9;
+  if (!AppStateValidatedDispatchSurface("surface.volume-menu-selection"))
+    return 10;
+  if (!AppStateValidatedDispatchSurface("surface.volume-operation"))
+    return 11;
   if (AppStateValidatedDispatchSurface(NULL))
     return 3;
   if (AppStateValidatedDispatchSurface(""))
@@ -4533,6 +4537,36 @@ def test_refresh_view_render_reflow_projection_fails_closed_before_render_work()
     for call in boundary_calls:
         assert body.index(validation) < body.index(call)
         assert body.index(early_return) < body.index(call)
+
+
+def test_select_loaded_volume_validates_volume_surfaces_before_menu_work() -> None:
+    source = Path("src/ui/volume_menu.c").read_text(encoding="utf-8")
+    start = source.index("int SelectLoadedVolume(")
+    body = source[start:]
+    validations = [
+        'if (!AppStateValidatedDispatchSurface("surface.volume-menu-selection"))',
+        'if (!AppStateValidatedDispatchSurface("surface.volume-operation"))',
+    ]
+    boundary_calls = [
+        "ClearHelp(ctx);",
+        "xmalloc(",
+        "newwin(",
+        "LogDisk(",
+        "Volume_Delete(",
+        "BuildDirEntryList(",
+        "EnsurePanelsReferenceActiveVolume(",
+        "*return_key =",
+    ]
+
+    assert 'include "ytnova_appstate_actions.h"' in source
+    for validation in validations:
+        validation_idx = body.index(validation)
+        early_return_idx = body.index("return -1;", validation_idx)
+
+        assert validation_idx < early_return_idx
+        for call in boundary_calls:
+            assert validation_idx < body.index(call)
+            assert early_return_idx < body.index(call)
 
 
 def test_runtime_event_boundary_validation_requires_coverage_and_transition(
