@@ -7,6 +7,7 @@
 
 #define NO_YTNOVA_MACROS
 #include "watcher.h"
+#include "ytnova_appstate_actions.h"
 #include "ytnova_cmd.h"
 #include "ytnova_fs.h"
 #include "ytnova_panel_anchor.h"
@@ -441,6 +442,9 @@ static void HandleDirectoryCompare(ViewContext *ctx, DirEntry *source_dir) {
 }
 
 extern int HandleDirWindow(ViewContext *ctx, const DirEntry *start_dir_entry) {
+  if (!AppStateValidatedDispatchSurface("surface.directory-window-action-dispatch"))
+    return ESC;
+
   DirEntry *dir_entry, *de_ptr;
   int ch, unput_char;
   BOOL need_dsp_help;
