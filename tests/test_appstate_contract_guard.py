@@ -4381,6 +4381,8 @@ int main(void) {
     return 6;
   if (!AppStateValidatedDispatchSurface("surface.command-completion-dispatch"))
     return 8;
+  if (!AppStateValidatedDispatchSurface("surface.watcher-live-refresh"))
+    return 15;
   if (!AppStateValidatedDispatchSurface("surface.render-reflow-projection"))
     return 9;
   if (!AppStateValidatedDispatchSurface("surface.volume-menu-selection"))
@@ -4798,6 +4800,8 @@ def test_get_event_or_key_event_boundary_routes_synthetic_events() -> None:
 
     assert re.search(
         r'if \(Watcher_ProcessEvents\(ctx\)\) \{\s+'
+        r'if \(!AppStateValidatedDispatchSurface\(\s*"surface\.watcher-live-refresh"\s*\)\)\s+'
+        r'return ERR;\s+'
         r'if \(!AppStateValidatedEvent\("event\.watcher-live-refresh"\)\)\s+'
         r"return ERR;\s+return KEY_F\(5\);",
         body,
