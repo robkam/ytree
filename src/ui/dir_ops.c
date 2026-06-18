@@ -7,6 +7,7 @@
  ***************************************************************************/
 
 #include "watcher.h"
+#include "ytnova_appstate_actions.h"
 #include "ytnova_cmd.h"
 #include "ytnova_fs.h"
 #include "ytnova_panel_anchor.h"
@@ -1968,6 +1969,8 @@ DirEntry *RefreshTreeSafe(ViewContext *ctx, YtreeNovaPanel *p, DirEntry *entry) 
   PanelViewportSnapshot viewport;
 
   if (!p || !p->vol)
+    return entry;
+  if (!AppStateValidatedDispatchSurface("surface.refresh-rebuild-rebind"))
     return entry;
 
   s = &p->vol->vol_stats;
