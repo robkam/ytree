@@ -4395,6 +4395,8 @@ int main(void) {
     return 13;
   if (!AppStateValidatedDispatchSurface("surface.panel-anchor-rebind"))
     return 14;
+  if (!AppStateValidatedDispatchSurface("surface.filesystem-mutation-result"))
+    return 16;
   if (AppStateValidatedDispatchSurface(NULL))
     return 3;
   if (AppStateValidatedDispatchSurface(""))
@@ -4697,6 +4699,82 @@ def test_refresh_tree_safe_fails_closed_before_tree_refresh_work() -> None:
     for call in boundary_calls:
         assert validation_idx < body.index(call)
         assert early_return_idx < body.index(call)
+
+
+def test_directory_mutation_result_handlers_fail_closed_before_commit_work() -> None:
+    source = Path("src/ui/dir_ops.c").read_text(encoding="utf-8")
+    validation = (
+        'if (!AppStateValidatedDispatchSurface("surface.filesystem-mutation-result"))'
+    )
+
+    assert 'include "ytnova_appstate_actions.h"' in source
+
+    make_file_start = source.index("BOOL HandleDirMakeFile(")
+    make_dir_start = source.index("void HandleDirMakeDirectory(", make_file_start)
+    make_file_body = source[make_file_start:make_dir_start]
+    assert validation in make_file_body
+    validation_idx = make_file_body.index(validation)
+    early_return_idx = make_file_body.index("return FALSE;", validation_idx)
+    assert validation_idx < early_return_idx
+    for call in ["ClearHelp(ctx);", "MakeFile(ctx,", "DisplayFileWindow(", "RefreshView(", "MESSAGE("]:
+        assert validation_idx < make_file_body.index(call)
+        assert early_return_idx < make_file_body.index(call)
+
+    delete_dir_start = source.index("DirEntry *HandleDirDeleteDirectory(", make_dir_start)
+    make_dir_body = source[make_dir_start:delete_dir_start]
+    assert validation in make_dir_body
+    validation_idx = make_dir_body.index(validation)
+    early_return_idx = make_dir_body.index("return;", validation_idx)
+    assert validation_idx < early_return_idx
+    for call in [
+        'DebugLogSplitState("HandleDirMakeDirectory:entry", ctx);',
+        "GetPath(",
+        "ClearHelp(ctx);",
+        "CaptureInactiveFallback(",
+        "MakeDirectory(ctx,",
+        "volume_generation++",
+        "BuildDirEntryList(",
+        "ReanchorPanelToDir(",
+        "RefreshView(",
+        "wmove(ctx->ctx_border_window",
+    ]:
+        assert validation_idx < make_dir_body.index(call)
+        assert early_return_idx < make_dir_body.index(call)
+
+    rename_dir_start = source.index("DirEntry *HandleDirRenameDirectory(", delete_dir_start)
+    delete_dir_body = source[delete_dir_start:rename_dir_start]
+    assert validation in delete_dir_body
+    validation_idx = delete_dir_body.index(validation)
+    early_return_idx = delete_dir_body.index("return dir_entry;", validation_idx)
+    assert validation_idx < early_return_idx
+    for call in [
+        "CaptureInactiveFallbackSnapshot(",
+        "CapturePanelViewportSnapshot(",
+        "DeleteDirectory(ctx,",
+        "volume_generation++",
+        "BuildDirEntryList(",
+        "RestorePanelViewportSnapshot(",
+        "ReanchorPanelToDir(",
+        "RefreshView(",
+    ]:
+        assert validation_idx < delete_dir_body.index(call)
+        assert early_return_idx < delete_dir_body.index(call)
+
+    show_all_start = source.index("void HandleShowAll(", rename_dir_start)
+    rename_dir_body = source[rename_dir_start:show_all_start]
+    assert validation in rename_dir_body
+    validation_idx = rename_dir_body.index(validation)
+    early_return_idx = rename_dir_body.index("return dir_entry;", validation_idx)
+    assert validation_idx < early_return_idx
+    for call in [
+        "GetRenameParameter(",
+        "RenameDirectory(ctx,",
+        "volume_generation++",
+        "BuildDirEntryList(",
+        "RefreshView(",
+    ]:
+        assert validation_idx < rename_dir_body.index(call)
+        assert early_return_idx < rename_dir_body.index(call)
 
 
 def test_select_loaded_volume_validates_volume_surfaces_before_menu_work() -> None:
