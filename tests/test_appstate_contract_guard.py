@@ -4669,6 +4669,36 @@ def test_panel_anchor_rebind_fails_closed_before_anchor_state_work() -> None:
         assert early_return_idx < ensure_body.index(call)
 
 
+def test_refresh_tree_safe_fails_closed_before_tree_refresh_work() -> None:
+    source = Path("src/ui/dir_ops.c").read_text(encoding="utf-8")
+    validation = (
+        'if (!AppStateValidatedDispatchSurface("surface.refresh-rebuild-rebind"))'
+    )
+
+    assert 'include "ytnova_appstate_actions.h"' in source
+
+    start = source.index("DirEntry *RefreshTreeSafe(")
+    end = source.index("\nint RefreshDirWindow(", start)
+    body = source[start:end]
+    boundary_calls = [
+        "CapturePanelViewportSnapshot(",
+        "InvalidateVolumePanels(",
+        "RescanDir(",
+        "BuildDirEntryList(",
+        "RestorePanelViewportSnapshot(",
+        "DisplayTree(",
+        "DisplayFileWindow(",
+    ]
+
+    assert validation in body
+    validation_idx = body.index(validation)
+    early_return_idx = body.index("return entry;", validation_idx)
+    assert validation_idx < early_return_idx
+    for call in boundary_calls:
+        assert validation_idx < body.index(call)
+        assert early_return_idx < body.index(call)
+
+
 def test_select_loaded_volume_validates_volume_surfaces_before_menu_work() -> None:
     source = Path("src/ui/volume_menu.c").read_text(encoding="utf-8")
     start = source.index("int SelectLoadedVolume(")
