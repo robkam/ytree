@@ -873,6 +873,9 @@ int GetEventOrKey(ViewContext *ctx) {
     if (ctx && (ctx->refresh_mode & REFRESH_WATCHER) && w_fd >= 0 &&
         FD_ISSET(w_fd, &fds)) {
       if (Watcher_ProcessEvents(ctx)) {
+        if (!AppStateValidatedDispatchSurface(
+                "surface.watcher-live-refresh"))
+          return ERR;
         if (!AppStateValidatedEvent("event.watcher-live-refresh"))
           return ERR;
         return KEY_F(5);
