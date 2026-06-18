@@ -6,6 +6,7 @@
  ***************************************************************************/
 
 #include "ytnova_cmd.h"
+#include "ytnova_appstate_actions.h"
 #include "ytnova_fs.h"
 #include "ytnova_ui.h"
 
@@ -92,6 +93,11 @@ int SelectLoadedVolume(ViewContext *ctx, int *return_key) {
 
   /* Scrolling variables */
   int visible_lines;
+
+  if (!AppStateValidatedDispatchSurface("surface.volume-menu-selection"))
+    return -1;
+  if (!AppStateValidatedDispatchSurface("surface.volume-operation"))
+    return -1;
 
   ClearHelp(ctx);
 
