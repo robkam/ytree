@@ -5,6 +5,7 @@
  *
  ***************************************************************************/
 
+#include "ytnova_appstate_actions.h"
 #include "ytnova_fs.h"
 #include "ytnova_panel_anchor.h"
 #include "ytnova_ui.h"
@@ -414,6 +415,8 @@ void RestorePanelAnchorPath(const struct Volume *vol, YtreeNovaPanel *panel,
   char target_path[PATH_LENGTH + 1];
   int idx;
 
+  if (!AppStateValidatedDispatchSurface("surface.panel-anchor-rebind"))
+    return;
   if (!vol || !panel || !anchor_path || !*anchor_path)
     return;
   assert(!panel->vol || panel->vol == vol);
@@ -624,6 +627,8 @@ void EnsurePanelAnchorVisible(ViewContext *ctx, const struct Volume *vol,
   DirEntry *ancestor;
   BOOL changed = FALSE;
 
+  if (!AppStateValidatedDispatchSurface("surface.panel-anchor-rebind"))
+    return;
   if (!ctx || !vol || !panel)
     return;
   assert(!panel->vol || panel->vol == vol);

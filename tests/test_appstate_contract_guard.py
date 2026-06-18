@@ -4389,6 +4389,8 @@ int main(void) {
     return 12;
   if (!AppStateValidatedDispatchSurface("surface.directory-window-action-dispatch"))
     return 13;
+  if (!AppStateValidatedDispatchSurface("surface.panel-anchor-rebind"))
+    return 14;
   if (AppStateValidatedDispatchSurface(NULL))
     return 3;
   if (AppStateValidatedDispatchSurface(""))
@@ -4597,6 +4599,55 @@ def test_handle_dir_window_dispatch_fails_closed_before_directory_work() -> None
     for call in boundary_calls:
         assert body.index(validation) < body.index(call)
         assert body.index(early_return) < body.index(call)
+
+
+def test_panel_anchor_rebind_fails_closed_before_anchor_state_work() -> None:
+    source = Path("src/ui/panel_anchor.c").read_text(encoding="utf-8")
+    validation = (
+        'if (!AppStateValidatedDispatchSurface("surface.panel-anchor-rebind"))'
+    )
+    early_return = "return;"
+
+    assert 'include "ytnova_appstate_actions.h"' in source
+
+    restore_start = source.index("void RestorePanelAnchorPath(")
+    restore_end = source.index("\nstatic void FreePanelVolumeFileState(", restore_start)
+    restore_body = source[restore_start:restore_end]
+    restore_boundary_calls = [
+        "CapturePanelViewportSnapshot(",
+        "ResolvePanelAnchorTarget(",
+        "RestorePanelViewportSnapshot(",
+        "PositionPanelAtIndex(",
+        "panel->file_dir_entry =",
+    ]
+
+    assert validation in restore_body
+    validation_idx = restore_body.index(validation)
+    early_return_idx = restore_body.index(early_return, validation_idx)
+    assert validation_idx < early_return_idx
+    for call in restore_boundary_calls:
+        assert validation_idx < restore_body.index(call)
+        assert early_return_idx < restore_body.index(call)
+
+    ensure_start = source.index("void EnsurePanelAnchorVisible(")
+    ensure_end = source.index("\nvoid DebugLogDirLoopState(", ensure_start)
+    ensure_body = source[ensure_start:ensure_end]
+    ensure_boundary_calls = [
+        "FindDirByPathInTree(",
+        "FindDirByPathOrAncestor(",
+        "BuildDirEntryList(",
+        "ResolvePanelAnchorTarget(",
+        "PositionPanelAtIndex(",
+        "panel->file_dir_entry =",
+    ]
+
+    assert validation in ensure_body
+    validation_idx = ensure_body.index(validation)
+    early_return_idx = ensure_body.index(early_return, validation_idx)
+    assert validation_idx < early_return_idx
+    for call in ensure_boundary_calls:
+        assert validation_idx < ensure_body.index(call)
+        assert early_return_idx < ensure_body.index(call)
 
 
 def test_select_loaded_volume_validates_volume_surfaces_before_menu_work() -> None:
