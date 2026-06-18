@@ -10,6 +10,7 @@
 #include "../../include/ytnova_fs.h"
 #include "../../include/ytnova_panel_anchor.h"
 #include "../../include/ytnova_ui.h"
+#include "ytnova_appstate_actions.h"
 #include <assert.h>
 
 /* PrintMenuLine is removed as its functionality for drawing the static stats
@@ -682,6 +683,9 @@ static void DrawSplitSeparatorRow(ViewContext *ctx, BOOL left_big,
  * Use this to ensure all borders, stats, and content are consistent.
  */
 void RefreshView(ViewContext *ctx, DirEntry *dir_entry) {
+  if (!AppStateValidatedDispatchSurface("surface.render-reflow-projection"))
+    return;
+
   const Statistic *s = &ctx->active->vol->vol_stats;
   BOOL needs_window_recreate = FALSE;
   BOOL active_big_mode;
