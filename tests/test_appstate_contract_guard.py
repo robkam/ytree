@@ -4377,6 +4377,8 @@ int main(void) {
     return 1;
   if (!AppStateValidatedDispatchSurface("surface.menu-modal-completion"))
     return 2;
+  if (!AppStateValidatedDispatchSurface("surface.resize-signal-handling"))
+    return 6;
   if (!AppStateValidatedDispatchSurface("surface.command-completion-dispatch"))
     return 8;
   if (!AppStateValidatedDispatchSurface("surface.render-reflow-projection"))
@@ -4461,6 +4463,21 @@ def test_input_choice_modal_completion_fails_closed_on_invalid_surface() -> None
         assert body.index(validation) < body.index("ClearHelp(ctx);")
         assert body.index("return ERR;") < body.index("ClearHelp(ctx);")
         assert body.index(validation) < body.index("WGetch(")
+
+
+def test_wgetch_resize_signal_handling_fails_closed_before_mutation() -> None:
+    source = Path("src/ui/key_engine.c").read_text(encoding="utf-8")
+    start = source.index("int WGetch(")
+    end = source.index("\nint Getch(", start)
+    body = source[start:end]
+    validation = (
+        'if (!AppStateValidatedDispatchSurface("surface.resize-signal-handling"))'
+    )
+
+    assert validation in body
+    assert "return ERR;" in body
+    assert body.index(validation) < body.index("ctx->resize_request = TRUE;")
+    assert body.index("return ERR;") < body.index("ctx->resize_request = TRUE;")
 
 
 def test_get_key_action_routes_decoded_actions_through_appstate_boundary() -> None:
@@ -4764,8 +4781,20 @@ def test_get_event_or_key_event_boundary_routes_synthetic_events() -> None:
     )
     assert len(resize_blocks) == 3
     for block in resize_blocks:
-        assert 'AppStateValidatedEvent("event.terminal-resize-signal")' in block
-        assert block.index("return ERR;") < block.index("return KEY_RESIZE;")
+        compact = re.sub(r"\s+", "", block)
+        assert re.search(
+            r'AppStateValidatedDispatchSurface\(\s*"surface\.resize-signal-handling"\s*\)',
+            block,
+        )
+        assert re.search(
+            r'AppStateValidatedEvent\(\s*"event\.terminal-resize-signal"\s*\)',
+            block,
+        )
+        assert (
+            compact.index('AppStateValidatedDispatchSurface("surface.resize-signal-handling")')
+            < compact.index('AppStateValidatedEvent("event.terminal-resize-signal")')
+            < compact.index("returnKEY_RESIZE;")
+        )
 
     assert re.search(
         r'if \(Watcher_ProcessEvents\(ctx\)\) \{\s+'

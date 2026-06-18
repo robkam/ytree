@@ -698,6 +698,8 @@ int WGetch(ViewContext *ctx, WINDOW *win) {
 
 #ifdef KEY_RESIZE
   if (c == KEY_RESIZE) {
+    if (!AppStateValidatedDispatchSurface("surface.resize-signal-handling"))
+      return ERR;
     if (ctx)
       ctx->resize_request = TRUE;
     c = -1;
@@ -789,6 +791,8 @@ int GetEventOrKey(ViewContext *ctx) {
   struct timeval tv;
 
   if (ctx && ctx->resize_request) {
+    if (!AppStateValidatedDispatchSurface("surface.resize-signal-handling"))
+      return ERR;
     if (!AppStateValidatedEvent("event.terminal-resize-signal"))
       return ERR;
     return KEY_RESIZE;
@@ -808,6 +812,8 @@ int GetEventOrKey(ViewContext *ctx) {
   }
 
   if (ctx && ctx->resize_request) {
+    if (!AppStateValidatedDispatchSurface("surface.resize-signal-handling"))
+      return ERR;
     if (!AppStateValidatedEvent("event.terminal-resize-signal"))
       return ERR;
     return KEY_RESIZE;
@@ -851,6 +857,9 @@ int GetEventOrKey(ViewContext *ctx) {
         if (ch != ERR)
           return NormalizeEscSequence(ch);
         if (ctx && ctx->resize_request) {
+          if (!AppStateValidatedDispatchSurface(
+                  "surface.resize-signal-handling"))
+            return ERR;
           if (!AppStateValidatedEvent("event.terminal-resize-signal"))
             return ERR;
           return KEY_RESIZE;
