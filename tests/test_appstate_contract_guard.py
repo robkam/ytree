@@ -4385,6 +4385,8 @@ int main(void) {
     return 10;
   if (!AppStateValidatedDispatchSurface("surface.volume-operation"))
     return 11;
+  if (!AppStateValidatedDispatchSurface("surface.file-window-action-dispatch"))
+    return 12;
   if (AppStateValidatedDispatchSurface(NULL))
     return 3;
   if (AppStateValidatedDispatchSurface(""))
@@ -4534,6 +4536,33 @@ def test_refresh_view_render_reflow_projection_fails_closed_before_render_work()
     assert validation in body
     assert body.index(validation) < body.index(early_return)
     assert body.index(early_return) < body.index("&ctx->active->vol->vol_stats")
+    for call in boundary_calls:
+        assert body.index(validation) < body.index(call)
+        assert body.index(early_return) < body.index(call)
+
+
+def test_handle_file_window_dispatch_fails_closed_before_file_work() -> None:
+    source = Path("src/ui/ctrl_file.c").read_text(encoding="utf-8")
+    start = source.index("int HandleFileWindow(")
+    body = source[start:]
+    validation = (
+        'if (!AppStateValidatedDispatchSurface("surface.file-window-action-dispatch"))'
+    )
+    early_return = "return ESC;"
+    boundary_calls = [
+        'DEBUG_LOG("HandleFileWindow ENTERED',
+        "ctx->focused_window = FOCUS_FILE;",
+        "ctx->active->saved_focus = FOCUS_FILE;",
+        "ctx->active->saved_big_file_view =",
+        "BuildFileEntryList(",
+        "RefreshView(",
+        "GetEventOrKey(",
+        "GetKeyAction(",
+    ]
+
+    assert 'include "ytnova_appstate_actions.h"' in source
+    assert validation in body
+    assert body.index(validation) < body.index(early_return)
     for call in boundary_calls:
         assert body.index(validation) < body.index(call)
         assert body.index(early_return) < body.index(call)

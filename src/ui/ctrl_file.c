@@ -13,6 +13,7 @@
 
 #include "../../include/sort.h"
 #include "../../include/watcher.h"
+#include "ytnova_appstate_actions.h"
 #include "../../include/ytnova_cmd.h"
 #include "../../include/ytnova_fs.h"
 #include "../../include/ytnova_split_transition.h"
@@ -234,6 +235,9 @@ DirEntry *RefreshFileView(ViewContext *ctx, DirEntry *dir_entry) {
 /* External declarations */
 
 int HandleFileWindow(ViewContext *ctx, DirEntry *dir_entry) {
+  if (!AppStateValidatedDispatchSurface("surface.file-window-action-dispatch"))
+    return ESC;
+
   DEBUG_LOG("HandleFileWindow ENTERED for %s", dir_entry->name);
   FileEntry *fe_ptr;
   int ch;
