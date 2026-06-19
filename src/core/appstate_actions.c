@@ -6347,6 +6347,28 @@ int AppStateValidatedDispatchSurface(const char *surface_id) {
       surface_id, AppStateDispatchSurfaceLookup(surface_id));
 }
 
+static int AppStateValidateCompatibilityShim(
+    const char *shim_id, const AppStateCompatibilityShimMetadata *metadata) {
+  if (shim_id == NULL || shim_id[0] == '\0')
+    return 0;
+  if (metadata == NULL || metadata->id == NULL || strcmp(metadata->id, shim_id))
+    return 0;
+  if (AppStateTransitionLookup(metadata->target_transition) == NULL)
+    return 0;
+  if (metadata->write_capability == NULL ||
+      (strcmp(metadata->write_capability, "write_capable") &&
+       strcmp(metadata->write_capability, "read_only_projection") &&
+       strcmp(metadata->write_capability, "no_write")))
+    return 0;
+
+  return 1;
+}
+
+int AppStateValidatedCompatibilityShim(const char *shim_id) {
+  return AppStateValidateCompatibilityShim(
+      shim_id, AppStateCompatibilityShimLookup(shim_id));
+}
+
 const AppStateEventCoverageMetadata *
 AppStateEventCoverageLookup(const char *event_id) {
   size_t index;
