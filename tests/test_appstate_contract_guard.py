@@ -4724,6 +4724,9 @@ def test_directory_mutation_result_handlers_fail_closed_before_commit_work() -> 
     validation = (
         'if (!AppStateValidatedDispatchSurface("surface.filesystem-mutation-result"))'
     )
+    event_validation = (
+        'if (!AppStateValidatedEvent("event.filesystem-mutation-result"))'
+    )
 
     assert 'include "ytnova_appstate_actions.h"' in source
 
@@ -4732,18 +4735,23 @@ def test_directory_mutation_result_handlers_fail_closed_before_commit_work() -> 
     make_file_body = source[make_file_start:make_dir_start]
     assert validation in make_file_body
     validation_idx = make_file_body.index(validation)
-    early_return_idx = make_file_body.index("return FALSE;", validation_idx)
-    assert validation_idx < early_return_idx
+    assert event_validation in make_file_body
+    event_validation_idx = make_file_body.index(event_validation, validation_idx)
+    surface_return_idx = make_file_body.index("return FALSE;", validation_idx)
+    event_return_idx = make_file_body.index("return FALSE;", event_validation_idx)
+    assert validation_idx < surface_return_idx < event_validation_idx < event_return_idx
     for call in ["ClearHelp(ctx);", "MakeFile(ctx,", "DisplayFileWindow(", "RefreshView(", "MESSAGE("]:
-        assert validation_idx < make_file_body.index(call)
-        assert early_return_idx < make_file_body.index(call)
+        assert event_return_idx < make_file_body.index(call)
 
     delete_dir_start = source.index("DirEntry *HandleDirDeleteDirectory(", make_dir_start)
     make_dir_body = source[make_dir_start:delete_dir_start]
     assert validation in make_dir_body
     validation_idx = make_dir_body.index(validation)
-    early_return_idx = make_dir_body.index("return;", validation_idx)
-    assert validation_idx < early_return_idx
+    assert event_validation in make_dir_body
+    event_validation_idx = make_dir_body.index(event_validation, validation_idx)
+    surface_return_idx = make_dir_body.index("return;", validation_idx)
+    event_return_idx = make_dir_body.index("return;", event_validation_idx)
+    assert validation_idx < surface_return_idx < event_validation_idx < event_return_idx
     for call in [
         'DebugLogSplitState("HandleDirMakeDirectory:entry", ctx);',
         "GetPath(",
@@ -4756,15 +4764,17 @@ def test_directory_mutation_result_handlers_fail_closed_before_commit_work() -> 
         "RefreshView(",
         "wmove(ctx->ctx_border_window",
     ]:
-        assert validation_idx < make_dir_body.index(call)
-        assert early_return_idx < make_dir_body.index(call)
+        assert event_return_idx < make_dir_body.index(call)
 
     rename_dir_start = source.index("DirEntry *HandleDirRenameDirectory(", delete_dir_start)
     delete_dir_body = source[delete_dir_start:rename_dir_start]
     assert validation in delete_dir_body
     validation_idx = delete_dir_body.index(validation)
-    early_return_idx = delete_dir_body.index("return dir_entry;", validation_idx)
-    assert validation_idx < early_return_idx
+    assert event_validation in delete_dir_body
+    event_validation_idx = delete_dir_body.index(event_validation, validation_idx)
+    surface_return_idx = delete_dir_body.index("return dir_entry;", validation_idx)
+    event_return_idx = delete_dir_body.index("return dir_entry;", event_validation_idx)
+    assert validation_idx < surface_return_idx < event_validation_idx < event_return_idx
     for call in [
         "CaptureInactiveFallbackSnapshot(",
         "CapturePanelViewportSnapshot(",
@@ -4775,15 +4785,17 @@ def test_directory_mutation_result_handlers_fail_closed_before_commit_work() -> 
         "ReanchorPanelToDir(",
         "RefreshView(",
     ]:
-        assert validation_idx < delete_dir_body.index(call)
-        assert early_return_idx < delete_dir_body.index(call)
+        assert event_return_idx < delete_dir_body.index(call)
 
     show_all_start = source.index("void HandleShowAll(", rename_dir_start)
     rename_dir_body = source[rename_dir_start:show_all_start]
     assert validation in rename_dir_body
     validation_idx = rename_dir_body.index(validation)
-    early_return_idx = rename_dir_body.index("return dir_entry;", validation_idx)
-    assert validation_idx < early_return_idx
+    assert event_validation in rename_dir_body
+    event_validation_idx = rename_dir_body.index(event_validation, validation_idx)
+    surface_return_idx = rename_dir_body.index("return dir_entry;", validation_idx)
+    event_return_idx = rename_dir_body.index("return dir_entry;", event_validation_idx)
+    assert validation_idx < surface_return_idx < event_validation_idx < event_return_idx
     for call in [
         "GetRenameParameter(",
         "RenameDirectory(ctx,",
@@ -4791,8 +4803,7 @@ def test_directory_mutation_result_handlers_fail_closed_before_commit_work() -> 
         "BuildDirEntryList(",
         "RefreshView(",
     ]:
-        assert validation_idx < rename_dir_body.index(call)
-        assert early_return_idx < rename_dir_body.index(call)
+        assert event_return_idx < rename_dir_body.index(call)
 
 
 def test_select_loaded_volume_validates_volume_surfaces_before_menu_work() -> None:
@@ -4853,20 +4864,22 @@ int main(void) {
     return 6;
   if (!AppStateValidatedEvent("event.refresh-rebuild"))
     return 7;
+  if (!AppStateValidatedEvent("event.filesystem-mutation-result"))
+    return 8;
 
   mismatched_event =
       *AppStateEventCoverageLookup("event.terminal-resize-signal");
   mismatched_event.event_id = "event.__ytnova_mismatch__";
   if (AppStateValidateEventCoverage("event.terminal-resize-signal",
                                     &mismatched_event))
-    return 8;
+    return 9;
 
   missing_transition =
       *AppStateEventCoverageLookup("event.terminal-resize-signal");
   missing_transition.transition_id = "transition.__ytnova_missing__";
   if (AppStateValidateEventCoverage("event.terminal-resize-signal",
                                     &missing_transition))
-    return 9;
+    return 10;
 
   return 0;
 }
