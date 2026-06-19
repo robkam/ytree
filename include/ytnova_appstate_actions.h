@@ -247,6 +247,7 @@ const AppStateEventCoverageMetadata *AppStateEventCoverageAt(size_t index);
 size_t AppStateEventCoverageCount(void);
 const AppStateTransitionMetadata *
 AppStateTransitionLookup(const char *transition_id);
+int AppStateValidatedTransition(const char *transition_id);
 const AppStateTransitionMetadata *AppStateTransitionAt(size_t index);
 size_t AppStateTransitionCount(void);
 const AppStateDispatchSurfaceMetadata *
@@ -262,21 +263,26 @@ AppStateCompatibilityShimAt(size_t index);
 size_t AppStateCompatibilityShimCount(void);
 const AppStateInvariantMetadata *
 AppStateInvariantLookup(const char *invariant_id);
+int AppStateValidatedInvariant(const char *invariant_id);
 const AppStateInvariantMetadata *AppStateInvariantAt(size_t index);
 size_t AppStateInvariantCount(void);
 const AppStateOwnerFieldMetadata *AppStateOwnerFieldLookup(const char *field);
+int AppStateValidatedOwnerField(const char *field);
 const AppStateOwnerFieldMetadata *AppStateOwnerFieldAt(size_t index);
 size_t AppStateOwnerFieldCount(void);
 const AppStateGenerationDomainMetadata *
 AppStateGenerationDomainLookup(const char *domain_id);
+int AppStateValidatedGenerationDomain(const char *domain_id);
 const AppStateGenerationDomainMetadata *AppStateGenerationDomainAt(size_t index);
 size_t AppStateGenerationDomainCount(void);
 const AppStateDiffHarnessMetadata *
 AppStateDiffHarnessLookup(const char *harness_id);
+int AppStateValidatedDiffHarness(const char *harness_id);
 const AppStateDiffHarnessMetadata *AppStateDiffHarnessAt(size_t index);
 size_t AppStateDiffHarnessCount(void);
 const AppStateTransitionSequenceMetadata *
 AppStateTransitionSequenceLookup(const char *scenario_id);
+int AppStateValidatedTransitionSequence(const char *scenario_id);
 const AppStateTransitionSequenceMetadata *
 AppStateTransitionSequenceAt(size_t index);
 size_t AppStateTransitionSequenceCount(void);
