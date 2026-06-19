@@ -4,6 +4,39 @@
 TITLE="${1:-ytnova}"
 MESSAGE="${2:-Task completed}"
 
+is_placeholder_message() {
+    case "$1" in
+        ""|"Task completed"|"This is a notification."|"Notification"|"Task complete")
+            return 0
+            ;;
+        *)
+            return 1
+            ;;
+    esac
+}
+
+infer_context_message() {
+    local inferred_message=""
+
+    inferred_message=$(git log -1 --pretty=%s 2>/dev/null || true)
+    if [ -n "$inferred_message" ]; then
+        printf '%s\n' "$inferred_message"
+        return 0
+    fi
+
+    inferred_message=$(git branch --show-current 2>/dev/null || true)
+    if [ -n "$inferred_message" ]; then
+        printf 'Milestone reached on %s\n' "$inferred_message"
+        return 0
+    fi
+
+    printf '%s\n' "Task completed"
+}
+
+if is_placeholder_message "$MESSAGE"; then
+    MESSAGE="$(infer_context_message)"
+fi
+
 powershell_script=$(cat <<'POWERSHELL'
 $ErrorActionPreference = 'Stop'
 

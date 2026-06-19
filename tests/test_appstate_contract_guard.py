@@ -4529,6 +4529,7 @@ def test_command_completion_dispatch_fails_closed_before_command_work() -> None:
     validation = (
         'if (!AppStateValidatedDispatchSurface("surface.command-completion-dispatch"))'
     )
+    event_validation = 'if (!AppStateValidatedEvent("event.command-completion"))'
     early_return = "return FALSE;"
     boundary_calls = [
         "switch (action)",
@@ -4547,11 +4548,17 @@ def test_command_completion_dispatch_fails_closed_before_command_work() -> None:
 
     assert 'include "ytnova_appstate_actions.h"' in source
     assert validation in body
+    assert event_validation in body
     assert early_return in body
-    assert body.index(validation) < body.index(early_return)
-    assert body.index(early_return) < body.index("switch (action)")
+    validation_index = body.index(validation)
+    event_validation_index = body.index(event_validation)
+    switch_index = body.index("switch (action)")
+    assert validation_index < event_validation_index
+    assert body.index(early_return, validation_index) < event_validation_index
+    assert body.index(early_return, event_validation_index) < switch_index
     for call in boundary_calls:
-        assert body.index(validation) < body.index(call)
+        assert validation_index < body.index(call)
+        assert event_validation_index < body.index(call)
 
 
 def test_refresh_view_render_reflow_projection_fails_closed_before_render_work() -> None:
@@ -4886,6 +4893,8 @@ int main(void) {
     return 8;
   if (!AppStateValidatedEvent("event.modal-completion"))
     return 9;
+  if (!AppStateValidatedEvent("event.command-completion"))
+    return 12;
 
   mismatched_event =
       *AppStateEventCoverageLookup("event.terminal-resize-signal");

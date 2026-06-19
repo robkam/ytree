@@ -38,8 +38,8 @@ These instructions apply to all AI agents used in this repository.
 ## User Notification
 
 - When finishing a long-running mission or when explicitly requesting user review via `notify_user`, you SHOULD trigger a desktop notification on the Windows host.
-- Execute: `/home/rob/ytreenova/scripts/wsl-notify.sh "ytnova" "<Context-specific message>"`
-- Example: `/home/rob/ytreenova/scripts/wsl-notify.sh "ytnova" "Implementation complete, ready for review."`
+- Execute: `/home/rob/ytreenova/scripts/wsl-notify.sh "ytnova" "<Context-specific milestone>"`
+- Use a concrete milestone string, not a placeholder. Examples: `Draft PR created.` or `Implementation complete, ready for review.`
 
 ## Persona Skill Auto-Load
 
