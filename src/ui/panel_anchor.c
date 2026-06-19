@@ -417,6 +417,8 @@ void RestorePanelAnchorPath(const struct Volume *vol, YtreeNovaPanel *panel,
 
   if (!AppStateValidatedDispatchSurface("surface.panel-anchor-rebind"))
     return;
+  if (!AppStateValidatedEvent("event.rebuild-rebind-callback"))
+    return;
   if (!vol || !panel || !anchor_path || !*anchor_path)
     return;
   assert(!panel->vol || panel->vol == vol);
@@ -628,6 +630,8 @@ void EnsurePanelAnchorVisible(ViewContext *ctx, const struct Volume *vol,
   BOOL changed = FALSE;
 
   if (!AppStateValidatedDispatchSurface("surface.panel-anchor-rebind"))
+    return;
+  if (!AppStateValidatedEvent("event.rebuild-rebind-callback"))
     return;
   if (!ctx || !vol || !panel)
     return;
