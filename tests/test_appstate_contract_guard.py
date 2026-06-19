@@ -4543,6 +4543,7 @@ def test_refresh_view_render_reflow_projection_fails_closed_before_render_work()
     validation = (
         'if (!AppStateValidatedDispatchSurface("surface.render-reflow-projection"))'
     )
+    event_validation = 'if (!AppStateValidatedEvent("event.render-reflow"))'
     early_return = "return;"
     boundary_calls = [
         "Layout_Recalculate(",
@@ -4561,11 +4562,15 @@ def test_refresh_view_render_reflow_projection_fails_closed_before_render_work()
 
     assert 'include "ytnova_appstate_actions.h"' in source
     assert validation in body
-    assert body.index(validation) < body.index(early_return)
-    assert body.index(early_return) < body.index("&ctx->active->vol->vol_stats")
+    assert event_validation in body
+    validation_idx = body.index(validation)
+    event_validation_idx = body.index(event_validation, validation_idx)
+    early_return_idx = body.index(early_return, event_validation_idx)
+    assert validation_idx < event_validation_idx < early_return_idx
+    assert early_return_idx < body.index("&ctx->active->vol->vol_stats")
     for call in boundary_calls:
         assert body.index(validation) < body.index(call)
-        assert body.index(early_return) < body.index(call)
+        assert early_return_idx < body.index(call)
 
 
 def test_handle_file_window_dispatch_fails_closed_before_file_work() -> None:
@@ -4844,22 +4849,24 @@ int main(void) {
     return 4;
   if (AppStateValidatedEvent("event.__ytnova_missing__"))
     return 5;
-  if (!AppStateValidatedEvent("event.refresh-rebuild"))
+  if (!AppStateValidatedEvent("event.render-reflow"))
     return 6;
+  if (!AppStateValidatedEvent("event.refresh-rebuild"))
+    return 7;
 
   mismatched_event =
       *AppStateEventCoverageLookup("event.terminal-resize-signal");
   mismatched_event.event_id = "event.__ytnova_mismatch__";
   if (AppStateValidateEventCoverage("event.terminal-resize-signal",
                                     &mismatched_event))
-    return 7;
+    return 8;
 
   missing_transition =
       *AppStateEventCoverageLookup("event.terminal-resize-signal");
   missing_transition.transition_id = "transition.__ytnova_missing__";
   if (AppStateValidateEventCoverage("event.terminal-resize-signal",
                                     &missing_transition))
-    return 8;
+    return 9;
 
   return 0;
 }
