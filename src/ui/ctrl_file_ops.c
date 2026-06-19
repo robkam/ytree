@@ -531,6 +531,8 @@ BOOL handle_file_window_command_action(ViewContext *ctx, YtreeNovaAction action,
 
   if (!AppStateValidatedDispatchSurface("surface.command-completion-dispatch"))
     return FALSE;
+  if (!AppStateValidatedEvent("event.command-completion"))
+    return FALSE;
 
   dir_entry = *dir_entry_ptr;
 
