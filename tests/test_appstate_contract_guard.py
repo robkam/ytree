@@ -4,12 +4,14 @@ import copy
 import importlib.util
 import json
 import re
+import shutil
 import subprocess
 from pathlib import Path
 
 import pytest
 
-GUARD_PATH = Path(__file__).resolve().parents[1] / "scripts" / "check_appstate_contract.py"
+REPO_ROOT = Path(__file__).resolve().parents[1]
+GUARD_PATH = REPO_ROOT / "scripts" / "check_appstate_contract.py"
 GUARD_SPEC = importlib.util.spec_from_file_location("check_appstate_contract", GUARD_PATH)
 assert GUARD_SPEC is not None and GUARD_SPEC.loader is not None
 guard = importlib.util.module_from_spec(GUARD_SPEC)
@@ -5784,6 +5786,43 @@ def test_guard_fails_when_dispatch_surface_source_path_is_outside_src(
         "dispatch_surface[0]" in failure
         and "source_path must point inside src/" in failure
         and "scripts/check_appstate_contract.py" in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_when_runtime_dispatch_surface_validation_callsite_is_missing(
+    tmp_path: Path,
+) -> None:
+    shutil.copytree(REPO_ROOT / "src", tmp_path / "src")
+    source_path = tmp_path / "src" / "ui" / "ctrl_file.c"
+    original = source_path.read_text(encoding="utf-8")
+    mutated = original.replace(
+        'AppStateValidatedDispatchSurface("surface.file-window-action-dispatch")',
+        'AppStateValidatedDispatchSurface("surface.file-window-action-dispatch-missing")',
+        1,
+    )
+    assert mutated != original
+    source_path.write_text(mutated, encoding="utf-8")
+
+    failures = guard.validate_contract(
+        guard.DEFAULT_TRANSITIONS,
+        guard.DEFAULT_SHIMS,
+        guard.DEFAULT_ACTION_COVERAGE,
+        guard.DEFAULT_ACTION_HEADER,
+        guard.DEFAULT_EVENT_COVERAGE,
+        guard.DEFAULT_OWNER_FIELDS,
+        guard.DEFAULT_DISPATCH_SURFACES,
+        guard.DEFAULT_INVARIANTS,
+        guard.DEFAULT_GENERATION_DOMAINS,
+        guard.DEFAULT_DIFF_HARNESS,
+        guard.DEFAULT_TRANSITION_SEQUENCES,
+        guard.DEFAULT_ACTION_RUNTIME,
+        repository_root=tmp_path,
+    )
+
+    assert any(
+        "surface.file-window-action-dispatch" in failure
+        and "missing runtime validation callsite" in failure
         for failure in failures
     )
 

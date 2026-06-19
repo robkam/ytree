@@ -364,6 +364,9 @@ SEQUENCE_LIST_FIELDS = {
 DISPATCH_SURFACE_SOURCE_ROOT = REPO_ROOT / "src"
 ENTRY_SYMBOL_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
 GENERATION_FIELD_RE = re.compile(r"\b(?:[A-Za-z0-9_]+\.)?[A-Za-z0-9_]+_generation\b")
+DISPATCH_SURFACE_CALLSITE_RE = re.compile(
+    r'AppStateValidatedDispatchSurface\s*\(\s*"([^"]+)"\s*\)'
+)
 
 
 def _load_json(path: Path) -> tuple[Any | None, list[str]]:
@@ -4397,7 +4400,9 @@ def _validate_appstate_diff_harness(
     return failures
 
 
-def _validate_source_path(value: Any, *, label: str) -> list[str]:
+def _validate_source_path(
+    value: Any, *, label: str, repository_root: Path = REPO_ROOT
+) -> list[str]:
     if not isinstance(value, str) or not value.strip():
         return [f"{label}: source_path must be a non-empty string"]
 
@@ -4410,8 +4415,8 @@ def _validate_source_path(value: Any, *, label: str) -> list[str]:
     ):
         return [f"{label}: source_path must be a relative repository path"]
 
-    source_file = (REPO_ROOT / source_path).resolve()
-    source_root = DISPATCH_SURFACE_SOURCE_ROOT.resolve()
+    source_file = (repository_root / source_path).resolve()
+    source_root = (repository_root / "src").resolve()
     try:
         source_file.relative_to(source_root)
     except ValueError:
@@ -4451,9 +4456,13 @@ def _entry_symbol_or_path_is_anchored(source: str, entry: str) -> bool:
 
 
 def _validate_dispatch_surface_source_anchor(
-    *, source_path: str, entry_symbol_or_path: str, label: str
+    *,
+    source_path: str,
+    entry_symbol_or_path: str,
+    label: str,
+    repository_root: Path = REPO_ROOT,
 ) -> list[str]:
-    source_file = REPO_ROOT / source_path.strip()
+    source_file = repository_root / source_path.strip()
     entry = entry_symbol_or_path.strip()
     try:
         source = source_file.read_text(encoding="utf-8")
@@ -4468,6 +4477,59 @@ def _validate_dispatch_surface_source_anchor(
     return []
 
 
+def _runtime_dispatch_surface_callsites_by_id(
+    source_root: Path,
+) -> tuple[dict[str, set[str]], list[str]]:
+    callsites_by_id: dict[str, set[str]] = {}
+    failures: list[str] = []
+    if not source_root.is_dir():
+        return {}, [f"{source_root}: src root does not exist"]
+
+    for source_file in sorted(source_root.rglob("*")):
+        if not source_file.is_file() or source_file.suffix not in {".c", ".h"}:
+            continue
+        try:
+            source = source_file.read_text(encoding="utf-8")
+        except OSError as exc:
+            failures.append(f"{source_file}: failed to read source file: {exc}")
+            continue
+
+        relative_path = source_file.relative_to(source_root.parent).as_posix()
+        for match in DISPATCH_SURFACE_CALLSITE_RE.finditer(source):
+            callsites_by_id.setdefault(match.group(1), set()).add(relative_path)
+    return callsites_by_id, failures
+
+
+def _validate_runtime_dispatch_surface_callsites(
+    *,
+    runtime_records: list[dict[str, Any]],
+    repository_root: Path,
+    action_runtime_path: Path,
+) -> list[str]:
+    if (
+        action_runtime_path.parent.name != "core"
+        or action_runtime_path.parent.parent.name != "src"
+    ):
+        return []
+    source_root = repository_root / "src"
+    callsites_by_id, failures = _runtime_dispatch_surface_callsites_by_id(source_root)
+    runtime_surface_ids = sorted(
+        {
+            surface_id.strip()
+            for record in runtime_records
+            if isinstance(record, dict)
+            and isinstance(record.get("surface_id"), str)
+            and (surface_id := record["surface_id"]).strip()
+        }
+    )
+    for surface_id in runtime_surface_ids:
+        if surface_id not in callsites_by_id:
+            failures.append(
+                f"{source_root}: {surface_id}: missing runtime validation callsite"
+            )
+    return failures
+
+
 def _validate_dispatch_surfaces(
     *,
     dispatch_surfaces_doc: Any,
@@ -4478,6 +4540,7 @@ def _validate_dispatch_surfaces(
     transition_sequence_records: list[Any],
     diff_harness_owner_field_refs: dict[str, set[str]],
     invariant_protected_fields: dict[str, set[str]],
+    repository_root: Path = REPO_ROOT,
 ) -> list[str]:
     failures: list[str] = []
     if not isinstance(dispatch_surfaces_doc, dict):
@@ -4561,7 +4624,9 @@ def _validate_dispatch_surfaces(
 
         source_path = record.get("source_path")
         entry_symbol_or_path = record.get("entry_symbol_or_path")
-        source_failures = _validate_source_path(source_path, label=label)
+        source_failures = _validate_source_path(
+            source_path, label=label, repository_root=repository_root
+        )
         entry_failures = _validate_entry_symbol_or_path(
             entry_symbol_or_path, label=label
         )
@@ -4578,6 +4643,7 @@ def _validate_dispatch_surfaces(
                     source_path=source_path,
                     entry_symbol_or_path=entry_symbol_or_path,
                     label=label,
+                    repository_root=repository_root,
                 )
             )
 
@@ -6521,6 +6587,8 @@ def validate_contract(
     diff_harness_path: Path = DEFAULT_DIFF_HARNESS,
     transition_sequences_path: Path = DEFAULT_TRANSITION_SEQUENCES,
     action_runtime_path: Path = DEFAULT_ACTION_RUNTIME,
+    *,
+    repository_root: Path = REPO_ROOT,
 ) -> list[str]:
     failures: list[str] = []
     transitions_doc, transition_load_failures = _load_json(transitions_path)
@@ -7238,6 +7306,7 @@ def validate_contract(
             ),
             diff_harness_owner_field_refs=diff_harness_owner_field_refs_by_harness,
             invariant_protected_fields=invariant_protected_fields,
+            repository_root=repository_root,
         )
     )
     failures.extend(
@@ -7257,6 +7326,13 @@ def validate_contract(
                 runtime_diff_harness_owner_field_refs_by_harness
             ),
             runtime_invariant_protected_fields=runtime_invariant_protected_fields,
+        )
+    )
+    failures.extend(
+        _validate_runtime_dispatch_surface_callsites(
+            runtime_records=runtime_dispatch_surface_records,
+            repository_root=repository_root,
+            action_runtime_path=action_runtime_path,
         )
     )
     dispatch_surface_ids = _collect_string_ids(
