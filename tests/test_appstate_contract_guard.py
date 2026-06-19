@@ -4625,6 +4625,30 @@ def test_handle_file_window_dispatch_fails_closed_before_file_work() -> None:
         assert body.index(early_return) < body.index(call)
 
 
+def test_handle_file_window_revalidates_remapped_action_before_file_dispatch() -> None:
+    source = Path("src/ui/ctrl_file.c").read_text(encoding="utf-8")
+    start = source.index("int HandleFileWindow(")
+    end = source.index("\nfile_window_done:", start)
+    body = source[start:end]
+    get_key_action = "action = GetKeyAction(ctx, ch);"
+    mode_remap = "if (GetPanelFileMode(ctx->active) == MODE_1)"
+    preview_filter = "action = FilterPreviewAction(action);"
+    validation = "action = AppStateValidatedKeyAction(action);"
+    first_dispatch_derivation = "if (FileNav_GetXStep(ctx) == 1 &&"
+    switch_dispatch = "switch (action)"
+
+    assert 'include "ytnova_appstate_actions.h"' in source
+    assert validation in body
+    assert (
+        body.index(get_key_action)
+        < body.index(mode_remap)
+        < body.index(preview_filter)
+        < body.index(validation)
+        < body.index(first_dispatch_derivation)
+        < body.index(switch_dispatch)
+    )
+
+
 def test_handle_dir_window_dispatch_fails_closed_before_directory_work() -> None:
     source = Path("src/ui/ctrl_dir.c").read_text(encoding="utf-8")
     start = source.index("HandleDirWindow(")
@@ -4652,6 +4676,25 @@ def test_handle_dir_window_dispatch_fails_closed_before_directory_work() -> None
     for call in boundary_calls:
         assert body.index(validation) < body.index(call)
         assert body.index(early_return) < body.index(call)
+
+
+def test_handle_dir_window_revalidates_decoded_action_before_directory_dispatch() -> None:
+    source = Path("src/ui/ctrl_dir.c").read_text(encoding="utf-8")
+    start = source.index("HandleDirWindow(")
+    body = source[start:]
+    get_key_action = "action = GetKeyAction(ctx, ch);"
+    validation = "action = AppStateValidatedKeyAction(action);"
+    debug_boundary = 'DebugLogDirLoopState("before_dispatch"'
+    switch_dispatch = "switch (action)"
+
+    assert 'include "ytnova_appstate_actions.h"' in source
+    assert validation in body
+    assert (
+        body.index(get_key_action)
+        < body.index(validation)
+        < body.index(debug_boundary)
+        < body.index(switch_dispatch)
+    )
 
 
 def test_panel_anchor_rebind_fails_closed_before_anchor_state_work() -> None:

@@ -462,6 +462,7 @@ int HandleFileWindow(ViewContext *ctx, DirEntry *dir_entry) {
     if (ctx->preview_mode) {
       action = FilterPreviewAction(action);
     }
+    action = AppStateValidatedKeyAction(action);
 
     if (FileNav_GetXStep(ctx) == 1 &&
         (action == ACTION_MOVE_RIGHT || action == ACTION_MOVE_LEFT)) {
