@@ -6293,13 +6293,351 @@ AppStateActionCoverageLookup(YtreeNovaAction action) {
   return metadata;
 }
 
+static int AppStateNonEmptyString(const char *value) {
+  return value != NULL && value[0] != '\0';
+}
+
+static int AppStateNonEmptyStringList(const char *const *values,
+                                      size_t value_count) {
+  size_t index;
+
+  if (values == NULL || value_count == 0)
+    return 0;
+
+  for (index = 0; index < value_count; index++) {
+    if (!AppStateNonEmptyString(values[index]))
+      return 0;
+  }
+
+  return 1;
+}
+
+static int AppStateTransitionFieldsRegistered(const char *const *fields,
+                                              size_t field_count) {
+  size_t index;
+
+  if (!AppStateNonEmptyStringList(fields, field_count))
+    return 0;
+
+  for (index = 0; index < field_count; index++) {
+    if (AppStateOwnerFieldLookup(fields[index]) == NULL)
+      return 0;
+  }
+
+  return 1;
+}
+
+static int
+AppStateTransitionIdsRegistered(const char *const *transition_ids,
+                                size_t transition_id_count) {
+  size_t index;
+
+  if (!AppStateNonEmptyStringList(transition_ids, transition_id_count))
+    return 0;
+
+  for (index = 0; index < transition_id_count; index++) {
+    if (!AppStateValidatedTransition(transition_ids[index]))
+      return 0;
+  }
+
+  return 1;
+}
+
+static int
+AppStateValidateTransition(const char *transition_id,
+                           const AppStateTransitionMetadata *metadata) {
+  if (!AppStateNonEmptyString(transition_id))
+    return 0;
+  if (metadata == NULL || !AppStateNonEmptyString(metadata->id) ||
+      strcmp(metadata->id, transition_id))
+    return 0;
+  if (!AppStateNonEmptyString(metadata->category) ||
+      !AppStateNonEmptyString(metadata->owner))
+    return 0;
+  if (!AppStateTransitionFieldsRegistered(metadata->declared_write_set,
+                                          metadata->declared_write_set_count))
+    return 0;
+
+  return 1;
+}
+
+int AppStateValidatedTransition(const char *transition_id) {
+  return AppStateValidateTransition(transition_id,
+                                    AppStateTransitionLookup(transition_id));
+}
+
+static int AppStateInvariantIdsRegistered(const char *const *invariant_ids,
+                                          size_t invariant_id_count) {
+  size_t index;
+
+  if (!AppStateNonEmptyStringList(invariant_ids, invariant_id_count))
+    return 0;
+
+  for (index = 0; index < invariant_id_count; index++) {
+    if (!AppStateValidatedInvariant(invariant_ids[index]))
+      return 0;
+  }
+
+  return 1;
+}
+
+static int
+AppStateValidateOwnerField(const char *field,
+                           const AppStateOwnerFieldMetadata *metadata) {
+  if (!AppStateNonEmptyString(field))
+    return 0;
+  if (metadata == NULL || !AppStateNonEmptyString(metadata->field) ||
+      strcmp(metadata->field, field))
+    return 0;
+  if (!AppStateNonEmptyString(metadata->owner_region) ||
+      !AppStateNonEmptyString(metadata->canonical_owner) ||
+      !AppStateNonEmptyString(metadata->runtime_carrier) ||
+      !AppStateNonEmptyString(metadata->mutation_rule) ||
+      !AppStateNonEmptyString(metadata->migration_status))
+    return 0;
+  if (!AppStateInvariantIdsRegistered(metadata->invariant_checks,
+                                      metadata->invariant_check_count))
+    return 0;
+
+  return 1;
+}
+
+int AppStateValidatedOwnerField(const char *field) {
+  return AppStateValidateOwnerField(field, AppStateOwnerFieldLookup(field));
+}
+
+static int
+AppStateDispatchSurfaceIdsRegistered(const char *const *surface_ids,
+                                     size_t surface_id_count) {
+  size_t index;
+
+  if (!AppStateNonEmptyStringList(surface_ids, surface_id_count))
+    return 0;
+
+  for (index = 0; index < surface_id_count; index++) {
+    if (!AppStateValidatedDispatchSurface(surface_ids[index]))
+      return 0;
+  }
+
+  return 1;
+}
+
+static int
+AppStateValidateInvariant(const char *invariant_id,
+                          const AppStateInvariantMetadata *metadata) {
+  if (!AppStateNonEmptyString(invariant_id))
+    return 0;
+  if (metadata == NULL || !AppStateNonEmptyString(metadata->invariant_id) ||
+      strcmp(metadata->invariant_id, invariant_id))
+    return 0;
+  if (!AppStateNonEmptyString(metadata->category) ||
+      !AppStateNonEmptyString(metadata->owner_region) ||
+      !AppStateNonEmptyString(metadata->failure_mode) ||
+      !AppStateNonEmptyString(metadata->enforcement_status) ||
+      !AppStateNonEmptyString(metadata->test_strategy))
+    return 0;
+  if (!AppStateTransitionFieldsRegistered(metadata->protected_fields,
+                                          metadata->protected_field_count))
+    return 0;
+  if (!AppStateTransitionIdsRegistered(metadata->transition_ids,
+                                       metadata->transition_id_count))
+    return 0;
+  if (!AppStateDispatchSurfaceIdsRegistered(metadata->dispatch_surface_ids,
+                                            metadata->dispatch_surface_id_count))
+    return 0;
+  if (!AppStateNonEmptyStringList(metadata->migration_notes,
+                                  metadata->migration_note_count))
+    return 0;
+
+  return 1;
+}
+
+int AppStateValidatedInvariant(const char *invariant_id) {
+  return AppStateValidateInvariant(invariant_id,
+                                   AppStateInvariantLookup(invariant_id));
+}
+
+static int
+AppStateValidateGenerationDomain(
+    const char *domain_id, const AppStateGenerationDomainMetadata *metadata) {
+  if (!AppStateNonEmptyString(domain_id))
+    return 0;
+  if (metadata == NULL || !AppStateNonEmptyString(metadata->domain_id) ||
+      strcmp(metadata->domain_id, domain_id))
+    return 0;
+  if (!AppStateNonEmptyString(metadata->category) ||
+      !AppStateNonEmptyString(metadata->owner_region) ||
+      !AppStateNonEmptyString(metadata->generation_owner_field) ||
+      !AppStateNonEmptyString(metadata->stale_snapshot_policy) ||
+      !AppStateNonEmptyString(metadata->fail_closed_fallback) ||
+      !AppStateNonEmptyString(metadata->restore_boundary) ||
+      !AppStateNonEmptyString(metadata->enforcement_status))
+    return 0;
+  if (AppStateOwnerFieldLookup(metadata->generation_owner_field) == NULL)
+    return 0;
+  if (!AppStateTransitionFieldsRegistered(metadata->identity_fields,
+                                          metadata->identity_field_count))
+    return 0;
+  if (!AppStateTransitionIdsRegistered(metadata->coverage_transition_ids,
+                                       metadata->coverage_transition_id_count))
+    return 0;
+  if (!AppStateTransitionIdsRegistered(
+          metadata->advances_on_transition_ids,
+          metadata->advances_on_transition_id_count))
+    return 0;
+  if (!AppStateNonEmptyStringList(metadata->migration_notes,
+                                  metadata->migration_note_count))
+    return 0;
+
+  return 1;
+}
+
+int AppStateValidatedGenerationDomain(const char *domain_id) {
+  return AppStateValidateGenerationDomain(
+      domain_id, AppStateGenerationDomainLookup(domain_id));
+}
+
+static int
+AppStateGenerationDomainIdsRegistered(const char *const *domain_ids,
+                                      size_t domain_id_count) {
+  size_t index;
+
+  if (!AppStateNonEmptyStringList(domain_ids, domain_id_count))
+    return 0;
+
+  for (index = 0; index < domain_id_count; index++) {
+    if (!AppStateValidatedGenerationDomain(domain_ids[index]))
+      return 0;
+  }
+
+  return 1;
+}
+
+static int
+AppStateValidateDiffHarness(const char *harness_id,
+                            const AppStateDiffHarnessMetadata *metadata) {
+  if (!AppStateNonEmptyString(harness_id))
+    return 0;
+  if (metadata == NULL || !AppStateNonEmptyString(metadata->harness_id) ||
+      strcmp(metadata->harness_id, harness_id))
+    return 0;
+  if (!AppStateNonEmptyString(metadata->check_category) ||
+      !AppStateNonEmptyString(metadata->expected_behavior) ||
+      !AppStateNonEmptyString(metadata->failure_mode) ||
+      !AppStateNonEmptyString(metadata->enforcement_status))
+    return 0;
+  if (!AppStateNonEmptyStringList(metadata->snapshot_phases,
+                                  metadata->snapshot_phase_count))
+    return 0;
+  if (!AppStateNonEmptyStringList(metadata->snapshot_regions,
+                                  metadata->snapshot_region_count))
+    return 0;
+  if (!AppStateTransitionIdsRegistered(metadata->transition_ids,
+                                       metadata->transition_id_count))
+    return 0;
+  if (!AppStateTransitionFieldsRegistered(metadata->owner_field_refs,
+                                          metadata->owner_field_ref_count))
+    return 0;
+  if (!AppStateInvariantIdsRegistered(metadata->invariant_ids,
+                                      metadata->invariant_id_count))
+    return 0;
+  if (!AppStateGenerationDomainIdsRegistered(
+          metadata->generation_domain_ids, metadata->generation_domain_id_count))
+    return 0;
+  if (!AppStateNonEmptyStringList(metadata->migration_notes,
+                                  metadata->migration_note_count))
+    return 0;
+
+  return 1;
+}
+
+int AppStateValidatedDiffHarness(const char *harness_id) {
+  return AppStateValidateDiffHarness(harness_id,
+                                     AppStateDiffHarnessLookup(harness_id));
+}
+
+static int
+AppStateTransitionSequenceStepReady(
+    const AppStateTransitionSequenceStepMetadata *step) {
+  size_t index;
+
+  if (step == NULL || !AppStateNonEmptyString(step->step_id) ||
+      !AppStateValidatedTransition(step->transition_id) ||
+      !AppStateNonEmptyString(step->expected_result))
+    return 0;
+  if (step->action_coverage_ref_count == 0 &&
+      step->event_coverage_ref_count == 0)
+    return 0;
+  if (step->action_coverage_ref_count > 0 &&
+      !AppStateNonEmptyStringList(step->action_coverage_refs,
+                                  step->action_coverage_ref_count))
+    return 0;
+  if (step->event_coverage_ref_count > 0 &&
+      !AppStateNonEmptyStringList(step->event_coverage_refs,
+                                  step->event_coverage_ref_count))
+    return 0;
+  if (!AppStateInvariantIdsRegistered(step->invariant_ids,
+                                      step->invariant_id_count))
+    return 0;
+  if (!AppStateNonEmptyStringList(step->diff_harness_ids,
+                                  step->diff_harness_id_count))
+    return 0;
+  for (index = 0; index < step->diff_harness_id_count; index++) {
+    if (!AppStateValidatedDiffHarness(step->diff_harness_ids[index]))
+      return 0;
+  }
+  if (step->generation_domain_expectations == NULL ||
+      step->generation_domain_expectation_count == 0)
+    return 0;
+  for (index = 0; index < step->generation_domain_expectation_count; index++) {
+    const AppStateTransitionSequenceGenerationExpectationMetadata *expectation =
+        &step->generation_domain_expectations[index];
+
+    if (expectation == NULL ||
+        !AppStateNonEmptyString(expectation->domain_id) ||
+        !AppStateNonEmptyString(expectation->expectation) ||
+        !AppStateValidatedGenerationDomain(expectation->domain_id))
+      return 0;
+  }
+
+  return 1;
+}
+
+static int AppStateValidateTransitionSequence(
+    const char *scenario_id, const AppStateTransitionSequenceMetadata *metadata) {
+  size_t index;
+
+  if (!AppStateNonEmptyString(scenario_id))
+    return 0;
+  if (metadata == NULL || !AppStateNonEmptyString(metadata->scenario_id) ||
+      strcmp(metadata->scenario_id, scenario_id))
+    return 0;
+  if (!AppStateNonEmptyString(metadata->category) ||
+      !AppStateNonEmptyString(metadata->flow) ||
+      !AppStateNonEmptyString(metadata->description) ||
+      metadata->steps == NULL || metadata->step_count == 0)
+    return 0;
+
+  for (index = 0; index < metadata->step_count; index++) {
+    if (!AppStateTransitionSequenceStepReady(&metadata->steps[index]))
+      return 0;
+  }
+
+  return 1;
+}
+
+int AppStateValidatedTransitionSequence(const char *scenario_id) {
+  return AppStateValidateTransitionSequence(
+      scenario_id, AppStateTransitionSequenceLookup(scenario_id));
+}
+
 static YtreeNovaAction AppStateValidateKeyActionCoverage(
     YtreeNovaAction action, const AppStateActionCoverageMetadata *coverage) {
   if (action == ACTION_NONE)
     return ACTION_NONE;
   if (coverage == NULL || coverage->action != action)
     return ACTION_NONE;
-  if (AppStateTransitionLookup(coverage->transition_id) == NULL)
+  if (!AppStateValidatedTransition(coverage->transition_id))
     return ACTION_NONE;
 
   return action;
@@ -6318,7 +6656,7 @@ AppStateValidateEventCoverage(const char *event_id,
   if (coverage == NULL || coverage->event_id == NULL ||
       strcmp(coverage->event_id, event_id))
     return 0;
-  if (AppStateTransitionLookup(coverage->transition_id) == NULL)
+  if (!AppStateValidatedTransition(coverage->transition_id))
     return 0;
 
   return 1;
@@ -6336,7 +6674,7 @@ static int AppStateValidateDispatchSurface(
   if (metadata == NULL || metadata->surface_id == NULL ||
       strcmp(metadata->surface_id, surface_id))
     return 0;
-  if (AppStateTransitionLookup(metadata->transition_id) == NULL)
+  if (!AppStateValidatedTransition(metadata->transition_id))
     return 0;
 
   return 1;
@@ -6353,7 +6691,7 @@ static int AppStateValidateCompatibilityShim(
     return 0;
   if (metadata == NULL || metadata->id == NULL || strcmp(metadata->id, shim_id))
     return 0;
-  if (AppStateTransitionLookup(metadata->target_transition) == NULL)
+  if (!AppStateValidatedTransition(metadata->target_transition))
     return 0;
   if (metadata->write_capability == NULL ||
       (strcmp(metadata->write_capability, "write_capable") &&
