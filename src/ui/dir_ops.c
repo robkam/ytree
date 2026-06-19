@@ -852,6 +852,8 @@ BOOL HandleDirMakeFile(ViewContext *ctx, DirEntry *dir_entry) {
     return FALSE;
   if (!AppStateValidatedDispatchSurface("surface.filesystem-mutation-result"))
     return FALSE;
+  if (!AppStateValidatedEvent("event.filesystem-mutation-result"))
+    return FALSE;
 
   ClearHelp(ctx);
   *file_name = '\0';
@@ -893,6 +895,8 @@ void HandleDirMakeDirectory(ViewContext *ctx, DirEntry *dir_entry,
   if (!ctx || !ctx->active || !ctx->active->vol || !dir_entry)
     return;
   if (!AppStateValidatedDispatchSurface("surface.filesystem-mutation-result"))
+    return;
+  if (!AppStateValidatedEvent("event.filesystem-mutation-result"))
     return;
 
   DebugLogSplitState("HandleDirMakeDirectory:entry", ctx);
@@ -1010,6 +1014,8 @@ DirEntry *HandleDirDeleteDirectory(ViewContext *ctx, DirEntry *dir_entry) {
 
   if (!AppStateValidatedDispatchSurface("surface.filesystem-mutation-result"))
     return dir_entry;
+  if (!AppStateValidatedEvent("event.filesystem-mutation-result"))
+    return dir_entry;
 
   CaptureInactiveFallbackSnapshot(ctx, ctx->active, &inactive_snapshot);
   CapturePanelViewportSnapshot(ctx->active, ctx->active->vol, &active_viewport);
@@ -1059,6 +1065,8 @@ DirEntry *HandleDirRenameDirectory(ViewContext *ctx, DirEntry *dir_entry) {
   char new_name[PATH_LENGTH + 1];
 
   if (!AppStateValidatedDispatchSurface("surface.filesystem-mutation-result"))
+    return dir_entry;
+  if (!AppStateValidatedEvent("event.filesystem-mutation-result"))
     return dir_entry;
 
   if (!GetRenameParameter(ctx, dir_entry->name, new_name)) {
