@@ -850,6 +850,8 @@ BOOL HandleDirMakeFile(ViewContext *ctx, DirEntry *dir_entry) {
   DEBUG_LOG("ACTION_CMD_MKFILE reached in ctrl_dir.c. mode=%d", ctx->view_mode);
   if (ctx->view_mode != DISK_MODE)
     return FALSE;
+  if (!AppStateValidatedDispatchSurface("surface.filesystem-mutation-result"))
+    return FALSE;
 
   ClearHelp(ctx);
   *file_name = '\0';
@@ -889,6 +891,8 @@ void HandleDirMakeDirectory(ViewContext *ctx, DirEntry *dir_entry,
   PathList *inactive_tagged_snapshot = NULL;
 
   if (!ctx || !ctx->active || !ctx->active->vol || !dir_entry)
+    return;
+  if (!AppStateValidatedDispatchSurface("surface.filesystem-mutation-result"))
     return;
 
   DebugLogSplitState("HandleDirMakeDirectory:entry", ctx);
@@ -1004,6 +1008,9 @@ DirEntry *HandleDirDeleteDirectory(ViewContext *ctx, DirEntry *dir_entry) {
   InactiveFallbackSnapshot inactive_snapshot;
   PanelViewportSnapshot active_viewport;
 
+  if (!AppStateValidatedDispatchSurface("surface.filesystem-mutation-result"))
+    return dir_entry;
+
   CaptureInactiveFallbackSnapshot(ctx, ctx->active, &inactive_snapshot);
   CapturePanelViewportSnapshot(ctx->active, ctx->active->vol, &active_viewport);
 
@@ -1050,6 +1057,9 @@ DirEntry *HandleDirDeleteDirectory(ViewContext *ctx, DirEntry *dir_entry) {
 
 DirEntry *HandleDirRenameDirectory(ViewContext *ctx, DirEntry *dir_entry) {
   char new_name[PATH_LENGTH + 1];
+
+  if (!AppStateValidatedDispatchSurface("surface.filesystem-mutation-result"))
+    return dir_entry;
 
   if (!GetRenameParameter(ctx, dir_entry->name, new_name)) {
     int rename_result = RenameDirectory(ctx, dir_entry, new_name);
