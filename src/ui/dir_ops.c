@@ -1982,6 +1982,8 @@ DirEntry *RefreshTreeSafe(ViewContext *ctx, YtreeNovaPanel *p, DirEntry *entry) 
     return entry;
   if (!AppStateValidatedDispatchSurface("surface.refresh-rebuild-rebind"))
     return entry;
+  if (!AppStateValidatedEvent("event.refresh-rebuild"))
+    return entry;
 
   s = &p->vol->vol_stats;
   saved_disp_begin = p->disp_begin_pos;

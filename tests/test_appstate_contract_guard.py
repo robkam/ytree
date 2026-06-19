@@ -4678,6 +4678,7 @@ def test_refresh_tree_safe_fails_closed_before_tree_refresh_work() -> None:
     validation = (
         'if (!AppStateValidatedDispatchSurface("surface.refresh-rebuild-rebind"))'
     )
+    event_validation = 'if (!AppStateValidatedEvent("event.refresh-rebuild"))'
 
     assert 'include "ytnova_appstate_actions.h"' in source
 
@@ -4696,11 +4697,14 @@ def test_refresh_tree_safe_fails_closed_before_tree_refresh_work() -> None:
 
     assert validation in body
     validation_idx = body.index(validation)
-    early_return_idx = body.index("return entry;", validation_idx)
-    assert validation_idx < early_return_idx
+    assert event_validation in body
+    event_validation_idx = body.index(event_validation, validation_idx)
+    dispatch_return_idx = body.index("return entry;", validation_idx)
+    event_return_idx = body.index("return entry;", event_validation_idx)
+    assert validation_idx < dispatch_return_idx < event_validation_idx
+    assert event_validation_idx < event_return_idx
     for call in boundary_calls:
-        assert validation_idx < body.index(call)
-        assert early_return_idx < body.index(call)
+        assert event_return_idx < body.index(call, event_return_idx)
 
 
 def test_directory_mutation_result_handlers_fail_closed_before_commit_work() -> None:
@@ -4833,20 +4837,22 @@ int main(void) {
     return 4;
   if (AppStateValidatedEvent("event.__ytnova_missing__"))
     return 5;
+  if (!AppStateValidatedEvent("event.refresh-rebuild"))
+    return 6;
 
   mismatched_event =
       *AppStateEventCoverageLookup("event.terminal-resize-signal");
   mismatched_event.event_id = "event.__ytnova_mismatch__";
   if (AppStateValidateEventCoverage("event.terminal-resize-signal",
                                     &mismatched_event))
-    return 6;
+    return 7;
 
   missing_transition =
       *AppStateEventCoverageLookup("event.terminal-resize-signal");
   missing_transition.transition_id = "transition.__ytnova_missing__";
   if (AppStateValidateEventCoverage("event.terminal-resize-signal",
                                     &missing_transition))
-    return 7;
+    return 8;
 
   return 0;
 }
