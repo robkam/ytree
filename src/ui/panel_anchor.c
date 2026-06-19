@@ -364,6 +364,8 @@ BOOL RestorePanelViewportSnapshot(const struct Volume *vol, YtreeNovaPanel *pane
   assert(!panel->vol || panel->vol == vol);
   if (panel->vol && panel->vol != vol)
     return FALSE;
+  if (!AppStateValidatedCompatibilityShim("shim.volume-saved-tree-index"))
+    return FALSE;
   if (!snapshot->has_selected_dir_path || !snapshot->selected_dir_path[0])
     return FALSE;
 

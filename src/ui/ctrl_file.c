@@ -237,6 +237,8 @@ DirEntry *RefreshFileView(ViewContext *ctx, DirEntry *dir_entry) {
 int HandleFileWindow(ViewContext *ctx, DirEntry *dir_entry) {
   if (!AppStateValidatedDispatchSurface("surface.file-window-action-dispatch"))
     return ESC;
+  if (!AppStateValidatedCompatibilityShim("shim.focused-window-session-flag"))
+    return ESC;
 
   DEBUG_LOG("HandleFileWindow ENTERED for %s", dir_entry->name);
   FileEntry *fe_ptr;

@@ -4787,6 +4787,91 @@ def test_refresh_tree_safe_fails_closed_before_tree_refresh_work() -> None:
         assert event_return_idx < body.index(call, event_return_idx)
 
 
+def test_appstate_shim_lookup_fails_closed_through_runtime_metadata() -> None:
+    header = Path("include/ytnova_appstate_actions.h").read_text(encoding="utf-8")
+    source = Path("src/core/appstate_actions.c").read_text(encoding="utf-8")
+    validation = "int AppStateValidatedCompatibilityShim(const char *shim_id)"
+    body_start = source.index("static int AppStateValidateCompatibilityShim(")
+    body_end = source.index("\nconst AppStateEventCoverageMetadata", body_start)
+    body = source[body_start:body_end]
+
+    assert validation in header
+    assert "static int AppStateValidateCompatibilityShim(" in source
+    assert "AppStateCompatibilityShimLookup(shim_id)" in body
+    assert "AppStateTransitionLookup(metadata->target_transition)" in body
+    assert "metadata->write_capability" in body
+    assert '"read_only_projection"' in body
+    assert "strcmp(metadata->id, shim_id)" in body
+
+
+def test_compatibility_shim_boundaries_fail_closed_before_legacy_writes() -> None:
+    dir_ops = Path("src/ui/dir_ops.c").read_text(encoding="utf-8")
+    ctrl_dir = Path("src/ui/ctrl_dir.c").read_text(encoding="utf-8")
+    ctrl_file = Path("src/ui/ctrl_file.c").read_text(encoding="utf-8")
+    panel_anchor = Path("src/ui/panel_anchor.c").read_text(encoding="utf-8")
+    display = Path("src/ui/display.c").read_text(encoding="utf-8")
+
+    assert 'include "ytnova_appstate_actions.h"' in dir_ops
+    assert 'include "ytnova_appstate_actions.h"' in ctrl_dir
+    assert 'include "ytnova_appstate_actions.h"' in ctrl_file
+    assert 'include "ytnova_appstate_actions.h"' in panel_anchor
+    assert 'include "ytnova_appstate_actions.h"' in display
+
+    toggle_start = dir_ops.index("void ToggleDotFiles(")
+    toggle_end = dir_ops.index("\nDirEntry *RefreshTreeSafe(", toggle_start)
+    toggle_body = dir_ops[toggle_start:toggle_end]
+    hidden_validation = (
+        'if (!AppStateValidatedCompatibilityShim("shim.viewcontext-hide-dot-files"))'
+    )
+    assert hidden_validation in toggle_body
+    assert toggle_body.index(hidden_validation) < toggle_body.index("p->hide_dot_files =")
+    assert toggle_body.index(hidden_validation) < toggle_body.index("ctx->hide_dot_files =")
+
+    volume_start = dir_ops.index("HandleDirWindowVolumeAction(")
+    volume_end = dir_ops.index("\nint RefreshDirWindow(", volume_start)
+    volume_body = dir_ops[volume_start:volume_end]
+    volume_validation = (
+        'if (!AppStateValidatedCompatibilityShim("shim.volume-saved-tree-index"))'
+    )
+    assert volume_validation in volume_body
+    assert volume_body.index(volume_validation) < volume_body.index(
+        "ctx->active->vol->saved_tree_index ="
+    )
+
+    restore_start = panel_anchor.index("BOOL RestorePanelViewportSnapshot(")
+    restore_end = panel_anchor.index("\nvoid RestorePanelAnchorPath(", restore_start)
+    restore_body = panel_anchor[restore_start:restore_end]
+    assert volume_validation in restore_body
+    assert restore_body.index(volume_validation) < restore_body.index(
+        "ResolvePanelAnchorTarget("
+    )
+    assert restore_body.index(volume_validation) < restore_body.index(
+        "panel->disp_begin_pos ="
+    )
+
+    focus_validation = (
+        'if (!AppStateValidatedCompatibilityShim("shim.focused-window-session-flag"))'
+    )
+    dir_start = ctrl_dir.index("HandleDirWindow(")
+    dir_body = ctrl_dir[dir_start:]
+    assert focus_validation in dir_body
+    assert dir_body.index(focus_validation) < dir_body.index("ctx->focused_window =")
+
+    file_start = ctrl_file.index("int HandleFileWindow(")
+    file_body = ctrl_file[file_start:]
+    assert focus_validation in file_body
+    assert file_body.index(focus_validation) < file_body.index("ctx->focused_window =")
+
+    refresh_start = display.index("void RefreshView(")
+    refresh_body = display[refresh_start:]
+    render_validation = (
+        'if (!AppStateValidatedCompatibilityShim("shim-render-derived-row-position"))'
+    )
+    assert render_validation in refresh_body
+    assert refresh_body.index(render_validation) < refresh_body.index("Layout_Recalculate(")
+    assert refresh_body.index(render_validation) < refresh_body.index("DisplayTree(")
+
+
 def test_directory_mutation_result_handlers_fail_closed_before_commit_work() -> None:
     source = Path("src/ui/dir_ops.c").read_text(encoding="utf-8")
     validation = (

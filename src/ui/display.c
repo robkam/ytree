@@ -687,6 +687,8 @@ void RefreshView(ViewContext *ctx, DirEntry *dir_entry) {
     return;
   if (!AppStateValidatedEvent("event.render-reflow"))
     return;
+  if (!AppStateValidatedCompatibilityShim("shim-render-derived-row-position"))
+    return;
 
   const Statistic *s = &ctx->active->vol->vol_stats;
   BOOL needs_window_recreate = FALSE;

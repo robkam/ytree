@@ -256,6 +256,7 @@ const AppStateDispatchSurfaceMetadata *AppStateDispatchSurfaceAt(size_t index);
 size_t AppStateDispatchSurfaceCount(void);
 const AppStateCompatibilityShimMetadata *
 AppStateCompatibilityShimLookup(const char *shim_id);
+int AppStateValidatedCompatibilityShim(const char *shim_id);
 const AppStateCompatibilityShimMetadata *
 AppStateCompatibilityShimAt(size_t index);
 size_t AppStateCompatibilityShimCount(void);

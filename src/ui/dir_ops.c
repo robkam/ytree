@@ -1744,6 +1744,8 @@ HandleDirWindowVolumeAction(ViewContext *ctx, YtreeNovaAction action,
       !*dir_entry_ptr || !s_ptr || !*s_ptr || !need_dsp_help_ptr) {
     return DIR_WINDOW_DISPATCH_HANDLED;
   }
+  if (!AppStateValidatedCompatibilityShim("shim.volume-saved-tree-index"))
+    return DIR_WINDOW_DISPATCH_HANDLED;
 
   ctx->active->vol->saved_tree_index =
       ctx->active->disp_begin_pos + ctx->active->cursor_pos;
@@ -1879,6 +1881,8 @@ void ToggleDotFiles(ViewContext *ctx, YtreeNovaPanel *p) {
   const char *preferred_top_path = NULL;
 
   if (!ctx || !p || !p->vol)
+    return;
+  if (!AppStateValidatedCompatibilityShim("shim.viewcontext-hide-dot-files"))
     return;
 
   s = &p->vol->vol_stats;
