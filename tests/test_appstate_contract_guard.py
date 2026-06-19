@@ -4460,15 +4460,33 @@ def test_input_choice_modal_completion_fails_closed_on_invalid_surface() -> None
         start = source.index(f"int {function_name}(")
         next_function = source.index("\nint ", start + 1)
         body = source[start:next_function]
-        validation = (
+        surface_validation = (
             'if (!AppStateValidatedDispatchSurface("surface.menu-modal-completion"))'
         )
+        event_validation = 'if (!AppStateValidatedEvent("event.modal-completion"))'
+        boundary_calls = [
+            "ClearHelp(ctx);",
+            "curs_set(1);",
+            "leaveok(ctx->ctx_border_window, FALSE);",
+            "mvwhline(ctx->ctx_border_window, ctx->layout.prompt_y, 1, ' ', COLS - 2);",
+            "PrintMenuOptions(" if function_name == "InputChoice" else "Print(ctx->ctx_border_window, ctx->layout.prompt_y, 1, (char *)msg,",
+            "wnoutrefresh(ctx->ctx_border_window);",
+            "doupdate();",
+            "WGetch(ctx, ctx->ctx_border_window);",
+        ]
 
-        assert validation in body
+        assert surface_validation in body
+        assert event_validation in body
         assert "return ERR;" in body
-        assert body.index(validation) < body.index("ClearHelp(ctx);")
-        assert body.index("return ERR;") < body.index("ClearHelp(ctx);")
-        assert body.index(validation) < body.index("WGetch(")
+        surface_idx = body.index(surface_validation)
+        event_idx = body.index(event_validation, surface_idx)
+        event_return_idx = body.index("return ERR;", event_idx)
+
+        assert surface_idx < event_idx
+        assert surface_idx < body.index("return ERR;", surface_idx) < event_idx
+        assert event_idx < event_return_idx < body.index("ClearHelp(ctx);")
+        for call in boundary_calls:
+            assert event_idx < body.index(call)
 
 
 def test_wgetch_resize_signal_handling_fails_closed_before_mutation() -> None:
@@ -4866,20 +4884,22 @@ int main(void) {
     return 7;
   if (!AppStateValidatedEvent("event.filesystem-mutation-result"))
     return 8;
+  if (!AppStateValidatedEvent("event.modal-completion"))
+    return 9;
 
   mismatched_event =
       *AppStateEventCoverageLookup("event.terminal-resize-signal");
   mismatched_event.event_id = "event.__ytnova_mismatch__";
   if (AppStateValidateEventCoverage("event.terminal-resize-signal",
                                     &mismatched_event))
-    return 9;
+    return 10;
 
   missing_transition =
       *AppStateEventCoverageLookup("event.terminal-resize-signal");
   missing_transition.transition_id = "transition.__ytnova_missing__";
   if (AppStateValidateEventCoverage("event.terminal-resize-signal",
                                     &missing_transition))
-    return 10;
+    return 11;
 
   return 0;
 }
