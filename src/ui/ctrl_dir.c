@@ -693,6 +693,7 @@ extern int HandleDirWindow(ViewContext *ctx, const DirEntry *start_dir_entry) {
     }
 
     action = GetKeyAction(ctx, ch); /* Translate raw input to YtreeNovaAction */
+    action = AppStateValidatedKeyAction(action);
     DebugLogDirLoopState("before_dispatch", ctx, dir_entry, ch, action,
                          unput_char);
 
