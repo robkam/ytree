@@ -98,6 +98,8 @@ int SelectLoadedVolume(ViewContext *ctx, int *return_key) {
     return -1;
   if (!AppStateValidatedDispatchSurface("surface.volume-operation"))
     return -1;
+  if (!AppStateValidatedEvent("event.volume-lifecycle"))
+    return -1;
 
   ClearHelp(ctx);
 

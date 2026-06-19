@@ -4839,6 +4839,7 @@ def test_select_loaded_volume_validates_volume_surfaces_before_menu_work() -> No
         'if (!AppStateValidatedDispatchSurface("surface.volume-menu-selection"))',
         'if (!AppStateValidatedDispatchSurface("surface.volume-operation"))',
     ]
+    event_validation = 'if (!AppStateValidatedEvent("event.volume-lifecycle"))'
     boundary_calls = [
         "ClearHelp(ctx);",
         "xmalloc(",
@@ -4851,14 +4852,23 @@ def test_select_loaded_volume_validates_volume_surfaces_before_menu_work() -> No
     ]
 
     assert 'include "ytnova_appstate_actions.h"' in source
+    validation_positions = []
     for validation in validations:
         validation_idx = body.index(validation)
         early_return_idx = body.index("return -1;", validation_idx)
+        validation_positions.append(early_return_idx)
 
         assert validation_idx < early_return_idx
         for call in boundary_calls:
             assert validation_idx < body.index(call)
             assert early_return_idx < body.index(call)
+
+    event_validation_idx = body.index(event_validation)
+    event_return_idx = body.index("return -1;", event_validation_idx)
+    assert max(validation_positions) < event_validation_idx < event_return_idx
+    for call in boundary_calls:
+        assert event_validation_idx < body.index(call)
+        assert event_return_idx < body.index(call)
 
 
 def test_runtime_event_boundary_validation_requires_coverage_and_transition(
@@ -4895,6 +4905,8 @@ int main(void) {
     return 9;
   if (!AppStateValidatedEvent("event.command-completion"))
     return 12;
+  if (!AppStateValidatedEvent("event.volume-lifecycle"))
+    return 13;
 
   mismatched_event =
       *AppStateEventCoverageLookup("event.terminal-resize-signal");
