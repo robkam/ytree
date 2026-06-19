@@ -6322,6 +6322,23 @@ static int AppStateNonEmptyStringList(const char *const *values,
   return 1;
 }
 
+static int AppStateStringListContains(const char *const *values,
+                                      size_t value_count,
+                                      const char *value) {
+  size_t index;
+
+  if (!AppStateNonEmptyStringList(values, value_count) ||
+      !AppStateNonEmptyString(value))
+    return 0;
+
+  for (index = 0; index < value_count; index++) {
+    if (!strcmp(values[index], value))
+      return 1;
+  }
+
+  return 0;
+}
+
 static int AppStateTransitionFieldsRegistered(const char *const *fields,
                                               size_t field_count) {
   size_t index;
@@ -6696,17 +6713,39 @@ int AppStateValidatedDispatchSurface(const char *surface_id) {
 
 static int AppStateValidateCompatibilityShim(
     const char *shim_id, const AppStateCompatibilityShimMetadata *metadata) {
+  const AppStateTransitionMetadata *transition;
+  size_t owner_field_index;
+
   if (shim_id == NULL || shim_id[0] == '\0')
     return 0;
   if (metadata == NULL || metadata->id == NULL || strcmp(metadata->id, shim_id))
     return 0;
-  if (!AppStateValidatedTransition(metadata->target_transition))
+  transition = AppStateTransitionLookup(metadata->target_transition);
+  if (!AppStateValidateTransition(metadata->target_transition, transition))
     return 0;
   if (metadata->write_capability == NULL ||
       (strcmp(metadata->write_capability, "write_capable") &&
        strcmp(metadata->write_capability, "read_only_projection") &&
        strcmp(metadata->write_capability, "no_write")))
     return 0;
+  if (!AppStateTransitionFieldsRegistered(metadata->owner_field_refs,
+                                          metadata->owner_field_ref_count))
+    return 0;
+
+  for (owner_field_index = 0;
+       owner_field_index < metadata->owner_field_ref_count;
+       owner_field_index++) {
+    int field_in_transition = AppStateStringListContains(
+        transition->declared_write_set, transition->declared_write_set_count,
+        metadata->owner_field_refs[owner_field_index]);
+
+    if (!strcmp(metadata->write_capability, "write_capable") &&
+        !field_in_transition)
+      return 0;
+    if (!strcmp(metadata->write_capability, "read_only_projection") &&
+        field_in_transition)
+      return 0;
+  }
 
   return 1;
 }

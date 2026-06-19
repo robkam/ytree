@@ -4798,9 +4798,11 @@ def test_appstate_shim_lookup_fails_closed_through_runtime_metadata() -> None:
     assert validation in header
     assert "static int AppStateValidateCompatibilityShim(" in source
     assert "AppStateCompatibilityShimLookup(shim_id)" in body
-    assert "AppStateValidatedTransition(metadata->target_transition)" in body
+    assert "AppStateTransitionLookup(metadata->target_transition)" in body
+    assert "AppStateValidateTransition(metadata->target_transition, transition)" in body
     assert "metadata->write_capability" in body
     assert '"read_only_projection"' in body
+    assert "AppStateTransitionFieldsRegistered(metadata->owner_field_refs" in body
     assert "strcmp(metadata->id, shim_id)" in body
 
 
@@ -5099,6 +5101,7 @@ int main(void) {
   AppStateGenerationDomainMetadata invalid_generation_domain;
   AppStateDiffHarnessMetadata invalid_diff_harness;
   AppStateTransitionSequenceMetadata invalid_sequence;
+  AppStateCompatibilityShimMetadata invalid_shim;
   static const char *const missing_invariant_refs[] = {
       "invariant.__ytnova_missing__",
   };
@@ -5115,33 +5118,35 @@ int main(void) {
     return 5;
   if (!AppStateValidatedTransitionSequence("sequence.split-toggle-f8"))
     return 6;
+  if (!AppStateValidatedCompatibilityShim("shim-render-derived-row-position"))
+    return 7;
 
   if (AppStateValidatedTransition(NULL))
-    return 7;
-  if (AppStateValidatedOwnerField(""))
     return 8;
-  if (AppStateValidatedInvariant("invariant.__ytnova_missing__"))
+  if (AppStateValidatedOwnerField(""))
     return 9;
-  if (AppStateValidatedGenerationDomain("generation.__ytnova_missing__"))
+  if (AppStateValidatedInvariant("invariant.__ytnova_missing__"))
     return 10;
-  if (AppStateValidatedDiffHarness("harness.__ytnova_missing__"))
+  if (AppStateValidatedGenerationDomain("generation.__ytnova_missing__"))
     return 11;
-  if (AppStateValidatedTransitionSequence("sequence.__ytnova_missing__"))
+  if (AppStateValidatedDiffHarness("harness.__ytnova_missing__"))
     return 12;
+  if (AppStateValidatedTransitionSequence("sequence.__ytnova_missing__"))
+    return 13;
 
   invalid_transition =
       *AppStateTransitionLookup("transition.keybinding.navigate-tree");
   invalid_transition.owner = "";
   if (AppStateValidateTransition("transition.keybinding.navigate-tree",
                                  &invalid_transition))
-    return 13;
+    return 14;
 
   invalid_owner_field = *AppStateOwnerFieldLookup("panel.tree_selection_key");
   invalid_owner_field.invariant_checks = missing_invariant_refs;
   invalid_owner_field.invariant_check_count = 1;
   if (AppStateValidateOwnerField("panel.tree_selection_key",
                                  &invalid_owner_field))
-    return 14;
+    return 15;
 
   invalid_invariant =
       *AppStateInvariantLookup("invariant.inactive-panel-frozen");
@@ -5149,14 +5154,14 @@ int main(void) {
   invalid_invariant.transition_id_count = 0;
   if (AppStateValidateInvariant("invariant.inactive-panel-frozen",
                                 &invalid_invariant))
-    return 15;
+    return 16;
 
   invalid_generation_domain =
       *AppStateGenerationDomainLookup("generation.panel.local-authority");
   invalid_generation_domain.generation_owner_field = "panel.__ytnova_missing__";
   if (AppStateValidateGenerationDomain("generation.panel.local-authority",
                                        &invalid_generation_domain))
-    return 16;
+    return 17;
 
   invalid_diff_harness =
       *AppStateDiffHarnessLookup("harness.transition-before-after-snapshot");
@@ -5164,7 +5169,7 @@ int main(void) {
   invalid_diff_harness.generation_domain_id_count = 0;
   if (AppStateValidateDiffHarness("harness.transition-before-after-snapshot",
                                   &invalid_diff_harness))
-    return 17;
+    return 18;
 
   invalid_sequence =
       *AppStateTransitionSequenceLookup("sequence.split-toggle-f8");
@@ -5172,7 +5177,14 @@ int main(void) {
   invalid_sequence.step_count = 0;
   if (AppStateValidateTransitionSequence("sequence.split-toggle-f8",
                                          &invalid_sequence))
-    return 18;
+    return 19;
+
+  invalid_shim =
+      *AppStateCompatibilityShimLookup("shim.focused-window-session-flag");
+  invalid_shim.write_capability = "read_only_projection";
+  if (AppStateValidateCompatibilityShim("shim.focused-window-session-flag",
+                                        &invalid_shim))
+    return 20;
 
   return 0;
 }
@@ -8200,6 +8212,26 @@ def test_guard_fails_when_runtime_shim_owner_field_ref_is_unknown(
     )
 
 
+def test_guard_fails_when_read_only_projection_shim_owner_field_is_in_write_set(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    shim = _shim()
+    shim["write_permission"] = "Read-only projection for render calculations."
+    shim["write_capability"] = "read_only_projection"
+    paths = _write_fixture(tmp_path, transitions=transitions, shims=[shim])
+
+    failures = _validate(paths)
+
+    assert any(
+        "shim[0]" in failure
+        and "read_only_projection owner_field_refs must stay outside "
+        "target_transition write set" in failure
+        and "field" in failure
+        for failure in failures
+    )
+
+
 def test_guard_fails_when_runtime_shim_write_capability_is_missing(
     tmp_path: Path,
 ) -> None:
@@ -8294,6 +8326,32 @@ def test_guard_fails_when_runtime_write_capable_shim_owner_field_is_outside_writ
         and "owner_field_refs must be declared by target_transition write set"
         in failure
         and "panel.tree_selection_key" in failure
+        for failure in failures
+    )
+
+
+def test_guard_fails_when_runtime_read_only_projection_owner_field_is_in_write_set(
+    tmp_path: Path,
+) -> None:
+    transitions = _complete_transitions()
+    runtime_shims = [_shim()]
+    runtime_shims[0]["write_permission"] = (
+        "Read-only projection for render calculations."
+    )
+    runtime_shims[0]["write_capability"] = "read_only_projection"
+    paths = _write_fixture(
+        tmp_path,
+        transitions=transitions,
+        runtime_shims=runtime_shims,
+    )
+
+    failures = _validate(paths)
+
+    assert any(
+        "runtime_shim[0]" in failure
+        and "read_only_projection owner_field_refs must stay outside "
+        "target_transition write set" in failure
+        and "field" in failure
         for failure in failures
     )
 

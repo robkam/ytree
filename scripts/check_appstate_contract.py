@@ -3355,6 +3355,10 @@ def _shim_write_capable(write_capability: Any) -> bool:
     return write_capability == "write_capable"
 
 
+def _shim_read_only_projection(write_capability: Any) -> bool:
+    return write_capability == "read_only_projection"
+
+
 def _validate_owner_field_ref_list(
     *,
     refs: Any,
@@ -3408,9 +3412,6 @@ def _validate_shim_owner_field_refs(
     if failures:
         return failures
 
-    if not _shim_write_capable(record.get("write_capability")):
-        return failures
-
     target_transition = record.get("target_transition")
     transition = (
         transition_ids.get(target_transition)
@@ -3430,11 +3431,21 @@ def _validate_shim_owner_field_refs(
     }
     owner_refs = record.get("owner_field_refs")
     assert isinstance(owner_refs, list)
+    write_capability = record.get("write_capability")
     for owner_ref in owner_refs:
-        if owner_ref not in declared_writes:
+        if _shim_write_capable(write_capability) and owner_ref not in declared_writes:
             failures.append(
                 f"{label}: owner_field_refs must be declared by "
                 f"target_transition write set {target_transition}: {owner_ref}"
+            )
+        if (
+            _shim_read_only_projection(write_capability)
+            and owner_ref in declared_writes
+        ):
+            failures.append(
+                f"{label}: read_only_projection owner_field_refs must stay "
+                f"outside target_transition write set {target_transition}: "
+                f"{owner_ref}"
             )
 
     return failures
