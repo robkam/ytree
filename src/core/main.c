@@ -1430,6 +1430,12 @@ static int AppStateCompatibilityShimWriteCapable(
          strcmp(metadata->write_capability, "write_capable") == 0;
 }
 
+static int AppStateCompatibilityShimReadOnlyProjection(
+    const AppStateCompatibilityShimMetadata *metadata) {
+  return metadata != NULL && metadata->write_capability != NULL &&
+         strcmp(metadata->write_capability, "read_only_projection") == 0;
+}
+
 static int AppStateCompatibilityShimWriteCapabilityKnown(
     const AppStateCompatibilityShimMetadata *metadata) {
   if (metadata == NULL || !NonEmptyString(metadata->write_capability))
@@ -1705,6 +1711,11 @@ static int AppStateCompatibilityShimsReady(void) {
           !StringListContains(transition->declared_write_set,
                               transition->declared_write_set_count,
                               metadata->owner_field_refs[ref_index]))
+        return 0;
+      if (AppStateCompatibilityShimReadOnlyProjection(metadata) &&
+          StringListContains(transition->declared_write_set,
+                             transition->declared_write_set_count,
+                             metadata->owner_field_refs[ref_index]))
         return 0;
       if (AppStateCompatibilityShimWriteCapable(metadata) &&
           AppStateGenerationOwnerFieldRegistered(
