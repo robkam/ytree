@@ -685,6 +685,8 @@ static void DrawSplitSeparatorRow(ViewContext *ctx, BOOL left_big,
 void RefreshView(ViewContext *ctx, DirEntry *dir_entry) {
   if (!AppStateValidatedDispatchSurface("surface.render-reflow-projection"))
     return;
+  if (!AppStateValidatedEvent("event.render-reflow"))
+    return;
 
   const Statistic *s = &ctx->active->vol->vol_stats;
   BOOL needs_window_recreate = FALSE;
