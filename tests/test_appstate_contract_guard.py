@@ -4798,7 +4798,7 @@ def test_appstate_shim_lookup_fails_closed_through_runtime_metadata() -> None:
     assert validation in header
     assert "static int AppStateValidateCompatibilityShim(" in source
     assert "AppStateCompatibilityShimLookup(shim_id)" in body
-    assert "AppStateTransitionLookup(metadata->target_transition)" in body
+    assert "AppStateValidatedTransition(metadata->target_transition)" in body
     assert "metadata->write_capability" in body
     assert '"read_only_projection"' in body
     assert "strcmp(metadata->id, shim_id)" in body
@@ -5049,6 +5049,130 @@ int main(void) {
   if (AppStateValidateEventCoverage("event.terminal-resize-signal",
                                     &missing_transition))
     return 11;
+
+  return 0;
+}
+""",
+        encoding="utf-8",
+    )
+
+    build = subprocess.run(
+        [
+            "gcc",
+            "-std=c99",
+            "-I.",
+            "-Iinclude",
+            str(probe),
+            "-o",
+            str(binary),
+        ],
+        cwd=repo_root,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert build.returncode == 0, build.stdout + build.stderr
+    run = subprocess.run(
+        [str(binary)],
+        cwd=repo_root,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert run.returncode == 0, run.stdout + run.stderr
+
+
+def test_runtime_registry_boundary_validation_requires_registered_metadata(
+    tmp_path: Path,
+) -> None:
+    repo_root = Path(__file__).resolve().parents[1]
+    probe = tmp_path / "registry_boundary_validation_probe.c"
+    binary = tmp_path / "registry_boundary_validation_probe"
+    probe.write_text(
+        """
+#include "src/core/appstate_actions.c"
+
+int main(void) {
+  AppStateTransitionMetadata invalid_transition;
+  AppStateOwnerFieldMetadata invalid_owner_field;
+  AppStateInvariantMetadata invalid_invariant;
+  AppStateGenerationDomainMetadata invalid_generation_domain;
+  AppStateDiffHarnessMetadata invalid_diff_harness;
+  AppStateTransitionSequenceMetadata invalid_sequence;
+  static const char *const missing_invariant_refs[] = {
+      "invariant.__ytnova_missing__",
+  };
+
+  if (!AppStateValidatedTransition("transition.keybinding.navigate-tree"))
+    return 1;
+  if (!AppStateValidatedOwnerField("panel.tree_selection_key"))
+    return 2;
+  if (!AppStateValidatedInvariant("invariant.inactive-panel-frozen"))
+    return 3;
+  if (!AppStateValidatedGenerationDomain("generation.panel.local-authority"))
+    return 4;
+  if (!AppStateValidatedDiffHarness("harness.transition-before-after-snapshot"))
+    return 5;
+  if (!AppStateValidatedTransitionSequence("sequence.split-toggle-f8"))
+    return 6;
+
+  if (AppStateValidatedTransition(NULL))
+    return 7;
+  if (AppStateValidatedOwnerField(""))
+    return 8;
+  if (AppStateValidatedInvariant("invariant.__ytnova_missing__"))
+    return 9;
+  if (AppStateValidatedGenerationDomain("generation.__ytnova_missing__"))
+    return 10;
+  if (AppStateValidatedDiffHarness("harness.__ytnova_missing__"))
+    return 11;
+  if (AppStateValidatedTransitionSequence("sequence.__ytnova_missing__"))
+    return 12;
+
+  invalid_transition =
+      *AppStateTransitionLookup("transition.keybinding.navigate-tree");
+  invalid_transition.owner = "";
+  if (AppStateValidateTransition("transition.keybinding.navigate-tree",
+                                 &invalid_transition))
+    return 13;
+
+  invalid_owner_field = *AppStateOwnerFieldLookup("panel.tree_selection_key");
+  invalid_owner_field.invariant_checks = missing_invariant_refs;
+  invalid_owner_field.invariant_check_count = 1;
+  if (AppStateValidateOwnerField("panel.tree_selection_key",
+                                 &invalid_owner_field))
+    return 14;
+
+  invalid_invariant =
+      *AppStateInvariantLookup("invariant.inactive-panel-frozen");
+  invalid_invariant.transition_ids = NULL;
+  invalid_invariant.transition_id_count = 0;
+  if (AppStateValidateInvariant("invariant.inactive-panel-frozen",
+                                &invalid_invariant))
+    return 15;
+
+  invalid_generation_domain =
+      *AppStateGenerationDomainLookup("generation.panel.local-authority");
+  invalid_generation_domain.generation_owner_field = "panel.__ytnova_missing__";
+  if (AppStateValidateGenerationDomain("generation.panel.local-authority",
+                                       &invalid_generation_domain))
+    return 16;
+
+  invalid_diff_harness =
+      *AppStateDiffHarnessLookup("harness.transition-before-after-snapshot");
+  invalid_diff_harness.generation_domain_ids = NULL;
+  invalid_diff_harness.generation_domain_id_count = 0;
+  if (AppStateValidateDiffHarness("harness.transition-before-after-snapshot",
+                                  &invalid_diff_harness))
+    return 17;
+
+  invalid_sequence =
+      *AppStateTransitionSequenceLookup("sequence.split-toggle-f8");
+  invalid_sequence.steps = NULL;
+  invalid_sequence.step_count = 0;
+  if (AppStateValidateTransitionSequence("sequence.split-toggle-f8",
+                                         &invalid_sequence))
+    return 18;
 
   return 0;
 }
