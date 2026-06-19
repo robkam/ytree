@@ -4629,6 +4629,9 @@ def test_panel_anchor_rebind_fails_closed_before_anchor_state_work() -> None:
     validation = (
         'if (!AppStateValidatedDispatchSurface("surface.panel-anchor-rebind"))'
     )
+    event_validation = (
+        'if (!AppStateValidatedEvent("event.rebuild-rebind-callback"))'
+    )
     early_return = "return;"
 
     assert 'include "ytnova_appstate_actions.h"' in source
@@ -4645,11 +4648,13 @@ def test_panel_anchor_rebind_fails_closed_before_anchor_state_work() -> None:
     ]
 
     assert validation in restore_body
+    assert event_validation in restore_body
     validation_idx = restore_body.index(validation)
-    early_return_idx = restore_body.index(early_return, validation_idx)
-    assert validation_idx < early_return_idx
+    event_validation_idx = restore_body.index(event_validation)
+    early_return_idx = restore_body.index(early_return, event_validation_idx)
+    assert validation_idx < event_validation_idx < early_return_idx
     for call in restore_boundary_calls:
-        assert validation_idx < restore_body.index(call)
+        assert event_validation_idx < restore_body.index(call)
         assert early_return_idx < restore_body.index(call)
 
     ensure_start = source.index("void EnsurePanelAnchorVisible(")
@@ -4665,11 +4670,13 @@ def test_panel_anchor_rebind_fails_closed_before_anchor_state_work() -> None:
     ]
 
     assert validation in ensure_body
+    assert event_validation in ensure_body
     validation_idx = ensure_body.index(validation)
-    early_return_idx = ensure_body.index(early_return, validation_idx)
-    assert validation_idx < early_return_idx
+    event_validation_idx = ensure_body.index(event_validation)
+    early_return_idx = ensure_body.index(early_return, event_validation_idx)
+    assert validation_idx < event_validation_idx < early_return_idx
     for call in ensure_boundary_calls:
-        assert validation_idx < ensure_body.index(call)
+        assert event_validation_idx < ensure_body.index(call)
         assert early_return_idx < ensure_body.index(call)
 
 
