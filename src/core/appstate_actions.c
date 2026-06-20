@@ -6704,6 +6704,8 @@ int AppStateValidatedInvariant(const char *invariant_id) {
 static int
 AppStateValidateGenerationDomain(
     const char *domain_id, const AppStateGenerationDomainMetadata *metadata) {
+  size_t index;
+
   if (!AppStateNonEmptyString(domain_id))
     return 0;
   if (metadata == NULL || !AppStateNonEmptyString(metadata->domain_id) ||
@@ -6729,6 +6731,12 @@ AppStateValidateGenerationDomain(
           metadata->advances_on_transition_ids,
           metadata->advances_on_transition_id_count))
     return 0;
+  for (index = 0; index < metadata->advances_on_transition_id_count; index++) {
+    if (!AppStateStringListContains(metadata->coverage_transition_ids,
+                                    metadata->coverage_transition_id_count,
+                                    metadata->advances_on_transition_ids[index]))
+      return 0;
+  }
   if (!AppStateNonEmptyStringList(metadata->migration_notes,
                                   metadata->migration_note_count))
     return 0;
