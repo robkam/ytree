@@ -73,7 +73,19 @@ typedef struct {
 typedef struct {
   const char *id;
   const char *category;
+  const char *source_state;
+  const char *event;
+  const char *guard;
+  const char *allowed_result;
+  const char *blocked_result;
+  const char *target_state;
   const char *owner;
+  const char *generation_effect;
+  const char *const *side_effects;
+  size_t side_effect_count;
+  const char *render_invalidation;
+  const char *boundary_status;
+  const char *notes_follow_up;
   const char *const *declared_write_set;
   size_t declared_write_set_count;
 } AppStateTransitionMetadata;

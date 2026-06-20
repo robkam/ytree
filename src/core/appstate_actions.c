@@ -2286,7 +2286,6 @@ static const AppStateTransitionSequenceMetadata kAppStateTransitionSequences[] =
    "Select a loaded volume from the volume menu while preserving panel-local restore authority.",
    kAppStateTransitionSequenceSteps14,
    sizeof(kAppStateTransitionSequenceSteps14) / sizeof(kAppStateTransitionSequenceSteps14[0])},
-
 };
 static const char *const kAppStateDispatchSurfaceMigrationNotes0[] = {
   "Current input polling and key normalization feed controller dispatch; AppState mutation remains in downstream handlers until runtime transition objects are introduced.",
@@ -3120,57 +3119,218 @@ static const AppStateInvariantMetadata kAppStateInvariants[] = {
        sizeof(kAppStateInvariantMigrationNotes7[0])},
 };
 
+static const char *const kAppStateTransitionSideEffects0[] = {
+  "May request directory payload load when Enter reveals an unlogged directory.",
+};
+static const char *const kAppStateTransitionSideEffects1[] = {
+  "May read the volume registry.",
+};
+static const char *const kAppStateTransitionSideEffects2[] = {
+  "No filesystem side effects.",
+};
+static const char *const kAppStateTransitionSideEffects3[] = {
+  "Filesystem scan/read operations.",
+};
+static const char *const kAppStateTransitionSideEffects4[] = {
+  "May close archive/filesystem resources.",
+};
+static const char *const kAppStateTransitionSideEffects5[] = {
+  "Ncurses window recreation in main loop only.",
+};
+static const char *const kAppStateTransitionSideEffects6[] = {
+  "Filesystem create/copy/move/delete/chmod-like operations already performed by command layer.",
+};
+static const char *const kAppStateTransitionSideEffects7[] = {
+  "External command execution is outside the AppState commit boundary.",
+};
+static const char *const kAppStateTransitionSideEffects8[] = {
+  "May request payload reload for a visible but unloaded file-view anchor.",
+};
+static const char *const kAppStateTransitionSideEffects9[] = {
+  "Ncurses drawing and doupdate.",
+};
+
 static const AppStateTransitionMetadata kAppStateTransitions[] = {
   {"transition.keybinding.navigate-tree",
    "keybinding",
+   "AppState.panel[active].focus_shape=tree",
+   "canonical_key:up_down_left_right_enter",
+   "Input is valid for the active focus shape and target identity resolves in the current volume namespace.",
+   "Mutate only the active panel selection, viewport, and focus-shape fields required by the key semantics.",
+   "Leave AppState unchanged except for an explicit no-op or constraint message when user-visible clarity is required.",
+   "AppState.panel[active] records the new tree selection, viewport, and focus shape before render projection.",
    "YtreeNovaPanel(active)",
+   "Increment panel_generation when selection, viewport, or focus shape changes; volume_generation is unchanged.",
+   kAppStateTransitionSideEffects0,
+   sizeof(kAppStateTransitionSideEffects0) /
+       sizeof(kAppStateTransitionSideEffects0[0]),
+   "tree_view,file_view,footer",
+   "documented_foundation_only",
+   "Route HandleDirWindow key dispatch through the canonical transition boundary in a later runtime migration.",
    kAppStateTransitionWriteSet0,
    sizeof(kAppStateTransitionWriteSet0) / sizeof(kAppStateTransitionWriteSet0[0])},
   {"transition.menu-action.volume-select",
    "menu_action",
+   "AppState.modal=volume_menu",
+   "menu_selection:loaded_volume",
+   "Selected volume identity exists; selecting the already-active volume must preserve its logged topology.",
+   "Bind the active panel to the selected volume and restore that panel's own snapshot for the volume.",
+   "Dismiss or keep the menu according to existing UI semantics without changing panel or volume ownership.",
+   "AppState.panel[active].volume_key matches the selected volume and uses the panel-local restore record.",
    "ViewContext(session routing) and YtreeNovaPanel(active)",
+   "Increment panel_generation when the active panel binds to a different volume; volume_generation changes only for explicit relog/rebuild.",
+   kAppStateTransitionSideEffects1,
+   sizeof(kAppStateTransitionSideEffects1) /
+       sizeof(kAppStateTransitionSideEffects1[0]),
+   "layout,tree_view,file_view,stats,footer",
+   "documented_foundation_only",
+   "Keep the loaded-volume preservation rule from the specification during runtime migration.",
    kAppStateTransitionWriteSet1,
    sizeof(kAppStateTransitionWriteSet1) / sizeof(kAppStateTransitionWriteSet1[0])},
   {"transition.modal-action.dismiss",
    "modal_action",
+   "AppState.modal=severity_or_neutral_dialog",
+   "modal_key:esc_or_enter",
+   "The key is accepted by the active modal class and no destructive confirmation is being accepted implicitly.",
+   "Clear the modal region and restore the previously recorded panel/session focus shape.",
+   "Keep the modal active and leave underlying panel/volume state unchanged.",
+   "AppState.modal=none with the suspended panel state restored from its record.",
    "ViewContext.modal_region",
+   "Increment panel_generation only if restoring the suspended focus shape changes panel-local state.",
+   kAppStateTransitionSideEffects2,
+   sizeof(kAppStateTransitionSideEffects2) /
+       sizeof(kAppStateTransitionSideEffects2[0]),
+   "modal_overlay,footer,underlying_view_projection",
+   "documented_foundation_only",
+   "Modal migration must preserve severity versus neutral dialog routing.",
    kAppStateTransitionWriteSet2,
    sizeof(kAppStateTransitionWriteSet2) / sizeof(kAppStateTransitionWriteSet2[0])},
   {"transition.refresh-rebuild.manual-refresh",
    "refresh_rebuild",
+   "AppState.volume[current].topology=current_generation",
+   "manual_refresh_command_or_explicit_relog",
+   "The active volume namespace is available and rebuild can complete or fail closed.",
+   "Complete rebuild, advance volume_generation, then re-resolve panel snapshots by stable identity keys.",
+   "Keep the previous topology and surface the refresh failure; do not apply partial row-index guesses.",
+   "AppState.volume[current] has settled topology and panels are rebound or deterministically fallen back.",
    "Volume(shared topology)",
+   "Increment volume_generation for any topology or visibility-set change; increment affected panel_generation after rebind/fallback.",
+   kAppStateTransitionSideEffects3,
+   sizeof(kAppStateTransitionSideEffects3) /
+       sizeof(kAppStateTransitionSideEffects3[0]),
+   "tree_view,file_view,stats,footer",
+   "documented_foundation_only",
+   "Runtime migration must keep restore ordering: rebuild, generation advance, rebind/fallback, render.",
    kAppStateTransitionWriteSet3,
    sizeof(kAppStateTransitionWriteSet3) / sizeof(kAppStateTransitionWriteSet3[0])},
   {"transition.volume-operation.release-cycle",
    "volume_operation",
+   "AppState.panel[active].volume_key=current",
+   "volume_command:cycle_or_release",
+   "Operation has a valid target volume and will not orphan required panel restore state.",
+   "Update the active panel's volume binding or release the selected volume after safe ownership checks.",
+   "Preserve the existing active volume binding and report the constraint when the operation cannot proceed.",
+   "AppState session registry and active panel volume binding are consistent.",
    "ViewContext.volume_registry and YtreeNovaPanel(active)",
+   "Increment panel_generation on binding changes; increment volume_generation on release/relog topology invalidation.",
+   kAppStateTransitionSideEffects4,
+   sizeof(kAppStateTransitionSideEffects4) /
+       sizeof(kAppStateTransitionSideEffects4[0]),
+   "layout,tree_view,file_view,stats,footer",
+   "documented_foundation_only",
+   "Ensure inactive panels sharing a released volume use deterministic fallback instead of stale pointers.",
    kAppStateTransitionWriteSet4,
    sizeof(kAppStateTransitionWriteSet4) / sizeof(kAppStateTransitionWriteSet4[0])},
   {"transition.terminal-signal-resize",
    "terminal_signal_or_resize",
+   "AppState.layout=current_geometry",
+   "signal:SIGWINCH_or_resize_poll",
+   "Signal handling has only set flags; resize work is executing in the main loop after curses can be called safely.",
+   "Recompute layout geometry and project existing panel state into the new viewport bounds.",
+   "Keep existing authoritative AppState records; if geometry is unusable, render only the safe degraded message surface.",
+   "AppState.layout records current geometry while panel selection identities remain unchanged.",
    "ViewContext.layout_region",
+   "Increment panel_generation only when viewport bounds correction changes saved origins; volume_generation is unchanged.",
+   kAppStateTransitionSideEffects5,
+   sizeof(kAppStateTransitionSideEffects5) /
+       sizeof(kAppStateTransitionSideEffects5[0]),
+   "full_screen_projection",
+   "documented_foundation_only",
+   "Render reflow must remain projection-only and must not choose a new selection by row math.",
    kAppStateTransitionWriteSet5,
    sizeof(kAppStateTransitionWriteSet5) / sizeof(kAppStateTransitionWriteSet5[0])},
   {"transition.filesystem-mutation-result.mkdir-copy-delete",
    "filesystem_mutation_result",
+   "AppState.command=in_progress_filesystem_mutation",
+   "mutation_result:success_or_failure",
+   "Mutation result is complete and source/target paths are normalized within the intended namespace.",
+   "On success, update affected topology/payload records and rebind panels by identity; on failure, preserve prior authority and report the failure.",
+   "Do not apply partial topology changes; keep panel snapshots and volume_generation unchanged unless a verified rebuild follows.",
+   "AppState.volume and affected panels reflect the completed mutation or the unchanged pre-mutation state.",
    "Volume(shared topology) plus YtreeNovaPanel(active) for active selection",
+   "Increment volume_generation for mutations that change topology, identity, or visible payload; increment affected panel_generation after rebind/fallback.",
+   kAppStateTransitionSideEffects6,
+   sizeof(kAppStateTransitionSideEffects6) /
+       sizeof(kAppStateTransitionSideEffects6[0]),
+   "tree_view,file_view,stats,footer",
+   "documented_foundation_only",
+   "Runtime migration must separate command side effects from AppState commit/rollback metadata.",
    kAppStateTransitionWriteSet6,
    sizeof(kAppStateTransitionWriteSet6) / sizeof(kAppStateTransitionWriteSet6[0])},
   {"transition.command-completion.user-command",
    "command_completion",
+   "AppState.command=external_or_user_menu_command",
+   "command_result:exit_status",
+   "Command completion has a final status and any requested refresh/reload boundary is explicit.",
+   "Record outcome message and schedule refresh/rebind only when the command contract declares filesystem impact.",
+   "Preserve panel and volume state while reporting command failure or cancellation.",
+   "AppState.command=idle with message and optional refresh transition queued.",
    "ViewContext.command_region",
+   "No generation change unless a declared follow-up refresh/rebuild or panel focus change occurs.",
+   kAppStateTransitionSideEffects7,
+   sizeof(kAppStateTransitionSideEffects7) /
+       sizeof(kAppStateTransitionSideEffects7[0]),
+   "footer,stats_optional",
+   "documented_foundation_only",
+   "Later runtime boundary should declare whether each command completion queues refresh_rebuild.",
    kAppStateTransitionWriteSet7,
    sizeof(kAppStateTransitionWriteSet7) / sizeof(kAppStateTransitionWriteSet7[0])},
   {"transition.rebuild-rebind-callback.panel-anchor",
    "rebuild_rebind_callback",
+   "AppState.restore_snapshot=saved_generation_or_stale",
+   "callback:post_rebuild_rebind",
+   "Topology rebuild is settled and stable identity keys are available for re-resolution.",
+   "Re-resolve exact identity or apply the deterministic fallback order, then commit the new panel anchor.",
+   "Fail closed to root visible node only after exact/ancestor/sibling fallbacks are exhausted; never dereference stale pointers.",
+   "AppState.panel snapshot matches current panel_generation and volume_generation.",
    "YtreeNovaPanel(affected) and Volume(current)",
+   "Refresh snapshot generation markers after successful rebind/fallback; volume_generation is read, not advanced, by the callback.",
+   kAppStateTransitionSideEffects8,
+   sizeof(kAppStateTransitionSideEffects8) /
+       sizeof(kAppStateTransitionSideEffects8[0]),
+   "tree_view,file_view",
+   "documented_foundation_only",
+   "Use panel_anchor helpers as the canonical restore boundary during runtime migration.",
    kAppStateTransitionWriteSet8,
    sizeof(kAppStateTransitionWriteSet8) / sizeof(kAppStateTransitionWriteSet8[0])},
   {"transition.render-reflow.project-state",
    "render_reflow",
+   "AppState.render_invalidated=true",
+   "render_tick:doupdate_ready",
+   "Authoritative AppState records are settled before rendering begins.",
+   "Compute temporary view projections and flush staged ncurses updates without mutating selection authority.",
+   "Skip or degrade rendering; do not synthesize a new authoritative selection, viewport, or focus shape.",
+   "Rendered screen reflects AppState; AppState selection and ownership fields are unchanged by projection.",
    "ViewContext.render_region",
+   "No panel_generation or volume_generation change from render projection alone.",
+   kAppStateTransitionSideEffects9,
+   sizeof(kAppStateTransitionSideEffects9) /
+       sizeof(kAppStateTransitionSideEffects9[0]),
+   "cleared_after_successful_projection",
+   "documented_foundation_only",
+   "Audit render paths so temporary projections cannot become restore authority.",
    kAppStateTransitionWriteSet9,
-   sizeof(kAppStateTransitionWriteSet9) / sizeof(kAppStateTransitionWriteSet9[0])},
+   sizeof(kAppStateTransitionWriteSet9) / sizeof(kAppStateTransitionWriteSet9[0])}
 };
 
 static const AppStateActionTransitionMetadata
@@ -6379,7 +6539,19 @@ AppStateValidateTransition(const char *transition_id,
       strcmp(metadata->id, transition_id))
     return 0;
   if (!AppStateNonEmptyString(metadata->category) ||
-      !AppStateNonEmptyString(metadata->owner))
+      !AppStateNonEmptyString(metadata->source_state) ||
+      !AppStateNonEmptyString(metadata->event) ||
+      !AppStateNonEmptyString(metadata->guard) ||
+      !AppStateNonEmptyString(metadata->allowed_result) ||
+      !AppStateNonEmptyString(metadata->blocked_result) ||
+      !AppStateNonEmptyString(metadata->target_state) ||
+      !AppStateNonEmptyString(metadata->owner) ||
+      !AppStateNonEmptyString(metadata->generation_effect) ||
+      !AppStateNonEmptyStringList(metadata->side_effects,
+                                  metadata->side_effect_count) ||
+      !AppStateNonEmptyString(metadata->render_invalidation) ||
+      !AppStateNonEmptyString(metadata->boundary_status) ||
+      !AppStateNonEmptyString(metadata->notes_follow_up))
     return 0;
   if (!AppStateTransitionFieldsRegistered(metadata->declared_write_set,
                                           metadata->declared_write_set_count))

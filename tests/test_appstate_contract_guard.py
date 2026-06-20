@@ -944,6 +944,7 @@ def _runtime_source(
     transition_sequences: list[dict[str, object]],
 ) -> str:
     transition_write_sets = []
+    transition_side_effects = []
     transition_rows = []
     for index, record in enumerate(transitions):
         declared_write_set = record.get("declared_write_set")
@@ -956,9 +957,29 @@ def _runtime_source(
             "static const char *const kAppStateTransitionWriteSet"
             f"{index}[] = {{\n{write_set_rows}\n}};\n"
         )
+        side_effects = record.get("side_effects")
+        if not isinstance(side_effects, list):
+            side_effects = []
+        side_effect_rows = "\n".join(
+            f'  "{effect}",' for effect in side_effects if isinstance(effect, str)
+        )
+        transition_side_effects.append(
+            "static const char *const kAppStateTransitionSideEffects"
+            f"{index}[] = {{\n{side_effect_rows}\n}};\n"
+        )
         transition_rows.append(
             f'  {{"{record.get("id", "")}", "{record.get("category", "")}", '
-            f'"{record.get("owner", "")}", '
+            f'"{record.get("source_state", "")}", "{record.get("event", "")}", '
+            f'"{record.get("guard", "")}", "{record.get("allowed_result", "")}", '
+            f'"{record.get("blocked_result", "")}", '
+            f'"{record.get("target_state", "")}", "{record.get("owner", "")}", '
+            f'"{record.get("generation_effect", "")}", '
+            f"kAppStateTransitionSideEffects{index}, "
+            f"sizeof(kAppStateTransitionSideEffects{index}) / "
+            f"sizeof(kAppStateTransitionSideEffects{index}[0]), "
+            f'"{record.get("render_invalidation", "")}", '
+            f'"{record.get("boundary_status", "")}", '
+            f'"{record.get("notes_follow_up", "")}", '
             f"kAppStateTransitionWriteSet{index}, "
             f"sizeof(kAppStateTransitionWriteSet{index}) / "
             f"sizeof(kAppStateTransitionWriteSet{index}[0])}},"
@@ -1666,6 +1687,7 @@ def _runtime_source(
     )
     return (
         "".join(transition_write_sets)
+        + "".join(transition_side_effects)
         + "".join(action_coverage_arrays)
         + "".join(event_coverage_arrays)
         + "".join(owner_field_arrays)
@@ -3605,6 +3627,10 @@ def test_runtime_transition_registry_startup_checks_fail_closed() -> None:
     assert 'AppStateTransitionLookup("transition.__ytnova_unknown__") != NULL' in source
     assert "AppStateTransitionCount() != required_transition_id_count" in source
     assert "metadata == NULL || !NonEmptyString(metadata->id)" in source
+    assert "!NonEmptyString(metadata->guard)" in source
+    assert "!NonEmptyString(metadata->blocked_result)" in source
+    assert "!NonEmptyStringList(metadata->side_effects" in source
+    assert "!NonEmptyString(metadata->render_invalidation)" in source
     assert "metadata->declared_write_set == NULL" in source
     assert "metadata->declared_write_set_count == 0" in source
     assert "previous_index < index" in source
@@ -8867,6 +8893,9 @@ def test_guard_fails_when_runtime_transition_registry_mismatches_matrix(
     runtime_transitions[0]["category"] = "render_reflow"
     runtime_transitions[1]["owner"] = "different owner"
     runtime_transitions[2]["declared_write_set"] = ["panel.tree_selection_key"]
+    runtime_transitions[3]["guard"] = "different guard"
+    runtime_transitions[4]["side_effects"] = ["different side effect"]
+    runtime_transitions[5]["boundary_status"] = "different status"
     paths = _write_fixture(
         tmp_path,
         transitions=transitions,
@@ -8884,6 +8913,17 @@ def test_guard_fails_when_runtime_transition_registry_mismatches_matrix(
     )
     assert any(
         "runtime declared_write_set does not match transition" in failure
+        for failure in failures
+    )
+    assert any(
+        "runtime guard does not match transition" in failure for failure in failures
+    )
+    assert any(
+        "runtime side_effects does not match transition" in failure
+        for failure in failures
+    )
+    assert any(
+        "runtime boundary_status does not match transition" in failure
         for failure in failures
     )
 
