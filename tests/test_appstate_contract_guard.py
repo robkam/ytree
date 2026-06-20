@@ -4418,6 +4418,21 @@ def test_runtime_dispatch_surface_validation_requires_registry_and_transition(
 int main(void) {
   AppStateDispatchSurfaceMetadata mismatched_surface;
   AppStateDispatchSurfaceMetadata missing_transition;
+  AppStateDispatchSurfaceMetadata blank_source_path;
+  AppStateDispatchSurfaceMetadata unknown_allowed_write;
+  AppStateDispatchSurfaceMetadata outside_allowed_write;
+  AppStateDispatchSurfaceMetadata missing_sequences;
+  AppStateDispatchSurfaceMetadata wrong_sequence;
+  AppStateDispatchSurfaceMetadata missing_notes;
+  static const char *const unknown_allowed_writes[] = {
+      "field.__ytnova_missing__",
+  };
+  static const char *const outside_allowed_writes[] = {
+      "ctx.command_state",
+  };
+  static const char *const wrong_sequence_refs[] = {
+      "sequence.volume-cycling-release",
+  };
 
   if (!AppStateValidatedDispatchSurface("surface.key-decode-input-dispatch"))
     return 1;
@@ -4463,6 +4478,53 @@ int main(void) {
   if (AppStateValidateDispatchSurface("surface.key-decode-input-dispatch",
                                       &missing_transition))
     return 7;
+
+  blank_source_path =
+      *AppStateDispatchSurfaceLookup("surface.key-decode-input-dispatch");
+  blank_source_path.source_path = "";
+  if (AppStateValidateDispatchSurface("surface.key-decode-input-dispatch",
+                                      &blank_source_path))
+    return 17;
+
+  unknown_allowed_write =
+      *AppStateDispatchSurfaceLookup("surface.key-decode-input-dispatch");
+  unknown_allowed_write.allowed_direct_writes = unknown_allowed_writes;
+  unknown_allowed_write.allowed_direct_write_count = 1;
+  if (AppStateValidateDispatchSurface("surface.key-decode-input-dispatch",
+                                      &unknown_allowed_write))
+    return 18;
+
+  outside_allowed_write =
+      *AppStateDispatchSurfaceLookup("surface.key-decode-input-dispatch");
+  outside_allowed_write.allowed_direct_writes = outside_allowed_writes;
+  outside_allowed_write.allowed_direct_write_count = 1;
+  if (AppStateValidateDispatchSurface("surface.key-decode-input-dispatch",
+                                      &outside_allowed_write))
+    return 19;
+
+  missing_sequences =
+      *AppStateDispatchSurfaceLookup("surface.key-decode-input-dispatch");
+  missing_sequences.transition_sequence_refs = 0;
+  missing_sequences.transition_sequence_ref_count = 0;
+  if (AppStateValidateDispatchSurface("surface.key-decode-input-dispatch",
+                                      &missing_sequences))
+    return 20;
+
+  wrong_sequence =
+      *AppStateDispatchSurfaceLookup("surface.key-decode-input-dispatch");
+  wrong_sequence.transition_sequence_refs = wrong_sequence_refs;
+  wrong_sequence.transition_sequence_ref_count = 1;
+  if (AppStateValidateDispatchSurface("surface.key-decode-input-dispatch",
+                                      &wrong_sequence))
+    return 21;
+
+  missing_notes =
+      *AppStateDispatchSurfaceLookup("surface.key-decode-input-dispatch");
+  missing_notes.migration_notes = 0;
+  missing_notes.migration_note_count = 0;
+  if (AppStateValidateDispatchSurface("surface.key-decode-input-dispatch",
+                                      &missing_notes))
+    return 22;
 
   return 0;
 }
