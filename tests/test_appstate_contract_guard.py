@@ -4339,7 +4339,12 @@ def test_runtime_key_action_validation_requires_coverage_and_transition(
 #include "src/core/appstate_actions.c"
 
 int main(void) {
+  AppStateActionCoverageMetadata invalid_owner_refs;
+  AppStateActionCoverageMetadata mismatched_owner;
   AppStateActionCoverageMetadata missing_transition;
+  static const char *const missing_owner_field_refs[] = {
+      "panel.__ytnova_missing__",
+  };
 
   if (AppStateValidatedKeyAction(ACTION_ENTER) != ACTION_ENTER)
     return 1;
@@ -4354,6 +4359,19 @@ int main(void) {
   if (AppStateValidateKeyActionCoverage(ACTION_ENTER, &missing_transition) !=
       ACTION_NONE)
     return 4;
+
+  invalid_owner_refs = *AppStateActionCoverageLookup(ACTION_ENTER);
+  invalid_owner_refs.owner_field_refs = missing_owner_field_refs;
+  invalid_owner_refs.owner_field_ref_count = 1;
+  if (AppStateValidateKeyActionCoverage(ACTION_ENTER, &invalid_owner_refs) !=
+      ACTION_NONE)
+    return 5;
+
+  mismatched_owner = *AppStateActionCoverageLookup(ACTION_ENTER);
+  mismatched_owner.owner = "window.__ytnova_mismatch__";
+  if (AppStateValidateKeyActionCoverage(ACTION_ENTER, &mismatched_owner) !=
+      ACTION_NONE)
+    return 6;
 
   return 0;
 }
@@ -5039,6 +5057,8 @@ def test_runtime_event_boundary_validation_requires_coverage_and_transition(
 
 int main(void) {
   AppStateEventCoverageMetadata mismatched_event;
+  AppStateEventCoverageMetadata mismatched_owner;
+  AppStateEventCoverageMetadata invalid_write_set;
   AppStateEventCoverageMetadata missing_transition;
 
   if (!AppStateValidatedEvent("event.terminal-resize-signal"))
@@ -5077,6 +5097,21 @@ int main(void) {
   if (AppStateValidateEventCoverage("event.terminal-resize-signal",
                                     &missing_transition))
     return 11;
+
+  mismatched_owner =
+      *AppStateEventCoverageLookup("event.terminal-resize-signal");
+  mismatched_owner.owner = "window.__ytnova_mismatch__";
+  if (AppStateValidateEventCoverage("event.terminal-resize-signal",
+                                    &mismatched_owner))
+    return 14;
+
+  invalid_write_set =
+      *AppStateEventCoverageLookup("event.terminal-resize-signal");
+  invalid_write_set.declared_write_set = 0;
+  invalid_write_set.declared_write_set_count = 0;
+  if (AppStateValidateEventCoverage("event.terminal-resize-signal",
+                                    &invalid_write_set))
+    return 15;
 
   return 0;
 }
