@@ -3023,6 +3023,23 @@ def _validate_runtime_generation_domain_registry(
                         f"{label}: advances_on_transition_ids must be covered by "
                         f"coverage_transition_ids: {transition_id}"
                     )
+            declared_advances = {
+                transition_id
+                for transition_id in transition_refs
+                if isinstance(transition_id, str) and transition_id.strip()
+            }
+            for transition_id in coverage_transition_refs:
+                if (
+                    isinstance(transition_id, str)
+                    and transition_id.strip()
+                    and transition_id not in declared_advances
+                    and not _has_projection_only_note(record.get("migration_notes"))
+                ):
+                    failures.append(
+                        f"{label}: coverage_transition_ids without "
+                        "advances_on_transition_ids requires a read-only/"
+                        f"projection-only migration_notes explanation: {transition_id}"
+                    )
         generation_owner_field = record.get("generation_owner_field")
         if (
             isinstance(generation_owner_field, str)
@@ -4896,6 +4913,14 @@ def _validate_generation_transition_refs(
     return failures
 
 
+def _has_projection_only_note(migration_notes: Any) -> bool:
+    return isinstance(migration_notes, list) and any(
+        isinstance(note, str)
+        and ("read-only" in note.lower() or "projection-only" in note.lower())
+        for note in migration_notes
+    )
+
+
 def _validate_generation_domains(
     *,
     generation_domains_doc: Any,
@@ -5013,6 +5038,23 @@ def _validate_generation_domains(
                     failures.append(
                         f"{label}: advances_on_transition_ids must be covered by "
                         f"coverage_transition_ids: {transition_id}"
+                    )
+            declared_advances = {
+                transition_id
+                for transition_id in advances_on_transition_ids
+                if isinstance(transition_id, str) and transition_id.strip()
+            }
+            for transition_id in coverage_transition_ids:
+                if (
+                    isinstance(transition_id, str)
+                    and transition_id.strip()
+                    and transition_id not in declared_advances
+                    and not _has_projection_only_note(record.get("migration_notes"))
+                ):
+                    failures.append(
+                        f"{label}: coverage_transition_ids without "
+                        "advances_on_transition_ids requires a read-only/"
+                        f"projection-only migration_notes explanation: {transition_id}"
                     )
 
     missing_categories = sorted(
