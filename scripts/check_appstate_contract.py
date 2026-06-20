@@ -995,6 +995,17 @@ def _parse_runtime_transition_registry(
             r'"([^"]+)"', write_set_match.group("body")
         )
 
+    side_effects: dict[str, list[str]] = {}
+    side_effect_re = re.compile(
+        r"static\s+const\s+char\s+\*const\s+"
+        r"(kAppStateTransitionSideEffects[0-9]+)\[\]\s*=\s*\{(?P<body>.*?)\};",
+        re.S,
+    )
+    for side_effect_match in side_effect_re.finditer(source):
+        side_effects[side_effect_match.group(1)] = re.findall(
+            r'"([^"]+)"', side_effect_match.group("body")
+        )
+
     match = re.search(
         r"kAppStateTransitions\s*\[\]\s*=\s*\{(?P<body>.*?)\};",
         source,
@@ -1006,7 +1017,17 @@ def _parse_runtime_transition_registry(
     records: list[dict[str, Any]] = []
     failures: list[str] = []
     row_re = re.compile(
-        r"\{\s*\"([^\"]+)\"\s*,\s*\"([^\"]+)\"\s*,\s*\"([^\"]+)\"\s*,"
+        r"\{\s*\"(?P<id>[^\"]+)\"\s*,\s*\"(?P<category>[^\"]+)\"\s*,"
+        r"\s*\"(?P<source_state>[^\"]+)\"\s*,\s*\"(?P<event>[^\"]+)\"\s*,"
+        r"\s*\"(?P<guard>[^\"]+)\"\s*,\s*\"(?P<allowed_result>[^\"]+)\"\s*,"
+        r"\s*\"(?P<blocked_result>[^\"]+)\"\s*,"
+        r"\s*\"(?P<target_state>[^\"]+)\"\s*,\s*\"(?P<owner>[^\"]+)\"\s*,"
+        r"\s*\"(?P<generation_effect>[^\"]+)\"\s*,"
+        r"\s*(?P<side_effects>kAppStateTransitionSideEffects[0-9]+)\s*,"
+        r"\s*sizeof\((?P=side_effects)\)\s*/\s*sizeof\((?P=side_effects)\[0\]\)\s*,"
+        r"\s*\"(?P<render_invalidation>[^\"]+)\"\s*,"
+        r"\s*\"(?P<boundary_status>[^\"]+)\"\s*,"
+        r"\s*\"(?P<notes_follow_up>[^\"]+)\"\s*,"
         r"\s*(?P<write_set>kAppStateTransitionWriteSet[0-9]+)\s*,"
         r"\s*sizeof\((?P=write_set)\)\s*/\s*sizeof\((?P=write_set)\[0\]\)\s*\}",
         re.S,
@@ -1019,11 +1040,30 @@ def _parse_runtime_transition_registry(
                 f"runtime_transition[{index}]: unknown write-set table: {write_set_name}"
             )
             declared_write_set = []
+        side_effect_name = row_match.group("side_effects")
+        side_effect_values = side_effects.get(side_effect_name)
+        if side_effect_values is None:
+            failures.append(
+                f"runtime_transition[{index}]: unknown side-effects table: "
+                f"{side_effect_name}"
+            )
+            side_effect_values = []
         records.append(
             {
-                "id": row_match.group(1),
-                "category": row_match.group(2),
-                "owner": row_match.group(3),
+                "id": row_match.group("id"),
+                "category": row_match.group("category"),
+                "source_state": row_match.group("source_state"),
+                "event": row_match.group("event"),
+                "guard": row_match.group("guard"),
+                "allowed_result": row_match.group("allowed_result"),
+                "blocked_result": row_match.group("blocked_result"),
+                "target_state": row_match.group("target_state"),
+                "owner": row_match.group("owner"),
+                "generation_effect": row_match.group("generation_effect"),
+                "side_effects": side_effect_values,
+                "render_invalidation": row_match.group("render_invalidation"),
+                "boundary_status": row_match.group("boundary_status"),
+                "notes_follow_up": row_match.group("notes_follow_up"),
                 "declared_write_set": declared_write_set,
             }
         )
@@ -2324,7 +2364,22 @@ def _validate_runtime_transition_registry(
                 f"{label}: id does not match a transition matrix id: {runtime_id}"
             )
         else:
-            for field in ("category", "owner", "declared_write_set"):
+            for field in (
+                "category",
+                "source_state",
+                "event",
+                "guard",
+                "allowed_result",
+                "blocked_result",
+                "target_state",
+                "owner",
+                "generation_effect",
+                "side_effects",
+                "render_invalidation",
+                "boundary_status",
+                "notes_follow_up",
+                "declared_write_set",
+            ):
                 if record.get(field) != matrix_record.get(field):
                     failures.append(
                         f"{label}: runtime {field} does not match transition "

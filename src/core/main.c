@@ -919,7 +919,18 @@ static int AppStateTransitionRegistryReady(void) {
 
     if (metadata == NULL || !NonEmptyString(metadata->id) ||
         !NonEmptyString(metadata->category) ||
+        !NonEmptyString(metadata->source_state) ||
+        !NonEmptyString(metadata->event) || !NonEmptyString(metadata->guard) ||
+        !NonEmptyString(metadata->allowed_result) ||
+        !NonEmptyString(metadata->blocked_result) ||
+        !NonEmptyString(metadata->target_state) ||
         !NonEmptyString(metadata->owner) ||
+        !NonEmptyString(metadata->generation_effect) ||
+        !NonEmptyStringList(metadata->side_effects,
+                            metadata->side_effect_count) ||
+        !NonEmptyString(metadata->render_invalidation) ||
+        !NonEmptyString(metadata->boundary_status) ||
+        !NonEmptyString(metadata->notes_follow_up) ||
         metadata->declared_write_set == NULL ||
         metadata->declared_write_set_count == 0)
       return 0;
